@@ -83,6 +83,12 @@ Do NOT use a simple scoring matrix that eliminates engines. Instead, reason thro
 - Licensing reality: 5% royalty only applies AFTER $1M gross revenue per title. For a first game or any game that doesn't reach $1M, it costs nothing. This threshold is high enough that most indie developers will never pay it.
 - Best fit: AAA-quality 3D; large open-world games; photorealistic visuals; developers with C++ experience or willing to use Blueprint; games targeting high-end PC/console where visual fidelity is a core selling point
 
+**Babylon.js (WebGL2 / WebGPU)**
+- Genuine strengths: One codebase for web + desktop (Electron shell); TypeScript-native and tree-shakeable with deep named imports; excellent for 3D web games and stylized 3D; Havok physics v2; strong playground + docs; free and open source
+- Real limitations: Bounded by browser/GPU performance vs native engines; no console certification path out of the box (needs an Electron/Tauri shell for desktop store); smaller asset-store ecosystem than Unity/Unreal
+- Licensing reality: Free, no royalties, no revenue thresholds
+- Best fit: Web-first games; 3D web + desktop hybrid; indie projects already in TypeScript; stylized/contained 3D; projects needing one codebase for web and desktop
+
 **Genre-specific guidance** (factor this into the recommendation):
 - 2D any style → Godot strongly preferred
 - 3D stylized / atmospheric / contained world → Godot viable, Unity solid alternative
@@ -168,6 +174,14 @@ Update the Technology Stack section, replacing the `[CHOOSE]` placeholders with 
 - **Asset Pipeline**: Unreal Content Pipeline
 ```
 
+**For Babylon.js:**
+```markdown
+- **Engine**: Babylon.js [version] (@babylonjs/core)
+- **Language**: TypeScript (ESM), optional Electron shell
+- **Build System**: Vite (web) + Electron (desktop)
+- **Asset Pipeline**: @babylonjs/loaders (glTF/Draco) + texture compression pipeline
+```
+
 ---
 
 ## 5. Populate Technical Preferences
@@ -196,6 +210,13 @@ engine-appropriate defaults. Read the existing template first, then fill in:
 - Functions: PascalCase (e.g., `TakeDamage()`)
 - Booleans: `b` prefix (e.g., `bIsAlive`)
 - Files: Match class without prefix (e.g., `PlayerController.h`)
+
+**For Babylon.js (TypeScript):**
+- Classes/interfaces: PascalCase (e.g., `PlayerController`, `HealthSystem`)
+- Variables/functions: camelCase (e.g., `moveSpeed`, `takeDamage()`)
+- Constants: UPPER_SNAKE_CASE (e.g., `MAX_HEALTH`)
+- Files: kebab-case (e.g., `player-controller.ts`)
+- Babylon refs: `scene`, `camera`, `mesh` in camelCase
 
 ### Input & Platform Section
 
@@ -292,6 +313,28 @@ Also populate the `## Engine Specialists` section in `technical-preferences.md` 
 | General architecture review | unreal-specialist |
 ```
 
+**For Babylon.js:**
+```markdown
+## Engine Specialists
+- **Primary**: babylon-js-specialist
+- **Language/Code Specialist**: babylon-js-specialist (TypeScript/JS - primary covers it)
+- **Shader Specialist**: technical-artist (Node Material Editor, GLSL/WGSL)
+- **UI Specialist**: ui-programmer (React HUD overlay); babylon-js-specialist for world-space Babylon GUI
+- **Additional Specialists**: none required - Babylon is single-language (TS)
+- **Routing Notes**: Invoke primary for architecture, Babylon v9 API correctness, Havok physics, and performance. Rule: never `import * as BABYLON`; always deep ES6 named imports.
+
+### File Extension Routing
+
+| File Extension / Type | Specialist to Spawn |
+|-----------------------|---------------------|
+| Game / scene code (.ts) | babylon-js-specialist |
+| Node material / shader (.babylon, NME) | technical-artist |
+| React HUD (.tsx, .css) | ui-programmer |
+| Scene config (.json) | babylon-js-specialist |
+| Native / plugin files (.wasm, d.ts) | babylon-js-specialist |
+| General architecture review | babylon-js-specialist |
+```
+
 ### Collaborative Step
 Present the filled-in preferences to the user. For Godot, include the chosen language and note where the full naming conventions and routing tables live:
 > "Here are the default technical preferences for [engine] ([language if Godot]). The naming conventions and specialist routing are in Appendix A of this skill — I'll apply the [GDScript/C#/Both] variant. Want to customize any of these, or shall I save the defaults?"
@@ -311,6 +354,7 @@ Check whether the engine version is likely beyond the LLM's training data.
 - Godot: training data likely covers up to ~4.3
 - Unity: training data likely covers up to ~2023.x / early 6000.x
 - Unreal: training data likely covers up to ~5.3 / early 5.4
+- Babylon.js: training data likely covers up to ~8.x; v9 (2026) is beyond, so reference docs are required
 
 Compare the user's chosen version against these baselines:
 
