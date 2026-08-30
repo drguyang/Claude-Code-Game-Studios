@@ -331,6 +331,8 @@ Also populate the `## Engine Specialists` section in `technical-preferences.md` 
 | Node material / shader (.babylon, NME) | technical-artist |
 | React HUD (.tsx, .css) | ui-programmer |
 | Scene config (.json) | babylon-js-specialist |
+| 3D asset meshes (.glb, .gltf) | babylon-js-specialist + technical-artist | Ensure Draco compression is configured in the Vite/asset pipeline |
+| Environment maps (.env, .hdr) | technical-artist | PBR environment mapping setup |
 | Native / plugin files (.wasm, d.ts) | babylon-js-specialist |
 | General architecture review | babylon-js-specialist |
 ```

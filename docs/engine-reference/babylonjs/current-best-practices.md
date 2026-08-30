@@ -33,6 +33,24 @@ const scene = new Scene(engine);
 scene.clearColor = Color4.FromHexString("#10131a");
 ```
 
+#### WebGPU with WebGL2 fallback
+
+Babylon v9 supports WebGPU well, but on older devices/some browsers it falls back to WebGL2. Always handle engine creation with an explicit fallback (note: `WebGPUEngine.CreateAsync` returns a **Promise that can reject** - it is NOT a nullable value, so a `??` fallback will not catch a missing-WebGPU failure; use try/catch):
+
+```ts
+import { WebGPUEngine } from "@babylonjs/core/Engines/webgpuEngine";
+
+let engine: AbstractEngine;
+if (WebGPUEngine.IsSupported) {
+  try { engine = await WebGPUEngine.CreateAsync(canvas, { antialias: true }); }
+  catch { engine = new Engine(canvas, true); }
+} else {
+  engine = new Engine(canvas, true);
+}
+```
+
+> Verify this against the project's actual bootstrap pattern before shipping.
+
 - **WebGL2 is the baseline.** Typings use `WebGL2RenderingContext`. Feature-detect
   WebGL2; fall back to WebGPU only if you explicitly configure the WebGPU engine.
 - Build for **Web GPU as an optional engine**, not a requirement, to keep desktop

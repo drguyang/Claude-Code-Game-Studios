@@ -60,6 +60,10 @@ Babylon.js **v9** (current: 9.23.0) is **beyond the LLM's May 2025 training cuto
 - KTX2/Basis optional; enable only for WebGL2/WebGPU targets.
 - `AssetContainer.addAllToScene()` returns `void` in v9 - read `container.meshes` first.
 
+### Debugging & Profiling
+- During development, enable `scene.debugLayer.show()` for hierarchical scene-graph and property inspection.
+- For **GPU / draw-call profiling**, use **Spector.js** rather than generic browser devtools - it captures frame-by-frame draw calls, textures, and shaders.
+
 ### UI
 - Complex UI in a **React HUD overlay** (transparent `#root`, engine `{ alpha: false }`).
 - Babylon GUI only for world-space labels/crosshairs.
@@ -85,6 +89,7 @@ Babylon.js **v9** (current: 9.23.0) is **beyond the LLM's May 2025 training cuto
 - `gameplay-programmer` for gameplay/ECS patterns
 - `ui-programmer` for the React HUD overlay
 - `devops-engineer` for build automation and Electron packaging
+- `network-programmer` for client-side prediction, interpolation of `TransformNode`, and reconciling server-authoritative state with the Babylon.js scene graph
 
 ## What This Agent Must NOT Do
 
