@@ -48,6 +48,12 @@
       godot-csharp-specialist      -- C#: .NET patterns, [Signal] delegates, async, type-safe node access
       godot-shader-specialist      -- Shaders: Godot shading language, visual shaders, VFX
       godot-gdextension-specialist -- Native: C++/Rust bindings, GDExtension, build systems
+
+    babylon-js-specialist  -- Babylon.js v9 lead: ES6 deep imports, thin instances, AssetContainer, engine choice
+      babylon-shader-specialist   -- Shaders: NME, GLSL/WGSL via Effect/ShaderMaterial, PBR, post-process
+      babylon-ui-specialist       -- In-canvas UI: world-space Babylon GUI, React HUD integration boundary
+      babylon-physics-specialist  -- Havok v2: PhysicsAggregate/Body, collision filtering, fixed-timestep, prediction
+      babylon-webxr-specialist    -- WebXR: session lifecycle, controllers, hand-tracking, hit-test, anchors, stereo
 ```
 
 ### Legend

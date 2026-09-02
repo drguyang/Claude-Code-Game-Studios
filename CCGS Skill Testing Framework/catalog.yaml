@@ -1032,6 +1032,33 @@ agents:
     last_spec_result: ""
     category: engine
 
+  # Engine Specialists — Babylon.js
+  - name: babylon-js-specialist
+    spec: CCGS Skill Testing Framework/agents/engine/babylonjs/babylon-js-specialist.md
+    last_spec: ""
+    last_spec_result: ""
+    category: engine
+  - name: babylon-shader-specialist
+    spec: CCGS Skill Testing Framework/agents/engine/babylonjs/babylon-shader-specialist.md
+    last_spec: ""
+    last_spec_result: ""
+    category: engine
+  - name: babylon-ui-specialist
+    spec: CCGS Skill Testing Framework/agents/engine/babylonjs/babylon-ui-specialist.md
+    last_spec: ""
+    last_spec_result: ""
+    category: engine
+  - name: babylon-physics-specialist
+    spec: CCGS Skill Testing Framework/agents/engine/babylonjs/babylon-physics-specialist.md
+    last_spec: ""
+    last_spec_result: ""
+    category: engine
+  - name: babylon-webxr-specialist
+    spec: CCGS Skill Testing Framework/agents/engine/babylonjs/babylon-webxr-specialist.md
+    last_spec: ""
+    last_spec_result: ""
+    category: engine
+
   # Operations
   - name: devops-engineer
     spec: CCGS Skill Testing Framework/agents/operations/devops-engineer.md

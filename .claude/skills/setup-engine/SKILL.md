@@ -264,7 +264,18 @@ Example filled section:
 
 ### Engine Specialists Routing
 
-Also populate the `## Engine Specialists` section in `technical-preferences.md` with the correct routing for the chosen engine:
+Also populate the `## Engine Specialists` section in `technical-preferences.md` with the correct routing for the chosen engine.
+
+#### Selection Rationale (applies to all engines)
+
+Each engine's sub-specialist set is chosen by examining the engine along two axes:
+
+1. **Language axis** — does the engine support multiple primary languages? If yes, one sub-specialist per language (e.g., Godot has GDScript + C# + native via GDExtension → three language specialists).
+2. **Subsystem axis** — does the engine have complex subsystems whose surface area justifies dedicated ownership? "Complex" means: its own APIs, its own best-practice discipline, its own breaking-change risk, and enough surface that a generalist cannot reliably cover it.
+
+A subsystem earns its own sub-specialist only when all four are true. Engines that are single-language skip the language axis entirely and are partitioned purely along the subsystem axis.
+
+The partition for each engine is given below — do NOT add or remove sub-specialists without re-evaluating these criteria.
 
 **For Godot** — see **Appendix A** for the routing table matching the language chosen.
 
@@ -317,22 +328,25 @@ Also populate the `## Engine Specialists` section in `technical-preferences.md` 
 ```markdown
 ## Engine Specialists
 - **Primary**: babylon-js-specialist
-- **Language/Code Specialist**: babylon-js-specialist (TypeScript/JS - primary covers it)
-- **Shader Specialist**: technical-artist (Node Material Editor, GLSL/WGSL)
-- **UI Specialist**: ui-programmer (React HUD overlay); babylon-js-specialist for world-space Babylon GUI
-- **Additional Specialists**: none required - Babylon is single-language (TS)
-- **Routing Notes**: Invoke primary for architecture, Babylon v9 API correctness, Havok physics, and performance. Rule: never `import * as BABYLON`; always deep ES6 named imports.
+- **Language/Code Specialist**: babylon-js-specialist (TypeScript — primary covers it; Babylon is single-language)
+- **Shader Specialist**: babylon-shader-specialist (Node Material Editor, GLSL/WGSL via Effect/ShaderMaterial, PBR setup, post-process pipelines)
+- **UI Specialist**: babylon-ui-specialist (world-space Babylon GUI: billboards, crosshairs, in-scene labels; also owns the React HUD integration boundary — React implementation itself belongs to ui-programmer)
+- **Additional Specialists**: babylon-physics-specialist (Havok v2 plugin, PhysicsAggregate/PhysicsBody, collision filtering, fixed-timestep, client-side prediction), babylon-webxr-specialist (WebXR session lifecycle, controllers, hand-tracking, hit-test, anchors, stereo rendering, comfort)
+- **Routing Notes**: Invoke primary for architecture, Babylon v9 API correctness, and engine (`Engine` vs `WebGPUEngine`) choice. Invoke shader specialist for any NME graph, custom GLSL, PBR material setup, or post-process. Invoke UI specialist for world-space Babylon GUI and the React-HUD-vs-Babylon-GUI boundary decision. Invoke physics specialist for Havok setup, body types, collision matrix, and fixed-timestep. Invoke WebXR specialist for any VR/AR work. Rule: never `import * as BABYLON`; always deep ES6 named imports.
 
 ### File Extension Routing
 
 | File Extension / Type | Specialist to Spawn |
 |-----------------------|---------------------|
 | Game / scene code (.ts) | babylon-js-specialist |
-| Node material / shader (.babylon, NME) | technical-artist |
-| React HUD (.tsx, .css) | ui-programmer |
+| Node material / shader (.babylon, NME, .fragment, .vertex) | babylon-shader-specialist |
+| World-space UI (Babylon GUI controls, AdvancedDynamicTexture for meshes) | babylon-ui-specialist |
+| React HUD (.tsx, .css) | ui-programmer (babylon-ui-specialist defines the boundary) |
 | Scene config (.json) | babylon-js-specialist |
-| 3D asset meshes (.glb, .gltf) | babylon-js-specialist + technical-artist | Ensure Draco compression is configured in the Vite/asset pipeline |
-| Environment maps (.env, .hdr) | technical-artist | PBR environment mapping setup |
+| 3D asset meshes (.glb, .gltf) | babylon-js-specialist + babylon-shader-specialist (materials) | Ensure Draco compression is configured in the Vite/asset pipeline |
+| Environment maps (.env, .hdr) | babylon-shader-specialist | PBR environment mapping setup |
+| Physics (Havok WASM, PhysicsAggregate, collision matrix) | babylon-physics-specialist |
+| WebXR session / controllers / hand-tracking / hit-test / anchors | babylon-webxr-specialist |
 | Native / plugin files (.wasm, d.ts) | babylon-js-specialist |
 | General architecture review | babylon-js-specialist |
 ```
