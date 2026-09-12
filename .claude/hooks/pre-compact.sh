@@ -3,6 +3,9 @@
 # This output appears in the conversation right before compaction, ensuring
 # critical state survives the summarization process.
 
+# Drain the PreCompact payload from stdin so the write side never hits EPIPE.
+cat >/dev/null 2>&1 || true
+
 echo "=== SESSION STATE BEFORE COMPACTION ==="
 echo "Timestamp: $(date)"
 

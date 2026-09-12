@@ -2,7 +2,9 @@
 # Claude Code SessionStart hook: Load project context at session start
 # Outputs context information that Claude sees when a session begins
 #
-# Input schema (SessionStart): No stdin input
+# Input schema (SessionStart): payload is written to stdin by Claude Code.
+# Drain it first so the write side never hits EPIPE on exit.
+cat >/dev/null 2>&1 || true
 
 echo "=== Claude Code Game Studios — Session Context ==="
 

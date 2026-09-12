@@ -4,6 +4,9 @@
 
 ACTIVE="production/session-state/active.md"
 
+# Drain the PostCompact payload from stdin so the write side never hits EPIPE.
+cat >/dev/null 2>&1 || true
+
 echo "=== Context Restored After Compaction ==="
 
 if [ -f "$ACTIVE" ]; then

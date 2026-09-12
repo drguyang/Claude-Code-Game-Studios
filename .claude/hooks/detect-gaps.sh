@@ -7,6 +7,9 @@
 # Exit on error for debugging (but don't fail the session)
 set +e
 
+# Drain the SessionStart payload from stdin so the write side never hits EPIPE.
+cat >/dev/null 2>&1 || true
+
 echo "=== Checking for Documentation Gaps ==="
 
 # --- Check 0: Fresh project detection (suggests /start) ---

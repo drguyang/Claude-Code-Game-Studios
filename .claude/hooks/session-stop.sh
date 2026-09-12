@@ -2,6 +2,12 @@
 # Claude Code Stop hook: Log session summary when Claude finishes
 # Records what was worked on for audit trail and sprint tracking
 
+# Drain stdin before doing anything. Claude Code writes the Stop payload
+# (which includes last_assistant_message, i.e. the full last response) into
+# this script's stdin; if we exit without reading it, the write side hits
+# EPIPE ("Hook command closed stdin before hook input was fully written").
+cat >/dev/null 2>&1 || true
+
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 SESSION_LOG_DIR="production/session-logs"
 
