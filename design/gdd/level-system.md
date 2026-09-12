@@ -1,6 +1,6 @@
 # 关卡 / 遭遇系统 Level & Encounter System —— 病例主线 + 探索节点
 
-> **Status**: Draft (rev 2026-09-12g · 系统 #6 · 首稿 + Opus 复核修订 · **新增 §3.4 自由探索窗口 + §4.2 补全路径校验〔关闭 N4〕**)
+> **Status**: Draft (rev 2026-09-12j · 系统 #6 · 首稿 + Opus 复核修订 · **新增 §3.4 自由探索窗口 + §4.2 补全路径校验〔关闭 N4〕** · **§4.5 登记 `IP_base` 重校〔承 combat rev h 的 D12 平台函数〕** · **§3.2.1 `Encounter` 增 `ctb`〔叙事旁观 / 战斗旁观〕+ `ScriptedTurn`〔承载逐回合出牌〕**)
 > **Author**: systems-designer（草案）· 独立 Opus 复核
 > **Last Updated**: 2026-09-12
 > **Last Verified**: 2026-09-12（与 `design/gdd/combat-system.md`、`party-system.md`、`dialogue-system.md`、`status-syndrome.md`、`progression-system.md` 对齐；另据独立 Opus 对抗性复核修订）
@@ -89,23 +89,37 @@ Chapter:
 Encounter:                             // 章层遭遇（当前仅「旁观」一种）
   id:            string                // 如 spect_v1_old_doctor
   kind:          旁观                   // 现仅「旁观」（combat-system.md §3.10）；其余类型预留
-  script:        [ ScriptBeat ]         // 固定演出脚本（不进入 CTB、不抽牌）
-  playerControl: none                   // 旁观遭遇恒为 none
+  ctb:           bool                   // ★ 是否实例化战斗循环：false = 叙事旁观 / true = 战斗旁观（§3.10）
+                                        //   卷一 A-2 = true（真跑 3 回合 CTB）；卷二"回看" = false
+  script:        [ ScriptBeat | ScriptedTurn ]   // 固定演出脚本：ctb=false → ScriptBeat（叙事节拍）；ctb=true → ScriptedTurn（CTB 回合，逐回合钉死出牌，非 AI）
+  playerControl: none                   // 旁观遭遇恒为 none（ctb=true 时回合推进亦不受玩家影响）
   skipAllowed:   bool                   // 是否允许整段跳过
   failMode:      none                   // 旁观遭遇恒无可失败
   yields:        [ Yield ]              // **白名单：只允许 flag**（不产评级 / IP / 碎片）
                                         // ★ flag 是**点亮事件**；"跳过时未看过"由**该 flag 缺席**表达，不写 `flagSet(id, false)`
   focusPoints:   [ FocusPoint ] | null  // 纯叙事注视点，**不产任何 yield**
 
-ScriptBeat: { order: int, act: 诊|辨|治|叙事, actor: string, content: string }
-FocusPoint: { id, label, text }         // 如"看老郎中的手""看药柜"
+ScriptBeat:  { order: int, act: 诊|辨|治|叙事, actor: string, content: string }
+ScriptedTurn: { order: int,                 // ctb=true 的 CTB 回合序号（= 行动回合，非"叙事节拍"）
+                actor: string,               // 出牌者（如 老郎中）
+                act: string,                 // 该回合的动作（如"取麻黄"）；★ 推进信号之一
+                cardId: string,              // ★ 出的牌（如 麻黄 / 杏仁 / 甘草）——见下"剧本专用牌"
+                mainAxis: string,            // ★ 该牌主靶轴（如 表里:表）；配置校验据此判 M（§3.10）
+                target: string,              // 目标（如 病人）
+                narration: string }          // ★ 该回合的自白（判断 + 用药依据）；推进信号之二
+FocusPoint:  { id, label, text }         // 如"看老郎中的手""看药柜"
 ```
+
+- **★ `ScriptedTurn` 承载"逐回合出牌"（2026-09-12 增，修 `ScriptBeat` 无法携带出牌数据的缺口）**：`ScriptBeat`（诊 / 辨 / 治 / 叙事 + `content`）只能承载**叙事节拍文本**，**装不下**"哪一回合出了哪张牌、该牌主靶轴为何"——而 `combat-system.md` §3.10 的"战斗旁观"**必须**有这些字段才能**真跑** CTB 与被配置校验。故 `ctb = true` 的脚本**改由 `ScriptedTurn[]` 承载**：每个回合 = 一 `ScriptedTurn`，**必带** `act` + `narration`（`combat-system.md` §3.10 的"回合推进信号"要求），**并带** `cardId` / `mainAxis` / `target` 供结算与校验。
+- **★ 剧本专用牌（NPC 牌不进玩家牌池）**：`ScriptedTurn.cardId` 指向的牌若**不在玩家牌池**（如 A-2 的麻黄 / 杏仁 / 甘草——它们是**老郎中的药**，玩家从未拥有），其定义**随脚本内联或存于剧本档**，**不注册进玩家牌池 / 医道图谱**。其 `mainAxis` / `P` 只在**该遭遇的结算档**内生效。**推论**：A-2 的三味药**不产出任何可获取牌**——它们只是"别人打的牌"（`combat-system.md` §3.10）。
+
+- **`ctb` 决定是否真跑战斗（2026-09-12 增，A-2 起）**：`ctb = true` 时**真跑 CTB**——逐回合出牌、逐回合结算 `ΔE`，但**玩家零输入**、**数值不上屏**（呈现层与结算层分离）。`ctb = false` 时三节拍纯叙事（原定义）。**变体内部规则见 `combat-system.md` §3.10**（含"战斗旁观不产 `revealed` → 永不出 `M = 1.5`"的强校验）。**但"不结算 `Rating` / IP、不计入 `Progress`"对两模式一视同仁**——`ctb = true` **不等于**它是一场"治段"（不绑 `MainBeat(治)`）。
 
 - **章 id 命名空间唯一**：`Chapter.id` **即** `quest-system.md` §3.1 `ChapterRequest.chapterId` / `ChapterResult.chapterId`，也是其 §3.8 `chapterDone(cid)` 的入参——**同一个字符串**，本系统**不另立前缀**。实例：`vol1.prologue`（**不是** `ch_v1_prologue`）。
 - **叙事关**（`type = 叙事关`）：`case` **必须为 `null`**（无病例即无主节拍、无探索节点、无治段）；`failMode = none`；**本系统不产出其评级**——评级由任务系统 #7 按剧情完成度给出（§4.5 末段）。**配置校验拒绝**给叙事关配 `case` 或主节拍。
 - **章层遭遇不是主节拍**：`Encounter` **不在** `MainBeat.kind ∈ {诊, 问, 治, 变, 结}` 之内，**不计入** `Progress`（§4.1），**不结算** `Rating`——它是**章层**的演出单元，与病例的节拍编排**正交**。
-- **`ScriptBeat.act` 的 诊 / 辨 / 治 是叙事节拍，不是 CTB 回合**：三者对齐 `combat-system.md` §3.9 的三段，但**术语不得与 §4.1 的行动「回合」混用**。
-- **旁观遭遇的行为规则由 `combat-system.md` §3.10 定义**：本系统只负责**编排它何时出现、可否跳过、产出什么 flag**，不重复定义其内部演出与数据合法性校验规则。
+- **`ScriptBeat.act` 的 诊 / 辨 / 治 是叙事节拍，不是 CTB 回合**：三者对齐 `combat-system.md` §3.9 的三段，但**术语不得与 §4.1 的行动「回合」混用**。**`ctb = true` 时脚本改由 `ScriptedTurn[]` 承载**（见上；`combat-system.md` §3.10 的"战斗旁观"），该序列里的"回合"**才是** CTB 行动回合——**同一脚本内的"叙事节拍（诊/辨/治）"与"CTB 回合"两套计数不得混称**。
+- **旁观遭遇的行为规则由 `combat-system.md` §3.10 定义**：本系统只负责**编排它何时出现、是否 `ctb`、可否跳过、产出什么 flag**，不重复定义其内部演出与数据合法性校验规则。
 - **跳过语义**：跳过**不改变**用于推进链的 flag（**链完整性优先**），但"是否真看过"的 flag **仅在"未跳过"时点亮**——跳过时该 flag **缺席（未点亮）**，而**不是**写一个 `flagSet(x, false)`。理由：`yields` 白名单是 `flagSet` **事件**（只表达"点亮"），布尔否定由"事件是否发生"承载（**缺席即假**），以免引入 `flagSet(id, bool)` 的新签名。
 
 ### 3.3 主节拍（固定顺序）Main Beats
@@ -270,8 +284,13 @@ IP_base = f(关卡难度)         // 随卷次与病例复杂度配置，见 §7
 | IP_base | 2–8 | 关卡配置 | 随卷次递增（progression §4.6） |
 | 首次通关加成 | 0 或 0.5 | progression §4.5 | 首通 +50% |
 
-**示例**：某关 `IP_base = 5`，治段 `Rating = 0.8`，首通 → `IP_gain = 5 × 0.8 × 1.5 = 6 IP`。
+**示例**：某关 `IP_base = 5`，治段 `Rating = 0.9`〔rev h 口径〕，首通 → `IP_gain = 5 × 0.9 × 1.5 = 6.75 → 7 IP`。
 - **无治段的关**（纯叙事关）：若关卡无"治"节拍，则 `Rating` 由**任务系统**（#7）按剧情完成度给出，本系统不结算。
+
+> **★ `IP_base` 重校（rev h 登记，承 `combat-system.md` §4.7 D12 裁决）**：D12 给「回合效率」定平台函数 **`Eff = clamp(R_ref / R_actual, Eff_min, 1.0)`** 后，`Rating` 的取值带**整体上移**（旧口径"回合效率 = 0.5"→ 卷一`Eff ≡ 1.0`，六子支**各 +0.10**）。`IP_gain = IP_base × Rating` 是**线性**的，故**同一段玩法的 `IP_gain` 会随之上移 ~10–20%**。**处置**：
+> - **`IP_base` 的 2–8 区间暂留**（progression §4.6 尚未定死各关取值），但**配套伸缩规则**：`IP_base_new ≈ IP_base_old × (Rating_old 均值 / Rating_new 均值)`——使"同一段玩法产出的 IP 总量"与旧口径对齐，避免**评级口径变更**误当成**成长加速**。
+> - **本文件不结算 `Rating`**，只搬运——重校的**权威落点**在 `progression-system.md` §4.5 / §4.6（IP 曲线）。本行**登记该连带项**，待 progression 侧与本卷数值同批确认。
+> - **示例口径**：上例 `Rating = 0.9`（rev h）对应旧口径的 `0.8`（`0.8 + 0.10 = 0.9`）——**同一段玩法**，`IP_gain` 由 `6 IP` 变 `6.75 IP`，正是需重校的部分（若要保持 6 IP，`IP_base` 应落 `5 × 0.8/0.9 ≈ 4.4`）。
 
 ### 4.6 硬失败接口契约 HardFailContract（预留，切片不实现）
 
@@ -370,7 +389,7 @@ EpidemicHandoff:
 | 系统 | 方向 | 依赖性质 |
 |---|---|---|
 | **战斗系统** `combat-system.md` | **本系统依赖它** | Rule："治"节拍进入战斗、收回战斗结果（病邪残余、正气保有、评级、错治/峻剂次数）；战斗型判定（§4.3）；传变规则（§4.4）。**★ rev g 补充**：战斗 §4.3 的 `M = 1.5`（对证）与 §4.3c 的悖证判定均以 `revealed` 轴为前提——**本系统以 §3.4 自由探索窗口**（`Q`→`T` 间隙强校验）**承诺给战斗系统一个非空的 `revealed` 输入**；二者是"战斗定义规则、关卡保证规则可被玩到"的分工 |
-| **战斗系统** | **它依赖本系统** | Data：病人配置、病机 stages 编排、胜利条件（治段的）；**注意**：combat §6 的依赖表已列"关卡系统"，但其方向写为"它依赖本系统"（关卡编排战斗）——**已正确，无需修改**。**本轮补充**：**章层旁观遭遇**（§3.2.1 `Encounter`）由本系统编排，但**不实例化战斗循环**，其行为规则见 `combat-system.md` §3.10 |
+| **战斗系统** | **它依赖本系统** | Data：病人配置、病机 stages 编排、胜利条件（治段的）；**注意**：combat §6 的依赖表已列"关卡系统"，但其方向写为"它依赖本系统"（关卡编排战斗）——**已正确，无需修改**。**本轮补充**：**章层旁观遭遇**（§3.2.1 `Encounter`）由本系统编排；**`ctb = true` 时实例化战斗循环**（真跑 `ΔE`）、`ctb = false` 时不实例化，其行为规则见 `combat-system.md` §3.10 |
 | **队伍系统** `party-system.md` | **本系统依赖它** | Data：出战编成、资源池初值、聚散状态、羁绊矩阵、Teamwork |
 | **队伍系统** | **它依赖本系统** | Data：本场编成结果在**关卡边界**落定（`party-system.md` §3.7"队伍变动只在关卡边界发生"）——**已在其 §5 边界表体现，但 §6 依赖表未明列本系统为依赖方，建议补一行** |
 | **对话系统** `dialogue-system.md` | **本系统依赖它** | Data："问"节拍 / 探索节点的对话场景、`beatId`、心声 / 发问；产物（碎片/顿悟/BondDelta/flag） |
@@ -402,7 +421,7 @@ EpidemicHandoff:
 | 病机 stages / 传变 | `design/gdd/status-syndrome.md` | §3.3 / §4.4 | Data |
 | 评级 → IP_gain | `design/gdd/progression-system.md` | §4.5 | Data |
 | 顿悟事件触发位 | `design/gdd/progression-system.md` | §3.6 | Data |
-| **章层旁观遭遇（不进入战斗循环）** | `design/gdd/combat-system.md` | §3.10 | Rule |
+| **章层旁观遭遇（`ctb = false` 不实例化 / `ctb = true` 实例化战斗循环）** | `design/gdd/combat-system.md` | §3.10 | Rule |
 | **本文件的实例（章 / 病例 / 遭遇）** | `design/levels/vol-01.md`（内容层） | §1.2 推进链 / §2.4 旁观遭遇 / §3.2 病例卡 | Data |
 
 **回链缺口与补齐状态**：
@@ -435,6 +454,7 @@ EpidemicHandoff:
 | **疫情移交阈值**（patientCount ≥ N） | ≥ 2 | 2–4 | 移交更宽松、更多病例升级 | 移交更严格、少数病例升级 |
 | **探索节点 onceOnly 比例** | ~80% | 50–100% | 防刷更严、探索更一次性 | 允许部分节点重复刷 |
 | **章层遭遇可跳过** `Encounter.skipAllowed` | true | true / false | （true）开发成本低、尊重玩家时间——但"是否真看过"的 flag 会**不点亮**，教学保证变弱 | （false）教学段强制看完、保证"看过"——但重玩玩家可能觉得被按住 |
+| **章层遭遇是否真跑战斗** `Encounter.ctb` | 逐遭遇配置（A-2 = true） | true / false | （true）玩家看见完整决策链（"先看别人打，再自己打"），教学信号最强——但实现需复用 CTB，成本高 | （false）纯叙事演出，成本低——但玩家只"看别人问了一遍"，看不到"打"（§3.2.1 / `combat-system.md` §3.10） |
 
 **必须数据驱动**：以上全部值位于**外部配置**（关卡表、节拍表、探索节点表、代价系数表），不得硬编码（见 `.claude/docs/coding-standards.md`）。
 
@@ -461,12 +481,14 @@ EpidemicHandoff:
 - [ ] **硬失败接口预留**：`hardFail.enabled` 在切片中恒为 false；尝试设为 true 被配置校验拒绝（守卫检查）。
 - [ ] **疫情移交单向接口**：满足移交条件（`d_epidemic` 标签 + patientCount ≥ 2）时产出 `EpidemicHandoff` 数据包；数据包含全部必需字段；**本系统不调用疫情系统的任何接口**（守卫检查）。
 - [ ] **转诊不判负**：玩家在治段退出战斗（转诊）→ 回编成界面换人 → 重进治段；**不判负、不累积代价**，但传变状态保留（守卫检查）。
-- [ ] **评级与 IP 结算（分两支）**：**有治段** → `Rating` 由战斗系统结算，`IP_gain = IP_base × Rating × (1 + 首通)`，示例（5, 0.8, 首通）→ 6 IP；**无治段（纯叙事关）** → `Rating` 由任务系统（#7）按剧情完成度给出，本系统不结算。两支各自可测（§4.5）。
+- [ ] **评级与 IP 结算（分两支）**：**有治段** → `Rating` 由战斗系统结算（rev h 口径：`Eff = clamp(R_ref/R_actual, Eff_min, 1.0)`），`IP_gain = IP_base × Rating × (1 + 首通)`，示例（5, **0.9**, 首通）→ **6.75 → 7 IP**；**无治段（纯叙事关）** → `Rating` 由任务系统（#7）按剧情完成度给出，本系统不结算。两支各自可测（§4.5）。
 - [ ] **叙事关结构合法**：`type = 叙事关` 的章 `case` 为 `null` 且主节拍概念上为空；配置若给它配 `case` 或主节拍被**拒绝**（守卫检查，§3.2.1）。
 - [ ] **章层遭遇不计入 Progress / 不结算 Rating**：`Encounter` **不在** `MainBeat.kind ∈ {诊, 问, 治, 变, 结}` 之内，不参与 `Progress`（§4.1）、不结算 `Rating`（守卫检查，§3.2.1）。
 - [ ] **章层遭遇零玩家输入**：`playerControl = none`，演出期间不产生任何玩家操作输入（守卫检查，§3.2.1）。
 - [ ] **章层遭遇可跳过且不破坏推进链**：跳过后用于推进链的 flag 照常点亮（链完整性优先）；"是否真看过"的 flag **仅在未跳过时点亮**（跳过时**缺席 = 未点亮**，不写 `flagSet(x, false)`）——两侧均可测（§3.2.1）。
 - [ ] **章层遭遇 yield 白名单**：`Encounter.yields` **只允许 flag**；含评级 / IP / 碎片时配置校验**拒绝**（守卫检查，§3.2.1）。
+- [ ] **★ `ctb` 两模式行为一致（2026-09-12 增）**：`ctb = false` 不实例化战斗循环；`ctb = true` 实例化（真跑 `ΔE`）。**两模式均**：不结算 `Rating` / IP、不计入 `Progress`（`ctb = true` 不等于"治段"）、`playerControl = none`、数值不上屏（守卫检查 + 用例，§3.2.1 / `combat-system.md` §3.10）。
+- [ ] **★ `ctb = true` 的脚本结构合法（rev j 增）**：`ctb = true` 时 `script` 为 `ScriptedTurn[]`，每回合**必带** `act` + `narration`（推进信号），**并带** `cardId` / `mainAxis` / `target`；缺任一**必字段**配置校验**拒绝**（守卫检查，§3.2.1 / `combat-system.md` §3.10）。`ScriptedTurn.cardId` 指向的**剧本专用牌不得注册进玩家牌池**（守卫检查）。
 - [ ] **注视点不产 yield**：`FocusPoint` 不产出任何 flag / 碎片 / 数值（守卫检查，§3.2.1）。
 - [ ] **编成在关卡边界落定**：进入关卡后不可换编；战斗中队员被击倒不改变编成（守卫检查，与 `party-system.md` §3.7 一致）。
 - [ ] **关卡中途存档**：在主节拍边界或探索节点结算后落盘；战斗中途不可存；中途退出视为未结算当前节拍（守卫检查）。
@@ -505,3 +527,22 @@ EpidemicHandoff:
 > 5. **§8 补 2 条 AC**：窗口存在性（配置拒绝 `Q`/`T` 相邻无隙）· `revealed` 门槛有可挂载补全节点（卷一实例 `ex_v1_m_4` → `M=1.5`）。
 > 6. **上批待办闭环**：rev d 登记的"`status-syndrome.md` §4.3 与 combat §4.3 的 M 表述冲突"即 **D7**，**本轮已同步关闭**（见 `status-syndrome.md` §4.3 / rev g）。
 > 7. **未改**：主节拍顺序、软失败语义、代价三通道、评级公式、章层遭遇规则——**本轮仅增"窗口"一条结构约束**。
+
+> **rev h 修订要点（2026-09-12h，承 `combat-system.md` rev h 的 **D12 平台函数裁决** —— **登记 `IP_base` 重校**；本文件仍不引入医学数值）**：
+> 1. **★ §4.5 新增「`IP_base` 重校」登记**：D12 给「回合效率」定平台函数 `Eff = clamp(R_ref / R_actual, Eff_min, 1.0)` 后，`Rating` 取值带**整体上移**（卷一 `Eff ≡ 1.0`，六子支**各 +0.10**）。`IP_gain = IP_base × Rating` **线性** → 同一段玩法的 IP **上移 ~10–20%**。**给配套伸缩规则** `IP_base_new ≈ IP_base_old × (Rating_old 均值 / Rating_new 均值)`，防"评级口径变更"被误读成"成长加速"。
+> 2. **权威落点**：重校的最终值在 `progression-system.md` §4.5 / §4.6（IP 曲线）——本文件只搬运 `Rating`，故**本行是"连带项登记"而非"本文件改值"**。
+> 3. **§4.5 示例更新**：`Rating = 0.8` → **`0.9`**（同一段玩法的 rev h 口径），`IP_gain` `6 → 6.75 → 7 IP`；§8 对应 AC 同步。
+> 4. **未改**：`IP_base` 区间（2–8）、主节拍顺序、软失败语义、代价三通道、窗口约束、章层遭遇规则。**本轮仅动 §4.5 一个示例 + 一行登记 + header rev**。
+
+> **rev i 修订要点（2026-09-12i，承 `combat-system.md` rev i 的 **A-2「战斗旁观」** —— 本文件只加一个 schema 字段与配套口径）**：
+> 1. **★ §3.2.1 `Encounter` 增 `ctb: bool`**：`false` = 叙事旁观（原定义，三节拍纯叙事）；`true` = 战斗旁观（**真跑 CTB**、逐回合钉死出牌，玩家零输入、数值不上屏）。**卷一 A-2 = true；卷二"回看" = false**。
+> 2. **不变量对两模式一视同仁**：不结算 `Rating` / IP、不计入 `Progress`、`playerControl = none`、`yields` 白名单只允许 flag——**`ctb = true` 不等于"治段"**（不绑 `MainBeat(治)`）。变体内部规则（含"不产 `revealed` → 永不出 `M = 1.5`"）见 `combat-system.md` §3.10。
+> 3. **§3.2.1 两条注更新**：`ScriptBeat.act`（诊/辨/治）与"CTB 回合"**两套计数不得混称**；参与行为规则句补 `ctb`。
+> 4. **§7 增旋钮** `Encounter.ctb`（逐遭遇配置）；**§8 增 1 条 AC**（两模式行为一致）；**§6 依赖表两行补 `ctb` 口径**。
+> 5. **未改**：`Chapter` / `Case` 结构、主节拍、探索节点、代价三通道、`IP_base`。**本轮仅动 §3.2.1 + 一行旋钮 + 一条 AC + header rev**。
+
+> **rev j 修订要点（2026-09-12j，据独立 Opus 复核修 2 项；**只补结构，不改机制数值**）**：
+> 1. **★ §3.2.1 新增 `ScriptedTurn` 子结构（Finding ②）**：原 `ScriptBeat { order, act, actor, content }` **装不下**"哪一回合出哪张牌、该牌主靶轴为何"——`combat-system.md` §3.10 的"战斗旁观"**必须**有这些字段才能真跑 CTB、才能被配置校验。故 `ctb = true` 的 `script` 改为 `ScriptedTurn[]`（`order / actor / act / cardId / mainAxis / target / narration`），`act` + `narration` 为**必带**（回合推进信号，`combat-system.md` §3.10）。
+> 2. **★ 剧本专用牌不进玩家牌池**：`ScriptedTurn.cardId` 指向的 NPC 牌（如 A-2 麻黄 / 杏仁 / 甘草）**不注册进玩家牌池 / 图谱**——它们只是"别人打的牌"，其 `mainAxis` / `P` 只在遭遇结算档内生效。
+> 3. **§8 增 1 条 AC**（`ctb = true` 脚本结构合法 + 剧本专用牌不入池）。
+> 4. **未改**：`Chapter` / `Case` 结构、`Encounter` 的 `ctb` 语义、主节拍、探索节点、代价三通道、`IP_base`。
