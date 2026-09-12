@@ -12,7 +12,11 @@ Desktop.ini
 # === Claude Code Local ===
 .claude/settings.local.json
 CLAUDE.local.md
-production/session-logs/
+# Session audit trail — hook-generated. `**/` covers nested copies left behind
+# when a hook ran from a subdirectory (see .claude/settings.json path anchoring).
+**/production/session-logs/
+# Local agent-runner configs carry a plaintext ANTHROPIC_API_KEY. Never commit.
+.claude/opencode_*.json
 
 # === Internal Planning (not for public) ===
 
