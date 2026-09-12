@@ -28,7 +28,7 @@
 | 9 | 疫情资源博弈系统 Epidemic Strategy | Gameplay | Vertical Slice | PLANNED | — | 战斗、队伍 |
 | 10 | 存档 / 读档系统 Save & Load | Persistence | MVP | PLANNED | — | 成长、战斗、任务 |
 | 11 | UI / HUD | UI | MVP | PLANNED | — | 战斗、成长、队伍 |
-| 12 | 引导 / 教学系统 Onboarding | Meta | MVP | PLANNED | — | 战斗、对话 |
+| 12 | 引导 / 教学系统 Onboarding | Meta | MVP | **DRAFT** | `design/gdd/onboarding-system.md` | 战斗、**关卡**、对话、**任务** |
 | 13 | 音频系统 Audio | Audio | Full Vision | PLANNED | — | （无） |
 | 14 | 本地化系统 Localization | Meta | Full Vision | PLANNED | — | 对话、UI |
 | 15 | 无障碍系统 Accessibility | Meta | Full Vision | PLANNED | — | UI |
@@ -89,7 +89,7 @@
 ### Presentation Layer（依赖 Feature）
 
 1. **UI / HUD** — 依赖：战斗、成长、队伍。
-2. **引导 / 教学系统** — 依赖：战斗、对话。
+2. **引导 / 教学系统** — 依赖：战斗、**关卡**、对话、**任务**。
 3. **本地化系统** — 依赖：对话、UI。
 
 ### Polish Layer（依赖一切）
@@ -111,7 +111,7 @@
 | 6 | 关卡 / 遭遇系统 | MVP | Feature | level-designer | M（**已起草**） |
 | 7 | 存档 / 读档系统 | MVP | 横切 | lead-programmer | S |
 | 8 | UI / HUD | MVP | Presentation | ui-programmer | M |
-| 9 | 引导 / 教学系统 | MVP | Presentation | game-designer | S |
+| 9 | 引导 / 教学系统 | MVP | Presentation | game-designer | S（**已起草·骨架**） |
 | 10 | 论战系统 | Vertical Slice | Feature | systems-designer | M |
 | 11 | 疫情资源博弈系统 | Vertical Slice | Feature | systems-designer | M |
 | 12 | 任务 / 剧情流程系统 | Vertical Slice | Feature | narrative-director | M（**已起草**） |
@@ -149,11 +149,11 @@
 | 指标 | 数量 |
 |---|---|
 | 已识别系统总数 | 15 |
-| 已开始设计（Draft） | 7 |
+| 已开始设计（Draft） | 8 |
 | 已评审 | 0 |
 | 已批准 | 0 |
-| MVP 系统已设计 | 6 / 9 |
-| 竖直切片系统已设计 | 7 / 12 |
+| MVP 系统已设计 | 7 / 9 |
+| 竖直切片系统已设计 | 8 / 12 |
 
 ---
 
