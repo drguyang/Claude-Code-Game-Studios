@@ -15,6 +15,8 @@ CLAUDE.local.md
 # Session audit trail — hook-generated. `**/` covers nested copies left behind
 # when a hook ran from a subdirectory (see .claude/settings.json path anchoring).
 **/production/session-logs/
+# Ephemeral session checkpoint — see .claude/docs/directory-structure.md.
+production/session-state/active.md
 # Local agent-runner configs carry a plaintext ANTHROPIC_API_KEY. Never commit.
 .claude/opencode_*.json
 

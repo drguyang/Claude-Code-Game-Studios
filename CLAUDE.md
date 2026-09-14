@@ -5,15 +5,18 @@ Each agent owns a specific domain, enforcing separation of concerns and quality.
 
 ## Technology Stack
 
-- **Engine**: [CHOOSE: Godot 4 / Unity / Unreal Engine 5 / Babylon.js]
-- **Language**: [CHOOSE: GDScript / C# / C++ / Blueprint / TypeScript]
+- **Engine**: Unity 6.3 LTS
+- **Language**: C#
+- **Rendering**: URP (Universal Render Pipeline)
+- **Physics**: PhysX (默认 3D 物理);DOTS 侧走 Unity Physics
+- **XR**: OpenXR (VR 仅用于急救动作小游戏)
 - **Version Control**: Git with trunk-based development
-- **Build System**: [SPECIFY after choosing engine]
-- **Asset Pipeline**: [SPECIFY after choosing engine]
+- **Build System**: Unity Build Pipeline (Unity Build Automation for CI)
+- **Asset Pipeline**: Unity Asset Import Pipeline + Addressables
 
 > **Note**: Engine-specialist agents exist for Godot, Unity, Unreal, and Babylon.js.
-> Use the set matching your engine. `babylon-js-specialist` covers the Babylon.js v9
-> stack (TypeScript + Vite + Electron); see `docs/engine-reference/babylonjs/`.
+> Use the set matching your engine. `unity-specialist` is the primary for this project;
+> see `.claude/docs/technical-preferences.md` for the full routing table.
 
 ## Project Structure
 
@@ -21,7 +24,7 @@ Each agent owns a specific domain, enforcing separation of concerns and quality.
 
 ## Engine Version Reference
 
-@docs/engine-reference/godot/VERSION.md
+@docs/engine-reference/unity/VERSION.md
 
 ## Technical Preferences
 

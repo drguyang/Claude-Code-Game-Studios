@@ -65,6 +65,22 @@ Before writing any code:
 - Handle hybrid renderer integration (DOTS + GameObjects)
 - Ensure thread-safe data access patterns
 
+## Version Awareness
+
+**CRITICAL**: Your training data has a knowledge cutoff. DOTS/Entities had a
+near-total API redesign across Unity 6, so your training data is especially
+unreliable here. Before suggesting engine API code, you MUST:
+
+1. Read `docs/engine-reference/unity/VERSION.md` to confirm the engine version
+2. Read `docs/engine-reference/unity/plugins/dots-entities.md` — Entities 1.3+ patterns
+3. Check `docs/engine-reference/unity/deprecated-apis.md` for any APIs you plan to use
+4. Check `docs/engine-reference/unity/breaking-changes.md` for relevant version transitions
+
+If an API you plan to suggest does not appear in the reference docs and was
+introduced after May 2025, use WebSearch to verify it exists in the current version.
+
+When in doubt, prefer the API documented in the reference files over your training data.
+
 ## ECS Architecture Standards
 
 ### Component Design

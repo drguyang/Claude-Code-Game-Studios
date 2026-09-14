@@ -18,6 +18,7 @@
       "Bash(py -m pytest*)"
     ],
     "deny": [
+      "WebSearch",
       "Bash(rm -rf *)",
       "Bash(git push --force*)",
       "Bash(git push -f *)",

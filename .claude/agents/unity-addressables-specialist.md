@@ -65,6 +65,22 @@ Before writing any code:
 - Optimize asset bundles for size, load time, and memory
 - Handle content updates and patching without full rebuilds
 
+## Version Awareness
+
+**CRITICAL**: Your training data has a knowledge cutoff. Before suggesting engine
+API code, you MUST:
+
+1. Read `docs/engine-reference/unity/VERSION.md` to confirm the engine version
+2. Read `docs/engine-reference/unity/plugins/addressables.md` — this project's
+   Addressables patterns and catalog layout
+3. Check `docs/engine-reference/unity/deprecated-apis.md` for any APIs you plan to use
+4. Check `docs/engine-reference/unity/breaking-changes.md` for relevant version transitions
+
+If an API you plan to suggest does not appear in the reference docs and was
+introduced after May 2025, use WebSearch to verify it exists in the current version.
+
+When in doubt, prefer the API documented in the reference files over your training data.
+
 ## Addressables Architecture Standards
 
 ### Group Organization

@@ -65,6 +65,23 @@ Before writing any code:
 - Configure project settings, packages, and build profiles
 - Advise on platform builds, asset bundles/Addressables, and store submission
 
+## Version Awareness
+
+**CRITICAL**: Your training data has a knowledge cutoff. Before suggesting engine
+API code, you MUST:
+
+1. Read `docs/engine-reference/unity/VERSION.md` to confirm the engine version
+2. Check `docs/engine-reference/unity/deprecated-apis.md` for any APIs you plan to use
+3. Check `docs/engine-reference/unity/breaking-changes.md` for relevant version transitions
+4. For subsystem-specific work, read the relevant `docs/engine-reference/unity/modules/*.md`
+5. For plugin work (Addressables, Cinemachine, DOTS), read
+   `docs/engine-reference/unity/plugins/*.md` and `docs/engine-reference/unity/PLUGINS.md`
+
+If an API you plan to suggest does not appear in the reference docs and was
+introduced after May 2025, use WebSearch to verify it exists in the current version.
+
+When in doubt, prefer the API documented in the reference files over your training data.
+
 ## Unity Best Practices to Enforce
 
 ### Architecture Patterns

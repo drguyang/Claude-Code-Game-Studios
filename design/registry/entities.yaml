@@ -37,7 +37,56 @@
 #   Each entry: name, status, source, referenced_by[], attributes{}, added, revised
 
 version: 1
-last_updated: ""
+last_updated: "2026-09-14"
+
+# ─── 跨系统欠账 (2026-09-14 追加) ─────────────────────────────────────────────
+# 本注册表只登记【已存在的实体/公式/常量】。未兑现的跨文档债务不属于任何一类,
+# 但它们是「下游撰写时必须回来收账」的东西 —— 在此显式记录,防止随对话流失。
+# 权威台账仍在各 GDD 的 §Debt Register;此处只做索引。
+#
+# · D-9-D  ADR-005 的 SimEvent 缺 Seq 与 Payload —— 已由 ADR-006 Amendment A 兑现。
+#          受影响:docs/architecture/adr-005-deterministic-sim.md · disease-simulation.md
+# · D-9-E  patient_id 跨权威稳定性 —— ✅ 2026-09-14 用户裁定:机制 A「计数器 + 高水位可重构」
+#          (ADR-006 Amendment B)。三条不变量:计数器永不复位 0 ·
+#          迁移后 next = max(patient_id) + 1(由事件流重构)·
+#          【终态折叠行必须保留 patient_id】—— 原 ADR-005 折叠元组漏此字段,
+#          会导致高水位不可重构 ⇒ 静默 id 复用 ⇒ 两病人共写病程。已就地修正。
+#          残留实现项归 7a 持久化 / 45 网络层。备选 B(纯哈希派生)已否决。
+#          9 的 Implement 门已解除。
+# · D-21-9  整数边界契约 —— 已由 ADR-006 §Decision 一/二/三 落盘。
+# · D-21-10 守恒律 EFF_MAX ≤ 1 —— 常量已登记(EFF_MIN/EFF_MAX);18/19 侧待回收。
+# · D-21-11 品级 → 药效【时间轴】—— 公式已登记(quality_timeline);11/9 侧待回收。
+#          ⚠️ 2026-09-14 二轮换轴:原为「品级 → 药效幅值」(quality_efficacy),
+#          裁定改为「品级 → 时间轴/作用点」(D-21-14),永不调幅值。
+# · D-21-12 21b 内容规范(药典版本 · 药品名豁免 · 保留词表)—— 21b 撰写前须落盘。
+# · D-21-13 processing_state 跨持久化只用稳定字符串名 —— 由 ADR-006 §Decision 二 覆盖。
+# · D-21b-1/2/3  21b 的物品清单 · 重量单位考据 · 未估算的考据量 —— 见 item-database.md §Debt Register。
+# · D-21-14 F5 换轴:品级作用轴 = 时间轴/作用点 —— 常量已登记(quality_axis / axis_offset_by_quality)。
+# · D-21-15 技能回报 = 投入端可变:ActualConsumed = Ceil(inputs[].qty / EFF) —— EFF 的运行期出口。
+#          常量 EFF_MIN/EFF_MAX 已登记;18/19 侧待回收。
+# · D-21-16 品级身份标签:gather_profile.quality_character[](string[])—— 常量已登记;42 呈现侧待回收(U-5)。
+# · D-21-17 weight 口径 = int(最小单位个数),【不是 Fix】—— 原 AC-21a-41 误将其列入 Fix 解析集。
+# · D-21-18 Fix 不可经 Unity 序列化器承载 —— 须自定义编码器(ADR-006 修正案,待撰写:见 D-21-19)。
+# · D-21-19 ADR-006 修正案 —— ✅ 2026-09-14 同轮就地落盘(① weight 移出 Fix 解析集 ② Fix 禁经 Unity 序列化 ③ 守恒律改 weight 单位)。
+# · D-21-20 Fix 序列化编码器须实现(7a 侧显式读写 Fix._raw 的 long),须一条 EditMode 探针实测钉死。
+# ── 三轮复核(2026-09-14,MAJOR REVISION NEEDED · Scope L)────────────────────
+# · D-21-21 【守恒律两侧都封】(三轮 blocking #1,5/7 专家命中):
+#           Σ(w × 产出量) ≤ EFF_MAX × Σ(w × 实耗量),产出量【含 QtyMultiplier】;
+#           构建期上界 QTY_MULT_MAX × Σ(w × 产出基数) ≤ EFF_MAX × Σ(w × 输入基数)。
+#           原式两侧基数、漏产出侧乘子 ⇒ 构建期过、运行期击穿(凭空造物)。已在 F1/规则八/本文件就地修正。
+# · D-21-22 【drug_potency】(原 Offset 改名)归 21a,入 drug_profile —— 9 处置事件 Offset 的【唯一来源】。
+#           二轮换轴时误删,导致 9 点名的来源在 21a 无字段。它是【静态基础幅值,不受品级调制】。
+#           9 侧字段名对齐归 D-21-25。常量已登记。
+# · D-21-23 【F5 quality_axis 在 P0 收窄为 half_life】(唯一在 9 有落点的轴);
+#           onset/peak/elimination 标 P1a。P0 构建期拒绝非 half_life(AC-21a-60)。
+# · D-21-24 【成药侧品级感知层】:drug_quality_character[](string[],长度 = MAX_QUALITY)+ U-6;
+#           并加【可感知地板】—— 非零档 |axis_offset| 须 > 9 的病史噪声带(AC-21a-61)。常量已登记。
+# · D-21-25 9 侧处置事件字段名须对齐 drug_potency / half_life(9 现写 Offset / tau_half)—— 待回收。
+# · D-21-26 instance_id 权威缺契约 —— ADR-005 的 IIdAuthority 只有 PatientId Next(),无物品 id 来源;
+#           主机迁移后计数器复位 ⇒ 静默重号(两件物品共用一个 id,不崩溃,只表现为「物品悄悄合并/丢失」)。
+#           须扩 IIdAuthority 加 ItemInstanceId Next()。待裁。
+# · D-21-27 17 采集的 instance_id 铸造权(规则九的主机唯一清单【漏了 17】)—— 待回收。
+# · D-21-28 Craft 事件的总序键缺失(建议 (Tick, ActorId, Seq),与 SimEvent 同族)—— 待裁。
 
 # ─── ENTITIES ────────────────────────────────────────────────────────────────
 # Named game-world objects: enemies, NPCs, characters, factions, bosses.
@@ -76,6 +125,11 @@ entities: []
 # Required fields: name, status, source, referenced_by, added
 # Attribute fields: value_gold, weight, stackable, category, and any stat
 #   modifiers that another system (e.g., economy, crafting) might reference.
+#
+# ⚠️ 2026-09-14:P0 具体物品清单【尚不存在】—— 它属 21b(物品与配方数据库的
+#   内容层),须按支柱五逐条考据后另立。21a 只定 schema 与主键
+#   (item_key = (base_id, processing_state))。21b 落盘前本节保持为空是【正确状态】,
+#   不是遗漏。主键形状见 design/gdd/item-database.md §Detailed Design 规则一 / §Schema A。
 
 items: []
 
@@ -106,7 +160,305 @@ items: []
 #   output_range[min, max], added
 # Optional: expression (the actual formula), notes
 
-formulas: []
+formulas:
+  # ── F1: 配方结算 (item-database.md §Formulas) ──────────────────────────
+  # 唯一求解器。18 炮制 / 19 制作只传输入参数,不得自建实现
+  # (systems-index.md §9 C5 的推广)。
+  - name: recipe_settlement
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md
+      # 18 / 19 GDD 尚未撰写 —— 撰写时须回溯追加
+    variables:
+      - outputs[].qty               # 逐条产出基数(原 Recipe.BaseQty 单数已废 —— 三轮 blocking #2)
+      - QtyMultiplier
+      - SkillMod
+      - QualityMod
+      - EquipMod
+      - EnvMod
+      - QTY_MULT_MIN
+      - QTY_MULT_MAX
+    output_range: ["1", "max(1, Round(outputs[].qty * QTY_MULT_MAX))"]
+    expression: "OutputQty_i = max(1, Round(outputs_i.qty * clamp(1 + SkillMod + QualityMod + EquipMod + EnvMod, QTY_MULT_MIN, QTY_MULT_MAX)))   # 逐条套用;QtyMultiplier 是配方级"
+    notes: "⚠️ 2026-09-14 二轮修正(blocking #1):原文断言「QTY_MULT_MIN 必须 > 0 ⇒ 求解器数学上不可能产出零」【为假】——
+      Round(1 * 0.3) = 0。非零性不能靠 QTY_MULT_MIN 的取值获得,必须【结构性】由 max(1, ·) 兜住。
+      故 QTY_MULT_MIN 允许 ≥ 0(constraint 已放宽);下界恒为 1,与 QTY_MULT_MIN 取值无关。
+      修正项采用「相加后乘」而非「逐项相乘」,以消除叠加顺序依赖。
+      ⚠️ 顺序无关性的【前提】是定点域(ADR-005),不是自明的 —— 见 AC-21a-4。
+      ⚠️ 前提前提:Σ(正的 cap) + max(0, ENV_MOD_MAX) ≤ QTY_MULT_MAX − 1,否则高投入段被静默截断(AC-21a-9)。
+      ⚠️ 2026-09-14 三轮修正(blocking #1,5/7 专家命中):【守恒律的两侧都封】——
+      构建期上界须写 QTY_MULT_MAX × Σ(w × outputs_i.qty) ≤ EFF_MAX × Σ(w × inputs_j.qty),
+      运行期须写 Σ(w × OutputQty_i) ≤ EFF_MAX × Σ(w × ActualConsumed_j)。
+      原登记式(仅裸计数、两侧基数)【漏了产出侧的 QtyMultiplier 上界】,可被运行期击穿:
+      w_in=10, w_out=9, EFF_MAX=1, QTY_MULT_MAX=2 ⇒ 构建期 9≤10 ✓ 而运行期 18>10 ✗(凭空造物)。
+      ⚠️ 2026-09-14 三轮修正(blocking #2):Recipe.BaseQty【不是配方级标量】——
+      配方是 outputs[],BaseQty 逐条即 outputs_i.qty。原 registry 与 GDD F1 写单数、GDD Schema F 写复数,是【形状断裂】。
+      投入端另有 EFF 出口:ActualConsumed = Ceil(inputs[].qty / EFF)(D-21-15,见 efficiency / EFF 条目)。
+      ⚠️ 修正曲线须在 Q16.16 原始整数域求值,不在 int 域 —— SkillMod = cap × Level / SKILL_CAP 若按 int 算,
+      Level < SKILL_CAP 时恒为 0(0.3×30/60 整除 = 0),曲线退化成两段阶跃(三轮 blocking #6)。"
+    added: 2026-09-13
+    revised: 2026-09-14
+
+  # ── F2: 品级传导 (item-database.md §Formulas) ──────────────────────────
+  - name: quality_transmission
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md
+      # 18 炮制 GDD 尚未撰写 —— 撰写时须回溯追加
+    variables:
+      - InputQuality
+      - CraftSkill
+      - Retain
+      - RETAIN_MIN
+      - RETAIN_MAX
+      - SKILL_CAP
+      - MAX_QUALITY
+      - EFF_MIN
+      - EFF_MAX
+    output_range: [1, "InputQuality"]
+    expression: "OutputQuality = clamp(Round(InputQuality * Retain(CraftSkill)), 1, InputQuality)
+      ; EFF = EFF_MIN + (EFF_MAX − EFF_MIN) * (CraftSkill / SKILL_CAP)"
+    notes: "clamp 上界是 InputQuality 而非常量 MAX_QUALITY —— 这就是裁决 Q3 的
+      「输入定上限,技能定能保住多少」。上界若放开到 MAX_QUALITY,玩家即可用低品级
+      原料刷品级,使采集技能的高品级识别能力失去意义(item-database.md AC-21a-2 验证此点)。
+      ⚠️ 2026-09-14 修正:原 output_range 上界写作 MAX_QUALITY 是【笔误】——
+      与同一行的 expression clamp 到 InputQuality 直接矛盾(已由 creative-director 判为登记笔误)。
+      ⚠️ 2026-09-14 新增:EFF 转化效率(规则八 / D-21-10)—— 本式是它的定义处。
+      守恒律【已修正为加权式】(三轮 blocking #1):
+        Σ(w × outputs_i.qty) ≤ EFF_MAX × Σ(w × inputs_j.qty)   [构建期上界,产出侧须含 QTY_MULT_MAX]
+        Σ(w × OutputQty_i)   ≤ EFF_MAX × Σ(w × ActualConsumed_j) [运行期]
+      原文「Σ outputs ≤ Σ inputs × EFF_MAX」是【裸计数】(量纲不齐,异质 item_key 无可加分母)且【漏产出侧乘子】。
+      EFF_MIN 的下界是硬的:∈ (0, EFF_MAX] —— EFF=0 ⇒ 运行期除零,EFF<0 ⇒ 实耗为负(三轮 blocking #6)。
+      EFF_MAX ≤ 1 为硬约束(AC-21a-40)。
+      退化为阶跃函数的批评(60 级只落 2 档)已登记,director 未判 blocking。"
+    added: 2026-09-13
+    revised: 2026-09-14
+
+  # ── F5: 品级 → 药效时间轴 (item-database.md §Formulas) ─────────────────
+  # 品级的【非数量出口】(D-21-11 / 用户裁定②;2026-09-14 二轮换轴)。
+  # ⚠️ 二轮大修:原式调 Offset【幅值】—— 幅度是可被玩家换算成数值的维度,
+  # 撑不起锚点二「品级的质地」。已换为【时间轴 / 作用点】(D-21-14):
+  # 品级偏移 onset / peak / half_life / elimination 之一(由 quality_axis 指名),永不调幅值。
+  - name: quality_timeline
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md
+      # 11 处方 / 9 疾病与伤情 —— 接通时须回溯追加(D-21-11)
+    variables:
+      - quality_axis               # 枚举:【P0 只有 half_life】;onset|peak|elimination 标 P1a(三轮 D-21-23)
+      - Axis_base                  # quality_axis 所指那条轴的基础值,Q16.16 Fix(P0 = half_life,与 9 的 tau_half 同源)
+      - axis_offset_by_quality     # Q16.16 int[] 档位表,长度 = MAX_QUALITY
+      - MAX_QUALITY
+    output_range: ["Axis_base + min(axis_offset_by_quality)",
+                   "Axis_base + max(axis_offset_by_quality)"]
+    expression: "Axis_effective = Axis_base + axis_offset_by_quality[quality − 1]"
+    notes: "【时间轴 / 作用点,不是幅值】—— 品级改的是「起效早晚 / 峰值早晚 / 半衰期长短 / 消除快慢」,
+      玩家感到的是「这剂起效更慢但更久」,不是「这剂数字更大」。
+      【永不调幅值】:本式不触碰 drug_potency / polarity —— 幅值是【静态基础值】,归 21a 的 drug_profile
+      (D-21-22,原 Offset 改名);品级只调时间轴。
+      【只动一条轴】:quality_axis 指名的轴偏移,其余三条时间轴逐位不变(AC-21a-38)。
+      【P0 至少一档非零】:全零 ⇒ 锚点二在 P0 落空,AC 不得替它背书(AC-21a-37)。
+      ⚠️ 2026-09-14 三轮修正(blocking #4, D-21-23):quality_axis 在 P0【收窄为 half_life】——
+      9 的处置载荷只有 polarity / Offset / half_life(=tau_half)三项,onset/peak/elimination【产出即被丢弃】。
+      枚举写四值而实际只一值是最难查的静默;P0 构建期拒绝非 half_life 取值(AC-21a-60)。
+      ⚠️ 2026-09-14 三轮修正(blocking #5, D-21-24):加【可感知地板】——
+      非零档 |offset| 必须 > 9 的病史噪声带,否则偏移统计上不可区分于噪声 ⇒ 玩家永远感觉不到,
+      而 U-1/U-2 禁数字 ⇒ 出口名存实亡。地板数值须与 9 的噪声带宽一起定(AC-21a-61)。
+      成药侧的品级定性感知另立 drug_quality_character[](D-21-24,U-6),与原料侧 quality_character[] 成对。
+      ⚠️ 本式让品级进入 ADR-005 的定点域 ⇒ 档位表必须为 Q16.16 int、禁 float(ADR-006 §Decision 二 / AC-21a-51)。
+      ⚠️ 域钳制:Axis_base + min(axis_offset_by_quality) 必须 > 0 —— 9 用 half_life 作除数,
+      推到 ≤ 0 即除零 / 反向衰减(三轮补,AC-21a-38b)。
+      ⚠️ 与 Recipe.min_quality 的关系:min_quality 是【准入闸】,不是出口;
+      两者理由不同(闸门制造取舍,轴偏移制造回报),不可互相替代(item-database.md 规则五)。"
+    added: 2026-09-14
+    revised: 2026-09-14
+
+  # ── F1: 事件抽取 (random-events.md §Formulas) ──────────────────────────
+  - name: event_roll
+    status: active
+    source: design/gdd/random-events.md
+    referenced_by:
+      - design/gdd/random-events.md
+      # 27 敌人 AI GDD 尚未撰写 —— 撰写时须回溯追加(52 决定来不来,27 决定来了怎么动)
+    variables:
+      - W_base
+      - 档占比
+      - TODMult
+      - HistoryMult
+      - ReputationMult
+      - KeyGate
+      - CarryLoad
+      - RelevantSkill
+      - SoloFlag
+      - EcoTier
+      - W_strength
+      - StrengthCap
+      - MIN_tier
+      - MAX_tier
+    output_range: ["MIN_tier", "MAX_tier"]
+    expression: "① 档占比[] → 各档配额(无放回) ② W_i = W_base_i × TODMult_i × HistoryMult_i(KeyGate 未过 ⇒ W_i = 0);p_i = W_i / ΣW_j ③ StrengthRaw = Σ(归一化(PlayerState) × W_strength) → clamp(MIN_tier, MAX_tier) → StrengthCap = min(StrengthTier, f(最高格斗线, 急救)) ④ 过密度预算 ⇒ 生成"
+    notes: "进度锁 = 行医进度(声誉 / 救人数 / 生态区解锁),不是杀怪进度 ——
+      这是本作对英灵神殿最关键的一处改写:盯上你的人不是因为你强,是因为你「有用」。
+      ⚠️ 2026-09-14 复核 blocking #2:乘子必须【逐条】,不能是【全池标量】——
+      标量 k 在 p_i = w_i·k / Σ(w_j·k) 中被恒约去,对分布零作用;
+      故 ReputationMult 改为【按档非对称数组】{机会: R_opp, 反应: R_react, 威胁: 1, 灾难: 1},
+      R_opp 与 R_react 是两个独立参数、由 31 共同驱动(「一个数两个方向」的机制实现)。
+      ⚠️ 2026-09-14 复核 blocking #6:抽池在先、定档在后 —— 强度【不是】抽一的乘子。
+      ⚠️ 2026-09-14 复核 blocking #7:PlayerState 各项【必须先归一化到 [0,1]】,
+      否则 CarryLoad(10²–10³)会以 1–2 个数量级淹没 RelevantSkill(1–60);
+      StrengthCap 是上限帽(带药多不得强过自身格斗/急救量级)。
+      P0 的 EcoTier 权重恒为 0 —— 本作是固定世界,空间纵深轴失效(concept-benchmark.md:60);
+      深水线由 5/17 交付,52 只登记归属(见 random-events.md Dependencies)。
+      ⚠️ 随机源见 DC-1:SplitMix64(WorldSeed, t, k),禁 UnityEngine.Random(AC-52-06/07)。
+      全量数值为 Fix / int,禁 float(AC-52-08 / ADR-006)。"
+    added: 2026-09-13
+    revised: 2026-09-14
+
+  # ── F3: 损毁与重建成本 (random-events.md §Formulas · P1a) ─────────────────
+  - name: rebuild_cost
+    status: active
+    source: design/gdd/random-events.md
+    referenced_by:
+      - design/gdd/random-events.md
+      # 23 建造 GDD 尚未撰写 —— 撰写时须回溯追加
+    variables:
+      - FullCost_mark
+      - SALVAGE_RATE
+      - SALVAGE_RATE_RAZED
+      - DamageRatio
+      - DAMAGE_MIN
+      - base_cost
+    output_range: ["0", "FullCost_mark"]
+    expression: "RepairCost = Σ(base_cost × DamageRatio) − SalvageValue;SalvageValue = Σ(base_cost × DamageRatio × SALVAGE_RATE);RebuildCost_mark = FullCost_mark × (1 − SALVAGE_RATE);RebuildCost_razed = FullCost_mark × (1 − SALVAGE_RATE_RAZED)"
+    notes: "⚠️ 2026-09-14 复核 blocking #9 修正三处边界退化:
+      ① SALVAGE_RATE 由 (0,1] 收为 (0,1) —— 含 1 ⇒ RebuildCost = 0,重建免费 ⇒ 焚毁档失去全部 stakes,
+         且玩家可反复故意焚毁刷布局;构建期直接拒绝 1。
+      ② 补回收项 —— 原 RepairCost 无 SalvageValue,导致 DamageRatio = 1 时
+         RepairCost(= FullCost)> RebuildCost ⇒ 【修不如拆,维修被严格支配】,与「就地修补」承诺相悖(AC-52-34)。
+      ③ 焚毁档原无成本式 ⇒ 补 RebuildCost_razed 与 SALVAGE_RATE_RAZED(回收率更低)。
+      另:DamageRatio ∈ [DAMAGE_MIN, 1) 且 DAMAGE_MIN > 0(= 0 即「零成本复原」);AC-52-35 守边界。
+      「受损 / 摧毁 / 焚毁」三档同时是 52 与 23 之间的接口契约。
+      另:脉案 / 已学知识 / 技能等级永不被损毁夺走(兑现 game-concept.md L270;AC-52-33)。
+      ⚠️ 本式【P1a】—— P0 威胁档不打建筑、P0 无地图 #43,规则七在 P0 无触发源(规则七注)。"
+    added: 2026-09-13
+    revised: 2026-09-14
+
+  # ── F1: 病程求值 (disease-simulation.md §Formulas) ─────────────────────
+  # 全案唯一一条病程曲线。9 是唯一持有者;11 处方只产出 Offset,不得自建曲线。
+  - name: disease_progression
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md
+      # 11 处方用药 / 13 病人 AI / 24 医馆即机器 GDD 尚未撰写 —— 撰写时须回溯追加
+    variables:
+      - A_peak
+      - incubation
+      - tau_rise
+      - tau_fall
+      - tau_peak
+      - self_limit
+      - plateau
+      - A_rel
+      - relapse_interval
+      - tau_rel_fall
+      - tau_half          # 属 11/21a 的 drug_profile,不属病种注册表(见 notes)
+      - sigma
+      - Offset            # 由 11 处方产出,9 只消费
+      - Noise             # SplitMix64 查表哈希,不持 PRNG 状态
+    output_range: ["0", "无上界(clamp 下界 0)"]
+    expression: "clamp( (Base(τ) ⊔ Relapse(τ)) + Σ Offsetᵢ×Decay(t−tickᵢ) + Noise(seed,t), 0, +∞ ), τ = t − onset_tick"
+    notes: "两条不可动摇的约定,实现前必读:
+      (1) 【时间原点】τ = t − onset_tick,τ_rel = relapse_interval × (复发次数+1) ——
+          Base 与 Relapse 共用相对时基,全式只有 t 一个绝对量。
+          早期草稿写作 t_rel = onset_tick + …(绝对量)与相对量的 τ 相减,会把首次复发推到负时刻。
+      (2) 【括号】⊔(取大)只作用于 Base 与 Relapse 两条曲线,Σ Offset×Decay 与 Noise 在括号外相加。
+          复发与处置偏移重叠时取大不取和 —— 相加会让病情假性叠加。
+      (3) tau_half 衰减的是【处置偏移】不是【病情】,故归 11 处方 / 21a 的 drug_profile(D-21-6),
+          不登记在病种注册表:病种定义「病怎么走」,药定义「药怎么退」。
+      曲线参数 schema(含禁止写 AnimationCurve 的理由)见 disease-simulation.md R1.3。"
+    added: 2026-09-13
+    revised: ""
+
+  # ── F2: 体征投影 (disease-simulation.md §Formulas) ─────────────────────
+  - name: sign_projection
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md
+      # 8 诊断与体征揭示 GDD 尚未撰写 —— 撰写时须回溯追加(读 position/trend 的门槛归它)
+    variables:
+      - Progress
+      - SCALE_病种
+      - W                 # trend 中心差分窗口
+      - 对症处置偏移
+    output_range: ["position: 0", "position: 1"]
+    expression: "position = clamp(Progress(t)/SCALE_病种, 0, 1) ; trend = (Progress(t+W/2) − Progress(t−W/2))/W"
+    notes: "规则三「病情/体征两层」的机制实现:Progress 只被【对因】处置改,Signⱼ 被【对症】处置改 ——
+      柳树皮降热但不改病情,金鸡纳皮改病情。
+      trend 用【中心差分】而非一阶差分:处置发生在窗口内时一阶差分跳变,玩家会看到「突然变坏」的假信号;
+      中心差分天然抵消对称跳变,且解析式求值免费。
+      trend 不在 output_range 内 —— 它未归一(单位是「每 tick 的进度变化」),符号是唯一有意义的读数。
+      ⚠️ 本公式【不含可读性判定】—— READ_FLOOR / BASE_READ / 技能→精度映射曲线于 2026-09-14
+      迁至 8 诊断(门槛是玩法决策,不是模拟决策;且 9 若按技能过滤会破坏 ADR-005 逐位一致)。
+      9 无条件出 position/trend 真值,BASE_READ 不再是本公式的变量。"
+    added: 2026-09-13
+    revised: 2026-09-14
+
+  # ── F3: 定 tick 与离线补算 (disease-simulation.md §Formulas) ───────────
+  - name: catchup
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md
+      # 7a 持久化服务 GDD 尚未撰写 —— 撰写时须回溯追加(authority-agnostic,C6)
+    variables:
+      - TICK_SECONDS
+      - sigma
+      - boundary_mode
+      - FIXED_ITER
+    output_range: ["0", "类A边界数 + 每子区间 log(区间/步长)"]
+    expression: "t = ⌊GameClock / TICK_SECONDS⌋ ; CatchUp 枚举类A闭式边界 → 切子区间 → 保守带|Noise|≤σ 外跳过/内二分 → 写回缺失病史事件"
+    notes: "复杂度不随离线时长线性增长 —— 这是规则二「O(处置次数)」的落地。
+      ⚠️ 该复杂度【不是自动成立】的,由三条共同保证:① 类A边界有具名闭式
+      ② 类B用保守带 ③ 每个病种登记 boundary_mode。缺任一条,F3 会悄悄退化成扫描。
+      boundary_mode 必须【登记为数据】(规则九),否则会在第 4 个月做存档时才发现某病种不可闭式求解
+      —— systems-index.md §8 标的正是这个爆点。
+      FIXED_ITER 保证「确定终止」,不保证「收敛到正确根」:固定迭代只解决确定性,不解决正确性。"
+    added: 2026-09-13
+    revised: ""
+
+  # ── F4: 阈值与转移判定 (disease-simulation.md §Formulas) ───────────────
+  - name: threshold_transition
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md
+      # 13 病人 AI / 34 公卫与疫情 GDD 尚未撰写 —— 撰写时须回溯追加
+    variables:
+      - CRITICAL_THRESHOLD
+      - COMA_THRESHOLD
+      - DEATH_THRESHOLD
+      - TREATMENT_WINDOW
+      - self_limit
+      - lethal
+      - position
+      - last_effective_treatment
+    output_range: ["潜伏|发病|进展|好转|迁延|危殆|昏迷|痊愈|死亡"]
+    expression: "在 tick 采样点上判定,不求根 ; 死亡 ← lethal ∧ self_limit=false ∧ position≥DEATH_THRESHOLD ∧ (t − last_effective_treatment) > TREATMENT_WINDOW"
+    notes: "【铁律一:死亡必须被挣得】在公式层的实现 —— 三个条件缺一不可:
+      (1) self_limit = false —— 否则自限性病也「时间到就死」,那是伪装违反;
+      (2) last_effective_treatment 只认【对因】处置 —— 否则对症药刷新死亡窗口,
+          玩家能用柳树皮「续命」,那是伪治疗;
+      (3) last_effective_treatment 为空时【取 onset_tick 哨兵】—— 缺哨兵则「从未被治过」的病人
+          该项无定义,死亡判定整条短路,而「见死不救」正是它要覆盖的情形。
+      放弃求根的理由:Noise 破坏单调性、Offset 在 t=tickᵢ 处引入导数跳变,二分可能失效或收敛到错误的根。
+      9 的状态转移本就是 tick 离散的,采样点判阈值足够。"
+    added: 2026-09-13
+    revised: ""
 
 # Example:
 #
@@ -139,7 +491,394 @@ formulas: []
 #
 # Required fields: name, status, source, referenced_by, value, unit, added
 
-constants: []
+constants:
+  # ── SKILL_CAP ─────────────────────────────────────────────────────────
+  # 首次登记:item-database.md 的 F2 引用了它作为等级归一化分母。
+  # 由 skill-system.md 拥有(item-database 只引用、不拥有)。
+  # ⚠️ 2026-09-14:disease-simulation.md 的引用【已撤销】—— 9 不再引用 SKILL_CAP
+  #   (可读性门槛迁至 8 诊断;9 若按技能过滤会破坏 ADR-005 逐位一致)。
+  - name: SKILL_CAP
+    status: active
+    source: design/gdd/skill-system.md
+    referenced_by:
+      - design/gdd/skill-system.md
+      - design/gdd/item-database.md        # F2 品级传导的归一化分母
+      # - design/gdd/disease-simulation.md  ← 2026-09-14 撤销(门槛迁至 8)
+      - design/gdd/diagnosis-system.md     # 8 诊断:读数门槛 READ_FLOOR 的归一化分母
+    value: 60
+    unit: levels
+    added: 2026-09-13
+    revised: 2026-09-14
+
+  # ── TICK_SECONDS ──────────────────────────────────────────────────────
+  # 【值待定】—— 由 9 的 Tuning Knobs 拥有,数值待用户裁定。
+  # 登记它不是因为值已知,恰恰相反:它是全案【唯一 tick 长度】,
+  # 7a 持久化 / 25 格斗 / 5 时间天气 都必须与 9 取同一个值 —— 值一改,四份文档同时失效。
+  # 在值落定前登记,是为了把这条「必须一致」的边显式化,而不是等实现时各自假设。
+  - name: TICK_SECONDS
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # F3 t = ⌊GameClock / TICK_SECONDS⌋
+      # 5 时间天气 / 7a 持久化 / 25 格斗 —— 撰写时须回溯追加
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    unit: seconds
+    added: 2026-09-13
+    revised: ""
+
+  # ── 21a 配方的调参旋钮常量组 (2026-09-14 复核新增) ────────────────────────
+  # 【值全部待定】—— 依硬约束「数值用户自己调」,本次只登记【存在性、归属与边界约束】。
+  # 登记它们不是因为值已知,而是因为 18 炮制 / 19 制作 / 20 库存 撰写时必须
+  # 【取同一组值】—— 各写各的即出现两套产出曲线。
+  # 归属:21a(item-database.md §Tuning Knobs 的「全局常量表」),非逐条物品数据。
+  - name: QTY_MULT_MIN
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md   # F1 的最差产出下限
+      # 18 / 19 —— 撰写时须回溯追加
+    value: "待定 —— 见 item-database.md Tuning Knobs"
+    unit: multiplier
+    constraint: "≥ 0 —— ⚠️ 2026-09-14 二轮放宽:非零产出由 max(1, ·) 结构性保证,不再依赖 > 0;
+      原文「≥ 0 即违反 AC-21a-1」【为假】(Round(1 * 0.3) = 0)。取值自由,须 < QTY_MULT_MAX"
+    added: 2026-09-14
+    revised: 2026-09-14
+
+  - name: QTY_MULT_MAX
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md   # F1 的最好产出上限
+    value: "待定 —— 见 item-database.md Tuning Knobs"
+    unit: multiplier
+    constraint: "> QTY_MULT_MIN 且 ≥ 1 + Σ(正的 cap) + max(0, ENV_MOD_MAX);否则高投入被静默截断(AC-21a-9)"
+    added: 2026-09-14
+    revised: ""
+
+  - name: SKILL_MOD_CAP
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by: [design/gdd/item-database.md]
+    value: "待定"
+    unit: modifier
+    constraint: "≥ 0"
+    added: 2026-09-14
+    revised: ""
+
+  - name: QUAL_MOD_CAP
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by: [design/gdd/item-database.md]
+    value: "待定"
+    unit: modifier
+    constraint: "≥ 0"
+    added: 2026-09-14
+    revised: ""
+
+  - name: EQUIP_MOD_CAP
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by: [design/gdd/item-database.md]
+    value: "待定"
+    unit: modifier
+    constraint: "≥ 0"
+    added: 2026-09-14
+    revised: ""
+
+  - name: ENV_MOD_MIN
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md
+      - design/gdd/random-events.md  # 【待确认】5 时间天气的输入源,撰写时回溯
+    value: "待定"
+    unit: modifier
+    constraint: "可为负;须 ≤ ENV_MOD_MAX"
+    added: 2026-09-14
+    revised: ""
+
+  - name: ENV_MOD_MAX
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by: [design/gdd/item-database.md]
+    value: "待定"
+    unit: modifier
+    constraint: "须 ≥ ENV_MOD_MIN"
+    added: 2026-09-14
+    revised: ""
+
+  - name: RETAIN_MIN
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md   # F2 技能 0 时的品级保留率
+    value: "待定"
+    unit: ratio
+    constraint: "(0, 1];> 0 是「没有全废」(裁决 Q4)的机制保证"
+    added: 2026-09-14
+    revised: ""
+
+  - name: RETAIN_MAX
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md   # F2 技能 60 时的品级保留率
+    value: "待定"
+    unit: ratio
+    constraint: "[RETAIN_MIN, 1];> 1 会被 clamp 掩盖,必须【构建期显式拒】(AC-21a-11)"
+    added: 2026-09-14
+    revised: ""
+
+  # ── EFF 转化效率 (规则八 / D-21-10,2026-09-14 用户裁定③) ────────────────
+  # 守恒律【加权式,三轮 blocking #1 修正】的两端:
+  #   构建期 QTY_MULT_MAX × Σ(w × outputs_i.qty) ≤ EFF_MAX × Σ(w × inputs_j.qty)
+  #   运行期 Σ(w × OutputQty_i) ≤ EFF_MAX × Σ(w × ActualConsumed_j)
+  # 原文「Σ outputs ≤ Σ inputs × EFF_MAX」量纲不齐且漏产出侧乘子。EFF 定义在 F2 段。
+  # EFF 与 QTY_MULT 是【同一根技能回报曲线的两端】:EFF 管省料,QTY_MULT 管多产 ——
+  # 只调一组会让「精进炮制」的体感偏到一侧。见 item-database.md Tuning Knobs 的联动警告。
+  - name: EFF_MIN
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md   # F2 / 规则八:技能 0 时的转化效率
+      # 18 炮制 / 19 制作 —— 撰写时须回溯追加(D-21-10)
+    value: "待定"
+    unit: ratio
+    constraint: "(0, EFF_MAX] ——【不含 0,下端是硬的】(三轮 blocking #6):
+      EFF=0 ⇒ F1 的 ActualConsumed = Ceil(base/EFF) 运行期除零;EFF<0 ⇒ 实耗为负(凭空造料)(AC-21a-56)"
+    added: 2026-09-14
+    revised: 2026-09-14
+
+  - name: EFF_MAX
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md   # F2 / 规则八:转化效率上限;守恒律的定界
+      # 18 炮制 / 19 制作 —— 撰写时须回溯追加(D-21-10)
+    value: "待定"
+    unit: ratio
+    constraint: "≤ 1 —— 硬约束;> 1 即「凭空造物」,构建期硬失败(AC-21a-40)"
+    added: 2026-09-14
+    revised: ""
+
+  - name: MAX_QUALITY
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md   # F2 / F5 品级档数;F4 堆叠基数
+      - design/gdd/diagnosis-system.md # 【待确认】8 的读数门槛是否依赖档数
+    value: "待定"
+    unit: tiers
+    constraint: "≥ 2 的整数;堆叠基数 = base 数 × state 数 × MAX_QUALITY(须交付 20);
+      axis_offset_by_quality[] 与 quality_character[] 的长度同步 = MAX_QUALITY(AC-21a-50)"
+    added: 2026-09-14
+    revised: 2026-09-14
+
+  # ── F5 时间轴换轴(D-21-14,2026-09-14 二轮新增) ────────────────────────
+  - name: quality_axis
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md   # F5:品级作用轴(逐条 drug_profile)
+      # 11 处方 / 9 疾病与伤情 —— 接通时须回溯追加(D-21-11)
+    value: "P0 固定 half_life"
+    unit: enum
+    constraint: "⚠️ 2026-09-14 三轮修正(D-21-23):【P0 收窄为 half_life 单一取值】——
+      9 的处置载荷只有 polarity / drug_potency / half_life(=tau_half)三项,
+      onset / peak / elimination 【产出即被丢弃】;枚举写四值而实际只一值是最难查的静默。
+      P0 构建期拒绝非 half_life 取值(AC-21a-60);其余三轴标 P1a,待 9 扩处置载荷后开。
+      ⚠️ 2026-09-14 三轮修正(blocking #3):原登记写「全案【单值】」是【错的】——
+      quality_axis 住在 drug_profile,是【逐条药物】(per-drug),不是全案单值。
+      同一 trait:同一药物的一条轴偏移,不得指向产量轴"
+    added: 2026-09-14
+    revised: 2026-09-14
+
+  - name: axis_offset_by_quality
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md   # F5 / drug_profile
+      # 11 处方 / 9 疾病与伤情 —— 接通时须回溯追加(D-21-11)
+    value: "逐档待定(用户裁定)"
+    unit: "Q16.16 Fix"
+    constraint: "长度 = MAX_QUALITY;每元素为 Q16.16 整数,禁浮点字面量(ADR-006 / AC-21a-51);
+      至少一档非零(AC-21a-37);与 quality_axis 所指那条轴同量纲;
+      Axis_base + min(axis_offset_by_quality) > 0(域钳制,AC-21a-38b);
+      ⚠️ 2026-09-14 三轮补(D-21-24):非零档 |offset| 须 ≥ 【可感知地板】> 9 的病史噪声带(AC-21a-61)"
+    added: 2026-09-14
+    revised: 2026-09-14
+
+  - name: quality_character
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md   # gather_profile → 42 呈现
+      - design/gdd/item-presentation.md  # 【待撰写】42 须以外观/药签措辞呈现(U-5)
+    value: "逐档待定(用户裁定)"
+    unit: string
+    constraint: "长度 = MAX_QUALITY;P0 可空;仅定性修饰,【不得】退化为数字或刻度(U-1/U-2/U-5);
+      不碰定点域(是 string)"
+    added: 2026-09-14
+    revised: ""
+
+  # ── 成药侧品级感知层(D-21-24,2026-09-14 三轮新增) ──────────────────────
+  - name: drug_quality_character
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md     # drug_profile → 42 呈现
+      - design/gdd/item-presentation.md # 【待撰写】42 须以药签措辞呈现(U-6)
+    value: "逐档待定(用户裁定)"
+    unit: string
+    constraint: "长度 = MAX_QUALITY;P0 可空;仅定性修饰,【不得】退化为数字或刻度(U-1/U-2/U-6);
+      与原料侧 quality_character[] 【互为补充、不可互替】(来源的质地 vs 工艺的质地)(AC-21a-62)"
+    added: 2026-09-14
+    revised: ""
+
+  - name: F5_PERCEPTIBILITY_FLOOR
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md   # F5 偏移可感知地板
+      # 9 疾病与伤情 —— 噪声带宽由 9 提供,地板须与之联定
+    value: "待定 —— 须 > 9 的病史噪声带"
+    unit: "Q16.16 Fix"
+    constraint: "⚠️ 2026-09-14 三轮新增(D-21-24):F5 的非零档 |axis_offset| 必须 > 9 的病史噪声带,
+      否则偏移【统计上不可区分于噪声】⇒ 玩家永远感觉不到,而 U-1/U-2 禁数字 ⇒ 出口名存实亡(AC-21a-61)。
+      须与 9 的噪声带宽一起定(跨系统常量)"
+    added: 2026-09-14
+    revised: ""
+
+  - name: drug_potency
+    status: active
+    source: design/gdd/item-database.md
+    referenced_by:
+      - design/gdd/item-database.md      # drug_profile → 9 处置事件的 Offset 来源
+      - design/gdd/disease-simulation.md # 【待对齐】9 侧字段名现仍写 Offset(D-21-25)
+    value: "逐条待定(用户裁定)"
+    unit: "Q16.16 Fix"
+    constraint: "⚠️ 2026-09-14 三轮新增(D-21-22,原 Offset 改名):8 处置事件 Offset 的【唯一来源】。
+      【静态基础幅值,不受品级调制】—— 品级只调时间轴(F5);幅值本身不废,废的是「用品级调幅值」。
+      禁浮点字面量(AC-21a-57);9 侧字段名对齐归 D-21-25"
+    added: 2026-09-14
+    revised: ""
+
+  # ── ROUND_MODE (ADR-006 §Decision 三) ──────────────────────────────────
+  # 全案【唯一】舍入模式。登记为常量而非逐调用点参数:
+  # 逐调用点会让两处公式各自舍入而无人察觉。
+  - name: ROUND_MODE
+    status: active
+    source: docs/architecture/adr-006-fixed-point-boundary-contract.md
+    referenced_by:
+      - design/gdd/item-database.md   # F1 / F2 的 Round
+      - docs/architecture/adr-006-fixed-point-boundary-contract.md  # 定义处
+    value: ROUND_HALF_AWAY_FROM_ZERO
+    unit: enum
+    constraint: "不建议改 —— 改它会让所有既有金标准夹具失效(AC-21a-42);
+      禁用 Math.Round 默认的 ties-to-even 是【故意的】"
+    added: 2026-09-14
+    revised: ""
+
+  # ── 52 随机事件导演的跨系统常量组 (2026-09-14 首轮复核新增) ────────────────
+  # 【值全部待定】—— 依硬约束「数值用户自己调」,本次只登记【存在性、归属与边界约束】。
+  # 只登记跨系统边界的项;52 内部的旋钮(MIN_tier / MAX_tier / W_strength / TODMult /
+  # HistoryMult / 预告窗口时长 / CONTEXT_*)留在 random-events.md §Tuning Knobs,不入本表。
+
+  # ── TICKS_PER_DAY ─────────────────────────────────────────────────────
+  # 52 的 F2 分母,也是全案「日」的量纲。与 TICK_SECONDS 同源:值一改,5 / 52 / 9 同时失效。
+  - name: TICKS_PER_DAY
+    status: active
+    source: "— (5 时间与天气,未撰写)"
+    referenced_by:
+      - design/gdd/random-events.md   # F2 分母;DC-3 日 = TICKS_PER_DAY
+      # 5 时间天气 / 9 疾病与伤情模拟 —— 撰写/对齐时须回溯追加
+    value: "待定 —— 见 random-events.md Tuning Knobs"
+    unit: ticks
+    constraint: "必须与 TICK_SECONDS / 9 的日边界取同一组值(AC-52-27 / DC-3)"
+    added: 2026-09-14
+    revised: ""
+
+  # ── CARRY_CAP ─────────────────────────────────────────────────────────
+  # F1 强度轴的归一化分母。归 20 库存拥有(21a 只给 `weight → InstanceWeight` 形状)。
+  - name: CARRY_CAP
+    status: active
+    source: "— (20 库存与物品,未撰写)"
+    referenced_by:
+      - design/gdd/random-events.md   # F1 归一化 CarryLoad / CARRY_CAP
+      # 20 库存与物品 / 21a 物品库 —— 撰写/对齐时须回溯追加
+    value: "待定 —— 见 random-events.md Tuning Knobs"
+    unit: weight_units
+    constraint: "> 0;须与 20 的负重上限同值,否则强度轴归一化错位(AC-52-24)"
+    added: 2026-09-14
+    revised: ""
+
+  # ── 档配额占比 (机会 / 反应 / 威胁 / 灾难) ──────────────────────────────
+  # 不是数值旋钮,而是【用户裁定】的可执行载体:P0 须满足 机会 : 威胁 = 1 : 1。
+  # 跨 52 ↔ 37(37 向池内注入医疗条目,须知道各档有配额)。
+  - name: tier_quota_ratio
+    status: active
+    source: design/gdd/random-events.md
+    referenced_by:
+      - design/gdd/random-events.md   # 规则十一 · F1 步骤①
+      # 37 病例系统(注入前须知各档配额)—— 撰写时须回溯追加
+    value: "int[4] —— 待定(四档各一个旋钮)"
+    unit: ratio
+    constraint: "各项 ≥ 0 且和 > 0;P0 构建期断言 机会 : 威胁 = 1 : 1(AC-52-02);
+      配额在预算窗口内【无放回】抽取,玩家不可见(反幻想:不得呈现为计数)"
+    added: 2026-09-14
+    revised: ""
+
+  # ── ReputationMult 的双参数 (R_opp / R_react) ───────────────────────────
+  # 31 声誉 → 52 的接口。⚠️ 必须是【两个独立参数】:对称的全局乘子会被归一化约去,
+  # 无法实现「一个数同时抬高机会与反应」。
+  - name: reputation_multipliers
+    status: active
+    source: "— (31 声誉与名声,未撰写)"
+    referenced_by:
+      - design/gdd/random-events.md   # F1:ReputationMult[档] = {机会: R_opp, 反应: R_react, 威胁: 1, 灾难: 1}
+      # 31 声誉 —— 撰写时须回溯追加
+    value: "R_opp / R_react —— 待定(P0 无 31,恒为 1)"
+    unit: Fix
+    constraint: "> 1;两者【独立】,由 31 共同驱动(同升);P0 无输入源 ⇒ 等价恒 1(AC-52-20 守门)"
+    added: 2026-09-14
+    revised: ""
+
+  # ── F3 损毁档的三个边界常量 (P1a) ───────────────────────────────────────
+  - name: SALVAGE_RATE
+    status: active
+    source: design/gdd/random-events.md
+    referenced_by:
+      - design/gdd/random-events.md   # F3 摧毁档
+      # 23 模块化建造(维修 / 重建成本)—— 撰写时须回溯追加
+    value: "待定 —— 见 random-events.md Tuning Knobs"
+    unit: Fix
+    constraint: "∈ (0, 1) —— 【不含 1】。= 1 则重建免费,焚毁档失去 stakes;构建期拒绝(AC-52-35)"
+    added: 2026-09-14
+    revised: ""
+
+  - name: SALVAGE_RATE_RAZED
+    status: active
+    source: design/gdd/random-events.md
+    referenced_by:
+      - design/gdd/random-events.md   # F3 焚毁档
+      # 23 模块化建造 —— 撰写时须回溯追加
+    value: "待定 —— 见 random-events.md Tuning Knobs"
+    unit: Fix
+    constraint: "∈ (0, SALVAGE_RATE) —— 焚毁档回收率必须【严格低于】摧毁档(AC-52-35)"
+    added: 2026-09-14
+    revised: ""
+
+  - name: DAMAGE_MIN
+    status: active
+    source: design/gdd/random-events.md
+    referenced_by:
+      - design/gdd/random-events.md   # F3 DamageRatio 下界
+      # 23 模块化建造 —— 撰写时须回溯追加
+    value: "待定 —— 见 random-events.md Tuning Knobs"
+    unit: Fix
+    constraint: "> 0。= 0 则「零成本复原」;DamageRatio ∈ [DAMAGE_MIN, 1),上界【不含 1】(AC-52-35)"
+    added: 2026-09-14
+    revised: ""
 
 # Example:
 #
