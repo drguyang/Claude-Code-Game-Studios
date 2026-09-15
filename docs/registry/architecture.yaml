@@ -69,6 +69,51 @@ state_ownership:
     added: 2026-09-15
     revised: ""
 
+  - state: ai_behavior_state
+    status: active
+    owner_system: "13 病人 AI 与行为 / 27 敌人 AI(共享 AI 层)"
+    adr: docs/architecture/adr-016-ai-architecture.md
+    interface: "AI 决策层(ADR-016 §一):行为程序求值(敌意/逃逸/目标选择/包抄)· LogiPose(WorldPos 格 + 朝向枚举)· 整数导航格路径推进 · PerceptionView。全为整数(sim 值 struct);无 float"
+    write_access: "AI 层自持(门 A sim 程序集)。**派生态 —— 不进流、不存档、加载/重放期重建**;全部输入 ∈ {事件流, 版本化烘焙数据, 二者的纯函数}(ADR-016 §一 重建三源不变量)。效果(敌人受伤/昏迷)经 9 的伤情模型进世界流,决策本身不进流"
+    referenced_by:
+      - docs/architecture/adr-016-ai-architecture.md
+      - docs/architecture/adr-009-world-state-event-boundary.md   # 派生态判据(§一 Q1)推广至 AI 决策
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md   # 空间位置一律整数格
+      - design/gdd/disease-simulation.md   # 13 ← 9 只读 DTO;敌人伤情经 9
+    added: 2026-09-15
+    revised: ""
+
+  - state: audio_cue_boundary
+    status: active
+    owner_system: "44 音频系统(表现层)"
+    adr: docs/architecture/adr-018-audio-architecture.md
+    interface: "AudioCueDto —— 语义 cue id + Intensity(byte) + Tier(byte) + WorldPos Cell(整数格)+ PatientId Source + Looped。**呈现层 DTO,无 disease_id**;整数语义;disease_id 禁入(由 PresentationDtoGuard 递归扫描覆盖,AC-37-15 一致性)"
+    write_access: "44 自持(表现层)。**只触发 / 只渲染,永不持有游戏状态** —— 不读 sim 真值、不写三流(承 ADR-013 §9 C3 的 42 同构规则)。上游系统(13 咳嗽呻吟 / 37 结案纸页 / 52 预告线索 / 8 听诊层)在表现层发出语义 cue,44 只把 cue 变成声音"
+    referenced_by:
+      - docs/architecture/adr-018-audio-architecture.md
+      - docs/architecture/adr-013-skeuomorphic-ui-framework.md   # 42 只渲染不持有状态(同构来源)
+      - docs/architecture/adr-016-ai-architecture.md   # §六 13 拥有咳嗽呻吟 → 音频的表现映射
+      - design/gdd/diagnosis-system.md   # V-8.7 四条硬需求
+      - design/gdd/disease-simulation.md   # §三 音频需求
+      - design/gdd/case-system.md   # :539-548 结案纸页 / 无提示音
+      - design/gdd/random-events.md   # :977 预告线索音频侧
+    added: 2026-09-15
+    revised: ""
+
+  - state: telemetry_readonly_view
+    status: active
+    owner_system: "51 遥测与分析(边界层 / 工具层)"
+    adr: docs/architecture/adr-019-telemetry-and-privacy.md
+    interface: "JudgmentMetrics —— 从三流只读重算的指标(判断准确率 / 误诊分布 / 跳过率 / 熟练度 / 难度曲线 / Tick 跨度)。**本地-only**;纯值、整数、无 float"
+    write_access: "51 自持(边界层)。**只读消费者** —— 不写三流(不成为第四个 IEventSink 写入者)、不进 sim 程序集(不污染门 A)、**零出厂数据**(无网络 / 无第三方 SDK / 无玩家可见统计 UI)。§一 回放即完整数据记录:真源已存在,51 是读数器不是采集器。**§六 不写回 assets/data/*.json**(不替用户调数值)"
+    referenced_by:
+      - docs/architecture/adr-019-telemetry-and-privacy.md
+      - docs/architecture/adr-005-deterministic-sim.md   # 逐位可复现 ⇒ 回放即数据记录
+      - docs/architecture/adr-009-world-state-event-boundary.md   # 三流;只读订阅
+      - design/gdd/systems-index.md   # :255 判断层仪器
+    added: 2026-09-15
+    revised: ""
+
 # Example:
 #
 # state_ownership:
@@ -232,7 +277,7 @@ interfaces:
       - "20 库存与物品"        # 掉落锚点 spawn_anchor 用格坐标(位置侧)
       - "23 模块化建造"        # 建造槽位对齐到同一格
       - "24 医馆即机器"        # 房间格 / 邻接判定在整数格上
-      - "13 / 27 AI"           # 导航格来源(寻路形态由 R-14 定)
+      - "13 / 27 AI"           # 导航格来源(寻路形态由 R-14 定 —— ✅ ADR-016 §五 定型:sim 走整数导航格)
       - "52 随机事件导演"      # 与生态区绑定 / spawn_anchor 确定性解析(禁 NavMesh 采样)
     adr: docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
     signal_signature: "WorldPos = (i32 X, i32 Y, i32 Z) 单一整数格,住 sim 程序集零 UnityEngine 引用。地形格 / 建造槽位 / 掉落锚点 / 资源点 / 导航格 / 医馆房间格共用同一套格,不做第二套坐标。空间位置一律整数格;Fix(Q16.16)只用于非空间模拟量。chunk 只是流式/失效粒度,不导出坐标。视觉层 Vector3 由格坐标 × 格尺寸映射得到,反向不可信"
@@ -241,6 +286,67 @@ interfaces:
       - docs/architecture/adr-009-world-state-event-boundary.md   # §一 位置一律整数网格 / §三 WorldPos
       - docs/architecture/adr-006-fixed-point-boundary-contract.md   # 空间用格,非空间用 Fix
       - design/gdd/random-events.md   # 禁 NavMesh 采样
+    added: 2026-09-15
+    revised: ""
+
+  - contract: ai_decision_boundary
+    status: active
+    pattern: none             # 单向驱动契约(非通信模式)
+    producer: "AI 决策层(13 / 27,sim 程序集)"
+    consumers:
+      - "表现层运动 / 动画(NavMeshAgent · Animator · 44 音频)"
+    adr: docs/architecture/adr-016-ai-architecture.md
+    signal_signature: "LogiPose = (WorldPos Cell, byte Facing) 由 sim 逐 tick 整数推进;表现层把 LogiPose 映射成连续位姿(插值/绕障/动画)。**单向**:决策 → 表现。禁从 Transform.position 反推逻辑格(adr-015:157 同一条纪律)。表现态偏离逻辑路径 ⇒ 表现层 snap 修正,禁 sim 跟随表现层"
+    referenced_by:
+      - docs/architecture/adr-016-ai-architecture.md
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md   # 视觉坐标反向不可信
+      - docs/architecture/adr-009-world-state-event-boundary.md   # 判定结果进流 / 判定过程不进流
+    added: 2026-09-15
+    revised: ""
+
+  - contract: present_patients_view
+    status: active
+    pattern: direct_call      # 只读接口
+    producer: "13 病人 AI 与行为"
+    consumers:
+      - "37 病例系统"          # 只读它立案
+      - "52 随机事件导演"      # 经 37 中转,不直接读(ADR-016 §八)
+    adr: docs/architecture/adr-016-ai-architecture.md
+    signal_signature: "IPresentPatients: 只读在场病人视图 —— { PatientId, WorldPos Cell, 粗状态枚举 }。**单向**:37 读 13,13 不引用 37(无环)。13 不产生病史/病例/世界流事件(只读不写,ADR-005/009);13 的表现在层映射(姿态/咳嗽呻吟 → 音频)不经 sim。结清 case-system.md:473 的「契约暂定」;不改 ADR-008 既有字段(符合 adr-008:319-323「追加新字段」约定)"
+    referenced_by:
+      - docs/architecture/adr-016-ai-architecture.md
+      - design/gdd/case-system.md   # :230 / :473
+      - design/gdd/disease-simulation.md   # :497 13 只读不写
+    added: 2026-09-15
+    revised: ""
+
+  - contract: audio_cue_emission
+    status: active
+    pattern: direct_call    # 上游 → 44 单向 cue;44 只入不出,不反向查
+    producer: "上游表现层系统(13 病人 AI / 37 病例系统 / 52 随机事件导演 / 8 诊断)"
+    consumers:
+      - "44 音频系统"          # 唯一实现者
+    adr: docs/architecture/adr-018-audio-architecture.md
+    signal_signature: "IAudioCueSink.Emit(in AudioCueDto) / BeginLoop / EndLoop + SetTier(TierSource)。AudioCueDto = { CueId, byte Intensity, byte Tier, WorldPos Cell, PatientId Source, bool Looped }。**无 disease_id**;语义解析在上游完成(44 只收结果 cue id)。单机 TierSource = 本地技能;联机 = 主机技能(ADR-018 §五,单 AudioListener 约束)。远端空间化复用 ADR-001 第二 QoS 位置,不新增通道"
+    referenced_by:
+      - docs/architecture/adr-018-audio-architecture.md
+      - design/gdd/diagnosis-system.md   # V-8.7 四条硬需求 + V-8.9 归属
+      - design/gdd/random-events.md   # :977 预告线索音频侧
+    added: 2026-09-15
+    revised: ""
+
+  - contract: telemetry_readonly_subscription
+    status: active
+    pattern: none            # 51 不新增写入通道;边界 = 三流本身,零直接接口
+    producer: "主机(唯一 Append;51 不是写入者)"
+    consumers:
+      - "51 遥测与分析"        # 只读订阅三流
+    adr: docs/architecture/adr-019-telemetry-and-privacy.md
+    signal_signature: "ITelemetrySource.ReadHistoryStream() / ReadCaseStream() / ReadWorldStream() —— 只读。51 输出 = ITelemetrySink.WriteLocalReport / ShowDebugView(**无 Upload / Send / Post** —— AC-19-02 接口级保证)。**结清 TR-randomevents-024:52 与 51 之间无新契约,边界 = 三流本身**"
+    referenced_by:
+      - docs/architecture/adr-019-telemetry-and-privacy.md
+      - docs/architecture/adr-005-deterministic-sim.md
+      - docs/architecture/adr-009-world-state-event-boundary.md
     added: 2026-09-15
     revised: ""
 
@@ -389,8 +495,36 @@ api_decisions:
     reason: "NavMesh 在 IL2CPP 下跨平台不保证逐位(random-events.md:438-439);判定结果进流、判定过程不进流(与 ADR-009 同构);可走性由整数导航格给出,与 ADR-006 禁 float 边界一致"
     referenced_by:
       - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+      - docs/architecture/adr-016-ai-architecture.md   # §五 细化:sim 侧整数 A*(JPS/流场为可选优化,须保持整数与确定性)
       - design/gdd/random-events.md   # 禁 NavMesh 采样
       - docs/engine-reference/unity/modules/navigation.md
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: ai_behavior_carrier
+    status: active
+    api: "编辑器期行为树 / 状态机可视化编辑 → 构建期烘为整数数据(assets/data/ai_[name].json → *.cooked,走 ADR-014 两阶段管线);运行期是自研整数决策器解释烘焙产物(ADR-016 §四)"
+    not: "运行期第三方行为树库;行为程序内出现 float 字段(空间量用 WorldPos 整数格/枚举,非空间量用 Fix/int);改源 JSON 不重烘"
+    adr: docs/architecture/adr-016-ai-architecture.md
+    reason: "与 ADR-014 作者态/出货态分离同构:运行期零第三方 + 零解析器;行为程序是版本化烘焙数据 ⇒ 进 AI 决策的『重建三源』并纳入陈旧门(源改了没重烘 = 构建失败)。策划可改行为而不必写代码,是不选纯代码载体的主要理由"
+    referenced_by:
+      - docs/architecture/adr-016-ai-architecture.md
+      - docs/architecture/adr-014-data-pipeline-and-json-parser.md
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: enemy_entity_injury_source
+    status: active
+    api: "敌人 = 可受伤实体,其生命/伤情/昏迷状态住 9 的伤情注册表(INJ_* 词表),与病人同一套模型;25 已把『生命归零』登记为 INJ_COMA(ADR-016 §二)"
+    not: "27 新开第二套生命模型;敌人伤情事件落病史流(污染 9 的病人真源)"
+    adr: docs/architecture/adr-016-ai-architecture.md
+    reason: "非致命模型(归零 = 昏迷,晾着不死)自动适用于敌人,无需重写(skill-system.md:394-395『误杀不可能发生』由此获得实现侧保证);id 经 IIdAuthority 与病人共用同一空间 ⇒ max(id)+1 高水位重构仍成立(ADR-006 Amendment B);敌人伤情落世界流(第三条流),折叠谓词不适用于敌人行"
+    referenced_by:
+      - docs/architecture/adr-016-ai-architecture.md
+      - docs/architecture/adr-006-fixed-point-boundary-contract.md   # Amendment B id 空间语义扩大
+      - docs/architecture/adr-009-world-state-event-boundary.md   # 世界流
+      - design/gdd/disease-simulation.md   # 25 归零登记为 INJ_COMA
+      - design/gdd/skill-system.md   # :394-395
     added: 2026-09-15
     revised: ""
 
@@ -511,6 +645,48 @@ api_decisions:
       - docs/architecture/adr-014-data-pipeline-and-json-parser.md
       - docs/architecture/adr-010-persistence-save-format.md   # ConfigVersion 存档头
       - docs/engine-reference/unity/breaking-changes.md   # E-13
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: dots_adoption_boundary
+    status: active
+    api: "sim 侧 = 纯 C# 值类型(引用集白名单恰 = BCL);表现层 = 引擎 API 自由。**复评门**(ADR-017 §三)仅在表现层评估 DOTS,触发 = OQ-8 标定 + [阈值待用户裁定],触发后另开 ADR"
+    not: "sim 侧引入 Unity.Entities / Unity.Burst / Unity.Jobs / Unity.Mathematics(全部是引擎程序集 —— 撞门 A `noEngineReferences`);以「只加速一个热点函数」为名局部引入 Burst/Jobs;表现层在无触发条件下引入 DOTS"
+    adr: docs/architecture/adr-017-dots-decision.md
+    reason: "门 A 与 DOTS 全栈结构性互斥 —— 这不是规模判断(§一/§二);sim 的规模应对是纯 C# 优化(增量求值 / 分桶 / 冻结尾区),不是拆门 A。表现层留门以兑现 ADR-004『等规模数据再决策』的原意"
+    referenced_by:
+      - docs/architecture/adr-017-dots-decision.md
+      - docs/architecture/adr-005-deterministic-sim.md   # 门 A / 门 B
+      - docs/architecture/adr-012-cross-platform-determinism-ci-gate.md   # F7 溢出 spike 叠加
+      - docs/engine-reference/unity/plugins/dots-entities.md
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: audio_presentation_boundary
+    status: active
+    api: "44 与 42 同构 —— 只触发 / 只渲染,永不持有游戏状态;载体 = AudioCueDto(无 disease_id)。混音拓扑单一定义(Master/Music/Ambience/Voice/SFX/Stethoscope/UICue)+ 快照;音频事件表走 ADR-014 烘焙管线"
+    not: "44 读 sim 真值(IVitalsQuery 直查);disease_id 进 AudioCueDto;用 sting / jingle / ducking / 素材切换 **报**状态变化(无提示音铁律);用快照播报状态;联机时为四名玩家各跑一套听诊 DSP(单 AudioListener 结构性不可能)"
+    adr: docs/architecture/adr-018-audio-architecture.md
+    reason: "承 ADR-013 §9 C3 的呈现层纪律(同构,避免第二套边界哲学);无提示音铁律是支柱一『判断为骨』的机械保障,必须 BLOCKING(AC-44-09);disease_id 禁入由 PresentationDtoGuard 递归覆盖"
+    referenced_by:
+      - docs/architecture/adr-018-audio-architecture.md
+      - docs/architecture/adr-013-skeuomorphic-ui-framework.md
+      - docs/architecture/adr-014-data-pipeline-and-json-parser.md
+      - design/gdd/diagnosis-system.md   # V-8.7
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: telemetry_local_only
+    status: active
+    api: "51 = 事件流的只读读数器(回放即完整数据记录);输出为本地文件 / 开发者调试视图;零第三方 SDK;零出厂数据"
+    not: "接入第三方分析 / 崩溃上报 SDK(Unity Analytics / UGS / Sentry 等);任何网络上报(ITelemetrySink 无 Upload / Send / Post);51 写三流(成为第四个 IEventSink 写入者);51 进 sim 程序集;玩家可见统计 UI(P0);51 写回 assets/data/*.json(替用户调数值)"
+    adr: docs/architecture/adr-019-telemetry-and-privacy.md
+    reason: "ADR-005 的确定性模拟本身就是完整记录仪 ⇒ 埋点是冗余(想测的量真源已存在);零出厂使隐私面结构性满足(无同意 / 无导出删除 / 无退出开关);与四连的零第三方取向(ADR-014/015/016/017)一致"
+    referenced_by:
+      - docs/architecture/adr-019-telemetry-and-privacy.md
+      - docs/architecture/adr-005-deterministic-sim.md
+      - docs/architecture/adr-009-world-state-event-boundary.md
+      - design/gdd/systems-index.md   # :255
     added: 2026-09-15
     revised: ""
 
@@ -707,4 +883,74 @@ forbidden_patterns:
     description: "禁止把视觉层地形采样喂进 sim(ADR-015 §一)。如用 Terrain.SampleHeight / NavMesh 采样决定可走性、或从 Vector3 视觉坐标反推逻辑格 —— 那是 float 入 sim,破 ADR-006;可走性一律由逻辑导航格给出"
     why: "视觉层是 float 任意、Terrain 内部算法跨平台不保证逐位;采样入 sim 把 R-9 好不容易排除的风险引回,且破 ADR-006 的禁 float 边界"
     adr: docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+    added: 2026-09-15
+
+  - pattern: ai_reads_presentation_position
+    status: active
+    description: "禁止 AI 决策读表现态位置(ADR-016 §一/§三)。玩家位置的表现态通道走 ADR-001 第二 QoS(unreliable latest-value),到达时序不确定;决策必须读 sim 侧的粗粒度整数格事实(玩家跨格写世界流事件)。禁 Transform.position / Vector3 进决策输入,禁从表现层位姿反推逻辑格"
+    why: "决策读时序不确定的输入 ⇒ 不再是 tick 上的确定性函数 ⇒ 主机/客户端敌人行为分叉且无法察觉,直接推翻 ADR-016 §一 的『决策可重建』不变量。这是最诱人的捷径,必须在门 A/B 与 grep 上同时守"
+    adr: docs/architecture/adr-016-ai-architecture.md
+    added: 2026-09-15
+
+  - pattern: runtime_behavior_tree_library
+    status: active
+    description: "禁止在玩家构建内引入运行期第三方行为树/寻路库(ADR-016 §四/§五)。行为在编辑器期可视化编辑,构建期烘为整数数据(走 ADR-014 管线),运行期是自研整数决策器;寻路在 sim 侧走烘焙整数导航格"
+    why: "第三方行为树时序不保证逐位、难进 sim 整数域,且与运行期零第三方的纪律相悖(同 ADR-014 的零解析器、ADR-015 的零第三方几何工具)"
+    adr: docs/architecture/adr-016-ai-architecture.md
+    added: 2026-09-15
+
+  - pattern: enemy_injury_into_history_stream
+    status: active
+    description: "禁止把敌人伤情/昏迷事件落病史流(ADR-016 §二)。敌人是世界实体,其伤情状态变化落世界流(第三条流);病史流是病人的唯一真源,不得被敌人状态污染。折叠谓词不适用于敌人行"
+    why: "落病史流 = 污染 9 的真源所有权(同 case_events_in_history_stream / world_state_events_in_history_stream);且病史流的折叠规则针对病人,敌人行套用会产生错误折叠"
+    adr: docs/architecture/adr-016-ai-architecture.md
+    added: 2026-09-15
+
+  - pattern: dots_in_sim_assembly
+    status: active
+    description: "禁止在 sim 程序集引入 DOTS 栈的任一程序集(ADR-017 §一/§二)。Unity.Entities / Unity.Burst / Unity.Jobs / Unity.Mathematics 全是引擎程序集,撞门 A(`noEngineReferences: true`)。**局部引入(如只给一个热点函数加 [BurstCompile])同样违规** —— 门 A 不看规模,只看引用集"
+    why: "门 A 是 ADR-005 确定性结构面的全部依据;上 DOTS 即须拆门 A,拆门 A 即放弃『sim 零引擎依赖』的结构性保证 —— 这是二选一不是权衡。此接缝在 ADR-017 之前全文无记载,是最容易被误解的一点"
+    adr: docs/architecture/adr-017-dots-decision.md
+    added: 2026-09-15
+
+  - pattern: dots_into_presentation_without_trigger
+    status: active
+    description: "禁止在 DOTS 复评门触发前于表现层引入 DOTS(ADR-017 §三)。触发 = OQ-8 标定完成 + 同场实体数 / 表现层帧占比 ≥ [阈值待用户裁定];触发后须**另开 ADR**,不得以 ADR-017 的修订直接改判"
+    why: "无触发条件下引入一套改变构建流程 / 调试方式 / 学习曲线的栈,是 P0 窗口(6–9 个月基线已钉死)的范围债;且规模数据不存在 ⇒ 无法论证收益。与四连的『零多余栈』取向相悖"
+    adr: docs/architecture/adr-017-dots-decision.md
+    added: 2026-09-15
+
+  - pattern: audio_cue_state_broadcast
+    status: active
+    description: "禁止用音频**播报**状态变化(ADR-018 §六,无提示音铁律的机械化)。黑名单:sting / jingle / 提示音宣告状态变化(转危 / 误诊 / 结案 / 成就)· 用 ducking 报状态 · 用素材切换报状态 · 用音频表达本该由玩家读数得出的结论。白名单 = 行为反馈(玩家动作 / 主动检查 / 可感知世界声 / 呼吸的连续变化)。**AC-44-09 BLOCKING**"
+    why: "加一句 PlayOneShot(ding) 就能破坏支柱一『判断为骨』(disease-simulation.md:1120-1121 明写『比数值错误严重得多』),而这是**听不出是 bug** 的那一类 —— BLOCKING 级铁律必须有构建门,不能只有 prose"
+    adr: docs/architecture/adr-018-audio-architecture.md
+    added: 2026-09-15
+
+  - pattern: audio_reads_sim_state
+    status: active
+    description: "禁止 44 直接读 sim 真值(ADR-018 §一)。44 只接收上游表现层发出的语义 cue(AudioCueDto);语义解析(如按病种选素材)在上游完成(8 的通道 × 档位表 / 13 的映射)。禁 44 直查 IVitalsQuery 自行决定播什么音"
+    why: "44 直读会持有游戏状态(违 ADR-013 §9 C3 的 42 同构纪律);且选素材需读 disease_id ⇒ 直接撞 AC-37-15 的呈现层泄漏门"
+    adr: docs/architecture/adr-018-audio-architecture.md
+    added: 2026-09-15
+
+  - pattern: telemetry_outbound_transmission
+    status: active
+    description: "禁止任何出厂数据(ADR-019 §二)。构建产物与运行期不得有网络上报调用(HttpClient / UnityWebRequest / 第三方 SDK);ITelemetrySink 不得有 Upload / Send / Post。崩溃上报同样不引入(若日后需要,须先解决隐私面并另开 ADR)。**AC-19-02 BLOCKING**"
+    why: "PC/Steam 单机 + P2P 本无任何出厂数据 ⇒ 隐私面结构性干净(无同意机制 / 无导出删除 / 无退出开关);引入出厂即使只是 opt-in 也让 ADR-019 §四 失效,必须另开 ADR 而非打补丁。且引擎参考对 Unity Analytics / UGS 零覆盖,本机亦无法联网核查第三方条款"
+    adr: docs/architecture/adr-019-telemetry-and-privacy.md
+    added: 2026-09-15
+
+  - pattern: telemetry_write_channel
+    status: active
+    description: "禁止 51 写三流(ADR-019 §三)。51 是**只读消费者**,不得成为第四个 IEventSink 写入者,不得进 sim 程序集。若某指标无法从事件流得出,处置是**先问该状态是否本就该进流**(ADR-009 三问判据),而不是给 51 加旁路采集"
+    why: "51 能写流 ⇒ 遥测污染模拟真源,是最危险的一类越界(与 salt_as_secrecy 同类:把非真源的东西放进真源);旁路采集会造出『事件流之外的第二个真源』"
+    adr: docs/architecture/adr-019-telemetry-and-privacy.md
+    added: 2026-09-15
+
+  - pattern: telemetry_writes_back_balance
+    status: active
+    description: "禁止 51 写回 assets/data/*.json 或输出『建议把 X 改成 Y』式的自动调参(ADR-019 §六)。51 交付**数据 + 可操作的观察结论**,不交付调好的数值。**AC-19-07**"
+    why: "数值由用户手调是一贯纪律(feedback-user-owns-balance-values);调参是设计判断(需对照医学语义与手感),不是统计量的函数。51 最多让旋钮的方向更可见,不能替它转"
+    adr: docs/architecture/adr-019-telemetry-and-privacy.md
     added: 2026-09-15

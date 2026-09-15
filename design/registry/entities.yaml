@@ -283,6 +283,7 @@ formulas:
     referenced_by:
       - design/gdd/random-events.md
       # 27 敌人 AI GDD 尚未撰写 —— 撰写时须回溯追加(52 决定来不来,27 决定来了怎么动)
+      # ✅ 2026-09-15 ADR-016 §八:遭遇原型 = 版本化烘焙数据;「不锁定玩家」为 27 侧实现约束
     variables:
       - W_base
       - 档占比
@@ -363,6 +364,7 @@ formulas:
     referenced_by:
       - design/gdd/disease-simulation.md
       # 11 处方用药 / 13 病人 AI / 24 医馆即机器 GDD 尚未撰写 —— 撰写时须回溯追加
+      # ✅ 2026-09-15 ADR-016 §六:13 只读 DTO + 表现映射(姿态/咳嗽呻吟);出 IPresentPatients 供 37 单读
     variables:
       - A_peak
       - incubation
@@ -449,6 +451,7 @@ formulas:
       - design/gdd/disease-simulation.md
       - design/gdd/case-system.md   # 37 包装的病史事件流订阅其触发(2026-09-15 回填)
       # 13 病人 AI / 34 公卫与疫情 GDD 尚未撰写 —— 撰写时须回溯追加
+      # ✅ 2026-09-15 ADR-016 §六:13 只读本阈值对应的状态量;13 不写三流(表现映射归 13,不经 sim)
     variables:
       - CRITICAL_THRESHOLD
       - COMA_THRESHOLD

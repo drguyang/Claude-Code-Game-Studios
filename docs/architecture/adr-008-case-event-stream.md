@@ -322,6 +322,14 @@ struct JudgmentRevisedPayload  { PatientId patient_id; CaseId case_id; Judgment 
     两者均为**已定义、有消费者**的字段;52 侧的生成点枚举改名 `spawn_anchor`。
     13 若将来需要「立案上下文」,以**追加新字段**的方式引入,不改既有字段语义
 
+> **2026-09-15 ADR-016 §六 后续**:13 与 37 的「在场实体 / 就诊交互」契约
+> (`case-system.md:473` 原标「契约暂定」)**已定型** —— 13 出**只读**视图
+> `IPresentPatients`(在场病人 `PatientId` + `WorldPos` 格 + 粗状态枚举),37 只读它立案;
+> **13 不引用 37**(单向无环)。**本 ADR 的既有字段(`opened_tick` / `anchor_case`)一字未动** ——
+> 与上条 B-2 修正的约定一致(13 的需求以**追加新接口**引入,不改既有字段语义)。
+> **与 B-2 当时拒绝预留不矛盾**:B-2 拒绝的理由是 13「至今没有消费者」,
+> 而此处 **37 已立案且明写需要它**。详见 ADR-016 §六。
+
 ## GDD Requirements Addressed
 
 | GDD System | Requirement | How This ADR Addresses It |
@@ -372,4 +380,6 @@ struct JudgmentRevisedPayload  { PatientId patient_id; CaseId case_id; Judgment 
   本 ADR 的 `StreamId` 扩为三值、§二 全序键 `StreamPriority` 升三值(病史 < 病例 < 世界);
   其 **Amendment E** 升格 ADR-006 Amendment C / D 至三流口径。**本 ADR 的病例流定义不受影响。**
 - ADR-007(IEventAuthority · WorldSeed · PatientId.None)
+- **ADR-016 AI 架构**(Accepted,2026-09-15)—— §六 的 `IPresentPatients` 只读视图结清
+  `case-system.md:473` 的「契约暂定」;**本 ADR 的病例流定义与既有字段不受影响**
 - 37 病例系统 GDD(`design/gdd/case-system.md`)

@@ -19,7 +19,7 @@
 version: 1
 last_updated: "2026-09-15"
 baseline_established: "2026-09-15"
-revision_note: "2026-09-15 ADR-015 落盘(世界几何,合并 R-9+R-10):TR-randomevents-018 gap→covered(生态区绑定退化为整数查表);TR-randomevents-021 gap→partial(坐标类型 + 锚点来源侧已覆盖,逐枚举解析规则仍待);TR-itemdb-031 加位置侧 note(状态不预判,归下一轮 ADR-009 全量复核)。前一轮 ADR-014:TR-itemdb-025/026/027 gap→covered;TR-itemdb-032 加 ADR-014。ID 无增删改,148 条不变。累计 65 covered / 14 partial / 69 gap"
+revision_note: "2026-09-15 ADR-019 / 018 / 017 落盘(R-15 遥测 / R-12 音频 / R-11 DOTS)。本轮 ID 增补 6 条(148→154):TR-randomevents-032(预告线索音频侧)· TR-diag-021…025(D-8-8 四条硬需求 + 无提示音铁律,均由 ADR-018 立 AC)。状态变更:TR-randomevents-024 gap→covered(52↔51 边界 = 三流本身,零直接接口);TR-diag-020 加 ADR-018 §二 note(守卫覆盖 AudioCueDto)。前一轮 ADR-016:TR-randomevents-028/029 gap→covered。更早 ADR-015:TR-randomevents-018 gap→covered;TR-randomevents-021 gap→partial。ADR-017 不新增 TR(它兑现 ADR-004『是否 DOTS』,是『不引入』的裁决;OQ-8 为其复评前置,登记在 technical-preferences 而非 TR)。累计 74 covered / 14 partial / 66 gap / 154 条"
 source_review: "docs/architecture/architecture-review-2026-09-15.md"
 traceability_index: "docs/architecture/traceability-index.md"
 
@@ -737,13 +737,25 @@ requirements:
     adr: null
     status: gap
 
+  - id: TR-randomevents-032
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: "预告线索的音频侧(狗吠 / 马蹄 / 锣声 / 门外铃声 / 货郎吆喝 / 哭喊 / 钟声)—— random-events.md:977 契约行"
+    domain: Presentation
+    adr: docs/architecture/adr-018-audio-architecture.md
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-018 §六:预告线索音频 ∈ **行为反馈白名单**的「玩家可感知的世界声」—— 52 发 cue(上游语义),44 播音;不经 sim、不用 sting。ADR-018 §一 定接口(52 是 AudioCueDto 的上游生产者之一)。**方向**:52 → 44(单向,与 §七 的 52↔51 无接口不同:此处 52 与 44 有直接 cue 契约)"
+
   - id: TR-randomevents-024
     system: random-events
     gdd: design/gdd/random-events.md
     requirement: 事件与 51 遥测的边界
     domain: Foundation
-    adr: null
-    status: gap
+    adr: docs/architecture/adr-019-telemetry-and-privacy.md
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-019 §七:边界 = **三流本身**,52 与 51 之间**零直接接口** —— 52 只管写流(EventRolled / EventArrived / ThreatDeferred / ThreatDeferralCleared / HistoryFlagChanged,ADR-007),51 只读订阅三流(§三),不向 52 索要专门字段、不向 52 写回。**注:原 requirement 文本在 random-events.md 内无落点(疑仅索引层生成),其语义由 ADR-019 §一/§三 承接**"
 
   - id: TR-randomevents-025
     system: random-events
@@ -775,17 +787,18 @@ requirements:
     gdd: design/gdd/random-events.md
     requirement: 与 13 病人 AI 的交互
     domain: Feature
-    adr: null
-    status: gap
+    adr: docs/architecture/adr-016-ai-architecture.md
+    status: covered
+    note: "ADR-016 §八:52 不直接驱动 13 —— 52 触发立案 → 37 立案 → 13 提供在场病人实体(§六 只读视图 IPresentPatients)。13 侧只读不写,方向单向无环"
 
   - id: TR-randomevents-029
     system: random-events
     gdd: design/gdd/random-events.md
     requirement: 27 敌人 AI 不被事件导演锁定
     domain: Feature
-    adr: null
-    status: gap
-    no_adr: true
+    adr: docs/architecture/adr-016-ai-architecture.md
+    status: covered
+    note: "ADR-016 §八:『遭遇体不锁定玩家』(AC-52-16)定型为 27 侧的实现约束 —— 行为程序必须支持『已接触但可脱离』状态,不得实现为硬锁定仇恨。P0 的兵痞原型须首先满足"
 
   - id: TR-randomevents-030
     system: random-events
@@ -1178,7 +1191,57 @@ requirements:
     adr: ADR-013
     status: partial
     revised: "2026-09-15"
-    note: "2026-09-15 ADR-013 §三:机制已定(PresentationDtoGuard 递归反射扫描,须覆盖 List<DTO> 元素 / 私有 / 继承字段);仍待 39 脉案 DTO 形状定稿后实现"
+    note: "2026-09-15 ADR-013 §三:机制已定(PresentationDtoGuard 递归反射扫描,须覆盖 List<DTO> 元素 / 私有 / 继承字段);仍待 39 脉案 DTO 形状定稿后实现。**2026-09-15 ADR-018 §二 扩展**:守卫同时覆盖 44 的 `AudioCueDto`(`disease_id` 禁入音频层)"
+
+  - id: TR-diag-021
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "D-8-8 硬需求①:呼吸分两层渲染 —— 基础气流层 + 附加音层;精度档 = 通带与噪声底,不是静音开关"
+    domain: Presentation
+    adr: docs/architecture/adr-018-audio-architecture.md
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-018 §四:AC-44-01(BLOCKING)断言附加音层在三档下**始终非零**、**不存在「档位 ⇒ 静音」实现路径**;AC-44-02 断言三档差异可辨且非静音型。V-8.7 原话「低技能 ≠ 把啰音静音;低技能 = 更高的接触噪声底、更窄的通带」落成断言"
+
+  - id: TR-diag-022
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "D-8-8 硬需求②:语声走「变体库混合」(2026-09-14 复核自「运行时参数调制」降格)"
+    domain: Presentation
+    adr: docs/architecture/adr-018-audio-architecture.md
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-018 §四:AC-44-03 —— 素材形态 = 变体库(男/女 × 强/中/弱 × 数种句尾),按 (病种语义, 精度档, 强度) 选变体并交叉淡化;**禁**对已录语声做五项独立调制;AC-44-04 交叉淡化无爆音 / 相位抵消"
+
+  - id: TR-diag-023
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "D-8-8 硬需求③:暴露「接触噪声 / 信噪比」参数"
+    domain: Presentation
+    adr: docs/architecture/adr-018-audio-architecture.md
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-018 §四:AC-44-05 —— `Stethoscope` 总线暴露接触噪声底与信噪比,由精度档驱动;AC-44-06 —— `READ_FLOOR_MIN > 0` 在音频侧有实现(背景噪声永不为零,但不毁掉信号)"
+
+  - id: TR-diag-024
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "D-8-8 硬需求④:联机时精度统一取主机技能"
+    domain: Presentation
+    adr: docs/architecture/adr-018-audio-architecture.md
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-018 §五:AC-44-07 —— 联机下同一听诊 cue 对全部 4 名玩家产出的听诊音层次一致(取主机技能档);脉案字体量仍各自分叉(铁律⑤)。依据:单 `AudioListener` 每设备一条混音总线(modules/audio.md:256-266)⇒ 分人分混结构上不可能"
+
+  - id: TR-diag-025
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "无提示音铁律延续:不许用 audio sting / ducking **报**病人状态变化(V-8.7 §1597 · AC-8-30 误诊零提示音 BLOCKING)"
+    domain: Presentation
+    adr: docs/architecture/adr-018-audio-architecture.md
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-018 §六:统一为「音频触发源必须 ∈ 行为反馈白名单」;**AC-44-09(BLOCKING)** = EditMode + CI 白名单断言(禁 sting / jingle / ducking 报状态 / 素材切换报状态)。**V-8.7 原本只有 prose** —— ADR-018 把它升为构建门"
 
   # ═══════════════════════════════════════════════════════════════════════════
   # 技能与熟练度 (Skill System, #30) — design/gdd/skill-system.md

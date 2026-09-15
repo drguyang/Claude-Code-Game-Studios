@@ -311,7 +311,10 @@ R-10 写明建造网格在「chunk / collider / NavMesh 动态 carving 成本」
 - **修订**:`docs/architecture/adr-009-world-state-event-boundary.md` §一 / §二 / §四 / §五(清单见本 ADR §七)。
 - **承**:`docs/architecture/adr-014-data-pipeline-and-json-parser.md`(逻辑层烘焙产物走 `data-cooked` 管线)。
 - **解**:报告 R-9(R-9 判据的「工具逐位实测」部分随之作废 —— 工具已不在运行期)。
-- **留**:R-11(是否 DOTS)· R-14(AI 架构;导航格来源已定型,寻路形态待定)。
+- **留**:R-11(是否 DOTS)· ~~R-14(AI 架构)~~ ✅ **2026-09-15 ADR-016 落盘** ——
+  §五 的「sim 寻路走逻辑导航格 / NavMesh 仅服务 AI 表现态移动」由 ADR-016 §五 细化
+  (整数 A*;JPS / 流场为可选优化,须保持整数与确定性;两套网格的对齐与漂移处置方向)。
+  ADR-016 §一 亦把「派生态」判据推广应用于 AI 决策(承 ADR-015 §二 的判据推广)。
 
 ## Ripples(本次改动集)
 

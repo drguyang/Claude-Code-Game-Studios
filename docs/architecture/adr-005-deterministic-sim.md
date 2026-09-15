@@ -342,10 +342,16 @@ public readonly struct SimEvent      // 权威定义见 ADR-006 Amendment A
 ## Performance Implications
 
 > **状态:临时值** —— 项目性能预算本身待定(见 `technical-preferences.md`)。
+>
+> **2026-09-15 注记 —— 本表「数十病人」自引已作废。** `disease-simulation.md:560-564` 已正式撤销
+> 该数字(「『数十』在 `src/` 没有任何实现背书」),并把**病人数范围**登记为 **OQ-8**:
+> 「在场才模拟 vs 全域模拟」未定 ⇒ 实体数是**性能与内存的前置输入**,须在写第一个 `Step` 之前标定。
+> 下表 CPU 行的量纲按「**实体数 × tick 频率 × 单次求值**」读,**具体系数待 OQ-8 标定**。
+> 该输入同时是 **R-11(是否 DOTS)** 的判据前置(见 `technical-preferences.md` 的 ADR-004 待建项)。
 
 | Metric | Before | Expected After | Budget |
 |--------|--------|---------------|--------|
-| CPU(帧时间) | — | 可忽略(数十病人 × 每处置一次求值) | 16.6 ms 平面 / 11.1 ms VR |
+| CPU(帧时间) | — | **待 OQ-8 标定**(实体数 × tick 频率 × 单次求值;原「数十病人」自引已撤销) | 16.6 ms 平面 / 11.1 ms VR |
 | Memory | — | 可忽略(事件流按病人数 × 事件数) | 待定 |
 | Load Time | — | 无影响 | 待定 |
 | Network(若适用) | — | 事件 ≈ 20 字节/条(P1b) | 待定 |
