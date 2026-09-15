@@ -167,6 +167,7 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 | 8 | 定期快照 = 优化非真相;迁移时世界流逐位保留 | ADR-009 §六 / §Migration | 本 ADR §一 / §四 |
 | 9 | `ItemInstance` 序列化(含 `quality`;不存 `item_key` 引用,存快照) | item-database.md §Dependencies | 本 ADR §五(实现契约) |
 | 10 | 容器子实例闭包校验(装配期断言) | item-database.md AC-21a-63 邻接 | 本 ADR §五(实现契约) |
+| 11 | **POI 状态进世界流(`PoiStateChanged`)+ 重放时从流重建** | **ADR-021 §三 / §四** | 本 ADR §一 / §二(世界流序列化 / 不折叠已覆盖)|
 
 > 义务 1–8 的源 ADR 不变;本 ADR 是**实现的收敛处**。**任何新委派只能追加到本表** ——
 > 实现者读这一张表,不读五份 ADR 的散落各节。

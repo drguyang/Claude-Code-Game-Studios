@@ -997,6 +997,24 @@ constants:
     added: 2026-09-15
     revised: ""
 
+  # ── 世界流 Kind（ADR-009 §三 骨架 · ADR-021 首个系统 ADR 落点）──────────
+  # ADR-009 §三 声明世界流 8 个 Kind 骨架（Structure* / Drop* / Craft /
+  # ResourceHarvested），并明写「载荷归各系统 ADR」；该 ADR **未**把它们登记进
+  # entities.yaml（骨架在 ADR-009 §三 即其登记处）。PoiStateChanged 是**首个由
+  # 系统 ADR（ADR-021）追加**的世界流 Kind，故在此登记；其余 8 个仍以 ADR-009
+  # §三 声明为准，不在本表重复。
+  - name: SimEvent.Kind.PoiStateChanged
+    status: active
+    source: docs/architecture/adr-021-poi-state-ownership.md
+    referenced_by:
+      - docs/architecture/adr-021-poi-state-ownership.md       # §三
+      - docs/architecture/adr-009-world-state-event-boundary.md # §二/§三 · Amendment F
+      - docs/architecture/adr-010-persistence-save-format.md    # §三 义务 11
+    unit: kind
+    constraint: "落世界流（ADR-009 §二 · ADR-021 §三）；载荷 { poi_id, new_state }（均整数枚举；PoiState 具体枚举值归 6 的 GDD，ADR-021 §三 刻意不定）；Patient = PatientId.None（ADR-007 §四，不污染 max(patient_id) 高水位）；主机唯一 Append，写者 = 6 世界与生态区；有界性 ≤ |POI| × |STATE|（ADR-009 §六 · ADR-021 §四）"
+    added: 2026-09-15
+    revised: ""
+
   # ── 37 病例系统 · 同源检测（唯一整数旋钮）─────────────────────────────
   - name: PATTERN_THRESHOLD
     status: active

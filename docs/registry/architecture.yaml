@@ -48,12 +48,26 @@ state_ownership:
     status: active
     owner_system: "世界状态(6 世界与生态区 / 17 采集 / 20 库存与物品 / 23 模块化建造 / 24 医馆即机器)"
     adr: docs/architecture/adr-009-world-state-event-boundary.md
-    interface: "世界流(第三条逻辑流):StructurePlaced/Removed/Modified · DropSpawned/Claimed/Despawned · Craft · ResourceHarvested。不折叠。跨流全序键 (Tick, StreamPriority, Patient, Seq),StreamPriority 病史<病例<世界"
-    write_access: "主机经 IEventSink.Append 按 Kind 路由;世界状态类事件落世界流;instance_id 由 IIdAuthority.ItemInstanceId.Next() 发放,不本地铸造(D-21-27)"
+    interface: "世界流(第三条逻辑流):StructurePlaced/Removed/Modified · DropSpawned/Claimed/Despawned · Craft · ResourceHarvested · PoiStateChanged(ADR-021)。不折叠。跨流全序键 (Tick, StreamPriority, Patient, Seq),StreamPriority 病史<病例<世界"
+    write_access: "主机经 IEventSink.Append 按 Kind 路由;世界状态类事件落世界流;instance_id 由 IIdAuthority.ItemInstanceId.Next() 发放,不本地铸造(D-21-27);POI 状态写者 = 6 世界与生态区(ADR-021)"
     referenced_by:
       - docs/architecture/adr-009-world-state-event-boundary.md
       - design/gdd/item-database.md   # TR-itemdb-031 / D-21-26 / D-21-27 / D-21-28
       - design/gdd/systems-index.md   # 6 / 17 / 20 / 23 / 24
+    added: 2026-09-15
+    revised: ""
+
+  - state: poi_state
+    status: active
+    owner_system: "6 世界与生态区"
+    adr: docs/architecture/adr-021-poi-state-ownership.md
+    interface: "POI 状态(已发现 / 已清 / …,整数枚举)经世界流 Kind PoiStateChanged 承载:载荷 { poi_id, new_state }(ADR-021 §三)。**POI 定义**(位置/守卫/类型)是派生态(烘焙逻辑层,ADR-015 §一),不进流"
+    write_access: "6 世界与生态区-only(主机唯一 Append,承 ADR-005);重放/迁移后从世界流重建,不读快照作真源"
+    referenced_by:
+      - docs/architecture/adr-021-poi-state-ownership.md
+      - docs/architecture/adr-009-world-state-event-boundary.md   # Amendment F
+      - docs/architecture/adr-010-persistence-save-format.md       # §三 义务 11
+      - design/gdd/systems-index.md                                # 6 · §11 H2
     added: 2026-09-15
     revised: ""
 
@@ -199,7 +213,7 @@ interfaces:
       - "53 医疗后果与责任"      # 订阅 CaseClosed / PatternRecognized(结算)
       - "45 网络层"            # 传输两条逻辑流
     adr: docs/architecture/adr-008-case-event-stream.md
-    signal_signature: "IEventSink.Append(in SimEvent e) — Kind ∈ {病史类} → 病史流;Kind ∈ {CaseOpened/CaseClosed/PatternRecognized/JudgmentRecorded/JudgmentRevised} → 病例流;Kind ∈ {Structure*/Drop*/Craft/ResourceHarvested} → 世界流(ADR-009 §三)"
+    signal_signature: "IEventSink.Append(in SimEvent e) — Kind ∈ {病史类} → 病史流;Kind ∈ {CaseOpened/CaseClosed/PatternRecognized/JudgmentRecorded/JudgmentRevised} → 病例流;Kind ∈ {Structure*/Drop*/Craft/ResourceHarvested/PoiStateChanged} → 世界流(ADR-009 §三 · ADR-021)"
     referenced_by:
       - docs/architecture/adr-008-case-event-stream.md
       - design/gdd/case-system.md
@@ -802,7 +816,7 @@ forbidden_patterns: []
 forbidden_patterns:
   - pattern: world_state_events_in_history_stream
     status: active
-    description: "世界状态类事件(Structure* / Drop* / Craft / ResourceHarvested)必须落世界流,不得落病史流或病例流;反之病史类 / 病例类事件不得落世界流。IEventSink 三流纯函数路由(ADR-009 §二)"
+    description: "世界状态类事件(Structure* / Drop* / Craft / ResourceHarvested / PoiStateChanged)必须落世界流,不得落病史流或病例流;反之病史类 / 病例类事件不得落世界流。IEventSink 三流纯函数路由(ADR-009 §二 · ADR-021)"
     why: "落病史流 = 污染 9 的真源所有权(同 case_events_in_history_stream);落病例流 = 跨域职责混乱 + 有界性论证不适用(世界流是系统驱动,病例流是玩家驱动)"
     adr: docs/architecture/adr-009-world-state-event-boundary.md
     added: 2026-09-15

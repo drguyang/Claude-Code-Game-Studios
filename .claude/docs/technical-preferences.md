@@ -415,8 +415,32 @@
   Engine Knowledge Risk **LOW**(§Engine Compatibility 自陈 **不引入任何 post-cutoff API** ——
   Cinemachine 的知识盲区经「不使用它」消解,而 `CharacterController` 是长期稳定 API)。
 
-> **本日志状态**:全部 ADR(001–020)均有日志条目。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
-> ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)。无残留缺口。**
+- [ADR-021 ✅ Accepted 2026-09-15]**POI 状态所有权与世界流承载** ——
+  `docs/architecture/adr-021-poi-state-ownership.md`。**结清三方复核(2026-09-15,
+  `design/research/expansion-review-2026-09-15.md`)登记的洞 H2** ——
+  「6 世界与生态区只是 POI **容器**,没人拥有『这个 POI 已清』;`已清` 是派生态(ADR-009 §四)
+  ⇒ 不可推导,必须进世界流并指定写者」。一项核心用户裁定(照准):
+  **POI 状态的写者 = 6 世界与生态区**(容器顺理成章成为所有者,**不新立系统** —— 与「不加 #54」取向一致)。
+  裁决:**① POI 一分为二** —— **定义 = 派生态**(位置/守卫/类型,烘焙逻辑层 ADR-015 §一,
+  加载期重建,不进流)/ **状态 = 模拟态**(进世界流);**② 所有者 + 唯一写者 = 6**(写经
+  `IEventSink.Append`,主机唯一执行,承 ADR-005);**③ 新增世界流 Kind `PoiStateChanged`**,
+  载荷 `{ poi_id, new_state }` 均整数枚举(**`PoiState` 具体值刻意归 6 的 GDD** ——
+  同 ADR-009 §三「骨架先行,载荷归系统 ADR」纪律),`Patient = PatientId.None`(不污染高水位);
+  **④ 有界性** ≤ `|POI| × |STATE|`(补 ADR-009 §六,扩展而非重写);**⑤ 52 的 `spawn_anchor`
+  读 POI 定义(静态),不读状态**(否则抽池变成状态的函数,破坏确定性抽池前提)。
+  **本 ADR 是首条以「系统 ADR 追加世界流 Kind」方式扩骨架的实例**(ADR-009 §三 预置的口子)。
+  **涟漪**:ADR-009 §二/§三/§六 三处就地修订(**Amendment F**)· ADR-010 §三 **义务 11** ·
+  `architecture.yaml`(世界流 interface / `IEventSink` 路由 / 新增 `poi_state` 所有权条目)·
+  `entities.yaml`(`SimEvent.Kind.PoiStateChanged`)· `systems-index.md` §11(H2 闭合)·
+  `tr-registry.yaml` + `traceability-index.md`(新 slug `world-eco`,TR +9 = 187 → 196)。
+  **同批未结**:H1(模态解锁 —— 分治登记:19/21 物品门 + 8 动作词表 + 30 非物品能力)·
+  H3(敌人可救治 —— 归 10)—— 用户裁二者 ADR **推迟 P1a**,本轮仅在 §11 登记所有权。
+  Engine Knowledge Risk **LOW**(纯数据边界与所有权裁决,不触及任何引擎 API)。
+
+> **本日志状态**:全部 ADR(001–021)均有日志条目。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
+> ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
+> **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;
+> 洞 H1 / H3 的 ADR 由用户裁定**推迟 P1a**(本轮仅登记所有权,见 `systems-index.md` §11)。
 
 ## Engine Specialists
 
