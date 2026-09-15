@@ -363,8 +363,10 @@ formulas:
     source: design/gdd/disease-simulation.md
     referenced_by:
       - design/gdd/disease-simulation.md
-      # 11 处方用药 / 13 病人 AI / 24 医馆即机器 GDD 尚未撰写 —— 撰写时须回溯追加
+      # 11 处方用药 / 24 医馆即机器 GDD 尚未撰写 —— 撰写时须回溯追加(13 已结清,见下)
       # ✅ 2026-09-15 ADR-016 §六:13 只读 DTO + 表现映射(姿态/咳嗽呻吟);出 IPresentPatients 供 37 单读
+      # ✅ 2026-09-15 13 GDD 落盘(design/gdd/patient-ai.md);TR 已回溯追加 TR-patient-001…024
+      #    (18 covered / 1 partial / 5 gap)。13 决策**住边界层**,不进 sim(ADR-016 §一 表补例外注)
     variables:
       - A_peak
       - incubation
@@ -450,8 +452,9 @@ formulas:
     referenced_by:
       - design/gdd/disease-simulation.md
       - design/gdd/case-system.md   # 37 包装的病史事件流订阅其触发(2026-09-15 回填)
-      # 13 病人 AI / 34 公卫与疫情 GDD 尚未撰写 —— 撰写时须回溯追加
-      # ✅ 2026-09-15 ADR-016 §六:13 只读本阈值对应的状态量;13 不写三流(表现映射归 13,不经 sim)
+      # 34 公卫与疫情 GDD 尚未撰写 —— 撰写时须回溯追加(13 已结清,见下)
+      # ✅ 2026-09-15 ADR-016 §六:13 只读本组阈值对应的**状态量**,不读阈值本身;13 不写三流(表现映射归 13,不经 sim)
+      # ✅ 2026-09-15 13 GDD 落盘:13 用自有 BEHAVIOR_BAND_* 分档,**不重建 9 的九态**(TR-patient-004 · AC-13-A3 BLOCKING)
     variables:
       - CRITICAL_THRESHOLD
       - COMA_THRESHOLD

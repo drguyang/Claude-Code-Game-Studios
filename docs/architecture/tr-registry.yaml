@@ -19,7 +19,7 @@
 version: 1
 last_updated: "2026-09-15"
 baseline_established: "2026-09-15"
-revision_note: "2026-09-15 ADR-020 落盘(R-13 玩家控制器与相机;架构复核 R-1…R-15 至此全部结清)。本轮 ID 增补 9 条(154→163),全部为新 system slug —— 系统 1 玩家移动(TR-player-001…004,含『移动 = 表现态 / 跨格事件是唯一 sim 投影』= ADR-016 §三 的发出侧对称)与系统 2 摄像机(TR-camera-001…005,含自建机位不引 Cinemachine · 平面越肩 / VR 第一人称双路径 · 44 的 AudioListener 单挂点落定)。**1 / 2 无独立 GDD**,需求文本由 ADR-020 裁决 + systems-index 依赖图条目生成,GDD 撰写时须回溯核对。前一轮 ADR-019 / 018 / 017:ID 增补 6 条(148→154):TR-randomevents-032 · TR-diag-021…025;状态变更 TR-randomevents-024 gap→covered、TR-diag-020 加 ADR-018 §二 note。ADR-016:TR-randomevents-028/029 gap→covered。ADR-015:TR-randomevents-018 gap→covered;TR-randomevents-021 gap→partial。ADR-017 不新增 TR(兑现 ADR-004,是『不引入』的裁决;OQ-8 复评前置登记在 technical-preferences)。累计 83 covered / 14 partial / 66 gap / 163 条"
+revision_note: "2026-09-15 ADR-020 落盘(R-13 玩家控制器与相机;架构复核 R-1…R-15 至此全部结清)。本轮 ID 增补 9 条(154→163),全部为新 system slug —— 系统 1 玩家移动(TR-player-001…004,含『移动 = 表现态 / 跨格事件是唯一 sim 投影』= ADR-016 §三 的发出侧对称)与系统 2 摄像机(TR-camera-001…005,含自建机位不引 Cinemachine · 平面越肩 / VR 第一人称双路径 · 44 的 AudioListener 单挂点落定)。**1 / 2 无独立 GDD**,需求文本由 ADR-020 裁决 + systems-index 依赖图条目生成,GDD 撰写时须回溯核对。前一轮 ADR-019 / 018 / 017:ID 增补 6 条(148→154):TR-randomevents-032 · TR-diag-021…025;状态变更 TR-randomevents-024 gap→covered、TR-diag-020 加 ADR-018 §二 note。ADR-016:TR-randomevents-028/029 gap→covered。ADR-015:TR-randomevents-018 gap→covered;TR-randomevents-021 gap→partial。ADR-017 不新增 TR(兑现 ADR-004,是『不引入』的裁决;OQ-8 复评前置登记在 technical-preferences)。累计 83 covered / 14 partial / 66 gap / 163 条。**2026-09-15 补记:#13 病人 AI 与行为 GDD 落盘(design/gdd/patient-ai.md),按其权威件 ADR-016 的 Ordering Note 回溯追加其 TR**(与 21a / 52 同法)—— ID 增补 24 条(163→187),全部为新 system slug `patient-ai`(TR-patient-001…024),状态 = 18 covered / 1 partial / 5 gap。**本轮含一条用户裁定**:13 的决策层**住边界层(呈现侧),不进 sim 程序集** —— 解 ADR-016 §一(决策层住 sim 整数)与 §六(13 读唯一浮点出口 `VitalsDto`)的接缝;ADR-016 §一 表已补 13 例外注。**TR-patient-006 的 partial 根因 = 9 的 OQ-8**(在场判定无值源)。**累计 101 covered / 15 partial / 71 gap / 187 条"
 source_review: "docs/architecture/architecture-review-2026-09-15.md"
 traceability_index: "docs/architecture/traceability-index.md"
 
@@ -1491,3 +1491,249 @@ requirements:
     status: covered
     revised: "2026-09-15"
     note: "ADR-020 §七。结清 `adr-018-audio-architecture.md:295` 留白的「单 `AudioListener` 挂点(VR 头显 vs 平面摄像机)」。AC-20-10"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 病人 AI 与行为 (Patient AI and Behavior, #13) — design/gdd/patient-ai.md
+  # 2026-09-15 回溯追加(ADR-016 Ordering Note 约定,与 21a / 52 同法)
+  # 权威件 = docs/architecture/adr-016-ai-architecture.md(✅ Accepted)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-patient-001
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "13 只读不写 —— 不产生病史 / 病例 / 世界三流任何事件,不回写 sim 真值"
+    domain: Core
+    adr: ADR-016
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-016 §六。「只读」禁的是**回写三流**,不禁表现层输出(解 `disease-simulation.md:497` 与 `:1116` 的口径张力)。AC-13-A1 BLOCKING(grep 断言零 `IEventSink` 调用)"
+
+  - id: TR-patient-002
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "取数唯一入口 = `IVitalsQuery.GetVitals() → VitalsDto`(全案唯一浮点出口);不得读 `Fix` 原值、不得绕过门面"
+    domain: Core
+    adr: ADR-005 + ADR-016
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-016 §六 + ADR-005。AC-13-A2 BLOCKING"
+
+  - id: TR-patient-003
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "`VitalsDto` 只含原始量 `position`(0–1)/ `trend`(带符号);不含病种 / 九态枚举 / 任何派生显示量"
+    domain: Core
+    adr: ADR-016
+    status: covered
+    revised: "2026-09-15"
+    note: "= `disease-simulation.md:1240` 的 **AC-20(BLOCKING)**。2026-09-15 用户裁定:AC-20 与 `:497`「状态 → 行为表现」的措辞冲突**以 AC-20 为准**(「状态」读作「原始量」)。派生显示量含:病种名 / 身份 / 剩余时间 / 百分比 / 血条值"
+
+  - id: TR-patient-004
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "13 **不重建九态** —— 行为分化只用自有 `BEHAVIOR_BAND_*`,`BehaviorState = Map(position, trend)`"
+    domain: Core
+    adr: ADR-016
+    status: covered
+    revised: "2026-09-15"
+    note: "双理由:① 呈现层纪律(`disease_id` 不进呈现层,`PresentationDtoGuard` 递归扫描,AC-37-15);② 设计意图(行为不得因具体病种分化,否则玩家看出「AI 知道答案」,判断层乐趣破产 —— 支柱一)。**重建 = 第二真源**(Forbidden)。AC-13-A3 BLOCKING"
+
+  - id: TR-patient-005
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "`BEHAVIOR_BAND_*`(`MILD_MIN` / `SEEK_MIN` / `COLLAPSE_MIN` / `RECOVER_MAX`)与 9 的九态阈值(`CRITICAL` / `COMA` / `DEATH_THRESHOLD`)的对齐关系"
+    domain: Core
+    adr: —
+    status: gap
+    revised: "2026-09-15"
+    note: "**登记为 `OQ-13-2`**(跨系统阈值对齐)。GDD 明写二者**不要求相等**,但**大幅偏离会显得不对**(病人已经躺下了,行为却还在逛)。归属 = 13 + 9 联合;前置 = 9 的阈值表定稿。**不阻塞 P0 实现**(分档是 13 自己的调参旋钮),阻塞「观感验收」"
+
+  - id: TR-patient-006
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "行为模拟范围 = **在场病人**(场外不跑行为决策);13 消费 9 的在场判定,**不自建在场定义**"
+    domain: Core
+    adr: —
+    status: partial
+    revised: "2026-09-15"
+    note: "**部分覆盖的根因** = 9 的 `OQ-8`(`disease-simulation.md:1329-1335`,`PatientState` 的模拟存在范围未定)→ 在场判定无值源。**该输入同时是 ADR-005 性能表量纲与 ADR-017 §三 DOTS 复评门的共同前置**。13 侧只裁自己那一半(行为范围 = 在场),**病程范围归 9**。AC-13-E1"
+
+  - id: TR-patient-007
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "行为决策 = **派生态** —— 不进流、不存档、加载 / 重放期确定性重建;**住边界层(呈现侧),不进 sim 程序集**"
+    domain: Core
+    adr: ADR-009 + ADR-016
+    status: covered
+    revised: "2026-09-15"
+    note: "**2026-09-15 用户裁定**(解 ADR-016 §一 ↔ §六 的接缝):§一 表列出的决策内容(敌意 / 逃逸 / 目标选择 / 包抄)是 **27 侧**的;13 的决策消费 `VitalsDto` 的 float,**物理上不可能住门 A 的程序集**(门 B 断言零 float 签名)。「派生态」判据(ADR-009 §一 Q1)**不要求「住 sim」**,只要求「无玩家-authored 历史、由外生源确定性重建」。**ADR-016 §一 表已补 13 例外注**。AC-13-B3"
+
+  - id: TR-patient-008
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "重建三源不变量 —— 决策的全部输入 ∈ {事件流, 版本化烘焙数据, 二者纯函数};禁第四来源(表现态位置 / 墙钟 / `UnityEngine.Random` / 未版本化场景几何)"
+    domain: Core
+    adr: ADR-016
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-016 §一 的核心不变量。任何第四来源都是**静默不可重建通道**,进 Forbidden Patterns。AC-13-B4"
+
+  - id: TR-patient-009
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "感知输入 = 粗粒度整数格(玩家跨格世界流事件);禁 `Transform.position` / `Physics.Raycast` / NavMesh 采样;格距用整数平方和,禁 `sqrt`"
+    domain: Core
+    adr: ADR-016 + ADR-020
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-016 §三(读方:13 / 27 读格)+ ADR-020 §四(写方:玩家跨格发事件)。**两条腿缺一即不成立**。AC-13-E3 grep 断言"
+
+  - id: TR-patient-010
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "空间量一律 `WorldPos` 整数格;烘焙行为数据(`assets/data/ai_patient.json`)禁 `float` 字段"
+    domain: Core
+    adr: ADR-015 + ADR-014
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-015 §三(`Fix` 只用于非空间量)+ ADR-016 §四 / ADR-014 烘焙校验。**注意**:ADR-006 的 `Fix` 禁令约束**进 sim 的代码**;13 住边界层,运行期 float 合法(唯一来源 = `VitalsDto`),但**读进来的空间量永远是整数格**"
+
+  - id: TR-patient-011
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "表现映射归 13(姿态 / 动画状态机 / 咳嗽呻吟触发);**8 拥有体征语义 · 9 拥有真值**,三者不互窜"
+    domain: Presentation
+    adr: ADR-016
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-016 §六 的归属划分。AC-13-D2 BLOCKING(无提示音白名单)"
+
+  - id: TR-patient-012
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "13 出只读视图 `IPresentPatients`(`PatientId` + `WorldPos` 格 + 粗状态枚举,**无 `disease_id`**);13 不引用 37(单向无环)"
+    domain: Core
+    adr: ADR-016
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-016 §六。**结清** `case-system.md:473` 原标「契约暂定」的那一格。AC-13-C1 BLOCKING(`PresentationDtoGuard` 递归扫描,与 AC-37-15 一致)· AC-13-C2 · AC-13-C3"
+
+  - id: TR-patient-013
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "病人出现率上限归 **9**(`TR-disease-021`);13 **不自主生成 / 不删除病人**"
+    domain: Core
+    adr: ADR-016
+    status: covered
+    revised: "2026-09-15"
+    note: "2026-09-15 用户裁定。链路 = 52 注入 → 37 立案 → 13 供在场实体(ADR-016 §八,**52 不直接驱动 13**)。AC-13-C4。**硬依赖** `TR-disease-021`(仍 `gap` —— 9 侧补登记「病人出现率上限」有界性配置项)"
+
+  - id: TR-patient-014
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "病人 id 经 `IIdAuthority` 发放,与敌人**共用同一 id 空间**"
+    domain: Core
+    adr: ADR-006 + ADR-016
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-016 §二 把 ADR-006 Amendment B 的 id 空间语义从「病人 id」扩为「受伤实体 id」——`next = max(id) + 1` 的高水位重构**依然成立**,不需要第二套计数器。13 **不自己发 id**"
+
+  - id: TR-patient-015
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "行为载体 —— 编辑器期行为树 / 状态机 → **构建期烘焙整数数据**(走 ADR-014 管线);运行期**零第三方行为树库**"
+    domain: Core
+    adr: ADR-016 + ADR-014
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-016 §四。纳入 ADR-014 §Validation 的**陈旧门**(源改了没重烘 = 构建失败)。第三方编辑器须过导出 / 烘焙可行性评估,不合格则退回自研数据表载体(Engine Knowledge Risk MEDIUM 项)"
+
+  - id: TR-patient-016
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "寻路 —— sim 走整数导航格(确定性整数 A*);NavMesh 仅驱动表现态位移"
+    domain: Core
+    adr: ADR-016 + ADR-015
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-016 §五 兑现 ADR-015 §五。JPS / 预烘流场为可选优化,须保持整数与确定性。动态建造的 NavMesh tile 重烘 = **表现层预算项**(与确定性无关)"
+
+  - id: TR-patient-017
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "决策 LOD 节流 / 远区冻结;硬约束 = **节流不改变判定**(开 / 关两配置 sim 真值相同)"
+    domain: Core
+    adr: ADR-016
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-016 §九。13 侧**通常不彻底冻结** —— 在场病人仍有表现需求(呼吸层不能停,承 AC-44-01)。AC-13-E2 BLOCKING"
+
+  - id: TR-patient-018
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "咳嗽 / 呻吟 cue 契约(13 → 44)—— `AudioCueDto` 整数语义,**不携带「状态变化」语义**"
+    domain: Presentation
+    adr: ADR-018
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-018 §一 / §四。**无提示音铁律** = 白名单断言(AC-44-09)。**`Tier` 13 不填** —— `AudioCueDto.Tier` 是 44 的听诊精度档(`adr-018:170`),由 `SetTier(TierSource)` 持有(单机 = 本地技能 / 联机 = 主机技能),**与距离无关**;距离衰减归 44 的 3D 空间化"
+
+  - id: TR-patient-019
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "昏迷与死亡的区分靠**呼吸层与姿态**,**禁音效硬报**(死亡 = 持续层消失,非事件播报)"
+    domain: Presentation
+    adr: ADR-018
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-018 §四(`AC-44-10` 语族)。AC-13-D3。同源:ADR-020 §六「镜头效果不得用于报状态」—— 同一铁律的视觉侧"
+
+  - id: TR-patient-020
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "13 驱动的表现层 DTO 受 `PresentationDtoGuard` **递归**扫描(`disease_id` 不进呈现层)"
+    domain: Presentation
+    adr: ADR-013
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-013 §三。与 AC-37-15 / AC-44 族同一条守卫"
+
+  - id: TR-patient-021
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "「查体诱发痉挛」的**写路径**归属(13 只读,写不了 sim)"
+    domain: Core
+    adr: —
+    status: gap
+    revised: "2026-09-15"
+    note: "**登记为 `OQ-13-1`**。`diagnosis-system.md:1197`(破伤风事实注)写「若日后要落,写路径归 10 急救动作 / 13 病人 AI」—— 但 13 只读(TR-patient-001),**口径冲突**。13 侧结论:**写路径只能归 10 / 9**,13 只提供**表现**(姿态骤变 + 呻吟)。**不在 GDD 里单方面改 8 的措辞**"
+
+  - id: TR-patient-022
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "玩家**搬运昏迷病人**的写路径归属(病人位置是行为决策的产物 = 派生态,进 sim 须新增事件)"
+    domain: Core
+    adr: —
+    status: gap
+    revised: "2026-09-15"
+    note: "**登记为 `OQ-13-3`**。13 只读、20 只拥有玩家自己的位移,**二者都不拥有它**。**P0 不实现搬运**"
+
+  - id: TR-patient-023
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "13 **无玩家可见 UI**;开发者调试视图仅 Development Build,且不得显示病种"
+    domain: Presentation
+    adr: —
+    status: gap
+    revised: "2026-09-15"
+    note: "**设计结果,非遗漏** —— 13 存在的意义就是把 UI 该说的话交还给身体(无血条铁律)。取向同 51 / ADR-019 §五(开发者视图 + 玩家构建剥离)。AC-13-A4 可测;「无玩家 UI」本身无 ADR 承接(呈现层设计约束,非架构裁决)"
+
+  - id: TR-patient-024
+    system: patient-ai
+    gdd: design/gdd/patient-ai.md
+    requirement: "13 的听障 / 视障可及性(视觉 / 音频双通道冗余之外的字幕与视觉提示)"
+    domain: Presentation
+    adr: —
+    status: gap
+    revised: "2026-09-15"
+    note: "**登记为 `OQ-13-4`**。13 的信息**故意走两条通道**(视觉 + 听觉),任一单独失效时另一条仍在 —— P0 可玩;**但双通道冗余 ≠ 无障碍合规**。`design/ux/` 目录尚不存在,无障碍需求评审待 `/ux-design` 产出"

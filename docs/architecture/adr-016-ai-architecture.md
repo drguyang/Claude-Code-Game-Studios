@@ -8,7 +8,8 @@ Accepted
 > ① **范围 = 13 病人 AI + 27 敌人 AI 合并** —— 两者共享同一套基础设施(感知 / 寻路 / 行为载体 /
 > 确定性边界 / LOD),拆开会互相预判;
 > ② **确定性边界 = 分层** —— **行为决策进 sim**(整数域,可重放),**运动表现态**(连续位移 / 动画 /
-> 绕障)在表现层,与 ADR-009 §五 的「掉落身份进流 / 位置表现」同构;
+> 绕障)在表现层,与 ADR-009 §五 的「掉落身份进流 / 位置表现」同构 ——
+> **13 病人 AI 例外**(2026-09-15 补注,见 §一 表下例外注):其决策住**边界层**,不进 sim 程序集;
 > ③ **行为载体 = 编辑器期行为树 → 构建期烘焙为整数数据**(与 ADR-014 作者态 / 出货态分离同构);
 > ④ **寻路 = sim 走整数导航格,NavMesh 仅驱动表现态位移** —— 兑现 ADR-015 §五 已写但未细化的口径。
 > 独立评审由下一轮 `/architecture-review` 进行。
@@ -61,7 +62,7 @@ NavMesh 烘焙成本;**Feature / MEDIUM**),而 **13 与 27 均无 GDD** —— �
 | **Depends On** | **ADR-005**(Accepted —— 定点域 · `IIdAuthority` / `IVitalsQuery` / `SimEvent` 形状)· **ADR-006**(Accepted —— 禁 float 入 sim · 边界契约)· **ADR-009**(Accepted —— 三流边界 · 派生 / 进流判据;**本 ADR 依其 §一 Q1 判据把 AI 决策归为派生态**)· **ADR-014**(Accepted —— 作者态 → 烘焙产物管线;**行为程序走同一管线**)· **ADR-015**(Accepted —— `WorldPos` 整数格 · 导航格来源 · NavMesh 仅表现态) |
 | **Enables** | **13 病人 AI 与行为** · **27 敌人 AI** · **52 随机事件导演**(遭遇原型注入与「不锁定玩家」接口)· **37 病例系统**(在场实体视图,解除 `case-system.md:473` 的「契约暂定」)· **28 捕获 · 驯化 · 取材与护卫**(P1a 驯化接口形状)· 25 格斗与武器线(敌人可受伤对象的实体侧) |
 | **Blocks** | **13 / 27 的实现** —— 确定性边界与实体归属未定型前,任何 AI 代码都会定型错误;**R-11(是否 DOTS)在此获得输入**(AI 决策的批量规模是 R-11 的关键数据点) |
-| **Ordering Note** | `TR-randomevents-028`(52 与 13 的交互)与 `TR-randomevents-029`(27 不被事件导演锁定)由本 ADR 定型。**13 / 27 的 TR-ID 不在本次登记** —— 两者无 GDD,TR 须待其 GDD 撰写时**回溯追加**(与 21a / 52 同法),本次只登记由它们**承担**的既有 TR。**ADR-006 Amendment B 的 id 空间语义由本 ADR §二 扩大**(病人 → 受伤实体),须同步注记 |
+| **Ordering Note** | `TR-randomevents-028`(52 与 13 的交互)与 `TR-randomevents-029`(27 不被事件导演锁定)由本 ADR 定型。**13 / 27 的 TR-ID 不在本次登记** —— 两者无 GDD,TR 须待其 GDD 撰写时**回溯追加**(与 21a / 52 同法),本次只登记由它们**承担**的既有 TR。**ADR-006 Amendment B 的 id 空间语义由本 ADR §二 扩大**(病人 → 受伤实体),须同步注记。**2026-09-15 补记:13 的 GDD 已落盘(`design/gdd/patient-ai.md`),其 TR 已回溯追加为 `TR-patient-001…024`(18 covered / 1 partial / 5 gap,见 `tr-registry.yaml`);27 仍待其 GDD** |
 
 ## Context
 
@@ -132,12 +133,18 @@ NavMesh 烘焙成本)| Feature | MEDIUM | 13 / 27」。它把三件不同层次�
 **行为程序编辑器期编辑、构建期烘焙为整数数据**;**sim 寻路走烘焙整数导航格,NavMesh 仅表现态**;
 **13 出只读在场病人视图**(结清 37 的「契约暂定」);**动物 AI 的 P1a 驯化接口本次定型**。
 
-### 一、AI 层分层:行为决策进 sim,运动表现态
+### 一、AI 层分层:行为决策进 sim,运动表现态(**13 为例外** —— 见下表后补注)
 
 | 层 | 内容 | 数值 | 谁持有 | 进流? |
 |----|------|------|--------|-------|
 | **决策层(sim)** | 行为程序求值(敌意 / 逃逸 / 目标选择 / 包抄) · **逻辑位姿**(格坐标 + 朝向枚举) · 整数导航格的路径推进 · 感知视图 | **整数**(`WorldPos` / 枚举 / `Fix` 仅限非空间量) | sim 程序集(门 A) | **否**(派生态) |
 | **运动表现层** | 连续位移 / 插值 / NavMesh 绕障 / 动画状态机 / 音效触发 / 黄铜读数条 | `float` 任意 | 场景 + MonoBehaviour | **否**(纯表现) |
+
+> **13 的例外(2026-09-15 补注 —— 用户裁定)**:**上表「决策层(sim / 整数)」一行的决策内容
+> (敌意 / 逃逸 / 目标选择 / 包抄)是 27 侧**的。**13 病人 AI 的决策住边界层(呈现侧)** ——
+> 它消费 `IVitalsQuery` 的 `VitalsDto`(float,全案唯一浮点出口,§六),**物理上不可能住门 A 的
+> 程序集**(门 B 断言零 float 签名)。13 仍是**派生态**(不进流、不存档、重建期重建;判据同
+> ADR-009 §一 Q1),**只是不在 sim 程序集内**。详 `design/gdd/patient-ai.md` §Core Rules 规则五。
 
 - **AI 决策是派生态,不是事件。** 依 ADR-009 §一 Q1 的判据推广(ADR-015 §二):
   AI 决策**无玩家-authored 历史**,由外生源**确定性重建** ⇒ 归**派生态** ——
@@ -474,7 +481,10 @@ NavMesh 烘焙成本)| Feature | MEDIUM | 13 / 27」。它把三件不同层次�
   - `forbidden_patterns` 新增 `runtime_behavior_tree_library` ·
     `ai_reads_presentation_position` · `enemy_injury_into_history_stream`。
 - **`docs/architecture/tr-registry.yaml`**:`TR-randomevents-028`(❌ → ✅)· `TR-randomevents-029`
-  (❌ → ✅);`revision_note` 更新。
+  (❌ → ✅);`revision_note` 更新。**2026-09-15 补记**:13 的 TR 回溯追加(`TR-patient-001…024`,
+  新 slug `patient-ai` —— 按本文 Ordering Note 的约定,与 21a / 52 同法)。
+- **`design/gdd/patient-ai.md`(2026-09-15,新建)**:#13 的 GDD 落盘(十一节,无占位符);
+  其 §Core Rules 规则五 记录本文 §一 表的 **13 例外注**(决策住边界层)。
 - **`docs/architecture/traceability-index.md`**:52 的明细两行 + 汇总行 + 合计(**65/14/69 → 67/14/67**)
   + 变更历史 + header。
 - **`.claude/docs/technical-preferences.md`**:Architecture Decisions Log 补 ADR-016 条目;
