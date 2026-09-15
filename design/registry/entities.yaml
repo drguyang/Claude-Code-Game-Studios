@@ -299,23 +299,32 @@ formulas:
       - MIN_tier
       - MAX_tier
     output_range: ["MIN_tier", "MAX_tier"]
-    expression: "① 档占比[] → 各档配额(无放回) ② W_i = W_base_i × TODMult_i × HistoryMult_i(KeyGate 未过 ⇒ W_i = 0);p_i = W_i / ΣW_j ③ StrengthRaw = Σ(归一化(PlayerState) × W_strength) → clamp(MIN_tier, MAX_tier) → StrengthCap = min(StrengthTier, f(最高格斗线, 急救)) ④ 过密度预算 ⇒ 生成"
+    expression: "① 档配额权重[档] = 档占比[档] × ReputationMult[档] × ContextMult[档] → 最大余数法把 WINDOW_SIZE 个名额分给四档(平局按档序) ② 档内:W_i = W_base_i × TODMult_i × HistoryMult_i(KeyGate 未过 ⇒ W_i = 0);p_i = W_i / ΣW_j;抽取走 CDF 游走 ③ StrengthRaw = Σ(归一化(PlayerState) × W_strength) → clamp(MIN_tier, MAX_tier) → StrengthCap = min(StrengthTier, f(最高格斗线, 急救)) ④ 过密度预算 ⇒ 生成"
     notes: "进度锁 = 行医进度(声誉 / 救人数 / 生态区解锁),不是杀怪进度 ——
       这是本作对英灵神殿最关键的一处改写:盯上你的人不是因为你强,是因为你「有用」。
       ⚠️ 2026-09-14 复核 blocking #2:乘子必须【逐条】,不能是【全池标量】——
-      标量 k 在 p_i = w_i·k / Σ(w_j·k) 中被恒约去,对分布零作用;
-      故 ReputationMult 改为【按档非对称数组】{机会: R_opp, 反应: R_react, 威胁: 1, 灾难: 1},
-      R_opp 与 R_react 是两个独立参数、由 31 共同驱动(「一个数两个方向」的机制实现)。
+      标量 k 在 p_i = w_i·k / Σ(w_j·k) 中被恒约去,对分布零作用。
+      ⚠️⚠️ 2026-09-15 二轮 blocking #1:【首轮修法无效】—— 上述约去结论同样适用于【档级常量】,
+      因为步骤② 是【档内】抽取,档内 `档` 恒定 ⇒ 任何档的函数照样被约去。
+      故 ReputationMult[档] 与 ContextMult[档] 移入【步骤①(乘在配额上)】,
+      声誉改变的是「本窗口来几条」,不是「哪一条」。已改的只是作用域,不是符号。
       ⚠️ 2026-09-14 复核 blocking #6:抽池在先、定档在后 —— 强度【不是】抽一的乘子。
       ⚠️ 2026-09-14 复核 blocking #7:PlayerState 各项【必须先归一化到 [0,1]】,
       否则 CarryLoad(10²–10³)会以 1–2 个数量级淹没 RelevantSkill(1–60);
       StrengthCap 是上限帽(带药多不得强过自身格斗/急救量级)。
-      P0 的 EcoTier 权重恒为 0 —— 本作是固定世界,空间纵深轴失效(concept-benchmark.md:60);
+      ⚠️ 2026-09-15 二轮 blocking #2:HistoryMult = clamp(1 + HIST_W[cause_flag_i], 1, HIST_MULT_MAX)
+      —— 【单次查表】,不是对全部 flag 连乘(连乘会把无关条目也抬起,AC-52-17 失效,且 int64 raw 溢出)。
+      ⚠️ 2026-09-15 二轮 blocking #3:档占比 → 配额的换算 = 最大余数法(见 random-events.md F1);
+      平局按档序;被 ΣW_j = 0 跳过的档配额在【同一窗口内】重分配。
+      ⚠️ 2026-09-15 二轮 blocking #4:抽取必须走 CDF 游走,r 按 key 升序递减;
+      种子改为 EventRollSeed(win, tier, ordinal) —— 原文 (t, k) 的 k 是抽中后才知道的,
+      一个 argmax 实现能通过 AC-52-06 却完全无视权重。
+      P0 的 EcoTier / Reputation 权重恒为 0 —— 本作是固定世界,空间纵深轴失效(concept-benchmark.md:60);
       深水线由 5/17 交付,52 只登记归属(见 random-events.md Dependencies)。
-      ⚠️ 随机源见 DC-1:SplitMix64(WorldSeed, t, k),禁 UnityEngine.Random(AC-52-06/07)。
+      ⚠️ 随机源见 DC-1:SplitMix64(WorldSeed, win, tier, ordinal),禁 UnityEngine.Random(AC-52-06/07)。
       全量数值为 Fix / int,禁 float(AC-52-08 / ADR-006)。"
     added: 2026-09-13
-    revised: 2026-09-14
+    revised: 2026-09-15
 
   # ── F3: 损毁与重建成本 (random-events.md §Formulas · P1a) ─────────────────
   - name: rebuild_cost
@@ -389,6 +398,7 @@ formulas:
     source: design/gdd/disease-simulation.md
     referenced_by:
       - design/gdd/disease-simulation.md
+      - design/gdd/case-system.md   # 37 包装的读数记录消费其投影(2026-09-15 回填)
       # 8 诊断与体征揭示 GDD 尚未撰写 —— 撰写时须回溯追加(读 position/trend 的门槛归它)
     variables:
       - Progress
@@ -437,6 +447,7 @@ formulas:
     source: design/gdd/disease-simulation.md
     referenced_by:
       - design/gdd/disease-simulation.md
+      - design/gdd/case-system.md   # 37 包装的病史事件流订阅其触发(2026-09-15 回填)
       # 13 病人 AI / 34 公卫与疫情 GDD 尚未撰写 —— 撰写时须回溯追加
     variables:
       - CRITICAL_THRESHOLD
@@ -820,11 +831,13 @@ constants:
     source: design/gdd/random-events.md
     referenced_by:
       - design/gdd/random-events.md   # 规则十一 · F1 步骤①
+      - design/gdd/case-system.md   # 37 注入医疗条目时须知道各档配额(2026-09-15 回填)
       # 37 病例系统(注入前须知各档配额)—— 撰写时须回溯追加
     value: "int[4] —— 待定(四档各一个旋钮)"
     unit: ratio
-    constraint: "各项 ≥ 0 且和 > 0;P0 构建期断言 机会 : 威胁 = 1 : 1(AC-52-02);
-      配额在预算窗口内【无放回】抽取,玩家不可见(反幻想:不得呈现为计数)"
+    constraint: "各项 ≥ 0 且和 > 0;P0 运行期配额断言 档配额权重[机会] = 档配额权重[威胁]（AC-52-02，2026-09-15 二轮修正:断言【运行期配额】而非池条目计数比）;
+      配额在预算窗口内【无放回】抽取,玩家不可见(反幻想:不得呈现为计数);
+      Σ档占比 = 0 ⇒ 本窗口 0 条（构建期拒绝）"
     added: 2026-09-14
     revised: ""
 
@@ -839,7 +852,10 @@ constants:
       # 31 声誉 —— 撰写时须回溯追加
     value: "R_opp / R_react —— 待定(P0 无 31,恒为 1)"
     unit: Fix
-    constraint: "> 1;两者【独立】,由 31 共同驱动(同升);P0 无输入源 ⇒ 等价恒 1(AC-52-20 守门)"
+    constraint: "≥ 1(即 num ≥ den);两者【独立】,由 31 共同驱动(同升);
+      【乘在 档配额权重[档] 上（F1 步骤①）,不是乘在 W_i 上】—— 2026-09-15 二轮修正:
+      档内抽取会把任何档级常量归一化约去,首轮的「按档非对称」并未修复该缺陷;
+      P0 无输入源 ⇒ 等价恒 1(AC-52-20 守门)"
     added: 2026-09-14
     revised: ""
 
@@ -879,6 +895,143 @@ constants:
     constraint: "> 0。= 0 则「零成本复原」;DamageRatio ∈ [DAMAGE_MIN, 1),上界【不含 1】(AC-52-35)"
     added: 2026-09-14
     revised: ""
+
+  # ── WINDOW_SIZE ────────────────────────────────────────────────────────
+  # F1 步骤① 的配额总量。跨 52 ↔ 37:37 注入医疗条目时须知道「每窗口共几条」,
+  # 才能判断自己该供几条内容。2026-09-15 二轮补登(首轮遗漏)。
+  - name: WINDOW_SIZE
+    status: active
+    source: design/gdd/random-events.md
+    referenced_by:
+      - design/gdd/random-events.md   # F1 步骤① 最大余数法的被除数
+      - design/gdd/case-system.md   # 37 注入医疗条目时须知道每窗口抽取条数(2026-09-15 回填)
+      # 37 病例系统(注入前须知道每窗口抽取条数)—— 撰写时须回溯追加
+    value: "待定 —— 见 random-events.md Tuning Knobs"
+    unit: count
+    constraint: "≥ 1;= 0 则永不抽取（功能死亡，构建期拒绝）。
+      Σ档占比 不能整除 WINDOW_SIZE 时走【最大余数法】，平局按档序（威胁<机会<反应<灾难）"
+    added: 2026-09-15
+    revised: ""
+
+  # ── REP_CAP ────────────────────────────────────────────────────────────
+  # F1 强度轴的声誉归一化分母（P1a）。跨 52 ↔ 31。
+  - name: REP_CAP
+    status: active
+    source: "— (31 声誉与名声,未撰写)"
+    referenced_by:
+      - design/gdd/random-events.md   # F1 强度轴 clamp(Reputation / REP_CAP, 0, 1)
+      # 31 声誉 —— 撰写时须回溯追加
+    value: "待定 —— 见 random-events.md Tuning Knobs"
+    unit: reputation
+    constraint: "> 0（= 0 则除零，构建期拒绝）。
+      P0 权重恒为 0（无声誉系统），但常数本身须合法（2026-09-15 二轮补登）"
+    added: 2026-09-15
+    revised: ""
+
+  # ── 37 病例系统 · 事件种类（ADR-008 承认后 active）─────────────────────
+  # 三个新 SimEvent.Kind。ADR-007 §三 刚追加五个，这三个不在其中 —— 2026-09-15
+  # 裁「开新 ADR」：adr-008-case-event-stream（2026-09-15 起草完成）。**2026-09-15
+  # ADR-008 已落盘 → status 转 active；其载荷/路由/全序/盐契约以 ADR-008 为准。**
+  # 判断记录类（JudgmentRecorded / JudgmentRevised）另登记于 ADR-008 §三。
+  - name: SimEvent.Kind.CaseOpened
+    status: active
+    source: docs/architecture/adr-008-case-event-stream.md
+    referenced_by:
+      - design/gdd/case-system.md   # 规则二立案 · F-37.2
+      - docs/architecture/adr-008-case-event-stream.md   # §三
+    unit: kind
+    constraint: "落病例流（ADR-008 §一）；载荷快照 (patient_id, anchor 不透明, disease_snapshot)；case_id = 本事件 (Tick, Patient, Seq)（全序键补 Patient，复核 #1）"
+    added: 2026-09-15
+    revised: 2026-09-15
+
+  - name: SimEvent.Kind.CaseClosed
+    status: active
+    source: docs/architecture/adr-008-case-event-stream.md
+    referenced_by:
+      - design/gdd/case-system.md   # 规则六结案 · F-37.2
+      - docs/architecture/adr-008-case-event-stream.md   # §三 / §四
+    unit: kind
+    constraint: "落病例流；载荷快照 disease_set（集合可空，F-37.3）+ treated 证据快照（ADR-008 §四：处置事件须落 [CaseOpened.Tick, CloseTick] 窗口，堵复诊后门）；幂等拒收（复核 #10，流前缀纯函数）"
+    added: 2026-09-15
+    revised: 2026-09-15
+
+  - name: SimEvent.Kind.PatternRecognized
+    status: active
+    source: docs/architecture/adr-008-case-event-stream.md
+    referenced_by:
+      - design/gdd/case-system.md   # 规则八同源 · F-37.1
+      # 53 医疗后果与责任 —— 其即时应答/世界变化的订阅输入
+      - docs/architecture/adr-008-case-event-stream.md   # §三 / §五
+    unit: kind
+    constraint: "落病例流；世界级事件，Patient = PatientId.None（ADR-007 §四，不污染高水位）；载荷用【加盐哈希键】SplitMix64(WorldSeed, \"case-salt\")（防御纵深，非保密层 —— 规则九唯一落点 = AC-37-15）；冻结 MemberSet 三元组；首次达标发一次（2026-09-15 裁定）"
+    added: 2026-09-15
+    revised: 2026-09-15
+
+  # ── 37 病例系统 · 判断记录类 Kind（ADR-008 §三）──────────────────────
+  # AC-37-05 要求读数 / 落笔 / 改写史全部事件化。判断记录（落笔 / 改写）落病例流
+  # 而非病史流 —— 不违反 8 铁律②（diagnosis-system.md:810 禁回写病史流的是玩法层记录）。
+  - name: SimEvent.Kind.JudgmentRecorded
+    status: active
+    source: docs/architecture/adr-008-case-event-stream.md
+    referenced_by:
+      - design/gdd/case-system.md   # 规则四判断记录 · AC-37-05
+      - design/gdd/diagnosis-system.md   # 8 铁律②（不回写病史流）
+    unit: kind
+    constraint: "落病例流；载荷 (patient_id, anchor, judgment)；改写次数永不进计分（AC-37-20）"
+    added: 2026-09-15
+    revised: ""
+
+  - name: SimEvent.Kind.JudgmentRevised
+    status: active
+    source: docs/architecture/adr-008-case-event-stream.md
+    referenced_by:
+      - design/gdd/case-system.md   # 规则四改写史 · AC-37-05
+    unit: kind
+    constraint: "落病例流；载荷 (patient_id, anchor, judgment)；改写史为玩家回看而存（规则四），永不进计分（AC-37-20）"
+    added: 2026-09-15
+    revised: ""
+
+  # ── 37 病例系统 · 同源检测（唯一整数旋钮）─────────────────────────────
+  - name: PATTERN_THRESHOLD
+    status: active
+    source: design/gdd/case-system.md
+    referenced_by:
+      - design/gdd/case-system.md   # F-37.1 同源检测 · 规则八
+      # 52 三案链脚本触发条件 · 53 后果强度 —— 撰写时须回溯追加
+    value: "3（P0 手工编排）"
+    unit: count
+    constraint: "≥ 2（< 2 构建期拒绝）；调低至 2 = 两例即同源，归纳退化成猜测"
+    added: 2026-09-15
+    revised: ""
+
+  # ── 37 病例系统 · 身份与基数 ──────────────────────────────────────────
+  - name: case_id
+    status: active
+    source: design/gdd/case-system.md
+    referenced_by:
+      - design/gdd/case-system.md   # F-37.2
+      # 39 脉案（排序键）· 53（结案事件引用）—— 撰写时须回溯追加
+    unit: tuple(Tick, Patient, Seq)
+    constraint: "三元组全序无平局（复核 #1：Seq 只在同一 (Tick, Patient) 内单调，单独当 case_id 会撞号）"
+    added: 2026-09-15
+    revised: ""
+
+  - name: CaseDiseases
+    status: active
+    source: design/gdd/case-system.md
+    referenced_by:
+      - design/gdd/case-system.md   # F-37.3 一案与病种基数
+    unit: "set<enum>"
+    constraint: "= 病程区间 overlap 到的病种集（结案快照）；空集不入 F-37.1；多病种一案进多组（各计一次）"
+    added: 2026-09-15
+    revised: ""
+
+  # ── 52 内部的旋钮（不入本表，见 random-events.md §Tuning Knobs）──────────
+  # ROLL_INTERVAL / HIST_MULT_MAX / DEFER_MAX / SPAWN_AHEAD_DIST / TOD_MULT_MAX
+  # / CONTEXT_* / MIN_tier / MAX_tier / W_strength / TODMult / 预告窗口时长 /
+  # EVENT_PAYLOAD_MAX_BYTES —— 均为 52 内部旋钮，无跨系统读方。
+  # 【二轮新增名单（2026-09-15）】:WINDOW_SIZE / ROLL_INTERVAL / HIST_MULT_MAX /
+  #   DEFER_MAX / REP_CAP / SPAWN_AHEAD_DIST / EVENT_PAYLOAD_MAX_BYTES。
 
 # Example:
 #

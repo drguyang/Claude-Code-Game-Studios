@@ -847,33 +847,49 @@ last_effective_treatment = last( 处置 where polarity = causal ∧ Offset 与 B
 
 | 上游 | 类型 | 现状 | 9 向它要什么 | 若缺席 |
 | ---- | ---- | ---- | ---- | ---- |
-| **7a 持久化服务** | **契约(无 GDD)** | ⚠️ **契约暂定** | 病史事件流的序列化与读取 | 协议见本文件头「上游」一行;7a 的 GDD 撰写时**必须回来对齐本节的五个抽象点** |
+| **7a 持久化服务** | **契约(无 GDD)** | ⚠️ **契约暂定** | 病史事件流的序列化与读取 | 协议见本文件头「上游」一行;7a 的 GDD 撰写时**必须回来对齐本节的六个抽象点** |
 | **5 时间天气** | 数据 | 未设计 | tick 源与季节系数 | `ITickProvider` 在 P0 用本地占位实现,不阻塞 |
 | **30 技能系统** | 数据 | ✅ 已设计 | `SKILL_CAP = 60` —— **9 不引用它**;引用方是 **8 诊断**(读数门槛的分母) | 已登记 `entities.yaml`,无缺口 |
 
-> 7a 是**唯一一条「无 GDD 的硬上游」**。处理方式:9 把契约**定义在自己这一侧**(下节五个抽象点),
+> 7a 是**唯一一条「无 GDD 的硬上游」**。处理方式:9 把契约**定义在自己这一侧**(下节六个抽象点),
 > 7a 实现时**按此契约对齐**,而不是反过来 —— 这是「Foundation 提供契约」而非「Foundation 请求契约」。
 
-### P0 必须预留的五个抽象点(ADR-005 落地)
+### P0 必须预留的抽象点(五接口 + `SimEvent` 值类型 · ADR-005 落地,六项)
 
 > **来源**:ADR-005「确定性模拟与状态同步模型」(Accepted 2026-09-13)·
 > technical-director 裁决。**P0 可以是占位实现(本地 list / 本地 tick),但类型必须现在就存在。**
 > **理由**(ADR-005 `Ordering Note`):它们定义 9 / 7a / 25 的**数据形状**,
 > 事后改 = 重写每个病种。**现在做是免费的;现在不做,P1b 重构是三个月级灾难。**
+>
+> **2026-09-15 复查轮修正(六项)**:原节名「五个抽象点」、表格五行为旧口径。
+> ADR-007 §一 之后,全案为**六个抽象点 = 五个接口 + `SimEvent` 值类型**:
+> 原表的 `SimEvent` 行保留(它是六项之一),另补第五个接口 **`IEventAuthority`**。
+> 该接口由 **系统 52 随机事件导演** 消费(掷骰权,P0 恒 true 本地占位,ADR-007),
+> 9 只读它的结果不实现它 —— 但**类型必须现在存在**,否则 52 的掷骰路径在 P0 无接线点。
 
 | 抽象点 | 签名 | 它挡住的失败 | P0 形态 |
 | ---- | ---- | ---- | ---- |
 | `ITickProvider` | `long CurrentTick { get; }` | 全案 tick 各自为政 —— 9 / 25 / 5 各算各的 tick | 游戏循环驱动,本地实现 |
-| `IEventSink` | `void Append(in SimEvent e)` | 事件写入点散落各系统 → P1b 改所有产事件处 | 本地 `List<SimEvent>` |
-| `IIdAuthority` | `PatientId Next()` | 用运行时 instance id → 联机 seed 分叉,重写病种 | 主机单调计数器 |
+| `IEventSink` | `void Append(in SimEvent e)` | 事件写入点散落各系统 → P1b 改所有产事件处 | 本地 `List<SimEvent>`;ADR-008 扩展为按 Kind 路由 |
+| `IIdAuthority` | `PatientId Next()` | 用运行时 instance id → 联机 seed 分叉,重写病种 | 主机单调计数器;21a 尚需 `ItemInstanceId Next()`(TR-itemdb-019) |
 | `IVitalsQuery` | `VitalsDto GetVitals(PatientId p)` | **唯一的浮点出口**(F0 纪律);绕过它 = 浮点泄漏进 sim 层 | 门面内 `Fix.ToFloat()` |
+| `IEventAuthority` | `bool IsAuthority { get; }` · `EventRollResult Roll(in RollRequest r)` | 掷骰权归属(ADR-007 §一)**第六抽象点**,P0 恒 true | 本地占位;52 消费 |
 | `SimEvent` | `{ long Tick; PatientId Patient; long Seq; EventKind Kind; EventPayload Payload; }` | 事件不带逻辑 tick / 不可全序 → 回放无法检测乱序 | 值 struct,可全序 `(Tick, Patient, Seq)` |
 
 **三条实现铁律**(与 ADR-005 `Implementation Guidelines` 同源):
 
 1. **`Fix` 不定义到 `float` 的隐式转换。** 这是刻意的 —— 唯一出口是 `IVitalsQuery` 门面内的显式 `ToFloat()`。
-2. **sim 层类型放独立程序集,零 `UnityEngine` 引用**(规则七)。**⚠️ 必须显式设置 `"noEngineReferences": true`** —— Unity 默认会向 asmdef 注入 `UnityEngine.dll`,不设它则「零引用」**静默假通过**(unity-specialist #2)。且须补一条守门:`System.Math.Exp/Pow` **在 `System` 不在 `UnityEngine`**,隔离拦不到,需 Roslyn 级类型引用断言。
-3. **`SimEvent` 必须可全序**(按 `(Tick, Patient, Seq)`)且**带载荷**,否则联机回放无法检测乱序、且 F1/F4 的求值参数无处安放。
+2. **sim 层类型放独立程序集,零 `UnityEngine` 引用**(规则七)。**双门判据**(ADR-005,2026-09-15 补):
+   **门 A** —— 独立 asmdef 且**显式设置 `"noEngineReferences": true`**(Unity 默认向 asmdef 注入
+   `UnityEngine.dll`,不设则「零引用」**静默假通过**,unity-specialist #2);
+   **门 B** —— EditMode 反射测试断言 sim 程序集**不引用** `UnityEngine.*` / `Unity.Mathematics` /
+   `Unity.Collections`,**不含**对 `Math.Exp` / `Pow` / `Sqrt` / `Log` / `Abs` 的 IL 调用,且类型签名
+   **不出现** `float` / `double`。**只有门 A 不够**:`System.Math.Exp` 在 `System.Runtime` 里,
+   asmdef 隔离拦不到(报告 E-1 的盲区)。对应 AC-5(组一)。
+3. **`SimEvent` 必须可全序**且**带载荷**,否则联机回放无法检测乱序、且 F1/F4 的求值参数无处安放。
+   **全序键以 ADR-006 Amendment C 为准**:跨流 `(Tick, StreamPriority, Patient, Seq)`
+   (病史流 < 病例流),单流内 `(Tick, Patient, Seq)` —— 本行 P0 形态的「可全序 `(Tick, Patient, Seq)`」
+   在 37 病例流存在后即不足,见 ADR-008 §二。
 
 > ⚠️ **`SimEvent` 的形状是 ADR-005 的债,不是 9 的**(2026-09-14 复核,blk #3)。
 > ADR-005 定义的 `SimEvent{Tick, Patient, Kind}` **装不下全序**(无 `Seq`)、
@@ -920,14 +936,14 @@ last_effective_treatment = last( 处置 where polarity = causal ∧ Offset 与 B
 
 ```
 1. ADR-005 的 Fix + SplitMix64 + `Exp` + 单元测试   ← 先于任何病种
-2. 五个抽象点(P0 本地占位;`SimEvent` 用修正后的形状)
+2. 六个抽象点(P0 本地占位;`SimEvent` 用修正后的形状 —— 五接口 + `SimEvent` 值类型,ADR-007 第六项)
 3. SimEvent + 病史事件流(含 `Seq`、载荷、终态折叠)
 4. F0–F5(建在 1–3 之上)
 5. 注册表数据(R2 伤情 11 项已冻结;**R3 病名 8 项已定,曲线数值待填**)
 ```
 
 > ⚠️ **顺序反了会写出浮点版再改,等于重写**(ADR-005 实现准则一)。
-> **本节的五个抽象点是 9 对全案的唯一「出向契约」** —— 除此之外 9 不认识任何下游。
+> **本节的六个抽象点是 9 对全案的唯一「出向契约」** —— 除此之外 9 不认识任何下游。
 
 ## Debt Register(欠下游的账 · 唯一台账)
 

@@ -148,3 +148,178 @@ Specialists: game-designer · systems-designer · network-programmer · qa-lead 
 Blocking items: 10 | Recommended: 10
 Summary: 设计骨架(四轴 / 预告制 / 因果 / 进度锁=行医)全部成立,但三份最关键的接缝(随机源、定点域、因果机制)完全缺席 —— 全文 grep `ADR-005`/`定点`/`Fix` 零命中,而 9 已钉死种子契约;F1 的全局标量乘子在归一化中被约去,「有名是把双刃」数学上不可能实现;P0 的拼图样 Boss(三案链)挂在灾难档随机池,被自己的预算规则判定为可能缺席。另:规则七在 P0 无触发源、强度轴量纲不齐、AC 体系无编号无分级(21a 二轮已裁定的复发缺陷)、F3 三处边界退化、`Σw = 0` 除零。裁定后 10 项 blocking + 10 项推荐 + 4 项用户裁定全部落盘,骨架未动、接缝补齐。
 Prior verdict resolved: First review
+
+---
+
+# 评审记录 · 系统 52《随机事件导演》—— 二轮复核
+
+| 字段 | 值 |
+| ---- | ---- |
+| 目标文档 | `design/gdd/random-events.md`(修订后 787 行) |
+| 评审日期 | **2026-09-15** |
+| 评审轮次 | **二轮**(首轮 2026-09-14 `MAJOR REVISION NEEDED`,同日修订落盘) |
+| 模式 | `/design-review` **full**(六名专家并行 + Opus 高阶综合) |
+| **裁决** | **NEEDS REVISION**(较首轮降一级,但**非 APPROVED**) |
+| Scope Signal | **L**(F1 需第三次重写 · 6 个跨系统契约洞 · **两项新 ADR 候选**) |
+
+## 参评专家
+
+`game-designer`(幻想/锚点)· `systems-designer`(公式/边界值)· `qa-lead`(AC 可测性)· `level-designer`(空间/时机)· `network-programmer`(同步/权威)· `unity-specialist`(引擎/序列化)· `creative-director`(高阶综合)
+
+## 首轮修订的成色(先给正面)
+
+**10 项 blocking 全部兑现,且不是措辞打磨** —— DC-1…DC-4 补上了首轮 grep 零命中的三块接缝;F1 重写为档配额 + 逐条乘子;三案链移出抽池;F2 补变量表并删联机项;F3 收边界;AC 从 17 条无编号重写为 42 条带 `[B]/[A]` + `[E]/[I]/[M]` 分级。首轮的两项专家分歧(深水线归属 · 三案链移出)**均被正确遵守**,无翻案。`entities.yaml` 同轮登记七条跨系统常量。
+
+## 必改(blocking 10 项)
+
+| # | 发现 | 来源 |
+| --- | --- | --- |
+| 1 | **`ReputationMult[档]` 照样被约去 —— 修的是符号,不是实质**。F1 ② (`:438`) 在**档内**抽取,档内 `档` 恒定 ⇒ `R_opp` 对同档全部候选同乘,**与它替换掉的全池标量同构**。规则五招牌幻想「你越有名,来找你的人越多」**零机制**,而 F1 (`:468`) 写着「已修」——**虚假的已解决声明** | `game-designer` · `systems-designer` · `creative-director` |
+| 2 | **`HistoryMult = Π(1 + HIST_W[flag])` 无界且与紧邻的散文自相矛盾**。`:229` 是对**全部** flag 连乘;`:234` 说「只作用于该 cause_flag 匹配的条目」⇒ AC-52-17「无关条目权重不变」不成立。20 个 flag × 1.0 ⇒ `2²⁰`,**无 clamp,int64 raw 溢出** | `systems-designer` |
+| 3 | **`档占比[4]` → 配额的换算完全未定义**。窗口大小 / 配额分配规则 / 平局裁决 / 被 `ΣW_j=0` 跳过的档配额去向,四项皆缺。窗口=1 配 `{1,1,1,1}` ⇒ 各档 0 条(**欠交付**);`{5,5,5,5}` 窗口=2 ⇒ 4 > 2(**超订**)。两个实现者会确定性地分叉 | `systems-designer` · `level-designer` |
+| 4 | **DC-1 的种子表达不了 F1 的加权抽取**。`EventRollSeed(t,k)` 是**逐条**的,但 `k` 是**抽中后**才知道的键;同窗口同档多次抽取复用同一个 `(t,k)`。**`argmax` 实现能通过 AC-52-06 却完全无视权重** | `systems-designer` · `network-programmer` |
+| 5 | **ContextGate 的「延后」跨日不可支付**。F2/DC-3 按 `TICKS_PER_DAY` 重置预算,而 AC-52-29 要求「延后且预算不丢弃」——**没有结转字段**。玩家在医馆内跨过日边界 ⇒ 承诺落空或与新一日预算叠加成「雪崩」 | `systems-designer` · `level-designer` · `qa-lead` |
+| 6 | **AC-52-26 与 AC-52-29 同为 `[B]` 且直接冲突**。F2 (`:536`) 与边界表 (`:578`) 明写「直接丢弃、**不排队、不延后**」;**延后本身就是一个队列**。两条 BLOCKING AC 不可能同时通过 | 主评审 · `qa-lead` · `game-designer` |
+| 7 | **掷骰的全部输入是主机本地且不持久 —— 正是 ADR-006 要杀的那一类静默分叉**。规则九历史标记集(文档自称「52 自身的历史标记集」)· 已用预算 · 延后缓冲 · `MIN_tier` 进度缩放,全在可变导演对象里,**不在事件流中**。主机迁移 ⇒ `HistoryMult` 静默改变 ⇒ 抽出不同事件,不崩溃、回放对不上 | `network-programmer` |
+| 8 | **`IEventAuthority` 是第六个抽象点,而前言「不是新裁决」为假**。ADR-005 定义的五个是 `ITickProvider`/`IEventSink`/`IIdAuthority`/`IVitalsQuery`/`SimEvent`。**`WorldSeed` 的生成/持久化在两份 ADR 中均未定义**,此处由 52 单方面断言 —— 那是 7a 拥有的跨域决定 | `network-programmer` · `unity-specialist` |
+| 9 | **AC-52-34 是伪断言,不是弱断言**。`DamageRatio = 1` 时 `RepairCost = FullCost×(1−SALVAGE_RATE)` 与 `RebuildCost_mark = FullCost_mark×(1−SALVAGE_RATE)` **恒等**,而 AC 断言严格 `<`。`FullCost_mark` 与 `Σ base_cost` 的关系全文未定 | `systems-designer` · `qa-lead` |
+| 10 | **六条要求零 AC 守门**:规则十自称「该判据进 AC」的承诺(`:255`)· `anchor`(被声明为 P0 必需)· P0「医馆不可被损毁」· `CONTEXT_COOLDOWN` · **`TODMult(夜,仅威胁档)`**(正是替换掉全局标量的那个机制!)· 预算按 tick 边界重置 | `qa-lead` |
+
+## 推荐修改(12 项)
+
+| # | 发现 | 来源 |
+| --- | --- | --- |
+| 11 | `StrengthTier` 的 Fix→int 舍入未指定,算例差整整一档(玩家丙 2.50 ⇒ 3 或 2) | `systems` |
+| 12 | DC-2 声称旋钮写法「已改」—— **表格没改**:`:637/639/645/647/648` 仍是 `> 1` / `(0,1)` / `≈ 0` | `unity` |
+| 13 | DC-2 的 SO 禁令挂错了数据集 —— 池条目 schema **零 `Fix` 字段**;真正带 `Fix` 的是旋钮表。禁令真正依据是 D-21-13,且它**静默取消了 SO 授权**(`technical-preferences.md` 已批准 Addressables) | `unity` |
+| 14 | `事发区域` 无半径、`出诊路径` 在仓库中**不是已定义实体**(仅本文件两处)→ AC-52-13/15 不可测,ContextGate 无数据源 | `level` |
+| 15 | `anchor` 枚举缺 聚落 / 生态区全域 成员(P1a 已列流民涌入/疫病爆发/地动);§Interactions (`:360`) 仍声称 F1 没有的「抽池的位置过滤」;无 AC 校验 anchor 归属 | `level` · 主评审 |
+| 16 | Roslyn 分析器安装(NuGet-for-Unity vs analyzer-DLL)属 post-cutoff,`docs/engine-reference/unity/` **未覆盖**,需 spike;AC-52-03/41 引用的**白名单全文不存在** | `unity` · `qa` |
+| 17 | AC-52-13 与状态表冲突(「避险 视事件可记入声誉」vs「声誉逐字段相等」) | `qa` |
+| 18 | 52 从未声明程序集归属与 `noEngineReferences` —— 9 的 GDD 强制该 flag(「不设则零引用静默假通过」) | `unity` |
+| 19 | AC-52-24 空过 —— 移除 `CarryLoad` 只把 1.14 变 1.12,档位不动。**文档自己的算例就是它声称要守的那个淹没条件** | `systems` |
+| 20 | F3 对 `SalvageValue` 先舍入再相减(**双重舍入**);舍入还会击穿 `DAMAGE_MIN > 0`(`base_cost=1` ⇒ 免费维修) | `systems` |
+| 21 | AC-52-02 测的是**池条目计数**而非运行期配额机制,且与文档自身池矛盾(机会 3 条 vs 威胁 2–5 条,取决于粒度) | `qa` |
+| 22 | 算例用浮点写(违反 DC-2 / AC-52-08);`档占比` 之和不可整除窗口时无规则 | `network` |
+
+## 专家分歧与裁决
+
+| 争点 | 一方 | 另一方 | creative-director 裁决 |
+| --- | --- | --- | --- |
+| **强度轴/归一化算不算修好了** | `game-designer`:**修好了** —— 「你不必替我担心 #1 的归一化量级,算例已把它暴露并留了回归 AC」 | `systems-designer` + `qa-lead`:**没修** —— 问题被**命名**但守护**无牙**(AC-52-24 空过 · 无 `[0,1]` 钳位 · `CARRY_CAP ≤ 0` 不在构建期拒绝表 ⇒ 除零) | **站 systems/qa** —— **names-fixed, not enforced-fixed**。AC-52-24 须改为「每个变量移除后档位变化 ≥ 1」,`CARRY_CAP` 须进构建期拒绝 |
+| **共位威胁(兵痞劫道)该怎么修** | `level-designer`:`事发区域` 半径 + 把 `出诊路径` 改写成导演侧布尔状态 | `game-designer`:`AnchorGate`(与 `KeyGate` 同形) | **两者都不够,level 更接近根因;两条都要** —— 一个定义好的路径谓词 **+** 一条生成偏移规则(威胁须出现在玩家**前方可读距离**处,而非**脚下**) |
+
+## 承重问题(首轮遗留,本轮仍未关闭)
+
+> **P0 的 52 是否只是「换了强度输入源的英灵神殿 raid director + 一个流浪商人」?**
+>
+> **答案是:大体是。** 四轴里 时机 / 密度 / 内容注入 **三轴沿用**,唯一改掉的进度锁在 **P0 = 无**(无声誉系统、无 `KeyGate` 来源)。
+> 修订只在**内容**维度答了一半,而那一半挂在 **37 —— 它不存在**。
+> 最差异化的锚点③(因果:「你救过一个逃犯,官兵后来上了门」)是 **P1a**。
+> 锚点②(先听见后看见)**确由节奏设计兑现**,是真差异。
+> **净:3 个锚点兑现 1.5 个。** 只有当 37 的内容**确实有区分度**时才可接受 —— 而这一点今天无法验证。
+> **问题保持 OPEN,门控在 37。**
+
+## ⚠️ 「52 的修订已解锁 37」不可照字面采信
+
+37 会**对着 F1 的权重语义**撰写医疗内容 —— 而 F1 的 `ReputationMult` 被约去、`HistoryMult` 无界且自相矛盾、档配额换算未定义。
+**若 37 照此落笔,而 F1 随后被修,37 的内容假设全部作废。**
+**修正口径**:**「52 的 *schema 与边界* 解锁 37;52 的 *F1 公式* 不解锁 —— 37 只撰内容字段,不碰权重行为。」**
+
+## 处理
+
+用户裁定(2026-09-15):**现在就修** · 一次多页问答收口设计口径 · 授权更新追踪记录。
+
+---
+
+## 修订落盘(2026-09-15,同日)
+
+**二轮 10 项 blocking + 12 项推荐已全部兑现;另新开 ADR-007。**
+
+### 用户裁定(四项,均取推荐项)
+
+| # | 争点 | 裁定 |
+| --- | --- | --- |
+| ① | 声誉乘子放哪 | **移进 F1 步骤①(乘在档配额上)** —— 档内抽取会把档级常量约去,必须改作用域 |
+| ② | 医馆内威胁档 | **当日内延后,跳日作废** —— 解 AC-52-26 / AC-52-29 的直接冲突 |
+| ③ | 共位威胁 | **半径 + 前方偏移** —— 路径谓词 **+** 生成偏移,两条都要 |
+| ④ | 架构欠账 | **新开 ADR-007** —— `IEventAuthority`(第六抽象点)+ `WorldSeed` 归属 + 掷骰输入持久化 |
+
+### blocking 逐项落点
+
+| # | 落点 |
+| --- | --- |
+| 1 | **`ReputationMult[档]` 移入 F1 步骤①** —— 乘在 `档配额权重[档]` 上,不再进 `W_i`。文档正面写明「首轮修法无效(只换了作用域,没修实质)」。声誉改的是「本窗口来几条」 |
+| 2 | **`HistoryMult` 改为单次查表 + 钳位** —— `clamp(1 + HIST_W[cause_flag_i], 1, HIST_MULT_MAX)`。F1 与规则九两处同步;原文的 `Π(1 + HIST_W[flag])` 连乘被显式标注为「与紧邻散文矛盾 + int64 溢出」 |
+| 3 | **F1 补档配额换算 = 最大余数法(Hamilton)** —— `WINDOW_SIZE`、余数分配、**平局按档序**(威胁<机会<反应<灾难)、被 `ΣW_j=0` 跳过档的**同窗口重分配**全部定义 |
+| 4 | **DC-1 重写** —— `EventRollSeed(t,k)` → `EventRollSeed(win, tier, ordinal)`(原文的 `k` 是抽中后才知道的,`argmax` 实现能通过 AC-52-06 却无视权重);补 **CDF 游走**算法(`r = S mod C`,按 `key` 升序递减)与**掷骰输入持久化表** |
+| 5+6 | **规则六之三新增** —— 医馆内威胁档「当日延后、跨日作废」;`DeferredThreatSlot` 有界(`DEFER_MAX`)且须进事件流。**AC-52-26 与 AC-52-29 同步改写**,两条不再冲突 |
+| 7 | **掷骰输入持久化** —— DC-1 补一张「输入 → 归属 → 持久化方式」表;新 **AC-52-46** 直接守「任意 tick 迁移主机后抽取逐位不变」 |
+| 8 | **前言改正** —— 原「由 ADR-005/006 直接推出,不是新裁决」**两处为假**,已明写:`IEventAuthority` 是第六抽象点、`WorldSeed` 归属未定义;**两者 + 掷骰持久化 = ADR-007** |
+| 9 | **AC-52-34 改写** —— 原文取 `DamageRatio = 1` 时 `RepairCost ≡ RebuildCost_mark`,严格 `<` 永不成立(伪断言)。改为取 `DamageRatio < 1`,并**定义 `FullCost_mark = Σ(该件全部部件.base_cost)`** 与构建期断言 |
+| 10 | **六条零 AC 的要求各得 AC** —— 新增 **AC-52-42…48**:`anchor` 枚举 · P0 医馆不可损毁(构建期事实) · `CONTEXT_COOLDOWN` · `TODMult(夜,仅威胁档)` · 掷骰输入持久化 · 规则十「无人」判据 · 预算与 slot 跨日重置 |
+
+### 推荐项逐项落点
+
+| # | 落点 |
+| --- | --- |
+| 11 | `StrengthTier` 的 `Fix → int` 舍入显式命名(`ROUND_HALF_AWAY_FROM_ZERO`,**先舍入后钳位**);算例标注 2.50 → 3 |
+| 12 | **Tuning Knobs「安全范围」列整数域重写** —— `> 1` / `(0,1)` / `≈ 0` 全部改写成 `num ≥ den` / `0 < num < den` / `= 0`;原文的「已改」声明为假,本轮才真改 |
+| 13 | **DC-2 的 SO 禁令改挂 Tuning Knobs 表**(池条目 schema 零 `Fix` 字段);依据改为 **D-21-13**;明确 **json 经 Addressables 以 `TextAsset` 载入**(不取消 Addressables 授权) |
+| 14 | **`anchor` 全枚举补全** —— `SETTLEMENT` / `BIOME_REGION`(P1a);`TRAVEL_PATH` 的谓词定义同规则六之二;**DC-4 ③ 补生成点确定性解析** |
+| 15 | **§Interactions 修正** —— 「6 → 抽池的位置过滤」改为「6 → `anchor` 解析(生成点)」(F1 无位置项) |
+| 16 | **Roslyn 分析器 spike 登记为 Open Question**;白名单全文缺失显式记账 |
+| 17 | **AC-52-13 改写** —— 声誉字段不再是「逐字段相等」;P0 恒等、P1a 允许写入(与状态表一致) |
+| 18 | **52 的 `noEngineReferences` 声明登记为 Open Question**(9 已强制,52 未声明 ⇒ 零引用是假通过) |
+| 19 | **AC-52-24 改为档位级断言** —— 「移除任一变量后 `StrengthTier` 变化 ≥ 1 档」,原文的「可观测地变化」必空过 |
+| 20 | **F3 变量表补 `FullCost_mark` 关系与构建期断言**;AC-52-34 同步(见 blocking #9) |
+| 21 | **AC-52-02 改写** —— 断言**运行期配额**而非池条目计数比;规则十一的「1:1」点明分母 |
+| 22 | **F1 算例改为整数域书写**;`WINDOW_SIZE` 与档占比不可整除的规则已定义(见 blocking #3) |
+
+### 专家分歧的裁决落点
+
+| 争点 | 裁决 | 落点 |
+| --- | --- | --- |
+| 强度轴算不算修好 | **names-fixed, not enforced-fixed** | AC-52-24 改档位级;`CARRY_CAP ≤ 0` / `SKILL_CAP ≤ 0` / `REP_CAP ≤ 0` 进构建期拒绝表 |
+| 共位威胁怎么修 | **路径谓词 + 前方偏移,两条都要** | 规则六之二的布尔谓词 + DC-4 ③ 的 `SPAWN_AHEAD_DIST` 偏移规则 |
+
+### 同轮并入
+
+- **§承重问题(新节)** —— 把评审记录里的诚实记账写进文档:四轴逐项 + 三锚点逐项,P0 兑现 ~1.5/3;明写「P0 的 52 大体是换了强度输入源的英灵神殿 raid director」;**问题保持 OPEN,门控在 37**。含 AC-52-55。
+- **§承重问题内补「解锁 37」的收窄口径** —— 「52 的 *schema 与边界* 解锁 37;F1 公式不解锁」。
+- **规则三补注** —— P0 灾难档由脚本条目承担,四档「内容归属」不可为空。
+- **规则五补「进度锁挂处置结果不挂诊断正确」** —— 承 `game-concept.md:269-271` + `systems-index.md:369`;`KeyGate` 只读 8 的诊断读数,不得引入「诊断正确性」字段。
+- **Tuning Knobs 新增 8 旋钮** —— `WINDOW_SIZE` / `ROLL_INTERVAL` / `HIST_MULT_MAX` / `DEFER_MAX` / `REP_CAP` / `SPAWN_AHEAD_DIST` / `EVENT_PAYLOAD_MAX_BYTES` / `TOD_MULT_MAX`;并补全量构建期拒绝表(原文只兑现两条)。
+- **Edge Cases 新增 7 行** —— 威胁生成点落脚下 · `anchor = BIOME_REGION` 且 P0 · 配额未消费 · 档占比不整除 · `ROLL_INTERVAL` 不整除 · `WINDOW_SIZE ≤ 0` · slot 跨日作废;并修正原有「不延后」行。
+- **Dependencies 补两行** —— `IEventAuthority`(标注为第六抽象点,归 ADR-007)· `WorldSeed`(所有权归 ADR-007)。
+- **Open Questions 补 5 行** —— P0 52 的定位(门控 37)· `WorldSeed` 归属 · `IEventAuthority` 接口形态 · Roslyn spike · `noEngineReferences`。
+- **`entities.yaml` 同步** —— `event_roll` 的 expression 与 notes 重写(最大余数法 / 步骤① / CDF / 新种子);`tier_quota_ratio` 与 `reputation_multipliers` 约束改写;新增 `WINDOW_SIZE` / `REP_CAP` 两条常量;`rebuild_cost` 的 `FullCost_mark` 关系。
+
+### 新建
+
+- **`docs/architecture/adr-007-event-authority-and-roll-state.md`**(**Status: ✅ `Accepted` —— 2026-09-15 用户裁定,四项裁决均照准**)——
+  ① `IEventAuthority` = 第六个 P0 抽象点 · ② `WorldSeed` 归 7a 存档头(非「一条 `SimEvent`」)·
+  ③ **掷骰输入必须可从事件流重构**(核心不变量) · ④ 世界级事件用 `PatientId.None` 哨兵。
+  **Blocks**:52 的代码实现。**不阻塞** 37 的内容撰写。
+- `.claude/docs/technical-preferences.md` 的 Architecture Decisions Log 登记 **ADR-007**。
+
+**未做(留待后续):**
+- **AC 的夹具与实际测试仍未编写**(AC 已要求,夹具是撰写后的工作)
+- ✅ **ADR-007 已于 2026-09-15 用户裁定转 `Accepted`**(四项裁决均照准)
+- **Roslyn 分析器 spike 未做**(post-cutoff 依赖,`docs/engine-reference/unity/` 未覆盖)
+- **IL2CPP 逐位实测未做**
+- **数值全部待用户裁定**(Tuning Knobs 全表 *待定*)
+- **37 病例系统仍不存在** —— 它是 P0 承重问题的唯一解码器
+
+**结论:52 的二轮 blocking 已全部兑现,且三处「虚假已修」声明的机制已真正重写(不是换符号)。新增 ADR-007 把 52 越权断言的两个跨域决定收归正式裁决。**
+**仍 In Review,不得标 Approved —— 门控项:① ~~ADR-007 转 Accepted~~ ✅ 2026-09-15 已裁定;② AC 夹具与实测;③ IL2CPP 实测;④ 承重问题门控在 37。**
+**建议下一步**:启动 **37 病例系统**(52 的 schema 与边界已解锁它);或先做 **52 的 AC 夹具**。
+
+---
+
+## Review — 2026-09-15 — Verdict: NEEDS REVISION
+Scope signal: L
+Specialists: game-designer · systems-designer · qa-lead · level-designer · network-programmer · unity-specialist · creative-director(高阶综合)
+Blocking items: 10 | Recommended: 12
+Summary: 首轮的 10 项 blocking 确实全部兑现、非措辞打磨(DC-1…DC-4 补齐 · F1/F2/F3 重写 · AC 从无编号到 42 条分级),首轮两项专家分歧(深水线归属 · 三案链移出)均被正确遵守。**但修订在它声称修好的机制里引入了新一类缺陷**:三处「已修」是虚假的已解决声明 —— ① `ReputationMult[档]` 因档内抽取被照样约去(规则五招牌幻想零机制);② `HistoryMult` 是对全部 flag 连乘、无界且与紧邻散文矛盾(AC-52-17 不成立);③ `档占比`→配额换算完全未定义(欠交付与超订皆可达)。另:DC-1 的逐条种子表达不了加权抽取(argmax 能通过 AC-52-06)、ContextGate 延后跨日不可支付、AC-52-26 与 AC-52-29 两条 BLOCKING 直接冲突、掷骰输入不持久(主机迁移静默分叉)、`IEventAuthority` 是第六抽象点而 `WorldSeed` 归属从未定义、AC-52-34 为伪断言、六条要求零 AC 守门。承重问题「P0 的 52 是否只是换了强度输入源的英灵神殿 raid director」**仍为 OPEN,门控在 37**;「52 的修订已解锁 37」须收窄为「解锁的是 schema 与边界,不是 F1 公式」。
+Prior verdict resolved: **Partial** —— 10 项 blocking 全部落盘且方向正确,但 3 项(ReputationMult/乘子语义 · AC 可测性 · 档配额机制)以新形态复发。

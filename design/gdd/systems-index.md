@@ -36,11 +36,11 @@
 | 3 | 输入与设备 | Core | P0 | 未开始 | — | — |
 | 4 | 交互系统 | Core | P0 | 未开始 | — | 1, 3 |
 | 5 | 时间与天气 | Core | P0 | 未开始 | — | 6 |
-| 6 | 世界与生态区 | Core | P0 | 未开始 | — | — |
+| 6 | 世界与生态区 | Core | P0 | 未开始(**世界几何已定型** —— ADR-015:手工烘焙固定世界 · 逻辑整数层 + 视觉层;`WorldSeed` 只驱动动态量) | — | — |
 | 7a | 持久化服务 | Core | P0 | 未开始 | — | — |
 | 7b | 存档位 UI | Presentation | P0 | 未开始 | — | 7a, 42 |
 | 8 | 诊断与体征揭示 | Core | P0 | **正文全节落盘 · 已复核并修订(`NEEDS REVISION` → 12 项 blocking + 6 项裁定已全部落盘)** | `diagnosis-system.md` 评审:`reviews/diagnosis-system-review-log.md` | 9, 30 |
-| 9 | 疾病与伤情模拟 | Core | P0 | **正文全节落盘 · 已复核并大修(首轮 `MAJOR REVISION NEEDED` → 12 项 blocking + 4 项裁定已全部落盘)** | `disease-simulation.md` 评审:`reviews/disease-simulation-review-log.md` | 7a |
+| 9 | 疾病与伤情模拟 | Core | P0 | **Needs Revision** | `disease-simulation.md` 评审:`reviews/disease-simulation-review-log.md` —— 原状态「正文全节落盘 · 已复核并大修(首轮 `MAJOR REVISION NEEDED` → 12 项 blocking + 4 项裁定已全部落盘)」 | 7a |
 | 10 | 急救动作模块 | Core | P0 | 未开始 | — | 1, 3, 30 |
 | 11 | 处方用药 | Core | P0 | 未开始 | — | 21, 9 |
 | 12 | 药物槽 | Feature | P1a | 未开始 | — | 21, 11 |
@@ -48,27 +48,27 @@
 | 14 | 辨证 | Feature | P1a | 未开始 | — | 8, 30 |
 | 15 | 针灸 | Feature | P1a | 未开始 | — | 30, 1 |
 | 16 | 中药选项 | Feature | P1a | 未开始 | — | 21, 11 |
-| 17 | 采集 | Core | P0 | 未开始 | — | 6, 21 |
+| 17 | 采集 | Core | P0 | 未开始(资源点分布落 ADR-015 逻辑整数层;采集成簇散布由 `WorldSeed` 驱动) | — | 6, 21 |
 | 18 | 炮制 | Core | P0 | 未开始 | — | 21, 5 |
 | 19 | 制作与器械 | Feature | P1a | 未开始 | — | 21, 20 |
 | 20 | 库存与物品 | Core | P0 | 未开始 | — | 21 |
-| 21 | 物品与配方数据库 | Foundation | P0 | **21a 已复核三轮**(2026-09-14 · In Review;首轮 9 + 二轮 10 + 三轮 9 项 blocking 已兑现,契约落 **ADR-006**) | `item-database.md`(21a) | — |
+| 21 | 物品与配方数据库 | Foundation | P0 | **21a 已复核三轮**(2026-09-14 · In Review;首轮 9 + 二轮 10 + 三轮 9 项 blocking 已兑现,契约落 **ADR-006**;**数据管线落 ADR-014** —— 作者态 `assets/data/*.json` + 构建期烘焙,`Fix` 字段写 JSON 字符串) | `item-database.md`(21a) | — |
 | 22 | 商业与交易 | Polish | P1a | 未开始 | — | 20, 31 |
-| 23 | 模块化建造 | Feature | P0 | 未开始 | — | 20, 6 |
-| 24 | 医馆即机器 | Feature | P0 | 未开始 | — | 23, 9 |
+| 23 | 模块化建造 | Feature | P0 | 未开始(网格方案已定型 —— ADR-015 §五:模块化网格,与地形共用 `WorldPos` 同一格;否决 Voxel) | — | 20, 6 |
+| 24 | 医馆即机器 | Feature | P0 | 未开始(邻接判定 = ADR-015 §五 整数格离散规则,非物理 / 非 NavMesh) | — | 23, 9 |
 | 25 | 格斗与武器线(含伤害施加与昏迷判定) | Core | P0 | 未开始 | — | 1, 20, 9 |
 | 26 | ~~制服机制~~ → **已并入 25**(TD-SYSTEM-BOUNDARY C1) | — | — | 已合并 | — | — |
 | 27 | 敌人 AI | Feature | P0 | 未开始 | — | 25 |
 | 28 | 捕获 · 驯化 · 取材与护卫 | Feature | P1a | 未开始 | — | 27, 20 |
 | 29 | 死亡与复活(玩家侧) | Feature | P0 | 未开始 | — | 1, 30 |
-| 30 | 技能与熟练度 ✅ | Foundation | P0 | **已设计** | `skill-system.md` | — |
+| 30 | 技能与熟练度 ✅ | Foundation | P0 | **Needs Revision** | `skill-system.md` —— 原状态「已设计」;架构复核 2026-09-15:全文零 ADR 引用、`P = 1.4` 违反 8 的 G-1 | — |
 | 31 | 声誉与名声 | Polish | P1a | 未开始 | — | 37 |
 | 32 | 生态区推进门槛 | Polish | P1a | 未开始 | — | 33, 34 |
 | 33 | 制度性权限 | Polish | P1a | 未开始 | — | 31 |
 | 34 | 公卫与疫情模拟 | Feature | P1a | 未开始 | — | 9 |
 | 35 | 时代事件 | Feature | P1a | 未开始 | — | 6, 34 |
 | 36 | NPC 与村落 | Feature | P1a | 未开始 | — | 6 |
-| 37 | 病例系统 | Feature | P0 | 未开始 | — | 8, 9 |
+| 37 | 病例系统 | Feature | P0 | **Needs Revision** | `case-system.md` —— 原状态「正文全节落盘 · In Design(2026-09-15)· 12 项 blocking 已处置(ADR-008 落盘 + GDD 已修订 + 3 项新增 AC)· 待新会话重审」 | 8, 9 |
 | 38 | 对话与交涉 | Presentation | P1a | 未开始 | — | 36 |
 | 39 | 脉案 | Presentation | P0 | 未开始 | — | 37, 42 |
 | 40 | 史实资料库 | Foundation | P1a | 未开始 | — | — |
@@ -76,14 +76,14 @@
 | 42 | 拟物 UI 框架(纯渲染) | Foundation | P0 | 未开始 | — | — |
 | 43 | 纸质地图与出诊箱 | Presentation | P1a | 未开始 | — | 42, 20, 6(**P1a 起承接「拼图样」的地图可视化** —— 见 §2 #37 注) |
 | 44 | 音频系统 | Foundation | P0 | 未开始 | — | — |
-| 45 | 网络层与同步 | Foundation | P1b | 未开始 | — | ADR-001 |
+| 45 | 网络层与同步 | Foundation | P1b | 未开始 | — | ADR-001 ✅(pipe 抽象 P0 生效,库 P1b 前 swap 评审) |
 | 46 | 状态同步降级 | Feature | P1b | 未开始 | — | 45, 10 |
 | 47 | 精神压力 | Presentation | P1a | 未开始 | — | 30, 29 |
 | 48 | 教学与引导 | Presentation | P0 | 未开始 | — | 37, 42 |
 | 49 | 无障碍 | Polish | P2 | 未开始 | — | 42, 3 |
 | 50 | 本地化 | Polish | P2 | 未开始 | — | 42 |
 | 51 | 遥测与分析 | Foundation | P0 | 未开始 | — | — |
-| 52 | 随机事件导演 | Feature | P0 | **正文全节落盘 · 已复核并修订(首轮 `MAJOR REVISION NEEDED` → 10 项 blocking + 10 项推荐 + 4 项裁定已全部落盘;骨架未动、接缝补齐)** | `random-events.md` 评审:`reviews/random-events-review-log.md` | 5, 6, 27 |
+| 52 | 随机事件导演 | Feature | P0 | **Needs Revision** | `random-events.md` 评审:`reviews/random-events-review-log.md` —— 原状态「正文全节落盘 · 首轮 `MAJOR REVISION NEEDED` → 10 项 blocking + 10 项推荐 + 4 项裁定已落盘 · 二轮复核 `NEEDS REVISION` → 10 项 blocking + 12 项推荐已落盘(2026-09-15)· 新开 ADR-007」 | 5, 6, 27 |
 | 53 | 医疗后果与责任 | Feature | P0 | 未开始 | — | 9, 37 |
 
 > ### #37 病例系统的 P0 内容债(2026-09-14 对标复核)
@@ -243,13 +243,19 @@
   > **状态 In Review,不得标 Approved** —— 门控项:21 条负向夹具、IL2CPP 逐位实测、
   > AC-21a-53(`Fix` 编码器往返)、以及 D-21-9 / D-21-11 / D-21-12 / D-21-19 / D-21-20 /
   > **D-21-26(`instance_id` 权威)** / **D-21-27(17 采集铸造权)** / **D-21-28(Craft 总序键)** 欠账。
+  > (IL2CPP 逐位实测的执行载体 = **ADR-012** 双级黄金夹具矩阵,2026-09-15 Accepted;
+  > 夹具本身尚待 `/test-setup` 与实现期编写。)
   > ⚠️ **「唯一零依赖」只对 21a 成立**;21b 的考据量**尚未估算**,已入 §范围债(D-21b-3)。
-- **3 输入与设备** — 键鼠/手柄/VR;拟物 UI 焦点导航的底层
+- **3 输入与设备** ✅ — 键鼠/手柄/VR;拟物 UI 焦点导航的底层(ADR-011 Accepted:动作映射 + 急救直读通道 + 意图化)
 - **30 技能与熟练度** ✅ — 只暴露 `QueryLevel` / `EmitGrowth` 两个接口(见 §7)
-- **42 拟物 UI 框架** — 无血条的替代反馈总纲(**只渲染,不持有状态**,见 §9 C3)
+- **42 拟物 UI 框架** — 无血条的替代反馈总纲(**只渲染,不持有状态**,见 §9 C3)。
+  栈已裁(**ADR-013** Accepted:UI Toolkit 主 + UGUI 补 world/XR;USS 拟物元件库 + UXML 组合;
+  P0 定接口、VR 实现推 P1a;39 脉案 / 43 地图 / 7b 存档位 / 48 教学共用此栈)
 - **44 音频系统** — 承担状态反馈职责
 - **51 遥测与分析** — 回答「判断层到底好不好玩」的仪器
-- **6 世界与生态区** — 生态区、地形、POI 的容器
+- **6 世界与生态区** — 生态区、地形、POI 的容器。**世界几何已定型(ADR-015)**:手工烘焙固定世界,
+  确定性整数逻辑层(经 ADR-014 烘 `*.cooked`)+ 纯视觉层(Unity Terrain);`WorldPos` = 单一整数格;
+  `WorldSeed` 只驱动动态量,不再是地形生成参数
 - **40 史实资料库** · **41 内容边界政策** — 内容层的约束源
 - **45 网络层与同步** — ADR-001 未定
 
@@ -376,6 +382,33 @@
 >
 > **#35 时代事件不是随机的** —— 它是**有脚本的篇章**,导演只决定它**何时进入窗口**,
 > 不决定它发生什么。这是「导演」与「篇章」的分界,也是 52 不吞并 35 的理由。
+>
+> ### ⚠️ 承重问题:P0 的 52 是否只是「换了强度输入源的英灵神殿 raid director」?
+> **(2026-09-15 二轮复核 — 保持 OPEN,门控在 37)**
+>
+> **答案:大体是。** 上表的四轴里,**时机 / 密度 / 内容注入三轴沿用**英灵神殿的结构,
+> 唯一实质改写(进度锁 = 行医)在 **P0 不生效** —— P0 无声誉系统(#31 属 P1a)、
+> 无 `KeyGate` 来源,**「盯上你是因为你『有用』」这条差异化在 P0 完全没有机制**。
+> 强度轴的 P0 输入(带药量 / 时段 / 技能 / 独行)与英灵神殿的「离中心远近」**同构换皮**。
+>
+> **三个幻想锚点的 P0 兑现率:~1.5 / 3**
+> (锚点②「先听见后看见」✅ 真兑现 · 锚点①「门外有人」⚠️ 机制在但弱 ·
+> 锚点③「因果」❌ P1a)。详见 `random-events.md` §承重问题。
+>
+> **这未必是缺陷** —— P0 的差异化主战场在 **8 诊断 / 37 病例**(判断层),
+> 52 在 P0 的角色是**骨架与接缝的载体**。**但它今天无法验证**:
+> 只有当 **37 的内容确实有区分度**时,P0 的 52 才算合格。
+> **判定门控在 37 落笔并 playtest 之后。**
+>
+> ### ⚠️ 深水线归属(2026-09-15 复核维持首轮裁定)
+>
+> `concept-benchmark.md` 断裂② 要求 P0 给一条**看得见的难度曲线**(采集衰减 + 季节),
+> 因为本作是**固定世界**(`concept-benchmark.md:60`),空间纵深轴失效。
+> **52 不是它的载体** —— 52 的强度输入是**玩家侧**的,深水线是**空间/内容侧**的。
+> **归属:5 时间天气 + 17 采集**;52 只在本表与自身 Dependencies 中**登记归属**,
+> **P0 不接 `DistanceFromClinic` 或任何坐标分量**。
+> **门控项**:5 / 17 撰写时**必须**兑现这条 P0 难度曲线,否则本作会失去它
+> 对英灵神殿**唯一的结构性差异**(固定世界就必须另给一条可见的难度轴)。
 
 ### Presentation(依赖 Feature)
 
@@ -511,9 +544,9 @@
 | 指标 | 数量 |
 |------|------|
 | 系统总数 | 53(含已合并的 #26) |
-| 已有 GDD | 5(`skill-system.md` ✅ · `item-database.md` 21a ✅ · `random-events.md` 52 ✅ · `disease-simulation.md` 9 ✅ · `diagnosis-system.md` 8 ✅) |
+| 已有 GDD | 6(`skill-system.md` ✅ · `item-database.md` 21a ✅ · `random-events.md` 52 ✅ · `disease-simulation.md` 9 ✅ · `diagnosis-system.md` 8 ✅ · `case-system.md` 37 ✅) |
 | P0 系统 | **31** |
-| P0 已设计 | 5 / 31(诊断 8 正文落盘 · 已复核 · **12 项 blocking + 6 项裁定已修订落盘**;**疾病 9 正文落盘 · 首轮 `MAJOR REVISION NEEDED` · 12 项 blocking + 4 项裁定已修订落盘**;**物品 21a 正文落盘 · 首轮 `NEEDS REVISION` → 二轮 → 三轮 `MAJOR REVISION NEEDED` · 共 28 项 blocking + 12 项裁定已修订落盘 · 契约落 ADR-006**;**随机事件 52 正文落盘 · 首轮 `MAJOR REVISION NEEDED` · 10 项 blocking + 10 项推荐 + 4 项裁定已修订落盘 · 确定性契约落 DC-1…DC-4**) |
+| P0 已设计 | 6 / 31(诊断 8 正文落盘 · 已复核 · **12 项 blocking + 6 项裁定已修订落盘**;**疾病 9 正文落盘 · 首轮 `MAJOR REVISION NEEDED` · 12 项 blocking + 4 项裁定已修订落盘**;**物品 21a 正文落盘 · 首轮 `NEEDS REVISION` → 二轮 → 三轮 `MAJOR REVISION NEEDED` · 共 28 项 blocking + 12 项裁定已修订落盘 · 契约落 ADR-006**;**随机事件 52 正文落盘 · 首轮 `MAJOR REVISION NEEDED` · 二轮 `NEEDS REVISION` · 两轮共 20 项 blocking + 22 项推荐 + 4 项裁定已修订落盘 · 确定性契约落 DC-1…DC-4 + **ADR-007**;**病例 37 正文落盘 · 2026-09-15 · 对抗性 systems-designer 复核 12 项发现已修订落盘 · 架构类承重由 **ADR-008**(✅ Accepted)承接 · 三条 Kind 的 AC 已解锁 · 待 `/design-review`(须新会话)**) |
 | P1a 系统 | 18 |
 | P1b 系统 | 2 |
 
@@ -523,7 +556,9 @@
 
 - [x] **P0 工期基线结案** —— ✅ **2026-09-14 用户裁定:基线维持 `6-9 个月`**,
       不单独重算;≈2.5–2.7 M 内容债并入该窗口(见 §4)。**⚠️ 被明说的范围压缩,已记风险**
-- [ ] **37 的三案链 / 原型疫情** —— P0 内容债,「拼图样」的唯一载体(见 §2 #37 注)
+- [ ] **37 的三案链 / 原型疫情** —— P0 内容债,「拼图样」的唯一载体(见 §2 #37 注)。
+      **2026-09-15 进展:37 正文已落盘**,同源检测 `F-37.1`(严格 `disease_id` 相等 · `PATTERN_THRESHOLD=3` ·
+      首越触发一次)已定义;三案链的**具体病历内容模板仍欠**,须在 37 实现期或内容批兑现
 - [x] **52 补 P0 医疗事件模板** —— ✅ **2026-09-14 池条目已同步**(原型疫情 / 急召出诊 / 药材短缺进 P0 各档)
       —— **但内容未写**:52 只占池条目,**内容归 37**(见 `random-events.md` 规则二裁定);37 落笔时兑现
 - [x] **8 诊断的 `/design-review`** —— ✅ **2026-09-14 首轮复核(`full`,7 名专家):`NEEDS REVISION`**
@@ -553,6 +588,38 @@
       **用户四项裁定:① 三案链移出抽池、归 37 确定触发(`触发方式=脚本`)· ② 因果 → F1 加历史权重乘子 + 可读线索 · ③ 深水线 52 只登记归属、不改强度轴 · ④ 加强度上限帽 `StrengthCap`**。
       **10 项 blocking + 10 项推荐全部修订落盘**:新增 **§确定性契约 DC-1…DC-4**(SplitMix64 种子 / 全量 Fix / `ITickProvider` / `SimEvent` 走主机 `IEventSink`)、**F1 重写**(档配额 + 逐条乘子 + 归一化 + 上限帽 + 算例)、**F2 重写**(下钳 0 · 删联机项 · 分母 `TICKS_PER_DAY`)、**F3 重写**(`SALVAGE_RATE ∈ (0,1)` · 补回收项 · 焚毁档成本式)、**规则七转 P1a**、**AC 全量重写(41 条 + 1 人工,编号 + BLOCKING/ADVISORY + Story Type)**;`entities.yaml` 同轮同步(`event_roll` / `rebuild_cost` 两条公式更新 + 七条新常量)。
       **门控项**:42 条 AC 的夹具与实际测试未编写 · IL2CPP 逐位实测未做;故 **In Review,不得标 Approved**。**⚠️ 52 的修订已解锁 37**(接口从「随机 vs 脚本未定」收敛为 `触发方式=脚本`)。
+      (IL2CPP 逐位实测的执行载体 = **ADR-012** 双级黄金夹具矩阵,2026-09-15 Accepted;
+      对应 `TR-randomevents` 的 AC-52-06 / AC-52-39 已有载体,夹具本身待 `/test-setup`。)
+- [x] **52 的 `/design-review` 二轮复核** —— ✅ **2026-09-15 复核(`full`,六名专家 + Opus 高阶综合):`NEEDS REVISION` · Scope L**(记录见 `reviews/random-events-review-log.md`)
+      —— 首轮 10 项 blocking **确实全部兑现且方向正确**(DC-1…DC-4 补齐 · F1/F2/F3 重写 · AC 从无编号到 42 条分级),首轮两项专家分歧(深水线归属 · 三案链移出)**均被正确遵守**。
+      **但修订在它声称修好的机制里引入了新一类缺陷 —— 三处「已修」为虚假的已解决声明**:
+      ① **`ReputationMult[档]` 因档内抽取被照样约去**(规则五招牌幻想「你越有名,来找你的人越多」**零机制**);
+      ② **`HistoryMult` 是对全部 flag 连乘、无界、与紧邻散文自相矛盾**(AC-52-17 不成立,`2²⁰` 溢出);
+      ③ **`档占比` → 配额换算完全未定义**(欠交付与超订皆可达,无平局裁决)。
+      **另 7 项 blocking**:DC-1 的逐条种子表达不了加权抽取(`argmax` 能通过 AC-52-06)· ContextGate 延后跨日不可支付 · **AC-52-26 与 AC-52-29 两条 `[B]` 直接冲突** · 掷骰输入不持久(主机迁移静默分叉,ADR-006 要杀的那一类)· **`IEventAuthority` 是第六抽象点而 `WorldSeed` 归属从未定义** · AC-52-34 为伪断言 · 六条要求零 AC 守门(**含 `TODMult(夜,仅威胁档)`**)。
+      **⚠️ 承重问题「P0 的 52 是否只是换了强度输入源的英灵神殿 raid director + 流浪商人」仍为 OPEN,门控在 37**(3 个锚点兑现 1.5 个;诚实记账)。
+      **⚠️「52 的修订已解锁 37」须收窄口径**:**解锁的是 *schema 与边界*,不是 *F1 公式*** —— 37 只撰内容字段,不碰权重行为;否则 F1 一旦重写,37 的内容假设全部作废。
+      **三项 ADR**:① `IEventAuthority`(第六抽象点)· ② `WorldSeed` 归属(7a)——
+      **两项已由 ADR-007 合并裁决**;③ Roslyn 分析器依赖为 **ADR-conditional on spike**。
+      **用户裁定(2026-09-15)**:现在就修 · 一次多页问答收口设计口径 · **新开 ADR-007**。
+- [x] **52 的二轮 10 项 blocking + 12 项推荐落盘** —— ✅ **2026-09-15 已执行**(用户裁「现在就修」)。**这是 37 开工的前置。**
+      落点:`ReputationMult`/`ContextMult` **移入 F1 步骤①(乘在配额上,档内不再被约去)** ·
+      `HistoryMult` 改**单次查表 + `HIST_MULT_MAX` 钳位** · F1 补**最大余数法配额分配**(含平局按档序 · 跳过档配额同窗口重分配)·
+      **DC-1 重写**(`EventRollSeed(win, tier, ordinal)` + **CDF 游走** + 掷骰输入持久化表)·
+      **规则六之三**(医馆内威胁档当日延后、跨日作废) · **AC-52-26/29 冲突解除** ·
+      **DC-4 扩展**(`PatientId.None` 哨兵 · `Seq` 归主机 · `anchor` 确定性解析 · 写入时序)·
+      **前言改正**(`IEventAuthority` 第六抽象点 + `WorldSeed` 归属 = 新裁决,非「直接推出」)·
+      **DC-2 重写**(SO 禁令改挂旋钮表 + Addressables TextAsset 口径) · **Tuning Knobs 全表整数域改写**(+8 新旋钮 + 全量构建期拒绝表)·
+      **§承重问题**诚实记账(3 锚点兑现 1.5) · **AC-52-02/13/24/26/29/34 改写 + 新增 AC-52-42…48、55** ·
+      **Edge Cases 补 7 行** · `entities.yaml` 同步(`event_roll` 公式 + `WINDOW_SIZE`/`REP_CAP` 两条新常量 + `tier_quota_ratio`/`reputation_multipliers` 约束改写)。
+- [x] **ADR-007 落盘** —— ✅ **2026-09-15 创建 · ✅ 同日转 `Accepted`**(用户裁定四项裁决均照准)
+      (`docs/architecture/adr-007-event-authority-and-roll-state.md`)
+      —— 正式裁决 ① `IEventAuthority` = **第六个 P0 抽象点**(ADR-005 定义的是五个)·
+      ② `WorldSeed` 归 **7a 持久化**(存档头,**不是**「一条 `SimEvent`」—— 那会制造鸡生蛋的循环依赖)·
+      ③ **掷骰的全部输入必须可从事件流重构**(核心不变量,防主机迁移静默分叉)·
+      ④ 世界级事件用 **`PatientId.None` 哨兵**(`-1`,不参与 `max(patient_id)+1` 重构)。
+      **原 Blocks(52 的代码实现)已解除**;**不阻塞** 37 的**内容**撰写。
+      **未清**:掷骰迁移回放的**实测**未做(本 ADR 的 Validation Criteria 首条即依赖它)。
 - [x] **ADR-006 落盘** —— ✅ **2026-09-14 Accepted**(`docs/architecture/adr-006-fixed-point-boundary-contract.md`)
       —— 补齐 ADR-005 未定义的**定点域边界**(唯一解析入口 `FixParse` · 存档禁 float · 单一舍入模式 · 守恒律域内表达)
       —— **二轮就地修正三处**:`weight`/`stack_max` 为 `int`(移出 Fix 解析集)· **`Fix` 不可经 Unity 内置序列化器**(新增 §Decision 五)· 守恒律改 `Σ(weight × ·)` 同量纲
@@ -566,6 +633,9 @@
 - [ ] **21b 的考据量估算** —— **D-21b-3**,已入 §4 范围债;未估算前 P0 基线仍不完整
 - [ ] 按 §6 设计顺序逐个写 GDD(`/design-system [system-name]`)
 - [x] **裁 #53 与 31 的边界**(✅ 2026-09-14:**水龙头 vs 蓄水池**;P0 只落病人本人)
+- [ ] **37 病例系统的 `/design-review`** —— ✅ **2026-09-15 正文落盘**(全节 A–H + Visual/Audio + UI + Open Questions,
+      0 占位符);对抗性 systems-designer 复核 12 项发现已修订(2 承重:case_id 三元组 · 折叠冲突 D-37-A)。
+      **待新会话运行 `/design-review design/gdd/case-system.md`**;三条 Kind 依赖 AC 已解锁(**ADR-008** ✅ Accepted 2026-09-15)
 - [ ] 每个 GDD 完成后跑 `/design-review`
 - [ ] 完成 P0 GDD 后跑 `/gate-check systems-design`
 - [ ] **`/art-bible`** —— 《双材》视觉锚点扩写(最大差异点,也是最大管线风险);**音频方向(44)同批定**
