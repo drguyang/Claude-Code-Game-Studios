@@ -1,56 +1,1330 @@
-# Technical Requirement ID Registry
+# Technical Requirements Registry
+# ─────────────────────────────────────────────────────────────────────────────
+# Stable requirement IDs linking GDD requirements → ADRs → stories → tests.
 #
-# PURPOSE: Persistent, stable IDs for every GDD technical requirement.
-# Prevents TR-ID renumbering across /architecture-review runs, which would
-# break story references.
+# RULES (enforced by /architecture-review Phase 2):
+#   - IDs are PERMANENT. Never renumber, never reuse, never delete.
+#   - Only append. Removed requirements get `status: deprecated`, not deletion.
+#   - New ID = highest existing sequence for that system + 1.
 #
-# RULES:
-#   - IDs are PERMANENT. Never renumber, never delete (use status: deprecated).
-#   - Add new entries only at the END of each system's list.
-#   - When a GDD requirement is reworded (same intent): update `requirement`
-#     text and add a `revised` date. The ID stays the same.
-#   - When a requirement is removed from the GDD: set status: deprecated.
-#   - When a requirement is split or replaced: set status: superseded-by with
-#     the new TR-ID(s).
+# status values:
+#   covered      — an ADR explicitly addresses this requirement
+#   partial      — an ADR partially covers it, or coverage is ambiguous
+#   gap          — no ADR addresses this requirement
+#   deprecated   — removed from the GDD intentionally (skip)
 #
-# WRITTEN BY: /architecture-review (appends new entries, never overwrites)
-# READ BY:    /create-stories (embed IDs in stories)
-#             /story-done (look up current requirement text at review time)
-#             /story-readiness (validate TR-ID exists and is active)
-#
-# ID FORMAT: TR-[system-slug]-[NNN]
-#   system-slug = short slug matching the GDD system name
-#   NNN = three-digit zero-padded sequence per system, starting at 001
-#
-# STATUS VALUES: active | deprecated | superseded-by: TR-[system]-NNN
+# Generated/updated by: /architecture-review (Phase 8)
+# ─────────────────────────────────────────────────────────────────────────────
 
 version: 1
-last_updated: ""
+last_updated: "2026-09-15"
+baseline_established: "2026-09-15"
+revision_note: "2026-09-15 ADR-015 落盘(世界几何,合并 R-9+R-10):TR-randomevents-018 gap→covered(生态区绑定退化为整数查表);TR-randomevents-021 gap→partial(坐标类型 + 锚点来源侧已覆盖,逐枚举解析规则仍待);TR-itemdb-031 加位置侧 note(状态不预判,归下一轮 ADR-009 全量复核)。前一轮 ADR-014:TR-itemdb-025/026/027 gap→covered;TR-itemdb-032 加 ADR-014。ID 无增删改,148 条不变。累计 65 covered / 14 partial / 69 gap"
+source_review: "docs/architecture/architecture-review-2026-09-15.md"
+traceability_index: "docs/architecture/traceability-index.md"
 
-requirements: []
+requirements:
 
-# --- EXAMPLE ENTRIES (remove when first real entries are added) ---
-#
-# - id: TR-combat-001
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Player takes damage from enemies based on attack power minus defence"
-#   created: 2026-03-10
-#   revised: ""
-#   status: active
-#
-# - id: TR-combat-002
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Combo window timing is 0.4 seconds between hits"
-#   created: 2026-03-10
-#   revised: "2026-04-01"
-#   status: active
-#
-# - id: TR-combat-003
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Old damage formula using raw stats"
-#   created: 2026-03-10
-#   revised: ""
-#   status: superseded-by: TR-combat-001
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 病例系统 (Case System, #37) — design/gdd/case-system.md
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-case-001
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: case_id 为 (Tick, Patient, Seq) 三元组,可从事件流重构
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-002
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 病例事件落独立于病史流的第二条逻辑流
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-003
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 病例流不参与终态物理折叠
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-004
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 跨流全序键 (Tick, StreamPriority, Patient, Seq)
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-005
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: CaseOpened 载荷 {patient_id, opened_tick, disease_snapshot}
+    domain: Core
+    adr: ADR-008
+    status: covered
+    revised: "2026-09-15"
+    note: "B-2 已修:原字段名 anchor: long 已改为 opened_tick: long"
+
+  - id: TR-case-006
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: CaseClosed.disease_set 为集合(可空),支持共病一案进多组
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-007
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: treated 布尔快照进 CaseClosed,重放不跨流查询
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-008
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: PatternRecognized 载荷携带冻结的 MemberSet 与锚点 anchor_case
+    domain: Core
+    adr: ADR-008
+    status: covered
+    revised: "2026-09-15"
+    note: "B-2 已修:原 PatternRecognizedPayload 缺锚点字段,已补 anchor_case: CaseId"
+
+  - id: TR-case-009
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 世界级事件用 PatientId.None 哨兵,不污染高水位
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-010
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: JudgmentRecorded 事件化(落笔:病名 + 置信度)
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-011
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: JudgmentRevised 事件化,永不进计分
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-012
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 规则二:立案的两条路径定义
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-case-013
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 规则三:病例串接(链)语义
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-case-014
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 规则四:改写史永久可回看
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-015
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 规则五:处置记录的写入边界
+    domain: Core
+    adr: ADR-008
+    status: partial
+    note: "仅 treated 快照已定;处置内容本身的形状未定"
+
+  - id: TR-case-016
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 规则六:结案为唯一出口、玩家显式、单例、不可撤销
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-case-017
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 规则七:未结案病例永久开着(系统永不自动结案)
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-018
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 规则八:同源检测算法
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-case-019
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 规则九:disease_id 不进呈现层
+    domain: Presentation
+    adr: ADR-008 + ADR-013
+    status: partial
+    revised: "2026-09-15"
+    note: "落点为 AC-37-15 的 DTO 静态检查,归 39 脉案(无 GDD)。2026-09-15 ADR-013 §三:检查机制 = PresentationDtoGuard 递归反射扫描"
+
+  - id: TR-case-020
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 规则十:37 不拥有什么的边界清单
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-case-021
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: "F-37.1 fires-once:同病种 ≥3 例结案只触发一次"
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-022
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: "F-37.1 性质 5:MemberSet 成员 patient_id 互异"
+    domain: Core
+    adr: ADR-008
+    status: partial
+    note: "AC-37-22 已登记,机制未实现"
+
+  - id: TR-case-023
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: "F-37.2 可结案 = 病史流 ≥1 处置事件(窗口内)∧ 玩家勾选"
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-024
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: F-37.3 一案 overlap 多病种时进多组
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-025
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: "盐键 SplitMix64(WorldSeed, \"case-salt\")"
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-case-026
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 重复结案幂等拒收,判定 = 流前缀纯函数
+    domain: Core
+    adr: ADR-008
+    status: partial
+    note: "语义已定,机械化未实现"
+
+  - id: TR-case-027
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: 图样可辨识度须 playtest 验证
+    domain: Feature
+    adr: null
+    status: gap
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 物品与配方 (Item Database, #21a) — design/gdd/item-database.md
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-itemdb-001
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 物品数值在整数定点域(Q16.16)
+    domain: Core
+    adr: ADR-005
+    status: covered
+
+  - id: TR-itemdb-002
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: weight / stack_max 为 int 计数,移出 Fix 解析集(D-21-17)
+    domain: Core
+    adr: ADR-006
+    status: covered
+
+  - id: TR-itemdb-003
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: Fix 不可经 Unity 内置序列化器承载(D-21-18)
+    domain: Core
+    adr: ADR-006
+    status: covered
+
+  - id: TR-itemdb-004
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 守恒律在整数域内求值,weight 归一(D-21-19)
+    domain: Core
+    adr: ADR-006
+    status: covered
+
+  - id: TR-itemdb-005
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: FixParse 为外部数据 → Fix 的唯一入口,拒浮点字面量
+    domain: Core
+    adr: ADR-006
+    status: covered
+
+  - id: TR-itemdb-006
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 单一舍入模式 ROUND_HALF_AWAY_FROM_ZERO
+    domain: Core
+    adr: ADR-006
+    status: covered
+
+  - id: TR-itemdb-007
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 配方 schema(输入/产出/工时)
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-itemdb-008
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 药材 schema(性味/归经/功效键)
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-itemdb-009
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 炮制方法 schema
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-itemdb-010
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 药物 potency / half_life 字段定义
+    domain: Core
+    adr: ADR-006
+    status: partial
+    note: "字段名与 9 侧未对齐(见 TR-itemdb-018)"
+
+  - id: TR-itemdb-011
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: "Schema E:库存槽形状"
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-itemdb-012
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: ActualConsumed 仅派生自 Craft 事件
+    domain: Core
+    adr: null
+    status: gap
+    no_adr: true
+
+  - id: TR-itemdb-013
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 配方产出在定点域内确定性可重放
+    domain: Core
+    adr: ADR-005
+    status: covered
+
+  - id: TR-itemdb-014
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: Craft 事件的载荷形状
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-itemdb-015
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 可感知底线 vs 9 的噪声带对齐
+    domain: Core
+    adr: null
+    status: gap
+    no_adr: true
+
+  - id: TR-itemdb-016
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 品质分级与品质轴定义
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-itemdb-017
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 21a 与 17 采集系统的数据边界
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-itemdb-018
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 9 侧字段名对齐 drug_potency / half_life
+    domain: Core
+    adr: null
+    status: gap
+    no_adr: true
+
+  - id: TR-itemdb-019
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: instance_id 权威(IIdAuthority 缺 ItemInstanceId Next())
+    domain: Core
+    adr: null
+    status: gap
+    no_adr: true
+    blocking: true
+
+  - id: TR-itemdb-020
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: "D-21-27:仅主机铸币"
+    domain: Core
+    adr: null
+    status: gap
+    no_adr: true
+
+  - id: TR-itemdb-021
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: "D-21-28:Craft 事件的全序键"
+    domain: Core
+    adr: null
+    status: gap
+    no_adr: true
+
+  - id: TR-itemdb-022
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: AC-21a-29 跨平台确定性
+    domain: Core
+    adr: ADR-012
+    status: covered
+    revised: "2026-09-15"
+    note: "2026-09-15 ADR-012:双级黄金夹具矩阵 = 执行载体(报告 B-9);编码器往返夹具在单元级;F7 spike 前置"
+
+  - id: TR-itemdb-023
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 物品数据在存档中的编码
+    domain: Foundation
+    adr: ADR-010
+    status: covered
+    note: "编码器 = ADR-006 §五(自定义按字段名,禁 float);存档布局 = ADR-010 §三 义务 9(ItemInstance 快照,含 quality;instance_id 入快照)"
+    revised: 2026-09-15
+
+  - id: TR-itemdb-024
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 配方解锁与技能门(与 30 的接口)
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-itemdb-025
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 数据文件格式与位置(assets/data/*.json)
+    domain: Foundation
+    adr: ADR-014
+    status: covered
+    note: "2026-09-15 ADR-014 落盘:R-7+R-8 合并;作者态 JSON + 构建期烘焙出货,命名遵 data-files.md"
+
+  - id: TR-itemdb-026
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: Addressables 分组与预载
+    domain: Foundation
+    adr: ADR-014
+    status: covered
+    note: "2026-09-15 ADR-014 §五:R-7 落定;单一 data-core 组 + 首次 Step 前启动预载 + E-13 硬失败"
+
+  - id: TR-itemdb-027
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 构建期 schema 校验
+    domain: Foundation
+    adr: ADR-014
+    status: covered
+    note: "2026-09-15 ADR-014 §三:两阶段工具链 —— 白名单/守恒/区间/长度/schema_version 全烘焙期硬失败"
+
+  - id: TR-itemdb-028
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: axis_offset_by_quality[] 可为负 ⇒ 负数舍入方向须定义
+    domain: Core
+    adr: null
+    status: gap
+    note: "报告 E-8:Q16.16 负数除法方向未钉死"
+
+  - id: TR-itemdb-029
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: Σ(weight × InstanceWeight) 的 int64 溢出上限
+    domain: Core
+    adr: null
+    status: gap
+    no_adr: true
+
+  - id: TR-itemdb-030
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 21a 与 20 库存的所有权边界
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-itemdb-031
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 掉落实体的世界状态事件化边界
+    domain: Foundation
+    adr: null
+    status: gap
+    suggested_adr: R-1 (世界状态的事件化边界)
+    note: "边界本身由 ADR-009 §五 定(身份进流 / 位置表现);**位置侧**坐标形状由 ADR-015 §三 定(spawn_anchor = WorldPos 整数格)。本条状态重裁随 ADR-009 的 TR 全量复核(下一轮)一并处理 —— 本文不预判"
+    revised: "2026-09-15"
+
+  - id: TR-itemdb-032
+    system: item-database
+    gdd: design/gdd/item-database.md
+    requirement: 配置版本号与存档头联动
+    domain: Foundation
+    adr: ADR-010 + ADR-014
+    status: covered
+    note: "配置版本号进存档头且与存档版本号分离(ADR-010 §一/§七);装载动作归 ADR-014 §五(ConfigVersion 内容哈希派生 + 启动期比对)"
+    revised: 2026-09-15
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 随机事件导演 (Random Events Director, #52) — design/gdd/random-events.md
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-randomevents-001
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 掷骰的每个输入必须可从事件流重构
+    domain: Core
+    adr: ADR-007
+    status: covered
+
+  - id: TR-randomevents-002
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: WorldSeed 由 7a 存档头持有
+    domain: Foundation
+    adr: ADR-007
+    status: covered
+
+  - id: TR-randomevents-003
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: Hamilton 配额分配算法
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-randomevents-004
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: EventRolled 事件形状
+    domain: Core
+    adr: ADR-007
+    status: covered
+
+  - id: TR-randomevents-005
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: "EventArrived 载荷 { event_key, tier, spawn_anchor, cause_clue_key? }"
+    domain: Core
+    adr: ADR-007
+    status: covered
+    revised: "2026-09-15"
+    note: "B-2 已修:原字段名 anchor(与 ADR-008 同名异型),已改名 spawn_anchor"
+
+  - id: TR-randomevents-006
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: KeyGate 读数契约(与 8 的接口)
+    domain: Core
+    adr: null
+    status: gap
+    no_adr: true
+
+  - id: TR-randomevents-007
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: ThreatDeferred / ThreatDeferralCleared
+    domain: Core
+    adr: ADR-007
+    status: covered
+
+  - id: TR-randomevents-008
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: CDF walk 的确定性实现
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-randomevents-009
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: HistoryFlagChanged 事件
+    domain: Core
+    adr: ADR-007
+    status: covered
+
+  - id: TR-randomevents-010
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: asmdef / Roslyn 构建期校验体系
+    domain: Foundation
+    adr: null
+    status: gap
+    no_adr: true
+    note: "与报告 E-1 的机制 A/B 同源;ADR-014 §三 提供数据 schema 侧构建期硬失败,但 asmdef/Roslyn 机制本体仍缺"
+
+  - id: TR-randomevents-011
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 事件池与 tier 表定义
+    domain: Feature
+    adr: null
+    status: gap
+
+  - id: TR-randomevents-012
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 世界级事件用 PatientId.None = -1
+    domain: Core
+    adr: ADR-007
+    status: covered
+
+  - id: TR-randomevents-013
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: authority 迁移后掷骰可重放
+    domain: Core
+    adr: ADR-007
+    status: covered
+
+  - id: TR-randomevents-014
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 冷却与去重窗口
+    domain: Feature
+    adr: null
+    status: gap
+
+  - id: TR-randomevents-015
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 导演的每 tick 性能预算
+    domain: Performance
+    adr: null
+    status: gap
+
+  - id: TR-randomevents-016
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 事件流体积纪律(有界性)
+    domain: Performance
+    adr: null
+    status: gap
+
+  - id: TR-randomevents-017
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 与 5 时间天气的只读边界
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-randomevents-018
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 与 6 生态区的生成点绑定
+    domain: Core
+    adr: ADR-009 + ADR-015
+    status: covered
+    note: "生态区多边形 / POI 是逻辑层整数数据(ADR-015 §一)⇒ 事件与生态区绑定退化为整数查表;生成点进世界流的边界归 ADR-009 §五。原为 gap(判据先行但无载体) —— ADR-015 §一 补齐载体"
+    revised: "2026-09-15"
+
+  - id: TR-randomevents-019
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 52→37 注入只触发立案
+    domain: Core
+    adr: ADR-008
+    status: partial
+    note: "仅方向已定,接口形状未定"
+
+  - id: TR-randomevents-020
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 注入接口形状
+    domain: Core
+    adr: null
+    status: gap
+    no_adr: true
+
+  - id: TR-randomevents-021
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: spawn_anchor 的确定性坐标解析(枚举 → 世界坐标)
+    domain: Core
+    adr: ADR-015
+    status: partial
+    revised: "2026-09-15"
+    note: "ADR-015 §一/§三 已定**坐标类型与数据来源**:产物 = WorldPos 整数格,锚点源数据(医馆门前锚点 / 采集点集 / 生态区多边形)是逻辑层整数数据 ⇒ 解析退化为整数查表,满足 random-events.md:438-439 的禁 NavMesh 采样。**仍未定**:每个枚举值的具体解析规则(如 TRAVEL_PATH 的 SPAWN_AHEAD_DIST 前方偏移向量形状)—— 归 52 与 24 / 17 的接口细化。原 gap 系「解析算法无 ADR」;坐标/来源侧已覆盖,故升 partial"
+    no_adr: false
+
+  - id: TR-randomevents-022
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 出诊路径 / 医馆地块的判据来源
+    domain: Core
+    adr: null
+    status: gap
+    no_adr: true
+
+  - id: TR-randomevents-023
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 事件的玩家可感知门槛
+    domain: Feature
+    adr: null
+    status: gap
+
+  - id: TR-randomevents-024
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 事件与 51 遥测的边界
+    domain: Foundation
+    adr: null
+    status: gap
+
+  - id: TR-randomevents-025
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 事件文本的本地化载体
+    domain: Presentation
+    adr: null
+    status: gap
+
+  - id: TR-randomevents-026
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 联机语义:多人共享同一事件
+    domain: Networking
+    adr: null
+    status: gap
+    suggested_adr: R-3 (ADR-001 联机选型)
+
+  - id: TR-randomevents-027
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 与 29 死亡复活的交互
+    domain: Feature
+    adr: null
+    status: gap
+
+  - id: TR-randomevents-028
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 与 13 病人 AI 的交互
+    domain: Feature
+    adr: null
+    status: gap
+
+  - id: TR-randomevents-029
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 27 敌人 AI 不被事件导演锁定
+    domain: Feature
+    adr: null
+    status: gap
+    no_adr: true
+
+  - id: TR-randomevents-030
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: 外部系统 → 52 的注入接口
+    domain: Core
+    adr: null
+    status: gap
+    no_adr: true
+
+  - id: TR-randomevents-031
+    system: random-events
+    gdd: design/gdd/random-events.md
+    requirement: "构建期校验:17 条拒绝表"
+    domain: Foundation
+    adr: null
+    status: gap
+    no_adr: true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 疾病与伤情 (Disease Simulation, #9) — design/gdd/disease-simulation.md
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-disease-001
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: Fix = readonly struct 内含 long 的 Q16.16
+    domain: Core
+    adr: ADR-005
+    status: covered
+
+  - id: TR-disease-002
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: 中间乘法落 Q32.32(或更宽)
+    domain: Core
+    adr: ADR-005
+    status: partial
+    note: "中间类型未钉死;原稿误引 System.Int128(报告 E-2)"
+
+  - id: TR-disease-003
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: 手写定点 Exp(F1 的 Base / Relapse / Decay)
+    domain: Core
+    adr: ADR-005 + ADR-012
+    status: covered
+    revised: "2026-09-15"
+    note: "库本身无 ADR,仅约定;2026-09-15 ADR-012 §一 单元级黄金哈希含定点 Exp 夹具兑现对拍义务"
+
+  - id: TR-disease-004
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: SplitMix64 为唯一哈希
+    domain: Core
+    adr: ADR-005
+    status: covered
+
+  - id: TR-disease-005
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: "patient_seed = hash(world_seed, patient_id),禁 Random.Range"
+    domain: Core
+    adr: ADR-005
+    status: covered
+
+  - id: TR-disease-006
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: 单调逻辑 tick 驱动(ITickProvider)
+    domain: Core
+    adr: ADR-005
+    status: covered
+    note: "报告 E-7:不得建立在 Time.fixedDeltaTime 上"
+
+  - id: TR-disease-007
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: 病史事件流为唯一真源
+    domain: Core
+    adr: ADR-005
+    status: covered
+    note: "ADR-008 后实为两流并集;ADR-005 正文未回改(报告 C-5)"
+
+  - id: TR-disease-008
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: P0 预留抽象点(五接口 + SimEvent 值类型)
+    domain: Core
+    adr: ADR-005 + ADR-007
+    status: covered
+    note: "2026-09-15 复查轮重裁(原为 covered):ADR-007 §一 追加第六抽象点 IEventAuthority 后,全案为六个(五个接口 + SimEvent)。disease-simulation.md §Dependencies 表同时补第六行(六抽象点)。ADR-005 §Summary / §Migration Plan 已同步"
+
+  - id: TR-disease-009
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: 主机唯一执行 Step / CatchUp
+    domain: Core
+    adr: ADR-005
+    status: covered
+
+  - id: TR-disease-010
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: 终态折叠(AC-36 plateau / relapse 豁免)
+    domain: Core
+    adr: ADR-005
+    status: covered
+
+  - id: TR-disease-011
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: patient_id 跨权威稳定(Amendment B)
+    domain: Core
+    adr: ADR-006
+    status: covered
+
+  - id: TR-disease-012
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: 终态折叠行必须保留 patient_id
+    domain: Core
+    adr: ADR-006
+    status: covered
+
+  - id: TR-disease-013
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: "sim asmdef noEngineReferences: true"
+    domain: Foundation
+    adr: ADR-005
+    status: covered
+    revised: "2026-09-15"
+    note: "2026-09-15 复查轮重裁(原 gap,报告 E-1):ADR-005 现已定义双门判据 —— 门 A = 独立 asmdef + noEngineReferences: true;门 B = EditMode IL 扫描断言零 UnityEngine.* 引用 / 零 System.Math 调用 / 无 float·double 签名。门 B 解决了 E-1 的盲区"
+
+  - id: TR-disease-014
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: 零 System.Math.Exp/Pow 的类型引用断言
+    domain: Foundation
+    adr: ADR-005
+    status: covered
+    revised: "2026-09-15"
+    note: "2026-09-15 复查轮重裁(原 gap,报告 E-1):ADR-005 Validation Criteria 现含门 B —— EditMode 反射断言 sim 程序集不含对 Math.Exp/Pow/Sqrt/Log/Abs 的 IL 调用(因 System.Math 在 System.Runtime,asmdef 隔离不可见,须 IL 级扫描)"
+
+  - id: TR-disease-015
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: AC-1 跨平台位完全相同
+    domain: Core
+    adr: ADR-012
+    status: covered
+    revised: "2026-09-15"
+    note: "2026-09-15 ADR-012:双级黄金夹具矩阵(Mono/IL2CPP × x64/ARM64)即执行载体,解决报告 B-9;F7 int64 回绕 spike 为前置 BLOCKING"
+
+  - id: TR-disease-016
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: AC-5b 定点 Exp 位确定性
+    domain: Core
+    adr: ADR-012
+    status: covered
+    revised: "2026-09-15"
+    note: "2026-09-15 ADR-012 §一:单元级黄金哈希含定点 Exp 夹具,兑现黄金文件对拍义务"
+
+  - id: TR-disease-017
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: F1 的 Base / Relapse / Decay 求值公式
+    domain: Core
+    adr: ADR-005
+    status: partial
+    note: "公式在 GDD,ADR 只定域"
+
+  - id: TR-disease-018
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: F4 处置事件携带 polarity / Offset / τ_half
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-disease-019
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: "保守带误差预算(ops × 2⁻¹⁶,原引 3×2⁻¹⁶)"
+    domain: Core
+    adr: ADR-005
+    status: covered
+    revised: "2026-09-15"
+    note: "2026-09-15 复查轮重裁(原 partial,报告 C-3):ADR-005 §Decision 一 已删自引 3×2⁻¹⁶,改 max(k × max_err, ops × 2⁻¹⁶) 待黄金文件对拍标定;disease-simulation.md F0 纪律表同口径。两侧现已一致"
+
+  - id: TR-disease-020
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: 边界扫描的单向性验证
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-disease-021
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: 「病人出现率上限」配置项
+    domain: Core
+    adr: null
+    status: gap
+    blocking: true
+    note: "ADR-008 §六 有界性论证的硬依赖"
+
+  - id: TR-disease-022
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: "128 位中间类型(System.Int128)"
+    domain: Core
+    adr: null
+    status: gap
+    blocking: true
+    note: "报告 E-2:netstandard2.1 / IL2CPP 无此类型,玩家构建编译不过"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 诊断与体征 (Diagnosis System, #8) — design/gdd/diagnosis-system.md
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-diag-001
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: 8 位于唯一浮点出口之后(IVitalsQuery → VitalsDto)
+    domain: Core
+    adr: ADR-005
+    status: covered
+
+  - id: TR-diag-002
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "铁律①:8 与 11 之间无数据流"
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-diag-003
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "铁律②:8 不向 9 写任何东西"
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-diag-004
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "铁律③:8 不拥有持久化"
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-diag-005
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "铁律④:EmitGrowth 仅主机侧由 IIdAuthority 门控"
+    domain: Core
+    adr: ADR-005
+    status: partial
+
+  - id: TR-diag-006
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "铁律⑤:每名玩家一本脉案(联机)"
+    domain: Networking
+    adr: null
+    status: gap
+
+  - id: TR-diag-007
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "F-8.6:8 不在 ADR-005 的定点域内"
+    domain: Core
+    adr: ADR-005
+    status: covered
+
+  - id: TR-diag-008
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "G-1:禁 libm 超越函数;指数仅取整数或 1/2"
+    domain: Core
+    adr: null
+    status: gap
+    note: "30 技能系统的 P=1.4 违反本条(报告 B-6)"
+
+  - id: TR-diag-009
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "G-3:途径整数等级的档位判定"
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-diag-010
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "G-4:位宽固定 System.Single;禁 FMA 收缩依赖"
+    domain: Core
+    adr: null
+    status: gap
+    note: "报告 E-3:原缓解措施「显式 Mul 后 Add」机制上不可执行,须改定表化"
+
+  - id: TR-diag-011
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "D-8-4:Project(Sign_j) → [0,1] 归 9"
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-diag-012
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "D-8-5(登记项)"
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-diag-013
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "D-8-6:共病体征合并(升级为 P0 阻塞)"
+    domain: Core
+    adr: null
+    status: gap
+    blocking: true
+
+  - id: TR-diag-014
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "D-8-9:SLOT_BOUNDS ← DIAG_TIERS 双向耦合"
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-diag-015
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: "D-8-10(登记项)"
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-diag-016
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: 读数存档的归属(39 或病例流)
+    domain: Foundation
+    adr: ADR-008
+    status: partial
+    note: "ADR-008 §一 显式留白给 39 脉案 GDD"
+
+  - id: TR-diag-017
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: AC-8-47 结案时冻结判断链
+    domain: Core
+    adr: ADR-008
+    status: covered
+
+  - id: TR-diag-018
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: AC-8-F5 表现层 float 跨平台一致
+    domain: Core
+    adr: ADR-012
+    status: partial
+    revised: "2026-09-15"
+    note: "2026-09-15 ADR-012 §二:矩阵(IL2CPP 格)提供执行载体;判据本身待 E-4 spike(表现层 float 的 FMA / 舍入契约)后定"
+
+  - id: TR-diag-019
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: disease_id 不进呈现层
+    domain: Presentation
+    adr: ADR-008 + ADR-013
+    status: partial
+    revised: "2026-09-15"
+    note: "唯一落点 AC-37-15。2026-09-15 ADR-013 §三:落地机制 = PresentationDtoGuard 递归反射扫描 UI DTO 树(EditMode 门);仍待 39 脉案 GDD 与实现"
+
+  - id: TR-diag-020
+    system: diagnosis-system
+    gdd: design/gdd/diagnosis-system.md
+    requirement: 脉案 DTO 的静态检查
+    domain: Presentation
+    adr: ADR-013
+    status: partial
+    revised: "2026-09-15"
+    note: "2026-09-15 ADR-013 §三:机制已定(PresentationDtoGuard 递归反射扫描,须覆盖 List<DTO> 元素 / 私有 / 继承字段);仍待 39 脉案 DTO 形状定稿后实现"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 技能与熟练度 (Skill System, #30) — design/gdd/skill-system.md
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-skill-001
+    system: skill-system
+    gdd: design/gdd/skill-system.md
+    requirement: "XP_to_next(n) = C × n^P,P = 1.4"
+    domain: Core
+    adr: null
+    status: gap
+    blocking: true
+    note: "违反 8 的 G-1(指数须整数或 1/2);libm pow 跨平台末位不一致"
+
+  - id: TR-skill-002
+    system: skill-system
+    gdd: design/gdd/skill-system.md
+    requirement: 熟练度成长在整数定点域内求值
+    domain: Core
+    adr: null
+    status: gap
+    blocking: true
+    note: "全文零 ADR 引用、零定点纪律(报告 B-6)"
+
+  - id: TR-skill-003
+    system: skill-system
+    gdd: design/gdd/skill-system.md
+    requirement: "CombatPower = (CombatSkillLevel × WeaponMultiplier) × (1 + 医术修正)"
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-skill-004
+    system: skill-system
+    gdd: design/gdd/skill-system.md
+    requirement: "医术修正 = 0.20 × (关联医术等级 / 60)"
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-skill-005
+    system: skill-system
+    gdd: design/gdd/skill-system.md
+    requirement: 运行时调参表的默认值须定点化
+    domain: Core
+    adr: null
+    status: gap
+    note: "现为纯浮点默认值"
+
+  - id: TR-skill-006
+    system: skill-system
+    gdd: design/gdd/skill-system.md
+    requirement: 19 项技能的依赖与解锁关系
+    domain: Feature
+    adr: null
+    status: gap
+
+  - id: TR-skill-007
+    system: skill-system
+    gdd: design/gdd/skill-system.md
+    requirement: 30 与 25 格斗线的数据边界
+    domain: Core
+    adr: null
+    status: gap
+
+  - id: TR-skill-008
+    system: skill-system
+    gdd: design/gdd/skill-system.md
+    requirement: 技能成长的存档持久化
+    domain: Foundation
+    adr: null
+    status: gap
+    suggested_adr: R-2 (7a 持久化)
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 全案 (Game Concept) — design/gdd/game-concept.md
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-concept-001
+    system: game-concept
+    gdd: design/gdd/game-concept.md
+    requirement: "技术栈:Unity 6.3 LTS / URP / OpenXR"
+    domain: Foundation
+    adr: technical-preferences.md
+    status: covered
+
+  - id: TR-concept-002
+    system: game-concept
+    gdd: design/gdd/game-concept.md
+    requirement: "联机 1–4 人,P0 起架构预留"
+    domain: Networking
+    adr: ADR-001
+    status: covered
+    note: "pipe 抽象(IReplayPipe + ReorderBuffer)P0 生效;库选型 P1b 前 swap 评审(ADR-001 §四)"
+    revised: 2026-09-15
+
+  - id: TR-concept-003
+    system: game-concept
+    gdd: design/gdd/game-concept.md
+    requirement: "MVP 的 8 条定义"
+    domain: Foundation
+    adr: null
+    status: gap
+
+  - id: TR-concept-004
+    system: game-concept
+    gdd: design/gdd/game-concept.md
+    requirement: P0 排除项清单
+    domain: Foundation
+    adr: null
+    status: gap
+
+  - id: TR-concept-005
+    system: game-concept
+    gdd: design/gdd/game-concept.md
+    requirement: "P0 = 31 系统 / 6–9 个月基线"
+    domain: Foundation
+    adr: "用户裁定 2026-09-14"
+    status: covered
+    note: "基线已锁定,不再重算"
+
+  - id: TR-concept-006
+    system: game-concept
+    gdd: design/gdd/game-concept.md
+    requirement: "60 fps(平面)/ 90 fps(VR)帧预算"
+    domain: Performance
+    adr: null
+    status: gap
+
+  - id: TR-concept-007
+    system: game-concept
+    gdd: design/gdd/game-concept.md
+    requirement: 急救动作输入延迟 < 50 ms
+    domain: Performance
+    adr: ADR-011
+    status: covered
+    note: "急救直读通道(不穿 42 UI 栈)+ 三端实测;联机判定归表现层本地即时(ADR-011 §二 / F1)"
+    revised: 2026-09-15
+
+  - id: TR-concept-008
+    system: game-concept
+    gdd: design/gdd/game-concept.md
+    requirement: 拟物 UI 须同时支持键鼠与手柄焦点导航
+    domain: Presentation
+    adr: ADR-011 + ADR-013
+    status: covered
+    revised: "2026-09-15"
+    note: "接口归 ADR-011(动作 → FocusNavigationIntent);呈现归 ADR-013(UI Toolkit 官方桥 NavigationMoveEvent + 焦点单栈门 + 手柄焦点质量 spike)。2026-09-15 ADR-013 落盘,R-6 缺口闭合"

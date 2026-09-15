@@ -21,9 +21,19 @@ dr_guyang(用户)· technical-director(裁决)· systems-designer(公式复核)
 
 系统 9「疾病与伤情模拟」是全案数据核心(7 个系统读它),它同时要求**确定性模拟**
 (定 tick + 固定种子 + 状态可序列化)与 **P1b 的 1-4 人联机**(`systems-index.md` §9 C6)。
-本 ADR 裁决:**全部模拟数学在整数定点域(int64 / Q16.16)**,**病史事件流是唯一真源**,
-**主机唯一执行 Step / CatchUp**,并给出 **P0 必须预留的五个抽象点**。
+本 ADR 裁决:**全部模拟数学在整数定点域(int64 / Q16.16)**,**事件流是唯一真源**,
+**主机唯一执行 Step / CatchUp**,并给出 **P0 必须预留的六个抽象点**。
 不现在做,P1b 重构是三个月级灾难。
+
+> **2026-09-15 复查轮就地修正(N-3 / N-4)**:
+> ① 原稿写「**病史**事件流是唯一真源」—— ADR-008 引入病例流后该句在权威层已不准确,
+> 现行口径见 **ADR-006 Amendment D**:真源 = **病史流 ∪ 病例流**,终态折叠**只作用于病史流**;
+> ② 原稿写「**五个**抽象点」—— ADR-007 §一 之后为 **六个** =
+> **五个接口**(`ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery` / `IEventAuthority`)
+> **+ `SimEvent` 值类型**;
+> ③ **2026-09-15 ADR-009 追加**:真源口径再升格 —— 事件流 = **病史流 ∪ 病例流 ∪ 世界流**
+> (三流并集,ADR-009 Amendment E),`StreamPriority` 三值(病史 < 病例 < 世界),
+> 终态折叠仍只作用于病史流。本条以 ADR-009 §Decision 为准。
 
 ## Engine Compatibility
 
@@ -82,6 +92,22 @@ dr_guyang(用户)· technical-director(裁决)· systems-designer(公式复核)
 - 状态必须**可序列化且 authority-agnostic**(C6)
 - 离线补算复杂度 **O(类 A 边界 + 每子区间 log)**,不随离线时长线性增长
 - 模拟层**零 `UnityEngine` 依赖**(规则七:状态是纯数据)
+  > **2026-09-15 修正(E-1)**:本 ADR 两处(此处与 §Implementation Guidelines)原写
+  > 「**编译期可验证**」—— 该判据**不完备**,两个漏洞:
+  > ① asmdef 不设 `"noEngineReferences": true` 时,Unity 会**隐式注入** `UnityEngine.CoreModule`
+  > 引用,「零引用」**静默假通过**;
+  > ② 更隐蔽 —— **`System.Math.Exp/Pow` 在 `System.Runtime`,不在 `UnityEngine`**,
+  > 程序集隔离**天然拦不到**;`Unity.Mathematics.math.exp/pow` 同样不在 `UnityEngine`，
+  > 且带 SIMD 近似、跨后端不逐位。
+  >
+  > **可执行判据(两道互补门)**:
+  > **门 A** —— sim 必须落**独立 asmdef**,且该 asmdef 设 `"noEngineReferences": true`;
+  > **门 B(真正的守门)** —— 一条 EditMode 测试用 `System.Reflection` 加载 sim 程序集,断言
+  > ① `GetReferencedAssemblies()` 无 `UnityEngine.*` / `Unity.Mathematics` / `Unity.Collections`;
+  > ② 扫全部方法体 IL,无对 `Math.Exp/Pow/Sqrt/Log/Abs`、`MathF` 的 `call/callvirt`;
+  > ③ sim 类型图上无 `float` / `double` 字段与局部签名。
+  > 更早的拦截(Roslyn analyzer)在 Unity 6.3 的注册形态属 post-cutoff,须 spike ——
+  > **先用零依赖的门 B 垫底**。
 - 中途加入的玩家能重建一个已病了 N 天的病人
 - **不阻塞 ADR-001 的选型**
 
@@ -102,8 +128,19 @@ dr_guyang(用户)· technical-director(裁决)· systems-designer(公式复核)
 | 保守带内的边界搜索比较 | **向下保守**(宁多扫一步) |
 | 表现层输出 | 就近舍入 |
 
-**误差预算**:每次运算 ≤ 1 ulp(2⁻¹⁶);保守带按 `ops × 2⁻¹⁶` 外扩
-(实测 ≤ 3×2⁻¹⁶),可并入 σ 的安全裕量。
+**误差预算**:每次运算 ≤ 1 ulp(2⁻¹⁶);保守带按 `ops × 2⁻¹⁶` 外扩,
+可并入 σ 的安全裕量。
+
+> **⚠️ 2026-09-15 修正(架构复核 C-3)**:原稿此处另写「(**实测 ≤ 3×2⁻¹⁶**)」——
+> 该数字**无出处**,是自引,已撤销(`disease-simulation.md` §F0 纪律表亦已撤销同一引用)。
+> 现行口径:**保守带宽度待 `Fix` / 定点 `Exp` 黄金文件对拍后标定**,
+> 取 `max(k × max_err, ops × 2⁻¹⁶)`,`k` 与实测上界落 `design/registry/entities.yaml`。
+> **不得在标定前写死任何「实测」数字** —— 若保守带窄于真实误差,边界扫描会错过真实穿界点
+> ⇒ 状态转移漏判 ⇒ 逐位仍一致但**语义已错**(本项目反复警惕的静默失败类)。
+>
+> **另补一条比总误差上界更关键的判据**:对 `boundary_mode: scan` 的病种,
+> 须做**单向性验证** —— 断言扫描返回的边界**含**真实穿界点(宁多扫一步,不得漏扫)。
+> 这条进 AC 与 CI 门。
 
 ### 二、投影点:单一门面
 
@@ -120,13 +157,19 @@ GetVitals(patient) → VitalsDto(float)
 ### 三、权威模型
 
 - **病史事件流 = 唯一真源**(规则六)
+  > **2026-09-15 修正(C-5)**:ADR-008 引入**第二条逻辑流(病例流)**后,本句在权威层已不准确。
+  > 现行口径见 **ADR-006 Amendment D**:**真源 = 病史流 ∪ 病例流**;
+  > **终态折叠规则只作用于病史流**,病例流**永不物理折叠**。
+  > **2026-09-15 再修正(ADR-009 Amendment E)**:ADR-009 引入**第三条逻辑流(世界流)**后,
+  > 真源口径为 **病史流 ∪ 病例流 ∪ 世界流**;终态折叠仍只作用于病史流,
+  > 病例流与世界流**永不物理折叠**。
 - **主机唯一执行 `Step` / `CatchUp`**
 - 客户端持**流副本 + 定期快照**;UI 展示可**本地求值 `Progress`**(纯函数,定点保证逐位一致)
   —— **这不算「跑模拟」**,因为绝不写回事件流
 - **`patient_id`**:静态病人由**世界种子派生**;动态生成的病人由 **主机从单调计数器分配**,
   **首行流事件即 `(patient_id, patient_seed, 病因)`**,id 随流持久化
   > **⚠️ 修正(2026-09-14 · ADR-006 Amendment B / D-9-E)**:上句**缺了迁移不变量**。
-  > 由于 `patient_seed = hash(world_seed, patient_id)`(`disease-simulation.md:143`),
+  > 由于 `patient_seed = hash(world_seed, patient_id)`(`disease-simulation.md` §Dependencies「换 authority」段),
   > **id 一变则该病人全部病程被改写** —— 故 `patient_id` 必须在权威迁移前后**逐位稳定**。
   > 三条硬不变量:
   > 1. **计数器永不复位为 0**;
@@ -147,7 +190,7 @@ GetVitals(patient) → VitalsDto(float)
    ITickProvider ──▶│  Step / CatchUp   ← 唯一执行者        │
                     │        │                             │
                     │        ▼                             │
-                    │   病史事件流 (唯一真源)                │
+                    │ 事件流 = 病史 ∪ 病例 ∪ 世界(唯一真源)  │
                     │        │                             │
    IEventSink  ◀────┤        ├──▶ IIdAuthority              │
                     └────────┼─────────────────────────────┘
@@ -173,7 +216,11 @@ GetVitals(patient) → VitalsDto(float)
 ### Key Interfaces
 
 ```csharp
-// ── 定点标量:无行为纯 struct,序列化只存内部 long ──
+// ── 定点标量:无行为纯 struct ──
+// ⚠️ 2026-09-15 修正(C-7):原注释写「序列化只存内部 long」——**该断言为假**,
+// 已由 ADR-006 §五 判定并撤销。Unity 内置序列化器不会自动序列化这里的 _raw,
+// 且 private readonly 字段即便标 [SerializeField] 也受反序列化赋值限制。
+// 失败是**静默的**(字段归零,不抛异常)。序列化必须走自定义编码器。
 public readonly struct Fix            // Q16.16, 内部 long
 {
     private readonly long _raw;
@@ -181,25 +228,44 @@ public readonly struct Fix            // Q16.16, 内部 long
     public float ToFloat();           // 仅门面程序集可调用
 }
 
-// ── P0 必须预留的五个抽象点(实现可为占位)──
+// ── P0 必须预留的抽象点(实现可为占位)──
+// 五个 + 第六个 IEventAuthority(ADR-007 §一)
 public interface ITickProvider  { long CurrentTick { get; } }        // 全案 tick 唯一来源
-public interface IEventSink     { void Append(in SimEvent e); }       // P0 = 本地 list
+public interface IEventSink     { void Append(in SimEvent e); }       // P0 = 本地 list;ADR-008 扩展为按 Kind 路由
 public interface IIdAuthority   { PatientId Next(); }                 // 防运行时 instance id
+                                                                      // ⚠️ 待办:21a 需要 ItemInstanceId Next()(TR-itemdb-019,尚无 ADR)
 public interface IVitalsQuery   { VitalsDto GetVitals(PatientId p); } // 唯一浮点出口
+public interface IEventAuthority { bool IsAuthority { get; }          // 第六抽象点,ADR-007 §一
+                                   EventRollResult Roll(in RollRequest r); }
 
 // ── 事件必须带逻辑 tick 且可全序 ──
-public readonly struct SimEvent
+// ⚠️ 2026-09-15 修正(C-6):原块只有 { Tick, Patient, Kind },与上一行注释
+// 「可全序」自相矛盾(无 Seq 无从定序)。现行形状以 ADR-006 Amendment A 为准:
+// ⚠️ 2026-09-15 复查轮修正(N-1):下方 Seq 的类型原先被本 ADR 误写为 int,
+// 而权威件 ADR-006 Amendment A 定义其为 long(其 Consequences 亦按 8 字节计
+// Seq 的流膨胀代价)。二者都能编译,但自定义编码器(ADR-006 五)写出的流宽
+// 差 4 字节 ⇒ 读流错位。以 long 为准 —— 本块只是前向指针,不是第二份权威。
+public readonly struct SimEvent      // 权威定义见 ADR-006 Amendment A
 {
     public readonly long      Tick;
     public readonly PatientId Patient;
+    public readonly long      Seq;    // (Tick, Patient) 内的单调流水号
     public readonly EventKind Kind;
+    public readonly EventPayload Payload;
 }
 ```
 
 ### Implementation Guidelines
 
 1. **先写 `Fix` 与 SplitMix64,再写任何病种。** 顺序反了会写出浮点版再改,等于重写。
-2. **`SimEvent` 必须可全序**(按 `(Tick, Patient, Seq)`),否则回放无法检测乱序。
+2. **`SimEvent` 必须可全序** —— **跨流**按 `(Tick, StreamPriority, Patient, Seq)`,
+   **单流内**按 `(Tick, Patient, Seq)`;否则回放无法检测乱序。
+   > **2026-09-15 复查轮修正(N-2)**:原句只给 `(Tick, Patient, Seq)`。ADR-006
+   > **Amendment C** 已将**跨流全序键升格**为 `(Tick, StreamPriority, Patient, Seq)`
+   > (病史流 < 病例流)。缺 `StreamPriority` 则同 tick 的病史 / 病例事件之间
+   > **顺序无定义** ⇒ 合并排序不稳定 ⇒ F-37.1 的 fires-once 前提失守(静默类)。
+   > **2026-09-15 ADR-009 追加**:`StreamPriority` 升为**三值**(病史 < 病例 < 世界),
+   > 键形状不变,取值域以 ADR-009 Amendment E 为准。
 3. **注册表的曲线严禁写成 `AnimationCurve`** —— 那绑 `UnityEngine`,违反规则七且不可跨平台。
    必须是纯数据参数(见 9 的 F1:`A_peak` / `τ_rise` / `τ_fall` …)。
 4. **注册表写入时做值域校验**(如 `relapse_interval > 0`)——
@@ -290,8 +356,11 @@ public readonly struct SimEvent
 
 1. 写 `Fix`(Q16.16)+ SplitMix64 + `Fix` 的 EditMode 单元测试
    —— *验证:边界值 + 随机对拍浮点参考实现*
-2. 定义四个接口(`ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery`),
-   P0 实现为本地占位
+2. 定义**五个接口**(`ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery`
+   / **`IEventAuthority`**),P0 实现为本地占位
+   > **2026-09-15 复查轮修正(N-4)**:原稿写「四个接口」且不含 `IEventAuthority`。
+   > ADR-007 §一 已将后者定为第六抽象点,而 52 的掷骰路径在 P0 就要接上它 ——
+   > 照原清单做,`IEventAuthority` 会缺席,P1b 补接线 = 重构掷骰调用点。
 3. 写 `SimEvent` 与病史事件流(含**终态折叠**)
 4. 在此之上写 F1-F4(见 `design/gdd/disease-simulation.md`)
 
@@ -303,7 +372,13 @@ public readonly struct SimEvent
 - [ ] 同一病史事件流在**两个不同平台**上产出**逐位相同**的 `Fix` 读数
 - [ ] 一个离线 30 天的病人,`CatchUp` 的求值次数**不随天数线性增长**(实测计数)
 - [ ] `Fix` 的单元测试覆盖边界值,且与浮点参考实现的偏差 ≤ 误差预算
-- [ ] 模拟层程序集**零 `UnityEngine` 引用**(编译期可验证)
+- [ ] 模拟层程序集**零 `UnityEngine` 引用** —— **双门判据**(2026-09-15 复查轮 N-4 补,与本文 §Context 一致):
+      **门 A**:sim 程序集为独立 asmdef 且 `"noEngineReferences": true`;
+      **门 B**:EditMode 反射测试断言 sim 程序集**不引用** `UnityEngine.*` / `Unity.Mathematics` /
+      `Unity.Collections`,**不含**对 `Math.Exp` / `Pow` / `Sqrt` / `Log` / `Abs` 的 IL 调用,
+      且 sim 类型签名中**不出现** `float` / `double`。
+      > **只有门 A 不够**:`System.Math.Exp` 住在 `System.Runtime` 里,程序集隔离看不见它。
+      > 原稿只写「编译期可验证」,而该判据**不可完成**(报告 E-1)。
 - [ ] 存档中不出现任何 `float`(事件流全整数,可 grep 验证)
 - [ ] 终态病人的事件流**折叠后不超过 1 行**
 - [ ] **`patient_id` 迁移稳定性**(ADR-006 Amendment B):给定一个含已折叠终态病人的流,
@@ -327,15 +402,30 @@ public readonly struct SimEvent
 - **ADR-006 定点域边界数据契约**(Accepted 2026-09-14)—— **本 ADR 的边界补完**。
   它补齐了本 ADR 未定义的「域边界」:外部数据 → `Fix` 的唯一解析入口、
   存档禁浮点、单一舍入模式、守恒律的域内表达。
-  **并以两条修正案窄修正本 ADR 的两处自相矛盾**:
-  - **Amendment A(D-9-D)**:本 ADR `:181-186` 的 `SimEvent{Tick, Patient, Kind}`
-    **装不下 `:192` 自己要求的 `(Tick, Patient, Seq)` 全序**,也无处安放载荷。
-    ADR-006 补 `Seq` 与 `Payload` 两字段 —— **本 ADR 的 `SimEvent` 定义以 ADR-006 为准**。
+  **并以后续修正案窄修正本 ADR 的缺陷(Amendment A–D)并升格三流口径(Amendment E · ADR-009)**:
+  - **Amendment A(D-9-D)**:本 ADR 原 Key Interfaces 块的 `SimEvent{Tick, Patient, Kind}`
+    **装不下本 ADR §Implementation Guidelines 2 自己要求的全序**,也无处安放载荷。
+    ADR-006 补 `Seq` 与 `Payload` 两字段 —— **本 ADR 的 `SimEvent` 定义以 ADR-006 为准**
+    (复查轮 N-1 已把本 ADR 抄错的 `Seq` 类型 `int` 对齐为 `long`)。
   - **Amendment B(D-9-E · ✅ 已裁决 2026-09-14)**:**采纳备选 A(计数器 + 高水位可重构)**。
     终态折叠行**补保留 `patient_id`**(见 Implementation Guidelines 第 5 条),
     迁移时 `next = max(patient_id) + 1`、**永不复位 0**。**备选 B(纯哈希派生)已否决** ——
-    理由见 ADR-006 Appendix B。本 ADR `:126-127` 与折叠规则**已就地修正**。
-  - **本 ADR 的两项核心裁决不受影响**:整数定点域(`:90-118`)与事件流唯一真源(`:122`)照旧 Accepted。
+    理由见 ADR-006 Appendix B。本 ADR §Decision 三 的 `patient_id` 条与折叠规则**已就地修正**。
+  - **Amendment C(2026-09-15)**:`Seq` 的**发放域唯一** = 两条流共享 `(Tick, Patient)` 计数域;
+    **跨流全序键升格为 `(Tick, StreamPriority, Patient, Seq)`** —— 见上 §Implementation Guidelines 2。
+  - **Amendment D(2026-09-15)**:**真源 = 病史流 ∪ 病例流**;终态折叠**只作用于病史流**。
+   本 ADR §Summary 与 §Decision 三 已据此修正;`:122` 之类的旧行号**不再可靠**。
+  - **Amendment E(2026-09-15 · ADR-009)**:**真源 = 病史流 ∪ 病例流 ∪ 世界流**;
+   `StreamPriority` 三值(病史 < 病例 < 世界);终态折叠仍只作用于病史流,
+   病例流与世界流**永不物理折叠**。本 ADR §Summary / §Decision 三 / 架构图已据此修正。
+  - **本 ADR 的两项核心裁决不受影响**:整数定点域(**§Decision 一**)与事件流唯一真源
+    (**§Decision 三**,对象已由单条病史流扩为**三流**并集)照旧 Accepted。
+
+> **2026-09-15 复查轮修正(N-5 · 引用口径变更)**:
+> 本 ADR 与 ADR-006 / 007 / 008 中指向本 ADR 的 **`\`:NNN\` 行号引用已全部废止**,
+> 改为**章节锚点**(如「§Decision 一」/「§Decision 三」/「§Implementation Guidelines 2」)。
+> 原因:本 ADR 因历次就地修正注已增长约 50 行,所有旧行号**集体失准** ——
+> 复核者已两次据此误判段落。**后续新增引用一律用章节名,不得再写行号。**
 - **ADR-001 联机选型**(待建)—— 本 ADR **追加一条约束**:
   选型须支持**自定义可靠有序消息流**。Netcode for GameObjects 与 Photon Fusion **均满足**,
   故本 ADR **不改变 ADR-001 的裁决空间**

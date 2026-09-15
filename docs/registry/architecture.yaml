@@ -30,7 +30,7 @@
 #   Superseded entries:     Grep pattern="status: superseded"
 
 version: 1
-last_updated: ""
+last_updated: 2026-09-15
 
 # ─── STATE OWNERSHIP ─────────────────────────────────────────────────────────
 # Who is the authoritative owner of each piece of shared game state.
@@ -43,7 +43,31 @@ last_updated: ""
 # interface: how other systems access this state (read-only property, method call,
 #   signal, shared resource, etc.) — this is the contract other ADRs depend on.
 
-state_ownership: []
+state_ownership:
+  - state: world_event_stream
+    status: active
+    owner_system: "世界状态(6 世界与生态区 / 17 采集 / 20 库存与物品 / 23 模块化建造 / 24 医馆即机器)"
+    adr: docs/architecture/adr-009-world-state-event-boundary.md
+    interface: "世界流(第三条逻辑流):StructurePlaced/Removed/Modified · DropSpawned/Claimed/Despawned · Craft · ResourceHarvested。不折叠。跨流全序键 (Tick, StreamPriority, Patient, Seq),StreamPriority 病史<病例<世界"
+    write_access: "主机经 IEventSink.Append 按 Kind 路由;世界状态类事件落世界流;instance_id 由 IIdAuthority.ItemInstanceId.Next() 发放,不本地铸造(D-21-27)"
+    referenced_by:
+      - docs/architecture/adr-009-world-state-event-boundary.md
+      - design/gdd/item-database.md   # TR-itemdb-031 / D-21-26 / D-21-27 / D-21-28
+      - design/gdd/systems-index.md   # 6 / 17 / 20 / 23 / 24
+    added: 2026-09-15
+    revised: ""
+
+  - state: case_event_stream
+    status: active
+    owner_system: "37 病例系统"
+    adr: docs/architecture/adr-008-case-event-stream.md
+    interface: "病例流(第二条逻辑流):CaseOpened / CaseClosed / PatternRecognized / JudgmentRecorded / JudgmentRevised。不折叠。跨流全序键 (Tick, StreamPriority, Patient, Seq)"
+    write_access: "主机经 IEventSink.Append 按 Kind 路由;37 产生病例类事件"
+    referenced_by:
+      - docs/architecture/adr-008-case-event-stream.md
+      - design/gdd/case-system.md   # F-37.1 / F-37.2 / 规则二 / 规则六
+    added: 2026-09-15
+    revised: ""
 
 # Example:
 #
@@ -71,7 +95,154 @@ state_ownership: []
 #
 # pattern options: signal | direct_call | event_bus | shared_resource | rpc | none
 
-interfaces: []
+interfaces:
+  - contract: world_state_total_order
+    status: active
+    pattern: shared_resource  # 三流共享排序契约(ADR-009 §三 / Amendment E)
+    producer: "主机"
+    consumers:
+      - "6 世界与生态区"
+      - "17 采集"
+      - "20 库存与物品"
+      - "23 模块化建造"
+      - "24 医馆即机器"
+      - "45 网络层"
+    adr: docs/architecture/adr-009-world-state-event-boundary.md
+    signal_signature: "sort(a, b) = (Tick asc) → (StreamPriority: 病史<病例<世界) → (Patient asc) → (Seq asc)。Seq 发放域唯一 (Tick, Patient),三流共享;世界事件 Patient = PatientId.None"
+    referenced_by:
+      - docs/architecture/adr-009-world-state-event-boundary.md
+      - docs/architecture/adr-006-fixed-point-boundary-contract.md   # Amendment E
+    added: 2026-09-15
+    revised: ""
+
+  - contract: event_stream_routing
+    status: active
+    pattern: event_bus        # IEventSink 按 Kind 纯函数路由到两流
+    producer: "主机(唯一 Append)"
+    consumers:
+      - "37 病例系统"          # 读病例流:case_id / fires-once / 结案
+      - "53 医疗后果与责任"      # 订阅 CaseClosed / PatternRecognized(结算)
+      - "45 网络层"            # 传输两条逻辑流
+    adr: docs/architecture/adr-008-case-event-stream.md
+    signal_signature: "IEventSink.Append(in SimEvent e) — Kind ∈ {病史类} → 病史流;Kind ∈ {CaseOpened/CaseClosed/PatternRecognized/JudgmentRecorded/JudgmentRevised} → 病例流;Kind ∈ {Structure*/Drop*/Craft/ResourceHarvested} → 世界流(ADR-009 §三)"
+    referenced_by:
+      - docs/architecture/adr-008-case-event-stream.md
+      - design/gdd/case-system.md
+    added: 2026-09-15
+    revised: ""
+
+  - contract: cross_stream_total_order
+    status: active
+    pattern: shared_resource  # 全序键是跨流共享的排序契约
+    producer: "主机"
+    consumers:
+      - "37 病例系统"
+      - "45 网络层"
+      - "53 医疗后果与责任"
+    adr: docs/architecture/adr-008-case-event-stream.md
+    signal_signature: "sort(a, b) = (Tick asc) → (病史流 < 病例流) → (Patient asc) → (Seq asc)。零新全局计数器。2026-09-15 ADR-009:StreamPriority 升三值(病史<病例<世界),见 world_state_total_order"
+    referenced_by:
+      - docs/architecture/adr-008-case-event-stream.md
+      - design/gdd/case-system.md
+    added: 2026-09-15
+    revised: ""
+
+  - contract: replay_pipe
+    status: active
+    pattern: event_bus        # 主机 Publish / 客户端 Subscribe;纯管道,零语义判断
+    producer: "主机(唯一 Append)"
+    consumers:
+      - "45 网络层"            # pipe 抽象承载三流传输 + 表现态位置
+      - "客户端(流副本 + 快照,ADR-005)"
+    adr: docs/architecture/adr-001-networking-pipe-abstraction.md
+    signal_signature: "IReplayPipe{Publish(in SimEvent) · Subscribe(Action<SimEvent>) → IDisposable} + ReorderBuffer(有界,全序键吸收重排)。可靠即可、保序非必需;表现态位置走第二 QoS 通道(PublishPositional,unreliable latest-value)。库选型 P1b 前 swap 评审(ADR-001 §四)"
+    referenced_by:
+      - docs/architecture/adr-001-networking-pipe-abstraction.md
+      - docs/architecture/adr-005-deterministic-sim.md   # 客户端流副本
+      - docs/architecture/adr-009-world-state-event-boundary.md   # 表现态位置走 45
+    added: 2026-09-15
+    revised: ""
+
+  - contract: golden_fixture
+    status: active
+    pattern: shared_resource  # 黄金夹具 = 全体平台共享的逐位判据基线
+    producer: "CI 矩阵(ADR-012 §二)"
+    consumers:
+      - "9 疾病与伤情"          # AC-1 / AC-5b
+      - "21a 物品与配方"        # AC-21a-29
+      - "8 诊断与体征"          # AC-8-F5(判据待 E-4 spike)
+      - "37 病例系统"           # AC-37-06 迁移重放
+      - "7a 持久化服务"         # 集成级黄金字节(存档字节流)
+      - "52 随机事件导演"       # AC-52-06 / AC-52-39
+    adr: docs/architecture/adr-012-cross-platform-determinism-ci-gate.md
+    signal_signature: "双级:① 单元级黄金哈希(sim 纯逻辑 Fix/Exp/SplitMix64/CDF walk/编码器往返,raw 校验和写文件);② 集成级黄金字节(ADR-010 存档字节流,头部+三流+快照+SHA256)。矩阵 = Linux-x64-Mono + Linux-x64-IL2CPP + Linux-ARM64-IL2CPP(交叉构建),逐位相同。版本化刷新(golden-vN + 变更日志 + 全体平台重签 + 旧版保留)"
+    referenced_by:
+      - docs/architecture/adr-012-cross-platform-determinism-ci-gate.md
+      - docs/architecture/adr-005-deterministic-sim.md   # 逐位一致判据
+      - docs/architecture/adr-006-fixed-point-boundary-contract.md   # 编码器往返逐位还原
+      - docs/architecture/adr-010-persistence-save-format.md   # 黄金字节夹具载体
+    added: 2026-09-15
+    revised: ""
+
+  - contract: ui_stack_boundary
+    status: active
+    pattern: none             # 两栈分工边界 = 明确的「谁负责什么」契约,非通信模式
+    producer: "42 拟物 UI 框架(ADR-013)"
+    consumers:
+      - "39 脉案"              # Presentation
+      - "43 纸质地图与出诊箱"   # Presentation,P1a
+      - "7b 存档位 UI"         # Presentation
+      - "48 教学"              # 依赖 42
+      - "10 急救动作"          # VR 急救 UI 归 UGUI world space
+    adr: docs/architecture/adr-013-skeuomorphic-ui-framework.md
+    signal_signature: "平面拟物 UI(脉案/出诊箱/纸质地图/存档位/教学)= UI Toolkit(UXML+USS 元件库);world-space + VR 急救 = UGUI world canvas(VR 必须 World Space)。两栈共用同一 EventSystem;焦点单栈门(同一时刻仅一栈接收 ADR-011 导航意图流)。P0 定接口与元件库契约,VR 实现推 P1a"
+    referenced_by:
+      - docs/architecture/adr-013-skeuomorphic-ui-framework.md
+      - docs/architecture/adr-011-input-architecture.md   # 导航意图流的呈现侧
+      - docs/architecture/adr-005-deterministic-sim.md    # UI 只读 VitalsDto
+      - design/gdd/systems-index.md   # 42 / 39 / 43 / 7b / 48
+    added: 2026-09-15
+    revised: ""
+
+  - contract: data_pipeline
+    status: active
+    pattern: none             # 作者态 → 出货态的三层管线,非通信模式
+    producer: "21a / 52 / 9 的数据集(作者态 assets/data/[system]_[name].json)"
+    consumers:
+      - "9 疾病与伤情"          # sim 只接收已解析领域数据(门 A:sim 零 UnityEngine)
+      - "21a 物品与配方"        # ItemDef / Recipe
+      - "52 随机事件导演"       # 事件池 / tier 表
+    adr: docs/architecture/adr-014-data-pipeline-and-json-parser.md
+    signal_signature: "三层:作者态 JSON → [阶段1 JsonTextReader 词法] → [阶段2 自研 per-schema 绑定 + FixParse + 校验] → *.cooked 烘焙产物 → data-core Addressables 组(启动预载)→ 边界程序集 IDataProvider → sim。Fix 字段落盘为 raw long;玩家构建零 JSON 解析器、零 FixParse。Fix 承载字段在 JSON 里写字符串(非 JSON 数字)"
+    referenced_by:
+      - docs/architecture/adr-014-data-pipeline-and-json-parser.md
+      - docs/architecture/adr-006-fixed-point-boundary-contract.md   # FixParse 唯一入口 · 导入期转换
+      - docs/architecture/adr-005-deterministic-sim.md   # 门 A:sim 零 UnityEngine,不直调 Addressables
+      - docs/architecture/adr-010-persistence-save-format.md   # ConfigVersion 存档头联动
+      - .claude/rules/data-files.md
+    added: 2026-09-15
+    revised: ""
+
+  - contract: world_coordinate_lattice
+    status: active
+    pattern: none             # 单一坐标类型契约,非通信模式
+    producer: "6 世界与生态区(ADR-015 §三 定型 WorldPos)"
+    consumers:
+      - "17 采集"              # 资源点分布落在格上
+      - "20 库存与物品"        # 掉落锚点 spawn_anchor 用格坐标(位置侧)
+      - "23 模块化建造"        # 建造槽位对齐到同一格
+      - "24 医馆即机器"        # 房间格 / 邻接判定在整数格上
+      - "13 / 27 AI"           # 导航格来源(寻路形态由 R-14 定)
+      - "52 随机事件导演"      # 与生态区绑定 / spawn_anchor 确定性解析(禁 NavMesh 采样)
+    adr: docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+    signal_signature: "WorldPos = (i32 X, i32 Y, i32 Z) 单一整数格,住 sim 程序集零 UnityEngine 引用。地形格 / 建造槽位 / 掉落锚点 / 资源点 / 导航格 / 医馆房间格共用同一套格,不做第二套坐标。空间位置一律整数格;Fix(Q16.16)只用于非空间模拟量。chunk 只是流式/失效粒度,不导出坐标。视觉层 Vector3 由格坐标 × 格尺寸映射得到,反向不可信"
+    referenced_by:
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §一 位置一律整数网格 / §三 WorldPos
+      - docs/architecture/adr-006-fixed-point-boundary-contract.md   # 空间用格,非空间用 Fix
+      - design/gdd/random-events.md   # 禁 NavMesh 采样
+    added: 2026-09-15
+    revised: ""
 
 # Example:
 #
@@ -122,6 +293,18 @@ performance_budgets: []
 #     added: 2026-03-26
 #     revised: ""
 
+performance_budgets:
+  - system: case_event_stream
+    status: active
+    budget_note: "病例流写入率 ≤ 立案率 ≤ 病人出现率(9 配置上限)。无固定 ms 预算 —— 有界性论证(ADR-008 §六)"
+    adr: docs/architecture/adr-008-case-event-stream.md
+    notes: "病例流不折叠;写入者只有玩家;增长率上界 = 9 的配置常数(病人出现率)"
+    referenced_by:
+      - docs/architecture/adr-008-case-event-stream.md
+      - design/gdd/case-system.md
+    added: 2026-09-15
+    revised: ""
+
 
 # ─── API DECISIONS ───────────────────────────────────────────────────────────
 # Which engine APIs are chosen for which purpose across the project.
@@ -147,6 +330,189 @@ api_decisions: []
 #       - docs/architecture/adr-0003-combat-system.md
 #     added: 2026-03-26
 #     revised: ""
+
+api_decisions:
+  - purpose: world_state_encoding
+    status: active
+    api: "自定义编码器(值 struct / 禁 float / Q16.16 或整数网格),经 ADR-006 §五序列化探针守住"
+    not: "Unity 内置序列化器;进流字段出现 float"
+    adr: docs/architecture/adr-009-world-state-event-boundary.md
+    reason: "世界流坐标 / 载荷(WorldPos / Drop* 载荷)须逐位稳定可重放;float 只在表现态(45 网络层)"
+    referenced_by:
+      - docs/architecture/adr-009-world-state-event-boundary.md
+      - design/gdd/item-database.md
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: terrain_worldseed_generation
+    status: active
+    api: "手工烘焙固定世界:**逻辑整数层**(生态区多边形 / POI / 资源点 / 导航格,经 ADR-014 烘成 *.cooked)+ **纯视觉层**(Unity Terrain,浮点表现);运行期只加载逻辑层"
+    not: "第三方地形工具(GAIA / MapMagic 2)承担运行期生成(仅编辑期素材/预览);从视觉地形反推逻辑格;以 WorldSeed 程序生成地形"
+    adr: docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+    reason: "静态世界几何 = 派生态(不进流 · 加载期重建);`WorldSeed` 只驱动动态量(病人种子/掷骰/掉落),不再是地形生成参数(ADR-015 §二 修订 ADR-009 §四)"
+    referenced_by:
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §四 已修订
+    added: 2026-09-15
+    revised: "2026-09-15"
+
+  - purpose: building_grid_selection
+    status: active
+    api: "模块化网格(ADR-015 §五):建造槽位对齐到 WorldPos 同一世界格;建造物 = 槽位上的模块实例,StructurePlaced/Removed/Modified 是世界流事件(载荷含格坐标 + 模块 id + 朝向 + 变体);医馆邻接逻辑 = 整数格上的离散邻接判定"
+    not: "Voxel 建造(优势在无限程序世界,与本作固定世界 + 手制内容相悖,徒增 chunk/collider 成本);每建筑局部网格(两套网格共存);医馆邻接实现成物理 / NavMesh 查询"
+    adr: docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+    reason: "固定世界 + 内容全部手制 ⇒ 体素自由雕琢无收益;与地形共用同一格让跨系统判定(掉落是否落在建筑内 / 房间邻接)退化为整数比较;承 concept-benchmark 的英灵神殿式锚点"
+    referenced_by:
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+      - design/gdd/game-concept.md   # 医馆红石逻辑 = 医学逻辑,非电路
+      - design/gdd/systems-index.md   # 23 / 24
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: chunk_granularity
+    status: active
+    api: "chunk = 加载/卸载/失效粒度(ADR-015 §四):覆盖固定格矩形;职责 = 视觉层流式加载 · 逻辑层可卸载(驻留与否不改判定结果)· 脏块失效(建造落位/拆除/资源耗尽 ⇒ 标记所在 chunk 的逻辑占用与导航 tile 失效重算)"
+    not: "chunk 参与坐标定义;chunk 局部坐标系(同一点在不同 chunk 有不同坐标 ⇒ 跨块判定必错);chunk 边界处逻辑层的浮点对齐"
+    adr: docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+    reason: "WorldPos 永远是世界格坐标 ⇒ 全局单格代数上更简单;局部原点是对齐/接缝静默 bug 的经典来源;chunk 只暴露「包含哪些格」不暴露坐标"
+    referenced_by:
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+      - docs/architecture/adr-009-world-state-event-boundary.md   # 判定结果进流(与 chunk 驻留解耦)
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: navigation_lattice_source
+    status: active
+    api: "导航格(可走/阻挡/代价)是逻辑层整数数据(ADR-015 §五),sim 寻路走查表;NavMesh 仅服务 AI 表现态移动(13 病人 AI / 27 敌人 AI),不由 sim 读取、不影响确定性判定;建造落位后的动态 carving 属表现层预算"
+    not: "sim 读 NavMesh 做确定性判定;用 Terrain.SampleHeight 决定可走性;事件导演的确定性决策实现为 NavMesh 路径查询"
+    adr: docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+    reason: "NavMesh 在 IL2CPP 下跨平台不保证逐位(random-events.md:438-439);判定结果进流、判定过程不进流(与 ADR-009 同构);可走性由整数导航格给出,与 ADR-006 禁 float 边界一致"
+    referenced_by:
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+      - design/gdd/random-events.md   # 禁 NavMesh 采样
+      - docs/engine-reference/unity/modules/navigation.md
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: case_stream_payload_encoding
+    status: active
+    api: "自定义编码器(值 struct / 禁 float / Q16.16),经 ADR-006 §五序列化探针守住"
+    not: "Unity 内置序列化器(ADR-006 D-21-18: Fix 不可经内置序列化器承载)"
+    adr: docs/architecture/adr-008-case-event-stream.md
+    reason: "病例流载荷(disease_set / treated / judgment)含 Fix 派生值,须逐位稳定可回放"
+    referenced_by:
+      - docs/architecture/adr-008-case-event-stream.md
+      - design/gdd/case-system.md
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: case_stream_salt
+    status: active
+    api: "SplitMix64(WorldSeed, \"case-salt\") — 全局派生盐(防御纵深,非保密层)"
+    not: "裸 disease_id 进 PatternRecognized 载荷"
+    adr: docs/architecture/adr-008-case-event-stream.md
+    reason: "P0 ≤ 8 病种枚举空间 ⇒ 加盐键必然可逆;规则九唯一落点 = AC-37-15 DTO 静态检查"
+    referenced_by:
+      - docs/architecture/adr-008-case-event-stream.md
+      - design/gdd/case-system.md
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: netcode_library
+    status: active
+    api: "P0 = 无(P0 零依赖:pipe 抽象本地占位)"
+    not: "P0 引入 NGO / Fusion(选型推迟到 P1b 前 swap 评审,ADR-001 §四)"
+    adr: docs/architecture/adr-001-networking-pipe-abstraction.md
+    reason: "五份 ADR 已把裁决空间收窄到管道语义,库差异落在工程/成本维;P0 决策会过期,P1b 决策才有时效性"
+    referenced_by:
+      - docs/architecture/adr-001-networking-pipe-abstraction.md
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: input_action_mapping
+    status: active
+    api: "Input System action-based(动作资产,K&M + Gamepad + OpenXR 三套绑重)+ bindings overrides 持久化"
+    not: "Legacy Input Manager(6.3 已弃用);自研输入层包装"
+    adr: docs/architecture/adr-011-input-architecture.md
+    reason: "官方路线满足全部约束(焦点导航 / 急救 <50ms / VR);自研层是过度工程"
+    referenced_by:
+      - docs/architecture/adr-011-input-architecture.md
+      - design/gdd/systems-index.md   # 3 输入与设备 / 4 交互 / 10 急救动作
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: determinism_ci_matrix
+    status: active
+    api: "game-ci/unity-test-runner@v4(Mono 格)+ unity-builder@v4 出 IL2CPP player(独立 job);矩阵 = Linux-x64-Mono + Linux-x64-IL2CPP + Linux-ARM64-IL2CPP(交叉构建→原生 runner 只跑 player)"
+    not: "Windows/macOS runner 进常驻矩阵(计费);qemu 模拟 ARM64 作逐位判据(softfloat 不可信)"
+    adr: docs/architecture/adr-012-cross-platform-determinism-ci-gate.md
+    reason: "Linux runner 全免费 → 常驻零计费;覆盖运行时(Mono vs IL2CPP)× 架构(x64 vs ARM64)两维;Windows-x64 / Apple Silicon 列发版前必跑"
+    referenced_by:
+      - docs/architecture/adr-012-cross-platform-determinism-ci-gate.md
+      - .claude/docs/coding-standards.md   # CI/CD Rules
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: il2cpp_compiler_flags_registration
+    status: active
+    api: "per-target 登记表 + IPreprocessBuildWithReport 按 BuildTarget 切换 PlayerSettings.SetAdditionalIl2CppArgs(PR 审查)"
+    not: "PlayerSettings.SetAdditionalIl2CppArgs 全局单值直存(非 per-BuildTarget)"
+    adr: docs/architecture/adr-012-cross-platform-determinism-ci-gate.md
+    reason: "该 API 全局单值;逐目标登记须回调切换。flags 仅作「防浮点泄漏」纵深防御(sim 全整数域,FMA 零杠杆),逐位性主保障是黄金哈希本身"
+    referenced_by:
+      - docs/architecture/adr-012-cross-platform-determinism-ci-gate.md
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: ui_framework_split
+    status: active
+    api: "UI Toolkit(UXML/USS)为主栈承载平面拟物 UI;UGUI world canvas 补 world-space 与 VR(VR 必须 World Space)"
+    not: "全 UGUI 单栈(逆引擎推荐);全 UI Toolkit + 自绘 world-space(无官方焦点/输入桥,成本高);Overlay/Camera 模式做 VR(Overlay 不参与立体)"
+    adr: docs/architecture/adr-013-skeuomorphic-ui-framework.md
+    reason: "引擎参考推荐新项目用 UI Toolkit(E-16:UI Toolkit 无原生 world-space/XR ⇒ 两栈早决);焦点导航质量 spike 为前置"
+    referenced_by:
+      - docs/architecture/adr-013-skeuomorphic-ui-framework.md
+      - design/gdd/systems-index.md   # 42 拟物 UI 框架
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: ui_focus_navigation_presentation
+    status: active
+    api: "InputSystemUIInputModule 官方桥 → UI Toolkit NavigationMoveEvent;焦点移动由 FocusController 引擎自动完成"
+    not: "自实现焦点移动算法;同一控件重复绑定(官方 UI action map 的 Navigate + 自建焦点动作)"
+    adr: docs/architecture/adr-013-skeuomorphic-ui-framework.md
+    reason: "ADR-011 裁定 R-6 用官方桥;桥接通后焦点移动是引擎自动(ADR-013 F1/F2);重复绑定 = 同键双触发"
+    referenced_by:
+      - docs/architecture/adr-013-skeuomorphic-ui-framework.md
+      - docs/architecture/adr-011-input-architecture.md
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: data_authoring_and_cooking
+    status: active
+    api: "作者态 = assets/data/[system]_[name].json(唯一真源) → 构建期烘焙为 deterministic *.cooked(Fix = raw long);解析器 Newtonsoft JsonTextReader 仅作词法器 + 自研 per-schema 绑定层(白名单 / FixParse / 校验 / schema_version)"
+    not: "JsonConvert.DeserializeObject<T> / JObject.Parse 等对象反序列化(数字经 double/decimal 中转 = 绕 FixParse 的浮点泄漏);玩家构建内含 JSON 解析器或 FixParse;Fix 承载字段写成 JSON 数字(非字符串)"
+    adr: docs/architecture/adr-014-data-pipeline-and-json-parser.md
+    reason: "R-8 LOW 评级靠结构性规避坐实 —— 解析器不进玩家构建,逐平台逐位性从运行期确定性面消失;兑现 ADR-006 §Effects「FixParse 仅导入期 · 零运行期成本」"
+    referenced_by:
+      - docs/architecture/adr-014-data-pipeline-and-json-parser.md
+      - docs/architecture/adr-006-fixed-point-boundary-contract.md
+      - design/gdd/item-database.md
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: data_distribution_and_preload
+    status: active
+    api: "单一 data-core Addressables 组 + 首次 Step 前启动预载常驻;装载落边界程序集(门 A:sim 零 UnityEngine);ConfigVersion = 源数据集内容哈希派生(u32),与 ADR-010 存档头比对"
+    not: "运行期以 TextAsset 载入作者 JSON(与构建期烘焙相冲);按数据集拆多组(数据全是 Step 前置,拆组无收益);ConfigVersion 手工单调计数器"
+    adr: docs/architecture/adr-014-data-pipeline-and-json-parser.md
+    reason: "Step 无错误返回通道 ⇒ 数据必须预载;E-13(Addressables 6.2+ 抛异常)⇒ 加载失败须启动期硬失败而非 null 解引用;内容哈希派生使改数值自动改版本号,免手工失误"
+    referenced_by:
+      - docs/architecture/adr-014-data-pipeline-and-json-parser.md
+      - docs/architecture/adr-010-persistence-save-format.md   # ConfigVersion 存档头
+      - docs/engine-reference/unity/breaking-changes.md   # E-13
+    added: 2026-09-15
+    revised: ""
 
 
 # ─── FORBIDDEN PATTERNS ──────────────────────────────────────────────────────
@@ -179,3 +545,166 @@ forbidden_patterns: []
 #       ownership model. The owning system must be the sole writer."
 #     adr: docs/architecture/adr-0000-architecture-principles.md
 #     added: 2026-03-26
+
+forbidden_patterns:
+  - pattern: world_state_events_in_history_stream
+    status: active
+    description: "世界状态类事件(Structure* / Drop* / Craft / ResourceHarvested)必须落世界流,不得落病史流或病例流;反之病史类 / 病例类事件不得落世界流。IEventSink 三流纯函数路由(ADR-009 §二)"
+    why: "落病史流 = 污染 9 的真源所有权(同 case_events_in_history_stream);落病例流 = 跨域职责混乱 + 有界性论证不适用(世界流是系统驱动,病例流是玩家驱动)"
+    adr: docs/architecture/adr-009-world-state-event-boundary.md
+    added: 2026-09-15
+
+  - pattern: world_state_stream_physical_fold
+    status: active
+    description: "世界流不物理折叠(ADR-009 §六)。建造物折叠行不比事件小;掉落生命周期短;医馆改写史类状态折叠 = 破坏回看"
+    why: "与病例流同理(ADR-008 §六):折叠省不下长期集合,只制造第二真相。7a 定期快照 = 优化非真相"
+    adr: docs/architecture/adr-009-world-state-event-boundary.md
+    added: 2026-09-15
+
+  - pattern: terrain_tool_in_runtime_generation
+    status: active
+    description: "第三方地形工具(GAIA / MapMagic 2)不得承担运行期生成,仅作编辑期素材 / 预览(ADR-015 §六);静态世界几何走烘焙逻辑层加载 —— 2026-09-15 ADR-015 收窄自 ADR-009 §四 的「生成数学入定点域」"
+    why: "运行期生成把地形内部算法(高度图 int16 量化 / splat / 散射)的跨平台不透明性引回 sim;改为烘焙加载后该风险整条消除(ADR-015 §二)"
+    adr: docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+    added: 2026-09-15
+    revised: "2026-09-15"
+
+  - pattern: pickup_deterministic_replay
+    status: active
+    description: "拾取判定不重放(ADR-009 §七):玩家意图(45 网络层)+ 主机当下判距 + 宽容半径 ⇒ 结果(DropClaimed)确定性进流;判定过程不进模拟域"
+    why: "判距吃物理位置(表现态),位置不可重放 ⇒ 重放判距 = 模拟域悄悄依赖表现态(静默污染)"
+    adr: docs/architecture/adr-009-world-state-event-boundary.md
+    added: 2026-09-15
+
+  - pattern: netcode_library_in_p0
+    status: active
+    description: "P0 不得引入 NGO / Fusion 等 netcode 库(ADR-001 §二):P0 只实现 pipe 抽象(IReplayPipe + ReorderBuffer)本地占位,零引擎依赖;库选型推迟到 P1b 前一次 swap 评审"
+    why: "五份 ADR 已把裁决空间收窄到管道语义;P0 选库 = 用过期的决策锁死未来,且 NGO/Fusion 的状态同步能力恰是本架构刻意不用的复杂度"
+    adr: docs/architecture/adr-001-networking-pipe-abstraction.md
+    added: 2026-09-15
+
+  - pattern: legacy_input_manager
+    status: active
+    description: "禁用 Legacy Input Manager(6.3 已弃用);输入层零旧输入依赖(ADR-011 §一)"
+    why: "新旧输入系统并存 = 双份输入处理 + 双倍歧义;急救直读通道与焦点导航都要求单一输入源"
+    adr: docs/architecture/adr-011-input-architecture.md
+    added: 2026-09-15
+
+  - pattern: emergency_input_through_ui_stack
+    status: active
+    description: "急救动作小游戏的输入必须走独立直读通道(Update 直读 Input System 动作值),不得穿过 42 UI 事件栈(排队 / 焦点路由延迟吃 <50ms 预算)"
+    why: "「手稳」是急救小游戏的核心;<50ms 硬预算与 UI 事件栈不相容(ADR-011 §二 / F1)"
+    adr: docs/architecture/adr-011-input-architecture.md
+    added: 2026-09-15
+
+  - pattern: input_writing_sim_domain
+    status: active
+    description: "输入层只产出意图(InteractIntent / EmergencyIntent / FocusNavigationIntent),不得直接写模拟域;P0 本地经 IEventSink,联机经 45(ADR-011 §一)"
+    why: "输入是意图源(ADR-005);输入直写模拟域 = 绕过确定性模拟 / 权威边界,联机即静默分叉"
+    adr: docs/architecture/adr-011-input-architecture.md
+    added: 2026-09-15
+
+  - pattern: case_events_in_history_stream
+    status: active
+    description: "病例事件(立案/结案/模式识别/判断记录)必须落病例流,不得落病史流;反之处置事件(9 的求值输入)必须留在病史流。IEventSink 按 Kind 纯函数路由"
+    why: "病例落病史流 ⇒ 被终态折叠删掉(ADR-005 :207)⇒ case_id 不可重构、fires-once 破坏、处置证据丢失;处置事件移走 ⇒ 9 的 F1/F4 求值失源"
+    adr: docs/architecture/adr-008-case-event-stream.md
+    added: 2026-09-15
+
+  - pattern: case_stream_physical_fold
+    status: active
+    description: "病例流不物理折叠(拒绝 Alternative 3)。未结案案例永不折叠(规则六),改写史为玩家回看需完整历史(规则四 / AC-37-05)"
+    why: "折叠行塞不下变长改写史 + 未结案集合省不下来 + 需另建 fires-once 机制,收益不成立"
+    adr: docs/architecture/adr-008-case-event-stream.md
+    added: 2026-09-15
+
+  - pattern: salt_as_secrecy
+    status: active
+    description: "加盐哈希键(PatternRecognized)是防御纵深,不是保密层。规则九保密 = 呈现层 DTO 静态检查(AC-37-15);P0 ≤ 8 病种枚举空间必然可逆"
+    why: "把盐当保密体 = 给「disease_id 不会泄漏」的假保证,而病史流明文 onset 已含病种、客户端持流副本"
+    adr: docs/architecture/adr-008-case-event-stream.md
+    added: 2026-09-15
+
+  - pattern: qemu_for_bitwise_verification
+    status: active
+    description: "禁止用 qemu 模拟的 ARM64 IL2CPP 作为逐位判据(ADR-012 §二)。qemu-user 下 ARM64 走 softfloat,浮点/回绕语义与真实硬件不同;仅可作冒烟测试"
+    why: "黄金对拍的判据价值高于便利;qemu 下的「逐位相同」是假的,会掩盖真实漂移"
+    adr: docs/architecture/adr-012-cross-platform-determinism-ci-gate.md
+    added: 2026-09-15
+
+  - pattern: golden_fixture_single_platform_resign
+    status: active
+    description: "禁止单平台独签黄金夹具(ADR-012 §四)。刷新必须新版本目录(golden-vN)+ 变更日志 + 全体平台同时重签;旧版保留作回归对比"
+    why: "单平台独签 = 把该平台的漂移冻结成「正确值」,其余平台反而报错;版本化刷新让漂移有审计轨迹"
+    adr: docs/architecture/adr-012-cross-platform-determinism-ci-gate.md
+    added: 2026-09-15
+
+  - pattern: il2cpp_flags_global_singleton
+    status: active
+    description: "禁止把 IL2CPP 编译旗标当作全局单值登记(ADR-012 §三)。SetAdditionalIl2CppArgs 是全局单值,逐目标登记须 IPreprocessBuildWithReport 按 BuildTarget 切换 + per-target 登记表(PR 审查)"
+    why: "全局单值直存 = 各目标平台共用一套旗标,ARM64 / x64 的 FMA 差异无法分别登记,构建行为不可复现"
+    adr: docs/architecture/adr-012-cross-platform-determinism-ci-gate.md
+    added: 2026-09-15
+
+  - pattern: ui_holding_game_state
+    status: active
+    description: "42 拟物 UI 只渲染,永不持有游戏状态(systems-index §9 C3 / ADR-013 §三)。「体征 → 呈现形态」映射表归 8 诊断;UI 只读 DTO(`IVitalsQuery → VitalsDto`),零模拟写"
+    why: "UI 持状态 = 第二真相,与事件流唯一真源冲突;映射表属医学知识,不属渲染知识"
+    adr: docs/architecture/adr-013-skeuomorphic-ui-framework.md
+    added: 2026-09-15
+
+  - pattern: dual_eventsystem
+    status: active
+    description: "禁止 UI Toolkit 与 UGUI 各挂一个 EventSystem / 并存 StandaloneInputModule 与 InputSystemUIInputModule(ADR-013 §一 / F4)。两栈共用同一 EventSystem;焦点单栈门保证同一时刻仅一栈接收导航意图流"
+    why: "双 EventSystem / 双输入模块 = 输入事件被两套栈各处理一次,焦点乱跳;焦点流双喂 = 同键两次焦点移动"
+    adr: docs/architecture/adr-013-skeuomorphic-ui-framework.md
+    added: 2026-09-15
+
+  - pattern: focus_navigation_reimplementation
+    status: active
+    description: "禁止自实现 UI 焦点移动算法(ADR-013 §五)。用官方桥(`NavigationMoveEvent`)后焦点移动由 UI Toolkit FocusController 引擎自动完成;若某控件同时绑 Input System 默认 `UI` action map 的 `Navigate` 与自建焦点动作 = 同键双触发"
+    why: "重复实现 = 双触发根源;官方桥已覆盖手柄焦点移动,自建是过度工程且与 ADR-011 裁定冲突"
+    adr: docs/architecture/adr-013-skeuomorphic-ui-framework.md
+    added: 2026-09-15
+
+  - pattern: runtime_json_deserialization
+    status: active
+    description: "禁止在玩家构建内运行 JSON 解析器(ADR-014 §二/§三)。JSON 是作者态;出货的是构建期烘焙产物(*.cooked),Fix 字段已落盘为 raw long。违者把解析器逐平台逐位性重新引入运行期确定性面"
+    why: "解析器进玩家构建 ⇒ R-8 从结构性规避退化为须实测;运行期解析失败要硬失败而非静默,风险面更大"
+    adr: docs/architecture/adr-014-data-pipeline-and-json-parser.md
+    added: 2026-09-15
+
+  - pattern: json_object_deserialization_for_fix_data
+    status: active
+    description: "禁止用 JsonConvert.DeserializeObject<T> / JObject.Parse 等对象反序列化 API 读入承载 Fix 的数据(ADR-014 §三 阶段1)。它们把 JSON 数字经 double/decimal 中转填入对象,是绕过 FixParse 的静默浮点泄漏通道;Newtonsoft 仅可作词法器(JsonTextReader)"
+    why: "ADR-006 存在的理由即「拒浮点、唯一入口」;对象反序列化让浮点在 FixParse 之外进入内存,且失败静默"
+    adr: docs/architecture/adr-014-data-pipeline-and-json-parser.md
+    added: 2026-09-15
+
+  - pattern: fix_field_as_json_number
+    status: active
+    description: "禁止把承载 Fix 的字段写成 JSON 数字(ADR-014 §四)。必须是 JSON 字符串(如 \"offset\": \"3/4\"),词法器交出 String token,浮点从不进入内存。JSON 数字 token 会被词法器自解析为 long/double/decimal"
+    why: "数字一旦被词法器转成 CLR 基元,浮点即已在内存 —— 「拒浮点」由结构性保证退化为行为约束"
+    adr: docs/architecture/adr-014-data-pipeline-and-json-parser.md
+    added: 2026-09-15
+
+  - pattern: cooked_artifact_source_drift
+    status: active
+    description: "禁止提交与源 JSON 不一致的烘焙产物(ADR-014 §Validation 陈旧门)。CI 对提交的源重烘,断言产物逐字节一致,否则构建失败。改数值须同步重烘"
+    why: "源改了没重烘 ⇒ 运行期用旧值,静默漂移;陈旧门让它成为构建失败而非运行期幻觉"
+    adr: docs/architecture/adr-014-data-pipeline-and-json-parser.md
+    added: 2026-09-15
+
+  - pattern: chunk_local_coordinate_system
+    status: active
+    description: "禁止引入 chunk 局部坐标系(ADR-015 §四)。chunk 只是加载 / 卸载 / 失效的粒度,一个 chunk 覆盖固定格矩形;WorldPos 永远是全局世界格坐标,chunk 只暴露「包含哪些格」不暴露坐标"
+    why: "chunk 自带原点 ⇒ 同一点在两块有两种坐标,跨 chunk 判定必错;对齐 / 接缝是经典静默 bug 源,全局单格代数上更简单"
+    adr: docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+    added: 2026-09-15
+
+  - pattern: visual_terrain_sampling_into_sim
+    status: active
+    description: "禁止把视觉层地形采样喂进 sim(ADR-015 §一)。如用 Terrain.SampleHeight / NavMesh 采样决定可走性、或从 Vector3 视觉坐标反推逻辑格 —— 那是 float 入 sim,破 ADR-006;可走性一律由逻辑导航格给出"
+    why: "视觉层是 float 任意、Terrain 内部算法跨平台不保证逐位;采样入 sim 把 R-9 好不容易排除的风险引回,且破 ADR-006 的禁 float 边界"
+    adr: docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+    added: 2026-09-15

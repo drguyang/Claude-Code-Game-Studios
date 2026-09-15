@@ -1,0 +1,337 @@
+# ADR-015: 世界几何(手工烘焙固定世界 · 单一整数格 · 模块化建造)
+
+## Status
+
+Accepted
+
+> **2026-09-15 起草。** 四条用户裁定已锁(均照准):
+> ① **地形 / 生态区真相来源 = 手工烘焙固定世界** —— 4 生态区布局由关卡 / 美术手工制作,
+> 烘成静态资产随构建出货;**`WorldSeed` 只驱动动态量**(病人种子 / 掷骰 / 掉落散布),
+> **不再是地形生成器的种子**。此裁定**就地修订 ADR-009 §四**(见 §二 / §七);
+> ② **范围 = R-9 + R-10 合并**(`WorldPos` 坐标系与 chunk 划分是两者的真正接口,拆开会互相预判);
+> ③ **建造网格 = 模块化网格**(承 `concept-benchmark` / `game-concept` 的英灵神殿式锚点),
+> **与地形共用同一世界格**;
+> ④ **第三方地形工具(GAIA / MapMagic 2)= 仅编辑期辅助**(素材 / 预览),运行期零第三方。
+> 独立评审由下一轮 `/architecture-review` 进行。
+
+## Date
+
+2026-09-15
+
+## Last Verified
+
+2026-09-15
+
+## Decision Makers
+
+dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(起草与裁决)
+· level-designer(生态区布局手工制作)· technical-artist(视觉层 / Terrain 管线)
+· unity-specialist(引擎复核)· 系统 6 世界与生态区 · 23 模块化建造 · 24 医馆即机器 · 17 采集
+
+## Summary
+
+架构复核把**开放世界的几何类决策**记为两个 Feature 层 HIGH 缺口:**R-9**(ADR-002 开放世界地形 ——
+第三方 vs 自研;**第三方地形工具不是确定性的**,若须由 `WorldSeed` 逐位重建则整体出局)与
+**R-10**(ADR-003 建造系统网格 —— Voxel vs 模块化;chunk / collider / NavMesh 动态 carving 成本)。
+本 ADR 合并两者并裁决:**世界几何 = 手工烘焙的固定世界** —— 编辑期产出**两层**
+(**确定性整数逻辑层**,经 ADR-014 烘成 `*.cooked`;**纯视觉层**,Unity Terrain 呈现),
+运行期**只加载逻辑层**;**`WorldPos` = 单一整数方格**(i32 格坐标);**chunk 只作流式 / 脏块优化,
+不是坐标原点**;**建造模块与地形共用同一格**;第三方地形工具**仅编辑期辅助**。
+**本 ADR 就地修订 ADR-009 §四** —— 「派生态」分类保留,但生成方式由「`WorldSeed` 纯函数」
+改为「烘焙逻辑布局加载」(见 §二)。
+
+## Engine Compatibility
+
+| Field | Value |
+|-------|-------|
+| **Engine** | Unity 6.3 LTS (URP) |
+| **Domain** | Core / World Geometry(地形 · 坐标 · 建造网格 · 导航) |
+| **Knowledge Risk** | LOW —— 本裁决**刻意不依赖任何 post-cutoff API**:整数格坐标是纯 C#,
+建造网格是纯数据 + 表现层实例化,导航格烘焙走查表。**未使用** Unity Terrain 的运行期生成 API、未用 `Int128` / 新 DOTS |
+| **References Consulted** | `docs/engine-reference/unity/modules/navigation.md`(NavMesh / runtime baking)· `docs/engine-reference/unity/VERSION.md` · `docs/engine-reference/unity/breaking-changes.md` |
+| **Post-Cutoff APIs Used** | **None** |
+| **Verification Required** | ① 逻辑格 → 视觉地形(mesh / splat / 植被点)的对齐漂移实测(表现层,非逐位);② 大世界 chunk 流式预算(帧时 / 内存);③ 建造放置的动态 NavMesh tile 更新成本(R-10 的 chunk / collider / carving 成本,**表现层预算**,非确定性) |
+
+## ADR Dependencies
+
+| Field | Value |
+|-------|-------|
+| **Depends On** | **ADR-005**(Accepted —— 定点域 · `Fix` 形状 · 事件流唯一真源)· **ADR-006**(Accepted —— 边界契约 · 禁 float 入 sim)· **ADR-009**(Accepted —— 世界状态三态边界;**本 ADR 修订其 §四**——须先 Accepted)· **ADR-014**(Accepted —— 数据管线:作者态 → 烘焙产物 → `data-core` 预载) |
+| **Enables** | **R-14 / AI 架构**(导航格来源定型)· 6 世界与生态区 · 17 采集 · 23 模块化建造 · 24 医馆即机器 |
+| **Blocks** | **6 / 17 / 23 / 24 的实现** —— 坐标系未定型前,任何世界坐标相关的代码都会定型错误 |
+| **Ordering Note** | `TR-itemdb-031`(掉落实体的世界状态事件化边界)的**位置**侧由本文 §三 定型;其**归属**侧仍归 R-2 / 7a(ADR-010 已定) |
+
+## Context
+
+### Problem Statement
+
+架构复核 R-9 写明:「第三方地形工具**不是确定性的**,若须由 `WorldSeed` 逐位重建则整体出局」;
+R-10 写明建造网格在「chunk / collider / NavMesh 动态 carving 成本」上的三个问号。
+**两者共同卡住的是同一件事:世界坐标与几何的确定性边界**。ADR-009 §四 已预置判据
+(**生成数学必须落在本工程定点域**),但它留给 R-9 的是一个**纯函数式地形生成器** ——
+这与仓库别处的口径**相冲**(见下)。
+
+### Current State
+
+**四生态区是手工内容,不是程序生成的。** 仓库多处明写:
+
+- `game-concept.md:574` —— 「程序化系统 | 保守使用:**地形可用第三方**,核心内容**全部手制**」;
+- `concept-benchmark.md:80` —— 对照表:「无限世界 | 程序生成,无限 | **4 个手工生态区,有限** |
+  ⚠️ **背离 —— 内容全部手制**」;
+- `game-concept.md:250` —— 「本作**固定世界**(弃用『离中心越远越强』的空间轴)」;
+- `game-concept.md:573` —— 「**4 生态区**」,与 `:684` 的「P1a 2 个生态区 / P1b 4 个生态区」分期一致。
+
+**所以 ADR-009 §四 的「`(WorldSeed, 配置) → 布局` 纯函数」这一句,与手工内容相冲。**
+若照其字面实现,等于要求一个能程序生成手工生态区的生成器 —— 逻辑上不成立。
+**本 ADR 的修订正是消除这处口径错误。**
+
+### Constraints
+
+- **ADR-009 §四(修订前)**:静态地形 / 生态区 = **派生态**,不进流、不存档,
+  **生成数学必须是本工程定点域**;第三方工具不得承担运行期生成。
+- **ADR-006**:进 sim 的数据**不得含 `float` / `double`**;单一定点域。
+- **ADR-014**:数据走「作者态 → 构建期烘焙 → `data-core` 预载」;构建期硬失败;产物 deterministic。
+- **`random-events.md:269` / `:438-439`**:事件导演的确定性决策**不得**实现为 NavMesh 路径查询
+  或场景几何判定;**不得**用 `UnityEngine.Random` 或 NavMesh 采样(NavMesh 在 IL2CPP 下跨平台不保证逐位)。
+- **`game-concept.md:381`**:医馆的「红石逻辑」= 医学逻辑(感染 / 习性 / 火候),不是电路 ——
+  即医馆即机器的判定是**离散邻接规则**,不是物理模拟。
+
+### Requirements
+
+- 世界坐标**单一来源**,地形 / 建造 / 掉落锚点 / 资源点 / 寻路**共用一套格**。
+- **逻辑几何 deterministic**;视觉几何可浮动、可换美术、不污染 sim。
+- 手工内容**可编辑**:关卡的每一次调整**不改**确定性判据的形态。
+- 建造模块**对齐到格**;医馆的邻接逻辑**在整数格上可判定**。
+- 运行期**零第三方**几何工具。
+
+## Decision
+
+**裁决:世界几何 = 手工烘焙固定世界。编辑期产出两层(确定性整数逻辑层 / 纯视觉层),
+运行期只加载逻辑层;`WorldPos` = 单一整数方格;chunk = 流式优化不是坐标原点;
+建造模块与地形共用同一格;第三方地形工具仅编辑期辅助。**
+
+### 一、两层世界:确定性逻辑层 + 纯视觉层
+
+| 层 | 内容 | 数值 | 谁编辑 | 出货 | 进 sim? |
+|----|------|------|--------|------|---------|
+| **逻辑层(真相)** | 生态区多边形 · POI 锚点 · 资源点分布 · 导航格(可走 / 阻挡 / 代价)· 建造槽位骨架 | **整数**(格坐标 / 枚举) | 关卡 / 系统 | 经 ADR-014 烘成 `*.cooked`,随 `data-core` 预载 | **是**(唯一真相) |
+| **视觉层(表现)** | Unity Terrain 高度图 / splat / 植被 mesh / 摆件 | `float` 任意 | 美术 | 随构建出货(Addressables / Terrain 资产) | **否**(纯表现) |
+
+- **两层在编辑期同步**(同一关卡工具里一起编),**出货时分离** —— 逻辑层经 ADR-014 烘焙,
+  视觉层走常规美术管线。**视觉层缺失或用草图替代,不改变 sim 行为**(开发期可只编逻辑层)。
+- **逻辑层是唯一真相**:sim / AI / 判定全读逻辑层;视觉层只被渲染与表现态逻辑读。
+- **禁止把视觉层的地形采样喂进 sim**(如用 `Terrain.SampleHeight` 决定可走性)——
+  那是 float 入 sim,破 ADR-006 边界;可走性一律由**逻辑导航格**给出。
+- **生态区多边形 / 资源点 / POI** 是逻辑层整数数据;`TR-randomevents-018 / 021`
+  (事件与生态区绑定 / `spawn_anchor` 确定性解析)因此落在**整数查表**上,
+  满足 `random-events.md:438-439` 的「禁 Nav Mesh 采样」。
+
+### 二、`WorldSeed` 的角色(就地修订 ADR-009 §四)
+
+**修订:ADR-009 §四 原写「静态地形 / 生态区布局是 `(WorldSeed, 配置) → 布局` 的纯函数」——
+此句废止,改为「静态地形 / 生态区布局由烘焙逻辑层加载重建」。**
+
+- **`WorldSeed` 仍是外生常数**(ADR-007 §二),但它的用途**收窄为驱动动态量**:
+  病人种子(`patient_seed = hash(world_seed, patient_id)`,ADR-005)· 掷骰(52)· 采集成簇散布 ·
+  掉落物的**表现态**随机化。**它不再是地形 / 生态区布局的生成参数。**
+- **「派生态」分类完全保留**:静态世界几何**不进流、不存档、加载期重建、无玩家-authored 历史** ——
+  与 ADR-009 §一 Q1 的判据一致。改变的只是**重建的源**:从「seed 的纯函数」改为
+  「烘焙的逻辑数据」。
+- **判据的推广**(本 ADR 写进 ADR-009 §一 的口径):**「派生态」的源有两类** ——
+  ① 种子派生的纯函数(如 `patient_seed`);② **版本化的烘焙数据**(本 ADR 的世界几何)。
+  两者共同点:**由外生源确定性地重建,不进流,不制造第二份真相**。
+- **`WorldSeed` 在存档头中仍原样保留**(ADR-007 §二 / ADR-010 §一)—— 它仍决定病人 / 事件 / 掉落,
+  去掉它重放即分叉。**只是不再影响地形**。
+
+### 三、`WorldPos` = 单一整数方格
+
+- **`WorldPos` = `(i32 x, i32 y, i32 z)` 整数格坐标**(格 = 工程定义的最小空间单位,
+  值域满足 `TR-itemdb-029` 的 int64 溢出上限预算)。
+- **单一格统摄一切**:地形格 · 建造槽位 · 掉落锚点(`DropSpawned.spawn_anchor`,ADR-009 §五)·
+  资源点 · 导航格 · 医馆房间格 —— **共用同一套格**,不做第二套坐标。
+- **理由**:ADR-009 §一 已定「位置一律整数网格或 `Fix`」(`:200`);单格让跨系统判定
+  (掉落是否落在建筑内 / 资源点归属哪个生态区 / 医馆房间邻接)全部退化为**整数比较**,无换算错误。
+- **`Fix` 与格的分工**:`Fix`(Q16.16)仍用于**非空间的模拟量**(药效 / 病程 / 属性);
+  **空间位置一律整数格**。需要亚格精度时,用格的**整数细分**(如 1 格 = N 子格),不引入 `Fix` 坐标。
+- **视觉层坐标**:`Vector3` 浮点世界坐标是表现层产物,由格坐标 × 格尺寸映射得到,**反向不可信**
+  (禁从视觉坐标反推逻辑格 —— 舍入会漂)。
+
+### 四、chunk = 流式 / 脏块优化,不是坐标原点
+
+- **裁决:chunk 只是加载 / 卸载 / 失效的粒度,不参与坐标定义。** 一个 chunk 覆盖固定的格矩形;
+  `WorldPos` 永远是世界格坐标,**不是 chunk 局部坐标**。
+- **chunk 的三项职责**:① 视觉层流式加载 / 卸载(渲染预算);② 逻辑层加载 / 卸载(远区可不驻留,
+  但**驻留与否不改变判定结果** —— 判定只依赖格坐标与逻辑数据);③ **脏块失效**
+  (建造落位 / 拆除 / 资源点耗尽 ⇒ 标记所在 chunk 的逻辑占用与导航 tile 失效,重算)。
+- **禁止**:chunk 局部坐标系(同一点在不同 chunk 有不同坐标 ⇒ 跨块判定必错);
+  chunk 边界处的浮点对齐(视觉层可以,逻辑层不行)。
+
+### 五、建造网格 = 模块化网格,与地形共用同一格
+
+- **裁决:模块化网格(用户裁定③),建造槽位对齐到 §三 的同一世界格。**
+  **否决 Voxel** —— 体素的优势在**无限程序世界**的自由雕琢,与本作「固定世界 + 内容全部手制」相悖,
+  且带来 chunk / collider 的巨量成本(R-10 原文点名的三项)。
+- **建造物 = 槽位上的模块实例**:`StructurePlaced / Removed / Modified` 是世界流事件(ADR-009 §二),
+  载荷含**格坐标 + 模块 id + 朝向 + 变体**。同一实例的**视觉网格是表现态**。
+- **医馆即机器(24)的「红石逻辑」= 整数格上的邻接判定**(承 `game-concept.md:381`):
+  感染 / 习性 / 火候是**离散规则**,输入 = 模块在格上的邻接关系 + 模块类型,**输出确定性**。
+  **不做物理模拟、不做 NavMesh 查询**。
+- **NavMesh 的角色**:导航 mesh 是**表现 / AI 侧**的寻路载体(13 病人 AI / 27 敌人 AI),
+  **不由 sim 读取,也不影响确定性判定**;建造落位后的动态 carving(R-10 点名的成本项)
+  是**表现层预算**,不是确定性判据。**sim 的寻路(若需要)走逻辑导航格查表**
+  (与 ADR-009 的「判定结果进流、判定过程不进流」同构)。
+
+### 六、第三方地形工具 = 仅编辑期辅助
+
+- **裁决(用户裁定④):第三方地形工具(GAIA Pro / MapMagic 2)仅作编辑期素材 / 预览,
+  运行期零第三方。** 与 ADR-009 §四「只能作素材 / 预览,不得承担运行期生成」一致。
+- **授权状态**:GAIA / MapMagic 2 **不登记为 `Allowed Libraries`** —— 它们不进构建,
+  只影响美术工作流。**`technical-preferences.md` 的候选依赖栏据此注明「编辑期工具,非运行期依赖」。**
+- **编辑期产物的交接**:若美术用第三方工具雕出地形,**手工整理 / 导出为视觉层资产**;
+  **逻辑层仍由关卡工具独立编写**(不由工具导出)—— 保证逻辑层永远是整数、永远可审。
+
+### 七、对 ADR-009 的修订清单(落盘于本文档同轮)
+
+| ADR-009 位置 | 原文 | 修订为 |
+|--------------|------|--------|
+| §一 Q1 判据行 | 「或由 WorldSeed 纯函数导出?」 | 「或由**外生源**(种子纯函数**或版本化烘焙数据**)确定性重建?」 |
+| §一 判定流程注释 | 「若状态是 `(WorldSeed, 配置) → 布局` 的纯函数」 | 「若状态由外生源确定性重建(种子纯函数**或**烘焙数据)」 |
+| §二 三态表首行 | 「静态地形 / 生态区布局 / 植被点 … WorldSeed + 配置 → 加载期重建」 | 「… **烘焙逻辑布局**(+ 动态量仍由 WorldSeed)→ 加载期重建(ADR-015 定型)」 |
+| §四 标题 | 「静态地形与生态区 = 派生态(WorldSeed 逐位重建)」 | 「静态地形与生态区 = 派生态(确定性重建 —— 见 ADR-015)」 |
+| §四 正文 | 「…是 `(WorldSeed, 配置) → 布局` 的纯函数…」 | 「…由**烘焙逻辑布局**在加载期重建;**`WorldSeed` 只驱动动态量**(ADR-015 §二)…」 |
+| §五 `spawn_anchor` 行 | 「出生锚点,**定点坐标**,进流」 | 「出生锚点,**格坐标(`WorldPos`)** ,进流」(**已就地修订** —— 与 §三「空间位置一律整数格」对齐) |
+
+> **修订不改变 ADR-009 的承重结论**(派生态分类 · 世界流 · 掉落身份进流 / 位置表现 ·
+> 拾取判定),只把「静态几何的**生成方式**」从纯函数**收敛为烘焙数据**。
+
+## Alternatives Considered
+
+### Alternative 1: 定点域程序生成地形(ADR-009 §四 原字面)
+
+**否决(用户裁定①)。** `(WorldSeed, 配置) → 布局` 纯函数,自研定点地形生成数学。
+**否决理由**:① **与手工内容相冲** —— 4 生态区是手制的,程序生成器无从「生成」手工内容;
+② 自研成本高(ADR-009 §Negative 已记「地形生成数学入定点域 = 自研成本」);
+③ 逐位重建需跨平台实测(Knowledge Risk HIGH),收益(不同种子不同世界)本作**不需要**
+(固定世界)。**保留的能力**:若未来需要多种子世界,§二 的判据推广已为它留门。
+
+### Alternative 2: 从烘焙的 Unity Terrain 资产推逻辑层
+
+**否决。** 加载期采样 Terrain 的 float 高度图 / splat 推出逻辑布局。
+**否决理由**:float 入 sim,**直接违反 ADR-006 边界**;且 IL2CPP 下 Terrain 内部算法跨平台不保证逐位 ——
+把 R-9 好不容易排除的风险又引回来。
+
+### Alternative 3: 仅整数高度图 + 其余程序导出
+
+**否决。** 只存整数高度,生态区 / POI / 资源点全由 seed 程序导出。
+**否决理由**:与「4 生态区内容全部手制」相悖,手制内容无处安放;且仍引回 Alternative 1 的自研成本。
+
+### Alternative 4: 每 chunk 局部原点坐标系
+
+**否决。** chunk 自带原点,chunk 内用局部坐标。**否决理由**:跨 chunk 判定必错
+(同一点在两块有两种坐标);对齐 / 接缝是经典 bug 源。全局单格代数上更简单。
+
+### Alternative 5: Voxel 建造(R-10 的另一半)
+
+**否决(用户裁定③)。** 体素建造。**否决理由**:优势在无限程序世界;本作固定世界 + 手制内容,
+体素只带来 chunk / collider / 渲染的巨量成本,且医馆的邻接逻辑用模块化网格即可表达。
+
+### Alternative 6: 每建筑局部网格
+
+**否决。** 建筑自带锚点原点,模块在局部网格摆放。**否决理由**:两套网格共存 + 建筑间对接要另处理;
+用户裁定③取「与地形共用同一格」。
+
+## Consequences
+
+### Positive
+
+- **口径错误被消除**:ADR-009 §四 的「纯函数地形」与「手工生态区」不再相冲;
+- **R-9 HIGH 风险大幅降级**:不再需要自研定点地形生成器,不再需要地形逐位重建跨平台实测
+  (Knowledge Risk 从 ADR-009 的 HIGH 降到本 ADR 的 **LOW**);
+- **单格坐标系**让掉落锚点 / 资源点 / 建筑 / 导航的跨系统判定全部退化为整数比较;
+- **两层分离**让美术可自由重塑视觉地形而不动 sim;开发期可只编逻辑层;
+- **第三方工具风险归零**:运行期零第三方,GAIA / MapMagic 的逐位复现能力**不再是判据**
+  (ADR-009 §四 预置的「工具逐位实测」判据随之**作废**)。
+
+### Negative / Costs
+
+- **手工制作 4 生态区** = 内容工时(但这本就在 P1a / P1b 基线内,见 `game-concept.md:684-685`);
+- **两层同步的编辑期纪律**:逻辑层与视觉层漂移(视觉层改了、逻辑层没改)是新增失败模式,
+  须由关卡工具的一致性检查兜住(见 §Validation);
+- **失去「多种子世界」**:固定世界是本作明写的设计选择,非损失;
+- **`WorldSeed` 语义变窄**:任何仍以为「seed 决定地形」的旧文本须同步(本 ADR §七 已列 ADR-009 的清单)。
+
+### Neutral
+
+- chunk 作为流式粒度是本 ADR 的新增术语,但只在加载 / 失效层显式化,不改变既有 ADR 的结论。
+
+## Risks
+
+| 风险 | 概率 | 影响 | 缓解 |
+|------|------|------|------|
+| 逻辑层与视觉层漂移(美术改了地形,逻辑格没跟) | **高** | 中 | 关卡工具一致性检查:标注逻辑占用格并与视觉地形对照,漂移报警;漂移**只影响表现**,不改 sim 判定 |
+| 有人从视觉坐标 / `Terrain.SampleHeight` 反推逻辑格 | 中 | **高**(float 入 sim) | Forbidden Pattern + grep 守卫(NavMesh / SampleHeight / `Vector3` 进 sim 类型签名);门 B 只扫 sim 程序集(E-11 口径) |
+| chunk 局部坐标悄悄引入(性能优化时) | 中 | 中 | 坐标系单点:`WorldPos` 是唯一坐标类型;chunk 只暴露「包含哪些格」,不暴露坐标 |
+| 建造动态 NavMesh carving 成本超预算 | 中 | 中 | 表现层预算项,与 R-14 / 24 一起在进实现时实测;不影响确定性 |
+| 医馆邻接逻辑被实现成物理 / NavMesh 查询 | 低 | 中 | §五 明写「整数格邻接判定」;AC 断言输出为纯整数函数 |
+
+## Validation Criteria
+
+- [ ] **单格断言**:全仓无第二套世界坐标类型;`WorldPos` 为 `(i32,i32,i32)`,chunk 不导出坐标。
+- [ ] **float 隔离**:sim 程序集的类型签名与字段中无 `Vector3` / `float` 坐标(与 ADR-005 门 B 同法)。
+- [ ] **视觉层不可反推**:grep 断言 sim / 判定路径无 `Terrain.SampleHeight` / NavMesh 采样 /
+      `Vector3` 到 `WorldPos` 的转换。
+- [ ] **逻辑层确定性**:同一烘焙逻辑产物两次加载 ⇒ 判定逐位一致(进 ADR-012 夹具)。
+- [ ] **建造事件载荷**含格坐标 + 模块 id + 朝向 + 变体;`Structure*` 系列(ADR-009 §三)。
+- [ ] **医馆邻接判定**是格上的纯整数函数(输入:格占用表 + 模块类型;输出:确定性结论),无浮点。
+- [ ] **两层一致性检查**在关卡工具中存在,并能在 CI 里对已提交关卡跑一遍(`ADR-014` 陈旧门同构)。
+- [ ] **运行期零第三方**:构建产物无 GAIA / MapMagic 程序集。
+
+## Implementation Guidelines
+
+1. **关卡工具**(`tools/`)同时编辑两层,导出**逻辑层整数数据**给 ADR-014 烘焙;
+2. `WorldPos` 定义为 `readonly struct { int X, Y, Z; }`,住 sim 程序集,零 `UnityEngine` 引用;
+3. 导航格(`可走 / 阻挡 / 代价`)是逻辑层数据,sim 寻路走查表;
+   NavMesh 仅服务 AI 表现态移动(13 / 27);
+4. 建造模块的**槽位表**与**模块目录**是逻辑层数据;实例是表现;
+5. `WorldSeed` 只喂动态量;**任何以 seed 生成地形的代码都是回归**(grep 守卫);
+6. 第三方地形工具的产物**手工整理**进视觉层,**绝不自动导出逻辑层**。
+
+## GDD Requirements Addressed
+
+| GDD | 系统 | 需求 | 本节 |
+|-----|------|------|------|
+| `design/gdd/game-concept.md` | 全案 | 固定世界(弃用距离轴)· 4 生态区 | §一 / §二 |
+| `design/gdd/concept-benchmark.md` | 全案 | 4 个手工生态区,有限(背离无限世界) | §一 |
+| `design/gdd/random-events.md` | 52 随机事件导演 | `spawn_anchor` 确定性坐标解析 · 与 6 生态区绑定(禁 NavMesh 采样) | §一 / §三 |
+| `design/gdd/item-database.md` | 21a 物品与配方 | 掉落实体的世界状态事件化边界(位置侧) | §三 |
+| `design/gdd/systems-index.md` | 6 / 17 / 23 / 24 | 生态区 · 采集 · 模块化建造 · 医馆即机器 | §一 / §五 |
+
+## Related
+
+- **修订**:`docs/architecture/adr-009-world-state-event-boundary.md` §一 / §二 / §四 / §五(清单见本 ADR §七)。
+- **承**:`docs/architecture/adr-014-data-pipeline-and-json-parser.md`(逻辑层烘焙产物走 `data-cooked` 管线)。
+- **解**:报告 R-9(R-9 判据的「工具逐位实测」部分随之作废 —— 工具已不在运行期)。
+- **留**:R-11(是否 DOTS)· R-14(AI 架构;导航格来源已定型,寻路形态待定)。
+
+## Ripples(本次改动集)
+
+- **`docs/architecture/adr-015-world-geometry-fixed-world-lattice.md`**(本文,新建)。
+- **`docs/architecture/adr-009-world-state-event-boundary.md`**:就地修订 §一(Q1 判据行 + 判定流程注释 +
+  三态表)· §二 · §四(标题 + 正文)· §五(`spawn_anchor` 定点坐标 → 整数格)· Key Interfaces(`WorldPos`)·
+  Implementation Guidelines 2 · Consequences(Positive / Negative)· Risks(2 行)· Performance Implications ·
+  GDD Requirements Addressed(2 行)· Related(R-9 / R-10 勾销)· Validation Criteria(派生态对拍口径重述)。
+- **`docs/architecture/adr-012-cross-platform-determinism-ci-gate.md`**:Related 行的「地形逐位重建对拍」标注作废。
+- **`docs/registry/architecture.yaml`**:加 `world_coordinate_lattice` 接口契约;
+  `terrain_worldseed_generation` api_decision 改写指向本文;新增 `building_grid_selection` ·
+  `chunk_granularity` · `navigation_lattice_source` 三条 api_decision;
+  `terrain_tool_in_runtime_generation` forbidden pattern 修订;新增 `chunk_local_coordinate_system` ·
+  `visual_terrain_sampling_into_sim` 两条 forbidden pattern。
+- **`docs/architecture/tr-registry.yaml`**:`TR-randomevents-018`(❌ → ✅)· `TR-randomevents-021`
+  (❌ → ⚠️);`TR-itemdb-031` 加位置侧 note(状态不预判);`revision_note` 更新。
+- **`docs/architecture/traceability-index.md`**:明细 + 汇总 + 优先修复清单 + 变更历史 + header 同步
+  (64/13/71 → **65/14/69**)。
+- **`.claude/docs/technical-preferences.md`**:Architecture Decisions Log 补 ADR-015 条目;
+  ADR-002 / ADR-003 占位行标为「✅ 由 ADR-015 兑现」;候选依赖栏注明 GAIA / MapMagic 2 = 编辑期工具。
+- **`design/gdd/game-concept.md:574`**:「地形可用第三方」加编辑期限定 note(指向本文)。
+- **`design/gdd/systems-index.md`**:6 / 17 / 23 / 24 四行状态注 + Foundation 段 6 的说明行。
+- **`production/session-state/active.md`**:更新 ADR 计数、R-closure、TR 计数与 spike 清单。
