@@ -19,7 +19,7 @@
 version: 1
 last_updated: "2026-09-15"
 baseline_established: "2026-09-15"
-revision_note: "2026-09-15 ADR-019 / 018 / 017 落盘(R-15 遥测 / R-12 音频 / R-11 DOTS)。本轮 ID 增补 6 条(148→154):TR-randomevents-032(预告线索音频侧)· TR-diag-021…025(D-8-8 四条硬需求 + 无提示音铁律,均由 ADR-018 立 AC)。状态变更:TR-randomevents-024 gap→covered(52↔51 边界 = 三流本身,零直接接口);TR-diag-020 加 ADR-018 §二 note(守卫覆盖 AudioCueDto)。前一轮 ADR-016:TR-randomevents-028/029 gap→covered。更早 ADR-015:TR-randomevents-018 gap→covered;TR-randomevents-021 gap→partial。ADR-017 不新增 TR(它兑现 ADR-004『是否 DOTS』,是『不引入』的裁决;OQ-8 为其复评前置,登记在 technical-preferences 而非 TR)。累计 74 covered / 14 partial / 66 gap / 154 条"
+revision_note: "2026-09-15 ADR-020 落盘(R-13 玩家控制器与相机;架构复核 R-1…R-15 至此全部结清)。本轮 ID 增补 9 条(154→163),全部为新 system slug —— 系统 1 玩家移动(TR-player-001…004,含『移动 = 表现态 / 跨格事件是唯一 sim 投影』= ADR-016 §三 的发出侧对称)与系统 2 摄像机(TR-camera-001…005,含自建机位不引 Cinemachine · 平面越肩 / VR 第一人称双路径 · 44 的 AudioListener 单挂点落定)。**1 / 2 无独立 GDD**,需求文本由 ADR-020 裁决 + systems-index 依赖图条目生成,GDD 撰写时须回溯核对。前一轮 ADR-019 / 018 / 017:ID 增补 6 条(148→154):TR-randomevents-032 · TR-diag-021…025;状态变更 TR-randomevents-024 gap→covered、TR-diag-020 加 ADR-018 §二 note。ADR-016:TR-randomevents-028/029 gap→covered。ADR-015:TR-randomevents-018 gap→covered;TR-randomevents-021 gap→partial。ADR-017 不新增 TR(兑现 ADR-004,是『不引入』的裁决;OQ-8 复评前置登记在 technical-preferences)。累计 83 covered / 14 partial / 66 gap / 163 条"
 source_review: "docs/architecture/architecture-review-2026-09-15.md"
 traceability_index: "docs/architecture/traceability-index.md"
 
@@ -1391,3 +1391,103 @@ requirements:
     status: covered
     revised: "2026-09-15"
     note: "接口归 ADR-011(动作 → FocusNavigationIntent);呈现归 ADR-013(UI Toolkit 官方桥 NavigationMoveEvent + 焦点单栈门 + 手柄焦点质量 spike)。2026-09-15 ADR-013 落盘,R-6 缺口闭合"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 玩家控制器与移动 (System 1) — design/gdd/systems-index.md:34
+  #   ⚠️ 系统 1 / 2 **无独立 GDD**;需求文本由 ADR-020 的裁决与 systems-index 的
+  #   依赖图条目生成。GDD 撰写时须回溯核对。
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-player-001
+    system: player-movement
+    gdd: design/gdd/systems-index.md
+    requirement: "移动模型 = `CharacterController`(不参与 PhysX 求解;无 Rigidbody 驱动)"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-020 §一。R-13 裁定;**理由**:本作 P0 玩家移动不与物理世界耦合(建造走整数格邻接,ADR-015 §五), kinematic Rigidbody 的物理交互价值用不上却换更难调的手感"
+
+  - id: TR-player-002
+    system: player-movement
+    gdd: design/gdd/systems-index.md
+    requirement: "玩家位移 = **纯表现态**;在 sim 中的唯一投影 = **跨格世界流事件**(连续位置 / 速度 / 朝向永不写流)"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-020 §四 —— 是 ADR-016 §三(感知输入 = 粗粒度整数格)在**玩家侧(发出侧)**的对称落实。ADR-016 定义**读方**(13/27 读格),ADR-020 定义**写方**(玩家跨格发事件)。**频率 = 格穿越率**,与帧率 / 移动速度无关 ⇒ ADR-009 世界流有界性论证不被破坏。AC-20-03 BLOCKING"
+
+  - id: TR-player-003
+    system: player-movement
+    gdd: design/gdd/systems-index.md
+    requirement: "移动 / 旋转轴由 ADR-011 的动作映射供给(接口形状)"
+    domain: Core
+    adr: ADR-011 + ADR-020
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-011 已定动作 → 意图的映射;ADR-020 §Architecture 固定系统 1 的输入面(`MoveInput`)。`<50 ms` 输入预算与移动手感同向(ADR-011 §二)"
+
+  - id: TR-player-004
+    system: player-movement
+    gdd: design/gdd/systems-index.md
+    requirement: "移动手感旋钮(移速 / 加速度 / 转向速率)的形状与归属"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-020 §一 AC-20-11:**全部数值留白**(用户手调);ADR 只给形状。与 `feedback-user-owns-balance-values` 一致"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 摄像机与视角 (System 2) — design/gdd/systems-index.md:35
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-camera-001
+    system: camera
+    gdd: design/gdd/systems-index.md
+    requirement: "平面模式视角 = **第三人称(越肩)**"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-020 §三。承 `game-concept.md:32/757`(「全程第三人称」)—— 本 ADR 把该裁决**限定平面模式**并保留。旧稿的「第一人称微观」已被用户推翻(`design/archive/大医精诚-初稿-GDD.md:124-125`),不复活"
+
+  - id: TR-camera-002
+    system: camera
+    gdd: design/gdd/systems-index.md
+    requirement: "VR 模式视角 = **第一人称(头显)**,且 VR **不承担开放世界移动**;P0 只落接口"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-020 §三。承 `technical-preferences.md:34`(「VR 不承担开放世界移动(晕动症),只做站定式急救操作」)。**两条相机路径独立,不互相迁就** —— 消解「全程第三人称 vs 头显第一人称」的表面矛盾。实现推 P1a(与 ADR-013 / ADR-018 §七 同批);AC-20-06/07"
+
+  - id: TR-camera-003
+    system: camera
+    gdd: design/gdd/systems-index.md
+    requirement: "相机**只读,永不持有游戏状态**;不写三流、不引用 sim 程序集"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-020 §五。承 C3(`systems-index.md:531` 42 只渲染)· ADR-013 · ADR-018 §一 的同构体例。AC-20-05"
+
+  - id: TR-camera-004
+    system: camera
+    gdd: design/gdd/systems-index.md
+    requirement: "镜头效果的归属与 VR 禁用清单(结清 8 的既有引用)"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-020 §六。归属 = **8 语义 + 2 实现**(承 `diagnosis-system.md:1641`「主角视野边缘 = 2 摄像机 + shader」的既有分工);**VR 全禁镜头效果**(承 `:1519`,舒适度优先);**不得用于报状态**(与 ADR-018 §六 无提示音铁律**同源** —— 是同一铁律的视觉侧)。AC-20-08/09"
+
+  - id: TR-camera-005
+    system: camera
+    gdd: design/gdd/systems-index.md
+    requirement: "44 的 `AudioListener` 单挂点落定(平面主相机 / VR 头显)"
+    domain: Presentation
+    adr: ADR-020
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-020 §七。结清 `adr-018-audio-architecture.md:295` 留白的「单 `AudioListener` 挂点(VR 头显 vs 平面摄像机)」。AC-20-10"

@@ -114,6 +114,36 @@ state_ownership:
     added: 2026-09-15
     revised: ""
 
+  - state: player_presentation_motion
+    status: active
+    owner_system: "1 玩家移动与控制器(表现层)"
+    adr: docs/architecture/adr-020-player-controller-and-camera.md
+    interface: "IPlayerMotor: Tick(dt, in MoveInput) / WorldPos Cell(整数格) / Vector3 Position(连续位置,表现态)/ bool ConsumeCellChanged()。**连续位置永不写流** —— 跨格瞬间发一条世界流事件(ActorCellEntered 家族),该事件是玩家位移在 sim 中的唯一投影"
+    write_access: "1 自持(表现层 CharacterController,不参与 PhysX 求解)。**§四 = ADR-016 §三 的对称侧**:ADR-016 定义读方(13 / 27 读粗粒度整数格),ADR-020 定义写方(玩家跨格发事件)。事件频率 = 格穿越率,与帧率 / 移动速度无关 ⇒ 不破坏 ADR-009 世界流有界性论证。**AC-20-03 BLOCKING**:grep 断言无「连续位置 → IEventSink.Append」路径"
+    referenced_by:
+      - docs/architecture/adr-020-player-controller-and-camera.md
+      - docs/architecture/adr-016-ai-architecture.md   # §三 感知输入 = 粗粒度整数格(读方)
+      - docs/architecture/adr-009-world-state-event-boundary.md   # 世界流有界性
+      - docs/architecture/adr-011-input-architecture.md   # MoveInput 来源
+      - design/gdd/systems-index.md   # :34 系统 1(无独立 GDD)
+    added: 2026-09-15
+    revised: ""
+
+  - state: camera_readonly_view
+    status: active
+    owner_system: "2 摄像机与视角(表现层)"
+    adr: docs/architecture/adr-020-player-controller-and-camera.md
+    interface: "ICameraRig: CameraMode Mode / SetMode(mode) / Tick(dt) / Camera Camera。CameraMode ∈ { Explore, Treatment, Casebook, FirstPerson(VR,P1a)}。**只读,永不持有游戏状态**"
+    write_access: "2 自持(表现层)。**自建机位,不引入 Cinemachine**(零第三方第七处一致性);不写三流、不引用 sim 程序集(不破门 A)。承 ADR-013 §9 C3(42 只渲染)/ ADR-018 §一(44 只触发)的同构体例。**§七 结清 44 的 AudioListener 单挂点**:平面 = 主相机,VR = 头显(AC-20-10)。防抖 / 缓动吃表现态 dt,不入 sim"
+    referenced_by:
+      - docs/architecture/adr-020-player-controller-and-camera.md
+      - docs/architecture/adr-018-audio-architecture.md   # :295 AudioListener 挂点(本条目结清)
+      - docs/architecture/adr-013-skeuomorphic-ui-framework.md   # 呈现层只渲染纪律
+      - design/gdd/diagnosis-system.md   # :1641 主角视野边缘 = 2 摄像机 + shader
+      - design/gdd/systems-index.md   # :35 系统 2(无独立 GDD)
+    added: 2026-09-15
+    revised: ""
+
 # Example:
 #
 # state_ownership:
@@ -347,6 +377,25 @@ interfaces:
       - docs/architecture/adr-019-telemetry-and-privacy.md
       - docs/architecture/adr-005-deterministic-sim.md
       - docs/architecture/adr-009-world-state-event-boundary.md
+    added: 2026-09-15
+    revised: ""
+
+  - contract: player_cell_crossing_event
+    status: active
+    pattern: event_bus        # 玩家跨格 → 世界流事件(ADR-016 §三 的发出侧)
+    producer: "1 玩家移动与控制器(表现层,跨格瞬间)"
+    consumers:
+      - "13 病人 AI 与行为"     # 读玩家所在粗粒度格(经世界流)
+      - "27 敌人 AI"           # 同上
+      - "52 随机事件导演"       # 位置相关触发
+      - "45 网络层"            # 传输世界流
+    adr: docs/architecture/adr-020-player-controller-and-camera.md
+    signal_signature: "跨格瞬间经 IEventSink.Append 发一条世界流事件(ActorCellEntered 家族,Kind ∈ 世界流;Patient = PlayerId 或 PatientId.None 视口径);载荷 = WorldPos Cell(整数格)。**连续位置 / 速度 / 朝向永不进载荷**。频率 = 格穿越率,**与帧率 / 移动速度无关**(AC-20-04)。这是 ADR-016 §三『感知输入 = 粗粒度整数格』在玩家侧的对称定义 —— §三 定读方,本契约定写方"
+    referenced_by:
+      - docs/architecture/adr-020-player-controller-and-camera.md
+      - docs/architecture/adr-016-ai-architecture.md   # §三 读方 + ai_reads_presentation_position
+      - docs/architecture/adr-009-world-state-event-boundary.md   # 世界流有界性论证
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md   # Cell = WorldPos 整数格
     added: 2026-09-15
     revised: ""
 
@@ -690,6 +739,34 @@ api_decisions:
     added: 2026-09-15
     revised: ""
 
+  - purpose: player_movement_model
+    status: active
+    api: "CharacterController(kinematic,不参与 PhysX 求解)+ 自研相机机位(ICameraRig)。移动手感旋钮(移速 / 加速度 / 转向速率)全部留白,由用户手调"
+    not: "Rigidbody 驱动玩家(动态刚体 / kinematic 刚体 + ForceMode);Cinemachine(com.unity.cinemachine,post-cutoff 大重写,与运行期零第三方第七处相冲);用物理查询决定可走性(可走性归 ADR-015 整数导航格)"
+    adr: docs/architecture/adr-020-player-controller-and-camera.md
+    reason: "本作 P0 玩家移动不与物理世界耦合(建造走整数格邻接,ADR-015 §五)—— kinematic 刚体的物理交互价值用不上却换来更难调的手感与更多非确定性面。Cinemachine 3.0 是 post-cutoff 大重写(知识风险),且 DOTS 同属官方包亦已被 ADR-017 结构性排除 ⇒『官方包』不是零第三方纪律的豁免"
+    referenced_by:
+      - docs/architecture/adr-020-player-controller-and-camera.md
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
+      - docs/architecture/adr-011-input-architecture.md
+      - .claude/docs/technical-preferences.md   # 候选未采纳:Cinemachine
+    added: 2026-09-15
+    revised: ""
+
+  - purpose: camera_rig_and_viewpoint
+    status: active
+    api: "自建相机机位 ICameraRig(Explore / Treatment / Casebook / VR FirstPerson);平面 = 第三人称越肩,VR = 独立第一人称(头显);镜头效果归属 = 8 语义 + 2 实现"
+    not: "Cinemachine 虚拟相机栈;VR 模式禁用镜头效果(舒适度优先,承 diagnosis-system.md:1519);用镜头效果**报**状态(与 ADR-018 §六 无提示音铁律同源,是同一铁律的视觉侧)"
+    adr: docs/architecture/adr-020-player-controller-and-camera.md
+    reason: "平面越肩承 game-concept.md:32『全程第三人称』(旧稿第一人称已被用户推翻,不复活);VR 第一人称是头显物理事实,与平面路径独立(消解表面矛盾)。零第三方第七处一致性 ⇒ 自建"
+    referenced_by:
+      - docs/architecture/adr-020-player-controller-and-camera.md
+      - docs/architecture/adr-018-audio-architecture.md
+      - design/gdd/diagnosis-system.md   # :1519 VR 禁效果 / :1641 镜头效果归属
+      - design/gdd/game-concept.md   # :32
+    added: 2026-09-15
+    revised: ""
+
 
 # ─── FORBIDDEN PATTERNS ──────────────────────────────────────────────────────
 # Architecture anti-patterns explicitly banned by accepted ADRs.
@@ -953,4 +1030,32 @@ forbidden_patterns:
     description: "禁止 51 写回 assets/data/*.json 或输出『建议把 X 改成 Y』式的自动调参(ADR-019 §六)。51 交付**数据 + 可操作的观察结论**,不交付调好的数值。**AC-19-07**"
     why: "数值由用户手调是一贯纪律(feedback-user-owns-balance-values);调参是设计判断(需对照医学语义与手感),不是统计量的函数。51 最多让旋钮的方向更可见,不能替它转"
     adr: docs/architecture/adr-019-telemetry-and-privacy.md
+    added: 2026-09-15
+
+  - pattern: player_continuous_position_into_stream
+    status: active
+    description: "禁止把玩家的连续位置 / 速度 / 朝向写进三流(ADR-020 §四)。玩家位移是**表现态**;跨格瞬间发一条世界流事件(ActorCellEntered 家族)是它在 sim 中的唯一投影。**AC-20-03 BLOCKING**:grep 断言无『Vector3 / Transform 位置 → IEventSink.Append』路径"
+    why: "写连续位置 = 帧率相关事件率(与 ADR-009 世界流有界性论证直接冲突),且表现态位置是第二 QoS 通道(时序不确定)—— 落进真源即污染可重建性。这是 ADR-016 §三 的对称侧:AI 读粗粒度格(禁读表现态),玩家就只写粗粒度格(禁写表现态)"
+    adr: docs/architecture/adr-020-player-controller-and-camera.md
+    added: 2026-09-15
+
+  - pattern: player_movement_on_rigidbody
+    status: active
+    description: "禁止用 Rigidbody(动态或 kinematic + ForceMode)驱动玩家移动(ADR-020 §一)。玩家 = CharacterController(kinematic,不参与 PhysX 求解);可走性一律由 ADR-015 整数导航格给出,不作物理查询"
+    why: "本作 P0 玩家移动不与物理世界耦合(建造走整数格邻接,ADR-015 §五),Rigidbody 的物理交互价值用不上,却引入更难调的手感与更多非确定性面;物理查询决定可走性会把表现层 float 几何引回判定"
+    adr: docs/architecture/adr-020-player-controller-and-camera.md
+    added: 2026-09-15
+
+  - pattern: cinemachine_in_runtime
+    status: active
+    description: "禁止在运行期引入 Cinemachine(com.unity.cinemachine)(ADR-020 §二)。相机 = 自建机位(ICameraRig);**AC-20-02** 断言 manifest.json 无该条目"
+    why: "零第三方取向已连续七处(ADR-014 解析器 / 015 几何工具 / 016 行为树 · 寻路 · 017 DOTS / 018 音频中间件 / 019 遥测 SDK / 020 相机);且 Cinemachine 3.0 是 post-cutoff 大重写(仓库 plugins/cinemachine.md:21 自陈『3.0 是 2.x 的大重写,许多 API 名已变』),知识风险由『不使用它』消解而非押注 API 名。『官方包』不是豁免 —— DOTS 同为官方包亦已被 ADR-017 结构性排除"
+    adr: docs/architecture/adr-020-player-controller-and-camera.md
+    added: 2026-09-15
+
+  - pattern: camera_holding_game_state
+    status: active
+    description: "禁止相机持有游戏状态 / 写三流 / 引用 sim 程序集(ADR-020 §五,AC-20-05)。相机 = 只读渲染者;防抖 / 缓动吃表现态 dt,不入 sim。**VR 全禁镜头效果**(ADR-020 §六);禁用镜头效果**报**状态(与 audio_cue_state_broadcast 同源,是同一铁律的视觉侧)"
+    why: "承 ADR-013 §9 C3(42 只渲染)/ ADR-018 §一(44 只触发)的同构体例 —— 呈现层三件套(UI / 音频 / 相机)同一纪律,避免第二套边界哲学;相机读 sim 真值或写流即制造第二真相"
+    adr: docs/architecture/adr-020-player-controller-and-camera.md
     added: 2026-09-15
