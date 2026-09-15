@@ -75,7 +75,7 @@
 | 41 | 内容边界政策 | Foundation | P1a | 未开始 | — | — |
 | 42 | 拟物 UI 框架(纯渲染) | Foundation | P0 | 未开始 | — | — |
 | 43 | 纸质地图与出诊箱 | Presentation | P1a | 未开始 | — | 42, 20, 6(**P1a 起承接「拼图样」的地图可视化** —— 见 §2 #37 注) |
-| 44 | 音频系统 | Foundation | P0 | 未开始 | — | — |
+| 44 | 音频系统 | Foundation | P0 | 未开始(**GDD 已成稿 2026-09-15** —— `design/gdd/audio-system.md`,27 条 AC) | `design/gdd/audio-system.md` | — |
 | 45 | 网络层与同步 | Foundation | P1b | 未开始 | — | ADR-001 ✅(pipe 抽象 P0 生效,库 P1b 前 swap 评审) |
 | 46 | 状态同步降级 | Feature | P1b | 未开始 | — | 45, 10 |
 | 47 | 精神压力 | Presentation | P1a | 未开始 | — | 30, 29 |
@@ -253,7 +253,10 @@
   P0 定接口、VR 实现推 P1a;39 脉案 / 43 地图 / 7b 存档位 / 48 教学共用此栈)
 - **44 音频系统** — 承担状态反馈职责。架构已定型(**ADR-018** Accepted:与 42 同构 ——
   **只触发 / 只渲染,永不持有游戏状态**;`AudioCueDto` 经 `PresentationDtoGuard` 递归扫描,
-  不携带 `disease_id`;混音拓扑含 `Stethoscope` 总线;**无提示音铁律机械化**,AC-44-09 BLOCKING)
+  不携带 `disease_id`;混音拓扑含 `Stethoscope` 总线;**无提示音铁律机械化**,AC-44-09 BLOCKING)。
+  **✅ GDD 已成稿(2026-09-15)** —— `design/gdd/audio-system.md`:八必备节 + Visual/Audio + UI +
+  Open Questions,27 条 AC(AC-44-01…13 承 ADR-018 §Validation,另 14 条 GDD 新增);
+  **V-8.7 四条硬需求已清偿**;**`AudioListener` 挂点承 ADR-020 §七**
 - **51 遥测与分析** — 回答「判断层到底好不好玩」的仪器。架构已定型(**ADR-019** Accepted:
   **本地优先** —— 遥测 = 确定性模拟的**事件流回放产物**,零第三方 SDK、零出厂数据;
   51 住边界层,以只读消费者订阅三流,**不进 sim、不写三流**)
