@@ -1,8 +1,11 @@
 # 物品与配方数据库 (Item & Recipe Database) — 21a
 
-> **Status**: In Review（2026-09-14 第三轮复核后大修 — `MAJOR REVISION NEEDED` 的 9 项 blocking 已兑现）
+> **Status**: ✅ **Approved**(2026-09-18 用户裁定接受三轮修订 —— **覆盖评审日志的「仍 In Review」结论**,显式风险接受结案)
+> **⚠️ 2026-09-18 结案口径**:评审日志(三轮)末段明写「21a 仍 **In Review,不得标 Approved**」,并建议「第四轮复核以『逐条核对冻结裁决表 ↔ 可执行体』为唯一靶子」。**用户裁定:接受三轮修订落盘状态、以显式风险接受标记 Approved,不开第四轮**(承 37 / 42 / 51 的「免二轮 = 显式风险接受」先例)。**这意味着** —— 三轮指出的**「一处声明、另一处漏改」类传导缺口**(§D-21-x / §Tuning Knobs / §AC / `entities.yaml` 四方漂移)在 Approval 时**未被独立复核清点**,由实现期第一道构建期门兜底。
+> **重开触发条件(五者任一)**:① 实现期构建期门(守恒律上界 / `EFF_MIN` / `ordinal` 类)拦下运行时击穿 = 冻结裁决表与可执行体不一致;② `instance_id` / `structure_id` 高水位在迁移后出现复用;③ F5 偏移落入 9 的噪声带(可感知地板失效);④ 9 侧字段名与 `drug_potency` / `half_life` 对不上(D-21-25);**⑤ 2026-09-19 新增(由 11 二轮评审提出):`D-21-34` —— F5 下界断言 `> 0` 与 11 的 `≥ MIN_USABLE_HALF_LIFE` 不是同一把尺 + `drug_potency` 无声明域**(合法 `Axis_effective = 2` 静默退化为「无药效」而 11 侧 AC 全过)。⚠️ **本条为已 Approved 件的具名重开条件,非补丁** —— 修 F5 断言 = 改 21a 已批机制 |
+> **实现期门(不阻塞 Approval,阻塞开工)**:`D-21-21`(守恒律两侧封)· `D-21-24`(F5 可感知地板)· `D-21-25`(9 侧字段名对齐)· `D-21-26`/`D-21-27`(`instance_id` 权威契约)· `D-21-28`(Craft 事件总序键)+ `AC-21a-53`(改型后)/ `AC-21a-56…62`
 > **Author**: dr_guyang + game-designer / technical-director(开工前盲点复核 + Q1–Q5 裁决)
-> **Last Updated**: 2026-09-14
+> **Last Updated**: 2026-09-19(18 首轮评审涟漪:D-21-30/31/32 落盘 + `Recipe.owner` + `EnvMod_total` 钳制式 + 守恒极值式 + AC-21a-65/66;此前 2026-09-14 三轮)
 > **Implements Pillar**: 支柱一(判断为骨)· **超硬约束:专家受众首次接触不出戏**(见 D-21-12)
 > **上游**: 无工作流依赖 —— 全案唯一零依赖的 Foundation 系统(仅两条**常量/契约**引用:30 的 `SKILL_CAP`、ADR-006)
 > **下游**: 9 个系统读它(11 处方 · 12 药物槽 · 16 中药选项 · 17 采集 · 18 炮制 · 19 制作 · 20 库存 · 42 拟物 UI · 7a 持久化)
@@ -134,15 +137,24 @@ item_key = (base_id, processing_state)
 **规则四:药品与普通物品同一张表。**
 - `category` 区分:`material | drug | tool | weapon | build_part | food`
   *(2026-09-14 复核补 `weapon` —— 规则七的「武器物品」此前无处归类)*
+- **`build_part` 的消费者 = 23 模块化建造**(`modular-building.md` Dependencies 表,反向引用
+  2026-09-17 补):`build_part` 物品承载**模块目录的入口**(`module_id` 映射),模块目录本体
+  = **数据**(目录校验归 21a,`O-23-1` ✅) —— 23 只消费 `module_id` + `cost(m)`,不持有物品行
 - `drug_profile` 是**可空扩展块**,仅 `category = drug` 时非空
 - `drug_profile` **自 P0 起就预留时间轴字段**:`onset / peak / half_life / elimination`
   —— P0 可为空,**但字段必须在**,且**必为整数**(D-21-6 + D-21-9)
 
 **规则五:配方表用通用形状。**
 ```
-Recipe = { recipe_id, inputs: [{ item_key, qty }], outputs: [{ item_key, qty }],
+Recipe = { recipe_id, owner, inputs: [{ item_key, qty }], outputs: [{ item_key, qty }],
            duration_ticks, skill_gate, min_quality, boundary_state[] }
 ```
+- **`owner ∈ {process, craft, build}`** —— **配方归属系统的显式字段**(2026-09-19,由 18 首轮评审
+  **D-21-30** 登记,用户裁定 [甲]):子集判据**不得**再依赖「`processing_state` 是否变化」——
+  `item_key = (base_id, processing_state)` 是复合主键,建造件 / 制作件的 state 变化与炮制链
+  在数据上**结构性不互斥**(18 R-18-B 举证)。义务:`{process, craft, build}` 三子集
+  **两两不相交、并为全集**(18 的 `AC-18-18` 验此);装载期校验,缺字段 = 硬失败(ADR-014)。
+  state 变化判据降为**单向校验**(owner=process ⇒ 必有 state 变化;反向不成立)。
 - **炮制** = `n=1, m=1` 的特例 · **制作** = `n>1` 的特例
 - **一张表,一个求解器** —— 否则 18 与 19 上线时会各自长出一套
 - **`inputs[].qty` 是基数,不是实耗**(D-21-15):结算是 `ActualConsumed = Ceil(qty / EFF)`
@@ -181,6 +193,10 @@ Recipe = { recipe_id, inputs: [{ item_key, qty }], outputs: [{ item_key, qty }],
 **规则七:伤情用外键,不驻留。**
 - 物品表**不含**伤情定义
 - 可施加伤情的物品(武器)带 `inflicts_injury: injury_id` —— `category = weapon`(规则四)
+  ⚠️ **2026-09-17 语义降级(承 25 · R13 / A20)**:本字段**不是「哪次命中造成哪个伤」的真源** ——
+  逐次命中的伤情由 **25 的动作行 `maps_to_injury`** 指定(函数映射)。`inflicts_injury` 读作
+  「**该武器所属线可产生的伤情集合**」的**约束校验**:构建期断言 21a 的集合 **⊇** 该线全部动作的
+  `maps_to_injury`(A20),防两表漂移;它回答「这把刀能造成哪些伤」,不回答「这一刀是什么伤」。
 - `injury_id` 的权威定义在 **`9 疾病与伤情模拟`**(合 `systems-index.md` §9 C4)
 
 **规则八:守恒律(严格质量守恒 —— D-21-21)。**
@@ -284,7 +300,7 @@ Recipe = { recipe_id, inputs: [{ item_key, qty }], outputs: [{ item_key, qty }],
 | `drug_profile` | block | 是 | 仅 `category = drug` 非空 |
 | `gather_profile` | block | 是 | 仅 `category = material` 非空 |
 | `tcm_profile` | block | 是 | **P0 恒空**(P1a 才填) |
-| `inflicts_injury` | string | 是 | 外键 → 9 的 `injury_id`;**仅 `category = weapon`** |
+| `inflicts_injury` | string \| string[] | 是 | 外键 → 9 的 `injury_id`;**仅 `category = weapon`**。⚠️ **2026-09-17 语义降级(25 · R13 / A20)**:读作「该武器所属线**可产生的伤情集合**」(约束校验字段,非逐次命中的真源 —— 真源 = 25 动作行 `maps_to_injury`);取单值还是列表**归数值/数据一轮(OQ-21a 侧)定**,P0 校验语义按集合 ⊇ 线动作映射集执行 |
 
 > ⚠️ **授权载体是硬规定(2026-09-14 二轮复核补,D-21-13 的补强)**:
 > **`ItemDef` / `Recipe` 的唯一合法作者态 = `assets/data/*.json` 文本**。
@@ -385,6 +401,7 @@ ItemInstance = { instance_id: long, item_key: (base_id, processing_state), quali
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
 | `recipe_id` | string | 稳定标识 |
+| `owner` | enum `{process, craft, build}` | **配方归属系统的显式字段**(2026-09-19,D-21-30,18 R-18-B):子集划分唯一判据;缺字段 = 装载硬失败,校验见 **AC-21a-66** |
 | `inputs[]` | `{item_key, qty>0}[]` | **非空**(否则是凭空造物);`qty` = **基数,非实耗**(D-21-15,实耗 = `Ceil(qty/EFF)`) |
 | `outputs[]` | `{item_key, qty>0}[]` | **非空**(销毁不归配方表);`qty` = **产出基数** —— **逐条即 F1 的 `outputs_i.qty`**(三轮 blocking #1/#2:此前**不在任何 schema**;原稿 §Schema F 写复数、F1 却写单数 `Recipe.BaseQty`,是**形状断裂**) |
 | `duration_ticks` | int > 0 | 逻辑 tick 数(单位是 tick,**不是秒**) |
@@ -456,7 +473,14 @@ The recipe settlement formula is defined as:**逐 `outputs[i]` 套用**(三轮 b
 
 `QtyMultiplier = clamp( 1 + ΣM , QTY_MULT_MIN , QTY_MULT_MAX )`   ← **一条配方一个,不逐条**
 
-`ΣM = SkillMod + QualityMod + EquipMod + EnvMod`
+`ΣM = SkillMod + QualityMod + EquipMod + EnvMod_total`
+
+`EnvMod_total = clamp( EnvMod_climate + EnvMod_clinic , ENV_MOD_MIN , ENV_MOD_MAX )`
+  ← **2026-09-19(18 首轮评审 R-18-C / D-21-31)**:F1 的入参是**两个未钳制分量**
+  —— `EnvMod_climate`(5 的 `EnvMod_raw`,块哈希)+ `EnvMod_clinic`(24 的医馆分量);
+  **求和与唯一钳制发生在 F1 正文(本节),不落 5、不落 24、不落 18**(18 只原样透传)。
+  钳制此前全文**无处执行**(5:395 与 AC-5-19 互相指认、21a `:484` 是入参断言非操作)——
+  本式补齐执行落点。
 
 `ActualConsumed_j = Ceil( inputs_j.qty / EFF )`   ← **投入端实耗(D-21-15;EFF 的运行期出口)**
 
@@ -471,7 +495,7 @@ The recipe settlement formula is defined as:**逐 `outputs[i]` 套用**(三轮 b
 | 技能修正 | `SkillMod` | int(定点中间) | 0 ~ `SKILL_MOD_CAP` | 18 炮制 | `SkillMod = cap × Level / SKILL_CAP` —— **18 只传等级,不传结果**(修正曲线由 21 定义)。`Level` 与 F2 的 `CraftSkill` **是同一个量** |
 | 品级修正 | `QualityMod` | int(定点中间) | 0 ~ `QUAL_MOD_CAP` | 输入实例 | `QualityMod = cap × (InQ − 1) / (MAX_QUALITY − 1)` —— **曲线由 21 定义**;`n>1` 时 `InQ = min(各输入 quality)` |
 | 设备修正 | `EquipMod` | int(定点中间) | 0 ~ `EQUIP_MOD_CAP` | 19 制作 · **24 医馆机器** | 器具档位、丹房加成 |
-| 环境修正 | `EnvMod` | int(定点中间) | `ENV_MOD_MIN` ~ `ENV_MOD_MAX` | 5 时间天气 · **24 医馆机器** | **可为负**(火候难控、背阴) |
+| 环境修正 | `EnvMod_total` = `clamp(EnvMod_climate + EnvMod_clinic, ENV_MOD_MIN, ENV_MOD_MAX)` | int(定点中间) | `ENV_MOD_MIN` ~ `ENV_MOD_MAX`(**钳制后**;两分量入参**各自无域**,D-21-31) | 5 时间天气(`EnvMod_climate`)· **24 医馆机器**(`EnvMod_clinic`) | **可为负**(火候难控、背阴)。**求和+钳制在 F1 正文执行** —— 源系统只供未钳制分量 |
 | 产出取整 | `Round(·)` | — | — | 本文 | **`ROUND_HALF_AWAY_FROM_ZERO`,整数域完成** |
 | 产出非零地板 | `max(1, ·)` | int | ≥ 1 | 本文 | **结构性保证产出 ≥ 1**(见下 🔑) |
 | 转化效率 | `EFF` | 定点 | `EFF_MIN` ~ `EFF_MAX` ≤ 1 | F2 | **运行期出口**:实耗的除数(技能高 → 省料) |
@@ -505,6 +529,22 @@ TD 要求「定死叠加顺序」,取相加则顺序问题**自动消失**;且�
 > 原稿两侧都用**基数**、**漏了产出侧的 `QtyMultiplier`** ⇒ 构建期通过、运行期击穿(「凭空造物」)。
 > **实测反例**:`w_in = 10`、`w_out = 9`、`EFF_MAX = 1`、`QTY_MULT_MAX = 2` —— 构建期 `9 ≤ 10` ✓,
 > 运行期 `QtyMultiplier = 2` ⇒ 产出 `18 > 10` ✗。**这一条同时锁死 AC-21a-9 想把 `QTY_MULT_MAX` 抬高的方向**。
+>
+> ⚠️ **本式仍不充分(2026-09-19,18 首轮评审 D-21-32 / O-18-R3)**:聚合式与运行期
+> **逐条** `max(1, Round(·))`(`ROUND_HALF_AWAY_FROM_ZERO`)**不同形**,可被击穿 ——
+> **实测反例**:`w_in = 10`、`w_out = 6`、`EFF_MAX = 1`、`QTY_MULT_MAX = 1.5`、单条 `qty = 1` ⇒
+> 构建期 `1.5 × 6 × 1 = 9 ≤ 10` ✓;运行期 `Round(1 × 1.5) = 2`(HALF_AWAY 上取整)⇒
+> 产出 `2 × 6 = 12`、实耗 `Ceil(1 / 1) = 1`(`1 × 10 = 10`)⇒ **12 > 10** ✗。
+> **缝在 `Round`,不在 `max(1,·)`**。
+> **修法 = 构建期改跑与运行期同形的逐条极值式**:
+> ```
+> Σ( weight_out × max(1, Round(outputs_i.qty × QTY_MULT_MAX)) )
+>     ≤ EFF_MAX × Σ( weight_in × Ceil(inputs_j.qty / EFF_MAX) )
+> ```
+> (产出侧:逐条取整后的最坏值;投入侧:实耗的最小值 `Ceil(qty/EFF_MAX)`。
+> 逐条式蕴含聚合式在 `max(1,·)` 地板不起作用的子域上等价,在地板/取整起作用的域上更严。)
+> **归 21a 烘焙管线的执行 AC = 新 AC-21a-65(本节随 D-21-32 登记,AC 表见下)**;
+> 18 侧的守恒 AC(AC-18-19)在本修回写前记 EXTERNAL·BLOCKED-BY,不得记绿。
 
 > 🔑 **`max(1, ·)` 才是 Q4 的机制实现 —— 原稿的 `QTY_MULT_MIN > 0` 不够**(2026-09-14 二轮 blocking #1)。
 > 原稿断言「求解器在数学上不可能产出零」,但 `Round(1 × 0.3) = 0`(二轮实测)——
@@ -690,6 +730,11 @@ The quality-to-timeline formula is defined as:
   成药侧**必须靠本式真发生**。**具体各档填什么数 = OQ 待你裁(数值)。**
 - **域钳制(三轮补)**:`Axis_effective` 须 **`> 0`** —— 9 的衰减用 `half_life` 作除数,
   **偏移把它推到 ≤ 0 ⇒ 除零 / 反向衰减**。构建期须断言 `Axis_base + min(axis_offset_by_quality) > 0`。
+  > ⚠️ **🔴 2026-09-19 登记 `D-21-34`(未见裁定,勿当已改)**:本断言的**尺**与下游 11 的 F-11.2 不一致 ——
+  > 11 按 **`≥ MIN_USABLE_HALF_LIFE`** 写(理由:合法极小正数如 `2` 虽不除零,却使衰减快于一个 tick ⇒
+  > 玩家看到的仍是「无药效」,而两侧 AC 全过)。**把 `> 0` 升格为 `≥ MIN_USABLE_HALF_LIFE` = 改本件机制**,
+  > 须走 21a 的**重开流程**(见文首重开触发条件 ⑤ 与 §Debt Register `D-21-34`),**不得就地改**。
+  > 11 侧的登记点是 `prescription-and-medication.md` §Cross-References **`O-11→21a`**(BL-1)。
 
 **Output Range:** `Axis_base + min(axis_offset_by_quality)` 到 `Axis_base + max(axis_offset_by_quality)`,
 **且下界必须 `> 0`**(构建期断言;否则 9 的 `half_life` 除数 ≤ 0)。
@@ -792,7 +837,7 @@ The quality-to-timeline formula is defined as:
 | **7a 持久化服务** | 7a ← 21 的**形状** | 契约 | 必须能序列化 `ItemInstance`(含 `quality`);**存快照,不存引用** |
 | **30 技能与熟练度** | 21 → 30 | **常量引用** | `SKILL_CAP`(=60)—— 21 **引用**不拥有,见 `skill-system.md` |
 | **5 时间天气** | 5 → 21 | 数据(**运行时入参**) | `EnvMod` 的来源之一(火候 / 背阴)—— **2026-09-14 补登**(原表漏) |
-| **24 医馆即机器** | 24 → 21 | 数据(**运行时入参**) | `EquipMod` 与 `EnvMod` 的来源 —— **2026-09-14 补登**(原表漏) |
+| **24 医馆即机器** | 24 → 21 | 数据(**运行时入参**) | `EquipMod` 与 `EnvMod` 的来源 —— **2026-09-14 补登**(原表漏)。**2026-09-17 补 `O-24-1` / `O-24-4`**:① 家具目录 `FURN_TABLE` 须扩展 `type` / `tier` / `e_env` 字段(与 `cost(m)` 同源);② **`ENV_MOD_MIN < 0` 为承重前提**(否则「满污染已匹配房间」与 `ROOM_NONE` 中性值 0 不可区分)—— 只登记口径,数值归用户 |
 | **42 拟物 UI 框架** | 42 ← 21 的**名称 + 品级语义** | 数据 | 物品显示名由 21 拥有;品级**非数字化呈现契约**由 21 交付、42 实现 |
 | **6 世界与生态区** | 6 → 21 | 数据(**外键引用**) | `gather_profile.ecosystem` → 生态区 id;**2026-09-14 二轮补登**(原表漏) |
 | **52 随机事件导演** | 52 ← 21 的**形状** | 数据 | `weight → InstanceWeight → CarryLoad → StrengthTier`(见 `random-events.md` **F1**);**2026-09-14 二轮补登**(原表漏) |
@@ -833,7 +878,13 @@ The quality-to-timeline formula is defined as:
 | **D-21-25** | **9 侧处置事件字段名须对齐 `drug_potency`** —— `disease-simulation.md` 的事件元组仍写 `Offset`(9 的点名来源);21a 已改名(D-21-22) | **9 / 11** | ⏳ **待回收** —— 两份 GDD 落笔时统一为 `drug_potency`;`tau_half` 同理对齐 `half_life` |
 | **D-21-26** | **`instance_id` 权威缺契约** —— ADR-005 的 `IIdAuthority` **只有 `PatientId Next()`**,无物品 id 来源;主机迁移后计数器若复位即**静默重号**(两件物品共用一个 id,不崩溃、不回放失配,只表现为「物品悄悄合并/丢失」) | **ADR-005 / 7a / 20** | ⏳ **待裁** —— 须与 D-9-E 同机制(计数器 + 高水位可重构),扩 `IIdAuthority` 加 `ItemInstanceId Next()` |
 | **D-21-27** | **17 采集的 `instance_id` 铸造权** —— 规则九的「主机唯一」清单**漏了 17**:采集在客户端本地铸造 id 会与主机撞号 | **17 / 45** | ⏳ **待回收** —— 17 落笔时补入主机唯一清单,或走 D-21-26 的 `IIdAuthority` 单一来源 |
-| **D-21-28** | **Craft 事件的总序键缺失** —— 同一 tick 内多次结算需要稳定的定序键以保回放一致;9 的事件流有 `Seq`,**21a 的 Craft 事件尚无** | **ADR-005 / 18 / 19 / 45** | ⏳ **待裁** —— 总序键建议 `(Tick, ActorId, Seq)`,与 `SimEvent`(D-9-D)同族 |
+| **D-21-28** | **Craft 事件的总序键缺失** —— 同一 tick 内多次结算需要稳定的定序键以保回放一致;9 的事件流有 `Seq`,**21a 的 Craft 事件尚无** | **ADR-005 / 18 / 19 / 45** | ✅ **已裁(2026-09-19,18 首轮评审,用户裁定 [甲])** —— **沿用三流全序键 `(Tick, StreamPriority, Patient, Seq)`**(ADR-008 §一);`Craft` 落世界流,`Patient = PatientId.None = -1` 哨兵位(ADR-007 ④),`Seq` 主机 `Append` 时发号。原建议键的 `ActorId` 位**被吸收**(actor 已是 Craft 载荷字段,18 R-18-A)。回填:18 注④ · `entities.yaml:91` · `adr-009:243/:415`(记源同步订正为「发起方 18 / 求解 21a」) |
+| **D-21-29** | **「一株 → 几剂」的换算字段缺失** —— 11 的 `dose` 是**药效刻度**,消耗的是**库存份数**,二者**必须解耦**;而 `drug_profile` 无承载该换算的字段 ⇒ 「够不够剂」这句话在 P0 **无量纲**,11 的「库存不足整体拒绝」判据不可实现 | **21a / 17 / 18**(产出侧;**11 已裁定不做**,OQ-11-10) | ⏳ **待认领** —— 2026-09-18 由 11 首轮评审登记(系本案第 10 次「引用却无登记」);11 侧口径见 `prescription-and-medication.md` 规则十 |
+| **D-21-30** | **`Recipe.owner` 字段缺失** —— 三系统(18/19/23)对「配方子集」的判据若靠 `processing_state` 变化约定,在 `item_key` 复合主键下**结构性不互斥**(18 R-18-B 举证) | **21a**(字段落点)/ 18(裁定发起方) | ✅ **已裁(2026-09-19 [甲])并在本轮落盘** —— 规则五已加字段;校验 = **AC-21a-66** |
+| **D-21-31** | **`EnvMod` 的求和+钳制全文无执行落点** —— 5:395 与 AC-5-19 互相指认、原 `:484` 变量表是入参断言非操作 ⇒ `:533` 构建期不等式保护了一个**不存在的包络** | **21a** | ✅ **已裁(2026-09-19,18 R-18-C)并在本轮落盘** —— F1 正文新增 `EnvMod_total = clamp(climate + clinic, MIN, MAX)`;5 侧 AC-5-19 收窄为只断自家不钳(涟漪) |
+| **D-21-32** | **构建期守恒聚合式与运行期逐条 `Round` 不同形** —— 可被击穿(实测反例 `w_in=10/w_out=6/QM=1.5/qty=1`:构建 `9≤10` ✓、运行 `12>10` ✗;缝在 `Round` 不在 `max(1,·)`) | **21a** | 🟡 **修法已落盘(2026-09-19,承 18 O-18-R3)** —— 逐条同形极值式已写进规则八注,**AC-21a-65** 承接;⏳ **烘焙管线实现未写** ⇒ 18 的 AC-18-19 在此之前不得记绿 |
+| **D-21-33** | **`SkillLevel` 具名 newtype 缺失** —— 18 的 AC-18-03 要机器可验「传 `Level` 不传 `cap×Level/SKILL_CAP` 的结果」,但两者都是 `int`,**类型系统不可分辨**;落地前 18 侧只能以运行时恒等断言(spy 夹具)现测 | **21a**(类型定义落点)/ 18(判据发起方) | ⏳ **待认领** —— 2026-09-19 由 18 首轮评审登记(义务 `O-18-R7`);落地后 AC-18-03 升级为类型系统断言,不阻塞 18 验收(恒等断言为现行判据) |
+| **D-21-34** | **F5 的下界断言与 `drug_potency` 的声明域双双缺失** —— ① F5 现断言 **`Axis_base + min(axis_offset_by_quality) > 0`**(`:732` / `:810` / `AC-21a-38b`),而下游 11 的 F-11.2 按 **`≥ MIN_USABLE_HALF_LIFE`** 写。**两者不是同一把尺**:合法输入 `Axis_effective = 2`(如 Q16.16 的极小正数)在现断言下**通过**,却在 11 侧退化为「退得比一 tick 还快 ⇒ 无药效」—— **静默失败,且 11 侧 AC 全过**(11 不重复 clamp,刻意掩盖上游失败)。② `drug_profile.drug_potency` 在 §Schema B(`:321`)只有类型 `Q16.16 int`、**无取值范围** ⇒ 11 的 F-11.1「中间积是否必须 128 位」在文档层**不可判定**(Q16.16 合法域 ≤ 2^47 时 `× dose` 不可能溢出;不声明域则可能) | **21a**(F5 断言落点 + §Schema 域声明)/ 11(判据发起方) | ⏳ **待认领(须重开)** —— 2026-09-19 由 11 二轮评审登记(BL-1 + BL-7);11 侧口径见 `prescription-and-medication.md` §Cross-References **`O-11→21a`** |
 | **D-9-D** | `SimEvent` 须补 `Seq` + 载荷(ADR-005 自相矛盾) | **ADR-006** | ✅ **已办**(Amendment A)+ ADR-005 已加前向指针 |
 | **D-9-E** | `PatientId` 跨权威稳定性 | **ADR-006** | ✅ **已裁**(2026-09-14 机制 A「计数器 + 高水位可重构」,Amendment B);残留实现项归 7a / 45 |
 | **D-9-B** | 神经衰弱史实出处(**非时代错误**,缺口是可引用的一手来源) | 考据 | ⏳ 待考据(支柱五,**不得凭空落盘**) |
@@ -868,7 +919,7 @@ The quality-to-timeline formula is defined as:
 | `F5 偏移可感知地板` | F5 | *待定* | **> 9 的病史噪声带** | 低于噪声 ⇒ 偏移不可区分 ⇒ 玩家永远感觉不到(D-21-24)。**须与 9 的噪声带宽一起定** |
 | `quality_character[]` | D-21-16 | *待定* | 长度 = `MAX_QUALITY`;**string** | **原料侧**每档定性修饰(如「陈放」);42 以外观/药签呈现 |
 | `drug_quality_character[]` | D-21-24 | *待定* | 长度 = `MAX_QUALITY`;**string** | **成药侧**每档定性修饰(如「炮制得法」);42 以药签措辞呈现(U-6)。与 `quality_character[]` **互为补充、不可互替** |
-| `ROUND_MODE` | F1 / F2 | `HALF_AWAY_FROM_ZERO` | 固定 | **不建议改** —— 改它会让所有既有夹具失效 |
+| `ROUND_MODE` | F1 / F2 | `ROUND_HALF_AWAY_FROM_ZERO` | 固定 | **不建议改** —— 改它会让所有既有夹具失效 |
 | `ItemDef.stack_max` | F4 | *逐条* | ≥ 1 | 堆叠上限 |
 | `ItemDef.weight` | F4 | *逐条* | ≥ 1(**整数,非 `Fix`**) | 单件重量(最小单位个数);**数值冻结至单位考据落定**;**守恒律按它求值** |
 | `weight_unit` | F4 | **待考据** | — | 重量**展示**单位名。**21a 不填**(支柱五 / D-21b-2) |
@@ -1014,7 +1065,7 @@ The quality-to-timeline formula is defined as:
 | **AC-21a-22** | **[L]** | `category` / `processing_state` 取枚举外字面量拒绝 | `invalid_enum.json` |
 | **AC-21a-23** | **[L]** | P0 期出现 P1a 值(`honey_fried` / `dry_fried` / 非空 `tcm_profile`)拒绝 | `invalid_p1a_leak.json` |
 | **AC-21a-24** | **[L]** | 配方 state 对不在 `legal_transitions` 内拒绝(如 `raw → extracted`) | `invalid_transition.json` |
-| **AC-21a-25** | **[L]** | `category = weapon` 无 `inflicts_injury`,或非 `weapon` 带 `inflicts_injury`,均拒绝 | `invalid_injury_fk.json` |
+| **AC-21a-25** | **[L]** | `category = weapon` 无 `inflicts_injury`,或非 `weapon` 带 `inflicts_injury`,均拒绝。⚠️ **2026-09-17 措辞订正(25 · R13)**:本条只校验**存在性与类别门**,**不校验语义** —— 「哪次命中造成哪个伤」的判定在 25(`maps_to_injury`);集合漂移门另立:**21a 的 `inflicts_injury` 集合 ⊇ 该线全部动作的 `maps_to_injury`,构建期断言,违例 = 硬失败**(承 25 的 A20,fixture:`injury_set_drift.json`) | `invalid_injury_fk.json` / `injury_set_drift.json` |
 | **AC-21a-26** | **[L]** | `item_key` 字段以 **int** 编码 `processing_state` ⇒ **装配期断言失败**(D-21-13) | `invalid_state_int.json` |
 | **AC-21a-27** | **[L]** | `ItemInstance` 含任何 `UnityEngine` 类型字段 ⇒ **静态断言失败**(§Schema E) | `invalid_instance_unity_ref.cs` |
 
@@ -1123,12 +1174,18 @@ The quality-to-timeline formula is defined as:
 | **AC-21a-62** | **[L]** | **GIVEN** `drug_quality_character[]` **非空**且长度 ≠ `MAX_QUALITY`,**WHEN** 校验,**THEN** 构建期硬失败 —— 与 AC-21a-50b 同型(成药侧) | `invalid_drug_char_len.json` |
 | **AC-21a-63** | **[I]** | **GIVEN** `instance_id` 的铸造路径,**WHEN** 检索全部铸造点,**THEN** **唯一来源 = `IIdAuthority`**(或主机);**17 采集不得在客户端本地铸造**—— D-21-26/D-21-27 的验证(迁移后重号会让两件物品共用一个 id,**不崩溃、只表现为「物品悄悄合并/丢失」**) | `tests/unit/item_database/id_authority.cs` |
 | **AC-21a-64** | **[L]** | **GIVEN** 配方与实例的最大 `weight` / 最大 `stack_max` / 最大 `MAX_QUALITY` 同时取满, **WHEN** 求 `Σ(w × InstanceWeight)`, **THEN** 结果不溢出 `int64` —— 守恒律整数域求值的**上界前提**(三轮:`Σ(w×·)` 先乘后比,须先证不溢出) | `invalid_weight_overflow.json` |
+| **AC-21a-65** | **[L]** | **GIVEN** 任一配方, **WHEN** 构建期以**逐条同形极值式**校验:`Σ( weight_out × max(1, Round(outputs_i.qty × QTY_MULT_MAX)) ) ≤ EFF_MAX × Σ( weight_in × Ceil(inputs_j.qty / EFF_MAX) )`, **THEN** 违反即硬失败 —— **D-21-32 的落盘验证**(聚合式 `QTY_MULT_MAX × Σ(w×产出基数) ≤ EFF_MAX × Σ(w×输入基数)` 单独使用可被逐条 `Round` 击穿,反例见规则八注;聚合式保留为**必要非充分**条件,极值式为唯一硬门)。⚠️ 极值式在整数域求值(`Round` = `ROUND_HALF_AWAY_FROM_ZERO`,先乘后比,禁浮点中转 —— ADR-006) | `invalid_conservation_perline.json` |
+| **AC-21a-66** | **[L]** | **GIVEN** 全量配方表, **WHEN** 装载期按 `owner ∈ {process, craft, build}` 分三子集, **THEN** 并 = 全表、两两交 = ∅、**任一配方缺 `owner` 即硬失败** —— D-21-30 的落盘验证(18 的 `AC-18-18` 断同一判据的调用方半边) | `invalid_recipe_owner.json` |
 
 > **21a 门控结论**:组三(21 条负向夹具,含三轮新增的 56–62 号)、组四(AC-21a-29 IL2CPP 实测)、
 > 组十一(AC-21a-53 `Fix` 编码器往返)、
-> 以及 **§Debt Register 中的 D-21-9 / D-21-11 / D-21-12 / D-21-20 / D-21-26 / D-21-27 / D-21-28** 未兑现前,
+> 以及 **§Debt Register 中的 D-21-9 / D-21-11 / D-21-12 / D-21-20 / D-21-26 / D-21-27** 未兑现前,
 > **21a 可标 In Review,不得标 Approved。**
-> (**D-21-19 已于 2026-09-14 同轮就地落盘,不列门控;D-21-25 为字段改名对齐,随 9 / 11 落笔回收。**)
+> (**D-21-19 已于 2026-09-14 同轮就地落盘,不列门控;D-21-25 为字段改名对齐,随 9 / 11 落笔回收。**
+> **D-21-28 / D-21-30 / D-21-31 已于 2026-09-19 裁定并落盘(18 首轮评审涟漪),摘除;
+> D-21-32 修法已落盘、实现未写 ⇒ 不摘除但降级为「实现期门」。** —— 21a 的 Approved 系
+> 2026-09-18 显式风险接受结案(页眉),本行是当时的门控口径存档;本轮三项为**已兑现的债**,
+> 按页眉重开触发条件①的同类逻辑,实现期构建期门(AC-21a-65/66)兜底 D-21-32 的未实现部分。)
 > ⚠️ **三轮新增门控**:`instance_id` 权威契约(D-21-26)与 17 采集铸造权(D-21-27)是**静默失败**类
 > —— 不兑现不会让任何测试变红,只表现为「物品悄悄合并/丢失」,故必须显式门控。
 

@@ -348,6 +348,11 @@ public readonly struct SimEvent      // 权威定义见 ADR-006 Amendment A
 > 「在场才模拟 vs 全域模拟」未定 ⇒ 实体数是**性能与内存的前置输入**,须在写第一个 `Step` 之前标定。
 > 下表 CPU 行的量纲按「**实体数 × tick 频率 × 单次求值**」读,**具体系数待 OQ-8 标定**。
 > 该输入同时是 **R-11(是否 DOTS)** 的判据前置(见 `technical-preferences.md` 的 ADR-004 待建项)。
+>
+> **2026-09-17 注记 —— 量纲的第二个因子同样无值(OQ-25-8 · 由 25 GDD 回填 · R16)。**
+> 「tick 频率」本身是未标定项:`combat-and-weapon-lines.md` 的占用门 `cooldown_ticks`、感知事件率上界、
+> `Decay_injury` 半衰期三处量纲全押在它之上,登记为 **OQ-25-8**。**须与 OQ-8 同批、在写第一个 `Step` 之前一并标定**
+> —— 否则本行公式的两个乘数都无值(已在 `technical-preferences.md` 性能预算段并登)。
 
 | Metric | Before | Expected After | Budget |
 |--------|--------|---------------|--------|
@@ -408,7 +413,8 @@ public readonly struct SimEvent      // 权威定义见 ADR-006 Amendment A
 - **ADR-006 定点域边界数据契约**(Accepted 2026-09-14)—— **本 ADR 的边界补完**。
   它补齐了本 ADR 未定义的「域边界」:外部数据 → `Fix` 的唯一解析入口、
   存档禁浮点、单一舍入模式、守恒律的域内表达。
-  **并以后续修正案窄修正本 ADR 的缺陷(Amendment A–D)并升格三流口径(Amendment E · ADR-009)**:
+  **并以后续修正案窄修正本 ADR 的缺陷(Amendment A–D)并升格三流口径(Amendment E · ADR-009)**;
+  **Amendment F(边界程序集)由本 ADR 引入(2026-09-16,见本节末)**:
   - **Amendment A(D-9-D)**:本 ADR 原 Key Interfaces 块的 `SimEvent{Tick, Patient, Kind}`
     **装不下本 ADR §Implementation Guidelines 2 自己要求的全序**,也无处安放载荷。
     ADR-006 补 `Seq` 与 `Payload` 两字段 —— **本 ADR 的 `SimEvent` 定义以 ADR-006 为准**
@@ -424,6 +430,25 @@ public readonly struct SimEvent      // 权威定义见 ADR-006 Amendment A
   - **Amendment E(2026-09-15 · ADR-009)**:**真源 = 病史流 ∪ 病例流 ∪ 世界流**;
    `StreamPriority` 三值(病史 < 病例 < 世界);终态折叠仍只作用于病史流,
    病例流与世界流**永不物理折叠**。本 ADR §Summary / §Decision 三 / 架构图已据此修正。
+  - **Amendment F(2026-09-16 · 边界程序集)**:**把「边界层」从「某个特定系统的领域」
+    重定义为「任意两个住门 A 内外两侧的系统之间的通信契约」**,并新立**边界程序集**
+    (boundary assembly)承载它 —— `WorldPos`(ADR-015 §三/§七)+ 六个 P0 抽象点
+    (§Key Interfaces:`ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery` /
+    `IEventAuthority` + `SimEvent` 及其整数枚举 `PatientId` / `StreamId` / `EventKind`),
+    **零 `UnityEngine` 引用**;**sim 实现程序集与表现层都引用它**。
+    **根因**:ADR-005 §二 与 ADR-015 §Implementation Guidelines 2 把 `WorldPos` 定为
+    **住 sim 程序集**,而 ADR-020(修订后)要求**表现层不引用 sim 程序集却要发含 `WorldPos` 的事件**
+    ⇒ **表现层物理上拿不到它要求它构造的类型**。这是程序集划分的**缺失**,不是措辞分歧。
+    **本修正案只做三件事**:① 新立边界程序集;② 明确**门 A(`"noEngineReferences": true`)
+    只约束 sim 实现程序集**(它是**单向**约束 —— 「sim 不得依赖引擎」,不是「引擎侧不得引用 sim 契约」);
+    ③ 明确**门 B(IL 反射扫描)的扫描面仍只覆盖 sim 实现程序集** —— 边界程序集**无需**门 B
+    (它没有可执行的方法体,只有 `readonly struct` 与接口签名)。**不改变**整数定点域、
+    事件流唯一真源、六个抽象点的语义。**同步修订**:ADR-015 §Implementation Guidelines 2 ·
+    ADR-020 Status 的 **Amendment A 补注** + Verification Required ② · `architecture.yaml`
+    的 `world_coordinate_lattice` 契约。
+    > ⚠️ **本法不得被读作「表现层可以自由引用 sim」** —— 边界程序集是**白名单**,
+    > 不是通道:表现层能碰的**只有**上面列举的类型。新增一个跨门类型须**追加进本法**,
+    > 不得就地塞进边界程序集。
   - **本 ADR 的两项核心裁决不受影响**:整数定点域(**§Decision 一**)与事件流唯一真源
     (**§Decision 三**,对象已由单条病史流扩为**三流**并集)照旧 Accepted。
 

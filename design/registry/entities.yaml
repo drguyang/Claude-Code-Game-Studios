@@ -37,7 +37,7 @@
 #   Each entry: name, status, source, referenced_by[], attributes{}, added, revised
 
 version: 1
-last_updated: "2026-09-14"
+last_updated: "2026-09-18"
 
 # ─── 跨系统欠账 (2026-09-14 追加) ─────────────────────────────────────────────
 # 本注册表只登记【已存在的实体/公式/常量】。未兑现的跨文档债务不属于任何一类,
@@ -64,7 +64,7 @@ last_updated: "2026-09-14"
 # · D-21-14 F5 换轴:品级作用轴 = 时间轴/作用点 —— 常量已登记(quality_axis / axis_offset_by_quality)。
 # · D-21-15 技能回报 = 投入端可变:ActualConsumed = Ceil(inputs[].qty / EFF) —— EFF 的运行期出口。
 #          常量 EFF_MIN/EFF_MAX 已登记;18/19 侧待回收。
-# · D-21-16 品级身份标签:gather_profile.quality_character[](string[])—— 常量已登记;42 呈现侧待回收(U-5)。
+# · D-21-16 品级身份标签:gather_profile.quality_character[](string[])—— 常量已登记;**42 呈现侧已回收(2026-09-16,skeuomorphic-ui.md 成稿;42 不拥有形态,画不出即报冲突)**。
 # · D-21-17 weight 口径 = int(最小单位个数),【不是 Fix】—— 原 AC-21a-41 误将其列入 Fix 解析集。
 # · D-21-18 Fix 不可经 Unity 序列化器承载 —— 须自定义编码器(ADR-006 修正案,待撰写:见 D-21-19)。
 # · D-21-19 ADR-006 修正案 —— ✅ 2026-09-14 同轮就地落盘(① weight 移出 Fix 解析集 ② Fix 禁经 Unity 序列化 ③ 守恒律改 weight 单位)。
@@ -74,19 +74,23 @@ last_updated: "2026-09-14"
 #           Σ(w × 产出量) ≤ EFF_MAX × Σ(w × 实耗量),产出量【含 QtyMultiplier】;
 #           构建期上界 QTY_MULT_MAX × Σ(w × 产出基数) ≤ EFF_MAX × Σ(w × 输入基数)。
 #           原式两侧基数、漏产出侧乘子 ⇒ 构建期过、运行期击穿(凭空造物)。已在 F1/规则八/本文件就地修正。
-# · D-21-22 【drug_potency】(原 Offset 改名)归 21a,入 drug_profile —— 9 处置事件 Offset 的【唯一来源】。
+# · D-21-22 【drug_potency】(原 Offset 改名)归 21a,入 drug_profile —— 9 处置事件 drug_potency 的【唯一来源】。
 #           二轮换轴时误删,导致 9 点名的来源在 21a 无字段。它是【静态基础幅值,不受品级调制】。
 #           9 侧字段名对齐归 D-21-25。常量已登记。
 # · D-21-23 【F5 quality_axis 在 P0 收窄为 half_life】(唯一在 9 有落点的轴);
 #           onset/peak/elimination 标 P1a。P0 构建期拒绝非 half_life(AC-21a-60)。
 # · D-21-24 【成药侧品级感知层】:drug_quality_character[](string[],长度 = MAX_QUALITY)+ U-6;
 #           并加【可感知地板】—— 非零档 |axis_offset| 须 > 9 的病史噪声带(AC-21a-61)。常量已登记。
-# · D-21-25 9 侧处置事件字段名须对齐 drug_potency / half_life(9 现写 Offset / tau_half)—— 待回收。
+# · D-21-25 ✅ 已办(2026-09-15,D2 裁定「9 跟随 21a」):9 侧处置事件字段名已对齐
+#           drug_potency / half_life(处置元组 / AC-28 / F4 last_intervention 谓词已随新名落盘
+#           `disease-simulation.md`,旧名 Offset / tau_half 全清)。
 # · D-21-26 instance_id 权威缺契约 —— ADR-005 的 IIdAuthority 只有 PatientId Next(),无物品 id 来源;
 #           主机迁移后计数器复位 ⇒ 静默重号(两件物品共用一个 id,不崩溃,只表现为「物品悄悄合并/丢失」)。
 #           须扩 IIdAuthority 加 ItemInstanceId Next()。待裁。
 # · D-21-27 17 采集的 instance_id 铸造权(规则九的主机唯一清单【漏了 17】)—— 待回收。
-# · D-21-28 Craft 事件的总序键缺失(建议 (Tick, ActorId, Seq),与 SimEvent 同族)—— 待裁。
+# · D-21-28 Craft 事件的总序键 —— ✅ 已裁(2026-09-19,18 首轮评审 [甲]):三流全序键
+#           (Tick, StreamPriority, Patient=None, Seq)(ADR-008 §一);ActorId 位被 Craft 载荷
+#           actor_id 吸收。载荷三位同步定稿(processing.md 规则八,ADR-009 Amendment J)。
 
 # ─── ENTITIES ────────────────────────────────────────────────────────────────
 # Named game-world objects: enemies, NPCs, characters, factions, bosses.
@@ -161,6 +165,86 @@ items: []
 # Optional: expression (the actual formula), notes
 
 formulas:
+  # ── F-23-1: 有效可走性合成 (modular-building.md §Formulas) ────────────────
+  # **缝一(6 的 O-6-10)的唯一合成点** —— 6 烘焙静态 Nav,23 写入占用 Overlay,
+  # 合成 = 23;27 / 13 只读合成结果,不读 Nav 原件。**本式登记即 O-6-10 闭合**。
+  # ⚠️ 2026-09-17 评审裁定 B2:玩家不读合成(走感 = CharacterController collide-and-slide)。
+  - name: effective_walkable
+    status: active
+    source: design/gdd/modular-building.md
+    referenced_by:
+      - design/gdd/modular-building.md       # 23:F-23-1 + 规则三 + AC-23-03/04
+      - design/gdd/world-and-ecozones.md     # 6:缝一 R-6-15 + O-6-10 + AC-6-10(本式是 O-6-10 的落点)
+      - docs/architecture/adr-016-ai-architecture.md   # §五 寻路输入(2026-09-17 补注);§三 感知输入
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md   # §五 模块化网格 + §四③ 脏块失效
+      # (2026-09-17 移除 player-controller-and-movement.md 引用 —— 评审裁定 B2:玩家不读合成)
+    variables:
+      - cell                    # 整数格坐标(WorldPos,ADR-015 §三)
+      - Nav[cell].walkable      # 静态导航格(烘焙,会话内不变,R-6-13)—— 归 6
+      - Overlay.blocked(cell)   # 23 的占用覆盖:该格被模块占用 —— 归 23
+      - EffectiveWalkable(cell) # 合成结果:27 / 13 可走真值(玩家不读 —— 2026-09-17 评审裁定 B2)
+    output_range: ["false", "true"]
+    expression: "EffectiveWalkable(cell) := Nav[cell].walkable ∧ ¬Overlay.blocked(cell)"
+    notes: "**推论(F-23-1)**:EffectiveWalkable = false 的充要条件 = 原生不可走 ∨ 被占用,
+      与 slot_occupied 用**同一份占用表**(一个写成 Overlay,一个写成占用真相,禁两套副本漂移 —— AC-23-04)。
+      **重算对象点名**:ADR-015 §四③ 的脏块失效重算 Overlay 的局部,不重算 6 的静态 Nav(会话内不变)。
+      Overlay 是派生态:不进流、不存档,重放时从 **BakedInitial ⊕ Structure* 事件**重建
+      (2026-09-17 评审裁定 B3:开档基线 = 烘焙初始占用;ADR-016 §一 三源不变量)。
+      读方 = 27 / 13(玩家不读,裁定 B2)。"
+    added: 2026-09-17
+    revised: ""
+
+  # ── F-23-2: 放置合法性判定 (modular-building.md §Formulas) ───────────────
+  # 全量四条件布尔谓词;拒绝不 Append 任何事件。判定进 sim,意图 = 呈现层预览
+  # (EC-23-12:取消放置 = sim 侧零事件)。
+  - name: structure_placeable
+    status: active
+    source: design/gdd/modular-building.md
+    referenced_by:
+      - design/gdd/modular-building.md       # 23:F-23-2 + 规则二 + AC-23-01
+      - design/gdd/world-and-ecozones.md     # 6:槽位骨架(6 只给格)
+      - docs/architecture/adr-022-level-tool.md   # §三 world_buildslots.json(骨架唯一作者)
+    variables:
+      - anchor                # 目标锚点格(WorldPos)
+      - BuildSlot(骨架)       # 允许格集 + 槽位类型(烘焙)
+      - BuildSlotRegion(骨架) # 槽位骨架的区域(含初始占用;评审 B5 —— 占用格须全在区域内)
+      - SlotType(anchor)      # 该格的槽位类型约束(enum)
+      - module_type           # 模块目录里的类型(21a 拥有)
+      - OccupiedCells(m)      # 模块占用格集(目录推导,整数旋转 F-23-2b)
+      - slot_occupied(cell)   # 占用真相(23)
+      - Stock(20, m)          # 20 侧可扣的 build_part 数量
+      - EntityOnCell(cell)    # 该格有实体(玩家 / 敌人;量化格 + 宽容半径;评审 B4)
+    output_range: ["false", "true"]
+    expression: "Placeable(m, anchor) := anchor ∈ BuildSlot ∧ TypeOK(SlotType(anchor), m.module_type) ∧ ∀cell ∈ OccupiedCells(m, anchor): ¬slot_occupied(cell) ∧ ∀cell ∈ OccupiedCells(m, anchor): cell ∈ BuildSlotRegion ∧ skeleton 未变 ∧ m ∈ ModuleCatalog ∧ Stock(20, m) ≥ 1 ∧ ∀cell ∈ OccupiedCells(m, anchor): ¬EntityOnCell(cell)"
+    notes: "**P0 无原子 swap**(规则二):换位 = 先拆后放两次有代价的决定,不是免费撤销。
+      **结构身份 ≠ 物品身份**(规则七):structure_id 与 instance_id 是两个 id 空间,经 module_id 关联,不合并。
+      2026-09-17 评审修订:F-23-2 由四条件扩为五条件(补区域包含 + 实体空);拒绝不 Append。
+      目录校验须声明 (0,0) ∈ OccupiedCells_local 且占用格 ⊆ BuildSlotRegion。"
+    revised: "2026-09-17(评审 B4 / B5:判定扩为五条件)"
+    added: 2026-09-17
+
+  # ── F-23-3: 拆除返还 (modular-building.md §Formulas) ─────────────────────
+  # 与 20 的结算边界:返还失败 = DropSpawned(EC-23-11),不静默吞。
+  - name: structure_refund
+    status: active
+    source: design/gdd/modular-building.md
+    referenced_by:
+      - design/gdd/modular-building.md       # 23:F-23-3 + 规则九 + AC-23-16
+      - design/gdd/item-database.md          # 21a:cost(m)(模块目录的建造材料数)
+    variables:
+      - cost(m)                    # 模块建造材料数(目录数据,归 21a)
+      - DEMOLISH_REFUND_RATIO      # 返还率(Q16.16,0 < R ≤ 1;**P0 恒 = 1**;P1a 恢复 < 1)
+      - Refund(m)                  # 返还 20 的 build_part 数(int ≥ 0)
+    output_range: ["0", "cost(m)"]
+    expression: "Refund(m) := ⌊cost(m) × DEMOLISH_REFUND_RATIO⌋   # 整数向下取整;Q16.16 求值 = (cost × rawR) >> 16"
+    notes: "**P0 裁定(2026-09-17 评审)**:R = 1 ⇒ 重排净零材料损耗,代价走拟物轴(BUILD_TIME / 医馆停诊,
+      规则九)—— 玩家不被材料账本困住。**P1a 恢复 R < 1**(材料经济)。**舍入例外**:⌊⌋ 向 −∞ 截断,
+      非 ADR-006 的 ROUND_HALF_AWAY_FROM_ZERO;操作数全非负、无 ties ⇒ 等价安全,须显式注为例外,
+      防实现者改成 Math.Round(评审 B6)。**边界**:cost = 1 且 R < 1 ⇒ Refund = 0 —— 消耗性家具由目录
+      refundable = false 显式声明(EC-23-08);P0 R = 1 时此边不触发。"
+    revised: "2026-09-17(评审 B6 / 用户裁定:P0 R=1,舍入例外注明)"
+    added: 2026-09-17
+
   # ── F1: 配方结算 (item-database.md §Formulas) ──────────────────────────
   # 唯一求解器。18 炮制 / 19 制作只传输入参数,不得自建实现
   # (systems-index.md §9 C5 的推广)。
@@ -169,7 +253,7 @@ formulas:
     source: design/gdd/item-database.md
     referenced_by:
       - design/gdd/item-database.md
-      # 18 / 19 GDD 尚未撰写 —— 撰写时须回溯追加
+      # ✅ 2026-09-19:18 炮制已成稿(processing.md F-18.1 调用契约,正文已引用);19 = P1a 未开始,撰写时须回溯追加
     variables:
       - outputs[].qty               # 逐条产出基数(原 Recipe.BaseQty 单数已废 —— 三轮 blocking #2)
       - QtyMultiplier
@@ -206,7 +290,7 @@ formulas:
     source: design/gdd/item-database.md
     referenced_by:
       - design/gdd/item-database.md
-      # 18 炮制 GDD 尚未撰写 —— 撰写时须回溯追加
+      # ✅ 2026-09-19:18 炮制已成稿(processing.md 正文引用 F1/F2 两个修正项);19 = P1a 未开始,撰写时须回溯追加
     variables:
       - InputQuality
       - CraftSkill
@@ -249,7 +333,7 @@ formulas:
       # 11 处方 / 9 疾病与伤情 —— 接通时须回溯追加(D-21-11)
     variables:
       - quality_axis               # 枚举:【P0 只有 half_life】;onset|peak|elimination 标 P1a(三轮 D-21-23)
-      - Axis_base                  # quality_axis 所指那条轴的基础值,Q16.16 Fix(P0 = half_life,与 9 的 tau_half 同源)
+      - Axis_base                  # quality_axis 所指那条轴的基础值,Q16.16 Fix(P0 = half_life,与 9 的 half_life 同源)
       - axis_offset_by_quality     # Q16.16 int[] 档位表,长度 = MAX_QUALITY
       - MAX_QUALITY
     output_range: ["Axis_base + min(axis_offset_by_quality)",
@@ -262,7 +346,7 @@ formulas:
       【只动一条轴】:quality_axis 指名的轴偏移,其余三条时间轴逐位不变(AC-21a-38)。
       【P0 至少一档非零】:全零 ⇒ 锚点二在 P0 落空,AC 不得替它背书(AC-21a-37)。
       ⚠️ 2026-09-14 三轮修正(blocking #4, D-21-23):quality_axis 在 P0【收窄为 half_life】——
-      9 的处置载荷只有 polarity / Offset / half_life(=tau_half)三项,onset/peak/elimination【产出即被丢弃】。
+      9 的处置载荷只有 polarity / drug_potency / half_life 三项,onset/peak/elimination【产出即被丢弃】。
       枚举写四值而实际只一值是最难查的静默;P0 构建期拒绝非 half_life 取值(AC-21a-60)。
       ⚠️ 2026-09-14 三轮修正(blocking #5, D-21-24):加【可感知地板】——
       非零档 |offset| 必须 > 9 的病史噪声带,否则偏移统计上不可区分于噪声 ⇒ 玩家永远感觉不到,
@@ -282,7 +366,7 @@ formulas:
     source: design/gdd/random-events.md
     referenced_by:
       - design/gdd/random-events.md
-      # 27 敌人 AI GDD 尚未撰写 —— 撰写时须回溯追加(52 决定来不来,27 决定来了怎么动)
+      # ✅ 2026-09-19:27 敌人 AI 已成稿(enemy-ai.md:37/:85/:168 读 52,ADR-016 §八);event_roll 是 52 的公式,27 为内容归属侧,不消费
       # ✅ 2026-09-15 ADR-016 §八:遭遇原型 = 版本化烘焙数据;「不锁定玩家」为 27 侧实现约束
     variables:
       - W_base
@@ -333,7 +417,7 @@ formulas:
     source: design/gdd/random-events.md
     referenced_by:
       - design/gdd/random-events.md
-      # 23 建造 GDD 尚未撰写 —— 撰写时须回溯追加
+      # ✅ 2026-09-19:23 建造已成稿(modular-building.md F-23-3 拆除返还,正文已引用)
     variables:
       - FullCost_mark
       - SALVAGE_RATE
@@ -357,13 +441,16 @@ formulas:
     revised: 2026-09-14
 
   # ── F1: 病程求值 (disease-simulation.md §Formulas) ─────────────────────
-  # 全案唯一一条病程曲线。9 是唯一持有者;11 处方只产出 Offset,不得自建曲线。
+  # 全案唯一一条病程曲线。9 是唯一持有者;11 处方只产出 drug_potency,不得自建曲线。
+  # 2026-09-15 D2 裁定「9 跟随 21a」:Offset → drug_potency、tau_half → half_life(D-21-25 办结)。
+  # 2026-09-16 三轮修订(二轮 C2):clamp 上界由 +∞ 改为 MAX_ACTIVE_DOSE × single_dose_max
+  # (剂量饱和截断;新增变量 MAX_ACTIVE_DOSE / single_dose_max;notes 补 (6)(7))。
   - name: disease_progression
     status: active
     source: design/gdd/disease-simulation.md
     referenced_by:
       - design/gdd/disease-simulation.md
-      # 11 处方用药 / 24 医馆即机器 GDD 尚未撰写 —— 撰写时须回溯追加(13 已结清,见下)
+      # ✅ 2026-09-19:11 处方用药 / 24 医馆即机器 皆已成稿(11 prescription-and-medication.md F5 求值点 · 24 clinic-machine.md EnvMod/EquipMod 运行时入参,正文均已引用)
       # ✅ 2026-09-15 ADR-016 §六:13 只读 DTO + 表现映射(姿态/咳嗽呻吟);出 IPresentPatients 供 37 单读
       # ✅ 2026-09-15 13 GDD 落盘(design/gdd/patient-ai.md);TR 已回溯追加 TR-patient-001…024
       #    (18 covered / 1 partial / 5 gap)。13 决策**住边界层**,不进 sim(ADR-016 §一 表补例外注)
@@ -378,23 +465,44 @@ formulas:
       - A_rel
       - relapse_interval
       - tau_rel_fall
-      - tau_half          # 属 11/21a 的 drug_profile,不属病种注册表(见 notes)
+      - half_life         # 属 11/21a 的 drug_profile,不属病种注册表(见 notes);原 tau_half
       - sigma
-      - Offset            # 由 11 处方产出,9 只消费
+      - drug_potency      # 由 11 处方产出,9 只消费;原 Offset
       - Noise             # SplitMix64 查表哈希,不持 PRNG 状态
-    output_range: ["0", "无上界(clamp 下界 0)"]
-    expression: "clamp( (Base(τ) ⊔ Relapse(τ)) + Σ Offsetᵢ×Decay(t−tickᵢ) + Noise(seed,t), 0, +∞ ), τ = t − onset_tick"
+      - MAX_ACTIVE_DOSE   # 剂量上界(2026-09-16 三轮 · 二轮 C2);超限 = 饱和截断
+      - single_dose_max   # 单次最大剂量(病种/药侧登记);clamp 上界 = MAX_ACTIVE_DOSE × single_dose_max
+    output_range: ["0", "对称界 ±(MAX_ACTIVE_DOSE × single_dose_max) 只罩 Σ(2026-09-16 四轮 K1 式体重写)"]
+    expression: "Progress(t) = max( 0, (Base(τ) ⊔ Relapse(τ)) + Σ_{r∈compounds→d} Δ_progress_r(t) + clamp( Σᵢ drug_potencyᵢ×Decay(Δᵢ)·[polarityᵢ=causal]·[处置ᵢ∈treatable_by(d)], −(MAX_ACTIVE_DOSE×single_dose_max), +(MAX_ACTIVE_DOSE×single_dose_max) ) + Noise(seed,t) ), τ = t − onset_tick ; 潜伏期(τ<incubation)Progress≡0"
     notes: "两条不可动摇的约定,实现前必读:
       (1) 【时间原点】τ = t − onset_tick,τ_rel = relapse_interval × (复发次数+1) ——
           Base 与 Relapse 共用相对时基,全式只有 t 一个绝对量。
           早期草稿写作 t_rel = onset_tick + …(绝对量)与相对量的 τ 相减,会把首次复发推到负时刻。
-      (2) 【括号】⊔(取大)只作用于 Base 与 Relapse 两条曲线,Σ Offset×Decay 与 Noise 在括号外相加。
+      (2) 【括号】⊔(取大)只作用于 Base 与 Relapse 两条曲线,Σ drug_potency×Decay 与 Noise 在括号外相加。
           复发与处置偏移重叠时取大不取和 —— 相加会让病情假性叠加。
-      (3) tau_half 衰减的是【处置偏移】不是【病情】,故归 11 处方 / 21a 的 drug_profile(D-21-6),
+      (3) half_life 衰减的是【处置偏移】不是【病情】,故归 11 处方 / 21a 的 drug_profile(D-21-6),
           不登记在病种注册表:病种定义「病怎么走」,药定义「药怎么退」。
-      曲线参数 schema(含禁止写 AnimationCurve 的理由)见 disease-simulation.md R1.3。"
+      (4) 【polarity 门】(2026-09-15 B5,与 GDD 同轮):Σ 和式内显式限定 polarityᵢ=causal ——
+          对症处置(柳树皮)只改 F2 的 Sign 层,不改 Progress(两层和式显式分区,规则三)。
+      (5) 【潜伏期抑制】(2026-09-15 同步 GDD blk #9):τ<incubation ⇒ Progress≡0,
+          噪声不得使潜伏病人「有读数」(破 AC-22)。
+      (6) 【剂量饱和截断】(2026-09-16 三轮 · 二轮 C2 + 四轮 K1 改对称):Σ drug_potencyᵢ×Decay(Δᵢ)
+          的绝对值爬上 MAX_ACTIVE_DOSE × single_dose_max 时【clamp 对称截断到 ±界】,后续 Decay 继续走
+          —— 不拒绝、不弹 UI(无「剂量超限」分支)。**界只罩 Σ,不罩整式**(Base/Relapse/Noise 不参与
+          clamp —— 否则 plateau∧lethal 型自然曲线被截断,永不死亡/永不痊愈);**对称下界防死旋钮**
+          (对因与 Base 异号时 Σ<0,单向「Σ≤正上界」恒真 ⇒ 截断永不触发,MAX_ACTIVE_DOSE 成死旋钮)。
+          运行期记账:活动剂量 = Σ 未衰减尽的 drug_potencyᵢ×Decay。
+      (7) 【对症层另式】(2026-09-16 三轮 · 二轮 F):对症层用 symptomatic_potencyᵢ,ⱼ×Decay(Δᵢ)·[polarityᵢ=symptomatic]
+          分病种投影到 F2 Sign 层,不进本式的 Progress(两层显式分区,规则三)。
+      (8) 【compounds 显式加成】(2026-09-16 四轮 K1/K4):Σ_{r∈compounds→d} Δ_progress_r(t) 为加性阶跃项,
+          在 clamp 外、与处置 Σ 分离 —— Δ_progress 是病种数据声明的病程变化,不是玩家处置,不受剂量界;
+          乘性 Δ_rate = τ_rise 缩放(仅 τ<τ_peak),**同 target 与 Δ_progress 不可混用**(构建期拒绝,
+          四轮 K4:乱序不变只对加性项承诺)。
+      (9) 【离牌门】(2026-09-16 四轮 K1 补入式体):Σ 内显式限定 [处置ᵢ∈treatable_by(d)] ——
+          不在病种×处置门内的处置贡献 = 0(规则三注;取舍 4 此前只在散文,式体缺失)。
+      曲线参数 schema(含禁止写 AnimationCurve 的理由)见 disease-simulation.md R1.3。
+      其余同 GDD §Formulas F1。"
     added: 2026-09-13
-    revised: ""
+    revised: 2026-09-16
 
   # ── F2: 体征投影 (disease-simulation.md §Formulas) ─────────────────────
   - name: sign_projection
@@ -403,24 +511,32 @@ formulas:
     referenced_by:
       - design/gdd/disease-simulation.md
       - design/gdd/case-system.md   # 37 包装的读数记录消费其投影(2026-09-15 回填)
-      # 8 诊断与体征揭示 GDD 尚未撰写 —— 撰写时须回溯追加(读 position/trend 的门槛归它)
+      # ✅ 2026-09-19:8 诊断已成稿(diagnosis-system.md:84 显名引用 sign_projection + SKILL_CAP);通道集合归 8(R-8.1)
     variables:
       - Progress
       - SCALE_病种
       - W                 # trend 中心差分窗口
+      - TREND_EPS         # 趋势死区(2026-09-15 同步 GDD blk #5)—— |trend|<TREND_EPS ⇒ 判「持平」
       - 对症处置偏移
+      - symptomatic_potency  # 对症层系数,由 11 处方产出(2026-09-16 三轮 · 二轮 F);原「对症处置偏移」只留符号
     output_range: ["position: 0", "position: 1"]
-    expression: "position = clamp(Progress(t)/SCALE_病种, 0, 1) ; trend = (Progress(t+W/2) − Progress(t−W/2))/W"
+    expression: "position = clamp(Progress(t)/SCALE_病种, 0, 1) ; trend = (Progress(t+W/2) − Progress(t−W/2))/W ; trend_backward(t) = (Progress(t) − Progress(t−W))/W ; (对症处置偏移)ⱼ = symptomatic_potencyᵢ,ⱼ × Decay(Δᵢ)·[polarityᵢ=symptomatic] ; 状态转移用 trend_backward,展示用 trend"
     notes: "规则三「病情/体征两层」的机制实现:Progress 只被【对因】处置改,Signⱼ 被【对症】处置改 ——
       柳树皮降热但不改病情,金鸡纳皮改病情。
       trend 用【中心差分】而非一阶差分:处置发生在窗口内时一阶差分跳变,玩家会看到「突然变坏」的假信号;
       中心差分天然抵消对称跳变,且解析式求值免费。
       trend 不在 output_range 内 —— 它未归一(单位是「每 tick 的进度变化」),符号是唯一有意义的读数。
+      ⚠️【因果拆分】(2026-09-15 同步 GDD B5):中心差分读 t+W/2(未来),展示层无害(纯函数),
+      但 F4 状态转移用未来时刻决定状态 = 非因果 —— 转移改用 trend_backward(只读过去);trend 仅用于 8 的展示。
+      ⚠️【死区 TREND_EPS】(同步 blk #5):Q16.16 下两 Progress 近乎相等时直接相减 = 0 或 ±1 LSB
+      纯量化噪声,恰在最需要趋势的心衰类失真 —— 差分在 Q32.32 求 + TREND_EPS 死区,「持平」是确定判定。
+      ⚠️【对症层另式】(2026-09-16 三轮 · 二轮 F):对症处置偏移用 symptomatic_potencyᵢ,ⱼ×Decay(Δᵢ)·[polarityᵢ=symptomatic]
+      **分病种投影到 Sign 层**,不进 Progress(两层显式分区 —— 与 disease_progression notes (7) 对称)。
       ⚠️ 本公式【不含可读性判定】—— READ_FLOOR / BASE_READ / 技能→精度映射曲线于 2026-09-14
       迁至 8 诊断(门槛是玩法决策,不是模拟决策;且 9 若按技能过滤会破坏 ADR-005 逐位一致)。
       9 无条件出 position/trend 真值,BASE_READ 不再是本公式的变量。"
     added: 2026-09-13
-    revised: 2026-09-14
+    revised: 2026-09-16
 
   # ── F3: 定 tick 与离线补算 (disease-simulation.md §Formulas) ───────────
   - name: catchup
@@ -428,7 +544,8 @@ formulas:
     source: design/gdd/disease-simulation.md
     referenced_by:
       - design/gdd/disease-simulation.md
-      # 7a 持久化服务 GDD 尚未撰写 —— 撰写时须回溯追加(authority-agnostic,C6)
+      # ✅ 2026-09-16 7a 持久化 GDD 落盘:catchup 的 authority-agnostic 正交性由
+      #   7a 守(规则十二 C6 · AC-7a-16 —— 见 persistence-service.md)
     variables:
       - TICK_SECONDS
       - sigma
@@ -446,6 +563,11 @@ formulas:
     revised: ""
 
   # ── F4: 阈值与转移判定 (disease-simulation.md §Formulas) ───────────────
+  # 2026-09-15 二轮复核同步:① 判定顺序严重度降序(死亡→昏迷→危殆→潜伏→其余);② B′ 死亡谓词
+  # last_effective_treatment → last_intervention;③ 九态闭合
+  # (痊愈由 RECOVER_THRESHOLD 判定 + 迁延由 trend_backward_agg 分段);④ 字段名 drug_potency/half_life。
+  # 2026-09-16 三轮修订(二轮 A/E):B′ 照护语义改为「玩家主动护理动作」事件(非 EnvMod、非「在医馆」);
+  # 痊愈谓词加 ¬(豁免类);notes 补按型下界(R1.3 校验 14)。
   - name: threshold_transition
     status: active
     source: design/gdd/disease-simulation.md
@@ -459,23 +581,479 @@ formulas:
       - CRITICAL_THRESHOLD
       - COMA_THRESHOLD
       - DEATH_THRESHOLD
+      - RECOVER_THRESHOLD     # 痊愈判定(2026-09-15 B5,九态闭合)
       - TREATMENT_WINDOW
       - self_limit
       - lethal
-      - position
-      - last_effective_treatment
+      - position_agg
+      - trend_backward_agg    # = max over d∈D of trend_backward_d(2026-09-15 B5)
+      - last_intervention     # 原 last_effective_treatment;B′ 定义见 notes
+      - 豁免类                 # 2026-09-16 三轮 · 二轮 A;豁免类永不入痊愈(见 notes (5))
+      - 可愈性谓词            # 2026-09-16 三轮 · 集群 4;痊愈支结构门(self_limit 型 ∨ 豁免类下界)
+      - 非上升期门            # 2026-09-16 四轮 K5;痊愈支 trend_backward_agg ≤ 0 或 τ > τ_peak
+      - CARE_GAP              # 2026-09-16 三轮 · 集群 2;last_intervention(照护) 派生式的时基
     output_range: ["潜伏|发病|进展|好转|迁延|危殆|昏迷|痊愈|死亡"]
-    expression: "在 tick 采样点上判定,不求根 ; 死亡 ← lethal ∧ self_limit=false ∧ position≥DEATH_THRESHOLD ∧ (t − last_effective_treatment) > TREATMENT_WINDOW"
+    expression: "在 tick 采样点上判定,不求根 ; 判定顺序(严重度降序):死亡 ← lethal ∧ self_limit=false ∧ position_agg≥DEATH_THRESHOLD ∧ (t−last_intervention)>TREATMENT_WINDOW ; 昏迷 ← lethal ∧ position_agg≥COMA_THRESHOLD ; 危殆 ← position_agg≥CRITICAL_THRESHOLD ; 潜伏 ← τ<incubation ; 痊愈 ← position_agg<RECOVER_THRESHOLD ∧ 无 relapse.* 块 ∧ ¬豁免类 ∧ 可愈性谓词(self_limit 型 ∨ 豁免类下界) ∧ 非上升期门(trend_backward_agg≤0 或 τ>τ_peak) ; 其余 ← 迁延,由 sign(trend_backward_agg) 分段"
     notes: "【铁律一:死亡必须被挣得】在公式层的实现 —— 三个条件缺一不可:
       (1) self_limit = false —— 否则自限性病也「时间到就死」,那是伪装违反;
-      (2) last_effective_treatment 只认【对因】处置 —— 否则对症药刷新死亡窗口,
-          玩家能用柳树皮「续命」,那是伪治疗;
-      (3) last_effective_treatment 为空时【取 onset_tick 哨兵】—— 缺哨兵则「从未被治过」的病人
-          该项无定义,死亡判定整条短路,而「见死不救」正是它要覆盖的情形。
-      放弃求根的理由:Noise 破坏单调性、Offset 在 t=tickᵢ 处引入导数跳变,二分可能失效或收敛到错误的根。
+      (2) 【B′ 定义,2026-09-15 用户裁定;2026-09-16 三轮改语义】last_intervention = last of:
+          · 有效对因处置(polarity=causal ∧ drug_potency 与 Base 异号)
+          · 【照护 = 玩家的主动护理动作】24 的护理动作事件的起/止(成本 = 时间/资源,
+            仅在动作持续期内计数);相邻护理动作 gap > CARE_GAP ⇒ 视为中止。
+        **「放医馆」本身不自动计数;EnvMod 不得被读取、不得用于照护判定**(2026-09-16 三轮 · 二轮 B2/B3)。
+        ,若两者均不存在 = onset_tick 哨兵(缺哨兵则「从未被治过」的病人该项无定义,死亡判定整条短路,
+          而「见死不救」正是它要覆盖的情形)。
+          对无对因手柄的病种(照护杠杆适用 = {伤寒 / 痢疾 / 心衰} 3 种,2026-09-16 四轮 K8 收窄):
+          照护杠杆仍生效 —— 主动护理动作刷新 last_intervention,照护停止后才开始倒计时 ⇒
+          死亡 = 越阈 + 弃护后过窗口,不是纯计时器(B′)。**破伤风剔除(K8)**:护理【不刷新窗口】,
+          与对症药同级;其手柄 = 发病前清创预防(R3.3),发病后越阈 + 过窗口即死。
+          对症药(polarity=symptomatic)【不得刷新窗口】—— 否则柳树皮「续命」,伪治疗(旧谓词
+          last_effective_treatment 只认对因是它的前身;B′ 把照护通道并入,药仍只认对因)。
+      (3) 判定顺序【严重度降序】是规格的一部分 —— 原稿按潜伏→危殆→昏迷→死亡列出,实现为
+          if/else 时危殆先命中,昏迷/死亡成死代码(2026-09-14 blk #2)。
+      (4) 【痊愈 / 迁延闭合】(2026-09-15 B5):转移表不得混入非状态名(自愈/复发是路径不是状态);
+          痊愈 ← position_agg<RECOVER_THRESHOLD ∧ 无 relapse.* 块 ∧ ¬豁免类(终态;带 relapse 的病种
+          与豁免类病种均不入痊愈);迁延 = 未达任何阈值 ∧ 未达痊愈,由 sign(trend_backward_agg) 分段
+          (只读过去,非因果修正)。
+      (5) 【痊愈门按型下界】(2026-09-16 三轮 · 二轮 A,R1.3 校验 14):痊愈门不是全局单一值 ——
+          ① plateau ∧ lethal ⇒ A_peak/SCALE ≥ DEATH_THRESHOLD(否则 plateau 把死亡压成痊愈);
+          ② 豁免类 ⇒ RECOVER < A_peak/SCALE < CRITICAL(豁免类【永不入痊愈】是 feature 不是缺陷,
+             第二幕出场由铁律三 new-onset 另行提供);③ 急性保持型 ⇒ A_peak/SCALE ≥ DEATH_THRESHOLD。
+          豁免类终态之外的出口 = 铁律三「新发病种」(不是被治好的)。
+      放弃求根的理由:Noise 破坏单调性、处置在 t=tickᵢ 处引入导数跳变,二分可能失效或收敛到错误的根。
       9 的状态转移本就是 tick 离散的,采样点判阈值足够。"
     added: 2026-09-13
+    revised: 2026-09-16
+
+  # ── F5: 难度曲线滑窗密度 (telemetry-analytics.md §Formulas) ────────────
+  # 首次登记 2026-09-16(#51 GDD 落盘)。**登记理由**:51 使 5 时间天气 / 17 采集
+  # 的「看得见的难度曲线」门控【可测】(ADR-019 §一 表末行,GDD §Dependencies 下游列)。
+  # 若 5 / 17 复用同一形状,窗口口径必须**同源** —— 否则两处各自定义窗口 ⇒ 密度曲线不可比。
+  # 值全待定:数值归用户(51 GDD §Tuning Knobs `W` / `S` / `t_0` 均 `*待定*`)。
+  - name: difficulty_curve_window_density
+    status: active
+    source: design/gdd/telemetry-analytics.md
+    referenced_by:
+      - design/gdd/telemetry-analytics.md   # 51:F5 难度曲线(三流各一条序列)
+      # ✅ 2026-09-19:5 时间与天气 / 17 采集 皆已成稿(time-and-weather.md 季节修正归 17 · foraging.md:39 难度曲线,正文均已引用)
+    variables:
+      - W        # 窗宽(Tick)—— *待定*
+      - S        # 步长(Tick)—— *待定*,可 > W(窗间留空须由 WindowCoverage 记账)
+      - t_0      # 首窗起点(Tick)—— *待定*
+    output_range: ["0", "PATIENT_APPEARANCE_CAP"]
+    expression: "Dens_s(t_k) = |{ e ∈ E : Kind(e) ∈ s ∧ t_k ≤ Tick(e) < t_k + W }| ,  t_k = t_0 + k·S ;  s ∈ {病史, 病例, 世界}(三流各一条序列,不合并)"
+    notes: "**三流语义不同**(病例 = 判断负载 / 病史 = 病人处置负载 / 世界 = 建造掉落活动)⇒ 输出三条独立序列,禁合并为单一标量。
+      窗口**半开** [t_k, t_k+W) —— 边界只取一次,防同 Tick 事件双计。
+      W < 1 ⇒ 构建期 / 加载期**硬失败**(非运行期退化、非静默取默认值)。
+      S > W ⇒ 合法,但须由 WindowCoverage = (CoveredTicks, SpanTicks) 记账;
+      **不记账而只报密度 = 把「没测」伪装成「测得 0」**。
+      输出域上界由 `PATIENT_APPEARANCE_CAP`(**9 的配置项,值 `待定` —— 见 disease-simulation.md OQ-8**)
+      与三流有界性(ADR-008 §六 / ADR-009 §六)封顶。
+      ⚠️ 51 只**报形状**,**不报因果**(R10);本式**不得**被用于门控别人 —— 51 是仪器,不是裁判。"
+    added: 2026-09-16
     revised: ""
+
+  # ── F-1-1a: 水平防隧穿不变式 (player-controller-and-movement.md §Formulas) ──
+  # 首次登记 2026-09-16(系统 1 的 GDD 落盘)。**登记理由 —— 这是本表里唯一
+  # 一条「别人的旋钮会红掉我的构建」的公式**:`K_TERRAIN_MAX` 是 **6 的表**的上界、
+  # `K_CONTEXT_MAX` 是 **24 的表**的上界 ⇒ 6 / 24 调高一个地貌乘数即可让本式失败。
+  # 故它不是「1 内部的一条公式」,而是**跨系统调参纪律的机械执行点** —— 必须登记在此,
+  # 使 6 / 24 的 GDD 撰写时能看到自己正被这条锁住(GDD §Dependencies 的 `O-2` 同此)。
+  # 值全待定:硬约束 —— 数值归用户,本表只登记形状与归属。
+  - name: horizontal_antitunneling_invariant
+    status: active
+    source: design/gdd/player-controller-and-movement.md
+    referenced_by:
+      - design/gdd/player-controller-and-movement.md   # 1:F-1-1a + AC-1-06a/b/c + AC-1-21 + Tuning Knobs 组 5
+      - docs/architecture/adr-020-player-controller-and-camera.md  # §四 有界性论证的前置
+      - design/gdd/camera-and-viewpoint.md   # 2:与 yaw_basis 相邻的一环 —— 基若失去单位性,本式**静默失效**(2 的 F-2-2 注 · AC-2-08)
+      - design/gdd/world-and-ecozones.md     # 6:**本式约束的对象是 6 的 `LATTICE_SIZE`**（所有权反转）—— 6 的 F-6-1 / R-6-3 / AC-6-04 + §Dependencies 的跨系统调参纪律声明
+      - design/gdd/clinic-machine.md         # 24:F-24-3(交付 `K_CONTEXT_MAX` 的表侧)+ O-24-2(n_max 复核点)(2026-09-17)
+      # ✅ 2026-09-16:6 的 GDD 已落盘(world-and-ecozones.md),其上文「6 / 24 尚未撰写」的后半
+      # (6 侧)已兑现 —— 本式在 6 侧的对应物 = `lattice_size_lower_bound`(同一条不等式,另一侧登记);
+      # ✅ 2026-09-17:24 侧已兑现(clinic-machine.md F-24-3 → k_context_max;CONTEXT_TABLE / K_CONTEXT_MAX 已登记)
+      # ✅ 2026-09-19:上文「24 尚未撰写」全文已过时 —— 24 已成稿,本条随 2026-09-19 一致性复跑划结
+    variables:
+      - SPEED_MAX        # 水平净位移速度上界(派生量)—— *待定*
+      - SPEED_MODE_MAX   # 运动档位速度上限的最大值 —— P0 = SPEED_WALK(单档,系统 1 的 R7 砍掉冲刺)—— *待定*,归 1
+      - K_TERRAIN_MAX    # = max(TERRAIN_TABLE 的 K_speed) —— *待定*,归 **6 的表 → 1 派生**
+      - K_CONTEXT_MAX    # = max(CONTEXT_TABLE 的 K_speed) —— *待定*,归 **24 的表 → 1 派生**
+      - MAX_DT           # 单帧 dt 的钳位上限(EC-6)—— *待定*,归 1
+      - LATTICE_SIZE     # 格边长 —— *待定*,归 **6**（F-6-1 所有权反转;ADR-015 §三 只定义格框架）
+    output_range: ["pass", "fail"]
+    expression: "SPEED_MAX := SPEED_MODE_MAX × ‖MoveInput‖_max × K_TERRAIN_MAX × K_CONTEXT_MAX ;  INVARIANT : SPEED_MAX × MAX_DT ≤ LATTICE_SIZE"
+    notes: "**`‖MoveInput‖_max = 1` 是硬界不是旋钮** —— 它是 3→1 边界的断言项(AC-1-09),
+      1 不 clamp(掩盖 3 的 bug)。**保证的是「水平方向每帧至多跨一格」**(采样取相邻两帧的 Position;
+      F-1-3 的线性趋近不过冲)⇒ 违反即**静默隧穿**:中间格永不进事件,感知有洞,不崩不报错。
+      ⚠️ **2026-09-16 就地订正**(系统 1 的 GDD 首轮评审根因 4,两处):
+      ① **变量用 `MAX_DT`,不是 `TICK_PERIOD`** —— 跨格检测跑在**每帧**,积分步长是 `dt`;
+      用 `TICK_PERIOD` 时 `dt > TICK_PERIOD`(帧率 < tick 频率,**常态**)一帧可跨多格而断言仍成立
+      ⇒ **通过而失效**。`TICK_PERIOD` 退居 F-1-1b 的**事件率**面(与位移无关)。
+      ② **`SPEED_SPRINT` 已从式内移除** —— 系统 1 的 R7 把冲刺整档砍出 P0(无代价的纯提速
+      ⇒ 严格支配 Walk ⇒ Walk 成死内容),P0 的 `SPEED_MODE_MAX` = `SPEED_WALK`;
+      P1a 恢复冲刺时本式**重新含该档位**,并须先设计代价(OQ-1-11)。
+      ⚠️ **不等式的所有者是 `LATTICE_SIZE`,不是 `SPEED_MAX`** ——
+      `K_TERRAIN_MAX` / `K_CONTEXT_MAX` 归 6 / 24 的表,1 无法单方面保证该式;6 / 24 调表只是
+      **抬高 `LATTICE_SIZE` 的下界**(**`LATTICE_SIZE` 归 6**,F-6-1 所有权反转;
+      ADR-015 §三 只定义格框架)是唯一需要复核的点(CI 断言落 AC-1-06a/b/c)。
+      **❌ 不得手填常数**:两个 MAX 须与两表**同源加载**(同一 .cooked 内派生)+ 装载期跨系统校验 ——
+      手填则在 6 / 24 调表时**静默失效**(正是本式自称要防的失败)⇒ AC-1-06c 的 AST 判据禁数字字面量初始化。
+      **作用对象 = 1 自己产生的位移,不是 Position 的最终变化量** —— `CharacterController.Move` 的
+      collide-and-slide **会加入引擎侧滑移**(斜坡投影 / stepOffset 瞬时抬升),不在式内
+      ⇒ 须补**代码级不变量**(禁止传 |delta_horiz| > SPEED_MAX × dt,AC-1-21①)
+      + **运行期断言**(含滑移容差 ε_slide,量级 = 一次 stepOffset 抬升的水平分量,AC-1-21②③)。
+      **y 轴显式豁免**(F-1-1c,2026-09-16 用户裁定):自由落体竖直速度可远超 SPEED_MAX。
+      **推不出「≤ 1/tick」** —— tick 内折返不消耗位移预算 ⇒ 事件计数由 F-1-1b 的**运行期**不变量
+      单独守住(见 SimEvent.Kind.ActorCellEntered 条目);两条不变量**不可共用一个载体**
+      (本式 = 构建期静态断言;F-1-1b = 运行期计数)。
+      **载体未建**:本式的 CI 断言载体(tests/ + .github/workflows/)尚不存在,由 **ADR-012** 一并建。"
+    added: 2026-09-16
+    revised: ""
+
+  # ── F-2-2: 相机水平基 (camera-and-viewpoint.md §Formulas) ──────────────
+  # 首次登记 2026-09-16(系统 2 的 GDD 落盘)。**登记理由 —— 本表里唯一一条
+  # 「缺了会让游戏不可玩」的公式**:系统 1 的 F-1-8 靠它把二维 `MoveInput` 投影成世界方向。
+  # 1 的 GDD 全程**可编译、单测可全绿**,而**移动方向无定义**(系统 1 的 `O-8`)。
+  # 两条边方向相反故**无类型环**:1 读 2 的基(上游值),2 读 1 的 `Position`(下游值)。
+  # ⚠️ 与 `horizontal_antitunneling_invariant` 是**相邻的两环**:本式若静默失去单位性,
+  # 1 的 `v̂_world` 便失真 ⇒ 那条防隧穿断言**静默失效**(系统 1 的 `AC-1-31` 描述的失效链)。
+  # 值全待定:硬约束 —— 数值归用户,本表只登记形状与归属。
+  - name: yaw_basis
+    status: active
+    source: design/gdd/camera-and-viewpoint.md
+    referenced_by:
+      - design/gdd/camera-and-viewpoint.md   # 2:F-2-2 + AC-2-07…10(R-2-7)+ ADR-020 §Key Interfaces
+      - design/gdd/player-controller-and-movement.md   # 1:F-1-8(唯一消费方)+ AC-1-31 + AC-1-35 ③④
+      - docs/architecture/adr-020-player-controller-and-camera.md  # §Key Interfaces(ICameraRig.YawBasis)+ AC-20-14
+      - docs/architecture/tr-registry.yaml   # TR-camera-006 + TR-player-005
+    variables:
+      - yaw       # 绕点段(②)的累积偏航角 —— 无界,2π 周期;**由 Look.x 驱动**
+      - fwd       # f̂ := (sin yaw, 0, cos yaw) —— 水平前向,y ≡ 0
+      - right     # r̂ := (cos yaw, 0, −sin yaw) —— 水平右向,y ≡ 0
+    output_range: ["(Vector3 fwd, Vector3 right)"]
+    expression: "f̂ := (sin(yaw), 0, cos(yaw)) ;  r̂ := (cos(yaw), 0, −sin(yaw)) ;  PROPERTY : f̂.y = 0 ∧ r̂.y = 0 ∧ ‖f̂‖ = 1 ∧ ‖r̂‖ = 1 ∧ dot(f̂, r̂) = 0"
+    notes: "**`pitch` 不参与** —— yaw 与 pitch 解耦是本式的全部意义:俯仰时前进方向**不变**
+      (这是系统 1 的 `AC-1-20a` ④ 的前提)。
+      **构造即成立,不靠事后归一**:`sin² + cos² = 1` 恒等式直接给出单位性与正交性 ⇒
+      **禁 `Normalize()`** —— 多一次归一化只引入浮点误差,不改善任何东西(R-2-7)。
+      🔴 **手性须显式断言(2026-09-16 首轮评审 B2 副产物)**:`r̂` 是 `f̂` 绕世界 `+Y`
+      **左旋** 90°(**右手系**),与系统 1 的 `r̂ := normalize(cross(worldUp, f̂))` **逐分量等价**
+      (已数值验证 `cross(worldUp, f̂) = (cos yaw, 0, −sin yaw)`)。⇒ **无左右镜像**,
+      但该等价**必须写在 GDD / 本条目里** —— 否则实现期各按直觉取「顺时针 90°」会引入**静默镜像**
+      (`AC-2-07` ② 即该判据:逐分量等于 `normalize(cross(worldUp, f̂))`)。
+      ⚠️ **只读单向**:系统 1 的调用点对相机状态 / 变换的**写入数 = 0**(只读断言,`AC-2-10`②)。
+      🔴 **次序契约(评审 B5 订正)**:原文写「一帧内恒定:相机每帧只更新一次 yaw」——
+      **在 Unity 中不可执行**(无强制手段)。现重述为**次序不变量**:
+      **任何 `YawBasis` 消费者的读取时刻 ≥ 本帧 yaw 的更新时刻**;落点 = ADR-011 既有的
+      `InputSystem.onAfterUpdate` 相位,或显式 `ICameraRig.UpdateYaw()`。
+      **禁止**依赖 `Script Execution Order` 面板(场景资产、不跨 prefab、失败**静默**)
+      ⇒ 对侧承诺 = 登记义务 **`O-14`**。
+      **退化情形已关闭**(R-2-3 / `AC-2-09`①):装载期断言 `PITCH_MIN < 0 < PITCH_MAX < 90°`
+      ⇒ 相机不可能到达垂直俯视 ⇒ 系统 1 的 F-1-8 中「`proj(f̂) ≈ 0` ⇒ `f̂` 无定义」分支
+      **在正常操作下不可达**。⚠️ **只有俯侧退化**(仰侧 `pitch → PITCH_MIN` 不触发)——
+      这正是评审 B2 的发现:`PITCH_MIN` 与 `PITCH_MAX` **不对称**,不是镜像。
+      ⚠️ 但本式**仍须防御性兜底**:若 `PITCH_MAX` 被口径错配为 ≥ 90°,
+      `YawBasis` **照常按式返回、不抛异常** —— 它不知道俯角上限,也不该知道。
+      ⇒ **`PITCH_MAX` 的实际取值须回填系统 1 的 `OQ-1-14` 并结案**(登记义务 **`O-11`**,**未结**)。
+      ⚠️ **容差双重定义风险**:本式的判据容差是 `YAW_BASIS_EPS`,**系统 1 的 `AC-1-31`
+      须引用同一个常量实体**(现写 `[容差——待定]`,未命名)。
+      **载体未建**:相关 CI 判据的载体(tests/ + .github/workflows/)尚不存在,由 **ADR-012** 一并建。"
+    added: 2026-09-16
+    revised: "2026-09-16"   # B2:补手性显式断言;B5:帧内恒定 → 次序不变量
+
+  # ── F-2-1: 相机锚跟随 (camera-and-viewpoint.md §Formulas) ───────────────
+  # 首次登记 2026-09-16(系统 2 的 GDD 落盘)。**登记理由**:`MAX_DT` 与系统 1 **同源**
+  # —— 两条链(collide-and-slide 与临界阻尼积分)面对**同一次掉帧**必须用同一钳位值,
+  # 否则「玩家瞬移过锚」或「锚瞬移过玩家」会在掉帧时二选一发生。
+  # ⇒ 2 若自建第二个 `MAX_DT`,即构成**静默失配**(GDD §Tuning Knobs 组 6)。
+  # 值全待定:数值归用户(ω 亦留白)。
+  - name: camera_anchor_follow
+    status: active
+    source: design/gdd/camera-and-viewpoint.md
+    referenced_by:
+      - design/gdd/camera-and-viewpoint.md   # 2:F-2-1 + AC-2-11 + AC-2-12 + Tuning Knobs 组 1/6
+      - docs/registry/entities.yaml          # constants.MAX_DT(同源依赖)
+    variables:
+      - P_player   # 系统 1 的连续位置(IPlayerMotor.Position)—— 表现态,永不写流
+      - anchor     # 相机链的锚 —— 2 的内部状态,不进任何流
+      - v_anchor   # 锚的速度(临界阻尼需速度项,不能用位置一阶趋近)
+      - ANCHOR_RESPONSE  # ω —— 响应频率旋钮 —— *待定*,归 2
+      - MAX_DT     # 单帧 dt 钳位上限 —— **归系统 1**,2 只读(GDD §Tuning Knobs 组 6)
+    output_range: ["anchor → P_player(渐近,过冲有界且 ≤ ANCHOR_OVERSHOOT_EPS)"]
+    expression: "h := dt / n,  n := ceil( dt / (0.5 / ω) )  【ω := ANCHOR_RESPONSE】;  重复 n 次 : ① v_anchor ← v_anchor + ( (P_player − anchor) × ω² − v_anchor × 2ω ) × h  (先更新速度) ; ② anchor ← anchor + v_anchor × h  (再以 **新** 速度更新位置)"
+    notes: "**取二阶临界阻尼而非指数趋近**:指数趋近在急停 / 急转时留**拖尾残影感**,
+      临界阻尼给出「跟上但不过冲」的重量感(Player Fantasy 第二条第 3 点要的手感)。
+      🔴 **求值次序是承重的(2026-09-16 首轮评审 B3 订正)**:① 必须先于 ②,否则退化为
+      **前向 / 显式 Euler** —— 其特征值为 `λ = 1 − ω·dt`(Jordan 块)⇒ `ω·dt → 1` 时振铃、
+      `> 2` 时**发散**。半隐式对线性阻尼**无条件稳定** ⇒ **`ω` 无上界**(GDD F-2-1 边界行为 ③)。
+      **子步的意义**:`n := ceil( dt / (0.5 / ω) )` 保证 `ω·h ≤ 0.5` ⇒ 即使 `dt` 尖峰,
+      单步也在良态区;`n` / `h` 是**派生量**,**不可独立调**(GDD §Tuning Knobs 组 5c)。
+      ⚠️ **闭式解被否**:逐帧求 `e^{−ωt}` 对手性 / 逐位判据**脆弱**(跨平台 `exp` 非逐位一致),
+      而离散积分器的误差是**可控且可断言**的。
+      🔴 **「无过冲」已于 2026-09-16 撤回**:任何**离散**积分器都有非零过冲(临界阻尼的
+      「无过冲」是**连续时间**的定义性质)。原文据此写的判据 `dot(P_player − anchor, v_anchor) ≥ 0`
+      **对任何离散积分器都不可满足** ⇒ 现改为 `e_k ≥ −ANCHOR_OVERSHOOT_EPS`(`AC-2-11`),
+      容差常量**归 2**;`AC-2-12` 亦由「与 `dt := MAX_DT` 逐位相同」改为**位移上界**
+      (逐位相同会**反向强制**保留显式积分器)。
+      🔴 **`MAX_DT` 的性质(评审 B3 之核)**:它是系统 1 的**位移预算**常量
+      (`SPEED_MAX × MAX_DT ≤ LATTICE_SIZE`,归 `LATTICE_SIZE` / **6** —— F-6-1 所有权反转),**不是数值稳定门** ——
+      混为一谈正是原公式的根错(钳位只掩蔽单帧尖峰,救不了 `ω` 过大)。
+      ⚠️ **`MAX_DT` 必须与系统 1 同源**(同一常量,非「相等的两个常量」)——
+      这是「静默失配」的防线,也是本式登记在册的全部理由。
+      **瞬移豁免**:`dist(P_player, anchor) > TELEPORT_SNAP_DIST` ⇒ 锚**直接吸附**,`v_anchor := 0`,
+      不做平滑追赶(否则传送后玩家看见相机横穿整张地图,EC-2-4)。
+      **两端失效模式**:`ω` 过高 ⇒ 阻尼消失,相机变刚性挂载;**过低** ⇒ 急停后画面继续滑行
+      (VR 侧尤其晕眩)。"
+    added: 2026-09-16
+    revised: "2026-09-16"   # B3:显式 Euler → 半隐式 + 子步;撤回「无过冲」判据
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # 世界与生态区 (#6) — design/gdd/world-and-ecozones.md
+  #   首次登记 2026-09-16(6 的 GDD 落盘)。**登记理由**:6 是 Core 层
+  #   **唯一零依赖**的容器,却是 1 / 5 / 13 / 17 / 20 / 23 / 24 / 27 / 36 / 43 / 52 的
+  #   共同上游 —— 它的交付物**全部是跨系统事实**(格坐标 / 地貌表 / POI 定义与状态)。
+  #   ⚠️ **全部数值留白**(硬约束:数值归用户)*—— 本组只登记形状与归属。
+  #   ⚠️ 与 `horizontal_antitunneling_invariant` 的关系:该式**约束的对象是 6 的
+  #   `LATTICE_SIZE`**(所有权反转,见本组 F-6-1)⇒ 6 是本表里**唯一能单方面红掉**
+  #   系统 1 构建的上游。
+  # ══════════════════════════════════════════════════════════════════════════
+
+  # ── F-6-1: LATTICE_SIZE 下界契约 (world-and-ecozones.md §Formulas) ────────
+  # **本式的所有权是反转的,这一点是承重的。** 系统 1 的初稿把不等式写成对
+  # `SPEED_MAX` 的约束 —— 反向;约束的对象是 `LATTICE_SIZE`,而 6 是它的烘焙方
+  # ⇒ 本式是 **6 的交付物**,不是 1 的内部公式(1 的 `:430-436` 已就地订正)。
+  # ⚠️ 与 `horizontal_antitunneling_invariant` **同一条不等式的一体两面** ——
+  # 那条登记 1 侧(消费 + CI 断言),本条登记 6 侧(下界的定义方 + 烘焙方)。
+  # 值全待定:硬约束 —— 数值归用户,本表只登记形状与归属。
+  - name: lattice_size_lower_bound
+    status: active
+    source: design/gdd/world-and-ecozones.md
+    referenced_by:
+      - design/gdd/world-and-ecozones.md   # 6:F-6-1 + R-6-3 + AC-6-04/05 + Tuning Knobs 组 1
+      - design/gdd/player-controller-and-movement.md   # 1:F-1-1a 的约束对象 + AC-1-06a/b/c(:430-436 所有权订正)
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md   # §三 格框架（**符号名与取值归 6,非本 ADR** —— 2026-09-16 补注）
+      - design/registry/entities.yaml   # formulas.horizontal_antitunneling_invariant(同名不等式,1 侧登记) + constants.LATTICE_SIZE(取值容器,本式)
+    variables:
+      - LATTICE_SIZE     # 格边长(m)—— **本式约束的对象** —— *待定*,归 **6**（取值;ADR-015 §三 只定义格框架）
+      - SPEED_MAX        # 水平净位移速度上界 —— *待定*,归 1(派生量;见 horizontal_antitunneling_invariant)
+      - MAX_DT           # 单帧 dt 钳位上限 —— *待定*,归 1(见 constants.MAX_DT)
+      - SAFETY_MARGIN    # 对 CharacterController 侧滑移 / stepOffset 抬升的余量 —— *待定*,归 **6 + 1 共同议定**
+    output_range: ["pass", "fail"]
+    expression: "LATTICE_SIZE ≥ SPEED_MAX × MAX_DT × SAFETY_MARGIN"
+    notes: "**只给下界,上界由内容 / 关卡规模定,不由本式。** 取等号即「恰可跨格」,
+      无余量 ⇒ 一次 `stepOffset` 抬升的水平分量就能造成隧穿 ⇒ **`SAFETY_MARGIN > 1` 是硬约束**
+      (AC-6-05),其量级 = 一次抬升的水平分量 / (SPEED_MAX × MAX_DT)。
+      ⚠️ **`K_TERRAIN_MAX` / `K_CONTEXT_MAX` 抬高的是本式的下界** —— 6 / 24 调高一个地貌乘数
+      即抬高 `LATTICE_SIZE` 的下界,可能**静默红掉** 1 的构建期断言(AC-1-06a/b/c)。
+      ⇒ 6 的 §Dependencies 已写明该声明(系统 1 的 :1115-1127 明确要求 6 / 24 各写一遍)。
+      **同源纪律**:`SAFETY_MARGIN` 须与 1 共同议定(6 的 `O-6-6`)—— 它受滑移与抬升影响,
+      1 无法单方面保证。**载体未建**:CI 断言载体由 ADR-012 一并建。"
+    added: 2026-09-16
+    revised: ""
+
+  # ── F-6-2: TERRAIN_TABLE → K_TERRAIN_MAX (world-and-ecozones.md §Formulas) ─
+  # 6 的表 6 交付、1 派生。**与 24 的 `CONTEXT_TABLE` 同型**(后者归 24,撰写时须同法登记)。
+  # ⚠️ 这条与 `horizontal_antitunneling_invariant` 是**跨系统调参纪律**的两端之一:
+  # 那条是「唯一执行点」(CI 断言),本条是「被锁住的表的定义方」。
+  # 值全待定:硬约束 —— 数值归用户,本表只登记形状与归属(行数 = 地貌材质种数,见 6 的 OQ-6-2)。
+  - name: terrain_table
+    status: active
+    source: design/gdd/world-and-ecozones.md
+    referenced_by:
+      - design/gdd/world-and-ecozones.md   # 6:R-6-11 + F-6-2 + AC-6-07/08 + Tuning Knobs 组 2
+      - design/gdd/player-controller-and-movement.md   # 1:F-1-7 的 `K_TERRAIN_MAX` 来源 + AC-1-06c 的 AST 判据
+      - design/registry/entities.yaml   # formulas.horizontal_antitunneling_invariant(消费本表的上界)
+    variables:
+      - terrain_id       # 地貌材质枚举(Gravel / Mud / Grass / Stone / Water / …)—— 内容侧稳定 id
+      - K_speed          # 水平速度乘数 —— 硬约束 **> 0**
+      - K_accel          # 加速乘数 —— 硬约束 **> 0**
+      - K_decel          # 减速乘数 —— 硬约束 **> 0**
+      - K_TERRAIN_MAX    # := max over terrain_id of TERRAIN_TABLE[terrain_id].K_speed —— **派生量,不是旋钮**
+    output_range: ["(0, ∞)", "见 notes"]
+    expression: "K_TERRAIN_MAX := max over terrain_id of TERRAIN_TABLE[terrain_id].K_speed"
+    notes: "**粒度 = 地貌材质,不是生态区** —— 同一生态区内也有走感差异(6 的 R-6-11)。
+      🔴 **`K_speed > 0` 是硬约束不是建议**:`K_speed ≤ 0` ⇒ 该地貌不可通行 ——
+      **要做不可通行,用导航格的 `walkable = false`,不要用速度乘法**。
+      把「不可走」表达为速度 0 会**静默**绕过 1 的隧穿检测(速度 0 ⇒ 永不跨格 ⇒ 断言恒绿)。
+      🔴 **`K_TERRAIN_MAX` 禁手填**:须与 1 的 `SPEED_MAX` **同源派生**(同一份 `.cooked` 内算出),
+      判据 = AC-1-06c / **AC-6-07** 的 AST 断言(禁数字字面量初始化)。
+      手填则在 6 调表时**静默失效** —— 正是该式自称要防的失败。
+      ⚠️ **`K_speed = 1` 的语义 = 「基准地貌」**,须存在且唯一(AC-6-08)。
+      **配套**:脚步材质集须与本表的 `terrain_id` **同源**(6 的 A-6-1;音效资源归 44)。"
+    added: 2026-09-16
+    revised: ""
+
+  # ── F-6-3: 生态区归属判定 (world-and-ecozones.md §Formulas) ───────────────
+  # **本条是本表里唯一一条「算法」而非「不等式」的公式**,登记理由 = ADR-006 边界:
+  # 射线法极易在某次重构中被写成浮点(除以斜率)⇒ 破坏「空间一律整数格」。
+  # 值全待定:硬约束 —— 数值归用户,本表只登记形状与归属。
+  - name: ecozone_of
+    status: active
+    source: design/gdd/world-and-ecozones.md
+    referenced_by:
+      - design/gdd/world-and-ecozones.md   # 6:F-6-3 + R-6-4/5 + AC-6-19/20/21/22
+      - design/gdd/random-events.md   # 52:spawn_anchor 的生态区归属解析(:429-451 / :693-702;NONE ⇒ 不入池)
+      - design/gdd/systems-index.md   # §5 Core 依赖表 :300-306(6 的生态区边界是判定的输入)
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md   # §一 生态区多边形 = 逻辑层整数数据
+    variables:
+      - p                # 待判定的格坐标(WorldPos;只用 x / z —— 生态区是平面划分,y 不参与)
+      - ecozone_id       # 返回值:生态区枚举;**NONE = 合法结果**(区之间的真空带)
+    output_range: ["ecozone_id", "NONE"]
+    expression: "EcozoneOf(p: WorldPos) -> ecozone_id | NONE  # 标准射线法,全程整数运算"
+    notes: "**边界行为全部显式,不留 hand-wave**:① 点在边上 = **内部**(闭集语义);
+      ② 点在顶点上 = **内部**;③ **边界归属唯一** —— 同一格不得属于两个生态区
+      ⇒ 「多边形共享边不重叠」是**烘焙期校验项**(EC-6-7 / AC-6-19);
+      ④ 射线恰穿顶点 ⇒ 用**半开区间 `[y0, y1)`** 计数避免双重计数(射线法经典 bug,须专门夹具);
+      ⑤ **`NONE` 是合法结果不是错误** —— 消费方(52 / 17 / 5)须**显式处理**,
+      **不得默认为「最近的那个区」**(那是隐式插值,不可确定)。
+      ⚠️ **全程整数**是硬约束(ADR-006 边界)⇒ **AC-6-22 单独成条**:该函数体内零浮点运算
+      (连中间量也不得为 float / double)—— 该风险值得一条专属断言。"
+    added: 2026-09-16
+    revised: ""
+
+  # ── F-6-4: POI 转移上界 (world-and-ecozones.md §Formulas) ─────────────────
+  # **本式的价值 = 把 ADR-021 §④ 的 `|POI| × |STATE|` 收紧到 `2 × |POI|`** ——
+  # 这是「6 定稿 PoiState 枚举」这一动作的**直接收益**,也是 ADR-021 刻意把枚举
+  # 留给 6 的 GDD 的理由(TR-worldeco-009 由本条结清)。
+  # 值全待定:硬约束 —— 数值归用户,本表只登记形状与归属。
+  - name: poi_transition_bound
+    status: active
+    source: design/gdd/world-and-ecozones.md
+    referenced_by:
+      - design/gdd/world-and-ecozones.md   # 6:F-6-4 + R-6-7 + AC-6-12/15 + States 的幂等条款
+      - docs/architecture/adr-021-poi-state-ownership.md   # §决定④(原式 = |POI| × |STATE|;**本式收紧**)
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §六 世界流有界性(扩展而非重写)
+      - docs/architecture/adr-010-persistence-save-format.md   # §三 义务 11(重建路径)
+    variables:
+      - Transitions(POI)  # 世界流中 PoiStateChanged 的总条数(会话内)
+      - "|POI_DEF|"       # 烘焙逻辑层里的 POI 条数(**有限**,ADR-015 §一)
+      - 系数 2            # 三态单调不可逆 ⇒ 每 POI 至多 2 次转移
+    output_range: ["(0, 2 × |POI_DEF|]"]
+    expression: "Transitions(POI) ≤ 2 × |POI_DEF|"
+    notes: "**为什么是 2 而不是 3**:三态只有两条边(0→1、1→2);**跳级 0→2 只算 1 次**,
+      是上界更松的情况,仍被 ≤ 2 覆盖。
+      ⚠️ **本式成立当且仅当幂等丢弃生效**(同态重入不 Append)—— 若上游重投导致重复 Append,
+      上界即被击穿(6 的 States「同态重入」条款 / AC-6-12)。
+      ⚠️ **与 `SimEvent.Kind.PoiStateChanged` 的 `constraint` 字段协同**:该处原记
+      `≤ |POI| × |STATE|`(ADR-021 §④ 口径),**2026-09-16 已同步收紧为 `2 × |POI_DEF|`**
+      ——两处口径必须一致,否则世界流有界性论证出现两个版本。"
+    added: 2026-09-16
+    revised: ""
+
+  # ── POI 定义表 (world-and-ecozones.md §Detailed Design R-6-6) ─────────────
+  # **与 POI 状态严格二分**(ADR-021 §①):定义 = 派生态(烘焙逻辑层,**不进流**);
+  # 状态 = 模拟态(进世界流)。本表登记**定义侧**的形状 —— 它是 52 的
+  # `spawn_anchor` 解析输入,而该解析**永不读状态**(ADR-021 §⑤ / 6 的 R-6-10)。
+  - name: POI_DEF
+    status: active
+    source: design/gdd/world-and-ecozones.md
+    referenced_by:
+      - design/gdd/world-and-ecozones.md   # 6:R-6-6 + R-6-10 + F-6-4 + AC-6-18/23 + Tuning Knobs 组 5
+      - design/gdd/random-events.md   # 52:spawn_anchor 解析的**唯一**输入(:143 / :429-451 / :693-702)
+      - design/gdd/player-controller-and-movement.md   # 1:(间接,经生态区与格)
+      - docs/architecture/adr-021-poi-state-ownership.md   # §① 定义 = 派生态 / §⑤ 解析只读定义
+      - docs/registry/architecture.yaml   # states.poi_state(**状态侧**,与本条目成对)
+    fields: ["poi_id(i32)", "cell(WorldPos)", "type(枚举)", "guard_config(整数枚举)", "ecozone_id"]
+    expression: "POI_DEF : poi_id → { cell, type, guard_config, ecozone_id }  # 烘焙逻辑层,加载期重建,不进流"
+    notes: "**发现它需要的信息都在这里,而这里没有玩家历史** —— 加载期重建即验(6 的 R-6-6)。
+      🔴 **形态纪律**:`poi_id` 是**身份**,`cell` / `type` 是**属性** ⇒ 内容改版时
+      **不得复用**已删除 POI 的 id(否则引用它的旧世界流触发 6 的 EC-6-4 硬失败);
+      移动 `cell` **保留**状态,但任何以格坐标为键的外部引用随之失效(归迁移脚本,ADR-010 §七)。
+      🔴 **发现门**(6 的 U-6-3 / AC-6-23):完整 `POI_DEF` **不得进呈现层** ——
+      表现层只能读 `Discovered ∪ Resolved` 子集,否则「未发现的地点」经 UI / 地图泄漏
+      (违反 6 的反幻想第 2 条「清单化」)。完整表只对 52 / 27 / 13 / 17 / 20 开放。
+      ⚠️ **未决**:当前 `cell` 是**单格**;若某 POI(如一座大院)需占多格,本 schema 须扩
+      (6 的 `OQ-6-4` —— 若扩,须回改 ADR-021 §① 的载荷描述)。"
+    added: 2026-09-16
+    revised: ""
+
+  # ── 7a 持久化服务 · 公式(高水位重构)─────────────────────────────────────
+  # 【公式本身在 GDD §Formulas;这里登记跨系统读方,防口径漂移。】
+  # F-7a-3:next(id) = max({ id ∈ 三流并集 ∧ id ≠ PatientId.None }) + 1
+  #   —— 与 F-7a-4 折叠谓词配套:`Folded(p)` 三条件单一出处 = 7a
+  #   (9 的 AC-36 只定义终态/豁免,37 的结案判定只定义「无未结案病例」,7a 是唯一合并处;
+  #   F-7a-4 本身为谓词,不登记为条目 —— 见 persistence-service.md §Formulas)。
+  - name: next_patient_id
+    status: active
+    source: design/gdd/persistence-service.md
+    referenced_by:
+      - design/gdd/persistence-service.md   # F-7a-3 · 规则九
+      - design/gdd/disease-simulation.md    # 9:ADR-005 Amendment B 的机制 A(计数器 + 高水位可重构)
+      # 45 网络层(authority 迁移时重构基线)· 21a(ItemInstanceId 同机制)
+    unit: int64
+    constraint: "max(∅) = −1(空集约定,2026-09-17 评审 B1 钉成 —— 排除 None 后集合可能为空,全空与仅含 None 同结果);{…} 非空时 max ≥ 0 ⇒ next = max + 1 ≥ 1;计数器永不复位 0;
+      终态折叠行必须保留 patient_id(否则高水位不可重构,撞号 = 两病人共写一份病程)"
+    added: 2026-09-16
+    revised: "2026-09-17"
+
+  # ── F-24-1: 环境调制乘子 (clinic-machine.md §Formulas) ────────────────────
+  # 线性加权和 + 双钳制(2026-09-17 用户裁定,方案甲);钳制上界复用 21a 常量(单一出处)。
+  - name: env_mod
+    status: active
+    source: design/gdd/clinic-machine.md
+    referenced_by:
+      - design/gdd/clinic-machine.md       # 24:F-24-1 + 规则四/五 + AC-24-01
+      - design/gdd/disease-simulation.md    # 9:恢复速度修正入口(EnvMod 不进 F4 照护判定,集群 B2)
+      - design/gdd/item-database.md         # 21a:F1 运行时入参(EnvMod 可负)
+      - design/gdd/player-controller-and-movement.md   # 1:不读 EnvMod(只收 K_CONTEXT_MAX)—— F-1-8
+    variables:
+      - base_env(room_type)        # 房间基础环境(CONTEXT_TABLE,规则三)
+      - e_env(type)                # 单件家具环境贡献,可负(FURN_TABLE)
+      - adj_sum                    # 邻接修正(整数 4 邻接,ADJ_TABLE;每条边恰计一次)
+      - ENV_MOD_MIN / ENV_MOD_MAX  # 钳制量程(21a 常量,复用)
+    output_range: ["ENV_MOD_MIN", "ENV_MOD_MAX"]
+    expression: "EnvMod := clamp(base_env(room_type) + Σ_{c∈S} e_env(type(c)) + adj_sum, ENV_MOD_MIN, ENV_MOD_MAX)"
+    notes: "纯函数、Q16.16;房间空 / 未匹配 ⇒ ROOM_NONE ⇒ 输出中性 (0,0)(EC-24-01/02)。
+      clamp 越界从意外变规格(EC-24-03)。int64 算术域前置:max|env_score_raw| ≤ |base_env| + n·C_max + 2n·Φ,
+      其中 `Φ := max(|W_MIN|, W_max)`(**双向取模** —— 2026-09-17 复核订正,原只写 W_max 会低估负权一侧);
+      依赖格数上界 n_max → 6 复核点(O-24-2)。兑现 O-23-4(P0 最小邻接判定 = adj_sum 整数 4 邻接)。
+      `ENV_MOD_MIN < 0` 为承重前提(O-24-4 —— 否则满污染房间钳到 0 = 与 ROOM_NONE 恒等值不可分)。"
+    added: 2026-09-17
+    revised: "2026-09-17 int64 上界 `Φ := max(|W_MIN|, W_max)`(双向取模订正)"
+
+  # ── F-24-2: 器具档位乘子 (clinic-machine.md §Formulas) ────────────────────
+  # 档位求和堆叠 + 单钳制(2026-09-17 用户裁定);tier 为 int 计数(ADR-006 D-21-17)。
+  - name: equip_mod
+    status: active
+    source: design/gdd/clinic-machine.md
+    referenced_by:
+      - design/gdd/clinic-machine.md       # 24:F-24-2 + 规则四/五 + AC-24-02
+      - design/gdd/item-database.md        # 21a:F1 运行时入参(EquipMod)
+    variables:
+      - tier(c)                    # 器具档位(int,[0, TIER_MAX];0 = 无档,不计入)
+      - EQUIP_MOD_CAP              # 钳制上界(21a 常量,复用)
+    output_range: ["0", "EQUIP_MOD_CAP"]
+    expression: "EquipMod := clamp((Σ_{c∈S, tier(c)>0} tier(c)) × 65536, 0, EQUIP_MOD_CAP)   # int 升 Q16.16"
+    notes: "求和堆叠语义(用户裁定):每件楼档家具都贡献,cap 钝住边际。0 档不贡献。
+      算例:tier 2+1+1+0 = 4 ⇒ EquipMod = 4.0(若 < cap)。
+      **须在 int64 域求积后再 clamp**(`equip_score × 65536` 不落 int32);烘焙期 schema 断言
+      `n_max × TIER_MAX < 2^31`(AC-24-02 / AC-24-08 · O-24-5)。"
+    added: 2026-09-17
+    revised: "2026-09-17 补 int64 求积 + `n_max × TIER_MAX < 2^31` 烘焙断言(AC-24-02/08 · O-24-5)"
+
+  # ── F-24-3: K_CONTEXT_MAX 表上界 (clinic-machine.md §Formulas) ────────────
+  # 表派生上界交付 1(玩家控制器 O-2 / F-1-1a);非公式内 clamp —— 越界落烘焙期 schema 校验。
+  - name: k_context_max
+    status: active
+    source: design/gdd/clinic-machine.md
+    referenced_by:
+      - design/gdd/clinic-machine.md       # 24:F-24-3 + 规则三 + AC-24-05
+      - design/gdd/player-controller-and-movement.md   # 1:O-2 / F-1-1a / F-1-8(消费方)
+    variables:
+      - CONTEXT_TABLE              # 房间格情境表(规则三;K_speed 值域 (0,1] 由烘焙 schema 校验)
+    output_range: ["0", "1"]
+    expression: "K_CONTEXT_MAX := max(CONTEXT_TABLE 的 K_speed)   # 表派生,非手填"
+    notes: "承 player-controller-and-movement.md F-1-1a:K_TERRAIN_MAX / K_CONTEXT_MAX 均从表派生,
+      不是手抄常数。裸常数禁止;表条目越界 = 构建失败(AC-24-05)。与 TERRAIN_TABLE / K_TERRAIN_MAX 同型
+      (后者归 6)。"
+    added: 2026-09-17
+    revised: ""
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # 以上为 #6 组。**POI 状态侧**(模拟态)的权威登记处是
+  # `docs/registry/architecture.yaml` 的 `states.poi_state` 条目(架构层所有权),
+  # 不在本文件 —— 本文件只登记**定义侧**与众数(`PoiState` 枚举见 constants 节)。
+  # ══════════════════════════════════════════════════════════════════════════
 
 # Example:
 #
@@ -532,16 +1110,26 @@ constants:
   # 登记它不是因为值已知,恰恰相反:它是全案【唯一 tick 长度】,
   # 7a 持久化 / 25 格斗 / 5 时间天气 都必须与 9 取同一个值 —— 值一改,四份文档同时失效。
   # 在值落定前登记,是为了把这条「必须一致」的边显式化,而不是等实现时各自假设。
+  # ⚠️ **一物两名(2026-09-16 /consistency-check 登记)**:系统 1 与 ADR-009 在正文里
+  #    称它为 **`TICK_PERIOD`**(见 player-controller-and-movement.md:1200 的旋钮表 ·
+  #    adr-009:455 的订正段)。**二者是同一个量** —— 本表用 `TICK_SECONDS`(9 的 GDD 命名),
+  #    1 / ADR-009 用 `TICK_PERIOD`。**不新增第二条 registry 条目**(那会造成两个实体,
+  #    正是 MAX_DT 那条注释所警告的静默失配)。实现期若同时出现两个标识符,以本名为准。
   - name: TICK_SECONDS
     status: active
     source: design/gdd/disease-simulation.md
     referenced_by:
       - design/gdd/disease-simulation.md   # F3 t = ⌊GameClock / TICK_SECONDS⌋
-      # 5 时间天气 / 7a 持久化 / 25 格斗 —— 撰写时须回溯追加
+      - design/gdd/player-controller-and-movement.md  # F-1-1b 事件率面(该处写作 `TICK_PERIOD`)
+      - docs/architecture/adr-009-world-state-event-boundary.md  # Amendment G 订正段(同写作 `TICK_PERIOD`)
+      - design/gdd/diagnosis-system.md     # D-8-7:`STALE_WINDOW` / `RECHECK_WINDOW` 的量纲锚
+      - design/gdd/audio-system.md         # 呼吸层循环节奏的量纲
+      # ✅ 2026-09-16 7a 持久化 GDD 落盘:存档头 `Tick`(i64)以 `TICK_SECONDS` 为量纲
+      #   (三流全序键 / 折叠窗口 / checkpoint 间隔同源于此 —— persistence-service.md §Overview)
     value: "待定 —— 见 disease-simulation.md Tuning Knobs"
     unit: seconds
     added: 2026-09-13
-    revised: ""
+    revised: 2026-09-16
 
   # ── 21a 配方的调参旋钮常量组 (2026-09-14 复核新增) ────────────────────────
   # 【值全部待定】—— 依硬约束「数值用户自己调」,本次只登记【存在性、归属与边界约束】。
@@ -701,7 +1289,7 @@ constants:
     value: "P0 固定 half_life"
     unit: enum
     constraint: "⚠️ 2026-09-14 三轮修正(D-21-23):【P0 收窄为 half_life 单一取值】——
-      9 的处置载荷只有 polarity / drug_potency / half_life(=tau_half)三项,
+      9 的处置载荷只有 polarity / drug_potency / half_life 三项,
       onset / peak / elimination 【产出即被丢弃】;枚举写四值而实际只一值是最难查的静默。
       P0 构建期拒绝非 half_life 取值(AC-21a-60);其余三轴标 P1a,待 9 扩处置载荷后开。
       ⚠️ 2026-09-14 三轮修正(blocking #3):原登记写「全案【单值】」是【错的】——
@@ -730,7 +1318,7 @@ constants:
     source: design/gdd/item-database.md
     referenced_by:
       - design/gdd/item-database.md   # gather_profile → 42 呈现
-      - design/gdd/item-presentation.md  # 【待撰写】42 须以外观/药签措辞呈现(U-5)
+      - design/gdd/skeuomorphic-ui.md  # 42(已成稿 2026-09-16);须以外观 / 药签措辞呈现(U-5);42 不拥有形态,画不出即报冲突
     value: "逐档待定(用户裁定)"
     unit: string
     constraint: "长度 = MAX_QUALITY;P0 可空;仅定性修饰,【不得】退化为数字或刻度(U-1/U-2/U-5);
@@ -744,7 +1332,7 @@ constants:
     source: design/gdd/item-database.md
     referenced_by:
       - design/gdd/item-database.md     # drug_profile → 42 呈现
-      - design/gdd/item-presentation.md # 【待撰写】42 须以药签措辞呈现(U-6)
+      - design/gdd/skeuomorphic-ui.md # 42(已成稿 2026-09-16);须以药签措辞呈现(U-6);42 不拥有形态,画不出即报冲突
     value: "逐档待定(用户裁定)"
     unit: string
     constraint: "长度 = MAX_QUALITY;P0 可空;仅定性修饰,【不得】退化为数字或刻度(U-1/U-2/U-6);
@@ -757,6 +1345,7 @@ constants:
     source: design/gdd/item-database.md
     referenced_by:
       - design/gdd/item-database.md   # F5 偏移可感知地板
+      - design/gdd/skeuomorphic-ui.md # 42(已成稿 2026-09-16):F5 消费方 —— 42 只承载【形态】,须把非零档偏移渲染成可感知差异;画不出即报冲突(规则七),不得静默降级
       # 9 疾病与伤情 —— 噪声带宽由 9 提供,地板须与之联定
     value: "待定 —— 须 > 9 的病史噪声带"
     unit: "Q16.16 Fix"
@@ -770,13 +1359,13 @@ constants:
     status: active
     source: design/gdd/item-database.md
     referenced_by:
-      - design/gdd/item-database.md      # drug_profile → 9 处置事件的 Offset 来源
-      - design/gdd/disease-simulation.md # 【待对齐】9 侧字段名现仍写 Offset(D-21-25)
+      - design/gdd/item-database.md      # drug_profile → 9 处置事件的 drug_potency 来源
+      - design/gdd/disease-simulation.md # ✅ D-21-25 已办(2026-09-15):9 侧字段名已对齐 drug_potency
     value: "逐条待定(用户裁定)"
     unit: "Q16.16 Fix"
-    constraint: "⚠️ 2026-09-14 三轮新增(D-21-22,原 Offset 改名):8 处置事件 Offset 的【唯一来源】。
+    constraint: "⚠️ 2026-09-14 三轮新增(D-21-22,原 Offset 改名):8 处置事件 drug_potency 的【唯一来源】。
       【静态基础幅值,不受品级调制】—— 品级只调时间轴(F5);幅值本身不废,废的是「用品级调幅值」。
-      禁浮点字面量(AC-21a-57);9 侧字段名对齐归 D-21-25"
+      禁浮点字面量(AC-21a-57);9 侧字段名对齐 ✅ 已办(D-21-25)"
     added: 2026-09-14
     revised: ""
 
@@ -815,6 +1404,231 @@ constants:
     added: 2026-09-14
     revised: ""
 
+  # ── 9 疾病与伤情模拟 的调参常量组 (2026-09-15 二轮复核同步) ───────────────
+  # 【值全部待定】—— 依硬约束「数值用户自己调」,本次只登记【存在性、归属与边界约束】。
+  # 归属:9 的 Tuning Knobs 拥有;登记它们是因为【下游 / ADR 必须取同一组值】:
+  # 52 疫情事件(TR-disease-021)· 7a 存档 · ADR-008 §六 有界性 · ADR-005 性能表 · ADR-017 §三。
+  - name: RECOVER_THRESHOLD
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # F4 痊愈判定(九态闭合,B5)
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    unit: "Q16.16 position"
+    constraint: "0 ≤ RECOVER_THRESHOLD < CRITICAL_THRESHOLD —— 痊愈须在危殆之下;
+      < 0 或 ≥ CRITICAL_THRESHOLD 构建期拒(九态机自洽,B5 闭合)"
+    added: 2026-09-15
+    revised: ""
+
+  - name: TREND_EPS
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # F2 趋势死区: |trend| < TREND_EPS ⇒ 判「持平」
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    unit: "Q16.16 progress/tick"
+    constraint: "≥ 0 —— Q16.16 下两个近乎相等的 Progress 直接相减 = ±1 LSB 纯量化噪声,
+      恰在最需要趋势的心衰类病种失真;死区使「持平」成为确定判定(blk #5)"
+    added: 2026-09-15
+    revised: ""
+
+  - name: MAX_SCAN_STEPS
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # F3 plateau/急性保持型子区间扫描硬上限(B4)
+      - docs/architecture/adr-005-deterministic-sim.md   # 性能判据(AC-3b)
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    unit: steps
+    constraint: "正整数 —— plateau / 急性保持型(心衰 / 伤寒 / 痢疾 / 破伤风)子区间内
+      无闭式根,只能定步长扫描;超上限即截断 + 显式记账(宁可误差有界,不要迭代不定,
+      同 FIXED_ITER 取舍)。AC-3b 的判据 = 扫描步数 ≤ 本值"
+    added: 2026-09-15
+    revised: ""
+
+  # ── scan_step ─────────────────────────────────────────────────────────
+  # plateau / 急性保持型子区间的定步长扫描步长(2026-09-16 三轮 · 集群 7)。
+  # 原为固定步长,补成旋钮;与 MAX_SCAN_STEPS 同受 F3 性能联合不等式。
+  - name: scan_step
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # F3 性能联合不等式 + 复杂度表(plateau 行) · AC-3c
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    unit: ticks
+    constraint: "> 0 —— 扫描跨过的 tick 数;CatchUp_30d ≈ (时长/scan_step) × FIXED_ITER。
+      **与 MAX_SCAN_STEPS / FIXED_ITER / 墙钟预算同受 F3 性能联合不等式**
+      (AC-3b 计数器与 AC-3c 墙钟是两级独立判据,任一单独调大都可在联合约束下刷绿 AC-3c);
+      CAP 上调须同步收紧本值"
+    added: 2026-09-16
+    revised: ""
+
+  - name: EPS_OFFSET
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # 处置历史剪枝门(B4③)
+      # ⚠️ **一对多命名(2026-09-16 /consistency-check 登记)**:本表的 ASCII 名是登记惯例
+      #    (本表常量名**一律零非 ASCII**,`TREND_EPS` 亦然);**9 的 GDD 正文写作 `ε_OFFSET`**。
+      #    二者指同一旋钮。⚠️ 同文档内 `TREND_EPS` 走 ASCII、`ε_*` 走希腊字母 —— **9 内部命名不统一**,
+      #    该瑕疵归 9(已 Approved,不本轮改符号);**实现期以本表 ASCII 名为准**。
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    unit: "Q16.16 progress"
+    constraint: "0 < EPS_OFFSET < |drug_potency_min| —— 否则第一条处置即被剪;
+      折叠后残差并入保守带(与复发剪枝同构)"
+    added: 2026-09-15
+    revised: ""
+
+  - name: EPS_PRUNE
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # 复发脉冲剪枝门(B4④)
+      # ⚠️ 9 的正文写作 `ε_PRUNE` —— 同一旋钮,命名见 EPS_OFFSET 的注(ASCII 名以本表为准)
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    unit: "Q16.16 progress"
+    constraint: "0 < EPS_PRUNE < A_rel —— 否则第一脉冲即被剪,疟疾复发整块静默消失;
+      整串残差 = EPS_PRUNE/(1−e^(−interval/τ_rel_fall)) 并入保守带,须与 σ 一并界"
+    added: 2026-09-15
+    revised: ""
+
+  - name: PATIENT_APPEARANCE_CAP
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # 同场被模拟病人数上限(B4 · TR-disease-021)
+      - docs/architecture/adr-008-case-event-stream.md   # §六 有界性硬界
+      - docs/architecture/adr-005-deterministic-sim.md   # CPU 行量纲唯一未定因子
+      - docs/architecture/adr-017-dots-decision.md       # §三 复评门触发判据
+      - design/gdd/telemetry-analytics.md                # 51:F5 `Dens_s` 输出域上界(2026-09-16)
+    value: "待定 —— 见 disease-simulation.md OQ-8(须在写第一个 Step 前标定)"
+    unit: patients
+    constraint: "> 0 整数 —— 52 疫情事件与季节调制(TR-disease-021)都在此界内;
+      ADR-008 §六 有界性论证的硬界;ADR-017 复评门「同场实体数」判据的量纲来源"
+    added: 2026-09-15
+    revised: ""
+
+  # ── CARE_GAP ──────────────────────────────────────────────────────────
+  # B′ 照护连续性的判定阈值(2026-09-16 三轮 · 二轮 B2/B3)。
+  # 归属:9 的 Tuning Knobs 拥有;登记它是因为【24 医馆即机器须产出同刻度的护理动作事件】。
+  - name: CARE_GAP
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # F4 last_intervention 照护通道(B′;相邻护理动作 gap > CARE_GAP ⇒ 中止)
+      # ✅ 2026-09-19:24 医馆即机器已成稿(clinic-machine.md);⚠️ 护理动作「时基(tick 刻度)」的本值同刻度措辞仍未见 24 正文 —— 载体回填义务待 24 修订轮
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    unit: ticks
+    constraint: "≥ 0 整数 —— 相邻护理动作事件 gap > CARE_GAP ⇒ 视为照护中止(死亡倒计时开始);
+      0 表示「护理动作须首尾相接」;值越大照护越宽容。仅由 24 的【护理动作事件】测量,
+      【不得】由 EnvMod / 「在医馆」状态推出(2026-09-16 三轮 · 二轮 B2)"
+    added: 2026-09-16
+    revised: ""
+
+  # ── CARE_EVENTS_PER_TICK ─────────────────────────────────────────────
+  # 每病人每 tick 护理动作事件数上界(2026-09-16 三轮 · 集群 7)。
+  # 归属:9 的 Tuning Knobs 拥有;24 医馆即机器产出护理动作事件时受本值约束。
+  - name: CARE_EVENTS_PER_TICK
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # 复杂度表护理行(密度界) · 校验 13 护理动作事件
+      # ✅ 2026-09-19:24 医馆即机器已成稿(clinic-machine.md);⚠️ 护理动作「密度约束」的本值载体仍未见 24 正文 —— 载体回填义务待 24 修订轮
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    unit: "events/tick/patient"
+    constraint: "非负整数 —— 护理动作事件数上界;超界拒收(丢弃 + 记账),不静默。
+      护理是 F4 存活杠杆,须防玩家刷事件(否则「O(处置次数)」退化为 O(tick),
+      守恒律被击穿 —— `K ≤ |护理动作表|` 只界种类不界条数)。
+      **密度界 ≠ 速率界(2026-09-16 四轮 K3)**:本值不界护理动作跨 tick 的持续时间
+      —— 持续护理的续照判定按「每 N tick ≤ 1 次」另记(照护速率界,见复杂度表护理行)"
+    added: 2026-09-16
+    revised: ""
+
+  # ── ε_MIN ─────────────────────────────────────────────────────────────
+  # 归一化 R_rise 的下界守卫(2026-09-16 四轮登记,qa S3-11)。
+  # 归属:9 的 Tuning Knobs 拥有;与校验 12 同一缺口的两个观测面,合并为同一条校验。
+  - name: EPS_MIN
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # F3 全局不等式注 · 校验 12 · AC-23 必含项
+      # ⚠️ 9 的正文写作 `ε_MIN` —— 同一旋钮,命名见 EPS_OFFSET 的注(ASCII 名以本表为准)
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    unit: "Q16.16 progress"
+    constraint: "> 0,且 < R_rise(最小合法配置) —— 全局不等式
+      R_rise = 1 − e^(−(τ_peak−incubation)/τ_rise) > ε_MIN > 0:
+      分子跨度相对 τ_rise 不得过小,否则 R_rise 在 Q16.16 下舍为 0 ⇒ 除零 NaN
+      (与校验 7 `τ_fall=0` 对称)。具体数值随 τ_rise / τ_peak 边界走;
+      登记三件套 = 校验 12 / F3 全局不等式注 / AC-23 必含项"
+    added: 2026-09-16
+    revised: ""
+
+  # ── channel_mask ──────────────────────────────────────────────────────
+  # 体征感知通道位域(2026-09-16 三轮 · 用户裁决②)。位号 = 整数枚举,不进 float。
+  # 归属:9 登记通道位,8 读取通道位(门槛在 8),13 / 44 表现 —— 三件套分工。
+  - name: channel_mask
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # Visual/Audio §二 通道位域契约 · R1.3 schema · AC-21 [L] 子句
+      # ✅ 2026-09-19:8 诊断已成稿(diagnosis-system.md R-8.1 词条结构 `channel` 字段 + 通道清单归 9,正文已引用)
+    value: "待定 —— 见 disease-simulation.md Visual/Audio §二"
+    unit: bits
+    constraint: "整数位域 —— `signs[]` 每个词条带一个整数通道位,按位或得通道集合;
+      位定义唯一(每词条 ∈ 同一枚举,构建期查位冲突),新增通道 = 新位
+      (≤ `signs[]` 词条数)。通道集合仍归 8 诊断拥有,9 只保证存在且位唯一
+      (写入期校验 14 的下界与此共用同一枚举)。位号禁 float —— 与 AC-5 零 float 边界一致"
+    added: 2026-09-16
+    revised: ""
+
+  # ── compound_max_triggers ─────────────────────────────────────────────
+  # 每病人每规则 compounds 触发次数上界(2026-09-16 三轮 · 集群 3)。
+  # 归属:9 的 Tuning Knobs 拥有;CompoundedTriggered 事件的条数界。
+  - name: compound_max_triggers
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # 复杂度表 compounds 行 · Tuning Knobs · AC-32
+      - design/registry/entities.yaml       # SimEvent.Kind.CompoundTriggered 约束(触发次数 ≤ 本值)
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    unit: "triggers/patient/rule"
+    constraint: "正整数 —— 每病人每规则的 compounds 触发次数上界;超界构建期拒绝。
+      O(触发次数) 的类 A 边界数由此封顶 —— 否则离线补算的类 A 边界数不可界,
+      「不随时长线性」承诺被击穿(校验 10 只禁环、不界数)"
+    added: 2026-09-16
+    revised: ""
+
+  # ── MAX_ACTIVE_DOSE ───────────────────────────────────────────────────
+  # F1 剂量饱和截断上界(2026-09-16 三轮 · 二轮 C2)。
+  # 归属:9 的 Tuning Knobs 拥有;clamp 上界 = MAX_ACTIVE_DOSE × single_dose_max。
+  - name: MAX_ACTIVE_DOSE
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # F1 Progress clamp 上界 + R1.3 校验 15
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    unit: doses
+    constraint: "> 0 整数 —— Σ drug_potencyᵢ×Decay(Δᵢ) 超此上界时【饱和截断(clamp)】,
+      后续 Decay 继续走;不拒绝、不弹 UI(无「剂量超限」分支)。运行时记账,
+      活动剂量 = Σ 未衰减尽的 drug_potencyᵢ×Decay。值 0 或负 ⇒ 构建期拒(校验 15)"
+    added: 2026-09-16
+    revised: ""
+
+  # ── single_dose_max ───────────────────────────────────────────────────
+  # 单次最大剂量(病种 / 药侧登记)。与 MAX_ACTIVE_DOSE 相乘得 F1 的 clamp 上界。
+  - name: single_dose_max
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # F1 Progress clamp 上界 = MAX_ACTIVE_DOSE × single_dose_max
+      # 11 处方用药 / 21a 物品库 —— drug_profile 侧登记,本值须与 9 取同刻度
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    unit: "Q16.16 progress/dose"
+    constraint: "> 0 —— 单次处置的最大 dose 当量;clamp 上界 = MAX_ACTIVE_DOSE × 本值
+      (R1.3 校验 15 要求本值存在)。由 11 / 21a 的 drug_profile 产出,9 只消费"
+    added: 2026-09-16
+    revised: ""
+
   # ── CARRY_CAP ─────────────────────────────────────────────────────────
   # F1 强度轴的归一化分母。归 20 库存拥有(21a 只给 `weight → InstanceWeight` 形状)。
   - name: CARRY_CAP
@@ -823,6 +1637,10 @@ constants:
     referenced_by:
       - design/gdd/random-events.md   # F1 归一化 CarryLoad / CARRY_CAP
       # 20 库存与物品 / 21a 物品库 —— 撰写/对齐时须回溯追加
+      # ⚠️ **归属口径(2026-09-16 /consistency-check 登记)**:`random-events.md:844` 的
+      #    **算例**写 `CARRY_CAP = 500` —— 那是**演示算式走向的假值**,该文件 `:840` 明写
+      #    「不是标定值;真值归用户」;其旋钮表(`:1026`)亦标 *待定*。⇒ **不构成值冲突**,
+      #    本条的 `source` 仍应为 20(52 只是消费方)。**20 撰写时须承接定值权**。
     value: "待定 —— 见 random-events.md Tuning Knobs"
     unit: weight_units
     constraint: "> 0;须与 20 的负重上限同值,否则强度轴归一化错位(AC-52-24)"
@@ -839,6 +1657,9 @@ constants:
       - design/gdd/random-events.md   # 规则十一 · F1 步骤①
       - design/gdd/case-system.md   # 37 注入医疗条目时须知道各档配额(2026-09-15 回填)
       # 37 病例系统(注入前须知各档配额)—— 撰写时须回溯追加
+      # ⚠️ **一对多命名(2026-09-16 /consistency-check 登记)**:52 的 GDD 正文写作
+      #    **`档占比[威胁/机会/反应/灾难]`**(`random-events.md:1022`);本表用 ASCII slug。
+      #    二者指同一组旋钮(语义亦一致:`int[4]` / 四档各一个 / Σ > 0)。ASCII 名以本表为准。
     value: "int[4] —— 待定(四档各一个旋钮)"
     unit: ratio
     constraint: "各项 ≥ 0 且和 > 0;P0 运行期配额断言 档配额权重[机会] = 档配额权重[威胁]（AC-52-02，2026-09-15 二轮修正:断言【运行期配额】而非池条目计数比）;
@@ -945,10 +1766,11 @@ constants:
     referenced_by:
       - design/gdd/case-system.md   # 规则二立案 · F-37.2
       - docs/architecture/adr-008-case-event-stream.md   # §三
+      - design/gdd/telemetry-analytics.md   # 51:F1 `case_id(c)` 的锚(2026-09-16)
     unit: kind
-    constraint: "落病例流（ADR-008 §一）；载荷快照 (patient_id, anchor 不透明, disease_snapshot)；case_id = 本事件 (Tick, Patient, Seq)（全序键补 Patient，复核 #1）"
+    constraint: "落病例流（ADR-008 §一）；载荷 (patient_id, disease_snapshot)，其中 disease_snapshot 为 **DiseaseIdSet**（版本化整数 ordinal 集合，**非 FixSet** —— disease_id 在 9 是 DIS_* 枚举，塞进 Q16.16 即 ADR-006 D-21-17 的同类错）；**case_id = 本事件 (Tick, Patient, Seq)**（全序键补 Patient，复核 #1）；**立案 tick = 本事件自身的 SimEvent.Tick** —— `opened_tick` 字段已于 2026-09-17 **删除**（重复携带即同一事实两份真相）"
     added: 2026-09-15
-    revised: 2026-09-15
+    revised: 2026-09-17
 
   - name: SimEvent.Kind.CaseClosed
     status: active
@@ -956,10 +1778,11 @@ constants:
     referenced_by:
       - design/gdd/case-system.md   # 规则六结案 · F-37.2
       - docs/architecture/adr-008-case-event-stream.md   # §三 / §四
+      - design/gdd/telemetry-analytics.md   # 51:F1 `Scorable` 谓词 + `D(c)` 真值源(2026-09-16)
     unit: kind
-    constraint: "落病例流；载荷快照 disease_set（集合可空，F-37.3）+ treated 证据快照（ADR-008 §四：处置事件须落 [CaseOpened.Tick, CloseTick] 窗口，堵复诊后门）；幂等拒收（复核 #10，流前缀纯函数）"
+    constraint: "落病例流；载荷 (patient_id, case_id, disease_set, treated)，其中 disease_set 亦为 **DiseaseIdSet**；treated 证据快照（ADR-008 §四：处置事件须落 **[CaseOpened.Tick, CloseTick]** 窗口，堵复诊后门 —— **2026-09-17 方向订正**：原式写反，使「复诊凭首诊处置通过」成唯一可通过路径，即自称要堵的后门在公式层未堵）；幂等拒收（复核 #10，流前缀纯函数）；`opened_tick` 字段已于 2026-09-17 删除"
     added: 2026-09-15
-    revised: 2026-09-15
+    revised: 2026-09-17
 
   - name: SimEvent.Kind.PatternRecognized
     status: active
@@ -969,9 +1792,9 @@ constants:
       # 53 医疗后果与责任 —— 其即时应答/世界变化的订阅输入
       - docs/architecture/adr-008-case-event-stream.md   # §三 / §五
     unit: kind
-    constraint: "落病例流；世界级事件，Patient = PatientId.None（ADR-007 §四，不污染高水位）；载荷用【加盐哈希键】SplitMix64(WorldSeed, \"case-salt\")（防御纵深，非保密层 —— 规则九唯一落点 = AC-37-15）；冻结 MemberSet 三元组；首次达标发一次（2026-09-15 裁定）"
+    constraint: "落病例流；世界级事件，Patient = PatientId.None（ADR-007 §四，不污染高水位）；载荷 = { PatientId.None, **anchor_case: CaseId**, **salted_key: ulong**, member_set } —— **2026-09-17 补 `salted_key`**（原 struct 缺该字段却三处宣称「用加盐哈希键」⇒ AC-37-14 空断言 + 53 无法定位是哪个 D，共病时 anchor_case.disease_set 不唯一）；salted_key **逐 D 派生** `SplitMix64(WorldSeed, \"case-salt\", ordinal(D))`（2026-09-17 订正：原写全局单值，与「盐的输入集含病种键」自相矛盾）；冻结 MemberSet 三元组；首次达标发一次；**同 tick 多 D 达标时按 salted_key 整数升序写入**（禁依赖 disease_set 迭代序）"
     added: 2026-09-15
-    revised: 2026-09-15
+    revised: 2026-09-17
 
   # ── 37 病例系统 · 判断记录类 Kind（ADR-008 §三）──────────────────────
   # AC-37-05 要求读数 / 落笔 / 改写史全部事件化。判断记录（落笔 / 改写）落病例流
@@ -982,27 +1805,41 @@ constants:
     referenced_by:
       - design/gdd/case-system.md   # 规则四判断记录 · AC-37-05
       - design/gdd/diagnosis-system.md   # 8 铁律②（不回写病史流）
+      - design/gdd/telemetry-analytics.md   # 51:F1 `J(c)` 候选来源(2026-09-16)
     unit: kind
-    constraint: "落病例流；载荷 (patient_id, anchor, judgment)；改写次数永不进计分（AC-37-20）"
+    constraint: "落病例流；载荷 (patient_id, case_id, judgment)，其中 `judgment` 为 **Judgment 值 struct** `{ lexicon_id: u16（版本化 ordinal，烘自 ADR-014 的 case_judgment_lexicon）, confidence: u8, freehand_text: string }`（2026-09-17 定型 —— 此前 ADR-008 与 37 均未定义该型，是独立于 AC-37-15 的第六处泄漏面）；**语义 = 存新值**（快照改写后的完整判断，不存旧值、不做差分；AC-51-B3 / OQ-51-8）；改写次数永不进计分（AC-37-20）"
     added: 2026-09-15
-    revised: ""
+    revised: 2026-09-17
 
   - name: SimEvent.Kind.JudgmentRevised
     status: active
     source: docs/architecture/adr-008-case-event-stream.md
     referenced_by:
       - design/gdd/case-system.md   # 规则四改写史 · AC-37-05
+      - design/gdd/telemetry-analytics.md   # 51:F1 `J(c)` 全序末条 + F1b 改写率(2026-09-16)
     unit: kind
-    constraint: "落病例流；载荷 (patient_id, anchor, judgment)；改写史为玩家回看而存（规则四），永不进计分（AC-37-20）"
+    constraint: "落病例流；载荷 (patient_id, case_id, judgment)，`judgment` 同上（Judgment 值 struct，**存新值**语义）；改写史为玩家回看而存（规则四），永不进计分（AC-37-20）；改写的**判定取法 = 全序最后一条胜**（OQ-51-8 已裁）"
     added: 2026-09-15
-    revised: ""
+    revised: 2026-09-17
 
   # ── 世界流 Kind（ADR-009 §三 骨架 · ADR-021 首个系统 ADR 落点）──────────
   # ADR-009 §三 声明世界流 8 个 Kind 骨架（Structure* / Drop* / Craft /
   # ResourceHarvested），并明写「载荷归各系统 ADR」；该 ADR **未**把它们登记进
   # entities.yaml（骨架在 ADR-009 §三 即其登记处）。PoiStateChanged 是**首个由
-  # 系统 ADR（ADR-021）追加**的世界流 Kind，故在此登记；其余 8 个仍以 ADR-009
-  # §三 声明为准，不在本表重复。
+  # 系统 ADR（ADR-021）追加**的世界流 Kind；ResourceHarvested 由 **ADR-009
+  # Amendment K（2026-09-19，承 17 采集首轮评审）载荷定稿**后正式入表。
+  - name: SimEvent.Kind.ResourceHarvested
+    status: active
+    source: docs/architecture/adr-009-world-state-event-boundary.md
+    referenced_by:
+      - design/gdd/foraging.md                               # 规则二 / F-17-1 / F-17-3（17 的唯一采集事实事件）
+      - docs/architecture/adr-009-world-state-event-boundary.md  # §二 / §三 / §六 · Amendment K
+      - design/gdd/inventory-and-items.md                    # fold 须并入（取回 quality）
+    unit: kind
+    constraint: "落世界流（ADR-009 §二 · §三）；载荷 = { instance_id, node_id, gather_seq, qty, out_quality }（**全整数**；`node_id` 为 ADR-015 逻辑层节点稳定标识，**非** `spawn_anchor` 格坐标 —— `OQ-4-11` 许同格同种多点）；`Patient = PatientId.None`（ADR-007 §四，不污染高水位）；**写者 = 17 主机**（ADR-009 §七 Guidelines 4）；**一次成功采集与 `DropSpawned` + `DropClaimed` 主机同 tick 连发**（三条一组）；**`raw_quality` 刻意不落流** —— 可由 `SplitMix64(WorldSeed, \"gather\", node_id, gather_seq)` 三项重算，存它 = 第二真源；`out_quality` **必须落流**（经 `QualityCap` 截断，截断需采集者当刻技能等级，同 21a「写入时物化」逻辑）；`gather_seq` 的计源 = **本 Kind 的节点计数**（只数 17 自己的 Kind ⇒ 不被死亡掉落 / 18 起货溢出 / 52 spawn 点的 `DropSpawned` 污染）；有界性 ≤ 玩家采集动作率 × 会话时长，每完成动作 ≤ 1 条（ADR-009 §六，Amendment K 就地订正 —— 原「≤ 资源点数」因 `RegrowWindow` 再生而陈旧）；**20 的 `InventoryOf` fold 须并入本 Kind**，否则 `(item_key, quality)` 堆叠键重建不出 `quality`（AC-20-03）"
+    added: 2026-09-19
+    revised: ""
+
   - name: SimEvent.Kind.PoiStateChanged
     status: active
     source: docs/architecture/adr-021-poi-state-ownership.md
@@ -1011,8 +1848,264 @@ constants:
       - docs/architecture/adr-009-world-state-event-boundary.md # §二/§三 · Amendment F
       - docs/architecture/adr-010-persistence-save-format.md    # §三 义务 11
     unit: kind
-    constraint: "落世界流（ADR-009 §二 · ADR-021 §三）；载荷 { poi_id, new_state }（均整数枚举；PoiState 具体枚举值归 6 的 GDD，ADR-021 §三 刻意不定）；Patient = PatientId.None（ADR-007 §四，不污染 max(patient_id) 高水位）；主机唯一 Append，写者 = 6 世界与生态区；有界性 ≤ |POI| × |STATE|（ADR-009 §六 · ADR-021 §四）"
+    constraint: "落世界流（ADR-009 §二 · ADR-021 §三）；载荷 { poi_id, new_state }（均整数枚举；`PoiState` 枚举值 **2026-09-16 由 6 的 GDD 定稿** = 三态单调不可逆，见 constants.PoiState）；Patient = PatientId.None（ADR-007 §四，不污染 max(patient_id) 高水位）；主机唯一 Append，写者 = 6 世界与生态区；有界性 ≤ **2 × |POI_DEF|**（**⚠️ 2026-09-16 收紧** —— 原记 ADR-021 §④ 的 `|POI| × |STATE|`(= 3 倍)；三态单调下每 POI 至多 2 次转移，跳级 `0→2` 只算 1 次仍被覆盖 ⇒ 见 6 的 F-6-4。**成立前提 = 幂等丢弃生效**:同态重入不 Append，否则上界被击穿，6 的 AC-6-12 守住此前提。ADR-009 §六 的论证由 6 的 AC-6-15 提供机械证据)"
     added: 2026-09-15
+    revised: ""
+
+  # ── 世界流 Kind（ADR-009 §三 骨架 · 系统 1 的 GDD 落点,2026-09-16）──────
+  # ADR-016 §三 / ADR-020 §四 / architecture.yaml:397 `player_cell_crossing_event`
+  # 三处**都在使用** `ActorCellEntered` 这个名字,但它此前**既不在 ADR-009 §三 的
+  # 9-Kind 骨架里,也不在本表** —— 「被三方引用却无登记处」。系统 1 的 GDD 追认其为
+  # 正式 Kind（命名用 Actor 而非 Player,为 27 敌人留口）,并同步补进 ADR-009 §三
+  # （Amendment G）。本登记即该纪律下**第五个**由系统追加的 Kind。
+  - name: SimEvent.Kind.ActorCellEntered
+    status: active
+    source: design/gdd/player-controller-and-movement.md
+    referenced_by:
+      - design/gdd/player-controller-and-movement.md   # R5 / R6 · States 跨格边沿检测 · AC-1-03/04/05/06
+      - docs/architecture/adr-020-player-controller-and-camera.md  # §四 + §Architecture(命名首次出现处)
+      - docs/architecture/adr-016-ai-architecture.md   # §三 读方(13 / 27 的感知输入)
+      - docs/registry/architecture.yaml                # contract: player_cell_crossing_event
+      - design/gdd/patient-ai.md                       # :324 / :459(13 的硬依赖)
+    unit: kind
+    constraint: "落**世界流**（ADR-009 §二 · ADR-020 §四）；载荷 = { actor_id, cell(WorldPos), tick }（**三字段均整数,无连续坐标 / 无速度 / 无朝向**）；`Patient = PatientId.None`（世界级事件,ADR-007 §四 —— 不污染 `max(patient_id)` 高水位,actor_id 本身走 ADR-006 Amendment B 的 id 空间,玩家开局经 `IIdAuthority` 分配一份）；**不另发 Exited** —— 下一条 Entered 已隐含上一条离开；**事件率上界 = tick 频率**（每 tick 至多 Append 一条；跨格检测每帧跑、提交每 tick 一次,tick 内后续跨格**覆盖**待发值。**2026-09-16 口径订正**:原写「频率 = 格穿越率」是**等值**断言,不可证伪且与归并算子相抵 ⇒ 改**上界**口径,见 `player-controller-and-movement.md` F-1-1b / AC-1-03）；**两条不变量分属两处,不得混同**:水平防隧穿 `SPEED_MAX × MAX_DT ≤ LATTICE_SIZE` 是**构建期静态断言**(F-1-1a,推不出「≤ 1/tick」),而「≤ 1/tick」是**运行期计数不变量**(F-1-1b);**y 轴显式豁免速限**(F-1-1c,2026-09-16 用户裁定 —— 自由落体竖直速度可远超 `SPEED_MAX`,竖直隧穿与 EC-4 传送同构);有界性 ≤ tick 频率 × 会话时长（ADR-009 §六 扩展而非重写）；**VR 模式不发本事件**(R10)**;**`Append` 权 = 主机唯一**(2026-09-16 Amendment B)**:本地玩家在主机 ⇒ 主机本地控制器直接 `Append`;本地玩家在客户端 ⇒ 客户端**不** `Append`,其格经 **ADR-001 第二 QoS**(unreliable latest-value)上行,由主机权威控制器统一 `Append` —— **`ActorCellEntered` 不在可靠通道**(最新值语义与 reliable-ordered 冲突,且可靠通道被「急救 < 50 ms」占用);远端队友同路径 ⇒ 主机 Append 后经世界流回播,13/27 在**所有机器**上读到同一条序列;`tick` 字段 = **「观察到跨格的那一 tick」**(非「跨格发生的那一 tick」,**最多相差一个 tick** —— 承 ADR-009 Amendment G 订正)"
+    added: 2026-09-16
+    revised: ""
+
+  # ── 世界流 Kind · 29 死亡与复活(2026-09-19 首轮 /design-review 阻断 B1 的堵法)──
+  # 根因:29 的 F-29-2「死亡冷却」依赖 `last_death_tick` = 世界流重算,而**当时的全库
+  # 无任何死亡 Kind** ⇒ 冷却永远读不到值 ⇒ 静默退化为「无冷却」= 掉落经济漏洞。
+  # 同时「背包为空的死亡」零 `DropSpawned` ⇒ 该次死亡在整个三流**零痕迹**,掉级亦不可重建。
+  # 本登记即 ADR-009 §三「系统 ADR 追加 Kind」纪律下的又一实例(同 PoiStateChanged /
+  # ActorCellEntered / CareApplied / Structure* / Encounter* 模式);由 **9 发出**
+  # (9 拥有 F4 致死判据 —— OQ-25-1 路甲;29 消费并结算,不写本 Kind)。
+  - name: SimEvent.Kind.PlayerDied
+    status: active
+    source: design/gdd/death-and-respawn.md
+    referenced_by:
+      - design/gdd/death-and-respawn.md              # F-29-2(冷却)· F-29-4(掉级重建)· 规则二
+      - design/gdd/disease-simulation.md             # 9:F4 致死判据的输出侧(OQ-25-1 路甲)
+      - docs/architecture/adr-009-world-state-event-boundary.md  # §三 骨架 + Amendment L
+      - docs/registry/architecture.yaml              # contract: death_event(Kind 路由白名单)
+    unit: kind
+    constraint: "落**世界流**(ADR-009 §二);载荷 = { actor_id, death_cell(WorldPos 整数格), tick }(全整数,**无连续坐标 / 无死因文本 / 无伤害数值**);`Patient = PatientId.None`(受伤实体侧事件,ADR-007 §四 —— 不污染 `max(patient_id)` 高水位;`actor_id` 走 ADR-016 §二 共用 id 空间)。**写者 = 9**(9 拥有 F4 致死判据 —— OQ-25-1 路甲 2026-09-19;29 是**消费者**,对 `IEventSink.Append` 的调用点数 = 0)。**无条件发出** —— **背包为空也发**(否则空背包死亡在三流零痕迹,F-29-2 冷却与 F-29-4 掉级重建同时静默失败);**冷却期内不发出**(F-29-2 `DeathAllowed == false` ⇒ 不结算、不发)。`death_cell` = 该玩家世界流中**最后一条 `ActorCellEntered` 之 cell 原样携带**(派生态,零新读;**禁止**读实时物理位置 —— ADR-020 §四)。**有界性 ≤ 死亡事件率 ≤ 玩家数 / `DEATH_COOLDOWN`**(ADR-009 §六 扩展而非重写;与帧率无关)。**与 `EnemyInjuryOnset` 并列示例**:一个 Kind 无法同时落两条流(ADR-008 §一 按 Kind 路由)—— 敌人死亡走 `InjuryStateChanged`(世界流),玩家死亡走本 Kind。"
+    added: 2026-09-19
+    revised: ""
+
+  # 承 ADR-021 的「系统 ADR 追加 Kind」纪律(ADR-009 §三 预置的口子):护理动作本是一条
+  # 【连续非事件通道】(原设计读 24 的 EnvMod)—— 改为事件化后落【病史流】,有界性由
+  # 「K ≤ |护理动作表|」闭合。这是 ADR-009 骨架下 **第二个**由系统追加的 Kind。
+  - name: SimEvent.Kind.CareApplied
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # 规则六病史元组 · F3 边界表 · F4 last_intervention 照护通道(B′)
+      # ✅ 2026-09-19:24 医馆即机器已成稿(clinic-machine.md:10 契约行);写者 = 24 转写(disease-simulation.md:179/:207),正文已引用
+    unit: kind
+    constraint: "落【病史流】(9 的主场,可随终态折叠);载荷 = { tick, 护理动作_id, 照护者, 起/止 }(均整数/枚举;动作 id ∈ 护理动作表,K ≤ |护理动作表|);一条事件表示【起】或【止】;写入期校验 t(止) ≥ t(起)。**语义 = 玩家主动护理动作**(成本 = 时间/资源,仅在动作持续期内计数);「放医馆」本身不计数,EnvMod 不得推出本事件(2026-09-16 三轮 · 二轮 B2/B3)。F4 消费:相邻 gap > CARE_GAP ⇒ 照护中止;last_intervention(照护) = max(止, 最后动作 + CARE_GAP)(三轮集群 2)"
+    added: 2026-09-16
+    revised: ""
+
+  # ── 世界流 Kind · Structure 三件套 (ADR-009 §三 骨架 · 系统 23 的 GDD 载荷定稿,2026-09-17) ──
+  # ADR-009 §三 声明 StructurePlaced / Removed / Modified 三个骨架,载荷「归 R-10」;
+  # **R-10 载荷现由系统 23 的 GDD 定稿**(模块化网格,ADR-015 §五)。本登记即「系统
+  # GDD 定稿 Kind 载荷」纪律下的又一实例(同 PoiStateChanged / ActorCellEntered /
+  # CareApplied 模式)。三 Kind 全落世界流,写者唯一 = 23(规则四 / 规则十)。
+  - name: SimEvent.Kind.StructurePlaced
+    status: active
+    source: design/gdd/modular-building.md
+    referenced_by:
+      - design/gdd/modular-building.md          # 23:规则四(载荷定稿)+ AC-23-09/10
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §三 骨架(9-Kind)
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md   # §五(模块实例 = 槽位上的世界流事件)
+      - docs/architecture/adr-010-persistence-save-format.md   # §三 义务 3(三流序列化)
+    unit: kind
+    constraint: "落**世界流**(ADR-009 §二);载荷 = { structure_id, cell(WorldPos), module_id, orientation, variant }(全整数,禁 float —— ADR-006 边界);`Patient = PatientId.None`(不污染 max(patient_id) 高水位);写者 = **23 模块化建造**(唯一);主机唯一 Append(ADR-005);`structure_id` 与 `ItemInstanceId` 同模式(7a 的 IIdAuthority,计数器 + 高水位可重构,ADR-010 §五);折叠谓词不适用于结构行"
+    added: 2026-09-17
+    revised: ""
+  - name: SimEvent.Kind.StructureRemoved
+    status: active
+    source: design/gdd/modular-building.md
+    referenced_by:
+      - design/gdd/modular-building.md          # 23:规则九(拆除与回收)+ AC-23-07/16
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §三 骨架
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md   # §五
+      - docs/architecture/adr-010-persistence-save-format.md   # §三 义务 3
+    unit: kind
+    constraint: "落**世界流**(ADR-009 §二);载荷 = { structure_id, cell(WorldPos), module_id }(全整数;无 orientation/variant);`Patient = PatientId.None`;写者 = **23**(唯一);拆除判定拒绝(不存在 / 格上有实体,EC-23-02/03)时不 Append;返还 = F-23-3(失败走 DropSpawned,不静默吞)"
+    added: 2026-09-17
+    revised: ""
+  - name: SimEvent.Kind.StructureModified
+    status: active
+    source: design/gdd/modular-building.md
+    referenced_by:
+      - design/gdd/modular-building.md          # 23:规则十(写者分界)+ AC-23-11
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §三 骨架(原注「23 / 24」双名)
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md   # §五
+      - design/gdd/world-and-ecozones.md        # 6:缝一(布局变更 = 24 重算的触发器)
+    unit: kind
+    constraint: "落**世界流**(ADR-009 §二);载荷 = { structure_id, cell(WorldPos), module_id, new_orientation, new_variant, modified_fields }(全整数);`modified_fields` **只载物理形态位**(朝向 / 变体 / 换模块),**不载任何数值结果**(数值 = 24 的派生,不进流);**写者 = 23(唯一)** —— ADR-009 §三 原注「23 / 24」双名收敛为 23(规则十:24 只读布局派生数值,不 Append);Patient = PatientId.None;EC-23-10:只改形态不改模块不发 Removed + Placed"
+    added: 2026-09-17
+    revised: ""
+
+  # ── 53 医疗后果与责任 · ConsequenceResolved(2026-09-19 首轮评审修订 · 用户裁定新增世界流 Kind)──
+  # 承 ADR-021「系统 ADR 追加 Kind」纪律 + ADR-009 §三 预置口子的第四个用户裁定产物。
+  # OQ-53-7 裁定 [A]:新增世界流 Kind(具体名 = 53's GDD,载荷 = 整数枚举,无 case_id —— 用户裁定)。
+  # 首个由系统 GDD 首轮评审直接追加的 Kind;载荷 / 语义归 53 的 GDD(F-53.1 · AC-53-14),此处只登记骨架。
+  - name: SimEvent.Kind.ConsequenceResolved
+    status: active
+    source: design/gdd/medical-consequences.md
+    referenced_by:
+      - design/gdd/medical-consequences.md   # 规则八 · F-53.1 · AC-53-14
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §三骨架(9-Kind)
+      - docs/architecture/adr-010-persistence-save-format.md   # §三义务 3(三流序列化)
+    unit: kind
+    constraint: "落**世界流**(ADR-009 §二);载荷 = { outcome(整数枚举,归 53 的 F-53.1 双轴), patient_id }(全整数,禁 float —— ADR-006 边界);**无 case_id**(AC-37-25 ② 不可归因 · 2026-09-19 裁定);`Patient = patient_id`(53 逐例结算患者,可携带真实 id);写者 = **53 医疗后果与责任**(唯一);主机唯一 Append(ADR-005);P0 零订阅者不算失败(ADR-019 §七 · 规则八);有界性 ≤ 病例流条数(逐例至多 1 条,扩展而非重写 · ADR-009 §六)"
+    added: 2026-09-19
+    revised: ""
+
+  # ── 9 疾病与伤情模拟 · compounds 触发/窗止 Kind(2026-09-16 三轮 · 集群 3)──────
+  # F5 的 compounds 显式加成「触发即落事件」:条件首次满足写 CompoundTriggered,窗口型
+  # bonus 窗止写 CompoundExpired。两 Kind 此前【零登记】(仅 GDD 出现),被 9 自家 Kind
+  # 白名单构建期拒绝(规则六表,「列表外 Kind 构建期拒绝」),AC-32/AC-3 同时挂空 ——
+  # 本登记即 ADR-009 §三「系统 ADR 追加 Kind」纪律下第三个由系统追加的 Kind。
+  # 登记处即为骨架义务:载荷与语义归 9 的 GDD(F5),此处只登记骨架。
+  - name: SimEvent.Kind.CompoundTriggered
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # F5 触发即落事件 · F3 类 A 边界表 · AC-32
+    unit: kind
+    constraint: "落【病史流】(9 的主场,可随终态折叠);载荷 = { tick, target_id, rule_id, when.component_id }(均整数;target ∈ compounds[].target 已由 R1 校验 10 保证存在);**触发即落** —— 条件首次满足时写,事件流即真源(给 F3 闭式求值一个锚点);触发次数 ≤ compound_max_triggers(每病人每规则,三轮集群 3)"
+    added: 2026-09-16
+    revised: ""
+
+  - name: SimEvent.Kind.CompoundExpired
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # F5 窗止另落一条 · F3 类 A 边界表(窗止行)
+    unit: kind
+    constraint: "落【病史流】;载荷 = { tick, target_id, rule_id }(均整数);**仅窗口型 bonus 落本事件**(默认永久型无窗止);窗止是阶跃,须入 F3 类 A 边界表(否则离线补算把窗内加成当永久,破 AC-3/AC-7)"
+    added: 2026-09-16
+    revised: ""
+
+  # ── 世界流 Kind · 遭遇生命周期（系统 27 的 GDD 落点,2026-09-17）──────────
+  # 两个新 SimEvent.Kind,均落【世界流】。ADR-009 §三 的 9-Kind 骨架里**没有**它们 ——
+  # 本登记即「系统 GDD 定稿 Kind」纪律下的又一实例(同 PoiStateChanged /
+  # ActorCellEntered / CareApplied / Structure* 模式)。
+  # ⚠️ 写者**故意拆成两个不同系统** —— 见下两条 constraint;这是 ADR-021 的
+  # 「状态所有权 = 写入权」判据在遭遇生命周期上的落实。
+  - name: SimEvent.Kind.EncounterStarted
+    status: active
+    source: design/gdd/enemy-ai.md
+    referenced_by:
+      - design/gdd/enemy-ai.md                      # 27:规则二十(写者分工表)+ AC-27-24(27 的可写集恰 = {EncounterEnded})
+      - design/gdd/random-events.md                 # 52:§Dependencies 的 27 行(遭遇原型「52 触发,27 行为」)
+      - docs/architecture/adr-016-ai-architecture.md   # §八(52 ↔ 27 接口)
+    unit: kind
+    constraint: "落**世界流**;载荷 = { encounter_id, proto_id, spawn_cell(WorldPos), actor_ids[] }(全整数;**无连续坐标 / 无 float**);**写者 = 52 随机事件导演**(不是 27!)—— 52 决定来不来(ADR-016 §八),故「开始」是 52 的裁定;与 `EventArrived` **同 tick 派生**(中间不隔 tick,否则「事件已降临但敌人未出现」成为可观察的真空窗,`enemy-ai.md` §States 三);`Patient = PatientId.None`(世界级事件,ADR-007 §四 —— 不污染 max(patient_id) 高水位);**Append 权 = 主机唯一**(ADR-005);有界性 ≤ 遭遇次数(承 ADR-009 §六 的扩展口径)"
+    added: 2026-09-17
+    revised: ""
+
+  - name: SimEvent.Kind.EncounterEnded
+    status: active
+    source: design/gdd/enemy-ai.md
+    referenced_by:
+      - design/gdd/enemy-ai.md                      # 27:规则二十 + AC-27-24(27 的可写集恰 = {本 Kind})
+      - docs/architecture/adr-016-ai-architecture.md   # §一「效果进流,决策不进流」
+      - docs/architecture/adr-009-world-state-event-boundary.md  # §二(三流路由 · 世界流)
+    unit: kind
+    constraint: "落**世界流**;载荷 = { encounter_id, reason(枚举:脱离 / **全倒地** / 超时) }(全整数);**写者 = 27 敌人 AI**(不是 52!)—— 「遭遇何时真的结束」是 27 的状态,52 不持有它、写不出它(状态所有权判据 = ADR-021 §①);`reason` **必须是枚举不是布尔** —— 51 的回放分析须区分「玩家逃了」与「玩家打完了」(ADR-019 §一:回放即数据记录);**`EncounterEnded` ≠ 实体消失** —— 「遭遇结束」是战术关系结束,倒地的敌人仍在世界里(`is_down = true`,`Down` 不是 27 的态,见 `enemy-ai.md` 规则十六;可被 10 救治 / 28 取材);`Patient = PatientId.None`;有界性 ≤ 遭遇次数"
+    added: 2026-09-17
+    revised: "2026-09-17 —— 结束原因 `全灭` → `全倒地`(倒地 ≠ 死亡;人形倒地可被 10 救治,野兽可被 28 取材,P0 只交付前者)"
+
+  # ── 25 格斗与武器线 · 伤情三件套(2026-09-17 首轮 /design-review 修订后落盘)───
+  # ADR-009 §三 的 9-Kind 骨架里**没有**它们 —— 本登记即「系统 GDD 定稿 Kind」纪律下
+  # 的又一实例(同 Encounter* / Structure* / ActorCellEntered / PoiStateChanged / CareApplied 模式)。
+  # 路由 = ADR-008 §一「按 Kind 路由,IEventSink.Append 纯函数」的直接兑现:
+  # **一个 Kind 无法同时落两条流** ⇒ 病人 / 敌人必须拆两个 Kind(25 规则二)。
+  - name: SimEvent.Kind.InjuryOnset
+    status: active
+    source: design/gdd/combat-and-weapon-lines.md
+    referenced_by:
+      - design/gdd/combat-and-weapon-lines.md    # 25:规则二(路由表)+ F-25-2(载荷)+ F-25-7(dose_seq 键)
+      - design/gdd/disease-simulation.md         # 9:F1 加性阶跃承接方(R11 回填后生效;规则二「9 推进」)
+      - docs/architecture/adr-008-case-event-stream.md   # §一 按 Kind 路由(拆两 Kind 的判据源)
+      - docs/architecture/adr-009-world-state-event-boundary.md  # §二 三流路由
+    unit: kind
+    constraint: "落**病史流**(病人侧;玩家亦是 PatientState,同流 —— 25 规则六 [L] 结构子句:不为玩家开第二条路径);载荷 = { actor_id, target_id, injury_id, magnitude, tick, dose_seq }(全整数 / Fix raw long,**禁 float** —— ADR-006 边界;`magnitude` 单位 = PS,25 §〇);去重键 = 五元组 `(tick, actor_id, target_id, injury_id, dose_seq)`(F-25-7;`dose_seq` 是事件流的**纯函数派生量**,禁可变计数器,主机迁移后可重构 —— ADR-007 核心不变量);写者 = **25**(伤害施加方;9 的边界表「世界流 ← 9 写入」是内容归属不是调用者 —— R1);**命中写 onset 不写处置** —— 若写处置,武器命中会刷新死亡窗口(「挨打续命」静默失败,25 规则二);主机唯一 Append(ADR-005);有界性 ≤ tick 频率 × 攻击行动者数(冷却 ≥ 1 已断言 A6)"
+    added: 2026-09-17
+    revised: ""
+
+  - name: SimEvent.Kind.EnemyInjuryOnset
+    status: active
+    source: design/gdd/combat-and-weapon-lines.md
+    referenced_by:
+      - design/gdd/combat-and-weapon-lines.md    # 25:规则二 + F-25-2 ⑥(敌/兽 CP:=0 退化式)
+      - design/gdd/disease-simulation.md         # 9:敌人伤情语义归 9 的模型(ADR-016 §二 复用)
+      - docs/architecture/adr-016-ai-architecture.md   # §二 敌人复用 9 的伤情模型 + id 共用空间
+      - docs/architecture/adr-009-world-state-event-boundary.md  # §二 世界流
+    unit: kind
+    constraint: "落**世界流**(敌人侧;**不污染病史流** —— ADR-016 §二);载荷与 `InjuryOnset` 同构 = { actor_id, target_id, injury_id, magnitude, tick, dose_seq }(全整数);`magnitude` 敌/兽侧 = `MAG_FLOOR + base_step[act]`(**CP:=0 退化式**,25 F-25-2 ⑥,用户裁定 [甲] 2026-09-17 —— 不引入 `enemy_cp`);`actor_id` / `target_id` 与病人共用 `IIdAuthority` 同一 id 空间(ADR-016 §二;`max(patient_id)+1` 高水位重构须扫**含敌行**的并集 —— ADR-008 残留义务口径);敌行**不适用折叠谓词**(ADR-016 §二);去重键同五元组;写者 = **25**;主机唯一 Append;有界性同 `InjuryOnset`"
+    added: 2026-09-17
+    revised: ""
+
+  - name: SimEvent.Kind.InjuryStateChanged
+    status: active
+    source: design/gdd/combat-and-weapon-lines.md
+    referenced_by:
+      - design/gdd/combat-and-weapon-lines.md    # 25:规则五(混合形态:查询答现在 / 事件答哪一 tick)+ AC-25-5-02
+      - design/gdd/enemy-ai.md                   # 27:士气 / Down 回放消费方(R4/R17 回填后措辞对齐)
+      - docs/architecture/adr-016-ai-architecture.md   # §一「效果进流,决策不进流」
+      - docs/architecture/adr-021-poi-state-ownership.md  # §三 先例(StateChanged 命名形态)
+    unit: kind
+    constraint: "落**世界流**(25 规则五表口径;病人侧的状态转移由 9 的病史流既有 Kind 承载,本 Kind 服务**受伤实体集**{敌人, 玩家} 的跨消费者读数);载荷 = { actor_id, new_state }(均整数枚举);命名用 `InjuryStateChanged` 不用 `EnemyDowned` —— 昏迷**可逆**(转移表 `危殆→昏迷→苏醒`),同变量双向往返带 `new_state`(先例 PoiStateChanged);**写者 = 9**(唯一:状态真值在 9;25 只出 onset,不声称自己不知道的输出 —— 规则五「不采用 onset 带归零布尔」);emit 时机 = `position_agg` 越阈被 `Step` 求出的那一 tick,**离线 CatchUp 须产生逐条相同序列**(义务 R18,25 侧 AC-25-5-02 对拍);`Patient = PatientId.None`(受伤实体侧事件;不污染 max 高水位 —— id 走 ADR-016 §二 共用空间);有界性 ≤ 转移次数 × 实体数(状态机单调段有限,苏醒回移计入)"
+    added: 2026-09-17
+    revised: ""
+
+  # ── 病史流 Kind · 急救动作三件套（系统 10 的 GDD 首轮 /design-review,2026-09-18）──
+  # 根因 R-2:原稿把结算载荷称作 `TreatmentEvent`,但那是**内联元组,不是具名 Kind** ⇒
+  # `disease-simulation.md:183-184`「列表外的 Kind 构建期拒绝」会拒收 10 的每一笔写入。
+  # 登记方式承 ADR-021 §⑤ 先例(骨架进 ADR-009 §三,载荷归系统 GDD)——见 **Amendment I**。
+  # ⚠️ **首次扩病史流**:此前六次追加(`ActorCellEntered` / `Encounter*` / 25 三元组)全在世界流。
+  - name: SimEvent.Kind.EmergencyAttempt
+    status: active
+    source: design/gdd/emergency-procedures.md
+    referenced_by:
+      - design/gdd/emergency-procedures.md   # 10:规则十一①②④⑤ + F-10.5(聚合)+ AC-10-05 / AC-10-07b
+      - design/gdd/input-system.md           # 3:`EmergencyReading` 的产生方(读数 → 聚合的输入)
+      - design/gdd/disease-simulation.md     # 9:病史流 Kind 白名单(`O-10-4` 同步)
+      - docs/architecture/adr-009-world-state-event-boundary.md  # Amendment I(病史流 Kind 不进 §三 世界流骨架块)
+    unit: kind
+    constraint: "落**病史流**;载荷 = { action, hold_ticks, edges, edge_ticks[], mag_peak, mag_last, method, 施予者 }(全整数,**无 float**;`edge_ticks` 非递减的 press 沿 tick)。**语义 = 判定的输入,不是结算输出** —— 与 `EmergencyTreatmentApplied` 是**两条事件、两个写者语义**(承 ADR-009 §七 `PickupIntent → 主机判距 → 落流` 三段式在急救侧的对称落实)。写者 = **客户端产出、主机物化进流副本**(单机时主机 = 自己,**仍然落流** —— 形状不因拓扑而变,规则十一的刻意选择);**`Judge` 的输入必须 ∈ {流, 版本化烘焙数据, 二者的纯函数}**(ADR-016 §一 三源不变量),本 Kind 就是「读数原本不在流里」那条缺口的堵法。**中止发 0 条**(规则六之甲:中止 ≠ 跳过)。有界性 = 每完成动作 ≤ 2 条(意图 + 结算),**与帧率无关** ⇒ 不破坏 ADR-009 §六。⚠️ **上行 QoS 待裁 `OQ-10-9`** —— 走 ADR-001 第二通道(latest-value)会丢,而它是主机的判定输入 ⇒ 须 ADR-001 一次窄修订(归 45 的 GDD 轮,P1b 前)"
+    added: 2026-09-18
+    revised: ""
+
+  - name: SimEvent.Kind.EmergencyTreatmentApplied
+    status: active
+    source: design/gdd/emergency-procedures.md
+    referenced_by:
+      - design/gdd/emergency-procedures.md   # 10:规则五(载荷七项)+ 规则十一③④ + AC-10-06 / AC-10-07b
+      - design/gdd/disease-simulation.md     # 9:F1 `Σ drug_potency × Decay` / F4 `polarity`(消费方)
+      - design/gdd/prescription-and-medication.md  # 11:载荷形状 / `ResultMul[Applied]` 取值口径的复用方(⚠️ **不**调 `SkillMul` —— 2026-09-18 11 首轮评审 R-2:该乘子经 10 的 A6 改判 = 稳度容差乘子,11 恒 `Applied` 无消费点)
+      - docs/architecture/adr-009-world-state-event-boundary.md  # Amendment I(病史流 Kind 不进 §三 世界流骨架块)
+    unit: kind
+    constraint: "落**病史流**;载荷**七项齐备** = { tick, 处置_id, 施予者, polarity, drug_potency, half_life, method, cause, Seq }(9 的 blk#7 三量 + 10 的四量 + 主机 `Seq`)。**`Append` 调用者 = 10,且主机唯一**(ADR-005;`Seq` 由主机 `Append` 时按 `(Tick, Patient)` 发号,客户端不填)。`half_life` 的产出方 = **动作数据表 `half_life_ticks[action]`**(⚠️ 原稿全节无式 ⇒ `half_life = 0` 触发 9 的 `Decay` 除零,AC-28 写入期拒收)。`method ∈ {Manual, Skip}` 使**「跳过」在流上可判别**(R-6 的可审计性 + 51 的 `OQ-51-9`:跳过率是读数而非埋点)。禁 float;`drug_potency` 经 F-10.4 单一舍入(Q32.32 中间量,ADR-006 §三)"
+    added: 2026-09-18
+    revised: ""
+
+  - name: SimEvent.Kind.DrugTreatmentApplied
+    status: active
+    source: design/gdd/emergency-procedures.md   # 命名首现于 10 的 R-2 结清;载荷定义归 11
+    referenced_by:
+      - design/gdd/emergency-procedures.md   # 10:规则五注(拆两 Kind 的判据)
+      - design/gdd/prescription-and-medication.md  # 11:药物类处置(**写者**)
+      - design/gdd/disease-simulation.md     # 9:消费方(F1 / F4 同项数)
+      - docs/architecture/adr-009-world-state-event-boundary.md  # Amendment I(病史流 Kind 不进 §三 世界流骨架块)
+    unit: kind
+    constraint: "落**病史流**;载荷形状与 `EmergencyTreatmentApplied` 一致但**不带 `method` / `cause`**(药物类恒 `Manual`,携带即空字段)。**`Append` 调用者 = 11**;`drug_potency` / `half_life` 来自 **21a `drug_profile`**(非动作表)。**为什么不与动作类共用一个 Kind**:① 两条写者的结算来源不同(11 **不用** `SkillMul` / `Judge` —— 2026-09-18 11 首轮评审 R-2:`SkillMul` 经 10 的 A6 改判 = 稳度容差乘子,11 恒 `Applied` 无消费点),共用即必须区分来源;② 承 ADR-008 §一「路由是 `Kind` 的纯函数 —— 一个 Kind 无法同时落两条流」+ ADR-021「写者 = 所有者」。**10 与 11 仍写同一条病史流、除 `method`/`cause` 外形状一致 ⇒ 不破 C5 的实质「载荷与流语义唯一」**(⚠️ C5 原字面「结算函数唯一」已在 11 首轮被重新解释,见 `systems-index.md` §5 C5)"
+    added: 2026-09-18
     revised: ""
 
   # ── 37 病例系统 · 同源检测（唯一整数旋钮）─────────────────────────────
@@ -1050,7 +2143,533 @@ constants:
     added: 2026-09-15
     revised: ""
 
-  # ── 52 内部的旋钮（不入本表，见 random-events.md §Tuning Knobs）──────────
+  # ── 3 输入与设备 · 全链延迟预算 ────────────────────────────────────────
+  # 首次登记:2026-09-15 `/consistency-check`。此前 registry 对 #3 为【零条目】。
+  # 定义处是 `technical-preferences.md`（项目级性能预算），不是任何单个 GDD ——
+  # 故 source 指向它;3 拥有的是【该判据在 3 侧的落点】(`AC-3-B1a` / `B1b` / `B2`)。
+  # ⚠️ 值现为【临时值】—— `technical-preferences.md` 自陈「待确定最低目标硬件后定稿」。
+  #   `AC-3-B1b` 因此【现在无法签核】;设计门已降为 ADVISORY,发版前仍为 BLOCKING。
+  - name: L_INPUT_TO_PIXEL_MAX
+    status: active
+    source: .claude/docs/technical-preferences.md   # 项目级性能预算（权威定义处）
+    referenced_by:
+      - design/gdd/input-system.md    # F-3.3 唯一硬预算;AC-3-B1a / B1b / B2
+      - design/gdd/audio-system.md    # :528 自陈【不在】本预算路径内（急救判定本地即时,音频在其后）
+      - docs/architecture/traceability-index.md   # TR-concept-007 在 3 侧的落点
+      # 10 急救动作 GDD —— 撰写时须回溯追加（须自证其判定落在全链预算内）
+    value: 50
+    unit: "ms —— 全链（输入采样 → 判定 → 提交 → 像素点亮）"
+    constraint: "P0 实测范围 = K&M / Gamepad【两端】;VR 归 P1b,不入 P0 判据（2026-09-15 订正,原 TR 写「三端实测」）"
+    added: 2026-09-15
+    revised: ""
+
+  # ── PITCH_MAX ──────────────────────────────────────────────────────────
+  # 首次登记 2026-09-16（系统 2 的 GDD 落盘）。**登记理由 —— 它同时是两条跨系统线的载体**：
+  # ① **系统 1 的 `OQ-1-14`**：1 的 F-1-8 在相机近乎垂直俯视时 `proj(f̂) ≈ 0` ⇒ `f̂` 无定义，
+  #    登记为「退化到世界 +Z」（**前进方向突然跳变**）。2 若钳住俯角则该情形**不可达**。
+  # ② **系统 1 的 `AC-1-31` / `AC-1-20a`④**：`yaw` / `pitch` 解耦的前提。
+  # ⇒ 1 与 2 **各持这个值的一半语义**（2 定上限、1 决定退化分支是否结案）——
+  #   不登记则「2 调了 `PITCH_MAX` 但 1 不知道」（静默复活退化分支）。
+  # ⚠️ 值用户自己调；硬界 `< 90°` 由装载期断言（`AC-2-09`①）守住，不是建议。
+  - name: PITCH_MAX
+    status: active
+    source: design/gdd/camera-and-viewpoint.md
+    referenced_by:
+      - design/gdd/camera-and-viewpoint.md   # 2:R-2-3 + F-2-2 边界 + AC-2-09 + Tuning Knobs 组 1
+      - design/gdd/player-controller-and-movement.md   # 1:OQ-1-14（待裁）+ F-1-8 退化分支 + AC-1-31
+      - docs/architecture/adr-020-player-controller-and-camera.md  # §Key Interfaces（ICameraRig 的绕点段）
+    value: "*待定*"          # 数值归用户 —— 硬约束
+    unit: "度（°）"
+    constraint: "`PITCH_MIN < 0 < PITCH_MAX < 90°` —— 装载期断言（`AC-2-09`①）硬失败，非运行期 clamp；`PITCH_MAX ≥ 90°` 即口径错配 ⇒ 退化分支复活"
+    notes: "**`< 90°` 是本条的全部意义**。依据两条（R-2-3）：① 第三人称越肩在垂直俯视下
+      **失去取景意义**（看不到医者姿态，也看不到面前的病人）；② 它**关掉系统 1 的一个退化分支**
+      —— 1 的 F-1-8 在 `proj(f̂) ≈ 0` 时 `f̂` 无定义，`OQ-1-14` 现定为「退化到世界 +Z」，
+      那会导致**前进方向突然跳变**。
+      🔴 **符号约定（2026-09-16 首轮评审 B2 补登）**：`pitch` 轴 = 世界 `+Y`（右手系，与 `yaw` 同系）·
+      零参考 = **水平** · **正 = 向下俯** · 负 = 向上仰。⇒ **`PITCH_MAX` 是俯角上限**
+      （即 2026-09-16 用户裁定的「裁一个俯角上限」的**直接读数**）。
+      ⚠️ **该约定须写在 GDD（R-2-3）才生效** —— 评审发现原 GDD 通篇用 `R(yaw, pitch)`
+      却**未定义轴 / 零参考 / 手性 / 符号** ⇒ 「俯角上限」的裁定被**记为已生效而实际落空**。
+      ⚠️ **`PITCH_MAX` 与 `PITCH_MIN` 不对称**（见 `PITCH_MIN` 条目）：只有俯侧触发退化。
+      ⚠️ **跨系统义务 `O-11`**：`PITCH_MAX` 的**实际取值须回填系统 1 的 `OQ-1-14` 并结案**
+      （1 侧据此把退化分支保留为**防御性代码**，不再作为待裁项）。**该义务未结**。
+      ⚠️ **2 侧仍须防御性兜底**（F-2-2 末注）：即使口径被错配为 ≥ 90°，`YawBasis`
+      **照常按式返回、不抛异常** —— 它不知道俯角上限，也不该知道。
+      ⚠️ **`Casebook` 档的固定姿态是另一个常量**（`PITCH_CASEBOOK`），不是本条的档位值 ——
+      本常量是**玩家 `Look` 输入的域端点**，`PITCH_CASEBOOK` 是**冻结后的约定姿态**。
+      **未决的设计分叉**：允许环视一张摊开的脉案（`Casebook` 档的小幅环视）见 `OQ-2-4`；
+      若采纳，届时须引入**分档的俯仰范围**，本常量可能须拆分。"
+    added: 2026-09-16
+    revised: "2026-09-16"   # B2:补 pitch 符号约定（正 = 向下俯）/ `PITCH_MIN < 0` 入断言
+
+  # ── FOV_v（42 的唯一读取项 —— 空壳契约的补登）────────────────────────────
+  # 首次登记 2026-09-16（/consistency-check 发现「空壳契约」后补登）。
+  # **补登理由**：2 的 GDD 在 §Dependencies / §Visual/Audio 处宣称「`fieldOfView` 归 2、
+  #   42 只引用」，并因此在 42 侧登记了反向义务 **`O-15`** —— 但 `FOV_v` 这个名字
+  #   **在系统 2 的正文里一次都没出现过**（既不在 Formulas、也不在 Tuning Knobs）。
+  #   ⇒ **一个有义务、无实体的契约**：42 撰写时按 `O-15` 回扫 2，会 grep 到零命中。
+  #   本轮已在 2 的 Tuning Knobs 组 2 / 组 5 与 §Visual/Audio 补齐该名，本条是配套登记。
+  # ⚠️ **条件边，非硬边**：42 是否真的读它取决于 `OQ-42-1`（F6 恒定屏幕尺寸模式是否采纳）。
+  #   若 `OQ-42-1` 裁为「不采纳」，本条降为 2 的**内部旋钮**（`status: active` 不变，
+  #   但 `skeuomorphic-ui.md` 那一条 `referenced_by` 须划除）。
+  - name: FOV_v
+    status: active
+    source: design/gdd/camera-and-viewpoint.md
+    referenced_by:
+      - design/gdd/camera-and-viewpoint.md   # 2:Tuning Knobs 组 2（定义）+ 组 5（逐档取值表）+ §Visual/Audio
+      - design/gdd/skeuomorphic-ui.md        # 42:F6 恒定屏幕尺寸模式（**条件边** —— 见 O-15 / OQ-42-1）
+    value: "*待定*"          # 数值归用户 —— 硬约束
+    unit: "度（°）"
+    constraint: "**逐档值** —— `FOV_v_EXPLORE` / `FOV_v_TREATMENT` 各一份，进入 `Casebook` 档时
+      **冻结于进入值**；`0° < FOV_v < 180°`，且**改变 FOV 不得改变 `YawBasis`**
+      （`AC-2-08` 只依赖 `yaw`，与 FOV 无关 —— 这是 42 读它而 1 不受影响的原因）"
+    notes: "**本条的语义边界**：FOV **不是**取景参数的自由旋钮，它是**越肩取景与水墨画意的交叉点**
+      —— 收窄 = 更「近人」但更晕，放宽 = 更「看景」但病人变小（与 Player Fantasy 第二条相抵）。
+      ⚠️ **跨系统义务 `O-15`**：42 若采用屏幕恒定尺寸解，**须声明它读的是哪一档**
+      （因为 `FOV_v` 逐档不同 ⇒ 「屏幕恒定」在换档处会跳变）。**该义务未结**。
+      ⚠️ **2 侧纪律**：相机**只读不持状态**（`AC-20-05` / ADR-013 §9 C3）—— `FOV_v` 是
+      **参数**不是**状态**；42 读它做缩放属于「读参数」，不构成状态共享。
+      ⚠️ **未决分叉 `OQ-2-2`**：若投影方式由透视改为斜投影 / 正交（为水墨画意），
+      本常量的**语义要重核**（「垂直视场角」在非透视投影下不是同一件事），
+      且 42 的 `OQ-42-1` 会换一套算法。"
+    added: 2026-09-16
+    revised: ""
+
+  # ── MAX_DT（跨系统共享的单帧钳位上限）──────────────────────────────────
+  # 首次登记 2026-09-16（系统 2 的 GDD 落盘使第二个消费者出现）。
+  # 定义处 / 所有者 = **系统 1**（player-controller-and-movement.md 的 F-1-1a / EC-6）。
+  # 2 的落盘引入**第二个读方** ⇒ 触发登记条件（「定义在一个 GDD，另一个 GDD 必须与之一致」）。
+  # ⚠️ 本条登记的**唯一价值是防「两个相等的常量」**：2 若自建第二个 `MAX_DT`（值同而实体不同），
+  #   日后 1 调整它，2 不会跟着变 ⇒「玩家瞬移过锚」或「锚瞬移过玩家」在掉帧时二选一发生。
+  - name: MAX_DT
+    status: active
+    source: design/gdd/player-controller-and-movement.md
+    referenced_by:
+      - design/gdd/player-controller-and-movement.md   # 1:F-1-1a（防隧穿不等式的输入）+ EC-6（dt 尖峰钳位）+ Tuning Knobs 组 5
+      - design/gdd/camera-and-viewpoint.md   # 2:F-2-1 边界 + F-2-4 回弹 + EC-2-6 + AC-2-12 + Tuning Knobs 组 6
+      - design/gdd/world-and-ecozones.md     # 6:F-6-1（`LATTICE_SIZE` 下界的第二个输入）+ AC-6-04（与 1 同源读取，禁二次定义）
+      - design/registry/entities.yaml        # formulas.horizontal_antitunneling_invariant · formulas.lattice_size_lower_bound
+    value: "*待定*"
+    unit: "秒（s）"
+    constraint: "**同源** —— 1 与 2 必须读**同一个常量实体**，不得各写一份相等字面量；`AC-2-12` 的**位移上界**判据读的就是 1 的那一个"
+    notes: "**两条链面对同一次掉帧必须用同一钳位值**：① 系统 1 的 `CharacterController` 的
+      collide-and-slide（防水平隧穿，F-1-1a 的**位移预算**：`SPEED_MAX × MAX_DT ≤ LATTICE_SIZE`）；
+      ② 系统 2 的锚的**二阶临界阻尼积分**（F-2-1，钳位后单帧锚位移
+      ≤ `ANCHOR_SPEED_MAX × MAX_DT`）。
+      🔴 **性质订正（2026-09-16 系统 2 首轮评审 B3）—— 它是「位移预算」常量，不是「数值稳定门」**：
+      原文写作「临界阻尼的速度项被放大后**可能发散**」⇒ 据此把 `MAX_DT` 当成积分稳定性
+      的守门人。**该因果是错的**：① 发散与否由**积分器形式**决定 —— 前向 Euler 的
+      `λ = 1 − ω·dt` 才会发散，而 F-2-1 已改为**半隐式 + 子步**（线性阻尼下**无条件稳定**）；
+      ② 钳位**只掩蔽单帧尖峰**，救不了「`ω` 过大 / 积分器选错」。
+      ⇒ **同源的真正理由**是**两条链面对同一次掉帧必须承认同一个「最大单帧位移」**：
+      不共用则「玩家瞬移过锚」或「锚瞬移过玩家」在掉帧时**二选一发生**。
+      ⚠️ **与 `TICK_PERIOD` 无关**：跨格检测与相机积分都跑在**每帧**，积分步长是 `dt`；
+      用 `TICK_PERIOD` 是**用错变量**（系统 1 首轮评审根因 4，两处已就地订正）。
+      **判据**：`AC-2-12`（2 侧，**位移上界** —— 原「与 `dt := MAX_DT` 逐位相同」已于
+      2026-09-16 撤回，因该判据会**反向强制**保留显式积分器）+ `AC-1-06a/b/c`（1 侧，
+      防隧穿不等式的构建期断言）。"
+    added: 2026-09-16
+    revised: "2026-09-16"   # B3:性质由「数值稳定门」订正为「位移预算」
+
+  # ── PITCH_CASEBOOK（ADR-020:249「脉案俯视」的机制化落点）─────────────────
+  # 首次登记 2026-09-16（系统 2 首轮评审修订后补登）。
+  # **登记理由 —— 它是【一份 Accepted ADR 与 GDD 之间一处字面冲突】的唯一收敛点**：
+  #   ADR-020:249 写「脉案（**俯视**/固定）」，而 R-2-3 裁定 `PITCH_MAX < 90°`（**禁垂直俯视**）
+  #   ⇒ 两处字面不相容。2026-09-16 用户裁定:**在 GDD 内定姿态，不动 ADR** ——
+  #   取 `PITCH_CASEBOOK`（固定的**高俯角**，`0 < PITCH_CASEBOOK ≤ PITCH_MAX < 90°`），
+  #   即「**看起来像俯视，但不是垂直俯视**」。
+  # ⇒ 不登记则 ADR 与 GDD 各说各话，且日后无人知道「俯视」被解释成了什么角度。
+  # ⚠️ `PITCH_MAX` 与 `FOV_v` 的**同一节纪律**:值用户自己调，本表只钉语义与关系。
+  # ⚠️ **建议的 ADR errata 尚未落盘** —— 须用户批准后才可改 ADR-020（「不主动提交」硬约束）。
+  - name: PITCH_CASEBOOK
+    status: active
+    source: design/gdd/camera-and-viewpoint.md
+    referenced_by:
+      - design/gdd/camera-and-viewpoint.md   # 2:R-2-5 状态表 + Tuning Knobs 组 5 + AC-2-19② + AC-2-25②
+      - docs/architecture/adr-020-player-controller-and-camera.md   # :249「脉案（俯视/固定）」—— **冲突源**；待补 errata
+    value: "*待定*"          # 数值归用户 —— 硬约束
+    unit: "度（°）"
+    constraint: "`0 < PITCH_CASEBOOK ≤ PITCH_MAX < 90°` —— **两者皆为俯角**（R-2-3:正 = 向下俯）;
+      装载期断言，非运行期 clamp。**逐档常量且仅 `Casebook` 有值** —— `Explore` / `Treatment`
+      的 `pitch` 由 `Look` 自由驱动，无档位常量。"
+    notes: "**它是本表唯一「只有一档有值」的取景参数** —— 因为 `Casebook` 冻结玩家 `Look` 输入后，
+      **必须由某个常量把 `pitch` 带到一个确定的固定角度**，否则「固定视角」无定义
+      （`AC-2-19`② 的判据即此常量）。
+      ⚠️ **与 `PITCH_MAX` 的关系是【序】不是【等】** —— 取等号虽然合法（`= PITCH_MAX` 仍 `< 90°`），
+      但会把「脉案俯得比任何一档都深」这一取景区分抹掉；这是**设计裁定点**，非口径错误。
+      ⚠️ **未决分叉 `OQ-2-4`**（`Casebook` 档是否允许小幅环视）:若采纳，本常量须**拆为俯仰范围**
+      而非单值，且 R-2-5 的「锚冻结 + 固定姿态」语义须重新表述。
+      ⚠️ **与 `OQ-2-3`（第四档）无关** —— 加档只扩组 5 的表长，不改变本条的单档性质。"
+    added: 2026-09-16
+    revised: ""
+
+  # ── PITCH_MIN（`PITCH_MAX` 的**对侧端点** —— 同一条符号约定）─────────────
+  # 首次登记 2026-09-16（系统 2 首轮评审修订后补登）。
+  # **登记理由 —— 它与 `PITCH_MAX` 共享一条【被评审订正过的】符号约定**:
+  #   R-2-3 裁定 `pitch` 正 = **向下俯**、零 = 水平 ⇒ `PITCH_MIN` 是**负值**（允许仰视的最大仰角）。
+  #   不登记则两侧各自按「上界 / 下界」的直觉读，而 `PITCH_MIN` 为负这件事**只在 GDD 一处写明**。
+  # ⚠️ **它不是 `PITCH_MAX` 的镜像**（这正是评审 B2 的发现）:
+  #   只有**俯侧**存在退化风险 ⇒ 关闭系统 1 的 `OQ-1-14` 的是 `PITCH_MAX`，**`PITCH_MIN` 与此无关**。
+  #   ⇒ 若把它们当成一对（例如「俯仰范围 = ±θ」）会把两人**不同的**语义抹平。
+  - name: PITCH_MIN
+    status: active
+    source: design/gdd/camera-and-viewpoint.md
+    referenced_by:
+      - design/gdd/camera-and-viewpoint.md   # 2:R-2-3 符号表 + F-2-2③ + AC-2-07①（端点采样）+ AC-2-09①② + Tuning Knobs 组 1
+    value: "*待定*"          # 数值归用户 —— 硬约束
+    unit: "度（°）—— **负值**"
+    constraint: "`PITCH_MIN < 0 < PITCH_MAX < 90°` —— 装载期断言（`AC-2-09`①）;
+      **`PITCH_MIN < 0` 是「仰视被允许」的直接判据**（R-2-3 符号约定：0 = 水平）。
+      `PITCH_MIN` **无上界下界约束**（仰侧不退化）—— 它是唯一**不受 `< 90°` 类硬界**约束的端点。"
+    notes: "**与 `PITCH_MAX` 的关系是【不对称】，不是【镜像】** —— 两者同系、同零参考、反号，
+      但**只有俯侧触发 F-1-8 的退化分支**（`proj(f̂) ≈ 0` 要求 `pitch → +90°`）。
+      ⇒ 评审 B2 的订正即在此:原 `AC-2-09`② 遍历「全俯仰范围」求 `cos(pitch)` 的下界，
+      而该下界取决于 `|PITCH_MIN|` 与 `PITCH_MAX` 谁大 ⇒ **判据随符号约定漂移**；
+      现改为**只在 `[0, PITCH_MAX]` 上断言**，仰侧不需要界。
+      ⚠️ **`LOOK_INVERT_Y` 不是本常量的符号** —— Y 轴反转作用于**输入**，本常量是**域端点**，
+      两者不得混淆（GDD §Tuning Knobs 组 1 已分列）。"
+    added: 2026-09-16
+    revised: ""
+
+  # ── YAW_BASIS_EPS（跨系统验收容差 —— 2 → 1 的**反向**义务）──────────────
+  # 首次登记 2026-09-16（系统 2 首轮评审修订后补登）。
+  # **登记理由 —— 它的失效模式是【静默假绿】**:系统 1 的 `AC-1-31` 现写 `[容差——待定]`
+  #   （**未命名**）,而系统 2 的 `AC-2-08` / `AC-2-13` 用它做 `YawBasis` 正交归一 / 手性对拍。
+  #   若两侧**各写一个等值字面量**, 则「对拍通过」可能只是两个容差都对 —— 判据没有真正咬合。
+  # ⇒ 这是本表少见的【容差类】跨系统常量:它的值是**判据灵敏度**,不是**游戏手感**。
+  # ⚠️ 与数值纪律的关系:容差**同样是用户可调的**,但改它**不改变相机行为**,只改变判据松紧
+  #   —— 因此它不能与 `ANCHOR_RESPONSE` 之类的**手感旋钮**混列（GDD §Tuning Knobs 组 5b 已单列）。
+  - name: YAW_BASIS_EPS
+    status: active
+    source: design/gdd/camera-and-viewpoint.md
+    referenced_by:
+      - design/gdd/camera-and-viewpoint.md   # 2:AC-2-07②（手性）/ AC-2-08（正交归一）/ AC-2-13（yaw 净变化）
+      - design/gdd/player-controller-and-movement.md   # 1:AC-1-31 现写 `[容差——待定]` ⇒ **须改为引用本常量**
+    value: "*待定*"          # 数值归用户 —— 硬约束
+    unit: "无量纲（单位向量的分量 / 点积偏差）"
+    constraint: "**两侧必须引用同一个常量实体** —— 1 的 `AC-1-31` 与 2 的 `AC-2-08` 不得各写一份
+      等值字面量;`AC-2-08` 是本常量在 1 侧的**反向登记内容**（义务 `O-14` 同批）"
+    notes: "**判据对象**:`YawBasis` 的 `f̂` / `r̂` 的**单位性、正交性、手性**
+      （`r̂` 逐分量等于 `normalize(cross(worldUp, f̂))`）。
+      ⚠️ **容差类常量的登记理由与普通常量不同** —— 普通常量防「值不同」,本常量防「**容差双重定义**」。
+      后者的表现是**测试变绿而缺陷仍在**,比前者隐蔽。
+      ⚠️ **不适用于 `pitch` 边界** —— `PITCH_MAX < 90°` 的断言是**硬界**（`AC-2-09`①）,不用容差。
+      ⚠️ **与 `AC-2-11` / `AC-2-18`③ 的两个同级容差（`ANCHOR_OVERSHOOT_EPS` /
+      `TRANSITION_JUMP_EPS`）的关系**:那两者**无跨系统读方**（1 不读锚、不读转场）
+      ⇒ **按「只登记跨边界事实」的本表规则,它们不入本表**,留 `camera-and-viewpoint.md`
+      §Tuning Knobs 组 5b。**本条入表只是因为 1 读它。**"
+    added: 2026-09-16
+    revised: ""
+
+  # ── PoiState（世界与生态区 #6 —— POI 状态枚举，2026-09-16 定稿）────────────
+  # **登记理由**:这是本表里唯一一条**「另一个系统刻意留白、等本系统定稿」**的常量 ——
+  # ADR-021 §③ 明写「`PoiState` 具体值**刻意归 6 的 GDD**」(同 ADR-009 §三「骨架先行,
+  # 载荷归系统 ADR」的纪律)。⇒ `TR-worldeco-009` 由本条由 `gap` 转 `covered`。
+  # ⚠️ **本条同时是「有界性论证的输入」** —— 枚举基数直接决定 `poi_transition_bound`
+  # 的系数(三态 ⇒ 每 POI 至多 2 次转移)⇒ 改本枚举**必须**复看那条公式。
+  # ⚠️ 与 architecture.yaml 的 `states.poi_state` 分工:那里登记**所有权与写入路径**,
+  # 这里登记**枚举的取值域**(架构层 vs 数据层)。
+  - name: PoiState
+    status: active
+    source: design/gdd/world-and-ecozones.md
+    referenced_by:
+      - design/gdd/world-and-ecozones.md   # 6:R-6-7 + States 的转移全表(T1–T4)+ AC-6-10…16 + OQ-6-7
+      - docs/architecture/adr-021-poi-state-ownership.md   # §③ 载荷 `{ poi_id, new_state }`(枚举值刻意归 6)
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §六 有界性(枚举基数是其输入)
+      - docs/registry/architecture.yaml   # states.poi_state(所有权侧,与本条目成对)
+      - design/registry/entities.yaml   # formulas.poi_transition_bound(本枚举基数是其系数来源)
+    values: ["Undiscovered = 0", "Discovered = 1", "Resolved = 2"]
+    unit: "i32 枚举（整数，ADR-006 边界）"
+    constraint: "**单调不可逆** —— 严格递增 `Undiscovered → Discovered → Resolved`;
+      **无「已锁」/「已荒废」**（2026-09-16 用户裁定:三态最小集）。
+      合法转移**只有 4 条平表条目**（T1 `0→1` / T2 `1→2` / T3 `0→2` 跳级 / T4 降级 = **非法**）。
+      **`Patient = PatientId.None`**（世界级事件哨兵，ADR-007 §四，不污染 `max(patient_id)` 高水位）；
+      **主机唯一 `Append`**（ADR-005 / ADR-020 Amendment B 同型纪律）。"
+    notes: "**为什么三态就够**:① `Undiscovered` = 加载期默认;② `Discovered` = 玩家到过 / 感知过;
+      ③ `Resolved` = 该 POI 的「事」了结了。**`Resolved` 是终态,无退出**。
+      ⚠️ **「已锁」被刻意排除** —— 生态区级别的封锁是**生态区属性**,不属于单个 POI 的状态
+      (6 的 R-6-8);若混进本枚举,会把「生态区推进门槛」这个归 #32 的裁决**偷偷搬进 6**。
+      ⚠️ **`Discovered` 与 `Resolved` 之间可以跳级**（`0→2`,T3）—— 单调性只约束**不回退**。
+      🔴 **非法转移的处置是三条不同的规则,不可合并**:① **同态重入 ⇒ 幂等静默丢弃,不 Append**
+      （必须是 6 的职责而非上游的 —— 重复 Append 会击穿 `poi_transition_bound` 的有界性前提）;
+      ② **降级 ⇒ 不 Append + 开发期告警**（**不得静默接受** —— 它是上游判定的 bug 信号或乱序）;
+      ③ **未登记 `poi_id` ⇒ 不 Append + 报错**（架构级失败:越权写者 / id 错配）。
+      ⚠️ **未决 `OQ-6-7`**:单调性是否最终定为**全局不变量**。若 P1a 引入「已荒废 / 已收复」
+      类**回退**语义,则本条与 `poi_transition_bound`、`AC-6-15` **同时作废**,
+      且 ADR-009 §六 的有界性论证须重做 ⇒ **若判负须另开 ADR**,不得在 6 的 GDD 内打补丁。"
+    added: 2026-09-16
+    revised: ""
+
+  # ══════════════════════════════════════════════════════════════════════════
+  # ── 跨系统常量:世界格与地貌（2026-09-16 由 `/consistency-check` C-5 登记）──
+  #   登记判据 = **≥ 2 个系统**（唯一读方不算跨系统事实）。以下四条满足;而同批候选的
+  #   `SPEED_MAX` / `SPEED_MODE_MAX` / `K_CONTEXT_MAX` / `CONTEXT_TABLE` **只有 1 个读方**
+  #   ⇒ 按纪律**不登记**（留各自主 GDD 的 Tuning Knobs）。
+  #   ⚠️ **全部数值留白**（硬约束:数值归用户）*—— 只登记形状、归属与不变量。
+  # ══════════════════════════════════════════════════════════════════════════
+
+  # ── LATTICE_SIZE:单一整数格的边长 ─────────────────────────────────────────
+  # **本条的归属在本轮被订正过一次**（C-1）:旧登记写「归 ADR-015 §三」是**幽灵引用**
+  # —— 该 ADR 全篇不含此符号（grep 实测）。正确归属 = **6**(F-6-1 的所有权反转)。
+  - name: LATTICE_SIZE
+    status: active
+    source: design/gdd/world-and-ecozones.md
+    referenced_by:
+      - design/gdd/world-and-ecozones.md   # 6:**所有者** + 烘焙方 —— R-6-3 / R-6-12 / F-6-1 / AC-6-04 · Tuning Knobs 组 1
+      - design/gdd/player-controller-and-movement.md   # 1:**约束对象** —— F-1-1a / AC-1-06a/b/c / EC-12（≥ 胶囊体直径）· Tuning Knobs 组 5
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md   # §三 定义**格框架**（单一格 / WorldPos 形状 / 单一同源常量）,**不含取值**
+      - design/gdd/random-events.md   # 52:跨格事件载荷与 `spawn_anchor` 的格粒度（间接读方）
+    value: ""      # *待定* —— 硬约束:数值归用户
+    unit: "m（float;经 ADR-014 烘为 deterministic 常量）"
+    constraint: "**下界由 `lattice_size_lower_bound` 给出**（F-6-1）:须 ≥ `SPEED_MAX × MAX_DT × SAFETY_MARGIN`。
+      另有几何下界:须 ≥ 玩家胶囊体直径（1 的 EC-12）。
+      **须是单一装载常量**:逻辑层烘出的值与运行期值**逐位一致**,不一致 = 装载失败（6 的 R-6-12 / AC-6-06）。
+      ⚠️ **改值 = 旧存档作废** —— 同一个 `(3,0,5)` 在两个边长下是**两个地方**（6 的 EC-6-12）。"
+    notes: "**为什么这条值得单独立条目**:它是「**别人的旋钮会红掉我的构建**」那条不等式的
+      约束对象（承重方向是反的 —— 见 `horizontal_antitunneling_invariant` 的 notes ②）。
+      🔴 **归属订正记录（2026-09-16 `/consistency-check` C-1）**:本条旧登记（及 1 的 GDD 多处）
+      写「归 ADR-015 §三」,但 grep 实测 **ADR-015 全篇无此符号** ⇒ 该归属是幽灵引用。
+      用户裁定:**取值与烘焙方 = 6**;ADR-015 §三 只拥有**格框架**（已就地补注)。
+      **无单位混淆**:`LATTICE_SIZE` 是**长度量**,与 `Fix`（非空间量）不同域;空间一律整数格（ADR-015 §三）。"
+    added: 2026-09-16
+    revised: "2026-09-16（归属由「ADR-015 §三」订正为「6」）"
+
+  # ── SAFETY_MARGIN:隧穿余量倍率 ───────────────────────────────────────────
+  - name: SAFETY_MARGIN
+    status: active
+    source: design/gdd/world-and-ecozones.md
+    referenced_by:
+      - design/gdd/world-and-ecozones.md   # 6:F-6-1 变量表 + AC-6-05 + Tuning Knobs 组 1 + `O-6-6`
+      - design/gdd/player-controller-and-movement.md   # 1:F-1-1a 的第三个输入 · `AC-1-21`（滑移容差 ε_slide 与之同量级）· 登记义务 `O-6-6`
+    value: ""      # *待定* —— 硬约束:数值归用户
+    unit: "无量纲（倍率）"
+    constraint: "🔴 **`> 1` 是硬约束,不是建议** —— **取等号即失败**（`AC-6-05`）。
+      `≤ 1` ⇒ 一次 `stepOffset` 抬升的水平分量即可造成隧穿。
+      **量级** = 一次抬升的水平分量 /（`SPEED_MAX × MAX_DT`）。"
+    notes: "**归属 = 6 + 1 共同议定**（6 的 `O-6-6`）:它同时受 `CharacterController` 的侧滑移
+      与 `stepOffset` 抬升影响,6 侧无法单独标定。
+      ⚠️ **本轮修掉一处 GDD 内部笔误（C-2）**:6 的 F-6-1 变量表曾写 `≥ 1`,与该 GDD 自身的
+      边界文（`:345` `⇒ SAFETY_MARGIN 必须 > 1`）/ 旋钮表（`:609`）/ `AC-6-05` **三处相抵** ——
+      已就地改为 `> 1`。**`≥ 1` 是危险的宽松口径**:它容许无余量的临界值,
+      而临界值的失败模式是**静默隧穿**（中间格永不进事件,不崩不报错）。"
+    added: 2026-09-16
+    revised: ""
+
+  # ── TERRAIN_TABLE:地貌材质 → 走感乘数表 ──────────────────────────────────
+  - name: TERRAIN_TABLE
+    status: active
+    source: design/gdd/world-and-ecozones.md
+    referenced_by:
+      - design/gdd/world-and-ecozones.md   # 6:**交付方** —— R-6-11 / F-6-2 / AC-6-07/08 · Tuning Knobs 组 2
+      - design/gdd/player-controller-and-movement.md   # 1:**消费方** —— F-1-7（查表）· `K_TERRAIN_MAX` 的来源（F-1-1a 输入）
+      - design/gdd/systems-index.md   # §5 依赖表 :38（1 的行;⚠️ 该行须补 6 这条边,见 6 的 `O-6-1`）
+    value: ""      # 表 —— 行数 = 地貌材质种数（*待定*,见 6 的 OQ-6-2）
+    unit: "表:terrain_id → { K_speed, K_accel, K_decel }（均为无量纲正实数）"
+    constraint: "🔴 **`K_speed > 0` 全表硬约束** —— 要做「不可通行」,用导航格的 `walkable = false`,
+      **不要用速度乘法**（速度 0 会静默绕过 1 的隧穿检测:速度 0 ⇒ 永不跨格 ⇒ 断言恒绿）。
+      **`K_speed = 1` 的基准行须存在且唯一**（`AC-6-08`）。
+      `K_TERRAIN_MAX := max(K_speed)` 须**同源派生**,禁手填（`AC-1-06c` / `AC-6-07` 的 AST 判据）。"
+    notes: "**粒度 = 地貌材质（Gravel / Mud / Grass / Stone / Water / …）,不是生态区**（6 的 R-6-11）
+      —— 同一生态区内也有走感差异。承 `F-6-1` 的「6 是本表里唯一能单方面红掉 1 的构建的上游」。
+      **与本题另一条候选的对照**:`CONTEXT_TABLE`（24 的房间格 → 乘数）**同型但不在本表** ——
+      24 无 GDD,且其读方目前仅 1 ⇒ 不满足 ≥ 2 读方的准入。24 撰写时须同法登记。
+      **✅ 2026-09-19 注:上文「读方仅 1」前提已过时** —— 1 已消费 `K_CONTEXT_MAX`
+      (player-controller-and-movement.md:448/:464),且 clinic-machine.md F-24-3 已登记
+      `CONTEXT_TABLE` / `K_CONTEXT_MAX`(entities.yaml:672/:677);结论(24 撰写时须同法登记)
+      **已兑现**,本条仅注文更新。
+      **配套**:脚步材质集须与本表的 `terrain_id` **同源**（6 的 `A-6-1`;音效资源归 44）。"
+    added: 2026-09-16
+    revised: ""
+
+  # ── K_TERRAIN_MAX:上表的上界（派生量） ───────────────────────────────────
+  - name: K_TERRAIN_MAX
+    status: active
+    source: design/gdd/world-and-ecozones.md
+    referenced_by:
+      - design/gdd/world-and-ecozones.md   # 6:F-6-2（派生定义方）· AC-6-07
+      - design/gdd/player-controller-and-movement.md   # 1:F-1-1a 的第二个乘数（`SPEED_MAX` 的输入）· AC-1-06c
+    value: ""      # *待定* —— 由 `TERRAIN_TABLE` 派生,不可手填
+    unit: "无量纲"
+    constraint: "**派生量,非旋钮** —— `:= max over terrain_id of TERRAIN_TABLE[terrain_id].K_speed`。
+      须与 1 的 `SPEED_MAX` **同源加载**（同一份 `.cooked` 内算出）,
+      **禁数字字面量初始化**（`AC-1-06c` / `AC-6-07` 的 AST 断言）。"
+    notes: "**登记理由 = 跨系统调参纪律的机械执行点**:6 调高任一 `K_speed` ⇒ 抬高
+      `LATTICE_SIZE` 的下界 ⇒ 可能**静默红掉** 1 的构建期断言。登记它是为了让 6 的撰写者
+      看见自己正被这条锁住。⚠️ **它本身不是 6 的旋钮,是 `TERRAIN_TABLE` 的结论** ——
+      6 只能通过改表来改它。"
+    added: 2026-09-16
+    revised: ""
+
+  # ── CONTEXT_TABLE:房间格情境乘数表 ──────────────────────────────────────
+  - name: CONTEXT_TABLE
+    status: active
+    source: design/gdd/clinic-machine.md
+    referenced_by:
+      - design/gdd/clinic-machine.md   # 24:**交付方** —— 规则三 / F-24-3 / AC-24-05 · Tuning Knobs
+      - design/gdd/player-controller-and-movement.md   # 1:**消费方** —— O-2 / F-1-1a(F-1-8 速限约束)
+    value: ""      # 表 —— 行数 = 房间情境种数(*待定*,归内容层)
+    unit: "表:context_id → { K_speed }(无量纲 · K_speed ∈ (0,1] 医馆克己 = 减速)"
+    constraint: "🔴 **`K_speed` 值域 (0,1]** —— 进诊疗情境**减速**,不做加速
+      (1 的 F-1-1a 速限约束;`K_CONTEXT_MAX ≤ 1` 才能用作上界,AC-1-06c)。
+      **`K_CONTEXT_MAX := max(K_speed)` 同源派生,禁手填**(AC-24-05 / AC-1-06c 的 AST 判据)。
+      表条目越界 = **构建失败**(ADR-014 烘焙 schema 校验,F-24-3)。"
+    notes: "承 TERRAIN_TABLE(6)同型 —— 6 的表 6 交付、1 派生;**本表 24 交付、1 派生**。
+      ⚠️ 调高任一 `K_speed` ⇒ 抬高 1 的 `LATTICE_SIZE` 下界(F-1-1a)—— 与 TERRAIN_TABLE 同批核
+      (Tuning Knobs 联动注)。裸常数禁止:1 只从表派生,不手抄(1 的 F-1-8 已订正)。"
+    added: 2026-09-17
+    revised: ""
+
+  # ── K_CONTEXT_MAX:上表的上界(派生量) ────────────────────────────────────
+  - name: K_CONTEXT_MAX
+    status: active
+    source: design/gdd/clinic-machine.md
+    referenced_by:
+      - design/gdd/clinic-machine.md   # 24:F-24-3(派生定义方)· AC-24-05
+      - design/gdd/player-controller-and-movement.md   # 1:F-1-1a 的第二个乘数(SPEED_MAX 输入)· O-2 · AC-1-06c
+    value: ""      # *待定* —— 由 CONTEXT_TABLE 派生,不可手填
+    unit: "无量纲"
+    constraint: "**派生量,非旋钮** —— `:= max(CONTEXT_TABLE 的 K_speed)`(F-24-3)。
+      须与 1 的 `SPEED_MAX` **同源加载**(同一份 `.cooked` 内算出),
+      **禁数字字面量初始化**(`AC-24-05` / `AC-1-06c` 的 AST 断言)。"
+    notes: "与 K_TERRAIN_MAX(6)同型 —— 24 调高任一 `K_speed` ⇒ 抬高 `LATTICE_SIZE` 下界 ⇒
+      可能**静默红掉** 1 的构建期断言。登记理由 = 跨系统调参纪律的机械执行点
+      (24 的撰写者看见自己正被这条锁住)。**它本身不是 24 的旋钮,是 CONTEXT_TABLE 的结论**。"
+    added: 2026-09-17
+    revised: ""
+
+  # ── ROOM_TABLE:房间类型判定表 ───────────────────────────────────────────
+  - name: ROOM_TABLE
+    status: active
+    source: design/gdd/clinic-machine.md
+    referenced_by:
+      - design/gdd/clinic-machine.md   # 24:规则二(判定谓词)+ AC-24-03 · AC-24-12(邻接子句校验)
+      # 23 / 21a / 关卡内容的家具目录定稿后,房间类型清单回填(见 OQ-24-3)
+    value: ""      # 表 —— 行数 = 房间类型种数(*待定*,归内容层)
+    unit: "表:room_type → 判定谓词(如「床 ≥ 2 ∧ 有手术台」)"
+    constraint: "未匹配任何房间类型 ⇒ `ROOM_NONE`(合法,不产生乘子 —— EC-24-01 / EC-24-02)。
+      判定谓词只读 23 的 `structure_at` 布局(不写占用,23 所有权不动摇);
+      **谓词语言允许「邻接子句」**(如「手术台 ±1 格内有消毒池」),但子句类型须过
+      构建期 schema 校验(AC-24-12)。"
+    notes: "**烘焙表,24 拥有**(2026-09-17 复核裁定 —— 医馆由玩家建造,房间定义**不可能是固定世界几何**;
+      原写「ADR-022 由关卡工具产出(`world_room.json` 契约)」为**误挂,已删**)。
+      经 ADR-014 §一 烘 `clinicmachine_room.json`,**不进 ADR-022 §三 导出契约**。
+      P0 只做单房间评分;P1a `ROOM_INTEROP` 邻接矩阵另立(F-24-4 预留)。"
+    added: 2026-09-17
+    revised: "2026-09-17 归属改 24(删 `world_room.json` 误挂)+ 邻接子句允许 + AC-24-12"
+    added: 2026-09-17
+    revised: ""
+
+  # ── ADJ_TABLE:邻接权重表(24 拥有) ───────────────────────────────────────
+  - name: ADJ_TABLE
+    status: active
+    source: design/gdd/clinic-machine.md
+    referenced_by:
+      - design/gdd/clinic-machine.md   # 24:F-24-1 公共定义(adj_sum)· 规则四 · AC-24-06
+    value: ""      # 表 —— 条目数 = O(|FURN_TYPES|²)(*待定*,归内容层)
+    unit: "表:FURN_TYPES 无序对 → w(a,b)(Q16.16,可负)"
+    constraint: "**无序对、可负、缺失 = 0**;`w(a,b) = w(b,a)` —— **对称性 = 烘焙硬门**
+      (`∀a,b: w(a,b) == w(b,a)`,不等 = **构建失败** `throw`,AC-24-06)。
+      `adj_sum` 只查 +x/+y 两方向,每条边恰计一次(不排序不重复)。"
+    notes: "P0 单房间唯一的「空间判断」旋钮(规则四 / Tuning Knobs):正 = 协同(手术室+无菌),
+      负 = 冲突(便器+药柜)。w 值域 [W_MIN, W_MAX],`W_MIN < 0 < W_MAX`;
+      **`|W_MIN| ≤ W_max` 为烘焙断言**(O-24-5),否则 F-24-1 的 int64 上界式失准。
+      2026-09-17 复核:对称性由「作者纪律」升为**门**(原写「由数据保证」无强制通道)。"
+    added: 2026-09-17
+    revised: "2026-09-17 对称性升为烘焙硬门(AC-24-06)+ `|W_MIN| ≤ W_max` 断言(O-24-5)"
+
+  # ── 3 内部的旋钮（不入本表,见 input-system.md §Tuning Knobs）────────────
+  # DZ_INNER / DZ_OUTER / CURVE_POW（F-3.1 轴处理）
+  # DEVICE_SWITCH_THRESHOLD / DRIFT_TOLERANCE / DWELL_DURATION（Mixed 设备态迟滞）
+  # —— 均为 3 本地旋钮,无跨系统读方;`CURVE_POW` 的【指数值】归 1 / 2,3 只提供归一化形状。
+
+  # ── 7a 持久化服务 ────────────────────────────────────────────────────────
+  # 【形状与边界,定值归用户】—— 依硬约束「数值用户自己调」,本节只登记【存在性、归属、边界】
+  # 与【跨系统读方】(persistence-service.md §Tuning Knobs)。⚠️ 四个旋钮都只被
+  # 7a 自己读(无跨系统读方),登记它们的原因是:**它们改变「崩溃损失窗口 / 退出可靠性 / 重试频率」**
+  # 这三个量同时被【9 / 52 / 21a 的离线补算(catchup)】与【51 的重算器】消费 ——
+  # 值一变,这些下游的“至多丢失 X”上界随之变化,须让下游撰写者看见这条边。
+  - name: CHECKPOINT_INTERVAL
+    status: active
+    source: design/gdd/persistence-service.md
+    referenced_by:
+      - design/gdd/persistence-service.md   # 规则六 · §Tuning Knobs
+      # 9 / 52 / 21a —— 其「离线补算边界」随本值变化(catchup 上界)
+    value: "5 分钟（ADR-010 §六 默认 · 定值归用户）"
+    unit: seconds
+    constraint: "1–30 分钟（安全区间）—— 太小 = 频繁写盘(后台 IO);太大 = 崩溃损失 > 5 分钟(AC-7a-06 的「崩溃恢复窗口」)"
+    notes: "⚠️ 7a 是**全案唯一无前置 GDD 的 Core 系统**,数值交付形状不交付定值(承
+      `feedback-user-owns-balance-values`)。本值是**默认**不是裁定;平衡期由用户拍。"
+    added: 2026-09-16
+    revised: ""
+
+  # ── 7a 持久化服务 · 退出保存限时重试 ───────────────────────────────────
+  - name: SAVE_EXIT_RETRY_TIMEOUT
+    status: active
+    source: design/gdd/persistence-service.md
+    referenced_by:
+      - design/gdd/persistence-service.md   # 规则十三 · §Tuning Knobs
+      - docs/architecture/adr-012-cross-platform-determinism-ci-gate.md   # 忘词令载体(判据端符号表 / grep-IL 守卫,2026-09-16 用户裁定归 ADR-012 CI 门)
+    value: "1 s（默认 · 定值归用户）"
+    unit: seconds
+    constraint: "0.1–5 s —— 太小 = 退出常丢;太大 = 退出卡顿(AC-7a-17)"
+    added: 2026-09-16
+    revised: ""
+
+  # ── 7a 持久化服务 · IOException 退避延迟 ────────────────────────────────
+  - name: WRITE_RETRY_DELAY
+    status: active
+    source: design/gdd/persistence-service.md
+    referenced_by:
+      - design/gdd/persistence-service.md   # 规则四 · §Tuning Knobs
+    value: "100 ms（默认 · 定值归用户）"
+    unit: milliseconds
+    constraint: "50 ms–1 s —— 太小 = 杀软风暴下疯狂重试;太大 = 崩溃损失窗口放大(AC-7a-07)"
+    added: 2026-09-16
+    revised: ""
+
+  # ── 7a 持久化服务 · bak 换代(双档) ──────────────────────────────────────
+  - name: BAK_ROTATION
+    status: active
+    source: design/gdd/persistence-service.md
+    referenced_by:
+      - design/gdd/persistence-service.md   # 规则四 · §Tuning Knobs
+    value: "1 份（默认 · 定值归用户）"
+    unit: count
+    constraint: "1–3 —— 永远是「上一好档」;多份 = 磁盘占用,少 = 回退空间有限(AC-7a-06 / AC-7a-15)"
+    added: 2026-09-16
+    revised: ""
+
+  # ── 23 模块化建造 · 拆除返还率(规则九 / F-23-3)────────────────────────────
+  - name: DEMOLISH_REFUND_RATIO
+    status: active
+    source: design/gdd/modular-building.md
+    referenced_by:
+      - design/gdd/modular-building.md   # F-23-3 · 规则九 · AC-23-16 · 旋钮表
+      - design/gdd/item-database.md      # cost(m) —— 拆除返还的基数
+    value: "*待定*（Q16.16 · 0 < R ≤ 1 · **P0 恒 = 1(2026-09-17 用户裁定,规则九)**;P1a 恢复 < 1 —— 定值归用户）"
+    unit: Q16.16
+    constraint: "**P0 恒 = 1**(评审裁定,2026-09-17):重排净零材料损耗,代价走拟物轴(BUILD_TIME / 医馆停诊)。**P1a 恢复 R < 1** ⇒ 拆除不是免费撤销(规则九 / AC-23-16);可返还模块须 cost ≥ ⌈1/R⌉(EC-23-08 / AC-23-08)。R=1 与「免费撤销」的语义冲突**已由拟物轴代价裁解**(评审裁定)。"
+    added: 2026-09-17
+    revised: "2026-09-17(评审 B6 / 用户裁定:P0 恒 = 1;原「P0 默认 < 1」「R=1 须另裁」过期)"
+
+  # ── 7a 持久化服务 · 事件触发锚点白名单(跨系统) ────────────────────────────
+  # 2026-09-17 一致性复跑新增登记:锚点成员 = 8/39(脉案落笔)· 37(病例结案)· 52(出诊启动)
+  # 四个系统的具名叙事事件,是**真跨系统事实**(7a 触发 checkpoint 的锚点集)—— 只住 7a 内部
+  # 旋钮表不登记,下游撰写者看不见这条边。成员**只增不删**(删锚点 = 事件触发失效,退回首轮
+  # 粒度洞,AC-7a-20)。「出诊启动」的具名事件归 52 侧登记(7a 只出观察钩子形状)。
+  - name: EVENT_CHECKPOINT_ANCHORS
+    status: active
+    source: design/gdd/persistence-service.md
+    referenced_by:
+      - design/gdd/persistence-service.md   # 规则六 · §Tuning Knobs · AC-7a-20
+      # 8/39(脉案落笔)· 37(病例结案)· 52(出诊启动)—— 事件触发锚点的产生者,撰写时登记反向
+    value: "{脉案落笔 · 病例结案 · 出诊启动}(2026-09-16 玩家裁定「两个都留」)"
+    unit: set of narrative events
+    constraint: "只增不删 —— 删锚点 = 事件触发失效(只剩定时兜底 = 退回首轮粒度洞);加锚点 = 叙事事件更密,永不破坏「无可回滚到判断之前」(AC-7a-20)"
+    added: 2026-09-16
+    revised: "2026-09-17"
+
+  # ── 52 内部的旋钮(不入本表,见 random-events.md §Tuning Knobs)──────────
   # ROLL_INTERVAL / HIST_MULT_MAX / DEFER_MAX / SPAWN_AHEAD_DIST / TOD_MULT_MAX
   # / CONTEXT_* / MIN_tier / MAX_tier / W_strength / TODMult / 预告窗口时长 /
   # EVENT_PAYLOAD_MAX_BYTES —— 均为 52 内部旋钮，无跨系统读方。

@@ -123,6 +123,9 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 │  世界流 (编码记录序列)                          │
 ├───────────────────────────────────────────────┤
 │  快照段 (表现态位置 · 加载加速 · 优化非真相)     │
+├───────────────────────────────────────────────┤
+│  分册态段 (39 脉案:分册键 · 两个 tick · 纯呈现量│
+│  —— 不进三流但跨存档;⭑ 2026-09-19 义务 13)    │
 └───────────────────────────────────────────────┘
 ```
 
@@ -168,9 +171,13 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 | 9 | `ItemInstance` 序列化(含 `quality`;不存 `item_key` 引用,存快照) | item-database.md §Dependencies | 本 ADR §五(实现契约) |
 | 10 | 容器子实例闭包校验(装配期断言) | item-database.md AC-21a-63 邻接 | 本 ADR §五(实现契约) |
 | 11 | **POI 状态进世界流(`PoiStateChanged`)+ 重放时从流重建** | **ADR-021 §三 / §四** | 本 ADR §一 / §二(世界流序列化 / 不折叠已覆盖)|
+| 12 | **`structure_id` 高水位**(结构实例共用 `IIdAuthority` 空间,计数器 + 高水位可重构,ADR-010 §五 机制);**折叠谓词不适用于结构行** | **modular-building.md 规则四 / 规则七**(2026-09-17) | 本 ADR §五(机制,与义务 6 同一 `IIdAuthority`) |
+| 13 | **分册态段序列化**(39 脉案):分册键 `player_id` · 两个 tick(快照 / 上次重查)· 分册的纯呈现量(页码 / 折叠状态);**痕与排序不在其中**(读时计算)。**分册态不进三流**(39 零 `IEventSink`)但**必须跨存档** | **casebook.md**(2026-09-19 · 39 首轮评审层籍裁定 C) | 本 ADR §一(新增「分册态段」槽) |
 
 > 义务 1–8 的源 ADR 不变;本 ADR 是**实现的收敛处**。**任何新委派只能追加到本表** ——
 > 实现者读这一张表,不读五份 ADR 的散落各节。
+> **⭑ 2026-09-19:义务 13(分册态段)由 39 脉案首轮评审层籍裁定 C 追加** —— 39 持三流之外
+> 的第四类数据(两个 tick · 痕投影 · 分册),痕与排序读时计算不入段;分册态**不进三流**。
 
 ### 四、损坏恢复(校验和 + 自动回退)
 
@@ -202,13 +209,15 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 
 | 触发 | 频率 | 说明 |
 |------|------|------|
-| 定期 checkpoint | 默认 5 分钟(`CHECKPOINT_INTERVAL` 旋钮) | 崩溃损失 ≤ 一个间隔 |
+| checkpoint | **事件触发为主 + 定时兜底**(2026-09-16 玩家裁定「两个都留」;`CHECKPOINT_INTERVAL` = **兜底**间隔,非唯一触发) | 崩溃损失 ≤ 一个间隔;事件触发锚点白名单 `EVENT_CHECKPOINT_ANCHORS` = `{脉案落笔 · 病例结案 · 出诊启动}`(只增不删,归 7a GDD 规则六 · AC-7a-20) |
 | 退出保存 | 每次退出 | 同步 / 限时 join(防退出竞态丢档) |
-| 7b 手动槽 | 玩家主动 | 槽位管理归 7b 存档位 UI |
+| 7b 手动槽 | 玩家主动 | 槽位管理归 7b 存档位 UI;只进不退 / 读档即锁 / **载入安全上下文门**:载入与写同钩 —— 亦须在**无未决医疗动作**上下文,共用观察钩子(2026-09-19 用户裁定,承 7b 首轮评审 BL-1);未决动作中载入 = 7a 拒绝。**锁字段不进存档体** —— 锁与安全门均**会话内存**,跨会话复位(重启读档不复位反 scum 语义,防 scum 靠「载入安全上下文门」而非格式锁)。 |
 
 - **主线程只做序列化**(Step 边界);**写盘交后台线程**(`Task.Run` / `ThreadPool`,IL2CPP 托管线程可用 —— 引擎复核)。
   - 同步写 MB 级 SSD 仅几 ms;HDD / 杀软可上百 ms ⇒ **默认后台写**。
-  - **退出保存同步**(`OnApplicationQuit` 时后台写未完成 ⇒ 限时 join)。
+  - **退出保存同步**:主钩子 = `Application.wantsToQuit`(稳定 API;**Editor 停播亦触发**、
+    **崩溃 / 强杀不触发** —— 2026-09-17 7a GDD 修订);`OnApplicationQuit` 只作**兜底**
+    (2026-09-16 修订:Editor 停播亦触发,与主钩子次序无关)。退出时后台写未完成 ⇒ 限时 join。
 - **GC 纪律**:大 `byte[]` 分配触发主线程 GC 停顿 ⇒ **缓冲池复用**(引擎复核)。
 - **后台线程禁调 Unity API**(引擎复核)。
 
@@ -221,6 +230,15 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
   **`WorldSeed` 与已发生事件原样保留**(ADR-007 §二 硬约束)。
 - **配置版本号联动**:旧存档读入时,若 `ConfigVersion < 当前`,已发生事件不受影响,
   **后续窗口**用新配置(ADR-007 §Implementation Guidelines 5);存档头记 `ConfigVersion` 以便排查回放不符。
+  > **🔴 2026-09-17 补注(承 37 二轮的 D-21-13 收窄裁定,不改变本条语义)**:
+  > `ConfigVersion` 覆盖集现**显式含 ordinal 映射表**(病种注册表 / `case_judgment_lexicon` /
+  > 物品 / 事件表 / AI 表 —— 见 `adr-014 §五`)。**本条「不匹配非致命」的措辞一字未动**,
+  > 但由此产生一个必须记明的后果:**ordinal 重排不会被本条拦下**(它非致命)⇒
+  > **「买断静默错读」须另设一道更严的门**,即 `adr-014 §五 D-21-13 承接条 ③` 的
+  > **ordinal append-only 构建期断言**(既有条目号永不重用 / 永不改义 ⇒ 改号 = 构建失败)。
+  > **分工**:本条管「改动可追溯」;`adr-014` 的 append-only 门管「静默错读」。
+  > 两者**不可互相替代** —— 若有人日后想「让 `ConfigVersion` 不匹配改成致命」来收回该职责,
+  > 那是**推翻本 ADR §七 与 ADR-007 §Implementation Guidelines 5**,须另开 ADR。
 
 ### Architecture Diagram
 
@@ -281,10 +299,19 @@ public interface IIdAuthority {
 }
 
 // ── 存档时机(§六)──
+// 🔴 2026-09-19 首轮评审修:签名由规则十四(7a GDD)回填 —— `Checkpoint(SaveSlot)` 是
+//    唯一写入口;反射断言「公开方法参数集恰等于 {SaveSlot}」以本签名与 `Load(SaveSlot)` 为真。
 interface ISaveService {
-    void Checkpoint();        // Step 边界调用;序列化主线程,写盘后台
-    void SaveOnExit();        // 退出保存:同步 / 限时 join
-    void Load(SaveSlot slot); // 校验和 → 自动回退 bak → 迁移链 → 三流重放
+    void Checkpoint(SaveSlot slot); // Step / 手动槽触发;序列化主线程,写盘后台
+    void SaveOnExit();              // 退出保存:同步 / 限时 join(退出钩子,非玩家可选槽位)
+    void Load(SaveSlot slot);       // 校验和 → 自动回退 bak → 迁移链 → 三流重放
+}
+
+// ── 槽位身份(§一 布局补段 / §六 7b 手动槽)── 2026-09-19 首轮评审补:此前仅有 Usage 无定义
+// 只进不退 ⇒ 写入目标恒为下一空槽 ⇒ 槽位唯一身份 = slot_seq;tick/时间戳/摘要为
+// 列表投影(呈现量,piece DTO 住 7b),不进确定性字节面(ADR-012 黄金对拍不受扰)。
+struct SaveSlot {
+    uint slot_seq;  // 单调递增(slot_seq 校验归 7a),只进不退的排序键
 }
 ```
 
@@ -379,7 +406,7 @@ interface ISaveService {
 3. **写 `ItemInstanceId.Next()`**(机制 A)+ 世界流 `Drop*` 事件。
 4. **写原子写 + 校验和 + 自动回退**(§四)+ 后台线程 checkpoint(§六)。
 5. **写迁移链**(§七):逐版本脚本 + `WorldSeed` 原样保留。
-6. 撰写 7b 存档位 UI 时,`SaveSlot` 槽位契约以本 ADR §Key Interfaces 为准。
+6. 撰写 7b 存档位 UI 时,`SaveSlot` 槽位契约以本 ADR §Key Interfaces 为准 —— **`struct SaveSlot` 定义已补于 §Key Interfaces(2026-09-19)**;槽位头信息(tick / 时间戳 / 摘要)为**列表投影 DTO(呈现量)**,定义归 7b,其**字节面不参与确定性对拍**(ADR-012)。签名 `Checkpoint(SaveSlot)` 是唯一写入口(规则十四回填)。
 
 **Rollback plan**:若最终不做联机,后台线程写可退化为同步写(删并发复杂度);
 但 **codec / 三流 / 折叠谓词 / 原子写** 已进存档格式,**不可回退**(改格式 = 旧档作废)。

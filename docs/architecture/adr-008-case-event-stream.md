@@ -31,7 +31,7 @@ Accepted
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | ADR-005(确定性模拟 / 抽象点 / 折叠规则)· ADR-006(Amendment A–D:SimEvent 形状 · `patient_id` 重构 · `Seq` 发放域与跨流全序键 · 真源 = 两流并集)· ADR-007(IEventAuthority · WorldSeed 归 7a · PatientId.None 哨兵)—— 三者均须 Accepted。**ADR-009 Accepted 后追加依赖**(世界流 / Amendment E) |
+| **Depends On** | ADR-005(确定性模拟 / 抽象点 / 折叠规则)· ADR-006(Amendment A–D:SimEvent 形状 · `patient_id` 重构 · `Seq` 发放域与跨流全序键 · 真源 = 两流并集)· ADR-007(IEventAuthority · WorldSeed 归 7a · PatientId.None 哨兵)—— 三者均须 Accepted。**ADR-009 Accepted 后追加依赖**(世界流 / Amendment E)。**🔴 2026-09-17 追加:ADR-014**(`Judgment.lexicon_id` 的 ordinal 词表经其烘焙管线产出 · `freehand_text` 例外登记于 ADR-006 Amendment A)· **ADR-010 §七**(`ConfigVersion` 不匹配非致命 —— 本 ADR §三 初稿的「拒载」措辞已据此作废) |
 | **Enables** | 37 病例系统 GDD 的 `CaseOpened` / `CaseClosed` / `PatternRecognized` 实现;F-37.1 fires-once · F-37.2 case_id 三元组 · F-37.3 载荷集合落盘;ADR-001 追加约束(联机选型须承载两条逻辑流 · ADR-009 Accepted 后为三条) |
 | **Blocks** | 37 病例系统实现(依赖 AC-37-05/15 事件化的代码)· 53 医疗后果与责任(P0,订阅结案事件) |
 | **Ordering Note** | ADR-008 是 37 复核 12 项 blocking 的前置。先 Accepted 本 ADR,再修订 case-system.md |
@@ -107,6 +107,10 @@ IEventSink.Append(in SimEvent e)
   病史流是它的唯一真源 —— 不改动)
 - **读数事件不在本 ADR 定归属**:读数存档归 39(diagnosis-system.md §Core Rules 铁律② 的邻接段,39 无 GDD)——
   若 39 选择 SimEvent 化,走病例流;否则 39 自有持久化。留 39 GDD
+- **⭑ 2026-09-19(39 首轮评审裁定)**:**读数归属已定** —— 39 = **分册态层**(不进三流,
+  跨存档承载于 ADR-010 的「分册态段」);`JudgmentRecorded` / `JudgmentRevised` 载荷
+  **补 `author_player_id`**(作者轴,判定取法改 `J(c,p)` = 该案最后一条作者 = p 的判断事件);
+  痕 = 病例流按作者过滤的**读时投影**。**本处原文「留 39 GDD」就此结清。**
 
 ### 二、跨流全序键
 
@@ -125,11 +129,11 @@ sort(a, b) := (Tick asc) → (流优先级:病史流 < 病例流) → (Patient a
 
 | Kind | Payload | 说明 |
 | --- | --- | --- |
-| `CaseOpened` | `{ patient_id, opened_tick, disease_snapshot }` | 立案:快照 `patient_id` + **立案那一刻的逻辑 tick** + 病种集快照 |
-| `CaseClosed` | `{ patient_id, opened_tick, case_id, disease_set, treated }` | 结案:**病种集**(可为空,一案进多组见 F-37.3)+ `treated` 证据快照(见 §四) |
-| `PatternRecognized` | `{ patient_id: PatientId.None, anchor_case: CaseId, member_set }` | 模式识别:用 `PatientId.None` 哨兵(不污染高水位,ADR-007 §四);`anchor_case` = 触发识别的那一例(锚点),载荷携带**冻结的 MemberSet 三元组** |
-| `JudgmentRecorded` | `{ patient_id, case_id, judgment }` | 落笔(病名 + 置信度),锚定到具体病例 |
-| `JudgmentRevised` | `{ patient_id, case_id, judgment }` | 改写史(永不进计分,AC-37-20)|
+| `CaseOpened` | `{ patient_id, disease_snapshot }` | 立案:快照 `patient_id` + 病种集快照。**立案 tick = 本事件自身的 `SimEvent.Tick`**(2026-09-17:`opened_tick` 字段已删,见下) |
+| `CaseClosed` | `{ patient_id, case_id, disease_set, treated }` | 结案:**病种集**(可为空,一案进多组见 F-37.3)+ `treated` 证据快照(见 §四)。**结案 tick = 本事件的 `SimEvent.Tick`**(`opened_tick` 字段已删) |
+| `PatternRecognized` | `{ patient_id: PatientId.None, anchor_case: CaseId, salted_key: ulong, member_set }` | 模式识别:用 `PatientId.None` 哨兵(不污染高水位,ADR-007 §四);`anchor_case` = 触发识别的那一例(锚点);**`salted_key`** = 加盐哈希键(**2026-09-17 补**,原只有前两字段 ⇒ 53 无法定位是哪个 `D`);载荷携带**冻结的 MemberSet 三元组** |
+| `JudgmentRecorded` | `{ patient_id, case_id, judgment, author_player_id }` | 落笔(病名 + 置信度),锚定到具体病例;**⭑ 2026-09-19:补 `author_player_id`(作者轴,39 首轮评审裁定)** |
+| `JudgmentRevised` | `{ patient_id, case_id, judgment, author_player_id }` | 改写史(永不进计分,AC-37-20)。**⚠️ 2026-09-17:语义 = 存新值**(`Judgment` 快照改写后的完整判断,不存旧值、不做差分);判定取法 = **全序最后一条胜**(`OQ-51-8` / 37 的 `AC-51-B3` 已裁)。**⭑ 2026-09-19:补 `author_player_id`;判定取法随之改判 `J(c,p)` = 该案最后一条作者 = p 的判断事件(按作者分轴);痕 = 按作者过滤的读时投影**。**`Judgment` 的形状**见下方注解 |
 
 > **2026-09-15 就地修正(B-2,用户裁定取 (b) 降维)**:
 > 原稿此处的字段名为 `anchor: long`,并在 §四 与 `case-system.md` 的「已处置」式写
@@ -140,28 +144,65 @@ sort(a, b) := (Tick asc) → (流优先级:病史流 < 病例流) → (Patient a
 > 52 侧的生成点枚举同步改名 `spawn_anchor`。**「不透明」措辞一并删除** ——
 > 它当初的动机是「13 无 GDD,故不定义内部形状」,但代价是引入一个
 > **没有定义、没有消费者、却参与类型运算**的字段。
+>
+> **🔴 2026-09-17 再订正**:上条引入的 `opened_tick` **现予删除** ——
+> 它**就是本事件自身的 `SimEvent.Tick`**,载荷中重复携带即「同一事实两份真相」
+> (违 ADR-006 原则)。本轮同时删 `CaseClosedPayload` 的同名字段;
+> `anchor_case: CaseId` **保留**(它是**跨事件引用**,不是本事件的时间戳)。
+> **本 ADR 与 37 GDD 的 `opened_tick` 引用现统一为该事件的 `Tick`。**
+
+> **📌 `Judgment` 的形状(2026-09-17 定型,用户裁定)** —— 此前**本 ADR 与 37 GDD
+> 均未定义**该型,是**第六处泄漏面**(独立于 AC-37-15 的 DTO 检查):
+> ```
+> struct Judgment {
+>     uint16  lexicon_id;      // 病名词表条目(版本化 ordinal,烘自 ADR-014 管线)
+>     uint8   confidence;      // 置信度档(非浮点)
+>     string  freehand_text;   // 玩家自书 —— 只进呈现层,【永不进任何判定】
+> }
+> ```
+> **⭑ 2026-09-19:载荷外层补 `author_player_id`**(作者轴,不入 `Judgment` 本体 —— 词表 / 置信度 /
+> 自由文本是「写了什么」,作者是「谁写的」,两轴正交)。
+> - `lexicon_id` 取自 `case_judgment_lexicon`(经 ADR-014 两阶段烘焙);
+>   **词表与 9 的病种注册表在构建期做「非一一对应」校验**(否则换名不换壳,泄漏照旧)。
+> - `freehand_text` 是**自由文本**,对 ADR-006 Amendment A「Payload 无引用字段」
+>   **作例外登记**:它是**纯呈现态**,不参与任何判定语义。
+> - **空判断合法**(`S-8.3`):`lexicon_id = 0 ∧ freehand_text = ""` 表示空栏。
 
 - **载荷全部为值 struct,禁 float,经 ADR-006 §五自定义编码器序列化**
 - `disease_set` 是集合(可空):一案 overlap 到多病种时进多组(共病,F-37.3)
 - `JudgmentRecorded` / `JudgmentRevised` 满足 AC-37-05(记录全部事件化),落病例流
   而非病史流 —— **不违反 8 铁律②**(那条禁的是回写 9 的病史流)
-- 盐键:世界级 `PatternRecognized` 用 `SplitMix64(WorldSeed, "case-salt")` 派生
-  (见 §五)
+- 盐键:世界级 `PatternRecognized` 用 **逐 `D`** 派生的 `SplitMix64(WorldSeed, "case-salt", ordinal(D))`
+  (见 §五 的 2026-09-17 口径订正 —— 原写「全局单值」已作废)
 
 ### 四、可结案与处置证据快照
 
 ```
 可结案(c) := c.state = 开
            ∧ ∃ treatment event e ∈ 病史流: e.Patient = c.patient_id
-             ∧ c.opened_tick ∈ [e.Tick, c.CloseTick]     // 同病例窗口内
+             ∧ e.Tick ∈ [c.opened_tick, c.CloseTick]     // ✅ 2026-09-17 方向订正,见下
            ∧ 玩家已勾选「已处置」(UI 仪式,不产生事件)
 ```
+
+> **🔴 2026-09-17 就地订正(方向写反)** —— 原文为
+> `∧ c.opened_tick ∈ [e.Tick, c.CloseTick]`,读作「**立案 tick 落在处置 tick 与结案 tick
+> 之间**」,即**「处置发生在立案之前也可以」**。该式恰好使
+> **「复诊第二例凭首诊的处置通过前置」成为唯一可通过路径**(首诊的 `e.Tick`
+> 早于第二例的 `opened_tick`)⇒ **本条紧接下一行自我宣称要堵的 Opus 复核 #4
+> 后门,在公式层实际未堵**。37 GDD 的 `F-37.2` 照抄了同一错误。
+>
+> **正确式**:`∧ e.Tick ∈ [c.opened_tick, c.CloseTick]`
+> —— 「**处置 tick 落在立案与结案之间**」。
+>
+> **为何长期未被发现**:2026-09-15 本节的修正记录只改了**字段名**
+> (`c.anchor.Tick` → `c.opened_tick`),**未改区间方向** —— 修订痕迹看似完整,
+> 逻辑实则相反。教训:涉及**区间方向**的订正必须独立复核,不能只看改名。
 
 - **证据快照**:`treated = true/false` **快照进 `CaseClosed` 载荷**(同 `disease_id` 快照
   的理据,复核 #2)。重放永不跨流查询;折叠也无害
 - 跨流验证(结案时查询病史流)只发生在**写事件当下**,快照后重放不再依赖跨流
 - 「已处置」= 病史流存在处置事件 **∧** 该事件落在 `[CaseOpened.Tick, CloseTick]` 窗口内
-  (堵「复诊第二例凭首诊处置通过前置」的后门,Opus 复核 #4)
+  (堵「复诊第二例凭首诊处置通过前置」的后门,Opus 复核 #4 —— **订正后才真正成立**)
 - **终态折叠删处置事件的耦合由此解掉**:结案发生在写 CaseClosed 当下,
   此时病史流尚未折叠该病人(折叠由 7a 在终态后执行);即便折叠先行,
   `treated` 已快照,重放不需要处置事件
@@ -170,11 +211,17 @@ sort(a, b) := (Tick asc) → (流优先级:病史流 < 病例流) → (Patient a
 
 - 规则九保密 = **「player 不可见」**(呈现层 DTO 静态检查,AC-37-15),**不是**「client 不可知」
   (病史流明文 `onset` 事件与存档已含病种;ADR-005 客户端持流副本)
-- `PatternRecognized` 载荷用**加盐哈希键**而非裸 `disease_id`;盐 = `SplitMix64(WorldSeed, "case-salt")`
-  **派生**、**全局**。**盐的输入集**:WorldSeed + 病种枚举键
+- `PatternRecognized` 载荷用**加盐哈希键**(`salted_key: ulong`)而非裸 `disease_id`;
+  盐 = `SplitMix64(WorldSeed, "case-salt")` **派生**、**全局**。**盐的输入集**:WorldSeed + 病种枚举键
 - **P0 ≤ 8 病种的枚举空间 ⇒ 加盐键必然可逆** ⇒ 盐**不是保密层**,是**防御纵深**
   (防误手/防脚本把 `disease_id` 顺进 UI)。规则九的**唯一**落点 = AC-37-15 的 DTO 静态检查
 - 53 结算时用**重算** `salted(d)` 匹配 R3 表;构建期做**无碰撞断言**
+- **🔴 2026-09-17 口径订正(自相矛盾择一)**:本节原文写「盐**全局**」而输入集又含
+  **病种枚举键** —— 若盐是全局单值,则所有 `D` 加出**同一个** `salted_key`,
+  **53 无法区分是哪个 `D` 触发**;若逐 `D` 派生,则「全局」措辞为误。
+  **裁定:逐 `D` 派生** —— `salted_key(D) = SplitMix64(WorldSeed, "case-salt", ordinal(D))`。
+  「全局」原意 = **盐不按存档 / 玩家分叉**(单一 `WorldSeed`),该意保留;
+  但**每 `D` 一个键**。§三 载荷表与 37 的 AC-37-14 已同步。
 
 ### 六、有界性与折叠(拒绝物理折叠)
 
@@ -186,7 +233,8 @@ sort(a, b) := (Tick asc) → (流优先级:病史流 < 病例流) → (Patient a
   **病例流的写入者只有玩家** —— 立案 = 一次就诊交互,落笔 / 改写 = 一次脉案操作,
   PatternRecognized = 世界级,每次 fires-once 一次(≤ 病种数)。
   故病例流写入率受**玩家操作速率**约束,并以**立案率 ≤ 病人出现率**(9 配置上限)
-  作硬界。**论证链**:`病例流增长率 ≤ 立案率 ≤ 病人出现率(9 配置常数)`
+  作硬界。**论证链**:`病例流增长率 ≤ 立案率 × 玩家数(≤ 4) ≤ 病人出现率(9 配置常数) × 4`
+  (⭑ 2026-09-19:作者轴引入后重证 —— 每位玩家各发各的落笔 / 改写,事件总量乘玩家数常数倍,上界仍成立)。
 - **拒绝病例流物理折叠**(Opus 的 Alternative D)三条理据:
   ① **未结案案例永不折叠**(规则六「系统永不自动结案」)⇒ 折叠省不下未结案集合;
   ② **改写史「为玩家回看」需保留完整历史**(规则四)⇒ 折叠行是定长,塞不下变长改写史,
@@ -241,14 +289,60 @@ public interface IEventSink        // 扩展:按 Kind 路由
 }
 
 // 载荷(值 struct,禁 float,经 ADR-006 §五编码器)
-struct CaseOpenedPayload      { PatientId patient_id; long opened_tick; FixSet disease_snapshot; }
-struct CaseClosedPayload      { PatientId patient_id; long opened_tick; CaseId case_id;
-                                FixSet disease_set; bool treated; }
+struct CaseOpenedPayload      { PatientId patient_id; DiseaseIdSet disease_snapshot; }
+struct CaseClosedPayload      { PatientId patient_id; CaseId case_id;
+                                DiseaseIdSet disease_set; bool treated; }
 struct PatternRecognizedPayload { PatientId patient_id; CaseId anchor_case;   // PatientId.None 哨兵
+                                  ulong salted_key;                           // 2026-09-17 新增
                                   CaseId[] member_set; }
-struct JudgmentRecordedPayload { PatientId patient_id; CaseId case_id; Judgment judgment; }
-struct JudgmentRevisedPayload  { PatientId patient_id; CaseId case_id; Judgment judgment; }
+struct JudgmentRecordedPayload { PatientId patient_id; CaseId case_id; PlayerId author_player_id; Judgment judgment; }
+struct JudgmentRevisedPayload  { PatientId patient_id; CaseId case_id; PlayerId author_player_id; Judgment judgment; }
 ```
+
+> **⭑ 2026-09-19(39 首轮评审裁定)**:两条判断记录载荷**补 `author_player_id`**(作者轴,
+> 分册键 + `J(c,p)` 判定取法 + 痕投影的前提)。**有界性随之变** —— 改写史事件量仍受玩家操作
+> 约束(§六),重证含 **× 玩家数(≤ 4)常数倍**。`PlayerId` 的定义与发号归 **45 的 GDD 轮**
+> (本 ADR 只登记契约:加入 / 离开 / 主机迁移下**稳定且不复用**);P0 单机 = 常量 `0`。
+
+> **🔴 2026-09-17 载荷表就地订正(三处)** —— 二轮 `/design-review`(统一由
+> unity-specialist 的两条 BLOCKING 提出,37 GDD 照抄即崩):
+>
+> **① `FixSet` → `DiseaseIdSet`(类型口径错误)**。原写 `FixSet`,而该型
+> **全库零定义**(仅本 ADR 的 Key Interfaces 出现两次)。更严重的是**类型本身错了**:
+> `disease_id` 在 9 的 R1 表(`disease-simulation.md:277`)是 **`DIS_*` 前缀枚举**,
+> **不是定点量**。把它塞进 Q16.16 算术域,正是 **ADR-006 二轮复核 D-21-17 修掉的
+> 同一类错误**(「把整数计数塞进定点域」)。破坏面:
+> ① ADR-006 §五 编码器按 `Fix` 写 raw `long`(8 字节 + 2¹⁶ 标度语义),
+> 病种枚举被烘成定点数;② 病种名无法经 `FixParse` 进入管线(它只吃分数/整数字面量);
+> ③ `D ∈ disease_set` 变成**定点相等比较** —— 语义已错却**逐位可回放**
+> (**静默失败类**);④ 与 ADR-006 的 D-21-13 口径冲突。
+> **改型**:`DiseaseIdSet` = **版本化整数 ordinal 集合**,编码按 `int` / `u16` 走
+> ADR-006 §五(不走 `Fix` 编码路径);ordinal ↔ 病种名的映射表住 9 的病种注册表,
+> 经 ADR-014 烘焙产出。**⚠️ 连带**:ordinal 与词表**进 `ConfigVersion` 内容哈希
+> 覆盖集** ⇒ 表变更**可追溯**(`ConfigVersion` 变)。
+> **🔴 2026-09-17 二次订正(与 ADR-010 §七 对齐)**:本条初稿写「表变更后旧存档**拒载**」
+> —— **与 ADR-010 §七 / ADR-014 §五 的「不匹配非致命」直接冲突**,已作废。
+> **真正的门是 append-only**(`adr-014 §五 D-21-13 承接条 ③`:既有条目号永不重用、
+> 永不改义 + 构建期基线断言 ⇒ 改号 = **构建期硬失败**)。
+> `ConfigVersion` 负责「改动可追溯」,append-only 门负责「买断静默错读」。
+>
+> **② `opened_tick` / `anchor` 从载荷中删除**。`opened_tick` **就是该事件的
+> `SimEvent.Tick`** —— 载荷中重复携带即制造「**同一事实两份真相**」,
+> 违 ADR-006「少一份可失步的状态」原则。引用时一律写 `CaseOpened.Tick`。
+> (`CaseClosedPayload` 的 `opened_tick` 同此理删除;`case_id` 保留 ——
+> 它是**跨事件引用**,不是本事件的时间戳。)
+>
+> **③ `PatternRecognizedPayload` 补 `salted_key`**。本 ADR §一/§三/§五 三处
+> 都宣称「世界级事件用加盐哈希键」,而载荷 struct **根本没有该字段**
+> ⇒ ① 37 的 AC-37-14 成**空断言**(「不含裸 `disease_id`」在字段不存在时恒真);
+> ② **53 无法定位是哪个 `D` 触发** —— 共病(`F-37.3`,一案进多组)时
+> `anchor_case.disease_set` **不唯一**。补 `ulong salted_key` 后,
+> 53 以它匹配自己重算的盐键。**37 的 AC-37-14 随之改为正向合取。**
+>
+> **⚠️ 同 tick 多 `D` 达标的定序**(新增,与 37 的 AC-37-27 对应):同一
+> `CaseClosed` 可让两个 `D` 同时达标 ⇒ 同 tick 两条 `PatternRecognized`。
+> **写入序 = `salted_key` 整数升序**(`Seq` 随之 0,1,2…)——
+> **不得**依赖 `disease_set` 的集合迭代序(C# 不保证跨平台一致 ⇒ 重放漂移)。
 
 > **2026-09-15 修正(B-2)**:原稿此处 `PatternRecognizedPayload` **只有两个字段**
 > (`patient_id` / `member_set`),**漏了锚点** —— 与 §三 表格「载荷携带 `anchor: CaseOpened.anchor`」
@@ -325,7 +419,7 @@ struct JudgmentRevisedPayload  { PatientId patient_id; CaseId case_id; Judgment 
 > **2026-09-15 ADR-016 §六 后续**:13 与 37 的「在场实体 / 就诊交互」契约
 > (`case-system.md:473` 原标「契约暂定」)**已定型** —— 13 出**只读**视图
 > `IPresentPatients`(在场病人 `PatientId` + `WorldPos` 格 + 粗状态枚举),37 只读它立案;
-> **13 不引用 37**(单向无环)。**本 ADR 的既有字段(`opened_tick` / `anchor_case`)一字未动** ——
+> **13 不引用 37**(单向无环)。**本 ADR 的既有字段(`anchor_case`)一字未动** ——
 > 与上条 B-2 修正的约定一致(13 的需求以**追加新接口**引入,不改既有字段语义)。
 > **与 B-2 当时拒绝预留不矛盾**:B-2 拒绝的理由是 13「至今没有消费者」,
 > 而此处 **37 已立案且明写需要它**。详见 ADR-016 §六。

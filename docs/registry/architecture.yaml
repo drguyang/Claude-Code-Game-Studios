@@ -30,7 +30,7 @@
 #   Superseded entries:     Grep pattern="status: superseded"
 
 version: 1
-last_updated: 2026-09-15
+last_updated: 2026-09-17
 
 # ─── STATE OWNERSHIP ─────────────────────────────────────────────────────────
 # Who is the authoritative owner of each piece of shared game state.
@@ -48,8 +48,8 @@ state_ownership:
     status: active
     owner_system: "世界状态(6 世界与生态区 / 17 采集 / 20 库存与物品 / 23 模块化建造 / 24 医馆即机器)"
     adr: docs/architecture/adr-009-world-state-event-boundary.md
-    interface: "世界流(第三条逻辑流):StructurePlaced/Removed/Modified · DropSpawned/Claimed/Despawned · Craft · ResourceHarvested · PoiStateChanged(ADR-021)。不折叠。跨流全序键 (Tick, StreamPriority, Patient, Seq),StreamPriority 病史<病例<世界"
-    write_access: "主机经 IEventSink.Append 按 Kind 路由;世界状态类事件落世界流;instance_id 由 IIdAuthority.ItemInstanceId.Next() 发放,不本地铸造(D-21-27);POI 状态写者 = 6 世界与生态区(ADR-021)"
+    interface: "世界流(第三条逻辑流):StructurePlaced/Removed/Modified · DropSpawned/Claimed/Despawned · Craft · ResourceHarvested · **ActorCellEntered**(ADR-009 Amendment G)· PoiStateChanged(ADR-021)· **EncounterStarted / EncounterEnded**(ADR-009 Amendment H,2026-09-17 —— 写者刻意拆成 52 与 27)· **PlayerDied**(ADR-009 Amendment L,2026-09-19 —— 写者 = 9,载荷 { actor_id, death_cell, tick })。不折叠。跨流全序键 (Tick, StreamPriority, Patient, Seq),StreamPriority 病史<病例<世界"
+    write_access: "主机经 IEventSink.Append 按 Kind 路由;世界状态类事件落世界流;instance_id 由 IIdAuthority.ItemInstanceId.Next() 发放,不本地铸造(D-21-27);POI 状态写者 = 6 世界与生态区(ADR-021);ActorCellEntered 写者 = 1(主机唯一,ADR-020 Amendment B);EncounterStarted 写者 = 52 随机事件导演 · EncounterEnded 写者 = 27 敌人 AI(状态所有权 = 写入权,ADR-021 §①);PlayerDied 写者 = 9 疾病与伤情模拟(ADR-009 Amendment L —— 9 拥有 F4 致死判据;29 是消费者,Append 调用点数 = 0)"
     referenced_by:
       - docs/architecture/adr-009-world-state-event-boundary.md
       - design/gdd/item-database.md   # TR-itemdb-031 / D-21-26 / D-21-27 / D-21-28
@@ -75,13 +75,13 @@ state_ownership:
     status: active
     owner_system: "37 病例系统"
     adr: docs/architecture/adr-008-case-event-stream.md
-    interface: "病例流(第二条逻辑流):CaseOpened / CaseClosed / PatternRecognized / JudgmentRecorded / JudgmentRevised。不折叠。跨流全序键 (Tick, StreamPriority, Patient, Seq)"
+    interface: "病例流(第二条逻辑流):CaseOpened / CaseClosed / PatternRecognized / JudgmentRecorded / JudgmentRevised。不折叠。跨流全序键 (Tick, StreamPriority, Patient, Seq)。2026-09-17 载荷订正:disease_snapshot / disease_set = DiseaseIdSet(版本化整数 ordinal,**不是** FixSet —— disease_id 在 9 即 DIS_* 枚举,塞进 Q16.16 域属 ADR-006 D-21-17 同类错误);PatternRecognized 补 salted_key: ulong(逐 D 派生)"
     write_access: "主机经 IEventSink.Append 按 Kind 路由;37 产生病例类事件"
     referenced_by:
       - docs/architecture/adr-008-case-event-stream.md
-      - design/gdd/case-system.md   # F-37.1 / F-37.2 / 规则二 / 规则六
+      - design/gdd/case-system.md   # F-37.1 / F-37.1b / F-37.2 / 规则二 / 规则六
     added: 2026-09-15
-    revised: ""
+    revised: "2026-09-17 载荷类型订正(FixSet → DiseaseIdSet)+ PatternRecognized 补 salted_key;承 ADR-006 D-21-13 收窄 + ADR-014 §五 append-only 门"
 
   - state: ai_behavior_state
     status: active
@@ -130,25 +130,25 @@ state_ownership:
 
   - state: player_presentation_motion
     status: active
-    owner_system: "1 玩家移动与控制器(表现层)"
+    owner_system: "1 玩家控制器与移动(索引分层 = Core;程序集归属 = 表现层 —— 两轴不同,systems-index.md:34 与 ADR-020 §一)"
     adr: docs/architecture/adr-020-player-controller-and-camera.md
-    interface: "IPlayerMotor: Tick(dt, in MoveInput) / WorldPos Cell(整数格) / Vector3 Position(连续位置,表现态)/ bool ConsumeCellChanged()。**连续位置永不写流** —— 跨格瞬间发一条世界流事件(ActorCellEntered 家族),该事件是玩家位移在 sim 中的唯一投影"
-    write_access: "1 自持(表现层 CharacterController,不参与 PhysX 求解)。**§四 = ADR-016 §三 的对称侧**:ADR-016 定义读方(13 / 27 读粗粒度整数格),ADR-020 定义写方(玩家跨格发事件)。事件频率 = 格穿越率,与帧率 / 移动速度无关 ⇒ 不破坏 ADR-009 世界流有界性论证。**AC-20-03 BLOCKING**:grep 断言无「连续位置 → IEventSink.Append」路径"
+    interface: "IPlayerMotor: Tick(dt, in MoveInput) / WorldPos Cell(整数格) / Vector3 Position(连续位置,表现态)/ bool ConsumeCellChanged()。**连续位置永不写流** —— 跨格瞬间发一条世界流事件(ActorCellEntered),该事件是玩家位移在 sim 中的唯一投影"
+    write_access: "1 自持(表现层 CharacterController,不参与 PhysX 求解)。**§四 = ADR-016 §三 的对称侧**:ADR-016 定义读方(13 / 27 读粗粒度整数格),ADR-020 定义写方(玩家跨格发事件)。**事件率上界 = tick 频率**(每 tick 至多 Append 一条,与帧率 / 移动速度无关)⇒ 不破坏 ADR-009 世界流有界性论证。⚠️ **2026-09-16 口径订正**(系统 1 的 GDD 落盘):原写「事件频率 = 格穿越率」是**等值**断言,不可证伪且与归并算子相抵 ⇒ 改**上界**口径(见 `player-controller-and-movement.md` F-1-1b / AC-1-03)。**AC-20-03 / AC-1-02 BLOCKING**:**判据 = 反射断言** `ActorCellEntered` 的字段类型集合 ⊆ {int32, int64, 整数枚举} —— **不是 grep**(跨格检测必须读 `Vector3` 才能算 `FloorToInt(p / LATTICE_SIZE)`,grep 会误杀正确实现)。**`Append` 权 = 主机唯一**(**2026-09-16 Amendment B**,与 ADR-005「主机唯一执行 Step / CatchUp」对齐):本地玩家在主机 ⇒ 主机本地控制器直接 `Append`;本地玩家在客户端 ⇒ 客户端 **`Append` 调用点数为 0**,其格经 **ADR-001 第二 QoS**(unreliable latest-value)上行,由主机权威控制器统一 `Append`;远端队友同路径 ⇒ 主机 Append 后经世界流回播(13 / 27 在所有机器读到同一条序列)。**`ActorCellEntered` 不在可靠通道**(最新值语义 vs reliable-ordered;且可靠通道被「急救 < 50 ms」`TR-concept-007` 占用)。判据见 AC-20-13 / `AC-1-30`"
     referenced_by:
       - docs/architecture/adr-020-player-controller-and-camera.md
       - docs/architecture/adr-016-ai-architecture.md   # §三 感知输入 = 粗粒度整数格(读方)
       - docs/architecture/adr-009-world-state-event-boundary.md   # 世界流有界性
       - docs/architecture/adr-011-input-architecture.md   # MoveInput 来源
-      - design/gdd/systems-index.md   # :34 系统 1(无独立 GDD)
+      - design/gdd/player-controller-and-movement.md   # 2026-09-16 GDD 落盘(取代 systems-index 占位引用)
     added: 2026-09-15
-    revised: ""
+    revised: "2026-09-16 owner_system 命名 / 分层订正 + GDD 落点回填"
 
   - state: camera_readonly_view
     status: active
     owner_system: "2 摄像机与视角(表现层)"
     adr: docs/architecture/adr-020-player-controller-and-camera.md
-    interface: "ICameraRig: CameraMode Mode / SetMode(mode) / Tick(dt) / Camera Camera。CameraMode ∈ { Explore, Treatment, Casebook, FirstPerson(VR,P1a)}。**只读,永不持有游戏状态**"
-    write_access: "2 自持(表现层)。**自建机位,不引入 Cinemachine**(零第三方第七处一致性);不写三流、不引用 sim 程序集(不破门 A)。承 ADR-013 §9 C3(42 只渲染)/ ADR-018 §一(44 只触发)的同构体例。**§七 结清 44 的 AudioListener 单挂点**:平面 = 主相机,VR = 头显(AC-20-10)。防抖 / 缓动吃表现态 dt,不入 sim"
+    interface: "ICameraRig: CameraMode Mode / SetMode(mode) / Tick(dt) / Camera Camera / **(Vector3 fwd, Vector3 right) YawBasis { get; }**。CameraMode ∈ { Explore, Treatment, Casebook, FirstPerson(VR,P1a)}。**只读,永不持有游戏状态**"
+    write_access: "2 自持(表现层)。**自建机位,不引入 Cinemachine**(零第三方第七处一致性);不写三流、不引用 sim **实现**程序集(边界程序集白名单,ADR-005 Amendment F;门 A 是单向约束)。承 ADR-013 §9 C3(42 只渲染)/ ADR-018 §一(44 只触发)的同构体例。**§七 结清 44 的 AudioListener 单挂点**:平面 = 主相机,VR = 头显(AC-20-10)。防抖 / 缓动吃表现态 dt,不入 sim。**`YawBasis` = 2026-09-16 Amendment B 新立**(系统 1 的 F-1-8 把二维 `MoveInput` 投影成世界方向的**水平化正交基**):**只读** —— 系统 1 零写入相机状态 / 变换;**单向** —— 1 读 2 的基,2 读 1 的 `Position`,两条边方向相反**不成环**(判据 AC-20-14 / `AC-1-31` / `AC-1-35` ③④)。系统 2 尚未有 GDD ⇒ 交付义务登记为 `O-8`"
     referenced_by:
       - docs/architecture/adr-020-player-controller-and-camera.md
       - docs/architecture/adr-018-audio-architecture.md   # :295 AudioListener 挂点(本条目结清)
@@ -213,12 +213,12 @@ interfaces:
       - "53 医疗后果与责任"      # 订阅 CaseClosed / PatternRecognized(结算)
       - "45 网络层"            # 传输两条逻辑流
     adr: docs/architecture/adr-008-case-event-stream.md
-    signal_signature: "IEventSink.Append(in SimEvent e) — Kind ∈ {病史类} → 病史流;Kind ∈ {CaseOpened/CaseClosed/PatternRecognized/JudgmentRecorded/JudgmentRevised} → 病例流;Kind ∈ {Structure*/Drop*/Craft/ResourceHarvested/PoiStateChanged} → 世界流(ADR-009 §三 · ADR-021)"
+    signal_signature: "IEventSink.Append(in SimEvent e) — Kind ∈ {病史类} → 病史流;Kind ∈ {CaseOpened/CaseClosed/PatternRecognized/JudgmentRecorded/JudgmentRevised} → 病例流;Kind ∈ {Structure*/Drop*/Craft/ResourceHarvested/ActorCellEntered/PoiStateChanged/EncounterStarted/EncounterEnded/PlayerDied} → 世界流(ADR-009 §三 · Amendment G · ADR-021 · **Amendment H** · **Amendment L**)"
     referenced_by:
       - docs/architecture/adr-008-case-event-stream.md
       - design/gdd/case-system.md
     added: 2026-09-15
-    revised: ""
+    revised: "2026-09-16 补 ActorCellEntered 入世界流路由白名单(ADR-009 Amendment G;此前仅在 IPlayerMotor 契约出现,路由白名单漏登 —— 与 CompoundTriggered 同型失败模式)"
 
   - contract: cross_stream_total_order
     status: active
@@ -244,12 +244,30 @@ interfaces:
       - "45 网络层"            # pipe 抽象承载三流传输 + 表现态位置
       - "客户端(流副本 + 快照,ADR-005)"
     adr: docs/architecture/adr-001-networking-pipe-abstraction.md
-    signal_signature: "IReplayPipe{Publish(in SimEvent) · Subscribe(Action<SimEvent>) → IDisposable} + ReorderBuffer(有界,全序键吸收重排)。可靠即可、保序非必需;表现态位置走第二 QoS 通道(PublishPositional,unreliable latest-value)。库选型 P1b 前 swap 评审(ADR-001 §四)"
+    signal_signature: "IReplayPipe{Publish(in SimEvent) · Subscribe(Action<SimEvent>) → IDisposable} + ReorderBuffer(有界,全序键吸收重排)。可靠即可、保序非必需。库选型 P1b 前 swap 评审(ADR-001 §四)"
     referenced_by:
       - docs/architecture/adr-001-networking-pipe-abstraction.md
       - docs/architecture/adr-005-deterministic-sim.md   # 客户端流副本
       - docs/architecture/adr-009-world-state-event-boundary.md   # 表现态位置走 45
     added: 2026-09-15
+    revised: "2026-09-18"
+
+  - contract: positional_channel     # 2026-09-18 自 replay_pipe 拆出(ADR-001 §一之二,44 首轮评审阻断 7)
+    status: active
+    pattern: latest_value_table      # per-ActorId 覆盖写;非事件流,无队列增长
+    producer: "主机(20 玩家控制器 / 9·13 病人受伤实体锚点 / 9·25 掉落投掷表现)"
+    consumers:
+      - "44 音频系统"          # 远端呻吟 / 脚步 / 战斗音的空间化声源锚点(只读,禁判定)
+      - "动画表现"             # 远端实体朝向 / 位移插值
+      - "表现态 VFX"           # 血雾 / 扬尘跟随锚点
+    adr: docs/architecture/adr-001-networking-pipe-abstraction.md
+    signal_signature: "IPositionalChannel{PublishLatest(in WorldPosLatest) · TryReadLatest(int actorId, out WorldPosLatest) · SubscribeActor(int actorId, Action<WorldPosLatest>)};WorldPosLatest = { ActorId:int, Cell:int3, ServerTick:uint, Flags:byte }。第二 QoS(unreliable latest-value);消费方只读,禁读其做判定;44 的 AudioCueDto 不复制"
+    referenced_by:
+      - docs/architecture/adr-001-networking-pipe-abstraction.md
+      - docs/architecture/adr-009-world-state-event-boundary.md   # 表现态位置
+      - docs/architecture/adr-016-ai-architecture.md              # 禁读表现态位置做决策
+      - design/gdd/audio-system.md                                # AC-44-D1 / AC-44-D7
+    added: 2026-09-18
     revised: ""
 
   - contract: golden_fixture
@@ -324,7 +342,7 @@ interfaces:
       - "13 / 27 AI"           # 导航格来源(寻路形态由 R-14 定 —— ✅ ADR-016 §五 定型:sim 走整数导航格)
       - "52 随机事件导演"      # 与生态区绑定 / spawn_anchor 确定性解析(禁 NavMesh 采样)
     adr: docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
-    signal_signature: "WorldPos = (i32 X, i32 Y, i32 Z) 单一整数格,住 sim 程序集零 UnityEngine 引用。地形格 / 建造槽位 / 掉落锚点 / 资源点 / 导航格 / 医馆房间格共用同一套格,不做第二套坐标。空间位置一律整数格;Fix(Q16.16)只用于非空间模拟量。chunk 只是流式/失效粒度,不导出坐标。视觉层 Vector3 由格坐标 × 格尺寸映射得到,反向不可信"
+    signal_signature: "WorldPos = (i32 X, i32 Y, i32 Z) 单一整数格,住**边界程序集**(零 UnityEngine,ADR-005 Amendment F;2026-09-16 前记作「住 sim 程序集」—— 已就地修订,因表现层需格坐标却不得引 sim 实现)。地形格 / 建造槽位 / 掉落锚点 / 资源点 / 导航格 / 医馆房间格共用同一套格,不做第二套坐标。空间位置一律整数格;Fix(Q16.16)只用于非空间模拟量。chunk 只是流式/失效粒度,不导出坐标。视觉层 Vector3 由格坐标 × 格尺寸映射得到,反向不可信"
     referenced_by:
       - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
       - docs/architecture/adr-009-world-state-event-boundary.md   # §一 位置一律整数网格 / §三 WorldPos
@@ -397,20 +415,45 @@ interfaces:
   - contract: player_cell_crossing_event
     status: active
     pattern: event_bus        # 玩家跨格 → 世界流事件(ADR-016 §三 的发出侧)
-    producer: "1 玩家移动与控制器(表现层,跨格瞬间)"
+    producer: "1 玩家控制器与移动(表现层,跨格瞬间)。**落流者 = 主机权威控制器**(2026-09-16 Amendment B);客户端不发流"
     consumers:
       - "13 病人 AI 与行为"     # 读玩家所在粗粒度格(经世界流)
-      - "27 敌人 AI"           # 同上
+      - "27 敌人 AI"           # 同上(命名为 Actor 而非 Player 即为 27 留口)
       - "52 随机事件导演"       # 位置相关触发
-      - "45 网络层"            # 传输世界流
+      - "45 网络层"            # 传输世界流 + 承载客户端 → 主机的格上行(第二 QoS)
     adr: docs/architecture/adr-020-player-controller-and-camera.md
-    signal_signature: "跨格瞬间经 IEventSink.Append 发一条世界流事件(ActorCellEntered 家族,Kind ∈ 世界流;Patient = PlayerId 或 PatientId.None 视口径);载荷 = WorldPos Cell(整数格)。**连续位置 / 速度 / 朝向永不进载荷**。频率 = 格穿越率,**与帧率 / 移动速度无关**(AC-20-04)。这是 ADR-016 §三『感知输入 = 粗粒度整数格』在玩家侧的对称定义 —— §三 定读方,本契约定写方"
+    signal_signature: "跨格瞬间经 IEventSink.Append 发一条世界流事件(ActorCellEntered,Kind ∈ 世界流;Patient = PatientId.None);载荷 = { actor_id, cell(WorldPos), tick }，三字段均整数。**连续位置 / 速度 / 朝向永不进载荷**。**事件率上界 = tick 频率**(每 tick 至多一条;**不是**「= 格穿越率」—— 2026-09-16 订正,F-1-1b 的归并算子只给上界),与帧率 / 移动速度无关(AC-20-04 / AC-1-03)。`tick` 字段语义 = **观察到**跨格的那一 tick(与发生时最多差一 tick,ADR-009 Amendment G)。**`Append` 权 = 主机唯一**(2026-09-16 Amendment B):本地玩家在主机 ⇒ 主机本地控制器直接 Append;本地玩家在客户端 ⇒ **客户端 Append 调用点数为 0**,其格经 **ADR-001 第二 QoS**(unreliable latest-value,与连续位置共用通道,**不占可靠通道**)上行,由主机权威控制器统一 Append;远端队友同路径 ⇒ 主机 Append 后经世界流回播全员。**本事件不在可靠通道**(最新值语义 vs reliable-ordered;可靠通道归「急救 < 50 ms」)。这是 ADR-016 §三『感知输入 = 粗粒度整数格』在玩家侧的对称定义 —— §三 定读方,本契约定写方。判据 = AC-20-13 / AC-1-30"
     referenced_by:
       - docs/architecture/adr-020-player-controller-and-camera.md
       - docs/architecture/adr-016-ai-architecture.md   # §三 读方 + ai_reads_presentation_position
-      - docs/architecture/adr-009-world-state-event-boundary.md   # 世界流有界性论证
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §三 骨架 + Amendment G(2026-09-16 追认本 Kind)
       - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md   # Cell = WorldPos 整数格
+      - docs/architecture/adr-001-networking-pipe-abstraction.md   # 第二 QoS 上行通道(2026-09-16 Amendment B)
+      - design/gdd/player-controller-and-movement.md   # R5 / R6(2026-09-16 本 Kind 的正式登记落点)
     added: 2026-09-15
+    revised: "2026-09-16 追认 ActorCellEntered 为 ADR-009 §三 正式 Kind(Amendment G);owner_system 命名与分层订正；加 GDD 落点；**Amendment B**:Append 权收归主机 + 移出可靠通道(客户端经第二 QoS 上行)"
+
+  - contract: level_tool_authoring
+    status: active
+    pattern: none             # 编辑期 / 构建期产出契约(非运行期通信模式 —— 本工具运行期零存在)
+    producer: "54 关卡工具(Level Tool,编辑期 / 构建期;**不进构建 · 门 A 不约束**)—— 系统 6 / 1 / 13 / 27 / 23 / 52 的全部输入的**唯一作者**"
+    consumers:
+      - "ADR-014 烘焙管线"       # world_*.json → world_*.cooked(两阶段 · 自研 binder)
+      - "6 世界与生态区"         # 逻辑层整数数据(多边形 / POI 定义 / 导航格 / 资源点 / 建造槽位 / TERRAIN_TABLE)
+      - "1 玩家控制器与移动"      # slopeLimit / stepOffset 同源定义(执行落 AC-1-33 ②)
+      - "13 / 27 AI"           # 导航格(整数 A* 载体)
+      - "23 模块化建造"         # 建造槽位骨架(占用归 23,O-6-10)
+      - "52 随机事件导演"        # spawn_anchor 读 POI 定义(静态)
+    adr: docs/architecture/adr-022-level-tool.md
+    signal_signature: "LevelTool.ConsistencyCheck(src) → CheckReport —— 六项检查:C1 两层漂移(告警)· **C2 可走性同源(硬失败)** · C3 导航格↔NavMesh(告警)· **C4 多边形合法性,5 项退化(硬失败)** · **C5 边界单一源 —— 视觉遮罩由整数多边形生成(硬失败)** · **C6 切片完整性 —— 导航格每 chunk 恰好覆盖一次(硬失败)**。导出契约:assets/data/world_{geometry,ecozones,poi,resources,buildslots,nav_{chunk},terrain}.json → ADR-014 → world_*.cooked(deterministic,玩家构建零 JSON 解析器)。硬失败**显式 throw**(非 Debug.Assert)。**逻辑层只能由本工具导出**;第三方地形工具(GAIA / MapMagic 2)产物**只进视觉层,绝不自动导出逻辑层**(ADR-015 §六);**无以 WorldSeed 生成地形 / 多边形的代码**(grep 守卫)"
+    referenced_by:
+      - docs/architecture/adr-022-level-tool.md
+      - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md   # §一 两层编辑 / §Validation:317-320(「在关卡工具中存在」判据的执行点)
+      - docs/architecture/adr-016-ai-architecture.md   # §五 导航格来源 / §Validation:442(同判据执行点)
+      - docs/architecture/adr-014-data-pipeline-and-json-parser.md   # 烘焙管线
+      - docs/architecture/adr-021-poi-state-ownership.md   # POI 定义 = 派生态(工具产出侧)
+      - design/gdd/world-and-ecozones.md   # O-6-9 / O-6-11 / O-6-12 / O-6-14(本契约结清)
+    added: 2026-09-16
     revised: ""
 
 # Example:
@@ -555,7 +598,7 @@ api_decisions:
     api: "导航格(可走/阻挡/代价)是逻辑层整数数据(ADR-015 §五),sim 寻路走查表;NavMesh 仅服务 AI 表现态移动(13 病人 AI / 27 敌人 AI),不由 sim 读取、不影响确定性判定;建造落位后的动态 carving 属表现层预算"
     not: "sim 读 NavMesh 做确定性判定;用 Terrain.SampleHeight 决定可走性;事件导演的确定性决策实现为 NavMesh 路径查询"
     adr: docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
-    reason: "NavMesh 在 IL2CPP 下跨平台不保证逐位(random-events.md:438-439);判定结果进流、判定过程不进流(与 ADR-009 同构);可走性由整数导航格给出,与 ADR-006 禁 float 边界一致"
+    reason: "NavMesh 在 IL2CPP 下跨平台不保证逐位(random-events.md:438-439);判定结果进流、判定过程不进流(与 ADR-009 同构);**sim 侧**可走性由整数导航格给出,与 ADR-006 禁 float 边界一致。⚠️ **2026-09-16 作用域补注**:玩家(表现层)可走性**不走**此条 —— 它是 `CharacterController` 的 collide-and-slide(`player-controller-and-movement.md` R3)"
     referenced_by:
       - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
       - docs/architecture/adr-016-ai-architecture.md   # §五 细化:sim 侧整数 A*(JPS/流场为可选优化,须保持整数与确定性)
@@ -566,10 +609,10 @@ api_decisions:
 
   - purpose: ai_behavior_carrier
     status: active
-    api: "编辑器期行为树 / 状态机可视化编辑 → 构建期烘为整数数据(assets/data/ai_[name].json → *.cooked,走 ADR-014 两阶段管线);运行期是自研整数决策器解释烘焙产物(ADR-016 §四)"
-    not: "运行期第三方行为树库;行为程序内出现 float 字段(空间量用 WorldPos 整数格/枚举,非空间量用 Fix/int);改源 JSON 不重烘"
+    api: "作者期数据表(P0 = 手写 assets/data/ai_enemy.json)→ 构建期烘为整数数据(assets/data/ai_[name].json → *.cooked,走 ADR-014 两阶段管线);运行期是自研整数决策器解释烘焙产物(ADR-016 §四)。2026-09-17 修订:编辑器期可视化行为树工具**已由用户裁定砍掉**(P0 无图形编辑器,GDD 手写数据表)"
+    not: "运行期第三方行为树库;行为程序内出现 float 字段(空间量用 WorldPos 整数格/枚举,非空间量用 Fix/int);改源 JSON 不重烘;编辑器期可视化行为树工具(P0)"
     adr: docs/architecture/adr-016-ai-architecture.md
-    reason: "与 ADR-014 作者态/出货态分离同构:运行期零第三方 + 零解析器;行为程序是版本化烘焙数据 ⇒ 进 AI 决策的『重建三源』并纳入陈旧门(源改了没重烘 = 构建失败)。策划可改行为而不必写代码,是不选纯代码载体的主要理由"
+    reason: "与 ADR-014 作者态/出货态分离同构:运行期零第三方 + 零解析器;行为程序是版本化烘焙数据 ⇒ 进 AI 决策的『重建三源』并纳入陈旧门(源改了没重烘 = 构建失败)。改行为 = 改 JSON + 重烘,不进代码评审,是不选纯代码载体的主要理由。2026-09-17:**砍掉可视化编辑器**是因为 P0 的行为面是单套行为程序 × 两类参数行(无层级任务分解),且该工具是本 ADR 唯一一处 post-cutoff 悬置 —— 砍掉即消解 Knowledge Risk 与整条工具链义务"
     referenced_by:
       - docs/architecture/adr-016-ai-architecture.md
       - docs/architecture/adr-014-data-pipeline-and-json-parser.md
@@ -593,27 +636,28 @@ api_decisions:
 
   - purpose: case_stream_payload_encoding
     status: active
-    api: "自定义编码器(值 struct / 禁 float / Q16.16),经 ADR-006 §五序列化探针守住"
-    not: "Unity 内置序列化器(ADR-006 D-21-18: Fix 不可经内置序列化器承载)"
+    api: "自定义编码器(值 struct / 禁 float / Q16.16),经 ADR-006 §五序列化探针守住;枚举字段走 **版本化整数 ordinal**(ADR-006 D-21-13 2026-09-17 收窄)"
+    not: "Unity 内置序列化器(ADR-006 D-21-18: Fix 不可经内置序列化器承载);**禁**跨持久化的配置态枚举改写成 ordinal(那类仍须稳定字符串名)"
     adr: docs/architecture/adr-008-case-event-stream.md
-    reason: "病例流载荷(disease_set / treated / judgment)含 Fix 派生值,须逐位稳定可回放"
+    reason: "病例流载荷(disease_set 的 ordinal / treated / judgment)须逐位稳定可回放;ordinal 的可读语义由 `assets/data/case_judgment_lexicon.json` + `disease_registry.json` 承担,构建期烘焙进 `ConfigVersion` 覆盖集,且受 **append-only 硬门**(adr-014 §五 承接条 ③:`_ordinal_baseline.json` 基线断言,改号 = 构建期失败)"
     referenced_by:
       - docs/architecture/adr-008-case-event-stream.md
+      - docs/architecture/adr-014-data-pipeline-and-json-parser.md   # §五 D-21-13 承接条
       - design/gdd/case-system.md
     added: 2026-09-15
-    revised: ""
+    revised: "2026-09-17 补 ordinal 口径(ADR-006 D-21-13 收窄)+ lexicon 烘焙登记 + append-only 门"
 
   - purpose: case_stream_salt
     status: active
-    api: "SplitMix64(WorldSeed, \"case-salt\") — 全局派生盐(防御纵深,非保密层)"
-    not: "裸 disease_id 进 PatternRecognized 载荷"
+    api: "SplitMix64(WorldSeed, \"case-salt\", ordinal(D)) — **逐 D** 派生盐(防御纵深,非保密层)"
+    not: "裸 disease_id 进 PatternRecognized 载荷;全局单值盐(2026-09-17 订正 —— 原写全局,与「盐的输入集含病种键」自相矛盾)"
     adr: docs/architecture/adr-008-case-event-stream.md
-    reason: "P0 ≤ 8 病种枚举空间 ⇒ 加盐键必然可逆;规则九唯一落点 = AC-37-15 DTO 静态检查"
+    reason: "P0 ≤ 8 病种枚举空间 ⇒ 加盐键必然可逆;规则九唯一落点 = AC-37-15 DTO 静态检查;**逐 D 派生是承重条件** —— 共病时 53 须能定位是哪个 D 触发(全局单值盐下 anchor_case.disease_set 不唯一)"
     referenced_by:
       - docs/architecture/adr-008-case-event-stream.md
       - design/gdd/case-system.md
     added: 2026-09-15
-    revised: ""
+    revised: "2026-09-17 全局单值 → 逐 D 派生(承 ADR-008 §五订正)"
 
   - purpose: netcode_library
     status: active
@@ -695,8 +739,9 @@ api_decisions:
       - docs/architecture/adr-014-data-pipeline-and-json-parser.md
       - docs/architecture/adr-006-fixed-point-boundary-contract.md
       - design/gdd/item-database.md
+      - design/gdd/case-system.md   # case_judgment_lexicon.json(2026-09-17 登记)
     added: 2026-09-15
-    revised: ""
+    revised: "2026-09-17 登记 `case_judgment_lexicon.json`(37 的 Judgment 词表作者态入口)+ 其构建期非一一对应校验(对 9 的 disease_registry.json)"
 
   - purpose: data_distribution_and_preload
     status: active
@@ -756,7 +801,7 @@ api_decisions:
   - purpose: player_movement_model
     status: active
     api: "CharacterController(kinematic,不参与 PhysX 求解)+ 自研相机机位(ICameraRig)。移动手感旋钮(移速 / 加速度 / 转向速率)全部留白,由用户手调"
-    not: "Rigidbody 驱动玩家(动态刚体 / kinematic 刚体 + ForceMode);Cinemachine(com.unity.cinemachine,post-cutoff 大重写,与运行期零第三方第七处相冲);用物理查询决定可走性(可走性归 ADR-015 整数导航格)"
+    not: "Rigidbody 驱动玩家(动态刚体 / kinematic 刚体 + ForceMode);Cinemachine(com.unity.cinemachine,post-cutoff 大重写,与运行期零第三方第七处相冲);用物理查询**决定**可走性 —— ⚠️ **2026-09-16 订正**(系统 1 的 GDD 落盘 · R3):原写「可走性归 ADR-015 整数导航格」**易被读成玩家也查格**;实际 **玩家可走性 = `CharacterController` 的 collide-and-slide**(禁的是**事先探测**,非引擎自带的碰撞解算),**整数导航格只服务 13 / 27 AI 的 sim 侧寻路**(ADR-016 §四)"
     adr: docs/architecture/adr-020-player-controller-and-camera.md
     reason: "本作 P0 玩家移动不与物理世界耦合(建造走整数格邻接,ADR-015 §五)—— kinematic 刚体的物理交互价值用不上却换来更难调的手感与更多非确定性面。Cinemachine 3.0 是 post-cutoff 大重写(知识风险),且 DOTS 同属官方包亦已被 ADR-017 结构性排除 ⇒『官方包』不是零第三方纪律的豁免"
     referenced_by:
@@ -816,7 +861,7 @@ forbidden_patterns: []
 forbidden_patterns:
   - pattern: world_state_events_in_history_stream
     status: active
-    description: "世界状态类事件(Structure* / Drop* / Craft / ResourceHarvested / PoiStateChanged)必须落世界流,不得落病史流或病例流;反之病史类 / 病例类事件不得落世界流。IEventSink 三流纯函数路由(ADR-009 §二 · ADR-021)"
+    description: "世界状态类事件(Structure* / Drop* / Craft / ResourceHarvested / PoiStateChanged / ActorCellEntered / EncounterStarted / EncounterEnded)必须落世界流,不得落病史流或病例流;反之病史类 / 病例类事件不得落世界流。IEventSink 三流纯函数路由(ADR-009 §二 · §三 · ADR-021)"
     why: "落病史流 = 污染 9 的真源所有权(同 case_events_in_history_stream);落病例流 = 跨域职责混乱 + 有界性论证不适用(世界流是系统驱动,病例流是玩家驱动)"
     adr: docs/architecture/adr-009-world-state-event-boundary.md
     added: 2026-09-15
@@ -962,6 +1007,13 @@ forbidden_patterns:
     adr: docs/architecture/adr-014-data-pipeline-and-json-parser.md
     added: 2026-09-15
 
+  - pattern: ordinal_renumbering
+    status: active
+    description: "禁止重编号或重定义既有 ordinal 映射条目(ADR-014 §五 D-21-13 承接条 ③)。覆盖集语料的枚举 ordinal 只可**追加**,既有条目的号永不重用、永不改义;构建期对 `assets/data/_ordinal_baseline.json` 基线快照断言,任何改动 = **构建期硬失败**"
+    why: "**静默错读**类缺陷:改号后旧存档里存的是旧号,读出来变成另一个病种(「麻黄汤读成桂枝汤」)—— 能正常加载、逐位可回放、**无任何报错**。ConfigVersion 只保证「改动可追溯」,不保证「读得对」;**两者缺一不可,不能互相替代**。仓库既有先例:`docs/CLAUDE.md` TR Registry 规则「Never renumber existing IDs — only append new ones」(本门把它从人工约定升为构建失败)"
+    adr: docs/architecture/adr-014-data-pipeline-and-json-parser.md
+    added: 2026-09-17
+
   - pattern: chunk_local_coordinate_system
     status: active
     description: "禁止引入 chunk 局部坐标系(ADR-015 §四)。chunk 只是加载 / 卸载 / 失效的粒度,一个 chunk 覆盖固定格矩形;WorldPos 永远是全局世界格坐标,chunk 只暴露「包含哪些格」不暴露坐标"
@@ -971,7 +1023,7 @@ forbidden_patterns:
 
   - pattern: visual_terrain_sampling_into_sim
     status: active
-    description: "禁止把视觉层地形采样喂进 sim(ADR-015 §一)。如用 Terrain.SampleHeight / NavMesh 采样决定可走性、或从 Vector3 视觉坐标反推逻辑格 —— 那是 float 入 sim,破 ADR-006;可走性一律由逻辑导航格给出"
+    description: "禁止把视觉层地形采样喂进 sim(ADR-015 §一)。如用 Terrain.SampleHeight / NavMesh 采样决定可走性、或从 Vector3 视觉坐标反推逻辑格 —— 那是 float 入 sim,破 ADR-006;**sim 侧**可走性一律由逻辑导航格给出(⚠️ **2026-09-16 作用域补注**:玩家侧可走性 = `CharacterController` 的 collide-and-slide,不走此条 —— 见 `player-controller-and-movement.md` R3)"
     why: "视觉层是 float 任意、Terrain 内部算法跨平台不保证逐位;采样入 sim 把 R-9 好不容易排除的风险引回,且破 ADR-006 的禁 float 边界"
     adr: docs/architecture/adr-015-world-geometry-fixed-world-lattice.md
     added: 2026-09-15
@@ -985,10 +1037,17 @@ forbidden_patterns:
 
   - pattern: runtime_behavior_tree_library
     status: active
-    description: "禁止在玩家构建内引入运行期第三方行为树/寻路库(ADR-016 §四/§五)。行为在编辑器期可视化编辑,构建期烘为整数数据(走 ADR-014 管线),运行期是自研整数决策器;寻路在 sim 侧走烘焙整数导航格"
+    description: "禁止在玩家构建内引入运行期第三方行为树/寻路库(ADR-016 §四/§五)。行为程序在作者期以数据表表达(P0 = 手写 JSON),构建期烘为整数数据(走 ADR-014 管线),运行期是自研整数决策器;寻路在 sim 侧走烘焙整数导航格"
     why: "第三方行为树时序不保证逐位、难进 sim 整数域,且与运行期零第三方的纪律相悖(同 ADR-014 的零解析器、ADR-015 的零第三方几何工具)"
     adr: docs/architecture/adr-016-ai-architecture.md
     added: 2026-09-15
+
+  - pattern: ai_freeze_uses_presentation_state
+    status: active
+    description: "禁止用表现态量作 AI 决策节流 / 冻结的判据(ADR-016 §九,2026-09-17 就地修订)。冻结判据恰 = {in_combat, d2, 速度, Tick, last_decision_tick} —— **禁『离屏 / 相机可见性』· 禁 Time.deltaTime · 禁帧号**。『离屏』是相机事实(表现态),主机与客户端对它的判定不同 ⇒ 一边冻结一边推进,且分叉静默(GDD:`enemy-ai.md` F-27-3 / AC-27-04 的反射白名单守住)"
+    why: "冻结是 step 跳过 ⇒ 它改变位姿(LogiPose / acc / path_cursor 是积分量,不是 tick 的纯函数)。用表现态判定『谁被冻结』= 用不可重建的第四来源决定 sim 推进,直接破 ADR-016 §一 的重建三源不变量。原 §九 写『离屏 / 远区可冻结』与『冻结不改变判定』两句均已就地修订"
+    adr: docs/architecture/adr-016-ai-architecture.md
+    added: 2026-09-17
 
   - pattern: enemy_injury_into_history_stream
     status: active
@@ -1048,15 +1107,15 @@ forbidden_patterns:
 
   - pattern: player_continuous_position_into_stream
     status: active
-    description: "禁止把玩家的连续位置 / 速度 / 朝向写进三流(ADR-020 §四)。玩家位移是**表现态**;跨格瞬间发一条世界流事件(ActorCellEntered 家族)是它在 sim 中的唯一投影。**AC-20-03 BLOCKING**:grep 断言无『Vector3 / Transform 位置 → IEventSink.Append』路径"
+    description: "禁止把玩家的连续位置 / 速度 / 朝向写进三流(ADR-020 §四)。玩家位移是**表现态**;跨格瞬间发一条世界流事件(ActorCellEntered)是它在 sim 中的唯一投影。**AC-20-03 / AC-1-02 BLOCKING**:判据 = **反射断言** `ActorCellEntered` 字段类型集合 ⊆ {int32, int64, 整数枚举} —— ⚠️ **2026-09-16 订正**原写「grep 断言无『Vector3 / Transform 位置 → IEventSink.Append』路径」是**假阳性机器**(跨格检测必须读 `Vector3` 才能算 `FloorToInt(p / LATTICE_SIZE)`),会误杀正确实现"
     why: "写连续位置 = 帧率相关事件率(与 ADR-009 世界流有界性论证直接冲突),且表现态位置是第二 QoS 通道(时序不确定)—— 落进真源即污染可重建性。这是 ADR-016 §三 的对称侧:AI 读粗粒度格(禁读表现态),玩家就只写粗粒度格(禁写表现态)"
     adr: docs/architecture/adr-020-player-controller-and-camera.md
     added: 2026-09-15
 
   - pattern: player_movement_on_rigidbody
     status: active
-    description: "禁止用 Rigidbody(动态或 kinematic + ForceMode)驱动玩家移动(ADR-020 §一)。玩家 = CharacterController(kinematic,不参与 PhysX 求解);可走性一律由 ADR-015 整数导航格给出,不作物理查询"
-    why: "本作 P0 玩家移动不与物理世界耦合(建造走整数格邻接,ADR-015 §五),Rigidbody 的物理交互价值用不上,却引入更难调的手感与更多非确定性面;物理查询决定可走性会把表现层 float 几何引回判定"
+    description: "禁止用 Rigidbody(动态或 kinematic + ForceMode)驱动玩家移动(ADR-020 §一)。玩家 = CharacterController(kinematic,不参与 PhysX 求解);**可走性 = CharacterController 的 collide-and-slide**(禁**事先探测**式物理查询);整数导航格**不服务玩家**(它服务 13 / 27 AI 的 sim 侧寻路,ADR-016 §四)"
+    why: "本作 P0 玩家移动不与物理世界耦合(建造走整数格邻接,ADR-015 §五),Rigidbody 的物理交互价值用不上,却引入更难调的手感与更多非确定性面;物理查询决定可走性会把表现层 float 几何引回判定。⚠️ **2026-09-16 订正**(系统 1 的 GDD 落盘 · R3):原写「可走性一律由 ADR-015 整数导航格给出」**易被读成玩家也查格** —— 实际玩家走 collide-and-slide(几何直接给结果,不做可行性预判),导航格只服务 AI。判据见 AC-1-01 三条并列(含 `Physics.Raycast` / `CheckCapsule` / `Overlap*` 零引用,断言面含 prefab / 场景资产的组件清单)"
     adr: docs/architecture/adr-020-player-controller-and-camera.md
     added: 2026-09-15
 
@@ -1069,7 +1128,7 @@ forbidden_patterns:
 
   - pattern: camera_holding_game_state
     status: active
-    description: "禁止相机持有游戏状态 / 写三流 / 引用 sim 程序集(ADR-020 §五,AC-20-05)。相机 = 只读渲染者;防抖 / 缓动吃表现态 dt,不入 sim。**VR 全禁镜头效果**(ADR-020 §六);禁用镜头效果**报**状态(与 audio_cue_state_broadcast 同源,是同一铁律的视觉侧)"
+    description: "禁止相机持有游戏状态 / 写三流 / 引用 sim **实现**程序集(ADR-020 §五,AC-20-05;可引边界程序集白名单 —— ADR-005 Amendment F)。相机 = 只读渲染者;防抖 / 缓动吃表现态 dt,不入 sim。**VR 全禁镜头效果**(ADR-020 §六);禁用镜头效果**报**状态(与 audio_cue_state_broadcast 同源,是同一铁律的视觉侧)"
     why: "承 ADR-013 §9 C3(42 只渲染)/ ADR-018 §一(44 只触发)的同构体例 —— 呈现层三件套(UI / 音频 / 相机)同一纪律,避免第二套边界哲学;相机读 sim 真值或写流即制造第二真相"
     adr: docs/architecture/adr-020-player-controller-and-camera.md
     added: 2026-09-15

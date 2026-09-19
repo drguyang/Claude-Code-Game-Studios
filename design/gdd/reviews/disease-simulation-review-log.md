@@ -123,3 +123,35 @@ Specialists: game-designer · systems-designer · network-programmer · unity-sp
 Blocking items: 12 | Recommended: 10
 Summary: 规则骨架与 ADR-005 咬合紧密、R3.4 医学诚实性是全案最强项,但三处「按现文不可实现」(F1 默认分支 / F4 判定顺序 / `SimEvent` 全序)使其停留在「可裁决的设计」而非「可实现的规格」。裁定后 12 项 blocking 与四项用户裁定已全部落盘,9 升入可实现态;三笔跨文档欠账(D-9-D/B/E)未还前不得进 Implement。
 Prior verdict resolved: First review
+
+---
+
+## Review — 2026-09-16 — Verdict: NEEDS REVISION
+Scope signal: L
+Specialists: creative-director(opus 综合) · 议题 A–F 分裁 · 既有 review-log 对照
+Blocking items: 0 新(集群 A–F 六项裁决) | Recommended: 3
+Summary: 二轮重评审对照已采纳的 ADR-005…021 与三流架构复查 #9。**无支柱破裂、无架构裁决被推翻** —— 规则十 / F5 / 三条铁律 / R3.4 的骨架成立,裁决定位「补界与事件」而非重写求值器。六项用户裁定全部照准:B′ 照护 = 玩家主动护理动作(暂停语义收窄,不死场消失)· 照护事件化落病史流 `CareApplied`(ADR-021 式窄修正)· 剂量超限 = 饱和截断(clamp,不拒收)· 疟疾保留 lethal 删校验 11 · 豁免类永不入痊愈(feature)· 伤寒名保留「伤寒」。A–F 六集群已全部落盘(GDD 正文 + entities.yaml 注册表)。数值仍全 `*待定*`,一个未动(硬约束)。三轮重评审已启动以验证闭合。
+Prior verdict resolved: Yes(首轮 MAJOR 的 12 项 blocking 均已在首轮修订兑现;本轮为二轮裁决的修订后复审)
+
+---
+
+## Review — 2026-09-16 — Verdict: NEEDS REVISION(三轮重评审)
+Scope signal: L
+Specialists: game-designer · systems-designer · network-programmer · performance-analyst · qa-lead · unity-specialist(×3 报告,均 haiku 并行)· creative-director(opus 综合) · 四项用户裁决
+Blocking items: 8 集群(blocking 15 + REC 若干,按集群合并)| Recommended: 见集群内部
+Summary: 对抗性验证二轮修订是否真正闭合(非背书)。creative-director(opus)终裁 **NEEDS REVISION** —— 确认三项二轮回归(clamp 上界误罩整式 · AC-30① 与 F4 冲突 · 旧痊愈门漏洞未修)+ 五处新洞(compounds 零登记 / 不可愈病种可被压痊愈 / 128 位中间表示 / 事件身份稳定派生键 / 性能联合约束)。**8 阻塞集群全部修订落盘**:① F1 Σ 语义 + clamp 层次 + ε_OFFSET 顺序 · ② 护理时间语义(派生 last_intervention + TW≥CARE_GAP 排序校验) · ③ compounds 双 Kind 登记 `entities.yaml` + `compound_max_triggers` 边界 · ④ 可愈性结构门(校验 16 + AC-32 子句 + σ 痊愈门联动) · ⑤ 128 位中间表示 + DTO/facade 移边界 asm + IL 拒集扩展 · ⑥ AC-15 稳定派生键 `(patient_id, 处置_id, 施予者, tick)` + AC-16 Append 顺序即权威 · ⑦ 性能联合不等式 + `scan_step` + `CARE_EVENTS_PER_TICK` + 预载 handle 常驻 · ⑧ AC 层清理(AC-31 字面量 / AC-36 Folded(p) 归 7a / AC-1 移除 Gate / AC-25 手算锚点 / AC-3c 分治 / AC-34 分治)。
+**四项用户裁决(2026-09-16,均照准并落盘)**:① **P0 只建模「重症」** —— 100% 病死率 = P0 抽象级别产物,病历/叙事侧用「重症入院」口径(加 R3.3 注 + 文档口径,不加机制) · ② **通道 = 整数位域**(9 登记通道位 / 8 读取 / 13+44 呈现,AC-21 补 [L] BLOCKING 子句) · ③ **treatable_by 粒度 = 病种×处置**(二元关系,gate 语义,无贡献但记录为有效动作) · ④ **新旋钮三件套纪律**(Tuning Knobs 行 + F3 类 A/复杂度行 + AC,缺一不进注册表;立为 Debt Register 纪律)。
+**待四轮验证闭合** —— 本轮修订需一轮对抗性验证(在修订后的全文上重裁),不自我背书。
+Prior verdict resolved: Yes(二轮集群 A–F 六项裁决已落盘;本轮为新裁决的修订后复审)
+
+---
+
+## Review — 2026-09-16 — Verdict: NEEDS REVISION(四轮重评审)→ **用户接受修订并标记 Approved(免五轮验证)**
+Scope signal: L
+Specialists: game-designer · systems-designer · network-programmer · performance-analyst · qa-lead · unity-specialist(均 haiku 并行)· creative-director(opus 综合) · 两项用户设计裁决(K7/K8)
+Blocking items: 8 阻塞簇 K1–K8(blocking 15 + REC 11,按簇合并)| Recommended: 11
+Summary: 对抗性验证三轮修订闭合。creative-director(opus)终裁 **NEEDS REVISION** —— **K1**(sys MAJOR-1)F1 Σ 单向上界 = 死旋钮,过度治疗 Σ<0 时截断永不触发 ⇒ 对称 clamp `±(MAX_ACTIVE_DOSE×single_dose_max)` 只罩 Σ · **K2** 护理时间语义与 AC-30① 逐字矛盾 ⇒ 派生式 `last_intervention(照护) = max(止, 最后动作 + CARE_GAP)` + 排序校验 `TW ≥ CARE_GAP` · **K3** compounds 边界离线不可求 ⇒ 无噪声包络闭式自举 + `TENTATIVE` 标记 · **K4** AC-15 四元组与同 tick 多剂冲突 ⇒ 5 元组去重键补 `dose_seq` · **K5** 自限型上升段 `position` 尚低可「病刚发就判愈」⇒ 痊愈非上升期门 · **K6** signed long 带进位加法 = signed overflow = UB ⇒ hi/lo 两 `ulong` 128 位 + IL 类型谓词拒集 · **K7**「这病我有没有牌」无接口(用户裁定「补接口」)⇒ `handle` 枚举派生字段 + §Interactions 接口铁律四 + AC-43 · **K8** 破伤风照护与医学诚实冲突(用户裁定「收窄照护范围」)⇒ 护理暂停 = {伤寒 / 痢疾 / 心衰} 3 种,破伤风护理不刷窗口,手柄 = 发病前清创。**8 簇 + 11 项推荐全部修订落盘**;数值仍全 `*待定*`,一个未动(硬约束)。
+**两项用户设计裁决(2026-09-16,均照准并落盘)**:① **K7 补接口** —— 9 侧添加可干预性真值(每病种 `handle` ∈ {causal / symptomatic_only / care / none},构建期从 `treatable_by` 极性派生防静默撒谎),8 侧设门槛呈现「这病我有没有牌」 · ② **K8 收窄照护** —— 护理暂停仅限 {伤寒 / 痢疾 / 心衰} 3 种,破伤风护理不刷新死亡窗口(与对症药同级);病史注:1900–1930s 伤寒护理 / 补液确有降死亡率证据,破伤风照护则无(医学诚实性)。
+**旋钮三件套收尾(四轮)**:`scan_step` / `CARE_EVENTS_PER_TICK` / `ε_MIN` / `channel_mask` / `compound_max_triggers` 补登记 `entities.yaml`(此前仅 GDD 出现);AC 侧补载(AC-30 密度界子句 · AC-23 ε_MIN 必含 · AC-3c CAP 子句)。
+**用户裁定接受修订并标记 Approved,免五轮验证** —— 追踪记录已更新(systems-index row 9 → Approved;本 log 追加四轮条目)。
+Prior verdict resolved: Yes(三轮 8 阻塞集群已落盘;本轮为新裁决的修订后复审 → **结案 Approved**)

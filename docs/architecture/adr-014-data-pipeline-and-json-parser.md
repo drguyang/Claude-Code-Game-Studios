@@ -141,6 +141,14 @@ deterministic 的烘焙产物**,`Fix` 字段落盘为 raw `long`;**玩家构建�
   —— `item-database.md:850-851` 已记)。
 - **`Fix` 承载字段在 JSON 里写成字符串**(如 `"offset": "3/4"` / `"half_life": "196608"`),
   **不是 JSON 数字**。理由见 §四。
+- **🔴 2026-09-17 新增登记:`case_judgment_lexicon.json`(37 病例系统的判词表)** ——
+  文件 `assets/data/case_judgment_lexicon.json`,作者态亦然(本层),**烘焙期**产出
+  `case_judgment_lexicon.cooked`(同一 `data-core` 组)。
+  - **内容**:病名词表条目 ↔ **版本化整数 ordinal**(`Judgment.lexicon_id`,见 ADR-008 §三);
+  - **绑定层职责**:**构建期**做「**非一一对应**」校验 —— 该表与 9 的 `disease_registry.json`
+    **不得一一对应**(否则「换名不换壳」,病名成了病种 id 的直译,ADR-008 指出的第六处泄漏面照旧敞开);
+  - **进 `ConfigVersion` 覆盖集**(§五 D-21-13 承接条 ①)⇒ 表变即版本变;
+  - **不进呈现层作为 ordinal**:玩家可见的是**本地化文本**,ordinal 只在载荷与构建期比对中出现。
 
 ### 二、出货形态 = 构建期烘焙
 
@@ -206,6 +214,12 @@ deterministic 的烘焙产物**,`Fix` 字段落盘为 raw `long`;**玩家构建�
   ADR-006 §一)。装载发生在**边界程序集**(ADR-005 门 A:sim 零 `UnityEngine`,不能直调 Addressables),
   边界程序集把**已解析的领域 struct / 数组**交给 sim;
   - 接口形如 `IDataProvider { TDataSet Load<TDataSet>() where TDataSet : struct; }`,住边界程序集;
+  - **2026-09-16 补注(承 `O-6-12`,结清与 ADR-015 §四 的驻留冲突)**:**「常驻」只约束小体量的
+    启动前置数据**(物品 / 配方 / 病种 / 事件表 / 几何 / 生态区 / POI 定义)。**逻辑导航格除外** ——
+    它**按 chunk 切片**(`world_nav_{chunk}.json`、产出于 ADR-022 §五),**按需经 Addressables 加载,
+    不要求全图常驻**;未驻留 chunk 视为全 `block`,**驻留与否不改变判定**(表现态降级)。
+    故本节与本 ADR 的「单一 `data-core` 组预载」**不冲突** —— 切片产物仍属 `data-core` 组,
+    只是**按需激活**(地址可寻址条目,非首帧全量解压)。
 - **E-13 兜底**:所有加载走 `try/catch` + `handle.Valid` 检查(或 `TryLoad` 变体),
   **失败 = 启动期硬失败并给出清晰错误**,绝不 null 解引用(`breaking-changes.md:71-89`);
 - **`ConfigVersion` 联动(兑现 ADR-010 §七 / TR-itemdb-032)**:
@@ -216,6 +230,45 @@ deterministic 的烘焙产物**,`Fix` 字段落盘为 raw `long`;**玩家构建�
   - 启动时比对产物 `ConfigVersion` 与存档头 `ConfigVersion`(ADR-010 §一 头部 / §七):
     **不匹配非致命**(ADR-010 §七:已发生事件不受影响,后续窗口用新配置),
     启动期仅**记录并据此排查回放不符**;**致命**的只有产物 `schema_version` 不可读(安装损坏)。
+
+#### D-21-13 收窄的承接:ordinal 映射表进覆盖集 + append-only 硬门(2026-09-17)
+
+> **背景**:ADR-006 §Decision 二 于 2026-09-17 收窄 D-21-13 —— **载荷内枚举**改用
+> **版本化整数 ordinal**(`DiseaseIdSet` / `Judgment.lexicon_id` / `ItemId` / `SimEvent.Kind`),
+> 其映射表须进 `ConfigVersion` 覆盖集(用户裁定「① ordinal + 进 `ConfigVersion`」)。
+> **本节是该裁定的落点** —— 收窄不能只写在 ADR-006,否则「进覆盖集」无实现。
+
+- **① 覆盖集成员登记**。`ConfigVersion` 的内容哈希(`assets/data/` 源文本集)
+  **显式包含**下列**映射表源文件**,即有它们即入哈希,无需另写穷举清单:
+  - `disease_registry.json`(9 —— `DIS_*` ↔ ordinal)
+  - `case_judgment_lexicon.json`(37 —— 病名词表 ↔ ordinal,**本 ADR 新增登记**)
+  - `ai_enemy.json`(27)· `item_database.json`(21a)· `random_events.json`(52)—— 同性质
+
+- **② 🔴 与 ADR-010 §七 的冲突与择一(本轮发现)**。ADR-008 起草时曾写
+  「表变更 ⇒ 旧存档**拒载**」,而 ADR-010 §七 与本节上一条明写
+  「`ConfigVersion` **不匹配非致命**」—— **两者不可同时成立**:
+  若仅靠 `ConfigVersion` 且不匹配非致命,则 *ordinal 重排 ⇒ 旧存档把 `麻黄汤` 读成 `桂枝汤`,
+  且不报错*(**静默错读**),这正是本收窄要买断的失败模式。
+  **择一(不推翻 ADR-010)**:`ConfigVersion` 不匹配**仍为非致命**(原语义一字不动),
+  **真正的守护另起一道更严的门** ——
+
+- **③ 🔴 ordinal 映射表 append-only(本 ADR 新增硬门,守静默错读)**:
+  - **只增不改**:新增条目取**新号**;**既有条目的号永不重用、永不改义**;
+  - **构建期对基线断言**:仓库内提交一份 `assets/data/_ordinal_baseline.json`(序号 ↔ 名称的
+    冻结快照)。烘焙时逐条比对 —— **任何既有条目改义 / 改号 / 复用 ⇒ 构建期硬失败**;
+  - **仍走 ADR-010 §七 写契约**:新号 + `ConfigVersion` 变,旧存档照常加载(旧号含义未变 ⇒ 读数正确),
+    新存档用新表。**无需运行期拒载**。
+  - **既有先例**:本仓 `docs/CLAUDE.md` 的 TR Registry 纪律
+    「**Never renumber existing IDs — only append new ones**」是同一条纪律的既有形态;
+    本门只是把它从「人工约定」升为「构建失败」。
+
+- **④ `PATTERN_THRESHOLD` 的覆盖登记(37)**:37 的 `PATTERN_THRESHOLD`(三案链阈值)
+  **是 `assets/data/` 内的数值常量**,故**自动**入 `ConfigVersion` 哈希 ——
+  改它 ⇒ 版本变 ⇒ 已发生事件不受影响、后续窗口用新值(ADR-010 §七)。
+  **⚠️ 非对称性(必须记明)**:阈值可改而**旧档可正常加载**(非致命),但**同一存档读两次
+  可能得出不同的 `FiredSet`**(旧窗口用旧阈值、新窗口用新阈值)。
+  **这是 ADR-010 §七 的既有语义,不是本条引入的** —— 37 的 `FiredSet` 定义(**派生自读流**)
+  亦然;仲裁见 `case-system.md` 的 `FiredSet` 标签订正。
 
 ### 六、与 `random-events.md:617-628` 的调和
 
@@ -301,6 +354,9 @@ deterministic 的烘焙产物**,`Fix` 字段落盘为 raw `long`;**玩家构建�
 - [ ] **启动预载**:首次 `Step` 前 `data-core` 常驻;加载失败 ⇒ **启动期硬失败**,无 null 解引用(E-13)。
 - [ ] **陈旧门**:CI 对提交的源重烘,产物与提交的产物**逐字节一致**。
 - [ ] **`ConfigVersion`** 存在于产物中,且与存档头比对逻辑符合 ADR-010 §七。
+- [ ] **ordinal 映射表 append-only 硬门**(2026-09-17 新增):构造一个「改既有条目号 / 改义 / 复用号」
+      的夹具 ⇒ **构建期硬失败**;构造「只追加新号」的夹具 ⇒ 通过,且 `ConfigVersion` 变、旧档仍可加载。
+- [ ] **`case_judgment_lexicon` 非一一对应校验**:构造一张与 `disease_registry` 一一对应的词表 ⇒ 构建期硬失败。
 
 ## Implementation Guidelines
 
@@ -321,6 +377,14 @@ deterministic 的烘焙产物**,`Fix` 字段落盘为 raw `long`;**玩家构建�
 - **`docs/registry/architecture.yaml`**:加 `data_pipeline` 接口契约 + API 决策 + Forbidden Pattern。
 - **`design/gdd/random-events.md:617-628`**:加一条 note 指向本文 §六(调和运行期 JSON 的字面)。
 - **`.claude/docs/technical-preferences.md`**:Architecture Decisions Log 补 ADR-014 条目。
+- **🔴 2026-09-17 本轮追加**(承 37 二轮 `/design-review` 的 D-21-13 收窄裁定):
+  - **`docs/architecture/adr-006-fixed-point-boundary-contract.md`** §Decision 二 新增
+    **D-21-13 口径收窄**小节(载荷内枚举 = 版本化整数 ordinal;跨持久化配置态枚举仍用稳定字符串名);
+    §Validation Criteria 补两条门;GDD Requirements 表 D-21-13 行就地更新。
+  - **`docs/architecture/adr-008-case-event-stream.md`** §三 `Judgment` 形状(含 `lexicon_id`)
+    + Key Interfaces 载荷订正 —— 其 `Judgment.freehand_text` 是 ADR-006 Amendment A
+    「`Payload` 无引用字段」的**唯一例外**,已在 ADR-006 就地登记。
+  - **`design/gdd/case-system.md`** 规则九 / 规则四 / AC-37-15 —— 词表路径与构建期校验的 GDD 侧对齐。
 
 ## GDD Requirements Addressed
 
@@ -332,4 +396,7 @@ deterministic 的烘焙产物**,`Fix` 字段落盘为 raw `long`;**玩家构建�
 | `design/gdd/item-database.md` | 21a 物品与配方 | 配置版本号与存档头联动(TR-itemdb-032) | §五 |
 | `design/gdd/random-events.md` | 52 随机事件导演 | `Fix` 数据落 `assets/data/*.json` 经 Addressables 承载 | §二 / §六 |
 | `design/gdd/disease-simulation.md` | 9 疾病与伤情 | 数据加载边界(无数据不可运行) | §五 |
+| `design/gdd/case-system.md` | 37 病例系统 | 判词表(`lexicon_id`)须版本化 ordinal 并进 `ConfigVersion`(ADR-008 §三 / ADR-006 D-21-13 收窄) | §一(登记)/ §五(D-21-13 承接条 ①②③) |
+| `design/gdd/case-system.md` | 37 病例系统 | `PATTERN_THRESHOLD` 为外置数值常量,改动须可追溯 | §五(D-21-13 承接条 ④) |
+| `docs/architecture/adr-006-fixed-point-boundary-contract.md` | ADR-006 | D-21-13 收窄后的**承载件**(ordinal 映射表的烘焙 / 覆盖集 / append-only 门) | §一 / §三 / §五 |
 | `docs/architecture/adr-006-fixed-point-boundary-contract.md` | ADR-006 | 导入期转换的承接件 | §三 / §四 |

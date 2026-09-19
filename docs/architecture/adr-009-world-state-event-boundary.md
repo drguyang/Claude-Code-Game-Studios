@@ -15,6 +15,54 @@ Accepted
 > **2026-09-15 就地修订(Amendment F,承 ADR-021)**:三方复核登记洞 **H2(POI 状态无拥有者)**,
 > 由 **ADR-021**(`adr-021-poi-state-ownership.md`)裁决 —— POI **定义** = 派生态 / POI **状态** = 模拟态,
 > 写者 = 6 世界与生态区,新增 Kind `PoiStateChanged`。本 ADR **§二 / §三 / §六** 三处就地同步(见 Amendment F)。
+>
+> **2026-09-16 就地修订(Amendment G,承系统 1 的 GDD)**:追认 **`ActorCellEntered`** 为世界流 Kind
+> —— 它此前**被 ADR-016 §三 / ADR-020 §四 / `architecture.yaml` 三处引用却无登记处**,
+> 照 §三 白名单字面执行会被**构建期拒绝**(与 9 的 `CompoundTriggered` 同一失效模式)。
+> 本 ADR **§三** 一处就地同步(9 → 10,见 Amendment G);`ADR-020` 同批出 **Amendment A**。
+>
+> **2026-09-17 就地修订(Amendment H,承系统 27 的 GDD)**:追加
+> **`EncounterStarted` / `EncounterEnded`** 两个世界流 Kind —— 二者此前**已被系统 27 的 GDD
+> (规则二十)· `entities.yaml:1948/1960` · ADR-016 §八 三处引用却未进本骨架**
+> (与 `ActorCellEntered` 同型的「引用却无登记」失效模式,由 27 的首轮评审登记为 `O-27-5`)。
+> 本 ADR **§三** 一处就地同步(10 → 12);**写者刻意拆成两个系统** —— 见 §三 的说明。
+> **同批补注**(承系统 27 · `O-27-6`):`ActorCellEntered` 的 `Actor` 命名在 P0 只服务玩家,
+> 敌人格是纯派生态不进流(同处有详述)。
+>
+> **2026-09-18 就地修订(Amendment I,承系统 10 的 GDD)**:追加 **三个病史流 Kind** ——
+> `EmergencyAttempt` / `EmergencyTreatmentApplied`(10 写)· `DrugTreatmentApplied`(11 写)。
+> **首次以「系统 GDD 追加 Kind」方式扩的是病史流**(此前六项追加全在世界流;`InjuryOnset`
+> 是病史流首个非 9/52 写者,但由 25 的 GDD 登记、未走本 ADR 的 Amendment 通道)。
+> 失效模式同 `ActorCellEntered`:10 的原稿称结算载荷为 `TreatmentEvent`,**那是内联元组不是具名
+> Kind** ⇒ 照 9 的白名单字面执行,10 写的每一笔都被构建期拒收。**§二 域归属一处就地同步**。
+>
+> **2026-09-19 就地修订(Amendment J,承系统 18 的 GDD 首轮评审)**:`Craft` **不追加 Kind**
+> (骨架既有),但三项就地同步:① §三 / §五 骨架注的**记源订正** ——「(21a)」→
+> **「发起方 = 18 炮制 / 19 制作,求解 = 21a」**(18 才是写者;此前是「引用却无登记」的
+> **归属变体**:载荷形状挂 R-2 悬置,而 R-2 的 21a 侧从未认领过 Craft 的调度语义);
+> ② **载荷三位补齐已定稿**(`actor_id` / `output_instance_ids[]` / `tool_cell`,18 规则八
+> R-18-A)⇒ 本 ADR 的「载荷归 R-2」对 `Craft` 一项**解除**;③ **`D-21-28` 全序键裁定 [甲] =
+> 三流全序键 `(Tick, StreamPriority, Patient=None, Seq)`**(ADR-008 §一;`Seq` 主机 `Append`
+> 发号,`Patient` 位取 `PatientId.None` 哨兵承 ADR-007 ④;原建议键的 `ActorId` 位被载荷字段吸收)。
+> **§六 有界性不重写**:`Craft` 事件率 = 点火行为率 ≤ 每玩家每 tick 1(单炉,18 OQ-18-3 已裁 [甲]),
+> 与帧率无关 —— 原论证结构自动覆盖。
+>
+> **2026-09-19 就地修订(Amendment K,承系统 17 的 GDD 首轮评审)**:**恢复 `ResourceHarvested`
+> 的**生产者与载荷**。§二 三态表与 §七 Guidelines 4 早已把「资源点消耗」归类为模拟态 →
+> 世界流 `ResourceHarvested` 且**明写写者 = 17**,但系统 17 的 GDD 首轮 `/design-review` 发现:
+> 其规则二宣称「零新 Kind」、只发 `DropSpawned` + `DropClaimed` ⇒ **一个已注册的 Kind 无生产者,
+> 而一份 GDD 单方改判了 Accepted ADR 的分类**(违 `coordination-rules` 5);
+> 且 `DropSpawned.Payload`(`§五`)**无 `node_id` / 无 `quality`** ⇒ 17 自己的
+> `gather_seq`(节点计数)与 F-17-3 的余量重算**不可实现**。
+> 本 Amendment 载荷定稿(**写者 = 17 主机**)+ §六 有界性就地修正
+> —— **§三 / §六 两处同步**(见 Amendment K)。
+>
+> **2026-09-19 就地修订(Amendment L,承系统 29 的 GDD 首轮评审)**:追加世界流 Kind
+> **`PlayerDied`**(写者 = **9**,`OQ-25-1` 已裁路甲)。**失效模式 = 「引用却无登记的又一变体」**:
+> 29 的死亡冷却依赖「世界流里的死亡事件」,而**全库无任何死亡 Kind** ⇒ 冷却静默失效
+> (掉落经济漏洞)且空背包死亡零痕迹(掉级不可重建)。载荷 `{ actor_id, death_cell, tick }`;
+> `death_cell` = 最后一条 `ActorCellEntered` 之 cell(**禁读实时物理** —— 修 29 原稿的 ADR-020 §四 违例)。
+> **§二 三态表 / §三 骨架 / §六 有界性三处同步**(见 Amendment L)。
 
 ## Date
 
@@ -165,6 +213,7 @@ Q1 / Q2 / Q3 任一成立          → 模拟态(进流,主机模拟)
 | 掉落实体的**位置 / 物理轨迹** | 全否 | **表现态** | 45 网络层(§五) |
 | 玩家 / NPC 位置与动画 | 全否 | **表现态** | 45 网络层 |
 | 拾取归属(谁捡到了) | Q1/Q2 | **模拟态** | 世界流(`DropClaimed`,§七) |
+| **玩家死亡**(死亡发生这一事实) | Q1/Q2 | **模拟态** | 世界流(`PlayerDied`,**Amendment L**)—— 写者 = 9(`OQ-25-1` 已裁路甲);**死亡点位置 `death_cell` 是派生态**(最后一条 `ActorCellEntered`),随事件原样携带 |
 | 制作 / 炮制结果 | Q1 | **模拟态** | 世界流(`Craft`,载荷归 R-2) |
 
 **域归属规则**(与「是否进流」正交):三问回答「是否进流」,域归属回答「落哪条流」:
@@ -173,7 +222,21 @@ Q1 / Q2 / Q3 任一成立          → 模拟态(进流,主机模拟)
   `ThreatDeferred` / `ThreatDeferralCleared` / `HistoryFlagChanged`)→ **病史流**(ADR-007 既定,不改)
 - **病例类 Kind**(37 的 `CaseOpened` / `CaseClosed` / `PatternRecognized` /
   `JudgmentRecorded` / `JudgmentRevised`)→ **病例流**(ADR-008 既定,不改)
-- **世界状态类 Kind**(本 ADR 新增 8 个,§三;+ **ADR-021 追加 `PoiStateChanged`** → 共 9)→ **世界流**
+- **世界状态类 Kind**(本 ADR 新增 8 个,§三;追加:`PoiStateChanged`(ADR-021)·
+  `ActorCellEntered`(Amendment G)· `EncounterStarted` / `EncounterEnded`(2026-09-17,系统 27)·
+  `EnemyInjuryOnset` / `InjuryStateChanged`(2026-09-17,系统 25)·
+  `PlayerDied`(2026-09-19,**Amendment L**,系统 29)→ **共 15**)→ **世界流**
+- **病史流的第 25 支**(2026-09-17 补):`InjuryOnset`(25 写,病人为目标;玩家亦是 PatientState)
+  —— 它是**病史类**,但写者既不是 9 也不是 52:**写者 = 25**(伤害施加方),语义归 9。
+  路由仍按 ADR-008 §一「Kind 纯函数」成立,不改本表纪律。
+- **病史流的第 26~28 支**(2026-09-18 补,**Amendment I**):`EmergencyAttempt`(10 产出 /
+  **主机物化**)· `EmergencyTreatmentApplied`(**10 写**)· `DrugTreatmentApplied`(**11 写**)
+  —— 三者都是**病史类**,写者既不是 9 也不是 52,理由与 `InjuryOnset` 同(「内容归属 ≠
+  `Append` 调用者」,`disease-simulation.md` 表头口径订正 2026-09-17)。
+  ⚠️ **`EmergencyAttempt` 是「判定的输入」而非「结算的输出」** —— 一条动作落**两条**病史流
+  事件(输入 + 结算),这在既往 Kind 里是**新形态**(§七 `PickupIntent → 主机判距 → 落流`
+  三段式的对称落实:三段式此前只存在于**判据**层,从未在**流**层物化过两步)。
+  路由仍按 ADR-008 §一 成立,**不改本表纪律**;有界性 = 每完成动作 ≤ 2 条,**与帧率无关**。
 
 > 52 的世界级事件(Patient = None)**仍留病史流**:它们是**掷骰决策的注记**,不是**世界状态的
 > 变更** —— 事件降临后世界如何响应(掉落 / 资源 / 剧情)才是世界流的事。二者不可混。
@@ -207,15 +270,49 @@ StructureModified      // 改造 / 医馆即机器状态变更(23 / 24)—— �
 DropSpawned            // 掉落实体出生:instance_id + spawn_anchor(20 / 25 / 死亡掉落)
 DropClaimed            // 拾取:主机裁决的归属变更(20)
 DropDespawned          // 消失 / 过期(20)
-Craft                  // 制作 / 炮制(21a)—— **载荷与全序键归 R-2**(TR-itemdb-021)
-ResourceHarvested      // 资源点消耗(17)—— 主机裁决
+Craft                  // 制作 / 炮制 —— **发起方 = 18 炮制 / 19 制作,求解 = 21a**(Amendment J,
+                       //   2026-09-19:原记「(21a)」为归属误记);载荷**已定稿**(18 规则八 R-18-A:
+                       //   actor_id / output_instance_ids[] / tool_cell / start_tick / ActualConsumed[])
+                       //   —— 本 Kind 的「载荷归 R-2」解除;全序键 = 三流键 [甲](D-21-28 已裁)
+ResourceHarvested      // 资源点消耗(17)—— 主机裁决;载荷**已定稿**(Amendment K,2026-09-19:
+                       //   instance_id / node_id / gather_seq / qty / out_quality —— 17 的 GDD)
 PoiStateChanged        // POI 状态变更(6)—— 载荷 { poi_id, new_state } 归 **ADR-021**
+ActorCellEntered       // 行动者跨入新整数格(1 玩家 / 27 敌人)—— 载荷 { actor_id, cell, tick } 归 **ADR-020 §四 + 系统 1 的 GDD**
+EncounterStarted       // 遭遇开始(52 触发)—— 载荷 { encounter_id, proto_id, spawn_cell, actor_ids[] } 归 **系统 27 的 GDD**
+EncounterEnded         // 遭遇结束(27 判定)—— 载荷 { encounter_id, reason(枚举) } 归 **系统 27 的 GDD**
+EnemyInjuryOnset       // 敌人伤情发作(25 写)—— 载荷 { actor_id, target_id, injury_id, magnitude, tick, dose_seq } 归 **系统 25 的 GDD**(2026-09-17)
+InjuryStateChanged     // 受伤实体状态转移(9 写;昏迷可逆)—— 载荷 { actor_id, new_state } 归 **系统 25 的 GDD 规则五命名,值域归 9**(2026-09-17)
+PlayerDied             // 玩家死亡(9 写 —— OQ-25-1 已裁路甲,2026-09-19)—— 载荷 { actor_id, death_cell, tick } 归 **系统 29 的 GDD**(Amendment L)
 ```
 
 > **为什么「骨架先行」**:路由与全序即时生效(三流从本 ADR 起成立),但各 Kind 的载荷
 > 属于各系统的实现 ADR(R-2 / R-10)。**本 ADR 不定载荷,避免越权**(同 ADR-007 的教训)。
 > **`PoiStateChanged` 是第一个以此方式追加的 Kind** —— 由 **ADR-021**(2026-09-15)补齐
 > POI 状态所有权(见 **Amendment F**);原 8 个维持本 ADR 首版。
+> **`ActorCellEntered` 是第二个** —— 见 **Amendment G**(**2026-09-16**):
+> 它此前**已被 ADR-016 §三 / ADR-020 §四 / `architecture.yaml` 三处引用却无登记处**,
+> 由系统 1 的 GDD 追认(命名用 `Actor` 而非 `Player`,为 27 敌人留口)。
+> **`EncounterStarted` / `EncounterEnded` 是第三、四个** —— **2026-09-17 就地补齐**:
+> 二者此前**已被系统 27 的 GDD(规则二十)· `entities.yaml:1948/1960` · ADR-016 §八
+> 三处引用却未进本骨架**(与 `ActorCellEntered` 同型的「引用却无登记」失效模式;
+> 27 首轮评审登记为 `O-27-5`,本轮兑现)。**写者被刻意拆成两个系统**
+> (`EncounterStarted` = 52 · `EncounterEnded` = 27)—— 这是 ADR-021 §①
+> 「状态所有权 = 写入权」判据在遭遇生命周期上的落实:52 决定**来不来**,
+> 但「遭遇何时真的结束」是 27 的状态,52 不持有它、写不出它。
+> **`EnemyInjuryOnset` / `InjuryStateChanged` 是第五、六个** —— **2026-09-17 由系统 25 的
+> GDD 首轮评审修订追加**(承 ADR-016 §二「敌人伤情落世界流」—— 该条自 2026-09-15 起
+> 引用这个落点却始终无 Kind 登记,同 `ActorCellEntered` 失效模式;25 的 R2/R3 兑现)。
+> 与 `InjuryOnset`(病史流)拆开的原因 = ADR-008 §一:路由是 Kind 的纯函数,
+> **一个 Kind 无法同时落两条流**。
+> **`PlayerDied` 是第七个** —— **2026-09-19 由系统 29 的 GDD 首轮评审追加**
+> (承 **Amendment L**;写者 = 9 —— `OQ-25-1` 已裁路甲。**失效模式同 `ActorCellEntered`**:
+> 29 的死亡冷却依赖一条它自己假设存在、却**从未被认领**的世界流死亡事件)。
+
+> **⚠️ 2026-09-17 补注(承系统 27 · `O-27-6`)**:`ActorCellEntered` 的 `Actor` 命名
+> **在 P0 只服务玩家**。敌人的逻辑格是**纯派生态**(由三源逐位重建,**不进流**)——
+> 若让敌人也发 `ActorCellEntered`,事件率上界从「玩家跨格率」变成
+> 「玩家跨格率 × 敌人数」,**破坏本流 §六 的有界性论证**。命名留口 ≠ 现在就发;
+> 27 若要发,须**另开 ADR**,不得以本 ADR 修订改判(同 ADR-017 §三 的复评门纪律)。
 
 - **进流字段禁 float**:位置 / 坐标一律整数网格或 `Fix`(Q16.16);float 只在表现态
   (ADR-006 §Decision 二 的边界自动覆盖世界流)。
@@ -277,11 +374,21 @@ PhysX 的非确定性因此不进入模拟域 —— 异机落点略异可接受
 - **有界性论证(与 ADR-008 §六 同构)**:
   - 世界流写入者 = 玩家动作 + 世界系统状态机;建造 / 拆除 / 制作率受**玩家操作速率**约束;
   - 掉落数 ≤ 玩家携带量上界(库存容量 —— 每实例一件,死亡一次性落地,随后只减不增);
-  - 资源点 = **有限集合**(生态区布局固定),消耗事件总数 ≤ 资源点数;
+  - 资源点 = **有限集合**(生态区布局固定),**但 `ResourceHarvested` 的条数不是**
+    —— **⚠️ 2026-09-19 Amendment K 就地修正**:原写「消耗事件总数 ≤ 资源点数」是**陈旧**的
+    (它隐含「采完即永久废弃」)。F-17-3 的 `RegrowWindow` 使同一节点**可再生** ⇒
+    上界改为 **≤ 玩家采集动作率 × 会话时长**(每完成动作 ≤ 1 条,**与帧率无关**),
+    归入「玩家有界流」项;`|资源点|` 只约束**同时可采的节点数**,不约束事件总数;
   - **POI 状态**(ADR-021 补):POI 集**有限**(手工烘焙逻辑层,ADR-015 §一)+ 状态枚举**有限**
     ⇒ 转移总数 ≤ `|POI| × |STATE|`;写者 = 6(同上「世界系统状态机」类);
-  - **论证链**:`世界流增长率 ≤ 玩家操作速率 + 有限资源点数 + 有限 POI 状态数 + 库存上界`,
+  - **玩家死亡**(**Amendment L** 补,2026-09-19):`PlayerDied` 事件率 ≤ **玩家数 / `DEATH_COOLDOWN`**
+    (F-29-2 的冷却使死亡离散化;**无条件发出**但受冷却闸)。归入「玩家有界流」;
+    ⇒ §六 论证**扩展而非重写**(29 侧同时兑现了 `O-3` / `OQ-1-8` 的复活传送上界,见 `death-and-respawn.md` 规则五);
+  - **论证链**:`世界流增长率 ≤ 玩家操作速率(建造 / 采集 / 制作)+ 有限 POI 状态数 + 库存上界
+    + 玩家死亡率(≤ 玩家数 / DEATH_COOLDOWN)`,
     与病史流的病人自增率(9 配置)是**本质不同** —— 世界流是玩家有界流。
+    (**⚠️ 2026-09-19 Amendment K**:原链含「有限资源点数」项 —— 再生使该项**不成立**,
+    已并入「玩家操作速率」,见上。)
 - **7a 定期快照 = 优化,不是真相**:快照用于加载加速与表现态位置恢复;真相永远是世界流。
 
 ### 七、拾取判定(意图事件 + 当下判距 + 宽容半径)
@@ -353,7 +460,7 @@ public readonly struct WorldPos          // 整数格坐标(i32 × 3)—— 由 
 // ── 新增世界状态 Kind(骨架,§三;载荷按系统归 R-2)──
 // StructurePlaced / StructureRemoved / StructureModified   (23 / 24 → 载荷形状由 ADR-015 §五 定型)
 // DropSpawned / DropClaimed / DropDespawned                 (20 / 25 → R-2 机制)
-// Craft                                                   (21a → R-2 载荷)
+// Craft                                                   (发起/写 = 18/19,求解 = 21a —— 载荷已定稿,Amendment J)
 // ResourceHarvested                                        (17)
 
 // ── 拾取:意图(45)与结果(世界流)分离,§七 ──
@@ -408,6 +515,210 @@ ADR-006 Amendment C(跨流全序键)与 Amendment D(真源 = 两流并集)在 AD
    写者归入「世界系统状态机」类,**有界性论证扩展而非重写**。
 
 **所有权**:POI 状态所有者与**唯一写者 = 6 世界与生态区**;主机唯一 `Append`(承 ADR-005)。
+
+### Amendment G —— `ActorCellEntered` 追认为世界流 Kind(系统 1 的 GDD,2026-09-16)
+
+**背景**:**一个被三方引用却无登记处的 Kind。** 撰写系统 1 的 GDD 时发现:
+
+- **ADR-016 §三** 写「感知输入是粗粒度整数格(**玩家跨格写世界流事件**)」;
+- **ADR-020 §四** 的图与正文两处写出 `ActorCellEntered{actor_id, cell, tick}`;
+- **`docs/registry/architecture.yaml:397`** 以 `player_cell_crossing_event` 契约形式引用它。
+
+**而它既不在本 ADR §三 的 Kind 骨架里,也不在 `design/registry/entities.yaml`。**
+即 ADR-020 的**核心裁决**(§四)所依赖的那个 Kind,在登记面上**不存在** ——
+若照 §三「路由 = `Kind → StreamId` 白名单纯函数」的字面执行,该事件会**被白名单拒绝**。
+(与 9 的 `CompoundTriggered` 同一失效模式:被自家白名单构建期拒绝。见 `entities.yaml` 对应注。)
+
+**就地修订一处**:
+
+1. **§三**(世界流 Kind 骨架):追加 **`ActorCellEntered`**(9 → 10)—— 第二个以「系统 ADR 追加」
+   方式扩骨架的 Kind。载荷 `{ actor_id, cell(WorldPos), tick }`(**三字段均整数**)归
+   **ADR-020 §四 + 系统 1 的 GDD**(`player-controller-and-movement.md` R5 / R6)。
+
+**三条立裁(系统 1 的 GDD 提出,随本 Amendment 一并登记)**:
+
+1. **不另发 `Exited`** —— 下一条 `ActorCellEntered` 已隐含上一条离开。对称的 `Exited` 会让
+   事件率翻倍,且需额外定义「退出后未进入」的边界态。
+2. **命名用 `Actor` 而非 `Player`** —— 为 27 敌人 AI 留口(它同样需要「我的敌人在哪一格」的
+   同型事件);`actor_id` 走 **ADR-006 Amendment B** 的 id 空间(`max(patient_id)+1` 高水位重构,
+   承 ADR-016 §二 已把该空间扩到「受伤实体」),**玩家在开局经 `IIdAuthority` 分配一份**。
+   事件的**排序键** `Patient` 仍用 `PatientId.None`(世界级事件,ADR-007 §四)—— **一个 id 空间、两个字段各司其职**。
+3. **有界性**(以系统 1 的两条**分离的**不变量为准 —— **载体不同**:
+   `F-1-1a` 是**构建期静态**断言,`F-1-1b` 是**运行期计数**不变量;混为一谈会各自失效):
+   - **频率上界 = tick 频率**(`F-1-1b`)。跨格**检测**跑在每帧末,而**提交**跑在 tick 边沿:
+     tick 内后续的跨格**覆盖**待发值,**不追加** ⇒ `Append` ≤ **1 条 / tick**。
+     即本 ADR §六 的有界性论证**扩展而非重写**(与 Amendment F 同法)。
+     ⚠️ **`tick` 字段的语义据此收窄** —— 它是「**观察到**跨格的那一 tick」,
+     与「跨格**发生**的那一 tick」最多相差一个 tick。**订正前无此约束,须同步落地实现。**
+   - **水平防隧穿**由 `F-1-1a` 的 `SPEED_MAX × MAX_DT ≤ LATTICE_SIZE` 保证 ——
+     ⚠️ **2026-09-16 就地订正**(系统 1 的 GDD 首轮评审根因 4):原文写 `× TICK_PERIOD`
+     是**用错变量** —— 跨格检测跑在**每帧**,而积分步长是 `dt`;`dt > TICK_PERIOD` 时
+     (帧率 < tick 频率,**常态**)一帧可跨多格而该式仍成立 ⇒ **断言通过、隧穿照发生**(静默失败)。
+     正确的不变量用 **`MAX_DT`**(EC-6 的钳位值);`TICK_PERIOD` 退居 `F-1-1b` 的**事件率**面。
+     但那一条**推不出**「每 tick 至多一条」(tick 内折返不消耗位移预算),
+     两条必须**分别断言**。
+   - **y 轴显式豁免**(`F-1-1c`,用户裁定 2026-09-16):自由落体的竖直速度可远超 `SPEED_MAX`,
+     竖直隧穿是**真实**的(玩家确实落在那里,与 EC-4 的传送同构);13 / 27 对玩家竖直位置
+     只有「落点」语义,无连续性语义。⇒ **原稿此处的 `⌈JUMP_HEIGHT / LATTICE_SIZE⌉` 论证已删除**
+     (它担心的是事件率,而事件率由 `F-1-1b` 管 —— 方向搞反了)。
+     ⚠️ **豁免不解除计数上界**:竖直跨格仍走同一条归并路径,`≤ 1 / tick` 照旧成立。
+
+**同批订正**:`ADR-020` 的 **Amendment A**(其 Engine Compatibility 判据 ② 原文与 §四 自相矛盾,
+已就地订正)。
+
+### Amendment I —— 追加三个**病史流** Kind(系统 10 的 GDD,2026-09-18)
+
+> 编号说明:**Amendment H 在本 ADR 只有头部修订注、无正文小节**(2026-09-17 追加 `Encounter*`
+> 时正文同步落在 §三 骨架内)。本 Amendment 沿用同一做法:正文写在这里,数据同步落在 §二
+> 域归属表与 `entities.yaml`。
+
+**背景(根因 R-2,10 的首轮 `/design-review`)**:10 的原稿把急救结算载荷称作
+`TreatmentEvent`,并写「写入病史流」。但 `TreatmentEvent` **是一个内联元组,不是具名 `Kind`** ——
+`entities.yaml` 原有 18 个 `SimEvent.Kind` 里没有它,§三 骨架里也没有,而
+`disease-simulation.md:183-184` 明写「**9 侧 `Kind` 白名单随其表,列表外的 `Kind` 构建期拒绝**」
+⇒ **照原稿实现,10 写的每一笔都会被 9 拒收**(静默失败:写路径在构建期才炸,不在评审期)。
+这与 `ActorCellEntered`(Amendment G)· `Encounter*`(H)· `EnemyInjuryOnset` /
+`InjuryStateChanged`(25 的 R2/R3)**同型** —— 「引用却无登记」这一失效模式在本 ADR 已**第 5 次**发生
+(G · H · 25 三元组 · 本批;另有一次同型但表现为「被自家白名单拒收」的 `CompoundTriggered`,
+只登记在 `entities.yaml`,未走本 ADR)。
+
+> **⚠️ 计数不是重点 —— 重点是五个人独立踩到同一块石头,缺的是一道构建期前置校验,
+> 不是第五份修订。** 现行防线只有**消费侧**(9 的白名单在构建期拒收未登记 Kind),它是
+> **兜底不是前置**:它能保证「不会带着坏 Kind 出货」,但每次都让问题**迟到一轮评审**才被发现。
+> **缺的前置校验**(登记为系统性防线议题,归下一次 `/architecture-review`,**不在本 ADR 打补丁**):
+> **作者侧的 Kind 引用闭包检查** —— 扫描 `design/gdd/*.md` 与 `docs/architecture/*.md` 中出现
+> 的 `SimEvent.Kind.*` 与大写驼峰 Kind 名,凡**未出现在 `entities.yaml` 注册表内**者**构建期失败**。
+> 该检查是纯文本 / AST 级的工具活(不依赖引擎),与 ADR-012 的 CI 门同批落地。**五次同型失效
+> = 该判据已具备升 BLOCKING 的经验依据。**
+
+**裁决(承 ADR-021 §⑤ 的先例:系统 GDD 追加 Kind,骨架进本 ADR,载荷归系统 GDD)**:
+
+| # | 事项 | 裁决 |
+| --- | --- | --- |
+| ① | 三 Kind 的路由即时生效 | `EmergencyAttempt` / `EmergencyTreatmentApplied` / `DrugTreatmentApplied` → **病史流**;**本 ADR 只定边界与路由,不定载荷字段语义**(同 §三「骨架先行」纪律) |
+| ② | **首次以本通道扩病史流** | 前六项追加(`PoiStateChanged` / `ActorCellEntered` / `Encounter*` / 25 三元组)全在世界流。本批**不是新增流** —— 处置真源本就住病史流(§一 Q1 默认命中),只是**补登记**。`InjuryOnset` 虽属病史流,但由 25 的 GDD 直接登记、未走本 ADR 的 Amendment 通道,故本批是**第一条走该通道扩病史流的 ADR 修订** |
+| ③ | **动作类 / 药物类拆两个 Kind** | 11 的 `AC-11-10` 禁「第二份 `SkillMul` / `ResultMul` / `JudgeResult`」⇒ 两条写者的结算来源不同;若共用一个 Kind,`method` 对药物类**恒 `Manual` 却仍要携带 = 空字段**。判据源 = ADR-008 §一(路由是 `Kind` 的纯函数)+ ADR-021(写者 = 所有者)。**二者仍写同一条病史流,除 `method`/`cause` 外形状一致 ⇒ 9 侧「只认三元组」的 C5 不破** |
+| ④ | `EmergencyAttempt` 是**判定输入**,不是结算 | §七 的 `PickupIntent → 主机判距 → 落流` 三段式在急救侧的对称落实;**两条事件、两个写者语义**。⚠️ 这是本仓**第一次在流层同时物化三段式的两步**(此前 `PickupIntent` 只有判据、无第二条流上输入事件) |
+| ⑤ | **有界性**(扩展 §六,不重写) | 每完成一次动作 ≤ **2 条**病史流事件(意图 + 结算),**与帧率无关**;`Armed` 内中止发 **0 条**(10 规则六之甲:中止 ≠ 跳过)。上界由「动作完成」这一玩家行为事件限定,不由采样率限定 ⇒ 不破坏 §六 的论证结构 |
+| ⑥ | 客户端产出 / 主机物化 **不构成对 ADR-005 的豁免** | 10 规则十一的 C 路(客户端聚合上行 → 主机执行 `Judge` 并 `Append`、`Seq` 由主机发号)读起来像「客户端也能写流」,**不是**:客户端的载荷只有经主机 `Append` 才进入流的权威副本。这正是 ADR-005「主机唯一执行 `Step` / `Append`」的兑现,与 ADR-020 `Amendment B`(`ActorCellEntered` 的 `Append` 权 = 主机唯一)同构 |
+| ⑦ | 7a 折叠**不受影响** | 三 Kind 均落病史流,终态折叠谓词 `Folded(p)` 的既有口径(ADR-008 残留义务 / ADR-010 §三)自动覆盖;⚠️ `EmergencyAttempt` 是**输入**事件,折叠窗口内若被折叠,其对应的结算事件必须同批折叠 —— 由 `(Tick, Patient, Seq)` 邻接性保证(两者同 tick 由主机连发)。**该推论须由 7a 的 EditMode 探针实测**,登记为 10 的 `OQ-10-8` |
+
+**未结(不在本 ADR 裁决面上)**:`OQ-10-9` —— `EmergencyAttempt` 的**上行 QoS**。走
+ADR-001 第二通道(latest-value / unreliable)会**丢**,而它是主机的判定输入 ⇒ 与
+ADR-001「保序非必需」相容、与「判定输入不得丢」**不相容**。需 **ADR-001 的一次窄修订**,
+归 45 的 GDD 轮(P1b 前),**不在本 ADR 打补丁**。
+
+### Amendment J —— `Craft` 的归属订正 · 载荷定稿 · 全序键裁定(系统 18 的 GDD,2026-09-19)
+
+> 编号说明:沿用 Amendment I 的做法 —— 正文写在这里,数据同步落在 §三 骨架注、
+> `item-database.md` D-21-28(结案)、`entities.yaml:91`(注更新)、`processing.md` 注④。
+
+**背景**:18 炮制的首轮 `/design-review`(2026-09-19)命中三处与本骨架相关的悬空:
+① `Craft` 在 §三 的记源写「(21a)」—— 但 21a 只有静态 `Recipe` 表,点火 / 落流的调度语义
+**全文无人认领**(「引用却无登记」的**归属变体**:Kind 有登记、写者无登记);
+② 「载荷归 R-2」的 R-2 从未给出 Craft 载荷形状 ⇒ 18 的产出物在流里**没有身份**
+(无 `actor_id` 归因、无产出实例 id、无器具位 —— BL-18-1/2 的同根「载荷三缺」);
+③ `D-21-28`(Craft 总序键)待裁。
+
+**裁决(2026-09-19 用户裁定 [甲],承 18 的 GDD)**:
+
+| # | 事项 | 裁决 |
+| --- | --- | --- |
+| ① | **写者 = 18(炮制)/ 19(P1a 制作),求解 = 21a** | 21a 保持「一张表一个求解器」,不承担调度;§三 / §五 记源就地订正 |
+| ② | **载荷定稿,「归 R-2」对 Craft 解除** | 三位补齐:`actor_id`(20 `InventoryOf` 归因)/ `output_instance_ids[]`(**主机于点火 tick 经 `ItemInstanceId.Next()` 铸造**,闭合 20 的前置 6 / R10)/ `tool_cell`(器具占用 = 派生态重建)。详 `processing.md` 规则八 |
+| ③ | **全序键 = 三流键** `(Tick, StreamPriority, Patient, Seq)` | `Craft` 落世界流 ⇒ `StreamPriority` = 世界流位;`Patient = PatientId.None = -1`(ADR-007 ④,不污染 `max(patient_id)` 高水位);`Seq` 主机 `Append` 发号。21a 建议的 `(Tick, ActorId, Seq)` 中 `ActorId` 位**被载荷字段吸收** —— 键不必复制语义 |
+| ④ | **起货溢出复用 `DropSpawned`(零新增 Kind)** | 18 在起货时点判容量,溢出量由 **20 从 `Craft` 事件派生折叠 `DropSpawned`**(医馆格);与 `OQ-20-1`「全部复用既有 Kind」同纪律;**18 不写该事件**(写者仍 20) |
+| ⑤ | **有界性不重写**(§六 结构自动覆盖) | `Craft` 事件率 = 点火行为率 ≤ **每玩家每 tick 1**(单炉,OQ-18-3 [甲]);`DropSpawned` 派生增量 ≤ 每 `Craft` 1 条 ⇒ 总量纲仍是「玩家行为」,与帧率无关 |
+
+**未结(不在本 ADR 裁决面上)**:`OQ-18-7`(炮制意图的上行通道,与 `OQ-10-9` / `OQ-4-10` /
+20-BL-4 **同案**,归 45 的 GDD 轮 + ADR-001 窄修订,P1b 前)· `OQ-18-8`(跨玩家器具互斥,归 24)。
+
+### Amendment K —— `ResourceHarvested` 载荷定稿 · 生产者恢复 · 有界性订正(系统 17 的 GDD,2026-09-19)
+
+> 编号说明:沿用 Amendment I / J 的做法 —— 正文写在这里,数据同步落在 §三 骨架注、
+> §六 有界性、`entities.yaml`、`systems-index.md` row 17。
+
+**背景**:17 采集的首轮 `/design-review`(2026-09-19)裁 `MAJOR REVISION NEEDED`,
+根因 **P0-1「避涟漪式改判」**(新变体)。17 的原稿规则二宣称「采集 = 即时拾取,
+**零新 Kind**」,只发 `DropSpawned` + `DropClaimed`。但:
+
+① **`ResourceHarvested` 是本 ADR 已注册的 Kind** —— §二 三态表把它列为「资源点(可采集合)
+   消耗状态 = 模拟态 → 世界流」,§七 Guidelines 4 **明写写者 = 17**;
+   17 从不发它 ⇒ **一个已注册 Kind 无生产者**,而**一份 GDD 单方改判了本 ADR 的分类**
+   (违 `coordination-rules` 5「不得单方面改跨域」);
+② **`DropSpawned.Payload` 承载不了 17 自己需要的事实** —— §五 定死
+   `{ instance_id, spawn_anchor, item_key, qty }`,**无 `node_id`、无 `quality`**
+   ⇒ 17 的 `gather_seq`(「该节点已发出的 `DropSpawned` 计数」)与 F-17-3 的余量重算
+   (`Σ{ DropSpawned.e ∈ node }`)**均不可实现**;而 `spawn_anchor` 是**格坐标**,
+   `OQ-4-11` 明许**同格同种多点** ⇒ 用锚点当节点键会撞;
+③ **`gather_seq` 会被无关掉落污染** —— 死亡掉落 / 18 起货溢出(Amendment J ④)/
+   52 的 `spawn_anchor` 点**都发 `DropSpawned`**,任何一条都平移该节点后续的全部品级序列;
+   玩家还可在药丛上丢弃物品**盲刷**序列。
+
+**裁决(2026-09-19 用户裁定 B,承 17 的 GDD)**:
+
+| # | 事项 | 裁决 |
+| --- | --- | --- |
+| ① | **恢复 `ResourceHarvested` 为采集事实的载体** | 载荷定稿 = `{ instance_id, node_id, gather_seq, qty, out_quality }`(全整数);**写者 = 17 主机**;**17 的 GDD 为载荷形状的出处**(承 §三「骨架先行,载荷归系统 GDD」纪律)|
+| ② | **一次成功采集落三条世界流事件** | `ResourceHarvested`(采集事实)+ `DropSpawned`(身份出生)+ `DropClaimed`(立即归属),**主机同一 tick 连发**。这是 Amendment I 已批准的「一次动作 = 多条流事件」形态在**世界流**的首次应用(此前只在病史流)|
+| ③ | **`raw_quality` 不落流** | `raw_quality = CDFWalk(distribution, U)` 而 `U = f(WorldSeed, node_id, gather_seq)` —— **三项均在流里** ⇒ 可重算,存它 = 第二真源。`out_quality` **必须落流**:它经 `QualityCap` 截断,截断需采集者**当刻技能等级**(同 21a 已裁的「`qty` 写入时物化,非加载时重算」同一逻辑)|
+| ④ | **`gather_seq` 的计源 = `ResourceHarvested`**(只数 17 自己的 Kind)| 消解 ③ 的污染路径;**零独立计数器**(可从世界流重算,承 §一 Q1 判据)|
+| ⑤ | **§六 有界性就地订正** | 原「资源点消耗事件总数 ≤ 资源点数」**陈旧**(隐含「采完永久废弃」,而 F-17-3 的 `RegrowWindow` 使节点可再生)⇒ 改为**≤ 玩家采集动作率 × 会话时长**(每完成动作 ≤ 1 条 `ResourceHarvested`,**与帧率无关**);`|资源点|` 只约束**同时可采节点数** |
+
+**涟漪(下游义务,须随各轮落地)**:
+- **20 库存与物品**:`InventoryOf` 的 fold 谓词须**并入 `ResourceHarvested`** —— `quality`
+  现落该事件,不并入则 `(item_key, quality)` 堆叠键重建不出 `quality`,`AC-20-03` 逐位重建不成立。
+- **`entities.yaml`**:`SimEvent.Kind.ResourceHarvested` 须正式登记(此前「骨架在 ADR-009 §三
+  即登记处,不在本表重复」,现由本 Amendment 给出载荷 ⇒ 与 `PoiStateChanged` / `ActorCellEntered`
+  同规格入表)。
+- **`architecture.yaml`**:三处 `ResourceHarvested` 路由字符串**已含**该 Kind(无需改);
+  但 `world-stream` 契约注可补「载荷 = Amendment K」。
+
+**未结(不在本 ADR 裁决面上)**:17 的 `OQ-17-6`(采集意图上行通道 —— 与 `OQ-10-9` / `OQ-4-10` /
+`OQ-18-7` / 20-BL-4 **同案**,归 45 的 GDD 轮 + ADR-001 窄修订,P1b 前)· 17 的 `OQ-17-7`
+(资源点数据驻留 / 切片,归 54 + ADR-014,承 `OQ-6-8` 先例)。
+
+### Amendment L —— 追加世界流 Kind `PlayerDied`(系统 29 的 GDD 首轮评审,2026-09-19)
+
+> 编号说明:沿用 Amendment I / J / K 的做法 —— 正文写在这里,数据同步落在 §三 骨架注、
+> §二 三态表、`entities.yaml`、`systems-index.md` row 29。
+
+**背景**:29 死亡与复活的首轮 `/design-review`(2026-09-19)裁 `MAJOR REVISION NEEDED`
+(9 条阻断),**头号阻断 B1 = 死亡无流载体**。29 的 F-29-2「死亡冷却」把
+`last_death_tick(actor)` 定义为「扫该 actor 在世界流的最后一条死亡事件」,而
+**全库当时没有任何死亡 Kind**(`entities.yaml` 零登记 · ADR-009 §三 9-Kind 骨架里没有 ·
+`architecture.yaml` 零路由)。两条静默失败:
+
+① **冷却永远读不到值** ⇒ `DeathAllowed` 恒真 ⇒ 冷却**静默退化为不存在** ⇒
+   29 自己的 `:239` 与 20 的 BL-7② 都点名的「自杀清负重」掉落经济漏洞**实际未堵**;
+② **背包为空的死亡在整个三流零痕迹** ⇒ 该次死亡不可重建,而掉级(30 §4.3)是
+   `Level` 的**函数**,`Level` 的重建需要「发生了几次死亡」这个计数 ⇒ **掉级也不可重建**。
+
+这是「引用却无登记」失效模式的**又一变体**:29 的 GDD 引用了它自己假设存在的死亡事件,
+而该事件**从未被任何系统认领**(与 `ActorCellEntered` / `CompoundTriggered` 同型)。
+
+**裁决(2026-09-19 用户裁定,承 29 的 GDD 首轮评审)**:
+
+| # | 事项 | 裁决 |
+| --- | --- | --- |
+| ① | **新增世界流 Kind `PlayerDied`** | 载荷 = `{ actor_id, death_cell(WorldPos), tick }`(**全整数**;无连续坐标 / 无死因文本 / 无伤害数值);`Patient = PatientId.None`(不污染 `max(patient_id)` 高水位);骨架先行,载荷归 29 的 GDD |
+| ② | **写者 = 9** | 9 拥有 F4 致死判据(`OQ-25-1` **已裁路甲** 2026-09-19:9 的 F4 经逐实体 `SelfLimited(entity, d)` 门对玩家战伤判死)。**29 是消费者,对 `IEventSink.Append` 的调用点数 = 0**(「状态所有权 = 写入权」,ADR-021 §①) |
+| ③ | **无条件发出** | **背包为空也发** —— 这是冷却与掉级重建**唯一**的真值来源;冷却期内(`DeathAllowed == false`)**不发**(不结算 ⇒ 无死亡"发生") |
+| ④ | **`death_cell` = 派生态** | 取该玩家世界流中**最后一条 `ActorCellEntered` 之 cell 原样携带**,**禁止读实时物理位置**(ADR-020 §四:玩家连续位置 = 纯表现态)。29 原稿写「判定用当时的实时物理位置」**违反 ADR-020 §四 且破 ADR-012 逐位重放**,已就地废止 |
+| ⑤ | **§六 有界性扩展** | `PlayerDied` 事件率 ≤ **玩家数 / `DEATH_COOLDOWN`**(冷却使死亡离散化)⇒ 归入「玩家有界流」,**与帧率无关**;§六 论证**扩展而非重写** |
+
+**涟漪(下游义务,须随各轮落地)**:
+- **`entities.yaml`**:`SimEvent.Kind.PlayerDied` 正式登记(**本轮已落** —— 与 `PoiStateChanged` /
+  `ActorCellEntered` / `ResourceHarvested` 同规格入表)。
+- **`architecture.yaml`**:`world-stream` 契约的 Kind 路由字符串须并入 `PlayerDied`
+  (**本轮已落**);`signal_signature` 路由白名单同。
+- **9 疾病与伤情模拟**:须补 `SelfLimited(entity, d)` 的实现落点(9 的 R12 注块已预留两种形态,
+  取「自限门升为逐实体谓词」),并**反向列 29**。
+- **30 技能与熟练度**:§4.3 的掉级公式须与 29 的 F-29-1 同源修正(整数截断除法,**非** `Fix` 域;
+  见 29 的阻断 B2)—— 本条为**数值口径订正**,不改 30 的真源地位。
+
+**未结(不在本 ADR 裁决面上)**:29 的 `OQ-29-4`(冷却期内再次致死的语义)· `OQ-29-5`
+(`DEATH_COOLDOWN` 值)· `OQ-29-6`(回程载体的 P0 形态)· 24 的床格选定规则 · 9 的 `SelfLimited` 实现落点。
 
 ## Alternatives Considered
 

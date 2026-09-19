@@ -17,9 +17,9 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 version: 1
-last_updated: "2026-09-15"
+last_updated: "2026-09-19"
 baseline_established: "2026-09-15"
-revision_note: "2026-09-15 ADR-020 落盘(R-13 玩家控制器与相机;架构复核 R-1…R-15 至此全部结清)。本轮 ID 增补 9 条(154→163),全部为新 system slug —— 系统 1 玩家移动(TR-player-001…004,含『移动 = 表现态 / 跨格事件是唯一 sim 投影』= ADR-016 §三 的发出侧对称)与系统 2 摄像机(TR-camera-001…005,含自建机位不引 Cinemachine · 平面越肩 / VR 第一人称双路径 · 44 的 AudioListener 单挂点落定)。**1 / 2 无独立 GDD**,需求文本由 ADR-020 裁决 + systems-index 依赖图条目生成,GDD 撰写时须回溯核对。前一轮 ADR-019 / 018 / 017:ID 增补 6 条(148→154):TR-randomevents-032 · TR-diag-021…025;状态变更 TR-randomevents-024 gap→covered、TR-diag-020 加 ADR-018 §二 note。ADR-016:TR-randomevents-028/029 gap→covered。ADR-015:TR-randomevents-018 gap→covered;TR-randomevents-021 gap→partial。ADR-017 不新增 TR(兑现 ADR-004,是『不引入』的裁决;OQ-8 复评前置登记在 technical-preferences)。累计 83 covered / 14 partial / 66 gap / 163 条。**2026-09-15 补记:#13 病人 AI 与行为 GDD 落盘(design/gdd/patient-ai.md),按其权威件 ADR-016 的 Ordering Note 回溯追加其 TR**(与 21a / 52 同法)—— ID 增补 24 条(163→187),全部为新 system slug `patient-ai`(TR-patient-001…024),状态 = 18 covered / 1 partial / 5 gap。**本轮含一条用户裁定**:13 的决策层**住边界层(呈现侧),不进 sim 程序集** —— 解 ADR-016 §一(决策层住 sim 整数)与 §六(13 读唯一浮点出口 `VitalsDto`)的接缝;ADR-016 §一 表已补 13 例外注。**TR-patient-006 的 partial 根因 = 9 的 OQ-8**(在场判定无值源)。**累计 101 covered / 15 partial / 71 gap / 187 条**。**2026-09-15 再补:ADR-021 落盘(POI 状态所有权 —— 结清三方复核登记的洞 H2),按代生约定新增 system slug `world-eco`**(TR-worldeco-001…009)—— ID 增补 9 条(187→196),状态 = 8 covered / 1 gap。**6 无独立 GDD**(在 P0 队列),需求文本**代生**(同 1 / 2 的 `TR-player-*` / `TR-camera-*` 例),撰写时回溯核对。gap 项 TR-worldeco-009 = `PoiState` 枚举值 + 状态机规则,**ADR-021 刻意不定**,归 6 的 GDD。**累计 109 covered / 15 partial / 72 gap / 196 条"
+revision_note: "2026-09-15 ADR-020 落盘(R-13 玩家控制器与相机;架构复核 R-1…R-15 至此全部结清)。本轮 ID 增补 9 条(154→163),全部为新 system slug —— 系统 1 玩家移动(TR-player-001…004,含『移动 = 表现态 / 跨格事件是唯一 sim 投影』= ADR-016 §三 的发出侧对称)与系统 2 摄像机(TR-camera-001…005,含自建机位不引 Cinemachine · 平面越肩 / VR 第一人称双路径 · 44 的 AudioListener 单挂点落定)。**1 / 2 无独立 GDD**,需求文本由 ADR-020 裁决 + systems-index 依赖图条目生成,GDD 撰写时须回溯核对。前一轮 ADR-019 / 018 / 017:ID 增补 6 条(148→154):TR-randomevents-032 · TR-diag-021…025;状态变更 TR-randomevents-024 gap→covered、TR-diag-020 加 ADR-018 §二 note。ADR-016:TR-randomevents-028/029 gap→covered。ADR-015:TR-randomevents-018 gap→covered;TR-randomevents-021 gap→partial。ADR-017 不新增 TR(兑现 ADR-004,是『不引入』的裁决;OQ-8 复评前置登记在 technical-preferences)。累计 83 covered / 14 partial / 66 gap / 163 条。**2026-09-15 补记:#13 病人 AI 与行为 GDD 落盘(design/gdd/patient-ai.md),按其权威件 ADR-016 的 Ordering Note 回溯追加其 TR**(与 21a / 52 同法)—— ID 增补 24 条(163→187),全部为新 system slug `patient-ai`(TR-patient-001…024),状态 = 18 covered / 1 partial / 5 gap。**本轮含一条用户裁定**:13 的决策层**住边界层(呈现侧),不进 sim 程序集** —— 解 ADR-016 §一(决策层住 sim 整数)与 §六(13 读唯一浮点出口 `VitalsDto`)的接缝;ADR-016 §一 表已补 13 例外注。**TR-patient-006 的 partial 根因 = 9 的 OQ-8**(在场判定无值源)。**累计 101 covered / 15 partial / 71 gap / 187 条**。**2026-09-15 再补:ADR-021 落盘(POI 状态所有权 —— 结清三方复核登记的洞 H2),按代生约定新增 system slug `world-eco`**(TR-worldeco-001…009)—— ID 增补 9 条(187→196),状态 = 8 covered / 1 gap。**6 无独立 GDD**(在 P0 队列),需求文本**代生**(同 1 / 2 的 `TR-player-*` / `TR-camera-*` 例),撰写时回溯核对。gap 项 TR-worldeco-009 = `PoiState` 枚举值 + 状态机规则,**ADR-021 刻意不定**,归 6 的 GDD。**累计 109 covered / 15 partial / 72 gap / 196 条**。**2026-09-15 再补:#3 输入与设备 GDD 落盘(design/gdd/input-system.md),回溯追加新 slug `input`**(TR-input-001…018)—— ID 增补 18 条(196→214),状态 = 13 covered / 2 partial / 3 gap。**ADR-011 落盘时未生成 TR**(其 §Enables 只声明 `TR-concept-007` gap→covered),本 GDD 按其裁决**回溯补齐**(同 1 / 2 的 `TR-player-*` / `TR-camera-*` 例)。**本轮含两条用户裁定**:① **P0 不交付改键 UI**(能力已备、界面未交付,推 P1a)② **3 出「绑定 → 图标键」映射,呈现归 42 / 48**(反幻想守门责任随之转移)。**三条新登记缺口**:`TR-input-016`(`L_render` 实测 → 反推 `JUDGE_BUDGET`)· `017`(`EmergencyAction` 枚举基数归 10)· `018`(`OpenInventory` 的 P0 归属 —— **真实玩法断头的登记**)。**累计 122 covered / 17 partial / 75 gap / 214 条**。**2026-09-15 再补:#3 输入与设备的首轮 `/design-review`(NEEDS REVISION,Scope XL)连带修订(design/gdd/reviews/input-system-review-log.md)**—— ID 增补 3 条(214→217),并**原地回填 9 条既有 `TR-input-*` 的需求文本 / note**(初稿口径已错,须同步)。**新增**:`TR-input-019`(`Emergency` 表达力缺口 —— CPR 节奏 / 止血力道无模拟量通道,gap,归 10 且为其**硬前置**)· `020`(反幻想守门 42+48 联合 BLOCKING,partial) · `021`(跳过路径归 10,gap)。**状态变更**:`TR-input-018` **gap→covered**(`OpenInventory` 的「真实玩法断头」**经核验为夸大** —— `systems-index.md:54/:477` 系统 20 = P0 Core,缺口撤销)。**根因诊断**:该 GDD 的多数严重缺陷**不是自创,是忠实继承 ADR-011 的未推演断言** ⇒ **ADR-011 同日落 Amendment A(六项口径修正)**。受影响的既有条目:`001`(改单引用同一性)· `004`(hash 须含 `bindingId` + FNV-1a-64)· `005`(`Clone`→`Instantiate()` + 不启 UI map)· `006`(F-3.3 恒等式删除 / 理由改抖动 / 回调非轮询 / VR 归 P1b)· `007`(**`FixParse` 范畴错误修正** —— 初稿「判定结果进流前必须 `FixParse`」不可执行)· `011`(`Mixed` 有效输入补定义)· `012`(补 `FindActionMap` + 字符串索引器)· `015`(VR P1a→**P1b**)· `016`(`JUDGE_BUDGET` 已删,改双实操义务)。**累计 123 covered / 18 partial / 76 gap / 217 条。**2026-09-16 补记:#3 输入与设备的**三轮定向对抗验证**(design/gdd/reviews/input-system-review-log.md)—— 按二轮结论**不做第三轮 full 评审,改以对两条不变量签核**(不变量 I1 结构哈希 / I2 无状态意图源)。终裁 NEEDS REVISION(7 阻塞 + 2 项用户设计裁定),当日修订完成。**ID 不增不减(仍 217 条)**;原地回填 `TR-input-013`(「D1 / D2 BLOCKING」订正为**仅 D2 BLOCKING**)、`019`(**真缺口收窄为「仅幅度一维」** —— 节奏分辨率不是缺口)、`020`(**`AC-3-F1` 拆 `F1a` / `F1b`** —— 按阶段,去 VR + 纸质地图归 P1b)。**两项用户裁定**:D-A **官方桥为焦点移动唯一真源**(3 的 `Navigate` = UI map 的那一个action 实例;`FocusNavigationIntent` 降为只读视图,**零 ADR 修订**);D-B **`AC-3-F1` 按阶段拆**(27 → 28 条 AC,BLOCKING 15 → 16)。**ADR-011 同轮就地覆写四处残留**(`:326` 去 VR · `:335` `Update` → `onAfterUpdate` ·Alt 2 理由改方差 · `:261` 撤「已扫全文」自述)。**累计 123 covered / 18 partial / 76 gap / 217 条。****2026-09-16 补记:#1 玩家控制器与移动 GDD 的**首轮 `/design-review`**(5 领域 haiku 并行 + 1 串行 opus 综合;NEEDS REVISION,六条根因当日全部修订落盘)—— 按代生约定**回溯追加新 slug `player-movement` 的 TR**(TR-player-005…007)。**ID 增补 4 条(217→221)** —— `TR-player-005…007` + `TR-camera-006`;状态 = 1 covered(`TR-player-006` 主机唯一 Append)+ **3 partial**(`TR-player-005` = 移动基向量,**根因 = 系统 2 无 GDD**(`O-8`);`TR-player-007` = `CharacterController` 参数契约,**根因 = ADR-015 §一 未点名 `slopeLimit`/`stepOffset` 几何取值**(`O-9`);`TR-camera-006` = `YawBasis` 接口交付,同上根因 `O-8`)。**两条用户裁定**:① **冲刺整档 P0 砍掉**(初稿 Sprint 无代价 ⇒ `SPEED_SPRINT > SPEED_WALK` 恒成立 ⇒ 严格支配 Walk ⇒ Walk 死内容,与支柱一冲突;恢复前置登记为 `OQ-1-11`)② **接地模型推迟到 spike**(三命题数学不相容,`OQ-1-12` = **系统 1 唯一的 P0 开工阻塞级未决项**)。**同轮 ADR-020 落 Amendment B**(Append 权 = 主机唯一 · `ActorCellEntered` 移出可靠通道 · 新立 `ICameraRig.YawBasis`)+ **AC-20-13/14**。**累计 124 covered / 21 partial / 76 gap / 221 条**。**2026-09-16 补记:#6 世界与生态区 GDD 落盘(design/gdd/world-and-ecozones.md)—— `world-eco` 组 9 条 TR 全部转 covered(`TR-worldeco-009` 的 gap 由本 GDD 结清:`PoiState` 三态单调不可逆枚举定稿 + 状态机全表 + 三方非法转移处置 + 有界性收紧)**。**ID 不增不减(仍 221 条)**;**`TR-worldeco-001…008` 的 `gdd:` 指针由「代生 `systems-index.md`」改指本 GDD**;**`TR-worldeco-007` 的有界性口径就地收紧**(`|POI| × |STATE|`(3 倍)→ **`2 × |POI_DEF|`**,同步至 `entities.yaml` `SimEvent.Kind.PoiStateChanged`)。⚠️ 上述状态变更由**撰写方**置入,**待首轮 `/design-review` 确认**。**本轮仅 1 条状态翻转**(`TR-worldeco-009` gap → covered);**当前实测累计 127 covered / 19 partial / 75 gap / 221 条**(以本行实测为准 —— 上文各轮的「累计」是当时撰写点的口径)。**2026-09-16 再补:ADR-022 落盘(关卡工具 —— 用户裁定「另开 ADR 立新系统」,结清 6 的 `O-6-9` / `R-6-16`)。按代生约定新增 system slug `level-tool`**(`TR-leveltool-001…008`)—— **ID 增补 8 条(221 → 229)**,状态 = **8 covered**。**54 无独立 GDD** —— 它是**编辑期工具不是玩法系统**,系统定义 + 产出契约 + 六项一致性检查 C1–C6 **即 ADR-022**;需求文本由 ADR-022 + 6 的 GDD 登记义务(`O-6-9` / `O-6-11` / `O-6-12` / `O-6-14`)生成。**本 ADR 结清的关键悬空判据**:`ADR-015 §Validation:317-320`(「两层一致性检查 / 可走性同源在**关卡工具**中存在」)与 `ADR-016 §Validation:442`(「导航格 ↔ NavMesh 一致性检查在关卡工具中存在」)—— 此前这两句**无执行点**(「关卡工具」从未被定义);现指向一个**有系统行、有输出契约、有被命名检查**的系统。**新增涟漪**:`systems-index.md`(新类别 **Tooling** + 行 54 + §2/§3/§4 三处计数注)· `architecture.yaml`(新 `level_tool_authoring` 契约条目)· `traceability-index.md`(§12 + §汇总表 + 变更历史)。**当前实测累计 135 covered / 19 partial / 75 gap / 229 条**(以本行实测为准)。**2026-09-17 补记:#27 敌人 AI GDD 落盘(design/gdd/enemy-ai.md)—— 按其权威件 ADR-016 的回溯约定追加新 system slug `enemy-ai`**(TR-enemy-001…021)—— **ID 增补 21 条(229 → 250)**,状态 = **18 covered / 3 partial**。**27 的绝大多数边界不是本 GDD 新立的,是 ADR-016 强加的**(同 13 的形态)—— 本组的职责是把 ADR-016 §一/§二/§三/§四/§五/§七/§八/§九 的裁决落到可实现的口径上。**三条 partial 及其根因**:`TR-enemy-004`(六态状态集 —— ADR-016 §九 只定**分层与节流**,未点名状态集,故无 ADR 背书但亦不冲突)· `TR-enemy-005`(单套行为程序 × 两类参数 —— ADR-016 §九「P0 只留**一个**原型」的字面与 P0 池含野兽 `random-events.md:394` 张力,**2026-09-17 用户裁定 PR-27-1** 把「一个」读作**行为程序的表达能力上限**而非实体种类数;须回填 ADR-016 §九 口径澄清 = 登记义务 `O-27-4`,回填后转 covered)· `TR-enemy-017`(**敌人伤情事件的 `Kind` 名与载荷 —— 根因 = 25 格斗与武器线无 GDD**,登记义务 **`O-27-3` = 本 GDD 唯一的 P0 级硬前置**:27 的伤害 / 昏迷 / 武器线交互全经 25;**路由**已由 ADR-009 / ADR-016 §二 定(covered),**未定的是 `Kind` 名与字段名** ⇒ 契约**临时定义、标 provisional**,27 侧按「读到即应用」实现,不预设字段名;**25 落盘后转 covered**)。**五项 2026-09-17 轮内用户裁定**(PR-27-1…5):① 单套程序 × 两类参数 ② 25 无 GDD ⇒ 临时契约 ③ **敌人格不进流**(纯派生态,客户端确定性重算 —— 这是 ADR-016 §一「行为决策可重建」的**核心考验**) ④ **遭遇事件写者拆分**(`EncounterStarted` = 52 / `EncounterEnded` = 27,判据 = **ADR-021 §① 状态所有权**;两 `Kind` 已入 `entities.yaml`,兑现 `O-27-5`) ⑤ 六态最小集。**新增 `entities.yaml` 登记 2 条**(`SimEvent.Kind.EncounterStarted` / `EncounterEnded`;constants 82 → 84)。**当前实测累计 153 covered / 22 partial / 75 gap / 250 条**(以本行实测为准)。**2026-09-17 再补:#25 格斗与武器线 GDD 落盘 + 首轮 `/design-review`(MAJOR REVISION NEEDED · Scope L)修订全量落盘 —— 按代生约定追加新 system slug `combat`**(TR-combat-001…024)—— **ID 增补 24 条(259 → 283)**,状态 = **18 covered / 4 partial / 2 gap**(文末脚本实测)。需求文本由 25 的 GDD 生成(它没有单一权威 ADR,是**多 ADR 的汇合点**:ADR-005/006/008/009/016/018/020/021)。**四条首轮评审用户裁定**(均 [甲]):A3 压制 = 只读查询 `IsSuppressed` · D2 敌/兽 `CP:=0` 退化式 · B2 逐 bar 组合上界断言 · 范围 = 全量落盘、**机制与数值冻结**。**同轮两处跨系统改判**:S2 `HurtLevel` 折叠归 **9**(R17)+ S3 击退**不注入**位移(结清 1 的 `OQ-1-7`,`O-3` 的 25 一行撤销)。**状态翻转 2 条**:`TR-enemy-017` partial → **covered**(根因「25 无 GDD」已除 —— `Kind` 三元组 `InjuryOnset` / `EnemyInjuryOnset` / `InjuryStateChanged` 已定名并入 `entities.yaml` + ADR-009 §三,R2/R3 兑现)· `TR-skill-007` gap → **partial**(25 侧已兑现「动作表 schema 容纳 P1a 三线」,仍 gap 的部分 = 30 自身的修订,30 现 Needs Revision)。**当前实测累计 180 covered / 26 partial / 77 gap / 283 条**(以本行实测为准 —— 上一轮 250 条的「153/22/75」已过期)。⚠️ **本轮所有状态变更由撰写方置入,待 25 的二轮 `/design-review`(新会话)确认**。**2026-09-18 补记:P0 收尾批六份 GDD 一次性落盘**(#4 交互系统 · #5 时间与天气 · #10 急救动作 · #11 处方用药 · #18 炮制 · #20 库存与物品)—— 按代生约定**各追加新 system slug 六条**(`interaction` / `timeweather` / `emergency` / `prescription` / `processing` / `inventory`)—— **ID 增补 102 条(283 → 385)**,状态 = **61 covered / 12 partial / 29 gap**。**六份都无单一权威 ADR**(同 25 的形态,是多 ADR 的汇合点),故 `TR-*` 的 `adr:` 逐条指向其承重件。**本批的实质裁决有三条**:① **#10 结清 `OQ-3-5`** —— `EmergencyReading` 增设独立模拟量通道 `magnitude`(形状 = 3 侧产整数、10 侧判定),§Skip 路径落定(**跳过的 `JudgeResult = Applied` 而非 `Missed`** —— 无障碍入场券,规则六);② **#5 结清 #1 的 `OQ-1-6`** —— 天气对移动的影响 **P0 不启用**(用户裁定 2026-09-18)⇒ 1 的 F-1-1a `max()` 推导无需改动,**且 P0 的 31 项至此全部有 GDD**;③ **#20 载重呈现 = 拟物器具(药箱满溢感)**(用户裁定,机制侧只有一条布尔 `CanCarry`)。**#11 兑现一条跨文档义务** —— **D-21-11**(品级 → 时间轴作用点)的求值点落在 F-11.2(`Axis_effective = Axis_base + axis_offset_by_quality[quality − 1]`),11 是 21a F5 的唯一调用点。**六条 🔴 硬前置**(须在各自首轮评审前裁):`OQ-4-1`(病人四路由消歧归 8 / 10 动作词表)· `OQ-5-1`(= `OQ-8-11` / `OQ-17-1`,深水线季节修正曲线)· `OQ-10-1`(`ResultMul[Missed]` 是否 0 —— 核心机制裁决)· `OQ-11-1`(polarity 判定真源归 9 注册表还是 11 处方表)· `OQ-18-5`(炮制中途存档语义)· `OQ-20-1`(消耗 / 转移的 `Kind` 归属 —— 不裁则库存不可重建,破 `AC-20-03`)。**`domain:` 分布**:本批 98 Core · 2 Performance(`TR-emergency-015` / `017`)· 1 Presentation(`TR-inventory-011`)· 1 Networking(`TR-inventory-016`)。**当前实测累计 241 covered / 38 partial / 106 gap / 385 条**(以本行实测为准)。⚠️ **本批全部状态由撰写方置入,待六份各自的首轮 `/design-review`(须新会话 —— 评审者独立于撰写上下文)确认**。**2026-09-18 再补:六条 🔴 硬前置全部由用户裁定结清**(收尾批的评审准入轮,不新增 ID、不增删条目 —— **ID 恒为 385 条**)。**状态翻转 6 条**:`TR-emergency-016` gap → **covered**(`OQ-10-1`:`ResultMul[Missed] = 0.25` —— **非零**,『失败也留一笔』;10 的 F-10.4 + AC-10-16)· `TR-prescription-016` gap → **covered**(`OQ-11-1`:**9 的病种注册表 = 唯一真源**,11 的处方表 = 镜像 + 构建期硬校验;本 GDD 原裁决确认)· `TR-processing-016` gap → **covered**(`OQ-18-5`:**发起即落流,完成 = 派生** —— 点火 tick 发 Craft 事件 ⇒ 无进程态可存;18 的规则七/八 就地重排为「20 裁决先于 Append」+ AC-18-16/17)· `TR-inventory-014` gap → **covered**(`OQ-20-1`:**全部复用既有 Kind,零新增** —— 炮制 `Craft` / 建造 `StructurePlaced` / 用药 `DropDespawned` / 转移 `DropSpawned`→`DropClaimed`;**零 ADR 涟漪**,不走 ADR-021 的追加流程)· `TR-interaction-015` gap → **partial**(`OQ-4-1` 归 8 / 10 动作词表**已确认**,但承载方未落盘:10 已落盘,**8 的动作词表行仍是缺口** ⇒ 4 的该段在首轮评审时仍不可判)· `TR-timeweather-015` gap → **partial**(`OQ-5-1` **形式已定** = 逐季乘子表,`Capacity × SEASON_MULT[season_index]`,5 出下标 / 17 持表;`SEASON_MULT[]` 的**值** + 17 的 `Capacity` / `RegrowWindow` 仍未定 ⇒ 归数值轮)。**三条跨文档涟漪**:① 17 的 F-17-3 增设季节项与第三个参数 `SEASON_MULT[]`(回填 `OQ-17-1` 的口径:由「形状与数值全未裁」收窄为「**值**未裁」)+ 新增 AC-17-16/17;② 5 的 F-5.2 补「只交 `season_index`、不做乘法」的割据注 + AC-5-16/17;③ 18 的 `OQ-18-5` 结清暴露 **`D-21-28`(Craft 事件总序键缺失)严重度上升** —— 同 tick 点火密度随「发起即落流」上升,该键归 ADR-005 / 19 / 45(21a 已登记归属,不由本批裁)。**当前实测累计 245 covered / 40 partial / 100 gap / 385 条**(以本行实测为准 —— 上一轮的「241/38/106」已被本批翻转取代)。**2026-09-19 补记:#18 炮制首轮 `/design-review`(NEEDS REVISION · Scope M,11 BLOCKING,7 条同根因「载荷三缺」)当日修订落盘(四用户裁定均 [甲])+ 涟漪六件(21a / 20 / 5 / 44 / 42 / ADR-009 Amendment J / entities.yaml)—— 按 18 的 AC 全表改造同步 `TR-processing-*`**:**ID 不增不减(仍 385 条)**;**7 条状态翻转**:003 gap→partial(`SkillLevel` newtype 前置 = 21a **D-21-33** / O-18-R7)、004 **partial→covered**(R-18-B `Recipe.owner` 显式字段 = D-21-30 落盘,21a 侧 AC-21a-66)、005 gap→partial(F-18.2 `Admissible` 同一函数双路径 + ADR-011 Amendment B 同构,仍无 ADR 承接)、007 **partial→covered**(R-18-C 钳制归属结案 = 21a F1 正文 `EnvMod_total`,D-21-31;5 侧 AC-5-19 收窄)、008/010/013 维持 gap(纯 GDD 纪律,刻意不升 —— 无 ADR 是事实不是疏漏)、014 维持 partial(OQ-18-2 已裁主执行归 21a 烘焙管线,对侧 AC 待 O-18-R2 回写)、015 **gap→partial**(OQ-18-3 已裁单炉/不可取消/跨玩家并发允许;残留 = OQ-18-8 器具互斥归 24)。001/006/009/011/012/016/017/018 同步 note(载荷三位定稿 R-18-A、D-21-28 结案走 ADR-009 **Amendment J**、AC-18-07 并入 AC-18-01②)。**当前实测累计 247 covered / 41 partial / 97 gap / 385 条**(以本行 `^    status:` 字段计数为准 —— 粗 grep 会把 note 内文串计入,差 2)。翻转净效果:covered +2 / partial +1 / gap −3,自洽:247+41+97=385。**另:同批 4 三审(NEEDS REVISION,3 阻断「文件与自身不一致」族,零机制)就地修订,本文件仅订正 2 条需求文本(`TR-interaction-002` 三源→四源 + `TR-interaction-010` 焦点单栈门→模态开集),不翻转状态,ID 恒 385→(21 轮后)387。****2026-09-19 再补:D-8-12 动作词表结案(用户裁定路线甲 = 模态分流,落盘 `diagnosis-system.md` S-8.4 + AC-8-51/52)—— 本文件翻转 2 条**:① `TR-interaction-015` **partial → covered**(note 中「8 落盘后转 covered」的既定触发条件达成);② `TR-case-036` **gap → covered**(原 note 两半根因「10 无 GDD / 8 未登记」已双双消除 —— 10 于 2026-09-18 落盘,8 于本日 S-8.4 登记就诊→37 路由)。**不新增 ID(恒 387 条)**。**当前实测累计 248 covered / 44 partial / 95 gap / 387 条**(以 `^    status:` 字段计数为准;自洽:248+44+95=387)。"
 source_review: "docs/architecture/architecture-review-2026-09-15.md"
 traceability_index: "docs/architecture/traceability-index.md"
 
@@ -64,12 +64,12 @@ requirements:
   - id: TR-case-005
     system: case-system
     gdd: design/gdd/case-system.md
-    requirement: CaseOpened 载荷 {patient_id, opened_tick, disease_snapshot}
+    requirement: CaseOpened 载荷 {patient_id, disease_snapshot}(立案 tick = 本事件 SimEvent.Tick)
     domain: Core
     adr: ADR-008
     status: covered
-    revised: "2026-09-15"
-    note: "B-2 已修:原字段名 anchor: long 已改为 opened_tick: long"
+    revised: "2026-09-17"
+    note: "B-2(2026-09-15):原字段名 anchor: long 已改为 opened_tick: long —— 该改名**已于 2026-09-17 作废**:opened_tick 字段从载荷中**删除**(它 = 本事件自身的 SimEvent.Tick,重复携带即「同一事实两份真相」,违 ADR-006)。引用一律写 CaseOpened.Tick"
 
   - id: TR-case-006
     system: case-system
@@ -90,12 +90,12 @@ requirements:
   - id: TR-case-008
     system: case-system
     gdd: design/gdd/case-system.md
-    requirement: PatternRecognized 载荷携带冻结的 MemberSet 与锚点 anchor_case
+    requirement: "PatternRecognized 载荷 {patient_id: PatientId.None, anchor_case, salted_key, member_set}"
     domain: Core
     adr: ADR-008
     status: covered
-    revised: "2026-09-15"
-    note: "B-2 已修:原 PatternRecognizedPayload 缺锚点字段,已补 anchor_case: CaseId"
+    revised: "2026-09-17"
+    note: "B-2(2026-09-15):原 PatternRecognizedPayload 缺锚点字段,已补 anchor_case: CaseId。**2026-09-17 再订正**:再补 `salted_key: ulong` —— 本 ADR §一/三/五 三处都宣称「用加盐哈希键」而 struct 里没有 ⇒ ① AC-37-14 成空断言(恒真);② 53 无法定位是哪个 D 触发(共病时 anchor_case.disease_set 不唯一)"
 
   - id: TR-case-009
     system: case-system
@@ -216,10 +216,12 @@ requirements:
   - id: TR-case-023
     system: case-system
     gdd: design/gdd/case-system.md
-    requirement: "F-37.2 可结案 = 病史流 ≥1 处置事件(窗口内)∧ 玩家勾选"
+    requirement: "F-37.2 可结案 = 病史流 ≥1 处置事件(窗口 [CaseOpened.Tick, CloseTick] 内)∧ 玩家勾选"
     domain: Core
     adr: ADR-008
     status: covered
+    revised: "2026-09-17"
+    note: "**窗口方向就地订正**:原 ADR-008 §四 与 F-37.2 双双写作 `c.opened_tick ∈ [e.Tick, CloseTick]`,读作「立案 tick 落在处置 tick 与结案 tick 之间」⇒ 恰好使「复诊第二例凭首诊处置通过前置」成为唯一可通过路径(即紧接下一行自称要堵的 Opus 复核 #4 后门,公式层实际未堵)。正确式 `e.Tick ∈ [c.opened_tick, c.CloseTick]`,已落 ADR-008 §四 + case-system.md F-37.2"
 
   - id: TR-case-024
     system: case-system
@@ -232,10 +234,12 @@ requirements:
   - id: TR-case-025
     system: case-system
     gdd: design/gdd/case-system.md
-    requirement: "盐键 SplitMix64(WorldSeed, \"case-salt\")"
+    requirement: "盐键逐 D 派生:salted_key(D) = SplitMix64(WorldSeed, \"case-salt\", ordinal(D))"
     domain: Core
     adr: ADR-008
     status: covered
+    revised: "2026-09-17"
+    note: "原写 `SplitMix64(WorldSeed, \"case-salt\")`(全局单值)—— 与本 ADR §五「盐的输入集含病种枚举键」自相矛盾:若全局单值则所有 D 加出同一个 salted_key,53 无法区分是哪个 D 触发。裁定取**逐 D 派生**;「全局」原意(盐不按存档/玩家分叉)保留"
 
   - id: TR-case-026
     system: case-system
@@ -253,6 +257,96 @@ requirements:
     domain: Feature
     adr: null
     status: gap
+
+  - id: TR-case-028
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: "载荷内枚举 = 版本化整数 ordinal(`DiseaseIdSet` / `Judgment.lexicon_id`);映射表进 ConfigVersion 内容哈希覆盖集"
+    domain: Core
+    adr: ADR-006 + ADR-014
+    status: covered
+    revised: "2026-09-17"
+    note: "二轮复核 B1。原写 `FixSet` —— 该型**全库零定义**且**类型本身是错的**:`disease_id` 在 9 的 R1 表是 `DIS_*` 前缀枚举,**不是定点量**,塞进 Q16.16 算术域正是 ADR-006 D-21-17 修掉的同一类错误(「把整数计数塞进定点域」);破坏面含 `D ∈ disease_set` 退化为**定点相等比较** —— 语义已错却逐位可回放(静默失败类)。改型后由 ADR-006 §Decision 二 **D-21-13 口径收窄**承接(载荷内枚举 = 版本化整数 ordinal;跨持久化配置态枚举仍用稳定字符串名)"
+
+  - id: TR-case-029
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: "ordinal 映射表 append-only(既有条目号永不重用 / 永不改义)+ 构建期对基线 `_ordinal_baseline.json` 断言"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    revised: "2026-09-17"
+    note: "**本轮自查出的 ADR 级冲突的处置**。ADR-008 §三 / 37 反复写「表变更 ⇒ 旧存档**拒载**」,而 ADR-010 §七 与 ADR-014 §五 明写 `ConfigVersion` 不匹配**非致命** —— 两者不可同时成立,且仅靠「进覆盖集」**不足以**守住 ordinal 重排(不匹配非致命 ⇒ 静默错读照旧)。**择一(不推翻 ADR-010)**:版本号管「改动可追溯」,**append-only 构建门**管「静默错读」(把「麻黄汤被读成桂枝汤」换成明确构建失败)。既有先例 = 本仓 `docs/CLAUDE.md` 的 TR Registry 纪律「Never renumber existing IDs — only append new ones」,本条把它从人工约定升为构建失败。落 `adr-014 §五 D-21-13 承接条 ③`"
+
+  - id: TR-case-030
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: "判词表 `case_judgment_lexicon` = `assets/data/case_judgment_lexicon.json`,经 ADR-014 两阶段烘焙;构建期校验其与 9 的病种注册表**非一一对应**"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    revised: "2026-09-17"
+    note: "用户裁定「③ 进 ADR-014 烘焙词表」。第六处泄漏面(`Judgment` 此前**本 ADR 与 37 均未定义**,独立于 AC-37-15 的 DTO 检查):玩家自书病名是合法 DTO 字段,若词表与病种注册表一一对应则「换名不换壳」,泄漏照旧。`freehand_text` 是**独立字段**(纯呈现态,永不进任何判定),其对 ADR-006 Amendment A「Payload 无引用字段」的例外**已就地登记于 adr-006**(含「不得以此扩张」守门条)"
+
+  - id: TR-case-031
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: "`PATTERN_THRESHOLD` 进 ConfigVersion 覆盖集:改值可追溯;但**不拒载**(ADR-010 §七 语义,已发生事件不受影响、后续窗口用新值)"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    revised: "2026-09-17"
+    note: "37 初稿写「旋钮变更 ⇒ 老存档**作废**」是过度解读,与 ADR-010 §七 冲突,已就地订正。**非对称性必须记明**:阈值可改而旧档可加载,但**同一存档读两次可能得出不同 FiredSet**(旧窗口用旧阈值、新窗口用新阈值)—— 这是 ADR-010 §七 的既有语义,非本条引入"
+
+  - id: TR-case-032
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: "三案链成员判定域:`ScriptedChain(D)` 显式指定成员 + **一次性**(「Boss 击败后不可重现」,用户裁定)"
+    domain: Feature
+    adr: ADR-008
+    status: covered
+    revised: "2026-09-17"
+    note: "兑现 52 侧委派(`random-events.md:418-426`「由 37 定义三案链的触发条件」)。用户裁定为**自由文本**(非给定选项):**「Boss 击败后不可重现」** ⇒ 脚本链一次性。机制 = §F-37.1b + AC-37-29;内容值(`patient_id` 三元组)归 `design/gdd/content/adventure-catalog.md`,**本 GDD 不落内容值**"
+
+  - id: TR-case-033
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: "同一病人同时至多一个开案:`#{c : c.state = 开 ∧ c.patient_id = p} ≤ 1`"
+    domain: Core
+    adr: ADR-008
+    status: covered
+    revised: "2026-09-17"
+    note: "无此约束时,玩家反复对同一病人发起就诊交互可制造多个开案 ⇒ F-37.1 的 FirstPerPatient 语义与『病例 = 一次就诊』的容器定义同时失守。由 AC-37-26 守"
+
+  - id: TR-case-034
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: "判定记录 DTO **须含 `quill_tick`**(= 该条判断事件的 SimEvent.Tick,int64),供 42 只读取用(不含任何病种信息)"
+    domain: Presentation
+    adr: ADR-013
+    status: covered
+    revised: "2026-09-17"
+    note: "**二轮复核补登记的接口义务**。42 侧写「`墨龄 = 当前 tick − 落笔 tick`,**经只读 DTO**,42 不持任何计时器」,而**旧稿 37 零登记** ⇒ 42 的呈现承诺无上游落点。37 只暴露只读字段,不破规则九(该字段不含病种信息)"
+
+  - id: TR-case-035
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: "「37 沉默 ≠ 世界沉默」(支柱四措辞订正):类型层绝对沉默 / 信号层沉默 / 感知层不沉默;53 受两条硬约束(① 延迟 ② 不可归因)"
+    domain: Feature
+    adr: null
+    status: covered
+    revised: "2026-09-17"
+    note: "用户裁定「② 接受时序泄漏改写措辞」(机制未变,改的是措辞)。**为什么必须改**:原句「系统永不报你答对了」被读成「玩家永远不会知道」——那是**假的**:53 在 PatternRecognized 时刻产生的可见世界变化在感知层就是一次宣告。53 **无 GDD** ⇒ AC-37-25 / AC-37-28 现记 `NOT-RUN`。**53 撰写时必须承接该两条**,否则本次措辞订正失去落点"
+
+  - id: TR-case-036
+    system: case-system
+    gdd: design/gdd/case-system.md
+    requirement: "就诊交互的语义定义归 **8 / 10 的动作词表**(37 只订阅「动作已开始」信号,不定义动作)"
+    domain: Feature
+    adr: null
+    status: covered
+    revised: "2026-09-19"
+    note: "**登记为 8 / 10 侧的载体义务**(规则二前提定义框 + §载体欠账表)。37 不是动作的定义者。⚠️ 本条原 note 的两半根因(`10` **无 GDD**、`8` **未登记该动作**)已于 2026-09-19 双双消除:10 的 GDD 落盘于 2026-09-18;8 侧由用户裁定路线甲(模态分流)于 `diagnosis-system.md` **S-8.4 动作词表**登记四路由,**就诊 → 37** 为表中第一行(`AC-8-51` / `AC-8-52` BLOCKING 守该表)。⇒ **gap → covered**。37 侧口径不变:仍只订阅「动作已开始」信号,不定义动作本身"
 
   # ═══════════════════════════════════════════════════════════════════════════
   # 物品与配方 (Item Database, #21a) — design/gdd/item-database.md
@@ -1230,8 +1324,8 @@ requirements:
     domain: Presentation
     adr: docs/architecture/adr-018-audio-architecture.md
     status: covered
-    revised: "2026-09-15"
-    note: "ADR-018 §五:AC-44-07 —— 联机下同一听诊 cue 对全部 4 名玩家产出的听诊音层次一致(取主机技能档);脉案字体量仍各自分叉(铁律⑤)。依据:单 `AudioListener` 每设备一条混音总线(modules/audio.md:256-266)⇒ 分人分混结构上不可能"
+    revised: "2026-09-18"
+    note: "**2026-09-18 改判**(44 首轮 `/design-review` 阻断 + 用户裁定 D-A)**:原口径「精度统一取**主机**技能」**已撤销** —— 其依据「单 `AudioListener` 每设备一条混音总线 ⇒ 分人分混结构上不可能」是**伪前提**(`AudioListener` 是空间化参考点约束,非总线数约束)。现行:`ADR-018 §五` 改为 `SetTier(TierSource.Local)` —— **各设备按本机技能档渲染**,保住 44 的听觉熟练度成长轴;AC-44-07 已据此重写。**跨 ADR 涟漪见 ADR-001 §一之二(远端声源锚点)/ ADR-020 §七(Listener 挂点)**"
 
   - id: TR-diag-025
     system: diagnosis-system
@@ -1240,8 +1334,8 @@ requirements:
     domain: Presentation
     adr: docs/architecture/adr-018-audio-architecture.md
     status: covered
-    revised: "2026-09-15"
-    note: "ADR-018 §六:统一为「音频触发源必须 ∈ 行为反馈白名单」;**AC-44-09(BLOCKING)** = EditMode + CI 白名单断言(禁 sting / jingle / ducking 报状态 / 素材切换报状态)。**V-8.7 原本只有 prose** —— ADR-018 把它升为构建门"
+    revised: "2026-09-18"
+    note: "ADR-018 §六:统一为「音频触发源必须 ∈ 行为反馈白名单」;**AC-44-09(BLOCKING)** = EditMode + CI 白名单断言。**2026-09-18 硬化**:事件表 schema 须承载 `whitelist_category` + `trigger_source` 两字段(原只有 prose 白名单,捕获不了**基于时序**的状态播报 —— 明令黑名单 `VitalsCrossed` / `ThresholdCrossed` / `OutcomeResolved`);`OQ-44-4` 升格为 §Event Table Schema;附反向夹具(NOT-RUN 守卫)"
 
   # ═══════════════════════════════════════════════════════════════════════════
   # 技能与熟练度 (Skill System, #30) — design/gdd/skill-system.md
@@ -1306,7 +1400,9 @@ requirements:
     requirement: 30 与 25 格斗线的数据边界
     domain: Core
     adr: null
-    status: gap
+    status: partial
+    revised: "2026-09-17"
+    note: "**2026-09-17 gap → partial**(25 落盘):25 侧的边界已兑现 —— 战斗效能公式定义权归 30,25 只消费其输出档;动作表 schema 已容纳 P1a 三线(`TR-combat-010/011`)。**仍是 partial 而非 covered 的原因在 30 自身**:30 现 Needs Revision(架构复核 2026-09-15:全文零 ADR 引用 + `P=1.4` 违反 8 的 G-1),边界另一侧无有效件 —— 30 修订 + 二轮后本项方可判 covered"
 
   - id: TR-skill-008
     system: skill-system
@@ -1336,8 +1432,8 @@ requirements:
     domain: Networking
     adr: ADR-001
     status: covered
-    note: "pipe 抽象(IReplayPipe + ReorderBuffer)P0 生效;库选型 P1b 前 swap 评审(ADR-001 §四)"
-    revised: 2026-09-15
+    note: "pipe 抽象(IReplayPipe + ReorderBuffer)P0 生效;库选型 P1b 前 swap 评审(ADR-001 §四)。**2026-09-18 修订**:第二 QoS 自 `IReplayPipe` 拆出为 `IPositionalChannel`(per-`ActorId` latest-value 表)—— 原文单槽 `PublishPositional(in WorldPosLatest p)` 无 key、类型未定义、无消费者;44 首轮 `/design-review` 阻断 7 提出,用户裁定 D-D = 现改 ADR-001。"
+    revised: 2026-09-18
 
   - id: TR-concept-003
     system: game-concept
@@ -1400,97 +1496,139 @@ requirements:
 
   - id: TR-player-001
     system: player-movement
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/player-controller-and-movement.md
     requirement: "移动模型 = `CharacterController`(不参与 PhysX 求解;无 Rigidbody 驱动)"
     domain: Core
     adr: ADR-020
     status: covered
-    revised: "2026-09-15"
-    note: "ADR-020 §一。R-13 裁定;**理由**:本作 P0 玩家移动不与物理世界耦合(建造走整数格邻接,ADR-015 §五), kinematic Rigidbody 的物理交互价值用不上却换更难调的手感"
+    revised: "2026-09-16"
+    note: "ADR-020 §一。R-13 裁定;**理由**:本作 P0 玩家移动不与物理世界耦合(建造走整数格邻接,ADR-015 §五), kinematic Rigidbody 的物理交互价值用不上却换更难调的手感。**2026-09-16 GDD 落盘时细化**:判据扩为三条并列(`AC-1-01`)—— ① 无 `Rigidbody`/`AddForce`;② `CharacterController.Move` 是唯一位移写入点;③ `Physics.Raycast`/`CheckCapsule`/`Overlap*` 引用数为 0(可走性只由 collide-and-slide 给出,承 GDD R3)。断言面**含玩家预制体 / 场景资产的组件清单**,不止 `.cs` 引用集"
 
   - id: TR-player-002
     system: player-movement
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/player-controller-and-movement.md
     requirement: "玩家位移 = **纯表现态**;在 sim 中的唯一投影 = **跨格世界流事件**(连续位置 / 速度 / 朝向永不写流)"
     domain: Core
     adr: ADR-020
     status: covered
-    revised: "2026-09-15"
-    note: "ADR-020 §四 —— 是 ADR-016 §三(感知输入 = 粗粒度整数格)在**玩家侧(发出侧)**的对称落实。ADR-016 定义**读方**(13/27 读格),ADR-020 定义**写方**(玩家跨格发事件)。**频率 = 格穿越率**,与帧率 / 移动速度无关 ⇒ ADR-009 世界流有界性论证不被破坏。AC-20-03 BLOCKING"
+    revised: "2026-09-16"
+    note: "ADR-020 §四 —— 是 ADR-016 §三(感知输入 = 粗粒度整数格)在**玩家侧(发出侧)**的对称落实。ADR-016 定义**读方**(13/27 读格),ADR-020 定义**写方**(玩家跨格发事件)。AC-20-03 BLOCKING。**2026-09-16 口径订正**:原写『频率 = 格穿越率』**不可证伪且与 F-1-1b 相抵** —— F-1-1b 只给**上界**(每 tick 至多一条,跨格检测每帧跑、tick 内后续跨格覆盖待发值);帧率 < tick 频率时同 tick 两次跨格被归并,等值不成立。**正确口径 = 事件率上界 = tick 频率**(与帧率无关、与位移距离无关)⇒ ADR-009 §六 有界性论证仍成立。判据改分两层(`AC-1-03`):①单元 —— 同 tick 喂 N ∈ {1,8,64} 样本断言 `Append == 1` 且载荷格 == 第 N 样本的格;②集成 —— `Append 总数 ≤ tick 数` ∧ **逐 tick** 核对「`Append` 的格 == 该 tick 边沿的 `pending_cell`」(**2026-09-16 二次订正**:原 ② 的 `≤ 相异格数` 合取项与 EC-3「回访再发」矛盾 ⇒ 已删,正确不变量是序列性质而非集合大小)。**载荷纯净判据亦订正**(`AC-1-02`):原『grep 无 `Vector3`→`Append` 路径』是**假阳性机器**(F-1-6 要求 `FloorToInt(p / LATTICE_SIZE)`,合法路径必然读 `Vector3`),改**反射断言** `ActorCellEntered` 字段类型集合 ⊆ {int32, int64, 整数枚举}"
 
   - id: TR-player-003
     system: player-movement
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/player-controller-and-movement.md
     requirement: "移动 / 旋转轴由 ADR-011 的动作映射供给(接口形状)"
     domain: Core
     adr: ADR-011 + ADR-020
     status: covered
-    revised: "2026-09-15"
-    note: "ADR-011 已定动作 → 意图的映射;ADR-020 §Architecture 固定系统 1 的输入面(`MoveInput`)。`<50 ms` 输入预算与移动手感同向(ADR-011 §二)"
+    revised: "2026-09-16"
+    note: "ADR-011 已定动作 → 意图的映射;ADR-020 §Architecture 固定系统 1 的输入面(`MoveInput`)。`<50 ms` 输入预算与移动手感同向(ADR-011 §二)。**2026-09-16 GDD 落盘时补**:① `Sprint`/`Jump` 两个动作**已补进 3 的 GDD**(`input-system.md` 规则二 + §Interactions)并同步 `systems-index.md:36`;② **1 不消费 `Look`**(用户裁定 2026-09-16)—— 朝向自动面向移动方向(F-1-4),`Look` 归 2 的相机;③ `‖MoveInput‖` 是**速度因子**不是开关(∈[0,1],进 F-1-2 的 `v_target`);1 **不裁剪**它,而是在 3→1 边界断言 `≤ 1`(`AC-1-09`)—— 坏值会**静默**破坏 F-1-1a"
 
   - id: TR-player-004
     system: player-movement
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/player-controller-and-movement.md
     requirement: "移动手感旋钮(移速 / 加速度 / 转向速率)的形状与归属"
     domain: Core
     adr: ADR-020
     status: covered
-    revised: "2026-09-15"
-    note: "ADR-020 §一 AC-20-11:**全部数值留白**(用户手调);ADR 只给形状。与 `feedback-user-owns-balance-values` 一致"
+    revised: "2026-09-16"
+    note: "ADR-020 §一 AC-20-11:**全部数值留白**(用户手调);ADR 只给形状。与 `feedback-user-owns-balance-values` 一致。**2026-09-16 GDD 落盘时定形**:Tuning Knobs 分六组 —— 组1 速度与手感 · 组2 跳跃 · 组3 转向 · 组4 地貌/情境乘数(**表内容归 6 / 24,不归 1**)· 组5 引擎/世界常量(**不归 1**,但 1 被锁住)· 组6 **明确不存在**的旋钮(防越界)。**新增跨系统调参纪律**:`K_TERRAIN_MAX`/`K_CONTEXT_MAX` 是 F-1-1a 速限的**派生**输入(各自表的上界),⇒ **6/24 调高一个乘数即可红掉 `AC-1-06`** —— 这是全系统唯一『动了它会红构建』的一组"
+
+  - id: TR-player-005
+    system: player-movement
+    gdd: design/gdd/player-controller-and-movement.md
+    requirement: "二维 `MoveInput` → **世界方向**的基(相机相对;系统 1 读系统 2 的只读 yaw basis)"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    revised: "2026-09-16"
+    note: "**2026-09-16 系统 1 首轮 `/design-review` 第一根因**(三方独立命中 · 最高优先级)。初稿 F-1-2 写 `v_target` 却**从未定义 `MoveInput` 从哪组基投影到世界** —— GDD 全程可编译、单测可全绿,而**游戏不可玩**(移动方向无定义)。用户裁定 2026-09-16:**相机相对**(2 供 yaw basis)。ADR-020 §Key Interfaces 已就地补 `ICameraRig.YawBasis`(`(Vector3 fwd, Vector3 right)` 水平化正交基)+ **Amendment B**;系统 1 新立 **F-1-8**(`v̂_world := normalize(mx × f̂ + my × r̂)`,退化情形 → 世界 `+Z`)+ `AC-1-31`(单位性 + `y==0`)/ `AC-1-35`(单向无环 · 只读)。**方向单向**:1 读 2 的基(上游值),2 读 1 的 `Position`(下游值)—— 两条边方向相反,**不构成类型环**;1 **不读 `Look` 动作、不读相机变换矩阵**。判据 = AC-20-14。**2026-09-16 同日 GDD 落盘 ⇒ partial 的根因已消**,`status: partial → covered`:系统 2 GDD `design/gdd/camera-and-viewpoint.md` 落盘,上游交付面 = **F-2-2**(构造即正交归一)+ **`AC-2-07`…`AC-2-10`**;系统 1 侧 F-1-8 至此**有基可读**。⚠️ **残留未结的是 `O-11`**(`PITCH_MAX` 取值回填 `OQ-1-14`)与 **`O-14`**(帧内恒定对侧承诺)—— 二者**不阻塞本条的 covered**,但构成系统 1 的 `OQ-1-14` 结案路径"
+
+  - id: TR-player-006
+    system: player-movement
+    gdd: design/gdd/player-controller-and-movement.md
+    requirement: "**跨格事件的 `Append` 权 = 主机唯一**(客户端经 ADR-001 第二 QoS 上行其格;不在可靠通道)"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    revised: "2026-09-16"
+    note: "**2026-09-16 系统 1 首轮 `/design-review` 第三根因**。ADR-020 §四 原文只说「玩家控制器负责跨格检测与事件发出」,却**从未指定联机时由哪台机器 `Append`** —— 与 ADR-005「**主机唯一执行 `Step` / `CatchUp`**」(⇒ 主机是唯一 Appender)冲突,且与该 ADR「跨格检测每台机器都在跑」不自洽。ADR-020 同日 **Amendment B** 四处裁决(用户照准):① **Append 权 = 主机唯一**(本机玩家在主机 ⇒ 直连;在客户端 ⇒ 客户端 **Append 调用点数为 0**,其格经 **ADR-001 第二 QoS** unreliable latest-value 上行,由主机权威控制器统一 Append);② **`ActorCellEntered` 移出可靠通道**(最新值语义 vs reliable-ordered;可靠通道被「急救 < 50 ms」`TR-concept-007` 占用);③ 远端队友同路径 ⇒ 主机 Append 后经世界流回播,**13 / 27 在所有机器读到同一条序列**(ADR-016 §一「第四来源」禁则不被破);④ 本地预测与主机权威的迟滞差 = 表现态正常代价,**不写流**。系统 1 落点 = **R5 / EC-16**(「谁 Append 什么」全表)/ `AC-1-30`(客户端 Append 调用点数为 0);判据 = AC-20-13。**`OQ-1-9` 就此结案**,实现落点在 45(登记义务 `O-4`)"
+
+  - id: TR-player-007
+    system: player-movement
+    gdd: design/gdd/player-controller-and-movement.md
+    requirement: "`CharacterController` 参数契约(`slopeLimit` / `stepOffset` / `minMoveDistance` / `skinWidth`)的命名与归属"
+    domain: Core
+    adr: ADR-020
+    status: partial
+    revised: "2026-09-16"
+    note: "**2026-09-16 系统 1 首轮 `/design-review` 第五根因**。初稿通篇只说「collide-and-slide 是唯一可走性机制」与「`slopeLimit` / `stepOffset` 参数」,**从未命名任何一个参数、也未定其归属** —— 而「看得见走不上去」与「上去但逻辑层判不可走」(逻辑层按整数格判可走性,ADR-015 §五)正是这类缺口的典型故障。系统 1 新立 **F-1-9**(参数契约表)+ `AC-1-33`(三项断言):① `slopeLimit` **等于 ADR-015 §一 的几何取值**(归 ADR-015 §一 + 系统 1);② `stepOffset` 归**关卡几何 / ADR-015**(**不归 1**);③ **`minMoveDistance` P0 = 0**(非零会吞掉亚阈值位移 ⇒ 手感粘滞 + 与 F-1-1a 的逐帧预算不一致);`skinWidth` / `radius` / `height` / `center` / `enableOverlapRecovery` 一并登记归属。**status = partial 的根因**:ADR-015 §一 尚未点名 `slopeLimit` / `stepOffset` 的**几何取值**(登记义务 `O-9`,落点 = ADR-015 · 6)"
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # 摄像机与视角 (System 2) — design/gdd/systems-index.md:35
+  # 摄像机与视角 (System 2) — design/gdd/camera-and-viewpoint.md
+  #  2026-09-16:GDD 落盘 ⇒ `gdd:` 字段由代生源(systems-index.md)改指本 GDD;
+  #  `TR-camera-006` partial → covered(GDD §B 组 AC-2-07…10 兑现 O-8)。
   # ═══════════════════════════════════════════════════════════════════════════
 
   - id: TR-camera-001
     system: camera
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/camera-and-viewpoint.md
     requirement: "平面模式视角 = **第三人称(越肩)**"
     domain: Core
     adr: ADR-020
     status: covered
-    revised: "2026-09-15"
-    note: "ADR-020 §三。承 `game-concept.md:32/757`(「全程第三人称」)—— 本 ADR 把该裁决**限定平面模式**并保留。旧稿的「第一人称微观」已被用户推翻(`design/archive/大医精诚-初稿-GDD.md:124-125`),不复活"
+    revised: "2026-09-16"
+    note: "ADR-020 §三。承 `game-concept.md:32/757`(「全程第三人称」)—— 本 ADR 把该裁决**限定平面模式**并保留。旧稿的「第一人称微观」已被用户推翻(`design/archive/大医精诚-初稿-GDD.md:124-125`),不复活。**2026-09-16**:系统 2 GDD 落盘,需求文本回溯核对无误(GDD R-2-1 四段链 / 组 2 的档位映射);实现判据 = `AC-2-25`④(`ARM_LEN > 0`)· `AC-2-14`"
 
   - id: TR-camera-002
     system: camera
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/camera-and-viewpoint.md
     requirement: "VR 模式视角 = **第一人称(头显)**,且 VR **不承担开放世界移动**;P0 只落接口"
     domain: Core
     adr: ADR-020
     status: covered
     revised: "2026-09-15"
-    note: "ADR-020 §三。承 `technical-preferences.md:34`(「VR 不承担开放世界移动(晕动症),只做站定式急救操作」)。**两条相机路径独立,不互相迁就** —— 消解「全程第三人称 vs 头显第一人称」的表面矛盾。实现推 P1a(与 ADR-013 / ADR-018 §七 同批);AC-20-06/07"
+    note: "ADR-020 §三。承 `technical-preferences.md:34`(「VR 不承担开放世界移动(晕动症),只做站定式急救操作」)。**两条相机路径独立,不互相迁就** —— 消解「全程第三人称 vs 头显第一人称」的表面矛盾。实现推 P1a(与 ADR-013 / ADR-018 §七 同批);AC-20-06/07。**2026-09-16**:系统 2 GDD 落盘核对无误 —— GDD **R-2-9**(VR 不经平面链)+ **EC-2-11**(平面链状态冻结 · `AudioListener` 迁头显);**`OQ-2-5`** 登记 P1a 的机位细节(与系统 1 的 `OQ-1-3` 同批裁)"
 
   - id: TR-camera-003
     system: camera
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/camera-and-viewpoint.md
     requirement: "相机**只读,永不持有游戏状态**;不写三流、不引用 sim 程序集"
     domain: Core
     adr: ADR-020
     status: covered
     revised: "2026-09-15"
-    note: "ADR-020 §五。承 C3(`systems-index.md:531` 42 只渲染)· ADR-013 · ADR-018 §一 的同构体例。AC-20-05"
+    note: "ADR-020 §五。承 C3(`systems-index.md:531` 42 只渲染)· ADR-013 · ADR-018 §一 的同构体例。AC-20-05。**2026-09-16**:系统 2 GDD 落盘 —— 本条是 **R-2-8** + **`AC-2-01`**(不进流 / 不进存档 / 崩溃重启不改变事实)+ **`AC-2-04`**(引用集白名单 + `IEventSink.Append` 调用点数 = 0)+ **`AC-2-05`**(零 `SimEvent`);⚠️ **`AC-2-04`② 比系统 1 的同类判据更强** —— 1 至少写一条跨格事件,2 写零条"
 
   - id: TR-camera-004
     system: camera
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/camera-and-viewpoint.md
     requirement: "镜头效果的归属与 VR 禁用清单(结清 8 的既有引用)"
     domain: Core
     adr: ADR-020
     status: covered
     revised: "2026-09-15"
-    note: "ADR-020 §六。归属 = **8 语义 + 2 实现**(承 `diagnosis-system.md:1641`「主角视野边缘 = 2 摄像机 + shader」的既有分工);**VR 全禁镜头效果**(承 `:1519`,舒适度优先);**不得用于报状态**(与 ADR-018 §六 无提示音铁律**同源** —— 是同一铁律的视觉侧)。AC-20-08/09"
+    note: "ADR-020 §六。归属 = **8 语义 + 2 实现**(承 `diagnosis-system.md:1641`「主角视野边缘 = 2 摄像机 + shader」的既有分工);**VR 全禁镜头效果**(承 `:1519`,舒适度优先);**不得用于报状态**(与 ADR-018 §六 无提示音铁律**同源** —— 是同一铁律的视觉侧)。AC-20-08/09。**2026-09-16**:系统 2 GDD 落盘 —— 四子项落 **`AC-2-06`**①…④(含 ④ `AudioListener` 唯一);**GDD 只划归属与禁令,不定义任何具体效果的视觉表现**(那在 8 的数据表里);EC-2-13 明写「效果与收缩互不感知 —— 8 是语义拥有者,2 是实现拥有者;让 2 判断何时该播效果 = 让 2 持有 8 的知识」"
 
   - id: TR-camera-005
     system: camera
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/camera-and-viewpoint.md
     requirement: "44 的 `AudioListener` 单挂点落定(平面主相机 / VR 头显)"
     domain: Presentation
     adr: ADR-020
     status: covered
     revised: "2026-09-15"
-    note: "ADR-020 §七。结清 `adr-018-audio-architecture.md:295` 留白的「单 `AudioListener` 挂点(VR 头显 vs 平面摄像机)」。AC-20-10"
+    note: "ADR-020 §七。结清 `adr-018-audio-architecture.md:295` 留白的「单 `AudioListener` 挂点(VR 头显 vs 平面摄像机)」。AC-20-10。**2026-09-16**:系统 2 GDD 落盘 —— `ICameraRig.Camera` 即挂点(GDD §Dependencies 下游表);VR 侧在 **EC-2-11** 迁至头显。**双向性已核**:44 侧 `audio-system.md:140/313/574` 已登记挂点来源 ⇒ 无缺口"
+
+  - id: TR-camera-006
+    system: camera
+    gdd: design/gdd/camera-and-viewpoint.md
+    requirement: "**`ICameraRig.YawBasis`** —— 水平化正交基,只读、单向(供系统 1 把二维 `MoveInput` 投影成世界方向)"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    revised: "2026-09-16"
+    note: "**2026-09-16 ADR-020 Amendment B 新立**(由系统 1 首轮 `/design-review` 的第一根因驱动)。`(Vector3 fwd, Vector3 right)` —— `f̂` = 相机前向的**水平投影归一化**,`r̂ := normalize(cross(worldUp, f̂))`;**只读**(系统 1 零写入相机状态 / 变换)· **水平化且正交归一**(`y == 0` ∧ `f̂ ⟂ r̂`)。**单向** —— 1 读 2 的基(上游值),2 读 1 的 `Position`(下游值),两条边方向相反 ⇒ **不构成类型环**;1 **不读 `Look` 动作、不读相机变换矩阵**。判据 = AC-20-14 / 系统 1 的 `AC-1-31` / `AC-1-35` ③④。**2026-09-16 GDD 落盘 ⇒ partial 的根因已消**,`status: partial → covered`:系统 2 GDD `design/gdd/camera-and-viewpoint.md` 落盘,**F-2-2**(`f̂ := (sin yaw, 0, cos yaw)` / `r̂ := (cos yaw, 0, −sin yaw)` —— **构造成立,不靠事后归一**)+ **§B 组四条判据** = **`AC-2-07`**(水平化:遍历 `pitch` 采样点,`y ≡ 0`)· **`AC-2-08`**(正交归一:遍历 `yaw` 全周,含回绕点)· **`AC-2-09`**① **装载期断言 `PITCH_MIN < PITCH_MAX < 90°`** ⇒ 系统 1 的 F-1-8 退化分支**正常操作下不可达** · **`AC-2-10`**(一帧内 yaw 更新点 ≤ 1 + 系统 1 写入数 = 0)。⚠️ **`AC-2-09` 同时是 `O-11` 的载体** —— `PITCH_MAX` 的实际取值须回填系统 1 的 `OQ-1-14` 并结案(该义务**未结**)。⚠️ **交付义务 `O-8` 由 2 侧兑现;`O-11` / `O-14` 仍是对 1 的未结义务**。F-2-2 末注:**即使 `PITCH_MAX` 被口径错配为 ≥ 90°,`YawBasis` 照常按式返回、不抛异常** —— 它不知道俯角上限,也不该知道"
 
   # ═══════════════════════════════════════════════════════════════════════════
   # 病人 AI 与行为 (Patient AI and Behavior, #13) — design/gdd/patient-ai.md
@@ -1748,7 +1886,7 @@ requirements:
 
   - id: TR-worldeco-001
     system: world-eco
-    gdd: design/gdd/systems-index.md   # 6 无独立 GDD;代生需求,撰写时回溯核对
+    gdd: design/gdd/world-and-ecozones.md   # ✅ 2026-09-16 本 GDD 落盘(原为 systems-index.md 代生)
     requirement: "POI **定义**(位置 / 守卫配置 / 类型 / 锚点)是**派生态** —— 走烘焙逻辑层(ADR-015 §一),加载期确定性重建,**不进任何事件流**"
     domain: Core
     adr: ADR-021 + ADR-015
@@ -1758,7 +1896,7 @@ requirements:
 
   - id: TR-worldeco-002
     system: world-eco
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/world-and-ecozones.md   # ✅ 2026-09-16 回溯补齐(原为 systems-index.md 代生)
     requirement: "POI **状态**(已发现 / 已清 / …)是**模拟态**;**所有者与唯一写者 = 6 世界与生态区**;写经 `IEventSink.Append`,**主机唯一执行**(承 ADR-005)"
     domain: Core
     adr: ADR-021
@@ -1768,7 +1906,7 @@ requirements:
 
   - id: TR-worldeco-003
     system: world-eco
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/world-and-ecozones.md   # ✅ 2026-09-16 回溯补齐(原为 systems-index.md 代生)
     requirement: "新增世界流 Kind `PoiStateChanged`,载荷 `{ poi_id, new_state }`,**均为整数枚举**(禁 float / 禁字符串,ADR-006 边界)"
     domain: Core
     adr: ADR-021 + ADR-009
@@ -1778,7 +1916,7 @@ requirements:
 
   - id: TR-worldeco-004
     system: world-eco
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/world-and-ecozones.md   # ✅ 2026-09-16 回溯补齐(原为 systems-index.md 代生)
     requirement: "`PoiStateChanged` 为世界级事件,`Patient = PatientId.None`,**不污染 `max(patient_id)` 高水位**"
     domain: Core
     adr: ADR-021 + ADR-007
@@ -1788,7 +1926,7 @@ requirements:
 
   - id: TR-worldeco-005
     system: world-eco
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/world-and-ecozones.md   # ✅ 2026-09-16 回溯补齐(原为 systems-index.md 代生)
     requirement: "POI 状态变更**全部**经 `PoiStateChanged` 落世界流,**无第二存储**(存档字段 / 场景对象 / 内存标志均禁 —— grep 无旁路)"
     domain: Core
     adr: ADR-021
@@ -1798,7 +1936,7 @@ requirements:
 
   - id: TR-worldeco-006
     system: world-eco
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/world-and-ecozones.md   # ✅ 2026-09-16 回溯补齐(原为 systems-index.md 代生)
     requirement: "重放 / 迁移后 POI 状态**从世界流重建**,**不读存档快照作为真源**(快照 = 优化非真相)"
     domain: Core
     adr: ADR-021 + ADR-009
@@ -1808,7 +1946,7 @@ requirements:
 
   - id: TR-worldeco-007
     system: world-eco
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/world-and-ecozones.md   # ✅ 2026-09-16 回溯补齐(原为 systems-index.md 代生)
     requirement: "POI 状态转移总数**有界**:≤ `|POI| × |STATE|`(POI 集与状态枚举均有限,ADR-015 §一 烘焙逻辑层)"
     domain: Core
     adr: ADR-021 + ADR-009
@@ -1818,7 +1956,7 @@ requirements:
 
   - id: TR-worldeco-008
     system: world-eco
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/world-and-ecozones.md   # ✅ 2026-09-16 回溯补齐(原为 systems-index.md 代生)
     requirement: "52 的 `spawn_anchor` 过滤**读 POI 定义(静态)**,**不读 POI 状态** —— 抽池不得依赖动态状态"
     domain: Core
     adr: ADR-021
@@ -1828,11 +1966,1744 @@ requirements:
 
   - id: TR-worldeco-009
     system: world-eco
-    gdd: design/gdd/systems-index.md
+    gdd: design/gdd/world-and-ecozones.md   # ✅ 2026-09-16 本 GDD 落盘(原为 systems-index.md 代生)
     requirement: "`PoiState` **枚举具体值**(未发现 / 已发现 / 已清 / 已锁 …)+ POI **状态机规则**(哪些转移合法 / 是否可逆)"
+    domain: Core
+    adr: —
+    status: covered
+    revised: "2026-09-16"
+    note: "**ADR-021 刻意不定**(避免越权,同 ADR-009 §三「骨架先行,载荷归系统 ADR」的教训)—— 枚举值归 **6 的 GDD**。**✅ 2026-09-16 已交付**:`world-and-ecozones.md` 的 **R-6-7** 定为**三态最小集** `Undiscovered(0) → Discovered(1) → Resolved(2)`,**单调不可逆、无「已锁」/「已荒废」**(用户裁定);状态机 = **4 条平表转移**(T1 `0→1` / T2 `1→2` / T3 `0→2` 跳级 / T4 降级 = **非法**),非法处置三分为**幂等丢弃 / 降级告警 / 未登记 id 报错**。**有界性按 ADR-009 §六 复核已过,且收紧**:`|POI| × |STATE|`(3 倍)→ **`2 × |POI_DEF|`**(F-6-4 / `entities.yaml` 的 `formulas.poi_transition_bound`;**Risks 中「枚举定得过大 ⇒ 转移数膨胀」的担忧由此反向消解**)。枚举值同步登记于 `entities.yaml` 的 `constants.PoiState`。⚠️ **残留 `OQ-6-7`**:单调性是否最终定为全局不变量 —— 若 P1a 引入回退语义,本条与 `poi_transition_bound` / `AC-6-15` 同时作废,须**另开 ADR**。⚠️ 本状态由**撰写方**置为 `covered`,**待首轮 `/design-review` 确认**。"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 输入与设备 (Input & Devices, #3) — design/gdd/input-system.md
+  #   ⚠️ 系统 3 在架构复核 §2 记为「零覆盖」(GDD ❌ / 架构覆盖 ❌ 零)。
+  #   ADR-011 落盘时**未**生成 TR(其 §Enables 只声明 `TR-concept-007` gap→covered);
+  #   本 GDD 落盘时按 ADR-020 对 1 / 2 的先例**回溯追加**本 slug。
+  #   TR-concept-007 / 008 保持原位不动(它们是 game-concept 侧的需求)。
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-input-001
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**全案恰有一个动作资产**(`.inputactions`);`InputSystemUIInputModule` 与 3 的输入服务引用**同一对象**(同一性断言,非文件计数)"
+    domain: Core
+    adr: ADR-011
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-011 §三 F2 + 本 GDD 规则一。**把「禁同键双触发」前移一步**:两套资产 = 两套 GUID = 两套导航定义。AC-3-A1 BLOCKING(**2026-09-15 评审改写**:初稿「文件计数 = 1」会放过「同文件被实例化两次」的分叉 ⇒ 改比较 `GetInstanceID()`)"
+
+  - id: TR-input-002
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "三套绑重(K&M + Gamepad + OpenXR)同表共存;OpenXR 绑**通用 `XRController` 布局**(不绑 OculusTouch / Index 专属)"
+    domain: Core
+    adr: ADR-011
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-011 §一 + §Implementation 8(F5)。绑专属布局 = 换头显即失效;VR 只做站定式急救,不值得为单一设备分支"
+
+  - id: TR-input-003
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**绑重 overrides 持久化 = 输入层唯一的落盘职责**;**不进** ADR-010 的存档、**不进**三流"
+    domain: Foundation
+    adr: ADR-011 + ADR-010
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-011 §一 + 本 GDD 规则四。AC-3-A5(grep 断言:写盘调用仅此一处)"
+
+  - id: TR-input-004
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**资产重建致 GUID 失效 → schema hash 失配 → 优雅清空**(旧文件改名备份 + 载入默认 + 记日志);**不静默采用错位 overrides**"
+    domain: Foundation
+    adr: ADR-011
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-011 §一 F3 + 本 GDD 规则五 / F-3.5。**取舍明写**:失配时玩家**失去全部改键**而非**得到错位的改键**。AC-3-A3 BLOCKING。**2026-09-15 评审修正**:hash 元组**须含 `bindingId` 及 `processors`/`interactions`/`groups`** —— 初稿只哈希结构,对「重建 ⇒ `bindingId` 重生成 ⇒ overrides 静默丢失」**完全盲**,而那正是本条要防的失效;哈希算法改 **FNV-1a-64**(初稿提名的 `SplitMix64` 是 PRNG 混合器,非字节流哈希,且踩 ADR-012 F7 溢出 spike)。守门 = **AC-3-A8 BLOCKING**"
+
+  - id: TR-input-005
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**同机多玩家每玩家 `Instantiate()` 一份动作资产**(克隆**不继承 overrides**,且**不得启用 UI map**);纯联机(每人一机)不克隆"
+    domain: Core
+    adr: ADR-011
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-011 §一 F3 + 本 GDD 规则六。**P0 不涉及**(P0 = 单人,`game-concept.md:27` 联机是 P1b),但**形状现在定** —— 事后改 = 动作资产持有方式重写。**实现推 P1b**。**2026-09-15 评审修正三处**:① `Clone()` → **`Instantiate()`**(标待 spike);② 克隆**不继承 overrides** —— 初稿未考虑,会致每玩家改键串味;③ 克隆**不得启用 UI map**,否则每份副本都插一份 UI 导航 = **真正的双触发**(初稿把双触发归因于「两套资产」,归因错了)"
+
+  - id: TR-input-006
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**急救直读通道**:在 **`InputSystem.onAfterUpdate` 回调**内直读动作值(非 `Update()` 轮询),**不穿过 42 UI 事件栈**;`L_input→pixel ≤ 50 ms`(P0 = K&M / Gamepad 两端)"
+    domain: Performance
+    adr: ADR-011
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-011 §二(替代方案 2 被否)。**`TR-concept-007` 在系统 3 侧的落点**。**2026-09-15 评审重写**:① 初稿 F-3.3 的加法分解配 `JUDGE_BUDGET := 50 ms − L_render` 与 `L_input→pixel ≤ 50 ms` **代数等价** ⇒ 无验收能力,已删,回归**单条判据**;② 理由从「UI 栈吃掉预算」改为 **抖动(方差)** —— UI 路由是**帧内调度成本**,不改变 `L_render`;「手稳」练的是**可重复时机感**,方差不可控的链**不可练** ⇒ **结论(直读通道)保留,理由更换**;③ 采样点 = **回调**,轮询**不等价**(相位取决于脚本执行顺序);④ **VR 移出 P0**(归 P1b,`game-concept.md:720`)。AC-3-B1a(零硬件合成注入,CI 可跑)/ **B1b(BLOCKING,最低目标硬件定稿后签核)** / B2(**asmdef 引用断言 + Roslyn 分析器**,非 grep;**2026-09-16 四轮补**:B2 现另有子句 ③ —— **输入更新相位 = 渲染帧相位且每帧恰一次**,判据**只断性质、不引枚举成员名**)"
+
+  - id: TR-input-007
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**直读 `float` 值 = 手感层,永不进流**;**判定结果全整数、直接构造 `SimEvent`**(运行期**无解析**、`SimEvent` 载荷可达闭包**零 `float`/`double`**)"
+    domain: Core
+    adr: ADR-011 + ADR-006
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-011 §二 F4 + 本 GDD 规则八 / F-3.4。口径:「**意图非 `SimEvent`,仅判定结果为 `SimEvent`;而判定结果全整数**」。**2026-09-15 评审修正(范畴错误)**:初稿「判定结果进流前必须 `FixParse`」**不可执行** —— `FixParse.Parse(string)` 是**导入期** string→`Fix` 入口,`adr-006:105-122` 明写「**运行期不存在从 `float` 到 `Fix` 的路径 —— 编译期就不可表达**」。正确形态:`JudgeResult` 字段本身全整数,直接构造 `SimEvent`。**2026-09-16 四轮就地覆写(命题级 sweep)**:本条 note 此前把守门写作「`AC-3-A6`」,但 `AC-3-A6` 现行判据 = **asmdef 引用集白名单**(管「不引用声明 `SimEvent` 的程序集」),**不断言字段类型** —— 「判定结果全整数」的守门现为 **`B3`**;载荷可达闭包的守门为 **`A7`**。守门 = **A6(asmdef 引用集,不写流)** / **A7(BLOCKING,递归扫描载荷可达闭包)** / **B3(判定结果全整数)**"
+
+  - id: TR-input-008
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**联机急救判定归表现层本地即时出结果**(保手感);**仅结果事件**(成功 + 熟练度)进流给主机"
+    domain: Networking
+    adr: ADR-011 + ADR-009
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-011 §二 F1 + 本 GDD 规则九。**若判定走主机权威 ⇒ 反馈 = RTT ⇒ 必然破 <50 ms**。与 ADR-009 拾取同构,**唯一例外**:急救判定**本地做**,主机只结算结果。AC-3-B4"
+
+  - id: TR-input-009
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "导航动作 → `FocusNavigationIntent` **单向只读视图**(不返回值,**不驱动焦点移动** —— 唯一真源 = 官方桥);**3 不实现焦点移动**(焦点算法 / `FocusController` 归 42)"
+    domain: Presentation
+    adr: ADR-011 + ADR-013
+    status: covered
+    revised: "2026-09-16"
+    note: "ADR-011 §三 F2 + 本 GDD 规则十 / 十一。**边界一句话(2026-09-16 四轮就地覆写 —— 承 D-A 裁定)**:3 定「**动作 → 导航意图(观测)**」;**官方桥 + 42** 定「**导航动作 → UI 焦点移动**」。**`FocusNavigationIntent` 是 3 的「类型化只读视图」,消费者 = 42 的单栈门路由与 3 的调试视图,它不驱动移动**。**判据层零未核验符号**(用户裁定①「分层处置」):判据只断言性质,`InputSystemUIInputModule` / `PanelEventHandler` 等 post-cutoff 符号名**只出现在规则 / 实现指引层并带「须 spike」标记**,汇总于 `adr-011` §Risks 的 spike 册页。**`TR-concept-008` 的接口侧在系统 3 的落点**(呈现侧归 ADR-013)。AC-3-C1 / C3 / C4"
+
+  - id: TR-input-010
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**无同键双触发**:同一物理输入**不得**同时绑官方桥 Navigation 动作与自实现路径"
+    domain: Presentation
+    adr: ADR-011
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-011 §三 F2 + 本 GDD 规则十二。AC-3-C2 BLOCKING(**四轮订正措辞**:三轮已把 C2 从「行为断言 / 资产扫描」重写为**结构性构造断言** —— 喂 `Navigate` 的物理控件不得喂第二个焦点动作 ∧ 恰有一个 `Navigate` action 实例;本 note 的旧措辞「资产扫描断言」为三轮前的口径,已就地覆写)"
+
+  - id: TR-input-011
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**设备态 `Mixed` 以最近一次有效输入来源为准**(不叠加、不双活;**「有效」= 迟滞 + 漂移防误触**);**设备移除 / 失焦 → 合成 release**"
+    domain: Core
+    adr: ADR-011
+    status: covered
+    revised: "2026-09-15"
+    note: "**本 GDD 新裁**(Adapter 侧口径,ADR-011 未定)。① `Mixed` 双活会让手柄漂移与鼠标**互相打架**,是必裁项不是实现自由;② **合成 release 防的是「卡键」** —— 失焦时按住的方向键在回到游戏后永远按住,是最经典的致命 bug。**2026-09-15 评审补**:初稿的「以最近一次**有效**输入为准」**未定义「有效」** ⇒ 实现者各自拍定;新增 **AC-3-D4**(迟滞 `DEVICE_SWITCH_THRESHOLD` + 基于漂移的防误触;用例:鼠标静止、摇杆漂移 ±2% ⇒ 来源**保持 `Kbm`**)。AC-3-D3 / D4"
+
+  - id: TR-input-012
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**预缓存 `InputAction` 引用**;动作查询**零每帧字符串查找**(禁 `FindAction(string)` / `FindActionMap(string)` / **`InputActionAsset` 字符串索引器**)"
+    domain: Performance
+    adr: ADR-011
+    status: covered
+    revised: "2026-09-15"
+    note: "ADR-011 §Implementation 7(F6)。**2026-09-15 评审**:初稿只禁 `FindAction(string)`,**漏了 `FindActionMap` 与字符串索引器**(同样是每帧查找)⇒ 已补全;**判据从 grep 改为 Roslyn 分析器**。AC-3-E1"
+
+  - id: TR-input-013
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "`QueryBinding(actionId) → { device, bindingPath, iconKey }`;**3 只给键名,不给素材、不决定出现时机**"
+    domain: Presentation
+    adr: ADR-011
+    status: partial
+    revised: "2026-09-15"
+    note: "**2026-09-15 用户裁定②**(3 出「绑定 → 图标键」映射,呈现归 42 / 48)。**3 侧已定**;**42 / 48 侧的契约形状未定** —— `iconKey` 的命名空间与枚举表由谁签署、48 教学何时显示,均未裁(`OQ-3-2`)。**反幻想条款(禁按键提示浮层)的守门责任因此落在 42 / 48**。**2026-09-16 订正**:原注写「AC-3-D1 / D2 BLOCKING」—— **D1 无 BLOCKING 标记**(判据 = 类型断言),**只有 D2 是 BLOCKING**(构建报告断言:3 的交付物无 Sprite / Texture / 字体)。AC-3-D1 / **D2(BLOCKING)**"
+
+  - id: TR-input-014
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**P0 不交付改键 UI** —— 只交付动作映射契约 + overrides 读写能力 + 默认三套绑重;**改键界面推 P1a**"
+    domain: Presentation
+    adr: ADR-011
+    status: covered
+    revised: "2026-09-15"
+    note: "**2026-09-15 用户裁定①**。**「能力已备、界面未交付」是有意的欠账**:`BindingsStore` 读写 + schema hash 校验已立住,UI 只是它的一个消费者 ⇒ **补界面不返工**。依据:P0 范围阶梯(`game-concept.md:713`)不含改键页。**已知后果**(本 GDD §Edge Cases 四逐条记账):手柄布局不理想时只能忍 / 49 无障碍在 P0 无出口(`OQ-3-1`)"
+
+  - id: TR-input-015
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**震动触觉:3 拥有通道,不拥有语义**(「什么时候震 / 震多强」归 8 / 10)"
+    domain: Presentation
+    adr: ADR-011 + ADR-018
+    status: partial
+    revised: "2026-09-15"
+    note: "通道接口形状已定;`OpenXRInput` haptics **须单独 spike**(ADR-011 §Risks F5)。**P0 不做 VR 触觉** —— VR 实现推 **P1b**(与 ADR-013 §二 / ADR-018 §七 / ADR-020 §三 同批;`game-concept.md:720` 载明 VR 急救在 P1b),**P0 只落通道接口**(`OQ-3-4`)。消费方:`disease-simulation.md:1184`(VR 触诊主通道)· 8 / 10"
+
+  - id: TR-input-016
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "`L_render` / `L_poll` **实测**(交付给 10 的是「均值达标 **且抖动有上界**」两条义务,不再是一个预算数字)"
+    domain: Performance
+    adr: ADR-011
+    status: gap
+    revised: "2026-09-15"
+    note: "**本 GDD 登记的新缺口**。**2026-09-15 评审重写**:初稿要求「由 `L_render` 反推 `JUDGE_BUDGET`」—— 该分配额**已删**(与 50 ms 判据代数等价,不构成独立验收)。现状:`L_render ≈ 2 帧` 是**估算**(承 F5)而非实测;**2026-09-16 四轮就地覆写**:本 note 此前写「`L_render` 与 `L_poll` 均为引擎侧、**不可配置**,只能实测」—— 该命题**已废除**(与 GDD 规则七「初稿称 `L_poll` 不可调是错的」及 §Tuning Knobs 一之三 冲突,被三份专家报告独立命中)。**现行口径**:二者**均非可配的数值旋钮**(故无 `TUNING_KNOB` 登记),但 **`L_poll` 的相位由 `INPUT_UPDATE_MODE` 决定**,该值与 §Tuning Knobs 一之三 的**启动期性质断言**绑定(`AC-3-B2③`;判据只断性质、不引枚举成员名)。**前置**:最低目标硬件定稿(`technical-preferences.md` 性能预算现为临时值)⇒ 绑定 `/test-setup` 与首个可跑 player。**3 不替 10 定判定开销**"
+
+  - id: TR-input-017
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "`EmergencyAction` **枚举基数**(P0 = 2 个急救动作的具体枚举值)"
     domain: Core
     adr: —
     status: gap
     revised: "2026-09-15"
-    note: "**ADR-021 刻意不定**(避免越权,同 ADR-009 §三「骨架先行,载荷归系统 ADR」的教训)—— 枚举值归 **6 的 GDD**。写 6 GDD 时定稿,并按 ADR-009 §六 复核有界性(**Risks**:枚举定得过大 ⇒ 转移数膨胀)"
+    note: "**归 10 急救动作的 GDD**(10 无 GDD,属架构真空的 10 项之一)。3 只保证「N 个并列动作各有一条直读通道」,**不发明动作**。10 撰写时须回来提及 3(双向依赖纪律)。**2026-09-15 评审:本条升级为 10 的硬前置** —— 见 `TR-input-019`(`Emergency` 表达力缺口),两条同轮裁定"
 
+  - id: TR-input-018
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**`OpenInventory` 的 P0 归属** —— 由 **20 库存与物品(P0 · Core)** 提供开容器的动作与界面"
+    domain: Core
+    adr: —
+    status: covered
+    revised: "2026-09-15"
+    note: "**2026-09-15 评审结案(原为 gap,`OQ-3-6`)**。初稿登记为「**真实的玩法断头**」—— **该判断夸大**:`systems-index.md:54 / :477` 明载 **20 库存与物品 = Core · P0**,故 P0 必有开容器路径。**缺口撤销**;3 的动作表内 `OpenInventory → ✅ 20` 同上。**3 不为它兜底**(3 不发明动作)这一条仍然成立,但已无缺口需要兜底"
+
+  - id: TR-input-019
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**`Emergency` 表达力缺口 —— 仅幅度一维**:止血 / 按压的**力道(深度)**须有可采集通道(`Button(0/1)` 表达不了)"
+    domain: Core
+    adr: ADR-011
+    status: gap
+    revised: "2026-09-15"
+    note: "**2026-09-15 评审新增(`OQ-3-5`),承重未结项**。`game-concept.md:693` 点名两个急救动作 —— **心肺复苏 = 节奏**(约 100–110 次/分)/ **止血包扎 = 顺序与力道**。**2026-09-16 三轮评审收窄:真缺口只有幅度一维** —— **节奏分辨率不是缺口**(16.6 ms 对约 550 ms 的 CPR 周期是 ~3%,且节奏走 press / release **边沿**,`Button` 原生表达,与是否逐帧采样无关;规则八已把长按聚合成**整数 tick**)。真缺口: **`Button` 无「力道」维度**,深度 / 回弹的模拟量通道**不存在**。**本轮刻意不修**(用户裁定:**不加宽 `IEmergencyInput`** —— 在 10 未成文时加宽 = 过度设计;ADR-011 Amendment A 已明写此边界)。**归 10 急救动作的 GDD,且为其硬前置**:写 10 之前须裁定采集形态(是否升 `Vector2` / 是否独立通道),否则「手稳」小游戏**无法落地**"
+
+  - id: TR-input-020
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**反幻想守门(42 + 48 联合 BLOCKING,按阶段)**:目视**零按键提示浮层** + **手柄单机**可走查纸页(满足 `AC-8-44`)。**F1a(P0)** = 平面 + 键鼠/手柄(去 VR)+ 脉案 / 出诊箱;**F1b(P1a/P1b)** = VR + 纸质地图"
+    domain: Presentation
+    adr: ADR-011 + ADR-013
+    status: partial
+    revised: "2026-09-15"
+    note: "**2026-09-15 用户裁定④(强制执行)**。依据 = `technical-preferences.md:33`(拟物 UI 须同时支持键鼠与手柄)+ `AC-8-43/44`(**非**支柱五 —— 初稿误引)。**3 侧已定**:只交付 `iconKey`(键名),**不承担本门**;`QueryBinding` 的返回类型不含出现时机 / 可见性字段。**42 / 48 侧未落** ⇒ partial:**42 的呈现规范 + 48 的教学规范须各自落 AC**。守门 = **`AC-3-F1a`(P0 BLOCKING)/ `AC-3-F1b`(P1a / P1b BLOCKING)** —— **2026-09-16 三轮评审按阶段拆分**(拆而不降级;与 `AC-3-B1b` 同构):初稿要求「任意设备(含 VR)+ 三份纸」,而 P0 不做 VR 且纸质地图 43 = P1a ⇒ 原样即为「以 BLOCKING 之名、行不可签核之实」。**48 教学已从设计队列末位上提**(见 `systems-index.md` §11)"
+
+  - id: TR-input-021
+    system: input
+    gdd: design/gdd/input-system.md
+    requirement: "**跳过路径归 10**:须**焦点可导航、无时序要求、无模拟量** —— 3 只提供通道形状,不实现跳过语义"
+    domain: Core
+    adr: ADR-011
+    status: gap
+    revised: "2026-09-15"
+    note: "**2026-09-15 用户裁定④-b 登记为 10 的义务**。`technical-preferences.md` 记「联机时的急救操作同步精度须与**可选跳过**的降级路径兼容」;3 侧提供的是**前提**(跳过路径同样走焦点导航 / 不依赖手感时序 / 不要求模拟量),**语义与呈现归 10**。**归 10 的 GDD**;与 `TR-input-017` / `019` 同批裁定"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 关卡工具 (Level Tool, #54) — docs/architecture/adr-022-level-tool.md
+  #   权威件 = ADR-022(✅ Accepted,2026-09-16)。**54 无独立 GDD** —— 它是**编辑期工具不是
+  #   玩法系统**,系统定义与产出契约**即 ADR**;需求文本由 ADR-022 + 6 的 GDD 登记义务
+  #   (O-6-9 / O-6-11 / O-6-12 / O-6-14)生成。**用户裁定**:关卡工具「另开 ADR 立新系统」,
+  #   归 Tooling 层,不并入既有系统行(见 design/gdd/reviews/world-and-ecozones-review-log.md)。
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-leveltool-001
+    system: level-tool
+    gdd: docs/architecture/adr-022-level-tool.md
+    requirement: "**关卡工具 = 正式系统,归 Tooling 层**(编辑期 / 构建期),**运行期零存在** —— 不进构建、门 A 不约束;不计入 P0 的 31 项"
+    domain: Tooling
+    adr: ADR-022
+    status: covered
+    revised: "2026-09-16"
+    note: "ADR-022 §一。用户裁定「另开 ADR 立新系统,**不并入既有系统行**」;`systems-index.md` 新增类别 **Tooling** + 行 54。它是 6 的**全部输入**(多边形 / POI 定义 / 导航格 / 资源点 / 建造槽位 / TERRAIN_TABLE / slopeLimit / stepOffset)的产出方 —— 而此前**无系统行 / 无 ADR / 无 GDD**"
+
+  - id: TR-leveltool-002
+    system: level-tool
+    gdd: docs/architecture/adr-022-level-tool.md
+    requirement: "**逻辑层整数数据的唯一作者** —— 仅本工具可编写并导出逻辑层;**第三方地形工具(GAIA / MapMagic 2)产物只进视觉层,绝不自动导出逻辑层**;**无以 WorldSeed 生成地形 / 多边形的代码**(grep 守卫)"
+    domain: Tooling
+    adr: ADR-022 + ADR-015
+    status: covered
+    revised: "2026-09-16"
+    note: "ADR-022 §二。承 ADR-015 §一(两层在编辑期同步)/ §六(第三方仅编辑期)/ `adr-015:222`(逻辑层**永远整数、永远可审**)/ `adr-015:335`(seed 生成地形 = 回归)。保证确定性的唯一真源不落在一个不受控的外部导出上"
+
+  - id: TR-leveltool-003
+    system: level-tool
+    gdd: docs/architecture/adr-022-level-tool.md
+    requirement: "**导出契约**:`assets/data/world_{geometry,ecozones,poi,resources,buildslots,nav_{chunk},terrain}.json` → **ADR-014 两阶段烘焙** → `world_*.cooked`(**玩家构建零 JSON 解析器**);数值一律整数,`Fix` 非空间量写字符串;**含 `terrain_id` 表**(1 的表现层解析 `terrain_id → CueId`)"
+    domain: Tooling
+    adr: ADR-022 + ADR-014
+    status: covered
+    revised: "2026-09-16"
+    note: "ADR-022 §三。承 `ADR-014:139` 的 `[system]_[name].json` 命名规范 + §二 反浮点纪律 + §五 `data-core` 预载。**`terrain_id` 表产出方由此明确 = 结清 6 的 `O-6-14`**(6 提供表 → 1 的表现层解析 → 44 只播)"
+
+  - id: TR-leveltool-004
+    system: level-tool
+    gdd: docs/architecture/adr-022-level-tool.md
+    requirement: "**C2 可走性同源检查(硬失败)**:`slopeLimit` / `stepOffset` 由关卡工具与逻辑层**同一处定义**,整数量化后两侧一致;**不一致即构建失败**(显式 `throw`,非 `Debug.Assert`)"
+    domain: Tooling
+    adr: ADR-022 + ADR-015
+    status: covered
+    revised: "2026-09-16"
+    note: "ADR-022 §四 C2。**它是 `ADR-015 §Validation:318`(「可走性同源 BLOCKING」)的执行点** —— 此前该判据只说「在关卡工具中存在」而工具无定义。**与 `AC-1-33` ② 同名同判据**(系统 1 侧)"
+
+  - id: TR-leveltool-005
+    system: level-tool
+    gdd: docs/architecture/adr-022-level-tool.md
+    requirement: "**C4 多边形合法性检查(硬失败)**:5 项退化 —— ① 重叠 ② 顶点<3 ③ 自交 ④ 零面积 ⑤ 重合顶点,全部进烘焙期失败集"
+    domain: Tooling
+    adr: ADR-022
+    status: covered
+    revised: "2026-09-16"
+    note: "ADR-022 §四 C4。**与 6 的 `EC-6-7` / `AC-6-19` 同源**(6 的 GDD 已列 5 项为烘焙期失败集 —— 本工具是执行方)。退化多边形会破坏 `EcozoneOf` 的开集语义 + 裁决序(F-6-3)"
+
+  - id: TR-leveltool-006
+    system: level-tool
+    gdd: docs/architecture/adr-022-level-tool.md
+    requirement: "**C5 边界单一源检查(硬失败)**:视觉层生态区遮罩**由整数多边形生成**(非手画第二份)—— 边界是**一次定义、两处派生**"
+    domain: Tooling
+    adr: ADR-022
+    status: covered
+    revised: "2026-09-16"
+    note: "ADR-022 §四 C5。**结清 6 的 `O-6-11` / R-6-15 缝二** —— 静默失败类:画面与判定各自成立但不一致(玩家站在「看起来在 A 区」的地上,D 判给 B 区 = 可感知的谎言)。C5 的落地是**生成式**(遮罩是生成产物,不进作者态)"
+
+  - id: TR-leveltool-007
+    system: level-tool
+    gdd: docs/architecture/adr-022-level-tool.md
+    requirement: "**C6 切片完整性检查(硬失败)**:导航格按 chunk 切片,每格**恰好覆盖一次**;chunk 键 = `ADR-015 §四` 的同一 chunk"
+    domain: Tooling
+    adr: ADR-022 + ADR-015
+    status: covered
+    revised: "2026-09-16"
+    note: "ADR-022 §五。**6 的 `O-6-12` 的「切片者」由此归关卡工具** —— ADR-014 §五(常驻)vs ADR-015 §四(可流式)的冲突在工具侧闭合(`world_nav_{chunk}.json`)。⚠️ 残留:ADR-015 §四 的**就地修订**仍须做(退化为一句补注「导航格按 chunk 切片,产出于 ADR-022」)"
+
+  - id: TR-leveltool-008
+    system: level-tool
+    gdd: docs/architecture/adr-022-level-tool.md
+    requirement: "**C1 两层漂移 / C3 导航格↔NavMesh 非矛盾 = 告警**(不静默升为硬失败)—— 漂移**只影响表现**,不改 sim 判定"
+    domain: Tooling
+    adr: ADR-022 + ADR-015 + ADR-016
+    status: covered
+    revised: "2026-09-16"
+    note: "ADR-022 §四末尾。**C3 是 `ADR-016 §Validation:442` 的执行点**(「导航格 ↔ NavMesh 一致性检查在关卡工具中存在」)。**刻意不升硬失败**:把表现层漂移升为构建失败会让美术不可迭代(承 `ADR-015 §Risks` 同口径 —— 漂移只影响表现,sim 判定不变)"
+
+
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 敌人 AI (Enemy AI, #27) — design/gdd/enemy-ai.md
+  #   权威件 = ADR-016(✅ Accepted,2026-09-15)。2026-09-17 GDD 落盘,回溯追加本组
+  #   (同 21a / 52 / 13 / 6 / 3 / 1 的回溯约定)。**27 的绝大多数边界不是 GDD 新立的,
+  #   是 ADR-016 强加的** —— 本组的职责是把它们落到可实现的口径上。
+  #   ⚠️ **唯一 P0 硬前置 = O-27-3(25 格斗与武器线无 GDD)** ⇒ TR-enemy-017 为 partial,
+  #   根因即此(27 的伤害 / 昏迷 / 武器线交互全经 25)。
+  #   ✅ **2026-09-18 已结案**:25 GDD 落盘(2026-09-17)+ 二轮评审结案 ✅(2026-09-18)——
+  #   `O-27-3` 全结,TR-enemy-017 已转 covered(见该行 note)。本行注释仅留历史口径。
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-enemy-001
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "27 的决策输入**恰好三个来源** —— 世界流事件 · 版本化烘焙数据 · 二者的纯函数;任何第四来源(表现态位置 / 墙钟 / `UnityEngine.Random` / 未版本化场景几何)进 Forbidden Patterns"
+    domain: Core
+    adr: ADR-016
+    status: covered
+    revised: "2026-09-17"
+    note: "ADR-016 §一 重建三源不变量(核心)。**AC-27-02 BLOCKING** —— 判据是**正面白名单**(反射断言输入类型恰 ⊆ {sim 值 struct, 烘焙数据 struct}),**不是**「无 `Vector3`」的负存在断言。第四来源是**静默**失败模式:不崩溃、不上报,只在联机重算 / 重放时表现为分叉"
+
+  - id: TR-enemy-002
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "感知输入 = 玩家**粗粒度整数格**(最近一条 `ActorCellEntered` 的 `cell`),**禁读** `Transform.position`"
+    domain: Core
+    adr: ADR-016 + ADR-020
+    status: covered
+    revised: "2026-09-17"
+    note: "ADR-016 §三(读方)+ ADR-020 §四(写方)是**对称的两半**:1 发跨格事件,27 读它。表现态位置走 ADR-001 第二 QoS(unreliable latest-value),**到达时序不确定** ⇒ 读它则决策不再是 tick 上的确定性函数。**AC-27-20 BLOCKING**(正面形式:27 的感知 API 白名单恰 = {世界流事件查询, 整数格查询})。**「半格盲区」是设计不是缺陷** —— 玩家在格内移动时敌人读到的位置不变,玩家可贴着格边绕"
+
+  - id: TR-enemy-003
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "格距 = **整数平方和**比较(`dx²+dy²+dz²`),**禁 `sqrt`**;视线 = 整数格 **Bresenham 式格步进**逐格查 `EffectiveWalkable`,**禁** `Physics.Raycast` / NavMesh 采样"
+    domain: Core
+    adr: ADR-016 + ADR-006
+    status: covered
+    revised: "2026-09-17"
+    note: "ADR-016 §三。`Physics.Raycast` 与 NavMesh 采样**都读表现态几何** ⇒ 禁。**`d2` 必须在 int64 域求值**(i32 差平方在 `|Δ| > 46341` 时溢出 int32)⇒ 构建期断言 **`R_VIS < 46341`**(同 24 的 B6 教训;EC-27-01 / AC-27-08 性质测试)。F-27-1"
+
+  - id: TR-enemy-004
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "P0 敌意状态机 = **六态最小集**(`Patrol` / `Alert` / `Chase` / `Flank` / `Engage` / `Disengage`);`Down` **不是**第七态"
+    domain: Core
+    adr: ADR-016
+    status: partial
+    revised: "2026-09-17"
+    note: "**2026-09-17 用户裁定(PR-27-5)**。ADR-016 §九 只定**分层与节流**(决策进 sim · LOD 降频 · 远区冻结),**未点名状态集** ⇒ 状态集是 GDD 自有。partial 的根因 = 状态集**无 ADR 背书**,但也不与任何 ADR 冲突。`Down` 不是态的理由:归零是 **9 的伤情真值**(`INJ_COMA`),27 的态是**战术关系**,两者不同层 —— 把 `Down` 做成第七态会让「倒地」成为 27 拥有的状态,与规则十六(复用 9)冲突"
+
+  - id: TR-enemy-005
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "P0 行为面 = **单套行为程序 × 两类参数行**(兵痞 / 野兽);差异**全部**落烘焙数据,**零** `isBeast` 类代码分支"
+    domain: Core
+    adr: ADR-016
+    status: partial
+    revised: "2026-09-17"
+    note: "**2026-09-17 用户裁定(PR-27-1)**。partial 的根因 = ADR-016 §九 的「P0 只留**一个**原型」**字面**与 P0 池含野兽(`random-events.md:394` / `game-concept.md:791`)**张力未解** —— 本裁定把「一个」读作**行为程序的表达能力上限**(一套数据集 / 一个决策器),**不是实体种类数**。**须回填 ADR-016 §九 口径澄清(登记义务 `O-27-4`)**;回填后本项转 covered。**AC-27-24 BLOCKING**(存在恰好一套行为程序 `ai_enemy`,兵痞 / 野兽共用它)"
+
+  - id: TR-enemy-006
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "行为载体 = **编辑器期作者态 → 构建期烘为整数数据**(`assets/data/ai_enemy.json` → `ai_enemy.cooked`);**运行期零第三方行为树 / 寻路库**;源改了没重烘 ⇒ **构建失败**(陈旧门,非运行期幻觉)"
+    domain: Core
+    adr: ADR-016 + ADR-014
+    status: covered
+    revised: "2026-09-17"
+    note: "ADR-016 §四 + ADR-014 两阶段烘焙。**AC-27-22 / AC-27-23 双 BLOCKING**:**零**第三方行为树 / 寻路库程序集(正面白名单:程序集引用集)+ 陈旧门 `throw`。**残留实现债**:编辑器期行为树工具的**导出 / 烘焙链路可行性未实测**(ADR-016 §四 Verification ③);若不可用 ⇒ 退回**自研数据表载体**,**不改变本项的确定性形态**"
+
+  - id: TR-enemy-007
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "行为程序里**禁 `float`** —— 空间量 = `WorldPos` 整数格 / 朝向枚举;非空间量(仇恨值 / 威胁权重 / 士气)= `Fix`(Q16.16)或 `int`"
+    domain: Core
+    adr: ADR-016 + ADR-006
+    status: covered
+    revised: "2026-09-17"
+    note: "ADR-016 §四 + ADR-006 定点域边界。**AC-27-03 BLOCKING**(门 B 扩展:扫描 sim 侧程序集公开类型签名与字段类型,**正面白名单 = 允许类型集**)+ **AC-27-09 BLOCKING**(烘焙数据行**无 `float` 字段**,否则 `throw`)"
+
+  - id: TR-enemy-008
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "**决策 = 派生态,不进流** —— 效果(受伤 / 昏迷 / 遭遇开始结束)进流;「它决定包抄左边」不进流,加载 / 重放期由三源重建"
+    domain: Core
+    adr: ADR-016 + ADR-009
+    status: covered
+    revised: "2026-09-17"
+    note: "ADR-009 §一 Q1 判据 + ADR-016 §一「**效果进流,决策不进流**」。这是与 13 同源的纪律(13 的决策住边界层;27 的决策**住 sim** —— 两者差别在**是否读 float**,不在是否进流)"
+
+  - id: TR-enemy-009
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "决策频率按 **LOD 节流**(近 / 远 / 冻结),但**节流不改变判定结果** —— 解冻后从三源重建,同 tick 状态**逐位一致**,且解冻耗时**与冻结时长无关**(不补算)"
+    domain: Core
+    adr: ADR-016
+    status: covered
+    revised: "2026-09-17"
+    note: "ADR-016 §九(「批处理友好形状」纪律的兑现)。**AC-27-04 / AC-27-05 双 BLOCKING**(开 / 关 LOD 的 sim 真值相同;解冻后逐位等于「从头到尾不冻结」)。F-27-3。**这是 ADR-016 §九「不为多原型预置复杂度」的承重前提** —— 若节流会改变判定,砍原型就变成砍正确性"
+
+  - id: TR-enemy-010
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "**「可脱离」是状态机的对等态,不是特例** —— 进入 `Disengage` 的条件**必须**包含「玩家离开了接触范围」与「我方战败」**并列**;**禁**「不可脱战」的硬锁定仇恨"
+    domain: Core
+    adr: ADR-016
+    status: covered
+    revised: "2026-09-17"
+    note: "**AC-52-16**(「遭遇体不锁定玩家」)的 27 侧机械落点;ADR-016 §八 定 52 ↔ 27 的分工(52 定「要不要来」,27 定「来了怎么动」)⇒ 可脱离是 27 的行为约束。**AC-27-06 BLOCKING = 图可达性断言**(存在从任一非终结态到 `Disengage` 的路径),**不是**「逐态检查」;**AC-27-07 BLOCKING** = 玩家全程不接战时,`DISENGAGE_DELAY` 后确实写出 `EncounterEnded{reason = 脱离}`。F-27-5。**承重约束,不是平衡旋钮**(§反幻想第一条)"
+
+  - id: TR-enemy-011
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "27 的寻路输入 = 23 合成的 **`EffectiveWalkable(cell) := Nav[cell].walkable ∧ ¬Overlay.blocked(cell)`**;**不读**静态烘焙 `Nav` 原件"
+    domain: Core
+    adr: ADR-016 + ADR-015
+    status: covered
+    revised: "2026-09-17"
+    note: "ADR-016 §五 补注 + ADR-015 §五;**23 是唯一合成点**(`modular-building.md` F-23-1,结清 6 的 `O-6-10`)。**AC-27-12 BLOCKING**(静态检查 27 的读取路径,唯一来源 = `EffectiveWalkable`)。玩家放置的墙 / 家具**当场改变敌人的可走空间** —— 这是 §Player Fantasy 基础设施层的机制落点。**残留实现债**:27 每 tick 轮询的成本**未实测**(敌人数量 × 路径长度上升时)"
+
+  - id: TR-enemy-012
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "路径重规划由 27 侧**轮询**触发(当前路径格集 ∩ 新 blocked 格 ≠ ∅ ⇒ 下 tick 重规划);**23 无 push 义务**,27 **不自建** blocked 格集副本、**不监听** `Structure*` 维护副本"
+    domain: Core
+    adr: ADR-016
+    status: covered
+    revised: "2026-09-17"
+    note: "ADR-016 §五。「不自建副本」是同 13 的规则三纪律(**第二真源风险**)。**AC-27-13 BLOCKING**(玩家在路径中段放置模块 ⇒ 敌人**下 tick** 重规划,新路径不含该 blocked 格)。EC-27-06"
+
+  - id: TR-enemy-013
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "sim 走**整数导航格 A***,表现层 `NavMeshAgent` + 动态 `NavMeshObstacle`(carving)只负责把逻辑路径变成连续位移;**漂移的处置方向单向** —— 表现层 snap / 修正,**禁** sim 跟随表现层"
+    domain: Core
+    adr: ADR-016 + ADR-015
+    status: covered
+    revised: "2026-09-17"
+    note: "ADR-016 §五 + ADR-015 §五(NavMesh 仅表现态)。「sim 跟随表现层」= **float 入 sim**,破 ADR-006 边界。**AC-27-14 BLOCKING** 的伴随项:被完全围死 ⇒ `PATH_FAIL_GRACE` 后进 `Disengage`,**且期间未发生瞬移**(逻辑格连续)。EC-27-07 / 08。**残留实现债**:NavMesh tile 动态重烘成本须实测(ADR-016 §五 Verification ②)"
+
+  - id: TR-enemy-014
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "逻辑位姿 `LogiPose = (WorldPos Cell, byte Facing)` 在 sim 逐 tick 整数推进;**禁**从 `Transform.position` 反推逻辑格"
+    domain: Core
+    adr: ADR-016 + ADR-015
+    status: covered
+    revised: "2026-09-17"
+    note: "ADR-016 §一 + `adr-015:157` 同条纪律。**AC-27-15 BLOCKING = 性质测试**(对任意 `ENEMY_SPEED < FIX_ONE` 成立:`LogiPose.Cell` 永远整数且每 tick 位移 ≤ 1 格)。F-27-4 的定点累加器解决**跳格**(tunneling);`ENEMY_SPEED ≥ FIX_ONE` ⇒ 穿墙的构建期断言见 AC-27-08"
+
+  - id: TR-enemy-015
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "敌人 = **可受伤实体,复用 9 的伤情模型** —— 生命 / 伤情 / 昏迷状态住 9 的注册表,**不新开第二套生命模型**(归零 = `INJ_COMA`,非致命)"
+    domain: Core
+    adr: ADR-016
+    status: covered
+    revised: "2026-09-17"
+    note: "ADR-016 §二。25 已把「生命归零」登记为 `INJ_COMA`(`disease-simulation.md:366`)⇒ **非致命模型自动适用于敌人**;`skill-system.md` 的「**人形敌人被误杀不可能发生**」由此获得**实现侧**保证(不再只是设计承诺)。⚠️ **野兽语义分叉**:真值注册仍走 9 同一张表(不新开模型),但**语义标签不同**(人形 = 可救治的昏迷;野兽 = 不再构成威胁的倒地),**P0 不交付对野兽的救治动词**(归 28 / 10)"
+
+  - id: TR-enemy-016
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "敌人 id 经 `IIdAuthority` 发放,**与病人共用同一 id 空间与同一高水位**;高水位重构 `next = max(id)+1` 扫**三流并集**并排除 `PatientId.None`"
+    domain: Core
+    adr: ADR-006 + ADR-010 + ADR-016
+    status: covered
+    revised: "2026-09-17"
+    note: "ADR-016 §二 **扩大 ADR-006 Amendment B 的 id 空间语义**(病人 → **受伤实体**);ADR-010 §七 定重构口径。**AC-27-17 BLOCKING**。**关键纪律**:敌人行住**世界流** ⇒ **不适用病史流折叠规则**(套用会错误折叠,Amendment B 注记);**折叠谓词不适用于敌人行**"
+
+  - id: TR-enemy-017
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "敌人伤情事件**落世界流,不污染病史流**;逐 `Kind` 的**载荷形状归 25 的 GDD**(27 只定「住哪条流」)—— 27 需要的入向契约 = 「一条 `INJ_*` 状态变更事件,载荷含 `actor_id` + 伤情 id + 新状态」"
+    domain: Core
+    adr: ADR-016 + ADR-009
+    status: covered
+    revised: "2026-09-18"
+    note: "**✅ 2026-09-17 转 covered —— `O-27-3` 的 25 侧兑现**:25 GDD 落盘 + 首轮评审修订,R2/R3 兑现 —— `Kind` 三元组已定名并登记(`EnemyInjuryOnset` = 敌人 onset 落世界流,写者 25;`InjuryStateChanged` = 状态变更落世界流,写者 9;`InjuryOnset` = 病人侧落病史流)。原 provisional 契约的字段假设已被真实载荷部分改写:**档位在 9 侧折叠**(`QueryHurtLevel`),25 载荷不携带严重度枚举 —— 27 的读法相应改为读 9 查询(`enemy-ai.md` §一① 已订正,非直读 25 事件)。路由断言(AC-27-16)不受影响:三 Kind 均按 `Kind` 纯函数路由,病史流零敌人行。**✅ 2026-09-18 独立确认**:25 二轮 `/design-review`(2026-09-18,新会话)二轮专项核对 `O-27-3` 口径通过 —— 置入方确认完成,⚠️ 移除"
+
+  - id: TR-enemy-018
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "`ITameable` 接口 **P0 定型、P0 不实现** —— 形状 = 可驯化标记 + 归属 `OwnerId` + `TameState` 枚举;**命令通道复用行为程序**(`Follower` / `Guard` / `Stay` 作为行为程序可表达的目标态),**不新开第二条命令通道**"
+    domain: Feature
+    adr: ADR-016
+    status: covered
+    revised: "2026-09-17"
+    note: "ADR-016 §七(2026-09-15 本接口定型;兑现 `game-concept.md:647`「否则 P1a 要重写 27」)。**AC-27-25 ADVISORY**(形状存在 · 动物实体 `OwnerId = None` · **零驯化行为代码**)。**不新开命令通道的理由**:「命令」若走第二条通道会变成 **sim 之外的第二真源**"
+
+  - id: TR-enemy-019
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "遭遇生命周期 = **两个世界流 Kind,写者故意拆开**:`EncounterStarted` 写者 = **52** · `EncounterEnded` 写者 = **27**"
+    domain: Core
+    adr: ADR-016 + ADR-021
+    status: covered
+    revised: "2026-09-17"
+    note: "**2026-09-17 用户裁定(PR-27-4)**,判据 = **ADR-021 §① 的状态所有权**(所有权 = 写入权)。52 决定**来不来**(ADR-016 §八)⇒「开始」是 52 的裁定,与 `EventArrived` **同 tick 派生**(否则「事件已降临但敌人未出现」成为可观察的真空窗);「遭遇什么时候真的结束」(脱离成功 / 全员倒地 / 玩家走远)是 **27 的状态**,52 **不持有它、写不出它** ⇒ Ended 归 27。两 `Kind` 已入 `entities.yaml`(承 **`O-27-5`**,本 GDD 落盘时兑现)。**AC-27-18 BLOCKING**(27 的可写 `Kind` **恰** = {`EncounterEnded`} —— 正面白名单)。⚠️ `EncounterEnded` **≠ 实体消失**:「遭遇结束」是**战术关系**结束,倒地的敌人仍在世界里(`Down`,可被 10 救治 / 28 捕获);`reason` **必须是枚举不是布尔**(51 的回放分析须区分「玩家逃了」与「玩家打完了」,ADR-019 §一)"
+
+  - id: TR-enemy-020
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "27 **不写第二条 `ActorCellEntered`** —— 敌人的逻辑格是**纯派生态**,由三源逐位重建,**不进流**"
+    domain: Core
+    adr: ADR-016 + ADR-009
+    status: covered
+    revised: "2026-09-17"
+    note: "**2026-09-17 用户裁定(PR-27-3)**。`ActorCellEntered` 的 `Actor` 命名只是留口(ADR-009 **Amendment G** 已注明);P0 只有玩家发。**AC-27-19 BLOCKING**(27 的世界流输出零 `ActorCellEntered`)。**显式记账的后果**:联机时客户端的敌人格**完全靠确定性重算** —— 这正是 ADR-016 §一「行为决策可重建」的**核心考验**;若重算会分叉,那是**决策器确定性有 bug**,不是「该给敌人加事件」。加事件会**掩盖** bug 而付出带宽 + 有界性代价。**登记义务 `O-27-6`**(ADR-009 §三 骨架补注此口径)"
+
+  - id: TR-enemy-021
+    system: enemy-ai
+    gdd: design/gdd/enemy-ai.md
+    requirement: "27 **不做读数条、不做音效、不持有 UI** —— 只交付**触发**与**信号**;黄铜读数条的呈现归 42(读 `VitalsDto`,与病人同一只读通道),敌人的音归 44"
+    domain: Presentation
+    adr: ADR-013 + ADR-018 + ADR-016
+    status: covered
+    revised: "2026-09-17"
+    note: "承 ADR-013 §9 C3(42 **只渲染,永不持有游戏状态**)+ ADR-018 §一(44 与 42 同构);ADR-016 §二 令敌人读数走病人同一只读 `VitalsDto` 通道。**AC-27-21 BLOCKING**(归零信号语义 = 「**不动了**」,**不等于**「已清除 / 已死亡」;该信号**不含**「实体销毁」指令)—— 支柱二的表现侧落点:倒地**必须仍可读作「人还在」**。**登记义务 `O-27-1` / `O-27-2`**(42 / 44 的表补 27 反向边)"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 格斗与武器线 (Combat & Weapon Lines, #25) — design/gdd/combat-and-weapon-lines.md
+  # 需求文本由 25 的 GDD 生成(2026-09-17 GDD 落盘 + 首轮评审修订)。
+  # 25 无单一权威 ADR —— 它是多 ADR 的汇合点(ADR-005/006/008/009/016/018/020/021)。
+  # ⚠️ 状态由撰写方置入,待 25 的二轮 /design-review 确认。
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-combat-001
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 非致命模型 —— 生命归零 = `INJ_COMA` 状态投影(执行者 = 9 的九态机),敌/兽永不为 `death`
+    domain: Core
+    adr: ADR-016
+    status: covered
+    note: "S4/S5 裁定(2026-09-17):25 只写 onset,归零由 9 的 `LethalFor` + 阈值判定;昏迷 ⇔ `position_agg ≥ COMA_THRESHOLD ∧ 存活`,不进 D 集、无曲线。支柱二的机制地基。"
+
+  - id: TR-combat-002
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 命中判定全部在 sim 整数域(tick 求值 + 整数格距离 + 无表现态输入),可逐位重放
+    domain: Core
+    adr: ADR-005 + ADR-015 + ADR-016
+    status: covered
+    note: "F-25-1 判定式五合取项;距离判据 = `cell_size` 整数格(`OQ-25-5` 只裁比例值,不裁形状)。"
+
+  - id: TR-combat-003
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 伤害量 `magnitude` 为 Fix 域整数(PS 单位),clamp 带 [MAG_FLOOR, MAG_CAP] 且 MAG_FLOOR > 0 构建期硬拒
+    domain: Core
+    adr: ADR-006 + ADR-005
+    status: covered
+    note: "F-25-2;`BASE_STEP_MAX := MAG_CAP − MAG_FLOOR` 为派生量;A1/A13a/b 断言面 = {逐动作,逐 bar} × {CP=0, CP_MAX}。数值本身归用户(OQ-25-7)。"
+
+  - id: TR-combat-004
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 敌/兽 CP:=0 退化式 —— 伤害 = MAG_FLOOR + base_step[act],不引入 enemy_cp 旋钮
+    domain: Core
+    adr: null
+    status: partial
+    note: "**首轮评审 D2 裁定 [甲]**(2026-09-17)。AC-25-2-09(敌伤 CP 不变性)。无 ADR 层必要(纯数据域内规则),partial 仅因**尚未过 25 二轮评审**;二轮通过且无引擎面可升级 covered/removed 判决前维持 partial。"
+
+  - id: TR-combat-005
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 伤情 onset 三元组 Kind 登记 —— InjuryOnset(病史流)/ EnemyInjuryOnset(世界流)/ InjuryStateChanged(世界流,写者=9)
+    domain: Core
+    adr: ADR-008 + ADR-009 + ADR-016
+    status: covered
+    note: "**R2/R3 兑现**(2026-09-17):`entities.yaml` 三条全格式登记 + ADR-009 §二/§三 追加 Kind(第五、六个)。『一个 Kind 无法同时落两条流』⇒ 病人/敌人各一支;写者 = 25(onset 两支)/ 9(状态变更)。"
+
+  - id: TR-combat-006
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: onset 去重键 = 五元组 (tick, actor, target, injury_id, dose_seq),dose_seq 是事件流的纯函数派生量,禁可变计数器
+    domain: Core
+    adr: ADR-006
+    status: covered
+    note: "规则三;同 tick 两条都收、重传判重(AC-25-5-01 改判据,E1);Amendment B 的 max(id)+1 高水位重构不受影响。"
+
+  - id: TR-combat-007
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 占用门 Occupied(a) 是事件流求值的纯函数(t+cooldown_ticks 清零);三边界:压制不占用 / Natural 占用 / 占用不发事件、不排队
+    domain: Core
+    adr: ADR-005
+    status: covered
+    note: "规则〇 新增(首轮评审 B 组);§〇 组 AC-25-0-01…05。占用态不写流 ⇒ 无有界性问题;重放时由 cooldown 推出。"
+
+  - id: TR-combat-008
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 压制状态 IsSuppressed(actor_id) 为公开只读查询;判据分 sim 侧/呈现侧;禁轮询;压制不占用、生效时刻 = 求值 tick
+    domain: Core
+    adr: null
+    status: partial
+    note: "**首轮评审 A3 裁定 [甲]**(只读查询,非事件)。R14 已在 1 侧落 `AC-1-23` 负边界;无 ADR(边界内规则)。待 25 二轮。"
+
+  - id: TR-combat-009
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 25 是 MotorSuppressed 唯三调用者之一(4/10/25);压制只锁走位与 Jump,不锁攻击、不锁相机
+    domain: Core
+    adr: ADR-020
+    status: covered
+    note: "R8/R14 兑现(2026-09-17):`player-controller-and-movement.md` `AC-1-23` 负边界 + 依赖表两行回填 + `O-1` 25 半边补登。"
+
+  - id: TR-combat-010
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 动作表 assets/data/combat_actions.json 为唯一真源(maps_to_injury);21a 的 inflicts_injury 降级为集合约束(A20);schema 容纳 P1a 三线
+    domain: Core
+    adr: ADR-014
+    status: covered
+    note: "H1 + R13 兑现(2026-09-17):`item-database.md` 规则七 / schema 行 / `AC-21a-25` 三处同步(A20 漂移门 + 双 fixture)。R10 的 25 半边(§一 schema 表)GDD 内已兑现。"
+
+  - id: TR-combat-011
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 战斗效能公式 (格斗等级 × 武器系数) × (1 + 医术修正) 的定义权归 30,25 只消费其输出档
+    domain: Core
+    adr: null
+    status: partial
+    note: "`TR-skill-007` 的对偶半边。**30 现 Needs Revision**(架构复核:零 ADR 引用 + `P=1.4` 违反 8 的 G-1)—— 30 修订前边界另一侧无有效件;25 侧的 schema 容纳义务已兑(见 TR-combat-010)。"
+
+  - id: TR-combat-012
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 战伤在 9 的 F1 有加性阶跃入口 Σ magnitude × SCALE_d × Decay_injury(Δ),TRAUMA_CAP 单侧 clamp,trauma_half_life 为注册表新字段
+    domain: Core
+    adr: ADR-005 + ADR-006
+    status: covered
+    note: "**R11 兑现**(2026-09-17):`disease-simulation.md` F1 式体 + 专注(PS 单位 / 单侧 clamp 理据 / A25 联动 / CatchUp 闭式)。"
+
+  - id: TR-combat-013
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 致死判定 = 逐实体门 LethalFor(entity, d);注册表 lethal 语义收窄为『现实中可致死』
+    domain: Core
+    adr: ADR-016
+    status: covered
+    note: "**R12 兑现**(2026-09-17):F4 两支 + R1 表 + 转移表两处 + 专注(与 self_limit 的正交调和)。25 只登记需求,形态由 9 落字。"
+
+  - id: TR-combat-014
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: HurtLevel 档位折叠归 9 + 公开查询 QueryHurtLevel(actor_id);25 载荷不携带档位
+    domain: Core
+    adr: null
+    status: covered
+    note: "**S2 改判 + R17 兑现**(2026-09-17):9 的 F4 节专注(band 阈值归注册表数据,数值归 OQ-25-7);`enemy-ai.md` §一① 措辞订正;`O-27-3` 载荷半边结。待二轮复核折叠式本身。"
+
+  - id: TR-combat-015
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: InjuryStateChanged 的 emit 时机 = position_agg 越阈被 Step 求出的 tick;离线 CatchUp 重放序列须与在线 Step 逐条相同
+    domain: Core
+    adr: ADR-005 + ADR-009
+    status: covered
+    note: "**R18 兑现**(2026-09-17):9 的 F4 节专注;『禁第二套终态直算旁路』是 Step≡CatchUp 不变量在伤情投影上的具体化。"
+
+  - id: TR-combat-016
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 击退 = 纯表现(动画/受击反应),位置不变,零注入权;25 无传送源
+    domain: Core
+    adr: ADR-020
+    status: covered
+    note: "**S3 裁定 + R8 兑现**(2026-09-17):1 的 `OQ-1-7` 结案、`O-3` 的 25 一行撤销(余 29/45)、`AC-1-22(EXTERNAL)` 半边记结。"
+
+  - id: TR-combat-017
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 战斗乐层 = ADR-018 白名单第 5 类,护栏 G1 禁帧对齐 / G2 去标注盲测 / G3 本地设备侧触发全文入 ADR;触发方登记(27 订阅行 + 44 类别行)
+    domain: Presentation
+    adr: ADR-018
+    status: covered
+    note: "**V4 + V7 兑现**(2026-09-17):`adr-018 §六` 音乐层例外条目(G1–G3 全文,非只落『允许切』一句)+ `audio-system.md` 规则二第 5 类行 + `enemy-ai.md` 订阅登记行。无护栏则例外不成立 —— 黑名单四禁对本类原文适用。"
+
+  - id: TR-combat-018
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 冷却判据 cd_eff(d) = min 逐动作 + 逐 bar 组合上界断言(B2);F-25-8 乘法形式判据(零除法路径)
+    domain: Core
+    adr: ADR-006
+    status: covered
+    note: "首轮评审 B1/B2/H4 修订;A26 = 4-ulp 带(Mono/IL2CPP 对拍的验收面,承 ADR-012 纪律)。"
+
+  - id: TR-combat-019
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 伤口通道 = 9 的第六条感知通道;刃背/INJ_BLUNT 绝不出血为构建期数据断言(V1/V3);血渍面积禁成伤害条
+    domain: Presentation
+    adr: null
+    status: covered
+    note: "**V1/V3 兑现**(2026-09-17):`disease-simulation.md` §二 六通道表 + AC-21 钝击无出血子句;判据源头 = 25 §七 ③ 层(盲测最后防线)。"
+
+  - id: TR-combat-020
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 三时钟时间总图(T1 本地即时起播 / T2 contact 帧↔onset 单向映射 / T3 反应不由攻击 clip 驱动);禁按动画碰撞帧发伤害
+    domain: Core
+    adr: ADR-011 + ADR-016
+    status: partial
+    note: "§6.6(首轮评审 G 组新增);AC-25-V-01…03 为 [V] 人工判据。分层裁决已有 ADR-016 §一 背书,但 T2 的映射实现细节(动画事件 → 表现层缓冲)无独立权威件 —— 待实现期升 ADR/登记。"
+
+  - id: TR-combat-021
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 表现层可订阅 onset / InjuryStateChanged 做持续读法(不走 VitalsDto 差分);禁入决策输入
+    domain: Presentation
+    adr: ADR-016
+    status: covered
+    note: "**D-2 裁定 + V2 兑现**(2026-09-17):`enemy-ai.md` 订阅登记行 + `patient-ai.md` 上游表行(表现映射侧,决策仍只读 VitalsDto 两原始量)。whiplash = 差分对瞬时事件必然抖。"
+
+  - id: TR-combat-022
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 27 → 战斗的通道 = 有入向意图出手、无出向数值通道;依赖是规格依赖(共读烘焙动作表)非运行时接口
+    domain: Core
+    adr: ADR-016
+    status: covered
+    note: "**R4/R7/R15 兑现**(2026-09-17):`enemy-ai.md` 依赖表两处 + `:1094` 措辞订正(原『数值全由 25 给,27 只发该出手了』暗示的不存在调用已改)。"
+
+  - id: TR-combat-023
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: tick 频率标定(OQ-25-8)与 OQ-8 同批前置 —— 占用门/冷却 ticks/事件率上界的量纲全押在其上
+    domain: Core
+    adr: ADR-005
+    status: gap
+    note: "**R16 前置**:标定值本身未定(用户 + 性能预算);`technical-preferences.md` 已登记为附加预算的前置输入。P0 写第一个 Step 之前必须标定 —— 与 OQ-8 同性质。"
+
+  - id: TR-combat-024
+    system: combat-and-weapon-lines
+    gdd: design/gdd/combat-and-weapon-lines.md
+    requirement: 玩家可被致死伤的形态(OQ-25-1 路甲/丙未裁)与 Down 覆盖边界含苏醒态(OQ-25-3)
+    domain: Core
+    adr: null
+    status: gap
+    note: "**两项未闭合用户裁决定此 TR 的去向** —— 路甲(LethalFor 对玩家开一支)与路丙(纯叙事死亡)的下游文本已各自预备(§九 item 7 / OQ 表),不预支决定。数值旋钮轮(OQ-25-7)一并交用户。"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 交互系统 (Interaction System, #4) — design/gdd/interaction-system.md
+  # 需求文本由 4 的 GDD 生成(2026-09-18 成稿)。4 无单一权威 ADR,但承重边集中在
+  #   ADR-016 §三(禁读表现态位置)· ADR-020 §四(玩家位移 = 表现态)· ADR-021(POI 写者 = 6)·
+  #   ADR-013(焦点单栈门)· ADR-014(烘焙常量)· ADR-009(§一 Q1 判据)。
+  # ⚠️ 状态由撰写方置入,待 4 的首轮 /design-review(新会话)确认。
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-interaction-001
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "4 = 纯目标选择器,输出 (目标, 目标种类),零 gameplay 结算(CanCarry / F1 / JudgeResult / treatable_by / 容量比较)"
+    domain: Core
+    adr: ADR-005
+    status: covered
+    note: "规则一 · AC-4-01。ADR-005 定『输入是意图源,不直接驱动模拟』—— 4 的选完即路由给拥有方,是同一裁决在目标选择层的落实。"
+
+  - id: TR-interaction-002
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "候选集只由四源构造:世界流锚格(DropSpawned.spawn_anchor)· 6 的烘焙逻辑层(WorldPos)· 13 的 IPresentPatients· 23 的 BakedInitial 基线(开档自带家具,漏则初始门/柜不可交互);玩家侧 = 1 的整数格(2026-09-19 三审订正需求文本:原写『三源』为首轮订正前的旧口径)"
+    domain: Core
+    adr: ADR-016 + ADR-020
+    status: covered
+    note: "规则二。ADR-016 §三 定读方(13 / 27 读粗粒度整数格),ADR-020 §四 定写方(玩家跨格发事件)—— 4 是两侧的汇合点。第四源 = 23 的 BakedInitial,由 AC-4-22 守。"
+
+  - id: TR-interaction-003
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "禁读表现态位置构造 / 过滤候选集;判据 = 反射断言载荷字段类型,不是 grep(Vector3 作渲染朝向不可避免)"
+    domain: Core
+    adr: ADR-016 + ADR-020
+    status: covered
+    note: "规则二 · AC-4-03。承 ADR-020 §四 的 AC-20-03 同款纪律。若读表现态位置,则联机时非主机与主机的目标选择可不同(第二 QoS 到达时序不定)。"
+
+  - id: TR-interaction-004
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "目标选择 = 确定性全序(格距 d∞ → KindPriority → 稳定 id 终局决胜);禁列表遍历序 / 哈希序作决胜键"
+    domain: Core
+    adr: ADR-006 + ADR-015
+    status: covered
+    note: "规则三 · F-4.1 · AC-4-06。承 ADR-006 的容器序纪律(不可重放的序不得进决策)+ ADR-015 §三 的单一整数格。"
+
+  - id: TR-interaction-005
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "d∞ = 切比雪夫距离(纯整数,零浮点),与 1 的格语义同源;非欧氏距离"
+    domain: Core
+    adr: ADR-015 + ADR-006
+    status: covered
+    note: "F-4.1。切比雪夫球在整数格上是方形邻域,与『多大范围内够得着』的直觉一致;纯整数满足门 A。"
+
+  - id: TR-interaction-006
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "4 不写三流 —— 零 IEventSink.Append;POI『已发现』由 4 自报给 6,写入权 = 6(唯一写者)"
+    domain: Core
+    adr: ADR-021
+    status: covered
+    note: "规则四 · F-4.3 · AC-4-02。承 ADR-021 §二(POI 状态写者 = 6)+ world-and-ecozones 的 R-6-9。4 是合法自报方 {4,25,37} 之一,但『自报 ≠ 写』。"
+
+  - id: TR-interaction-007
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "自报的幂等由 6 保证;4 零『报过了』记账(每帧照报,重复由 6 的校验吃下)"
+    domain: Core
+    adr: ADR-021
+    status: covered
+    note: "F-4.3 · AC-4-13。承 ADR-021 的『状态所有权 = 写入权』—— 幂等校验随写入权同归 6。"
+
+  - id: TR-interaction-008
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "4 不发相机档位意图(Treatment / Casebook / Explore)—— 目标选择不是状态切换"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    note: "规则六 · AC-4-11。2 的档位驱动表只有三行(10 · 8/39);4 不在表内。每帧都发生目标切换,若驱动档位则相机每帧抖动。承 ADR-020 §五(相机只读不持状态)。"
+
+  - id: TR-interaction-009
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "模态抑制方向 ①:10 的 Armed 期压制 InteractIntent 与 UI 焦点移动,而 3 侧零状态"
+    domain: Core
+    adr: ADR-011 + ADR-013
+    status: covered
+    note: "规则七 · AC-4-10(与 AC-10-14 联合)。承 ADR-011 的『3 只读、不可调』+ ADR-013 的焦点单栈门;抑制是过滤不是拒收。"
+
+  - id: TR-interaction-010
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "模态抑制方向 ②:任一模态打开时 4 拒收世界交互;只读 42 的『模态开集』只读态 IModalState.Modal ≠ ModalId.None,不自建『是否有 UI 打开』的布尔(2026-09-19 三审订正需求文本:原写『焦点单栈门』是错的旗标)"
+    domain: Core
+    adr: ADR-013
+    status: covered
+    note: "规则七 · F-4.2 · AC-4-09。契约 = ADR-013 §十 Amendment A(IModalState + ModalId,None = 0 成员)。自建第二份布尔会与 42 的单栈门双主,且每加一个屏就要改 4。⚠️ 判据**不是** SetFocusGate / IsFocusActive(那是别的旗标,首轮订正),**也不是**焦点单栈门。"
+
+  - id: TR-interaction-011
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "4 为 1 的 MotorSuppressed 合法调用者之一(与 10 / 25 并列);三者互不知晓,抑制请求独立发出由 1 汇总"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    note: "规则八。承 combat-and-weapon-lines 的共享语义;若须互知,回 1 裁定(那是 1 的表)。"
+
+  - id: TR-interaction-012
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "4 无状态 —— 实例零可变字段;清空重建后同一 (玩家格, 世界状态, 输入) 的目标逐位相同"
+    domain: Core
+    adr: ADR-005
+    status: covered
+    note: "规则九 · AC-4-04。缓存『上一帧的目标』会使重放依赖未入流的运行时历史 ⇒ 非确定性;纯函数 = 结构上不可能漂移。"
+
+  - id: TR-interaction-013
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "4 不接触玩法数值 —— 零 VitalsDto / disease_id / tier_named / drug_profile / EnvMod 引用;判据是『种类 + 位置』不是『内容』"
+    domain: Core
+    adr: ADR-013
+    status: covered
+    note: "规则十 · AC-4-05。与 42 / 44 / 20 的『只渲染 / 只搬运』同构,承 ADR-013 §三(呈现层不持游戏状态)。"
+
+  - id: TR-interaction-014
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "目标种类消歧的四级顺序(格距 → KindPriority → 稳定 id → Submit/Interact 撞车)+ KindPriority 为全序烘焙表,缺项 = 构建期硬失败"
+    domain: Core
+    adr: ADR-014
+    status: partial
+    note: "规则五 · AC-4-15。烘焙与闭集校验归 ADR-014(covered);消歧顺序本身与 KindPriority 的取值是 GDD 内部 schema,无 ADR 承接 ⇒ partial。R_INTERACT=0 / 缺项均须装载期硬失败(非静默失效)。"
+
+  - id: TR-interaction-015
+    system: interaction-system
+    gdd: design/gdd/interaction-system.md
+    requirement: "病人身上四种路由(37 立案 / 8 查体 / 11 施治 / 10 急救)的语义定义归 8 / 10 的动作词表,不归 4"
+    domain: Core
+    adr: null
+    status: covered
+    revised: "2026-09-19"
+    note: "OQ-4-1 ✅ 已结清(用户裁定 2026-09-18):确认归 8 / 10 的动作词表;4 只交 (病人, InteractIntent)。⚠️ 2026-09-18 该条曾标「承载方未落盘 ⇒ 停在 partial」(10 已落盘、8 的动作词表行仍缺)。**该条件已于 2026-09-19 消除**:8 侧用户裁定路线甲(模态分流)落盘 `diagnosis-system.md` **S-8.4 动作词表**(四路由:就诊→37 / 查体→8 模态内 / 施治→11 方笺 / 急救→10 直读通道;`AC-8-51`/`AC-8-52` BLOCKING)+ 4 侧 `D-8-12` 转 ✅。4 的出境载荷逐位不变(B-1),本条语义由 S-8.4 完整承载 ⇒ **partial → covered**。"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 时间与天气 (Time & Weather, #5) — design/gdd/time-and-weather.md
+  # 需求文本由 5 的 GDD 生成(2026-09-18 成稿)。5 是本批最短的一份,却有三条跨系统
+  #   承重边(tick 语义 / 天气派生态 / EnvMod 环境分量),权威件 = R-6-13(6 逐字登记
+  #   『时间与季节由 5 拥有』)+ ADR-005 / ADR-007 / ADR-009 §二 / ADR-015。
+  # ⚠️ 状态由撰写方置入,待 5 的首轮 /design-review(新会话)确认。
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-timeweather-001
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "tick 唯一来源 = ADR-005 的 ITickProvider;5 只读 CurrentTick,零写 tick 路径(Time.deltaTime / 墙钟 / 自增计数器)"
+    domain: Core
+    adr: ADR-005
+    status: covered
+    note: "规则一 · AC-5-01。5 不拥有 tick,只拥有 tick 的语义(多少 tick 是一天 / 一季 / 哪段是夜)。"
+
+  - id: TR-timeweather-002
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "生态区气候属性由 6 定义、5 消费;5 不得定义生态区 / 气候属性的字面(新增属性须回 6)"
+    domain: Core
+    adr: ADR-015
+    status: covered
+    note: "规则二 · AC-5-02。权威句 = world-and-ecozones R-6-13 + O-6-5。定义为『防越界』条款:若 6 自己推进季节或天气,会与 5 形成双主。"
+
+  - id: TR-timeweather-003
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "天气 = (WorldSeed, 块(tick), EcozoneOf(cell)) 的纯函数 —— 派生态,不进流 / 不存档 / 重建期重建"
+    domain: Core
+    adr: ADR-009 + ADR-007
+    status: covered
+    note: "规则三 · F-5.3 · AC-5-04。承 ADR-009 §二 三态分类。**2026-09-19 首轮评审 R-5-A 就地订正**:掷骰键由逐 tick 改为**块索引** `FDiv(t, WEATHER_BLOCK_TICKS)`(原稿逐 tick iid 与 Game Feel『连续变化不是瞬切』相悖,systems-designer 反证:TPD=1440 时数秒换一次天)。立法意图不变:**零历史、零状态累积、块索引由 t 纯导出 ⇒ 仍不进流**(原稿『转移链必然进流』的理据为假)。CatchUp 仍 O(1)。"
+
+  - id: TR-timeweather-004
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "掷骰统一走 IEventAuthority;零 UnityEngine.Random / 零帧数 / 零墙钟"
+    domain: Core
+    adr: ADR-007
+    status: covered
+    note: "规则三 · AC-5-03。ADR-007 的核心不变量 = 掷骰的每个输入必须可从事件流重构。"
+
+  - id: TR-timeweather-005
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "WorldSeed 归 7a 持久化的存档头,不占一条 SimEvent(避免鸡生蛋)"
+    domain: Core
+    adr: ADR-007 + ADR-010
+    status: covered
+    note: "规则三。承 ADR-007 §二 的用户裁定 + ADR-010 §三 的义务汇总(存档头契约)。"
+
+  - id: TR-timeweather-006
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "TICKS_PER_DAY 单一定义点在 5,52 引用(禁 const 副本);两者不一致 = 构建期硬失败"
+    domain: Core
+    adr: null
+    status: gap
+    note: "规则四 · AC-5-05。承 52 的 DC-3(预算窗口 = 一个 TICKS_PER_DAY,与 5 的日边界同值)。**两常量同值约定须机械守**;无 ADR 承接 ⇒ gap。漂移症状 = 事件预算在跨日时错位一格。"
+
+  - id: TR-timeweather-007
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "昼夜相位纯派生(FMod(t, TICKS_PER_DAY)),夜区间判定须环绕安全(FMod 式;朴素区间比较漏判环绕段)"
+    domain: Core
+    adr: null
+    status: gap
+    note: "规则五 · F-5.1 · AC-5-06 / AC-5-20。5 只交 isNight;TODMult 的形状与 NIGHT_THREAT_MULT 归 52。相位公式与环绕判据是 GDD 内部 schema,无 ADR ⇒ gap。**2026-09-19 首轮评审 B-1 就地订正**:『恒假』不准确 —— 真实失效 = 漏掉环绕段 `[0,(START+SPAN)−TPD)`,半对且静默;并登记 C# `%` 截断陷阱(须具名 `FMod`,AC-5-20 反例哨兵)。"
+
+  - id: TR-timeweather-008
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "EnvMod 的环境分量可为负,5 必须原样传递;钳制归 21a F1(ENV_MOD_MIN~MAX),5 不得越界钳制"
+    domain: Core
+    adr: ADR-006
+    status: partial
+    note: "规则六 · F-5.4 · AC-5-14。ADR-006 的定点域边界(求值域 / 单一舍入)covered;『负值原样传递』是与 18 的 AC-18-06 同款纪律,属分量语义 ⇒ partial。负值是结构的一部分:背阴处晒不着太阳是真实的劣势。"
+
+  - id: TR-timeweather-009
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "5 不结算任何玩法 —— 只产乘子与读数(EnvMod_env / isNight / 季节 / 天气 / 强度),由 18 / 17 / 52 / 42 / 44 各自消费"
+    domain: Core
+    adr: ADR-009
+    status: covered
+    note: "规则七。与 6 的『生态区气候属性 6 定义 / 5 消费』同款纪律;承 ADR-009 §二(派生态只管重建,不管效果)。"
+
+  - id: TR-timeweather-010
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "天气对移动的影响 P0 不启用(5 零速度修正);P1a 若启用必须走地貌同一条 K_TERRAIN 通道,不得新开第二条速度修改源"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    note: "规则八 · AC-5-08。**结清 1 的 OQ-1-6**(用户裁定 2026-09-18:P0 关闭)⇒ F-1-1a 的 max() 推导无需改动。P1a 启用时须回 1 补 K_TERRAIN 表项(登记 = OQ-5-2)。"
+
+  - id: TR-timeweather-011
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "玩家不在任何生态区(未驻留 chunk)⇒ EnvMod_env 取全局默认;不得取『最近区』;EcozoneOf 不得假设全图可达"
+    domain: Core
+    adr: ADR-015 + ADR-014
+    status: covered
+    note: "规则二 · 边例 · AC-5-12。承 world-and-ecozones 的全局默认 + OQ-6-8(导航格分块流式)/ ADR-022 §五 的 O-6-12 工具侧。"
+
+  - id: TR-timeweather-012
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "F-5.1 / F-5.2 / F-5.4 零浮点、除法全为整除;全部输出 DTO 递归反射无 float"
+    domain: Core
+    adr: ADR-006
+    status: covered
+    note: "AC-5-13 · AC-5-15。门 A(『noEngineReferences』)的常规落实。"
+
+  - id: TR-timeweather-013
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "同一 (WorldSeed, tick, cell) 跨平台重放 ⇒ kind / intensity / EnvMod_env 逐位相同"
+    domain: Core
+    adr: ADR-012
+    status: covered
+    note: "F-5.3 · AC-5-07。双级黄金夹具矩阵(三格常驻)提供执行载体。"
+
+  - id: TR-timeweather-014
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "参数装载期硬失败(TICKS_PER_DAY=0 / SEASONS_PER_YEAR=0 / NIGHT_SPAN ≥ TICKS_PER_DAY / WorldSeed 未装载),禁 null 兜底"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    note: "AC-5-11 · 边例。承 ADR-014 §五 的装载期硬失败纪律(E-13 同款:6.2+ 抛异常,不 null 解引用)。"
+
+  - id: TR-timeweather-015
+    system: time-and-weather
+    gdd: design/gdd/time-and-weather.md
+    requirement: "深水线的季节修正曲线(形状与数值)—— 5 产出 season_index,修正曲线的调制归 17"
+    domain: Core
+    adr: null
+    status: partial
+    note: "OQ-5-1 ✅ **形式已结清**(用户裁定 2026-09-18):逐季乘子表 —— 5 出 season_index(F-5.2),17 查 SEASON_MULT[season_index](表归 17 的 F-17-3,长度 = SEASONS_PER_YEAR,Q16.16)。落点 = 5 的 F-5.2 注 + AC-5-16/17;17 侧回填 = F-17-3 + AC-17-16/17。**status 只到 partial**:SEASON_MULT[] 的**具体值** + 17 的 Capacity / RegrowWindow 仍未定(数值轮,归用户 · OQ-8-11 / OQ-17-1)。"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 急救动作 (Emergency Procedures, #10) — design/gdd/emergency-procedures.md
+  # 需求文本由 10 的 GDD 生成(2026-09-18 成稿)。10 是全案 P0 唯一需要『手感』的系统
+  #   (L_input < 50 ms 硬预算),并结清 OQ-3-5(幅度走独立模拟量通道)。
+  # ⚠️ 状态由撰写方置入,待 10 的首轮 /design-review(新会话)确认。
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-emergency-001
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "EmergencyReading 增独立模拟量通道 magnitude(全整数),结清 OQ-3-5 的『真缺口 = 仅幅度一维』"
+    domain: Core
+    adr: ADR-011
+    status: covered
+    note: "规则一 · AC-10-01。承 3 的输入架构裁决(action-based 官方路线 + 急救独立直读通道)。节奏走边沿(既有),幅度为新增维。"
+
+  - id: TR-emergency-002
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "幅度通道的浮点只活在 3 的手感层;交出的读数是全整数,10 收到的永远是 int"
+    domain: Core
+    adr: ADR-011 + ADR-006
+    status: covered
+    note: "规则一 · F-10.1。承 3 的三轮评审修正(『直读浮点值是手感层(不进流),交出的读数是全整数的 EmergencyReading』)—— 这是门 A 的守门线。"
+
+  - id: TR-emergency-003
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "急救动作输入走 IEmergencyInput 回调直读通道,不穿 42 的 UI 事件栈(L_input < 50 ms 硬预算)"
+    domain: Core
+    adr: ADR-011
+    status: covered
+    note: "规则二。ADR-011 §二 的裁决依据:UI 事件栈的一次派发就吃掉可观的一部分预算。"
+
+  - id: TR-emergency-004
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "判定全归 10(sim 侧);3 不做判定、不构造 SimEvent —— asmdef 白名单 + IL 扫描断言"
+    domain: Core
+    adr: ADR-011 + ADR-005
+    status: covered
+    note: "规则三 · AC-10-02。生产者口径的三轮评审修正:3 只交读数,10 做判定。这是门 A 的守门线。"
+
+  - id: TR-emergency-005
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "Judge 是定点纯函数;10 的判定路径零浮点字面量"
+    domain: Core
+    adr: ADR-006
+    status: covered
+    note: "规则四 · AC-10-03。承 ADR-006 的定点域边界契约。"
+
+  - id: TR-emergency-006
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "JudgeResult 是枚举(Applied / AppliedWeak / Missed),非连续分值;零分数 / 评价字段"
+    domain: Core
+    adr: null
+    status: gap
+    note: "规则四 · AC-10-15。刻意不给连续分值(反幻想;与 53 的 Outcome 是枚举非分值同款纪律)。取值集与形状为 GDD 内部 schema ⇒ gap。"
+
+  - id: TR-emergency-007
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "幅度定点化舍入 = ROUND_HALF_AWAY_FROM_ZERO(禁 Math.Round 默认 ties-to-even)"
+    domain: Core
+    adr: ADR-006
+    status: covered
+    note: "F-10.1 · AC-10-04。舍入在 3 侧完成,但 10 的 AC 对拍它(交付物口径)。"
+
+  - id: TR-emergency-008
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "处置事件载荷必含 polarity / drug_potency / half_life(承 9 的入向契约),写病史流"
+    domain: Core
+    adr: ADR-005 + ADR-009
+    status: covered
+    note: "规则五 · AC-10-06。承 disease-simulation 的处置载荷形状 —— 9 不认识药,只认识『处置 id + 对症/对因 + 偏移 + 半衰期』。"
+
+  - id: TR-emergency-009
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "处置 id ∉ treatable_by(d) 时 10 照常发事件 —— 判定『有没有用』是 9 的离牌门,不是 10 的"
+    domain: Core
+    adr: ADR-005
+    status: partial
+    note: "规则五 · AC-10-07。『照常发事件』= 事件流纪律(covered);离牌门本身住 9 的 GDD,无 ADR ⇒ partial。"
+
+  - id: TR-emergency-010
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "跳过路径:JudgeResult = Applied(≠ Missed);焦点可导航、无时序要求、无模拟量;不计入熟练度成长"
+    domain: Core
+    adr: null
+    status: gap
+    note: "规则六 · AC-10-10。无障碍的入场券(用户裁定 4-b 归 10)。**跳过 = 换一条路走,不是认输**;若跳过 = Missed 则运动障碍玩家永远得不到好结果。无 ADR 承接 ⇒ gap。"
+
+  - id: TR-emergency-011
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "动作开始发 Treatment、结束(含跳过路径)必发 Explore 档位意图 —— 否则相机卡在近景"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    note: "规则八 · AC-10-11。承 2 的 O-12 接收方 + ADR-020 §六(镜头效果归属)。**跳过路径也必发** —— 最容易被漏的一条。"
+
+  - id: TR-emergency-012
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "动作期间置位 1 的 MotorSuppressed,结束(含跳过)清位;1 不过问原因"
+    domain: Core
+    adr: ADR-020
+    status: covered
+    note: "规则九 · AC-10-13。4 / 10 / 25 三者互不知晓,抑制请求独立发出由 1 汇总。"
+
+  - id: TR-emergency-013
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "Armed 期 10 压制 InteractIntent 与 UI 焦点移动;抑制是过滤不是拒收,3 侧保持零状态"
+    domain: Core
+    adr: ADR-011 + ADR-013
+    status: covered
+    note: "规则七 · AC-10-14(与 AC-4-10 联合)。承 3 的『无外部状态意图源』不变量 + ADR-013 的焦点单栈门。"
+
+  - id: TR-emergency-014
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "同一 (reading, skill_ctx, patient_ctx, WorldSeed) 跨平台重放 ⇒ JudgeResult 逐位相同"
+    domain: Core
+    adr: ADR-012
+    status: covered
+    note: "AC-10-05。双级黄金夹具矩阵提供执行载体。"
+
+  - id: TR-emergency-015
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "目标硬件上端到端输入延迟 < 50 ms 且抖动可接受(手感须主创签核 + 实测)"
+    domain: Performance
+    adr: ADR-011
+    status: partial
+    note: "AC-10-08 [L]。承 technical-preferences 的附加预算与 ADR-011 的『均值达标 + 抖动有上界』两条实测义务;前置 = 最低目标硬件定稿 + 两端可跑 player ⇒ 绑定 /test-setup。不可自动化测。"
+    # ⚠️ 目标硬件未定 ⇒ 无法给出数值判据(承 TR-input-016 同性质)
+
+  - id: TR-emergency-016
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "ResultMul[Missed] = 0 还是非 0 —— 决定『动手但失败』要不要有代价,即 10 与 9 / 53 的耦合强度"
+    domain: Core
+    adr: null
+    status: covered
+    note: "OQ-10-1 ✅ 已结清(用户裁定 2026-09-18):ResultMul[Missed] = 0.25(**非零**,『失败也留一笔』;Applied = 1.0 / AppliedWeak = 0.5)。落点 = 10 的 F-10.4 取值表 + AC-10-16。⚠️ 显式记账的代价:『手稳』不再是可失去之物,紧张感下降(用户已知并接受);改回 0 须重开本项。"
+
+  - id: TR-emergency-017
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "四个判定门的具体阈值(MAG_MAX / JITTER_MAX / MAG_THRESHOLD / MIN_EDGES)+ JudgeResult 取值集"
+    domain: Performance
+    adr: null
+    status: gap
+    note: "OQ-10-2。JITTER_MAX 是本 GDD 最承重的旋钮(杀死『手稳』的是抖动/方差,非平均延迟)。形状已定,值归用户(首次 playtest 前)。"
+
+  - id: TR-emergency-018
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "无模拟量设备(纯键盘)的幅度回退形态 —— 离散档还是自动通过"
+    domain: Core
+    adr: null
+    status: gap
+    note: "OQ-10-3。键鼠玩家的幅度通道无实现;归用户 + ux-designer。"
+
+  - id: TR-emergency-019
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "动作被打断的语义 —— 打断 = Missed?还是动作中止不发事件?已入流的部分怎么办"
+    domain: Core
+    adr: null
+    status: gap
+    note: "OQ-10-5。战斗中急救的行为未定义;归用户 + 10 / 9。"
+
+  - id: TR-emergency-020
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "EmergencyAction 枚举的取值集与语义归属(10 定 vs 21a 定 —— 动作是否进物品表)"
+    domain: Core
+    adr: ADR-014
+    status: partial
+    note: "OQ-10-6。承 3 的 TR-input-017。烘焙管线归 ADR-014(covered),但枚举归属未裁 ⇒ 数据管线归属随之未定 ⇒ partial。"
+
+  - id: TR-emergency-021
+    system: emergency-procedures
+    gdd: design/gdd/emergency-procedures.md
+    requirement: "magnitude 通道在 3 侧的命名与资产表达 —— 须回填 input-system 的 Amendment,不得静默"
+    domain: Core
+    adr: ADR-011
+    status: partial
+    note: "OQ-10-7。ADR-011 的直读通道裁决 covered;但 3 的 GDD 与实现不同步(须补 Amendment)⇒ partial。回归义务 = 3 的修订轮。"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 处方用药 (Prescription & Medication, #11) — design/gdd/prescription-and-medication.md
+  # 需求文本由 11 的 GDD 生成(2026-09-18 成稿)。11 是本批唯一必须接通一条跨文档义务的
+  #   GDD:D-21-11(品级 → 时间轴作用点档位须在 11 / 9 侧接通)—— F5 的求值点就在这里。
+  # ⚠️ 状态由撰写方置入,待 11 的首轮 /design-review(新会话)确认。
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-prescription-001
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "病名不给 11 —— 8 与 11 之间刻意无数据流;11 零 diagnosis / disease_id / tier_named 引用,零『遍历 indications[] 与病人状态比对』的匹配逻辑"
+    domain: Core
+    adr: null
+    status: gap
+    note: "规则一 · 规则八 · AC-11-01。承 diagnosis-system『8 与 11 无数据流 —— 这是刻意的』。这是**支柱一在代码里的物理形状**:判断与施治之间的那一步必须由玩家的手完成。无 ADR 承接 ⇒ gap。"
+
+  - id: TR-prescription-002
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "11 不发明结算 —— 药效 / 半衰期 / 品级偏移表 / 作用轴 / 剂量域全来自 21a 的 drug_profile,11 不得重定义"
+    domain: Core
+    adr: ADR-014
+    status: partial
+    note: "规则二 · AC-11-02。承 item-database 的『17/18/19 只产出输入参数』同一条纪律;烘焙与『一处声明』归 ADR-014(covered),字段级单一出处属跨 GDD 纪律 ⇒ partial。"
+
+  - id: TR-prescription-003
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "处置事件载荷七项齐备(tick / 处置_id / 施予者 / polarity / drug_potency / half_life / Seq),与 10 同形"
+    domain: Core
+    adr: ADR-005 + ADR-009
+    status: covered
+    note: "规则三 · AC-11-03。9 不区分这一笔来自 10 还是 11。"
+
+  - id: TR-prescription-004
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "11 的作者态数据表 = (药 → 处置_id) 映射 + 呈现层措辞键;21a 的 ItemDef 没有 action_id(临床语义不住物品目录)"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    note: "规则四。assets/data/prescription_actions.json → 两阶段烘焙。这是本 GDD 最承重的一处数据边界。"
+
+  - id: TR-prescription-005
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "polarity 双表一致性:9 的病种注册表 = 判定真源,11 的处方表 = 镜像;构建期交叉校验,不一致 = 硬失败(throw)"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    note: "规则五 · AC-11-07。两表漂移 = 静默撒谎(F1 用注册表值而 F4 的 last_intervention 用事件载荷值)。承 clinic-machine 的 ADJ_TABLE 对称性升烘焙硬门先例。"
+
+  - id: TR-prescription-006
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "11 是 F5 的唯一求值点(半衰期 := Axis_base + axis_offset_by_quality[quality − 1]),兑现 D-21-11"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    note: "规则六 · AC-11-08。11 是唯一知道『这一剂的 quality』的地方(从 20 的实例集取药)。P0 的 quality_axis 唯一 = half_life(其余三轴构建期拒绝 · D-21-23)。"
+
+  - id: TR-prescription-007
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "Axis_effective 的下界 —— 11 侧写 ≥ MIN_USABLE_HALF_LIFE(tick 计);21a 须以此升格其 F5 构建期断言(现仅 > 0),并给 drug_profile.drug_potency 声明取值范围"
+    domain: Core
+    adr: null
+    status: gap
+    note: "规则六 · F-11.2 · AC-11-11 ④。11 侧重复 clamp 会掩盖 21a 的断言失败,故断言必须住 21a。⚠️ **2026-09-19 二轮(BL-1 + BL-7)订正**:原文本「Axis_effective > 0 恒定」**是错的** —— 两件都不存在:① `MIN_USABLE_HALF_LIFE` **全库零定义**,21a 实断 `> 0`(两者不是同一把尺:合法极小值静默退化为「无药效」,而 AC 全过);② `drug_potency` **域未声明**,使「是否须 128 位中间积」不可判定。⇒ 承接件 = **21a**(`item-database.md` **`D-21-34`** / `O-11→21a`,须走重开流程,不得就地改)。**这是本轮新命名失效模式「判据对合法输入类误判」的第一处**。"
+
+  - id: TR-prescription-008
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "剂量在 dose_range 内取整数档;不存在第 hi+1 档(限位由戥子的物理档位集合给出,非运行期 clamp);11 不得读病人严重度替玩家调剂量"
+    domain: Core
+    adr: null
+    status: gap
+    note: "规则七 · F-11.1 · AC-11-17 / AC-11-18。剂量是玩家的显式输入,不是系统按病情自动缩放的系数。⚠️ **2026-09-19 订正(R-4 首轮 + 二轮确认)**:原文本「域内 clamp」**已作废** —— 运行期 clamp 删除(会静默修正合法输入),限位改由**戥子的物理档位**(42 的规格义务)承担。`OQ-11-3`(DOSE_BASE 语义与取值)/ `OQ-11-4`(称量手法是否开;⚠️ 代价侧已由 `OQ-53-8` 独立结清)。"
+
+  - id: TR-prescription-009
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "单次舍入 = ROUND_HALF_AWAY_FROM_ZERO;乘加链只在输出处舍一次,中间域保持 Q16.16 原始整数"
+    domain: Core
+    adr: ADR-006
+    status: covered
+    note: "F-11.1 / F-11.3 · AC-11-11。承 21a F1 的单一舍入纪律。"
+
+  - id: TR-prescription-010
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "single_dose_max = 烘焙期派生常量(max over 全部药 × dose_range.hi of |dose_potency|),零手填,供 9 的 F1 clamp 上界"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    note: "规则九 · AC-11-09。兑现 9 侧『由 11 / 21a 提供』的残留(21a Schema B 无此字段)。派生 = 结构上不可能漂移(同 ConfigVersion 纪律)。"
+
+  - id: TR-prescription-011
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "indications[] / contraindications[] 不拦不扣、只作呈现;病种 id 不得进呈现层(呈现 = 烘焙期转出的古籍功效词)"
+    domain: Core
+    adr: ADR-013
+    status: covered
+    note: "规则八 · AC-11-06 · AC-11-14。承 ADR-013 §三(disease_id 不进呈现层 + PresentationDtoGuard 递归扫描)。禁忌若成软门,玩家不再需要判断。"
+
+  - id: TR-prescription-012
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "与 20 的原子性:先验库存再扣,无货不得发事件(否则库存与事件流不一致)"
+    domain: Core
+    adr: ADR-005
+    status: covered
+    note: "规则十 · AC-11-04。承 20 规则六的『先验容量再扣』;破坏 AC-20-03 的可重建性。"
+
+  - id: TR-prescription-013
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "11 与 10 的载荷与流语义唯一(同写一条病史流,除 method / cause 外形状一致);11 零第二份 SkillMul / ResultMul / JudgeResult 实现"
+    domain: Core
+    adr: null
+    status: partial
+    note: "规则十一 · AC-11-10。⚠️ **2026-09-19 二轮订正(C5 口径)**:**原文本「11 与 10 共用同一个判定 / 熟练度结算函数」已作废** —— `SkillMul` 经 10 的 A6 改判 = **稳度容差乘子**(只被 `Judge` 的容差消费),11 恒 `Applied` ⇒ 该乘子在 11 **无合法消费点**。C5 在 11 侧**重新解释**为「载荷与流语义唯一」(见 `systems-index.md` §9 C5 行)。⚠️ **`AC-11-10` 断言的是算法独占,不约束写者** —— 写者独占由新 **`AC-11-22`**(⇒ `TR-prescription-018`)承担。`OQ-11-6` 已随 R-2 改判消解。残留:C5 的最终口径须回 `systems-index.md:580` 与 10 二轮同批裁。"
+
+  - id: TR-prescription-014
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "11 不请求相机档位(开方不是『动手』的动作);若需近景须回 2 补表行,不由 11 自行发意图"
+    domain: Core
+    adr: ADR-020
+    status: partial
+    note: "规则十二。承 2 的 R-2-5 档位驱动表 + ADR-020 §五/§六。⚠️ **2026-09-19 二轮订正**:2 的档位表**当前无 11 行**(`camera-and-viewpoint.md:161-171` 是「待裁」占位)⇒ 本条的「不请求」是**默认态**,**取决于 `OQ-11-7` / `OQ-11-9`**(方笺 = 39 同一本书 ⇒ 维持;= 另一件器物 ⇒ **须回 2 补一行**,届时本行改写)。做成 Treatment 会与 10 的形状混淆。⇒ 由 covered 降为 partial(条件式)。"
+
+  - id: TR-prescription-015
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "同一 (WorldSeed, 药, 剂, 实例集, 玩家) 跨平台重放 ⇒ 处置事件逐位相同"
+    domain: Core
+    adr: ADR-012
+    status: covered
+    note: "AC-11-15。双级黄金夹具矩阵提供执行载体。⚠️ **2026-09-19 二轮订正**:原文本输入集含「**技能等级**」**已删** —— R-2 改判后等级**不进载荷**(`AC-11-15` 注明「输入集刻意不含技能等级」);等级只经**省料**改库存,故重放要比对的是**载荷 + 余料**两处。"
+
+  - id: TR-prescription-016
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "polarity 的判定真源归谁 —— 9 的注册表(本 GDD 裁定)还是 11 的处方表(则 9 的 F1 须改为经烘焙注入)"
+    domain: Core
+    adr: null
+    status: covered
+    note: "OQ-11-1 ✅ 已结清(用户裁定 2026-09-18):**9 的病种注册表 = 唯一真源**,11 的处方表 = 镜像视图 + 构建期硬校验。本 GDD 原裁决确认,落点 = 规则五 + AC-11-07。⚠️ 被否的备选(真源改 11)是结构性改动,须另开 ADR 方能重开。"
+
+  - id: TR-prescription-017
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "处方用药熟练度的 P0 出口 —— 省料的单一出处 = 21a 的 EFF(11 零自有系数);30 只拥有『等级 → EFF』的映射"
+    domain: Core
+    adr: null
+    status: partial
+    note: "OQ-11-8。⚠️ **2026-09-19 二轮(BL-6)订正**:原三项出口「药效 / 副作用 / 用药选项解锁」中,药效已删(R-2)、副作用归 P1a;⇒ **P0 只剩「省料 + 解锁」**。**省料系数 `PROVINCE_SAVE_RATE[]` 已从 11 的旋钮表删除**(30 侧零定义 + 与 21a 的 `EFF`/`D-21-15` 双份实现);单一出处 = **21a 的 `EFF`**。残留 = 30 须登记「等级 → `EFF`」映射 ⇒ 承接件 = **30**(`O-11→30`)。30 现 Needs Revision。"
+
+  - id: TR-prescription-018
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "具名 Kind 的写者独占：SimEvent.Kind.DrugTreatmentApplied 的构造点仅存在于 11 的程序集;7a 的序列化器两个 Kind(11 的 + 10 的 EmergencyTreatmentApplied)均在白名单内"
+    domain: Core
+    adr: null
+    status: partial
+    note: "**AC-11-22(BLOCKING,2026-09-19 二轮 BL-4 新立)** —— 反射 / 引用集断言(**非 grep**,承 `AC-20-03` 口径)。⚠️ **本条补的是一处从未被断言的缺口**:首轮只断「算法独占」(`AC-11-10`,⇒ `TR-prescription-013`),**从未断言「写者独占」**。作者侧「未注册 Kind 构建期失败」的**全局防线**仍缺(10 的 systems-index 行记「五个人独立踩同一块石头」),归下一次 `/architecture-review`,不在本条内解决 ⇒ partial(单点断言在,全局防线缺)。"
+
+  - id: TR-prescription-019
+    system: prescription-and-medication
+    gdd: design/gdd/prescription-and-medication.md
+    requirement: "可感知地板的量纲一致：剂量档位的可感知地板必须与 9 的噪声同量纲方可比较;不得把 9 的 σ(Progress 域)或 21a 的品级地板(tick 域)的数值挪用到药效幅值域"
+    domain: Core
+    adr: null
+    status: gap
+    note: "**AC-11-19** —— 🔴 **2026-09-19 二轮(BL-2)新立**:**9 侧无具名噪声带常量**(只有 `σ` 旋钮与 `Noise(seed,t)` 函数),该 AC 记 `NOT-RUN`;承接件 = **9**(`disease-simulation.md` **`D-9-J`** / `O-11→9`)。**本条的价值在「防跨量纲挪用」这一侧**(修法本身可能被误当成「借个数」:拿 σ 的倍数当 `NOISE_BAND_9` = 跨量纲挪用,不在授权内)。"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 炮制 (Processing / Preparation, #18) — design/gdd/processing.md
+  # 需求文本由 18 的 GDD 生成(2026-09-18 成稿)。18 的核心纪律 = 『不发明结算』:
+  #   F1 唯一求解器住 21a(item-database:450),18 只筛子集 / 供料 / 调 F1 / 交 20 执行。
+  # ⚠️ 状态由撰写方置入,待 18 的首轮 /design-review(新会话)确认。
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-processing-001
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "18 不发明结算 —— F1 是唯一配方求解器(住 21a),18 是调用方;结算调用点唯一,零第二实现"
+    domain: Core
+    adr: ADR-014
+    status: partial
+    note: "规则一 · AC-18-01(全表改造后含 spy 夹具 + 单调用点 + 出参同一引用 + Roslyn/IL 符号引用扫描零第二实现)。承 item-database『17 采集 / 18 炮制 / 19 制作只产出输入参数,不得自建结算逻辑』;「唯一求解器」是跨 GDD 纪律(21a 拥有),无 ADR 层裁决 ⇒ partial。2026-09-19 首轮评审落点:判据已机制化(原「不得自建」为口头纪律,现可机器断言)。"
+
+  - id: TR-processing-002
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "18 的代码路径不得求值 Ceil(base/EFF) / Round(qty × QtyMultiplier) / clamp(InputQuality × Retain) —— 它们是 F1 / F2 的正文"
+    domain: Core
+    adr: ADR-006
+    status: covered
+    note: "规则一 · AC-18-02。由单调用点断言守住;任何在 18 侧重写的算式都是第二求解器。"
+
+  - id: TR-processing-003
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "18 传给 F1 的 SkillMod 输入是 Level(等级),非 cap × Level / SKILL_CAP 的结果 —— 否则曲线被压成两段阶跃;判据须机器可验 ⇒ 前置义务 = 21a 定义具名 newtype SkillLevel(D-21-33)"
+    domain: Core
+    adr: null
+    status: partial
+    note: "规则一 · AC-18-03。承 21a F1 的 🔑(「18 只传等级,不传结果」);在 int 域预先除尽会使曲线死亡。⚠️ 两个 int 静态不可分辨 —— 2026-09-19 首轮评审登记义务 O-18-R7(= 21a **D-21-33**):newtype 落地前 AC 以 spy 入参恒等断言现测 ⇒ gap→partial。"
+
+  - id: TR-processing-004
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "炮制子集判据 = Recipe.owner ∈ {process, craft, build} 显式字段(21a D-21-30);「processing_state 是否变化」降为单向校验"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    note: "规则二 · R-18-B(OQ-18-1 已裁 [甲] 2026-09-19)。根因:item_key=(base_id, processing_state) 复合主键使「state 变化」判据结构性不互斥。字段已在 21a 规则五/:150 schema 落盘,校验 = AC-21a-66 ⇒ partial→covered。⚠️ 18 侧 AC-18-18 记 EXTERNAL·BLOCKED-BY-21a(字段有 schema、无实现)。"
+
+  - id: TR-processing-005
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "准入两道门:skill_gate 是门槛(非系数,否则与 SkillMod 双重计数)+ min_quality 是准入闸(不改药效)"
+    domain: Core
+    adr: null
+    status: partial
+    note: "规则三 · F-18.2 · AC-18-05/20。承 21a 两条字段明文。2026-09-19 首轮评审:准入谓词 Admissible 定为**同一函数双路径**(客户端预答 + 主机终裁,AC-18-20 零第二实现)+ ADR-011 Amendment B 同构(判定归主机终裁)⇒ 有 GDD 侧机制化判据但仍无 ADR 承接 ⇒ gap→partial。"
+
+  - id: TR-processing-006
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "四个修正项的输入侧:18 供料(Level / 输入实例 / EquipMod 读 24 / EnvMod 读 5+24),21a 定曲线"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    note: "规则四。承 21a F1 的变量表(cap × Level / SKILL_CAP 等)。18 供料、21 定曲线的分工是「一处声明」纪律的落实。2026-09-19 首轮评审涟漪(R-18-C / D-21-31):18 供的是**两个未钳制分量**(EnvMod_climate ← 5,EnvMod_clinic ← 24),求和+clamp 唯一落点在 21a F1 正文(EnvMod_total)。"
+
+  - id: TR-processing-007
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "EnvMod 可为负,18 必须原样传递,不得 clamp 到 0"
+    domain: Core
+    adr: ADR-006
+    status: covered
+    note: "规则四 · AC-18-06(反例哨兵夹具:两分量各自越界输入 ⇒ 逐位原样透传、18 侧零加法零 clamp)。2026-09-19 R-18-C 结案钳制归属:原「18 不 clamp、21a 也不见得有 clamp」的两不管已裁定 —— clamp 归 21a F1 正文(D-21-31),5 侧 AC-5-19 收窄为只断自家不钳 ⇒ partial→covered。"
+
+  - id: TR-processing-008
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "调 F1 一次拿三个出参(ActualConsumed / OutputQty / OutputQuality);F-18.1 只是调用契约,零新数学"
+    domain: Core
+    adr: null
+    status: gap
+    note: "规则五 · F-18.1。本节刻意零新公式 —— 任何在 18 侧重写的算式都是第二求解器。调用契约形状无 ADR ⇒ gap。"
+
+  - id: TR-processing-009
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "ActualConsumed 是运行期派生量,须随该次 Craft 事件落世界流;18 是该值的唯一产生者(兑现 21a 的 AC-21a-52)"
+    domain: Core
+    adr: ADR-009
+    status: covered
+    note: "规则五 · AC-18-11。承 ADR-009 §三(Craft 已在世界流 Kind 骨架中)+ D-21-15(实耗)。"
+
+  - id: TR-processing-010
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "产出非零是结构(max(1, Round(qty × QtyMultiplier))),18 不得加一层失败判定 / 有概率产出 0"
+    domain: Core
+    adr: null
+    status: gap
+    note: "规则六 · 原 AC-18-07 已并入 AC-18-01②(对三出参零再加工 ⇒ OutputQty ≥ 1 由 F1 结构继承,18 侧无需独立 AC)。2026-09-19 AC 全表改造。无 ADR 承接 ⇒ gap 维持。"
+
+  - id: TR-processing-011
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "与 20 的原子性:容量不足则 20 整体拒绝 ⇒ 炮制不发生;18 不得先扣后补(部分成功破可序列化前提)"
+    domain: Core
+    adr: ADR-005
+    status: covered
+    note: "规则七 · AC-18-12。承 20 规则六。部分成功会让重放得到不同的中间态。"
+
+  - id: TR-processing-012
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "完成时点 = Tick(start) + recipe.duration_ticks —— tick 计、非墙钟、零浮点"
+    domain: Core
+    adr: ADR-005
+    status: covered
+    note: "规则八 · F-18.3 · AC-18-13。与 9 的病程同 tick 域(主机唯一 Step)⇒ 等待是真的在流逝。"
+
+  - id: TR-processing-013
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "18 不认识药 —— 零 drug_profile / polarity / treatable_by 引用;18 的输出是物品实例,不是治疗"
+    domain: Core
+    adr: null
+    status: gap
+    note: "规则九 · AC-18-04。这是『17 / 18 / 19 只产出输入参数』的机制化含义;治疗是 11 + 9 的事。无 ADR 承接 ⇒ gap。"
+
+  - id: TR-processing-014
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "四 cap ↔ QTY_MULT_MAX 的构建期校验(Σ 正的 cap + max(0, ENV_MOD_MAX) ≤ QTY_MULT_MAX − 1)执行方归 18"
+    domain: Core
+    adr: ADR-014
+    status: partial
+    note: "规则四 · AC-18-14(OQ-18-2 已裁 [甲] 2026-09-19):**主执行 = 21a 烘焙管线**(与 schema_version/白名单/守恒同处),18 侧仅装载期**防御断言**半边。21a 侧执行 AC 待 O-18-R2 回写 ⇒ partial 维持(执行方已裁、对侧 AC 未写)。"
+
+  - id: TR-processing-015
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "并发模型:每玩家单炉、不可取消、拒绝零事件、跨玩家并发允许(器具互斥另归 24 = OQ-18-8)"
+    domain: Core
+    adr: null
+    status: partial
+    note: "OQ-18-3 ✅ 已裁 [甲](2026-09-18 成稿时含三问:炉数/器具/取消;首轮评审 2026-09-19 裁定 + 规则八并发模型表 + AC-18-23)⇒ gap→partial。**未结的部分 = OQ-18-8**(同器具共享语义归 24 的占用表,18 不自裁)。"
+
+  - id: TR-processing-016
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "炮制中途存档的语义 —— 完成 tick 已定、重放可重建?还是须把『进行中』作为进程态存"
+    domain: Core
+    adr: ADR-010
+    status: covered
+    note: "OQ-18-5 ✅ 已结清(用户裁定 2026-09-18):**发起即落流,完成 = 派生** —— 点火 tick 发 Craft 世界流事件,完成 = 时间到达 + 出参(输入的纯函数)⇒ 无进程态可存,7a 只存事件流。落点 = 18 规则八 + AC-18-16/17。**2026-09-19 首轮评审补全两处原悬空**:① 载荷三位定稿(R-18-A:actor_id / output_instance_ids[] / tool_cell);② 派生的 **D-21-28(Craft 总序键)已结案** —— 三流全序键 (Tick, StreamPriority, None, Seq) [甲] + 主机发号,落 ADR-009 **Amendment J**;取消语义随 OQ-18-3 裁定「不可取消」。"
+
+  - id: TR-processing-017
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "同一 (WorldSeed, recipe, 输入实例集, 四修正项) 跨平台重放 ⇒ 三个出参逐位相同"
+    domain: Core
+    adr: ADR-012
+    status: covered
+    note: "AC-18-15。双级黄金夹具矩阵提供执行载体。"
+
+  - id: TR-processing-018
+    system: processing
+    gdd: design/gdd/processing.md
+    requirement: "参数装载期硬失败(ENV_MOD_MIN 未定值 / outputs[] 为空等),禁 null 兜底"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    note: "AC-18-14 · 边例。承 ADR-014 §五 的装载期硬失败纪律 + 21a 的非空约束。"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 库存与物品 (Inventory & Items, #20) — design/gdd/inventory-and-items.md
+  # 需求文本由 20 的 GDD 生成(2026-09-18 成稿)。20 不是第二真源:库存 = 世界流纯投影;
+  #   它是六份『零涟漪批』(17 / 18 / 29 等)的共同上游回填端。
+  # ⚠️ 状态由撰写方置入,待 20 的首轮 /design-review(新会话)确认。
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - id: TR-inventory-001
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "库存 = 世界流的纯投影(InventoryOf = fold);7a 快照是优化非真相,与三流冲突时以三流为准"
+    domain: Core
+    adr: ADR-009 + ADR-010
+    status: covered
+    note: "规则一 · AC-20-03。承 ADR-009 §一 Q1 判据 + §二 三态分类 + ADR-010『快照 = 优化非真相』。把快照当真源是契约违反。"
+
+  - id: TR-inventory-002
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "instance_id 铸造权 = 主机唯一(IIdAuthority.ItemInstanceId.Next());客户端不自铸,意图上行、id 由主机回填"
+    domain: Core
+    adr: ADR-005 + ADR-001
+    status: covered
+    note: "规则二 · AC-20-01 · AC-20-02。兑现 21a 的 D-21-26 / D-21-27 + AC-21a-63;客户端上行走 ADR-001 第二 QoS。"
+
+  - id: TR-inventory-003
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "instance_id 的高水位重构 next = max(instance_id) + 1,扫三流并集(与 patient_id 同机制)"
+    domain: Core
+    adr: ADR-006
+    status: covered
+    note: "规则二。承 ADR-006 Amendment B『计数器 + 高水位可重构』,其 id 空间由 ADR-016 §二 扩大(病人 → 受伤实体)。不为 instance_id 新开计数器。"
+
+  - id: TR-inventory-004
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "堆叠键 = (item_key, quality)(21a F4 唯一出处);容器自身不堆叠(qty 恒 1);20 不得改写 StackKey"
+    domain: Core
+    adr: null
+    status: gap
+    note: "规则三 · AC-20-04。不同品级不堆、各占一个 ItemInstance。承 21a 规则六;20 只执行。无 ADR 承接 ⇒ gap。"
+
+  - id: TR-inventory-005
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "CarryLoad(p) = Σ (ItemDef.weight × qty),整数求和、先乘后加;weight 是 int 非 Fix(D-21-17)"
+    domain: Core
+    adr: ADR-006
+    status: covered
+    note: "规则四 · F-20.1 · AC-20-08。D-21-17 的 weight 口径(移出 Fix 解析集)在本式落地。"
+
+  - id: TR-inventory-006
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "CanCarry ⟺ CarryLoad + InstanceWeight ≤ CARRY_CAP;硬不变量 ∀p CarryLoad(p) ≤ CARRY_CAP(52 的归一化定义域)"
+    domain: Core
+    adr: null
+    status: gap
+    note: "规则四 · F-20.2 · AC-20-09。承 random-events 的 clamp(CarryLoad / CARRY_CAP, 0, 1)要求该不变量恒成立,否则归一化爆界。**CARRY_CAP 值未裁**(OQ-20-2)⇒ 不变量无值可验 ⇒ gap。"
+
+  - id: TR-inventory-007
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "20 不发明结算 —— 只执行上游算好的量;零 EFF / QualityMod / quality_distribution 的求值"
+    domain: Core
+    adr: null
+    status: gap
+    note: "规则五 · AC-20-05。承 item-database:450『17/18/19 只产出输入参数』—— 20 是同一纪律的下游侧。无 ADR 承接 ⇒ gap。"
+
+  - id: TR-inventory-008
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "存取原子性:容量不足则整体拒绝(拾取整件拒绝、炮制整体回滚),无半途状态"
+    domain: Core
+    adr: ADR-005
+    status: covered
+    note: "规则六 · AC-20-06 · AC-20-07。承 ADR-005 的『状态可序列化』前提 —— 部分成功的中间态无处可归因。"
+
+  - id: TR-inventory-009
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "20 不接触战斗与病程 —— 只交读数(InventoryOf / CarryLoad / 存在性);不判对症、不判伤情用何物"
+    domain: Core
+    adr: ADR-009
+    status: covered
+    note: "规则七。它是库房不是医生;消费者 = 29(掉落清单投影)/ 25(弹道器材)/ 52(CarryLoad 强度轴)。"
+
+  - id: TR-inventory-010
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "溢出界 |Inventory| × stack_max × max(weight) < 2^31 —— 烘焙期可算常量,构建期硬门断言"
+    domain: Core
+    adr: ADR-014
+    status: partial
+    note: "F-20.1 注。物品种类闭集 ⇒ 上界可算;承 clinic-machine 的 B6 同款纪律。构建期门归 ADR-014(covered),具体值班方未裁 ⇒ partial。"
+
+  - id: TR-inventory-011
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "载重呈现 = 药箱的满溢感(四档定性),零负重条 / 百分比 / 网格 / 排序 / 自动整理"
+    domain: Presentation
+    adr: ADR-013
+    status: covered
+    note: "规则四 · UI-20.3 · AC-20-10 · AC-20-12。用户裁定 2026-09-18(拟物器具)。承 ADR-013 §三『只渲染,永不持有游戏状态』+ 42 规则五『不得是背包格』。四档是呈现分档,非机制分档(机制侧只有一条布尔)。"
+
+  - id: TR-inventory-012
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "全部 20 的输出 DTO 递归反射扫描无 float"
+    domain: Core
+    adr: ADR-006
+    status: covered
+    note: "AC-20-15。门 A 的常规落实(与 AC-44-B1 同型)。"
+
+  - id: TR-inventory-013
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "CARRY_CAP 未定值 ⇒ CanCarry 无法求值 ⇒ 20 装载期硬失败(禁 null 兜底 / 默认容量)"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    note: "AC-20-13 · 边例。承 ADR-014 §五 的装载期硬失败纪律(E-13 同款:6.2+ 抛异常,不 null 解引用)。"
+
+  - id: TR-inventory-014
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "消耗 / 转移的 Kind 归属 —— 复用既有 Craft / DropDespawned,还是须追加 ItemConsumed / ItemTransferred"
+    domain: Core
+    adr: ADR-009
+    status: covered
+    note: "OQ-20-1 ✅ 已结清(用户裁定 2026-09-18):**全部复用既有 Kind,零新增** —— 炮制 Craft(扣减 = ActualConsumed 纯函数,21a AC-21a-52)· 建造 StructurePlaced(扣减 = cost(m),23 规则七)· 用药 DropDespawned(实例级;处置事件住病史流且不含 instance_id,若以其为载体 fold 域须扩到三流)· 转移 DropSpawned→DropClaimed。落点 = 20 规则一 + AC-20-16/17。**零 ADR 涟漪**(不走 ADR-021 的追加流程);残留:R-2 落定 DropDespawned 载荷时须含 reason 枚举。"
+
+  - id: TR-inventory-015
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "容器折重实现 —— 装子件的容器自身重量是否含子件(21a Schema E 登记待裁)"
+    domain: Core
+    adr: null
+    status: gap
+    note: "OQ-20-4。负重读数可能双重计数。归用户 + 20 / 21a。"
+
+  - id: TR-inventory-016
+    system: inventory-and-items
+    gdd: design/gdd/inventory-and-items.md
+    requirement: "联机时的库存同步粒度 —— 逐件同步还是整箱快照"
+    domain: Networking
+    adr: ADR-001
+    status: gap
+    note: "OQ-20-5。ADR-001 已立 pipe 抽象与两条 QoS 通道(covered),但库存这一层的粒度未裁 ⇒ gap;P1b 归 45,P0 单机不阻塞。"

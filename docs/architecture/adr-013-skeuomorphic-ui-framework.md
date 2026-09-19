@@ -6,13 +6,15 @@ Accepted
 
 > **2026-09-15 起草并转 Accepted。** 三条用户裁定已锁:① **UI Toolkit 为主 + UGUI 补 world-space/XR**
 > (平面拟物 UI 全走 UI Toolkit UXML/USS;世界空间与 VR 急救 UI 走 UGUI world canvas,补 E-16 空白);
-> ② **P0 定两栈接口与元件库契约,VR / world-space 具体实现推到 P1a**(VR 急救不在 P0 关键路径);
+> ② **P0 定两栈接口与元件库契约,VR / world-space 的立体适配推到 P1a**(VR 急救不在 P0 关键路径);
+> ⚠️ **2026-09-16 就地修订**:本条原写「VR / world-space **具体实现**推到 P1a」,**已收窄** ——
+> **world-space 的最小实现(敌人读数条 = 世界锚点 → billboard 面片)提到 P0**(阅 §二 修订块);
 > ③ **拟物视觉 = 自建 USS 拟物元件库**(纸纹 / 墨迹 / 卷轴九宫格 + 主题变量)+ UXML 组合;
 > UGUI 侧仅 world / XR 用(TMP + 贴图),两层同构件库语义对齐。
 > 引擎侧经 unity-specialist lean 复核(2026-09-15):**无引擎侧 blocker**;结论并入 §Risks
 > (F1 官方桥单源 · F2 焦点引擎自动 + E-16 成立 · F3 VR 必须 World Space · F4 两栈共用 EventSystem +
 > 焦点单栈门 · **F5 UI Toolkit 自定义 shader 受限(HIGH)** · **F6 图集阈值(HIGH)** ·
-> F7 DTO 反射扫描递归 · F8 无障碍三钩子)。
+> F7 DTO 反射扫描递归 · F8 无障碍四钩子)。
 > 独立评审由下一轮 `/architecture-review` 进行。
 
 ## Date
@@ -35,8 +37,8 @@ dr_guyang(用户 · **2026-09-15 三条裁定,均照准**)· technical-director(
 「UI Toolkit 无原生 world-space / XR 支持 ⇒ 同一 UI 两套栈要早决」**。ADR-011 已把焦点导航的
 **接口**侧落定(动作 → `FocusNavigationIntent`,R-6 用官方桥),把**呈现**侧明确留给本 ADR。
 本 ADR 裁决:**UI Toolkit 为主栈**(平面拟物 UI:脉案 / 出诊箱 / 纸质地图 / 存档位),
-**UGUI 补 world-space / XR**(VR 站定式急救 UI);**P0 定义两栈接口 + USS 拟物元件库契约,
-VR 实现推 P1a**;**拟物视觉 = 自建 USS 元件库(纸纹 / 墨迹 / 卷轴九宫格 + 主题变量)+ UXML 组合**,
+**UGUI 补 world-space / XR**(敌人读数条 P0 最小实现 · VR 站定式急救 UI P1b);**P0 定义两栈接口 + USS 拟物元件库契约,
+world-space 最小面 + 立体 / XR 适配推 P1a**;**拟物视觉 = 自建 USS 元件库(纸纹 / 墨迹 / 卷轴九宫格 + 主题变量)+ UXML 组合**,
 UGUI 侧语义对齐。42 / 39 / 43 / 7b / 48 的呈现层契约由此落定。
 
 ## Engine Compatibility
@@ -59,7 +61,7 @@ UGUI 侧语义对齐。42 / 39 / 43 / 7b / 48 的呈现层契约由此落定。
 | **Depends On** | **ADR-011**(Accepted —— 焦点导航接口侧:动作 → `FocusNavigationIntent`;R-6 用官方桥)· **ADR-005**(Accepted —— 表现层 float 隔离于 `IVitalsQuery → VitalsDto`)· **ADR-008**(Accepted —— `disease_id` 不进呈现层 / AC-37-15 DTO 静态检查)· **ADR-009**(Accepted —— 表现态与模拟态分离)· **ADR-010**(Accepted —— 7b 存档位 UI) |
 | **Enables** | **42 / 39 / 43 / 7b / 48 的实现**(呈现层契约)· `TR-concept-008`(gap → covered)· `design/ux/` 的撰写(`/ux-design` 预门控) |
 | **Blocks** | 系统 42 / 39 / 43 / 7b 的实现;凡依赖 UI 栈选型的 presentational AC |
-| **Ordering Note** | 本 ADR 是 **R-6 的落点**。**ADR-011 的先决已满足**(接口侧已 Accepted);**先 Accepted 本 ADR,再写 42 / 39 的 UI 代码**。**不阻塞**模拟侧(9 / 37 / 52 / 21a)。**P0 只落两栈接口 + 元件库契约;VR / world-space 实现推 P1a**(VR 急救不在 P0 关键路径) |
+| **Ordering Note** | 本 ADR 是 **R-6 的落点**。**ADR-011 的先决已满足**(接口侧已 Accepted);**先 Accepted 本 ADR,再写 42 / 39 的 UI 代码**。**不阻塞**模拟侧(9 / 37 / 52 / 21a)。**P0 落两栈接口 + 元件库契约 + world-space 最小实现(敌人读数条);立体 / XR 适配推 P1a**(VR 急救不在 P0 关键路径)。⚠️ 2026-09-16 修订 |
 
 ## Context
 
@@ -69,7 +71,7 @@ UGUI 侧语义对齐。42 / 39 / 43 / 7b / 48 的呈现层契约由此落定。
 但呈现侧**完全空白**:
 
 1. **UI Toolkit 无原生 world-space / XR 支持**(E-16):VR 急救模式与任何世界空间 UI
-   (世界空间体征提示)须走 UGUI world canvas 或网格 ⇒ **同一 UI 两套栈**;
+   (敌人读数条等世界锚点提示)须走 UGUI world canvas 或网格 ⇒ **同一 UI 两套栈**;
 2. **拟物 UI 铁律**(systems-index §9 C3):**42 只渲染,永不持有游戏状态** —— 「体征 → 呈现形态」
    映射表归 8 诊断(那是医学知识);42 只是渲染器;
 3. **`disease_id` 不进呈现层**(ADR-008 / AC-37-15):唯一落点是 DTO 静态检查,归 39 脉案;
@@ -116,32 +118,57 @@ UGUI 侧语义对齐。42 / 39 / 43 / 7b / 48 的呈现层契约由此落定。
 
 ## Decision
 
-**裁决:UI Toolkit 为主 + UGUI 补 world-space / XR · P0 定接口与元件库契约(VR 实现推 P1a)·
-拟物视觉 = 自建 USS 元件库 + UXML 组合。**
+**裁决:UI Toolkit 为主 + UGUI 补 world-space / XR · P0 定接口与元件库契约 + world-space 最小实现
+(立体 / XR 适配推 P1a)· 拟物视觉 = 自建 USS 元件库 + UXML 组合。**
 
 ### 一、UI 栈分工(两栈早决)
 
 | 用途 | 栈 | 理由 |
 |------|-----|------|
 | **平面拟物 UI**(脉案 / 出诊箱 / 纸质地图 / 存档位 / 教学) | **UI Toolkit**(UXML + USS) | 引擎参考推荐新项目;保留模式渲染,USS 拟物样式;官方焦点桥 |
-| **World-space UI**(世界空间体征提示) | **UGUI world canvas** | UI Toolkit 无 world-space(E-16,F2 确认成立) |
+| **World-space UI**(敌人读数条 · 世界锚点提示) | **UGUI world canvas** | UI Toolkit 无 world-space(E-16,F2 确认成立) |
 | **VR 急救 UI**(站定式小游戏) | **UGUI world canvas**(**必须 World Space**) | VR 立体渲染须 World Space;Overlay 不参与立体(F3) |
 
-**边界**:两栈共用同一 `EventSystem`(UGUI 走 `GraphicRaycaster`,UI Toolkit 走 `PanelRaycaster`)——
-**禁双 EventSystem / 双输入模块**(F4);z 序须对齐(`Canvas.sortingOrder` vs
-`PanelSettings.sortOrder` 两套)。
+> **⚠️ 2026-09-16 就地修订(第 2 行主语)**:原文写「世界空间**体征提示**」。
+> **主角自身的体征世界层呈现不归本 ADR** —— 已由 **ADR-020 §六** 判给「8 语义 + **2 摄像机 / shader**
+> 实现」(主角视野边缘是**水墨渗边**,不是一条 UI 元件,`diagnosis-system.md:1641`)。
+> 本行改指 **42 真正拥有的 world-space 面 = 敌人读数条 · 世界锚点提示**(`game-concept.md:776`「丙」)。
 
-### 二、P0 范围:接口与元件库契约(VR 实现推 P1a)
+**边界**:两栈共用同一 `EventSystem`(UGUI 走 `GraphicRaycaster`,UI Toolkit 走 `PanelRaycaster`)——
+**禁双 EventSystem / 双输入模块**(F4)。
+**⚠️ z 序条款 2026-09-17 就地修订**:原文写「z 序**须对齐**(`Canvas.sortingOrder` vs
+`PanelSettings.sortOrder` 两套)」—— 该措辞**暗示两个数可比**,而它们分属**两个合成域**
+(UGUI world canvas 在**相机内**排序;UI Toolkit **Overlay** 面板在**全部相机之后**合成),
+**不可比**。**修正口径**:42 拥有的是**两张域内序表**(覆盖层内 / 相机内),**各自域内不得撞号**;
+**跨域序是引擎的结构性事实**(覆盖层恒在相机之上),**不是配置项**。
+GDD 42 的 §Formulas F4 已就地重写(三层口径:相机内 / 跨域二值 / 覆盖层内),
+原「`φ` 严格单调 + 单射」的装载期断言**已废**(它断的是一个不存在的对象)。
+
+### 二、P0 范围:接口与元件库契约 + world-space 最小实现(立体 / XR 适配推 P1a)
+
+> **⚠️ 2026-09-16 就地修订(本标题与下方 P1a 行)** —— 原文为「P0 范围:接口与元件库契约
+> (**VR 实现推 P1a**)」,并把「**VR / world-space 的两栈适配**」整体推到 P1a。
+> **该措辞与 `game-concept.md:776` 的「丙」裁决相抵** —— 敌人**有**黄铜质读数条、**挂在敌人身上**,
+> 而 25 格斗是 **P0**,P0 开场遭遇即兵痞。原口径 ⇒ **P0 的战斗没有状态反馈**。
+> **用户裁定(2026-09-16)**:**world-space 栈的最小实现提到 P0**。修订后:
+> - **P0** = 「一组世界锚点 → 一张 billboard 面片」**这一条路径**;**不做**立体渲染、**不做**深度冲突处理;
+> - **P1a** = 立体适配 + VR 立体渲染(栈的**完整**适配)。
 
 - **P0 定义**:
   - **两栈接口契约**(呈现层与模拟层解耦;UI 只读 DTO,不持状态 —— §三);
   - **USS 拟物元件库**(纸纹 / 墨迹 / 卷轴九宫格 + 主题变量);
   - **焦点导航呈现侧接线**(导航意图 → 官方桥 → 焦点移动);
-  - **平面拟物 UI 的框架实现**(42 / 39 / 7b)。
-- **P1a 实现**:VR / world-space 的两栈适配(UGUI world canvas + stereo);**VR 急救不在 P0 关键路径**,
-  P0 只留接口,避免为小功能付双栈早投成本。43 纸质地图与出诊箱本身即 P1a。
+  - **平面拟物 UI 的框架实现**(42 / 39 / 7b);
+  - **world-space 最小实现**(**敌人读数条**:世界锚点 → billboard 面片;**不含**立体 / 深度 / XR)。
+- **P1a 实现**:world-space 栈的**立体适配 + VR 立体渲染**(UGUI world canvas + stereo);
+  **VR 急救不在 P0 关键路径**,P0 只留接口,避免为小功能付双栈早投成本。43 纸质地图与出诊箱本身即 P1a。
 - **理由**:E-16 要求「两套栈**要早决**」—— 指的是**架构方向早决**(本 ADR 已决),
-  不是**两栈实现都要 P0 完成**。P0 定契约 + 平面实现,VR 实现 P1a 承接,方向不推翻。
+  不是**两栈实现都要 P0 完成**。P0 定契约 + 平面实现 + world-space 最小面,
+  立体 / VR 实现 P1a 承接,方向不推翻。
+
+> **⚠️ 三档消歧(常被混为一谈,`docs/consistency-failures.md` 已记录一次冲突)** ——
+> **栈适配**(本 ADR:P0 最小 / P1a 立体)· **VR 急救这个功能本身**(`game-concept.md:720` 范围阶梯 = **P1b**)
+> 是**两件不同的事**。本 ADR 只定**前者**;**「VR 何时有」不归本 ADR 定**。
 
 ### 三、拟物铁律与数据边界(承 ADR-008 / 005 / §9 C3)
 
@@ -184,14 +211,24 @@ UGUI 侧语义对齐。42 / 39 / 43 / 7b / 48 的呈现层契约由此落定。
 
 ### 六、无障碍钩子(为 `/ux-design` 预门控留接口)
 
-`design/accessibility-requirements.md` 不存在(预门控 ❌)。本 ADR **只留三钩子,不实现**:
+`design/accessibility-requirements.md` 不存在(预门控 ❌)。本 ADR **只留四钩子,不实现**:
 
 1. **焦点元素无障碍命名约定**(`visualElement.accessibilityNode` 挂点,F8 post-cutoff 须 spike);
 2. **文本缩放主题变量层**(USS 主题变量承载字号,无引擎自动支持,须自建);
-3. **焦点可见样式契约**(USS 类的焦点态样式,拟物风格的「高亮」须非纯色 —— 如墨色加深)。
+3. **焦点可见样式契约**(USS 类的焦点态样式,拟物风格的「高亮」须非纯色 —— 如墨色加深);
+4. **动效缩放挂点**(**2026-09-17 新增**)—— 翻页 / 淡出 / 墨迹渗开等**时长型**观感走一个
+   缩放系数,不写死时长;与钩子 2 同构(**装载 / 变更时求值**,不缓存最终时长)。
+
+> **⚠️ 钩子由三改四的理由(2026-09-17,系统 42 首轮 `/design-review` 的 accessibility 发现)** ——
+> 前三钩子(命名 / 文本缩放 / 焦点可见样式)覆盖了「看得见(命名)」「看得清(字号)」「知道焦点在哪(可见样式)」,
+> **唯独没覆盖「动得快不快」**。而 42 是拟物动效的**唯一来源**(翻页 / 淡出 / 墨迹渗开全在它手里)——
+> 若 P0 不定这个挂点,`reduce motion` 类需求到来时 42 的**每一个动效都要返工**。
+> **`GDD 42` 侧已落 `AC-42-G4`**(动效缩放挂点断言)与 §Core Rules 规则十的四钩子表(含生命周期)。
 
 > **边界**:无障碍的具体要求(对比度阈值 / 屏幕阅读器覆盖范围 / 色盲模式)归
-> `design/accessibility-requirements.md`(`/ux-design`);本 ADR 只保证三处**接口存在**。
+> `design/accessibility-requirements.md`(`/ux-design`);本 ADR 只保证**四处**接口存在。
+> **对比度是例外** —— 「**任何主题 / 纹理档下均须满足**」这条**义务归 42**(阈值仍归 49),
+> 见 `GDD 42` 的 `AC-42-G3`。
 
 ### Architecture Diagram
 
@@ -201,10 +238,10 @@ UGUI 侧语义对齐。42 / 39 / 43 / 7b / 48 的呈现层契约由此落定。
   8 诊断 ──映射表──▶│  42 拟物 UI 框架(只渲染,永不持有状态)                            │
   9 / 37 / 52 ──────▶│        │                                                         │
   (IVitalsQuery→DTO)│        ├── 平面拟物 UI:UI Toolkit(UXML + USS 元件库)             │
-                    │        │     脉案 / 出诊箱 / 纸质地图 / 存档位 / 教学               │
+                    │        │     脉案 / 库存容器 / 纸质地图 / 存档位 / 教学              │
                     │        │     └── 焦点:NavigationMoveEvent(官方桥)                │
                     │        └── World/XR:UGUI world canvas(VR 必须 World Space)        │
-                    │              世界空间体征 · VR 急救(P1a)                          │
+                    │              敌人读数条(P0 最小)· VR 急救(P1b)                    │
                     └───────────────┬──────────────────────────────┬───────────────────┘
                                     │                              │
    ADR-011 导航意图流 ──────────────┤ 焦点单栈门(仅一栈接收)        │ 共用同一 EventSystem
@@ -226,6 +263,13 @@ public interface IPresentationRoot
 {
     void Bind(IDtoSource source);   // 只读 DTO 源;UI 不写
     void SetFocusGate(bool active); // 焦点单栈门:同一时刻仅一栈接收焦点导航(F4)
+    // ⚠️ 注意:SetFocusGate 不是"是否有模态打开"。后者是第三个量,见 §十 IModalState。
+}
+
+// ── 模态开集只读契约(2026-09-18 Amendment A · 供 4 / 10 读"是否有模态界面摊开")──
+public interface IModalState
+{
+    ModalId Modal { get; }   // None ⇒ 无模态。只读,零写侧外暴;详见 §十
 }
 
 // ── 拟物元件库契约(两栈语义对齐)—— ──
@@ -252,6 +296,9 @@ public interface IAccessibilityHooks
     void SetAccessibleName(VisualElement e, string name);  // 屏幕阅读器命名约定
     void ApplyTextScale(float scale);                       // 文本缩放主题变量层
     // 焦点可见样式 = USS 类契约(.focus-visible)
+    // 动效缩放挂点(2026-09-17 第四钩子):时长型观感的统一缩放系数,
+    //   与 ApplyTextScale 同构 —— 装载 / 变更时求值,不缓存最终时长
+    void ApplyMotionScale(float scale);
 }
 
 // ── DTO 静态检查(F7:AC-37-15 落地)──
@@ -266,14 +313,66 @@ public static class PresentationDtoGuard
 
 1. **先建焦点导航原型 spike**(报告 §6.6 假设 6「半可信」):UI Toolkit + 官方桥的焦点质量,
    复用 ADR-011 的 spike;质量不达预期则回落自实现焦点算法(接口不变)。
-2. **一栈一栈落**:先 UI Toolkit 平面拟物 UI(42 / 39 / 7b),VR / world-space 留到 P1a。
+2. **一栈一栈落**:先 UI Toolkit 平面拟物 UI(42 / 39 / 7b)+ world-space 最小实现(敌人读数条);
+   立体 / XR 适配留到 P1a。
 3. **USS 元件库先行**:纸纹 / 墨迹 / 卷轴九宫格 + 主题变量是拟物观感的锚点,先建库再建界面。
 4. **焦点单栈门**:`IPresentationRoot.SetFocusGate` 保证 ADR-011 意图流不双喂(F4)。
 5. **EventSystem 唯一**:两栈共用;禁 `StandaloneInputModule` 与 `InputSystemUIInputModule` 并存。
 6. **`disease_id` 反射扫描**(`PresentationDtoGuard`,递归)进 EditMode 门。
 7. **F5 程序化效果 spike**:测试墨迹晕染能否落 UI Toolkit;不能则该元件迁 UGUI(语义仍同库)。
 8. **图集护栏**(F6):控纸纹贴图尺寸与数量,调 `PanelSettings` atlas;防 spill 断批。
-9. **无障碍三钩子**留接口;具体要求归 `design/accessibility-requirements.md`(`/ux-design`)。
+9. **无障碍四钩子**留接口;具体要求归 `design/accessibility-requirements.md`(`/ux-design`)。
+
+### 十、Amendment A(2026-09-18 · 承 #4 交互系统首轮 `/design-review` · 用户裁定 D)—— 新立「模态开集」只读契约 `IModalState`
+
+> **本节是 Amendment,不重开 §一–§九 的任何裁决。它只补一个此前不存在、却被下游需要的只读面。**
+
+**病因(为何既有两个 getter 都不够)**:系统 4 的 `F-4.2` 需要在**任一 UI 模态打开时拒收世界交互意图**。
+42 侧现有两个只读布尔**都不是这个意思**:
+
+| 既有成员 | 语义 | 为何不能给 4 用 |
+| --- | --- | --- |
+| `IPresentationRoot.SetFocusGate(bool)`(`:265`) | **单栈导航门** —— 当前哪一栈接收焦点导航(F4) | 「门开着」≠「没有模态」;它管的是**导航意图喂给谁**,不是**是否有界面摊在玩家面前** |
+| `IFocusNavigationPresenter.IsFocusActive`(`:283`) | **焦点导航是否激活** —— 键盘/手柄导航模式在不在跑 | 鼠标点进界面时它可为 `false` 而模态仍打开;且它是**导航态**不是**模态持有** |
+
+**「任一栈持有模态」是第三个量,本 ADR 此前从未定义它** —— 这是「引用却无登记」的又一形态:
+4 的 GDD 原稿引用了一个**语义上需要、契约上不存在**的旗,并把 `SetFocusGate` 当它用。
+
+**裁决(用户裁定:42 新立「模态开集」只读态,推荐项)**:
+
+```csharp
+// ── 模态开集只读契约(呈现层,零写侧;供 4 / 10 / 其他消费方读「是否有模态界面摊开」)──
+// 铁律:这是"读",不是"状态"。42 仍然"只渲染、永不持有游戏状态"(§9 C3)——
+//   Modal 成员的真源是"哪个界面当前可见",本就是 42 渲染职责内的量,不落游戏模拟态。
+public enum ModalId { None = 0, Casebook,          // ① 脉案 39
+                              SaveSlots,           // ② 存档位 7b
+                              InventoryContainer,  // ③ 库存容器 20
+                              SettingsShell,       // ④ 设置界面壳 42
+                              Tutorial,            // ⑤ 教学 48
+                              ClinicPanel }        // ⑥ 医馆面板 24
+// ⚠️ 成员集 = AC-42-F1 的"六屏闭集"的镜像,一处声明。新增第七屏须同步本枚举。
+
+public interface IModalState
+{
+    ModalId Modal { get; }   // None ⇒ 无模态;非 None ⇒ 有(消费方据此拒收世界意图)
+    // 只读。42 不对外暴露 setter;模态的开合由 42 自身渲染层维护(它本就知道谁可见)。
+}
+```
+
+**三条约束**:
+
+1. **消费方「引用而非复制」闭集** —— 4 / 10 等不得在自己代码里维护一份「哪些界面算模态」的清单;
+   须引用 `ModalId` 枚举。⇒ 未来加第七屏时消费方**零改动**即覆盖(否则「设置壳里按 South 顺手拾取 / 误触就诊」的漏洞会随每次加屏复发)。
+2. **不得把 `ModalOpen` 落为进流的边沿** —— 一旦「谁摊开了脉案」写成 `SimEvent`,
+   即令 42 **持有游戏状态**,直接破 §9 C3 铁律。模态门是**纯表现侧的即时本地拒收**(承 ADR-011:本地判定/呈现,不穿模拟)。
+3. **单值 `Modal`,非集合** —— 同一时刻至多一个模态(承 §五焦点单栈门的同构假设)。
+   若未来需要叠模态(如库存里开确认框),`Modal` 改栈是**本契约的一次修订**,须另判,**不在此预留**。
+
+**Enables**:4 的 `F-4.2` 第二门(`¬ModalOpen(42)`)与 `AC-4-09` 自此有实现依据。
+**残留义务落点**:`design/gdd/skeuomorphic-ui.md` 须把 `IModalState` 写进其接口节,
+并把 4 加为 42→4 的只读门下游(见该文件同日注)。**4 的 `AC-4-09` 在本契约落 `skeuomorphic-ui.md` 前记 `NOT-RUN`。**
+**Engine Knowledge Risk**:LOW(纯 C# 只读契约,不触及任何 post-cutoff API)。
+
 
 ## Alternatives Considered
 
@@ -294,7 +393,7 @@ public static class PresentationDtoGuard
 
 - **Pros**:VR 与平面同时就绪。
 - **Cons**:VR 急救在 P0 占比小,早期双栈 = 为小功能付大成本;VR spike 未做前双栈有返工风险。
-- **Rejection Reason**:用户裁定② —— P0 定接口与契约,VR 实现推 P1a。E-16 要求「早决」的是方向,不是双栈都在 P0 完工。
+- **Rejection Reason**:用户裁定② —— P0 定接口与契约,**立体 / XR 实现推 P1a**(2026-09-16 修订:world-space **最小面**已在 P0)。E-16 要求「早决」的是方向,不是双栈都在 P0 完工。
 
 ### Alternative 4: 纯 USS 手写,不建元件库
 
@@ -312,19 +411,19 @@ public static class PresentationDtoGuard
 - **焦点导航呈现侧接线完成**:导航意图 → 官方桥 → 焦点移动(ADR-011 接口侧对接)
 - **拟物元件库统一**(纸 / 墨 / 卷轴),界面复用而非各写各的
 - **焦点单栈门**(F4)消除同键双触发与双 EventSystem 冲突
-- **P0 不为 VR 付早投成本**(接口先行,实现 P1a)
+- **P0 不为 VR 付早投成本**(接口先行,VR 立体实现在 P1a;world-space 最小面在 P0)
 
 ### Negative
 
 - **两栈维护成本**(UI Toolkit + UGUI):世界空间与平面 UI 两套元件观感须同步
 - **UI Toolkit 自定义材质受限**(F5):程序化墨迹晕染可能落 UGUI,拟物观感有真实约束
 - **多个 post-cutoff spike**(焦点桥 / world-space / 自定义材质 / 图集 / 无障碍)
-- **VR 实现推 P1a**:P0 只有接口,VR 急救 UI 的实际观感到 P1a 才验证
+- **VR 立体实现推 P1a**:P0 只有接口 + world-space 最小面(敌人读数条),VR 急救 UI 的实际观感到 P1a 才验证
 
 ### Neutral
 
 - 拟物元件库是 UI Toolkit 优先,UGUI 侧语义对齐(个别元件可跨栈)
-- 无障碍只留三钩子,具体要求归 `/ux-design`
+- 无障碍只留四钩子(2026-09-17 由三改四),具体要求归 `/ux-design`
 
 ## Risks
 
@@ -337,7 +436,7 @@ public static class PresentationDtoGuard
 | **两栈观感漂移**(UI Toolkit vs UGUI 拟物效果不一致) | 中 | 中 | 元件库语义对齐(同名元件);两栈共主题变量;个别元件跨栈须审 |
 | **VR world-space 立体 / 深度问题** | 中 | 中 | VR 必须 World Space(F3);Overlay 避用;P1a spike 定案 |
 | **`disease_id` 泄漏进呈现层**(反射扫描漏 `List<DTO>` / 继承字段) | 低 | **高** | `PresentationDtoGuard` **递归**扫描;AC-37-15 BLOCKING 门(F7) |
-| **无障碍接口留而不用**(钩子成摆设) | 中 | 低 | 三钩子进 `/ux-design` 的输入;具体要求落 `accessibility-requirements.md` |
+| **无障碍接口留而不用**(钩子成摆设) | 中 | 低 | 四钩子进 `/ux-design` 的输入;具体要求落 `accessibility-requirements.md` |
 
 ## Performance Implications
 
@@ -356,8 +455,9 @@ public static class PresentationDtoGuard
 2. **建 USS 拟物元件库**(纸纹 / 墨迹 / 卷轴九宫格 + 主题变量)。
 3. **写 UI Toolkit 平面拟物 UI 框架**(42)+ 焦点导航呈现侧接线。
 4. **写 39 脉案 / 7b 存档位 UI**(消费元件库)。
-5. **P1a:VR / world-space 两栈适配**(UGUI world canvas + stereo)+ 43 纸质地图。
-6. **无障碍三钩子接入** `/ux-design` 的产物。
+5. **P1a:world-space 栈的立体适配 + VR 立体渲染**(UGUI world canvas + stereo)+ 43 纸质地图。
+   (P0 已交付 world-space 最小面 = 敌人读数条。)
+6. **无障碍四钩子接入** `/ux-design` 的产物。
 
 **Rollback plan**:若 UI Toolkit 焦点导航 spike FAIL(质量不达预期),降级 = 自实现焦点算法
 (ADR-011 接口 `FocusNavigationIntent` 不变,只换呈现侧实现)—— **两栈边界与元件库契约不变**。
@@ -368,13 +468,16 @@ public static class PresentationDtoGuard
 - [ ] **焦点导航原型 spike 通过**:UI Toolkit + 官方桥(`NavigationMoveEvent`)手柄焦点质量达标;
       无同键双触发(只用官方 `Navigate` action)
 - [ ] **焦点单栈门生效**:ADR-011 意图流同一时刻仅喂一栈;无双 EventSystem / 双输入模块(F4)
-- [ ] **UI Toolkit 平面拟物框架**:脉案 / 出诊箱 / 存档位用 USS 元件库渲染,42 不持有游戏状态
+- [ ] **UI Toolkit 平面拟物框架**:脉案 / **库存容器** / 存档位用 USS 元件库渲染,42 不持有游戏状态
+      (43 出诊箱 = **P1a**,不在 P0 这一项内 —— 2026-09-16 订正)
+- [ ] **world-space 最小实现(P0)**:敌人读数条 = 世界锚点 → billboard 面片,可读、可淡出;
+      **不含**立体 / 深度冲突处理(2026-09-16 新增;与其立体适配 P1a 分开签核)
 - [ ] **USS 拟物元件库**:纸纹 / 墨迹 / 卷轴九宫格 + 主题变量;`-unity-slice-*` 生效(F5)
 - [ ] **`disease_id` 反射扫描门**:`PresentationDtoGuard` **递归**扫 UI DTO 树,无 `disease_id`(AC-37-15)
 - [ ] **UI 只读 DTO**:UI 经 `IVitalsQuery → VitalsDto` 读数据;UI 层零模拟写(ADR-005 / ADR-011)
 - [ ] **VR world-space spike(P1a)**:UGUI World Space 在 XR 下立体 / 深度正确(Overlay 未用)
 - [ ] **图集护栏**:纸纹贴图规模下无 spill / 断批(F6)
-- [ ] **无障碍三钩子留接口**:命名 / 文本缩放 / 焦点可见样式(`UnityEngine.Accessibility` spike)
+- [ ] **无障碍四钩子留接口**:命名 / 文本缩放 / 焦点可见样式 / **动效缩放**(`UnityEngine.Accessibility` spike)
 - [ ] **`TR-concept-008` 覆盖** —— registry 状态更新为 covered;`TR-diag-019/020`、`TR-case-019` 加引用
 - [ ] `design/ux/interaction-patterns.md`、`design/accessibility-requirements.md` 撰写(`/ux-design` 预门控)
 
@@ -390,6 +493,7 @@ public static class PresentationDtoGuard
 | `design/gdd/diagnosis-system.md` | 8 诊断与体征 | 体征 → 呈现形态映射表归 8;42 只渲染 | 数据边界:42 是渲染器,映射表归 8 |
 | `design/gdd/case-system.md` | 37 病例系统 | 规则九 `disease_id` 不进呈现层(AC-37-15) | `PresentationDtoGuard` 递归反射扫描 |
 | `design/gdd/game-concept.md` | 全案 | 拟物 UI 须同时支持键鼠与手柄焦点导航 | UI Toolkit 焦点桥 + UGUI 单栈门 |
+| `design/gdd/interaction-system.md` | 4 交互系统 | **4 需读「是否有模态界面摊开」以拒收世界交互意图**(`F-4.2` 第二门 · `AC-4-09`) | **§十 Amendment A 新立 `IModalState.Modal`**(承既有两 getter 语义不符 —— 详见该节病因表) |
 
 ## Related
 
@@ -400,5 +504,5 @@ public static class PresentationDtoGuard
 - **ADR-009 世界状态边界**(Accepted)—— 表现态与模拟态分离
 - **ADR-010 持久化**(Accepted)—— 7b 存档位 UI
 - **R-6 拟物 UI 框架**(architecture-review 2026-09-15)—— 本 ADR 是其落点;E-16 由本 ADR 早决
-- **`/ux-design`**(预门控)—— `design/ux/interaction-patterns.md`、`design/accessibility-requirements.md`;三钩子接入口
+- **`/ux-design`**(预门控)—— `design/ux/interaction-patterns.md`、`design/accessibility-requirements.md`;四钩子接入口
 - `docs/registry/architecture.yaml` —— 本 ADR 新增 ui_stack_boundary 契约 + API 裁决 + 禁令

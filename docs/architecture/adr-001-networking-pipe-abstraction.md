@@ -12,6 +12,16 @@ Accepted
 > 引擎侧经 unity-specialist lean 复核(2026-09-15):**无引擎侧 blocker**;结论并入 §Risks
 > (F2 HOL 阻塞 + 第二 QoS 通道 · F3 线程模型 · F4 接口纪律 · F5 IL2CPP 冒烟)。
 > 独立评审由下一轮 `/architecture-review` 进行。
+>
+> **🔧 2026-09-18 本次修订(44 GDD 首轮 `/design-review` 阻断 7;用户裁定 D-D = 现改本 ADR)**:
+> 44 的 §Dependencies 声明对本 ADR 的依赖,但**本 ADR 原文零处提及音频** ——
+> 「引用却无登记」的失败模式。三处补齐:
+> ① **第二 QoS = 按 `ActorId` 索引的 latest-value 表**(原文 `PublishPositional(in WorldPosLatest p)`
+>    是一个**未定义类型**的单槽,无 key、无复用、无消费者列表);
+> ② **登记消费者**(44 音频 / 动画表现);
+> ③ **病人 / 受伤实体的锚点发布者** —— 原文只登记**玩家**格上行,
+>    非玩家实体(病人呻吟的声源)在远端**无锚点来源**(44 的未定义行为)。
+> 另:44 的 **cue 非复制**语义在本 ADR 侧登记(客户端从本地流副本自派生)。
 
 ## Date
 
@@ -54,7 +64,7 @@ ADR-005 / 007 / 008 / 009 / 010 **五份 Accepted ADR 已把联机约束层层�
 | Field | Value |
 |-------|-------|
 | **Depends On** | **ADR-005**(Accepted —— 主机唯一 Step / CatchUp · 客户端持流副本 · 五个抽象点)· **ADR-007**(Accepted —— `IEventAuthority` 第六抽象点 · 掷骰权天然唯一)· **ADR-008**(Accepted —— 病例流 · 两流传输遵循全序键)· **ADR-009**(Accepted —— 世界流 · 表现态位置同步 · 拾取意图)· **ADR-010**(Accepted —— 三流序列化 · 存档非网络通道 · authority-agnostic)—— 五者均须 Accepted |
-| **Enables** | **系统 45 网络层的实现**(P1b)· P0 的「架构预留」预埋(pipe 抽象生效)· `TR-concept-002`(partial → covered)|
+| **Enables** | **系统 45 网络层的实现**(P1b)· P0 的「架构预留」预埋(pipe 抽象生效)· `TR-concept-002`(partial → covered)· **44 音频的远端声源锚点**(§一之二,2026-09-18 补)|
 | **Blocks** | **45 网络层实现**;凡依赖 45 的联机 AC(P1b);`TR-randomevents-026`(联机语义)|
 | **Ordering Note** | 本 ADR 是 **R-3 的落点**(R-3 = 联机选型)。**P0 只需 pipe 抽象在接口层生效,不阻塞任何 P0 实现**。**不阻塞** 21a / 52 / 9 / 37 的既有实现。库 swap 评审是 P1b 前的一次性动作 |
 
@@ -135,13 +145,76 @@ sealed class ReorderBuffer {
   契约措辞以「传输顺序不依赖」为准(实现不依赖传输顺序,但传输实际有序是好的)。
 - **HOL 阻塞提醒(引擎复核 F2)**:可靠通道遇大事件(Craft 载荷 / 模式识别)重传会**头阻塞**
   其后所有消息 ⇒ 表现态位置若走同一条可靠 pipe,急救 <50 ms 预算有风险。
-- **第二 QoS 通道(unreliable latest-value)**:表现态位置同步走**独立不可靠最新值通道**
+- **第二 QoS 通道(unreliable latest-value **表**)**:表现态位置同步走**独立不可靠最新值通道**
   (两库均支持),与三流可靠 pipe **分离** —— 避免大事件重传阻塞位置更新(ADR-009 表现态走 45)。
+  **2026-09-18 修订**:该通道是**按 `ActorId` 索引的 latest-value 表**(非单槽 ——
+  同场多实体并发位置更新需要 key 化的表结构),**发布者与消费者已登记**(见 §一之二)。
 - **线程模型(引擎复核 F3)**:`Publish` 在主机 Step 边界(主线程);传输线程**零 Unity API**
   (ADR-010 §六 同纪律);`Subscribe` 回调排队到主线程 PlayerLoop 注入
   (IL2CPP 下 `SynchronizationContext` 不可用时);`Drain` 在主线程消费。
 - **P0 预埋**:接口与 `ReorderBuffer` 是纯 C# 逻辑,P0 全实现为**本地占位**(同 ADR-005 抽象点)。
   P1b 时把 `IReplayPipe` 接到 NGO / Fusion 的可靠消息通道。
+
+### 一之二、第二 QoS 通道 = 按 `ActorId` 索引的 latest-value 表(2026-09-18 修订)
+
+> **本节由 44 GDD 首轮 `/design-review` 阻断 7 提出**(用户裁定 **D-D = 现改本 ADR**)。
+> 原文 `PublishPositional(in WorldPosLatest p)` 有四处缺口:① `WorldPosLatest` **从未定义**;
+> ② 单槽**无 key** —— 同场多实体(玩家 + 病人 + 受伤敌人)并发位置更新会互相覆盖;
+> ③ **无消费者列表** —— 44 的 §Dependencies 声明依赖本 ADR,但本 ADR 零处提及音频;
+> ④ **只登记玩家上行** —— 非玩家实体(病人呻吟的声源)在远端无锚点来源。
+
+**语义:第二 QoS 只承载「表现态位置」,是 per-actor 的 latest-value 覆盖写(非事件流)。**
+
+```csharp
+// ── 第二 QoS:表现态位置表(per-actor latest-value)──
+public readonly struct WorldPosLatest          // 2026-09-18:补类型定义(原文未定义)
+{
+    public readonly int ActorId;               // 与 IIdAuthority 同空间(病人 / 敌人 / 玩家)
+    public readonly int3  Cell;                // 整数格(ADR-015 §三;非 float 世界坐标)
+    public readonly uint  ServerTick;          // 主机 tick 序号(客户端陈旧丢弃)
+    public readonly byte  Flags;               // 位域:IsMoving / IsDowned / OcclusionHint
+}
+
+public interface IPositionalChannel            // 第二 QoS 表(与可靠 pipe 分离)
+{
+    void PublishLatest(in WorldPosLatest p);            // 主机:按 ActorId 覆盖写
+    bool TryReadLatest(int actorId, out WorldPosLatest p); // 消费:取最新值(本机帧)
+    void SubscribeActor(int actorId, Action<WorldPosLatest> onUpdate); // 订阅单实体
+}
+```
+
+**发布者登记(主机侧,唯一)**:
+
+| 实体类 | 发布者 | 说明 |
+|--------|--------|------|
+| **玩家** | 20 玩家控制器 | 跨格时**另发**世界流事件 `ActorCellEntered`(可靠流);连续位置只走本表(承 ADR-020 §四) |
+| **病人 / 受伤实体** | 9 伤情 / 13 病人 AI 主机的锚点持有者 | 承 ADR-016 §二 —— 敌人伤情落世界流,但**声源锚点**是表现态,走本表 |
+| **掉落物 / 投掷体** | 9 / 25 的投掷表现 | 物理轨迹 = 表现态(ADR-009 §五) |
+
+**消费者登记**:
+
+| 系统 | 消费用途 | 消费的字段 |
+|------|---------|-----------|
+| **44 音频** | 远端呻吟 / 脚步 / 战斗音的空间化声源锚点 | `Cell`(声源位置) |
+| **动画表现** | 远端实体朝向 / 位移插值 | `Cell` + `Flags` |
+| **表现态 VFX** | 血雾 / 扬尘跟随锚点 | `Cell` |
+
+**⚠️ 消费纪律(44 侧硬化,本 ADR 侧登记)**:
+
+1. **44 只读本表取声源锚点,绝不写回、绝不进 sim** —— 本表是表现态,承 ADR-009 §五「掉落身份进流 /
+   位置表现」同构。
+2. **禁读本表做任何判定** —— 第二 QoS 到达时序不确定(不可靠、可丢、可陈旧);
+   44 的优先级排序若读本表位置,**必须用 `ServerTick` 判陈旧 + 允许缺省锚点**(承 ADR-016 §三
+   「禁读表现态位置做决策」的同纪律,此处是呈现侧版本)。
+3. **44 的 cue 本身不复制** —— 44 的 `AudioCueDto` **不进任何网络通道**;
+   客户端从**本地流副本 + 快照**自派生 cue(与 ADR-005 客户端本地求值 `Progress` 同构)。
+   本表只负责给已由本地派生的 cue **提供声源坐标**。
+4. **单 `AudioListener` 每设备一条**(ADR-018 §五 / ADR-020 §七)—— 本表是**多个声源**的位置来源,
+   与「唯一 AudioListener」不矛盾:Listener = 听点,Anchor = 声源点。
+
+**有界性**:本表条目数 ≤ 同场实体数(由 ADR-016 感知范围的 `d2` 冻结判据约束);
+每条 **O(1) 覆盖写**,无队列增长 —— 与 ADR-009 世界流有界性论证**互不耦合**(本表不是流)。
+
 ### 二、库裁决:延后(先定抽象)
 
 - **裁决**:P0 **不选** NGO / Fusion;pipe 抽象是唯一的网络契约。
@@ -174,6 +247,13 @@ sealed class ReorderBuffer {
       ▼
    客户端:Subscribe(Action<SimEvent>) → 流副本 + 快照(ADR-005)
           本地求值 Progress(不算跑模拟)· 绝不写回事件流
+
+   ── 第二 QoS(独立不可靠通道,与上面分离)──
+   IPositionalChannel.PublishLatest(in WorldPosLatest)   ← per-ActorId 覆盖写
+      │  unreliable latest-value(可丢 / 可陈旧;ServerTick 判旧)
+      ▼
+   消费者:44 音频(声源锚点)/ 动画表现(插值)/ 表现态 VFX
+          ⚠️ 只读,禁做判定;44 的 cue 不复制,由本地流副本自派生
 ```
 
 ### Key Interfaces
@@ -189,8 +269,15 @@ public interface IEventAuthority   // 掷骰权(天然唯一)
 interface IReplayPipe
 {
     void Publish(in SimEvent e);                 // 主机:发出(三流可靠 pipe)
-    void PublishPositional(in WorldPosLatest p); // 主机:表现态位置(独立 QoS,unreliable latest-value)
     IDisposable Subscribe(Action<SimEvent> onEvent); // 客户端:接收;Dispose = 退订(防重订阅泄漏,引擎复核 F4)
+}
+
+// ── 第二 QoS:表现态位置表(2026-09-18 自 IReplayPipe 拆出,见 §一之二)──
+public interface IPositionalChannel
+{
+    void PublishLatest(in WorldPosLatest p);     // 主机:按 ActorId 覆盖写(unreliable latest-value)
+    bool TryReadLatest(int actorId, out WorldPosLatest p); // 消费:取最新值
+    void SubscribeActor(int actorId, Action<WorldPosLatest> onUpdate);
 }
 
 sealed class ReorderBuffer
@@ -212,7 +299,8 @@ sealed class ReorderBuffer
 3. **客户端持流副本 + 快照**:本地求值 `Progress` 不算跑模拟;绝不写回事件流(ADR-005)。
 4. **表现态位置走 45**:掉落物理轨迹 / 落点 / 地形表现 = 表现态,不进模拟域(ADR-009)。
 5. **拾取意图事件走 45**:`PickupIntent` → 主机判距 → `DropClaimed` 进世界流(ADR-009 §七)。
-6. **表现态位置走第二 QoS 通道**(unreliable latest-value),与三流可靠 pipe 分离(引擎复核 F2)。
+6. **表现态位置走第二 QoS 通道**(`IPositionalChannel`,per-`ActorId` latest-value 表),与三流可靠
+   pipe 分离(引擎复核 F2)。发布者 / 消费者登记见 §一之二。**44 音频只读声源锚点,cue 不复制。**
 7. **P1b 库 swap 评审一次完成**(§四),pipe 契约不变。
 
 ### 四、P1b 库 swap 评审验收标准(引擎复核 F1 补)
@@ -318,6 +406,10 @@ swap 评审在 P1b 前强制完成,用当时最新版本 + 实测数据定库。
 - [ ] 三流合并排序单测:全序键 `(Tick, StreamPriority, Patient, Seq)` 无平局(沿用 ADR-008/009)
 - [ ] P0 抽象点测试:pipe 实现零 NGO / Fusion 依赖(EditMode 断言 import 检查)
 - [ ] **丢包 + HOL 模拟**:表现态位置走第二 QoS 通道,大事件重传不阻塞位置更新,急救 <50 ms(引擎复核 F2)
+- [ ] **`IPositionalChannel` 表语义单测**(2026-09-18):同 `ActorId` 覆盖写无队列增长;`ServerTick`
+      陈旧值被丢弃;多 `ActorId` 并发互不覆盖(§一之二)
+- [ ] **44 消费纪律断言**(2026-09-18):44 的实现**不写回** `IPositionalChannel`、**不读其做判定**;
+      `AudioCueDto` 不出现在任何网络序列化路径(cue 非复制,§一之二 · 与 AC-44-D7 呼应)
 - [ ] **IL2CPP build 冒烟**:发布构建可连可传;`in` 参数 + 值类型键排序通过(引擎复核 F5)
 - [ ] `TR-concept-002`(联机 1–4 人,P0 起架构预留)覆盖 —— registry 状态更新为 covered
 - [ ] P1b 库 swap 评审验收(§四):七项标准实测通过后定库
@@ -328,6 +420,7 @@ swap 评审在 P1b 前强制完成,用当时最新版本 + 实测数据定库。
 |--------------|--------|-------------|--------------------------|
 | `design/gdd/systems-index.md` | 45 网络层与同步 | 系统 45(依赖 = ADR-001) | 本 ADR 即其权威件;P1b 实现 |
 | `design/gdd/game-concept.md` | 联机定位 | 1-4 人联机合作,P0 架构预留 | pipe 抽象 P0 生效,库选型 P1b |
+| `design/gdd/audio-system.md` | 44 音频系统 | 远端声源锚点(§Dependencies 声明依赖本 ADR) | **2026-09-18 补登记**:`IPositionalChannel` per-`ActorId` latest-value 表(§一之二);44 只读声源锚点,`AudioCueDto` **不复制** |
 | `docs/registry/architecture.yaml` | — | `TR-concept-002`(联机 1–4 人) | 本 ADR 覆盖 → covered |
 
 ## Related
@@ -339,6 +432,10 @@ swap 评审在 P1b 前强制完成,用当时最新版本 + 实测数据定库。
 - **ADR-008 病例事件流**(Accepted)—— 三流全序键;两流传输遵循 `(Tick, StreamPriority, Patient, Seq)`
 - **ADR-009 世界状态的事件化边界**(Accepted)—— 世界流 · 表现态位置走 45 · 拾取意图
 - **ADR-010 持久化与存档格式**(Accepted)—— 三流序列化;存档非网络通道;authority-agnostic
+- **ADR-018 音频架构**(Accepted)—— 单 `AudioListener` 每设备一条(承 ADR-020 §七);本 ADR §一之二
+  为 44 的远端声源提供锚点通道(Listener = 听点,Anchor = 声源点,二者不矛盾)
+- **ADR-020 玩家控制器与相机**(Accepted)—— §七 结清 44 的 `AudioListener` 单挂点;
+  §四 玩家位移 = 纯表现态,在 sim 中的唯一投影 = 跨格世界流事件(本 ADR §一之二 玩家行)
 - **R-3 联机选型**(architecture-review 2026-09-15)—— 本 ADR 是其落点
 - **架构复核 §12.1 结论一**(2026-09-15)—— netcode 降级为可靠消息管道;保序非必需
 - `design/registry/entities.yaml` —— 待登记 pipe 常量(MaxLag 默认等)

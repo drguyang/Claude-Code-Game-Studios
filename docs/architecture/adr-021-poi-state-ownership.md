@@ -165,6 +165,31 @@ SimEvent {
 - `new_state` 一律**整数枚举**,禁 float / 禁字符串(ADR-006 边界)。
 - POI **定义**继续走 ADR-014 烘焙管线(`assets/data/*.json` → `*.cooked`),本次不新增数据文件。
 
+### Amendment H —— §④ 有界性收紧到 `2 × |POI_DEF|`(2026-09-16,6 的 GDD 落盘)
+
+**触发**:系统 6 的 GDD(`design/gdd/world-and-ecozones.md` F-6-4)把 `PoiState` **枚举定稿**为
+**三态单调不可逆**(`Undiscovered(0) → Discovered(1) → Resolved(2)`,`R-6-7`),
+本 ADR ③ 明写「枚举归 6 的 GDD」—— 枚举一定,§④ 的 `|STATE|` 即从**开区间**落为 **3**。
+**三态 + 单调不可逆** ⇒ 每条 POI 至多 **2** 次转移(两条边 `0→1`、`1→2`;跳级 `0→2` 只算 1 次)⇒
+
+```
+转移总数  ≤  2 × |POI_DEF|          （替代 §④ 原式 |POI| × |STATE|）
+```
+
+**为何不重写 §④、而以 Amendment 收紧**:§④ 的论证**形状**仍成立(有限 × 有限 ⇒ 有界),
+本 Amendment 只是**把 6 定稿的枚举代入**同一形状。§④ 正文保留,其上叠本条;
+
+| 落点 | 原口径 | Amendment H 后 |
+|------|--------|---------------|
+| 本 ADR **§④ 正文**(`:119`) | `\|POI\| × \|STATE\|` | **上文 §④ 原样保留**(论证形状),**以本条为准** |
+| 本 ADR **§Validation Criteria**(`:259`) | `\|POI\| × \|STATE\|` | **`≤ 2 × \|POI_DEF\|`** —— 已就地改 |
+| `entities.yaml` `SimEvent.Kind.PoiStateChanged` | (2026-09-16 已同步) | `2 × \|POI_DEF\|` ✅ |
+| `tr-registry.yaml` `TR-worldeco-007` | (2026-09-16 已同步) | ✅ |
+
+**不变量**:本收紧**依赖** R-6-7(单调不可逆)。若 `OQ-6-7` 判负(P1a 引入回退语义),
+本 Amendment **与 F-6-4 / `AC-6-15` 同时作废** —— 届时须**另开 ADR**,不得就地改本条
+(同 §Rollback plan 纪律)。
+
 ## Alternatives Considered
 
 ### Alternative 1: POI 状态 = 派生态(烘焙数据带状态)
@@ -256,7 +281,7 @@ SimEvent {
 
 - [ ] POI 状态变更**全部**经 `PoiStateChanged` 落世界流,**无第二存储**(grep 无旁路字段)。
 - [ ] 重放 / 迁移后 POI 状态**可从世界流重建**(不依赖快照作为真源)。
-- [ ] 世界流 POI 转移数 ≤ `|POI| × |STATE|`(有界性实测)。
+- [ ] 世界流 POI 转移数 ≤ **`2 × |POI_DEF|`**(有界性实测;**2026-09-16 Amendment H** 收紧自 §④ 的 `|POI| × |STATE|` —— 6 定稿 `PoiState` 三态单调不可逆)。
 - [ ] `PoiStateChanged` 的 `Patient = PatientId.None`(不污染高水位)。
 
 ## GDD Requirements Addressed

@@ -11,6 +11,46 @@ Accepted
 > **本 ADR 是 R-13 的落点,并由此结清架构复核的全部 R-1…R-15 缺口。**
 > **Cinemachine 的知识盲区(见 Engine Compatibility)因本裁决「不使用它」而不构成风险面。**
 
+> **Amendment A(2026-09-16,由系统 1 的 GDD 撰写时提出)。**
+> **Engine Compatibility 的『Verification Required』判据 ② 原文自相矛盾,就地订正。**
+> **原文**:「② **玩家位移不进 sim**:玩家控制器程序集**不出现于任何 `IEventSink.Append` 调用点**,
+> 且**不引用 sim 程序集**(门 A 方向)」。
+> **问题**:该句与**本 ADR §四及 §Architecture 图**直接冲突 —— §四 明写玩家控制器**负责跨格检测与事件发出**,
+> §Architecture 图画出「跨格检测 ──▶ 世界流 `ActorCellEntered`」,
+> `architecture.yaml` 的 `player_cell_crossing_event` 契约更明写「跨格瞬间经 `IEventSink.Append` 发一条世界流事件」。
+> 按判据 ② 的字面执行,等于**禁止玩家控制器做它被本 ADR 指定要做的事**。
+> **根因**:判据 ② 的措辞与 **AC-20-05(系统 2 相机)** 逐字同构 —— 系从相机条目**复制而来**,
+> 未按「1 发事件 / 2 不发事件」的差异改写。
+> **订正**:判据 ② 改为「**连续位置**不出现在任何 `IEventSink.Append` 调用点;
+> **跨格事件必须**出现在 `IEventSink.Append` 调用点。控制器**只**引用**边界程序集**(见下),
+> **不**引用 sim 实现程序集」。
+> **附注**:「不引用 sim 程序集」这一措辞在本 ADR §五(相机侧)原文已正确地写作
+> 「不引用 sim **内部**类型」—— ① 门 A(`noEngineReferences: true`)是**单向**约束
+> (sim 不得依赖引擎),不禁止表现层引用**契约类型**;② ADR-011 已确立 3 / 4 / 10 的输入层
+> 「P0 本地 = `IEventSink` 直接落」的同型先例,ADR-021 的 6 亦然。**判据 ② 的初稿是这条既有惯例的唯一例外。**
+> **本 Amendment 只订正措辞,不改任何裁决**(§一 / §四 / §五 均不动)。
+>
+> **Amendment A 补注(2026-09-16,同日第二项裁决 —— 边界程序集)**:
+> 订正后的措辞依赖一个**此前未定义的概念**「边界程序集」。初稿(**ADR-015 §Implementation Guidelines 2** +
+> ADR-005 §二)把 `WorldPos` 定为**住 sim 程序集**,而同时要求表现层**不**引用 sim 程序集
+> ⇒ **表现层物理上拿不到 `WorldPos`**,与本 ADR §四 要求它发 `ActorCellEntered{cell(WorldPos)}` 直接冲突。
+> 这不是措辞问题,是**程序集划分缺失**。**用户裁定(2026-09-16):开边界程序集**:
+> 「边界层」**从「某个特定文件目录 / 某个特定系统的领域」重新定义为「任意两个住门 A 内外两侧的系统之间的通信契约」** ——
+> **边界程序集** = `WorldPos` + 六个 P0 抽象点(ADR-005 **§Key Interfaces**:`ITickProvider` / `IEventSink` /
+> `IIdAuthority` / `IVitalsQuery` + ADR-007 的 `IEventAuthority`,以及 `SimEvent` 值类型 +
+> `PatientId` / `StreamId` 等整数枚举),**零 `UnityEngine` 引用**;
+> **sim 实现程序集与表现层都引用它**,门 A 的 `"noEngineReferences": true` **仅约束 sim 实现程序集**
+> (门 A 是**单向**约束这一点的正式落地)。⇒ 见 **ADR-005 Amendment F**。
+> **本补注改的是程序集归属,不改门 A、不改 §四**。
+
+> **Amendment B(2026-09-16,由系统 1 首轮 `/design-review` 提出)。**
+> 两件事,**正文分别在 §四 与 §Key Interfaces**(就地修订,不另起节):
+> ① **跨格事件的 Append 权 = 主机唯一**(客户端经第二 QoS 上行其格;
+>    `ActorCellEntered` **移出可靠通道**)—— 补上原文「谁 Append」的空洞,与 ADR-005 的主机唯一性对齐;
+> ② **新增 `ICameraRig.YawBasis`**(水平化正交基)供系统 1 把二维 `MoveInput` 投影成世界方向
+>    (系统 1 GDD 的 F-1-8)—— **单向**:1 读 2 的基,2 读 1 的位置,无环。
+> **不改 §一 / §四 的核心**(连续位置永不写流 · 跨格是唯一投影 · 上界 = tick 频率)。
+
 ## Date
 
 2026-09-15
@@ -51,7 +91,7 @@ dr_guyang(用户 · **2026-09-15 三项核心裁定**)· technical-director(起�
 | **Knowledge Risk** | **LOW** —— 本裁决**不引入任何 post-cutoff API**:`CharacterController` 是长期稳定的引擎件;自建相机只用 `Transform` / `Vector3` / 主相机 API。**Cinemachine 3.0 的知识盲区经「不使用它」而非「赌 API 名」消解** |
 | **References Consulted** | `docs/engine-reference/unity/VERSION.md`(:9 LLM 知识截止 **May 2025**;`:32` URP significant upgrades)· `docs/engine-reference/unity/PLUGINS.md:21-25`(**Cinemachine** = `com.unity.cinemachine`,「3rd person games」)· `docs/engine-reference/unity/plugins/cinemachine.md:21`(**⚠️ Knowledge Gap:3.0 是 2.x 的大改写,大量 API 改名**)、`:305-323`(迁移表:`CinemachineVirtualCamera` → `CinemachineCamera` · `m_Follow/m_LookAt` → `Follow/LookAt`)· `docs/engine-reference/unity/modules/rendering.md:204-212`(Custom Camera Rendering) · `docs/architecture/adr-011-input-architecture.md`(输入上游)· `adr-016-ai-architecture.md:181-190`(§三 粗粒度整数格)· `adr-009-world-state-event-boundary.md`(三态分类)· `adr-018-audio-architecture.md:295`(`AudioListener` 挂点)· `design/gdd/systems-index.md:34-35,270-271,473` · `design/gdd/game-concept.md:32,100,757` · `design/gdd/diagnosis-system.md:1519,1641` |
 | **Post-Cutoff APIs Used** | **None** —— 本裁决是「用稳定的旧件 + 自建」。**这正是选它的理由之一**:R-13 的引擎风险全部来自 Cinemachine 与被放弃的旧稿 |
-| **Verification Required** | ① **相机包依赖断言**:`packages/manifest.json` **无** `com.unity.cinemachine`(与 ADR-019 的零依赖断言同法);② **玩家位移不进 sim**:玩家控制器程序集**不出现于任何 `IEventSink.Append` 调用点**,且**不引用 sim 程序集**(门 A 方向);③ **跨格事件单一路径**:连续位置**不写流**,跨格才写 `ActorCellEntered`(grep 断言);④ VR 相机 = **世界空间第一人称**,**不接收第三人称机位**(`technical-preferences.md:34` 的自述判据) |
+| **Verification Required** | ① **相机包依赖断言**:`packages/manifest.json` **无** `com.unity.cinemachine`(与 ADR-019 的零依赖断言同法);② **玩家位移不进 sim**(**2026-09-16 Amendment A 订正** —— 原文误写为「控制器不出现于任何 `IEventSink.Append` 调用点」,与本 ADR §四 直接冲突):**连续位置 / 速度 / 朝向**不出现在任何 `IEventSink.Append` 调用点;而**跨格事件 `ActorCellEntered` 必须**出现在该调用点。控制器**只**引用**边界程序集**(见 Status 的 **Amendment A 补注**;归属裁决见 **ADR-005 Amendment F**),**不**引用 sim **实现**程序集(门 A 是**单向**约束);③ **跨格事件单一路径**:连续位置**不写流**,跨格才写 `ActorCellEntered`(grep 断言);④ VR 相机 = **世界空间第一人称**,**不接收第三人称机位**(`technical-preferences.md:34` 的自述判据) |
 
 > **Note**:Knowledge Risk **LOW**。升级引擎版本时**只需**复核 `CharacterController` 与主相机 API
 > (均是长稳件),**无需**重读 Cinemachine 面。
@@ -199,7 +239,12 @@ dr_guyang(用户 · **2026-09-15 三项核心裁定**)· technical-director(起�
 `game-concept.md:32` 的「全程第三人称」**限定平面模式**(旧稿的「越肩 + 第一人称微观」
 已被推翻,见 Current State);VR 侧的「第一人称」**不是视角选项,是头显的物理事实**。
 **P0 不实现 VR**(`game-concept.md:682`),故本表右列在 P0 只落**接口**,实现推 **P1a**
-(与 ADR-013 的「VR / world-space 推 P1a」· ADR-018 §七「VR 音频推 P1a」**同批**)。
+(与 ADR-013 §二 · ADR-018 §七「VR 音频推 P1a」**同批**)。
+
+> **⚠️ 2026-09-16 层级消歧**:本段的「P1a」指 **VR 相机路径的适配层级**;
+> **VR 这个功能本身在 P1b**(`game-concept.md:720` 范围阶梯)—— 两者不同。
+> 原引「ADR-013 的『VR / world-space 推 P1a』」**已随 ADR-013 §二 同批修订**
+> (其 world-space **最小面**已提到 P0)。
 
 **视角状态机(P0)**:`探索(越肩) → 急救(近景) → 脉案(俯视/固定) → 探索`。
 状态名与切换条件是形状;转场时长 / 阻尼 / 偏移量**全部留白**(数值用户调)。
@@ -231,12 +276,48 @@ dr_guyang(用户 · **2026-09-15 三项核心裁定**)· technical-director(起�
 
 三条后果:
 
-1. **事件频率 = 格穿越率**,与帧率 / 移动速度**无关**(`adr-016:184-186` 同口径)⇒
+1. **事件率上界 = tick 频率**,与帧率 / 移动速度**无关**(`adr-016:184-186` 同口径)⇒
    世界流的**有界性论证**(ADR-009)不被破坏。
+   ⚠️ **2026-09-16 口径订正(系统 1 的 GDD 落盘时)**:原写「事件频率 = **格穿越率**」是**等值**断言,
+   **不可证伪**且与归并算符相抵 —— 跨格检测**每帧**跑,而提交**每 tick**一次,
+   tick 内后续跨格**覆盖**待发值 ⇒ 帧率 < tick 频率时同 tick 两次跨格被归并,等值不成立。
+   **正确口径 = 上界**(每 tick 至多 Append 一条),判据分两层(`player-controller-and-movement.md`
+   **F-1-1b** / `AC-1-03`):①单元 —— 同 tick 喂 N ∈ {1,8,64} 样本断言 `Append == 1`
+   且载荷格 == 第 N 样本的格;②集成 —— `Append 总数 ≤ tick 数` ∧ **逐 tick** 核对
+   「`Append` 的格 == 该 tick 边沿的 `pending_cell`」。
+   ⚠️ **2026-09-16 二次订正**(系统 1 复审):原 ② 的合取项 `≤ 相异格数` **已删除** ——
+   与 EC-3(回访已到过的格**再发一条**)直接矛盾,以集合大小为界会把正确实现判失败;
+   正确的不变量是**序列**性质的(相邻不同格的转移数)。
+   ⇒ **有界性论证依赖的正是这条上界**(不是等值);归并算符一旦被移除,上界退化为帧率,论证即**静默**失效。
 2. **连续位置走第二 QoS 通道**(ADR-001)—— 它是**表现层**事实,到达时序不确定,
    **禁用于任何 sim 决策**(`adr-016:187-190`)。
 3. **单向**:玩家控制器**写事件**,13 / 27 **读事件** —— 控制器**不引用** AI,
    AI 也**不引用**控制器(它们与 ADR-016 §六 的 `IPresentPatients` 并列,都是**只写 / 只读**关系)。
+
+> **Amendment B(2026-09-16,由系统 1 首轮 `/design-review` 提出)。**
+> 本节原文只说「玩家控制器**负责跨格检测与事件发出**」,却**从未指定联机时由哪台机器 Append** ——
+> 这与 ADR-005「**主机唯一执行 `Step` / `CatchUp`**」冲突(事件流的唯一写入者只能是主机),
+> 与本 ADR 的「跨格检测每台机器都在跑」也不自洽。**四处裁决,均经用户 2026-09-16 照准**:
+>
+> ① **Append 权 = 主机唯一。** 本地玩家在主机上 ⇒ 主机本地控制器直接 `Append`;
+>    本地玩家在客户端上 ⇒ 客户端**不** `Append`,把自己的格经 **ADR-001 第二 QoS**
+>    (unreliable latest-value)上行,由**主机的权威控制器**统一 `Append`。
+> ② **`ActorCellEntered` 移出「可靠通道」。** 它是**最新值语义**(只需最后一个格对),
+>    与 reliable-ordered 语义冲突;且可靠通道被「急救 < 50 ms」(`TR-concept-007`)占用,
+>    跨格事件(每 tick 至多一条 × 四名玩家)不值得抢。**世界流的可靠有序由主机 Append 之后天然获得**。
+> ③ **远端队友的格**走同一条上行通道 ⇒ 主机 Append 后**经世界流回播**给全员。
+>    ⇒ 13 / 27 在**所有机器**上读到**同一条事件序列**(ADR-016 §一「第四来源」禁则不被破);
+>    系统 1 的 `OQ-1-9` 就此结案(落点 = 45 的 GDD,登记义务 `O-4`)。
+> ④ **本地预测与主机权威有迟滞差** —— 那是表现态的**正常代价**(与连续位置同源),**不写流**。
+>
+> **本节裁决 ①②③ 不改 §四 的核心**(连续位置永不写流、跨格是唯一投影、频率上界 = tick 频率);
+> **只补上了原文留下的「谁 Append」空洞**。⇒ 系统 1 GDD 的 **R5** / **EC-16** / **`AC-1-30`** 据此而定。
+>
+> **本 Amendment 同时新立一条接口**(Key Interfaces 已就地补):**`ICameraRig.YawBasis`** ——
+> 系统 1 把二维 `MoveInput` 投影成世界方向所必需的**水平化正交基**。
+> **方向是单向的**:1 读 2 的 yaw basis(上游值),2 读 1 的 `Position`(下游值)——
+> **两条边方向相反,不构成类型环**。原文 §四 的「控制器**不引用** AI」纪律不涉及 2;
+> 本节明确:**1 ↔ 2 之间无循环依赖**(系统 1 GDD 的 **F-1-8** / **`AC-1-35`** ③)。
 
 ### 五、相机是表现层 —— 只读,永不持有游戏状态
 
@@ -288,7 +369,7 @@ dr_guyang(用户 · **2026-09-15 三项核心裁定**)· technical-director(起�
                     ┌───────────────────┐   ┌──────────────────────────┐
                     │ 系统 2 摄像机     │   │ 世界流(ADR-009)          │
                     │ 自建机位(非      │   │ ActorCellEntered         │
-                    │ Cinemachine)      │   │ (低频率:格穿越率)        │
+                    │ Cinemachine)      │   │ (低频:上界 = tick 频率) │
                     │ 视角状态机        │   └───────────┬──────────────┘
                     │ ✗ 不持游戏状态    │               │ 只读
                     └────────┬──────────┘               ▼
@@ -319,7 +400,7 @@ public interface IPlayerMotor
 
 // ── 跨格事件:玩家在 sim 中的唯一投影(承 ADR-016 §三) ──────────────
 // 事件形状沿用世界流的既有 Kind 家族;此处固定其**触发点与频率契约**:
-//   · 触发 = 玩家 Cell 变化(格穿越率,与帧率 / 速度无关)
+//   · 触发 = 玩家 Cell 变化(上界 = 每 tick 一条,与帧率 / 速度无关 —— F-1-1b 归并算子)
 //   · 载荷 = { actor_id, cell(WorldPos), tick }
 //   · ✗ 连续位置 / 速度 / 朝向 一律不进流
 
@@ -332,6 +413,11 @@ public interface ICameraRig
     void SetMode(CameraMode mode);        // 状态机;转场参数留白(数值用户调)
     void Tick(float deltaTime);           // 跟随 / 越肩阻尼
     Camera Camera { get; }                // ← 44 的 AudioListener 挂点(平面);VR 挂头显
+
+    // ↓ 2026-09-16 Amendment B 新增:系统 1 的移动基(单向只读消费方)
+    //   把二维 MoveInput 投影成世界方向所必需的基;1 只读、2 不读 1 的移动意图。
+    //   见系统 1 GDD 的 F-1-8 / AC-1-31 / AC-1-35。
+    (Vector3 fwd, Vector3 right) YawBasis { get; }   // 水平化并正交归一;y 分量恒为 0
 }
 
 // ── 视角状态机(P0 形状;切换条件与转场时长留白) ─────────────────────
@@ -415,7 +501,8 @@ public interface ICameraRig
 - **放弃 Cinemachine 的成熟件** —— 若日后相机行为变复杂(过场 / Timeline 混镜),
   自建成本上升。缓解:本作 P0 无过场需求;若 P1 需要,**另开 ADR** 评估。
 - **§四 的跨格事件是新增的写入点** —— 它给世界流加了一类事件(格穿越)。
-  缓解:频率 = 格穿越率(远低于帧率),有界性论证仍成立;且 **ADR-016 §三 早已假设它存在**。
+  缓解:事件率**上界 = tick 频率**(远低于帧率,承 F-1-1b 的归并算符),有界性论证仍成立;
+  且 **ADR-016 §三 早已假设它存在**。
 
 ### Neutral
 
@@ -474,8 +561,14 @@ ADR-016 §三 的感知定义。§五 的「相机不持状态」同理。
 - [ ] **AC-20-02(BLOCKING)**:`packages/manifest.json` **无** `com.unity.cinemachine`
       (自建机位;零第三方取向第七处一致性)
 - [ ] **AC-20-03(BLOCKING)**:**连续位置 / 速度 / 朝向永不写流**;玩家在 sim 中的唯一投影 =
-      **跨格事件**(grep:连续位置不出现在任何 `IEventSink.Append` 调用点)
-- [ ] **AC-20-04**:跨格事件频率 = **格穿越率**(与帧率 / 移动速度无关);世界流有界性论证仍成立
+      **跨格事件**。**判据 = 反射断言**(`ActorCellEntered` 的字段类型集合 ⊆ `{int32, int64, 整数枚举}`),
+      **不是 grep** —— ⚠️ **2026-09-16 订正**:原稿写「grep:连续位置不出现在任何 `IEventSink.Append` 调用点」
+      是**假阳性机器** —— 跨格检测**必须**读 `Vector3` 才能算 `FloorToInt(p / LATTICE_SIZE)`(F-1-6),
+      该 grep 会**误杀正确实现**;真正的判据只能是**载荷的字段类型**。(系统 1 的 `AC-1-02` 同此订正)
+- [ ] **AC-20-04**:跨格事件率**上界 = tick 频率**(与帧率 / 移动速度无关);世界流有界性论证仍成立。
+      ⚠️ **2026-09-16 订正**:原写「频率 = 格穿越率」是**等值**断言,**不可证伪**
+      (F-1-1b 只给上界;帧率 < tick 频率时同 tick 两次跨格被归并)⇒ 改**上界**口径,
+      判据分两层见系统 1 的 `AC-1-03`
 - [ ] **AC-20-05**:相机**不引用 sim 程序集**、**不写三流**、**不持有游戏状态**(承 C3 体例)
 - [ ] **AC-20-06**:平面 = **第三人称越肩**;VR = **第一人称头显**;两条路径**独立**,不互相迁就
 - [ ] **AC-20-07**:VR 相机 = **世界空间第一人称**,**不接收第三人称机位**;
@@ -485,6 +578,14 @@ ADR-016 §三 的感知定义。§五 的「相机不持状态」同理。
 - [ ] **AC-20-10**:44 的 `AudioListener` 挂点落定 —— 平面**主相机** / VR **头显**(结清 `adr-018:295` 留白)
 - [ ] **AC-20-11**:全部数值旋钮(移速 / 阻尼 / 越肩偏移 / 转场时长)**留白**,不在 ADR 内定值
 - [ ] **AC-20-12**:相机 spike 已跑(越肩遮挡 / 舒适度),并与 §8 的 42 焦点导航 spike 同批
+- [ ] **AC-20-13(BLOCKING · 2026-09-16 Amendment B 新增)**:跨格事件的 **`Append` 权 = 主机唯一** ——
+      客户端模式下 `IEventSink.Append` 调用点数为 0(`ActorCellEntered` 经**第二 QoS** 上行其格);
+      **提交态归主机** —— 客户端只上行 `pending_cell`(不上行 `last_committed_cell`),
+      主机的 `last_committed_cell` 只由主机自己的 `Append` 推进(与权威格相同的上行值须**丢弃**)。
+      *验证:系统 1 的 `AC-1-30`(①②③)同判据。*
+- [ ] **AC-20-14(BLOCKING · 2026-09-16 Amendment B 新增)**:`ICameraRig.YawBasis` **只读** ——
+      系统 1 的调用点零写入相机状态 / 变换;基**水平化且正交归一**(`y == 0` ∧ `f̂ ⟂ r̂`)。
+      *验证:系统 1 的 `AC-1-31` / `AC-1-35` ④ 同判据。*
 - [ ] **零第三方依赖**:`packages/manifest.json` 无新增相机 / 物理 / 输入第三方包
 
 ## GDD Requirements Addressed

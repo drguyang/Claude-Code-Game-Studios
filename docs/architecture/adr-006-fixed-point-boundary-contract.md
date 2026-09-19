@@ -24,7 +24,7 @@ ADR-005 把**全部模拟数学**锁进整数定点域(int64 / Q16.16),却**没�
 外部数据文件怎么把数交给 `Fix`、存档里允不允许出现 `float`、舍入怎么定、
 以及被 ADR-005 自己引用的 `SimEvent` 全序键 `Seq` 到底是什么。
 本 ADR 补齐 **21a ↔ 9 之间的定点数据契约**(整数出参 · 禁浮点存档 · 单一舍入模式 ·
-守恒律的域内表达 · `Fix` 的 Unity 序列化边界),并以修正案(Amendment A–E)回填 ADR-005 的形状与口径缺口 —— A–D 由本 ADR 引入,**Amendment E 由 ADR-009 引入**(升格 C / D 至三流口径)。
+守恒律的域内表达 · `Fix` 的 Unity 序列化边界),并以修正案(Amendment A–F)回填 ADR-005 的形状与口径缺口 —— A–D 由本 ADR 引入,**Amendment E 由 ADR-009 引入**(升格 C / D 至三流口径),**Amendment F 由系统 1 的 GDD 引入**(2026-09-16,切分「算术域」与「边界域」的适用对象)。
 **不落盘此契约,21a 的 `drug_profile` 一旦被 11 处方按浮点读走,定点域即从边界处漏空。**
 
 > **2026-09-14 二轮复核修正(ADR-006 自身的三处口径错误)**:① `weight` 是 `int` 计数,
@@ -138,6 +138,35 @@ public static class FixParse
 - **`Fix` 的唯一浮点出口是 `IVitalsQuery.GetVitals()` 返回的 `VitalsDto`**
   (ADR-005 §Decision 二 与 §Key Interfaces),且该出口**只出不进** —— 浮点回到 sim 层无路径。
 
+#### D-21-13 口径收窄:载荷内枚举 = 版本化整数 ordinal(2026-09-17)
+
+> **原口径**(21a 物品库,2026-09-14)写作「**存档中不出现数值编码的枚举**」,承
+> `processing_state` 跨持久化**只用稳定字符串名**。该口径**过宽**,与 ADR-008 的
+> `DiseaseIdSet` / `Judgment.lexicon_id` / 21a 的 `ItemId` **直接冲突** —— 后者全部是
+> **整数 ordinal**,若按字面收口,等于要求每个物品 id / 病种 id 都改写成字符串,而
+> **字符串在事件流里既非定长、也无法参与定点域外的整数比较**。
+>
+> **收窄后的口径(用户 2026-09-17 裁定「① ordinal + 进 `ConfigVersion`」)—— 两条并行,**按位置分野**:
+>
+> | 位置 | 形状 | 例 |
+> | --- | --- | --- |
+> | **事件载荷内的枚举** | **版本化整数 ordinal**(`u16` / `u8`) | `DiseaseIdSet` 的成员 · `Judgment.lexicon_id` · `ItemId` · `SimEvent.Kind` |
+> | **跨持久化的配置态枚举** | **稳定字符串名**(原 D-21-13 口径,**保留**) | `processing_state`(21a)—— 它是**配置项**,不是载荷 |
+>
+> **「版本化」是承重条件,不是修饰词**:ordinal ↔ 名称的映射表**必须进
+> `ConfigVersion` 的内容哈希覆盖集**。表一变 ⇒ `ConfigVersion` 变。
+> - **🔴 但 `ConfigVersion` 不匹配不是拒载**(ADR-010 §七 / ADR-014 §五:非致命)——
+>   故「进覆盖集」**单独不足以**守住 ordinal 重排。**真正的门是 append-only**
+>   (见 `adr-014 §五 D-21-13 承接条 ③`:既有条目号**永不重用、永不改义** +
+>   构建期对 `_ordinal_baseline.json` 基线断言 ⇒ 改号 / 改义 = **构建期硬失败**)。
+> - **分工**:`ConfigVersion` 负责「**改动可追溯**」(排查回放不符);
+>   **append-only 构建门**负责「**买断静默错读**」——
+>   把「`麻黄汤` 被读成 `桂枝汤`」这类**静默错读**换成**明确的构建失败**。
+>   两者缺一不可,**且不能互相替代**。
+>
+> **不适用于**:`Fix` 字段(仍禁浮点字面量,仍走 `FixParse`)· `weight` / `stack_max`
+> (仍是 `int` 计数,见上)· 任何**玩家可见文本**(走本地化词表,非 ordinal)。
+
 ### 三、舍入:单一模式,显式命名
 
 - 全部舍入使用 **`ROUND_HALF_AWAY_FROM_ZERO`**;
@@ -220,6 +249,12 @@ public readonly struct SimEvent
 - `Seq` 由**主机在 `Append` 时分配**,同一 `(Tick, Patient)` 内从 0 单调递增;
 - `Seq` **必须随事件持久化**(否则回放无法重建顺序);
 - `Payload` 是**值 struct**,无引用字段 —— 与 `Fix` 同纪律;
+  > **⚠️ 2026-09-17 例外登记(唯一一条)**:`Judgment.freehand_text`(ADR-008 §三
+  > 的 `Judgment` 形状)是 `string`,**破此纪律**。理由:它是**玩家自书的自由文本**
+  > —— 语义上**不可能**是定长值,且**永不进任何判定**(ADR-008 明写「只进呈现层」)。
+  > **例外成立的条件**:该字段的**全部消费者都是呈现层** ⇒ 任何 sim 程序集内的代码
+  > **读它就是违例**。守它的 = ADR-008 的构建期扫描 + 37 的 AC-37-15(DTO 递归检查)。
+  > **不得以此为模板扩张** —— 其余载荷字段仍须是定长值类型。
 - **此修正不改变 ADR-005 的核心裁决**,只补其自相矛盾的形状。
 
 ### Amendment B —— `patient_id` 跨权威稳定性(兑现 **D-9-E**)✅ **已裁决**
@@ -313,6 +348,44 @@ ADR-009 引入**第三条逻辑流(世界流)**承载世界状态变更(建造 /
    **仍只作用于病史流**,病例流与世界流**永不物理折叠**。
 3. **本修正案只改口径,不改任何数据形状** —— 既有 Validation Criteria(发放域唯一 /
    跨流全序无平局 / 扫并集重构)在语义上自动扩展为三流,取值域以 **ADR-009 §Decision** 为准。
+
+### Amendment F —— 适用域的切分:算术域 vs 边界域(2026-09-16 · 系统 1 的 GDD)
+
+**问题**:本 ADR 的标题是「**定点域边界数据契约**」,但正文的六节**不全是关于边界的** ——
+§一 解析入口 · §三 舍入模式 · §四 守恒律 是关于**定点算术怎么算**;
+§二 存档与事件流禁 `float` · §五 序列化器 · (ADR-009 §三) 进流字段全整数 是关于**跨域写出去什么**。
+
+撰写系统 1(玩家控制器与移动)的 GDD 时,原作者写下了「**本系统不受 ADR-006 定点域约束**」。
+**该句过宽**:1 是**表现层**系统(连续 `Position` / 速度 / 朝向全是浮点,这是 ADR-020 §四 的裁决),
+但 1 同时有**一条写进世界流的路径**(`ActorCellEntered`,ADR-009 Amendment G)——
+照原句字面,**一个浮点就获得了进入事件流的许可**。这是**静默类**的口径漏洞。
+
+**裁决(仅澄清适用域,不改任何既有条款)**:
+
+| 本 ADR 的节 | 适用对象 | 系统 1 是否受约束 |
+|---|---|---|
+| **§一** 解析入口(`FixParse`) | **定点算术域** —— 只约束「进 `Fix` 的数据」 | ❌ **不受**(1 无 `Fix` 字段,不做定点算术) |
+| **§三** 舍入模式 | 同上 | ❌ **不受** |
+| **§四** 守恒律 | 同上(配方 / 药效的投入产出) | ❌ **不受** |
+| **§二** 存档与事件流禁 `float` | **跨域写出的边界** —— 约束**任何**写流 / 落盘的系统 | ✅ **受**(且 1 已合规) |
+| **§五** `Fix` 序列化边界 | 同上 | ❌ **N/A**(1 不序列化 `Fix`) |
+| **ADR-009 §三** 进流字段全整数 | 同上 | ✅ **受**(且 1 已合规 —— 三字段均整数) |
+
+- **一句话口径**:本 ADR 的**算术**章节只约束「**用定点域的系统**」;
+  **边界**章节约束「**任何写入存档或事件流的系统**」—— 与它内部用不用 `Fix` **无关**。
+- **对系统 1 的结论**:1 的**算术**是表现层浮点(合法,ADR-020 §四);
+  1 的**写流**路径三字段(`actor_id` / `cell(WorldPos)` / `tick`)全整数 ⇒ **无冲突**。
+- **对未来的约束**:任何**表现层系统**若新增一条写流 / 落盘路径,须按上表逐项自查
+  「边界行是否已满足」—— **不得**援引「我是表现层」而跳过边界行。
+  ⚠️ 但表现层内部的浮点**不需要**任何豁免:**本 ADR 从不禁表现层的浮点**,
+  它禁的是**浮点跨界**(入 sim / 入流 / 入档)。
+
+> ⚠️ **本修正案不得被读作「表现层可以往流里写浮点」** —— 恰恰相反,上表把边界行
+> 明确扩到了**所有写流者**。它的作用只是把「算术域」与「边界域」**在纸面上分开**,
+> 使一句「我不受本 ADR 约束」不再能同时免掉两者。
+
+**同步**:系统 1 的 GDD(`player-controller-and-movement.md` §Formulas 开头的口径注)
+已按本修正案收窄表述;原文的「不受 ADR-006 定点域约束」**已就地作废**。
 
 ## Alternatives Considered
 
@@ -417,6 +490,10 @@ ADR-009 引入**第三条逻辑流(世界流)**承载世界状态变更(建造 /
       `JsonUtility` / `[SerializeField]` / `ScriptableObject` 往返一个 `Fix` 字段 ⇒ **值丢失**,
       并断言自定义编码器往返 ⇒ **逐位还原**。
 - [ ] `EFF_MAX > 1` ⇒ 构建期硬失败。
+- [ ] **载荷内枚举 = 版本化整数 ordinal,且映射表进 `ConfigVersion` 内容哈希覆盖集**(D-21-13 收窄,2026-09-17):
+      改一条 ordinal ↔ 名称的映射 ⇒ `ConfigVersion` **必变**;构造一个「改了映射却版本号不变」的夹具 ⇒ 断言失败。
+- [ ] **`freehand_text` 例外不扩散**(Amendment A 例外):静态扫描断言 `string` 字段**仅出现在**
+      `Judgment.freehand_text` 一处,其余 `Payload` 类型全部为定长值类型。
 - [ ] `SimEvent` 含 `Seq` 与 `Payload`,且 `Seq` 随事件持久化(Amendment A)。
 - [ ] **`patient_id` 迁移稳定性**(Amendment B):含已折叠终态病人的流,重构出的
       `next = max(patient_id) + 1` **严格大于所有出现过的 id**;全流回放后
@@ -444,12 +521,15 @@ ADR-009 引入**第三条逻辑流(世界流)**承载世界状态变更(建造 /
 | --- | --- | --- | --- |
 | `design/gdd/item-database.md` | 21a 物品与配方数据库 | D-21-9:F1/F2/F4 出参即 `int`,存档无 `float`,`Offset`/`τ_half` 为 Q16.16 整数字面量 | §Decision 一 / 二 / 三 |
 | `design/gdd/item-database.md` | 21a 物品与配方数据库 | D-21-10:守恒律 `Σ(weight × outputs) ≤ EFF_MAX × Σ(weight × inputs)` 且 `EFF_MAX ≤ 1` | §Decision 四 |
-| `design/gdd/item-database.md` | 21a 物品与配方数据库 | D-21-13:`processing_state` 跨持久化只用稳定字符串名 | §Decision 二(存档中不出现数值编码的枚举) |
+| `design/gdd/item-database.md` | 21a 物品与配方数据库 | D-21-13:`processing_state` 跨持久化只用稳定字符串名 | §Decision 二(**2026-09-17 收窄为「跨持久化的配置态枚举」**;载荷内枚举改走**版本化整数 ordinal + `ConfigVersion` 覆盖集**) |
 | `design/gdd/item-database.md` | 21a 物品与配方数据库 | **D-21-17:`weight` / `stack_max` 口径 = `int`(最小单位个数),**不是 `Fix`** | §Decision 一 / 二(移出 `Fix` 解析集) |
 | `design/gdd/item-database.md` | 21a 物品与配方数据库 | **D-21-18:`Fix` 不可经 Unity 序列化器承载,须自定义编码器** | §Decision 五(新增) |
 | `design/gdd/item-database.md` | 21a 物品与配方数据库 | **D-21-15:技能回报 = 投入端可变,`ActualConsumed = Ceil(base / EFF)`** | §Decision 四(守恒律取 `ActualConsumed` 而非基数) |
 | `design/gdd/disease-simulation.md` | 9 疾病与伤情模拟 | `SimEvent` 必须可全序且带载荷(§Dependencies 抽象点表 `SimEvent` 行) | Amendment A(D-9-D) |
 | `design/gdd/disease-simulation.md` | 9 疾病与伤情模拟 | `patient_seed = hash(world_seed, patient_id)` ⇒ `PatientId` 迁移稳定(§Dependencies 抽象点表 / §Dependencies「换 authority」段) | Amendment B(D-9-E,✅ **已裁决 —— 机制 A + 折叠保留 `patient_id`**) |
+| `design/gdd/case-system.md` | 37 病例系统 | 载荷内枚举(`DiseaseIdSet` / `Judgment.lexicon_id`)的类型口径;`freehand_text` 的例外登记 | §Decision 二 **D-21-13 口径收窄**(2026-09-17)· **Amendment A 例外登记** |
+| `docs/architecture/adr-008-case-event-stream.md` | ADR-008 | `Judgment` 形状的定点域边界合规(载荷编码 + Amendment A 例外) | §Decision 二 · Amendment A |
+| `docs/architecture/adr-014-data-pipeline-and-json-parser.md` | ADR-014 | D-21-13 收窄的**承载件**:ordinal 映射表的烘焙 · 覆盖集 · append-only 门 | §Decision 二(D-21-13 收窄条 · 指向 adr-014 §五) |
 
 ## Related
 
