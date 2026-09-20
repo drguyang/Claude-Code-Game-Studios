@@ -11,7 +11,7 @@
 > > ④ `OQ-17-12`(`min(各输入 quality)` 链式截断)在 21a 侧被证伪。
 > > 详见 `reviews/foraging-review-log.md`。
 > **Author**: dr_guyang + game-designer
-> **Last Updated**: 2026-09-19
+> **Last Updated**: 2026-09-19(**2026-09-20 `/review-all-gdds` 回刷**:6 行「6 的 GDD 未写」订正为双向)
 > **Implements Pillar**: 支柱三(还原 × 整体 —— 「同一味药,手采的和药铺买的不一样」)· 支柱一(判断为骨 —— 辨识是高技能玩家的隐性回报)
 > **上游**: 6 世界与生态区(✅ ADR-015 逻辑整数层)· 21a 物品与配方数据库(✅ `item-database.md`,提供 `gather_profile`)
 > **下游**: 18 炮制(消耗原料)· 20 库存与物品(承载 `ItemInstance`)· 11 处方用药(经 18/20 间接)· 42 拟物 UI(呈现品级质地)· 7a 持久化(序列化 `ItemInstance`)
@@ -44,7 +44,7 @@
 (转化归 18 炮制 —— `item-database.md:450`「17 / 18 / 19 只产出输入参数,不得自建结算逻辑」)。
 17 的职责 = **动作 + 一次确定性的品级抽取 + 一次唯一的身份铸造 + 一条采集事实事件**。
 
-**采集的产物是原料,不是中药。** P0 采的是**药用植物原料**(柳树皮 / 毛地黄 / 金鸡纳树皮),
+**采集的产物是原料,不是中药。** P0 采的是**药用植物原料**(柳树皮 / 毛地黄 / 金鸡纳树皮 / 止血草,承规则一 2026-09-20 扩容),
 「炮制」在 P0 = 提取 / 干燥 / 标准化;**甘草 / 黄芪** 是 P1a 示例(承 `item-database.md` §命名铁律 ·
 `skill-system.md:144-145`)。这不是 17 的选择,是 D-21-1 已裁的口径。
 
@@ -118,7 +118,11 @@
 
 P0 采集的对象是**药用植物原料**,品种集是**闭集**(由 21a `item_key` 表定义,经 ADR-014 烘焙):
 
-- **P0**:柳树皮 · 毛地黄 · **金鸡纳树皮**
+- **P0**:柳树皮 · 毛地黄 · **金鸡纳树皮** · **止血草**(蓍草类 —— ✅ **2026-09-20 用户裁定扩容**,剧情正典 `content/campaign-arc.md` 序章「手册·止血草」;史实锚点待 40 复核,承 `he-returns.md` §八)
+  - ✅ **草木灰来源已裁(2026-09-20 ②a 火堆采集物)**:它**不是植物品种**,不进本闭集;但它是营地火堆
+    **灰烬资源点**的采集对象 —— 走规则二三条既有 Kind(`ResourceHarvested` 等),节点定义 = 派生态
+    (关卡工具烘焙),**非 18 炮制转化产物**(见 `processing.md` 同日结案注)。21a `item_key` 两行
+    (止血草原料 / 草木灰制品)+ 灰烬节点 `gather_profile` 行归实现轮补数据行,不造数
 - **P1a**:甘草 · 黄芪 等(承 `skill-system.md:144-145`)
 
 **17 不得自建品种表** —— 品种、可采部位(`parts[]`)、品级分布(`quality_distribution`)、
@@ -219,7 +223,7 @@ DropClaimed       { instance_id, claimer = 采集者 }                         /
 ### 规则五:新颖度对象 = 药用植物品种
 
 每次**成功采集**发**恰好一次**成长事件,对象 = **品种**(`skill-system.md:138` 明定):
-**P0**:柳树皮、毛地黄、**金鸡纳树皮**各算一个对象 · **P1a**:甘草、黄芪。
+**P0**:柳树皮、毛地黄、**金鸡纳树皮**、**止血草**各算一个对象(四者,2026-09-20 扩容)· **P1a**:甘草、黄芪。
 成长经 30 的 `EmitGrowth(采集, 品种, novelty)`(`novelty_class` 由 30 定义,含冷却期 `stale`)。
 **事件落病史流**(30 的三轮修订 B3:`SkillGrown` 落病史流 —— `skill-system.md:400`)。
 
@@ -437,7 +441,7 @@ season_index(t)     由 5 的 F-5.2 提供(2026-09-18 · `OQ-5-1`)
 
 | 上游 | 方向 | 性质 | 要什么 | 状态 |
 | --- | --- | --- | --- | --- |
-| **6 世界与生态区** | 6 → 17 | 数据(派生态) | 资源点 `node` 定义(`ecosystem` / `cell` / `item_key`),由 54 关卡工具导出、ADR-014 烘焙 | ✅ ADR-015(6 的 GDD 未写) |
+| **6 世界与生态区** | 6 → 17 | 数据(派生态) | 资源点 `node` 定义(`ecosystem` / `cell` / `item_key`),由 54 关卡工具导出、ADR-014 烘焙 | ✅ **双向**(2026-09-20 回刷)—— `world-and-ecozones.md` §下游已列本边(原「6 的 GDD 未写」为陈旧) |
 | **21a 物品与配方数据库** | 21a → 17 | 数据 | `gather_profile`(品种 / `parts[]` / `quality_distribution` / `qty_per_node` / `quality_character[]`) | ✅ `item-database.md` |
 | **30 技能与熟练度** | 30 → 17 | 接口 | `QueryLevel(采集)` · `EmitGrowth(采集, 品种, novelty)` | ✅ **Approved**(2026-09-18) |
 | **4 交互系统** | 4 → 17 | 意图路由 | **目标选择**:采集点(`ForageSpot`)与掉落物(`Drop`)的「这一帧对谁做」由 4 的 `F-4.1` 定,路由到 17 / 20 | ✅🟡 `interaction-system.md` |
@@ -624,7 +628,7 @@ season_index(t)     由 5 的 F-5.2 提供(2026-09-18 · `OQ-5-1`)
 | ID | 类型 | 级别 | 判据 |
 | --- | --- | --- | --- |
 | **AC-17-01** | [A] | BLOCKING | `GIVEN` 一次成功采集,`WHEN` 检索产出路径,`THEN` 恰发 **`ResourceHarvested` + `DropSpawned` + `DropClaimed`** 三条既有 Kind,**零新增 Kind**(规则二)|
-| **AC-17-01b** | [A] | BLOCKING | `GIVEN` P0 品种集,`WHEN` 与 21a `item_key` 表比对,`THEN` = {柳树皮, 毛地黄, 金鸡纳树皮} **三者**(规则一;守文档内 3 vs 2 矛盾)|
+| **AC-17-01b** | [A] | BLOCKING | `GIVEN` P0 品种集,`WHEN` 与 21a `item_key` 表比对,`THEN` = {柳树皮, 毛地黄, 金鸡纳树皮, **止血草**} **四者**(规则一;✅ 2026-09-20 用户裁定扩容第 4 项,承 `campaign-arc.md` 序章 —— ⚠️ 21a `item_key` 行归实现轮,该行在此之前**不得记绿**)|
 | **AC-17-02** | [A] | **EXTERNAL · BLOCKED-BY-ADR-012** | `GIVEN` 同一 `(WorldSeed, node_id, gather_seq)`,`WHEN` 跨平台重放,`THEN` `out_quality` 逐位相同。⚠️ **判据载体 = ADR-012 三格矩阵,而它尚不存在**(`tests/` / `.github/workflows/` 缺)+ **F7 spike 未跑**(`SplitMix64` 的 `z *= …` 在 IL2CPP 为 UB)⇒ **17 侧不得记绿**(F-17-1)|
 | **AC-17-03** | [A] | BLOCKING | `GIVEN` `quality_distribution` 的边界(单档 100%),`WHEN` 走 `CDFWalk`,`THEN` `out_quality` 恒等该档,无除零 / 越界;⚠️ **`QualityCap` 低时该夹具须写为「恒 = 该档 ∩ ≤ Cap」**(原稿结论在低 Cap 下为假)|
 | **AC-17-04** | [A] | BLOCKING | `GIVEN` `raw_quality > QualityCap`,`WHEN` 结算,`THEN` `out_quality == QualityCap`,**且 `raw_quality` 可从 `(WorldSeed, node_id, gather_seq)` 重算**(规则四 / 规则二 注)|

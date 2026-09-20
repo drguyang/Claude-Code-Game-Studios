@@ -2,7 +2,8 @@
 
 > **Status**: Approved(2026-09-16 —— 首轮 `/design-review` → MAJOR REVISION NEEDED,8 项阻断 B1–B8 当日修订落盘,用户裁定接受不再重评审;评审史见 `design/gdd/reviews/camera-and-viewpoint-review-log.md`)
 > **Author**: 用户 + game-designer / ux-designer / unity-specialist / technical-artist / systems-designer
-> **Last Updated**: 2026-09-16
+> **Last Updated**: 2026-09-16(**2026-09-20 `/review-all-gdds` 回刷**:`AC-2-22`⑥ 的 `O-16` 对侧落点
+> 已由 3 侧规则三登记 —— 6 项义务全部有对侧)
 > **Implements Pillar**: 支柱一「判断为骨,手感为肉」(取景是「看得清」的前提)
 > **权威件**: ADR-020 §二 / §三 / §五 / §六 / §七(Accepted, 2026-09-15)· §Key Interfaces 的 `ICameraRig`
 > **上游契约**: 系统 1 的 `O-8`(本系统须交付 `ICameraRig.YawBasis`,只读单向)——
@@ -1275,7 +1276,9 @@ t ∈ [0, 1];  参数_p := lerp( 参数_p_from, 参数_p_to, E( t ) )
   (承 `design-docs` 规则「依赖必须双向」)。
   ⚠️ **当前实测(2026-09-19)**:① 的 10 已成稿(`emergency-procedures.md`)、② 的 39 已成稿(`casebook.md`)且为**唯一请求方**(8 已剔除)⇒ ①②**可验**;
   ④ 系统 1 已列 `O-14`(**已落一半**,待其确认次序契约);⑤ 42 已列 `O-15`(**已落**);
-  ⑥ 系统 3 **尚未登记** ⇒ **本 AC 当前仍红**(6 项中 1 项未登记)。
+  ⑥ **系统 3 已登记(2026-09-20 回刷)**:`input-system.md` 规则三明写「Gamepad 绑重中 `Look` 与
+  `Navigate` 不得共享同一物理控件」—— 该条即 `O-16` 的对侧落点(`AC-2-22`⑥ 可由红转验)。
+  ⇒ **6 项义务现已全部有对侧登记**。
   ⇒ **这正是它作为 BLOCKING 的意义**:它把「下游还没跟上」显式化,而不是默默通过。
 - **AC-2-23(EXTERNAL)** —— **`O-13` 的验收只可能由相机 spike(ADR-020 §Migration 第 5 条)
   给出** —— 该 spike 的输出是 `O-13` 的唯一验收依据。

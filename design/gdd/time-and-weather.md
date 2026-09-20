@@ -3,7 +3,7 @@
 > **Status**: ✅ **Approved**(2026-09-18 新成稿 → **2026-09-19 首轮 `/design-review` 裁 MAJOR REVISION NEEDED(scope L · 9 条 BLOCKING)→ 当日九项全量修订落盘 → 用户裁定接受修订、免二轮 ⇒ Approved(2026-09-19)** —— ⚠️ **免二轮 = 显式风险接受**;重开触发条件四条见 `reviews/time-and-weather-review-log.md`)
 > **首轮四项用户裁定**(2026-09-19,均照准推荐案):**R-5-A** 天气掷骰改**块哈希**(相干时间 = `WEATHER_BLOCK_TICKS`,废除逐 tick iid);**R-5-B** `cell` = **消费方传入的求值位置**,钉三个 P0 调用点;**R-5-C** 「天气→52 强度轴」**降级 P1a**(52 已结案不改),9 侧幻影边撤销,新增**正向可感知 AC**;**R-5-D** `TICKS_PER_SEASON` 为**真·季长参数**。
 > **Author**: dr_guyang + game-designer
-> **Last Updated**: 2026-09-19(首轮评审修订)
+> **Last Updated**: 2026-09-19(首轮评审修订)(**2026-09-20 `/review-all-gdds` R-5 回刷**:`WEATHER_BLOCK_TICKS` 旋钮曾标 `BLOCKED-BY-OQ-8 / OQ-25-8` → ✅ **2026-09-20 解除**(20 Hz)—— 相干块长按秒可读(5 tick = 250 ms),值仍归用户)
 > **Implements Pillar**: 支柱二(「**病人不会等你**」的时间压力侧 —— ⚠️ 注:`game-concept.md:202` 支柱二原文主题为「医者不杀」,「时间是压力」系本 GDD 的注解口径,首轮评审登记此偏差;全案「支柱N(括号注解)」惯例的批修归独立轮)· 支柱三(「**季节与天气改变同一件事的结果**」的效果侧 —— ⚠️ 注:`game-concept.md:219` 支柱三原文为「还原 × 整体」;「转化是有代价」实为 `item-database.md:38` 登记的**锚点三**(21a),18/17 的页眉对支柱三另有注解 —— **同一编号在不同 GDD 指两件事**属全案病灶,本文档如实标注归属,不单方改号)
 > **上游**: 6 世界与生态区(✅ `world-and-ecozones.md` —— **生态区 → 气候属性查表输入**,`O-6-5` / R-6-13)· 7a 持久化(✅ `persistence-service.md` —— `WorldSeed` 存档头)· 52 随机事件导演(✅ —— `TICKS_PER_DAY` 的**同值契约** DC-3)
 > **下游**: 18 炮制(🟡 `processing.md` —— **`EnvMod` 的环境项**)· 21a 物品与配方数据库(✅ —— F1 的 `EnvMod` 运行时入参)· 17 采集(🟡 `foraging.md` —— **深水线另一半:季节修正**,`OQ-8-11`)· 52(✅ —— P0 只消费 `isNight`→`TODMult`;⚠️ **天气→强度轴降级 P1a**,`OQ-5-8`,首轮评审 R-5-C)· 42 拟物 UI(✅ —— 天光 / 天候的渲染)· 44 音频(✅ —— 天气声床)· 1 玩家控制器(✅ —— ⚠️ **P0 不接入**,见规则八)
@@ -369,7 +369,7 @@ Weather(t, cell) = Roll( WorldSeed, FDiv(t, WEATHER_BLOCK_TICKS), EcozoneOf(cell
 | 变量 | 类型 | 归属 | 说明 |
 | --- | --- | --- | --- |
 | `WorldSeed` | u64 | **7a 存档头** | ADR-007 §二 |
-| `WEATHER_BLOCK_TICKS` | int ≥ 1 | **5**(烘焙配置) | 相干块长(✅ R-5-A);值归用户;改值 = 改 `ConfigVersion`(ADR-014 §五) |
+| `WEATHER_BLOCK_TICKS` | int ≥ 1 | **5**(烘焙配置) | 相干块长(✅ R-5-A);值归用户;改值 = 改 `ConfigVersion`(ADR-014 §五)。⚠️ **2026-09-20 `/review-all-gdds` R-5**:相干时长的秒级体感曾依赖 tick 频率标定 —— ✅ **已解除(2026-09-20:20 Hz ⇒ 一块 = 250 ms)** —— 量纲已标定(2026-09-20 OQ-8 / OQ-25-8 结案:20 Hz ⇒ 1 tick = 50 ms · 在场才模拟 · CAP=24)—— 值仍归用户 |
 | `cell` | WorldPos(整数格) | **消费方传入** | ✅ R-5-B —— 语义钉在 F-5.4 调用点表;**5 不自行决定取哪个格** |
 | `kind` | enum | 5 | 晴 / 阴 / 雨 / 雪 / 风 …(**枚举值归 5 的 GDD**) |
 | `intensity` | Q16.16 int ∈ [0, `INTENSITY_MAX`] | 5 | 天气强度;`INTENSITY_MAX` **定义者 = 5**(F-5.3 输出域上界;✅ B-19) |

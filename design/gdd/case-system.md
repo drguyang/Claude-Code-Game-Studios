@@ -403,7 +403,7 @@
 | **39 脉案**(✅ 2026-09-19 成稿 · In Review) | 病例列表 · 排序键 `(patient_id, CaseOpened 的 (Tick, Seq))` · 串接键 · 状态 · 结案页「已处置」勾选(UI 仪式) | 39 拥有**分册态**(两个 tick · 痕投影 · 分册);37 拥有**生命周期**;**DTO 不含 `disease_id`**。**⭑ 待 37 修订轮:补 `CasesOf` 具名接口**(39 的 `F-39.1` 引用它,现只有数据行) |
 | **#53 医疗后果与责任**(P0 · ✅ 有 GDD `medical-consequences.md` Draft) | 订阅**病例流**(`CaseClosed` / `PatternRecognized`)+ 判断记录 + 改写史 + 处置记录 | **37 出材料,53 出后果**;53 重算 `SplitMix64(WorldSeed, "case-salt")` 匹配 R3(ADR-008 §五) |
 | **8 诊断** | 结案信号(冻结判断,AC-8-47) | 37 是触发方 |
-| **30 技能与熟练度** | `QueryLevel(诊断)`(37 发起查询)· **订阅成长事件**(30 定义,37 消费) | **唯一真环被单向化**:30 只暴露 `QueryLevel` / `EmitGrowth` 两接口(systems-index §7);**37 永不调用 `EmitGrowth`** —— 调用方是 **8**(见 `diagnosis-system.md` 出向表)。37 向 30 查询等级、订阅 30 的成长事件 |
+| **30 技能与熟练度** | `QueryLevel(诊断)`(37 发起查询)· **订阅成长事件**(30 定义,37 消费)· **37 的流事件(`CaseClosed` / `PatternRecognized`)= 30 同源图样类新颖度的派生数据源** | **唯一真环被单向化**:30 只暴露 `QueryLevel` / `EmitGrowth` 两接口(systems-index §7);**37 永不调用 `EmitGrowth`** —— 调用方是 **8**(见 `diagnosis-system.md` 出向表)。37 向 30 查询等级、订阅 30 的成长事件。**「病例触发技能成长」的实现形 = 30 只读消费病例流事件**(与 51 同构,承 ADR-019 §三「只读消费者」纪律)—— **37 开触发,零出向数值**(用户裁定 2026-09-20,解 R-3 索引 vs AC 互斥;AC-37-32 不松动) |
 | **42 拟物 UI 框架** | 病例页的形态规则(**不含 `disease_id`**) | 42 只渲染、不持状态 |
 | **48 教学与引导**(P0 · ✅ 有 GDD `tutorial-and-onboarding.md` Draft) | 「第一个病例」的引导锚点 | 是 |
 | **31 声誉与名声**(P1a) | **不经 37** —— 31 订阅 **53** 的后果事件 | 见 `systems-index.md` §2「水龙头 vs 蓄水池」边界 |
@@ -581,7 +581,10 @@ MemberSet(D)   := { CandidateSeq(D)[1..PATTERN_THRESHOLD] }       // 冻结于�
 
 ```
 ScriptedChain(D) := 内容条目显式列出的有序 patient_id 三元组
-                    { 见 design/gdd/content/adventure-catalog.md 的《他回来了》条目 }
+                    { ✅ 2026-09-20 落点:design/gdd/content/he-returns.md §四
+                      甲(教书先生)· 乙(挑夫)· 丙(守夜老人)—— 有序,同 D = 三次失血
+                      ✅ 2026-09-20 剧情落位正典:content/campaign-arc.md —— 三案嵌序章~第一幕;
+                        ⚠️ W-1 见下注块 }
 ChainEligible(D) := 病例 c 满足  c.Patient ∈ ScriptedChain(D)
 ```
 
@@ -600,9 +603,20 @@ ChainEligible(D) := 病例 c 满足  c.Patient ∈ ScriptedChain(D)
 
 > **AC-37-29 守本小节**(脚本成员不消耗于随机病例 + 一次性)。
 >
-> **⚠️ 残留**:《他回来了》的**具体 `patient_id` 三元组**属**内容**,归
-> `design/gdd/content/adventure-catalog.md` 与 35 时代事件条目 ——
-> **本 GDD 只登记机制与判定域,不落内容值**(承「骨架先行,载荷归内容」纪律)。
+> **✅ 残留已闭合(2026-09-20,R-1 处置甲)**:《他回来了》的**三案成员与剧情内容**已落
+> `design/gdd/content/he-returns.md`(§四 显式点名:甲 · 乙 · 丙)。**具名角色 → 数字
+> `patient_id` 的绑定**仍属内容值:由 7a 高水位在首次立案时分配,绑定落 ADR-014 烘焙
+> (承「骨架先行,载荷归内容」纪律 —— 本 GDD 只登记机制与判定域,不落数值)。
+> 三案「来」的路径 + 甲复诊触发 = **52 脚本条目**(见 `random-events.md` 规则十一后注)。
+>
+> **⚠️ W-1 · 三案链可能不触发(2026-09-20,Opus 裁决承重项 · 用户显式风险接受:「不触发没关系」)**:
+> 三案成员伤情 = 纯 `INJ_HEMORRHAGE`(伤情非病种),而 `F-37.3`/`AC-37-12` 明写
+> 「**纯伤情案(无病种)不入 F-37.1**」⇒ `ScriptedChain` 的 `CandidateSeq` 可能**恒空**,
+> `PatternRecognized` **可能永不触发**。9 侧另有相反口径(`disease-simulation.md:703`
+> 「伤情_id 进入该病人的病/伤集合 D」)—— 两口径并存,**须 9 + 37 会签二选一**方可实现:
+> **① 三案各挂同一 `DIS_*`**(走 `F-37.3`「一案进多组」,最小改动,推荐);
+> **② 扩 `D` 域含 `kind: injury`**(动 `AC-37-12` 闭集语义,结构性,不建议)。
+> **不裁不得实现;记 D 项,不静默。复诊不受影响**(52 脚本条目不挂 `PatternRecognized`)。
 
 ### F-37.2 病例身份 · 全序 · 结案前置(Identity, Total Order, Close Precondition)
 

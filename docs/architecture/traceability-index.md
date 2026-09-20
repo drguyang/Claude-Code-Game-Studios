@@ -16,7 +16,9 @@
 > ⚠️ 本批状态由撰写方置入,**待六份各自的首轮 `/design-review`(须新会话)确认**。
 > **2026-09-19 更新(动作词表结案轮 · D-8-12)**:#8 侧用户裁定路线甲(模态分流)落盘
 > `diagnosis-system.md` **S-8.4 动作词表** + `AC-8-51`/`AC-8-52` ⇒ 翻转 2 条(`TR-interaction-015` ⚠️→✅ ·
-> `TR-case-036` ❌→✅),**ID 恒 387**。**当前实测合计 248 ✅ / 44 ⚠️ / 95 ❌**(以 registry `status:` 字段计数为准)。
+> `TR-case-036` ❌→✅),**ID 恒 387**。**2026-09-20 补记(OQ-8 / OQ-25-8 结案批次)**:裁定方就地翻转 3 条(`TR-disease-021` ❌→✅ ·
+> `TR-patient-006` ⚠️→✅ · `TR-combat-023` ❌→✅),**ID 恒 387**;⚠️ 三条翻转**待各自下轮 `/design-review` 确认**(裁定 ≠ 验收)。
+> **当前实测合计 251 ✅ / 43 ⚠️ / 93 ❌**(以 registry `status:` 字段计数为准)。
 > 前一轮:**#25 格斗与武器线 GDD 落盘 + 首轮 `/design-review`(MAJOR REVISION NEEDED · Scope L)修订全量落盘**
 > —— 按代生约定追加新 slug `combat` 24 条 TR(259 → **283**);**状态翻转 2 条**:
 > `TR-enemy-017` ⚠️ → ✅(根因「25 无 GDD」已除,R2/R3 兑现)· `TR-skill-007` ❌ → ⚠️(25 侧兑现,30 自身待修)。
@@ -75,25 +77,25 @@
 | `case-system.md` | 37 病例系统 | **36** | **26** | 4 | **6** |
 | `item-database.md` | 21a 物品与配方 | 32 | **13** | 1 | **18** |
 | `random-events.md` | 52 随机事件导演 | **32** | **13** | 2 | 17 |
-| `disease-simulation.md` | 9 疾病与伤情 | 22 | **17** | **2** | 3 |
+| `disease-simulation.md` | 9 疾病与伤情 | 22 | **18** | **2** | **2** |
 | `diagnosis-system.md` | 8 诊断与体征 | **25** | **9** | 5 | 11 |
 | `skill-system.md` | 30 技能与熟练度 | 8 | 0 | **1** | **7** |
 | `game-concept.md` | 全案 | 8 | 5 | 0 | 3 |
 | `design/gdd/player-controller-and-movement.md` | **1 玩家控制器与移动** | **7** | **6** | **1** | 0 |
 | `design/gdd/camera-and-viewpoint.md` | **2 摄像机与视角** | **6** | **6** | 0 | 0 |
-| `patient-ai.md` | 13 病人 AI 与行为 | 24 | **18** | **1** | **5** |
+| `patient-ai.md` | 13 病人 AI 与行为 | 24 | **19** | **0** | **5** |
 | `design/gdd/world-and-ecozones.md` | **6 世界与生态区** | **9** | **9** | 0 | 0 |
 | `input-system.md` | 3 输入与设备 | **21** | **14** | **3** | **4** |
 | `docs/architecture/adr-022-level-tool.md` | **54 关卡工具**(Tooling) | **8** | **8** | 0 | 0 |
 | `design/gdd/enemy-ai.md` | **27 敌人 AI** | **21** | **19** | **2** | 0 |
-| `design/gdd/combat-and-weapon-lines.md` | **25 格斗与武器线** | **24** | **18** | **4** | **2** |
+| `design/gdd/combat-and-weapon-lines.md` | **25 格斗与武器线** | **24** | **19** | **4** | **1** |
 | `design/gdd/interaction-system.md` | **4 交互系统** | **15** | **14** | **1** | **0** |
 | `design/gdd/time-and-weather.md` | **5 时间与天气** | **15** | **11** | **2** | **2** |
 | `design/gdd/emergency-procedures.md` | **10 急救动作** | **21** | **12** | **4** | **5** |
 | `design/gdd/prescription-and-medication.md` | **11 处方用药** | **19** | **10** | **5** | **4** |
 | `design/gdd/processing.md` | **18 炮制** | **18** | **10** | **5** | **3** |
 | `design/gdd/inventory-and-items.md` | **20 库存与物品** | **16** | **10** | **1** | **5** |
-| **合计** | | **387** | **248** | **44** | **95** |
+| **合计** | | **387** | **251** | **43** | **93** |
 
 > **2026-09-18 结清轮(六条 🔴 硬前置,不增删 ID)**:上表 4 交互 / 5 时间 / 10 急救 / 11 处方 /
 > 18 炮制 / 20 库存 六行的状态**已就地更新**,反映当日用户对六条评审准入硬前置的裁定 ——
@@ -341,7 +343,7 @@
 | TR-disease-018 | F4 处置事件携带 `polarity` / `Offset` / `τ_half` | ADR-008 | ✅ |
 | TR-disease-019 | 保守带误差预算(`ops × 2⁻¹⁶`,原引 `3×2⁻¹⁶`) | ADR-005 | ✅ 复查轮重裁:两侧口径已一致 |
 | TR-disease-020 | 边界扫描的单向性验证 | — | ❌ |
-| TR-disease-021 | 「病人出现率上限」配置项 | — | ❌ ADR-008 有界性硬依赖 |
+| TR-disease-021 | 「病人出现率上限」配置项 | — | ✅ **2026-09-20 ❌→✅(`OQ-8` 结案)**:`PATIENT_APPEARANCE_CAP = 24` 已登记于 9 的 Tuning Knobs + `entities.yaml` + F0 性能表;ADR-008 §六 有界性硬依赖结清。⚠️ 结案的是**上限值源**,不是**内容数量**(P0 仍 8;同批**提级预裁 P1a 起 16-20 不放宽 P0**) |
 | TR-disease-022 | 128 位中间类型(`System.Int128`)| — | ❌ **IL2CPP 无此类型**(E-2) |
 
 ## 5. 诊断与体征 `design/gdd/diagnosis-system.md`(#8)| 25 条
@@ -438,14 +440,14 @@
 | TR-patient-003 | `VitalsDto` 只含原始量 `position` / `trend`,不含病种 / 九态 / 派生显示量 | ADR-016 | ✅ = `disease-simulation.md:1240` **AC-20 BLOCKING**;2026-09-15 裁以 AC-20 为准 |
 | TR-patient-004 | 13 **不重建九态**;行为分化只用自有 `BEHAVIOR_BAND_*` | ADR-016 | ✅ §六;AC-13-A3 BLOCKING;重建 = 第二真源(Forbidden) |
 | TR-patient-005 | `BEHAVIOR_BAND_*` 与 9 的九态阈值(`CRITICAL` / `COMA` / `DEATH_THRESHOLD`)的对齐 | — | ❌ **OQ-13-2**;归属 13 + 9 联合;前瞻 = 9 的阈值表定稿 |
-| TR-patient-006 | 行为模拟范围 = **在场病人**;13 不自建在场定义 | — | ⚠️ **partial —— 根因 = 9 的 `OQ-8`**(在场判定无值源);13 只裁自己那一半 |
+| TR-patient-006 | 行为模拟范围 = **在场病人**;13 不自建在场定义 | — | ✅ **2026-09-20 ⚠️→✅(`OQ-8` 结案 = 在场才模拟 · CAP 24)**:13 的在场判据有值源(= 9 的 `IPresentPatients`,13 仍不自建);`AC-13-E1` 可执行性前置解除 |
 | TR-patient-007 | 行为决策 = **派生态**;**住边界层(呈现侧),不进 sim 程序集** | ADR-009 + ADR-016 | ✅ **2026-09-15 用户裁定**(解 §一 ↔ §六 接缝;§一 表已补 13 例外注);AC-13-B3 |
 | TR-patient-008 | 重建三源不变量:输入 ∈ {事件流, 烘焙数据, 纯函数};禁第四来源 | ADR-016 | ✅ §一 核心不变量;AC-13-B4 |
 | TR-patient-009 | 感知 = 粗粒度整数格;禁 `Transform.position` / `Raycast` / NavMesh 采样;禁 `sqrt` | ADR-016 + ADR-020 | ✅ §三(读方)+ ADR-020 §四(写方),**两条腿缺一即不成立**;AC-13-E3 |
 | TR-patient-010 | 空间量一律 `WorldPos` 整数格;烘焙行为数据禁 `float` 字段 | ADR-015 + ADR-014 | ✅ §三 + 烘焙校验;**13 运行期 float 合法**(住边界层) |
 | TR-patient-011 | 表现映射归 13;8 拥有体征语义 · 9 拥有真值,三者不互窜 | ADR-016 | ✅ §六;AC-13-D2 BLOCKING(无提示音白名单) |
 | TR-patient-012 | 出只读视图 `IPresentPatients`(无 `disease_id`);13 不引用 37 | ADR-016 | ✅ §六;**结清** `case-system.md:473` 的「契约暂定」;AC-13-C1/C2/C3 |
-| TR-patient-013 | 出现率上限归 9(`TR-disease-021`);13 不自主生成 / 删除病人 | ADR-016 | ✅ 链路 = 52 → 37 → 13(§八);AC-13-C4;**硬依赖** `TR-disease-021`(仍 gap) |
+| TR-patient-013 | 出现率上限归 9(`TR-disease-021`);13 不自主生成 / 删除病人 | ADR-016 | ✅ 链路 = 52 → 37 → 13(§八);AC-13-C4;**硬依赖** `TR-disease-021` —— ✅ **2026-09-20 该依赖转 covered,链路无悬空前置** |
 | TR-patient-014 | 病人 id 经 `IIdAuthority`,与敌人共用同一 id 空间 | ADR-006 + ADR-016 | ✅ §二 扩大 Amendment B 语义;13 不自己发 id |
 | TR-patient-015 | 行为载体:编辑器期行为树 → 构建期烘焙整数数据;零第三方行为树库 | ADR-016 + ADR-014 | ✅ §四;纳入陈旧门 |
 | TR-patient-016 | 寻路:sim 走整数导航格 A*;NavMesh 仅表现态位移 | ADR-016 + ADR-015 | ✅ §五 兑现 ADR-015 §五 |
@@ -619,7 +621,7 @@
 | TR-combat-020 | 三时钟时间总图(T1 本地即时起播 / T2 contact 帧 ↔ onset 单向映射 / T3 反应不由攻击 clip 驱动);禁按动画碰撞帧发伤害 | ADR-011 + ADR-016 | ⚠️ §6.6;分层裁决有 ADR-016 §一 背书,但 T2 映射的实现细节(动画事件 → 表现层缓冲)无独立权威件 —— 待实现期升 ADR/登记 |
 | TR-combat-021 | 表现层可订阅 onset / `InjuryStateChanged` 做持续读法(不走 `VitalsDto` 差分);禁入决策输入 | ADR-016 | ✅ **D-2 裁定 + V2 兑现**:whiplash = 差分对瞬时事件必然抖;13 决策仍只读 `VitalsDto` 两原始量 |
 | TR-combat-022 | 27 → 战斗 = 有入向意图出手、无出向数值通道;依赖是**规格依赖**(共读烘焙动作表)非运行时接口 | ADR-016 | ✅ **R4/R7/R15 兑现**:`enemy-ai.md` 依赖表两处 + `:1094` 措辞订正(原暗示不存在的调用已改) |
-| TR-combat-023 | tick 频率标定(`OQ-25-8`)与 `OQ-8` 同批前置 —— 占用门/冷却 ticks/事件率上界的量纲全押其上 | ADR-005 | ❌ **R16 已登记**(`technical-preferences.md` + ADR-005 性能表注记);标定值待用户,写第一个 `Step` 前必须完成 |
+| TR-combat-023 | tick 频率标定(`OQ-25-8`)与 `OQ-8` 同批前置 —— 占用门/冷却 ticks/事件率上界的量纲全押其上 | ADR-005 | ✅ **2026-09-20 ❌→✅(`OQ-25-8` 结案 = 20 Hz ⇒ 1 tick = 50 ms)**:量纲源 = 9 的 Tuning Knobs + `entities.yaml`。⚠️ 解除的是**量纲前置**,不是**数值** —— `OQ-25-7` / `TR-combat-024` 不随本条结案 |
 | TR-combat-024 | 玩家可被致死伤的形态(`OQ-25-1` 路甲/丙未裁)与 `Down` 覆盖边界含苏醒态(`OQ-25-3`) | — | ❌ 两项未闭合用户裁决定此 TR 去向;路甲/路丙的下游文本已各自预备,**不预支决定**;与数值旋钮轮(`OQ-25-7`)一并交用户 |
 
 ---
@@ -962,3 +964,4 @@
 | 2026-09-19 | **#11 处方用药 二轮 `/design-review --stage lean`(MAJOR REVISION NEEDED · Scope L · 7 BLOCKING / 11 Recommended)→ 当日全量修订落盘(四用户裁定:BL-1 开 21a 重开条件 · BL-2 请 9 立噪声带常量 · BL-3/4/5 成长门改为 11 可自判 · BL-6 只认 21a 的 EFF)+ 涟漪四件** | **ID 385 → 387**(新增 `TR-prescription-018` / `-019`)。**状态翻转 3 条**:`TR-prescription-013` ❌→⚠️(C5 重解释:「结算函数唯一」→「**载荷与流语义唯一**」)· `TR-prescription-014` ✅→⚠️(2 的相机表尚无 11 行,`OQ-11-7`/`OQ-11-9` 未裁)· `TR-prescription-017` ❌→⚠️(省料**单一出处 = 21a 的 `EFF`**;30 删 `PROVINCE_SAVE_RATE[]`,只欠「等级 → `EFF`」映射 = `O-11→30`)。**新增 2 条**:`-018` = ⚠️ partial(写者唯一性单点断言;**全局作者侧防线仍缺**,归下次 `/architecture-review`——**不得记绿**)· `-019` = ❌ gap(可感知地板量纲一致性,承接件 = 9 的噪声带常量)。**就地订正 4 条需求文本**:`-003`(防静默拒收)· `-007`(BL-7 域收窄:`drug_potency` Q16.16 ≤ 2^47 时**不**强制 128 位中间积)· `-008`(删「域内 clamp」→ 限位由戥子物理档位集合给出)· `-015`(回放输入集删「技能等级」)。**本轮新命名失效模式:「判据对合法输入类误判」**(BL-7:AC 无条件要求对合法输入类恒成立 ⇒ 把合法实现判红;与「判据空转」对偶)。**四处涟漪**:`item-database.md`(**D-21-34** + 头部 ⑤ + F5 块 = `MIN_USABLE_HALF_LIFE` 重开条件)· `disease-simulation.md`(**D-9-J** + 头部 ⑤ + tuning 块 = 噪声带具名常量)· `skill-system.md`(§3.1 + 头部 ⑤)· `systems-index.md`(row 11 + row 6 陈旧「Draft」订正)。**21a / 9 / 30 三处只加「重开条件 / 具名常量 / 签名登记」三类最小行,不动机制**。11 首次成文 **§数据契约 `11-DC`**(3 资产 + 7 校验;`DC-2`/`DC-6`/`DC-7` 待前置 ⇒ 显式登记不记绿)。状态 = ✅ **Approved(2026-09-19 用户裁定「接受二轮修订、免三次复核」= 显式风险接受结案 —— 二轮为 lean 单会话,撰写者与复核者同源;重开触发条件见 `design/gdd/reviews/prescription-and-medication-review-log.md`)** | `prescription-and-medication.md` · `item-database.md` · `disease-simulation.md` · `skill-system.md` · `systems-index.md` · `tr-registry.yaml` |
 | 2026-09-19 | **#4 交互系统 三审 `/design-review --stage lean`(NEEDS REVISION · Scope S · 3 BLOCKING + 3 Recommended,全属「文件与自身不一致」族)→ 用户裁定 [A] 当日就地修订** | **ID 不增不减**(仍 **387**)—— 无新 TR、**无状态翻转**。本轮三处阻断**全部是前两轮修法自身的文书残留**(非新机制面):**BL-1 陈旧引用** —— 全篇四处仍写「42 侧**须新立** `IModalState`」,而契约已于 `adr-013:326 §十 Amendment A` 落盘 ⇒ 四处回刷为 ✅ 已落 + 逐条坐标。**BL-2 文内两个上界** —— 同一 `R_INTERACT` 上界,`F-4.1` 变量表写 `max(W,H,D) − 1`、Tuning / UX Flag 写 `min(W,H,D) − 1`;**用户裁定取 `min(W,H,D) − 1`**(Tuning 自述该上界目的 = 防「候选集 = 全世界」,只有 `min` 达成),四处对齐 + **`4-DC-1` 补上界校验**(原只查 `≥ 1`)。**BL-3 类型误述** —— 规则七伪码块把 `ModalId \| None` 写成并列第二类型,而 ADR-013 逐字声明 `None` 是 `ModalId` 的 `= 0` 成员,且复制体名漂移 ⇒ 伪码块改「引用 ADR-013,不复制成员名」(与 `AC-4-09` 同纪律)。**推荐三件**:规则八场景表补 `Utensil`/`ClinicPanel` 两行并明写该表非权威源(JSON 才是)+ `AC-4-13` 反引号格式 + `F-4.1` 两行误合并拆回。**TR 侧 = 2 条需求文本就地订正**(状态不变):`TR-interaction-002`「三源→四源」· `TR-interaction-010`「焦点单栈门→模态开集 `IModalState`」—— 两处均为前两轮 GDD 订正**未回刷 registry / 本表**的同一病灶(「修订未闭环」),本轮一并补齐。`-015` 仍 `partial` 不得记绿(承载方 8 的动作词表未落盘 = `OQ-4-1` / `D-8-12`,4 转 Approved 的全案唯一硬前置)。**三轮收敛曲线**:首轮 15 条**机制**阻断 → 二轮 3 条**记账**阻断 → 三审 3 条**文书一致性**阻断 ⇒ 4 的机制面自首轮修订后即稳定,三审未再打开任何新机制面。状态 = 🟡 **In Review**(三审修订当日落盘;仍待 8 的动作词表行)。⚠️ 三审为 lean 单会话,与二轮同会话隐含同一复核者 —— 三处阻断均为点对点 grep 可证,不依赖判断力差异 | `interaction-system.md` · `systems-index.md` · `reviews/interaction-system-review-log.md` · `tr-registry.yaml` |
 | 2026-09-19 | **D-8-12 动作词表结案(用户裁定路线甲 = 模态分流)—— 8 侧 S-8.4 落盘 + 4 侧全量回刷** | 承接 4 三审收尾的 widget 裁定「[C] 承接 8 的动作词表行 D-8-12」→ 摊开甲(模态分流)/ 乙(病人粗状态分流)两条路线 → 用户裁 **[A] 取路线甲,全量落盘**。**核心裁决**:世界空间裸 `Interact` 打到病人 = **就诊,单义**;查体 / 施治的岔口不在「按下去是哪一义」,在**进模态后选哪一行** ⇒ 三义岔口取消。四行路由:就诊→37 · 查体=脉案 `ModalId.Casebook` 行级动作→8 · 施治=方笺落笔→11 · 急救=10 直读通道(不经 4)。**甲路三条理由**:医学顺序即输入顺序 / 零新裁决输入(复用 ADR-013 §十 `IModalState` 已落裁决)/ 与 ADR-009 §七 拾取「意图 + 当下判距」同构。**四条边界**:B-1 4 出境载荷逐位不变 · B-2 行级动作住模态、与 `AC-4-09` 正交无同键双触发 · B-3 路由表非数值件(D-8-3 / `RECHECK_WINDOW` 归属不变)· B-4 P1a 望闻问切只加行,**改回空间分流 = 重开触发**。**落点**:`diagnosis-system.md` 新立 **S-8.4 + AC-8-51/52**(8 的 AC 50→52,既有 AC/公式/Tuning/状态机逐位不变,头部加最小行集注)+ `D-8-12` 行 🔴→✅;`interaction-system.md` 14 处 `OQ-4-1` 结案回刷(状态头 / 规则五 banner / `AC-4-15` 只剩 ② / `4-DC-5` Patient 半边解除 / 交叉引用三行)。**TR 翻转 2 条,不新增 ID(恒 387)**:`TR-interaction-015` ⚠️→✅(既定触发条件「8 落盘后转 covered」达成)· `TR-case-036` ❌→✅(两半根因「10 无 GDD / 8 未登记」已除)。**汇总 247→248 ✅ / 44 ⚠️ 不变 / 96→95 ❌**(387 自洽;per-group:case 25→26 ✅·7→6 ❌,interaction 13→14 ✅·2→1 ⚠️)。**4 的全部外部技术前置至此消除 ⇒ 同日用户裁定转 ✅ Approved(三轮已跑,免四轮复核 = 显式风险接受;重开触发条件见 `reviews/interaction-system-review-log.md`)**;10 侧 `:744`「8 的动作词表行仍缺」同日做**最小行回刷**(指向 S-8.4,不动机制 —— 承 11 轮对已 Approved 件的最小行集先例)。三处落点:`interaction-system.md`(状态头/前置句/Last Updated)· `systems-index.md`(row 4/§6/§11)· 本表 | `diagnosis-system.md` · `interaction-system.md` · `systems-index.md` · `tr-registry.yaml` · `session-state/active.md` |
+| 2026-09-20 | **四值批次裁定落盘:OQ-8 / OQ-25-8 结案 + DOTS 复评门阈值 + 病种提级预裁** | **用户裁定四项**(承本日一致性检查 R-5「横轴无量纲」与 `/review-all-gdds` 的同型根因):① **`TICK_SECONDS = 0.05`(20 Hz ⇒ `TICK_PERIOD = 50 ms`)** —— 全案 `*_ticks` 量纲有值;② **`OQ-8` 结案 = 在场才模拟 · `PATIENT_APPEARANCE_CAP = 24`**;③ **ADR-017 复评门阈值 = 同场**表现层**实体 ≥ 100 或 表现层帧时间 ≥ 8 ms(≈ 16.6 ms 的 48%)** —— ⚠️ 计数对象是表现层实体(群集 / VFX / 批处理)而非 sim 病人数 ⇒ **CAP 24 < 100 使该门在 sim 侧由构造永不触发**;④ **病种提级预裁:P1a 起上限 16-20,P0 仍 8**(承 `content/campaign-arc.md` ### 五 的 15-20 愿景向上取齐为 ≤ 20;预裁只裁方向与天花板区间,**逐轮加行仍逐轮由用户审,裁定权不随预裁移交**)。**同批一并结案**:`OQ-10-4`(急救两动作具名 = 止血包扎 / 节奏型通气动作,年代措辞归 40)· D-1(分段标题「幕」→「章」统一)· 草木灰来源(= **②a 火堆灰烬采集物**,走 17 `ResourceHarvested` + `DropSpawned`/`DropClaimed`,**零新增 Kind**(AC-17-01 ✅)/ **零转化边**(故 ADR-006 §五 守恒律不适用)/ 不触 18「无失败态」结构保证)。**ID 不增不减(恒 387)**;**状态翻转 3 条**:`TR-disease-021` ❌→✅(`CAP=24` 有值源,ADR-008 §六 硬依赖结清)· `TR-patient-006` ⚠️→✅(`AC-13-E1` 前置解除)· `TR-combat-023` ❌→✅(25 侧量纲前置解除);`TR-patient-013` 的硬依赖 note 同步(状态本即 ✅,不重复翻转);⚠️ `TR-combat-024`(值域)与 `TR-patient-*` 其余缺口**不随本批结案**。**汇总 248 → 251 ✅ / 44 → 43 ⚠️ / 95 → 93 ❌**(合计 387 不变;自洽 251+43+93=387)。**三条纪律:① 本次解除的是「量纲前置」,不是「数值」** —— 逐旋钮值仍归用户数值轮(`OQ-25-7` / `OQ-18-4` / 52 的 `ROLL_INTERVAL` 等不结案);**② `L_input` 与 `L_eval` 虽同为 50 ms 量级,不得重新合并**为「端到端 < 50 ms」(承 F-10.6 的切分口径,`AC-10-08` 只测 `L_input`);**③ 20 Hz 与 60 fps 不整除** ⇒ `Step` 须由 `ITickProvider` 驱动、不由渲染帧驱动(实现期义务,不改裁定值)。**仍无值**:`TICKS_PER_DAY` / `TICKS_PER_SEASON`(日 / 季的秒长未裁,归 5 / 52)⇒ `campaign-arc.md` 的愿景小时数**依旧不做换算**。**⚠️ 三条翻转由裁定方置入,待各自下轮 `/design-review`(新会话)确认 —— 裁定 ≠ 验收**(承本文件既有的「撰写方置入」纪律)。**涟漪文件**:GDD 侧 12 份就地回刷(`disease-simulation` · `diagnosis-system` · `time-and-weather` · `emergency-procedures` · `processing` · `combat-and-weapon-lines` · `random-events` · `enemy-ai` · `patient-ai` · `interaction-system` · `input-system` · `skill-system`)+ `content/campaign-arc.md` + `systems-index.md` §8;架构侧 `adr-005`(性能表两条注记 + CPU 行量纲)· `adr-017`(§三 表 / 代码形态 / §Risks / §Validation / §Consequences 等 20 处阈值占位)· `technical-preferences.md`(三条性能预算块 + ADR-004 / ADR-017 日志条目)· `entities.yaml`(`TICK_SECONDS=0.05` · `PATIENT_APPEARANCE_CAP=24` · `TICKS_PER_DAY` 改注「量纲已解除、值仍归 5」· `Dens_s` 输出域注)· `gdd-cross-review-2026-09-20.md`(R-5 节加结案注,**报告不删**)。 | `disease-simulation.md` · `diagnosis-system.md` · `time-and-weather.md` · `emergency-procedures.md` · `processing.md` · `combat-and-weapon-lines.md` · `random-events.md` · `enemy-ai.md` · `patient-ai.md` · `interaction-system.md` · `input-system.md` · `skill-system.md` · `campaign-arc.md` · `systems-index.md` · `adr-005` · `adr-017` · `technical-preferences.md` · `entities.yaml` · `tr-registry.yaml` · `gdd-cross-review-2026-09-20.md` · `session-state/active.md` |

@@ -37,7 +37,7 @@
 #   Each entry: name, status, source, referenced_by[], attributes{}, added, revised
 
 version: 1
-last_updated: "2026-09-18"
+last_updated: "2026-09-20"
 
 # ─── 跨系统欠账 (2026-09-14 追加) ─────────────────────────────────────────────
 # 本注册表只登记【已存在的实体/公式/常量】。未兑现的跨文档债务不属于任何一类,
@@ -101,7 +101,50 @@ last_updated: "2026-09-18"
 # Attribute fields: any key stats that could appear in another GDD
 #   (health, damage, drops, faction, etc.)
 
-entities: []
+entities:
+  # ── 三案链角色(P0 剧情正典 · 2026-09-20 /consistency-check 登记)────────────
+  # ⚠️ W-1 承重项继续有效(2026-09-20 用户显式风险接受):三案均纯伤情(INJ_HEMORRHAGE),
+  #    按 AC-37-12 口径可能不入 F-37.1 ⇒ PatternRecognized 或永不触发;9+37 实现前会签二选一
+  #    (推荐 = 三案各挂同一 DIS_*)。复诊走 52 脚本条目,不挂 PatternRecognized。
+  - name: 三案·甲(教书先生)
+    status: active
+    source: design/gdd/content/he-returns.md   # §四 机制正典(成员显式点名)
+    referenced_by:
+      - design/gdd/content/he-returns.md        # §四 表行 1
+      - design/gdd/content/campaign-arc.md      # 序章~第一幕落位(章 = 「帐篷」急召出诊)
+      - design/gdd/case-system.md               # ScriptedChain 成员(:585)
+      - design/gdd/random-events.md             # :432 52 脚本条目「三案之来」
+    injury: INJ_HEMORRHAGE(战伤失血)
+    outcome: 简单止血(神父所教)→ 救回
+    notes: "三案 = 三次失血,同 D;角色名/伤情在四件间逐字一致(2026-09-20 全扫核)。"
+    added: 2026-09-20
+    revised: ""
+
+  - name: 三案·乙(挑夫)
+    status: active
+    source: design/gdd/content/he-returns.md
+    referenced_by:
+      - design/gdd/content/he-returns.md        # §四 表行 2
+      - design/gdd/content/campaign-arc.md      # 城市段落位
+      - design/gdd/case-system.md               # :585
+      - design/gdd/random-events.md             # :432
+    injury: INJ_HEMORRHAGE(刀伤失血)
+    outcome: 压迫止血(就地取材)→ 救回
+    added: 2026-09-20
+    revised: ""
+
+  - name: 三案·丙(守夜老人)
+    status: active
+    source: design/gdd/content/he-returns.md
+    referenced_by:
+      - design/gdd/content/he-returns.md        # §四 表行 3
+      - design/gdd/content/campaign-arc.md      # 守夜火堆落位;甲复诊 = 切片终态
+      - design/gdd/case-system.md               # :585
+      - design/gdd/random-events.md             # :432
+    injury: INJ_HEMORRHAGE(木片割伤失血)
+    outcome: 手册止血 → 救回(「手不再抖」;PatternRecognized 触发 = W-1 风险接受项,不保证)
+    added: 2026-09-20
+    revised: ""
 
 # Example (remove when first real entry is added):
 #
@@ -135,7 +178,39 @@ entities: []
 #   (item_key = (base_id, processing_state))。21b 落盘前本节保持为空是【正确状态】,
 #   不是遗漏。主键形状见 design/gdd/item-database.md §Detailed Design 规则一 / §Schema A。
 
-items: []
+items:
+  # ── 2026-09-20 P0 扩容两行(/consistency-check 登记 · 用户明示「加进去」并放行 21b 例外)──
+  # ⚠️ 本节「空为正确态」的既有注释(21b 前)由用户于本轮显式豁免这两行:
+  #    语义名进表 = 跨件事实入账;**数值 / 主键数据行仍归 21a 实现轮,本表不造数**。
+  #    AC-17-01b(四者闭集)在 21a item_key 行落地前**不得记绿**(承 2026-09-20 裁定注)。
+  - name: 止血草
+    status: active
+    source: design/gdd/foraging.md              # 规则一(:121)· AC-17-01b(:628)
+    referenced_by:
+      - design/gdd/foraging.md                  # 17 采集闭集第 4 项(蓍草类)
+      - design/gdd/prescription-and-medication.md  # :242 注④ —— 属 10 动作侧外用,**不入 11 处方表**
+      - design/gdd/content/campaign-arc.md      # 序章「手册·止血草」(叙事出处)
+      - design/gdd/systems-index.md             # §11 范围裁定注
+    category: 采集原料(药用植物)
+    item_key: 待定 —— (base_id, processing_state) 归 21a 实现轮补行,不造数
+    notes: "史实锚点(蓍草类止血)待 40 复核(承 he-returns §八)。呈现口径 = 野战就地取材,零中医词汇。"
+    added: 2026-09-20
+    revised: ""
+
+  - name: 草木灰
+    status: active
+    source: design/gdd/processing.md            # :152- 2026-09-20 扩容注 + 同日②a择案结案注
+    referenced_by:
+      - design/gdd/processing.md                # ✅ 来源已裁 = ②a 火堆灰烬资源点采集(17 ResourceHarvested),非转化边
+      - design/gdd/prescription-and-medication.md  # :242 —— 入 11 药集(吸附剂止泻);极性须实核不得预设
+      - design/gdd/foraging.md                  # :122 —— 非植物闭集品种;灰烬节点走规则二三条既有 Kind
+      - design/gdd/content/campaign-arc.md      # 序章「手册·草木灰」
+      - design/gdd/systems-index.md             # §11 范围裁定注
+    category: 药集物品(火堆灰烬采集物 —— 2026-09-20 ②a 裁定,非炮制品)
+    item_key: 待定 —— 归 21a 实现轮;9 注册表行(病种作用)同归实现轮
+    notes: "构建期极性硬门须实核通过(承 prescription 注③)。来源边已裁:②a 火堆灰烬资源点走 17 ResourceHarvested(零新增 Kind ✅ / 不经 Craft ⇒ 守恒律不适用);原两案(新转化边 / 失败副产物)结案 —— 18 无失败态为已批结构保证,19 = P1a。灰烬节点 gather_profile 行归实现轮。"
+    added: 2026-09-20
+    revised: 2026-09-20
 
 # Example:
 #
@@ -647,7 +722,7 @@ formulas:
       W < 1 ⇒ 构建期 / 加载期**硬失败**(非运行期退化、非静默取默认值)。
       S > W ⇒ 合法,但须由 WindowCoverage = (CoveredTicks, SpanTicks) 记账;
       **不记账而只报密度 = 把「没测」伪装成「测得 0」**。
-      输出域上界由 `PATIENT_APPEARANCE_CAP`(**9 的配置项,值 `待定` —— 见 disease-simulation.md OQ-8**)
+      输出域上界由 `PATIENT_APPEARANCE_CAP`(**9 的配置项,✅ 2026-09-20 已标定 = 24,模拟范围 = 在场才模拟**)
       与三流有界性(ADR-008 §六 / ADR-009 §六)封顶。
       ⚠️ 51 只**报形状**,**不报因果**(R10);本式**不得**被用于门控别人 —— 51 是仪器,不是裁判。"
     added: 2026-09-16
@@ -987,7 +1062,9 @@ formulas:
     revised: "2026-09-17"
 
   # ── F-24-1: 环境调制乘子 (clinic-machine.md §Formulas) ────────────────────
-  # 线性加权和 + 双钳制(2026-09-17 用户裁定,方案甲);钳制上界复用 21a 常量(单一出处)。
+  # 线性加权和 + **唯一钳制点 = 21a F1**(2026-09-20 D-21-31 口径:24 侧删除双钳制,
+  # 输出未钳制 env_score;18 原样透传;求和后由 21a 统一 clamp 到 [ENV_MOD_MIN, ENV_MOD_MAX])。
+  # ⚠️ 本条 revised 2026-09-17 系 clinic 侧回刷前口径,2026-09-20 批次二一致性检查(S-4)订正。
   - name: env_mod
     status: active
     source: design/gdd/clinic-machine.md
@@ -1001,15 +1078,20 @@ formulas:
       - e_env(type)                # 单件家具环境贡献,可负(FURN_TABLE)
       - adj_sum                    # 邻接修正(整数 4 邻接,ADJ_TABLE;每条边恰计一次)
       - ENV_MOD_MIN / ENV_MOD_MAX  # 钳制量程(21a 常量,复用)
-    output_range: ["ENV_MOD_MIN", "ENV_MOD_MAX"]
-    expression: "EnvMod := clamp(base_env(room_type) + Σ_{c∈S} e_env(type(c)) + adj_sum, ENV_MOD_MIN, ENV_MOD_MAX)"
+    output_range: ["ENV_MOD_MIN", "ENV_MOD_MAX"]   # 钳制后终值域;24 侧产出为**未钳制** env_score(见 expression 第 1 行)
+    expression: |
+      # 两阶段(D-21-31 单一钳制点口径,2026-09-20 回刷):
+      env_score(24) := base_env(room_type) + Σ_{c∈S} e_env(type(c)) + adj_sum   # 24 输出,未钳制,可越界(EC-24-03 规格)
+      EnvMod(终值)   := clamp(EnvMod_climate + EnvMod_clinic, ENV_MOD_MIN, ENV_MOD_MAX)   # 唯一钳制点 = 21a F1
     notes: "纯函数、Q16.16;房间空 / 未匹配 ⇒ ROOM_NONE ⇒ 输出中性 (0,0)(EC-24-01/02)。
+      ⚠️ 2026-09-20 S-4 订正:24 **不再自带 clamp**(原 revised 2026-09-17 的表达式在 24 侧钳制 = 双钳制回归,
+      与 `AC-24-01` / D-21-31 冲突)—— 24 只产未钳制 `env_score`,18 原样透传,求和 + 钳制唯一落 **21a F1**。
       clamp 越界从意外变规格(EC-24-03)。int64 算术域前置:max|env_score_raw| ≤ |base_env| + n·C_max + 2n·Φ,
       其中 `Φ := max(|W_MIN|, W_max)`(**双向取模** —— 2026-09-17 复核订正,原只写 W_max 会低估负权一侧);
       依赖格数上界 n_max → 6 复核点(O-24-2)。兑现 O-23-4(P0 最小邻接判定 = adj_sum 整数 4 邻接)。
       `ENV_MOD_MIN < 0` 为承重前提(O-24-4 —— 否则满污染房间钳到 0 = 与 ROOM_NONE 恒等值不可分)。"
     added: 2026-09-17
-    revised: "2026-09-17 int64 上界 `Φ := max(|W_MIN|, W_max)`(双向取模订正)"
+    revised: "2026-09-20 S-4(批次二一致性检查):删除 24 侧钳制,改两阶段单一钳制点(D-21-31);was 2026-09-17 int64 上界 `Φ := max(|W_MIN|, W_max)`(双向取模订正)"
 
   # ── F-24-2: 器具档位乘子 (clinic-machine.md §Formulas) ────────────────────
   # 档位求和堆叠 + 单钳制(2026-09-17 用户裁定);tier 为 int 计数(ADR-006 D-21-17)。
@@ -1106,10 +1188,10 @@ constants:
     revised: 2026-09-14
 
   # ── TICK_SECONDS ──────────────────────────────────────────────────────
-  # 【值待定】—— 由 9 的 Tuning Knobs 拥有,数值待用户裁定。
-  # 登记它不是因为值已知,恰恰相反:它是全案【唯一 tick 长度】,
+  # 【✅ 值已裁定 2026-09-20 —— OQ-8 / OQ-25-8 同批结案:20 Hz】
+  # 登记它不是因为值是新的,恰恰相反:它是全案【唯一 tick 长度】,
   # 7a 持久化 / 25 格斗 / 5 时间天气 都必须与 9 取同一个值 —— 值一改,四份文档同时失效。
-  # 在值落定前登记,是为了把这条「必须一致」的边显式化,而不是等实现时各自假设。
+  # ⚠️ 改本值 = ADR-005 / 9 级动作:全体事件时间戳 + 存档须重导,不得由各系统自填。
   # ⚠️ **一物两名(2026-09-16 /consistency-check 登记)**:系统 1 与 ADR-009 在正文里
   #    称它为 **`TICK_PERIOD`**(见 player-controller-and-movement.md:1200 的旋钮表 ·
   #    adr-009:455 的订正段)。**二者是同一个量** —— 本表用 `TICK_SECONDS`(9 的 GDD 命名),
@@ -1126,10 +1208,10 @@ constants:
       - design/gdd/audio-system.md         # 呼吸层循环节奏的量纲
       # ✅ 2026-09-16 7a 持久化 GDD 落盘:存档头 `Tick`(i64)以 `TICK_SECONDS` 为量纲
       #   (三流全序键 / 折叠窗口 / checkpoint 间隔同源于此 —— persistence-service.md §Overview)
-    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    value: "0.05(= 1 / 20 Hz;`TICK_PERIOD = 50 ms`)—— ✅ 2026-09-20 用户裁定,OQ-8 / OQ-25-8 结案"
     unit: seconds
     added: 2026-09-13
-    revised: 2026-09-16
+    revised: 2026-09-20   # was: "待定 —— 见 disease-simulation.md Tuning Knobs"
 
   # ── 21a 配方的调参旋钮常量组 (2026-09-14 复核新增) ────────────────────────
   # 【值全部待定】—— 依硬约束「数值用户自己调」,本次只登记【存在性、归属与边界约束】。
@@ -1398,11 +1480,11 @@ constants:
     referenced_by:
       - design/gdd/random-events.md   # F2 分母;DC-3 日 = TICKS_PER_DAY
       # 5 时间天气 / 9 疾病与伤情模拟 —— 撰写/对齐时须回溯追加
-    value: "待定 —— 见 random-events.md Tuning Knobs"
+    value: "待定 —— **量纲前置已解除**(2026-09-20 `TICK_SECONDS = 0.05`)⇒ 本值 = `DAY_SECONDS / 0.05`,惟 `DAY_SECONDS` 仍归 5 裁定,本表不代填"
     unit: ticks
-    constraint: "必须与 TICK_SECONDS / 9 的日边界取同一组值(AC-52-27 / DC-3)"
+    constraint: "必须与 TICK_SECONDS / 9 的日边界取同一组值(AC-52-27 / DC-3);原「量纲整体无值」阻塞 ✅ 2026-09-20 解除,残留缺口收窄为 `DAY_SECONDS` 一项(归 5)"
     added: 2026-09-14
-    revised: ""
+    revised: 2026-09-20
 
   # ── 9 疾病与伤情模拟 的调参常量组 (2026-09-15 二轮复核同步) ───────────────
   # 【值全部待定】—— 依硬约束「数值用户自己调」,本次只登记【存在性、归属与边界约束】。
@@ -1501,12 +1583,13 @@ constants:
       - docs/architecture/adr-005-deterministic-sim.md   # CPU 行量纲唯一未定因子
       - docs/architecture/adr-017-dots-decision.md       # §三 复评门触发判据
       - design/gdd/telemetry-analytics.md                # 51:F5 `Dens_s` 输出域上界(2026-09-16)
-    value: "待定 —— 见 disease-simulation.md OQ-8(须在写第一个 Step 前标定)"
+    value: "24 —— ✅ 2026-09-20 用户裁定(OQ-8 结案:模拟范围 = **在场才模拟**,同场上界 = 24)"
     unit: patients
     constraint: "> 0 整数 —— 52 疫情事件与季节调制(TR-disease-021)都在此界内;
-      ADR-008 §六 有界性论证的硬界;ADR-017 复评门「同场实体数」判据的量纲来源"
+      ADR-008 §六 有界性论证的硬界;ADR-017 复评门「同场实体数」判据的量纲来源(✅ 已标定 2026-09-20:
+      sim 侧上界 24 < 复评门阈值 100 ⇒ 复评门触发面仅剩表现层群集 / VFX 实体数)"
     added: 2026-09-15
-    revised: ""
+    revised: 2026-09-20   # was: "待定 —— 见 disease-simulation.md OQ-8(须在写第一个 Step 前标定)"
 
   # ── CARE_GAP ──────────────────────────────────────────────────────────
   # B′ 照护连续性的判定阈值(2026-09-16 三轮 · 二轮 B2/B3)。
@@ -2556,8 +2639,6 @@ constants:
       P0 只做单房间评分;P1a `ROOM_INTEROP` 邻接矩阵另立(F-24-4 预留)。"
     added: 2026-09-17
     revised: "2026-09-17 归属改 24(删 `world_room.json` 误挂)+ 邻接子句允许 + AC-24-12"
-    added: 2026-09-17
-    revised: ""
 
   # ── ADJ_TABLE:邻接权重表(24 拥有) ───────────────────────────────────────
   - name: ADJ_TABLE
@@ -2668,6 +2749,28 @@ constants:
     constraint: "只增不删 —— 删锚点 = 事件触发失效(只剩定时兜底 = 退回首轮粒度洞);加锚点 = 叙事事件更密,永不破坏「无可回滚到判断之前」(AC-7a-20)"
     added: 2026-09-16
     revised: "2026-09-17"
+
+  # ── LeaseSource:动作压制租约来源闭集(2026-09-20 OQ-4-13 裁定 · 本轮登记)────
+  - name: LeaseSource
+    status: active
+    source: design/gdd/player-controller-and-movement.md   # 1 · 轴 4 表(:276-285,2026-09-20 重写)
+    referenced_by:
+      - design/gdd/player-controller-and-movement.md       # 1:定义与持有者 · AC-1-23
+      - design/gdd/interaction-system.md                   # 4:Acquire/Release(Self)· AC-4-19 · OQ-4-13 行
+      # 10(Emergency)/ 25(Combat)为语义绑定调用方:两件的 MotorSuppressed 调用面已被轴 4 表
+      # 收编为 per-source lease,但两件正文尚未出现 `LeaseSource` 字面名(2026-09-20 全扫实证)
+      # ⇒ 反向登记留待各自 GDD 轮回刷,不预填 referenced_by(避免记绿未落地的引用)。
+    value: "{Self, Emergency, Combat}"
+    unit: enum(closed set)
+    constraint: "**append-only,禁重排**(枚举值即位图位序)。聚合 = per-source 位图 + OR:\
+      任一源持有 ⇒ 位移压制;`Acquire/Release(LeaseSource)` 只动自己的位。\
+      位语义不计数(同源重复 Acquire 不叠加)。无到期(持有方须显式 Release)。\
+      29 不扩权(不得新增枚举成员以取得压制)。"
+    notes: "结清 R-4/B-3:原单 bool `MotorSuppressed` 下 4 的一次交互 `Release(false)`\
+      会顺手清掉 10 仍持有的压制(丢失更新)⇒ AC-4-19 与 AC-1-23 不可能同真。\
+      2026-09-20 用户裁 per-source lease(本条为其登记点)。"
+    added: 2026-09-20
+    revised: ""
 
   # ── 52 内部的旋钮(不入本表,见 random-events.md §Tuning Knobs)──────────
   # ROLL_INTERVAL / HIST_MULT_MAX / DEFER_MAX / SPAWN_AHEAD_DIST / TOD_MULT_MAX
