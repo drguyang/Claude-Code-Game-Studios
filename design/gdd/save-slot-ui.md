@@ -4,7 +4,7 @@
 > **Author**: dr_guyang + ux-designer
 > **Last Updated**: 2026-09-19
 > **Implements Pillar**: 支柱五(史实为骨 —— 存档界面是**一本册子**,不是读盘屏)· 支柱一(判断为骨 —— **你不能用读档洗掉一次坏判断**)
-> **上游**: 7a 持久化服务(✅ `persistence-service.md` —— **槽位列表语义** + 规则十四手动槽契约 + **载入安全上下文门**)· 42 拟物 UI 框架(✅ `skeuomorphic-ui.md` —— 渲染与焦点 · **六屏闭集成员 `ModalId.SaveSlot7b`**)
+> **上游**: 7a 持久化服务(✅ `persistence-service.md` —— **槽位列表语义** + 规则十四手动槽契约 + **载入安全上下文门**)· 42 拟物 UI 框架(✅ `skeuomorphic-ui.md` —— 渲染与焦点 · **六屏闭集成员 `ModalId.SaveSlots`**)
 > **下游**: 3 输入与设备(经 42 的焦点头)· 48 教学与引导(**存档册 = 世界内的一件东西**(✅ 依赖表行已补,待教学页面文案))
 > **横向**: 44 音频(翻页音 ∈ 行为反馈白名单)· 2 相机与视角(7b **不发**档位意图 —— 承 39 的 `O-12` 锁);**不抑制移动**(对齐 39,`AC-1-23` 白名单不加 7b)
 > **架构约束**: `adr-010-persistence-save-format.md`(**§Key Interfaces `SaveSlot` 契约(含 struct)** · §六 存档时机 · 规则十四 · **§一 布局补参**)· `adr-013-skeuomorphic-ui-framework.md`(§三 UI Toolkit 主 · 焦点单栈门 · 42 只渲染 · **六屏闭集**)· `adr-009-world-state-event-boundary.md`(§一 Q1 判据 —— 7b 零游戏状态)
@@ -46,7 +46,7 @@
 
 7b 是**呈现层的第五件套**(42 底座 · 39 是纸 · 44 是耳朵 · 48 是那个教你的人 · **7b 是那本册子**)。
 它与 42 / 39 / 44 / 48 同构:**只触发 / 只渲染,永不持有游戏状态**(承 ADR-013 §9 C3)。
-**7b 是 42 的六屏闭集成员**(`ModalId.SaveSlot7b`,`skeuomorphic-ui.md`:1452-1461 · `interaction-system.md:480`)
+**7b 是 42 的六屏闭集成员**(`ModalId.SaveSlots`,`skeuomorphic-ui.md`:1452-1461 · `interaction-system.md:480`)
 —— **42 屏幕空间模态**(UI Toolkit),开册即 42 模态(世界交互经 4 冻结,移动仍可,对齐 39)。
 
 **7b 的边界**:
@@ -252,7 +252,7 @@ Loadable(slot) ⟺ ¬Locked(slot) ∧ InNarrativeContext(t)
 | 上游 | 方向 | 性质 | 要什么 | 状态 |
 | --- | --- | --- | --- | --- |
 | **7a 持久化服务** | 7a → 7b | **语义** | 槽位列表语义(位置 · 头信息:tick / 时间戳 / 摘要)+ **`SaveSlot` 契约** + 规则十四(只进不退 / 读档即锁 / 叙事事件上下文)+ **载入安全上下文门** | ✅ `persistence-service.md:246` / `:369` / **规则十四** |
-| **42 拟物 UI** | 42 → 7b | **引擎实现** | 册页渲染 + 焦点导航 + 纸纹 / 墨迹元件 + **六屏闭集 `ModalId.SaveSlot7b`** | ✅ `skeuomorphic-ui.md` |
+| **42 拟物 UI** | 42 → 7b | **引擎实现** | 册页渲染 + 焦点导航 + 纸纹 / 墨迹元件 + **六屏闭集 `ModalId.SaveSlots`** | ✅ `skeuomorphic-ui.md` |
 | **3 输入与设备** | 3 → 7b | **键名**(仅此) | `iconKey` | ✅ `input-system.md:762` |
 | **ADR-010 §Key Interfaces** | 契约 | **类型** | `struct SaveSlot` 定义(2026-09-19 已补) | ✅ ADR-010 |
 
@@ -375,7 +375,7 @@ Loadable(slot) ⟺ ¬Locked(slot) ∧ InNarrativeContext(t)
 | `adr-010` | §Key Interfaces(`:262-300`)· §六 · §四 · §七 | `SaveSlot` 契约 · 存档时机 · 损坏恢复 · 迁移 |
 | `adr-013` | §三 · §9 C3 | UI Toolkit 主 · 焦点单栈门 · 只渲染 |
 | `adr-018` | §六 | 无提示音铁律(存档结果不播报) |
-| `skeuomorphic-ui.md` | 42 的册页 / 纸纹元件 · `IModalState` 六屏闭集(`:1452-1461`) | 渲染归属 · `ModalId.SaveSlot7b` |
+| `skeuomorphic-ui.md` | 42 的册页 / 纸纹元件 · `IModalState` 六屏闭集(`:1452-1461`) | 渲染归属 · `ModalId.SaveSlots` |
 | `input-system.md` | `:762` | 焦点头消费者 |
 | `systems-index.md` | §11(7b 行)· §6 设计序 19 | 7b = Presentation · S |
 
@@ -424,7 +424,7 @@ Loadable(slot) ⟺ ¬Locked(slot) ∧ InNarrativeContext(t)
 | --- | --- | --- | --- | --- |
 | **OQ-7b-1** | **册页容量与翻页组织** —— 一页几槽?册与册如何分 | `ux-designer` | `/ux-design` 时 | 拟物层的组织无规格 |
 | **OQ-7b-2** | **「为什么不能覆盖」的解释文本** —— 归 narrative 还是 7b?文案风格(世界内的墨迹注) | `ux-designer` + narrative | `/ux-design` 时 | 无声拒绝(反 save-scum 可理解性破) |
-| **OQ-7b-3** | ~~**打开存档册时是否抑制移动 + 是否发档位意图?**~~ **✅ 已裁 2026-09-19**:不抑制移动(对齐 39,白名单不加 7b)· **不发**档位意图(承 39 的 `O-12` 锁) · 7b = 42 屏幕空间模态(`ModalId.SaveSlot7b`,`AC-42-F1` 六屏闭集) | **用户(已裁)** | — | — |
+| **OQ-7b-3** | ~~**打开存档册时是否抑制移动 + 是否发档位意图?**~~ **✅ 已裁 2026-09-19**:不抑制移动(对齐 39,白名单不加 7b)· **不发**档位意图(承 39 的 `O-12` 锁) · 7b = 42 屏幕空间模态(`ModalId.SaveSlots`,`AC-42-F1` 六屏闭集) | **用户(已裁)** | — | — |
 | **OQ-7b-4** | **损坏回退 / `ConfigVersion` 不匹配的提示文案与呈现形态** | 用户 + narrative + 7b | 7b 的首轮评审 | `persistence-service.md:405` 的「承载归 42 / 7b」无处落 |
 | **OQ-7b-5** | **7b 是否为独立系统还是 42 的一个界面?** —— ⚠️ 与 39 的 `OQ-39-1` 同型问题 | 用户 | 7b 的首轮评审 | 若定为界面,槽位呈现组织无归属 |
 | **OQ-7b-6** | **合作 1–4 人下的槽位册归属**(多玩家各一本?)—— 承 39 的分册 `player_id` 契约(ADR-008);7b **中性呈现**(`SaveSlot` 列表来源唯一,无本地按 player 分册逻辑),分册语义归 7a / 45 | 45 的 GDD 轮 + 7a | P1b 前 | 联机时槽位册无归属定义 |

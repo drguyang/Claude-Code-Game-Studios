@@ -193,6 +193,12 @@ IL2CPP 编译旗标逐目标登记。ADR-005/006/009/010 的逐位判据自此�
 - **夹具双投递(F6)**:同一 golden 文件需要两份投递机制 —— EditMode:`tests/Fixtures/` 经
   `[CallerFilePath]` 定位(在 player 内失效);Player:`Assets/StreamingAssets/` +
   `Application.streamingAssetsPath`(Linux 桌面可直接 File IO);bin 夹具用 `.bytes`。
+- **7a 忘词令符号扫描在本门执行(2026-09-21 回写 · 承 `TR-persist-006` 不一致② · 用户裁定补记载)**:
+  `persistence-service.md` AC-7a-09(规则七)判据载体**已于 2026-09-16 用户裁定归本 ADR CI 门**
+  (挂三格常驻矩阵同一流水线),但本件全文此前对该义务**零记载**(grep=0 实测)—— 执行体落点缺失。
+  现补为硬义务:**存档服务公开接口符号表扫描断言不含 `quicksave` / `quickload` / `save-now-slot`
+  类 API**(判据端 grep-IL 守卫脚本,与反射断言互补 —— 前者扫符号、后者扫接口签名);
+   qa-lead 只评审判据(承 7a `OQ-7a-2` 已裁口径)。
 
 ### Architecture Diagram
 

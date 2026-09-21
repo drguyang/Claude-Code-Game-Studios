@@ -79,7 +79,7 @@
 > `docs/CLAUDE.md` 禁重编号,且 `/architecture-review` 是本注册表的唯一所有者。
 
 ```
-499 条 TR  |  314 covered  |  79 partial  |  104 gap + 2 no-adr-by-design  (✅ 2026-09-21 D-R3 专门批次后 registry 实测;批次前值 387/245/51/89/◆2)
+499 条 TR  |  316 covered  |  78 partial  |  103 gap + 2 no-adr-by-design  (✅ 2026-09-21 第二十六批回写后 registry 实测;D-R3 批次后值 314/79/104;批次前值 387/245/51/89/◆2)
 按运行期层(本蓝图 §System Layer Map 的 Axis B 归并)
 ```
 
@@ -93,6 +93,11 @@
 > **2026-09-21 第五次动(D-R3 专门批次 · ID 追加 +112)**:12 项 P0 零 TR 系统批量回填
 > ⇒ **387 → 499 / 245 → 314 / 51 → 79 / 89 → 104**(既有条目零翻转零改动,append-only;
 > 本批 112 条的 `domain` 分布无 Foundation ⇒ **Foundation 门判据不受影响,仍残 2 条**)。
+> **2026-09-21 第六次动(第二十六批 · D-R3 处置批 —— 用户四项裁定落地)**:A 组三处回写不一致全批
+> (ADR-010 校验和字段位 / ADR-012 §五 补 7a 忘词令扫描义务 / 7b GDD ModalId 字面统一)
+> + player_id 裁决落 ADR-006 Amendment B 注记 ⇒ **314 → 316 / 79 → 78 / 104 → 103**
+> (`TR-persist-004/006` partial→covered · `TR-casebook-002` gap→partial;**ID 恒 499**;
+> 8 条未来 ADR 候选 = 登记不立件裁定入注,零状态翻转;Foundation 仍 2 条)。
 > ⚠️ 下表分层数字**不随本批重算**(Axis B 归并口径的逐条重归属仍归 `/architecture-review`)。
 > 下表的分层数字**尚未按 C4 重算** —— 8 条按注册表 `domain` 落 Core ×5 / Feature ×2 / Presentation ×1,
 > 而本表用的是 **Axis B 归并口径**(≠ `domain` 字段),逐条重归属归 `/architecture-review`。

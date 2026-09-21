@@ -3757,8 +3757,9 @@
     requirement: "BCL SHA256 校验和覆盖范围(含头部与否)口径一致"
     domain: Core
     adr: ADR-010
-    status: partial
-    note: "D-R3 回填(2026-09-21)。规则三 · AC-7a-05。⚠️ 不一致①(供用户处置,本件不代改):ADR-010:127/:287 写「头部之后的全部字节」vs persistence-service.md:480 写校验和字段「置头部之首」——两口径不重合,ADR 未回写。"
+    status: covered
+    revised: 2026-09-21
+    note: "D-R3 回填(2026-09-21)。规则三 · AC-7a-05。不一致①已结(2026-09-21 第二十六批 · 用户裁定 GDD 为准):ADR-010 四处(:127 ASCII / §四 覆盖范围 / :287 struct / Guidelines 6)统一回写为「字段位置于头部之首 + 覆盖域 = 其后全部字节(头部其余字段 + 三流 + 快照)」。⚠️ 实现期按新字段位编码(黄金字节夹具须待此回写后重签)。"
   - id: TR-persist-005
     system: persistence-service
     gdd: design/gdd/persistence-service.md
@@ -3773,8 +3774,9 @@
     requirement: "存档触发点恰三处(checkpoint/退出/7b 手动槽)+ 无 quicksave;执法 = 反射断言 + 忘词令符号扫描"
     domain: Core
     adr: ADR-010
-    status: partial
-    note: "D-R3 回填(2026-09-21)。规则六/七。ADR-010 §六 裁定三处触发(裁决面 covered)。⚠️ 不一致②:忘词令扫描已裁归 ADR-012 CI 门,但 ADR-012 全文对该义务零记载(grep=0 实测)——执行体落点缺失。"
+    status: covered
+    revised: 2026-09-21
+    note: "D-R3 回填(2026-09-21)。规则六/七。ADR-010 §六 裁定三处触发(裁决面 covered)。不一致②已结(2026-09-21 第二十六批 · 用户裁定补记载):ADR-012 §五 已增列硬义务「7a 忘词令符号扫描在本门执行(三格矩阵同流水线,grep-IL 守卫 + 反射断言互补,qa-lead 只评审判据)」——执行体落点自此有架构件记载。⚠️ 夹具脚本本体仍待 /test-setup 实现轮(禁借绿:本条 covered 指裁决+落点两面齐,非指扫描已可跑)。"
   - id: TR-persist-007
     system: persistence-service
     gdd: design/gdd/persistence-service.md
@@ -3849,7 +3851,8 @@
     domain: Presentation
     adr: ADR-013
     status: covered
-    note: "D-R3 回填(2026-09-21)。OQ-7b-3 已裁。ADR-013 §十(模态闭集)。⚠️ 不一致③(供用户处置):GDD 写 ModalId.SaveSlot7b,ADR-013:352 写 SaveSlots —— 枚举字面未统一,归回写轮。"
+    revised: 2026-09-21
+    note: "D-R3 回填(2026-09-21)。OQ-7b-3 已裁。ADR-013 §十(模态闭集)。不一致③已结(2026-09-21 第二十六批 · 用户裁定 ADR-013 为准改 GDD 字面):save-slot-ui.md 五处 + systems-index.md 一处 `ModalId.SaveSlot7b` → `ModalId.SaveSlots`;`interaction-system.md:507-510` 的旧字面是**三审订正的引据**(记录漂移史)不动。"
   - id: TR-saveslot-005
     system: save-slot-ui
     gdd: design/gdd/save-slot-ui.md
@@ -3873,7 +3876,7 @@
     domain: Presentation
     adr: null
     status: gap
-    note: "D-R3 回填(2026-09-21)。AC-7b-07/08/12。无架构裁决面。⚠️ 分工疑点:此类或刻意归 GDD 家规(无架构裁决可挂);立条保留之,42 修订轮复核归属。"
+    note: "D-R3 回填(2026-09-21)。AC-7b-07/08/12。无架构裁决面。⚠️ 分工疑点:此类或刻意归 GDD 家规(无架构裁决可挂);立条保留之,42 修订轮复核归属。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件——与 89 条旧 gap 同判(无一为开工阻塞),待各系统实现轮 / 修订轮触发时再裁。"
   # ═════════════════════════════════════════════════════════════════════════
   # 采集 (Foraging, #17) — design/gdd/foraging.md
   # ═════════════════════════════════════════════════════════════════════════
@@ -4082,7 +4085,7 @@
     domain: Core
     adr: null
     status: gap
-    note: "D-R3 回填(2026-09-21)。❌ 全库(22 份 ADR)零覆盖:围合 → 房间身份是新增 sim 机制,未来 ADR 候选(供用户处置)。"
+    note: "D-R3 回填(2026-09-21)。❌ 全库(22 份 ADR)零覆盖:围合 → 房间身份是新增 sim 机制,未来 ADR 候选(供用户处置)。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件——与 89 条旧 gap 同判(无一为开工阻塞),待各系统实现轮 / 修订轮触发时再裁。"
   - id: TR-clinic-008
     system: clinic-machine
     gdd: design/gdd/clinic-machine.md
@@ -4098,7 +4101,7 @@
     domain: Core
     adr: null
     status: gap
-    note: "D-R3 回填(2026-09-21)。❌ 24→9 接口的语义收窄原则被两侧 GDD 各自陈述,无架构件背书——未来 ADR 候选。"
+    note: "D-R3 回填(2026-09-21)。❌ 24→9 接口的语义收窄原则被两侧 GDD 各自陈述,无架构件背书——未来 ADR 候选。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件——与 89 条旧 gap 同判(无一为开工阻塞),待各系统实现轮 / 修订轮触发时再裁。"
   - id: TR-clinic-010
     system: clinic-machine
     gdd: design/gdd/clinic-machine.md
@@ -4190,9 +4193,10 @@
     gdd: design/gdd/casebook.md
     requirement: "player_id 的发号权威全库零定义(7a? 45? IIdAuthority 复用?)"
     domain: Core
-    adr: null
-    status: gap
-    note: "D-R3 回填(2026-09-21)。❌ 实测:player_id 发号机制在 22 份 ADR + entities.yaml 均无定义——与 TR-tutorial-008 / 联机意图簇同根,挂 45,未来 ADR 候选。"
+    adr: ADR-006
+    status: partial
+    revised: 2026-09-21
+    note: "D-R3 回填(2026-09-21)。实测:player_id 发号机制在 22 份 ADR + entities.yaml 均无定义——与 TR-tutorial-008 / 联机意图簇同根。✅ 已裁并回写(2026-09-21 第二十六批 · 用户裁定)**复用 IIdAuthority**:落点 = ADR-006 Amendment B 注记(机制 A 三条硬不变量适用面第二次扩大:受伤实体 → +玩家;建世界/加入时主机铸造;不新开第二计数器;None=-1 哨兵不得占用)。⚠️ gap→partial 不记 covered(禁借绿):残 3 项执行义务已在该注记内登记——entities.yaml 增列(ADR-024 补齐轮)/ 45 加入会话铸造契约(45 GDD 轮 + ADR-001 窄修订同批)/ 7a 显式声明不独立快照计数器。"
   - id: TR-casebook-003
     system: casebook
     gdd: design/gdd/casebook.md
@@ -4240,7 +4244,7 @@
     domain: Core
     adr: null
     status: gap
-    note: "D-R3 回填(2026-09-21)。❌ 方向纪律(37 读 39 侧)由 GDD 互述,接口签名零 ADR 着落——待 37 修订轮,未来 ADR 候选。"
+    note: "D-R3 回填(2026-09-21)。❌ 方向纪律(37 读 39 侧)由 GDD 互述,接口签名零 ADR 着落——待 37 修订轮,未来 ADR 候选。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件——与 89 条旧 gap 同判(无一为开工阻塞),待各系统实现轮 / 修订轮触发时再裁。"
   # ═════════════════════════════════════════════════════════════════════════
   # 拟物 UI (Skeuomorphic UI, #42) — design/gdd/skeuomorphic-ui.md
   # ═════════════════════════════════════════════════════════════════════════
@@ -4430,7 +4434,7 @@
     domain: Presentation
     adr: null
     status: gap
-    note: "D-R3 回填(2026-09-21)。❌ F-44.7 在 ADR-018 零条款——世界内声源的归属裁决缺失,未来 ADR 候选(供用户处置)。"
+    note: "D-R3 回填(2026-09-21)。❌ F-44.7 在 ADR-018 零条款——世界内声源的归属裁决缺失,未来 ADR 候选(供用户处置)。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件——与 89 条旧 gap 同判(无一为开工阻塞),待各系统实现轮 / 修订轮触发时再裁。"
   - id: TR-audio-012
     system: audio-system
     gdd: design/gdd/audio-system.md
@@ -4438,7 +4442,7 @@
     domain: Networking
     adr: null
     status: gap
-    note: "D-R3 回填(2026-09-21)。❌ ADR-001/ADR-018 两份对 EndLoop 零字(grep 实测)——QoS 丢包与音频生命周期交叠无裁决;ADR-001 窄修订候选。"
+    note: "D-R3 回填(2026-09-21)。❌ ADR-001/ADR-018 两份对 EndLoop 零字(grep 实测)——QoS 丢包与音频生命周期交叠无裁决;ADR-001 窄修订候选。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件——与 89 条旧 gap 同判(无一为开工阻塞),待各系统实现轮 / 修订轮触发时再裁。"
   - id: TR-audio-013
     system: audio-system
     gdd: design/gdd/audio-system.md
@@ -4473,7 +4477,7 @@
     domain: Core
     adr: null
     status: gap
-    note: "D-R3 回填(2026-09-21)。❌ 纯机制零 ADR 着落——两相语义只在 48 GDD 自述;D-R3 组里唯一的「未来 ADR 候选(教学相态)」,供用户处置。"
+    note: "D-R3 回填(2026-09-21)。❌ 纯机制零 ADR 着落——两相语义只在 48 GDD 自述;D-R3 组里唯一的「未来 ADR 候选(教学相态)」,供用户处置。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件,待实现轮 / 42·48 修订轮触发时再裁。"
   - id: TR-tutorial-003
     system: tutorial-and-onboarding
     gdd: design/gdd/tutorial-and-onboarding.md
@@ -4513,7 +4517,7 @@
     domain: Core
     adr: null
     status: gap
-    note: "D-R3 回填(2026-09-21)。❌ 断言无 ADR 落点——纪律仅 48 GDD 自述;登记为断言类回写义务(可并入 ADR-024 生成器族,未拍)。"
+    note: "D-R3 回填(2026-09-21)。❌ 断言无 ADR 落点——纪律仅 48 GDD 自述;登记为断言类回写义务(可并入 ADR-024 生成器族,未拍)。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件,待实现轮 / 42·48 修订轮触发时再裁。"
   - id: TR-tutorial-008
     system: tutorial-and-onboarding
     gdd: design/gdd/tutorial-and-onboarding.md
@@ -4521,7 +4525,8 @@
     domain: Core
     adr: ADR-007
     status: partial
-    note: "D-R3 回填(2026-09-21)。「每人一份」依赖 player_id 权威(见 TR-casebook-002 gap)——发号未定义 ⇒ 本条不能记绿。"
+    revised: 2026-09-21
+    note: "D-R3 回填(2026-09-21)。「每人一份」依赖 player_id 权威(见 TR-casebook-002)——2026-09-21 用户裁定已回写 ADR-006 Amendment B 注记(复用 IIdAuthority,机制 A);仍 partial:45 铸造契约与 per-player 进度面随 45 GDD 轮 + ADR-001 窄修订同批 ⇒ 执行体未落,不记绿。"
   # ═════════════════════════════════════════════════════════════════════════
   # 遥测与分析 (Telemetry Analytics, #51) — design/gdd/telemetry-analytics.md
   # ═════════════════════════════════════════════════════════════════════════
@@ -4631,7 +4636,7 @@
     domain: Core
     adr: null
     status: gap
-    note: "D-R3 回填(2026-09-21)。❌ 无 ADR 条款;**P1a 主系统**(范围裁定,本条照登注 P1a)。"
+    note: "D-R3 回填(2026-09-21)。❌ 无 ADR 条款;**P1a 主系统**(范围裁定,本条照登注 P1a)。 ✅ P1a 主照登已确认(2026-09-21 第二十六批 · 用户裁定:不立件,挂至 53 的 ADR 轮)。"
   - id: TR-medcons-006
     system: medical-consequences
     gdd: design/gdd/medical-consequences.md
@@ -4639,7 +4644,7 @@
     domain: Core
     adr: null
     status: gap
-    note: "D-R3 回填(2026-09-21)。❌ 反渗形态无架构件;值归 OQ-53-2(数值轮)。P1a 注。"
+    note: "D-R3 回填(2026-09-21)。❌ 反渗形态无架构件;值归 OQ-53-2(数值轮)。P1a 注。 ✅ P1a 主照登已确认(2026-09-21 第二十六批 · 用户裁定:不立件,挂至 53 的 ADR 轮)。"
   - id: TR-medcons-007
     system: medical-consequences
     gdd: design/gdd/medical-consequences.md
@@ -4655,5 +4660,5 @@
     domain: Core
     adr: null
     status: gap
-    note: "D-R3 回填(2026-09-21)。❌ P1a 主照登:区域后果进世界流还是病史流的归属未裁。"
+    note: "D-R3 回填(2026-09-21)。❌ P1a 主照登:区域后果进世界流还是病史流的归属未裁。 ✅ P1a 主照登已确认(2026-09-21 第二十六批 · 用户裁定:不立件,挂至 53 的 ADR 轮)。"
 

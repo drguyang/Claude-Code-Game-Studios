@@ -121,10 +121,11 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 ```
 ┌───────────────────────────────────────────────┐
 │  头部 (SaveHeader)                             │
-│  magic "DYJQ" (4B) · 存档版本号 (u32)          │
+│  magic "DYJQ" (4B)                             │
+│  校验和 SHA256(其后全部字节) (32B) ← 字段位置  │
+│  存档版本号 (u32)                               │
 │  WorldSeed (u64) · 配置版本号 (u32)             │
 │  tick (i64) · 快照偏移 (u64)                   │
-│  校验和 SHA256(头部后全部字节) (32B)            │
 ├───────────────────────────────────────────────┤
 │  病史流 (编码记录序列)                          │
 │  病例流 (编码记录序列)                          │
@@ -191,7 +192,9 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 
 - **校验和**:`SHA256`(BCL,IL2CPP 可用,确定性;MB 级 1–5 ms 足够快 —— 引擎复核)。
   **不用 `UnityEngine.Hash128`**(文档不保证编辑器 vs IL2CPP 玩家逐位一致,须实测)。
-  覆盖范围 = checksum 字段之后的**全部字节**(头部 + 三流 + 快照)。
+  覆盖范围 = checksum 字段之后的**全部字节**(头部其余字段 + 三流 + 快照);
+  **字段位 = 置于头部之首**(magic 之后、`SaveVersion` 之前 —— 2026-09-21 回写,
+  承 `TR-persist-004` 不一致① · 用户裁定 GDD 为准 · 详 §Implementation Guidelines 6 注)。
 - **写入流程(原子 + 双档)**:
   ```
   final ← 存档路径（唯一）
@@ -279,12 +282,14 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 // ── 头部(§一)—— 全二进制,显式小端,黄金夹具钉死 ──
 struct SaveHeader {
     uint   Magic;            // "DYJQ"
+    byte[32] Checksum;       // SHA256(其后全部字节 = 头部其余字段 + 三流 + 快照)
+                             // ⚠️ 字段位置 2026-09-21 由「头部之末」改「Magic 之后、其余字段之前」
+                             //   —— 承 AC-7a-05 口径;置末会使 WorldSeed / ConfigVersion 逃过校验
     uint   SaveVersion;      // 迁移链入口(§七)
     ulong  WorldSeed;        // ADR-007 §二,跨版本原样保留
     uint   ConfigVersion;    // 数据配置版本(§七)
     long   Tick;             // 存档时的逻辑 tick
     ulong  SnapshotOffset;   // 快照段偏移(加载加速)
-    byte[32] Checksum;       // SHA256(头部后全部字节)
 }
 
 // ── 编码器(§一 / ADR-006 §五 延伸)—— 按字段名,禁位置 ──
@@ -330,7 +335,13 @@ struct SaveSlot {
 3. **`Folded(p)` 三条件合并于一处**(§二),不散落各 AC / 各 ADR。
 4. **`ItemInstanceId.Next()` 走机制 A**(§五),计数永不复位;三流并集重构。
 5. **原子写** = tmp + flush + rename;禁 `File.Replace`(Mono Unix 抛异常,倾向弃用);禁写安装目录。
-6. **校验和 = SHA256**,覆盖头部后全部字节;禁 `Hash128`(跨构建不保证逐位)。
+6. **校验和 = SHA256**,**字段位 = 置于头部之首;覆盖域 = 其后全部字节(头部其余字段 + 三流 + 快照)**;
+   禁 `Hash128`(跨构建不保证逐位)。
+   > **2026-09-21 回写(承 `TR-persist-004` 不一致① · 用户裁定 GDD 为准)**:原文三处
+   > (`:127` ASCII · `:287` struct 注释 · 本条旧字面「覆盖头部后全部字节」)与
+   > `persistence-service.md` AC-7a-05(2026-09-16 修订)不重合 —— 若 `Checksum` 置于头部之**末**,
+   > 则 `WorldSeed`(ADR-007 硬约束)与 `ConfigVersion` 逃过校验。**统一口径 = 字段位「头部之首」+
+   > 覆盖域「其后全部字节(含头部其余字段 + 三流 + 快照)」**,以 §四 与 AC-7a-05 为准。
 7. **checkpoint 后台写 + 缓冲池复用**;退出保存同步 join;后台线程禁调 Unity API。
 8. **配置版本号 ≠ 存档版本号**:前者决定后续窗口配置,后者决定迁移链。
 
