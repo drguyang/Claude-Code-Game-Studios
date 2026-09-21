@@ -74,11 +74,12 @@
 
 ## Technical Requirements Baseline
 
-> 基线 = `docs/architecture/tr-registry.yaml`(**387 条稳定 TR ID**)。**不新编一套编号** ——
+> 基线 = `docs/architecture/tr-registry.yaml`(**499 条稳定 TR ID**;2026-09-21 D-R3 批次前为 387)。
+> **不新编一套编号** ——
 > `docs/CLAUDE.md` 禁重编号,且 `/architecture-review` 是本注册表的唯一所有者。
 
 ```
-387 条 TR  |  245 covered  |  51 partial  |  89 gap + 2 no-adr-by-design  (✅ 2026-09-21 门规格修订轮后 registry 实测;此前 91 gap 三态口径)
+499 条 TR  |  314 covered  |  79 partial  |  104 gap + 2 no-adr-by-design  (✅ 2026-09-21 D-R3 专门批次后 registry 实测;批次前值 387/245/51/89/◆2)
 按运行期层(本蓝图 §System Layer Map 的 Axis B 归并)
 ```
 
@@ -89,6 +90,10 @@
 > **2026-09-21 第四次动**(用户裁定 gate-check 门规格):`TR-concept-003` / `-004` 两条**范围声明**
 > 由 `gap` 转新第四态 **`no-adr-by-design`** ⇒ **91 → 89**(covered / partial 均不变;ID 恒 387;
 > 同批 `TR-itemdb-031` 只补 `adr:` 指针**不翻状态**。判据与涟漪见 `traceability-index.md` 变更历史 2026-09-21 行)。
+> **2026-09-21 第五次动(D-R3 专门批次 · ID 追加 +112)**:12 项 P0 零 TR 系统批量回填
+> ⇒ **387 → 499 / 245 → 314 / 51 → 79 / 89 → 104**(既有条目零翻转零改动,append-only;
+> 本批 112 条的 `domain` 分布无 Foundation ⇒ **Foundation 门判据不受影响,仍残 2 条**)。
+> ⚠️ 下表分层数字**不随本批重算**(Axis B 归并口径的逐条重归属仍归 `/architecture-review`)。
 > 下表的分层数字**尚未按 C4 重算** —— 8 条按注册表 `domain` 落 Core ×5 / Feature ×2 / Presentation ×1,
 > 而本表用的是 **Axis B 归并口径**(≠ `domain` 字段),逐条重归属归 `/architecture-review`。
 > 因此**下表的 covered/partial 两列每层各多算 0–2 条**,gap 列不受影响。

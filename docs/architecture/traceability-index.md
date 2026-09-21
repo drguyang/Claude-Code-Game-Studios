@@ -7,6 +7,18 @@
 > **数据真源两处都是 `tr-registry.yaml` 的 `status:` 字段** —— 本文件与 RTM 件都不各自持有计数,
 > 只引用。RTM 件是门件路径要求的**指针件**,不复制本表内容。
 
+> **Last Updated**: 2026-09-21(**D-R3 专门批次 = 12 项 P0 零 TR 系统的批量回填**,
+> 承 `architecture-review-2026-09-21.md` §7 D-R3 / §8 T-2;**用户排期指令「排期 D-R3 专门批次」**)
+> —— **ID 追加 112 条(387 → 499;既有条目逐字未动,append-only)**。新增 §21–§32 十二组 +
+> §汇总 12 行。**现值 = registry 实测 314 ✅ / 79 ⚠️ / 104 ❌ / ◆2**(覆盖率 63.3% → 62.9% ——
+> 分母把 12 项账外系统收进账内,**非质量下降**;上轮「63.3% 是偏高估计」至此坐实并修正)。
+> ⚠️ **§7.1 的「① 类预计全部 covered」被本批实测推翻**:①类 6 项里 7a=8✅/3⚠️ · 7b=6✅/1❌ ·
+> 23=7✅/3⚠️ · 24=4✅/4⚠️/2❌ · 42=8✅/4⚠️ · 44=11✅/1⚠️/2❌。gap 集中在「未来 ADR 候选」
+> (24 房间连通 / 24 语义不泄漏 / 44 世界语境呼吸 / 44 EndLoop / 48 Anchor-Completion /
+> 39 player_id 发号 / 39 CasesOf / 7b 反幻想呈现)+ ADR-001 窄修订成簇(17/39/48 三处意图通道)。
+> **三处 GDD↔ADR 回写不一致**(校验和范围 / 忘词令 CI 记载 / ModalId 字面)登记于
+> `TR-persist-004/006` / `TR-saveslot-004` 的 note,**本批不代改 ADR 正文,供用户处置**。
+
 > **Last Updated**: 2026-09-21(第六轮 = `/architecture-review` full 复跑,报告 =
 > `docs/architecture/architecture-review-2026-09-21.md`,判定 **CONCERNS · 零阻塞**)
 > —— **ID 不增不减(恒 387)、status 零翻转**;本轮只动**两处条目文本**:
@@ -133,7 +145,19 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 | `design/gdd/prescription-and-medication.md` | **11 处方用药** | **19** | **9** | **6** | **4** |
 | `design/gdd/processing.md` | **18 炮制** | **18** | **10** | **5** | **3** |
 | `design/gdd/inventory-and-items.md` | **20 库存与物品** | **16** | **10** | **1** | **5** |
-| **合计** | | **387** | **245** | **51** | **89**(另 **◆2** = `no-adr-by-design`,2026-09-21)|
+| `persistence-service.md` | **7a 持久化服务**(D-R3 回填)| **11** | **8** | **3** | **0** |
+| `save-slot-ui.md` | **7b 存档位 UI**(D-R3 回填)| **7** | **6** | **0** | **1** |
+| `foraging.md` | **17 采集**(D-R3 回填)| **8** | **4** | **3** | **1** |
+| `modular-building.md` | **23 模块化建造**(D-R3 回填)| **10** | **7** | **3** | **0** |
+| `clinic-machine.md` | **24 医馆即机器**(D-R3 回填)| **10** | **4** | **4** | **2** |
+| `death-and-respawn.md` | **29 死亡与复活**(D-R3 回填)| **8** | **5** | **3** | **0** |
+| `casebook.md` | **39 脉案**(D-R3 回填)| **8** | **4** | **1** | **3** |
+| `skeuomorphic-ui.md` | **42 拟物 UI**(D-R3 回填)| **12** | **8** | **4** | **0** |
+| `audio-system.md` | **44 音频**(D-R3 回填)| **14** | **11** | **1** | **2** |
+| `tutorial-and-onboarding.md` | **48 教学与入门**(D-R3 回填)| **8** | **2** | **3** | **3** |
+| `telemetry-analytics.md` | **51 遥测与分析**(D-R3 回填)| **8** | **7** | **1** | **0** |
+| `medical-consequences.md` | **53 医疗后果(**P1a 主**)**(D-R3 回填)| **8** | **3** | **2** | **3** |
+| **合计** | | **499** | **314** | **79** | **104**(另 **◆2** = `no-adr-by-design`,2026-09-21)|
 
 > **2026-09-20 借绿回退轮(TD 条件 C4 —— `architecture.md` §5.5 D-5)**:**ID 不增不减**(仍 387)。
 > 8 条「摘要列记 ✅ 而 `tr-registry.yaml` 的 `adr: null`」的条目(`TR-case-035` / `-036` ·
@@ -892,6 +916,212 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 ---
 
 
+## D-R3 专门批次新增组(§21–§32,2026-09-21)
+
+> 12 项 P0 系统的零 TR 回填(承 `architecture-review-2026-09-21.md` §7 D-R3 / §8 T-2)。
+> **分母 387 → 499(+112)**;本轮实测 **69 ✅ / 28 ⚠️ / 15 ❌**(逐条状态以 `tr-registry.yaml` 为准)。
+> ⚠️ **§7.1「① 类预计全部 covered」被本轮实测推翻**(24 出 2 ❌ + 4 ⚠️ · 42 出 4 ⚠️ ·
+> 44 出 2 ❌ · 23 出 3 ⚠️ · 7a 出 3 ⚠️)—— D-R3 的收益正是**把预测换成证据**。
+> 覆盖率 63.3% → **62.9%**:下降是「账外收进账内」,**非质量下降**。
+
+## 21. 持久化服务 `design/gdd/persistence-service.md`(#7a)| 11 条
+
+> 8 ✅ / 3 ⚠️ / 0 ❌
+
+| TR-ID | 需求 | ADR | 状态 |
+|-------|------|-----|------|
+| TR-persist-001 | 存档格式 = 全二进制 codec:头部+三逻辑流+快照;按字段名/tag 解析;Fix 显式小端;盘面零 float;禁 JSON 系格式 | ADR-010 + ADR-006 + ADR-025 | ✅ |
+| TR-persist-002 | Mono 与 IL2CPP 存档字节逐位同(三格常驻矩阵;黄金夹具重签须全平台同批) | ADR-012 | ✅ |
+| TR-persist-003 | 原子写:tmp+Flush(true)+rename+双档轮换;后台线程写盘+SHA256;损坏时回退链显式报损坏(禁静默) | ADR-010 | ✅ |
+| TR-persist-004 | BCL SHA256 校验和覆盖范围(含头部与否)口径一致 | ADR-010 | ⚠️ —— ️ 不一致①(供用户处置,本件不代改):ADR-010:127/:287 写「头部之后的全部字节」vs persistence-service.md:480 写校验和字段「置头部之首」——两口径不重合,ADR 未回写 |
+| TR-persist-005 | 快照 = 性能优化非真相源:无快照路径可由事件流全量重放等价恢复 | ADR-010 + ADR-009 | ✅ |
+| TR-persist-006 | 存档触发点恰三处(checkpoint/退出/7b 手动槽)+ 无 quicksave;执法 = 反射断言 + 忘词令符号扫描 | ADR-010 | ⚠️ —— ️ 不一致②:忘词令扫描已裁归 ADR-012 CI 门,但 ADR-012 全文对该义务零记载(grep=0 实测)——执行体落点缺失 |
+| TR-persist-007 | 折叠谓词 Folded(p) 单出处;折叠行必留 patient_id;max(patient_id) 扫三流并集;max(∅)=−1 | ADR-010 + ADR-006 + ADR-008 | ✅ |
+| TR-persist-008 | 迁移协议:逐版本脚本链(v→v+1 不跳版);WorldSeed 不随迁移变更;ConfigVersion 与 SaveVersion 分离 | ADR-010 | ✅ |
+| TR-persist-009 | 7b 手动槽的写入层护栏:slot_seq 只进不退 · 读档即锁该槽 · 锁字段不进存档体 | ADR-010 | ✅ |
+| TR-persist-010 | 退出保存限时失败 ⇒ 置「会话未完整」标志位 + 下次启动提示(禁静默丢档) | ADR-010 | ⚠️ |
+| TR-persist-011 | 存档字节对权威归属不可知(authority-agnostic):同一会话客户端与主机存档逐字节同构 | ADR-005 + ADR-001 | ✅ |
+
+## 22. 存档位 UI `design/gdd/save-slot-ui.md`(#7b)| 7 条
+
+> 6 ✅ / 0 ⚠️ / 1 ❌
+
+| TR-ID | 需求 | ADR | 状态 |
+|-------|------|-----|------|
+| TR-saveslot-001 | 槽列表/投影/写入三层分离;7b 的唯一写入口 = ISaveService(不直写文件) | ADR-010 | ✅ |
+| TR-saveslot-002 | 7b 零游戏状态:不引用 sim 类型 · 零 Append · 不镜像存档内容(镜像即第二真源) | ADR-013 + ADR-009 | ✅ |
+| TR-saveslot-003 | SaveSlotInfo = 呈现层投影 DTO,不进确定性字节面 | ADR-010 | ✅ |
+| TR-saveslot-004 | 开册 = 42 模态(7b 引用 ModalId,不自维护模态栈) | ADR-013 | ✅ |
+| TR-saveslot-005 | 双导航焦点顺序 = slot_seq 升序;焦点单栈门;禁双 EventSystem | ADR-013 + ADR-011 | ✅ |
+| TR-saveslot-006 | 存档结果零播报:无提示音 · 无状态 sting(存档成败只走世界内通道) | ADR-018 | ✅ |
+| TR-saveslot-007 | 反幻想呈现纪律:零 toast · 状态仅世界内通道 · 非颜色冗余编码 | — | ❌ |
+
+## 23. 采集 `design/gdd/foraging.md`(#17)| 8 条
+
+> 4 ✅ / 3 ⚠️ / 1 ❌
+
+| TR-ID | 需求 | ADR | 状态 |
+|-------|------|-----|------|
+| TR-foraging-001 | 采集只发三个世界流 Kind(不多发不漏发;节点状态即流内派生态) | ADR-009 | ✅ |
+| TR-foraging-002 | gather_seq = 事件流内采集计数(可重构,非运行时计数器) | ADR-009 | ✅ |
+| TR-foraging-003 | 品级掷骰的全部输入可从事件流重构(零隐藏随机态) | ADR-007 | ✅ |
+| TR-foraging-004 | 采集散布的 CDF walk 算子以定点实现并绑 ADR-012 黄金夹具 | ADR-012 + ADR-006 | ⚠️ —— ️ OQ-17-10 未裁:CDF walk 夹具算子未在 ADR-012 夹具清单登记——执行体缺 |
+| TR-foraging-005 | 采集掉落 instance_id 由主机经 IIdAuthority 铸造(客户端不铸) | ADR-007 | ✅ |
+| TR-foraging-006 | 资源节点余量 = 前缀函数(历史采集事件序列的整数纯函数) | ADR-009 | ⚠️ —— ️ OQ-17-5 未裁:节点再生事件是否进流影响前缀定义 |
+| TR-foraging-007 | 采集资源点数据的 IDataProvider 驻留/切片策略 | ADR-014 | ⚠️ —— ️ OQ-17-7 未裁:资源点全图驻留还是按 chunk 切片(体量未估) |
+| TR-foraging-008 | 联机采集意图的上行通道(客户端意图 → 主机判定)须 ADR-001 一次窄修订 | ADR-001 | ❌ |
+
+## 24. 模块化建造 `design/gdd/modular-building.md`(#23)| 10 条
+
+> 7 ✅ / 3 ⚠️ / 0 ❌
+
+| TR-ID | 需求 | ADR | 状态 |
+|-------|------|-----|------|
+| TR-building-001 | 三个 Structure* Kind(放置/拆除/状态变更)落世界流 | ADR-009 | ✅ |
+| TR-building-002 | 建造图层 Overlay = BakedInitial(烘焙初始态)⊕ 事件流派生,无第三来源 | ADR-022 + ADR-009 | ✅ |
+| TR-building-003 | EffectiveWalkable 的唯一合成点 = 23(13/27/6 只读合成输出) | ADR-016 | ✅ |
+| TR-building-004 | 全部放置/可居判定走整数格,禁 Physics / NavMesh 进入判定面 | ADR-015 | ⚠️ |
+| TR-building-005 | structure_id 与病人共用 IIdAuthority id 空间;折叠谓词不适用结构行 | ADR-006 + ADR-016 | ✅ |
+| TR-building-006 | 建造重放字节稳定:绑 ADR-012 黄金夹具(单元+集成双层) | ADR-012 | ✅ |
+| TR-building-007 | 23 程序集零呈现引用;42 不是建造状态写者 | ADR-025 + ADR-013 | ✅ |
+| TR-building-008 | collider 足迹与逻辑格一致性 = 构建期硬失败(不一致 throw) | ADR-022 | ✅ |
+| TR-building-009 | Refund 截断例外(库存不足时按实有量退)未回写 ADR-006 守恒律 | ADR-006 | ⚠️ |
+| TR-building-010 | P1a 建造内容扩张判据 = 零代码改动(纯数据表新增) | ADR-015 | ⚠️ |
+
+## 25. 医馆即机器 `design/gdd/clinic-machine.md`(#24)| 10 条
+
+> 4 ✅ / 4 ⚠️ / 2 ❌
+
+| TR-ID | 需求 | ADR | 状态 |
+|-------|------|-----|------|
+| TR-clinic-001 | 医馆加成判定 = 纯整数 4 邻接(禁物理/禁连续坐标参与) | ADR-015 | ✅ |
+| TR-clinic-002 | 24 无自有状态:加成输出 = 上游量的 Memoize 纯函数,失效键显式 | ADR-016 | ✅ |
+| TR-clinic-003 | EnvMod(环境修正)在定点域内透传,边界不中转 float | ADR-006 + ADR-014 | ⚠️ |
+| TR-clinic-004 | CONTEXT_TABLE 经 ADR-014 烘焙管线出货;条目数硬上限 K_CONTEXT_MAX | ADR-014 | ✅ |
+| TR-clinic-005 | ADJ_TABLE 对称性 = 加载期硬门(不对称即失败) | ADR-014 | ✅ |
+| TR-clinic-006 | 加成叠乘的整数溢出断言(n_max 项上限内 Σ(weight×value) 不越界) | ADR-006 | ⚠️ —— ️ n_max 悬于 OQ-24-5 未裁 ⇒ 断言无参数可写 |
+| TR-clinic-007 | 房间连通性析出算法与 ROOM_NONE 哨兵(围合判定) | — | ❌ —— 全库(22 份 ADR)零覆盖:围合 → 房间身份是新增 sim 机制,未来 ADR 候选(供用户处置) |
+| TR-clinic-008 | 格分类三态:非医馆格 / 内部格 / 阈值格的归类判据 | ADR-015 | ⚠️ |
+| TR-clinic-009 | 语义不泄漏:9 只收乘子,不收「医馆」语义概念(B2 落点须在 9 的 GDD 侧验证) | — | ❌ —— 24→9 接口的语义收窄原则被两侧 GDD 各自陈述,无架构件背书——未来 ADR 候选 |
+| TR-clinic-010 | 24 零呈现引用 · 零音频直接触发(输出仅整数乘子与格分类) | ADR-025 + ADR-018 | ⚠️ |
+
+## 26. 死亡与复活 `design/gdd/death-and-respawn.md`(#29)| 8 条
+
+> 5 ✅ / 3 ⚠️ / 0 ❌
+
+| TR-ID | 需求 | ADR | 状态 |
+|-------|------|-----|------|
+| TR-death-001 | 29 只消费 DeathCandidate 判定输入,不自行判死(死亡判定归 9) | ADR-005 + ADR-016 | ⚠️ —— ️ 本组 4 条 AC 自标 BLOCKED-BY-9:9 侧 DeathCandidate 的载荷定稿未回写 |
+| TR-death-002 | PlayerDied 世界流事件(玩家生命归零进世界流,不落病史流) | ADR-009 | ✅ |
+| TR-death-003 | death_cell 由 sim 侧整数格派生(禁读表现态连续位置) | ADR-020 + ADR-009 | ✅ |
+| TR-death-004 | 复活清单/掉落回收 = 事件流重放重建;位置不快照(格锚点+确定性格内偏移) | ADR-009 + ADR-023 | ✅ |
+| TR-death-005 | 掉级惩罚 = fold 投影(SkillGrown 事件须参与重放折叠) | ADR-006 + ADR-010 | ⚠️ —— ️ 实测:SkillGrown 在 entities.yaml 零登记(grep=0)⇒ 折叠投影的输入 Kind 缺登记,ADR-024 补齐轮义务 |
+| TR-death-006 | 复活传送走 ITeleportCommandSink 整数命令半(全案唯一跨门调用点) | ADR-025 + ADR-009 | ✅ |
+| TR-death-007 | 死亡线三半边落点:判定 Sim / 命令 Sim.Contracts / 呈现 Gameplay.Presentation | ADR-025 | ✅ |
+| TR-death-008 | 死亡呈现白名单 + DTO(呈现只读投影,不持死亡状态) | ADR-013 + ADR-020 | ⚠️ |
+
+## 27. 脉案 `design/gdd/casebook.md`(#39)| 8 条
+
+> 4 ✅ / 1 ⚠️ / 3 ❌
+
+| TR-ID | 需求 | ADR | 状态 |
+|-------|------|-----|------|
+| TR-casebook-001 | 分册态(按病人分组)的持久化 = ADR-010 义务 13 的落实 | ADR-010 | ✅ |
+| TR-casebook-002 | player_id 的发号权威全库零定义(7a? 45? IIdAuthority 复用?) | — | ❌ —— 实测:player_id 发号机制在 22 份 ADR + entities.yaml 均无定义——与 TR-tutorial-008 / 联机意图簇同根,挂 45,未来 ADR 候选 |
+| TR-casebook-003 | Judgment 作者轴字段(落笔者/改写史)进病史流 | ADR-008 | ✅ |
+| TR-casebook-004 | 联机落笔的 Seq 由主机发号(客户端笔迹经意图事件上行) | ADR-001 | ❌ —— 与 TR-foraging-008 / TR-tutorial-006 同簇:客户端→主机意图通道须 ADR-001 窄修订,P1b 前硬前置 |
+| TR-casebook-005 | SortKey 读时派生零落盘(排序不写存档) | ADR-010 | ✅ |
+| TR-casebook-006 | 防间接泄漏能力面(脉案只能检索自己病人的投影,非仅类型面) | ADR-008 + ADR-013 | ⚠️ |
+| TR-casebook-007 | 脉案近景经 ICameraRig.SetMode(不新增相机状态持有者) | ADR-020 | ✅ |
+| TR-casebook-008 | 37→39 CasesOf 具名接口(39 向 37 提供只读病例视图)无契约件 | — | ❌ —— 方向纪律(37 读 39 侧)由 GDD 互述,接口签名零 ADR 着落——待 37 修订轮,未来 ADR 候选 |
+
+## 28. 拟物 UI `design/gdd/skeuomorphic-ui.md`(#42)| 12 条
+
+> 8 ✅ / 4 ⚠️ / 0 ❌
+
+| TR-ID | 需求 | ADR | 状态 |
+|-------|------|-----|------|
+| TR-skeuoui-001 | 全案恰一个 EventSystem,UI Toolkit 与 UGUI 两栈共用 | ADR-013 | ✅ |
+| TR-skeuoui-002 | z 序 = 域内序表(跨域不得互压;域划分单一定义处) | ADR-013 | ✅ |
+| TR-skeuoui-003 | 焦点单栈门:同一时刻仅一栈接收导航意图流 | ADR-013 | ✅ |
+| TR-skeuoui-004 | 焦点移动 = 官方桥 NavigationMoveEvent+FocusController(不自实现焦点算法);降级路径受 AC-42-B4 类型面约束 | ADR-013 | ⚠️ —— ️ R-A spike 未跑(§6.6 假设 6 半可信)——降级是否触发未知 |
+| TR-skeuoui-005 | 42 = 唯一 UI 程序集;51 调试视图经 42 渲染(不直画) | ADR-025 + ADR-013 | ⚠️ |
+| TR-skeuoui-006 | PresentationDtoGuard 递归反射扫描:disease_id 等语义禁入呈现 DTO | ADR-013 + ADR-008 | ✅ |
+| TR-skeuoui-007 | 42 只渲染永不持有游戏状态(符号级禁写:无写入口 API) | ADR-013 | ✅ |
+| TR-skeuoui-008 | 世界锚点体征面片:P0 最小实现 = UGUI world canvas | ADR-013 | ✅ |
+| TR-skeuoui-009 | IModalState 契约:模态闭集(6 员)与栈语义 | ADR-013 | ✅ |
+| TR-skeuoui-010 | 墨龄(纸张老化呈现)= ITickProvider 的纯函数(禁墙钟) | ADR-005 | ⚠️ —— ️ OQ-42-14 未裁 |
+| TR-skeuoui-011 | 图集护栏:Pages_frame 预算与溢出告警阈值 | ADR-013 | ⚠️ —— ️ 具体阈值待 spike(OQ-42-3) |
+| TR-skeuoui-012 | 无障碍四钩子:字号缩放/高对比/焦点指示/减少动效在元件库级内建 | ADR-013 | ✅ |
+
+## 29. 音频 `design/gdd/audio-system.md`(#44)| 14 条
+
+> 11 ✅ / 1 ⚠️ / 2 ❌
+
+| TR-ID | 需求 | ADR | 状态 |
+|-------|------|-----|------|
+| TR-audio-001 | 44 与 42 同构:只触发/只渲染,永不持有游戏状态;输入 = AudioCueDto(整数语义) | ADR-018 | ✅ |
+| TR-audio-002 | 无提示音铁律机械化:触发源白名单断言 + 双负向夹具(sting/ducking 构造即拒) | ADR-018 | ✅ |
+| TR-audio-003 | 混音拓扑单一出处:Master/Music/Ambience/Voice/SFX/Stethoscope/UICue 七总线 + 快照清单 | ADR-018 | ✅ |
+| TR-audio-004 | DialogueFocus 为非拟物例外通道(限 UI cue 总线,不占世界声像) | ADR-018 | ✅ |
+| TR-audio-005 | 听诊呼吸两层 = 通带+噪声底(禁静音路径);细湿啰音非连续水声;与体征相位锁定 | ADR-018 | ✅ |
+| TR-audio-006 | 语声变体库混合(禁参数调制装多样)+ 50ms ramp 防爆音 | ADR-018 | ✅ |
+| TR-audio-007 | 听感精度档 = 各设备按本机技能档(单机本地/联机各自分叉,分叉的只有音) | ADR-018 | ✅ |
+| TR-audio-008 | 远端空间化经 IPositionalChannel 复用 ADR-001 第二 QoS 位置(不新增通道) | ADR-001 + ADR-018 | ⚠️ —— ️ 发布者随 45 落 P1b,OQ-44-8 未裁接口细节 |
+| TR-audio-009 | cue 载荷不复制三源事实(音频只读 DTO 派生,不镜像 sim 量) | ADR-018 | ✅ |
+| TR-audio-010 | 音频事件表走 ADR-014 烘焙管线:玩家构建零 JSON 解析器 | ADR-014 + ADR-018 | ✅ |
+| TR-audio-011 | 世界语境呼吸:听诊主通道的呼吸声源于世界(非 UI 层常驻音) | — | ❌ —— F-44.7 在 ADR-018 零条款——世界内声源的归属裁决缺失,未来 ADR 候选(供用户处置) |
+| TR-audio-012 | EndLoop 兜底:事件终止信号丢失时的停止路径 | — | ❌ —— ADR-001/ADR-018 两份对 EndLoop 零字(grep 实测)——QoS 丢包与音频生命周期交叠无裁决;ADR-001 窄修订候选 |
+| TR-audio-013 | AudioListener 单挂点:平面=主相机,VR=头显,常驻归 Boot 场景 | ADR-020 + ADR-023 | ✅ |
+| TR-audio-014 | 战斗乐层 G1–G3:层间切换经混音参数,禁 sting/层素材报状态 | ADR-018 | ✅ |
+
+## 30. 教学与入门 `design/gdd/tutorial-and-onboarding.md`(#48)| 8 条
+
+> 2 ✅ / 3 ⚠️ / 3 ❌
+
+| TR-ID | 需求 | ADR | 状态 |
+|-------|------|-----|------|
+| TR-tutorial-001 | 教学进度 = 派生态零落盘(由事件流重放重建,不写存档字段) | ADR-009 + ADR-010 | ✅ |
+| TR-tutorial-002 | Anchor/Completion 两相语义:边沿闩锁 + 冷启动播种(首帧不闪完成态) | — | ❌ —— 纯机制零 ADR 着落——两相语义只在 48 GDD 自述;D-R3 组里唯一的「未来 ADR 候选(教学相态)」,供用户处置 |
+| TR-tutorial-003 | Proj 提供方 = 边界程序集(48 不直接引用呈现栈) | ADR-025 | ⚠️ |
+| TR-tutorial-004 | 48_tutorial_content.json 过 ADR-014 两阶段全校验(含 schema_version/白名单/长度) | ADR-014 | ✅ |
+| TR-tutorial-005 | 教学纸 = P0 近景模态第七员(须扩 42 模态闭集) | ADR-013 | ⚠️ —— ️ 闭集扩容待 42 修订轮(OQ-48-8 / OQ-42-5 并批先于 42 评审);UX spec 首件已 APPROVED(design/ux/paper-closeup-48.md) |
+| TR-tutorial-006 | 联机教学仲裁:各人进度独立 + 他人触发不劫持本人教学态 | ADR-001 | ❌ —— OQ-48-7:仲裁规则依赖 ADR-001 窄修订(意图通道同簇)——P1b 前未解锁 |
+| TR-tutorial-007 | 零设门:教学永不 gate 玩法(反射断言:教学完成与否不得进入能力判定) | — | ❌ —— 断言无 ADR 落点——纪律仅 48 GDD 自述;登记为断言类回写义务(可并入 ADR-024 生成器族,未拍) |
+| TR-tutorial-008 | 联机每人一份教学进度(不共享、不合并) | ADR-007 | ⚠️ |
+
+## 31. 遥测与分析 `design/gdd/telemetry-analytics.md`(#51)| 8 条
+
+> 7 ✅ / 1 ⚠️ / 0 ❌
+
+| TR-ID | 需求 | ADR | 状态 |
+|-------|------|-----|------|
+| TR-telemetry-001 | 51 只读不写:ITelemetrySource 仅为消费者,不是第四个 IEventSink 写入者 | ADR-019 | ✅ |
+| TR-telemetry-002 | 零出厂数据双断言:构建面(无网络依赖)+ 接口面(无 Upload/Send/Post 符号) | ADR-019 | ✅ |
+| TR-telemetry-003 | 51 住边界层程序集(不进 sim,不污染门 A) | ADR-019 + ADR-025 | ✅ |
+| TR-telemetry-004 | 判断层指标全部可从既有事件流重算,零新埋点(回放即完整数据记录) | ADR-019 | ✅ |
+| TR-telemetry-005 | Fold 折叠单函数复用(51 与 7a 共用同一实现;黄金夹具载体未建) | ADR-010 + ADR-019 | ⚠️ |
+| TR-telemetry-006 | 指标全部为整数 (num, den) 对(无浮点统计路径) | ADR-006 + ADR-019 | ✅ |
+| TR-telemetry-007 | P0 交付 = 本地导出文件 + DevBuild-only 开发者视图(无玩家可见统计 UI) | ADR-019 | ✅ |
+| TR-telemetry-008 | 零写回 assets/data 的代码路径(数值用户自己调,51 不代调) | ADR-019 | ✅ |
+
+## 32. 医疗后果 `design/gdd/medical-consequences.md`(#53 · **P1a 主**)| 8 条
+
+> 3 ✅ / 2 ⚠️ / 3 ❌
+
+| TR-ID | 需求 | ADR | 状态 |
+|-------|------|-----|------|
+| TR-medcons-001 | ConsequenceResolved 病史流事件(53 产出经主机 Append) | ADR-005 + ADR-009 | ⚠️ —— ️ 回写轮执行面未落:53 GDD 侧引用坐标待刷 |
+| TR-medcons-002 | Resolve = 纯函数(后果推导全部输入 ∈ 三源) | ADR-005 + ADR-016 | ✅ |
+| TR-medcons-003 | 延迟掷骰用 SplitMix64 自算 U(不消耗全局 RNG 序列位) | ADR-007 | ✅ |
+| TR-medcons-004 | 多后果聚合计全序(同 tick 并发按 (Tick,StreamPriority,Patient,Seq) 定序) | ADR-008 | ✅ |
+| TR-medcons-005 | 入向闭集 + 零改写扫描(其他系统不得写/改 53 的输入面) | — | ❌ —— 无 ADR 条款;**P1a 主系统**(范围裁定,本条照登注 P1a) |
+| TR-medcons-006 | DelayTicks>0 的反渗透形状(延迟期内后果不可被任何路径提前读取) | — | ❌ —— 反渗形态无架构件;值归 OQ-53-2(数值轮) |
+| TR-medcons-007 | 53 零可变态 · 零订阅者(推模式全禁,拉模式重放) | ADR-016 | ⚠️ —— ️ OQ-53-1 未裁(订阅接口是否永久禁) |
+| TR-medcons-008 | RegionOutcome(区域级后果)的载体与流别 | — | ❌ —— P1a 主照登:区域后果进世界流还是病史流的归属未裁 |
+
+---
+
 ## 优先修复清单(按层)
 
 ### Foundation 层缺口(最高优先)
@@ -1085,3 +1315,5 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 | 2026-09-21 | **`/architecture-review` 复跑(full·第三份报告 = `architecture-review-2026-09-21.md`)—— 8 条 RC + S-4 全结 · 登记层残留 S-1/S-2/S-4 收口** | **ID 不增不减**(恒 **387**)、**status 零翻转**(245 ✅ / 51 ⚠️ / 89 ❌ / ◆2 不变;本轮只动**文本**不动**状态位**)。① **上轮 8 条 RC + S-4 全部实测已结**,逐条坐标:`RC-1` `adr-013:204-207` 约束面收窄(铁律作用域 = **42 的对外契约面**,非「内部禁有焦点算法」)· `RC-2` `adr-023:5` 状态串归一 `Accepted`(全仓 **22/22 字面 `Accepted`**)· `RC-3` `adr-017:170` 论据订正(`noEngineReferences` = **必要非充分**,充分性归引用集白名单断言)· `RC-4` `adr-012` ×7 处 F7 **降级为表示选择**(`ulong`/`unchecked` ⇒ IL2CPP 有符号溢出 UB **结构性不可能**)· `RC-5` `adr-025:116-119` 改「引用集**期望** + 构建期断言执法」· `RC-6` `adr-023:138-141` + `:276` 扫描收紧(相机 / `AudioListener` 在非 Boot 场景 = 构建失败)· `RC-7` `adr-014:173-176` 词法器两 pin + `:366` 负向夹具 · `S-4` `adr-023:278-281` S3 补 **bundle refcount 归零断言**。**零一条是靠改状态位结的。** ② **登记层三处收口**:`tr-registry.yaml` `TR-diag-024.requirement`(→「联机时**各设备按本机技能档**」,`revised` 2026-09-21)· `TR-patient-018.note`(同款改口 + `revised` 2026-09-21)· `tests/README.md:38-41` 理由句(「ADR-025 已具名六装配清单 ⇒ **命名阻塞已解除**;`.asmdef` 仍刻意缺席归实现轮」,**决定不变、不生成任何文件**)。⚠️ **两条注册表改口不翻 `status`** —— 承「补/删引据不充当验收」。③ **计数复算自洽**:`yaml.safe_load` 逐条数出 245+51+89+2=387,与 §汇总 21 行 + 合计行**逐组逐位相同**;`adr_divergence` 开放数 **= 0**。④ **引擎审计**:22/22 有 Engine Compatibility / ADR Dependencies / GDD Requirements Addressed 三节;弃用 API **0**;版本 **22/22 Unity 6.3 LTS**;Knowledge Risk **HIGH 7**(001/005/008/011/012/013/023)/ **MEDIUM 7**(006/009/010/014/016/018/022)/ **LOW 8**(007/015/017/019/020/021/024/025)—— ⚠️ **上轮记 6/8/8 系 ADR-008 未计入 HIGH,本值正确**。⑤ **Foundation 层 4 → 2**:◆ 不计缺口后残 `TR-itemdb-031`(有裁决面缺执行体)/ `TR-skill-008`(无裁决件,归 7a 逐字段 + Required ADR #4)。⑥ **本件不夹带** D-R1(报告 ID 族登记表)/ D-R2(§5.4 生成器)/ D-R3(12 项零 TR 回填)三项 —— 均须专门批次,理由与建议见报告 §8.1。⑦ **同轮就地回刷**:`architecture-review-2026-09-20.md` §9 与 `docs/architecture/control-manifest.md` §Open Items A 两处「未结」登记**同日过期**,已加结案注(承「历史注体以追加注补」先例)—— 登记为新失效模式变体:**产出「未结项清单」的件缺消费者侧失效检查点**。**未 commit(无用户指令)。** | `tr-registry.yaml` · `tests/README.md` · `architecture-review-2026-09-21.md`(新)· `architecture-review-2026-09-20.md` · `control-manifest.md` · `requirements-traceability.md` · `session-state/active.md` |
 | 2026-09-21 | **报告 ID 族登记表建立(兑现 D-R1 —— 用户裁定「建表(按上稿全文)」)** | **纯增量**:新增 §「报告 ID 族登记表」一节(插于 §优先修复清单 与 §变更历史 之间)+ 头部一条指针行;**本表不参与任何计数或门控判据**,`tr-registry.yaml` 的 `status:` 仍是唯一计数真源(**387 条 / 245 ✅ / 51 ⚠️ / 89 ❌ / ◆2 零变动,ID 零增删**)。⚠️ **族集合由上稿的 8 族扩为 14 族** —— 全库扫描实测上稿(C/E/B/R/QQ/RC/D-R/S)遗漏的 **G / N / T / V / W / BL** 六族**均存在活跃撞号**,漏登会使本表建立当日即不完备(与本节要治的失效模式同型)。**七处撞号实测**(逐条带坐标):① **C** 跨件(`architecture-review-2026-09-15.md:106` C-1 = `PatientId` 静态类 / 值类型**编译级阻塞** vs `consistency-report-2026-09-21.md:40` C-1 = 联机音频口径残留);② **S 同件双义**(`architecture-review-2026-09-21.md:127`/`:215` S-4 = ADR-023 的 bundle refcount 判据 **vs** **同件** `:244` S-4 = `tests/README.md:38-41` 陈旧)—— **中央台账拦不住的一类**,本族最严重实例;③ **S 借号**(批三 `consistency-report-2026-09-21.md` 的 S-1/S-2/S-4 被 review 件整族沿用,对象相同 ⇒ 同号同义,唯一「无害」但**无机制保证其持续同义**);④ **B 三重叠**(报告级 `architecture-review-2026-09-15.md:406` B-3 = 删 ADR-005 `3×2⁻¹⁶` 自引 · `time-and-weather.md:220` B-3 = 首轮评审阻断 · `gdd-cross-review-2026-09-20.md` 组 G3 B-3 = 支柱四单腿);⑤ **W 同号异义**(`gdd-cross-review-2026-09-20.md:163` W-1 = EnvMod 双钳告警 **vs** `campaign-arc.md:62` / `case-system.md` W-1 = **用户显式风险接受裁定**);⑥ **G 幽灵引据**(`architecture-review-2026-09-15.md:466` 引「8 的 **G-7**」,而 `diagnosis-system.md` 的 G 族**只到 G-4** —— 真身 = 该件 `:1608` 的 **`V-8.7`**);⑦ **N 跨件**(`architecture-review-2026-09-15.md:593` N-3/N-4 **vs** `architecture-review-2026-09-21.md:138` N-3)。**BL 族刻意按系统作用域编号**(每 GDD / 评审日志自 `BL-1` 起数,全库 32 个聚合最大值)—— **不是撞号是设计**,引用须带出处件;`D-R` 族是全库**唯一零撞号的报告家族**(后件对同一对象沿用上件号,未重新编号)。**本表的局限如实登记**:只记录**已发生**者,**不能阻止新撞号**(无生成器 / 无构建期断言,与 ADR-024 对 `Kind` 的「单一真源 + A1–A5 断言」**不同级**);结构性消除须另立**作者期命名空间纪律**(每件报告自带族前缀,如 `AR21-C-1` / `CR21b-S-3`)或把报告 ID 纳入 `tools/kindgen/` 生成器族 —— 二者均超出本表,**登记为待用户裁,与 D-R2 同批**。**同批未做(如实登记)**:D-R2(`architecture.md` §5.4 改由 registry 生成,推后至 `tools/kindgen/` 落地同批)· D-R3(12 项零 TR 回填,须专门批次,本轮不夹带)。**未 commit(无用户指令)。** | `docs/architecture/traceability-index.md` |
 | 2026-09-21 | **第二十四批:用户裁定三项落地(OQ-6-1 / QQ-07 / D-R2+报告 ID)** | ① **`OQ-6-1` / `O-6-7` 结案** —— 用户**批准 4 的承接方案**:「已发现」触发 = 玩家主动交互(非碰撞进入),自报方冻结集 `{4,25,37}`,6 仍是唯一写者 ⇒ P0 内容开工硬前置解除,`EC-6-2` 由 6 侧正式闭合(归属面;三项实现义务不翻绿)。回刷件:`world-and-ecozones.md`(头部门 / 转移表 / EC-6-2 注 / O-6-7 行 / OQ 行 / OQ 计数注)· `interaction-system.md` 注① · `systems-index.md` #4/#6 行 · `reviews/world-and-ecozones-review-log.md` 两处 · `adr-022` §后果类比注 · 本文件 §4 注。② **QQ-07 全结** —— 早批 ◆ 已收 003/004,本批补收 `-006`:用户照准建议 —— 帧预算是性能承诺**不降级**,保持 ❌ 待最低目标硬件;`architecture.md` 三处(QQ-07 行 / §Baseline concept 行 / §5.4 簇行)+ concept 组计数行 **3 → 1 ❌ + ◆2**(已带「另 ◆2」注,与 §汇总分列式同法)。③ **D-R2 / 报告 ID 纪律照建议办** —— D-R2 推后至 `tools/kindgen/` 同批(**不动 §5.4**);报告 ID 采**作者期命名空间纪律**(新报告自带件前缀,存量不重编号,不入 kindgen 族)—— 落本文件 §报告 ID 族登记表尾注 + `architecture-review-2026-09-21.md` §8.1「不代拍」解除注。**计数**:ID 恒 387;status 零翻转(245/51/89/◆2);`concept` 组 gap 的**呈现口径**由「3」改「1 + ◆2」= 登记面与 2026-09-21 早批 ◆ 流转的**追平**,非本批新翻。**未 commit 前待指令 → 本批获用户指令提交。** | `design/gdd/world-and-ecozones.md` · `interaction-system.md` · `systems-index.md` · `reviews/world-and-ecozones-review-log.md` · `architecture.md` · `architecture-review-2026-09-21.md` · `adr-022-level-tool.md` · `control-manifest.md` · `session-state/active.md` |
+| 2026-09-21 | **第二十五批:D-R3 专门批次落盘(12 项零 TR 系统回填 · 用户排期指令)** | **ID 387 → 499(+112,append-only;既有 387 条逐字未动,`yaml.safe_load` 前缀比对守住)**。12 组 = 7a 11 / 7b 7 / 17 8 / 23 10 / 24 10 / 29 8 / 39 8 / 42 12 / 44 14 / 48 8 / 51 8 / 53 8(53 为 P1a 主,条目照登并注)。实测 **69 ✅ / 28 ⚠️ / 15 ❌** ⇒ 合计 **314 / 79 / 104 / ◆2**。⚠️ §7.1「① 类预计全 covered」被推翻(见 §D-R3 批次注)——禁借绿口径:「已裁但执行体/夹具/回写未落」一律 partial。三处 GDD↔ADR 回写不一致登记不代改;player_id 发号(casebook-002)实测全库零定义 = 新 gap;**ADR-001 客户端→主机意图通道的消费者成簇**(foraging-008 / casebook-004 / tutorial-006 加入 10 / 4 / 20 既有三处)⇒ 由单点欠账升级为 P1b 前硬前置(登记,不代拍)。落点:tr-registry +112 · 本件 §21–§32 + §汇总 12 行 + 合计 + 头部注 · review-2026-09-21 §7 D-R3 / §8 T-2 结案注 · RTM 件计数刷 |
+

@@ -37,6 +37,9 @@
 > 计数由 `yaml.safe_load` 逐条数出,与 `tr-registry.yaml` 的 `status:` 字段**逐位自洽**
 > (245 + 51 + 89 + 2 = 387)。**本轮零状态翻转、零 ID 增删** —— 只改两条 `requirement` / `note`
 > 文本 + 两条 `revised`(§7 的 S-1/S-2)。
+>
+> ⚠️ **本表 = 本轮复跑时点值(冻结)。同日稍后的 D-R3 专门批次(§7 D-R3 / §7.1 结案注)追加
+> 112 条 ⇒ 现值 = 499 条 / 314 ✅ / 79 ⚠️ / 104 ❌ / ◆2**(计数真源仍是 registry,本表不重刷)。
 
 ### 1.1 按 `domain`(架构层)分组 —— Foundation 门的真判据
 
@@ -244,7 +247,7 @@ Knowledge Risk 分布:  HIGH 7 · MEDIUM 7 · LOW 8
 | **S-4** | `tests/README.md:38-41` 声称程序集命名「未裁决」 | 理由句引 `architecture.md` §#2 未兑现,而 **ADR-025 已于 2026-09-20 Accepted**(六装配清单具名);此处亦为「门面程序集 / 独立契约程序集」的**第五处命中**,V-5 扫描面外(该 grep 只扫 `design/` + `docs/`) | **✅ 本轮已修** —— 理由句改「ADR-025 已具名六装配清单 ⇒ **命名阻塞已解除**;`.asmdef` 仍刻意缺席(工程本体不存在,归实现轮)」。**决定不变:不生成任何文件** |
 | **D-R1** | **报告 ID 族无中央登记 ⇒ 每轮新报告可能撞号** | 上轮曾首稿用 `C-11/12/13`,与 2026-09-15 报告 §13.2 同号异义 | **❌ 未做**(承上轮建议)—— 处置见 §8 |
 | **D-R2** | `architecture.md` §5.4 分类表按簇名手写 ⇒ 与 ID 空间漂移 | §5.4 现由人工维护,已两轮出现标签与 `id` 前缀不符 | **❌ 未做** —— 处置见 §8 |
-| **D-R3** | **12 项 P0 系统零 TR** | `persistence-service` · `skeuomorphic-ui` · `audio-system` · `foraging` · `casebook` · `save-slot-ui` · `death-and-respawn` · `modular-building` · `clinic-machine` · `tutorial-and-onboarding` · `telemetry-analytics` · `medical-consequences` —— 集成集合运算实测**仍全部 ZERO** | **❌ 未回填**(批量 TR 新增须专门批次);**分类见 §2.3** |
+| **D-R3** | **12 项 P0 系统零 TR** | `persistence-service` · `skeuomorphic-ui` · `audio-system` · `foraging` · `casebook` · `save-slot-ui` · `death-and-respawn` · `modular-building` · `clinic-machine` · `tutorial-and-onboarding` · `telemetry-analytics` · `medical-consequences` —— 集成集合运算实测**仍全部 ZERO** | **❌ 未回填**(批量 TR 新增须专门批次);**分类见 §2.3** ✅ **2026-09-21 当日结案(第二十五批 · 用户排期指令「排期 D-R3 专门批次」)**:12 组 **+112 条**回填落 registry(387 → **499**;实测 69 ✅ / 28 ⚠️ / 15 ❌ ⇒ 合计 314/79/104/◆2)。⚠️ **本件 §7.1「① 类预计全部 covered」被实测推翻**(见 §7.1 结案注)。落点 `traceability-index.md` §21–§32 + §变更历史末行 |
 | **D-R4** | 计数漏刷(两处,同因) | `architecture.md` 七处 + `requirements-traceability.md` 六处 | **✅ 上轮已全刷** —— 本轮复算确认现值正确(22/22 · 245/51/89/◆2) |
 | **D-R5** | `adr_divergence` 曾开放两条 | `TR-case-036` / `TR-interaction-015` | **✅ 已结** —— **开放 `adr_divergence` = 0**(本轮复算确认) |
 
@@ -259,6 +262,15 @@ Knowledge Risk 分布:  HIGH 7 · MEDIUM 7 · LOW 8
 > ⚠️ **分母效应**:245 `covered` 的分母**不含**这 12 项 ⇒ §1 的 **63.0% 是偏高估计**。
 > 若①类 6 项按预期全部 `covered` 回填,分母 387 → ~470,覆盖率降至 **~53%** ——
 > **这不是质量下降,是把已覆盖之物从账外收进账内**。
+>
+> ✅ **2026-09-21 D-R3 结案注(第二十五批)**:实测 = **+112 条(387 → 499),69 ✅ / 28 ⚠️ / 15 ❌**。
+> 三点推翻上稿预估:① **① 类并非全 covered**(7a 3⚠️ · 7b 1❌ · 23 3⚠️ · 24 4⚠️+2❌ · 42 4⚠️ ·
+> 44 1⚠️+2❌)—— 「GDD+ADR 厚」≠「每条需求都有裁决面」;② 分母涨幅 ~470 → **499**;
+> ③ 覆盖率 63.3% → **62.9%**(降幅远小于 ~53% 的预估 —— 因 ②类/③类里 51 实测 6✅2⚠️ 全绿)。
+> gap 的实质收获 = **8 条「未来 ADR 候选」+ player_id 发号零定义 + ADR-001 意图通道消费者成簇**
+> (17/39/48 加入 10/4/20)—— 预测换成了证据,这正是 D-R3 的目的。**三处 GDD↔ADR 回写不一致**
+> 登记于条目 note(`TR-persist-004` 校验和范围 / `TR-persist-006` 忘词令 CI 零记载 /
+> `TR-saveslot-004` ModalId 字面),**本批不代改 ADR 正文,供用户处置**。
 
 ---
 
@@ -267,7 +279,7 @@ Knowledge Risk 分布:  HIGH 7 · MEDIUM 7 · LOW 8
 | # | 项 | 本轮状态 |
 |---|---|---|
 | **T-1** | 8 项 ADR 正文修订(RC-1…RC-7 + S-4) | **✅ 全部已结** —— 见 §3.1 |
-| **T-2** | D-R3 的 12 项零 TR 批量回填 | **❌ 仍未做** —— 须专门批次(承 #13 先例:一轮一域,带 TR 撰写即注 `status`)。**本轮不夹带** |
+| **T-2** | D-R3 的 12 项零 TR 批量回填 | **❌ 仍未做** —— 须专门批次(承 #13 先例:一轮一域,带 TR 撰写即注 `status`)。**本轮不夹带** ✅ **2026-09-21 当日结案**:用户排期指令下达后以专门批次执行(五路提取 + 主会话逐条证据审计装配;禁借绿口径:「已裁但执行体/夹具/回写未落」一律 partial)—— 详见 §7 D-R3 行结案注与 §7.1 结案注 |
 | **T-3** | Foundation 门的 `no-adr-by-design` 状态 | **✅ 已结** —— `gate-check/SKILL.md:131` 已注明「◆ 不计入 gap」;◆ 已有 2 条实例 |
 | **T-4** | D-A 跨文档滞后写入 `docs/consistency-failures.md` | **✅ 已结** —— 批次三(2026-09-21)已追加 5 行账本 + 1 条叙事条目 |
 | **T-5** | RC-3 的最小 spike(编辑期 asmdef + `using Unity.Entities`) | **❌ 本机不可跑**(无 Unity 编辑器)—— 承 §5.2,归实现轮 |

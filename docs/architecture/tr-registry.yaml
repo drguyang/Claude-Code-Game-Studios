@@ -3724,3 +3724,936 @@
     adr: ADR-001
     status: gap
     note: "OQ-20-5。ADR-001 已立 pipe 抽象与两条 QoS 通道(covered),但库存这一层的粒度未裁 ⇒ gap;P1b 归 45,P0 单机不阻塞。"
+  # ═════════════════════════════════════════════════════════════════════════
+  # 持久化服务 (Persistence Service, #7a) — design/gdd/persistence-service.md
+  # ═════════════════════════════════════════════════════════════════════════
+  - id: TR-persist-001
+    system: persistence-service
+    gdd: design/gdd/persistence-service.md
+    requirement: "存档格式 = 全二进制 codec:头部+三逻辑流+快照;按字段名/tag 解析;Fix 显式小端;盘面零 float;禁 JSON 系格式"
+    domain: Core
+    adr: ADR-010 + ADR-006 + ADR-025
+    status: covered
+    note: "D-R3 回填(2026-09-21)。规则二 · AC-7a-04/18。ADR-010 §一/§二 布局 · ADR-006 §五 Fix 编码器 · ADR-025 ① Sim.Codec 落点。"
+  - id: TR-persist-002
+    system: persistence-service
+    gdd: design/gdd/persistence-service.md
+    requirement: "Mono 与 IL2CPP 存档字节逐位同(三格常驻矩阵;黄金夹具重签须全平台同批)"
+    domain: Performance
+    adr: ADR-012
+    status: covered
+    note: "D-R3 回填(2026-09-21)。AC-7a-03。ADR-012 §一 层级 2(集成级字节黄金)+ §三 版本化刷新。"
+  - id: TR-persist-003
+    system: persistence-service
+    gdd: design/gdd/persistence-service.md
+    requirement: "原子写:tmp+Flush(true)+rename+双档轮换;后台线程写盘+SHA256;损坏时回退链显式报损坏(禁静默)"
+    domain: Core
+    adr: ADR-010
+    status: covered
+    note: "D-R3 回填(2026-09-21)。规则四/五/十一。rename 原子性为 ADR-010 §四 已登记的实测 spike 项(Risks 内明列,裁决不依赖之)。"
+  - id: TR-persist-004
+    system: persistence-service
+    gdd: design/gdd/persistence-service.md
+    requirement: "BCL SHA256 校验和覆盖范围(含头部与否)口径一致"
+    domain: Core
+    adr: ADR-010
+    status: partial
+    note: "D-R3 回填(2026-09-21)。规则三 · AC-7a-05。⚠️ 不一致①(供用户处置,本件不代改):ADR-010:127/:287 写「头部之后的全部字节」vs persistence-service.md:480 写校验和字段「置头部之首」——两口径不重合,ADR 未回写。"
+  - id: TR-persist-005
+    system: persistence-service
+    gdd: design/gdd/persistence-service.md
+    requirement: "快照 = 性能优化非真相源:无快照路径可由事件流全量重放等价恢复"
+    domain: Core
+    adr: ADR-010 + ADR-009
+    status: covered
+    note: "D-R3 回填(2026-09-21)。AC-7a-01/02。ADR-010 §三 义务 7/8 · ADR-009 §六 有界性。"
+  - id: TR-persist-006
+    system: persistence-service
+    gdd: design/gdd/persistence-service.md
+    requirement: "存档触发点恰三处(checkpoint/退出/7b 手动槽)+ 无 quicksave;执法 = 反射断言 + 忘词令符号扫描"
+    domain: Core
+    adr: ADR-010
+    status: partial
+    note: "D-R3 回填(2026-09-21)。规则六/七。ADR-010 §六 裁定三处触发(裁决面 covered)。⚠️ 不一致②:忘词令扫描已裁归 ADR-012 CI 门,但 ADR-012 全文对该义务零记载(grep=0 实测)——执行体落点缺失。"
+  - id: TR-persist-007
+    system: persistence-service
+    gdd: design/gdd/persistence-service.md
+    requirement: "折叠谓词 Folded(p) 单出处;折叠行必留 patient_id;max(patient_id) 扫三流并集;max(∅)=−1"
+    domain: Core
+    adr: ADR-010 + ADR-006 + ADR-008
+    status: covered
+    note: "D-R3 回填(2026-09-21)。F-7a-3/4。ADR-010 §三 义务 4/5/6+§五 · ADR-006 Amendment B(计数器+高水位)· ADR-008 §六(病例流不物理折叠)。"
+  - id: TR-persist-008
+    system: persistence-service
+    gdd: design/gdd/persistence-service.md
+    requirement: "迁移协议:逐版本脚本链(v→v+1 不跳版);WorldSeed 不随迁移变更;ConfigVersion 与 SaveVersion 分离"
+    domain: Core
+    adr: ADR-010
+    status: covered
+    note: "D-R3 回填(2026-09-21)。规则十 · AC-7a-14。ADR-010 §一(头部双版本号)+ §七;ConfigVersion 派生归 ADR-014 §五。"
+  - id: TR-persist-009
+    system: persistence-service
+    gdd: design/gdd/persistence-service.md
+    requirement: "7b 手动槽的写入层护栏:slot_seq 只进不退 · 读档即锁该槽 · 锁字段不进存档体"
+    domain: Core
+    adr: ADR-010
+    status: covered
+    note: "D-R3 回填(2026-09-21)。规则十四 · AC-7a-19。ADR-010 §六(7b 手动槽 + 槽序单调由写入层承担)。"
+  - id: TR-persist-010
+    system: persistence-service
+    gdd: design/gdd/persistence-service.md
+    requirement: "退出保存限时失败 ⇒ 置「会话未完整」标志位 + 下次启动提示(禁静默丢档)"
+    domain: Core
+    adr: ADR-010
+    status: partial
+    note: "D-R3 回填(2026-09-21)。AC-7a-17。ADR-010 §六 覆盖退出保存时机(半);「会话未完整」标志位的字段形状在 ADR 零命中——登记面缺口,非裁决冲突。"
+  - id: TR-persist-011
+    system: persistence-service
+    gdd: design/gdd/persistence-service.md
+    requirement: "存档字节对权威归属不可知(authority-agnostic):同一会话客户端与主机存档逐字节同构"
+    domain: Networking
+    adr: ADR-005 + ADR-001
+    status: covered
+    note: "D-R3 回填(2026-09-21)。AC-7a-16。ADR-005 主机唯一执行 Step ⇒ 流内容单一真源;ADR-001:84/:104(pipe 不改变流内容)。"
+  # ═════════════════════════════════════════════════════════════════════════
+  # 存档位 UI (Save Slot UI, #7b) — design/gdd/save-slot-ui.md
+  # ═════════════════════════════════════════════════════════════════════════
+  - id: TR-saveslot-001
+    system: save-slot-ui
+    gdd: design/gdd/save-slot-ui.md
+    requirement: "槽列表/投影/写入三层分离;7b 的唯一写入口 = ISaveService(不直写文件)"
+    domain: Presentation
+    adr: ADR-010
+    status: covered
+    note: "D-R3 回填(2026-09-21)。AC-7b-01/02/10。ADR-010 KI(7b 经 7a 写入,不持有 codec)。"
+  - id: TR-saveslot-002
+    system: save-slot-ui
+    gdd: design/gdd/save-slot-ui.md
+    requirement: "7b 零游戏状态:不引用 sim 类型 · 零 Append · 不镜像存档内容(镜像即第二真源)"
+    domain: Presentation
+    adr: ADR-013 + ADR-009
+    status: covered
+    note: "D-R3 回填(2026-09-21)。AC-7b-03/05/11。ADR-013 §9 C3 同构纪律 · ADR-009 §一 Q1(真源判据)。"
+  - id: TR-saveslot-003
+    system: save-slot-ui
+    gdd: design/gdd/save-slot-ui.md
+    requirement: "SaveSlotInfo = 呈现层投影 DTO,不进确定性字节面"
+    domain: Presentation
+    adr: ADR-010
+    status: covered
+    note: "D-R3 回填(2026-09-21)。BL-3。ADR-010 KI 注 + §Validation 6(投影与存档体字段隔离)。"
+  - id: TR-saveslot-004
+    system: save-slot-ui
+    gdd: design/gdd/save-slot-ui.md
+    requirement: "开册 = 42 模态(7b 引用 ModalId,不自维护模态栈)"
+    domain: Presentation
+    adr: ADR-013
+    status: covered
+    note: "D-R3 回填(2026-09-21)。OQ-7b-3 已裁。ADR-013 §十(模态闭集)。⚠️ 不一致③(供用户处置):GDD 写 ModalId.SaveSlot7b,ADR-013:352 写 SaveSlots —— 枚举字面未统一,归回写轮。"
+  - id: TR-saveslot-005
+    system: save-slot-ui
+    gdd: design/gdd/save-slot-ui.md
+    requirement: "双导航焦点顺序 = slot_seq 升序;焦点单栈门;禁双 EventSystem"
+    domain: Presentation
+    adr: ADR-013 + ADR-011
+    status: covered
+    note: "D-R3 回填(2026-09-21)。AC-7b-04/06。ADR-013 §三 F4(单栈门+共用 EventSystem)· ADR-011(键鼠/手柄双导航)。"
+  - id: TR-saveslot-006
+    system: save-slot-ui
+    gdd: design/gdd/save-slot-ui.md
+    requirement: "存档结果零播报:无提示音 · 无状态 sting(存档成败只走世界内通道)"
+    domain: Presentation
+    adr: ADR-018
+    status: covered
+    note: "D-R3 回填(2026-09-21)。AC-7b-09。ADR-018 §六 无提示音铁律(与 AC-44-09 白名单联动)。"
+  - id: TR-saveslot-007
+    system: save-slot-ui
+    gdd: design/gdd/save-slot-ui.md
+    requirement: "反幻想呈现纪律:零 toast · 状态仅世界内通道 · 非颜色冗余编码"
+    domain: Presentation
+    adr: null
+    status: gap
+    note: "D-R3 回填(2026-09-21)。AC-7b-07/08/12。无架构裁决面。⚠️ 分工疑点:此类或刻意归 GDD 家规(无架构裁决可挂);立条保留之,42 修订轮复核归属。"
+  # ═════════════════════════════════════════════════════════════════════════
+  # 采集 (Foraging, #17) — design/gdd/foraging.md
+  # ═════════════════════════════════════════════════════════════════════════
+  - id: TR-foraging-001
+    system: foraging
+    gdd: design/gdd/foraging.md
+    requirement: "采集只发三个世界流 Kind(不多发不漏发;节点状态即流内派生态)"
+    domain: Core
+    adr: ADR-009
+    status: covered
+    note: "D-R3 回填(2026-09-21)。承 ADR-009 Amendment K。Kind 路由真源 = entities.yaml(ADR-024 ①),本条挂 ADR-009 为裁决出处。"
+  - id: TR-foraging-002
+    system: foraging
+    gdd: design/gdd/foraging.md
+    requirement: "gather_seq = 事件流内采集计数(可重构,非运行时计数器)"
+    domain: Core
+    adr: ADR-009
+    status: covered
+    note: "D-R3 回填(2026-09-21)。流内计数纪律与 ADR-006 Amendment B 同构。"
+  - id: TR-foraging-003
+    system: foraging
+    gdd: design/gdd/foraging.md
+    requirement: "品级掷骰的全部输入可从事件流重构(零隐藏随机态)"
+    domain: Core
+    adr: ADR-007
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-007 ③ 核心不变量在采集侧的落实;掷骰记录走 EventRolled。"
+  - id: TR-foraging-004
+    system: foraging
+    gdd: design/gdd/foraging.md
+    requirement: "采集散布的 CDF walk 算子以定点实现并绑 ADR-012 黄金夹具"
+    domain: Performance
+    adr: ADR-012 + ADR-006
+    status: partial
+    note: "D-R3 回填(2026-09-21)。裁决面成立(整数域 + 夹具矩阵),⚠️ OQ-17-10 未裁:CDF walk 夹具算子未在 ADR-012 夹具清单登记——执行体缺。"
+  - id: TR-foraging-005
+    system: foraging
+    gdd: design/gdd/foraging.md
+    requirement: "采集掉落 instance_id 由主机经 IIdAuthority 铸造(客户端不铸)"
+    domain: Core
+    adr: ADR-007
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-007 ②/IIdAuthority 唯一发号;与 DropSpawned 身份进流(ADR-009)衔接。"
+  - id: TR-foraging-006
+    system: foraging
+    gdd: design/gdd/foraging.md
+    requirement: "资源节点余量 = 前缀函数(历史采集事件序列的整数纯函数)"
+    domain: Core
+    adr: ADR-009
+    status: partial
+    note: "D-R3 回填(2026-09-21)。派生态判据成立(ADR-009 §四 + ADR-015 烘焙输入),⚠️ OQ-17-5 未裁:节点再生事件是否进流影响前缀定义。"
+  - id: TR-foraging-007
+    system: foraging
+    gdd: design/gdd/foraging.md
+    requirement: "采集资源点数据的 IDataProvider 驻留/切片策略"
+    domain: Core
+    adr: ADR-014
+    status: partial
+    note: "D-R3 回填(2026-09-21)。ADR-014 §五 定装载边界,⚠️ OQ-17-7 未裁:资源点全图驻留还是按 chunk 切片(体量未估)。"
+  - id: TR-foraging-008
+    system: foraging
+    gdd: design/gdd/foraging.md
+    requirement: "联机采集意图的上行通道(客户端意图 → 主机判定)须 ADR-001 一次窄修订"
+    domain: Networking
+    adr: ADR-001
+    status: gap
+    note: "D-R3 回填(2026-09-21)。OQ-17-6。第二 QoS 通道(unreliable latest-value)会丢意图事件,而采集意图是判定输入 ⇒ 与 10/39/48 同簇(ADR-001 消费者成簇,单点欠账升级为硬前置)。"
+  # ═════════════════════════════════════════════════════════════════════════
+  # 模块化建造 (Modular Building, #23) — design/gdd/modular-building.md
+  # ═════════════════════════════════════════════════════════════════════════
+  - id: TR-building-001
+    system: modular-building
+    gdd: design/gdd/modular-building.md
+    requirement: "三个 Structure* Kind(放置/拆除/状态变更)落世界流"
+    domain: Core
+    adr: ADR-009
+    status: covered
+    note: "D-R3 回填(2026-09-21)。承 ADR-009 Amendment J。装配订正:Kind 路由真源挂 entities.yaml(ADR-024 ①),本条 adr 记裁决出处。"
+  - id: TR-building-002
+    system: modular-building
+    gdd: design/gdd/modular-building.md
+    requirement: "建造图层 Overlay = BakedInitial(烘焙初始态)⊕ 事件流派生,无第三来源"
+    domain: Core
+    adr: ADR-022 + ADR-009
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-022 §三 导出契约(BakedInitial 归关卡工具产出)· ADR-009 派生态两类源判据。"
+  - id: TR-building-003
+    system: modular-building
+    gdd: design/gdd/modular-building.md
+    requirement: "EffectiveWalkable 的唯一合成点 = 23(13/27/6 只读合成输出)"
+    domain: Core
+    adr: ADR-016
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-016 §五 补注。去重注:27 侧同接缝已登 TR-enemy-011,本条登记 23 侧(所有者),不双写。"
+  - id: TR-building-004
+    system: modular-building
+    gdd: design/gdd/modular-building.md
+    requirement: "全部放置/可居判定走整数格,禁 Physics / NavMesh 进入判定面"
+    domain: Core
+    adr: ADR-015
+    status: partial
+    note: "D-R3 回填(2026-09-21)。ADR-015 §五 裁定整数格邻接判定(非物理/非 NavMesh);「禁 Physics」由禁令推定而非逐字段条款,执法断言归实现轮。"
+  - id: TR-building-005
+    system: modular-building
+    gdd: design/gdd/modular-building.md
+    requirement: "structure_id 与病人共用 IIdAuthority id 空间;折叠谓词不适用结构行"
+    domain: Core
+    adr: ADR-006 + ADR-016
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-010 §三 义务 12 · ADR-016 §二(id 空间扩至受伤实体,折叠不适用为同型裁定)。"
+  - id: TR-building-006
+    system: modular-building
+    gdd: design/gdd/modular-building.md
+    requirement: "建造重放字节稳定:绑 ADR-012 黄金夹具(单元+集成双层)"
+    domain: Performance
+    adr: ADR-012
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-012 §一 夹具层级;建造流事件属集成级字节夹具覆盖面。"
+  - id: TR-building-007
+    system: modular-building
+    gdd: design/gdd/modular-building.md
+    requirement: "23 程序集零呈现引用;42 不是建造状态写者"
+    domain: Core
+    adr: ADR-025 + ADR-013
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-025 ① 清单封闭性 · ADR-013 §9 C3;O-23-6 反向声明。"
+  - id: TR-building-008
+    system: modular-building
+    gdd: design/gdd/modular-building.md
+    requirement: "collider 足迹与逻辑格一致性 = 构建期硬失败(不一致 throw)"
+    domain: Tooling
+    adr: ADR-022
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-022 §四 C2(可走性同源为硬失败类)。"
+  - id: TR-building-009
+    system: modular-building
+    gdd: design/gdd/modular-building.md
+    requirement: "Refund 截断例外(库存不足时按实有量退)未回写 ADR-006 守恒律"
+    domain: Core
+    adr: ADR-006
+    status: partial
+    note: "D-R3 回填(2026-09-21)。建造扣费守恒(ADR-006 §守恒律)裁决面成立;Refund 截断路径是守恒律的例外形态,ADR-006 无对应条款——回写轮义务。"
+  - id: TR-building-010
+    system: modular-building
+    gdd: design/gdd/modular-building.md
+    requirement: "P1a 建造内容扩张判据 = 零代码改动(纯数据表新增)"
+    domain: Core
+    adr: ADR-015
+    status: partial
+    note: "D-R3 回填(2026-09-21)。模块化网格 + ADR-014 烘焙管线支持该判据成立;「零代码」本身是未验断言,归实现轮首验。"
+  # ═════════════════════════════════════════════════════════════════════════
+  # 医馆即机器 (Clinic as Machine, #24) — design/gdd/clinic-machine.md
+  # ═════════════════════════════════════════════════════════════════════════
+  - id: TR-clinic-001
+    system: clinic-machine
+    gdd: design/gdd/clinic-machine.md
+    requirement: "医馆加成判定 = 纯整数 4 邻接(禁物理/禁连续坐标参与)"
+    domain: Core
+    adr: ADR-015
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-015 §五(医馆房间格共用世界格 + 整数邻接判定)+ §Validation。"
+  - id: TR-clinic-002
+    system: clinic-machine
+    gdd: design/gdd/clinic-machine.md
+    requirement: "24 无自有状态:加成输出 = 上游量的 Memoize 纯函数,失效键显式"
+    domain: Core
+    adr: ADR-016
+    status: covered
+    note: "D-R3 回填(2026-09-21)。派生态定性(ADR-016 §一 三源不变量);Memoize 为优化非状态。"
+  - id: TR-clinic-003
+    system: clinic-machine
+    gdd: design/gdd/clinic-machine.md
+    requirement: "EnvMod(环境修正)在定点域内透传,边界不中转 float"
+    domain: Core
+    adr: ADR-006 + ADR-014
+    status: partial
+    note: "D-R3 回填(2026-09-21)。口径对齐先例 TR-processing-007(18 侧同款透传为 partial):透传通道已裁,24 侧载荷字段登记未落。"
+  - id: TR-clinic-004
+    system: clinic-machine
+    gdd: design/gdd/clinic-machine.md
+    requirement: "CONTEXT_TABLE 经 ADR-014 烘焙管线出货;条目数硬上限 K_CONTEXT_MAX"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    note: "D-R3 回填(2026-09-21)。作者态 JSON→cooked;K_CONTEXT_MAX 为加载期校验常量(值归数值轮)。"
+  - id: TR-clinic-005
+    system: clinic-machine
+    gdd: design/gdd/clinic-machine.md
+    requirement: "ADJ_TABLE 对称性 = 加载期硬门(不对称即失败)"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-014 §二 阶段 2 校验族(schema/区间/白名单)外延;对称性属数据一致性断言。"
+  - id: TR-clinic-006
+    system: clinic-machine
+    gdd: design/gdd/clinic-machine.md
+    requirement: "加成叠乘的整数溢出断言(n_max 项上限内 Σ(weight×value) 不越界)"
+    domain: Core
+    adr: ADR-006
+    status: partial
+    note: "D-R3 回填(2026-09-21)。守恒律框架在(ADR-006),⚠️ n_max 悬于 OQ-24-5 未裁 ⇒ 断言无参数可写。"
+  - id: TR-clinic-007
+    system: clinic-machine
+    gdd: design/gdd/clinic-machine.md
+    requirement: "房间连通性析出算法与 ROOM_NONE 哨兵(围合判定)"
+    domain: Core
+    adr: null
+    status: gap
+    note: "D-R3 回填(2026-09-21)。❌ 全库(22 份 ADR)零覆盖:围合 → 房间身份是新增 sim 机制,未来 ADR 候选(供用户处置)。"
+  - id: TR-clinic-008
+    system: clinic-machine
+    gdd: design/gdd/clinic-machine.md
+    requirement: "格分类三态:非医馆格 / 内部格 / 阈值格的归类判据"
+    domain: Core
+    adr: ADR-015
+    status: partial
+    note: "D-R3 回填(2026-09-21)。整数格框架在,三态分类谓词的具体判据未在 ADR 落字——归 24 修订轮回填 ADR-015 或新件。"
+  - id: TR-clinic-009
+    system: clinic-machine
+    gdd: design/gdd/clinic-machine.md
+    requirement: "语义不泄漏:9 只收乘子,不收「医馆」语义概念(B2 落点须在 9 的 GDD 侧验证)"
+    domain: Core
+    adr: null
+    status: gap
+    note: "D-R3 回填(2026-09-21)。❌ 24→9 接口的语义收窄原则被两侧 GDD 各自陈述,无架构件背书——未来 ADR 候选。"
+  - id: TR-clinic-010
+    system: clinic-machine
+    gdd: design/gdd/clinic-machine.md
+    requirement: "24 零呈现引用 · 零音频直接触发(输出仅整数乘子与格分类)"
+    domain: Core
+    adr: ADR-025 + ADR-018
+    status: partial
+    note: "D-R3 回填(2026-09-21)。程序集清单约束在(ADR-025),音频侧经 8/44 通道合法;O-24-3 的反向引用断言未落到 ADR-018 白名单条目。"
+  # ═════════════════════════════════════════════════════════════════════════
+  # 死亡与复活 (Death and Respawn, #29) — design/gdd/death-and-respawn.md
+  # ═════════════════════════════════════════════════════════════════════════
+  - id: TR-death-001
+    system: death-and-respawn
+    gdd: design/gdd/death-and-respawn.md
+    requirement: "29 只消费 DeathCandidate 判定输入,不自行判死(死亡判定归 9)"
+    domain: Core
+    adr: ADR-005 + ADR-016
+    status: partial
+    note: "D-R3 回填(2026-09-21)。分层裁决在(sim 判定/系统消费),⚠️ 本组 4 条 AC 自标 BLOCKED-BY-9:9 侧 DeathCandidate 的载荷定稿未回写。"
+  - id: TR-death-002
+    system: death-and-respawn
+    gdd: design/gdd/death-and-respawn.md
+    requirement: "PlayerDied 世界流事件(玩家生命归零进世界流,不落病史流)"
+    domain: Core
+    adr: ADR-009
+    status: covered
+    note: "D-R3 回填(2026-09-21)。Kind 已在 registry 有登(entities.yaml);路由真源纪律(ADR-024)满足。"
+  - id: TR-death-003
+    system: death-and-respawn
+    gdd: design/gdd/death-and-respawn.md
+    requirement: "death_cell 由 sim 侧整数格派生(禁读表现态连续位置)"
+    domain: Core
+    adr: ADR-020 + ADR-009
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-020 §四(玩家跨格世界流事件为唯一投影)⇒ 格即权威。"
+  - id: TR-death-004
+    system: death-and-respawn
+    gdd: design/gdd/death-and-respawn.md
+    requirement: "复活清单/掉落回收 = 事件流重放重建;位置不快照(格锚点+确定性格内偏移)"
+    domain: Core
+    adr: ADR-009 + ADR-023
+    status: covered
+    note: "D-R3 回填(2026-09-21)。派生态重建 + ADR-023 §⑦ 读档位置形状同法。"
+  - id: TR-death-005
+    system: death-and-respawn
+    gdd: design/gdd/death-and-respawn.md
+    requirement: "掉级惩罚 = fold 投影(SkillGrown 事件须参与重放折叠)"
+    domain: Core
+    adr: ADR-006 + ADR-010
+    status: partial
+    note: "D-R3 回填(2026-09-21)。⚠️ 实测:SkillGrown 在 entities.yaml 零登记(grep=0)⇒ 折叠投影的输入 Kind 缺登记,ADR-024 补齐轮义务。"
+  - id: TR-death-006
+    system: death-and-respawn
+    gdd: design/gdd/death-and-respawn.md
+    requirement: "复活传送走 ITeleportCommandSink 整数命令半(全案唯一跨门调用点)"
+    domain: Core
+    adr: ADR-025 + ADR-009
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-025 裁定 ③′(QQ-01 ①′):RequestTeleport(int actorId, WorldPos cell) 进 Sim.Contracts。"
+  - id: TR-death-007
+    system: death-and-respawn
+    gdd: design/gdd/death-and-respawn.md
+    requirement: "死亡线三半边落点:判定 Sim / 命令 Sim.Contracts / 呈现 Gameplay.Presentation"
+    domain: Core
+    adr: ADR-025
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-025 ① 具名六装配清单对 29 的直接覆盖。"
+  - id: TR-death-008
+    system: death-and-respawn
+    gdd: design/gdd/death-and-respawn.md
+    requirement: "死亡呈现白名单 + DTO(呈现只读投影,不持死亡状态)"
+    domain: Presentation
+    adr: ADR-013 + ADR-020
+    status: partial
+    note: "D-R3 回填(2026-09-21)。呈现三件套同构纪律在(42/44/20),29 侧白名单条目未在 ADR-013 元件清单登记。"
+  # ═════════════════════════════════════════════════════════════════════════
+  # 脉案 (Casebook, #39) — design/gdd/casebook.md
+  # ═════════════════════════════════════════════════════════════════════════
+  - id: TR-casebook-001
+    system: casebook
+    gdd: design/gdd/casebook.md
+    requirement: "分册态(按病人分组)的持久化 = ADR-010 义务 13 的落实"
+    domain: Core
+    adr: ADR-010
+    status: covered
+    note: "D-R3 回填(2026-09-21)。实测命中:adr-010:135/:183 义务 13 条目在册。"
+  - id: TR-casebook-002
+    system: casebook
+    gdd: design/gdd/casebook.md
+    requirement: "player_id 的发号权威全库零定义(7a? 45? IIdAuthority 复用?)"
+    domain: Core
+    adr: null
+    status: gap
+    note: "D-R3 回填(2026-09-21)。❌ 实测:player_id 发号机制在 22 份 ADR + entities.yaml 均无定义——与 TR-tutorial-008 / 联机意图簇同根,挂 45,未来 ADR 候选。"
+  - id: TR-casebook-003
+    system: casebook
+    gdd: design/gdd/casebook.md
+    requirement: "Judgment 作者轴字段(落笔者/改写史)进病史流"
+    domain: Core
+    adr: ADR-008
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-008 §三 判断记录 Kind 族(读数/落笔/改写史)直接覆盖。"
+  - id: TR-casebook-004
+    system: casebook
+    gdd: design/gdd/casebook.md
+    requirement: "联机落笔的 Seq 由主机发号(客户端笔迹经意图事件上行)"
+    domain: Networking
+    adr: ADR-001
+    status: gap
+    note: "D-R3 回填(2026-09-21)。❌ 与 TR-foraging-008 / TR-tutorial-006 同簇:客户端→主机意图通道须 ADR-001 窄修订,P1b 前硬前置。"
+  - id: TR-casebook-005
+    system: casebook
+    gdd: design/gdd/casebook.md
+    requirement: "SortKey 读时派生零落盘(排序不写存档)"
+    domain: Core
+    adr: ADR-010
+    status: covered
+    note: "D-R3 回填(2026-09-21)。派生态判据(ADR-009 §四 同类):读时算,不触确定性字节面。"
+  - id: TR-casebook-006
+    system: casebook
+    gdd: design/gdd/casebook.md
+    requirement: "防间接泄漏能力面(脉案只能检索自己病人的投影,非仅类型面)"
+    domain: Core
+    adr: ADR-008 + ADR-013
+    status: partial
+    note: "D-R3 回填(2026-09-21)。类型面已被 PresentationDtoGuard 覆盖;能力面(查询接口拒绝跨病人)在 ADR 零条款——实现轮断言义务。"
+  - id: TR-casebook-007
+    system: casebook
+    gdd: design/gdd/casebook.md
+    requirement: "脉案近景经 ICameraRig.SetMode(不新增相机状态持有者)"
+    domain: Presentation
+    adr: ADR-020
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-020 ② 自建机位 + §五 相机只读不持状态。"
+  - id: TR-casebook-008
+    system: casebook
+    gdd: design/gdd/casebook.md
+    requirement: "37→39 CasesOf 具名接口(39 向 37 提供只读病例视图)无契约件"
+    domain: Core
+    adr: null
+    status: gap
+    note: "D-R3 回填(2026-09-21)。❌ 方向纪律(37 读 39 侧)由 GDD 互述,接口签名零 ADR 着落——待 37 修订轮,未来 ADR 候选。"
+  # ═════════════════════════════════════════════════════════════════════════
+  # 拟物 UI (Skeuomorphic UI, #42) — design/gdd/skeuomorphic-ui.md
+  # ═════════════════════════════════════════════════════════════════════════
+  - id: TR-skeuoui-001
+    system: skeuomorphic-ui
+    gdd: design/gdd/skeuomorphic-ui.md
+    requirement: "全案恰一个 EventSystem,UI Toolkit 与 UGUI 两栈共用"
+    domain: Presentation
+    adr: ADR-013
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-013 §一 F4(禁双 EventSystem/双输入模块)。"
+  - id: TR-skeuoui-002
+    system: skeuomorphic-ui
+    gdd: design/gdd/skeuomorphic-ui.md
+    requirement: "z 序 = 域内序表(跨域不得互压;域划分单一定义处)"
+    domain: Presentation
+    adr: ADR-013
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-013 层级域条款;与 §十 模态栈协同。"
+  - id: TR-skeuoui-003
+    system: skeuomorphic-ui
+    gdd: design/gdd/skeuomorphic-ui.md
+    requirement: "焦点单栈门:同一时刻仅一栈接收导航意图流"
+    domain: Presentation
+    adr: ADR-013
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-013 焦点单栈门(= Gameplay.UI 程序集划分的编译期表达,承 ADR-025)。"
+  - id: TR-skeuoui-004
+    system: skeuomorphic-ui
+    gdd: design/gdd/skeuomorphic-ui.md
+    requirement: "焦点移动 = 官方桥 NavigationMoveEvent+FocusController(不自实现焦点算法);降级路径受 AC-42-B4 类型面约束"
+    domain: Presentation
+    adr: ADR-013
+    status: partial
+    note: "D-R3 回填(2026-09-21)。RC-1 结案后约束对象 = 对外契约面;⚠️ R-A spike 未跑(§6.6 假设 6 半可信)——降级是否触发未知。"
+  - id: TR-skeuoui-005
+    system: skeuomorphic-ui
+    gdd: design/gdd/skeuomorphic-ui.md
+    requirement: "42 = 唯一 UI 程序集;51 调试视图经 42 渲染(不直画)"
+    domain: Presentation
+    adr: ADR-025 + ADR-013
+    status: partial
+    note: "D-R3 回填(2026-09-21)。程序集清单覆盖前半;「51 经 42」字面在两份 ADR 均无原文(承 ADR-019 §五 只列最小切面)——登记面欠账。"
+  - id: TR-skeuoui-006
+    system: skeuomorphic-ui
+    gdd: design/gdd/skeuomorphic-ui.md
+    requirement: "PresentationDtoGuard 递归反射扫描:disease_id 等语义禁入呈现 DTO"
+    domain: Presentation
+    adr: ADR-013 + ADR-008
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-013 §9 C3 落地件(AC-37-15 同法,递归非浅层)。"
+  - id: TR-skeuoui-007
+    system: skeuomorphic-ui
+    gdd: design/gdd/skeuomorphic-ui.md
+    requirement: "42 只渲染永不持有游戏状态(符号级禁写:无写入口 API)"
+    domain: Presentation
+    adr: ADR-013
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-013 §9 C3(42/44/20 呈现三件套同构)。"
+  - id: TR-skeuoui-008
+    system: skeuomorphic-ui
+    gdd: design/gdd/skeuomorphic-ui.md
+    requirement: "世界锚点体征面片:P0 最小实现 = UGUI world canvas"
+    domain: Presentation
+    adr: ADR-013
+    status: covered
+    note: "D-R3 回填(2026-09-21)。裁定 ①(UGUI 补 world-space);OQ-42-1 已裁,VR 实现推 P1a。"
+  - id: TR-skeuoui-009
+    system: skeuomorphic-ui
+    gdd: design/gdd/skeuomorphic-ui.md
+    requirement: "IModalState 契约:模态闭集(6 员)与栈语义"
+    domain: Presentation
+    adr: ADR-013
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-013 §十。注:方笺第七模态(OQ-48-8/OQ-C1)待 42 修订轮——闭集扩容须回裁本节。"
+  - id: TR-skeuoui-010
+    system: skeuomorphic-ui
+    gdd: design/gdd/skeuomorphic-ui.md
+    requirement: "墨龄(纸张老化呈现)= ITickProvider 的纯函数(禁墙钟)"
+    domain: Presentation
+    adr: ADR-005
+    status: partial
+    note: "D-R3 回填(2026-09-21)。tick 驱动纪律在(ADR-005 抽象点一);呈现层「读 tick 边」无专门条目,⚠️ OQ-42-14 未裁。"
+  - id: TR-skeuoui-011
+    system: skeuomorphic-ui
+    gdd: design/gdd/skeuomorphic-ui.md
+    requirement: "图集护栏:Pages_frame 预算与溢出告警阈值"
+    domain: Presentation
+    adr: ADR-013
+    status: partial
+    note: "D-R3 回填(2026-09-21)。ADR-013 图集条款立(九宫格/主题变量),⚠️ 具体阈值待 spike(OQ-42-3)。"
+  - id: TR-skeuoui-012
+    system: skeuomorphic-ui
+    gdd: design/gdd/skeuomorphic-ui.md
+    requirement: "无障碍四钩子:字号缩放/高对比/焦点指示/减少动效在元件库级内建"
+    domain: Presentation
+    adr: ADR-013
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-013 元件库契约 + design/accessibility-requirements.md 档位承诺。"
+  # ═════════════════════════════════════════════════════════════════════════
+  # 音频 (Audio System, #44) — design/gdd/audio-system.md
+  # ═════════════════════════════════════════════════════════════════════════
+  - id: TR-audio-001
+    system: audio-system
+    gdd: design/gdd/audio-system.md
+    requirement: "44 与 42 同构:只触发/只渲染,永不持有游戏状态;输入 = AudioCueDto(整数语义)"
+    domain: Presentation
+    adr: ADR-018
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-018 §一 核心裁定。"
+  - id: TR-audio-002
+    system: audio-system
+    gdd: design/gdd/audio-system.md
+    requirement: "无提示音铁律机械化:触发源白名单断言 + 双负向夹具(sting/ducking 构造即拒)"
+    domain: Presentation
+    adr: ADR-018
+    status: covered
+    note: "D-R3 回填(2026-09-21)。AC-44-09 BLOCKING。注:CI 夹具载体未建(归 /test-setup 后实现轮)——裁决与执法件均已登记。"
+  - id: TR-audio-003
+    system: audio-system
+    gdd: design/gdd/audio-system.md
+    requirement: "混音拓扑单一出处:Master/Music/Ambience/Voice/SFX/Stethoscope/UICue 七总线 + 快照清单"
+    domain: Presentation
+    adr: ADR-018
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-018 §三(快照不得用于状态播报为同节铁律)。"
+  - id: TR-audio-004
+    system: audio-system
+    gdd: design/gdd/audio-system.md
+    requirement: "DialogueFocus 为非拟物例外通道(限 UI cue 总线,不占世界声像)"
+    domain: Presentation
+    adr: ADR-018
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-018 呈现限制条款。"
+  - id: TR-audio-005
+    system: audio-system
+    gdd: design/gdd/audio-system.md
+    requirement: "听诊呼吸两层 = 通带+噪声底(禁静音路径);细湿啰音非连续水声;与体征相位锁定"
+    domain: Presentation
+    adr: ADR-018
+    status: covered
+    note: "D-R3 回填(2026-09-21)。8 的四条硬需求逐条落 AC-44-01…08(AC-44-08 医学准确性)。"
+  - id: TR-audio-006
+    system: audio-system
+    gdd: design/gdd/audio-system.md
+    requirement: "语声变体库混合(禁参数调制装多样)+ 50ms ramp 防爆音"
+    domain: Presentation
+    adr: ADR-018
+    status: covered
+    note: "D-R3 回填(2026-09-21)。AC-44-06。"
+  - id: TR-audio-007
+    system: audio-system
+    gdd: design/gdd/audio-system.md
+    requirement: "听感精度档 = 各设备按本机技能档(单机本地/联机各自分叉,分叉的只有音)"
+    domain: Presentation
+    adr: ADR-018
+    status: covered
+    note: "D-R3 回填(2026-09-21)。D-A 重写口径(2026-09-18 裁定;原「统一取主机技能」已作废——本条为改判后新文本)。"
+  - id: TR-audio-008
+    system: audio-system
+    gdd: design/gdd/audio-system.md
+    requirement: "远端空间化经 IPositionalChannel 复用 ADR-001 第二 QoS 位置(不新增通道)"
+    domain: Networking
+    adr: ADR-001 + ADR-018
+    status: partial
+    note: "D-R3 回填(2026-09-21)。复用裁定在(ADR-018 §五);⚠️ 发布者随 45 落 P1b,OQ-44-8 未裁接口细节。"
+  - id: TR-audio-009
+    system: audio-system
+    gdd: design/gdd/audio-system.md
+    requirement: "cue 载荷不复制三源事实(音频只读 DTO 派生,不镜像 sim 量)"
+    domain: Presentation
+    adr: ADR-018
+    status: covered
+    note: "D-R3 回填(2026-09-21)。与 ADR-009 派生态判据一致性条款。"
+  - id: TR-audio-010
+    system: audio-system
+    gdd: design/gdd/audio-system.md
+    requirement: "音频事件表走 ADR-014 烘焙管线:玩家构建零 JSON 解析器"
+    domain: Core
+    adr: ADR-014 + ADR-018
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-018 §四 与 ADR-014 两阶段工具链的接合。"
+  - id: TR-audio-011
+    system: audio-system
+    gdd: design/gdd/audio-system.md
+    requirement: "世界语境呼吸:听诊主通道的呼吸声源于世界(非 UI 层常驻音)"
+    domain: Presentation
+    adr: null
+    status: gap
+    note: "D-R3 回填(2026-09-21)。❌ F-44.7 在 ADR-018 零条款——世界内声源的归属裁决缺失,未来 ADR 候选(供用户处置)。"
+  - id: TR-audio-012
+    system: audio-system
+    gdd: design/gdd/audio-system.md
+    requirement: "EndLoop 兜底:事件终止信号丢失时的停止路径"
+    domain: Networking
+    adr: null
+    status: gap
+    note: "D-R3 回填(2026-09-21)。❌ ADR-001/ADR-018 两份对 EndLoop 零字(grep 实测)——QoS 丢包与音频生命周期交叠无裁决;ADR-001 窄修订候选。"
+  - id: TR-audio-013
+    system: audio-system
+    gdd: design/gdd/audio-system.md
+    requirement: "AudioListener 单挂点:平面=主相机,VR=头显,常驻归 Boot 场景"
+    domain: Presentation
+    adr: ADR-020 + ADR-023
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-020 §七(结清 adr-018:295 留白)+ ADR-023 ③。"
+  - id: TR-audio-014
+    system: audio-system
+    gdd: design/gdd/audio-system.md
+    requirement: "战斗乐层 G1–G3:层间切换经混音参数,禁 sting/层素材报状态"
+    domain: Presentation
+    adr: ADR-018
+    status: covered
+    note: "D-R3 回填(2026-09-21)。白名单断言在音乐层的延伸(AC-44-09 同判据)。"
+  # ═════════════════════════════════════════════════════════════════════════
+  # 教学与入门 (Tutorial and Onboarding, #48) — design/gdd/tutorial-and-onboarding.md
+  # ═════════════════════════════════════════════════════════════════════════
+  - id: TR-tutorial-001
+    system: tutorial-and-onboarding
+    gdd: design/gdd/tutorial-and-onboarding.md
+    requirement: "教学进度 = 派生态零落盘(由事件流重放重建,不写存档字段)"
+    domain: Core
+    adr: ADR-009 + ADR-010
+    status: covered
+    note: "D-R3 回填(2026-09-21)。派生态判据(两类源:事件流);7a 无「tutorial_progress」字段为同判据的镜像验证。"
+  - id: TR-tutorial-002
+    system: tutorial-and-onboarding
+    gdd: design/gdd/tutorial-and-onboarding.md
+    requirement: "Anchor/Completion 两相语义:边沿闩锁 + 冷启动播种(首帧不闪完成态)"
+    domain: Core
+    adr: null
+    status: gap
+    note: "D-R3 回填(2026-09-21)。❌ 纯机制零 ADR 着落——两相语义只在 48 GDD 自述;D-R3 组里唯一的「未来 ADR 候选(教学相态)」,供用户处置。"
+  - id: TR-tutorial-003
+    system: tutorial-and-onboarding
+    gdd: design/gdd/tutorial-and-onboarding.md
+    requirement: "Proj 提供方 = 边界程序集(48 不直接引用呈现栈)"
+    domain: Core
+    adr: ADR-025
+    status: partial
+    note: "D-R3 回填(2026-09-21)。清单机制在;48 的投影接口具体落哪个 asmdef(归 Gameplay.Presentation 还是 Gameplay.UI)未点名。"
+  - id: TR-tutorial-004
+    system: tutorial-and-onboarding
+    gdd: design/gdd/tutorial-and-onboarding.md
+    requirement: "48_tutorial_content.json 过 ADR-014 两阶段全校验(含 schema_version/白名单/长度)"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    note: "D-R3 回填(2026-09-21)。OQ-48-1 已裁(24 批落盘);烘焙管线逐条适用。"
+  - id: TR-tutorial-005
+    system: tutorial-and-onboarding
+    gdd: design/gdd/tutorial-and-onboarding.md
+    requirement: "教学纸 = P0 近景模态第七员(须扩 42 模态闭集)"
+    domain: Presentation
+    adr: ADR-013
+    status: partial
+    note: "D-R3 回填(2026-09-21)。⚠️ 闭集扩容待 42 修订轮(OQ-48-8 / OQ-42-5 并批先于 42 评审);UX spec 首件已 APPROVED(design/ux/paper-closeup-48.md)。"
+  - id: TR-tutorial-006
+    system: tutorial-and-onboarding
+    gdd: design/gdd/tutorial-and-onboarding.md
+    requirement: "联机教学仲裁:各人进度独立 + 他人触发不劫持本人教学态"
+    domain: Networking
+    adr: ADR-001
+    status: gap
+    note: "D-R3 回填(2026-09-21)。❌ OQ-48-7:仲裁规则依赖 ADR-001 窄修订(意图通道同簇)——P1b 前未解锁。"
+  - id: TR-tutorial-007
+    system: tutorial-and-onboarding
+    gdd: design/gdd/tutorial-and-onboarding.md
+    requirement: "零设门:教学永不 gate 玩法(反射断言:教学完成与否不得进入能力判定)"
+    domain: Core
+    adr: null
+    status: gap
+    note: "D-R3 回填(2026-09-21)。❌ 断言无 ADR 落点——纪律仅 48 GDD 自述;登记为断言类回写义务(可并入 ADR-024 生成器族,未拍)。"
+  - id: TR-tutorial-008
+    system: tutorial-and-onboarding
+    gdd: design/gdd/tutorial-and-onboarding.md
+    requirement: "联机每人一份教学进度(不共享、不合并)"
+    domain: Core
+    adr: ADR-007
+    status: partial
+    note: "D-R3 回填(2026-09-21)。「每人一份」依赖 player_id 权威(见 TR-casebook-002 gap)——发号未定义 ⇒ 本条不能记绿。"
+  # ═════════════════════════════════════════════════════════════════════════
+  # 遥测与分析 (Telemetry Analytics, #51) — design/gdd/telemetry-analytics.md
+  # ═════════════════════════════════════════════════════════════════════════
+  - id: TR-telemetry-001
+    system: telemetry-analytics
+    gdd: design/gdd/telemetry-analytics.md
+    requirement: "51 只读不写:ITelemetrySource 仅为消费者,不是第四个 IEventSink 写入者"
+    domain: Core
+    adr: ADR-019
+    status: covered
+    note: "D-R3 回填(2026-09-21)。ADR-019 §三(不污染真源)。"
+  - id: TR-telemetry-002
+    system: telemetry-analytics
+    gdd: design/gdd/telemetry-analytics.md
+    requirement: "零出厂数据双断言:构建面(无网络依赖)+ 接口面(无 Upload/Send/Post 符号)"
+    domain: Networking
+    adr: ADR-019
+    status: covered
+    note: "D-R3 回填(2026-09-21)。AC-19-02 BLOCKING。"
+  - id: TR-telemetry-003
+    system: telemetry-analytics
+    gdd: design/gdd/telemetry-analytics.md
+    requirement: "51 住边界层程序集(不进 sim,不污染门 A)"
+    domain: Core
+    adr: ADR-019 + ADR-025
+    status: covered
+    note: "D-R3 回填(2026-09-21)。§三 + ADR-025 清单封闭性。"
+  - id: TR-telemetry-004
+    system: telemetry-analytics
+    gdd: design/gdd/telemetry-analytics.md
+    requirement: "判断层指标全部可从既有事件流重算,零新埋点(回放即完整数据记录)"
+    domain: Core
+    adr: ADR-019
+    status: covered
+    note: "D-R3 回填(2026-09-21)。AC-19-01 BLOCKING;§一 核心裁定。"
+  - id: TR-telemetry-005
+    system: telemetry-analytics
+    gdd: design/gdd/telemetry-analytics.md
+    requirement: "Fold 折叠单函数复用(51 与 7a 共用同一实现;黄金夹具载体未建)"
+    domain: Core
+    adr: ADR-010 + ADR-019
+    status: partial
+    note: "D-R3 回填(2026-09-21)。AC-51-A3/C3 自标「回升风险」:共用纪律已裁,夹具与断言载体归实现轮。"
+  - id: TR-telemetry-006
+    system: telemetry-analytics
+    gdd: design/gdd/telemetry-analytics.md
+    requirement: "指标全部为整数 (num, den) 对(无浮点统计路径)"
+    domain: Core
+    adr: ADR-006 + ADR-019
+    status: covered
+    note: "D-R3 回填(2026-09-21)。定点域边界在统计侧的延伸;分母显式(禁百分比裸数)。"
+  - id: TR-telemetry-007
+    system: telemetry-analytics
+    gdd: design/gdd/telemetry-analytics.md
+    requirement: "P0 交付 = 本地导出文件 + DevBuild-only 开发者视图(无玩家可见统计 UI)"
+    domain: Core
+    adr: ADR-019
+    status: covered
+    note: "D-R3 回填(2026-09-21)。§五 最小切面裁定。"
+  - id: TR-telemetry-008
+    system: telemetry-analytics
+    gdd: design/gdd/telemetry-analytics.md
+    requirement: "零写回 assets/data 的代码路径(数值用户自己调,51 不代调)"
+    domain: Core
+    adr: ADR-019
+    status: covered
+    note: "D-R3 回填(2026-09-21)。AC-19-07;§六。"
+  # ═════════════════════════════════════════════════════════════════════════
+  # 医疗后果 (Medical Consequences, #53) — design/gdd/medical-consequences.md
+  # ═════════════════════════════════════════════════════════════════════════
+  - id: TR-medcons-001
+    system: medical-consequences
+    gdd: design/gdd/medical-consequences.md
+    requirement: "ConsequenceResolved 病史流事件(53 产出经主机 Append)"
+    domain: Core
+    adr: ADR-005 + ADR-009
+    status: partial
+    note: "D-R3 回填(2026-09-21)。Kind 已在 registry 有登(实测 entities.yaml 在册);⚠️ 回写轮执行面未落:53 GDD 侧引用坐标待刷。"
+  - id: TR-medcons-002
+    system: medical-consequences
+    gdd: design/gdd/medical-consequences.md
+    requirement: "Resolve = 纯函数(后果推导全部输入 ∈ 三源)"
+    domain: Core
+    adr: ADR-005 + ADR-016
+    status: covered
+    note: "D-R3 回填(2026-09-21)。三源不变量(ADR-016 §一)直接适用。"
+  - id: TR-medcons-003
+    system: medical-consequences
+    gdd: design/gdd/medical-consequences.md
+    requirement: "延迟掷骰用 SplitMix64 自算 U(不消耗全局 RNG 序列位)"
+    domain: Core
+    adr: ADR-007
+    status: covered
+    note: "D-R3 回填(2026-09-21)。掷骰输入可重构(ADR-007 ③);SplitMix64 夹具在 ADR-012 单元级清单。"
+  - id: TR-medcons-004
+    system: medical-consequences
+    gdd: design/gdd/medical-consequences.md
+    requirement: "多后果聚合计全序(同 tick 并发按 (Tick,StreamPriority,Patient,Seq) 定序)"
+    domain: Core
+    adr: ADR-008
+    status: covered
+    note: "D-R3 回填(2026-09-21)。跨流全序键复用。"
+  - id: TR-medcons-005
+    system: medical-consequences
+    gdd: design/gdd/medical-consequences.md
+    requirement: "入向闭集 + 零改写扫描(其他系统不得写/改 53 的输入面)"
+    domain: Core
+    adr: null
+    status: gap
+    note: "D-R3 回填(2026-09-21)。❌ 无 ADR 条款;**P1a 主系统**(范围裁定,本条照登注 P1a)。"
+  - id: TR-medcons-006
+    system: medical-consequences
+    gdd: design/gdd/medical-consequences.md
+    requirement: "DelayTicks>0 的反渗透形状(延迟期内后果不可被任何路径提前读取)"
+    domain: Core
+    adr: null
+    status: gap
+    note: "D-R3 回填(2026-09-21)。❌ 反渗形态无架构件;值归 OQ-53-2(数值轮)。P1a 注。"
+  - id: TR-medcons-007
+    system: medical-consequences
+    gdd: design/gdd/medical-consequences.md
+    requirement: "53 零可变态 · 零订阅者(推模式全禁,拉模式重放)"
+    domain: Core
+    adr: ADR-016
+    status: partial
+    note: "D-R3 回填(2026-09-21)。派生态定性在;⚠️ OQ-53-1 未裁(订阅接口是否永久禁)。P1a 注。"
+  - id: TR-medcons-008
+    system: medical-consequences
+    gdd: design/gdd/medical-consequences.md
+    requirement: "RegionOutcome(区域级后果)的载体与流别"
+    domain: Core
+    adr: null
+    status: gap
+    note: "D-R3 回填(2026-09-21)。❌ P1a 主照登:区域后果进世界流还是病史流的归属未裁。"
+
