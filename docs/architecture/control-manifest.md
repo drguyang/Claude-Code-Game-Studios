@@ -537,6 +537,8 @@ Newtonsoft Json(**仅作词法器**,ADR-014 裁定 ③)。
 1. Foundation 门「zero Foundation layer gaps」为绿的两条路径 —— ① 纯登记回写(修 `TR-itemdb-031`
    / `TR-skill-008` 的登记态);③④ `TR-concept-003/004` 是**范围声明**,结构上不由 ADR 承接 ⇒
    要绿须新增 `no-adr-by-design` 状态 = **gate-check 规格变更**(用户裁)。
+   **✅ 本条第 2 路径已于同日获裁并落地**(`no-adr-by-design` ◆ 第四态 + `gate-check/SKILL.md` 判据注,
+   2026-09-21;见 `traceability-index.md` 变更历史)⇒ **QQ-07 就此全结**;残 ① 路径归实现期,非待裁项。
 2. `deprecated-apis.md:28` 把 `Canvas`(UGUI)列为弃用 vs **ADR-013 裁定双栈** —— 本件以 ADR-013
    为准登记为 deviation(见上),**是否回写 engine-reference** 归用户裁。
 3. Required ADRs **#4(系统 30 定点算术)/ #5(13 的写路径归属)** 未兑现,`architecture.md`
