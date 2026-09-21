@@ -226,6 +226,52 @@
 > AC-44-B1 同型);**读侧**放宽为 **`AC-51-A2` 语义**(边界只读引用、零 Append)—— 48 不是第二个
 > 51 **不可写引用**。`Proj` 提供者 = 边界投影程序集。
 
+### 规则八:作者态数据载体(`assets/data/48_tutorial_content.json`)
+
+**⭑ 2026-09-21 用户裁定(OQ-48-1 闭合):48 的引导内容 = 独立作者态数据,承 ADR-014 烘焙管线
+(架构依赖表 :351 契约兑现)。** 载体 = **单文件合一** `assets/data/48_tutorial_content.json`,
+口述文本**自含**(48 JSON 内 `text` 字段,44 变体表只管语音 cue)。
+
+**文件结构**(schema 注 + 校验规则见文件首部;字段说明见下表):
+
+| 分区 | 字段 | 类型 | 说明 | 归属 |
+| --- | --- | --- | --- | --- |
+| 顶层 | `schemaVersion` | int | 当前 1;破坏性变更须版本化(承 data-files 规则) | 48 |
+| 顶层 | `meta` | object | 内容状态 / 属主 / 校验说明 | 48 |
+| `steps[]` | `id` | string | 步 id ∈ 闭集 `{observe, judge, treat, close, archive, manage}`(规则三六步) | 48 |
+| `steps[]` | `title` | string | 步名(仅供文档,不渲染 —— 48 零 UI,承 UI-48.1) | 48 |
+| `steps[]` | `predicateKind` | string | F-48.1 判据 Kind 名;**白名单 = `entities.yaml` 的 `SimEvent.Kind.*`**;`archive` 步例外 = 字面 `Checkpoint`(7a 存档头,非 Kind —— 承 F-48.1 ⑤) | 48 |
+| `steps[]` | `note` | string | 实现注记(不渲染) | 48 |
+| `steps[]` | `narration[]` / `demonstrations[]` / `papers[]` | string[] | 媒体条目 id 引用;引用完整性 = 构建期断言(孤儿 / 悬空 = 硬失败) | 48 |
+| `narration[]` | `cueId` | string | 44 语音 cue 键(44 变体表消费;字幕语义归 44,承 AC-44-15) | 44 |
+| `narration[]` | `text` | string | **口述文本本体(自含)**;≤170 字符 / 条(承 paper-closeup-48.md §12 长度约束) | narrative |
+| `narration[]` | `order` | int | 步内次序 | 48 |
+| `demonstrations[]` | `actor` | string | 示范者 = `mentor`(师父,13 实体);闭集枚举 | 48 |
+| `demonstrations[]` | `clipKey` | string | 示范 clip 键(经 42 one-shot 请求接口开姿态槽位,承规则二);clip 语义归 13 / 10 | 13 / 10 |
+| `papers[]` | `title` | string | 纸名 / 图题;≤2 行(承 paper-closeup-48.md §12) | narrative |
+| `papers[]` | `body` | string | 一句话说明;≤170 字符(承 §12) | narrative |
+| `papers[]` | `aspectRatio` | string | 出版纵横比(近景纸与道具纸一致性判据,承 paper-closeup-48.md §14 OQ-C2) | 48 |
+| `papers[]` | `illustrationKey` | string | 插图素材键(归 art,AB §8.3 UI-纸 1K 档;素材键不随文本走 —— 48 零素材,承 AC-48-02) | art |
+
+**校验规则(构建期硬失败,执行体 = ADR-014 阶段 2)**:
+
+1. **JSON 合法**(坏 JSON 阻断构建,承 data-files);
+2. **引用完整性**:每条 `narration` / `demonstration` / `paper` 被 ≥1 个 step 引用;每个 `steps[].*` 引用
+   指向存在的条目(**零孤儿 / 零悬空**);
+3. **长度约束**:`narration[].text` 与 `papers[].body` ≤170 字符;`papers[].title` ≤2 行(本地化 40% 扩张
+   后仍不破版,承 §12);
+4. **AC-48-13 病名闭合词表扫描**:全部文本字段不含任何病名 / 诊断结论(9 的病种名表 = 扫描字典);
+5. **AC-48-06① 显式指引指令扫描**:全部文本字段不含「去 X 处 / 按 X」类显式指令(只教动作,不指路);
+6. **`predicateKind` 白名单**:∈ `entities.yaml` 的 `SimEvent.Kind.*`(或 `archive` 步的字面 `Checkpoint`)。
+
+**内容债口径(承 data-files「无孤儿条目」+ OQ-48-1 的估算目的)**:每媒体条目 = 1 内容债单位;
+P0 种子 = 六步 + 4 口述 + 6 示范 + 1 纸 = **17 条**(终稿前 narrative 补齐/删减)。**纸的布置引用
+(6 侧 `world-and-ecozones.md` 下游表)指向 `papers[].id`,故纸道具 id 稳定是跨系统契约**。
+
+> **⚠️ `archive` 步判据例外**:F-48.1 ⑤ 判据 = 7a 存档头 `Checkpoint` 写入,**不是** `SimEvent.Kind`
+> (ADR-024 白名单无 `Checkpoint` Kind —— 存档头不落流)。故本步 `predicateKind` 取字面 `Checkpoint`
+> 而非 Kind 名,校验规则 6 对该步开白名单例外(其他五步仍须 ∈ Kind 白名单)。
+
 ---
 
 ## Formulas
@@ -332,6 +378,9 @@ step ∈ {1, 2, 3, 4, 5, 6}      // 判断(→含观察)→ 落笔 → 手段 �
 > **注①(双向性)**:3 已列「39 / 7b / 48 · 经 42 的焦点头」(`input-system.md:762`)并明列 48 的守门责任(`:806`)✅;
 > 42 已列「48 教学与引导 | 48 → 42 | 教学界面的语义与时机 | **42 + 48 联合 BLOCKING**」(`skeuomorphic-ui.md:360`)✅;
 > 37 已列「48 教学与引导(P0 无 GDD)|「第一个病例」的引导锚点 | 是」(`case-system.md:408`)✅;
+> ⚠️ **2026-09-21 订正(引文陈旧)**:上句转引的 `case-system.md:408` **现文**已不是这个字面 ——
+> 该件已自行回刷为「**48 教学与引导**(P0 · ✅ 有 GDD `tutorial-and-onboarding.md` Draft)」,
+> 与本件成稿状态一致;此处「P0 无 GDD」是**当初撰写本注时**照录的旧字面,现与出处件对不上,须以此订正为准。
 > **7b 已列「48 教学与引导 | 存档册 = 世界内的一件东西」(`save-slot-ui.md` §Dependencies)✅ —— 本表下方补行照应**。
 > **依赖图双向完整。**
 > **注②(48 的地位)**:48 从设计序 **#19 上提**至 **#18b**(用户裁定④,2026-09-15)——
@@ -491,7 +540,7 @@ step ∈ {1, 2, 3, 4, 5, 6}      // 判断(→含观察)→ 落笔 → 手段 �
 
 | # | 问题 | 归谁 | 何时裁 | 不裁的后果 |
 | --- | --- | --- | --- | --- |
-| **OQ-48-1** | **48 的引导内容是否需要独立的作者态数据**(口述文本 / 示范配置 / 纸上的图内容 → ADR-014 烘焙)?还是直接写在场景里 | `ux-designer` + narrative | `/ux-design` 时 | 内容载体未定 ⇒ 无法估算内容债 |
+| **OQ-48-1** | ~~**48 的引导内容是否需要独立的作者态数据**(口述文本 / 示范配置 / 纸上的图内容 → ADR-014 烘焙)?还是直接写在场景里~~ **⭑ 已裁 2026-09-21**:需要 —— **独立作者态数据,承 ADR-014 烘焙**;载体 = 单文件合一 `assets/data/48_tutorial_content.json`,口述文本自含(规则八) | 用户(已裁) | — | — |
 | **OQ-48-2** | ~~**48 的教学内容清单**~~ **⭑ 已裁 2026-09-19**:P0 六步(判断 / 落笔 / 手段 / 收尾 / 册子 / 经营),见规则三 ⭑ 表 —— ① 观察含于判断示范,不单选 | 用户(已裁) | — | — |
 | **OQ-48-3** | **第一幕场景的布置归 6** —— ⭑ **2026-09-19 已落盘**(`world-and-ecozones.md` 下游表补 48 行);剧本含医馆建筑 + 纸道具;场景由 54 关卡工具导出 | 6 的修订轮(已落盘) | — | — |
 | **OQ-48-4** | ~~**「纸上的图」的可交互性**~~ **⭑ 已裁 2026-09-19**:纸 = **纯装饰不可拾不可移动不可破坏**;走近 → 42 近景模态(`ModalId.PaperCloseup48` 闭集第七员);只读 → 零 20 / 23 交互 | 用户 + 42(已裁) | — | — |

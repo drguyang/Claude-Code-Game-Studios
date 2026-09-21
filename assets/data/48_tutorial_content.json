@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "contentStatus": "seed",
+    "description": "48 教学与引导 —— P0 作者态内容载体(AC-48-01 / OQ-48-1 已裁 2026-09-21 · ADR-014 烘焙)。本件为 schema 种子:文本字段为示例文案,终稿归 narrative;结构 / 判据 / 校验为正式契约。",
+    "owners": {
+      "narrationText": "narrative",
+      "demonstrationConfig": "48 + 13(动作语义归 13 / 10)",
+      "paperContent": "narrative(文字)+ art(illustrationKey 素材)",
+      "scheduleSemantics": "48"
+    },
+    "validation": "schema 校验规则文档化于 design/gdd/tutorial-and-onboarding.md §规则八;构建期执行体 = ADR-014 阶段 2(白名单 / 长度 / 引用完整性 / AC-48-13 病名闭合词表扫描 / AC-48-06 显式指引指令扫描)。"
+  },
+  "steps": [
+    {
+      "id": "observe",
+      "title": "观察",
+      "predicateKind": "CaseOpened",
+      "note": "① 观察无独立 Completion(承 F-48.1:与判断步合并入 Anchor_1)—— 本行 predicateKind 仅作内容调度(首次 CaseOpened 触发 ① 的口述与纸)。",
+      "narration": ["n_observe_1"],
+      "demonstrations": ["d_pulse_1"],
+      "papers": ["p_wangzhen"]
+    },
+    {
+      "id": "judge",
+      "title": "落笔",
+      "predicateKind": "JudgmentRecorded",
+      "note": "教「本子」:在病例上落笔(承 8 S-8.3 / 39)。",
+      "narration": ["n_judge_1"],
+      "demonstrations": ["d_notebook_1"],
+      "papers": []
+    },
+    {
+      "id": "treat",
+      "title": "手段",
+      "predicateKind": "DrugTreatmentApplied",
+      "note": "判据 = EmergencyAttempt 或 DrugTreatmentApplied 二选一存在(承 F-48.1 ③)。",
+      "narration": [],
+      "demonstrations": ["d_treat_1"],
+      "papers": []
+    },
+    {
+      "id": "close",
+      "title": "收尾",
+      "predicateKind": "CaseClosed",
+      "note": "教「结案」:一个病例如何了结(承 37)。",
+      "narration": ["n_close_1"],
+      "demonstrations": ["d_close_1"],
+      "papers": []
+    },
+    {
+      "id": "archive",
+      "title": "册子",
+      "predicateKind": "Checkpoint",
+      "note": "判据 = 7a 存档头 Checkpoint 写入 —— 非 SimEvent.Kind(ADR-024 白名单外唯一例外,承 F-48.1 ⑤)。",
+      "narration": ["n_archive_1"],
+      "demonstrations": ["d_archive_1"],
+      "papers": []
+    },
+    {
+      "id": "manage",
+      "title": "经营",
+      "predicateKind": "StructurePlaced",
+      "note": "内容债末位,可缺席(承规则三);媒体以示范为主(承 P0 内容清单)。",
+      "narration": [],
+      "demonstrations": ["d_manage_1"],
+      "papers": []
+    }
+  ],
+  "narration": [
+    {
+      "id": "n_observe_1",
+      "cueId": "teach_observe_01",
+      "order": 1,
+      "text": "先看看这个人。气色、神态,都在脸上。"
+    },
+    {
+      "id": "n_judge_1",
+      "cueId": "teach_judge_01",
+      "order": 1,
+      "text": "看明白了,就翻本子记一笔。"
+    },
+    {
+      "id": "n_close_1",
+      "cueId": "teach_close_01",
+      "order": 1,
+      "text": "处置妥当,一个病例才算了结。"
+    },
+    {
+      "id": "n_archive_1",
+      "cueId": "teach_archive_01",
+      "order": 1,
+      "text": "要紧的,都写进册子。"
+    }
+  ],
+  "demonstrations": [
+    {
+      "id": "d_pulse_1",
+      "step": "observe",
+      "actor": "mentor",
+      "clipKey": "mentor_pulse_exam",
+      "note": "示范者 = 师父(13 实体);动作 = 把脉示范(承规则二,动作语义归 13 / 10);clip 经 42 one-shot 请求接口开姿态槽位。"
+    },
+    {
+      "id": "d_notebook_1",
+      "step": "judge",
+      "actor": "mentor",
+      "clipKey": "mentor_open_notebook",
+      "note": "示范 = 翻开本子落笔(承 39)。"
+    },
+    {
+      "id": "d_treat_1",
+      "step": "treat",
+      "actor": "mentor",
+      "clipKey": "mentor_bandage_demo",
+      "note": "示范 = 处置动作的存在(承 10 / 11);P0 内容债:具体 clip 待 13 侧登记「示范者动作」行。"
+    },
+    {
+      "id": "d_close_1",
+      "step": "close",
+      "actor": "mentor",
+      "clipKey": "mentor_close_case",
+      "note": "示范 = 结案动作(承 37)。"
+    },
+    {
+      "id": "d_archive_1",
+      "step": "archive",
+      "actor": "mentor",
+      "clipKey": "mentor_open_ledger",
+      "note": "示范 = 翻开存档册(承 7b 道具 · 7a 写)。"
+    },
+    {
+      "id": "d_manage_1",
+      "step": "manage",
+      "actor": "mentor",
+      "clipKey": "mentor_place_structure",
+      "note": "示范 = 建造 / 修缮的存在(承 24 / 23);内容债末位,可缺席。"
+    }
+  ],
+  "papers": [
+    {
+      "id": "p_wangzhen",
+      "step": "observe",
+      "title": "望诊四要",
+      "body": "望神、望色、望形、望态。",
+      "aspectRatio": "4:3",
+      "illustrationKey": "paper_wangzhen_01_v1",
+      "note": "纸上之图 = 教学纸首件(承 paper-closeup-48.md §10);插图素材归 art(AB §8.3 UI-纸 1K 档),illustrationKey 承 AB §8.2 命名。"
+    }
+  ]
+}

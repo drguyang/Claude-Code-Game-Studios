@@ -1476,10 +1476,15 @@ constants:
   # 52 的 F2 分母,也是全案「日」的量纲。与 TICK_SECONDS 同源:值一改,5 / 52 / 9 同时失效。
   - name: TICKS_PER_DAY
     status: active
+    # ⚠️ 2026-09-21 陈旧订正注:下行 source 的「5 时间与天气,未撰写」已过期 ——
+    #   5 已成稿(time-and-weather.md,Approved),其 **规则四 :172-182** 明写
+    #   「单一出处在本系统 = 5;52 引用不重复定义」⇒ **source 归属判定不变,只是撰写方已存在**。
+    #   source 字段的正式改写归 /architecture-review Phase 8 职权,本注只登记事实。
     source: "— (5 时间与天气,未撰写)"
     referenced_by:
       - design/gdd/random-events.md   # F2 分母;DC-3 日 = TICKS_PER_DAY
       # 5 时间天气 / 9 疾病与伤情模拟 —— 撰写/对齐时须回溯追加
+      # ✅ 2026-09-21 注:5 侧已兑现回溯(time-and-weather.md:8/:107/:172-182 已列本常量与 52 同值契约)
     value: "待定 —— **量纲前置已解除**(2026-09-20 `TICK_SECONDS = 0.05`)⇒ 本值 = `DAY_SECONDS / 0.05`,惟 `DAY_SECONDS` 仍归 5 裁定,本表不代填"
     unit: ticks
     constraint: "必须与 TICK_SECONDS / 9 的日边界取同一组值(AC-52-27 / DC-3);原「量纲整体无值」阻塞 ✅ 2026-09-20 解除,残留缺口收窄为 `DAY_SECONDS` 一项(归 5)"
@@ -1716,10 +1721,15 @@ constants:
   # F1 强度轴的归一化分母。归 20 库存拥有(21a 只给 `weight → InstanceWeight` 形状)。
   - name: CARRY_CAP
     status: active
+    # ⚠️ 2026-09-21 陈旧订正注:下行 source 的「20 库存与物品,未撰写」已过期 ——
+    #   20 已成稿(inventory-and-items.md,Approved),其 :266/:279-281 已裁定
+    #   「20 = CARRY_CAP 的单源所有者;52 侧改为引 20」⇒ **source 归属判定不变,撰写方已存在**。
+    #   source 字段的正式改写归 /architecture-review Phase 8 职权,本注只登记事实。
     source: "— (20 库存与物品,未撰写)"
     referenced_by:
       - design/gdd/random-events.md   # F1 归一化 CarryLoad / CARRY_CAP
       # 20 库存与物品 / 21a 物品库 —— 撰写/对齐时须回溯追加
+      # ✅ 2026-09-21 注:20 侧已兑现回溯(inventory-and-items.md:266/:279-281 登记单源所有权)
       # ⚠️ **归属口径(2026-09-16 /consistency-check 登记)**:`random-events.md:844` 的
       #    **算例**写 `CARRY_CAP = 500` —— 那是**演示算式走向的假值**,该文件 `:840` 明写
       #    「不是标定值;真值归用户」;其旋钮表(`:1026`)亦标 *待定*。⇒ **不构成值冲突**,
@@ -2708,6 +2718,8 @@ constants:
       (player-controller-and-movement.md:448/:464),且 clinic-machine.md F-24-3 已登记
       `CONTEXT_TABLE` / `K_CONTEXT_MAX`(entities.yaml:672/:677);结论(24 撰写时须同法登记)
       **已兑现**,本条仅注文更新。
+      **⚠️ 2026-09-21 补注**:上文「24 无 GDD」同样陈旧 —— 24 已成稿(clinic-machine.md,
+      Approved 2026-09-17);「须同法登记」的义务已由上行 2026-09-19 注确认兑现。
       **配套**:脚步材质集须与本表的 `terrain_id` **同源**（6 的 `A-6-1`;音效资源归 44）。"
     added: 2026-09-16
     revised: ""

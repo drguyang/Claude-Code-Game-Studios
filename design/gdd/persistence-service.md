@@ -385,7 +385,7 @@ sync 写 MB 级 SSD 仅几 ms,HDD / 杀软可上百 ms ⇒ **默认后台写**�
 | **29 死亡复活** | 掉落**位置**从 7a 快照取(清单从世界流) | 未设计 | 规则一 |
 | **21a 物品** | `ItemInstance` 序列化 · 存快照不存引用 | ✅ 落盘 | 规则二 / 义务 9/10 |
 | **3 输入与设备** | 明确**不**用 7a(overrides sidecar 排除) | ✅ Approved | Interactions 表 |
-| **8 诊断 / 39 脉案** | **脉案落笔** = 事件触发锚点 ①(规则六 · `EVENT_CHECKPOINT_ANCHORS`) | 8 ✅ 落盘 · 39 无 GDD | 规则六 · AC-7a-20 · Interactions 表 |
+| **8 诊断 / 39 脉案** | **脉案落笔** = 事件触发锚点 ①(规则六 · `EVENT_CHECKPOINT_ANCHORS`) | 8 ✅ 落盘 · 39 无 GDD —— ✅ **2026-09-21 复扫闭合**:原「39 无 GDD」陈旧(`casebook.md` 已成稿 Approved),**且反向引用已落**(`casebook.md:298` 明列「39 → 7a · 落笔 = checkpoint 锚点 ① · ✅ `persistence-service.md` 规则六」,另 `:174` / `:176` 细则承载)⇒ 本边为**真双向**;「无 GDD」不删除,留作闭合记录 | 规则六 · AC-7a-20 · Interactions 表 |
 
 > **一致性复跑注记(2026-09-17)**:锚点 ③「出诊启动」的**具名事件**归 52 登记
 > (`random-events.md` DC-4 已补注记);7a 只出观察钩子形状。锚点 ①「脉案落笔」的产生者 =

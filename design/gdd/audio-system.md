@@ -969,6 +969,8 @@ bucket       = (u < BUCKET_LOW) ? 弱 : (u < BUCKET_HIGH) ? 中 : 强
 | 6 | **Intensity 无声学映射**(sound-designer) | 新增 **F-44.6**(增益 / 密度 / 分桶) | §F-44.6 |
 | 7 | **远程 cue 来源 / 病人锚点未声明**(network-programmer) | 写清 **cue 不复制**(客户端自派生)+ 病人锚点发布者;**ADR-001 现改**(第二 QoS 按 ActorId 索引 + 消费者登记) | §Edge Cases · AC-44-D7 · ADR-001 |
 | 8 | **DTO 引用 sim 类型 / AC-B1 grep 退步**(unity-specialist / qa-lead) | 定型独立契约程序集(仅 BCL);AC-44-B1 升为 asmdef 白名单 + IL 扫描 | §Interactions 注② · AC-44-B1 |
+<!-- ⚠️ 2026-09-20 ADR-025 回写加注(V-5 收口 2026-09-21):「独立契约程序集」称谓作废,现名 = `Sim.Contracts`
+     (`AudioCueDto` + `IAudioCueSink` 在 ADR-025 §① 成员列内)。本行「仅 BCL」判据不变,AC-44-B1 的 asmdef 白名单 + IL 扫描落 `Sim.Contracts` 程序集。 -->
 
 **推荐项同批修**:`VitalsDto` 幽灵入口删除(规则一)· `DialogueFocus` 快照自相矛盾(规则三 / AC-44-C1)·
 `EndLoop` 永不到达 · 咳嗽 vs 呼吸层相位锁定(AC-44-14)· 快照 / 脚本参数归属分离 ·

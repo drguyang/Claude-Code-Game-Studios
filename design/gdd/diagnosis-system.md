@@ -1298,7 +1298,7 @@ L*_j = min { Skill ∈ ℤ : 把握度_j(Skill) ≥ EXCLUDE_CONF_MIN }   # 仅 p
 | `disease-simulation.md`(9) | ✅ 多处(§UI Requirements「门槛在 8,不在 9」+ F2 注) | 已双向 |
 | `skill-system.md`(30) | ✅ §3.5 注 + §6「调用方(入参)」 | 已双向 |
 | `systems-index.md` | ✅ §2 / §5 注 / §8 高风险行 | 已双向 |
-| **11 / 13 / 14 / 37 / 39 / 42 / 44 / #53** | ⏳ **文档尚未撰写** | **撰写时须回溯追加对 8 的引用** —— 与 9 写 C6 时同一纪律 |
+| **11 / 13 / 14 / 37 / 39 / 42 / 44 / #53** | ⚠️ **2026-09-21 复扫:原列八家「文档尚未撰写」已全部陈旧,唯 14 辨证(P1a)一项为真** —— 11 `prescription-and-medication.md` · 13 `patient-ai.md` · 37 `case-system.md` · 39 `casebook.md` · 42 `skeuomorphic-ui.md` · 44 `audio-system.md` · 53 `medical-consequences.md` 七份均已成稿 Approved | **回溯追加对 8 的引用** —— 与 9 写 C6 时同一纪律;**⚠️ 但「已撰写 GDD」≠「已兑现本义务」**:各件是否已在自己的 §Dependencies 反向提及 8,须逐件核(本节只订正「无 GDD」这个陈旧前提,不代为验收);14 一项待其 P1a 落盘时回收 |
 
 ### 8 欠下游的账(D 项汇总)
 

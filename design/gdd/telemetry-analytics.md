@@ -488,6 +488,13 @@ GapCount := |{ i : Δ_i > GAP_THRESHOLD }| // GAP_THRESHOLD *待定*
   (玩家选择 / 降级强制)。否则 F3 跳过率的**分母与原因分离不可得**,跳过率退化为不可比。
   **51 不为此在其侧加旁路采集**(R2)—— 若 10 的载荷缺此项,处置是评估
   「该状态是否本就该进流」(ADR-009 三问判据)。见 `OQ-51-9`。
+  ✅ **2026-09-21 复扫:本条两半均已结** —— ① 「尚无 GDD」前提陈旧(`emergency-procedures.md`
+  已成稿 Approved);② **`OQ-51-9` 已兑现** —— 10 以 `EmergencyAttempt.method`
+  (`Played ⇔ Manual` / `Skipped ⇔ Skip`)+ `EmergencyTreatmentApplied.cause` 落载荷
+  (`emergency-procedures.md` 规则十二 `:457-469`,该件 `:15` / `:753` / `:967` 三处反向确认本件)。
+  ⚠️ **一项残留口径**:10 的兑现把「三值 `resolution`」折成「两值 `method` + 缺席推定第三值」——
+  `NotOffered` **不发事件**,由 51 侧缺席推定;该推定在 9 的终态折叠 / 7a 快照后是否仍成立,
+  已由 10 升登记为 **`OQ-10-8`(51 + 7a 共担,未结)** —— 本条不代为结案。
 - **调试视图的归属**:ADR-019 §五 把「开发者调试视图」列入 51 的 P0 切面;
   42 GDD 规则九也有一处调试视图(「读 42 焦点栈」)。**两者是否同一物、还是各有一处,
   须在实现前调和** —— 见 Open Questions `OQ-51-1`。本 GDD 的立场:51 的调试视图**只读指标**,
@@ -570,7 +577,7 @@ GapCount := |{ i : Δ_i > GAP_THRESHOLD }| // GAP_THRESHOLD *待定*
 | `AC-51-B6` | **F2 三桶显式计数(不静默丢)** —— **GIVEN** 夹具含 ① `\|D\| ≥ 2` ② 无 `CaseClosed` ③ `judgment` 未携带病种枚举;**WHEN** 计算,**THEN** 三桶**各等于该类例数**;断言这三类例**不出现在 `M` 的任何格** | `[U]` | **BLOCKING** |
 | `AC-51-B7` | **`N_unmappable > 0` 不得触发旁路采集** —— **GIVEN** `N_unmappable > 0`,**WHEN** 处置,**THEN** 51 侧**不存在**病名字符串 → 枚举的解析 / 映射代码路径;按 ADR-009 三问判据登记为 **37 的字段义务** | `[L]` · grep(承 R2) | **BLOCKING** |
 | `AC-51-B8` | **F3 分开报 + 分母口径** —— **GIVEN** `Skipped ∧ cause = 玩家选择` 与 `Skipped ∧ cause = 降级` **各 ≥ 1 例**,另含 `NotOffered` 实例;**WHEN** 计算,**THEN** 输出**两个独立分子**(`Skip` 与 `SkipByChoice`);断言**不存在**只输出单一 `SkipRate` 的输出形状(合并 = 结构性失败);`NotOffered` **不入分母** | `[U]` | **BLOCKING** |
-| `AC-51-B9` | **F3 真实会话可得性** —— **GIVEN** 10 的动作事件族**落地后**的一次真实会话离线重算,**WHEN** 计算,**THEN** `Opportunity ≠ 0` 且两类 `cause` 均可见 | `[I]` · **输入依赖 `OQ-51-9`(10 尚无 GDD)⇒ 现不可签核**;未落地前 51 **不得**用病例数等代理凑分母 | ADVISORY(10 落地后**回升 BLOCKING**) |
+| `AC-51-B9` | **F3 真实会话可得性** —— **GIVEN** 10 的动作事件族**落地后**的一次真实会话离线重算,**WHEN** 计算,**THEN** `Opportunity ≠ 0` 且两类 `cause` 均可见 | `[I]` · **输入依赖 `OQ-51-9`(10 尚无 GDD)⇒ 现不可签核**;未落地前 51 **不得**用病例数等代理凑分母 —— ⚠️ **2026-09-21 订正(前提已变,判据不变)**:「10 尚无 GDD」陈旧(`emergency-procedures.md` Approved,`OQ-51-9` 已兑现,见上文未定依赖块);但「现不可签核」**仍成立**,理由改写为**集成测试目录 `tests/integration/51/` 未建 ⇒ 记 `NOT-RUN`,不得记绿**(禁借绿)。等级列原「10 落地后回升 BLOCKING」的**回升条件已命中**,按原文应升 BLOCKING —— 但因 `OQ-10-8`(`NotOffered` 缺席推定在折叠 / 快照后是否成立)**未结**,**实际维持 BLOCKED-BY-OQ-10-8**,本件不代为判绿 | ADVISORY →(回升条件命中,但被 `OQ-10-8` 挡住)⚠️ **BLOCKED-BY-`OQ-10-8`** |
 | `AC-51-B10` | **F4 新颖度三分守恒** —— **GIVEN** 某 `skill` 在窗口(宽 = `GROWTH_WINDOW` = `*待定*`)内 `new`/`repeat`/`stale` 各 ≥ 1 例,**WHEN** 计算,**THEN** `N_new + N_repeat + N_stale = Practice(skill, W)` 且三类**不重复计数** | `[U]` | **BLOCKING** |
 | `AC-51-B11` | **F4 不重算 XP** —— **GIVEN** 51 的程序集,**WHEN** grep 定点域算术,**THEN** 无 `XP_gain`/`BASE`/`K_difficulty`/`K_novelty` 的实现或常量(那是 30 的定点域;重算 = 破 R7 + 造第二真源) | `[L]` · grep | **BLOCKING** |
 | `AC-51-B12` | **F5 半开窗不双计** —— **GIVEN** 窗宽 `W`(测试参数化)与三条同流事件,分别**恰在** `t_k`、`t_k + W − 1`、`t_k + W`;**WHEN** 计算 `Dens_s(t_k)`,**THEN** 前两条计入、**第三条不计入**;且第三条在 `Dens_s(t_k + S)` 中**恰计入一次**(窗口半开 `[t_k, t_k + W)`,防同 `Tick` 双计) | `[U]` | **BLOCKING** |
