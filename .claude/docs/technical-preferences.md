@@ -334,7 +334,9 @@
   `OQ-11-9` 结案,`TR-prescription-014` partial→covered。③ **戥子档位读数元件 = 黄铜侧**(42 元件库;
   禁降级数字角标,两栈皆禁组无例外)⇒ `AC-11-13` 转可判(**仍 NOT-RUN,禁借绿**)。
   ⚠️ **两问同批结清且方向相反**:闭集增至 7 **与方笺无关**(方笺裁定 = 不增员)—— 各处已落「勿混读」警示。
-  残留:①–⑥ 六屏仍无 per-screen UX spec ⇒ `AC-42-F1` 走查整体 `NOT-RUN`。Engine Knowledge Risk **LOW**(本 Amendment 纯枚举与归属)。
+  残留:~~①–⑥ 六屏仍无 per-screen UX spec~~ **已于 2026-09-21 第二十九/三十批全部成文(①–⑥ Draft ·
+  ⑦ Approved)**;`AC-42-F1` 走查整体仍 `NOT-RUN`(spec 成文 ≠ 走查执行;残余硬前置 = `OQ-TUT-2` /
+  `OQ-CP-2` / R8 / 45 联机夹具,2026-09-22 `/ux-review` 轮回刷)。Engine Knowledge Risk **LOW**(本 Amendment 纯枚举与归属)。
 
 - [ADR-014 ✅ Accepted 2026-09-15]**数据管线与 JSON 解析器(作者态外部化 · 构建期烘焙 · 两阶段工具链)** ——
   `docs/architecture/adr-014-data-pipeline-and-json-parser.md`。
