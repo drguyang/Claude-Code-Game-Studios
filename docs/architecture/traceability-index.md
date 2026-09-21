@@ -12,7 +12,7 @@
 > —— **ID 追加 112 条(387 → 499;既有条目逐字未动,append-only)**。新增 §21–§32 十二组 +
 §汇总 12 行。**第二十五批后值 = 314 ✅ / 79 ⚠️ / 104 ❌ / ◆2**(覆盖率 63.3% → 62.9% ——
 > 分母把 12 项账外系统收进账内,**非质量下降**;上轮「63.3% 是偏高估计」至此坐实并修正)。
-> **现值 = registry 实测 316 ✅ / 78 ⚠️ / 103 ❌ / ◆2**(第二十六批回写后 ——
+> **现值 = registry 实测 317 ✅ / 77 ⚠️ / 103 ❌ / ◆2**(第二十八批翻转后 ——
 > `TR-persist-004/006` partial→covered · `TR-casebook-002` gap→partial;
 > **用户裁定 2026-09-21:A 组三处不一致照建议全批 + player_id 复用 IIdAuthority 已落
 > ADR-006 Amendment B 注记 + 8 条未来 ADR 候选「登记不立件」** —— 见本批 §变更历史末行)。
@@ -23,6 +23,15 @@
 > control-manifest(33→34)· skill-system(义务兑现 + 重开② 核过 + ⑤(b) 甲闭)· death-and-respawn
 > (ΔLevel↔level 换算 + AC-29-16 改挂)· persistence-service(规则八 OQ-7a-9 注 + 规则九不快照声明)·
 > prescription(AC-11-16 缩至乙)· casebook(契约③ 走发号订正)· systems-index 行 30 · technical-preferences 日志。
+> **2026-09-21 第二十八批(42 修订轮 · 用户裁定两项)** —— **计数翻转 1 条:316/78 → 317/77**(ID 恒 499):
+> `TR-prescription-014` **partial→covered**(`OQ-11-7` / `OQ-11-9` 同批结清 —— 方笺 = 39 脉案「同一本书」,
+> 取「维持不请求」分支,2 的 `R-2-5` 表零新增行、11 行就地划除为排除行);`TR-skeuoui-009` **状态不变(已 ✅),
+> 仅 requirement 文本修订**「6 员 → 7 员」+ `revised:`(`ModalId` 增第 7 员 `PaperCloseup48`,
+> 承 `ADR-013 §十-B` Amendment B)。**⚠️ 两问同批结清且方向相反**:闭集**确实**增至 7 员,**但不是因为方笺**
+> —— 方笺裁定为「不增员」;第 7 员是**教学纸近景 spec**(`paper-closeup-48.md` OQ-C1)。各处均落「勿混读」警示。
+> 另:本批登记 `casebook.md:174` **假引据**事件(曾断言「11 侧 OQ-11-7 已裁」而该问 3 日无人裁)——
+> 见 `docs/consistency-failures.md`。**禁借绿**:翻转的是裁决状态,`AC-42-F1` 七屏走查项整体仍 NOT-RUN
+> (⑦ 有 spec、①–⑥ 均无);`AC-11-13` 由「不可判」→「可判但未判」;无障碍近景实测仍 Not Started。
 > ⚠️ **§7.1 的「① 类预计全部 covered」被本批实测推翻**:①类 6 项里 7a=8✅/3⚠️ · 7b=6✅/1❌ ·
 > 23=7✅/3⚠️ · 24=4✅/4⚠️/2❌ · 42=8✅/4⚠️ · 44=11✅/1⚠️/2❌。gap 集中在「未来 ADR 候选」
 > (24 房间连通 / 24 语义不泄漏 / 44 世界语境呼吸 / 44 EndLoop / 48 Anchor-Completion /
@@ -157,7 +166,7 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 | `design/gdd/interaction-system.md` | **4 交互系统** | **15** | **13** | **2** | **0** |
 | `design/gdd/time-and-weather.md` | **5 时间与天气** | **15** | **11** | **2** | **2** |
 | `design/gdd/emergency-procedures.md` | **10 急救动作** | **21** | **11** | **5** | **5** |
-| `design/gdd/prescription-and-medication.md` | **11 处方用药** | **19** | **9** | **6** | **4** |
+| `design/gdd/prescription-and-medication.md` | **11 处方用药** | **19** | **10** | **5** | **4** |
 | `design/gdd/processing.md` | **18 炮制** | **18** | **10** | **5** | **3** |
 | `design/gdd/inventory-and-items.md` | **20 库存与物品** | **16** | **10** | **1** | **5** |
 | `persistence-service.md` | **7a 持久化服务**(D-R3 回填)| **11** | **10** | **1** | **0** |
@@ -172,7 +181,7 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 | `tutorial-and-onboarding.md` | **48 教学与入门**(D-R3 回填)| **8** | **2** | **3** | **3** |
 | `telemetry-analytics.md` | **51 遥测与分析**(D-R3 回填)| **8** | **7** | **1** | **0** |
 | `medical-consequences.md` | **53 医疗后果(**P1a 主**)**(D-R3 回填)| **8** | **3** | **2** | **3** |
-| **合计** | | **499** | **316** | **78** | **103**(另 **◆2** = `no-adr-by-design`,2026-09-21 第二十六批后)|
+| **合计** | | **499** | **317** | **77** | **103**(另 **◆2** = `no-adr-by-design`,2026-09-21 第二十八批后)|
 
 > **2026-09-20 借绿回退轮(TD 条件 C4 —— `architecture.md` §5.5 D-5)**:**ID 不增不减**(仍 387)。
 > 8 条「摘要列记 ✅ 而 `tr-registry.yaml` 的 `adr: null`」的条目(`TR-case-035` / `-036` ·
@@ -854,7 +863,7 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 | TR-prescription-011 | `indications[]` / `contraindications[]` 不拦不扣、只作呈现;病种 id 不得进呈现层(呈现 = 烘焙期转出的古籍功效词) | ADR-013 | ✅ 规则八 · AC-11-06 · AC-11-14;承 ADR-013 §三 + `PresentationDtoGuard` 递归扫描。禁忌若成软门,玩家不再需要判断 |
 | TR-prescription-012 | 与 20 的原子性:先验库存再扣,无货不得发事件(否则库存与事件流不一致) | ADR-005 | ✅ 规则十 · AC-11-04;承 20 规则六;破坏 `AC-20-03` 的可重建性 |
 | TR-prescription-013 | 11 与 10 的**载荷与流语义唯一**(同写一条病史流、除 `method`/`cause` 外形状一致);11 零第二份 `SkillMul` / `ResultMul` / `JudgeResult` **实现** | — | ⚠️ 规则十一 · AC-11-10;⚠️ **2026-09-19 二轮订正(C5 口径)**:原文本「共用同一个判定 / 熟练度结算函数」**已作废** —— `SkillMul` 经 10 的 A6 改判 = **稳度容差乘子**(只被 `Judge` 的容差消费),11 恒 `Applied` ⇒ 该乘子在 11 **无合法消费点**。C5 在 11 侧**重新解释**为「载荷与流语义唯一」(见 `systems-index.md` §9 C5 行)。`AC-11-10` 断言的是**算法独占**(11 不定义那几个符号),**不约束写者** —— 写者独占由新 **`AC-11-22`** 承担。`OQ-11-6` 已消解 |
-| TR-prescription-014 | 11 不请求相机档位(开方不是「动手」的动作);若需近景须回 2 补表行,不由 11 自行发意图 | ADR-020 | ⚠️ **条件式** 规则十二;承 2 的 `R-2-5` 档位驱动表 + ADR-020 §五/§六。⚠️ **2026-09-19 二轮订正**:2 的档位表**当前无 11 行**(`camera-and-viewpoint.md:170-180` 是「待裁」占位,「未裁前本行不生效」)⇒ 本条的「不请求」是**默认态**,**取决于 `OQ-11-7` / `OQ-11-9`**(方笺 = 39 同一本书 ⇒ 维持;= 另一件器物 ⇒ **须回 2 补一行**,届时本行改写)。做成 `Treatment` 会与 10 的形状混淆 |
+| TR-prescription-014 | 11 不请求相机档位(开方不是「动手」的动作);若需近景须回 2 补表行,不由 11 自行发意图 | ADR-020 | ✅ **2026-09-21 第二十八批:条件式已裁定,取「维持不请求」分支 ⇒ partial→covered**(用户裁定「方笺 = 39 脉案**同一本书**」,见 `ADR-013 §十-B`)—— 原「取决于 `OQ-11-7` / `OQ-11-9`」两问同日结清,方笺**不成新模态、不发相机意图**,2 的 `R-2-5` 档位表**零新增行**(11 行就地划除为排除行,见 `camera-and-viewpoint.md` §档位驱动表,`ADR-013 §十-B` 为该排除行的可证伪守卫)。⚠️ **执行体归实现轮,本条不借绿为「已验证」**:翻转的是**裁决状态**(默认态 → 已裁终态),非验收。做成 `Treatment` 会与 10 的形状混淆(此判据随裁定保留)|
 | TR-prescription-015 | 同一 `(WorldSeed, 药, 剂, 实例, 玩家)` 跨平台重放 ⇒ 处置事件逐位相同 | ADR-012 | ✅ AC-11-15;双级黄金夹具矩阵提供执行载体。⚠️ **2026-09-19 二轮订正**:原文本的输入集含「**技能等级**」**已删** —— R-2 改判后等级**不进载荷**(`AC-11-15` 注明「输入集刻意不含技能等级」),等级只经**省料**改库存,故重放要比对的是**载荷 + 余料**两处 |
 | TR-prescription-016 | `polarity` 的判定真源归谁 —— 9 的注册表(本 GDD 裁定)还是 11 的处方表(则 9 的 F1 须改为经烘焙注入) | — | ✅ **`OQ-11-1` ✅ 已结清(用户裁定 2026-09-18)** —— **9 的病种注册表 = 唯一真源**,11 的处方表 = 镜像 + 构建期硬校验(本 GDD 原裁决确认 · 规则五 / AC-11-07)。⚠️ 被否的备选(真源改 11)是结构性改动,须另开 ADR ⚠️ **2026-09-20 由 ✅ 回退为 ⚠️ `partial`(TD 条件 C4 / `architecture.md` §5.5 D-5 —— 「借绿」:以裁定充当验收。承项目纪律「裁定 ≠ 验收」;回写条件见 `tr-registry.yaml` 该条 `blocked_by`)** |
 | TR-prescription-017 | 处方用药熟练度的 P0 出口范围 —— 30 写「药效 / 副作用 / 用药选项解锁」三项,P0 开多少 | — | ⚠️ **`OQ-11-8`(已收窄)** —— 30 的 `:60` 已就地订正为「**省料 + 用药选项解锁**」(药效删 / 副作用归 P1a)。⚠️ **2026-09-19 二轮**:残留 = **省料的系数映射** —— 单一出处已裁定 = **21a 的 `EFF`**(原 `PROVINCE_SAVE_RATE[]` 已删),30 须登记「等级 → `EFF`」映射(`O-11→30`) |
@@ -1064,7 +1073,7 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 | TR-skeuoui-006 | PresentationDtoGuard 递归反射扫描:disease_id 等语义禁入呈现 DTO | ADR-013 + ADR-008 | ✅ |
 | TR-skeuoui-007 | 42 只渲染永不持有游戏状态(符号级禁写:无写入口 API) | ADR-013 | ✅ |
 | TR-skeuoui-008 | 世界锚点体征面片:P0 最小实现 = UGUI world canvas | ADR-013 | ✅ |
-| TR-skeuoui-009 | IModalState 契约:模态闭集(6 员)与栈语义 | ADR-013 | ✅ |
+| TR-skeuoui-009 | IModalState 契约:模态闭集(**7 员**,2026-09-21 第二十八批起;原登记为 6 员)+ 栈语义 | ADR-013 | ✅ —— ⚠️ 成员数由 `Amendment B`(`ADR-013 §十-B`)增至 7(新增 ⑦ `PaperCloseup48`);**方笺不是第 7 员**(同日另裁「= 39 同一本书」,不增员)—— 两问同批结清且方向相反,勿混读 |
 | TR-skeuoui-010 | 墨龄(纸张老化呈现)= ITickProvider 的纯函数(禁墙钟) | ADR-005 | ⚠️ —— ️ OQ-42-14 未裁 |
 | TR-skeuoui-011 | 图集护栏:Pages_frame 预算与溢出告警阈值 | ADR-013 | ⚠️ —— ️ 具体阈值待 spike(OQ-42-3) |
 | TR-skeuoui-012 | 无障碍四钩子:字号缩放/高对比/焦点指示/减少动效在元件库级内建 | ADR-013 | ✅ |
@@ -1333,4 +1342,4 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 | 2026-09-21 | **第二十六批:D-R3 处置批(A 组回写全批 + player_id 裁决落件 + C 组登记不立件)** | 用户四项裁定照建议执行:① **A 组三处 GDD↔ADR 回写不一致全批**(①GDD 为准 → ADR-010 ASCII/§四/struct/Guidelines 6 四处统一「校验和字段位置于头部之首 + 覆盖域 = 其后全部字节」;②ADR-012 §五 补「7a 忘词令符号扫描在本门执行」硬义务;③ADR-013 为准 → 7b GDD 五处 + systems-index 一处 `SaveSlot7b`→`SaveSlots`,4 侧 `:507-510` 三审引据不动)⇒ `TR-persist-004` / `TR-persist-006` **partial→covered**(执行体落点已载于 ADR 正文;夹具脚本本体归实现轮,note 内不借绿)。② **player_id = 复用 IIdAuthority**(机制 A 三条硬不变量适用面第二次扩大:受伤实体 → +玩家;铸造 = 建世界/加入时主机发号;不新开第二计数器;`None=-1` 不占用)—— **已回写 ADR-006 Amendment B 注记** ⇒ `TR-casebook-002` **gap→partial**(残 entities.yaml / 45 铸造契约 / 7a 声明三项执行义务)。③ **C 组 8 条未来 ADR 候选 + 53 三条 P1a gap = 登记不立件**(与 89 条旧 gap 同判:无一为开工阻塞,待实现轮/修订轮触发再裁)—— 裁定注已入各条目 note(24-007 / 24-009 / 44-011 / 44-012 / 39-002 / 39-008 / 7b-007 / 48-002 / 48-007 / medcons-005/006/008)。④ **本批提交 = 单批**(第二十五批 5 文件 + 本批回写)。**汇总 314/79/104 → 316/78/103**(ID 恒 499;`TR-saveslot-004` 字面统一不改状态)。落点:ADR-006/010/012 + save-slot-ui/systems-index + tr-registry(5 条状态/注)+ 本件 §21/§22/§27/§汇总/头部注 + RTM 计数 + architecture.md 基线行 + review 报告 §7.1 处置结案 |
 | 2026-09-21 | **第二十七批:ADR-024 补齐轮 · 双项登记(SkillGrown Kind + next_player_id)** | **计数零翻转**(499 / 316 / 78 / 103 / ◆2,`yaml.safe_load` 复算自洽)。兑现两项明示残留:① `entities.yaml` 具名登记 `SimEvent.Kind.SkillGrown`(`stream: history` · `author: 30`,载荷逐字对齐 30 §3.2 规则二 = 绝对 `level`,29 的 `ΔLevel` 就地登记为读流派生量;V-2 条目数 **33→34** 同步 adr-024 / control-manifest)—— 原义务中的「ADR-009 §三 骨架补记」随 ADR-024 ② 降级消解;登记暴露 7a 折叠行不保留成长 ⇒ **新立 `OQ-7a-9`**(折叠豁免三案,不代拍),`TR-death-005` 改挂新缺口**不翻绿**;`AC-11-16` 双因缩至乙(`OQ-11-13` 仍 open)。② `next_player_id` 计数器条目(ADR-006 注记残留① ✅)+ 规则九「不独立快照玩家 id 计数器」(残留③ ✅);**残留② 45 铸造契约仍 open**(随 45 GDD 轮 + ADR-001 窄修订同批);39 契约③「单机 = 常量 0」就地订正为走发号。`TR-tutorial-008` note 补 registry 落点。落点 13 件:entities.yaml / adr-006 / adr-024 / control-manifest / skill-system / death-and-respawn / persistence-service / prescription-and-medication / casebook / systems-index / tr-registry(3 note)/ 本件 / requirements-traceability + technical-preferences |
 | 2026-09-21 | **第二十五批:D-R3 专门批次落盘(12 项零 TR 系统回填 · 用户排期指令)** | **ID 387 → 499(+112,append-only;既有 387 条逐字未动,`yaml.safe_load` 前缀比对守住)**。12 组 = 7a 11 / 7b 7 / 17 8 / 23 10 / 24 10 / 29 8 / 39 8 / 42 12 / 44 14 / 48 8 / 51 8 / 53 8(53 为 P1a 主,条目照登并注)。实测 **69 ✅ / 28 ⚠️ / 15 ❌** ⇒ 合计 **314 / 79 / 104 / ◆2**。⚠️ §7.1「① 类预计全 covered」被推翻(见 §D-R3 批次注)——禁借绿口径:「已裁但执行体/夹具/回写未落」一律 partial。三处 GDD↔ADR 回写不一致登记不代改;player_id 发号(casebook-002)实测全库零定义 = 新 gap;**ADR-001 客户端→主机意图通道的消费者成簇**(foraging-008 / casebook-004 / tutorial-006 加入 10 / 4 / 20 既有三处)⇒ 由单点欠账升级为 P1b 前硬前置(登记,不代拍)。落点:tr-registry +112 · 本件 §21–§32 + §汇总 12 行 + 合计 + 头部注 · review-2026-09-21 §7 D-R3 / §8 T-2 结案注 · RTM 件计数刷 |
-
+| 2026-09-21 | **第二十八批:42 修订轮(模态闭集增员 + 方笺模态裁定 · 用户裁定两项)** | **计数翻转 1 条:316/78 → 317/77**(ID 恒 499,`yaml.safe_load` 复算自洽)。① **`ModalId` 闭集 6 员 → 7 员** —— 新增 ⑦ `PaperCloseup48`(教学纸近景),`ADR-013 §十-B` **Amendment B** 为权威件;兑现 §十 预置残留(`IModalState` 接口写入 42 GDD 接口节 + 42→4 下游行)。`TR-skeuoui-009` **状态不变(已 ✅),requirement 文本「6 员」→「7 员」** + `revised:`。② **方笺 = 39 脉案「同一本书」**(复用 `Casebook` 档,不成新模态、不发相机意图)⇒ `OQ-11-7` / `OQ-11-9` 同批结案,`TR-prescription-014` **partial→covered**(条件式取「维持不请求」分支);2 的 `R-2-5` 表**零新增行**,11 行就地划为**排除行**并挂可证伪守卫(「任何给 11 补 `Casebook` 行的改动,须先另裁 `ADR-013 §十-B`」)。③ **戥子档位读数元件 = 黄铜侧**(用户裁定;42 元件库錾刻刻度 / 机械位移合法,**禁降级为数字角标 / `X/N`**,两栈皆禁组无例外)⇒ `AC-11-13` 前置解除(**可判 ≠ 已判,仍 NOT-RUN**)。⚠️ **两问同批结清且方向相反**:闭集增至 7 **与方笺无关** —— 各处落「勿混读」警示。**登记 `casebook.md:174` 假引据事件**(曾断言「11 侧 OQ-11-7 已裁」而该问 3 日零权威)⇒ `docs/consistency-failures.md`。**禁借绿三处**:`AC-42-F1` 七屏走查(⑦ 有 spec、①–⑥ 无)· `AC-11-13` · 无障碍近景实测。**本批零数值改动**(机制数值冻结)。落点 16 件:adr-013 · skeuomorphic-ui · prescription-and-medication · camera-and-viewpoint · casebook · paper-closeup-48 · interaction-patterns · accessibility-requirements · tutorial-and-onboarding · tr-registry(2 条)· 本件 · requirements-traceability · systems-index · technical-preferences · consistency-failures · session-state |

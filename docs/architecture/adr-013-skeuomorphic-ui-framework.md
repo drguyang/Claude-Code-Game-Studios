@@ -23,7 +23,8 @@ Accepted
 
 ## Last Verified
 
-2026-09-15
+2026-09-21(**Amendment B**:`ModalId` 第七员 `PaperCloseup48` 登记 + 方笺归 `Casebook` 判定;
+§一–§九 与 §十 的裁决面零改动 —— 本节只执行 §十 预置的枚举同步义务)
 
 ## Decision Makers
 
@@ -348,13 +349,14 @@ public static class PresentationDtoGuard
 // ── 模态开集只读契约(呈现层,零写侧;供 4 / 10 / 其他消费方读「是否有模态界面摊开」)──
 // 铁律:这是"读",不是"状态"。42 仍然"只渲染、永不持有游戏状态"(§9 C3)——
 //   Modal 成员的真源是"哪个界面当前可见",本就是 42 渲染职责内的量,不落游戏模拟态。
-public enum ModalId { None = 0, Casebook,          // ① 脉案 39
+public enum ModalId { None = 0, Casebook,          // ① 脉案 39(+ 方笺同页 —— 2026-09-21 裁定,见本节末 Amendment B)
                               SaveSlots,           // ② 存档位 7b
                               InventoryContainer,  // ③ 库存容器 20
                               SettingsShell,       // ④ 设置界面壳 42
-                              Tutorial,            // ⑤ 教学 48
-                              ClinicPanel }        // ⑥ 医馆面板 24
-// ⚠️ 成员集 = AC-42-F1 的"六屏闭集"的镜像,一处声明。新增第七屏须同步本枚举。
+                              Tutorial,            // ⑤ 教学 48(纸堆翻页走查屏)
+                              ClinicPanel,         // ⑥ 医馆面板 24
+                              PaperCloseup48 }     // ⑦ 教学纸近景(2026-09-21 Amendment B 增员)
+// ⚠️ 成员集 = AC-42-F1 的"七屏闭集"的镜像,一处声明。新增第八屏须同步本枚举。
 
 public interface IModalState
 {
@@ -376,6 +378,34 @@ public interface IModalState
 **残留义务落点**:`design/gdd/skeuomorphic-ui.md` 须把 `IModalState` 写进其接口节,
 并把 4 加为 42→4 的只读门下游(见该文件同日注)。**4 的 `AC-4-09` 在本契约落 `skeuomorphic-ui.md` 前记 `NOT-RUN`。**
 **Engine Knowledge Risk**:LOW(纯 C# 只读契约,不触及任何 post-cutoff API)。
+
+### 十-B、Amendment B(2026-09-21 · 42 修订轮 · 第二十八批 · 用户裁定两项)—— 闭集第七员 `PaperCloseup48` + 方笺归 `Casebook`
+
+> **本节是 Amendment,不重开 §一–§九 / §十 的任何裁决。它只执行 §十 预置的同步义务并澄清一员的语义边界。**
+
+**增员 `PaperCloseup48`(第七员)** —— 承 `OQ-48-4`(2026-09-19 已裁:教学纸 = 纯装饰不可拾,
+走近 → 42 近景模态,措辞即「闭集第七员」)+ gate 报告(2026-09-21)行 6 选页 +
+`design/ux/paper-closeup-48.md`(2026-09-21 `/ux-review` APPROVED,0 BLOCKING)。
+该页成文使 `AC-42-F1` 原「⑤ 教学界面(48)」的空主语落地(= `OQ-48-8` / `OQ-C1` 的执行体)。
+**成员 ⑤ `Tutorial` 与 ⑦ `PaperCloseup48` 并存不合并**:⑤ = 纸堆翻页走查屏(48 既有口径),
+⑦ = 世界内单张教学纸的近景模态 —— 合并等于改判 ⑤ 的既有含义,不允许。
+
+**方笺判定(第二裁)**:**方笺 = 39 脉案同一本书**,`Casebook` 员的语义扩至「脉案 + 方笺」,
+**不增枚举值、不开新模态**。三条理据:① 医学顺序即输入顺序(诊→脉案→方笺同册连写,承 8 侧
+S-8.4 路线甲「施治 = 方笺落笔」已把施治挂在脉案模态内);② 11 规则七自陈「剂量 = 戥子 / 药包,
+承 39 的『线订成叠』同款纪律」—— 载体同源;③ 零新裁决输入(复用 `Casebook` 相机档,
+2 的 `R-2-5` 档位表**不增行**,39 仍是该档唯一请求方 —— 11 的开方动作不发档位意图,
+`TR-prescription-014` 的「不请求」从**条件式默认态**升为**已裁终态**)。
+⇒ 11 侧 `OQ-11-7` / `OQ-11-9` 同批结清;`casebook.md` 原「`OQ-11-7` 已裁」的**未背书措辞**
+自此有裁可引(订正为引用本 Amendment)。
+
+**同步义务**(§十 约束 1 的兑现):`design/gdd/skeuomorphic-ui.md` `AC-42-F1` 闭集点名六 → 七;
+`design/accessibility-requirements.md` :83 归档行;`design/ux/interaction-patterns.md` P-02 状态行。
+**Enables**:`design/ux/paper-closeup-48.md` 的 AC 区自「预测量」转「可实测」(NOT-RUN 前置解除);
+11 的 `AC-11-13`(档位读数可辨性)自「义务未认领」转「可判」—— 同批裁定该元件落 **42 元件库黄铜侧**
+(錾刻刻度 / 机械位移 = 戥杆倾角;禁数字角标 —— 两栈皆禁组无例外;材质侧归属见 `skeuomorphic-ui.md`
+§Visual 二 注)。
+**Engine Knowledge Risk**:LOW(纯枚举成员 + 归属澄清,不触及任何 post-cutoff API)。
 
 
 ## Alternatives Considered

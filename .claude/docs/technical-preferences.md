@@ -323,6 +323,18 @@
   (落地 = `PresentationDtoGuard` **递归**反射扫描,AC-37-15)。
   Engine Knowledge Risk **HIGH**(焦点桥 / world-space / UI Toolkit 自定义材质 / 图集 / 无障碍均须 spike;
   报告 §6.6 假设 6「UI Toolkit 运行时手柄焦点导航可用」= ⚠️ 半可信,原型 spike 为前置)。
+  **⚠️ 2026-09-18 Amendment A(日志补记 —— 本条目此前只登了三条初裁,漏刷该 Amendment 本身)**:
+  新立「模态开集」只读契约 **`IModalState` + `ModalId` 闭集**(供 4 / 10 读「是否有模态界面摊开」;
+  由 #4 首轮 `/design-review` 的用户裁定 D 提出)。**不重开 §一–§九 任何裁决**。
+  **⚠️ 2026-09-21 Amendment B(第二十八批「42 修订轮」· 用户裁定两项 = 方笺 + 戥子;增员是执行
+  §十 预置义务,非第三裁)**:① **`ModalId` 闭集 6 员 → 7 员**
+  —— 增 ⑦ `PaperCloseup48`(教学纸近景,`design/ux/paper-closeup-48.md` 主语),`AC-42-F1` 点名文本同步;
+  本批只执行 §十 预置的枚举同步义务,**不重开 §十**。② **方笺 = 39 脉案「同一本书」**(复用 `Casebook` 档,
+  不成新模态、不发相机意图;2 的 `R-2-5` 档位表零新增行,11 行转**排除行**并挂可证伪守卫)⇒ `OQ-11-7` /
+  `OQ-11-9` 结案,`TR-prescription-014` partial→covered。③ **戥子档位读数元件 = 黄铜侧**(42 元件库;
+  禁降级数字角标,两栈皆禁组无例外)⇒ `AC-11-13` 转可判(**仍 NOT-RUN,禁借绿**)。
+  ⚠️ **两问同批结清且方向相反**:闭集增至 7 **与方笺无关**(方笺裁定 = 不增员)—— 各处已落「勿混读」警示。
+  残留:①–⑥ 六屏仍无 per-screen UX spec ⇒ `AC-42-F1` 走查整体 `NOT-RUN`。Engine Knowledge Risk **LOW**(本 Amendment 纯枚举与归属)。
 
 - [ADR-014 ✅ Accepted 2026-09-15]**数据管线与 JSON 解析器(作者态外部化 · 构建期烘焙 · 两阶段工具链)** ——
   `docs/architecture/adr-014-data-pipeline-and-json-parser.md`。

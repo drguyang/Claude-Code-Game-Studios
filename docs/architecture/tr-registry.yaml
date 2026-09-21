@@ -3355,8 +3355,9 @@
     requirement: "11 不请求相机档位(开方不是『动手』的动作);若需近景须回 2 补表行,不由 11 自行发意图"
     domain: Core
     adr: ADR-020
-    status: partial
-    note: "规则十二。承 2 的 R-2-5 档位驱动表 + ADR-020 §五/§六。⚠️ **2026-09-19 二轮订正**:2 的档位表**当前无 11 行**(`camera-and-viewpoint.md:161-171` 是「待裁」占位)⇒ 本条的「不请求」是**默认态**,**取决于 `OQ-11-7` / `OQ-11-9`**(方笺 = 39 同一本书 ⇒ 维持;= 另一件器物 ⇒ **须回 2 补一行**,届时本行改写)。做成 Treatment 会与 10 的形状混淆。⇒ 由 covered 降为 partial(条件式)。"
+    status: covered
+    revised: 2026-09-21
+    note: "规则十二。承 2 的 R-2-5 档位驱动表 + ADR-020 §五/§六。⚠️ **2026-09-19 二轮订正**:2 的档位表**当前无 11 行** ⇒ 本条的「不请求」是**默认态**,**取决于 `OQ-11-7` / `OQ-11-9`**。⭑ **2026-09-21 第二十八批「42 修订轮」(用户裁定,ADR-013 §十-B)**:OQ-11-7/11-9 已裁 = **方笺是 39 脉案同一本书** ⇒ 走「维持」分支,「不请求」自条件式默认态升为**已裁终态**;2 的档位表**不增行**(该表原条件式占位行转为具名除外行)。⇒ partial 升回 covered(2026-09-19 因条件式降级,今条件已结,且结在「本条不增依赖」的分支上)。做成 Treatment 会与 10 的形状混淆(原注保留:该混淆是当初排除第三分支的理由)。"
 
   - id: TR-prescription-015
     system: prescription-and-medication
@@ -4316,11 +4317,12 @@
   - id: TR-skeuoui-009
     system: skeuomorphic-ui
     gdd: design/gdd/skeuomorphic-ui.md
-    requirement: "IModalState 契约:模态闭集(6 员)与栈语义"
+    requirement: "IModalState 契约:模态闭集(7 员,2026-09-21 起)与栈语义"
     domain: Presentation
     adr: ADR-013
     status: covered
-    note: "D-R3 回填(2026-09-21)。ADR-013 §十。注:方笺第七模态(OQ-48-8/OQ-C1)待 42 修订轮——闭集扩容须回裁本节。"
+    revised: 2026-09-21
+    note: "D-R3 回填(2026-09-21)。ADR-013 §十。**⭑ 2026-09-21 第二十八批「42 修订轮」(用户裁定,ADR-013 §十-B)**:闭集扩容已兑现 —— 六→**七员**(`ModalId.PaperCloseup48`),GDD 侧接口逐字已落(规则十四)+ AC-42-F1 点名回写完成;原注的「方笺第七模态待 42 修订轮」**两问均结清且方向相反** —— 方笺裁定为 39 同一本书,**不**增员,增员者是教学纸近景。OQ-48-8 / OQ-C1 结案。status 维持 covered(扩容前该项已被 §十 覆盖,扩容只改成员集不改契约形状)。"
   - id: TR-skeuoui-010
     system: skeuomorphic-ui
     gdd: design/gdd/skeuomorphic-ui.md

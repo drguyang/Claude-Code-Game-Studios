@@ -5,7 +5,15 @@
 > Coverage: **0%** full chain complete (GDD → ADR → Story → Test)—— 非缺件,是阶段事实
 > Engine: Unity 6.3 LTS
 > 登记处(数据权威):`docs/architecture/tr-registry.yaml`(499 条,`status:` 字段为计数真源)
-> 人读矩阵:`docs/architecture/traceability-index.md`(GDD → ADR 两级;**316 ✅ / 78 ⚠️ / 103 ❌ / ◆2 no-adr-by-design** —— 2026-09-21 第二十六批回写后实测;D-R3 批次后值 314/79/104;更早 245/51/89 系分母不含 12 项零 TR 系统的偏高口径)
+> 人读矩阵:`docs/architecture/traceability-index.md`(GDD → ADR 两级;**317 ✅ / 77 ⚠️ / 103 ❌ / ◆2 no-adr-by-design** —— 2026-09-21 第二十八批翻转后实测;第二十六批值 316/78/103;D-R3 批次后值 314/79/104;更早 245/51/89 系分母不含 12 项零 TR 系统的偏高口径)
+>
+> **2026-09-21 更新(第二十八批 —— 42 修订轮:`ModalId` 闭集 6→7 员 + 方笺模态裁定)**
+> —— **317/77/103/◆2**:`TR-prescription-014` **partial→covered**(`OQ-11-7`/`OQ-11-9` 结案,方笺 = 39 脉案
+> 「同一本书」,取「维持不请求相机档位」分支);`TR-skeuoui-009` 状态不变(已 ✅),仅 requirement 文本
+> 「6 员」→「7 员」+ `revised:`(第 7 员 = ⑦ `PaperCloseup48`,承 `ADR-013 §十-B` Amendment B)。
+> ⚠️ 两问同批结清且**方向相反** —— 闭集增至 7 **与方笺无关**,方笺裁定为「不增员」。ID 恒 499。
+> 同批登记 `casebook.md:174` 假引据事件 ⇒ `docs/consistency-failures.md`。禁借绿:`AC-42-F1` 七屏走查 /
+> `AC-11-13` / 无障碍近景实测均仍 NOT-RUN。
 >
 > **2026-09-21 更新(第二十七批 —— ADR-024 补齐轮:SkillGrown Kind + next_player_id 双项登记)**
 > —— **计数零变动**(499 / 316 / 78 / 103 / ◆2);registry 两条新行不占 TR ID;
@@ -38,7 +46,7 @@
 |--------|---------|-----------|
 | TR-ID | Stable requirement ID from tr-registry.yaml | ✅ 499 条已登记 |
 | GDD | Source design document | ✅ 见 index 逐行 |
-| ADR | Architectural decision governing implementation | ⚠️ 316 covered / 78 partial / **103 gap**(另 2 条 ◆ `no-adr-by-design`,2026-09-21 起为第四态,不计缺口)|
+| ADR | Architectural decision governing implementation | ⚠️ 317 covered / 77 partial / **103 gap**(另 2 条 ◆ `no-adr-by-design`,2026-09-21 起为第四态,不计缺口)|
 | Story | Story file that implements this requirement | ❌ `production/epics/` 不存在 |
 | Test File | Automated test file path | ❌ 仅 1 个种子测试,且未与任何 TR 绑定 |
 | Test Status | COVERED / MISSING / NONE / NO STORY | 全量 = **NO STORY** |
@@ -61,14 +69,14 @@
 |--------|-------|---|-----------------|
 | COVERED — full chain complete | 0 | 0% | 本文件(Story 段不存在) |
 | MISSING test — story exists, no test | 0 | 0% | 同上 |
-| NO STORY — ADR exists, not yet implemented | 316 | 63.3% | registry `status: covered` 计数 |
+| NO STORY — ADR exists, not yet implemented | 317 | 63.5% | registry `status: covered` 计数(第二十八批 `TR-prescription-014` partial→covered)|
 | NO ADR — architectural gap | 103 | 20.6% | registry `status: gap` 计数(D-R3 回填 +15;第二十六批 `TR-casebook-002` gap→partial;2026-09-21 曾由 91 减 ◆2)|
 | NO ADR BY DESIGN — 范围 / 政策声明,结构上无裁决可挂 | 2 | 0.5% | registry `status: no-adr-by-design` 计数 —— **不计入缺口**;判据见 `traceability-index.md` 读法表 ◆ 行 |
-| PARTIAL(链已断在 ADR 段)| 78 | 15.6% | registry `status: partial` 计数(D-R3 回填 +28;第二十六批 −3/+1)|
+| PARTIAL(链已断在 ADR 段)| 77 | 15.4% | registry `status: partial` 计数(D-R3 回填 +28;第二十六批 −3/+1;第二十八批 −1)|
 | **Total requirements** | **499** | **100%** | `tr-registry.yaml` |
 
 > 计数口径:对 registry 的 `status:` 字段直接 `yaml.safe_load` 计数,与
-> `traceability-index.md` §汇总「合计」行一致(**316 + 78 + 103 + ◆2 = 499**;2026-09-21 起四态,第二十六批回写后值)。
+> `traceability-index.md` §汇总「合计」行一致(**317 + 77 + 103 + ◆2 = 499**;2026-09-21 起四态,第二十八批翻转后值)。
 > ⚠️ **2026-09-20 `/architecture-review` 复跑时发现本文件 §Coverage Summary 的六处计数漏刷**(仍为回写轮前的
 > 243/93)—— 已就地订正为 registry 实测值。Failure mode = 「同一文件内改了 §Uncovered 而没改 §Summary」,
 > 与 `consistency-failures.md` 2026-09-20 批次二的「正文状态断言稳定滞后」同型。
