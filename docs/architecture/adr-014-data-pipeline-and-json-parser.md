@@ -170,6 +170,12 @@ deterministic 的烘焙产物**,`Fix` 字段落盘为 raw `long`;**玩家构建�
 **阶段 1 —— 作者文本 → token 流(词法)**:`com.unity.nuget.newtonsoft-json` 的 `JsonTextReader`。
 **只做 tokenize,不做对象反序列化。**
 
+- **词法器默认值 pin(2026-09-21 · 承 `architecture-review-2026-09-20.md` RC-7)**:
+  构造 `JsonTextReader` 时**必须显式设 `DateParseHandling = None` 与 `FloatParseHandling = None`**
+  —— Newtonsoft 在 `DateParseHandling` 非 None 时会把**看起来像日期的字符串 token**(如 `"3/4"`)
+  转成 `DateTime` ⇒ `Fix` 字段原文被改写;`FloatParseHandling` 决定数字 token 落 `long` / `double` /
+  `decimal`。两条改为**硬要求**(§Implementation Guidelines 补充),并配**负向夹具**:`"3/4"` 被当日期 /
+  数字 token 落在 float 路径的夹具断言**烘焙期硬失败**。
 - **禁用 `JsonConvert.DeserializeObject<T>` / `JObject.Parse` 等对象反序列化 API** ——
   它们把 JSON 数字经 `double` / `decimal` 中转后填入对象,是一条约 `FixParse` 的**静默浮点泄漏通道**,
   与 ADR-006 §一 直接相冲。**该禁令由一条 grep / IL 守卫守住**(见 §Validation)。
@@ -357,11 +363,13 @@ deterministic 的烘焙产物**,`Fix` 字段落盘为 raw `long`;**玩家构建�
 - [ ] **ordinal 映射表 append-only 硬门**(2026-09-17 新增):构造一个「改既有条目号 / 改义 / 复用号」
       的夹具 ⇒ **构建期硬失败**;构造「只追加新号」的夹具 ⇒ 通过,且 `ConfigVersion` 变、旧档仍可加载。
 - [ ] **`case_judgment_lexicon` 非一一对应校验**:构造一张与 `disease_registry` 一一对应的词表 ⇒ 构建期硬失败。
+- [ ] **词法器默认值 pin(2026-09-21 承 RC-7)**:负向夹具 —— `"3/4"` 被 `DateParseHandling` 当日期改写 ⇒ 硬失败;数字 token 落 float 路径 ⇒ 硬失败
 
 ## Implementation Guidelines
 
 1. **烘焙工具**落 `tools/asset-pipeline/`(目录结构规约);以编辑器菜单命令 + `AssetPostprocessor` 触发;
-2. 词法器**只**用 `JsonTextReader`;对象反序列化 API 全禁;
+2. 词法器**只**用 `JsonTextReader`;对象反序列化 API 全禁;构造 `JsonTextReader` 时**必须显式设
+   `DateParseHandling = None` 与 `FloatParseHandling = None`(2026-09-21 承 RC-7)**;
 3. **`Fix` 承载字段在 JSON 里写字符串**;`int` 计数字段写 JSON 数字;
 4. **一个逻辑数据集一个产物**(`item_database.cooked` / `random_events.cooked` / …);
 5. 边界程序集实现 `IDataProvider`,把已解析领域数据交给 sim(ADR-005 门 A:sim 不碰 Addressables);

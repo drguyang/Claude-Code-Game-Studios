@@ -11,7 +11,7 @@ Accepted
 > + 全体平台同时重签,旧版保留回归对比)。
 > 引擎侧经 unity-specialist lean 复核(2026-09-15):**无引擎侧 blocker**;结论并入 §Risks
 > (F1 双构建 job · F2 ARM64 交叉构建 / qemu 否决 · F3 旗标 per-target 登记 · F4 单元级对拍进 player ·
-> F5 SHA256 非漂移源 · F6 夹具双投递 · **F7 BLOCKING spike:int64 回绕 vs IL2CPP C++ 溢出 UB** ·
+> F5 SHA256 非漂移源 · F6 夹具双投递 · **F7 表示选择(int64→ulong,2026-09-21 承 RC-4 降级)** ·
 > F8 Apple Silicon 发版前验证)。
 > 独立评审由下一轮 `/architecture-review` 进行。
 
@@ -48,7 +48,7 @@ TR(`TR-disease-015/016`、`TR-itemdb-022`、`TR-diag-018`)全部 `partial`(报�
 | **Knowledge Risk** | **HIGH** —— 矩阵实现(game-ci Docker 镜像 / IL2CPP 交叉构建 / ARM64 runner / `SetAdditionalIl2CppArgs` / int64 回绕在 clang 各 `-O` 级的行为)均属 post-cutoff 知识,须 spike 实测;本裁决的**判据**(黄金哈希逐位相同)为纯规格,不受影响 |
 | **References Consulted** | `docs/engine-reference/unity/VERSION.md` · `architecture-review-2026-09-15.md`(R-5 · B-9 · E-4 · E-8) · `adr-005-deterministic-sim.md` · `adr-006-fixed-point-boundary-contract.md` · `adr-009-world-state-event-boundary.md` · `adr-010-persistence-save-format.md` · `.claude/docs/coding-standards.md`(CI/CD Rules) |
 | **Post-Cutoff APIs Used** | **None 承诺** —— 矩阵用稳定机制(game-ci / BuildTarget / PlayerSettings),具体参数语义(如 `--compiler-flags=`)标「须 spike」实测后锁定 |
-| **Verification Required** | ① **BLOCKING spike(F7)**:C# `int64` 溢出为定义性回绕,IL2CPP 生成的 C++ 有符号溢出为 **UB**;`SplitMix64`(`z *= 0x9E3779B97F4A7C15`)与 Q16.16 hi/lo 中间乘**正踩此线** —— 须实测 IL2CPP clang 各 `-O` 级下回绕逐位一致,这是黄金夹具**第一条**要守的;② **F2 spike**:x86-64 runner 交叉构建 ARM64 IL2CPP player → 原生 ARM64 runner 只跑 player,验证链路可用性;③ **F1 spike**:`unity-builder@v4` 出 IL2CPP player + Docker 镜像(`unityci/editor:ubuntu-*-linux-il2cpp-*`)可行性;④ `SetAdditionalIl2CppArgs --compiler-flags=` 语义实测(反汇编验无 FMA) |
+| **Verification Required** | ① **F7 表示选择(原 BLOCKING spike,2026-09-21 降级)**:C# `int64` 溢出为定义性回绕,IL2CPP 生成的 C++ 有符号溢出为 **UB**;`SplitMix64`(`z *= 0x9E3779B97F4A7C15`)与 Q16.16 hi/lo 中间乘**正踩此线** —— 承 `architecture-review-2026-09-20.md` RC-4:**无符号整数的溢出在 C# 与 C++ 两侧都是定义性回绕(mod 2ⁿ)** ⇒ 把 `SplitMix64` 内部状态与 Q16.16 中间乘积改住 `ulong`(必要时 `unchecked`),**UB 从「须实测确认不发生」变成「结构上不存在」**,F7 降级为一条 EditMode 断言(`SplitMix64` 已知向量对拍)。⚠️ 改 `ulong` 只消解 UB 一项,**不消解**「Mono 与 IL2CPP 逐位一致」的其余待实测项 —— 黄金矩阵照旧要跑(对应单元级对拍仍验 `ulong` 回绕向量);② **F2 spike**:x86-64 runner 交叉构建 ARM64 IL2CPP player → 原生 ARM64 runner 只跑 player,验证链路可用性;③ **F1 spike**:`unity-builder@v4` 出 IL2CPP player + Docker 镜像(`unityci/editor:ubuntu-*-linux-il2cpp-*`)可行性;④ `SetAdditionalIl2CppArgs --compiler-flags=` 语义实测(反汇编验无 FMA) |
 
 > **Note**: Knowledge Risk HIGH —— 引擎升级(尤其 IL2CPP C++ 生成器 / clang 版本)时须重跑矩阵,不能只看文档。
 
@@ -250,10 +250,11 @@ public interface IPerTargetIl2CppArgs : IPreprocessBuildWithReport
 
 ### Implementation Guidelines
 
-1. **先建 BLOCKING spike(F7)**:C# `int64` 溢出为**定义性回绕**,IL2CPP 生成的 C++ 有符号溢出为
-   **UB** —— `SplitMix64`(`z *= 0x9E3779B97F4A7C15`)与 Q16.16 hi/lo 中间乘正踩此线。须实测
-   IL2CPP clang 各 `-O` 级下回绕逐位一致,并**把该用例设为单元级黄金哈希第一条**。spike 不过
-   ⇒ 记录具体平台/优化级别差异,回 ADR-005 补 `unchecked` 语义注记或改实现。
+1. **表示选择(原 BLOCKING spike F7,2026-09-21 承 RC-4 降级)**:`SplitMix64` 内部状态与
+   Q16.16 hi/lo 中间乘积改住 **`ulong`**(必要时 `unchecked`)⇐ C# 与 C++ 两侧对无符号溢出都是
+   定义性回绕(mod 2ⁿ)⇒ **IL2CPP 有符号溢出 UB 结构性消除**。**F7 不再卡任何前置** —— 降级为
+   一条 EditMode 断言(`SplitMix64` 已知向量对拍,**回绕用例 = 单元级黄金哈希第一条**,`ulong`
+   向量照旧入库)。⚠️ 黄金矩阵其余待实测项(Mono vs IL2CPP 逐位一致)**不受本降级影响**,照跑。
 2. **再建集成级字节对拍**:复用 ADR-010 存档格式,无头 IL2CPP player 产字节流,CI 读回对拍。
 3. **矩阵按 §二 落 `.github/workflows/tests.yml`**(归 `/test-setup` 实现,本 ADR 定判据)。
 4. **旗标登记表落地**:per-target 表 + `IPreprocessBuildWithReport` 切换 + PR 审查。
@@ -305,8 +306,9 @@ public interface IPerTargetIl2CppArgs : IPreprocessBuildWithReport
 
 - **矩阵实现成本**:unity-builder 双 job / Docker 镜像 / 交叉构建链路 / 无头 player 对拍 ——
   比单 runner EditMode 测试重得多
-- **F7 悬而未决**:int64 回绕 vs IL2CPP C++ UB 的实测是 BLOCKING spike,结论未出前
-  IL2CPP 格的黄金对拍不可信
+- ~~**F7 悬而未决**:int64 回绕 vs IL2CPP C++ UB 的实测是 BLOCKING spike,结论未出前
+  IL2CPP 格的黄金对拍不可信~~ (**2026-09-21 承 RC-4:已由 `ulong` 表示选择结构性消除**;
+  黄金矩阵照旧要跑,其余逐位待实测项不受影响)
 - **发版前必跑两格计费**(Windows + Apple Silicon)—— 有成本,但只在发版窗口
 - **夹具维护成本**:公式变更要走刷新流程,不再是「改完就绿」
 
@@ -319,7 +321,7 @@ public interface IPerTargetIl2CppArgs : IPreprocessBuildWithReport
 
 | Risk | Probability | Impact | Mitigation |
 | --- | --- | --- | --- |
-| **int64 回绕在 IL2CPP 各 `-O` 级下漂移**(C# 定义性回绕 vs C++ 有符号溢出 UB)| 中 | **高** | BLOCKING spike(F7)先建;黄金哈希第一条 = 回绕用例;spike 不过回 ADR-005 补 `unchecked` 语义注记或改实现 |
+| **int64 回绕在 IL2CPP 各 `-O` 级下漂移**(C# 定义性回绕 vs C++ 有符号溢出 UB)| 中 | **高** | **已消除(2026-09-21 承 RC-4)**:内部表示改 `ulong` / `unchecked`,两侧同为定义性回绕 ⇒ UB 结构性不存在;残余风险降为「其余逐位待实测项」,由黄金矩阵照跑覆盖 |
 | **ARM64 交叉构建链路不可用**(Unity 无 Linux-ARM64 原生 Editor)| 中 | **高** | x86-64 交叉构建 → 原生 ARM64 runner 只跑 player(F2);qemu 否决,备选 = ARM64 格降级为发版前验证 |
 | **game-ci 工具链与 6.3 不匹配**(Docker 镜像 / builder 版本)| 中 | 中 | `unityci/editor:ubuntu-*-linux-il2cpp-*` + spike 锁定镜像 tag;CI 配置早建早验证(F1) |
 | **`SetAdditionalIl2CppArgs --compiler-flags=` 语义不符预期** | 中 | 中 | `il2cpp` rsp/日志反查 + 反汇编验无 FMA(F3);语义实测后锁进登记表 |
@@ -342,7 +344,9 @@ public interface IPerTargetIl2CppArgs : IPreprocessBuildWithReport
 
 **本项目尚无 tests/ 与 CI —— 无迁移,本 ADR 是「第一次就做对」。(同 ADR-005/010/011)**
 
-1. **BLOCKING spike(F7)**:int64 回绕 vs IL2CPP clang 各 `-O` 级 —— 结论定 IL2CPP 格的可信度。
+1. **表示选择(原 BLOCKING spike F7,2026-09-21 承 RC-4 降级)**:`SplitMix64` / Q16.16 中间乘改住
+   `ulong`(必要时 `unchecked`),单条 EditMode 断言(已知向量对拍)替代 IL2CPP 溢出实测 —— 结论
+   = 不依赖编译器善意的结构解,与 ADR-005/006 取向一致。
 2. **建 tests/ 骨架 + 单元级黄金哈希**(EditMode 先绿,Mono 格)。
 3. **建集成级字节对拍**(ADR-010 存档格式,无头 player 产字节流)。
 4. **矩阵落 `.github/workflows/tests.yml`**(unity-test-runner + unity-builder 双 job + 交叉构建)。
@@ -355,8 +359,8 @@ public interface IPerTargetIl2CppArgs : IPreprocessBuildWithReport
 
 ## Validation Criteria
 
-- [ ] **F7 BLOCKING spike 通过**:IL2CPP clang 各 `-O` 级下 int64 回绕(SplitMix64 / Q16.16 中间乘)
-      逐位一致;回绕用例 = 单元级黄金哈希第一条
+- [ ] **F7 表示选择落地(2026-09-21 承 RC-4 降级)**:`SplitMix64` / Q16.16 内部表示 = `ulong`
+      (必要时 `unchecked`);回绕用例(已知向量)= 单元级黄金哈希第一条,EditMode 对拍通过
 - [ ] **单元级黄金哈希三格全绿**:Fix 四则 / 负值右移 / 负值除法向零截断 / 定点 Exp / SplitMix64 /
       CDF walk / 编码器往返 / `ROUND_HALF_AWAY_FROM_ZERO` 负值 —— Mono / IL2CPP-x64 /
       IL2CPP-ARM64 逐位相同

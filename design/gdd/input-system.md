@@ -1306,8 +1306,10 @@ overrides 装载结果(hit / mismatch-cleared)。条件三条:
   手柄走查(43 落地于 P1a ⇒ 本条在**该阶段**签核,**P0 不适用**;同 `AC-3-B1b` 的「设计门 / 发版前」分级先例)。
 
 > **判据标准(F1a / F1b 共用)= `technical-preferences.md:32-33` + `AC-8-43/44`**
-> —— **不用 `design/ux/accessibility-requirements.md`**(复审修正:该路径**不存在**;
-> `adr-013:276` 与 `design/CLAUDE.md` 各指一个**同样不存在**的路径)。
+> —— **不用 `design/ux/accessibility-requirements.md`**(复审修正:该路径**不存在且不应存在**;
+> `adr-013:276` 与 `design/CLAUDE.md` 曾各指一个同样不存在的路径 ——
+> **2026-09-20 处置**:`design/CLAUDE.md` 已就地订正为根 `design/accessibility-requirements.md`(已成文);
+> `adr-013:276` 的回写归 `/architecture-review`(ADR 正文不由本件代改)。判据仍**只引** `technical-preferences.md:32-33` + `AC-8-43/44`,不引入新依赖)。
 > **归属 42(呈现)+ 48(教学)**,3 **只交付键名**,不承担本门。
 > **证据类型提示**:① 属 Visual/Feel 类 ⇒ 按项目证据表为 **ADVISORY**(截图 + 签核);
 > **本条整体仍标 BLOCKING** —— 它是用户裁定④「强制执行」的落点,且 ② 是**可机械走查**的。

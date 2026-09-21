@@ -240,6 +240,8 @@ PatientId Source(可为 None), bool Looped }`。无 `disease_id`;无 float。
 > ① **`Tier` 字段移除** —— 见下方 §Formulas F-44.1 注:档位是**设备级**的(`SetTier`),
 > 一个 `AudioMixer` 组是**全局共享**的,逐 cue 带 `Tier` 会让不同档的声源互相踩滤波。
 > ② **DTO 与 `IAudioCueSink` 住独立契约程序集(仅 BCL)** —— 原 `AudioCueDto` 承载
+> <!-- ⚠️ 2026-09-20 ADR-025 回写加注:「独立契约程序集」称谓作废,现名 = `Sim.Contracts`
+>      (AudioCueDto + IAudioCueSink 在 ADR-025 §① 成员列内)。本行「仅 BCL」判据不变。 -->
 > `WorldPos` / `PatientId`。若这些类型住 sim 程序集,则 44 引用它们即**违反 AC-44-B1**;
 > GDD 从未说明它们住哪。**定型**:契约程序集只依赖 BCL,字段用原语(`int3` / `int`);
 > sim → 契约的类型映射由上游在边界处完成。AC-44-B1 的判据同步从 **grep 升级为 asmdef 引用白名单断言**。

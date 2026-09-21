@@ -201,6 +201,10 @@ GDD 42 的 §Formulas F4 已就地重写(三层口径:相机内 / 跨域二值 /
   UI Toolkit 的 `NavigationMoveEvent`;`PanelEventHandler` 随 `UIDocument` 自动挂(F1)。
 - **焦点移动是引擎自动**(F2):官方桥接通后,方向键 / 摇杆的焦点移动由 UI Toolkit
   `FocusController` 消费 `NavigationMoveEvent` + 空间选邻居**自动完成**;R-6 **不重复实现焦点算法**。
+  **约束面收窄(2026-09-21 · 承 `architecture-review-2026-09-20.md` RC-1)**:本条约束的**对象 =
+  42 的对外契约面**(不导出「邻居枚举 / 方向投影 / 几何查询」类入口),**不是**「42 内部不得有
+  焦点算法代码」—— 降级期自实现焦点算法受 `AC-42-B4` 类型面断言约束(42 侧收窄已存在,
+  `skeuomorphic-ui.md` §AC-42-B4;本条随其对齐,非新裁决)。
 - **禁同键双触发**(ADR-011 F1 / 本 ADR F4):三种引擎侧冲突源 —— ① 同一控件(D-pad / 左摇杆)
   同时绑 Input System 默认 **`UI` action map 的 `Navigate`** 与自建焦点动作;
   ② 同 EventSystem 并存 `InputSystemUIInputModule` + `StandaloneInputModule` 或双 EventSystem;

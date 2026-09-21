@@ -25,11 +25,20 @@ Format: **Don't use X** → **Use Y instead**
 
 | Deprecated | Replacement | Notes |
 |------------|-------------|-------|
-| `Canvas` (UGUI) | `UIDocument` (UI Toolkit) | UI Toolkit is now production-ready |
-| `Text` component | `TextMeshPro` or UI Toolkit `Label` | Better rendering, fewer draw calls |
+| `Canvas` (UGUI) 作为**唯一 / 首选映射** | `UIDocument` (UI Toolkit) 为平面 UI 主栈 | UI Toolkit 已是生产就绪;本项目的平面拟物 UI 全走 UI Toolkit |
+| `Text` component | `TextMeshPro` 或 UI Toolkit `Label` | Better rendering, fewer draw calls |
 | `Image` component | UI Toolkit `VisualElement` with background | More flexible styling |
 
 **Migration:** UGUI still works, but UI Toolkit is recommended for new projects.
+
+> **⚠️ 2026-09-21 口径回写(承 `adr-013-skeuomorphic-ui-framework.md` 已 Accepted 裁决)** ——
+> 上一行按 ADR-013 修订为:本项目 **UGUI 不是「待迁移」而是 P0 第二栈** ——
+> **UI Toolkit 为主 + UGUI 补 world-space / XR**:世界锚点 UI(敌人读数条 = P0 最小实现)与
+> **VR 急救 UI 走 UGUI world canvas**(VR 必须 World Space,ADR-020 / ADR-013)。判定「弃用 /
+> 推荐迁移」的语境**不适用于本项目两栈决策**;两栈语义对齐(同一拟物元件库)。本文件作为引擎参考,
+> 原先把 UGUI 只写成「仍支持但新项目建议 UI Toolkit」,与本项目 ADR-013 的**两栈裁决**冲突 —— 此处
+> 回写为踩在该裁决上的口径,非新裁决(参考件未跟进已裁定裁决 = 登记滞后的修法)。
+> **只影响本项目筛选器;非本项目的通用迁移建议保留。**
 
 ---
 

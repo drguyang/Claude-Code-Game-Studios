@@ -930,7 +930,7 @@ CaseDiseases(c) := c 的病程区间 overlap 到的病种集(快照于结案 →
 > **⚠️ 2026-09-17 新增:非视觉等价(accessibility 提)。** 上表四行全是**视觉 / 拟物**手段,
 > 而 42 的 UI Toolkit 栈须同时支持**键鼠与手柄焦点导航**(ADR-011 · ADR-013)。两条义务:
 > 1. **串接组须有可被朗读的名称** —— 屏读用户无法「看出线订」;
->    P0 屏读范围见 `design/ux/accessibility-requirements.md`(**该文件不存在 ⇒ 记 `NOT-RUN`**)。
+>    P0 屏读范围见 `design/accessibility-requirements.md`(⚠️ 原引 `design/ux/` 误载路径;**2026-09-20 该文件已成文 ⇒ 屏读承诺 = Out of Scope**(PC 读屏不承诺,Standard 档)⇒ 本条的 `NOT-RUN` **改判为「已裁:不承诺」**,非「待文」。串接组的**可朗读名称**义务本身保留(它是 AC-37-15 之外的独立文档判据)。
 > 2. **手柄焦点序** —— 串接组内的多页须有**确定的焦点顺序**(拟物上是「从上到下翻」),
 >    且该顺序**就是** `SortKey`(`(patient_id, CaseOpened 的 (Tick, Seq))`)——
 >    **不得**另立一套导航序。焦点归属的**实现**归 42(`NavigationMoveEvent` + `FocusController`),

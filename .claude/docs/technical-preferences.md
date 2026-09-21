@@ -529,13 +529,76 @@
   Engine Knowledge Risk **MEDIUM**(**工具实现面** Terrain / `com.unity.ai.navigation` 6.3 API 须实测;
   **裁决本身**为纯数据边界规格,**LOW** —— 且工具**不进构建**,其 API 面**不污染出货**)。
 
-> **本日志状态**:全部 ADR(001–**022**)均有日志条目。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
+- [ADR-023 ✅ Accepted(附条件)2026-09-20]**渲染与场景加载策略(三场景拓扑 · 拆序六步 · 零
+  gameplay 对象铁律)** —— `docs/architecture/adr-023-scene-lifecycle-rendering.md`。
+  **Required ADR #1 的兑现件**(TD 条件 C2 的 #1 半边)。病因:19→22 份 ADR 对场景生命周期
+  **零字**,`architecture.md` §3.4 的 [0]/[7] 两步自 v1.0 标 🔴。裁定:① **三场景制**
+  (`Boot.unity` 常驻含相机 + `AudioListener` + tick driver / `MainMenu` / `World` additive,
+  **永不用 `LoadSceneMode.Single`**);② `World.unity` **零 gameplay GameObject**(逻辑层是烘焙
+  数据,ADR-015 —— 预摆 = 第二真源;构建期 `throw` 级扫描,Tooling 层);⑤ **拆序六步**(停
+  `Step` → 落盘 flush → `ReleaseInstance` 全部 → `Release` handle → `UnloadSceneAsync` →
+  **断言登记簿空**)= 根因是 `Addressables.UnloadSceneAsync` **不销毁** `InstantiateAsync`
+  产物,不强制则**每次读档漏一个世界**;⑥ **运行期 chunk 激活权 = 系统 6**(只读 `ActorCellEntered`
+  的格,不读表现态位置 ⇒ 激活是派生态不进流);⑦ 读档后连续位置 = 格锚点 + **确定性格内偏移**
+  (BCL 整数哈希,不引入第二随机源);⑧ P0 **零 custom Renderer Feature** + 触发条款(ADR-013
+  §6.6 假设 6 spike 失败时按新签名 `RecordRenderGraph` 另开 ADR 才可引入)。
+  **附条件的定义(用户裁定口径)**:S1–S4 spike 回填是**实现故事的前置**,**不是裁决的效力条件**
+  —— S3 被推翻则第 6 步断言零成本保留、不改判;S1/S4 不可接受则按 Alternatives 另开修订。
+  **S1–S7 逐条未跑,§Validation 表内全部未勾(禁借绿)。** Engine Knowledge Risk **HIGH**
+  (RenderGraph / Addressables 6.2+ 行为均 post-cutoff;本件刻意只引用已登记形状)。
+
+- [ADR-024 ✅ Accepted 2026-09-20]**三流 `Kind` 单一登记真源 + 构建期校验体系** ——
+  `docs/architecture/adr-024-kind-single-source.md`。**Required ADR #3 的兑现件**(TD 条件 C3)。
+  病因(两轮集合作用**可复算**):`IEventSink.Append` 的路由是「Kind→StreamId 纯函数白名单,
+  列表外构建期拒绝」,但**白名单从哪读**从未裁决,而三个候选登记处**都不完整** ——
+  `entities.yaml` 24 支 / ADR-009 §三骨架 15 支(世界流专属,结构上装不下全集)/ ADR-007 §三
+  5 支(零 registry 条目),并集 33;**按 registry 生成拒收 9,按骨架生成拒收 18,两个方向都会死**。
+  六项裁定:① **真源 = `entities.yaml`**,必填字段扩三件 `stream:`(枚举,**禁从散文解析**)/
+  `author:` / `payload_schema:`(类型只允许整数域);② **ADR-009 §三/§二 就地降级为路由注记**
+  (骨架文本不删,加节首声明「不一致时以 registry 为准并触发 V-1 断言失败」);③ **Amendment
+  追加通道退役**(F–L 用过的那条 —— 它正是幽灵引据的生产线);④ 补齐 **9 支**(世界流 `Craft`
+  / `Drop*` 三支 + 病史流 ADR-007 五支,载荷逐字搬出处件)+ §二 **补 4 支具名** + 修 4 处陈旧
+  「9-Kind」计数 + `ConsequenceResolved` **幽灵引据就地订正**(其自述经 Amendment 通道入 §三,
+  而该件最后一条是 **L**、无 M,且 §三 不含它);⑤ **构建期生成器 `tools/kindgen/`**(编辑期
+  .NET 工具,与 ADR-022 Tooling 层同构、不进构建)→ `src/Sim/StreamRouting.g.cs` + 断言
+  **A1 唯一流别 / A2 载荷 ∈ 整数域 / A3 无重名 / A4 author 必填 / A5 双向差集归零**;
+  ⑥ 拒绝表(自陈 17、实测 18 谓词)执行体归 **ADR-014 阶段 2**,本件只登记落点与差 1 的事实。
+  **无引擎实测前置**(纯数据边界)。Engine Knowledge Risk **LOW**。
+
+- [ADR-025 ✅ Accepted 2026-09-20]**契约程序集清单与命名(§2.0 七行骨架收口)** ——
+  `docs/architecture/adr-025-contract-assembly-manifest.md`。**Required ADR #2 的兑现件**
+  (TD 条件 C2 的 #2 半边)。病因:§2.0 七行里 6 行标「⚠️ 名未定」,**全案唯一有名字的 asmdef 是
+  `Sim`**(ADR-017 §二 只硬化门 A 内侧),「边界程序集 / 门面程序集 / 独立契约程序集」是三个
+  从未对齐的名字 —— 后果不是文档不齐,是**约束落不了地**(`Fix` 编码器守卫 D-21-18 需要可执行
+  的程序集对像;「仅门面可调用 `ToFloat()`」在「门面 = Sim 自身」读法下**恒假**;
+  `tests/unit/sim/sim_fixedpoint_test.cs` 已因此不被编译)。裁定:① **具名六装配清单**
+  (`Sim` 引用集**恰 = {BCL, `Sim.Contracts`}** / `Sim.Contracts` **恰 = BCL** 含 `WorldPos` +
+  六抽象点 + `Fix` + `ITeleportCommandSink` / `Sim.Codec`(BCL,`Fix` 编码器 `internal` +
+  `InternalsVisibleTo("Sim.Contracts.Tests")`)/ `Gameplay.Presentation` / `Gameplay.UI`
+  (= 焦点单栈门的**编译期**表达)/ `Editor.Tools` 族含 `tools/level/` + `tools/kindgen/`,
+  `includePlatforms:["Editor"]` **不进构建**);② **QQ-03 = 甲案** —— `Fix` 保持 public,
+  「仅门面可调用」改**构建期 `ToFloat()` 调用点白名单断言**(`Sim` 内调用 = 构建失败),
+  乙案(`internal`+IVT)否决留档;③ **QQ-01 = ①′** —— 传送契约**拆两半**:整数命令半
+  `ITeleportCommandSink.RequestTeleport(int actorId, WorldPos cell)` 进 `Sim.Contracts`,
+  `Vector3` 连续半留 `Gameplay.Presentation`(全案唯一跨门调用点 = 29 结算 → 触发 1 传送);
+  ④ **清单封闭性 = 本法**(未登记 asmdef = 构建失败,与 ADR-024 A1 同构);⑤ 测试装配落点
+  (`Sim.Contracts.Tests` 解种子测试不编译);⑥ **QQ-02 不入本件**(逐字回填 ADR-005 的独立义务,
+  防「清单 ADR 顺手裁流内契约」的 ADR-007 型越权)。**「门面程序集」「独立契约程序集」两称谓
+  自此作废**(四处原文加注归回写轮,V-5)。**残留**:V-6 向 ADR-017 挂 `"references": []`
+  歧义订正(该空集作断言文本不可能成立 —— `Sim` 必须见 `SimEvent`)。Engine Knowledge Risk
+  **LOW**(asmdef 机制自 2019 稳定,不触任何 post-cutoff API)。
+
+> **本日志状态**:全部 ADR(001–**025**)均有日志条目。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;
 > 洞 H1 / H3 的 ADR 由用户裁定**推迟 P1a**(本轮仅登记所有权,见 `systems-index.md` §11)。
 > **ADR-022 由 #6 首轮 `/design-review` 的根因 4 提出**(关卡工具无系统归属),
 > **非 R 系列、亦非洞系列** —— 它**不新增运行期系统**(立的是**编辑期 Tooling 层**),
 > 故 P0 的 31 项**不变**。
+> **ADR-023 / 024 / 025 是 `architecture.md` §Required ADRs 的 #1 / #3 / #2 兑现件**(2026-09-20
+> 逐份裁定轮全转 Accepted;文件号按落盘时序,**#序与文件号非同号是刻意设计**)。
+> **Required ADRs 剩余未兑现项 = 仅 #4(系统 30 定点算术,非开工阻塞)/ #5(13 的写路径归属,非开工阻塞)**
+> —— TD 条件 **C1–C4 四条全部结案**,Pre-Production 开工门的技术侧无阻塞项。
 
 ## Engine Specialists
 

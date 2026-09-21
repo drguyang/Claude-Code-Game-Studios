@@ -574,7 +574,9 @@ IL 正面断言(仅 `SaveService` 类可达 `FileStream.Write` / `File.Move`)三
 ### AC-7a-18(全局 · 存档与事件流零 float)
 
 **GIVEN** 三流载荷类型表与存档头字段表,**WHEN** IL 扫描**点名程序集**的全部可序列化类型
-(扫描集 = 门 A sim 程序集 + 边界层承载 codec 的程序集),**THEN**
+(扫描集 = 门 A sim 程序集 + 边界层承载 codec 的程序集<!-- ⚠️ 2026-09-20 ADR-025 回写加注:
+「边界层承载 codec 的程序集」现名 = `Sim.Codec`(ADR-025 §①:`Fix` 自定义编码器住此,
+`internal` + `InternalsVisibleTo("Sim.Contracts.Tests")` —— D-21-18 守卫的可执行形态) -->),**THEN**
 **零** `float` / `double` 字段(ADR-006 拒浮点;`Fix._raw` 是 `long`);扫描正向断言
 (可序列化类型的字段类型 ∈ 整数域白名单,白名单枚举于测试资产,非实现内联)(BLOCKING)。
 

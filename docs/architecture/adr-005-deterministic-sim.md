@@ -226,6 +226,10 @@ public readonly struct Fix            // Q16.16, 内部 long
     private readonly long _raw;
     // 注意:不定义 implicit operator float —— 这是刻意的
     public float ToFloat();           // 仅门面程序集可调用
+    // ⚠️ 2026-09-20 ADR-025 回写加注(原文不删):「门面程序集」称谓自 ADR-025 起作废,
+    //   现名 = Sim.Contracts(`Fix` 住此,public struct);消费约束的执法形态 =
+    //   ADR-025 §② 甲案 —— 构建期断言「ToFloat() 调用点 ∈ {Sim.Codec, Gameplay.*},
+    //   Sim 内调用 = 构建失败」(白名单断言,非编译器可见性;`Sim.Codec` 住 codec 程序集)。
 }
 
 // ── P0 必须预留的抽象点(实现可为占位)──

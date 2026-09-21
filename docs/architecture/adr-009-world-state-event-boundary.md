@@ -203,6 +203,13 @@ Q1 / Q2 / Q3 任一成立          → 模拟态(进流,主机模拟)
 
 ### 二、三态分类表(具名案例)
 
+> **⚠️ 本节自 ADR-024(2026-09-20,Accepted)起不再是登记处** —— 三流 `Kind` 全集的唯一登记
+> 真源 = `design/registry/entities.yaml` 的 `SimEvent.Kind.*`。本节降级为**路由注记**(承载
+> 「域归属」语义,不再承载「哪些 Kind 存在」的家规地位),与 registry 不一致时**以 registry 为准**
+> 并触发 ADR-024 §Validation V-1 断言失败。下方具名清单**不保证穷举**(ADR-024 ④ 已补注:
+> 病史流 `CareApplied` / `CompoundTriggered` / `CompoundExpired` 与世界流 `ConsequenceResolved`
+> 四支此前漏名,现以 registry 条目为权威);「共 15」为历史计数,现由 registry 机读。
+
 | 世界状态 | 三问 | 三态 | 承载 |
 | --- | --- | --- | --- |
 | 静态地形 / 生态区布局 / 植被点 / **POI 定义**(位置 / 守卫 / 类型) | 派生态 | **派生态** | **烘焙逻辑布局**(+ 动态量仍由 WorldSeed)→ 加载期重建(ADR-015 定型) |
@@ -225,10 +232,16 @@ Q1 / Q2 / Q3 任一成立          → 模拟态(进流,主机模拟)
 - **世界状态类 Kind**(本 ADR 新增 8 个,§三;追加:`PoiStateChanged`(ADR-021)·
   `ActorCellEntered`(Amendment G)· `EncounterStarted` / `EncounterEnded`(2026-09-17,系统 27)·
   `EnemyInjuryOnset` / `InjuryStateChanged`(2026-09-17,系统 25)·
-  `PlayerDied`(2026-09-19,**Amendment L**,系统 29)→ **共 15**)→ **世界流**
+  `PlayerDied`(2026-09-19,**Amendment L**,系统 29)·
+  `ConsequenceResolved`(2026-09-19,系统 53,**ADR-024 ④ 补名** —— 其出处自述的 Amendment
+  通道从未裁定过它,幽灵引据订正见 registry 条目头)→ **共 15 为历史计数,现由 registry 机读**)→ **世界流**
 - **病史流的第 25 支**(2026-09-17 补):`InjuryOnset`(25 写,病人为目标;玩家亦是 PatientState)
   —— 它是**病史类**,但写者既不是 9 也不是 52:**写者 = 25**(伤害施加方),语义归 9。
   路由仍按 ADR-008 §一「Kind 纯函数」成立,不改本表纪律。
+- **病史流其余三支**(2026-09-16 起落 registry,**ADR-024 ④ 追补具名**):
+  `CareApplied`(24 转写 / 9 主场)· `CompoundTriggered` / `CompoundExpired`(**9 写**,compounds
+  触发与窗止)—— 此三支此前**只住 registry、本节从未具名**(「引用却无登记」的反向形态:
+  「登记却无家规文本」),现按 ADR-024 ① 以 registry 为真源,本 bullet 为注记补齐。
 - **病史流的第 26~28 支**(2026-09-18 补,**Amendment I**):`EmergencyAttempt`(10 产出 /
   **主机物化**)· `EmergencyTreatmentApplied`(**10 写**)· `DrugTreatmentApplied`(**11 写**)
   —— 三者都是**病史类**,写者既不是 9 也不是 52,理由与 `InjuryOnset` 同(「内容归属 ≠
@@ -243,6 +256,11 @@ Q1 / Q2 / Q3 任一成立          → 模拟态(进流,主机模拟)
 > 域归属一旦写错,与「病例事件落病史流」同类污染(注册表禁例 `case_events_in_history_stream`)。
 
 ### 三、第三条逻辑流「世界流」
+
+> **⚠️ 本节自 ADR-024(2026-09-20,Accepted)起不再是登记处** —— 本节与 registry 不一致时
+> 以 `design/registry/entities.yaml` 为准并触发 ADR-024 §Validation V-1 断言失败。下方骨架
+> 文本保留(历史与载荷归注),但「新 Kind 经本节 Amendment 追加」的通道**已退役**(ADR-024 ③:
+> 今后唯一通道 = 先建 registry 条目再引用)。本节的现行地位 = **世界流路由注记**。
 
 **裁决:新增第三条逻辑流「世界流」,承载世界状态变更。`StreamPriority` 升格为三值,
 `Seq` 发放域仍唯一 `(Tick, Patient)`,三流共享。**

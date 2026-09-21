@@ -167,6 +167,13 @@ ADR-004 就此结案。并撤回 ADR-016 §九「以便平移 DOTS」的理据�
 
 - **冲突本体**:门 A 的 `"noEngineReferences": true` 与 `UnityEngine.*` 的**全部**引擎程序集互斥;
   DOTS 栈(Burst / Jobs / Entities / Mathematics)**全部**是引擎程序集。
+  ⚠️ **论据订正(2026-09-21 · 承 `architecture-review-2026-09-20.md` RC-3)**:`noEngineReferences`
+  门控的是**引擎模块程序集**(`UnityEngine.*Module`),**不门控 UPM package 程序集** ——
+  `Unity.Entities` / `Unity.Burst` / `Unity.Jobs` / `Unity.Mathematics` 是 **package** 程序集,
+  在 asmdef 未显式列 `references` 时仍可能被自动解析进来。⇒ 上一行「会编译失败」的**机制归因
+  不完全**;`noEngineReferences` 是**必要非充分**,**充分性由下行白名单断言承担**。**裁决结论
+  (sim 侧永不上 DOTS)不受影响**;本订正确认「谁在挡」= 白名单断言,不是 asmdef flag。
+  (标记号 A2 验证法:`using Unity.Entities` + 未列 references 的编辑期实测,归 U0a spike 批。)
 - **实现期的硬化要求**:sim 程序集的引用集必须被一条 **EditMode 断言**固定为「恰好 = BCL
   (`System.*` / `System.Runtime.*`)」—— 把「约定」升为「**构建失败**」。
   这同时是门 B 的加强(门 B 只断言不引用 `UnityEngine.*`;此断言断言引用集白名单)。
@@ -252,7 +259,14 @@ Sim.asmdef:
 {
   "name": "Sim",
   "noEngineReferences": true,          # 门 A —— 与 DOTS 全栈结构性互斥(§一)
-  "references": []                      # 空:引用集 = BCL only
+  "references": []                      # ⚠️ 2026-09-20 ADR-025 V-6 订正(原文不删,就地加注):
+                                        #   该空集是**示例简写**,作为断言文本**不可能成立** ——
+                                        #   `Sim` 必须能看见 `SimEvent` / 六个抽象点,故契约程序集
+                                        #   必然在其引用集内(ADR-025 §Context「Current State」)。
+                                        #   现行裁决(ADR-025 §①):`Sim` 引用集**恰 = {BCL, Sim.Contracts}**
+                                        #   —— 白名单升格为「恰等于两件套」,仍不含任何引擎程序集,
+                                        #   §一「sim 侧永不上 DOTS」的结构性结论**不受影响**。
+                                        #   原注「引用集 = BCL only」自此作废。
 }
 
 # §二 硬化断言(EditMode,schema 同门 B)

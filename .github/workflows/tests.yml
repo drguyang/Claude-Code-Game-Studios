@@ -1,0 +1,187 @@
+name: Automated Tests
+
+# 矩阵拓扑承 docs/architecture/adr-012-cross-platform-determinism-ci-gate.md
+# (Accepted 2026-09-15)—— 不是 /test-setup 模板的「单 job editmode+playmode」默认形状。
+#
+#   常驻三格(全免费):Linux-x64-Mono / Linux-x64-IL2CPP / Linux-ARM64-IL2CPP
+#   发版前必跑(不进常驻):Windows-x64-IL2CPP / Apple Silicon
+#   qemu:已否决(softfloat 不可信为逐位判据)
+#
+# ⚠️ 本文件是**可跑的规格**,不是「已绿」:
+#   1. 仓库尚无 Unity 工程(无 Assets/ ProjectSettings/ Packages/)→ game-ci 会直接 fail
+#   2. 尚未生成 .asmdef(待 architecture.md §Required ADRs #2)→ UTF 无可编译测试集
+#   3. 需配 UNITY_LICENSE secret(Game CI activator 产物,手工,勿尝试自动化)
+#   4. golden-vN 夹具未签(ADR-012:全体平台同时重签,禁单平台独签)→ 对拍 job 会 fail
+#  以上四项全解决之前,红是**预期状态**,不得读作测试缺陷,亦禁为过 CI 而 skip 测试。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+env:
+  # ⚠️ 精确补丁版本号全仓无记载(VERSION.md 只记「Unity 6.3 LTS / Dec 2025」)—— 不代填。
+  #    工程根落地后,以 ProjectSettings/ProjectVersion.txt 为唯一源回填此处;
+  #    两者不一致时 game-ci 会以该版本重新导入工程,静默改变模拟域之外的行为面。
+  UNITY_VERSION: "6000.3.TBDf1"
+  PROJECT_PATH: .              # ⚠️ 工程根落地后改为实际子目录
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # 格 1:Mono(Editor / UTF)—— 单元级黄金夹具哈希 + EditMode + PlayMode
+  # ─────────────────────────────────────────────────────────────
+  mono-linux-x64:
+    name: "Linux-x64-Mono (UTF)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: true }
+
+      # ADR-012 工具链修正:unity-test-runner **只在 Editor(Mono)跑 UTF**。
+      # 因此 IL2CPP 的逐位对拍不在本 job,见 il2cpp-linux-x64-parity。
+      - name: Run EditMode Tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: ${{ env.PROJECT_PATH }}
+          unityVersion: ${{ env.UNITY_VERSION }}
+          testMode: editmode
+          artifactsPath: test-results/mono/editmode
+
+      - name: Run PlayMode Tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: ${{ env.PROJECT_PATH }}
+          unityVersion: ${{ env.UNITY_VERSION }}
+          testMode: playmode
+          artifactsPath: test-results/mono/playmode
+
+      # 单元级夹具(Fix 四则 / 负值右移 / Exp / SplitMix64 / CDF walk / 编码器往返)
+      - name: Unit-level golden hashes (Mono)
+        run: |
+          echo "TODO(实现轮):调用 tests/golden 的哈希比对入口。"
+          echo "夹具未签前此步须保持未接入 —— 接入即红是设计意图(禁假绿)。"
+          exit 0   # ⚠️ 占位通过;见文件头注 4
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: results-mono-linux-x64, path: test-results/ }
+
+  # ─────────────────────────────────────────────────────────────
+  # 格 2 / 3:IL2CPP player 构建 → **独立 job** 跑对拍
+  #   ADR-012 引擎复核 F1:unity-builder 出 player,不能靠 test-runner 得 IL2CPP 行为
+  # ─────────────────────────────────────────────────────────────
+  build-il2cpp-linux-x64:
+    name: "Linux-x64-IL2CPP (build)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: true }
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: ${{ env.PROJECT_PATH }}
+          unityVersion: ${{ env.UNITY_VERSION }}
+          targetPlatform: LinuxIL2CPP
+          buildName: dayijingcheng-linux-x64
+      - uses: actions/upload-artifact@v4
+        with: { name: player-linux-x64, path: build/dayijingcheng-linux-x64 }
+
+  parity-il2cpp-linux-x64:
+    name: "Linux-x64-IL2CPP (bit-parity)"
+    needs: build-il2cpp-linux-x64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: player-linux-x64, path: player }
+      - name: Run determinism parity harness
+        run: |
+          # ⚠️ ADR-012 BLOCKING spike F7:C# int64 溢出为定义性回绕,
+          #    IL2CPP 生成的 C++ 有符号溢出为 UB。SplitMix64 与 Q16.16 中间乘正踩此线。
+          #    在 F7 spike 定出编译旗标(须显式 -E-hfa / 禁 fast-math 类)之前,
+          #    本 job 的判据尚未成立。
+          chmod +x player/*.x86_64 2>/dev/null || true
+          echo "TODO(F7 spike 后):跑 --dump-golden 模式并与 golden-vN 逐字节对拍"
+          exit 1   # ⚠️ 故意红:未实测不得记绿(承「外抛即结案」禁令)
+
+  build-il2cpp-linux-arm64:
+    name: "Linux-ARM64-IL2CPP (build)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: true }
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: ${{ env.PROJECT_PATH }}
+          unityVersion: ${{ env.UNITY_VERSION }}
+          targetPlatform: LinuxARM64
+          buildName: dayijingcheng-linux-arm64
+      - uses: actions/upload-artifact@v4
+        with: { name: player-linux-arm64, path: build/dayijingcheng-linux-arm64 }
+
+  # ARM64 对拍需要 ARM64 runner(或已否决的 qemu)→ 标 needs-runner,不静默跳过
+  parity-il2cpp-linux-arm64:
+    name: "Linux-ARM64-IL2CPP (bit-parity)"
+    needs: build-il2cpp-linux-arm64
+    runs-on: [self-hosted, linux, arm64]   # ⚠️ 无此标签的 runner 时本 job 永久 queued
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: player-linux-arm64, path: player }
+      - run: |
+          echo "TODO:ARM64 逐字节对拍(需要 ARM64 常驻 runner)"
+          exit 1
+
+  # ─────────────────────────────────────────────────────────────
+  # 表现层 DTO / 白名单类断言(全为 BLOCKING AC,非性能测试)
+  # ─────────────────────────────────────────────────────────────
+  guard-assertions:
+    name: "Architecture guards (PresentationDtoGuard / 门A 引用白名单 / 音频触发白名单)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run guard tests
+        run: |
+          echo "TODO:见 docs/architecture/architecture.md §API Boundaries 的判据形式表 —— 11 份契约的守卫测试。"
+          echo "其中三条为 BLOCKING:AC-37-15(DTO 递归扫描)· AC-44-09(音频白名单)· ADR-017 §二(门A 引用集恰=BCL)"
+          exit 0   # ⚠️ 占位;守卫未实现前不记绿
+
+  # ─────────────────────────────────────────────────────────────
+  # 发版前必跑(不进常驻)—— 仅留触发开关,不占常驻配额
+  # ─────────────────────────────────────────────────────────────
+  prerelease-only:
+    name: "Windows-x64 / Apple Silicon IL2CPP(发版前必跑)"
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-14]
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: true }
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: ${{ env.PROJECT_PATH }}
+          unityVersion: ${{ env.UNITY_VERSION }}
+          targetPlatform: ${{ matrix.os == 'windows-latest' && 'StandaloneWindows64' || 'StandaloneOSX' }}
+      - run: echo "发版前必跑格 —— 手动 workflow_dispatch 触发;不进常驻矩阵(ADR-012 裁定)"

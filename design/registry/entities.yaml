@@ -1938,7 +1938,7 @@ constants:
   # ── 世界流 Kind（ADR-009 §三 骨架 · 系统 1 的 GDD 落点,2026-09-16）──────
   # ADR-016 §三 / ADR-020 §四 / architecture.yaml:397 `player_cell_crossing_event`
   # 三处**都在使用** `ActorCellEntered` 这个名字,但它此前**既不在 ADR-009 §三 的
-  # 9-Kind 骨架里,也不在本表** —— 「被三方引用却无登记处」。系统 1 的 GDD 追认其为
+  # 骨架里(ADR-024 前历史计数九支),也不在本表** —— 「被三方引用却无登记处」。系统 1 的 GDD 追认其为
   # 正式 Kind（命名用 Actor 而非 Player,为 27 敌人留口）,并同步补进 ADR-009 §三
   # （Amendment G）。本登记即该纪律下**第五个**由系统追加的 Kind。
   - name: SimEvent.Kind.ActorCellEntered
@@ -1999,7 +1999,7 @@ constants:
     source: design/gdd/modular-building.md
     referenced_by:
       - design/gdd/modular-building.md          # 23:规则四(载荷定稿)+ AC-23-09/10
-      - docs/architecture/adr-009-world-state-event-boundary.md   # §三 骨架(9-Kind)
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §三 骨架(「9-Kind」= ADR-024 前历史值,现由 registry 机读)
       - docs/architecture/adr-015-world-geometry-fixed-world-lattice.md   # §五(模块实例 = 槽位上的世界流事件)
       - docs/architecture/adr-010-persistence-save-format.md   # §三 义务 3(三流序列化)
     unit: kind
@@ -2032,15 +2032,19 @@ constants:
     revised: ""
 
   # ── 53 医疗后果与责任 · ConsequenceResolved(2026-09-19 首轮评审修订 · 用户裁定新增世界流 Kind)──
-  # 承 ADR-021「系统 ADR 追加 Kind」纪律 + ADR-009 §三 预置口子的第四个用户裁定产物。
+  # ⚠️ 2026-09-20 ADR-024 ④ 幽灵引据就地订正(原自述不删,划线如下):
+  # ~~承 ADR-021「系统 ADR 追加 Kind」纪律 + ADR-009 §三 预置口子的第四个用户裁定产物。~~
+  # 订正:该通道**从未对此 Kind 作出裁定** —— ADR-009 最后一条 Amendment 是 L(2026-09-19),
+  # 不存在 Amendment M,且 §三 骨架不含本支(原 referenced_by 指向 §三 = 指向一个不含它的节)。
+  # 有效身份 = **直接 registry 登记**(OQ-53-7 用户裁定 [A]);自 ADR-024 ① 起本条目即真源。
   # OQ-53-7 裁定 [A]:新增世界流 Kind(具体名 = 53's GDD,载荷 = 整数枚举,无 case_id —— 用户裁定)。
-  # 首个由系统 GDD 首轮评审直接追加的 Kind;载荷 / 语义归 53 的 GDD(F-53.1 · AC-53-14),此处只登记骨架。
+  # 载荷 / 语义归 53 的 GDD(F-53.1 · AC-53-14)。
   - name: SimEvent.Kind.ConsequenceResolved
     status: active
     source: design/gdd/medical-consequences.md
     referenced_by:
       - design/gdd/medical-consequences.md   # 规则八 · F-53.1 · AC-53-14
-      - docs/architecture/adr-009-world-state-event-boundary.md   # §三骨架(9-Kind)
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §三 骨架(⚠️ 本支**不在**该节 —— 幽灵引据已由 ADR-024 ④ 订正,见条目头;「9 Kind」为 ADR-024 前历史计数,现由 registry 机读)
       - docs/architecture/adr-010-persistence-save-format.md   # §三义务 3(三流序列化)
     unit: kind
     constraint: "落**世界流**(ADR-009 §二);载荷 = { outcome(整数枚举,归 53 的 F-53.1 双轴), patient_id }(全整数,禁 float —— ADR-006 边界);**无 case_id**(AC-37-25 ② 不可归因 · 2026-09-19 裁定);`Patient = patient_id`(53 逐例结算患者,可携带真实 id);写者 = **53 医疗后果与责任**(唯一);主机唯一 Append(ADR-005);P0 零订阅者不算失败(ADR-019 §七 · 规则八);有界性 ≤ 病例流条数(逐例至多 1 条,扩展而非重写 · ADR-009 §六)"
@@ -2074,7 +2078,8 @@ constants:
     revised: ""
 
   # ── 世界流 Kind · 遭遇生命周期（系统 27 的 GDD 落点,2026-09-17）──────────
-  # 两个新 SimEvent.Kind,均落【世界流】。ADR-009 §三 的 9-Kind 骨架里**没有**它们 ——
+  # 两个新 SimEvent.Kind,均落【世界流】。ADR-009 §三 的骨架(ADR-024 前历史计数
+  # 九支,现由 registry 机读)里**没有**它们 ——
   # 本登记即「系统 GDD 定稿 Kind」纪律下的又一实例(同 PoiStateChanged /
   # ActorCellEntered / CareApplied / Structure* 模式)。
   # ⚠️ 写者**故意拆成两个不同系统** —— 见下两条 constraint;这是 ADR-021 的
@@ -2104,7 +2109,7 @@ constants:
     revised: "2026-09-17 —— 结束原因 `全灭` → `全倒地`(倒地 ≠ 死亡;人形倒地可被 10 救治,野兽可被 28 取材,P0 只交付前者)"
 
   # ── 25 格斗与武器线 · 伤情三件套(2026-09-17 首轮 /design-review 修订后落盘)───
-  # ADR-009 §三 的 9-Kind 骨架里**没有**它们 —— 本登记即「系统 GDD 定稿 Kind」纪律下
+  # ADR-009 §三 的骨架(ADR-024 前历史计数九支,现由 registry 机读)里**没有**它们 —— 本登记即「系统 GDD 定稿 Kind」纪律下
   # 的又一实例(同 Encounter* / Structure* / ActorCellEntered / PoiStateChanged / CareApplied 模式)。
   # 路由 = ADR-008 §一「按 Kind 路由,IEventSink.Append 纯函数」的直接兑现:
   # **一个 Kind 无法同时落两条流** ⇒ 病人 / 敌人必须拆两个 Kind(25 规则二)。
@@ -2189,6 +2194,149 @@ constants:
     unit: kind
     constraint: "落**病史流**;载荷形状与 `EmergencyTreatmentApplied` 一致但**不带 `method` / `cause`**(药物类恒 `Manual`,携带即空字段)。**`Append` 调用者 = 11**;`drug_potency` / `half_life` 来自 **21a `drug_profile`**(非动作表)。**为什么不与动作类共用一个 Kind**:① 两条写者的结算来源不同(11 **不用** `SkillMul` / `Judge` —— 2026-09-18 11 首轮评审 R-2:`SkillMul` 经 10 的 A6 改判 = 稳度容差乘子,11 恒 `Applied` 无消费点),共用即必须区分来源;② 承 ADR-008 §一「路由是 `Kind` 的纯函数 —— 一个 Kind 无法同时落两条流」+ ADR-021「写者 = 所有者」。**10 与 11 仍写同一条病史流、除 `method`/`cause` 外形状一致 ⇒ 不破 C5 的实质「载荷与流语义唯一」**(⚠️ C5 原字面「结算函数唯一」已在 11 首轮被重新解释,见 `systems-index.md` §5 C5)"
     added: 2026-09-18
+    revised: ""
+
+  # ── ADR-024 ④ 补齐 9 支(2026-09-20 回写轮)──────────────────────────────
+  # 双向缺口的闭合:世界流 4 支「只住 ADR-009 §三 骨架、零 registry 条目」+
+  # 病史流 5 支「只住 ADR-007 §三、零 registry 条目」(ADR-024 §Context 表)。
+  # 载荷**逐字搬自出处件**(V-3 判据 = 字段名表与出处件 diff 为空;类型标注是
+  # ADR-024 ① payload_schema 必填形状,出处件未写型的按整数域口径补,不动名)。
+  # 自此追加通道 = registry 直登(ADR-024 ③;Amendment 追加通道已退役)。
+  # ⚠️ 本块是**首批**带 `stream:`/`author:`/`payload_schema:` 三字段的条目 ——
+  #   既有 24 支的三字段回填 = kindgen A1–A4 的编译前置,登记为**实现轮义务**
+  #   (ADR-024 Migration 步骤 4),不在本次回写范围。
+
+  # ── 世界流 4 支(骨架出处 = ADR-009 §三;Craft 载荷 = Amendment J / R-18-A 定稿)──
+  - name: SimEvent.Kind.Craft
+    status: active
+    source: docs/architecture/adr-009-world-state-event-boundary.md
+    referenced_by:
+      - design/gdd/processing.md                       # 18:规则八 · R-18-A 载荷三位补齐 · R-18-E 全序键
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §三 骨架 · Amendment J
+      - design/gdd/inventory-and-items.md              # 20:InventoryOf fold 读 ActualConsumed / output_instance_ids
+    unit: kind
+    stream: world
+    author: "18 炮制与加工(P0 唯一发出方;19 制作若启用须经同形通道)"
+    payload_schema: "actor_id: i32; recipe_id: i32(21a 表 ordinal); start_tick: i64; duration_ticks: i64; input_instance_ids[]: i64; ActualConsumed[]: i32; OutputQty[]: i32; OutputQuality[]: 枚举(品级档); output_instance_ids[]: i64; tool_cell: 格 WorldPos"
+    constraint: "落**世界流**(ADR-009 §二);载荷十位 = R-18-A 定稿(2026-09-19 BL-1 三位补齐:actor_id 归因位 / output_instance_ids[] 产出身份位 / tool_cell 器具格位),**全整数,禁 float**(ADR-006 边界);`output_instance_ids[]` **主机于点火 tick 经 `ItemInstanceId.Next()` 依全序键顺序铸造**(认领 20 的 R10/BL-21,「事件当下铸造」既有口径直推);全序键 = 三流键 `(Tick, StreamPriority, Patient, Seq)`,`Patient = PatientId.None`(**D-21-28 裁定 [甲]** —— 21a 建议的 `(Tick, ActorId, Seq)` 被吸收,`actor_id` 是载荷字段不进键);**发起即落流**(点火 tick;20 接受后原子 `Append`,容量不足整体拒绝 ⇒ 原料不扣、药不出、**不落流**);起货溢出由 **20 从本事件派生 `DropSpawned`**(Amendment J ④,18 不写该支);有界性 = 点火行为率 ≤ 每玩家每 tick 1(单炉,OQ-18-3 [甲]),§六 结构自动覆盖不重写"
+    added: 2026-09-20
+    revised: ""
+
+  - name: SimEvent.Kind.DropSpawned
+    status: active
+    source: docs/architecture/adr-009-world-state-event-boundary.md
+    referenced_by:
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §三 骨架 · §五(身份进流/位置表现)· Amendment J ④
+      - design/gdd/inventory-and-items.md                          # 20:fold 读方
+      - design/gdd/foraging.md                                     # 17:采集三连发(Amendment K)
+      - design/gdd/death-and-respawn.md                            # 29:玩家死亡掉落清单
+    unit: kind
+    stream: world
+    author: "20 库存与物品(落地写者;触发方 ∈ {17 / 18 / 25 / 29} 见 constraint)"
+    payload_schema: "instance_id: i64; spawn_anchor: 格 WorldPos; item_key: i32(物品表 ordinal); qty: i32"
+    constraint: "落**世界流**(ADR-009 §二/§五);载荷 = { instance_id, spawn_anchor, item_key, qty }(全整数);`instance_id` 由 `IIdAuthority.ItemInstanceId.Next()` 发放,**不本地铸造**(D-21-27);`spawn_anchor` = 出生锚点,**格坐标 WorldPos**(ADR-015 §三 就地修订,原「定点坐标」作废 —— 空间位置一律整数格);**位置 / 物理轨迹不进流**(表现态,走 45 网络层,重建从 7a 快照取,§五);`Patient = PatientId.None`;**落地写者 = 20** —— 触发方 ∈ {17 采集三连发 / 18 起货溢出派生 / 25 敌人死亡 / 29 玩家死亡},⚠️ 17 侧「主机同 tick 连发」未逐字点名 Drop* 两支写者,本登记采 ADR-009 §三/§五 + Amendment J ④ 的一致口径(18 溢出「由 20 派生、18 不写」明文),实现期若 17 GDD 改口径回改本条;有界性 ≤ 玩家携带量上界(库存容量,每实例一件,死亡一次性落地,随后只减不增)"
+    added: 2026-09-20
+    revised: ""
+
+  - name: SimEvent.Kind.DropClaimed
+    status: active
+    source: docs/architecture/adr-009-world-state-event-boundary.md
+    referenced_by:
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §三 骨架 · §七(意图 + 判距 + 宽容半径)
+      - design/gdd/inventory-and-items.md                          # 20:归属变更的 fold 读方
+    unit: kind
+    stream: world
+    author: "20 库存与物品(主机裁决,唯一)"
+    payload_schema: "instance_id: i64; claimer: i32; tick: i64"
+    constraint: "落**世界流**(ADR-009 §二/§七);载荷 = { instance_id, claimer, tick }(全整数);**拾取判定三段式** = 意图事件(45 网络层,目标 instance_id)+ 主机**写事件当下**实时物理判距 + 宽容半径(容忍异机落点差)—— 判定吃表现态位置 ⇒ **不重放判定,结果进流、判定过程不进流**(§七);通过 ⇒ 发本事件(归属变更,确定性进流);迁移语义:清单从流重构、位置从 7a 快照取,宽容半径吸收锚点/落点差;**写者 = 20(主机裁决唯一)**;`Patient = PatientId.None`;有界性同 `DropSpawned`(≤ 实例数)"
+    added: 2026-09-20
+    revised: ""
+
+  - name: SimEvent.Kind.DropDespawned
+    status: active
+    source: docs/architecture/adr-009-world-state-event-boundary.md
+    referenced_by:
+      - docs/architecture/adr-009-world-state-event-boundary.md   # §三 骨架(消失 / 过期)
+      - design/gdd/inventory-and-items.md                          # 20:规则六/九 · BL-4/BL-5 形名失配 · OQ-20-10
+    unit: kind
+    stream: world
+    author: "20 库存与物品(唯一)"
+    payload_schema: "instance_id: i64; qty: i32; reason: 枚举(过期 | 被消耗 —— reason 档表归 R-2 定稿)"
+    constraint: "落**世界流**(ADR-009 §二/§三「消失 / 过期(20)」);载荷 = { instance_id, qty, reason }(全整数;`qty` = **份数**,实例级部分消耗 `qty ≤ 实例当前 qty` 由主机裁决);⚠️ **残留义务**:`qty` + `reason` 载荷扩项**归 R-2 定稿时补全**(20 BL-4/BL-5「形名失配」登记,ADR-009 §三 原载荷未含二项);⚠️ **`OQ-20-10` 未裁**:一次用药跨两栈须两条事件还是请求级 `consumed:[(instance_id, qty)]` —— 本条按现状「一实例一事件」登记,**不预设答案**(现口径若按单事件定稿会截断跨栈量,20 规则九 BL-31);用药消耗走本 Kind 不走新 Kind(`inventory-and-items.md` 规则六,世界流 fold 域不变);**写者 = 20**;`Patient = PatientId.None`;有界性 ≤ 实例数(只减不增侧)"
+    added: 2026-09-20
+    revised: ""
+
+  # ── 病史流 5 支(出处 = ADR-007 §三 承重条款;此前五支**零 registry 条目**
+  #    而有 12~20 处/支下游引用 —— ADR-024 双向缺口表;掷骰输入可重构 = 核心不变量)──
+  - name: SimEvent.Kind.EventRolled
+    status: active
+    source: docs/architecture/adr-007-event-authority-and-roll-state.md
+    referenced_by:
+      - docs/architecture/adr-007-event-authority-and-roll-state.md   # §三 承重条款(掷骰输入可从流重构)
+      - design/gdd/random-events.md                                    # 52:抽取记录 · AC-52-46
+    unit: kind
+    stream: history
+    author: "52 随机事件导演(主机,IEventAuthority 持掷骰权)"
+    payload_schema: "win: i32(窗口索引); tier: 枚举(档 ordinal); ordinal: i64(抽取序号,SplitMix64 消费); chosen_key: i32(事件表 ordinal)"
+    constraint: "落**病史流**(ADR-007 §三);世界级记录,`Patient = PatientId.None`(§四 哨兵,不污染 `max(patient_id)` 高水位);载荷 = { win, tier, ordinal, chosen_key }(全整数)——**抽取坐标**,已用预算 / 已消费 ordinal 由其**派生重构**(§三 表:不得存在只活在可变运行时对象里的掷骰输入);**可随终态折叠**(ADR-007 Risks:每条约 20 字节,一个窗口至多 `WINDOW_SIZE` 条,默认个位数);有界性 ≤ 窗口数 × `WINDOW_SIZE`;**写者 = 52,主机唯一 Append**(ADR-005;掷骰权 = IEventAuthority,§一 第六抽象点)"
+    added: 2026-09-20
+    revised: ""
+
+  - name: SimEvent.Kind.EventArrived
+    status: active
+    source: docs/architecture/adr-007-event-authority-and-roll-state.md
+    referenced_by:
+      - docs/architecture/adr-007-event-authority-and-roll-state.md   # §三
+      - design/gdd/random-events.md                                    # 52:事件降临 · 与 EncounterStarted 同 tick 派生
+      - design/gdd/enemy-ai.md                                         # 27:遭遇原型「52 触发,27 行为」(Enemy-ai 依赖本支)
+    unit: kind
+    stream: history
+    author: "52 随机事件导演(主机)"
+    payload_schema: "event_key: i32(事件表 ordinal); tier: 枚举(档 ordinal); spawn_anchor: 格 WorldPos; cause_clue_key?: i32(缺省 = 哨兵 None)"
+    constraint: "落**病史流**(ADR-007 §三);`Patient = PatientId.None`(§四);载荷 = { event_key, tier, spawn_anchor, cause_clue_key? };`spawn_anchor` **格坐标 WorldPos**(ADR-015 §七 修订口径:定点坐标 → 整数格;52 抽池读 POI **定义**不读状态,ADR-021 ⑤);`cause_clue_key` 可缺省(无归因线索 = 哨兵);与 `EncounterStarted` **同 tick 派生**(中间不隔 tick,否则「事件已降临但敌人未出现」成可观察真空窗,`enemy-ai.md` §States);有界性 ≤ 事件率(52 的 roll 节奏 `ROLL_INTERVAL` 约束,tick 频率 20 Hz 已裁 OQ-25-8);**写者 = 52,主机唯一 Append**"
+    added: 2026-09-20
+    revised: ""
+
+  - name: SimEvent.Kind.ThreatDeferred
+    status: active
+    source: docs/architecture/adr-007-event-authority-and-roll-state.md
+    referenced_by:
+      - docs/architecture/adr-007-event-authority-and-roll-state.md   # §三 表:DeferredThreatSlot 进流
+      - design/gdd/random-events.md                                    # 52:规则六之三(威胁挂起槽)
+    unit: kind
+    stream: history
+    author: "52 随机事件导演(主机)"
+    payload_schema: "slot_index: i32(挂起槽位); event_key: i32(事件表 ordinal)"
+    constraint: "落**病史流**(ADR-007 §三);`Patient = PatientId.None`(§四);载荷 = { slot_index, event_key };**存在理由 = 承重条款** —— `DeferredThreatSlot` 若只活在可变运行时对象里,主机迁移后挂起威胁**静默丢失或重复补发**(random-events.md 规则六之三);槽集状态由本支 + `ThreatDeferralCleared` 的全序流重构(派生,不另存);有界性 ≤ 槽位占用事件率(挂起槽有限集合 × 清槽率);**写者 = 52,主机唯一 Append**"
+    added: 2026-09-20
+    revised: ""
+
+  - name: SimEvent.Kind.ThreatDeferralCleared
+    status: active
+    source: docs/architecture/adr-007-event-authority-and-roll-state.md
+    referenced_by:
+      - docs/architecture/adr-007-event-authority-and-roll-state.md   # §三 表:DeferredThreatSlot 进流
+      - design/gdd/random-events.md                                    # 52:规则六之三(补发 / 作废两因)
+    unit: kind
+    stream: history
+    author: "52 随机事件导演(主机)"
+    payload_schema: "slot_index: i32; reason: 枚举(补发 | 作废)"
+    constraint: "落**病史流**(ADR-007 §三);`Patient = PatientId.None`(§四);载荷 = { slot_index, reason },`reason ∈ {补发, 作废}` **枚举**(ADR-007 §三 原注);与 `ThreatDeferred` 配对重构槽集(一占一释);**51 侧可读性**:补发 vs 作废是导演行为的回放读数(ADR-019 §一,零新埋点);有界性 ≤ `ThreatDeferred` 条数(每占至多一释);**写者 = 52,主机唯一 Append**"
+    added: 2026-09-20
+    revised: ""
+
+  - name: SimEvent.Kind.HistoryFlagChanged
+    status: active
+    source: docs/architecture/adr-007-event-authority-and-roll-state.md
+    referenced_by:
+      - docs/architecture/adr-007-event-authority-and-roll-state.md   # §三 表:历史标记集进流
+      - design/gdd/random-events.md                                    # 52:cause_flag / HistoryMult 输入侧重构
+    unit: kind
+    stream: history
+    author: "52 随机事件导演(主机)"
+    payload_schema: "flag_id: i32(标记表 ordinal); new_value: i32(整数标记值)"
+    constraint: "落**病史流**(ADR-007 §三);`Patient = PatientId.None`(§四;**名字带 History 但与病例流的「改写史」无关**,落点 = 病史流,ADR-024 ④ 归属);载荷 = { flag_id, new_value };历史标记集(52 的 `cause_flag`)由此流重构 ⇒ `HistoryMult` 在主机迁移后**逐位可复现**(§三 承重条款);**存新值语义**(同 JudgmentRecorded 先例,不存旧值、不做差分);有界性 ≤ 标记数 × 变更率;⚠️ 本行原属 ADR-007 散文清单,自 ADR-024 ① 起本条目即真源;**写者 = 52,主机唯一 Append**"
+    added: 2026-09-20
     revised: ""
 
   # ── 37 病例系统 · 同源检测（唯一整数旋钮）─────────────────────────────

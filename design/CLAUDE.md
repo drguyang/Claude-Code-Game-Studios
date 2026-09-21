@@ -33,6 +33,6 @@ Use `/quick-design` to author.
 - Per-screen specs: `design/ux/[screen-name].md`
 - HUD design: `design/ux/hud.md`
 - Interaction pattern library: `design/ux/interaction-patterns.md`
-- Accessibility requirements: `design/ux/accessibility-requirements.md`
+- Accessibility requirements: `design/accessibility-requirements.md`  ⚠️ 2026-09-20 路径订正:原文指 `design/ux/` 下,与 `WORKFLOW-GUIDE.md:532` / `gate-check` / `ux-design` 三处口径不符(三者一致指根 `design/`)。权威 = 现值;`design/accessibility-requirements.md` 已 2026-09-20 成文(档位 = Standard + L-1/L-2)
 
 Use `/ux-design` to author. Validate with `/ux-review` before passing to `/team-ui`.

@@ -31,10 +31,10 @@ Accepted
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | ADR-005(确定性模拟 / 抽象点 / 折叠规则)· ADR-006(Amendment A–D:SimEvent 形状 · `patient_id` 重构 · `Seq` 发放域与跨流全序键 · 真源 = 两流并集)· ADR-007(IEventAuthority · WorldSeed 归 7a · PatientId.None 哨兵)—— 三者均须 Accepted。**ADR-009 Accepted 后追加依赖**(世界流 / Amendment E)。**🔴 2026-09-17 追加:ADR-014**(`Judgment.lexicon_id` 的 ordinal 词表经其烘焙管线产出 · `freehand_text` 例外登记于 ADR-006 Amendment A)· **ADR-010 §七**(`ConfigVersion` 不匹配非致命 —— 本 ADR §三 初稿的「拒载」措辞已据此作废) |
+| **Depends On** | ADR-005(确定性模拟 / 抽象点 / 折叠规则)· ADR-006(Amendment A–D:SimEvent 形状 · `patient_id` 重构 · `Seq` 发放域与跨流全序键 · 真源 = 两流并集)· ADR-007(IEventAuthority · WorldSeed 归 7a · PatientId.None 哨兵)—— **仅这三者是前置**,三者均须 Accepted。 |
 | **Enables** | 37 病例系统 GDD 的 `CaseOpened` / `CaseClosed` / `PatternRecognized` 实现;F-37.1 fires-once · F-37.2 case_id 三元组 · F-37.3 载荷集合落盘;ADR-001 追加约束(联机选型须承载两条逻辑流 · ADR-009 Accepted 后为三条) |
 | **Blocks** | 37 病例系统实现(依赖 AC-37-05/15 事件化的代码)· 53 医疗后果与责任(P0,订阅结案事件) |
-| **Ordering Note** | ADR-008 是 37 复核 12 项 blocking 的前置。先 Accepted 本 ADR,再修订 case-system.md |
+| **Ordering Note** | ADR-008 是 37 复核 12 项 blocking 的前置。先 Accepted 本 ADR,再修订 case-system.md<br><br>**引用(非前置)—— 三段内容均为本 ADR 正文定稿之后追加,故记于本行而非 `Depends On`**(承 `architecture.md` §5.2 修复:后补的「引用」若留在 `Depends On`,会把本 ADR 拉进 `{008,009,010,014}` 强连通分量,使「谁是谁的前置」不可判定):<br>① **ADR-009**(🟢 2026-09-15 Accepted 后追加):世界流为第三条流;ADR-009 **扩展**本 ADR §一 的路由纯函数(`IEventSink.Append` 按 `Kind` 路由)。两 ADR 的先后即本行,<br>② **ADR-014**(🔴 2026-09-17 追加):`Judgment.lexicon_id` 的 ordinal 词表**经 ADR-014 烘焙管线产出**;`freehand_text` 例外登记于 ADR-006 Amendment A,<br>③ **ADR-010 §七**:`ConfigVersion` 不匹配非致命 —— 属**就地修订**(本 ADR §三 初稿的「拒载」措辞已据此划除作废),是「后件改前件」的**信息流**,不是「前件支撑后件」的**依赖流**。 |
 
 ## Context
 
