@@ -1,8 +1,8 @@
 # Control Manifest
 
 > **Engine**: Unity 6.3 LTS
-> **Last Updated**: 2026-09-20
-> **Manifest Version**: 2026-09-20
+> **Last Updated**: 2026-09-21
+> **Manifest Version**: 2026-09-21
 > **ADRs Covered**: ADR-001, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 015,
 > 016, 017, 018, 019, 020, 021, 022, 023, 024, 025 —— **全部 22 份 Accepted ADR**
 > **Status**: Active —— ADR 变更后用 `/create-control-manifest update` 重生成
@@ -118,11 +118,11 @@ rule, see the referenced ADR.
 - **F7 BLOCKING spike 先行**:int64 溢出在 IL2CPP C++ 后端是 UB,`SplitMix64` 与 Q16.16 中间乘正踩此线;**回绕用例 = 单元级黄金哈希第一条** — ADR-012 §Implementation Guidelines 1
 
 **Kind 单一真源(ADR-024)**
-- `entities.yaml` 的 `SimEvent.Kind.*` 是三流全集(补齐后 **33 支**)**唯一登记真源**;每条必填 `stream:`(枚举值,**禁从散文解析**)· `author:` · `payload_schema:`(类型只允许整数域) — ADR-024 §Decision ①
+- `entities.yaml` 的 `SimEvent.Kind.*` 是三流全集(**34 支**,2026-09-21 第二十七批 +`SkillGrown`)**唯一登记真源**;每条必填 `stream:`(枚举值,**禁从散文解析**)· `author:` · `payload_schema:`(类型只允许整数域) — ADR-024 §Decision ①
 - **新 Kind 的唯一追加通道 = 先在 `entities.yaml` 建条目,再在任何 GDD/ADR 引用**;**ADR-009 Amendment 追加通道(F–L)退役**;但 **F–L 的历史文本不改写**(它们是事实记录) — ADR-024 §Decision ③/§Consequences
 - ADR-009 §三/§二 就地降级为**路由注记**:不一致时以 registry 为准,并触发 V-1 断言失败 — ADR-024 §Decision ②
 - 构建期生成器 `tools/kindgen/` → `src/Sim/StreamRouting.g.cs`;断言 **A1** 唯一流别 / **A2** 载荷 ∈ 整数域 / **A3** 无重名 / **A4** author 必填 / **A5** 双向差集归零;任一失败 = 构建失败,**必须 `throw`,禁 `Debug.Assert`** — ADR-024 §Decision ⑤ / §Validation V-1
-- `StreamRouting.g.cs` 的 case 数 = registry 条目数 = **33**(V-2,可复算);生成物勿手改;拒绝表 17/18 条的执行体归 **ADR-014 阶段 2**,生成器不重复实现 — ADR-024 §Validation V-2 / §Decision ⑥
+- `StreamRouting.g.cs` 的 case 数 = registry 条目数 = **34**(V-2,可复算);生成物勿手改;拒绝表 17/18 条的执行体归 **ADR-014 阶段 2**,生成器不重复实现 — ADR-024 §Validation V-2 / §Decision ⑥
 
 ---
 

@@ -7,6 +7,10 @@
 > 登记处(数据权威):`docs/architecture/tr-registry.yaml`(499 条,`status:` 字段为计数真源)
 > 人读矩阵:`docs/architecture/traceability-index.md`(GDD → ADR 两级;**316 ✅ / 78 ⚠️ / 103 ❌ / ◆2 no-adr-by-design** —— 2026-09-21 第二十六批回写后实测;D-R3 批次后值 314/79/104;更早 245/51/89 系分母不含 12 项零 TR 系统的偏高口径)
 >
+> **2026-09-21 更新(第二十七批 —— ADR-024 补齐轮:SkillGrown Kind + next_player_id 双项登记)**
+> —— **计数零变动**(499 / 316 / 78 / 103 / ◆2);registry 两条新行不占 TR ID;
+> `TR-death-005` 改挂 `OQ-7a-9` 不翻绿(禁借绿)。
+>
 > **2026-09-21 更新(第二十六批 —— D-R3 处置批:A 组回写全批 + player_id 裁决落 ADR-006 注记)**
 > —— **316/78/103/◆2**(`TR-persist-004/006` partial→covered · `TR-casebook-002` gap→partial;
 > ID 恒 499,`yaml.safe_load` 逐条复算自洽;8 条未来 ADR 候选 = 登记不立件裁定入注)。

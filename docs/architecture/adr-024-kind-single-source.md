@@ -117,7 +117,7 @@ ADR-009 §三 就地降级为世界流路由注记(不再是家);**新 `Kind` �
 
 ### ① 唯一登记真源 = `entities.yaml` 的 `SimEvent.Kind.*`
 
-三流全集(补齐后 **33** 支)只在这里登记。每条**必填字段**扩三件:
+三流全集(补齐后 **33** 支 —— 2026-09-21 第二十七批登记 `SkillGrown` 后 = **34** 支)只在这里登记。每条**必填字段**扩三件:
 `stream:`(`history` / `case` / `world` 之一,**枚举值,禁从散文解析**)·
 `author:`(写者系统号)· `payload_schema:`(字段名表,类型只允许整数域:`i32/i64/Fix-string/枚举/格 WorldPos`)。
 
@@ -170,7 +170,7 @@ public static class StreamRouting {
         SimEvent.Kind.CaseOpened          => StreamId.Case,
         SimEvent.Kind.InjuryOnset         => StreamId.History,
         SimEvent.Kind.DropSpawned         => StreamId.World,
-        // …33 支,与 entities.yaml 逐支一致(§Validation V-2 断言)
+        // …34 支(2026-09-21 第二十七批 +SkillGrown),与 entities.yaml 逐支一致(§Validation V-2 断言)
         _ => throw new BuildContractException(kind), // 运行期不可达:白名单已穷举
     };
 }
@@ -231,7 +231,7 @@ public static class StreamRouting {
 ## Validation Criteria
 
 - [ ] **V-1** 生成器跑通且 A1–A5 全绿(断言失败必须 `throw`,禁 `Debug.Assert` —— 承 ADR-022 C 系口径)
-- [ ] **V-2** `StreamRouting.g.cs` 的 case 数 = registry `SimEvent.Kind.*` 条目数 = **33**(可复算)
+- [ ] **V-2** `StreamRouting.g.cs` 的 case 数 = registry `SimEvent.Kind.*` 条目数 = **34**(可复算;不变量是「两数相等」,34 = 2026-09-21 第二十七批登记 `SkillGrown` 后的实测值,此前为 33)
 - [ ] **V-3** 补齐 9 支的载荷字段名表逐支与出处件 diff 为空
 - [ ] **V-4** 全库 `grep "9-Kind"` 命中 = 0(陈旧计数清零)
 - [ ] **V-5** ADR-009 Amendment M 及以后**不存在**(通道退役的可证伪判据)

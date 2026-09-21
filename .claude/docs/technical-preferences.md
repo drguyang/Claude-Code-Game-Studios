@@ -183,6 +183,10 @@
   (39/48/45 需要,此前全库零定义)= **复用 `IIdAuthority` 机制 A**,三条硬不变量适用面
   「受伤实体 id」→「+玩家 id」;不新开第二计数器;注记已落 ADR-006 正文(残留:entities.yaml
   增列 / 45 铸造契约 / 7a 不快照声明)。
+  **2026-09-21 第二十七批**:残留 ①✅(`entities.yaml` 增列 `next_player_id`)· ③✅
+  (规则九「不独立快照玩家 id 计数器」已声明)· ② **仍 open**(45 GDD 轮 + ADR-001 窄修订同批);
+  同批兑现 **ADR-024 补齐轮另一残留** = `SimEvent.Kind.SkillGrown` 入 registry
+  (V-2 条目数 33 → **34**;登记暴露 7a 折叠丢成长的新缺口 = 新立 `OQ-7a-9` 待裁)。
   Engine Knowledge Risk **MEDIUM**(不依赖 post-cutoff API)。
 
 - [ADR-007 🟢 Accepted 2026-09-15]**事件权威与掷骰状态** ——

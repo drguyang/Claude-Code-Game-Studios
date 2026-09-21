@@ -306,17 +306,21 @@ Level(s)@t = Level₀(s) + Σ_{e: SkillGrown(s)} Δlevel(e)    再逐次乘 19/2
 
 | 变量 | 类型 | 说明 |
 | --- | --- | --- |
-| `SkillGrown(s, Δ)` | 病史流事件 | 30 的成长事件(`skill-system.md:519`),携带 `ΔLevel` |
+| `SkillGrown(s, Δ)` | 病史流事件 | 30 的成长事件(`skill-system.md` §3.2 规则二),载荷携带**绝对 `level`**(`Level_end`)而非 Δ —— ⚠️ **2026-09-21 第二十七批换算口径登记**:本式的 `Δ` = 读流时**相邻两条 `level` 之差**,是 29 / 51 的派生量,**30 的载荷里没有 `ΔLevel` 这个字段**(原稿「携带 `ΔLevel`」系口径混写,机制与数值零改动,只订正引用;`entities.yaml` 已具名登记该支 = 见 registry `SimEvent.Kind.SkillGrown`) |
 | `PlayerDied` | 世界流事件 | 本 GDD 新增(见 §Detailed Rules 规则二 / F-29-2) |
 | `Level₀(s)` | int | 开局等级(1) |
 
 > **本条是「掉级不进流」的证明**:序列可从两条既有流**确定性重建** ⇒
 > 掉级是**派生态**(ADR-009 §一 Q1),不需要第三条载体,**不存在重复真源**。
 >
-> **⚠️ 前置未完全落地(登记,不静默)**:`SkillGrown` 的**正式登记**仍是 **30 侧的残留义务**
-> (`skill-system.md:578`「`entities.yaml` 追加 `SkillGrown` + ADR-009 §三 骨架补记,**本轮不落**」;
-> 全库当前 `SkillGrown` **零登记**)。⇒ **F-29-4 与 AC-29-16 的前提在 30 登记落地前不成立** ——
-> 该两条**不得在 `SkillGrown` 登记前记绿**(`BLOCKED-BY`:30 的 `SkillGrown` 登记义务)。
+> **⚠️ 前置状态(2026-09-21 第二十七批更新,登记不静默)**:原「`SkillGrown` 零登记」的
+> **甲面已闭合** —— 该 Kind 已于本批具名登记进 `design/registry/entities.yaml`
+> (`stream: history` · `author: 30`),30 文末的登记义务就此兑现(原义务中的「ADR-009 §三
+> 骨架补记」一项随 ADR-024 ② 骨架降级为路由注记而不再构成缺口)。
+> ⚠️ **但 F-29-4 / AC-29-16 仍不得记绿,`BLOCKED-BY` 换一个未裁项**:7a 的终态折叠行形状
+> (`persistence-service.md` 规则八:F-7a-4)**不保留非折叠 Kind** ⇒ 病人终态后其 `SkillGrown`
+> 在折叠视图下消失,而本式的前提恰是「**全部**成长事件参与重放折叠」(等级永不被死亡夺走)——
+> 折叠豁免 / 折叠行扩列 = **`OQ-7a-9`(本批新立,待 7a × 29 × 30 三方裁;`OQ-7a-6/7/8` 号已被占用)**。
 > 掉级语义本身(**F-29-1**)不受影响(它只依赖 `Level` 的当前值)。
 
 ---
@@ -510,7 +514,7 @@ Level(s)@t = Level₀(s) + Σ_{e: SkillGrown(s)} Δlevel(e)    再逐次乘 19/2
 | **AC-29-13** | **[A]** | `GIVEN` 病人死亡(非玩家),`WHEN` 检索 29 的**事件订阅集**,`THEN` 其**输入 Kind 集 ⊆ {`DeathCandidate`}** 且其中**零病人身份谓词**(归 9 + 53)(正向输入白名单) |
 | **AC-29-14** | **[A]** | `GIVEN` 30 的掉级,`WHEN` 检索公式,`THEN` 唯一出处 = 30(`skill-system.md` §4.3),**29 零重复实现**(规则四)。⚠️ **2026-09-20 回刷(R-4-W-6)**:§4.3 **无判断类豁免** —— 29 侧 `:329` 的豁免行是**无源规则**,已就地标「口径待裁」;本 AC 的「唯一出处」断言**不含豁免** |
 | **AC-29-15** | **[A]** | `GIVEN` `last_death_tick`,**WHEN** 检索,`THEN` 唯一来源 = 世界流 `PlayerDied` 重算,**零独立计数器**(F-29-2) |
-| **AC-29-16** | **[A]** ⚠️ **`BLOCKED-BY`:30 的 `SkillGrown` 登记义务**(`entities.yaml` + ADR-009 §三 骨架 —— `skill-system.md:578` 残留项;**登记落地前不得记绿**)| `GIVEN` 掉级重建,`WHEN` 喂入同一 `PlayerDied` + `SkillGrown` 序列两次,`THEN` `Level(s)@t` 逐位一致,**且 29 的代码路径零「掉级信号」Kind 的 `Append` 点**(F-29-4,防第二真源) |
+| **AC-29-16** | **[A]** ⚠️ **`BLOCKED-BY`(2026-09-21 第二十七批改挂):`OQ-7a-9` 折叠豁免待裁** —— 原挂项「30 的 `SkillGrown` 登记义务」已兑现(`entities.yaml` 已具名登记),但折叠视图丢成长 ⇒ **仍不得记绿**;新挂项落地前本条恒 `BLOCKED` | `GIVEN` 掉级重建,`WHEN` 喂入同一 `PlayerDied` + `SkillGrown` 序列两次,`THEN` `Level(s)@t` 逐位一致,**且 29 的代码路径零「掉级信号」Kind 的 `Append` 点**(F-29-4,防第二真源) |
 | **AC-29-17** | **[A]** ⚠️ **BLOCKED-BY-9(2026-09-20 `/review-all-gdds` R-3)** | `GIVEN` 死亡掉落物,`WHEN` 逐条检视 `DropClaimed`,**THEN** 每条的前置移动意图含该 drop 所在的**死亡格**(兑现 20 的 R7 / BL-7②;可判伪的正向谓词) |
 
 ---

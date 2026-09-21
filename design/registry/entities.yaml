@@ -37,7 +37,7 @@
 #   Each entry: name, status, source, referenced_by[], attributes{}, added, revised
 
 version: 1
-last_updated: "2026-09-20"
+last_updated: "2026-09-21"
 
 # ─── 跨系统欠账 (2026-09-14 追加) ─────────────────────────────────────────────
 # 本注册表只登记【已存在的实体/公式/常量】。未兑现的跨文档债务不属于任何一类,
@@ -1060,6 +1060,24 @@ formulas:
       终态折叠行必须保留 patient_id(否则高水位不可重构,撞号 = 两病人共写一份病程)"
     added: 2026-09-16
     revised: "2026-09-17"
+
+  # ── 玩家 id 高水位(第二十七批 · ADR-006 注记残留① 兑现 · 2026-09-21)────────
+  # 出处 = ADR-006 Amendment B 的 2026-09-21 注记(用户裁定:复用 IIdAuthority 机制 A,
+  # 适用面第二次扩大「受伤实体 id → +玩家 id」)。⚠️ 本条是**计数器**登记,不是
+  # SimEvent.Kind —— 不占 V-2 的 registry 条目数(该断言只数 `SimEvent.Kind.*`)。
+  - name: next_player_id
+    status: active
+    source: docs/architecture/adr-006-fixed-point-boundary-contract.md
+    referenced_by:
+      - docs/architecture/adr-006-fixed-point-boundary-contract.md   # Amendment B 2026-09-21 注记(三条硬不变量扩大适用 + 铸造时点)
+      - design/gdd/persistence-service.md                            # 规则九末段「不独立快照玩家 id 计数器」(注记残留③ 兑现)
+      - design/gdd/casebook.md                                       # 39:分册键 player_id(契约 ①稳定②不复用;P0 单机 = 常量 0 口径承 2026-09-19,现按注记走发号)
+      - design/gdd/tutorial-and-onboarding.md                        # 48:各人进度独立 —— JudgmentRecorded 的 author_player_id 过滤轴
+      - design/gdd/death-and-respawn.md                              # 29/SkillGrown 载荷 actor_id(施予者 = 玩家)同空间发号
+    unit: int64
+    constraint: "与 patient / 敌人**共用同一 id 空间**(注记明文「不引入新的 id 空间」⇒ `max(id)+1` 高水位守卫仍是**单点**,扫描域 = 三流并集内全部受伤实体 id **与**玩家 id 的并;机制 = 计数器永不复位 0 · 权威变更后 `next = max(已知 id) + 1` 由事件流重构 · **玩家不落病史流 ⇒ 折叠谓词不适用**(与敌人行同理);`PatientId.None = −1` 哨兵**不得被玩家 id 占用**(同 F-7a-3 空集约定);铸造时点 = 建世界(单机 = 唯一玩家)与每名玩家加入会话时,由主机经 `IIdAuthority` 发号;首个具体载荷落点 = `JudgmentRecorded` / `JudgmentRevised` 的 `author_player_id`(ADR-008 2026-09-19 修订);⚠️ **残留② open**:45 网络层「加入会话 → 铸造 → 上行」契约件归 45 GDD 轮 + ADR-001 窄修订同批(ADR-006 注记)"
+    added: 2026-09-21
+    revised: ""
 
   # ── F-24-1: 环境调制乘子 (clinic-machine.md §Formulas) ────────────────────
   # 线性加权和 + **唯一钳制点 = 21a F1**(2026-09-20 D-21-31 口径:24 侧删除双钳制,
@@ -2347,6 +2365,28 @@ constants:
     payload_schema: "flag_id: i32(标记表 ordinal); new_value: i32(整数标记值)"
     constraint: "落**病史流**(ADR-007 §三);`Patient = PatientId.None`(§四;**名字带 History 但与病例流的「改写史」无关**,落点 = 病史流,ADR-024 ④ 归属);载荷 = { flag_id, new_value };历史标记集(52 的 `cause_flag`)由此流重构 ⇒ `HistoryMult` 在主机迁移后**逐位可复现**(§三 承重条款);**存新值语义**(同 JudgmentRecorded 先例,不存旧值、不做差分);有界性 ≤ 标记数 × 变更率;⚠️ 本行原属 ADR-007 散文清单,自 ADR-024 ① 起本条目即真源;**写者 = 52,主机唯一 Append**"
     added: 2026-09-20
+    revised: ""
+
+  # ── 病史流 Kind · 第二十七批(2026-09-21 · ADR-024 补齐轮残留① 兑现)────────
+  # 登记义务出处:skill-system.md §3.2 规则二(载荷权威)+ 文末「登记为 30 侧的新增
+  # 登记义务」(即 OQ-11-11 甲面)。ADR-024 ③ 追加通道退役后,本条目即唯一真源;
+  # 原义务清单中「ADR-009 §三 骨架补记」一项随 ADR-024 ②(骨架降级为路由注记)
+  # 不再构成缺口,不补。三字段格式 = ADR-024 ④ 块先例。
+  - name: SimEvent.Kind.SkillGrown
+    status: active
+    source: design/gdd/skill-system.md
+    referenced_by:
+      - design/gdd/skill-system.md                        # 30:§3.2 规则二(载荷权威)· §4.2 Level_end · AC「载荷含 (skill_id, object_id, novelty_class) + Level」
+      - design/gdd/death-and-respawn.md                   # 29:F-29-4 掉级 fold 投影 · AC-29-16(本支是其前提)
+      - design/gdd/telemetry-analytics.md                 # 51:AC-51-D2 升级读数(level 携带的兑现对象)
+      - design/gdd/prescription-and-medication.md         # 11:AC-11-16(GateHit 命中经 EmitGrowth 发出)
+      - docs/architecture/adr-005-deterministic-sim.md    # 病史流 = 唯一真源;本支落该流
+    unit: kind
+    stream: history
+    author: "30 技能与熟练度(主机经 EmitGrowth 统一物化;调用方 ∈ {8 诊断 / 17 采集 / 11 处方用药}——37 不调用,2026-09-20 R-3 口径:37 的 CaseClosed / PatternRecognized 作为派生输入喂 30)"
+    payload_schema: "actor_id: i32(施予者 = 玩家,与 player_id 共用 id 空间,ADR-006 注记); patient_id: i32(本次成长所依附的受伤实体;无病例语境的动作类成长(采集 / 奔跑等)取 PatientId.None = −1); skill_id: i32(技能表 ordinal); object_id: i32(对象表 ordinal —— 病种 / 品种 / 处方对象,由 skill_id 决定读哪张表); novelty_class: 枚举(首次 | 冷却内 | 其它,三值); level: i32(仅升级事件携带 = §4.2 Level_end;未升级 ⇒ 缺省 = 哨兵,不写 0)"
+    constraint: "落**病史流**(30 §3.2 规则二「SkillGrown 事件落病史流」;ADR-005 病史流唯一真源);**写者 = 30 唯一** —— 调用方 8/17/11 经 `EmitGrowth` 入口、主机统一 `Append`(承 ADR-005 主机权威);**载荷权威 = skill-system.md §3.2 规则二**,携**绝对 `level`**(30 原文 `Level`)而非 Δ —— ⚠️ 29 的 F-29-4 表格「携带 `ΔLevel`」系**派生量口径混写**:Δ = 相邻两条 `level` 之差,由 29 / 51 读流时自算,**不改 30 的载荷**(换算口径已在 `death-and-respawn.md` F-29-4 就地登记,冻结纪律:机制与数值零改动);`level` 仅升级事件携带 = 兑现 51 的 `AC-51-D2`;有界性 = **每完成一次成长动作 ≤ 1 条**,与帧率 / tick 相位无关(成长由动作结算触发,非逐帧);跨流全序键 `(Tick, StreamPriority, Patient, Seq)` 的 `Patient` 项 = `patient_id`(非世界级 —— 与 ADR-007 五支恒 `None` 不同);⚠️ **待裁(第二十七批登记,不代拍)**:7a F-7a-4 终态折叠行形状 `(onset, 病种_id, patient_id, patient_seed, outcome, t_end)`**不含非折叠 Kind** ⇒ 病人终态后其 `SkillGrown` 在折叠视图下消失,而 29 的 F-29-4 / AC-29-16 前提 = 本支**参与重放折叠且幸存**(等级永不被死亡夺走 ⇒ 折叠丢成长 = `Level(s)@t` 逐位重放的破口);折叠豁免 / 折叠行扩列归 7a × 29 × 30 三方裁决,已立 **`OQ-7a-9`**(persistence-service.md,2026-09-21 第二十七批);`OQ-11-11` 两面中 **(甲) Kind 契约面随本条闭合**(发出方 / 载荷 / 门控出处已登记),`EmitGrowth` 完整入参签名的 `K_difficulty` 形参须待 **(乙) `OQ-11-13`**(仍 open)裁定后方可写定 ⇒ `AC-11-16` 因乙仍 `NOT-RUN`"
+    added: 2026-09-21
     revised: ""
 
   # ── 37 病例系统 · 同源检测（唯一整数旋钮）─────────────────────────────
