@@ -30,6 +30,9 @@ dr_guyang(用户 · **2026-09-15 一项核心裁定:51 本地优先**)· technic
 **51 遥测与分析**是 P0 的 Foundation 层系统,**零 GDD、零 ADR、零 TR**,
 却在 `systems-index.md:255` 承担一个核心职责:「**回答「判断层到底好不好玩」的仪器**」
 (绑定支柱一「判断为骨」)。它被估为 **S**(1 次会话),归 `audio-director / analytics-engineer`。
+> ⚠️ **2026-09-21 历史注**:「零 GDD」是本 ADR(2026-09-15)时的状态;51 后已立
+> `telemetry-analytics.md`(2026-09-18 成文,git 落盘 2026-09-19)。下文 Current State 的
+> 「51 零 ADR、零 GDD、零 TR」同此。裁决内容(§一 回放即数据记录 等)不受影响。
 本 ADR 裁决:**51 本地优先** ——
 ① **遥测 = 事件流回放产物**(ADR-005 的确定性模拟**本身就是完整的数据记录**,
 无需另建埋点;复用而非新建);
@@ -483,6 +486,7 @@ public interface ITelemetrySink
 | `design/gdd/case-system.md` | 37 病例系统 | `:162` 「37 只保证记录完整、可回放」 | 该保证**正是** 51 的数据基础(§一);51 复用而不新建 |
 
 > **Foundational decision** —— 本 ADR 无独立 GDD 需求(51 无 GDD;它是 R-15 的落点)。
+> ⚠️ 2026-09-21 历史注:「51 无 GDD」为 2026-09-15 时状态,现已立 `telemetry-analytics.md`(见 Summary 注)。
 > **Enables**:51 的实现;支柱一的验证闭环;`TR-randomevents-024` 结清;
 > 发布清单 Privacy / Analytics 项有确定答案。
 

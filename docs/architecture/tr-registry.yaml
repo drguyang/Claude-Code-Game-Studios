@@ -1307,11 +1307,11 @@
   - id: TR-diag-024
     system: diagnosis-system
     gdd: design/gdd/diagnosis-system.md
-    requirement: "D-8-8 硬需求④:联机时精度统一取主机技能"
+    requirement: "D-8-8 硬需求④:联机时**各设备按本机技能档**(2026-09-18 裁定 D-A;原「统一取主机技能」已作废)"
     domain: Presentation
     adr: docs/architecture/adr-018-audio-architecture.md
     status: covered
-    revised: "2026-09-18"
+    revised: "2026-09-21"
     note: "**2026-09-18 改判**(44 首轮 `/design-review` 阻断 + 用户裁定 D-A)**:原口径「精度统一取**主机**技能」**已撤销** —— 其依据「单 `AudioListener` 每设备一条混音总线 ⇒ 分人分混结构上不可能」是**伪前提**(`AudioListener` 是空间化参考点约束,非总线数约束)。现行:`ADR-018 §五` 改为 `SetTier(TierSource.Local)` —— **各设备按本机技能档渲染**,保住 44 的听觉熟练度成长轴;AC-44-07 已据此重写。**跨 ADR 涟漪见 ADR-001 §一之二(远端声源锚点)/ ADR-020 §七(Listener 挂点)**"
 
   - id: TR-diag-025
@@ -1810,8 +1810,8 @@
     domain: Presentation
     adr: ADR-018
     status: covered
-    revised: "2026-09-15"
-    note: "ADR-018 §一 / §四。**无提示音铁律** = 白名单断言(AC-44-09)。**`Tier` 13 不填** —— `AudioCueDto.Tier` 是 44 的听诊精度档(`adr-018:170`),由 `SetTier(TierSource)` 持有(单机 = 本地技能 / 联机 = 主机技能),**与距离无关**;距离衰减归 44 的 3D 空间化"
+    revised: "2026-09-21"
+    note: "ADR-018 §一 / §四。**无提示音铁律** = 白名单断言(AC-44-09)。**`Tier` 13 不填** —— `AudioCueDto.Tier` 是 44 的听诊精度档(`adr-018:170`),由 `SetTier(TierSource)` 持有(**各设备按本机技能档** —— 2026-09-18 裁定 D-A:原「联机 = 主机技能」已作废;`adr-018 §五`),**与距离无关**;距离衰减归 44 的 3D 空间化"
 
   - id: TR-patient-019
     system: patient-ai

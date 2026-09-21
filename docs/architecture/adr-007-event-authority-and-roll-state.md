@@ -69,6 +69,9 @@ dr_guyang(用户 · **2026-09-15 裁定 Accepted**)· technical-director(签:架
 2. **`WorldSeed` 被 52 单方面断言「存档创建时生成一次,持久化」** ——
    但**种子的生成时机、归属、持久化位置在两份 ADR 中均无定义**,而那是
    **7a 持久化**的领域。52 是一个 GDD,**无权为一个尚未撰写的系统定义它的数据契约**。
+   > ⚠️ **2026-09-21 历史注**:「尚未撰写」是本 ADR(2026-09-15)时的状态,7a 后已立
+   > `persistence-service.md`(2026-09-17)。越权的**裁决本身仍成立** —— 契约归属由本 ADR 定为 7a,
+   > 与其 GDD 何时出现无关。Context / Current State 两处同此,不再逐处加注。
 
 不决定的代价:**静默分叉**。若 `WorldSeed` 由各机器各自生成,或 `IEventAuthority` 的实现
 被两台机器各自持有掷骰权,则两台机器抽出**不同事件** → 生成不同病人 →
@@ -325,6 +328,8 @@ public readonly struct PatientId : IEquatable<PatientId>
 - 多一个接口与一次间接调用(`Roll` 经接口)—— 但 P0 是本地占位,开销可忽略
 - 抽取路径多写一条 `EventRolled` 事件 —— 事件流条目数增加(见 Risks)
 - 7a 持久化被**提前**绑定了一项契约(`WorldSeed`),而 7a 尚未撰写
+  (⚠️ 2026-09-21 历史注:7a 的 GDD `persistence-service.md` 已于 2026-09-17 立,「尚未撰写」陈旧;
+  该提前绑定现由其承接,本条作为当时代价记录保留)
 
 ### Neutral
 

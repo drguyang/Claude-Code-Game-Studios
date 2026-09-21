@@ -1225,7 +1225,7 @@ ADR-007 §三              5 支(EventRolled / EventArrived / ThreatDeferred /
 | **`TR-timeweather-006/007`** | ADR-005 的 tick 纪律已覆盖,缺**构建期硬失败**断言 ⇒ 与 #3 的校验体系同批 |
 | **`TR-disease-020/022`** | ADR-005 修正案(扫描单向性 / 中间类型)—— `traceability-index.md` 已如此登记 |
 | **`TR-combat-024`**(致死伤形态 / Down 覆盖边界)| **数值轮另裁**(`OQ-25-1` / `OQ-25-3`);`TR-combat-023` 已随 2026-09-20 裁定翻转 |
-| **`TR-worldeco-009`** | ✅ **已由 6 的 GDD 结清**(`PoiState` 三态)⇒ registry 待回写 |
+| **`TR-worldeco-009`** | ✅ **已由 6 的 GDD 结清**(`PoiState` 三态)⇒ registry 待回写 —— ⚠️ **2026-09-21 注**:registry 该条(`tr-registry.yaml:1964-1972`)**现值已是 `status: covered`(`revised: 2026-09-16`)且带 GDD 指针**,「待回写」指的不是 status 字段,而是其 note 内**留白的那个条件**——「⚠️ 本状态由撰写方置为 `covered`,**待首轮 `/design-review` 确认**」。该确认**条件已满足**(6 首轮评审 2026-09-16 → 修订 → 用户裁定 Approved,`reviews/world-and-ecozones-review-log.md:3`);⚠️ **但 note 摘除属 `/architecture-review` Phase 8 职权,本行不代为执行**;且 note 另载**残留 `OQ-6-7`**(单调性是否全局不变量)未结 |
 
 ## Architecture Principles
 

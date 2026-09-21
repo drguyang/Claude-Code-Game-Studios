@@ -7,6 +7,17 @@
 > **数据真源两处都是 `tr-registry.yaml` 的 `status:` 字段** —— 本文件与 RTM 件都不各自持有计数,
 > 只引用。RTM 件是门件路径要求的**指针件**,不复制本表内容。
 
+> **Last Updated**: 2026-09-21(第六轮 = `/architecture-review` full 复跑,报告 =
+> `docs/architecture/architecture-review-2026-09-21.md`,判定 **CONCERNS · 零阻塞**)
+> —— **ID 不增不减(恒 387)、status 零翻转**;本轮只动**两处条目文本**:
+> `TR-diag-024.requirement` 与 `TR-patient-018.note` 的「联机 = 主机技能」旧口径改口为
+> 「**各设备按本机技能档**」(2026-09-18 裁定 D-A;两处 `revised` → 2026-09-21)。
+> **⚠️ 这两条是 `/consistency-check` 批次三的残留项 S-1 / S-2**,其修法 **不涉机制、不翻状态**
+> (承「补/删引据不充当验收」纪律)。**合计维持 245 ✅ / 51 ⚠️ / 89 ❌ / ◆2**。
+> **同轮实测**:8 条 RC(RC-1…RC-8)+ S-4 **全部结案**(全部落在 ADR 正文,零状态位翻转);
+> ADR 循环依赖 **无环 22/22**;弃用 API **零**;Knowledge Risk **HIGH 7 / MEDIUM 7 / LOW 8**
+> (⚠️ 上轮记 6/8/8,差异源 = ADR-008 上轮未计入 HIGH,本值正确)。
+
 > **Last Updated**: 2026-09-18(**P0 收尾批六份 GDD 一次性落盘** —— #4 交互系统 · #5 时间与天气 ·
 > #10 急救动作 · #11 处方用药 · #18 炮制 · #20 库存与物品。按代生约定**各追加新 slug 六条**
 > (`interaction` / `timeweather` / `emergency` / `prescription` / `processing` / `inventory`)
@@ -69,6 +80,10 @@
 > 需求文本由 GDD 生成;同轮翻转 `TR-enemy-017` ⚠️→✅ · `TR-skill-007` ❌→⚠️;
 > **P0 收尾批六份 GDD 各追加 15 / 15 / 21 / 17 / 18 / 16 条**(4 / 5 / 10 / 11 / 18 / 20,共 **102** 条)
 > —— 六份**均无单一权威 ADR**(同 25 的形态);**6 条 🔴 硬前置已于 2026-09-18 全部裁定**(4 ✅ / 2 ⚠️,见 §变更历史末行))
+
+> **📎 报告 ID 族登记表** —— 见 §优先修复清单之后的 **「报告 ID 族登记表」**(2026-09-21 建立,
+> 兑现报告 D-R1)。**它不参与任何计数或门控判据**;需要计数的唯一真源仍是 `tr-registry.yaml`
+> 的 `status:` 字段。
 
 ## 怎么读这张表
 
@@ -932,6 +947,60 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 
 ---
 
+## 报告 ID 族登记表
+
+> **本节的性质**:跨报告 / 跨件的 **ID 命名空间台账**(2026-09-21 建立,兑现报告 D-R1)。
+> ⚠️ **本表为本轮人工实测值,不做门控判据** —— 它不参与任何 AC / gate 判定,也不产生任何计数。
+> 计数真源仍只有一条:任何需要计数的地方读 `tr-registry.yaml` 的 `status:`。
+> **登记动机**:ADR-024 已把三流 `Kind` 收成「单一真源 + 生成器(A1–A5 断言)」,但
+> **报告 / 评审件的 ID 族至今无中央登记** ⇒ 每轮新报告重新从 `-1` 起数,与既有件静默撞号。
+> 上轮(2026-09-20)首稿曾用 `C-11/12/13` 与 2026-09-15 报告 §13.2 撞号而被迫改族 —— 那只是
+> **被察觉的一次**;本轮全库扫描证明它已复发六次(见 §撞号实测)。
+>
+> ⚠️ **族集合已由上稿的 8 族(C / E / B / R / QQ / RC / D-R / S)扩为 14 族** —— 实测发现上稿
+> 遗漏的 **G / N / T / V / W / BL** 六族**全部存在活跃撞号**(§撞号实测 ④⑤⑥⑦)。漏登它们会使
+> 本表**在建立当日即不完备**,与本节要治的失效模式同型。
+
+### 各族现状
+
+| 族 | 含义 | 已用至 | 生产者(**标 ⚠️ = 已撞号**) |
+|----|------|-------:|--------------------------|
+| **C** | Report-Conflict(架构冲突) | **18** | ⚠️ **三个独立生产者**:`architecture-review-2026-09-15.md` C-1…C-18(§4 + §13.2)· `consistency-report-2026-09-20.md` C-1/C-2 · `consistency-report-2026-09-20-batch2.md` C-1…C-4 · `consistency-report-2026-09-21.md` C-1…C-3 |
+| **E** | Report-Engine(引擎发现) | **17** | `architecture-review-2026-09-15.md` E-1…E-17(唯一生产者;后续件只做回引) |
+| **B** | Report-Blocker / 评审阻断项 | **19** | ⚠️ **四类生产者同号**:报告级 `architecture-review-2026-09-15.md` B-1…B-9 · 跨件级 `gdd-cross-review-2026-09-20.md` 三组各 B-1…B-4 · **系统级**(逐 GDD 评审日志,每份从 B-1 重起):`time-and-weather.md` B-1…B-19 · `reviews/combat-and-weapon-lines-review-log.md` B-1…B-13 等 |
+| **R** | Report-Recommendation(缺件建议) | **15** | `architecture-review-2026-09-15.md` R-1…R-15(唯一生产者)。⚠️ 勿与 `processing.md` 的**规则号** `R-18-A/B/C` 混同(异族) |
+| **G** | Report-Group / 组发现 | **7** | ⚠️ **两个生产者**:`architecture-review-2026-09-15.md` G-1 / G-4 / **G-7** · `diagnosis-system.md` G-1…G-4(**8 自身的护栏**,`F-8.6`)。⚠️ 且报告侧的 `G-7` 是**幽灵引据** —— 其真身是 `diagnosis-system.md:1608` 的 `V-8.7`(§撞号实测 ⑥) |
+| **N** | Report-New(新登记观察) | **8** | ⚠️ **四个生产者**:`architecture-review-2026-09-15.md` N-3/N-4 · `architecture-review-2026-09-21.md` N-1…N-3 · `adr-005` 复查轮 N-1…N-5 · `adr-006` 复查轮 N-5/N-6/N-8 |
+| **QQ** | Open Question(`architecture.md` §Open Questions) | **15** | `architecture.md` QQ-01…QQ-15(唯一生产者;全库引用均用两位补零形 ⇒ 零撞号) |
+| **RC** | Review-Conflict(单件内冲突) | **9** | ⚠️ **两个生产者**:`architecture-review-2026-09-20.md` / `-2026-09-21.md` RC-1…RC-8(**同对象沿用**,后件未重新编号)+ `control-manifest.md` 候选 **RC-9** —— 另起一件:`reviews/death-and-respawn-review-log.md` RC-1…RC-5(29 自己的冲突族) |
+| **S** | Report-Specialist / Stale(登记层缺陷) | **5** | ⚠️ **四个生产者**:`architecture-review-2026-09-20.md` S-1…S-5 · `architecture-review-2026-09-21.md` S-1…S-5 · `consistency-report-2026-09-20.md` S-1…S-3 / `-batch2.md` S-3/S-4 / `consistency-report-2026-09-21.md` S-1…S-4 · `combat-and-weapon-lines.md` S-1…S-3(**25 自身的 sim 状态号**,异义同形) |
+| **T** | Report-Todo | **5** | ⚠️ **两个生产者**:报告级 `architecture-review-2026-09-20.md` / `-2026-09-21.md` T-1…T-5 · `combat-and-weapon-lines.md` T-1/T-2/T-3(**受试数 / 基线 / 通过线**阈值,异义同形) |
+| **V** | Validation criteria | **11** | ⚠️ **各件自立数列**:`skeuomorphic-ui.md` V-1…V-11 · `adr-024` V-1…V-6 · `adr-025` V-0…V-6 · `adr-023` V-8 · `enemy-ai.md` V-10。⚠️ `diagnosis-system.md` 的 `V-8.n` 是**三级号**,异形不冲突 |
+| **W** | Report-Warn(告警) | **3** | ⚠️ **三个生产者**:`gdd-cross-review-2026-09-20.md` W-1…W-3(告警族) · `consistency-report-2026-09-20.md` W-1 / `consistency-report-2026-09-21.md` W-1 · **`campaign-arc.md` / `case-system.md` / `architecture.md` 的 W-1 = 用户显式风险接受裁定**(异义同形) |
+| **D-R** | Report-DocRegistry(登记层缺陷) | **5** | `architecture-review-2026-09-20.md` / `-2026-09-21.md` D-R1…D-R5(**同对象沿用**,未重新编号)⇒ 本族是全库**唯一零撞号的报告家族** |
+| **BL** | **GDD-Blocker(系统作用域)** | **32**(聚合) | ⚠️ **刻意按系统作用域编号**:每份 GDD / 评审日志自 `BL-1` 起数,故 `BL-1` 在全库有 20+ 个异义实例。**这不是撞号,是设计** —— 引用时**必须带出处件**(`case-system.md` 的 `BL-3` ≠ `audio-system.md` 的 `BL-3`) |
+
+### 撞号实测(2026-09-21 全库扫描)
+
+| # | 族 | 撞号实例 | 性质 |
+|---|----|---------|------|
+| ① | **C** | `architecture-review-2026-09-15.md:106` C-1 = `PatientId` 静态类 / 值类型**编译级阻塞** **vs** `consistency-report-2026-09-21.md:40` C-1 = 「联机音频精度取主机技能」残留 | 跨件 · 同号异义 |
+| ② | **S** | `architecture-review-2026-09-21.md:127` + `:215` **S-4 = ADR-023 的 S3 bundle refcount 判据** **vs** **同件** `:244` **S-4 = `tests/README.md:38-41` 陈旧** | **同件 · 同号异义**(本族最严重实例 —— 中央登记表也拦不住这一类) |
+| ③ | **S** | `consistency-report-2026-09-21.md` 的 S-1 / S-2 / S-4 **vs** `architecture-review-2026-09-21.md` §7 的 S-1 / S-2 / S-4 —— 后件**整族采用**了批三的编号,对象也相同 | 跨件 · **同号同义**(唯一「无害」的一类:是**借号**而非撞号;但无任何机制保证它继续同义 —— 一旦两件分别续编即退化为 ①) |
+| ④ | **B** | `architecture-review-2026-09-15.md:406` B-3 = 删 ADR-005 的 `3×2⁻¹⁶` 自引 **vs** `time-and-weather.md:220` B-3 = 5 的首轮评审阻断 **vs** `gdd-cross-review-2026-09-20.md` 组 G3 的 B-3 = 支柱四单腿两旋钮 | 跨件 · 同号异义(**三重叠**) |
+| ⑤ | **W** | `gdd-cross-review-2026-09-20.md:163` W-1 = EnvMod 双钳告警 **vs** `campaign-arc.md:62` / `case-system.md` 的 W-1 = **用户显式风险接受裁定** | 跨件 · 同号异义 |
+| ⑥ | **G** | `architecture-review-2026-09-15.md:466` 引「**8 的 G-7**」,而 `diagnosis-system.md` 的 G 族**只到 G-4** —— 真身是 `design/gdd/diagnosis-system.md:1608` 的 **`V-8.7`** | **幽灵引据**(撞号的下游后果:家族号写错后**无人可查**,只有逐字回想原文才能复原) |
+| ⑦ | **N** | `architecture-review-2026-09-15.md:593` 的 N-3 / N-4 **vs** `architecture-review-2026-09-21.md:138` 的 N-3 | 跨件 · 同号异义 |
+
+> **本表的局限(如实登记)**:它**只能记录已发生的撞号,不能阻止新的撞号** —— 无生成器、
+> 无构建期断言,与 ADR-024 对 `Kind` 的「单一真源 + A1–A5 断言」**不同级**。② 尤能说明这一点:
+> **同件之内**的 `S-4` 双义,任何跨件台账都拦不住。
+> 若要**结构性消除**,须另立**作者期命名空间纪律**(每件报告自带族前缀,如 `AR21-C-1` /
+> `CR21b-S-3`),或把报告 ID 也纳入 `tools/kindgen/` 的生成器族。二者均**超出本表**,
+> 登记为**待用户裁**(与 D-R2 同批,理由见 `architecture-review-2026-09-21.md` §8.1)。
+
+---
+
 ## 变更历史
 
 | 日期 | 动作 | 说明 |
@@ -1006,3 +1075,5 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 | 2026-09-20 | **ADR-023/024/025 回写轮(Required ADRs #1/#3/#2 裁定落 registry)—— `TR-randomevents-010` / `-031` gap → covered** | **ID 不增不减**(恒 387)。两条翻转:`010` 挂 `adr: ADR-024 + ADR-025`(asmdef 面 = ADR-025 §①④ 具名清单 + 封闭性断言;校验体系面 = ADR-024 §⑤ kindgen A1–A5;⚠️ 「Roslyn」字面未采纳 = ADR-024 Alt E 本版不引入 analyzer,须字面兑现另签)· `031` 挂 `adr: ADR-024`(落点 = §⑥,执行体归 ADR-014 阶段 2 校验器;⚠️ 出处件自陈 17 条 vs 实测 18 谓词,差 1 如实登记,**不改写 TR 文本**)。两条均带**禁借绿**注:裁决面 covered,kindgen / 校验器工具位归实现轮。Foundation gaps **6 → 4**(另 4 条 = `TR-itemdb-031` 回写族 / `TR-skill-008` / `TR-concept-003/004` 范围件,见 `requirements-traceability.md`)。**汇总 243 → 245 ✅ / 51 ⚠️ 不变 / 93 → 91 ❌**(registry `status:` 实测自洽 245+51+91=387;per-group:randomevents 13→15 ✅ · 17→15 ❌)。同批回写:`entities.yaml` 补 9 支 Kind(三字段) · ADR-009 §二/§三 降级注记 + Amendment 通道退役 · `adr-017` V-6 订正 · V-5 四处称谓加注 · `technical-preferences.md` ADR 日志三条 + `systems-index.md` §11 注。**未 commit(无用户指令)。** | `entities.yaml` · `adr-009` · `adr-017` · `adr-005` · `audio-system.md` · `disease-simulation.md` · `persistence-service.md` · `emergency-procedures.md` · `technical-preferences.md` · `systems-index.md` · `tr-registry.yaml` · `requirements-traceability.md` · `session-state/active.md` |
 | 2026-09-20 | **`/architecture-review` 复跑(full·第二份报告 = `architecture-review-2026-09-20.md`)—— QQ-11 `adr_divergence` 对齐结案 + 三处跨文档冲突新登 + 登记层漏刷补刷** | **ID 不增不减**(恒 **387**)、**status 零翻转**(245 ✅ / 51 ⚠️ / 91 ❌ 不变;本轮只动 `adr:` 值域与注记)。① **QQ-11 结案(两条,判得不相同)**:`TR-case-036` = **摘要列过度归属**(逐行核 ADR-013 §GDD Requirements Addressed 无一行覆盖本条;裁决面 = `diagnosis-system.md` S-8.4,系 GDD 侧家规非架构件)⇒ **本表摘要列就地改为「无 ADR · 承载方 = S-8.4」,注册表 `adr: null` 保留为事实**;`TR-interaction-015` = **注册表漏登**(ADR-011 明列「10 急救 —— 直读通道」承「急救→10」那一路;ADR-013 §十 `IModalState` 承「模态内行级动作」两路)⇒ **注册表补 `adr: ADR-011 + ADR-013`**。两条 `partial` 均不变(补/删引据不充当验收)。⚠️→✅ **开放 `adr_divergence` 计数 = 0**。② **新登冲突 RC-1…RC-8**(由 unity-specialist Phase 5 二次意见 + 本轮核对;详见报告 §3,均**须用户裁,未改任何 ADR 正文**。⚠️ **首稿曾编号 C-11/C-12/C-13,与上轮报告 §13.2 的 C-11…C-18 撞号 ⇒ 本轮改族 RC-n**,该撞号本身登记为报告缺陷 D-R1):RC-1 `adr-013` **内部矛盾**(:203「不重复实现焦点算法」铁律 vs :432 风险缓解「不达预期回自实现焦点算法」—— 而该 spike 被评为**最可能失败**,缓解必被触发);RC-2 `adr-023` **状态串工具链破坏 + 自我矛盾**(:5 `Accepted(附条件,见下)` 精确匹配失败;:53/:228 写「硬前置」vs :10 用户裁定口径「是实现前置**非效力条件**」);RC-3 **`noEngineReferences` 不排斥 UPM 程序集**(unity-specialist 判 ADR-017 :165「会编译失败」**机制论据很可能为假** —— Entities/Burst 是 package 程序集非 engine module;门 A 的**唯一执法体** = 白名单断言;结论不动、论据改判须裁)。③ **Phase 5b GDD 回注(9 处,当日已落,零机制/数值改动)**:「联机精度取主机技能」口径在 2026-09-18 裁定 D-A 改判后,**仅 44 自己的件更新了**,8 / 13 / 索引侧六处正文残留裁前断言 —— `diagnosis-system.md` :10/:1315/:1617/:1631 注体/:1664/:1961/:1975/:2005 · `patient-ai.md:872` · `systems-index.md:647` 全部补 D-A 追加注(划线保原文,承「历史注体以追加注补」先例);失效模式 = `consistency-failures.md` 2026-09-20 批次二「正文状态断言稳定滞后」的**跨文档亚型**(汇总件刷了、上游引用件没刷)。④ **计数漏刷补刷**:`architecture.md` 七处(19 份→22 份 · 19/19→22/22 · §5.4 标题 93→91 · 52 簇 17→15 · :1035 SceneManager 缺口注 = 已由 ADR-023 兑现)+ `requirements-traceability.md` 六处(243/93→245/91 全表)—— 均系 2026-09-20 回写轮只刷了 index/registry 未刷两上位件。**per-group 计数不变**(本轮零状态翻转,randomevents 行仍 15/2/15)。**报告判定 CONCERNS**;12 项 P0 系统零 TR 组的整批欠账**维持登记、本轮不回填**(理由见报告 §8;#13 先例 = 专门批次) | `tr-registry.yaml` · `architecture.md` · `requirements-traceability.md` · `diagnosis-system.md` · `patient-ai.md` · `systems-index.md` · `architecture-review-2026-09-20.md`(新)|
 | 2026-09-21 | **gate-check 门规格修订落地:新增第四态 ◆ `no-adr-by-design` + `TR-itemdb-031` 补指针** | **用户裁定两项(同一 widget 批次),本行为其登记层落地**;ID 不增不减(恒 387)。① **◆ 第四态**(判据:该需求是**范围 / 政策声明**,归属件已登记,**结构上不可能有架构裁决**;**永不因补 ADR 转 ✅**,归属件缺失/被推翻则转 ❌ 重裁)⇒ `TR-concept-003`(MVP 8 条)/ `-004`(P0 排除项)`gap → no-adr-by-design`,**全仓扫描无第三条候选**。`.claude/skills/gate-check/SKILL.md` 的「zero Foundation layer gaps」判据同步注明 ◆ 不计缺口 —— ⚠️ **这是承认该条判据此前 mis-specified,不改任何实质裁决**(TD 口径:「不是项目不达标,是判据写错」)。② **`TR-itemdb-031` 只补 `adr:` 指针**(null → `ADR-009 + ADR-015`):其 note 自陈边界已由该二 Accepted 件裁定 ⇒ 属登记层漏刷(与 `TR-interaction-015` 2026-09-20 同型);**`status` 保留 `gap` 不翻** —— 该条原口径「状态重裁随 ADR-009 TR 全量复核轮,本文不预判」未撤回,**禁借绿**。③ **计数**:245 ✅ 不变 / 51 ⚠️ 不变 / **91 → 89 ❌** / **◆ 2**(245+51+89+2=387 自洽);**Foundation 层实测** = 15 ✅ / 1 ⚠️ / **2 ❌**(`TR-itemdb-031` / `TR-skill-008`)/ 2 ◆ ⇒ **gate 质量项「zero Foundation gaps」残 2 条**,两条均**有裁决面缺执行体**(031 归 ADR-009 TR 复核轮;skill-008 归 7a 逐字段 + Required ADR #4),**非「无人管」**。④ 同批 **RC-2 归一**:`adr-023` Status 串 `Accepted(附条件,见下)` → 字面 `Accepted`(含义不变,「附条件」只留正文)—— 修的是 `create-control-manifest` 字面过滤**静默丢弃该件**的工具链破坏;现 **22/22 ADR 状态串均字面 `Accepted`**(awk 实测)。**未 commit(无用户指令)。** | `tr-registry.yaml` · `traceability-index.md` · `requirements-traceability.md` · `.claude/skills/gate-check/SKILL.md` · `docs/architecture/adr-023-scene-lifecycle-rendering.md` · `session-state/active.md` |
+| 2026-09-21 | **`/architecture-review` 复跑(full·第三份报告 = `architecture-review-2026-09-21.md`)—— 8 条 RC + S-4 全结 · 登记层残留 S-1/S-2/S-4 收口** | **ID 不增不减**(恒 **387**)、**status 零翻转**(245 ✅ / 51 ⚠️ / 89 ❌ / ◆2 不变;本轮只动**文本**不动**状态位**)。① **上轮 8 条 RC + S-4 全部实测已结**,逐条坐标:`RC-1` `adr-013:204-207` 约束面收窄(铁律作用域 = **42 的对外契约面**,非「内部禁有焦点算法」)· `RC-2` `adr-023:5` 状态串归一 `Accepted`(全仓 **22/22 字面 `Accepted`**)· `RC-3` `adr-017:170` 论据订正(`noEngineReferences` = **必要非充分**,充分性归引用集白名单断言)· `RC-4` `adr-012` ×7 处 F7 **降级为表示选择**(`ulong`/`unchecked` ⇒ IL2CPP 有符号溢出 UB **结构性不可能**)· `RC-5` `adr-025:116-119` 改「引用集**期望** + 构建期断言执法」· `RC-6` `adr-023:138-141` + `:276` 扫描收紧(相机 / `AudioListener` 在非 Boot 场景 = 构建失败)· `RC-7` `adr-014:173-176` 词法器两 pin + `:366` 负向夹具 · `S-4` `adr-023:278-281` S3 补 **bundle refcount 归零断言**。**零一条是靠改状态位结的。** ② **登记层三处收口**:`tr-registry.yaml` `TR-diag-024.requirement`(→「联机时**各设备按本机技能档**」,`revised` 2026-09-21)· `TR-patient-018.note`(同款改口 + `revised` 2026-09-21)· `tests/README.md:38-41` 理由句(「ADR-025 已具名六装配清单 ⇒ **命名阻塞已解除**;`.asmdef` 仍刻意缺席归实现轮」,**决定不变、不生成任何文件**)。⚠️ **两条注册表改口不翻 `status`** —— 承「补/删引据不充当验收」。③ **计数复算自洽**:`yaml.safe_load` 逐条数出 245+51+89+2=387,与 §汇总 21 行 + 合计行**逐组逐位相同**;`adr_divergence` 开放数 **= 0**。④ **引擎审计**:22/22 有 Engine Compatibility / ADR Dependencies / GDD Requirements Addressed 三节;弃用 API **0**;版本 **22/22 Unity 6.3 LTS**;Knowledge Risk **HIGH 7**(001/005/008/011/012/013/023)/ **MEDIUM 7**(006/009/010/014/016/018/022)/ **LOW 8**(007/015/017/019/020/021/024/025)—— ⚠️ **上轮记 6/8/8 系 ADR-008 未计入 HIGH,本值正确**。⑤ **Foundation 层 4 → 2**:◆ 不计缺口后残 `TR-itemdb-031`(有裁决面缺执行体)/ `TR-skill-008`(无裁决件,归 7a 逐字段 + Required ADR #4)。⑥ **本件不夹带** D-R1(报告 ID 族登记表)/ D-R2(§5.4 生成器)/ D-R3(12 项零 TR 回填)三项 —— 均须专门批次,理由与建议见报告 §8.1。⑦ **同轮就地回刷**:`architecture-review-2026-09-20.md` §9 与 `docs/architecture/control-manifest.md` §Open Items A 两处「未结」登记**同日过期**,已加结案注(承「历史注体以追加注补」先例)—— 登记为新失效模式变体:**产出「未结项清单」的件缺消费者侧失效检查点**。**未 commit(无用户指令)。** | `tr-registry.yaml` · `tests/README.md` · `architecture-review-2026-09-21.md`(新)· `architecture-review-2026-09-20.md` · `control-manifest.md` · `requirements-traceability.md` · `session-state/active.md` |
+| 2026-09-21 | **报告 ID 族登记表建立(兑现 D-R1 —— 用户裁定「建表(按上稿全文)」)** | **纯增量**:新增 §「报告 ID 族登记表」一节(插于 §优先修复清单 与 §变更历史 之间)+ 头部一条指针行;**本表不参与任何计数或门控判据**,`tr-registry.yaml` 的 `status:` 仍是唯一计数真源(**387 条 / 245 ✅ / 51 ⚠️ / 89 ❌ / ◆2 零变动,ID 零增删**)。⚠️ **族集合由上稿的 8 族扩为 14 族** —— 全库扫描实测上稿(C/E/B/R/QQ/RC/D-R/S)遗漏的 **G / N / T / V / W / BL** 六族**均存在活跃撞号**,漏登会使本表建立当日即不完备(与本节要治的失效模式同型)。**七处撞号实测**(逐条带坐标):① **C** 跨件(`architecture-review-2026-09-15.md:106` C-1 = `PatientId` 静态类 / 值类型**编译级阻塞** vs `consistency-report-2026-09-21.md:40` C-1 = 联机音频口径残留);② **S 同件双义**(`architecture-review-2026-09-21.md:127`/`:215` S-4 = ADR-023 的 bundle refcount 判据 **vs** **同件** `:244` S-4 = `tests/README.md:38-41` 陈旧)—— **中央台账拦不住的一类**,本族最严重实例;③ **S 借号**(批三 `consistency-report-2026-09-21.md` 的 S-1/S-2/S-4 被 review 件整族沿用,对象相同 ⇒ 同号同义,唯一「无害」但**无机制保证其持续同义**);④ **B 三重叠**(报告级 `architecture-review-2026-09-15.md:406` B-3 = 删 ADR-005 `3×2⁻¹⁶` 自引 · `time-and-weather.md:220` B-3 = 首轮评审阻断 · `gdd-cross-review-2026-09-20.md` 组 G3 B-3 = 支柱四单腿);⑤ **W 同号异义**(`gdd-cross-review-2026-09-20.md:163` W-1 = EnvMod 双钳告警 **vs** `campaign-arc.md:62` / `case-system.md` W-1 = **用户显式风险接受裁定**);⑥ **G 幽灵引据**(`architecture-review-2026-09-15.md:466` 引「8 的 **G-7**」,而 `diagnosis-system.md` 的 G 族**只到 G-4** —— 真身 = 该件 `:1608` 的 **`V-8.7`**);⑦ **N 跨件**(`architecture-review-2026-09-15.md:593` N-3/N-4 **vs** `architecture-review-2026-09-21.md:138` N-3)。**BL 族刻意按系统作用域编号**(每 GDD / 评审日志自 `BL-1` 起数,全库 32 个聚合最大值)—— **不是撞号是设计**,引用须带出处件;`D-R` 族是全库**唯一零撞号的报告家族**(后件对同一对象沿用上件号,未重新编号)。**本表的局限如实登记**:只记录**已发生**者,**不能阻止新撞号**(无生成器 / 无构建期断言,与 ADR-024 对 `Kind` 的「单一真源 + A1–A5 断言」**不同级**);结构性消除须另立**作者期命名空间纪律**(每件报告自带族前缀,如 `AR21-C-1` / `CR21b-S-3`)或把报告 ID 纳入 `tools/kindgen/` 生成器族 —— 二者均超出本表,**登记为待用户裁,与 D-R2 同批**。**同批未做(如实登记)**:D-R2(`architecture.md` §5.4 改由 registry 生成,推后至 `tools/kindgen/` 落地同批)· D-R3(12 项零 TR 回填,须专门批次,本轮不夹带)。**未 commit(无用户指令)。** | `docs/architecture/traceability-index.md` |

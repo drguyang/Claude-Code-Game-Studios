@@ -107,6 +107,8 @@ IEventSink.Append(in SimEvent e)
   病史流是它的唯一真源 —— 不改动)
 - **读数事件不在本 ADR 定归属**:读数存档归 39(diagnosis-system.md §Core Rules 铁律② 的邻接段,39 无 GDD)——
   若 39 选择 SimEvent 化,走病例流;否则 39 自有持久化。留 39 GDD
+  > ⚠️ **2026-09-21 历史注**:「39 无 GDD」是本 ADR(2026-09-15)时的状态;39 后已立
+  > `diagnosis-system.md`。「留 39 GDD」的悬置已由下条 ⭑2026-09-19 裁定结清,本注只补记事实状态。
 - **⭑ 2026-09-19(39 首轮评审裁定)**:**读数归属已定** —— 39 = **分册态层**(不进三流,
   跨存档承载于 ADR-010 的「分册态段」);`JudgmentRecorded` / `JudgmentRevised` 载荷
   **补 `author_player_id`**(作者轴,判定取法改 `J(c,p)` = 该案最后一条作者 = p 的判断事件);

@@ -137,6 +137,9 @@ dr_guyang(用户 · **2026-09-15 三项核心裁定**)· technical-director(起�
 ### Current State
 
 - **两项均零 GDD、零 ADR、零 TR**,`未开始`;`systems-index.md:473` 把它们排在设计次序**第 11 步**(Core · M)。
+  > ⚠️ **2026-09-21 历史注**:「零 GDD」是本 ADR(2026-09-15)时的状态;1 / 2 后已立
+  > `player-controller-and-movement.md` / `camera-and-viewpoint.md`(git 落盘 2026-09-19)。
+  > 本段是立约前状态记录,不删;「零 ADR」自本 ADR Accepted 起即不再成立,同此。
 - **§8 高风险表未列 1 / 2**(`:509-522` 只列 9 / 25 / 8 / 42 / 44 / 53 与 P0 整体)——
   即:风险被**低估**了(它们既不在高风险表,也不在任何 ADR)。
 - **视角已由 `game-concept` 锁定**:`:32` `| **视角** | **全程第三人称**(越肩) |`;`:757` 同口径;
@@ -603,6 +606,8 @@ ADR-016 §三 的感知定义。§五 的「相机不持状态」同理。
 | `docs/architecture/adr-018-audio-architecture.md` | 44 音频 | `:295` 单 `AudioListener` 挂点留白 | §七 / `AC-20-10` 落定:平面主相机 / VR 头显 |
 
 > **Foundational decision** —— 本 ADR 无独立 GDD 需求(1 / 2 均无 GDD;它是 R-13 的落点)。
+> ⚠️ 2026-09-21 历史注:「1 / 2 均无 GDD」为 2026-09-15 时状态(见 Current State 注);
+> 「无独立 GDD 需求」作为本 ADR 的**入向需求口径**(R-13 落点)不变。
 > **Enables**:1 / 2 / 4 的实现;8 的视野呈现;**R-1…R-15 缺口清单归零**;
 > Cinemachine 从候选清单移除。
 

@@ -75,6 +75,9 @@ dr_guyang(用户 · **2026-09-15 三条裁定,均照准**)· technical-director(
 
 系统 3 输入与设备在架构复核中**零覆盖** —— 无 GDD、无 ADR,`TR-concept-007` / 008 均 gap,
 `design/ux/` 不存在。但约束已经很多且相互交叉:
+> ⚠️ **2026-09-21 历史注**:「无 GDD / `design/ux/` 不存在」是本 ADR(2026-09-15)时的状态 ——
+> 3 后已立 `input-system.md`,`design/ux/` 与 `design/accessibility-requirements.md` 现已存在。
+> 本段是立约动机记录,不删;`TR-concept-008` 的 gap 处置以 registry 现值为准(非本注)。
 
 1. **拟物 UI 必须同时支持键鼠与手柄焦点导航**(technical-preferences 硬约束):手柄没有指针,
    脉案 / 出诊箱 / 纸质地图全部交互都需要焦点导航路径;

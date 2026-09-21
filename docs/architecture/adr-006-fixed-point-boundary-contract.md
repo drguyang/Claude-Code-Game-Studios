@@ -85,6 +85,8 @@ ADR-005 规定「全部模拟数学在整数定点域」「Storage 中不出现�
 - **不得引入新依赖**(`.claude/docs/technical-preferences.md` 的 Allowed Libraries 为空,
   第三方定点库须另立 ADR)。
 - **不得要求 Unity 侧改动序列化格式** —— 7a 尚未撰写,契约必须在 7a 动工前定死。
+  > ⚠️ **2026-09-21 历史注**:「7a 尚未撰写」是本 ADR 撰写时(2026-09-14)的状态,现陈旧 ——
+  > 7a 已有 `persistence-service.md`(2026-09-17 落盘)。本约束是**当时的时序理由**,不删,按惯例追加注补。
 - **C# 语言约束**:`Fix` 是 `readonly struct`,内部 `long`;
   任何把 `float` 隐式转进 `Fix` 的运算符都是**契约违反**(ADR-005 已声明「刻意不定义 implicit operator float」)。
 

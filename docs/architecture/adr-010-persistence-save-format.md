@@ -24,6 +24,9 @@ Accepted
 dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(起草与裁决)
 · network-programmer(45 侧同步边界)· unity-specialist(引擎复核,2026-09-15)
 · 系统 7a 持久化服务(无 GDD —— 本 ADR 即其权威件)
+  > ⚠️ **2026-09-21 历史注**:「无 GDD」是本 ADR 撰写时(2026-09-15)的状态;7a 后已立
+  > `persistence-service.md`(2026-09-17,其 `:8` 自述「7a **无前置** GDD,ADR-010 即其权威件」——
+  > 与本 ADR 的关系**未变**,变的只是「此前无文档」这一事实状态)。本注不改裁决归属。
 
 ## Summary
 
@@ -31,6 +34,9 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 **五份 ADR 集体委派义务**(存档头契约 · 三流序列化 · 折叠 · 快照 · `ItemInstanceId.Next()` 机制 ·
 迁移协议)—— **它自己没有权威件**。这些义务散落各处、部分互相冲突(WorldSeed 载体口径、
 配置版本号归属、折叠谓词条件分散),实现者无单一出处可循。
+> ⚠️ **2026-09-21 历史注**:上段「全案唯一无 GDD 的 Core 系统 / 它自己没有权威件」是本 ADR 的
+> Problem Statement 原文,现陈旧 —— 7a 后已立 `persistence-service.md`(2026-09-17)。此句是
+> **当初立本 ADR 的动机**,按惯例不删,追加注补;裁决归属不变。
 本 ADR 裁决:**全二进制存档格式**(头部 + 三逻辑流 + 快照)· **原子写 + 校验和自动回退** ·
 **定期 checkpoint + 退出保存 + 7b 手动槽** · **版本号 + 迁移脚本**,并把全部既有委派收敛为
 **单一义务清单**(§三 义务汇总表),一处不留、一处分叉。
@@ -63,6 +69,8 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 
 7a 是 `systems-index.md` 中**唯一没有 GDD 的 Core 系统**—— 它本该由一份 ADR 定义全部契约,
 现状却是**五份 ADR 各委派一块,义务散落无主**:
+> ⚠️ **2026-09-21 历史注**:同 Summary 处注 —— 本段为撰写时状态,`persistence-service.md` 已于
+> 2026-09-17 立;义务收敛到本 ADR 单一出处的裁决不变。
 
 - ADR-007 §二:`WorldSeed` 生成 + 存档头持久化 + 跨版本原样保留;
 - ADR-005 §Implementation Guidelines 5:病史流终态折叠;
@@ -435,7 +443,7 @@ struct SaveSlot {
 | `design/gdd/item-database.md` | 21a 物品与配方数据库 | `instance_id` 必须入快照;闭包校验 | §三 义务 10;§五 机制 A |
 | `design/gdd/case-system.md` | 37 病例系统 | 病史流折叠谓词 `Folded(p)`(含「无未结案病例」条件)· `max(patient_id)` 扫两流并集 | §二(升格为三流,ADR-009 Amendment E) |
 | `design/gdd/random-events.md` | 52 随机事件导演 | `WorldSeed` 由 7a 存档头持有 | §一 头部 · §七 迁移保留 |
-| `design/gdd/systems-index.md` | 7a 持久化服务 | 系统 7a 实现(唯一无 GDD 的 Core 系统) | 本 ADR 即其权威件 |
+| `design/gdd/systems-index.md` | 7a 持久化服务 | 系统 7a 实现(唯一无 GDD 的 Core 系统) | 本 ADR 即其权威件。**⚠️ 2026-09-21 历史注**:「唯一无 GDD」为本表 2026-09-15 撰写时状态,7a 后已立 `persistence-service.md`(2026-09-17);「本 ADR 即其权威件」的关系不变** |
 | `design/gdd/systems-index.md` | — | §9 C6:9 的 tick 模型与 7 的持久化从第一天起 authority-agnostic | §一 / §二 三流 + 折叠,authority-agnostic |
 
 ## Related

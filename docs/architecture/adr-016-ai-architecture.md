@@ -49,7 +49,11 @@ dr_guyang(用户 · **2026-09-15 四条裁定,均照准**)· technical-director(
 
 架构复核把 AI 记为 **R-14**(13 病人 AI 只读 DTO + NavMesh;27 敌人 AI;开放世界 + 动态建造的
 NavMesh 烘焙成本;**Feature / MEDIUM**),而 **13 与 27 均无 GDD** —— 属「Feature 层缺口」,
-须以架构约束先定型,玩法细节留给未来的 GDD(与 ADR-013 同法)。本 ADR 合并两者并裁决:
+须以架构约束先定型,玩法细节留给未来的 GDD(与 ADR-013 同法)。
+> ⚠️ **2026-09-21 历史注**:「13 与 27 均无 GDD」是本 ADR(2026-09-15)时的状态;两者后已立
+> `patient-ai.md` / `enemy-ai.md`。本注覆盖下文 Context / Current State 各处的同源陈旧句
+> (「均无 GDD」「无接口定义」「无迁移」等)—— **先定型后补 GDD 的裁决时序与结论均不变**。
+本 ADR 合并两者并裁决:
 **AI 层分层** —— 行为决策是 **sim 侧整数派生态**(不进流、可重建),逻辑位姿逐 tick 整数推进,
 **表现态位姿**(连续位移 / 动画 / 绕障)由它单向驱动;**敌人实体复用 9 的伤情模型**
 (归零 = `INJ_COMA`,非致命模型自动适用);**感知输入是粗粒度整数格**(玩家跨格写世界流事件,
@@ -78,7 +82,7 @@ NavMesh 烘焙成本;**Feature / MEDIUM**),而 **13 与 27 均无 GDD** —— �
 | **Depends On** | **ADR-005**(Accepted —— 定点域 · `IIdAuthority` / `IVitalsQuery` / `SimEvent` 形状)· **ADR-006**(Accepted —— 禁 float 入 sim · 边界契约)· **ADR-009**(Accepted —— 三流边界 · 派生 / 进流判据;**本 ADR 依其 §一 Q1 判据把 AI 决策归为派生态**)· **ADR-014**(Accepted —— 作者态 → 烘焙产物管线;**行为程序走同一管线**)· **ADR-015**(Accepted —— `WorldPos` 整数格 · 导航格来源 · NavMesh 仅表现态) |
 | **Enables** | **13 病人 AI 与行为** · **27 敌人 AI** · **52 随机事件导演**(遭遇原型注入与「不锁定玩家」接口)· **37 病例系统**(在场实体视图,解除 `case-system.md:473` 的「契约暂定」)· **28 捕获 · 驯化 · 取材与护卫**(P1a 驯化接口形状)· 25 格斗与武器线(敌人可受伤对象的实体侧) |
 | **Blocks** | **13 / 27 的实现** —— 确定性边界与实体归属未定型前,任何 AI 代码都会定型错误;**R-11(是否 DOTS)在此获得输入**(AI 决策的批量规模是 R-11 的关键数据点) |
-| **Ordering Note** | `TR-randomevents-028`(52 与 13 的交互)与 `TR-randomevents-029`(27 不被事件导演锁定)由本 ADR 定型。**13 / 27 的 TR-ID 不在本次登记** —— 两者无 GDD,TR 须待其 GDD 撰写时**回溯追加**(与 21a / 52 同法),本次只登记由它们**承担**的既有 TR。**ADR-006 Amendment B 的 id 空间语义由本 ADR §二 扩大**(病人 → 受伤实体),须同步注记。**2026-09-15 补记:13 的 GDD 已落盘(`design/gdd/patient-ai.md`),其 TR 已回溯追加为 `TR-patient-001…024`(18 covered / 1 partial / 5 gap,见 `tr-registry.yaml`);27 仍待其 GDD** |
+| **Ordering Note** | `TR-randomevents-028`(52 与 13 的交互)与 `TR-randomevents-029`(27 不被事件导演锁定)由本 ADR 定型。**13 / 27 的 TR-ID 不在本次登记** —— 两者无 GDD,TR 须待其 GDD 撰写时**回溯追加**(与 21a / 52 同法),本次只登记由它们**承担**的既有 TR。**ADR-006 Amendment B 的 id 空间语义由本 ADR §二 扩大**(病人 → 受伤实体),须同步注记。**2026-09-15 补记:13 的 GDD 已落盘(`design/gdd/patient-ai.md`),其 TR 已回溯追加为 `TR-patient-001…024`(18 covered / 1 partial / 5 gap,见 `tr-registry.yaml`);27 仍待其 GDD** —— ⚠️ 2026-09-21 历史注:27 的 GDD `enemy-ai.md` 已于 2026-09-17 落盘,其 TR 已同法回溯追加为 `TR-enemy-001…021`(见 `tr-registry.yaml` / `traceability-index.md` 2026-09-17 行);本补记作为当时状态不删 |
 
 ## Context
 

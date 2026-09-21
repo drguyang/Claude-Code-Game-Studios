@@ -1,0 +1,348 @@
+# Architecture Review Report — 2026-09-21
+
+> **Engine**: Unity 6.3 LTS(项目 pin 2026-02-13 · LLM 训练覆盖 ≈2022 LTS)
+> **Mode**: `full`(Phase 1–9)
+> **GDDs Reviewed**: 31 项 P0(34 份 `design/gdd/*.md` 去除 3 份非系统件:`systems-index` / `gdd-cross-review-2026-09-20` / `concept-benchmark`)+ `design/ux/paper-closeup-48.md`
+> **ADRs Reviewed**: **22**(ADR-001, 005–025;无 002/003/004 —— 分别由 ADR-015 / ADR-015 / ADR-017 兑现)
+> **TR Registry**: 387 条(`docs/architecture/tr-registry.yaml`,`status:` 字段为计数真源)
+> **前一报告**: `docs/architecture/architecture-review-2026-09-20.md`
+
+---
+
+## 判定:**CONCERNS**
+
+**零阻塞跨 ADR 冲突;零弃用 API;22/22 ADR 引擎版本一致。** 判 CONCERNS 而非 PASS 的三个理由:
+
+1. **Foundation 层仍有 2 条 gap**(`TR-itemdb-031` / `TR-skill-008`)—— 这是 `/gate-check pre-production`
+   唯一「quality check」级红灯(`zero Foundation layer gaps`)。
+2. **三项承重引擎风险**(R-A UI Toolkit 焦点桥 / R-B `noEngineReferences` 机制 / R-C IL2CPP 溢出)
+   **全部未做实测** —— 本机无 Unity 编辑器,三条都落在 spike 面而非裁决面。
+3. **12 项 P0 系统零 TR**(D-R3,承上轮)⇒ 63.0% 覆盖率是**偏高估计**,分母不含这 12 项。
+
+**上一轮记录在案的 8 条 RC(RC-1…RC-8)+ 1 条 S-4 本轮实测全部已结**;两处**上轮报告自身**的登记
+(§9 与 `control-manifest.md` §Open Items A)**已过期** ⇒ 本件 §9 结案并就地回刷。
+
+---
+
+## 1. 可追溯性摘要
+
+| | 条数 | 占比 |
+|---|---:|---:|
+| ✅ **Covered** | **245** | 63.3% |
+| ⚠️ **Partial** | **51** | 13.2% |
+| ❌ **Gap** | **89** | 23.0% |
+| ◆ **`no-adr-by-design`** | **2** | 0.5% |
+| **合计** | **387** | 100% |
+
+> 计数由 `yaml.safe_load` 逐条数出,与 `tr-registry.yaml` 的 `status:` 字段**逐位自洽**
+> (245 + 51 + 89 + 2 = 387)。**本轮零状态翻转、零 ID 增删** —— 只改两条 `requirement` / `note`
+> 文本 + 两条 `revised`(§7 的 S-1/S-2)。
+
+### 1.1 按 `domain`(架构层)分组 —— Foundation 门的真判据
+
+| 层 | 合计 | ✅ | ⚠️ | ❌ | ◆ |
+|---|---:|---:|---:|---:|---:|
+| **Foundation** | **20** | **15** | **1** | **2** | **2** |
+| Core | 303 | 193 | 40 | 70 | 0 |
+| Feature | 12 | 4 | 2 | 6 | 0 |
+| Networking | 5 | 2 | 0 | 3 | 0 |
+| Performance | 9 | 3 | 1 | 5 | 0 |
+| Presentation | 30 | 20 | 7 | 3 | 0 |
+| Tooling | 8 | 8 | 0 | 0 | 0 |
+
+> Foundation 的 ◆2 = `TR-concept-003` / `-004`(范围声明类,2026-09-21 用户裁定新立第四态)。
+> **若按 ◆ 不计入缺口的门规格**:Foundation 缺口 **2**,非 4 —— 这正是本轮把门从 🔴 降为
+> 「2 条待结」的依据(§4.1)。
+
+### 1.2 按系统分组(21 组,与 `traceability-index.md` §汇总逐行一致)
+
+见 `docs/architecture/traceability-index.md` §汇总 —— 本轮复算该表 21 行 + 合计行,
+**与 registry 逐组逐位相同**,零漂移。三处高风险面:
+
+- **`item-database` 32 条 / ❌18** —— 全案最大缺口簇(21a 的 schema 未裁)。
+- **`skill-system` 8 条 / ❌7** —— **唯一的「整组塌陷」**:与 Required ADR **#4(系统 30 定点算术)**
+  未兑现严格同源(§4.3)。
+- **`random-events` 32 条 / ❌15** —— 52 的 `ROLL_INTERVAL` 等数值旋钮未裁,非结构缺口。
+
+---
+
+## 2. 覆盖缺口
+
+### 2.1 Foundation 层(门控级) —— **残 2 条**
+
+| TR | 需求 | `adr:` | 为什么仍是 gap |
+|---|---|---|---|
+| **`TR-itemdb-031`** | 掉落实体的世界状态事件化边界 | `ADR-009 + ADR-015`(2026-09-21 补指针) | **有裁决面、缺执行体**:该条原口径「状态重裁随 ADR-009 的 TR 全量复核轮,本文不预判」**未撤回** ⇒ 补指针**不翻状态**(禁借绿)。 |
+| **`TR-skill-008`** | 技能成长的存档持久化 | `None` | **无裁决件**:归 **7a 逐字段(ADR-010 义务汇总)** + **Required ADR #4**。 |
+
+> ⚠️ **与上轮口径的差异**:上轮记「4 条不为绿」= 上述 2 条 + `TR-concept-003/004`。
+> 2026-09-21 用户裁定新立 **◆ `no-adr-by-design`** 第四态(范围 / 政策声明类,结构上无裁决可挂),
+> 两条范围声明件转 ◆,**`gate-check/SKILL.md` 的 `zero Foundation layer gaps` 判据同步注明 ◆ 不计缺口**
+> (该判据此前 mis-specified —— 不是项目不达标,是判据写错)。
+
+### 2.2 非 Foundation 的 87 条 gap 分类
+
+| 类 | 条数 | 说明 | 归属 |
+|---|---:|---|---|
+| **真需新 ADR** | **12** | 30 的 7 条(`TR-skill-001…007`)+ 13 的写路径 5 条(`TR-patient-005/021…024`) | Required ADR **#4** / **#5** |
+| **数值轮** | ~28 | `ROLL_INTERVAL` / `WINDOW_SIZE` / 四门阈值 / `TICKS_PER_DAY` 等**量纲已解、值未裁** | 用户数值轮(承「数值用户自己调」) |
+| **实测前置** | ~10 | 三条 `TR-input-016/017/019` 已明标「非 ADR 缺口,是实测前置」 | 绑 `/test-setup` |
+| **GDD 家规 / 不发明结算** | ~20 | `TR-inventory-004/006/007` 等 —— 纪律已在 GDD 内,不需要架构件 | 无需动作 |
+| **承载件未落地** | 余项 | 42 / 48 / 39 的呈现侧落地 | 实现轮 |
+
+> **全局判断不变(与上轮一致)**:89 条 gap 里**真正等新 ADR 的只有 12 条**,且**全部集中在
+> Required ADR #4 / #5 两项**。其余是「值未裁」「待实测」「GDD 家规」「登记未同步」四类 ——
+> **不是架构覆盖不足**。
+
+---
+
+## 3. 跨 ADR 冲突检测(Phase 4)
+
+### 结论:**零 ADR-对-ADR 阻塞冲突**
+
+对 22 份 ADR 做全对扫描(数据所有权 / 集成契约 / 性能预算 / 依赖环 / 架构模式 / 状态权威六类),
+**本轮零命中**。逐项重点核验的接缝(均为历史高风险面):
+
+| 接缝 | 两件的主张 | 结果 |
+|---|---|---|
+| ADR-023 §⑥ chunk 激活权 vs ADR-021 POI 写者 | 两件都把所有权给**系统 6**,且**同一判据**(「容器顺理成章」)| ✅ 同向 |
+| ADR-023 §③ `AudioListener` 归 Boot vs ADR-020 §七 | ADR-020 结清 `adr-018:295` 留白(平面=主相机 / VR=头显);ADR-023 §③ 把**常驻性**归 Boot | ✅ 不冲突 —— 前者裁**挂点**,后者裁**场景归属**;RC-6 的扫描收紧把两者接上 |
+| ADR-024(白名单真源 = `entities.yaml`)vs ADR-009 §三骨架 | ADR-009 §三已**就地降级为路由注记**并声明「不一致时以 registry 为准」 | ✅ 已消解(上轮登记) |
+| ADR-025(`Sim` 引用集)vs ADR-017 §二(门 A) | ADR-025 §115 **把断言作用域从 `Sim` 外推到全清单**;ADR-017 已按 RC-3 把论据订正为「必要非充分」 | ✅ 同向,无重复主张 |
+| ADR-023 §⑦ 格内偏移 vs ADR-016 §三 / ADR-020 §四 | 三件共用「整数格 + 确定性格内偏移」,且都明写**不引入第二随机源** | ✅ 同向 |
+| ADR-023 §⑧ 零 custom Renderer Feature vs ADR-013 触发条款 | 互为开关(S5 判据),非冲突 | ✅ |
+
+### 3.1 上一轮 8 条 RC(RC-1…RC-8)+ S-4 —— **本轮实测全部已结**
+
+| # | 件 | 上轮症状 | 本轮实测证据 |
+|---|---|---|---|
+| **RC-1** 🔴 | ADR-013 | `:203` 铁律「不重复实现焦点算法」vs `:432` 回退「不达预期则自实现」—— 成对失效 | **✅ 已结** —— `:204-207`「约束面收窄」:约束对象 = **42 的对外契约面**(不导出邻居枚举 / 方向投影 / 几何查询入口),**不是**「42 内部不得有焦点算法代码」;降级期自实现受 `AC-42-B4` 类型面断言约束 |
+| **RC-2** 🟠 | ADR-023 | 状态串 `Accepted(附条件,见下)` 破坏 exact-match 工具链 | **✅ 已结** —— `:5` 现字面 `Accepted`;`:7` 留归一审注(说明 `create-control-manifest` 字面过滤会静默丢弃该件)。**全仓 22/22 状态串均字面 `Accepted`**(awk 实测) |
+| **RC-3** 🟠 | ADR-017 | `noEngineReferences` 机制论据很可能为假 | **✅ 已结(论据面)** —— `:170`「论据订正」:`noEngineReferences` 是**必要非充分**;充分性由**引用集白名单断言**承担。⚠️ **裁断面**:结论不动、执法体换人 |
+| **RC-4** 🟠 | ADR-012 | F7 IL2CPP 有符号溢出 UB = BLOCKING spike | **✅ 已结(降级)** —— 7 处「承 RC-4」:`SplitMix64` / Q16.16 中间乘改住 `ulong` / `unchecked` ⇒ UB **结构性不可能**;F7 从 BLOCKING spike 塌缩为**表示选择**。`:310` 原「IL2CPP 格黄金对拍不可信」已划除并注明**已消除** |
+| **RC-5** 🟡 | ADR-025 | 「恰 = {BCL, Sim.Contracts}」是断言非清单事实 | **✅ 已结** —— `:116-119` 改口「引用集**期望** = …」,由裁定 ④ 的**构建期断言**(`GetReferencedAssemblies()`)执法,不再作为清单事实陈述 |
+| **RC-6** 🟡 | ADR-023 ②/③ | 扫描判据窄于 ③ 立的不变量 ⇒ 无守护 | **✅ 已结** —— `:138-141` 扫描收紧;`:276` S2 判据扩充为「同扫描增列**相机 / `AudioListener` 在非 Boot 场景 = 构建失败**」,连同零 gameplay 对象一并验 |
+| **RC-7** 🟡 | ADR-014 | 词法器未 pin `DateParseHandling` / `FloatParseHandling` | **✅ 已结** —— `:173-176` 两条 pin 落为**硬要求**(否则 `"3/4"` 被解析成 `DateTime`);`:366` 新增**负向夹具**,`:372` 明写 |
+| **RC-8** 🟢 | `architecture.md` §5.4 | 分类表一行 ID 前缀标错 | **✅ 上轮已就地修** |
+| **S-4** 🟡 | ADR-023 S3 | 判据未测 bundle refcount 泄漏 | **✅ 已结** —— `:278-281` S3 补**bundle 引用计数归零断言**(handle 全 `Release` 后 refcount 须归零;第 6 步运行期断言只查登记簿,**查不到 bundle 层**) |
+
+> **8/8 + S-4 全部结案,零借绿** —— 每条的修复均落在 ADR 正文(裁决面),未在 `status:` 字段上
+> 做任何翻转,也未新增 TR。
+
+### 3.2 本轮**新登记**的架构性观察(无 🔴,均属登记义务)
+
+| # | 观察 | 证据 | 处置 |
+|---|---|---|---|
+| **N-1** 🟡 | **Amendment 追加通道已退役,但「退役」本身只登记在 ADR-024 §③** | `adr-024` §③「今后唯一通道:先在 `entities.yaml` 建条目再引用;ADR-009 Amendment 通道(F–L 用过的那条)**退役**」 | **不构成冲突** —— ADR-009 §三已降级为路由注记。⚠️ **风险点**:GDD 侧若仍按 Amendment 措辞追加 Kind 会**静默绕过校验**。ADR-024 §③ 自陈「GDD 侧登记义务措辞由实现轮统一回填,本 ADR 生效即挂账」⇒ **登记为实现轮义务,本件不代改 GDD** |
+| **N-2** 🟢 | **`tests/README.md` 是「作废称谓」的第五处命中,V-5 扫描面外** | 该件 `:38-41` 引「门面程序集 / 独立契约程序集」而 V-5 的 grep 只扫 `design/` + `docs/` | **✅ 本件已修**(S-4,§7)—— 理由句改「ADR-025 已具名六装配清单 ⇒ 命名阻塞解除」。**建议**:V-5 类判据的扫描面应含 `tests/` |
+| **N-3** 🟢 | **`architecture.md` §5.4 仍为手写表** | D-R2(上轮)未执行 | 处置见 §8 |
+
+---
+
+## 4. ADR 依赖顺序(Phase 4 后半)
+
+### 4.1 环检测:**无环**
+
+22 份的 `Depends On` 字段全量提取后做拓扑排序,**零环、零悬挂 `Proposed` 依赖** ——
+所有被引 ADR 均为 `Accepted`。与上轮结论一致(22/22)。
+
+### 4.2 推荐实施序(分层,不变)
+
+```
+第 0 层(无依赖)                ADR-005(确定性模拟)
+第 1 层(依赖 005)              ADR-006(定点域边界)  ADR-007(事件权威)
+第 2 层(依赖 005/006/007)      ADR-008(病例流)  ADR-009(世界流边界)  ADR-010(持久化)
+第 3 层(依赖流骨架)            ADR-001(网络 pipe)  ADR-014(数据管线)  ADR-017(DOTS 排除)
+                              ADR-019(遥测)  ADR-021(POI 所有权)  ADR-024(Kind 真源)
+第 4 层(依赖 3 层)             ADR-011(输入)  ADR-012(CI 门)  ADR-015(世界几何)
+                              ADR-016(AI)  ADR-018(音频)  ADR-020(玩家/相机)
+                              ADR-023(场景)  ADR-025(程序集清单)
+第 5 层(依赖表现层)            ADR-013(拟物 UI)  ADR-022(关卡工具)
+```
+
+> **顺序的实践含义**:第 0–2 层的**数据形状**是「事后改 = 重写每个病种」的部分(ADR-005 §Consequences
+> 自陈)。**第 3 层起才可并行**。本序与上轮逐位相同 —— 本轮无依赖变更。
+
+---
+
+## 5. 引擎兼容性审计(Phase 5)
+
+### 5.1 审计结果
+
+```
+Engine: Unity 6.3 LTS(项目 pin 2026-02-13 · LLM 训练覆盖 ≈2022 LTS)
+ADRs with Engine Compatibility section:      22 / 22  ✅
+ADRs with ADR Dependencies section:          22 / 22  ✅
+ADRs with GDD Requirements Addressed:        22 / 22  ✅
+Deprecated API references:                    0  ✅
+Version consistency:                         22 / 22  ✅(Unity 6.3 LTS ×20 · Unity 6.3 ×5,全为同版简写,零 stale)
+Knowledge Risk 分布:  HIGH 7 · MEDIUM 7 · LOW 8
+```
+
+**⚠️ 与上轮的计数差异(须显式对账,不静默重述)**:上轮 §5.1 写「HIGH 6 · MEDIUM 8 · LOW 8」。
+本轮逐件读 `| **Knowledge Risk** |` 字段得 **7 / 7 / 8**。逐条对照后,**差异的唯一来源是 ADR-008** ——
+其字段原文为 `HIGH(Unity 6.3 post-cutoff;本裁决刻意不用 post-cutoff API —— 同 ADR-005)`,
+**上轮未把它计入 HIGH 组**。⇒ **本轮的 7 是正确值**,上轮为少计。分布:
+
+| 级别 | ADR |
+|---|---|
+| **HIGH (7)** | 001 · 005 · 008 · 011 · 012 · 013 · 023 |
+| **MEDIUM (7)** | 006 · 009 · 010 · 014 · 016 · 018 · 022 |
+| **LOW (8)** | 007 · 015 · 017 · 019 · 020 · 021 · 024 · 025 |
+
+> 注:ADR-005 / 008 自陈「刻意不用任何 post-cutoff API」但仍标 HIGH(逐位性风险面在 **IL2CPP 转译**,
+> 不在 API 面)—— 该自陈与标级不矛盾,是**刻意的保守标法**。据此,「实际调用了 post-cutoff API 的件」
+> 为 **5 件**(011 / 012 / 013 / 014 / 023),其余 HIGH 属**行为逐位面**风险。
+
+### 5.2 🔴 三项承重引擎风险 —— **状态:全部未做实测,与上轮同**
+
+| # | 风险 | 本轮变化 |
+|---|---|---|
+| **R-A** | **ADR-013 UI Toolkit 运行时手柄焦点导航**(假设 6,评级「半可信,最可能失败」)| **⚠️ 语义已改**:RC-1 结案后,spike 失败**不再等于违规**(铁律作用域已收窄到对外契约面)⇒ 风险从「关键路径上无退路」降为「有退路的性能/手感问题」 |
+| **R-B** | **ADR-017 `noEngineReferences` 机制** | **⚠️ 论据已换、spike 仍需**:结论不动,执法体改为引用集白名单断言(ADR-025 裁定 ④ 的全清单外推)。spike 内容随之变 = **验白名单断言可跑**,而非验 asmdef flag |
+| **R-C** | **ADR-012 F7 IL2CPP 有符号溢出 UB** | **✅ 已从「风险」降级为「表示选择」**(RC-4):改住 `ulong` / `unchecked` 后 UB 结构性不存在。**矩阵照跑**,F7 不再是矩阵前置 |
+
+> ⇒ **三项承重风险的净变化**:R-C **消除**;R-A / R-B **降级**(有退路 / 换执法体),但**均仍未实测**。
+> **本机无 Unity 编辑器** ⇒ 三者的 spike 均落在实现轮第一件事。这是 CONCERNS 判定的第 2 条理由。
+
+### 5.3 Specialist findings 的落实情况(上轮 S-1…S-5)
+
+| 上轮 | 内容 | 本轮 |
+|---|---|---|
+| S-1 | ADR-014 未 pin 词法器默认值 | ✅ 已结(RC-7) |
+| S-2 | ADR-025 「恰 = BCL」是断言 | ✅ 已结(RC-5) |
+| S-3 | ADR-023 ② 扫描窄于 ③ | ✅ 已结(RC-6) |
+| S-4 | ADR-023 S3 未测 bundle refcount | ✅ 已结(§3.1) |
+| S-5 | ADR-011 / 022 前提确认无 blocker;ADR-014 结构面成立 | 维持 ✅ |
+
+### 5.4 版本一致性 / 弃用 API
+
+零弃用 API 使用;零 stale 版本引用。全 grep(`Application.LoadLevel*` / `GameObjectEntity` /
+`Input.GetAxis` / `UnityEngine.Random`)命中**全部位于「不使用它」语境**(如 `adr-011:106`
+「Legacy Input Manager 已弃用 ⇒ 用 Input System」、`adr-023:59` Deprecated API Check 行、
+`adr-016:499` 的禁令清单)。`docs/engine-reference/unity/deprecated-apis.md:28` 的 UGUI ⚠️
+已于 2026-09-21 回刷(从「待迁移」改述为「P0 第二栈」,依据 ADR-013)⇒ 上轮登记的 deviation **已闭合**。
+
+---
+
+## 6. GDD 修订标记(Phase 5b · Architecture → Design Feedback)
+
+**本轮发现 0 项。** 上轮的 1 项(「联机精度取主机技能」口径在 8 / 13 / 索引侧的六处残留)
+已由 `/consistency-check` 批次三(2026-09-21)修复并结案,本轮的后续项 S-1 / S-2 见 §7。
+
+> 逐项核验:所有 ADR 记录的「已验证引擎事实与假设不符」处(RC-1…RC-7),对应 GDD 均**未围绕旧行为写规则** ——
+> 因为七条全部是 ADR **内部**的一致性问题,未外溢到设计面。**零 GDD 需要因引擎事实而修订。**
+
+---
+
+## 7. 登记层缺陷(本轮)
+
+| # | 缺陷 | 证据 | 处置 |
+|---|---|---|---|
+| **S-1** | `TR-diag-024.requirement` 仍是改判前口径 | `tr-registry.yaml:1310` 写「联机时精度统一取主机技能」,而同条目 `:1315` 的 `note` 已写清「原口径**已撤销**」⇒ **条目内 requirement 与 note 自相矛盾**,而 `requirement` 是 RTM 的展示列 | **✅ 本轮已修** —— 改「D-8-8 硬需求④:联机时**各设备按本机技能档**(2026-09-18 裁定 D-A;原「统一取主机技能」已作废)」,`revised` → `2026-09-21`。**note 不重写**(已含完整裁定史) |
+| **S-2** | `TR-patient-018.note` 留同款旧口径 | `:1814` 写「由 `SetTier(TierSource)` 持有(单机 = 本地技能 / **联机 = 主机技能**)」—— 与 `patient-ai.md:599` **逐字同句**(同源)⇒ S-1 的注册表侧孪生。`revised: 2026-09-15` 亦早于改判日 | **✅ 本轮已修** —— note 改口「**各设备按本机技能档**(2026-09-18 裁定 D-A:原「联机 = 主机技能」已作废;`adr-018 §五`)」,`revised` → `2026-09-21` |
+| **S-4** | `tests/README.md:38-41` 声称程序集命名「未裁决」 | 理由句引 `architecture.md` §#2 未兑现,而 **ADR-025 已于 2026-09-20 Accepted**(六装配清单具名);此处亦为「门面程序集 / 独立契约程序集」的**第五处命中**,V-5 扫描面外(该 grep 只扫 `design/` + `docs/`) | **✅ 本轮已修** —— 理由句改「ADR-025 已具名六装配清单 ⇒ **命名阻塞已解除**;`.asmdef` 仍刻意缺席(工程本体不存在,归实现轮)」。**决定不变:不生成任何文件** |
+| **D-R1** | **报告 ID 族无中央登记 ⇒ 每轮新报告可能撞号** | 上轮曾首稿用 `C-11/12/13`,与 2026-09-15 报告 §13.2 同号异义 | **❌ 未做**(承上轮建议)—— 处置见 §8 |
+| **D-R2** | `architecture.md` §5.4 分类表按簇名手写 ⇒ 与 ID 空间漂移 | §5.4 现由人工维护,已两轮出现标签与 `id` 前缀不符 | **❌ 未做** —— 处置见 §8 |
+| **D-R3** | **12 项 P0 系统零 TR** | `persistence-service` · `skeuomorphic-ui` · `audio-system` · `foraging` · `casebook` · `save-slot-ui` · `death-and-respawn` · `modular-building` · `clinic-machine` · `tutorial-and-onboarding` · `telemetry-analytics` · `medical-consequences` —— 集成集合运算实测**仍全部 ZERO** | **❌ 未回填**(批量 TR 新增须专门批次);**分类见 §2.3** |
+| **D-R4** | 计数漏刷(两处,同因) | `architecture.md` 七处 + `requirements-traceability.md` 六处 | **✅ 上轮已全刷** —— 本轮复算确认现值正确(22/22 · 245/51/89/◆2) |
+| **D-R5** | `adr_divergence` 曾开放两条 | `TR-case-036` / `TR-interaction-015` | **✅ 已结** —— **开放 `adr_divergence` = 0**(本轮复算确认) |
+
+### 7.1 D-R3 的完整分类(本轮补充)
+
+| 类 | 系统 | 回填难度 |
+|---|---|---|
+| ① **已有 GDD + 已有 ADR 覆盖** | `persistence-service`(ADR-010)· `skeuomorphic-ui`(ADR-013)· `audio-system`(ADR-018)· `save-slot-ui`(ADR-010 + 013)· `modular-building`(ADR-015)· `clinic-machine`(ADR-016 + 021) | **纯登记欠账**,可批量回填(预计全部 `covered`) |
+| ② **有 GDD、ADR 覆盖薄** | `foraging`(ADR-015 + 014)· `casebook`(ADR-013 + 008)· `death-and-respawn`(ADR-016 + 009)· `tutorial-and-onboarding`(ADR-013 + 014) | 逐条判 `status` |
+| ③ **非 P0 架构范围** | `telemetry-analytics`(ADR-019 已裁 **P0 最小切面**)· `medical-consequences`(**P1a 主**) | 归 P1a / 按最小切面回填 |
+
+> ⚠️ **分母效应**:245 `covered` 的分母**不含**这 12 项 ⇒ §1 的 **63.0% 是偏高估计**。
+> 若①类 6 项按预期全部 `covered` 回填,分母 387 → ~470,覆盖率降至 **~53%** ——
+> **这不是质量下降,是把已覆盖之物从账外收进账内**。
+
+---
+
+## 8. 上轮待办(T-1…T-5)的结案
+
+| # | 项 | 本轮状态 |
+|---|---|---|
+| **T-1** | 8 项 ADR 正文修订(RC-1…RC-7 + S-4) | **✅ 全部已结** —— 见 §3.1 |
+| **T-2** | D-R3 的 12 项零 TR 批量回填 | **❌ 仍未做** —— 须专门批次(承 #13 先例:一轮一域,带 TR 撰写即注 `status`)。**本轮不夹带** |
+| **T-3** | Foundation 门的 `no-adr-by-design` 状态 | **✅ 已结** —— `gate-check/SKILL.md:131` 已注明「◆ 不计入 gap」;◆ 已有 2 条实例 |
+| **T-4** | D-A 跨文档滞后写入 `docs/consistency-failures.md` | **✅ 已结** —— 批次三(2026-09-21)已追加 5 行账本 + 1 条叙事条目 |
+| **T-5** | RC-3 的最小 spike(编辑期 asmdef + `using Unity.Entities`) | **❌ 本机不可跑**(无 Unity 编辑器)—— 承 §5.2,归实现轮 |
+
+### 8.1 D-R1 / D-R2 的处置建议(**本件不代拍**)
+
+| 项 | 建议 | 理由 |
+|---|---|---|
+| **D-R1** | 在 `traceability-index.md` 增设 **「报告 ID 族登记表」**(C- / E- / B- / R- / QQ- / RC- / D-R / S- 各占一行,记「已用至 N」+ 归属报告) | 成本 = 7 行表;**收益** = 永久消除跨报告撞号。⚠️ 但该表须**人工维护**(无生成器),故登记为**待用户裁**:是否接受「又一处需手刷的汇总件」—— 这正是本项目已反复吃亏的失效模式(汇总侧先刷、正文滞后)。**我的建议:建,但同时在表头写明「本表为本轮人工值,不做门控判据」**,避免它变成第三个计数真源 |
+| **D-R2** | `architecture.md` §5.4 改为**由 registry 生成**(脚本:按 `id` 前缀分组 + 按 `status` 计数) | 与 ADR-024 对 Kind 的「单一真源 + 生成器」做法同构。**但**:该生成器属 Tooling 层,须过 ADR-022 的「不进构建」纪律 + 登记为 ADR-024 生成器族的一员。**建议推后至 `tools/kindgen/` 落地同批**(工具面一次立齐,不零散开工具) |
+
+---
+
+## 9. 上轮报告自身两处登记已过期(**本轮就地回刷**)
+
+| 件 | 过期内容 | 回刷 |
+|---|---|---|
+| `architecture-review-2026-09-20.md` **§9「需用户裁定项(8 条 —— 本轮一律未执行)」** | 8 条 RC 已**全部结案** | **已就地加结案注**(逐条指向 ADR 正文的修复坐标) |
+| `control-manifest.md` **§Open Items Blocking Rule Promulgation §A** | 表内 8 条 RC 的「对本件的影响」列全部按「未结」写 | **已就地加结案注**,并保留原文(承「历史注体以追加注补」先例) |
+
+> **这是本件的一处范式发现**:两份**上轮刚写就的件**在**同一天内**被后续裁定追平 ——
+> 与 `consistency-failures.md` 2026-09-21 条目登记的「**权威件自陈的义务状态落后于实际**」
+> 是**同一失效模式**(检出方向相反:不是新裁定没刷旧文,是旧文没收到新裁定已生效的通知)。
+> ⇒ **补判据**:凡产出「未结项清单」的件,须在该清单的**消费者**侧留一个失效检查点;
+> 本项目已有的载体 = `/consistency-check` 的 7 项扫描面,建议把「上轮报告的未结项」列入
+> 其 `since-last-review` 的必扫面(本件登记,**不代改 skill**)。
+
+---
+
+## 10. 预门控清单(`/gate-check pre-production` 的 13 项必交件)
+
+| # | 要件 | 状态 |
+|---|---|---|
+| 1 | 引擎已选(`CLAUDE.md` 非 `[CHOOSE]`) | ✅ Unity 6.3 LTS |
+| 2 | 技术偏好已配置 | ✅ 含 2026-09-20 四项裁定(20 Hz / CAP 24 / DOTS 门阈值 / 病种预裁) |
+| 3 | `design/art/art-bible.md` §1–4 | **✅ 上轮 ❌ → 本轮 ✅**(53611 B,含 §1–9) |
+| 4 | ≥3 份 ADR 覆盖 Foundation(场景管理 / 事件架构 / 存档) | ✅ 22 份;ADR-023(场景)/ 005+009(事件)/ 010(存档)三条**正对着** |
+| 5 | 引擎参考文档 | ✅ `docs/engine-reference/unity/`(modules + plugins) |
+| 6 | `tests/unit/` + `tests/integration/` | ✅ |
+| 7 | `.github/workflows/tests.yml` | ✅ ⚠️ `UNITY_LICENSE` secret 须**手工配置**(不自动化) |
+| 8 | ≥1 个示例测试文件 | ✅ `tests/unit/sim/sim_fixedpoint_test.cs` —— ⚠️ **因 asmdef 未落地而尚不被编译**(ADR-025 裁定面已解锁,**实现轮**才真跑);**不充当第 8 项的「functional」证据** |
+| 9 | `docs/architecture/architecture.md` | ✅ 现值,§5.4/5.5 已刷 |
+| 10 | `docs/architecture/requirements-traceability.md` | ✅ 计数已刷(245/51/89/◆2) |
+| 11 | `/architecture-review` 报告存在于 `docs/architecture/` | ✅ **本件**(2026-09-15 + 2026-09-20 + 本件) |
+| 12 | `design/accessibility-requirements.md` 带承诺档位 | ✅ Standard + L-1/L-2 |
+| 13 | `design/ux/interaction-patterns.md` | ✅ |
+| — | `docs/architecture/control-manifest.md` | ✅ 存在(Pre-Production→Production 门要件,非本门) |
+
+**ADR 循环依赖检查:无环 ⇒ 不 FAIL。**
+**Foundation 零 gap 质量检查:◆ 不计缺口后残 2 条 ⇒ 仍不绿** —— 本门唯一「quality check」级红灯。
+
+---
+
+## 11. 本轮结论一览
+
+1. **上轮的 8 条 RC + S-4 全部结案,且无一条是靠「改状态位」结的** —— 全部落在 ADR 正文。
+   这是本项目「**裁定 ≠ 验收**」纪律在架构面的第一次完整执行:修复 = 改文本,不是改账。
+2. **零 ADR-对-ADR 冲突(连续第二轮)** —— 22 份 ADR 的成熟度证据。
+   上轮 4 份时一轮评审出 10 处对打;22 份时是 0。
+3. **三项承重引擎风险的一处已消除、两处已降级**,但**三者的 spike 一条未跑**。
+   **这是 CONCERNS 的实质量**:风险不在纸面,在**未被验证的纸面**。
+4. **89 条 gap 里真等 ADR 的只有 12 条**,且全部落在 Required ADR **#4 / #5** 两项 ——
+   `architecture.md` 自陈二者**非开工阻塞**。⇒ **Pre-Production 开工门的技术侧无阻塞项。**
+5. **两处上轮报告自身在同日内过期**(§9 与 control-manifest §A)—— 登记为**新的失效模式变体**:
+   「产出未结清单的件」缺少消费者侧的失效检查点(§9)。
+6. **本轮判定 CONCERNS,零阻塞** —— 三个 CONCERNS 理由(§判定)中,**两个是本金债**
+   (Foundation 残 2 条 / 12 项零 TR),一个是**实测债**(三项 spike)。**无一是设计或架构分歧。**
+
+---
+
+## History
+
+| Date | Verdict | 覆盖 | 冲突 | 备注 |
+|------|---------|------|------|------|
+| 2026-09-15 | **FAIL** | ✅49 / ⚠️19 / ❌80(148) | 10(C-1…C-10,2 编译级) | 首建 registry;4 份 ADR |
+| 2026-09-15 | (consistency 复查轮) | 同上 | +8(C-11…C-18) | 见同件 §13 |
+| 2026-09-20 | **CONCERNS** | ✅245 / ⚠️51 / ❌91(387) | **0 阻塞** · 8 处 RC(单件) | ADR 4→22;Required #1/#2/#3 兑现;TD C1–C4 结案 |
+| 2026-09-21 | **CONCERNS** | ✅245 / ⚠️51 / ❌89 / ◆2(387) | **0 阻塞 · 0 新增 RC** | **8 条 RC + S-4 全结**;◆ 第四态立;Foundation 4 → **2**;三承重风险 **1 消 / 2 降**;**零状态翻转** |

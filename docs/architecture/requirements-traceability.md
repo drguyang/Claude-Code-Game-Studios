@@ -1,11 +1,19 @@
 # Requirements Traceability Matrix (RTM)
 
-> Last Updated: 2026-09-20
+> Last Updated: 2026-09-21
 > Mode: /architecture-review rtm —— **本文件当前不处于 rtm 模式输出态**(见 §形态说明)
 > Coverage: **0%** full chain complete (GDD → ADR → Story → Test)—— 非缺件,是阶段事实
 > Engine: Unity 6.3 LTS
 > 登记处(数据权威):`docs/architecture/tr-registry.yaml`(387 条,`status:` 字段为计数真源)
 > 人读矩阵:`docs/architecture/traceability-index.md`(GDD → ADR 两级;**245 ✅ / 51 ⚠️ / 89 ❌ / ◆2 no-adr-by-design** —— 2026-09-21 门规格修订轮后实测;上轮值 91 ❌ 系三态口径)
+>
+> **2026-09-21 更新(`/architecture-review` full 复跑,报告 = `architecture-review-2026-09-21.md`)**
+> —— **计数零变动**(245/51/89/◆2,`yaml.safe_load` 逐条复算自洽 387);
+> 本轮只修**两处条目文本**(`TR-diag-024.requirement` / `TR-patient-018.note` 的「联机 = 主机技能」
+> 旧口径 → 「各设备按本机技能档」),**状态位零翻转**。8 条 RC + S-4 全部结案(落在 ADR 正文)。
+> **本文件的 §阶段前提 第 2 条口径更新**:`sim_fixedpoint_test.cs` 的 asmdef 前置**已由 ADR-025
+> (2026-09-20 Accepted)解除** —— 该测试**仍不被编译**的原因现只剩「Unity 工程本体不存在」,
+> 不再是「命名未裁」。
 
 ## How to read this file
 

@@ -36,9 +36,11 @@ tests/
 ## 未生成之物(刻意)
 
 1. **`.asmdef` 文件**(`EditModeTests.asmdef` / `PlayModeTests.asmdef` / `Sim.asmdef` 等)——
-   程序集**名称与清单**是 `architecture.md` §Required ADRs **#2「契约程序集清单与命名」** 的裁决对象。
-   全案目前只有 `Sim.asmdef` 一个名字被定义过(其余「门面程序集」/「独立契约程序集」/
-   「边界层 codec 程序集」被 4 处引用却无定义)。**先命名后生成,否则是替 ADR #2 抢拍板。**
+   程序集**名称与清单**曾归 `architecture.md` §Required ADRs **#2「契约程序集清单与命名」** 裁决;
+   **✅ 该 ADR 已兑现 = `ADR-025`(2026-09-20 Accepted)** —— 六装配清单已具名
+   (`Sim` / `Sim.Contracts` / `Sim.Codec` / `Gameplay.Presentation` / `Gameplay.UI` / `Editor.Tools`),
+   **命名阻塞已解除**。`.asmdef` 仍**刻意缺席**:工程本体(`Assets/` / `Packages/` /
+   `ProjectSettings/`)不存在,脚手架生成归**实现轮**。**改后不生成任何文件 —— 决定不变。**
 2. **Unity 工程本体** —— 仓库尚无 `Assets/` / `Packages/` / `ProjectSettings/`。
    `Packages/manifest.json` 须含 `com.unity.test-framework`(UTF 包)。
 3. **黄金夹具字节文件**(`golden-vN`)—— ADR-012 裁定「版本化刷新 + 全体平台同时重签」;
