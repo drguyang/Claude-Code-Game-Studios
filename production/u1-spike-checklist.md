@@ -208,6 +208,12 @@ B 路 = 单场景双根(`RootA`/`RootB`)SetActive ×20。
 - **Addressables 编辑期 API 未在集群验证**(本批新):`AddAssetEntry`/`ActivePlayModeDataBuilderIndex`/
   `InputSystemUIInputModule` 等按 `docs/engine-reference` 钉版形状书写,但集群无 Unity 编译器 ——
   **编译判定唯一归【桌面】**,失败则回报 Console 红行、按实际签名就地修(风险面)。
+  **同族第二例(2026-09-23)**:测试里给 `AsyncOperationHandle<SceneInstance>` 写辅助取值的签名,
+  **漏了 `using UnityEngine.ResourceManagement.ResourceProviders;`** ⇒ `CS0246`。
+  已按镜像源码实读钉死:Addressables 包**内置** ResourceManager(`Runtime/ResourceManager/`),
+  `SceneProvider.cs` 自身就住 `namespace UnityEngine.ResourceManagement.ResourceProviders` 且**不带**
+  该 namespace 的 using 却直接用 `SceneInstance` ⇒ 类型确认在此 namespace。
+  教训:**凡在测试里写出的类型名,一律按上文「引擎参考件会漂移」的口径回源核实**,不靠记忆。
 - **2.10.3 源码对拍 + CS0117 勘误**(2026-09-23):【桌面】首跑报
   `error CS0117: 'Addressables' does not contain a definition for 'BuildPlayerContent'`。
   集群侧以 blob 过滤克隆 **`com.unity.addressables` 2.10.3(mirror tag `2.10.3` @ `6fef233`)** 逐条实读源码,
@@ -253,4 +259,8 @@ B 路 = 单场景双根(`RootA`/`RootB`)SetActive ×20。
   **EditMode** 标签 = 只跑了 59 条 F7(全绿、无报错),三条 spike 一条未执行。Test Runner 左列
   须能看到 `U1SceneSpikesTest` 才是在跑 spike。装置诊断顺序:**先搜 Console `[U1-S`,再 find 文件** ——
   Console 空 = 没跑。
+- **判据值不得在 handle release 之后取**(2026-09-23,【超算】预防性修)。原稿的收尾 `Assert` 读
+  `load.OperationException` / `ext.Status` —— 而这两个 handle 此前已被 `UnloadSceneAsync`、
+  `ReleaseInstance` 释放,读已释放 handle 的状态**不保证安全**。改为测量时**立即取进局部变量**
+  (`loadEx` / `unloadEx` / `extStatus` / `inSceneStatus`),收尾只断言这些快照。判据语义完全不变。
 - 本卡不改任何既有 ADR 正文;勾选/回写在结果回报后由回写轮执行(借绿禁令:本卡发出时全部 spike 仍 `NOT-RUN`)。

@@ -27,6 +27,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using Debug = UnityEngine.Debug;
@@ -203,8 +204,10 @@ namespace DaYiJingCheng.Tests.PlayMode
             sw.Stop();
             double coldLoadMs = sw.Elapsed.TotalMilliseconds;
             bool loadSceneLoaded = SceneOf(load).isLoaded;
+            var loadEx = load.OperationException;   // ⚠️ 判据用的值一律**在 release 之前**取出 ——
+                                                    //    unload 会释放 handle,之后读 .Status/.OperationException 不保证安全
             Report($"[U1-S1] cold_load_ms={coldLoadMs:F1} load_status={load.Status} " +
-                   $"scene_isLoaded={loadSceneLoaded} op_ex={Ex(load)}");
+                   $"scene_isLoaded={loadSceneLoaded} op_ex={loadEx?.Message ?? "none"}");
             GuardSetup(load, "S1 load");
             var scene = SceneOf(load);
 
@@ -214,8 +217,9 @@ namespace DaYiJingCheng.Tests.PlayMode
             sw.Stop();
             double unloadMs = sw.Elapsed.TotalMilliseconds;
             bool sceneStillLoaded = scene.isLoaded;
+            var unloadEx = unload.OperationException;
             Report($"[U1-S1] unload_ms={unloadMs:F1} unload_status={unload.Status} " +
-                   $"scene_still_loaded={sceneStillLoaded} op_ex={Ex(unload)}");
+                   $"scene_still_loaded={sceneStillLoaded} op_ex={unloadEx?.Message ?? "none"}");
 
             // 暖轮
             sw.Restart();
@@ -233,9 +237,9 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             // ── 判据(数字已落盘,内容与原稿一字不差)──
             Assert.IsTrue(loadSceneLoaded, "[U1-S1] handle 成功但 scene.isLoaded=false");
-            Assert.IsNull(load.OperationException, $"[U1-S1] load OperationException:{load.OperationException}");
+            Assert.IsNull(loadEx, $"[U1-S1] load OperationException:{loadEx}");
             Assert.IsFalse(sceneStillLoaded, "[U1-S1] unload 完成后 scene 仍在");
-            Assert.IsNull(unload.OperationException, $"[U1-S1] unload OperationException:{unload.OperationException}");
+            Assert.IsNull(unloadEx, $"[U1-S1] unload OperationException:{unloadEx}");
             Assert.IsTrue(warmLoaded, "[U1-S1] 暖轮 load 未就位");
         }
 
@@ -262,13 +266,15 @@ namespace DaYiJingCheng.Tests.PlayMode
             var holder = new GameObject("U1_S3_Holder");
             var ext = Addressables.InstantiateAsync(KeyCube, holder.transform);
             yield return WaitDone(ext, "S3 Instantiate(ext)");
-            Report($"[U1-S3] instantiate_ext_status={ext.Status} op_ex={Ex(ext)}");
+            var extStatus = ext.Status;   // ⚠️ release 前取出(判据值不在 release 之后读 handle)
+            Report($"[U1-S3] instantiate_ext_status={extStatus} op_ex={Ex(ext)}");
 
             var marker = new GameObject("U1_S3_Marker");
             SceneManager.MoveGameObjectToScene(marker, scene);
             var inScene = Addressables.InstantiateAsync(KeyCube, marker.transform);
             yield return WaitDone(inScene, "S3 Instantiate(in-scene)");
-            Report($"[U1-S3] instantiate_inscene_status={inScene.Status} op_ex={Ex(inScene)}");
+            var inSceneStatus = inScene.Status;
+            Report($"[U1-S3] instantiate_inscene_status={inSceneStatus} op_ex={Ex(inScene)}");
 
             bool extBefore = Go(ext) != null;
             bool inSceneBefore = Go(inScene) != null;
@@ -320,8 +326,8 @@ namespace DaYiJingCheng.Tests.PlayMode
 
             // ── 判据(数字已落盘,内容与原稿一字未改)──
             Assert.IsTrue(sceneLoaded, "[U1-S3] 场景未就位");
-            Assert.AreEqual(AsyncOperationStatus.Succeeded, ext.Status, "S3 外部亲代实例化失败");
-            Assert.AreEqual(AsyncOperationStatus.Succeeded, inScene.Status, "S3 场景内实例化失败");
+            Assert.AreEqual(AsyncOperationStatus.Succeeded, extStatus, "S3 外部亲代实例化失败");
+            Assert.AreEqual(AsyncOperationStatus.Succeeded, inSceneStatus, "S3 场景内实例化失败");
         }
 
         // ────────────────────────── S4 ──────────────────────────
