@@ -365,8 +365,13 @@ public interface IPerTargetIl2CppArgs : IPreprocessBuildWithReport
 
 ## Validation Criteria
 
-- [ ] **F7 表示选择落地(2026-09-21 承 RC-4 降级)**:`SplitMix64` / Q16.16 内部表示 = `ulong`
+- [x] **F7 表示选择落地(2026-09-21 承 RC-4 降级)**:`SplitMix64` / Q16.16 内部表示 = `ulong`
       (必要时 `unchecked`);回绕用例(已知向量)= 单元级黄金哈希第一条,EditMode 对拍通过
+      —— **✅ EditMode 对拍通过 2026-09-23**(Unity 6000.3.24f1):`GoldenHashV1Test` 43 条新增 +
+      既有 16 条,合计 **59 绿**全过;含 Avalanche 流 / 回绕 2 / fold 2+3+4 / HashTagged /
+      FixMul 25+溢出 3 / S7 哈希半边。黄金期望值由独立 Python 参考实现算出,与 C# 实现零共享代码。
+      ⚠️ **只勾 EditMode 这条**:「三格全绿」项(下一行)仍需 CI 矩阵 Mono / IL2CPP-x64 / IL2CPP-ARM64
+      —— 未跑,不借绿。
 - [ ] **单元级黄金哈希三格全绿**:Fix 四则 / 负值右移 / 负值除法向零截断 / 定点 Exp / SplitMix64 /
       CDF walk / 编码器往返 / `ROUND_HALF_AWAY_FROM_ZERO` 负值 —— Mono / IL2CPP-x64 /
       IL2CPP-ARM64 逐位相同

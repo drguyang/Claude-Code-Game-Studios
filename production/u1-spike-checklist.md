@@ -1,7 +1,7 @@
 # U1 spike 批 —— 落盘卡 + 【桌面】run-book
 
 > 批次:U1(承 U0 结案 2026-09-22)· 状态:**S1/S3/S4 引擎腿已实测通过并回填 ADR-023(2026-09-23)**;
-> F7 载荷腿【超算】已落盘,EditMode 59 绿待【桌面】确认;假设 6 缓办(S5 随之休眠)
+> **F7 载荷腿 59 绿已实测通过并回填 ADR-012(2026-09-23)**;假设 6 缓办(S5 随之休眠)
 > 权威来源:ADR-023 §Validation(S1–S7)· ADR-012 F7(2026-09-21 承 RC-4 降级)·
 > ADR-013 假设 6(§6.6 半可信)· ADR-006 §三(舍入)· D-1/D-2(本批裁定)
 
@@ -195,7 +195,7 @@ B 路 = 单场景双根(`RootA`/`RootB`)SetActive ×20。
 | S1 | ✅ **实测通过** | 2026-09-23 · Unity 6000.3.24f1:`cold_load_ms=**116.8**`(含 catalog / bundle 冷启)· `warm_load_ms=**39.6**` · `unload_ms=**11.0**`;`load/unload_status` 均 `Succeeded`,`scene_still_loaded=**False**`(卸载干净),`op_ex=none` 全程,0 条 Error/Exception/Assert ⇒ **E-13(6.2+ 抛异常)未触发**。additive 加载/卸载在 6.3 **可用作菜单/世界换入换出** | ADR-023 S1 勾选 ✅ |
 | S3 | ✅ **实测通过(含 S-4 补强)** | 2026-09-23 同装置。**判据 1(⑤ 前提)**:外部亲代实例 unload 后 `alive=**True**` ⇒ 不销毁,**泄漏形态成立**;场景内亲代实例 `alive=False`(随层级亡,非反例)。**判据 2(S-4)**:bundle `baseline=1 → 载入后 4 → unload 后 2 → 两 handle Release 后 **1**(=baseline)` ⇒ **refcount 归零**;中间段证实「handle 未全 Release 时 bundle 仍被引」的已知形态存在。**判据 3(可观测)**:故意漏 Release ⇒ `leak_alive=**True**` · `leak_bundles=**2**(>baseline)` · 补释放后 `final=1` ⇒ **漏了能被看见**。**新机制发现**(源实读 2.10.3 实跑确认):`handle_valid_after_scene_unload ext=True inScene=False` ⇒ 场景内亲代实例的 tracked handle 被 `CleanupSceneInstances` **自动释放**,**不得手动 ReleaseInstance** | ADR-023 S3 勾选 ✅ |
 | S4 | ✅ **实测通过** | 2026-09-23 · Unity 6000.3.24f1:**A 路**(Addressable 场景 load/unload 交替 ×20)avg=**14.65 ms** · max=**24.19 ms** · total=**293.0 ms**(逐点 14.18/19.26/12.81/12.74)→ 单次换场约 15 ms ≈ **0.9 帧**@60fps,**可接受**。**B 路**(单场景双根 `SetActive` ×20)avg=**0.0114 ms** · max=**0.2056 ms** · total=0.228 ms(亚毫秒,量具已修为 `Elapsed.TotalMilliseconds`)⇒ **A/B 量级比 ≈ 1285×**。**机制建议**:细粒度 chunk 激活宜走**单场景多根 `SetActive`**;场景 load/unload 只用于世界整体换入换出。**量级差即结论,不产新 ADR** | ADR-023 S4 勾选 ✅ |
-| F7(59 绿) | ⬜ 待【桌面】EditMode 标签页确认(数未回) | 清单已落盘(§1.4:16 旧 + 43 新 = 59);须在 Test Runner **EditMode** 标签页跑 `GoldenHashV1Test` + 既有 16,或经 `DaYi/Validation/Run Assembly Gates` 门 | ADR-012 §Validation F7 勾选 |
+| F7(59 绿) | ✅ **已实测通过** | 2026-09-23 · Unity 6000.3.24f1 · Test Runner **EditMode 标签页**:`GoldenHashV1Test` 43 条 + 既有 16 条 = **59 绿全过**(16 旧 + 43 新;任一红 = 实现漂移,本次无) | ADR-012 §Validation F7 勾选 ✅(仅 EditMode 条;三格矩阵未跑,不借绿) |
 | 假设 6 | ⬜ 未跑(用户裁定缓办,集中一轮) | 判据 ④(单一 `UI/Navigate`,无双绑)已在【超算】按 `.inputactions` 按钮表**静态核实通过**;①②③ 须手柄腿 | ADR-013 §6.6 + S5 激活与否 |
 
 > ✅ **2026-09-23 S1/S3/S4 三条全部实测通过,已回填 ADR-023 §Validation Criteria(勾选 + 数字)**。
