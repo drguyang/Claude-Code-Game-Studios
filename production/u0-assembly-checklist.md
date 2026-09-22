@@ -43,7 +43,7 @@ ADR-025 §⑤ 字面写 «`tests/EditMode` → `Sim.Contracts.Tests`»、«`test
 - **修订口径(本卡执行)**:两个 UTF 装配落 `unity/Assets/Tests/{EditMode,PlayMode}/`;
   仓库根 `tests/` 保留为**非 Unity 产物**(`evidence/` / `smoke/` / `integration/` README)。
 - **种子测试随迁**:`tests/unit/sim/sim_fixedpoint_test.cs` → `unity/Assets/Tests/EditMode/Sim/sim_fixedpoint_test.cs`
-- **登记残留**:ADR-025 §⑤ 原文待回写加注(归回写轮,承「不追改原文」惯例)。
+- **登记残留**:ADR-025 §⑤ 原文待回写加注(归回写轮,承「不追改原文」惯例)。✅ **2026-09-23 回写轮已落**(ADR-025 §⑤ 节首已挂 U0 路径订正注)。
 
 ---
 
@@ -204,7 +204,7 @@ using System.Runtime.CompilerServices;
 
 > `includePlatforms: ["Editor"]` = **不进构建**(承 ADR-022 §① · ADR-025 §①)。
 > ⚠️ `tools/level/` 与 `tools/kindgen/`(ADR-022 / ADR-024 记的路径)在乙案下**即上述两目录**;
-> 原路径措辞归回写轮加注。
+> 原路径措辞归回写轮加注。✅ **2026-09-23 回写轮已落**(ADR-022 §一 程序集行 + ADR-024 §⑤ 节首均已挂 U0 路径订正注)。
 
 ### 1.8 测试装配(照抄生成器形状 · **勿叠加 `references`**)
 

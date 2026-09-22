@@ -334,13 +334,14 @@ public interface IWorldSpawner {          // 表现态生成门面(③⑤⑦ 的
       ⏸ 延后(触发:`ITickProvider` 实现落地)
 - [ ] **S7** ⑦ 确定性偏移夹具:同一存档重建 3 次,生成位逐次一致(哈希),且无对象落入不可走格(复用 ADR-022 C2 可走性同源判据)
       🟡 哈希半边已落(EditMode `GoldenHashV1Test`);全夹具延后(触发:ADR-022 逻辑层落地)
-- [ ] **V-8** `architecture.md` #1 小节 / §3.4 [0][7] 两处 🔴 / QQ 台账在本件 Accepted 时同步改判(未改前本表不记绿)
-      —— ⚠️ **2026-09-23 实况核查(未改)**:`architecture.md` §3.4 的 `[0] Unity 引擎启动 · URP Asset 加载`
-      与 `[7] 表现层就绪` **仍标 🔴**(`:626` / `:650`),其下的诚实标注(`:656-660`)仍写「两步零裁决、
-      归 §Required New ADRs #1」。本件既已 Accepted(2026-09-20)且 S1/S3/S4 实测通过(2026-09-23),
-      **该两处应改判为 ADR-023 ①③[0] / ④⑦[7]**。**本行不在本批执行** —— 归**回写轮**
-      (与 TR registry 挂 `adr:` · D-1 执行面 · R-4 抄本降级等同批,architecture.md 是一份大件,
-      单点改易与同批其他改动冲突)。**在此之前本表 V-8 不记绿**(其自设口径)。
+- [x] **V-8** `architecture.md` #1 小节 / §3.4 [0][7] 两处 🔴 / QQ 台账在本件 Accepted 时同步改判
+      —— **✅ 2026-09-23 回写轮执行完毕**:`architecture.md` §3.4 `[0]` 已改判 `✅ ADR-023 ①③
+      (Boot 常驻含相机 + AudioListener)` · `[7]` 已改判 `✅ ADR-023 ④⑦(重建次序 + 确定性格内偏移)`;
+      其下诚实标注块已重写为「2026-09-23 改判」并注明「本节自此不再挂 §Required New ADRs #1」;
+      §System Layer Map 的 HIGH RISK ①(L5 Renderer Feature)/ ②(L0/L1 场景加载)两处、
+      RenderGraph 承接注、row 6(世界与生态区)engine-risk 列、CameraMode engine-type 注**均已挂
+      ADR-023 承接**。承本件 Accepted(2026-09-20)+ S1/S3/S4 实测通过(2026-09-23)。
+      **本行记绿条件(原文自设)已满足** —— 不再挂「未改前不记绿」。
 
 ## GDD Requirements Addressed
 
@@ -349,7 +350,7 @@ public interface IWorldSpawner {          // 表现态生成门面(③⑤⑦ 的
 | `architecture.md` §Required ADRs #1 ①②③④ | 架构 v1.0 自登记 | ① 生命周期 / ④ 相机栈形状 / ③④ tick 次序 / ④=本件 ⑧+§Key Interfaces(L4 引擎 API 面) |
 | §System Layer Map 🔴① 🔴② | 架构 v1.0 | RenderGraph 面 = ⑧(默认零使用 + 触发条款);场景加载面 = ①⑤ |
 | §3.4 [0] / [7] 🔴 | 架构 v1.0 | ④ 序列 + ③(Boot 常驻件)[0];⑦(表现态重建)[7] |
-| `TR-concept-*` 场景加载相关项 | `tr-registry.yaml`(回写轮逐条判) | 本件 Accepted 后由回写轮逐条挂 `adr:`(**此处不预挂、不记绿** —— 借绿禁令)|
+| `TR-concept-*` 场景加载相关项 | `tr-registry.yaml`(回写轮逐条判) | **✅ 2026-09-23 回写轮已判**:新增 `TR-worldeco-010`(chunk 激活权 = 6,`adr: ADR-023`,`covered`);`TR-death-004`(复活位置重建,`adr: ADR-009 + ADR-023`)与 `TR-audio-013`(`AudioListener` 单挂点归 Boot,`adr: ADR-020 + ADR-023`)两条既有条目已带 ADR-023 挂钩。⚠️ **无其他场景加载专属 TR 待挂** —— `game-concept` 的 `TR-concept-*` 8 条中零条为场景生命周期需求(`TR-concept-007` 急救延迟 / `TR-concept-008` 焦点导航均不属本件),故无「预挂」动作可执行。 |
 | TD 条件 C2 的一半 | 架构 v1.0 | Accepted 即结(#2/024 同批)|
 
 ## Related

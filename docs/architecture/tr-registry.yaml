@@ -1971,6 +1971,16 @@
     revised: "2026-09-16"
     note: "**ADR-021 刻意不定**(避免越权,同 ADR-009 §三「骨架先行,载荷归系统 ADR」的教训)—— 枚举值归 **6 的 GDD**。**✅ 2026-09-16 已交付**:`world-and-ecozones.md` 的 **R-6-7** 定为**三态最小集** `Undiscovered(0) → Discovered(1) → Resolved(2)`,**单调不可逆、无「已锁」/「已荒废」**(用户裁定);状态机 = **4 条平表转移**(T1 `0→1` / T2 `1→2` / T3 `0→2` 跳级 / T4 降级 = **非法**),非法处置三分为**幂等丢弃 / 降级告警 / 未登记 id 报错**。**有界性按 ADR-009 §六 复核已过,且收紧**:`|POI| × |STATE|`(3 倍)→ **`2 × |POI_DEF|`**(F-6-4 / `entities.yaml` 的 `formulas.poi_transition_bound`;**Risks 中「枚举定得过大 ⇒ 转移数膨胀」的担忧由此反向消解**)。枚举值同步登记于 `entities.yaml` 的 `constants.PoiState`。⚠️ **残留 `OQ-6-7`**:单调性是否最终定为全局不变量 —— 若 P1a 引入回退语义,本条与 `poi_transition_bound` / `AC-6-15` 同时作废,须**另开 ADR**。⚠️ 本状态由**撰写方**置为 `covered`,**待首轮 `/design-review` 确认**。"
 
+  - id: TR-worldeco-010
+    system: world-eco
+    gdd: design/gdd/world-and-ecozones.md
+    requirement: "运行期 chunk 激活权 = **6 世界与生态区**(容器状态所有权,ADR-021 同款判据的自然延伸);激活决策**只读 sim 量**(玩家所在格 = 最后一条 `ActorCellEntered` 的语义位),**不读表现态连续位置**(ADR-016 §三 禁读判据的对称)⇒ **chunk 激活 = 派生态,不进流**,重建期由格重推"
+    domain: Core
+    adr: ADR-023
+    status: covered
+    revised: "2026-09-23"
+    note: "ADR-023 ⑥。**`OQ-6-8`「未驻留 chunk 视为全 `block`」的判定输入即本条**(EcozoneOf 不得假设全图可达)。机制侧(细粒度激活走**单场景多根 `SetActive`**)由 S4 spike 实测给出(A/B ≈ 1285×),**不产新 ADR** —— ⑥ 只裁归属不裁机制。"
+
   # ═══════════════════════════════════════════════════════════════════════════
   # 输入与设备 (Input & Devices, #3) — design/gdd/input-system.md
   #   ⚠️ 系统 3 在架构复核 §2 记为「零覆盖」(GDD ❌ / 架构覆盖 ❌ 零)。
@@ -4604,11 +4614,11 @@
   - id: TR-medcons-001
     system: medical-consequences
     gdd: design/gdd/medical-consequences.md
-    requirement: "ConsequenceResolved 病史流事件(53 产出经主机 Append)"
+    requirement: "ConsequenceResolved 世界流事件(53 产出经主机 Append)"
     domain: Core
     adr: ADR-005 + ADR-009
     status: partial
-    note: "D-R3 回填(2026-09-21)。Kind 已在 registry 有登(实测 entities.yaml 在册);⚠️ 回写轮执行面未落:53 GDD 侧引用坐标待刷。"
+    note: "D-R3 回填(2026-09-21)。Kind 已在 registry 有登(实测 entities.yaml 在册,`stream: world`)。**✅ 2026-09-23 回写轮**:① 53 GDD 侧引用坐标已刷 —— `medical-consequences.md:206` 原「承 ADR-021 先例追加」= 幽灵引据(该通道从未对本 Kind 裁定 · ADR-009 最后一条 Amendment 是 L · 且该通道已由 ADR-024 ③ 退役),已挂归回写注(有效身份 = 直接 registry 登记,`OQ-53-7` 裁定 [A]);② 本条 `requirement` 文本原写「**病史流**」= 陈旧错标 —— 本事件实为**世界流**(承 `OQ-53-7` 2026-09-19 裁定 + `entities.yaml` `stream: world` + 53 GDD §八),已就地订正为「世界流」(不预判 `status`,仍 `partial` —— 缺的是逐条复核执行体,禁借绿)。"
   - id: TR-medcons-002
     system: medical-consequences
     gdd: design/gdd/medical-consequences.md

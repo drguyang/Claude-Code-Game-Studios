@@ -115,7 +115,7 @@ rule, see the referenced ADR.
 - `csc.rsp -checked+` **只用于测试程序集**;sim 发布路径保持 `unchecked`(回绕定义性) — ADR-012 §三
 - 夹具版本化刷新(`golden-vN` + 变更日志 + **全体平台同时重签** + 旧版保留回归对比) — ADR-012 §四
 - 漂移面纪律:二进制 IO · 显式 UTF-8 无 BOM · 十六进制 ASCII · 哈希只对同一 byte buffer;夹具双投递(EditMode `[CallerFilePath]` / player `StreamingAssets`,bin 用 `.bytes`) — ADR-012 §五
-- **F7 BLOCKING spike 先行**:int64 溢出在 IL2CPP C++ 后端是 UB,`SplitMix64` 与 Q16.16 中间乘正踩此线;**回绕用例 = 单元级黄金哈希第一条** — ADR-012 §Implementation Guidelines 1
+- **F7 表示选择(原 BLOCKING spike,2026-09-21 降级 · 2026-09-23 落地)**:`SplitMix64` 与 Q16.16 中间乘改住 `ulong`(无符号),IL2CPP C++ 有符号溢出 UB **结构性消除**;**回绕用例 = 单元级黄金哈希第一条**,现为一条 EditMode 断言(**已绿**,`GoldenHashV1Test`) — ADR-012 §Implementation Guidelines 1
 
 **Kind 单一真源(ADR-024)**
 - `entities.yaml` 的 `SimEvent.Kind.*` 是三流全集(**34 支**,2026-09-21 第二十七批 +`SkillGrown`)**唯一登记真源**;每条必填 `stream:`(枚举值,**禁从散文解析**)· `author:` · `payload_schema:`(类型只允许整数域) — ADR-024 §Decision ①

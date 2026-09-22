@@ -118,6 +118,15 @@ dr_guyang(用户)· technical-director(裁决)· systems-designer(公式复核)
 **裁决:全整数域。** 具体形态 = **int64 承载 Q16.16 标度的 `Fix` 纯值 struct**,
 中间乘法落 Q32.32 再移位回。哈希用 **SplitMix64**,插值用整数除法。
 
+> **⭑ 2026-09-23 回写轮(D-1 执行面 · 承 U1 spike 批裁定)**:`SplitMix64` 的**多输入折叠形**
+> 就地钉死 = **乙案链式 avalanche** —— `state = 首输入`;每后续权重 `w`:`state = Avalanche(state + w)`;
+> 终态再 `Avalanche` 一次;全程 **mod 2⁶⁴ 回绕**(`unchecked`)。**首两输入可交换**
+> (`Avalanche(a+b)` 对称)仅是**黄金测试探针性质**,**消费方不得依赖**;第三输入起有序。
+> 落盘形态 = `Sim.Contracts/SplitMix64.cs`(`Gamma` / `Avalanche` / `NextValue` / `Fold` /
+> `Hash(a,b|c|d)` / `HashTagged` / `FoldTag` 长度前缀大端块)。
+> ⚠️ **一经落码即锁**:改折叠 = **全平台重签**(ADR-012 golden-vN)+ **9 / 52 / 7a 哈希语义作废**。
+> 本条是**消费面**(9 病种种子 / 52 掷骰 / 7a 折叠键)的唯一口径出处;下游只读不改。
+
 - **不选 int32 千分位**:乘法溢出风险,且 1/1000 精度对保守带太粗
 - **不选裸 Q16.16 int32**:同样溢出
 

@@ -342,7 +342,7 @@ deterministic 的烘焙产物**,`Fix` 字段落盘为 raw `long`;**玩家构建�
 |------|------|------|------|
 | 有人用 `JsonConvert.DeserializeObject` 反序列化某 DTO,浮点悄然泄漏 | 中 | **高**(全案数值) | Forbidden Pattern + grep / IL 守卫断言「Newtonsoft 入口仅 `JsonTextReader`」 |
 | 烘焙产物与源 JSON 漂移(源改了没重烘) | 中 | 中 | **CI 陈旧门**:重烘提交的源,断言产物**逐字节一致**,否则构建失败 |
-| `FixParse` / 烘焙期 Q16.16 中间乘触发 int64 回绕(与 ADR-012 的 F7 同源) | 中 | 高 | ADR-012 **F7 BLOCKING spike**(C# `int64` 回绕定义 vs IL2CPP C++ 有符号溢出 UB)先行;烘焙期在 Editor(Mono)跑,回绕为定义行为 |
+| `FixParse` / 烘焙期 Q16.16 中间乘触发 int64 回绕(与 ADR-012 的 F7 同源) | 中 | 高 | ADR-012 **F7 表示选择**(原 BLOCKING spike,2026-09-21 承 RC-4 降级 · 2026-09-23 已绿):`SplitMix64` / Q16.16 中间乘改住 `ulong` ⇒ IL2CPP C++ 有符号溢出 UB **结构性消除**;烘焙期在 Editor(Mono)跑,回绕为定义行为 |
 | 白名单绑定漏收一个合法未来字段 ⇒ 烘焙硬失败挡住进度 | 高 | 低 | 硬失败是**期望行为**(静默丢字段才是灾难);新增字段时同步更新白名单即可 |
 | Addressables 组漏配 ⇒ 数据未进构建 | 中 | 中 | E-13 启动期硬失败兜住(不 null 解引用);CI 冒烟断言 `data-core` 组在构建内 |
 | `ConfigVersion` 派生口径与 ADR-010 解读不一致 | 低 | 中 | 本文钉「内容哈希派生」;ADR-010 §七 只要求「u32 进头部 + 决定后续窗口」,二者相容 |

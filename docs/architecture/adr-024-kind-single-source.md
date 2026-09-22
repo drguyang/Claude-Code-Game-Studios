@@ -12,7 +12,9 @@ Accepted
 > ~~起草时注:①⑤ 须逐条照准方可转 Accepted~~(已由该裁定履行;本件**无引擎实测前置**,
 > 纯数据边界裁决,转 Accepted 不欠任何 spike)。
 > **TD 条件 C3 就此结案。** §Migration 四步与 §Validation V-1…V-6 自此成为可执行义务:
-> registry 补条目、生成器工具位、`architecture.md` #3 小节改判,归回写轮逐件落地。
+> registry 补条目、生成器工具位、`architecture.md` #3 小节改判 —— **✅ 2026-09-23 回写轮逐件落地**
+> (见 §Validation V-3/V-4/V-6 各行;`tools/kindgen/` 生成器位由 U0-b6 实物落地,⚠️ 本机无 .NET SDK,
+> 现为 Python,偏离已登记于 `StreamRouting.g.cs` 产物头注)。
 > **事实面**(三处登记集的集合运算)已两轮实测钉死,见 §Context。
 
 ## Date
@@ -144,6 +146,11 @@ GDD 侧「追加 Kind」的登记义务措辞由实现轮统一回填,本 ADR �
 
 ### ⑤ 构建期校验体系(白名单生成器)
 
+> **⚠️ 2026-09-23 回写轮(路径订正 · 承 U0 工程根裁定)**:下列 `tools/kindgen/` 为**仓库根**
+> 散文写法;实际落点由 U0 裁定钉为 **`unity/Assets/Editor.Tools.Kindgen/`**(asmdef 名 `Editor.Tools.Kindgen`)。
+> **原文不追改**(防重写历史);判据以本注为准。⚠️ 生成器实现**偏离**:本机无 .NET SDK,现为 **Python**,
+> 已登记于 `StreamRouting.g.cs` 产物头注(断言逻辑不依赖引擎,偏离不影响 A1–A5 语义)。
+
 `tools/kindgen/`(编辑期 .NET 工具,与 ADR-022 的 Tooling 层同构,不进出货构建):
 
 ```
@@ -232,10 +239,10 @@ public static class StreamRouting {
 
 - [ ] **V-1** 生成器跑通且 A1–A5 全绿(断言失败必须 `throw`,禁 `Debug.Assert` —— 承 ADR-022 C 系口径)
 - [ ] **V-2** `StreamRouting.g.cs` 的 case 数 = registry `SimEvent.Kind.*` 条目数 = **34**(可复算;不变量是「两数相等」,34 = 2026-09-21 第二十七批登记 `SkillGrown` 后的实测值,此前为 33)
-- [ ] **V-3** 补齐 9 支的载荷字段名表逐支与出处件 diff 为空
-- [ ] **V-4** 全库 `grep "9-Kind"` 命中 = 0(陈旧计数清零)
+- [x] **V-3** 补齐 9 支的载荷字段名表逐支与出处件 diff 为空 —— **✅ 2026-09-23 回写轮**:9 支 registry 条目已建(`Craft` / `DropSpawned` / `DropClaimed` / `DropDespawned` + ADR-007 五支 `EventRolled` / `EventArrived` / `ThreatDeferred` / `ThreatDeferralCleared` / `HistoryFlagChanged`),载荷按其出处件逐字搬入(另 2026-09-21 第二十七批补 `SkillGrown` 入 registry)
+- [x] **V-4** 全库 `grep "9-Kind"` 命中 = 0(陈旧计数清零) —— **✅ 2026-09-23 回写轮**:4 处陈旧计数(`entities.yaml:2002/2043/2077/2107`)已就地改写为「ADR-024 前历史值,现由 registry 机读」;⚠️ 残余字面「9-Kind」均为**历史引述**(非计数本身):`entities.yaml:2060`(引述注)· `adr-009:707`(史实陈述)· `adr-024` 本件 §Context/§④ 行(登记文本)· `architecture.md` D-1 行(评审留档)—— 若判据须**字面**清零,须另行裁定是否追改引述文本(本件不追改)
 - [ ] **V-5** ADR-009 Amendment M 及以后**不存在**(通道退役的可证伪判据)
-- [ ] **V-6** `architecture.md` D-1 / #3 / QQ-05 三处指向本件并改「已裁决(Proposed→Accepted 时)」
+- [x] **V-6** `architecture.md` D-1 / #3 / QQ-05 三处指向本件并改「已裁决(Proposed→Accepted 时)」 —— **✅ 2026-09-23 回写轮**:D-1 行已改「✅ 2026-09-20 裁决面结案 + ✅ 2026-09-23 回写轮执行面四项全部落地」;QQ-05 已改「✅ 已结 2026-09-20(ADR-024 全件照准转 Accepted)」;§Required ADRs #3 同批改判
 
 ## GDD Requirements Addressed
 

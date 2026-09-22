@@ -129,6 +129,13 @@ sort(a, b) := (Tick asc) → (流优先级:病史流 < 病例流) → (Patient a
 
 ### 三、Kind 全集与载荷形状
 
+> **⚠️ 2026-09-23 回写轮(R-4 · 承 ADR-024 ② 同款降级)**:本节(**病例流的 5 支 `Kind` + 载荷形状**)
+> 自 **ADR-024** 起**不再是登记处**;登记处 = `entities.yaml`(必填 `stream:` / `author:` /
+> `payload_schema:`)。本节与 registry 不一致时**以 registry 为准**并触发 **ADR-024 §Validation V-1
+> 断言失败**。骨架文本与载荷逐字段说明**不删**(历史与理据归注保留),
+> 但**本节不再是 `Kind` 的追加通道**(追加唯一通道 = 先建 registry 条目,ADR-024 ③)。
+> 本 ADR 初稿经 **Amendment 通道**追加的 `Kind`(如 F–L 系列)亦已按 ADR-024 ④ 收进 registry。
+
 | Kind | Payload | 说明 |
 | --- | --- | --- |
 | `CaseOpened` | `{ patient_id, disease_snapshot }` | 立案:快照 `patient_id` + 病种集快照。**立案 tick = 本事件自身的 `SimEvent.Tick`**(2026-09-17:`opened_tick` 字段已删,见下) |

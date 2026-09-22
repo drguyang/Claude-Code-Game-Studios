@@ -210,7 +210,7 @@ B 路 = 单场景双根(`RootA`/`RootB`)SetActive ×20。
 | R-1 | Sim.Codec 解码器本体 + `PayloadRef` blob 契约 + b5 小端 helper 迁移 | Sim.Codec 批 |
 | R-2 | b4 白名单断言扩员(`VitalsDto`/`ClinicEnvDto`/`AudioCueDto` 反射扫描) | gates 扩员批(与 S2 同族) |
 | R-3 | `member_set` 双语义(抄本 vs registry 冻结三元组) | 37 验收判 |
-| R-4 | adr-008 §三 抄本降级注 | 回写轮 |
+| R-4 | adr-008 §三 抄本降级注 | ✅ **2026-09-23 回写轮已落**(节首加降级注:本节不再是登记处,真源 = registry,承 ADR-024 ② 同款) |
 | R-5 | 45 铸造契约(`player_id` 铸造面) | 45 GDD 轮 |
 | R-6(本批新) | S2 扫描器(零 gameplay + RC-6 相机增列) | 首个 World/MainMenu 场景落地批 |
 | R-7(本批新) | S6 时钟源实测 | `ITickProvider` 实现批 |
@@ -313,4 +313,4 @@ B 路 = 单场景双根(`RootA`/`RootB`)SetActive ×20。
   `UnloadSceneOptions.None`,但**全仓 `.cs` grep 无 `enum UnloadSceneOptions` 声明**(它由包外程序集提供)
   ⇒ 其命名空间无法在集群侧实读钉死。改走 `UnloadSceneAsync(handle, bool)` 重载,**代码里不出现该类型名**,
   于是无需赌命名空间。教训:凡不能回源钉死的类型名,先问「有没有不写它的调用形态」。
-- 本卡不改任何既有 ADR 正文;勾选/回写在结果回报后由回写轮执行(借绿禁令:本卡发出时全部 spike 仍 `NOT-RUN`)。
+- 本卡不改任何既有 ADR 正文;勾选/回写在结果回报后由回写轮执行(借绿禁令:本卡发出时全部 spike 仍 `NOT-RUN`)。✅ **2026-09-23 回写轮已执行**:S1/S3/S4 已回填 ADR-023 §Validation · F7 59 绿已回填 ADR-012(仅 EditMode 条,三格矩阵未跑不借绿)。

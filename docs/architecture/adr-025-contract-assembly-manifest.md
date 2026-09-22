@@ -13,6 +13,10 @@ Accepted
 > asmdef 机制自 2019 稳定)—— 转 Accepted 不欠 spike;V-0 复用 ADR-017 §二 已登记义务的结果。
 > **残留义务归回写轮(不撤销 Accepted)**:V-6 的 ADR-017 `"references": []` 订正挂讫 ·
 > V-5 两称谓作废四处加注 · Migration 步骤 2–3。
+> **✅ 2026-09-23 回写轮:三项全部结** —— V-6(ADR-017 §二 `"references": []` 歧义订正注
+> 已挂讫,见 §Validation 该行)、V-5(两称谓命中处已全数加注,`tests/README.md`
+> 第 5 处由 2026-09-21 review S-4 处理)、Migration 步骤 2–3(asmdef 装配 / 种子测试
+> 落点)已由 U0 批实物落地。本行就本件回结。
 > **TD 条件 C2 就此两侧全结(#1 = ADR-023 附条件 · #2 = 本件无条件)。**
 
 ## Date
@@ -111,7 +115,7 @@ dr_guyang(用户 · **2026-09-20 全件照准,转 Accepted**)· technical-direct
 | **`Editor.Tools`** 族 | L6 | UnityEditor 自由 | n/a | `tools/level/`(ADR-022)+ `tools/kindgen/`(ADR-024)—— **全部不进构建**,asmdef 限 `includePlatforms: ["Editor"]` |
 
 - **「门面程序集」「独立契约程序集」两个称谓自本件起作废**,由表内具名项承接;
-  引用它们的原文(ADR-005:228 / 44 GDD:242)在回写轮加注「现名 = …」(**不追改原文**,防重写历史)。
+  引用它们的原文(ADR-005:228 / 44 GDD:242)在回写轮加注「现名 = …」(**不追改原文**,防重写历史)。✅ **2026-09-23 回写轮已落**(见 §Validation V-5)。
 - **`Sim` 的引用集白名单升格**:ADR-017 §二 的断言(构建失败级)作用域从「`Sim` 引用 ⊆ BCL」
   改为「`Sim` 引用集 **期望 = {BCL, Sim.Contracts}**」—— ⚠️ 措辞订正(2026-09-21 · 承
   `architecture-review-2026-09-20.md` RC-5):「**恰 =**」若作**清单事实**读,不可能成立 ——
@@ -148,6 +152,12 @@ dr_guyang(用户 · **2026-09-20 全件照准,转 Accepted**)· technical-direct
 (与 ADR-024 A1 断言同构:**登记面与构建面一致性**,一个方向都不许漏。)
 
 ### ⑤ 测试装配落点(解种子测试不编译)
+
+> **⚠️ 2026-09-23 回写轮(路径订正 · 承 U0 裁定)**:下列 `tests/EditMode` / `tests/PlayMode`
+> 为**仓库根路径**的散文写法;实际落点由 **U0 工程根裁定**(乙案 `unity/` 子目录)钉为
+> **`unity/Assets/Tests/{EditMode,PlayMode}/`** —— Unity 只编译 `Assets/` 内的测试装配,
+> 仓库根 `tests/` 保留为非 Unity 产物(种子测试迁移已由 U0 b1a/b5 实物落地)。
+> **本件原文不追改**(防重写历史);判据以本注为准。
 
 `tests/EditMode` → asmdef `Sim.Contracts.Tests`(引 `Sim`/`Sim.Contracts`/`Sim.Codec`,UTF EditMode);
 `tests/PlayMode` → `Gameplay.Tests`(引 Presentation/UI)。现有种子测试 `sim_fixedpoint_test.cs`
@@ -217,14 +227,14 @@ public interface ITeleportCommandSink {      // ③ 的整数半;写者 = 29 结
 - [ ] **V-3** 种子测试在 `Sim.Contracts.Tests` 下**编译并首跑**(ADR-012 矩阵内)—— 跑通前
       `requirements-traceability.md` 第 3 前提不划掉(禁借绿)
 - [ ] **V-4** `ToFloat()` 调用点扫描(甲案)在 `Sim` 内出现调用 = 构建失败样例测试一条
-- [ ] **V-5** 全库 grep「门面程序集 / 独立契约程序集」命中处均带「现名」注(回写完成判据)
-- [ ] **V-6** ADR-017 `"references": []` 歧义的订正记录挂讫(§Risks 第 1 行)
+- [x] **V-5** 全库 grep「门面程序集 / 独立契约程序集」命中处均带「现名」注(回写完成判据) —— **✅ 2026-09-23 回写轮结**:四处原文(ADR-005:228 / 44 GDD:242 / `audio-system.md:971` / `tests/README.md:38-41`)命中处均已带「现名 = …」注(`tests/README.md` 第 5 处由 2026-09-21 review S-4 处理);⚠️ 判据量词 = 「命中**处**」,落实时**不得降格为按文件计数**(`audio-system.md` 同文件 `:242` 有注而 `:971` 曾漏网 = 文件级 grep 谎报完成,已修)
+- [x] **V-6** ADR-017 `"references": []` 歧义的订正记录挂讫(§Risks 第 1 行) —— **✅ 2026-09-23 回写轮结**:ADR-017 §二 `"references": []` 已挂订正注(该空集为**示例简写**非**断言文本** —— `Sim` 必须见 `SimEvent`),见 §Risks 第 1 行
 
 ## GDD Requirements Addressed
 
 | TR / 义务 | 来源 | 本 ADR 如何覆盖 |
 |---|---|---|
-| `TR-randomevents-010` 的 asmdef 半 | `random-events.md`(Foundation,gap)| §①④(校验体系半 = ADR-024 ⑤)—— **回写轮挂 `adr:` 方计绿**|
+| `TR-randomevents-010` 的 asmdef 半 | `random-events.md`(Foundation,gap)| §①④(校验体系半 = ADR-024 ⑤)—— **✅ 2026-09-23 回写轮:`adr:` 已挂(`ADR-024 + ADR-025`,`gap → covered`)**;⚠️ 执行体落地归实现轮(禁借绿)|
 | `TR-skill-002`(定点纪律容器)| `skill-progression.md` | 容器(`Sim` + `Sim.Contracts` 内 `Fix` 域);内容归 Required ADR #4 |
 | `TR-skill-008` 相邻(持久化落点)| 同上 | `Sim.Codec` 是落位;逐字段仍归 7a 实现轮 |
 | QQ-01 / QQ-03 | `architecture.md` §Open Questions | §② §③ 直裁 |

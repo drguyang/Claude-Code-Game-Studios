@@ -186,6 +186,11 @@ Polish / Tooling)是 **authoritative** —— 但它是**依赖档**(「谁依�
 
 ### 🔴 HIGH RISK 标注 —— 层图上的 URP/RenderGraph 与场景加载
 
+> **✅ 2026-09-23 承接注**:①(RenderGraph 面)= ADR-023 ⑧(P0 默认零 custom Renderer Feature +
+> 触发条款,`RecordRenderGraph` 新签名);②(场景加载面)= ADR-023 ①⑤⑥(三场景制 / 拆序六步 /
+> chunk 激活权 = 系统 6,S1/S3/S4 spike 已实测通过)。本小节与 §3.4 [0]/[7] 均不再挂
+> §Required New ADRs #1。
+
 **① L5 的 URP Renderer Feature 面(2 / 42 / 39 / 43 / 48)**
 
 ```
@@ -210,6 +215,8 @@ Update custom render passes to RenderGraph API.」
 42 拟物 UI 需要任何屏后处理(纸纹、墨迹描边、旧纸色调),其实现落点**只能是 RenderGraph**;
 而 2022 时代的知识(用 `Execute(ScriptableRenderContext, ref RenderingData)`)在 6.3 上**已弃用**。
 ⇒ 本项登记为 **Required New ADR #1**(见 §Required ADRs)。
+> **✅ 2026-09-23 已被 ADR-023 ⑧ 承接**(P0 默认零 custom Renderer Feature;仅当 ADR-013
+> 假设 6 spike 失败时按触发条款走「RenderGraph pass 形状」新 ADR,用 `RecordRenderGraph` 新签名)。
 
 **② L0/L1 的场景加载与生命周期(6 / 7a / 54)**
 
@@ -235,6 +242,11 @@ docs/engine-reference/unity/plugins/addressables.md:301  ### Cleanup on Scene Un
 ⇒ **「玩家走出已装载 chunk 时发生什么」是一个悬空的架构问题** —— 它同时决定:
 `ITickProvider` 与加载的时序关系、`CatchUp` 的触发面、以及 Addressables 的卸载点。
 登记为 **Required New ADR #1 的另一半**(与 ① 合并为同一份 ADR)。
+> **✅ 2026-09-23 该缺口已由 ADR-023 承接(§⑤ 拆序六步 + §⑥ chunk 激活权 = 系统 6 + §① 三场景制)**:
+> · 「已装载 chunk 的流出」 = ⑤ 拆序第 5 步(`UnloadSceneAsync`,实现期归 `ISceneRouter`);
+> · 「玩家走出已装载 chunk」的进/出权 = ⑥(**系统 6** 只读 `ActorCellEntered` 的格,激活为派生态不进流);
+> · 惰性载入的粒度 = ADR-023 §⑥ 实测结论(S4:**单场景多根 `SetActive`**,场景 load/unload 仅世界整体换入换出)。
+> 本小节保留作 Problem 出处。
 
 ### Axis A × Axis B 全表(54 行)
 
@@ -257,7 +269,7 @@ docs/engine-reference/unity/plugins/addressables.md:301  ### Cleanup on Scene Un
 | **2** | 摄像机与视角 | Core | **L5** | PRES | 🔴 HIGH(URP 相机栈) | ✅ ADR-020 §五「相机只读不持状态」 |
 | **4** | 交互系统 | Core | **L4 边界层** | EDGE | — | ✅ `interaction-system.md:70` 「4 住在边界层(呈现侧),不是 Core / 门 A 程序集」 |
 | **5** | 时间与天气 | Core | **L2 Sim** | SIM | — | ✅ `time-and-weather.md` AC-5-01(BLOCKING,门 A 白名单断言) |
-| **6** | 世界与生态区 | Core | **L2 状态机 + L3 量化** | SIM / BDY | 🔴 HIGH(场景 / chunk 装载) | ✅ `world-and-ecozones.md:180`(`WorldPos` 住边界程序集)· ⚠️ sim/boundary 具体切分**无文可证**(归 §Required New ADRs #1)|
+| **6** | 世界与生态区 | Core | **L2 状态机 + L3 量化** | SIM / BDY | 🔴 HIGH(场景 / chunk 装载) | ✅ `world-and-ecozones.md:180`(`WorldPos` 住边界程序集)· ✅ ADR-023 ⑥(chunk 激活权 = 6,只读 `ActorCellEntered` 的格,激活为派生态不进流)|
 | **7a** | 持久化服务 | Core | **L3 codec + L5 I/O** | BDY / PRES | 🔴 HIGH(文件 I/O / 线程 / 迁移) | ✅ `persistence-service.md:577` 「扫描集 = 门 A sim 程序集 + **边界层承载 codec 的程序集**」 |
 | **8** | 诊断与体征揭示 | Core | **L4 边界层** | EDGE | — | ✅ AC-8-2(消费 `VitalsDto`)· `patient-ai.md:186` 「8 / 10 与 13 **同住边界层**」 |
 | **9** | 疾病与伤情模拟 | Core | **L2 Sim** | SIM | — | ✅ `disease-simulation.md:1340`(独立 asmdef + `noEngineReferences: true`) |
@@ -329,7 +341,7 @@ docs/engine-reference/unity/plugins/addressables.md:301  ### Cleanup on Scene Un
 
 | 程序集(裁定名) | 层 | 引用集 | 状态与依据 |
 |---|---|---|---|
-| `Sim` | L2 门 A | **恰 = {BCL, `Sim.Contracts`}**(白名单升格,仍零引擎程序集) | ✅ ADR-017:251 + **ADR-025 ①**(⚠️ `references: []` 歧义订正 = ADR-025 V-6,回写轮挂 ADR-017) |
+| `Sim` | L2 门 A | **恰 = {BCL, `Sim.Contracts`}**(白名单升格,仍零引擎程序集) | ✅ ADR-017:251 + **ADR-025 ①**(⚠️ `references: []` 歧义订正 = ADR-025 V-6,**✅ 2026-09-23 回写轮已挂 ADR-017 §二** —— 该空集为示例简写非断言文本) |
 | `Sim.Contracts` | L3 BOUNDARY | **恰 = BCL** | ✅ ADR-025 ① —— 收 `WorldPos` + 六抽象点 + `SimEvent` 族 + `Fix`/`FixParse` + `VitalsDto` + `AudioCueDto`/`IAudioCueSink` + **`ITeleportCommandSink`(QQ-01 ①′ 整数半)** |
 | ~~「门面程序集」~~ | (L3) | — | **称谓作废**(ADR-025 ①)—— ADR-005:228 的「仅门面可调用 `ToFloat()`」改由 **② 甲案白名单断言**执法;原文回写加注归 V-5 |
 | ~~「独立契约程序集」~~ | (L3) | — | **称谓作废** —— 内容并入 `Sim.Contracts`(同上,V-5 加注)|
@@ -408,6 +420,8 @@ docs/engine-reference/unity/plugins/addressables.md:301  ### Cleanup on Scene Un
 > 各自可以调什么引擎 API**,只裁决了它们**不可以**调什么(不写三流、不进 sim 程序集)。
 > 这是**门 A 的单向性**的必然结果(门 A 只管内侧);它**不是缺陷**,但意味着
 > §Required New ADRs #1(渲染与场景加载)必须把这一列**补齐**。
+> **✅ 2026-09-23 已由 ADR-023 ⑧ 执行**(P0 零 custom Renderer Feature;是否引入走触发条款,
+> 不再把整列留给「待补」)。
 
 ### 2.4 L5 PRESENTATION —— 所有权表
 
@@ -617,13 +631,16 @@ ADR-005:359 (逐字)
 > (`breaking-changes.md:71-89`,见 §Engine Knowledge Gap 摘录)。ADR-014 §五 已裁定
 > 「加载失败 = **启动期硬失败**,绝不 null 解引用」——
 > **但「启动期」与 `SceneManager` 的时序关系在 `docs/architecture/` 内零记载** ⇒ §Required New ADR #1。
+> **✅ 2026-09-23 已承接**:ADR-014 §五 的「首次 `Step` 前预载」、ADR-023 §④ 序列
+> (data-core 预载 → `data-core` → 存档重放 + CatchUp → World additive → 表现态重建 → tick driver 起相 →
+> 首次 `Step`)→ §③(Boot 常驻)。§3.4 [0]/[7] 的 🔴 已由 ADR-023 ①③④⑦ 承接改判(见下)。
 
 ### 3.4 初始化顺序
 
 > **依据**:`adr-014:354`「**启动预载**:首次 `Step` 前 `data-core` 常驻;加载失败 ⇒ 启动期硬失败」。
 
 ```
-  [0] Unity 引擎启动 · URP Asset 加载                    🔴 无 ADR 裁决
+  [0] Unity 引擎启动 · URP Asset 加载                    ✅ ADR-023 ①③(Boot 常驻含相机 + AudioListener)
       │
       ▼
   [1] data-core 预载(Addressables 组)                  ADR-014 §五
@@ -647,15 +664,17 @@ ADR-005:359 (逐字)
   [6] 离线 `CatchUp`(若 `当前 tick > 存档 tick`)         ADR-005 · 9 的 GDD
       │
       ▼
-  [7] 表现层就绪(L4 → L5)                               🔴 无 ADR 裁决
+  [7] 表现层就绪(L4 → L5)                               ✅ ADR-023 ④⑦(重建次序 + 确定性格内偏移)
       │   8 / 13 开始消费 `VitalsDto`;42 / 44 开始订阅
       ▼
   [8] 首次 `Step` —— 主循环开始
 ```
 
-> **⚠️ 本节的诚实标注**:上表 **[0] 与 [7] 两步在 `docs/architecture/` 内零裁决** ——
-> 没有一份 ADR 说过「场景何时加载」「表现层与 sim 的初始化先后是否被约束」。
-> 二者都归 **§Required New ADRs #1**(渲染与场景加载策略)。**本文件不代为裁定。
+> **⚠️ 本节的诚实标注(2026-09-23 改判)**:上表 **[0] 与 [7] 两步原标 🔴「零裁决」,现由
+> **ADR-023**(Accepted,2026-09-20;S1/S3/S4 spike 已实测通过 2026-09-23)分别承接 ——
+> **[0]** = ① 三场景制 + ③ Boot 常驻(相机 + `AudioListener` 住 Boot,全程不卸载);
+> **[7]** = ④ 启动/读档序列(表现态重建在 tick driver 起相之前)+ ⑦ 确定性格内偏移(格锚点 + 已登记整数哈希派生)。
+> 承接件权威出处:`docs/architecture/adr-023` ①③④⑦ + §④ 序列图。**本节自此不再挂 §Required New ADRs #1。**
 > **P0 的一条已知约束**(9 的 GDD `:763`,逐字):「9 的 `Step` 与 `CatchUp` **在同一帧内完成**
 > (同步模型,ADR-005);离线补算**可以跨帧分片**,但不可与帧占比预算脱钩」。
 
@@ -870,7 +889,8 @@ long FMod(long, long);  long FDiv(long, long); // **取模与除法只准经这�
 
 > **引擎类型核验**(本节契约里出现的引擎 API):
 > `UnityEngine.Vector3` / `Camera` / `CharacterController` / `Transform` —— **LOW RISK**
-> (长期稳定 API);`CameraMode` 与 URP 相机栈的交互——🔴 见 §Required New ADRs #1;
+> (长期稳定 API);`CameraMode` 与 URP 相机栈的交互——✅ **ADR-023 ③(相机 + `AudioListener`
+> 住 Boot 全程不销毁,平面/VR 档位走 `ICameraRig.SetMode`,相机只 disable-replaceable 禁 mutate);
 > `InputSystem` 回调(`onAfterUpdate`,**非轮询**)—— ADR-011 已核验;`AudioMixer` —— MEDIUM
 > (`modules/audio.md:4` 自陈知识缺口)。
 
@@ -1009,8 +1029,8 @@ Required New ADRs 的落点上**(ADR-009 / 014 / 010 三份都被新 ADR 引用)
 
 | # | 缺陷 | 证据 | 处置 |
 |---|---|---|---|
-| **D-1** | **三流 `Kind` 有三个登记处,且三个都不完整**(2026-09-20 实测订正 —— 本行原口径「两处 / 缺口 9 支」经逐条对集合后**为假**,见下「实测」列) | **实测**:`entities.yaml` **24** 支(穷举 `name: SimEvent.Kind.*`;**流别 = 世界 12 / 病史 7 / 病例 5**(按 registry 各条 `constraint:` 自述的「落X流」逐条归类;原注「病例 5 + 病史 3 + 世界 16」为误,**首轮订正为「5/12/7」亦误** —— 那版按名字粗分,把 `EnemyInjuryOnset` / `InjuryStateChanged` 记入病史,而两者自述落世界流)· ADR-009 **§三骨架 = 15 支**(世界流专属,**非 4 支**;该件 §二 的追加链自陈「共 15」与本行原口径互相矛盾)· ADR-007 §三 **5 支**(全零 registry 条目)。**并集 = 33 支**(数对、推导错)。**缺口是双向的**:↦ 只住骨架、零 registry 条目 **4 支** = `Craft`(Amendment J 已定稿载荷 · `processing.md:306` 已在生产使用)· `DropSpawned` · `DropClaimed` · `DropDespawned` —— **`CompoundTriggered` 失效模式第三次复发,且这次是 4 支一组**;↦ 只住 registry、三处 ADR 家规文本均未收 **4 支** = `CareApplied` / `CompoundTriggered` / `CompoundExpired`(病史流)· `ConsequenceResolved`(世界流,其 `referenced_by` 指向 `adr-009 §三骨架`,**而该节无它**;`medical-consequences.md:206` 自称走 Amendment 通道,**而该件最后一条是 L(2026-09-19)**,Amendment M 不存在);↦ 另有 **4 处陈旧计数** = `entities.yaml:2002/2043/2077/2107` 写「§三 的 **9-Kind** 骨架」(今日 15) | **须立单一真源**(见 §Required ADRs #3)。**根因非「数字错」而是「无落点件」**:§三骨架 = 世界流专属 ⇒ 装不下三流全集;registry = 全集但缺 4 支;§二 归属规则 = 具名清单 29 支但缺 4 支(= 上表第二行同一组;原写「缺 8 支」为首轮未实测值)。**三个候选真源各自不完整** —— #3 要裁的是这个形状,不是选一个现成的家。**构建期白名单若按 `entities.yaml` 生成 ⇒ 拒收 9 支(4 只住骨架 + 5 只住 ADR-007);若按 ADR-009 §三 生成 ⇒ 拒收 18 支**(两个方向都会死,与 `ActorCellEntered` / `CompoundTriggered` 同型;两数 2026-09-20 集合运算实测,原写「4 / 12」均偏小。<br>**✅ 2026-09-20 裁决面结案(ADR-024 Accepted)**:真源 = registry · Amendment 通道退役 · A1–A5 断言 + `tools/kindgen/`。**执行面(补 9 条 registry / 修 4 处陈旧计数 / `ConsequenceResolved` 幽灵引据订正 / §三§二 降级注记)= 其 Migration 步骤,待回写轮执行**)|
-| **D-2** | **`Craft` / `Drop*` 有定稿载荷却无 registry 条目** —— ADR-009 **Amendment J** 已把 `Craft` 载荷定稿(`actor_id / output_instance_ids[] / tool_cell / start_tick / ActualConsumed[]`),**载荷已定但登记未落** | `entities.yaml:1911` 注 vs §三 清单 | 随 D-1 一并修 |
+| **D-1** | **三流 `Kind` 有三个登记处,且三个都不完整**(2026-09-20 实测订正 —— 本行原口径「两处 / 缺口 9 支」经逐条对集合后**为假**,见下「实测」列) | **实测**:`entities.yaml` **24** 支(穷举 `name: SimEvent.Kind.*`;**流别 = 世界 12 / 病史 7 / 病例 5**(按 registry 各条 `constraint:` 自述的「落X流」逐条归类;原注「病例 5 + 病史 3 + 世界 16」为误,**首轮订正为「5/12/7」亦误** —— 那版按名字粗分,把 `EnemyInjuryOnset` / `InjuryStateChanged` 记入病史,而两者自述落世界流)· ADR-009 **§三骨架 = 15 支**(世界流专属,**非 4 支**;该件 §二 的追加链自陈「共 15」与本行原口径互相矛盾)· ADR-007 §三 **5 支**(全零 registry 条目)。**并集 = 33 支**(数对、推导错)。**缺口是双向的**:↦ 只住骨架、零 registry 条目 **4 支** = `Craft`(Amendment J 已定稿载荷 · `processing.md:306` 已在生产使用)· `DropSpawned` · `DropClaimed` · `DropDespawned` —— **`CompoundTriggered` 失效模式第三次复发,且这次是 4 支一组**;↦ 只住 registry、三处 ADR 家规文本均未收 **4 支** = `CareApplied` / `CompoundTriggered` / `CompoundExpired`(病史流)· `ConsequenceResolved`(世界流,其 `referenced_by` 指向 `adr-009 §三骨架`,**而该节无它**;`medical-consequences.md:206` 自称走 Amendment 通道,**而该件最后一条是 L(2026-09-19)**,Amendment M 不存在);↦ 另有 **4 处陈旧计数** = `entities.yaml:2002/2043/2077/2107` 写「§三 的 **9-Kind** 骨架」(今日 15) | **须立单一真源**(见 §Required ADRs #3)。**根因非「数字错」而是「无落点件」**:§三骨架 = 世界流专属 ⇒ 装不下三流全集;registry = 全集但缺 4 支;§二 归属规则 = 具名清单 29 支但缺 4 支(= 上表第二行同一组;原写「缺 8 支」为首轮未实测值)。**三个候选真源各自不完整** —— #3 要裁的是这个形状,不是选一个现成的家。**构建期白名单若按 `entities.yaml` 生成 ⇒ 拒收 9 支(4 只住骨架 + 5 只住 ADR-007);若按 ADR-009 §三 生成 ⇒ 拒收 18 支**(两个方向都会死,与 `ActorCellEntered` / `CompoundTriggered` 同型;两数 2026-09-20 集合运算实测,原写「4 / 12」均偏小。<br>**✅ 2026-09-20 裁决面结案(ADR-024 Accepted)**:真源 = registry · Amendment 通道退役 · A1–A5 断言 + `tools/kindgen/`。**✅ 2026-09-23 回写轮:执行面四项全部落地** —— ① 补 9 条 registry 条目(`Craft` / `DropSpawned` / `DropClaimed` / `DropDespawned` + ADR-007 五支 `EventRolled` / `EventArrived` / `ThreatDeferred` / `ThreatDeferralCleared` / `HistoryFlagChanged`,均带 `stream:` / `author:` / `payload_schema:`;另 2026-09-21 第二十七批补 `SkillGrown`)· ② 4 处陈旧「9-Kind」计数(`entities.yaml`,现已注「ADR-024 前历史值,现由 registry 机读」)· ③ `ConsequenceResolved` 幽灵引据就地订正(`entities.yaml:2109` 条目头,原自述划线保留)· ④ ADR-009 §二/§三 节首降级注记已挂(`adr-009:206` / `:260`)。**本行结案。** |
+| **D-2** | **`Craft` / `Drop*` 有定稿载荷却无 registry 条目** —— ADR-009 **Amendment J** 已把 `Craft` 载荷定稿(`actor_id / output_instance_ids[] / tool_cell / start_tick / ActualConsumed[]`),**载荷已定但登记未落** | `entities.yaml:1911` 注 vs §三 清单 | ✅ **2026-09-23 回写轮随 D-1 一并修**:`Craft`(`entities.yaml:2310`)/ `DropSpawned`(`:2325`)/ `DropClaimed`(`:2341`)/ `DropDespawned`(`:2355`)四条 registry 条目已建,均带 `stream: world` + `author:` + `payload_schema:`;原「有定稿载荷却无条目」缺口即 D-1 ① 的 4 支 |
 | **D-3** | **`architecture.yaml` 三处顶层键重复** —— `performance_budgets` / `api_decisions` / `forbidden_patterns` 各出现 **两次**(一次 `X: []` 空占位,一次实体块) | `:486` + `:508` · `:529` + `:546` · `:838` + `:861` | ✅ **2026-09-20 已清理**(TD 条件 C1 同批):`:486` / `:529` / `:838` 三个空脚手架键删除;normalized-YAML diff 对删前快照 = **空**,证语义不变(解析取后者 ⇒ 删前者零影响)|
 | **D-4** | **`tr-registry.yaml` 的 `adr:` 字段值域不纯** —— 应为 ADR ID,实际混入:**6 条整条路径**(`docs/architecture/adr-018-*.md` 等)· `technical-preferences.md` · **`用户裁定 2026-09-14`** · **`—` ×9** | 见 §5.1 扫描 | 归 `/architecture-review`(它是注册表唯一所有者)。**本文件只登记,不代改** |
 | **D-5** | ~~8 条 `covered` 却无 ADR 引用~~ ✅ **2026-09-20 已按本行「处置」执行**(TD 条件 C4):8 条统一 `covered → partial`,各加 `blocked_by` + `was_status: covered`;`traceability-index.md` 的 21 行汇总与 8 条摘要行同步回退(实测 243/51/93 两文件一致)—— `TR-case-035` / `TR-case-036` / `TR-disease-021` / `TR-combat-014` / `TR-combat-019` / `TR-interaction-015` / `TR-emergency-016` / `TR-prescription-016`。其中 `TR-emergency-016`(**`ResultMul[Missed] = 0.25`**)与 `TR-prescription-016`(polarity 真源)是**由用户裁定翻转**的 —— 承项目纪律「**裁定 ≠ 验收**」 | §5.1 扫描 | 依项目既有的「**不得借绿**」判据:这 8 条应转 `partial` 并标 `BLOCKED-BY`(承载件是 GDD 的实现轮 / 尚未回写的 AC),**不得维持 `covered`** |

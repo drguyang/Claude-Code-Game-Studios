@@ -194,6 +194,10 @@ tools/level/Check.cs  →  LevelTool.ConsistencyCheck(LevelSource src) → Check
 | **P0 计数** | **不计入 P0 的 31 项** —— 它不是玩法系统,是**产出玩法内容的前置工具** |
 | **依赖** | 逻辑上产出 6 / 1 / 13 / 27 / 23 / 52 的输入;架构上**不构成运行期依赖边** |
 
+> **⚠️ 2026-09-23 回写轮(路径订正 · 承 U0 工程根裁定)**:本件全文的 `tools/level/` 为**仓库根**
+> 散文写法;实际落点由 U0 裁定钉为 **`unity/Assets/Editor.Tools.Level/`**(asmdef 名 `Editor.Tools.Level`)。
+> **原文不追改**(防重写历史);判据以本注为准。同款:ADR-024 的 `tools/kindgen/` → `unity/Assets/Editor.Tools.Kindgen/`。
+
 > **不并入既有系统行**(用户裁定明写):6 是**容器**(运行期消费者),关卡工具是**作者**
 > (编辑期产出者)—— 二者职责正交。把工具塞进 6 的行会掩盖「6 没有系统级上游」这一事实
 > (`world-and-ecozones.md:386`)。

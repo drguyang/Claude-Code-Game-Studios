@@ -69,14 +69,15 @@
 |--------|-------|---|-----------------|
 | COVERED — full chain complete | 0 | 0% | 本文件(Story 段不存在) |
 | MISSING test — story exists, no test | 0 | 0% | 同上 |
-| NO STORY — ADR exists, not yet implemented | 317 | 63.5% | registry `status: covered` 计数(第二十八批 `TR-prescription-014` partial→covered)|
+| NO STORY — ADR exists, not yet implemented | 318 | 63.6% | registry `status: covered` 计数(2026-09-23 回写轮 `TR-worldeco-010` 新增后)|
 | NO ADR — architectural gap | 103 | 20.6% | registry `status: gap` 计数(D-R3 回填 +15;第二十六批 `TR-casebook-002` gap→partial;2026-09-21 曾由 91 减 ◆2)|
-| NO ADR BY DESIGN — 范围 / 政策声明,结构上无裁决可挂 | 2 | 0.5% | registry `status: no-adr-by-design` 计数 —— **不计入缺口**;判据见 `traceability-index.md` 读法表 ◆ 行 |
+| NO ADR BY DESIGN — 范围 / 政策声明,结构上无裁决可挂 | 2 | 0.4% | registry `status: no-adr-by-design` 计数 —— **不计入缺口**;判据见 `traceability-index.md` 读法表 ◆ 行 |
 | PARTIAL(链已断在 ADR 段)| 77 | 15.4% | registry `status: partial` 计数(D-R3 回填 +28;第二十六批 −3/+1;第二十八批 −1)|
-| **Total requirements** | **499** | **100%** | `tr-registry.yaml` |
+| **Total requirements** | **500** | **100%** | `tr-registry.yaml` |
 
 > 计数口径:对 registry 的 `status:` 字段直接 `yaml.safe_load` 计数,与
-> `traceability-index.md` §汇总「合计」行一致(**317 + 77 + 103 + ◆2 = 499**;2026-09-21 起四态,第二十八批翻转后值)。
+> `traceability-index.md` §汇总「合计」行一致(**318 + 77 + 103 + ◆2 = 500**;2026-09-21 起四态;
+> 2026-09-23 回写轮新增 `TR-worldeco-010` 后 covered 317→318、total 499→500)。
 > ⚠️ **2026-09-20 `/architecture-review` 复跑时发现本文件 §Coverage Summary 的六处计数漏刷**(仍为回写轮前的
 > 243/93)—— 已就地订正为 registry 实测值。Failure mode = 「同一文件内改了 §Uncovered 而没改 §Summary」,
 > 与 `consistency-failures.md` 2026-09-20 批次二的「正文状态断言稳定滞后」同型。
