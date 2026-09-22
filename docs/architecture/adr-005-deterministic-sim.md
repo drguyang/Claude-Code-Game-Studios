@@ -256,6 +256,9 @@ public readonly struct SimEvent      // 权威定义见 ADR-006 Amendment A
     public readonly long      Seq;    // (Tick, Patient) 内的单调流水号
     public readonly EventKind Kind;
     public readonly EventPayload Payload;
+    // ⚠️ 2026-09-22 U0-b b1b 前向指针更新(原文不删):`EventPayload` 占位型已由
+    //   ADR-006 **Amendment G-2** 改判 = `PayloadRef`(header/blob 分家,载荷经 Sim.Codec 解码)。
+    //   字段序 / 前四字段不变(G-1 抄本单一化即此序)。本块只是前向指针,不是第二份权威。
 }
 ```
 

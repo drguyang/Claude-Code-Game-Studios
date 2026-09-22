@@ -24,7 +24,7 @@ ADR-005 把**全部模拟数学**锁进整数定点域(int64 / Q16.16),却**没�
 外部数据文件怎么把数交给 `Fix`、存档里允不允许出现 `float`、舍入怎么定、
 以及被 ADR-005 自己引用的 `SimEvent` 全序键 `Seq` 到底是什么。
 本 ADR 补齐 **21a ↔ 9 之间的定点数据契约**(整数出参 · 禁浮点存档 · 单一舍入模式 ·
-守恒律的域内表达 · `Fix` 的 Unity 序列化边界),并以修正案(Amendment A–F)回填 ADR-005 的形状与口径缺口 —— A–D 由本 ADR 引入,**Amendment E 由 ADR-009 引入**(升格 C / D 至三流口径),**Amendment F 由系统 1 的 GDD 引入**(2026-09-16,切分「算术域」与「边界域」的适用对象)。
+守恒律的域内表达 · `Fix` 的 Unity 序列化边界),并以修正案(Amendment A–G)回填 ADR-005 的形状与口径缺口 —— A–D 由本 ADR 引入,**Amendment E 由 ADR-009 引入**(升格 C / D 至三流口径),**Amendment F 由系统 1 的 GDD 引入**(2026-09-16,切分「算术域」与「边界域」的适用对象),**Amendment G 由 U0-b b1b 落盘时引入**(2026-09-22,抄本单一化 + 载荷 header/blob 形态 —— 改的是本 ADR 自身的表述)。
 **不落盘此契约,21a 的 `drug_profile` 一旦被 11 处方按浮点读走,定点域即从边界处漏空。**
 
 > **2026-09-14 二轮复核修正(ADR-006 自身的三处口径错误)**:① `weight` 是 `int` 计数,
@@ -53,7 +53,7 @@ ADR-005 把**全部模拟数学**锁进整数定点域(int64 / Q16.16),却**没�
 | **Depends On** | **ADR-005**(Accepted 2026-09-13)—— 本 ADR 是其边界的补完;ADR-005 未 Accepted 则本 ADR 无意义 |
 | **Enables** | 21a 物品与配方数据库进 Implement · 11 处方用药 GDD · 18 炮制 / 19 制作 · 7a 持久化服务 |
 | **Blocks** | **21a 不得标 Approved**(门控项见其 §Acceptance Criteria 末注);**系统 9 的 D-9-D / D-9-E 已由本 ADR 兑现**(2026-09-14),其 Implement 门**已解除** |
-| **Ordering Note** | 本 ADR **修正** ADR-005 的 `SimEvent` / `patient_id` / `Seq` 发放域 / 真源口径四处(Amendment A / B / C / D)—— 属**窄修正**,不推翻 ADR-005 的两项核心裁决(整数定点域 / 事件流唯一真源)。ADR-005 保留 Accepted 状态,正文加前向指针。**2026-09-15 起为五道修正案**(A–E,Amendment E 由 ADR-009 引入,升格 C / D 至三流口径) |
+| **Ordering Note** | 本 ADR **修正** ADR-005 的 `SimEvent` / `patient_id` / `Seq` 发放域 / 真源口径四处(Amendment A / B / C / D)—— 属**窄修正**,不推翻 ADR-005 的两项核心裁决(整数定点域 / 事件流唯一真源)。ADR-005 保留 Accepted 状态,正文加前向指针。**2026-09-15 起为五道修正案**(A–E,Amendment E 由 ADR-009 引入,升格 C / D 至三流口径)**· 2026-09-22 起为七道**(F 由系统 1 GDD 引入 · **G 由 U0-b b1b 落盘引入** —— G-1 字段序抄本单一化 / G-2 载荷 header+blob 改判(**就地改 Amendment A 的 Payload 承载句**)/ G-3 freehand_text 例外平移) |
 
 ## Context
 
@@ -251,6 +251,10 @@ public readonly struct SimEvent
 - `Seq` 由**主机在 `Append` 时分配**,同一 `(Tick, Patient)` 内从 0 单调递增;
 - `Seq` **必须随事件持久化**(否则回放无法重建顺序);
 - `Payload` 是**值 struct**,无引用字段 —— 与 `Fix` 同纪律;
+  <!-- ⚠️ 2026-09-22 Amendment G-2/G-3 回写注(原文不删):34 支 payload_schema 逐支转录后,
+       该句在门 A 下与 registry 真源不可能同时成立 ⇒ 承载形态改判 = header(PayloadRef)+
+       blob + Sim.Codec 解码。**「无引用字段」的原始意图(落盘/传输形状禁装箱)保留并加强**;
+       freehand_text 例外平移至 blob 变长段,成立条件一字不改。现行权威读法见本节末 Amendment G。 -->
   > **⚠️ 2026-09-17 例外登记(唯一一条)**:`Judgment.freehand_text`(ADR-008 §三
   > 的 `Judgment` 形状)是 `string`,**破此纪律**。理由:它是**玩家自书的自由文本**
   > —— 语义上**不可能**是定长值,且**永不进任何判定**(ADR-008 明写「只进呈现层」)。
@@ -408,6 +412,59 @@ ADR-009 引入**第三条逻辑流(世界流)**承载世界状态变更(建造 /
 
 **同步**:系统 1 的 GDD(`player-controller-and-movement.md` §Formulas 开头的口径注)
 已按本修正案收窄表述;原文的「不受 ADR-006 定点域约束」**已就地作废**。
+
+### Amendment G —— `SimEvent` 抄本单一化 + 载荷的 header/blob 形态(2026-09-22 · U0-b b1b)
+
+> ⚠️ **本修正案不是 ADR-024 §③「Amendment 追加通道退役」所指的那条通道** ——
+> 该纪律管的是「以 Amendment 往 registry **追加 Kind**」(它正是幽灵引据的生产线);
+> 本条改的是 **ADR-006 自身的数据契约表述**,不新增任何 Kind,registry 真源地位不动。
+
+三项(均由 b1b 支 0 的用户裁定「甲 · header/blob 分家」引出,前两项是其必然推论):
+
+**G-1 · 字段序抄本单一化(把 §五 :221 的告诫升为裁决)**
+§五 已写下「`SimEvent` 一类值 struct 的字段序在历次修正案中变更过(且各 ADR 的抄本曾不一致,
+如 ADR-007 把它写成 `{Tick, Patient, Kind, Seq, Payload}`、Amendment A 则为
+`{Tick, Patient, Seq, Kind, Payload}`)」,但**从未裁决哪个抄本权威**。
+ADR-007 自身已在 :92-93 就地作废其旧抄本,故:
+
+- **唯一权威抄本 = Amendment A 的 `{ Tick, Patient, Seq, Kind, Payload }`**;
+- 任何件(ADR / GDD / 注释)再出现他序 ⇒ 以本条为准并**视同陈旧抄本**,不得据其实现;
+- 落定位置 `SimEvent.cs` 文件头(实装序 = 本条)。
+
+**G-2 · `Payload` 的承载形态改判(值 struct → header + blob)**
+Amendment A 原句「`Payload` 是**值 struct**,无引用字段 —— 与 `Fix` 同纪律」。
+b1b 逐支转录 registry 的 34 份 `payload_schema` 后实测:其中 **11 支含破该纪律的构件**
+(数组 ×3:`EncounterStarted.actor_ids[]` / `EmergencyAttempt.edge_ticks[]` / `Craft` 五数组;
+`DiseaseIdSet` 集合;`Judgment` 子 struct + `freehand_text: string`;`CaseId` 三元组 ×5)。
+在门 A(`noEngineReferences: true` + 引用集 = BCL)下,`fixed` 内联数组须 unsafe、
+接口装箱引入引用字段 ⇒ **原句与 registry 真源在 C# 中不可能同时成立**。
+
+**改判(用户裁定 2026-09-22 = 甲)**:
+
+- `SimEvent.Payload` 字段类型 = **`PayloadRef { int BlobId; int Offset; int Length }`**(全整数);
+- 载荷字节住流实现的**不可变 blob 池**,强类型载荷 = per-Kind `readonly struct`
+  (`CaseOpenedPayload` 等 34 支),由 **`Sim.Codec` 按 registry schema 解码**得到;
+- 「**无引用字段**」的原始意图(禁装箱 / 禁版本脆弱的引用类型进**落盘与传输形状**)
+  **保留并加强**:落盘 = 传输 = 同一段 blob 字节,`PayloadRef` 即其寻址;
+  解码后的 payload struct 是**瞬时读形**,数组字段合法地只活在解码瞬间,**永不进任何写路径**;
+- 「**禁 float**」判据**不变**(blob 内每个字段仍 ∈ 整数域,registry A2 断言照旧);
+- **否决的两路留档**:乙「最大 inline union」= 流内大多数事件按最大支付费(膨胀约一个量级)
+  且须新裁三个数组结构上界;丙「定长 inline + 破格走 blob」= 双形状使 codec / 探针 / kindgen 各判两条路。
+
+**G-3 · `freehand_text` 例外在 blob 形态下的重述**
+Amendment A 的例外登记(唯一一条,「不得扩张」)不删,平移其**承载位置**:
+
+- 自由文本从「payload struct 的 `string` 字段」改读为「**blob 内一段变长 UTF-8 字节**」;
+- **成立条件一字不改**:该字段的**全部消费者是呈现层** ⇒ sim 程序集内读它即违例;
+  守门机制不变(ADR-008 构建期扫描 + AC-37-15 `PresentationDtoGuard` 递归反射);
+- **不得以本条扩张**其余载荷字段仍须 ∈ 整数域 —— 变长 ≠ 自由文本豁免。
+
+**涟漪(本批已做 / 登记)**:
+`SimEvent.cs` 字段类型 + `PayloadRef` / 34 支 payload struct(`Payloads/`)·
+§五 :221「按字段名编码」判据**不变**(现由 codec 实现)·
+待回写:`adr-005-deterministic-sim.md` 的 `SimEvent` 前向指针块(补「载荷形态以 Amendment G 为准」一行)、
+`adr-008-case-event-stream.md` §三 C# 抄本(`PlayerId` 幽灵类型 + `CaseId[]` 与 registry 不符 ——
+按 ADR-024 §② 降级为路由注记,口径以 registry 为准)。
 
 ## Alternatives Considered
 

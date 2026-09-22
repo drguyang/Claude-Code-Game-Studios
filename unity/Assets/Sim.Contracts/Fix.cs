@@ -24,7 +24,8 @@ namespace DaYiJingCheng.Sim.Contracts
 
         // ⚠️ 构造入口 + Raw 读出 —— 超出 ADR 原文,由我(U0 起草方)补,
         //    因为 ADR-006 §五 要求编码器「显式写出 / 读入 _raw」却未给 API 面。
-        //    归 b1b / Sim.Codec 轮复核。
+        //    b1b 复核(2026-09-22 批)**照准**:载荷 struct 的 `Fix` 字段(支 1-a 裁定)与
+        //    Sim.Codec 编码器(未落地)均依赖此二成员;签名如需扩(FromRaw 命名等)归 codec 轮。
         public Fix(long raw) { _raw = raw; }
 
         /// <summary>落盘形状(8 字节小端的语义源)。编码器专用;非呈现路径。</summary>

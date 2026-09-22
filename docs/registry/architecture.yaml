@@ -389,7 +389,7 @@ interfaces:
     consumers:
       - "44 音频系统"          # 唯一实现者
     adr: docs/architecture/adr-018-audio-architecture.md
-    signal_signature: "IAudioCueSink.Emit(in AudioCueDto) / BeginLoop / EndLoop + SetTier(TierSource)。AudioCueDto = { CueId, byte Intensity, byte Tier, WorldPos Cell, PatientId Source, bool Looped }。**无 disease_id**;语义解析在上游完成(44 只收结果 cue id)。单机 TierSource = 本地技能;联机 = 主机技能(ADR-018 §五,单 AudioListener 约束)。远端空间化复用 ADR-001 第二 QoS 位置,不新增通道"
+    signal_signature: "IAudioCueSink.Emit(in AudioCueDto) / BeginLoop / EndLoop + SetTier(TierSource)。AudioCueDto = { int Cue, byte Intensity, Int3 Cell, int Source, bool Looped }。**无 disease_id**;语义解析在上游完成(44 只收结果 cue id)。单机 TierSource = 本地技能;联机 = 主机技能(ADR-018 §五,单 AudioListener 约束)。远端空间化复用 ADR-001 第二 QoS 位置,不新增通道 <!-- 2026-09-22 U0-b b1b 回写:旧抄本带 byte Tier / WorldPos Cell / PatientId Source = ADR-018 2026-09-18 修订①② 前形状;现行 = §二「原语 int3/int」,Tier 是设备级(SetTier 设定非逐 cue),int3 经 X-1 消解为本包自建 Int3(门 A:契约引用集 = BCL)。实装 = unity/Assets/Sim.Contracts/PresentationDtos.cs -->"
     referenced_by:
       - docs/architecture/adr-018-audio-architecture.md
       - design/gdd/diagnosis-system.md   # V-8.7 四条硬需求 + V-8.9 归属

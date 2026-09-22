@@ -3,9 +3,9 @@
 //
 // 六抽象点 = ADR-005 五个 + ADR-007 §一 的 IEventAuthority。本文件收四支;
 // 另两支拆出理由:
-//   · IVitalsQuery —— 返回 VitalsDto(b1b 待定型,现在写死会引用未定义类型),随 b1b 落地;
+//   · IVitalsQuery —— 已于 **b1b(2026-09-22 批)** 随 VitalsDto 落地于 VitalsDto.cs;
 //   · ITeleportCommandSink —— ADR-025 §③ QQ-01 ①′:整数半在此包,Vector3 半在
-//     Gameplay.Presentation;其形状与 RollRequest 无耦合,一并放本文件(见下)。
+//     Gameplay.Presentation;其形状与 RollRequest 无耦合,放本文件(见下)。
 //
 // ⚠️ IIdAuthority 的两支方法**无法逐字转录**:ADR-009:468-469 同时声明
 //   `PatientId Next()` 与 `ItemInstanceId Next()`,而 C# 禁止仅返回类型不同的重载(CS0111),
