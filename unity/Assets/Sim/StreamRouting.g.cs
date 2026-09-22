@@ -56,7 +56,7 @@ namespace DaYiJingCheng.Sim
             EventKind.StructureModified => StreamId.World,
             EventKind.StructurePlaced => StreamId.World,
             EventKind.StructureRemoved => StreamId.World,
-            default => throw new System.InvalidOperationException(
+            _ => throw new System.InvalidOperationException(
                 "不可达:Kind 白名单由 kindgen 穷举(ADR-024)。抵达即 registry 与产物脱钩 —— 重跑 kindgen。"),
         };
     }
