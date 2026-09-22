@@ -205,56 +205,73 @@ using System.Runtime.CompilerServices;
 > ⚠️ `tools/level/` 与 `tools/kindgen/`(ADR-022 / ADR-024 记的路径)在乙案下**即上述两目录**;
 > 原路径措辞归回写轮加注。
 
-### 1.8 测试装配(**用 Unity 的生成器,勿手写**)
+### 1.8 测试装配(照抄生成器形状 · **勿叠加 `references`**)
 
-> ⚠️ **2026-09-22 勘误**:本卡初稿曾给 `Sim.Contracts.Tests` 手写 `noEngineReferences: true` +
-> 漏 `UnityEngine.TestRunner` 引用 —— **那是错的,会编译失败**。UTF 的测试装配**必须**引用
-> `UnityEngine.TestRunner`(它本身就是 UnityEngine 装配)⇒ 与 `noEngineReferences: true` 直接冲突。
-> 测试装配的必需引用集**随编辑器版本变化**,手写必漏。**改为让 Unity 自己生成。**
+> **2026-09-22 二轮勘误(实地实测推翻初稿)**。初稿两处都错:
+> ① 手写 `noEngineReferences: true` + 漏 `UnityEngine.TestRunner` 引用 —— 会编译失败;
+> ② 「生成后只改 `name`/`references` 三处」的**叙述与 6.3 实生成的形状不符** ——
+> 生成器**根本不写 `references` / `precompiledReferences` / `noEngineReferences`**。
+>
+> **实测形状(桌面机 6.3 实生成,2026-09-22)**:
+> ```json
+> { "name": "Tests", "optionalUnityReferences": ["TestAssemblies"], "includePlatforms": ["Editor"] }
+> ```
+> 用的是**老机制 `optionalUnityReferences: ["TestAssemblies"]`**(Unity 自动挂测试框架引用),
+> 不是 §1.8 初稿假设的「显式列 `UnityEngine.TestRunner`」。
+>
+> **⇒ 本卡自此收窄为「照抄生成器形状,只改名与命名空间」** —— 不改它认识的结构,不叠加引用。
 
-**【桌面】操作**:在 Project 窗口 → `Assets/Tests/EditMode` 上右键 →
-**Create → Testing → Tests Assembly Folder**(命名 `EditMode`);对 `Assets/Tests/PlayMode` 同样操作。
-Unity 会生成带全部必需引用的 asmdef。生成后**只改两处**:
+**【桌面】操作**(与初稿一致):
 
-| 改什么 | 改成 |
-|---|---|
-| `"name"` | `Sim.Contracts.Tests`(EditMode)· `Gameplay.Tests`(PlayMode) |
-| `"references"` | 在 Unity 自动填好的基础上,**追加** `Sim` / `Sim.Codec`(EditMode)或 `Sim.Contracts` / `Gameplay.Presentation` / `Gameplay.UI`(PlayMode) |
+1. 打开 `Window → General → Test Runner`
+2. 点 **`Create EditMode Test Assembly Folder`** → 检查落在 `Assets/Tests/EditMode`
+3. 点 **`Create PlayMode Test Assembly Folder`** → **须落在 `Assets/Tests/PlayMode`**
 
-> **`rootNamespace`** 手填 `DaYiJingCheng.Tests.Unit.Sim`(EditMode)—— Unity 生成器留空,须补。
-> **其余字段一律不动**(含 `includePlatforms` / `precompiledReferences` / `defineConstraints`)——
-> 那些正是「随版本变化」的部分,改了就是踩坑。
+> ⚠️ **实测坑(2026-09-22)**:PlayMode 那次**没有生成 `.asmdef`**,只生成了 `PlayMode.cs`
+> ⇒ `PlayMode.cs` 掉进默认的 `Assembly-CSharp` 装配 ⇒ 报
+> `CS0246: The type or namespace name 'UnityTest' could not be found`。
+> **每次生成后必须 `ls` 确认 `.asmdef` 真的存在**,不能假定按钮生效了。
 
-#### 附:预期生成的形状(仅供参考,**以 Unity 实生成为准**)
+生成后**只改 `name` 与补 `rootNamespace`,并把 PlayMode 的 `includePlatforms` 清空**(其余字段逐字保留):
+
+**`unity/Assets/Tests/EditMode/EditMode.asmdef`**
 
 ```json
 {
     "name": "Sim.Contracts.Tests",
     "rootNamespace": "DaYiJingCheng.Tests.Unit.Sim",
-    "references": [
-        "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner",
-        "Sim",
-        "Sim.Contracts",
-        "Sim.Codec"
-    ],
-    "includePlatforms": [ "Editor" ],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": true,
-    "precompiledReferences": [ "nunit.framework.dll" ],
-    "autoReferenced": false,
-    "defineConstraints": [ "UNITY_INCLUDE_TESTS" ],
-    "versionDefines": [],
-    "noEngineReferences": false
+    "optionalUnityReferences": [ "TestAssemblies" ],
+    "includePlatforms": [ "Editor" ]
 }
 ```
 
-> **`noEngineReferences` 必为 `false`** —— 这是本勘误的核心。
->
-> **⇒ 「测试代码不得碰 `UnityEngine`」这条纪律因此降级**:它**不再由 asmdef 强制**,降为
-> **评审级规则**。需要 `UnityEngine` 的测试应归 `Gameplay.Tests`(PlayMode),不塞进 EditMode 装配。
-> **登记**:此为 §4 D7,若日后要硬化,须另寻机制(如 Roslyn 分析器 / 构建期扫描),**不在本卡范围内**。
+**`unity/Assets/Tests/PlayMode/PlayMode.asmdef`**(若生成器漏建,手工新建此文件)
+
+```json
+{
+    "name": "Gameplay.Tests",
+    "rootNamespace": "DaYiJingCheng.Tests.PlayMode",
+    "optionalUnityReferences": [ "TestAssemblies" ],
+    "includePlatforms": []
+}
+```
+
+#### ⚠️ 两条刻意的取舍(与 ADR-025 §⑤ 的次序差异)
+
+① **不叠加 `references`** —— U0-a 用不上:种子测试**自包含**(自带 `Q16Codec`,只依赖 `System` + `NUnit`),
+   不碰任何 Sim 类型;且 `Sim` / `Sim.Codec` 目录**此刻是空的**,引用空装配引入新风险面。
+   **ADR-025 §⑤ 要的那组引用归 U0-b**(等 `Sim` 内有真类型了再加)—— 自愈型依赖,不是欠账。
+② **`noEngineReferences` 不写** —— 生成器没给,`optionalUnityReferences: ["TestAssemblies"]` 机制下
+   测试装配本就引用 UnityEngine ⇒ 「EditMode 测试不得碰 `UnityEngine`」**无法由 asmdef 强制**,
+   降为**评审级规则**(承初稿登记,§4 **D7**)。
+
+#### 验收自检(落盘后跑)
+
+```bash
+find unity/Assets -name '*.asmdef' | sort
+# 期望 9 行:7 个 §1.1–§1.7 + Tests/EditMode + Tests/PlayMode
+python3 -c "import json; [json.load(open(p)) for p in __import__('glob').glob('unity/Assets/**/*.asmdef', recursive=True)]; print('all asmdef JSON valid')"
+```
 
 ---
 
