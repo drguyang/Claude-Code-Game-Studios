@@ -205,35 +205,40 @@ using System.Runtime.CompilerServices;
 > ⚠️ `tools/level/` 与 `tools/kindgen/`(ADR-022 / ADR-024 记的路径)在乙案下**即上述两目录**;
 > 原路径措辞归回写轮加注。
 
-### 1.8 测试装配
+### 1.8 测试装配(**用 Unity 的生成器,勿手写**)
 
-**`unity/Assets/Tests/EditMode/Sim.Contracts.Tests.asmdef`**
+> ⚠️ **2026-09-22 勘误**:本卡初稿曾给 `Sim.Contracts.Tests` 手写 `noEngineReferences: true` +
+> 漏 `UnityEngine.TestRunner` 引用 —— **那是错的,会编译失败**。UTF 的测试装配**必须**引用
+> `UnityEngine.TestRunner`(它本身就是 UnityEngine 装配)⇒ 与 `noEngineReferences: true` 直接冲突。
+> 测试装配的必需引用集**随编辑器版本变化**,手写必漏。**改为让 Unity 自己生成。**
+
+**【桌面】操作**:在 Project 窗口 → `Assets/Tests/EditMode` 上右键 →
+**Create → Testing → Tests Assembly Folder**(命名 `EditMode`);对 `Assets/Tests/PlayMode` 同样操作。
+Unity 会生成带全部必需引用的 asmdef。生成后**只改两处**:
+
+| 改什么 | 改成 |
+|---|---|
+| `"name"` | `Sim.Contracts.Tests`(EditMode)· `Gameplay.Tests`(PlayMode) |
+| `"references"` | 在 Unity 自动填好的基础上,**追加** `Sim` / `Sim.Codec`(EditMode)或 `Sim.Contracts` / `Gameplay.Presentation` / `Gameplay.UI`(PlayMode) |
+
+> **`rootNamespace`** 手填 `DaYiJingCheng.Tests.Unit.Sim`(EditMode)—— Unity 生成器留空,须补。
+> **其余字段一律不动**(含 `includePlatforms` / `precompiledReferences` / `defineConstraints`)——
+> 那些正是「随版本变化」的部分,改了就是踩坑。
+
+#### 附:预期生成的形状(仅供参考,**以 Unity 实生成为准**)
 
 ```json
 {
     "name": "Sim.Contracts.Tests",
     "rootNamespace": "DaYiJingCheng.Tests.Unit.Sim",
-    "references": [ "Sim", "Sim.Contracts", "Sim.Codec" ],
+    "references": [
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "Sim",
+        "Sim.Contracts",
+        "Sim.Codec"
+    ],
     "includePlatforms": [ "Editor" ],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": true,
-    "precompiledReferences": [ "nunit.framework.dll" ],
-    "autoReferenced": false,
-    "defineConstraints": [ "UNITY_INCLUDE_TESTS" ],
-    "versionDefines": [],
-    "noEngineReferences": true
-}
-```
-
-**`unity/Assets/Tests/PlayMode/Gameplay.Tests.asmdef`**
-
-```json
-{
-    "name": "Gameplay.Tests",
-    "rootNamespace": "DaYiJingCheng.Tests.PlayMode",
-    "references": [ "Sim.Contracts", "Gameplay.Presentation", "Gameplay.UI" ],
-    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
@@ -245,9 +250,11 @@ using System.Runtime.CompilerServices;
 }
 ```
 
-> **`noEngineReferences: true` 用在 `Sim.Contracts.Tests`** —— 它只测纯逻辑,门 A 纪律对测试装配同样适用
-> (若种子测试哪天 `using UnityEngine`,即构建失败 —— 这是特性不是障碍)。
-> `overrideReferences: true` + `precompiledReferences: ["nunit.framework.dll"]` 是 UTF 的标准形状。
+> **`noEngineReferences` 必为 `false`** —— 这是本勘误的核心。
+>
+> **⇒ 「测试代码不得碰 `UnityEngine`」这条纪律因此降级**:它**不再由 asmdef 强制**,降为
+> **评审级规则**。需要 `UnityEngine` 的测试应归 `Gameplay.Tests`(PlayMode),不塞进 EditMode 装配。
+> **登记**:此为 §4 D7,若日后要硬化,须另寻机制(如 Roslyn 分析器 / 构建期扫描),**不在本卡范围内**。
 
 ---
 
@@ -301,6 +308,7 @@ using System.Runtime.CompilerServices;
 | D4 | `unity/` 内的文档 | 根 `CLAUDE.md` 不动;`src/CLAUDE.md` 的引擎标准迁 `unity/CLAUDE.md` | 保留 `src/` 双份 |
 | D5 | `src/` 目录去留 | **退役**(代码归 `unity/Assets/`);`.gitkeep` 删 | 保留为纯文档位 |
 | D6 | 工程模板 | **空白 URP** + 清示例内容 | 3D Core 模板 + 事后加 URP 包 |
+| D7 | 测试装配纪律 | 「EditMode 测试不得碰 `UnityEngine`」**降为评审级**(§1.8 勘误:asmdef 无法强制) | 另寻硬化机制(分析器 / 构建扫描)—— 非本卡范围 |
 
 ---
 
