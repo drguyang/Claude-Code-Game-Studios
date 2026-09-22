@@ -1,6 +1,7 @@
 # U0 装配清单 · 工程根 + ADR-025 六装配
 
-> **Status**: OPEN(工程根已裁 **2026-09-22 用户裁定 = 乙案 `unity/` 子目录**;本卡 = U0 的可执行形态)
+> **Status**: **U0-a ✅ CLOSED(2026-09-22 桌面实测 + 超算复核 · 闭于 `7772e3d`)**;
+> **U0-b 待启**;§6.1 登记本轮实测勘误四条。
 > **前置**:U0a 工具链已闭合(`production/u0a-toolchain-checklist.md` · Unity `6000.3.24f1`)
 > **权威件**:`docs/architecture/adr-025-contract-assembly-manifest.md`(六装配裁决)+ ADR-017 §二(门 A)
 > **执行分工**:**【超算】**起草文本 + 提交 · **【桌面】**建工程根 / 落 asmdef / 跑 Unity / 跑 UTF
@@ -288,6 +289,29 @@ python3 -c "import json; [json.load(open(p)) for p in __import__('glob').glob('u
 
 **U0-a 验收**:种子测试在 `Sim.Contracts.Tests` 下**编译通过且跑绿**;`git status` 无未跟踪的 `.meta`。
 
+### §2.0 U0-a 实测记分(2026-09-22,桌面机 Unity `6000.3.24f1` + 【超算】库复核)
+
+| # | 动作 | 结果 | 证据 |
+|---|---|---|---|
+| a1 | 建 `unity/` 工程根(空白 URP) | ✅ | `unity/ProjectSettings/ProjectVersion.txt` = `6000.3.24f1` |
+| a2 | 清模板示例 | ⚠️ **部分 —— 见 §6.1 ④** | `Settings/` 7 资产**全部必留**;残留仅 `SampleScene.unity` + `Readme.asset` |
+| a3 | 落 8 asmdef + `AssemblyInfo.cs` | ✅ | 实测 **9 个 asmdef**(7 六装配 + 2 测试族)+ 1 `AssemblyInfo.cs` |
+| a4 | 迁移种子测试 | ✅ | `git` 记为 `R  tests/unit/sim/… → unity/Assets/Tests/EditMode/Sim/…`(纯移动,内容零改) |
+| a5 | 跑 EditMode | ✅ | **16 绿** = 源码 `[TestCase]×14 + [Test]×2` 精确吻合 |
+| a6 | 提交工程本体 | ✅ | `c398507`(迁移)+ `7772e3d`(工程根);`.slnx` / `unity/.vscode/` 经 `b1d7583` 正确忽略 |
+
+**空装配未报错**(实测推翻起草时的担忧):`Sim` / `Sim.Contracts` / `Sim.Codec` 三目录**落 asmdef 但零 `.cs`**,Unity 导入**无任何报错**。
+
+**V-3 口径拆分(承 §3 禁借绿)**:
+- ✅ **编译** —— `Sim.Contracts.Tests` 编译通过(16 用例全部出现在 Test Runner)
+- ✅ **首跑** —— 桌面机本地跑绿
+- ⏳ **CI 矩阵内** —— **未完成**(`UNITY_LICENSE` secret 未配,见 §5 ③)⇒ **V-3 不得记全绿**
+
+> **关于 PlayMode 2 绿 + Player 2 绿**:属 **URP 模板自带**(`unity/Assets/Tests/PlayMode/PlayMode.cs`),
+> **不是**本项目的种子测试。用户裁定**保留**(它对称证明了 UTF 的 PlayMode 通路可用)。
+> ⚠️ 不得把「EditMode 16 绿」与「PlayMode 2 绿」并读为「18 个种子测试通过」。
+
+
 ## §2.1 U0-b 后续(不在本批)
 
 | # | 动作 | 承 |
@@ -332,15 +356,56 @@ python3 -c "import json; [json.load(open(p)) for p in __import__('glob').glob('u
 ## §5 CI 关联
 
 - `PROJECT_PATH` 已由 `.` 改为 **`unity`**(`.github/workflows/tests.yml:29`)。
-- ⚠️ **CI 在 U0-a 完成前仍红**,且是**预期状态**(承 `tests.yml:9-14` 的四条未解条件):
-  ① 工程根刚落 → ② asmdef 刚落但 UTF 装配未绿 → ③ `UNITY_LICENSE` secret 未配 → ④ 黄金夹具未签。
-- **U0-a 完成只解 ①②**;③④ 分别在 U0-b 与夹具轮。
+- ⚠️ **CI 在 U0-a 完成后仍红**,且是**预期状态**(承 `tests.yml:9-14` 的四条未解条件):
+  ① ~~工程根刚落~~ **✅ 已解(U0-a)** → ② ~~asmdef 刚落~~ **✅ 已解(U0-a 实测 9 个 asmdef)** →
+  ③ `UNITY_LICENSE` secret 未配 → ④ 黄金夹具未签。
+- **U0-a 完成解了 ①②**;③④ 分别在 U0-b 与夹具轮。**`game-ci` 前两步现已具备启动条件**,
+  首次 CI 跑会在 ③ 处失败(**预期**,不得读作测试缺陷)。
 
 ## §6 队列
 
 ```
-U0a ✅ CLOSED → U0-a(本卡 §2:空装配 + 种子测试转绿)
+U0a ✅ CLOSED → U0-a ✅ CLOSED(§2 · 桌面实测 + 超算复核 · 闭于 7772e3d)
+              → U0-a′:a7 三场景落地(§6.2,待裁 —— 是 U0 缺口,见 §6.1 ④)
               → U0-b(§2.1:类型本体 + 三断言 + kindgen)
               → U1 spike 批:R-A 手柄焦点桥 · R-B 门 A · R-C int64 溢出 UB
                  · OQ-1-12 · ADR-023 S1/S3/S4 · 10 的两动作手感原型
 ```
+
+## §6.1 本轮实测勘误(U0-a 执行期发现,均需回写)
+
+| # | 勘误 | 原判断 | 实测 | 处置 |
+|---|---|---|---|---|
+| ① | **`.slnx` 未忽略** | `.gitignore` 有 `*.sln` 即够 | Unity 6.3 生成 **`unity.slnx`**,`*.sln` 不匹配 | ✅ `b1d7583` 补 `*.slnx` |
+| ② | **`.vscode/` 漏网** | `.vscode/settings.json` 已忽略 | 该规则**带斜杠 = 根锚定**,匹配不到 `unity/.vscode/` | ✅ `b1d7583` 补 `unity/.vscode/` |
+| ③ | **`src/` 有桌面机独有内容** | 假设两台一致 | 桌面 `src/new medicine/` 悬空(超算无);用户确认属误放,删除 | 登记:跨机 `git status` 差异须先辨来源 |
+| ④ | **`Settings/` 无模板残留可清** | 起草假设「清示例内容」可从 `Settings/` 下手 | 7 资产**全部被引用**(`SampleSceneProfile` 被 PC/Mobile 两个 RPAsset 共同引用 —— **非 SampleScene 专属**)⇒ **全留** | 见 §6.2 |
+
+### §6.1.1 ⚠️ 起草时误判一处,已就地订正
+
+我(起草方)曾判 `SampleSceneProfile.asset`「随 SampleScene 走,可删」。**实测证伪**:
+其 guid 被 `PC_RPAsset` + `Mobile_RPAsset` + `SampleScene` **三处**引用,是**两条管线共用的默认 Volume Profile**。
+⇒ **删除引用扫描是硬前置,不得凭名判**。本条即 §6.2 a7 的前置方法。
+
+## §6.2 U0-a′ 缺口:a7 三场景落地(登记 · 待用户裁决归属)
+
+**缺口**:ADR-023 §① 裁决 **三场景制**(`Boot.unity` 常驻 / `MainMenu.unity` / `World.unity` additive),
+而本卡 §2(a1–a6)与 §2.1(b1–b7)**均无建场景步骤** ⇒ 照卡走完 U0,工程里仍是模板的 `SampleScene`。
+
+**实测现状**:
+- `unity/ProjectSettings/EditorBuildSettings.asset:9` = `path: Assets/Scenes/SampleScene.unity`(**唯一场景**)
+- `unity/Assets/Readme.asset` = **零引用**(扫描确认)⇒ 纯模板残留
+
+**a7 建议步骤**(仅【桌面】,归 U0-a′ 还是 U1 **待裁**):
+1. 建 `Boot.unity`:仅含主相机 + `AudioListener`(ADR-023 §③「相机与 AudioListener 住 Boot」);
+   ⚠️ **P0 阶段可先空场景** —— tick driver / Addressables 引导属 U0-b/U1,不在本步
+2. Build Settings 首场景位 → `Boot.unity`(顶掉 `SampleScene`)
+3. `git rm unity/Assets/Scenes/SampleScene.unity{,.meta}`
+4. `git rm unity/Assets/Readme.asset{,.meta}`
+5. `MainMenu.unity` / `World.unity` —— **可留到需要时建**(ADR-023 §① 允许增量;
+   但 `World.unity` 建时须过 §②「零 gameplay 对象」扫描)
+
+**⚠️ 为什么不现在直接删 `SampleScene`**:它是 Build Settings 里**唯一**的场景。
+删了又不建 `Boot.unity` ⇒ 工程失去「能进 Play 模式」状态,而 a5 的绿正是建立在该状态上。
+**顺序必须是「先建 Boot 顶位,再删 Sample」**,不可颠倒。
+
