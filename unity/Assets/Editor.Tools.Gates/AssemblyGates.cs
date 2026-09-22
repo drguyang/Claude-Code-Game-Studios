@@ -68,10 +68,15 @@ namespace DaYiJingCheng.EditorTools.Gates
         //   Gameplay.Tests)不一致;按文件名比对 = b3 自身误报。
         private static void CheckManifestClosure(List<string> errs)
         {
+            // ⚠️ 扫描面 = Assets/ **之内**(工程自有装配)。
+            // AssetDatabase.FindAssets("t:asmdef") 实测连 Packages/ 下解析出的包内
+            // asmdef 一并吐回(Addressables 依赖图带进 ~100 支)⇒ 必须按路径前缀过滤。
+            // ADR-025 §④ 的「未登记 asmdef = 构建失败」管的是本项目 asmdef,
+            // 第一方包(Embedded)当前不存在;若日后引入,须连同清单口径一起裁。
             var found = new HashSet<string>();
-            foreach (var guid in AssetDatabase.FindAssets("t:asmdef"))
+            foreach (var f in Directory.GetFiles("Assets", "*.asmdef", SearchOption.AllDirectories))
             {
-                var json = File.ReadAllText(AssetDatabase.GUIDToAssetPath(guid));
+                var json = File.ReadAllText(f);
                 var m = System.Text.RegularExpressions.Regex.Match(json, "\"name\"\\s*:\\s*\"([^\"]+)\"");
                 if (m.Success) found.Add(m.Groups[1].Value);
             }
