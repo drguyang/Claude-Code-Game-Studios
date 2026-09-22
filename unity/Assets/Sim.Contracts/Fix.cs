@@ -12,6 +12,8 @@
 //   (禁 JsonUtility / [SerializeField] / ScriptableObject / prefab 字段)。
 //   该禁令由 Sim.Codec 的自定义编码器 + 一条 EditMode 探针守住(21a AC-21a-53)。
 
+using System;
+
 namespace DaYiJingCheng.Sim.Contracts
 {
     /// <summary>Q16.16 定点值(内部 long)。全案模拟数学的唯一数值载体(ADR-005)。</summary>
