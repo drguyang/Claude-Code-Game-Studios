@@ -62,6 +62,10 @@ export_presets.cfg
 *.csproj
 *.unityproj
 *.sln
+*.slnx
+# Unity 生成的 IDE 工作区产物(按需重建,不入库)。
+# 注意:上方 `.vscode/settings.json` 带斜杠 ⇒ 根锚定,匹配不到 unity/.vscode/。
+unity/.vscode/
 *.suo
 *.tmp
 *.user
