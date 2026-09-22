@@ -19,6 +19,14 @@ Accepted
 > ~~Status 停在 Proposed 的理由~~(起草时注,已由上述裁定取代):S1–S7 spike 全部未跑的事实
 > **不撤销** —— 逐条状态见 §Validation Criteria,未跑的仍挂着未勾。
 > TD 条件 C2 的 **#1 半边就此结案**。
+>
+> **2026-09-23 S1/S3/S4 spike 实测回填**(Unity 6000.3.24f1;装置
+> `unity/Assets/Tests/PlayMode/u1_scene_spikes_test.cs`,卡 `production/u1-spike-checklist.md` §6):
+> **S1 ✅ · S3 ✅ · S4 ✅ 三条全通过** —— 逐条数字见 §Validation Criteria。
+> **裁决内容一字未改**(附条件口径从未把 spike 当效力条件);回填只把「未跑」的字面状态改为实测结论。
+> S3 附带一条**源实读 + 实跑确认**的机制发现(场景内亲代实例由 Addressables 自动清理,
+> 不得手动 `ReleaseInstance`)—— 已回填 §Validation S3 条目。
+> **S2 / S5 / S6 / S7 仍挂未勾**(S2/S6/S7 延后至各自实现故事;S5 休眠,触发 = ADR-013 假设 6 失败)。
 
 ## Date
 
@@ -26,6 +34,11 @@ Accepted
 
 ## Last Verified
 
+2026-09-23(**S1/S3/S4 实测回填** —— Unity 6000.3.24f1,装置
+`unity/Assets/Tests/PlayMode/u1_scene_spikes_test.cs`;见 §Validation Criteria 三条勾选。
+**引擎参考件口径未变**;新增一条**包源码实读**结论:Addressables 2.10.3 @ `6fef233` 的
+`UnloadSceneAsync` 默认 `autoReleaseHandle:true`、`InstantiateAsync` 默认 `trackHandle:true`,
+且 `CleanupSceneInstances` 会自动释放「随被卸载场景销毁」的实例句柄 —— 见 §Validation S3)。
 2026-09-20(引擎参考件:`breaking-changes.md:54-65` · `modules/rendering.md:19-33` ·
 `plugins/addressables.md:263-276 / :301` · `deprecated-apis.md:100`;
 unity-specialist lean 复核已回,其 4 条口径修正已并入本件 —— 见 §Context「复核已改的口径」)
@@ -238,6 +251,8 @@ public interface IWorldSpawner {          // 表现态生成门面(③⑤⑦ 的
 - **Negative**:三场景 + 拆序六步 = 读档路径的实现复杂度前置(换来的是泄漏不可静默);
   ⑦ 的确定性偏移是新增形状(数值无关,但实现面多一个哈希);本件带 7 项 spike,
   **Accepted 须等 S1–S7 至少 S1/S3/S4 有结果**(HIGH 域不空口结案)。
+  —— **✅ 2026-09-23:S1/S3/S4 三条实测已有结论全通过**(§Validation Criteria)⇒ 该前置满足;
+  S2/S5/S6/S7 按各自实现故事推进(未跑,仍挂未勾)。
 - **Neutral**:与 ADR-024 无耦合(一个管流内数据形状的家,一个管流外场景生命的家;
   共同点仅「都不开第四个登记处 / 不用 Single 模式」的同构纪律)。
 
@@ -245,7 +260,7 @@ public interface IWorldSpawner {          // 表现态生成门面(③⑤⑦ 的
 
 | Risk | Probability | Impact | Mitigation |
 |---|---|---|---|
-| S3 前提被实测推翻(引擎行为不同) | 低 | 中 | 拆序第 6 步断言与实现无关 —— 即使引擎已管实例,断言零成本 |
+| S3 前提被实测推翻(引擎行为不同) | 低 | 中 | 拆序第 6 步断言与实现无关 —— 即使引擎已管实例,断言零成本。**2026-09-23 实测:未推翻** —— 外部亲代实例 `unload` 后存活(泄漏形态成立);⑤ 前提坐实 |
 | Addressables 6.2+ E-13 抛异常路径在 Boot 期崩溃形态难看 | 中 | 低 | ADR-014 已裁「启动期硬失败」;本件只补「失败日志含组名 + key」 |
 | chunk 激活(⑥)与 ADR-022 切片粒度错位 | 中 | 中 | 激活权在 6 ⇒ 粒度争议变成 6 的 GDD 参数,不再悬空 |
 | VR P1a 重排相机栈时破坏 ③ | 低 | 高 | ③ 只锁「Boot 持有 + 空栈起步」两条不变量,模式扩展不触它们 |
@@ -254,6 +269,9 @@ public interface IWorldSpawner {          // 表现态生成门面(③⑤⑦ 的
 
 - 读档墙钟 = data-core 预载 + 重放/CatchUp + additive 加载 + 重建(④序列),P0 不设预算
   (数值轮另裁);⑤ 的登记簿是 O(实例数) 哈希,可忽略。
+  —— **2026-09-23 实测参考值**(非预算,装置数据留档):additive 冷载 **116.8 ms** /
+  暖载 **39.6 ms** · 卸载 **11.0 ms**;场景 load/unload 交替单次约 **14.7 ms**(≈0.9 帧@60fps),
+  而单场景多根 `SetActive` 约 **0.011 ms** ⇒ 细粒度 chunk 激活走 `SetActive`(§Validation S4)。
 - ② 铁律的副收益:World 场景文件近零 ⇒ Addressables 的 World 组只含视觉层资产,包体分块友好。
 
 ## Migration Plan
@@ -270,20 +288,59 @@ public interface IWorldSpawner {          // 表现态生成门面(③⑤⑦ 的
 
 > **S1–S7 = unity-specialist 复核判定的「参考件哑项」。逐条未跑,本 ADR 转 Accepted 前 S1/S3/S4 必须有结论;S2/S5/S6/S7 最迟随各自实现故事。**
 
-- [ ] **S1** `Addressables.LoadSceneAsync(key, LoadSceneMode.Additive)` + `UnloadSceneAsync(handle)`
+- [x] **S1** `Addressables.LoadSceneAsync(key, LoadSceneMode.Additive)` + `UnloadSceneAsync(handle)`
       在 6.3 实测可用作菜单/世界换入换出(参考件 `plugins/addressables.md:263-276` 载形状,未验行为)
+      —— **✅ 实测通过 2026-09-23**(Unity 6000.3.24f1 · 装置
+      `unity/Assets/Tests/PlayMode/u1_scene_spikes_test.cs` · 卡 `production/u1-spike-checklist.md` §4.1/§6):
+      `cold_load_ms=**116.8**`(含 catalog / bundle 冷启)· `warm_load_ms=**39.6**` ·
+      `unload_ms=**11.0**`;`load_status` / `unload_status` 均 `Succeeded`,`scene_still_loaded=False`
+      (卸载干净),`op_ex=none` 全程,**0 条** Error/Exception/Assert 日志 ⇒ **E-13(6.2+ 抛异常)
+      在本路径未触发**。→ 转 Accepted 硬前置满足。
 - [ ] **S2** 「World.unity 零 gameplay 对象」构建期扫描判据可落地(场景 YAML 资产反序列化扫组件类型);
       **2026-09-21 扩充(RC-6)**:同扫描**增列「相机 / `AudioListener` 在非 Boot 场景 = 构建失败」**,连同「零 gameplay 对象」一并验
-- [ ] **S3** `UnloadSceneAsync` **不销毁** `InstantiateAsync` 产物 —— 直接实测(⑤ 存在的前提);
+      ⏸ 延后(触发:首个 World/MainMenu 场景落地;卡 §3 同判)
+- [x] **S3** `UnloadSceneAsync` **不销毁** `InstantiateAsync` 产物 —— 直接实测(⑤ 存在的前提);
       同时实测第 6 步断言在漏 Release 时的可观测性。**2026-09-21 判据补强(S-4 · 承
       `architecture-review-2026-09-20.md`)**:除「实例未销毁」外,须**补一条 bundle 引用计数归零断言**
       —— handle 全部 `Release` 后,Addressables 的 bundle refcount 必须归零(handle 全 Release 后
       bundle 仍被引用是 Addressables 已知形态;第 6 步运行期断言只查登记簿,**查不到 bundle 层**)。
-- [ ] **S4** chunk 级激活采用「Addressables 场景分块」还是「单场景内 SetActive」—— 两者的加载/卸载成本实测,⑥ 只裁归属不裁机制
+      —— **✅ 实测通过 2026-09-23**(同装置;Unity 6000.3.24f1)。三条判据 + S-4 补强逐条落地:
+      · **判据 1(⑤ 前提)**:外部亲代实例(`InstantiateAsync(key, holder)` 挂**未入场景**的根物体)
+        `unload` 后 **alive=True** ⇒ **不销毁,泄漏形态成立** —— ⑤ 存在的理由坐实;
+        场景内亲代实例(挂 `MoveGameObjectToScene` 进场景的 Marker)`unload` 后 **alive=False**
+        (随 Unity 层级一起亡,**非** Addressables 反例)。
+      · **判据 2(S-4 补强)**:bundle 计数 `baseline=**1** → after_load_inst=4 → after_unload=2 →
+        after_release=**1**` ⇒ **两 handle 全 `Release` 后回到 baseline,refcount 归零**;
+        中间 `>baseline` 段证实「handle 未全 Release 时 bundle 仍被引用」的已知形态存在
+        ⇒ **第 6 步运行期断言只查登记簿、查不到 bundle 层**的设计有理。
+      · **判据 3(可观测性)**:故意漏 `Release` ⇒ `judge3_leak_no_release_alive=**True**`、
+        `leak_bundles=**2**(>baseline 1)`,`final_after_release=1`(补释放后归位)
+        ⇒ **漏了是能被看见的**(实例残留 + bundle refcount 不归零)。
+      · **新机制发现(源实读 2.10.3 @ `6fef233`,实跑确认)**:`InstantiateAsync` 默认
+        `trackHandle:true`,实例亲代在**被卸载的场景**内时,场景卸载后
+        `ResourceManager.CleanupSceneInstances` 会把该 tracked 实例 operation **减引用到 0 并自动释放**
+        (实测 `handle_valid_after_scene_unload ext=True inScene=False`)⇒ **场景内亲代实例
+        不得手动 `ReleaseInstance`**(会抛 invalid handle);⑤ 第 6 步要拦的是**外部亲代实例**。
+- [x] **S4** chunk 级激活采用「Addressables 场景分块」还是「单场景内 SetActive」—— 两者的加载/卸载成本实测,⑥ 只裁归属不裁机制
+      —— **✅ 实测通过 2026-09-23**(同装置 ×20 轮;Unity 6000.3.24f1):
+      **A 路**(Addressable 场景 load/unload 交替)avg=**14.65 ms** · max=**24.19 ms** · total=293.0 ms
+      (≈ **0.9 帧**@60fps);**B 路**(单场景双根 `SetActive`)avg=**0.0114 ms** · max=0.2056 ms
+      ⇒ **A/B 量级比 ≈ 1285×**。
+      **机制建议**(⑥ 只裁归属 ⇒ 本测只出建议,不产新 ADR):**细粒度 chunk 激活宜走
+      「单场景多根 `SetActive`」;Addressable 场景 load/unload 只用于世界整体换入换出,不做细粒度 chunk 流式**。
 - [ ] **S5** ADR-013 假设 6 spike 失败时,⑧ 触发条款的 Renderer Feature 路径确属必需(若 UI 兜底不需要它,条款保持休眠)
+      💤 休眠(假设 6 未跑,用户裁定缓办;判据 ④ 静态已过 —— 见 ADR-013 §6.6 侧)
 - [ ] **S6** 菜单时钟源:`Time.unscaledTime` 与 tick driver 停机(④)在「暂停/换场」两态的行为一致(承 `technical-preferences.md` OQ-25-8 ③ 相位义务,不由渲染帧)
+      ⏸ 延后(触发:`ITickProvider` 实现落地)
 - [ ] **S7** ⑦ 确定性偏移夹具:同一存档重建 3 次,生成位逐次一致(哈希),且无对象落入不可走格(复用 ADR-022 C2 可走性同源判据)
+      🟡 哈希半边已落(EditMode `GoldenHashV1Test`);全夹具延后(触发:ADR-022 逻辑层落地)
 - [ ] **V-8** `architecture.md` #1 小节 / §3.4 [0][7] 两处 🔴 / QQ 台账在本件 Accepted 时同步改判(未改前本表不记绿)
+      —— ⚠️ **2026-09-23 实况核查(未改)**:`architecture.md` §3.4 的 `[0] Unity 引擎启动 · URP Asset 加载`
+      与 `[7] 表现层就绪` **仍标 🔴**(`:626` / `:650`),其下的诚实标注(`:656-660`)仍写「两步零裁决、
+      归 §Required New ADRs #1」。本件既已 Accepted(2026-09-20)且 S1/S3/S4 实测通过(2026-09-23),
+      **该两处应改判为 ADR-023 ①③[0] / ④⑦[7]**。**本行不在本批执行** —— 归**回写轮**
+      (与 TR registry 挂 `adr:` · D-1 执行面 · R-4 抄本降级等同批,architecture.md 是一份大件,
+      单点改易与同批其他改动冲突)。**在此之前本表 V-8 不记绿**(其自设口径)。
 
 ## GDD Requirements Addressed
 

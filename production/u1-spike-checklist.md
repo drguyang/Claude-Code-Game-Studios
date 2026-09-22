@@ -1,6 +1,7 @@
 # U1 spike 批 —— 落盘卡 + 【桌面】run-book
 
-> 批次:U1(承 U0 结案 2026-09-22)· 状态:**F7 载荷腿【超算】已落盘,桌面验收待做;引擎腿已脚本化(§4/§5),桌面按菜单+Test Runner 执行**
+> 批次:U1(承 U0 结案 2026-09-22)· 状态:**S1/S3/S4 引擎腿已实测通过并回填 ADR-023(2026-09-23)**;
+> F7 载荷腿【超算】已落盘,EditMode 59 绿待【桌面】确认;假设 6 缓办(S5 随之休眠)
 > 权威来源:ADR-023 §Validation(S1–S7)· ADR-012 F7(2026-09-21 承 RC-4 降级)·
 > ADR-013 假设 6(§6.6 半可信)· ADR-006 §三(舍入)· D-1/D-2(本批裁定)
 
@@ -62,9 +63,9 @@ D-1 首两输入可交换(a+b 交换 + 同步 avalanche),第三输入起有序 �
 
 | Spike | 本批裁定 | 理由 / 触发条件 |
 |-------|---------|----------------|
-| **S1** Addressables Additive 加载/卸载 | ✅ **本批执行**(§4.1) | ADR-023 Accepted 硬前置(S1/S3/S4 三选一不可);参考件载形状未验行为 |
-| **S3** `UnloadSceneAsync` 不销毁 `InstantiateAsync` 产物 + bundle refcount | ✅ **本批执行**(§4.2) | ⑤ 拆序六步存在的全部理由;含 2026-09-21 S-4 补强(bundle refcount 归零) |
-| **S4** 场景 chunk vs SetActive 成本 | ✅ **本批执行**(§4.3) | S1/S3/S4 同属 Accepted 硬前置 |
+| **S1** Addressables Additive 加载/卸载 | ✅ **本批执行 → 已实测通过(2026-09-23)** | ADR-023 Accepted 硬前置(S1/S3/S4 三选一不可);参考件载形状未验行为。冷载 116.8 / 暖载 39.6 / 卸载 11.0 ms,卸载干净、零异常 |
+| **S3** `UnloadSceneAsync` 不销毁 `InstantiateAsync` 产物 + bundle refcount | ✅ **本批执行 → 已实测通过(2026-09-23,含 S-4 补强)** | ⑤ 拆序六步存在的全部理由;含 2026-09-21 S-4 补强(bundle refcount 归零)。判据 1/2/3 全部证实;附带发现「场景内亲代实例被自动清理,不得手动 ReleaseInstance」 |
+| **S4** 场景 chunk vs SetActive 成本 | ✅ **本批执行 → 已实测通过(2026-09-23)** | S1/S3/S4 同属 Accepted 硬前置。A/B 比 ≈1285× ⇒ 机制建议「细粒度 chunk 激活走 SetActive」 |
 | **S2** World.unity 零 gameplay 对象扫描 + RC-6 相机/AudioListener 增列 | ⏸ **延后**(触发:首个 World/MainMenu 场景落地) | 现只有 `Boot.unity`,扫描无对象可扫;归「场景落地 + gates 扩员」批(与残留 R-2 同族) |
 | **S5** Renderer Feature 触发条款 | 💤 **休眠** | 仅当 ADR-013 假设 6 spike **失败**时才需验「UI 兜底不够、须 RF」;假设 6 结果未知前无从谈起 |
 | **S6** 菜单时钟(`Time.unscaledTime` vs tick driver 停机) | ⏸ **延后**(触发:`ITickProvider` 实现落地) | 现无 tick driver,两态行为无从测;归 tick driver 实现批 |
@@ -110,6 +111,10 @@ D-1 首两输入可交换(a+b 交换 + 同步 avalanche),第三输入起有序 �
 Addressables 异常(参考件 `plugins/addressables.md:263-276` 载形状,ADR-014 §五 注 6.2+ 抛异常
 行为一并观察)。→ 结果行 `[U1-S1] cold_load_ms=… warm_load_ms=… unload_ms=…`
 
+> **✅ 结论 2026-09-23**:冷载 **116.8 ms** · 暖载 **39.6 ms** · 卸载 **11.0 ms**;卸载后
+> `scene_still_loaded=False`、全程 `op_ex=none`、0 条错误日志 ⇒ **可用作菜单/世界换入换出,
+> E-13 抛异常未触发**。详见 §6 与 ADR-023 §Validation S1。
+
 ### 4.2 S3 —— `UnloadSceneAsync` 是否销毁 `InstantiateAsync` 产物(+ refcount)
 
 **跑法**:已由 §4.0 第 3 步覆盖(测试 `test_s3_instance_survival_and_refcount_logs`)。
@@ -128,6 +133,15 @@ Addressables 异常(参考件 `plugins/addressables.md:263-276` 载形状,ADR-01
 
 跑完 Teardown(§4.0 第 5 步),临时资产**勿 push**。
 
+> **✅ 结论 2026-09-23(三判据全证)**:
+> · 判据 1 —— 外部亲代实例 unload 后 **alive=True**(⑤ 前提坐实);场景内亲代 alive=False(随层级亡)。
+> · 判据 2 —— bundle 计数 `1 → 4 → 2 → 1(=baseline)`,**两 handle 全 Release 后 refcount 归零**;
+>   中间段证实「未全 Release 时 bundle 仍被引」,故第 6 步运行期断言只查登记簿的设计有理。
+> · 判据 3 —— 漏 Release ⇒ `alive=True` 且 `leak_bundles=2(>baseline)`,**漏了能被看见**。
+> · **新发现**:`handle_valid_after_scene_unload ext=True inScene=False` ⇒ 场景内亲代实例的
+>   tracked handle 被 `CleanupSceneInstances` **自动释放**;这些实例**不得手动 `ReleaseInstance`**
+>   (会抛 invalid handle),且**不需要**手动释放。⑤ 第 6 步要拦的是**外部亲代实例**。
+
 ### 4.3 S4 —— chunk 级激活:Addressables 场景分块 vs 单场景 SetActive
 
 **跑法**:已由 §4.0 第 3 步覆盖(测试 `test_s4_scene_switch_vs_setactive_logs_ms`)。
@@ -136,6 +150,10 @@ B 路 = 单场景双根(`RootA`/`RootB`)SetActive ×20。
 
 **判据**(不变):⑥ 只裁「归属 = 系统 6」不裁机制 —— 本测产出**机制建议**(哪条加载/卸载成本
 可接受),回填本卡 §6 结果表;不产生新 ADR。→ 结果行 `[U1-S4] A路 … B路 … A/B 量级比=…`
+
+> **✅ 结论 2026-09-23**:A 路 avg **14.65 ms** / B 路 avg **0.0114 ms** ⇒ **量级比 ≈ 1285×**。
+> **机制建议**:细粒度 chunk 激活走**单场景多根 SetActive**;场景 load/unload 只做世界整体换入换出。
+> 量级差即结论,**不产新 ADR**(⑥ 只裁归属)。
 
 ## 5. 【桌面】ADR-013 假设 6 spike —— 手柄焦点导航原型
 
@@ -174,14 +192,16 @@ B 路 = 单场景双根(`RootA`/`RootB`)SetActive ×20。
 | Spike | 结论(可用/不可用/部分) | 关键数字/现象 | 回填目标 ADR |
 |-------|------------------------|--------------|--------------|
 | F7(59 绿) | | | ADR-012 §Validation F7 勾选 |
-| S1 | ⬜ 待复测(两跑都红,但病因已定位并修) | 首跑:结果行未产出(装置缺陷)· 二跑 2026-09-23 04:37 **已产出半条**:`cold_load_ms=**95.8 ms** load_status=Succeeded scene_isLoaded=True op_ex=none`(冷启含 catalog/bundle 初始化),随后在 `unload.OperationException` 处抛 invalid handle = **§8 坑 A(装置读数),非 spike 结论** | ADR-023 S1 勾选 |
-| S3 | ⬜ 待复测(同上) | 二跑**已产出四条**:`bundle baseline=**1**` · `load_status=Succeeded scene_isLoaded=True` · `instantiate_ext_status=Succeeded` · `instantiate_inscene_status=Succeeded`;随后在 `Go(inScene)` 处抛 invalid handle = **§8 坑 B(场景内实例的 handle 被自动清理)**。判据 1/2/3 的数字**尚未出全**,不得据半条下结论 | ADR-023 S3 勾选 |
-| S4 | ✅ **已实测**(A/B 两路均有数) | 2026-09-23 · Unity 6000.3.24f1:**A 路**(Addressable 场景 load/unload 交替 ×20)avg=**14.65 ms** · max=**24.19 ms** · total=**293.0 ms**(逐点 14.18/19.26/12.81/12.74 ms)→ 单次换场约 15 ms ≈ **0.9 帧**@60fps,**可接受**。**B 路**(单场景双根 `SetActive` ×20)avg=**0.0114 ms** · max=**0.2056 ms** · total=0.228 ms(亚毫秒,量具已修为 `Elapsed.TotalMilliseconds`)⇒ **A/B 量级比 ≈ 1285×**。**机制建议**:场景级 chunk 切换成本是 `SetActive` 的**三个数量级**,故 ADR-023 ⑥「归属=系统 6」之外,**运行期 chunk 激活宜走单场景多根 `SetActive`**(场景 load/unload 只用于世界整体换入换出,不做细粒度 chunk 流式)。**量级差即结论,不产新 ADR** | ADR-023 S4 勾选(机制建议) |
-| F7(59 绿) | ⬜ 待【桌面】跑 EditMode 标签页确认(数未回) | 清单已落盘(§1.4:16 旧 + 43 新 = 59) | ADR-012 §Validation F7 勾选 |
+| S1 | ✅ **实测通过** | 2026-09-23 · Unity 6000.3.24f1:`cold_load_ms=**116.8**`(含 catalog / bundle 冷启)· `warm_load_ms=**39.6**` · `unload_ms=**11.0**`;`load/unload_status` 均 `Succeeded`,`scene_still_loaded=**False**`(卸载干净),`op_ex=none` 全程,0 条 Error/Exception/Assert ⇒ **E-13(6.2+ 抛异常)未触发**。additive 加载/卸载在 6.3 **可用作菜单/世界换入换出** | ADR-023 S1 勾选 ✅ |
+| S3 | ✅ **实测通过(含 S-4 补强)** | 2026-09-23 同装置。**判据 1(⑤ 前提)**:外部亲代实例 unload 后 `alive=**True**` ⇒ 不销毁,**泄漏形态成立**;场景内亲代实例 `alive=False`(随层级亡,非反例)。**判据 2(S-4)**:bundle `baseline=1 → 载入后 4 → unload 后 2 → 两 handle Release 后 **1**(=baseline)` ⇒ **refcount 归零**;中间段证实「handle 未全 Release 时 bundle 仍被引」的已知形态存在。**判据 3(可观测)**:故意漏 Release ⇒ `leak_alive=**True**` · `leak_bundles=**2**(>baseline)` · 补释放后 `final=1` ⇒ **漏了能被看见**。**新机制发现**(源实读 2.10.3 实跑确认):`handle_valid_after_scene_unload ext=True inScene=False` ⇒ 场景内亲代实例的 tracked handle 被 `CleanupSceneInstances` **自动释放**,**不得手动 ReleaseInstance** | ADR-023 S3 勾选 ✅ |
+| S4 | ✅ **实测通过** | 2026-09-23 · Unity 6000.3.24f1:**A 路**(Addressable 场景 load/unload 交替 ×20)avg=**14.65 ms** · max=**24.19 ms** · total=**293.0 ms**(逐点 14.18/19.26/12.81/12.74)→ 单次换场约 15 ms ≈ **0.9 帧**@60fps,**可接受**。**B 路**(单场景双根 `SetActive` ×20)avg=**0.0114 ms** · max=**0.2056 ms** · total=0.228 ms(亚毫秒,量具已修为 `Elapsed.TotalMilliseconds`)⇒ **A/B 量级比 ≈ 1285×**。**机制建议**:细粒度 chunk 激活宜走**单场景多根 `SetActive`**;场景 load/unload 只用于世界整体换入换出。**量级差即结论,不产新 ADR** | ADR-023 S4 勾选 ✅ |
+| F7(59 绿) | ⬜ 待【桌面】EditMode 标签页确认(数未回) | 清单已落盘(§1.4:16 旧 + 43 新 = 59);须在 Test Runner **EditMode** 标签页跑 `GoldenHashV1Test` + 既有 16,或经 `DaYi/Validation/Run Assembly Gates` 门 | ADR-012 §Validation F7 勾选 |
 | 假设 6 | ⬜ 未跑(用户裁定缓办,集中一轮) | 判据 ④(单一 `UI/Navigate`,无双绑)已在【超算】按 `.inputactions` 按钮表**静态核实通过**;①②③ 须手柄腿 | ADR-013 §6.6 + S5 激活与否 |
 
-> ⚠️ **借绿禁令**:S1/S3 的「红」**不是** spike 结论 —— 两跑的根因都是**装置读数**(§8 坑 A / 坑 B),不是 ADR 结论。
-> **本表在 S1/S3 出全数前不得在 ADR-023 §Validation 勾 S1/S3 任何一项**;S4 已有完整 A/B 两路实数,可勾。
+> ✅ **2026-09-23 S1/S3/S4 三条全部实测通过,已回填 ADR-023 §Validation Criteria(勾选 + 数字)**。
+> S1/S3 前两跑的「红」已定性为**装置读数缺陷**(§8 坑 A / 坑 B),**非** ADR 结论 —— 修复后本轮全绿,判决以本轮为准。
+> **本批仍未结**:F7 的 59 绿待【桌面】EditMode 确认 · 假设 6 缓办(S5 随之休眠)。
+> ⚠️ **借绿禁令仍适用**:F7 未确认前,ADR-012 §Validation F7 不勾;假设 6 未跑,ADR-013 §6.6 不动。
 
 ## 7. 残留与后续(出本批)
 

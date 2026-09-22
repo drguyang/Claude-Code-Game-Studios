@@ -308,6 +308,44 @@ async void LoadScene() {
 }
 ```
 
+> ⚠️ **Handle 生命周期(易踩)—— 2026-09-23 由包源码实读钉死**
+> (verified against `com.unity.addressables` **2.10.3**, mirror tag `2.10.3` @ `6fef233`;
+> 与 U1 spike 实测一致,见 ADR-023 §Validation S3):
+>
+> **1. `UnloadSceneAsync` 默认会自己释放「卸载」句柄。** 三个重载的 `autoReleaseHandle` 默认均为
+> `true`;内部 `InternalUnloadScene` 在 `autoReleaseHandle` 时执行 `relOp.ReleaseHandleOnCompletion()`
+> (`Runtime/AddressablesImpl.cs:1351-1357`)⇒ **卸载 operation 一完成,`UnloadSceneAsync` 返回的句柄
+> 立即失效**。此后读它的 `.Status` / `.OperationException` / `.Result` 抛
+> `System.Exception : Attempting to use an invalid operation handle`
+> (`AsyncOperationHandle.cs:211`,判据 = `m_InternalOp.Version != m_Version`)。
+> ⇒ 需要读卸载结果时传 `autoReleaseHandle: false`,读毕自行 `Addressables.Release(unloadHandle)`。
+>
+> **2. 场景卸载后,`load` 句柄本身也失效。** `SceneProvider.ReleaseScene` 走
+> `resourceManager.StartOperation(unloadOp, sceneLoadHandle)` —— **StartOperation 持有并释放依赖**。
+> ⇒ 任何要用 `load` 的判据值(如 `scene.isLoaded` / `OperationException`)必须**在调 unload 之前**
+> 快照成局部变量;场景对象引用本身(`scene`.NET struct)仍可读。
+>
+> **3. `InstantiateAsync` 的实例若亲代在「被卸载的 Addressable 场景」内,其句柄会被自动释放。**
+> `InstantiateAsync` 默认 `trackHandle: true`;场景卸载销毁实例后,
+> `ResourceManager.CleanupSceneInstances`(`ResourceManager.cs:1036-1056`)把「`Result` 已为 null
+> 且 `InstanceScene()==该场景`」的 tracked 实例 operation **减引用到 0 并自动释放**。
+> ⇒ 这类实例**不得手动 `ReleaseInstance`**(会抛 invalid handle),也**不需要**手动释放;
+> 而**亲代未入场景**(挂在普通根物体上)的实例**不会**被自动清理 —— 它**存活且句柄有效**,
+> **必须**手动 `ReleaseInstance`,否则泄漏(这正是 ADR-023 ⑤ 拆序第 6 步要拦的形态)。
+> 判断存活请用**卸载前抓下的 `GameObject` 引用**(Unity fake-null),不要用句柄。
+>
+> **4. 通用铁律:** 读任何 `AsyncOperationHandle` 前先 `handle.IsValid()`
+> (`m_InternalOp != null && Version == m_Version`,**不抛**);`.Status` / `.Result` /
+> `.OperationException` 在失效句柄上会抛。
+>
+> **5. 引用计数归零须 handle 全 `Release` 后才发生**(实测 S3:bundle 计数 `1→4→2→1`)。handle 尚未
+> 全部 `Release` 时 bundle 仍被引用是**已知形态**,故「只查句柄登记簿」的运行期断言**查不到 bundle 层**。
+>
+> **附:类型命名空间 —— `UnloadSceneOptions` 不在本包源码内**(全仓 `.cs` grep 无其声明;由包外
+> 程序集提供)。需要「不写该类型名」的调用形态时,用 `UnloadSceneAsync(handle, bool autoReleaseHandle)`
+> 重载即可避开。`SceneInstance` / `SceneReleaseMode` 则确认住
+> `UnityEngine.ResourceManagement.ResourceProviders`(`ISceneProvider.cs`)。
+
 ---
 
 ## Common Patterns
