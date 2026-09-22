@@ -91,7 +91,9 @@ D-1 首两输入可交换(a+b 交换 + 同步 avalanche),第三输入起有序 �
 1. `git pull` → 开 Unity → 等编译(Console 零错误)→ 回传新增 `.meta`
 2. 菜单 **`DaYi/Spike/Setup U1 Spikes`**(自动:建 4 个临时场景 + Cube prefab + 假设 6 场景
    + 标 Addressable + 尝试切 Play Mode 到 Existing Build + `BuildPlayerContent`;日志看 Console `[U1]` 前缀)
-3. Test Runner → **PlayMode** → 跑 `U1SceneSpikesTest` 的三条测试(S1 / S3 / S4)
+3. Test Runner → **PlayMode 标签页**(⚠️ **不是** EditMode —— 停在 EditMode 只会跑 59 条 F7 黄金夹具,
+   全绿且无报错,spike 一条都不跑;左列须能看到 `U1SceneSpikesTest` 才是在跑本批)
+   → 跑其三条测试(S1 / S3 / S4)
 4. 结果**自动写** `unity/Logs/u1_spike_results.txt`(每行同时打进 Console `[U1-S1]`/`[U1-S3]`/`[U1-S4]`)
    —— 把该文件内容贴回本卡 §6 对应行即可(或整文件贴我)
 5. 菜单 **`DaYi/Spike/Teardown U1 Spikes`** 清临时资产
@@ -172,10 +174,13 @@ B 路 = 单场景双根(`RootA`/`RootB`)SetActive ×20。
 | Spike | 结论(可用/不可用/部分) | 关键数字/现象 | 回填目标 ADR |
 |-------|------------------------|--------------|--------------|
 | F7(59 绿) | | | ADR-012 §Validation F7 勾选 |
-| S1 | | 加载 _ms / 卸载 _ms / 异常 | ADR-023 S1 勾选 |
-| S3 | | 实测存活?refcount 归零?漏 Release 可观测? | ADR-023 S3 勾选 |
-| S4 | | A 路 _ms vs B 路 _ms(量级) | ADR-023 S4 勾选(机制建议) |
-| 假设 6 | | 双触发?导航质量? | ADR-013 §6.6 + S5 激活与否 |
+| S1 | ⬜ 待复测(首跑红,判决待定) | 首跑 2026-09-23 red,`[U1-S1]` 结果行**未产出** = 装置缺陷(见 §8「数字先落盘」),**不构成 spike 结论** | ADR-023 S1 勾选 |
+| S3 | ⬜ 待复测(首跑红,判决待定) | 同上 —— `[U1-S3]` 三行未产出 | ADR-023 S3 勾选 |
+| S4 | 🟡 **部分实测**(A 路已得数,B 路量具缺陷待复测) | 首跑 2026-09-23 · Unity 6000.3.24f1: **A 路**(Addressable 场景 load/unload 交替 ×20)avg=**14.05 ms** · max=**17 ms** · total=281 ms(逐点 13/17/13/17 ms)→ 单次换场约 14 ms ≈ **0.84 帧**@60fps,**可接受**。B 路(SetActive)首跑记 **0.000 ms / 比值 inf** —— **量具缺陷**(`ElapsedMilliseconds` 是 long,亚毫秒被截断成 0,见 §8),**非**「B 路真为零成本」 | ADR-023 S4 勾选(机制建议) |
+| 假设 6 | ⬜ 未跑(用户裁定缓办,集中一轮) | 判据 ④(单一 `UI/Navigate`,无双绑)已在【超算】按 `.inputactions` 按钮表**静态核实通过**;①②③ 须手柄腿 | ADR-013 §6.6 + S5 激活与否 |
+
+> ⚠️ **借绿禁令**:S1/S3 的「红」**不是** spike 结论 —— 它是装置缺陷导致的**信息丢失**,复测后才有结论。
+> 本表在 S1/S3 出数前不得在 ADR-023 §Validation 勾任何一项。
 
 ## 7. 残留与后续(出本批)
 
@@ -232,4 +237,20 @@ B 路 = 单场景双根(`RootA`/`RootB`)SetActive ×20。
   `dataPath` / `persistentDataPath` / `cwd` 三个基准,`[OneTimeTearDown]` 汇总落点;全失败只警告。
   **数字本身从不依赖文件** —— `Report()` 每行同时 `Debug.Log`(`[U1]` 前缀),Console 搜 `[U1-S`
   即可拿全;文件只是便利。诊断顺序因此定为:**先搜 Console,再 find 文件** —— Console 空 = 没跑。
+- **装置缺陷:**数字排在判据之后(2026-09-23 首跑暴露,【超算】已修)**。首跑 S1/S3 红、且
+  `[U1-S1]`/`[U1-S3]` 结果行**一条都没产出**,只有 S4 有 —— 根因是原稿 `Report(...)` 排在
+  `Assert.*` **之后**:任一 assert 失败、**或** UTF 因中途 Error 日志立即红掉并中止协程,
+  协程就在抵达 `Report` 之前结束 ⇒ **数字全丢**。修法 = **数字先落盘、判据放最后**(判据内容一字未改)。
+  另加 `LogAssert.ignoreFailingMessages = true`(`[OneTimeSetUp]` + `[SetUp]` 各钉一次,防 UTF 逐测重置)
+  **+ `Application.logMessageReceived` 捕获全部 Error/Exception/Assert 日志写进报告**(`[U1-LOG]` 行)。
+  **发现的【内容】不丢** —— 只是不再以「红」的形式吞掉后续测量。⚠️ 该抑制使「日志错误」不再红测试,
+  故**必须**读报告里的 `[U1-LOG]` 段才算看过结论(借绿禁令的落地口径)。
+- **装置缺陷:B 路量具精度**(2026-09-23 首跑暴露,【超算】已修)。S4 B 路用 `sw.ElapsedMilliseconds`
+  (long)—— `SetActive` 每次 <1 ms,**截断成 0**,20 次累计仍 0 ⇒ 实测 avg=0.000、`A/B 量级比=inf`。
+  改用 `Elapsed.TotalMilliseconds`(double,报 4 位小数)。判据不变,只修量具。**首跑的 `inf` 不得
+  当作「B 路零成本」引用**。
+- **测试须在 PlayMode 标签页跑**(2026-09-23):首轮「无结果文件」的另一半嫌疑 —— Run 停在
+  **EditMode** 标签 = 只跑了 59 条 F7(全绿、无报错),三条 spike 一条未执行。Test Runner 左列
+  须能看到 `U1SceneSpikesTest` 才是在跑 spike。装置诊断顺序:**先搜 Console `[U1-S`,再 find 文件** ——
+  Console 空 = 没跑。
 - 本卡不改任何既有 ADR 正文;勾选/回写在结果回报后由回写轮执行(借绿禁令:本卡发出时全部 spike 仍 `NOT-RUN`)。

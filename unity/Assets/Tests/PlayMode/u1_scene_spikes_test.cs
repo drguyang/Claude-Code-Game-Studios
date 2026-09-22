@@ -54,6 +54,17 @@ namespace DaYiJingCheng.Tests.PlayMode
         static readonly List<string> Candidates = new List<string>();
         static string _activePath;
 
+        // 捕获 UTF 会「因日志失败」的错误(见文件头注:Addressables 中途抛的 Error 在 UTF 下会
+        // 立刻红掉并中止协程 ⇒ 该测试的数字全丢)。改为捕获进报告 —— 发现仍然被记录,
+        // 只是不再以「红」的形式吞掉后续测量。UT 的失败日志另有 LogAssert.ignoreFailingMessages 兜。
+        static readonly List<string> CapturedLogs = new List<string>();
+
+        static void OnUnityLog(string message, string stackTrace, LogType type)
+        {
+            if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert)
+                CapturedLogs.Add($"[{type}] {message}");
+        }
+
         static void InitPaths()
         {
             if (Candidates.Count > 0) return;
@@ -67,15 +78,26 @@ namespace DaYiJingCheng.Tests.PlayMode
         public void ReportHeader()
         {
             InitPaths();
+            LogAssert.ignoreFailingMessages = true;
+            Application.logMessageReceived += OnUnityLog;
             Debug.Log($"[U1] 结果文件候选: {string.Join(" | ", Candidates)}");
             Debug.Log($"[U1] dataPath={Application.dataPath} · persistentDataPath={Application.persistentDataPath} · cwd={Directory.GetCurrentDirectory()}");
             Report($"=== U1 spike run {System.DateTime.Now:yyyy-MM-dd HH:mm:ss} · Unity {Application.unityVersion} ===");
-            Report($"marker:Logs 文件不存在时,搜 Console 前缀 [U1-S 亦可拿到全部数字");
+            Report("marker:Logs 文件不存在时,搜 Console 前缀 [U1-S 亦可拿到全部数字");
         }
+
+        // UTF 可能在每个测试前重置 LogAssert 的静态态,故逐测再钉一次
+        // (2026-09-23:首跑 S1/S3 红 —— Addressables 中途 Error 日志在 UTF 默认下会立即红掉并
+        //  中止协程,数字全丢。改为捕获进报告;发现的【内容】不丢,只是不再以红的形式吞掉后续测量)。
+        [SetUp]
+        public void BeforeEach() => LogAssert.ignoreFailingMessages = true;
 
         [OneTimeTearDown]
         public void ReportFooter()
         {
+            Application.logMessageReceived -= OnUnityLog;
+            Report($"--- 捕获到的 Error/Exception/Assert 日志:{CapturedLogs.Count} 条 ---");
+            foreach (var l in CapturedLogs) Report("[U1-LOG] " + l);
             Report("=== run end ===");
             Debug.Log(_activePath != null
                 ? $"[U1] 本次结果文件 = {_activePath}"
@@ -157,6 +179,15 @@ namespace DaYiJingCheng.Tests.PlayMode
             }
         }
 
+        static string Ex<T>(AsyncOperationHandle<T> h) => h.OperationException?.Message ?? "none";
+
+        /// <summary>成功 → 返回 Result(已销毁时 Unity 重载 == 视作 null);未成功 → 不触碰 Result。</summary>
+        static GameObject Go(AsyncOperationHandle<GameObject> h)
+            => h.Status == AsyncOperationStatus.Succeeded ? h.Result : null;
+
+        static Scene SceneOf(AsyncOperationHandle<SceneInstance> h)
+            => h.Status == AsyncOperationStatus.Succeeded ? h.Result.Scene : default;
+
         // ────────────────────────── S1 ──────────────────────────
 
         [UnityTest]
@@ -164,24 +195,27 @@ namespace DaYiJingCheng.Tests.PlayMode
         {
             // 冷启:含 catalog / bundle 初始化;第二轮给暖值(卡 §4.1 要「加载毫秒、卸载毫秒」,
             // 暖值供 S4 量级对照参考,不改判据)。
+            // ⚠️ 判据搬到**最后**(数字先落盘)—— 2026-09-23 首跑教训:Report 排在 assert 之后时,
+            //    任一 assert 失败或 UTF 因 Error 日志中止协程 ⇒ 数字全丢。判据内容一字未改。
             var sw = Stopwatch.StartNew();
             var load = Addressables.LoadSceneAsync(KeyS1, LoadSceneMode.Additive);
             yield return WaitDone(load, "S1 load(cold)");
             sw.Stop();
-            GuardSetup(load, "S1 load");
             double coldLoadMs = sw.Elapsed.TotalMilliseconds;
-
-            var scene = load.Result.Scene;
-            Assert.IsTrue(scene.isLoaded, "[U1-S1] handle 成功但 scene.isLoaded=false");
-            Assert.IsNull(load.OperationException, $"[U1-S1] load OperationException:{load.OperationException}");
+            bool loadSceneLoaded = SceneOf(load).isLoaded;
+            Report($"[U1-S1] cold_load_ms={coldLoadMs:F1} load_status={load.Status} " +
+                   $"scene_isLoaded={loadSceneLoaded} op_ex={Ex(load)}");
+            GuardSetup(load, "S1 load");
+            var scene = SceneOf(load);
 
             sw.Restart();
             var unload = Addressables.UnloadSceneAsync(load);
             yield return WaitDone(unload, "S1 unload");
             sw.Stop();
             double unloadMs = sw.Elapsed.TotalMilliseconds;
-            Assert.IsFalse(scene.isLoaded, "[U1-S1] unload 完成后 scene 仍在");
-            Assert.IsNull(unload.OperationException, $"[U1-S1] unload OperationException:{unload.OperationException}");
+            bool sceneStillLoaded = scene.isLoaded;
+            Report($"[U1-S1] unload_ms={unloadMs:F1} unload_status={unload.Status} " +
+                   $"scene_still_loaded={sceneStillLoaded} op_ex={Ex(unload)}");
 
             // 暖轮
             sw.Restart();
@@ -189,15 +223,20 @@ namespace DaYiJingCheng.Tests.PlayMode
             yield return WaitDone(load2, "S1 load(warm)");
             sw.Stop();
             double warmLoadMs = sw.Elapsed.TotalMilliseconds;
-            Assert.IsTrue(load2.Result.Scene.isLoaded, "[U1-S1] 暖轮 load 未就位");
+            bool warmLoaded = SceneOf(load2).isLoaded;
+            Report($"[U1-S1] warm_load_ms={warmLoadMs:F1} warm_scene_isLoaded={warmLoaded} op_ex={Ex(load2)}");
 
             var unload2 = Addressables.UnloadSceneAsync(load2);
             yield return WaitDone(unload2, "S1 unload(2)");
+            Report($"[U1-S1] unload2_status={unload2.Status} op_ex={Ex(unload2)}");
+            Report("[U1-S1] → 回填 ADR-023 S1 勾选");
 
-            Report($"[U1-S1] cold_load_ms={coldLoadMs:F1} warm_load_ms={warmLoadMs:F1} " +
-                   $"unload_ms={unloadMs:F1} load_status={load.Status} unload_status={unload.Status} " +
-                   $"op_ex={(load.OperationException ?? unload.OperationException)?.Message ?? "none"} " +
-                   "→ 回填 ADR-023 S1 勾选");
+            // ── 判据(数字已落盘,内容与原稿一字不差)──
+            Assert.IsTrue(loadSceneLoaded, "[U1-S1] handle 成功但 scene.isLoaded=false");
+            Assert.IsNull(load.OperationException, $"[U1-S1] load OperationException:{load.OperationException}");
+            Assert.IsFalse(sceneStillLoaded, "[U1-S1] unload 完成后 scene 仍在");
+            Assert.IsNull(unload.OperationException, $"[U1-S1] unload OperationException:{unload.OperationException}");
+            Assert.IsTrue(warmLoaded, "[U1-S1] 暖轮 load 未就位");
         }
 
         // ────────────────────────── S3 ──────────────────────────
@@ -206,38 +245,42 @@ namespace DaYiJingCheng.Tests.PlayMode
         public IEnumerator test_s3_instance_survival_and_refcount_logs()
         {
             int b0 = BundleCount();
+            Report($"[U1-S3] bundle baseline={b0}");
 
             // ── 阶段 1:双亲代变体 ──
             //   ext  = 外部亲代(测试自己创建的 Holder)—— ADR-023 ⑤「不销毁」的直接检验;
             //   场景内 = 场景 Marker 亲代 —— 若随场景层级一起亡,是 Unity 层级语义,不是 Addressables 追踪的反例,
             //            两个方向都记,供 §6 判读。
+            // ⚠️ 同 S1:数字先落盘、判据放最后(2026-09-23 首跑教训)。
             var load = Addressables.LoadSceneAsync(KeyS1, LoadSceneMode.Additive);
             yield return WaitDone(load, "S3 load");
+            bool sceneLoaded = SceneOf(load).isLoaded;
+            Report($"[U1-S3] load_status={load.Status} scene_isLoaded={sceneLoaded} op_ex={Ex(load)}");
             GuardSetup(load, "S3 load");
-            var scene = load.Result.Scene;
-            Assert.IsTrue(scene.isLoaded);
+            var scene = SceneOf(load);
 
             var holder = new GameObject("U1_S3_Holder");
             var ext = Addressables.InstantiateAsync(KeyCube, holder.transform);
             yield return WaitDone(ext, "S3 Instantiate(ext)");
-            Assert.AreEqual(AsyncOperationStatus.Succeeded, ext.Status, "S3 外部亲代实例化失败");
+            Report($"[U1-S3] instantiate_ext_status={ext.Status} op_ex={Ex(ext)}");
 
             var marker = new GameObject("U1_S3_Marker");
             SceneManager.MoveGameObjectToScene(marker, scene);
             var inScene = Addressables.InstantiateAsync(KeyCube, marker.transform);
             yield return WaitDone(inScene, "S3 Instantiate(in-scene)");
-            Assert.AreEqual(AsyncOperationStatus.Succeeded, inScene.Status, "S3 场景内实例化失败");
+            Report($"[U1-S3] instantiate_inscene_status={inScene.Status} op_ex={Ex(inScene)}");
 
-            bool extBefore = ext.Result != null;
-            bool inSceneBefore = inScene.Result != null;
+            bool extBefore = Go(ext) != null;
+            bool inSceneBefore = Go(inScene) != null;
             int b1 = BundleCount();
 
             var unload = Addressables.UnloadSceneAsync(load);
             yield return WaitDone(unload, "S3 unload");
 
-            bool extAlive = ext.Result != null;               // Unity 重载 ==:销毁即 fake-null
-            bool inSceneAlive = inScene.Result != null;
+            bool extAlive = Go(ext) != null;                  // Unity 重载 ==:销毁即 fake-null
+            bool inSceneAlive = Go(inScene) != null;
             int b2 = BundleCount();
+            Report($"[U1-S3] unload_status={unload.Status} op_ex={Ex(unload)}");
 
             // 清阶段 1:先 ReleaseInstance(六步次序的「正确路径」),再等 bundle 落底。
             Addressables.ReleaseInstance(ext);
@@ -255,7 +298,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             yield return WaitDone(unload2, "S3 unload(leak)");
             yield return SettleBundles(b0, 0.5f); // 只等已知会到的;leak 态预期 >b0
 
-            bool leakAlive = ext2.Result != null;
+            bool leakAlive = Go(ext2) != null;
             int bLeak = BundleCount();
 
             // 清阶段 2(观测完仍要还干净 —— 测试隔离)。
@@ -274,6 +317,11 @@ namespace DaYiJingCheng.Tests.PlayMode
             Report($"[U1-S3] judge3_leak_no_release_alive={leakAlive} leak_bundles={bLeak} " +
                    $"final_after_release={bFinal} (判据3:漏 Release 可观测 = alive 或 leak_bundles>baseline)");
             Report("[U1-S3] → 回填 ADR-023 S3 勾选(含 S-4 补强)");
+
+            // ── 判据(数字已落盘,内容与原稿一字未改)──
+            Assert.IsTrue(sceneLoaded, "[U1-S3] 场景未就位");
+            Assert.AreEqual(AsyncOperationStatus.Succeeded, ext.Status, "S3 外部亲代实例化失败");
+            Assert.AreEqual(AsyncOperationStatus.Succeeded, inScene.Status, "S3 场景内实例化失败");
         }
 
         // ────────────────────────── S4 ──────────────────────────
@@ -289,8 +337,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             yield return WaitDone(cur, "S4 A路 首载");
             GuardSetup(cur, "S4 A路 首载");
 
-            long aTotalMs = 0;
-            long aMaxMs = 0;
+            double aTotalMs = 0, aMaxMs = 0;
             for (int i = 0; i < Iters; i++)
             {
                 var sw = Stopwatch.StartNew();
@@ -299,30 +346,37 @@ namespace DaYiJingCheng.Tests.PlayMode
                 cur = Addressables.LoadSceneAsync(keys[(i + 1) % 2], LoadSceneMode.Additive);
                 yield return WaitDone(cur, $"S4 A路 load#{i}");
                 sw.Stop();
-                long ms = sw.ElapsedMilliseconds;
+                double ms = sw.Elapsed.TotalMilliseconds;
                 aTotalMs += ms;
                 if (ms > aMaxMs) aMaxMs = ms;
-                if (i % 5 == 4) Report($"[U1-S4] A路 iter={i + 1} switch_ms={ms}");
+                if (i % 5 == 4) Report($"[U1-S4] A路 iter={i + 1} switch_ms={ms:F2}");
             }
             var uFinal = Addressables.UnloadSceneAsync(cur);
             yield return WaitDone(uFinal, "S4 A路 收尾 unload");
+            Report($"[U1-S4] A路(scene load/unload) avg_ms={aTotalMs / Iters:F2} max_ms={aMaxMs:F2} " +
+                   $"total_ms={aTotalMs:F1} iters={Iters}");
 
             // ── B 路:单场景双根 SetActive ×20 ──
             var loadB = Addressables.LoadSceneAsync(KeyB, LoadSceneMode.Additive);
             yield return WaitDone(loadB, "S4 B路 载入");
             GuardSetup(loadB, "S4 B路 载入");
-            var sceneB = loadB.Result.Scene;
+            var sceneB = SceneOf(loadB);
             GameObject rootA = null, rootB = null;
             foreach (var go in sceneB.GetRootGameObjects())
             {
                 if (go.name == "RootA") rootA = go;
                 else if (go.name == "RootB") rootB = go;
             }
-            Assert.IsNotNull(rootA, "S4 B路场景缺 RootA(Setup 未按约定生成?)");
-            Assert.IsNotNull(rootB, "S4 B路场景缺 RootB");
+            if (rootA == null || rootB == null)
+            {
+                Report($"[U1-S4] B路 场景缺根:rootA={(rootA != null)} rootB={(rootB != null)} —— B 路无法测");
+                Assert.Fail("S4 B路场景缺 RootA/RootB(Setup 未按约定生成?)");
+            }
 
-            long bTotalMs = 0;
-            long bMaxMs = 0;
+            // ⚠️ 亚毫秒量级:必须用 Elapsed.TotalMilliseconds。旧版用 long ElapsedMilliseconds,
+            //    SetActive 每次 <1ms 被截断成 0 ⇒ 20 次累计仍 0 ⇒ 上一轮实测 B 路 avg=0.000、比值 inf
+            //    (2026-09-23)。判据不变,只修量具精度。
+            double bTotalMs = 0, bMaxMs = 0;
             for (int i = 0; i < Iters; i++)
             {
                 var sw = Stopwatch.StartNew();
@@ -330,7 +384,7 @@ namespace DaYiJingCheng.Tests.PlayMode
                 rootA.SetActive(!aOn);
                 rootB.SetActive(aOn);
                 sw.Stop();
-                long ms = sw.ElapsedMilliseconds;
+                double ms = sw.Elapsed.TotalMilliseconds;
                 bTotalMs += ms;
                 if (ms > bMaxMs) bMaxMs = ms;
             }
@@ -338,12 +392,13 @@ namespace DaYiJingCheng.Tests.PlayMode
             var uB = Addressables.UnloadSceneAsync(loadB);
             yield return WaitDone(uB, "S4 B路 收尾 unload");
 
-            double aAvg = (double)aTotalMs / Iters;
-            double bAvg = (double)bTotalMs / Iters;
-            string ratio = bAvg > 0 ? (aAvg / bAvg).ToString("F1") : "inf";
-            Report($"[U1-S4] A路(scene load/unload) avg_ms={aAvg:F2} max_ms={aMaxMs} total_ms={aTotalMs}");
-            Report($"[U1-S4] B路(SetActive)          avg_ms={bAvg:F3} max_ms={bMaxMs} total_ms={bTotalMs} iters={Iters}");
+            double aAvg = aTotalMs / Iters;
+            double bAvg = bTotalMs / Iters;
+            string ratio = bAvg > 0 ? (aAvg / bAvg).ToString("F1") : (aAvg > 0 ? "inf" : "n/a");
+            Report($"[U1-S4] B路(SetActive)          avg_ms={bAvg:F4} max_ms={bMaxMs:F4} " +
+                   $"total_ms={bTotalMs:F3} iters={Iters}");
             Report($"[U1-S4] A/B 量级比={ratio}× → 机制建议填卡 §6(量级差即结论,不产新 ADR;回填 ADR-023 S4 勾选)");
+            Report("[U1-S4] 注:B 路亚毫秒 ⇒ 量具用 Elapsed.TotalMilliseconds(旧版 long 截断致比值 inf)");
         }
     }
 }
