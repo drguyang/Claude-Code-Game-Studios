@@ -9,13 +9,27 @@
 // ⚠️ 本文件是**执行装置,不是黄金断言**:
 //    - 绿 = 装置跑通(加载/卸载/实例化按预期完成);存活方向、毫秒数、bundle 计数
 //      **不作 Assert** —— 任一方向都是 spike 发现,写进 Logs/u1_spike_results.txt 供 §6 回填;
-//    - Addressables 在 unload 中途抛的 Error 日志会按 UTF 默认把测试打红 —— 那本身就是 S1 发现;
 //    - 前置:菜单 DaYi/Spike/Setup U1 Spikes 已跑(缺 key → 三条全 Ignore,不会假绿)。
 //    - bundle 计数依赖 Play Mode = Existing Build(Setup 已尝试自动切);Use Asset Database
 //      模式下 bundle 数恒 0,结果行会标 mode=AssetDatabase(spike 判据 2/3 记 N/A)。
 // ⚠️ 结果写 Logs/u1_spike_results.txt(Unity .gitignore 已含 [Ll]ods —— 不入库),
 //    每行同时打进 Console([U1-S1]/[U1-S3]/[U1-S4] 前缀)。
 // ⚠️ 编译判定唯一归【桌面】(集群无 Unity);黄金纪律不适用此处(无黄金期望值)。
+//
+// ── 2026-09-23 第二轮:Addressables handle 生命周期的两个坑(源实读 2.10.3 @ 6fef233) ──
+//   坑 A(踩中 S1):`Addressables.UnloadSceneAsync(h)` 默认 `autoReleaseHandle = true`,内部
+//     执行 `relOp.ReleaseHandleOnCompletion()` ⇒ **卸载 operation 一完成,返回的 unload handle
+//     自己就释放了**。此后读 `.Status` / `.OperationException` 抛
+//     「Attempting to use an invalid operation handle」(AsyncOperationHandle.cs:211,Version 失配)。
+//     修法:传 `autoReleaseHandle: false`,读完之后自己 `Addressables.Release(unload)`。
+//   坑 B(踩中 S3):`InstantiateAsync(key, parent)` 默认 `trackHandle = true`;若实例亲代在
+//     **被卸载的 Addressable 场景**里,场景卸载销毁实例后 `ResourceManager.CleanupSceneInstances`
+//     会把「Result 已为 null 且 InstanceScene()==该场景」的 tracked 实例 operation 减引用到 0
+//     ⇒ **该实例的 handle 被 Addressables 自动释放**(读 .Status 同样抛 invalid handle)。
+//     外部亲代(未入场景的根物体)则存活、handle 保持有效 —— 这正是 ADR-023 ⑤ 要区分的两态。
+//     修法:在卸载**之前**把 GameObject 引用取出来,卸载后用引用比对(Unity fake-null)判存活;
+//     handle 读取一律先 `IsValid()`;`ReleaseInstance` 也先 `IsValid()`(已被自动清理的再释放会抛)。
+//   ⇒ 三条读句柄的辅助(Ex / Go / SceneOf)全部先判 `IsValid()`,本文件不再有任何裸读。
 
 using System;
 using System.Collections;
@@ -135,10 +149,14 @@ namespace DaYiJingCheng.Tests.PlayMode
 
         // ────────────────────────── 通用 ──────────────────────────
 
+        // ⚠️ 句柄可能已被 Addressables 自动释放(见文件头注坑 A / 坑 B):
+        //    `IsValid()` 是安全读(`m_InternalOp != null && Version == m_Version`,不抛),
+        //    而 `.Status` / `.OperationException` / `.Result` 在失效句柄上会抛。
+        //    故 WaitDone 也先判 IsValid:失效即视为「无需再等」,不做断言。
         static IEnumerator WaitDone(AsyncOperationHandle handle, string label)
         {
             float t0 = Time.realtimeSinceStartup;
-            while (!handle.IsDone)
+            while (handle.IsValid() && !handle.IsDone)
             {
                 if (Time.realtimeSinceStartup - t0 > TimeoutSec)
                     Assert.Fail($"[U1] {label} 超时 {TimeoutSec}s 未完成,status={handle.Status}");
@@ -148,6 +166,7 @@ namespace DaYiJingCheng.Tests.PlayMode
 
         static bool IsMissingKey(AsyncOperationHandle handle)
         {
+            if (!handle.IsValid()) return false;
             var ex = handle.OperationException;
             return ex is InvalidKeyException
                    || (ex != null && ex.Message != null && ex.Message.Contains("InvalidKey"));
@@ -156,6 +175,7 @@ namespace DaYiJingCheng.Tests.PlayMode
         /// <summary>先探 key 是否存在:Setup 没跑 → Ignore(不假绿);真失败 → Fail。</summary>
         static void GuardSetup(AsyncOperationHandle handle, string label)
         {
+            if (!handle.IsValid()) return;
             if (handle.Status != AsyncOperationStatus.Failed) return;
             if (IsMissingKey(handle))
                 Assert.Ignore($"[U1] {label}:Addressable key 不存在 —— 先跑菜单 DaYi/Spike/Setup U1 Spikes 再 Run");
@@ -180,14 +200,29 @@ namespace DaYiJingCheng.Tests.PlayMode
             }
         }
 
-        static string Ex<T>(AsyncOperationHandle<T> h) => h.OperationException?.Message ?? "none";
+        // ── 三个读句柄的安全取值(全部先判 IsValid,失效句柄不抛)──
 
-        /// <summary>成功 → 返回 Result(已销毁时 Unity 重载 == 视作 null);未成功 → 不触碰 Result。</summary>
+        static string Ex<T>(AsyncOperationHandle<T> h)
+            => !h.IsValid() ? "<handle 已自动释放>"
+                            : (h.OperationException?.Message ?? "none");
+
+        /// <summary>成功 → Result;未成功 / 句柄已失效 → null(不触碰失效句柄)。</summary>
         static GameObject Go(AsyncOperationHandle<GameObject> h)
-            => h.Status == AsyncOperationStatus.Succeeded ? h.Result : null;
+            => h.IsValid() && h.Status == AsyncOperationStatus.Succeeded ? h.Result : null;
 
         static Scene SceneOf(AsyncOperationHandle<SceneInstance> h)
-            => h.Status == AsyncOperationStatus.Succeeded ? h.Result.Scene : default;
+            => h.IsValid() && h.Status == AsyncOperationStatus.Succeeded ? h.Result.Scene : default;
+
+        /// <summary>卸载并**保留**可读句柄:autoReleaseHandle:false ⇒ 读得动 status/ex,读完自己 Release。
+        /// 走 `(AsyncOperationHandle<SceneInstance>, bool)` 这个重载 ⇒ 代码里**不出现**
+        /// `UnloadSceneOptions` 这个类型名(它不在包源码内,命名空间归属无法在集群侧实读钉死 —— 见卡 §8)。</summary>
+        static AsyncOperationHandle<SceneInstance> UnloadKeepingHandle(AsyncOperationHandle<SceneInstance> sceneHandle)
+            => Addressables.UnloadSceneAsync(sceneHandle, false);
+
+        static void ReleaseIfValid<T>(AsyncOperationHandle<T> h)
+        {
+            if (h.IsValid()) Addressables.Release(h);
+        }
 
         // ────────────────────────── S1 ──────────────────────────
 
@@ -204,22 +239,26 @@ namespace DaYiJingCheng.Tests.PlayMode
             sw.Stop();
             double coldLoadMs = sw.Elapsed.TotalMilliseconds;
             bool loadSceneLoaded = SceneOf(load).isLoaded;
-            var loadEx = load.OperationException;   // ⚠️ 判据用的值一律**在 release 之前**取出 ——
-                                                    //    unload 会释放 handle,之后读 .Status/.OperationException 不保证安全
-            Report($"[U1-S1] cold_load_ms={coldLoadMs:F1} load_status={load.Status} " +
+            // ⚠️ 判据用的值一律**在 release 之前**取出 —— 卸载会连同 `load` 一起释放
+            //    (SceneProvider.ReleaseScene → StartOperation(unloadOp, sceneLoadHandle) 持有并释放依赖)。
+            var loadEx = load.IsValid() ? load.OperationException : null;
+            var loadStatus = load.IsValid() ? load.Status.ToString() : "<invalid>";
+            Report($"[U1-S1] cold_load_ms={coldLoadMs:F1} load_status={loadStatus} " +
                    $"scene_isLoaded={loadSceneLoaded} op_ex={loadEx?.Message ?? "none"}");
             GuardSetup(load, "S1 load");
             var scene = SceneOf(load);
 
             sw.Restart();
-            var unload = Addressables.UnloadSceneAsync(load);
+            var unload = UnloadKeepingHandle(load);
             yield return WaitDone(unload, "S1 unload");
             sw.Stop();
             double unloadMs = sw.Elapsed.TotalMilliseconds;
             bool sceneStillLoaded = scene.isLoaded;
-            var unloadEx = unload.OperationException;
-            Report($"[U1-S1] unload_ms={unloadMs:F1} unload_status={unload.Status} " +
+            var unloadStatus = unload.IsValid() ? unload.Status.ToString() : "<invalid>";   // autoRelease:false ⇒ 读得动
+            var unloadEx = unload.IsValid() ? unload.OperationException : null;
+            Report($"[U1-S1] unload_ms={unloadMs:F1} unload_status={unloadStatus} " +
                    $"scene_still_loaded={sceneStillLoaded} op_ex={unloadEx?.Message ?? "none"}");
+            ReleaseIfValid(unload);   // 自持句柄自还
 
             // 暖轮
             sw.Restart();
@@ -230,9 +269,11 @@ namespace DaYiJingCheng.Tests.PlayMode
             bool warmLoaded = SceneOf(load2).isLoaded;
             Report($"[U1-S1] warm_load_ms={warmLoadMs:F1} warm_scene_isLoaded={warmLoaded} op_ex={Ex(load2)}");
 
-            var unload2 = Addressables.UnloadSceneAsync(load2);
+            var unload2 = UnloadKeepingHandle(load2);
             yield return WaitDone(unload2, "S1 unload(2)");
-            Report($"[U1-S1] unload2_status={unload2.Status} op_ex={Ex(unload2)}");
+            var unload2Status = unload2.IsValid() ? unload2.Status.ToString() : "<invalid>";
+            Report($"[U1-S1] unload2_status={unload2Status} op_ex={Ex(unload2)}");
+            ReleaseIfValid(unload2);
             Report("[U1-S1] → 回填 ADR-023 S1 勾选");
 
             // ── 判据(数字已落盘,内容与原稿一字不差)──
@@ -252,45 +293,57 @@ namespace DaYiJingCheng.Tests.PlayMode
             Report($"[U1-S3] bundle baseline={b0}");
 
             // ── 阶段 1:双亲代变体 ──
-            //   ext  = 外部亲代(测试自己创建的 Holder)—— ADR-023 ⑤「不销毁」的直接检验;
-            //   场景内 = 场景 Marker 亲代 —— 若随场景层级一起亡,是 Unity 层级语义,不是 Addressables 追踪的反例,
+            //   ext  = 外部亲代(测试自己创建的 Holder,未入 Addressable 场景)—— ADR-023 ⑤「不销毁」的直接检验;
+            //   场景内 = 场景 Marker 亲代 —— 随场景层级一起亡,且其 tracked 实例 handle 被
+            //            ResourceManager.CleanupSceneInstances **自动释放**(见文件头注坑 B),
             //            两个方向都记,供 §6 判读。
             // ⚠️ 同 S1:数字先落盘、判据放最后(2026-09-23 首跑教训)。
             var load = Addressables.LoadSceneAsync(KeyS1, LoadSceneMode.Additive);
             yield return WaitDone(load, "S3 load");
             bool sceneLoaded = SceneOf(load).isLoaded;
-            Report($"[U1-S3] load_status={load.Status} scene_isLoaded={sceneLoaded} op_ex={Ex(load)}");
+            Report($"[U1-S3] load_status={(load.IsValid() ? load.Status.ToString() : "<invalid>")} " +
+                   $"scene_isLoaded={sceneLoaded} op_ex={Ex(load)}");
             GuardSetup(load, "S3 load");
             var scene = SceneOf(load);
 
-            var holder = new GameObject("U1_S3_Holder");
+            var holder = new GameObject("U1_S3_Holder");   // 根物体、不入场景 ⇒ 场景卸载后仍存活
             var ext = Addressables.InstantiateAsync(KeyCube, holder.transform);
             yield return WaitDone(ext, "S3 Instantiate(ext)");
-            var extStatus = ext.Status;   // ⚠️ release 前取出(判据值不在 release 之后读 handle)
+            // ⚠️ 判据值在卸载前取成**快照**(句柄之后可能被自动释放,那时 .Status 会抛)
+            var extStatus = ext.IsValid() ? ext.Status : AsyncOperationStatus.Failed;
+            GameObject extGo = Go(ext);                    // ⚠️ 卸载前抓引用:之后句柄可能失效,引用仍可比对
             Report($"[U1-S3] instantiate_ext_status={extStatus} op_ex={Ex(ext)}");
 
             var marker = new GameObject("U1_S3_Marker");
             SceneManager.MoveGameObjectToScene(marker, scene);
             var inScene = Addressables.InstantiateAsync(KeyCube, marker.transform);
             yield return WaitDone(inScene, "S3 Instantiate(in-scene)");
-            var inSceneStatus = inScene.Status;
+            var inSceneStatus = inScene.IsValid() ? inScene.Status : AsyncOperationStatus.Failed;
+            GameObject inSceneGo = Go(inScene);            // ⚠️ 同上
             Report($"[U1-S3] instantiate_inscene_status={inSceneStatus} op_ex={Ex(inScene)}");
 
-            bool extBefore = Go(ext) != null;
-            bool inSceneBefore = Go(inScene) != null;
+            bool extBefore = extGo != null;
+            bool inSceneBefore = inSceneGo != null;
             int b1 = BundleCount();
 
-            var unload = Addressables.UnloadSceneAsync(load);
+            var unload = UnloadKeepingHandle(load);
             yield return WaitDone(unload, "S3 unload");
+            var unloadStatus = unload.IsValid() ? unload.Status.ToString() : "<invalid>";
+            var unloadEx = unload.IsValid() ? unload.OperationException : null;
+            ReleaseIfValid(unload);
 
-            bool extAlive = Go(ext) != null;                  // Unity 重载 ==:销毁即 fake-null
-            bool inSceneAlive = Go(inScene) != null;
+            // 存活判定走**卸载前抓的 GameObject 引用**(Unity 重载 ==:销毁即 fake-null)——
+            // 不用句柄,因为场景内那支句柄可能已被 Addressables 自动释放(读它会抛)。
+            bool extAlive = extGo != null;
+            bool inSceneAlive = inSceneGo != null;
+            bool extHandleValid = ext.IsValid();
+            bool inSceneHandleValid = inScene.IsValid();
             int b2 = BundleCount();
-            Report($"[U1-S3] unload_status={unload.Status} op_ex={Ex(unload)}");
+            Report($"[U1-S3] unload_status={unloadStatus} op_ex={unloadEx?.Message ?? "none"}");
 
-            // 清阶段 1:先 ReleaseInstance(六步次序的「正确路径」),再等 bundle 落底。
-            Addressables.ReleaseInstance(ext);
-            Addressables.ReleaseInstance(inScene);
+            // 清阶段 1:先 ReleaseInstance(六步次序的「正确路径」);已被自动清理的那支不能再释放。
+            if (ext.IsValid()) Addressables.ReleaseInstance(ext);
+            if (inScene.IsValid()) Addressables.ReleaseInstance(inScene);
             yield return SettleBundles(b0);
             int b3 = BundleCount();
 
@@ -300,15 +353,17 @@ namespace DaYiJingCheng.Tests.PlayMode
             var holder2 = new GameObject("U1_S3_Holder2");
             var ext2 = Addressables.InstantiateAsync(KeyCube, holder2.transform);
             yield return WaitDone(ext2, "S3 Instantiate(leak)");
-            var unload2 = Addressables.UnloadSceneAsync(load2);
+            var unload2 = UnloadKeepingHandle(load2);
             yield return WaitDone(unload2, "S3 unload(leak)");
+            ReleaseIfValid(unload2);
             yield return SettleBundles(b0, 0.5f); // 只等已知会到的;leak 态预期 >b0
 
-            bool leakAlive = Go(ext2) != null;
+            GameObject ext2Go = Go(ext2);
+            bool leakAlive = ext2Go != null;
             int bLeak = BundleCount();
 
             // 清阶段 2(观测完仍要还干净 —— 测试隔离)。
-            Addressables.ReleaseInstance(ext2);
+            if (ext2.IsValid()) Addressables.ReleaseInstance(ext2);
             yield return SettleBundles(b0);
             int bFinal = BundleCount();
 
@@ -318,16 +373,19 @@ namespace DaYiJingCheng.Tests.PlayMode
             Report($"[U1-S3] judge1_ext_parent_alive_after_unload={extAlive} " +
                    $"(created={extBefore}, ADR-023 ⑤ 预期 True = 泄漏形态成立) " +
                    $"judge1_scene_child_alive_after_unload={inSceneAlive} (created={inSceneBefore};False=随层级亡,非 Addressables 反例)");
+            Report($"[U1-S3] handle_valid_after_scene_unload ext={extHandleValid} inScene={inSceneHandleValid} " +
+                   $"(CleanupSceneInstances 会释放「随场景销毁」的 tracked 实例 handle ⇒ inScene 预期 False)");
             Report($"[U1-S3] bundles baseline={b0} after_load_inst={b1} after_unload={b2} " +
                    $"after_release={b3} (判据2:回到 baseline=refcount 归零;>baseline=S-4 已知形态)");
             Report($"[U1-S3] judge3_leak_no_release_alive={leakAlive} leak_bundles={bLeak} " +
                    $"final_after_release={bFinal} (判据3:漏 Release 可观测 = alive 或 leak_bundles>baseline)");
             Report("[U1-S3] → 回填 ADR-023 S3 勾选(含 S-4 补强)");
 
-            // ── 判据(数字已落盘,内容与原稿一字未改)──
+            // ── 判据(数字已落盘,内容与原稿一字未改;取值全走卸载前快照)──
             Assert.IsTrue(sceneLoaded, "[U1-S3] 场景未就位");
             Assert.AreEqual(AsyncOperationStatus.Succeeded, extStatus, "S3 外部亲代实例化失败");
             Assert.AreEqual(AsyncOperationStatus.Succeeded, inSceneStatus, "S3 场景内实例化失败");
+            Assert.IsTrue(extAlive, "[U1-S3] 外部亲代实例在卸载后消失(ADR-023 ⑤ 前提被推翻,须登记)");
         }
 
         // ────────────────────────── S4 ──────────────────────────
@@ -347,8 +405,9 @@ namespace DaYiJingCheng.Tests.PlayMode
             for (int i = 0; i < Iters; i++)
             {
                 var sw = Stopwatch.StartNew();
-                var u = Addressables.UnloadSceneAsync(cur);
+                var u = UnloadKeepingHandle(cur);
                 yield return WaitDone(u, $"S4 A路 unload#{i}");
+                ReleaseIfValid(u);
                 cur = Addressables.LoadSceneAsync(keys[(i + 1) % 2], LoadSceneMode.Additive);
                 yield return WaitDone(cur, $"S4 A路 load#{i}");
                 sw.Stop();
@@ -357,8 +416,9 @@ namespace DaYiJingCheng.Tests.PlayMode
                 if (ms > aMaxMs) aMaxMs = ms;
                 if (i % 5 == 4) Report($"[U1-S4] A路 iter={i + 1} switch_ms={ms:F2}");
             }
-            var uFinal = Addressables.UnloadSceneAsync(cur);
+            var uFinal = UnloadKeepingHandle(cur);
             yield return WaitDone(uFinal, "S4 A路 收尾 unload");
+            ReleaseIfValid(uFinal);
             Report($"[U1-S4] A路(scene load/unload) avg_ms={aTotalMs / Iters:F2} max_ms={aMaxMs:F2} " +
                    $"total_ms={aTotalMs:F1} iters={Iters}");
 
@@ -395,8 +455,9 @@ namespace DaYiJingCheng.Tests.PlayMode
                 if (ms > bMaxMs) bMaxMs = ms;
             }
 
-            var uB = Addressables.UnloadSceneAsync(loadB);
+            var uB = UnloadKeepingHandle(loadB);
             yield return WaitDone(uB, "S4 B路 收尾 unload");
+            ReleaseIfValid(uB);
 
             double aAvg = aTotalMs / Iters;
             double bAvg = bTotalMs / Iters;

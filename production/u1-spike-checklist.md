@@ -174,13 +174,14 @@ B 路 = 单场景双根(`RootA`/`RootB`)SetActive ×20。
 | Spike | 结论(可用/不可用/部分) | 关键数字/现象 | 回填目标 ADR |
 |-------|------------------------|--------------|--------------|
 | F7(59 绿) | | | ADR-012 §Validation F7 勾选 |
-| S1 | ⬜ 待复测(首跑红,判决待定) | 首跑 2026-09-23 red,`[U1-S1]` 结果行**未产出** = 装置缺陷(见 §8「数字先落盘」),**不构成 spike 结论** | ADR-023 S1 勾选 |
-| S3 | ⬜ 待复测(首跑红,判决待定) | 同上 —— `[U1-S3]` 三行未产出 | ADR-023 S3 勾选 |
-| S4 | 🟡 **部分实测**(A 路已得数,B 路量具缺陷待复测) | 首跑 2026-09-23 · Unity 6000.3.24f1: **A 路**(Addressable 场景 load/unload 交替 ×20)avg=**14.05 ms** · max=**17 ms** · total=281 ms(逐点 13/17/13/17 ms)→ 单次换场约 14 ms ≈ **0.84 帧**@60fps,**可接受**。B 路(SetActive)首跑记 **0.000 ms / 比值 inf** —— **量具缺陷**(`ElapsedMilliseconds` 是 long,亚毫秒被截断成 0,见 §8),**非**「B 路真为零成本」 | ADR-023 S4 勾选(机制建议) |
+| S1 | ⬜ 待复测(两跑都红,但病因已定位并修) | 首跑:结果行未产出(装置缺陷)· 二跑 2026-09-23 04:37 **已产出半条**:`cold_load_ms=**95.8 ms** load_status=Succeeded scene_isLoaded=True op_ex=none`(冷启含 catalog/bundle 初始化),随后在 `unload.OperationException` 处抛 invalid handle = **§8 坑 A(装置读数),非 spike 结论** | ADR-023 S1 勾选 |
+| S3 | ⬜ 待复测(同上) | 二跑**已产出四条**:`bundle baseline=**1**` · `load_status=Succeeded scene_isLoaded=True` · `instantiate_ext_status=Succeeded` · `instantiate_inscene_status=Succeeded`;随后在 `Go(inScene)` 处抛 invalid handle = **§8 坑 B(场景内实例的 handle 被自动清理)**。判据 1/2/3 的数字**尚未出全**,不得据半条下结论 | ADR-023 S3 勾选 |
+| S4 | ✅ **已实测**(A/B 两路均有数) | 2026-09-23 · Unity 6000.3.24f1:**A 路**(Addressable 场景 load/unload 交替 ×20)avg=**14.65 ms** · max=**24.19 ms** · total=**293.0 ms**(逐点 14.18/19.26/12.81/12.74 ms)→ 单次换场约 15 ms ≈ **0.9 帧**@60fps,**可接受**。**B 路**(单场景双根 `SetActive` ×20)avg=**0.0114 ms** · max=**0.2056 ms** · total=0.228 ms(亚毫秒,量具已修为 `Elapsed.TotalMilliseconds`)⇒ **A/B 量级比 ≈ 1285×**。**机制建议**:场景级 chunk 切换成本是 `SetActive` 的**三个数量级**,故 ADR-023 ⑥「归属=系统 6」之外,**运行期 chunk 激活宜走单场景多根 `SetActive`**(场景 load/unload 只用于世界整体换入换出,不做细粒度 chunk 流式)。**量级差即结论,不产新 ADR** | ADR-023 S4 勾选(机制建议) |
+| F7(59 绿) | ⬜ 待【桌面】跑 EditMode 标签页确认(数未回) | 清单已落盘(§1.4:16 旧 + 43 新 = 59) | ADR-012 §Validation F7 勾选 |
 | 假设 6 | ⬜ 未跑(用户裁定缓办,集中一轮) | 判据 ④(单一 `UI/Navigate`,无双绑)已在【超算】按 `.inputactions` 按钮表**静态核实通过**;①②③ 须手柄腿 | ADR-013 §6.6 + S5 激活与否 |
 
-> ⚠️ **借绿禁令**:S1/S3 的「红」**不是** spike 结论 —— 它是装置缺陷导致的**信息丢失**,复测后才有结论。
-> 本表在 S1/S3 出数前不得在 ADR-023 §Validation 勾任何一项。
+> ⚠️ **借绿禁令**:S1/S3 的「红」**不是** spike 结论 —— 两跑的根因都是**装置读数**(§8 坑 A / 坑 B),不是 ADR 结论。
+> **本表在 S1/S3 出全数前不得在 ADR-023 §Validation 勾 S1/S3 任何一项**;S4 已有完整 A/B 两路实数,可勾。
 
 ## 7. 残留与后续(出本批)
 
@@ -263,4 +264,33 @@ B 路 = 单场景双根(`RootA`/`RootB`)SetActive ×20。
   `load.OperationException` / `ext.Status` —— 而这两个 handle 此前已被 `UnloadSceneAsync`、
   `ReleaseInstance` 释放,读已释放 handle 的状态**不保证安全**。改为测量时**立即取进局部变量**
   (`loadEx` / `unloadEx` / `extStatus` / `inSceneStatus`),收尾只断言这些快照。判据语义完全不变。
+- **⚠️ Addressables handle 生命周期:两个「自己消失」的句柄**(2026-09-23 第二轮首跑 S1/S3 仍红,
+  报 `System.Exception : Attempting to use an invalid operation handle`。**源实读 2.10.3 @ `6fef233`** 定位,
+  非猜测;两坑都已修,判据未改)
+  - **坑 A(S1)**:`Addressables.UnloadSceneAsync(h)` 的 `autoReleaseHandle` **默认 `true`**,内部
+ `InternalUnloadScene` 执行 `relOp.ReleaseHandleOnCompletion()`
+    (`Runtime/AddressablesImpl.cs:1351-1357`)⇒ **卸载 operation 一完成,返回的 unload handle 自己就释放了**。
+    此后读 `.Status` / `.OperationException` 抛 invalid handle
+    (`AsyncOperationHandle.cs:211`,`m_InternalOp.Version != m_Version` 即抛)。
+    **修法**:走 `UnloadSceneAsync(AsyncOperationHandle<SceneInstance>, bool)` 这个公开重载传 `false`,
+    读完自己 `Addressables.Release(unload)`。
+    ⚠️ 另:`load` 本身也必在 unload 完成后失效 —— `SceneProvider.ReleaseScene` 走
+    `resourceManager.StartOperation(unloadOp, sceneLoadHandle)`,**StartOperation 持有并释放依赖**;
+    故 `load` 的判据值必须**在调 unload 之前**快照(前一条已修,此处确认机制)。
+  - **坑 B(S3)**:`InstantiateAsync(key, parent)` 的 `trackHandle` **默认 `true`**;若实例亲代在
+    **被卸载的 Addressable 场景**内,场景卸载销毁实例后
+    `ResourceManager.CleanupSceneInstances`(`ResourceManager.cs:1036-1056`)会把「`Result` 已 fake-null
+    且 `InstanceScene()==该场景`」的 tracked 实例 operation 减引用到 0 ⇒ **该实例 handle 被自动释放**。
+    **外部亲代**(未入场景的根物体)则存活、handle 保持有效 —— 两条路必须分开走。
+    **修法**:卸载**之前**把 `GameObject` 引用取出来,卸载后用引用比对(fake-null)判存活;
+    所有句柄读取(含 `ReleaseInstance`)一律先 `IsValid()`(已自动清理的再 `ReleaseInstance` 会抛)。
+  - **装置层加固**:三个读句柄的辅助 `Ex` / `Go` / `SceneOf` 全部先判 `IsValid()`;`WaitDone` 先判
+    `IsValid()` 再读 `IsDone`;新增 `ReleaseIfValid<T>`。**本文件自此无任何裸读句柄**。
+  - **⚠️ 这一段同时是 S3 的机制发现(源实读,待实跑确认)**:ADR-023 ⑤「拆序六步」要拦的是
+    **外部亲代实例**(活过场景卸载、若不 `ReleaseInstance` 就漏);**场景内亲代实例由 Addressables
+    自动清理,不需要也不允许手动 `ReleaseInstance`**。此句在 S3 实跑出数之前**不得**当作 ADR 勾选依据。
+- **类型名不在包源码内时,优先选避开该类型的重载**(2026-09-23)。写 `UnloadKeepingHandle` 时本想传
+  `UnloadSceneOptions.None`,但**全仓 `.cs` grep 无 `enum UnloadSceneOptions` 声明**(它由包外程序集提供)
+  ⇒ 其命名空间无法在集群侧实读钉死。改走 `UnloadSceneAsync(handle, bool)` 重载,**代码里不出现该类型名**,
+  于是无需赌命名空间。教训:凡不能回源钉死的类型名,先问「有没有不写它的调用形态」。
 - 本卡不改任何既有 ADR 正文;勾选/回写在结果回报后由回写轮执行(借绿禁令:本卡发出时全部 spike 仍 `NOT-RUN`)。
