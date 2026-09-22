@@ -63,14 +63,17 @@ namespace DaYiJingCheng.EditorTools.Gates
         }
 
         // ═══ b3 装配封闭性:工程内 asmdef 名集合 ⊆ Manifest;Manifest 成员全存在 ═══
+        // ⚠️ 程序集名取 asmdef **JSON 的 name 字段**,不取文件名 —— 实测两装配文件名
+        //   (EditMode.asmdef / PlayMode.asmdef)与其声明名(Sim.Contracts.Tests /
+        //   Gameplay.Tests)不一致;按文件名比对 = b3 自身误报。
         private static void CheckManifestClosure(List<string> errs)
         {
             var found = new HashSet<string>();
             foreach (var guid in AssetDatabase.FindAssets("t:asmdef"))
             {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                var name = Path.GetFileNameWithoutExtension(path);
-                found.Add(name);
+                var json = File.ReadAllText(AssetDatabase.GUIDToAssetPath(guid));
+                var m = System.Text.RegularExpressions.Regex.Match(json, "\"name\"\\s*:\\s*\"([^\"]+)\"");
+                if (m.Success) found.Add(m.Groups[1].Value);
             }
             foreach (var extra in found.Where(f => !Manifest.Contains(f)))
                 errs.Add($"[b3] 未登记 asmdef「{extra}」—— 清单封闭性 = 构建失败(ADR-025 §④)。" +
