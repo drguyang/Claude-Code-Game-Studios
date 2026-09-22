@@ -11,66 +11,26 @@
 //                                **由 EditMode 探针守住** ← 本文件即该探针的种子形态
 //   docs/architecture/adr-005-deterministic-sim.md —— int64 / Q16.16 定点域
 //
-// ⚠️ 两处已知的临时状态(不是缺陷,是顺序):
-//   1. 被测的 encode/decode **在本文件内自带参考实现**。Sim 程序集落地后,把
-//      `Q16Codec` 的调用改指生产类型,**删掉本文件的本地实现** ——
-//      届时本文件从「种子测试」升为「生产类型的回归夹具」。
-//      (测试自带实现是反模式;此处接受它,是因为 ADR-017 门 A 下 sim 程序集
-//       与 asmdef 命名仍待 Required ADR #2,现在引用一个不存在的程序集 = 编译失败。)
-//   2. 本目录尚无 `EditModeTests.asmdef`(同上,待 ADR #2)。UTF 不会编译本文件,
-//      因此 **CI 在本件落地后仍不会绿** —— 绿的条件是 asmdef 存在,不是本文件存在。
+// 2026-09-22 · U0-b b5:本地 Q16Codec 参考实现已删,断言改指生产类型
+//   `Sim.Contracts.FixParse`(种子测试自此升格为生产类型的回归夹具)。
+//   刻意保留的一处本地件 = 8 字节小端 helper:生产编码器住 Sim.Codec,该装配尚未落地
+//   (BCL 的 BinaryPrimitives 行为等价,但「等价性」本身是 ADR-012 矩阵的实测对象,
+//    不在无生产件时预先借绿)—— Sim.Codec 落地时一并迁移。
 
 using System;
 using NUnit.Framework;
+using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Tests.Unit.Sim
 {
-    /// <summary>Q16.16 定点域的编码器参考实现(临时,见文件头注 ⚠️1)。</summary>
-    internal static class Q16Codec
-    {
-        public const int FractionalBits = 16;
-        public const long OneRaw = 1L << FractionalBits;   // 1.0 == 65536
-
-        /// <summary>有理数 → Q16.16 raw。分母/分子为 int 计数,**不经浮点**。</summary>
-        public static long EncodeRatio(long numerator, long denominator)
-        {
-            if (denominator == 0) throw new DivideByZeroException();
-
-            // 中间量落在 int64:|numerator| * 65536 溢出即视为**输入域错误**,
-            // 由调用方(数值轮)保证域。此处不做静默回绕。
-            long scaled = numerator * OneRaw;
-            return RoundHalfAwayFromZero(scaled, denominator);
-        }
-
-        /// <summary>整数除法 + 就近舍入,中点**远离零**(ADR-006 §Decision 三)。
-        /// **禁** Math.Round(double) —— 其默认是 ties-to-even。</summary>
-        internal static long RoundHalfAwayFromZero(long dividend, long divisor)
-        {
-            long q = dividend / divisor;      // C# 整数除法 = 向零截断
-            long r = dividend % divisor;
-            if (r == 0) return q;
-
-            // 溢出说明:|r| < |divisor| 恒成立,absR*2 只在 |divisor| > 2^62 时溢出;
-            // ADR-006 的输入域(|raw| ≲ 2^40)由数值轮保证,超域属导入期错误(另由 FixParse 负向夹具守)。
-            long absR = Math.Abs(r);
-            long absD = Math.Abs(divisor);
-
-            // step = 分数部分 r/divisor 的方向;在中点上它恰是「远离零」的方向。
-            int step = (r > 0) == (divisor > 0) ? +1 : -1;
-
-            if (absR * 2 >= absD) return q + step;  // > : 就近进位;== : 中点 → 远离零
-            return q;                               // < : 截断值已是就近值
-        }
-    }
-
     [TestFixture]
     internal sealed class SimFixedPointTest
     {
         // ── 1. 往返:落盘形状是 raw long,且逐位可复原(ADR-006 §Decision 二) ──
 
         [TestCase(0L)]
-        [TestCase(Q16Codec.OneRaw)]                 // 1.0
-        [TestCase(-Q16Codec.OneRaw)]                // -1.0 —— 负域必须同样可复原
+        [TestCase(Fix.OneRaw)]                 // 1.0
+        [TestCase(-Fix.OneRaw)]                // -1.0 —— 负域必须同样可复原
         [TestCase(49152L)]                          // 3/4
         [TestCase(1L)]                              // 最小正 raw(1 LSB)
         [TestCase(long.MinValue)]                   // 极值:序列化不得吞符号
@@ -97,7 +57,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         [TestCase(3L, 4L, 49152L)]      // 精确值不打折
         public void test_simFixedPoint_encode_usesRoundHalfAwayFromZero(long num, long den, long expectedRaw)
         {
-            Assert.That(Q16Codec.EncodeRatio(num, den), Is.EqualTo(expectedRaw));
+            Assert.That(FixParse.FromRatio(num, den).Raw, Is.EqualTo(expectedRaw));
         }
 
         [Test]
@@ -107,7 +67,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             // 若有人把定点化简为 (long)Math.Round(x * 65536),本断言即红。
             const double halfLsb = 0.5d;                        // 0.5 LSB —— 一个中点
             long viaMathRound = (long)Math.Round(halfLsb);      // → 0(ties-to-even,被禁的模式)
-            long viaAdrMode   = Q16Codec.EncodeRatio(1L, 1L << 17);  // → 1(远离零)
+            long viaAdrMode   = FixParse.FromRatio(1L, 1L << 17).Raw;  // → 1(远离零)
 
             Assert.That(viaMathRound, Is.EqualTo(0L),
                 "Math.Round 默认把 0.5 舍到偶数 —— 这正是被禁的模式");
