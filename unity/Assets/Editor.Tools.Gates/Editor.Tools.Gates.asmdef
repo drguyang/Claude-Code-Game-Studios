@@ -1,0 +1,14 @@
+{
+    "name": "Editor.Tools.Gates",
+    "rootNamespace": "DaYiJingCheng.EditorTools.Gates",
+    "references": [],
+    "includePlatforms": [ "Editor" ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
