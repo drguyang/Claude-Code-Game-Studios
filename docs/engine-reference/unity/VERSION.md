@@ -2,10 +2,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Engine Version** | Unity 6.3 LTS |
+| **Engine Version** | Unity 6.3 LTS (6000.3.24f1) |
 | **Release Date** | December 2025 |
-| **Project Pinned** | 2026-02-13 |
-| **Last Docs Verified** | 2026-02-13 |
+| **Editor Revision (changeset)** | 4e7b9b5b6244 |
+| **Pinned On** | Ubuntu 22.04 · IL2CPP module installed |
+| **Project Pinned** | 2026-09-22 |
+| **Last Docs Verified** | 2026-09-22 |
 | **LLM Knowledge Cutoff** | May 2025 |
 
 ## Knowledge Gap Warning

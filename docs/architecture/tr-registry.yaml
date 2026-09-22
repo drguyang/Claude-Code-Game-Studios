@@ -4338,7 +4338,8 @@
     domain: Presentation
     adr: ADR-013
     status: partial
-    note: "D-R3 回填(2026-09-21)。ADR-013 图集条款立(九宫格/主题变量),⚠️ 具体阈值待 spike(OQ-42-3)。"
+    note: "D-R3 回填(2026-09-21)。ADR-013 图集条款立(九宫格/主题变量),⚠️ 具体阈值仍待 spike(`PAGES_MAX`)。2026-09-22:`OQ-42-3` 已裁 = 甲「不虚拟化(翻页制)」⇒ `Pages_frame` 语义定为「单页内容函数」(非滚动位置),双分支悬空解除;`LIST_VIRT_THRESHOLD` 撤出旋钮表。"
+    revised: "2026-09-22"
   - id: TR-skeuoui-012
     system: skeuomorphic-ui
     gdd: design/gdd/skeuomorphic-ui.md

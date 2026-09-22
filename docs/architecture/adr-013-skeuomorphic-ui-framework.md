@@ -401,10 +401,9 @@ S-8.4 路线甲「施治 = 方笺落笔」已把施治挂在脉案模态内);②
 
 **同步义务**(§十 约束 1 的兑现):`design/gdd/skeuomorphic-ui.md` `AC-42-F1` 闭集点名六 → 七;
 `design/accessibility-requirements.md` :83 归档行;`design/ux/interaction-patterns.md` P-02 状态行。
-**Enables**:`design/ux/paper-closeup-48.md` 的 AC 区自「预测量」转「可实测」(NOT-RUN 前置解除);
-11 的 `AC-11-13`(档位读数可辨性)自「义务未认领」转「可判」—— 同批裁定该元件落 **42 元件库黄铜侧**
+**Enables**:`design/ux/paper-closeup-48.md` 的 AC 区自「预测量」转「可实测」(NOT-RUN 前置解除);11 的 `AC-11-13`(档位读数可辨性)自「义务未认领」转「可判」—— 同批裁定该元件落 **42 元件库黄铜侧**
 (錾刻刻度 / 机械位移 = 戥杆倾角;禁数字角标 —— 两栈皆禁组无例外;材质侧归属见 `skeuomorphic-ui.md`
-§Visual 二 注)。
+§Visual 二 注)。**2026-09-22 OQ-TUT-2 批裁补注**:教学纸近景 / 「可重听」口述的投递经 4 的交互判定(经 `Submit`,复用既有通道不新造),触发方式归 48 × 4 实现轮 —— 详见 `tutorial-and-onboarding.md` 规则四注 + `interaction-system.md` OQ-4-19 + `input-system.md` 规则二 `Submit` 行注。
 **Engine Knowledge Risk**:LOW(纯枚举成员 + 归属澄清,不触及任何 post-cutoff API)。
 
 

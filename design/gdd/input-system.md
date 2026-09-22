@@ -138,10 +138,10 @@ D-A 裁定:**意图不驱动移动**)。
 | `Look` | `Vector2` | ✅ | 2 | 视角轴(2 的 GDD 定灵敏度) |
 | `Sprint` | `Button` | ✅ | ⚠️ **无 P0 消费者** | ⚠️ **2026-09-16 悬空登记(系统 1 的 `O-7`)**:绑定**保留**,但 1 的 P0 路径**不读它** —— 1 的 GDD 首轮评审裁定**冲刺整档 P0 砍掉**(初稿 Sprint 无代价 ⇒ `SPEED_SPRINT > SPEED_WALK` 恒成立 ⇒ 严格支配 Walk ⇒ Walk 成为死内容,与支柱一冲突)。恢复前置 = 1 的 `OQ-1-11`(须先设计代价),归 **P1a**。⇒ **动作资产里的这条绑定在 P0 是 Adrift action**(存在但无人读),未来实现者不应误以为它已生效 |
 | `Jump` | `Button` | ✅ | 1 | 起跳(边沿 + 按住变高);1 的 GDD 定跳跃纪律(低跳 · 无二段跳 · 无空中冲刺) |
-| `Interact` | `Button` | ✅ | 4 | 交互入口(拾取 / 开门 / 就诊) |
+| `Interact` | `Button` | ✅ | 4 | 交互入口(拾取 / 开门 / 就诊)。**2026-09-22 OQ-TUT-2 批裁补注**:教学纸近景读(48)经 4 的交互判定(**复用本动作,不新造**)—— 纸 = 纯呈现道具、只有走近→读(`tutorial-and-onboarding.md:107-116`),触发方式(近距离自动 vs Submit 边沿)归 48 × 4 实现轮,3 只保证通道。**2026-09-22 OQ-CP-2 裁定补注**:医馆面板(24)开启同型 —— 走近**案头账本载体** → `Interact` → 4 投递 → 42 开 `ModalId.ClinicPanel`,**零新动作**(`clinic-panel-24.md` §14 OQ-CP-2 结案注) |
 | `Emergency` | `Button` + **`EmergencyAction` 枚举** | ✅ | 10 | **急救直读通道**(§三);**模拟量通道 = 已登记缺口**,见下注 |
 | `Navigate` | `Vector2` | ✅ | 42 / 39 / 7b / 48 | 焦点方向(§四) |
-| `Submit` | `Button` | ✅ | 42 | 焦点确认(「指认」病名 —— `diagnosis-system.md:345`) |
+| `Submit` | `Button` | ✅ | 42 | 焦点确认(「指认」病名 —— `diagnosis-system.md:345`)。**2026-09-22 OQ-TUT-2 批裁补注**:教学锚点物「可重听」口述回放(48,走近再说 = 呈现层本地回放,零流事件,`tutorial-and-onboarding.md:190-192` / `:346`)经 4 的交互判定投递,不另造动作 |
 | `Cancel` | `Button` | ✅ | 42 | 焦点返回 |
 | `PagePrev` / `PageNext` | `Button` | ✅ | 42 / 39 | 翻页(脉案 · 病名册) |
 | `OpenInventory` | `Button` | ✅ | **20** | **评审后结清**:20 库存与物品**本就是 P0 Core**(`systems-index.md:54/477`)⇒ 动作归 20 |

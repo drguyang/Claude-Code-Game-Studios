@@ -22,10 +22,10 @@ on:
   workflow_dispatch: {}
 
 env:
-  # ⚠️ 精确补丁版本号全仓无记载(VERSION.md 只记「Unity 6.3 LTS / Dec 2025」)—— 不代填。
-  #    工程根落地后,以 ProjectSettings/ProjectVersion.txt 为唯一源回填此处;
+  # ✅ 已回填(U0a, 2026-09-22):6000.3.24f1 —— 源自桌面机 ProjectSettings/ProjectVersion.txt
+  #    (changeset 4e7b9b5b6244);工程根落地后仍以该文件为唯一源回填此处;
   #    两者不一致时 game-ci 会以该版本重新导入工程,静默改变模拟域之外的行为面。
-  UNITY_VERSION: "6000.3.TBDf1"
+  UNITY_VERSION: "6000.3.24f1"
   PROJECT_PATH: .              # ⚠️ 工程根落地后改为实际子目录
 
 jobs:

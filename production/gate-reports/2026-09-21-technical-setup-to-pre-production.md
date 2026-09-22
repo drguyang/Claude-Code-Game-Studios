@@ -101,6 +101,7 @@
 
 开工序(全部在窗口内):
 1. **U0a 工具链核验** —— Unity 6.3 编辑器 + license + **确切补丁号**;门一切实测。**手工配置 `UNITY_LICENSE` secret;不自动化 license。**
+   > **✅ 2026-09-22 闭合**:Unity `6000.3.24f1`(changeset `4e7b9b5b6244`)· Ubuntu 22.04 · IL2CPP 模块已装 · Personal license 已激活 · 空 URP 工程 Play Mode 已验 ⇒ **U0 解锁**。残项:CI `UNITY_LICENSE` secret 仍待手工配(不属于本卡)。回填落点见 `production/u0a-toolchain-checklist.md`。
 2. **U0 工程根 + ADR-025 六装配** —— 种子测试编译转绿 + `Sim` 引用集恰 = {BCL, `Sim.Contracts`} 的**构建失败级**断言。
 3. **U1 spike 批** —— R-A 手柄焦点桥(ADR-013 假设 6,**最可能失败**)/ R-B 门 A / R-C `int64` 溢出 UB(ADR-012 F7)/ `OQ-1-12` 落地 / ADR-023 S1/S3/S4 / 10 的两动作原型(条件 ①)。
 4. 之后才进 vertical slice。

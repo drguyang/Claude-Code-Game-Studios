@@ -1075,7 +1075,7 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 | TR-skeuoui-008 | 世界锚点体征面片:P0 最小实现 = UGUI world canvas | ADR-013 | ✅ |
 | TR-skeuoui-009 | IModalState 契约:模态闭集(**7 员**,2026-09-21 第二十八批起;原登记为 6 员)+ 栈语义 | ADR-013 | ✅ —— ⚠️ 成员数由 `Amendment B`(`ADR-013 §十-B`)增至 7(新增 ⑦ `PaperCloseup48`);**方笺不是第 7 员**(同日另裁「= 39 同一本书」,不增员)—— 两问同批结清且方向相反,勿混读 |
 | TR-skeuoui-010 | 墨龄(纸张老化呈现)= ITickProvider 的纯函数(禁墙钟) | ADR-005 | ⚠️ —— ️ OQ-42-14 未裁 |
-| TR-skeuoui-011 | 图集护栏:Pages_frame 预算与溢出告警阈值 | ADR-013 | ⚠️ —— ️ 具体阈值待 spike(OQ-42-3) |
+| TR-skeuoui-011 | 图集护栏:Pages_frame 预算与溢出告警阈值 | ADR-013 | ⚠️ —— ️ 具体阈值仍待 spike(`PAGES_MAX` 旋钮);`Pages_frame` 的**语义**已随 `OQ-42-3` 甲裁定(2026-09-22,翻页制)定为「单页内容函数」,不再双分支悬空 |
 | TR-skeuoui-012 | 无障碍四钩子:字号缩放/高对比/焦点指示/减少动效在元件库级内建 | ADR-013 | ✅ |
 
 ## 29. 音频 `design/gdd/audio-system.md`(#44)| 14 条
