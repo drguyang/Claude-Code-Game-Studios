@@ -17,7 +17,9 @@
 //    每行同时打进 Console([U1-S1]/[U1-S3]/[U1-S4] 前缀)。
 // ⚠️ 编译判定唯一归【桌面】(集群无 Unity);黄金纪律不适用此处(无黄金期望值)。
 
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -43,29 +45,69 @@ namespace DaYiJingCheng.Tests.PlayMode
 
         const float TimeoutSec = 30f;
 
-        static string ReportPath =>
-            Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Logs", "u1_spike_results.txt"));
-
         // ────────────────────────── 报告 ──────────────────────────
+        // ⚠️ 2026-09-23:首跑【桌面】未产出结果文件。原因两类 —— ① 测试根本没跑(Run 的是 EditMode 标签页);
+        //    ② 写盘落点与预期不符(路径推算依赖 Application.dataPath,Test Runner 若 "Run on Player" 会变)。
+        //    故改为:先打印候选路径与三个基准目录,再逐个尝试,落成后**大声报出实际路径**;
+        //    三个候选全失败也只是警告(数字仍在 Console 的 [U1]/[U1-S*] 行里,不至于丢失)。
+
+        static readonly List<string> Candidates = new List<string>();
+        static string _activePath;
+
+        static void InitPaths()
+        {
+            if (Candidates.Count > 0) return;
+            var root = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            Candidates.Add(Path.Combine(root, "Logs", "u1_spike_results.txt"));                    // 主:项目根 Logs/
+            Candidates.Add(Path.Combine(Application.dataPath, "u1_spike_results.txt"));           // 兜底:Assets/
+            Candidates.Add(Path.Combine(Application.persistentDataPath, "u1_spike_results.txt")); // 兜底:玩家数据目录
+        }
 
         [OneTimeSetUp]
         public void ReportHeader()
         {
+            InitPaths();
+            Debug.Log($"[U1] 结果文件候选: {string.Join(" | ", Candidates)}");
+            Debug.Log($"[U1] dataPath={Application.dataPath} · persistentDataPath={Application.persistentDataPath} · cwd={Directory.GetCurrentDirectory()}");
             Report($"=== U1 spike run {System.DateTime.Now:yyyy-MM-dd HH:mm:ss} · Unity {Application.unityVersion} ===");
+            Report($"marker:Logs 文件不存在时,搜 Console 前缀 [U1-S 亦可拿到全部数字");
+        }
+
+        [OneTimeTearDown]
+        public void ReportFooter()
+        {
+            Report("=== run end ===");
+            Debug.Log(_activePath != null
+                ? $"[U1] 本次结果文件 = {_activePath}"
+                : "[U1] 本次结果文件未写成 —— 数字以上方 [U1]/[U1-S*] Console 行为准");
         }
 
         static void Report(string line)
         {
             Debug.Log($"[U1] {line}");
-            try
+            InitPaths();
+            if (_activePath != null)
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(ReportPath));
-                File.AppendAllText(ReportPath, line + "\n", Encoding.UTF8);
+                try { File.AppendAllText(_activePath, line + "\n", Encoding.UTF8); }
+                catch (Exception e) { Debug.LogWarning($"[U1] 追加写盘失败 {_activePath}:{e.Message}"); }
+                return;
             }
-            catch (System.Exception e)
+            foreach (var p in Candidates)
             {
-                Debug.LogWarning($"[U1] 结果写盘失败(Console 行仍在):{e.Message}");
+                try
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(p));
+                    File.AppendAllText(p, line + "\n", Encoding.UTF8);
+                    _activePath = p;
+                    Debug.Log($"[U1] 结果文件 = {_activePath}");
+                    return;
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[U1] 写盘失败 {p}:{e.Message}");
+                }
             }
+            Debug.LogWarning("[U1] 三个候选路径全部写盘失败 —— 数字仍在上方 [U1]/[U1-S*] Console 行里");
         }
 
         // ────────────────────────── 通用 ──────────────────────────

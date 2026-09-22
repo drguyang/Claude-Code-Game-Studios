@@ -223,4 +223,13 @@ B 路 = 单场景双根(`RootA`/`RootB`)SetActive ×20。
   处置:Setup / Teardown 在构建前调 `RepairProfilePaths`(幂等)—— `CreateValue` 补齐四个标准路径变量 +
   `SetVariableByName` 重绑 settings 级与 DefaultGroup schema 级的路径引用(绕开空串守卫);
   绑定失败转**红字**并把五个变量的解析值打进 Console ⇒ 噪声变可判读信号。
+- **结果文件首跑未产出**(2026-09-23):【桌面】跑完 PlayMode 后 `unity/Logs/u1_spike_results.txt` 不存在。
+  两类嫌疑:① 测试**根本没跑**(Test Runner 停在 EditMode 标签页 → Run All 只跑了 59 条 F7);② 写盘落点
+  与预期不符(`Path.Combine(Application.dataPath, "..", "Logs")` 依赖 dataPath,若 Test Runner 勾了
+  "Run on Player" 则 dataPath 变成 `<Build>/<App>_Data`)。
+  **不改判据,只加固装置**:`Report()` 改为三个候选路径逐个尝试(项目根 `Logs/` → `Assets/` →
+  `Application.persistentDataPath`),落成后大声报出**实际路径**;`[OneTimeSetUp]` 先打印候选表与
+  `dataPath` / `persistentDataPath` / `cwd` 三个基准,`[OneTimeTearDown]` 汇总落点;全失败只警告。
+  **数字本身从不依赖文件** —— `Report()` 每行同时 `Debug.Log`(`[U1]` 前缀),Console 搜 `[U1-S`
+  即可拿全;文件只是便利。诊断顺序因此定为:**先搜 Console,再 find 文件** —— Console 空 = 没跑。
 - 本卡不改任何既有 ADR 正文;勾选/回写在结果回报后由回写轮执行(借绿禁令:本卡发出时全部 spike 仍 `NOT-RUN`)。
