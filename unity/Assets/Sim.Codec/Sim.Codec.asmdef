@@ -1,0 +1,14 @@
+{
+    "name": "Sim.Codec",
+    "rootNamespace": "DaYiJingCheng.Sim.Codec",
+    "references": [ "Sim.Contracts" ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

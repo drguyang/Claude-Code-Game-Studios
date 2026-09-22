@@ -1,0 +1,14 @@
+{
+    "name": "Gameplay.UI",
+    "rootNamespace": "DaYiJingCheng.Gameplay.UI",
+    "references": [ "Sim.Contracts", "Gameplay.Presentation" ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

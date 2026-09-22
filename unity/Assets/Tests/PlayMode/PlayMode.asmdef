@@ -1,0 +1,6 @@
+{
+    "name": "Gameplay.Tests",
+    "rootNamespace": "DaYiJingCheng.Tests.PlayMode",
+    "optionalUnityReferences": [ "TestAssemblies" ],
+    "includePlatforms": []
+}

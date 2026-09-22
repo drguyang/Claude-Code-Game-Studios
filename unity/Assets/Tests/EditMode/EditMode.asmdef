@@ -1,0 +1,6 @@
+{
+    "name": "Sim.Contracts.Tests",
+    "rootNamespace": "DaYiJingCheng.Tests.Unit.Sim",
+    "optionalUnityReferences": [ "TestAssemblies" ],
+    "includePlatforms": [ "Editor" ]
+}
