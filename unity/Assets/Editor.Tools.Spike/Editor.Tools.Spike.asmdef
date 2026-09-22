@@ -1,14 +1,16 @@
 {
-    "name": "Gameplay.Tests",
-    "rootNamespace": "DaYiJingCheng.Tests.PlayMode",
-    "optionalUnityReferences": [
-        "TestAssemblies"
-    ],
+    "name": "Editor.Tools.Spike",
+    "rootNamespace": "DaYiJingCheng.EditorTools.Spike",
     "references": [
         "Unity.Addressables",
-        "Unity.ResourceManager"
+        "Unity.Addressables.Editor",
+        "Unity.ResourceManager",
+        "Unity.InputSystem",
+        "UnityEngine.UI"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
