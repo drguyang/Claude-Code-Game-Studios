@@ -203,4 +203,24 @@ B 路 = 单场景双根(`RootA`/`RootB`)SetActive ×20。
 - **Addressables 编辑期 API 未在集群验证**(本批新):`AddAssetEntry`/`ActivePlayModeDataBuilderIndex`/
   `InputSystemUIInputModule` 等按 `docs/engine-reference` 钉版形状书写,但集群无 Unity 编译器 ——
   **编译判定唯一归【桌面】**,失败则回报 Console 红行、按实际签名就地修(风险面)。
+- **2.10.3 源码对拍 + CS0117 勘误**(2026-09-23):【桌面】首跑报
+  `error CS0117: 'Addressables' does not contain a definition for 'BuildPlayerContent'`。
+  集群侧以 blob 过滤克隆 **`com.unity.addressables` 2.10.3(mirror tag `2.10.3` @ `6fef233`)** 逐条实读源码,
+  三处就地订正并**回写引擎参考件**(`docs/engine-reference/unity/plugins/addressables.md`,该件本应是权威源):
+  ① `BuildPlayerContent` 住 **`AddressableAssetSettings`,返回 `void`**(运行期静态类 `Addressables` 上没有);
+  ② `AddAssetEntry(guid, address, groupName)` **2.10.3 已无此重载** ⇒ `CreateOrMoveEntry` + `entry.address` setter;
+  ③ `DataBuilders` 元素声明类型是 `ScriptableObject` ⇒ 取 `Name` 须走 `GetDataBuilder(int)`。
+  由此派生的规范变更:**「先查引擎参考件」不够 —— 该件本身可能与实装漂移**,凡 spike 触到的编辑期 API
+  一律以包源码为准(本批已把该批注写进参考件头部)。
+- **`ProfileValueReference: GetValue called with empty id` 黄字**(2026-09-23,承上条同一轮):
+  【桌面】构建时 Console 单条黄字。定位 = **包侧无守卫读取**,非本批代码缺陷 ——
+  `Editor/Build/BuildPipelineTasks/BuildLayoutGenerationTask.cs:775`
+  `layout.RemoteCatalogBuildPath = aaContext.Settings.RemoteCatalogBuildPath.GetValue(...)`
+  **恒定执行**;而对偶的 LoadPath 那条(`:1215`)有 `if (aaSettings.BuildRemoteCatalog)` 守卫
+  ⇒ 只会吐**一条**。引用 `Id` 未解析时 `ProfileValueReference.GetValue`(源 `ProfileValueReference.cs:96`)
+  打黄字并返回 `null`;`Id == null` 的惰性重绑守卫漏掉**空串 Id**,故不能靠首次访问自愈。
+  影响面 = **构建布局报告的元数据字段**;`BuildRemoteCatalog` 默认 `false` ⇒ 该值不参与出货,**黄字为噪声**。
+  处置:Setup / Teardown 在构建前调 `RepairProfilePaths`(幂等)—— `CreateValue` 补齐四个标准路径变量 +
+  `SetVariableByName` 重绑 settings 级与 DefaultGroup schema 级的路径引用(绕开空串守卫);
+  绑定失败转**红字**并把五个变量的解析值打进 Console ⇒ 噪声变可判读信号。
 - 本卡不改任何既有 ADR 正文;勾选/回写在结果回报后由回写轮执行(借绿禁令:本卡发出时全部 spike 仍 `NOT-RUN`)。

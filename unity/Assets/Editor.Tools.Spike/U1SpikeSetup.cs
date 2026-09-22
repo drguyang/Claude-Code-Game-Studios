@@ -15,6 +15,9 @@
 //    永不提交;AddressableAssetsData/ 会由本菜单首次生成 —— **保留、不提交**(归 ADR-014 正式批)。
 // ⚠️ 若干 Addressables 编辑期 API 属 2.10 线,集群无 Unity 无法编译验证 —— 编译判定唯一归【桌面】;
 //    失败则回报 Console 红行,按实际签名就地修(风险面见卡 §8)。
+// ⚠️ profile 路径引用:2.10.3 的 BuildLayoutGenerationTask 对 RemoteCatalogBuildPath 做**无守卫**
+//    GetValue(:775),引用 Id 未解析时打黄字 "GetValue called with empty id"。Setup/Teardown 都在
+//    构建前调 RepairProfilePaths 把变量与引用钉死(纯报告侧,出货不受影响 —— BuildRemoteCatalog=false)。
 
 #if UNITY_EDITOR
 using System;
@@ -23,6 +26,7 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
+using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -218,6 +222,9 @@ namespace DaYiJingCheng.EditorTools.Spike
                 // ── 6. Play Mode 切 Existing Build(bundle refcount 观测前提)──
                 ConfigurePlayMode(settings);
 
+                // ── 6.5 profile 路径引用自检 / 重绑(消 BuildLayout 无守卫读取的黄字)──
+                RepairProfilePaths(settings);
+
                 // ── 7. BuildPlayerContent ──
                 // ⚠️ 内容构建是**编辑期** API:住 AddressableAssetSettings,且签名是 `void`
                 //    (2.10.3 实读:`public static void BuildPlayerContent(out AddressablesPlayerBuildResult result)`),
@@ -280,6 +287,7 @@ namespace DaYiJingCheng.EditorTools.Spike
 
                 if (settings != null)
                 {
+                    RepairProfilePaths(settings);
                     var buildSw = Stopwatch.StartNew();
                     AddressableAssetSettings.BuildPlayerContent(out var result);
                     buildSw.Stop();
@@ -453,6 +461,72 @@ namespace DaYiJingCheng.EditorTools.Spike
                                  "若当前 = Use Asset Database,S3 的 bundle 计数将恒 0(判据 2/3 记 N/A)—— " +
                                  "手动:Window > Asset Management > Addressables > Groups → Play Mode Script 切 Use existing build");
             }
+        }
+
+        /// <summary>补齐 profile 路径变量,并把 settings 级 / DefaultGroup schema 级的路径引用重绑到具名变量。
+        ///
+        /// 病因(2.10.3 源码实读,`Editor/Build/BuildPipelineTasks/BuildLayoutGenerationTask.cs:775`):
+        /// `GenerateBuildLayout` 对 `aaContext.Settings.RemoteCatalogBuildPath.GetValue(...)` 是
+        /// **无守卫**读取(构建布局报告元数据,每次构建恒定执行),而 LoadPath 那条(:1215)有
+        /// `if (aaSettings.BuildRemoteCatalog)` 守卫 —— 所以只吐一条黄字。引用 `Id` 未解析时
+        /// `ProfileValueReference.GetValue` 打 "GetValue called with empty id" 并返回 null。
+        /// `BuildRemoteCatalog` 默认 false ⇒ 该值**不参与出货**,黄字纯属报告侧噪声;
+        /// 但同一 `Id` 解析路径也决定 DefaultGroup 的 BuildPath/LoadPath(:1148/:1152),故一并钉死。
+        /// 这里主动 `SetVariableByName` 绕开 `Id == null` 的惰性初始化守卫(空串 Id 会漏过该守卫)。
+        /// 变量真缺失时 `CreateValue` 会补齐,绑定失败则本方法打红字 —— 把噪声变成可判读的信号。</summary>
+        static void RepairProfilePaths(AddressableAssetSettings settings)
+        {
+            var ps = settings.profileSettings;
+            if (ps == null)
+            {
+                Debug.LogError("[U1] profileSettings 为 null —— Addressables 初始化不完整,路径引用无法自检");
+                return;
+            }
+
+            // CreateValue 是幂等的(已存在则原样返回既有 id)
+            ps.CreateValue(AddressableAssetSettings.kLocalBuildPath, AddressableAssetSettings.kLocalBuildPathValue);
+            ps.CreateValue(AddressableAssetSettings.kLocalLoadPath, AddressableAssetSettings.kLocalLoadPathValue);
+            ps.CreateValue(AddressableAssetSettings.kRemoteBuildPath, AddressableAssetSettings.kRemoteBuildPathValue);
+            ps.CreateValue(AddressableAssetSettings.kRemoteLoadPath, AddressableAssetSettings.kRemoteLoadPathValue);
+            ps.CreateValue("BuildTarget", "[UnityEditor.EditorUserBuildSettings.activeBuildTarget]");
+
+            foreach (var name in new[]
+                     {
+                         AddressableAssetSettings.kLocalBuildPath,
+                         AddressableAssetSettings.kLocalLoadPath,
+                         AddressableAssetSettings.kRemoteBuildPath,
+                         AddressableAssetSettings.kRemoteLoadPath,
+                         "BuildTarget",
+                     })
+            {
+                Debug.Log($"[U1] profile[{name}] = {ps.GetValueByName(settings.activeProfileId, name)}");
+            }
+
+            bool remoteBuild = settings.RemoteCatalogBuildPath.SetVariableByName(settings, AddressableAssetSettings.kRemoteBuildPath);
+            bool remoteLoad = settings.RemoteCatalogLoadPath.SetVariableByName(settings, AddressableAssetSettings.kRemoteLoadPath);
+            if (!remoteBuild || !remoteLoad)
+                Debug.LogError($"[U1] settings 级 Remote catalog 路径引用重绑失败(build={remoteBuild} load={remoteLoad})—— profile 变量名不符,见上方 [U1] profile[...] 行");
+            else
+                Debug.Log("[U1] settings 级 Remote catalog 路径引用已重绑(build/load)");
+
+            var schema = settings.DefaultGroup != null
+                ? settings.DefaultGroup.GetSchema<BundledAssetGroupSchema>()
+                : null;
+            if (schema == null)
+            {
+                Debug.LogError("[U1] DefaultGroup 缺 BundledAssetGroupSchema —— 组级构建路径无法自检");
+                return;
+            }
+
+            bool buildBound = schema.BuildPath.SetVariableByName(settings, AddressableAssetSettings.kLocalBuildPath);
+            bool loadBound = schema.LoadPath.SetVariableByName(settings, AddressableAssetSettings.kLocalLoadPath);
+            if (!buildBound || !loadBound)
+                Debug.LogError($"[U1] DefaultGroup schema 路径引用重绑失败(build={buildBound} load={loadBound})");
+            else
+                Debug.Log($"[U1] DefaultGroup schema 路径引用已重绑:BuildPath={schema.BuildPath.GetValue(settings)} · LoadPath={schema.LoadPath.GetValue(settings)}");
+
+            EditorUtility.SetDirty(settings);
+            EditorUtility.SetDirty(schema);
         }
 
         static void TryAssignTheme(PanelSettings ps)

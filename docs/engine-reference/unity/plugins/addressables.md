@@ -87,6 +87,21 @@ entry.address = "MyAssetKey";                                           // sette
 > - `public List<ScriptableObject> DataBuilders { get; }` —— 元素声明类型是 `ScriptableObject`,
 >   `Name` 是 `IDataBuilder` 成员 ⇒ 须经 `GetDataBuilder(int)`(返回 `IDataBuilder`)取,不能直接点 `.Name`。
 > - `public int ActivePlayModeDataBuilderIndex { get; set; }` · `IDataBuilder ActivePlayModeDataBuilder { get; }`。
+>
+> ⚠️ **已知黄字(2.10.3 实读,非本项目缺陷)**:构建时 Console 可能出现一条
+> `ProfileValueReference: GetValue called with empty id.` —— 源 =
+> `Editor/Build/BuildPipelineTasks/BuildLayoutGenerationTask.cs:775` 对
+> `Settings.RemoteCatalogBuildPath.GetValue(...)` 的**无守卫**读取(构建布局报告的元数据字段,
+> 每次构建恒定执行);对偶的 `RemoteCatalogLoadPath` 那条在 `:1215`,有 `if (aaSettings.BuildRemoteCatalog)` 守卫,
+> 所以只会吐一条。`ProfileValueReference.GetValue`(`:96`)在引用 `Id` 为空时打黄字并返回 `null`;
+> 惰性重绑守卫是 `Id == null`,**漏掉空串 Id** ⇒ 不会自愈。
+> `BuildRemoteCatalog` 默认 `false` ⇒ 该值不进出货,**黄字为噪声**;要消则构建前
+> `profileSettings.CreateValue(<标准路径名>, <默认值>)` 补齐变量,再
+> `settings.RemoteCatalogBuildPath.SetVariableByName(settings, AddressableAssetSettings.kRemoteBuildPath)`
+> (LoadPath / DefaultGroup 的 `BundledAssetGroupSchema.BuildPath|LoadPath` 同理)。标准路径变量名 =
+> `Local.BuildPath` / `Local.LoadPath` / `Remote.BuildPath` / `Remote.LoadPath`(公开常量 `kLocalBuildPath` 等)。
+> **该黄字不影响 DefaultGroup 的群体构建路径**(后者走 `:1148/:1152`,Id 空会先黄字再 NRE)——
+> 若同时见到 NRE 或多条黄字,才说明 profile 变量真缺,须查 `Create()` 初始化顺序。
 
 ---
 
