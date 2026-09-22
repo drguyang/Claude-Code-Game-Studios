@@ -1,6 +1,7 @@
 # Unity 6.3 — Addressables
 
 **Last verified:** 2026-02-13
+**API re-verified against source:** 2026-09-23 (`com.unity.addressables` **2.10.3**, mirror tag `2.10.3` @ `6fef233`)
 **Status:** Production-Ready
 **Package:** `com.unity.addressables` (Package Manager)
 
@@ -68,9 +69,24 @@ with async loading, remote content delivery, and better memory control.
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
 
-AddressableAssetSettings.AddAssetEntry(guid, "MyAssetKey", "Default Local Group");
+var settings = AddressableAssetSettingsDefaultObject.GetSettings(true); // create=true 首次初始化
+var group    = settings.DefaultGroup;                                   // AddressableAssetGroup
+var entry    = settings.CreateOrMoveEntry(guid, group);                 // 已存在则返回既有条目并归位
+entry.address = "MyAssetKey";                                           // setter → SetAddress(key)
 #endif
 ```
+
+> ⚠️ **2.10.3 勘误(2026-09-23)**:旧线的三参形态
+> `AddressableAssetSettings.AddAssetEntry(guid, address, groupName)` **已不存在**(2.10.3 源内无此重载)。
+> 现行入口 = `CreateOrMoveEntry(string guid, AddressableAssetGroup targetParent, bool readOnly = false, bool postEvent = true)`
+> 配 `entry.address` setter。组取 `settings.DefaultGroup`(`AddressableAssetGroup`,是 `ScriptableObject` ⇒ 具名用 `.name`,**无** `.Name`)。
+>
+> 相关签名(`AddressableAssetSettings`,2.10.3 实读):
+> - `public static void BuildPlayerContent(out AddressablesPlayerBuildResult result)` —— **返回值是 `void`**,成败只能读 `result.Error`;
+>   运行期静态类 `Addressables` 上**没有** `BuildPlayerContent`(它只暴露运行期 Load/Instantiate)。
+> - `public List<ScriptableObject> DataBuilders { get; }` —— 元素声明类型是 `ScriptableObject`,
+>   `Name` 是 `IDataBuilder` 成员 ⇒ 须经 `GetDataBuilder(int)`(返回 `IDataBuilder`)取,不能直接点 `.Name`。
+> - `public int ActivePlayModeDataBuilderIndex { get; set; }` · `IDataBuilder ActivePlayModeDataBuilder { get; }`。
 
 ---
 

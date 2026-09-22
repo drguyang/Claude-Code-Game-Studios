@@ -25,7 +25,6 @@ using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
@@ -220,10 +219,13 @@ namespace DaYiJingCheng.EditorTools.Spike
                 ConfigurePlayMode(settings);
 
                 // ── 7. BuildPlayerContent ──
+                // ⚠️ 内容构建是**编辑期** API:住 AddressableAssetSettings,且签名是 `void`
+                //    (2.10.3 实读:`public static void BuildPlayerContent(out AddressablesPlayerBuildResult result)`),
+                //    成功/失败只能读 `result.Error`。运行期静态类 Addressables 上没有此方法。
                 var buildSw = Stopwatch.StartNew();
-                Addressables.BuildPlayerContent(out var result);
+                AddressableAssetSettings.BuildPlayerContent(out var result);
                 buildSw.Stop();
-                if (result != null && !string.IsNullOrEmpty(result.Error))
+                if (!string.IsNullOrEmpty(result?.Error))
                     Debug.LogError($"[U1] BuildPlayerContent 失败: {result.Error}");
                 else
                     Debug.Log($"[U1] BuildPlayerContent 完成,耗时 {buildSw.ElapsedMilliseconds} ms");
@@ -279,9 +281,9 @@ namespace DaYiJingCheng.EditorTools.Spike
                 if (settings != null)
                 {
                     var buildSw = Stopwatch.StartNew();
-                    Addressables.BuildPlayerContent(out var result);
+                    AddressableAssetSettings.BuildPlayerContent(out var result);
                     buildSw.Stop();
-                    if (result != null && !string.IsNullOrEmpty(result.Error))
+                    if (!string.IsNullOrEmpty(result?.Error))
                         Debug.LogError($"[U1] Teardown 后 catalog 重建失败:{result.Error}");
                     else
                         Debug.Log($"[U1] catalog 重建完成,{buildSw.ElapsedMilliseconds} ms");
@@ -392,33 +394,48 @@ namespace DaYiJingCheng.EditorTools.Spike
                 Debug.LogError($"[U1] 取不到 guid,跳过标 Addressable:{path}");
                 return;
             }
-            if (settings.FindAssetEntry(guid) != null)
+
+            // ⚠️ 2.10.3 已无 `AddAssetEntry(guid, address, groupName)`(引擎参考件里的 3 参形态系旧线)。
+            //    现行入口 = CreateOrMoveEntry(guid, group):已存在则返回既有条目并归位到该组。
+            var group = settings.DefaultGroup;
+            if (group == null)
             {
-                var existing = settings.FindAssetEntry(guid);
-                if (existing.address != key)
-                {
-                    existing.address = key;
-                    Debug.Log($"[U1] 条目地址改写 {path} → {key}");
-                }
+                Debug.LogError($"[U1] 无 DefaultGroup —— Addressables 初始化不完整,跳过 {path}");
                 return;
             }
-            var groupName = settings.DefaultGroup != null ? settings.DefaultGroup.Name : "Default Local Group";
-            settings.AddAssetEntry(guid, key, groupName);
-            Debug.Log($"[U1] 已标 Addressable:{path} → key={key} (group={groupName})");
+
+            var entry = settings.CreateOrMoveEntry(guid, group);
+            if (entry == null)
+            {
+                Debug.LogError($"[U1] CreateOrMoveEntry 返回 null:{path}");
+                return;
+            }
+
+            if (entry.address != key)
+            {
+                entry.address = key;
+                Debug.Log($"[U1] 已标 Addressable / 地址改写 {path} → key={key} (group={group.name})");
+            }
+            else
+            {
+                Debug.Log($"[U1] 已标 Addressable:{path} → key={key} (group={group.name})");
+            }
         }
 
         /// <summary>Play Mode 切到 Existing Build(bundle 层才存在,S3 判据 2/3 的前提)。
         /// builder 名单逐条打进 Console;找不到 Existing 字样则保持原样并给出手动指引。</summary>
         static void ConfigurePlayMode(AddressableAssetSettings settings)
         {
-            var builders = settings.DataBuilders;
+            // ⚠️ DataBuilders 的声明类型是 List<ScriptableObject>(2.10.3 实读),
+            //    `Name` 是 IDataBuilder 成员 ⇒ 必须走 GetDataBuilder(i)(返回 IDataBuilder),不能直接点 Name。
+            int count = settings.DataBuilders.Count;
             int current = settings.ActivePlayModeDataBuilderIndex;
             int existing = -1;
-            for (int i = 0; i < builders.Count; i++)
+            for (int i = 0; i < count; i++)
             {
-                var name = builders[i] != null ? builders[i].Name : "<null>";
+                var name = settings.GetDataBuilder(i)?.Name ?? "<null>";
                 Debug.Log($"[U1] DataBuilder[{i}] = {name}" + (i == current ? "  ← 当前" : ""));
-                if (existing < 0 && name != null && name.IndexOf("Existing", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (existing < 0 && name.IndexOf("Existing", StringComparison.OrdinalIgnoreCase) >= 0)
                     existing = i;
             }
             if (existing >= 0)
