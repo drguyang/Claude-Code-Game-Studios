@@ -4,7 +4,7 @@
 > **GDD**: design/gdd/item-database.md
 > **Architecture Module**: L1 契约 + L2 schema(门 A 侧 DATA / SIM)
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories item-database`
+> **Stories**: 12 stories created (2026-09-23)
 
 ## Overview
 
@@ -69,6 +69,25 @@
 | TR-itemdb-031 | 掉落实体的世界状态事件化边界 | ADR-009 + ADR-015 ✅ |
 | TR-itemdb-032 | 配置版本号与存档头联动 | ADR-010 + ADR-014 ✅ |
 
+## Stories
+
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | FixParse 边界契约 | Logic | Ready | ADR-006 + ADR-005 |
+| 002 | Schema 类型与复合主键 | Logic | Ready | ADR-014 + ADR-006 |
+| 003 | 配方结算求解器 | Logic | Ready | ADR-005 + ADR-006 |
+| 004 | F4 堆叠重量与 F5 品级时间轴 | Logic | Ready | ADR-006 |
+| 005 | 守恒律构建期与运行期门 | Logic | Ready | ADR-006 |
+| 006 | 配方表写入期校验套件 | Logic | Ready | ADR-014 |
+| 007 | 物品表写入期校验套件 | Logic | Ready | ADR-014 |
+| 008 | 数据管线烘焙与 Addressables 预载 | Integration | Ready | ADR-014 + ADR-010 |
+| 009 | Craft 事件载荷与全序键 | Integration | Ready | ADR-009 + ADR-024 + ADR-008 |
+| 010 | 实例权威与持久化往返 | Integration | Ready | ADR-010 + ADR-005 + ADR-006 |
+| 011 | 跨平台确定性黄金夹具 | Logic | Ready | ADR-012 + ADR-005 |
+| 012 | 呈现契约合规走查 | UI | Ready | ADR: N/A — 呈现归 ADR-013/42，非架构裁决 |
+
+Counts: 8 Logic · 3 Integration · 1 UI = 12 total.
+
 ## Definition of Done
 
 This epic is complete when:
@@ -79,4 +98,4 @@ This epic is complete when:
 
 ## Next Step
 
-Run `/create-stories item-database` to break this epic into implementable stories.
+Run `/story-readiness production/epics/item-database/story-001-fix-parse-boundary-contract.md` to begin implementation, or `/create-stories [next-epic-slug]` for the next Foundation epic.
