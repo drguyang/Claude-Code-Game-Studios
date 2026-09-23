@@ -568,6 +568,11 @@ Amendment A 的例外登记(唯一一条,「不得扩张」)不删,平移其**�
 - [ ] **`Fix` 不被 Unity 内置序列化器承载**(D-21-18):一条 EditMode 探针断言
       `JsonUtility` / `[SerializeField]` / `ScriptableObject` 往返一个 `Fix` 字段 ⇒ **值丢失**,
       并断言自定义编码器往返 ⇒ **逐位还原**。
+      > 📝 2026-09-23 · R-1 落盘注(勾选义务不变):该探针已成文于
+      > `unity/Assets/Tests/EditMode/Sim/sim_codec_roundtrip_test.cs` →
+      > `test_simCodec_fixEncoder_bypassesUnitySerializer`(JsonUtility 往返丢 Fix +
+      > `FixCodec` 写读逐位还原 + 9 字节定宽断言)。**跑绿归【桌面】EditMode** ——
+      > 成文 ≠ 跑绿,未跑不勾(禁借绿纪律)。
 - [ ] `EFF_MAX > 1` ⇒ 构建期硬失败。
 - [ ] **载荷内枚举 = 版本化整数 ordinal,且映射表进 `ConfigVersion` 内容哈希覆盖集**(D-21-13 收窄,2026-09-17):
       改一条 ordinal ↔ 名称的映射 ⇒ `ConfigVersion` **必变**;构造一个「改了映射却版本号不变」的夹具 ⇒ 断言失败。

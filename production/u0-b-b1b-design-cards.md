@@ -246,7 +246,7 @@ public interface IClinicEnvQuery
 
 | # | 残留 | 归 |
 |---|---|---|
-| R-1 | **Sim.Codec 解码器本体**(34 schema 的字节↔struct 编解码 + PayloadRef 的 blob 池契约 + freehand_text 变长段)—— b5 的 8 字节小端 helper 迁移亦在此 | codec 轮(ADR-006 §五 / ADR-010) |
+| ~~R-1~~ | ✅ **落盘(2026-09-23 codec 轮)** —— Sim.Codec 10 支 .cs 全落:`CodecPrimitives`(b5 小端 helper 迁入,种子测试改调生产件、独立参考 loop 移入 codec 测试)+ `CodecWriter`/`CodecReader`(1-byte tag + 定宽 LE,写侧按声明序、读侧乱序容忍 + seen mask 全勤校验)+ `FixCodec`(internal + IVT,D-21-18)+ `IBlobPool` + `SimEventCodec` + `PayloadCodec` 五分片(34 支 Encode/Decode · freehand G-3 UTF-8 tag6 · EmergencyAttempt Edges 双侧校验〔registry 背书〕· **Craft 两组等长**〔订正原「五数组等长」误注 —— registry constraint 实无等长文字,出处 = D-21-5/R-18-A/F1-F2〕)+ `TryGetPayload`/`TryGetFreehandText`(拍板点0-2 签名补全)。EditMode 新增 `sim_codec_roundtrip_test.cs` 30 用例(23 `[Test]` + 7 `[TestCase]`,6 条黄金夹具经 Python 独立重算逐字节对拍);期望基线 59 → **89**。ADR-006 `:568` 已挂落盘注(**不勾选** —— 跑绿归桌面,禁借绿) | ✅ 落盘;编译 / 三门 / EditMode 判定归【桌面】 |
 | R-2 | **b4 白名单断言扩员**:VitalsDto / ClinicEnvDto / AudioCueDto 字段反射扫描(AC-20 [L] BLOCKING / AC-37-15 家族)—— 类型现已齐,断言可写 | U1 gates 批 |
 | R-3 | **member_set 双语义**:registry「冻结三元组」vs ADR-008 抄本 `CaseId[]`(模式识别的**成员例集合**语义在 37 侧更自然)—— 本批按 registry 落三元组展开,若 37 验收要集合形须另裁 | 37 / ADR-008 修订轮 |
 | R-4 | adr-008 §三 C# 抄本(`PlayerId` 幽灵 + `CaseId[]`)降级注记(承 ADR-024 §② 同款) | 回写轮 |

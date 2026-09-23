@@ -14,6 +14,12 @@ namespace DaYiJingCheng.Sim.Contracts
         public readonly Fix Magnitude;       // registry: i64(Fix raw)
         public readonly long Tick;
         public readonly int DoseSeq;
+
+        public InjuryOnsetPayload(int actorId, int targetId, int injuryId, Fix magnitude, long tick, int doseSeq)
+        {
+            ActorId = actorId; TargetId = targetId; InjuryId = injuryId;
+            Magnitude = magnitude; Tick = tick; DoseSeq = doseSeq;
+        }
     }
 
     /// <summary>9(ADR-009 §三 骨架)。触发即落 —— 条件首次满足时写(给 F3 闭式求值一个锚点)。
@@ -24,6 +30,11 @@ namespace DaYiJingCheng.Sim.Contracts
         public readonly int TargetId;
         public readonly int RuleId;
         public readonly int ComponentId;     // when.component_id
+
+        public CompoundTriggeredPayload(long tick, int targetId, int ruleId, int componentId)
+        {
+            Tick = tick; TargetId = targetId; RuleId = ruleId; ComponentId = componentId;
+        }
     }
 
     /// <summary>9。仅窗口型 bonus 落本事件(永久型无窗止)。窗止是阶跃,须入 F3 类 A 边界表。</summary>
@@ -32,6 +43,11 @@ namespace DaYiJingCheng.Sim.Contracts
         public readonly long Tick;
         public readonly int TargetId;
         public readonly int RuleId;
+
+        public CompoundExpiredPayload(long tick, int targetId, int ruleId)
+        {
+            Tick = tick; TargetId = targetId; RuleId = ruleId;
+        }
     }
 
     /// <summary>8(判断链)。一条事件表示「起」或「止」;写入期校验 t(止) ≥ t(起)。
@@ -42,6 +58,11 @@ namespace DaYiJingCheng.Sim.Contracts
         public readonly int ActionId;        // 枚举:护理动作表 ordinal,K ≤ |表|
         public readonly int Caregiver;
         public readonly int Phase;           // 枚举:起 | 止
+
+        public CareAppliedPayload(long tick, int actionId, int caregiver, int phase)
+        {
+            Tick = tick; ActionId = actionId; Caregiver = caregiver; Phase = phase;
+        }
     }
 
     /// <summary>ADR-009 Amendment I(10 产出 / 主机物化)。语义 = **判定的输入**,不是结算输出。
@@ -60,6 +81,13 @@ namespace DaYiJingCheng.Sim.Contracts
         /// 引用字段合法地只活在解码瞬间;落盘/传输 = blob 定长+变长段。
         /// 长度 = Edges(=0 时为空数组非 null);上界超界 codec 拒收。</summary>
         public readonly int[] EdgeTicks;
+
+        public EmergencyAttemptPayload(int action, int holdTicks, int edges, int magPeak,
+            int magLast, int method, int actorId, int[] edgeTicks)
+        {
+            Action = action; HoldTicks = holdTicks; Edges = edges; MagPeak = magPeak;
+            MagLast = magLast; Method = method; ActorId = actorId; EdgeTicks = edgeTicks;
+        }
     }
 
     /// <summary>ADR-009 Amendment I(10 写)。七项齐备;drug_potency 经 F-10.4 单一舍入
@@ -75,6 +103,13 @@ namespace DaYiJingCheng.Sim.Contracts
         public readonly int Method;          // 枚举:Manual | 跳过(使跳过在流上可判别)
         public readonly int Cause;           // 枚举
         public readonly long Seq;
+
+        public EmergencyTreatmentAppliedPayload(long tick, int treatmentId, int actorId, int polarity,
+            Fix drugPotency, long halfLife, int method, int cause, long seq)
+        {
+            Tick = tick; TreatmentId = treatmentId; ActorId = actorId; Polarity = polarity;
+            DrugPotency = drugPotency; HalfLife = halfLife; Method = method; Cause = cause; Seq = seq;
+        }
     }
 
     /// <summary>ADR-009 Amendment I(11 写)。形状与 EmergencyTreatmentApplied 一致但**不带
@@ -89,6 +124,13 @@ namespace DaYiJingCheng.Sim.Contracts
         public readonly Fix DrugPotency;     // 来自 21a drug_profile
         public readonly long HalfLife;       // 来自 21a drug_profile
         public readonly long Seq;
+
+        public DrugTreatmentAppliedPayload(long tick, int treatmentId, int actorId, int polarity,
+            Fix drugPotency, long halfLife, long seq)
+        {
+            Tick = tick; TreatmentId = treatmentId; ActorId = actorId; Polarity = polarity;
+            DrugPotency = drugPotency; HalfLife = halfLife; Seq = seq;
+        }
     }
 
     /// <summary>ADR-024 补齐轮(暴露 OQ-7a-9 折叠丢成长)。
@@ -102,6 +144,13 @@ namespace DaYiJingCheng.Sim.Contracts
         public readonly int ObjectId;        // 枚举:对象表 ordinal(病种/品种/处方,由 SkillId 决定读哪张表)
         public readonly int NoveltyClass;    // 枚举:首次 | 冷却内 | 其它(三值)
         public readonly int Level;
+
+        public SkillGrownPayload(int actorId, int patientId, int skillId, int objectId,
+            int noveltyClass, int level)
+        {
+            ActorId = actorId; PatientId = patientId; SkillId = skillId; ObjectId = objectId;
+            NoveltyClass = noveltyClass; Level = level;
+        }
     }
 
     /// <summary>ADR-007 §三。ordinal = SplitMix64 消费序号。</summary>
@@ -111,6 +160,11 @@ namespace DaYiJingCheng.Sim.Contracts
         public readonly int Tier;            // 枚举:档 ordinal
         public readonly long Ordinal;        // 抽取序号
         public readonly int ChosenKey;       // 枚举:事件表 ordinal
+
+        public EventRolledPayload(int win, int tier, long ordinal, int chosenKey)
+        {
+            Win = win; Tier = tier; Ordinal = ordinal; ChosenKey = chosenKey;
+        }
     }
 
     /// <summary>ADR-007 §三。CauseClueKey 缺省 = 哨兵 None(registry 的 "?" 记法 ⇒ 哨兵,非 nullable)。
@@ -121,6 +175,11 @@ namespace DaYiJingCheng.Sim.Contracts
         public readonly int Tier;            // 枚举:档 ordinal
         public readonly WorldPos SpawnAnchor;
         public readonly int CauseClueKey;    // 哨兵 None = 缺省
+
+        public EventArrivedPayload(int eventKey, int tier, WorldPos spawnAnchor, int causeClueKey)
+        {
+            EventKey = eventKey; Tier = tier; SpawnAnchor = spawnAnchor; CauseClueKey = causeClueKey;
+        }
     }
 
     /// <summary>ADR-007 §三。</summary>
@@ -128,6 +187,11 @@ namespace DaYiJingCheng.Sim.Contracts
     {
         public readonly int SlotIndex;       // 挂起槽位
         public readonly int EventKey;        // 枚举:事件表 ordinal
+
+        public ThreatDeferredPayload(int slotIndex, int eventKey)
+        {
+            SlotIndex = slotIndex; EventKey = eventKey;
+        }
     }
 
     /// <summary>ADR-007 §三。</summary>
@@ -135,6 +199,11 @@ namespace DaYiJingCheng.Sim.Contracts
     {
         public readonly int SlotIndex;
         public readonly int Reason;          // 枚举:补发 | 作废
+
+        public ThreatDeferralClearedPayload(int slotIndex, int reason)
+        {
+            SlotIndex = slotIndex; Reason = reason;
+        }
     }
 
     /// <summary>ADR-007 §三。</summary>
@@ -142,5 +211,10 @@ namespace DaYiJingCheng.Sim.Contracts
     {
         public readonly int FlagId;          // 枚举:标记表 ordinal
         public readonly int NewValue;        // 整数标记值
+
+        public HistoryFlagChangedPayload(int flagId, int newValue)
+        {
+            FlagId = flagId; NewValue = newValue;
+        }
     }
 }

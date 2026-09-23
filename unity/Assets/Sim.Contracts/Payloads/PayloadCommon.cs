@@ -20,10 +20,12 @@
 //   lexicon_id/confidence;「sim 读它就是违例」纪律下,sim 侧访问 = 这三字段 + SimEvent.Patient。
 //   完整 Judgment(含自由文本)住呈现装配(8 / 37 / 42 侧),非本契约层类型。
 
-// ⚠️ Payloads/ 下的 34 支 per-Kind payload struct **刻意不写构造函数**:
-//   其唯一构造入口 = Sim.Codec 的 blob 解码(codec 轮落地)。b1b 的硬验收 = 编译通过,
-//   无消费者 ⇒ readonly 字段无 ctor 不影响编译(readonly 仅可在 ctor / 变量初始化器赋值,
-//   若日后确有直接构造需求,归首个消费代码批补 ctor,不预先扩 API 面)。
+// ✅ 2026-09-23 · R-1(codec 轮)兑现原注的后半句:34 支 per-Kind payload struct 已补
+//   **public ctor**(参数序 = 声明序,参数名 camelCase —— 依原注「归首个消费代码批补 ctor」)。
+//   构造入口自此 = ① 写侧 / 测试的具名 ctor;② 读侧 = Sim.Codec blob 解码(其内部经 ctor 构造)。
+//   **仍不提供语义上的无参构造** —— readonly 字段的可变缺省形由两入口取代;
+//   数组字段(EmergencyAttempt.EdgeTicks / Craft 五数组 / EncounterStarted.ActorIds)
+//   仍是「解码瞬间引用」,ctor 只透传不复制(长度对位约束的拒收面在 Sim.Codec 写/读侧)。
 //   本文件的 PayloadRef / CaseId / DiseaseIdSet 带 ctor(header 与键型在 codec 之外有组装需求)。
 
 namespace DaYiJingCheng.Sim.Contracts

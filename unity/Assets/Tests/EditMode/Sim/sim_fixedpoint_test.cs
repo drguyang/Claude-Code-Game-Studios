@@ -13,13 +13,16 @@
 //
 // 2026-09-22 · U0-b b5:本地 Q16Codec 参考实现已删,断言改指生产类型
 //   `Sim.Contracts.FixParse`(种子测试自此升格为生产类型的回归夹具)。
-//   刻意保留的一处本地件 = 8 字节小端 helper:生产编码器住 Sim.Codec,该装配尚未落地
-//   (BCL 的 BinaryPrimitives 行为等价,但「等价性」本身是 ADR-012 矩阵的实测对象,
-//    不在无生产件时预先借绿)—— Sim.Codec 落地时一并迁移。
+//   当时刻意保留的一处本地件 = 8 字节小端 helper(生产编码器尚无落点,
+//    不在无生产件时预先借绿「BinaryPrimitives 等价」)。
+// 2026-09-23 · R-1:**b5 该义务结清** —— helper 迁往生产件 `Sim.Codec.CodecPrimitives`
+//   (internal,经 IVT 访问);独立手写参考 loop 移入 sim_codec_roundtrip_test.cs
+//   与生产件对拍(种子测试自此零本地编码器)。跨平台逐位等价仍归 ADR-012 矩阵,不在此借绿。
 
 using System;
 using NUnit.Framework;
 using DaYiJingCheng.Sim.Contracts;
+using DaYiJingCheng.Sim.Codec;
 
 namespace DaYiJingCheng.Tests.Unit.Sim
 {
@@ -37,8 +40,9 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         [TestCase(long.MaxValue)]
         public void test_simFixedPoint_codecRoundTrips_exactBits(long raw)
         {
-            byte[] bytes = Codec_WriteInt64LittleEndian(raw);
-            long restored = Codec_ReadInt64LittleEndian(bytes);
+            byte[] bytes = new byte[8];
+            CodecPrimitives.WriteInt64LittleEndian(bytes, raw);
+            long restored = CodecPrimitives.ReadInt64LittleEndian(bytes);
 
             Assert.That(restored, Is.EqualTo(raw),
                 "raw 位型在编解码往返中改变 —— 三流读流会自此错位");
@@ -106,20 +110,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 "EFF_MAX ≤ 1 是 ADR-006 §Decision 四 的前提,>1 则守恒式失去意义");
         }
 
-        // ── helpers:编码器形状本身(8 字节小端,无 float) ──
-
-        private static byte[] Codec_WriteInt64LittleEndian(long v)
-        {
-            var b = new byte[8];
-            for (int i = 0; i < 8; i++) b[i] = (byte)((v >> (8 * i)) & 0xFF);
-            return b;
-        }
-
-        private static long Codec_ReadInt64LittleEndian(byte[] b)
-        {
-            long v = 0;
-            for (int i = 0; i < 8; i++) v |= ((long)b[i]) << (8 * i);
-            return v;
-        }
+        // helpers 已迁:2026-09-23 R-1 —— 8 字节小端读写改调生产件 Sim.Codec.CodecPrimitives;
+        // 独立参考 loop 见 sim_codec_roundtrip_test.cs(与生产件对拍,b5 义务结清)。
     }
 }
