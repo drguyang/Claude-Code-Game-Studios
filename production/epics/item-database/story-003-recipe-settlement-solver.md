@@ -127,22 +127,22 @@
 - Logic: `tests/unit/item_database/recipe_settlement_solver_test.cs` — must exist and pass
 - Integration (AC-5/6): `tests/integration/item_database/recipe_settlement_solver_test.cs`
 
-**Status**: [x] Created — 落点见下(Unity 只编译 `unity/Assets/` 树)
+**Status**: [x] Created — 落点见下(Unity 只编译 `unity/Assets/` 树);**run: VERIFIED 2026-09-24 桌面 —— EditMode 175 全绿(Story 003 的 30 测 + Story 001/002 回归 145 全含) + PlayMode 7/7 绿**
 - Logic(AC-1/2/3/4/47): `unity/Assets/Tests/EditMode/ItemDatabase/recipe_settlement_solver_test.cs`(装配 `Sim.Contracts.Tests`)
 - Integration(AC-5/6): `unity/Assets/Tests/PlayMode/recipe_settlement_solver_test.cs`(装配 `Gameplay.Tests`)
-- **执行状态**: 【超算】无 Unity Editor ⇒ EditMode / PlayMode 均 **NOT-RUN**;须【桌面】打开 Unity 生成 `.meta` 后跑(承 Story 001/002 先例)
+- **执行状态**: ✅ **VERIFIED 2026-09-24 桌面** —— EditMode 全量 **175 测全绿**(Story 003 的 30 测 + Story 001/002 回归 145 全含,含 `test_actualConsumed_efficiencyAtMostOne_neverBelowBase` 等;曾红 1 条 = 断言写了理想算术语义 9、定点世界实际产出 10,订正后绿,commit `2cf8092`)+ PlayMode **7/7 绿**(`RecipeSettlementSolverIntegrationTest`,桌面 XML 2026-09-24;同批 U1 3 条 spike 红与 003 无关,归 ADR-023 spike 批)
 - **AC-21a-47(ADVISORY)**: 计时证据落 `production/qa/smoke-[date].md`,该目录**尚未建立** ⇒ 证据未生成(登记,不借绿)
 
 ## Completion Notes
 **Completed**: 2026-09-24(用户显式 override —— verdict 曾为 BLOCKED 仅因测试 NOT-RUN;双评审修复后代码面无 BLOCKING。理由与 Story 002 同款:【超算】无 Unity Editor,NOT-RUN 是环境事实而非质量缺陷;桌面随后实跑翻 VERIFIED)
-**Criteria**: 7/7 implemented & test-covered(AC-21a-1 · 2 · 3 · 4 · 47 → EditMode 30 测;AC-21a-5 · 6 → PlayMode 7 测;**run status: NOT-RUN —— 待【桌面】实跑**)
+**Criteria**: 7/7 implemented & test-covered(AC-21a-1 · 2 · 3 · 4 · 47 → EditMode 30 测;AC-21a-5 · 6 → PlayMode 7 测;**run status: VERIFIED 2026-09-24 —— EditMode 175 全绿 + PlayMode 7/7**)
 **Deviations**(均为 advisory,零 BLOCKING):
 - **AC-21a-47 计时证据未生成**:判据要求落 `production/qa/smoke-[date].md`,而 `production/qa/` 目录**全仓从未建立**(Story 001/002 亦无先例)⇒ 证据文件不存在。**不借绿**:测试内 `[Category("Advisory")]` 冒烟只写 `TestContext.Out`,不计入任何绿判据。建 `production/qa/` 属项目级决定,不在本故事范围内擅建
 - **AC-21a-6 扫描器的方法论边界**:文本扫描测**标识符子串**,剥离注释但不剥字符串字面量内的标识符(见 `tests/integration/item_database/README.md`);大小写不敏感已覆盖 camelCase 命名变体,但**真同义词**(如自建 `ComputeMultiplier`)不在表内 —— 该绕过面与 Story 002 AC-48 同型,属方法论固有局限,以 QA Test Cases 的标识符口径为准
 - **GDD `:512` 示范数与 ADR-006 §三 冲突**:GDD 写 `19661 × 30 / 60 = 9830`(截断),ADR-006 §三 要求 `ROUND_HALF_AWAY_FROM_ZERO` ⇒ 实为 `9831`。**规则优先于示例**,实现取 9831,GDD 已就地加 2026-09-24 订正注(保留原文留闭环)
 - **AC-21a-5/6 落 PlayMode 而非 EditMode**:两者判的是**跨系统结构事实**(MethodInfo 收敛 / 源码无第二份公式体),不依赖运行时 ⇒ unity-specialist 判「合理但次优」—— EditMode 更快且不触 Addressables 装配面。**非阻塞**,保留现状(移入 EditMode 需改装配引用集,收益边际)
 - **入口接缝的成员面锁**仅锁**公开静态**成员(PlayMode `test_entryPointDelegates_haveNoFormulaBodyOfTheirOwn`)—— 私有/实例成员面不锁。18/19 落地时该测试自动纳入其源文件扫描
-**Test Evidence**: Logic 真身 `unity/Assets/Tests/EditMode/ItemDatabase/recipe_settlement_solver_test.cs`(30 functions,装配 `Sim.Contracts.Tests`)+ Integration 真身 `unity/Assets/Tests/PlayMode/recipe_settlement_solver_test.cs`(7 functions,装配 `Gameplay.Tests`);**run = NOT-RUN**(【超算】无 Unity Editor)
+**Test Evidence**: Logic 真身 `unity/Assets/Tests/EditMode/ItemDatabase/recipe_settlement_solver_test.cs`(30 functions,装配 `Sim.Contracts.Tests`)+ Integration 真身 `unity/Assets/Tests/PlayMode/recipe_settlement_solver_test.cs`(7 functions,装配 `Gameplay.Tests`);**run = VERIFIED 2026-09-24 桌面 —— EditMode 175 全绿(30 测含) + PlayMode 7/7**
 **Code Review**: Complete —— `/code-review`(2026-09-23/24,lean 模式)= unity-specialist **APPROVED WITH SUGGESTIONS**(R1/R2 属「Done 前应处理、不阻塞合入」)+ qa-tester **GAPS**(§2/3.1/3.2/4a–4f/5.2/5.3/6);**全部发现已修复并经 grep 核验**:
 - R1:`RecipeSettlementSolver.cs:188` XML 注释 9830 → 9831(舍入契约优先)
 - R2:GDD `:512` 加 2026-09-24 订正注
@@ -157,7 +157,7 @@
 - QA §5.3:扫描改 `OrdinalIgnoreCase`;删 `EnvMod_total` / `max(1,` 两个**死项**(非合法 C# 文本);补 `CeilDiv`
 - QA §6:AC-47 注释「最大值」→「均值」(代码本就取均值)
 **残留**:AC-21a-47 的 `production/qa/smoke-*.md` 证据(见 Deviations 第 1 条)—— 建 `production/qa/` 后补
-**First follow-up**: 【桌面】① 打开 Unity 补 2 个新测试文件的 `.meta`(EditMode + PlayMode 各一,`Sim/ItemDatabase/` 下 3 个 `.cs` 亦需);② EditMode 跑 `RecipeSettlementSolverTest` 30 测 + 回归全量;③ PlayMode 跑 `RecipeSettlementSolverIntegrationTest` 7 测;④ 跑绿后翻 VERIFIED
+**First follow-up**: ✅ 全部完成(2026-09-24)① 桌面 Unity 已生成 `.meta`(用户确认跑绿);② EditMode `RecipeSettlementSolverTest` 30 测 + 回归全量 = **175 全绿**;③ PlayMode `RecipeSettlementSolverIntegrationTest` **7/7 绿**;④ 状态翻 VERIFIED(本文件 + EPIC.md 同批);**无 open 跟进**。⚠️ 注意:同批 PlayMode 跑出 3 条 U1 spike 红(`U1SceneSpikesTest`,`No Location found for Key=U1_Spike*`)与 003 无关 —— 归 ADR-023 spike 批,桌面侧如需拿 U1 数字:先 `DaYi/Spike/Setup U1 Spikes` 重建场景 + `BuildPlayerContent`,再在 Test Runner **PlayMode 标签**跑(勿 Run on Player)
 
 ---
 
