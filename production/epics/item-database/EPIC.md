@@ -73,7 +73,7 @@
 
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
-| 001 | FixParse 边界契约 | Logic | Ready | ADR-006 + ADR-005 |
+| 001 | FixParse 边界契约 | Logic | Complete | ADR-006 + ADR-005 |
 | 002 | Schema 类型与复合主键 | Logic | Ready | ADR-014 + ADR-006 |
 | 003 | 配方结算求解器 | Logic | Ready | ADR-005 + ADR-006 |
 | 004 | F4 堆叠重量与 F5 品级时间轴 | Logic | Ready | ADR-006 |

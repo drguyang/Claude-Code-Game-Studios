@@ -1,7 +1,7 @@
 # Story 001: FixParse 与整数边界契约
 
 > **Epic**: 物品与配方数据库
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 3h
@@ -102,7 +102,24 @@
 **Required evidence**:
 - Logic: `tests/unit/item_database/fix_parse_boundary_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created 2026-09-23 — 编译真身 `unity/Assets/Tests/EditMode/ItemDatabase/fix_parse_boundary_test.cs`(账本路径经 `tests/unit/item_database/README.md` 说明,ADR-025 §⑤ 路径分家);**run: NOT-RUN**(【超算】无 Unity Editor,桌面 EditMode 跑绿 = 收官后第一跟进项;成文 ≠ 跑绿,禁借绿)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-23(用户显式 override —— verdict 曾为 BLOCKED 仅因测试 NOT-RUN,代码评审已 APPROVED WITH SUGGESTIONS)
+**Criteria**: 4/4 implemented & test-covered(AC-41 · 42 · 51 · 57 → 12 test functions;**run status: NOT-RUN**,桌面 EditMode 执行前不得引用本故事为「测试已过」先例)
+**AC-21a-51 / AC-21a-57 记账**: **partial — BLOCKED-BY-Story008**(字符串级 `FixParse` 拒收已测;「导入期硬失败」的管线级证明归 Story 008 两阶段烘焙,**禁借绿**)
+**Deviations**(均为 advisory,零 BLOCKING):
+- AC-57「逐字段轮换」为化妆式(五轮同喂 `"0.5"`,field 只进报错文案)—— 覆盖真实(五字段共享同一解析路径)但不证明逐字段路由;可选加固:从夹具按字段取值
+- AC-41「字段缺失」边缘仅由 `ParseOptional(null)` 代理,无缺键断言(缺键抽取属 schema 层,归 Story 002/008)
+- `extractStringArray` 只抽带引号元素 —— 数组若混入未引号 JSON 数字会静默跳过(当前夹具全带引号,潜在假绿面,建议硬化)
+- `FromRatio` 大分子 `<<16` 回绕边界无测试(既有面,域归数值轮,本故事未恶化)
+- 新公共面 `ParseOptional` / `Fix.Round()` / `IntParse` 为 QA 规格边缘的实现载体(「null 合法」「统一舍入函数」「weight 是 int」),QA 原文未点名 —— 属规格内承载,非越界
+- 新 `.cs` / `ItemDatabase/` 目录暂缺 `.meta`(【超算】已知模式,桌面首次打开 Unity 生成后补提交)
+**Test Evidence**: 编译真身 `unity/Assets/Tests/EditMode/ItemDatabase/fix_parse_boundary_test.cs`(12 functions)+ 账本夹具 `tests/unit/item_database/fixtures/invalid_potency_float.json`;**run = NOT-RUN**
+**Code Review**: Complete — `/code-review`(2026-09-23)= unity-specialist **APPROVED WITH SUGGESTIONS**(零 BLOCKING;ADR-006/005-G/025 全维核验通过)+ qa-tester **GAPS**(S2 借绿风险已落上方 AC-51/57 partial 记账;S3/S4 转 advisory 列表)
+**First follow-up**: 【桌面】Unity EditMode 跑 `FixParseBoundaryTest` 全绿 + 补提交 3 个 `.meta`
 
 ---
 
