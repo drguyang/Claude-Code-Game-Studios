@@ -7,11 +7,17 @@
 > **数据真源两处都是 `tr-registry.yaml` 的 `status:` 字段** —— 本文件与 RTM 件都不各自持有计数,
 > 只引用。RTM 件是门件路径要求的**指针件**,不复制本表内容。
 
-> **Last Updated**: 2026-09-23(**Epic-3 对症复核批 —— 用户裁定「按推荐执行」,3 条 gap→◆ + 1 条文本刷新,零新 ADR**)
+> **Last Updated**: 2026-09-23(**ADR-001 窄修订·同族三项 —— 用户裁定,Epic 44 建置前置,1 条翻转,零新 ADR 号**)
+> —— **ID 恒 500(零新增)**;**计数翻转 1 条:337/500 → 338/500**
+> (`TR-audio-012` gap→covered,`adr: ADR-001 + ADR-018` —— ADR-001 就地增 §一之三(Status 维持
+> Accepted):裁决一 上行二分结 `OQ-10-9` ≡ `QQ-14`;裁决二 cue 非复制 ⇒ EndLoop 不走网络 +
+> 44 自评兜底升格架构义务)⇒ **338 ✅ / 75 ⚠️ / 71 ❌ / ◆16**。
+> **Foundation 门零影响**:012 `domain: Networking`,`domain: Foundation ∧ status: gap` 实测仍 **= 0**。
+> **前序 · 2026-09-23 Epic-3 对症复核批(用户裁定「按推荐执行」,3 条 gap→◆ + 1 条文本刷新,零新 ADR)**
 > —— **ID 恒 500(零新增)**;**计数翻转 3 条:337/500 ◆ 计数口径 gap 75→72 / ◆13→16**
 > (`TR-input-017/019/021` gap→◆ `no-adr-by-design`,`adr` 改 `null`,归属件 = 已 Approved 的 10 GDD;
 > `TR-input-016` **维持 gap**(实测前置);`TR-input-008` **status/adr 不变**,仅 requirement/note
-> 刷为 ADR-011 Amendment B C 路文本)⇒ **337 ✅ / 75 ⚠️ / 72 ❌ / ◆16**。
+> 刷为 ADR-011 Amendment B C 路文本)⇒ 该批后值 **337 ✅ / 75 ⚠️ / 72 ❌ / ◆16**。
 > **Foundation 门零影响**:三条翻转全 `domain: Core`,`domain: Foundation ∧ status: gap` 实测仍 **= 0**。
 > **前序 · 2026-09-23 ADR-009 TR 定向复核轮(用户裁定翻 031 + medcons-001,2 条翻转,零新 ADR)**
 > —— **ID 恒 500(零新增)**;**计数翻转 2 条:335/500 → 337/500**(`TR-itemdb-031` gap→covered ·
@@ -217,11 +223,11 @@
 | `death-and-respawn.md` | **29 死亡与复活**(D-R3 回填)| **8** | **5** | **3** | **0** |
 | `casebook.md` | **39 脉案**(D-R3 回填)| **8** | **4** | **2** | **2** |
 | `skeuomorphic-ui.md` | **42 拟物 UI**(D-R3 回填)| **12** | **8** | **4** | **0** |
-| `audio-system.md` | **44 音频**(D-R3 回填)| **14** | **12** | **1** | **1** |
+| `audio-system.md` | **44 音频**(D-R3 回填)| **14** | **13** | **1** | **0** |
 | `tutorial-and-onboarding.md` | **48 教学与入门**(D-R3 回填)| **8** | **2** | **3** | **3** |
 | `telemetry-analytics.md` | **51 遥测与分析**(D-R3 回填)| **8** | **7** | **1** | **0** |
 | `medical-consequences.md` | **53 医疗后果(**P1a 主**)**(D-R3 回填)| **8** | **4** | **1** | **3** |
-| **合计** | | **500** | **337** | **75** | **72**(另 **◆16** = `no-adr-by-design`;2026-09-23 五批合计:ADR-009 复核轮 2 条翻 ✅(031 + medcons-001)+ ADR-028 小裁 1 条翻 ✅ + Required ADR #4/#5 10 条翻 ✅ + QQ-08 清账 A 簇 6 条翻 ✅ / B 簇 11 条转 ◆ + Epic-3 对症复核批 input 3 条转 ◆)|
+| **合计** | | **500** | **338** | **75** | **71**(另 **◆16** = `no-adr-by-design`;2026-09-23 六批合计:ADR-001 窄修订 1 条翻 ✅(`TR-audio-012`)+ ADR-009 复核轮 2 条翻 ✅(031 + medcons-001)+ ADR-028 小裁 1 条翻 ✅ + Required ADR #4/#5 10 条翻 ✅ + QQ-08 清账 A 簇 6 条翻 ✅ / B 簇 11 条转 ◆ + Epic-3 对症复核批 input 3 条转 ◆)|
 
 > **2026-09-20 借绿回退轮(TD 条件 C4 —— `architecture.md` §5.5 D-5)**:**ID 不增不减**(仍 387)。
 > 8 条「摘要列记 ✅ 而 `tr-registry.yaml` 的 `adr: null`」的条目(`TR-case-035` / `-036` ·
@@ -651,7 +657,7 @@
 | TR-input-005 ⟳ | 同机多玩家**每玩家 `Instantiate()` 资产**(不继承 overrides;**不得启用 UI map**;P0 不涉及,形状现定) | ADR-011 | ✅ F3;实现推 P1b |
 | TR-input-006 ⟳ | **急救直读通道**(**`onAfterUpdate` 回调**,非轮询)不穿 42 UI 栈;`L_input→pixel ≤ 50 ms`(**P0 = K&M / Gamepad**) | ADR-011 | ✅ §二;**`TR-concept-007` 在 3 侧的落点**;**理由 = 抖动(方差)**(初稿「算术原因」为假)。AC-3-B1a / **B1b** / B2 **BLOCKING** |
 | TR-input-007 ⟳ | 直读 `float` = 手感层**不进流**;判定结果**全整数直接构造 `SimEvent`**(载荷闭包零 `float`) | ADR-011 + ADR-006 | ✅ F4 + 规则八;AC-3-A6 / **A7** / B3(**初稿「进流前 `FixParse`」= 范畴错误,不可执行**) |
-| TR-input-008 | **联机急救判定 = 主机权威(C 路)**:客户端聚合一条 `EmergencyAttempt` 全整数意图事件上行 → 主机 `Judge` + `Append` + 发号 `Seq`;本地判定降级为**预表现**;**不逐帧同步输入**保留 | ADR-011 + ADR-009 | ✅ **Amendment B(2026-09-18 C 路,作废原 F1「本地即时」)**;规则九 2026-09-20 回刷 + AC-3-B4 改写;残余 `OQ-10-9`(归 45 窄修订)。2026-09-23 对症复核批 registry-only 文本刷新 |
+| TR-input-008 | **联机急救判定 = 主机权威(C 路)**:客户端聚合一条 `EmergencyAttempt` 全整数意图事件上行 → 主机 `Judge` + `Append` + 发号 `Seq`;本地判定降级为**预表现**;**不逐帧同步输入**保留 | ADR-011 + ADR-009 | ✅ **Amendment B(2026-09-18 C 路,作废原 F1「本地即时」)**;规则九 2026-09-20 回刷 + AC-3-B4 改写;~~残余 `OQ-10-9`(归 45 窄修订)~~ ✅ 已结(2026-09-23,ADR-001 §一之三 裁决一:`EmergencyAttempt` 判定输入类改走可靠通道)。2026-09-23 对症复核批 registry-only 文本刷新 |
 | TR-input-009 | 导航动作 → `FocusNavigationIntent` **单向**;**3 不实现焦点移动** | ADR-011 + ADR-013 | ✅ F2 + 规则十 / 十一;**`TR-concept-008` 的接口侧在 3 的落点**。AC-3-C1/C3/C4 |
 | TR-input-010 | **无同键双触发**:不得同时绑官方桥与自实现路径 | ADR-011 | ✅ F2;AC-3-C2 **BLOCKING** |
 | TR-input-011 ⟳ | `Mixed` 设备态**以最近有效来源为准**(**「有效」= 迟滞 + 漂移防误触**);移除 / 失焦 → **合成 release** | ADR-011 | ✅ **本 GDD 新裁**(ADR-011 未定);合成 release 防「卡键」。AC-3-D3 / **D4** |
@@ -1123,7 +1129,7 @@
 
 ## 29. 音频 `design/gdd/audio-system.md`(#44)| 14 条
 
-> 12 ✅ / 1 ⚠️ / 1 ❌(2026-09-23 ADR-028 小裁批后:`TR-audio-011` gap→covered;`TR-audio-012` 维持 ❌ 归 45 轮)
+> 13 ✅ / 1 ⚠️ / 0 ❌(2026-09-23 ADR-001 窄修订后:`TR-audio-012` gap→covered;前序 ADR-028 小裁批 `TR-audio-011` gap→covered)
 
 | TR-ID | 需求 | ADR | 状态 |
 |-------|------|-----|------|
@@ -1138,7 +1144,7 @@
 | TR-audio-009 | cue 载荷不复制三源事实(音频只读 DTO 派生,不镜像 sim 量) | ADR-018 | ✅ |
 | TR-audio-010 | 音频事件表走 ADR-014 烘焙管线:玩家构建零 JSON 解析器 | ADR-014 + ADR-018 | ✅ |
 | TR-audio-011 | 世界语境呼吸:听诊主通道的呼吸声源于世界(非 UI 层常驻音) | ADR-028 | ✅ —— 2026-09-23 用户裁定「011 现裁」⇒ 新立 `adr-028-world-sound-source-ownership.md` 结清(声源 = 44 运行期表现层池 · 零场景预摆承 ADR-023 ② 扩列 · 位置只读 `AudioCueDto.Cell` · 总线 = Ambience 世界语境子通道 · 生命周期 cue 驱动);撤 2026-09-21「登记不立件」裁定 |
-| TR-audio-012 | EndLoop 兜底:事件终止信号丢失时的停止路径 | — | ❌ —— ADR-001/ADR-018 两份对 EndLoop 零字(grep 实测)——QoS 丢包与音频生命周期交叠无裁决;ADR-001 窄修订候选。**2026-09-23 用户裁定归 45 的 GDD 轮**(与 `QQ-14`/`OQ-10-9` 同族,P1b 前),本轮不动,status 维持 ❌(ADR-028 Ordering Note 明示不在其裁决面) |
+| TR-audio-012 | EndLoop 兜底:事件终止信号丢失时的停止路径 | ADR-001 + ADR-018 | ✅ —— 2026-09-23 **ADR-001 窄修订·同族三项 §一之三 裁决二** gap→covered:cue 非复制(§一之二 纪律 3)⇒ `EndLoop` 不作为网络消息存在;44 **自评兜底**(快照 `Progress` 自求值,P0 默认;或重连拉流重建须 45 登记)升格架构义务;ADR-001 不为 EndLoop 提供 / 要求网络保证;接口形状归 ADR-018 `IAudioCueSink`。原 2026-09-21「登记不立件」与「归 45 轮」系等待本窄修订(用户裁定提前执行) |
 | TR-audio-013 | AudioListener 单挂点:平面=主相机,VR=头显,常驻归 Boot 场景 | ADR-020 + ADR-023 | ✅ |
 | TR-audio-014 | 战斗乐层 G1–G3:层间切换经混音参数,禁 sting/层素材报状态 | ADR-018 | ✅ |
 
@@ -1393,3 +1399,4 @@
 | 2026-09-23 | **ADR-028 小裁批(用户裁定「011 现裁,012 归 45 轮」)** | **计数翻转 1 条:334/500 → 335/500**(`yaml.safe_load` 复算自洽:335 ✅ / 76 ⚠️ / 76 ❌ / ◆13;ID 恒 500,零新增)。**新立 ADR-028**(世界语境声源归属,Accepted,`docs/architecture/adr-028-world-sound-source-ownership.md`)结清 `TR-audio-011` gap→covered(6 点裁决:44 持有运行期表现层声源池 / 零场景预摆承 ADR-023 ② 扩列 / 位置只读 `AudioCueDto.Cell`·远端 `IPositionalChannel` / 总线 = Ambience 世界语境子通道 / 生命周期 cue 驱动·同格 N 病人 N 声源·存在性不进三流 / 遮挡衰减增益归 44 调参旋钮数值归用户);撤 2026-09-21「登记不立件」裁定。**`TR-audio-012` 维持 gap 不翻**(归 45 的 GDD 轮,与 `QQ-14`/`OQ-10-9` 同族 ADR-001 窄修订,P1b 前;note 追加裁定文本;ADR-028 Ordering Note 明示排除)。**指针回填三处**:adr-018 Status 补注 · adr-023 ② 再增列 + S2 checkbox 扩充 · audio-system.md F-44.7 架构归属块。**011 `domain: Presentation` ⇒ Foundation gate 零影响**(残恰 = `[TR-itemdb-031]`)。**blocking 残余不变 = 2**(`TR-disease-022` / `TR-diag-013`)。**卫生同批(承 QQ-08 批遗漏,非新裁)**:`requirements-traceability.md` §Coverage Summary NO ADR 94 / ◆2 / 计数口径 328+76+94+◆2 三行刷为本批实测(消除 334+76+94+2=506≠500 矛盾)· `architecture.md` 头部 `22 份`→`25 份`、ADR 末号 `027(共 24)`→`028(共 25)`、Last Updated、基线行、第九次动历史行、§5.4 标题 `77 条`→`76 条` · `technical-preferences.md` ADR 日志 + 本日志状态 `001–028`。**本批零数值改动**(机制数值冻结)。落点 9 件:adr-028(new)· tr-registry(011 翻 + 012 注)· adr-018 · adr-023 · audio-system · traceability-index(本件)· requirements-traceability · architecture.md · technical-preferences |
 | 2026-09-23 | **ADR-009 TR 定向复核轮(用户裁定翻 031 + medcons-001,零新 ADR)** | **计数翻转 2 条:335/500 → 337/500**(`yaml.safe_load` 复算自洽:337 ✅ / 75 ⚠️ / 75 ❌ / ◆13;ID 恒 500,零新增)。**背景**:在 Epic 21 待建之际,`TR-itemdb-031` 是全案 Foundation 域唯一 `status: gap`(2026-09-21 QQ-08 轮刻意 carve-out「随 ADR-009 TR 全量复核轮重裁,本文不预判」);本复核轮即执行该预挂口径。**逐条裁定 3 条非绿 ADR-009 挂靠 TR**:① **`TR-itemdb-031` gap→covered** —— ADR-009 §五 明文裁决掉落清单(身份)进世界流 / 位置·物理轨迹表现态走 45 网络层,且 §GDD Requirements Addressed 表(`adr-009-world-state-event-boundary.md:876`)显式点名 `TR-itemdb-031` → §五;位置侧 `spawn_anchor = WorldPos` 整数格由 ADR-015 §三 定型;原 carve-out 口径**本轮兑现,非新裁决**。② **`TR-medcons-001` partial→covered** —— 回写轮(2026-09-23 早批)自陈「缺的是逐条复核执行体,禁借绿」,本复核执行后确认覆盖三源齐备(ADR-005 主机唯一 `Append` + ADR-009 世界流事件化边界 + `entities.yaml` `stream: world`/`author: 53` 唯一写者,ADR-024 ① 真源),且幽灵引据与流别错标均已在回写轮订正 ⇒ 转 `covered`。③ **`TR-foraging-006` 维持 partial 不翻**(用户裁定)—— OQ-17-5(`foraging.md:689`)仍 open ⇒ 禁借绿;同批登记一处措辞卫生项(registry note 写「节点再生事件是否进流」vs GDD 实写「实现落点:现算 vs 缓存」,归 foraging 下轮,本批不动状态)。**Foundation 门就此转绿**:031 是 Foundation 域唯一 gap,翻 covered 后 `domain: Foundation ∧ status: gap` 实测 **= 0**(gate-check 质量项「zero Foundation layer gaps」达成)。**blocking 残余不变 = 2**(`TR-disease-022` / `TR-diag-013`,均 Core 域仍 gap)。**零新 ADR、零数值改动**(机制数值冻结;本复核只裁 status,不新立裁决文件)。落点 5 件:tr-registry(3 条)· traceability-index(本件)· requirements-traceability · architecture.md · active.md(session-state) |
 | 2026-09-23 | **Epic-3 对症复核批(用户裁定「按推荐执行」—— 3 条 gap→◆ + 1 条文本刷新,零新 ADR)** | **计数翻转 3 条 gap→◆:337/75/75/◆13 → 337/75/72/◆16**(`yaml.safe_load` 复算自洽;ID 恒 500,零新增)。**背景**:create-epics Foundation 第 2 件(3 输入与设备)建前,用户裁定「Pause — ADRs first」,复核后认定三条 gap 的真实归属是**已 Approved 的 10 GDD 决定**(非 ADR 缺口),遂裁「对症复核、不开新 ADR」。**逐条**:① **`TR-input-017` gap→◆**(枚举基数;归属件 = `game-concept:721` 范围阶梯 P0=2 + 10 GDD `OQ-10-4` 结案两动作具名 + `input-system:813` 已消解;词表 = 数据走 ADR-014 ⇒ 无 ADR 可挂;**残 `OQ-10-6` 枚举归属仍 open**,连带 `DC-4`,见 `TR-emergency-020`)· ② **`TR-input-019` gap→◆**(幅度通道;`OQ-3-5` 已结 + 10 GDD 规则一 `magnitude: int` + **ADR-011 Amendment A 明写「不加宽 `IEmergencyInput`,defer to 10」** ⇒ ADR 段结构不承载,原 `adr: ADR-011` 撤指针;**残 `OQ-10-3` 键鼠档数**)· ③ **`TR-input-021` gap→◆**(跳过路径;用户裁定④-b + 10 GDD 规则六全文落定三条件与「跳过 ≠ `Applied`」;原 `adr: ADR-011` 撤指针;**残 `OQ-10-11`** 无障碍归 49/P2)· ④ **`TR-input-016` 维持 gap 不翻**(实测前置:最低目标硬件 + 可跑 player,域 Performance,`adr` 仍 `ADR-011`)· ⑤ **`TR-input-008` status/adr 不变**,仅 requirement/note 由 Amendment B 前「本地即时」陈旧口径刷为 **C 路文本**(客户端聚合 `EmergencyAttempt` 上行 → 主机 `Judge`+`Append`+`Seq`,本地预表现;GDD 侧 2026-09-20 已回刷,本条 registry-only 卫生)。**◆ 判据扩第三类**(图例就地扩:③ 归属件落在另一系统已 Approved GDD 且 ADR 段结构不承载,首簇 = input 3 条)。**三条翻转全 `domain: Core` ⇒ Foundation 门零影响**(残仍 = 0);**blocking 残余不变 = 2**(`TR-disease-022` / `TR-diag-013`)。**全表面同批刷**:requirements-traceability(头注 + ADR 列 + §Summary NO ADR/◆/计数口径 + 非 Foundation 75→72 + History)· 本件头注 + 图例 + §汇总 input 行与合计行 + §11 四行 + 组合行 · architecture.md(基线行 + **第十一次动** + §5.3 input 行 + §5.4 标题 75→72 + 两处 input residual 行)。**零新 ADR、零 GDD 改动、零数值改动**(机制数值冻结)。落点 5 件:tr-registry(4 条)· traceability-index(本件)· requirements-traceability · architecture.md · active.md(session-state) |
+| 2026-09-23 | **ADR-001 窄修订·同族三项(用户裁定,Epic 44 建置前置 —— 1 条翻转,零新 ADR 号)** | **计数翻转 1 条:337/75/72/◆16 → 338/75/71/◆16**(`yaml.safe_load` 复算自洽;ID 恒 500,零新增)。**背景**:create-epics Foundation 第 5 件(44 音频)建前,1 条 untraced(`TR-audio-012`)触发用户裁定 [C]「Pause — I need to write ADRs first」,范围 widget 选 [A] = **ADR-001 窄修订·同族三项**(一次裁清 `OQ-10-9`/`QQ-14` + `TR-audio-012`;形态 = ADR-001 Amendment,Status 维持 Accepted,不新开 ADR 号 —— 承 ADR-011 Amendment A/B 先例)。**落点 = `adr-001` 就地增 §Decision 一之三**:① **裁决一(结 `OQ-10-9` ≡ `QQ-14`)**:上行按语义二分「最新值 / 自愈类 → 第二 QoS vs **判定输入类 → 可靠通道**」;`EmergencyAttempt` 走可靠上行(与三流下行同一条可靠通道的反向,接口形状归 45 实现轮);依据 = §一之二 消费纪律 2 的对偶(禁读做判定 ⇒ 输入侧同禁);`ActorCellEntered` 不受影响(承 ADR-020 Amendment B 现行有效);同族 `OQ-17-6`/`OQ-18-7`/`OQ-4-10` **不随关闭**(归各自 GDD 轮)。② **裁决二(结 `TR-audio-012`)**:cue 非复制(§一之二 纪律 3,2026-09-18)⇒ `EndLoop` 不作为网络消息存在,丢包一问在 cue 层已消解;残余(断线 / 流停更致收尾依据缺席)= **44 自评兜底**升格架构义务(快照 `Progress` 自求值,P0 默认;或重连拉流重建须 45 登记,二者至少其一不得留空);ADR-001 **不为 EndLoop 提供也不要求**网络保证;与 ADR-018 分工 = 018 拥接口形状、001 拥通道裁决 ⇒ **`TR-audio-012` gap→covered**(`adr: ADR-001 + ADR-018`,`domain: Networking`)。**结案面**:`emergency-procedures.md` `OQ-10-9` 行划结 · `input-system.md:292` 残注改可靠上行 · `adr-011` / `adr-009` 两处「未结」注改已结 · `architecture.md` QQ-14 行结案 + §数据流图客户端上行两行改写 · `audio-system.md:419` 归属注更新 · `technical-preferences.md` ADR-001 日志 Amendment 补注。**012 `domain: Networking` ⇒ Foundation 门零影响**(残 = 0);**blocking 残余不变 = 2**(`TR-disease-022` / `TR-diag-013`)。**零新 ADR 号、零数值改动**(机制数值冻结)。落点 12 件:adr-001 · tr-registry(1 条)· emergency-procedures · input-system · adr-011 · adr-009 · architecture.md · audio-system · traceability-index(本件)· requirements-traceability · technical-preferences · active.md(session-state) |

@@ -126,6 +126,10 @@ dr_guyang(用户 · **2026-09-23 裁定写路径 = 10 急救动作**)· technica
 - **客户端不上报结果**(承 ADR-011 §Amendment B 的 F1 改判):伪造成本 = 改一个枚举值 ⇒ 收益必须由主机判。
 - **意图事件走第二 QoS**(`unreliable latest-value`)—— ⚠️ 其**丢包**问题与 `EmergencyAttempt`
   同源(归 `OQ-10-9`,须 ADR-001 窄修订);本 ADR **不在此打补丁**。
+  **✅ 已结(2026-09-23,不在本 ADR 裁决面上、由目标件结清)**:`OQ-10-9` 已由 ADR-001 **§一之三 裁决一**结清
+  (EmergencyAttempt 判定输入类改走可靠通道;窄修订·同族三项范围**点名 `EmergencyAttempt`**,未点名本 ADR 的
+  查体 / 搬运意图 Kind)。本 ADR 侧该二 Kind 的**最终通道归属**仍归 **10 的 GDD 轮**(§3 既有义务,
+  Kind 登记时一并按裁决一「判定输入类 → 可靠通道」原则裁定);原「须 ADR-001 窄修订」等待已消解。
 
 ### ③ 13 只出表现;8 只声明存在
 
@@ -224,7 +228,7 @@ dr_guyang(用户 · **2026-09-23 裁定写路径 = 10 急救动作**)· technica
 | Risk | Probability | Impact | Mitigation |
 |------|------------|--------|-----------|
 | 10 的 GDD 轮迟迟不追加 Kind ⇒ 021 悬空 | 中 | 中 | 本 ADR 已把 Kind 登记列为 10 的**具名义务**;`TR-patient-021` 的 `covered` 标「写路径已定,Kind 待登记」 |
-| 意图事件走第二 QoS 丢包(承 `OQ-10-9`) | 中 | 中 | 归 ADR-001 窄修订(45 的 GDD 轮);本 ADR 不补丁 |
+| 意图事件走第二 QoS 丢包(承 `OQ-10-9`) | 中 | 中 | ~~归 ADR-001 窄修订(45 的 GDD 轮);本 ADR 不补丁~~ **✅ 已结(2026-09-23)**:`OQ-10-9` 由 ADR-001 §一之三 裁决一结清(EmergencyAttempt 侧);本 ADR 查体 / 搬运意图 Kind 最终通道仍归 10 的 GDD 轮(Kind 登记时按裁决一原则裁定) |
 | 判距误读表现态位置 | 低 | 高(联机分叉) | 结构不可达判据:13 构造注入白名单不含表现态位置;`AC-4-02` 同款断言 |
 
 ## Performance Implications
@@ -269,5 +273,7 @@ dr_guyang(用户 · **2026-09-23 裁定写路径 = 10 急救动作**)· technica
 - **结清** `OQ-13-1`(`TR-patient-021`)· `OQ-13-3`(`TR-patient-022`,P0 不实现)。
 - **上游** `ADR-009`(§七 三段式)· `ADR-016`(§一 三源不变量 · §六 只读通道)· `ADR-020`(§四 对称落实)· `ADR-024`(registry 真源)。
 - **同源** `ADR-011` §Amendment B(F1 改判:客户端不上报结果,主机判)· `AC-4-02`(4 零 `Append` 结构判据)。
-- **未结(不在本 ADR 裁决面)**:`OQ-10-9`(意图事件第二 QoS 丢包 → ADR-001 窄修订)·
-  `OQ-13-7`(`OnExamSessionChanged` 发出侧)· 10 的 GDD 轮须追加的 Kind 登记。
+- **已结(2026-09-23,不在本 ADR 裁决面上、由目标件结清)**:`OQ-10-9` —— 由 ADR-001 **§一之三 裁决一**结清
+  (EmergencyAttempt 判定输入类改走可靠通道;窄修订范围点名 EmergencyAttempt,未点名本 ADR 查体 / 搬运意图 Kind,
+  该二 Kind 最终通道仍归 10 的 GDD 轮 Kind 登记时按裁决一原则裁定)·
+  **仍未结(不在本 ADR 裁决面)**:`OQ-13-7`(`OnExamSessionChanged` 发出侧)· 10 的 GDD 轮须追加的 Kind 登记。

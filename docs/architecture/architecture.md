@@ -79,7 +79,7 @@
 > `docs/CLAUDE.md` 禁重编号,且 `/architecture-review` 是本注册表的唯一所有者。
 
 ```
-500 条 TR  |  337 covered  |  75 partial  |  72 gap + 16 no-adr-by-design  (✅ 2026-09-23 Epic-3 对症复核批后 registry 实测;同日前序 ADR-009 TR 复核轮后值 337/75/75/◆13;同日前序 ADR-028 小裁批后值 335/76/76/◆13;同日 QQ-08 清账批后值 334/76/77/◆13;同日 #4/#5 兑现轮后值 328/76/94/◆2;回写轮后 318/77/103/◆2;D-R3 批次后 314/79/104;批次前 387/245/51/89/◆2)
+500 条 TR  |  338 covered  |  75 partial  |  71 gap + 16 no-adr-by-design  (✅ 2026-09-23 ADR-001 窄修订批后 registry 实测;同日前序 Epic-3 对症复核批后值 337/75/72/◆16;同日前序 ADR-009 TR 复核轮后值 337/75/75/◆13;同日前序 ADR-028 小裁批后值 335/76/76/◆13;同日 QQ-08 清账批后值 334/76/77/◆13;同日 #4/#5 兑现轮后值 328/76/94/◆2;回写轮后 318/77/103/◆2;D-R3 批次后 314/79/104;批次前 387/245/51/89/◆2)
 按运行期层(本蓝图 §System Layer Map 的 Axis B 归并)
 ```
 
@@ -144,6 +144,23 @@
 > input residual 行 4→1、§5.3 `input` 行 gap 4→1(另 ◆3)+ 承重 ADR 计数 18→16、
 > :155 residual 簇行、`requirements-traceability.md` / `traceability-index.md` 同批刷计数。
 > **blocking 残余不变 = 2**(`TR-disease-022` / `TR-diag-013`)。**零新 ADR、零 GDD 改动、零数值改动**。
+> ⚠️ 下表分层数字**不随本批重算**(Axis B 归并口径的逐条重归属仍归 `/architecture-review`)。
+>
+> **2026-09-23 第十二次动(ADR-001 窄修订·同族三项 · 用户裁定,Epic 44 建置前置)**:
+> `docs/architecture/adr-001-networking-pipe-abstraction.md` 就地增 **§一之三**(Status 状态维持
+> Accepted,不新开 ADR 号)—— ① **裁决一**:`EmergencyAttempt` 判定输入类走**可靠通道上行**,
+> 上行按语义二分「最新值 / 自愈类 → 第二 QoS vs 判定输入类 → 可靠通道」,第二 QoS 语义不变;
+> **结清 `OQ-10-9` ≡ `QQ-14`**(同族两项一裁两结)。② **裁决二**:cue 非复制(§一之二 纪律 3)
+> ⇒ `EndLoop` 不走网络;44 **自评兜底**(快照 `Progress` 自求值,P0 默认;或重连拉流重建须 45 登记)
+> 升格**架构义务**,ADR-001 不为 EndLoop 提供 / 要求网络保证 —— **`TR-audio-012` gap→covered**
+> (`adr: ADR-001 + ADR-018`,`domain: Networking`)。同族 `OQ-17-6` / `OQ-18-7` / `OQ-4-10`
+> **不随本批关闭**(归各自 GDD 轮)。⇒ **covered 337 → 338 / gap 72 → 71**(75 partial / ◆16 不变,
+> **ID 恒 500**)。012 `domain: Networking` ⇒ **Foundation 门零影响**(残仍 = 0)。**卫生同批**:
+> 基线行刷 338/75/71/◆16、本件 §5.4 标题 72→71、QQ-14 行结案、§数据流图客户端上行两行改写、
+> `requirements-traceability.md` / `traceability-index.md` 同批刷计数;回写件 = `emergency-procedures.md`
+> `OQ-10-9` 结案 · `input-system.md:292` 残注 · `adr-011` / `adr-009` 未结注 · `audio-system.md:419` ·
+> `technical-preferences.md` ADR-001 日志 Amendment 补注。**blocking 残余不变 = 2**。
+> **零新 ADR(同地修订)、零数值改动**(机制数值冻结)。
 > ⚠️ 下表分层数字**不随本批重算**(Axis B 归并口径的逐条重归属仍归 `/architecture-review`)。
 > 下表的分层数字**尚未按 C4 重算** —— 8 条按注册表 `domain` 落 Core ×5 / Feature ×2 / Presentation ×1,
 > 而本表用的是 **Axis B 归并口径**(≠ `domain` 字段),逐条重归属归 `/architecture-review`。
@@ -620,9 +637,10 @@ ADR-005:359 (逐字)
             ├──▶ 45 `IReplayPipe.Publish`(P1b)
             └──▶ 51 只读订阅(不成为第四个写者)
 
-  客户端一侧(反向):
-  1 的跨格意图 ──▶ ADR-001 第二 QoS(unreliable latest-value)──▶ **主机** Append
-  10 的 EmergencyAttempt ──▶ ⚠️ **OQ-10-9 未结**:走第二 QoS 会丢,而它是判定输入
+  客户端一侧(反向,2026-09-23 ADR-001 §一之三 二分):
+  1 的跨格意图(最新值 / 自愈类)──▶ ADR-001 第二 QoS(unreliable latest-value)──▶ **主机** Append
+  10 的 EmergencyAttempt(判定输入类)──▶ **可靠通道上行** ──▶ 主机 Judge + Append + Seq
+      ✅ `OQ-10-9` ≡ `QQ-14` 已结(2026-09-23 窄修订;判定输入不走第二 QoS)
 ```
 
 | 数据 | 生产者 | 消费者 | 方式 | 跨线程 |
@@ -1054,7 +1072,7 @@ Required New ADRs 的落点上**(ADR-009 / 014 / 010 三份都被新 ADR 引用)
 **这是 `systems-index.md` 自身的一处不一致**(行 38 写 Core / 行 509 写 Foundation),
 已入 §5.5 的登记层缺陷清单。
 
-### 5.4 72 条 gap 的分组与处置(**2026-09-23 Epic-3 对症复核批后**;本表建立时为 93,2026-09-21 ◆ 轮后为 89,同日 #4/#5 兑现轮与 QQ-08 合流后为 77,同日 ADR-028 小裁批再 −1(`TR-audio-011`)后为 76,同日 ADR-009 复核轮再 −1(`TR-itemdb-031`)后为 75,同日 Epic-3 对症复核批再 −3(`TR-input-017/019/021`→◆)后为 72 —— 逐簇残余见下,簇间合流勿纵向相加旧值)
+### 5.4 71 条 gap 的分组与处置(**2026-09-23 ADR-001 窄修订批后**;本表建立时为 93,2026-09-21 ◆ 轮后为 89,同日 #4/#5 兑现轮与 QQ-08 合流后为 77,同日 ADR-028 小裁批再 −1(`TR-audio-011`)后为 76,同日 ADR-009 复核轮再 −1(`TR-itemdb-031`)后为 75,同日 Epic-3 对症复核批再 −3(`TR-input-017/019/021`→◆)后为 72,同日 ADR-001 窄修订再 −1(`TR-audio-012`,Networking 域)后为 71 —— 逐簇残余见下,簇间合流勿纵向相加旧值)
 
 | 簇 | 条数 | 代表 | 处置 |
 |---|---|---|---|
@@ -1426,5 +1444,5 @@ Addressables 6.2+ 抛异常须实测(ADR-014)· 关卡工具的 Terrain / NavMes
 | **QQ-11** | **`tr-registry.yaml` 的 `adr:` 字段值域不纯**(6 条整路径 · `technical-preferences.md` · `用户裁定 2026-09-14` · `—` ×9)| 🟡 | `/architecture-review`(注册表唯一所有者)|
 | **QQ-12** | ~~系统 3 的层分类自相矛盾~~ ✅ **已结(2026-09-20)** —— 订正方向 = **§3 :38 改 Foundation**(全仓三处 Foundation::165 类目表 / §6 :514 / 本文件 Axis A :233;Core 为孤例)· **非「择一」**:多数口径为权威。两轴消歧已就地写入 `systems-index.md` §6 注块 | ~~🟡~~ | 已结 |
 | **QQ-13** | **12 项 P0 系统的 TR 组缺失** —— 与 QQ-08 不同,这是「GDD 已落盘但**从未挂 TR**」 | 🟠 | `/architecture-review` Phase 8(**批量回填**)|
-| **QQ-14** | **OQ-10-9**(`EmergencyAttempt` 走第二 QoS 会**丢**,而它是判定输入)—— 须 ADR-001 的一次窄修订 | 🟠 | 45 的 GDD 轮(P1b 前);**ADR-011 打过补丁但未解决** |
+| **QQ-14** | ~~**OQ-10-9**(`EmergencyAttempt` 走第二 QoS 会**丢**,而它是判定输入)—— 须 ADR-001 的一次窄修订~~ ✅ **已结(2026-09-23)** —— ADR-001 窄修订·同族三项 **§一之三 裁决一**:判定输入类 → **可靠通道上行**(上行二分;第二 QoS 语义不变);同批裁决二结 `TR-audio-012`。原「45 的 GDD 轮(P1b 前)」提前执行(用户裁定) | ~~🟠~~ | 已结 |
 | **QQ-15** | **W-1 会签**(9 + 37 须二选一,推荐挂 `DIS_*`) | 🟠 | 实现前会签(承 2026-09-20 裁定)|

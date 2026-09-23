@@ -143,6 +143,12 @@
   (重排由三流全序键 `(Tick, StreamPriority, Patient, Seq)` 吸收);表现态位置走
   **第二 QoS 通道**(unreliable latest-value,防 HOL 阻塞)。系统 45 = **P0 预埋 · P1b 实现**。
   **约束**:选型须承载**三条逻辑流**(病史 / 病例 / 世界)+ 表现态位置同步;`TR-concept-002` 解除 blocking。
+  **2026-09-23 Amendment(窄修订·同族三项 · Status 维持 Accepted)**:就地增 **§一之三** ——
+  ① **裁决一**:上行按语义二分「最新值 / 自愈类 → 第二 QoS vs **判定输入类 → 可靠通道**」,
+  `EmergencyAttempt` 走可靠上行(**结清 `OQ-10-9` ≡ `QQ-14`**;`ActorCellEntered` 不受影响承
+  ADR-020 Amendment B;同族 `OQ-17-6`/`OQ-18-7`/`OQ-4-10` 不随关闭);② **裁决二**:cue 非复制
+  ⇒ `EndLoop` 不走网络,44 **自评兜底**升格架构义务(快照 `Progress` 自求值;重连拉流重建须 45 登记),
+  本 ADR 不为 EndLoop 提供 / 要求网络保证(**结清 `TR-audio-012`**,gap→covered,`ADR-001 + ADR-018`)。
 - [ADR-002 ✅ Accepted 2026-09-15]**开放世界地形方案:手工烘焙固定世界** ——
   由 **ADR-015** 兑现。第三方(Gaia Pro / MapMagic 2)**仅编辑期辅助,运行期零第三方**;
   静态世界几何走**确定性整数逻辑层**(经 ADR-014 烘成 `*.cooked`)+ **纯视觉层**(Unity Terrain)。
@@ -285,8 +291,10 @@
   **现口径**:客户端**聚合为一条 `EmergencyAttempt` 全整数意图事件**上行 → **主机执行 `Judge` +
   `Append` + 发号 `Seq`**;本地判定**降级为预表现**。**「不逐帧同步输入」保留**(原裁决对的那一半)。
   ⇒ 急救侧从此**回到与 ADR-009 §七 拾取完全同构**(拾取的三段式此前在急救被自己开了例外)。
-  **未结 `OQ-10-9`**:`EmergencyAttempt` 走 ADR-001 第二 QoS 通道会**丢**,而它是判定输入
+  ~~**未结 `OQ-10-9`**~~:`EmergencyAttempt` 走 ADR-001 第二 QoS 通道会**丢**,而它是判定输入
   ⇒ 须 **ADR-001 的一次窄修订**(归 45 的 GDD 轮,P1b 前);**不在 ADR-011 打补丁**。
+  **✅ 已结(2026-09-23)** —— 由 ADR-001 **§一之三 裁决一**(窄修订·同族三项,原「归 45 轮」提前执行)结清:
+  `EmergencyAttempt` 判定输入类改走**可靠通道**;第二 QoS 语义不变,仍只承载表现态位置;`ActorCellEntered` 不受影响。
   Engine Knowledge Risk **HIGH**(Input System 6.3 具体行为须实测;**接口层为纯 C# 契约,不受影响**)。
 
 - [ADR-012 ✅ Accepted 2026-09-15]**跨平台确定性 CI 门(黄金夹具矩阵与 IL2CPP 编译旗标登记)** ——
