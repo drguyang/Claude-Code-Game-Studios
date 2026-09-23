@@ -10,3 +10,4 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | skill-system | Foundation | 30 技能与熟练度 | design/gdd/skill-system.md | Not yet created | Ready |
 | skeuomorphic-ui | Foundation | 42 拟物 UI 框架 | design/gdd/skeuomorphic-ui.md | Not yet created | Ready |
 | audio-system | Foundation | 44 音频系统 | design/gdd/audio-system.md | Not yet created | Ready |
+| telemetry-analytics | Foundation | 51 遥测与分析 | design/gdd/telemetry-analytics.md | Not yet created | Ready |
