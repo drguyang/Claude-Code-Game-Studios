@@ -4479,9 +4479,9 @@
     gdd: design/gdd/audio-system.md
     requirement: "世界语境呼吸:听诊主通道的呼吸声源于世界(非 UI 层常驻音)"
     domain: Presentation
-    adr: null
-    status: gap
-    note: "D-R3 回填(2026-09-21)。❌ F-44.7 在 ADR-018 零条款——世界内声源的归属裁决缺失,未来 ADR 候选(供用户处置)。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件——与 89 条旧 gap 同判(无一为开工阻塞),待各系统实现轮 / 修订轮触发时再裁。"
+    adr: ADR-028
+    status: covered
+    note: "D-R3 回填(2026-09-21)。❌ 原缺口:F-44.7 在 ADR-018 零条款——世界内声源的归属裁决缺失。 ✅ 用户裁定(2026-09-23):011 现裁 → ADR-028 结清(声源 = 44 运行期表现层池 · 零场景预摆承 ADR-023 ② 扩列 · 位置只读 AudioCueDto.Cell/远端 IPositionalChannel · 总线 = Ambience 世界语境子通道 · 生命周期 cue 驱动)。撤 2026-09-21「登记不立件」裁定。"
   - id: TR-audio-012
     system: audio-system
     gdd: design/gdd/audio-system.md
@@ -4489,7 +4489,7 @@
     domain: Networking
     adr: null
     status: gap
-    note: "D-R3 回填(2026-09-21)。❌ ADR-001/ADR-018 两份对 EndLoop 零字(grep 实测)——QoS 丢包与音频生命周期交叠无裁决;ADR-001 窄修订候选。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件——与 89 条旧 gap 同判(无一为开工阻塞),待各系统实现轮 / 修订轮触发时再裁。"
+    note: "D-R3 回填(2026-09-21)。❌ ADR-001/ADR-018 两份对 EndLoop 零字(grep 实测)——QoS 丢包与音频生命周期交叠无裁决;ADR-001 窄修订候选。 ✅ 用户裁定(2026-09-21 第二十六批):登记不立件。 ✅ 用户裁定(2026-09-23 audio 小裁):归 45 的 GDD 轮(与 QQ-14/OQ-10-9 同族 ADR-001 窄修订,P1b 前),本轮不动——承 2026-09-21「待 45 轮触发时再裁」口径,不撤、不翻,status 维持 gap。"
   - id: TR-audio-013
     system: audio-system
     gdd: design/gdd/audio-system.md

@@ -644,7 +644,26 @@
   (经 `entities.yaml` + kindgen,承 ADR-024)。**结清 `OQ-13-1` / `OQ-13-3`**(022 仍 **P0 不实现**,
   只登记方向)。Engine Knowledge Risk **LOW**(纯数据边界与所有权裁决,不触任何引擎 API)。
 
-> **本日志状态**:全部 ADR(001–**027**)均有日志条目。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
+- [ADR-028 ✅ Accepted 2026-09-23]**世界语境声源归属(44 的运行期表现层声源池)** ——
+  `docs/architecture/adr-028-world-sound-source-ownership.md`。**audio 小裁批的兑现件
+  (非 Required ADR —— Required #1–#5 已由 ADR-023/025/024/026/027 全部兑现,本件不占 Required 序号)**。
+  用户裁定(2026-09-23):**「011 现裁,012 归 45 轮」**。病因:F-44.7 / `AC-44-D8` 定死了世界语境
+  呼吸的**声学形状**,但全案 ADR 对这条声源的**对象归属**(谁持有 / 生成 / 释放承载 `AudioSource`)
+  零字 —— 「引用却无登记」失效模式(同 ADR-022 关卡工具、`CompoundTriggered` / `ActorCellEntered`)。
+  六点裁决:① **声源池唯一所有者 = 44**(渲染资源,非游戏状态 —— 承 ADR-018 §一「44 只渲染」);②
+  **零场景预摆** —— `AudioSource` 作为非 Boot 场景内容 = 构建失败(承 ADR-023 ② + RC-6 扫描增列先例,
+  属**已裁判据的扩列,非新裁决**);③ **位置真源 = 只读 `AudioCueDto.Cell`**(远端 = ADR-001
+  `IPositionalChannel`,不新增通道,禁反推逻辑格、禁回写、禁做判定);④ **总线 = Ambience 世界语境
+  子通道**(非 UICue —— 违「非 UI 层」原文;非 Stethoscope —— F-44.7 两层不同声像);⑤ **生命周期 =
+  cue 驱动**(生/定位/释全由 `AudioCueDto` 驱动;同格 N 病人 = N 条独立声源不合并,F-44.7 逐字承;
+  **存在性不进三流** —— ADR-009 派生态,零新 `Kind`、不动 `entities.yaml`);⑥ **遮挡/距离/增益 =
+  44 调参旋钮,数值归用户**(值域冻结)。**结清 `TR-audio-011`**(`gap` → `covered`);
+  **`TR-audio-012`(EndLoop 兜底)明确不在本件裁决面**(Ordering Note)—— 归 45 的 GDD 轮
+  (与 `QQ-14` / `OQ-10-9` 同族 ADR-001 窄修订,P1b 前),`status` 维持 `gap`。撤 2026-09-21
+  「登记不立件」裁定(011 一侧)。Engine Knowledge Risk **LOW**(归属裁决,零 post-cutoff API;
+  `AudioSource` 空间化 / `AudioLowPassFilter` 长期稳定;池化实现细节归 44 实现故事实测)。
+
+> **本日志状态**:全部 ADR(001–**028**)均有日志条目。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;
 > 洞 H1 / H3 的 ADR 由用户裁定**推迟 P1a**(本轮仅登记所有权,见 `systems-index.md` §11)。

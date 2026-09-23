@@ -1,15 +1,15 @@
 # 《大医精诚:破晓之剂》 — Master Architecture
 
-> **本文件是全案唯一的整系统蓝图** —— 它把 31 项 P0 GDD 与 **22** 份 ADR 翻译成
+> **本文件是全案唯一的整系统蓝图** —— 它把 31 项 P0 GDD 与 **25** 份 ADR 翻译成
 > 一份可实现的技术骨架。ADR 记录**点裁决**,本文件给出这些点所在的**面**。
 
 ## Document Status
 
 - Version: 1.0(骨架建立于 2026-09-20)
-- Last Updated: 2026-09-20
+- Last Updated: 2026-09-23
 - Engine: Unity 6.3 LTS(URP)· C# · IL2CPP
 - GDDs Covered: P0 31 项(见 §System Layer Map 的「GDD」列);另有 23 项 P1a/P1b/P2 登记于层图但不在本蓝图承诺面内
-- ADRs Referenced: ADR-001 · ADR-005 … ADR-**027**(共 **24** 份文件;**ADR-002 / 003 / 004 无独立文件** —— 分别由 ADR-015 / ADR-015 / ADR-017 兑现结案)
+- ADRs Referenced: ADR-001 · ADR-005 … ADR-**028**(共 **25** 份文件;**ADR-002 / 003 / 004 无独立文件** —— 分别由 ADR-015 / ADR-015 / ADR-017 兑现结案)
 - Technical Director Sign-Off: **2026-09-20 — APPROVED WITH CONDITIONS**(条件 C1–C4 见下)
 - Lead Programmer Feasibility: **LP-FEASIBILITY skipped — Lean mode**(非 PHASE-GATE,按门规 `lean` 下跳过)
 
@@ -79,7 +79,7 @@
 > `docs/CLAUDE.md` 禁重编号,且 `/architecture-review` 是本注册表的唯一所有者。
 
 ```
-500 条 TR  |  334 covered  |  76 partial  |  77 gap + 13 no-adr-by-design  (✅ 2026-09-23 QQ-08 清账批后 registry 实测;同日 #4/#5 兑现轮后值 328/76/94/◆2;回写轮后 318/77/103/◆2;D-R3 批次后 314/79/104;批次前 387/245/51/89/◆2)
+500 条 TR  |  335 covered  |  76 partial  |  76 gap + 13 no-adr-by-design  (✅ 2026-09-23 ADR-028 小裁批后 registry 实测;同日前序 QQ-08 清账批后值 334/76/77/◆13;同日 #4/#5 兑现轮后值 328/76/94/◆2;回写轮后 318/77/103/◆2;D-R3 批次后 314/79/104;批次前 387/245/51/89/◆2)
 按运行期层(本蓝图 §System Layer Map 的 Axis B 归并)
 ```
 
@@ -108,6 +108,14 @@
 > C 簇 1 条 carve-out(`TR-itemdb-031` 不翻,承 2026-09-21 复核轮口径)· **QQ-02 同批结**
 > (ADR-005 `IIdAuthority` 回填双方法,逐字承 ADR-010 §五)⇒ **328 → 334 / 94 → 77 / ◆2 → ◆13**
 > (**ID 恒 500**;partial 76 不变;Foundation `domain` 口径 gap 残余恰 = `[TR-itemdb-031]`)。
+> **2026-09-23 第九次动(ADR-028 小裁批 · 用户裁定「011 现裁,012 归 45 轮」)**:新立
+> `adr-028-world-sound-source-ownership.md`(世界语境声源归属)⇒ **`TR-audio-011` 1 条翻转
+> gap→covered**(挂 `adr: ADR-028`);**`TR-audio-012` 维持 gap 不翻**(归 45 的 GDD 轮,
+> 与 `QQ-14`/`OQ-10-9` 同族,ADR-028 Ordering Note 明示排除)⇒ **334 → 335 / 77 → 76**
+> (**ID 恒 500**;partial 76 不变;◆13 不变;011 `domain: Presentation` ⇒ Foundation `domain`
+> 口径 gap 残余仍恰 = `[TR-itemdb-031]`)。**卫生同批**:头部 ADR 计数 `22 份`→`25 份`、
+> 末号 `027(共 24)`→`028(共 25)`、Last Updated 刷日;`requirements-traceability.md`
+> §Coverage Summary 三行漏刷订正(消除 334+76+94+2=506≠500 矛盾);本件 §5.4 标题 77→76。
 > ⚠️ 下表分层数字**不随本批重算**(Axis B 归并口径的逐条重归属仍归 `/architecture-review`)。
 > 下表的分层数字**尚未按 C4 重算** —— 8 条按注册表 `domain` 落 Core ×5 / Feature ×2 / Presentation ×1,
 > 而本表用的是 **Axis B 归并口径**(≠ `domain` 字段),逐条重归属归 `/architecture-review`。
@@ -1018,7 +1026,7 @@ Required New ADRs 的落点上**(ADR-009 / 014 / 010 三份都被新 ADR 引用)
 **这是 `systems-index.md` 自身的一处不一致**(行 38 写 Core / 行 509 写 Foundation),
 已入 §5.5 的登记层缺陷清单。
 
-### 5.4 77 条 gap 的分组与处置(**2026-09-23 QQ-08 清账批后**;本表建立时为 93,2026-09-21 ◆ 轮后为 89,同日 #4/#5 兑现轮与本批合流后为 77 —— 逐簇残余见下,簇间合流勿纵向相加旧值)
+### 5.4 76 条 gap 的分组与处置(**2026-09-23 ADR-028 小裁批后**;本表建立时为 93,2026-09-21 ◆ 轮后为 89,同日 #4/#5 兑现轮与 QQ-08 合流后为 77,同日 ADR-028 小裁批再 −1(`TR-audio-011`)后为 76 —— 逐簇残余见下,簇间合流勿纵向相加旧值)
 
 | 簇 | 条数 | 代表 | 处置 |
 |---|---|---|---|
@@ -1384,7 +1392,7 @@ Addressables 6.2+ 抛异常须实测(ADR-014)· 关卡工具的 Terrain / NavMes
 | **QQ-05** | **`Kind` 单一登记真源** —— 并集 **33** 支 ≠ 任一处单读;**缺口双向**(4 支缺 registry 条目 + 5 支零 registry 的 ADR-007 支 + 4 支缺 ADR 家规文本 + 4 处陈旧计数)⇒ 按 `entities.yaml` 生成拒收 **9** 支,按 ADR-009 §三 生成拒收 **18** 支 | ~~🔴~~ **✅ 已结 2026-09-20(ADR-024 全件照准转 Accepted)**:真源 = `entities.yaml`(+`stream:`/`author:`/`payload_schema:` 必填)· Amendment 通道退役 · 补齐 9 支 + 4 支家规 + 修 4 处陈旧计数 + `ConsequenceResolved` 幽灵引据订正 · `tools/kindgen/` 生成器 A1–A5 断言。**2026-09-20 两轮订正**:① 原「9 支会被拒收」只算了一个方向且把骨架数当 4;② 首轮订正得「4 / 12」亦偏小 —— 未把 ADR-007 的 5 支(零 registry 条目)并入两侧被拒集。实测(集合运算 + registry 逐条 `constraint:` 归类)见 §5.5 D-1 与 §Required ADRs #3;registry 流别真值 = **世界 12 / 病史 7 / 病例 5** |
 | **QQ-06** | **13 的两条写路径归属**(查体诱发痉挛 / 搬运昏迷病人)—— 13 只读,写者在事件流里不存在 | 🟠 | §Required ADRs **#5** |
 | **QQ-07** | ~~`concept` 组 3 条范围声明是否降级为「不需 ADR」~~ | ~~🟡~~ **✅ 已结 2026-09-21(两项用户裁定覆盖全部三条)** | `TR-concept-003/004` → ◆ `no-adr-by-design`(门规格修订轮,2026-09-21 同日早批)· `TR-concept-006`(帧预算)**不降级** —— 系性能承诺,❌ 保留待最低目标硬件定稿后裁。**登记面与裁决面自此对齐,本行不再有待裁项** |
-| **QQ-08** | ~~**21a 的 18 条 schema gap 是否显式降级**~~ | ~~🟡~~ **✅ 已结 2026-09-23(用户裁定路线 [A] 清账批)** | **A=6 covered(带指针)/ B=11 ◆ `no-adr-by-design`(逐簇裁定)/ C=1 carve-out(`031` 留 gap)**;原「改 covered + 备注」建议作废(D-5 反模式);◆ 判据扩第二类入 traceability 图例 + gate-check SKILL;**零新 ADR**。audio-011/012 另开小裁(真 ADR 候选,不在本 QQ)|
+| **QQ-08** | ~~**21a 的 18 条 schema gap 是否显式降级**~~ | ~~🟡~~ **✅ 已结 2026-09-23(用户裁定路线 [A] 清账批)** | **A=6 covered(带指针)/ B=11 ◆ `no-adr-by-design`(逐簇裁定)/ C=1 carve-out(`031` 留 gap)**;原「改 covered + 备注」建议作废(D-5 反模式);◆ 判据扩第二类入 traceability 图例 + gate-check SKILL;**零新 ADR**。audio-011/012 另开小裁(真 ADR 候选,不在本 QQ)—— **✅ 同日已小裁 = ADR-028(011 结清);012 归 45 轮(维持 gap)**|
 | **QQ-09** | ~~8 条「借绿」条目~~ ✅ **已结(2026-09-20)** —— 8 条转 `partial` + `blocked_by`(TD 条件 C4) | ~~🟠~~ | 残留:`TR-case-036` / `TR-interaction-015` 的 `adr` 两处不一致已标 `adr_divergence`,**对齐归 `/architecture-review`**(并流 QQ-11)|
 | **QQ-10** | ~~`architecture.yaml` 三处顶层重复键~~ ✅ **已结(2026-09-20)** —— 三空键删除,diff 证语义不变(见 §5.1 D-3)| ~~🟡~~ | 已结 |
 | **QQ-11** | **`tr-registry.yaml` 的 `adr:` 字段值域不纯**(6 条整路径 · `technical-preferences.md` · `用户裁定 2026-09-14` · `—` ×9)| 🟡 | `/architecture-review`(注册表唯一所有者)|

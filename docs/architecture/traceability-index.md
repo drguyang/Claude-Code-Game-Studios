@@ -7,12 +7,19 @@
 > **数据真源两处都是 `tr-registry.yaml` 的 `status:` 字段** —— 本文件与 RTM 件都不各自持有计数,
 > 只引用。RTM 件是门件路径要求的**指针件**,不复制本表内容。
 
-> **Last Updated**: 2026-09-23(**QQ-08 + QQ-02 清账批(用户裁定路线 [A])—— 21a 簇 17 条翻转**)
-> —— **ID 恒 500(零新增)**;**计数翻转 17 条:328/500 → 334/500**(A 簇 6 条 gap→covered:
+> **Last Updated**: 2026-09-23(**ADR-028 小裁批 —— 用户裁定「011 现裁,012 归 45 轮」,1 条翻转**)
+> —— **ID 恒 500(零新增)**;**计数翻转 1 条:334/500 → 335/500**(`TR-audio-011` gap→covered,
+> `adr: ADR-028`;新立 `docs/architecture/adr-028-world-sound-source-ownership.md` 世界语境声源归属 ——
+> 44 持有运行期表现层声源池,零场景预摆承 ADR-023 ② 扩列,位置只读 `AudioCueDto.Cell`,
+> 总线 = Ambience 世界语境子通道,cue 驱动生命周期,存在性不进三流)。
+> **`TR-audio-012` 维持 ❌ 不翻**(用户裁定归 45 的 GDD 轮,与 `QQ-14` / `OQ-10-9` 同族 ADR-001
+> 窄修订,P1b 前,note 已追加该裁定)。**现值 = registry 实测 335 ✅ / 76 ⚠️ / 76 ❌ / ◆13**
+> (参见下方本批结注与 §变更历史末行)。**同日前序 = QQ-08 + QQ-02 清账批(用户裁定路线 [A])—— 21a 簇 17 条翻转**
+> —— **该批后值 = 334 ✅ / 76 ⚠️ / 77 ❌ / ◆13**(A 簇 6 条 gap→covered:
 > `TR-itemdb-014/018/019/020/021/028` · B 簇 11 条 gap→◆ `no-adr-by-design`:
 > `TR-itemdb-007/008/009/011/012/015/016/017/024/029/030`;`TR-itemdb-031` 单条 carve-out **不翻**,
-> 承 2026-09-21「随 ADR-009 TR 复核轮」原口径)。**现值 = registry 实测 334 ✅ / 76 ⚠️ / 77 ❌ / ◆13**
-> (参见下方本批结注与 §变更历史末行)。**同日前序 = Required ADR #4/#5 兑现轮**
+> 承 2026-09-21「随 ADR-009 TR 复核轮」原口径)。
+> **更前序同日 = Required ADR #4/#5 兑现轮**
 > (adr-026 技能成长定点化 + adr-027 病人 AI 写路径)—— **计数翻转 10 条:318/500 → 328/500**
 > (`TR-skill-001…006 / 008` gap→covered · `TR-skill-007` partial→covered,`adr: ADR-026`;
 > `TR-patient-021/022` gap→covered,`adr: ADR-027`;该轮后值 328 ✅ / 76 ⚠️ / 94 ❌ / ◆2)。
@@ -197,11 +204,11 @@
 | `death-and-respawn.md` | **29 死亡与复活**(D-R3 回填)| **8** | **5** | **3** | **0** |
 | `casebook.md` | **39 脉案**(D-R3 回填)| **8** | **4** | **2** | **2** |
 | `skeuomorphic-ui.md` | **42 拟物 UI**(D-R3 回填)| **12** | **8** | **4** | **0** |
-| `audio-system.md` | **44 音频**(D-R3 回填)| **14** | **11** | **1** | **2** |
+| `audio-system.md` | **44 音频**(D-R3 回填)| **14** | **12** | **1** | **1** |
 | `tutorial-and-onboarding.md` | **48 教学与入门**(D-R3 回填)| **8** | **2** | **3** | **3** |
 | `telemetry-analytics.md` | **51 遥测与分析**(D-R3 回填)| **8** | **7** | **1** | **0** |
 | `medical-consequences.md` | **53 医疗后果(**P1a 主**)**(D-R3 回填)| **8** | **3** | **2** | **3** |
-| **合计** | | **500** | **334** | **76** | **77**(另 **◆13** = `no-adr-by-design`;2026-09-23 两批合计:Required ADR #4/#5 10 条翻 ✅ + QQ-08 清账 A 簇 6 条翻 ✅ / B 簇 11 条转 ◆,`TR-itemdb-031` carve-out 留 ❌)|
+| **合计** | | **500** | **335** | **76** | **76**(另 **◆13** = `no-adr-by-design`;2026-09-23 三批合计:ADR-028 小裁 1 条翻 ✅ + Required ADR #4/#5 10 条翻 ✅ + QQ-08 清账 A 簇 6 条翻 ✅ / B 簇 11 条转 ◆,`TR-itemdb-031` carve-out 留 ❌)|
 
 > **2026-09-20 借绿回退轮(TD 条件 C4 —— `architecture.md` §5.5 D-5)**:**ID 不增不减**(仍 387)。
 > 8 条「摘要列记 ✅ 而 `tr-registry.yaml` 的 `adr: null`」的条目(`TR-case-035` / `-036` ·
@@ -1103,7 +1110,7 @@
 
 ## 29. 音频 `design/gdd/audio-system.md`(#44)| 14 条
 
-> 11 ✅ / 1 ⚠️ / 2 ❌
+> 12 ✅ / 1 ⚠️ / 1 ❌(2026-09-23 ADR-028 小裁批后:`TR-audio-011` gap→covered;`TR-audio-012` 维持 ❌ 归 45 轮)
 
 | TR-ID | 需求 | ADR | 状态 |
 |-------|------|-----|------|
@@ -1117,8 +1124,8 @@
 | TR-audio-008 | 远端空间化经 IPositionalChannel 复用 ADR-001 第二 QoS 位置(不新增通道) | ADR-001 + ADR-018 | ⚠️ —— ️ 发布者随 45 落 P1b,OQ-44-8 未裁接口细节 |
 | TR-audio-009 | cue 载荷不复制三源事实(音频只读 DTO 派生,不镜像 sim 量) | ADR-018 | ✅ |
 | TR-audio-010 | 音频事件表走 ADR-014 烘焙管线:玩家构建零 JSON 解析器 | ADR-014 + ADR-018 | ✅ |
-| TR-audio-011 | 世界语境呼吸:听诊主通道的呼吸声源于世界(非 UI 层常驻音) | — | ❌ —— F-44.7 在 ADR-018 零条款——世界内声源的归属裁决缺失,未来 ADR 候选(供用户处置) |
-| TR-audio-012 | EndLoop 兜底:事件终止信号丢失时的停止路径 | — | ❌ —— ADR-001/ADR-018 两份对 EndLoop 零字(grep 实测)——QoS 丢包与音频生命周期交叠无裁决;ADR-001 窄修订候选 |
+| TR-audio-011 | 世界语境呼吸:听诊主通道的呼吸声源于世界(非 UI 层常驻音) | ADR-028 | ✅ —— 2026-09-23 用户裁定「011 现裁」⇒ 新立 `adr-028-world-sound-source-ownership.md` 结清(声源 = 44 运行期表现层池 · 零场景预摆承 ADR-023 ② 扩列 · 位置只读 `AudioCueDto.Cell` · 总线 = Ambience 世界语境子通道 · 生命周期 cue 驱动);撤 2026-09-21「登记不立件」裁定 |
+| TR-audio-012 | EndLoop 兜底:事件终止信号丢失时的停止路径 | — | ❌ —— ADR-001/ADR-018 两份对 EndLoop 零字(grep 实测)——QoS 丢包与音频生命周期交叠无裁决;ADR-001 窄修订候选。**2026-09-23 用户裁定归 45 的 GDD 轮**(与 `QQ-14`/`OQ-10-9` 同族,P1b 前),本轮不动,status 维持 ❌(ADR-028 Ordering Note 明示不在其裁决面) |
 | TR-audio-013 | AudioListener 单挂点:平面=主相机,VR=头显,常驻归 Boot 场景 | ADR-020 + ADR-023 | ✅ |
 | TR-audio-014 | 战斗乐层 G1–G3:层间切换经混音参数,禁 sting/层素材报状态 | ADR-018 | ✅ |
 
@@ -1370,3 +1377,4 @@
 | 2026-09-23 | **Required ADR #4/#5 兑现轮(adr-026 技能成长定点化 + adr-027 病人 AI 写路径)** | **计数翻转 10 条:318/500 → 328/500**(`yaml.safe_load` 复算自洽:328 ✅ / 76 ⚠️ / 94 ❌ / ◆2;ID 恒 500,零新增)。**两份 Required ADR 落盘(均 Accepted)**:① **ADR-026 = `architecture.md` §Required #4「30 技能成长的定点化与持久化契约」** —— `FixPow` 唯一整数幂实现(指数 ∈ {整数, 整数+1/2};整数幂走重复 `Mul`,半整数走 `FixPow(base,k) × FixSqrt(base)`,`FixSqrt` = 整数 Newton 迭代,**禁 `Math.Sqrt` / libm / float**,坐实 G-1);构建期查表仅作记忆化分支且须逐值等于 `FixPow` 输出(构建断言);`CombatPower = (CombatSkillLevel × WeaponMultiplier) × (1 + 医术修正)`,`医术修正 = FixDiv(MED_COMBAT_MOD × 关联医术等级, SKILL_CAP)`(`ROUND_HALF_AWAY_FROM_ZERO`)以 `Fix` 交 25;调参表 `Fix` 字段 JSON 字符串 → `FixParse`;档位/解锁判定走整数等级比较(G-3);`SkillGrown` 落病史流、`Level` 以 int 承载、不独立快照、从流重构。**结清 `OQ-7a-9`** —— 折叠谓词 `Folded(p)` **豁免 `SkillGrown` 行(案 1)**;驳回案 2(第二真源)/案 3(独立快照,与 §⑥ 冲突)。② **ADR-027 = §Required #5「13 病人 AI 的写路径归属」** —— 用户裁定 **两条写路径皆归系统 10 急救动作**(`TR-patient-021` 查体诱发痉挛 / `TR-patient-022` 搬运昏迷病人),与 CPR / 止血同构(玩家物理干预);形态 = ADR-009 §七 三段式(意图事件 + 主机当下判距 + 效果进流),**不新机制**;**13 只产表现**、**8 只声明存在**(其 `diagnosis-system.md:1253` 原「10 / 13」措辞收窄为「10」);新 `Kind` 义务归 10 的 GDD 轮(经 `entities.yaml` + kindgen,承 ADR-024)。**TR 翻转**:`TR-skill-001…006 / 008` gap→covered、`TR-skill-007` partial→covered(`adr: ADR-026`;`-001` 需求文本就地订正删去旧 `P = 1.4` 字面,数值仍归用户);`TR-patient-021/022` gap→covered(`adr: ADR-027`)。**回写件**:`adr-010 §三` **义务行 14**(技能成长持久化,源 ADR-026 §⑥/§⑦)· `architecture.md` §Required #4/#5 加 ✅ 兑现块 + row 30(技能系统)`⚠️ 无 ADR 承接`→`✅ ADR-026` + 头部 `ADR-025(共 22 份)`→`ADR-027(共 24 份)` · `patient-ai.md`(`OQ-13-1`/`OQ-13-3` 结案注 + §待澄清口径)· `persistence-service.md`(`OQ-7a-9` 结案注:案 1;29 `AC-29-16` / 51 成长读数解锁)。**本批零数值改动**(机制数值冻结)。**汇总 318/77/103 → 328/76/94**。落点 12 件:adr-026(new)· adr-027(new)· adr-010 · architecture.md · tr-registry · traceability-index(本件)· requirements-traceability(RTM 指针件)· technical-preferences(ADR 日志 + 本日志状态)· skill-system(GDD:去 `Math.Sqrt` 许可,`Fix.ISqrt` 订正)· diagnosis-system(GDD:同款 `Math.Sqrt` 订正 + `:1253` 「10 / 13」收为「10」)· patient-ai(GDD)· persistence-service(GDD) |
 
 | 2026-09-23 | **QQ-08 + QQ-02 清账批(用户裁定路线 [A] —— 21a 簇 17 条翻转,零新 ADR)** | **计数翻转 17 条:328/500 → 334/500**(`yaml.safe_load` 复算自洽:334 ✅ / 76 ⚠️ / 77 ❌ / ◆13;ID 恒 500,零新增)。**三簇拆账(A=6 / B=11 / C=1)**:① **A 簇 6 条 gap→covered(带 ADR 指针 + 禁借绿注)**:`TR-itemdb-014`(ADR-009 Amendment J 三位 + registry `payload_schema` 真源,禁借绿:codec 跑绿归桌面 R-1)· `018`(ADR-009 字段命名白名单;E-8「未钉死」注就地过期)· `019`(**ADR-010 §五机制 A + QQ-02 回填 ADR-005 双方法**;`blocking`/`no_adr` 随缺口消解同批撤除)· `020`(ADR-005 主机唯一 `Step`/`Append` + ADR-009 §五 发放点)· `021`(ADR-008 三流全序键)· `028`(ADR-006 `ROUND_HALF_AWAY_FROM_ZERO` 全域适用)。② **B 簇 11 条 gap→◆ `no-adr-by-design`(用户裁定降级,非 `covered`+备注 —— 后者是 D-5 借绿反模式复活)**:`TR-itemdb-007/008/009/011/012/015/016/017/024/029/030`;归属件 = 21a GDD 自身(两表设计 Overview :54-72)+ ADR-014 烘焙管线声明的 data-core schema 落点 + §API Boundaries 跨系统边界行 + 已登记的 `Craft` constraint / 数值旋钮声明(逐条细注见 `tr-registry.yaml` 该批 `note`);**per-entry 保留语义**:015 对齐规则常数待 9 数值轮、017/030 为已登记边界形状、012 派生规则已登记、029 上限值 = 用户数值旋钮。**判据扩类** —— `traceability-index.md` 图例 ◆ 行就地扩第二类(**经用户逐簇裁定降级的 GDD 内部 schema / 跨系统边界形状**;**逐簇,非自动豁免**,其它系统 schema 簇仍须各自 QQ 式裁定)+ `gate-check` SKILL `:131` 同批同步。③ **C 簇 1 条 carve-out:`TR-itemdb-031` 字节不动**(2026-09-21「状态重裁随 ADR-009 TR 全量复核轮,本文不预判」未撤;**禁借绿**;仅 §2 表 ADR 格 `—`→`ADR-009 + ADR-015` 指针同步)。**QQ-02 同批结案**:`adr-005` `IIdAuthority` 回填 `ItemInstanceId Next()` 双方法(逐字承 ADR-010 §五 :313-314;原「尚无 ADR」TODO 过期消解)+ `architecture.md:723` 图解注 + `entities.yaml` D-21-26 注释关闭(**D-21-27「待回收」不在本批范围,不动**)。**陈旧面同批订正(承前轮遗漏,卫生非新裁)**:§汇总 itemdb 行 + 合计行 · 基线表头 `499/316/78/103`→`500/334/76/77+◆13` + 补登**第七次动**(Required ADR #4/#5,此前从未入表)与**第八次动**(QQ-08)历史行 · §5.4 标题 `89 条`→`77 条` + 21a / 技能行结案注 · 可推迟表 21a 行结案注(**推翻原「改 covered」建议 = D-5 反模式**,实际仪器 = ◆)· `:119` 簇表(21a 计数 19→21a 行刷新 + 技能行)· `:369` 技能契约行 · `:390` `IIdAuthority` 行 · §5.3 itemdb 行(`14|0|18`→`20|0|1 另◆11`,承既有 cov+partial 合并口径)+ 技能行(`1|0|7`→`8|0|0 ADR-026`)· 优先修复清单 `019/020/021/029` 行与 `skill-002` 行划结 · `requirements-traceability.md` Core 缺口计数 `93`→`76` + History 行 · 本件头注 + 图例 + §2 表 17 行 + changelog。**Foundation gate 零影响**(17 条全 `domain: Core`;Foundation gap 残余恰 = `[TR-itemdb-031]`)。**blocking 残余恰 = 2**(`TR-disease-022` / `TR-diag-013`,均仍 gap)。**本批零数值改动、零新 ADR**(机制数值冻结;schema 簇不走 `/architecture-decision`)。**audio-011/012 不在本批**(真 ADR 候选,另开小裁)。落点 9 件:tr-registry(17 条)· traceability-index(本件)· adr-005 · architecture.md · entities.yaml · requirements-traceability · gate-check(SKILL)· active.md(session-state)· 本批 commit |
+| 2026-09-23 | **ADR-028 小裁批(用户裁定「011 现裁,012 归 45 轮」)** | **计数翻转 1 条:334/500 → 335/500**(`yaml.safe_load` 复算自洽:335 ✅ / 76 ⚠️ / 76 ❌ / ◆13;ID 恒 500,零新增)。**新立 ADR-028**(世界语境声源归属,Accepted,`docs/architecture/adr-028-world-sound-source-ownership.md`)结清 `TR-audio-011` gap→covered(6 点裁决:44 持有运行期表现层声源池 / 零场景预摆承 ADR-023 ② 扩列 / 位置只读 `AudioCueDto.Cell`·远端 `IPositionalChannel` / 总线 = Ambience 世界语境子通道 / 生命周期 cue 驱动·同格 N 病人 N 声源·存在性不进三流 / 遮挡衰减增益归 44 调参旋钮数值归用户);撤 2026-09-21「登记不立件」裁定。**`TR-audio-012` 维持 gap 不翻**(归 45 的 GDD 轮,与 `QQ-14`/`OQ-10-9` 同族 ADR-001 窄修订,P1b 前;note 追加裁定文本;ADR-028 Ordering Note 明示排除)。**指针回填三处**:adr-018 Status 补注 · adr-023 ② 再增列 + S2 checkbox 扩充 · audio-system.md F-44.7 架构归属块。**011 `domain: Presentation` ⇒ Foundation gate 零影响**(残恰 = `[TR-itemdb-031]`)。**blocking 残余不变 = 2**(`TR-disease-022` / `TR-diag-013`)。**卫生同批(承 QQ-08 批遗漏,非新裁)**:`requirements-traceability.md` §Coverage Summary NO ADR 94 / ◆2 / 计数口径 328+76+94+◆2 三行刷为本批实测(消除 334+76+94+2=506≠500 矛盾)· `architecture.md` 头部 `22 份`→`25 份`、ADR 末号 `027(共 24)`→`028(共 25)`、Last Updated、基线行、第九次动历史行、§5.4 标题 `77 条`→`76 条` · `technical-preferences.md` ADR 日志 + 本日志状态 `001–028`。**本批零数值改动**(机制数值冻结)。落点 9 件:adr-028(new)· tr-registry(011 翻 + 012 注)· adr-018 · adr-023 · audio-system · traceability-index(本件)· requirements-traceability · architecture.md · technical-preferences |

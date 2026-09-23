@@ -24,6 +24,11 @@ Accepted
 > ⑦ **§五「远端玩家空间化」的通道来源改写为 `ADR-001 §一之二 IPositionalChannel`**
 > (per-`ActorId` latest-value 表,2026-09-18 自 `IReplayPipe` 拆出;**同轮改 ADR-001** ——
 > 其原文零处提及音频,44 的 §Dependencies 声明依赖却无处落地);44 只读声源锚点、**cue 非复制**。
+>
+> **2026-09-23 补注**:世界语境声源的**对象归属**(谁持有 / 生成 / 释放承载 `worldBreath` 的
+> `AudioSource`,零场景预摆,位置只读 `AudioCueDto.Cell`)= **ADR-028**(本件原零条款,
+> `TR-audio-011` 同批 `gap` → `covered`;`TR-audio-012` EndLoop 兜底**不在 ADR-028 裁决面**,
+> 归 45 的 GDD 轮)。
 
 ## Date
 
