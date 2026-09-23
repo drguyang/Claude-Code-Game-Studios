@@ -383,7 +383,9 @@
     requirement: 配方 schema(输入/产出/工时)
     domain: Core
     adr: null
-    status: gap
+    status: no-adr-by-design
+    note: "2026-09-23 QQ-08 用户裁定路线 [A] 清账批(B 簇 schema / 边界形状降级):归属件 = `item-database.md` GDD 自身(两表设计 Overview :54-72)+ ADR-014 烘焙管线声明的 21a `data-core` schema 落点,均已登记 ⇒ 本条属**数据形状**而非架构裁决(原判据自陈「不需要 ADR 裁决,但没有别处可登记」⇒ 无处登记 ≠ 有缺口)。归 21a 实现轮逐字段定稿;**永不因补 ADR 转 ✅**;若归属件缺失或被推翻则转 ❌ 重裁。判据见 `traceability-index.md` 图例 ◆ 行(2026-09-23 扩第二类)。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-008
     system: item-database
@@ -391,7 +393,9 @@
     requirement: 药材 schema(性味/归经/功效键)
     domain: Core
     adr: null
-    status: gap
+    status: no-adr-by-design
+    note: "2026-09-23 QQ-08 用户裁定路线 [A] 清账批(B 簇 schema / 边界形状降级):归属件 = `item-database.md` GDD 自身(两表设计 Overview :54-72)+ ADR-014 烘焙管线声明的 21a `data-core` schema 落点,均已登记 ⇒ 本条属**数据形状**而非架构裁决(原判据自陈「不需要 ADR 裁决,但没有别处可登记」⇒ 无处登记 ≠ 有缺口)。归 21a 实现轮逐字段定稿;**永不因补 ADR 转 ✅**;若归属件缺失或被推翻则转 ❌ 重裁。判据见 `traceability-index.md` 图例 ◆ 行(2026-09-23 扩第二类)。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-009
     system: item-database
@@ -399,7 +403,9 @@
     requirement: 炮制方法 schema
     domain: Core
     adr: null
-    status: gap
+    status: no-adr-by-design
+    note: "2026-09-23 QQ-08 用户裁定路线 [A] 清账批(B 簇 schema / 边界形状降级):归属件 = `item-database.md` GDD 自身(两表设计 Overview :54-72)+ ADR-014 烘焙管线声明的 21a `data-core` schema 落点,均已登记 ⇒ 本条属**数据形状**而非架构裁决(原判据自陈「不需要 ADR 裁决,但没有别处可登记」⇒ 无处登记 ≠ 有缺口)。归 21a 实现轮逐字段定稿;**永不因补 ADR 转 ✅**;若归属件缺失或被推翻则转 ❌ 重裁。判据见 `traceability-index.md` 图例 ◆ 行(2026-09-23 扩第二类)。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-010
     system: item-database
@@ -416,7 +422,9 @@
     requirement: "Schema E:库存槽形状"
     domain: Core
     adr: null
-    status: gap
+    status: no-adr-by-design
+    note: "2026-09-23 QQ-08 用户裁定路线 [A] 清账批(B 簇 schema / 边界形状降级):归属件 = `item-database.md` GDD 自身(两表设计 Overview :54-72)+ ADR-014 烘焙管线声明的 21a `data-core` schema 落点,均已登记 ⇒ 本条属**数据形状**而非架构裁决(原判据自陈「不需要 ADR 裁决,但没有别处可登记」⇒ 无处登记 ≠ 有缺口)。归 21a 实现轮逐字段定稿;**永不因补 ADR 转 ✅**;若归属件缺失或被推翻则转 ❌ 重裁。判据见 `traceability-index.md` 图例 ◆ 行(2026-09-23 扩第二类)。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-012
     system: item-database
@@ -424,8 +432,9 @@
     requirement: ActualConsumed 仅派生自 Craft 事件
     domain: Core
     adr: null
-    status: gap
-    no_adr: true
+    status: no-adr-by-design
+    note: "2026-09-23 QQ-08 用户裁定路线 [A] 清账批(B 簇 schema / 边界形状降级):归属件 = `item-database.md` GDD 自身(两表设计 Overview :54-72)+ ADR-014 烘焙管线声明的 21a `data-core` schema 落点,均已登记 ⇒ 本条属**数据形状**而非架构裁决(原判据自陈「不需要 ADR 裁决,但没有别处可登记」⇒ 无处登记 ≠ 有缺口)。归 21a 实现轮逐字段定稿;**永不因补 ADR 转 ✅**;若归属件缺失或被推翻则转 ❌ 重裁。判据见 `traceability-index.md` 图例 ◆ 行(2026-09-23 扩第二类)。派生关系本体已见 registry 的 Craft constraint(Amendment J 明文 ActualConsumed 逐实例对位);残 = 21a schema 内的字段形状,归实现轮。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-013
     system: item-database
@@ -440,8 +449,10 @@
     gdd: design/gdd/item-database.md
     requirement: Craft 事件的载荷形状
     domain: Core
-    adr: null
-    status: gap
+    adr: ADR-009 + ADR-024
+    status: covered
+    note: "2026-09-23 QQ-08 清账批(A 簇陈旧翻转):载荷三位由 ADR-009 Amendment J 定稿(actor_id 归因 / output_instance_ids[] 主机于点火 tick 铸造 / tool_cell 器具位),字段形状以 entities.yaml 的 Craft payload_schema 为真源(ADR-024 §①)。裁决面 covered;Sim.Codec 执行体已落盘(R-1,2026-09-23),EditMode 跑绿归【桌面】(禁借绿 —— 成文 ≠ 跑绿)。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-015
     system: item-database
@@ -449,8 +460,9 @@
     requirement: 可感知底线 vs 9 的噪声带对齐
     domain: Core
     adr: null
-    status: gap
-    no_adr: true
+    status: no-adr-by-design
+    note: "2026-09-23 QQ-08 用户裁定路线 [A] 清账批(B 簇 schema / 边界形状降级):归属件 = `item-database.md` GDD 自身(两表设计 Overview :54-72)+ ADR-014 烘焙管线声明的 21a `data-core` schema 落点,均已登记 ⇒ 本条属**数据形状**而非架构裁决(原判据自陈「不需要 ADR 裁决,但没有别处可登记」⇒ 无处登记 ≠ 有缺口)。归 21a 实现轮逐字段定稿;**永不因补 ADR 转 ✅**;若归属件缺失或被推翻则转 ❌ 重裁。判据见 `traceability-index.md` 图例 ◆ 行(2026-09-23 扩第二类)。对齐**规则**住 GDD 侧(`disease-simulation.md` D-9-J 噪声带 / `prescription-and-medication.md` AC-11-19 NOT-RUN),**常数待 9 的数值轮** —— 本条只锁「两表须对齐」的边界形状,不锁常数;降级不预判 9 侧裁决。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-016
     system: item-database
@@ -458,7 +470,9 @@
     requirement: 品质分级与品质轴定义
     domain: Core
     adr: null
-    status: gap
+    status: no-adr-by-design
+    note: "2026-09-23 QQ-08 用户裁定路线 [A] 清账批(B 簇 schema / 边界形状降级):归属件 = `item-database.md` GDD 自身(两表设计 Overview :54-72)+ ADR-014 烘焙管线声明的 21a `data-core` schema 落点,均已登记 ⇒ 本条属**数据形状**而非架构裁决(原判据自陈「不需要 ADR 裁决,但没有别处可登记」⇒ 无处登记 ≠ 有缺口)。归 21a 实现轮逐字段定稿;**永不因补 ADR 转 ✅**;若归属件缺失或被推翻则转 ❌ 重裁。判据见 `traceability-index.md` 图例 ◆ 行(2026-09-23 扩第二类)。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-017
     system: item-database
@@ -466,44 +480,49 @@
     requirement: 21a 与 17 采集系统的数据边界
     domain: Core
     adr: null
-    status: gap
+    status: no-adr-by-design
+    note: "2026-09-23 QQ-08 用户裁定路线 [A] 清账批(B 簇 schema / 边界形状降级):归属件 = `item-database.md` GDD 自身(两表设计 Overview :54-72)+ ADR-014 烘焙管线声明的 21a `data-core` schema 落点,均已登记 ⇒ 本条属**数据形状**而非架构裁决(原判据自陈「不需要 ADR 裁决,但没有别处可登记」⇒ 无处登记 ≠ 有缺口)。归 21a 实现轮逐字段定稿;**永不因补 ADR 转 ✅**;若归属件缺失或被推翻则转 ❌ 重裁。判据见 `traceability-index.md` 图例 ◆ 行(2026-09-23 扩第二类)。跨系统边界行,architecture.md §API Boundaries 已载(21a ↔ 17)。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-018
     system: item-database
     gdd: design/gdd/item-database.md
     requirement: 9 侧字段名对齐 drug_potency / half_life
     domain: Core
-    adr: null
-    status: gap
-    no_adr: true
+    adr: ADR-006
+    status: covered
+    note: "2026-09-23 QQ-08 清账批(A 簇陈旧翻转):字段改名 D-21-9 / D-21-22 已由 ADR-006 裁定并落盘(drug_potency / half_life,旧名 Offset / tau_half 全清 —— 见 entities.yaml 头注自陈);此前 adr: null + no_adr 均为登记层漏刷,同批撤除 no_adr。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-019
     system: item-database
     gdd: design/gdd/item-database.md
     requirement: instance_id 权威(IIdAuthority 缺 ItemInstanceId Next())
     domain: Core
-    adr: null
-    status: gap
-    no_adr: true
-    blocking: true
+    adr: ADR-010
+    status: covered
+    note: "2026-09-23 QQ-08 + QQ-02 清账批:机制 A(计数器 + 高水位可重构)由 ADR-010 §五裁定 —— §三义务 6 本点名本条;QQ-02 同批回填 ADR-005 的 IIdAuthority 双方法(PatientId Next() + ItemInstanceId Next(),逐字承 ADR-010 §五 :313-314),消除原「尚无 ADR」陈旧注。blocking / no_adr 随缺口消解同批撤除(现有 ADR;要求文本的历史形状原样保留不改写)。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-020
     system: item-database
     gdd: design/gdd/item-database.md
     requirement: "D-21-27:仅主机铸币"
     domain: Core
-    adr: null
-    status: gap
-    no_adr: true
+    adr: ADR-005 + ADR-009
+    status: covered
+    note: "2026-09-23 QQ-08 清账批(A 簇陈旧翻转):主机唯一 = ADR-005(唯一执行 Step / Append)+ ADR-009 §五(发放点 = IIdAuthority.ItemInstanceId.Next(),客户端不本地铸造)。同型条目 TR-inventory-002 早已 covered(同裁),本条属登记层漏刷;no_adr 同批撤除。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-021
     system: item-database
     gdd: design/gdd/item-database.md
     requirement: "D-21-28:Craft 事件的全序键"
     domain: Core
-    adr: null
-    status: gap
-    no_adr: true
+    adr: ADR-008
+    status: covered
+    note: "2026-09-23 QQ-08 清账批(A 簇陈旧翻转):全序键 (Tick, StreamPriority, Patient, Seq) 由 ADR-008 §一裁定;D-21-28 已于 2026-09-19 裁 [甲] 并落 registry Craft constraint(entities.yaml 头注自陈 ✅,Patient = PatientId.None、actor_id 位被载荷吸收)。no_adr 同批撤除。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-022
     system: item-database
@@ -531,7 +550,9 @@
     requirement: 配方解锁与技能门(与 30 的接口)
     domain: Core
     adr: null
-    status: gap
+    status: no-adr-by-design
+    note: "2026-09-23 QQ-08 用户裁定路线 [A] 清账批(B 簇 schema / 边界形状降级):归属件 = `item-database.md` GDD 自身(两表设计 Overview :54-72)+ ADR-014 烘焙管线声明的 21a `data-core` schema 落点,均已登记 ⇒ 本条属**数据形状**而非架构裁决(原判据自陈「不需要 ADR 裁决,但没有别处可登记」⇒ 无处登记 ≠ 有缺口)。归 21a 实现轮逐字段定稿;**永不因补 ADR 转 ✅**;若归属件缺失或被推翻则转 ❌ 重裁。判据见 `traceability-index.md` 图例 ◆ 行(2026-09-23 扩第二类)。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-025
     system: item-database
@@ -565,9 +586,10 @@
     gdd: design/gdd/item-database.md
     requirement: axis_offset_by_quality[] 可为负 ⇒ 负数舍入方向须定义
     domain: Core
-    adr: null
-    status: gap
-    note: "报告 E-8:Q16.16 负数除法方向未钉死"
+    adr: ADR-006
+    status: covered
+    note: "2026-09-23 QQ-08 清账批(A 簇陈旧翻转):负数舍入方向 = ROUND_HALF_AWAY_FROM_ZERO —— ADR-006 单一舍入模式全域适用(禁 Math.Round 默认 ties-to-even;就近舍入 + 平局远离零对负数同样钉死方向)⇒ 原 note「E-8 方向未钉死」过期撤除,由本 note 替代。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-029
     system: item-database
@@ -575,8 +597,9 @@
     requirement: Σ(weight × InstanceWeight) 的 int64 溢出上限
     domain: Core
     adr: null
-    status: gap
-    no_adr: true
+    status: no-adr-by-design
+    note: "2026-09-23 QQ-08 用户裁定路线 [A] 清账批(B 簇 schema / 边界形状降级):归属件 = `item-database.md` GDD 自身(两表设计 Overview :54-72)+ ADR-014 烘焙管线声明的 21a `data-core` schema 落点,均已登记 ⇒ 本条属**数据形状**而非架构裁决(原判据自陈「不需要 ADR 裁决,但没有别处可登记」⇒ 无处登记 ≠ 有缺口)。归 21a 实现轮逐字段定稿;**永不因补 ADR 转 ✅**;若归属件缺失或被推翻则转 ❌ 重裁。判据见 `traceability-index.md` 图例 ◆ 行(2026-09-23 扩第二类)。溢出上限值属数值旋钮(用户自调);ADR-006 守恒律已给整数域求值纪律,具体上界归 21a 数值轮。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-030
     system: item-database
@@ -584,7 +607,9 @@
     requirement: 21a 与 20 库存的所有权边界
     domain: Core
     adr: null
-    status: gap
+    status: no-adr-by-design
+    note: "2026-09-23 QQ-08 用户裁定路线 [A] 清账批(B 簇 schema / 边界形状降级):归属件 = `item-database.md` GDD 自身(两表设计 Overview :54-72)+ ADR-014 烘焙管线声明的 21a `data-core` schema 落点,均已登记 ⇒ 本条属**数据形状**而非架构裁决(原判据自陈「不需要 ADR 裁决,但没有别处可登记」⇒ 无处登记 ≠ 有缺口)。归 21a 实现轮逐字段定稿;**永不因补 ADR 转 ✅**;若归属件缺失或被推翻则转 ❌ 重裁。判据见 `traceability-index.md` 图例 ◆ 行(2026-09-23 扩第二类)。跨系统边界行,architecture.md §API Boundaries 已载(21a ↔ 20)。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-031
     system: item-database

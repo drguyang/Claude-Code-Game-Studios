@@ -5,7 +5,17 @@
 > Coverage: **0%** full chain complete (GDD → ADR → Story → Test)—— 非缺件,是阶段事实
 > Engine: Unity 6.3 LTS
 > 登记处(数据权威):`docs/architecture/tr-registry.yaml`(500 条,`status:` 字段为计数真源)
-> 人读矩阵:`docs/architecture/traceability-index.md`(GDD → ADR 两级;**328 ✅ / 76 ⚠️ / 94 ❌ / ◆2 no-adr-by-design** —— 2026-09-23 Required ADR #4/#5 兑现轮后实测;回写轮值 318/77/103;第二十八批值 317/77/103;第二十六批值 316/78/103;D-R3 批次后值 314/79/104;更早 245/51/89 系分母不含 12 项零 TR 系统的偏高口径)
+> 人读矩阵:`docs/architecture/traceability-index.md`(GDD → ADR 两级;**334 ✅ / 76 ⚠️ / 77 ❌ / ◆13 no-adr-by-design** —— 2026-09-23 QQ-08 清账批后实测;同日 #4/#5 兑现轮后值 328/76/94/◆2;回写轮值 318/77/103;第二十八批值 317/77/103;第二十六批值 316/78/103;D-R3 批次后值 314/79/104;更早 245/51/89 系分母不含 12 项零 TR 系统的偏高口径)
+>
+> **2026-09-23 更新(QQ-08 + QQ-02 清账批 —— 用户裁定路线 [A],21a 簇 17 条翻转,零新 ADR)**
+> —— **328/76/94/◆2 → 334/76/77/◆13**(ID 恒 500,零新增;`yaml.safe_load` 复算自洽)。三簇拆账:
+> A 簇 6 条 gap→covered(`TR-itemdb-014/018/019/020/021/028`,带 ADR 指针 + 禁借绿注)·
+> B 簇 11 条 gap→◆ `no-adr-by-design`(`TR-itemdb-007/008/009/011/012/015/016/017/024/029/030`,
+> 逐簇裁定 + 归属件登记;◆ 判据同步扩第二类入 `traceability-index.md` 图例 + `gate-check` SKILL)·
+> C 簇 1 条 carve-out(`TR-itemdb-031` **不翻**,承 2026-09-21「随 ADR-009 TR 复核轮重裁」未撤)。
+> **QQ-02 同批结**:ADR-005 `IIdAuthority` 回填 `ItemInstanceId Next()` 双方法(逐字承 ADR-010 §五)。
+> **17 条全 `domain: Core` ⇒ Foundation 门判据零影响**(残余仍恰 = `TR-itemdb-031` 1 ❌)。
+> **本批零数值改动、零新 ADR**(机制数值冻结);audio-011/012 另开小裁(真 ADR 候选)。
 >
 > **2026-09-23 更新(Required ADR #4/#5 兑现轮 —— adr-026 技能成长定点化 + adr-027 病人 AI 写路径)**
 > —— **318/77/103 → 328/76/94**(ID 恒 500,零新增;`yaml.safe_load` 复算自洽)。`TR-skill-001…006 / 008`
@@ -48,7 +58,7 @@
 |--------|---------|-----------|
 | TR-ID | Stable requirement ID from tr-registry.yaml | ✅ 500 条已登记 |
 | GDD | Source design document | ✅ 见 index 逐行 |
-| ADR | Architectural decision governing implementation | ⚠️ 328 covered / 76 partial / **94 gap**(另 2 条 ◆ `no-adr-by-design`,2026-09-21 起为第四态,不计缺口)|
+| ADR | Architectural decision governing implementation | ⚠️ 334 covered / 76 partial / **77 gap**(另 13 条 ◆ `no-adr-by-design`,2026-09-21 起为第四态,不计缺口;2026-09-23 QQ-08 扩第二类)|
 | Story | Story file that implements this requirement | ❌ `production/epics/` 不存在 |
 | Test File | Automated test file path | ❌ 仅 1 个种子测试,且未与任何 TR 绑定 |
 | Test Status | COVERED / MISSING / NONE / NO STORY | 全量 = **NO STORY** |
@@ -71,7 +81,7 @@
 |--------|-------|---|-----------------|
 | COVERED — full chain complete | 0 | 0% | 本文件(Story 段不存在) |
 | MISSING test — story exists, no test | 0 | 0% | 同上 |
-| NO STORY — ADR exists, not yet implemented | 328 | 65.6% | registry `status: covered` 计数(2026-09-23 Required ADR #4/#5 兑现轮,10 条翻 ✅)|
+| NO STORY — ADR exists, not yet implemented | 334 | 66.8% | registry `status: covered` 计数(2026-09-23 两批:QQ-08 清账 6 条 + #4/#5 兑现 10 条翻 ✅;partial→covered 另计)|
 | NO ADR — architectural gap | 94 | 18.8% | registry `status: gap` 计数(兑现轮 `TR-skill-001…006/008` + `TR-patient-021/022` 8 条 gap→covered;D-R3 回填 +15;第二十六批 `TR-casebook-002` gap→partial;2026-09-21 曾由 91 减 ◆2)|
 | NO ADR BY DESIGN — 范围 / 政策声明,结构上无裁决可挂 | 2 | 0.4% | registry `status: no-adr-by-design` 计数 —— **不计入缺口**;判据见 `traceability-index.md` 读法表 ◆ 行 |
 | PARTIAL(链已断在 ADR 段)| 76 | 15.2% | registry `status: partial` 计数(兑现轮 `TR-skill-007` partial→covered;D-R3 回填 +28;第二十六批 −3/+1;第二十八批 −1)|
@@ -93,7 +103,7 @@
 
 ## Uncovered Requirements (Priority Fix List)
 
-### Foundation layer gaps —— ⚠️ 这是 Pre-Production 门的一条**质量门**,当前不为绿(**6 → 4 → 2 → 1 ❌**;2026-09-23 Required ADR #4/#5 兑现轮再缩 1)
+### Foundation layer gaps —— ⚠️ 这是 Pre-Production 门的一条**质量门**,当前不为绿(**6 → 4 → 2 → 1 ❌**;2026-09-23 Required ADR #4/#5 兑现轮再缩 1;**同日 QQ-08 清账批 17 条全 `domain: Core` ⇒ 本节零变动,残余仍 = `TR-itemdb-031` 1 ❌**)
 
 | TR-ID | 缺什么 | 建议归属 |
 |-------|--------|---------|
@@ -117,7 +127,7 @@
 
 ### Core / Feature / Presentation / Performance / Networking layer gaps
 
-94 − 1 = **93 条** gap 分布在非 Foundation 层(2026-09-23 **Required ADR #4/#5 兑现轮后值**:本批 10 条翻转中 8 条属非 Foundation(`TR-skill-001…006/008` + `TR-patient-021/022`),`TR-skill-007` 属 partial→covered 非 gap;2026-09-21 **第二十六批后值**:87 + D-R3 新增 15 − `TR-casebook-002` 转 partial 1 ———
+77 − 1 = **76 条** gap 分布在非 Foundation 层(2026-09-23 **QQ-08 清账批后值**:17 条翻转全属 Core 域,Foundation 分子不动;2026-09-23 **#4/#5 兑现轮后值**:94,该批 10 条翻转中 8 条属非 Foundation,`TR-skill-007` 属 partial→covered 非 gap;2026-09-21 **第二十六批后值**:87 + D-R3 新增 15 − `TR-casebook-002` 转 partial 1 ———
 其中 53 的 3 条为 **P1a 主照登**,7b-007 带「或归 GDD 家规」分工疑点;Foundation 现 **1 条**
 (`TR-itemdb-031`);
 逐条清单在
@@ -132,6 +142,7 @@
 | Date | Full Chain % | Notes |
 |------|-------------|-------|
 | 2026-09-20 | 0% | 本文件建立。**建立原因**:`/gate-check Technical Setup → Pre-Production` 的必交件清单要求此路径存在,而全仓既有的同功能件叫 `traceability-index.md`(该词在仓内被 **36 处路径引用 / 22 个文件**引用)—— 改名的涟漪成本远高于建立本指针件。**本文件不复制索引内容**;rtm 模式真跑时(有 epics 之后)按 `SKILL.md:472` 格式就地扩写本文件。 |
+| 2026-09-23 | 0% | **QQ-08 + QQ-02 清账批(用户裁定路线 [A])** —— covered 328→**334** / partial 76→**76** / gap 94→**77** / ◆2→**◆13**(total 恒 500)。21a 簇三拆:A=6 gap→covered(014/018/019/020/021/028)/ B=11 gap→◆(007/008/009/011/012/015/016/017/024/029/030,逐簇裁定)/ C=1 carve-out(031 留 gap)。QQ-02 结案(ADR-005 `IIdAuthority` 双方法回填,承 ADR-010 §五)。◆ 判据扩第二类(图例 + gate-check SKILL 同批)。**17 条全 Core 域 ⇒ Foundation 门零影响**(残 `TR-itemdb-031` 1 ❌)。零新 ADR、零数值改动。audio-011/012 另开小裁。 |
 | 2026-09-23 | 0% | **Required ADR #4/#5 兑现轮** —— covered 318→**328** / partial 77→**76** / gap 103→**94**(total 恒 500)。10 条 TR 翻 ✅(`TR-skill-001…006/008` + `TR-patient-021/022` gap→covered;`TR-skill-007` partial→covered),兑现 `architecture.md` §Required #4(ADR-026)/ #5(ADR-027)。**Foundation 缺口 2 → 1 ❌**(`TR-skill-008` 转 covered;残 `TR-itemdb-031` 随 ADR-009 复核轮)。Full Chain 仍 0%(`production/epics/` 不存在,非缺件)。 |
 
 ## 何时把本文件变成真 RTM

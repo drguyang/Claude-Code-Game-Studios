@@ -74,12 +74,12 @@
 
 ## Technical Requirements Baseline
 
-> 基线 = `docs/architecture/tr-registry.yaml`(**499 条稳定 TR ID**;2026-09-21 D-R3 批次前为 387)。
+> 基线 = `docs/architecture/tr-registry.yaml`(**500 条稳定 TR ID**;2026-09-21 D-R3 批次前为 387,批次后 499,回写轮 +1 = 500)。
 > **不新编一套编号** ——
 > `docs/CLAUDE.md` 禁重编号,且 `/architecture-review` 是本注册表的唯一所有者。
 
 ```
-499 条 TR  |  316 covered  |  78 partial  |  103 gap + 2 no-adr-by-design  (✅ 2026-09-21 第二十六批回写后 registry 实测;D-R3 批次后值 314/79/104;批次前值 387/245/51/89/◆2)
+500 条 TR  |  334 covered  |  76 partial  |  77 gap + 13 no-adr-by-design  (✅ 2026-09-23 QQ-08 清账批后 registry 实测;同日 #4/#5 兑现轮后值 328/76/94/◆2;回写轮后 318/77/103/◆2;D-R3 批次后 314/79/104;批次前 387/245/51/89/◆2)
 按运行期层(本蓝图 §System Layer Map 的 Axis B 归并)
 ```
 
@@ -98,6 +98,16 @@
 > + player_id 裁决落 ADR-006 Amendment B 注记 ⇒ **314 → 316 / 79 → 78 / 104 → 103**
 > (`TR-persist-004/006` partial→covered · `TR-casebook-002` gap→partial;**ID 恒 499**;
 > 8 条未来 ADR 候选 = 登记不立件裁定入注,零状态翻转;Foundation 仍 2 条)。
+> **2026-09-23 第七次动(Required ADR #4/#5 兑现轮 —— 补登,此前漏入本表)**:adr-026 技能成长定点化
+> + adr-027 病人 AI 写路径 ⇒ **计数翻转 10 条:318 → 328 / 94 → 94 基础上 gap 94**(`TR-skill-001…007`
+> → covered(007 为 partial→covered)· `TR-skill-008` gap→covered · `TR-patient-021/022` gap→covered;
+> **ID 恒 500**(回写轮已 +1 至 500);该轮后值 328/76/94/◆2。
+> **2026-09-23 第八次动(QQ-08 + QQ-02 清账批 · 用户裁定路线 [A])**:21a 簇 **17 条翻转** ——
+> A 簇 6 条 gap→covered(`TR-itemdb-014/018/019/020/021/028`,带 ADR 指针 + 禁借绿注)·
+> B 簇 11 条 gap→◆ `no-adr-by-design`(逐簇裁定降级,**非** covered+备注 —— D-5 反模式规避)·
+> C 簇 1 条 carve-out(`TR-itemdb-031` 不翻,承 2026-09-21 复核轮口径)· **QQ-02 同批结**
+> (ADR-005 `IIdAuthority` 回填双方法,逐字承 ADR-010 §五)⇒ **328 → 334 / 94 → 77 / ◆2 → ◆13**
+> (**ID 恒 500**;partial 76 不变;Foundation `domain` 口径 gap 残余恰 = `[TR-itemdb-031]`)。
 > ⚠️ 下表分层数字**不随本批重算**(Axis B 归并口径的逐条重归属仍归 `/architecture-review`)。
 > 下表的分层数字**尚未按 C4 重算** —— 8 条按注册表 `domain` 落 Core ×5 / Feature ×2 / Presentation ×1,
 > 而本表用的是 **Axis B 归并口径**(≠ `domain` 字段),逐条重归属归 `/architecture-review`。
@@ -116,8 +126,8 @@
 
 | 缺口簇 | TR | 性质 |
 |---|---|---|
-| **21a itemdb schema / 边界**(19 条) | `TR-itemdb-007/008/009/011/012/014/015/016/017/018/019/020/021/024/028/029/030/031` | GDD 内部 schema 形状与参数 —— 按 `traceability-index.md` 的口径「**不需要 ADR 裁决,但没有别处可登记**」⇒ 结构上不算缺口,但**计分上算** |
-| **30 技能成长**(7 条) | `TR-skill-001…007` | 公式 / 定点纪律 / 与 25 的边界 —— `TR-skill-002` 是**真缺口**(定点纪律应由 ADR-005 修正案或独立 ADR 承接,报告 B-6) |
+| **21a itemdb schema / 边界**(原列 18 个 ID,行文误标「19 条」) | `TR-itemdb-007/008/009/011/012/014/015/016/017/018/019/020/021/024/028/029/030/031` | ⭑ **已裁(2026-09-23,QQ-08 结案,路线 [A])**:A 簇 6 条 gap→covered(014/018/019/020/021/028,带 ADR 指针)· B 簇 11 条 gap→◆ `no-adr-by-design`(007/008/009/011/012/015/016/017/024/029/030,逐簇裁定 + 归属件登记)· `031` 单条 carve-out 留 gap(承 2026-09-21「随 ADR-009 TR 复核轮重裁」未撤)。**本行自此不再是缺口簇** —— 残余仅 `031` |
+| **30 技能成长**(原 7 条,现 0) | `TR-skill-001…007` | ⭑ **已结(2026-09-23,Required ADR #4 = ADR-026)**:`TR-skill-001…008` 八条全 covered(含原 B-6 定点纪律真缺口),本行**清零** |
 | **concept 层**(3 条) | `TR-concept-003/004`(MVP 8 条 / P0 排除项)+ `TR-concept-006`(帧预算) | ⭑ **2026-09-21 已裁(QQ-07 结案)**:`003/004` → ◆ 范围声明摘除;`006` 不降级,仍 ❌ 待硬件定稿 |
 | **3 输入 residual**(4 gap + 3 partial) | `TR-input-013/015/016/017/019/020/021` | `016` / `017` / `019` 已明标「**非 ADR 缺口,是实测前置**」(绑 `/test-setup`) |
 
@@ -366,7 +376,7 @@ docs/engine-reference/unity/plugins/addressables.md:301  ### Cleanup on Scene Un
 | **18 炮制** | 调 21a F1 一次拿三出参 | — | 21a `EFF`/`QualityMod` | ADR-014 |
 | **20 库存与物品** | 库存槽形状 · 载重(`CanCarry`) | — | 21a Schema E | ⚠️ `OQ-20-1`(消耗/转移 `Kind` 归属)未裁 |
 | **25 格斗与武器线** | 战斗效能**消费** · `IsSuppressed` | ✅ **已裁(2026-09-20):与 9 同程序集** —— 25 无独立呈现层;其公式与 9 的 F4 互为输入/输出 | 30 的输出档(定义权归 30) | ✅ 本次裁定;`combat-and-weapon-lines.md:399` R19b 的待澄清项就此关闭 |
-| **30 技能与熟练度** | `QueryLevel` / `EmitGrowth` · `SKILL_CAP` · `DIAG_TIERS` | 两接口(全案唯一) | — | ⚠️ **无 ADR** —— `TR-skill-001…008` 全 gap |
+| **30 技能与熟练度** | `QueryLevel` / `EmitGrowth` · `SKILL_CAP` · `DIAG_TIERS` | 两接口(全案唯一) | — | ✅ **ADR-026**(2026-09-23 Required #4 —— `TR-skill-001…008` 全 covered;原「无 ADR / 全 gap」注过期)|
 | **11 处方用药** | `DrugTreatmentApplied` 写者 | 病史流第 28 支 | 9 的病种注册表(唯一真源) | `OQ-11-1` ✅ 已裁 |
 | **23 模块化建造** | `Structure*` 三事件 | — | `world_buildslots.cooked` | ADR-015 §五 · AC-23-12(BLOCKING) |
 | **24 医馆机器** | `env_score`(**未钳制**) | `env_score` | POI 邻接 | ✅ 钳制点归 21a F1 |
@@ -387,7 +397,7 @@ docs/engine-reference/unity/plugins/addressables.md:301  ### Cleanup on Scene Un
 | `WorldPos` | `(i32 x, i32 y, i32 z)` 单一整数格 | 1 · 6 · 13 · 27 · 44 | ADR-015 §三 · Amendment F |
 | `ITickProvider` | `long CurrentTick { get; }` | L2 全体 | ADR-005 §Key Interfaces |
 | `IEventSink` | `void Append(in SimEvent)` | 主机侧全部写者 | 同上 |
-| `IIdAuthority` | `PatientId Next()` ⚠️ **缺 `ItemInstanceId.Next()`**(`TR-itemdb-019`) | 9 · 17 · 20 | 同上 |
+| `IIdAuthority` | `PatientId Next()` + `ItemInstanceId Next()`(**双方法**;✅ QQ-02 已结 2026-09-23 —— ADR-005 已回填,逐字承 ADR-010 §五;原「缺 `ItemInstanceId.Next()`」注过期)| 9 · 17 · 20 · 21a | ADR-005 · ADR-010 §五 |
 | `IVitalsQuery` | `VitalsDto GetVitals(PatientId)` | **8**(唯一) | 同上 · 9 的 §UI Requirements |
 | `IEventAuthority` | `IsAuthority` · `Roll(RollRequest)` | 5 · 52 | ADR-007 §一 |
 | `SimEvent` + `PatientId`/`StreamId`/`EventKind` | 值 struct + 整数枚举 | 三流全体 | ADR-006 Amendment A · ADR-009 Amendment E |
@@ -721,8 +731,8 @@ public readonly struct SimEvent
 public interface ITickProvider   { long CurrentTick { get; } }
 public interface IEventSink      { void Append(in SimEvent e); }     // 主机唯一
 public interface IIdAuthority    { PatientId Next();
-                                   ItemInstanceId Next(); }          // ⚠️ 后者仅在 ADR-010 §五,
-                                                                     //    ADR-005:235 仍标「待办」
+                                   ItemInstanceId Next(); }          // ✅ QQ-02 已结(2026-09-23):ADR-005 已回填双方法,
+                                                                     //    逐字承 ADR-010 §五(机制 A);原「ADR-005:235 仍标待办」过期
 public interface IVitalsQuery    { VitalsDto GetVitals(PatientId p); } // **唯一浮点出口**
 public interface IEventAuthority { bool IsAuthority { get; }
                                    EventRollResult Roll(in RollRequest r); }
@@ -884,7 +894,7 @@ long FMod(long, long);  long FDiv(long, long); // **取模与除法只准经这�
 | 编号 | 问题 | 处置 |
 |---|---|---|
 | **QQ-01** | **`Vector3` 出在两个 L3/L4 契约里** —— `IPlayerMotor.Position` / `Tick(float dt)` 与 `ICameraRig`(`Vector3` 基 / `Camera` / `Tick(float dt)`)。「边界程序集仅 BCL」与「1 / 2 住表现层、可引 `UnityEngine`」两条同时成立时,**这两个接口该住哪里**无文可证 | §Required New ADRs #2(契约程序集清单)一并裁。三选一:① 拆 `(Cell 整数版 → L3)` + `(Vector3 版 → L5)`;② 承认 L3 允许 `Vector3`(破「仅 BCL」);③ 自建 `Float3` 值 struct<br>⚠️ **2026-09-20 事实核验(未裁定,只钉事实 —— 三个选项的取舍建立在此之上)**:<br>⑴ **二者住 §4.2「L4 边界层(呈现侧)契约」,不住 §4.1 的 L3 抽象点集** ⇒ 「门 A 程序集的引用集白名单」(ADR-017 §二,作用对象 = **仅 `Sim` 一个程序集**)与「这两个接口含 `Vector3`」**不矛盾** —— 所谓僵局**不是**引擎引用白名单破的。<br>⑵ 逐条查消费者后,真正跨门的调用点**只有一处**:`death-and-respawn.md:402`「触发 1 的传送 住**边界程序集**(`IPlayerMotor`)… **跨门契约类型**」⇒ 29 的**结算半边在门 A 内**却要调用含 `Vector3` 的接口。其余全为呈现侧互调(2 / 39 / 42 / 44 / 48 / 10)。<br>⑶ ⇒ **僵局被重述为**:门 A 程序集需不需要一个「能命令传送」的抽象?**选项 ① 拆两版正好覆盖它**(门 A 侧只见整数 `WorldPos` 版传送意图);**选项 ② 破的是 `death-and-respawn` 那一行,不破 ADR-017**;**选项 ③ 引入一个与 `WorldPos` 并立的浮点值类型**,代价是呈现侧全部向量数学要换类型或写转换。<br>⑷ **未决且不属本 QQ**:`OQ-2-6`(`ICameraRig.Camera` 单相机 vs VR 立体双眼)—— 归 ADR-020 修订轮 / #1 相机栈形状<br>**✅ 2026-09-20 裁定(ADR-025 ③ = ①′)**:传送契约拆两半 —— 整数半 `ITeleportCommandSink` 进 `Sim.Contracts`(门 A 可引),`Vector3` 半(`Position`/`Tick(dt)`/`ICameraRig.Camera`)留 `Gameplay.Presentation`,不再是跨门契约成员;②③两案否决留档。**本 QQ 结案。** |
-| **QQ-02** | **`IIdAuthority.Next()` 的重载形态** —— ADR-005:235 只声明 `PatientId Next()` 并注明「待办:21a 需要 `ItemInstanceId Next()`(TR-itemdb-019,尚无 ADR)」;ADR-010 §五 已给出双方法版本。**两处口径需统一** | 逐字回填 ADR-005(小改,不新开 ADR)|
+| **QQ-02** | ~~**`IIdAuthority.Next()` 的重载形态** —— ADR-005:235 只声明 `PatientId Next()` 并注明「待办…尚无 ADR」;ADR-010 §五 已给出双方法版本~~ | ✅ **已结 2026-09-23(QQ-02 同批执行,不新开 ADR)**:ADR-005 `IIdAuthority` 就地回填双方法(`PatientId Next()` + `ItemInstanceId Next()`,逐字承 ADR-010 §五 :313-314;原「尚无 ADR」TODO 消解)+ 本文件 §2.1 L3 表行 + `:723` 图解注 + `entities.yaml` D-21-26 注释同步关闭;`TR-itemdb-019` 同批 gap→covered(`adr: ADR-010`)|
 | **QQ-03** | **`Fix.ToFloat()` 的归属** —— ADR-005:228 写「仅**门面程序集**可调用」,而该程序集从未定义 | **✅ 2026-09-20 结案(ADR-025 ② = 甲案)**:`Fix` 保持 public 住 `Sim.Contracts`;「仅门面可调用」改由构建期 `ToFloat()` **调用点白名单断言**执法(`Sim` 内调用 = 构建失败);乙案(`internal`+`InternalsVisibleTo`)否决留档 |
 
 > **引擎类型核验**(本节契约里出现的引擎 API):
@@ -980,8 +990,8 @@ Required New ADRs 的落点上**(ADR-009 / 014 / 010 三份都被新 ADR 引用)
 
 | TR 组 | 系统 | 层 | 总数 | ✅ cov | ⚠️ part | ❌ gap | 承重 ADR |
 |---|---|---|---|---|---|---|---|
-| `itemdb` | 21 物品与配方数据库 | F | 32 | 14 | 0 | **18** | ADR-006(唯一权威)|
-| `skill` | 30 技能与熟练度 | F | 8 | 1 | 0 | **7** | **无**(见 5.4)|
+| `itemdb` | 21 物品与配方数据库 | F | 32 | 20 | 0 | **1**(另 **◆11** —— 2026-09-23 QQ-08;cov 含 partial 1 条合并计;`031` carve-out 留 gap)| ADR-006 · ADR-010 · ADR-009 · ADR-008 · ADR-014(并列权威,按簇分工)|
+| `skill` | 30 技能与熟练度 | F | 8 | 8 | 0 | 0 | **ADR-026**(2026-09-23 Required #4)|
 | `input` | 3 输入与设备 | F | 21 | 17 | 0 | **4** | ADR-011(18 条)|
 | `diag` | 8 诊断与体征揭示 | C | 25 | 14 | 0 | **11** | ADR-018(5)· ADR-013(2)+ |
 | `disease` | 9 疾病与伤情模拟 | C | 22 | 20 | 0 | 2 | **ADR-005(27,全案最大)**|
@@ -1008,14 +1018,14 @@ Required New ADRs 的落点上**(ADR-009 / 014 / 010 三份都被新 ADR 引用)
 **这是 `systems-index.md` 自身的一处不一致**(行 38 写 Core / 行 509 写 Foundation),
 已入 §5.5 的登记层缺陷清单。
 
-### 5.4 89 条 gap 的分组与处置(**2026-09-21 ◆ 轮后**;本表建立时为 93)
+### 5.4 77 条 gap 的分组与处置(**2026-09-23 QQ-08 清账批后**;本表建立时为 93,2026-09-21 ◆ 轮后为 89,同日 #4/#5 兑现轮与本批合流后为 77 —— 逐簇残余见下,簇间合流勿纵向相加旧值)
 
 | 簇 | 条数 | 代表 | 处置 |
 |---|---|---|---|
-| **21a schema / 边界** | 18 | `TR-itemdb-007/008/009/011/012/014/015/016/017/018/019/020/021/024/028/029/030/031` | GDD 内部 schema 形状与参数。**ADR-006 已裁其边界纪律**(`Fix` 域 / 舍入 / 守恒律);残余是**数据形状**,归 21a 实现轮的 `data-core` 烘焙 schema。**建议显式降级为「不需 ADR」**(`traceability-index.md` 已如此标注,只是 `status:` 未同步)|
+| **21a schema / 边界** | **1**(原 18) | 残余 = `TR-itemdb-031`;原 18 ID 见左 | ⭑ **QQ-08 结案(2026-09-23,用户裁定路线 [A])**:6 条 gap→covered(014/018/019/020/021/028,带 ADR 指针 + 禁借绿注)· 11 条 gap→◆ `no-adr-by-design`(**逐簇裁定,非 covered+备注** —— 后者是 D-5 反模式)· `031` 单条 carve-out 留 gap(状态重裁随 ADR-009 TR 复核轮,本文不预判)。**原「建议显式降级…status: gap 改 covered」建议就此作废**(仪器错误,实际 = ◆)|
 | **52 事件导演** | **15** ↓(原 17 —— `010` / `031` 两条 2026-09-20 随 Required ADR #2/#3 兑现转 covered,见下行与 `requirements-traceability.md`) | `TR-randomevents-003/008/010/011/014/015/016/017/020/022/023/025/026/027/030/031` | 半数已由 ADR-007 / 016 / 019 定**边界**,未定的是**算法与表**(Hamilton 配额 / CDF walk / 事件池 / 冷却窗口)。`010` / `031`(**asmdef + 构建期校验体系**)是**跨系统 Foundation 项**,见 §Required ADRs |
 | **8 诊断铁律** | 11 | `TR-diag-002/004/006/008/009/010/011/012/013/014/015` | 铁律①③⑤ 是**接口边界**(「8 与 11 无数据流」),机制已由 ADR-013 §三 `PresentationDtoGuard` + ADR-018 覆盖 ⇒ **缺的是 39 脉案 GDD 侧的落地**,非新 ADR |
-| **30 技能成长** | 7 | `TR-skill-001…007` | **唯一真正的 Foundation 级裸缺口** —— `TR-skill-002`(熟练度成长在整数定点域内求值)无任何 ADR 承接。见 §Required ADRs #2 |
+| **30 技能成长** | **0**(原 7) | `TR-skill-001…007` | ⭑ **已清零(2026-09-23,Required ADR #4 = ADR-026)** —— 八条全 covered(含原认定的「唯一真正的 Foundation 级裸缺口」`TR-skill-002`)。本行留档不删 |
 | **37 病例规则** | 6 | `TR-case-012/013/016/018/020/027` | 规则语义(立案两路径 / 链式串接 / 同源检测算法)—— **规则**归 37 的 GDD,`018`(同源检测)**算法**须定点化 ⇒ 可能与 #2 合并 |
 | **13 病人 AI** | 5 | `TR-patient-005/021/022/023/024` | `021` / `022` 是**写路径归属**(13 只读 ⇒ 归 9 / 10);`023` / `024` 是设计结果 + 无障碍。**写路径归属须裁** |
 | **10 急救动作** | 5 | `TR-emergency-006/010/017/018/019` | 判据形状已定(枚举三值 / 跳过 = `Applied`);`017` 的**四门阈值**与 `018`(纯键盘回退)是**数值轮**。**非 ADR 缺口** |
@@ -1130,7 +1140,8 @@ Required New ADRs 的落点上**(ADR-009 / 014 / 010 三份都被新 ADR 引用)
   **(ii)** 门面 = `Sim` **自身**的对外 facade(则「仅门面可调用」这句**无约束力**,`ToFloat()` 实为公开)。
   **两种读法的可验证产物不同**,(i) 能落一条反射断言,(ii) 落不出任何东西。
 - **QQ-02 `IIdAuthority.Next()` 的重载形态** —— ADR-005 `:235` 只声明 `PatientId Next()`;
-  ADR-010 §五 已给出双方法(`PatientId` + `ItemInstanceId`)。**口径统一 = 逐字回填 ADR-005**(小改)。
+  ADR-010 §五 已给出双方法(`PatientId` + `ItemInstanceId`)。**口径统一 = 逐字回填 ADR-005**(小改)
+  → ✅ **已执行 2026-09-23**(QQ-02 结案批;ADR-005 正文 + 本文件三处同步,见 §4.5 QQ-02 行)。
 
 **Engine Knowledge Risk: LOW**(纯程序集边界,零引擎 API)。
 
@@ -1245,10 +1256,7 @@ ADR-007 §三              5 支(EventRolled / EventArrived / ThreatDeferred /
 
 | 项 | 说明 |
 |---|---|
-| **21a itemdb 的 18 条 schema gap** | 数据形状(配方 schema / 药材 schema / 库存槽形状)——
-`traceability-index.md` 已自注「**不需要 ADR 裁决,但没有别处可登记**」。
-**建议在 `/architecture-review` Phase 8 显式降级为「不需 ADR」**,把 `status: gap` 改为
-`status: covered` + 备注「归 21a 实现轮的烘焙 schema」。**这不是绕过,是把登记面与裁决面对齐。** |
+| ~~**21a itemdb 的 18 条 schema gap**~~ | ⭑ **QQ-08 结案(2026-09-23,用户裁定路线 [A] —— 本行就此划结)**:原建议「`status: gap` 改 `covered` + 备注」**仪器错误**(会复活 D-5 借绿反模式),实际执行 = **6 条带指针转 covered + 11 条转 ◆ `no-adr-by-design` + `031` 单条 carve-out 留 gap**;◆ 判据同步扩第二类(逐簇裁定的已登记归属件 schema / 边界形状)入 `traceability-index.md` 图例 + `gate-check` SKILL。**登记面与裁决面自此对齐,本行不再有待裁项。** |
 | **52 事件导演的算法与表**(15 条 gap 的过半 —— 原 17,`010`/`031` 已于 2026-09-20 翻转)| Hamilton 配额 / CDF walk / 事件池 / 冷却窗口 ——
 **边界已由 ADR-007 / 016 / 019 定死**,残余是**数据与算法**,归 52 的实现轮与数值轮。 |
 | **`concept` 组的 3 条**(`TR-concept-003/004/006`)| ~~**须用户裁定是否降级为「不需 ADR」**~~
@@ -1370,13 +1378,13 @@ Addressables 6.2+ 抛异常须实测(ADR-014)· 关卡工具的 Terrain / NavMes
 | ID | 摘要 | 优先级 | 归谁解 |
 |---|---|---|---|
 | **QQ-01** | **`Vector3` 在 L3 契约里的归属** —— `IPlayerMotor.Position` / `Tick(float dt)` 与 `ICameraRig` 含引擎类型,与「契约程序集仅 BCL」冲突。三选一(拆两版 / 允许 `Vector3` / 自建 `Float3`)| ~~🔴~~ **✅ 已结 2026-09-20(ADR-025 ③ = ①′)** | §Required ADRs **#2 已兑现**:<br>⚠️ **2026-09-20 核验:本行摘要的「与 ADR-017 白名单冲突」为不成立**(白名单作用对象只有 `Sim`,这两接口在 L4)—— 真跨门点仅 `death-and-respawn.md:402` 一处。**完整事实与收窄后的裁定项见 §4.5 QQ-01 行**,本行不重复 |
-| **QQ-02** | **`IIdAuthority.Next()` 的重载口径** —— ADR-005 `:235` 单方法 vs ADR-010 §五 双方法 | 🟠 | 逐字回填 ADR-005(**不新开 ADR**)|
+| **QQ-02** | ~~**`IIdAuthority.Next()` 的重载口径** —— ADR-005 `:235` 单方法 vs ADR-010 §五 双方法~~ | ~~🟠~~ **✅ 已结 2026-09-23** | 逐字回填 ADR-005(**不新开 ADR**)—— 已执行:ADR-005 双方法回填 + architecture.md 三处 + entities.yaml D-21-26 + `TR-itemdb-019` → covered |
 | **QQ-03** | **`Fix.ToFloat()` 的归属程序集** —— `adr-005:228` 称「门面程序集」,该程序集从未定义 | ~~🟠~~ **✅ 已结 2026-09-20** | §Required ADRs **#2 已兑现 = ADR-025 ②(甲案)**:`Fix` public 住 `Sim.Contracts` + 调用点白名单断言执法;乙案(internal+IVT)否决留档 |
 | **QQ-04** | ~~ADR 循环依赖 `{008, 009, 010, 014}`~~ | ~~🔴~~ ✅ **已结(2026-09-20)** | ADR-008 `Depends On` 清空为 `{005,006,007}`,三条后补边移入 `Ordering Note`;全盘复算无环。⚠️ 修复过程另立一失:**本表与 §5.2 首版把它记成「两条边」,实为三条**(见 §5.2 复算注)|
 | **QQ-05** | **`Kind` 单一登记真源** —— 并集 **33** 支 ≠ 任一处单读;**缺口双向**(4 支缺 registry 条目 + 5 支零 registry 的 ADR-007 支 + 4 支缺 ADR 家规文本 + 4 处陈旧计数)⇒ 按 `entities.yaml` 生成拒收 **9** 支,按 ADR-009 §三 生成拒收 **18** 支 | ~~🔴~~ **✅ 已结 2026-09-20(ADR-024 全件照准转 Accepted)**:真源 = `entities.yaml`(+`stream:`/`author:`/`payload_schema:` 必填)· Amendment 通道退役 · 补齐 9 支 + 4 支家规 + 修 4 处陈旧计数 + `ConsequenceResolved` 幽灵引据订正 · `tools/kindgen/` 生成器 A1–A5 断言。**2026-09-20 两轮订正**:① 原「9 支会被拒收」只算了一个方向且把骨架数当 4;② 首轮订正得「4 / 12」亦偏小 —— 未把 ADR-007 的 5 支(零 registry 条目)并入两侧被拒集。实测(集合运算 + registry 逐条 `constraint:` 归类)见 §5.5 D-1 与 §Required ADRs #3;registry 流别真值 = **世界 12 / 病史 7 / 病例 5** |
 | **QQ-06** | **13 的两条写路径归属**(查体诱发痉挛 / 搬运昏迷病人)—— 13 只读,写者在事件流里不存在 | 🟠 | §Required ADRs **#5** |
 | **QQ-07** | ~~`concept` 组 3 条范围声明是否降级为「不需 ADR」~~ | ~~🟡~~ **✅ 已结 2026-09-21(两项用户裁定覆盖全部三条)** | `TR-concept-003/004` → ◆ `no-adr-by-design`(门规格修订轮,2026-09-21 同日早批)· `TR-concept-006`(帧预算)**不降级** —— 系性能承诺,❌ 保留待最低目标硬件定稿后裁。**登记面与裁决面自此对齐,本行不再有待裁项** |
-| **QQ-08** | **21a 的 18 条 schema gap 是否显式降级** —— `traceability-index.md` 已自注「不需 ADR,但没别处可登记」 | 🟡 | `/architecture-review` Phase 8(**建议降级**,把登记面与裁决面对齐)|
+| **QQ-08** | ~~**21a 的 18 条 schema gap 是否显式降级**~~ | ~~🟡~~ **✅ 已结 2026-09-23(用户裁定路线 [A] 清账批)** | **A=6 covered(带指针)/ B=11 ◆ `no-adr-by-design`(逐簇裁定)/ C=1 carve-out(`031` 留 gap)**;原「改 covered + 备注」建议作废(D-5 反模式);◆ 判据扩第二类入 traceability 图例 + gate-check SKILL;**零新 ADR**。audio-011/012 另开小裁(真 ADR 候选,不在本 QQ)|
 | **QQ-09** | ~~8 条「借绿」条目~~ ✅ **已结(2026-09-20)** —— 8 条转 `partial` + `blocked_by`(TD 条件 C4) | ~~🟠~~ | 残留:`TR-case-036` / `TR-interaction-015` 的 `adr` 两处不一致已标 `adr_divergence`,**对齐归 `/architecture-review`**(并流 QQ-11)|
 | **QQ-10** | ~~`architecture.yaml` 三处顶层重复键~~ ✅ **已结(2026-09-20)** —— 三空键删除,diff 证语义不变(见 §5.1 D-3)| ~~🟡~~ | 已结 |
 | **QQ-11** | **`tr-registry.yaml` 的 `adr:` 字段值域不纯**(6 条整路径 · `technical-preferences.md` · `用户裁定 2026-09-14` · `—` ×9)| 🟡 | `/architecture-review`(注册表唯一所有者)|

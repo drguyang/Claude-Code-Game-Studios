@@ -128,12 +128,16 @@ Note: in `solo` mode, director spawns (CD-PHASE-GATE, TD-PHASE-GATE, PR-PHASE-GA
       (all Foundation requirements must have ADR coverage before Pre-Production)
       > **⚠️ 2026-09-21 规格修订(用户裁定,承 gate-check Technical Setup → Pre-Production 首轮)**:
       > 本判据的计数口径 = registry 中 `domain: Foundation` 且 `status: gap` 的条数;
-      > **`status: no-adr-by-design` 不计入 gap** —— 该态承载「范围 / 政策声明类需求」
-      > (例:`TR-concept-003` MVP 的 8 条定义、`TR-concept-004` P0 排除项清单),它们的归属是
+      > **`status: no-adr-by-design` 不计入 gap** —— 该态承载两类需求(**2026-09-23 QQ-08 扩第二类,用户裁定逐簇**):> ①「范围 / 政策声明类需求」
+      > (① 例:`TR-concept-003` MVP 的 8 条定义、`TR-concept-004` P0 排除项清单 —— 归属是
       > **范围件**而非架构件,按原字面判据**永不可能有 ADR** ⇒ 该项会永久恒红,
       > 把质量门训练成噪声。加此第四态 = 承认原判据 **mis-specified**(技术总监原话:
       > 「不是项目不达标,是判据 mis-specified」),**不改变任何一条实质要求的裁决**。
-      > 由 TD 判定的既有要求不变:一条需求若要转 `no-adr-by-design`,其**归属件必须已登记**,
+      > ② **经用户逐簇裁定降级的 GDD 内部 schema / 跨系统边界形状** —— 归属件 = 该 GDD 自身 +
+      > 其声明的烘焙 / 实现轮落点(**均已登记**),属**数据形状**而非架构裁决;首簇 = 21a 的 11 条
+      > (`TR-itemdb-007/008/009/011/012/015/016/017/024/029/030`,QQ-08 2026-09-23)。
+      > ⚠️ **② 类逐簇裁定,非自动豁免** —— 其它系统的 schema 簇仍须各自的用户裁定方可入 ◆)。
+      > 由 TD 判定的既有要求不变且**两类共用**:一条需求若要转 `no-adr-by-design`,其**归属件必须已登记**,
       > 否则维持 `gap`。
 
 **ADR Circular Dependency Check**: For all ADRs in `docs/architecture/`, read each ADR's

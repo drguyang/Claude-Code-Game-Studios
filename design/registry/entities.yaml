@@ -84,9 +84,11 @@ last_updated: "2026-09-22"
 # · D-21-25 ✅ 已办(2026-09-15,D2 裁定「9 跟随 21a」):9 侧处置事件字段名已对齐
 #           drug_potency / half_life(处置元组 / AC-28 / F4 last_intervention 谓词已随新名落盘
 #           `disease-simulation.md`,旧名 Offset / tau_half 全清)。
-# · D-21-26 instance_id 权威缺契约 —— ADR-005 的 IIdAuthority 只有 PatientId Next(),无物品 id 来源;
-#           主机迁移后计数器复位 ⇒ 静默重号(两件物品共用一个 id,不崩溃,只表现为「物品悄悄合并/丢失」)。
-#           须扩 IIdAuthority 加 ItemInstanceId Next()。待裁。
+# · D-21-26 instance_id 权威缺契约 —— ✅ 已消解(QQ-02 结案 2026-09-23):ADR-005 的 IIdAuthority
+#           已回填双方法(PatientId Next() + ItemInstanceId Next(),逐字承 ADR-010 §五 :313-314);
+#           机制 = A(计数器永不复位 0,迁移后 next = max+1 由三流并集重构,Drop* 须保留 instance_id),
+#           与 PatientId 同模式(ADR-006 Amendment B)。主机迁移后重号的原风险由机制 A 消解。
+#           TR-itemdb-019 同批 gap → covered(adr: ADR-010)。
 # · D-21-27 17 采集的 instance_id 铸造权(规则九的主机唯一清单【漏了 17】)—— 待回收。
 # · D-21-28 Craft 事件的总序键 —— ✅ 已裁(2026-09-19,18 首轮评审 [甲]):三流全序键
 #           (Tick, StreamPriority, Patient=None, Seq)(ADR-008 §一);ActorId 位被 Craft 载荷

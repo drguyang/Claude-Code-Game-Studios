@@ -7,10 +7,15 @@
 > **数据真源两处都是 `tr-registry.yaml` 的 `status:` 字段** —— 本文件与 RTM 件都不各自持有计数,
 > 只引用。RTM 件是门件路径要求的**指针件**,不复制本表内容。
 
-> **Last Updated**: 2026-09-23(**Required ADR #4/#5 兑现轮 = adr-026 技能成长定点化 + adr-027 病人 AI 写路径**)
-> —— **ID 恒 500(零新增)**;**计数翻转 10 条:318/500 → 328/500**(`TR-skill-001…006 / 008` gap→covered ·
-> `TR-skill-007` partial→covered,`adr: ADR-026`;`TR-patient-021/022` gap→covered,`adr: ADR-027`)。
-> **现值 = registry 实测 328 ✅ / 76 ⚠️ / 94 ❌ / ◆2**(兑现轮后 —— 参见下方本批结注)。
+> **Last Updated**: 2026-09-23(**QQ-08 + QQ-02 清账批(用户裁定路线 [A])—— 21a 簇 17 条翻转**)
+> —— **ID 恒 500(零新增)**;**计数翻转 17 条:328/500 → 334/500**(A 簇 6 条 gap→covered:
+> `TR-itemdb-014/018/019/020/021/028` · B 簇 11 条 gap→◆ `no-adr-by-design`:
+> `TR-itemdb-007/008/009/011/012/015/016/017/024/029/030`;`TR-itemdb-031` 单条 carve-out **不翻**,
+> 承 2026-09-21「随 ADR-009 TR 复核轮」原口径)。**现值 = registry 实测 334 ✅ / 76 ⚠️ / 77 ❌ / ◆13**
+> (参见下方本批结注与 §变更历史末行)。**同日前序 = Required ADR #4/#5 兑现轮**
+> (adr-026 技能成长定点化 + adr-027 病人 AI 写路径)—— **计数翻转 10 条:318/500 → 328/500**
+> (`TR-skill-001…006 / 008` gap→covered · `TR-skill-007` partial→covered,`adr: ADR-026`;
+> `TR-patient-021/022` gap→covered,`adr: ADR-027`;该轮后值 328 ✅ / 76 ⚠️ / 94 ❌ / ◆2)。
 > **前序 2026-09-23 回写轮**(= ADR-023 V-8 承接 + R-4 + D-1 + F7 降级字样订正)
 > —— **ID 追加 1 条(499 → 500)**:新增 `TR-worldeco-010`(运行期 chunk 激活权 = 系统 6,承 **ADR-023 ⑥**);
 > 该轮后值 = 318 ✅ / 77 ⚠️ / 103 ❌ / ◆2。
@@ -138,16 +143,24 @@
 | ADR | 覆盖它的架构决策 |
 | 状态 | ✅ 已覆盖 · ⚠️ 部分覆盖 / 有歧义 · ❌ 无覆盖 · ◆ 按设计不需 ADR |
 
-> **◆ `no-adr-by-design` 的判据**(2026-09-21 用户裁定,承 gate-check 规格修订):该需求是
-> **范围 / 政策声明**(归属件 = 范围文件本身,已登记),**结构上不可能有架构裁决**。
+> **◆ `no-adr-by-design` 的判据**(2026-09-21 用户裁定,承 gate-check 规格修订;**2026-09-23 扩第二类,
+> 用户裁定 QQ-08 清账批路线 [A]**):两类需求适用 ——
+> ① **范围 / 政策声明**(归属件 = 范围文件本身,已登记),**结构上不可能有架构裁决**
+> (首立实例:`TR-concept-003` / `-004`);
+> ② **经用户逐簇裁定降级的 GDD 内部 schema / 跨系统边界形状**(归属件 = 该 GDD 自身 +
+> 其声明的烘焙 / 实现轮落点,均已登记)—— 属**数据形状**而非架构裁决;首簇 = **21a 的 11 条**
+> (`TR-itemdb-007/008/009/011/012/015/016/017/024/029/030`,QQ-08 2026-09-23)。
+> ⚠️ **逐簇裁定,非自动豁免** —— 其它系统的 schema 簇仍须各自的 QQ 式用户裁定方可入 ◆。
 > ⚠️ 与 ❌ 的区别不是「写得晚」:**◆ 永远不会因补 ADR 而转 ✅**;若其归属件缺失或被推翻,
-> 它转 ❌ 并须重裁。当前全集 = **2 条**(`TR-concept-003` / `-004`,均 `domain: Foundation`)
-> —— 全仓扫描无第三条候选。
+> 它转 ❌ 并须重裁。当前全集 = **13 条**(① 类 2 条 + ② 类 11 条,均见 §汇总「另 ◆」注)。
+> (2026-09-21 首立时「全仓扫描无第三条候选」的断言 —— 就 ① 类而言仍真;② 类经 QQ-08 裁定后新开。)
 
 **状态口径**:✅ 需有 ADR 明文或可辩护的隐含覆盖;⚠️ 覆盖不完整、或有第二条 ADR 与之冲突;
-❌ 无任何 ADR 触及。◆ 仅按上方判据使用(范围 / 政策声明),不得用作「暂时挂着」的第三态。
-GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 ADR 裁决,
-但**没有别处可登记**,故全部入表。
+❌ 无任何 ADR 触及。◆ 仅按上方两类判据使用(**范围 / 政策声明**;**2026-09-23 增:逐簇裁定的
+已登记归属件 schema / 边界形状**),不得用作「暂时挂着」的第三态。
+原「GDD 内部参数与 schema 形状若无 ADR 即为 ❌」一句**由 QQ-08(2026-09-23 用户裁定)就地修订**:
+其中**经裁定且归属件已登记**者转 ◆(当前 = 21a 簇 11 条);**未裁定**或归属件仍缺者仍为 ❌ ——
+「不需要 ADR 裁决」不自动等于「可降级」,降级本身是一次用户裁定。
 
 ---
 
@@ -156,7 +169,7 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 | GDD | 系统 | TR 数 | ✅ | ⚠️ | ❌ |
 |-----|------|-------|---|----|----|
 | `case-system.md` | 37 病例系统 | **36** | **24** | **6** | **6** |
-| `item-database.md` | 21a 物品与配方 | 32 | **13** | 1 | **18** |
+| `item-database.md` | 21a 物品与配方 | 32 | **19** | 1 | **1**(另 **◆11** —— 2026-09-23 QQ-08;`031` carve-out 留 ❌) |
 | `random-events.md` | 52 随机事件导演 | **32** | **15** | 2 | 15 |
 | `disease-simulation.md` | 9 疾病与伤情 | 22 | **17** | **3** | **2** |
 | `diagnosis-system.md` | 8 诊断与体征 | **25** | **9** | 5 | 11 |
@@ -188,7 +201,7 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 | `tutorial-and-onboarding.md` | **48 教学与入门**(D-R3 回填)| **8** | **2** | **3** | **3** |
 | `telemetry-analytics.md` | **51 遥测与分析**(D-R3 回填)| **8** | **7** | **1** | **0** |
 | `medical-consequences.md` | **53 医疗后果(**P1a 主**)**(D-R3 回填)| **8** | **3** | **2** | **3** |
-| **合计** | | **500** | **328** | **76** | **94**(另 **◆2** = `no-adr-by-design`;2026-09-23 Required ADR #4/#5 兑现轮:`TR-skill-001…008` 8 条 + `TR-patient-021/022` 2 条翻 ✅)|
+| **合计** | | **500** | **334** | **76** | **77**(另 **◆13** = `no-adr-by-design`;2026-09-23 两批合计:Required ADR #4/#5 10 条翻 ✅ + QQ-08 清账 A 簇 6 条翻 ✅ / B 簇 11 条转 ◆,`TR-itemdb-031` carve-out 留 ❌)|
 
 > **2026-09-20 借绿回退轮(TD 条件 C4 —— `architecture.md` §5.5 D-5)**:**ID 不增不减**(仍 387)。
 > 8 条「摘要列记 ✅ 而 `tr-registry.yaml` 的 `adr: null`」的条目(`TR-case-035` / `-036` ·
@@ -363,31 +376,31 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 | TR-itemdb-004 | 守恒律在整数域内求值,`weight` 归一(D-21-19) | ADR-006 | ✅ |
 | TR-itemdb-005 | `FixParse` 为外部数据 → `Fix` 的唯一入口,拒浮点字面量 | ADR-006 | ✅ |
 | TR-itemdb-006 | 单一舍入模式 `ROUND_HALF_AWAY_FROM_ZERO` | ADR-006 | ✅ |
-| TR-itemdb-007 | 配方 schema(输入/产出/工时) | — | ❌ |
-| TR-itemdb-008 | 药材 schema(性味/归经/功效键) | — | ❌ |
-| TR-itemdb-009 | 炮制方法 schema | — | ❌ |
+| TR-itemdb-007 | 配方 schema(输入/产出/工时) | — | ◆ QQ-08(归属件 = 21a GDD 两表设计 + ADR-014 data-core schema 落点) |
+| TR-itemdb-008 | 药材 schema(性味/归经/功效键) | — | ◆ QQ-08(同上) |
+| TR-itemdb-009 | 炮制方法 schema | — | ◆ QQ-08(同上) |
 | TR-itemdb-010 | 药物 `potency` / `half_life` 字段定义 | ADR-006 | ⚠️ 与 9 侧字段名未对齐 |
-| TR-itemdb-011 | Schema E:库存槽形状 | — | ❌ |
-| TR-itemdb-012 | **`ActualConsumed` 仅派生自 `Craft` 事件** | — | ❌ **NO-ADR** |
+| TR-itemdb-011 | Schema E:库存槽形状 | — | ◆ QQ-08(形状归实现轮;跨系统边界已登记 §API Boundaries) |
+| TR-itemdb-012 | **`ActualConsumed` 仅派生自 `Craft` 事件** | — | ◆ QQ-08(派生规则已登记 registry `Craft` constraint;残字段形状归实现轮) |
 | TR-itemdb-013 | 配方产出在定点域内确定性可重放 | ADR-005 | ✅ |
-| TR-itemdb-014 | `Craft` 事件的载荷形状 | — | ❌ |
-| TR-itemdb-015 | **可感知底线 vs 9 的噪声带对齐** | — | ❌ **NO-ADR** |
-| TR-itemdb-016 | 品质分级与品质轴定义 | — | ❌ |
-| TR-itemdb-017 | 21a 与 17 采集系统的数据边界 | — | ❌ |
-| TR-itemdb-018 | **9 侧字段名对齐 `drug_potency` / `half_life`** | — | ❌ **NO-ADR** |
-| TR-itemdb-019 | **`instance_id` 权威(`IIdAuthority` 缺 `ItemInstanceId Next()`)** | — | ❌ **NO-ADR** |
-| TR-itemdb-020 | **D-21-27:仅主机铸币** | — | ❌ **NO-ADR** |
-| TR-itemdb-021 | **D-21-28:`Craft` 事件的全序键** | — | ❌ **NO-ADR** |
+| TR-itemdb-014 | `Craft` 事件的载荷形状 | ADR-009 + ADR-024 | ✅ Amendment J 三位 + registry `payload_schema` 真源(禁借绿:codec 跑绿归桌面 R-1) |
+| TR-itemdb-015 | **可感知底线 vs 9 的噪声带对齐** | — | ◆ QQ-08(对齐规则住 9 / 11 GDD `D-9-J` / `AC-11-19`;**常数待 9 数值轮**,降级只锁边界形状) |
+| TR-itemdb-016 | 品质分级与品质轴定义 | — | ◆ QQ-08(轴定义住 21a GDD + `assets/data` 落点) |
+| TR-itemdb-017 | 21a 与 17 采集系统的数据边界 | — | ◆ QQ-08(跨系统边界已登记 §API Boundaries;形状归实现轮) |
+| TR-itemdb-018 | **9 侧字段名对齐 `drug_potency` / `half_life`** | ADR-009 | ✅ 字段命名白名单(禁散文解析);口径 2026-09-23 就地订正(原「E-8 未钉死」已过期 —— 舍入方向归 ADR-006,命名归 registry) |
+| TR-itemdb-019 | **`instance_id` 权威(`IIdAuthority` 缺 `ItemInstanceId Next()`)** | ADR-010 | ✅ §五机制 A + QQ-02 回填 ADR-005 双方法(2026-09-23) |
+| TR-itemdb-020 | **D-21-27:仅主机铸币** | ADR-005 + ADR-009 | ✅ 主机唯一 `Step` / `Append` + §五 发放点(2026-09-23) |
+| TR-itemdb-021 | **D-21-28:`Craft` 事件的全序键** | ADR-008 | ✅ 三流全序键 `(Tick, StreamPriority, Patient, Seq)`(2026-09-23) |
 | TR-itemdb-022 | AC-21a-29 跨平台确定性 | ADR-012 | ✅ 双级黄金夹具矩阵(报告 B-9 解决;F7 spike 前置) |
 | TR-itemdb-023 | 物品数据在存档中的编码 | ADR-010 | ✅ 编码器 ADR-006 §五;存档布局 ADR-010 §三 义务 9 |
-| TR-itemdb-024 | 配方解锁与技能门(与 30 的接口) | — | ❌ |
+| TR-itemdb-024 | 配方解锁与技能门(与 30 的接口) | — | ◆ QQ-08(接口形状住 21a / 30 GDD;技能门整数等级比较归 ADR-026) |
 | TR-itemdb-025 | 数据文件格式与位置(`assets/data/*.json`) | ADR-014 | ✅ 作者态 JSON + 构建期烘焙出货;命名遵 `data-files.md` |
 | TR-itemdb-026 | Addressables 分组与预载 | ADR-014 | ✅ 单一 `data-core` 组 + 首次 `Step` 前预载(报告 R-7) |
 | TR-itemdb-027 | 构建期 schema 校验 | ADR-014 | ✅ 两阶段工具链,白名单/守恒/区间/长度全烘焙期硬失败 |
-| TR-itemdb-028 | `axis_offset_by_quality[]` 可为负 ⇒ 负数舍入方向须定义 | — | ❌ 见报告 E-8 |
-| TR-itemdb-029 | **`Σ(weight × InstanceWeight)` 的 int64 溢出上限** | — | ❌ **NO-ADR** |
-| TR-itemdb-030 | 21a 与 20 库存的所有权边界 | — | ❌ |
-| TR-itemdb-031 | 掉落实体的世界状态事件化边界 | — | ❌ 待 R-1 / B-7(位置侧坐标已由 ADR-015 §三 定型,状态待下一轮重裁) |
+| TR-itemdb-028 | `axis_offset_by_quality[]` 可为负 ⇒ 负数舍入方向须定义 | ADR-006 | ✅ `ROUND_HALF_AWAY_FROM_ZERO` 全域适用(E-8「未钉死」注已过期,2026-09-23 就地订正) |
+| TR-itemdb-029 | **`Σ(weight × InstanceWeight)` 的 int64 溢出上限** | — | ◆ QQ-08(上限**值** = 用户数值旋钮归 21a 数值轮;整数域纪律由 ADR-006 守恒律承接) |
+| TR-itemdb-030 | 21a 与 20 库存的所有权边界 | — | ◆ QQ-08(跨系统边界已登记 §API Boundaries) |
+| TR-itemdb-031 | 掉落实体的世界状态事件化边界 | ADR-009 + ADR-015 | ❌ 待 R-1 / B-7(位置侧坐标已由 ADR-015 §三 定型,状态待下一轮重裁) —— **QQ-08 单条 carve-out 不翻**(2026-09-21「状态重裁随 ADR-009 TR 全量复核轮,本文不预判」未撤;禁借绿) |
 | TR-itemdb-032 | 配置版本号与存档头联动 | ADR-010 + ADR-014 | ✅ 存档头联动(ADR-010 §七);装载与 `ConfigVersion` 派生归 ADR-014 §五 |
 
 ## 3. 随机事件导演 `design/gdd/random-events.md`(#52)| 32 条
@@ -1162,14 +1175,14 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 
 | TR-ID | 需求 | 建议动作 |
 |-------|------|---------|
-| TR-itemdb-019/020/021/029 | `instance_id` 权威 · 仅主机铸币 · `Craft` 全序键 · 溢出上限 | 立 ADR(报告 R-2 / B-8) |
+| ~~TR-itemdb-019/020/021/029~~ | ~~`instance_id` 权威 · 仅主机铸币 · `Craft` 全序键 · 溢出上限~~ | ✅ **QQ-08 + QQ-02 清账结案**(2026-09-23):`019`→ADR-010 · `020`→ADR-005+009 · `021`→ADR-008 · `029`→◆(数值旋钮归数值轮) |
 | ~~TR-itemdb-025/026/027~~ | ~~数据文件格式 · Addressables 分组预载 · 构建期 schema 校验~~ | ✅ **已落盘**(2026-09-15,ADR-014 数据管线 —— R-7 + R-8 合并;构建期烘焙 + 两阶段工具链) |
 | ~~TR-randomevents-018/021~~ | ~~与 6 生态区的生成点绑定 · `spawn_anchor` 确定性坐标解析~~ | ✅ **已落盘**(2026-09-15,ADR-015 世界几何 —— R-9 + R-10 合并;生态区落逻辑层整数数据 ⇒ 绑定退化为整数查表;`021` 逐枚举规则仍待 52/24/17) |
 | ~~TR-randomevents-028/029~~ | ~~与 13 病人 AI 的交互 · 27 不被事件导演锁定~~ | ✅ **已落盘**(2026-09-15,ADR-016 AI 架构 —— R-14;52→37→13 单向链;「不锁定玩家」= 27 侧实现约束) |
 | ~~TR-concept-002~~ | ~~联机预留~~ | ✅ **已落盘**(2026-09-15,ADR-001 pipe 抽象 + §四 swap 评审) |
 | ~~TR-disease-013/014~~ | asmdef 零引用 + `System.Math` 盲区 | ~~补 ADR-005 判据行~~ ✅ **已落盘**(2026-09-15 复查轮,ADR-005 门 A + 门 B) |
 | ~~TR-disease-015/016 · TR-itemdb-022 · TR-diag-018~~ | 跨平台确定性 | ✅ **已落盘**(2026-09-15,ADR-012 双级黄金夹具矩阵;`TR-diag-018` 判据待 E-4 spike;报告 R-5 / B-9) |
-| TR-skill-002 | 定点纪律 | 立 ADR 或并入 ADR-005 修正案(报告 B-6) |
+| ~~TR-skill-002~~ | ~~定点纪律~~ | ✅ **已落盘**(2026-09-23,ADR-026 Required #4 —— B-6 就地结案) |
 | TR-input-016 ⟳ | `L_render` / `L_poll` **实测**;**`JUDGE_BUDGET` 已删** ⇒ 交付给 10 = 「**均值达标 + 抖动有上界**」两条义务 | **非 ADR 缺口,是实测前置** —— 原式与 `L_input→pixel ≤ 50 ms` **代数等价**(评审发现),已删;前置 = **最低目标硬件定稿** + **两端**(K&M / Gamepad)可跑 player ⇒ 绑定 `/test-setup` |
 | TR-emergency-015 ⟳ | 端到端输入延迟 < 50 ms(`AC-10-08`,**均值达标 + 抖动有上界**两条义务) | **非 ADR 缺口,是实测前置** —— **与 `TR-input-016` 同一前置**(最低目标硬件 + 两端可跑 player)⇒ 绑定 `/test-setup`。**不可自动化测**,须主创签核。10 是 P0 唯一需要「手感」的系统 |
 
@@ -1355,3 +1368,5 @@ GDD 内部参数与 schema 形状若无 ADR 即为 ❌ —— 它们不需要 AD
 | 2026-09-21 | **第二十八批:42 修订轮(模态闭集增员 + 方笺模态裁定 · 用户裁定两项)** | **计数翻转 1 条:316/78 → 317/77**(ID 恒 499,`yaml.safe_load` 复算自洽)。① **`ModalId` 闭集 6 员 → 7 员** —— 新增 ⑦ `PaperCloseup48`(教学纸近景),`ADR-013 §十-B` **Amendment B** 为权威件;兑现 §十 预置残留(`IModalState` 接口写入 42 GDD 接口节 + 42→4 下游行)。`TR-skeuoui-009` **状态不变(已 ✅),requirement 文本「6 员」→「7 员」** + `revised:`。② **方笺 = 39 脉案「同一本书」**(复用 `Casebook` 档,不成新模态、不发相机意图)⇒ `OQ-11-7` / `OQ-11-9` 同批结案,`TR-prescription-014` **partial→covered**(条件式取「维持不请求」分支);2 的 `R-2-5` 表**零新增行**,11 行就地划为**排除行**并挂可证伪守卫(「任何给 11 补 `Casebook` 行的改动,须先另裁 `ADR-013 §十-B`」)。③ **戥子档位读数元件 = 黄铜侧**(用户裁定;42 元件库錾刻刻度 / 机械位移合法,**禁降级为数字角标 / `X/N`**,两栈皆禁组无例外)⇒ `AC-11-13` 前置解除(**可判 ≠ 已判,仍 NOT-RUN**)。⚠️ **两问同批结清且方向相反**:闭集增至 7 **与方笺无关** —— 各处落「勿混读」警示。**登记 `casebook.md:174` 假引据事件**(曾断言「11 侧 OQ-11-7 已裁」而该问 3 日零权威)⇒ `docs/consistency-failures.md`。**禁借绿三处**:`AC-42-F1` 七屏走查(⑦ 有 spec、①–⑥ 无)· `AC-11-13` · 无障碍近景实测。**本批零数值改动**(机制数值冻结)。落点 16 件:adr-013 · skeuomorphic-ui · prescription-and-medication · camera-and-viewpoint · casebook · paper-closeup-48 · interaction-patterns · accessibility-requirements · tutorial-and-onboarding · tr-registry(2 条)· 本件 · requirements-traceability · systems-index · technical-preferences · consistency-failures · session-state |
 | 2026-09-23 | **回写轮(U1 批出批 · V-8 承接 + R-4 + D-1 执行面 + F7 降级字样订正 + 收尾批)** | **ID 追加 1 条(499 → 500;既有条目逐字未动,append-only)**:新增 `TR-worldeco-010`(运行期 chunk 激活权 = 6,`adr: ADR-023`,`covered`)。**计数翻转 1 条:317/499 → 318/500**(`yaml.safe_load` 复算自洽:318 ✅ / 77 ⚠️ / 103 ❌ / ◆2)。**六项主落地**:① **V-8** —— `architecture.md` §3.4 `[0]`/`[7]` 🔴→✅ 改判(`[0]` = ADR-023 ①③ / `[7]` = ④⑦)+ 诚实标注块重写「本节自此不再挂 §Required New ADRs #1」+ §System Layer Map 两处 HIGH RISK / RenderGraph 承接注 / row 6 engine-risk 列 / CameraMode 注均挂 ADR-023 承接(ADR-023 §Validation V-8 转 ✅)。② **R-4** —— `adr-008 §三` 节首加降级注(承 ADR-024 ② 同款:本节不再是登记处,真源 = registry,不一致触发 V-1 失败)。③ **D-1 执行面四项** —— 补 9 条 registry / 修 4 处陈旧计数 / `ConsequenceResolved` 幽灵引据订正 / ADR-009 §二§三 降级注(实测**均已在早前批次落地**,本轮改「待回写轮执行」→「已落地」并结案)。④ **D-1 折叠口径** —— ADR-005 §一 补「多输入折叠 = 乙案链式 avalanche」唯一口径出处注。⑤ **F7 降级字样** —— `control-manifest.md:118` / `adr-014:345` / `disease-simulation.md:733` / 本件 §⑥ 四处「F7 BLOCKING spike」订正为「F7 表示选择(2026-09-21 承 RC-4 降级 · 2026-09-23 已绿)」。⑥ **ADR-024 §Validation** V-3/V-4/V-6 转 ✅(执行面已落;V-4 保留残余字面引述登记)。**收尾批(同轮补落,扫净残留占位符)**:⑦ **ADR-024 头注「归回写轮逐件落地」**转「✅ 已落地」。⑧ **ADR-025 头注 + §① 称谓加注 + §GDD 表 `TR-randomevents-010` 行**三处占位符转「✅ 已落」(该项 `adr:` 实测已于 2026-09-20 挂 `ADR-024 + ADR-025`,`gap → covered`)。⑨ **ADR-022 §一 + ADR-024 §⑤ 工具路径**加 U0 订正注(`tools/level/`→`unity/Assets/Editor.Tools.Level/`;`tools/kindgen/`→`unity/Assets/Editor.Tools.Kindgen/`;kindgen 实现 Python 偏离登记)。⑩ **`TR-medcons-001` 修正** —— 引用坐标已刷(`medical-consequences.md:206` 原「承 ADR-021 先例追加」= 幽灵引据,已挂归回写注;有效身份 = 直接 registry 登记,`OQ-53-7` 裁定 [A])+ **需求文本「病史流」错标订正「世界流」**(本事件实落世界流,承 `OQ-53-7` + `entities.yaml` `stream: world`);`status` 仍 `partial` 不翻(禁借绿)。⑪ **OQ-CB-1 / OQ-CB-5 陈旧面加注** —— 8 GDD `:1834`(键鼠=手写形态位收窄)已注;42 GDD F3 算例行(`K = 7` → `K = 6` 陈旧)+ 规则七「8 诊断」行 + `consistency-failures.md:380`/`:448` + `casebook-39.md:337` 同源陈旧面加注(⚠️ **F3 语义订正仍归 8 / 42 各自修订轮**,本注只登记不代改)。**本批零数值改动**(机制数值冻结)。落点 18 件:adr-005 · adr-008 · adr-014 · adr-022 · adr-023 · adr-024 · adr-025 · architecture.md · control-manifest · tr-registry(+1 条 + medcons-001 修正)· 本件 · requirements-traceability · disease-simulation · medical-consequences(GDD)· diagnosis-system(GDD,早前批)· skeuomorphic-ui(GDD)· casebook-39(UX)· consistency-failures · u0-assembly-checklist · u1-spike-checklist |
 | 2026-09-23 | **Required ADR #4/#5 兑现轮(adr-026 技能成长定点化 + adr-027 病人 AI 写路径)** | **计数翻转 10 条:318/500 → 328/500**(`yaml.safe_load` 复算自洽:328 ✅ / 76 ⚠️ / 94 ❌ / ◆2;ID 恒 500,零新增)。**两份 Required ADR 落盘(均 Accepted)**:① **ADR-026 = `architecture.md` §Required #4「30 技能成长的定点化与持久化契约」** —— `FixPow` 唯一整数幂实现(指数 ∈ {整数, 整数+1/2};整数幂走重复 `Mul`,半整数走 `FixPow(base,k) × FixSqrt(base)`,`FixSqrt` = 整数 Newton 迭代,**禁 `Math.Sqrt` / libm / float**,坐实 G-1);构建期查表仅作记忆化分支且须逐值等于 `FixPow` 输出(构建断言);`CombatPower = (CombatSkillLevel × WeaponMultiplier) × (1 + 医术修正)`,`医术修正 = FixDiv(MED_COMBAT_MOD × 关联医术等级, SKILL_CAP)`(`ROUND_HALF_AWAY_FROM_ZERO`)以 `Fix` 交 25;调参表 `Fix` 字段 JSON 字符串 → `FixParse`;档位/解锁判定走整数等级比较(G-3);`SkillGrown` 落病史流、`Level` 以 int 承载、不独立快照、从流重构。**结清 `OQ-7a-9`** —— 折叠谓词 `Folded(p)` **豁免 `SkillGrown` 行(案 1)**;驳回案 2(第二真源)/案 3(独立快照,与 §⑥ 冲突)。② **ADR-027 = §Required #5「13 病人 AI 的写路径归属」** —— 用户裁定 **两条写路径皆归系统 10 急救动作**(`TR-patient-021` 查体诱发痉挛 / `TR-patient-022` 搬运昏迷病人),与 CPR / 止血同构(玩家物理干预);形态 = ADR-009 §七 三段式(意图事件 + 主机当下判距 + 效果进流),**不新机制**;**13 只产表现**、**8 只声明存在**(其 `diagnosis-system.md:1253` 原「10 / 13」措辞收窄为「10」);新 `Kind` 义务归 10 的 GDD 轮(经 `entities.yaml` + kindgen,承 ADR-024)。**TR 翻转**:`TR-skill-001…006 / 008` gap→covered、`TR-skill-007` partial→covered(`adr: ADR-026`;`-001` 需求文本就地订正删去旧 `P = 1.4` 字面,数值仍归用户);`TR-patient-021/022` gap→covered(`adr: ADR-027`)。**回写件**:`adr-010 §三` **义务行 14**(技能成长持久化,源 ADR-026 §⑥/§⑦)· `architecture.md` §Required #4/#5 加 ✅ 兑现块 + row 30(技能系统)`⚠️ 无 ADR 承接`→`✅ ADR-026` + 头部 `ADR-025(共 22 份)`→`ADR-027(共 24 份)` · `patient-ai.md`(`OQ-13-1`/`OQ-13-3` 结案注 + §待澄清口径)· `persistence-service.md`(`OQ-7a-9` 结案注:案 1;29 `AC-29-16` / 51 成长读数解锁)。**本批零数值改动**(机制数值冻结)。**汇总 318/77/103 → 328/76/94**。落点 12 件:adr-026(new)· adr-027(new)· adr-010 · architecture.md · tr-registry · traceability-index(本件)· requirements-traceability(RTM 指针件)· technical-preferences(ADR 日志 + 本日志状态)· skill-system(GDD:去 `Math.Sqrt` 许可,`Fix.ISqrt` 订正)· diagnosis-system(GDD:同款 `Math.Sqrt` 订正 + `:1253` 「10 / 13」收为「10」)· patient-ai(GDD)· persistence-service(GDD) |
+
+| 2026-09-23 | **QQ-08 + QQ-02 清账批(用户裁定路线 [A] —— 21a 簇 17 条翻转,零新 ADR)** | **计数翻转 17 条:328/500 → 334/500**(`yaml.safe_load` 复算自洽:334 ✅ / 76 ⚠️ / 77 ❌ / ◆13;ID 恒 500,零新增)。**三簇拆账(A=6 / B=11 / C=1)**:① **A 簇 6 条 gap→covered(带 ADR 指针 + 禁借绿注)**:`TR-itemdb-014`(ADR-009 Amendment J 三位 + registry `payload_schema` 真源,禁借绿:codec 跑绿归桌面 R-1)· `018`(ADR-009 字段命名白名单;E-8「未钉死」注就地过期)· `019`(**ADR-010 §五机制 A + QQ-02 回填 ADR-005 双方法**;`blocking`/`no_adr` 随缺口消解同批撤除)· `020`(ADR-005 主机唯一 `Step`/`Append` + ADR-009 §五 发放点)· `021`(ADR-008 三流全序键)· `028`(ADR-006 `ROUND_HALF_AWAY_FROM_ZERO` 全域适用)。② **B 簇 11 条 gap→◆ `no-adr-by-design`(用户裁定降级,非 `covered`+备注 —— 后者是 D-5 借绿反模式复活)**:`TR-itemdb-007/008/009/011/012/015/016/017/024/029/030`;归属件 = 21a GDD 自身(两表设计 Overview :54-72)+ ADR-014 烘焙管线声明的 data-core schema 落点 + §API Boundaries 跨系统边界行 + 已登记的 `Craft` constraint / 数值旋钮声明(逐条细注见 `tr-registry.yaml` 该批 `note`);**per-entry 保留语义**:015 对齐规则常数待 9 数值轮、017/030 为已登记边界形状、012 派生规则已登记、029 上限值 = 用户数值旋钮。**判据扩类** —— `traceability-index.md` 图例 ◆ 行就地扩第二类(**经用户逐簇裁定降级的 GDD 内部 schema / 跨系统边界形状**;**逐簇,非自动豁免**,其它系统 schema 簇仍须各自 QQ 式裁定)+ `gate-check` SKILL `:131` 同批同步。③ **C 簇 1 条 carve-out:`TR-itemdb-031` 字节不动**(2026-09-21「状态重裁随 ADR-009 TR 全量复核轮,本文不预判」未撤;**禁借绿**;仅 §2 表 ADR 格 `—`→`ADR-009 + ADR-015` 指针同步)。**QQ-02 同批结案**:`adr-005` `IIdAuthority` 回填 `ItemInstanceId Next()` 双方法(逐字承 ADR-010 §五 :313-314;原「尚无 ADR」TODO 过期消解)+ `architecture.md:723` 图解注 + `entities.yaml` D-21-26 注释关闭(**D-21-27「待回收」不在本批范围,不动**)。**陈旧面同批订正(承前轮遗漏,卫生非新裁)**:§汇总 itemdb 行 + 合计行 · 基线表头 `499/316/78/103`→`500/334/76/77+◆13` + 补登**第七次动**(Required ADR #4/#5,此前从未入表)与**第八次动**(QQ-08)历史行 · §5.4 标题 `89 条`→`77 条` + 21a / 技能行结案注 · 可推迟表 21a 行结案注(**推翻原「改 covered」建议 = D-5 反模式**,实际仪器 = ◆)· `:119` 簇表(21a 计数 19→21a 行刷新 + 技能行)· `:369` 技能契约行 · `:390` `IIdAuthority` 行 · §5.3 itemdb 行(`14|0|18`→`20|0|1 另◆11`,承既有 cov+partial 合并口径)+ 技能行(`1|0|7`→`8|0|0 ADR-026`)· 优先修复清单 `019/020/021/029` 行与 `skill-002` 行划结 · `requirements-traceability.md` Core 缺口计数 `93`→`76` + History 行 · 本件头注 + 图例 + §2 表 17 行 + changelog。**Foundation gate 零影响**(17 条全 `domain: Core`;Foundation gap 残余恰 = `[TR-itemdb-031]`)。**blocking 残余恰 = 2**(`TR-disease-022` / `TR-diag-013`,均仍 gap)。**本批零数值改动、零新 ADR**(机制数值冻结;schema 簇不走 `/architecture-decision`)。**audio-011/012 不在本批**(真 ADR 候选,另开小裁)。落点 9 件:tr-registry(17 条)· traceability-index(本件)· adr-005 · architecture.md · entities.yaml · requirements-traceability · gate-check(SKILL)· active.md(session-state)· 本批 commit |

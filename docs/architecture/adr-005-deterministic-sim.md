@@ -245,8 +245,12 @@ public readonly struct Fix            // Q16.16, 内部 long
 // 五个 + 第六个 IEventAuthority(ADR-007 §一)
 public interface ITickProvider  { long CurrentTick { get; } }        // 全案 tick 唯一来源
 public interface IEventSink     { void Append(in SimEvent e); }       // P0 = 本地 list;ADR-008 扩展为按 Kind 路由
-public interface IIdAuthority   { PatientId Next(); }                 // 防运行时 instance id
-                                                                      // ⚠️ 待办:21a 需要 ItemInstanceId Next()(TR-itemdb-019,尚无 ADR)
+public interface IIdAuthority   { PatientId Next();                  // 防运行时 instance id
+                                   ItemInstanceId Next(); }          // 物品 / 掉落实例 id(机制 A,同下)
+                                                                      // ✅ 2026-09-23 QQ-02 结案回填(逐字承 ADR-010 §五 :313-314 —— 原「待办…尚无 ADR」已过期):
+                                                                      //    ItemInstanceId.Next() = 机制 A(计数器永不复位 0,迁移后 next = max+1 由三流并集重构,
+                                                                      //    Drop* 事件须保留 instance_id),与 PatientId 同模式(ADR-006 Amendment B)。
+                                                                      //    TR-itemdb-019 同批 gap → covered(adr: ADR-010)。本 TODO 就此消解。
 public interface IVitalsQuery   { VitalsDto GetVitals(PatientId p); } // 唯一浮点出口
 public interface IEventAuthority { bool IsAuthority { get; }          // 第六抽象点,ADR-007 §一
                                    EventRollResult Roll(in RollRequest r); }
