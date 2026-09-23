@@ -168,6 +168,14 @@
   **必须在写 9 / 7a / 25 的代码之前 Accepted** —— 它定义数据形状,事后改 = 重写每个病种。
   Engine Knowledge Risk **HIGH**(IL2CPP 逐位性需实测),但本裁决**不依赖该实测**
   (刻意不用任何 post-cutoff API)。
+  **2026-09-23 Amendment G(窄修订 · Blocking 清账批 · Status 维持 Accepted)**:钉死
+  **128 位中间结果唯一类型 = 手工 hi/lo 两 `ulong` 带进位**(32 位数字四路拆分,交叉项全程无符号
+  + 掩码提取,禁有符号右移,承 ADR-012 F7);**禁 `System.Int128`**(Unity 6.3 netstandard2.1 /
+  IL2CPP 无此 .NET 7 类型,E-2)、**禁 `BigInteger`**(AC-4)、**无条件钉 hi/lo 不留条件分支**。
+  依据 `disease-simulation.md` §F0 + AC-4 —— GDD 侧早已定死,本 ADR 原稿只写「Q32.32 宽度」
+  从未钉类型。**结清 `TR-disease-022` gap→covered + `TR-disease-002` partial→covered**;
+  同批 `TR-diag-013` gap→◆ `no-adr-by-design`(归属件 = 9 规则十 + F5,ADR 段不承载)——
+  **blocking 残余 2 → 0**。
 - [ADR-006 ✅ Accepted 2026-09-14]**定点域边界数据契约** ——
   `docs/architecture/adr-006-fixed-point-boundary-contract.md`。
   ADR-005 只定义了定点域**内部**的纪律,**未定义域边界**;本 ADR 补齐:

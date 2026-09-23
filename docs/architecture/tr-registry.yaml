@@ -940,8 +940,9 @@
     requirement: 中间乘法落 Q32.32(或更宽)
     domain: Core
     adr: ADR-005
-    status: partial
-    note: "中间类型未钉死;原稿误引 System.Int128(报告 E-2)"
+    status: covered
+    revised: "2026-09-23"
+    note: "2026-09-23 ADR-005 Amendment G 钉死 128 位中间类型(hi/lo 两 ulong,禁 Int128/BigInteger/条件分支)⇒ 原 note「中间类型未钉死」消解,partial→covered;原稿误引 System.Int128(报告 E-2)由同批修"
 
   - id: TR-disease-003
     system: disease-simulation
@@ -1122,12 +1123,12 @@
   - id: TR-disease-022
     system: disease-simulation
     gdd: design/gdd/disease-simulation.md
-    requirement: "128 位中间类型(System.Int128)"
+    requirement: "128 位中间结果 = 手工 hi/lo 两 ulong 带进位(禁 System.Int128 / BigInteger / 条件分支)"
     domain: Core
-    adr: null
-    status: gap
-    blocking: true
-    note: "报告 E-2:netstandard2.1 / IL2CPP 无此类型,玩家构建编译不过"
+    adr: ADR-005
+    status: covered
+    revised: "2026-09-23"
+    note: "2026-09-23 用户裁定路线 [A]:ADR-005 Amendment G 窄修订钉死类型(承 GDD §F0 2026-09-16 三轮二轮 E1 + AC-4 + ADR-012 F7)⇒ gap→covered,`adr: ADR-005`,**去 blocking: true**(原阻塞 = E-2 类型缺失,现由 hi/lo 消解);原 requirement「System.Int128」措辞作废(netstandard2.1/IL2CPP 无此 .NET 7 类型)"
 
   # ═══════════════════════════════════════════════════════════════════════════
   # 诊断与体征 (Diagnosis System, #8) — design/gdd/diagnosis-system.md
@@ -1237,8 +1238,9 @@
     requirement: "D-8-6:共病体征合并(升级为 P0 阻塞)"
     domain: Core
     adr: null
-    status: gap
-    blocking: true
+    status: no-adr-by-design
+    revised: "2026-09-23"
+    note: "2026-09-23 用户裁定路线 [A] 分治:gap→◆ no-adr-by-design,**去 blocking: true**(原阻塞 = 9 未落 D-8-6,现 9 已于 disease-simulation.md 规则十 + F5 落盘,两侧 ✅ 已办,归属件已 Approved);ADR 段结构上不承载该决定(合并逻辑 = GDD 数据内容,非架构裁决,承 Epic-3 判据③ ◆ 第三类;8 只读合成值,不替 9 做取舍)"
 
   - id: TR-diag-014
     system: diagnosis-system

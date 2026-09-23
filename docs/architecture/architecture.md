@@ -79,7 +79,7 @@
 > `docs/CLAUDE.md` 禁重编号,且 `/architecture-review` 是本注册表的唯一所有者。
 
 ```
-500 条 TR  |  338 covered  |  75 partial  |  71 gap + 16 no-adr-by-design  (✅ 2026-09-23 ADR-001 窄修订批后 registry 实测;同日前序 Epic-3 对症复核批后值 337/75/72/◆16;同日前序 ADR-009 TR 复核轮后值 337/75/75/◆13;同日前序 ADR-028 小裁批后值 335/76/76/◆13;同日 QQ-08 清账批后值 334/76/77/◆13;同日 #4/#5 兑现轮后值 328/76/94/◆2;回写轮后 318/77/103/◆2;D-R3 批次后 314/79/104;批次前 387/245/51/89/◆2)
+500 条 TR  |  340 covered  |  74 partial  |  69 gap + 17 no-adr-by-design  (✅ 2026-09-23 Blocking 清账批后 registry 实测;同日前序 ADR-001 窄修订批后值 338/75/71/◆16;同日前序 Epic-3 对症复核批后值 337/75/72/◆16;同日前序 ADR-009 TR 复核轮后值 337/75/75/◆13;同日前序 ADR-028 小裁批后值 335/76/76/◆13;同日 QQ-08 清账批后值 334/76/77/◆13;同日 #4/#5 兑现轮后值 328/76/94/◆2;回写轮后 318/77/103/◆2;D-R3 批次后 314/79/104;批次前 387/245/51/89/◆2)
 按运行期层(本蓝图 §System Layer Map 的 Axis B 归并)
 ```
 
@@ -161,6 +161,27 @@
 > `OQ-10-9` 结案 · `input-system.md:292` 残注 · `adr-011` / `adr-009` 未结注 · `audio-system.md:419` ·
 > `technical-preferences.md` ADR-001 日志 Amendment 补注。**blocking 残余不变 = 2**。
 > **零新 ADR(同地修订)、零数值改动**(机制数值冻结)。
+>
+> **2026-09-23 第十三次动(Blocking 清账批 · 用户裁定路线 [A] 分治,零新 ADR 号)**:
+> 分治清零全案仅剩的 2 条 `blocking: true`(`TR-disease-022` / `TR-diag-013`,均「GDD 已裁死、
+> 无 ADR 承接」同型)。**① + ② `TR-disease-022` gap→covered + `TR-disease-002` partial→covered**:
+> `docs/architecture/adr-005-deterministic-sim.md` 就地增 **Amendment G**(Status 维持 Accepted,
+> 零新 ADR 号)—— 128 位中间结果唯一类型 = **手工 hi/lo 两 `ulong` 带进位**(32 位数字四路拆分,
+> 交叉项全程无符号 + 掩码提取,禁有符号右移,承 ADR-012 F7),**禁 `System.Int128`**(Unity 6.3
+> netstandard2.1 / IL2CPP 无此 .NET 7 类型,E-2)、**禁 `BigInteger`**(AC-4)、**无条件钉 hi/lo
+> 不留条件分支**;GDD §F0 + AC-4 早已定死,ADR-005 原稿只写「Q32.32 宽度」从未钉类型 ⇒ 本法抬进
+> 承重层,002 的「未钉死」note 同批消解。**③ `TR-diag-013` gap→◆ `no-adr-by-design`** ——
+> 归属件 = 9 `disease-simulation.md` **规则十 + F5**(取大 + 显式加成,2026-09-14 用户裁定④提级、
+> 两侧 ✅ 已办且已 Approved),合并逻辑是 **GDD 数据内容非架构裁决** ⇒ 承 ◆ 第三类 Epic-3 判据③;
+> `adr` 维持 `null`。⇒ **covered 338 → 340 / partial 75 → 74 / gap 71 → 69 / ◆16 → 17**
+> (**ID 恒 500**)。三条全 `domain: Core` ⇒ **Foundation 门零影响**(残仍 = 0)。
+> **blocking 残余 2 → 0**(`blocking: true` 字段实测清零)。**卫生同批**:基线行刷 340/74/69/◆17、
+> 本件 §5.4 标题 71→69 + 诊断簇行 11→10(移 `013`)+ 开方外残余行移除 `022`(条目数仍 5)、
+> §5.3 `diag` 行 gap 11→10 + `disease` 行 20→21 / gap 2→1、:1326/:1329 两残注结半、
+> `requirements-traceability.md` / `traceability-index.md` 同批刷计数、
+> `technical-preferences.md` ADR-005 日志 Amendment G 补注、
+> `diagnosis-system.md` / `disease-simulation.md` D-8-6 两侧结案注。
+> **零新 ADR 号、零数值改动**(机制数值冻结)。
 > ⚠️ 下表分层数字**不随本批重算**(Axis B 归并口径的逐条重归属仍归 `/architecture-review`)。
 > 下表的分层数字**尚未按 C4 重算** —— 8 条按注册表 `domain` 落 Core ×5 / Feature ×2 / Presentation ×1,
 > 而本表用的是 **Axis B 归并口径**(≠ `domain` 字段),逐条重归属归 `/architecture-review`。
@@ -1047,8 +1068,8 @@ Required New ADRs 的落点上**(ADR-009 / 014 / 010 三份都被新 ADR 引用)
 | `itemdb` | 21 物品与配方数据库 | F | 32 | 21 | 0 | **0**(另 **◆11** —— 2026-09-23 QQ-08;cov 含 partial 1 条合并计;同日 ADR-009 复核轮 `031` gap→covered,残 ❌ 清零)| ADR-006 · ADR-010 · ADR-009 · ADR-008 · ADR-014(并列权威,按簇分工)|
 | `skill` | 30 技能与熟练度 | F | 8 | 8 | 0 | 0 | **ADR-026**(2026-09-23 Required #4)|
 | `input` | 3 输入与设备 | F | 21 | 17 | 0 | **1**(另 **◆3** —— 2026-09-23 Epic-3 对症复核批 `017/019/021`;cov 含 partial 3 条合并计)| ADR-011(16 条;原 18 − `019`/`021` 撤指针转 ◆;`017`/`018` 本无)|
-| `diag` | 8 诊断与体征揭示 | C | 25 | 14 | 0 | **11** | ADR-018(5)· ADR-013(2)+ |
-| `disease` | 9 疾病与伤情模拟 | C | 22 | 20 | 0 | 2 | **ADR-005(27,全案最大)**|
+| `diag` | 8 诊断与体征揭示 | C | 25 | 14 | 0 | **10**(另 **◆1** —— 2026-09-23 Blocking 清账批 `TR-diag-013`) | ADR-018(5)· ADR-013(2)+ |
+| `disease` | 9 疾病与伤情模拟 | C | 22 | 21 | 0 | 1 | **ADR-005(27,全案最大)**|
 | `case` | 37 病例系统 | F | 36 | 30 | 0 | **6** | **ADR-008(27)**|
 | `randomevents` | 52 随机事件导演 | F | 32 | 15 | 0 | **17** | ADR-016 · ADR-007 · ADR-019 |
 | `patient` | 13 病人 AI 与行为 | F | 24 | 19 | 0 | 5 | **ADR-016(20)**|
@@ -1072,13 +1093,13 @@ Required New ADRs 的落点上**(ADR-009 / 014 / 010 三份都被新 ADR 引用)
 **这是 `systems-index.md` 自身的一处不一致**(行 38 写 Core / 行 509 写 Foundation),
 已入 §5.5 的登记层缺陷清单。
 
-### 5.4 71 条 gap 的分组与处置(**2026-09-23 ADR-001 窄修订批后**;本表建立时为 93,2026-09-21 ◆ 轮后为 89,同日 #4/#5 兑现轮与 QQ-08 合流后为 77,同日 ADR-028 小裁批再 −1(`TR-audio-011`)后为 76,同日 ADR-009 复核轮再 −1(`TR-itemdb-031`)后为 75,同日 Epic-3 对症复核批再 −3(`TR-input-017/019/021`→◆)后为 72,同日 ADR-001 窄修订再 −1(`TR-audio-012`,Networking 域)后为 71 —— 逐簇残余见下,簇间合流勿纵向相加旧值)
+### 5.4 69 条 gap 的分组与处置(**2026-09-23 Blocking 清账批后**;本表建立时为 93,2026-09-21 ◆ 轮后为 89,同日 #4/#5 兑现轮与 QQ-08 合流后为 77,同日 ADR-028 小裁批再 −1(`TR-audio-011`)后为 76,同日 ADR-009 复核轮再 −1(`TR-itemdb-031`)后为 75,同日 Epic-3 对症复核批再 −3(`TR-input-017/019/021`→◆)后为 72,同日 ADR-001 窄修订再 −1(`TR-audio-012`,Networking 域)后为 71,同日 Blocking 清账批再 −2(`TR-disease-022`→covered + `TR-diag-013`→◆)后为 69 —— 逐簇残余见下,簇间合流勿纵向相加旧值)
 
 | 簇 | 条数 | 代表 | 处置 |
 |---|---|---|---|
 | **21a schema / 边界** | **0**(原 18) | 已清零 —— `TR-itemdb-031` 于 2026-09-23 ADR-009 复核轮 gap→covered;原 18 ID 见左 | ⭑ **QQ-08 结案(2026-09-23,用户裁定路线 [A])**:6 条 gap→covered(014/018/019/020/021/028,带 ADR 指针 + 禁借绿注)· 11 条 gap→◆ `no-adr-by-design`(**逐簇裁定,非 covered+备注** —— 后者是 D-5 反模式)· `031` 单条 carve-out 留 gap → **同日 ADR-009 复核轮兑现翻 covered**(预挂口径「状态重裁随 ADR-009 TR 复核轮」已执行)⇒ **本簇清零**。**原「建议显式降级…status: gap 改 covered」建议就此作废**(仪器错误,实际 = ◆)|
 | **52 事件导演** | **15** ↓(原 17 —— `010` / `031` 两条 2026-09-20 随 Required ADR #2/#3 兑现转 covered,见下行与 `requirements-traceability.md`) | `TR-randomevents-003/008/010/011/014/015/016/017/020/022/023/025/026/027/030/031` | 半数已由 ADR-007 / 016 / 019 定**边界**,未定的是**算法与表**(Hamilton 配额 / CDF walk / 事件池 / 冷却窗口)。`010` / `031`(**asmdef + 构建期校验体系**)是**跨系统 Foundation 项**,见 §Required ADRs |
-| **8 诊断铁律** | 11 | `TR-diag-002/004/006/008/009/010/011/012/013/014/015` | 铁律①③⑤ 是**接口边界**(「8 与 11 无数据流」),机制已由 ADR-013 §三 `PresentationDtoGuard` + ADR-018 覆盖 ⇒ **缺的是 39 脉案 GDD 侧的落地**,非新 ADR |
+| **8 诊断铁律** | **10** | `TR-diag-002/004/006/008/009/010/011/012/014/015` | 铁律①③⑤ 是**接口边界**(「8 与 11 无数据流」),机制已由 ADR-013 §三 `PresentationDtoGuard` + ADR-018 覆盖 ⇒ **缺的是 39 脉案 GDD 侧的落地**,非新 ADR;**`TR-diag-013` 于 2026-09-23 Blocking 清账批 gap→◆ `no-adr-by-design`**(归属件 = 9 `disease-simulation.md` 规则十 + F5) |
 | **30 技能成长** | **0**(原 7) | `TR-skill-001…007` | ⭑ **已清零(2026-09-23,Required ADR #4 = ADR-026)** —— 八条全 covered(含原认定的「唯一真正的 Foundation 级裸缺口」`TR-skill-002`)。本行留档不删 |
 | **37 病例规则** | 6 | `TR-case-012/013/016/018/020/027` | 规则语义(立案两路径 / 链式串接 / 同源检测算法)—— **规则**归 37 的 GDD,`018`(同源检测)**算法**须定点化 ⇒ 可能与 #2 合并 |
 | **13 病人 AI** | 5 | `TR-patient-005/021/022/023/024` | `021` / `022` 是**写路径归属**(13 只读 ⇒ 归 9 / 10);`023` / `024` 是设计结果 + 无障碍。**写路径归属须裁** |
@@ -1087,7 +1108,7 @@ Required New ADRs 的落点上**(ADR-009 / 014 / 010 三份都被新 ADR 引用)
 | **3 输入 residual** | **1**(另 3 转 ◆) | `TR-input-016` | `016` 实测前置(绑 `/test-setup`);`017` / `019` / `021` 于 2026-09-23 Epic-3 对症复核批 **gap→◆ `no-adr-by-design`**(归属件 = 已 Approved 的 10 GDD;ADR 段结构不承载)⇒ 本簇 gap 4→1 |
 | **11 处方** | 4 | `TR-prescription-001/007/008/019` | `001` 是**支柱一的物理形状**(病名不给 11)—— 已由 8/11 的边界保证;其余是**量纲一致**判据 ⇒ 21a 侧 |
 | **4 交互** | 4 | `TR-interaction-*`(残余)| 模态门已由 ADR-013 §十 `IModalState.Modal` 定;残余是 42 / 48 侧落地 |
-| **开方外残余** | **5**(原 7) | `TR-concept-006` · `TR-disease-020/022` · `TR-timeweather-006/007` · `TR-combat-024` · `TR-worldeco-009` | ⚠️ **2026-09-21 用户已裁**:范围声明类**只 2 条转 ◆**(`TR-concept-003` MVP 8 条 / `-004` P0 排除清单)⇒ 本簇 7 → **5**;`TR-concept-006`(60/90 fps 帧预算)**不转 ◆** —— 它是**性能承诺**,判据上属「预算待定」而非「结构上无裁决可挂」,仍 ❌ 待最低目标硬件定后裁 |
+| **开方外残余** | **5**(原 7;`022` 于 2026-09-23 Blocking 清账批移出转 ✅) | `TR-concept-006` · `TR-disease-020` · `TR-timeweather-006/007` · `TR-combat-024` · `TR-worldeco-009` | ⚠️ **2026-09-21 用户已裁**:范围声明类**只 2 条转 ◆**(`TR-concept-003` MVP 8 条 / `-004` P0 排除清单)⇒ 本簇 7 → **5**;`TR-concept-006`(60/90 fps 帧预算)**不转 ◆** —— 它是**性能承诺**,判据上属「预算待定」而非「结构上无裁决可挂」,仍 ❌ 待最低目标硬件定后裁 |
 
 ### 5.5 本轮发现的登记层缺陷(6 项)
 
@@ -1323,10 +1344,10 @@ ADR-007 §三              5 支(EventRolled / EventArrived / ThreatDeferred /
 
 | 项 | 承载件 |
 |---|---|
-| **8 诊断铁律 ①③⑤**(11 条 gap 的主干)| **39 脉案 GDD + `PresentationDtoGuard` 实现** —— 机制已由 ADR-013 §三 定,缺的是落地 |
+| **8 诊断铁律 ①③⑤**(10 条 gap 的主干;原 11 —— `TR-diag-013` 于 2026-09-23 Blocking 清账批转 ◆)| **39 脉案 GDD + `PresentationDtoGuard` 实现** —— 机制已由 ADR-013 §三 定,缺的是落地 |
 | **`TR-diag-010`(G-4 FMA 缓解)** | 改措辞为「**定表化**」(承 `traceability-index.md` 建议)—— ADR-006 的一行补注 |
 | **`TR-timeweather-006/007`** | ADR-005 的 tick 纪律已覆盖,缺**构建期硬失败**断言 ⇒ 与 #3 的校验体系同批 |
-| **`TR-disease-020/022`** | ADR-005 修正案(扫描单向性 / 中间类型)—— `traceability-index.md` 已如此登记 |
+| **`TR-disease-020`** | ADR-005 修正案(扫描单向性)—— `traceability-index.md` 已如此登记;**`022` 中间类型已由 ADR-005 Amendment G 结清(2026-09-23 Blocking 清账批,本行移除)** |
 | **`TR-combat-024`**(致死伤形态 / Down 覆盖边界)| **数值轮另裁**(`OQ-25-1` / `OQ-25-3`);`TR-combat-023` 已随 2026-09-20 裁定翻转 |
 | **`TR-worldeco-009`** | ✅ **已由 6 的 GDD 结清**(`PoiState` 三态)⇒ registry 待回写 —— ⚠️ **2026-09-21 注**:registry 该条(`tr-registry.yaml:1964-1972`)**现值已是 `status: covered`(`revised: 2026-09-16`)且带 GDD 指针**,「待回写」指的不是 status 字段,而是其 note 内**留白的那个条件**——「⚠️ 本状态由撰写方置为 `covered`,**待首轮 `/design-review` 确认**」。该确认**条件已满足**(6 首轮评审 2026-09-16 → 修订 → 用户裁定 Approved,`reviews/world-and-ecozones-review-log.md:3`);⚠️ **但 note 摘除属 `/architecture-review` Phase 8 职权,本行不代为执行**;且 note 另载**残留 `OQ-6-7`**(单调性是否全局不变量)未结 |
 

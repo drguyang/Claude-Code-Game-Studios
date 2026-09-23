@@ -127,6 +127,19 @@ dr_guyang(用户)· technical-director(裁决)· systems-designer(公式复核)
 > ⚠️ **一经落码即锁**:改折叠 = **全平台重签**(ADR-012 golden-vN)+ **9 / 52 / 7a 哈希语义作废**。
 > 本条是**消费面**(9 病种种子 / 52 掷骰 / 7a 折叠键)的唯一口径出处;下游只读不改。
 
+> **⭑ 2026-09-23 Amendment G(窄修订·Blocking 清账批 · 用户裁定路线 [A] 分治 · Status 维持 Accepted)**:
+> **128 位中间结果的唯一类型 = 手工 hi/lo 拆分**(两 `ulong` 带进位,32 位数字四路拆分;
+> **交叉项全程无符号** —— signed `long` 带进位加法 = signed overflow = UB —— + 掩码提取,
+> **禁有符号右移**,承 ADR-012 F7)。**禁 `System.Int128`**(Unity 6.3 netstandard2.1 / IL2CPP
+> 无此 .NET 7 类型,玩家构建编译不过 —— 报告 E-2)、**禁 `System.Numerics.BigInteger`**
+> (AC-4 逐字拒绝);**无条件钉 hi/lo,不留「存在则启用」的条件分支**(条件分支 = 两条路径 =
+> 两种溢出语义 = 逐位不一致风险)。对 Q16.16 / Q32.32 **统一**,不许两套路径;定点 `Exp`
+> 中间量同域求值,不「每步回降」。**依据** = `disease-simulation.md` §F0 中间精度表
+> (2026-09-16 三轮·二轮 E1 + 集群 5 CD 裁定)+ AC-4(四轮 K6 硬化)+ ADR-012 F7 ——
+> **GDD 侧早已定死,本法只是把它抬进 ADR 承重层**(原稿只写「中间乘法落 Q32.32」从未钉类型,
+> 即 `TR-disease-022` gap 的根因)。**结清**:`TR-disease-022` gap→covered(`adr: ADR-005`)
+> + `TR-disease-002` partial→covered(原 note「中间类型未钉死」消解)。
+
 - **不选 int32 千分位**:乘法溢出风险,且 1/1000 精度对保守带太粗
 - **不选裸 Q16.16 int32**:同样溢出
 
@@ -429,6 +442,7 @@ public readonly struct SimEvent      // 权威定义见 ADR-006 Amendment A
 | `design/gdd/disease-simulation.md` | 9 疾病与伤情模拟 | 规则六:存档存病史事件流,不存逐帧状态;`patient_seed` 不可用 `Random.Range` | `SimEvent` + `IEventSink`;SplitMix64 整数哈希 |
 | `design/gdd/disease-simulation.md` | 9 疾病与伤情模拟 | 规则七:状态是可序列化纯值类型,不挂脚本、不持 `GameObject` 引用 | `Fix` 无行为纯 struct;sim 层独立程序集零 `UnityEngine` 引用 |
 | `design/gdd/disease-simulation.md` | 9 疾病与伤情模拟 | 规则八:34 公卫只订阅聚合事件(出向契约) | 聚合事件由**主机广播**,避免各机器 tick 漂移导致计数不同 |
+| `design/gdd/disease-simulation.md` | 9 疾病与伤情模拟 | §F0 中间精度 / AC-4:128 位中间结果类型钉死(手工 hi/lo 两 `ulong`,禁 `System.Int128` / `BigInteger` / 条件分支) | **Amendment G**(2026-09-23)—— GDD §F0 + AC-4 早已定死拆分形,ADR-005 原稿只写宽度未写类型 ⇒ 本法补承重层,结清 `TR-disease-022` + `TR-disease-002` |
 | `design/gdd/systems-index.md` | — | §9 **C6**:9 的 tick 模型与 7 的持久化从第一天起 **authority-agnostic** | 本 ADR 的全部内容 |
 | `design/gdd/systems-index.md` | — | §8:9 的爆点是「第 3-4 个月做存档时」 | 本 ADR 把该爆点前移到设计期,并用五条 Validation Criteria 守住 |
 
@@ -438,7 +452,8 @@ public readonly struct SimEvent      // 权威定义见 ADR-006 Amendment A
   它补齐了本 ADR 未定义的「域边界」:外部数据 → `Fix` 的唯一解析入口、
   存档禁浮点、单一舍入模式、守恒律的域内表达。
   **并以后续修正案窄修正本 ADR 的缺陷(Amendment A–D)并升格三流口径(Amendment E · ADR-009)**;
-  **Amendment F(边界程序集)由本 ADR 引入(2026-09-16,见本节末)**:
+  **Amendment F(边界程序集,2026-09-16)与 Amendment G(128 位中间类型,2026-09-23)
+  由本 ADR 引入(见本节末)**:
   - **Amendment A(D-9-D)**:本 ADR 原 Key Interfaces 块的 `SimEvent{Tick, Patient, Kind}`
     **装不下本 ADR §Implementation Guidelines 2 自己要求的全序**,也无处安放载荷。
     ADR-006 补 `Seq` 与 `Payload` 两字段 —— **本 ADR 的 `SimEvent` 定义以 ADR-006 为准**
@@ -473,6 +488,13 @@ public readonly struct SimEvent      // 权威定义见 ADR-006 Amendment A
     > ⚠️ **本法不得被读作「表现层可以自由引用 sim」** —— 边界程序集是**白名单**,
     > 不是通道:表现层能碰的**只有**上面列举的类型。新增一个跨门类型须**追加进本法**,
     > 不得就地塞进边界程序集。
+  - **Amendment G(2026-09-23 · 窄修订 · Blocking 清账批 · Status 维持 Accepted)**:
+    **128 位中间结果的唯一类型 = 手工 hi/lo 两 `ulong` 带进位**(32 位数字四路拆分,
+    交叉项全程无符号 + 掩码提取,禁有符号右移;**禁 `System.Int128`**(netstandard2.1 /
+    IL2CPP 无此 .NET 7 类型,E-2)、**禁 `BigInteger`**(AC-4)、**禁条件分支**)——
+    承 `disease-simulation.md` §F0 + AC-4 + ADR-012 F7,**GDD 侧早已定死,本法抬进 ADR 承重层**。
+    见 §Decision 一 的 ⭑ Amendment G 块。**结清** `TR-disease-022`(gap→covered)+
+    `TR-disease-002`(partial→covered)。
   - **本 ADR 的两项核心裁决不受影响**:整数定点域(**§Decision 一**)与事件流唯一真源
     (**§Decision 三**,对象已由单条病史流扩为**三流**并集)照旧 Accepted。
 
