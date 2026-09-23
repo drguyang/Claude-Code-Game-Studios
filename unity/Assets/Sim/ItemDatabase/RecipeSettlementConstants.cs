@@ -17,6 +17,7 @@
 //    住**物品/配方数据文件**;跨条目量住**本表**。逐条量**不进本表**。
 
 using System;
+using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Sim
 {
