@@ -29,7 +29,7 @@ namespace DaYiJingCheng.Sim.Codec
             ulong bits = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.CaseOpened), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.CaseOpened), ref seen))
                 {
                     case 1: patientId = r.ReadInt32LittleEndian(); break;
                     case 2: bits = r.ReadUInt64LittleEndian(); break;
@@ -64,7 +64,7 @@ namespace DaYiJingCheng.Sim.Codec
             bool treated = false;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.CaseClosed), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.CaseClosed), ref seen))
                 {
                     case 1: patientId = r.ReadInt32LittleEndian(); break;
                     case 2: caseId = r.ReadFieldCaseId(); break;
@@ -101,7 +101,7 @@ namespace DaYiJingCheng.Sim.Codec
             ulong saltedKey = 0, memberBits = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.PatternRecognized), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.PatternRecognized), ref seen))
                 {
                     case 1: patientId = r.ReadInt32LittleEndian(); break;
                     case 2: anchorCase = r.ReadFieldCaseId(); break;
@@ -141,7 +141,7 @@ namespace DaYiJingCheng.Sim.Codec
             byte confidence = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.JudgmentRecorded), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.JudgmentRecorded), ref seen))
                 {
                     case 1: patientId = r.ReadInt32LittleEndian(); break;
                     case 2: caseId = r.ReadFieldCaseId(); break;
@@ -181,7 +181,7 @@ namespace DaYiJingCheng.Sim.Codec
             byte confidence = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.JudgmentRevised), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.JudgmentRevised), ref seen))
                 {
                     case 1: patientId = r.ReadInt32LittleEndian(); break;
                     case 2: caseId = r.ReadFieldCaseId(); break;

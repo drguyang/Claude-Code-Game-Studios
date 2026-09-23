@@ -34,7 +34,7 @@ namespace DaYiJingCheng.Sim.Codec
             long tick = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.ActorCellEntered), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.ActorCellEntered), ref seen))
                 {
                     case 1: actorId = r.ReadInt32LittleEndian(); break;
                     case 2: cell = r.ReadFieldWorldPos(); break;
@@ -69,7 +69,7 @@ namespace DaYiJingCheng.Sim.Codec
             int nodeId = 0, gatherSeq = 0, qty = 0, outQuality = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.ResourceHarvested), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.ResourceHarvested), ref seen))
                 {
                     case 1: instanceId = r.ReadInt64LittleEndian(); break;
                     case 2: nodeId = r.ReadInt32LittleEndian(); break;
@@ -106,7 +106,7 @@ namespace DaYiJingCheng.Sim.Codec
             int itemKey = 0, qty = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.DropSpawned), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.DropSpawned), ref seen))
                 {
                     case 1: instanceId = r.ReadInt64LittleEndian(); break;
                     case 2: spawnAnchor = r.ReadFieldWorldPos(); break;
@@ -140,7 +140,7 @@ namespace DaYiJingCheng.Sim.Codec
             int claimer = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.DropClaimed), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.DropClaimed), ref seen))
                 {
                     case 1: instanceId = r.ReadInt64LittleEndian(); break;
                     case 2: claimer = r.ReadInt32LittleEndian(); break;
@@ -173,7 +173,7 @@ namespace DaYiJingCheng.Sim.Codec
             int qty = 0, reason = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.DropDespawned), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.DropDespawned), ref seen))
                 {
                     case 1: instanceId = r.ReadInt64LittleEndian(); break;
                     case 2: qty = r.ReadInt32LittleEndian(); break;
@@ -231,7 +231,7 @@ namespace DaYiJingCheng.Sim.Codec
             WorldPos toolCell = default;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.Craft), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.Craft), ref seen))
                 {
                     case 1: actorId = r.ReadInt32LittleEndian(); break;
                     case 2: recipeId = r.ReadInt32LittleEndian(); break;
@@ -283,7 +283,7 @@ namespace DaYiJingCheng.Sim.Codec
             int moduleId = 0, orientation = 0, variant = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.StructurePlaced), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.StructurePlaced), ref seen))
                 {
                     case 1: structureId = r.ReadInt64LittleEndian(); break;
                     case 2: cell = r.ReadFieldWorldPos(); break;
@@ -322,7 +322,7 @@ namespace DaYiJingCheng.Sim.Codec
             int moduleId = 0, newOrientation = 0, newVariant = 0, modifiedFields = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.StructureModified), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.StructureModified), ref seen))
                 {
                     case 1: structureId = r.ReadInt64LittleEndian(); break;
                     case 2: cell = r.ReadFieldWorldPos(); break;
@@ -359,7 +359,7 @@ namespace DaYiJingCheng.Sim.Codec
             int moduleId = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.StructureRemoved), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.StructureRemoved), ref seen))
                 {
                     case 1: structureId = r.ReadInt64LittleEndian(); break;
                     case 2: cell = r.ReadFieldWorldPos(); break;
@@ -390,7 +390,7 @@ namespace DaYiJingCheng.Sim.Codec
             int poiId = 0, newState = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.PoiStateChanged), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.PoiStateChanged), ref seen))
                 {
                     case 1: poiId = r.ReadInt32LittleEndian(); break;
                     case 2: newState = r.ReadInt32LittleEndian(); break;
@@ -426,7 +426,7 @@ namespace DaYiJingCheng.Sim.Codec
             long tick = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.EnemyInjuryOnset), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.EnemyInjuryOnset), ref seen))
                 {
                     case 1: actorId = r.ReadInt32LittleEndian(); break;
                     case 2: targetId = r.ReadInt32LittleEndian(); break;
@@ -460,7 +460,7 @@ namespace DaYiJingCheng.Sim.Codec
             int actorId = 0, newState = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.InjuryStateChanged), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.InjuryStateChanged), ref seen))
                 {
                     case 1: actorId = r.ReadInt32LittleEndian(); break;
                     case 2: newState = r.ReadInt32LittleEndian(); break;
@@ -496,7 +496,7 @@ namespace DaYiJingCheng.Sim.Codec
             int[] actorIds = null;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.EncounterStarted), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.EncounterStarted), ref seen))
                 {
                     case 1: encounterId = r.ReadInt32LittleEndian(); break;
                     case 2: protoId = r.ReadInt32LittleEndian(); break;
@@ -528,7 +528,7 @@ namespace DaYiJingCheng.Sim.Codec
             int encounterId = 0, reason = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.EncounterEnded), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.EncounterEnded), ref seen))
                 {
                     case 1: encounterId = r.ReadInt32LittleEndian(); break;
                     case 2: reason = r.ReadInt32LittleEndian(); break;
@@ -558,7 +558,7 @@ namespace DaYiJingCheng.Sim.Codec
             int outcome = 0, patientId = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.ConsequenceResolved), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.ConsequenceResolved), ref seen))
                 {
                     case 1: outcome = r.ReadInt32LittleEndian(); break;
                     case 2: patientId = r.ReadInt32LittleEndian(); break;
@@ -591,7 +591,7 @@ namespace DaYiJingCheng.Sim.Codec
             long tick = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.PlayerDied), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.PlayerDied), ref seen))
                 {
                     case 1: actorId = r.ReadInt32LittleEndian(); break;
                     case 2: deathCell = r.ReadFieldWorldPos(); break;

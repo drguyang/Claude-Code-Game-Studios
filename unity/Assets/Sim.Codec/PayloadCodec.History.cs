@@ -33,7 +33,7 @@ namespace DaYiJingCheng.Sim.Codec
             long tick = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.InjuryOnset), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.InjuryOnset), ref seen))
                 {
                     case 1: actorId = r.ReadInt32LittleEndian(); break;
                     case 2: targetId = r.ReadInt32LittleEndian(); break;
@@ -70,7 +70,7 @@ namespace DaYiJingCheng.Sim.Codec
             int targetId = 0, ruleId = 0, componentId = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.CompoundTriggered), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.CompoundTriggered), ref seen))
                 {
                     case 1: tick = r.ReadInt64LittleEndian(); break;
                     case 2: targetId = r.ReadInt32LittleEndian(); break;
@@ -104,7 +104,7 @@ namespace DaYiJingCheng.Sim.Codec
             int targetId = 0, ruleId = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.CompoundExpired), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.CompoundExpired), ref seen))
                 {
                     case 1: tick = r.ReadInt64LittleEndian(); break;
                     case 2: targetId = r.ReadInt32LittleEndian(); break;
@@ -138,7 +138,7 @@ namespace DaYiJingCheng.Sim.Codec
             int actionId = 0, caregiver = 0, phase = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.CareApplied), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.CareApplied), ref seen))
                 {
                     case 1: tick = r.ReadInt64LittleEndian(); break;
                     case 2: actionId = r.ReadInt32LittleEndian(); break;
@@ -184,7 +184,7 @@ namespace DaYiJingCheng.Sim.Codec
             int[] edgeTicks = null;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.EmergencyAttempt), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.EmergencyAttempt), ref seen))
                 {
                     case 1: action = r.ReadInt32LittleEndian(); break;
                     case 2: holdTicks = r.ReadInt32LittleEndian(); break;
@@ -233,7 +233,7 @@ namespace DaYiJingCheng.Sim.Codec
             Fix drugPotency = default;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.EmergencyTreatmentApplied), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.EmergencyTreatmentApplied), ref seen))
                 {
                     case 1: tick = r.ReadInt64LittleEndian(); break;
                     case 2: treatmentId = r.ReadInt32LittleEndian(); break;
@@ -278,7 +278,7 @@ namespace DaYiJingCheng.Sim.Codec
             Fix drugPotency = default;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.DrugTreatmentApplied), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.DrugTreatmentApplied), ref seen))
                 {
                     case 1: tick = r.ReadInt64LittleEndian(); break;
                     case 2: treatmentId = r.ReadInt32LittleEndian(); break;
@@ -317,7 +317,7 @@ namespace DaYiJingCheng.Sim.Codec
             int actorId = 0, patientId = 0, skillId = 0, objectId = 0, noveltyClass = 0, level = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.SkillGrown), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.SkillGrown), ref seen))
                 {
                     case 1: actorId = r.ReadInt32LittleEndian(); break;
                     case 2: patientId = r.ReadInt32LittleEndian(); break;
@@ -354,7 +354,7 @@ namespace DaYiJingCheng.Sim.Codec
             long ordinal = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.EventRolled), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.EventRolled), ref seen))
                 {
                     case 1: win = r.ReadInt32LittleEndian(); break;
                     case 2: tier = r.ReadInt32LittleEndian(); break;
@@ -389,7 +389,7 @@ namespace DaYiJingCheng.Sim.Codec
             WorldPos spawnAnchor = default;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.EventArrived), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.EventArrived), ref seen))
                 {
                     case 1: eventKey = r.ReadInt32LittleEndian(); break;
                     case 2: tier = r.ReadInt32LittleEndian(); break;
@@ -421,7 +421,7 @@ namespace DaYiJingCheng.Sim.Codec
             int slotIndex = 0, eventKey = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.ThreatDeferred), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.ThreatDeferred), ref seen))
                 {
                     case 1: slotIndex = r.ReadInt32LittleEndian(); break;
                     case 2: eventKey = r.ReadInt32LittleEndian(); break;
@@ -451,7 +451,7 @@ namespace DaYiJingCheng.Sim.Codec
             int slotIndex = 0, reason = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.ThreatDeferralCleared), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.ThreatDeferralCleared), ref seen))
                 {
                     case 1: slotIndex = r.ReadInt32LittleEndian(); break;
                     case 2: reason = r.ReadInt32LittleEndian(); break;
@@ -481,7 +481,7 @@ namespace DaYiJingCheng.Sim.Codec
             int flagId = 0, newValue = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EventKind.HistoryFlagChanged), ref seen))
+                switch (ReadTagChecked(ref r, nameof(EventKind.HistoryFlagChanged), ref seen))
                 {
                     case 1: flagId = r.ReadInt32LittleEndian(); break;
                     case 2: newValue = r.ReadInt32LittleEndian(); break;

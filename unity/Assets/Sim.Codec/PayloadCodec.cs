@@ -93,7 +93,9 @@ namespace DaYiJingCheng.Sim.Codec
         // seen 掩码纪律:每个 tag 恰好一次(缺失 / 重复均在循环尾部拒绝)。
         // tag 值域 1..31(uint 掩码上限;现有 schema 最宽 = Judgment 6 字段)。
 
-        private static byte ReadTagChecked(CodecReader r, string kindName, ref uint seen)
+        // ref:CodecReader 是 ref struct,按值传 = 拷贝 —— ReadTag 推进的是副本,
+        // 调用方游标停在原地,下一轮把上一字段的值字节误读成 tag(2026-09-23 桌面 4 红根因)。
+        private static byte ReadTagChecked(ref CodecReader r, string kindName, ref uint seen)
         {
             byte tag = r.ReadTag();
             if (tag < 1 || tag > 31)
@@ -167,7 +169,7 @@ namespace DaYiJingCheng.Sim.Codec
 
             while (r.HasMore)
             {
-                byte tag = ReadTagChecked(r, kindName, ref seen);
+                byte tag = ReadTagChecked(ref r, kindName, ref seen);
                 switch (tag)
                 {
                     case 1: r.ReadInt32LittleEndian(); break;                    // PatientId
