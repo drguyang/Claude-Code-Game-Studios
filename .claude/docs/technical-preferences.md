@@ -615,7 +615,36 @@
   歧义订正(该空集作断言文本不可能成立 —— `Sim` 必须见 `SimEvent`)。Engine Knowledge Risk
   **LOW**(asmdef 机制自 2019 稳定,不触任何 post-cutoff API)。
 
-> **本日志状态**:全部 ADR(001–**025**)均有日志条目。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
+- [ADR-026 ✅ Accepted 2026-09-23]**30 技能成长的定点化与持久化契约** ——
+  `docs/architecture/adr-026-skill-growth-fixed-point.md`。**Required ADR #4 的兑现件**
+  (`architecture.md` §Required #4)。病因:`TR-skill-001…007` 7 条全 gap、零 ADR 引用 ——
+  §5.4 认定的**唯一真正的 Foundation 级裸缺口**;`P = 1.4` 违反 8 的 G-1(libm `pow` 跨平台
+  末位不一致),而 ADR-005 只定义了 sim 侧定点纪律泛则、未定幂运算实现。裁定:
+  ① **`FixPow` 是唯一整数幂实现** —— 指数 ∈ {整数, 整数 + 1/2};整数幂走重复 `Mul`,
+  半整数走 `FixPow(base, k) × FixSqrt(base)`,`FixSqrt` = **整数 Newton 迭代**(禁 `Math.Sqrt` /
+  libm / float,坐实 G-1);② **构建期记忆化查表允许但须逐值等于 `FixPow` 输出**(构建断言);
+  ③ **`CombatPower = (CombatSkillLevel × WeaponMultiplier) × (1 + 医术修正)`**,
+  `医术修正 = FixDiv(MED_COMBAT_MOD × 关联医术等级, SKILL_CAP)`(`ROUND_HALF_AWAY_FROM_ZERO`)
+  以 `Fix` 传入 25;④ 调参表 `Fix` 字段 JSON 写**字符串** → `FixParse`(承 ADR-014 阶段 2);
+  ⑤ 档位 / 解锁判定走**整数等级比较**(G-3);⑥ `SkillGrown` 落病史流、`Level` 以 int 承载、
+  **不独立快照**、从流重构;⑦ **结清 `OQ-7a-9`** —— 折叠谓词 `Folded(p)` **豁免 `SkillGrown` 行
+  (案 1)**;案 2(第二真源)/ 案 3(独立快照,与 §⑥ 冲突)否决。**义务 14 入 ADR-010 §三**。
+  **数值(P 最终值)仍归用户**(数值轮,与 `OQ-25-7` 同批)。Engine Knowledge Risk **LOW**
+  (纯整数算术规格,不触任何 post-cutoff API)。
+
+- [ADR-027 ✅ Accepted 2026-09-23]**13 病人 AI 的写路径归属** ——
+  `docs/architecture/adr-027-patient-ai-write-path.md`。**Required ADR #5 的兑现件**
+  (`architecture.md` §Required #5)。病因:`TR-patient-021`(查体诱发痉挛)/ `TR-patient-022`
+  (搬运昏迷病人)两条 gap,根因同一条 —— **13 是只读消费者(读 `VitalsDto` / `IPresentPatients`),
+  物理上写不了 sim**。用户裁定:**两条写路径皆归系统 10 急救动作**(与 CPR / 止血同构的
+  「玩家对病人的物理干预」)。裁定:① 写路径 = **10**(单一判据,两条不拆);② 形态 =
+  **ADR-009 §七 三段式**(意图事件 + 主机当下判距 + 效果进流)+ **ADR-020 §四 对称落实**,
+  **不新机制**;③ **13 只出表现**(姿态骤变 + 呻吟)· **8 只声明存在**(其
+  `diagnosis-system.md:1197` 的「10 / 13」措辞收为「10」);④ 新 `Kind` 义务归 **10 的 GDD 轮**
+  (经 `entities.yaml` + kindgen,承 ADR-024)。**结清 `OQ-13-1` / `OQ-13-3`**(022 仍 **P0 不实现**,
+  只登记方向)。Engine Knowledge Risk **LOW**(纯数据边界与所有权裁决,不触任何引擎 API)。
+
+> **本日志状态**:全部 ADR(001–**027**)均有日志条目。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;
 > 洞 H1 / H3 的 ADR 由用户裁定**推迟 P1a**(本轮仅登记所有权,见 `systems-index.md` §11)。
@@ -624,8 +653,10 @@
 > 故 P0 的 31 项**不变**。
 > **ADR-023 / 024 / 025 是 `architecture.md` §Required ADRs 的 #1 / #3 / #2 兑现件**(2026-09-20
 > 逐份裁定轮全转 Accepted;文件号按落盘时序,**#序与文件号非同号是刻意设计**)。
-> **Required ADRs 剩余未兑现项 = 仅 #4(系统 30 定点算术,非开工阻塞)/ #5(13 的写路径归属,非开工阻塞)**
-> —— TD 条件 **C1–C4 四条全部结案**,Pre-Production 开工门的技术侧无阻塞项。
+> **ADR-026 / 027 是 §Required ADRs 的 #4 / #5 兑现件**(2026-09-23 用户裁定「两份都写」全转
+> Accepted;文件号按落盘时序)。
+> **§Required ADRs 全部兑现完毕(#1–#5 五条全 Accepted)** —— TD 条件 **C1–C4 四条全部结案**,
+> Pre-Production 开工门的技术侧**无阻塞项**。
 
 ## Engine Specialists
 

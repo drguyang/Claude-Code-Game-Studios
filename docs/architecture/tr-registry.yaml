@@ -1331,74 +1331,82 @@
   - id: TR-skill-001
     system: skill-system
     gdd: design/gdd/skill-system.md
-    requirement: "XP_to_next(n) = C × n^P,P = 1.4"
+    requirement: "XP_to_next(n) = C × n^P(指数 ∈ {整数, 整数 + 1/2})"
     domain: Core
-    adr: null
-    status: gap
-    blocking: true
-    note: "违反 8 的 G-1(指数须整数或 1/2);libm pow 跨平台末位不一致"
+    adr: ADR-026
+    status: covered
+    revised: "2026-09-23"
+    note: "**2026-09-23 gap → covered**(ADR-026 兑现 Required #4):`P` 限死 {整数,1/2}(G-1);幂运算唯一整数实现 `Fix.Pow`(整数自乘 / 整数牛顿 `ISqrt`,无 libm / 无 float)。requirement 文本就地订正(去 `P = 1.4` —— 原例值作废)。**数值(P 最终值)仍归用户**(数值轮)。**去 `blocking: true`**(原阻塞 = 定点域 / 幂运算形式未定,现由 ADR-026 定义)"
 
   - id: TR-skill-002
     system: skill-system
     gdd: design/gdd/skill-system.md
     requirement: 熟练度成长在整数定点域内求值
     domain: Core
-    adr: null
-    status: gap
-    blocking: true
-    note: "全文零 ADR 引用、零定点纪律(报告 B-6)"
+    adr: ADR-026
+    status: covered
+    revised: "2026-09-23"
+    note: "**2026-09-23 gap → covered**(ADR-026 ①/③/④):全部成长数学落 Q16.16;sim 程序集零 float(门 B 反射断言)。**去 `blocking: true`**(原阻塞 = 零定点纪律,现由 ADR-026 定义)"
 
   - id: TR-skill-003
     system: skill-system
     gdd: design/gdd/skill-system.md
     requirement: "CombatPower = (CombatSkillLevel × WeaponMultiplier) × (1 + 医术修正)"
     domain: Core
-    adr: null
-    status: gap
+    adr: ADR-026
+    status: covered
+    revised: "2026-09-23"
+    note: "**2026-09-23 gap → covered**(ADR-026 ③):定点求值 + `Fix` 传入 25(承 AC-25-6-02 / A16)"
 
   - id: TR-skill-004
     system: skill-system
     gdd: design/gdd/skill-system.md
     requirement: "医术修正 = 0.20 × (关联医术等级 / 60)"
     domain: Core
-    adr: null
-    status: gap
+    adr: ADR-026
+    status: covered
+    revised: "2026-09-23"
+    note: "**2026-09-23 gap → covered**(ADR-026 ③):`Fix.Div` + `ROUND_HALF_AWAY_FROM_ZERO`(ADR-006 唯一舍入)"
 
   - id: TR-skill-005
     system: skill-system
     gdd: design/gdd/skill-system.md
     requirement: 运行时调参表的默认值须定点化
     domain: Core
-    adr: null
-    status: gap
-    note: "现为纯浮点默认值"
+    adr: ADR-026
+    status: covered
+    revised: "2026-09-23"
+    note: "**2026-09-23 gap → covered**(ADR-026 ④):`Fix` 字段 JSON 写字符串 → `FixParse`;`int` 计数写整数(承 ADR-014 阶段 2)"
 
   - id: TR-skill-006
     system: skill-system
     gdd: design/gdd/skill-system.md
     requirement: 19 项技能的依赖与解锁关系
     domain: Feature
-    adr: null
-    status: gap
+    adr: ADR-026
+    status: covered
+    revised: "2026-09-23"
+    note: "**2026-09-23 gap → covered**(ADR-026 ⑤):门槛 / 解锁 / 档位判定走整数等级比较(承 8 的 G-3);19 项技能清单 = skill-system §3.1"
 
   - id: TR-skill-007
     system: skill-system
     gdd: design/gdd/skill-system.md
     requirement: 30 与 25 格斗线的数据边界
     domain: Core
-    adr: null
-    status: partial
-    revised: "2026-09-17"
-    note: "**2026-09-17 gap → partial**(25 落盘):25 侧的边界已兑现 —— 战斗效能公式定义权归 30,25 只消费其输出档;动作表 schema 已容纳 P1a 三线(`TR-combat-010/011`)。**仍是 partial 而非 covered 的原因在 30 自身**:30 现 Needs Revision(架构复核 2026-09-15:全文零 ADR 引用 + `P=1.4` 违反 8 的 G-1),边界另一侧无有效件 —— 30 修订 + 二轮后本项方可判 covered"
+    adr: ADR-026
+    status: covered
+    revised: "2026-09-23"
+    note: "**2026-09-23 partial → covered**(ADR-026 ③/⑤):边界两侧齐备 —— 25 侧 schema 已容纳(TR-combat-010/011)· 30 侧现由 ADR-026 定义 `CombatPower` 以 `Fix` 传入 25 的单一交接点 + `DIAG_TIERS` 双向耦合口径。**30 修订后复验**义务转 25 的实现轮"
 
   - id: TR-skill-008
     system: skill-system
     gdd: design/gdd/skill-system.md
     requirement: 技能成长的存档持久化
     domain: Foundation
-    adr: null
-    status: gap
-    suggested_adr: R-2 (7a 持久化)
+    adr: ADR-026
+    status: covered
+    revised: "2026-09-23"
+    note: "**2026-09-23 gap → covered**(ADR-026 ⑥/⑦):`SkillGrown` 落病史流 · int 承载 · 不独立快照 · 从流重构;折叠豁免扩一类 Kind(结清 `OQ-7a-9`);义务 14 入 ADR-010 §三"
 
   # ═══════════════════════════════════════════════════════════════════════════
   # 全案 (Game Concept) — design/gdd/game-concept.md
@@ -1838,20 +1846,20 @@
     gdd: design/gdd/patient-ai.md
     requirement: "「查体诱发痉挛」的**写路径**归属(13 只读,写不了 sim)"
     domain: Core
-    adr: —
-    status: gap
-    revised: "2026-09-15"
-    note: "**登记为 `OQ-13-1`**。`diagnosis-system.md:1197`(破伤风事实注)写「若日后要落,写路径归 10 急救动作 / 13 病人 AI」—— 但 13 只读(TR-patient-001),**口径冲突**。13 侧结论:**写路径只能归 10 / 9**,13 只提供**表现**(姿态骤变 + 呻吟)。**不在 GDD 里单方面改 8 的措辞**"
+    adr: ADR-027
+    status: covered
+    revised: "2026-09-23"
+    note: "**2026-09-23 gap → covered**(ADR-027 兑现 Required #5):写路径 = **10 急救动作**(与 CPR / 止血同构);形态承 ADR-009 §七 三段式 + ADR-020 §四 对称落实;**13 只出表现 · 8 只声明存在**;`diagnosis-system.md:1253` 的「10 / 13」措辞收为「10」。**Kind 名 / 载荷归 10 的 GDD 轮**(经 `entities.yaml` 登记 + kindgen 重跑,承 ADR-024)。`OQ-13-1` 结案"
 
   - id: TR-patient-022
     system: patient-ai
     gdd: design/gdd/patient-ai.md
     requirement: "玩家**搬运昏迷病人**的写路径归属(病人位置是行为决策的产物 = 派生态,进 sim 须新增事件)"
     domain: Core
-    adr: —
-    status: gap
-    revised: "2026-09-15"
-    note: "**登记为 `OQ-13-3`**。13 只读、20 只拥有玩家自己的位移,**二者都不拥有它**。**P0 不实现搬运**"
+    adr: ADR-027
+    status: covered
+    revised: "2026-09-23"
+    note: "**2026-09-23 gap → covered**(ADR-027 兑现 Required #5):写路径 = **10 急救动作**(与 021 同一判据);位置投影承 ADR-020 §四(跨格事件 = 位置的唯一 sim 投影)。⚠️ **P0 不实现搬运**(承 `OQ-13-3`)—— 本 ADR 只登记方向,Kind / 流别归 10 的 GDD 轮(搬运进 P0 时)。`OQ-13-3` 结案(归属已定,P0 排期不变)"
 
   - id: TR-patient-023
     system: patient-ai

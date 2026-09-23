@@ -9,7 +9,7 @@
 - Last Updated: 2026-09-20
 - Engine: Unity 6.3 LTS(URP)· C# · IL2CPP
 - GDDs Covered: P0 31 项(见 §System Layer Map 的「GDD」列);另有 23 项 P1a/P1b/P2 登记于层图但不在本蓝图承诺面内
-- ADRs Referenced: ADR-001 · ADR-005 … ADR-**025**(共 **22** 份文件;**ADR-002 / 003 / 004 无独立文件** —— 分别由 ADR-015 / ADR-015 / ADR-017 兑现结案)
+- ADRs Referenced: ADR-001 · ADR-005 … ADR-**027**(共 **24** 份文件;**ADR-002 / 003 / 004 无独立文件** —— 分别由 ADR-015 / ADR-015 / ADR-017 兑现结案)
 - Technical Director Sign-Off: **2026-09-20 — APPROVED WITH CONDITIONS**(条件 C1–C4 见下)
 - Lead Programmer Feasibility: **LP-FEASIBILITY skipped — Lean mode**(非 PHASE-GATE,按门规 `lean` 下跳过)
 
@@ -258,7 +258,7 @@ docs/engine-reference/unity/plugins/addressables.md:301  ### Cleanup on Scene Un
 |---|------|------|---|---|---|---|
 | **21** | 物品与配方数据库 | Foundation | L1 契约 + **L2 schema** | DATA / SIM | — | ✅ 21a 契约落 ADR-006 |
 | **3** | 输入与设备 | Foundation | **L4 边界层** | EDGE | MEDIUM(Input System) | ✅ `emergency-procedures.md:155` 表格「3 输入与设备 \| 边界层」 |
-| **30** | 技能与熟练度 | Foundation | **L2 Sim** | SIM | — | ✅ `skill-system.md`(XP 公式定点域)· ⚠️ 无 ADR 承接 |
+| **30** | 技能与熟练度 | Foundation | **L2 Sim** | SIM | — | ✅ `skill-system.md`(XP 公式定点域)· ✅ **ADR-026**(成长定点化与持久化 · 兑现 Required #4)|
 | **42** | 拟物 UI 框架 | Foundation | **L5** | PRES | 🔴 HIGH(UI Toolkit 运行时 / 焦点桥) | ✅ ADR-013(三项 spike 为前置) |
 | **44** | 音频系统 | Foundation | **L5** + L3 契约程序集 | PRES / BDY | MEDIUM(AudioMixer 6.3) | ✅ `audio-system.md:242` 「DTO 与 `IAudioCueSink` 住独立契约程序集(仅 BCL)」 |
 | **40** | 史实资料库 | Foundation | L1 内容层 | DATA | — | ✅ P1a |
@@ -1191,6 +1191,11 @@ ADR-007 §三              5 支(EventRolled / EventArrived / ThreatDeferred /
 
 #### #4 —— 30 技能成长的定点化与持久化契约
 
+> **✅ 2026-09-23 已兑现 = ADR-026**(`docs/architecture/adr-026-skill-growth-fixed-point.md`,Accepted)。
+> 用户裁定照准。`TR-skill-001…008` 八条全转 `covered`(`001/002` 亦去 `blocking` 注记 —— 定点域与幂运算形式已定);
+> `P = 1.4` 作废(限死 `{整数, 整数+1/2}`);幂运算唯一整数实现 `Fix.Pow`(无 libm / 无 float);
+> `OQ-7a-9` 结案(折叠豁免扩一类 Kind);义务 14 入 ADR-010 §三。**数值仍归用户**(数值轮,与 `OQ-25-7` 同批)。
+
 **为什么**:`TR-skill-001…007` **7 条全 gap、零 ADR 引用** —— §5.4 认定的
 **唯一真正的 Foundation 级裸缺口**。其中 `TR-skill-002`(熟练度成长在整数定点域内求值)
 与 `TR-skill-008`(技能成长的存档持久化)是**真缺口**:ADR-005 只定义了 sim 侧的定点纪律泛则,
@@ -1210,6 +1215,11 @@ ADR-007 §三              5 支(EventRolled / EventArrived / ThreatDeferred /
 ---
 
 #### #5 —— 13 病人 AI 的写路径归属(只读消费者的副作用归谁)
+
+> **✅ 2026-09-23 已兑现 = ADR-027**(`docs/architecture/adr-027-patient-ai-write-path.md`,Accepted)。
+> 用户裁定照准:**两条写路径皆归 10 急救动作**(与 CPR / 止血同构的「玩家对病人的物理干预」);
+> `TR-patient-021` / `TR-patient-022` 转 `covered`;`OQ-13-1` / `OQ-13-3` 结案(022 仍 P0 不实现,只登记方向);
+> 形态承 ADR-009 §七 三段式 + ADR-020 §四;**13 只出表现 · 8 只声明存在**;新 Kind 归 10 的 GDD 轮(承 ADR-024)。
 
 **为什么**:`TR-patient-021`(**「查体诱发痉挛」的写路径归属**)与 `TR-patient-022`
 (**搬运昏迷病人的写路径归属**)两条 gap,根因同一条:

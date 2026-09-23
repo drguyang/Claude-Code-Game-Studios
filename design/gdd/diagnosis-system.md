@@ -1252,6 +1252,11 @@ L*_j = min { Skill ∈ ℤ : 把握度_j(Skill) ≥ EXCLUDE_CONF_MIN }   # 仅 p
 > 本注只声明这个事实,**8 仍然只读不写**:若日后要落,
 > **「查体触发了什么」的写路径归 10 急救动作 / 13 病人 AI**(与 D-8-3 同源),
 > **8 只声明它存在**,不实现、不写回病史事件流。
+>
+> **⚠️ 2026-09-23 措辞收窄(ADR-027 · 兑现 Required ADR #5)**:上句「10 急救动作 / 13 病人 AI」
+> 中**「/ 13 病人 AI」作废** —— 13 **是只读消费者**(读 `VitalsDto` / `IPresentPatients`),
+> 物理上写不了 sim。**写路径 = 10 急救动作**(用户裁定 2026-09-23,照准);
+> 13 只出**表现**(姿态骤变 + 呻吟)。本注其余口径不动(8 仍只声明、不写)。
 
 ## Dependencies
 
@@ -1874,6 +1879,7 @@ L*_j = min { Skill ∈ ℤ : 把握度_j(Skill) ≥ EXCLUDE_CONF_MIN }   # 仅 p
 | ---- | ---- | ---- |
 | **AC-8-5** | **C-1 端点与单调。** 设置:任一合法旋钮取值。动作:代入 F-8.1 求 `READ_FLOOR`。预期:`READ_FLOOR(0) = BASE_READ` · `READ_FLOOR(SKILL_CAP) = READ_FLOOR_MIN` · `BASE_READ > READ_FLOOR_MIN > 0` · ∀ `Skill₁ < Skill₂ ⇒ READ_FLOOR(Skill₁) ≥ READ_FLOOR(Skill₂)`。**违反即测试失败,不是运行期兜底。** | `[L]` 端点 + 单调扫描 · **BLOCKING** |
 | **AC-8-6** | **G-1 禁用 libm 超越函数 + G-4 禁 FMA 收缩依赖。** 设置:8 的程序集。动作:**(a)** grep `Math.Pow` / `Math.Exp` / `Math.Log` / `Math.Cbrt` 等超越函数调用点;**(b)** 检查全部 `a*x+b` 形状的表达式(含 `READ_FLOOR` 的插值与 `C_neg` 的线性项),确认**或走预计算定表、或显式 `Mul` 后 `Add`**,**不依赖编译器的 FMA 收缩**(IL2CPP / 不同 CPU 的融合策略不保证一致);**(c)** 断言 8 的内部标量**一律 `System.Single`**,无 `double`/`Single` 隐式提升混算。预期:(a) **零调用点**;曲线指数只取**整数或 1/2**(整数次幂用重复乘法,`x^(1/2)` 用 `Math.Sqrt` —— IEEE-754 强制正确舍入 —— 或走**预计算定表**)。**(b)(c) 由 code review + 定表存在性检查确认。** | `[L]` 静态守门 grep + 定表存在性 · **BLOCKING** |
+| ↳ **2026-09-23 就地订正(ADR-026 §①)**:上行的 `x^(1/2)` 原写「用 `Math.Sqrt`」—— **作废**。`Math.Sqrt` 返回 `double`,出现在 sim 程序集即违**门 B**(零 `float`/`double`);G-1 的「IEEE-754 强制正确舍入」是**存在性论证**,不是「可用 BCL `Math.Sqrt`」的许可。**唯一实现 = `Sim.Contracts.Fix.ISqrt`(整数牛顿迭代,逐位确定 floor)/ `Fix.Pow`(指数 ∈ {整数, 整数+1/2})**。本行判据其余不动(AC-8-6 仍 BLOCKING)。 | 登记 |
 | **AC-8-7** | **G-3 档位判定走整数等级。** 设置:对 `DIAG_TIERS` 每个切点 `T`,构造 `Skill = T−1` 与 `Skill = T`;并构造一个使 `Precision(T)` 落在浮点边界附近的 `SKILL_CAP` 取值。动作:求 `slot_j`。预期:两值恰好落在相邻两档;插入的浮点边界用例**不改变** `slot_j`。 | `[L]` 边界对单测 · **BLOCKING** |
 | **AC-8-8** | **F-8.2 空白档向下回退。** 设置:取 `sign_koplik`(粗 / 中档为「—」)。动作:三档各求 `display_词`。预期:粗、中档**回退到最近非空档**;若更低档全空 ⇒ 该体征在此精度下**读不出**,读数记为**阴性形态**,**不是阳性**。**不得**把空档读成「一定读得到」。 | `[L]` 逐空档条目单测 · **BLOCKING** |
 | **AC-8-9** | **手段不上锁(裁定⑨)。** 设置:遍历 `reveal_by` 的全部 5 个值。动作:在**最小合法 `Skill`** 执行该手段。预期:动作**可执行**、有读数、有 `EmitGrowth`;∀ 体征 j、∀ `Skill`,`slot_j` 状态中**不存在**「手段不可用 / 锁闭」。 | `[L]` 单测 · **BLOCKING**(+ `[U]` 无灰按钮走查 · ADVISORY) |
