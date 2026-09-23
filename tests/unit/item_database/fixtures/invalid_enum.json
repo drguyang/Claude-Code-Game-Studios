@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "_note": "Story 002 AC-21a-22 负向夹具:记录 0 processing_state 拼写近似 'Raw'(大小写出闭集);记录 1 category 枚举外 'medicine';记录 2 全合法作对照。空串/null/int 字符串边缘在测试内代码构造(边缘不在本夹具)。",
+  "items": [
+    { "base_id": "willow_bark", "processing_state": "Raw", "category": "drug" },
+    { "base_id": "aspirin", "processing_state": "dried", "category": "medicine" },
+    { "base_id": "suture_kit", "processing_state": "pill", "category": "tool" }
+  ]
+}

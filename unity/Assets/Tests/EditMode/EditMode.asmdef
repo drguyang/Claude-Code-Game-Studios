@@ -4,7 +4,8 @@
     "optionalUnityReferences": [ "TestAssemblies" ],
     "references": [
         "GUID:f1e625c719f6812dcae9009189e8b2c0",
-        "GUID:889729f8d83bd367f998fad31848b45b"
+        "GUID:889729f8d83bd367f998fad31848b45b",
+        "GUID:09b3130c3cce749c78793250d6d191f4"
     ],
     "includePlatforms": [ "Editor" ]
 }

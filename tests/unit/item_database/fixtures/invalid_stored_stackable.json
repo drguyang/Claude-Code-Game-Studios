@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "_note": "Story 002 AC-21a-59 负向夹具:前三条记录分别 stackable:true / false / null —— 显式写入即拒(值无关、null 仍拒);末条无 stackable 键作合法对照。每条记录占一行,便于测试按行抽原始键集。",
+  "items": [
+    { "base_id": "willow_bark", "stackable": true, "stack_max": 99 },
+    { "base_id": "bandage", "stackable": false, "stack_max": 1 },
+    { "base_id": "herb_bundle", "stackable": null, "stack_max": 10 },
+    { "base_id": "suture_kit", "stack_max": 1 }
+  ]
+}

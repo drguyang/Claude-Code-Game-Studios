@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "_note": "Story 002 AC-21a-21 负向夹具:willow_bark/raw 恰两重重复(条目 0-1);条目 2 同 base 异 state、条目 3 异 base 同 state,是 Edge Cases 明文的合法对照(测试取子集断言通过)。",
+  "items": [
+    { "base_id": "willow_bark", "processing_state": "raw" },
+    { "base_id": "willow_bark", "processing_state": "raw" },
+    { "base_id": "willow_bark", "processing_state": "dried" },
+    { "base_id": "aspirin", "processing_state": "raw" }
+  ]
+}
