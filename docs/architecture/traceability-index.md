@@ -7,7 +7,11 @@
 > **数据真源两处都是 `tr-registry.yaml` 的 `status:` 字段** —— 本文件与 RTM 件都不各自持有计数,
 > 只引用。RTM 件是门件路径要求的**指针件**,不复制本表内容。
 
-> **Last Updated**: 2026-09-23(**ADR-028 小裁批 —— 用户裁定「011 现裁,012 归 45 轮」,1 条翻转**)
+> **Last Updated**: 2026-09-23(**ADR-009 TR 定向复核轮 —— 用户裁定翻 031 + medcons-001,2 条翻转,零新 ADR**)
+> —— **ID 恒 500(零新增)**;**计数翻转 2 条:335/500 → 337/500**(`TR-itemdb-031` gap→covered ·
+> `TR-medcons-001` partial→covered;`TR-foraging-006` 维持 partial 不翻)⇒ **337 ✅ / 75 ⚠️ / 75 ❌ / ◆13**。
+> **Foundation 门转绿**:031 是 Foundation 域唯一 gap,翻 covered 后 `domain: Foundation ∧ status: gap` 实测 **= 0**。
+> **前序 · 2026-09-23 ADR-028 小裁批(用户裁定「011 现裁,012 归 45 轮」,1 条翻转)**
 > —— **ID 恒 500(零新增)**;**计数翻转 1 条:334/500 → 335/500**(`TR-audio-011` gap→covered,
 > `adr: ADR-028`;新立 `docs/architecture/adr-028-world-sound-source-ownership.md` 世界语境声源归属 ——
 > 44 持有运行期表现层声源池,零场景预摆承 ADR-023 ② 扩列,位置只读 `AudioCueDto.Cell`,
@@ -176,7 +180,7 @@
 | GDD | 系统 | TR 数 | ✅ | ⚠️ | ❌ |
 |-----|------|-------|---|----|----|
 | `case-system.md` | 37 病例系统 | **36** | **24** | **6** | **6** |
-| `item-database.md` | 21a 物品与配方 | 32 | **19** | 1 | **1**(另 **◆11** —— 2026-09-23 QQ-08;`031` carve-out 留 ❌) |
+| `item-database.md` | 21a 物品与配方 | 32 | **20** | 1 | **0**(另 **◆11** —— 2026-09-23 QQ-08 B 簇 ◆;同日 ADR-009 复核轮 `031` gap→covered,残 ❌ 清零) |
 | `random-events.md` | 52 随机事件导演 | **32** | **15** | 2 | 15 |
 | `disease-simulation.md` | 9 疾病与伤情 | 22 | **17** | **3** | **2** |
 | `diagnosis-system.md` | 8 诊断与体征 | **25** | **9** | 5 | 11 |
@@ -207,8 +211,8 @@
 | `audio-system.md` | **44 音频**(D-R3 回填)| **14** | **12** | **1** | **1** |
 | `tutorial-and-onboarding.md` | **48 教学与入门**(D-R3 回填)| **8** | **2** | **3** | **3** |
 | `telemetry-analytics.md` | **51 遥测与分析**(D-R3 回填)| **8** | **7** | **1** | **0** |
-| `medical-consequences.md` | **53 医疗后果(**P1a 主**)**(D-R3 回填)| **8** | **3** | **2** | **3** |
-| **合计** | | **500** | **335** | **76** | **76**(另 **◆13** = `no-adr-by-design`;2026-09-23 三批合计:ADR-028 小裁 1 条翻 ✅ + Required ADR #4/#5 10 条翻 ✅ + QQ-08 清账 A 簇 6 条翻 ✅ / B 簇 11 条转 ◆,`TR-itemdb-031` carve-out 留 ❌)|
+| `medical-consequences.md` | **53 医疗后果(**P1a 主**)**(D-R3 回填)| **8** | **4** | **1** | **3** |
+| **合计** | | **500** | **337** | **75** | **75**(另 **◆13** = `no-adr-by-design`;2026-09-23 四批合计:ADR-009 复核轮 2 条翻 ✅(031 + medcons-001)+ ADR-028 小裁 1 条翻 ✅ + Required ADR #4/#5 10 条翻 ✅ + QQ-08 清账 A 簇 6 条翻 ✅ / B 簇 11 条转 ◆)|
 
 > **2026-09-20 借绿回退轮(TD 条件 C4 —— `architecture.md` §5.5 D-5)**:**ID 不增不减**(仍 387)。
 > 8 条「摘要列记 ✅ 而 `tr-registry.yaml` 的 `adr: null`」的条目(`TR-case-035` / `-036` ·
@@ -407,7 +411,7 @@
 | TR-itemdb-028 | `axis_offset_by_quality[]` 可为负 ⇒ 负数舍入方向须定义 | ADR-006 | ✅ `ROUND_HALF_AWAY_FROM_ZERO` 全域适用(E-8「未钉死」注已过期,2026-09-23 就地订正) |
 | TR-itemdb-029 | **`Σ(weight × InstanceWeight)` 的 int64 溢出上限** | — | ◆ QQ-08(上限**值** = 用户数值旋钮归 21a 数值轮;整数域纪律由 ADR-006 守恒律承接) |
 | TR-itemdb-030 | 21a 与 20 库存的所有权边界 | — | ◆ QQ-08(跨系统边界已登记 §API Boundaries) |
-| TR-itemdb-031 | 掉落实体的世界状态事件化边界 | ADR-009 + ADR-015 | ❌ 待 R-1 / B-7(位置侧坐标已由 ADR-015 §三 定型,状态待下一轮重裁) —— **QQ-08 单条 carve-out 不翻**(2026-09-21「状态重裁随 ADR-009 TR 全量复核轮,本文不预判」未撤;禁借绿) |
+| TR-itemdb-031 | 掉落实体的世界状态事件化边界 | ADR-009 + ADR-015 | ✅ **2026-09-23 ADR-009 复核轮 gap→covered**(用户裁定):ADR-009 §五 明文裁决掉落清单进世界流 / 位置表现态走 45,§GDD Requirements Addressed 表(`adr-009:876`)显式点名本条 → §五;位置侧 `spawn_anchor = WorldPos` 整数格由 ADR-015 §三 定型。原 2026-09-21「随 ADR-009 TR 全量复核轮重裁」carve-out 口径**本轮即为该复核,已执行结清**(非新裁决,是预挂口径的兑现) |
 | TR-itemdb-032 | 配置版本号与存档头联动 | ADR-010 + ADR-014 | ✅ 存档头联动(ADR-010 §七);装载与 `ConfigVersion` 派生归 ADR-014 §五 |
 
 ## 3. 随机事件导演 `design/gdd/random-events.md`(#52)| 32 条
@@ -1021,7 +1025,7 @@
 | TR-foraging-003 | 品级掷骰的全部输入可从事件流重构(零隐藏随机态) | ADR-007 | ✅ |
 | TR-foraging-004 | 采集散布的 CDF walk 算子以定点实现并绑 ADR-012 黄金夹具 | ADR-012 + ADR-006 | ⚠️ —— ️ OQ-17-10 未裁:CDF walk 夹具算子未在 ADR-012 夹具清单登记——执行体缺 |
 | TR-foraging-005 | 采集掉落 instance_id 由主机经 IIdAuthority 铸造(客户端不铸) | ADR-007 | ✅ |
-| TR-foraging-006 | 资源节点余量 = 前缀函数(历史采集事件序列的整数纯函数) | ADR-009 | ⚠️ —— ️ OQ-17-5 未裁:节点再生事件是否进流影响前缀定义 |
+| TR-foraging-006 | 资源节点余量 = 前缀函数(历史采集事件序列的整数纯函数) | ADR-009 | ⚠️ —— ️ OQ-17-5 未裁:节点再生事件是否进流影响前缀定义(措辞待与 `foraging.md:689` 对齐,归 foraging 下轮卫生)· **2026-09-23 ADR-009 复核轮:维持 partial 不翻**(OQ-17-5 open ⇒ 禁借绿,用户裁定)|
 | TR-foraging-007 | 采集资源点数据的 IDataProvider 驻留/切片策略 | ADR-014 | ⚠️ —— ️ OQ-17-7 未裁:资源点全图驻留还是按 chunk 切片(体量未估) |
 | TR-foraging-008 | 联机采集意图的上行通道(客户端意图 → 主机判定)须 ADR-001 一次窄修订 | ADR-001 | ❌ |
 
@@ -1165,7 +1169,7 @@
 
 | TR-ID | 需求 | ADR | 状态 |
 |-------|------|-----|------|
-| TR-medcons-001 | ConsequenceResolved 世界流事件(53 产出经主机 Append) | ADR-005 + ADR-009 | ⚠️ —— **✅ 2026-09-23 回写轮**:① 引用坐标已刷(`medical-consequences.md:206` 原「承 ADR-021 先例追加」= 幽灵引据,已挂归回写注;有效身份 = 直接 registry 登记,`OQ-53-7` 裁定 [A]);② 需求文本原写「病史流」= 陈旧错标 → 订正「世界流」(本事件实落世界流,承 `OQ-53-7` + `entities.yaml` `stream: world`)。**`status` 仍 `partial` 不翻**(缺的是逐条复核执行体,禁借绿)|
+| TR-medcons-001 | ConsequenceResolved 世界流事件(53 产出经主机 Append) | ADR-005 + ADR-009 | ✅ **2026-09-23 ADR-009 复核轮 partial→covered**(用户裁定)—— 回写轮自陈「缺的是逐条复核执行体」,本轮即执行该复核:① 引用坐标已刷(回写轮:幽灵引据订正为直接 registry 登记,`OQ-53-7` [A]);② 流别错标已订正「病史流」→「世界流」;③ 覆盖三源齐备 = ADR-005 主机唯一 `Append` + ADR-009 世界流事件化边界 + `entities.yaml` `stream: world` / `author: 53` 唯一写者(ADR-024 ① 真源)⇒ 转 `covered` |
 | TR-medcons-002 | Resolve = 纯函数(后果推导全部输入 ∈ 三源) | ADR-005 + ADR-016 | ✅ |
 | TR-medcons-003 | 延迟掷骰用 SplitMix64 自算 U(不消耗全局 RNG 序列位) | ADR-007 | ✅ |
 | TR-medcons-004 | 多后果聚合计全序(同 tick 并发按 (Tick,StreamPriority,Patient,Seq) 定序) | ADR-008 | ✅ |
@@ -1378,3 +1382,4 @@
 
 | 2026-09-23 | **QQ-08 + QQ-02 清账批(用户裁定路线 [A] —— 21a 簇 17 条翻转,零新 ADR)** | **计数翻转 17 条:328/500 → 334/500**(`yaml.safe_load` 复算自洽:334 ✅ / 76 ⚠️ / 77 ❌ / ◆13;ID 恒 500,零新增)。**三簇拆账(A=6 / B=11 / C=1)**:① **A 簇 6 条 gap→covered(带 ADR 指针 + 禁借绿注)**:`TR-itemdb-014`(ADR-009 Amendment J 三位 + registry `payload_schema` 真源,禁借绿:codec 跑绿归桌面 R-1)· `018`(ADR-009 字段命名白名单;E-8「未钉死」注就地过期)· `019`(**ADR-010 §五机制 A + QQ-02 回填 ADR-005 双方法**;`blocking`/`no_adr` 随缺口消解同批撤除)· `020`(ADR-005 主机唯一 `Step`/`Append` + ADR-009 §五 发放点)· `021`(ADR-008 三流全序键)· `028`(ADR-006 `ROUND_HALF_AWAY_FROM_ZERO` 全域适用)。② **B 簇 11 条 gap→◆ `no-adr-by-design`(用户裁定降级,非 `covered`+备注 —— 后者是 D-5 借绿反模式复活)**:`TR-itemdb-007/008/009/011/012/015/016/017/024/029/030`;归属件 = 21a GDD 自身(两表设计 Overview :54-72)+ ADR-014 烘焙管线声明的 data-core schema 落点 + §API Boundaries 跨系统边界行 + 已登记的 `Craft` constraint / 数值旋钮声明(逐条细注见 `tr-registry.yaml` 该批 `note`);**per-entry 保留语义**:015 对齐规则常数待 9 数值轮、017/030 为已登记边界形状、012 派生规则已登记、029 上限值 = 用户数值旋钮。**判据扩类** —— `traceability-index.md` 图例 ◆ 行就地扩第二类(**经用户逐簇裁定降级的 GDD 内部 schema / 跨系统边界形状**;**逐簇,非自动豁免**,其它系统 schema 簇仍须各自 QQ 式裁定)+ `gate-check` SKILL `:131` 同批同步。③ **C 簇 1 条 carve-out:`TR-itemdb-031` 字节不动**(2026-09-21「状态重裁随 ADR-009 TR 全量复核轮,本文不预判」未撤;**禁借绿**;仅 §2 表 ADR 格 `—`→`ADR-009 + ADR-015` 指针同步)。**QQ-02 同批结案**:`adr-005` `IIdAuthority` 回填 `ItemInstanceId Next()` 双方法(逐字承 ADR-010 §五 :313-314;原「尚无 ADR」TODO 过期消解)+ `architecture.md:723` 图解注 + `entities.yaml` D-21-26 注释关闭(**D-21-27「待回收」不在本批范围,不动**)。**陈旧面同批订正(承前轮遗漏,卫生非新裁)**:§汇总 itemdb 行 + 合计行 · 基线表头 `499/316/78/103`→`500/334/76/77+◆13` + 补登**第七次动**(Required ADR #4/#5,此前从未入表)与**第八次动**(QQ-08)历史行 · §5.4 标题 `89 条`→`77 条` + 21a / 技能行结案注 · 可推迟表 21a 行结案注(**推翻原「改 covered」建议 = D-5 反模式**,实际仪器 = ◆)· `:119` 簇表(21a 计数 19→21a 行刷新 + 技能行)· `:369` 技能契约行 · `:390` `IIdAuthority` 行 · §5.3 itemdb 行(`14|0|18`→`20|0|1 另◆11`,承既有 cov+partial 合并口径)+ 技能行(`1|0|7`→`8|0|0 ADR-026`)· 优先修复清单 `019/020/021/029` 行与 `skill-002` 行划结 · `requirements-traceability.md` Core 缺口计数 `93`→`76` + History 行 · 本件头注 + 图例 + §2 表 17 行 + changelog。**Foundation gate 零影响**(17 条全 `domain: Core`;Foundation gap 残余恰 = `[TR-itemdb-031]`)。**blocking 残余恰 = 2**(`TR-disease-022` / `TR-diag-013`,均仍 gap)。**本批零数值改动、零新 ADR**(机制数值冻结;schema 簇不走 `/architecture-decision`)。**audio-011/012 不在本批**(真 ADR 候选,另开小裁)。落点 9 件:tr-registry(17 条)· traceability-index(本件)· adr-005 · architecture.md · entities.yaml · requirements-traceability · gate-check(SKILL)· active.md(session-state)· 本批 commit |
 | 2026-09-23 | **ADR-028 小裁批(用户裁定「011 现裁,012 归 45 轮」)** | **计数翻转 1 条:334/500 → 335/500**(`yaml.safe_load` 复算自洽:335 ✅ / 76 ⚠️ / 76 ❌ / ◆13;ID 恒 500,零新增)。**新立 ADR-028**(世界语境声源归属,Accepted,`docs/architecture/adr-028-world-sound-source-ownership.md`)结清 `TR-audio-011` gap→covered(6 点裁决:44 持有运行期表现层声源池 / 零场景预摆承 ADR-023 ② 扩列 / 位置只读 `AudioCueDto.Cell`·远端 `IPositionalChannel` / 总线 = Ambience 世界语境子通道 / 生命周期 cue 驱动·同格 N 病人 N 声源·存在性不进三流 / 遮挡衰减增益归 44 调参旋钮数值归用户);撤 2026-09-21「登记不立件」裁定。**`TR-audio-012` 维持 gap 不翻**(归 45 的 GDD 轮,与 `QQ-14`/`OQ-10-9` 同族 ADR-001 窄修订,P1b 前;note 追加裁定文本;ADR-028 Ordering Note 明示排除)。**指针回填三处**:adr-018 Status 补注 · adr-023 ② 再增列 + S2 checkbox 扩充 · audio-system.md F-44.7 架构归属块。**011 `domain: Presentation` ⇒ Foundation gate 零影响**(残恰 = `[TR-itemdb-031]`)。**blocking 残余不变 = 2**(`TR-disease-022` / `TR-diag-013`)。**卫生同批(承 QQ-08 批遗漏,非新裁)**:`requirements-traceability.md` §Coverage Summary NO ADR 94 / ◆2 / 计数口径 328+76+94+◆2 三行刷为本批实测(消除 334+76+94+2=506≠500 矛盾)· `architecture.md` 头部 `22 份`→`25 份`、ADR 末号 `027(共 24)`→`028(共 25)`、Last Updated、基线行、第九次动历史行、§5.4 标题 `77 条`→`76 条` · `technical-preferences.md` ADR 日志 + 本日志状态 `001–028`。**本批零数值改动**(机制数值冻结)。落点 9 件:adr-028(new)· tr-registry(011 翻 + 012 注)· adr-018 · adr-023 · audio-system · traceability-index(本件)· requirements-traceability · architecture.md · technical-preferences |
+| 2026-09-23 | **ADR-009 TR 定向复核轮(用户裁定翻 031 + medcons-001,零新 ADR)** | **计数翻转 2 条:335/500 → 337/500**(`yaml.safe_load` 复算自洽:337 ✅ / 75 ⚠️ / 75 ❌ / ◆13;ID 恒 500,零新增)。**背景**:在 Epic 21 待建之际,`TR-itemdb-031` 是全案 Foundation 域唯一 `status: gap`(2026-09-21 QQ-08 轮刻意 carve-out「随 ADR-009 TR 全量复核轮重裁,本文不预判」);本复核轮即执行该预挂口径。**逐条裁定 3 条非绿 ADR-009 挂靠 TR**:① **`TR-itemdb-031` gap→covered** —— ADR-009 §五 明文裁决掉落清单(身份)进世界流 / 位置·物理轨迹表现态走 45 网络层,且 §GDD Requirements Addressed 表(`adr-009-world-state-event-boundary.md:876`)显式点名 `TR-itemdb-031` → §五;位置侧 `spawn_anchor = WorldPos` 整数格由 ADR-015 §三 定型;原 carve-out 口径**本轮兑现,非新裁决**。② **`TR-medcons-001` partial→covered** —— 回写轮(2026-09-23 早批)自陈「缺的是逐条复核执行体,禁借绿」,本复核执行后确认覆盖三源齐备(ADR-005 主机唯一 `Append` + ADR-009 世界流事件化边界 + `entities.yaml` `stream: world`/`author: 53` 唯一写者,ADR-024 ① 真源),且幽灵引据与流别错标均已在回写轮订正 ⇒ 转 `covered`。③ **`TR-foraging-006` 维持 partial 不翻**(用户裁定)—— OQ-17-5(`foraging.md:689`)仍 open ⇒ 禁借绿;同批登记一处措辞卫生项(registry note 写「节点再生事件是否进流」vs GDD 实写「实现落点:现算 vs 缓存」,归 foraging 下轮,本批不动状态)。**Foundation 门就此转绿**:031 是 Foundation 域唯一 gap,翻 covered 后 `domain: Foundation ∧ status: gap` 实测 **= 0**(gate-check 质量项「zero Foundation layer gaps」达成)。**blocking 残余不变 = 2**(`TR-disease-022` / `TR-diag-013`,均 Core 域仍 gap)。**零新 ADR、零数值改动**(机制数值冻结;本复核只裁 status,不新立裁决文件)。落点 5 件:tr-registry(3 条)· traceability-index(本件)· requirements-traceability · architecture.md · active.md(session-state) |

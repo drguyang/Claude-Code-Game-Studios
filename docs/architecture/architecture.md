@@ -79,7 +79,7 @@
 > `docs/CLAUDE.md` 禁重编号,且 `/architecture-review` 是本注册表的唯一所有者。
 
 ```
-500 条 TR  |  335 covered  |  76 partial  |  76 gap + 13 no-adr-by-design  (✅ 2026-09-23 ADR-028 小裁批后 registry 实测;同日前序 QQ-08 清账批后值 334/76/77/◆13;同日 #4/#5 兑现轮后值 328/76/94/◆2;回写轮后 318/77/103/◆2;D-R3 批次后 314/79/104;批次前 387/245/51/89/◆2)
+500 条 TR  |  337 covered  |  75 partial  |  75 gap + 13 no-adr-by-design  (✅ 2026-09-23 ADR-009 TR 复核轮后 registry 实测;同日前序 ADR-028 小裁批后值 335/76/76/◆13;同日 QQ-08 清账批后值 334/76/77/◆13;同日 #4/#5 兑现轮后值 328/76/94/◆2;回写轮后 318/77/103/◆2;D-R3 批次后 314/79/104;批次前 387/245/51/89/◆2)
 按运行期层(本蓝图 §System Layer Map 的 Axis B 归并)
 ```
 
@@ -116,6 +116,21 @@
 > 口径 gap 残余仍恰 = `[TR-itemdb-031]`)。**卫生同批**:头部 ADR 计数 `22 份`→`25 份`、
 > 末号 `027(共 24)`→`028(共 25)`、Last Updated 刷日;`requirements-traceability.md`
 > §Coverage Summary 三行漏刷订正(消除 334+76+94+2=506≠500 矛盾);本件 §5.4 标题 77→76。
+> ⚠️ 下表分层数字**不随本批重算**(Axis B 归并口径的逐条重归属仍归 `/architecture-review`)。
+> **2026-09-23 第十次动(ADR-009 TR 定向复核轮 · 用户裁定翻 031 + medcons-001,零新 ADR)**:
+> 2 条 TR 翻转 —— `TR-itemdb-031` **gap→covered**(2026-09-21 QQ-08 轮 carve-out「随 ADR-009 TR 全量
+> 复核轮重裁」的预挂口径**本轮兑现**:ADR-009 §五 + §GDD Requirements Addressed 表 `adr-009:876`
+> 显式点名本条,ADR-015 §三 定位置侧 `spawn_anchor = WorldPos` 整数格)+ `TR-medcons-001`
+> **partial→covered**(回写轮自陈「缺逐条复核执行体」,本复核执行后三源齐备 = ADR-005 主机唯一
+> `Append` + ADR-009 世界流事件化边界 + `entities.yaml` `stream: world`/`author: 53` 唯一写者)
+> ⇒ **335 → 337 / 76 → 75 / 76 → 75**(**ID 恒 500**;◆13 不变)。
+> `TR-foraging-006` **维持 partial 不翻**(OQ-17-5 open ⇒ 禁借绿,用户裁定)。
+> **Foundation `domain` 口径 gap 残余自此 = 0**(`TR-itemdb-031` 是 Foundation 域唯一 gap,翻 covered 后
+> `domain: Foundation ∧ status: gap` 实测 = 0)⇒ gate-check 质量项「zero Foundation layer gaps」**门转绿**。
+> **卫生同批**:头部 ADR 计数不动(仍 25 份,本批零新 ADR)、Last Updated 刷日、基线行刷 337/75/75、
+> 本件 §5.4 标题 76→75 + 21a 簇行清零、§5.3 `itemdb` 行 gap 1→0 / cov 20→21;
+> `requirements-traceability.md` / `traceability-index.md` 同批刷计数。
+> **blocking 残余不变 = 2**(`TR-disease-022` / `TR-diag-013`,均 Core 域仍 gap)。**零新 ADR、零数值改动**。
 > ⚠️ 下表分层数字**不随本批重算**(Axis B 归并口径的逐条重归属仍归 `/architecture-review`)。
 > 下表的分层数字**尚未按 C4 重算** —— 8 条按注册表 `domain` 落 Core ×5 / Feature ×2 / Presentation ×1,
 > 而本表用的是 **Axis B 归并口径**(≠ `domain` 字段),逐条重归属归 `/architecture-review`。
@@ -998,7 +1013,7 @@ Required New ADRs 的落点上**(ADR-009 / 014 / 010 三份都被新 ADR 引用)
 
 | TR 组 | 系统 | 层 | 总数 | ✅ cov | ⚠️ part | ❌ gap | 承重 ADR |
 |---|---|---|---|---|---|---|---|
-| `itemdb` | 21 物品与配方数据库 | F | 32 | 20 | 0 | **1**(另 **◆11** —— 2026-09-23 QQ-08;cov 含 partial 1 条合并计;`031` carve-out 留 gap)| ADR-006 · ADR-010 · ADR-009 · ADR-008 · ADR-014(并列权威,按簇分工)|
+| `itemdb` | 21 物品与配方数据库 | F | 32 | 21 | 0 | **0**(另 **◆11** —— 2026-09-23 QQ-08;cov 含 partial 1 条合并计;同日 ADR-009 复核轮 `031` gap→covered,残 ❌ 清零)| ADR-006 · ADR-010 · ADR-009 · ADR-008 · ADR-014(并列权威,按簇分工)|
 | `skill` | 30 技能与熟练度 | F | 8 | 8 | 0 | 0 | **ADR-026**(2026-09-23 Required #4)|
 | `input` | 3 输入与设备 | F | 21 | 17 | 0 | **4** | ADR-011(18 条)|
 | `diag` | 8 诊断与体征揭示 | C | 25 | 14 | 0 | **11** | ADR-018(5)· ADR-013(2)+ |
@@ -1026,11 +1041,11 @@ Required New ADRs 的落点上**(ADR-009 / 014 / 010 三份都被新 ADR 引用)
 **这是 `systems-index.md` 自身的一处不一致**(行 38 写 Core / 行 509 写 Foundation),
 已入 §5.5 的登记层缺陷清单。
 
-### 5.4 76 条 gap 的分组与处置(**2026-09-23 ADR-028 小裁批后**;本表建立时为 93,2026-09-21 ◆ 轮后为 89,同日 #4/#5 兑现轮与 QQ-08 合流后为 77,同日 ADR-028 小裁批再 −1(`TR-audio-011`)后为 76 —— 逐簇残余见下,簇间合流勿纵向相加旧值)
+### 5.4 75 条 gap 的分组与处置(**2026-09-23 ADR-009 TR 复核轮后**;本表建立时为 93,2026-09-21 ◆ 轮后为 89,同日 #4/#5 兑现轮与 QQ-08 合流后为 77,同日 ADR-028 小裁批再 −1(`TR-audio-011`)后为 76,同日 ADR-009 复核轮再 −1(`TR-itemdb-031`)后为 75 —— 逐簇残余见下,簇间合流勿纵向相加旧值)
 
 | 簇 | 条数 | 代表 | 处置 |
 |---|---|---|---|
-| **21a schema / 边界** | **1**(原 18) | 残余 = `TR-itemdb-031`;原 18 ID 见左 | ⭑ **QQ-08 结案(2026-09-23,用户裁定路线 [A])**:6 条 gap→covered(014/018/019/020/021/028,带 ADR 指针 + 禁借绿注)· 11 条 gap→◆ `no-adr-by-design`(**逐簇裁定,非 covered+备注** —— 后者是 D-5 反模式)· `031` 单条 carve-out 留 gap(状态重裁随 ADR-009 TR 复核轮,本文不预判)。**原「建议显式降级…status: gap 改 covered」建议就此作废**(仪器错误,实际 = ◆)|
+| **21a schema / 边界** | **0**(原 18) | 已清零 —— `TR-itemdb-031` 于 2026-09-23 ADR-009 复核轮 gap→covered;原 18 ID 见左 | ⭑ **QQ-08 结案(2026-09-23,用户裁定路线 [A])**:6 条 gap→covered(014/018/019/020/021/028,带 ADR 指针 + 禁借绿注)· 11 条 gap→◆ `no-adr-by-design`(**逐簇裁定,非 covered+备注** —— 后者是 D-5 反模式)· `031` 单条 carve-out 留 gap → **同日 ADR-009 复核轮兑现翻 covered**(预挂口径「状态重裁随 ADR-009 TR 复核轮」已执行)⇒ **本簇清零**。**原「建议显式降级…status: gap 改 covered」建议就此作废**(仪器错误,实际 = ◆)|
 | **52 事件导演** | **15** ↓(原 17 —— `010` / `031` 两条 2026-09-20 随 Required ADR #2/#3 兑现转 covered,见下行与 `requirements-traceability.md`) | `TR-randomevents-003/008/010/011/014/015/016/017/020/022/023/025/026/027/030/031` | 半数已由 ADR-007 / 016 / 019 定**边界**,未定的是**算法与表**(Hamilton 配额 / CDF walk / 事件池 / 冷却窗口)。`010` / `031`(**asmdef + 构建期校验体系**)是**跨系统 Foundation 项**,见 §Required ADRs |
 | **8 诊断铁律** | 11 | `TR-diag-002/004/006/008/009/010/011/012/013/014/015` | 铁律①③⑤ 是**接口边界**(「8 与 11 无数据流」),机制已由 ADR-013 §三 `PresentationDtoGuard` + ADR-018 覆盖 ⇒ **缺的是 39 脉案 GDD 侧的落地**,非新 ADR |
 | **30 技能成长** | **0**(原 7) | `TR-skill-001…007` | ⭑ **已清零(2026-09-23,Required ADR #4 = ADR-026)** —— 八条全 covered(含原认定的「唯一真正的 Foundation 级裸缺口」`TR-skill-002`)。本行留档不删 |

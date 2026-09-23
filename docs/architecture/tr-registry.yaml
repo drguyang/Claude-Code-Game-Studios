@@ -617,15 +617,19 @@
     requirement: 掉落实体的世界状态事件化边界
     domain: Foundation
     adr: ADR-009 + ADR-015
-    status: gap
+    status: covered
     suggested_adr: R-1 (世界状态的事件化边界)
-    note: "边界本身由 ADR-009 §五 定(身份进流 / 位置表现);**位置侧**坐标形状由 ADR-015 §三 定(spawn_anchor = WorldPos 整数格)。本条状态重裁随 ADR-009 的 TR 全量复核(下一轮)一并处理 —— 本文不预判
+    note: "边界本身由 ADR-009 §五 定(身份进流 / 位置表现);**位置侧**坐标形状由 ADR-015 §三 定(spawn_anchor = WorldPos 整数格)。
       **2026-09-21 `adr:` 回写(gate-check 门 TD/PR 同批指出的登记层漏刷)**:原 `adr: null` 与本条
       note 自陈的「已由 ADR-009 §五 + ADR-015 §三 定」**互相矛盾** —— 两份件均 Accepted,覆盖存在,
-      缺的只是 registry 的指针。⚠️ **本回写只补指针,不翻 `status`**(承下行「不预判」原口径 +
-      禁借绿家规):`gap` 保留至 ADR-009 TR 全量复核轮逐条判。与 `TR-interaction-015`(2026-09-20
-      补 `adr:` 而 `partial` 不动)同型。"
-    revised: "2026-09-21"
+      缺的只是 registry 的指针(该回写本身只补指针,当时不翻 `status`)。
+      **✅ 2026-09-23 ADR-009 TR 复核轮(用户裁定)**:`status: gap → covered`。
+      复核依据 = ADR-009 §五 明文裁决掉落清单(身份)进世界流、位置 / 物理轨迹表现态走 45 网络层,
+      且 §GDD Requirements Addressed 表(`adr-009-world-state-event-boundary.md:876`)显式点名
+      `TR-itemdb-031` → §五;位置侧 `spawn_anchor` 为 `WorldPos` 整数格由 ADR-015 §三 定型。
+      原「状态重裁随 ADR-009 TR 全量复核轮」的 carve-out 口径**本轮即为该复核轮,已执行并结清** ——
+      非新裁决,是 2026-09-21 预挂口径的兑现。零阻塞 OQ。"
+    revised: "2026-09-23"
 
   - id: TR-itemdb-032
     system: item-database
@@ -3971,7 +3975,7 @@
     domain: Core
     adr: ADR-009
     status: partial
-    note: "D-R3 回填(2026-09-21)。派生态判据成立(ADR-009 §四 + ADR-015 烘焙输入),⚠️ OQ-17-5 未裁:节点再生事件是否进流影响前缀定义。"
+    note: "D-R3 回填(2026-09-21)。派生态判据成立(ADR-009 §四 + ADR-015 烘焙输入),⚠️ OQ-17-5 未裁:节点再生事件是否进流影响前缀定义。**2026-09-23 ADR-009 TR 复核轮(用户裁定):维持 `partial` 不翻** —— OQ-17-5(`foraging.md:689`「实现落点:现算 vs 缓存」)仍 open ⇒ 禁借绿。⚠️ 登记层 note 与 `foraging.md:689` 对 OQ-17-5 的措辞不一致(此处写「节点再生事件是否进流」,GDD 实写「实现落点」)—— 两处均为 open,不影响本裁,措辞对齐归 foraging 下轮卫生,本批不动。"
   - id: TR-foraging-007
     system: foraging
     gdd: design/gdd/foraging.md
@@ -4650,8 +4654,9 @@
     requirement: "ConsequenceResolved 世界流事件(53 产出经主机 Append)"
     domain: Core
     adr: ADR-005 + ADR-009
-    status: partial
-    note: "D-R3 回填(2026-09-21)。Kind 已在 registry 有登(实测 entities.yaml 在册,`stream: world`)。**✅ 2026-09-23 回写轮**:① 53 GDD 侧引用坐标已刷 —— `medical-consequences.md:206` 原「承 ADR-021 先例追加」= 幽灵引据(该通道从未对本 Kind 裁定 · ADR-009 最后一条 Amendment 是 L · 且该通道已由 ADR-024 ③ 退役),已挂归回写注(有效身份 = 直接 registry 登记,`OQ-53-7` 裁定 [A]);② 本条 `requirement` 文本原写「**病史流**」= 陈旧错标 —— 本事件实为**世界流**(承 `OQ-53-7` 2026-09-19 裁定 + `entities.yaml` `stream: world` + 53 GDD §八),已就地订正为「世界流」(不预判 `status`,仍 `partial` —— 缺的是逐条复核执行体,禁借绿)。"
+    status: covered
+    note: "D-R3 回填(2026-09-21)。Kind 已在 registry 有登(实测 entities.yaml 在册,`stream: world`)。**✅ 2026-09-23 回写轮**:① 53 GDD 侧引用坐标已刷 —— `medical-consequences.md:206` 原「承 ADR-021 先例追加」= 幽灵引据(该通道从未对本 Kind 裁定 · ADR-009 最后一条 Amendment 是 L · 且该通道已由 ADR-024 ③ 退役),已挂归回写注(有效身份 = 直接 registry 登记,`OQ-53-7` 裁定 [A]);② 本条 `requirement` 文本原写「**病史流**」= 陈旧错标 —— 本事件实为**世界流**(承 `OQ-53-7` 2026-09-19 裁定 + `entities.yaml` `stream: world` + 53 GDD §八),已就地订正为「世界流」(该轮不预判 `status`,仍 `partial`)。
+      **✅ 2026-09-23 ADR-009 TR 复核轮(用户裁定)**:`status: partial → covered` —— 回写轮自陈「缺的是逐条复核执行体」,本轮即执行该复核:覆盖完整 = ADR-005(主机唯一 `Append` / `Step`)+ ADR-009(世界流事件化边界,`ConsequenceResolved` 落世界流属其管辖面)+ entities.yaml 直接登记(`stream: world`,`author: 53` 唯一写者,ADR-024 ① 真源)+ 幽灵引据与流别错标均已在回写轮订正。三源齐备 ⇒ 转 `covered`。零阻塞 OQ。"
   - id: TR-medcons-002
     system: medical-consequences
     gdd: design/gdd/medical-consequences.md
