@@ -34,7 +34,7 @@ namespace DaYiJingCheng.Sim.Codec
             long tick = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(ActorCellEntered), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.ActorCellEntered), ref seen))
                 {
                     case 1: actorId = r.ReadInt32LittleEndian(); break;
                     case 2: cell = r.ReadFieldWorldPos(); break;
@@ -42,7 +42,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"ActorCellEntered: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(ActorCellEntered), seen, (1u << 3) - 1);
+            RequireCompleteMask(nameof(EventKind.ActorCellEntered), seen, (1u << 3) - 1);
             r.EnsureFullyConsumed();
             return new ActorCellEnteredPayload(actorId, cell, tick);
         }
@@ -69,7 +69,7 @@ namespace DaYiJingCheng.Sim.Codec
             int nodeId = 0, gatherSeq = 0, qty = 0, outQuality = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(ResourceHarvested), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.ResourceHarvested), ref seen))
                 {
                     case 1: instanceId = r.ReadInt64LittleEndian(); break;
                     case 2: nodeId = r.ReadInt32LittleEndian(); break;
@@ -79,7 +79,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"ResourceHarvested: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(ResourceHarvested), seen, (1u << 5) - 1);
+            RequireCompleteMask(nameof(EventKind.ResourceHarvested), seen, (1u << 5) - 1);
             r.EnsureFullyConsumed();
             return new ResourceHarvestedPayload(instanceId, nodeId, gatherSeq, qty, outQuality);
         }
@@ -106,7 +106,7 @@ namespace DaYiJingCheng.Sim.Codec
             int itemKey = 0, qty = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(DropSpawned), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.DropSpawned), ref seen))
                 {
                     case 1: instanceId = r.ReadInt64LittleEndian(); break;
                     case 2: spawnAnchor = r.ReadFieldWorldPos(); break;
@@ -115,7 +115,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"DropSpawned: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(DropSpawned), seen, (1u << 4) - 1);
+            RequireCompleteMask(nameof(EventKind.DropSpawned), seen, (1u << 4) - 1);
             r.EnsureFullyConsumed();
             return new DropSpawnedPayload(instanceId, spawnAnchor, itemKey, qty);
         }
@@ -140,7 +140,7 @@ namespace DaYiJingCheng.Sim.Codec
             int claimer = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(DropClaimed), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.DropClaimed), ref seen))
                 {
                     case 1: instanceId = r.ReadInt64LittleEndian(); break;
                     case 2: claimer = r.ReadInt32LittleEndian(); break;
@@ -148,7 +148,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"DropClaimed: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(DropClaimed), seen, (1u << 3) - 1);
+            RequireCompleteMask(nameof(EventKind.DropClaimed), seen, (1u << 3) - 1);
             r.EnsureFullyConsumed();
             return new DropClaimedPayload(instanceId, claimer, tick);
         }
@@ -173,7 +173,7 @@ namespace DaYiJingCheng.Sim.Codec
             int qty = 0, reason = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(DropDespawned), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.DropDespawned), ref seen))
                 {
                     case 1: instanceId = r.ReadInt64LittleEndian(); break;
                     case 2: qty = r.ReadInt32LittleEndian(); break;
@@ -181,7 +181,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"DropDespawned: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(DropDespawned), seen, (1u << 3) - 1);
+            RequireCompleteMask(nameof(EventKind.DropDespawned), seen, (1u << 3) - 1);
             r.EnsureFullyConsumed();
             return new DropDespawnedPayload(instanceId, qty, reason);
         }
@@ -231,7 +231,7 @@ namespace DaYiJingCheng.Sim.Codec
             WorldPos toolCell = default;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(Craft), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.Craft), ref seen))
                 {
                     case 1: actorId = r.ReadInt32LittleEndian(); break;
                     case 2: recipeId = r.ReadInt32LittleEndian(); break;
@@ -246,7 +246,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"Craft: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(Craft), seen, (1u << 10) - 1);
+            RequireCompleteMask(nameof(EventKind.Craft), seen, (1u << 10) - 1);
             r.EnsureFullyConsumed();
             if (actualConsumed.Length != inputInstanceIds.Length)
                 throw new InvalidDataException(
@@ -283,7 +283,7 @@ namespace DaYiJingCheng.Sim.Codec
             int moduleId = 0, orientation = 0, variant = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(StructurePlaced), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.StructurePlaced), ref seen))
                 {
                     case 1: structureId = r.ReadInt64LittleEndian(); break;
                     case 2: cell = r.ReadFieldWorldPos(); break;
@@ -293,7 +293,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"StructurePlaced: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(StructurePlaced), seen, (1u << 5) - 1);
+            RequireCompleteMask(nameof(EventKind.StructurePlaced), seen, (1u << 5) - 1);
             r.EnsureFullyConsumed();
             return new StructurePlacedPayload(structureId, cell, moduleId, orientation, variant);
         }
@@ -322,7 +322,7 @@ namespace DaYiJingCheng.Sim.Codec
             int moduleId = 0, newOrientation = 0, newVariant = 0, modifiedFields = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(StructureModified), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.StructureModified), ref seen))
                 {
                     case 1: structureId = r.ReadInt64LittleEndian(); break;
                     case 2: cell = r.ReadFieldWorldPos(); break;
@@ -333,7 +333,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"StructureModified: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(StructureModified), seen, (1u << 6) - 1);
+            RequireCompleteMask(nameof(EventKind.StructureModified), seen, (1u << 6) - 1);
             r.EnsureFullyConsumed();
             return new StructureModifiedPayload(structureId, cell, moduleId, newOrientation, newVariant, modifiedFields);
         }
@@ -359,7 +359,7 @@ namespace DaYiJingCheng.Sim.Codec
             int moduleId = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(StructureRemoved), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.StructureRemoved), ref seen))
                 {
                     case 1: structureId = r.ReadInt64LittleEndian(); break;
                     case 2: cell = r.ReadFieldWorldPos(); break;
@@ -367,7 +367,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"StructureRemoved: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(StructureRemoved), seen, (1u << 3) - 1);
+            RequireCompleteMask(nameof(EventKind.StructureRemoved), seen, (1u << 3) - 1);
             r.EnsureFullyConsumed();
             return new StructureRemovedPayload(structureId, cell, moduleId);
         }
@@ -390,14 +390,14 @@ namespace DaYiJingCheng.Sim.Codec
             int poiId = 0, newState = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(PoiStateChanged), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.PoiStateChanged), ref seen))
                 {
                     case 1: poiId = r.ReadInt32LittleEndian(); break;
                     case 2: newState = r.ReadInt32LittleEndian(); break;
                     default: throw new InvalidDataException($"PoiStateChanged: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(PoiStateChanged), seen, (1u << 2) - 1);
+            RequireCompleteMask(nameof(EventKind.PoiStateChanged), seen, (1u << 2) - 1);
             r.EnsureFullyConsumed();
             return new PoiStateChangedPayload(poiId, newState);
         }
@@ -426,7 +426,7 @@ namespace DaYiJingCheng.Sim.Codec
             long tick = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EnemyInjuryOnset), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.EnemyInjuryOnset), ref seen))
                 {
                     case 1: actorId = r.ReadInt32LittleEndian(); break;
                     case 2: targetId = r.ReadInt32LittleEndian(); break;
@@ -437,7 +437,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"EnemyInjuryOnset: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(EnemyInjuryOnset), seen, (1u << 6) - 1);
+            RequireCompleteMask(nameof(EventKind.EnemyInjuryOnset), seen, (1u << 6) - 1);
             r.EnsureFullyConsumed();
             return new EnemyInjuryOnsetPayload(actorId, targetId, injuryId, magnitude, tick, doseSeq);
         }
@@ -460,14 +460,14 @@ namespace DaYiJingCheng.Sim.Codec
             int actorId = 0, newState = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(InjuryStateChanged), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.InjuryStateChanged), ref seen))
                 {
                     case 1: actorId = r.ReadInt32LittleEndian(); break;
                     case 2: newState = r.ReadInt32LittleEndian(); break;
                     default: throw new InvalidDataException($"InjuryStateChanged: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(InjuryStateChanged), seen, (1u << 2) - 1);
+            RequireCompleteMask(nameof(EventKind.InjuryStateChanged), seen, (1u << 2) - 1);
             r.EnsureFullyConsumed();
             return new InjuryStateChangedPayload(actorId, newState);
         }
@@ -496,7 +496,7 @@ namespace DaYiJingCheng.Sim.Codec
             int[] actorIds = null;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EncounterStarted), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.EncounterStarted), ref seen))
                 {
                     case 1: encounterId = r.ReadInt32LittleEndian(); break;
                     case 2: protoId = r.ReadInt32LittleEndian(); break;
@@ -505,7 +505,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"EncounterStarted: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(EncounterStarted), seen, (1u << 4) - 1);
+            RequireCompleteMask(nameof(EventKind.EncounterStarted), seen, (1u << 4) - 1);
             r.EnsureFullyConsumed();
             return new EncounterStartedPayload(encounterId, protoId, spawnCell, actorIds);
         }
@@ -528,14 +528,14 @@ namespace DaYiJingCheng.Sim.Codec
             int encounterId = 0, reason = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(EncounterEnded), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.EncounterEnded), ref seen))
                 {
                     case 1: encounterId = r.ReadInt32LittleEndian(); break;
                     case 2: reason = r.ReadInt32LittleEndian(); break;
                     default: throw new InvalidDataException($"EncounterEnded: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(EncounterEnded), seen, (1u << 2) - 1);
+            RequireCompleteMask(nameof(EventKind.EncounterEnded), seen, (1u << 2) - 1);
             r.EnsureFullyConsumed();
             return new EncounterEndedPayload(encounterId, reason);
         }
@@ -558,14 +558,14 @@ namespace DaYiJingCheng.Sim.Codec
             int outcome = 0, patientId = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(ConsequenceResolved), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.ConsequenceResolved), ref seen))
                 {
                     case 1: outcome = r.ReadInt32LittleEndian(); break;
                     case 2: patientId = r.ReadInt32LittleEndian(); break;
                     default: throw new InvalidDataException($"ConsequenceResolved: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(ConsequenceResolved), seen, (1u << 2) - 1);
+            RequireCompleteMask(nameof(EventKind.ConsequenceResolved), seen, (1u << 2) - 1);
             r.EnsureFullyConsumed();
             return new ConsequenceResolvedPayload(outcome, patientId);
         }
@@ -591,7 +591,7 @@ namespace DaYiJingCheng.Sim.Codec
             long tick = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(PlayerDied), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.PlayerDied), ref seen))
                 {
                     case 1: actorId = r.ReadInt32LittleEndian(); break;
                     case 2: deathCell = r.ReadFieldWorldPos(); break;
@@ -599,7 +599,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"PlayerDied: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(PlayerDied), seen, (1u << 3) - 1);
+            RequireCompleteMask(nameof(EventKind.PlayerDied), seen, (1u << 3) - 1);
             r.EnsureFullyConsumed();
             return new PlayerDiedPayload(actorId, deathCell, tick);
         }

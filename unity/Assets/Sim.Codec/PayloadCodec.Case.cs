@@ -29,14 +29,14 @@ namespace DaYiJingCheng.Sim.Codec
             ulong bits = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(CaseOpened), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.CaseOpened), ref seen))
                 {
                     case 1: patientId = r.ReadInt32LittleEndian(); break;
                     case 2: bits = r.ReadUInt64LittleEndian(); break;
                     default: throw new InvalidDataException($"CaseOpened: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(CaseOpened), seen, (1u << 2) - 1);
+            RequireCompleteMask(nameof(EventKind.CaseOpened), seen, (1u << 2) - 1);
             r.EnsureFullyConsumed();
             return new CaseOpenedPayload(patientId, new DiseaseIdSet(bits));
         }
@@ -64,7 +64,7 @@ namespace DaYiJingCheng.Sim.Codec
             bool treated = false;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(CaseClosed), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.CaseClosed), ref seen))
                 {
                     case 1: patientId = r.ReadInt32LittleEndian(); break;
                     case 2: caseId = r.ReadFieldCaseId(); break;
@@ -73,7 +73,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"CaseClosed: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(CaseClosed), seen, (1u << 4) - 1);
+            RequireCompleteMask(nameof(EventKind.CaseClosed), seen, (1u << 4) - 1);
             r.EnsureFullyConsumed();
             return new CaseClosedPayload(patientId, caseId, new DiseaseIdSet(bits), treated);
         }
@@ -101,7 +101,7 @@ namespace DaYiJingCheng.Sim.Codec
             ulong saltedKey = 0, memberBits = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(PatternRecognized), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.PatternRecognized), ref seen))
                 {
                     case 1: patientId = r.ReadInt32LittleEndian(); break;
                     case 2: anchorCase = r.ReadFieldCaseId(); break;
@@ -111,7 +111,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"PatternRecognized: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(PatternRecognized), seen, (1u << 5) - 1);
+            RequireCompleteMask(nameof(EventKind.PatternRecognized), seen, (1u << 5) - 1);
             r.EnsureFullyConsumed();
             return new PatternRecognizedPayload(patientId, anchorCase, saltedKey, new DiseaseIdSet(memberBits), version);
         }
@@ -141,7 +141,7 @@ namespace DaYiJingCheng.Sim.Codec
             byte confidence = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(JudgmentRecorded), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.JudgmentRecorded), ref seen))
                 {
                     case 1: patientId = r.ReadInt32LittleEndian(); break;
                     case 2: caseId = r.ReadFieldCaseId(); break;
@@ -152,7 +152,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"JudgmentRecorded: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(JudgmentRecorded), seen, (1u << 6) - 1);
+            RequireCompleteMask(nameof(EventKind.JudgmentRecorded), seen, (1u << 6) - 1);
             r.EnsureFullyConsumed();
             return new JudgmentRecordedPayload(patientId, caseId, authorPlayerId, lexiconId, confidence);
         }
@@ -181,7 +181,7 @@ namespace DaYiJingCheng.Sim.Codec
             byte confidence = 0;
             while (r.HasMore)
             {
-                switch (ReadTagChecked(r, nameof(JudgmentRevised), ref seen))
+                switch (ReadTagChecked(r, nameof(EventKind.JudgmentRevised), ref seen))
                 {
                     case 1: patientId = r.ReadInt32LittleEndian(); break;
                     case 2: caseId = r.ReadFieldCaseId(); break;
@@ -192,7 +192,7 @@ namespace DaYiJingCheng.Sim.Codec
                     default: throw new InvalidDataException($"JudgmentRevised: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(JudgmentRevised), seen, (1u << 6) - 1);
+            RequireCompleteMask(nameof(EventKind.JudgmentRevised), seen, (1u << 6) - 1);
             r.EnsureFullyConsumed();
             return new JudgmentRevisedPayload(patientId, caseId, authorPlayerId, lexiconId, confidence);
         }
