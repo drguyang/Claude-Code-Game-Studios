@@ -3,6 +3,7 @@
     "rootNamespace": "DaYiJingCheng.Tests.Unit.Sim",
     "optionalUnityReferences": [ "TestAssemblies" ],
     "references": [
+        "GUID:49b36e3ee94a392fe97bd7fe76bb27fb",
         "GUID:f1e625c719f6812dcae9009189e8b2c0",
         "GUID:889729f8d83bd367f998fad31848b45b",
         "GUID:09b3130c3cce749c78793250d6d191f4"

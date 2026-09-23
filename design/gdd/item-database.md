@@ -510,6 +510,11 @@ The recipe settlement formula is defined as:**逐 `outputs[i]` 套用**(三轮 b
 > (`0.3 × 30 / 60` 在整数除法下 = `0`),`SkillMod` 退化成**两段阶跃**(0 或满值)—— 曲线死亡。
 > **正解**:`cap` 本身是 Q16.16 原始量(如 `0.3` → `19661`),
 > `SkillMod_raw = cap_raw × Level / SKILL_CAP`(先乘后除,全程 `long`)—— `19661 × 30 / 60 = 9830` ✓。
+> ⚠️ **2026-09-24 订正(算式口径)**:上例的 `9830` 是**截断**写法,与本节 `:463` 及
+> **ADR-006 §Decision 三**(Accepted)的「全部舍入 `ROUND_HALF_AWAY_FROM_ZERO`」**不一致** ——
+> 按舍入契约,`19661 × 30 / 60 = 9830.5` 中点远离零 ⇒ 实际结果 = **`9831`**。
+> **规则优先于示例**:实现(Story 003 `CurveScaled`)取 `9831` 为准。本示范数保留原文以留闭环记录,
+> 但**不得**据它写黄金期望值(差 1 raw LSB = 1/65536,刀刃情形可使某条 `OutputQty` 差 1)。
 > **同一条纪律适用于 `QualityMod` 与 `Retain`/`EFF` 的插值**(`EFF = EFF_MIN + (EFF_MAX − EFF_MIN) × S / SKILL_CAP`)
 > —— **只有最后落到出参时才一次性舍入**(ADR-006 §Decision 三)。这就是本文开头那条「整数域纪律」的具体含义。
 

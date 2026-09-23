@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-09-23
 
 ## Context
 
@@ -127,7 +127,11 @@
 - Logic: `tests/unit/item_database/recipe_settlement_solver_test.cs` — must exist and pass
 - Integration (AC-5/6): `tests/integration/item_database/recipe_settlement_solver_test.cs`
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 落点见下(Unity 只编译 `unity/Assets/` 树)
+- Logic(AC-1/2/3/4/47): `unity/Assets/Tests/EditMode/ItemDatabase/recipe_settlement_solver_test.cs`(装配 `Sim.Contracts.Tests`)
+- Integration(AC-5/6): `unity/Assets/Tests/PlayMode/recipe_settlement_solver_test.cs`(装配 `Gameplay.Tests`)
+- **执行状态**: 【超算】无 Unity Editor ⇒ EditMode / PlayMode 均 **NOT-RUN**;须【桌面】打开 Unity 生成 `.meta` 后跑(承 Story 001/002 先例)
+- **AC-21a-47(ADVISORY)**: 计时证据落 `production/qa/smoke-[date].md`,该目录**尚未建立** ⇒ 证据未生成(登记,不借绿)
 
 ---
 
