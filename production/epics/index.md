@@ -7,3 +7,4 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 |------|-------|--------|-----|---------|--------|
 | item-database | Foundation | 21 物品与配方数据库 | design/gdd/item-database.md | Not yet created | Ready |
 | input-system | Foundation | 3 输入与设备 | design/gdd/input-system.md | Not yet created | Ready |
+| skill-system | Foundation | 30 技能与熟练度 | design/gdd/skill-system.md | Not yet created | Ready |
