@@ -36,6 +36,18 @@ namespace DaYiJingCheng.Sim.Contracts
         /// <summary>唯一浮点出口。调用点受构建期白名单约束(见文件头)。</summary>
         public float ToFloat() => (float)_raw / OneRaw;
 
+        /// <summary>整数舍入(Q16.16 → 整数),统一模式 ROUND_HALF_AWAY_FROM_ZERO,
+        /// 纯整数域内完成 —— ADR-006 §Decision 三 · AC-21a-42。
+        /// <para>中点远离零:Round(0.5)=1 · Round(−0.5)=−1 · Round(1.5)=2 · Round(2.5)=3
+        /// (显式切断 <c>Math.Round</c> 默认的 ties-to-even —— Round(2.5)=2 是被禁模式)。</para>
+        /// <para><c>RoundMode</c> 是全局常量而非逐调用参数(ADR-006:178),
+        /// 本方法不收 mode 参数即其落地形。</para>
+        /// </summary>
+        /// <returns>舍入到最近整数的值(中点远离零)。</returns>
+        /// <example><c>FixParse.Parse("3/2").Round()</c> ⇒ <c>2</c>;
+        /// <c>new Fix(-32768L).Round()</c> ⇒ <c>-1</c>(−0.5 远离零,不归 0)。</example>
+        public long Round() => FixParse.RoundHalfAwayFromZero(_raw, OneRaw);
+
         // ── 中间乘(U1 spike · F7 落地形)──
         // 权威:disease-simulation.md AC-4 —— 「唯一路径 = 手工 hi/lo 拆分」(Int128 不存在,
         // 无条件钉 hi/lo 不留条件分支);「signed long 带进位加法 = UB ⇒ hi/lo 全程无符号」(四轮 K6);

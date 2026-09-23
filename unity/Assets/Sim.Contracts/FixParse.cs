@@ -48,6 +48,20 @@ namespace DaYiJingCheng.Sim.Contracts
             return FromRatio(n, d);
         }
 
+        /// <summary>可选字段入口(D-21-6 · AC-21a-57 边缘:字段可为 P0 空 / JSON null,<b>不</b>触发硬失败)。
+        /// <para><c>null</c>(字段缺席 / JSON null)⇒ 返回 <c>null</c>,schema 层记「无值」,不调 <see cref="Parse"/>。</para>
+        /// <para>非 <c>null</c> 一律转 <see cref="Parse"/> —— <b>空串仍硬失败</b>(AC-21a-41 边缘:
+        /// 空串是「写了但没值」,不是「缺席」,两者不得混同)。</para></summary>
+        /// <param name="literal">字段原文;<c>null</c> 表示缺席 / JSON null。</param>
+        /// <returns><c>null</c>(当输入为 <c>null</c>)否则解析出的 <see cref="Fix"/>。</returns>
+        /// <example><c>FixParse.ParseOptional(null)</c> ⇒ <c>null</c>(D-21-6 合法);
+        /// <c>FixParse.ParseOptional("")</c> ⇒ 抛 <see cref="FormatException"/>。</example>
+        public static Fix? ParseOptional(string literal)
+        {
+            if (literal is null) return null;
+            return Parse(literal);
+        }
+
         /// <summary>整数 + 分母形式(唯一推荐的作者写法)。**不经浮点**。</summary>
         public static Fix FromRatio(long numerator, long denominator)
         {

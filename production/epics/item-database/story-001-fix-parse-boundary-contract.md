@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: 3h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-09-23
 
 ## Context
 

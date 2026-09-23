@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "drug_profile": {
+    "drug_potency": 0.5,
+    "half_life": "196608",
+    "onset": "2",
+    "peak": "1/2",
+    "elimination": "-3",
+    "axis_offset_by_quality": ["-2", "0", "1/2", "1.5"],
+    "weight": 3,
+    "stack_max": 99
+  },
+  "variants": {
+    "weight_fix_syntax": "3/4",
+    "weight_float_syntax": "1.5"
+  }
+}
