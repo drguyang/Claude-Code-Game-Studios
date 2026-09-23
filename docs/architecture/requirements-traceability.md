@@ -5,7 +5,19 @@
 > Coverage: **0%** full chain complete (GDD → ADR → Story → Test)—— 非缺件,是阶段事实
 > Engine: Unity 6.3 LTS
 > 登记处(数据权威):`docs/architecture/tr-registry.yaml`(500 条,`status:` 字段为计数真源)
-> 人读矩阵:`docs/architecture/traceability-index.md`(GDD → ADR 两级;**337 ✅ / 75 ⚠️ / 75 ❌ / ◆13 no-adr-by-design** —— 2026-09-23 ADR-009 TR 复核轮后实测;同日前序 ADR-028 小裁批后值 335/76/76/◆13;#4/#5 兑现轮后值 328/76/94/◆2;回写轮值 318/77/103;第二十八批值 317/77/103;第二十六批值 316/78/103;D-R3 批次后值 314/79/104;更早 245/51/89 系分母不含 12 项零 TR 系统的偏高口径)
+> 人读矩阵:`docs/architecture/traceability-index.md`(GDD → ADR 两级;**337 ✅ / 75 ⚠️ / 72 ❌ / ◆16 no-adr-by-design** —— 2026-09-23 Epic-3 对症复核批后实测;同日前序 ADR-009 TR 复核轮后值 337/75/75/◆13;同日前序 ADR-028 小裁批后值 335/76/76/◆13;#4/#5 兑现轮后值 328/76/94/◆2;回写轮值 318/77/103;第二十八批值 317/77/103;第二十六批值 316/78/103;D-R3 批次后值 314/79/104;更早 245/51/89 系分母不含 12 项零 TR 系统的偏高口径)
+>
+> **2026-09-23 更新(Epic-3 对症复核批 —— 用户裁定「按推荐执行」,3 条 gap→◆ + 1 条文本刷新,零新 ADR)**
+> —— **337/75/75/◆13 → 337/75/72/◆16**(ID 恒 500,零新增;`yaml.safe_load` 复算自洽)。
+> 背景:建 Epic 3(`input-system.md`)前用户裁定「Pause — ADRs first」,复核后选定**不开新 ADR**、
+> 改以 registry 对症重判 —— 三条 gap 的真实归属是**已 Approved 的 10 GDD 决定**(非 ADR 缺口)。
+> **`TR-input-017` / `-019` / `-021` gap→◆ `no-adr-by-design`**(逐条 `adr` 改 `null`,
+> 归属件 + 残余登记入 note:017 残 `OQ-10-6` 枚举归属 · 019 残 `OQ-10-3` 键鼠档数 ·
+> 021 残 `OQ-10-11` 无障碍开关归 49/P2);**`TR-input-016` 维持 gap 不翻**(实测前置:最低目标
+> 硬件 + 可跑 player,域 Performance);**`TR-input-008` status/adr 不变**,仅 requirement/note
+> 由 Amendment B 前「本地即时」陈旧口径刷为 C 路文本(主机 `Judge`+`Append`+`Seq`,本地预表现)。
+> 三条翻转全 `domain: Core` ⇒ **Foundation 门零影响**(残余仍 = 0)。**blocking 残余不变 = 2**
+> (`TR-disease-022` / `TR-diag-013`)。**本批零新 ADR、零 GDD 改动、零数值改动**。
 >
 > **2026-09-23 更新(ADR-009 TR 定向复核轮 —— 用户裁定翻 031 + medcons-001,2 条翻转,零新 ADR)**
 > —— **335/76/76/◆13 → 337/75/75/◆13**(ID 恒 500,零新增;`yaml.safe_load` 复算自洽)。
@@ -80,7 +92,7 @@
 |--------|---------|-----------|
 | TR-ID | Stable requirement ID from tr-registry.yaml | ✅ 500 条已登记 |
 | GDD | Source design document | ✅ 见 index 逐行 |
-| ADR | Architectural decision governing implementation | ⚠️ 337 covered / 75 partial / **75 gap**(另 13 条 ◆ `no-adr-by-design`,2026-09-21 起为第四态,不计缺口;2026-09-23 QQ-08 扩第二类 + ADR-028 小裁批 011 翻 ✅ + ADR-009 复核轮 031/medcons-001 翻 ✅)|
+| ADR | Architectural decision governing implementation | ⚠️ 337 covered / 75 partial / **72 gap**(另 16 条 ◆ `no-adr-by-design`,2026-09-21 起为第四态,不计缺口;2026-09-23 QQ-08 扩第二类 + ADR-028 小裁批 011 翻 ✅ + ADR-009 复核轮 031/medcons-001 翻 ✅ + Epic-3 对症复核批 input 017/019/021 转 ◆)|
 | Story | Story file that implements this requirement | ❌ `production/epics/` 不存在 |
 | Test File | Automated test file path | ❌ 仅 1 个种子测试,且未与任何 TR 绑定 |
 | Test Status | COVERED / MISSING / NONE / NO STORY | 全量 = **NO STORY** |
@@ -104,15 +116,15 @@
 | COVERED — full chain complete | 0 | 0% | 本文件(Story 段不存在) |
 | MISSING test — story exists, no test | 0 | 0% | 同上 |
 | NO STORY — ADR exists, not yet implemented | 337 | 67.4% | registry `status: covered` 计数(2026-09-23 四批合计:ADR-009 复核轮 2 条 + ADR-028 小裁 1 条 + QQ-08 清账 6 条 + #4/#5 兑现 10 条翻 ✅;partial→covered 另计)|
-| NO ADR — architectural gap | 75 | 15.0% | registry `status: gap` 计数(ADR-009 复核轮 `TR-itemdb-031` gap→covered;ADR-028 小裁批 `TR-audio-011` gap→covered;QQ-08 清账 −17(6→covered + 11→◆);兑现轮 `TR-skill-001…006/008` + `TR-patient-021/022` 8 条 gap→covered;D-R3 回填 +15;第二十六批 `TR-casebook-002` gap→partial;2026-09-21 曾由 91 减 ◆2)|
-| NO ADR BY DESIGN — 范围 / 政策声明,结构上无裁决可挂 | 13 | 2.6% | registry `status: no-adr-by-design` 计数 —— **不计入缺口**;判据见 `traceability-index.md` 读法表 ◆ 行(2026-09-23 QQ-08 扩第二类后 ◆2→◆13)|
+| NO ADR — architectural gap | 72 | 14.4% | registry `status: gap` 计数(2026-09-23 Epic-3 对症复核批 `TR-input-017/019/021` gap→◆;ADR-009 复核轮 `TR-itemdb-031` gap→covered;ADR-028 小裁批 `TR-audio-011` gap→covered;QQ-08 清账 −17(6→covered + 11→◆);兑现轮 `TR-skill-001…006/008` + `TR-patient-021/022` 8 条 gap→covered;D-R3 回填 +15;第二十六批 `TR-casebook-002` gap→partial;2026-09-21 曾由 91 减 ◆2)|
+| NO ADR BY DESIGN — 范围 / 政策声明,结构上无裁决可挂 | 16 | 3.2% | registry `status: no-adr-by-design` 计数 —— **不计入缺口**;判据见 `traceability-index.md` 读法表 ◆ 行(2026-09-23 QQ-08 扩第二类后 ◆2→◆13;同日 Epic-3 对症复核批 +3 = `TR-input-017/019/021` 归属件落在已 Approved 的 10 GDD、ADR 段结构不承载 ⇒ ◆13→**◆16**)|
 | PARTIAL(链已断在 ADR 段)| 75 | 15.0% | registry `status: partial` 计数(ADR-009 复核轮 `TR-medcons-001` partial→covered;兑现轮 `TR-skill-007` partial→covered;D-R3 回填 +28;第二十六批 −3/+1;第二十八批 −1)|
 | **Total requirements** | **500** | **100%** | `tr-registry.yaml` |
 
 > 计数口径:对 registry 的 `status:` 字段直接 `yaml.safe_load` 计数,与
-> `traceability-index.md` §汇总「合计」行一致(**337 + 75 + 75 + ◆13 = 500**;2026-09-21 起四态;
-> 2026-09-23 ADR-009 复核轮后 covered 335→337、partial 76→75(031 + medcons-001 翻 ✅)、gap 76→75、◆13 不变,total 恒 500;
-> 同日前序 ADR-028 小裁批后 335/76/76/◆13;QQ-08 清账批后 334/76/77/◆13;#4/#5 兑现轮后 328/76/94/◆2,total 恒 500)。
+> `traceability-index.md` §汇总「合计」行一致(**337 + 75 + 72 + ◆16 = 500**;2026-09-21 起四态;
+> 2026-09-23 Epic-3 对症复核批后 gap 75→72、◆13→16(017/019/021 转 ◆)、covered 337 与 partial 75 不变,total 恒 500;
+> 同日前序 ADR-009 复核轮后 337/75/75/◆13;ADR-028 小裁批后 335/76/76/◆13;QQ-08 清账批后 334/76/77/◆13;#4/#5 兑现轮后 328/76/94/◆2,total 恒 500)。
 > ⚠️ **2026-09-20 `/architecture-review` 复跑时发现本文件 §Coverage Summary 的六处计数漏刷**(仍为回写轮前的
 > 243/93)—— 已就地订正为 registry 实测值。**2026-09-23 ADR-028 小裁批又发现三行同类漏刷**
 > (QQ-08 批改了头部与正文计数、漏刷 §Summary 的 NO ADR / ◆ / 计数口径三行,致
@@ -153,7 +165,7 @@
 
 ### Core / Feature / Presentation / Performance / Networking layer gaps
 
-75 − 0 = **75 条** gap 分布在非 Foundation 层(2026-09-23 **ADR-009 TR 复核轮后值**:`TR-itemdb-031` 属 Foundation 域翻 covered,Foundation 分子由 1 归 0,非 Foundation 分子不变;2026-09-23 **ADR-028 小裁批后值**:`TR-audio-011` 属 Presentation 域翻 covered,非 Foundation 分子减 1;2026-09-23 **QQ-08 清账批后值**:77,17 条翻转全属 Core 域,Foundation 分子不动;2026-09-23 **#4/#5 兑现轮后值**:94,该批 10 条翻转中 8 条属非 Foundation,`TR-skill-007` 属 partial→covered 非 gap;2026-09-21 **第二十六批后值**:87 + D-R3 新增 15 − `TR-casebook-002` 转 partial 1 ———
+72 − 0 = **72 条** gap 分布在非 Foundation 层(2026-09-23 **Epic-3 对症复核轮后值**:`TR-input-017/019/021` 属 Core 域 gap→◆,非 Foundation 分子 −3;2026-09-23 **ADR-009 TR 复核轮后值**:`TR-itemdb-031` 属 Foundation 域翻 covered,Foundation 分子由 1 归 0,非 Foundation 分子不变;2026-09-23 **ADR-028 小裁批后值**:`TR-audio-011` 属 Presentation 域翻 covered,非 Foundation 分子减 1;2026-09-23 **QQ-08 清账批后值**:77,17 条翻转全属 Core 域,Foundation 分子不动;2026-09-23 **#4/#5 兑现轮后值**:94,该批 10 条翻转中 8 条属非 Foundation,`TR-skill-007` 属 partial→covered 非 gap;2026-09-21 **第二十六批后值**:87 + D-R3 新增 15 − `TR-casebook-002` 转 partial 1 ———
 其中 53 的 3 条为 **P1a 主照登**,7b-007 带「或归 GDD 家规」分工疑点;Foundation 现 **0 条**
 (gate-check 质量项「zero Foundation layer gaps」已转绿);
 逐条清单在
@@ -172,6 +184,7 @@
 | 2026-09-23 | 0% | **QQ-08 + QQ-02 清账批(用户裁定路线 [A])** —— covered 328→**334** / partial 76→**76** / gap 94→**77** / ◆2→**◆13**(total 恒 500)。21a 簇三拆:A=6 gap→covered(014/018/019/020/021/028)/ B=11 gap→◆(007/008/009/011/012/015/016/017/024/029/030,逐簇裁定)/ C=1 carve-out(031 留 gap)。QQ-02 结案(ADR-005 `IIdAuthority` 双方法回填,承 ADR-010 §五)。◆ 判据扩第二类(图例 + gate-check SKILL 同批)。**17 条全 Core 域 ⇒ Foundation 门零影响**(残 `TR-itemdb-031` 1 ❌)。零新 ADR、零数值改动。audio-011/012 另开小裁(真 ADR 候选)—— **后注:011/012 小裁已于同日单独成批(ADR-028 批),见上行**。 |
 | 2026-09-23 | 0% | **Required ADR #4/#5 兑现轮** —— covered 318→**328** / partial 77→**76** / gap 103→**94**(total 恒 500)。10 条 TR 翻 ✅(`TR-skill-001…006/008` + `TR-patient-021/022` gap→covered;`TR-skill-007` partial→covered),兑现 `architecture.md` §Required #4(ADR-026)/ #5(ADR-027)。**Foundation 缺口 2 → 1 ❌**(`TR-skill-008` 转 covered;残 `TR-itemdb-031` 随 ADR-009 复核轮)。Full Chain 仍 0%(`production/epics/` 不存在,非缺件)。 |
 | 2026-09-23 | 0% | **ADR-009 TR 定向复核轮(用户裁定翻 031 + medcons-001,零新 ADR)** —— covered 335→**337** / partial 76→**75** / gap 76→**75** / ◆13→**◆13**(total 恒 500,零新增)。2 条 TR 翻 ✅:`TR-itemdb-031` gap→covered(2026-09-21 carve-out 口径「随 ADR-009 TR 全量复核轮重裁」**本轮兑现**;ADR-009 §五 + `adr-009:876` 显式点名)+ `TR-medcons-001` partial→covered(回写轮自陈「缺逐条复核执行体」,本复核执行后三源齐备);`TR-foraging-006` **维持 partial**(OQ-17-5 open,禁借绿)。**Foundation 缺口 1 → 0 ❌** ⇒ gate-check「zero Foundation layer gaps」**门转绿**。blocking 残余不变 = 2(`TR-disease-022` / `TR-diag-013`)。零新 ADR、零数值改动。 |
+| 2026-09-23 | 0% | **Epic-3 对症复核批(用户裁定「按推荐执行」,零新 ADR)** —— covered 337→**337** / partial 75→**75** / gap 75→**72** / ◆13→**◆16**(total 恒 500,零新增)。3 条 gap→◆:`TR-input-017`(枚举基数,归属件 = `game-concept:721` + 10 GDD OQ-10-4 + `input-system:813`;残 `OQ-10-6`)· `TR-input-019`(幅度通道,OQ-3-5 已结 + 10 GDD 规则一定形 + ADR-011 Amendment A 明写 defer 10;残 `OQ-10-3`)· `TR-input-021`(跳过路径,用户裁定④-b + 10 GDD 规则六全文;残 `OQ-10-11`)。**`TR-input-016` 维持 gap**(实测前置);**`TR-input-008` 文本刷新**(Amendment B C 路,status/adr 不变)。三条全 Core 域 ⇒ **Foundation 门零影响**(残 = 0)。blocking 残余不变 = 2。零新 ADR、零 GDD 改动、零数值改动。 |
 
 ## 何时把本文件变成真 RTM
 

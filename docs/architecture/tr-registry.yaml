@@ -2099,12 +2099,12 @@
   - id: TR-input-008
     system: input
     gdd: design/gdd/input-system.md
-    requirement: "**联机急救判定归表现层本地即时出结果**(保手感);**仅结果事件**(成功 + 熟练度)进流给主机"
+    requirement: "**联机急救判定 = 主机权威(C 路)**:客户端聚合为一条 `EmergencyAttempt` 全整数意图事件上行 → 主机执行 `Judge` + `Append` + 发号 `Seq`;本地判定降级为**预表现**(不写流、不参与权威);**不逐帧同步输入**保留"
     domain: Networking
     adr: ADR-011 + ADR-009
     status: covered
-    revised: "2026-09-15"
-    note: "ADR-011 §二 F1 + 本 GDD 规则九。**若判定走主机权威 ⇒ 反馈 = RTT ⇒ 必然破 <50 ms**。与 ADR-009 拾取同构,**唯一例外**:急救判定**本地做**,主机只结算结果。AC-3-B4"
+    revised: "2026-09-23"
+    note: "ADR-011 **Amendment B**(2026-09-18 用户裁定 C 路,**作废原 F1「本地即时」**)+ ADR-009 §七 拾取同构 + 本 GDD 规则九(2026-09-20 回刷)+ AC-3-B4(2026-09-20 改写)。残余 = `OQ-10-9`(上行走第二 QoS 会丢,归 45 的 ADR-001 窄修订,P1b 前,不在本条)。2026-09-23 对症复核批:本条 `status`/`adr` 不变,仅 requirement/note 由 Amendment B 前的「本地即时」陈旧口径刷为 C 路现行文本(GDD 侧已于 2026-09-20 回刷,本轮 registry-only 卫生)"
 
   - id: TR-input-009
     system: input
@@ -2191,10 +2191,10 @@
     gdd: design/gdd/input-system.md
     requirement: "`EmergencyAction` **枚举基数**(P0 = 2 个急救动作的具体枚举值)"
     domain: Core
-    adr: —
-    status: gap
-    revised: "2026-09-15"
-    note: "**归 10 急救动作的 GDD**(10 无 GDD,属架构真空的 10 项之一)。3 只保证「N 个并列动作各有一条直读通道」,**不发明动作**。10 撰写时须回来提及 3(双向依赖纪律)。**2026-09-15 评审:本条升级为 10 的硬前置** —— 见 `TR-input-019`(`Emergency` 表达力缺口),两条同轮裁定"
+    adr: null
+    status: no-adr-by-design
+    revised: "2026-09-23"
+    note: "2026-09-23 Epic-3 对症复核批(**用户裁定**,QQ-08 类二判据逐簇):gap→◆。**归属件** = `game-concept.md:721` 范围阶梯(P0 = 2 动作)+ 10 的 GDD `emergency-procedures.md` **OQ-10-4 结案**(2026-09-20 两动作具名:止血包扎 + 节奏型通气/人工呼吸法)+ `input-system.md:813`「枚举值已消解(2026-09-20 回刷)」。动作词表本身是**数据**(走 ADR-014 烘焙;10 GDD 明写「加动作不改 10 代码」)⇒ **结构上无 ADR 可挂**。**残余不随本条**:`OQ-10-6`(枚举**归属** 10 定 vs 21a 定)仍 open,连带 `DC-4`;本条只裁基数与取值,不裁归属 —— 见 `TR-emergency-020` 的 partial 注。原 note「10 无 GDD,属架构真空」**已过期**(10 已 Approved 2026-09-18),就地替换"
 
   - id: TR-input-018
     system: input
@@ -2211,10 +2211,10 @@
     gdd: design/gdd/input-system.md
     requirement: "**`Emergency` 表达力缺口 —— 仅幅度一维**:止血 / 按压的**力道(深度)**须有可采集通道(`Button(0/1)` 表达不了)"
     domain: Core
-    adr: ADR-011
-    status: gap
-    revised: "2026-09-15"
-    note: "**2026-09-15 评审新增(`OQ-3-5`),承重未结项**。`game-concept.md:693` 点名两个急救动作 —— **心肺复苏 = 节奏**(约 100–110 次/分)/ **止血包扎 = 顺序与力道**。**2026-09-16 三轮评审收窄:真缺口只有幅度一维** —— **节奏分辨率不是缺口**(16.6 ms 对约 550 ms 的 CPR 周期是 ~3%,且节奏走 press / release **边沿**,`Button` 原生表达,与是否逐帧采样无关;规则八已把长按聚合成**整数 tick**)。真缺口: **`Button` 无「力道」维度**,深度 / 回弹的模拟量通道**不存在**。**本轮刻意不修**(用户裁定:**不加宽 `IEmergencyInput`** —— 在 10 未成文时加宽 = 过度设计;ADR-011 Amendment A 已明写此边界)。**归 10 急救动作的 GDD,且为其硬前置**:写 10 之前须裁定采集形态(是否升 `Vector2` / 是否独立通道),否则「手稳」小游戏**无法落地**"
+    adr: null
+    status: no-adr-by-design
+    revised: "2026-09-23"
+    note: "2026-09-23 Epic-3 对症复核批(**用户裁定**,QQ-08 类二判据逐簇):gap→◆。**归属件** = `OQ-3-5` 用户裁定(2026-09-18 结案:独立模拟量通道,`Button` 管节奏边沿、另一路专供幅度)+ 10 的 GDD `emergency-procedures.md` **规则一**定形(`IEmergencyInput` 增 `magnitude: int`,定点整数;F-10.1)。**ADR-011 Amendment A 明写「本轮不加宽 `IEmergencyInput`,defer to 10」** ⇒ ADR 段**结构上不承载**该裁定,采集形态按原登记归 10 的 GDD ⇒ **无 ADR 可挂**。**残余不随本条**:`OQ-10-3`(键鼠降级档数,数值归用户轮)。原「硬前置、写 10 之前须裁定」语义已兑现(10 已 Approved 2026-09-18),就地替换"
 
   - id: TR-input-020
     system: input
@@ -2231,10 +2231,10 @@
     gdd: design/gdd/input-system.md
     requirement: "**跳过路径归 10**:须**焦点可导航、无时序要求、无模拟量** —— 3 只提供通道形状,不实现跳过语义"
     domain: Core
-    adr: ADR-011
-    status: gap
-    revised: "2026-09-15"
-    note: "**2026-09-15 用户裁定④-b 登记为 10 的义务**。`technical-preferences.md` 记「联机时的急救操作同步精度须与**可选跳过**的降级路径兼容」;3 侧提供的是**前提**(跳过路径同样走焦点导航 / 不依赖手感时序 / 不要求模拟量),**语义与呈现归 10**。**归 10 的 GDD**;与 `TR-input-017` / `019` 同批裁定"
+    adr: null
+    status: no-adr-by-design
+    revised: "2026-09-23"
+    note: "2026-09-23 Epic-3 对症复核批(**用户裁定**,QQ-08 类二判据逐簇):gap→◆。**归属件** = 用户裁定④-b(2026-09-15,跳过路径归 10)+ 首轮 R-6 改判 + 10 的 GDD `emergency-procedures.md` **规则六**全文落定(焦点可导航 / 无时序要求 / 无模拟量三条件 + 「跳过 ≠ `Applied`」的不等值语义)。3 只提供**通道形状**(焦点导航接口归 ADR-011,见 `TR-input-009` ✅),跳过语义按原登记归 10 ⇒ **结构上无 ADR 可挂**。49 无障碍开关(`SkipEquivalence`)P2 另计(`OQ-10-11`),不改本条"
 
   # ═══════════════════════════════════════════════════════════════════════════
   # 关卡工具 (Level Tool, #54) — docs/architecture/adr-022-level-tool.md
