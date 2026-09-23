@@ -313,9 +313,9 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
             // Given:非平凡四项(含两项恰好抵消,含负项)
             Fix a = FixParse.Parse("1/3");
             Fix b = FixParse.Parse("1/7");
-            Fix c = FixParse.Parse("-1/3");
+            Fix negThird = FixParse.Parse("-1/3");
             Fix d = FixParse.Parse("2/5");
-            Fix[] terms = { a, b, c, d };
+            Fix[] terms = { a, b, negThird, d };
 
             // When:枚举全部 4! = 24 种施加顺序(枚举式,非随机 —— 测试须确定性),
             //   每种顺序都**经求解器的公开具名量 `SumOfModifiers`**(非测试体内自行相加 ——
