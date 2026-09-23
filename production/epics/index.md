@@ -6,3 +6,4 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | Epic | Layer | System | GDD | Stories | Status |
 |------|-------|--------|-----|---------|--------|
 | item-database | Foundation | 21 物品与配方数据库 | design/gdd/item-database.md | Not yet created | Ready |
+| input-system | Foundation | 3 输入与设备 | design/gdd/input-system.md | Not yet created | Ready |
