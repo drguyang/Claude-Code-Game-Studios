@@ -102,7 +102,7 @@
 **Required evidence**:
 - Logic: `tests/unit/item_database/fix_parse_boundary_test.cs` — must exist and pass
 
-**Status**: [x] Created 2026-09-23 — 编译真身 `unity/Assets/Tests/EditMode/ItemDatabase/fix_parse_boundary_test.cs`(账本路径经 `tests/unit/item_database/README.md` 说明,ADR-025 §⑤ 路径分家);**run: VERIFIED 2026-09-23 桌面 EditMode —— FixParseBoundaryTest 24/24 全绿**(【桌面】实跑;同批 114 例中另有 4 红属 Sim.Codec 既有缺陷、非本故事面,已另修 `205ca36`)
+**Status**: [x] Created 2026-09-23 — 编译真身 `unity/Assets/Tests/EditMode/ItemDatabase/fix_parse_boundary_test.cs`(账本路径经 `tests/unit/item_database/README.md` 说明,ADR-025 §⑤ 路径分家);**run: VERIFIED 2026-09-23 桌面 EditMode —— FixParseBoundaryTest 24/24 全绿;全量 EditMode 重跑亦全绿**(4 红已修 `205ca36`;3 个 `.meta` 已补 `5489c26`)
 
 ---
 
@@ -116,10 +116,10 @@
 - `extractStringArray` 只抽带引号元素 —— 数组若混入未引号 JSON 数字会静默跳过(当前夹具全带引号,潜在假绿面,建议硬化)
 - `FromRatio` 大分子 `<<16` 回绕边界无测试(既有面,域归数值轮,本故事未恶化)
 - 新公共面 `ParseOptional` / `Fix.Round()` / `IntParse` 为 QA 规格边缘的实现载体(「null 合法」「统一舍入函数」「weight 是 int」),QA 原文未点名 —— 属规格内承载,非越界
-- 新 `.cs` / `ItemDatabase/` 目录暂缺 `.meta`(【超算】已知模式,桌面首次打开 Unity 生成后补提交)
-**Test Evidence**: 编译真身 `unity/Assets/Tests/EditMode/ItemDatabase/fix_parse_boundary_test.cs`(12 functions)+ 账本夹具 `tests/unit/item_database/fixtures/invalid_potency_float.json`;**run = VERIFIED 2026-09-23 桌面 EditMode —— FixParseBoundaryTest 24/24 绿**
+- ~~新 `.cs` / `ItemDatabase/` 目录暂缺 `.meta`~~ ✅ 已补(2026-09-23 桌面 `5489c26`)
+**Test Evidence**: 编译真身 `unity/Assets/Tests/EditMode/ItemDatabase/fix_parse_boundary_test.cs`(12 functions)+ 账本夹具 `tests/unit/item_database/fixtures/invalid_potency_float.json`;**run = VERIFIED 2026-09-23 桌面 EditMode —— FixParseBoundaryTest 24/24 绿;全量 EditMode 重跑亦全绿**
 **Code Review**: Complete — `/code-review`(2026-09-23)= unity-specialist **APPROVED WITH SUGGESTIONS**(零 BLOCKING;ADR-006/005-G/025 全维核验通过)+ qa-tester **GAPS**(S2 借绿风险已落上方 AC-51/57 partial 记账;S3/S4 转 advisory 列表)
-**First follow-up**: ~~【桌面】Unity EditMode 跑 `FixParseBoundaryTest` 全绿~~ ✅ 已完成(2026-09-23,24/24 绿);**仍 open = 补提交 3 个 `.meta`**(`IntParse.cs.meta` / `Tests/EditMode/ItemDatabase.meta` / `fix_parse_boundary_test.cs.meta`,桌面生成后推送)
+**First follow-up**: ~~【桌面】Unity EditMode 跑 `FixParseBoundaryTest` 全绿~~ ✅ 已完成(2026-09-23,24/24 绿);~~补提交 3 个 `.meta`~~ ✅ 已完成(2026-09-23 桌面 `5489c26`);**无 open 跟进** —— 桌面随后全量 EditMode 重跑亦全绿(4 红已修 `205ca36`)
 
 ---
 
