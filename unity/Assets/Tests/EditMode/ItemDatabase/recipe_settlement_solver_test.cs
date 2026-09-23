@@ -464,7 +464,9 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
                 "EFF = 1(满技能) ⇒ 取等,零损耗");
             Assert.That(RecipeSettlementSolver.ActualConsumed(3, FixParse.Parse("1/2")), Is.EqualTo(6),
                 "EFF = 1/2 ⇒ 实耗翻倍(低技能烧料凶)");
-            Assert.That(RecipeSettlementSolver.ActualConsumed(3, FixParse.Parse("1/3")), Is.EqualTo(9));
+            Assert.That(RecipeSettlementSolver.ActualConsumed(3, FixParse.Parse("1/3")), Is.EqualTo(10),
+                "EFF = 1/3 在 Q16.16 下 raw = 21845(< 65536/3 精确值)⇒ Ceil(196608/21845) = Ceil(9.0001…) = 10;" +
+                "精确算术的 9 只活在理想域 —— 系统里 EFF 恒以编制的 raw 存在(ADR-006 定点域纪律,同 GDD :512 订正先例)");
             Assert.That(RecipeSettlementSolver.Efficiency(c, FixtureSkillCap).Raw, Is.EqualTo(c.EffMax.Raw));
             Assert.That(RecipeSettlementSolver.Efficiency(c, 0).Raw, Is.EqualTo(c.EffMin.Raw));
         }
