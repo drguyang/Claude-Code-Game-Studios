@@ -1,12 +1,12 @@
 # Story 002: Schema 类型与复合主键
 
 > **Epic**: 物品与配方数据库
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-09-23
 
 ## Context
 
@@ -119,7 +119,25 @@
 **Required evidence**:
 - Logic: `tests/unit/item_database/schema_types_primary_key_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created 2026-09-23 — 编译真身 `unity/Assets/Tests/EditMode/ItemDatabase/schema_types_primary_key_test.cs`(账本路径经 `tests/unit/item_database/README.md` 说明,ADR-025 §⑤ 路径分家,同 Story 001);**run: NOT-RUN(超算无 Unity Editor)—— 用户 override 关闭,第一跟进 = 桌面 EditMode 跑 31 测 + 补 17 个 `.meta`**
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-23(用户显式 override —— verdict 曾为 BLOCKED 仅因测试 NOT-RUN,双评审修复后代码面无 BLOCKING)
+**Criteria**: 6/6 implemented & test-covered(AC-21 · 22 · 27 · 48 · 49 · 59 → 31 test functions;**run status: NOT-RUN —— 桌面 EditMode 为第一跟进,跑绿后翻 VERIFIED,禁借绿**)
+**Deviations**(均为 advisory,零 BLOCKING):
+- AC-48「值 vs 名」判据局限:文本扫描测旋钮**标识符**子串,硬编码数值不带旋钮名扫不到 —— 方法论固有局限,以 QA Test Cases 标识符口径为准
+- AC-48 反向锁(F6)仍为手写清单,GDD 未来新增旋钮行不会自动进 neverWhitelisted(qa 残留 G2;动态化与 half_life 结构重叠冲突,留待后续)
+- F5 stripComments 不识别 `@` verbatim 串、插值洞按串置空(欠检不误报)—— 已登记于函数 doc
+- S3 测试私有助手 camelCase 承 Story 001 先例;S4 `ItemKey.GetHashCode` 进程内随机化(当前无跨进程哈希依赖,进黄金哈希时须改固定算法)
+- `TryParseRecipeOwner` 归 Story 007;AC-21 空 base_id 归 Story 006;AC-22 int 编码产物扫描(AC-26)归 Story 006;AC-27 Fix 编码器(AC-53)归 Story 010
+- 两级校验缝隙:`FindStoredStackableKeys` 接原始 JSON 键集 —— **Story 008 绑定层必须把每条记录原始键集一并传入**(同缝服务未知键白名单,ADR-014 §三),已登记校验器 doc
+- `LegalTransitions`(string[])与 `ProcessingTransition[]` 两形态并存承 GDD 原文,绑定归 008;`InflictsInjury = string[]` 单值收敛归 008;`QualityDistribution`/`TcmProfile` 空占位不发明字段(形状归 17/P1a)
+- ~~17 个 `.meta` 全缺~~ 桌面 Unity 打开时生成(**禁手写 GUID**),随桌面跑测批补交 —— 当前 open,桌面待办
+**Test Evidence**: 编译真身 `unity/Assets/Tests/EditMode/ItemDatabase/schema_types_primary_key_test.cs`(31 functions)+ 违例类型夹具 `invalid_instance_unity_ref.cs` + 3 个 QA 负向 JSON 夹具(`tests/unit/item_database/fixtures/`);**run = NOT-RUN**
+**Code Review**: Complete — `/code-review`(2026-09-23)= unity-specialist **CHANGES REQUIRED(窄:仅 R1 桌面 .meta;S1 建议随批修)** + qa-tester **BLOCKING(AC-49 锚点)+ GAPS**;修复 **F1–F7 全部落盘并经 grep 核验**,qa-tester 复核 **BLOCKING 解除、F2/F3/F5/F6 到位**;残留 2 窄项均登记上方 Deviations(F7 嵌套泛型已修,G2 反向锁联动不修)。unity-specialist 预结论:R1(.meta)补齐后即达 APPROVED
+**First follow-up**: 【桌面】① 打开 Unity 触发 17 个 `.meta` 生成并补交(含 `Sim.Contracts/ItemDatabase/` 目录);② EditMode 跑 `SchemaTypesPrimaryKeyTest` 31 测全绿(**新增验证点:AC-49 真 GDD rowCount 应=25;AC-48 F5 置空后仍 0 违例;genericContainer 恰 3 条**)+ 回归 `FixParseBoundaryTest`(确认两 asmdef references 变更未破坏 Story 001);③ 跑绿回报后翻 run = VERIFIED
 
 ---
 
