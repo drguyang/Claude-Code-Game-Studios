@@ -217,6 +217,12 @@ namespace DaYiJingCheng.Tests.Integration.ItemDatabase
               "Craft 事件载荷字段名(registry schema,ADR-024)—— 数据形状非公式体" },
             { "Sim.Codec/PayloadCodec.World.cs",
               "Craft 载荷编码器(字段名 ↔ tag 对位,ADR-006 §五)—— 数据形状非公式体" },
+            // ④ 守恒律谓词宿主(Story 005)—— 结构上是唯一求解器的**消费者**,不是重复体:
+            //    `RecipeSettlementSolver.ActualConsumed(...)` 是 D-21-32 单一实现纪律要求的
+            //    **委托调用**(构建期与运行期同一函数体),`qtyMultiplier` / `efficiency`
+            //    是参数名(大小写不敏感匹配的副产品),三者均非自建公式体。
+            { "Sim/ItemDatabase/ConservationSolver.cs",
+              "守恒律谓词宿主 —— 委托调用唯一求解器(ActualConsumed/OutputQty,D-21-32 单一实现),参数名非公式体" },
         };
 
         [Test]
