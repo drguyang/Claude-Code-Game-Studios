@@ -1,12 +1,12 @@
 # Story 012: 呈现契约合规走查
 
 > **Epic**: 物品与配方数据库
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: UI
 > **Estimate**: 2h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-09-24(21a 登记面完成;六 AC 依 Guardrail 全部维持 `[ ]`)
 
 ## Context
 
@@ -39,6 +39,11 @@
 - [ ] **AC-21a-55** [U]: 42 的物品呈现 UI,走查任一有 drug_quality_character[] 的成药 ⇒ 品级以「药签措辞/外观」呈现(U-6),不得数字/线性刻度 —— 成药侧与原料侧各一条通道,互为补充不可互替。**执行体归 Epic 42**
 
 **状态注记**: 43/44 = BLOCKED-BY-21b(判据不存在);45/46/54/55 = 执行体归 Epic 42,21a 侧仅登记问句、不代签证据。
+
+**状态注记(2026-09-24 复核)**:
+- **43/44**: 维持 **BLOCKED-BY-21b** —— `tcm_reserved_terms.yaml`(D-21-12)未落盘,判据不存在 ⇒ 不执行、不记账、**禁记绿**(复核日 21b 仍未立项,无变化)。
+- **45/46/54/55**: **21a 侧问句已登记(本文件 Acceptance Criteria 四行)**;执行与签字归 Epic 42,21a 不代签 ⇒ **不勾选**。复核日 Epic 42 未启动,走查未执行。
+- **21a 侧唯一可交付面(本日已确认)**: 数据侧呈现所需字段全部就位且可被 42 消费 —— `ItemDef.LegalTransitions`(Story 002)· `GatherProfile.QualityCharacter`(Story 002,长度门 AC-50b = Story 004)· `DrugProfile.DrugQualityCharacter`(Story 002,长度门 AC-62 = Story 004),三者均为 `Sim.Contracts` 公开 `string[]` 属性(BCL-only),GDD §UI Requirements U-1…U-6(:977)为 42 的呈现判据原文。
 
 ---
 
@@ -106,7 +111,31 @@
 **Required evidence**:
 - UI: `production/qa/evidence/` — **执行体归 Epic 42**,21a 侧不重复建档;43/44 = BLOCKED-BY-21b 不执行、不记账
 
-**Status**: [ ] Not yet created(归 Epic 42 的走查证据)
+**Status**: [ ] Not yet created(归 Epic 42 的走查证据)—— 2026-09-24 复核:依 Control Manifest
+Forbidden(「把归 42 的走查执行体在 21a 侧代签」),本故事**不建任何证据文件**;
+AC-43/44 判据不存在不建,AC-45/46/54/55 签字权归 42 不建。
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-24(21a 登记面)
+**Criteria**: 0/6 勾选 —— AC-43/44 维持 `[ ]` BLOCKED-BY-21b(判据 `tcm_reserved_terms.yaml` 未落盘);
+AC-45/46/54/55 维持 `[ ]`(问句已登记,执行与签字归 Epic 42,21a 不代签)。
+本故事的 Complete 语义 = **21a 侧组织与跟踪动作完成**(依赖登记 + 数据侧字段可消费性确认 +
+状态注记),**不**指任何 AC 已验证 —— 零勾选是本故事类型(UI · 执行体外置)的**正确终态**,
+非交付缺口。
+**Criteria 六行中无一满足**: 2 BLOCKED(上游判据缺失)+ 4 归属他 Epic(Epic 42 走查)。
+**Deviations**: 无 —— 全部动作在 Implementation Notes 预定范围内(登记 + 确认),零偏离。
+**范围边界**: `tcm_reserved_terms.yaml` 保留词表本体 = 21b(尚未立项);AC-45/46/54/55 的
+UI 实现、走查执行、证据截图与主美/lead 签字 = Epic 42(拟物 UI 框架,ADR-013);
+呈现框架 spike(焦点桥 / world-space / 自定义材质)归 42 的 Engine Risk,与本故事无关。
+**Test Evidence**: UI 类 —— 21a 侧**零证据文件**(Forbidden 纪律);证据落点
+`production/qa/evidence/` 待 Epic 42 走查时建;43/44 待 21b 落盘后另行执行。
+**Code Review**: Skipped(零代码交付,lean 模式,承 Story 001–011 先例)
+**执行状态**: ✅ **21a 登记面 VERIFIED 2026-09-24** —— 数据侧三字段
+(`LegalTransitions` / `QualityCharacter` / `DrugQualityCharacter`)grep 确认就位于
+`Sim.Contracts` 公开属性,GDD U-1…U-6 原文确认在 §UI Requirements;
+**六 AC 全部 `[ ]` 是诚实记账**:2 BLOCKED-BY-21b + 4 归 Epic 42,21a 侧无一可勾、无一可代签。
 
 ---
 
@@ -114,3 +143,6 @@
 
 - Depends on: Story 002 / 004(`quality_character[]` / `drug_quality_character[]` 字段就位)· Epic 42(可走查 UI 实现)· 21b(保留词表本体,尚未立项)
 - Unlocks: None(呈现层合规是收口走查,不单独解锁其他故事)
+- **2026-09-24 陈旧性复核**: Story 002/004 均 Complete ✅(字段就位,grep 已确认);
+  Epic 42 未立项(AC-45/46/54/55 继续挂起的依据不变);21b 仍未立项(AC-43/44 BLOCKED 依据不变);
+  Unlocks 仍为 None —— 无陈旧

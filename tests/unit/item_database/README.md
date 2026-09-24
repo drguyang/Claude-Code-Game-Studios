@@ -357,3 +357,33 @@ AC-63 = 静态扫描(换名词表四词 + 白名单两文件)+ 权威单调/双�
 
 **7a 往返承位口径(禁借绿)**:文件级存档往返 BLOCKED-BY-7a,真身以 `ItemInstanceCodec`
 字节往返承位(同 Story 009 口径,story-010 AC 注已记)。
+
+## Story 011(跨平台确定性黄金夹具)—— 落点说明
+
+证据账本(故事 QA 指名):`tests/unit/item_database/determinism_golden_fixtures_test.cs` + 金标准
+目录 `tests/unit/item_database/golden/` —— 同 Story 001…010:**Unity 不编译 `unity/Assets/` 之外
+的代码** ⇒ 测试真身落 EditMode 树;**金标准与参考实现是纯数据/纯 Python,留在本目录**
+(它们不需要被 Unity 编译,反倒必须在 C# 之外产出 —— 防自指)。
+
+| 内容 | 路径 |
+|---|---|
+| 真身:AC-28(比对/篡改/出处)+ AC-30(扫描/自证),5 测 | `unity/Assets/Tests/EditMode/ItemDatabase/determinism_golden_fixtures_test.cs` |
+| 独立 Python 参考实现(与 C# 零共享代码;金标准产出方) | `golden/golden_v1_reference.py` |
+| 金标准 golden-v1(19 条;头载出处/向量序/刷新纪律元数据) | `golden/golden-v1.txt` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(`Sim.Contracts.Tests`) |
+| AC-29 IL2CPP 对拍 | **BLOCKED-BY-实测**(F7 spike + player 构建后落 `tests/integration/` + CI job;本批不建) |
+
+**AC 覆盖映射**:AC-28 = `test_ac21a28_allScenarioHashes_matchGoldenV1`(键集等价 + 逐条逐位)
++ `tamperedGoldenOneBit_detected`(冒烟反证)+ `goldenHeader_carriesProvenanceMetadata`
+(出处 + 版本化刷新纪律);AC-30 = `test_ac21a30_f1f5Sources_scanForFloatAndLibm_noneFound`
+(全 `Assets/Sim` 门 A 面,剥注释/字符串,六类 token)+ `scanner_selfProvesEachTokenClassDetected`
+(九类注入全捕获 + 干净探针零误报 —— 同一谓词,漏检即红)。
+
+**19 条金标准构成**:S01–S12 = F1/F2 边界组合(caps 满/0 · ENV MIN/MAX/两极钳 · quality 1/MAX ·
+skill 0/30/60 · m=1/m>1);S13–S16 = F5(半衰期偏移 0/正/负 + 无轴透传,向量序
+`[onset, peak, half_life, elimination]`);B01–B03 = 集成级字节样本(Craft 载荷 / ItemInstance /
+SimEvent 头,经真实 C# codec 产物对拍 Python 手写布局)。
+
+**防自指纪律(AC-28)**:金标准由 `golden_v1_reference.py` 按 GDD F1/F2/F5 + ADR-006 舍入 +
+ADR-010 codec 布局手写产出,C# 测试**只读不写**;刷新 = 升 golden-v2 + 全体平台同时重签 +
+禁单平台独签 + 旧版保留(ADR-012 裁决③,文件头已载)。

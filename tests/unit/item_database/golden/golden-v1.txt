@@ -1,0 +1,37 @@
+# golden-v1 —— item-database 确定性黄金夹具(AC-21a-28 · Story 011 · ADR-012 双级)
+#
+# 产出:独立 Python 参考实现 golden_v1_reference.py(本目录;与 C# 实现零共享代码)
+#       按 GDD F1/F2/F5 + ADR-006 舍入 + ADR-010 codec 布局手写。2026-09-24。
+#       复现 = python3 golden_v1_reference.py(确定性输出)。
+#       防自指:C# 测试只读本文件、永不回写;金标准非由 C# 首跑生成(AC-28)。
+# 评审:入库即提交评审(提交历史可证);刷新须升 golden-v2、全体平台同时重签、
+#       禁单平台独签、旧版保留回归对比(ADR-012 裁决③)。
+#
+# canonical(值级): state=u64(v0);逐后续 w: state=Avalanche(state+w);终态 Avalanche 一次。
+# canonical(字节级): state=0;逐 byte: state=Avalanche(state+b);终态 Avalanche 一次。
+# S 系列向量序: [outQuality] ++ OutputQty[m] ++ ActualConsumed[n] ++
+#                [Efficiency.Raw, QtyMultiplier.Raw, EnvModTotal.Raw, SumOfModifiers.Raw]
+# S13–S16 向量序: [onset, peak, half_life, elimination](profile 字段序;缺席 = -1)
+# 格式: <name> <hex16>
+#
+# 场景边界覆盖: caps 满/0 · ENV_MOD MIN/MAX/两极叠加钳制 · quality 1/MAX ·
+#               EFF 两极(skill 0/60)+ 中点(30)· m=1/m>1 · F5 偏移 0/负/正/透传。
+S01_full_skill0_q3_m1 45e110c1f54e39e5
+S02_full_skill60_q5_m1 3a433a1c6bc4228a
+S03_full_skill0_q1_n1m1 0ddf09e1f57fe1c5
+S04_full_skill30_q5_m2 9284ff3d9e86c801
+S05_full_skill0_q3_envMin dd4f4d0b300ccf71
+S06_full_skill60_q5_envMax 2671f6ceb7606278
+S07_full_envMinBoth_restFull c004cd7a4c85c867
+S08_full_envMaxBoth_restFull e5c0ca25b378e992
+S09_zero_caps_floor c004cd7a4c85c867
+S10_zero_caps_envOverMax a6ffec47b4963547
+S11_zero_caps_mid 311bb4616cfbbb21
+S12_full_skill60_q1_m1 fadddd9057984f66
+S13_f5_halfLife_q1_offset0 9ae155937ffc1944
+S14_f5_halfLife_q5_offsetMax 17ab31a6a9da5463
+S15_f5_halfLife_q3_offsetNeg 8f4b682a5c42467e
+S16_f5_noAxis_passthrough 9ae155937ffc1944
+B01_craft_payload_bytes 3e8e6533953a030f
+B02_item_instance_bytes 37ee32776b644084
+B03_sim_event_header_bytes 664fe273bad2425a

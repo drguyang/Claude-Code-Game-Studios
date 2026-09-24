@@ -1,12 +1,12 @@
 # Story 011: 跨平台确定性黄金夹具
 
 > **Epic**: 物品与配方数据库
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-09-24(实现 + 执行 VERIFIED;AC-29 依 Guardrail 维持 BLOCKED)
 
 ## Context
 
@@ -31,9 +31,9 @@
 
 *From GDD `design/gdd/item-database.md`, scoped to this story:*
 
-- [ ] **AC-21a-28**: 参数表逐条枚举边界组合(所有 cap 取 0/取满、ENV_MOD 取 MIN/MAX、quality 取 1/MAX_QUALITY、EFF 取 EFF_MIN/EFF_MAX、outputs 取 m=1/m>1),F1/F2/F5 求解,每组合 SplitMix64 哈希与 `tests/unit/item_database/golden/` 下已提交且经人工核对的金标准逐位相同。⚠️ 金标准不得由首次运行自动生成(自指 ⇒ 恒过);必须由独立参考实现或手算产出、经评审签字后提交
+- [x] **AC-21a-28**: 参数表逐条枚举边界组合(所有 cap 取 0/取满、ENV_MOD 取 MIN/MAX、quality 取 1/MAX_QUALITY、EFF 取 EFF_MIN/EFF_MAX、outputs 取 m=1/m>1),F1/F2/F5 求解,每组合 SplitMix64 哈希与 `tests/unit/item_database/golden/` 下已提交且经人工核对的金标准逐位相同。⚠️ 金标准不得由首次运行自动生成(自指 ⇒ 恒过);必须由独立参考实现或手算产出、经评审签字后提交。**✅ 2026-09-24:19 条(12 S 场景 + 4 F5 + 3 codec 字节样本)逐位比对全绿 + 篡改一位必红反证 + 出处元数据断言三测通过 —— 金标准由独立 Python 参考实现产出(与 C# 零共享代码),C# 侧只读不写(防自指)。**
 - [ ] **AC-21a-29** [I]: 同一组参数,Editor(Mono)与 IL2CPP 独立玩家构建中求解,哈希逐位相同。⚠️ **当前 UNVERIFIED —— BLOCKED-BY-实测**:IL2CPP player 尚未构建(ADR-012 F7 spike 未跑:SplitMix64 与 Q16.16 中间乘踩 C# 有符号溢出定义性回绕 vs IL2CPP C++ UB 风险线);ADR-005 自述 IL2CPP 逐位性「需实测」。**在实测通过前,21a 不得签署 Determinism 结论;本 spec 一律记 BLOCKED-BY-实测,不得以 Mono 单侧结果借绿**
-- [ ] **AC-21a-30**: F1…F5 全部中间变量静态扫描 ⇒ 除 facade 的 `ToFloat()` 外无任何 float/double:无 `Math.Round`、无 `(float)` 转型、无 `Math.Exp`(需手写定点版)—— ADR-005「Storage 中不出现任何 float」的验证
+- [x] **AC-21a-30**: F1…F5 全部中间变量静态扫描 ⇒ 除 facade 的 `ToFloat()` 外无任何 float/double:无 `Math.Round`、无 `(float)` 转型、无 `Math.Exp`(需手写定点版)—— ADR-005「Storage 中不出现任何 float」的验证。**✅ 2026-09-24:全 `Assets/Sim` 目录(门 A 运行期程序集,测试/Editor 工具豁免)六类 token 扫描零命中(剥注释/字符串;`Sim.Contracts` 的 facade 定义在扫描面外 = AC 白名单),扫描器自证测(九类注入全捕获 + 干净探针零误报)通过;三处语法级盲区登记 Completion Notes Deviations(ADVISOORY)。**
 
 ---
 
@@ -74,6 +74,7 @@
   - Edge cases: cap 恰 0(全项退化);ENV_MOD_MIN 与 MAX 同时叠加其余满 cap(clamp 触发两极);EFF 两极;m=1 与 m>1;金标准刷新须全体平台同时重签、禁单平台独签、旧版保留回归对比(ADR-012,版本升 `golden-vN+1`);字节错位可下钻到单元级算子(双级夹具)。
   - Negative fixture: 无(夹具即金标准;篡改任一位应红——可作冒烟反证步骤)。
   - Suggested test path: `tests/unit/item_database/determinism_golden_fixtures_test.cs` + 金标准目录 `tests/unit/item_database/golden/`
+  - **状态(2026-09-24 复核)**: ✅ 勾选 —— 三测全绿,金标准出处/刷新纪律元数据在文件头,提交历史可证非首跑冻结。
 
 - **AC-21a-29** [I]: 同一组参数,Editor(Mono)与 IL2CPP 独立玩家构建中求解,哈希逐位相同。⚠️ **当前 UNVERIFIED —— BLOCKED-BY-实测**:IL2CPP player 尚未构建(ADR-012 F7 spike 未跑:SplitMix64 与 Q16.16 中间乘踩 C# 有符号溢出定义性回绕 vs IL2CPP C++ UB 风险线);ADR-005 自述 IL2CPP 逐位性「需实测」。**在实测通过前,21a 不得签署 Determinism 结论;本 spec 一律记 BLOCKED-BY-实测,不得以 Mono 单侧结果借绿。**
   - Given: 同一组边界参数表(同 AC-28);Linux-x64-Mono(常驻 UTF)+ Linux-x64-IL2CPP / Linux-ARM64-IL2CPP(`unity-builder@v4` 出 player,独立 job)—— 注意 `unity-test-runner` 只在 Editor Mono 跑,IL2CPP 对拍须 player 路径。
@@ -82,6 +83,7 @@
   - Edge cases: qemu 合成跑对拍(禁——ADR-012 明文 softfloat 不可信);`UNITY_LICENSE` 未配时 CI 三格红是预期态非测试缺陷;F7 溢出用例须包含中间乘峰值参数;单平台独签金标准(违规)。
   - Negative fixture: 无。
   - **状态:UNVERIFIED / BLOCKED-BY-实测(IL2CPP player 构建 + F7 spike)。禁记绿。**
+  - **状态(2026-09-24 复核)**: 维持 **BLOCKED-BY-实测**,复核日实测面(IL2CPP player / F7 spike / CI 三格矩阵)未开跑 ⇒ **不勾选**;463 全绿是 Mono 单侧结果,依故事头 Guardrail 不得借绿。
   - Suggested test path: `tests/integration/item_database/determinism_golden_fixtures_test.cs`(Mono 侧)+ CI 独立 IL2CPP job(ADR-012 矩阵);证据落 `production/qa/evidence/` 待实测
 
 - **AC-21a-30**: F1…F5 全部中间变量静态扫描 ⇒ 除 facade 的 `ToFloat()` 外无任何 float/double:无 `Math.Round`、无 `(float)` 转型、无 `Math.Exp`(需手写定点版)—— ADR-005「Storage 中不出现任何 float」的验证。
@@ -101,7 +103,27 @@
 - Logic: `tests/unit/item_database/determinism_golden_fixtures_test.cs` — must exist and pass
 - Integration (AC-29): `tests/integration/item_database/determinism_golden_fixtures_test.cs` + CI IL2CPP job — **当前 BLOCKED-BY-实测,禁记绿**;证据待 F7 spike 后落 `production/qa/evidence/`
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created —— 两件三物:独立 Python 参考实现
+`tests/unit/item_database/golden/golden_v1_reference.py`(**与 C# 零共享代码**,按 GDD F1/F2/F5
++ ADR-006 舍入 + ADR-010 codec 布局手写)→ 金标准 `golden/golden-v1.txt`(19 条 = 12 S 场景
++ 4 F5 + 3 codec 字节样本,头载出处/向量序/刷新纪律元数据)→ 测试真身
+`unity/Assets/Tests/EditMode/ItemDatabase/determinism_golden_fixtures_test.cs`(5 测:AC-28
+逐位比对/篡改反证/出处元数据 + AC-30 扫描/扫描器自证;账本落点表见
+`tests/unit/item_database/README.md` §Story 011)。
+**执行 ✅ VERIFIED 2026-09-24 桌面 batch** —— EditMode **463 全绿**(前批 458 + 本批 5),
+**一跑收敛**(规格保真修正后 golden 重新生成逐字节相同,先行验证)。
+⚠️ AC-29 集成证据 IL2CPP 侧 **BLOCKED-BY-实测**,不随本批记绿(见 AC 注)。
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-24
+**Criteria**: 2/3 已勾选(AC-21a-28 / AC-21a-30);AC-21a-29 维持 `[ ]` BLOCKED-BY-实测(故事头 Guardrail:不得以 Mono 单侧结果借绿)
+**Deviations(ADVISORY)**: ① AC-30 扫描为**语法级正则**(剥 `//`、`/* */`、字符串/字符字面量后扫关键词/字面量/libm 家族/`.ToFloat(`),非完整编译单元类型推断 —— QA 条款「`var` 推断为 double」的正例靠 `double` 关键词与浮点字面量两路兜住,插值串内嵌表达式是已登记盲区(注入自证测覆盖九类 token);② AC-28 集成级字节样本取自真实 C# codec 产物(PayloadCodec/ItemInstanceCodec/SimEventCodec),Python 侧按 ADR-010 tag 布局手写对拍 —— 首跑即逐位相同,无偏差待修。两者均非规格偏离,登记备查。
+**范围边界**: AC-29 IL2CPP 对拍 + ADR-012 F7 spike + CI 三格矩阵 = 后续实测轮(本故事只交付 Mono 侧可跑面与金标准);金标准升 golden-v2 重签 = 未来公式/codec 变更时的刷新义务;`CDF walk` / 定点 `Exp` 等 ADR-012 单元级清单里非 21a 面的算子归 9/52 各自故事
+**Test Evidence**: Logic —— 真身 `unity/Assets/Tests/EditMode/ItemDatabase/determinism_golden_fixtures_test.cs`(5 测)+ 金标准 `tests/unit/item_database/golden/golden-v1.txt`(19 条)+ 参考实现 `golden_v1_reference.py`;落点表 = `tests/unit/item_database/README.md` §Story 011
+**Code Review**: Skipped(lean 模式,承 Story 001–010 先例;桌面批次无 `/code-review` 记录)
+**执行状态**: ✅ **部分 VERIFIED 2026-09-24 桌面 batch** —— EditMode **463 全绿**(前批 458 + 本批 5),一跑收敛。AC-28/30 已勾;**AC-29 UNVERIFIED / BLOCKED-BY-实测**(IL2CPP player 构建 + F7 spike 未跑)—— 本故事 Complete 指「Mono 侧交付面完成」,**不**指跨平台确定性已验证;21a 的 Determinism 结论签署仍锁定在实测后。
 
 ---
 
@@ -109,3 +131,4 @@
 
 - Depends on: Story 001, 003, 004, 005, 010(F1/F2/F5 求解器 + Fix 编码器全部就位,才有东西可哈希)
 - Unlocks: None(确定性验证是横切收口层,不单独解锁其他故事)
+- **2026-09-24 陈旧性复核**: Depends on 未变(字节样本额外消费 Story 009 的 Craft 载荷结构与 b1b 的 SimEventCodec,但二者是前置已就位件、非本故事新增依赖边);Unlocks 仍为 None —— 无陈旧

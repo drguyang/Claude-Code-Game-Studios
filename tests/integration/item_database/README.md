@@ -176,3 +176,24 @@ TR-027「经本管线执行 ⇒ 硬失败」,深度浅于 Story 006/007 的单�
 AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→decode 承位
 (ADR-010 存档快照段同一编码路径);真存档往返归 7a 落地后补跑,Story 010 不宣称该半边已绿。
 详细 AC→用例映射见 `tests/unit/item_database/README.md` §Story 010。
+
+---
+
+## Story 011(跨平台确定性黄金夹具 —— AC-21a-29)—— 落点说明
+
+故事 QA 为 AC-29 指名本账本 `tests/integration/item_database/determinism_golden_fixtures_test.cs`
+(Mono 侧)+ CI 独立 IL2CPP job —— **当前不建、不落文件:AC-29 BLOCKED-BY-实测**
+(ADR-012 F7 spike 未跑 + IL2CPP player 未构建;证据待实测后落 `production/qa/evidence/`)。
+空账本文件 = 假证据面,故以本节登记「应落点 + 阻塞原因」代替占位文件
+(承 Story 010 「BLOCKED 不建空壳」同款口径)。
+
+已交付的 Mono 侧可跑面(AC-28 黄金比对 + AC-30 静态扫描,5 测)真身在 EditMode 树,
+落点表见 `tests/unit/item_database/README.md` §Story 011 —— **Mono 单侧全绿 ≠ 跨平台已验证**,
+story-011 头 Guardrail:不得以本批 463 绿借记 AC-29。
+
+| 内容 | 路径 | 状态 |
+|---|---|---|
+| AC-29 Mono 侧集成账本 | `tests/integration/item_database/determinism_golden_fixtures_test.cs` | **未建(BLOCKED-BY-实测)** |
+| AC-29 IL2CPP 对拍 job | CI `unity-builder@v4` 独立 job(ADR-012 三格矩阵) | **未建(BLOCKED-BY-实测)** |
+| F7 溢出 spike(中间乘峰值参数) | ADR-012 §BLOCKING spike | **未跑** |
+| AC-28/30 真身(本批已绿) | `unity/Assets/Tests/EditMode/ItemDatabase/determinism_golden_fixtures_test.cs` | ✅ 463 全绿之一部 |
