@@ -78,7 +78,7 @@
 | 003 | 配方结算求解器 | Logic | Complete ✅ VERIFIED 2026-09-24 | ADR-005 + ADR-006 |
 | 004 | F4 堆叠重量与 F5 品级时间轴 | Logic | Complete | ADR-006 |
 | 005 | 守恒律构建期与运行期门 | Logic | Complete | ADR-006 |
-| 006 | 配方表写入期校验套件 | Logic | Complete | ADR-014 |
+| 006 | 配方表写入期校验套件 | Logic | Complete ✅ VERIFIED 2026-09-24 | ADR-014 |
 | 007 | 物品表写入期校验套件 | Logic | Ready | ADR-014 |
 | 008 | 数据管线烘焙与 Addressables 预载 | Integration | Ready | ADR-014 + ADR-010 |
 | 009 | Craft 事件载荷与全序键 | Integration | Ready | ADR-009 + ADR-024 + ADR-008 |

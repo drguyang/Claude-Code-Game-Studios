@@ -77,7 +77,8 @@ Gates 增引 Sim.Contracts GUID,EditMode 增引 Gates GUID。
 | 溢出而非回绕(QA §4e)| `test_toInt32Checked_overflowThrowsInsteadOfWrapping` |
 
 **测试计数**:EditMode **30** 个 `[Test]`(AC-1…4/47 + 上表补测);PlayMode **7** 个(AC-5/6)。
-**执行状态:NOT-RUN**(【超算】无 Unity Editor)⇒ 全绿判据待【桌面】跑出,本 README 不代跑、不代绿。
+**执行状态:✅ VERIFIED 2026-09-24 桌面** —— EditMode + PlayMode 全绿;同日 Story 006 收官批后
+PlayMode **12 全绿**(含 AC-21a-6 白名单条目④ `ConservationSolver.cs` 回归确认)。
 
 
 **落点(装配决定,2026-09-24)**:求解器 / 常量表 / 入口接缝住
@@ -258,5 +259,4 @@ EditMode 测试装配 `Sim.Contracts.Tests` 既有 GUID 引用集已含 Sim / Si
 
 **测试计数**:EditMode **47** 个 `[Test]`(AC-7×4 + AC-9×4 + AC-10×4 + AC-11×5 + AC-12×4 +
 AC-16×4 + AC-17×5 + AC-18×3 + AC-19×4 + AC-20×4 + AC-66×6)。
-**执行状态:NOT-RUN**(【超算】无 Unity Editor)⇒ 全绿判据待【桌面】跑出,预期 EditMode **317**
-(前批 270 + 本批 47);本 README 不代跑、不代绿。
+**执行状态:✅ VERIFIED 2026-09-24 桌面** —— EditMode **317 全绿**(前批 270 + 本批 47)。

@@ -161,7 +161,7 @@
 **Required evidence**:
 - Logic: `tests/unit/item_database/recipe_validation_fixtures_test.cs` — must exist and pass;负向夹具落 `tests/unit/item_database/fixtures/`
 
-**Status**: [x] Created —— 真身 = `unity/Assets/Tests/EditMode/ItemDatabase/recipe_validation_fixtures_test.cs`(47 [Test]:AC-7×4/9×4/10×4/11×5/12×4/16×4/17×5/18×3/19×4/20×4/66×6)+ 11 负向夹具 `tests/unit/item_database/fixtures/invalid_*.json`(账本路径 = `tests/unit/item_database/recipe_validation_fixtures_test.cs`,Unity 不编译 Assets 外 —— Story 001–005 同一先例);**执行 NOT-RUN**(【超算】无 Unity Editor,待【桌面】EditMode 预期 317 = 前批 270 + 本批 47)
+**Status**: [x] Created —— 真身 = `unity/Assets/Tests/EditMode/ItemDatabase/recipe_validation_fixtures_test.cs`(47 [Test]:AC-7×4/9×4/10×4/11×5/12×4/16×4/17×5/18×3/19×4/20×4/66×6)+ 11 负向夹具 `tests/unit/item_database/fixtures/invalid_*.json`(账本路径 = `tests/unit/item_database/recipe_validation_fixtures_test.cs`,Unity 不编译 Assets 外 —— Story 001–005 同一先例);**执行 ✅ VERIFIED 2026-09-24 桌面 EditMode 317 全绿**(前批 270 + 本批 47)
 
 ---
 
@@ -176,8 +176,9 @@
 **装配**:零 asmdef 改动、零新 asmdef —— 门用 `Editor.Tools.Gates` 既有 GUID 引用集(Story 002/004 加),测试用 `Sim.Contracts.Tests` 既有引用集(ADR-025 §④ 清单封闭不受影响)。
 **Test Evidence**: Logic —— 真身 `unity/Assets/Tests/EditMode/ItemDatabase/recipe_validation_fixtures_test.cs`(47 [Test])+ 11 负向夹具。
 **Code Review**: Skipped(lean 模式,承 Story 004/005 先例)
-**执行状态**: NOT-RUN(【超算】无 Unity Editor)—— 全绿判据待【桌面】跑 EditMode,预期 **317**;跑绿后翻 VERIFIED。
-**同批修复(非本故事范围,Story 003 扫描器)**: PlayMode `test_formulaBodyIdentifiers_duplicatedOutsideUniqueSolver_none` 因 Story 005 新增 `ConservationSolver.cs` 触发 3 条命中(`QtyMultiplier`/`ActualConsumed`/`Efficiency`)—— 诊断为**委托调用 + 大小写不敏感参数名误命中**,非重复公式体;已在 `recipe_settlement_solver_test.cs::Whitelist()` 增条目④放行(带理由),复扫 violations 空、自证测试独立仍能命中合成违例。
+**执行状态**: ✅ **VERIFIED 2026-09-24 桌面** —— EditMode **317 全绿**(前批 270 + 本批 47);同批 PlayMode **12 全绿**(含上条 AC-21a-6 白名单修复回归确认)。
+**同批修复(非本故事范围,Story 003 扫描器)**: PlayMode `test_formulaBodyIdentifiers_duplicatedOutsideUniqueSolver_none` 因 Story 005 新增 `ConservationSolver.cs` 触发 3 条命中(`QtyMultiplier`/`ActualConsumed`/`Efficiency`)—— 诊断为**委托调用 + 大小写不敏感参数名误命中**,非重复公式体;已在 `recipe_settlement_solver_test.cs::Whitelist()` 增条目④放行(带理由),复扫 violations 空、自证测试独立仍能命中合成违例;**桌面 PlayMode 实跑已确认转绿**。
+**已知黄警(非本故事引入,不阻塞)**: `Assembly Definition File 'Assets/Gameplay.Presentation/Gameplay.Presentation.asmdef' will not be compiled, because it has no scripts associated with it` —— ADR-025 §① 六装配清单**预先登记**的 L5 边界程序集,当前目录**零 .cs**(表现层故事尚未落地);Unity 对空程序集跳过编译属预期行为,EditMode/PlayMode 全绿即证无影响。`Gameplay.UI.asmdef` 同型(同样零脚本)。首个表现层脚本落盘后自动消失;**不加占位脚本**(无意义内容,ADR-025 清单封闭性下徒增噪音)。
 
 ---
 
