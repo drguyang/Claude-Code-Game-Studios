@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using UnityEditor.AddressableAssets;
@@ -140,94 +141,82 @@ namespace DaYiJingCheng.EditorTools.Bake
 
         /// <summary>
         /// E-13 自检(ADR-014 §五:装载失败 = 带 [E-13] 上下文的启动期硬失败,绝不 null 解引用)。
-        /// <para>流程:① 反向 —— 把 items 产物文件+meta 暂移到 <c>Library/E13Hold/</c>
-        /// (资产从 AssetDatabase 消失 ⇒ 经地址解析到的 GUID 载不到)→ 新 <see cref="AddressablesDataProvider"/>
-        /// 取数,期望抛 <see cref="InvalidOperationException"/> 且消息含 [E-13];<c>finally</c> 必移回 +
-        /// Refresh;② 正向复验 —— 新 provider 载 items + recipes,期望成功。</para>
-        /// <para>⚠️ <b>不用「改 address」方案</b>(2026-09-24 两次实测,含重启后单跑,均「反向未触发」):
-        /// 运行期 locator 在域初始化时按 settings 建好,<c>SetAddress(postEvent)</c> 只通知编辑器 UI、
-        /// **不重建 locator** —— 陈旧发生在菜单内 SetAddress 与 Load 之间,重启不解决。
-        /// 文件暂移不改地址映射,失败发生在 GUID→资产 解析层,绕开 locator。</para>
-        /// <para>每次点菜单都用<b>全新</b> provider(绕开 <see cref="DataCorePreloader"/> 幂等)。
-        /// ⚠️ 本会话内若已成功载过该资产,活句柄会被直接复用(与磁盘无关)⇒ 拉取后的自动域重载
-        /// (或重启)清句柄后,只点本菜单一次。</para>
+        /// <para>流程:① 反向 —— <b>反射直呼</b> <c>FetchBytes</c>(私有静态)传一个<b>从未存在过的 key</b>,
+        /// 走生产同款失败路径(Locator 解析不到 ⇒ Addressables 报错 ⇒ catch 包成 [E-13] IOE);
+        /// 期望 <see cref="TargetInvocationException"/> 的 Inner 是含 [E-13] 的
+        /// <see cref="InvalidOperationException"/>;② 正向复验 —— 新 provider 载 items + recipes,期望成功。</para>
+        /// <para>⚠️ <b>不改 address、不移文件</b>(前两版机制均已实测失败,留档):
+        /// ① 改 address —— <c>SetAddress(postEvent)</c> 不重建运行期 locator,菜单内改完旧地址仍能解析,
+        /// 重启也无效(陈旧发生在 SetAddress→Load 之间);
+        /// ② 文件暂移 —— U1 spike(<c>DaYi/Spike/Setup U1 Spikes</c>)已把 Play Mode 切
+        /// <b>Use Existing Build</b> 并 <c>BuildPlayerContent</c> 过,bundle 里有内容 ⇒ 移走源文件载不失败;
+        /// 且 finally 归位 + <c>AssetDatabase.Refresh()</c> 会使已加载 bundle 的位置失效 ⇒ 正向复验踩
+        /// 「same files already loaded」重复加载错。
+        /// 反射探针<b>零状态变更</b>:不碰地址、不碰磁盘、不 Refresh,bad key 在 Locator 层就失败、
+        /// 不触碰任何 bundle ⇒ 任何会话 / 任何 Play Mode 下都可跑。</para>
+        /// <para>每次点菜单都用<b>全新</b> provider(绕开 <see cref="DataCorePreloader"/> 幂等)。</para>
         /// </summary>
         [MenuItem("大医精诚/数据管线/E-13 自检(反路径+正复验)")]
         public static void E13SelfCheck()
         {
-            // 产物绝对路径 + 暂存位(Library 在仓外纪律面:.gitignore,永不提交)
+            // 救援:文件暂移版若中途崩溃致产物滞留 hold → 先归位(一次性兼容,新机制已不移文件)
             string itemsAbs = Path.Combine(Application.dataPath, CookedDirName, ItemsCookedAssetName);
             string itemsMetaAbs = itemsAbs + ".meta";
             string holdDir = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Library", "E13Hold"));
             string holdItems = Path.Combine(holdDir, ItemsCookedAssetName);
             string holdMeta = holdItems + ".meta";
-
-            // 救援:上次会话中途崩溃致产物滞留 hold → 先归位(否则正向必失败)
             if (!File.Exists(itemsAbs) && File.Exists(holdItems))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(itemsAbs));
                 File.Move(holdItems, itemsAbs);
                 if (File.Exists(holdMeta)) File.Move(holdMeta, itemsMetaAbs);
                 AssetDatabase.Refresh();
-                Debug.Log("[E-13 自检] 已将滞留 Library/E13Hold 的产物归位。");
+                Debug.Log("[E-13 自检] 已将滞留 Library/E13Hold 的产物归位(文件暂移版残留救援)。");
             }
 
-            // ── ① 反向:暂移 items 产物(文件 + meta 一起动,保 GUID 一致)──
-            if (!File.Exists(itemsAbs))
+            // ── ① 反向:反射直呼 FetchBytes(从未存在的 key)—— 生产同款失败路径,零状态变更 ──
+            MethodInfo fetchBytes = typeof(AddressablesDataProvider).GetMethod(
+                "FetchBytes", BindingFlags.NonPublic | BindingFlags.Static);
+            if (fetchBytes == null)
             {
-                Debug.LogWarning(
-                    $"[E-13 自检] 反向跳过:产物不存在({ItemsCookedAssetName})—— " +
-                    "先跑「烘焙 item-database」再执行本菜单(正向仍继续)。");
+                Debug.LogError(
+                    "[E-13 自检] 反向跳过:反射未找到 AddressablesDataProvider.FetchBytes" +
+                    "(签名/可见性被改?)—— 契约测试失效,正向仍继续。");
             }
             else
             {
-                bool movedOut = false;
+                const string neverKey = "__dyjc_e13_never__.missing";
                 try
                 {
-                    Directory.CreateDirectory(holdDir);
-                    if (File.Exists(holdItems)) File.Delete(holdItems); // 异常残留清理
-                    if (File.Exists(holdMeta)) File.Delete(holdMeta);
-                    File.Move(itemsAbs, holdItems);
-                    if (File.Exists(itemsMetaAbs)) File.Move(itemsMetaAbs, holdMeta);
-                    AssetDatabase.Refresh();
-                    movedOut = true;
-
-                    try
+                    fetchBytes.Invoke(null, new object[] { neverKey });
+                    Debug.LogWarning(
+                        "[E-13 自检] 反向未触发:从未存在的 key 竟然取数成功 —— 不应发生," +
+                        "检查 FetchBytes 是否被短路或 Addressables 返回了非空默认值。");
+                }
+                catch (TargetInvocationException tie)
+                {
+                    Exception inner = tie.InnerException;
+                    if (inner is InvalidOperationException ioe &&
+                        ioe.Message.IndexOf("[E-13]", StringComparison.Ordinal) >= 0)
                     {
-                        var negative = new AddressablesDataProvider();
-                        negative.Load<ItemDataSet>();
-                        Debug.LogWarning(
-                            "[E-13 自检] 反向未触发:产物已移出仍载成功 —— 两种可能:" +
-                            "① 本会话此前已成功载过该资产(活句柄直接复用,与磁盘无关)→ 等脚本重编译/重启后只点本菜单一次;" +
-                            "② Play Mode Script 走了已建 bundle(源文件移出不影响 bundle 内容)→ " +
-                            "Groups 窗口确认 Use Asset Database,或 Addressables > Clean Built Content。");
+                        Debug.Log($"[E-13 自检] 反向通过:硬失败带 [E-13] 上下文、非 null 解引用 ✓ —— {ioe.Message}");
                     }
-                    catch (InvalidOperationException ex) when (
-                        ex.Message.IndexOf("[E-13]", StringComparison.Ordinal) >= 0)
-                    {
-                        Debug.Log($"[E-13 自检] 反向通过:硬失败带 [E-13] 上下文、非 null 解引用 ✓ —— {ex.Message}");
-                    }
-                    catch (Exception ex)
+                    else
                     {
                         Debug.LogError(
                             $"[E-13 自检] 反向异常但缺 [E-13] 包裹(违 ADR-014 §五):" +
-                            $"{ex.GetType().Name}: {ex.Message}");
+                            $"{inner?.GetType().Name ?? "null"}: {inner?.Message}");
                     }
                 }
-                finally
+                catch (Exception ex)
                 {
-                    if (movedOut)
-                    {
-                        if (File.Exists(holdItems) && !File.Exists(itemsAbs))
-                            File.Move(holdItems, itemsAbs);
-                        if (File.Exists(holdMeta) && !File.Exists(itemsMetaAbs))
-                            File.Move(holdMeta, itemsMetaAbs);
-                        AssetDatabase.Refresh(); // 归位 + 重导入(GUID 随 meta 原样回来)
-                    }
+                    Debug.LogError(
+                        $"[E-13 自检] 反向异常但缺 [E-13] 包裹(违 ADR-014 §五):" +
+                        $"{ex.GetType().Name}: {ex.Message}");
                 }
             }
 
-            // ── ② 正向复验(全新 provider 真取数)──
+            // ── ② 正向复验(全新 provider 真取数;反向只碰 bad key,不加载真实 bundle)──
             try
             {
                 var positive = new AddressablesDataProvider();
