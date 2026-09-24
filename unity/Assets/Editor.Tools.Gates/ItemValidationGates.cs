@@ -421,7 +421,7 @@ namespace DaYiJingCheng.EditorTools.Gates
         public static IReadOnlyList<string> ValidateInjuryBinding(
             ItemCategory category,
             IReadOnlyList<string> inflictsInjury,
-            IReadOnlySet<string> knownInjuryIds,
+            ISet<string> knownInjuryIds,
             string recordLabel)
         {
             var errors = new List<string>();
@@ -497,8 +497,8 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// </code>
         /// </example>
         public static IReadOnlyList<string> ValidateInjurySetSuperset(
-            IReadOnlySet<string> inflictsInjury,
-            IReadOnlySet<string> mapsToInjury,
+            ISet<string> inflictsInjury,
+            ISet<string> mapsToInjury,
             string recordLabel)
         {
             var errors = new List<string>();
