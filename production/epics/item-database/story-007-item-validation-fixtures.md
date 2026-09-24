@@ -138,7 +138,7 @@
 **装配**:零 asmdef 改动、零新 asmdef —— 门用 `Editor.Tools.Gates` 既有 GUID 引用集;测试用 `Sim.Contracts.Tests` 既有引用集(ADR-025 §④ 清单封闭不受影响)。
 **Test Evidence**: Logic —— 真身 `unity/Assets/Tests/EditMode/ItemDatabase/item_validation_fixtures_test.cs`(38 [Test])+ 7 负向夹具。
 **Code Review**: Skipped(lean 模式,承 Story 004/005/006 先例)
-**执行状态**: NOT-RUN(【超算】无 Unity Editor)—— 预期 EditMode **355 = 前批 317 + 本批 38**,待桌面跑确认;桌面将生成 2 个新 `.meta`(ItemValidationGates.cs.meta / item_validation_fixtures_test.cs.meta),需 chore(meta) 补提交(先例 1175463)。
+**执行状态**: ✅ **VERIFIED 2026-09-24 桌面** —— EditMode **355 全绿**(前批 317 + 本批 38)。过程:首跑 354/1 红(旋钮扫描命中 `ValidateStackWeight` 裸 `weight` 局部变量),`64a2149` 改名 `parsedWeight` 修复;`.meta` ×2 桌面 `711dc93` 已补。
 
 ---
 

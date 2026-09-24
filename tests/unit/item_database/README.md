@@ -322,4 +322,7 @@ stack_max ≥ 1、weight > 0)是规则本身可写字面量;平衡值(MAX_QUALIT
 测试边界用 `FixtureMaxQuality` 常量拼,**不裸写 5**;夹具数字均为**夹具值,不是游戏平衡值**。
 
 **测试计数**:EditMode **38** 个 `[Test]`(AC-13×5 + AC-14×6 + AC-15×7 + AC-23×5 + AC-24×7 + AC-25×8)。
-**执行状态:NOT-RUN(【超算】无 Unity Editor)** —— 预期 EditMode **355 = 前批 317 + 本批 38**,待桌面跑确认。
+**执行状态:✅ VERIFIED 2026-09-24 桌面** —— EditMode **355 全绿**(前批 317 + 本批 38)。
+过程插曲:首跑 354 绿 / 1 红(`test_tuningKnobIdentifiers_hardcodedInSourceCode_none` 报
+`ItemValidationGates.cs` 旋钮「weight」裸局部变量),`64a2149` 改名 `parsedWeight` 后转绿;
+`.meta` ×2 由桌面 `711dc93` 补提交。
