@@ -1,12 +1,12 @@
 # Story 009: Craft 事件载荷与全序键
 
 > **Epic**: 物品与配方数据库
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 3h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-09-24(实现 + 执行 VERIFIED)
 
 ## Context
 
@@ -32,9 +32,14 @@
 
 *From GDD `design/gdd/item-database.md`, scoped to this story:*
 
-- [ ] **AC-21a-52**: 一次含 EFF < EFF_MAX 的结算,经 7a 持久化往返 ⇒ 配方数据文件与物件实例里只有基数 inputs[].qty;ActualConsumed 只出现在该次 Craft 的历史事件载荷中(由 EFF 可再推出)—— 实耗是运行期派生量 `Ceil(Base/EFF)`(D-21-15)
+- [x] **AC-21a-52**: 一次含 EFF < EFF_MAX 的结算,经 7a 持久化往返 ⇒ 配方数据文件与物件实例里只有基数 inputs[].qty;ActualConsumed 只出现在该次 Craft 的历史事件载荷中(由 EFF 可再推出)—— 实耗是运行期派生量 `Ceil(Base/EFF)`(D-21-15)
 
 **共同断言口径**(QA spec 已细化五子条件):①配方 cooked 中 `inputs[].qty` 仍为基数,无 `ActualConsumed` 字段;②ItemInstance 快照无 `ActualConsumed` 字段;③Craft 事件载荷含逐项 `ActualConsumed`,与 `Ceil(基数/当次 EFF)` 重算逐位一致(回放由「基数 + 当时 EFF」重演,不回读冻结数);④载荷字段集 = `entities.yaml` Craft `payload_schema` 真源(`actor_id` / `output_instance_ids[]` / `tool_cell` / `ActualConsumed`,ADR-024 §①);⑤事件全序键 `(Tick, StreamPriority, Patient, Seq)` 可排全序,`Patient = PatientId.None`,`actor_id` 位由载荷吸收(ADR-008/ADR-007 哨兵口径)。
+
+> ⚠️ **AC 勾选口径(禁借绿注)**:①–⑤ 五子条件由 9 个新测执行全绿(2026-09-24);但 When 路径的
+> **「7a 存档 → 读档」半边未跑**(7a 持久化服务未实现)—— 承位 = `SimEventCodec` + `PayloadCodec`
+> 字节往返(ADR-010 存档体同一条字节路径),**该半边 BLOCKED-BY-7a,本故事不宣称已绿**;
+> 7a 落地后须补真存档往返并复核本 AC(口径见 `tests/integration/item_database/README.md` §Story 009)。
 
 ---
 
@@ -83,7 +88,13 @@
 **Required evidence**:
 - Integration: `tests/integration/item_database/craft_event_payload_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created —— 真身 `unity/Assets/Tests/EditMode/ItemDatabase/craft_event_payload_test.cs`
+(9 [Test],五子条件 ①–⑤ 全覆盖 + EFF 双边例 + 编解码拒收);账本路径 = 本故事点名的
+`tests/integration/item_database/craft_event_payload_test.cs`(Unity 不编译 `unity/Assets/` 之外,
+落点表已记 `tests/integration/item_database/README.md` §Story 009)。新增生产件 =
+`Sim.Contracts/EventOrderKey.cs`(全序键四分量 IComparable)+ `Sim/EventOrder.cs`
+(Kind→StreamId 解析,经 kindgen 路由)。**执行 ✅ VERIFIED 2026-09-24 桌面 batch** ——
+EditMode **416 全绿**(前批 407 + 本批 9);⚠️ 7a 文件级存档往返半边 BLOCKED-BY-7a(见 AC 注)。
 
 ---
 

@@ -123,3 +123,31 @@ BCL-only(禁 `UnityEngine.Hash128` —— ADR-010/014 纪律);头部偏移 12(co
 TR-027「经本管线执行 ⇒ 硬失败」,深度浅于 Story 006/007 的单门直测。完整形的 4 个走其设计
 路径。跳过夹具 `invalid_quality_dist.json` 的理由 + 可证伪断言见测试 `SkippedFixture` 注释
 (`test_itemDatabase_qualityDistributionFixture_documentedAsSkipped` 断言「文件存在**且**被排除」)。
+
+---
+
+## Story 009(Craft 事件载荷与全序键 —— AC-21a-52)—— 落点说明
+
+故事头登记的证据路径(账本路径)为
+`tests/integration/item_database/craft_event_payload_test.cs`,但该路径在仓库根,
+**Unity 不编译 `unity/Assets/` 之外的代码**(承 Story 001–008 同一先例)。真身 =
+
+**`unity/Assets/Tests/EditMode/ItemDatabase/craft_event_payload_test.cs`**
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/ItemDatabase/craft_event_payload_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(引用集已含 `Sim` / `Sim.Contracts` / `Sim.Codec`) |
+| 新增生产件 | `unity/Assets/Sim.Contracts/EventOrderKey.cs` · `unity/Assets/Sim/EventOrder.cs` |
+
+**五子条件 → 用例映射**:①② 静态/快照类型无 `ActualConsumed`(反射负向 + 正向对照防空断言)
+= `test_ac21a52_actualConsumed_absentFromStaticAndSnapshotTypes`;③ `Ceil(基数/当次 EFF)`
+独立重算 + EFF&lt;EFF_MAX / EFF=EFF_MAX 双边例 + 编解码往返 = `..._recomputeEquals_whenEffBelowMax` ·
+`..._equalsBase_whenEffEqualsMax` · `..._fullEvent_roundTripPreservesPayloadAndOrderKey`;
+④ 载荷字段集 = registry `payload_schema` 十位 + 整数域 = `..._craftPayloadFieldSet_matchesRegistrySchema`;
+⑤ 全序键可排全序(跨流 + 哨兵 + 比较器公理 + 键四分量无 actor)= `..._orderKeyFieldSet_isHeaderOnlyNoActor` ·
+`..._orderKey_sortsMixedStreams_totalOrder` · `..._orderKey_craftKey_deterministicAcrossCalls`。
+
+**7a 往返子条件的承位口径(禁借绿)**:7a 文件级存档(校验和 / checkpoint / 迁移)未实现 ⇒
+本文件以 `SimEventCodec` + `PayloadCodec` 字节往返承位(ADR-010 存档体的同一条字节路径);
+真存档往返归 7a 落地后补跑,**Story 009 不宣称该子条件已绿**。

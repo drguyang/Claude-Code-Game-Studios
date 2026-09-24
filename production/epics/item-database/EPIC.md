@@ -81,7 +81,7 @@
 | 006 | 配方表写入期校验套件 | Logic | Complete ✅ VERIFIED 2026-09-24 | ADR-014 |
 | 007 | 物品表写入期校验套件 | Logic | Complete ✅ VERIFIED 2026-09-24 | ADR-014 |
 | 008 | 数据管线烘焙与 Addressables 预载 | Integration | Complete ✅ VERIFIED 2026-09-24 | ADR-014 + ADR-010 |
-| 009 | Craft 事件载荷与全序键 | Integration | Ready | ADR-009 + ADR-024 + ADR-008 |
+| 009 | Craft 事件载荷与全序键 | Integration | Complete ✅ VERIFIED 2026-09-24 | ADR-009 + ADR-024 + ADR-008 |
 | 010 | 实例权威与持久化往返 | Integration | Ready | ADR-010 + ADR-005 + ADR-006 |
 | 011 | 跨平台确定性黄金夹具 | Logic | Ready | ADR-012 + ADR-005 |
 | 012 | 呈现契约合规走查 | UI | Ready | ADR: N/A — 呈现归 ADR-013/42，非架构裁决 |
