@@ -371,7 +371,8 @@ AC-63 = 静态扫描(换名词表四词 + 白名单两文件)+ 权威单调/双�
 | 独立 Python 参考实现(与 C# 零共享代码;金标准产出方) | `golden/golden_v1_reference.py` |
 | 金标准 golden-v1(19 条;头载出处/向量序/刷新纪律元数据) | `golden/golden-v1.txt` |
 | 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(`Sim.Contracts.Tests`) |
-| AC-29 IL2CPP 对拍 | **BLOCKED-BY-实测**(F7 spike + player 构建后落 `tests/integration/` + CI job;本批不建) |
+| 真身:AC-29 双腿对拍,3 测(见下) | `unity/Assets/Tests/PlayMode/determinism_golden_crossplatform_test.cs` |
+| AC-29 证据(Mono/IL2CPP 输出 + 判决书) | `production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md` + `ac29-hashes-{mono,il2cpp}.txt` |
 
 **AC 覆盖映射**:AC-28 = `test_ac21a28_allScenarioHashes_matchGoldenV1`(键集等价 + 逐条逐位)
 + `tamperedGoldenOneBit_detected`(冒烟反证)+ `goldenHeader_carriesProvenanceMetadata`
@@ -387,3 +388,16 @@ SimEvent 头,经真实 C# codec 产物对拍 Python 手写布局)。
 **防自指纪律(AC-28)**:金标准由 `golden_v1_reference.py` 按 GDD F1/F2/F5 + ADR-006 舍入 +
 ADR-010 codec 布局手写产出,C# 测试**只读不写**;刷新 = 升 golden-v2 + 全体平台同时重签 +
 禁单平台独签 + 旧版保留(ADR-012 裁决③,文件头已载)。
+
+**AC-29 双腿对拍(✅ 2026-09-24 补跑 VERIFIED)**:真身 =
+`unity/Assets/Tests/PlayMode/determinism_golden_crossplatform_test.cs`(装配 `Gameplay.Tests`,
+**增引 `Sim.Codec` GUID** —— 字节样本 B01–B03 需 codec,属测试装配族改动,不动 ADR-025 六装配清单)。
+3 测:`test_ac21a29_allScenarioHashes_writtenAndCompared_whenGoldenReachable`(19 条落盘
+`AC29_OUT` + 金标准可达时就地断言)+ F7 SplitMix64 回绕 + F7 Fix.MulRaw 峰值参数。
+**双腿跑法**:① Mono = 编辑器 PlayMode(`unity test --mode PlayMode`);
+② IL2CPP = `Ac29Il2CppSwitch.SetIl2cpp`(Editor.Tools.Spike)切 Standalone 后端 →
+直调 Unity 二进制 `-runTests -testPlatform StandaloneLinux64`(⚠️ 经 `unity run` 会被保留旗标
+`-quit` 吞掉 —— 首跑教训,已录证据文件)→ 跑完 `SetMono` 归位 + `git restore ProjectSettings`。
+**场景表与 EditMode 侧受控重复**(两 asmdef 互不引用;防漂移绑定 = 两侧对同一金标准断言,任一侧改表该侧红)。
+**判决 = 外部三方 diff**(golden/Mono/IL2CPP 19/19 逐位),测试绿且 diff 相同才 VERIFIED ——
+证据 `production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`(含残余表:ARM64/发版前/CI 矩阵未跑不冒充)。

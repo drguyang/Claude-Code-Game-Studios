@@ -83,15 +83,16 @@
 | 008 | 数据管线烘焙与 Addressables 预载 | Integration | Complete ✅ VERIFIED 2026-09-24 | ADR-014 + ADR-010 |
 | 009 | Craft 事件载荷与全序键 | Integration | Complete ✅ VERIFIED 2026-09-24 | ADR-009 + ADR-024 + ADR-008 |
 | 010 | 实例权威与持久化往返 | Integration | Complete ✅ VERIFIED 2026-09-24 | ADR-010 + ADR-005 + ADR-006 |
-| 011 | 跨平台确定性黄金夹具 | Logic | Complete ✅ 2026-09-24(AC-28/30 VERIFIED;AC-29 BLOCKED-BY-实测) | ADR-012 + ADR-005 |
+| 011 | 跨平台确定性黄金夹具 | Logic | Complete ✅ VERIFIED 2026-09-24(三 AC 全勾:AC-29 Mono↔IL2CPP 19/19 逐位;矩阵建设残余另账) | ADR-012 + ADR-005 |
 | 012 | 呈现契约合规走查 | UI | Complete ✅ 2026-09-24(21a 登记面;0/6 勾 —— AC-43/44 BLOCKED-BY-21b,AC-45/46/54/55 归 Epic 42) | ADR: N/A — 呈现归 ADR-013/42，非架构裁决 |
 
 Counts: 8 Logic · 3 Integration · 1 UI = 12 total.
 
-> **2026-09-24 全 12 故事交付完毕**(001–012 全 Complete;EditMode **463 全绿**)。
-> **挂账项(诚实记账,不随 21a 关账消失)**:① AC-21a-29 **BLOCKED-BY-实测**(IL2CPP 对拍 +
-> ADR-012 F7 spike,归后续实测轮);② AC-21a-43/44 **BLOCKED-BY-21b**(保留词表未立项);
-> ③ AC-21a-45/46/54/55 执行体归 **Epic 42**(走查未启动,21a 只登记问句)。
+> **2026-09-24 全 12 故事交付完毕**(001–012 全 Complete;EditMode **463 全绿** + PlayMode **15/15**)。
+> **挂账项(诚实记账,不随 21a 关账消失)**:① ~~AC-21a-29 BLOCKED-BY-实测~~ **✅ 同日补跑 VERIFIED**
+> (Mono↔IL2CPP Linux-x64 三方 19/19 逐位,证据 `production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`;
+> **残余 = ADR-012 矩阵建设**:ARM64 交叉格 / 发版前两格 / CI 三格常驻 / F7 反汇编 —— 未跑不冒充,另账);
+> ② AC-21a-43/44 **BLOCKED-BY-21b**(保留词表未立项);③ AC-21a-45/46/54/55 执行体归 **Epic 42**(走查未启动)。
 > 故 DoD 第 2/4 条(全部 AC verified / UI 证据签字)**尚未满足** —— Epic 状态维持 **Ready**,
 > 21a 侧工作面已收口。
 

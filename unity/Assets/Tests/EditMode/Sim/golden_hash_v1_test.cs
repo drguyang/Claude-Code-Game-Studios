@@ -10,8 +10,9 @@
 // ⚠️ 期望值全部由【超算】侧 Python 独立参考实现算出(与 C# 实现零共享代码),
 //    任一条变红 = 实现漂移或参考漂移,须双向核对,禁就地改期望值(ADR-012 版本化刷新纪律:
 //    刷新 = 新 golden-vN + 变更日志,不是改老数)。
-// ⚠️ 本文件只覆盖 Mono(EditMode)格。IL2CPP 格对拍走 ADR-012 §一 player bootstrap,
-//    归 CI 故事 —— 此处**不借绿**(跨平台逐位性未跑就是未跑)。
+// ⚠️ 本文件只覆盖 Mono(EditMode)格。IL2CPP 格对拍 = Tests/PlayMode/determinism_golden_crossplatform_test.cs
+//    ✅ 2026-09-24 已实测(StandaloneLinux64 UTF player,含本文件 F7 同族向量的 player 侧复跑)——
+//    证据 production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md;CI 常驻矩阵另账(未跑不冒充)。
 
 using System;
 using NUnit.Framework;

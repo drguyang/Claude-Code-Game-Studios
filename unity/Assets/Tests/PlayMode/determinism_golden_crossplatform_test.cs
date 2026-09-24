@@ -1,42 +1,45 @@
-// 权威来源:Story 011(production/epics/item-database/story-011-determinism-golden-fixtures.md)
-//     · AC-21a-28(边界组合逐条 F1/F2/F5 求解,SplitMix64 哈希 vs 已提交金标准逐位相同;
-//       金标准非首跑生成 —— 独立 Python 参考实现产出)
-//     · AC-21a-30(F1–F5 全部中间变量静态扫描:零 float/double、零 Math.Round/Exp/Pow/Sqrt、
-//       零浮点字面量;`ToFloat()` 白名单 = facade 定义自身住 Sim.Contracts,不在扫描面;
-//       Sim 内出现 `.ToFloat(` = 违 ADR-025 QQ-03 甲案)
-//   GDD:design/gdd/item-database.md §Formulas F1/F2/F5 · ADR-012(双级黄金夹具 · 版本化刷新)
-//        · ADR-005(整数定点域,存储零 float)· ADR-006 §三(half-away)· ADR-010(codec 布局)
+// 权威来源:Story 011 AC-21a-29(跨平台对拍 —— Editor Mono 与 IL2CPP player 哈希逐位相同)
+//          · ADR-012 §一 层级 1 / F4 执行载体(纯逻辑哈希入口须可进 player 的 bootstrap;
+//            EditMode 恒为 Mono 不经 IL2CPP ⇒ 对拍腿必须走 PlayMode → Standalone player)
+//          · ADR-012 F7(2026-09-21 承 RC-4 降级):SplitMix64 / Fix 中间乘 = ulong,
+//            无符号回绕两侧定义性 —— 本文件的 F7 向量测即「IL2CPP 侧已知值」探针
 //
-// ⚠️ 落点:账本路径 = tests/unit/item_database/determinism_golden_fixtures_test.cs(GDD 指名);
-//    Unity 只编译 unity/Assets/ 树 ⇒ 真身 = 本文件(Story 001–010 同一先例)。
-// ⚠️ 金标准 = tests/unit/item_database/golden/golden-v1.txt,由**独立 Python 参考实现**
-//    (同目录 golden_v1_reference.py,与 C# 零共享代码)产出并入库 —— 本测试**只读不写**
-//    (AC-28 防自指:金标准经由 C# 首跑生成 = 恒过)。刷新纪律 = 升 golden-v2 + 全平台重签。
-// ⚠️ AC-29(跨平台对拍)不在本文件 —— 真身 = Tests/PlayMode/determinism_golden_crossplatform_test.cs
-//    (双腿:编辑器 PlayMode = Mono,StandaloneLinux64 UTF player = IL2CPP);
-//    ✅ 2026-09-24 已实测 VERIFIED,证据 production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md。
+// ⚠️ 场景表与 unity/Assets/Tests/EditMode/ItemDatabase/determinism_golden_fixtures_test.cs
+//    受控重复(两 asmdef 互不引用 —— EditMode = Sim.Contracts.Tests,本程序集 = Gameplay.Tests,
+//    测试装配族跨引不属 ADR-025 §④ 六装配清单范围但会把 Editor-only 依赖带进 player,故不取)。
+//    防漂移绑定 = **两侧都对同一金标准 golden-v1.txt 断言**:任一侧改表 ⇒ 该侧红。
+//    金标准仍是唯一仲裁者(防自指:本测试只读金标准,结果文件写 AC29_OUT,外部 diff 判决)。
 //
-// 测试纪律:test_[scenario]_[expected];确定性(无随机、无墙钟);文件 I/O = 只读金标准。
+// ⚠️ AC-29 判决口径(禁借绿):
+//    · 编辑器 PlayMode 跑 = Mono 侧(与 EditMode AC-28 同值,已由 463 绿背书);
+//    · `-testPlatform StandaloneLinux64` + Standalone 后端 IL2CPP = IL2CPP 侧;
+//    · **外部 diff(player 输出 vs golden-v1.txt)逐位相同 ⇒ AC-29 才可转 VERIFIED**;
+//    · 测试内断言是第一道,外部 diff 是入账证据(测试绿但 diff 不同等价于红)。
+//
+// 环境变量(由调用方注入,player 子进程继承):
+//    AC29_OUT    —— 计算结果写入路径(缺省 = Application.persistentDataPath/ac29-computed.txt)
+//    AC29_GOLDEN —— 金标准路径(缺省 = 仓库相对路径;player 内 dataPath 指向 player_Data ⇒ 必须注入)
 
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
+using System.Runtime.InteropServices;
+using System.Text;
 using NUnit.Framework;
 using UnityEngine;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.Codec;
 
-namespace DaYiJingCheng.Tests.Unit.ItemDatabase
+namespace DaYiJingCheng.Tests.PlayMode
 {
     [TestFixture]
-    internal sealed class DeterminismGoldenFixturesTest
+    internal sealed class DeterminismGoldenCrossplatformTest
     {
         private const string GoldenFileName = "golden-v1.txt";
 
-        // ══════════════ 常量表夹具(与参考实现 golden_v1_reference.py 逐字对应)══════════════
+        // ══════════════ 常量表夹具(与 EditMode 侧 / golden_v1_reference.py 逐字对应)══════════════
 
         private static RecipeSettlementConstants FullCaps() => new RecipeSettlementConstants(
             qtyMultMin: FixParse.Parse("1/4"),
@@ -56,7 +59,7 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
         private static RecipeSettlementConstants ZeroCaps() => new RecipeSettlementConstants(
             qtyMultMin: FixParse.Parse("1/4"),
             qtyMultMax: FixParse.Parse("2"),
-            skillModCap: FixParse.Parse("0"),      // 所有修正 cap 取 0(AC-28 边界)
+            skillModCap: FixParse.Parse("0"),
             qualModCap: FixParse.Parse("0"),
             equipModCap: FixParse.Parse("0"),
             envModMin: FixParse.Parse("-1"),
@@ -70,20 +73,20 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
 
         // ══════════════ canonical 哈希(与金标准文件头口径一致)══════════════
 
-        /// <summary>值级:state = u64(v0);逐后续 Fold;终态 Avalanche 一次。</summary>
         private static string HashValues(IReadOnlyList<long> values)
         {
-            Assert.That(values, Is.Not.Empty, "哈希向量不得为空");
+            if (values == null || values.Count == 0)
+                throw new ArgumentException("哈希向量不得为空");
             ulong state = unchecked((ulong)values[0]);
             for (int i = 1; i < values.Count; i++)
                 state = SplitMix64.Fold(state, unchecked((ulong)values[i]));
             return SplitMix64.Avalanche(state).ToString("x16");
         }
 
-        /// <summary>字节级:state = 0;逐 byte Fold;终态 Avalanche 一次。</summary>
         private static string HashBytes(byte[] bytes)
         {
-            Assert.That(bytes, Is.Not.Empty, "字节流不得为空");
+            if (bytes == null || bytes.Length == 0)
+                throw new ArgumentException("字节流不得为空");
             ulong state = 0UL;
             foreach (byte b in bytes)
                 state = SplitMix64.Fold(state, b);
@@ -182,7 +185,6 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
         private static DrugProfile profileWithoutF5(DrugProfile p) => new DrugProfile
         {
             Onset = p.Onset, Peak = p.Peak, HalfLife = p.HalfLife, Elimination = p.Elimination,
-            // QualityAxis / AxisOffsetByQuality 不设 ⇒ 四轴原样透传
         };
 
         // ══════════════ 集成级字节样本(与 golden_v1_reference.py BYTE_SCENARIOS 同字面)══════════════
@@ -219,14 +221,27 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
             return computed;
         }
 
-        private static Dictionary<string, string> LoadGolden()
+        // ══════════════ 环境注入(AC-29 player 腿)══════════════
+
+        private static string ResolveOutputPath()
         {
+            string env = Environment.GetEnvironmentVariable("AC29_OUT");
+            return string.IsNullOrEmpty(env)
+                ? Path.Combine(Application.persistentDataPath, "ac29-computed.txt")
+                : env;
+        }
+
+        private static string ResolveGoldenPath()
+        {
+            string env = Environment.GetEnvironmentVariable("AC29_GOLDEN");
+            if (!string.IsNullOrEmpty(env)) return env;
+            // 编辑器侧回退:仓库相对路径(EditMode AC-28 同一解析法)
             string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
-            string path = Path.Combine(repoRoot, "tests", "unit", "item_database", "golden", GoldenFileName);
+            return Path.Combine(repoRoot, "tests", "unit", "item_database", "golden", GoldenFileName);
+        }
 
-            Assert.That(File.Exists(path), Is.True,
-                $"金标准缺失:{path}(由独立 Python 参考实现产出;测试只读不写 —— AC-28 防自指)");
-
+        private static Dictionary<string, string> LoadGolden(string path)
+        {
             var golden = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (string raw in File.ReadAllLines(path))
             {
@@ -239,144 +254,86 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
             return golden;
         }
 
-        // ══════════════ AC-21a-28 ══════════════
+        /// <summary>后端标记 —— 证据文件头必载(证明本结果出自哪个编译后端,防「拿 Mono 结果冒充 IL2CPP」)。
+        /// 判据 = FrameworkDescription(IL2CPP player 返回「Mono Unity IL2CPP」,Editor 返回「Mono x.y.z」);
+        /// ⚠️ 首版用 `Mono.Runtime` 存在性判后端**为假** —— IL2CPP 同样生成该类型(首跑误标 backend=Mono,
+        /// 同日修正),现以 FrameworkDescription 含「IL2CPP」为唯一判据。</summary>
+        private static string BackendMarker()
+        {
+            string framework = RuntimeInformation.FrameworkDescription;
+            string backend = framework.Contains("IL2CPP", StringComparison.Ordinal) ? "IL2CPP" : "Mono";
+            return backend + " | " + framework;
+        }
+
+        // ══════════════ AC-29 主测:全 19 条 → 写结果文件 → 金标准可达时就地断言 ═══════════════
 
         [Test]
-        public void test_ac21a28_allScenarioHashes_matchGoldenV1()
+        public void test_ac21a29_allScenarioHashes_writtenAndCompared_whenGoldenReachable()
         {
             Dictionary<string, string> computed = ComputeAll();
-            Dictionary<string, string> golden = LoadGolden();
 
-            CollectionAssert.AreEquivalent(
-                golden.Keys, computed.Keys,
-                "金标准条目集 ≠ 计算条目集 —— 场景表与 golden-v1.txt 脱钩(改表须升 golden-v2 全平台重签)");
+            // ① 无条件落盘(断言失败也有文件可下钻 —— ADR-012 双级下钻协议)
+            string outPath = ResolveOutputPath();
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outPath)));
+            var sb = new StringBuilder();
+            sb.AppendLine($"# ac29 backend={BackendMarker()}");
+            sb.AppendLine($"# unity={Application.unityVersion} platform={Application.platform}");
+            foreach (KeyValuePair<string, string> kv in new SortedDictionary<string, string>(computed, StringComparer.Ordinal))
+                sb.AppendLine($"{kv.Key} {kv.Value}");
+            File.WriteAllText(outPath, sb.ToString());
+            Debug.Log($"[AC-29] 计算结果已写入: {outPath}({computed.Count} 条, backend={BackendMarker()})");
 
+            Assert.That(computed.Count, Is.EqualTo(19), "条目数必须 = 19(12 S + 4 F5 + 3 B)—— 场景表脱钩即红");
+
+            // ② 金标准可达时就地逐位断言(编辑器腿恒可达;player 腿靠 AC29_GOLDEN 注入)
+            string goldenPath = ResolveGoldenPath();
+            if (!File.Exists(goldenPath))
+            {
+                Assert.Ignore($"金标准不可达({goldenPath})—— player 未注入 AC29_GOLDEN;本测退化为「只落盘」," +
+                              "判决由外部 diff 承担(AC-29 口径:测试绿且外部 diff 逐位相同才 VERIFIED)");
+            }
+
+            Dictionary<string, string> golden = LoadGolden(goldenPath);
+            CollectionAssert.AreEquivalent(golden.Keys, computed.Keys,
+                "金标准条目集 ≠ 计算条目集(改表须升 golden-v2 全平台重签 —— ADR-012 裁决③)");
             foreach (KeyValuePair<string, string> kv in computed)
             {
                 Assert.That(golden[kv.Key], Is.EqualTo(kv.Value),
-                    $"[{kv.Key}] 哈希与金标准逐位不符 —— 确定性回归(篡改/漂移即红;" +
-                    "红了先查实现,金标准刷新须全体平台同时重签,禁单平台独签 —— ADR-012 裁决③)");
+                    $"[{kv.Key}] 哈希与金标准逐位不符 —— 跨平台确定性回归");
             }
         }
 
-        [Test]
-        public void test_ac21a28_tamperedGoldenOneBit_detected()
-        {
-            // QA 冒烟反证:篡改任一位应红(负向 fixture = 无;夹具即金标准)。
-            Dictionary<string, string> computed = ComputeAll();
-            string name = "S01_full_skill0_q3_m1";
-            string honest = computed[name];
-            char flipped = honest[honest.Length - 1] == '0' ? '1' : '0';
-            string tampered = honest.Substring(0, honest.Length - 1) + flipped;
-
-            Assert.That(tampered, Is.Not.EqualTo(honest), "篡改必产生不同期望值(冒烟前提)");
-            Assert.That(computed[name], Is.Not.EqualTo(tampered),
-                $"[{name}] 篡改金标准一位必须被抓(逐位比对)—— 比对面失效即 AC-28 恒过风险");
-        }
+        // ══════════════ F7 向量(ADR-012 F7 降级:ulong 回绕已知值 —— IL2CPP 侧探针)══════════════
+        // 期望值全部照录 Tests/EditMode/Sim/golden_hash_v1_test.cs(Python 独立参考产出,同源 provenance)。
 
         [Test]
-        public void test_ac21a28_goldenHeader_carriesProvenanceMetadata()
+        public void test_ac21a29_f7_splitmix64Wraparound_knownValuesUnderCurrentBackend()
         {
-            // 评审检查项:金标准带「独立参考实现产出」元数据(非首跑自动冻结 —— AC-28)。
-            string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
-            string path = Path.Combine(repoRoot, "tests", "unit", "item_database", "golden", GoldenFileName);
-            string head = File.ReadAllText(path);
-
-            Assert.That(head.Contains("golden_v1_reference.py"), Is.True,
-                "金标准须声明独立 Python 参考实现出处(防自指 ⇒ 恒过)");
-            Assert.That(head.Contains("golden-v2") || head.Contains("golden-vN"), Is.True,
-                "金标准须载版本化刷新纪律(ADR-012 裁决③:升版本 + 全平台重签 + 旧版保留)");
-        }
-
-        // ══════════════ AC-21a-30:静态扫描(语法级;排除注释与字符串)══════════════
-
-        [Test]
-        public void test_ac21a30_f1f5Sources_scanForFloatAndLibm_noneFound()
-        {
-            string simDir = Path.Combine(Application.dataPath, "Sim");
-            Assert.That(Directory.Exists(simDir), Is.True, $"扫描面缺失: {simDir}");
-
-            var violations = new List<string>();
-            foreach (string file in Directory.GetFiles(simDir, "*.cs", SearchOption.AllDirectories))
-                violations.AddRange(ScanSource(Path.GetFileName(file), File.ReadAllText(file)));
-
-            Assert.That(violations, Is.Empty,
-                "AC-30 静态扫描红(ADR-005 存储零 float / ADR-026 禁 libm / ADR-025 QQ-03 甲案):\n"
-                + string.Join("\n", violations));
+            ulong s = ulong.MaxValue;
+            Assert.AreEqual(0x9E3779B97F4A7C14UL, unchecked(s + SplitMix64.Gamma),
+                "ulong 回绕步进漂移(F7:无符号回绕须两侧定义性一致)");
+            Assert.AreEqual(0xE4D971771B652C20UL, SplitMix64.NextValue(ref s),
+                "回绕后 avalanche 输出漂移");
+            Assert.AreEqual(0x7AD6664F09FFE52CUL, SplitMix64.Avalanche(0xDEADBEEFCAFEBABEUL),
+                "Avalanche 定值漂移");
+            Assert.AreEqual(0xB4D055FCF2CBBD7BUL, SplitMix64.Avalanche(ulong.MaxValue),
+                "Avalanche(全1) 漂移");
         }
 
         [Test]
-        public void test_ac21a30_scanner_selfProvesEachTokenClassDetected()
+        public void test_ac21a29_f7_fixMulPeakProducts_knownValuesUnderCurrentBackend()
         {
-            // 与真扫描同一谓词(QA 边例:注入含违例的临时内容应红 —— 内存形,免临时文件)。
-            const string synthetic = @"
-class Probe {
-    float f = 1.5;
-    double d;
-    decimal m;
-    void N() {
-        var a = (float)1;
-        double b = (double)2;
-        double r = System.Math.Round(1.0);
-        double e = System.Math.Exp(1.0);
-        double p = System.Math.Pow(2, 3);
-        double s = System.Math.Sqrt(4);
-        object o = null; o.ToFloat();
-    }
-}";
-            List<string> hits = ScanSource("synthetic_probe", synthetic);
-
-            foreach (string token in new[]
-                     {
-                         "float 类型", "double 类型", "decimal 类型", "浮点字面量",
-                         "Math.Round", "Math.Exp", "Math.Pow", "Math.Sqrt", "ToFloat() 调用点",
-                     })
-            {
-                Assert.That(hits.Any(h => h.Contains(token)), Is.True,
-                    $"扫描器漏检 [{token}] —— 自证失败(与真扫描同一谓词,漏检 = AC-30 空断言)");
-            }
-
-            List<string> clean = ScanSource("clean_probe", "class Clean { long A(long x) => x + 1; }");
-            Assert.That(clean, Is.Empty, "干净源不得误报(自证另一侧)");
-        }
-
-        /// <summary>违例谓词(真扫描与自证共用 —— 漏检自证即红,防伪证)。
-        /// 白名单:facade 的 <c>ToFloat()</c> **定义自身**住 Sim.Contracts/Fix.cs(不在扫描面);
-        /// Sim 内出现调用点 = 违 ADR-025 QQ-03 甲案(甲案构建期断言的 EditMode 同族镜像)。</summary>
-        private static List<string> ScanSource(string label, string source)
-        {
-            string code = StripCommentsAndStrings(source);
-            var hits = new List<string>();
-
-            void Check(Regex rx, string what)
-            {
-                foreach (Match m in rx.Matches(code))
-                    hits.Add($"{label}: [{what}] 「{m.Value}」");
-            }
-
-            Check(new Regex(@"\bfloat\b"), "float 类型");
-            Check(new Regex(@"\bdouble\b"), "double 类型");
-            Check(new Regex(@"\bdecimal\b"), "decimal 类型");
-            Check(new Regex(@"\d+\.\d+"), "浮点字面量");
-            Check(new Regex(@"Math\.(Round|Exp|Pow|Sqrt)"), "Math.libm 家族");
-            Check(new Regex(@"Math\.Round"), "Math.Round");        // 分列点名(AC-30 原文)
-            Check(new Regex(@"Math\.Exp"), "Math.Exp");
-            Check(new Regex(@"Math\.Pow"), "Math.Pow");
-            Check(new Regex(@"Math\.Sqrt"), "Math.Sqrt");
-            Check(new Regex(@"\.ToFloat\("), "ToFloat() 调用点");
-            return hits;
-        }
-
-        /// <summary>剥离 // 、/* */ 注释与字符串/字符字面量(AC-30「排除注释/字符串」;
-        /// 插值串按整串剥离 —— 其内嵌表达式的残余盲区登记于故事 Deviations(ADVISOORY 级)。</summary>
-        private static string StripCommentsAndStrings(string source)
-        {
-            string noBlock = Regex.Replace(source, @"/\*.*?\*/", " ", RegexOptions.Singleline);
-            string noLine = Regex.Replace(noBlock, @"//[^\r\n]*", " ");
-            string noVerbatim = Regex.Replace(noLine, "@\"(?:[^\"]|\"\")*\"", " \"\" ");
-            string noString = Regex.Replace(noVerbatim, "\"(?:\\\\.|[^\"\\\\])*\"", " \"\" ");
-            string noChar = Regex.Replace(noString, "'(?:\\\\.|[^'\\\\])'", "' '");
-            return noChar;
+            // 中间乘峰值参数(AC-29 Edge cases 明文要求):hi 位携带 / 补码取负 / 域外抛
+            Assert.AreEqual(281474976710656L, Fix.MulRaw(4294967296L, 4294967296L),
+                "2^32 × 2^32 → hi 位携带漂移");
+            Assert.AreEqual(70368744112128L, Fix.MulRaw(2147483647L, 2147483647L),
+                "int.Max² 峰值漂移");
+            Assert.AreEqual(-281474976710656L, Fix.MulRaw(long.MinValue, 2L),
+                "long.MinValue 量积(补码取负路径)漂移");
+            Assert.AreEqual(3L, Fix.MulRaw(5L, 32768L),
+                "5/2 = 2.5 → half-away 远离零 = 3(ties-to-even 会得 2)");
+            Assert.Throws<OverflowException>(() => Fix.MulRaw(140737488355328L, 4294967296L),
+                "2^47 × 2^32 → 域外须抛 OverflowException,不得回绕");
         }
     }
 }

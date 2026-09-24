@@ -1,0 +1,21 @@
+# ac29 backend=IL2CPP | Mono Unity IL2CPP (Sep 25 2026 00:43:16)
+# unity=6000.3.24f1 platform=LinuxPlayer
+B01_craft_payload_bytes 3e8e6533953a030f
+B02_item_instance_bytes 37ee32776b644084
+B03_sim_event_header_bytes 664fe273bad2425a
+S01_full_skill0_q3_m1 45e110c1f54e39e5
+S02_full_skill60_q5_m1 3a433a1c6bc4228a
+S03_full_skill0_q1_n1m1 0ddf09e1f57fe1c5
+S04_full_skill30_q5_m2 9284ff3d9e86c801
+S05_full_skill0_q3_envMin dd4f4d0b300ccf71
+S06_full_skill60_q5_envMax 2671f6ceb7606278
+S07_full_envMinBoth_restFull c004cd7a4c85c867
+S08_full_envMaxBoth_restFull e5c0ca25b378e992
+S09_zero_caps_floor c004cd7a4c85c867
+S10_zero_caps_envOverMax a6ffec47b4963547
+S11_zero_caps_mid 311bb4616cfbbb21
+S12_full_skill60_q1_m1 fadddd9057984f66
+S13_f5_halfLife_q1_offset0 9ae155937ffc1944
+S14_f5_halfLife_q5_offsetMax 17ab31a6a9da5463
+S15_f5_halfLife_q3_offsetNeg 8f4b682a5c42467e
+S16_f5_noAxis_passthrough 9ae155937ffc1944

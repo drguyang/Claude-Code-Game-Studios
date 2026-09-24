@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-24(实现 + 执行 VERIFIED;AC-29 依 Guardrail 维持 BLOCKED)
+> **Last Updated**: 2026-09-24(AC-29 实测补跑完成 —— 三 AC 全 VERIFIED;矩阵建设残余另账)
 
 ## Context
 
@@ -23,7 +23,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: 双级黄金夹具(单元级哈希 + 集成级字节);三格常驻矩阵 + 发版前两格;金标准 `golden-vN` 版本化,全体平台同时重签、旧版保留回归对比;金标准不得由首次运行自动生成(独立参考实现或手算产出 + 评审签字)
 - Forbidden: 用 Mono 单侧结果冒充跨平台已验证(AC-29 禁借绿);qemu softfloat 对拍;单平台独签;`Math.Round` / `(float)` / `Math.Exp`(AC-30 静态扫描面)
-- Guardrail: AC-29 当前 **BLOCKED-BY-实测**(IL2CPP player + ADR-012 F7 spike 未跑),不得记绿;`UNITY_LICENSE` 未配时 CI 红是预期态非测试缺陷
+- Guardrail: ~~AC-29 当前 BLOCKED-BY-实测~~ **✅ 2026-09-24 解除** —— IL2CPP player + F7 峰值向量已实测(证据 `production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`,19/19 逐位);**禁借绿条款持续有效**:ARM64/发版前/CI 矩阵格未跑就是未跑,不得以本批结果冒充;`UNITY_LICENSE` 未配时 CI 红是预期态非测试缺陷
 
 ---
 
@@ -32,7 +32,7 @@
 *From GDD `design/gdd/item-database.md`, scoped to this story:*
 
 - [x] **AC-21a-28**: 参数表逐条枚举边界组合(所有 cap 取 0/取满、ENV_MOD 取 MIN/MAX、quality 取 1/MAX_QUALITY、EFF 取 EFF_MIN/EFF_MAX、outputs 取 m=1/m>1),F1/F2/F5 求解,每组合 SplitMix64 哈希与 `tests/unit/item_database/golden/` 下已提交且经人工核对的金标准逐位相同。⚠️ 金标准不得由首次运行自动生成(自指 ⇒ 恒过);必须由独立参考实现或手算产出、经评审签字后提交。**✅ 2026-09-24:19 条(12 S 场景 + 4 F5 + 3 codec 字节样本)逐位比对全绿 + 篡改一位必红反证 + 出处元数据断言三测通过 —— 金标准由独立 Python 参考实现产出(与 C# 零共享代码),C# 侧只读不写(防自指)。**
-- [ ] **AC-21a-29** [I]: 同一组参数,Editor(Mono)与 IL2CPP 独立玩家构建中求解,哈希逐位相同。⚠️ **当前 UNVERIFIED —— BLOCKED-BY-实测**:IL2CPP player 尚未构建(ADR-012 F7 spike 未跑:SplitMix64 与 Q16.16 中间乘踩 C# 有符号溢出定义性回绕 vs IL2CPP C++ UB 风险线);ADR-005 自述 IL2CPP 逐位性「需实测」。**在实测通过前,21a 不得签署 Determinism 结论;本 spec 一律记 BLOCKED-BY-实测,不得以 Mono 单侧结果借绿**
+- [x] **AC-21a-29** [I]: 同一组参数,Editor(Mono)与 IL2CPP 独立玩家构建中求解,哈希逐位相同。⚠️ **✅ 2026-09-24 VERIFIED(Linux-x64 两后端)**:Mono 腿 = 编辑器 PlayMode 3/3 绿(`backend=Mono`,platform=LinuxEditor);IL2CPP 腿 = StandaloneLinux64 UTF player 独立构建 3/3 绿(`backend=IL2CPP`,platform=LinuxPlayer,`_APPDOMAIN=IL2CPP Root Domain`,退出码 0);外部 diff 三方(golden / Mono / IL2CPP)**19/19 逐位相同** + F7 峰值向量(SplitMix64 回绕 / Fix.MulRaw 2^32×2^32 / long.MinValue 量积 / half-away ties / 域外抛)player 侧已知值断言全过 —— 证据 `production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`(两腿输出文件 + 命令 + 订正记录)。**残余挂账(不在本 AC 判据内)**:ARM64 交叉格 / 发版前两格 / CI 三格常驻矩阵 / F7 反汇编验 FMA —— 见证据文件「残余」表,归矩阵建设轮。
 - [x] **AC-21a-30**: F1…F5 全部中间变量静态扫描 ⇒ 除 facade 的 `ToFloat()` 外无任何 float/double:无 `Math.Round`、无 `(float)` 转型、无 `Math.Exp`(需手写定点版)—— ADR-005「Storage 中不出现任何 float」的验证。**✅ 2026-09-24:全 `Assets/Sim` 目录(门 A 运行期程序集,测试/Editor 工具豁免)六类 token 扫描零命中(剥注释/字符串;`Sim.Contracts` 的 facade 定义在扫描面外 = AC 白名单),扫描器自证测(九类注入全捕获 + 干净探针零误报)通过;三处语法级盲区登记 Completion Notes Deviations(ADVISOORY)。**
 
 ---
@@ -82,9 +82,8 @@
   - Then: 哈希逐位相同 ⇒ 才可转 VERIFIED;当前状态 = NOT-RUN/BLOCKED-BY-实测。
   - Edge cases: qemu 合成跑对拍(禁——ADR-012 明文 softfloat 不可信);`UNITY_LICENSE` 未配时 CI 三格红是预期态非测试缺陷;F7 溢出用例须包含中间乘峰值参数;单平台独签金标准(违规)。
   - Negative fixture: 无。
-  - **状态:UNVERIFIED / BLOCKED-BY-实测(IL2CPP player 构建 + F7 spike)。禁记绿。**
-  - **状态(2026-09-24 复核)**: 维持 **BLOCKED-BY-实测**,复核日实测面(IL2CPP player / F7 spike / CI 三格矩阵)未开跑 ⇒ **不勾选**;463 全绿是 Mono 单侧结果,依故事头 Guardrail 不得借绿。
-  - Suggested test path: `tests/integration/item_database/determinism_golden_fixtures_test.cs`(Mono 侧)+ CI 独立 IL2CPP job(ADR-012 矩阵);证据落 `production/qa/evidence/` 待实测
+  - **状态: ✅ VERIFIED 2026-09-24(Linux-x64 两后端实测)** —— Mono 腿(编辑器 PlayMode)与 IL2CPP 腿(StandaloneLinux64 UTF player 独立构建)各 3/3 绿,外部 diff golden/Mono/IL2CPP **19/19 逐位相同**,F7 峰值向量 player 侧全过;证据 = `production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`。**残余(未跑,禁冒充)**:ARM64 交叉格 / 发版前两格 / CI 常驻矩阵 / F7 反汇编 —— 归矩阵建设轮,见证据文件残余表。
+  - Suggested test path: `unity/Assets/Tests/PlayMode/determinism_golden_crossplatform_test.cs`(双腿真身;账本 `tests/integration/item_database/determinism_golden_fixtures_test.cs` 仍不建 —— Unity 不编译仓库根,落点说明见 `tests/integration/item_database/README.md`)+ 证据 `production/qa/evidence/ac-29-*`
 
 - **AC-21a-30**: F1…F5 全部中间变量静态扫描 ⇒ 除 facade 的 `ToFloat()` 外无任何 float/double:无 `Math.Round`、无 `(float)` 转型、无 `Math.Exp`(需手写定点版)—— ADR-005「Storage 中不出现任何 float」的验证。
   - Given: src 中 F1–F5 实现及全部中间变量(SkillMod/QualityMod/EquipMod/EnvMod/QtyMultiplier/Retain/EFF/Axis_effective 等)。
@@ -101,7 +100,7 @@
 **Story Type**: Logic
 **Required evidence**:
 - Logic: `tests/unit/item_database/determinism_golden_fixtures_test.cs` — must exist and pass
-- Integration (AC-29): `tests/integration/item_database/determinism_golden_fixtures_test.cs` + CI IL2CPP job — **当前 BLOCKED-BY-实测,禁记绿**;证据待 F7 spike 后落 `production/qa/evidence/`
+- Integration (AC-29): `tests/integration/item_database/determinism_golden_fixtures_test.cs`(账本路径,**不建文件** —— Unity 不编译仓库根,真身 = PlayMode 测试)+ 证据落 `production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md` —— **✅ 已建**(2026-09-24)
 
 **Status**: [x] Created —— 两件三物:独立 Python 参考实现
 `tests/unit/item_database/golden/golden_v1_reference.py`(**与 C# 零共享代码**,按 GDD F1/F2/F5
@@ -112,18 +111,22 @@
 `tests/unit/item_database/README.md` §Story 011)。
 **执行 ✅ VERIFIED 2026-09-24 桌面 batch** —— EditMode **463 全绿**(前批 458 + 本批 5),
 **一跑收敛**(规格保真修正后 golden 重新生成逐字节相同,先行验证)。
-⚠️ AC-29 集成证据 IL2CPP 侧 **BLOCKED-BY-实测**,不随本批记绿(见 AC 注)。
+**AC-29 ✅ 同日补跑 VERIFIED** —— 双腿 PlayMode 测试真身
+`unity/Assets/Tests/PlayMode/determinism_golden_crossplatform_test.cs`(Mono 腿 3/3 + IL2CPP 腿 3/3)+
+外部三方 diff 19/19 逐位相同;全量 PlayMode 回归 **15/15 绿**(原 12 + 新 3)。
+证据 = `production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`(含两腿输出文件、
+后端标记、订正记录、残余表)。
 
 ---
 
 ## Completion Notes
-**Completed**: 2026-09-24
-**Criteria**: 2/3 已勾选(AC-21a-28 / AC-21a-30);AC-21a-29 维持 `[ ]` BLOCKED-BY-实测(故事头 Guardrail:不得以 Mono 单侧结果借绿)
+**Completed**: 2026-09-24(AC-29 实测同日补跑收口)
+**Criteria**: 3/3 已勾选(AC-21a-28 / AC-21a-29 / AC-21a-30)—— AC-29 由双腿实测 + 三方 diff 19/19 逐位背书,非借绿
 **Deviations(ADVISORY)**: ① AC-30 扫描为**语法级正则**(剥 `//`、`/* */`、字符串/字符字面量后扫关键词/字面量/libm 家族/`.ToFloat(`),非完整编译单元类型推断 —— QA 条款「`var` 推断为 double」的正例靠 `double` 关键词与浮点字面量两路兜住,插值串内嵌表达式是已登记盲区(注入自证测覆盖九类 token);② AC-28 集成级字节样本取自真实 C# codec 产物(PayloadCodec/ItemInstanceCodec/SimEventCodec),Python 侧按 ADR-010 tag 布局手写对拍 —— 首跑即逐位相同,无偏差待修。两者均非规格偏离,登记备查。
-**范围边界**: AC-29 IL2CPP 对拍 + ADR-012 F7 spike + CI 三格矩阵 = 后续实测轮(本故事只交付 Mono 侧可跑面与金标准);金标准升 golden-v2 重签 = 未来公式/codec 变更时的刷新义务;`CDF walk` / 定点 `Exp` 等 ADR-012 单元级清单里非 21a 面的算子归 9/52 各自故事
-**Test Evidence**: Logic —— 真身 `unity/Assets/Tests/EditMode/ItemDatabase/determinism_golden_fixtures_test.cs`(5 测)+ 金标准 `tests/unit/item_database/golden/golden-v1.txt`(19 条)+ 参考实现 `golden_v1_reference.py`;落点表 = `tests/unit/item_database/README.md` §Story 011
+**范围边界**: CI 三格常驻矩阵 / ARM64 交叉格 / 发版前两格 / F7 反汇编验 FMA = **矩阵建设轮**(AC-29 判据本体已在 Linux-x64 两后端实测,矩阵是把该判据常驻化的 CI 基建 —— 残余表见证据文件);金标准升 golden-v2 重签 = 未来公式/codec 变更时的刷新义务;`CDF walk` / 定点 `Exp` 等 ADR-012 单元级清单里非 21a 面的算子归 9/52 各自故事
+**Test Evidence**: Logic —— ① AC-28/30:真身 `unity/Assets/Tests/EditMode/ItemDatabase/determinism_golden_fixtures_test.cs`(5 测);② AC-29:真身 `unity/Assets/Tests/PlayMode/determinism_golden_crossplatform_test.cs`(3 测,双腿)+ 证据 `production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`(含 `ac29-hashes-{mono,il2cpp}.txt`);金标准 `tests/unit/item_database/golden/golden-v1.txt`(19 条)+ 参考实现 `golden_v1_reference.py`;落点表 = `tests/unit/item_database/README.md` §Story 011 + `tests/integration/item_database/README.md` §Story 011
 **Code Review**: Skipped(lean 模式,承 Story 001–010 先例;桌面批次无 `/code-review` 记录)
-**执行状态**: ✅ **部分 VERIFIED 2026-09-24 桌面 batch** —— EditMode **463 全绿**(前批 458 + 本批 5),一跑收敛。AC-28/30 已勾;**AC-29 UNVERIFIED / BLOCKED-BY-实测**(IL2CPP player 构建 + F7 spike 未跑)—— 本故事 Complete 指「Mono 侧交付面完成」,**不**指跨平台确定性已验证;21a 的 Determinism 结论签署仍锁定在实测后。
+**执行状态**: ✅ **VERIFIED 2026-09-24 桌面** —— EditMode **463 全绿**(AC-28/30)+ PlayMode 双腿 3/3 × 2 + 全量 PlayMode **15/15 绿** + 三方 diff **19/19 逐位相同**(AC-29,Linux-x64 Mono↔IL2CPP)。**三 AC 全 VERIFIED**。Determinism 结论就 Linux-x64 两后端已签署;矩阵建设残余(ARM64 / 发版前 / CI 常驻)另账挂证据文件残余表,不随本故事冒充已跑。
 
 ---
 

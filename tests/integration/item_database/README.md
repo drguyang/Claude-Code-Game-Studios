@@ -182,18 +182,19 @@ AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→d
 ## Story 011(跨平台确定性黄金夹具 —— AC-21a-29)—— 落点说明
 
 故事 QA 为 AC-29 指名本账本 `tests/integration/item_database/determinism_golden_fixtures_test.cs`
-(Mono 侧)+ CI 独立 IL2CPP job —— **当前不建、不落文件:AC-29 BLOCKED-BY-实测**
-(ADR-012 F7 spike 未跑 + IL2CPP player 未构建;证据待实测后落 `production/qa/evidence/`)。
-空账本文件 = 假证据面,故以本节登记「应落点 + 阻塞原因」代替占位文件
-(承 Story 010 「BLOCKED 不建空壳」同款口径)。
-
-已交付的 Mono 侧可跑面(AC-28 黄金比对 + AC-30 静态扫描,5 测)真身在 EditMode 树,
-落点表见 `tests/unit/item_database/README.md` §Story 011 —— **Mono 单侧全绿 ≠ 跨平台已验证**,
-story-011 头 Guardrail:不得以本批 463 绿借记 AC-29。
++ CI 独立 IL2CPP job。**本账本文件仍不建**:Unity 不编译仓库根(承 Story 001–010 先例),
+空账本 = 假证据面。**✅ AC-29 已于 2026-09-24 实测 VERIFIED,真身与证据落点如下:**
 
 | 内容 | 路径 | 状态 |
 |---|---|---|
-| AC-29 Mono 侧集成账本 | `tests/integration/item_database/determinism_golden_fixtures_test.cs` | **未建(BLOCKED-BY-实测)** |
-| AC-29 IL2CPP 对拍 job | CI `unity-builder@v4` 独立 job(ADR-012 三格矩阵) | **未建(BLOCKED-BY-实测)** |
-| F7 溢出 spike(中间乘峰值参数) | ADR-012 §BLOCKING spike | **未跑** |
-| AC-28/30 真身(本批已绿) | `unity/Assets/Tests/EditMode/ItemDatabase/determinism_golden_fixtures_test.cs` | ✅ 463 全绿之一部 |
+| AC-29 双腿对拍真身(3 测:19 条金标准 + F7 回绕 + F7 峰值) | `unity/Assets/Tests/PlayMode/determinism_golden_crossplatform_test.cs`(装配 `Gameplay.Tests`,增引 Sim.Codec GUID) | ✅ Mono 腿 3/3 + IL2CPP 腿 3/3 |
+| AC-29 判决书(命令/后端标记/三方 diff/订正记录/残余表) | `production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md` | ✅ 19/19 逐位 |
+| Mono 腿输出 | `production/qa/evidence/ac29-hashes-mono.txt` | ✅ `backend=Mono` |
+| IL2CPP 腿输出 | `production/qa/evidence/ac29-hashes-il2cpp.txt` | ✅ `backend=IL2CPP` |
+| 执行载体 | 编辑器 PlayMode(Mono,F4 恒 Mono)+ StandaloneLinux64 UTF player(独立 IL2CPP 构建,`-testPlatform`) | ✅ 各 3/3 |
+| 后端切换器 | `unity/Assets/Editor.Tools.Spike/Ac29Il2CppSwitch.cs`(跑完归位 + `git restore`) | ✅ 已归位 |
+| **CI 三格常驻矩阵 job** | CI `unity-builder@v4` 独立 job(ADR-012 §二) | **未建(BY-矩阵建设轮)** |
+| **ARM64 交叉格 / 发版前两格 / F7 反汇编** | ADR-012 F2 / 发版前 / §三 | **未跑(未跑不冒充)** |
+
+已交付的 Mono 侧可跑面(AC-28 黄金比对 + AC-30 静态扫描,5 测)落点表见
+`tests/unit/item_database/README.md` §Story 011;AC-29 腿的双腿跑法与受控重复纪律同见该节。
