@@ -590,14 +590,15 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
         /// <summary>QA #1:AC-64 规格含 MAX_QUALITY 维(规则六:槽位基数 = base 数 × state 数 × MAX_QUALITY)。
         /// 本求解器的 <c>maxEntries</c> = 最坏槽位基数,须由**调用方**折入该维 —— 本测钉判据对该参数
         /// **单调**:折入更多槽位维只会收紧结论,永不放松 ⇒ 遗漏该维 = 漏判风险(非保守)。
-        /// 界 = floor(long.MaxValue / (w × s));w = s = int.MaxValue 时界恰为 1。</summary>
+        /// 界 = floor(long.MaxValue / (w × s));w = s = int.MaxValue ⇒ perStack = (2³¹−1)² = 2⁶²−2³²+1,
+        /// 2 × perStack = 2⁶³ − 2³³ + 2 ≤ long.MaxValue(2⁶³ − 1)⇒ 界**恰为 2**(非 1)。</summary>
         [Test]
         public void test_weightedTotalFitsInt64_monotoneInEntries()
         {
-            Assert.That(StackingSolver.WeightedTotalFitsInt64(int.MaxValue, int.MaxValue, 1), Is.True,
-                "条目数 1 在界内");
-            Assert.That(StackingSolver.WeightedTotalFitsInt64(int.MaxValue, int.MaxValue, 2), Is.False,
-                "条目数翻倍越界 ⇒ 判据单调收紧(折入 MAX_QUALITY 维只减不增)");
+            Assert.That(StackingSolver.WeightedTotalFitsInt64(int.MaxValue, int.MaxValue, 2), Is.True,
+                "条目数 2 恰在界内(2 × perStack ≤ long.MaxValue)");
+            Assert.That(StackingSolver.WeightedTotalFitsInt64(int.MaxValue, int.MaxValue, 3), Is.False,
+                "条目数越界 ⇒ 判据单调收紧(折入 MAX_QUALITY 维只减不增)");
         }
     }
 }
