@@ -65,11 +65,20 @@ namespace DaYiJingCheng.Sim
         /// ③ 品级相等;④ 复合主键相等(<see cref="ItemKey.Equals(ItemKey)"/>,序数)。</para>
         /// <para>两实例的 key 相等且 quality 相等 = 同一 <c>StackKey</c> ——
         /// 本判定是「堆叠键相等」的集中表达,不在调用方重复实现(AC-21a-32)。</para>
+        /// <para>⚠️ <b>本谓词不判「是否已满」</b> —— 它只回答「同不同堆叠键」。<c>Qty</c> vs
+        /// <c>stackMax</c> 的容量判定与溢出切分是 <see cref="SplitStack"/> 的职责;调用方(20 库存)
+        /// <b>不得</b>仅凭本谓词为真就合并写入,须再经 <see cref="SplitStack"/> 定容量
+        /// (否则满堆会被写溢出)。命名取「键相等」语义,勿读作「可安全合并」。</para>
+        /// <para>⚠️ <b>已知限制(schema 固有,登记给 Story 010)</b>:容器以 <c>Children.Length &gt; 0</c>
+        /// 识别;一个 <b>空容器</b>(<c>Children</c> 长度 0)与非容器在数据上不可区分,会被判为可合并 ——
+        /// 与 GDD §Schema E「容器自身不堆叠」相抵。根因是 <see cref="ItemInstance"/> 无 <c>is_container</c>
+        /// 标志位(容器实例 <c>qty</c>/<c>quality</c> 恒 1 的约定承载了该语义)。容器 children 闭包 /
+        /// 守恒判定归 Story 010,届时若需显式标志位应在其 schema 故事内补。</para>
         /// </summary>
         /// <param name="a">实例甲。</param>
         /// <param name="b">实例乙。</param>
         /// <param name="stackMax">该 item_key 的堆叠上限(int ≥ 1;数值待用户,越界校验归 Story 006)。</param>
-        /// <returns><c>true</c> = 可合并(同 StackKey 且双非容器且可堆叠)。</returns>
+        /// <returns><c>true</c> = 同 StackKey 且双非容器且该键可堆叠(stackMax &gt; 1)。</returns>
         /// <example><c>CanStack(a, b, 99)</c>(同 K 同 q)⇒ <c>true</c>;
         /// <c>CanStack(a, b, 1)</c> ⇒ <c>false</c>(stackMax = 1 永不合并)。</example>
         public static bool CanStack(in ItemInstance a, in ItemInstance b, int stackMax)
@@ -120,6 +129,11 @@ namespace DaYiJingCheng.Sim
         /// <summary>AC-21a-64 的上界判据 —— 守恒律整数域求值的**前提证明**:
         /// 最坏组合(配方与实例的最大 <c>weight</c> / 最大 <c>stack_max</c> / 配方条目数上限同时取满)
         /// 求 <c>Σ(weight × ItemDef.weight × Qty)</c> 是否 ≤ <c>long.MaxValue</c>。
+        /// <para>⚠️ <b>AC-64 的完整执法面不在此处</b> —— 本函数只判<b>一侧量级</b>(weight × stack_max × 条目数)。
+        /// GDD 规则六的槽位基数含 <c>MAX_QUALITY</c> 维(base 数 × state 数 × <c>MAX_QUALITY</c>),且守恒律的
+        /// 完整上界还牵 <c>QTY_MULT_MAX</c> / <c>EFF_MAX</c> 因子 —— <b>调用方</b>须把最坏槽位基数折进
+        /// <paramref name="maxEntries"/>(或另乘 <c>MAX_QUALITY</c>);跨条目的构建期硬失败执法体归
+        /// <b>Story 005</b>(守恒律构建期门),本故事只供算术谓词。勿假设 AC-64 在此完全结清。</para>
         /// <para>⚠️ <b>先证不溢出再比</b>:中间积是 <c>int × int ≤ (2³¹−1)² ≈ 2⁶² &lt; 2⁶³</c>
         /// ⇒ 先乘落 <c>long</c> 安全;再以「除法比较」替代乘法,比较步骤本身不溢出
         /// (<c>entries ≤ long.MaxValue / perStack</c>)。<b>不用 BigInteger / float</b>。</para>

@@ -487,5 +487,117 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
                 "空表 ⇒ 无 F5 作用,域约束不生效");
             Assert.That(QualityTimelineSolver.DomainClampSatisfied(fx("1/2"), Array.Empty<Fix>()), Is.True);
         }
+
+        // ---- 复核补测(qa-tester GAPS 发现 #2/#3/#6):全档遍历 + 四轴 switch 臂 + 边界 ----
+
+        /// <summary>QA #3:AC-38 断言的是**通用性质**(仅作用轴平移),求解器明文泛化到 P1a 四轴 ——
+        /// 逐轴设为 quality_axis,断言只有该轴变、余三轴逐位等于 base(覆盖 <c>ApplyQualityTimeline</c>
+        /// 的 Onset/Peak/Elimination switch 臂,此前只测了 half_life)。</summary>
+        [Test]
+        public void test_f5_eachAxisShifts_onlyItsOwnAxis()
+        {
+            Fix shift = fx("1/4");
+            DrugProfile p = fixtureProfile();
+            p.AxisOffsetByQuality = new[] { shift, shift, shift, shift, shift };
+
+            foreach (QualityAxis axis in new[]
+                { QualityAxis.Onset, QualityAxis.Peak, QualityAxis.HalfLife, QualityAxis.Elimination })
+            {
+                p.QualityAxis = axis;
+                EffectiveTimeline t = QualityTimelineSolver.ApplyQualityTimeline(p, 1);
+                Fix expected = new Fix(QualityTimelineSolver.AxisBase(p, axis).Raw + shift.Raw);
+
+                Fix? got = axis switch
+                {
+                    QualityAxis.Onset => t.Onset,
+                    QualityAxis.Peak => t.Peak,
+                    QualityAxis.HalfLife => t.HalfLife,
+                    QualityAxis.Elimination => t.Elimination,
+                    _ => null,
+                };
+                Assert.That(got.Value.Raw, Is.EqualTo(expected.Raw), $"{axis} 作用轴应含偏移");
+
+                // 余三轴逐位等于 profile 字段(AC-38 通用性质,非仅 half_life 一轴)
+                Assert.That(t.Onset!.Value.Raw, Is.EqualTo(axis == QualityAxis.Onset ? expected.Raw : p.Onset!.Value.Raw),
+                    $"{axis} 作用下 onset 状态正确");
+                Assert.That(t.Peak!.Value.Raw, Is.EqualTo(axis == QualityAxis.Peak ? expected.Raw : p.Peak!.Value.Raw),
+                    $"{axis} 作用下 peak 状态正确");
+                Assert.That(t.HalfLife!.Value.Raw, Is.EqualTo(axis == QualityAxis.HalfLife ? expected.Raw : p.HalfLife!.Value.Raw),
+                    $"{axis} 作用下 half_life 状态正确");
+                Assert.That(t.Elimination!.Value.Raw, Is.EqualTo(axis == QualityAxis.Elimination ? expected.Raw : p.Elimination!.Value.Raw),
+                    $"{axis} 作用下 elimination 状态正确");
+            }
+        }
+
+        /// <summary>QA #2:AC-38 QA 规格「quality 遍历全档」—— 逐档断言作用轴 = base + offsets[q−1],
+        /// 余三轴全程不变(此前只 pin 单档 1/2/3/4/5 各一条)。</summary>
+        [Test]
+        public void test_f5_fullQualityRange_traversalMatchesOffsetTable()
+        {
+            DrugProfile p = fixtureProfile();
+            Fix[] offsets = { fx("1/4"), fx("1/4"), fx("1/2"), fx("-1/4"), fx("0") };
+            p.AxisOffsetByQuality = offsets;
+
+            for (int q = 1; q <= offsets.Length; q++)
+            {
+                EffectiveTimeline t = QualityTimelineSolver.ApplyQualityTimeline(p, q);
+                Assert.That(t.HalfLife!.Value.Raw,
+                    Is.EqualTo(new Fix(p.HalfLife!.Value.Raw + offsets[q - 1].Raw).Raw),
+                    $"quality = {q} ⇒ half_life = base + offsets[{q - 1}]");
+                Assert.That(t.Onset!.Value.Raw, Is.EqualTo(p.Onset!.Value.Raw), $"q={q} onset 不变");
+                Assert.That(t.Peak!.Value.Raw, Is.EqualTo(p.Peak!.Value.Raw), $"q={q} peak 不变");
+                Assert.That(t.Elimination!.Value.Raw, Is.EqualTo(p.Elimination!.Value.Raw), $"q={q} elimination 不变");
+            }
+        }
+
+        /// <summary>QA #3:<c>AxisBase</c> 的 throw 臂 —— 四轴各自缺 base 时具名抛出(此前只测 half_life)。</summary>
+        [Test]
+        public void test_f5_axisBaseMissing_eachAxis_throwsNamed()
+        {
+            var empty = new DrugProfile();   // 四轴全 null
+            foreach (QualityAxis axis in new[]
+                { QualityAxis.Onset, QualityAxis.Peak, QualityAxis.HalfLife, QualityAxis.Elimination })
+            {
+                Assert.Throws<InvalidOperationException>(() => QualityTimelineSolver.AxisBase(empty, axis),
+                    $"{axis} 缺 base ⇒ 具名抛");
+            }
+        }
+
+        /// <summary>QA #6:「档位表在但值为空」(空数组)+ axis 已设 ⇒ <c>OffsetFor</c> 返 0,
+        /// 作用轴 = base + 0(此前只覆盖 null 表,未覆盖空数组且 axis 已设的路径)。</summary>
+        [Test]
+        public void test_f5_emptyOffsetTable_withAxisSet_shiftsByZero()
+        {
+            DrugProfile p = fixtureProfile();
+            p.AxisOffsetByQuality = Array.Empty<Fix>();
+            EffectiveTimeline t = QualityTimelineSolver.ApplyQualityTimeline(p, 3);
+            Assert.That(t.HalfLife!.Value.Raw, Is.EqualTo(p.HalfLife!.Value.Raw),
+                "空数组(非 null)= 无偏移 ⇒ 作用轴 = base + 0");
+            Assert.That(t.Onset!.Value.Raw, Is.EqualTo(p.Onset!.Value.Raw));
+        }
+
+        /// <summary>QA #6:<c>AbsUl</c> 的 <c>long.MinValue</c> 路径(ulong 实现的存在理由 ——
+        /// <c>Math.Abs(long.MinValue)</c> 会抛)从未被走过:偏移取 raw = long.MinValue 时模为 2⁶³,
+        /// ≥ 任意正地板 ⇒ 过,且不回绕。</summary>
+        [Test]
+        public void test_f5_perceptibleFloor_longMinValueOffset_noWrap()
+        {
+            Assert.That(QualityTimelineSolver.AllOffsetsSatisfyPerceptibleFloor(
+                new[] { new Fix(long.MinValue) }, fx("1/2")), Is.True,
+                "long.MinValue 的模 = 2⁶³ ≥ 地板(ulong 域比较,不回绕)");
+        }
+
+        /// <summary>QA #1:AC-64 规格含 MAX_QUALITY 维(规则六:槽位基数 = base 数 × state 数 × MAX_QUALITY)。
+        /// 本求解器的 <c>maxEntries</c> = 最坏槽位基数,须由**调用方**折入该维 —— 本测钉判据对该参数
+        /// **单调**:折入更多槽位维只会收紧结论,永不放松 ⇒ 遗漏该维 = 漏判风险(非保守)。
+        /// 界 = floor(long.MaxValue / (w × s));w = s = int.MaxValue 时界恰为 1。</summary>
+        [Test]
+        public void test_weightedTotalFitsInt64_monotoneInEntries()
+        {
+            Assert.That(StackingSolver.WeightedTotalFitsInt64(int.MaxValue, int.MaxValue, 1), Is.True,
+                "条目数 1 在界内");
+            Assert.That(StackingSolver.WeightedTotalFitsInt64(int.MaxValue, int.MaxValue, 2), Is.False,
+                "条目数翻倍越界 ⇒ 判据单调收紧(折入 MAX_QUALITY 维只减不增)");
+        }
     }
 }

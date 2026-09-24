@@ -83,7 +83,8 @@ namespace DaYiJingCheng.Sim
         /// 非空但越界(quality &lt; 1 或 &gt; 长度)显式抛 —— 长度 = MAX_QUALITY 由 AC-21a-50 保证,
         /// 此处兜底防污染 9 的病史流。偏移可为负(劣药)。</para>
         /// </summary>
-        /// <param name="offsets">品级档位偏移表(Q16.16,长度预期 = MAX_QUALITY)。</param>
+        /// <param name="offsets">品级档位偏移表(Q16.16,长度预期 = MAX_QUALITY;引用类型参数不加 <c>?</c> ——
+        /// 本项目无 <c>#nullable</c> 上下文,见 Story 004 CS8632 订正)。</param>
         /// <param name="quality">品级档位 ∈ [1, MAX_QUALITY]。</param>
         /// <returns>该档偏移(<c>Fix</c>)。</returns>
         /// <exception cref="InvalidOperationException">表非空且 <paramref name="quality"/> 越界(长度 &lt; quality
@@ -211,7 +212,18 @@ namespace DaYiJingCheng.Sim
 
         private static InvalidOperationException MissingBase(QualityAxis axis)
             => new InvalidOperationException(
-                $"F5 作用轴 {axis} 的 base 缺失(drug_profile.{nameof(DrugProfile.HalfLife)} 等可空字段为 null)—— " +
+                $"F5 作用轴 {axis} 的 base 缺失(drug_profile.{AxisFieldName(axis)} 为 null)—— " +
                 "当 F5 已声明时该轴须有 base(P0 可空 ≠ 可作用时缺失;构建期数据门归 Story 006/007)。");
+
+        /// <summary>作用轴 → <see cref="DrugProfile"/> 对应可空字段名(供错误信息具名,勿硬编码某一轴)。</summary>
+        private static string AxisFieldName(QualityAxis axis)
+            => axis switch
+            {
+                QualityAxis.Onset => nameof(DrugProfile.Onset),
+                QualityAxis.Peak => nameof(DrugProfile.Peak),
+                QualityAxis.HalfLife => nameof(DrugProfile.HalfLife),
+                QualityAxis.Elimination => nameof(DrugProfile.Elimination),
+                _ => "quality_axis",
+            };
     }
 }
