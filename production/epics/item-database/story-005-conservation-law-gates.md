@@ -114,7 +114,10 @@
 (装配 `Sim.Contracts.Tests`;**31** 个 `[Test]`,AC-8×7 + AC-39×5 + AC-40×4 + AC-56×5 + AC-65×8 +
 TryMultiply×2)。账本路径同 Story 001/002/003/004 口径:Unity 不编译 `unity/Assets/` 之外的代码 ⇒
 测试真身落 EditMode 树,`tests/unit/item_database/` 只承载账本与三个负向夹具。
-**执行状态:NOT-RUN**(【超算】无 Unity Editor)⇒ 全绿判据待【桌面】跑出。
+
+**执行状态:✅ VERIFIED 2026-09-24 桌面** —— EditMode **270 全绿**
+(Story 001/002/003/004 回归 239 + 本故事 31);前批 239 → 本批 270(新增 31 测),
+三份新源文件经 Unity 生成 `.meta` 后装配解析通过。
 
 ---
 
@@ -144,9 +147,9 @@ D-21-32 的缝(聚合式与逐条式不同形)在结构上被消除,靠 `test_pe
 零命中;EFF_MIN=EFF_MAX>0 按 GDD 现文**过**,未擅自收紧)。
 **Test Evidence**: Logic — `unity/Assets/Tests/EditMode/ItemDatabase/conservation_law_gates_test.cs`(31 个 `[Test]`),账本 `tests/unit/item_database/conservation_law_gates_test.cs`
 **Code Review**: Skipped(lean 模式)
-**执行状态**: NOT-RUN(【超算】无 Unity Editor)⇒ 待【桌面】跑绿翻 VERIFIED;
-桌面将生成 3 个新 `.meta`(ConservationSolver.cs / ConservationGates.cs / 测试文件),
-需同 `a3ce361` 先例补 `chore(meta)` 提交。
+**VERIFIED**: 2026-09-24 桌面 EditMode **270 全绿**(前批 239 + 本批 31)—— NOT-RUN 残留结清。
+`ConservationSolver.cs` / `ConservationGates.cs` / 测试文件的 `.meta` 已由桌面 Unity 生成,
+待桌面按 `a3ce361` 先例补 `chore(meta)` 提交。
 
 ---
 

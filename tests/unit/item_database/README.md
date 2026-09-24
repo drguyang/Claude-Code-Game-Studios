@@ -197,4 +197,6 @@ EditMode 测试装配 `Sim.Contracts.Tests` 既有 GUID 引用集已含 Sim / Si
 夹具数字照录 GDD 反例一/二原文(规格自带,非新造),其余均为**夹具值,非游戏平衡值**。
 
 **测试计数**:EditMode **31** 个 `[Test]`(AC-8×7 + AC-39×5 + AC-40×4 + AC-56×5 + AC-65×8 + TryMultiply×2)。
-**执行状态:NOT-RUN**(【超算】无 Unity Editor)⇒ 全绿判据待【桌面】跑出,本 README 不代跑、不代绿。
+**执行状态:✅ VERIFIED 2026-09-24 桌面** —— EditMode **270 全绿**(Story 001/002/003/004 回归 239 +
+本故事 31);前批 239 → 本批 270(新增 31 测),`ConservationSolver.cs` / `ConservationGates.cs` /
+测试文件经 Unity 生成 `.meta` 后装配解析通过。
