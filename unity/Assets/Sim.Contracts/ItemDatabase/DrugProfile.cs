@@ -60,16 +60,18 @@ namespace DaYiJingCheng.Sim.Contracts
         /// <summary>消除(时间轴,Q16.16,字符串承载)。可空。</summary>
         public Fix? Elimination { get; set; }
 
-        /// <summary>F5 作用轴(D-21-14/23)。P0 只许 <c>half_life</c> —— P0 收窄校验 = AC-21a-60(归 Story 006)。
-        /// 可空。</summary>
+        /// <summary>F5 作用轴(D-21-14/23)。P0 只许 <c>half_life</c> —— P0 收窄校验 = AC-21a-60
+        /// (执法体 <c>Editor.Tools.Gates.DrugProfileGates.ValidateP0QualityAxis</c>,Story 004)。可空。</summary>
         public QualityAxis? QualityAxis { get; set; }
 
         /// <summary>F5:品级 → 时间轴档位偏移(Q16.16 逐元素,字符串承载)。
-        /// 长度 = <c>MAX_QUALITY</c> 的校验 = AC-21a-50(归 Story 006)。可空。</summary>
+        /// 长度 = <c>MAX_QUALITY</c> 的校验 = AC-21a-50
+        /// (执法体 <c>Editor.Tools.Gates.DrugProfileGates.ValidateAxisOffsetLength</c>,Story 004)。可空。</summary>
         public Fix[] AxisOffsetByQuality { get; set; }
 
         /// <summary>成药侧品级定性修饰(D-21-24,长度 = <c>MAX_QUALITY</c>,42 以药签措辞呈现)。
-        /// 长度校验 = AC-21a-62(归 Story 006)。可空(P0)。</summary>
+        /// 长度校验 = AC-21a-62
+        /// (执法体 <c>Editor.Tools.Gates.DrugProfileGates.ValidateDrugQualityCharacterLength</c>,Story 004)。可空(P0)。</summary>
         public string[] DrugQualityCharacter { get; set; }
     }
 }

@@ -6,6 +6,11 @@
 //     · AC-21a-37 —— 至少一档非零;每个非零档 |offset| ≥ 可感知地板(「全零 ⇒ 通过」不合格)
 //     · AC-21a-38 —— 仅 quality_axis 那条轴平移,余三轴逐位不变;不读写 polarity(结构事实)
 //     · AC-21a-38b —— Axis_base + min(offset) > 0(域钳制;D-21-34 张力:只断言 > 0,不收紧)
+//     · AC-21a-50 —— axis_offset_by_quality[] 长度 ≠ MAX_QUALITY ⇒ 构建期硬失败(非空时)
+//     · AC-21a-50b —— gather_profile.quality_character[] 长度 ≠ MAX_QUALITY ⇒ 构建期硬失败(非空时)
+//     · AC-21a-60 —— P0 quality_axis ∉ {half_life} ⇒ 构建期硬失败(D-21-23 收窄落盘)
+//     · AC-21a-61 —— 任一非零档 |offset| < 可感知地板 ⇒ 构建期硬失败(D-21-24 第二半)
+//     · AC-21a-62 —— drug_quality_character[] 非空且长度 ≠ MAX_QUALITY ⇒ 构建期硬失败(成药侧)
 //     · AC-21a-64 —— Σ(weight × InstanceWeight) 最坏上界不溢出 int64(先证不溢出的上界判据)
 //   GDD:design/gdd/item-database.md §Formulas F4(:657-688)/ F5(:688-748)· Core Rules 规则六(:185-191)
 //   ADR-006(主):定点域边界数据契约 —— weight/stack_max 是 int 计数(D-21-17)· 舍入整数域内完成
@@ -15,9 +20,9 @@
 // ⚠️ 落点:故事头登记的账本路径 = tests/unit/item_database/quality_timeline_stacking_test.cs;
 //    Unity 只编译 unity/Assets/ 树 ⇒ 真身 = 本文件(与 Story 001/002/003 同一先例)。
 //
-// ⚠️ 范围(Out of Scope 硬边界):构建期硬失败执法体(AC-50/50b/60/61/62/64 的显式 throw 装在
-//    Editor.Tools.Gates.* 校验套件)= Story 006(负向夹具 invalid_*.json 同批);本文件只测
-//    **运行期可判定的纯函数**(求解器 + 谓词算子)。容器 children 闭包 / 容器守恒(AC-34/58)
+// ⚠️ 范围(Out of Scope 硬边界):AC-50/50b/60/61/62 的构建期硬失败执法体落
+//    Editor.Tools.Gates/DrugProfileGates.cs(纯函数,错误列表;throw 由 008 聚合执行),
+//    负向夹具住 tests/unit/item_database/fixtures/。容器 children 闭包 / 容器守恒(AC-34/58)
 //    归 Story 010;堆叠动作进世界流归 20 / Story 010。
 //
 // ⚠️ 数值纪律:以下常量**全部是测试夹具值,不是游戏平衡值**(PERCEPTIBLE_FLOOR / MAX_QUALITY /
@@ -27,7 +32,11 @@
 // ⚠️ 零 UnityEngine / 零外部 I/O / 无随机种子(枚举式遍历,非 RNG)。
 
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Runtime.CompilerServices;
 using NUnit.Framework;
+using DaYiJingCheng.EditorTools.Gates;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 
@@ -599,6 +608,318 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
                 "条目数 2 恰在界内(2 × perStack ≤ long.MaxValue)");
             Assert.That(StackingSolver.WeightedTotalFitsInt64(int.MaxValue, int.MaxValue, 3), Is.False,
                 "条目数越界 ⇒ 判据单调收紧(折入 MAX_QUALITY 维只减不增)");
+        }
+
+        // ══════════════ 构建期硬失败门(AC-50/50b/60/61/62 · 执行体 DrugProfileGates)══════════════
+
+        // ---- AC-21a-50:axis_offset_by_quality[] 长度 = MAX_QUALITY ----
+
+        [Test]
+        public void test_axisOffsetLength_fixtureLengthMismatch_rejected()
+        {
+            // Given:QA 指定负向夹具 —— offsets 长度 4,而夹具声明 max_quality = 5
+            string json = readFixture("invalid_drug_offset_len.json");
+            int maxQuality = readIntField(json, "max_quality");
+            Fix[] offsets = readFixArray(json, "axis_offset_by_quality");
+            Assert.That(offsets.Length, Is.EqualTo(4), "夹具自证:恰 4 档(否则负向夹具失去意义)");
+            Assert.That(maxQuality, Is.EqualTo(5), "夹具自证:max_quality = 5(长度失配的来源)");
+
+            // When:构建期长度校验(纯函数,008 聚合后硬失败)
+            var errors = DrugProfileGates.ValidateAxisOffsetLength(offsets, maxQuality, "willow_bark");
+
+            // Then:恰一条具名错误
+            Assert.That(errors.Count, Is.EqualTo(1), "长度 ≠ MAX_QUALITY ⇒ 恰一条错误");
+            Assert.That(errors[0], Does.Contain("AC-21a-50"));
+            Assert.That(errors[0], Does.Contain("MAX_QUALITY"));
+        }
+
+        [Test]
+        public void test_axisOffsetLength_exactMaxQuality_accepted()
+        {
+            Fix[] offsets = new[] { fx("0"), fx("3/8"), fx("1/4"), fx("-1/8"), fx("-1/4") };
+            Assert.That(DrugProfileGates.ValidateAxisOffsetLength(offsets, 5), Is.Empty,
+                "长度恰 = MAX_QUALITY ⇒ 通过");
+        }
+
+        [Test]
+        public void test_axisOffsetLength_emptyTable_acceptedP0Nullable()
+        {
+            // D-21-6「字段必须在,P0 可空」:空表 = 无 F5 作用 ⇒ 长度校验不适用(与 AC-62 同口径)
+            Assert.That(DrugProfileGates.ValidateAxisOffsetLength(Array.Empty<Fix>(), 5), Is.Empty,
+                "空数组放行(P0 可空;长度校验仅在非空时生效)");
+            Assert.That(DrugProfileGates.ValidateAxisOffsetLength(null, 5), Is.Empty,
+                "null 表放行(字段缺席 = 无 F5 作用)");
+        }
+
+        [Test]
+        public void test_axisOffsetLength_bothDirections_rejected()
+        {
+            Assert.That(DrugProfileGates.ValidateAxisOffsetLength(new Fix[4], 5).Count, Is.EqualTo(1),
+                "少一档(MAX−1)⇒ 拒");
+            Assert.That(DrugProfileGates.ValidateAxisOffsetLength(new Fix[6], 5).Count, Is.EqualTo(1),
+                "多一档(MAX+1)⇒ 拒");
+        }
+
+        // ---- AC-21a-50b:gather_profile.quality_character[] 长度 = MAX_QUALITY ----
+
+        [Test]
+        public void test_gatherQualityCharacter_fixtureLengthMismatch_rejected()
+        {
+            // Given:QA 指定负向夹具 —— 原料侧非空且长度 1 ≠ 5
+            string json = readFixture("invalid_gather_char_len.json");
+            int maxQuality = readIntField(json, "max_quality");
+            string[] character = readStringArray(json, "quality_character");
+            Assert.That(character.Length, Is.EqualTo(1), "夹具自证:非空且恰 1 档");
+
+            var errors = DrugProfileGates.ValidateGatherQualityCharacterLength(
+                character, maxQuality, "herba_menthae");
+
+            Assert.That(errors.Count, Is.EqualTo(1));
+            Assert.That(errors[0], Does.Contain("AC-21a-50b"));
+            Assert.That(errors[0], Does.Contain("gather_profile.quality_character[]"));
+        }
+
+        [Test]
+        public void test_gatherQualityCharacter_emptyAndExactLength_accepted()
+        {
+            Assert.That(DrugProfileGates.ValidateGatherQualityCharacterLength(new string[0], 5), Is.Empty,
+                "长度 0 = P0 正常态(D-21-16)⇒ 过");
+            Assert.That(DrugProfileGates.ValidateGatherQualityCharacterLength(new string[5], 5), Is.Empty,
+                "恰长 ⇒ 过");
+        }
+
+        [Test]
+        public void test_gatherQualityCharacter_lengthOne_whenMaxAboveOne_rejected()
+        {
+            Assert.That(DrugProfileGates.ValidateGatherQualityCharacterLength(new string[1], 5).Count,
+                Is.EqualTo(1), "长度 1 当 MAX_QUALITY > 1 ⇒ 拒(QA Edge case)");
+        }
+
+        // ---- AC-21a-60:P0 quality_axis 收窄 ----
+
+        [Test]
+        public void test_p0QualityAxis_fixtureNonHalfLife_rejected()
+        {
+            // Given:QA 指定负向夹具 —— quality_axis = "onset"(P1a 标记值,非拼写错误)
+            string json = readFixture("invalid_axis_p0.json");
+            string literal = readStringField(json, "quality_axis");
+            Assert.That(literal, Is.EqualTo("onset"), "夹具自证:轴取 P1a 值");
+
+            // When:字面量经闭集映射(轴字面量解析本体归 008 绑定层;此处以测试侧同判据驱动收窄门)
+            Assert.That(tryParseAxisLiteral(literal, out QualityAxis parsed), Is.True,
+                "夹具字面量须在四轴闭集内(枚举外 = AC-21a-22,另一条线)");
+
+            var errors = DrugProfileGates.ValidateP0QualityAxis(parsed, "willow_bark_drug");
+
+            Assert.That(errors.Count, Is.EqualTo(1));
+            Assert.That(errors[0], Does.Contain("AC-21a-60"));
+            Assert.That(errors[0], Does.Contain("half_life"));
+        }
+
+        [Test]
+        public void test_p0QualityAxis_halfLife_accepted_andP1aValuesRejected()
+        {
+            Assert.That(DrugProfileGates.ValidateP0QualityAxis(QualityAxis.HalfLife), Is.Empty,
+                "half_life = P0 唯一合法值 ⇒ 过");
+            foreach (QualityAxis p1a in new[]
+                { QualityAxis.Onset, QualityAxis.Peak, QualityAxis.Elimination })
+            {
+                Assert.That(DrugProfileGates.ValidateP0QualityAxis(p1a).Count, Is.EqualTo(1),
+                    $"{p1a} 是 P1a 值 ⇒ P0 期拒");
+            }
+        }
+
+        [Test]
+        public void test_p0QualityAxis_null_acceptedNoF5Effect()
+        {
+            // D-21-6:字段为 null = P0 合法空值(无 F5 作用)⇒ 本条不触发;
+            // 「字段必须在」是绑定期义务(Story 008),两者不得混同
+            Assert.That(DrugProfileGates.ValidateP0QualityAxis(null), Is.Empty,
+                "null = 无 F5 作用 ⇒ 放行(与「字段必须在」区分)");
+        }
+
+        // ---- AC-21a-61:非零档 |offset| ≥ 可感知地板 ----
+
+        [Test]
+        public void test_perceptibleFloor_fixtureBelowFloor_rejected()
+        {
+            // Given:QA 指定负向夹具 —— 索引 2 档 raw = 1/16 < 地板 1/8
+            string json = readFixture("invalid_offset_floor.json");
+            Fix[] offsets = readFixArray(json, "axis_offset_by_quality");
+            Fix floor = fx(readStringField(json, "perceptible_floor"));
+            Assert.That(offsets.Length, Is.EqualTo(5), "夹具自证:全 5 档");
+
+            var errors = DrugProfileGates.ValidatePerceptibleFloor(offsets, floor, "willow_bark_drug");
+
+            Assert.That(errors.Count, Is.EqualTo(1), "恰一档违规 ⇒ 恰一条错误");
+            Assert.That(errors[0], Does.Contain("AC-21a-61"));
+            Assert.That(errors[0], Does.Contain("axis_offset_by_quality[2]"), "具名到违规档索引");
+        }
+
+        [Test]
+        public void test_perceptibleFloor_zeroOffsets_exemptAndAtFloor_passes()
+        {
+            Fix floor = fx("1/8");
+            Assert.That(DrugProfileGates.ValidatePerceptibleFloor(
+                new[] { fx("0"), fx("1/8"), fx("-1/8") }, floor), Is.Empty,
+                "零档豁免地板;恰在地板(含负 offset 取模)⇒ 过(QA Edge case)");
+        }
+
+        [Test]
+        public void test_perceptibleFloor_negativeOffsetBelowFloor_rejected()
+        {
+            // QA Edge:负 offset 取绝对值比较 —— −1/16 的模 1/16 < 1/8 ⇒ 拒
+            var errors = DrugProfileGates.ValidatePerceptibleFloor(
+                new[] { fx("0"), fx("-1/16") }, fx("1/8"));
+            Assert.That(errors.Count, Is.EqualTo(1), "负 offset 取模后仍低于地板 ⇒ 拒");
+            Assert.That(errors[0], Does.Contain("axis_offset_by_quality[1]"));
+        }
+
+        [Test]
+        public void test_perceptibleFloor_nonPositiveFloorOrEmptyTable_noConstraint()
+        {
+            Assert.That(DrugProfileGates.ValidatePerceptibleFloor(new[] { fx("1/16") }, fx("0")), Is.Empty,
+                "地板 = 0 ⇒ 底线失效,恒过");
+            Assert.That(DrugProfileGates.ValidatePerceptibleFloor(Array.Empty<Fix>(), fx("1/8")), Is.Empty,
+                "空表 ⇒ 无约束");
+        }
+
+        [Test]
+        public void test_perceptibleFloor_neverAssertsSpecificFloorValue()
+        {
+            // 冻结令:地板真值待与 9 的噪声带宽一起定 ⇒ 测试以注入值为参,不断言具体游戏数值。
+            // 同一偏移表在不同注入地板下结论相反 = 判据确实以入参为据,而非内嵌常量。
+            Fix[] offsets = new[] { fx("0"), fx("1/4") };
+            Assert.That(DrugProfileGates.ValidatePerceptibleFloor(offsets, fx("1/8")), Is.Empty,
+                "地板 1/8 时 1/4 ≥ 地板 ⇒ 过");
+            Assert.That(DrugProfileGates.ValidatePerceptibleFloor(offsets, fx("1/2")).Count,
+                Is.EqualTo(1), "地板 1/2 时 1/4 < 地板 ⇒ 拒(判据随注入值变)");
+        }
+
+        // ---- AC-21a-62:drug_quality_character[] 长度 = MAX_QUALITY ----
+
+        [Test]
+        public void test_drugQualityCharacter_fixtureLengthMismatch_rejected()
+        {
+            // Given:QA 指定负向夹具 —— 成药侧非空且长度 3 ≠ 5
+            string json = readFixture("invalid_drug_char_len.json");
+            int maxQuality = readIntField(json, "max_quality");
+            string[] character = readStringArray(json, "drug_quality_character");
+            Assert.That(character.Length, Is.EqualTo(3), "夹具自证:非空且恰 3 档");
+
+            var errors = DrugProfileGates.ValidateDrugQualityCharacterLength(
+                character, maxQuality, "willow_bark_pill");
+
+            Assert.That(errors.Count, Is.EqualTo(1));
+            Assert.That(errors[0], Does.Contain("AC-21a-62"));
+            Assert.That(errors[0], Does.Contain("drug_profile.drug_quality_character[]"),
+                "成药侧路径具名(勿与原料侧 quality_character[] 混)");
+        }
+
+        [Test]
+        public void test_drugQualityCharacter_emptyAndExactLength_accepted()
+        {
+            Assert.That(DrugProfileGates.ValidateDrugQualityCharacterLength(new string[0], 5), Is.Empty,
+                "空数组 = P0 可空 ⇒ 过");
+            Assert.That(DrugProfileGates.ValidateDrugQualityCharacterLength(new string[5], 5), Is.Empty,
+                "恰 MAX_QUALITY ⇒ 过");
+        }
+
+        [Test]
+        public void test_drugQualityCharacter_bothPathsDoNotCross()
+        {
+            // AC-50b 与 AC-62 同型但路径不同:同一长度失配在两条门上都拒,错误文本各具名自己的 AC
+            string[] bad = new string[3];
+            var gatherErrors = DrugProfileGates.ValidateGatherQualityCharacterLength(bad, 5);
+            var drugErrors = DrugProfileGates.ValidateDrugQualityCharacterLength(bad, 5);
+            Assert.That(gatherErrors[0], Does.Contain("AC-21a-50b"));
+            Assert.That(drugErrors[0], Does.Contain("AC-21a-62"));
+            Assert.That(gatherErrors[0], Does.Not.Contain("AC-21a-62"), "两侧 AC 不得串号");
+        }
+
+        // ══════════════ 夹具读取辅助(无 JSON 解析器 —— 手写抽取,承 Story 002 同型)══════════════
+
+        /// <summary>读 QA 指定负向夹具(缺文件 = 断言红,不 skip)。</summary>
+        private static string readFixture(string fileName)
+        {
+            string path = Path.Combine(
+                repoRoot(), "tests", "unit", "item_database", "fixtures", fileName);
+            Assert.That(File.Exists(path), Is.True, $"负向夹具缺失(Story 004 QA 指定):{path}");
+            return File.ReadAllText(path);
+        }
+
+        private static string repoRoot([CallerFilePath] string thisFile = "")
+        {
+            string dir = Path.GetDirectoryName(thisFile) ?? ".";
+            return Path.GetFullPath(Path.Combine(dir, "..", "..", "..", "..", ".."));
+        }
+
+        /// <summary>测试侧严格轴字面量映射(序数精确;字面量集来自 <see cref="QualityAxis"/> 文档注)。
+        /// <para>⚠️ 轴字面量的**绑定层解析器**归 Story 008(008 自建 per-schema 绑定)—— 本辅助只为
+        /// 让 AC-21a-60 的负向夹具以字符串驱动收窄门,**不是**生产代码路径,亦不复制 008 的实现。</para>
+        /// <para>刻意不用 <c>Enum.TryParse</c>(它接受数字字符串与未定义数值 —— 与 AC-21a-22 拒收面相反)。</para></summary>
+        private static bool tryParseAxisLiteral(string literal, out QualityAxis value)
+        {
+            switch (literal)
+            {
+                case "half_life": value = QualityAxis.HalfLife; return true;
+                case "onset": value = QualityAxis.Onset; return true;
+                case "peak": value = QualityAxis.Peak; return true;
+                case "elimination": value = QualityAxis.Elimination; return true;
+                default: value = default(QualityAxis); return false;
+            }
+        }
+
+        /// <summary>取夹具中首个 <c>"key": "value"</c> 的字符串值(去引号)。</summary>
+        private static string readStringField(string json, string key)
+        {
+            System.Text.RegularExpressions.Match match =
+                System.Text.RegularExpressions.Regex.Match(
+                    json, "\"" + key + "\"\\s*:\\s*\"([^\"]*)\"");
+            Assert.That(match.Success, Is.True, $"夹具缺字符串字段 {key}");
+            return match.Groups[1].Value;
+        }
+
+        /// <summary>取夹具中首个 <c>"key": 123</c> 的整数值。</summary>
+        private static int readIntField(string json, string key)
+        {
+            System.Text.RegularExpressions.Match match =
+                System.Text.RegularExpressions.Regex.Match(json, "\"" + key + "\"\\s*:\\s*(\\d+)");
+            Assert.That(match.Success, Is.True, $"夹具缺整数字段 {key}");
+            return int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>取夹具中 <c>"key": [ "a", "b" ]</c> 的字符串数组(逐元素去引号)。</summary>
+        private static string[] readStringArray(string json, string key)
+        {
+            string body = arrayBody(json, key);
+            var values = new List<string>();
+            foreach (System.Text.RegularExpressions.Match m in
+                System.Text.RegularExpressions.Regex.Matches(body, "\"([^\"]*)\""))
+                values.Add(m.Groups[1].Value);
+            return values.ToArray();
+        }
+
+        /// <summary>取夹具中 <c>"key": [ "0", "3/8" ]</c> 的 Fix 数组(逐元素经 <c>FixParse</c>)。
+        /// Q16.16 字面量在夹具里是字符串(ADR-014 §四),本辅助不做浮点中转。</summary>
+        private static Fix[] readFixArray(string json, string key)
+        {
+            string body = arrayBody(json, key);
+            var values = new List<Fix>();
+            foreach (System.Text.RegularExpressions.Match m in
+                System.Text.RegularExpressions.Regex.Matches(body, "\"([^\"]*)\""))
+                values.Add(FixParse.Parse(m.Groups[1].Value));
+            return values.ToArray();
+        }
+
+        /// <summary>取 <c>"key": [ ... ]</c> 的方括号内文本(不嵌套 —— 夹具数组均扁平)。</summary>
+        private static string arrayBody(string json, string key)
+        {
+            System.Text.RegularExpressions.Match match =
+                System.Text.RegularExpressions.Regex.Match(
+                    json, "\"" + key + "\"\\s*:\\s*\\[([^\\]]*)\\]");
+            Assert.That(match.Success, Is.True, $"夹具缺数组字段 {key}");
+            return match.Groups[1].Value;
         }
     }
 }

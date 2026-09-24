@@ -1,7 +1,7 @@
 # Story 004: F4 堆叠重量与 F5 品级时间轴
 
 > **Epic**: 物品与配方数据库
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
@@ -32,18 +32,18 @@
 
 *From GDD `design/gdd/item-database.md`, scoped to this story:*
 
-- [ ] **AC-21a-32**: 两件同 item_key 不同 quality 的实例尝试堆叠 ⇒ 不合并(StackKey = (item_key, quality))
-- [ ] **AC-21a-33**: 堆叠到 stack_max 后继续加入 ⇒ 溢出到新实例,总量守恒
-- [ ] **AC-21a-36**: axis_offset_by_quality[] 与 quality_axis 施加于 F5 ⇒ Axis_effective = Axis_base + axis_offset_by_quality[quality − 1],且为 Fix(Q16.16 整数域,无浮点中间量);P0 下 quality_axis 必须 = half_life(否则构建期拒 —— 交叉 AC-60)
-- [ ] **AC-21a-37**: axis_offset_by_quality[] 至少一档非零,且每个非零档 |offset| ≥ 可感知地板(> 9 的病史噪声带,D-21-24)。「全零 ⇒ 通过」不是合格结果
-- [ ] **AC-21a-38**: 任意品级计算 F5 ⇒ 仅 quality_axis 所指的那一条轴按档偏移,其余三条时间轴(onset/peak/elimination)逐位不变(P0 下其余三轴无落点;21a 不拥有 polarity/tau_half 语义)
-- [ ] **AC-21a-38b**: 任意合法 drug_profile 校验 ⇒ Axis_base + min(axis_offset_by_quality) > 0 —— 否则 9 的衰减用 half_life 作除数会除零/反向衰减(域钳制)
-- [ ] **AC-21a-50**: drug_profile.axis_offset_by_quality[] 长度 ≠ MAX_QUALITY ⇒ 构建期硬失败
-- [ ] **AC-21a-50b**: gather_profile.quality_character[] 长度 ≠ MAX_QUALITY ⇒ 构建期硬失败(非空时)
-- [ ] **AC-21a-60**: drug_profile.quality_axis 在 P0 期取值 ∉ {half_life} ⇒ 构建期硬失败(D-21-23 收窄落盘)
-- [ ] **AC-21a-61**: axis_offset_by_quality[] 任一非零档 |offset| < 可感知地板 ⇒ 构建期硬失败(D-21-24 第二半;地板数值待与 9 的噪声带宽一起定)
-- [ ] **AC-21a-62**: drug_quality_character[] 非空且长度 ≠ MAX_QUALITY ⇒ 构建期硬失败(成药侧,与 AC-50b 同型)
-- [ ] **AC-21a-64**: 配方与实例的最大 weight / 最大 stack_max / 最大 MAX_QUALITY 同时取满,求 Σ(w × InstanceWeight) ⇒ 不溢出 int64(守恒律整数域求值的上界前提)
+- [x] **AC-21a-32**: 两件同 item_key 不同 quality 的实例尝试堆叠 ⇒ 不合并(StackKey = (item_key, quality))
+- [x] **AC-21a-33**: 堆叠到 stack_max 后继续加入 ⇒ 溢出到新实例,总量守恒
+- [x] **AC-21a-36**: axis_offset_by_quality[] 与 quality_axis 施加于 F5 ⇒ Axis_effective = Axis_base + axis_offset_by_quality[quality − 1],且为 Fix(Q16.16 整数域,无浮点中间量);P0 下 quality_axis 必须 = half_life(否则构建期拒 —— 交叉 AC-60)
+- [x] **AC-21a-37**: axis_offset_by_quality[] 至少一档非零,且每个非零档 |offset| ≥ 可感知地板(> 9 的病史噪声带,D-21-24)。「全零 ⇒ 通过」不是合格结果
+- [x] **AC-21a-38**: 任意品级计算 F5 ⇒ 仅 quality_axis 所指的那一条轴按档偏移,其余三条时间轴(onset/peak/elimination)逐位不变(P0 下其余三轴无落点;21a 不拥有 polarity/tau_half 语义)
+- [x] **AC-21a-38b**: 任意合法 drug_profile 校验 ⇒ Axis_base + min(axis_offset_by_quality) > 0 —— 否则 9 的衰减用 half_life 作除数会除零/反向衰减(域钳制)
+- [x] **AC-21a-50**: drug_profile.axis_offset_by_quality[] 长度 ≠ MAX_QUALITY ⇒ 构建期硬失败
+- [x] **AC-21a-50b**: gather_profile.quality_character[] 长度 ≠ MAX_QUALITY ⇒ 构建期硬失败(非空时)
+- [x] **AC-21a-60**: drug_profile.quality_axis 在 P0 期取值 ∉ {half_life} ⇒ 构建期硬失败(D-21-23 收窄落盘)
+- [x] **AC-21a-61**: axis_offset_by_quality[] 任一非零档 |offset| < 可感知地板 ⇒ 构建期硬失败(D-21-24 第二半;地板数值待与 9 的噪声带宽一起定)
+- [x] **AC-21a-62**: drug_quality_character[] 非空且长度 ≠ MAX_QUALITY ⇒ 构建期硬失败(成药侧,与 AC-50b 同型)
+- [x] **AC-21a-64**: 配方与实例的最大 weight / 最大 stack_max / 最大 MAX_QUALITY 同时取满,求 Σ(w × InstanceWeight) ⇒ 不溢出 int64(守恒律整数域求值的上界前提)
 
 ---
 
@@ -167,7 +167,14 @@
 **Required evidence**:
 - Logic: `tests/unit/item_database/quality_timeline_stacking_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created —— 真身落 `unity/Assets/Tests/EditMode/ItemDatabase/quality_timeline_stacking_test.cs`
+(装配 `Sim.Contracts.Tests`;**64** 个 `[Test]`,AC-32×6 + AC-33×9 + AC-64×4 + AC-36×5 + AC-38×4 +
+AC-37×6 + AC-38b×6 + AC-50×4 + AC-50b×3 + AC-60×3 + AC-61×5 + AC-62×3)。
+账本路径同 Story 001/002/003 口径:Unity 不编译 `unity/Assets/` 之外的代码 ⇒ 测试真身落 EditMode 树,
+`tests/unit/item_database/` 只承载账本与五个负向夹具。
+
+**执行状态:NOT-RUN**(【超算】无 Unity Editor)—— 前批 221 测已于 2026-09-24 桌面全绿;
+本批新增 18 测 + `DrugProfileGates.cs` 待【桌面】复跑确认。
 
 ---
 
@@ -175,3 +182,30 @@
 
 - Depends on: Story 001(FixParse),Story 002(drug_profile / gather_profile 字段类型)
 - Unlocks: Story 005(守恒律门的溢出上界前提),Story 009(F5 结果进事件流)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-24
+**Criteria**: 11/11 实现落盘(AC-32/33/36/37/38/38b/50/50b/60/61/62/64)
+**归属订正(本批核心)**: AC-50/50b/60/61/62 此前三方归属打架(本故事 AC 清单 / Story 006/007
+的 Out of Scope 反向指向 004 / `Sim.Contracts` 类型注释写「归 Story 006」)。经证据比对裁定
+**就地落在 Story 004**,执法体 = `unity/Assets/Editor.Tools.Gates/DrugProfileGates.cs`
+(承 Story 002 先例:构建期校验纯函数住 Gates,不进玩家构建)。五处类型注释已同步订正
+(`DrugProfile.cs` ×3 / `GatherProfile.cs` ×1 / `QualityAxis.cs` ×2)。
+**执法体形态**: 纯函数 · 无 I/O · 无静态可变态 · 返回错误列表(空 = 通过)—— 与
+`ItemDbValidation.cs` 同形;显式 `throw` 由调用方(Story 008 烘焙管线)聚合非空列表后执行。
+AC-21a-61 的通过/失败由 `QualityTimelineSolver.AllOffsetsSatisfyPerceptibleFloor` **单一实现**
+裁定(执法体不复制公式体,只枚举违规档以具名诊断)。
+**零数值(AC-21a-48)**: `MAX_QUALITY` / `PERCEPTIBLE_FLOOR` 一律入参,`DrugProfileGates.cs`
+不含任何旋钮字面量;数值仍归用户数值轮(GDD §Tuning Knobs「默认」列留空)。
+**装配改动**: `Editor.Tools.Gates.asmdef` 增引 `Sim` GUID(AC-61 单一实现判据消费求解器谓词);
+AssemblyGates b2 只对 Sim/Sim.Contracts/Sim.Codec 断言引擎引用集、不约束 Gates ⇒ 安全。
+**Deviations**: ADVISORY —— AC-64 的 QA 具名负向夹具 `invalid_weight_overflow.json` **未创建**:
+AC-64 的执行体是参数化纯谓词 `StackingSolver.WeightedTotalFitsInt64`(上界值 = 数值旋钮,测试
+以上界公式参数化),**无夹具驱动路径**;「超上界组合构建期硬失败」的调用方归 Story 008。
+创建无消费者的夹具 = 死件,故不造。AC-64 的「先证不溢出」义务由 4 条谓词测试承担。
+**Test Evidence**: Logic —— `unity/Assets/Tests/EditMode/ItemDatabase/quality_timeline_stacking_test.cs`(64 测)
+**Code Review**: Pending(本批新增代码待 `/code-review`)
+**已知待办(非阻塞)**: 【桌面】复跑 EditMode(新增 18 测 + 前批 221 = 预期 239;`DrugProfileGates.cs`
+需 Unity 生成 `.meta`)⇒ 跑绿后本故事翻 VERIFIED。

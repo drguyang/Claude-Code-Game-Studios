@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "_note": "Story 004 AC-21a-60 负向夹具:drug_profile.quality_axis = \"onset\"(P0 期 ∉ {half_life} ⇒ 构建期硬失败;9 的处置载荷只有 polarity/drug_potency/half_life,onset 产出即被丢弃 —— D-21-23 收窄落盘)。P1a 标记值,非拼写错误。",
+  "max_quality": 5,
+  "drug_profile": {
+    "quality_axis": "onset",
+    "half_life": "5",
+    "onset": "2",
+    "axis_offset_by_quality": ["0", "3/8", "1/4", "-1/8", "-1/4"]
+  }
+}

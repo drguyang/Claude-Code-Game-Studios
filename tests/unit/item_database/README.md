@@ -94,16 +94,26 @@ ADR-025 §① 表把 sim 模块列在 `Sim` 职责列;`Sim.Contracts` 职责列*
 
 证据账本路径登记为 `tests/unit/item_database/quality_timeline_stacking_test.cs`,
 同 Story 001/002/003:**Unity 不编译 `unity/Assets/` 之外的代码** ⇒ 测试真身落 EditMode 树。
-本故事**无负向夹具**(QA 明文「Negative fixture: 无」/ AC 表未命名 —— 构建期拒收类夹具
-`invalid_drug_offset_len.json` / `invalid_gather_char_len.json` / `invalid_axis_p0.json` /
-`invalid_offset_floor.json` / `invalid_drug_char_len.json` / `invalid_weight_overflow.json`
-由 QA Test Cases 点名,**执行体归 Story 006**,本故事不擅造)。
+本目录承载账本与**五个**构建期负向夹具。
+
+**⚠️ 归属订正(2026-09-24)**:此前本段写「执行体归 Story 006」—— **该口径已作废**。
+story-004 的 AC 清单自列 AC-50/50b/60/61/62(五条均在),且其 Implementation Notes 明文
+「执法体统一形态 = 构建期断言(AC-37/38b/**50/50b/60/61/62**/64 全部显式 `throw`)」;
+Story 006/007 的 Out of Scope 亦反向指向 004(「Story 004:axis 数组长度与地板」)。
+⇒ 五条执法体**就地落在本故事**,不住 006。落点 = `Editor.Tools.Gates/DrugProfileGates.cs`
+(承 Story 002 先例:构建期校验纯函数住 Gates,不进玩家构建)。
 
 | 内容 | 路径 |
 |---|---|
 | 求解器(F4 堆叠/重量 + AC-64 上界) | `unity/Assets/Sim/ItemDatabase/StackingSolver.cs` |
 | 求解器(F5 品级→时间轴 + AC-37/38b 谓词) | `unity/Assets/Sim/ItemDatabase/QualityTimelineSolver.cs` |
+| 构建期校验纯函数(AC-50/50b/60/61/62 执法体) | `unity/Assets/Editor.Tools.Gates/DrugProfileGates.cs` |
 | 编译中的测试源(真身,Logic) | `unity/Assets/Tests/EditMode/ItemDatabase/quality_timeline_stacking_test.cs` |
+| 负向夹具:axis 档位表长度 ≠ MAX_QUALITY(AC-21a-50) | `fixtures/invalid_drug_offset_len.json` |
+| 负向夹具:原料侧品级修饰表长度 ≠ MAX_QUALITY(AC-21a-50b) | `fixtures/invalid_gather_char_len.json` |
+| 负向夹具:P0 quality_axis 非 half_life(AC-21a-60) | `fixtures/invalid_axis_p0.json` |
+| 负向夹具:非零档 \|offset\| < 可感知地板(AC-21a-61) | `fixtures/invalid_offset_floor.json` |
+| 负向夹具:成药侧品级修饰表长度 ≠ MAX_QUALITY(AC-21a-62) | `fixtures/invalid_drug_char_len.json` |
 
 **AC 覆盖映射**:
 
@@ -116,16 +126,28 @@ ADR-025 §① 表把 sim 模块列在 `Sim` 职责列;`Sim.Contracts` 职责列*
 | AC-21a-38 | `test_f5_offAxisTimelines_bitIdenticalToBase` · `test_f5_noShiftWhenAxisUnset_returnsProfileFieldsBitIdentical` · `test_f5_nullableTimeline_passesThroughNullForUnsetAxes` · `test_f5_missingShiftAxisBase_throws` |
 | AC-21a-38b | `test_f5_domainClamp_satisfied_whenSumPositive` · `test_f5_domainClamp_justAboveZero_passes_notTightened`(D-21-34 张力:只断言 > 0)· `test_f5_domainClamp_exactlyZero_fails` · `test_f5_domainClamp_negativeSum_fails` · `test_f5_domainClamp_allPositiveOffsets_alwaysPasses` · `test_f5_domainClamp_noOffsets_noConstraint` |
 | AC-21a-64 | `test_weightedTotalFitsInt64_typicalBounds_true` · `test_weightedTotalFitsInt64_boundaryAtLimit_true` · `test_weightedTotalFitsInt64_overLimit_false` · `test_weightedTotalFitsInt64_invalidBounds_false` |
+| AC-21a-50 | `test_axisOffsetLength_fixtureLengthMismatch_rejected` · `test_axisOffsetLength_exactMaxQuality_accepted` · `test_axisOffsetLength_emptyTable_acceptedP0Nullable` · `test_axisOffsetLength_bothDirections_rejected` |
+| AC-21a-50b | `test_gatherQualityCharacter_fixtureLengthMismatch_rejected` · `test_gatherQualityCharacter_emptyAndExactLength_accepted` · `test_gatherQualityCharacter_lengthOne_whenMaxAboveOne_rejected` |
+| AC-21a-60 | `test_p0QualityAxis_fixtureNonHalfLife_rejected` · `test_p0QualityAxis_halfLife_accepted_andP1aValuesRejected` · `test_p0QualityAxis_null_acceptedNoF5Effect` |
+| AC-21a-61 | `test_perceptibleFloor_fixtureBelowFloor_rejected` · `test_perceptibleFloor_zeroOffsets_exemptAndAtFloor_passes` · `test_perceptibleFloor_negativeOffsetBelowFloor_rejected` · `test_perceptibleFloor_nonPositiveFloorOrEmptyTable_noConstraint` · `test_perceptibleFloor_neverAssertsSpecificFloorValue` |
+| AC-21a-62 | `test_drugQualityCharacter_fixtureLengthMismatch_rejected` · `test_drugQualityCharacter_emptyAndExactLength_accepted` · `test_drugQualityCharacter_bothPathsDoNotCross` |
 
-**范围边界(Out of Scope 记账)**:AC-50/50b/60/61/62/64 的**构建期硬失败执法体**(显式 throw,
-装在 `Editor.Tools.Gates.*` 校验套件)= **Story 006**;本故事只落**运行期可判定的纯函数**
-(求解器 + AC-37/38b 谓词算子,构建期校验消费同一谓词)。容器 children 闭包 / 容器守恒
-(AC-34/58)= Story 010;堆叠动作进世界流 = 20 / Story 010。
+**范围边界(Out of Scope 记账)**:容器 children 闭包 / 容器守恒(AC-34/58)= Story 010;
+堆叠动作进世界流 = 20 / Story 010;守恒律门(AC-39/65)= Story 005;
+烘焙管线接线(五条执法体的**调用方**)= Story 008(DrugProfileGates 只提供纯函数,
+聚合非空列表后 throw 由 008 执行)。
 **D-21-34(open)**:AC-38b 只断言 `> 0`,不收紧到 `≥ MIN_USABLE_HALF_LIFE`(收紧 = 改机制)。
 
 **装配决定**:两求解器住 `unity/Assets/Sim/ItemDatabase/`(装配 **`Sim`**,
 `noEngineReferences: true`,与 Story 003 同一先例)—— ADR-025 §① · 零新 asmdef。
-EditMode 测试装配 `Sim.Contracts.Tests`(既有 GUID 引用集已含 Sim/Sim.Contracts)。
+五条执法体住 `unity/Assets/Editor.Tools.Gates/`(装配 `Editor.Tools.Gates`,
+`includePlatforms: ["Editor"]`,不进构建);其 asmdef **增引 Sim GUID** ——
+AC-21a-61 的通过/失败由 `QualityTimelineSolver.AllOffsetsSatisfyPerceptibleFloor` **单一实现**裁定
+(执法体不复制公式体),故须见 Sim。AssemblyGates b2 只对 Sim/Sim.Contracts/Sim.Codec
+断言引擎引用集,**不约束 Gates** ⇒ 增引安全。
+EditMode 测试装配 `Sim.Contracts.Tests`(既有 GUID 引用集已含 Sim/Sim.Contracts/Gates)。
 
-**测试计数**:EditMode **46** 个 `[Test]`(AC-32×6 + AC-33×9 + AC-64×5 + AC-36×5 + AC-38×4 + AC-37×6 + AC-38b×6 + 复核补测 5)。
-**执行状态:✅ VERIFIED 2026-09-24 桌面** —— EditMode **215 全绿**(Story 001/002/003 回归 175 + 本故事 40 测基线;复核补测 6 条后应为 221,待桌面复跑确认)。
+**测试计数**:EditMode **64** 个 `[Test]`(AC-32×6 + AC-33×9 + AC-64×4 + AC-36×5 + AC-38×4 +
+AC-37×6 + AC-38b×6 + 复核补测 + **AC-50×4 + AC-50b×3 + AC-60×3 + AC-61×5 + AC-62×3**)。
+**执行状态:NOT-RUN** —— 新增 18 测与 `DrugProfileGates.cs`(需 Unity 生成 `.meta`)待【桌面】跑出;
+Story 001/002/003 回归 + 本故事前批 221 测已于 2026-09-24 桌面全绿。

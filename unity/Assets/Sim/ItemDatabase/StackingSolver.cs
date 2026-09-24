@@ -77,7 +77,7 @@ namespace DaYiJingCheng.Sim
         /// </summary>
         /// <param name="a">实例甲。</param>
         /// <param name="b">实例乙。</param>
-        /// <param name="stackMax">该 item_key 的堆叠上限(int ≥ 1;数值待用户,越界校验归 Story 006)。</param>
+        /// <param name="stackMax">该 item_key 的堆叠上限(int ≥ 1;数值待用户,越界校验 = AC-21a-15 归 Story 007)。</param>
         /// <returns><c>true</c> = 同 StackKey 且双非容器且该键可堆叠(stackMax &gt; 1)。</returns>
         /// <example><c>CanStack(a, b, 99)</c>(同 K 同 q)⇒ <c>true</c>;
         /// <c>CanStack(a, b, 1)</c> ⇒ <c>false</c>(stackMax = 1 永不合并)。</example>
@@ -102,7 +102,7 @@ namespace DaYiJingCheng.Sim
         /// <param name="addQty">加入量 <c>Δqty</c>(≥ 1)。</param>
         /// <param name="stackMax">堆叠上限 <c>M</c>(≥ 1)。</param>
         /// <returns>切分结果(见 <see cref="StackSplitResult"/>)。</returns>
-        /// <exception cref="InvalidOperationException">任一入参 &lt; 1(域外;上限校验归 Story 006)。</exception>
+        /// <exception cref="InvalidOperationException">任一入参 &lt; 1(域外;上限校验 = AC-21a-15 归 Story 007)。</exception>
         /// <example><c>SplitStack(3, 5, 6)</c> ⇒ <c>{ CurrentFinalQty = 6, Overflow = 2,
         /// NewFullStacks = 0, PartialStackQty = 2 }</c>;
         /// <c>SplitStack(1, 13, 5)</c> ⇒ <c>{ 5, 9, 1, 4 }</c>(先 1 满堆 + 余 4)。</example>
@@ -111,7 +111,7 @@ namespace DaYiJingCheng.Sim
             if (currentQty < 1 || addQty < 1 || stackMax < 1)
                 throw new InvalidOperationException(
                     $"SplitStack 入参域:currentQty/addQty/stackMax 均 ≥ 1 —— 实际 " +
-                    $"({currentQty}, {addQty}, {stackMax});域错误归数值轮 / 校验层(Story 006)。");
+                    $"({currentQty}, {addQty}, {stackMax});域错误归数值轮 / 校验层(AC-21a-15,Story 007)。");
 
             long total = (long)currentQty + addQty;          // int 加法可溢出的运行期证明点
             if (total <= stackMax)

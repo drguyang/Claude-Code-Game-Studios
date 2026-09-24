@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "_note": "Story 004 AC-21a-50b 负向夹具:gather_profile.quality_character[] 长度 1,而 max_quality = 5(非空且长度 ≠ MAX_QUALITY ⇒ 构建期硬失败;标签与品级档须一一对应 D-21-16)。原料侧路径 —— 勿与成药侧 drug_quality_character[](AC-21a-62)混。",
+  "max_quality": 5,
+  "gather_profile": {
+    "ecosystem": "wetland",
+    "parts": ["leaf"],
+    "qty_per_node": 2,
+    "quality_character": ["新采带露"]
+  }
+}

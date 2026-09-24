@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "_note": "Story 004 AC-21a-61 负向夹具:axis_offset_by_quality[] 第 3 档(索引 2)raw = 1/16,低于可感知地板 1/8(非零档 |offset| < 地板 ⇒ 构建期硬失败;D-21-24 第二半)。地板与各档 offset 均为夹具值,非游戏数值 —— 地板真值待与 9 的噪声带宽一起定(§Tuning Knobs)。",
+  "max_quality": 5,
+  "perceptible_floor": "1/8",
+  "drug_profile": {
+    "quality_axis": "half_life",
+    "axis_offset_by_quality": ["0", "3/8", "1/16", "-1/8", "-1/4"]
+  }
+}

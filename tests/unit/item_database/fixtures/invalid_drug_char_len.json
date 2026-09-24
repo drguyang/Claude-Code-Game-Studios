@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "_note": "Story 004 AC-21a-62 负向夹具:drug_profile.drug_quality_character[] 长度 3,而 max_quality = 5(非空且长度 ≠ MAX_QUALITY ⇒ 构建期硬失败;与 AC-21a-50b 同型,成药侧 —— 勿与原料侧 quality_character[] 混路径)。",
+  "max_quality": 5,
+  "drug_profile": {
+    "category": "drug",
+    "drug_quality_character": ["上品", "中品", "下品"]
+  }
+}

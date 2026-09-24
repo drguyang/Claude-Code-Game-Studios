@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "_note": "Story 004 AC-21a-50 负向夹具:drug_profile.axis_offset_by_quality[] 长度 4,而 max_quality = 5(长度 ≠ MAX_QUALITY ⇒ 构建期硬失败;F5 的 quality−1 越界读会污染 9 的病史事件流)。max_quality 与各档 offset 均为夹具值,非游戏数值。",
+  "max_quality": 5,
+  "drug_profile": {
+    "quality_axis": "half_life",
+    "axis_offset_by_quality": ["0", "3/8", "1/4", "-1/8"]
+  }
+}

@@ -5,14 +5,14 @@
 //
 // ⚠️ **只动一根轴**(D-21-23 + AC-21a-38):F5 施加只读 <c>quality_axis</c> 所指那一根时间轴,
 //    其余三根在结果里**同位不变**(null 亦原样透传 ⇒ 无 F5 时四轴逐位等于 profile 字段)。
-// ⚠️ **P0 收窄**:<c>quality_axis = half_life</c> 是 P0 唯一合法值(AC-21a-60 拒收,归 Story 006
-//    validator);本求解器对任意 <c>QualityAxis</c> 泛化执行公式(P1a 解锁 = 去掉收窄门,
-//    不改本求解器 —— 形状照 GDD 全四轴写)。
+// ⚠️ **P0 收窄**:<c>quality_axis = half_life</c> 是 P0 唯一合法值(AC-21a-60 拒收,归 Story 004
+//    执法体 Editor.Tools.Gates.DrugProfileGates.ValidateP0QualityAxis);本求解器对任意
+//    <c>QualityAxis</c> 泛化执行公式(P1a 解锁 = 去掉收窄门,不改本求解器 —— 形状照 GDD 全四轴写)。
 // ⚠️ **构建期硬失败与运行期兜底分离**:AC-37 的「≥1 非零偏移」、AC-38b 的「Axis_base + min(offset)
 //    > 0」在此只提供**纯谓词算子**(<see cref="HasQualityEffect"/> / <see cref="AllOffsetsSatisfyPerceptibleFloor"/>
-//    / <see cref="DomainClampSatisfied"/>);把谓词结果升级为数据装载期的显式 throw 归 Story 006/007
-//    (负向夹具 invalid_offset_floor.json / invalid_axis_p0.json 等)。运行期求解器对**越界 / 缺 base**
-//    的兜底是显式抛(域错误归数值轮),不做静默钳制。
+//    / <see cref="DomainClampSatisfied"/>);把谓词结果升级为数据装载期的显式 throw 归 Story 008
+//    (烘焙管线接线;负向夹具 invalid_offset_floor.json / invalid_axis_p0.json 归 Story 004)。运行期求解器
+//    对**越界 / 缺 base** 的兜底是显式抛(域错误归数值轮),不做静默钳制。
 // ⚠️ **不写任何流**:本文件只算出 <c>Axis_effective</c>;写入 9 病史事件流归 Story 009。
 // ⚠️ **零数值**:axis_offset_by_quality[] 与各轴 base 的取值来自数据(Test 夹具注入);
 //    PERCEPTIBLE_FLOOR 只在本文件谓词/测试中作参数出现,不承载具体值。
@@ -62,7 +62,7 @@ namespace DaYiJingCheng.Sim
     {
         /// <summary>读取 <paramref name="axis"/> 所指时间轴的 base 值(<c>Axis_base</c>,AC-21a-36)。
         /// <para>⚠️ <c>drug_profile</c> 的轴字段可空(P0 合法);但**当 F5 已声明作用在该轴时**须有 base ——
-        /// base 缺失 = 数据不一致,显式抛(运行期兜底;构建期数据门归 Story 006/007)。</para>
+        /// base 缺失 = 数据不一致,显式抛(运行期兜底;构建期数据门归 Story 008 烘焙管线)。</para>
         /// </summary>
         /// <param name="profile">药物档案。</param>
         /// <param name="axis">F5 作用轴。</param>
@@ -138,8 +138,8 @@ namespace DaYiJingCheng.Sim
         }
 
         /// <summary>AC-21a-37 谓词 —— 档位表存在**至少一个非零偏移**("全零 ⇒ 通过" 不可接受)。
-        /// <para>⚠️ 仅算子:构建/装载期把 <c>false</c> 升级为显式 <c>throw</c> 归 Story 006
-        /// (负向夹具 <c>invalid_axis_p0.json</c> 同批)。</para>
+        /// <para>⚠️ 仅算子:构建/装载期把 <c>false</c> 升级为显式 <c>throw</c> 归 Story 008 烘焙管线
+        /// (执法体 <c>DrugProfileGates.ValidatePerceptibleFloor</c> 归 Story 004)。</para>
         /// </summary>
         /// <param name="offsets">品级档位偏移表(Q16.16;null / 空 = 无表,不满足「有品质效果」)。</param>
         /// <returns><c>true</c> = 至少一档偏移非零(药品品质档位对时间轴有实际影响)。</returns>

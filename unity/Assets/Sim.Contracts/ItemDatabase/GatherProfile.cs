@@ -29,7 +29,8 @@ namespace DaYiJingCheng.Sim.Contracts
         public int QtyPerNode { get; set; }
 
         /// <summary>原料侧品级定性修饰(D-21-16,长度 = <c>MAX_QUALITY</c>,P0 可空;
-        /// 42 以外观/药签呈现,禁数字刻度 U-1/U-2)。长度校验 = AC-21a-50b(归 Story 006)。</summary>
+        /// 42 以外观/药签呈现,禁数字刻度 U-1/U-2)。长度校验 = AC-21a-50b
+        /// (执法体 <c>Editor.Tools.Gates.DrugProfileGates.ValidateGatherQualityCharacterLength</c>,Story 004)。</summary>
         public string[] QualityCharacter { get; set; }
     }
 }
