@@ -91,13 +91,16 @@ namespace DaYiJingCheng.EditorTools.Bake
             AddressableAssetGroup group = settings.FindGroup(DataCoreGroup);
             if (group == null)
             {
+                // 签名承 Addressables 2.10 官方文档:第 5 参 = schemasToCopy(List,可 null),
+                // 其后 params Type[] = 要新建的 schema 类型。
                 group = settings.CreateGroup(
                     DataCoreGroup, false, false, false,
+                    null,
                     typeof(AddressableAssetGroupSchema), typeof(BundledAssetGroupSchema));
             }
 
             if (!settings.GetLabels().Contains(DataCoreGroup))
-                settings.AddLabels(new List<string> { DataCoreGroup });
+                settings.AddLabel(DataCoreGroup, postEvent: true);
 
             string cookedDirRel = $"Assets/{CookedDirName}";
             string[] guids = AssetDatabase.FindAssets("t:TextAsset", new[] { cookedDirRel });
