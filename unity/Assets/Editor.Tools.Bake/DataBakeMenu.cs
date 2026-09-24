@@ -140,38 +140,67 @@ namespace DaYiJingCheng.EditorTools.Bake
 
         /// <summary>
         /// E-13 自检(ADR-014 §五:装载失败 = 带 [E-13] 上下文的启动期硬失败,绝不 null 解引用)。
-        /// <para>流程:① 反向 —— 临时改坏 items 条目的 address → 新 <see cref="AddressablesDataProvider"/>
-        /// 取数,期望抛 <see cref="InvalidOperationException"/> 且消息含 [E-13];<c>finally</c> 必恢复地址;
-        /// ② 正向复验 —— 新 provider 载 items + recipes,期望成功。</para>
-        /// <para>每次点菜单都用<b>全新</b> provider(绕开 <see cref="DataCorePreloader"/> 幂等,保证真取数)。</para>
-        /// <para>⚠️ 反向若报「未触发」= Addressables 会话缓存 / 目录未即时刷新(post-cutoff 行为须实测)——
-        /// 重启编辑器后仅跑本菜单(先反后正,菜单内部序即反向优先)可得干净反向。</para>
+        /// <para>流程:① 反向 —— 把 items 产物文件+meta 暂移到 <c>Library/E13Hold/</c>
+        /// (资产从 AssetDatabase 消失 ⇒ 经地址解析到的 GUID 载不到)→ 新 <see cref="AddressablesDataProvider"/>
+        /// 取数,期望抛 <see cref="InvalidOperationException"/> 且消息含 [E-13];<c>finally</c> 必移回 +
+        /// Refresh;② 正向复验 —— 新 provider 载 items + recipes,期望成功。</para>
+        /// <para>⚠️ <b>不用「改 address」方案</b>(2026-09-24 两次实测,含重启后单跑,均「反向未触发」):
+        /// 运行期 locator 在域初始化时按 settings 建好,<c>SetAddress(postEvent)</c> 只通知编辑器 UI、
+        /// **不重建 locator** —— 陈旧发生在菜单内 SetAddress 与 Load 之间,重启不解决。
+        /// 文件暂移不改地址映射,失败发生在 GUID→资产 解析层,绕开 locator。</para>
+        /// <para>每次点菜单都用<b>全新</b> provider(绕开 <see cref="DataCorePreloader"/> 幂等)。
+        /// ⚠️ 本会话内若已成功载过该资产,活句柄会被直接复用(与磁盘无关)⇒ 拉取后的自动域重载
+        /// (或重启)清句柄后,只点本菜单一次。</para>
         /// </summary>
         [MenuItem("大医精诚/数据管线/E-13 自检(反路径+正复验)")]
         public static void E13SelfCheck()
         {
-            // ── ① 反向:按资产路径找条目(不依赖当前 address,中断态也能找回来恢复)──
-            AddressableAssetEntry entry = FindItemsEntry();
-            if (entry == null)
+            // 产物绝对路径 + 暂存位(Library 在仓外纪律面:.gitignore,永不提交)
+            string itemsAbs = Path.Combine(Application.dataPath, CookedDirName, ItemsCookedAssetName);
+            string itemsMetaAbs = itemsAbs + ".meta";
+            string holdDir = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Library", "E13Hold"));
+            string holdItems = Path.Combine(holdDir, ItemsCookedAssetName);
+            string holdMeta = holdItems + ".meta";
+
+            // 救援:上次会话中途崩溃致产物滞留 hold → 先归位(否则正向必失败)
+            if (!File.Exists(itemsAbs) && File.Exists(holdItems))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(itemsAbs));
+                File.Move(holdItems, itemsAbs);
+                if (File.Exists(holdMeta)) File.Move(holdMeta, itemsMetaAbs);
+                AssetDatabase.Refresh();
+                Debug.Log("[E-13 自检] 已将滞留 Library/E13Hold 的产物归位。");
+            }
+
+            // ── ① 反向:暂移 items 产物(文件 + meta 一起动,保 GUID 一致)──
+            if (!File.Exists(itemsAbs))
             {
                 Debug.LogWarning(
-                    $"[E-13 自检] 反向跳过:{ItemsCookedAssetName} 条目不在 {DataCoreGroup} 组 —— " +
-                    "先跑「确保 data-core Addressables 组」再执行本菜单(正向仍继续)。");
+                    $"[E-13 自检] 反向跳过:产物不存在({ItemsCookedAssetName})—— " +
+                    "先跑「烘焙 item-database」再执行本菜单(正向仍继续)。");
             }
             else
             {
-                string originalAddress = entry.address;
+                bool movedOut = false;
                 try
                 {
-                    entry.SetAddress("__dyjc_e13_probe__.missing");
+                    Directory.CreateDirectory(holdDir);
+                    if (File.Exists(holdItems)) File.Delete(holdItems); // 异常残留清理
+                    if (File.Exists(holdMeta)) File.Delete(holdMeta);
+                    File.Move(itemsAbs, holdItems);
+                    if (File.Exists(itemsMetaAbs)) File.Move(itemsMetaAbs, holdMeta);
+                    AssetDatabase.Refresh();
+                    movedOut = true;
+
                     try
                     {
                         var negative = new AddressablesDataProvider();
                         negative.Load<ItemDataSet>();
                         Debug.LogWarning(
-                            "[E-13 自检] 反向未触发:改地址后仍载成功 —— Addressables 会话内地址缓存或" +
-                            "目录未即时刷新。手工兜底:Window > Asset Management > Addressables > Groups " +
-                            "里手改 items 地址 → 重启编辑器 → 跑本菜单。");
+                            "[E-13 自检] 反向未触发:产物已移出仍载成功 —— 两种可能:" +
+                            "① 本会话此前已成功载过该资产(活句柄直接复用,与磁盘无关)→ 等脚本重编译/重启后只点本菜单一次;" +
+                            "② Play Mode Script 走了已建 bundle(源文件移出不影响 bundle 内容)→ " +
+                            "Groups 窗口确认 Use Asset Database,或 Addressables > Clean Built Content。");
                     }
                     catch (InvalidOperationException ex) when (
                         ex.Message.IndexOf("[E-13]", StringComparison.Ordinal) >= 0)
@@ -187,7 +216,14 @@ namespace DaYiJingCheng.EditorTools.Bake
                 }
                 finally
                 {
-                    entry.SetAddress(originalAddress); // 无论反向结果,地址必恢复
+                    if (movedOut)
+                    {
+                        if (File.Exists(holdItems) && !File.Exists(itemsAbs))
+                            File.Move(holdItems, itemsAbs);
+                        if (File.Exists(holdMeta) && !File.Exists(itemsMetaAbs))
+                            File.Move(holdMeta, itemsMetaAbs);
+                        AssetDatabase.Refresh(); // 归位 + 重导入(GUID 随 meta 原样回来)
+                    }
                 }
             }
 
@@ -271,18 +307,6 @@ namespace DaYiJingCheng.EditorTools.Bake
                 $"{(Application.isPlaying ? "PlayMode" : "EditMode")};已复制到剪贴板)";
             Debug.Log(line);
             EditorGUIUtility.systemCopyBuffer = line;
-        }
-
-        /// <summary>按资产路径(而非 address)在 data-core 组内找 items 条目 —— 地址被改坏时仍能定位恢复。</summary>
-        private static AddressableAssetEntry FindItemsEntry()
-        {
-            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
-            AddressableAssetGroup group = settings?.FindGroup(DataCoreGroup);
-            if (group == null) return null;
-            string expectedPath = $"Assets/{CookedDirName}/{ItemsCookedAssetName}";
-            foreach (AddressableAssetEntry e in group.entries)
-                if (e.AssetPath == expectedPath) return e;
-            return null;
         }
 
         /// <summary>tick → 微秒(Stopwatch 原始 tick 直除,避免浮点)。</summary>
