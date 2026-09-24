@@ -172,7 +172,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             // ── 2. 逐物品门 ──
             var defs = new ItemDef[pkg.Items.Count];
             var knownKeys = new List<ItemKey>(pkg.Items.Count);
-            var weightMap = new Dictionary<ItemKey, int>();
+            var itemWeightMap = new Dictionary<ItemKey, int>();
             var itemByKey = new Dictionary<ItemKey, BoundItem>();
             var inflictsUnion = new HashSet<string>(StringComparer.Ordinal);
 
@@ -182,7 +182,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                 defs[i] = bi.Def;
                 ItemKey key = new ItemKey(bi.Def.BaseId, bi.Def.ProcessingState);
                 knownKeys.Add(key);
-                weightMap[key] = bi.Def.Weight;                 // 重复键:后写覆盖;唯一性由 dup 门负责
+                itemWeightMap[key] = bi.Def.Weight;           // 重复键:后写覆盖;唯一性由 dup 门负责
                 if (!itemByKey.ContainsKey(key)) itemByKey[key] = bi;
 
                 string[] inflicts = bi.Def.InflictsInjury ?? Array.Empty<string>();
@@ -250,7 +250,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
 
             // ── 6. 守恒门(逐配方,AC-8 / AC-65)──
-            Func<ItemKey, int> lookupWeight = k => weightMap.TryGetValue(k, out int w) ? w : 0;
+            Func<ItemKey, int> lookupWeight = k => itemWeightMap.TryGetValue(k, out int w) ? w : 0;
             for (int i = 0; i < pkg.Recipes.Count; i++)
             {
                 BoundRecipe br = pkg.Recipes[i];

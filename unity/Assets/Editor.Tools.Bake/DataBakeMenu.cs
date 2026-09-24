@@ -41,14 +41,16 @@ namespace DaYiJingCheng.EditorTools.Bake
         {
             try
             {
-                string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+                // 仓根 = Assets 上两级(unity/Assets → 仓根,含 assets/ —— BakeFromRepo 契约)。
+                // 只上一级会停在 unity/,拼出 unity/assets/data/ 假路径(Linux 区分大小写直接炸)。
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
 
                 // AC-26:旧 .asset 遗留产物先行扫描(数据产物层扫描面,不只查新增 JSON)。
                 IReadOnlyList<string> assetViolations = StateEncodingScanner.ScanAssetProducts(Application.dataPath);
                 if (assetViolations.Count > 0)
                     throw new BakeValidationException(new List<string>(assetViolations));
 
-                BakeResult result = ItemDatabaseBaker.BakeFromRepo(projectRoot);
+                BakeResult result = ItemDatabaseBaker.BakeFromRepo(repoRoot);
 
                 string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
                 Directory.CreateDirectory(cookedDir);
