@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "_note": "Story 006 AC-21a-10 负向夹具 —— QTY_MULT 区间为空(GDD §Edge Cases「QTY_MULT_MIN ≥ QTY_MULT_MAX」/ §Acceptance 组三 AC-21a-10)。主案 = MIN = MAX(相等即拒,**含等号**);MIN > MAX 兄弟案由测试代码构造(QA Given:两表轮换);差一个最小单位(raw 差 1)过(QA Edge)。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值(数值待用户)。",
+  "qty_mult_min": "2",
+  "qty_mult_max": "2",
+  "env_mod_min": "-1/2",
+  "env_mod_max": "0"
+}

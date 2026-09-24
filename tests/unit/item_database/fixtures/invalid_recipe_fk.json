@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "_note": "Story 006 AC-21a-17 负向夹具 —— 配方项 item_key 外键悬空(GDD §Edge Cases「配方项 item_key 外键悬空」/ §Acceptance 组三 AC-21a-17)。主案 = inputs[0] 指向 (willow_bark, extracted) —— **base 存在但 state 不成条目**(已知集合只有 willow_bark/raw 与 salicylic_acid/extracted,如 raw 已登记而 extracted 未登记),也算悬空。已知键集合由调用方注入(纯函数不自读表),夹具内 known_* 数组即注入源。base 错 / outputs 侧悬空 / 大小写敏感 / 跨 base 合法正例由测试代码构造(QA Edge)。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值(数值待用户)。",
+  "recipe_id": "fixture_recipe_fk",
+  "owner": "process",
+  "known_base_ids": ["willow_bark", "salicylic_acid"],
+  "known_states": ["raw", "extracted"],
+  "input_base_ids": ["willow_bark"],
+  "input_states": ["extracted"],
+  "input_qty": [1],
+  "output_base_ids": ["salicylic_acid"],
+  "output_states": ["extracted"],
+  "output_qty": [1],
+  "duration_ticks": 1,
+  "skill_gate": 0,
+  "min_quality": 1
+}

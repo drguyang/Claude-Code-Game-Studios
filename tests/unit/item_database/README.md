@@ -200,3 +200,63 @@ EditMode 测试装配 `Sim.Contracts.Tests` 既有 GUID 引用集已含 Sim / Si
 **执行状态:✅ VERIFIED 2026-09-24 桌面** —— EditMode **270 全绿**(Story 001/002/003/004 回归 239 +
 本故事 31);前批 239 → 本批 270(新增 31 测),`ConservationSolver.cs` / `ConservationGates.cs` /
 测试文件经 Unity 生成 `.meta` 后装配解析通过。
+
+## Story 006(配方表写入期校验套件)—— 落点说明
+
+证据账本路径登记为 `tests/unit/item_database/recipe_validation_fixtures_test.cs`,
+同 Story 001/002/003/004/005:**Unity 不编译 `unity/Assets/` 之外的代码** ⇒ 测试真身落 EditMode 树。
+本目录承载账本与**十一**个构建期负向夹具(与故事 QA Negative fixture 行逐一对应)。
+
+| 内容 | 路径 |
+|---|---|
+| 构建期校验纯函数(11 条 AC 执法体) | `unity/Assets/Editor.Tools.Gates/RecipeValidationGates.cs` |
+| 编译中的测试源(真身,Logic) | `unity/Assets/Tests/EditMode/ItemDatabase/recipe_validation_fixtures_test.cs` |
+| 负向夹具:outputs 逐条 qty ≤ 0(AC-21a-7) | `fixtures/invalid_base_qty.json` |
+| 负向夹具:常量表 cap 和超限(AC-21a-9) | `fixtures/invalid_cap_sum.json` |
+| 负向夹具:QTY_MULT 区间为空(AC-21a-10) | `fixtures/invalid_qty_range.json` |
+| 负向夹具:RETAIN 三条件(AC-21a-11,单文件三子记录) | `fixtures/invalid_retain.json` |
+| 负向夹具:ENV_MOD 区间倒置(AC-21a-12) | `fixtures/invalid_env_range.json` |
+| 负向夹具:配方项 qty ≤ 0 双侧 + 空侧(AC-21a-16) | `fixtures/invalid_recipe_qty.json` |
+| 负向夹具:item_key 外键悬空(AC-21a-17) | `fixtures/invalid_recipe_fk.json` |
+| 负向夹具:duration_ticks ≤ 0(AC-21a-18) | `fixtures/invalid_duration.json` |
+| 负向夹具:skill_gate 越界(AC-21a-19) | `fixtures/invalid_skill_gate.json` |
+| 负向夹具:min_quality 越界(AC-21a-20) | `fixtures/invalid_min_quality.json` |
+| 负向夹具:owner 缺失/null/枚举外(AC-21a-66) | `fixtures/invalid_recipe_owner.json` |
+
+**AC 覆盖映射**:
+
+| AC | 测试函数 |
+|---|---|
+| AC-21a-7 | `test_outputQty_fixtureNonPositive_rejected` · `test_outputQty_singleInvalidNegativeEntry_rejected` · `test_outputQty_multipleInvalidEntries_eachNamed` · `test_outputQty_allPositive_accepted` |
+| AC-21a-9 | `test_capSum_fixtureEnvModPushesOverLimit_rejected`(主案 = 仅 EnvModMax 推过界,原稿漏 EnvMod 的回归点)· `test_capSum_exactBoundary_accepted` · `test_capSum_nonPositiveEnvModCountedAsZero_accepted` · `test_capSum_gateVerdict_equalsSelfConsistentPredicate_sameCriterionAsAc3`(门/谓词同号) |
+| AC-21a-10 | `test_qtyRange_fixtureEqualBounds_rejected`(含等号拒)· `test_qtyRange_minAboveMax_rejected` · `test_qtyRange_differByOneRawUnit_accepted` · `test_qtyRange_minBelowMax_accepted` |
+| AC-21a-11 | `test_retain_fixtureMinAboveMax_rejected`(条件一)· `test_retain_fixtureMaxAboveOne_rejected`(条件二)· `test_retain_fixtureMinNonPositive_rejected`(条件三)· `test_retain_maxExactlyOne_accepted` · `test_retain_minEqualsMax_accepted` |
+| AC-21a-12 | `test_envRange_fixtureInverted_rejected` · `test_envRange_equalBounds_accepted`(只拒 `>`,相等过)· `test_envRange_allNegative_accepted` · `test_envRange_crossingZero_accepted` |
+| AC-21a-16 | `test_recipeQty_fixtureInputsZero_rejected` · `test_recipeQty_outputsNegative_rejected` · `test_recipeQty_emptyInputsOrEmptyOutputs_rejected`(空侧拒,GDD :759/:760)· `test_recipeQty_allPositiveBothSides_accepted` |
+| AC-21a-17 | `test_fk_fixtureBaseExistsButStateDangling_rejected`(base 在而 state 不成条目)· `test_fk_danglingBaseId_rejected` · `test_fk_outputsSideDangling_rejected` · `test_fk_crossBaseRecipe_bothSidesExist_accepted` · `test_fk_caseSensitiveBaseId_variantCasingDangling_rejected` |
+| AC-21a-18 | `test_duration_fixtureZero_rejected` · `test_duration_negative_rejected` · `test_duration_singleTick_accepted`(=1 过;只判 >0) |
+| AC-21a-19 | `test_skillGate_fixtureNegative_rejected` · `test_skillGate_aboveSkillCap_rejected`(边界 = `FixtureSkillCap + 1` 拼,随常量表走)· `test_skillGate_zero_accepted` · `test_skillGate_atSkillCap_accepted` |
+| AC-21a-20 | `test_minQuality_fixtureZero_rejected` · `test_minQuality_aboveMaxQuality_rejected`(边界 = `FixtureMaxQuality + 1` 拼)· `test_minQuality_one_accepted` · `test_minQuality_atMaxQuality_accepted` |
+| AC-21a-66 | `test_ownerPartition_fixtureMissingNullAndOutOfSet_rejected`(缺失/null/枚举外三条同拒)· `test_ownerPartition_nullLiteralOnly_rejected` · `test_ownerPartition_caseMisspelledLiteral_rejected` · `test_ownerPartition_threeSubsets_unionEqualsFullTablePairwiseDisjoint` · `test_ownerPartition_emptySubset_accepted` · `test_ownerPartition_indexPartitionMutuallyExclusive_regardlessOfRecipeId` |
+
+**范围边界(Out of Scope 记账)**:AC-24(state 通路符合性)= Story 007;烘焙管线接线
+(11 条执法体的**调用方**) = Story 008(RecipeValidationGates 只提供纯函数,聚合非空列表后
+throw 由 008 执行 —— 本文件零 throw);守恒律与 EFF 区间(AC-8/39/40/56/65)= Story 005;
+axis 长度与地板(AC-50/50b/61/62)= Story 004;recipe_id 唯一性/枚举闭合/存储 stackable
+(AC-21/22/59)= Story 002;`Fix.cs` / `FixParse.cs` / Story 001…005 全部文件本故事零改动。
+**单一实现(承重纪律)**:AC-9 算术**委托** `RecipeSettlementConstantTableValidator.IsSelfConsistent`
+(Story 005 产物,禁在门里重抄不等式);AC-66 枚举解析**委托** `ItemDbValidation.TryParseRecipeOwner`
+(Story 002 产物,禁另写 switch/Enum.TryParse)。
+
+**装配决定**:执法体住 `unity/Assets/Editor.Tools.Gates/`(装配 **`Editor.Tools.Gates`**,
+`includePlatforms: ["Editor"]`,不进构建)—— 其 asmdef **已引 Sim + Sim.Contracts GUID**
+(Story 002/004 加),故本故事**零 asmdef 改动、零新 asmdef**(ADR-025 §④ 清单封闭)。
+EditMode 测试装配 `Sim.Contracts.Tests` 既有 GUID 引用集已含 Sim / Sim.Contracts / Gates,同样零改动。
+**数值纪律**:两源文件零调参字面量(AC-21a-48)—— `SkillCap` / `MaxQuality` 一律经
+`RecipeSettlementConstants` 的 PascalCase 属性读;测试边界用 `FixtureSkillCap` / `FixtureMaxQuality`
+常量拼接,**不裸写 60 / 5**;夹具数字均为**夹具值,非游戏平衡值**。
+
+**测试计数**:EditMode **47** 个 `[Test]`(AC-7×4 + AC-9×4 + AC-10×4 + AC-11×5 + AC-12×4 +
+AC-16×4 + AC-17×5 + AC-18×3 + AC-19×4 + AC-20×4 + AC-66×6)。
+**执行状态:NOT-RUN**(【超算】无 Unity Editor)⇒ 全绿判据待【桌面】跑出,预期 EditMode **317**
+(前批 270 + 本批 47);本 README 不代跑、不代绿。

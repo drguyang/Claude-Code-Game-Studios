@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "_note": "Story 006 AC-21a-9 负向夹具 —— 常量表 cap 和超限(GDD §Edge Cases「Σ(正的 cap) + max(0, ENV_MOD_MAX) > QTY_MULT_MAX − 1」/ §Acceptance 组三 AC-21a-9;与 AC-21a-3 正反同判据,算术本体 = Story 005 的 IsSelfConsistent,Story 006 只做包装门)。⚠️ 主案 = **仅 EnvModMax 单独把式子推过界**(三个 cap 全小:各 1/4,和 3/4 ≤ 1;EnvModMax = 1/2 计入后 5/4 > QTY_MULT_MAX − 1 = 1)—— 原稿漏 EnvMod 的回归点(QA Edge)。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值(数值待用户)。",
+  "skill_mod_cap": "1/4",
+  "qual_mod_cap": "1/4",
+  "equip_mod_cap": "1/4",
+  "env_mod_min": "-1/2",
+  "env_mod_max": "1/2",
+  "qty_mult_min": "1",
+  "qty_mult_max": "2"
+}

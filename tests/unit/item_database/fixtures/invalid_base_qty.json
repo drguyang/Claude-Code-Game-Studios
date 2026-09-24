@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "_note": "Story 006 AC-21a-7 负向夹具 —— outputs[].qty ≤ 0(GDD §Edge Cases 写入期校验族「任一 outputs[].qty ≤ 0」/ §Acceptance 组三 AC-21a-7)。主案 = 单条产出 qty = 0(条目无意义:产量恒为 max(1,0) = 1);负值兄弟案与多条非法由测试代码构造(QA Edge:仅一条非法、多条非法)。inputs 侧 qty ≤ 0 由 invalid_recipe_qty.json 承载(AC-21a-16,同判据不同表)。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值(GDD §Tuning Knobs「默认」列留空,数值待用户)。",
+  "recipe_id": "fixture_base_qty",
+  "owner": "craft",
+  "input_base_ids": ["willow_bark"],
+  "input_states": ["raw"],
+  "input_qty": [3],
+  "output_base_ids": ["willow_bark"],
+  "output_states": ["dried"],
+  "output_qty": [0],
+  "duration_ticks": 1,
+  "skill_gate": 0,
+  "min_quality": 1
+}

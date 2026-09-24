@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "_note": "Story 006 AC-21a-66 负向夹具 —— 全量配方表 owner 三子集划分(GDD §Schema F owner 行 D-21-30 / §Acceptance 组三 AC-21a-66)。raw 字段级两层缝(照 FindStoredStackableKeys 先例:Recipe.Owner 是强类型 enum,「缺失」在强类型层不可表达):owners 数组含 **JSON null(缺字段同罚)** 与 **枚举外字面量 \"Process\"(序数精确,大小写不符)** 各一;合法 process / craft / build 三条同表在场,由测试断言「拒哪些、划分互斥、并 = 全表」。单子集空表合法(QA Edge)由测试代码构造。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值(数值待用户)。",
+  "recipe_ids": ["r_ok_process", "r_missing", "r_ok_craft", "r_null", "r_out_of_set", "r_ok_build"],
+  "owners": ["process", null, "craft", null, "Process", "build"]
+}

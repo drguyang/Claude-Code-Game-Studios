@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "_note": "Story 006 AC-21a-11 负向夹具 —— RETAIN 三条件(GDD §Edge Cases「RETAIN_MIN > RETAIN_MAX, RETAIN_MAX > 1, 或 RETAIN_MIN ≤ 0」/ §Acceptance 组三 AC-21a-11)。**单一文件三条子记录轮换覆盖三条件**(QA 明文允许:GDD 指名单一文件):① min_above_max(区间反向)② max_above_one(> 1 会被 clamp 掩盖,必须显式拒)③ min_non_positive(≤ 0 ⇒ 零技能品级归零)。边界正例(RETAIN_MAX 恰 = 1 过、RETAIN_MIN = RETAIN_MAX 过)由测试代码构造。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值(数值待用户)。",
+  "cases": [
+    { "case": "min_above_max", "retain_min": "3/4", "retain_max": "1/2" },
+    { "case": "max_above_one", "retain_min": "1/2", "retain_max": "3/2" },
+    { "case": "min_non_positive", "retain_min": "0", "retain_max": "1" }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "_note": "Story 006 AC-21a-16 负向夹具 —— 配方项 qty ≤ 0(GDD §Edge Cases「配方项 qty ≤ 0:零量 = 凭空造物 / 静默销毁」/ §Acceptance 组三 AC-21a-16)。主案 = inputs[0].qty = 0;outputs[0].qty = −1 兄弟案与空 inputs / 空 outputs 两格由测试代码构造(QA Edge;空侧独立拒 = GDD §Edge Cases「配方 inputs 为空 / outputs 为空」:凭空造物 / 销毁不归配方表)。qty 为字符串 \"0\" 属类型错误,先被类型/整数校验拒(归绑定层,不在本夹具)。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值(数值待用户)。",
+  "recipe_id": "fixture_recipe_qty",
+  "owner": "process",
+  "input_base_ids": ["willow_bark"],
+  "input_states": ["raw"],
+  "input_qty": [0],
+  "output_base_ids": ["willow_bark"],
+  "output_states": ["dried"],
+  "output_qty": [1],
+  "duration_ticks": 1,
+  "skill_gate": 0,
+  "min_quality": 1
+}

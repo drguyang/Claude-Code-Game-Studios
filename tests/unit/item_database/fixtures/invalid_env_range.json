@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "_note": "Story 006 AC-21a-12 负向夹具 —— 环境修正区间倒置(GDD §Edge Cases「ENV_MOD_MIN > ENV_MOD_MAX」/ §Acceptance 组三 AC-21a-12)。主案 = MIN > MAX 倒置拒;相等 / 全负区间 / 跨零三格正例由测试代码构造(QA Edge:相等过 —— GDD 只拒 >;全负过;跨零过)。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值(数值待用户)。",
+  "env_mod_min": "1/2",
+  "env_mod_max": "-1/2",
+  "qty_mult_min": "1",
+  "qty_mult_max": "2"
+}

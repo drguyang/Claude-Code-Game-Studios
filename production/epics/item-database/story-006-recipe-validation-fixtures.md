@@ -1,12 +1,12 @@
 # Story 006: 配方表写入期校验套件
 
 > **Epic**: 物品与配方数据库
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-09-24
 
 ## Context
 
@@ -32,17 +32,17 @@
 
 *From GDD `design/gdd/item-database.md`, scoped to this story:*
 
-- [ ] **AC-21a-7**: 任一 outputs[].qty ≤ 0 ⇒ 拒绝(逐条 outputs_i.qty,非配方级标量 BaseQty)
-- [ ] **AC-21a-9**: Σ(正的 cap) + max(0, ENV_MOD_MAX) > QTY_MULT_MAX − 1 ⇒ 拒绝(ENV_MOD_MAX 必须计入)
-- [ ] **AC-21a-10**: QTY_MULT_MIN ≥ QTY_MULT_MAX ⇒ 拒绝(区间为空)
-- [ ] **AC-21a-11**: RETAIN_MIN > RETAIN_MAX / RETAIN_MAX > 1 / RETAIN_MIN ≤ 0 三条件之一 ⇒ 拒绝
-- [ ] **AC-21a-12**: ENV_MOD_MIN > ENV_MOD_MAX ⇒ 拒绝
-- [ ] **AC-21a-16**: 配方项(inputs 或 outputs)qty ≤ 0 ⇒ 拒绝(零量=凭空造物/静默销毁)
-- [ ] **AC-21a-17**: 配方项 item_key 外键悬空(inputs/outputs 引用不存在的物品条目)⇒ 拒绝
-- [ ] **AC-21a-18**: duration_ticks ≤ 0 ⇒ 拒绝(规则五;单位是 tick 不是秒)
-- [ ] **AC-21a-19**: skill_gate ∉ [0, SKILL_CAP] ⇒ 拒绝(> SKILL_CAP 的配方永不可制,是数据错误)
-- [ ] **AC-21a-20**: min_quality < 1 或 > MAX_QUALITY ⇒ 拒绝(准入闸,非品级出口)
-- [ ] **AC-21a-66**: 全量配方表装载期按 owner ∈ {process, craft, build} 分三子集 ⇒ 并 = 全表、两两交 = ∅、任一配方缺 owner 即硬失败(D-21-30;18 的 AC-18-18 断调用方半边)
+- [x] **AC-21a-7**: 任一 outputs[].qty ≤ 0 ⇒ 拒绝(逐条 outputs_i.qty,非配方级标量 BaseQty)
+- [x] **AC-21a-9**: Σ(正的 cap) + max(0, ENV_MOD_MAX) > QTY_MULT_MAX − 1 ⇒ 拒绝(ENV_MOD_MAX 必须计入)
+- [x] **AC-21a-10**: QTY_MULT_MIN ≥ QTY_MULT_MAX ⇒ 拒绝(区间为空)
+- [x] **AC-21a-11**: RETAIN_MIN > RETAIN_MAX / RETAIN_MAX > 1 / RETAIN_MIN ≤ 0 三条件之一 ⇒ 拒绝
+- [x] **AC-21a-12**: ENV_MOD_MIN > ENV_MOD_MAX ⇒ 拒绝
+- [x] **AC-21a-16**: 配方项(inputs 或 outputs)qty ≤ 0 ⇒ 拒绝(零量=凭空造物/静默销毁)
+- [x] **AC-21a-17**: 配方项 item_key 外键悬空(inputs/outputs 引用不存在的物品条目)⇒ 拒绝
+- [x] **AC-21a-18**: duration_ticks ≤ 0 ⇒ 拒绝(规则五;单位是 tick 不是秒)
+- [x] **AC-21a-19**: skill_gate ∉ [0, SKILL_CAP] ⇒ 拒绝(> SKILL_CAP 的配方永不可制,是数据错误)
+- [x] **AC-21a-20**: min_quality < 1 或 > MAX_QUALITY ⇒ 拒绝(准入闸,非品级出口)
+- [x] **AC-21a-66**: 全量配方表装载期按 owner ∈ {process, craft, build} 分三子集 ⇒ 并 = 全表、两两交 = ∅、任一配方缺 owner 即硬失败(D-21-30;18 的 AC-18-18 断调用方半边)
 
 **共同断言口径**: 每条 = 负向夹具注入 → 构建期(导入/烘焙/EditMode)硬失败(显式 throw,非静默忽略);合法夹具对照通过。「只验合法值不算通过」(GDD 图例负向夹具铁律)。
 
@@ -161,7 +161,23 @@
 **Required evidence**:
 - Logic: `tests/unit/item_database/recipe_validation_fixtures_test.cs` — must exist and pass;负向夹具落 `tests/unit/item_database/fixtures/`
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created —— 真身 = `unity/Assets/Tests/EditMode/ItemDatabase/recipe_validation_fixtures_test.cs`(47 [Test]:AC-7×4/9×4/10×4/11×5/12×4/16×4/17×5/18×3/19×4/20×4/66×6)+ 11 负向夹具 `tests/unit/item_database/fixtures/invalid_*.json`(账本路径 = `tests/unit/item_database/recipe_validation_fixtures_test.cs`,Unity 不编译 Assets 外 —— Story 001–005 同一先例);**执行 NOT-RUN**(【超算】无 Unity Editor,待【桌面】EditMode 预期 317 = 前批 270 + 本批 47)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-24
+**Criteria**: 11/11 已实现(AC-7/9/10/11/12/16/17/18/19/20/66),逐条 = 负向夹具注入 → 构建期拒 + 合法对照过
+**Deviations(ADVISORY)**:
+- ① AC-7 的「qty 为 0.5 浮点」边界**未单测** —— `RecipeEntry.Qty` 是 `int`,结构上不可表达(类型/整数校验先拒);浮点泄漏的执法归绑定层(Story 008 管线),本故事结构排除。
+- ② AC-16 空 inputs / 空 outputs 按**拒绝**实现并有测(`test_recipeQty_emptyInputsOrEmptyOutputs_rejected`)—— 承 GDD :759/:760「校验拒绝」原文;QA Edge「独立拒绝,归本族同管道」同义。
+- ③ AC-9 错误文案**列不等式两侧 raw 分量、不重算 Σ** —— 防在门里二次抄算术(单一实现纪律:算术只活在 `RecipeSettlementConstantTableValidator.IsSelfConsistent`,门只消费其真假)。
+**范围边界**:AC-24 归 Story 007;11 条执法体的**调用方**(烘焙管线接线)归 Story 008 —— 本故事只交付纯函数 + 夹具,文件内零非注释 `throw`(聚合后 throw 是 008 的义务)。
+**装配**:零 asmdef 改动、零新 asmdef —— 门用 `Editor.Tools.Gates` 既有 GUID 引用集(Story 002/004 加),测试用 `Sim.Contracts.Tests` 既有引用集(ADR-025 §④ 清单封闭不受影响)。
+**Test Evidence**: Logic —— 真身 `unity/Assets/Tests/EditMode/ItemDatabase/recipe_validation_fixtures_test.cs`(47 [Test])+ 11 负向夹具。
+**Code Review**: Skipped(lean 模式,承 Story 004/005 先例)
+**执行状态**: NOT-RUN(【超算】无 Unity Editor)—— 全绿判据待【桌面】跑 EditMode,预期 **317**;跑绿后翻 VERIFIED。
+**同批修复(非本故事范围,Story 003 扫描器)**: PlayMode `test_formulaBodyIdentifiers_duplicatedOutsideUniqueSolver_none` 因 Story 005 新增 `ConservationSolver.cs` 触发 3 条命中(`QtyMultiplier`/`ActualConsumed`/`Efficiency`)—— 诊断为**委托调用 + 大小写不敏感参数名误命中**,非重复公式体;已在 `recipe_settlement_solver_test.cs::Whitelist()` 增条目④放行(带理由),复扫 violations 空、自证测试独立仍能命中合成违例。
 
 ---
 

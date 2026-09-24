@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "_note": "Story 006 AC-21a-18 负向夹具 —— duration_ticks ≤ 0(GDD §Edge Cases「duration_ticks ≤ 0」/ §Acceptance 组三 AC-21a-18,规则五)。主案 = 0;负值兄弟案与 = 1(单 tick,过)正例由测试代码构造(QA Edge)。写成秒值与本值无法区分,归语义审查 —— 本 AC 只判 > 0;极大 tick 溢出归 AC-21a-64 族。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值(数值待用户)。",
+  "recipe_id": "fixture_duration",
+  "owner": "craft",
+  "input_base_ids": ["willow_bark"],
+  "input_states": ["raw"],
+  "input_qty": [1],
+  "output_base_ids": ["willow_bark"],
+  "output_states": ["dried"],
+  "output_qty": [1],
+  "duration_ticks": 0,
+  "skill_gate": 0,
+  "min_quality": 1
+}

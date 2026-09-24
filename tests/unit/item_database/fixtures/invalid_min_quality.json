@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "_note": "Story 006 AC-21a-20 负向夹具 —— min_quality < 1 或 > MAX_QUALITY(GDD §Edge Cases「min_quality < 1 或 > MAX_QUALITY」/ §Acceptance 组三 AC-21a-20,准入闸非品级出口)。主案 = 0(下界外);MAX_QUALITY+1 兄弟案与 = 1 / = MAX_QUALITY 两格边界正例由测试代码构造,以 FixtureMaxQuality 常量拼边界(QA:MAX_QUALITY 数值待用户定)。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值(数值待用户)。",
+  "recipe_id": "fixture_min_quality",
+  "owner": "build",
+  "input_base_ids": ["willow_bark"],
+  "input_states": ["raw"],
+  "input_qty": [1],
+  "output_base_ids": ["willow_bark"],
+  "output_states": ["dried"],
+  "output_qty": [1],
+  "duration_ticks": 1,
+  "skill_gate": 0,
+  "min_quality": 0
+}
