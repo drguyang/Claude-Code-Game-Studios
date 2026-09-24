@@ -88,7 +88,7 @@ namespace DaYiJingCheng.Sim
         /// <returns>该档偏移(<c>Fix</c>)。</returns>
         /// <exception cref="InvalidOperationException">表非空且 <paramref name="quality"/> 越界(长度 &lt; quality
         /// 或 quality &lt; 1)。</exception>
-        public static Fix OffsetFor(Fix[]? offsets, int quality)
+        public static Fix OffsetFor(Fix[] offsets, int quality)
         {
             if (offsets == null || offsets.Length == 0)
                 return new Fix(0L);
@@ -144,7 +144,7 @@ namespace DaYiJingCheng.Sim
         /// <returns><c>true</c> = 至少一档偏移非零(药品品质档位对时间轴有实际影响)。</returns>
         /// <example><c>HasQualityEffect(new[]{ 0, 3/8, 1/4 })</c> ⇒ <c>true</c>;
         /// <c>HasQualityEffect(new[]{ 0, 0, 0 })</c> ⇒ <c>false</c>。</example>
-        public static bool HasQualityEffect(Fix[]? offsets)
+        public static bool HasQualityEffect(Fix[] offsets)
         {
             if (offsets == null)
                 return false;
@@ -165,7 +165,7 @@ namespace DaYiJingCheng.Sim
         /// <param name="floor">可感知底线(<c>Fix &gt; 0</c>;= 0 或负 ⇒ 底线失效,恒真)。</param>
         /// <returns><c>true</c> = 全部非零偏移 ≥ 底线(模)。</returns>
         /// <example>底线 1/8:<c>{ 0, 3/8, −1/4 }</c> ⇒ <c>true</c>;〈 -1/16, 0 〉 且 1/16 &lt; 1/8 ⇒ <c>false</c>。</example>
-        public static bool AllOffsetsSatisfyPerceptibleFloor(Fix[]? offsets, Fix floor)
+        public static bool AllOffsetsSatisfyPerceptibleFloor(Fix[] offsets, Fix floor)
         {
             if (offsets == null || floor.Raw <= 0L)
                 return true;
@@ -191,7 +191,7 @@ namespace DaYiJingCheng.Sim
         /// <returns><c>true</c> = base + 全表最小值 &gt; 0。</returns>
         /// <example><c>base = 1</c>、<c>min(offset) = −3/4</c>(和 = 1/4)⇒ <c>true</c>;
         /// <c>base = 1/2</c>、<c>min(offset) = −1/2</c>(和 = 0)⇒ <c>false</c>。</example>
-        public static bool DomainClampSatisfied(Fix axisBase, Fix[]? offsets)
+        public static bool DomainClampSatisfied(Fix axisBase, Fix[] offsets)
         {
             if (offsets == null || offsets.Length == 0)
                 return true;

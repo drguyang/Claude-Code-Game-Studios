@@ -40,7 +40,7 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
 
         /// <summary>给定 base/state 构造一个合成实例(容器 = children 非空,由调用方显式给出)。</summary>
         private static ItemInstance item(long id, string baseId, int quality, int qty,
-            long[]? children = null, ProcessingState state = ProcessingState.Raw)
+            long[] children = null, ProcessingState state = ProcessingState.Raw)
             => new ItemInstance(id, new ItemKey(baseId, state), quality, qty,
                 children ?? Array.Empty<long>());
 
