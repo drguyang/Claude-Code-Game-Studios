@@ -234,16 +234,16 @@ namespace DaYiJingCheng.EditorTools.Gates
 
             if (string.IsNullOrEmpty(rawWeight) ||
                 !int.TryParse(rawWeight, System.Globalization.NumberStyles.Integer,
-                    System.Globalization.CultureInfo.InvariantCulture, out int weight))
+                    System.Globalization.CultureInfo.InvariantCulture, out int parsedWeight))
             {
                 errors.Add(
                     $"{label} weight = \"{rawWeight}\" 不是合法整数 —— " +
                     "weight 是 int 计数非 Fix(D-21-17),Fix 形式与浮点形式均拒;构建期硬失败(AC-21a-15)");
             }
-            else if (weight <= 0)
+            else if (parsedWeight <= 0)
             {
                 errors.Add(
-                    $"{label} weight = {weight} 不大于 0 —— " +
+                    $"{label} weight = {parsedWeight} 不大于 0 —— " +
                     "weight 必须为正整数(规则六);构建期硬失败(AC-21a-15)");
             }
 
