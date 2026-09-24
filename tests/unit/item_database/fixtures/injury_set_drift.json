@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "_note": "Story 007 负向夹具 · AC-21a-25(b)(集合漂移门:21a 的 inflicts_injury 须 ⊇ 该线全部动作的 maps_to_injury,违例=硬失败;承 25 的 A20)。GDD 引注:design/gdd/item-database.md 夹具表 :1073、Schema A inflicts_injury :303(集合 ⊇ 语义)。主案:武器线 blade_basic 声明 {cut_wound, contusion},25 侧某动作 maps_to_injury 含 puncture_wound(不在 21a 集合内)⇒ 漂移拒。反向漂移(25 侧删动作后 inflicts 悬空)明确不在本 AC(QA Edge 注记归 25),本夹具不含。maps_to_injury 是 25 侧夹具替身(25 动作表未建,注入值)。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值",
+  "weapon_line": "blade_basic",
+  "inflicts_injury": ["cut_wound", "contusion"],
+  "maps_to_injury": ["cut_wound", "puncture_wound"]
+}

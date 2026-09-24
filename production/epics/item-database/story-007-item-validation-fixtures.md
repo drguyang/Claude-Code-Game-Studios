@@ -1,12 +1,12 @@
 # Story 007: 物品表写入期校验套件
 
 > **Epic**: 物品与配方数据库
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 3h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-09-24
 
 ## Context
 
@@ -32,12 +32,12 @@
 
 *From GDD `design/gdd/item-database.md`, scoped to this story:*
 
-- [ ] **AC-21a-13**: MAX_QUALITY < 2 或非整数 ⇒ 拒绝(品级维度必须存在)
-- [ ] **AC-21a-14**: quality_distribution 支撑 ⊄ [1, MAX_QUALITY] ⇒ 拒绝(D-21-7 双向耦合)
-- [ ] **AC-21a-15**: stack_max < 1 或 weight ≤ 0 ⇒ 拒绝(规则六)
-- [ ] **AC-21a-23**: P0 期出现 P1a 值(honey_fried / dry_fried / 非空 tcm_profile)⇒ 拒绝(对齐 8 的 AC-8-33 同型纪律)
-- [ ] **AC-21a-24**: 配方 state 对不在物品声明的 legal_transitions 内(如 raw → extracted 当该条目未声明)⇒ 拒绝(「枚举只给词汇不给通路」)
-- [ ] **AC-21a-25**: category=weapon 无 inflicts_injury,或非 weapon 带 inflicts_injury,均拒;⚠️ 只校验存在性与类别门,不校验语义(「哪次命中造成哪个伤」归 25 的 maps_to_injury);集合漂移门:21a 的 inflicts_injury 集合 ⊇ 该线全部动作的 maps_to_injury,构建期断言,违例=硬失败(承 25 的 A20;外键悬空 injury_id 亦拒)
+- [x] **AC-21a-13**: MAX_QUALITY < 2 或非整数 ⇒ 拒绝(品级维度必须存在)
+- [x] **AC-21a-14**: quality_distribution 支撑 ⊄ [1, MAX_QUALITY] ⇒ 拒绝(D-21-7 双向耦合)
+- [x] **AC-21a-15**: stack_max < 1 或 weight ≤ 0 ⇒ 拒绝(规则六)
+- [x] **AC-21a-23**: P0 期出现 P1a 值(honey_fried / dry_fried / 非空 tcm_profile)⇒ 拒绝(对齐 8 的 AC-8-33 同型纪律)
+- [x] **AC-21a-24**: 配方 state 对不在物品声明的 legal_transitions 内(如 raw → extracted 当该条目未声明)⇒ 拒绝(「枚举只给词汇不给通路」)
+- [x] **AC-21a-25**: category=weapon 无 inflicts_injury,或非 weapon 带 inflicts_injury,均拒;⚠️ 只校验存在性与类别门,不校验语义(「哪次命中造成哪个伤」归 25 的 maps_to_injury);集合漂移门:21a 的 inflicts_injury 集合 ⊇ 该线全部动作的 maps_to_injury,构建期断言,违例=硬失败(承 25 的 A20;外键悬空 injury_id 亦拒)
 
 **共同断言口径**: 同 Story 006 —— 负向夹具 → 构建期硬失败,合法对照通过。
 
@@ -120,7 +120,25 @@
 **Required evidence**:
 - Logic: `tests/unit/item_database/item_validation_fixtures_test.cs` — must exist and pass;负向夹具落 `tests/unit/item_database/fixtures/`
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created —— 真身 = `unity/Assets/Tests/EditMode/ItemDatabase/item_validation_fixtures_test.cs`(38 [Test]:AC-13×5/14×6/15×7/23×5/24×7/25×8)+ 7 负向夹具 `tests/unit/item_database/fixtures/`(invalid_max_quality / invalid_quality_dist / invalid_stack_weight / invalid_p1a_leak / invalid_transition / invalid_injury_fk / injury_set_drift);账本路径 = `tests/unit/item_database/item_validation_fixtures_test.cs`,Unity 不编译 Assets 外 —— Story 001–006 同一先例;**执行 NOT-RUN(【超算】无 Unity)**,预期 EditMode 355 = 前批 317 + 本批 38
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-24
+**Criteria**: 6/6 已实现(AC-13/14/15/23/24/25),逐条 = 负向夹具注入 → 门返回非空错误列表(构建期硬失败的执法体,聚合后 throw 归 008)+ 合法对照返回空列表通过
+**门方法(7 个)**:AC-25 拆 a/b 两门(`ValidateInjuryBinding` 类别+外键 / `ValidateInjurySetSuperset` 集合 ⊇)—— 入参域不同(记录级 vs 线级),硬塞一方法须 bool 开关,违纯函数单一职责;其余 5 条 AC 各一门
+**Deviations(ADVISORY)**:
+- ① **签名 raw vs typed**:AC-13/15 收 raw string(QA 必须验 `"3.5"` / `"1/2"` 类型错误拒收,typed 入口在绑定层先拒则门无法独立执法);AC-23 收 raw state + raw tcm 块体(占位全 null vs 含非 null 只能 raw 层区分);AC-24 声明 raw / boundary typed;AC-14/25 typed(枚举闭合归 AC-22)。
+- ② **AC-24 箭头字面格式 GDD 未定**:单点定义 `ParseDeclaredTransitions` 接受 `"raw>dried"` 与 `"raw→dried"`(U+2192),写在门 doc-comment;**建议数据轮/GDD 侧补一句字面格式裁定**,届时只改这一处。
+- ③ **AC-14 门只收支撑点索引不收权重**:「权重 0 档仍计支撑」是**调用方义务**(分布形状归 17,结构体未建),已写入门 doc-comment;D-21-7「MAX 下调重跑」编排归 Story 008,测试以同一支撑集 max=3 过 / max=2 拒表达回归点。
+- ④ **9 侧 injury 枚举 / 25 侧动作表未建** ⇒ `known_injury_ids` / `maps_to_injury` = 注入参数 + 夹具替身,门不硬编码名单(真实数据落地后 Story 008 接线)。
+**范围边界**:AC-21/22(枚举闭合)归 002;AC-50/50b/60/61/62(axis)归 004;AC-7~20/66(配方侧)归 006;管线接线 + 聚合 throw 归 008;伤情语义与反向漂移归 25,不测。`ItemDef.cs` 等「归 Story 006」字样 = Story 002 期陈旧注记,未触碰(编排器可选清理)。
+**单一实现纪律**:`processing_state` / `category` 字面解析委托 `ItemDbValidation.TryParseProcessingState` / `TryParseItemCategory`(Story 002 产物,禁另写 switch)。
+**装配**:零 asmdef 改动、零新 asmdef —— 门用 `Editor.Tools.Gates` 既有 GUID 引用集;测试用 `Sim.Contracts.Tests` 既有引用集(ADR-025 §④ 清单封闭不受影响)。
+**Test Evidence**: Logic —— 真身 `unity/Assets/Tests/EditMode/ItemDatabase/item_validation_fixtures_test.cs`(38 [Test])+ 7 负向夹具。
+**Code Review**: Skipped(lean 模式,承 Story 004/005/006 先例)
+**执行状态**: NOT-RUN(【超算】无 Unity Editor)—— 预期 EditMode **355 = 前批 317 + 本批 38**,待桌面跑确认;桌面将生成 2 个新 `.meta`(ItemValidationGates.cs.meta / item_validation_fixtures_test.cs.meta),需 chore(meta) 补提交(先例 1175463)。
 
 ---
 

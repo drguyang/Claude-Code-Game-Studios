@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "_note": "Story 007 负向夹具 · AC-21a-13(MAX_QUALITY < 2 或非整数拒绝)。GDD 引注:design/gdd/item-database.md 夹具表 :1061、写入期校验族 :795、Schema D-21-7 双向耦合 :648–651。三条主案:below_two=1 / zero=0 / float_string=\"3.5\" 各自独立成记录;合法对照(=2 边界、字符串形式 \"4\")按 Story 006 惯例由测试代码构造,不占本夹具。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值(具体档数 MAX_QUALITY 待用户数值轮定)",
+  "records": {
+    "below_two": { "max_quality": 1 },
+    "zero": { "max_quality": 0 },
+    "float_string": { "max_quality": "3.5" }
+  }
+}

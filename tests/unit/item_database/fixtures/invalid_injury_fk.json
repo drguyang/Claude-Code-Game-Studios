@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "_note": "Story 007 负向夹具 · AC-21a-25(a)(类别门 + 外键门:weapon 无 inflicts_injury / 非 weapon 带该字段 / injury_id 不在 9 的枚举,均拒)。GDD 引注:design/gdd/item-database.md 夹具表 :1073、写入期校验族 :807、规则四/规则七 :193–197、Schema A inflicts_injury :303(语义降级为集合,归数值/数据轮)。known_injury_ids 是 9 的枚举夹具替身(9 侧枚举未建,注入值,非真实枚举承诺)。四条记录:weapon_missing(缺字段拒)/ material_with(非 weapon 带字段拒)/ weapon_dangling(ghost_injury 悬空拒)/ 两条合法对照(weapon_legal_array + weapon_legal_single 单值形态)。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值",
+  "known_injury_ids": ["cut_wound", "contusion", "fracture"],
+  "weapon_missing": { "category": "weapon" },
+  "material_with": { "category": "material", "inflicts_injury": ["cut_wound"] },
+  "weapon_dangling": { "category": "weapon", "inflicts_injury": ["cut_wound", "ghost_injury"] },
+  "weapon_legal_array": { "category": "weapon", "inflicts_injury": ["cut_wound", "contusion"] },
+  "weapon_legal_single": { "category": "weapon", "inflicts_injury": "cut_wound" }
+}

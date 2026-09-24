@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "_note": "Story 007 负向夹具 · AC-21a-24(配方 state 对不在源物品声明的 legal_transitions 内拒绝;「枚举只给词汇不给通路」)。GDD 引注:design/gdd/item-database.md 夹具表 :1072、写入期校验族 :806、§States and Transitions :415–445、Schema A legal_transitions :299。主案:源条目 willow_bark 声明 [raw>dried, dried>extracted](相邻两跳),配方 boundary_state 却声明 raw→extracted(跨中间态、未声明)⇒ 拒。箭头格式 \"from>to\" 由 ItemValidationGates.ValidateTransition 单点定义(GDD 只定 string[] 类型未定字面格式;→ U+2192 同接受)。合法对照(声明内对 / 声明但未用 / 空声明拒 / 非相邻显式声明过)由测试代码构造。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值",
+  "source_base_id": "willow_bark",
+  "source_legal_transitions": ["raw>dried", "dried>extracted"],
+  "boundary_from": "raw",
+  "boundary_to": "extracted"
+}

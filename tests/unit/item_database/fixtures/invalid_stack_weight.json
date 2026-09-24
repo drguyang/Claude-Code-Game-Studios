@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "_note": "Story 007 负向夹具 · AC-21a-15(stack_max < 1 或 weight ≤ 0 拒绝,规则六;weight/stack_max 是 int 计数非 Fix,D-21-17)。GDD 引注:design/gdd/item-database.md 夹具表 :1063、写入期校验族 :797、规则六 :185–191、Schema A stack_max/weight :295–303。五条主案:stack_max=0 / weight=0 / weight=-3 / weight Fix 形式 \"1/2\"(Control Manifest Guardrail:Fix 形式须拒) / weight 浮点 1.5(QA Edge)。合法对照 stack_max=1、weight=1 由测试代码构造。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值",
+  "stack_max_zero": { "stack_max": 0, "weight": 1 },
+  "weight_zero": { "stack_max": 1, "weight": 0 },
+  "weight_negative": { "stack_max": 1, "weight": -3 },
+  "weight_fix_form": { "stack_max": 1, "weight": "1/2" },
+  "weight_float": { "stack_max": 1, "weight": 1.5 }
+}

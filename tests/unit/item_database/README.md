@@ -260,3 +260,66 @@ EditMode 测试装配 `Sim.Contracts.Tests` 既有 GUID 引用集已含 Sim / Si
 **测试计数**:EditMode **47** 个 `[Test]`(AC-7×4 + AC-9×4 + AC-10×4 + AC-11×5 + AC-12×4 +
 AC-16×4 + AC-17×5 + AC-18×3 + AC-19×4 + AC-20×4 + AC-66×6)。
 **执行状态:✅ VERIFIED 2026-09-24 桌面** —— EditMode **317 全绿**(前批 270 + 本批 47)。
+
+## Story 007(物品表写入期校验套件)—— 落点说明
+
+证据账本路径登记为 `tests/unit/item_database/item_validation_fixtures_test.cs`,
+同 Story 001…006:**Unity 不编译 `unity/Assets/` 之外的代码** ⇒ 测试真身落 EditMode 树。
+本目录承载账本与**七**件构建期负向夹具(与故事 QA Negative fixture 行逐一对应;
+AC-25 指名两件:`invalid_injury_fk.json` + `injury_set_drift.json` —— 后者不以 `invalid_` 开头是 GDD 原文)。
+
+| 内容 | 路径 |
+|---|---|
+| 构建期校验纯函数(6 条 AC 执法体,AC-25 拆 a/b 两门 = 7 方法) | `unity/Assets/Editor.Tools.Gates/ItemValidationGates.cs` |
+| 编译中的测试源(真身,Logic) | `unity/Assets/Tests/EditMode/ItemDatabase/item_validation_fixtures_test.cs` |
+| 负向夹具:MAX_QUALITY < 2 或非整数(AC-21a-13) | `fixtures/invalid_max_quality.json` |
+| 负向夹具:quality_distribution 支撑越界(AC-21a-14) | `fixtures/invalid_quality_dist.json` |
+| 负向夹具:stack_max/weight 越界 + Fix 形式 "1/2"(AC-21a-15) | `fixtures/invalid_stack_weight.json` |
+| 负向夹具:P1a 泄漏 honey_fried / dry_fried / 非空 tcm_profile(AC-21a-23) | `fixtures/invalid_p1a_leak.json` |
+| 负向夹具:state 对未在 legal_transitions 声明(AC-21a-24) | `fixtures/invalid_transition.json` |
+| 负向夹具:weapon 类别门 + 外键悬空(AC-21a-25a) | `fixtures/invalid_injury_fk.json` |
+| 负向夹具:inflicts ⊉ maps 集合漂移(AC-21a-25b) | `fixtures/injury_set_drift.json` |
+
+**AC 覆盖映射**:
+
+| AC | 门方法 | 测试函数 |
+|---|---|---|
+| AC-21a-13 | `ValidateMaxQuality(raw string)` | `test_maxQuality_fixtureBelowTwo_rejected` · `test_maxQuality_fixtureZero_rejected` · `test_maxQuality_fixtureFloatString_rejected` · `test_maxQuality_stringFormInteger_accepted` · `test_maxQuality_exactlyTwo_accepted` |
+| AC-21a-14 | `ValidateQualityDistribution(IReadOnlyList<int>, int maxQuality)` | `test_qualityDist_fixturePointZero_rejected` · `test_qualityDist_pointAboveMax_rejected` · `test_qualityDist_singleOutlierAmongValid_rejected` · `test_qualityDist_zeroWeightSlotStillCounts_rejected` · `test_qualityDist_boundaryInclusive_accepted` · `test_qualityDist_maxQualityLowered_rerunRejects` |
+| AC-21a-15 | `ValidateStackWeight(raw string, raw string)` | `test_stackWeight_fixtureStackMaxZero_rejected` · `test_stackWeight_fixtureWeightZero_rejected` · `test_stackWeight_fixtureWeightNegative_rejected` · `test_stackWeight_fixtureWeightFixForm_rejected` · `test_stackWeight_fixtureWeightFloat_rejected` · `test_stackWeight_stackMaxOne_accepted` · `test_stackWeight_weightOne_accepted` |
+| AC-21a-23 | `ValidateP0Narrowing(raw state, raw tcm 块体)` | `test_p0Narrowing_fixtureHoneyFried_rejected` · `test_p0Narrowing_fixtureDryFried_rejected` · `test_p0Narrowing_fixtureTcmProfileNonNull_rejected` · `test_p0Narrowing_tcmPlaceholderAllNull_accepted` · `test_p0Narrowing_p0EnumStateTcmAbsent_accepted` |
+| AC-21a-24 | `ValidateTransition(声明 raw 串[], typed ProcessingTransition[])` | `test_transition_fixtureUndeclaredPair_rejected` · `test_transition_nonAdjacentUndeclared_rejected` · `test_transition_emptyLegalTransitions_rejected` · `test_transition_crossBase_checksSourceItemDeclarations_rejected` · `test_transition_declaredPair_accepted` · `test_transition_declaredButUnused_accepted` · `test_transition_nonAdjacentExplicitlyDeclared_accepted` |
+| AC-21a-25a | `ValidateInjuryBinding(category, 集合, knownIds)` | `test_injuryBinding_fixtureWeaponMissingField_rejected` · `test_injuryBinding_materialWithField_rejected` · `test_injuryBinding_fixtureDanglingInjuryId_rejected` · `test_injuryBinding_weaponValidArray_accepted` · `test_injuryBinding_weaponSingleValueForm_accepted` · `test_injuryBinding_materialWithoutField_accepted` |
+| AC-21a-25b | `ValidateInjurySetSuperset(inflicts, maps)` | `test_injurySetDrift_fixtureMapsValueOutsideInflicts_rejected` · `test_injurySetDrift_setsExactlyEqual_accepted` |
+
+**签名决定(raw vs typed,ADVISORY)**:AC-13/15 收 **raw string** —— QA 必须验 `"3.5"` / `"1/2"` /
+`1.5` 这类**类型错误拒收**,typed int 入口在绑定层就已先拒,门无法独立执法(与
+`FindStoredStackableKeys` 收 raw keys 同型);AC-23 收 raw state 字面量 + raw tcm 块体
+(占位全 null / 含非 null 值的区分只能在 raw 层);AC-24 声明侧收 raw 串、boundary 收 typed
+`ProcessingTransition[]`;AC-14/25 收 typed(枚举闭合归 AC-22,夹具不含非法字面量)。
+**AC-24 箭头格式(GDD 未定字面格式)**:单点定义于 `ParseDeclaredTransitions`,接受
+`"raw>dried"` 与 `"raw→dried"`(U+2192)—— 若数据轮/GDD 后续裁定其他格式,只改这一处;
+`processing_state` / `category` 字面解析**委托** `ItemDbValidation.TryParseProcessingState` /
+`TryParseItemCategory`(Story 002 产物,单一实现,禁另写 switch)。
+**AC-14 权重 0 档仍计支撑**:门只收支撑点索引不收权重(分布形状归 17,结构体未建)——
+「零权重档照传索引」是**调用方义务**,已写入门 doc-comment,测试以夹具 `zero_weight_slot` 案验证。
+
+**范围边界(Out of Scope 记账)**:枚举闭合本身(AC-21/22)= Story 002;axis 长度与地板
+(AC-50/50b/60/61/62)= Story 004;配方表侧夹具(AC-7~20/66)= Story 006;管线执行本套校验的
+落点(调用方接线 + 聚合后 throw)= Story 008;伤情语义(逐次命中归 25 的 maps_to_injury 判定)
+不在本故事 —— 只断存在性 + 类别门 + 集合 ⊇;反向漂移(25 删动作)按 QA 注记归 25,不测;
+`ItemDef.cs` / `ProcessingState.cs` 等 doc-comment 里残留的「归 Story 006」字样 = Story 002 期
+陈旧注记(编排器可选清理项),本故事未触碰。
+**9 侧 injury 枚举 / 25 侧动作表未建** ⇒ `known_injury_ids` / `maps_to_injury` 均为
+**注入参数 + 夹具替身**(系统真实数据落地后由 Story 008 接线传入,门不硬编码名单)。
+
+**装配决定**:执法体住 `unity/Assets/Editor.Tools.Gates/`(装配 **`Editor.Tools.Gates`**,
+`includePlatforms: ["Editor"]`,不进构建)—— 其 asmdef **已引 Sim + Sim.Contracts GUID**
+(Story 002/004 加),故本故事**零 asmdef 改动、零新 asmdef**(ADR-025 §④ 清单封闭)。
+EditMode 测试装配 `Sim.Contracts.Tests` 既有 GUID 引用集已含 Sim / Sim.Contracts / Gates,同样零改动。
+**数值纪律**:两源文件零调参字面量(AC-21a-48 扫描 NONE)—— 规则阈值(MAX_QUALITY ≥ 2、
+stack_max ≥ 1、weight > 0)是规则本身可写字面量;平衡值(MAX_QUALITY 具体档数等)一律注入参数;
+测试边界用 `FixtureMaxQuality` 常量拼,**不裸写 5**;夹具数字均为**夹具值,不是游戏平衡值**。
+
+**测试计数**:EditMode **38** 个 `[Test]`(AC-13×5 + AC-14×6 + AC-15×7 + AC-23×5 + AC-24×7 + AC-25×8)。
+**执行状态:NOT-RUN(【超算】无 Unity Editor)** —— 预期 EditMode **355 = 前批 317 + 本批 38**,待桌面跑确认。

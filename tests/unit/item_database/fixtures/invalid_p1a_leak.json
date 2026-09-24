@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "_note": "Story 007 负向夹具 · AC-21a-23(P0 期出现 P1a 值 honey_fried / dry_fried / 非空 tcm_profile 拒绝;对齐 8 的 AC-8-33 同型纪律)。GDD 引注:design/gdd/item-database.md 夹具表 :1071、写入期校验族 :805、Schema D tcm_profile P0 恒空 :302/:369、D-21-6 占位块规则。五条记录:三条负向(honey_fried / dry_fried / tcm_profile 含非 null 值)+ 两条合法对照(tcm_profile 占位块全字段 null 过 D-21-6;P0 枚举 state + tcm_profile 缺省过)。注:p1a_field 是占位键名 —— TcmProfile P0 无已定义字段(字段表归 P1a 撰写,见 GDD :369),此处代表「任一非 null 字段」,不代表已定名的 P1a 字段。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值",
+  "honey_fried_record": { "processing_state": "honey_fried", "tcm_profile": null },
+  "dry_fried_record": { "processing_state": "dry_fried", "tcm_profile": null },
+  "tcm_nonempty_record": { "processing_state": "raw", "tcm_profile": { "p1a_field": "nan" } },
+  "tcm_placeholder_record": { "processing_state": "raw", "tcm_profile": { "p1a_field": null } },
+  "p0_legal_record": { "processing_state": "pill", "tcm_profile": null }
+}

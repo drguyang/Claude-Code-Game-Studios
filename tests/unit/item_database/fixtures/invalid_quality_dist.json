@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "_note": "Story 007 负向夹具 · AC-21a-14(quality_distribution 支撑 ⊄ [1, MAX_QUALITY] 拒绝,D-21-7 双向耦合)。GDD 引注:design/gdd/item-database.md 夹具表 :1062、写入期校验族 :796、D-21-7 :648–651、Schema B2 quality_distribution :365。point_below_one=支撑点 0(通用越界,<1 不耦合具体 MAX);single_outlier_among_valid=多档合法中夹一档越界(QA Edge);zero_weight_slot=权重 0 的档仍计支撑(QA Edge:weights 第二维 0 对应 support_points 第二维 0 越界)。MAX_QUALITY+1 越界案由测试以 FixtureMaxQuality+1 代码构造(Story 006 惯例,避免夹具耦合常量)。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值",
+  "point_below_one": { "support_points": [1, 0, 3], "weights": [1, 1, 1] },
+  "single_outlier_among_valid": { "support_points": [1, 2, 0, 4, 5], "weights": [1, 1, 1, 1, 1] },
+  "zero_weight_slot": { "support_points": [1, 0], "weights": [1, 0] }
+}
