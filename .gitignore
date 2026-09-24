@@ -18,7 +18,7 @@ CLAUDE.local.md
 # Ephemeral session checkpoint — see .claude/docs/directory-structure.md.
 production/session-state/active.md
 # Local agent-runner configs carry a plaintext ANTHROPIC_API_KEY. Never commit.
-.claude/opencode_*.json
+.claude/opencode*.json
 
 # === Internal Planning (not for public) ===
 

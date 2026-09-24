@@ -1,0 +1,54 @@
+{
+  "_comment": "Story 010 AC-21a-58 负向夹具(QA 指名)。schema:id = int(测试内窄转 long)、children 缺省 = 叶子(空)。expect ∈ {throw, pass};消费方 = unity/Assets/Tests/EditMode/ItemDatabase/instance_authority_persistence_test.cs 的 fixture 用例。",
+  "cases": [
+    {
+      "name": "shared_child_two_containers",
+      "expect": "throw",
+      "instances": [
+        { "id": 1, "children": [10] },
+        { "id": 2, "children": [10] },
+        { "id": 10 }
+      ]
+    },
+    {
+      "name": "self_reference",
+      "expect": "throw",
+      "instances": [
+        { "id": 1, "children": [1] }
+      ]
+    },
+    {
+      "name": "cycle_a_to_b_to_a",
+      "expect": "throw",
+      "instances": [
+        { "id": 1, "children": [2] },
+        { "id": 2, "children": [1] }
+      ]
+    },
+    {
+      "name": "unregistered_child",
+      "expect": "throw",
+      "instances": [
+        { "id": 1, "children": [99] },
+        { "id": 10 }
+      ]
+    },
+    {
+      "name": "legal_single_level",
+      "expect": "pass",
+      "instances": [
+        { "id": 1, "children": [10, 11] },
+        { "id": 10 },
+        { "id": 11 }
+      ]
+    },
+    {
+      "name": "legal_empty_container",
+      "expect": "pass",
+      "instances": [
+        { "id": 1, "children": [] },
+        { "id": 10 }
+      ]
+    }
+  ]
+}

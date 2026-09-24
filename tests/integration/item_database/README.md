@@ -151,3 +151,28 @@ TR-027「经本管线执行 ⇒ 硬失败」,深度浅于 Story 006/007 的单�
 **7a 往返子条件的承位口径(禁借绿)**:7a 文件级存档(校验和 / checkpoint / 迁移)未实现 ⇒
 本文件以 `SimEventCodec` + `PayloadCodec` 字节往返承位(ADR-010 存档体的同一条字节路径);
 真存档往返归 7a 落地后补跑,**Story 009 不宣称该子条件已绿**。
+
+---
+
+## Story 010(实例权威与持久化往返 —— AC-21a-31 / 34 / 35 / 53 / 58 / 63)—— 落点说明
+
+故事头登记两条证据路径:集成账本
+`tests/integration/item_database/instance_authority_persistence_test.cs` + 逻辑账本
+`tests/unit/item_database/instance_authority_persistence_test.cs` + GDD 点名
+`fix_codec_roundtrip.cs` / `id_authority.cs` —— 同 Story 001…009:**Unity 不编译
+`unity/Assets/` 之外的代码** ⇒ 三条账本全部指向 EditMode 树真身
+(**AC-31/35 的集成账本与 AC-34/58 的单元账本共用同一真身**):
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身,四账本合一) | `unity/Assets/Tests/EditMode/ItemDatabase/instance_authority_persistence_test.cs` |
+| AC-53 真身(GDD 照录名) | `unity/Assets/Tests/EditMode/ItemDatabase/fix_codec_roundtrip.cs` |
+| AC-63 真身(GDD 照录名) | `unity/Assets/Tests/EditMode/ItemDatabase/id_authority.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(`Sim.Contracts.Tests`) |
+| 新增生产件 | `Sim/ItemDatabase/{IdAuthority,ContainerClosure,InstanceResolver}.cs` · `Sim.Codec/ItemInstanceCodec.cs` |
+| 负向夹具(QA 指名) | `tests/unit/item_database/fixtures/invalid_container_closure.json` |
+
+**7a 往返承位口径(禁借绿)**:文件级存档(头 + 校验和 + checkpoint)未实现 ⇒ 本故事
+AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→decode 承位
+(ADR-010 存档快照段同一编码路径);真存档往返归 7a 落地后补跑,Story 010 不宣称该半边已绿。
+详细 AC→用例映射见 `tests/unit/item_database/README.md` §Story 010。

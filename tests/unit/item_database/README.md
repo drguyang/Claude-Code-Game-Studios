@@ -326,3 +326,34 @@ stack_max ≥ 1、weight > 0)是规则本身可写字面量;平衡值(MAX_QUALIT
 过程插曲:首跑 354 绿 / 1 红(`test_tuningKnobIdentifiers_hardcodedInSourceCode_none` 报
 `ItemValidationGates.cs` 旋钮「weight」裸局部变量),`64a2149` 改名 `parsedWeight` 后转绿;
 `.meta` ×2 由桌面 `711dc93` 补提交。
+
+## Story 010(实例权威与持久化往返)—— 落点说明
+
+证据账本路径(故事 QA 指名两条 unit 账本)+ 一条 GDD 点名文件:
+`tests/unit/item_database/instance_authority_persistence_test.cs`(AC-34/58)·
+`tests/unit/item_database/fix_codec_roundtrip.cs`(AC-53,GDD 照录)·
+`tests/unit/item_database/id_authority.cs`(AC-63,GDD 照录)——
+同 Story 001…009:**Unity 不编译 `unity/Assets/` 之外的代码** ⇒ 测试真身落 EditMode 树。
+注意 AC-31/35 的 **integration 账本与本目录 unit 账本指向同一个真身**
+`instance_authority_persistence_test.cs`(两账本一真身,story-010 Test Evidence 已注)。
+
+| 内容 | 路径 |
+|---|---|
+| IIdAuthority 实现(机制 A 计数器 + 高水位重构) | `unity/Assets/Sim/ItemDatabase/IdAuthority.cs` |
+| 容器闭包校验(AC-58 四形态 + 边例执法体) | `unity/Assets/Sim/ItemDatabase/ContainerClosure.cs` |
+| 存档实例解析(AC-35 只增不删读侧) | `unity/Assets/Sim/ItemDatabase/InstanceResolver.cs` |
+| 实例全二进制 codec(AC-31 快照段) | `unity/Assets/Sim.Codec/ItemInstanceCodec.cs` |
+| 真身:AC-31/34/35/58 | `unity/Assets/Tests/EditMode/ItemDatabase/instance_authority_persistence_test.cs` |
+| 真身:AC-53 Fix 编码器 | `unity/Assets/Tests/EditMode/ItemDatabase/fix_codec_roundtrip.cs` |
+| 真身:AC-63 铸造点扫描 + 权威单测 | `unity/Assets/Tests/EditMode/ItemDatabase/id_authority.cs` |
+| 负向夹具:容器闭包四形态 + 两合法(AC-58 QA 指名) | `fixtures/invalid_container_closure.json` |
+
+**AC 覆盖映射**:AC-31 = roundTrip/qualityEdges/containerChildren/batch/nullChildren 五测;
+AC-34 = `test_ac21a34_fixedOperationSequence_conservesIdsAndQty`(固定序列逐步守恒);
+AC-35 = deprecatedResolves + missingEntry_controlFails + stateMismatch;
+AC-53 = 8 TestCase 裸 raw + tagged 路径 + drug/axis 集 + 观察探针(**只记录不断言内置序列化器**);
+AC-58 = 四形态 + 重复登记 + 嵌套 + 深链读法注 + 合法通过 + 命名夹具文件用例;
+AC-63 = 静态扫描(换名词表四词 + 白名单两文件)+ 权威单调/双空间/高水位/哨兵/溢出九测。
+
+**7a 往返承位口径(禁借绿)**:文件级存档往返 BLOCKED-BY-7a,真身以 `ItemInstanceCodec`
+字节往返承位(同 Story 009 口径,story-010 AC 注已记)。

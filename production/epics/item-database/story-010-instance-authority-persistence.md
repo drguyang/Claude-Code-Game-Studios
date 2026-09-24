@@ -1,12 +1,12 @@
 # Story 010: 实例权威与持久化往返
 
 > **Epic**: 物品与配方数据库
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 5h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-09-24(实现 + 执行 VERIFIED)
 
 ## Context
 
@@ -31,12 +31,18 @@
 
 *From GDD `design/gdd/item-database.md`, scoped to this story:*
 
-- [ ] **AC-21a-31**: 含 quality 的 ItemInstance 经 7a 持久化往返 ⇒ item_key 与 quality 完全不变(bit/值级相等);qty 物化存储不重算(Schema E 裁定——往返不得触发 F1 重算改量);children 闭包一致
-- [ ] **AC-21a-34**: 容器内部为子实例 id 列表,任意增删后 ⇒ 无实例被静默丢弃或复制(容器结构守恒);实例 id 集合与出现次数守恒,Σ 各处 qty 守恒(交叉 AC-33)
-- [ ] **AC-21a-35**: 物品表标记 deprecated 的条目,读取存档中的对应实例 ⇒ 仍能正确解析(只增不删的验证);「物理删除条目导致存档损坏」的反例在对照组触发失败(证明门有效)
-- [ ] **AC-21a-53**: Fix 自定义编码器往返(_raw 的 long 显式写出/读入)一组 drug_potency / half_life / axis_offset_by_quality[] ⇒ 值逐位复原(含负值 offset)。⚠️ 断言的是「自定义编码器正确」,不是「Unity 内置序列化器失败」——内置序列化器行为(Unity 跳过 readonly struct 私有字段)由一条 EditMode 探针记录为**观察事实**,不作为断言(防「引擎变好反而测试失败」)
-- [ ] **AC-21a-58**: 容器实例闭包校验:无 instance_id 同属两容器 / 无自引用 / 容器图无环 / children 内每个子实例均已被登记 —— 容器守恒的结构前提;四形态均硬失败,合法单层容器通过
-- [ ] **AC-21a-63** [I]: instance_id 铸造路径检索全部铸造点 ⇒ 唯一来源 = `IIdAuthority`(或主机);17 采集不得在客户端本地铸造(D-21-26/D-21-27;迁移后重号 = 物品悄悄合并/丢失的静默失败)
+- [x] **AC-21a-31**: 含 quality 的 ItemInstance 经 7a 持久化往返 ⇒ item_key 与 quality 完全不变(bit/值级相等);qty 物化存储不重算(Schema E 裁定——往返不得触发 F1 重算改量);children 闭包一致
+- [x] **AC-21a-34**: 容器内部为子实例 id 列表,任意增删后 ⇒ 无实例被静默丢弃或复制(容器结构守恒);实例 id 集合与出现次数守恒,Σ 各处 qty 守恒(交叉 AC-33)
+- [x] **AC-21a-35**: 物品表标记 deprecated 的条目,读取存档中的对应实例 ⇒ 仍能正确解析(只增不删的验证);「物理删除条目导致存档损坏」的反例在对照组触发失败(证明门有效)
+- [x] **AC-21a-53**: Fix 自定义编码器往返(_raw 的 long 显式写出/读入)一组 drug_potency / half_life / axis_offset_by_quality[] ⇒ 值逐位复原(含负值 offset)。⚠️ 断言的是「自定义编码器正确」,不是「Unity 内置序列化器失败」——内置序列化器行为(Unity 跳过 readonly struct 私有字段)由一条 EditMode 探针记录为**观察事实**,不作为断言(防「引擎变好反而测试失败」)
+- [x] **AC-21a-58**: 容器实例闭包校验:无 instance_id 同属两容器 / 无自引用 / 容器图无环 / children 内每个子实例均已被登记 —— 容器守恒的结构前提;四形态均硬失败,合法单层容器通过
+- [x] **AC-21a-63** [I]: instance_id 铸造路径检索全部铸造点 ⇒ 唯一来源 = `IIdAuthority`(或主机);17 采集不得在客户端本地铸造(D-21-26/D-21-27;迁移后重号 = 物品悄悄合并/丢失的静默失败)
+
+> ⚠️ **AC 勾选口径(禁借绿注)**:六条 AC 的用例全部执行全绿(2026-09-24,EditMode 458/458);
+> 但 AC-31/35 的 When 路径「**经 7a 持久化往返**」半边未跑(7a 持久化服务未实现)——
+> 承位 = `ItemInstanceCodec` 字节级 encode→decode(ADR-010 存档快照段同一编码路径),
+> **该半边 BLOCKED-BY-7a,本故事不宣称已绿**;7a 落地后须补真存档往返并复核
+> (口径见 `tests/{integration,unit}/item_database/README.md` §Story 010)。
 
 ---
 
@@ -126,7 +132,16 @@
 - Integration: `tests/integration/item_database/instance_authority_persistence_test.cs` — must exist and pass
 - Logic (AC-34/58/53 子用例): `tests/unit/item_database/instance_authority_persistence_test.cs` + `tests/unit/item_database/fix_codec_roundtrip.cs`
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created —— 三条账本四个真身(集成账本与单元账本的
+`instance_authority_persistence_test` 共用同一真身):
+`unity/Assets/Tests/EditMode/ItemDatabase/instance_authority_persistence_test.cs`(AC-31/34/35/58)+
+`fix_codec_roundtrip.cs`(AC-53,GDD 照录名)+ `id_authority.cs`(AC-63,GDD 照录名);
+新增生产件 = `Sim/ItemDatabase/{IdAuthority,ContainerClosure,InstanceResolver}.cs` +
+`Sim.Codec/ItemInstanceCodec.cs`;负向夹具 `invalid_container_closure.json`(QA 指名,六案例)。
+**执行 ✅ VERIFIED 2026-09-24 桌面 batch** —— EditMode **458 全绿**(前批 416 + 本批 42);
+过程:首跑 3 编译错(using 缺 / ItemInstance 成员名 Id·ItemKey 实为 InstanceId·Key)+
+1 断言语法错 + 1 用例前提错(null-children 须走 default 形),四跑收敛至全绿。
+⚠️ 7a 文件级存档往返半边 BLOCKED-BY-7a(见 AC 注,不记绿)。
 
 ---
 
