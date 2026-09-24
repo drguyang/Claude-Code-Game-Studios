@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "_note": "Story 008 占位种子 —— 本表数值 = 夹具值,不是游戏平衡值(数值归用户轮)。唯一合法作者态 = 本文件(assets/data/*.json 明文;D-21-13 禁 .asset/SO 承载)。stackable 为派生只读,显式写入即拒(AC-21a-59)。weight/stack_max = int 计数非 Fix(D-21-17)。两阶段烘焙 → *.cooked → IDataProvider。",
+  "items": [
+    {
+      "base_id": "willow_bark",
+      "processing_state": "raw",
+      "display_name": "柳树皮(生)",
+      "category": "material",
+      "stack_max": 99,
+      "weight": 2,
+      "deprecated": false,
+      "legal_transitions": ["raw>dried"],
+      "gather_profile": {
+        "ecosystem": "temperate_forest",
+        "parts": ["bark"],
+        "qty_per_node": 2
+      },
+      "drug_profile": null,
+      "tcm_profile": null,
+      "inflicts_injury": null
+    },
+    {
+      "base_id": "willow_bark",
+      "processing_state": "dried",
+      "display_name": "柳树皮(干)",
+      "category": "material",
+      "stack_max": 99,
+      "weight": 1,
+      "deprecated": false,
+      "legal_transitions": ["dried>extracted"],
+      "gather_profile": null,
+      "drug_profile": null,
+      "tcm_profile": null,
+      "inflicts_injury": null
+    },
+    {
+      "base_id": "salicylic_acid",
+      "processing_state": "extracted",
+      "display_name": "水杨酸(粗提)",
+      "category": "drug",
+      "stack_max": 50,
+      "weight": 1,
+      "deprecated": false,
+      "legal_transitions": [],
+      "gather_profile": null,
+      "drug_profile": {
+        "indications": null,
+        "contraindications": null,
+        "dose_range": null,
+        "drug_potency": "1/2",
+        "onset": null,
+        "peak": null,
+        "half_life": "2",
+        "elimination": null,
+        "quality_axis": "half_life",
+        "axis_offset_by_quality": ["0", "0", "0", "0", "0"],
+        "drug_quality_character": null
+      },
+      "tcm_profile": null,
+      "inflicts_injury": null
+    },
+    {
+      "base_id": "iron_scalpel",
+      "processing_state": "raw",
+      "display_name": "铁制手术刀",
+      "category": "weapon",
+      "stack_max": 1,
+      "weight": 1,
+      "deprecated": false,
+      "legal_transitions": [],
+      "gather_profile": null,
+      "drug_profile": null,
+      "tcm_profile": null,
+      "inflicts_injury": ["cut_wound"]
+    }
+  ],
+  "known_injury_ids": ["cut_wound"]
+}

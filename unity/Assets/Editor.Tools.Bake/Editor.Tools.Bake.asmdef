@@ -1,13 +1,16 @@
 {
-    "name": "Gameplay.Presentation",
-    "rootNamespace": "DaYiJingCheng.Gameplay.Presentation",
+    "name": "Editor.Tools.Bake",
+    "rootNamespace": "DaYiJingCheng.EditorTools.Bake",
     "references": [
-        "Sim.Contracts",
+        "Editor.Tools.Gates",
         "Sim",
+        "Sim.Contracts",
+        "Unity.Newtonsoft.Json",
         "Unity.Addressables",
+        "Unity.Addressables.Editor",
         "Unity.ResourceManager"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [ "Editor" ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

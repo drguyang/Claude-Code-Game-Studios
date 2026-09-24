@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "_note": "Story 008 占位种子 —— 本表数值 = 夹具值,不是游戏平衡值(数值归用户轮)。qty = 基数非实耗(D-21-15,实耗 = Ceil(qty/EFF) 运行期派生);owner = process|craft|build 闭集(缺/null 装载硬失败 AC-21a-66);boundary_state 明文 from>to,须在输入侧物品 legal_transitions 内(AC-21a-24)。",
+  "recipes": [
+    {
+      "recipe_id": "dry_willow_bark",
+      "owner": "process",
+      "inputs": [
+        { "item_key": { "base_id": "willow_bark", "processing_state": "raw" }, "qty": 1 }
+      ],
+      "outputs": [
+        { "item_key": { "base_id": "willow_bark", "processing_state": "dried" }, "qty": 1 }
+      ],
+      "duration_ticks": 60,
+      "skill_gate": 0,
+      "min_quality": 1,
+      "boundary_state": ["raw>dried"]
+    },
+    {
+      "recipe_id": "extract_salicylic",
+      "owner": "process",
+      "inputs": [
+        { "item_key": { "base_id": "willow_bark", "processing_state": "dried" }, "qty": 1 }
+      ],
+      "outputs": [
+        { "item_key": { "base_id": "salicylic_acid", "processing_state": "extracted" }, "qty": 1 }
+      ],
+      "duration_ticks": 120,
+      "skill_gate": 0,
+      "min_quality": 1,
+      "boundary_state": ["dried>extracted"]
+    }
+  ]
+}

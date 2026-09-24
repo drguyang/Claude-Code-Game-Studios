@@ -68,3 +68,53 @@ AC-21a-5/6 的断言无从编译。已增两条 GUID:
 **注释剥离的边界**:剥离只处理 `//` 与 `/* */`;**字符串字面量内的标识符不剥**
 (白名单里 `"Sim.Codec/PayloadCodec.World.cs"` 是**路径字符串**,故 `PayloadCodec` 装配
 无需被引用 —— 见上「装配引用增补」订正)。
+
+---
+
+## Story 008(数据管线烘焙与 Addressables 预载 —— AC-21a-26 / 47 / 48)—— 落点说明
+
+故事头登记的证据路径(账本路径)为
+`tests/integration/item_database/data_pipeline_bake_test.cs`,但该路径在仓库根,
+**Unity 不编译 `unity/Assets/` 之外的代码**(承 Story 001–007 同一先例)。真身 =
+
+**`unity/Assets/Tests/EditMode/ItemDatabase/data_pipeline_bake_test.cs`**
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/ItemDatabase/data_pipeline_bake_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(增引 `Editor.Tools.Bake` 平名引用) |
+| 负向夹具(新增) | `tests/unit/item_database/fixtures/invalid_state_int.json` |
+| AC-47 冒烟(ADVISORY) | `production/qa/smoke-2026-09-24.md` |
+
+**测试计数**:**22 [Test] + 1 TestCaseSource × 30 夹具 = 52 个用例**
+(31 夹具 − 1 跳过 `invalid_quality_dist.json` = 30)。预期 EditMode **407 = 355 + 52**。
+
+**两阶段烘焙接线**(ADR-014 §二/§三):阶段1 `JsonStage1Lexer`(`JsonTextReader` **仅词法**,
+`DateParseHandling.None` 钉死)→ 阶段2 `ItemDatabaseBinder`(白名单 / `FixParse` / 类型 /
+schema_version)→ `ItemDatabaseBaker.RunGates`(**28 条执法体**,Stories 004–007 全部接入)
+→ `CookedWriter` 确定性 LE 编码。**绑定零错误才跑门**(防残缺记录制造噪声);
+**全案唯一 throw 点 = `BakeValidationException`**(门本体维持零 throw —— 承 Story 004–007 纪律,
+Story 008 = 聚合抛出方)。
+
+**AC-21a-26 扫描面**:① 绑定层 —— `processing_state` 落 Integer/Float token ⇒ 拒收(引
+`AC-21a-26 · D-21-13`);② 产物层 —— `StateEncodingScanner.ScanAssetProducts` 递归扫
+`*.asset`(YAML `processing_state: 3` 亦命中;跳过 `/Tests/`),每次烘焙菜单执行前先跑。
+
+**AC-21a-48 结构守卫**:`RuntimeSourceGuard` 扫运行期 `*.cs`,违例 token = `JsonConvert` /
+`JsonTextReader` / `JObject.Parse` / `FixParse.Parse` / 字符串字面量 `assets/data`;
+豁免 = `/Tests/` 段 · `Editor.*` 目录段 · `FixParse.cs` 定义自身。剥离注释后扫(**字符串
+字面量保留** —— `assets/data` 直读必须命中);与 Story 002 旋钮扫描不重复报(分工:002 扫
+调参 token,008 扫 JSON 解析器 / FixParse / 直读)。**Editor 侧 Newtonsoft 词法结构性豁免**
+(`Editor.Tools.Bake` 不进玩家构建)。
+
+**ConfigVersion**:FNV-1a 32(`ConfigVersionUtility`)覆盖 = 排序后的 (文件名, 字节) 对,
+BCL-only(禁 `UnityEngine.Hash128` —— ADR-010/014 纪律);头部偏移 12(configVersion u32,
+`CookedFormat` 布局);`CompareConfigVersion` 不匹配 ⇒ `Fatal=false`(ADR-010 §七),不可读 ⇒
+`Fatal=true`。`ConfigVersion = 0`(字节全零)为**未初始化哨兵**,与「哈希恰为 0」区分。
+
+**facet 形夹具的浅层拒**(已登记 ADVISORY ⑧):31 夹具中仅 4 个为完整 items 形
+(`invalid_state_int` / `invalid_dup_key` / `invalid_enum` / `invalid_stored_stackable`);
+其余为单门 facet 形,作为 items 源喂入时在绑定层白名单 / 缺 `items` 键处硬失败 —— 仍满足
+TR-027「经本管线执行 ⇒ 硬失败」,深度浅于 Story 006/007 的单门直测。完整形的 4 个走其设计
+路径。跳过夹具 `invalid_quality_dist.json` 的理由 + 可证伪断言见测试 `SkippedFixture` 注释
+(`test_itemDatabase_qualityDistributionFixture_documentedAsSkipped` 断言「文件存在**且**被排除」)。

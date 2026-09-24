@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "_note": "Story 008 负向夹具 · AC-21a-26(item_key 字段以 int 编码 processing_state ⇒ 装配期硬失败;D-21-13 扫描面 = 数据产物层 .json/.asset,不只查代码字段类型)。GDD 引注:design/gdd/item-database.md :1074 / :303-311。主案 = 完整物品记录 processing_state 落 JSON 数字 token(3);明文字符串 \"3\" 归 AC-21a-22 枚举闭合(另一门,不替代本条)。动机 = 枚举序插入 P1a 值的静默重映射。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值",
+  "items": [
+    {
+      "base_id": "fixture_state_int",
+      "processing_state": 3,
+      "display_name": "夹具记录(int 编码态)",
+      "category": "material",
+      "stack_max": 1,
+      "weight": 1,
+      "deprecated": false,
+      "legal_transitions": []
+    }
+  ],
+  "known_injury_ids": []
+}
