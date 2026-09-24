@@ -5,6 +5,7 @@
         "Editor.Tools.Gates",
         "Sim",
         "Sim.Contracts",
+        "Gameplay.Presentation",
         "Unity.Newtonsoft.Json",
         "Unity.Addressables",
         "Unity.Addressables.Editor",

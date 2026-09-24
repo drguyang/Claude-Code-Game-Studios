@@ -14,6 +14,10 @@ using UnityEngine;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
+using DaYiJingCheng.Sim;
+using DaYiJingCheng.Sim.Contracts;
+using DaYiJingCheng.Gameplay.Presentation;
+using Stopwatch = System.Diagnostics.Stopwatch; // 别名引入,避免 System.Diagnostics.Debug 与 UnityEngine.Debug 歧义
 
 namespace DaYiJingCheng.EditorTools.Bake
 {
@@ -132,6 +136,164 @@ namespace DaYiJingCheng.EditorTools.Bake
                 "(AddressableAssetsData 为机器生成物,永不提交)");
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// E-13 自检(ADR-014 §五:装载失败 = 带 [E-13] 上下文的启动期硬失败,绝不 null 解引用)。
+        /// <para>流程:① 反向 —— 临时改坏 items 条目的 address → 新 <see cref="AddressablesDataProvider"/>
+        /// 取数,期望抛 <see cref="InvalidOperationException"/> 且消息含 [E-13];<c>finally</c> 必恢复地址;
+        /// ② 正向复验 —— 新 provider 载 items + recipes,期望成功。</para>
+        /// <para>每次点菜单都用<b>全新</b> provider(绕开 <see cref="DataCorePreloader"/> 幂等,保证真取数)。</para>
+        /// <para>⚠️ 反向若报「未触发」= Addressables 会话缓存 / 目录未即时刷新(post-cutoff 行为须实测)——
+        /// 重启编辑器后仅跑本菜单(先反后正,菜单内部序即反向优先)可得干净反向。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/E-13 自检(反路径+正复验)")]
+        public static void E13SelfCheck()
+        {
+            // ── ① 反向:按资产路径找条目(不依赖当前 address,中断态也能找回来恢复)──
+            AddressableAssetEntry entry = FindItemsEntry();
+            if (entry == null)
+            {
+                Debug.LogWarning(
+                    $"[E-13 自检] 反向跳过:{ItemsCookedAssetName} 条目不在 {DataCoreGroup} 组 —— " +
+                    "先跑「确保 data-core Addressables 组」再执行本菜单(正向仍继续)。");
+            }
+            else
+            {
+                string originalAddress = entry.address;
+                try
+                {
+                    entry.SetAddress("__dyjc_e13_probe__.missing");
+                    try
+                    {
+                        var negative = new AddressablesDataProvider();
+                        negative.Load<ItemDataSet>();
+                        Debug.LogWarning(
+                            "[E-13 自检] 反向未触发:改地址后仍载成功 —— Addressables 会话内地址缓存或" +
+                            "目录未即时刷新。手工兜底:Window > Asset Management > Addressables > Groups " +
+                            "里手改 items 地址 → 重启编辑器 → 跑本菜单。");
+                    }
+                    catch (InvalidOperationException ex) when (
+                        ex.Message.IndexOf("[E-13]", StringComparison.Ordinal) >= 0)
+                    {
+                        Debug.Log($"[E-13 自检] 反向通过:硬失败带 [E-13] 上下文、非 null 解引用 ✓ —— {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError(
+                            $"[E-13 自检] 反向异常但缺 [E-13] 包裹(违 ADR-014 §五):" +
+                            $"{ex.GetType().Name}: {ex.Message}");
+                    }
+                }
+                finally
+                {
+                    entry.SetAddress(originalAddress); // 无论反向结果,地址必恢复
+                }
+            }
+
+            // ── ② 正向复验(全新 provider 真取数)──
+            try
+            {
+                var positive = new AddressablesDataProvider();
+                ItemDataSet items = positive.Load<ItemDataSet>();
+                RecipeDataSet recipes = positive.Load<RecipeDataSet>();
+                Debug.Log(
+                    $"[E-13 自检] 正向复验通过:items={items.Items?.Length ?? 0}, " +
+                    $"recipes={recipes.Recipes?.Length ?? 0}, ConfigVersion=0x{items.ConfigVersion:X8} ✓");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[E-13 自检] 正向复验失败(应可载):{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// AC-21a-47 性能冒烟一键计时(方法与阈值见 production/qa/smoke-2026-09-24.md):
+        /// ① 首次装载 = 全新 provider 的 <c>Load&lt;ItemDataSet&gt;</c> 单发;
+        /// ② 缓存命中 = 同 provider 1000 次 <c>Load</c> 中位数;
+        /// ③ 单次求解 = <see cref="RecipeSettlementSolver.Solve"/> 以首条配方 1000 次中位数。
+        /// 阈值:三项各 &lt; 1 ms(超阈 = 调优信号,非测试失败)。结果同时打进 Console 与剪贴板。
+        /// <para>前置:先「烘焙 item-database」+「确保 data-core Addressables 组」。
+        /// 想要相对干净的「首次」,重启编辑器后先跑本菜单(先于 E-13 自检)。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/性能冒烟:AC-47 计时")]
+        public static void Ac47Timing()
+        {
+            const int iterations = 1000;
+            const int probeSkill = 30;   // 域中值(skill_cap=60;承 RecipeSettlementRequest 构造器示例)
+            const int probeQuality = 3;  // 域中值(max_quality=5)
+
+            var timed = new AddressablesDataProvider();
+            var clock = Stopwatch.StartNew();
+
+            // ① 首次装载(单发;会话内 Addressables 若已缓存会偏低 —— 日志注明运行态)
+            clock.Restart();
+            ItemDataSet items = timed.Load<ItemDataSet>();
+            clock.Stop();
+            long firstUs = ToMicros(clock.ElapsedTicks);
+
+            // ② 缓存命中(同 provider 1000 次中位)
+            var samples = new long[iterations];
+            for (int i = 0; i < samples.Length; i++)
+            {
+                clock.Restart();
+                timed.Load<ItemDataSet>();
+                clock.Stop();
+                samples[i] = clock.ElapsedTicks;
+            }
+            long cachedUs = MedianMicros(samples);
+
+            // ③ 单次求解(首条配方构 request;1000 次中位)
+            RecipeDataSet recipes = timed.Load<RecipeDataSet>();
+            if (recipes.Recipes == null || recipes.Recipes.Length == 0)
+            {
+                Debug.LogError("[AC-47] 配方表为空 —— 先跑「烘焙 item-database」。");
+                return;
+            }
+            Recipe template = recipes.Recipes[0];
+            var request = new RecipeSettlementRequest(
+                template.Outputs, template.Inputs, probeSkill, probeQuality,
+                default(Fix), default(Fix), default(Fix));
+            var constants = recipes.Settlement;
+            for (int i = 0; i < samples.Length; i++)
+            {
+                clock.Restart();
+                RecipeSettlementSolver.Solve(in request, in constants);
+                clock.Stop();
+                samples[i] = clock.ElapsedTicks;
+            }
+            long solveUs = MedianMicros(samples);
+
+            string line =
+                $"[AC-47] 首次装载 = {firstUs} μs;缓存命中 = {cachedUs} μs;单次求解 = {solveUs} μs" +
+                $"(阈值各 <1000 μs;缓存/求解 = {iterations} 次中位数,首次 = 单发;" +
+                $"items={items.Items?.Length ?? 0}, recipes={recipes.Recipes.Length};" +
+                $"{(Application.isPlaying ? "PlayMode" : "EditMode")};已复制到剪贴板)";
+            Debug.Log(line);
+            EditorGUIUtility.systemCopyBuffer = line;
+        }
+
+        /// <summary>按资产路径(而非 address)在 data-core 组内找 items 条目 —— 地址被改坏时仍能定位恢复。</summary>
+        private static AddressableAssetEntry FindItemsEntry()
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            AddressableAssetGroup group = settings?.FindGroup(DataCoreGroup);
+            if (group == null) return null;
+            string expectedPath = $"Assets/{CookedDirName}/{ItemsCookedAssetName}";
+            foreach (AddressableAssetEntry e in group.entries)
+                if (e.AssetPath == expectedPath) return e;
+            return null;
+        }
+
+        /// <summary>tick → 微秒(Stopwatch 原始 tick 直除,避免浮点)。</summary>
+        private static long ToMicros(long elapsedTicks) =>
+            elapsedTicks * 1_000_000L / Stopwatch.Frequency;
+
+        /// <summary>样本中位微秒(排序后取中;1000 偶数取偏右中点,与 smoke 方法「1000 次中位数」对齐)。</summary>
+        private static long MedianMicros(long[] tickSamples)
+        {
+            Array.Sort(tickSamples);
+            return ToMicros(tickSamples[tickSamples.Length / 2]);
         }
     }
 }
