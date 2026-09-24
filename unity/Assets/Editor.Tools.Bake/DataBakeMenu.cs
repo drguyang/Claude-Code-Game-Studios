@@ -141,19 +141,20 @@ namespace DaYiJingCheng.EditorTools.Bake
 
         /// <summary>
         /// E-13 自检(ADR-014 §五:装载失败 = 带 [E-13] 上下文的启动期硬失败,绝不 null 解引用)。
-        /// <para>流程:① 反向 —— <b>反射直呼</b> <c>FetchBytes</c>(私有静态)传一个<b>从未存在过的 key</b>,
-        /// 走生产同款失败路径(Locator 解析不到 ⇒ Addressables 报错 ⇒ catch 包成 [E-13] IOE);
-        /// 期望 <see cref="TargetInvocationException"/> 的 Inner 是含 [E-13] 的
+        /// <para>流程:<b>⓪ Play Mode 归位</b> Use Asset Database → ① 反向 —— <b>反射直呼</b>
+        /// <c>FetchBytes</c>(私有静态)传一个<b>从未存在过的 key</b>,走生产同款失败路径
+        /// (Locator 解析不到 ⇒ Addressables 报错 ⇒ catch 包成 [E-13] IOE);期望
+        /// <see cref="TargetInvocationException"/> 的 Inner 是含 [E-13] 的
         /// <see cref="InvalidOperationException"/>;② 正向复验 —— 新 provider 载 items + recipes,期望成功。</para>
-        /// <para>⚠️ <b>不改 address、不移文件</b>(前两版机制均已实测失败,留档):
-        /// ① 改 address —— <c>SetAddress(postEvent)</c> 不重建运行期 locator,菜单内改完旧地址仍能解析,
-        /// 重启也无效(陈旧发生在 SetAddress→Load 之间);
-        /// ② 文件暂移 —— U1 spike(<c>DaYi/Spike/Setup U1 Spikes</c>)已把 Play Mode 切
-        /// <b>Use Existing Build</b> 并 <c>BuildPlayerContent</c> 过,bundle 里有内容 ⇒ 移走源文件载不失败;
-        /// 且 finally 归位 + <c>AssetDatabase.Refresh()</c> 会使已加载 bundle 的位置失效 ⇒ 正向复验踩
-        /// 「same files already loaded」重复加载错。
-        /// 反射探针<b>零状态变更</b>:不碰地址、不碰磁盘、不 Refresh,bad key 在 Locator 层就失败、
-        /// 不触碰任何 bundle ⇒ 任何会话 / 任何 Play Mode 下都可跑。</para>
+        /// <para>⚠️ <b>⓪ 为什么必须归位</b>(2026-09-24 第四跑实测):U1 spike
+        /// (<c>DaYi/Spike/Setup U1 Spikes</c>)把 Play Mode 切 <b>Use Existing Build</b> 并
+        /// <c>BuildPlayerContent</c> 过,Teardown 不复原;此刻已建 bundle 路径已失效
+        /// (<c>Invalid path … data-core_assets_all_*.bundle</c>)⇒ 正向复验在 Existing Build 下必死。
+        /// 归位 Use Asset Database(日常开发默认)后,正向直接从 AssetDatabase 载,不依赖 bundle。</para>
+        /// <para>⚠️ <b>反向不改 address、不移文件</b>(前两版机制均已实测失败,留档):
+        /// ① 改 address —— <c>SetAddress(postEvent)</c> 不重建运行期 locator,菜单内改完旧地址仍能解析,重启无效;
+        /// ② 文件暂移 —— Existing Build 下 bundle 里有内容载不失败,且归位 + Refresh 踩「same files already loaded」。
+        /// 反射探针零状态变更:bad key 在 Locator 层就失败,不触碰任何 bundle。</para>
         /// <para>每次点菜单都用<b>全新</b> provider(绕开 <see cref="DataCorePreloader"/> 幂等)。</para>
         /// </summary>
         [MenuItem("大医精诚/数据管线/E-13 自检(反路径+正复验)")]
@@ -173,6 +174,9 @@ namespace DaYiJingCheng.EditorTools.Bake
                 AssetDatabase.Refresh();
                 Debug.Log("[E-13 自检] 已将滞留 Library/E13Hold 的产物归位(文件暂移版残留救援)。");
             }
+
+            // ── ⓪ Play Mode 归位(须在任何 Addressables 调用之前)──
+            EnsureAssetDatabasePlayMode();
 
             // ── ① 反向:反射直呼 FetchBytes(从未存在的 key)—— 生产同款失败路径,零状态变更 ──
             MethodInfo fetchBytes = typeof(AddressablesDataProvider).GetMethod(
@@ -230,6 +234,43 @@ namespace DaYiJingCheng.EditorTools.Bake
             {
                 Debug.LogError($"[E-13 自检] 正向复验失败(应可载):{ex.Message}");
             }
+        }
+
+        /// <summary>Play Mode 归位到 Use Asset Database。
+        /// <para>U1 spike 的 <c>ConfigurePlayMode</c> 切走后 Teardown 不复原;Existing Build 下
+        /// 已建 bundle 路径失效会打死正向复验(2026-09-24 第四跑:
+        /// <c>Invalid path … data-core_assets_all_*.bundle</c>)。</para>
+        /// <para>⚠️ DataBuilders 声明类型是 List&lt;ScriptableObject&gt;(2.10.3 实读),
+        /// <c>Name</c> 是 IDataBuilder 成员 ⇒ 必须走 <c>GetDataBuilder(i)</c>(承 U1SpikeSetup 同款警告)。</para></summary>
+        private static void EnsureAssetDatabasePlayMode()
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings == null) return;
+
+            int current = settings.ActivePlayModeDataBuilderIndex;
+            int count = settings.DataBuilders.Count;
+            for (int i = 0; i < count; i++)
+            {
+                string name = settings.GetDataBuilder(i)?.Name ?? "<null>";
+                if (name.IndexOf("Asset Database", StringComparison.OrdinalIgnoreCase) < 0) continue;
+
+                if (i == current)
+                {
+                    Debug.Log("[E-13 自检] ⓪ Play Mode 已是 Use Asset Database。");
+                    return;
+                }
+
+                string currentName = settings.GetDataBuilder(current)?.Name ?? "<null>";
+                settings.ActivePlayModeDataBuilderIndex = i;
+                EditorUtility.SetDirty(settings);
+                AssetDatabase.SaveAssets();
+                Debug.Log(
+                    $"[E-13 自检] ⓪ Play Mode → Use Asset Database(DataBuilder[{i}]「{name}」;原「{currentName}」)" +
+                    "—— U1 spike 遗留 Use Existing Build 且已建 bundle 路径失效,归位后再跑反向/正向。");
+                return;
+            }
+
+            Debug.LogWarning("[E-13 自检] ⓪ 未找到名含「Asset Database」的 DataBuilder —— Play Mode 未改。");
         }
 
         /// <summary>
