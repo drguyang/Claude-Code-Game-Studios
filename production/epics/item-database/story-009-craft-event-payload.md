@@ -98,7 +98,18 @@ EditMode **416 全绿**(前批 407 + 本批 9);⚠️ 7a 文件级存档往返�
 
 ---
 
+## Completion Notes
+**Completed**: 2026-09-24
+**Criteria**: 1/1 已实现(AC-21a-52 五子条件 ①–⑤,9 测执行)
+**Deviations(ADVISORY)**: 无 —— 载荷字段集 / 全序键形状与 registry · ADR 逐条对齐
+**范围边界**: F1/F2 求解本体 = Story 003;ItemInstance 编码 = Story 010;ConfigVersion / Addressables = Story 008;黄金哈希 = Story 011
+**Test Evidence**: Integration —— 真身 `unity/Assets/Tests/EditMode/ItemDatabase/craft_event_payload_test.cs`(9 用例);新增生产件 `Sim.Contracts/EventOrderKey.cs` + `Sim/EventOrder.cs`;落点表 = `tests/integration/item_database/README.md` §Story 009
+**Code Review**: Skipped(lean 模式,承 Story 001–008 先例;桌面批次无 `/code-review` 记录)
+**执行状态**: ✅ **VERIFIED 2026-09-24 桌面 batch** —— EditMode **416 全绿**(前批 407 + 本批 9)。⚠️ 7a 文件级存档往返半边 **BLOCKED-BY-7a**(承位 = `SimEventCodec` + `PayloadCodec` 字节往返,**不记绿** —— 详见 AC 禁借绿注)。
+
+---
+
 ## Dependencies
 
 - Depends on: Story 003(求解器输出 ActualConsumed),Story 010(ItemInstance 编码,验证快照无该字段)
-- Unlocks: Story 011(黄金夹具覆盖事件载荷),Story 008(ConfigVersion 联动存档头)
+- Unlocks: Story 011(黄金夹具覆盖事件载荷)

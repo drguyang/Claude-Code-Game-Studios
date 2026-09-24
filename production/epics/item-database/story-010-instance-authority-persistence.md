@@ -145,6 +145,17 @@
 
 ---
 
+## Completion Notes
+**Completed**: 2026-09-24
+**Criteria**: 6/6 已实现(AC-21a-31 / 34 / 35 / 53 / 58 / 63,42 测执行)
+**Deviations(ADVISORY)**: 无 —— 过程修正(首跑 3 编译错 + 1 断言语法错 + 1 用例前提错,四跑收敛)已记 Test Evidence,非规格偏离
+**范围边界**: 堆叠溢出 qty 守恒 = Story 004;`ActualConsumed` 只在事件流 = Story 009;ConfigVersion 接线 = Story 008;黄金哈希 = Story 011
+**Test Evidence**: Integration + Logic —— 真身三件 `unity/Assets/Tests/EditMode/ItemDatabase/{instance_authority_persistence_test,fix_codec_roundtrip,id_authority}.cs` + 负向夹具 `tests/unit/item_database/fixtures/invalid_container_closure.json`;落点表 = `tests/{integration,unit}/item_database/README.md` §Story 010
+**Code Review**: Skipped(lean 模式,承 Story 001–008 先例;桌面批次无 `/code-review` 记录)
+**执行状态**: ✅ **VERIFIED 2026-09-24 桌面 batch** —— EditMode **458 全绿**(前批 416 + 本批 42),四跑收敛。⚠️ AC-31/35 的「经 7a 持久化往返」半边 **BLOCKED-BY-7a**(承位 = `ItemInstanceCodec` 字节级 encode→decode,**不记绿** —— 详见 AC 禁借绿注)。
+
+---
+
 ## Dependencies
 
 - Depends on: Story 001(FixParse),Story 002(schema 类型),Story 008(ConfigVersion / 烘焙产物)
