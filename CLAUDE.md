@@ -56,3 +56,12 @@ See `docs/COLLABORATIVE-DESIGN-PRINCIPLE.md` for full protocol and examples.
 ## Context Management
 
 @.claude/docs/context-management.md
+
+## Unity Debugging (CLI First)
+
+**凡 Unity CLI 能确认/复现/调试的,一律自己跑,不要让用户手动操作编辑器。**
+- 已知 bug / 自检 / 测试 → 用 `unity build <project> --target StandaloneLinux64 --executeMethod <类全名>` batch 模式直跑,
+  日志落 `unity/Logs/build-*.log`,自行 grep 判决行。
+- batch 需独占工程 ⇒ 先 `pgrep` + 查 `unity/Temp/UnityLockfile` 确认编辑器已关;
+  跑完提醒用户可重开编辑器。
+- 只有「必须图形界面/手动交互才能复现」的问题才请用户操作编辑器。
