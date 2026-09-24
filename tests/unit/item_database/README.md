@@ -149,5 +149,5 @@ EditMode 测试装配 `Sim.Contracts.Tests`(既有 GUID 引用集已含 Sim/Sim.
 
 **测试计数**:EditMode **64** 个 `[Test]`(AC-32×6 + AC-33×9 + AC-64×4 + AC-36×5 + AC-38×4 +
 AC-37×6 + AC-38b×6 + 复核补测 + **AC-50×4 + AC-50b×3 + AC-60×3 + AC-61×5 + AC-62×3**)。
-**执行状态:NOT-RUN** —— 新增 18 测与 `DrugProfileGates.cs`(需 Unity 生成 `.meta`)待【桌面】跑出;
-Story 001/002/003 回归 + 本故事前批 221 测已于 2026-09-24 桌面全绿。
+**执行状态:✅ VERIFIED 2026-09-24 桌面** —— EditMode **239 全绿**(Story 001/002/003 回归 175 +
+本故事 64);前批 221 → 本批 239,`DrugProfileGates.cs` 经 Unity 生成 `.meta` 后装配解析通过。

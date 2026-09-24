@@ -173,8 +173,9 @@ AC-37×6 + AC-38b×6 + AC-50×4 + AC-50b×3 + AC-60×3 + AC-61×5 + AC-62×3)。
 账本路径同 Story 001/002/003 口径:Unity 不编译 `unity/Assets/` 之外的代码 ⇒ 测试真身落 EditMode 树,
 `tests/unit/item_database/` 只承载账本与五个负向夹具。
 
-**执行状态:NOT-RUN**(【超算】无 Unity Editor)—— 前批 221 测已于 2026-09-24 桌面全绿;
-本批新增 18 测 + `DrugProfileGates.cs` 待【桌面】复跑确认。
+**执行状态:✅ VERIFIED 2026-09-24 桌面** —— EditMode **239 全绿**
+(Story 001/002/003 回归 175 + 本故事 64);前批 221 → 本批 239(新增 18 测),
+`DrugProfileGates.cs` 经 Unity 生成 `.meta` 后装配解析通过。
 
 ---
 
@@ -207,5 +208,5 @@ AC-64 的执行体是参数化纯谓词 `StackingSolver.WeightedTotalFitsInt64`(
 创建无消费者的夹具 = 死件,故不造。AC-64 的「先证不溢出」义务由 4 条谓词测试承担。
 **Test Evidence**: Logic —— `unity/Assets/Tests/EditMode/ItemDatabase/quality_timeline_stacking_test.cs`(64 测)
 **Code Review**: Pending(本批新增代码待 `/code-review`)
-**已知待办(非阻塞)**: 【桌面】复跑 EditMode(新增 18 测 + 前批 221 = 预期 239;`DrugProfileGates.cs`
-需 Unity 生成 `.meta`)⇒ 跑绿后本故事翻 VERIFIED。
+**VERIFIED**: 2026-09-24 桌面 EditMode **239 全绿**(前批 221 + 本批 18)—— NOT-RUN 残留结清,
+无待办项。`DrugProfileGates.cs` 的 `.meta` 已由桌面 Unity 生成。
