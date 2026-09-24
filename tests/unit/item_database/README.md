@@ -151,3 +151,50 @@ EditMode 测试装配 `Sim.Contracts.Tests`(既有 GUID 引用集已含 Sim/Sim.
 AC-37×6 + AC-38b×6 + 复核补测 + **AC-50×4 + AC-50b×3 + AC-60×3 + AC-61×5 + AC-62×3**)。
 **执行状态:✅ VERIFIED 2026-09-24 桌面** —— EditMode **239 全绿**(Story 001/002/003 回归 175 +
 本故事 64);前批 221 → 本批 239,`DrugProfileGates.cs` 经 Unity 生成 `.meta` 后装配解析通过。
+
+## Story 005(守恒律构建期与运行期门)—— 落点说明
+
+证据账本路径登记为 `tests/unit/item_database/conservation_law_gates_test.cs`,
+同 Story 001/002/003/004:**Unity 不编译 `unity/Assets/` 之外的代码** ⇒ 测试真身落 EditMode 树。
+本目录承载账本与**三个**构建期负向夹具。
+
+| 内容 | 路径 |
+|---|---|
+| 运行期算术原语 + 三谓词(AC-8/39/65 单一实现) | `unity/Assets/Sim/ItemDatabase/ConservationSolver.cs` |
+| 构建期校验纯函数(AC-8/40/56/65 执法体) | `unity/Assets/Editor.Tools.Gates/ConservationGates.cs` |
+| 编译中的测试源(真身,Logic) | `unity/Assets/Tests/EditMode/ItemDatabase/conservation_law_gates_test.cs` |
+| 负向夹具:聚合守恒上界(GDD 反例一,AC-21a-8) | `fixtures/invalid_conservation.json` |
+| 负向夹具:逐条极值式(聚合过/极值红,AC-21a-65) | `fixtures/invalid_conservation_perline.json` |
+| 负向夹具:EFF_MIN 下端 = 0(AC-21a-56) | `fixtures/invalid_eff_range.json` |
+
+**AC 覆盖映射**:
+
+| AC | 测试函数 |
+|---|---|
+| AC-21a-8 | `test_aggregateConservation_gddCounterExampleOne_rejected` · `test_aggregateConservation_exactEquality_accepted` · `test_aggregateConservation_effMaxAboveOne_rejectedAndEffMaxGateMerged` · `test_aggregateConservation_multiOutputMixedWeights_rejectedWhenSumExceeds` · `test_aggregateConservation_effMaxBelowOne_shrinksRightSide_rejected` · `test_aggregateConservation_emptyOrNullSide_rejected` · `test_aggregateConservation_weightLookupNonPositiveOrMultiplierNonPositive_rejected` |
+| AC-21a-39 | `test_runtimeInvariant_effAndQtyMultiplierSweep_alwaysHolds`(等级 0…SKILL_CAP × 乘子 8 步整数遍历)· `test_runtimeInvariant_zeroLossPoint_effEqualsEffMax_takesEquality` · `test_runtimeInvariant_actualMultiplierBreachesAggregateFixture_violated` · `test_runtimeInvariant_effOrEffMaxNonPositive_rejectedWithoutThrow` · `test_runtimeInvariant_nullWeightFunctionOrEmptySide_rejected` |
+| AC-21a-40 | `test_effMax_aboveOne_rejected` · `test_effMax_exactlyOne_accepted_zeroLoss` · `test_effMax_belowOne_accepted` · `test_effMaxAndEffMin_bothIllegal_eachGateNamesItsOwnAc` |
+| AC-21a-56 | `test_effMin_fixtureZero_rejected` · `test_effMin_negative_rejected` · `test_effMin_aboveEffMax_rejected_codeConstructedSiblingCase`(代码构造,夹具 _note 已记)· `test_effMin_equalEffMax_positive_accepted_notTightened` · `test_effMin_zeroAndAboveMax_twoNamedErrors` |
+| AC-21a-65 | `test_perLineExtreme_fixtureAggregatePassesButPerLineRejected`(**D-21-32 中间带必须红**)· `test_perLineExtreme_midpointRounding_goesAwayFromZeroNotTiesToEven` · `test_perLineExtreme_exactEquality_accepted` · `test_perLineExtreme_floorMaxOneSubdomain_stricterThanAggregate_passes` · `test_perLineExtreme_multipleInputsCeilAccumulation_rejected` · `test_perLineExtreme_effMaxBelowOne_enlargesConsumedSide_passes` · `test_perLineExtreme_effMaxNonPositive_premiseUnusableNamedErrorWithoutThrow` · `test_perLineExtreme_gateVerdict_equalsSolverPredicate` |
+| AC-21a-64 前提 | `test_tryMultiply_overflowingProduct_rejectedWithoutWrap` · `test_tryMultiply_negativeOrZeroOperands_guard` |
+
+**范围边界(Out of Scope 记账)**:常量表 cap 和与 QTY_MULT 下界(AC-21a-3/9/10/11/12/13)
+及其余负向夹具 = Story 006/007;烘焙管线接线(四条执法体的**调用方**) = Story 008
+(ConservationGates 只提供纯函数,聚合非空列表后 throw 由 008 执行);容器 children 闭包 / 容器守恒
+= Story 010;`Fix.cs` / `FixParse.cs` / Story 003 三件与 Story 004 全部文件本故事零改动。
+**两式分工(D-21-32)**:聚合式(AC-8)= 必要非充分,极值式(AC-65)= **唯一硬门**;
+逐条极值式直接消费运行期 `OutputQty` / `ActualConsumed` ⇒ 构建期与运行期**同一实现**,
+「两式结论不一致」结构性不可能(测试 `test_perLineExtreme_gateVerdict_equalsSolverPredicate` 自证同号)。
+
+**装配决定**:运行期算术住 `unity/Assets/Sim/ItemDatabase/`(装配 **`Sim`**,
+`noEngineReferences: true`,与 Story 003/004 同一先例);执法体住
+`unity/Assets/Editor.Tools.Gates/`(装配 `Editor.Tools.Gates`,
+`includePlatforms: ["Editor"]`,不进构建)—— 其 asmdef **已引 Sim GUID**(Story 004 加),
+故本故事**零 asmdef 改动、零新 asmdef**(ADR-025 §④ 清单封闭)。
+EditMode 测试装配 `Sim.Contracts.Tests` 既有 GUID 引用集已含 Sim / Sim.Contracts / Gates,同样零改动。
+**数值纪律**:两源文件零调参字面量(AC-21a-48)—— `EFF_*` / `QTY_MULT_*` 一律经
+`RecipeSettlementConstants` 的 PascalCase 属性读;权重经调用方注入的纯函数;
+夹具数字照录 GDD 反例一/二原文(规格自带,非新造),其余均为**夹具值,非游戏平衡值**。
+
+**测试计数**:EditMode **31** 个 `[Test]`(AC-8×7 + AC-39×5 + AC-40×4 + AC-56×5 + AC-65×8 + TryMultiply×2)。
+**执行状态:NOT-RUN**(【超算】无 Unity Editor)⇒ 全绿判据待【桌面】跑出,本 README 不代跑、不代绿。

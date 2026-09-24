@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "_note": "Story 005 AC-21a-56 负向夹具 —— EFF_MIN 下端(EFF 是 F1 的除数,EFF_MIN = 0 ⇒ 运行期除零;负 ⇒ 实耗为负 = 凭空造料;GDD §Tuning Knobs :947-949)。本夹具主案 = eff_min = 0(拒)。⚠️ 兄弟负案「eff_min > eff_max」不在本夹具 —— 一份夹具只承载一个主案,该案由测试内**代码构造**的常量表驱动(README 已记)。⚠️ 本夹具全部数值 = 夹具值,不是游戏平衡值(§Tuning Knobs「默认」列留空,数值待用户)。",
+  "eff_min": "0",
+  "eff_max": "1",
+  "qty_mult_min": "1",
+  "qty_mult_max": "2",
+  "input_qty": [1],
+  "input_weight": [10],
+  "output_qty": [1],
+  "output_weight": [9]
+}
