@@ -87,7 +87,12 @@ AC-21a-5/6 的断言无从编译。已增两条 GUID:
 | AC-47 冒烟(ADVISORY) | `production/qa/smoke-2026-09-24.md` |
 
 **测试计数**:**22 [Test] + 1 TestCaseSource × 30 夹具 = 52 个用例**
-(31 夹具 − 1 跳过 `invalid_quality_dist.json` = 30)。预期 EditMode **407 = 355 + 52**。
+(31 夹具 − 1 跳过 `invalid_quality_dist.json` = 30)。EditMode **407 = 355 + 52**。
+
+**执行状态:✅ VERIFIED 2026-09-24 桌面** —— EditMode **407 全绿**;同批 PlayMode **12 全绿**。
+AC-47 冒烟三数已回填 `production/qa/smoke-2026-09-24.md`;E-13 自检五跑收敛(反向经反射探针
+第五跑通过,正向成功见证 = 首/二跑 items=4/recipes=2,真实基础设施故障下 [E-13] 包裹 =
+第四/五跑 stale-bundle)—— ADR-014 §五 契约三点由跨跑聚合证据坐实,详见 smoke 收敛判读。
 
 **两阶段烘焙接线**(ADR-014 §二/§三):阶段1 `JsonStage1Lexer`(`JsonTextReader` **仅词法**,
 `DateParseHandling.None` 钉死)→ 阶段2 `ItemDatabaseBinder`(白名单 / `FixParse` / 类型 /

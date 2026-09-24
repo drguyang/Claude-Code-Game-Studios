@@ -98,7 +98,7 @@
 - Integration: `tests/integration/item_database/data_pipeline_bake_test.cs` — must exist and pass
 - Config/Data (AC-47): smoke check pass `production/qa/smoke-[date].md`
 
-**Status**: [x] Created —— 真身 = `unity/Assets/Tests/EditMode/ItemDatabase/data_pipeline_bake_test.cs`(**22 [Test] + 1 TestCaseSource × 30 夹具 = 52 个用例**);账本路径 = `tests/integration/item_database/data_pipeline_bake_test.cs`(Story 001–007 同一先例:Unity 不编译 `unity/Assets/` 之外)。负向夹具新增 `tests/unit/item_database/fixtures/invalid_state_int.json`(AC-26);AC-47 冒烟记录 = `production/qa/smoke-2026-09-24.md`(ADVISORY)。**执行 NOT-RUN(【超算】无 Unity)**,预期 EditMode **407** = 前批 355 + 本批 52;PlayMode 12 不变。
+**Status**: [x] Created —— 真身 = `unity/Assets/Tests/EditMode/ItemDatabase/data_pipeline_bake_test.cs`(**22 [Test] + 1 TestCaseSource × 30 夹具 = 52 个用例**);账本路径 = `tests/integration/item_database/data_pipeline_bake_test.cs`(Story 001–007 同一先例:Unity 不编译 `unity/Assets/` 之外)。负向夹具新增 `tests/unit/item_database/fixtures/invalid_state_int.json`(AC-26);AC-47 冒烟记录 = `production/qa/smoke-2026-09-24.md`(ADVISORY)。**执行 VERIFIED 2026-09-24 桌面** —— EditMode **407 全绿** = 前批 355 + 本批 52;PlayMode **12 全绿**。
 
 ---
 
@@ -118,7 +118,7 @@
 **范围边界**:门本体 = Stories 004–007(零改动);存档头读写与迁移协议 = Story 010(本故事只交付 `CompareConfigVersion` 比对原语,`Fatal=false` 承 ADR-010 §七);黄金哈希 = Story 011;Boot 场景启动序调用 `DataCorePreloader.Preload()` = 后续故事(本故事立契约 + E-13 抛出路径,调用点不存在于 P0 当前场景树)。
 **Test Evidence**: Integration —— 真身 `unity/Assets/Tests/EditMode/ItemDatabase/data_pipeline_bake_test.cs`(52 用例)+ 负向夹具 `invalid_state_int.json` + AC-47 冒烟 `production/qa/smoke-2026-09-24.md`。
 **Code Review**: Skipped(lean 模式,承 Story 004–007 先例)
-**执行状态**: **NOT-RUN(【超算】无 Unity Editor)** —— 预期桌面 EditMode **407 = 355 + 52**;PlayMode 12 不变。桌面另需:① Unity 解析 Newtonsoft(重生成 `packages-lock.json`);② 为 ~21 个新文件生成 `.meta` → `chore(meta)` 补提交;③ 菜单「烘焙 item-database」+「确保 data-core Addressables 组」(`AddressableAssetsData/` **永不提交**);④ 回填 `smoke-2026-09-24.md` 计时数字;⑤ E-13 路径实测;⑥ 全绿后翻 VERIFIED。
+**执行状态**: ✅ **VERIFIED 2026-09-24 桌面** —— EditMode **407 全绿**(前批 355 + 本批 52);同批 PlayMode **12 全绿**。桌面六项残留全闭环:① Newtonsoft 解析 + `packages-lock.json` 重生成 + ~21 新文件 `.meta`(`chore(meta)` `5fe8fc0` 已推);② EditMode 407 / PlayMode 12 全绿;③ 菜单「烘焙 item-database」+「确保 data-core Addressables 组」成功(`AddressableAssetsData/` 永不提交;组菜单经 E-13 反向定位到条目附证);④ AC-47 三数回填 `smoke-2026-09-24.md`(首次 70936 μs 超阈 = 调优信号;缓存/求解 0 μs = <1 μs 整数截断稳过);⑤ E-13 路径实测五跑收敛 —— **反向**(反射探针,第五跑 `反向通过 ✓`)+ **正向成功**(首/二跑 items=4, recipes=2, ConfigVersion=0x53DD5D0F)+ **真实基础设施故障下照样包成 [E-13] IOE、无 null 解引用**(第四/五跑 stale-bundle)= ADR-014 §五 契约三点由跨跑聚合证据坐实;第五跑正向残留 = 编辑器会话态(⓪ 中途切 Play Mode 不回溯重建已初始化 locator/catalog),属环境非契约,**判定不再追第六版机制**(见 smoke 收敛判读);⑥ 本行翻 VERIFIED。
 **production/qa/ 已建立**:本故事 AC-47 冒烟存根为全仓首个 `production/qa/` 文件(Story 007 收官残留项就此消解)。
 
 ---
