@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "_note": "Story 008 占位种子 —— 2026-09-25 数值轮已拍(qty_mult_max=2 · skill/qual_mod_cap=1/10 · equip_mod_cap=1/4 · env_mod_min=-1/2 · env_mod_max=1/2);其余仍为夹具种子(QTY_MULT_MIN 等 GDD 仍 *待定*)。文件名 pre-named by Story 003(RecipeSettlementConstants.cs 注);跨条目量住本表,逐条量住 items/recipes(GDD 归属,不得第三处)。经 ADR-014 两阶段烘焙 → *.cooked → IDataProvider;字段必须在(D-21-6),值可为 P0 空。",
+  "_note": "Story 008 占位种子 —— 2026-09-25 数值轮已拍两批:F1/F2 常量全数定值(qty_mult_min=0 · qty_mult_max=2 · skill/qual_mod_cap=1/10 · equip_mod_cap=1/4 · env_mod_min=-1/2 · env_mod_max=1/2 · retain_min=1/2 · retain_max=1 · eff_min=1/2 · eff_max=1);仍推迟:max_quality/skill_cap(与 golden-v1 耦合,改须 golden-v2 重签)· perceptible_floor(与 9 噪声带同批)。文件名 pre-named by Story 003(RecipeSettlementConstants.cs 注);跨条目量住本表,逐条量住 items/recipes(GDD 归属,不得第三处)。经 ADR-014 两阶段烘焙 → *.cooked → IDataProvider;字段必须在(D-21-6),值可为 P0 空。",
   "qty_mult_min": "0",
   "qty_mult_max": "2",
   "skill_mod_cap": "1/10",
