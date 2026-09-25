@@ -4,7 +4,25 @@
 > **GDD**: design/gdd/audio-system.md
 > **Architecture Module**: L5 Presentation(PRES)+ L3 契约程序集(`Sim.Contracts`: `AudioCueDto` / `IAudioCueSink`)
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories audio-system`
+> **Stories**: 13 created(2026-09-26 `/create-stories`)
+
+## Stories
+
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | 装配边界与 DTO 护栏 | Integration | Ready | ADR-018(+025/017 引用) |
+| 002 | 音频事件表 schema 与白名单门(BLOCKING) | Logic | Ready | ADR-014(+018) |
+| 003 | 混音拓扑与快照纪律 | Integration | Ready | ADR-018(+020) |
+| 004 | 听诊呼吸两层与精度档 | Logic | Ready | ADR-018 |
+| 005 | SNR 分析域与噪声下界 | Logic | Ready | ADR-018 |
+| 006 | 语声变体库与 Intensity 分桶 | Logic | Ready | ADR-018 |
+| 007 | 联机分叉与远端派生(静态半) | Integration | Ready | ADR-001(+018)·运行面 BLOCKED-BY-45 |
+| 008 | 空间化与世界语境呼吸 | Integration | Ready | ADR-028(+015/018) |
+| 009 | 声源生命周期与贴耳交接 | Logic | Ready | ADR-001 §一之三裁决二(+028) |
+| 010 | 素材管线与事件表烘焙门 | Integration | Ready | ADR-014(+018) |
+| 011 | 设置暴露面与归零机制 | Config/Data | Ready | ADR-018(+013/014) |
+| 012 | 乐层护栏与性能/VR 切面 | Logic | Ready | ADR-018(+020) |
+| 013 | 主通道听测验收 | Visual/Feel | Ready | ADR-018 |
 
 ## Overview
 
@@ -17,7 +35,7 @@
 玩家侧幻想 = 「先听见后看见的那个人」:隔壁房间听见病人呼吸变坏、听诊器里听见细湿啰音,
 而系统**永不叮一声**告诉你「他转危了」—— 「无提示音」铁律由白名单断言机械化
 (AC-44-09 BLOCKING)。44 不订阅 sim 真值、不写三流、不进 sim 程序集。
-GDD Approved(2026-09-18,首轮 MAJOR REVISION 当日全修,免二轮);TR 14 = 13 covered +
+GDD Approved(**现行 = 2026-09-25 二轮**:9 专家 full 独立复核判 MAJOR(14 阻断)→ 批次 0 七拍板 + 批次 1/2 同日全修 → 用户裁定接受、**免三轮**;首轮 2026-09-18 MAJOR 当日全修、免二轮为前史);TR 14 = 13 covered +
 1 partial(008 挂 OQ-44-8 发布者实现随 45 走 P1b,禁借绿)+ 0 gap;
 GDD Requirements Covered by ADRs = 14 / 14;Untraced = None。
 
@@ -67,10 +85,10 @@ ADR-018 的 AudioMixer 6.3 mixer improvements 为 MEDIUM 悬置(`OQ-44-5` 实现
 
 This epic is complete when:
 - All stories are implemented, reviewed, and closed via `/story-done`
-- All acceptance criteria from `design/gdd/audio-system.md` are verified(32 条 AC)
+- All acceptance criteria from `design/gdd/audio-system.md` are verified(**36 条 AC**;2026-09-25 二轮 32→36)
 - All Logic and Integration stories have passing test files in `tests/`
 - All Visual/Feel and UI stories have evidence docs with sign-off in `production/qa/evidence/`
 
 ## Next Step
 
-Run `/create-stories audio-system` to break this epic into implementable stories.
+Run `/story-readiness production/epics/audio-system/story-001-assembly-boundary-dto.md` → `/dev-story` to begin implementation(依序:001 → 002 → …,各故事 `Depends on:` 为准)。
