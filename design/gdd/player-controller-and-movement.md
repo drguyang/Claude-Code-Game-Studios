@@ -458,7 +458,7 @@ INVARIANT   :  SPEED_MAX × MAX_DT  ≤  LATTICE_SIZE
 | `SPEED_MODE_MAX` | 运动档位速度上限的**最大值** —— P0 = `SPEED_WALK`(单档,R7) | m/s | *待定* | 1 |
 | `‖MoveInput‖_max` | 输入幅值的上界 = **1**(硬界,见 F-1-2) | 无量纲 | **1** | 3(产生)/ 1(断言) |
 | `K_TERRAIN_MAX` | 地貌乘数**上界** = `max(TERRAIN_TABLE 的 K_speed)` | 无量纲 | *待定*(导出) | **6 的表 → 1 派生** |
-| `K_CONTEXT_MAX` | 情境乘数**上界** = `max(CONTEXT_TABLE 的 K_speed)` | 无量纲 | *待定*(导出) | **24 的表 → 1 派生** |
+| `K_CONTEXT_MAX` | 情境乘数**上界** = `max(CONTEXT_TABLE 的 K_speed)` | 无量纲 | **1(导出;2026-09-25 24 档集 {1, 7/8, 3/4} 已拍 ⇒ max = 1,F-1-1a 零抬 `LATTICE_SIZE` 下界)** | **24 的表 → 1 派生**(表落盘归 OQ-24-3) |
 | `MAX_DT` | 单帧 `dt` 的钳位上限(EC-6) | s | *待定* | 1 |
 | `LATTICE_SIZE` | 格的边长(**不等式约束的对象**) | m | *待定*(**下界由本式给出**) | **6**(ADR-015 §三 定义格框架) |
 

@@ -216,6 +216,11 @@ EquipMod    = clamp(equip_score × 65536, 0, EQUIP_MOD_CAP)    # int 升 Q16.16
 | `EquipMod` | Fix | [0, EQUIP_MOD_CAP] | 交付 21a 的制作 / 炮制修正 |
 
 **输出范围**:clamp 后 ∈ [0, EQUIP_MOD_CAP](21a 常量)。档位求和 ⇒ 堆叠感直接,cap 钝住边际(EC-24-03)。
+⚠️ **CAP < 1 的结构语义(2026-09-25 数值轮随拍记账)**:`EQUIP_MOD_CAP = 1/4` 已拍,
+而 `equip_score` 为整数 ⇒ **任何 tier > 0 的布局直接打满 = 「有无像样器具」二值开关**
+(「档位求和 + cap 钝边际」在 CAP<1 下无渐变可钝)。**P0 接受该二值语义**
+(与 OQ-CP-5 右秤「只上扬/平」机制一致,无 UI 冲突);要真渐变须改本式为归一化
+(如 `clamp(score/n, 0, CAP)`)—— **属机制改动,超出本数值轮,不预设**。
 ⚠️ **运算域(2026-09-17 复核,阻塞)**:`equip_score × 65536` 在 **int32 下于 `equip_score > 32767` 溢出**
 (而 `n·TIER_MAX` 上界未定,OQ-24-5)。⇒ **须在 int64 域求积后再 clamp**;烘焙 schema 追加断言
 **`n_max × TIER_MAX < 2^31`**(与 `ENV_MOD_*` 同批)。
@@ -317,15 +322,16 @@ P0 单房单情境下本族无区分度,**不实现**;此处仅立取舍证据(`
 ## Tuning Knobs
 
 **定值一律 `*待定*`(归用户)**,本 GDD 只交付旋钮、作用面与安全区间。
+**~~定值一律待定~~ → 2026-09-25 数值轮已拍部分**(详见各行 ✅ 注;`e_env` / `base_env` / `C_max` 仍待内容轮):
 
 | 旋钮 | 归属 | 安全区间 | 作用面 |
 |------|------|---------|--------|
-| `TIER_MAX` | 21a(FURN_TABLE) | ≥ 1 | 档位上限;↑ 则单件顶配更强(F-24-2 的 equip_score 上界) |
-| `e_env(type)` 各值 | 21a(FURN_TABLE) | 有界(≤ |ENV_MOD_MAX − ENV_MOD_MIN| / n_max) | 单件环境贡献;负 = 污染,↑ 幅度则布局纠结更重(F-24-1) |
-| `ADJ_TABLE` 各 `w(a,b)` | **24** | [W_MIN, W_MAX],`W_MIN < 0 < W_MAX` | 邻接权重;无序对可负。正 = 协同(手术室+无菌),负 = 冲突(便器+药柜)。**P0 单房间唯一的「空间判断」旋钮**(F-24-1 `adj_sum`) |
-| `base_env(room_type)` | **24**(CONTEXT_TABLE) | [ENV_MOD_MIN, ENV_MOD_MAX] | 房间基础环境;↑ 则同类房间天生更好,低 = 重布局的初始压力(F-24-1) |
-| `CONTEXT_TABLE.K_speed` 各值 | **24** | (0, 1](医馆克己 = 减速) | 房间格情境乘数;**K_CONTEXT_MAX 由其派生,抬升即抬高 1 的 `LATTICE_SIZE` 下界**(F-24-3 / 1 的 F-1-8) |
-| `EQUIP_MOD_CAP` / `ENV_MOD_MIN` / `ENV_MOD_MAX` | 21a | 见 21a GDD | 钳制量程(**复用,非 24 新造**);24 的钳位点(EC-24-03) |
+| `TIER_MAX` | 21a(FURN_TABLE) | ≥ 1;**✅ 定值 = 3(2026-09-25;待 FURN_TABLE 内容轮落数)** | 档位上限;↑ 则单件顶配更强(F-24-2 的 equip_score 上界) |
+| `e_env(type)` 各值 | 21a(FURN_TABLE) | 有界(≤ \|ENV_MOD_MAX − ENV_MOD_MIN\| / n_max)—— 现值域 = 1/n_max | 单件环境贡献;负 = 污染,↑ 幅度则布局纠结更重(F-24-1)。**仅量级口径已登记**(正 ∈ [1/16,1/8]、负 ∈ [−1/4,−1/8] 为案卷建议),定值随 OQ-24-3/5 |
+| `ADJ_TABLE` 各 `w(a,b)` | **24** | **✅ W 域 = [−1/4, +1/4](2026-09-25;`W_MIN < 0 < W_MAX` 且 \|W_MIN\| ≤ W_max ✓;装下算例 −0.18,Φ=1/4)**;表值待 OQ-24-3 | 邻接权重;无序对可负。正 = 协同(手术室+无菌),负 = 冲突(便器+药柜)。**P0 单房间唯一的「空间判断」旋钮**(F-24-1 `adj_sum`) |
+| `base_env(room_type)` | **24**(CONTEXT_TABLE) | [ENV_MOD_MIN, ENV_MOD_MAX] = [−1/2, +1/2] | 房间基础环境;↑ 则同类房间天生更好,低 = 重布局的初始压力(F-24-1)。**定值随 OQ-24-3**(案卷量级建议 {0, 1/8, 1/4}:低位 base 把正向余量让给空间判断) |
+| `CONTEXT_TABLE.K_speed` 各值 | **24** | (0, 1](医馆克己 = 减速);**✅ 档集 = {1, 7/8, 3/4}(2026-09-25)** ⇒ K_CONTEXT_MAX 派生 = 1 | 房间格情境乘数;**K_CONTEXT_MAX 由其派生,抬升即抬高 1 的 `LATTICE_SIZE` 下界**(F-24-3 / 1 的 F-1-8) |
+| `EQUIP_MOD_CAP` / `ENV_MOD_MIN` / `ENV_MOD_MAX` | 21a | **✅ 已定 1/4 / −1/2 / +1/2(2026-09-25,落 constants.json)** | 钳制量程(**复用,非 24 新造**);24 的钳位点(EC-24-03) |
 
 > **与 1 / 6 的联动**:`CONTEXT_TABLE.K_speed` 与 6 的 `TERRAIN_TABLE` 同源派生两个上界
 > (`K_CONTEXT_MAX` / `K_TERRAIN_MAX`)→ 玩家控制器 F-1-1a 的速限约束(`SPEED_MODE_MAX × … × MAX_DT ≤ LATTICE_SIZE`)。
@@ -356,7 +362,7 @@ P0 若 42 未落地,医馆反馈走 23 的既有建造反馈路径(设施摆放�
 
 | # | 级 | 判据 |
 |---|----|------|
-| **AC-24-01** | [B] | **GIVEN** 任一合法单块布局,**WHEN** 求值 F-24-1,**THEN** 产出**未钳制** `EnvMod_clinic`(= `env_score`,2026-09-20 回刷 · D-21-31)—— 钳制与域 [ENV_MOD_MIN, ENV_MOD_MAX] 由 21a F1 保证(AC-24-01b 承接)。**性质测试**:对任意 `MIN < MAX` 与任意输入,24 的产出 = 线性加权和,**不含 clamp**。*常量落定后*以 `*待定*` 夹具复验(承 OQ-24-2) |
+| **AC-24-01** | [B] | **GIVEN** 任一合法单块布局,**WHEN** 求值 F-24-1,**THEN** 产出**未钳制** `EnvMod_clinic`(= `env_score`,2026-09-20 回刷 · D-21-31)—— 钳制与域 [ENV_MOD_MIN, ENV_MOD_MAX] 由 21a F1 保证(AC-24-01b 承接)。**性质测试**:对任意 `MIN < MAX` 与任意输入,24 的产出 = 线性加权和,**不含 clamp**。~~*常量落定后*以 `*待定*` 夹具复验~~ **✅ 常量已落定(2026-09-25 数值轮:MIN=−1/2, MAX=+1/2)** ⇒ 夹具可直接取定值复验(承 OQ-24-2 已裁) |
 | **AC-24-01b** | [B] | **GIVEN** 24 产出的 `EnvMod_clinic` 越出 [ENV_MOD_MIN, ENV_MOD_MAX],**WHEN** 交 18 透传 → 21a F1,**THEN** F1 求和后统一钳制(单点钳制,D-21-31)—— 24 **不**因越界而失效(EC-24-03)。**测试形态 = EditMode 集成对拍**:`F1_21a(climate, clinic_out_of_range)` 与手算 `clamp(climate + clinic_out_of_range)` 逐位一致 |
 | **AC-24-02** | [B] | **GIVEN** `tier(c) = 0` 的家具,**WHEN** 求值 F-24-2,**THEN** 该件不贡献 `equip_score`(`Σ_{tier>0}` 语义);`EquipMod ∈ [0, EQUIP_MOD_CAP]` 恒成立(性质测试,同 AC-24-01);**int64 求积**(`equip_score × 65536` 不落 int32) |
 | **AC-24-03** | [B] | **GIVEN** 空布局 / 未匹配任何房间类型,**WHEN** 求值,**THEN** 输出中性 `(EnvMod, EquipMod) = (0, 0)`(ROOM_NONE 基例,EC-24-01 / EC-24-02) |
@@ -379,12 +385,12 @@ P0 若 42 未落地,医馆反馈走 23 的既有建造反馈路径(设施摆放�
 
 | # | 问题 | 状态 |
 |---|------|------|
-| **OQ-24-1** | `K_CONTEXT_MAX` **定值**(K_speed 上界) | `*待定*` —— 定值归用户;机制已定(表派生,非手填,F-24-3) |
-| **OQ-24-2** | `TIER_MAX` / `EQUIP_MOD_CAP` / `ENV_MOD_MIN` / `ENV_MOD_MAX` 定值 | `*待定*` —— 归 21a 常量系定稿;24 只消费不新造(2026-09-17 裁定)。**承重前提 `ENV_MOD_MIN < 0` 已登记 `O-24-4`** |
+| **OQ-24-1** | `K_CONTEXT_MAX` **定值**(K_speed 上界) | **✅ 已裁 2026-09-25 数值轮**:`CONTEXT_TABLE.K_speed` 档集 = **{1, 7/8, 3/4}**(中性 / 一般工作 / 重操作;值域 (0,1] 合 AC-24-05)⇒ 派生 **`K_CONTEXT_MAX = max(·) = 1`**(F-24-3 表派生非手填)⇒ **零抬 1 的 `LATTICE_SIZE` 下界**(F-1-1a);手感微调归 playtest。⚠️ 表未落盘(OQ-24-3 内容轮待 23 家具目录),本行 = 档集级裁定 |
+| **OQ-24-2** | `TIER_MAX` / `EQUIP_MOD_CAP` / `ENV_MOD_MIN` / `ENV_MOD_MAX` 定值 | **✅ 已裁 2026-09-25 数值轮**:`TIER_MAX = 3` · `EQUIP_MOD_CAP = 1/4` · `ENV_MOD_MIN = −1/2` · `ENV_MOD_MAX = +1/2` —— 三个 Fix 值同批落 `assets/data/item_database_constants.json`(`TIER_MAX` 待 FURN_TABLE 内容轮落数)。**承重前提 `ENV_MOD_MIN < 0` 已登记 `O-24-4`** ✓。⚠️ 同轮强拍配套:21a `QTY_MULT_MAX = 2` + `SKILL/QUAL_MOD_CAP = 1/10` + 配方 `extract_salicylic` 输入 qty 1→2(AC-21a-9/8 两把锁) |
 | **OQ-24-3** | `ROOM_TABLE` / `CONTEXT_TABLE` 的具体房间类型清单与判定谓词 | 内容层 —— 归 23 / 21a / 关卡内容的家具目录定稿后填;24 只定机制(规则二 / 三)。**谓词语言已定可含邻接子句**(2026-09-17 复核,规则二) |
 | **OQ-24-4** | P1a `ROOM_INTEROP` 的邻接矩阵语义(交叉污染强度) | 归 P1a(EC-24-06 / F-24-4 已留口,机制不重开) |
 | **OQ-24-5** | `n_max`(单房间格数上界)定值 | `*待定*` —— 归 6 / 24 调表同批核(`O-24-2`);F-24-1 int64 算术域论证 / F-24-2 int32 溢出的前置 |
-| **OQ-24-6** | `ADJ_TABLE` 的 `W_MIN` / `W_MAX` / `C_max` 定值 | `*待定*` —— 归 24 表;`|W_MIN| ≤ W_max` 由烘焙门保证(`O-24-5`) |
+| **OQ-24-6** | `ADJ_TABLE` 的 `W_MIN` / `W_MAX` / `C_max` 定值 | **W 域 ✅ 已裁 2026-09-25 数值轮 = [−1/4, +1/4]**(硬约束 `W_MIN < 0 < W_MAX` 且 `|W_MIN| ≤ W_MAX` ✓;对称域装下 F-24-1 算例权重 +0.06/−0.18 且 Φ=1/4 使 int64 界最干净);`C_max` **维持待定**(随 `n_max`(OQ-24-5)与 `e_env` 内容轮,只定量级口径 C_max ≈ 1/n_max);`|W_MIN| ≤ W_max` 由烘焙门保证(`O-24-5`)。⚠️ 表未落盘(OQ-24-3),本行 = 域级裁定 |
 
 **已裁定闭合(不得重开,2026-09-17)**:
 1. P0 只做**单房间评分**(方案甲;`systems-index.md:575`)—— 跨房间 → P1a;

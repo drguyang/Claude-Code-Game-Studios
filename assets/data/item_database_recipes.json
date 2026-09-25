@@ -20,7 +20,7 @@
       "recipe_id": "extract_salicylic",
       "owner": "process",
       "inputs": [
-        { "item_key": { "base_id": "willow_bark", "processing_state": "dried" }, "qty": 1 }
+        { "item_key": { "base_id": "willow_bark", "processing_state": "dried" }, "qty": 2 }
       ],
       "outputs": [
         { "item_key": { "base_id": "salicylic_acid", "processing_state": "extracted" }, "qty": 1 }
