@@ -175,7 +175,20 @@ namespace DaYiJingCheng.Gameplay.Input
                 return OverridesLoadResult.Mismatch;
             }
 
-            string storedHash = ParseHeaderHash(Encoding.UTF8.GetString(File.ReadAllBytes(SchemaPath)));
+            string headerText;
+            try
+            {
+                headerText = Encoding.UTF8.GetString(File.ReadAllBytes(SchemaPath));
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                // 读失败与写失败同族 fail-safe(code review F4):两步已清,读不到 = 状态未定义 ⇒
+                // 视同失配,资产维持默认,不把异常抛给调用方。
+                Debug.LogWarning($"绑重头部读取失败 —— 视同失配,不采用,资产维持默认:{ex.Message}");
+                return OverridesLoadResult.Mismatch;
+            }
+
+            string storedHash = ParseHeaderHash(headerText);
             if (storedHash == null)
             {
                 Debug.LogWarning("绑重 sidecar 头部缺 schema_hash 字段 —— 视同失配,不采用,资产维持默认。");
@@ -191,7 +204,17 @@ namespace DaYiJingCheng.Gameplay.Input
             }
 
             // 匹配 ⇒ 逐字节喂出厂 API(AC-3-E3⑥):只解码,不解析、不重排、不重写。
-            string payload = Encoding.UTF8.GetString(File.ReadAllBytes(OverridesPath));
+            string payload;
+            try
+            {
+                payload = Encoding.UTF8.GetString(File.ReadAllBytes(OverridesPath));
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                // 读失败同上(code review F4):视同失配,不静默、不部分恢复。
+                Debug.LogWarning($"绑重载荷读取失败 —— 视同失配,不采用,资产维持默认:{ex.Message}");
+                return OverridesLoadResult.Mismatch;
+            }
             try
             {
                 asset.LoadBindingOverridesFromJson(payload);

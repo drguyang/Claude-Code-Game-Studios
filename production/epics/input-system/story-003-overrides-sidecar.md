@@ -90,6 +90,18 @@
 - A5 Then 第一支负例:`test_writeSurface_scan_nonWhitelistedWriteTarget_flagsRed`(写点指向白名单外文件 ⇒ 红)—— QA Negative 行只点名 PlayerPrefs 夹具;Then 主句「写盘调用点 ∈ {两文件}」的失败面同属 AC 判据。
 - A2 Edge 手柄输入:QA 文本写 `South`,实际资产 Interact 第二绑是 `<Gamepad>/buttonNorth` —— 按**资产真源**执行(断言 buttonNorth 不受污染)。
 
+**code review 修复批(2026-09-25/26 会话内双代理 —— unity-specialist F1–F9 · qa-tester Q1–Q12;不改 spec,落账如下)**:
+- **追加 7 测(17 → 24)**:`..._load_disablesAsset_ruleFiveStep1`(Q2:既有用例只断 override 三元组,漏删 `Disable()` 全照绿 —— 首次断动作启用态)· `..._headerMissingSchemaHash_mismatchNotSilent`(Q5/F9:头部缺 hash 字段分支)· `..._headerOnly_treatedAsMismatch`(Q5:半截另一方向)· `..._headerContent_writtenFields`(Q6:四头部字段逐项 + 可选入参实证)· `..._removedOverride_roundTripsDeleted`(Q9:QA Given「增删 override」的删半边)· `..._headerWriteFailure_payloadAlone_mismatchNextLoad`(Q11:「先载荷后头部」反向半边)· `test_writeSurface_scan_writeApiVariants_flagsRed`(F2/Q3:Async / Move 第二实参 / FileStream / FileMode.Create / using 换名别名 五种盲区)。
+- **F1/Q12 解析扫描扩面**:「3 不解析」由单文件扩为 Gameplay.Input 全程序集(抽 helper 文件绕过同红)+ 新增 `payload` 手工字符串手术谓词(`PayloadSurgeryPattern`,附负例夹具证牙)。
+- **F2/Q3 扫描器补面**:写族方法名带 `Async` 后缀、不锚定 `File.` 前缀(`using IOFile = …` 换名别名同红)、`Create/Open/Move/Delete/Copy/Replace` 与 `new StreamWriter/FileStream` 入面、**Move/Copy 第二实参一并解析**(`File.Move(白名单, evil)` 型绕过拦下)。
+- **F3 计数断言保留**:`writeTargets.Count == 2` 维持 AC「仅…两处」原文 —— Story 005 在本程序集增写点(改名备份 Move/Delete)时**须同批扩展白名单与本断言**(跨故事协调点,红 = 正确信号)。
+- **F4 读失败 fail-safe**:头部/载荷 `File.ReadAllBytes` 包 `IOException`/`UnauthorizedAccessException` ⇒ `Mismatch` + 警告(与写失败同族);root 环境读失败注入不可靠 ⇒ **无专测**(注记,非漏测)。
+- **F6 写失败方法出入**:QA 原文「只读目录」实现改用「目录占位挡路径」(超算 root 下 chmod 不可靠,改法等价触发同一异常面)—— 此前登记块漏记,本行补上。
+- **F7 头部字段归属**:`format_version` / `asset_id` / `asset_version` 三字段读取语义未归任一故事 —— 建议 Story 004/005 或 Boot 装配轮登记归属(**非本故事欠账**,GDD 只要求「存」)。
+- **F8/Q10 测试卫生**:符号断言(拒绝清单 / 解析 token / payload 手术)改走**去字面量**文本(日志串提 `PlayerPrefs` 一词不再误报)+ `StripComments` 补逐字串 `@""` 转义;`TearDown` 加 `_asset` 判空(SetUp 断言失败不被 NRE 掩盖)+ 往返测断言 `.inputactions` 源文件字节不变。
+- **Q4 已知 fail-closed 约束**:同义词表按单文件建(他文件 const 别名 ⇒ 误报红)、插值字面量不解析(⇒ 误报红)—— 方向均为红非漏报绿;详见 `tests/integration/input_system/README.md` 扫描器段。
+- **Q7 适用面订正**:美化负例是断言的**牙齿证明**(正对照 + 失效签名),不直接探测生产改写(由 `payloadFileBytes` 主断言承担)—— 注释已订正,不改测试本体。
+
 ---
 
 ## Test Evidence
@@ -98,9 +110,9 @@
 **Required evidence**:
 - Integration: `tests/integration/input_system/overrides_sidecar_test.cs` — must exist and pass
 
-**Status**: [x] Created + VERIFIED(2026-09-25 超算 batch)
+**Status**: [x] Created + VERIFIED(2026-09-25 超算 batch;2026-09-26 评审修复批复跑)
 - 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/overrides_sidecar_test.cs`,文档路径 `tests/integration/input_system/` 为登记口径(README 落点说明同批)
-- 执行 ✅ **VERIFIED 2026-09-25 超算 batch**:全套 EditMode **527/527 全绿 exit 0**(log `unity/Logs/build-story003-2.log`;基线 510 + 本故事 17);本故事 **17/17 Passed**(A2 6 + A5 5 + E3⑥ 6)
+- 执行 ✅ **VERIFIED 2026-09-26 评审修复批复跑**:全套 EditMode **534/534 全绿 exit 0**(log `unity/Logs/build-story003-fixes.log`;初版 527 → 追加 7 测后 534);本故事 **24/24 Passed**(A2 11 + A5 7 + E3⑥ 6 —— 分项按修复批追加后重算,原「A2 6 + A5 5 + E3⑥ 6」为首版 17 测口径)
 
 ---
 

@@ -44,8 +44,6 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         private static readonly string RepoRoot = ComputeRepoRoot();
         private static readonly string GameplayInputDir =
             Path.Combine(RepoRoot, "unity", "Assets", "Gameplay.Input");
-        private static readonly string BindingsStoreSourcePath =
-            Path.Combine(GameplayInputDir, "BindingsStore.cs");
 
         private string _tempDir;
         private InputActionAsset _asset;
@@ -72,8 +70,11 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 UnityEngine.Object.DestroyImmediate(_clone);
                 _clone = null;
             }
-            _asset.Disable();
-            _asset.RemoveAllBindingOverrides();
+            if (_asset != null)   // SetUp 断言失败时不以 TearDown 的 NRE 掩盖真实失败(review Q10)
+            {
+                _asset.Disable();
+                _asset.RemoveAllBindingOverrides();
+            }
             Directory.Delete(_tempDir, true);
         }
 
@@ -138,7 +139,13 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             Dictionary<Guid, (string path, string processors, string interactions)> snapshot, string because)
         {
             foreach (var kv in snapshot)
+            {
                 Assert.That(kv.Value.path, Is.Null, $"{because} —— binding {kv.Key} 不得带 override");
+                Assert.That(kv.Value.processors, Is.Null,
+                    $"{because} —— binding {kv.Key} 不得带 overrideProcessors 污染(review Q8)");
+                Assert.That(kv.Value.interactions, Is.Null,
+                    $"{because} —— binding {kv.Key} 不得带 overrideInteractions 污染(review Q8)");
+            }
         }
 
         private static int CountOverridden(
@@ -154,6 +161,8 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             // Given 普通绑重 + 复合 part 绑重施加于共享资产,干净克隆作接收方。
             _asset.RemoveAllBindingOverrides();
             InputActionAsset clone = CreateCleanClone();
+            string assetFile = Path.Combine(RepoRoot, "unity", "Assets", "InputSystem_Actions.inputactions");
+            byte[] assetFileBefore = File.ReadAllBytes(assetFile);   // 全程不得写回 .inputactions 源文件(review Q10)
 
             ApplyPathOverride(_asset, "Interact", "<Keyboard>/e", "<Keyboard>/q");   // 普通绑重
             ApplyPathOverride(_asset, "Move", "<Keyboard>/w", "<Keyboard>/z");       // 复合绑重的单个 part
@@ -185,6 +194,8 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 "Edge 同一动作两物理输入:手柄侧不受污染");
             Assert.That(actual[interactXr].path, Is.Null,
                 "Edge 同一动作两物理输入:XR 侧不受污染");
+            Assert.That(File.ReadAllBytes(assetFile), Is.EqualTo(assetFileBefore),
+                "override 只活在内存/sidecar —— .inputactions 源文件字节未变(review Q10)");
         }
 
         [Test]
@@ -277,6 +288,111 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             Assert.That(result, Is.EqualTo(OverridesLoadResult.Mismatch), "半截 ⇒ 视同失配,不尝试部分恢复");
         }
 
+        [Test]
+        public void test_overridesSidecar_load_disablesAsset_ruleFiveStep1()
+        {
+            // 规则五 step1 / ADR-011 Amendment A ② 的实证(review Q2):既有用例只断 override
+            // 三元组,漏删 Disable() 全部照绿 —— 本测直接断动作启用态。
+            _asset.RemoveAllBindingOverrides();
+            InputActionAsset clone = CreateCleanClone();
+            clone.Enable();
+            InputAction interact = clone.FindAction("Interact");
+            Assert.That(interact, Is.Not.Null, "Given:Interact 须在");
+            Assert.That(interact.enabled, Is.True, "Given:资产已启用");
+
+            var store = new BindingsStore(_tempDir);
+
+            OverridesLoadResult result = store.Load(clone, HashA);
+
+            Assert.That(result, Is.EqualTo(OverridesLoadResult.NoSidecar), "首次启动正常路径(本测焦点在 step1)");
+            Assert.That(clone.FindAction("Interact").enabled, Is.False,
+                "Load 返回后资产须处于 Disable 态 —— 重载前两步第一步实际执行");
+        }
+
+        [Test]
+        public void test_overridesSidecar_headerMissingSchemaHash_mismatchNotSilent()
+        {
+            // 读序:头部存在但缺 schema_hash 字段 ⇒ 视同失配不静默(review Q5/F9)。
+            _asset.RemoveAllBindingOverrides();
+            ApplyPathOverride(_asset, "Interact", "<Keyboard>/e", "<Keyboard>/q");
+            var store = new BindingsStore(_tempDir);
+            store.Save(_asset, HashA);
+            File.WriteAllBytes(store.SchemaPath,
+                Encoding.UTF8.GetBytes("format_version=1\nasset_id=AssetX"));
+
+            LogAssert.Expect(LogType.Warning, new Regex("schema_hash"));
+            OverridesLoadResult result = store.Load(_asset, HashA);
+
+            Assert.That(result, Is.EqualTo(OverridesLoadResult.Mismatch), "缺 hash 字段 ⇒ 视同失配");
+            AssertNoOverrides(Snapshot(_asset), "缺 hash 字段出口资产维持默认");
+            Assert.That(File.Exists(store.OverridesPath), Is.True, "缺 hash 字段出口不得触碰载荷文件");
+        }
+
+        [Test]
+        public void test_overridesSidecar_headerOnly_treatedAsMismatch()
+        {
+            // 文件级半截的另一方向(review Q5):头部在、载荷被删 ⇒ 同样视同失配。
+            _asset.RemoveAllBindingOverrides();
+            var store = new BindingsStore(_tempDir);
+            store.Save(_asset, HashA);
+            File.Delete(store.OverridesPath);
+
+            LogAssert.Expect(LogType.Warning, new Regex("半截"));
+            OverridesLoadResult result = store.Load(_asset, HashA);
+
+            Assert.That(result, Is.EqualTo(OverridesLoadResult.Mismatch), "半截(头在载荷缺)⇒ 视同失配");
+            AssertNoOverrides(Snapshot(_asset), "半截出口资产维持默认");
+        }
+
+        [Test]
+        public void test_overridesSidecar_headerContent_writtenFields()
+        {
+            // 头部字段落盘面(review Q6):format_version / schema_hash / asset_id / asset_version
+            // 逐字段断言 + 可选入参实证 —— 否则键名写错只靠 Applied 用例间接兜底。
+            _asset.RemoveAllBindingOverrides();
+            var store = new BindingsStore(_tempDir);
+
+            store.Save(_asset, HashA, "AssetX", "v7");
+            string header = File.ReadAllText(store.SchemaPath);
+
+            Assert.That(header, Does.Contain($"format_version={BindingsStore.FormatVersion}"));
+            Assert.That(header, Does.Contain($"schema_hash={HashA}"), "hash 键名与值都须落对");
+            Assert.That(header, Does.Contain("asset_id=AssetX"), "显式 assetId 入参落盘");
+            Assert.That(header, Does.Contain("asset_version=v7"), "显式 assetVersion 入参落盘");
+            Assert.That(header, Does.Not.EndWith("\n"), "头部无尾换行(逐字节纪律)");
+        }
+
+        [Test]
+        public void test_overridesSidecar_removedOverride_roundTripsDeleted()
+        {
+            // QA A2 Given「改 path / 增删 override」的删半边(review Q9):移除 override 后
+            // Save → Load,删除不得经 sidecar 复活(出厂 API 吐陈旧条目 ⇒ 此测红)。
+            _asset.RemoveAllBindingOverrides();
+            InputActionAsset clone = CreateCleanClone();
+            ApplyPathOverride(_asset, "Interact", "<Keyboard>/e", "<Keyboard>/q");
+            InputAction action = _asset.FindAction("Interact");
+            Assert.That(action, Is.Not.Null, "Given:Interact 须在");
+            int index = -1;
+            for (int i = 0; i < action.bindings.Count; i++)
+            {
+                if (action.bindings[i].path == "<Keyboard>/e")
+                {
+                    index = i;
+                    break;
+                }
+            }
+            Assert.That(index, Is.GreaterThanOrEqualTo(0), "Given:K&M 绑定须在");
+            action.RemoveBindingOverride(index);
+            Assert.That(action.bindings[index].overridePath, Is.Null, "Given:override 已移除");
+
+            var store = new BindingsStore(_tempDir);
+            store.Save(_asset, HashA);
+            OverridesLoadResult result = store.Load(clone, HashA);
+
+            Assert.That(result, Is.EqualTo(OverridesLoadResult.Applied), "空/残缺载荷仍是合法载荷");
+            AssertNoOverrides(Snapshot(clone), "删除的 override 不得经 sidecar 复活");
+        }
+
         // ══════════ AC-3-A5:落盘面白名单 ══════════
 
         [Test]
@@ -295,6 +411,11 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             Assert.That(violations, Is.Empty, "输入程序集零违例(拒绝清单 + 写点白名单)");
             Assert.That(writeTargets.Count, Is.EqualTo(2),
                 $"写盘点须恰为 2 处(实际 {writeTargets.Count}:{string.Join(", ", writeTargets)})");
+            // 基数断言保留 AC「仅…两处」原文。已知跨故事协调点(review F3):Story 005 在本程序集
+            // 增写点(改名备份 Move/Delete)时须同批扩展白名单与本断言 —— 红 = 正确信号,不是假红。
+            // 已知 fail-closed 约束(review Q4):① 同义词表按单文件建,他文件 const 别名解析不到
+            // ⇒ 误报红;② 插值字符串里的白名单文件名字面量解析不到 ⇒ 同样误报红。
+            // 两者方向均为红(非漏报绿);放宽须扩到程序集级常量扫描 —— 见集成 README 扫描器段。
             Assert.That(writeTargets, Is.EquivalentTo(new[]
             {
                 BindingsStore.OverridesFileName, BindingsStore.SchemaFileName,
@@ -380,6 +501,53 @@ class Fixture {
                 "目录内只有占位 —— 未创建任何替代写点文件;头部按「先载荷后头部」次序也未写");
         }
 
+        [Test]
+        public void test_overridesSidecar_headerWriteFailure_payloadAlone_mismatchNextLoad()
+        {
+            // 写失败的反向半边(review Q11):载荷写成、头部失败(头部路径被目录占位)——
+            // Save 返回 null + 错误日志;留下的单半截在下次 Load 视同失配(「先载荷后头部」的安全方向)。
+            var store = new BindingsStore(_tempDir);
+            Directory.CreateDirectory(store.SchemaPath);   // 头部写点被占位
+
+            LogAssert.Expect(LogType.Error, new Regex("写入失败"));
+            string result = store.Save(_asset, HashA);
+
+            Assert.That(result, Is.Null, "头部写失败 ⇒ Save 返回 null");
+            Assert.That(File.Exists(store.OverridesPath), Is.True, "载荷已按「先载荷后头部」次序写成");
+            Assert.That(Directory.Exists(store.SchemaPath), Is.True, "头部未写成(仍为占位目录)");
+
+            LogAssert.Expect(LogType.Warning, new Regex("半截"));
+            OverridesLoadResult loadResult = store.Load(_asset, HashA);
+
+            Assert.That(loadResult, Is.EqualTo(OverridesLoadResult.Mismatch),
+                "半截(载荷在头部缺)⇒ 下次 Load 视同失配,不尝试部分恢复");
+        }
+
+        [Test]
+        public void test_writeSurface_scan_writeApiVariants_flagsRed()
+        {
+            // 扫描器模式盲区负例(review F2/Q3):Async 变体 / Move 第二实参 / new FileStream /
+            // FileMode.Create / using 换名别名 —— 每一种都必须红(漏检即主扫描计数假绿)。
+            const string asyncWrite =
+                "class F { void W(string p) { System.IO.File.WriteAllTextAsync(\"/tmp/evil.json\", p); } }";
+            const string moveSecondArg =
+                "class F { void W() { System.IO.File.Move(\"bindings.overrides.json\", \"/tmp/evil.json\"); } }";
+            const string fileStreamCreate =
+                "class F { void W() { var s = new System.IO.FileStream(\"/tmp/evil.json\", System.IO.FileMode.Create); } }";
+            const string openFileModeCreate =
+                "class F { void W() { System.IO.File.Open(\"/tmp/evil.json\", System.IO.FileMode.Create); } }";
+            const string usingAlias =
+                "using IOFile = System.IO.File;\nclass F { void W(string p) { IOFile.WriteAllText(\"/tmp/evil.json\", p); } }";
+
+            foreach (string fixture in new[] { asyncWrite, moveSecondArg, fileStreamCreate, openFileModeCreate, usingAlias })
+            {
+                (List<string> violations, List<string> _) = ScanWriteSurface(fixture);
+                Assert.That(violations, Is.Not.Empty, $"写法盲区负例必须红:{fixture}");
+                Assert.That(string.Join(";", violations), Does.Contain("白名单"),
+                    $"违例须定位到白名单判据:{fixture}");
+            }
+        }
+
         // ══════════ AC-3-E3⑥:喂入字节 == 保存字节 ══════════
 
         [Test]
@@ -409,11 +577,13 @@ class Fixture {
             ApplyPathOverride(_asset, "Move", "<Keyboard>/w", "<Keyboard>/z");
             var expected = Snapshot(_asset);
             var store = new BindingsStore(_tempDir);
-            store.Save(_asset, HashA);
+            string saved = store.Save(_asset, HashA);
 
             string fed = Encoding.UTF8.GetString(File.ReadAllBytes(store.OverridesPath));
             OverridesLoadResult result = store.Load(clone, HashA);
 
+            Assert.That(fed, Is.EqualTo(saved),
+                "「喂入字节 == 保存字节」的字面断言 —— 读回的喂入内容不得偏离 Save 返回值(review F5/Q1)");
             Assert.That(result, Is.EqualTo(OverridesLoadResult.Applied));
             AssertSnapshotEqual(expected, Snapshot(clone), "喂入文件字节 = 保存字节");
         }
@@ -421,16 +591,28 @@ class Fixture {
         [Test]
         public void test_sidecar_source_hasNoPayloadParsingCalls()
         {
-            // QA E3⑥「扫描辅助:3 不解析」—— BindingsStore 源码(去注释)零 JSON 解析调用。
-            string code = StripComments(File.ReadAllText(BindingsStoreSourcePath));
+            // QA E3⑥「扫描辅助:3 不解析」—— 扫 Gameplay.Input 全程序集而非单文件(review F1:
+            // 载荷处理抽到别的文件必须同红),去注释 + 去字面量后零解析调用;
+            // 另断 payload 标识符上的手工字符串操作(review Q12:「不解析」不限于「不用 JSON 库」)。
             string[] parseTokens =
             {
                 "JsonUtility", "Newtonsoft", "JsonConvert", "JObject", "JToken",
                 "JsonDocument", "JsonSerializer",
             };
-            foreach (string token in parseTokens)
-                Assert.That(code, Does.Not.Contain(token),
-                    $"BindingsStore 不得出现载荷解析调用/库({token})—— 只逐字节喂出厂 API");
+            foreach (string file in Directory.GetFiles(GameplayInputDir, "*.cs", SearchOption.AllDirectories))
+            {
+                string code = StripLiterals(StripComments(File.ReadAllText(file)));
+                foreach (string token in parseTokens)
+                    Assert.That(code, Does.Not.Contain(token),
+                        $"{Path.GetFileName(file)} 不得出现载荷解析调用/库({token})—— 只逐字节喂出厂 API");
+                Assert.That(PayloadSurgeryPattern.IsMatch(code), Is.False,
+                    $"{Path.GetFileName(file)} 对 payload 的手工字符串操作 = 违反「不解析不重写」");
+            }
+
+            // 负例夹具:谓词本身必须有牙(Q12)。
+            const string fixture = "class F { void P(string payload) { string x = payload.Substring(1); } }";
+            Assert.That(PayloadSurgeryPattern.IsMatch(StripLiterals(StripComments(fixture))), Is.True,
+                "负例夹具(payload.Substring)必须被谓词命中(证明上循环的断言非空转)");
         }
 
         [Test]
@@ -477,8 +659,10 @@ class Fixture {
         [Test]
         public void test_sidecar_neg_beautifiedRewrite_differsFromSavedBytes()
         {
-            // QA E3⑥ Negative:「插入美化/重排步骤 ⇒ 字节断言红」—— 本测证明该断言有牙:
-            // 在 Save 返回值后追加一个换行即不再等于文件字节。
+            // QA E3⑥ Negative:「插入美化/重排步骤 ⇒ 字节断言红」—— 本测是断言的**牙齿证明**
+            // (正对照 + 失效签名:追加换行即不再等于文件字节),自证字节断言非空转;
+            // 它不直接探测生产代码的美化改写(那一层由 test_sidecar_payloadFileBytes_equalSaveBytesVerbatim
+            // 的主断言承担,与本测互补 —— review Q7 登记的适用面)。
             _asset.RemoveAllBindingOverrides();
             ApplyPathOverride(_asset, "Interact", "<Keyboard>/e", "<Keyboard>/q");
             var store = new BindingsStore(_tempDir);
@@ -505,35 +689,57 @@ class Fixture {
             "PlayerPrefs", "EditorPrefs", "IEventSink", "Checkpoint",
         };
 
+        // 写调用面(review F2/Q3):
+        //   ① 写族方法名带可选 Async 后缀(WriteAllTextAsync 等);
+        //   ② 不锚定 File. 前缀 —— `using IOFile = System.IO.File;` 之类的换名别名同红;
+        //   ③ Create / Open / Move / Delete / Copy / Replace 与 new StreamWriter/FileStream
+        //      一并入面;FileMode.Create 经实参解析覆盖,无需单列。
+        // 误报方向说明(review Q4 登记的 fail-closed 取舍):Array.Copy / string.Replace 等
+        // 通用同名调用会被要求首参解析到白名单 —— 解析不到即红(非漏报绿),误报可接受。
         private static readonly Regex WriteApiPattern = new Regex(
-            @"\bFile\.(?:WriteAllText|WriteAllBytes|WriteAllLines|WriteText|WriteBytes|AppendAllText|AppendAllLines|AppendText|CreateText|Create|OpenWrite|Move|Delete|Copy)\s*\(" +
-            @"|\bnew\s+StreamWriter\s*\(" +
-            @"|\bFile\.Open\s*\([^;]*?FileMode\.(?:Write|Append|ReadWrite|OpenOrCreate)",
+            @"\.\s*(?:WriteAllText|WriteAllBytes|WriteAllLines|WriteText|WriteBytes|AppendAllText|AppendAllLines|AppendText|CreateText|OpenWrite)(?:Async)?\s*\(" +
+            @"|\.\s*(?:Create|Open|Move|Delete|Copy|Replace)\s*\(" +
+            @"|\bnew\s+(?:[\w.]+\.)?(?:StreamWriter|FileStream)\s*\(",
+            RegexOptions.Compiled);
+
+        // 「解析载荷」的等价形态(review Q12):payload 标识符上的手工字符串手术。
+        // payloadBytes 等前缀更长的标识符不会命中(其后不是 `.`)。
+        private static readonly Regex PayloadSurgeryPattern = new Regex(
+            @"payload\s*\.\s*(?:Substring|Replace|Split|Trim|Remove|Insert|Contains|StartsWith|EndsWith)",
             RegexOptions.Compiled);
 
         /// <summary>扫描一段 C# 源码:拒绝清单符号 + 写盘点白名单。
-        /// 返回(违例消息, 已解析的写点目标)。注释剥离后再扫 —— 注释里的 API 名不构成写盘。</summary>
+        /// 返回(违例消息, 已解析的写点目标)。注释剥离后再扫 —— 注释里的 API 名不构成写盘;
+        /// 拒绝清单符号走**去字面量**文本 —— 日志串里出现 "PlayerPrefs" 一词不构成违规(review F8)。</summary>
         private static (List<string> violations, List<string> writeTargets) ScanWriteSurface(string source)
         {
             string code = StripComments(source);
+            string symbolCode = StripLiterals(code);
             var violations = new List<string>();
             var writeTargets = new List<string>();
 
             foreach (string token in ForbiddenWriteTokens)
             {
-                if (Regex.IsMatch(code, $@"\b{token}\b"))
+                if (Regex.IsMatch(symbolCode, $@"\b{token}\b"))
                     violations.Add($"拒绝清单符号出现:{token}");
             }
 
             Dictionary<string, string> aliasToFile = BuildAliasMap(code);
             foreach (Match call in WriteApiPattern.Matches(code))
             {
-                string arg = ExtractFirstArgument(code, call);
-                string target = ResolveWriteTarget(arg, aliasToFile);
-                if (target == null)
-                    violations.Add($"写盘点目标不在白名单:{call.Value.Trim()} 首参「{arg.Trim()}」");
-                else
-                    writeTargets.Add(target);
+                List<string> args = ExtractArguments(code, call);
+                // Move / Copy 的目标是第二实参(review F2/Q3)—— 两实参都须在白名单,
+                // File.Move(白名单, evil) 型绕过由第 2 实参判据拦下。
+                bool checkSecond = call.Value.Contains("Move") || call.Value.Contains("Copy");
+                int checkCount = checkSecond ? Math.Min(2, args.Count) : Math.Min(1, args.Count);
+                for (int a = 0; a < checkCount; a++)
+                {
+                    string target = ResolveWriteTarget(args[a], aliasToFile);
+                    if (target == null)
+                        violations.Add($"写盘点目标不在白名单:{call.Value.Trim()} 第{a + 1}实参「{args[a].Trim()}」");
+                    else if (a == 0)
+                        writeTargets.Add(target);
+                }
             }
 
             return (violations, writeTargets);
@@ -601,12 +807,15 @@ class Fixture {
             return null;
         }
 
-        /// <summary>取写调用的第一个实参(括号深度感知 —— Path.Combine(a, b) 内的逗号不截断)。</summary>
-        private static string ExtractFirstArgument(string source, Match call)
+        /// <summary>取写调用的全部顶层实参(括号深度感知 —— Path.Combine(a, b) 内的逗号不截断)。
+        /// 空实参列表时返回 [""](保证至少判一次,不给「零实参即免检」的漏检面)。</summary>
+        private static List<string> ExtractArguments(string source, Match call)
         {
+            var args = new List<string>();
             int open = call.Value.IndexOf('(');
             int start = call.Index + open + 1;
             int depth = 0;
+            int argStart = start;
             for (int i = start; i < source.Length; i++)
             {
                 char c = source[i];
@@ -617,18 +826,24 @@ class Fixture {
                 else if (c == ')')
                 {
                     if (depth == 0)
-                        return source.Substring(start, i - start);
+                    {
+                        args.Add(source.Substring(argStart, i - argStart));
+                        return args;
+                    }
                     depth--;
                 }
                 else if (c == ',' && depth == 0)
                 {
-                    return source.Substring(start, i - start);
+                    args.Add(source.Substring(argStart, i - argStart));
+                    argStart = i + 1;
                 }
             }
-            return source.Substring(start);
+            args.Add(source.Substring(argStart));
+            return args;
         }
 
-        /// <summary>剥离 // 与 /* */ 注释、保留字符串/字符字面量内容(状态机)。</summary>
+        /// <summary>剥离 // 与 /* */ 注释、保留字符串/字符字面量内容(状态机)。
+        /// 逐字串 @"..." 按 "" 转义处理(review F8 —— 否则 @"C:\" 型内容会误吞后续代码)。</summary>
         private static string StripComments(string source)
         {
             var sb = new StringBuilder(source.Length);
@@ -650,6 +865,29 @@ class Fixture {
                     i = Math.Min(i + 2, source.Length);
                     continue;
                 }
+                if (c == '@' && i + 1 < source.Length && source[i + 1] == '"')
+                {
+                    sb.Append("@\"");
+                    i += 2;
+                    while (i < source.Length)
+                    {
+                        if (source[i] == '"')
+                        {
+                            if (i + 1 < source.Length && source[i + 1] == '"')
+                            {
+                                sb.Append("\"\"");
+                                i += 2;
+                                continue;
+                            }
+                            sb.Append('"');
+                            i++;
+                            break;
+                        }
+                        sb.Append(source[i]);
+                        i++;
+                    }
+                    continue;
+                }
                 if (c == '"' || c == '\'')
                 {
                     char quote = c;
@@ -669,6 +907,61 @@ class Fixture {
                         if (d == quote)
                             break;
                     }
+                    continue;
+                }
+                sb.Append(c);
+                i++;
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>剥离字符串/字符/逐字串字面量内容(保留代码骨架,字面量替换为空壳)——
+        /// 符号断言(拒绝清单 / 解析 token / payload 手术)走此文本:日志串里提到
+        /// "PlayerPrefs" 一词不构成违规(review F8),逐字串 "" 转义按规范处理。</summary>
+        private static string StripLiterals(string source)
+        {
+            var sb = new StringBuilder(source.Length);
+            int i = 0;
+            while (i < source.Length)
+            {
+                char c = source[i];
+                if (c == '@' && i + 1 < source.Length && source[i + 1] == '"')
+                {
+                    i += 2;
+                    while (i < source.Length)
+                    {
+                        if (source[i] == '"')
+                        {
+                            if (i + 1 < source.Length && source[i + 1] == '"')
+                            {
+                                i += 2;
+                                continue;
+                            }
+                            i++;
+                            break;
+                        }
+                        i++;
+                    }
+                    sb.Append("\"\"");
+                    continue;
+                }
+                if (c == '"' || c == '\'')
+                {
+                    char quote = c;
+                    i++;
+                    while (i < source.Length)
+                    {
+                        char d = source[i];
+                        i++;
+                        if (d == '\\' && i < source.Length)
+                        {
+                            i++;
+                            continue;
+                        }
+                        if (d == quote)
+                            break;
+                    }
+                    sb.Append(quote == '"' ? "\"\"" : "''");
                     continue;
                 }
                 sb.Append(c);
