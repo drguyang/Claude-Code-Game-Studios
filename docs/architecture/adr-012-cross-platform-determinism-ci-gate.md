@@ -402,7 +402,8 @@ public interface IPerTargetIl2CppArgs : IPreprocessBuildWithReport
   刷 40 GB Player.log,证据摘录 `unity/Logs/build-story001-w2-player-stuck-evidence.log`)→ 编辑器侧
   `RemoteTestRunController:TimeoutCallback` → 必 RunError。**AC-29 先例同向**:桌面腿 3/3 过,
   超算腿 exit 3 / 编辑器 double-fault(`unity/Logs/cluster-ac29-*.log`)。⇒ **player 级测试执行
-  归桌面轮**;若要在超算补跑,须先裁定 xvfb 用户前缀安装(分类器 2026-09-25 挂起,待用户)。
+  归桌面轮(2026-09-25 用户裁定取 B:桌面复跑;xvfb 方案不采纳)** —— 已下载未用的前缀留置
+  `/XYFS01/sysu_tyu2_2/xvfb-prefix`,日后若重开须用户重新点名授权。
 - **观察项**:`unity/Assets/AddressableAssetsData/link.xml`(机器生成,永不提交)本次跑中缺失 +
   `Build asset version error` Import Code 4;Unity 按需再生成,归下次构建观察,不进本 ADR 判据。
 
