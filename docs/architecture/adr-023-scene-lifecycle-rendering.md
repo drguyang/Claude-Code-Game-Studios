@@ -292,6 +292,12 @@ public interface IWorldSpawner {          // 表现态生成门面(③⑤⑦ 的
 ## Validation Criteria
 
 > **S1–S7 = unity-specialist 复核判定的「参考件哑项」。逐条未跑,本 ADR 转 Accepted 前 S1/S3/S4 必须有结论;S2/S5/S6/S7 最迟随各自实现故事。**
+>
+> **2026-09-25 复跑复验注**:S1/S3/S4 三条再跑一轮全绿(0 条 Error;装置 Setup →
+> BuildPlayerContent 重建 → PlayMode 15/15),数字量级一致 —— S1 冷载 **78.6 ms**(vs 09-23
+> 的 116.8,内容重建后 catalog 暖)· 暖载 4.5 ms · 卸 7.4 ms;S3 三判据 + S-4 补强全成立;
+> S4 A/B 量级比 **322×**(vs 09-23 的 1285×,A 路本轮回 4.55 ms 均值;**结论方向不变**:
+> 细粒度激活宜 SetActive)。原始签字数字不动,本注仅记复现性。
 
 - [x] **S1** `Addressables.LoadSceneAsync(key, LoadSceneMode.Additive)` + `UnloadSceneAsync(handle)`
       在 6.3 实测可用作菜单/世界换入换出(参考件 `plugins/addressables.md:263-276` 载形状,未验行为)

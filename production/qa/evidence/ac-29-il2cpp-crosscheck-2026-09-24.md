@@ -50,7 +50,35 @@ IL2CPP_vs_MONO:   ALL19_BITWISE_IDENTICAL
 | IL2CPP-ARM64 交叉构建 + 原生 ARM64 runner 跑 player(ADR-012 F2) | **未跑** | CI 矩阵轮(`unity-builder@v4` + ARM64 runner;qemu 否决) |
 | Windows-x64-IL2CPP / Apple Silicon(发版前必跑两格) | **未跑** | 发版前 |
 | CI 三格常驻矩阵 job(`tests.yml`)| **未建** | /test-setup · CI 故事 |
-| F7 反汇编验无 FMA(`--compiler-flags=` 语义,ADR-012 §三) | **未跑** | 矩阵轮(纵深防御项;sim 全整数域零杠杆) |
+| ~~F7 反汇编验无 FMA(`--compiler-flags=` 语义,ADR-012 §三)~~ | **✅ 2026-09-25 跑毕(见下节)** | —— |
 
 > 本证据覆盖 AC-29 的**判据本体**(同组参数 Mono vs IL2CPP 哈希逐位相同)在 Linux-x64 两后端上的实测;
-> 上表四项为 ADR-012 矩阵**建设面**,持续挂账。
+> 上表残余项为 ADR-012 矩阵**建设面**,持续挂账(F7 行已于 2026-09-25 勾销)。
+
+## F7 反汇编验无 FMA(✅ 2026-09-25 跑毕)
+
+**对象**:本证据 AC-29 构建产出的 `unity/Library/Bee/artifacts/LinuxPlayerBuildProgram/il2cppOutput/build/GameAssembly.so`
+(553 MB,2026-09-25 05:42 链接,`Link_Linux_x64_Clang`)。
+
+**方法**:`nm` 定位 IL2CPP 符号 → `objdump -d` 按函数边界取指令流 → 按 mnemonic 正则扫
+`v?fmadd / v?fmsub / v?fnmadd / v?fnmsub / vmadd`(FMA 家族)与 `xmm/ymm`、`cvt*`、
+`v?(add|sub|mul|div)(ss|sd|ps|pd)`(FP/SIMD)。
+
+| 函数 | 符号 | 地址 | 指令数 | FMA | FP/SIMD | 判决 |
+|---|---|---|---|---|---|---|
+| `Fix.MulRaw`(Q16.16 中间乘) | `Fix_MulRaw_mF27897…` | `0x3df3730–0x3df3850` | 73 | **0** | **0** | **CLEAN** |
+| `SplitMix64.Avalanche`(z*=常量) | `SplitMix64_Avalanche_m45D582…` | `0x3df4cf0–0x3df4d30` | 15 | **0** | **0** | **CLEAN** |
+
+**指令面旁证**(读反汇编本体):
+- `MulRaw` = 纯整数:`imul`×4(32 位四路拆分 hi/lo 手工 128 位乘,承 ADR-005 Amendment G)+
+  `add/adc`(进位链)+ `shld $0x30`(48 位移)+ `test $0x8000`(舍入位)+ `OverflowException` 分支 ——
+  与 C# 源结构逐段对应;**零浮点寄存器参与**。
+- `Avalanche` = 纯整数:`shr/xor/imul` + 两个金标准常量 `0xbf58476d1ce4e5b9`(Mul1)与
+  `0x94d049bb133111eb`(Mul2)字面出现在指令流中 —— **与 Python 参考实现同一组常量,肉眼可核**。
+- 工具链:构建日志 `C_Linux_x64_Clang` + `Link_Linux_x64_Clang`(Linux-x64 = Clang);
+  `SetAdditionalIl2CppArgs` / `--compiler-flags` / `-ffp-contract` 全部 **0 命中**
+  ⇒ 本次跑用默认工具链旗标,**未设任何自定义 il2cpp args**。
+  ⚠️ 逐目标旗标**登记表**(ADR-012 §三:per-target compiler flags + 来源 PR)仍属 CI 矩阵轮
+  —— 本跑证明的是「产物反汇编无 FMA」,不是「旗标登记表已建立」。
+- 定性承 ADR-012 §三纵深防御口径:sim 全整数域 ⇒ FMA 本无整数形态可言;本节的可执行价值 =
+  **实证这些热路径没有浮点泄漏进 IL2CPP 产物**(FP/SIMD = 0),而非数学上消除 FMA。
