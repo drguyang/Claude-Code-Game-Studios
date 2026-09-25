@@ -4,7 +4,7 @@
 > **GDD**: design/gdd/input-system.md
 > **Architecture Module**: L4 边界层(呈现侧 · EDGE)
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories input-system`
+> **Stories**: 13 stories created (2026-09-25)
 
 ## Overview
 
@@ -55,6 +55,27 @@
 | TR-input-020 | 反幻想守门(42+48 联合):零按键提示浮层 + 手柄可走查纸页 | ADR-011 + ADR-013 ⚠️ partial |
 | TR-input-021 | 跳过路径归 10;3 只提供通道形状,不实现跳过语义 | ◆ no-adr-by-design |
 
+## Stories
+
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | 动作资产 · 单实例纪律与 Legacy 零引用门 | Integration | Ready | ADR-011 |
+| 002 | F-3.1 轴处理算术性质与装载期断言 | Logic | Ready | ADR-006 + ADR-014 |
+| 003 | 绑重 overrides sidecar 持久化 | Integration | Ready | ADR-011 + ADR-010 |
+| 004 | 绑重 schema hash 稳定性(F-3.5) | Logic | Ready | ADR-011 |
+| 005 | schema hash 失配优雅清空与跨版本备份 | Integration | Ready | ADR-011 |
+| 006 | 意图边界与交出物(零 SimEvent · 全整数 · 聚合上行) | Logic | Ready | ADR-011 + ADR-006 + ADR-009 |
+| 007 | 急救直读通道与输入更新相位 | Integration | Ready | ADR-011 |
+| 008 | 设备态与呈现契约(QueryBinding · 合成 release · Mixed 迟滞) | Integration | Ready | ADR-011 |
+| 009 | 焦点导航意图视图与单一真源 | Logic | Ready | ADR-011 + ADR-013 |
+| 010 | 热路径零成本(预缓存 · Idle 零调用 · 零分配) | Logic | Ready | ADR-011 |
+| 011 | L_input→pixel 延迟实测与 L_render/L_poll 分解 | Visual/Feel | Ready | ADR-011 |
+| 012 | 开发者调试视图与构建剥离 | UI | Ready | ADR: N/A — GDD §UI 二纯呈现侧开发工具规格,无架构裁决需求(E2② CI 载体归 ADR-012,非治理件) |
+| 013 | 反幻想守门登记面(P0 / 后阶段) | UI | Ready | ADR-011 + ADR-013 |
+
+Counts: 5 Logic · 5 Integration · 1 Visual/Feel · 2 UI = 13 total.
+29 条 AC 全覆盖(A4/A9/B1b/B2/E2/E3/F1 按子条拆入);全 ADR Accepted ⇒ 零 ADR-blocked story。
+
 ## Definition of Done
 
 This epic is complete when:
@@ -65,4 +86,4 @@ This epic is complete when:
 
 ## Next Step
 
-Run `/create-stories input-system` to break this epic into implementable stories.
+Run `/story-readiness production/epics/input-system/story-001-action-asset-identity.md` to validate before starting, then `/dev-story` to implement. Stories work in dependency order — each story's `Depends on:` field gates its start。
