@@ -38,8 +38,6 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         private static readonly string RepoRoot = ComputeRepoRoot();
         private static readonly string GameplayInputDir =
             Path.Combine(RepoRoot, "unity", "Assets", "Gameplay.Input");
-        private static readonly string SchemaHashSourcePath =
-            Path.Combine(GameplayInputDir, "SchemaHash.cs");
 
         private InputActionAsset _asset;
 
@@ -198,7 +196,9 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         {
             // QA E3④ 主用例:扫描输入程序集(Gameplay.Input 全目录)源码 ——
             // 去注释 + 去字面量后,默认哈希入口零出现;hash 实现内仅自实现 FNV-1a-64。
-            string[] tokens = { "GetHashCode", "EqualityComparer<" };
+            // token 覆盖「任何 BCL 默认哈希」两族入口:GetHashCode / EqualityComparer(初版)+
+            // HashCode(System.HashCode 与 HashCode.Combine/ToHashCode —— 不含 GetHashCode 子串,评审 Q2 补)。
+            string[] tokens = { "GetHashCode", "EqualityComparer<", "HashCode" };
             var violations = new List<string>();
             foreach (string file in Directory.GetFiles(GameplayInputDir, "*.cs", SearchOption.AllDirectories))
             {
@@ -216,6 +216,22 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             const string negative = "class F { string T(string s) { return s.GetHashCode(); } }";
             Assert.That(StripLiterals(StripComments(negative)), Does.Contain("GetHashCode"),
                 "负例夹具必须被命中(证明上循环的断言非空转)");
+
+            // Negative fixture(评审 Q2):System.HashCode / HashCode.Combine 族 —— 不含 "GetHashCode"
+            // 子串,靠独立 token 兜住;漏 token 则此夹具文字面检不出红。
+            const string hashCodeNegative = "class F { int C(int a, int b) { return System.HashCode.Combine(a, b); } }";
+            string strippedHashCode = StripLiterals(StripComments(hashCodeNegative));
+            Assert.That(strippedHashCode, Does.Contain("HashCode"),
+                "HashCode.Combine 族负例必须被命中(BCL 默认哈希的另一半入口)");
+
+            // 插值字符串洞内代码不得被当字面量剥掉(评审 F4 —— 剥离器 $ 分支的牙齿)。
+            const string interpNegative = "class F { string T(string s) { return $\"{s.GetHashCode()}\"; } }";
+            Assert.That(StripLiterals(StripComments(interpNegative)), Does.Contain("GetHashCode"),
+                $"插值洞代码保留负例必须被命中(剥离后文本:{StripLiterals(StripComments(interpNegative))})");
+            // 正对照:插值的纯字面量段(无洞)仍被剥掉。
+            const string interpLiteralOnly = "class F { string T() { return $\"plain GetHashCode here\"; } }";
+            Assert.That(StripLiterals(StripComments(interpLiteralOnly)), Does.Not.Contain("GetHashCode"),
+                "插值的字面量段照常剥离(正对照)");
 
             // 正对照:同词出现在注释里 ⇒ 剥离后不命中(剥离器有牙,真源注释不误报)。
             const string commentOnly = "// never: s.GetHashCode() and EqualityComparer<string>.Default\nreturn 0;";
@@ -246,21 +262,34 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         [Test]
         public void test_schemaHash_schemaHashSource_hasNoEffectiveOrPayloadReads()
         {
-            // QA E3⑤ 静态半边:R 的读点(生产 BuildRecords 所在的 SchemaHash.cs)零
-            // effective* / 零 SaveBindingOverridesAsJson —— 走去注释 + 去字面量文本
-            // (doc comment 里以「禁读」字样提及这些名字不构成违规)。
-            string code = StripLiterals(StripComments(File.ReadAllText(SchemaHashSourcePath)));
+            // QA E3⑤ 静态半边:R 的读点零 effective* / 零 SaveBindingOverridesAsJson ——
+            // 走去注释 + 去字面量文本(doc comment 里以「禁读」字样提及这些名字不构成违规)。
+            // 扫描面 = Gameplay.Input 全目录(评审 Q5:单锚 SchemaHash.cs 时 BuildRecords 搬家即恒绿);
+            // 唯一豁免 = BindingsStore.cs × SaveBindingOverridesAsJson —— Story 003 的合法写点
+            // (载荷只落盘、不回读进资产,「3 不解析」由 story-003 的解析扫描守)。
             string[] tokens =
             {
                 "effectivePath", "effectiveProcessors", "effectiveInteractions", "effectiveGroups",
-                "overridePath", "overrideProcessors", "overrideInteractions",
+                "overridePath", "overrideProcessors", "overrideInteractions", "overrideGroups",
                 "SaveBindingOverridesAsJson",
             };
-            foreach (string token in tokens)
+            const string exemptFile = "BindingsStore.cs";
+            var violations = new List<string>();
+            foreach (string file in Directory.GetFiles(GameplayInputDir, "*.cs", SearchOption.AllDirectories))
             {
-                Assert.That(code, Does.Not.Contain(token),
-                    $"SchemaHash.cs 的读点不得出现 {token}(AC-3-E3⑤ 硬禁 —— 读它 = override 混入 R)");
+                string fileName = Path.GetFileName(file);
+                string code = StripLiterals(StripComments(File.ReadAllText(file)));
+                foreach (string token in tokens)
+                {
+                    if (!code.Contains(token))
+                        continue;
+                    if (token == "SaveBindingOverridesAsJson" && fileName == exemptFile)
+                        continue;
+                    violations.Add($"{fileName}:{token}");
+                }
             }
+            Assert.That(violations, Is.Empty,
+                $"R 读点零 effective*/override*/载荷调用(违例:{string.Join(", ", violations)})");
 
             // Negative fixture:读点改用 effectivePath 的变体 ⇒ 红。
             const string negative =
@@ -307,6 +336,23 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             Assert.That(HashOf(MakeRecord(groups: new[] { "ab", "c" })),
                 Is.Not.EqualTo(HashOf(MakeRecord(groups: new[] { "a", "bc" }))),
                 "同计数不同切分必须可区分(逐元素长度前缀)");
+        }
+
+        // ══════════ 不变量② / manifest Required:hash 输入含 bindingId(评审批追加) ══════════
+
+        [Test]
+        public void test_schemaHash_bindingIdDiffers_hashDiffers()
+        {
+            // ADR-011 Amendment A ③ + control manifest Required「hash 输入须含 bindingId」
+            // (重建检测的使能性质;失配后果归 Story 005)。牙齿:canon 删掉 WriteString(BindingId)
+            // 这一行 ⇒ 本测红 —— 评审 F1 指出原 8 测对不变量②全盲,此处补牙。
+            BindingSchemaRecord other = new BindingSchemaRecord(
+                "MapA", "ActionA", 0, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeee0",
+                "binding-name", "<Keyboard>/e", false, false,
+                Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>());
+
+            Assert.That(HashOf(MakeRecord()), Is.Not.EqualTo(HashOf(other)),
+                "仅 bindingId 不同的两条记录 hash 必不同(重建 ⇒ GUID 重生成 ⇒ hash 必变)");
         }
 
         // ══════════ 源码剥离器(自包含 —— 与 Story 003 的同名实现刻意不共享) ══════════
@@ -384,7 +430,10 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             return sb.ToString();
         }
 
-        /// <summary>剥离字符串/字符/逐字串字面量内容(保留代码骨架)—— 符号断言走此文本。</summary>
+        /// <summary>剥离字符串/字符/逐字串字面量内容(保留代码骨架)—— 符号断言走此文本。
+        /// 插值字符串 $"…{hole}…" / $@"…" / @$"…":剥字面量段、<b>保留插值洞内代码</b>
+        /// (否则 $"{s.GetHashCode()}" 的洞被当字面量剥掉 ⇒ 扫描假阴性 —— 评审 F4);
+        /// 洞内嵌套字面量照常剥(占位防粘连)。</summary>
         private static string StripLiterals(string source)
         {
             var sb = new StringBuilder(source.Length);
@@ -392,6 +441,112 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             while (i < source.Length)
             {
                 char c = source[i];
+
+                // 插值字符串(必须先于 @ 与普通引号分支:$@ / @$ 两种前缀)
+                bool interpVerbatim = false;
+                bool isInterp = false;
+                if (c == '$' && i + 1 < source.Length && source[i + 1] == '"')
+                {
+                    isInterp = true;
+                    i += 2;
+                }
+                else if (c == '$' && i + 2 < source.Length && source[i + 1] == '@' && source[i + 2] == '"')
+                {
+                    isInterp = true;
+                    interpVerbatim = true;
+                    i += 3;
+                }
+                else if (c == '@' && i + 2 < source.Length && source[i + 1] == '$' && source[i + 2] == '"')
+                {
+                    isInterp = true;
+                    interpVerbatim = true;
+                    i += 3;
+                }
+                if (isInterp)
+                {
+                    while (i < source.Length)
+                    {
+                        char d = source[i];
+                        if (!interpVerbatim && d == '\\' && i + 1 < source.Length)
+                        {
+                            i += 2;
+                            continue;
+                        }
+                        if (d == '"')
+                        {
+                            if (interpVerbatim && i + 1 < source.Length && source[i + 1] == '"')
+                            {
+                                i += 2;
+                                continue;
+                            }
+                            i++;
+                            break;
+                        }
+                        if (d == '{')
+                        {
+                            if (i + 1 < source.Length && source[i + 1] == '{')   // {{ 转义大括号,非洞
+                            {
+                                i += 2;
+                                continue;
+                            }
+                            i++;
+                            sb.Append('{');
+                            int depth = 1;
+                            while (i < source.Length && depth > 0)
+                            {
+                                char h = source[i];
+                                if (h == '{')
+                                {
+                                    depth++;
+                                    sb.Append(h);
+                                    i++;
+                                }
+                                else if (h == '}')
+                                {
+                                    depth--;
+                                    sb.Append(h);
+                                    i++;
+                                }
+                                else if (h == '"' || h == '\'')
+                                {
+                                    char q = h;
+                                    i++;
+                                    while (i < source.Length)
+                                    {
+                                        char n = source[i];
+                                        if (!interpVerbatim && n == '\\' && i + 1 < source.Length)
+                                        {
+                                            i += 2;
+                                            continue;
+                                        }
+                                        if (n == q)
+                                        {
+                                            if (interpVerbatim && q == '"' && i + 1 < source.Length && source[i + 1] == '"')
+                                            {
+                                                i += 2;
+                                                continue;
+                                            }
+                                            i++;
+                                            break;
+                                        }
+                                        i++;
+                                    }
+                                    sb.Append(q == '"' ? "\"\"" : "''");   // 占位防粘连(内容按字面量剥)
+                                }
+                                else
+                                {
+                                    sb.Append(h);
+                                    i++;
+                                }
+                            }
+                            continue;
+                        }
+                        i++;
+                    }
+                    sb.Append("\"\"");
+                    continue;
+                }
+
                 if (c == '@' && i + 1 < source.Length && source[i + 1] == '"')
                 {
                     i += 2;

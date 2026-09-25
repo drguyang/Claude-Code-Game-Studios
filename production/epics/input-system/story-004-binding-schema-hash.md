@@ -99,9 +99,20 @@
 
 **实现期登记(2026-09-26 实现批;不改 spec,只把实际实现/用例面与原文的出入落账)**:
 - **E3⑦ 计数前缀负例探针在 AC 夹具下不可构造(GDD/QA 口径出入 —— 牙齿改锚)**:GDD F-3.5 的规范序列化对集合元素用**逐元素 4 字节定长长度前缀**(`len ‖ utf8`)。在此编码下,QA Negative「实现去掉计数前缀 ⇒ 本测红」用 AC 给定的两对夹具**红不了**:`[]` 与 `[""]` 的字节流本就不同(前者计数 0 后无元素,后者计数 1 + `len=0` 的空元素头)—— GDD:652「单元素空串 = len=0 故撞」的论证在**定长**前缀下不成立(空元素仍发出 4 个零字节);`["a","b"]` vs `["ab"]` 同理由逐元素前缀区分。⇒ AC 两夹具**逐字断言保留**(test 7 前两支),计数前缀的**牙齿改锚**到相邻集合平移夹具:test 7 第三支 `processors=["clamp"],interactions=[]` vs `processors=[],interactions=["clamp"]` —— 无计数时两字段的字节流**逐位相同**(同为 `len=4 ‖ "clamp"`),计数参与则必须不同 ⇒ 去计数该断言红。元素长度前缀的牙齿另立 test 8:`("ab","c")` vs `("a","bc")`(计数同为 2,仅逐元素前缀可区分)。
-- **测试函数 → AC 映射(8 测)**:E3① 2 测(`..._sameAsset_twiceCompute_identical` 含排序吸收 Edge + `..._buildRecords_coverAllBindingsWithIds` Manifest Required 实证)· E3② 1 测(`..._overridesWritten_recomputeUnchanged`,含复合 part 与删回 Edge)· E3④ 1 测(`..._sourceScan_noBclDefaultHash`)· E3⑤ 2 测(`..._withOverride_recomputeUnchanged_effectiveProbeDiffers` 运行时 + `..._schemaHashSource_hasNoEffectiveOrPayloadReads` 静态)· E3⑦ 2 测(`..._countPrefix_distinguishesEmptyAdjacentShift` + `..._elementLengthPrefix_sameCountSplit_differs`)。
+- **测试函数 → AC 映射(9 测)**:E3① 2 测(`..._sameAsset_twiceCompute_identical` 含排序吸收 Edge + `..._buildRecords_coverAllBindingsWithIds` Manifest Required 实证)· E3② 1 测(`..._overridesWritten_recomputeUnchanged`,含复合 part 与删回 Edge)· E3④ 1 测(`..._sourceScan_noBclDefaultHash`)· E3⑤ 2 测(`..._withOverride_recomputeUnchanged_effectiveProbeDiffers` 运行时 + `..._schemaHashSource_hasNoEffectiveOrPayloadReads` 静态)· E3⑦ 2 测(`..._countPrefix_distinguishesEmptyAdjacentShift` + `..._elementLengthPrefix_sameCountSplit_differs`)+ 不变量② 牙齿 1 测(`..._bindingIdDiffers_hashDiffers`,评审批 F1 追加,见下方 code review 修复批)。
 - **静态扫描面**:E3④ 扫 `Gameplay.Input` **全目录**(该目录 grep 零 `GetHashCode`/`EqualityComparer<` 命中,含注释);E3⑤ 静态半边只扫 `SchemaHash.cs` 单文件 —— `BindingsStore.cs` 持有 `SaveBindingOverridesAsJson` 是 Story 003 的合法写点,不入本扫描面;`effective*` 判别探针**刻意住测试文件**(E3⑤ 扫描范围不含测试侧,防自红)。
-- **全套测试基线核算(543 的来历)**:story-003 收批登记 534 + `test_legacy_input_gate_analyzer_platform_all_off`(7905b5c 分析器修复批新增常驻回归测;该测在 058dd13 树内,但 story-003 收批 run 的 XML 未收录 —— 疑与该测所防的「域重载下测试发现遗漏」同因)= **535**,+ 本故事 8 = **543** ✓(逐 fixture 集合差分核验,非估算)。
+- **全套测试基线核算(543/544 的来历)**:story-003 收批登记 534 + `test_legacy_input_gate_analyzer_platform_all_off`(7905b5c 分析器修复批新增常驻回归测;该测在 058dd13 树内,但 story-003 收批 run 的 XML 未收录 —— 疑与该测所防的「域重载下测试发现遗漏」同因)= **535**,+ 本故事 8 = **543**(初版 run),+ F1 牙齿测 1 = **544**(评审批复跑)✓(逐 fixture 集合差分核验,非估算)。
+
+**code review 修复批(2026-09-26 会话内双代理 —— unity-specialist **APPROVED WITH SUGGESTIONS** F1–F5 · qa-tester **TESTABLE** Q1–Q8;不改 spec,落账如下)**:
+- **追加 1 测(8 → 9)**:`test_schemaHash_bindingIdDiffers_hashDiffers`(F1:原 8 测对不变量② / manifest Required「hash 输入须含 `bindingId`」全盲 —— 删 canon 里 `WriteString(BindingId)` 一行则原套全绿;补牙齿后该删除必红)。
+- **E3④ token 集扩面(Q2 WARNING)**:补 token `HashCode`(`System.HashCode` / `HashCode.Combine` 族 —— 不含 `GetHashCode` 子串,原两 token 捕不到)+ 负例夹具 `System.HashCode.Combine` 证牙(现目录零命中,实测)。
+- **E3⑤ 静态扫描改全目录 + 补 token(Q1/F2/Q5)**:① token 补 `overrideGroups`(`InputBinding` 第四个 override 属性);② 扫描面由单锚 `SchemaHash.cs` 改为 `Gameplay.Input` **全目录**(防 `BuildRecords` 将来搬文件 ⇒ 单文件锚恒绿);③ 唯一豁免 = `BindingsStore.cs` × `SaveBindingOverridesAsJson`(Story 003 合法写点 —— 载荷只落盘不回读,「3 不解析」由 story-003 的解析扫描守)。
+- **剥离器补插值分支(F4)**:`StripLiterals` 识别 `$"…"` / `$@"…"` / `@$"…"`,剥字面量段、**保留 `{hole}` 内代码**(否则 `$"{s.GetHashCode()}"` 的洞被当字面量剥掉 ⇒ E3④/E3⑤ 假阴性);洞内嵌套字面量剥内容留占位防粘连;负例 + 纯字面量正对照双向证牙。
+- **F3 `WriteList` 克隆后排序**:`Array.Sort` 原就地改调用方数组,违反 `BindingSchemaRecord` 不可变承诺 ⇒ `Clone()` 再排(哈希结果不变,只除副作用)。
+- **登记不改(双代理独立核验属实)**:Q6 —— E3⑦ 牙齿改锚论证经两代理逐字节独立复核确认(去计数后 AC 两夹具仍异、平移夹具必撞);**GDD `input-system.md:652` 的「`[]` ≡ `[""]`」论证在逐元素定长前缀下为假 —— 权威文本未回修,转 design 侧跟轮**;同批 F5:GDD:638「按 `StringComparer.Ordinal` 升序」措辞宜收「按 canon 字节序」(实现取无符号字节序,ASCII 域等价且更确定)—— 两条 GDD 侧措辞建议均**不动本批权威文本**。
+- **登记不改(归属他故事)**:Q4 —— 全部测试均为相对比较,无「固定输入 ⇒ 钉死 hash 字符串」golden 夹具;canon 编码若变,既有 `bindings.schema.txt` 头部 hash 集体失配 ⇒ Story 005 清空被误触发(QA 原文未要求钉值,不判违规)⇒ **Story 005 回归层补钉值夹具**。Q8 —— `ComputeSchemaHash` 当前零生产调用点(史诗分期:P0 无改键 UI)⇒ **Story 005 或接线故事立集成断言** `Save(asset, ComputeSchemaHash(asset))` → Load 往返。
+- **扫描面边界声明(Q3)**:E3④/E3⑤ 静态扫描是**程序集内文本**扫描 —— 程序集内他处调用可达(QA Edge 字面满足);**跨程序集委托**(把 hash 交给外部 helper)文本不可达 ⇒ 输入侧现状零跨程序集委托,登记为已知边界(fail 方向:换文件/换程序集的绕过会由 E3⑤ 全目录 + 运行时探针兜底)。
+- **suite 级约束(Q7)**:EditMode 测试对单实例 `.inputactions` 只做内存 override(SetUp/TearDown 双向 `RemoveAllBindingOverrides`,全测试树零 `SaveAssets`/`SetDirty` —— 实测);**约束「测试不得对该资产 SaveAssets」**,违则 override 持久化进资产真源。
 
 ---
 
@@ -111,10 +122,10 @@
 **Required evidence**:
 - Logic: `tests/unit/input_system/binding_schema_hash_test.cs` — must exist and pass
 
-**Status**: [x] Created + VERIFIED(2026-09-26 超算 batch)
+**Status**: [x] Created + VERIFIED(2026-09-26 超算 batch;同日评审修复批复跑)
 - 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/binding_schema_hash_test.cs`,文档路径 `tests/unit/input_system/` 为登记口径(README 落点说明同批)
-- 执行 ✅ **VERIFIED 2026-09-26**:全套 EditMode **543/543 全绿 exit 0**(log `unity/Logs/build-story004-impl.log`);本故事 **8/8 Passed**(E3① 2 + E3② 1 + E3④ 1 + E3⑤ 2 + E3⑦ 2)
-- 基线核算:534(story-003 登记)+ 1(`test_legacy_input_gate_analyzer_platform_all_off`,7905b5c 常驻回归,story-003 收批 XML 未收录)+ 8(本故事)= **543** ✓(逐 fixture 集合差分核验,详见上方实现期登记)
+- 执行 ✅ **VERIFIED 2026-09-26 评审修复批复跑**:全套 EditMode **544/544 全绿 exit 0**(log `unity/Logs/build-story004-fixes.log`;初版 543 → F1 补 bindingId 牙齿测 544);本故事 **9/9 Passed**(E3① 2 + E3② 1 + E3④ 1 + E3⑤ 2 + E3⑦ 2 + 不变量②牙齿 1)
+- 基线核算:534(story-003 登记)+ 1(`test_legacy_input_gate_analyzer_platform_all_off`,7905b5c 常驻回归,story-003 收批 XML 未收录)= **535**,+ 本故事 9 = **544** ✓(逐 fixture 集合差分核验,详见上方实现期登记)
 
 ---
 

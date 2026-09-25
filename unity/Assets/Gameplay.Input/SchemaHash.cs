@@ -204,8 +204,9 @@ namespace DaYiJingCheng.Gameplay.Input
         private static void WriteList(System.IO.MemoryStream ms, string[] elements)
         {
             WriteU32(ms, (uint)elements.Length);   // 元素计数前缀(GDD F-3.5 强制;AC-E3⑦)
-            Array.Sort(elements, StringComparer.Ordinal);
-            foreach (string e in elements)
+            var sorted = (string[])elements.Clone();   // 克隆后排序:求 hash 不得改动调用方数组(Record 不可变承诺)
+            Array.Sort(sorted, StringComparer.Ordinal);
+            foreach (string e in sorted)
                 WriteString(ms, e);
         }
 
