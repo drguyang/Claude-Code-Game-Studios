@@ -9,7 +9,8 @@
 // ⚠️ 本文件是**执行装置,不是黄金断言**:
 //    - 绿 = 装置跑通(加载/卸载/实例化按预期完成);存活方向、毫秒数、bundle 计数
 //      **不作 Assert** —— 任一方向都是 spike 发现,写进 Logs/u1_spike_results.txt 供 §6 回填;
-//    - 前置:菜单 大医精诚/Spike/Setup U1 Spikes 已跑(缺 key → 三条全 Ignore,不会假绿)。
+//    - 前置:菜单 大医精诚/Spike/Setup U1 Spikes 已跑(缺 key → 三条全 Ignore,不会假绿;
+//      Ignore 生效依赖坑 C 的「测试体内钉 LogAssert」写法)。
 //    - bundle 计数依赖 Play Mode = Existing Build(Setup 已尝试自动切);Use Asset Database
 //      模式下 bundle 数恒 0,结果行会标 mode=AssetDatabase(spike 判据 2/3 记 N/A)。
 // ⚠️ 结果写 Logs/u1_spike_results.txt(Unity .gitignore 已含 [Ll]ods —— 不入库),
@@ -30,6 +31,16 @@
 //     修法:在卸载**之前**把 GameObject 引用取出来,卸载后用引用比对(Unity fake-null)判存活;
 //     handle 读取一律先 `IsValid()`;`ReleaseInstance` 也先 `IsValid()`(已被自动清理的再释放会抛)。
 //   ⇒ 三条读句柄的辅助(Ex / Go / SceneOf)全部先判 `IsValid()`,本文件不再有任何裸读。
+//
+// ── 2026-09-25 第三轮:坑 C —— LogAssert.ignoreFailingMessages 的**落点**(UTF 1.6.0 源实读) ──
+//   在 [SetUp] / [OneTimeSetUp] 里设**无效**:命令链是 SetUpTearDownCommand **外包**
+//   UnityLogCheckDelegatingCommand(TestCommandBuilder:42/75),SetUp 先于该测的 LogScope 创建执行;
+//   且 BeforeAfterTestCommandBase(:149/:242)只给 SetUp 调用本身开一条**瞬态** scope ⇒ 设的值
+//   落进瞬态 scope、随其销毁。逐帧 CheckFailingLogs 读的是 UnityLogCheck **自己**的 scope
+//   (默认 false)⇒ 缺 key 的 InvalidKeyException Error 照样把测试红成
+//   「Unhandled log message … Use LogAssert.Expect」,GuardSetup 的 Assert.Ignore 根本轮不到。
+//   修法:**每个测试体第一行**再钉一次(此时 Current = 该测的 log-check scope,方法体不另开 scope,
+//   EnumerableTestMethodCommand 逐帧 MoveNext 直通)。红变 Ignore 后,发现仍由 OnUnityLog 捕获进报告。
 
 using System;
 using System.Collections;
@@ -101,9 +112,9 @@ namespace DaYiJingCheng.Tests.PlayMode
             Report("marker:Logs 文件不存在时,搜 Console 前缀 [U1-S 亦可拿到全部数字");
         }
 
-        // UTF 可能在每个测试前重置 LogAssert 的静态态,故逐测再钉一次
-        // (2026-09-23:首跑 S1/S3 红 —— Addressables 中途 Error 日志在 UTF 默认下会立即红掉并
-        //  中止协程,数字全丢。改为捕获进报告;发现的【内容】不丢,只是不再以红的形式吞掉后续测量)。
+        // ⚠️ 这两处钉(OneTimeSetUp / SetUp)只落在**瞬态 scope** 上、随其销毁 —— 单靠它们
+        //    兜不住逐帧 CheckFailingLogs(见文件头注坑 C)。**真正的钉点是各测试体第一行**;
+        //    此处保留仅为双保险 + 让 Console 出现 IgnoreFailingMessages:true 的痕迹便于追查。
         [SetUp]
         public void BeforeEach() => LogAssert.ignoreFailingMessages = true;
 
@@ -229,6 +240,8 @@ namespace DaYiJingCheng.Tests.PlayMode
         [UnityTest]
         public IEnumerator test_s1_additive_load_unload_logs_ms()
         {
+            // 坑 C:必须在体内钉 —— SetUp 里那次落在瞬态 scope,拦不住本测逐帧的失败日志判定。
+            LogAssert.ignoreFailingMessages = true;
             // 冷启:含 catalog / bundle 初始化;第二轮给暖值(卡 §4.1 要「加载毫秒、卸载毫秒」,
             // 暖值供 S4 量级对照参考,不改判据)。
             // ⚠️ 判据搬到**最后**(数字先落盘)—— 2026-09-23 首跑教训:Report 排在 assert 之后时,
@@ -289,6 +302,8 @@ namespace DaYiJingCheng.Tests.PlayMode
         [UnityTest]
         public IEnumerator test_s3_instance_survival_and_refcount_logs()
         {
+            // 坑 C:必须在体内钉 —— SetUp 里那次落在瞬态 scope,拦不住本测逐帧的失败日志判定。
+            LogAssert.ignoreFailingMessages = true;
             int b0 = BundleCount();
             Report($"[U1-S3] bundle baseline={b0}");
 
@@ -393,6 +408,8 @@ namespace DaYiJingCheng.Tests.PlayMode
         [UnityTest]
         public IEnumerator test_s4_scene_switch_vs_setactive_logs_ms()
         {
+            // 坑 C:必须在体内钉 —— SetUp 里那次落在瞬态 scope,拦不住本测逐帧的失败日志判定。
+            LogAssert.ignoreFailingMessages = true;
             const int Iters = 20;
 
             // ── A 路:两个 Addressable 场景 load/unload 交替 ×20 ──
