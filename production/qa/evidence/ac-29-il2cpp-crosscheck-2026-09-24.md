@@ -82,3 +82,30 @@ IL2CPP_vs_MONO:   ALL19_BITWISE_IDENTICAL
   —— 本跑证明的是「产物反汇编无 FMA」,不是「旗标登记表已建立」。
 - 定性承 ADR-012 §三纵深防御口径:sim 全整数域 ⇒ FMA 本无整数形态可言;本节的可执行价值 =
   **实证这些热路径没有浮点泄漏进 IL2CPP 产物**(FP/SIMD = 0),而非数学上消除 FMA。
+
+## 第三腿(✅ 2026-09-25):Mono player 进程 —— 四方对拍 + W2 炸点复验
+
+**动因**:云端 `577ce7f`(input-system W2:LegacyInputAnalyzer.dll Editor-only 收敛)
+修掉了 player 构建的 UnityLinker `AssemblyResolutionException`(exit 3);ADR-012 挂账注裁定
+「player 套件超算无头无 X 不可执行 ⇒ **执行归桌面轮**」(引用本 AC-29 先例)—— 本节即该桌面轮,
+兼做 AC-29 的第三次独立上下文取证。
+
+**执行**:`Unity -batchmode -runTests -testPlatform StandaloneLinux64`(UTF player 套件,
+独立 player 进程;仓库后端 = Mono;`AC29_GOLDEN` / `AC29_OUT` 经 env 注入,player 子进程继承)。
+
+| 检查 | 结果 |
+|---|---|
+| W2 原炸点(`AssemblyResolutionException` / exit 3 / Aborting) | **0 命中 —— 本地复验过炸点**(log 仅剩正常的 `Unloading broken assembly … Editor-only` 提示)|
+| 第 1 跑(未注入金标准) | exit 0 · 14/14 Passed · 1 条按 AC-29 预案设计 Skip(金标准不可达 ⇒ 降级只落盘)|
+| 第 2 跑(注入 `AC29_GOLDEN`) | exit 0 · **15/15 Passed,0 Failed,0 Skipped** —— player 内金标准就地断言亦绿 |
+| 结果 XML | `unity/Logs/player-suite{,2}-2026-09-25.xml`(本地日志,按仓库纪律不入库)|
+
+**四方对拍(新证据文件 `ac29-hashes-player-2026-09-25.txt`,头标
+`backend=Mono · Mono 6.13.0 · platform=LinuxPlayer` = 独立 player 进程)**:
+
+```
+19 条 × {golden, 编辑器 Mono, IL2CPP player(AC-29), Mono player(本跑)}
+  ⇒ ALL_IDENTICAL(四方逐位相同)
+```
+
+⇒ 逐位证据面由两腿扩至**三上下文四份产物**;W2 修复桌面复验 = **PASS**。
