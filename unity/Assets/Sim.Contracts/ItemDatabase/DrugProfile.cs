@@ -70,8 +70,10 @@ namespace DaYiJingCheng.Sim.Contracts
         public Fix[] AxisOffsetByQuality { get; set; }
 
         /// <summary>成药侧品级定性修饰(D-21-24,长度 = <c>MAX_QUALITY</c>,42 以药签措辞呈现)。
-        /// 长度校验 = AC-21a-62
-        /// (执法体 <c>Editor.Tools.Gates.DrugProfileGates.ValidateDrugQualityCharacterLength</c>,Story 004)。可空(P0)。</summary>
+        /// 长度/非空校验 = AC-21a-62
+        /// (执法体 <c>Editor.Tools.Gates.DrugProfileGates.ValidateDrugQualityCharacterLength</c>,Story 004)。
+        /// **2026-09-25 R13 = 甲 同批**:<c>MAX_QUALITY &gt; 1</c> 时最小非空(原「可空(P0)」废止,
+        /// C# 属性本身仍可 null —— 必填由烘焙门执行)。</summary>
         public string[] DrugQualityCharacter { get; set; }
     }
 }

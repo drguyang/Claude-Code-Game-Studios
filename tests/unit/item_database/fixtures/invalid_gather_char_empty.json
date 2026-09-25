@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "_note": "2026-09-25 R13 = 甲 负向夹具:gather_profile.quality_character[] 整列空([]),而 max_quality = 5(MIN>1 时最小非空 —— 原「P0 可空」豁免已废止 ⇒ 构建期硬失败;逐档非空同批;null 同路径,测试内另以 null 入参自证)。原料侧路径 —— 勿与成药侧 drug_quality_character[](AC-21a-62)混。",
+  "max_quality": 5,
+  "gather_profile": {
+    "ecosystem": "wetland",
+    "parts": ["leaf"],
+    "qty_per_node": 2,
+    "quality_character": []
+  }
+}

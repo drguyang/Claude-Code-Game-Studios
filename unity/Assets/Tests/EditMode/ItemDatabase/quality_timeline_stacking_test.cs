@@ -7,10 +7,12 @@
 //     · AC-21a-38 —— 仅 quality_axis 那条轴平移,余三轴逐位不变;不读写 polarity(结构事实)
 //     · AC-21a-38b —— Axis_base + min(offset) > 0(域钳制;D-21-34 张力:只断言 > 0,不收紧)
 //     · AC-21a-50 —— axis_offset_by_quality[] 长度 ≠ MAX_QUALITY ⇒ 构建期硬失败(非空时)
-//     · AC-21a-50b —— gather_profile.quality_character[] 长度 ≠ MAX_QUALITY ⇒ 构建期硬失败(非空时)
+//     · AC-21a-50b —— gather_profile.quality_character[] 长度 ≠ MAX_QUALITY ⇒ 构建期硬失败;
+//                     2026-09-25 R13 = 甲 扩充:MAX_QUALITY > 1 时 null/空列 ⇒ 硬失败 + 逐档非空
 //     · AC-21a-60 —— P0 quality_axis ∉ {half_life} ⇒ 构建期硬失败(D-21-23 收窄落盘)
 //     · AC-21a-61 —— 任一非零档 |offset| < 可感知地板 ⇒ 构建期硬失败(D-21-24 第二半)
-//     · AC-21a-62 —— drug_quality_character[] 非空且长度 ≠ MAX_QUALITY ⇒ 构建期硬失败(成药侧)
+//     · AC-21a-62 —— drug_quality_character[] 长度 ≠ MAX_QUALITY ⇒ 构建期硬失败(成药侧);
+//                    2026-09-25 R13 = 甲 同批:空列 ⇒ 硬失败 + 逐档非空(与 50b 对称)
 //     · AC-21a-64 —— Σ(weight × InstanceWeight) 最坏上界不溢出 int64(先证不溢出的上界判据)
 //   GDD:design/gdd/item-database.md §Formulas F4(:657-688)/ F5(:688-748)· Core Rules 规则六(:185-191)
 //   ADR-006(主):定点域边界数据契约 —— weight/stack_max 是 int 计数(D-21-17)· 舍入整数域内完成
@@ -680,12 +682,47 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
         }
 
         [Test]
-        public void test_gatherQualityCharacter_emptyAndExactLength_accepted()
+        public void test_gatherQualityCharacter_empty_rejected_whenMaxAboveOne()
         {
-            Assert.That(DrugProfileGates.ValidateGatherQualityCharacterLength(new string[0], 5), Is.Empty,
-                "长度 0 = P0 正常态(D-21-16)⇒ 过");
-            Assert.That(DrugProfileGates.ValidateGatherQualityCharacterLength(new string[5], 5), Is.Empty,
-                "恰长 ⇒ 过");
+            // 2026-09-25 R13 = 甲:原「空 = P0 正常态 ⇒ 过」断言随改判翻转(禁借旧绿)。
+            var nullErrs = DrugProfileGates.ValidateGatherQualityCharacterLength(null, 5, "willow_bark");
+            Assert.That(nullErrs.Count, Is.EqualTo(1), "null 列 当 MAX_QUALITY = 5 ⇒ 拒(R13=甲)");
+            Assert.That(nullErrs[0], Does.Contain("AC-21a-50b"));
+            Assert.That(nullErrs[0], Does.Contain("R13 = 甲"));
+
+            var emptyErrs = DrugProfileGates.ValidateGatherQualityCharacterLength(new string[0], 5, "willow_bark");
+            Assert.That(emptyErrs.Count, Is.EqualTo(1), "空列 当 MAX_QUALITY = 5 ⇒ 拒(R13=甲)");
+            Assert.That(emptyErrs[0], Does.Contain("gather_profile.quality_character[]"));
+
+            // 负向夹具同判(R13=甲 回写批指定):invalid_gather_char_empty.json
+            string json = readFixture("invalid_gather_char_empty.json");
+            int maxQuality = readIntField(json, "max_quality");
+            string[] character = readStringArray(json, "quality_character");
+            Assert.That(character.Length, Is.EqualTo(0), "夹具自证:整列空");
+            Assert.That(DrugProfileGates.ValidateGatherQualityCharacterLength(character, maxQuality, "herba_menthae").Count,
+                Is.EqualTo(1), "空列夹具 ⇒ 拒(与内存入参同判)");
+        }
+
+        [Test]
+        public void test_gatherQualityCharacter_exactLength_accepted_blankEntry_rejected()
+        {
+            Assert.That(DrugProfileGates.ValidateGatherQualityCharacterLength(
+                new[] { "枯脆细碎", "皮薄色暗", "条匀皮厚", "条肥色正", "皮厚丝丰" }, 5), Is.Empty,
+                "恰长且逐档非空 ⇒ 过");
+            var blank = new[] { "肥厚油润", "条匀皮厚", "", "瘦硬少脂", "细碎皮薄" };
+            var errs = DrugProfileGates.ValidateGatherQualityCharacterLength(blank, 5, "willow_bark");
+            Assert.That(errs.Count, Is.EqualTo(1), "任一档空白 ⇒ 拒(逐档非空,R13=甲)");
+            Assert.That(errs[0], Does.Contain("[2]"), "错误须点名空白档下标");
+        }
+
+        [Test]
+        public void test_gatherQualityCharacter_empty_accepted_whenMaxEqualsOne()
+        {
+            // R13 条件字面 = MAX_QUALITY > 1 才最小非空;maxQuality ≤ 1 保留旧口径(边界自证,防条件写反)。
+            Assert.That(DrugProfileGates.ValidateGatherQualityCharacterLength(new string[0], 1), Is.Empty,
+                "maxQuality = 1 时条件不触发 ⇒ 空放行(字面边界)");
+            Assert.That(DrugProfileGates.ValidateGatherQualityCharacterLength(new[] { "单档" }, 1), Is.Empty,
+                "maxQuality = 1 恰长且非空 ⇒ 过");
         }
 
         [Test]
@@ -817,12 +854,32 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
         }
 
         [Test]
-        public void test_drugQualityCharacter_emptyAndExactLength_accepted()
+        public void test_drugQualityCharacter_empty_rejected_whenMaxAboveOne()
         {
-            Assert.That(DrugProfileGates.ValidateDrugQualityCharacterLength(new string[0], 5), Is.Empty,
-                "空数组 = P0 可空 ⇒ 过");
-            Assert.That(DrugProfileGates.ValidateDrugQualityCharacterLength(new string[5], 5), Is.Empty,
-                "恰 MAX_QUALITY ⇒ 过");
+            // 2026-09-25 R13 = 甲(含成药侧):原「空数组 = P0 可空 ⇒ 过」断言随改判翻转(禁借旧绿)。
+            var nullErrs = DrugProfileGates.ValidateDrugQualityCharacterLength(null, 5, "salicylic_acid");
+            Assert.That(nullErrs.Count, Is.EqualTo(1), "null 列 当 MAX_QUALITY = 5 ⇒ 拒(R13=甲)");
+            Assert.That(nullErrs[0], Does.Contain("AC-21a-62"));
+            Assert.That(nullErrs[0], Does.Contain("R13 = 甲"), "成药侧错误须具名同批裁定出处");
+
+            var emptyErrs = DrugProfileGates.ValidateDrugQualityCharacterLength(new string[0], 5, "salicylic_acid");
+            Assert.That(emptyErrs.Count, Is.EqualTo(1), "空列 ⇒ 拒(与 AC-21a-50b 对称)");
+
+            Assert.That(DrugProfileGates.ValidateDrugQualityCharacterLength(
+                new[] { "浑浊沉淀", "色浊欠匀", "清亮尚匀", "澄明匀净", "澄澈晶莹" }, 5), Is.Empty,
+                "恰 MAX_QUALITY 且逐档非空 ⇒ 过");
+            var blank = new[] { "澄明晶莹", "清亮匀净", "清亮尚匀", "色泽欠清", " " };
+            var blankErrs = DrugProfileGates.ValidateDrugQualityCharacterLength(blank, 5, "salicylic_acid");
+            Assert.That(blankErrs.Count, Is.EqualTo(1), "任一档空白 ⇒ 拒(逐档非空)");
+            Assert.That(blankErrs[0], Does.Contain("[4]"), "错误须点名空白档下标");
+
+            // 负向夹具同判(R13=甲 回写批指定):invalid_drug_char_empty.json
+            string json = readFixture("invalid_drug_char_empty.json");
+            int maxQuality = readIntField(json, "max_quality");
+            string[] character = readStringArray(json, "drug_quality_character");
+            Assert.That(character.Length, Is.EqualTo(0), "夹具自证:整列空");
+            Assert.That(DrugProfileGates.ValidateDrugQualityCharacterLength(character, maxQuality, "willow_bark_pill").Count,
+                Is.EqualTo(1), "空列夹具 ⇒ 拒(与内存入参同判)");
         }
 
         [Test]

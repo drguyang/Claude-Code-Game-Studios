@@ -14,7 +14,8 @@
       "gather_profile": {
         "ecosystem": "temperate_forest",
         "parts": ["bark"],
-        "qty_per_node": 2
+        "qty_per_node": 2,
+        "quality_character": ["枯脆细碎", "皮薄色暗", "条匀皮厚", "条肥色正", "皮厚丝丰"]
       },
       "drug_profile": null,
       "tcm_profile": null,
@@ -55,7 +56,7 @@
         "elimination": null,
         "quality_axis": "half_life",
         "axis_offset_by_quality": ["0", "0", "0", "0", "0"],
-        "drug_quality_character": null
+        "drug_quality_character": ["浑浊沉淀", "色浊欠匀", "清亮尚匀", "澄明匀净", "澄澈晶莹"]
       },
       "tcm_profile": null,
       "inflicts_injury": null

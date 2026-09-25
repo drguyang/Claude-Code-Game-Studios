@@ -1,9 +1,12 @@
 // 权威来源:Story 004(production/epics/item-database/story-004-quality-timeline-and-stacking.md)
 //   · AC-21a-50  —— drug_profile.axis_offset_by_quality[] 长度 ≠ MAX_QUALITY ⇒ 拒(非空时)
-//   · AC-21a-50b —— gather_profile.quality_character[] 长度 ≠ MAX_QUALITY ⇒ 拒(非空时)
+//   · AC-21a-50b —— gather_profile.quality_character[] 长度 ≠ MAX_QUALITY ⇒ 拒;
+//                   **2026-09-25 R13 = 甲 扩充**:MAX_QUALITY > 1 时 null / 空列 ⇒ 拒(最小非空),
+//                   且逐档非空(原「非空时才查长度」豁免废止)
 //   · AC-21a-60  —— drug_profile.quality_axis 在 P0 期 ∉ {half_life} ⇒ 拒(D-21-23 收窄落盘)
 //   · AC-21a-61  —— axis_offset_by_quality[] 任一非零档 |offset| < 可感知地板 ⇒ 拒(D-21-24 第二半)
-//   · AC-21a-62  —— drug_quality_character[] 非空且长度 ≠ MAX_QUALITY ⇒ 拒(成药侧)
+//   · AC-21a-62  —— drug_quality_character[] 长度 ≠ MAX_QUALITY ⇒ 拒(成药侧);
+//                   **2026-09-25 R13 = 甲 同批**:同 50b 扩充(空 = 拒 + 逐档非空)
 //   GDD:design/gdd/item-database.md §Formulas F5(:688-748)· §Schema B/C · §Edge Cases 写入期校验族
 //   ADR-006 §Decision 一(档位表与 base 同量纲 Q16.16,逐元素经 FixParse)
 //   ADR-014 §三(逐 schema 已知键白名单 / 硬失败归烘焙管线 Story 008 —— 本文件只提供可复用纯函数)
@@ -66,12 +69,14 @@ namespace DaYiJingCheng.EditorTools.Gates
 
         /// <summary>校验 <c>gather_profile.quality_character[]</c> 的长度恰 = <c>MAX_QUALITY</c>(AC-21a-50b)。
         /// <para>标签与品级档必须一一对应(D-21-16);长度偏离 ⇒ 某一档无标签或有孤儿标签。
-        /// <b>空表放行</b>(P0 可空)。</para></summary>
-        /// <param name="qualityCharacter">原料侧品级修饰表(null / 空 = 放行)。</param>
+        /// <b>2026-09-25 R13 = 甲 改判</b>:<c>MAX_QUALITY &gt; 1</c> 时**最小非空**
+        /// (null / 整列空 ⇒ 硬失败;原「P0 可空 / 空表放行」豁免废止)且逐档非空。</para></summary>
+        /// <param name="qualityCharacter">原料侧品级修饰表(null / 空在 <c>maxQuality &gt; 1</c> 下 = 拒)。</param>
         /// <param name="maxQuality">档数上限 <c>MAX_QUALITY</c>(数值旋钮,入参)。</param>
         /// <param name="recordLabel">诊断标签(可省)。</param>
-        /// <returns>错误列表;空 = 长度合法或表为空。</returns>
-        /// <example><c>ValidateGatherQualityCharacterLength(new string[0], 5)</c> ⇒ 空(长度 0 是 P0 正常态);
+        /// <returns>错误列表;空 = 合法(长度恰等、逐档非空)。</returns>
+        /// <example><c>ValidateGatherQualityCharacterLength(new string[0], 5)</c> ⇒ 1 条错误(R13=甲);
+        /// <c>ValidateGatherQualityCharacterLength(new string[5], 5)</c> ⇒ 空;
         /// <c>ValidateGatherQualityCharacterLength(new string[1], 5)</c> ⇒ 1 条错误。</example>
         public static IReadOnlyList<string> ValidateGatherQualityCharacterLength(
             string[] qualityCharacter, int maxQuality, string recordLabel = "")
@@ -80,12 +85,15 @@ namespace DaYiJingCheng.EditorTools.Gates
                 "gather_profile.quality_character[]", "AC-21a-50b", "D-21-16");
 
         /// <summary>校验 <c>drug_profile.drug_quality_character[]</c> 的长度恰 = <c>MAX_QUALITY</c>(AC-21a-62)。
-        /// <para>与 AC-21a-50b **同型**(成药侧,勿与原料侧路径混)。<b>空表放行</b>(P0 可空)。</para></summary>
-        /// <param name="drugQualityCharacter">成药侧品级修饰表(null / 空 = 放行)。</param>
+        /// <para>与 AC-21a-50b **同型**(成药侧,勿与原料侧路径混)。
+        /// <b>2026-09-25 R13 = 甲 同批</b>:<c>MAX_QUALITY &gt; 1</c> 时**最小非空**
+        /// (null / 空 = 拒;原「P0 可空放行」豁免废止)且逐档非空。</para></summary>
+        /// <param name="drugQualityCharacter">成药侧品级修饰表(null / 空在 <c>maxQuality &gt; 1</c> 下 = 拒)。</param>
         /// <param name="maxQuality">档数上限 <c>MAX_QUALITY</c>(数值旋钮,入参)。</param>
         /// <param name="recordLabel">诊断标签(可省)。</param>
-        /// <returns>错误列表;空 = 长度合法或表为空。</returns>
-        /// <example><c>ValidateDrugQualityCharacterLength(new string[5], 5)</c> ⇒ 空;
+        /// <returns>错误列表;空 = 合法(长度恰等、逐档非空)。</returns>
+        /// <example><c>ValidateDrugQualityCharacterLength(new string[0], 5)</c> ⇒ 1 条错误(R13=甲);
+        /// <c>ValidateDrugQualityCharacterLength(new string[5], 5)</c> ⇒ 空;
         /// <c>ValidateDrugQualityCharacterLength(new string[6], 5)</c> ⇒ 1 条错误。</example>
         public static IReadOnlyList<string> ValidateDrugQualityCharacterLength(
             string[] drugQualityCharacter, int maxQuality, string recordLabel = "")
@@ -94,22 +102,42 @@ namespace DaYiJingCheng.EditorTools.Gates
                 "drug_profile.drug_quality_character[]", "AC-21a-62", "D-21-24");
 
         /// <summary>两表共用的长度判据(AC-21a-50b / AC-21a-62 同型,仅字段名与出处不同)。
-        /// 空表放行;非空且长度 ≠ <paramref name="maxQuality"/> ⇒ 一条错误。</summary>
+        /// <para><b>2026-09-25 R13 = 甲</b>:<c>maxQuality &gt; 1</c> 时 null / 空 = 一条错误
+        /// (最小非空);非空且长度 ≠ maxQuality ⇒ 一条错误;长度恰等但存在 null / 空白档
+        /// ⇒ 一条错误(逐档非空)。<c>maxQuality ≤ 1</c> 时保留旧口径(空放行)。</para></summary>
         private static IReadOnlyList<string> ValidateCharacterTableLength(
             string[] values, int maxQuality, string recordLabel,
             string fieldName, string ac, string decision)
         {
             if (values == null || values.Length == 0)
-                return Array.Empty<string>();
-
-            if (values.Length == maxQuality)
-                return Array.Empty<string>();
-
-            return new[]
             {
-                $"{RecordPrefix(recordLabel)} {fieldName} 长度 {values.Length} ≠ MAX_QUALITY {maxQuality} —— " +
-                $"标签与品级档须一一对应({decision};{ac})",
-            };
+                if (maxQuality > 1)
+                    return new[]
+                    {
+                        $"{RecordPrefix(recordLabel)} {fieldName} 为 null / 空列而 MAX_QUALITY {maxQuality} > 1 —— " +
+                        $"R13 = 甲:最小非空,原「P0 可空」豁免已废止({decision};{ac})",
+                    };
+                return Array.Empty<string>();
+            }
+
+            if (values.Length != maxQuality)
+                return new[]
+                {
+                    $"{RecordPrefix(recordLabel)} {fieldName} 长度 {values.Length} ≠ MAX_QUALITY {maxQuality} —— " +
+                    $"标签与品级档须一一对应({decision};{ac})",
+                };
+
+            for (int i = 0; i < values.Length; i++)
+            {
+                if (string.IsNullOrWhiteSpace(values[i]))
+                    return new[]
+                    {
+                        $"{RecordPrefix(recordLabel)} {fieldName}[{i}] 为空白档 —— " +
+                        $"R13 = 甲:逐档非空({decision};{ac})",
+                    };
+            }
+
+            return Array.Empty<string>();
         }
 
         // ══════════ AC-21a-60:P0 quality_axis 收窄 ══════════

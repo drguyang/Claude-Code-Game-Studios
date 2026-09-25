@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "_note": "2026-09-25 R13 = 甲 负向夹具(含成药侧):drug_profile.drug_quality_character[] 整列空([]),而 max_quality = 5(MIN>1 时最小非空 —— 原「P0 可空」豁免已废止 ⇒ 构建期硬失败,与 AC-21a-50b 对称;null 同路径,测试内另以 null 入参自证)。成药侧路径 —— 勿与原料侧 quality_character[](AC-21a-50b)混。",
+  "max_quality": 5,
+  "drug_profile": {
+    "category": "drug",
+    "drug_quality_character": []
+  }
+}
