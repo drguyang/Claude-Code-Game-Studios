@@ -110,7 +110,7 @@ AC 之外、由 TR-input-001/002 与 GDD 规则一/二/三派生的**结构断�
 
 **Status**: [x] Created —— 真身 = `unity/Assets/Tests/EditMode/InputSystem/action_asset_identity_test.cs`(**17 [Test]**,含 A4① SerializedObject 断言、A4② 子进程 csc 六形态分析器门、DLL↔源码 sidecar 新鲜度门);账本路径 = `tests/integration/input_system/action_asset_identity_test.cs`(Story 001–010 同一先例:Unity 不编译 `unity/Assets/` 之外)。**执行 VERIFIED 2026-09-25 超算 batch** —— EditMode **480 全绿**(前批 477 + 本批修 3 新增),日志 `unity/Logs/build-story001-full.log`(exit 0;typeof 门 DY0001 实证修复 = `ITypeOfOperation.TypeOperand`,方法组门 / 新鲜度门同批绿)。
 - 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/`(含分析器测试),文档路径 `tests/integration/input_system/` 为登记口径
-- **Player 平台(StandaloneLinux64)复验注 2026-09-25**:W2 修复(Editor-only 收敛)后超算**构建期**复验 = linker 参数 0× `LegacyInputAnalyzer`、过原 exit-3 炸点;**player 套件执行在超算不可行**(无头无 X → GLContext 无限循环,详见 ADR-012 挂账注)⇒ 测试执行归**桌面复跑**,超算侧不借绿。
+- **Player 平台(StandaloneLinux64)复验注 2026-09-25**:W2 修复(Editor-only 收敛)后超算**构建期**复验 = linker 参数 0× `LegacyInputAnalyzer`、过原 exit-3 炸点;**player 套件执行在超算不可行**(无头无 X → GLContext 无限循环,详见 ADR-012 挂账注)⇒ 测试执行归**桌面复跑**,超算侧不借绿。**✅ 桌面复跑已过(2026-09-25 桌面轮,`281552e`)**:W2 炸点 0 命中 + UTF player 套件两跑 exit 0(14/14 → **15/15**,0 Failed)+ 四方对拍 ALL_IDENTICAL —— 证据 = `production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md` §第三腿。
 
 ---
 
@@ -127,7 +127,7 @@ AC 之外、由 TR-input-001/002 与 GDD 规则一/二/三派生的**结构断�
 **Deviations(ADVISORY)**:
 - ① **AC-3-A4① 载体换轨(2026-09-25 用户裁定,判据沿革非实现偏离)**:原字面 `PlayerSettings.GetPropertyInt("activeInputHandler") == 1` 超算 6.3.24f1 实测恒返垃圾值(且已 obsolete CS0618)⇒ 现行载体 = `SerializedObject(PlayerSettings).FindProperty("activeInputHandler").intValue == 1`(实测返 1,与 ProjectSettings 真值一致);GDD AC-3-A4① / 本故事 / ADR-011 §Risks 同批就地修订 —— 实现与**现行** GDD 逐字一致。
 - ② **场景重载后同一性复验 = handover**(/code-review F1):`InputService` 构造注入已装载实例,资产装配归后续装载故事(Boot/Addressables)—— 本故事 QA「Given: 任意多次场景重载」不自行覆盖,**记 handover 不记假绿**(承 Out of Scope 末条)。
-- ③ **Player 平台执行归桌面(2026-09-25 用户裁定 B)**:超算无头无 X,PlayerWithTests 走 GLContext 无限循环不可执行(证据链 = ADR-012 挂账注);超算侧仅**构建期复验** = linker 参数 0× `LegacyInputAnalyzer`、过原 exit-3 炸点 —— **测试执行不借绿**,待桌面复跑出判决。
+- ③ **Player 平台执行归桌面(2026-09-25 用户裁定 B)**:超算无头无 X,PlayerWithTests 走 GLContext 无限循环不可执行(证据链 = ADR-012 挂账注);超算侧仅**构建期复验** = linker 参数 0× `LegacyInputAnalyzer`、过原 exit-3 炸点 —— 测试执行不借绿。**✅ 桌面复跑 PASS(2026-09-25 桌面轮,`281552e`)**:W2 炸点 0 命中 + player 套件 **15/15** 绿 + 四方对拍 ALL_IDENTICAL(证据 = `production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md` §第三腿)—— 本条由「待桌面判决」**结案**。
 - ④ **AC-3-A4② 的 CI job** = ADR-012 CI 轮挂账(本故事交付分析器本体 + EditMode 测试,不自建 CI —— 承故事「载体注记」)。
 **Test Evidence**: Integration —— 真身 `unity/Assets/Tests/EditMode/InputSystem/action_asset_identity_test.cs`(**17 [Test]**;账本路径 = `tests/integration/input_system/action_asset_identity_test.cs`,Story 001–010 同一先例)。执行 ✅ **VERIFIED 2026-09-25 超算 batch** —— EditMode **480 全绿**(log `unity/Logs/build-story001-full.log`,exit 0;W2 修复批复跑仍 480)
 **Code Review**: Complete —— `/code-review` 2026-09-25 会话内执行(6 目标文件:InputService / 测试 / 分析器 / 门 / build.sh / 本故事),findings F1–F11 全修(`af699a1` + `577ce7f`)
