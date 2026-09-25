@@ -1,7 +1,7 @@
 # Story 001: 动作资产 · 单实例纪律与 Legacy 零引用门
 
 > **Epic**: 输入与设备
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 4h
@@ -118,3 +118,18 @@ AC 之外、由 TR-input-001/002 与 GDD 规则一/二/三派生的**结构断�
 
 - Depends on: None(资产是输入层第一块砖)
 - Unlocks: Story 002 / 003 / 006 / 007 / 008 / 009 / 010 / 012(全部消费本故事立住的单实例资产)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-25
+**Criteria**: 3/3 已实现(AC-3-A1 / AC-3-A4① / AC-3-A4②,全部 BLOCKING,17 测执行);traceability 零 UNTESTED
+**Deviations(ADVISORY)**:
+- ① **AC-3-A4① 载体换轨(2026-09-25 用户裁定,判据沿革非实现偏离)**:原字面 `PlayerSettings.GetPropertyInt("activeInputHandler") == 1` 超算 6.3.24f1 实测恒返垃圾值(且已 obsolete CS0618)⇒ 现行载体 = `SerializedObject(PlayerSettings).FindProperty("activeInputHandler").intValue == 1`(实测返 1,与 ProjectSettings 真值一致);GDD AC-3-A4① / 本故事 / ADR-011 §Risks 同批就地修订 —— 实现与**现行** GDD 逐字一致。
+- ② **场景重载后同一性复验 = handover**(/code-review F1):`InputService` 构造注入已装载实例,资产装配归后续装载故事(Boot/Addressables)—— 本故事 QA「Given: 任意多次场景重载」不自行覆盖,**记 handover 不记假绿**(承 Out of Scope 末条)。
+- ③ **Player 平台执行归桌面(2026-09-25 用户裁定 B)**:超算无头无 X,PlayerWithTests 走 GLContext 无限循环不可执行(证据链 = ADR-012 挂账注);超算侧仅**构建期复验** = linker 参数 0× `LegacyInputAnalyzer`、过原 exit-3 炸点 —— **测试执行不借绿**,待桌面复跑出判决。
+- ④ **AC-3-A4② 的 CI job** = ADR-012 CI 轮挂账(本故事交付分析器本体 + EditMode 测试,不自建 CI —— 承故事「载体注记」)。
+**Test Evidence**: Integration —— 真身 `unity/Assets/Tests/EditMode/InputSystem/action_asset_identity_test.cs`(**17 [Test]**;账本路径 = `tests/integration/input_system/action_asset_identity_test.cs`,Story 001–010 同一先例)。执行 ✅ **VERIFIED 2026-09-25 超算 batch** —— EditMode **480 全绿**(log `unity/Logs/build-story001-full.log`,exit 0;W2 修复批复跑仍 480)
+**Code Review**: Complete —— `/code-review` 2026-09-25 会话内执行(6 目标文件:InputService / 测试 / 分析器 / 门 / build.sh / 本故事),findings F1–F11 全修(`af699a1` + `577ce7f`)
+**Manifest**: 2026-09-21 与 control-manifest 现行一致(staleness PASS)
+**引擎装配注**: 六装配计数漂移 9 处已随 W2 批修正(承 ADR-025 §① 清单)

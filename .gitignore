@@ -71,6 +71,8 @@ unity/.vscode/
 # U1 spike 批临时资产(Setup 菜单生成,Teardown 清理;永不提交,见 production/u1-spike-checklist.md §4)。
 # 同时匹配 .meta。
 unity/Assets/Scenes/Spike*
+# Unity Test Framework 首跑自动生成的初始化场景(Assets 根,机器相关;含同级 .meta)。
+unity/Assets/InitTestScene*
 # Addressables 编辑器生成物(Setup 菜单 / 首次初始化自动产出;归 ADR-014 正式批,永不提交 —— 见 u1-spike-checklist.md §4.0 第 5 步)。
 # 含 addressables_content_state.bin 等机器相关产物;目录级忽略连同 .meta(含同级目录 meta)。
 unity/Assets/AddressableAssetsData/
