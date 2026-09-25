@@ -3,7 +3,7 @@
 > **Layer**: Foundation
 > **GDD**: design/gdd/item-database.md
 > **Architecture Module**: L1 契约 + L2 schema(门 A 侧 DATA / SIM)
-> **Status**: Ready
+> **Status**: Complete ✅ 12/12 stories 全 Complete(2026-09-25;012 的呈现侧 AC 归 21b / Epic 42 另账)
 > **Stories**: 12 stories created (2026-09-23)
 
 ## Overview
@@ -106,4 +106,7 @@ This epic is complete when:
 
 ## Next Step
 
-Run `/story-readiness production/epics/item-database/story-001-fix-parse-boundary-contract.md` to begin implementation, or `/create-stories [next-epic-slug]` for the next Foundation epic.
+**本 Epic 已关账(2026-09-25,12/12 全 Complete)**。残余另账:012 呈现侧 AC 归 21b / Epic 42;
+AC-29 矩阵建设面(ARM64 / Windows / Apple / F7 反汇编)归 CI 矩阵轮(ADR-012 挂账)。
+下一 Foundation Epic 走 `/create-stories [next-epic-slug]`(input-system / skill-system /
+skeuomorphic-ui / audio-system / telemetry-analytics 五选)。
