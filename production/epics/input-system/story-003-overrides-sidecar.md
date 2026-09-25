@@ -1,12 +1,12 @@
 # Story 003: 绑重 overrides sidecar 持久化
 
 > **Epic**: 输入与设备
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 3h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-25
+> **Last Updated**: 2026-09-26
 
 ## Context
 
@@ -120,3 +120,17 @@
 
 - Depends on: Story 001(唯一动作资产是 overrides 的宿主)
 - Unlocks: Story 004(hash 读写点),Story 005(失配清空读本故事的两文件布局)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-26
+**Criteria**: 3/3 passing(AC-3-A2 / A5 / E3⑥ 全过;traceability 零 UNTESTED)
+**Deviations**: 4 条 ADVISORY ——
+1. **F4 读失败 fail-safe 无专测**:头部/载荷 `File.ReadAllBytes` 的 `IOException`/`UnauthorizedAccessException` 捕获已实现(视同失配),但超算 root 环境读失败注入不可靠 ⇒ **无专测**(注记,非漏测);实现细节复测归桌面或后续轮。
+2. **F7 头部字段读取语义无故事归属**:`format_version` / `asset_id` / `asset_version` 三字段本故事只写不读(GDD 只要求「存」)—— 建议 Story 004/005 或 Boot 装配轮登记读取语义归属(**非本故事欠账**)。
+3. **Q4 扫描器 fail-closed 三约束**:同义词表按单文件建(他文件 `const` 别名 ⇒ 误报红)· 插值字符串字面量不解析(⇒ 误报红)· 通用同名调用首参解析不到白名单(⇒ 误报红)—— 方向均为红非漏报绿;真源当前零误报,详见 `tests/integration/input_system/README.md` 扫描器段。
+4. **F6 写失败注入方式与 QA 原文等价换法**:QA 原文「只读目录」实现用「目录占位挡路径」(超算 root 下 chmod 不可靠,同触发 `IOException` 面)—— 实现批登记块漏记,评审批补上。
+**Test Evidence**: Integration —— 真身 `unity/Assets/Tests/EditMode/InputSystem/overrides_sidecar_test.cs` **24/24 Passed**(A2 11 + A5 7 + E3⑥ 6);全套 EditMode **534/534 全绿 exit 0**(2026-09-26 评审修复批复跑,log `unity/Logs/build-story003-fixes.log`;初版 527 → 追加 7 测 534);登记口径路径 `tests/integration/input_system/`(README 落点说明 + 扫描器口径同批)。
+**Code Review**: Complete —— 会话内 /code-review 双代理并行(unity-specialist **APPROVED WITH SUGGESTIONS** F1–F9 · qa-tester **GAPS, no BLOCKING** Q1–Q12;AC 裁决 A2 COVERED / A5 PARTIAL→修复后 COVERED / E3⑥ COVERED);F1–F9 / Q1–Q12 **全修**(追加 7 测 + 扫描器补面 + F4 读失败 fail-safe),复跑 534/534 绿;残余 F4 无专测 / F7 归属 / Q4 约束 / F6 记上文 ADVISORY。
+**Manifest**: v2026-09-21 一致(staleness PASS)。
