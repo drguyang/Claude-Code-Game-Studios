@@ -39,8 +39,9 @@ dr_guyang(用户 · **2026-09-20 全件照准,转 Accepted**)· technical-direct
 
 §2.0 证明:**全案唯一有名字的 asmdef 是 `Sim`**(ADR-017 §二 只硬化了门 A 内侧,因为它要挡 DOTS),
 门外的一切靠散文 —— 「边界程序集」「门面程序集」「独立契约程序集」是**三个从未对齐的名字**,
-可能指一个东西也可能指三个。本 ADR 裁决:**具名六装配清单**(`Sim` / `Sim.Contracts` / `Sim.Codec` /
-`Gameplay.Presentation` / `Gameplay.UI` / `Editor.*` 工具族)、**「门面」二义就地拆除**(QQ-03:
+可能指一个东西也可能指三个。本 ADR 裁决:**具名七装配清单**(`Sim` / `Sim.Contracts` / `Sim.Codec` /
+`Gameplay.Presentation` / `Gameplay.Input` / `Gameplay.UI` / `Editor.*` 工具族;**2026-09-25 story-001
+复核 B1 拆装增 `Gameplay.Input`,六 → 七**)、**「门面」二义就地拆除**(QQ-03:
 采白名单断言案(甲)落定)、
 **`IPlayerMotor`/`ICameraRig` 落位**(QQ-01:三选一,已收窄为「是否给门 A 加一支整数传送命令抽象」)、
 **`Fix` 禁入 `Unity` 序列化器**的守卫(承 ADR-006 D-21-18)由 asmdef 划分物化为可编译事实。
@@ -103,7 +104,7 @@ dr_guyang(用户 · **2026-09-20 全件照准,转 Accepted**)· technical-direct
 
 ## Decision
 
-### ① 具名装配清单(六 + 工具族;**2026-09-20 裁定:清单与命名全照准,不改名**)
+### ① 具名装配清单(**七装配 = 六具名 + `Editor.Tools` 工具族**;2026-09-20 裁定:清单与命名全照准,不改名;**2026-09-25 story-001 复核 B1 增 `Gameplay.Input`**,六 → 七)
 
 | asmdef | 层 | 引用集 | `noEngineReferences` | 成员(§2.0/§2.2 的收口) |
 |---|---|---|---|---|
@@ -196,7 +197,7 @@ public interface ITeleportCommandSink {      // ③ 的整数半;写者 = 29 结
 
 - **Positive**:C2 两侧(#1 #2)均有裁决文本;种子测试有编译落点;「门面」二义、三名并列
   一次性拆除;门 A 白名单升为**恰等于**两件套(`BCL ∪ Sim.Contracts`),比原文更严且仍不含引擎。
-- **Negative**:六个 asmdef + 测试族 = 装配管理成本(单人项目下由 §④ 封闭性断言兜底,防漂移);
+- **Negative**:七个 asmdef + 测试族 = 装配管理成本(单人项目下由 §④ 封闭性断言兜底,防漂移);
   称谓作废的涟漪触及 4 份原文(回写轮逐处加注,记入 `requirements-traceability.md` 回表面)。
 - **Neutral**:`TR-skill-002` 的容器有了,**内容仍归 #4**(不借本件记绿)。
 

@@ -110,6 +110,7 @@ AC 之外、由 TR-input-001/002 与 GDD 规则一/二/三派生的**结构断�
 
 **Status**: [x] Created —— 真身 = `unity/Assets/Tests/EditMode/InputSystem/action_asset_identity_test.cs`(**17 [Test]**,含 A4① SerializedObject 断言、A4② 子进程 csc 六形态分析器门、DLL↔源码 sidecar 新鲜度门);账本路径 = `tests/integration/input_system/action_asset_identity_test.cs`(Story 001–010 同一先例:Unity 不编译 `unity/Assets/` 之外)。**执行 VERIFIED 2026-09-25 超算 batch** —— EditMode **480 全绿**(前批 477 + 本批修 3 新增),日志 `unity/Logs/build-story001-full.log`(exit 0;typeof 门 DY0001 实证修复 = `ITypeOfOperation.TypeOperand`,方法组门 / 新鲜度门同批绿)。
 - 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/`(含分析器测试),文档路径 `tests/integration/input_system/` 为登记口径
+- **Player 平台(StandaloneLinux64)复验注 2026-09-25**:W2 修复(Editor-only 收敛)后超算**构建期**复验 = linker 参数 0× `LegacyInputAnalyzer`、过原 exit-3 炸点;**player 套件执行在超算不可行**(无头无 X → GLContext 无限循环,详见 ADR-012 挂账注)⇒ 测试执行归**桌面复跑**,超算侧不借绿。
 
 ---
 

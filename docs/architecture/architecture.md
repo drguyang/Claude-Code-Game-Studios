@@ -1176,7 +1176,8 @@ Required New ADRs 的落点上**(ADR-009 / 014 / 010 三份都被新 ADR 引用)
 > **✅ 兑现件 = ADR-025(2026-09-20 用户全件照准,转 Accepted)**(`adr-025-contract-assembly-manifest.md`;
 > 023 = #1 · 024 = #3 已占;编号按落盘时序,# 序不连续)。
 > **三项裁定**:①具名装配清单**照准且不改名**(`Sim` / `Sim.Contracts` / `Sim.Codec` /
-> `Gameplay.Presentation` / `Gameplay.UI` / `Editor.Tools` 族;`Sim` 引用集白名单升格为
+> `Gameplay.Presentation` / `Gameplay.Input` / `Gameplay.UI` / `Editor.Tools` 族;**2026-09-25
+> story-001 复核 B1 拆装增 `Gameplay.Input`**;`Sim` 引用集白名单升格为
 > **恰 = {BCL, Sim.Contracts}**)· ②QQ-03 = **甲案**(`Fix` 保持 public,`ToFloat()` 调用点
 > 走构建期白名单断言;乙案 `internal`+`InternalsVisibleTo` 否决留档)·
 > ③QQ-01 = **①′**(传送契约拆两半:整数半 `ITeleportCommandSink` 进 `Sim.Contracts`,

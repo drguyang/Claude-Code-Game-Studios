@@ -854,8 +854,9 @@
       `payload_schema:` 必填三件)· ADR-009 §二/§三 就地降级为路由注记 · Amendment 追加通道退役 ·
       补齐 9 支 + `ConsequenceResolved` 幽灵引据订正(2026-09-20 回写轮已落)· kindgen 构建期生成器
       (A1–A5 断言);既有 24 支三字段回填 = **实现轮义务**。
-      **ADR-025(#2 契约程序集清单与命名)= Accepted** —— 具名六装配(`Sim`/`Sim.Contracts`/`Sim.Codec`/
-      `Gameplay.Presentation`/`Gameplay.UI`/`Editor.Tools` 族)· QQ-03 = 甲案(`ToFloat()` 调用点白名单断言)·
+      **ADR-025(#2 契约程序集清单与命名)= Accepted** —— 具名七装配(`Sim`/`Sim.Contracts`/`Sim.Codec`/
+      `Gameplay.Presentation`/`Gameplay.Input`/`Gameplay.UI`/`Editor.Tools` 族;**2026-09-25 story-001
+      复核 B1 拆装六 → 七**)· QQ-03 = 甲案(`ToFloat()` 调用点白名单断言)·
       QQ-01 = ①′(传送契约拆两半)· 「门面程序集」「独立契约程序集」两称谓作废(四处原文加注已落,V-5)。
       **剩余未兑现 = 仅 #4(30 定点算术)/ #5(13 写路径归属),二者非开工阻塞。**
       技术侧无阻塞项 ⇒ 下一步 `/gate-check pre-production`。

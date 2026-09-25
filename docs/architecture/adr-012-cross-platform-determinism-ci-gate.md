@@ -385,6 +385,27 @@ public interface IPerTargetIl2CppArgs : IPreprocessBuildWithReport
       执行载体(E-4 spike 后定判据)—— registry + traceability-index 同步
 - [ ] `tests/`、`tests/unit/`、`tests/integration/`、`.github/workflows/tests.yml` 存在(预门控三项)
 
+## 挂账注(2026-09-25 · story-001 player 红点批)
+
+- **LegacyInputAnalyzer.dll 卷入 player 构建 —— 已结案**:分析器 DLL 原 `platformData: Any: enabled`
+  ⇒ 进 player 根程序集(`--include-unity-root-assembly`),其 net6.0 产物直引
+  `System.Private.CoreLib 6.0.0.0` ⇒ UnityLinker `AssemblyResolutionException` ⇒ player 构建
+  exit 3(实证 `unity/Logs/build-story001-player.log`)。**W2 平台收敛 Editor-only** 已由
+  `RoslynAnalyzerLabel.ConfigurePluginImporter` 幂等落地 + 复查门(`editorOnlyOk`);超算复验
+  linker 参数 **0× LegacyInputAnalyzer**、构建过原炸点(`unity/Logs/build-story001-w2-player.log`)。
+  RoslynAnalyzer label 只在编辑器编译期被消费 ⇒ 门(DY0001)不受影响(宿主装载探针实证)。
+- **编辑器域重载噪声**:残留 1 行 `Unloading broken assembly ... LegacyInputAnalyzer.dll` =
+  常态噪声,无动作(W1 后 error 级「will not be loaded due to errors」已消失)。
+- **分析器进 CI 常驻矩阵的 job 仍挂账** —— 归 F1 / `/test-setup` 轮(与既挂的矩阵建设同批)。
+- **超算无头无 X ⇒ UTF `-testPlatform` player 套件不可在超算执行**:PlayerWithTests 无视频设备
+  (`Error creating MainPlayerWindow`)→ `Creating GLContext @level -1` 无限循环(实测 ~190 MB/s
+  刷 40 GB Player.log,证据摘录 `unity/Logs/build-story001-w2-player-stuck-evidence.log`)→ 编辑器侧
+  `RemoteTestRunController:TimeoutCallback` → 必 RunError。**AC-29 先例同向**:桌面腿 3/3 过,
+  超算腿 exit 3 / 编辑器 double-fault(`unity/Logs/cluster-ac29-*.log`)。⇒ **player 级测试执行
+  归桌面轮**;若要在超算补跑,须先裁定 xvfb 用户前缀安装(分类器 2026-09-25 挂起,待用户)。
+- **观察项**:`unity/Assets/AddressableAssetsData/link.xml`(机器生成,永不提交)本次跑中缺失 +
+  `Build asset version error` Import Code 4;Unity 按需再生成,归下次构建观察,不进本 ADR 判据。
+
 ## GDD Requirements Addressed
 
 | GDD Document | System | Requirement | How This ADR Addresses It |

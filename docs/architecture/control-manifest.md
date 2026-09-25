@@ -97,7 +97,7 @@ rule, see the referenced ADR.
 - 先写 codec 与黄金夹具,再写存档流程 — ADR-010 §Implementation Guidelines 1
 
 **程序集清单(ADR-025)**
-- **六装配**: `Sim` / `Sim.Contracts` / `Sim.Codec` / `Gameplay.Presentation` / `Gameplay.UI` / `Editor.Tools` 族;**asmdef 集合恰 = 表 ∪ 测试装配族**,多一个未登记装配 = 构建失败 — ADR-025 §①/§④
+- **七装配**: `Sim` / `Sim.Contracts` / `Sim.Codec` / `Gameplay.Presentation` / `Gameplay.Input` / `Gameplay.UI` / `Editor.Tools` 族(2026-09-25 story-001 B1 拆装六 → 七);**asmdef 集合恰 = 表 ∪ 测试装配族**,多一个未登记装配 = 构建失败 — ADR-025 §①/§④
 - `Sim`:引用集 **恰 = {BCL, `Sim.Contracts`}**,`noEngineReferences: true`;含 19 个 sim 模块 + `StreamRouting.g.cs`,**25 与 9 同程序集** — ADR-025 §①
 - `Sim.Contracts`:引用集 **恰 = BCL**;含 `WorldPos` · 六抽象点 · `SimEvent`/`PatientId`/`StreamId`/`EventKind` · `VitalsDto` · `Fix`+`FixParse` · `IDataProvider` · `AudioCueDto`+`IAudioCueSink` · `IPositionalChannel` · `ITeleportCommandSink` — ADR-025 §①/§③
 - `Sim.Codec`:BCL only;7a 三流 codec + 存档头 + `Fix` 编码器(`internal` + `InternalsVisibleTo("Sim.Contracts.Tests")` = D-21-18 守卫的可执行形态) — ADR-025 §①

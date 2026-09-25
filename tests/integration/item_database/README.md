@@ -22,7 +22,7 @@
 `Unity.Addressables` / `Unity.ResourceManager`,**不可见 `Sim` / `Sim.Contracts`** ⇒
 AC-21a-5/6 的断言无从编译。已增两条 GUID:
 `f1e625c719f6812dcae9009189e8b2c0`(`Sim.Contracts`)· `49b36e3ee94a392fe97bd7fe76bb27fb`(`Sim`)。
-该增补属 **ADR-025 §⑤「测试装配族」**范围,**不动六装配清单**(§④ 封闭性不受影响)。
+该增补属 **ADR-025 §⑤「测试装配族」**范围,**不动 §① 装配清单**(§④ 封闭性不受影响)。
 
 > ⚠️ **订正(同日)**:本条初稿曾把两 GUID 标反(把 `f1e6…` 标为 `Sim`、把 `Sim.Codec` 的
 > `889729…` 标为 `Sim.Contracts`)。`Sim.Codec` **已从引用集移除** —— 本测试仅在**字符串**

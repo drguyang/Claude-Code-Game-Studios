@@ -19,6 +19,11 @@
 //   报「Unable to resolve reference System.private.CoreLib…」error 级日志)·
 //   isExplicitlyReferenced → true(Auto Reference 关,本 DLL 不再出现在各程序集 -r: 列表)。
 //   字段经 SerializedObject 读写(与 AC-3-A4① 载体同一手法),由 Unity 自己写回 .meta —— 不手改文本。
+// 平台收敛(W2,幂等):Any → off、Editor → on(2026-09-25 player 套件红修复)——
+//   Any=enabled 会把本 DLL 卷进 player 根程序集,其 net6.0 编译产物直引
+//   System.Private.CoreLib 6.0.0.0 ⇒ UnityLinker AssemblyResolutionException ⇒
+//   player 构建必炸(实证 unity/Logs/build-story001-player.log)。RoslynAnalyzer label
+//   只在编辑器编译期被消费,Editor-only 不影响门生效。
 
 #if UNITY_EDITOR
 using System;
@@ -78,7 +83,8 @@ namespace DaYiJingCheng.EditorTools.Gates
         }
 
         /// <summary>校正 PluginImporter:关引用校验(消 MonoManager 域重载报错)、关 Auto Reference
-        /// (本 DLL 不进各程序集引用列表)。字段名与 .meta 序列化名一致;读不到即抛(引擎布局变更须重估)。</summary>
+        /// (本 DLL 不进各程序集引用列表)、平台收敛 Editor-only(不卷进 player 构建,见文件头 W2)。
+        /// 字段名与 .meta 序列化名一致;读不到即抛(引擎布局变更须重估)。</summary>
         private static void ConfigurePluginImporter()
         {
             var importer = AssetImporter.GetAtPath(AnalyzerAssetPath) as PluginImporter;
@@ -115,31 +121,49 @@ namespace DaYiJingCheng.EditorTools.Gates
                 changed = true;
             }
 
+            if (changed)
+                so.ApplyModifiedPropertiesWithoutUndo();
+
+            // W2 平台收敛:Any → off、Editor → on(见文件头注释;2026-09-25 player 套件红修复)。
+            // 直接走 PluginImporter 公有 API(稳定 API),随后统一 ImportAsset 落 .meta。
+            if (importer.GetCompatibleWithAnyPlatform())
+            {
+                importer.SetCompatibleWithAnyPlatform(false);
+                changed = true;
+            }
+            if (!importer.GetCompatibleWithEditor())
+            {
+                importer.SetCompatibleWithEditor(true);
+                changed = true;
+            }
+
             if (!changed)
             {
-                Debug.Log("[RoslynAnalyzerLabel] PluginImporter 已是目标配置(validateReferences=0, AutoReference=off),幂等跳过");
+                Debug.Log("[RoslynAnalyzerLabel] PluginImporter 已是目标配置(validateReferences=0, AutoReference=off, Editor-only),幂等跳过");
                 return;
             }
 
-            so.ApplyModifiedPropertiesWithoutUndo();
             AssetDatabase.ImportAsset(AnalyzerAssetPath, ImportAssetOptions.ForceUpdate);
 
-            // 复查:重读 .meta 序列化字段,未生效即抛
+            // 复查:重读 .meta 序列化字段与平台兼容位,未生效即抛
             var reimporter = AssetImporter.GetAtPath(AnalyzerAssetPath) as PluginImporter;
             var reSo = new SerializedObject(reimporter);
             reSo.Update();
             bool validateOk = FindPropertyDeep(reSo, "validateReferences") is SerializedProperty v && !v.boolValue;
             bool autoRefOk = FindPropertyDeep(reSo, "isExplicitlyReferenced") is SerializedProperty e && e.boolValue;
-            if (!validateOk || !autoRefOk)
+            bool editorOnlyOk = !reimporter.GetCompatibleWithAnyPlatform() && reimporter.GetCompatibleWithEditor();
+            if (!validateOk || !autoRefOk || !editorOnlyOk)
                 throw new InvalidOperationException(
-                    "PluginImporter 校正复查失败(validateReferences 应为 false、isExplicitlyReferenced 应为 true):" + AnalyzerAssetPath);
+                    "PluginImporter 校正复查失败(应为 validateReferences=false、isExplicitlyReferenced=true、Any=off、Editor=on):" + AnalyzerAssetPath);
 
-            Debug.Log("[RoslynAnalyzerLabel] PluginImporter 已校正(validateReferences=0, AutoReference=off):" + AnalyzerAssetPath);
+            Debug.Log("[RoslynAnalyzerLabel] PluginImporter 已校正(validateReferences=0, AutoReference=off, Editor-only):" + AnalyzerAssetPath);
         }
 
         /// <summary>按叶子名深度查找序列化属性 —— .meta YAML 键(如 <c>validateReferences</c>)与
         /// SerializedObject 属性名(实测为 <c>m_ValidateReferences</c>,2026-09-25 batch 实证)不同形,
-        /// 故同时匹配原名与 <c>m_</c> + 首字母大写变体(忽略大小写)。</summary>
+        /// 故同时匹配原名与 <c>m_</c> + 首字母大写变体(忽略大小写)。
+        /// 新增叶子时先双侧核对:① .meta 里的 YAML 键 ② <see cref="DumpPropertyNames"/> 实测属性名;
+        /// 两侧都查无才可判「引擎序列化布局变更」(防只看一侧误抛)。</summary>
         private static SerializedProperty FindPropertyDeep(SerializedObject so, string leafName)
         {
             string mName = "m_" + char.ToUpperInvariant(leafName[0]) + leafName.Substring(1);

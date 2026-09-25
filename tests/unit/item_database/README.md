@@ -391,7 +391,7 @@ ADR-010 codec 布局手写产出,C# 测试**只读不写**;刷新 = 升 golden-v
 
 **AC-29 双腿对拍(✅ 2026-09-24 补跑 VERIFIED)**:真身 =
 `unity/Assets/Tests/PlayMode/determinism_golden_crossplatform_test.cs`(装配 `Gameplay.Tests`,
-**增引 `Sim.Codec` GUID** —— 字节样本 B01–B03 需 codec,属测试装配族改动,不动 ADR-025 六装配清单)。
+**增引 `Sim.Codec` GUID** —— 字节样本 B01–B03 需 codec,属测试装配族改动,不动 ADR-025 装配清单)。
 3 测:`test_ac21a29_allScenarioHashes_writtenAndCompared_whenGoldenReachable`(19 条落盘
 `AC29_OUT` + 金标准可达时就地断言)+ F7 SplitMix64 回绕 + F7 Fix.MulRaw 峰值参数。
 **双腿跑法**:① Mono = 编辑器 PlayMode(`unity test --mode PlayMode`);

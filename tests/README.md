@@ -37,8 +37,9 @@ tests/
 
 1. **`.asmdef` 文件**(`EditModeTests.asmdef` / `PlayModeTests.asmdef` / `Sim.asmdef` 等)——
    程序集**名称与清单**曾归 `architecture.md` §Required ADRs **#2「契约程序集清单与命名」** 裁决;
-   **✅ 该 ADR 已兑现 = `ADR-025`(2026-09-20 Accepted)** —— 六装配清单已具名
-   (`Sim` / `Sim.Contracts` / `Sim.Codec` / `Gameplay.Presentation` / `Gameplay.UI` / `Editor.Tools`),
+   **✅ 该 ADR 已兑现 = `ADR-025`(2026-09-20 Accepted)** —— 七装配清单已具名
+   (`Sim` / `Sim.Contracts` / `Sim.Codec` / `Gameplay.Presentation` / `Gameplay.Input` / `Gameplay.UI` / `Editor.Tools`;
+   2026-09-25 story-001 B1 拆装六 → 七),
    **命名阻塞已解除**。`.asmdef` 仍**刻意缺席**:工程本体(`Assets/` / `Packages/` /
    `ProjectSettings/`)不存在,脚手架生成归**实现轮**。**改后不生成任何文件 —— 决定不变。**
 2. **Unity 工程本体** —— 仓库尚无 `Assets/` / `Packages/` / `ProjectSettings/`。
