@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "_note": "Story 002 AC-3-A9④ 反例 4:CURVE_POW = 1/2 恰等下界 ⇒ 装载硬失败(端点 C1 防线;规则是严格 > 1/2)。",
+  "dz_inner": "1/8",
+  "dz_outer": "7/8",
+  "curve_pow": "1/2"
+}

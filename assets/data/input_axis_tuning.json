@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "_note": "Story 002 · F-3.1 轴处理常量(GDD §Tuning Knobs 一)。数值全部用户手调(项目铁律)—— 种子值 = GDD F-3.1 示范比值,非定稿。写法 = 比值字符串经 FixParse(ADR-006 唯一入口;禁 float 字面量 —— GDD 用户裁定③)。装载期断言(AC-3-A9④):0 ≤ DZ_INNER < DZ_OUTER ≤ 1 ∧ CURVE_POW > 1/2 ∧ 有限,由 InputAxisTuningBinder 硬失败把关。",
+  "dz_inner": "1/8",
+  "dz_outer": "7/8",
+  "curve_pow": "3/2"
+}

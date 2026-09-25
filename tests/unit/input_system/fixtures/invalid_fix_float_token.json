@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "_note": "Story 002 AC-3-A9④ 反例 7(交叉 ADR-006):dz_outer 写 JSON 数值 token 1.01 而非字符串 ⇒ schema 层拒(禁经数值 token 中转)。",
+  "dz_inner": "1/8",
+  "dz_outer": 1.01,
+  "curve_pow": "3/2"
+}

@@ -29,14 +29,15 @@ namespace DaYiJingCheng.EditorTools.Gates
     /// CI 以日志红行为失败判据;Unity Build 时由 OnPostProcess 升级为 throw)。</summary>
     internal static class AssemblyGates
     {
-        // ── b3 的登记清单(ADR-025 §① 六装配 ∪ 测试族两装配 ∪ Editor.Tools 族)──
+        // ── b3 的登记清单(ADR-025 §① 七装配 ∪ 测试族两装配 ∪ Editor.Tools 族)──
         // Editor.Tools 族拆 Level/Kindgen 两个具名装配是卡 §0.1 的落地形(ADR-025 表记「族」);
         // Gates(U0-b)+ Spike(U1 spike 批)+ Bake(Story 008 数据管线)同属该族追加 ——
         // 族内增员 = 只改本清单,不重开 ADR-025 §①。
+        // Gameplay.Input = story-001 B1 拆装增员(ADR-025 §① 2026-09-25 已载;清单 2026-09-25 补登)。
         private static readonly HashSet<string> Manifest = new HashSet<string>
         {
             "Sim", "Sim.Contracts", "Sim.Codec",
-            "Gameplay.Presentation", "Gameplay.UI",
+            "Gameplay.Presentation", "Gameplay.UI", "Gameplay.Input",
             "Editor.Tools.Level", "Editor.Tools.Kindgen", "Editor.Tools.Gates",
             "Editor.Tools.Spike", "Editor.Tools.Bake",
             "Sim.Contracts.Tests", "Gameplay.Tests",

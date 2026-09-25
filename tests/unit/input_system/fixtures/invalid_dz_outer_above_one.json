@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "_note": "Story 002 AC-3-A9④ 反例 3:DZ_OUTER = 101/100 > 1 ⇒ 装载硬失败(满速可达防线)。",
+  "dz_inner": "1/8",
+  "dz_outer": "101/100",
+  "curve_pow": "3/2"
+}

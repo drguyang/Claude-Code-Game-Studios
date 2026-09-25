@@ -31,10 +31,10 @@
 
 *From GDD `design/gdd/input-system.md`, scoped to this story:*
 
-- [ ] **AC-3-A9①(BLOCKING)**: **NaN / ∞ 与零点防护** —— `raw` 含 NaN/∞ **或** `m = 0` ⇒ 输出**恒为 `(0,0)`**(非 NaN、非异常)
-- [ ] **AC-3-A9②(BLOCKING)**: **满速可达** —— `m ≥ DZ_OUTER` ⇒ `t = 1` ∧ `g = 1` ⇒ 输出模长 = 1(**否定 `DZ_OUTER > 1` 型失效**)
-- [ ] **AC-3-A9③(BLOCKING)**: **静止归零** —— `raw = 0` ⇒ 输出恒为 `(0,0)`(**否定 `DZ_INNER < 0` 型「静止自走」**)
-- [ ] **AC-3-A9④(BLOCKING)**: **装载期断言** —— `0 ≤ DZ_INNER < DZ_OUTER ≤ 1` ∧ `CURVE_POW > 1/2` ∧ `CURVE_POW` 有限 —— **四组反例(越界常量)须使装载失败**(承 ADR-014)
+- [x] **AC-3-A9①(BLOCKING)**: **NaN / ∞ 与零点防护** —— `raw` 含 NaN/∞ **或** `m = 0` ⇒ 输出**恒为 `(0,0)`**(非 NaN、非异常)
+- [x] **AC-3-A9②(BLOCKING)**: **满速可达** —— `m ≥ DZ_OUTER` ⇒ `t = 1` ∧ `g = 1` ⇒ 输出模长 = 1(**否定 `DZ_OUTER > 1` 型失效**)
+- [x] **AC-3-A9③(BLOCKING)**: **静止归零** —— `raw = 0` ⇒ 输出恒为 `(0,0)`(**否定 `DZ_INNER < 0` 型「静止自走」**)
+- [x] **AC-3-A9④(BLOCKING)**: **装载期断言** —— `0 ≤ DZ_INNER < DZ_OUTER ≤ 1` ∧ `CURVE_POW > 1/2` ∧ `CURVE_POW` 有限 —— **四组反例(越界常量)须使装载失败**(承 ADR-014)
 
 > 分级:①②③④ 均为**算术性质** ⇒ Logic · BLOCKING(EditMode 单测);F-3.1 的**手感部分**(曲线前段过钝/过激)属 Visual/Feel ⇒ ADVISORY,**不在本 AC 内**。
 
@@ -101,8 +101,9 @@
 **Required evidence**:
 - Logic: `tests/unit/input_system/axis_processing_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
-- 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/axis_processing_test.cs`,文档路径 `tests/unit/input_system/` 为登记口径
+**Status**: [x] Created + VERIFIED(2026-09-25 超算 batch)
+- 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/axis_processing_test.cs`,文档路径 `tests/unit/input_system/` 为登记口径(反例夹具 `tests/unit/input_system/fixtures/*.json` 七组,README 落点说明同批)
+- 执行 ✅ **VERIFIED 2026-09-25 超算 batch**:EditMode **507/507 全绿 exit 0**(log `unity/Logs/build-story002.log`);本故事 **23 用例全 Passed**(① 5 + ② 5 + ③ 2 + ④ 10)
 
 ---
 
