@@ -116,6 +116,13 @@ namespace DaYiJingCheng.EditorTools.Bake
                            "(「CURVE_POW 有限」在此承载 —— 非整数字面量解析层即拒)");
                 return null;
             }
+            catch (DivideByZeroException ex)
+            {
+                // code review F3:"1/0" 类分母零原会以 DivideByZeroException 逃出聚合 ——
+                // 仍是硬失败,但无字段定位、不入 Errors ⇒ 就地并入同一聚合口径。
+                errors.Add($"{fileLabel}:Fix 字段 \"{key}\" FixParse 失败:{ex.Message}");
+                return null;
+            }
         }
     }
 }

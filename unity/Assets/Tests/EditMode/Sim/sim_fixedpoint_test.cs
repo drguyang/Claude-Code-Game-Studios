@@ -81,6 +81,27 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 "两条路径在**中点**上必须分道 —— 若哪天它们相等,说明舍入实现退化");
         }
 
+        [Test]
+        public void test_simFixedPoint_fromRatio_shiftOverflow_throwsFormat()
+        {
+            // code review F4(Story 002 批):C# 的 << 溢出是**静默回绕** —— 超域分子会绕成任意 raw,
+            // 可伪装成合法值溜过装载断言(F-3.1 唯一守门)。回归:超移位域显式抛 FormatException
+            // (各 binder 既有 catch 可聚合),域内边界不得误拒。
+            // ⚠️ 域是**不对称**的:正侧上限 = long.MaxValue >> 16 = 2^47 − 1(2^47 << 16 = 2^63 溢出);
+            //    负侧下限 = long.MinValue >> 16 = −2^47(算术移位,(−2^47) << 16 = −2^63 恰在域内)。
+            long maxInDomain = long.MaxValue >> Fix.FractionalBits;   // 2^47 − 1
+            long minInDomain = long.MinValue >> Fix.FractionalBits;   // −2^47
+
+            Assert.DoesNotThrow(() => FixParse.FromRatio(maxInDomain, 1L),
+                "正侧域内边界(2^47 − 1)不得被误拒");
+            Assert.DoesNotThrow(() => FixParse.FromRatio(minInDomain, 1L),
+                "负侧域内边界(−2^47)不得被误拒 —— 恰移位不溢出");
+            Assert.Throws<FormatException>(() => FixParse.FromRatio(maxInDomain + 1, 1L),
+                "正侧超域(2^47)必须显式拒 —— 静默回绕会让错值伪装成合法 raw");
+            Assert.Throws<FormatException>(() => FixParse.FromRatio(minInDomain - 1, 1L),
+                "负侧超域必须显式拒 —— 回绕同样必须被拒");
+        }
+
         // ── 3. 守恒律的形状(ADR-006 D-21-19):**量纲须齐** ──
 
         [Test]

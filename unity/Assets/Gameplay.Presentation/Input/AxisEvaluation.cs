@@ -18,6 +18,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>归一化输出;① 的守卫(NaN / ∞ / m = 0)使其恒为零向量。</summary>
         public readonly Vector2 Out;
 
+        /// <summary>构造单次求值的四元组(由 <c>AxisProcessor.Evaluate</c> 产出)。</summary>
         public AxisEvaluation(float m, float t, float g, Vector2 @out)
         {
             M = m;

@@ -31,6 +31,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>缓动曲线幂;必须 &gt; 1/2,否则端点 C1 破缺(GDD F-3.1 Ⓐ 证明)。</summary>
         public Fix CurvePow { get; }
 
+        /// <summary>直接构造三常量(**不**做区间校验 —— 校验归 <c>Validate</c> / 装载门,见类型头注)。</summary>
         public AxisTuning(Fix dzInner, Fix dzOuter, Fix curvePow)
         {
             DzInner = dzInner;

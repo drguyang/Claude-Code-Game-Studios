@@ -67,8 +67,13 @@ namespace DaYiJingCheng.Sim.Contracts
         {
             if (denominator == 0) throw new DivideByZeroException("FixParse:分母为 0");
 
-            // 中间量落在 int64:|numerator| << 16 溢出即视为**输入域错误**,由调用方(数值轮)保证域。
-            // 此处不做静默回绕(承种子测试同款口径)。
+            // 移位超域 = 输入域错误,显式拒(2026-09-25 code review F4)。C# 的 << 溢出是**静默回绕** ——
+            // 超域分子(≳2^47)会绕成任意 raw,可能伪装成合法值溜过装载断言(AC-3-A9④ 唯一守门)。
+            // 抛 FormatException 使其落进各 binder 既有的 catch 聚合(带字段定位),不单独成异常类型。
+            if (numerator > long.MaxValue >> Fix.FractionalBits ||
+                numerator < long.MinValue >> Fix.FractionalBits)
+                throw new FormatException($"FixParse:分子超 Q16.16 移位域:{numerator} —— 输入域错误");
+
             long scaled = numerator << Fix.FractionalBits;
             return new Fix(RoundHalfAwayFromZero(scaled, denominator));
         }

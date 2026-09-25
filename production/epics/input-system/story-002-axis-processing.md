@@ -93,6 +93,11 @@
   - Edge cases: `DZ_OUTER = 1` 恰等上界(合法);`CURVE_POW` 恰等 `1/2`(拒)与 `1/2 + ε`(过);常量写 `float` 字面量而非字符串 ⇒ schema 层拒(交叉 ADR-006)。
   - Negative fixture: 四组反例即负例夹具(GDD AC 原文点名)。
 
+**实现期登记(2026-09-25 code review;不改 spec,只把实际用例面与原文的出入落账)**:
+- ③ Edge「`DZ_INNER = 0` 合法下界恰过」补测 `test_axisTuning_boundaryInnerZero_restStaysZero` —— spec 有、首版实现漏(review F1 / Q1 双报后补齐)。
+- ④ Given 点名 `CURVE_POW = ∞` 之外,实际增夹具 `invalid_curve_pow_nan.json`(`"NaN"` 串同属「有限」断言的解析层拒)—— 忠实扩展(review F6)。
+- 评审追加 2 测:`test_axisTuningLoader_divisionByZero_aggregatesWithFieldLabel`(F3:分母零聚合回归,④ 同族)· `test_simFixedPoint_fromRatio_shiftOverflow_throwsFormat`(F4:`FixParse.FromRatio` 超域守卫回归,住种子测试 `sim_fixedpoint_test.cs`,不计入本故事 ①–④ 分项)。
+
 ---
 
 ## Test Evidence
@@ -103,7 +108,7 @@
 
 **Status**: [x] Created + VERIFIED(2026-09-25 超算 batch)
 - 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/axis_processing_test.cs`,文档路径 `tests/unit/input_system/` 为登记口径(反例夹具 `tests/unit/input_system/fixtures/*.json` 七组,README 落点说明同批)
-- 执行 ✅ **VERIFIED 2026-09-25 超算 batch**:EditMode **507/507 全绿 exit 0**(log `unity/Logs/build-story002.log`);本故事 **23 用例全 Passed**(① 5 + ② 5 + ③ 2 + ④ 10)
+- 执行 ✅ **VERIFIED 2026-09-25 超算 batch**:初版 507/507;评审修复(F1–F4)后复跑 **510/510 全绿 exit 0**(log `unity/Logs/build-story002-fixes2.log`);本故事 **25 用例全 Passed**(① 6 + ② 5 + ③ 3 + ④ 11 —— 分项按实际重算,原「① 5」为漏计 tinyMagnitude 的笔误;另 F4 回归 1 测住 `sim_fixedpoint_test.cs`,计入 510 总数、不入本故事分项)
 
 ---
 

@@ -180,6 +180,21 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 "失效签名:DZ_INNER < 0 ⇒ 静止点 t > 0 ⇒ AC③ 主断言(T = 0)必红");
         }
 
+        [Test]
+        public void test_axisTuning_boundaryInnerZero_restStaysZero()
+        {
+            // QA③ Edge 原文:「DZ_INNER = 0 合法下界恰过」—— ④ 的下界是开侧(Raw < 0 才拒),
+            // 恰 0 必须装载通过;且下界取 0 时静止语义不破(t = (0−0)/(outer−0) = 0,除数仍 > 0)。
+            AxisTuning tuning = InputAxisTuningBinder.BindFromSourceText(
+                LegalJson(dzInner: "\"0\""), "boundary-inner-zero");
+            Assert.That(tuning.Validate("boundary-inner-zero"), Is.Empty,
+                "DZ_INNER = 0 是合法下界 —— Raw < 0 的开闭侧在 0 处恰过(不被误拒)");
+            var ev = AxisProcessor.Evaluate(Vector2.zero, tuning);
+            Assert.That(ev.Out.x, Is.EqualTo(0f), "静止输出 x 恰 0(下界为 0 不引入静止自走)");
+            Assert.That(ev.Out.y, Is.EqualTo(0f), "静止输出 y 恰 0");
+            Assert.That(ev.T, Is.EqualTo(0f), "静止点 t = 0 —— inner=0 时除法仍良定义");
+        }
+
         // ══════════ AC-3-A9④ 装载期断言 ══════════
 
         [Test]
@@ -207,6 +222,17 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             Assert.DoesNotThrow(() =>
                 InputAxisTuningBinder.BindFromSourceText(
                     LegalJson(curvePow: "\"32769/65536\""), "boundary-pow-half-plus-eps"));
+        }
+
+        [Test]
+        public void test_axisTuningLoader_divisionByZero_aggregatesWithFieldLabel()
+        {
+            // code review F3(Story 002 批):分母零("1/0")原以 DivideByZeroException 裸逃聚合 ——
+            // 仍是硬失败,但不入 Errors、无字段定位。回归:须落进同一 BakeValidationException 聚合。
+            var ex = Assert.Throws<BakeValidationException>(() =>
+                InputAxisTuningBinder.BindFromSourceText(LegalJson(dzInner: "\"1/0\""), "div-zero"));
+            Assert.That(ex.Errors, Is.Not.Empty, "分母零须入聚合 Errors(非裸异常逃逸)");
+            Assert.That(ex.Message, Does.Contain("dz_inner"), "错误须带字段定位");
         }
 
         private static readonly object[][] CounterExampleCases =
