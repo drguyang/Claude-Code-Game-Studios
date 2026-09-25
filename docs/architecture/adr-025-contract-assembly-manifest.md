@@ -110,7 +110,8 @@ dr_guyang(用户 · **2026-09-20 全件照准,转 Accepted**)· technical-direct
 | **`Sim`** | L2 | **期望引用集 = BCL + `Sim.Contracts`(仅此一件)** | **true**(ADR-017 原文) | 19 个 sim 模块(§2.1 表)+ `StreamRouting.g.cs`(ADR-024)+ **25 与 9 同程序集**(2026-09-20 已裁,§2.1 行内)|
 | **`Sim.Contracts`** | L3 | **期望引用集 = BCL** | **true** | `WorldPos` · 六抽象点 · `SimEvent`/`PatientId`/`StreamId`/`EventKind` · `VitalsDto` · `Fix` + `FixParse` · `IDataProvider` · `AudioCueDto`+`IAudioCueSink`(44 名义并入)· `IPositionalChannel` · `ClinicEnvDto`+`IClinicEnvQuery`(24 → 42 只读源,2026-09-22 OQ-CP-4 裁定)` |
 | **`Sim.Codec`** | L3 | BCL only | true | 7a 三流 codec + 存档头 + `Fix` 自定义编码器(**`internal` + `InternalsVisibleTo("Sim.Contracts.Tests")`** —— D-21-18 守卫的可执行形态)|
-| **`Gameplay.Presentation`** | L5(+L4) | UnityEngine · URP · Input System · `Sim.Contracts` | false | 1 · 2 · 42-UGUI 侧 · 44 · `ISceneRouter`/`IWorldSpawner`(ADR-023)· L4 边界层模块(3 / 4 / 8 / 13 / 51)|
+| **`Gameplay.Presentation`** | L5(+L4) | UnityEngine · URP · `Sim.Contracts` | false | 1 · 2 · 42-UGUI 侧 · 44 · `ISceneRouter`/`IWorldSpawner`(ADR-023)· L4 边界层模块(4 / 8 / 13 / 51)|
+| **`Gameplay.Input`** | L4 | `Unity.InputSystem` only | false | 3 输入与设备(`InputService`,动作资产唯一持有者;**不引 `Sim.Contracts`** —— AC-3-A6 输入程序集不引任何声明 `IEventSink`/`SimEvent` 的程序集,2026-09-25 story-001 复核 B1 拆装)|
 | **`Gameplay.UI`** | L5 | + UI Toolkit | false | 42 UI Toolkit 栈 · 39 · 7b · 48(与 Presentation 分装配 = 焦点单栈门的**编译期**表达,ADR-013)|
 | **`Editor.Tools`** 族 | L6 | UnityEditor 自由 | n/a | `tools/level/`(ADR-022)+ `tools/kindgen/`(ADR-024)—— **全部不进构建**,asmdef 限 `includePlatforms: ["Editor"]` |
 

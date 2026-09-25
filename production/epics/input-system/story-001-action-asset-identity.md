@@ -32,10 +32,10 @@
 
 *From GDD `design/gdd/input-system.md`, scoped to this story(判据正文照录,评审沿革注见 GDD 原文):*
 
-- [ ] **AC-3-A1(BLOCKING)**: 3 的输入服务内,**同一动作资产恰有一个实例** —— 断言**实例同一性**(比较 `GetInstanceID()`,**非**比较文件路径或文件计数);**UI 侧半条(条件适用)**:当下游存在 UGUI 画布并挂 `InputSystemUIInputModule`(P1a world-space / VR)时,该模块引用的资产必须与 3 的为同一实例。**P0 平面不适用**(UI Toolkit 为主 ⇒ 该模块可能根本不存在,本条不得以它为主语)—— **P0 签核 = 前半条**;P0 焦点载体前置门(①焦点载体是谁 ②由谁断言接通 ③spike 降级路径)归 42,登记于 GDD §Dependencies 五
-- [ ] **AC-3-A4①(BLOCKING)**: `activeInputHandler == 1`(1 = Input System Package · 0 = Old · 2 = Both;**2026-09-25 载体换轨**,原文照录见下)—— **EditMode 断言且须位于 Editor-only 程序集**,**非构建产物 grep**;**不引用** `PlayerSettings.activeInputHandler` 或枚举成员 `InputSystemPackage`(存在性未经仓内核验的符号不进 BLOCKING 判据)
+- [x] **AC-3-A1(BLOCKING)**: 3 的输入服务内,**同一动作资产恰有一个实例** —— 断言**实例同一性**(比较 `GetInstanceID()`,**非**比较文件路径或文件计数);**UI 侧半条(条件适用)**:当下游存在 UGUI 画布并挂 `InputSystemUIInputModule`(P1a world-space / VR)时,该模块引用的资产必须与 3 的为同一实例。**P0 平面不适用**(UI Toolkit 为主 ⇒ 该模块可能根本不存在,本条不得以它为主语)—— **P0 签核 = 前半条**;P0 焦点载体前置门(①焦点载体是谁 ②由谁断言接通 ③spike 降级路径)归 42,登记于 GDD §Dependencies 五
+- [x] **AC-3-A4①(BLOCKING)**: `activeInputHandler == 1`(1 = Input System Package · 0 = Old · 2 = Both;**2026-09-25 载体换轨**,原文照录见下)—— **EditMode 断言且须位于 Editor-only 程序集**,**非构建产物 grep**;**不引用** `PlayerSettings.activeInputHandler` 或枚举成员 `InputSystemPackage`(存在性未经仓内核验的符号不进 BLOCKING 判据)
   - *原判据字面 `PlayerSettings.GetPropertyInt("activeInputHandler") == 1` 已作废*(2026-09-25 用户裁定):超算 Unity 6.3.24f1 实测该调用**恒返垃圾值**(1850303862;两族重载 × 全部 37 BuildTargetGroup × 6 键名变体均非 1;对照组 `GetPropertyInt("ScriptingBackend", Standalone)` 正确返 0 ⇒ API 可用、该键不可读),且 `GetPropertyInt(string)` 已 obsolete(CS0618)。**现行载体 = `SerializedObject(PlayerSettings).FindProperty("activeInputHandler").intValue == 1`**(实测返 1,与 ProjectSettings.asset 真值一致);与 GDD AC-3-A4① 同批就地修订(2026-09-25)。
-- [ ] **AC-3-A4②(BLOCKING)**: **Roslyn 分析器**在编译期拒绝任何 `UnityEngine.Input` 符号引用(**编译失败**,不是事后 grep —— 构建产物 grep 在符号被裁剪/内联后可能假阴性)
+- [x] **AC-3-A4②(BLOCKING)**: **Roslyn 分析器**在编译期拒绝任何 `UnityEngine.Input` 符号引用(**编译失败**,不是事后 grep —— 构建产物 grep 在符号被裁剪/内联后可能假阴性)
 
 ---
 
@@ -60,6 +60,7 @@
 - Story 005:schema hash 失配优雅清空(A3/A8)—— 本故事不碰 overrides 装载流程
 - Story 007:急救直读通道与输入更新相位(B1a/B2)—— 通道另立
 - P1b 同机克隆(`TR-input-005`)与 `PlayerInput` 取舍(`OQ-3-3`):P0 不实现,形状不阻断即可
+- 场景重载 / 服务重启后的同一性复验(2026-09-25 /code-review F1 登记):本故事的 `InputService` 构造注入已装载实例,装配发生在后续故事(Boot/Addressables 装载)—— 场景切换后实例是否被重建为第二份,属**资产装载故事**的接缝,本故事 QA「Given: 任意多次场景重载」一语不自行覆盖(缺该接缝 ⇒ 记为 handover,不记假绿)
 
 ---
 
@@ -85,6 +86,19 @@
   - Then: 编译**失败**且诊断指向该引用;合法的 Input System 写法(`InputAction.ReadValue`)编译通过。
   - Edge cases: 全限定名 `UnityEngine.Input` 与 `using UnityEngine; Input.` 两种写法均拒;别名引用须覆盖(同义词表显式登记,防换名绕过)。
   - Negative fixture: 一条只 `using UnityEngine` 但不触 `Input` 的源 ⇒ 不得误报。
+  - 补充实测面(2026-09-25 /code-review F11 登记 —— 实现已加测,此处回填 QA 台账):方法组转换(`Func<string,float> f = Input.GetAxis;`)与 `typeof(UnityEngine.Input)` 两种引用形态 —— 二者均**不产生**传统成员调用,是 AC-3-A4②「任何符号引用」字面覆盖但易漏的死角,已入真身测试(`..._rejects_method_group_legacy_input` / `..._rejects_typeof_legacy_input`)。
+
+---
+
+## 结构面补充测试(2026-09-25 /code-review F11 登记)
+
+AC 之外、由 TR-input-001/002 与 GDD 规则一/二/三派生的**结构断言**,与三条 BLOCKING AC 同批落真身测试文件(同一 EditMode 程序集):
+
+- 动作资产文件**恰一个**(全仓 `*.inputactions` 计数 = 1,规则一;非路径白名单而是计数断言)。
+- 资产内 **2 maps**(Player / UI)、**13 actions**(8 + 5)结构与规则二动作词表一致。
+- 三套绑重(K&M / Gamepad / XR)**同表共存**,`controlSchemes` 含 `Keyboard&Mouse` / `Gamepad` / `XR`(规则三)。
+- OpenXR 绑**通用 `XRController` 布局**(Guideline 8,不得绑设备专属)。
+- asmdef 装配:测试程序集 `includePlatforms: ["Editor"]` 精确匹配(F5 判据)。
 
 ---
 
@@ -94,7 +108,7 @@
 **Required evidence**:
 - Integration: `tests/integration/input_system/action_asset_identity_test.cs` — must exist and pass(含 Editor-only 的 A4① 断言与分析器测试)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created —— 真身 = `unity/Assets/Tests/EditMode/InputSystem/action_asset_identity_test.cs`(**17 [Test]**,含 A4① SerializedObject 断言、A4② 子进程 csc 六形态分析器门、DLL↔源码 sidecar 新鲜度门);账本路径 = `tests/integration/input_system/action_asset_identity_test.cs`(Story 001–010 同一先例:Unity 不编译 `unity/Assets/` 之外)。**执行 VERIFIED 2026-09-25 超算 batch** —— EditMode **480 全绿**(前批 477 + 本批修 3 新增),日志 `unity/Logs/build-story001-full.log`(exit 0;typeof 门 DY0001 实证修复 = `ITypeOfOperation.TypeOperand`,方法组门 / 新鲜度门同批绿)。
 - 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/`(含分析器测试),文档路径 `tests/integration/input_system/` 为登记口径
 
 ---

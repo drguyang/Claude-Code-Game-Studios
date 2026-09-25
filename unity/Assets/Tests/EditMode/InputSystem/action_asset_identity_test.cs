@@ -26,7 +26,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using DaYiJingCheng.Gameplay.Presentation;
+using DaYiJingCheng.Gameplay.Input;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -265,6 +265,10 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset");
             Assert.That(settingsAssets, Is.Not.Null.And.Not.Empty,
                 "ProjectSettings/ProjectSettings.asset 未加载到任何对象");
+            Assert.That(settingsAssets.Length, Is.EqualTo(1),
+                "ProjectSettings.asset 应恰载入一个子对象(2026-09-25 复核 N2:把「第 0 个」的自证升为明证)");
+            Assert.That(settingsAssets[0].GetType().Name, Is.EqualTo("PlayerSettings"),
+                "第 0 个对象必须是 PlayerSettings —— 类型不符即引擎资产布局变更,判据需重估");
 
             // Act:1 = Input System Package · 0 = Old · 2 = Both(AC 的整数编码)
             var settings = new SerializedObject(settingsAssets[0]);
@@ -289,14 +293,16 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             Assert.That(File.Exists(asmdefPath), Is.True, "EditMode.asmdef 缺失:" + asmdefPath);
             string json = File.ReadAllText(asmdefPath);
 
-            // Assert
-            Assert.That(json, Does.Contain("\"includePlatforms\": [ \"Editor\" ]"),
+            // Assert:正则容忍 JSON 空白排版变化(2026-09-25 复核 F5:字面比对与排版耦合)
+            Assert.That(json,
+                Does.Match("\"includePlatforms\"\\s*:\\s*\\[\\s*\"Editor\"\\s*\\]"),
                 "本测试程序集必须是 Editor-only(AC-3-A4①:EditMode 断言且位于 Editor-only 程序集)");
         }
 
-        /// <summary>AC-3-A4① 的 grep 级辅助:本测试源码走 SerializedObject 载体,
-        /// 不得出现已废弃的 GetPropertyInt 读法、同名属性访问或未核验的枚举成员名
-        /// (写进 BLOCKING 判据的不可用符号 = 一条不可能通过的验收)。</summary>
+        /// <summary>AC-3-A4① 的 grep 级辅助:全 Assets 树(2026-09-25 复核 F2:自扫作用域由
+        /// 「仅本文件」扩为 AC 字面的全工程)不得出现已废弃的 GetPropertyInt 读法、
+        /// 同名属性访问或未核验的枚举成员名(写进 BLOCKING 判据的不可用符号 = 一条不可能通过的验收);
+        /// 另断本文件走 SerializedObject 载体。</summary>
         [Test]
         public void test_legacy_input_gate_source_uses_serialized_property_carrier_without_banned_symbols()
         {
@@ -308,14 +314,26 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             string bannedEnumToken = "Input" + "SystemPackage";
             string obsoleteCarrier = "GetPropertyInt" + "(\"activeInputHandler\")";
 
-            // Act + Assert
+            // Act:正向(本文件走新载体)
             StringAssert.Contains("FindProperty(\"activeInputHandler\")", src);
-            Assert.That(src, Does.Not.Contain(obsoleteCarrier),
-                "原字面载体(GetPropertyInt 单参读 activeInputHandler)在 6.3 实测恒返垃圾值且已 obsolete(2026-09-25 裁定换轨)");
-            Assert.That(src, Does.Not.Contain(bannedProperty),
-                "禁用属性访问形态(6.3 反射核验:该属性不存在)");
-            Assert.That(src, Does.Not.Contain(bannedEnumToken),
-                "禁用未核验的枚举成员名(存在性未经仓内核验)");
+
+            // Act:全 Assets 树扫描(所有 .cs;命中文件列进失败消息)
+            string assetsRoot = Path.Combine(RepoRoot, "unity", "Assets");
+            var offenders = new List<string>();
+            foreach (string file in Directory.GetFiles(assetsRoot, "*.cs", SearchOption.AllDirectories))
+            {
+                string text = File.ReadAllText(file);
+                if (text.Contains(bannedProperty, StringComparison.Ordinal))
+                    offenders.Add(file + " → " + bannedProperty);
+                if (text.Contains(bannedEnumToken, StringComparison.Ordinal))
+                    offenders.Add(file + " → " + bannedEnumToken);
+                if (text.Contains(obsoleteCarrier, StringComparison.Ordinal))
+                    offenders.Add(file + " → " + obsoleteCarrier);
+            }
+
+            // Assert
+            Assert.That(offenders, Is.Empty,
+                () => "AC-3-A4①:全 Assets 树出现禁用符号形态:\n" + string.Join("\n", offenders));
         }
 
         // ══════════ AC-3-A4② · Roslyn 分析器(编译期拒 UnityEngine.Input 符号)══════════
@@ -339,6 +357,43 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 "(先 batch 执行 DaYiJingCheng.EditorTools.Gates.RoslynAnalyzerLabel.SetLabel)");
         }
 
+        /// <summary>AC-3-A4② 新鲜度(2026-09-25 复核 W2):DLL ↔ 分析器源码经 build.sh 产出的
+        /// sidecar(双 hash:源 + DLL)绑定 —— 改源不重跑 build.sh ⇒ 红(防门静默跑旧逻辑)。</summary>
+        [Test]
+        public void test_legacy_input_gate_analyzer_dll_matches_source_freshness_sidecar()
+        {
+            // Arrange
+            string srcPath = Path.Combine(RepoRoot, "tools", "analyzers",
+                "LegacyInputAnalyzer", "LegacyInputAnalyzer.cs");
+            string sidecarPath = Path.Combine(RepoRoot, "tools", "analyzers", "LegacyInputAnalyzer.dll.sha256");
+            Assert.That(File.Exists(srcPath), Is.True, "分析器源码缺失:" + srcPath);
+            Assert.That(File.Exists(sidecarPath), Is.True,
+                "新鲜度 sidecar 缺失 —— 重跑 bash tools/analyzers/build.sh 产出:" + sidecarPath);
+            Assert.That(File.Exists(AnalyzerDllOnDisk), Is.True,
+                "分析器 DLL 不存在 —— 先跑 tools/analyzers/build.sh:" + AnalyzerDllOnDisk);
+
+            // Act:sidecar 一行两列(源 hash · DLL hash)
+            string[] parts = File.ReadAllText(sidecarPath)
+                .Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            Assert.That(parts.Length, Is.EqualTo(2),
+                "sidecar 格式应为「<源 sha256> <DLL sha256>」:" + sidecarPath);
+            string srcHash = Sha256Hex(srcPath);
+            string dllHash = Sha256Hex(AnalyzerDllOnDisk);
+
+            // Assert
+            Assert.That(srcHash, Is.EqualTo(parts[0]),
+                "分析器源码已改动但 sidecar 未更新 ⇒ 改了源没重跑 build.sh(门会跑旧逻辑):" + srcPath);
+            Assert.That(dllHash, Is.EqualTo(parts[1]),
+                "DLL 与 sidecar 记录不符 ⇒ 重跑 build.sh 以刷新:" + AnalyzerDllOnDisk);
+        }
+
+        private static string Sha256Hex(string path)
+        {
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+            using (var stream = File.OpenRead(path))
+                return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
+        }
+
         /// <summary>AC-3-A4② 正向拒绝(全限定形态):样例含 UnityEngine.Input 符号引用 ⇒ 子进程 csc 编译失败且报 DY0001。</summary>
         [Test]
         public void test_legacy_input_gate_analyzer_rejects_fully_qualified_legacy_input()
@@ -354,8 +409,57 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             // Act
             var (exitCode, output) = RunCscWithAnalyzer("bad_fully_qualified.cs", sample);
 
-            // Assert:编译失败(非 0)+ 诊断含 DY0001(不是任何随手的错误)
+            // Assert:编译失败(非 0)+ 诊断含 DY0001(不是任何随手的错误)+ 诊断指向引用位置(QA Then「指向该引用」,2026-09-25 补 F7)
             Assert.That(exitCode, Is.Not.EqualTo(0), "含 Legacy Input 引用的样例必须编译失败:\n" + output);
+            Assert.That(output, Does.Contain("DY0001"), "失败必须由 DY0001 报出:\n" + output);
+            Assert.That(output, Does.Match(@"bad_fully_qualified\.cs\(\d+,\d+\): error DY0001"),
+                "诊断必须带行列位置、指向该引用(而非无位置的裸诊断):\n" + output);
+        }
+
+        /// <summary>AC-3-A4② 方法组形态(2026-09-25 复核 W3 补漏):<c>Func&lt;string,float&gt; f = Input.GetAxis;</c>
+        /// 是符号引用但非调用 —— 补注册 MethodReference 后必须拒。</summary>
+        [Test]
+        public void test_legacy_input_gate_analyzer_rejects_method_group_legacy_input()
+        {
+            // Arrange
+            const string sample =
+                "using System;\n" +
+                "using UnityEngine;\n" +
+                "public static class BadMethodGroup\n" +
+                "{\n" +
+                "    public static float Run()\n" +
+                "    {\n" +
+                "        Func<string, float> axis = Input.GetAxis;\n" +
+                "        return axis(\"Horizontal\");\n" +
+                "    }\n" +
+                "}\n";
+
+            // Act
+            var (exitCode, output) = RunCscWithAnalyzer("bad_method_group.cs", sample);
+
+            // Assert
+            Assert.That(exitCode, Is.Not.EqualTo(0), "方法组形态的 Legacy Input 引用必须编译失败:\n" + output);
+            Assert.That(output, Does.Contain("DY0001"), "失败必须由 DY0001 报出:\n" + output);
+        }
+
+        /// <summary>AC-3-A4② typeof 形态(2026-09-25 复核补漏):typeof(UnityEngine.Input)
+        /// 是类型符号引用,成员判定不覆盖,须单独拒。</summary>
+        [Test]
+        public void test_legacy_input_gate_analyzer_rejects_typeof_legacy_input()
+        {
+            // Arrange
+            const string sample =
+                "using System;\n" +
+                "public static class BadTypeOf\n" +
+                "{\n" +
+                "    public static Type T() { return typeof(UnityEngine.Input); }\n" +
+                "}\n";
+
+            // Act
+            var (exitCode, output) = RunCscWithAnalyzer("bad_typeof.cs", sample);
+
+            // Assert
+            Assert.That(exitCode, Is.Not.EqualTo(0), "typeof 形态的 Legacy Input 引用必须编译失败:\n" + output);
             Assert.That(output, Does.Contain("DY0001"), "失败必须由 DY0001 报出:\n" + output);
         }
 
@@ -468,7 +572,13 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         {
             var (dotnet, cscDll, editorData) = LocateUnityToolchain();
 
-            string workDir = Path.Combine(Path.GetTempPath(), "dyc_story001_analyzer_test");
+            // 隔离:测试全名 + 进程 id(2026-09-25 复核 W6/F3:常量目录在并行/多实例下互删;
+            // 用测试名而非 Guid,保日志可复现)
+            string safeName = TestContext.CurrentContext.Test.FullName;
+            foreach (char c in Path.GetInvalidFileNameChars())
+                safeName = safeName.Replace(c, '_');
+            string workDir = Path.Combine(Path.GetTempPath(),
+                "dyc_story001_analyzer_" + Process.GetCurrentProcess().Id + "_" + safeName);
             if (Directory.Exists(workDir))
                 Directory.Delete(workDir, true);
             Directory.CreateDirectory(workDir);
@@ -477,7 +587,12 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 // 框架引用集:NetCoreRuntime/shared/Microsoft.NETCore.App/<version>/*.dll(与 csc 宿主同运行时)
                 string sharedRoot = Path.Combine(editorData, "NetCoreRuntime", "shared", "Microsoft.NETCore.App");
                 Assert.That(Directory.Exists(sharedRoot), Is.True, "缺 shared/Microsoft.NETCore.App:" + sharedRoot);
-                string frameworkDir = Directory.GetDirectories(sharedRoot).OrderBy(d => d, StringComparer.Ordinal).First();
+                // 取最高版本(与 build.sh 的 sort -V | tail -1 同策略 —— 2026-09-25 复核 N4:原为 Ordinal 取最低,两侧相反)
+                string frameworkDir = Directory.GetDirectories(sharedRoot)
+                    .OrderBy(d => System.Version.TryParse(
+                            Path.GetFileName(d.TrimEnd(Path.DirectorySeparatorChar, '/')), out var v)
+                        ? v : new Version(0, 0))
+                    .Last();
                 string[] frameworkRefs = Directory.GetFiles(frameworkDir, "*.dll", SearchOption.TopDirectoryOnly);
 
                 string rsp = Path.Combine(workDir, "refs.rsp");

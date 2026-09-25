@@ -84,10 +84,26 @@ echo "   输出       : $OUT"
     -target:library \
     -nostdlib+ \
     -langversion:9.0 \
+    -deterministic \
     -out:"$OUT" \
     @"$RSP" \
     "$SRC"
 
 echo "OK: $OUT ($(stat -c %s "$OUT" 2>/dev/null || stat -f %z "$OUT") bytes)"
-echo "下一步(设 RoslynAnalyzer label,batch):"
+
+# ── 新鲜度 sidecar(2026-09-25 复核 W2)──
+# 一行两个 hash:源码 sha256 + DLL sha256,由 EditMode 测试比对。
+# 源改了没重跑本脚本 ⇒ 源 hash 失配;DLL 被换/未重跑 ⇒ DLL hash 失配。两者皆红。
+sha256_of() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
+    else
+        shasum -a 256 "$1" | awk '{print $1}'
+    fi
+}
+SIDECAR="$SCRIPT_DIR/LegacyInputAnalyzer.dll.sha256"
+printf '%s  %s\n' "$(sha256_of "$SRC")" "$(sha256_of "$OUT")" > "$SIDECAR"
+echo "sidecar: $SIDECAR"
+
+echo "下一步(设 RoslynAnalyzer label + PluginImporter 校正,batch):"
 echo "  unity build <project> --target StandaloneLinux64 --executeMethod DaYiJingCheng.EditorTools.Gates.RoslynAnalyzerLabel.SetLabel"

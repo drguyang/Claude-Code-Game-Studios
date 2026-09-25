@@ -26,7 +26,7 @@
 using System;
 using UnityEngine.InputSystem;
 
-namespace DaYiJingCheng.Gameplay.Presentation
+namespace DaYiJingCheng.Gameplay.Input
 {
     /// <summary>输入服务(系统 3)—— 恰持有 <b>一个</b> <see cref="InputActionAsset"/> 实例,
     /// 并提供按 <c>GetInstanceID()</c> 的实例同一性断言(AC-3-A1)。</summary>
@@ -34,8 +34,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
     /// 单实例纪律:本类不提供“再装载一次”的入口 —— 装载(唯一一次)由调用方完成并注入;
     /// 同一性判断只看 <c>GetInstanceID()</c>,<b>不看文件路径、不看文件计数</b>
     /// (路径比较会放过「同文件被实例化两次」的分叉,那正是 AC-3-A1 废弃旧判据的原因)。
-    /// P1b 同机多玩家的每玩家 <c>Instantiate()</c> 克隆(ADR-011 §一 / 规则六)在本故事
-    /// 不实现 —— 克隆体不得传入本服务的同一性断言并期待为 true。
+    /// P1b 同机多玩家的每玩家 <c>Instantiate()</c> 克隆在本故事不实现 —— 「须每玩家
+    /// Instantiate」出 ADR-011 §一 / Amendment A ②;「P1b 才做」的时序出 GDD input-system.md
+    /// 与本故事 Out of Scope;克隆体不得传入本服务的同一性断言并期待为 true。
     /// </remarks>
     public sealed class InputService
     {

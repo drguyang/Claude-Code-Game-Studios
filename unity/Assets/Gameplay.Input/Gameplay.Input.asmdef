@@ -1,11 +1,8 @@
 {
-    "name": "Gameplay.Presentation",
-    "rootNamespace": "DaYiJingCheng.Gameplay.Presentation",
+    "name": "Gameplay.Input",
+    "rootNamespace": "DaYiJingCheng.Gameplay.Input",
     "references": [
-        "Sim.Contracts",
-        "Sim",
-        "Unity.Addressables",
-        "Unity.ResourceManager"
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

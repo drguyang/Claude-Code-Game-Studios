@@ -152,7 +152,7 @@ EmergencyReading = {
 
 | 层 | 归属 | 交付物 |
 | --- | --- | --- |
-| **3 输入与设备** | 边界层<!-- ⚠️ 2026-09-20 ADR-025 回写加注:「边界层」的装配落位现名 = `Gameplay.Presentation`(ADR-025 §① L4 边界层模块 3/4/8/13/51 行);「门面 / 独立契约程序集」两名已作废。本表门 A 判据不变。 --> | `EmergencyReading`(**全整数**,不含判定) |
+| **3 输入与设备** | 边界层<!-- ⚠️ 2026-09-20 ADR-025 回写加注:「边界层」的装配落位现名 = `Gameplay.Presentation`(ADR-025 §① L4 边界层模块 3/4/8/13/51 行);「门面 / 独立契约程序集」两名已作废。本表门 A 判据不变。⚠️ 2026-09-25 更新:模块 3 已拆独立装配 `Gameplay.Input`(ADR-025 §①,story-001 复核 B1)—— L4 边界层模块现为 4/8/13/51;3 不再住 `Gameplay.Presentation`。 --> | `EmergencyReading`(**全整数**,不含判定) |
 | **10 急救动作** | **sim 侧** | `Judge` / `JudgeResult` / 处置 `SimEvent` |
 
 > **⚠️ 判据**:3 的程序集**不得**引用 `Judge` / `JudgeResult`,**不得**构造任何 `SimEvent`。

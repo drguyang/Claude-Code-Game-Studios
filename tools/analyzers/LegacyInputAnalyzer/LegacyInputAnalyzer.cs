@@ -2,8 +2,9 @@
 //
 // 权威来源:
 //   story-001-action-asset-identity.md AC-3-A4②(BLOCKING):按**语义符号**拒绝任何
-//     UnityEngine.Input 静态符号引用(全限定 / using 导入 / using static / 别名 四形态全覆盖),
-//     Error 级 ⇒ 命中即编译失败;对 InputAction.ReadValue 等 Input System 合法写法零误报。
+//     UnityEngine.Input 静态符号引用(全限定 / using 导入 / using static / 别名 /
+//     方法组转换 / typeof 六形态全覆盖),Error 级 ⇒ 命中即编译失败;
+//     对 InputAction.ReadValue 等 Input System 合法写法零误报。
 //   control-manifest.md Forbidden 表 · Legacy Input 行;ADR-011 §Decision 二。
 //
 // 构建纪律(unity-specialist 预检 2026-09-25):
@@ -40,13 +41,13 @@ namespace DaYiJingCheng.EditorTools.Analyzers
         private static readonly DiagnosticDescriptor Rule = new DiagnosticDescriptor(
             id: DiagnosticId,
             title: "Legacy Input Manager reference forbidden",
-            messageFormat: "Legacy Input Manager symbol '{0}' is referenced — forbidden by control-manifest (use Input System / InputAction instead)",
+            messageFormat: "Legacy Input Manager symbol '{0}' is referenced - forbidden by control-manifest (use Input System / InputAction instead)",
             category: Category,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: "AC-3-A4② zero-reference gate: any semantic reference to UnityEngine.Input " +
-                         "(fully-qualified, using-import, using-static, or alias form) fails compilation. " +
-                         "Engine/package sources (Library/PackageCache, Packages, BuiltInPackages) are excluded.");
+                         "(fully-qualified, using-import, using-static, alias, method-group, or typeof form) " +
+                         "fails compilation. Engine/package sources (Library/PackageCache, Packages, BuiltInPackages) are excluded.");
 
         /// <summary>本分析器唯一可报的诊断(DY0001 · Error 级 ⇒ 编译失败)。</summary>
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
@@ -74,17 +75,40 @@ namespace DaYiJingCheng.EditorTools.Analyzers
                     OperationKind.Invocation,        // Input.GetKey(...) / Input.GetAxis(...)
                     OperationKind.PropertyReference, // Input.mousePosition / Input.anyKeyDown
                     OperationKind.FieldReference,    // Input.mousePosition 等(容错)
-                    OperationKind.EventReference);   // Input.* 事件(容错)
+                    OperationKind.EventReference,    // Input.* 事件(容错)
+                    OperationKind.MethodReference,   // 方法组转换:Func<string,float> f = Input.GetAxis(2026-09-25 复核 W3 补漏)
+                    OperationKind.TypeOf);           // typeof(UnityEngine.Input)(类型符号引用)
             });
         }
 
         private static void AnalyzeOperation(OperationAnalysisContext ctx, INamedTypeSymbol inputType)
         {
+            // typeof(UnityEngine.Input) —— 类型符号本身的引用(成员判定不适用:该情形下
+            // 「被引用符号」就是 inputType,而非其成员)。
+            // ⚠️ 必须取 ITypeOfOperation.TypeOperand:TypeOperand 才是 typeof 的操作数类型;
+            // 读 .Type 会命中继承的 IOperation.Type = typeof 表达式自身的求值类型(System.Type),
+            // 与 inputType 恒不相等 ⇒ 分支静默失效(2026-09-25 探针实证)。
+            if (ctx.Operation is ITypeOfOperation typeOf)
+            {
+                ITypeSymbol typeOperand = typeOf.TypeOperand;
+                if (typeOperand != null && SymbolEqualityComparer.Default.Equals(
+                        typeOperand.OriginalDefinition, inputType.OriginalDefinition)
+                    && !IsExcludedTree(ctx.Operation.Syntax.SyntaxTree))
+                {
+                    ctx.ReportDiagnostic(Diagnostic.Create(
+                        Rule, ctx.Operation.Syntax.GetLocation(), typeOperand.Name + " (typeof)"));
+                }
+                return;
+            }
+
             ISymbol member;
             switch (ctx.Operation)
             {
                 case IInvocationOperation invocation:
                     member = invocation.TargetMethod;
+                    break;
+                case IMethodReferenceOperation methodRef: // 方法组:var f = Input.GetAxis;(W3)
+                    member = methodRef.Method;
                     break;
                 case IPropertyReferenceOperation propertyRef:
                     member = propertyRef.Property;
@@ -121,12 +145,22 @@ namespace DaYiJingCheng.EditorTools.Analyzers
         {
             string path = tree.FilePath ?? string.Empty;
             path = path.Replace('\\', '/');
-            // Unity 包缓存 / 内置包 / 内嵌包(含相对路径 "Packages/...")—— 引擎内容,不挂门。
-            return path.Contains("/Library/PackageCache/")
-                || path.Contains("/BuiltInPackages/")
-                || path.StartsWith("Packages/", StringComparison.Ordinal)
-                || path.Contains("/Packages/com.")
-                || path.Contains("/Packages/unity.");
+
+            // 引擎/包源 —— 排除(见文件头注释)。路径形态同时兜绝对与相对两种
+            // (2026-09-25 复核 W4:原实现的前置斜杠要求在相对路径形态下会漏排)。
+            if (path.Contains("Library/PackageCache/")
+                || path.Contains("BuiltInPackages/"))
+                return true;
+
+            // 一方源(Assets/ 下)永不排除 —— 即使形如 Assets/Packages/com.xxx 的
+            // 内嵌 vendored 源也归门管(必须先于下面的 /Packages/ 判定)。
+            if (path.StartsWith("Assets/", StringComparison.Ordinal)
+                || path.Contains("/Assets/"))
+                return false;
+
+            // 工程内嵌包(<project>/Packages/…)与相对路径 Packages/… —— 引擎内容,不挂门。
+            return path.StartsWith("Packages/", StringComparison.Ordinal)
+                || path.Contains("/Packages/");
         }
     }
 }

@@ -430,7 +430,8 @@ docs/engine-reference/unity/plugins/addressables.md:301  ### Cleanup on Scene Un
 | ~~「门面程序集」~~ | (L3) | — | **称谓作废**(ADR-025 ①)—— ADR-005:228 的「仅门面可调用 `ToFloat()`」改由 **② 甲案白名单断言**执法;原文回写加注归 V-5 |
 | ~~「独立契约程序集」~~ | (L3) | — | **称谓作废** —— 内容并入 `Sim.Contracts`(同上,V-5 加注)|
 | `Sim.Codec` | L3 | BCL only | ✅ ADR-025 ① —— 收 7a 三流 codec + 存档头 + `Fix` 自定义编码器(`persistence-service.md:577` 的「边界层承载 codec 的程序集」现名)|
-| `Gameplay.Presentation` / `Gameplay.UI` | L4/L5 | UnityEngine · URP · Input System / + UI Toolkit | ✅ ADR-025 ① —— `IPlayerMotor` 的 `Vector3` 半 + `ICameraRig` 住前者(①′ 浮点半);分装配 = 焦点单栈门的编译期表达 |
+| `Gameplay.Presentation` / `Gameplay.UI` | L4/L5 | UnityEngine · URP / + UI Toolkit | ✅ ADR-025 ① —— `IPlayerMotor` 的 `Vector3` 半 + `ICameraRig` 住前者(①′ 浮点半);分装配 = 焦点单栈门的编译期表达 |
+| `Gameplay.Input` | L4 | `Unity.InputSystem` only | ✅ ADR-025 ①(2026-09-25 story-001 复核 B1 拆装)—— 3 输入与设备 `InputService` 住此;**不引 `Sim.Contracts`**(AC-3-A6) |
 | `Editor.Tools` 族 | L6 | UnityEditor 自由 | ✅ ADR-025 ① —— `tools/level/`(ADR-022)+ `tools/kindgen/`(ADR-024);`includePlatforms: ["Editor"]`,不进构建 |
 
 > **⇒ 「全案唯一有名字的程序集是 `Sim`」这一状态自 2026-09-20 起终结。** 门 A 外侧的划分
