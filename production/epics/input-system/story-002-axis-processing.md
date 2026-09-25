@@ -1,7 +1,7 @@
 # Story 002: F-3.1 轴处理算术性质与装载期断言
 
 > **Epic**: 输入与设备
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 3h
@@ -116,3 +116,16 @@
 
 - Depends on: Story 001(轴值从唯一动作资产读出)
 - Unlocks: Story 010(常驻轴读路径零分配含本函数的逐帧调用)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-25
+**Criteria**: 4/4 passing(AC-3-A9①②③④ 全过;traceability 零 UNTESTED)
+**Deviations**: 3 条 ADVISORY ——
+1. **范围外触达(code review 驱动,已修)**:`Sim.Contracts/FixParse.cs`(F4 超移位域守卫 —— `<<` 静默回绕会让错值伪装合法 raw 溜过装载断言)+ `sim_fixedpoint_test.cs`(F4 回归测的归属落点,FixParse 自己的种子测试);另首版批含 `AssemblyGates.cs` b3 Manifest 补登 `Gameplay.Input`(story-001 B1 拆装的潜伏清单缺口,门清单向 ADR-025 §① 同步,非新裁决)。
+2. **binder schema 脚手架路径无测(QA Q3)**:schema_version 缺失/非整数/不匹配、未知键白名单、必填键缺失、null Fix、阶段1 词法失败 —— 均为 ADR-014 通用脚手架,本故事 AC 未点名;后续数据管线 story 或 tech-debt 轮登记,避免静默腐化。
+3. **测试经 `[CallerFilePath]` 上溯仓库根读夹具/种子(QA Q4)**:违 test-standards「单测不依赖文件系统」字面;编译路径变动的失败方向是红(找不到夹具)不是假绿,Test Evidence 已有落点注记,接受。
+**Test Evidence**: Logic —— 真身 `unity/Assets/Tests/EditMode/InputSystem/axis_processing_test.cs` **25/25 Passed**;全套 EditMode **510/510 全绿 exit 0**(2026-09-25 超算 batch,log `unity/Logs/build-story002-fixes2.log`);登记口径路径 `tests/unit/input_system/`(fixtures 七组 + README 同批)。
+**Code Review**: Complete —— 会话内 /code-review 双代理并行(unity-specialist F1–F6 · qa-tester Q1–Q4);F1/F3/F4/F5 代码修 + F2/Q2 计数修 + F6/Q1 登记补测,残余 Q3/Q4 记上文 ADVISORY;verdict **APPROVED WITH SUGGESTIONS**(修复后复跑 510/510 绿)。
+**Manifest**: v2026-09-21 一致(staleness PASS)。
