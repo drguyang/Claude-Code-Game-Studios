@@ -1,7 +1,7 @@
 # Story 004: 绑重 schema hash 稳定性(F-3.5)
 
 > **Epic**: 输入与设备
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
@@ -133,3 +133,19 @@
 
 - Depends on: Story 003(sidecar 布局与读写点就位,hash 有写入处)
 - Unlocks: Story 005(失配清空消费本故事的 hash 与两条不变量)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-26
+**Criteria**: 5/5 passing(AC-3-E3 ①②④⑤⑦ 全过;traceability 零 UNTESTED)
+**Deviations**: 6 条 ADVISORY ——
+1. **E3⑦ 计数前缀 QA 负例在 AC 夹具下不可构造(GDD:652 论证不成立)**:规范序列化对集合元素用**逐元素 4 字节定长长度前缀**,此编码下 `[]` 与 `[""]` 字节流本就不同(空元素仍发 4 个零字节),GDD「纯长度前缀下两者撞」的论证不成立;AC 两夹具逐字断言保留,计数前缀牙齿改锚相邻集合平移夹具(双代理独立逐字节复核属实)。**GDD `input-system.md:652` 权威文本未回修,转 design 侧跟轮**。
+2. **Q4 无 golden 钉值夹具**:全部测试为相对比较;canon 编码若变,既有 `bindings.schema.txt` 头部 hash 集体失配 ⇒ Story 005 清空被误触发(QA 原文未要求钉值,不判违规)—— **Story 005 回归层补钉值夹具**。
+3. **Q8 `ComputeSchemaHash` 零生产调用点**:史诗分期(P0 无改键 UI,写点头部由 Story 003 布局,hash 语义本故事交付)—— **Story 005 或接线故事立集成断言** `Save(asset, ComputeSchemaHash(asset))` → Load 往返。
+4. **F5/GDD:638 措辞**:GDD 写「按 canon 的 `StringComparer.Ordinal` 升序」,实现取 canon 字节流的无符号字节序(ASCII 绑定名下等价,且更确定)—— 措辞宜下轮收「按 canon 字节序」。
+5. **Q3 扫描面边界**:E3④/E3⑤ 为程序集内文本扫描,跨程序集委托(外部 hash helper)文本不可达;现状零跨程序集委托,E3⑤ 全目录 + 运行时探针兜底。
+6. **Q7 suite 约束**:EditMode 对单实例 `.inputactions` 只做内存 override,全测试树零 `SaveAssets`/`SetDirty` —— **约束「测试不得对该资产 SaveAssets」**,违则 override 持久化进资产真源。
+**Test Evidence**: Logic —— 真身 `unity/Assets/Tests/EditMode/InputSystem/binding_schema_hash_test.cs` **9/9 Passed**(E3① 2 + E3② 1 + E3④ 1 + E3⑤ 2 + E3⑦ 2 + 不变量②牙齿 1);全套 EditMode **544/544 全绿 exit 0**(2026-09-26 评审修复批复跑,log `unity/Logs/build-story004-fixes.log`;初版 543 → F1 补牙齿测 544);登记口径路径 `tests/unit/input_system/`(README 落点说明同批)。
+**Code Review**: Complete —— 会话内 /code-review 双代理并行(unity-specialist **APPROVED WITH SUGGESTIONS** F1–F5 · qa-tester **TESTABLE** Q1–Q8,AC 裁决 E3①/②/⑤/⑦ = COVERED、E3④ = PARTIAL→修复后 COVERED);F1–F5 / Q1–Q8 **全修**(含次要:bindingId 牙齿测 + E3④ HashCode token + E3⑤ 全目录/overrideGroups/BindingsStore 豁免 + 插值剥离 + WriteList 克隆),复跑 544/544 绿;残余 Q3/Q4/Q7/Q8/F5 记上文 ADVISORY。
+**Manifest**: v2026-09-21 一致(staleness PASS)。
