@@ -7,9 +7,9 @@
 //     原手工建场景步骤脚本化 —— 用户 2026-09-22 裁定,记忆 feedback-scripted-spikes)。
 //
 // 菜单:
-//   DaYi/Spike/Setup U1 Spikes    —— 建 4 个临时场景 + Cube prefab + 假设 6 装置,
+//   大医精诚/Spike/Setup U1 Spikes    —— 建 4 个临时场景 + Cube prefab + 假设 6 装置,
 //                                    标 Addressable、切 Existing Build、BuildPlayerContent。
-//   DaYi/Spike/Teardown U1 Spikes —— 删全部 Spike* 临时资产 + 摘 Addressable 条目 + 重建 catalog。
+//   大医精诚/Spike/Teardown U1 Spikes —— 删全部 Spike* 临时资产 + 摘 Addressable 条目 + 重建 catalog。
 //
 // ⚠️ 临时资产路径全部以 Spike 开头,已由 .gitignore `unity/Assets/Scenes/Spike*` 拦下,
 //    永不提交;AddressableAssetsData/ 会由本菜单首次生成 —— **保留、不提交**(归 ADR-014 正式批)。
@@ -137,7 +137,7 @@ namespace DaYiJingCheng.EditorTools.Spike
             "    border-color: rgb(255, 255, 255);\n" +
             "}\n";
 
-        [MenuItem("DaYi/Spike/Setup U1 Spikes")]
+        [MenuItem("大医精诚/Spike/Setup U1 Spikes")]
         static void Setup()
         {
             var sw = Stopwatch.StartNew();
@@ -244,7 +244,7 @@ namespace DaYiJingCheng.EditorTools.Spike
                 Debug.Log($"[U1] Setup 完成:新建 {created} · 跳过已存在 {skipped} · 总耗时 {sw.ElapsedMilliseconds} ms\n" +
                           "[U1] 下一步:① Test Runner(PlayMode)跑 U1SceneSpikesTest 三条 → 结果自动写 Logs/u1_spike_results.txt\n" +
                           "[U1]           ② 手柄腿:打开 " + U1SpikePaths.SceneAssump6 + " 按 Play(判据见卡 §5.2)\n" +
-                          "[U1]           ③ 跑完菜单 DaYi/Spike/Teardown U1 Spikes 清临时资产");
+                          "[U1]           ③ 跑完菜单 大医精诚/Spike/Teardown U1 Spikes 清临时资产");
             }
             catch (Exception e)
             {
@@ -256,7 +256,7 @@ namespace DaYiJingCheng.EditorTools.Spike
             }
         }
 
-        [MenuItem("DaYi/Spike/Teardown U1 Spikes")]
+        [MenuItem("大医精诚/Spike/Teardown U1 Spikes")]
         static void Teardown()
         {
             int removedEntries = 0, deletedAssets = 0;

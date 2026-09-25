@@ -157,7 +157,7 @@
 - QA §5.3:扫描改 `OrdinalIgnoreCase`;删 `EnvMod_total` / `max(1,` 两个**死项**(非合法 C# 文本);补 `CeilDiv`
 - QA §6:AC-47 注释「最大值」→「均值」(代码本就取均值)
 **残留**:AC-21a-47 的 `production/qa/smoke-*.md` 证据(见 Deviations 第 1 条)—— 建 `production/qa/` 后补
-**First follow-up**: ✅ 全部完成(2026-09-24)① 桌面 Unity 已生成 `.meta`(用户确认跑绿);② EditMode `RecipeSettlementSolverTest` 30 测 + 回归全量 = **175 全绿**;③ PlayMode `RecipeSettlementSolverIntegrationTest` **7/7 绿**;④ 状态翻 VERIFIED(本文件 + EPIC.md 同批);**无 open 跟进**。⚠️ 注意:同批 PlayMode 跑出 3 条 U1 spike 红(`U1SceneSpikesTest`,`No Location found for Key=U1_Spike*`)与 003 无关 —— 归 ADR-023 spike 批,桌面侧如需拿 U1 数字:先 `DaYi/Spike/Setup U1 Spikes` 重建场景 + `BuildPlayerContent`,再在 Test Runner **PlayMode 标签**跑(勿 Run on Player)
+**First follow-up**: ✅ 全部完成(2026-09-24)① 桌面 Unity 已生成 `.meta`(用户确认跑绿);② EditMode `RecipeSettlementSolverTest` 30 测 + 回归全量 = **175 全绿**;③ PlayMode `RecipeSettlementSolverIntegrationTest` **7/7 绿**;④ 状态翻 VERIFIED(本文件 + EPIC.md 同批);**无 open 跟进**。⚠️ 注意:同批 PlayMode 跑出 3 条 U1 spike 红(`U1SceneSpikesTest`,`No Location found for Key=U1_Spike*`)与 003 无关 —— 归 ADR-023 spike 批,桌面侧如需拿 U1 数字:先 `大医精诚/Spike/Setup U1 Spikes` 重建场景 + `BuildPlayerContent`,再在 Test Runner **PlayMode 标签**跑(勿 Run on Player)
 
 ---
 

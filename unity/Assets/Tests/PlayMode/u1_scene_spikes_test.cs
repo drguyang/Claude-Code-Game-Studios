@@ -9,7 +9,7 @@
 // ⚠️ 本文件是**执行装置,不是黄金断言**:
 //    - 绿 = 装置跑通(加载/卸载/实例化按预期完成);存活方向、毫秒数、bundle 计数
 //      **不作 Assert** —— 任一方向都是 spike 发现,写进 Logs/u1_spike_results.txt 供 §6 回填;
-//    - 前置:菜单 DaYi/Spike/Setup U1 Spikes 已跑(缺 key → 三条全 Ignore,不会假绿)。
+//    - 前置:菜单 大医精诚/Spike/Setup U1 Spikes 已跑(缺 key → 三条全 Ignore,不会假绿)。
 //    - bundle 计数依赖 Play Mode = Existing Build(Setup 已尝试自动切);Use Asset Database
 //      模式下 bundle 数恒 0,结果行会标 mode=AssetDatabase(spike 判据 2/3 记 N/A)。
 // ⚠️ 结果写 Logs/u1_spike_results.txt(Unity .gitignore 已含 [Ll]ods —— 不入库),
@@ -178,7 +178,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             if (!handle.IsValid()) return;
             if (handle.Status != AsyncOperationStatus.Failed) return;
             if (IsMissingKey(handle))
-                Assert.Ignore($"[U1] {label}:Addressable key 不存在 —— 先跑菜单 DaYi/Spike/Setup U1 Spikes 再 Run");
+                Assert.Ignore($"[U1] {label}:Addressable key 不存在 —— 先跑菜单 大医精诚/Spike/Setup U1 Spikes 再 Run");
             Assert.Fail($"[U1] {label} 失败:{handle.OperationException}");
         }
 

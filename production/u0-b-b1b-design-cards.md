@@ -236,7 +236,7 @@ public interface IClinicEnvQuery
  5. 括号平衡自查 + 全仓 grep「EventPayload / new SimEvent / payload struct 构造」零消费者残留
 【桌面】待做
  6. pull → Unity 生成新 .meta → Console 零编译错误(b1b 唯一硬判据,同 b1a)
-    → 菜单 DaYi/Validation/Run Assembly Gates 三门全过 → EditMode 仍 16 绿 → 回传 meta
+    → 菜单 大医精诚/Validation/Run Assembly Gates 三门全过 → EditMode 仍 16 绿 → 回传 meta
 ```
 
 **验收判据**:编译零错误 + 三门不破 + 16 绿基线未破。SimEvent 形状虽动(Payload 字段换型),

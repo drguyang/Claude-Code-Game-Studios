@@ -55,7 +55,7 @@ D-1 首两输入可交换(a+b 交换 + 同步 avalanche),第三输入起有序 �
 1. `git pull`(应到含本卡的 commit;`Fix.cs` 修改 + `SplitMix64.cs` / `golden_hash_v1_test.cs` / 本卡共 4 个文件变更)
 2. 打开 Unity → 等它为两支新 `.cs` 生成 `.meta`
 3. Console 零编译错误(硬判据)
-4. 菜单 `DaYi/Validation/Run Assembly Gates` → 三门全过
+4. 菜单 `大医精诚/Validation/Run Assembly Gates` → 三门全过
 5. Test Runner → EditMode → **59 绿**(16 旧 + 43 新;任一红 = 实现漂移,**回报红的测试名**,勿改期望值)
 6. 回传 meta:`SplitMix64.cs.meta` + `SplitMix64` 无(同文件)+ `golden_hash_v1_test.cs.meta` 共 2 支 → push
 
@@ -90,14 +90,14 @@ D-1 首两输入可交换(a+b 交换 + 同步 avalanche),第三输入起有序 �
 ### 4.0 一键步骤(取代原 4.1/4.2/4.3 的手工建场景步骤)
 
 1. `git pull` → 开 Unity → 等编译(Console 零错误)→ 回传新增 `.meta`
-2. 菜单 **`DaYi/Spike/Setup U1 Spikes`**(自动:建 4 个临时场景 + Cube prefab + 假设 6 场景
+2. 菜单 **`大医精诚/Spike/Setup U1 Spikes`**(自动:建 4 个临时场景 + Cube prefab + 假设 6 场景
    + 标 Addressable + 尝试切 Play Mode 到 Existing Build + `BuildPlayerContent`;日志看 Console `[U1]` 前缀)
 3. Test Runner → **PlayMode 标签页**(⚠️ **不是** EditMode —— 停在 EditMode 只会跑 59 条 F7 黄金夹具,
    全绿且无报错,spike 一条都不跑;左列须能看到 `U1SceneSpikesTest` 才是在跑本批)
    → 跑其三条测试(S1 / S3 / S4)
 4. 结果**自动写** `unity/Logs/u1_spike_results.txt`(每行同时打进 Console `[U1-S1]`/`[U1-S3]`/`[U1-S4]`)
    —— 把该文件内容贴回本卡 §6 对应行即可(或整文件贴我)
-5. 菜单 **`DaYi/Spike/Teardown U1 Spikes`** 清临时资产
+5. 菜单 **`大医精诚/Spike/Teardown U1 Spikes`** 清临时资产
    (AddressableAssetsData/ **保留、不要提交**,归 ADR-014 正式批;结果文件保留)
 
 测试是**执行装置不是黄金断言**:绿 = 装置跑通;存活方向/毫秒数/bundle 计数**不作 Assert**,

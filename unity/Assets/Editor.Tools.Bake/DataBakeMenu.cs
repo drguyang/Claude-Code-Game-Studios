@@ -147,7 +147,7 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <see cref="TargetInvocationException"/> 的 Inner 是含 [E-13] 的
         /// <see cref="InvalidOperationException"/>;② 正向复验 —— 新 provider 载 items + recipes,期望成功。</para>
         /// <para>⚠️ <b>⓪ 为什么必须归位</b>(2026-09-24 第四跑实测):U1 spike
-        /// (<c>DaYi/Spike/Setup U1 Spikes</c>)把 Play Mode 切 <b>Use Existing Build</b> 并
+        /// (<c>大医精诚/Spike/Setup U1 Spikes</c>)把 Play Mode 切 <b>Use Existing Build</b> 并
         /// <c>BuildPlayerContent</c> 过,Teardown 不复原;此刻已建 bundle 路径已失效
         /// (<c>Invalid path … data-core_assets_all_*.bundle</c>)⇒ 正向复验在 Existing Build 下必死。
         /// 归位 Use Asset Database(日常开发默认)后,正向直接从 AssetDatabase 载,不依赖 bundle。</para>

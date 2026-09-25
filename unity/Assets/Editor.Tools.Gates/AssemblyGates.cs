@@ -46,7 +46,7 @@ namespace DaYiJingCheng.EditorTools.Gates
         private static readonly string[] ToFloatWhitelistPrefixes =
             { "Sim.Codec", "Gameplay.Presentation", "Gameplay.UI", "Gameplay.Tests" };
 
-        [MenuItem("DaYi/Validation/Run Assembly Gates")]
+        [MenuItem("大医精诚/Validation/Run Assembly Gates")]
         private static void RunMenu()
         {
             var errs = RunAll();
