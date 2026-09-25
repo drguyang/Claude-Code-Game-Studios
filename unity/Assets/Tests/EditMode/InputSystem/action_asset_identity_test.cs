@@ -357,6 +357,29 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 "(先 batch 执行 DaYiJingCheng.EditorTools.Gates.RoslynAnalyzerLabel.SetLabel)");
         }
 
+        /// <summary>平台位全关回归(2026-09-25 B 实验改判):Any=off 且 Editor=off。
+        /// Editor=on 会令每次域重载把 net6.0 分析器当普通插件装载 ⇒
+        /// 21× scripting_class_is_subclass_of 警告 + Unloading broken assembly(ADR-012 挂账注);
+        /// 实证 label 消费不依赖平台位(DY0001 编译期照报)。翻回任一位即红。</summary>
+        [Test]
+        public void test_legacy_input_gate_analyzer_platform_all_off()
+        {
+            // Arrange
+            var importer = AssetImporter.GetAtPath(AnalyzerAssetPath) as PluginImporter;
+            Assert.That(importer, Is.Not.Null, "PluginImporter 获取失败:" + AnalyzerAssetPath);
+
+            // Assert
+            Assert.That(importer.GetCompatibleWithAnyPlatform(), Is.False,
+                "分析器 DLL 不得 Any=on ⇒ 会卷进 player 根程序集,其 net6.0 产物直引 " +
+                "System.Private.CoreLib 6.0.0.0 ⇒ UnityLinker AssemblyResolutionException(W2 实证):" +
+                AnalyzerAssetPath);
+            Assert.That(importer.GetCompatibleWithEditor(), Is.False,
+                "分析器 DLL 不得 Editor=on ⇒ 域重载会当普通插件装载,产生 " +
+                "scripting_class_is_subclass_of ×21 + Unloading broken assembly 噪声(B 实验改判):" +
+                AnalyzerAssetPath +
+                "(回滚入口:DaYiJingCheng.EditorTools.Gates.RoslynAnalyzerLabel.SetLabel)");
+        }
+
         /// <summary>AC-3-A4② 新鲜度(2026-09-25 复核 W2):DLL ↔ 分析器源码经 build.sh 产出的
         /// sidecar(双 hash:源 + DLL)绑定 —— 改源不重跑 build.sh ⇒ 红(防门静默跑旧逻辑)。</summary>
         [Test]

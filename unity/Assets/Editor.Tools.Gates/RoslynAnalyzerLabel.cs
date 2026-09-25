@@ -19,11 +19,14 @@
 //   报「Unable to resolve reference System.private.CoreLib…」error 级日志)·
 //   isExplicitlyReferenced → true(Auto Reference 关,本 DLL 不再出现在各程序集 -r: 列表)。
 //   字段经 SerializedObject 读写(与 AC-3-A4① 载体同一手法),由 Unity 自己写回 .meta —— 不手改文本。
-// 平台收敛(W2,幂等):Any → off、Editor → on(2026-09-25 player 套件红修复)——
-//   Any=enabled 会把本 DLL 卷进 player 根程序集,其 net6.0 编译产物直引
-//   System.Private.CoreLib 6.0.0.0 ⇒ UnityLinker AssemblyResolutionException ⇒
-//   player 构建必炸(实证 unity/Logs/build-story001-player.log)。RoslynAnalyzer label
-//   只在编辑器编译期被消费,Editor-only 不影响门生效。
+// 平台收敛(2026-09-25 二修:Any → off、Editor → off):
+//   W2(player 套件红修复)原定 Any=off、Editor=on —— Any=enabled 会把本 DLL 卷进 player
+//   根程序集,其 net6.0 编译产物直引 System.Private.CoreLib 6.0.0.0 ⇒ UnityLinker
+//   AssemblyResolutionException ⇒ player 构建必炸(实证 unity/Logs/build-story001-player.log)。
+//   随后 Editor=on 又致每次域重载把本 DLL 当普通插件装载 ⇒ 21× scripting_class_is_subclass_of
+//   警告 + Unloading broken assembly(ADR-012 挂账注)。B 实验(2026-09-25)实证:
+//   平台位全关后 label 消费不受影响(DY0001 编译期照报),警告 21+1 → 0 ⇒ 改判 Editor → off。
+//   RoslynAnalyzer label 只在编辑器编译期被消费,平台位不参与。
 
 #if UNITY_EDITOR
 using System;
@@ -83,7 +86,8 @@ namespace DaYiJingCheng.EditorTools.Gates
         }
 
         /// <summary>校正 PluginImporter:关引用校验(消 MonoManager 域重载报错)、关 Auto Reference
-        /// (本 DLL 不进各程序集引用列表)、平台收敛 Editor-only(不卷进 player 构建,见文件头 W2)。
+        /// (本 DLL 不进各程序集引用列表)、平台收敛全关(Any/Editor 均 off:不卷进 player 构建,
+        /// 也不在域重载时当插件装载,见文件头 2026-09-25 二修)。
         /// 字段名与 .meta 序列化名一致;读不到即抛(引擎布局变更须重估)。</summary>
         private static void ConfigurePluginImporter()
         {
@@ -124,22 +128,22 @@ namespace DaYiJingCheng.EditorTools.Gates
             if (changed)
                 so.ApplyModifiedPropertiesWithoutUndo();
 
-            // W2 平台收敛:Any → off、Editor → on(见文件头注释;2026-09-25 player 套件红修复)。
+            // 平台收敛(2026-09-25 二修):Any → off、Editor → off(见文件头注释;B 实验改判)。
             // 直接走 PluginImporter 公有 API(稳定 API),随后统一 ImportAsset 落 .meta。
             if (importer.GetCompatibleWithAnyPlatform())
             {
                 importer.SetCompatibleWithAnyPlatform(false);
                 changed = true;
             }
-            if (!importer.GetCompatibleWithEditor())
+            if (importer.GetCompatibleWithEditor())
             {
-                importer.SetCompatibleWithEditor(true);
+                importer.SetCompatibleWithEditor(false);
                 changed = true;
             }
 
             if (!changed)
             {
-                Debug.Log("[RoslynAnalyzerLabel] PluginImporter 已是目标配置(validateReferences=0, AutoReference=off, Editor-only),幂等跳过");
+                Debug.Log("[RoslynAnalyzerLabel] PluginImporter 已是目标配置(validateReferences=0, AutoReference=off, 全平台 off),幂等跳过");
                 return;
             }
 
@@ -151,12 +155,12 @@ namespace DaYiJingCheng.EditorTools.Gates
             reSo.Update();
             bool validateOk = FindPropertyDeep(reSo, "validateReferences") is SerializedProperty v && !v.boolValue;
             bool autoRefOk = FindPropertyDeep(reSo, "isExplicitlyReferenced") is SerializedProperty e && e.boolValue;
-            bool editorOnlyOk = !reimporter.GetCompatibleWithAnyPlatform() && reimporter.GetCompatibleWithEditor();
-            if (!validateOk || !autoRefOk || !editorOnlyOk)
+            bool platformOffOk = !reimporter.GetCompatibleWithAnyPlatform() && !reimporter.GetCompatibleWithEditor();
+            if (!validateOk || !autoRefOk || !platformOffOk)
                 throw new InvalidOperationException(
-                    "PluginImporter 校正复查失败(应为 validateReferences=false、isExplicitlyReferenced=true、Any=off、Editor=on):" + AnalyzerAssetPath);
+                    "PluginImporter 校正复查失败(应为 validateReferences=false、isExplicitlyReferenced=true、Any=off、Editor=off):" + AnalyzerAssetPath);
 
-            Debug.Log("[RoslynAnalyzerLabel] PluginImporter 已校正(validateReferences=0, AutoReference=off, Editor-only):" + AnalyzerAssetPath);
+            Debug.Log("[RoslynAnalyzerLabel] PluginImporter 已校正(validateReferences=0, AutoReference=off, 全平台 off):" + AnalyzerAssetPath);
         }
 
         /// <summary>按叶子名深度查找序列化属性 —— .meta YAML 键(如 <c>validateReferences</c>)与

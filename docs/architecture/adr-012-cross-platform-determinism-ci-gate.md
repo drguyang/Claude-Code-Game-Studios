@@ -396,6 +396,19 @@ public interface IPerTargetIl2CppArgs : IPreprocessBuildWithReport
   RoslynAnalyzer label 只在编辑器编译期被消费 ⇒ 门(DY0001)不受影响(宿主装载探针实证)。
 - **编辑器域重载噪声**:残留 1 行 `Unloading broken assembly ... LegacyInputAnalyzer.dll` =
   常态噪声,无动作(W1 后 error 级「will not be loaded due to errors」已消失)。
+  **2026-09-25 补记**:伴随该行固定出现 **21 行**
+  `scripting_class_is_subclass_of was called with a NULL parameter. This will crash the game
+  if it happens outside of the editor.` = **同一噪声的 warning 级半边**,来源同为本 DLL
+  (`.meta` `Editor: enabled=1` ⇒ 域重载当普通插件装载 net6.0 产物 ⇒ 类型解析 NULL),
+  紧贴 `Begin MonoManager ReloadAssembly` 之后、`Loaded All Assemblies` 之前,数量与位置
+  双日志(Editor.log / Editor-prev.log)复核一致。**非编译错误**(同批次 batch 实测
+  `Tundra build success`、`error CS` 0 命中);该 DLL 不进 player,「outside of
+  the editor」前提不成立;DY0001 门经 RoslynAnalyzer label 走编译管线,不涉本装载路径。
+  **2026-09-25 当日记档为「维持无动作」,同日 B 实验推翻该处置并修复**:平台位改
+  **Any=off、Editor=off 全关**(`RoslynAnalyzerLabel.ConfigurePluginImporter` 二修),
+  实证双判据 —— ① 警告 21+1 → **0**;② DY0001 编译期照报(临时探针引用
+  `UnityEngine.Input.mousePosition` 被拒 3 处)⇒ **label 消费不依赖平台位**,
+  W2 的 `Editor=on` 前提不再需要。本噪声条目就此闭合。
 - **分析器进 CI 常驻矩阵的 job 仍挂账** —— 归 F1 / `/test-setup` 轮(与既挂的矩阵建设同批)。
 - **超算无头无 X ⇒ UTF `-testPlatform` player 套件不可在超算执行**:PlayerWithTests 无视频设备
   (`Error creating MainPlayerWindow`)→ `Creating GLContext @level -1` 无限循环(实测 ~190 MB/s
