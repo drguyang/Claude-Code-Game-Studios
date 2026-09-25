@@ -31,9 +31,9 @@
 
 *From GDD `design/gdd/input-system.md`, scoped to this story:*
 
-- [ ] **AC-3-A2**: 绑重 overrides **往返一致** —— `SaveBindingOverridesAsJson()` → `LoadBindingOverridesFromJson()` → **逐键一致**(EditMode 测试,**含复合绑重**)
-- [ ] **AC-3-A5**: **3 的落盘面仅限 overrides sidecar** —— 代码路径中写盘调用**仅** `bindings.overrides.json`(出厂 `Save…` 输出逐字节保存)与其头部 `bindings.schema.txt` **两处**;**零三流写入、零 ADR-010 存档写入**;**拒绝清单须含 `PlayerPrefs` / `EditorPrefs`**。判据 = 白名单断言:落盘 API 调用点 ∈ {上述两文件},其余全部拒绝
-- [ ] **AC-3-E3⑥**: **sidecar 字节往返** —— `Save…` 写出的 overrides 文件**逐字节**喂 `Load…`(3 不解析、不重写);断言「喂入字节 == 保存字节」
+- [x] **AC-3-A2**: 绑重 overrides **往返一致** —— `SaveBindingOverridesAsJson()` → `LoadBindingOverridesFromJson()` → **逐键一致**(EditMode 测试,**含复合绑重**)
+- [x] **AC-3-A5**: **3 的落盘面仅限 overrides sidecar** —— 代码路径中写盘调用**仅** `bindings.overrides.json`(出厂 `Save…` 输出逐字节保存)与其头部 `bindings.schema.txt` **两处**;**零三流写入、零 ADR-010 存档写入**;**拒绝清单须含 `PlayerPrefs` / `EditorPrefs`**。判据 = 白名单断言:落盘 API 调用点 ∈ {上述两文件},其余全部拒绝
+- [x] **AC-3-E3⑥**: **sidecar 字节往返** —— `Save…` 写出的 overrides 文件**逐字节**喂 `Load…`(3 不解析、不重写);断言「喂入字节 == 保存字节」
 
 ---
 
@@ -84,6 +84,12 @@
   - Edge cases: 非 ASCII 绑定路径;文件末尾无换行的字节保真;连续两次 Save 幂等。
   - Negative fixture: 有人在中间插入「美化/重排 JSON」的重写步骤 ⇒ 字节断言红。
 
+**实现期登记(2026-09-25 实现批;不改 spec,只把实际用例面与原文的出入落账)**:
+- A2 负例「损坏 JSON 半截」忠实拆两半:`..._neg_corruptPayload_returnsCorruptPayloadNotSilent`(载荷截断、头部完好 ⇒ `CorruptPayload` + 错误日志,不静默)+ `..._halfSidecar_treatedAsMismatch`(文件级半截:头部/载荷只存其一 ⇒ `Mismatch` + 警告)—— 对应 Edge Cases 二「损坏 / 半截 视同失配」两个分支。
+- A2 读序负半边:`..._hashMismatch_doesNotFeedPayload_fileUntouched`(Save hashA → Load hashB ⇒ `Mismatch` + 警告 + 资产回默认 + 两文件字节不动)—— QA 只点名正向「匹配则喂」;失配不喂是 Implementation Notes 读序(比对失败走 step 4)的直接蕴含,恢复侧(改名备份)仍归 Story 005 不越界。
+- A5 Then 第一支负例:`test_writeSurface_scan_nonWhitelistedWriteTarget_flagsRed`(写点指向白名单外文件 ⇒ 红)—— QA Negative 行只点名 PlayerPrefs 夹具;Then 主句「写盘调用点 ∈ {两文件}」的失败面同属 AC 判据。
+- A2 Edge 手柄输入:QA 文本写 `South`,实际资产 Interact 第二绑是 `<Gamepad>/buttonNorth` —— 按**资产真源**执行(断言 buttonNorth 不受污染)。
+
 ---
 
 ## Test Evidence
@@ -92,8 +98,9 @@
 **Required evidence**:
 - Integration: `tests/integration/input_system/overrides_sidecar_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
-- 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/overrides_sidecar_test.cs`,文档路径 `tests/integration/input_system/` 为登记口径
+**Status**: [x] Created + VERIFIED(2026-09-25 超算 batch)
+- 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/overrides_sidecar_test.cs`,文档路径 `tests/integration/input_system/` 为登记口径(README 落点说明同批)
+- 执行 ✅ **VERIFIED 2026-09-25 超算 batch**:全套 EditMode **527/527 全绿 exit 0**(log `unity/Logs/build-story003-2.log`;基线 510 + 本故事 17);本故事 **17/17 Passed**(A2 6 + A5 5 + E3⑥ 6)
 
 ---
 
