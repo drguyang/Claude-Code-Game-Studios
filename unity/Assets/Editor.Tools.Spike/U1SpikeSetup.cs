@@ -145,6 +145,15 @@ namespace DaYiJingCheng.EditorTools.Spike
 
             try
             {
+                // ⚠️ 2026-09-25:batch 直调时活动场景 = 未保存 Untitled ⇒ CreateTempScene 的
+                //    NewScene(Additive) 抛 "Cannot create a new scene additively with an
+                //    untitled scene unsaved"。NewScene(Single) 出来的同样未保存(还是挡)⇒
+                //    直接打开已保存的 Boot.unity;编辑器 GUI 里活动场景通常已是 Boot,重开无害。
+                if (string.IsNullOrEmpty(EditorSceneManager.GetActiveScene().path))
+                {
+                    EditorSceneManager.OpenScene("Assets/Scenes/Boot.unity", OpenSceneMode.Single);
+                }
+
                 var settings = AddressableAssetSettingsDefaultObject.GetSettings(true);
 
                 // ── 1. 假设 6 静态资产(UXML / USS / PanelSettings)──

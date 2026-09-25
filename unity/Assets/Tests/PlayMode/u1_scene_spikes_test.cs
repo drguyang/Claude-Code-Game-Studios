@@ -178,9 +178,18 @@ namespace DaYiJingCheng.Tests.PlayMode
         static bool IsMissingKey(AsyncOperationHandle handle)
         {
             if (!handle.IsValid()) return false;
-            var ex = handle.OperationException;
-            return ex is InvalidKeyException
-                   || (ex != null && ex.Message != null && ex.Message.Contains("InvalidKey"));
+            // ⚠️ 2026-09-25 修:S1 的 LoadSceneAsync 把 InvalidKeyException 包进
+            //    ChainOperation 顶层(ex.Message = "ChainOperation failed ..."),
+            //    真异常在 InnerException 链 —— 只查顶层 ⇒ S1 误落 Assert.Fail
+            //    (S3/S4 的 LoadAssetAsync 顶层即 InvalidKey,故只有 S1 红)。
+            //    沿链下钻 + ToString 兜底;沿链未中则仍视为真失败(不放水)。
+            for (Exception ex = handle.OperationException; ex != null; ex = ex.InnerException)
+            {
+                if (ex is InvalidKeyException) return true;
+                if (ex.Message != null && ex.Message.Contains("InvalidKey")) return true;
+            }
+            var top = handle.OperationException;
+            return top != null && top.ToString() != null && top.ToString().Contains("InvalidKeyException");
         }
 
         /// <summary>先探 key 是否存在:Setup 没跑 → Ignore(不假绿);真失败 → Fail。</summary>
