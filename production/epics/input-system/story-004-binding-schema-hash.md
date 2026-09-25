@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-25
+> **Last Updated**: 2026-09-26
 
 ## Context
 
@@ -97,6 +97,12 @@
   - Edge cases: 多集合(processors 同时参与);计数前缀漏写的实现变体 ⇒ 本测红(负例自证 I1 软点)。
   - Negative fixture: 实现去掉计数前缀的探针变体 ⇒ 红。
 
+**实现期登记(2026-09-26 实现批;不改 spec,只把实际实现/用例面与原文的出入落账)**:
+- **E3⑦ 计数前缀负例探针在 AC 夹具下不可构造(GDD/QA 口径出入 —— 牙齿改锚)**:GDD F-3.5 的规范序列化对集合元素用**逐元素 4 字节定长长度前缀**(`len ‖ utf8`)。在此编码下,QA Negative「实现去掉计数前缀 ⇒ 本测红」用 AC 给定的两对夹具**红不了**:`[]` 与 `[""]` 的字节流本就不同(前者计数 0 后无元素,后者计数 1 + `len=0` 的空元素头)—— GDD:652「单元素空串 = len=0 故撞」的论证在**定长**前缀下不成立(空元素仍发出 4 个零字节);`["a","b"]` vs `["ab"]` 同理由逐元素前缀区分。⇒ AC 两夹具**逐字断言保留**(test 7 前两支),计数前缀的**牙齿改锚**到相邻集合平移夹具:test 7 第三支 `processors=["clamp"],interactions=[]` vs `processors=[],interactions=["clamp"]` —— 无计数时两字段的字节流**逐位相同**(同为 `len=4 ‖ "clamp"`),计数参与则必须不同 ⇒ 去计数该断言红。元素长度前缀的牙齿另立 test 8:`("ab","c")` vs `("a","bc")`(计数同为 2,仅逐元素前缀可区分)。
+- **测试函数 → AC 映射(8 测)**:E3① 2 测(`..._sameAsset_twiceCompute_identical` 含排序吸收 Edge + `..._buildRecords_coverAllBindingsWithIds` Manifest Required 实证)· E3② 1 测(`..._overridesWritten_recomputeUnchanged`,含复合 part 与删回 Edge)· E3④ 1 测(`..._sourceScan_noBclDefaultHash`)· E3⑤ 2 测(`..._withOverride_recomputeUnchanged_effectiveProbeDiffers` 运行时 + `..._schemaHashSource_hasNoEffectiveOrPayloadReads` 静态)· E3⑦ 2 测(`..._countPrefix_distinguishesEmptyAdjacentShift` + `..._elementLengthPrefix_sameCountSplit_differs`)。
+- **静态扫描面**:E3④ 扫 `Gameplay.Input` **全目录**(该目录 grep 零 `GetHashCode`/`EqualityComparer<` 命中,含注释);E3⑤ 静态半边只扫 `SchemaHash.cs` 单文件 —— `BindingsStore.cs` 持有 `SaveBindingOverridesAsJson` 是 Story 003 的合法写点,不入本扫描面;`effective*` 判别探针**刻意住测试文件**(E3⑤ 扫描范围不含测试侧,防自红)。
+- **全套测试基线核算(543 的来历)**:story-003 收批登记 534 + `test_legacy_input_gate_analyzer_platform_all_off`(7905b5c 分析器修复批新增常驻回归测;该测在 058dd13 树内,但 story-003 收批 run 的 XML 未收录 —— 疑与该测所防的「域重载下测试发现遗漏」同因)= **535**,+ 本故事 8 = **543** ✓(逐 fixture 集合差分核验,非估算)。
+
 ---
 
 ## Test Evidence
@@ -105,8 +111,10 @@
 **Required evidence**:
 - Logic: `tests/unit/input_system/binding_schema_hash_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
-- 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/binding_schema_hash_test.cs`,文档路径 `tests/unit/input_system/` 为登记口径
+**Status**: [x] Created + VERIFIED(2026-09-26 超算 batch)
+- 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/binding_schema_hash_test.cs`,文档路径 `tests/unit/input_system/` 为登记口径(README 落点说明同批)
+- 执行 ✅ **VERIFIED 2026-09-26**:全套 EditMode **543/543 全绿 exit 0**(log `unity/Logs/build-story004-impl.log`);本故事 **8/8 Passed**(E3① 2 + E3② 1 + E3④ 1 + E3⑤ 2 + E3⑦ 2)
+- 基线核算:534(story-003 登记)+ 1(`test_legacy_input_gate_analyzer_platform_all_off`,7905b5c 常驻回归,story-003 收批 XML 未收录)+ 8(本故事)= **543** ✓(逐 fixture 集合差分核验,详见上方实现期登记)
 
 ---
 
