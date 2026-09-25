@@ -1088,11 +1088,19 @@ overrides 装载结果(hit / mismatch-cleared)。条件三条:
   **备份文件已生成** + **实际生效的绑定 = 默认值** + **未抛异常**。
   ③ 的反向用例(「写一次 override ⇒ hash 不变」)见 `AC-3-E3②`。
 - **AC-3-A4(BLOCKING)** —— **Legacy Input Manager 零引用(复审重写)**:
-  ① **`PlayerSettings.GetPropertyInt("activeInputHandler") == 1`**
-  (1 = Input System Package · 0 = Old · 2 = Both;**EditMode 断言且须位于 Editor-only 程序集**;
-  **非构建产物 grep**)。复审修正:**不引用** `PlayerSettings.activeInputHandler` 或枚举成员
-  `InputSystemPackage` —— 这两个符号的**存在性未经仓内核验**,写进 BLOCKING AC 会造出
-  **一条不可编译的验收**(比没有更坏);稳定路径是 `GetPropertyInt` 的整数编码。
+  ① **`activeInputHandler == 1`**(1 = Input System Package · 0 = Old · 2 = Both;
+  **EditMode 断言且须位于 Editor-only 程序集**;**非构建产物 grep**)。
+  **载体(2026-09-25 就地修订 · 用户裁定换轨)**:读法 =
+  **`SerializedObject(ProjectSettings/ProjectSettings.asset 上的 PlayerSettings 对象).FindProperty("activeInputHandler").intValue`**
+  (超算 Unity 6.3.24f1 实测返 **1**,与 `ProjectSettings.asset` 的 `activeInputHandler: 1` 真值一致)。
+  **原字面 `PlayerSettings.GetPropertyInt("activeInputHandler") == 1` 作废**,实证(三轮探针,2026-09-25):
+  单参 / `BuildTargetGroup` 两族重载 × **全部 37 个 BuildTargetGroup** × 6 个键名变体**恒返垃圾值**
+  (1850303862 = 键名字符串错位读);对照组 `GetPropertyInt("ScriptingBackend", Standalone)` 正确返 0
+  ⇒ **API 可用、该键不可读**;且 `GetPropertyInt(string)` 已标 obsolete(CS0618「Use explicit API instead」)。
+  **复审修正的初衷(「存在性未经仓内核验的符号不进 BLOCKING AC」)对 `GetPropertyInt` 自身同样成立**
+  —— 它当时未被核验,现已核验为不可读,故换轨而非留一条不可能通过的验收。
+  **仍然生效的禁令**:**不引用** `PlayerSettings.activeInputHandler` 属性(6.3 反射核验:**该属性不存在**
+  —— 禁令正确)或枚举成员 `InputSystemPackage`(存在性仍未核验);Editor-only 程序集与非 grep 两条约束不变。
   ② **Roslyn 分析器**在编译期拒绝任何 `UnityEngine.Input` 符号引用(**编译失败**,不是事后 grep)。
   初稿的「构建产物 grep」在符号被裁剪 / 内联后**可能假阴性**。
 - **AC-3-A5** —— **3 的落盘面仅限 overrides sidecar(四轮重写 —— 旧命题「只落一个文件」已废除)**:

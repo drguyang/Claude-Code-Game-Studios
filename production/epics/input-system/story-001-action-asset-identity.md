@@ -19,7 +19,7 @@
 **ADR Decision Summary**: ADR-011 §一 —— action-based 官方路线:**一套动作资产**统一组织 K&M + Gamepad + OpenXR 三套绑重;Legacy Input Manager 禁用,输入层零旧输入依赖。§Risks-A S2 —— `Instantiate()` vs `Clone()` 引擎参考库零覆盖须 spike,**判据层只断「实例同一性」性质**,不依赖符号形状。载体注记:GDD §Dependencies 五「CI 载体」把 `AC-3-A4②` 列为「判据已定、载体未建」八条之一,**与 ADR-012 CI 门同批落地** —— 本故事交付分析器本体与其 EditMode 测试,CI job 挂账另轮。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: HIGH
-**Engine Notes**: ADR-011 Knowledge Risk HIGH(Input System 6.3 行为 post-cutoff 须实测)。分层:`GetInstanceID()` = cut-off 前长期稳定 API,**不入** spike 册页;`InputSystemUIInputModule` = post-cutoff 零覆盖符号 ⇒ A1 的 UI 半条在 P0 **条件不适用**(UI Toolkit 为主,ADR-013 §Decision ①),P0 只签前半条;`PlayerSettings.GetPropertyInt("activeInputHandler")` 失败是「响的」(断言期暴露),不升 spike 项。
+**Engine Notes**: ADR-011 Knowledge Risk HIGH(Input System 6.3 行为 post-cutoff 须实测)。分层:`GetInstanceID()` = cut-off 前长期稳定 API,**不入** spike 册页;`InputSystemUIInputModule` = post-cutoff 零覆盖符号 ⇒ A1 的 UI 半条在 P0 **条件不适用**(UI Toolkit 为主,ADR-013 §Decision ①),P0 只签前半条;⚠️ `PlayerSettings.GetPropertyInt("activeInputHandler")` **原登记「失败是响的、不升 spike」——2026-09-25 超算实测坐实失败**(恒返垃圾值且已 obsolete),A4① 载体按用户裁定换轨为 `SerializedObject…FindProperty`,见下方 AC 与 GDD AC-3-A4① 就地修订注。
 
 **Control Manifest Rules (this layer)**:
 - Required: action-based 官方路线 —— Input System 动作资产,K&M + Gamepad + OpenXR 三套绑重 + `bindings overrides` 持久化(manifest Core · 输入(ADR-011))
@@ -33,7 +33,8 @@
 *From GDD `design/gdd/input-system.md`, scoped to this story(判据正文照录,评审沿革注见 GDD 原文):*
 
 - [ ] **AC-3-A1(BLOCKING)**: 3 的输入服务内,**同一动作资产恰有一个实例** —— 断言**实例同一性**(比较 `GetInstanceID()`,**非**比较文件路径或文件计数);**UI 侧半条(条件适用)**:当下游存在 UGUI 画布并挂 `InputSystemUIInputModule`(P1a world-space / VR)时,该模块引用的资产必须与 3 的为同一实例。**P0 平面不适用**(UI Toolkit 为主 ⇒ 该模块可能根本不存在,本条不得以它为主语)—— **P0 签核 = 前半条**;P0 焦点载体前置门(①焦点载体是谁 ②由谁断言接通 ③spike 降级路径)归 42,登记于 GDD §Dependencies 五
-- [ ] **AC-3-A4①(BLOCKING)**: `PlayerSettings.GetPropertyInt("activeInputHandler") == 1`(1 = Input System Package · 0 = Old · 2 = Both)—— **EditMode 断言且须位于 Editor-only 程序集**,**非构建产物 grep**;**不引用** `PlayerSettings.activeInputHandler` 或枚举成员 `InputSystemPackage`(存在性未经仓内核验的符号不进 BLOCKING 判据)
+- [ ] **AC-3-A4①(BLOCKING)**: `activeInputHandler == 1`(1 = Input System Package · 0 = Old · 2 = Both;**2026-09-25 载体换轨**,原文照录见下)—— **EditMode 断言且须位于 Editor-only 程序集**,**非构建产物 grep**;**不引用** `PlayerSettings.activeInputHandler` 或枚举成员 `InputSystemPackage`(存在性未经仓内核验的符号不进 BLOCKING 判据)
+  - *原判据字面 `PlayerSettings.GetPropertyInt("activeInputHandler") == 1` 已作废*(2026-09-25 用户裁定):超算 Unity 6.3.24f1 实测该调用**恒返垃圾值**(1850303862;两族重载 × 全部 37 BuildTargetGroup × 6 键名变体均非 1;对照组 `GetPropertyInt("ScriptingBackend", Standalone)` 正确返 0 ⇒ API 可用、该键不可读),且 `GetPropertyInt(string)` 已 obsolete(CS0618)。**现行载体 = `SerializedObject(PlayerSettings).FindProperty("activeInputHandler").intValue == 1`**(实测返 1,与 ProjectSettings.asset 真值一致);与 GDD AC-3-A4① 同批就地修订(2026-09-25)。
 - [ ] **AC-3-A4②(BLOCKING)**: **Roslyn 分析器**在编译期拒绝任何 `UnityEngine.Input` 符号引用(**编译失败**,不是事后 grep —— 构建产物 grep 在符号被裁剪/内联后可能假阴性)
 
 ---
@@ -45,7 +46,7 @@
 - **先写动作资产 + 绑重持久化**:动作映射契约是输入层的锚点(Guideline 1)。全案**恰一个** `.inputactions`,三套绑重(K&M / Gamepad / OpenXR)同表共存(规则三);OpenXR 绑**通用 `XRController` 布局**,勿绑 OculusTouch/Index 专属(Guideline 8)
 - **单实例纪律**:输入服务持唯一实例,断言用 `GetInstanceID()` 同一性;「文件计数 = 1」型判据**放过**「同文件被实例化两次」的分叉,已明文废弃(AC-A1 复审重写)
 - **P1b 同机多玩家** = 每玩家 `Instantiate()`(非 `Clone()`),克隆不继承 overrides、**不得启用 UI map**(ADR-011 §一 / Amendment A ②)—— **P0 不实现**,本故事只保证资产结构不阻断该形状(`TR-input-005` 挂账,见 Out of Scope)
-- **Legacy 零引用双门**:① Editor-only 程序集内的 `GetPropertyInt` 整数编码断言;② Roslyn 分析器拒 `UnityEngine.Input` 符号(编译期)
+- **Legacy 零引用双门**:① Editor-only 程序集内的 `activeInputHandler == 1` 整数断言(**载体 = SerializedObject 序列化字段读**,2026-09-25 换轨,见 AC 修订注);② Roslyn 分析器拒 `UnityEngine.Input` 符号(编译期)
 - **载体注记**:分析器的 CI job 形态(命名 job / 脚本)与 `.github/workflows/` 同批归 ADR-012 轮 —— 本故事交付分析器 + 可跑的 EditMode 测试,不自建 CI
 
 ---
@@ -72,9 +73,9 @@
   - Then: `GetInstanceID()` 相等;同一性断言对「同文件加载两次」的分叉**失败**(反例夹具:故意二次实例化同一 `.inputactions` ⇒ 测试红)。
   - Edge cases: 场景切换后实例不被重建为第二份;文件路径相同但实例不同 ⇒ 必须失败(证明判据不是路径比较)。
   - Negative fixture: 二次实例化同一资产(AC 明文点名的失效形态)。
-- **AC-3-A4①**: `PlayerSettings.GetPropertyInt("activeInputHandler") == 1`,EditMode 断言、位于 Editor-only 程序集。
+- **AC-3-A4①**: `activeInputHandler == 1`(**载体 2026-09-25 换轨 = SerializedObject 序列化字段读**,见 Acceptance Criteria 修订注),EditMode 断言、位于 Editor-only 程序集。
   - Given: 工程 Player Settings 的 Active Input Handling = Input System Package。
-  - When: EditMode 测试调用 `GetPropertyInt("activeInputHandler")`。
+  - When: EditMode 测试经 `SerializedObject…FindProperty("activeInputHandler")` 读该序列化字段。
   - Then: 返回 1;断言所在程序集为 Editor-only(asmdef `includePlatforms: ["Editor"]`);源码中不出现 `activeInputHandler` 属性访问与 `InputSystemPackage` 枚举成员名(grep 级辅助断言)。
   - Edge cases: 若值为 0/2 ⇒ 测试红(覆盖「Both」配置回退)。
   - Negative fixture: 无(配置值由工程设定;失败模式 = 值 ≠ 1)。

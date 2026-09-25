@@ -396,6 +396,14 @@ struct EmergencyIntent { /* 急救动作类型 / 方向 */ }
 
 > **不在此册的符号（分层说明，防止误用）**：
 > - `PlayerSettings.GetPropertyInt("activeInputHandler")`（`AC-3-A4①`）—— 引擎库零覆盖，**但其失败是「响的」**（编译 / 断言期即暴露），且本 ADR 已登记为**稳定路径**以规避枚举成员名 ⇒ **不升为 spike 项**。
+>   **⚠️ 2026-09-25 就地注（预判落空 · 用户裁定换轨）**：超算 Unity 6.3.24f1 实测该调用**恒返垃圾值**
+>   （1850303862；两族重载 × 全部 37 `BuildTargetGroup` × 6 键名变体均非 1；对照组
+>   `GetPropertyInt("ScriptingBackend", Standalone)` 正确返 0 ⇒ API 可用、**该键不可读**），
+>   且 `GetPropertyInt(string)` 已标 obsolete（CS0618「Use explicit API instead」）——
+>   **「失败是响的」这一点被坐实**（断言期暴露），但响 ≠ 有修法 ⇒ `AC-3-A4①` 载体换轨为
+>   `SerializedObject…FindProperty("activeInputHandler").intValue`（实测返 1）；
+>   判据意图（==1 · Editor-only · 非 grep）与两条禁令（`activeInputHandler` 属性 / `InputSystemPackage` 枚举）不变。
+>   详见 GDD `input-system.md` AC-3-A4① 就地修订注（同批）。
 > - `GetInstanceID()`（`AC-3-A1`）—— **cut-off 前长期稳定 API**，与 post-cutoff 符号**分层不同**（参 ADR-020 以「不使用 Cinemachine」消解知识风险的先例）。
 > - 焦点桥本体（`InputSystemUIInputModule` / `PanelEventHandler` / `NavigationMoveEvent` / `FocusController`）—— 其 spike 册页归 **ADR-013**（`adr-013:48/51/267/368` 已登记「焦点导航原型 spike」，且已标该假设为「⚠️ 半可信」）；**本 ADR 只登记接口侧**。
 

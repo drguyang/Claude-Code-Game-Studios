@@ -40,6 +40,8 @@ out/
 dist/
 *.exe
 *.dll
+# Story 001 AC-3-A4②:分析器 DLL 是入库交付物(RoslynAnalyzer label 载体),非构建垃圾
+!unity/Assets/Editor.Tools.Analyzers/*.dll
 *.so
 *.dylib
 *.app
