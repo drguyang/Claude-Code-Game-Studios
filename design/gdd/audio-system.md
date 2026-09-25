@@ -626,6 +626,12 @@ bucket       = (u < BUCKET_LOW) ? 弱 : (u < BUCKET_HIGH) ? 中 : 强
 
 > **44 的旋钮全部「待调」(数值用户自己调 —— `feedback-user-owns-balance-values`)。**
 > 本 GDD 交付**变量表 + 调参旋钮**,不拍定值。每个旋钮:安全范围 / 调太高 / 调太低。
+>
+> **✅ 2026-09-25 落点裁决(OQ-SS-5 = 甲)**:旋钮值的**跨会话持久 = 端本地 sidecar**
+>(设备偏好,与 7a 存档位解耦;承 3 规则四 sidecar 模式);**持有者 = 边界层设置 store**
+>(44 只渲染不持值、42 壳不持久 —— store → `AudioMixer` 参数**单向推送**);
+> 丙案 PlayerPrefs(引擎黑盒)/ 乙案随存档头(动 ADR-010)均否决。详见
+> `design/ux/settings-shell-42.md` OQ-SS-5;随裁联动:`OQ-SS-7`(恢复默认归零件)升实质必需。
 
 ### 听诊层族(F-44.1 / F-44.2)
 
@@ -958,6 +964,7 @@ bucket       = (u < BUCKET_LOW) ? 弱 : (u < BUCKET_HIGH) ? 中 : 强
 | **VR 音频何时做** | ✅ **P1b**(P0 不做) | `game-concept.md:723`(权威)+ ADR-018 §七(2026-09-18 订正 P1a → P1b) |
 | **`AudioListener` 挂点** | ✅ **平面 = 主相机,VR = 头显** | ADR-020 §七(2026-09-15 结清 `adr-018:295`) |
 | **44 是否走 ADR-014 烘焙管线** | ✅ **走**(单一数据管线) | ADR-018 Alternatives 5 |
+| **44 参数的跨会话持久落点** | ✅ **端本地 sidecar**(设备偏好,与存档位解耦);持有者 = 边界层设置 store,单向推送 `AudioMixer` | `settings-shell-42.md` OQ-SS-5 = 甲(2026-09-25 用户裁定) |
 
 ## 修订记录(2026-09-18 · 首轮 `/design-review` 落盘)
 

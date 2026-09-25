@@ -41,13 +41,13 @@
 > | **D-21-13** | **`processing_state` 跨持久化只用稳定字符串名**,禁 int 编码 | 2026-09-14 复核 blk #9;防 P1a 插值时老存档静默重映射 |
 > | **D-21-14** | **F5 作用轴 = 时间轴 / 作用点**(品级偏移 `onset`/`peak`/`half_life`/`elimination` 之一),**不再调药效幅值** | 2026-09-14 **用户裁定⑥**(二轮 blocking #7):「见效更快」与「见效更足」是**不同种类**的差别;幅值同轴 = 换皮,不交付锚点二 |
 > | **D-21-15** | **技能回报 = 投入端可变**:`Recipe.inputs[]` 是**基数**,结算按 `EFF` 实际消耗(`ActualConsumed = Ceil(Base / EFF)`);技能高 = **省料** | 2026-09-14 **用户裁定⑦**(二轮 blocking #2):`EFF` 从死变量变为**运行期出口**;规则八的「烧更多原料」由此**可实现** |
-> | **D-21-16** | **品级身份标签**:`gather_profile.quality_character[]`(每档一个**定性修饰**,string),由 42 以**外观 / 药签措辞**呈现 | 2026-09-14 **用户裁定⑧**(二轮 blocking #7/#8):锚点二「品级的质地」的**呈现载体**;是 string,**不碰定点域** |
+> | **D-21-16** | **品级身份标签**:`gather_profile.quality_character[]`(每档一个**定性修饰**,string),由 42 以**外观 / 药签措辞**呈现 | 2026-09-14 **用户裁定⑧**(二轮 blocking #7/#8):锚点二「品级的质地」的**呈现载体**;是 string,**不碰定点域**。**⚠️ 2026-09-25 用户裁定(R13 = 甲)改判半边**:原「P0 可空」→ **`MAX_QUALITY > 1` 时最小非空**(长度 = `MAX_QUALITY` 且逐档非空);**成药侧 `D-21-24` 的 `drug_quality_character[]` 同批同裁**(理由 = 可空退路「质地靠 F5」与本件「F5 摸不到原料」自相矛盾,且 42 走查 U-5/U-6 无物可呈必红) |
 > | **D-21-17** | **`weight` 口径 = `int`(最小单位个数)**,**不是 `Fix`** —— ADR-006 须修正其 `Fix` 解析集 | 2026-09-14 二轮 blocking #3:F4/20/52 全需整数计数;原 AC-21a-41 与 ADR-006:113 把它误列入 `Fix`,不可满足 |
 > | **D-21-18** | **`Fix` 不可经 Unity 序列化器承载** —— 必须走自定义编码器(ADR-006 修正案) | 2026-09-14 二轮 blocking #5:ADR-005 的 `Fix` 是 `readonly struct`+`private long`,Unity 跳过 ⇒ **静默归零** |
 > | **D-21-21** | **守恒律两侧都封(严格质量守恒)**:`Σ(weight × 产出量) ≤ EFF_MAX × Σ(weight × 实耗量)`,**产出量含 `QtyMultiplier`**;构建期上界须写 `QTY_MULT_MAX × Σ(weight × 产出基数) ≤ EFF_MAX × Σ(weight × 输入基数)` | 2026-09-14 **用户裁定⑨**(三轮 blocking #1,5/7 专家命中):原构建期检查漏产出侧乘子,可被运行期击穿(「凭空造物」)。两侧皆在整数域内、**先乘后比、禁逐项舍入** |
 > | **D-21-22** | **药效幅值 `drug_potency`(原 `Offset`)归 21a** —— 入 §Schema B(**Q16.16 int**),是 **9 处置事件 `Offset` 的来源**;**它是静态基础幅值,不是二轮被杀的品级幅值轴**(D-21-14 只改品级的**调制轴**,未废除幅值本身) | 2026-09-14 **用户裁定⑩**(三轮 blocking #2,21a↔9 契约断裂):二轮换轴时误删,导致 9 点名的来源在 21a 无字段。**改名以绝混淆**;9 侧字段名对齐归 **D-21-25** |
 > | **D-21-23** | **F5 的 `quality_axis` 在 P0 收窄为 `half_life`**(唯一在 9 有落点的轴);`onset / peak / elimination` 标 **P1a**,待 9 扩处置载荷后开 | 2026-09-14 **用户裁定⑪**(三轮 blocking #4):9 的处置载荷只有 `polarity / Offset / tau_half`,`onset/peak/elimination` **产出即被丢弃** —— 收窄以避免「枚举有四值、实际只有一值」的静默 |
-> | **D-21-24** | **成药侧品级感知层**:新增 `drug_quality_character[]`(string[],长度 = `MAX_QUALITY`)+ **U-6** 呈现契约;并加**可感知地板** —— F5 偏移量须大于 9 的噪声带 | 2026-09-14 **用户裁定⑫**(三轮 blocking #5):F5 只交付「时间轴偏移」而 U-1/U-2 禁数字,**成药侧无合法感知通道**;偏移小于噪声即等于未发生 |
+> | **D-21-24** | **成药侧品级感知层**:新增 `drug_quality_character[]`(string[],长度 = `MAX_QUALITY`)+ **U-6** 呈现契约;并加**可感知地板** —— F5 偏移量须大于 9 的噪声带 | 2026-09-14 **用户裁定⑫**(三轮 blocking #5):F5 只交付「时间轴偏移」而 U-1/U-2 禁数字,**成药侧无合法感知通道**;偏移小于噪声即等于未发生。**⚠️ 2026-09-25 随 R13 = 甲 同批**:本列 **`MAX_QUALITY > 1` 时最小非空**(原「可空」改判;与 `D-21-16` 原料侧对称,U-6 才有物可呈) |
 
 ---
 
@@ -325,10 +325,13 @@ Recipe = { recipe_id, owner, inputs: [{ item_key, qty }], outputs: [{ item_key, 
 | `elimination` | **Q16.16 int** | 可空 | 消除 |
 | `quality_axis` | enum | 可空 | **F5 作用轴**(D-21-14 / **D-21-23**):`half_life`(**P0 唯一可用**);`onset｜peak｜elimination` 标 **P1a** —— 9 的载荷暂无落点,构建期在 P0 期拒绝非 `half_life` 值 |
 | `axis_offset_by_quality[]` | **Q16.16 int[]** | 可空 | **F5**:品级 → 时间轴档位偏移(长度 = `MAX_QUALITY`,见 F5) |
-| `drug_quality_character[]` | **string[]** | 可空 | **成药侧品级定性修饰**(D-21-24,长度 = `MAX_QUALITY`);由 42 以**药签措辞 / 外观**呈现,见 **U-6** |
+| `drug_quality_character[]` | **string[]** | **`MAX_QUALITY > 1` 时必填**(2026-09-25 R13 = 甲 同批,原「可空」改判;块级其余字段仍可空) | **成药侧品级定性修饰**(D-21-24,长度 = `MAX_QUALITY`);由 42 以**药签措辞 / 外观**呈现,见 **U-6** |
 
 > **D-21-6 的要点是「字段必须在」,不是「块非空」** —— P0 允许上表全为空,
 > 但**字段本身必须存在**,且时间轴四字段**类型必须是 Q16.16 int**(D-21-9)。
+> **⚠️ 2026-09-25 R13 = 甲 例外**:上表「全为空」**不再无条件成立** ——
+> `drug_quality_character[]` 在 `MAX_QUALITY > 1` 时**必填**(块级豁免就地收窄,
+> 其余字段仍随块可空)。
 >
 > **二轮新增(D-21-14)** —— **F5 的轴从「药效幅值」改为「时间轴作用点」**:
 > `quality_axis` 指定品级偏移落在哪一个时间轴参数上(如 `onset`),`axis_offset_by_quality[]`
@@ -352,7 +355,12 @@ Recipe = { recipe_id, owner, inputs: [{ item_key, qty }], outputs: [{ item_key, 
 > **这是锚点二「品级的质地」的呈现载体**(D-21-16,2026-09-14 用户裁定⑧)。
 > **不是数字,不碰定点域** —— 是 `string[]`,由 **42 拟物 UI** 以**外观 / 药签措辞**呈现
 > (合 U-1/U-2:禁数字、禁线性刻度)。**玩家看出「这一株不一样」,但读不出数值。**
-> **P0 可空**(此时退回按 `quality_distribution` 抽档,质地靠 F5 的时间轴偏移在病程上体现)。
+> ~~**P0 可空**(此时退回按 `quality_distribution` 抽档,质地靠 F5 的时间轴偏移在病程上体现)。~~
+> **✅ 2026-09-25 用户裁定(R13 = 甲):`MAX_QUALITY > 1` 时最小非空**(长度 = `MAX_QUALITY`
+> 且逐档非空)—— 原「可空」改判。**改判理由即下方 ⚠️ 自证的矛盾**:可空退路写「质地靠 F5」,
+> 而 F5 摸不到原料 ⇒ 空列时原料侧品级**零合法感知通道**(42 走查 U-5 必红)。
+> **回写执行义务(21a 实现轮,本裁定落笔不代绿)**:① P0 出货条目数据填词(原料 × `MAX_QUALITY` 档);
+> ② 门扩(空列 ⇒ 构建期硬失败)+ 负向 fixture;③ 测试翻绿。
 > ⚠️ **F5 只管成药**(`category = drug` 有 `drug_profile`);**原料侧的质地由本字段承担** ——
 > 这正是二轮推翻「F5 单轴承担锚点二」的原因:F5 摸不到原料。
 
@@ -364,7 +372,7 @@ Recipe = { recipe_id, owner, inputs: [{ item_key, qty }], outputs: [{ item_key, 
 | `parts[]` | string[] | 可采部位 |
 | `quality_distribution` | block | 品级分布(**形状由 17 定**;支撑必须 ⊆ `[1, MAX_QUALITY]`) |
 | `qty_per_node` | int > 0 | 单次采量基数(**21a 给基数,17 给动作**) |
-| `quality_character[]` | **string[]** | 每档定性修饰(长度 = `MAX_QUALITY`,P0 可空)—— 见 §Schema B2 / D-21-16 |
+| `quality_character[]` | **string[]** | 每档定性修饰(长度 = `MAX_QUALITY`;**`MAX_QUALITY > 1` 时最小非空 —— 2026-09-25 R13 = 甲 改判,原「P0 可空」废止**)—— 见 §Schema B2 / D-21-16 |
 
 **D. `tcm_profile`(扩 16 中药选项)** —— **P0 恒空**。字段表由 P1a 撰写时补,本节此处仅占位。
 
@@ -1159,7 +1167,7 @@ The quality-to-timeline formula is defined as:
 | ID | 级 | 断言 |
 | --- | --- | --- |
 | **AC-21a-50** | **[L]** | **GIVEN** `drug_profile.axis_offset_by_quality[]`,**WHEN** 长度 ≠ `MAX_QUALITY`,**THEN** 构建期硬失败 | `invalid_drug_offset_len.json` |
-| **AC-21a-50b** | **[L]** | **GIVEN** `gather_profile.quality_character[]`,**WHEN** 长度 ≠ `MAX_QUALITY`,**THEN** 构建期硬失败 | `invalid_gather_char_len.json` |
+| **AC-21a-50b** | **[L]** | **GIVEN** `gather_profile.quality_character[]`,**WHEN** 长度 ≠ `MAX_QUALITY`,**THEN** 构建期硬失败。**⚠️ 2026-09-25 R13 = 甲 扩充**:`MAX_QUALITY > 1` 且该列 **null / 整列空 ⇒ 同样构建期硬失败**(原「非空时才查长度」豁免废止);执行归门回写轮(数据填词 + 负向 fixture),本行未回写前不记绿 | `invalid_gather_char_len.json`(+ 空列负向 fixture,回写轮补) |
 | **AC-21a-51** | **[L]** | **GIVEN** 任一 `axis_offset_by_quality[]` 内出现浮点字面量,**THEN** 导入期硬失败(`FixParse` 拒绝)—— D-21-14/D-21-19 的落盘验证 |
 | **AC-21a-52** | **[I]** | **GIVEN** 一次含 `EFF < EFF_MAX` 的结算,**WHEN** 经 7a 持久化往返,**THEN** **配方数据文件与物件实例里只有基数 `inputs[].qty`**,`ActualConsumed` **只出现在该次 Craft 的历史事件载荷中**(由 `EFF` 可再推出)—— 实耗是运行期派生量(`Ceil(Base / EFF)`,D-21-15);把它冻进静态数据,技能值一变即与重算不符 |
 
@@ -1176,7 +1184,7 @@ The quality-to-timeline formula is defined as:
 | **AC-21a-59** | **[L]** | **GIVEN** 物品表,`stackable` 被**显式写入数据文件**,**WHEN** 校验,**THEN** 校验拒绝 —— 它是 `stack_max > 1` 的**派生量,不存储**(§Schema A) | `invalid_stored_stackable.json` |
 | **AC-21a-60** | **[L]** | **GIVEN** `drug_profile.quality_axis` 在 P0 期取值 ∉ `{half_life}`,**WHEN** 校验,**THEN** 构建期硬失败 —— D-21-23 的收窄落盘 | `invalid_axis_p0.json` |
 | **AC-21a-61** | **[L]** | **GIVEN** `axis_offset_by_quality[]` 的任一**非零档** `|offset| < 可感知地板`,**WHEN** 校验,**THEN** 构建期硬失败 —— D-21-24 第二半;地板数值待与 **9 的噪声带宽**一起定(§Tuning Knobs) | `invalid_offset_floor.json` |
-| **AC-21a-62** | **[L]** | **GIVEN** `drug_quality_character[]` **非空**且长度 ≠ `MAX_QUALITY`,**WHEN** 校验,**THEN** 构建期硬失败 —— 与 AC-21a-50b 同型(成药侧) | `invalid_drug_char_len.json` |
+| **AC-21a-62** | **[L]** | **GIVEN** `drug_quality_character[]` **非空**且长度 ≠ `MAX_QUALITY`,**WHEN** 校验,**THEN** 构建期硬失败 —— 与 AC-21a-50b 同型(成药侧)。**⚠️ 2026-09-25 R13 = 甲 同批扩充**:`MAX_QUALITY > 1` 且该列 **null / 整列空 ⇒ 同样构建期硬失败**(`null` 可空豁免废止,与 AC-21a-50b 对称);执行归门回写轮,未回写前不记绿 | `invalid_drug_char_len.json`(+ 空列负向 fixture,回写轮补) |
 | **AC-21a-63** | **[I]** | **GIVEN** `instance_id` 的铸造路径,**WHEN** 检索全部铸造点,**THEN** **唯一来源 = `IIdAuthority`**(或主机);**17 采集不得在客户端本地铸造**—— D-21-26/D-21-27 的验证(迁移后重号会让两件物品共用一个 id,**不崩溃、只表现为「物品悄悄合并/丢失」**) | `tests/unit/item_database/id_authority.cs` |
 | **AC-21a-64** | **[L]** | **GIVEN** 配方与实例的最大 `weight` / 最大 `stack_max` / 最大 `MAX_QUALITY` 同时取满, **WHEN** 求 `Σ(w × InstanceWeight)`, **THEN** 结果不溢出 `int64` —— 守恒律整数域求值的**上界前提**(三轮:`Σ(w×·)` 先乘后比,须先证不溢出) | `invalid_weight_overflow.json` |
 | **AC-21a-65** | **[L]** | **GIVEN** 任一配方, **WHEN** 构建期以**逐条同形极值式**校验:`Σ( weight_out × max(1, Round(outputs_i.qty × QTY_MULT_MAX)) ) ≤ EFF_MAX × Σ( weight_in × Ceil(inputs_j.qty / EFF_MAX) )`, **THEN** 违反即硬失败 —— **D-21-32 的落盘验证**(聚合式 `QTY_MULT_MAX × Σ(w×产出基数) ≤ EFF_MAX × Σ(w×输入基数)` 单独使用可被逐条 `Round` 击穿,反例见规则八注;聚合式保留为**必要非充分**条件,极值式为唯一硬门)。⚠️ 极值式在整数域求值(`Round` = `ROUND_HALF_AWAY_FROM_ZERO`,先乘后比,禁浮点中转 —— ADR-006) | `invalid_conservation_perline.json` |
