@@ -43,7 +43,7 @@ using DaYiJingCheng.Sim.Contracts;   // Fix(typeof(Fix) 叶子白名单;B3 允�
 
 namespace DaYiJingCheng.EditorTools.Gates
 {
-    /// <summary>3 输入边界的构建期门(AC-3-A6 / A7 / B3;见文件头)。</summary>
+    /// <summary>3 输入边界的构建期门(AC-3-A6 / A7 / B3 + **B2①**;见文件头)。</summary>
     public static class InputBoundaryGates
     {
         // ── 扫描键(单一出处;测试引用本常量,不复制字面量)──
@@ -115,6 +115,31 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// 且 <c>s.Append(PayloadRef.Of(7))</c> 这类**不出现 SimEvent 字面**的写法
         /// (故事 QA 负例的字面场景)会全绿通过。补齐两 token 后两头都断。</summary>
         public static readonly string[] InputForbiddenSourceTokens = { "IEventSink", "SimEvent" };
+
+        /// <summary>B2① UI 栈禁引装配名集(AC-3-B2①:直读程序集不引用 UI Toolkit /
+        /// <c>UnityEngine.UI</c> / 含 <c>EventSystem</c> 的程序集 ⇒ 构建失败)。
+        /// ⚠️ **必须显式点名,不能用 <see cref="AssemblyGates.IsEngineRef"/> 前缀放行** ——
+        /// 该谓词(<c>UnityEngine.*</c> / <c>Unity.*</c> 前缀)会放行任一 UI 程序集;
+        /// 黑名单要的就是「禁止面」,闭集成员逐个可读。四条为 2026-09-26 安装树实测装配名:
+        ///   · <c>UnityEngine.UI</c> —— com.unity.ugui 运行期(<c>Runtime/UGUI/UnityEngine.UI.asmdef</c>);
+        ///     <c>UnityEngine.EventSystems</c> 命名空间(<c>EventSystem</c> / <c>StandaloneInputModule</c>
+        ///     等)正住此程序集 —— AC 的「含 EventSystem 的程序集」由它覆盖;
+        ///   · <c>UnityEngine.UIElementsModule</c> —— 内置模块 <c>UnityEngine.UIElementsModule.dll</c>
+        ///     (UI Toolkit 运行期;PackageCache 无 asmdef = 预编译 DLL,装配名 = 文件名);
+        ///   · <c>UnityEngine.UIModule</c> —— 内置模块 <c>UnityEngine.UIModule.dll</c>
+        ///     (UGUI 基座 + UI 基类;同上无 asmdef);
+        ///   · <c>Unity.ugui</c> —— com.unity.ugui **包 asmdef 名**(Unity.InputSystem 自身的引擎依赖);
+        ///     工程内 asmdef 直接声明它 = 直通 UI,必红。
+        /// ⚠️ 闭包语义(见 <see cref="UiStackReferenceClosureViolations"/>):引擎边
+        /// (Unity.InputSystem → Unity.ugui)是**叶**不建边,故 Gameplay.Input 引用
+        /// Unity.InputSystem 合法且不带出 UI 名;工程内直引 / shim 中转才红。</summary>
+        public static readonly string[] UiStackForbiddenAssemblyNames =
+        {
+            "UnityEngine.UI",
+            "UnityEngine.UIElementsModule",
+            "UnityEngine.UIModule",
+            "Unity.ugui",
+        };
 
         // ── A6:引用集白名单(declared ∪ compiled,与 b5 同款并集送检)──
         // 判序:黑名单(无条件红)→ 引擎白名单 → BCL → 登记集 → 其余 = 漂移红(要求先回写
@@ -256,6 +281,34 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <summary>A6 传递闭包断言(端到端):真工程装配图上跑 <see cref="ReferenceClosureViolations"/>。</summary>
         public static List<string> CheckInputReferenceClosure()
             => ReferenceClosureViolations(BuildProjectReferenceGraph(), InputAssemblyName);
+
+        // ── B2①:UI 栈禁引(AC-3-B2① 结构门 · 2026-09-26 Story 007)──
+        // 判据 = asmdef 引用集(直接 ∪ 传递)∩ UiStackForbiddenAssemblyNames ≠ ∅ ⇒ 红。
+        // 复用 A6 的引用图与闭包游走(BuildProjectReferenceGraph / ReferenceClosure)——
+        // 同一张工程内装配图;引擎 / BCL 是叶不建边 ⇒ Gameplay.Input → Unity.InputSystem
+        // 合法且不带出 Unity.ugui(引擎边),而工程内 shim(直接声明 UnityEngine.UI 或
+        // 中转直达)被闭包捕获。黑名单必须显式点名(不能靠 IsEngineRef 前缀),
+        // 见 <see cref="UiStackForbiddenAssemblyNames"/> ⚠️。
+        /// <summary>B2① 闭包判定(纯函数 —— 负例夹具喂合成图):
+        /// 从 <paramref name="root"/> 的传递闭包 ∩ <see cref="UiStackForbiddenAssemblyNames"/>
+        /// ⇒ 红。直接引用与 shim 间接引用同禁(与 A6 同构)。</summary>
+        public static List<string> UiStackReferenceClosureViolations(
+            IDictionary<string, List<string>> graph, string root)
+        {
+            var errs = new List<string>();
+            var closure = ReferenceClosure(graph, root);
+            foreach (var hit in closure.Where(h => UiStackForbiddenAssemblyNames.Contains(h))
+                                       .OrderBy(h => h, StringComparer.Ordinal))
+                errs.Add($"[B2①] {root} 传递闭包命中 UI 栈程序集「{hit}」—— AC-3-B2① 禁引 " +
+                         $"UI Toolkit / UnityEngine.UI / 含 EventSystem 的程序集(构建失败);" +
+                         $"闭包 = [{string.Join(", ", closure.OrderBy(c => c, StringComparer.Ordinal))}]");
+            return errs;
+        }
+
+        /// <summary>B2① 断言(端到端):真工程装配图上跑 <see cref="UiStackReferenceClosureViolations"/>
+        /// (root = <see cref="InputAssemblyName"/>)。</summary>
+        public static List<string> CheckUiStackReferenceClosure()
+            => UiStackReferenceClosureViolations(BuildProjectReferenceGraph(), InputAssemblyName);
 
         // ── A6 交出物闭集:Intents 子命名空间的公开类型 ⊆ 四意图(白名单外新增 = 红)──
         // 口径:交出物 = Intents 子命名空间的公开类型(「3 只产意图」的输出边界);
@@ -507,8 +560,8 @@ namespace DaYiJingCheng.EditorTools.Gates
         }
 
         /// <summary>本门全部判定一次跑完(菜单 / 测试 / 构建前门共用)。
-        /// A6 直接引用集 + A6 传递闭包 + A6 交出物闭集 + A7 全根闭包 + **B3 IL 面**
-        /// + B3 源文本。返回红错;roots = A7 扫描根数(0 = WARN 由调用方处理)。
+        /// A6 直接引用集 + A6 传递闭包 + **B2① UI 栈禁引** + A6 交出物闭集 + A7 全根闭包
+        /// + **B3 IL 面** + B3 源文本。返回红错;roots = A7 扫描根数(0 = WARN 由调用方处理)。
         /// ⚠️ reflection 面的 <see cref="CheckReadingFieldLeaves(Type)"/> 仍**不入**
         /// RunAll —— 本装配(Editor.Tools.Gates)**不引用 Gameplay.Input**,该面上
         /// `typeof(EmergencyReading)` 不可编译。B3 的构建期强制点由**读 IL**的
@@ -520,6 +573,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             var errs = new List<string>();
             errs.AddRange(CheckInputAssemblyReferences());     // A6 直接引用集
             errs.AddRange(CheckInputReferenceClosure());      // A6 传递闭包(间接引用 · G3)
+            errs.AddRange(CheckUiStackReferenceClosure());   // B2① UI 栈禁引(Story 007)
             errs.AddRange(CheckDeliveredIntentClosure());      // A6 交出物闭集
             errs.AddRange(CheckAllPayloadClosures(out roots)); // A7 全载荷闭包
             errs.AddRange(CheckReadingFieldsIl(                // B3 字段全整数 · IL 面(S1)

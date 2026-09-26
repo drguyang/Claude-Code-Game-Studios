@@ -1,18 +1,24 @@
 // Story 001 · AC-3-A4② 的载体装置 —— 给分析器 DLL 打 RoslynAnalyzer label
 //              + 校正 PluginImporter 配置(2026-09-25 复核 W1)
+// Story 007 · AC-3-B2② 的同一载体装置(2026-09-26 扩:同一 label 流程覆盖两个 DLL ——
+//              UiEventSymbolAnalyzer.dll 同属「编译期拒」门,label 机制与 PluginImporter
+//              校正逐字复用,不为第二个 DLL 另开方法)。
 //
 // 权威来源:
 //   AC-3-A4②(BLOCKING)Roslyn 分析器在编译期拒绝任何 UnityEngine.Input 符号引用。
+//   AC-3-B2②(BLOCKING · Story 007)Roslyn 分析器在编译期拒绝直读程序集内的 UI 事件符号引用。
 //   unity-specialist 预检(2026-09-25):RoslynAnalyzer 是 .meta 的 labels: 键,
 //     AssetDatabase.SetLabels 在 batchmode 可用 —— 绝不手写 .meta,由 Unity 自己生成。
 //
 // 用法(batch,由调用方执行一次,先于 EditMode 测试):
 //   unity build <project> --target StandaloneLinux64 \
 //     --executeMethod DaYiJingCheng.EditorTools.Gates.RoslynAnalyzerLabel.SetLabel
-// 亦可菜单触发:大医精诚/Validation/Label Legacy Input Analyzer
+// 亦可菜单触发:大医精诚/Validation/Label Input Analyzers
 //
 // ⚠️ 运行前置:tools/analyzers/build.sh 已产出
-//    unity/Assets/Editor.Tools.Analyzers/LegacyInputAnalyzer.dll(缺失即抛,batch 非零退出)。
+//    unity/Assets/Editor.Tools.Analyzers/LegacyInputAnalyzer.dll
+//    unity/Assets/Editor.Tools.Analyzers/UiEventSymbolAnalyzer.dll
+//    (任一缺失即抛,batch 非零退出)。
 // ⚠️ label 打完后 Unity 会重编译;同一 batch 会话内后续 executeMethod(测试)在重编译后运行。
 //
 // PluginImporter 校正(W1,幂等):validateReferences → false(否则 MonoManager 每次域重载
@@ -37,36 +43,55 @@ using UnityEngine;
 
 namespace DaYiJingCheng.EditorTools.Gates
 {
-    /// <summary>把 LegacyInputAnalyzer.dll 标记为 Roslyn 分析器,并校正其 PluginImporter 配置
-    /// (全部幂等:已有 label / 已校正则跳过)。失败一律 <c>throw</c>(batch 需要非零退出码,不能只打日志)。</summary>
+    /// <summary>把输入侧分析器 DLL(Story 001 LegacyInputAnalyzer + Story 007 UiEventSymbolAnalyzer)
+    /// 标记为 Roslyn 分析器,并校正其 PluginImporter 配置(全部幂等:已有 label / 已校正则跳过)。
+    /// 失败一律 <c>throw</c>(batch 需要非零退出码,不能只打日志)。</summary>
     public static class RoslynAnalyzerLabel
     {
-        /// <summary>分析器 DLL 在工程内的唯一落点(ADR-025 清单封闭性:此目录不建 asmdef)。</summary>
+        /// <summary>LegacyInputAnalyzer.dll 在工程内的落点(ADR-025 清单封闭性:此目录不建 asmdef)。</summary>
         public const string AnalyzerAssetPath = "Assets/Editor.Tools.Analyzers/LegacyInputAnalyzer.dll";
+
+        /// <summary>UiEventSymbolAnalyzer.dll 在工程内的落点(Story 007 · AC-3-B2②)。</summary>
+        public const string UiEventSymbolAnalyzerAssetPath = "Assets/Editor.Tools.Analyzers/UiEventSymbolAnalyzer.dll";
+
+        /// <summary>全部须打 label 的分析器 DLL(两枚;新增分析器时在此登记,循环体自动覆盖)。</summary>
+        public static readonly string[] AnalyzerAssetPaths =
+        {
+            AnalyzerAssetPath,
+            UiEventSymbolAnalyzerAssetPath,
+        };
 
         /// <summary>Unity 分析器 label(官方约定;RoslynAnalyzer 即全部机制,无第二步骤)。</summary>
         public const string RoslynAnalyzerLabelName = "RoslynAnalyzer";
 
-        [MenuItem("大医精诚/Validation/Label Legacy Input Analyzer")]
+        [MenuItem("大医精诚/Validation/Label Input Analyzers")]
         public static void SetLabel()
         {
+            foreach (string path in AnalyzerAssetPaths)
+                LabelOne(path);
+        }
+
+        /// <summary>单个 DLL 的完整流程:存在性检查 → 同步导入 → PluginImporter 校正 → label 并集 → 复查。
+        /// 任一步失败即抛(batch 非零退出)。</summary>
+        private static void LabelOne(string assetPath)
+        {
             // 相对路径以工程根为基准;文件存在性用工程内相对路径判断(batch 的 CWD = 工程根)。
-            if (!File.Exists(AnalyzerAssetPath))
+            if (!File.Exists(assetPath))
                 throw new FileNotFoundException(
-                    "分析器 DLL 不存在 —— 先跑 tools/analyzers/build.sh:" + AnalyzerAssetPath);
+                    "分析器 DLL 不存在 —— 先跑 tools/analyzers/build.sh:" + assetPath);
 
-            AssetDatabase.ImportAsset(AnalyzerAssetPath, ImportAssetOptions.ForceSynchronousImport);
+            AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
 
-            var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(AnalyzerAssetPath);
+            var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath);
             if (asset == null)
-                throw new InvalidOperationException("AssetDatabase 加载失败(DLL 未被导入为资产):" + AnalyzerAssetPath);
+                throw new InvalidOperationException("AssetDatabase 加载失败(DLL 未被导入为资产):" + assetPath);
 
-            ConfigurePluginImporter();
+            ConfigurePluginImporter(assetPath);
 
             var labels = AssetDatabase.GetLabels(asset) ?? Array.Empty<string>();
             if (labels.Contains(RoslynAnalyzerLabelName))
             {
-                Debug.Log($"[RoslynAnalyzerLabel] 已带 {RoslynAnalyzerLabelName} label,幂等跳过:{AnalyzerAssetPath}");
+                Debug.Log($"[RoslynAnalyzerLabel] 已带 {RoslynAnalyzerLabelName} label,幂等跳过:{assetPath}");
                 return;
             }
 
@@ -75,25 +100,25 @@ namespace DaYiJingCheng.EditorTools.Gates
                 .Concat(new[] { RoslynAnalyzerLabelName })
                 .Distinct()
                 .ToArray());
-            AssetDatabase.ImportAsset(AnalyzerAssetPath, ImportAssetOptions.ForceUpdate);
+            AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
 
-            var after = AssetDatabase.GetLabels(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(AnalyzerAssetPath))
+            var after = AssetDatabase.GetLabels(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath))
                         ?? Array.Empty<string>();
             if (!after.Contains(RoslynAnalyzerLabelName))
-                throw new InvalidOperationException("SetLabels 后复查失败 —— label 未生效:" + AnalyzerAssetPath);
+                throw new InvalidOperationException("SetLabels 后复查失败 —— label 未生效:" + assetPath);
 
-            Debug.Log($"[RoslynAnalyzerLabel] 已打 {RoslynAnalyzerLabelName} label:{AnalyzerAssetPath}");
+            Debug.Log($"[RoslynAnalyzerLabel] 已打 {RoslynAnalyzerLabelName} label:{assetPath}");
         }
 
         /// <summary>校正 PluginImporter:关引用校验(消 MonoManager 域重载报错)、关 Auto Reference
         /// (本 DLL 不进各程序集引用列表)、平台收敛全关(Any/Editor 均 off:不卷进 player 构建,
         /// 也不在域重载时当插件装载,见文件头 2026-09-25 二修)。
         /// 字段名与 .meta 序列化名一致;读不到即抛(引擎布局变更须重估)。</summary>
-        private static void ConfigurePluginImporter()
+        private static void ConfigurePluginImporter(string assetPath)
         {
-            var importer = AssetImporter.GetAtPath(AnalyzerAssetPath) as PluginImporter;
+            var importer = AssetImporter.GetAtPath(assetPath) as PluginImporter;
             if (importer == null)
-                throw new InvalidOperationException("PluginImporter 获取失败:" + AnalyzerAssetPath);
+                throw new InvalidOperationException("PluginImporter 获取失败:" + assetPath);
 
             var so = new SerializedObject(importer);
             so.Update();
@@ -143,14 +168,14 @@ namespace DaYiJingCheng.EditorTools.Gates
 
             if (!changed)
             {
-                Debug.Log("[RoslynAnalyzerLabel] PluginImporter 已是目标配置(validateReferences=0, AutoReference=off, 全平台 off),幂等跳过");
+                Debug.Log("[RoslynAnalyzerLabel] PluginImporter 已是目标配置(validateReferences=0, AutoReference=off, 全平台 off),幂等跳过:" + assetPath);
                 return;
             }
 
-            AssetDatabase.ImportAsset(AnalyzerAssetPath, ImportAssetOptions.ForceUpdate);
+            AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
 
             // 复查:重读 .meta 序列化字段与平台兼容位,未生效即抛
-            var reimporter = AssetImporter.GetAtPath(AnalyzerAssetPath) as PluginImporter;
+            var reimporter = AssetImporter.GetAtPath(assetPath) as PluginImporter;
             var reSo = new SerializedObject(reimporter);
             reSo.Update();
             bool validateOk = FindPropertyDeep(reSo, "validateReferences") is SerializedProperty v && !v.boolValue;
@@ -158,9 +183,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             bool platformOffOk = !reimporter.GetCompatibleWithAnyPlatform() && !reimporter.GetCompatibleWithEditor();
             if (!validateOk || !autoRefOk || !platformOffOk)
                 throw new InvalidOperationException(
-                    "PluginImporter 校正复查失败(应为 validateReferences=false、isExplicitlyReferenced=true、Any=off、Editor=off):" + AnalyzerAssetPath);
+                    "PluginImporter 校正复查失败(应为 validateReferences=false、isExplicitlyReferenced=true、Any=off、Editor=off):" + assetPath);
 
-            Debug.Log("[RoslynAnalyzerLabel] PluginImporter 已校正(validateReferences=0, AutoReference=off, 全平台 off):" + AnalyzerAssetPath);
+            Debug.Log("[RoslynAnalyzerLabel] PluginImporter 已校正(validateReferences=0, AutoReference=off, 全平台 off):" + assetPath);
         }
 
         /// <summary>按叶子名深度查找序列化属性 —— .meta YAML 键(如 <c>validateReferences</c>)与
