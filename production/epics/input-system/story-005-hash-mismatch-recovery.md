@@ -1,12 +1,12 @@
 # Story 005: schema hash 失配优雅清空与跨版本备份
 
 > **Epic**: 输入与设备
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 3h
-> **Manifest Version**: 2026-09-21
 > **Last Updated**: 2026-09-26
+> **Manifest Version**: 2026-09-21
 
 ## Context
 
@@ -31,9 +31,9 @@
 
 *From GDD `design/gdd/input-system.md`, scoped to this story:*
 
-- [ ] **AC-3-A3(BLOCKING)**: hash 失配 ⇒ **改名备份 + 载入默认 + 日志**;**不静默、不崩溃、不弹窗**;须覆盖「重建后失配」场景。夹具法 = 独立测试资产副本(内存构造 `InputActionAsset`,改 `bindingId` 或前缀替换合成 id)⇒ 断言:**备份已生成** ∧ **生效绑定 = 默认** ∧ **未抛异常**
-- [ ] **AC-3-A8(BLOCKING)**: **跨版本升级失配即备份** —— 资产重建(`bindingId` 全变)⇒ hash 变 ⇒ 陈旧文件**改名备份** + **日志可诊断** + **载入默认**;overrides 必然失效,本 AC 保「**失效是响的**」(备份 + 日志在,玩家/开发者能定位,而非静默清空无痕)
-- [ ] **AC-3-E3③(BLOCKING)**: **`bindingId` 变化 ⇒ hash 必变** —— 构造两条 R,唯一差异 = `bindingId`,断言 hash **不同**(这是失配检测的**使能性质**:若 hash 对 `bindingId` 盲,重建永远不会被检测到,A3/A8 无从触发)
+- [x] **AC-3-A3(BLOCKING)**: hash 失配 ⇒ **改名备份 + 载入默认 + 日志**;**不静默、不崩溃、不弹窗**;须覆盖「重建后失配」场景。夹具法 = 独立测试资产副本(内存构造 `InputActionAsset`,改 `bindingId` 或前缀替换合成 id)⇒ 断言:**备份已生成** ∧ **生效绑定 = 默认** ∧ **未抛异常**
+- [x] **AC-3-A8(BLOCKING)**: **跨版本升级失配即备份** —— 资产重建(`bindingId` 全变)⇒ hash 变 ⇒ 陈旧文件**改名备份** + **日志可诊断** + **载入默认**;overrides 必然失效,本 AC 保「**失效是响的**」(备份 + 日志在,玩家/开发者能定位,而非静默清空无痕)
+- [x] **AC-3-E3③(BLOCKING)**: **`bindingId` 变化 ⇒ hash 必变** —— 构造两条 R,唯一差异 = `bindingId`,断言 hash **不同**(这是失配检测的**使能性质**:若 hash 对 `bindingId` 盲,重建永远不会被检测到,A3/A8 无从触发)
 
 ---
 
@@ -91,9 +91,27 @@
 **Required evidence**:
 - Integration: `tests/integration/input_system/hash_mismatch_recovery_test.cs` — must exist and pass
 
-**Status**: [x] Created — `unity/Assets/Tests/EditMode/InputSystem/hash_mismatch_recovery_test.cs`(14 测)+ 协调点 `overrides_sidecar_test.cs`(写面计数 2→4 + hashMismatch/headerMissingSchemaHash 备份断言)
-- 验证:EditMode **558/558 全绿 exit 0**(log `unity/Logs/build-story005-rerun2.log`,XML 已移 /tmp);本故事 14/14(含 2 失败修复轮:正则 `备份路径` 前空格 + `Distinct` 去重断言)
+**Status**: [x] Created — `unity/Assets/Tests/EditMode/InputSystem/hash_mismatch_recovery_test.cs`(**17 测**)+ 协调点 `overrides_sidecar_test.cs`(写面计数 2→4 + hashMismatch/headerMissingSchemaHash/halfSidecar/headerOnly 备份断言)
+- 验证:EditMode **585/585 全绿 exit 0**(log `unity/Logs/build-story005-reviewfix.log`,XML 已移 /tmp);本故事 17/17(含 2 失败修复轮:正则 `备份路径` 前空格 + `Distinct` 去重断言)
 - 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/hash_mismatch_recovery_test.cs`,文档路径 `tests/integration/input_system/` 为登记口径
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-26
+**Criteria**: 3/3 passing(AC-3-A3 / AC-3-A8 / AC-3-E3③,零 UNTESTED)
+**Deviations**: None
+**Test Evidence**: EditMode 真身 `unity/Assets/Tests/EditMode/InputSystem/hash_mismatch_recovery_test.cs`(17 测)+ 协调点 `overrides_sidecar_test.cs`;合并树 **585/585 全绿 exit 0**(log `unity/Logs/build-story005-reviewfix.log`)
+**Code Review**: Complete —— 会话内 /code-review 双代理并行:unity-specialist **APPROVED WITH SUGGESTIONS**(S1/S2)+ qa-tester **TESTABLE**(GAPS #1–4,无 BLOCKING);**四项 GAPS + S1/S2 全修**(含次要),复跑全绿后收口
+**Review Fix Batch**:
+- GAPS #1(A8 端到端):测试改真实重建 hash 链 —— `Save(ComputeSchemaHash(_shared))` → 构造重建资产 → **断言重建 hash ≠ 旧 hash** → 喂真实重建 hash 给 `Load`;不再把字面 `HashB` 直喂
+- GAPS #2(scope 日志真实 bug):`BackupSidecar` 的备份范围改由**实际移动结果**派生(载荷成头部败 ⇒ 只点名「overrides」侧,不再称「overrides 与头部」)+ 回归测 `test_hashMismatch_partialBackup_scopeLogNamesOnlyMovedSide`
+- GAPS #3(序号耗尽静默):两个 `TryMove*ToBackup` 循环耗尽(999 全占用)补 `载荷备份跳过` / `头部备份跳过` Warning 日志 + 测 `test_hashMismatch_backupSerialExhaust_skipsWithLogDefaultsNoCrash`
+- GAPS #4(读失败出口 / 孤文件备份):目录占用法直测 `headerWriteFailure_payloadAlone` 孤载荷下一载备份(`_backedUp` 变体);三个 half-sidecar 测试补 备份路径/恢复完成 Expect + `.bak-001` 断言;两条读失败 catch 出口**无直测**为文档化偏差 —— ① 同 `BackupSidecar` 代码已被 headerMissingSchemaHash 与主失配形状双重覆盖;② 触发需平台私有故障注入,`SetUnixFileMode`(.NET 7+)不在 Unity 6.3 netstandard2.1 API 面,目录占用法永远先走 half-sidecar 分支、到不了 catch;③ catch 契约 = Story 003 既有 fail-safe
+- S1(=GAPS #3 已修)· S2(half-sidecar `备份路径` Expect = 协调点扩展已修)
+**Traceability**: AC-3-A3 → `test_hashMismatch_syntheticMismatch_backupCreatedDefaultsLoaded_logged` + `_doubleMismatch_twoBackupsCoexist_noOverwrite` + `_backupDirUnwritable_skipsBackupStillDefaults_noCrash` + `_neg_clearWithoutRename_stillBackedUp` · AC-3-A8 → `test_hashMismatch_crossVersionRebuild_allBindingIdsChanged_backupDiagnosticLogDefault` + `_neg_logContainsAllThreeDiagnosticElements` + `_corruptHeaderReadsAsMismatch_backupCreated` + `_firstLaunch_noFiles_noBackupCreated` · AC-3-E3③ → `test_schemaHash_bindingIdDiffers_hashDiffers` + `_singleBindingIdChange_hashDiffers`(E3③ 第一/第二子句)+ `_sameBindingIds_orderChanged_hashSame`(排序吸收边界)+ `_pinnedGoldenFixtures_guardCanonStability`(钉值回归) —— **0/3 UNTESTED**
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**ADVISORY(未结,非本故事缺陷)**:① GDD 规则五「Load → Enable」的 Enable 归调用方(Boot 装配流),本故事只交付契约(Story 003 同口径)② P0 无改键 UI ⇒ 失配后「引导重新改键」交互不存在,载入默认即终点(`OQ-3-1`)
 
 ---
 
