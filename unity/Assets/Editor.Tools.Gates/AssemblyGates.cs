@@ -11,8 +11,13 @@
 //   b5 = AC-44-B1(audio Story 001;44 音频模块装配边界三段 —— 见下方 b5 段头注)
 //
 // 落点理由:三条都是**编辑期**断言,住 Editor.Tools 族(不进构建,门 A 不约束 ——
-// ADR-022 §① 同构)。触发面 = Unity 编译后自动刷新(ReloadAssemblyPostProcessor)+
-// 手动菜单项;CI 侧由 ADR-012 矩阵的 Editor 格跑 EditMode 断言(归 CI 故事,见 README)。
+// ADR-022 §① 同构)。触发面 = ① Unity 编译后自动刷新(ReloadAssemblyPostProcessor,
+//   但 2026-09-26 降噪后 reload **只跑 b3/b2** 这两个 O(1) 级面)
+//   ② 手动菜单项「大医精诚/Validation/Run Assembly Gates」(全门)
+//   ③ **构建前 fail-fast**(BuildGate : IPreprocessBuildWithReport,2026-09-26 评审 G7 新增
+//     —— AC-3-A6/A7/B3 与 b5 字面写的是「构建失败」,只有日志红行 + EditMode 测试两道
+//     证据时,门在真出问题时仍会放构建过去)
+//   ④ CI 侧由 ADR-012 矩阵的 Editor 格跑 EditMode 断言(归 CI 故事,见 README)。
 
 #if UNITY_EDITOR
 using System;
@@ -24,6 +29,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Mono.Cecil;
 using UnityEditor;
+using UnityEditor.Build;          // BuildFailedException(构建前门 fail-fast · 2026-09-26)
+using UnityEditor.Build.Reporting;  // IPreprocessBuildWithReport / BuildReport(同上)
 using UnityEditor.Compilation;
 using UnityEngine;
 
@@ -63,9 +70,15 @@ namespace DaYiJingCheng.EditorTools.Gates
             var b5Errs = RunAudioBoundary(out var b5Warns);
             errs.AddRange(b5Errs);
             foreach (var w in b5Warns) Debug.LogWarning(w);
+            // 2026-09-26(评审 G7):3 的意图边界门此前**零调用方** —— 四道门只被 EditMode
+            // 测试驱动,AC-3-A6/A7 字面的「构建失败」无任何强制点。接进菜单与 reload 钩子。
+            var inputErrs = InputBoundaryGates.RunAll(out var inputRoots);
+            if (inputRoots == 0)
+                Debug.LogWarning("[InputBoundaryGates] A7 扫描根为 0 —— 扫描面丢失(假绿面),请查装配加载。");
+            errs.AddRange(inputErrs);
             foreach (var e in errs) Debug.LogError(e);
             Debug.Log(errs.Count == 0
-                ? "[AssemblyGates] b2/b3/b4/b5 全过"
+                ? "[AssemblyGates] b2/b3/b4/b5 + 3 意图边界门 全过"
                 : $"[AssemblyGates] {errs.Count} 条失败(见红行)");
         }
 
@@ -788,6 +801,33 @@ namespace DaYiJingCheng.EditorTools.Gates
             var errs = RunAll();
             foreach (var e in errs) Debug.LogError(e);
         };
+
+        // 2026-09-26(评审 G7):**构建前强制点** —— 3 的意图边界门与 b5 的处置事件/引用集门
+        // 在此合并 fail-fast。AC-3-A6 / A7 / B3 字面的后果是「构建失败」;此前只有日志红行
+        // 与 EditMode 测试两道证据,真出问题时**构建仍会成功**(门形同虚设)。挂
+        // IPreprocessBuildWithReport ⇒ 违规 = 构建中止,红行进构建日志(CI 判失败)。
+        // 载荷/A6/b5 面跑在此处的理由:这三面是 O(N 文件 × 类型树) 级,放 reload 会刷屏;
+        // 构建期跑一次是它们本来的位置。b3 清单面(O(1))仍在 reload 路径。
+        private sealed class BuildGate : IPreprocessBuildWithReport
+        {
+            public int callbackOrder => 0;
+
+            public void OnPreprocessBuild(BuildReport report)
+            {
+                var errs = new List<string>();
+                errs.AddRange(AssemblyGates.RunAll());
+                AssemblyGates.CheckToFloatCallsites(errs);
+                errs.AddRange(AssemblyGates.RunAudioBoundary(out _));
+                errs.AddRange(InputBoundaryGates.RunAll(out var roots));
+                if (roots == 0)
+                    errs.Add("[InputBoundaryGates] A7 扫描根为 0 —— 扫描面丢失(假绿面),构建中止。");
+                if (errs.Count == 0) return;
+                foreach (var e in errs) Debug.LogError(e);
+                throw new BuildFailedException(
+                    $"[AssemblyGates] 构建前门失败 {errs.Count} 条(装配封闭性 / ToFloat 白名单 / " +
+                    "44 边界门 / 3 意图边界门)—— 见构建日志红行。");
+            }
+        }
     }
 }
 #endif

@@ -113,6 +113,72 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             Assert.That(errs, Is.Empty, () => "A6 引用集红行:\n" + string.Join("\n", errs));
         }
 
+        // ── A6 传递闭包(间接引用;G3)──
+
+        [Test]
+        public void test_referenceClosure_oneShimLayer_reportsRed()
+        {
+            // 故事 QA 边界例原文:「加一层 shim 间接引用 ⇒ 必红」。
+            // 合成图:Gameplay.Input → Some.Shim → Sim.Contracts(直接面全绿,仅闭包面红)。
+            var graph = new Dictionary<string, List<string>>
+            {
+                [InputBoundaryGates.InputAssemblyName] = new List<string> { "Some.Shim" },
+                ["Some.Shim"] = new List<string> { "Sim.Contracts" },
+            };
+
+            var errs = InputBoundaryGates.ReferenceClosureViolations(
+                graph, InputBoundaryGates.InputAssemblyName);
+
+            Assert.That(errs, Has.Count.EqualTo(1),
+                () => "一层 shim 必须红:\n" + string.Join("\n", errs));
+            Assert.That(errs[0], Does.Contain("[A6]"));
+            Assert.That(errs[0], Does.Contain("间接"), "红行须标出是间接面而非直接面");
+            Assert.That(errs[0], Does.Contain("Sim.Contracts"), "红行须点名被传递穿透的装配");
+            Assert.That(errs[0], Does.Contain("Some.Shim"), "红行须显示闭包证据(shim 名字)");
+        }
+
+        [Test]
+        public void test_referenceClosure_directEngineRef_only_isGreen()
+        {
+            // 对照:引擎 / BCL 是引用图的叶(图里无节点 ⇒ 游走不展开)= 闭包绿。
+            var graph = new Dictionary<string, List<string>>
+            {
+                [InputBoundaryGates.InputAssemblyName] = new List<string>
+                    { "Unity.InputSystem", "UnityEngine", "netstandard" },
+            };
+
+            var errs = InputBoundaryGates.ReferenceClosureViolations(
+                graph, InputBoundaryGates.InputAssemblyName);
+
+            Assert.That(errs, Is.Empty, () => string.Join("\n", errs));
+        }
+
+        [Test]
+        public void test_referenceClosure_missingRoot_returnsEmpty()
+        {
+            // 假绿防护:图里查无此装配 = 零边(不是「已扫描且无违例」)—— 空集平凡成立,
+            // 端到端面另有 asmdef 缺失报红,此处只钉纯函数语义。
+            var closure = InputBoundaryGates.ReferenceClosure(
+                new Dictionary<string, List<string>> { ["A"] = new List<string> { "B" } }, "ZZZ");
+
+            Assert.That(closure, Is.Empty, "查无的根 ⇒ 零边");
+            var errs = InputBoundaryGates.ReferenceClosureViolations(null, "ZZZ");
+            Assert.That(errs, Is.Empty, "null 图 = 零边(纯函数不吞异常,交由端到端面报红)");
+        }
+
+        [Test]
+        public void test_referenceClosure_realTree_zeroErrors()
+        {
+            // 端到端:真工程装配图。当前树 Gameplay.Input 只经引擎面出边 ⇒ 绿。
+            var graph = InputBoundaryGates.BuildProjectReferenceGraph();
+            Assert.That(graph.ContainsKey(InputBoundaryGates.InputAssemblyName), Is.True,
+                "工程图必须含扫描目标装配(缺 = 扫描面丢失,假绿)");
+
+            var errs = InputBoundaryGates.CheckInputReferenceClosure();
+
+            Assert.That(errs, Is.Empty, () => "A6 传递闭包红行:\n" + string.Join("\n", errs));
+        }
+
         [Test]
         public void test_deliveredIntentClosure_currentTree_closedSet()
         {
@@ -136,11 +202,9 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         }
 
         [Test]
-        public void test_deliveredIntentClosure_extraTypeInIntentsNamespace_reportsRed()
+        public void test_deliveredIntentClosure_realIntentsNamespace_equalsRegisteredSet()
         {
-            // 负例:闭集断言的谓词面。Intents 子命名空间新增公开类型 ⇒ 红。
-            // 夹具形态 = 在 Intents 命名空间下声明一个登记集外的公开类型
-            //(文件末命名空间块)—— 真编译产物,证明谓词面覆盖「白名单外新增」。
+            // 真树集合相等(比「无红行」更强:逐条点名,将来有人误删/误加会直接看到差集)。
             var asm = AppDomain.CurrentDomain.GetAssemblies()
                 .FirstOrDefault(a => a.GetName().Name == InputBoundaryGates.InputAssemblyName);
             Assert.That(asm, Is.Not.Null, "Gameplay.Input 必须已加载(EditMode.asmdef 引用它)");
@@ -155,12 +219,57 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 .Select(t => t.FullName)
                 .OrderBy(n => n, StringComparer.Ordinal)
                 .ToList();
-
-            // 当前树:Intents 子命名空间的公开类型**恰好** = 登记集(不多不少)
             var registered = InputBoundaryGates.DeliveredIntentTypes
                 .OrderBy(n => n, StringComparer.Ordinal).ToList();
+
             Assert.That(inIntents, Is.EqualTo(registered),
-                "Intents 子命名空间公开类型集与登记集必须逐条相等(多 = 白名单外新增红;少 = 假绿)");
+                "Intents 子命名空间公开类型集与登记集必须逐条相等(多 = 白名单外新增;少 = 假绿)");
+        }
+
+        [Test]
+        public void test_deliveredIntentClosure_extraTypeInIntentsNamespace_reportsRed()
+        {
+            // 负例**纯谓词**面(2026-09-26 评审 G4):原测试只对当前真树断言「不多不少」,
+            // 从未把「多一个」喂进门 —— 两条红路径(白名单外新增 / 登记件缺失)零覆盖。
+            // 这里的候选 = 真树四件 + 一个登记集外的影子类型 ⇒ 白名单外新增红。
+            var shadow = typeof(ClosureExtraTypeFixture);
+            var candidates = new[] { typeof(InteractIntent), typeof(EmergencyIntent),
+                                      typeof(FocusNavigationIntent), typeof(EmergencyReading),
+                                      typeof(AggregatedEmergency), shadow };
+
+            var errs = InputBoundaryGates.DeliveredIntentClosureViolations(candidates);
+
+            var added = errs.Where(e => e.Contains("新增公开类型")).ToList();
+            Assert.That(added, Has.Count.EqualTo(1), () => string.Join("\n", errs));
+            Assert.That(added[0], Does.Contain(shadow.FullName), "红行须点名影子类型");
+            Assert.That(errs, Has.None.Contains("不存在"), "登记五件齐备 ⇒ 不得报缺失");
+        }
+
+        [Test]
+        public void test_deliveredIntentClosure_missingRegisteredType_reportsRed()
+        {
+            // 缺失分支 = 「闭集对空集断言 = 假绿」的唯一护栏。候选少一件 ⇒ 红,
+            // 且红行须点名**缺的那一件**(不是泛泛说闭集不完整)。
+            var candidates = new[] { typeof(InteractIntent), typeof(EmergencyIntent),
+                                      typeof(FocusNavigationIntent) };   // 缺 Reading + Aggregated
+
+            var errs = InputBoundaryGates.DeliveredIntentClosureViolations(candidates);
+
+            var missing = errs.Where(e => e.Contains("不存在")).ToList();
+            Assert.That(missing, Has.Count.EqualTo(2),
+                () => "缺两件 = 两条红:\n" + string.Join("\n", errs));
+            Assert.That(missing[0], Does.Contain("EmergencyReading"));
+            Assert.That(missing[1], Does.Contain("AggregatedEmergency"));
+            Assert.That(missing[0], Does.Contain("假绿"), "红行须写明后果(防人当噪声忽略)");
+        }
+
+        [Test]
+        public void test_deliveredIntentClosure_nullCandidates_onlyReportsMissing()
+        {
+            // null 候选集 = 零公开类型 ⇒ 五件全报缺失(不静默绿)。
+            var errs = InputBoundaryGates.DeliveredIntentClosureViolations(null);
+
+            Assert.That(errs, Has.Count.EqualTo(InputBoundaryGates.DeliveredIntentTypes.Length));
         }
 
         [Test]
@@ -177,18 +286,36 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         public void test_inputSourceText_iEventSinkAppendCall_reportsRed()
         {
             // 故事 QA 负例:「夹具源码出现 IEventSink.Append 调用 ⇒ 红」。
-            // 兑现形态:合成源文本送**同一个谓词**(免写坏生产 .cs)。
-            // 门暴露的公共面是整树扫描,故此处断言谓词语义:剥离注释后 SimEvent token 命中
-            // 即红 —— IEventSink.Append(... SimEvent ...) 的 Append 调用必携 SimEvent。
+            // 兑现形态:合成源文本**直接驱动门自己的纯谓词** SourceTextViolations
+            // (2026-09-26 评审 G2 修复:原写法把剥离 + 匹配抄进测试,再断言抄的那份命中
+            //  = 门若改坏,测试照绿 —— 门与测试不共用判定代码,就等于没测门)。
             const string fixture =
                 "using DaYiJingCheng.Sim.Contracts;\n" +
                 "class X { void M(IEventSink s) { s.Append(new SimEvent()); } }";
-            var stripped = AssemblyGates.StripCommentsPreserveStrings(fixture);
 
-            Assert.That(System.Text.RegularExpressions.Regex.IsMatch(stripped, @"\bSimEvent\b"),
-                Is.True, "负例夹具必须命中(夹具落空 = 假绿)");
-            Assert.That(stripped.Contains(InputBoundaryGates.FixParseParseMarker), Is.False,
-                "本负例只测 SimEvent 侧");
+            var errs = InputBoundaryGates.SourceTextViolations(fixture, "<G2-IEventSinkFixture>");
+
+            // 两个 token 各自成行:IEventSink(写入通道)+ SimEvent(事件本体)
+            Assert.That(errs, Has.Count.EqualTo(2),
+                () => "本负例只测事件面,应恰 2 条(IEventSink + SimEvent):\n" + string.Join("\n", errs));
+            Assert.That(errs[0], Does.Contain("[B3]"));
+            Assert.That(errs[0], Does.Contain("IEventSink"), "红行须点名违例 token");
+            Assert.That(errs[1], Does.Contain("SimEvent"));
+        }
+
+        [Test]
+        public void test_inputSourceText_sinkAppendWithoutSimEventLiteral_reportsRed()
+        {
+            // G2 的核心失效场景:`s.Append(SomePayload.Make())` 这类**不出现 SimEvent 字面**
+            // 的写法(只经 IEventSink 写事件)在补 token 前全绿通过。补 IEventSink 后必红。
+            const string fixture =
+                "class W { void M(IEventSink s) { s.Append(SomePayload.Make()); } }";
+
+            var errs = InputBoundaryGates.SourceTextViolations(fixture, "<G2-AppendOnlyFixture>");
+
+            Assert.That(errs, Has.Count.EqualTo(1),
+                () => "不携 SimEvent 字面也应被 IEventSink token 抓住:\n" + string.Join("\n", errs));
+            Assert.That(errs[0], Does.Contain("IEventSink"));
         }
 
         [Test]
@@ -196,10 +323,14 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         {
             // 故事 QA:AC-3-B3「运行期不经 FixParse.Parse(string)」。负例源文本命中扫描键。
             const string fixture = "class Y { void M() { var v = FixParse.Parse(\"3/4\"); } }";
-            var stripped = AssemblyGates.StripCommentsPreserveStrings(fixture);
 
-            Assert.That(stripped.Contains(InputBoundaryGates.FixParseParseMarker), Is.True,
-                "FixParse.Parse( 必须命中扫描键(负例自证)");
+            var errs = InputBoundaryGates.SourceTextViolations(fixture, "<B3-FixParseFixture>");
+
+            Assert.That(errs, Has.Count.EqualTo(1),
+                () => "本负例只测 FixParse 面:\n" + string.Join("\n", errs));
+            Assert.That(errs[0], Does.Contain("[B3]"));
+            Assert.That(errs[0], Does.Contain(InputBoundaryGates.FixParseParseMarker));
+            Assert.That(errs[0], Does.Contain("<B3-FixParseFixture>"), "红行须点名违例文件");
         }
 
         [Test]
@@ -210,11 +341,11 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 "// 3 零 SimEvent;判定结果不经 FixParse.Parse( —— 见 AC-3-A6 / B3\n" +
                 "/* 块注释 SimEvent 同禁 */\n" +
                 "class Z { int a; }";
-            var stripped = AssemblyGates.StripCommentsPreserveStrings(fixture);
 
-            Assert.That(stripped.Contains("SimEvent"), Is.False, "注释剥离后不得残留 SimEvent");
-            Assert.That(stripped.Contains(InputBoundaryGates.FixParseParseMarker), Is.False,
-                "注释剥离后不得残留 FixParse.Parse(");
+            var errs = InputBoundaryGates.SourceTextViolations(fixture, "<CommentFixture>");
+
+            Assert.That(errs, Is.Empty,
+                () => "注释剥离后零红行,实测:\n" + string.Join("\n", errs));
         }
 
         // ═══════════════ AC-3-A7 —— 载荷可达闭包递归零浮点 ═══════════════
@@ -349,6 +480,34 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             Assert.That(errs[0], Does.Contain("System.Single"), "红行点名归一后的类型名");
         }
 
+        [Test]
+        public void test_payloadClosure_interfaceField_isGreen_byDeclaredScope()
+        {
+            // 故事 QA 边界例:「接口字段 / 多态载荷」—— **刻意判绿**,A7 只问「闭包里
+            // 有没有浮点」,接口字段类型本身非 float ⇒ 绿(与 PresentationDtoGuard 同当)。
+            // 本测的作用不是证绿,而是把**这个选择**钉死:接口字段里藏一个 float
+            // 实现类,门看不见 —— 日后若有人把扫描面扩为实现枚举,本测会红,提醒
+            // 同步改门内注释与本决策记录,而不是悄悄换判据。
+            var errs = InputBoundaryGates.CheckPayloadClosure(typeof(InterfaceFieldFixture));
+
+            Assert.That(errs, Is.Empty,
+                () => "A7 声明面 = 不经接口实现枚举展开,故绿:\n" + string.Join("\n", errs));
+            Assert.That(typeof(PolymorphicFloatImpl).GetField("X", BindingFlags.Public | BindingFlags.Instance)
+                                             .FieldType, Is.EqualTo(typeof(float)),
+                "前提:实现类里确实藏着 float(否则本测就是为真而真,夹具落空)");
+        }
+
+        [Test]
+        public void test_payloadClosure_concretePolymorphicField_reportsRed()
+        {
+            // 对照面:字段类型写成**具体**类(不经接口)⇒ 递归抓得到 ⇒ 红。
+            // 与上一测并置 = 门确实只按声明面断,不是整体失灵。
+            var errs = InputBoundaryGates.CheckPayloadClosure(typeof(ConcreteFieldFixture));
+
+            Assert.That(errs, Is.Not.Empty, "具体多态字段必红");
+            Assert.That(errs[0], Does.Contain("System.Single"));
+        }
+
         // ═══════════════ AC-3-B3 —— 判定结果全整数 ═══════════════
 
         [Test]
@@ -406,6 +565,39 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
 
             Assert.That(errs, Is.Not.Empty, "double 字段必红");
             Assert.That(errs[0], Does.Contain("System.Double"));
+        }
+
+        [Test]
+        public void test_readingFields_stringField_reportsRed()
+        {
+            // G5 的核心失效场景:白名单自己说 string 不合格,但门原先把 string 展开成
+            // char[] 逐项判 —— char/int 全绿 ⇒ **零红行** = 自相矛盾。收窄后必红。
+            var errs = InputBoundaryGates.CheckReadingFieldLeaves(typeof(StringFieldReadingFixture));
+
+            Assert.That(errs, Is.Not.Empty, "string 字段必红(B3 白名单闭合)");
+            var hit = errs.First(e => e.Contains("System.String"));
+            Assert.That(hit, Does.Contain("[B3]"));
+            Assert.That(hit, Does.Contain(".Name"), "须点名违例字段路径");
+            Assert.That(hit, Does.Contain("闭合"), "红行须写明白名单是闭合的(不是建议)");
+        }
+
+        [Test]
+        public void test_readingFields_objectField_reportsRed()
+        {
+            // 同 G5 的第二个形态:`object` 字段 = 任意装箱载荷的逃逸口。
+            var errs = InputBoundaryGates.CheckReadingFieldLeaves(typeof(ObjectFieldReadingFixture));
+
+            Assert.That(errs, Is.Not.Empty, "object 字段必红");
+            Assert.That(errs[0], Does.Contain("System.Object"));
+        }
+
+        [Test]
+        public void test_readingFields_emergencyReading_intArrayField_recursesToElement()
+        {
+            // 正向对照:int[] 元素 = int ⇒ 绿(证明「数组元素递归」没有把合法面误杀)。
+            var errs = InputBoundaryGates.CheckReadingFieldLeaves(typeof(EmergencyReading));
+
+            Assert.That(errs, Is.Empty, () => string.Join("\n", errs));
         }
 
         [Test]
@@ -821,6 +1013,45 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         private struct DoubleFieldReadingFixture
         {
             public double Score;
+        }
+
+        // G5 负例:白名单闭合面(string / object 都不得作为读数字段)
+        private struct StringFieldReadingFixture
+        {
+            public int Action;
+            public string Name;
+        }
+
+        private struct ObjectFieldReadingFixture
+        {
+            public object Boxed;
+        }
+
+        // G4 负例:闭集谓词面的「白名单外新增」影子类型(不属 Intents 子命名空间,
+        // 只作为候选喂纯函数 —— 不会污染真树闭集断言)
+        private struct ClosureExtraTypeFixture
+        {
+            public int A;
+        }
+
+        // G1 组:接口字段 vs 具体多态字段(声明面差异的可观测对照)
+        private interface IPolymorphicField
+        {
+        }
+
+        private sealed class PolymorphicFloatImpl : IPolymorphicField
+        {
+            public float X;
+        }
+
+        private struct InterfaceFieldFixture
+        {
+            public IPolymorphicField Field;
+        }
+
+        private struct ConcreteFieldFixture
+        {
+            public PolymorphicFloatImpl Field;
         }
     }
 }

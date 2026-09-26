@@ -24,9 +24,8 @@
 //     CheckInputSourceText)都是**纯函数**,负例夹具直接喂合成输入 —— 测试装配内
 //     IL 负例(如音频 IlScanNegativeFixture)本故事不复制:内容物(意图 struct)全整数,
 //     负例经反射 / 合成文本注入即可证真(真 IL 边界已在 b5 先例兑现)。
-//   · 「IEventSink.Append 不可达」= A6 的一侧(源文本):任何 Gameplay.Input 源树
-//     .cs 出现 `IEventSink` / `.Append(` 以 SimEvent 为对象 ⇒ 红(调用点可达性退化面 =
-//     出现 token 即红,偏安全)。
+//   · 「IEventSink / SimEvent 禁名」= A6 的零事件面(源文本):任何 Gameplay.Input 源树
+//     .cs 出现任一禁名 token ⇒ 红(注释剥离后;偏安全,非可达性精确分析)。
 //   · A7 扫描根 = Sim.Contracts 全部 *Payload struct(register 真源 34 支)+ 四意图类型。
 //
 // 假绿防护同 b5 三处:scriptCompilationFailed 拒扫 / asmdef·产物缺失红 / 扫描键 0 命中 WARN。
@@ -86,6 +85,14 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <summary>B3「3 侧无 FixParse.Parse(」—— 扫描键 = 禁调标注(单一出处)。</summary>
         public const string FixParseParseMarker = "FixParse.Parse(";
 
+        /// <summary>B3 / A6 源文本禁名(单一出处;测试不复写字面量)。3 零事件面 ——
+        /// 构造事件的写入通道(IEventSink)与事件本体(SimEvent)两头都在名单上。
+        /// ⚠️ 2026-09-26 评审 G2:原只扫 <c>SimEvent</c> 一个 token,而文件头宣称
+        /// 「出现 IEventSink / .Append( 以 SimEvent 为对象 ⇒ 红」—— 头与实现不一致,
+        /// 且 <c>s.Append(PayloadRef.Of(7))</c> 这类**不出现 SimEvent 字面**的写法
+        /// (故事 QA 负例的字面场景)会全绿通过。补齐两 token 后两头都断。</summary>
+        public static readonly string[] InputForbiddenSourceTokens = { "IEventSink", "SimEvent" };
+
         // ── A6:引用集白名单(declared ∪ compiled,与 b5 同款并集送检)──
         // 判序:黑名单(无条件红)→ 引擎白名单 → BCL → 登记集 → 其余 = 漂移红(要求先回写
         // ADR-025 再放行)。「声明 IEventSink/SimEvent 的程序集」= InputForbiddenAssemblies。
@@ -144,6 +151,76 @@ namespace DaYiJingCheng.EditorTools.Gates
             return errs;
         }
 
+        // ── A6 引用集**传递闭包**(间接引用;故事 QA 边界例「加一层 shim ⇒ 必红」)──
+        // ⚠️ **2026-09-26 评审 G3**:上面的 CheckInputReferenceSet 只看**直接**引用集,
+        //   于是 `Gameplay.Input → Some.Shim → Sim.Contracts` 全绿 —— 而 AC-3-A6 原文是
+        //   「不引用任何声明 IEventSink / SimEvent 的程序集」,**间接引用同样算引用**。
+        //   缺的不是断言而是能力,故本节补一条真正的传递闭包游走(工程内装配图 = 读全树
+        //   asmdef 的 name → references 建边;引擎 / BCL 面是叶,图里没有边 = 无穿透)。
+        //   纯函数 Predicate:负例夹具喂合成图,真树喂真图。
+        /// <summary>工程内装配引用图(读全 Assets 树 asmdef;同名后者覆盖前者 = 重复即歧义,
+        /// 以 Ordinal 序最后一个为准并在漂移红里如实显示)。引擎 / BCL 不建边。</summary>
+        public static Dictionary<string, List<string>> BuildProjectReferenceGraph()
+        {
+            var graph = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            if (!Directory.Exists("Assets")) return graph;
+            foreach (var asmdef in Directory.GetFiles("Assets", "*.asmdef", SearchOption.AllDirectories))
+            {
+                string name;
+                try { name = ReadDeclaredAssemblyName(asmdef); }
+                catch (IOException) { continue; }   // 并发导入期读到半文件 = 缺边,由闭包红兜
+                if (string.IsNullOrEmpty(name)) continue;
+                graph[name] = AssemblyGates.ReadDeclaredReferences(asmdef);
+            }
+            return graph;
+        }
+
+        private static string ReadDeclaredAssemblyName(string asmdefPath)
+        {
+            var m = Regex.Match(File.ReadAllText(asmdefPath), "\"name\"\\s*:\\s*\"([^\"]+)\"");
+            return m.Success ? m.Groups[1].Value : null;
+        }
+
+        /// <summary>从 <paramref name="root"/> 出发的引用**传递闭包**(不含 root 自身;
+        /// 纯函数 —— 负例夹具喂合成图,证明「一层 shim 即红」不是纸面承诺)。</summary>
+        public static HashSet<string> ReferenceClosure(
+            IDictionary<string, List<string>> graph, string root)
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            if (graph == null) return seen;
+            var frontier = new Stack<string>();
+            if (graph.ContainsKey(root)) frontier.Push(root);
+            while (frontier.Count > 0)
+            {
+                var cur = frontier.Pop();
+                if (!graph.TryGetValue(cur, out var refs)) continue;   // 图外 = 引擎/BCL 叶
+                foreach (var r in refs)
+                {
+                    if (string.IsNullOrEmpty(r) || !seen.Add(r)) continue;
+                    if (graph.ContainsKey(r)) frontier.Push(r);        // 仅工程内装配继续展开
+                }
+            }
+            return seen;
+        }
+
+        /// <summary>A6 传递闭包判定(纯函数):闭包 ∩ 禁引集合 ≠ ∅ ⇒ 红(间接引用同禁)。</summary>
+        public static List<string> ReferenceClosureViolations(
+            IDictionary<string, List<string>> graph, string root)
+        {
+            var errs = new List<string>();
+            var closure = ReferenceClosure(graph, root);
+            foreach (var hit in closure.Where(h => InputForbiddenAssemblies.Contains(h))
+                                       .OrderBy(h => h, StringComparer.Ordinal))
+                errs.Add($"[A6] {InputAssemblyName} **间接**引用「{hit}」—— 该装配引用图上从 " +
+                         $"{root} 传递可达(闭包 = [{string.Join(", ", closure.OrderBy(c => c, StringComparer.Ordinal))}]);" +
+                         "AC-3-A6 禁引程序集直接与间接同禁,一层 shim 不得绕过。");
+            return errs;
+        }
+
+        /// <summary>A6 传递闭包断言(端到端):真工程装配图上跑 <see cref="ReferenceClosureViolations"/>。</summary>
+        public static List<string> CheckInputReferenceClosure()
+            => ReferenceClosureViolations(BuildProjectReferenceGraph(), InputAssemblyName);
+
         // ── A6 交出物闭集:Intents 子命名空间的公开类型 ⊆ 四意图(白名单外新增 = 红)──
         // 口径:交出物 = Intents 子命名空间的公开类型(「3 只产意图」的输出边界);
         // 根命名空间的公开类型 = 输入系统的**自身基础设施 API**(InputService /
@@ -170,24 +247,32 @@ namespace DaYiJingCheng.EditorTools.Gates
             }
         }
 
-        /// <summary>交出物闭集断言:Intents 子命名空间公开类型 ⊆ 四意图;四件全存在。</summary>
-        public static List<string> CheckDeliveredIntentClosure()
+        /// <summary>交出物闭集判定(**纯函数** —— 负例夹具直接喂候选类型集;
+        /// 2026-09-26 评审 G4:原实现把「扫哪些类型」和「怎么判」焊在一起,两条红路径
+        /// (白名单外新增 / 登记集缺失)从未被驱动过 —— 尤其**缺失**分支是唯一防
+        /// 「闭集对空集断言 = 假绿」的护栏,没测 = 护栏形同虚设)。</summary>
+        /// <param name="candidates">Intents 子命名空间的公开类型(调用方负责筛面)。</param>
+        public static List<string> DeliveredIntentClosureViolations(IEnumerable<Type> candidates)
         {
             var errs = new List<string>();
-            var delivered = DeliveredIntentTypes.ToHashSet();
-            foreach (var t in PublicInputRootTypes())
-            {
-                if (delivered.Contains(t.FullName)) continue;
-                errs.Add($"[A6] {InputAssemblyName} Intents 子命名空间新增公开类型「{t.FullName}」" +
+            var found = (candidates ?? Enumerable.Empty<Type>())
+                .Where(t => t != null)
+                .Select(t => t.FullName)
+                .ToHashSet();
+            foreach (var name in found.Where(n => !DeliveredIntentTypes.Contains(n))
+                                        .OrderBy(n => n, StringComparer.Ordinal))
+                errs.Add($"[A6] {InputAssemblyName} Intents 子命名空间新增公开类型「{name}」" +
                          "∉ 交出物闭集 —— AC-3-A6「3 只产意图」白名单外新增须过本门。");
-            }
-            var found = PublicInputRootTypes().Select(t => t.FullName).ToHashSet();
             foreach (var expected in DeliveredIntentTypes)
                 if (!found.Contains(expected))
-                    errs.Add($"[A6] 交出物「{expected}」不存在 —— 四意图缺失,闭集断言对空集 = " +
+                    errs.Add($"[A6] 交出物「{expected}」不存在 —— 登记件缺失,闭集断言对空集 = " +
                              "假绿(AC-3-A6)。");
             return errs;
         }
+
+        /// <summary>交出物闭集断言(端到端):Intents 子命名空间公开类型 vs 登记集。</summary>
+        public static List<string> CheckDeliveredIntentClosure()
+            => DeliveredIntentClosureViolations(PublicInputRootTypes());
 
         // ── A7:载荷可达闭包递归零浮点(与 PresentationDtoGuard 同构)──
         // 谓词 = float/double 叶子(含别名 System.Single 系);array/byref/泛型实参/基类链全
@@ -342,16 +427,23 @@ namespace DaYiJingCheng.EditorTools.Gates
         public static List<string> RunAll(out int roots)
         {
             var errs = new List<string>();
-            errs.AddRange(CheckInputAssemblyReferences());     // A6 引用集
+            errs.AddRange(CheckInputAssemblyReferences());     // A6 直接引用集
+            errs.AddRange(CheckInputReferenceClosure());      // A6 传递闭包(间接引用 · 2026-09-26 G3)
             errs.AddRange(CheckDeliveredIntentClosure());      // A6 交出物闭集
             errs.AddRange(CheckAllPayloadClosures(out roots)); // A7 全载荷闭包
-            errs.AddRange(CheckInputSourceText());             // B3 源文本 + SimEvent 禁名
+            errs.AddRange(CheckInputSourceText());             // B3 源文本 + 零事件面
             return errs;
         }
 
         // ── B3:EmergencyReading 字段类型断言 + 3 侧源文本禁调 ──
         /// <summary>断言一个类型的所有字段叶子 ∈ {int,long,bool,枚举,Fix} ∪ int[](递归进
-        /// 内嵌结构体字段 —— 承 A7 纪律)。纯函数;负例夹具直接喂 <c>float magnitude</c> 类型。</summary>
+        /// 内嵌结构体字段 —— 承 A7 纪律)。纯函数;负例夹具直接喂 <c>float magnitude</c> 类型。
+        /// ⚠️ **不可展开的容器按「非合格叶子 ⇒ 红」处理**(2026-09-26 评审 G5):本门与 A7
+        ///   的纪律不同 —— A7 只问「有没有浮点」(引擎 / BCL 类型不展开即绿),而 B3 问的是
+        ///   **白名单闭合**(字段只能是整数域叶子)。原实现直接展开一切、包括 <c>string</c> /
+        ///   <c>object</c> 的内部字段,于是 <c>struct R { string Name; }</c> 零红行 ——
+        ///   白名单自己说 string 不合格,门却放行 = 自相矛盾。收窄后:<c>string</c> / 引擎类型
+        ///   走「不可展开」分支 ⇒ 非合格叶子 ⇒ 红。</summary>
         public static List<string> CheckReadingFieldLeaves(Type root)
         {
             var errs = new List<string>();
@@ -391,12 +483,21 @@ namespace DaYiJingCheng.EditorTools.Gates
                     return;
                 }
                 if (IsAllowedReadingLeaf(t)) return;   // int/long/bool/枚举/Fix = 合格叶子
+                if (!ShouldExpandMembers(t))
+                {
+                    // 不可展开面(BCL / 引擎)= 非合格叶子 ⇒ 红(白名单闭合,见方法头 ⚠️)
+                    errs.Add($"[B3] 判定读数字段叶子「{t.FullName}」∉ {{int,long,bool,枚举,Fix}}" +
+                             $"(路径 {path})—— 全整数白名单**闭合**(AC-3-B3);string / 引擎 / " +
+                             "object 等非整数域类型不得作为读数字段。");
+                    return;
+                }
                 // 其余类型(结构体 / 类)→ 递归进字段
                 const BindingFlags fb = BindingFlags.DeclaredOnly |
                                          BindingFlags.Instance | BindingFlags.Static |
                                          BindingFlags.Public | BindingFlags.NonPublic;
                 for (var cur = t; cur != null && cur != typeof(object); cur = cur.BaseType)
                 {
+                    if (!ShouldExpandMembers(cur)) break;
                     foreach (var f in cur.GetFields(fb))
                         Visit(f.FieldType, path + "." + f.Name, depth + 1);
                 }
@@ -407,8 +508,31 @@ namespace DaYiJingCheng.EditorTools.Gates
         public static bool IsAllowedReadingLeaf(Type t)
             => EmergencyReadingAllowedLeaves.Contains(t) || t.IsEnum;
 
-        /// <summary>B3 的调用点扫描:Gameplay.Input 源树出现 <c>FixParse.Parse(</c> = 红
-        /// (判定结果由 10 直接构造,不经字符串;ADR-011 Amendment A / AC-3-B3)。</summary>
+        /// <summary>B3 的单文件源文本判定(**纯函数** —— 负例夹具直接喂合成文本,
+        /// 门与测试共用同一份判定代码,不存在「为真而真」的空间;2026-09-26 评审 G2)。
+        /// 判据:① 注释剥离后出现任一 <see cref="InputForbiddenSourceTokens"/> 即红;
+        /// ② 出现 <see cref="FixParseParseMarker"/> 即红(判定结果不经字符串)。</summary>
+        /// <param name="src">源文件全文。</param>
+        /// <param name="fileLabel">报错时点名的文件标识(端到端面传真实路径)。</param>
+        public static List<string> SourceTextViolations(string src, string fileLabel)
+        {
+            var errs = new List<string>();
+            var text = AssemblyGates.StripCommentsPreserveStrings(src ?? string.Empty);
+            if (text.IndexOf(FixParseParseMarker, StringComparison.Ordinal) >= 0)
+                errs.Add($"[B3] {fileLabel} 出现「{FixParseParseMarker}」—— 3 侧判定结果构造路径" +
+                         "禁经字符串(ADR-011 Amendment A / AC-3-B3;判定由 10 直接构造)。");
+            foreach (var token in InputForbiddenSourceTokens)
+            {
+                if (Regex.IsMatch(text, $@"\b{Regex.Escape(token)}\b"))
+                    errs.Add($"[B3] {fileLabel} 源文本出现「{token}」—— 3 零事件面" +
+                             "(AC-3-A6 零 SimEvent / 禁写通道 IEventSink;注释剥离后仍命中 = " +
+                             "代码 / 字符串 / nameof 面)。");
+            }
+            return errs;
+        }
+
+        /// <summary>B3 的调用点扫描(Gameplay.Input 源树逐文件送
+        /// <see cref="SourceTextViolations"/>;目录缺失 = 红,拒以空集冒充绿)。</summary>
         public static List<string> CheckInputSourceText()
         {
             var errs = new List<string>();
@@ -419,22 +543,20 @@ namespace DaYiJingCheng.EditorTools.Gates
                 return errs;
             }
             foreach (var f in Directory.GetFiles(root, "*.cs", SearchOption.AllDirectories))
-            {
-                var src = File.ReadAllText(f);
-                var text = AssemblyGates.StripCommentsPreserveStrings(src);
-                if (text.IndexOf(FixParseParseMarker, StringComparison.Ordinal) >= 0)
-                    errs.Add($"[B3] {f} 出现「{FixParseParseMarker}」—— 3 侧判定结果构造路径" +
-                             "禁经字符串(ADR-011 Amendment A / AC-3-B3;判定由 10 直接构造)。");
-                var simEventHit = Regex.Matches(text, @"\bSimEvent\b");
-                if (simEventHit.Count > 0)
-                    errs.Add($"[B3] {f} 源文本出现「SimEvent」—— 3 零 SimEvent(AC-3-A6;" +
-                             "注释剥离后仍命中 = 代码 / 字符串 / nameof 面)。");
-            }
+                errs.AddRange(SourceTextViolations(File.ReadAllText(f), f));
             return errs;
         }
 
         // 展开资格与 PresentationDtoGuard 同款(引擎 / BCL 命名空间跳过自有成员,
-        // 泛型实参照走;非引擎类型永不被当叶子跳过)。
+// 泛型实参照走;非引擎类型永不被当叶子跳过)。
+        // ⚠️ **A7 与 B3 对本判据的回答不同(2026-09-26 评审 G1/G5,刻意不对称)**:
+        //   A7 只问「闭包里有没有浮点」—— 不可展开面里**没有** float ⇒ 绿(引擎 / BCL
+        //   类型自身不由本门裁决;这与 PresentationDtoGuard 同当)。故事 QA 边界例
+        //   「接口字段 / 多态载荷」正落在这一格:`IFace Field;` 判绿,因为接口的
+        //   实现面不经本键可达 —— 需展开实现面才能断,代价 = 要对全树接口做实现枚举
+        //   (与 DtoGuard 相同的成本,当初据此不采)。**选择 = 显式记录,不是遗漏**;
+        //   `test_payloadClosure_interfaceField_isGreen_byDeclaredScope` 把该选择钉住,
+        //   日后若要改面(扩为实现枚举),本测会红提醒同步改决策记录。
         private static bool ShouldExpandMembers(Type t)
         {
             var ns = t.Namespace;
