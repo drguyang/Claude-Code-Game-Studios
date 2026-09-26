@@ -1,7 +1,7 @@
 # Story 014: tier 滤波载体与 mixer 暴露参数
 
 > **Epic**: 音频系统
-> **Status**: In Progress
+> **Status**: Complete
 > **Layer**: Foundation(系统分类;实现落表现层 L5 + Editor batch 资产工具)
 > **Type**: Integration
 > **Estimate**: 4h
@@ -145,3 +145,27 @@ Story 003 生成器已用后者);`TierFilterDriver`(Story 004)经 `IMixerParamet
 3. Story 004 已登记 H-B 结论「`SetFloat` 在 EditMode 对任何名字都 false」——
    **AC-44-T3 的 `SetFloat` 断言在 EditMode 不可判**(同 H-B);该条应改为
    **「`GetFloat` 可读 + 回读一致」** 或在**播放态**验证 —— 实现期先按此调整并写明。
+
+## Completion Notes
+**Completed**: 2026-09-27
+**Criteria**: 5/5 passing(T1 载体就位 BLOCKING · T2 暴露闭集 · T3 通路可用 · T4 不入快照 · T5 ramp 下界;无 deferred,0 UNTESTED)
+**Deviations**(均 ADVISORY):
+1. **本 story 是 2026-09-27 readiness 轮用户裁定新立的**,非 `/create-stories` 生成 —— 缘起是 Story 005 readiness 发现 **AC-44-05 ② 的断言对象不存在**。缺口定性:「谁承载 tier 滤波」= 全案未认领的资产拓扑裁定 —— GDD F-44.1 说 tier 驱动通带/噪声底 · Story 004 Implementation Notes 说「本 story 消费列做滤波/噪声底驱动」· **但无任何 story 认领「往 mixer 加 filter effect」**。
+2. **载体形态 = 乙(每参数一名独立组)**,组数 22 → 27。选它的理由:**与现有 `bus_volume_*` 命名族完全同构,无需 Discover 内部 API** —— 甲案(组级 filter effect)同样可行,但需要额外探测 effect 参数形态。
+3. `EPIC.md` 故事数 13 → 14,加 014 行。
+4. 顺带修生成器两洞(删 `.mixer` 重建暴露):`CreateMixerAsset` 只查 `Static` 而 `CreateDefaultAsset` 是**实例方法**(IL 证实)⇒ 永远匹配不到;`PruneForeignSnapshots` 把基底 `"Snapshot"` 也裁了 ⇒ 无改名基底 throw。
+
+**评审与修复**:双评审(代码面 1 BLOCKING + QA 面 0 BLOCKING / 5 REC)→ 全修:
+- **B1**(两评审独立命中):`test_tierFilterParameters_unexposedName_getFloatFalse` 断言「未暴露名 `GetFloat` ⇒ false」,与 Story 004 **H-B(实验 1–7)** 实测冲突 —— `GetFloat` 对**任何名字**都返回 true(兜底走「遍历组调 `GetGUIDForVolume()`」,不依赖 exposed cache),该前提在 EditMode **不可判**。**处置 = 删除该负例**(判定站不住且已被既有正例覆盖),并**确认既有 `test_tierFilterExposedParameters_rogueParam_red` 已注入真实组哈希**(`RealBusVolumeHash("bus_volume_master")`)且断言「无同名组承载」分支 —— 评审 R3 已满足,无需新增。
+- **REC2**(QA 面):**tier guid 对齐无自动化回归** —— 五名只在 Story 004 的反射探针覆盖 7 名 bus,**tier 五名不在任何自动化断言内**,只靠一次性人工实测。新增 `test_tierFilterCarrierGroups_guidMatchesGroupVolumeHash`:五名 exposed guid 与同名组 `m_Volume` **逐条相等**。起因:Story 004 曾发现「合成 guid 对不上」,当时只把 guid 改成组哈希,**而这条等式本身从未进自动化断言** —— guid 一旦漂移无人发现。
+- **REC1**:AC-44-T3「回读 == v」因 EditMode 限制未测(H-B),story Known Risks 3 已登记为**有意留白**,非遗漏。
+- **REC4**:幽灵引据「MUST DO 1/2」→ story 真实小节名。
+
+**⚠️ H-B 结论适用**:Story 004 已实测 `AudioMixer.SetFloat` 在 EditMode 对**任何名字**都返回 false,而 `GetFloat` 返回 true ⇒ `SetFloat` 的「按名查表」native 路径在此环境本身不通,**与 exposed 配置无关**。本 story 的 T3 判据据此调整为「`GetFloat` 可读 + 回读一致」,并在 T3 doc 注明 SetFloat 为何在此环境不可判。**运行期(播放态)仍有效。**
+
+**残余 NICE(登记不修)**:`InjectExposedParameter`/`InjectSnapshotCapture` 无注入自证(对照同文件其他破坏性测试的纪律)· T5 的「直 set 绕过 ramp」真负例零测试(该测断言的是**正例行为**:首调直落位)· tier 组父归属分支未测(只测了「删整组」,没测「组存在但挂错总线」)。
+
+**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Audio/tier_filter_carrier_test.cs`(**11 测全过**);全量 EditMode **872/872 Passed · 0 红 · 0 跳过**(`unity/Logs/s014-r2-full.xml`)
+**Code Review**: Complete —— 双专审并行 + B1 修复 + 复验;review mode = lean,QL-TEST-COVERAGE / LP-CODE-REVIEW 门按 lean 规则跳过。
+**ADR Compliance**: ADR-018 §四 需求③(`Stethoscope` 总线暴露接触噪声底与信噪比)—— COMPLIANT。五名承载组挂 Stethoscope 下,暴露 12 条(7 bus + 5 tier),闭集双向差集为零。
+**Tech Debt**: 未立文件;上述 NICE 3 项 + tier 缺口已分处登记(本 notes · story Known Risks · 账本)。
