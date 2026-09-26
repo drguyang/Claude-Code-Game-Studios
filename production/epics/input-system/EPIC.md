@@ -66,7 +66,7 @@
 | 005 | schema hash 失配优雅清空与跨版本备份 | Integration | Complete | ADR-011 |
 | 006 | 意图边界与交出物(零 SimEvent · 全整数 · 聚合上行) | Logic | Complete | ADR-011 + ADR-006 + ADR-009 |
 | 007 | 急救直读通道与输入更新相位 | Integration | Complete | ADR-011 |
-| 008 | 设备态与呈现契约(QueryBinding · 合成 release · Mixed 迟滞) | Integration | Ready | ADR-011 |
+| 008 | 设备态与呈现契约(QueryBinding · 合成 release · Mixed 迟滞) | Integration | Complete | ADR-011 |
 | 009 | 焦点导航意图视图与单一真源 | Logic | Ready | ADR-011 + ADR-013 |
 | 010 | 热路径零成本(预缓存 · Idle 零调用 · 零分配) | Logic | Ready | ADR-011 |
 | 011 | L_input→pixel 延迟实测与 L_render/L_poll 分解 | Visual/Feel | Ready | ADR-011 |

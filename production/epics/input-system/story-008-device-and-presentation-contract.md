@@ -1,12 +1,12 @@
 # Story 008: 设备态与呈现契约(QueryBinding · 合成 release · Mixed 迟滞)
 
 > **Epic**: 输入与设备
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-26
+> **Last Updated**: 2026-09-27
 
 ## Context
 
@@ -31,10 +31,10 @@
 
 *From GDD `design/gdd/input-system.md`, scoped to this story:*
 
-- [ ] **AC-3-D1(BLOCKING)**: `QueryBinding` → `{device, bindingPath, iconKey}`;**未绑定返回明确枚举**(非空指针、非异常)
-- [ ] **AC-3-D2(BLOCKING)**: **无素材、无时机** —— 构建报告断言交付物无 `Sprite`/`Texture`/字体(**非 grep 源码**);返回类型**无**出现时机/可见性字段(类型断言)
-- [ ] **AC-3-D3(BLOCKING)**: **设备移除 → 合成 release** —— 全部 `IsPressed` 转 `false`,无卡键(EditMode 模拟断连)
-- [ ] **AC-3-D4(BLOCKING)**: **Mixed 迟滞** —— 三条件**同时满足**才切源:① `> DEVICE_SWITCH_THRESHOLD` ② `> DRIFT_TOLERANCE` ③ 持续 `> DWELL_DURATION`;比较域 = **径向 `‖Δ‖`**(鼠标侧指针增量模长单列,轴设备侧轴幅度;**禁逐分量**);三参数按设备类分两列(ADR-014 常量表)。EditMode:鼠标静止 + 摇杆漂移在容差内 ⇒ 来源保持 Kbm。**具体数值已移出 AC 入旋钮表**
+- [x] **AC-3-D1(BLOCKING)**: `QueryBinding` → `{device, bindingPath, iconKey}`;**未绑定返回明确枚举**(非空指针、非异常)
+- [x] **AC-3-D2(BLOCKING)**: **无素材、无时机** —— 构建报告断言交付物无 `Sprite`/`Texture`/字体(**非 grep 源码**);返回类型**无**出现时机/可见性字段(类型断言)
+- [x] **AC-3-D3(BLOCKING)**: **设备移除 → 合成 release** —— 全部 `IsPressed` 转 `false`,无卡键(EditMode 模拟断连)
+- [x] **AC-3-D4(BLOCKING)**: **Mixed 迟滞** —— 三条件**同时满足**才切源:① `> DEVICE_SWITCH_THRESHOLD` ② `> DRIFT_TOLERANCE` ③ 持续 `> DWELL_DURATION`;比较域 = **径向 `‖Δ‖`**(鼠标侧指针增量模长单列,轴设备侧轴幅度;**禁逐分量**);三参数按设备类分两列(ADR-014 常量表)。EditMode:鼠标静止 + 摇杆漂移在容差内 ⇒ 来源保持 Kbm。**具体数值已移出 AC 入旋钮表**
 - 附注(**无 AC** · `TR-input-015` partial):震动通道 P0 **只落接口**;`OpenXRInput` 能力 spike(`OQ-3-4`)结果记入 Completion Notes,失败则接口保留、实现挂账
 
 ---
@@ -102,8 +102,54 @@
 **Required evidence**:
 - Integration: `tests/integration/input_system/device_and_presentation_test.cs` — must exist and pass(含 D1–D4 四组)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — EditMode 39 测全绿(见 Completion Notes)
 - 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/device_and_presentation_test.cs`,文档路径 `tests/integration/input_system/` 为登记口径
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-27
+**Criteria**: 4/4 passing(AC-3-D1 / D2 / D3 / D4,零 UNTESTED;附注 IHaptics 接口测 1 测)
+**Deviations**: 零缺陷性偏差;ADVISORY 项全入本节。
+**Test Evidence**: Integration —— EditMode `unity/Assets/Tests/EditMode/InputSystem/device_and_presentation_test.cs`(39 测全绿);批跑 1/1 → 823/823 → 861/861 exit 0
+**Code Review**: Complete —— `/code-review` 双代理并行:unity-specialist **us-F1~F8 全修** + qa-tester **F1~F15 全修**(全部 findings 含 minor);复跑批跑 #9 = 861/861 exit 0
+**Manifest**: 2026-09-21 无陈旧
+**提交**: `9150cd2`(实现+评审修复批,已 push)
+
+### Test-Criterion Traceability
+| AC | 测试映射 | Status |
+|---|---|---|
+| AC-3-D1 QueryBinding | `test_queryBinding_bound_returnsThreeFieldsAndKeyNames` / `test_queryBinding_unbound_returnsExplicitEnum_notNullNotThrow` / `test_queryBinding_unknownDeviceEnumValue_reportsUnknownDevice` / `test_queryBinding_emptyBindingPath_reportsNotBound` / `test_queryBinding_compositePartPath_resolvesAsPart` / `test_queryBinding_xrTagPath_resolvesXrClass`(6 测) | COVERED |
+| AC-3-D2 无素材/无时机 | `test_assetTypeRefsIl_realProduct_zeroErrors` / `test_assetTypeRefsIl_spriteBearingTestProduct_reportsRed` / `test_bindingResultFields_realType_zeroErrors` / `test_bindingResultFields_fadeDurationFixture_reportsRed` / `test_bindingResultFields_visibleFixture_reportsRed` / `test_bindingResultFieldsIl_fadeDurationFixture_reportsRealIlRed` / `test_bindingResultGates_missingOrEmptyFaces_reportRed` / `test_runAll_currentTree_d2FacesZeroErrors`(8 测) | COVERED |
+| AC-3-D3 合成 release | `test_deviceRemoved_withoutGuard_engineSelfClearsPress_measured` / `test_deviceRemoved_guardAttached_allPressedReleasedSameFrame` / `test_deviceRemoved_compositeHalfPressed_released` / `test_deviceRemoved_nothingPressed_noOpNoThrow` / `test_deviceGuard_onDeviceChange_directDriven_semanticsPerChange` / `test_deviceRemoved_otherDeviceHeld_pressSurvives`(6 测) | COVERED |
+| AC-3-D4 Mixed 迟滞 | `test_mixedGolden_mouseStill_plusStickDriftWithinTolerance_staysKbm` / `test_hysteresis_toleranceAboveThreshold_condition2EnforcedIndependently` / `test_hysteresis_aboveToleranceBelowThreshold_noSwitch` / `test_hysteresis_magExactlyEqualsTolerance_noSwitch_untilOnePast` / `test_hysteresis_durationExactlyEqualsDwell_noSwitch_untilOnePast` / `test_hysteresis_streakInterrupted_restartsFromZero` / `test_hysteresis_dwellDisabled_flappingProof` / `test_hysteresis_diagonalAboveThreshold_radialMustSwitch` / `test_hysteresis_twoColumns_neverShareARow` / `test_deviceStateManager_allConditionsMet_switchesSource` / `test_deviceStateManager_absentCandidate_neverSwitches`(11 测) | COVERED |
+| 附注 IHaptics | `test_iHaptics_interfaceExists_channelAndIntensityOnly`(1 测) | COVERED(接口测;实现挂账 P1b) |
+
+### Deviations(ADVISORY,零 BLOCKING)
+1. **引擎重解析丢 isPressed 闩**(本窗新事实):`InputBindingResolver` 重建 `actionStates` + `RestoreActionStatesAfterReResolvingBindings` 回写清单**不含 `isPressed`** ⇒ 任意在跑动作的 `IsPressed()` 闩在重解绑瞬间丢失且不可自愈(phase / activeControl 保留)。**us-008-1 回归钉**改用三面判据(phase + activeControl + 守卫计数),不测 RemoveDevice 后 `IsPressed`。`DeviceReleaseGuard.cs` 文件头与 doc comment 双处写明引擎事实。`device_and_presentation_test.cs` 测试注释详记。
+2. **引擎自清 flip**:原 engine-gap 登记「引擎不清闩 ⇒ 卡键」,**批跑 #5(`test_deviceRemoved_withoutGuard_engineSelfClearsPress_measured`)证伪** —— `InputManager.RemoveDevice` → `OnDeviceChange(Removed)` → `ResetActionState` 先于 listener 跑,引擎自清 press 闩(同帧)。`DeviceReleaseGuard.cs` 文件头注释就地修订。守卫保留理由 = GDD 义务载体 + 公开 ReleaseDeviceNow 恢复接口(不依赖引擎自清)。
+3. **us-008-1 MAJOR → 已修**:`DeviceReleaseGuard.ReleaseDeviceNow` 原对全部 pressed 动作一律 `Reset`,跨设备类过释放。修 = 两级判据(① 资产绑重静态面 `ActionBoundTo` / ② 运行期 `activeControl.device == 断连设备`);`us-008-1 回归钉`钉住「键盘按住 + 闲置手柄断电」三面(计数 0 / phase Performed / activeControl 仍是键盘)。
+4. **us-008-5 MINOR**:`DeviceSwitchHysteresis.cs:16` 溢出注释算错(「2^24 像素内平方 < 2^49」漏乘 Q16 缩放因子)。修 = 注释订正(代码本身整数域平方比较无误)。
+5. **us-008-6 MINOR**:`DeviceReleaseGuard.BindingPathMatchesDevice` 的防御性括号分支(变体基名回落)经包源核实(`InputControlPath` 无 variant 解析),真资产走不到。保留不删 = 未来包引入变体时守住「能匹配」方向;删掉推向欠释放/卡键(欠释放比过释放严重)。
+6. **us-008-7 MINOR + ⑤ 口径差**:`BindingQuery.cs:10` 注记「故事文本为准」—— registry (`TR-input-013` / `entities.yaml`) 签名 `QueryBinding(actionId)` vs 实现 `QueryBinding(BindingDeviceClass device, string bindingPath, InputActionAsset actions)`。**本故事实现与 GDD §Visual/Audio 三一致**,registry 待 GDD 轮同步(不改实现)。
+7. **us-008-8 MINOR(Handover 登记)**:`DeviceStateManager` / `DeviceReleaseGuard` / `BindingQuery` / `IHaptics` 四件新 API 零生产调用点。与 Story 007 先例同构;`Observe*`/`Attach` 归 Story 010(热路径零成本) / Boot 装载流;IHaptics 实现挂账 P1b。**Completion Notes 点名,防永久悬空**。
+8. **qa-008-8 MINOR(BLOCKED-BY-10)**:`IHaptics` 被 10 的调用点引用 Verify —— 10 故事当前 Ready 未实现;不借绿,TR-input-015 维持 `partial`。
+9. **qa-008-11 ADVISORY**:Guard `Disconnected` 路径(`DeviceChange.Disconnected`)同 `Removed` 走同一 `ReleaseDeviceNow`(幂等),无独立 seam ⇒ **accepted no-seam** 登记(不可测)。
+10. **XrActive 近似**:P0 未装 `com.unity.xr.openxr` ⇒ `XrActive = XRController 布局设备在联`(零 OpenXR 依赖可测近似);真 OpenXR session 事件接线归 P1b VR 轮(TR-input-015 partial)。
+11. **None 免 DWELL**:`DeviceSwitchHysteresis.Observe` 中 `currentSource == None` ⇒ ①② 过即成源、免 DWELL(Read `§States「最近一次有效输入」` / Mixed 新立;`:106-109` 注释登记)。
+12. **us-008-4 评审修复**:`.gitignore` 补兜底 `unity/Assets/production/` + `unity/Assets/production.meta`(防止 hook cwd 漂移再写进 Assets);hooks 四件 cwd 锚定(`SessionStartHook.cs` / `PostToolUseHook.cs` / `StopHook.cs` / `UserPromptSubmitHook.cs` 均由 `Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName)` 改为 `Assembly.GetExecutingAssembly().Location`)。
+
+### Spike / 环境依赖
+- **P0 无 OpenXR 环境**(本机未装 `com.unity.xr.openxr`) ⇒ IHaptics 接口保留、实现挂账 P1b;TR-input-015 维持 `partial`。
+- **XrActive 近似**同框。
+
+### Traceability
+- **TR-input-011**: `covered`(D3 合成 release + D4 Mixed 迟滞 + DeviceReleaseGuard + DeviceSwitchHysteresis)
+- **TR-input-013**: `partial`(D1 QueryBinding 接口已实现;`entities.yaml` registry 签名 `actionId` vs 实现 `(device, bindingPath)` 口径差,待 GDD 轮同步;42/48 侧 `OQ-3-2` 未裁)
+- **TR-input-015**: `partial`(IHaptics 接口已落;OpenXRInput spike 挂账 P1b)
+
+### Manifest
+- 故事 Manifest Version `2026-09-21` = 当前 manifest(`docs/architecture/control-manifest.md` 2026-09-21),无陈旧。
 
 ---
 
