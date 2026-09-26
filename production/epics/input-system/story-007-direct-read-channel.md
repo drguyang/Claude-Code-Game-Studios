@@ -1,7 +1,7 @@
 # Story 007: 急救直读通道与输入更新相位
 
 > **Epic**: 输入与设备
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 4h
@@ -31,10 +31,10 @@
 
 *From GDD `design/gdd/input-system.md`, scoped to this story:*
 
-- [ ] **AC-3-B1a(BLOCKING · P0)**: **零硬件合成注入** —— 合成输入注入 → **输入 → 读数可见性 ≤ 1 帧且同帧可见**;四轮覆写:**断言对象 = 读数 `EmergencyReading`**(原「输入→判定」不可签核,判定归 10)
-- [ ] **AC-3-B2①(BLOCKING)**: 直读程序集 asmdef **不引用** UI Toolkit / `UnityEngine.UI` / `EventSystem`(构建失败)
-- [ ] **AC-3-B2②(BLOCKING)**: **Roslyn 拒 UI 事件符号**(编译期拒,非 grep)
-- [ ] **AC-3-B2③(BLOCKING)**: 启动期性质断言「**输入更新相位 = 渲染帧相位,每帧恰一次**」—— EditMode 对偶断言:`Time.frameCount` +1 ⇒ 输入采样计数**恰 +1**(排除 Fixed 0/2 次与 Manual 竞争)。**不得以枚举成员名为主语**(符号零覆盖,分层处置:性质不变则判据不改,实现载体可换 —— 降级路径承 ADR-011 §Risks-A)
+- [x] **AC-3-B1a(BLOCKING · P0)**: **零硬件合成注入** —— 合成输入注入 → **输入 → 读数可见性 ≤ 1 帧且同帧可见**;四轮覆写:**断言对象 = 读数 `EmergencyReading`**(原「输入→判定」不可签核,判定归 10)
+- [x] **AC-3-B2①(BLOCKING)**: 直读程序集 asmdef **不引用** UI Toolkit / `UnityEngine.UI` / `EventSystem`(构建失败)
+- [x] **AC-3-B2②(BLOCKING)**: **Roslyn 拒 UI 事件符号**(编译期拒,非 grep)
+- [x] **AC-3-B2③(BLOCKING)**: 启动期性质断言「**输入更新相位 = 渲染帧相位,每帧恰一次**」—— EditMode 对偶断言:`Time.frameCount` +1 ⇒ 输入采样计数**恰 +1**(排除 Fixed 0/2 次与 Manual 竞争)。**不得以枚举成员名为主语**(符号零覆盖,分层处置:性质不变则判据不改,实现载体可换 —— 降级路径承 ADR-011 §Risks-A)
 
 ---
 
@@ -106,7 +106,7 @@
 **Required evidence**:
 - Integration: `tests/integration/input_system/direct_read_channel_test.cs` — must exist and pass(含 B1a 同帧可见性与 B2③ 对偶断言)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — EditMode 真身 32 测 + PlayMode 8 测 + spike 探针 2 测全绿(见 Completion Notes)
 - 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/direct_read_channel_test.cs`,PlayMode 相位类断言落 `unity/Assets/Tests/PlayMode/`,文档路径 `tests/integration/input_system/` 为登记口径
 
 ---
@@ -115,3 +115,20 @@
 
 - Depends on: Story 001(直读挂在唯一动作资产的 `Emergency` action 上)
 - Unlocks: Story 010(直读回调 = E5 零分配的测量窗口),Story 011(通道就位才能实测延迟)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-26
+**Criteria**: 4/4 passing(AC-3-B1a / AC-3-B2① / AC-3-B2② / AC-3-B2③,零 UNTESTED;G9 handoff 同批闭合)
+**Deviations**: 两条登记项(均非缺陷,属载体/证据面诚实化注记,不改任何判据)—— ① **us-F1(B2③ 载体偏移)**:story 原文写「EditMode 对偶断言」,实现的**真实执行面落 PlayMode**(EditMode 同步调用间 `Time.frameCount` 不推进 ⇒ 差值恒 0,Edit 侧断言只能结构性成立);**性质不变、判据不改,只换执行载体** —— 承 ADR-011 §Risks-A「性质不变则判据不改,实现载体可换」;EditMode 侧保留同名对偶 + 源扫描 E4(守「断言内不得出现 `updateMode ==` / 枚举成员名」),真实帧步进走 PlayMode ② **qa-F15(残余风险)**:Unity 装载分析器(DLL + RoslynAnalyzer label)的行为只由间接证据推断(DLL 在位 / label / platform off / freshness sidecar 四测),无直接断言「Unity 编译确实执行了该分析器」的探针 —— 残余风险登记,不阻塞
+**S1/S3 spike 结果**(2026-09-26,5 次 batch run 全一致,`Logs/story007_spike_results.txt`):
+- **S1**:`updateMode = ProcessEventsInDynamicUpdate`(int = 1;is_manual=False / is_fixed_only=False)—— **钉死渲染帧相位 ✅**
+- **S3**:8×`yield null` 每步 `frame_advance=1 ∧ on_after_update_delta=1` —— **每帧恰一次 ✅**
+- **S3 环境依赖发现**:CI batch(未聚焦 / -nographics)下手动 `InputSystem.Update()` 干跑 `on_after_update_delta = 0`(期望 1)—— **手动干跑不触发 `onAfterUpdate` 是环境依赖行为**(聚焦环境 / 玩家构建下方差路径不同)⇒ **同帧去重闸落地**(`_lastCallbackFrame`),其机制验证走 `NotifyAfterUpdateForTest()` 测试缝同帧双调(qa-F3);段 II 手动干跑不消费事件队列 ⇒ 持续 hold 不发 `EndAttempt` 的语义面由同缝直接测;`post_manual_frame delta=1` 确认手动段不污染帧-采样对偶
+- **spike 降级路径未触发**(ADR-011 §Risks-A:失败才换载体并登记修订;现载体原样成立)
+**Test Evidence**: Integration —— EditMode 真身 `unity/Assets/Tests/EditMode/InputSystem/direct_read_channel_test.cs`(32 测)+ PlayMode `unity/Assets/Tests/PlayMode/direct_read_channel_phase_test.cs`(8 测)+ spike 探针 `story007_phase_spike_playmode_test.cs`(2 测);复跑全绿 **EditMode 784/784 · PlayMode 22 passed / 0 failed / 3 skipped(既有 Ignored 的 U1SceneSpikesTest)· 双 exit 0**(`unity/Logs/build-story007-reviewfix-editmode.log` / `-playmode.log`)
+**Code Review**: Complete —— 会话内 `/code-review` 双代理并行:unity-specialist **us-F1~F8 全修** + qa-tester **F1~F15 全修**(全部 findings 含 minor);复跑双套件全绿后收口
+**Traceability**: AC-3-B1a → EditMode `test_direct_read_channel_b1a_injected_reading_visible_same_frame` / `_consecutive_injections_both_visible_same_frame` / `_idle_rejects_feed_default_reading` + PlayMode `_b1a_injected_reading_visible_same_frame_wired`(同帧可见 · ≤1 帧 · 连续两帧注入)· AC-3-B2① → `test_direct_read_gate_b2_1_*` 族(真图零 UI 闭包 / 直引红 / 间接红 / 引擎叶非误报 / RunAll 接线 / precompiled 捕获 / precompiled 边达闭包;qa-F12 = asmdef JSON `precompiledReferences` 并入闭包图,引擎 AssemblyRef 刻意不读)· AC-3-B2② → `test_direct_read_gate_b2_2_*` 族(DLL+label / platform off / freshness sidecar / 全限定 typeof 红 / using 短名红 / 别名成员红 / **声明面红(us-F5)** / 负例 using-only 不误报 / 反射字符串不算 / 作用域外不门 / InputAction 合法)· AC-3-B2③ → PlayMode `test_direct_read_phase_frame_plus_one_yields_sample_plus_one` / `_manual_update_dry_run_does_not_double_count` / `_fixed_mode_negative_fixture_caught` / `_sampling_completes_in_input_update_not_behaviour_update`(qa-F4 相位探针)/ `_same_frame_second_callback_deduplicated` / `_reattach_same_frame_no_double_count` + EditMode 源扫描 `_phase_test_source_has_no_update_mode_enum_comparison`(E4)+ 夹具恢复 `_fixture_restores_global_input_state` · **G9 handoff** → `test_direct_read_channel_g9_no_defensive_copy_field_held`(反射断通道无 `int[]` 字段)+ `_idle_callback_does_not_advance_hold_ticks`(Idle 采样零推进)—— **0/4 UNTESTED**
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**提交**: `9f35fff`(实现批)· `eaf5da3`(评审修复批)—— 均已 push
