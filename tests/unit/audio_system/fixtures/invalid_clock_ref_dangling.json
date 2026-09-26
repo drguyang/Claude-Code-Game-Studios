@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "_note": "Story 002 负向夹具 · 校验规则 8 / AC-44-14:附加音层行 clock_ref 指向表内不存在的 cue(BreathLayer_Base_Missing)⇒ 悬空,必须失败(基础层与附加层须共用同一节拍时钟)。",
+  "tier_map": {
+    "0": {
+      "passband_center_hz": 700,
+      "passband_width_hz": 500,
+      "noise_floor_db": -34,
+      "contact_noise_floor_db": -26,
+      "band_detail_count": 3,
+      "signal_db": -18
+    },
+    "1": {
+      "passband_center_hz": 900,
+      "passband_width_hz": 900,
+      "noise_floor_db": -42,
+      "contact_noise_floor_db": -34,
+      "band_detail_count": 5,
+      "signal_db": -18
+    },
+    "2": {
+      "passband_center_hz": 1200,
+      "passband_width_hz": 1600,
+      "noise_floor_db": -50,
+      "contact_noise_floor_db": -42,
+      "band_detail_count": 8,
+      "signal_db": -18
+    }
+  },
+  "rows": [
+    {
+      "schema_version": 1,
+      "cue": "Voice_Cough_Damp",
+      "assets": [
+        "vo_patient_cough_damp_m1.wav"
+      ],
+      "bus": "Voice",
+      "loop": false,
+      "whitelist_category": "ContinuousPhysiology",
+      "trigger_source": "ContinuousPhysiology",
+      "subtitle_text": "咳…咳咳…"
+    },
+    {
+      "schema_version": 1,
+      "cue": "BreathLayer_Base_Calm",
+      "assets": [
+        "sfx_breath_base_loop_small.wav"
+      ],
+      "bus": "Stethoscope",
+      "loop": true,
+      "whitelist_category": "ContinuousPhysiology",
+      "trigger_source": "ContinuousPhysiology"
+    },
+    {
+      "schema_version": 1,
+      "cue": "BreathLayer_Adventitious_Fine",
+      "assets": [
+        "sfx_breath_adventitious_fine.wav"
+      ],
+      "bus": "Stethoscope",
+      "loop": true,
+      "clock_ref": "BreathLayer_Base_Missing",
+      "adventitious_policy": {
+        "trigger_phase": 0.9,
+        "jitter": 0.05
+      },
+      "whitelist_category": "ContinuousPhysiology",
+      "trigger_source": "ContinuousPhysiology"
+    },
+    {
+      "schema_version": 1,
+      "cue": "WorldBreath_Baseline",
+      "assets": [
+        "sfx_breath_base_loop_small.wav"
+      ],
+      "bus": "Ambience",
+      "loop": true,
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "whitelist_category": "ContinuousPhysiology",
+      "trigger_source": "ContinuousPhysiology"
+    },
+    {
+      "schema_version": 1,
+      "cue": "Music_Encounter_Layer",
+      "assets": [
+        "music_encounter_layer_loop.wav"
+      ],
+      "bus": "Music",
+      "loop": true,
+      "xfade_ms": 4000,
+      "whitelist_category": "MusicLayer",
+      "trigger_source": "EncounterMusicLayer"
+    }
+  ]
+}

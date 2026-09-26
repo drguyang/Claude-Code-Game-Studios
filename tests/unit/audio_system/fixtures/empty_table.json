@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "_note": "Story 002 负向夹具 · AC-44-09 第三负向(2026-09-25 二轮 Q5 · 规则 7):rows = 0 行 ⇒ 断言必须失败(堵「0 行全绿」假象)。tier_map 保持合法,使错误恰来自空表一条。",
+  "tier_map": {
+    "0": {
+      "passband_center_hz": 700,
+      "passband_width_hz": 500,
+      "noise_floor_db": -34,
+      "contact_noise_floor_db": -26,
+      "band_detail_count": 3,
+      "signal_db": -18
+    },
+    "1": {
+      "passband_center_hz": 900,
+      "passband_width_hz": 900,
+      "noise_floor_db": -42,
+      "contact_noise_floor_db": -34,
+      "band_detail_count": 5,
+      "signal_db": -18
+    },
+    "2": {
+      "passband_center_hz": 1200,
+      "passband_width_hz": 1600,
+      "noise_floor_db": -50,
+      "contact_noise_floor_db": -42,
+      "band_detail_count": 8,
+      "signal_db": -18
+    }
+  },
+  "rows": []
+}

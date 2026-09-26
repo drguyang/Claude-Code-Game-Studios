@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "_note": "Story 002 · 音频事件表(ADR-014 作者态;阶段1词法 → 阶段2绑定 + AudioEventTableGates 校验 → *.cooked,玩家构建零 JSON 解析器)。布局 = 顶层 {schema_version, tier_map, rows[]} + rows[](cue 行);三层白名单 = 顶层键集 / 行级键集 / tier_map 恰 6 列(未知键 = 硬失败,单一出处 AudioEventTableGates.TopLevelKeys / RowKeys)。tier_map = 设备级滤波表(F4=甲 一张;列集 = F-44.1 定型 6 列,每档键 0/1/2);行级 tier_params 只容非滤波的 per-cue 覆盖,禁含滤波列(校验规则 5;允许键集待 GDD 枚举,当前黑名单式)。附加音层行带 clock_ref + adventitious_policy;【单位钉死】trigger_phase = 吸气段时长的分数,0 = 吸气起点、1 = 吸气终点(门断言窗 [0.8,1.0] = 吸气段末 20%;绝对相位只在运行期经 InspirePhaseMapping.ToAbsoluteOffsetSeconds = phase × INSPIRE_FRACTION × T 换算,勿存全周期分数 —— 那会让每次调 I:E 都翻转表有效性)。语声行带 subtitle_text(AC-44-15 [A]);乐层行带 xfade_ms(数值下界归 Story 012 AC-44-18)。⚠️ assets[] 为占位文件名:本门**不查素材存在性(NOT-RUN,归 Story 010 D6)**;本文件在仓库根 assets/,禁止拷进 unity/Assets 或 Resources。⚠️ 全部数值 = 种子/示范值,用户自己调(项目铁律)。世界语境呼吸行的 min/max_distance/occlusion_lowpass 字段先行承载,断言归 Story 008(AC-44-16)。",
+  "tier_map": {
+    "0": { "passband_center_hz": 700, "passband_width_hz": 500, "noise_floor_db": -34, "contact_noise_floor_db": -26, "band_detail_count": 3, "signal_db": -18 },
+    "1": { "passband_center_hz": 900, "passband_width_hz": 900, "noise_floor_db": -42, "contact_noise_floor_db": -34, "band_detail_count": 5, "signal_db": -18 },
+    "2": { "passband_center_hz": 1200, "passband_width_hz": 1600, "noise_floor_db": -50, "contact_noise_floor_db": -42, "band_detail_count": 8, "signal_db": -18 }
+  },
+  "rows": [
+    {
+      "schema_version": 1,
+      "cue": "Voice_Cough_Damp",
+      "assets": ["vo_patient_cough_damp_m1.wav", "vo_patient_cough_damp_f1.wav"],
+      "bus": "Voice",
+      "loop": false,
+      "whitelist_category": "ContinuousPhysiology",
+      "trigger_source": "ContinuousPhysiology",
+      "subtitle_text": "咳…咳咳…"
+    },
+    {
+      "schema_version": 1,
+      "cue": "BreathLayer_Base_Calm",
+      "assets": ["sfx_breath_base_loop_small.wav"],
+      "bus": "Stethoscope",
+      "loop": true,
+      "whitelist_category": "ContinuousPhysiology",
+      "trigger_source": "ContinuousPhysiology"
+    },
+    {
+      "schema_version": 1,
+      "cue": "BreathLayer_Adventitious_Fine",
+      "assets": ["sfx_breath_adventitious_fine.wav"],
+      "bus": "Stethoscope",
+      "loop": true,
+      "clock_ref": "BreathLayer_Base_Calm",
+      "adventitious_policy": { "trigger_phase": 0.9, "jitter": 0.05 },
+      "whitelist_category": "ContinuousPhysiology",
+      "trigger_source": "ContinuousPhysiology"
+    },
+    {
+      "schema_version": 1,
+      "cue": "WorldBreath_Baseline",
+      "assets": ["sfx_breath_base_loop_small.wav"],
+      "bus": "Ambience",
+      "loop": true,
+      "min_distance": 1,
+      "max_distance": 12,
+      "occlusion_lowpass": 1200,
+      "whitelist_category": "ContinuousPhysiology",
+      "trigger_source": "ContinuousPhysiology"
+    },
+    {
+      "schema_version": 1,
+      "cue": "Music_Encounter_Layer",
+      "assets": ["music_encounter_layer_loop.wav"],
+      "bus": "Music",
+      "loop": true,
+      "xfade_ms": 4000,
+      "whitelist_category": "MusicLayer",
+      "trigger_source": "EncounterMusicLayer"
+    }
+  ]
+}

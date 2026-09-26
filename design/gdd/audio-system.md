@@ -529,8 +529,10 @@ bucket       = (u < BUCKET_LOW) ? 弱 : (u < BUCKET_HIGH) ? 中 : 强
 
 1. `whitelist_category` 必填且 ∈ 五类;
 2. `trigger_source` 必填且 ∈ 合法集(禁止集任一 = 失败);
-3. **NOT-RUN 守卫**:`schema_version` 缺失或 cue 行缺上述任一字段 ⇒ 断言**报错退出**
-   (不得静默通过 —— 「没检查」与「检查通过」必须可区分);
+3. **NOT-RUN 守卫**:`schema_version` 或 **`cue`** 缺失,或 cue 行缺上述任一字段 ⇒ 断言
+   **报错退出**(不得静默通过 —— 「没检查」与「检查通过」必须可区分)。`cue` 是行的**身份**:
+   缺它则规则 7(必需 cue)、规则 9(同名唯一)与字幕族前缀判据**对本行全部失效**,
+   校验「跑过了」却什么都没查(2026-09-26 复审补 —— 原文只在 schema 示例里出现,未写必填);
 4. 双重负向夹具(见 AC-44-09)。
 5. **`tier_map` 键集与列集**(2026-09-25 二轮):顶层 `tier_map` 必含键 `{"0","1","2"}`,每档
    字段 ∈ F-44.1 定型列集(**6 列**);**per-row `tier_params` 禁含任何滤波列**(滤波只住设备级
@@ -543,6 +545,9 @@ bucket       = (u < BUCKET_LOW) ? 弱 : (u < BUCKET_HIGH) ? 中 : 强
 8. **循环字段闭合**(2026-09-25 二轮):`loop: true` 且含附加音层的行必带
    `clock_ref`(指向存在的基础层行)+ `adventitious_policy{trigger_phase, jitter}`;
    `trigger_phase` 语义见 §Edge Cases 相位条 —— 悬空 `clock_ref` = 失败。
+9. **同名 `cue` 唯一**(2026-09-26 审查 REC):`rows` 内 `cue` 不得重复 —— 重复使
+   `clock_ref` 的**首配**解析产生歧义,且规则 7 的必需 cue 集合聚合会被重复行掩盖
+   ⇒ 构建失败。
 
 ## Edge Cases
 
