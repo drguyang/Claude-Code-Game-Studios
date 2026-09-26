@@ -237,6 +237,108 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         }
 
         [Test]
+        public void test_hashMismatch_partialBackup_scopeLogNamesOnlyMovedSide()
+        {
+            // qa-tester 评审发现(real bug 修复的回归钉):「恢复完成」日志的范围必须由**实际移动结果**
+            // 派生(载荷成功 + 头部失败 ⇒ 只点「overrides」,不得称「overrides 与头部」均已备份)。
+            // 手法:头部 .bak-001 被目录占位 ⇒ 头部移动失败;载荷移动成功 ⇒ 断言范围点名只含 overrides。
+            _shared.RemoveAllBindingOverrides();
+            ApplyPathOverride(_shared, "Interact", "<Keyboard>/e", "<Keyboard>/q");
+            InputActionAsset clone = CreateCleanClone();
+            var store = new BindingsStore(_tempDir);
+            store.Save(_shared, HashA);
+            Directory.CreateDirectory(store.SchemaPath + ".bak-001");   // 只占头部备份位
+
+            // 事件流:失配 ×1 → 载荷备份成功(备份路径) → 头部备份失败 ×1 → 恢复完成。
+            // LogScope 队头匹配:「备份失败」期望落在头部失败行上(载荷成功行含「备份路径」不匹配)。
+            LogAssert.Expect(LogType.Warning, new Regex("失配"));
+            LogAssert.Expect(LogType.Warning, new Regex("备份路径"));
+            LogAssert.Expect(LogType.Warning, new Regex("备份失败"));
+            // 恢复完成行范围只点「overrides」:若实现按存在性派生(hasPayload && hasHeader)⇒ 此期望红。
+            LogAssert.Expect(LogType.Warning, new Regex("陈旧overrides已改名备份"));
+            OverridesLoadResult result = store.Load(clone, HashB);
+
+            Assert.That(result, Is.EqualTo(OverridesLoadResult.Mismatch), "部分备份仍走失配路径,不崩");
+            Assert.That(File.Exists(store.OverridesPath + ".bak-001"), Is.True, "载荷侧移动成功、已改名备份");
+            Assert.That(File.Exists(store.OverridesPath), Is.False, "载荷原路径已移除");
+            Assert.That(Directory.Exists(store.SchemaPath + ".bak-001"), Is.True, "头部备份位仍为占位目录");
+            Assert.That(File.Exists(store.SchemaPath), Is.True, "头部移动失败 ⇒ 原文件仍在(未删除)");
+            AssertNoOverrides(Snapshot(clone), "部分备份出口资产维持默认(载荷未生效)");
+        }
+
+        [Test]
+        public void test_hashMismatch_backupSerialExhaust_skipsWithLogDefaultsNoCrash()
+        {
+            // qa-tester 评审发现:999 个备份序号全被占用 ⇒ 跳过备份时原实现不记日志,与「备份失败」
+            // 的日志契约不一致(「失效是响的」的备份侧缺口)。占满 .bak-001..999 两族(载荷/头部),
+            // 断言两侧都发出「备份跳过」日志、原文件保留、仍载入默认、不崩。
+            _shared.RemoveAllBindingOverrides();
+            ApplyPathOverride(_shared, "Interact", "<Keyboard>/e", "<Keyboard>/q");
+            InputActionAsset clone = CreateCleanClone();
+            var store = new BindingsStore(_tempDir);
+            store.Save(_shared, HashA);
+            for (int serial = 1; serial <= 999; serial++)
+            {
+                string suffix = string.Format(BindingsStore.BackupSuffixFormat, serial);
+                File.WriteAllBytes(store.OverridesPath + suffix, Array.Empty<byte>());
+                File.WriteAllBytes(store.SchemaPath + suffix, Array.Empty<byte>());
+            }
+
+            // 事件序:失配 ×1 → 载荷备份跳过 ×1 → 头部备份跳过 ×1;两侧均失败 ⇒ 无「恢复完成」行。
+            LogAssert.Expect(LogType.Warning, new Regex("失配"));
+            LogAssert.Expect(LogType.Warning, new Regex("载荷备份跳过"));
+            LogAssert.Expect(LogType.Warning, new Regex("头部备份跳过"));
+            OverridesLoadResult result = store.Load(clone, HashB);
+
+            Assert.That(result, Is.EqualTo(OverridesLoadResult.Mismatch), "序号耗尽仍走失配路径,不崩");
+            AssertNoOverrides(Snapshot(clone), "序号耗尽出口仍载入默认(跳过备份 ≠ 不清空)");
+            Assert.That(File.Exists(store.OverridesPath), Is.True,
+                "序号耗尽 ⇒ 不覆盖任何前次备份,原文件保留(未移动)");
+            Assert.That(File.Exists(store.SchemaPath), Is.True, "头部原文件保留(未移动)");
+            Assert.That(Directory.GetFiles(_tempDir, "*.bak-*").Length, Is.EqualTo(1998),
+                "999 × 2 个备份占位全部保留(不覆盖、不清理既有备份)");
+        }
+
+        [Test]
+        public void test_hashMismatch_headerWriteFailure_payloadAlone_mismatchNextLoad_backedUp()
+        {
+            // qa-tester GAPS #4(孤侧备份)· 直击手法:Save 的载荷成功 + 头部写失败留下的**单半截**
+            // (载荷在场、头部路径被目录占位)—— 下次 Load 的 File.Exists(载荷)=真、File.Exists(头部)=假
+            // ⇒ 走半截出口(不经过读取 catch)⇒ BackupSidecar(null, …) 把孤侧载荷改名备份。
+            _shared.RemoveAllBindingOverrides();
+            ApplyPathOverride(_shared, "Interact", "<Keyboard>/e", "<Keyboard>/q");
+            var store = new BindingsStore(_tempDir);
+            Directory.CreateDirectory(store.SchemaPath);   // 头部写点被占位 ⇒ Save 载荷成功、头部失败
+
+            LogAssert.Expect(LogType.Error, new Regex("写入失败"));
+            string result = store.Save(_shared, HashA);
+            Assert.That(result, Is.Null, "Given:头部写失败 ⇒ Save 返回 null");
+            Assert.That(File.Exists(store.OverridesPath), Is.True, "Given:载荷已按「先载荷后头部」写成");
+            Assert.That(Directory.Exists(store.SchemaPath), Is.True, "Given:头部未写成(仍为占位目录)");
+
+            LogAssert.Expect(LogType.Warning, new Regex("半截"));
+            LogAssert.Expect(LogType.Warning, new Regex("备份路径"));
+            LogAssert.Expect(LogType.Warning, new Regex("恢复完成"));
+            OverridesLoadResult loadResult = store.Load(_shared, HashA);
+
+            Assert.That(loadResult, Is.EqualTo(OverridesLoadResult.Mismatch), "半截 ⇒ 视同失配,不尝试部分恢复");
+            AssertNoOverrides(Snapshot(_shared), "半截出口资产维持默认");
+            Assert.That(File.Exists(store.OverridesPath + ".bak-001"), Is.True,
+                "孤侧载荷已改名备份(非删除)");
+            Assert.That(File.Exists(store.OverridesPath), Is.False, "载荷原路径已移除(后续 Save 可重建)");
+        }
+
+        // 注:「头部读取失败 / 载荷读取失败」两个 catch 出口不单设直击测试 —— 理由:
+        // ① 出口调用的 BackupSidecar 与已测出口(headerMissingSchemaHash = storedHash=null 形状 ·
+        // 主失配 = 两文件在场合 hash 失配形状)是**同一代码**,备份行为已被双层覆盖;
+        // ② 触发差异在 BCL 的 ReadAllBytes 抛 IO/Unauthorized,需平台私有故障注入
+        //    (权限位 / 文件锁;`SetUnixFileMode` 是 .NET 7+ API,不在 Unity 6.3 netstandard2.1
+        //    面内;目录占位会先被 File.Exists 判假、走半截分支,到不了 catch);
+        // ③ 该 catch 的行为契约(视同失配 + 不抛给调用方)属 Story 003 既有 fail-safe,
+        //    非 Story 005 新增代码。故登记为覆盖注记,不为此引入脆弱/不可移植夹具。
+        // 半截出口的孤侧备份断言在 overrides_sidecar_test.cs 三条半截测试(同批扩展)。
+
+        [Test]
         public void test_hashMismatch_neg_clearWithoutRename_stillBackedUp()
         {
             // QA A3 Negative:「只清空不改名备份」⇒ ①红 —— 反证:本实现改名备份后原路径
@@ -266,14 +368,21 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             _shared.RemoveAllBindingOverrides();
             ApplyPathOverride(_shared, "Interact", "<Keyboard>/e", "<Keyboard>/q");
             var store = new BindingsStore(_tempDir);
-            store.Save(_shared, HashA);
+            // 旧版 sidecar 落**旧资产的真实 hash**(非合成夹具值)—— 这才是跨版本升级的真源语义:
+            // 头部存的是旧版结构的真实指纹。
+            string oldHash = SchemaHash.ComputeSchemaHash(_shared);
+            store.Save(_shared, oldHash);
 
             // 「新版资产」= 内存重建(引擎 AddBinding 生成全新 bindingId)—— 真实重建,非合成前缀。
             InputActionAsset rebuilt = CreateInMemoryAsset();
+            // 牙齿:新版资产的真实 hash 由 BuildRecords 独立重算,且必须与旧版真实 hash 失配 ——
+            // 这证明「重建 ⇒ bindingId 全变 ⇒ hash 必变 ⇒ 失配被检测」的全链路端到端(A8 使能性质)。
+            string rebuiltHash = SchemaHash.ComputeSchemaHash(rebuilt);
+            Assert.That(rebuiltHash, Is.Not.EqualTo(oldHash), "Given:重建资产的真实 hash 必须 ≠ 旧版真实 hash");
             LogAssert.Expect(LogType.Warning, new Regex("失配"));
             LogAssert.Expect(LogType.Warning, new Regex("备份路径"));
             LogAssert.Expect(LogType.Warning, new Regex("恢复完成"));
-            OverridesLoadResult result = store.Load(rebuilt, HashB);
+            OverridesLoadResult result = store.Load(rebuilt, rebuiltHash);
 
             Assert.That(result, Is.EqualTo(OverridesLoadResult.Mismatch), "跨版本失配 ⇒ 不喂");
             AssertNoOverrides(Snapshot(rebuilt), "生效绑定 = 新版默认(旧 override 未错位生效)");

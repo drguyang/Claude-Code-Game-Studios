@@ -288,9 +288,14 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             File.Delete(store.SchemaPath);   // 只剩载荷,头部缺失
 
             LogAssert.Expect(LogType.Warning, new Regex("半截"));
+            LogAssert.Expect(LogType.Warning, new Regex("备份路径"));
+            LogAssert.Expect(LogType.Warning, new Regex("恢复完成"));
             OverridesLoadResult result = store.Load(_asset, HashA);
 
             Assert.That(result, Is.EqualTo(OverridesLoadResult.Mismatch), "半截 ⇒ 视同失配,不尝试部分恢复");
+            Assert.That(File.Exists(store.OverridesPath + ".bak-001"), Is.True,
+                "半截出口孤侧载荷已改名备份(Story 005 语义:半截亦备份不删除)");
+            Assert.That(File.Exists(store.OverridesPath), Is.False, "载荷原路径已移除(后续 Save 可重建)");
         }
 
         [Test]
@@ -348,10 +353,15 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             File.Delete(store.OverridesPath);
 
             LogAssert.Expect(LogType.Warning, new Regex("半截"));
+            LogAssert.Expect(LogType.Warning, new Regex("备份路径"));
+            LogAssert.Expect(LogType.Warning, new Regex("恢复完成"));
             OverridesLoadResult result = store.Load(_asset, HashA);
 
             Assert.That(result, Is.EqualTo(OverridesLoadResult.Mismatch), "半截(头在载荷缺)⇒ 视同失配");
             AssertNoOverrides(Snapshot(_asset), "半截出口资产维持默认");
+            Assert.That(File.Exists(store.SchemaPath + ".bak-001"), Is.True,
+                "半截出口孤侧头部已改名备份(Story 005 语义:半截亦备份不删除)");
+            Assert.That(File.Exists(store.SchemaPath), Is.False, "头部原路径已移除(后续 Save 可重建)");
         }
 
         [Test]
@@ -529,10 +539,15 @@ class Fixture {
             Assert.That(Directory.Exists(store.SchemaPath), Is.True, "头部未写成(仍为占位目录)");
 
             LogAssert.Expect(LogType.Warning, new Regex("半截"));
+            LogAssert.Expect(LogType.Warning, new Regex("备份路径"));
+            LogAssert.Expect(LogType.Warning, new Regex("恢复完成"));
             OverridesLoadResult loadResult = store.Load(_asset, HashA);
 
             Assert.That(loadResult, Is.EqualTo(OverridesLoadResult.Mismatch),
                 "半截(载荷在头部缺)⇒ 下次 Load 视同失配,不尝试部分恢复");
+            Assert.That(File.Exists(store.OverridesPath + ".bak-001"), Is.True,
+                "半截出口孤侧载荷已改名备份(Story 005 语义:半截亦备份不删除)");
+            Assert.That(File.Exists(store.OverridesPath), Is.False, "载荷原路径已移除(后续 Save 可重建)");
         }
 
         [Test]

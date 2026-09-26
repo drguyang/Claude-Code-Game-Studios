@@ -121,7 +121,9 @@ namespace DaYiJingCheng.Gameplay.Input
 
             if (payloadOk || headerOk)
             {
-                string scope = hasPayload && hasHeader ? "overrides 与头部" : (hasPayload ? "overrides" : "头部");
+                // 范围由**实际移动结果**派生(而非移动前存在性)—— 若载荷成功而头部失败,
+                // 日志不得称「overrides 与头部」均已备份,只能点名实际移动成功的一侧。
+                string scope = payloadOk && headerOk ? "overrides 与头部" : (payloadOk ? "overrides" : "头部");
                 Debug.LogWarning(
                     $"绑重 sidecar 失配恢复完成:陈旧{scope}已改名备份(旧 hash {oldHash} / 新 hash {currentHash});" +
                     "原路径已移除,当前载入默认绑定。");
@@ -151,7 +153,10 @@ namespace DaYiJingCheng.Gameplay.Input
                     return false;
                 }
             }
-            return false;   // 999 个备份都被占用(极端)⇒ 不覆盖任何前次备份,跳过备份
+            // 999 个备份都被占用(极端)⇒ 不覆盖任何前次备份,跳过备份;与「备份失败」同族,
+            // 记日志保持「失效是响的」契约(不静默跳过 —— 失配行之外,备份侧缺失也须可诊断)。
+            Debug.LogWarning($"绑重 sidecar 失配:载荷备份跳过(999 个备份序号全被占用)—— 仍载入默认,不中断。");
+            return false;
         }
 
         /// <summary>同上,针对头部文件(<see cref="SchemaPath"/> 直接作为 Move 首实参)。</summary>
@@ -176,6 +181,8 @@ namespace DaYiJingCheng.Gameplay.Input
                     return false;
                 }
             }
+            // 999 个备份都被占用(极端)⇒ 不覆盖任何前次备份,跳过备份;日志契约同载荷侧。
+            Debug.LogWarning($"绑重 sidecar 失配:头部备份跳过(999 个备份序号全被占用)—— 仍载入默认,不中断。");
             return false;
         }
 
