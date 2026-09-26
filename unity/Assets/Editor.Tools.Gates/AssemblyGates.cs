@@ -552,7 +552,9 @@ namespace DaYiJingCheng.EditorTools.Gates
 
         // 引擎白名单:UnityEngine.* / UnityEditor.* / Unity.* 官方包(URP / Addressables /
         // Unity.ResourceManager 等 —— GDD AC-B1 ② 字面列举项皆在此前缀下)。
-        private static bool IsEngineRef(string r)
+        // public(2026-09-26):InputBoundaryGates 复用(A6 引用集判据同族;b4/README 另
+        // 有「编辑期封装不 public」注记,公开判定式属 b5 先例,二处互不冲突)。
+        public static bool IsEngineRef(string r)
             => r == "UnityEngine" || r == "UnityEditor" ||
                r.StartsWith("UnityEngine.", StringComparison.Ordinal) ||
                r.StartsWith("UnityEditor.", StringComparison.Ordinal) ||
@@ -560,7 +562,8 @@ namespace DaYiJingCheng.EditorTools.Gates
 
         // BCL:netstandard / mscorlib / System* / Mono(核 —— ⚠️ 不含 "Mono." 前泛化:
         // Mono.Cecil 之类第三方库不得借 BCL 面溜进引用集)。
-        private static bool IsBclRef(string r)
+        // public(2026-09-26):InputBoundaryGates 复用(A6 引用集判据同族;与 IsEngineRef 同批公开)。
+        public static bool IsBclRef(string r)
             => r.StartsWith("System", StringComparison.Ordinal) ||
                r == "netstandard" || r == "mscorlib" || r == "Mono";
 
@@ -677,7 +680,12 @@ namespace DaYiJingCheng.EditorTools.Gates
         }
 
         // 注释剥离 + 字符串/字符字面量保留的状态机(见 CheckAudioSourceText 头注)。
-        private static string StripCommentsPreserveStrings(string text)
+        // public(2026-09-26):InputBoundaryGates 的 CheckInputSourceText **复用同款状态机**
+        // (两处各自 private 复制 45 行 = 双源腐化;b5 先例同格);public 而非 internal 是
+        // 因 EditMode 测试装配(Sim.Contracts.Tests)经 public 面复现负例夹具的判定
+        // (internal 面需另立 InternalsVisibleTo,为一条注释状态机不值得 —— 承
+        // 本文件 :35「测试经 public 面直调检查器」口径)。
+        public static string StripCommentsPreserveStrings(string text)
         {
             var sb = new StringBuilder(text.Length);
             var i = 0;
