@@ -15,6 +15,11 @@ CLAUDE.local.md
 # Session audit trail — hook-generated. `**/` covers nested copies left behind
 # when a hook ran from a subdirectory (see .claude/settings.json path anchoring).
 **/production/session-logs/
+# 兜底(Story 008 us-008-4):hook cwd 漂移曾把日志写进 unity/Assets/production/,
+# 目录内容被上一行盖住,但 Unity 生成的同级 *.meta 不在内 ⇒ 成 untracked 泄漏。
+# hooks 已锚定 git root,此二行防再污染。
+unity/Assets/production/
+unity/Assets/production.meta
 # Ephemeral session checkpoint — see .claude/docs/directory-structure.md.
 production/session-state/active.md
 # Local agent-runner configs carry a plaintext ANTHROPIC_API_KEY. Never commit.

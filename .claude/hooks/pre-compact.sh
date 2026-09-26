@@ -71,7 +71,8 @@ if [ "$WIP_FOUND" = false ]; then
 fi
 
 # --- Log compaction event ---
-SESSION_LOG_DIR="production/session-logs"
+# 锚定 git root(Story 008 us-008-4):cwd 漂移时相对路径曾把日志写进 unity/Assets/。
+SESSION_LOG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/production/session-logs"
 mkdir -p "$SESSION_LOG_DIR" 2>/dev/null
 echo "Context compaction occurred at $(date)." \
     >> "$SESSION_LOG_DIR/compaction-log.txt" 2>/dev/null

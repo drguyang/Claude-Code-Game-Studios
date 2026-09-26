@@ -50,6 +50,23 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <summary>扫描目标:输入程序集名(ADR-025 §① 登记;AssemblyGates.Manifest 成员)。</summary>
         public const string InputAssemblyName = "Gameplay.Input";
 
+        /// <summary>呈现装配名(D2 素材面点射的目标装载;3 的呈现向交付物住此)。</summary>
+        public const string PresentationAssemblyName = "Gameplay.Presentation";
+
+        /// <summary>D2 面 1b 点射清单(qa-008-6):3 的呈现向交付物住
+        /// Gameplay.Presentation 的 Input/ 目录(根命名空间 —— 无 .Input 子空间,故按
+        /// **类型全名**点射而非命名空间前缀)。素材面原本只扫 Gameplay.Input.dll ⇒
+        /// 本名单内任一类型引入 Sprite/Texture/Font 不红(扫描面洞)。**不全装配扫**:
+        /// 该装配同时住 Audio / Addressables / 编解码等他 Epic 面,全装配扫会误伤
+        /// 他 Epic 的合法素材依赖。新增 Input/ 交付物须同步本名单(与 D2 同轮执法)。</summary>
+        public static readonly string[] PresentationDeliveredTypeNames =
+        {
+            "DaYiJingCheng.Gameplay.Presentation.AxisEvaluation",
+            "DaYiJingCheng.Gameplay.Presentation.AxisProcessor",
+            "DaYiJingCheng.Gameplay.Presentation.AxisTuning",
+            "DaYiJingCheng.Gameplay.Presentation.DeviceSwitchTuning",
+        };
+
         /// <summary>交出物闭集(AC-3-A6「3 只产意图」原文点名的四件 + AC-3-B4
         /// 「聚合为**一条**上行」的产物形状 —— **两条 BLOCKING AC 各自的交出物**,
         /// 分住两面:前四件是 A6 点名的意图/读数,第五件是 B4 的上行整数记录
@@ -115,6 +132,47 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// 且 <c>s.Append(PayloadRef.Of(7))</c> 这类**不出现 SimEvent 字面**的写法
         /// (故事 QA 负例的字面场景)会全绿通过。补齐两 token 后两头都断。</summary>
         public static readonly string[] InputForbiddenSourceTokens = { "IEventSink", "SimEvent" };
+
+        // ── D2(Story 008 · AC-3-D2 BLOCKING):无素材、无时机 ──
+        // 两面执法,均为**编译产物元数据**判据(AC 原文「构建报告断言…非 grep 源码」;
+        // 「经常量字符串引用素材路径」的 Edge 由 TypeRef 面天然覆盖 —— 字符串值不是资产引用)。
+        //  面 1(素材):扫 Gameplay.Input.dll 的 TypeRef 表,命中 Sprite/Texture/Font 族即红。
+        //  面 2(时机/可见性):BindingQueryResult 实例字段集白名单 —— IL 面(构建期强制)+
+        //    reflection 面(测试装配供负例类型,门供判据;CheckReadingFieldLeaves 同构)。
+        /// <summary>D2 面 2 的执法对象(QueryBinding 返回类型全名;住根命名空间 = 基础设施,
+        /// 不在 A6 交出物闭集面 —— 两面互不吞并,各自单扫)。</summary>
+        public const string BindingResultTypeName =
+            "DaYiJingCheng.Gameplay.Input.BindingQueryResult";
+
+        /// <summary>D2 返回类型**实例字段名**白名单(= story AC 三字段 + 状态枚举;
+        /// 名单外任何字段(含 fadeDuration / visible / showAt 类时机字段)⇒ 红)。</summary>
+        public static readonly string[] BindingResultAllowedFieldNames =
+        {
+            "Status", "Device", "BindingPath", "IconKey",
+        };
+
+        /// <summary>D2 字段类型白名单(IL 全名口径):string(键名/路径,非素材)+ 两枚举。
+        /// float/double/引擎素材类型天然落名单外 ⇒ 红(别名同拒,承 B3 纪律)。</summary>
+        public static readonly string[] BindingResultAllowedFieldTypeFullNames =
+        {
+            "System.String",
+            "DaYiJingCheng.Gameplay.Input.BindingQueryStatus",
+            "DaYiJingCheng.Gameplay.Input.BindingDeviceClass",
+        };
+
+        /// <summary>D2 面 1 的素材 TypeRef 黑名单(Sprite / Texture 族 / 字体 ——
+        /// GDD §Visual/Audio 三「3 明确不提供:素材(Sprite / Texture)…字体」逐字闭集;
+        /// Material/Shader 属渲染资产非本 AC 字面,不扩面(扩须回写 AC)。</summary>
+        public static readonly string[] PresentationForbiddenAssetTypeRefs =
+        {
+            "UnityEngine.Sprite",
+            "UnityEngine.Texture",
+            "UnityEngine.Texture2D",
+            "UnityEngine.Texture3D",
+            "UnityEngine.Cubemap",
+            "UnityEngine.RenderTexture",
+            "UnityEngine.Font",
+        };
 
         /// <summary>B2① UI 栈禁引装配名集(AC-3-B2①:直读程序集不引用 UI Toolkit /
         /// <c>UnityEngine.UI</c> / 含 <c>EventSystem</c> 的程序集 ⇒ 构建失败)。
@@ -593,6 +651,24 @@ namespace DaYiJingCheng.EditorTools.Gates
             errs.AddRange(CheckReadingFieldsIl(                // B3 字段全整数 · IL 面(S1)
                 AssemblyGates.ScriptAssemblyPath(InputAssemblyName), DeliveredIntentTypes, out _));
             errs.AddRange(CheckInputSourceText());             // B3 源文本 + 零事件面
+
+            // ── D2(Story 008):构建报告断言两面(编译产物元数据,非 grep)──
+            var d2Dll = AssemblyGates.ScriptAssemblyPath(InputAssemblyName);
+            if (EditorUtility.scriptCompilationFailed)
+            {
+                // 两面共用 B3 IL 面同款拒扫:编译失败 ⇒ 读上一版 DLL = 假绿,声明不可判
+                errs.Add("[D2][IL] EditorUtility.scriptCompilationFailed = true ⇒ 素材 TypeRef / " +
+                         "字段白名单两面拒扫(假绿防护,承 B3/A6 同口径;AC-3-D2)。");
+            }
+            else
+            {
+                errs.AddRange(CheckAssetTypeRefsIl(d2Dll, out _));                       // D2 面 1
+                errs.AddRange(CheckNamedTypeAssetRefsIl(                                 // D2 面 1b 点射(qa-008-6)
+                    AssemblyGates.ScriptAssemblyPath(PresentationAssemblyName),
+                    PresentationDeliveredTypeNames, out _));
+                errs.AddRange(CheckBindingResultFieldsIl(                                // D2 面 2 IL
+                    d2Dll, new[] { BindingResultTypeName }, out _));
+            }
             return errs;
         }
 
@@ -843,6 +919,249 @@ namespace DaYiJingCheng.EditorTools.Gates
             }
             foreach (var f in Directory.GetFiles(root, "*.cs", SearchOption.AllDirectories))
                 errs.AddRange(SourceTextViolations(File.ReadAllText(f), f));
+            return errs;
+        }
+
+        // ── D2 面 1:素材 TypeRef 扫描(编译产物元数据,非源码 grep;AC-3-D2)──
+        // 「经常量字符串引用素材路径」的 Edge 天然被本面覆盖:字符串**值**不是资产引用,
+        // TypeRef 面只认真实类型依赖 ⇒ 常量串藏素材路径不会被误红,也不会漏(它本来就不违例;
+        // 真违例 = Sprite/Texture/Font 类型进入本装配的依赖闭包,TypeRef 必现形)。
+        /// <summary>对 <paramref name="dllPath"/> 的 TypeRef 表跑素材黑名单(纯函数 ——
+        /// 负例夹具喂自造/测试装配产物)。缺产物 = 红(拒扫 = 假绿防护,B3 IL 面同口径)。</summary>
+        public static List<string> CheckAssetTypeRefsIl(string dllPath, out int scannedTypeRefs)
+        {
+            var errs = new List<string>();
+            scannedTypeRefs = 0;
+            if (string.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
+            {
+                errs.Add($"[D2][IL] 编译产物缺失「{dllPath ?? "<null>"}」—— 素材 TypeRef 面拒扫," +
+                         "读不到依赖面 = 假绿(AC-3-D2 构建报告断言)。");
+                return errs;
+            }
+            using (var asm = AssemblyDefinition.ReadAssembly(dllPath, new ReaderParameters
+            {
+                ReadingMode = ReadingMode.Deferred,
+                InMemory = true,
+            }))
+            {
+                foreach (var tr in asm.MainModule.GetTypeReferences())
+                {
+                    scannedTypeRefs++;
+                    if (PresentationForbiddenAssetTypeRefs.Contains(tr.FullName))
+                        errs.Add($"[D2][IL] 产物 TypeRef 出现素材类型「{tr.FullName}」—— " +
+                                 "3 的交付物无 Sprite / Texture / 字体(AC-3-D2 构建报告断言;" +
+                                 "GDD §Visual/Audio 三:素材图集归 42/美术)。");
+                }
+            }
+            if (scannedTypeRefs == 0)
+                errs.Add($"[D2][IL] 产物「{dllPath}」TypeRef 表为空 —— 扫描面丢失,拒以空集冒充绿。");
+            return errs;
+        }
+
+        // ── D2 面 1b:呈现向交付物点射(qa-008-6)──
+        // 面 1 是模块级 TypeRef 扫描,只能整装载扫;Presentation 装载住着 Audio /
+        // Addressables 等他 Epic 面,整装载扫会误伤。点射 = 按
+        // <see cref="PresentationDeliveredTypeNames"/> 全名取类型,只对**这些类型**
+        // 自己的依赖面(基类 / 接口 / 字段 / 方法签名,含泛型实参与数组元素)跑黑名单。
+        // 缺产物 / 名单内类型找不到 ⇒ 红(扫描面丢失,拒以空集冒充绿,B3 IL 面同口径)。
+        /// <summary>对 <paramref name="dllPath"/> 内 <paramref name="typeFullNames"/>
+        /// 逐类型做素材 TypeRef 黑名单判定(纯函数 —— 负例夹具喂测试装配产物)。
+        /// <paramref name="matchedTypes"/> = 实际找到的类型数(少于名单 ⇒ 调用方红)。</summary>
+        public static List<string> CheckNamedTypeAssetRefsIl(string dllPath,
+                                                              IReadOnlyList<string> typeFullNames,
+                                                              out int matchedTypes)
+        {
+            var errs = new List<string>();
+            matchedTypes = 0;
+            if (string.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
+            {
+                errs.Add($"[D2][IL] 编译产物缺失「{dllPath ?? "<null>"}」—— 点射面拒扫," +
+                         "读不到依赖面 = 假绿(AC-3-D2;qa-008-6)。");
+                return errs;
+            }
+            if (typeFullNames == null || typeFullNames.Count == 0)
+            {
+                errs.Add("[D2][IL] 点射类型名集为空 —— 拒以空集冒充绿(AC-3-D2;qa-008-6)。");
+                return errs;
+            }
+            using (var asm = AssemblyDefinition.ReadAssembly(dllPath, new ReaderParameters
+            {
+                ReadingMode = ReadingMode.Deferred,
+                InMemory = true,
+            }))
+            {
+                var wanted = new HashSet<string>(typeFullNames, StringComparer.Ordinal);
+                var found = new HashSet<string>(StringComparer.Ordinal);
+                var candidates = new List<string>();
+                foreach (var type in AssemblyGates.AllTypes(asm.MainModule))
+                {
+                    if (type.FullName == "<Module>") continue;
+                    if (!wanted.Contains(type.FullName)) continue;
+                    matchedTypes++;
+                    found.Add(type.FullName);
+                    candidates.Clear();
+                    CollectAssetCandidates(type.BaseType, candidates);
+                    foreach (var i in type.Interfaces)
+                        CollectAssetCandidates(i.InterfaceType, candidates);
+                    foreach (var f in type.Fields)
+                        CollectAssetCandidates(f.FieldType, candidates);
+                    foreach (var m in type.Methods)
+                    {
+                        CollectAssetCandidates(m.ReturnType, candidates);
+                        foreach (var p in m.Parameters)
+                            CollectAssetCandidates(p.ParameterType, candidates);
+                    }
+                    foreach (var cand in candidates)
+                        if (PresentationForbiddenAssetTypeRefs.Contains(cand))
+                            errs.Add($"[D2][IL] 点射类型「{type.FullName}」依赖素材类型「{cand}」" +
+                                     "—— 3 的呈现向交付物无 Sprite/Texture/字体(AC-3-D2;" +
+                                     "GDD §Visual/Audio 三,素材图集归 42/美术;qa-008-6 点射面)。");
+                }
+                foreach (var name in typeFullNames)
+                    if (!found.Contains(name))
+                        errs.Add($"[D2][IL] 点射类型未在产物「{dllPath}」找到「{name}」—— " +
+                                 "扫描面丢失(类型被改名 / 移除),拒以空集冒充绿(AC-3-D2;qa-008-6)。");
+            }
+            return errs;
+        }
+
+        /// <summary>把 <paramref name="t"/> 展平成可与黑名单全等比较的名字集合:
+        /// 泛型实例取元素名 + 逐实参、数组 / ref 取元素类型,末端落 <c>FullName</c>
+        /// (处理一层嵌套泛型足够 —— 呈现交付物是调参表,出现形态即字段直引或
+        /// 容器实参)。</summary>
+        private static void CollectAssetCandidates(TypeReference t, List<string> into)
+        {
+            if (t == null) return;
+            if (t is GenericInstanceType gi)
+            {
+                into.Add(gi.ElementType.FullName);
+                foreach (var a in gi.GenericArguments) CollectAssetCandidates(a, into);
+                return;
+            }
+            if (t.IsArray)
+            {
+                CollectAssetCandidates(((ArrayType)t).ElementType, into);
+                return;
+            }
+            if (t.IsByReference)
+            {
+                CollectAssetCandidates(((ByReferenceType)t).ElementType, into);
+                return;
+            }
+            into.Add(t.FullName);
+        }
+
+        // ── D2 面 2:QueryBinding 返回类型字段白名单(IL 面 = 构建期强制点)──
+        /// <summary>对 <paramref name="dllPath"/> 内 <see cref="BindingResultTypeName"/>
+        /// 的**实例字段集**做 {名字 ∈ 白名单 ∧ 类型 ∈ 白名单} 双判定(纯函数)。
+        /// <paramref name="matched"/> = 找到的目标类型数(0 = 扫描面丢失 ⇒ 调用方红)。
+        /// 负例夹具:对测试装配产物跑同谓词 + 含 <c>float FadeDuration</c> 的影子类型名传入
+        /// ⇒ 真 IL 红(story QA「返回类型加一个 float fadeDuration ⇒ 类型断言红」)。</summary>
+        public static List<string> CheckBindingResultFieldsIl(string dllPath,
+                                                              IReadOnlyList<string> typeFullNames,
+                                                              out int matched)
+        {
+            var errs = new List<string>();
+            matched = 0;
+            if (string.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
+            {
+                errs.Add($"[D2][IL] 编译产物缺失「{dllPath ?? "<null>"}」—— 字段白名单面拒扫" +
+                         "(假绿防护,AC-3-D2)。");
+                return errs;
+            }
+            if (typeFullNames == null || typeFullNames.Count == 0)
+            {
+                errs.Add("[D2][IL] 目标类型名集为空 —— 拒以空集冒充绿(AC-3-D2)。");
+                return errs;
+            }
+            using (var asm = AssemblyDefinition.ReadAssembly(dllPath, new ReaderParameters
+            {
+                ReadingMode = ReadingMode.Deferred,
+                InMemory = true,
+            }))
+            {
+                var wanted = new HashSet<string>(typeFullNames, StringComparer.Ordinal);
+                foreach (var type in AssemblyGates.AllTypes(asm.MainModule))
+                {
+                    if (type.FullName == "<Module>") continue;
+                    if (!wanted.Contains(type.FullName)) continue;
+                    matched++;
+                    foreach (var f in type.Fields)
+                    {
+                        if (f.IsStatic) continue;   // 实例字段面(静态缓存字段 = 呈现层才有的东西,3 结构上不该有;命中走名字红)
+                        if (!BindingResultAllowedFieldNames.Contains(f.Name))
+                        {
+                            errs.Add($"[D2][IL] 「{type.FullName}.{f.Name}」∉ 字段名白名单 " +
+                                     $"{{{string.Join(", ", BindingResultAllowedFieldNames)}}} —— " +
+                                     "返回类型无出现时机 / 可见性字段(AC-3-D2 类型断言;" +
+                                     "fadeDuration / visible / showAt 类皆落名单外)。");
+                            // 与 reflection 面同口径:名字违例不短路,浮点面一并可见。
+                        }
+                        var ft = f.FieldType.FullName;
+                        if (ReadingFloatFullNames.Contains(ft))
+                        {
+                            errs.Add($"[D2][IL] 「{type.FullName}.{f.Name}」类型「{ft}」= 浮点时机量 —— " +
+                                     "无时机字段(AC-3-D2;别名同拒,B3 纪律)。");
+                            continue;
+                        }
+                        if (PresentationForbiddenAssetTypeRefs.Contains(ft))
+                        {
+                            errs.Add($"[D2][IL] 「{type.FullName}.{f.Name}」类型「{ft}」= 素材字段 —— " +
+                                     "无 Sprite/Texture/Font(AC-3-D2)。");
+                            continue;
+                        }
+                        if (!BindingResultAllowedFieldTypeFullNames.Contains(ft))
+                            errs.Add($"[D2][IL] 「{type.FullName}.{f.Name}」类型「{ft}」∉ 字段类型白名单" +
+                                     " —— 交付形状 = {device, bindingPath, iconKey} + 枚举(AC-3-D2)。");
+                    }
+                }
+            }
+            if (matched == 0)
+                errs.Add($"[D2][IL] 产物「{dllPath}」内未找到目标类型 —— 扫描面丢失," +
+                         "拒以空集冒充绿(AC-3-D2)。");
+            return errs;
+        }
+
+        /// <summary>D2 面 2 的 reflection 面(第二道;门供判据、测试装配供类型 ——
+        /// 与 <see cref="CheckReadingFieldLeaves(Type)"/> 同构,Editor.Tools.Gates 不引用
+        /// Gameplay.Input,typeof 在门内不可编译)。判据同 IL 面:实例字段名 ∪ 类型双白名单。</summary>
+        public static List<string> CheckBindingResultFields(Type root)
+        {
+            var errs = new List<string>();
+            if (root == null)
+            {
+                errs.Add("[D2] 返回类型 null —— 拒以空集冒充绿(AC-3-D2)。");
+                return errs;
+            }
+            const BindingFlags fb = BindingFlags.DeclaredOnly | BindingFlags.Instance |
+                                    BindingFlags.Public | BindingFlags.NonPublic;
+            foreach (var f in root.GetFields(fb))
+            {
+                if (!BindingResultAllowedFieldNames.Contains(f.Name))
+                {
+                    errs.Add($"[D2] 「{root.FullName}.{f.Name}」∉ 字段名白名单 —— " +
+                             "返回类型无出现时机 / 可见性字段(AC-3-D2 类型断言)。");
+                    // 名字违例不短路:双白名单是与关系,同字段的浮点面须一并可见
+                    // (QA 负例 fadeDuration 同时违两条,浮点红行不得被名字红行吃掉)。
+                }
+                if (IsFloatLeaf(f.FieldType))
+                {
+                    errs.Add($"[D2] 「{root.FullName}.{f.Name}」类型「{f.FieldType.FullName}」= 浮点时机量" +
+                             " —— 无时机字段(AC-3-D2)。");
+                    continue;
+                }
+                if (f.FieldType.FullName == "UnityEngine.Sprite" ||
+                    f.FieldType.FullName == "UnityEngine.Texture" ||
+                    f.FieldType.FullName == "UnityEngine.Font")
+                {
+                    errs.Add($"[D2] 「{root.FullName}.{f.Name}」类型「{f.FieldType.FullName}」= 素材字段" +
+                             " —— AC-3-D2。");
+                    continue;
+                }
+                if (!BindingResultAllowedFieldTypeFullNames.Contains(f.FieldType.FullName))
+                    errs.Add($"[D2] 「{root.FullName}.{f.Name}」类型「{f.FieldType.FullName}」∉ 字段类型" +
+                             "白名单(AC-3-D2)。");
+            }
             return errs;
         }
 

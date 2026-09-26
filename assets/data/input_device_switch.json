@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "_note": "Story 008 · §Tuning Knobs 一之二 设备态切换迟滞常量表(AC-3-D4;Ⓑ.1 裁定 = 按设备类分两列,不得共用一行 —— Pointer = 鼠标指针位移列(量纲:逐帧指针增量,像素 Q16.16),Axis = 摇杆/触控板轴列(量纲:归一化 [-1,1] 轴幅度 Q16.16)。⚠️ 数值全部**临时值,待用户数值轮**(项目铁律;GDD:安全范围 ≠ 好玩数值)。临时值依据:轴列 threshold 1/2(中位起步)、tolerance 1/8(= DZ_INNER 建议上界,input_axis_tuning.json 的 dz_inner 同值);指针列 threshold 262144(= 4 px/帧)、tolerance 65536(= 1 px/帧,静止手抖容差);DWELL 两列均 4 tick(20 Hz 标定 ⇒ 200 ms)。Fix 字段 = 比值字符串经 FixParse(ADR-006 唯一入口,禁 float 字面量);dwell_ticks = int 计数(token 直读,承 D-21-17 int 计数移出 Fix 解析集口径)。区间断言由 InputDeviceSwitchBinder 装载期硬失败(ADR-014 §四)。",
+  "pointer": {
+    "device_switch_threshold": "4",
+    "drift_tolerance": "1",
+    "dwell_ticks": 4
+  },
+  "axis": {
+    "device_switch_threshold": "1/2",
+    "drift_tolerance": "1/8",
+    "dwell_ticks": 4
+  }
+}
