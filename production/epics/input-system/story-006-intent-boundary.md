@@ -1,12 +1,12 @@
 # Story 006: 意图边界与交出物(零 SimEvent · 全整数 · 聚合上行)
 
 > **Epic**: 输入与设备
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-25
+> **Last Updated**: 2026-09-26
 
 ## Context
 
@@ -31,10 +31,10 @@
 
 *From GDD `design/gdd/input-system.md`, scoped to this story:*
 
-- [ ] **AC-3-A6(BLOCKING)**: **零 `SimEvent`** —— 输入程序集 asmdef **引用集白名单断言**:不引用任何声明 `IEventSink` / `SimEvent` 的程序集(构建失败);3 **只产意图**(`InteractIntent` / `EmergencyIntent` / `FocusNavigationIntent`)与 `EmergencyReading`
-- [ ] **AC-3-A7(BLOCKING)**: **载荷可达闭包零浮点** —— 递归扫描 `SimEvent` 载荷可达类型闭包,断言无 `float`/`double`(与 `PresentationDtoGuard` 同构;**B3 只看顶层抓不到结构体字段** —— 必须递归进字段/元素类型)
-- [ ] **AC-3-B3(BLOCKING)**: **判定结果全整数** —— `JudgeResult` 字段全 `int`/`Fix`;SimEvent 由 10 **直接构造**,运行期**不经** `FixParse.Parse(string)`;3 只交 `EmergencyReading`(全整数:tick 时长 + edge + 枚举序号)
-- [ ] **AC-3-B4(BLOCKING,承 Amendment B)**: **联机 C 路** —— 客户端把意图**聚合为一条**全整数 `EmergencyAttempt` 上行 → 主机执行 `Judge` + `Append` + 发号 `Seq`;**本地判定仅预表现**(不写流、不参与权威);「不逐帧同步输入」保留
+- [x] **AC-3-A6(BLOCKING)**: **零 `SimEvent`** —— 输入程序集 asmdef **引用集白名单断言**:不引用任何声明 `IEventSink` / `SimEvent` 的程序集(构建失败);3 **只产意图**(`InteractIntent` / `EmergencyIntent` / `FocusNavigationIntent`)与 `EmergencyReading`
+- [x] **AC-3-A7(BLOCKING)**: **载荷可达闭包零浮点** —— 递归扫描 `SimEvent` 载荷可达类型闭包,断言无 `float`/`double`(与 `PresentationDtoGuard` 同构;**B3 只看顶层抓不到结构体字段** —— 必须递归进字段/元素类型)
+- [x] **AC-3-B3(BLOCKING)**: **判定结果全整数** —— `JudgeResult` 字段全 `int`/`Fix`;SimEvent 由 10 **直接构造**,运行期**不经** `FixParse.Parse(string)`;3 只交 `EmergencyReading`(全整数:tick 时长 + edge + 枚举序号)
+- [x] **AC-3-B4(BLOCKING,承 Amendment B)**: **联机 C 路** —— 客户端把意图**聚合为一条**全整数 `EmergencyAttempt` 上行 → 主机执行 `Judge` + `Append` + 发号 `Seq`;**本地判定仅预表现**(不写流、不参与权威);「不逐帧同步输入」保留
 
 ---
 
@@ -97,7 +97,7 @@
 **Required evidence**:
 - Logic: `tests/unit/input_system/intent_boundary_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — EditMode 真身 77 测全绿(见 Completion Notes)
 - 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/intent_boundary_test.cs`,文档路径 `tests/unit/input_system/` 为登记口径
 
 ---
@@ -106,3 +106,18 @@
 
 - Depends on: Story 001(意图类型住唯一动作资产所在的输入程序集)
 - Unlocks: Story 007(直读通道读出的正是本故事定义的 `EmergencyReading`)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-26
+**Criteria**: 4/4 passing(AC-3-A6 / AC-3-A7 / AC-3-B3 / AC-3-B4,零 UNTESTED)
+**Deviations**: None
+**Test Evidence**: EditMode 真身 `unity/Assets/Tests/EditMode/InputSystem/intent_boundary_test.cs`(77 测)+ 落点 `unity/Assets/Gameplay.Input/IntentTypes.cs`(四意图 + `EmergencyReading`)· `unity/Assets/Gameplay.Input/EmergencyAggregator.cs`(C 路聚合器);合并树 **724/724 全绿 exit 0**(log `unity/Logs/build-story006-merged.log`)
+**Code Review**: Complete —— 会话内 `/code-review` 双代理并行:unity-specialist **S1–S12 全修**(含 **S1 BLOCKING**)+ qa-tester **G1–G5 / G7 / G9 全修**;复跑全绿后收口
+**Review Fix Batch(两批)**:
+- *qa-tester 批(G1–G5 / G7 / G9)*:A6 传递闭包(G3 间接引用)— 新块 `BuildProjectReferenceGraph` / `ReferenceClosure` / `ReferenceClosureViolations` + 测;sink-but-no-SimEvent-literal 负例;raw-output-vs-synthetic 双测试(真树零错 + 纯谓词负例);交出物闭集精确集断言;**B3 白名单闭合成文**(G5);`CheckInputSourceText` 负例转直驱;IL 面 `matched==0` 红。
+- *unity-specialist 批(S1–S11)*:**S1(BLOCKING)B3 构建期强制点** —— 反射面读不到 Gameplay.Input 类型(门不引被门对象)⇒ B3 只由测试驱动,把 `EmergencyReading.Magnitude` 改 float,build 照样绿;改走 **Cecil IL 面** `CheckReadingFieldsIl`:读产物元数据、不产生程序集引用 ⇒ A6 编译期边不破(门读 DLL = 结构自证闭环);on-build 接线入 `BuildGate : IPreprocessBuildWithReport`。**S6** A7 扫描根原按 `*Payload` 命名约定派生(entities.yaml 的影子)⇒ 收成「Sim.Contracts **全部 struct** 减显式豁免」+ 交出根集,集合断言替掉 `roots ≥ 30`(差集显漏/显多)。**S7** A7 跳过 `const` 字段(编译期字面量不该让整族载荷恒红;static 可变仍扫)。**S8** B3 白名单口径补注(闭合:无符号窄化 / `char` / `Nullable<T>` 均不在内)。**S9** `IsBclRef` 的 `System` 侧收成**点前缀**(原无点泛化放行 `SystemFoo` 一族)+ 口径诚实化注记(零第三方真闭合 = b3 manifest 封闭性 + 引用集登记表,非 BCL 面)。**S10** asmdef / 产物缺失各自专属红行,替掉 `<产物缺失>` 哨兵。**S11** `EmergencyAggregator.Reset()` 收 `private`(不留中途静默清空入口)。**S2** `EmergencyReading` ctor 增边沿单调非递减断言。**S3** `AggregatedEmergency` ctor 镜像 codec 解码侧三条不变量(null / Edges==沿数 / 单调)。**S5** `Sample` 显红「累计视图契约违例」(原静默丢沿、`Edges` 偏小而**全绿** —— 最难查的静默失真面,前置断)。
+**Traceability**: AC-3-A6 → 源文本零事件面 `test_inputSourceText_iEventSinkAppendCall_reportsRed` + `_sinkAppendWithoutSimEventLiteral_reportsRed` + `_fixParseCall_reportsRed` + `_commentMention_notFlagged` · asmdef 引用集 `test_inputReferenceSet_*` 族 · 传递闭包 `test_referenceClosure_*` 族 · 交出物闭集 `test_deliveredIntentClosure_*` 族 · AC-3-A7 → `test_payloadClosure_allRoots_currentTree_zeroFloats` + `_roots_coverEverySimContractsStruct`(S6 集合断言)+ `_nestedStructFloat_*` / `_arrayFloat_*` / `_listFloat_*` / `_derivedBaseFloat_*` / `_interfaceField_*` / `_concreteField_*` / `_constFloat_*` / `_staticMutableFloat_*` · AC-3-B3 → `test_readingFields_*` 族(负数/别名/数组元素/嵌套/string/object)+ **IL 面** `test_readingFieldsIl_realProduct_zeroErrors` / `_missingProduct_reportsRed` / `_emptyTypeNameSet_reportsRed` · AC-3-B4 → `test_aggregator_*` 族(EndAttempt 恰一条 / 零样本 null / Abort 零条 / 动作身份中途变更红 / 沿单调红 / 累计视图契约红 / Reset 不可达 / 载荷形状跨 `EmergencyAttemptPayload` 真断言)—— **0/4 UNTESTED**
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**ADVISORY(未结,非本故事缺陷)**:① `EmergencyAction` 枚举仍 **OQ-10-6 未定** ⇒ 三类型 `Action` 字段一律 int ordinal(承支 1-b 枚举纪律;表归 10 / 21a 的烘焙数据)② **S6 根集判据的余留观察**:根 = 「Sim.Contracts 全部 struct」= 依赖契约层的**结构布局**;若未来登记**非 struct** 载荷(类 / 接口形态),判据面自动收窄 —— 属契约层设计变化,触发时由承载轮裁定(本批不立 OQ,先留注)③ G9 移交已落 Story 007(见该文件 Implementation Notes:「EdgeTicks 无防御性拷贝」—— 通道不得跨帧持有数组)

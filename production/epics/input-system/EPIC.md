@@ -64,7 +64,7 @@
 | 003 | 绑重 overrides sidecar 持久化 | Integration | Ready | ADR-011 + ADR-010 |
 | 004 | 绑重 schema hash 稳定性(F-3.5) | Logic | Ready | ADR-011 |
 | 005 | schema hash 失配优雅清空与跨版本备份 | Integration | Ready | ADR-011 |
-| 006 | 意图边界与交出物(零 SimEvent · 全整数 · 聚合上行) | Logic | Ready | ADR-011 + ADR-006 + ADR-009 |
+| 006 | 意图边界与交出物(零 SimEvent · 全整数 · 聚合上行) | Logic | Complete | ADR-011 + ADR-006 + ADR-009 |
 | 007 | 急救直读通道与输入更新相位 | Integration | Ready | ADR-011 |
 | 008 | 设备态与呈现契约(QueryBinding · 合成 release · Mixed 迟滞) | Integration | Ready | ADR-011 |
 | 009 | 焦点导航意图视图与单一真源 | Logic | Ready | ADR-011 + ADR-013 |
