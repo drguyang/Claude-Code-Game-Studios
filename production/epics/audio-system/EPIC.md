@@ -10,7 +10,7 @@
 
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
-| 001 | 装配边界与 DTO 护栏 | Integration | Ready | ADR-018(+025/017 引用) |
+| 001 | 装配边界与 DTO 护栏 | Integration | **Complete ✅ 2026-09-26**(4/4 · 24 测 · 审查 7 修复验 568/568) | ADR-018(+025/017 引用) |
 | 002 | 音频事件表 schema 与白名单门(BLOCKING) | Logic | Ready | ADR-014(+018) |
 | 003 | 混音拓扑与快照纪律 | Integration | Ready | ADR-018(+020) |
 | 004 | 听诊呼吸两层与精度档 | Logic | Ready | ADR-018 |

@@ -147,6 +147,11 @@ ADR-004 就此结案。并撤回 ADR-016 §九「以便平移 DOTS」的理据�
 **门 B(ADR-005)**:EditMode 反射测试断言 sim 程序集不引用 `UnityEngine.*`。
 
 `Unity.Entities` / `Unity.Burst` / `Unity.Jobs` / `Unity.Mathematics` **全部是引擎 / 引擎包程序集**。
+
+> **窄注(2026-09-26,audio Story 001 代码审查 Required-3)**:本黑名单的**应用面扩展至表现层
+> 各门的装配断言** —— audio 的 b5 引用黑名单同格含 `Unity.Collections` / `Unity.Physics` /
+> `Unity.Transforms`(§三判定对象点名 Unity Physics;原四支会让它们经 `Unity.` 引擎白名单直接过门)。
+> 触发前表现层同样不引入的口径不变,本注只登记应用面。
 因此在 sim 侧引入 DOTS 的唯一路径是:
 
 ```

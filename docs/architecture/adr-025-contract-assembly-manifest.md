@@ -114,7 +114,7 @@ dr_guyang(用户 · **2026-09-20 全件照准,转 Accepted**)· technical-direct
 | **`Gameplay.Presentation`** | L5(+L4) | UnityEngine · URP · `Sim.Contracts` | false | 1 · 2 · 42-UGUI 侧 · 44 · `ISceneRouter`/`IWorldSpawner`(ADR-023)· L4 边界层模块(4 / 8 / 13 / 51)|
 | **`Gameplay.Input`** | L4 | `Unity.InputSystem` only | false | 3 输入与设备(`InputService`,动作资产唯一持有者;**不引 `Sim.Contracts`** —— AC-3-A6 输入程序集不引任何声明 `IEventSink`/`SimEvent` 的程序集,2026-09-25 story-001 复核 B1 拆装)|
 | **`Gameplay.UI`** | L5 | + UI Toolkit | false | 42 UI Toolkit 栈 · 39 · 7b · 48(与 Presentation 分装配 = 焦点单栈门的**编译期**表达,ADR-013)|
-| **`Editor.Tools`** 族 | L6 | UnityEditor 自由 | n/a | `tools/level/`(ADR-022)+ `tools/kindgen/`(ADR-024)—— **全部不进构建**,asmdef 限 `includePlatforms: ["Editor"]` |
+| **`Editor.Tools`** 族 | L6 | UnityEditor 自由 | n/a | `tools/level/`(ADR-022)+ `tools/kindgen/`(ADR-024)+ **`Editor.Tools.Gates`(U0-b 四门 b2–b5)· `Editor.Tools.Spike`(U1 spike 批)· `Editor.Tools.Bake`(Story 008 数据管线)**(2026-09-26 audio Story 001 代码审查 Required-5 回写 —— 三支此前仅在 `AssemblyGates` 清单内、本表零登记,与 §④「新 asmdef 须追加进本表」冲突,今补平;**全部不进构建**,asmdef 限 `includePlatforms: ["Editor"]`) |
 
 - **「门面程序集」「独立契约程序集」两个称谓自本件起作废**,由表内具名项承接;
   引用它们的原文(ADR-005:228 / 44 GDD:242)在回写轮加注「现名 = …」(**不追改原文**,防重写历史)。✅ **2026-09-23 回写轮已落**(见 §Validation V-5)。
