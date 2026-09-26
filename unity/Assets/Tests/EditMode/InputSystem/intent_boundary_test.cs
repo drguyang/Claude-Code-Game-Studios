@@ -184,13 +184,13 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         public void test_deliveredIntentClosure_currentTree_closedSet()
         {
             // 交出物闭集:Intents 子命名空间公开类型 ⊆ 登记集,且登记集全在(缺一 = 闭集对
-            // 空集断言 = 假绿)。A6 四件 + B4 一件(上行聚合形状)。
+            // 空集断言 = 假绿)。A6 四件 + B4 一件(上行聚合形状) + C1/C2 一件(FocusNavigationDirection)。
             var errs = InputBoundaryGates.CheckDeliveredIntentClosure();
 
             Assert.That(errs, Is.Empty, () => string.Join("\n", errs));
-            Assert.That(InputBoundaryGates.DeliveredIntentTypes, Has.Length.EqualTo(5),
+            Assert.That(InputBoundaryGates.DeliveredIntentTypes, Has.Length.EqualTo(6),
                 "交出物 = A6 四件(InteractIntent/EmergencyIntent/FocusNavigationIntent/" +
-                "EmergencyReading)+ B4 一件(AggregatedEmergency 上行形状)");
+                "EmergencyReading)+ B4 一件(AggregatedEmergency 上行形状)+ C1/C2 一件(FocusNavigationDirection)");
         }
 
         [Test]
@@ -371,12 +371,11 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         {
             // S6:旧断言只钉「≥ 30」—— 扫描键退化成空集 / 半集(漏掉 5 支)仍**全绿**,
             // 而 A7 漏扫的载荷正是本该被拦的浮点藏身处。改成**集合断言**:
-            // 根集 = Sim.Contracts 全部 struct(减显式豁免)∪ Intents 交出物,一字不多一字不少。
+            // 根集 = Sim.Contracts 全部 struct(减显式豁免),一字不多一字不少。
+            // Intents 交出物不参与 A7 扫描根(它们是 A6 闭集,不是 Sim.Contracts 载荷)。
             Assert.That(EditorUtility.scriptCompilationFailed, Is.False,
                 "跑 A7 根集断言前提:编译成功");
 
-            // 期望集 = 门的判据(全部 struct − 显式豁免)∪ Intents 交出物;
-            // 实际集 = 门**实际交出**的根集。两者相减必须为空 ⇒ 面既不漏也不多。
             var errs = InputBoundaryGates.CheckAllPayloadClosures(out var roots, out var rootNames);
             Assert.That(errs, Is.Empty, () => "A7 红行:\n" + string.Join("\n", errs));
 
@@ -389,7 +388,6 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 .Where(t => !t.IsNested && !t.IsAbstract && t.IsValueType)
                 .Select(t => t.FullName)
                 .Where(n => !exclude.Contains(n))
-                .Concat(InputBoundaryGates.DeliveredIntentTypes)
                 .OrderBy(n => n, StringComparer.Ordinal)
                 .ToList();
 
@@ -398,7 +396,7 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             Assert.That(missing, Is.Empty, () => "扫描面漏扫:\n" + string.Join("\n", missing));
             Assert.That(extra, Is.Empty, () => "扫描面多扫:\n" + string.Join("\n", extra));
             Assert.That(roots, Is.EqualTo(expected.Count),
-                $"根数 {roots} ≠ 期望 {expected.Count}(数目相等即可,内容断言见上两条差集)");
+                $"A7 根数 {roots} ≠ Sim.Contracts struct 数 {expected.Count}(数目相等即可,内容断言见上两条差集)");
         }
 
         [Test]

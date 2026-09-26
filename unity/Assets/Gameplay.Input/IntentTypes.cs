@@ -16,9 +16,13 @@
 //   **尚未定义**(10 侧 OQ-10-6 open)⇒ EmergencyReading.EmergencyAction / EmergencyIntent.Action
 //   一律 int ordinal,表归 10 / 21a 的烘焙数据。
 //
-// 命名空间:本文件四个类型住 **DaYiJingCheng.Gameplay.Input.Intents** 子命名空间 —— 该子命名空间
-//   是 AC-3-A6 交出物闭集断言的扫描键(白名单外新增类型须过断言,Analog InputService / BindingsStore
-//   等基础设施住根命名空间,不进闭集面)。
+// 命名空间结构:
+//   DaYiJingCheng.Gameplay.Input.Intents 子命名空间 = AC-3-A6 交出物闭集(InteractIntent /
+//     EmergencyIntent / FocusNavigationIntent / EmergencyReading);该子命名空间是白名单断言
+//     的扫描键(白名单外新增类型须过断言,Analog InputService / BindingsStore 等基础设施住
+//     根命名空间,不进闭集面)。
+//   FocusNavigationDirection 枚举住根命名空间 DaYiJingCheng.Gameplay.Input(非 Intents 子空间)
+//     —— 它是 FocusNavigationIntent 的承载值,不属闭集成员,不参与 A6 / A7 / B3 边界断言。
 //
 // 形状口径:
 //   EmergencyReading = emergency-procedures.md 规则一(:108-135)五字段 —— action(枚举索引)· hold_ticks
@@ -66,11 +70,29 @@ namespace DaYiJingCheng.Gameplay.Input.Intents
     /// <summary>3 → 42 的导航动作**类型化只读视图**(规则十):不返回值、不驱动焦点移动
     /// (焦点移动唯一真源 = 官方桥,归 42 / R-6);由 42 决定接受或忽略(焦点单栈门)。
     /// 帧事件标记 —— 方向 / 步进语义由官方桥(<c>NavigationMoveEvent</c>)提供,3 不持有焦点状态
-    /// (AC-3-C1 / AC-3-C4 的承诺面;本文件不负 C 组判据 —— C 组归 Story 009)。</summary>
-    /// <remarks>零载荷:导航动作本帧是否发生 = 3 的交易事实;连续 <c>Vector2</c> → 离散步进归官方桥 / 42
-    /// (GDD 规则十连带闭合,F-3.2:连发改给 42)。「3 内无焦点状态字段」由 AC-3-C1 / AC-3-C4 断。</remarks>
+    /// (AC-3-C1 / AC-3-C3 / AC-3-C4 的承诺面)。</summary>
+    /// <remarks>
+    /// <para><see cref="Direction"/> = 方向枚举(由官方桥提供);<see cref="Tick"/> = 触发帧的 tick 序号。
+    /// 「3 内无焦点状态字段」由 AC-3-C1 / AC-3-C3 / AC-3-C4 断。</para>
+    /// <para>零载荷:导航动作本帧是否发生 = 3 的交易事实;连续 <c>Vector2</c> → 离散步进归官方桥 / 42
+    /// (GDD 规则十连带闭合,F-3.2:连发改给 42)。</para>
+    /// </remarks>
     public readonly struct FocusNavigationIntent
     {
+        /// <summary>导航方向(由官方桥提供;None = 本帧无导航动作)。</summary>
+        public readonly FocusNavigationDirection Direction;
+
+        /// <summary>触发帧的 tick 序号(由 3 侧填入)。</summary>
+        public readonly int Tick;
+
+        /// <summary>构造。</summary>
+        /// <param name="direction">导航方向。</param>
+        /// <param name="tick">触发帧的 tick 序号。</param>
+        public FocusNavigationIntent(FocusNavigationDirection direction, int tick)
+        {
+            Direction = direction;
+            Tick = tick;
+        }
     }
 
     /// <summary>3 → 10 的全整数急救读数(GDD 规则八 / emergency-procedures.md 规则一):**3 交给 10 的
@@ -113,7 +135,7 @@ namespace DaYiJingCheng.Gameplay.Input.Intents
         /// <param name="magnitude">该样本瞬时幅度(定点整数)。</param>
         /// <exception cref="ArgumentException"><paramref name="edgeTicks"/> null,
         /// 或 <paramref name="edges"/> ≠ <paramref name="edgeTicks"/>.Length,
-        /// 或沿序列非单调非递减(F-10.5 附带口径:属 3 的断言义务)。</exception>
+        /// 或沿序列非单调非递减(F-10.5 附带口径:属 3 的运行时断言义务)。</exception>
         public EmergencyReading(int action, int holdTicks, int edges, int[] edgeTicks, int magnitude)
         {
             if (edgeTicks == null)
@@ -136,5 +158,29 @@ namespace DaYiJingCheng.Gameplay.Input.Intents
             EdgeTicks = edgeTicks;
             Magnitude = magnitude;
         }
+    }
+}
+
+namespace DaYiJingCheng.Gameplay.Input
+{
+    /// <summary>焦点导航方向语义枚举(整数基于,非 Unity 枚举)。
+    /// 方向语义由官方桥(<c>NavigationMoveEvent</c>)提供;本枚举是
+    /// <see cref="FocusNavigationIntent"/> 的 Direction 字段承载值。</summary>
+    public enum FocusNavigationDirection
+    {
+        /// <summary>无方向(本帧无导航动作)。</summary>
+        None = 0,
+        /// <summary>上。</summary>
+        Up = 1,
+        /// <summary>下。</summary>
+        Down = 2,
+        /// <summary>左。</summary>
+        Left = 3,
+        /// <summary>右。</summary>
+        Right = 4,
+        /// <summary>上一页(PageUp)。</summary>
+        PageUp = 5,
+        /// <summary>下一页(PageDown)。</summary>
+        PageDown = 6,
     }
 }
