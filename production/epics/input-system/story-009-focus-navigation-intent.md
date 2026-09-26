@@ -1,12 +1,12 @@
 # Story 009: 焦点导航意图视图与单一真源
 
 > **Epic**: 输入与设备
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-25
+> **Last Updated**: 2026-09-27
 
 ## Context
 
@@ -99,7 +99,7 @@
 **Required evidence**:
 - Logic: `tests/unit/input_system/focus_navigation_intent_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
+**Status**: ✅ Complete — 12 tests passing (884/884 EditMode tests green)
 - 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/focus_navigation_intent_test.cs`,文档路径 `tests/unit/input_system/` 为登记口径
 
 ---
@@ -108,3 +108,12 @@
 
 - Depends on: Story 001(单实例资产是 C2 构造断言的数据源)
 - Unlocks: 42(消费 `FocusNavigationIntent` 做单栈路由)· Story 012(调试视图显示导航意图)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-27
+**Criteria**: 4/4 passing (AC-3-C1 / C2 / C3 / C4 all covered)
+**Deviations**: None
+**Test Evidence**: Logic: test file at `unity/Assets/Tests/EditMode/InputSystem/focus_navigation_intent_test.cs` (12 tests, 884/884 EditMode green)
+**Code Review**: Complete — unity-specialist + qa-tester both returned no BLOCKING findings (5 WARNINGs, all non-blocking maintainability concerns)
