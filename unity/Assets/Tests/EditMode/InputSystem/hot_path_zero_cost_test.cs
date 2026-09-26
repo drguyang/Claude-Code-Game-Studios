@@ -252,13 +252,47 @@ class Fixture {
             }
         }
 
+        /// <summary>E4 AC edge case 「Suspended 后回 Idle」:直接设状态为 Suspended 后
+        /// 调用 <see cref="EmergencyDirectReadChannel.ResetToIdle"/> —— 回 Idle 时
+        /// <see cref="DisableEmergencyAction"/> 必须同时归零回调计数(Story 008 设备态
+        /// 事件驱动接入前用反射设态;ResetToIdle 已调用 DisableEmergencyAction = 本测试的
+        /// 实际断言面)。</summary>
+        [Test]
+        public void test_e4_suspended_to_idle_callback_count_resets()
+        {
+            var channel = new EmergencyDirectReadChannel(null, TestAxialScale, TestDzMag, TestMagMax);
+            // 经反射设态为 Suspended(Story 008 才有公开入口;当前用测试缝直设)
+            var stateField = typeof(EmergencyDirectReadChannel).GetField(
+                "_state", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            stateField.SetValue(channel, DirectChannelState.Suspended);
+
+            // 模拟 Suspended 期若干 wired 回调
+            int frame = UnityEngine.Time.frameCount;
+            channel.NotifyAfterUpdateForTest(frame);
+            channel.NotifyAfterUpdateForTest(frame + 1);
+            Assert.That(channel.EmergencyCallbackCount, Is.EqualTo(2),
+                "Suspended 期 wired 回调仍应计数(enabled=true)");
+
+            // ResetToIdle 回 Idle —— DisableEmergencyAction 清零回调计数
+            var resetMethod = typeof(EmergencyDirectReadChannel).GetMethod(
+                "ResetToIdle", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            resetMethod.Invoke(channel, null);
+
+            Assert.That(channel.State, Is.EqualTo(DirectChannelState.Idle),
+                "ResetToIdle 后状态必须回 Idle");
+            Assert.That(channel.EmergencyActionEnabled, Is.False,
+                "ResetToIdle 后 Emergency 动作必须 disabled");
+            Assert.That(channel.EmergencyCallbackCount, Is.EqualTo(0),
+                "ResetToIdle 后回调计数必须归零(Suspended→Idle edge case)");
+        }
+
         // ══════════ AC-3-E5 · Armed 零分配(结构可达性 — EditMode 只断可达,实测归 Development Build) ═══════════
 
-        /// <summary>E5 结构可达性:EnableEmergencyAction / DisableEmergencyAction 存在且接线侧
+        /// <summary>E5 结构可达性 ①:EnableEmergencyAction / DisableEmergencyAction 存在且接线侧
         /// OnAfterUpdate 在 enabled=false 时提前 return —— 结构上保证零回调(分配测量本身
         /// 须 Development Build + ProfilerRecorder,见 production/qa/evidence/story-010-evidence.md)。</summary>
         [Test]
-        public void test_e5_armed_path_structure_no_obvious_alloc_sources()
+        public void test_e5_enable_disable_structural_reachable()
         {
             var channel = new EmergencyDirectReadChannel(null, TestAxialScale, TestDzMag, TestMagMax);
 
@@ -270,10 +304,57 @@ class Fixture {
             channel.DisableEmergencyAction();
             Assert.That(channel.EmergencyActionEnabled, Is.False);
             Assert.That(channel.EmergencyCallbackCount, Is.EqualTo(0));
+        }
 
-            // 接线模式 OnAfterUpdate 在 enabled=false 时提前 return(结构保证)
-            // (通过 test_e4_idle_after_attach_no_callbacks 已验证 wired 路径)
-            Assert.Pass("E5 结构可达性:Enable/Disable 存在且接线侧 enabled=false 提前 return");
+        /// <summary>E5 结构可达性 ②:Arm → 触发 OnAfterUpdate → FeedForTest 走完
+        /// OnAfterUpdate → ReadEmergency → Feed 整条读路径,确认 `SampleCount` 递增 ——
+        /// 结构上 ReadEmergency 可达且产样本(分配测量本身须 Development Build + ProfilerRecorder,
+        /// 见 production/qa/evidence/story-010-evidence.md)。</summary>
+        [Test]
+        public void test_e5_armed_read_path_traversed_sample_increments()
+        {
+            var channel = new EmergencyDirectReadChannel(null, TestAxialScale, TestDzMag, TestMagMax);
+            channel.Arm(0);
+
+            int frame = UnityEngine.Time.frameCount;
+            channel.NotifyAfterUpdateForTest(frame);
+            Assert.That(channel.EmergencyCallbackCount, Is.EqualTo(1),
+                "Armed 期 wired 回调应触发一次");
+            Assert.That(channel.SampleCount, Is.EqualTo(1),
+                "ReadEmergency → Feed 整条读路径应产一个样本");
+
+            channel.NotifyAfterUpdateForTest(frame + 1);
+            Assert.That(channel.SampleCount, Is.EqualTo(2),
+                "第二帧回调应再产一个样本");
+
+            channel.EndAction();
+            Assert.That(channel.EmergencyCallbackCount, Is.EqualTo(0),
+                "EndAction 回 Idle 后回调计数归零");
+        }
+
+        /// <summary>E5 结构可达性 ③:初始化路径不在热路径集合 —— 构造 / Attach / Detach
+        /// 均未入列 <see cref="InputBoundaryGates.HotPathMethodNames"/>,故初始化方法内含
+        /// <c>FindAction("Emergency")</c> 不应被 E1 捕获。</summary>
+        [Test]
+        public void test_e1_initialization_methods_excluded_from_ban()
+        {
+            const string initSrc = @"
+using UnityEngine.InputSystem;
+class Fixture {
+    InputActionAsset _actions;
+    Fixture() {
+        _actions.FindAction(""Emergency"");
+    }
+    void Attach() {
+        _actions.FindAction(""Emergency"");
+    }
+    void Detach() {
+        _actions.FindAction(""Emergency"");
+    }
+}";
+            var errs = InputBoundaryGates.CheckHotPathStringLookups(initSrc, "Fixture.cs");
+            Assert.That(errs, Is.Empty,
+                "初始化方法(构造/Attach/Detach)含 FindAction 不应被 E1 捕获");
         }
     }
 }
