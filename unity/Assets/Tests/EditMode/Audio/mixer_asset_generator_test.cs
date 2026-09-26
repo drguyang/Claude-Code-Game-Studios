@@ -5,13 +5,18 @@
 //     允许集须含 `reverb_preset_*` 前缀(否则将来补建的 preset 快照被当野员删)
 //   · RepairDanglingSnapshotSlots —— 回归:`m_TargetSnapshot` 指向不存在 fileID ⇒ 重指存留快照
 //   · PruneOrphanEffects —— 回归:**负 fileID** 孤儿必裁(AmpFileId 漏负号 = 静默跳过的假绿)
-//   · NormalizeExposedGuids —— 全零 ⇒ 确定性非零互异;非零不变(幂等);重复跑结果相同
+//   · NormalizeExposedGuids ——(2026-09-26 新契约,用户裁定)暴露 guid = **同名组 m_Volume
+//     哈希**(真参数落点);查不到组 / 名 ⇒ LogError + 硬 throw;旧 b500… 合成条序值**修复**
+//     (旧契约「全零⇒b500…/非零保留」已作废 —— 合成 guid 对不上真实参数 = 哑 SetFloat)
 // 纪律:命名承 mixer_topology_test 先例 · arrange/act/assert · 夹具**内联**(纯字符串函数,
 //   不落 fixtures 文件)· 无随机(确定性 hex / 固定 fileID)· 无时间依赖 · 零 I/O。
 
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
 using DaYiJingCheng.EditorTools.Gates;
 
 namespace DaYiJingCheng.Tests.Unit.Audio
@@ -145,15 +150,15 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(output, Does.Contain("{fileID: 24410}"), "组的 m_Effects 引用不得误删");
         }
 
-        // ══════════════ NormalizeExposedGuids ══════════════
+        // ══════════════ NormalizeExposedGuids(2026-09-26 新契约:真哈希对齐)════════════
 
-        /// <summary>全零 GUID ⇒ 确定性非零互异(<c>b5</c> 前缀 / 32 位 / 7 条两两不同);
-        /// 重复跑结果相同(幂等)。</summary>
+        /// <summary>新契约正例:暴露 guid = **同名组 m_Volume 哈希**(全零输入 ⇒ 对齐到真哈希);
+        /// 7 条互异(各组哈希互异);幂等(已是真哈希不再改写)。</summary>
         [Test]
-        public void test_normalizeExposedGuids_allZero_becomesDistinctNonZero()
+        public void test_normalizeExposedGuids_guidEqualsGroupVolumeHash()
         {
-            // Arrange:7 条全零(真资产实况)
-            string text = ExposedBlockText(new string('0', 32));
+            // Arrange:7 组文档(各带真哈希)+ 7 条全零 exposed(真资产旧实况)
+            string text = GroupsBlockText() + ExposedBlockText(new string('0', 32));
 
             // Act
             string once = MixerAssetGenerator.NormalizeExposedGuids(text, new List<string>());
@@ -162,42 +167,56 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // Assert
             List<string> guids = ExtractGuids(once);
             Assert.That(guids, Has.Count.EqualTo(7), "夹具自证:7 条");
-            foreach (string guid in guids)
+            for (int i = 0; i < guids.Count; i++)
             {
-                Assert.That(guid, Is.Not.All.EqualTo('0'), $"GUID 仍全零:{guid}");
-                Assert.That(guid, Has.Length.EqualTo(32), "32 位 hex");
-                Assert.That(guid.StartsWith("b5", StringComparison.Ordinal), Is.True,
-                    $"确定性前缀 b5:{guid}");
+                Assert.That(guids[i], Is.EqualTo(FixtureVolumeHashes[i]),
+                    $"第 {i} 条 guid 须 = 同名组 m_Volume 哈希(真参数落点)");
             }
+
             var distinct = new HashSet<string>(guids, StringComparer.Ordinal);
-            Assert.That(distinct.Count, Is.EqualTo(7), "7 条须两两互异(全零 = Unity 视为同一参数)");
-            Assert.That(twice, Is.EqualTo(once), "幂等:非零不再改写");
+            Assert.That(distinct.Count, Is.EqualTo(7), "7 条两两互异(组哈希互异)");
+            Assert.That(twice, Is.EqualTo(once), "幂等:已是真哈希不再改写");
         }
 
-        /// <summary>非零 GUID 保持不变(不误改 Unity / 用户已写的值)。</summary>
+        /// <summary>新契约修复回归:<c>b500…</c> 合成条序值(旧事故形态,**非零也改写**)
+        /// ⇒ 修复为真哈希(旧「非零原样保留」契约作废 —— 合成值正是哑 SetFloat 根因)。</summary>
         [Test]
-        public void test_normalizeExposedGuids_nonZeroPreserved()
+        public void test_normalizeExposedGuids_synthesizedGuid_repairedToRealHash()
         {
-            // Arrange:1 条自定义非零 + 1 条全零
-            const string custom = "ab12cd34ef56ab78cd90ef12ab34cd56";
-            string text =
-                "--- !u!241 &1000\n" +
-                "AudioMixerController:\n" +
-                "  m_ExposedParameters:\n" +
-                "  - guid: " + custom + "\n" +
-                "    name: bus_volume_master\n" +
-                "  - guid: " + new string('0', 32) + "\n" +
-                "    name: bus_volume_music\n";
+            // Arrange:旧事故的 b5000000000000000000000000000001 形态
+            string text = GroupsBlockText() +
+                          ExposedBlockText("b5" + new string('0', 28) + "01");
 
             // Act
             string output = MixerAssetGenerator.NormalizeExposedGuids(text, new List<string>());
 
             // Assert
-            Assert.That(output, Does.Contain(custom), "非零 GUID 必须原样保留");
             List<string> guids = ExtractGuids(output);
-            Assert.That(guids.Count, Is.EqualTo(2));
-            Assert.That(guids[0], Is.EqualTo(custom));
-            Assert.That(guids[1], Is.Not.All.EqualTo('0'), "全零那条须被规整");
+            Assert.That(guids, Has.Count.EqualTo(7));
+            for (int i = 0; i < guids.Count; i++)
+                Assert.That(guids[i], Is.EqualTo(FixtureVolumeHashes[i]),
+                    "合成 b500… 必须被修复为真哈希");
+            Assert.That(output, Does.Not.Contain("b5" + new string('0', 28)),
+                "合成前缀须全清(事故形态不得残留)");
+        }
+
+        /// <summary>新契约失败面:exposed 名查不到同名组 ⇒ LogError + **硬 throw**
+        /// (合成条序路径退役;拒绝静默写假值 —— 本次事故的根因防线)。</summary>
+        [Test]
+        public void test_normalizeExposedGuids_unknownExposedName_throws()
+        {
+            // Arrange:7 组在场,但 exposed 名是 tier_*(该组不存在)
+            string text = GroupsBlockText() +
+                          "--- !u!241 &1000\n" +
+                          "AudioMixerController:\n" +
+                          "  m_ExposedParameters:\n" +
+                          "  - guid: " + new string('0', 32) + "\n" +
+                          "    name: tier_passband_center_hz\n";
+
+            // Act + Assert:先 Expect 防线日志,再收 throw
+            LogAssert.Expect(LogType.Error, new Regex("查不到同名组"));
+            Assert.Throws<InvalidOperationException>(
+                () => MixerAssetGenerator.NormalizeExposedGuids(text, new List<string>()));
         }
 
         // ══════════════ 内联夹具小件 ══════════════
@@ -241,6 +260,43 @@ namespace DaYiJingCheng.Tests.Unit.Audio
 
         private static string ExposedEntry(string guid, string name) =>
             "  - guid: " + guid + "\n    name: " + name + "\n";
+
+        /// <summary>7 条暴露参数对应的组文档(暴露名 == 组名;各带互异 m_Volume 哈希 ——
+        /// 真 guid 的夹具来源,新契约 NormalizeExposedGuids 的查表输入)。</summary>
+        private static string GroupsBlockText()
+        {
+            string[] names = ExposedNames();
+            string docs = "";
+            for (int i = 0; i < names.Length; i++)
+            {
+                docs += "--- !u!243 &" + (2001 + i) + "\n" +
+                        "AudioMixerGroupController:\n" +
+                        "  m_Name: " + names[i] + "\n" +
+                        "  m_Volume: " + FixtureVolumeHashes[i] + "\n";
+            }
+
+            return docs;
+        }
+
+        /// <summary>暴露名 7 员(与 <c>ExposedBlockText</c> 的条目顺序一致)。</summary>
+        private static string[] ExposedNames() => new[]
+        {
+            "bus_volume_master", "bus_volume_music", "bus_volume_ambience",
+            "bus_volume_voice", "bus_volume_sfx", "bus_volume_stethoscope",
+            "bus_volume_uicue",
+        };
+
+        /// <summary>夹具真哈希(32 hex,7 条互异;仅测试用,非真实资产值)。</summary>
+        private static readonly string[] FixtureVolumeHashes =
+        {
+            "aa01bb02cc03dd04ee05ff06aa07bb08",
+            "aa11bb12cc13dd14ee15ff16aa17bb18",
+            "aa21bb22cc23dd24ee25ff26aa27bb28",
+            "aa31bb32cc33dd34ee35ff36aa37bb38",
+            "aa41bb42cc43dd44ee45ff46aa47bb48",
+            "aa51bb52cc53dd54ee55ff56aa57bb58",
+            "aa61bb62cc63dd64ee65ff66aa67bb68",
+        };
 
         private static List<string> ExtractGuids(string text)
         {

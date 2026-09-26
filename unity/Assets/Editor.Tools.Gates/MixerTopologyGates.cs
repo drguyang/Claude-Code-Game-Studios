@@ -35,6 +35,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using Mono.Cecil;
 using Mono.Cecil.Cil; // Instruction / Code 在 Cil 子命名空间(AssemblyGates 只查 MemberRef operand,故无此 using)
@@ -314,7 +315,8 @@ namespace DaYiJingCheng.EditorTools.Gates
 
         // ══════════════ AC-44-E3 + 注册表 AC②:.mixer YAML 扫描 ══════════════
 
-        /// <summary>总门:七总线组树 + 两级组 + exposed 注册表 + 快照五员 + 交集 ∅ + send 清单。</summary>
+        /// <summary>总门:七总线组树 + 两级组 + exposed 注册表 + 快照五员 + 交集 ∅ + send 清单
+        /// + **AC-44-01 ② 资产静态半**(m_Mute / 捕获值 ≤ −80 / tier×mute 名,R1 并入)。</summary>
         /// <param name="yamlText">.mixer 原文(Force Text YAML);null/空 ⇒ NOT-RUN 守卫。</param>
         public static IReadOnlyList<string> ValidateMixerTopology(string yamlText)
         {
@@ -328,6 +330,11 @@ namespace DaYiJingCheng.EditorTools.Gates
             // == 注册表 7 员 + 同名组承载)—— 原 ValidateExposedParameters 调用是未落名的悬空引用
             errors.AddRange(ValidateSnapshotExposedDisjoint(yamlText));
             errors.AddRange(ValidateSends(yamlText));
+            // R1(2026-09-26 双评审):AC-44-01 ② 资产静态半并入总门 —— 否则判据只活在单测里,
+            // 构建期不执行。夹具面已核:五份 YAML 夹具 m_FloatValues 值(−60…−6)> −80 且
+            // 无 m_Mute:1、无 tier×mute 名 ⇒ 既有 errors.Count 断言面(189/272 行,非 YAML 面)
+            // 与 Is.Empty 面(210/317 行)均不位移;NOT-RUN 不触发(捕获值 ≥ 1 > 0)。
+            errors.AddRange(ValidateNoTierMuteFlags(yamlText));
             return errors;
         }
 
@@ -890,6 +897,231 @@ namespace DaYiJingCheng.EditorTools.Gates
         // ══════════════ 解析与小件 ══════════════
 
         /// <summary>一份 YAML 文档(按 <c>--- !u!classId &amp;fileID</c> 切分)的承载。</summary>
+        // ══════════ AC-44-01 ②:.mixer 静音标志位(资产静态半 + 脚本调用点半)══════════
+
+        /// <summary>AC-44-01 ② 的静音捕获阈值(2026-09-26 unity-specialist Q1 实测裁定):
+        /// 快照捕获值 **≤ −80 dB** 视为「以拉到底实现的静音」。
+        /// ⚠️ 刻意**不取 −60** —— duck 快照的 −6 会被误伤。</summary>
+        public const double MuteCaptureFloorDb = -80.0;
+
+        /// <summary>AC-44-01 ② **资产静态半**(Force Text YAML)三条判据:
+        /// ① 任一组 <c>m_Mute: 1</c>;② 任一快照捕获值 ≤ <see cref="MuteCaptureFloorDb"/>;
+        /// ③ 组名 / 效果名 <c>tier*</c> × <c>mute|silent|cut</c> 同现。
+        /// <para>⚠️ mixer YAML **没有 "if tier" 原语**(unity-specialist Q1 实测)⇒ 本方法只覆盖
+        /// **资产静态半**;**脚本调用点半** = <see cref="ValidateNoMuteCallSites"/>,**两半缺一不算绿**。
+        /// <b>空转守卫</b>:解析面 0 键 ⇒ NOT-RUN(仿 <see cref="CountResolvedCaptureKeys"/> ——
+        /// 不得以空集冒充绿)。零 throw;解析级错误并入返回值。</para>
+        /// <example>
+        /// string yaml = File.ReadAllText("Assets/Audio/DaYiJingCheng.mixer");
+        /// IReadOnlyList&lt;string&gt; errs = MixerTopologyGates.ValidateNoTierMuteFlags(yaml);
+        /// </example></summary>
+        /// <param name="yamlText">.mixer 原文(Force Text YAML)。</param>
+        public static IReadOnlyList<string> ValidateNoTierMuteFlags(string yamlText)
+        {
+            var errors = new List<string>();
+            List<MixerDoc> docs = ParseMixerYaml(yamlText, errors);
+
+            if (CountMuteScanKeysInternal(docs) == 0)
+            {
+                errors.Add("[NOT-RUN 守卫 · AC-44-01 ②] mute 扫描面解析到 0 键" +
+                           "(无带 m_Mute 的组 / 无捕获值)—— 不得以空集冒充绿");
+                return errors;
+            }
+
+            foreach (MixerDoc doc in docs)
+            {
+                if (doc.ClassName == GroupClassName && doc.MuteFieldPresent && doc.Muted)
+                {
+                    errors.Add(
+                        $"[AC-44-01 ②] 组「{doc.Name ?? "(无名)"}」m_Mute: 1 —— 禁任何「档位 ⇒ 静音」路径" +
+                        "(GDD AC-44-01 ② 资产静态半 · BLOCKING)");
+                }
+
+                if (IsTierMuteName(doc.Name))
+                {
+                    errors.Add(
+                        $"[AC-44-01 ②] 组名「{doc.Name}」tier × mute|silent|cut 同现 ——" +
+                        "tier 条件静音命名嫌疑(资产静态半)");
+                }
+
+                if (IsTierMuteName(doc.EffectName))
+                {
+                    errors.Add(
+                        $"[AC-44-01 ②] 效果名「{doc.EffectName}」tier × mute|silent|cut 同现 ——" +
+                        "tier 条件静音命名嫌疑(资产静态半)");
+                }
+            }
+
+            foreach (MixerDoc doc in docs)
+            {
+                if (doc.ClassName != SnapshotClassName) continue;
+                foreach (double db in doc.CaptureDbValues)
+                {
+                    if (db <= MuteCaptureFloorDb)
+                    {
+                        errors.Add(
+                            "[AC-44-01 ②] 快照捕获值 " +
+                            db.ToString(CultureInfo.InvariantCulture) + " ≤ " +
+                            MuteCaptureFloorDb.ToString(CultureInfo.InvariantCulture) +
+                            " dB —— 以拉到底实现的静音捕获(资产静态半 · BLOCKING)");
+                    }
+                }
+            }
+
+            return errors;
+        }
+
+        /// <summary>AC-44-01 ② **空转守卫**:可判定键计数 = 带 <c>m_Mute</c> 的组数 + 快照捕获值数。
+        /// 返回 0 = 解析面空(NOT-RUN)—— 测试断言 <c>&gt; 0</c>,0 不得当绿
+        /// (形态仿 <see cref="CountResolvedCaptureKeys"/>)。</summary>
+        /// <param name="yamlText">.mixer 原文(Force Text YAML)。</param>
+        public static int CountMuteScanKeys(string yamlText)
+        {
+            var errors = new List<string>();
+            List<MixerDoc> docs = ParseMixerYaml(yamlText, errors);
+            return CountMuteScanKeysInternal(docs);
+        }
+
+        /// <summary><see cref="CountMuteScanKeys"/> 的内部核(已解析文档 → 计数)。</summary>
+        private static int CountMuteScanKeysInternal(List<MixerDoc> docs)
+        {
+            int count = 0;
+            if (docs == null) return 0;
+            foreach (MixerDoc doc in docs)
+            {
+                if (doc.ClassName == GroupClassName && doc.MuteFieldPresent) count++;
+                count += doc.CaptureDbValues.Count;
+            }
+            return count;
+        }
+
+        /// <summary>AC-44-01 ② **脚本调用点半**:源文本行扫描 ——
+        /// <c>SetFloat(…, ≤ MuteCaptureFloorDb)</c> 与 <c>.mute = true</c> 的硬静音路径。
+        /// <para>理由(mixer YAML 无 "if tier" 原语 ⇒ ② 必须两半,unity-specialist Q1):
+        /// 资产里扫不到的**条件静音**只能活在脚本里。`//` 整行注释跳过;
+        /// **0 可扫描行 = NOT-RUN**(空文件不得冒充绿);零 throw。
+        /// 谓词只认**赋值形态** <c>.mute = true</c>(读取 <c>.mute</c> 不误报);
+        /// 已知宽面:字符串参数内的数字(如 <c>SetFloat("tag-80", x)</c>)会命中 —— 源扫描粗 guard,
+        /// 主判据仍是资产静态半 + 行为测试(登记于交付报告)。</para></summary>
+        /// <param name="fileLabel">错误信息中的文件标签(路径)。</param>
+        /// <param name="lines">源文本行(按 <c>\n</c> 切好)。</param>
+        public static IReadOnlyList<string> ValidateNoMuteCallSites(string fileLabel, IEnumerable<string> lines)
+        {
+            if (lines == null)
+                return new[] { $"[NOT-RUN 守卫 · AC-44-01 ②] {fileLabel} 源文本 null —— 脚本调用点扫描不可执行" };
+
+            var errors = new List<string>();
+            int scanned = 0;
+            int lineNo = 0;
+            foreach (string raw in lines)
+            {
+                lineNo++;
+                if (raw == null) continue;
+                string line = raw.Trim();
+                if (line.Length == 0 || line.StartsWith("//", StringComparison.Ordinal)) continue;
+                scanned++;
+
+                if (IsTrueAssignment(line))
+                {
+                    errors.Add(
+                        $"[AC-44-01 ②] {fileLabel}:{lineNo} `.mute = true` —— 硬静音赋值路径(脚本半 · BLOCKING)");
+                }
+
+                if (line.IndexOf("SetFloat", StringComparison.Ordinal) >= 0)
+                {
+                    foreach (double v in NegativeNumbers(line))
+                    {
+                        if (v <= MuteCaptureFloorDb)
+                        {
+                            errors.Add(
+                                $"[AC-44-01 ②] {fileLabel}:{lineNo} SetFloat(…, " +
+                                v.ToString(CultureInfo.InvariantCulture) + ") ≤ " +
+                                MuteCaptureFloorDb.ToString(CultureInfo.InvariantCulture) +
+                                " —— 以拉到底实现的静音(脚本半 · BLOCKING)");
+                        }
+                    }
+                }
+            }
+
+            if (scanned == 0)
+                errors.Add($"[NOT-RUN 守卫 · AC-44-01 ②] {fileLabel} 0 可扫描行 —— 空转不得冒充绿");
+
+            return errors;
+        }
+
+        /// <summary>行内是否存在 <c>.mute</c> 的 <c>true</c> **赋值**(属性读取 / <c>==</c> 比较不命中)。</summary>
+        private static bool IsTrueAssignment(string line)
+        {
+            int idx = 0;
+            while (idx < line.Length)
+            {
+                int hit = line.IndexOf(".mute", idx, StringComparison.OrdinalIgnoreCase);
+                if (hit < 0) return false;
+                int i = hit + ".mute".Length;
+                while (i < line.Length && char.IsWhiteSpace(line[i])) i++;
+                if (i < line.Length && line[i] == '=' && (i + 1 >= line.Length || line[i + 1] != '='))
+                {
+                    i++;
+                    while (i < line.Length && char.IsWhiteSpace(line[i])) i++;
+                    if (i + 4 <= line.Length &&
+                        string.Compare(line, i, "true", 0, 4, StringComparison.OrdinalIgnoreCase) == 0)
+                        return true;
+                }
+                idx = hit + 1;
+            }
+            return false;
+        }
+
+        /// <summary>行内负数字面量序列(<c>-80f</c> / <c>-100.5</c> 同吃;手扫,零正则)。</summary>
+        private static IEnumerable<double> NegativeNumbers(string line)
+        {
+            for (int i = 0; i < line.Length; i++)
+            {
+                if (line[i] != '-') continue;
+                int j = i + 1;
+                while (j < line.Length && (char.IsDigit(line[j]) || line[j] == '.')) j++;
+                if (j > i + 1 &&
+                    double.TryParse(line.Substring(i, j - i), NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out double v))
+                    yield return v;
+                i = j - 1;
+            }
+        }
+
+        /// <summary><c>tier*</c> × <c>mute|silent|cut</c> 同现(组名与效果名共用的名字判据)。</summary>
+        private static bool IsTierMuteName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            string n = name.ToLowerInvariant();
+            bool tier = n.Contains("tier");
+            bool silence = n.Contains("mute") || n.Contains("silent") || n.Contains("cut");
+            return tier && silence;
+        }
+
+        /// <summary>组名 → 该组 <c>m_Volume</c> 参数哈希(32 hex)映射 —— **exposed guid 的真实
+        /// 参数落点**(2026-09-26 用户裁定:暴露 guid 须 = 同名组 m_Volume 哈希,合成条序值
+        /// <c>b500…</c> 退役;探针实证 guid 不匹配 = 哑 <c>SetFloat</c>)。
+        /// <para>**复用** <see cref="ParseMixerYaml"/> 的 <c>MixerDoc.VolumeHash</c> 解析
+        /// (单一出处,禁生成器另写一份)。同程序集 <c>internal</c> —— 唯一消费方 =
+        /// <c>MixerAssetGenerator.NormalizeExposedGuids</c>。</para></summary>
+        /// <param name="yamlText">.mixer 原文(Force Text YAML)。</param>
+        /// <returns>组名 → <c>m_Volume</c> 哈希(仅含两字段齐全的组;查不到 = 调用方判失败面)。</returns>
+        internal static Dictionary<string, string> GroupVolumeHashByName(string yamlText)
+        {
+            var errors = new List<string>();
+            List<MixerDoc> docs = ParseMixerYaml(yamlText, errors);
+            var map = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (MixerDoc doc in docs)
+            {
+                if (doc.ClassName != GroupClassName || doc.Name == null ||
+                    string.IsNullOrEmpty(doc.VolumeHash))
+                    continue;
+                map[doc.Name] = doc.VolumeHash;
+            }
+
+            return map;
+        }
+
         private sealed class MixerDoc
         {
             public string ClassName;
@@ -908,6 +1140,13 @@ namespace DaYiJingCheng.EditorTools.Gates
             /// <summary>组的电平参数哈希(<c>m_Volume: &lt;32 hex&gt;</c>)—— 快照捕获键的**解析桥梁**:
             /// 实测 <c>m_FloatValues</c> 的键就是这个哈希(非组 fileID、非组名)。仅组文档有值。</summary>
             public string VolumeHash;
+            /// <summary><c>m_Mute</c> 键是否在场(AC-44-01 ② 空转守卫计数用 —— 缺失 ≠ 已检查)。</summary>
+            public bool MuteFieldPresent;
+            /// <summary><c>m_Mute</c> 的解析值(true = 1 = 静音;AC-44-01 ② 资产静态半判据)。</summary>
+            public bool Muted;
+            /// <summary>快照 <c>m_FloatValues</c> 的**数值**(dB)—— AC-44-01 ② 的 ≤ −80 静音捕获
+            /// 扫描面(2026-09-26 前值不入判据,只存键;Story 004 起值参与扫描)。</summary>
+            public readonly List<double> CaptureDbValues = new List<double>();
         }
 
         /// <summary>手写逐行状态机:多文档切分 + 关键字段提取(零正则、零第三方解析器)。
@@ -1065,6 +1304,15 @@ namespace DaYiJingCheng.EditorTools.Gates
                     current.Name = ValueAfter(trimmed, "m_Name:").Trim().Trim('"');
                     continue;
                 }
+                if (trimmed.StartsWith("m_Mute:", StringComparison.Ordinal))
+                {
+                    // AC-44-01 ② 资产静态半:静音标志位(unity-specialist Q1 实测 —— 当前资产 22 组全 0;
+                    // 出现 1 = 「档位 ⇒ 静音」路径嫌疑,BLOCKING)。`m_Mute: 0` = 显式在场、未静音。
+                    current.MuteFieldPresent = true;
+                    string muteValue = ValueAfter(trimmed, "m_Mute:").Trim();
+                    current.Muted = muteValue.Length > 0 && muteValue != "0";
+                    continue;
+                }
             }
             if (docs.Count == 0)
                 errors.Add("[NOT-RUN 守卫] YAML 无任何 `--- !u!` 文档 —— 解析面为空,不得静默通过");
@@ -1073,9 +1321,12 @@ namespace DaYiJingCheng.EditorTools.Gates
 
         /// <summary>解析 <c>m_FloatValues</c> 内容(流式 <c>{k: v, k: v}</c> 或块式键值行):
         /// **数字键**按组 fileID 入 <c>CaptureTargets</c>(解析到组名后参与交集);
-        /// 非数字键按字面量入 <c>CaptureNames</c>(直接与 exposed 求交)。值(dB)不参与判据。
-        /// <para>黄金样例捕获为空 —— 非数字键 / 哈希键的真形态未实证,对齐点见
-        /// <see cref="ValidateSnapshotExposedDisjoint"/> 注。</para></summary>
+        /// 非数字键按字面量入 <c>CaptureNames</c>(直接与 exposed 求交)。
+        /// **裸值(数字)入 <c>CaptureDbValues</c>**(2026-09-26 Story 004 增:AC-44-01 ② 的
+        /// ≤ −80 静音捕获扫描面 —— 旧实现把值当「裸值忽略」,静音拉底值扫不到)。
+        /// <para>⚠️ 负号处理:token 允许**前导 <c>-</c>**(旧实现在此把 <c>-</c> 当分隔符跳过 ⇒
+        /// <c>-90</c> 被拆成裸值 <c>90</c>,符号丢失 = 假绿源)。黄金样例捕获为空 ——
+        /// 非数字键 / 哈希键的真形态未实证,对齐点见 <see cref="ValidateSnapshotExposedDisjoint"/> 注。</para></summary>
         private static void ParseFloatValuesContent(string content, MixerDoc doc)
         {
             if (doc == null || content == null) return;
@@ -1083,15 +1334,25 @@ namespace DaYiJingCheng.EditorTools.Gates
             while (i < content.Length)
             {
                 char c = content[i];
-                if (!char.IsLetterOrDigit(c) && c != '_') { i++; continue; }
+                bool negativeStart = c == '-' && i + 1 < content.Length && char.IsDigit(content[i + 1]);
+                if (!char.IsLetterOrDigit(c) && c != '_' && !negativeStart) { i++; continue; }
                 int start = i;
                 while (i < content.Length &&
-                       (char.IsLetterOrDigit(content[i]) || content[i] == '_'))
+                       (char.IsLetterOrDigit(content[i]) || content[i] == '_' ||
+                        (content[i] == '-' && i == start)))
                     i++;
                 string token = content.Substring(start, i - start);
                 int j = i;
                 while (j < content.Length && (content[j] == ' ' || content[j] == '\t')) j++;
-                if (j >= content.Length || content[j] != ':') continue;   // 裸值(如 -12 的数字部分)忽略
+                if (j >= content.Length || content[j] != ':')
+                {
+                    // 裸值(键之后的值位):数字 ⇒ 入 CaptureDbValues(AC-44-01 ② 扫描面);
+                    // 非数字忽略(与旧行为一致)
+                    if (double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture,
+                            out double db))
+                        doc.CaptureDbValues.Add(db);
+                    continue;
+                }
                 if (long.TryParse(token, out long numeric) && numeric != 0)
                     doc.CaptureTargets.Add(numeric);
                 else

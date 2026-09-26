@@ -65,8 +65,19 @@ namespace DaYiJingCheng.EditorTools.Gates
                 if (absoluteDir != null && !Directory.Exists(absoluteDir))
                     Directory.CreateDirectory(absoluteDir);
 
+                string absolutePath = Path.GetFullPath(
+                    Path.Combine(Application.dataPath, "..", MixerAssetPath));
+                bool fileMissing = !File.Exists(absolutePath);
                 bool fresh = AssetDatabase.LoadAssetAtPath<AudioMixer>(MixerAssetPath) == null;
-                if (fresh)
+                if (fileMissing)
+                {
+                    // 2026-09-27 修复:文件缺失时先建裸样例基底(CreateDefaultAsset),
+                    // 否则 EnsureSnapshotsViaYaml 无快照文档可改 ⇒ throw
+                    log.Add("[创建] 资产文件缺失 → 先建裸样例基底");
+                    CreateMixerAsset(log);
+                    log.Add($"[黄金样例] {MixerAssetPath} —— 基底由 Unity 自写(真字段形态来源)");
+                }
+                else if (fresh)
                 {
                     log.Add("[创建] 资产缺失 → 走内部 API 生成");
                     CreateMixerAsset(log);
@@ -220,13 +231,15 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 2026-09-26 Discover 实测签名 —— 不再猜,只走两条已知路径:
             //   CreateDefaultAsset(String path) → Void            ← 首选(Unity 自写默认样例,
             //       产物即**黄金样例**:m_Sends / m_ValueMap / 快照段真实字段形态以它为准)
-            //   CreateMixerControllerAtPath(String path) → AudioMixerController ← 兜底
+            //   ⚠️ 2026-09-27:CreateDefaultAsset 是**实例方法**(IL 证实),需 controller 实例调用
+            //   CreateMixerControllerAtPath(String path) → AudioMixerController ← 兜底(static)
             var attempts = new List<string>();
             foreach (string methodName in new[] { "CreateDefaultAsset", "CreateMixerControllerAtPath" })
             {
                 MethodInfo match = null;
                 foreach (MethodInfo candidate in controllerType.GetMethods(
-                             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
+                             BindingFlags.Public | BindingFlags.NonPublic |
+                             BindingFlags.Static | BindingFlags.Instance))
                 {
                     ParameterInfo[] parameters = candidate.GetParameters();
                     if (candidate.Name == methodName && parameters.Length == 1 &&
@@ -238,12 +251,15 @@ namespace DaYiJingCheng.EditorTools.Gates
                 }
                 if (match == null)
                 {
-                    attempts.Add(methodName + ":未找到「static (String path)」形态 —— 按二轮 Discover 日志核对");
+                    attempts.Add(methodName + ":未找到「(String path)」形态 —— 按二轮 Discover 日志核对");
                     continue;
                 }
                 try
                 {
-                    match.Invoke(null, new object[] { MixerAssetPath });
+                    // 2026-09-27:CreateDefaultAsset 是实例方法,需 controller 实例;
+                    // CreateMixerControllerAtPath 是静态方法,target 传 null
+                    object target = match.IsStatic ? null : CreateControllerInstance(controllerType);
+                    match.Invoke(target, new object[] { MixerAssetPath });
                     AssetDatabase.SaveAssets();
                     AssetDatabase.Refresh();
                     log.Add($"[创建] 命中 {methodName}(path = {MixerAssetPath})");
@@ -259,6 +275,21 @@ namespace DaYiJingCheng.EditorTools.Gates
 
             throw new InvalidOperationException(
                 "[创建] 两条已知路径全失败:\n" + string.Join("\n", attempts));
+        }
+
+        /// <summary>创建 AudioMixerController 实例(供实例方法 CreateDefaultAsset 调用)。
+        /// 2026-09-27:AudioMixer 无公开构造函数,用 GetUninitializedObject 绕过。</summary>
+        private static object CreateControllerInstance(Type controllerType)
+        {
+            try
+            {
+                return System.Runtime.Serialization.FormatterServices.GetUninitializedObject(controllerType);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    "[创建] 无法构造 AudioMixerController 实例:" + ex.GetBaseException().Message);
+            }
         }
 
         // ══════════════ 步骤 2:拓扑(两级组 / 快照 / exposed / send / 捕获)══════════════
@@ -392,8 +423,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             //     本轮没有新裁剪也必须修(Unity 导入报 Broken text PPtr)。
             text = RepairDanglingSnapshotSlots(text, log);
 
-            // ⓪b 七轮校准:exposed 全零 GUID 规整(见方法注)set_exposedParameters 只写了
-            //     name,guid 成员是默认零 —— 7 条全零 = 同一/非法参数;按条序确定性补非零 hex。
+            // ⓪b exposed GUID 对齐同名组 m_Volume 哈希(2026-09-26 重写,见方法注):
+            //     旧「全零 ⇒ b500… 条序合成值」对不上任何真实参数 ⇒ SetFloat 恒 false = 哑 exposed;
+            //     现按暴露名 == 组名查真哈希,查不到 ⇒ 硬 throw(拒绝静默写假值)。
             text = NormalizeExposedGuids(text, log);
 
             // ⓪c 七轮校准:孤儿 effect 裁剪 —— 有 m_SendTarget ≠ 0 却未挂在任何组 m_Effects
@@ -483,11 +515,18 @@ namespace DaYiJingCheng.EditorTools.Gates
             log.Add("[快照·YAML] 写回 + ImportAsset(ForceUpdate) —— 由后续 API 粗查 / 测试验证重载");
         }
 
-        /// <summary>exposed 全零 GUID 规整(七轮真资产校准):<c>set_exposedParameters</c> 只写入
-        /// name,guid 成员落默认零 ⇒ 7 条 <c>guid: 000…0</c> 同值(Unity 视为同一/非法参数)。
-        /// 对 <c>m_ExposedParameters:</c> 流式 map 列表(`- guid:` / `name:` 两行一条)逐条检查,
-        /// 全零者替换为**确定性非零 32 位 hex**(<c>b5</c> + 28×0 + 两位条序,无随机);
-        /// 非零原样保留(不动 Unity 或用户自己写的值)。文本通道 = 快照合成同一条已验证路径。</summary>
+        /// <summary>exposed GUID **对齐同名组 <c>m_Volume</c> 哈希**(2026-09-26 用户裁定;旧
+        /// 「全零 ⇒ 合成 <c>b500…</c> 条序值」路径**退役**)。
+        /// <para><b>根因</b>:Unity <c>AudioMixer.SetFloat(name, v)</c> 按 name → guid → **真实
+        /// 参数路径**解析,合成 guid 对不上任何真实参数 ⇒ 返回 false,**整批 exposed 哑**
+        /// (探针 <c>test_busVolumeExposedParam_actuallyAcceptsSetFloat</c> 实证)。
+        /// 暴露名 == 组名(<c>bus_volume_music</c> 两者同名)⇒ 一一对应、确定性同源。</para>
+        /// <para><b>失败行为(拒绝静默写假值 —— 正是本次踩的坑)</b>:① 全文解析不到任何组
+        /// <c>m_Volume</c> 哈希 ⇒ LogError + throw;② 某 exposed 名查不到同名组 ⇒ LogError +
+        /// throw(含该名 —— 未来 filter 参数须先认领资产拓扑,见
+        /// <c>MixerRegistry.TierFilterParameters</c> 缺口登记)。幂等:已是正确哈希则不改写。</para>
+        /// <para>哈希解析**复用** <c>MixerTopologyGates.GroupVolumeHashByName</c>(内部即
+        /// <c>MixerDoc.VolumeHash</c>)—— 单一出处,不另写解析。</para></summary>
         public static string NormalizeExposedGuids(string text, List<string> log)
         {
             string[] lines = text.Split('\n');
@@ -496,8 +535,21 @@ namespace DaYiJingCheng.EditorTools.Gates
                 if (lines[i].Trim() == "m_ExposedParameters:") { start = i; break; }
             if (start < 0) return text;
 
+            // 暴露名 → 真实参数哈希(组 m_Volume);空 = 无从对齐 ⇒ 硬失败
+            Dictionary<string, string> volumeHashByName =
+                DaYiJingCheng.EditorTools.Gates.MixerTopologyGates.GroupVolumeHashByName(text);
+            if (volumeHashByName.Count == 0)
+            {
+                string msg = "[exposed·YAML] 未解析到任何组的 m_Volume 哈希 —— 无法写真实 guid" +
+                             "(拒绝静默写假值 —— 2026-09-26 哑 exposed 事故根因)";
+                Debug.LogError("[MixerAssetGenerator] " + msg);
+                throw new InvalidOperationException(msg);
+            }
+
             int entry = 0;
             bool changed = false;
+            int guidLine = -1;
+            string currentHex = null;
             for (int i = start + 1; i < lines.Length; i++)
             {
                 string trimmed = lines[i].Trim();
@@ -505,40 +557,53 @@ namespace DaYiJingCheng.EditorTools.Gates
                     trimmed.StartsWith("guid:", StringComparison.Ordinal))
                 {
                     int key = trimmed.IndexOf("guid:", StringComparison.Ordinal);
-                    string hex = trimmed.Substring(key + "guid:".Length).Trim();
+                    currentHex = trimmed.Substring(key + "guid:".Length).Trim();
+                    guidLine = i;
                     entry++;
-                    if (IsAllZeroHex(hex))
-                    {
-                        lines[i] = "  - guid: " + DeterministicExposedGuid(entry);
-                        changed = true;
-                    }
                     continue;
                 }
                 if (trimmed.StartsWith("- name:", StringComparison.Ordinal) ||
                     trimmed.StartsWith("name:", StringComparison.Ordinal))
+                {
+                    int nameKey = trimmed.IndexOf("name:", StringComparison.Ordinal);
+                    string name = trimmed.Substring(nameKey + "name:".Length).Trim();
+                    if (guidLine < 0)
+                    {
+                        string msg = $"[exposed·YAML] 条目「{name}」有 name 无 guid 行 ——" +
+                                     " 结构异常,拒绝继续";
+                        Debug.LogError("[MixerAssetGenerator] " + msg);
+                        throw new InvalidOperationException(msg);
+                    }
+
+                    if (!volumeHashByName.TryGetValue(name, out string realHash))
+                    {
+                        // 合成条序 guid(b500…)已退役:查不到同名组 ⇒ 硬失败,绝不写假值
+                        string msg = $"[exposed·YAML] exposed 名「{name}」查不到同名组的 " +
+                                     "m_Volume 哈希 —— 拒绝写假 guid(合成条序路径 2026-09-26 退役;" +
+                                     "若为未来 filter 参数,先裁定资产拓扑)";
+                        Debug.LogError("[MixerAssetGenerator] " + msg);
+                        throw new InvalidOperationException(msg);
+                    }
+
+                    if (!string.Equals(currentHex, realHash, StringComparison.Ordinal))
+                    {
+                        // 含旧 b500… 合成值与全零 —— 一律改写为真哈希(本方法的存在理由)
+                        lines[guidLine] = "  - guid: " + realHash;
+                        changed = true;
+                    }
+
+                    guidLine = -1;
+                    currentHex = null;
                     continue;
+                }
                 if (trimmed.Length == 0) continue;
                 break;   // 块结束(下一个 m_ 键 / 文档头)
             }
 
             if (!changed) return text;
-            log.Add($"[exposed·YAML] 全零 GUID 规整为确定性非零(条序 1..{entry})—— " +
-                    "b5 + 28×0 + 两位序号,非随机");
+            log.Add($"[exposed·YAML] GUID 对齐同名组 m_Volume 哈希(条目 {entry};真参数落点 ——" +
+                    " 合成 b500… 条序值退役,2026-09-26)");
             return string.Join("\n", lines);
-        }
-
-        /// <summary>确定性 exposed GUID(hex 字符串,32 位):<c>b5</c> + 28 个 0 + 两位条序。</summary>
-        private static string DeterministicExposedGuid(int entryIndex)
-            => "b5" + new string('0', 28) +
-               entryIndex.ToString("D2", System.Globalization.CultureInfo.InvariantCulture);
-
-        /// <summary>hex 串是否全零(空 / 纯 <c>0</c> 判零;非 hex 字符按非零处理,不误改)。</summary>
-        private static bool IsAllZeroHex(string hex)
-        {
-            if (string.IsNullOrEmpty(hex)) return false;
-            foreach (char c in hex)
-                if (c != '0') return false;
-            return true;
         }
 
         /// <summary>裁剪孤儿 effect(七轮):<c>m_SendTarget ≠ 0</c> 却**未挂在任何组
@@ -646,6 +711,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             // REC(八轮):允许集 = 五员 ∪ reverb_preset_ 前缀 —— MixerRegistry.ReverbPresetSnapshotPrefix
             // 自称「快照由本生成器占位」;只认五员会把将来的 reverb_preset_{indoor,…} 当野员删掉。
             // 门侧 ValidateSnapshotRoster 同口径(五员必在 + 额外快照不报错)。
+            // 2026-09-27:允许集 += "Snapshot" —— CreateDefaultAsset 产出的裸样例基底名,
+            //  EnsureSnapshotsViaYaml 需要它作为改名 Default 的基底;裁掉则无基底可改。
+            allowed.Add("Snapshot");
 
             string[] lines = text.Split('\n');
             var removeLine = new bool[lines.Length];

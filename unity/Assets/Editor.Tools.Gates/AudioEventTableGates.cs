@@ -254,6 +254,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             errors.AddRange(ValidatePairing(table.Rows));
             errors.AddRange(ValidateRowSchemaVersions(table.Rows, table.SchemaVersionRaw));
             errors.AddRange(ValidateRequiredCues(table.Rows));
+            errors.AddRange(ValidateAdventitiousLayerPresence(table.Rows));
             errors.AddRange(ValidateTierParamsFilters(table.Rows));
             errors.AddRange(ValidateCueUniqueness(table.Rows));
             errors.AddRange(ValidateLoopClock(table.Rows));
@@ -770,13 +771,8 @@ namespace DaYiJingCheng.EditorTools.Gates
                 if (row == null)
                     continue;
 
-                // 行判定器:cue 前缀 或 任一 policy / clock_ref 字段在场 ⇒ 按附加音层行全约束
-                bool adventitious = HasAdventitiousPrefix(row.Cue) ||
-                                     row.Policy != null ||
-                                     !string.IsNullOrEmpty(row.ClockRef) ||
-                                     HasAdventitiousAsset(row.Assets);
-
-                if (!adventitious)
+                // 行判定器:抽为 IsAdventitiousRow 单一出处(规则 8 与 AC-44-01 ① 存在性共用)
+                if (!IsAdventitiousRow(row))
                     continue;
 
                 string label = RowLabel(row, i);
@@ -883,6 +879,77 @@ namespace DaYiJingCheng.EditorTools.Gates
                     $"{label} 相位窗 [{Fmt(center - jitter)}, {Fmt(center + jitter)}] 越出吸气段 [0,1] —— " +
                     "规则 8 / GDD §Edge Cases:±jitter 不得出吸气段";
             }
+        }
+
+        // ══════════ AC-44-01 ①:附加音层行存在性(数据级结构前提)══════════
+
+        /// <summary>附加音层行判定器(**单一出处**;规则 8 与 AC-44-01 ① 共用):四入口任一命中 ——
+        /// cue 前缀(<see cref="AdventitiousCuePrefixes"/>)/ 素材前缀(<see cref="AdventitiousAssetPrefixes"/>)/
+        /// <c>adventitious_policy</c> 在场 / <c>clock_ref</c> 在场。</summary>
+        private static bool IsAdventitiousRow(AudioEventTableRow row)
+        {
+            return row != null &&
+                   (HasAdventitiousPrefix(row.Cue) ||
+                    row.Policy != null ||
+                    !string.IsNullOrEmpty(row.ClockRef) ||
+                    HasAdventitiousAsset(row.Assets));
+        }
+
+        /// <summary>AC-44-01 ①(存在半):<c>rows</c> 非空且**无任何附加音层行** ⇒ 失败 ——
+        /// 附加层行缺失 = 该档附加音层为零(GDD AC-44-01 ① :990「附加音层行存在」的执行体;
+        /// 2026-09-26 换载体后 ① 只是**结构前提**,「非静音」强判据在 ②③,不冒充增益判据)。
+        /// <para><b>重复性说明</b>:六列齐已由 <see cref="ValidateTierMap"/> 覆盖(002 规则 5)、
+        /// <c>loop ≠ true</c> 已由 <see cref="ValidateLoopClock"/> 覆盖(002 规则 8)—— 两者**不在此重复**;
+        /// 本方法只补「一行都没有」时规则 8 的空转面(判定器无行可判 ⇒ 静默通过)。
+        /// **空表(0 行)不在此报** —— 规则 7 已接管,同场景双报会打乱 002 现有
+        /// <c>errors.Count</c> 断言。</para></summary>
+        /// <param name="rows">cue 行;null = <c>rows</c> 字段缺失(NOT-RUN)。</param>
+        public static IReadOnlyList<string> ValidateAdventitiousLayerPresence(IReadOnlyList<AudioEventTableRow> rows)
+        {
+            if (rows == null)
+                return new[] { "[NOT-RUN 守卫 · 规则3] rows 字段缺失 —— AC-44-01 ①(附加音层行存在性)不可执行" };
+
+            if (rows.Count == 0)
+                return new string[0];   // 规则 7(空表)已报,不重复
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                if (IsAdventitiousRow(rows[i]))
+                    return new string[0];
+            }
+
+            return new[]
+            {
+                "[AC-44-01 ①] rows 非空但**无任何附加音层行**(cue 前缀 / 素材前缀 / " +
+                "adventitious_policy / clock_ref 四入口全不命中)—— 附加层行缺失 = 该档附加音层为零" +
+                "(GDD AC-44-01 ①「附加音层行存在」;结构前提,非增益判据)",
+            };
+        }
+
+        /// <summary>**AC-44-01 ① 的单一聚合入口**(数据级结构前提,2026-09-26 换载体后口径):
+        /// ① 三档六列齐 —— **委托** <see cref="ValidateTierMap"/>(002 规则 5 已实现,不造第二份);
+        /// ② 附加音层行存在 —— <see cref="ValidateAdventitiousLayerPresence"/>;
+        /// ③ 附加层行 <c>loop: true</c> + <c>clock_ref</c> / 相位窗完整 —— **委托**
+        /// <see cref="ValidateLoopClock"/>(002 规则 8,含 AC-44-14 schema 半 / AC-44-08 [A] 窗口)。
+        /// <para>⚠️ 本入口**不新增判据**、不替代 <see cref="Validate"/> 总门 —— 只为 AC 提供可直接
+        /// 引用的聚合调用点(Story 004 测试 / Story 010 烘焙)。「非静音」的**强判据在
+        /// AC-44-01 ②③**(.mixer 静音扫描见 <c>MixerTopologyGates.ValidateNoTierMuteFlags</c> /
+        /// RMS 探针),① 只是结构前提(GDD :995-1001),**不冒充增益判据**。</para>
+        /// <example>
+        /// var errs = AudioEventTableGates.ValidateAc4401DataLevel(table);
+        /// if (errs.Count &gt; 0) throw new Exception(string.Join("\n", errs));
+        /// </example></summary>
+        /// <param name="table">事件表(null ⇒ NOT-RUN)。</param>
+        public static IReadOnlyList<string> ValidateAc4401DataLevel(AudioEventTable table)
+        {
+            if (table == null)
+                return new[] { "[NOT-RUN 守卫 · 规则3] 事件表缺失(null)—— AC-44-01 ① 不可执行" };
+
+            var errors = new List<string>();
+            errors.AddRange(ValidateTierMap(table));
+            errors.AddRange(ValidateAdventitiousLayerPresence(table.Rows));
+            errors.AddRange(ValidateLoopClock(table.Rows));
+            return errors;
         }
 
         // ══════════ xfade_ms 存在性 / 类型(数值断言归 Story 012)══════════

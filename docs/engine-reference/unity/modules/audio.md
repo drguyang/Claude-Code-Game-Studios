@@ -156,6 +156,54 @@ void RestoreMusic() {
 
 ---
 
+## Per-Source Filters & Ramp Evidence (补录 2026-09-26 · Story 004 MUST DO 5)
+
+> **补录缘由**:`production/epics/audio-system/story-004-breath-layers-precision-tiers.md`
+> Engine Notes 钉「逐源 `AudioLowPassFilter` 须补录 engine-reference」;下方两条是
+> GDD F-44.1「滤波 / 噪声底变化 ramp ≥ 50 ms 硬下界」**不可用 `TransitionTo` 证明**的依据。
+> 口径:不确定的写「未实测」,不写成事实。
+
+### AudioLowPassFilter Component
+
+```csharp
+// ✅ 逐源低通滤波(与 AudioSource 同 GameObject;参数名 = 长期稳定 API,训练数据已知)
+AudioLowPassFilter lowpass = GetComponent<AudioLowPassFilter>();
+lowpass.cutoffFrequency = 1200f;   // Hz(默认 22000)
+lowpass.lowpassResonanceQ = 1.0f;  // Q 值(默认 1)
+
+// ✅ 读当前值
+float hz = lowpass.cutoffFrequency;
+```
+
+- **与组级滤波的分工**:Audio Mixer 里的 LowPass effect 挂在**组**上 = 同组全部声源**共享**
+  (逐 cue 带档位会互踩,GDD F-44.1 :306-310 注);`AudioLowPassFilter` 组件是**逐源**独立滤波
+  —— 本项目用于听诊基础气流层与附加音层走**不同通带**的场景。
+- **⚠️ 无内建 ramp 承诺**:直接赋值 `cutoffFrequency` 的**过渡行为未实测**(文档无 ≥ 50 ms
+  过渡的承诺)—— 需要硬下界 ramp 时须**脚本自插值**(见下条),不得指望赋值本身平滑。
+- **⚠️ Knowledge Gap(post-cutoff 未实测面)**:Unity 6「audio mixer improvements」是否改变
+  该组件的参数范围 / 滤波曲线形状 —— **未在 6000.3.24f1 实测**;组件存在性与两个属性名
+  为长期稳定 API(低风险)。
+
+### Ramp ≥ 50 ms 的可用依据(SetFloat / TransitionTo 两签名 · 2026-09-26 Q3 核对)
+
+```csharp
+// ✅ 唯一签名:两参 —— 立即生效,无 transitionTime 参数
+audioMixer.SetFloat("StethoscopeBandwidth", value);
+
+// ✅ 单签名:time = 过渡时长(秒);过渡曲线由 Unity 内部决定
+snapshot.TransitionTo(0.5f);
+```
+
+- `AudioMixer.SetFloat(string, float)` **无 transitionTime 重载**(6.3 文档面仅两参;
+  2026-09-26 咨询核对)。
+- `AudioMixerSnapshot.TransitionTo(float)` **单签名**;**过渡曲线形状由引擎内部决定、
+  未文档化** ⇒ **不得**把 `TransitionTo(0.05f)` 当作「ramp ≥ 50 ms 达标」的证明
+  (曲线不透明 ⇒ 判据写不出 = 假绿);曲线实际形状**未实测**。
+- **项目结论(Story 004 / 006 依据)**:滤波 / 噪声底的 ≥ 50 ms ramp 由**脚本按 dB/oct
+  对数轴自插值 + 逐帧 `SetFloat`** 实现;可测点 = 单帧 Δ 上限 + 到位计时 ≥ 50 ms。
+
+---
+
 ## Audio Performance
 
 ### Optimize Audio Loading

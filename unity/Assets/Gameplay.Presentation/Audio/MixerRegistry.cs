@@ -27,7 +27,14 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
 
         /// <summary>玩家 exposed 总线音量参数(<c>bus_volume_*</c>;注册表 AC③ 的断言对象,
         /// 计数 = 7 含 master)。命名 = <c>bus_volume_ + 总线名小写</c>,与玩家音量组同名
-        /// (两级组结构约定:exposed 参数由同名组承载)。</summary>
+        /// (两级组结构约定:exposed 参数由同名组承载)。
+        /// <para>✅ **H-B 确认(2026-09-27)**:<c>AudioMixer.SetFloat</c> 在 EditMode 对**任何名字**
+        /// 都返回 false(包括明显不存在的名字)⇒ 其「按名字查表」native 路径在此环境本身不通
+        /// (EditMode / 无活跃 DSP 图 / native 状态),**与 exposed 配置完全无关**。
+        /// <c>GetFloat</c> 走另一条路径(遍历组调 <c>GetGUIDForVolume()</c> 兜底),实测返回 true。
+        /// ⇒ 本注册表 guid 与同名组 <c>m_Volume</c> 哈希逐条一致(配置守卫)+ <c>GetFloat</c>
+        /// 返回 true(读路径守卫)可作为有效判据;<c>SetFloat</c> 在 EditMode 不可判,
+        /// **运行期(播放态)仍有效**(EditMode 限制不适用于运行期)。</para></summary>
         public static readonly IReadOnlyList<string> BusVolumeParameters = new[]
         {
             "bus_volume_master", "bus_volume_music", "bus_volume_ambience",
@@ -45,6 +52,29 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         public static readonly IReadOnlyList<string> SnapshotNames = new[]
         {
             "Default", "StethoscopeFocus", "DialogueFocus", "Paused", "VRComfort",
+        };
+
+        /// <summary>tier 滤波 / 噪声底的 **exposed 参数名闭集**(Story 004 · GDD F-44.1 六列中
+        /// 可落浮点的五列;<c>band_detail_count</c> = 计数非浮点参数,不入)。
+        /// <para>⚠️ **exposed + 脚本驱动,禁入任何快照**(GDD :194-201 —— 否则
+        /// <c>DialogueFocus → Default</c> 回退会把档位拉回出厂)。**断言复用 Story 003 的
+        /// <c>MixerTopologyGates.ValidateSnapshotExposedDisjoint</c>**(快照捕获集 ∩ exposed 集 = ∅),
+        /// 不另写判据。参数**值** = 事件表 <c>tier_map</c> 行(数据归用户调,本类只载名字)。</para>
+        /// <para>🚨 **阻塞登记(2026-09-26 用户裁定:只修 bus_volume 小口子,本缺口不做)** ——
+        /// 本五名进 <c>.mixer</c> 的通路**被资产拓扑阻塞**,不是「生成器加一行」的事:
+        /// ① <c>.mixer</c> 现有 **25 个 effect 全是 <c>Attenuation</c>、零 filter effect**
+        /// ⇒ <c>passband_*</c> 等量**无真实参数可挂**(暴露 guid 须 = 真实参数哈希,
+        /// 探针 <c>test_busVolumeExposedParam_actuallyAcceptsSetFloat</c> 已证通路语义);
+        /// ② **谁承载 tier 滤波 = 全案未认领的资产拓扑裁定** —— GDD F-44.1(:278)说 tier 驱动
+        /// 通带 / 噪声底、Story 004 Implementation Notes 说「消费列做滤波 / 噪声底驱动」,
+        /// 但**无任何 story 认领「往 mixer 加 filter effect」**;③ 后果 = **阻塞 AC-44-02
+        /// 将来的听测**(滤波不生效则三档听不出差异,听测必然失败)。
+        /// **拓扑裁定落地前,禁给五名写「应 exposed」断言**(做不到,写了就是假红)。
+        /// 本列表继续作为**名字闭集单一出处**待认领。</para></summary>
+        public static readonly IReadOnlyList<string> TierFilterParameters = new[]
+        {
+            "tier_passband_center_hz", "tier_passband_width_hz",
+            "tier_noise_floor_db", "tier_contact_noise_floor_db", "tier_signal_db",
         };
 
         /// <summary>Default 快照名。</summary>

@@ -35,6 +35,7 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using DaYiJingCheng.EditorTools.Gates;
+using DaYiJingCheng.Gameplay.Presentation.Audio;
 using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Tests.Unit.Audio
@@ -46,12 +47,28 @@ namespace DaYiJingCheng.Tests.Unit.Audio
 
         // 状态 / 渲染参数入口白名单(AC-44-B3 二轮 Q2 收窄后的三分口径:
         // 状态入口 = AudioCueDto 唯一;渲染参数 = TierSource(SetTier)/ AudioCueHandle(循环句柄)/
-        // IAudioCueSink(唯一公开接口)/ IPositionalChannel(只读第二 QoS,Story 007 消费纪律);
+        // IAudioCueSink(唯一对外公开接口)/ IPositionalChannel(只读第二 QoS,Story 007 消费纪律);
         // BCL / 引擎类型(mixer 暴露参数等)不在本白名单判定面 —— 它们天然非项目类型。)
+        //
+        // **2026-09-26 Story 004 增列(用户裁定 A 案:扩允许面)**:`FilterRamp.State`
+        // 是 44 的**渲染期 ramp 状态**(滤波斜坡的相位/计时),不持有游戏状态、不进 sim、
+        // 不经三流 —— 违反的是 B3 的字面而非 ADR-018 §一「只触发/只渲染」的本意。
         private static readonly Type[] EntryAllowlist =
         {
             typeof(AudioCueDto), typeof(TierSource), typeof(AudioCueHandle),
             typeof(IAudioCueSink), typeof(IPositionalChannel),
+            typeof(FilterRamp.State),
+        };
+
+        // 44 实现的**项目接口**允许面(AC-44-B3 ①:原字面 = 「只有 IAudioCueSink」)。
+        //
+        // **2026-09-26 Story 004 增列(用户裁定 A 案)**:两个都是 44 **自用的注入 seam**
+        // —— 测试要注入假件替换引擎依赖(传输采样 / mixer 写入),**不对外提供、不持游戏状态**。
+        // 语义上仍守 ADR-018 §一「只触发/只渲染」;`BadInterfaceFixture` 负例(未知接口 ⇒ 红)
+        // 不受影响,仍逐条判红。
+        private static readonly Type[] EntryInterfaceAllowlist =
+        {
+            typeof(IBreathLayerTransport), typeof(IMixerParameterSink),
         };
 
         // 2026-09-26 修:产物路径单一出处 = 门的 ScriptAssemblyPath(原测试自拼 Path.Combine
@@ -376,12 +393,14 @@ namespace DaYiJingCheng.Tests.Unit.Audio
 
             foreach (var t in moduleTypes)
             {
-                // ① 实现的项目接口 ⊆ {IAudioCueSink}(「公开接口只有 IAudioCueSink」;
+                // ① 实现的项目接口 ⊆ {IAudioCueSink} ∪ EntryInterfaceAllowlist
+                // (「公开接口只有 IAudioCueSink」+ Story 004 自用注入 seam,见白名单注);
                 // 引擎接口 ISerializationCallbackReceiver 等天然非项目,不在此断言面)
                 foreach (var i in t.GetInterfaces())
                 {
                     if (!IsProjectNamespace(i.Namespace)) continue;
                     if (i == typeof(IAudioCueSink)) continue;
+                    if (EntryInterfaceAllowlist.Contains(i)) continue;
                     errs.Add($"[B3] {t.FullName} 实现了 IAudioCueSink 之外的项目接口「{i.FullName}」" +
                              "—— 44 的公开接口只有 IAudioCueSink(只入不出;AC-44-B3)");
                 }
