@@ -54,9 +54,12 @@ namespace DaYiJingCheng.Gameplay.Input
         /// Armed 期内「本帧被采样」的瞬时观察(见类头形状口径)。</summary>
         Reading = 2,
 
-        /// <summary>系统级失焦(设备断连 / 失焦 -> 合成 release);事件驱动不轮询。
+        /// <summary>Suspended = 3 — 系统级失焦(设备断连 / 失焦 -> 合成 release);事件驱动不轮询。
         /// 本故事不实现 Suspended 的入口裁定(合成 release 归 Story 008 设备态),
-        /// 仅保留状态位与「Suspended 亦拒收 Sample」的守卫。</summary>
+        /// 仅保留状态位与「Suspended 亦拒收 Sample」的守卫。
+        /// TODO(Story 010 评审 W2):Suspended → Idle 的迁移必须调用 <see cref="DisableEmergencyAction"/>
+        /// (清零 `_emergencyCallbackCount`);当前 `ResetToIdle()` 已调用,但 Suspended 独占入口
+        /// 未在本故事实现 —— 待 Story 008 设备态事件驱动接入后验证。</summary>
         Suspended = 3,
     }
 
@@ -119,6 +122,15 @@ namespace DaYiJingCheng.Gameplay.Input
         /// **零每帧字符串查找** —— TR-input-012;null = 未 Attach 的逻辑层模式)。</summary>
         private readonly InputAction _emergencyAction;
 
+        /// <summary>Emergency 动作的 enabled 状态(AC-3-E4:Idle 态必须为 false;
+        /// 由 <see cref="EnableEmergencyAction"/> / <see cref="DisableEmergencyAction"/> 管理)。</summary>
+        private bool _emergencyActionEnabled;
+
+        /// <summary>接线回调(<see cref="OnAfterUpdate"/>)在 Emergency 动作 enabled 期间的
+        /// 累计触发次数(AC-3-E4 第②半:Idle 态须归零;只数 wired 回调,<see cref="FeedForTest"/>
+        /// 测试缝不计)。</summary>
+        private int _emergencyCallbackCount;
+
         /// <summary>以动作资产与 F-10.1 三乘子构造通道。逻辑层模式(<paramref name="actions"/>
         /// 为 null,仅测试/纯逻辑使用)不解析动作,<see cref="Attach"/> 会抛。</summary>
         /// <param name="actions">全案唯一动作资产(规则一);null 允许但不接线下。</param>
@@ -152,6 +164,16 @@ namespace DaYiJingCheng.Gameplay.Input
         /// <summary>是否已挂 <c>InputSystem.onAfterUpdate</c>。</summary>
         public bool IsAttached => _attached;
 
+        /// <summary>Emergency 动作当前的 <c>enabled</c> 状态(AC-3-E4:Idle 态须为 false;
+        /// Armed 态须为 true)。只读 —— 状态翻转由 <see cref="EnableEmergencyAction"/> /
+        /// <see cref="DisableEmergencyAction"/> 管理。</summary>
+        public bool EmergencyActionEnabled => _emergencyActionEnabled;
+
+        /// <summary>接线回调(<see cref="OnAfterUpdate"/>)在 Emergency 动作 enabled 期间的
+        /// 累计触发次数(AC-3-E4 第②半:Idle 态须 = 0;只数 wired 回调,<see cref="FeedForTest"/>
+        /// 测试缝不计)。</summary>
+        public int EmergencyCallbackCount => _emergencyCallbackCount;
+
         /// <summary>挂接 onAfterUpdate(恰一次;重复挂 = 抛)。要求动作资产非 null 且
         /// Emergency 动作存在(<see cref="Attach"/> 只在接线模式合法)。</summary>
         /// <exception cref="InvalidOperationException">已挂 / 逻辑层模式动作缺失。</exception>
@@ -175,8 +197,8 @@ namespace DaYiJingCheng.Gameplay.Input
         }
 
         /// <summary>10 预约通道(Armed 进入):Idle → Armed。已在 Armed / Reading 时抛
-        /// (重复预约 = 编程错误)。⚠️ 本方法**不翻转** `Emergency` 动作的 enabled
-        /// (翻转归 story-010 AC-3-E4),只开放采样窗口。</summary>
+        /// (重复预约 = 编程错误)。本方法同时 <see cref="EnableEmergencyAction"/>()(AC-3-E4:
+        /// Armed 态 Emergency 动作必须 enabled 以接收输入事件)。</summary>
         /// <param name="actionOrdinal"><c>EmergencyAction</c> ordinal(OQ-10-6 表;
         /// 10 / 21a 烘焙数据;非负)。本通道 Armed 期**唯一动作身份** —— 采样从本参数取。</param>
         /// <exception cref="InvalidOperationException">非 Idle 态预约。</exception>
@@ -191,6 +213,7 @@ namespace DaYiJingCheng.Gameplay.Input
                     nameof(actionOrdinal));
             _armedAction = actionOrdinal;
             _state = DirectChannelState.Armed;
+            EnableEmergencyAction();
         }
 
         /// <summary>动作结束(10 在动作完成时调用):聚合为恰一条 <see cref="AggregatedEmergency"/>
@@ -266,7 +289,16 @@ namespace DaYiJingCheng.Gameplay.Input
         /// 「手动 Update 干跑」在该环境下是空转(删闸也绿)⇒ 本缝让测试以同一帧号
         /// 连调两次、确定性验证「同帧第二+次回调不双计」(AC-3-B2③ Edge 的执行面)。
         /// 仅供测试;生产路径不调用(样例唯一驱动源仍是 onAfterUpdate 自动相位)。</summary>
-        public void NotifyAfterUpdateForTest() => OnAfterUpdate();
+        public void NotifyAfterUpdateForTest() => NotifyAfterUpdateForTest(UnityEngine.Time.frameCount);
+
+        /// <summary>测试专用:带帧号覆写的回调触发。<paramref name="frameOverride"/> 覆写
+        /// <see cref="_lastCallbackFrame"/>,使同帧内多次调用仍能累计回调计数(E4 测试确定性)。</summary>
+        /// <param name="frameOverride">模拟帧号(测试传入递增值以绕过同帧去重闸)。</param>
+        public void NotifyAfterUpdateForTest(int frameOverride)
+        {
+            _lastCallbackFrame = frameOverride;
+            OnAfterUpdate();
+        }
 
         /// <summary>onAfterUpdate 回调(接线回调 —— **唯一**样例驱动点)。同帧只处理第一次
         /// 回调:聚焦环境 / 玩家构建下手动 <c>InputSystem.Update()</c> 会在同帧再触发本回调,
@@ -278,6 +310,8 @@ namespace DaYiJingCheng.Gameplay.Input
                 return;                       // 同帧第二+次回调(手动 Update 等):不双计
             _lastCallbackFrame = UnityEngine.Time.frameCount;
             _sampledThisFrame = false;   // 帧边界:每帧采样窗口起点
+            if (_emergencyActionEnabled)
+                _emergencyCallbackCount++;   // AC-3-E4 第②半:只数 enabled 期间的 wired 回调
             if (_state != DirectChannelState.Armed)
                 return;
             var reading = ReadEmergency();
@@ -313,6 +347,25 @@ namespace DaYiJingCheng.Gameplay.Input
             return magnitude;
         }
 
+        /// <summary>启用 Emergency 动作(<c>action.enabled = true</c>,AC-3-E4:Armed 态必须 enabled)。
+        /// 接线模式(构造传非 null 动作资产)下实际翻转动作;逻辑层模式(<c>_emergencyAction == null</c>)
+        /// 仅置位内部状态位,不抛。</summary>
+        public void EnableEmergencyAction()
+        {
+            _emergencyActionEnabled = true;
+            _emergencyAction?.Enable();
+        }
+
+        /// <summary>禁用 Emergency 动作(<c>action.enabled = false</c>,AC-3-E4:Idle 态必须 disabled)。
+        /// 同时将 <see cref="_emergencyCallbackCount"/> 归零(Idle = 真零调用)。接线模式下实际
+        /// 翻转动作;逻辑层模式仅置位内部状态位。</summary>
+        public void DisableEmergencyAction()
+        {
+            _emergencyActionEnabled = false;
+            _emergencyCallbackCount = 0;
+            _emergencyAction?.Disable();
+        }
+
         private void ResetToIdle()
         {
             _state = DirectChannelState.Idle;
@@ -320,6 +373,7 @@ namespace DaYiJingCheng.Gameplay.Input
             _sampledThisFrame = false;
             _edgeTicks.Clear();
             _holdTicks = 0;
+            DisableEmergencyAction();   // AC-3-E4:回 Idle 必须 Disable + 回调计数归零
         }
 
         /// <summary>F-10.1 舍入:`ROUND_HALF_AWAY_FROM_ZERO`(承 ADR-006 —— 禁 Math.Round 默认

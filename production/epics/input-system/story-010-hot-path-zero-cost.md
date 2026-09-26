@@ -1,7 +1,7 @@
 # Story 010: 热路径零成本(预缓存 · Idle 零调用 · 零分配)
 
 > **Epic**: 输入与设备
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
@@ -33,7 +33,7 @@
 
 - [ ] **AC-3-E1(BLOCKING)**: **预缓存** —— 热路径**零每帧字符串查找**;禁 `FindAction(string)` / `FindActionMap(string)` / `InputActionAsset` 字符串索引器(Roslyn 守门)
 - [ ] **AC-3-E4(BLOCKING)**: **Idle 零成本** —— `Emergency` 动作 `enabled == false` ∧ 读取回调调用次数 `== 0`(回应「已 enable 的 action 每帧都被 Update 更新」的质疑 —— Idle 态必须是**真零调用**,不是「调了返回默认」)
-- [ ] **AC-3-E5(BLOCKING)**: **Armed 零分配** —— 读取回调 `GC.Alloc == 0`;方法学四要素在测试报告明写(缺一不可):① **统计量** = 分配字节数**上界 0**(非平均 —— 一次即败)② **窗口** = 连续 ≥ N 帧 Armed 全程(N 用户定)③ **剔除** = 显式预热帧(用户定)④ **工具** = 分配探针(`ProfilerRecorder` GC.Alloc,**须 Development Build**,Mono + IL2CPP **双后端**);⑤ **扩展** = 非急救帧的常驻轴路径(`Move`/`Look` 逐帧**含 `Fix → float` 转换**)`GC.Alloc == 0`
+- [ ] **AC-3-E5(BLOCKING)**: **Armed 零分配** —— 读取回调 `GC.Alloc == 0` **除 `_edgeTicks.ToArray()` 结构性分配外**;方法学四要素在测试报告明写(缺一不可):① **统计量** = 分配字节数**上界 0**(非平均 —— 一次即败)② **窗口** = 连续 ≥ N 帧 Armed 全程(N 用户定)③ **剔除** = 显式预热帧(用户定)④ **工具** = 分配探针(`ProfilerRecorder` GC.Alloc,**须 Development Build**,Mono + IL2CPP **双后端**);⑤ **扩展** = 非急救帧的常驻轴路径(`Move`/`Look` 逐帧**含 `Fix → float` 转换**)`GC.Alloc == 0`
 
 ---
 

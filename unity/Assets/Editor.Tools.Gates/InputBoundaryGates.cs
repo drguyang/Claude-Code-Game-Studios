@@ -133,6 +133,28 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// (故事 QA 负例的字面场景)会全绿通过。补齐两 token 后两头都断。</summary>
         public static readonly string[] InputForbiddenSourceTokens = { "IEventSink", "SimEvent" };
 
+        // ── E1(Story 010):热路径字符串查找禁令 ──
+        // 判据:Gameplay.Input 源树的**热路径方法**(每帧回调 / 直读 / 采样 / 聚合)内
+        // 不得出现 FindAction(string) / FindActionMap(string) / 字符串索引器(asset["..."])。
+        // 一次性初始化路径(构造 / Attach / 解析缓存)允许字符串查找(那是预缓存本身)。
+        /// <summary>E1 热路径字符串查找禁令的扫描目标方法名(大小写敏感;匹配方法声明/调用两侧)。</summary>
+        public static readonly string[] HotPathMethodNames =
+        {
+            "OnAfterUpdate", "ReadEmergency", "Feed", "FeedForTest",
+            "Sample", "EndAttempt", "AbortAttempt", "EndAction", "AbortAction",
+            "Arm", "EnableEmergencyAction", "DisableEmergencyAction", "ResetToIdle",
+            "MagnitudeFromAxis", "RoundHalfAwayFromZero",
+        };
+
+        /// <summary>E1 热路径内禁止出现的字符串查找 token(正则转义后的字面量)。</summary>
+        public static readonly string[] HotPathProhibitedTokens =
+        {
+            "FindAction(", "FindActionMap(", "FindBinding(",  // 方法调用形态
+        };
+
+        /// <summary>E1 字符串索引器禁令的附加正则(捕获 asset[...] / actions[...] 形态)。</summary>
+        public const string HotPathStringIndexerPattern = @"\b\w+\s*\[s""[^""]+""\s*\]";
+
         // ── D2(Story 008 · AC-3-D2 BLOCKING):无素材、无时机 ──
         // 两面执法,均为**编译产物元数据**判据(AC 原文「构建报告断言…非 grep 源码」;
         // 「经常量字符串引用素材路径」的 Edge 由 TypeRef 面天然覆盖 —— 字符串值不是资产引用)。
@@ -602,13 +624,8 @@ namespace DaYiJingCheng.EditorTools.Gates
 
         /// <summary>本门全部判定一次跑完(菜单 / 测试 / 构建前门共用)。
         /// A6 直接引用集 + A6 传递闭包 + **B2① UI 栈禁引** + A6 交出物闭集 + A7 全根闭包
-        /// + **B3 IL 面** + B3 源文本。返回红错;roots = A7 扫描根数(0 = WARN 由调用方处理)。
-        /// ⚠️ reflection 面的 <see cref="CheckReadingFieldLeaves(Type)"/> 仍**不入**
-        /// RunAll —— 本装配(Editor.Tools.Gates)**不引用 Gameplay.Input**,该面上
-        /// `typeof(EmergencyReading)` 不可编译。B3 的构建期强制点由**读 IL**的
-        /// <see cref="CheckReadingFieldsIl"/> 承担(不产生程序集引用 ⇒ A6 边不破,
-        /// 2026-09-26 评审 S1);reflection 面作为**第二道**由测试装配驱动,两面同判据
-        /// (见 IsIlNonExpandableScope 与 ShouldExpandMembers 的逐条对应注记)。</summary>
+        /// + **B3 IL 面** + B3 源文本 + **E1 热路径字符串查找禁令**。返回红错;
+        /// roots = A7 扫描根数(0 = WARN 由调用方处理)。</summary>
         public static List<string> RunAll(out int roots)
         {
             var errs = new List<string>();
@@ -620,6 +637,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             errs.AddRange(CheckReadingFieldsIl(                // B3 字段全整数 · IL 面(S1)
                 AssemblyGates.ScriptAssemblyPath(InputAssemblyName), DeliveredIntentTypes, out _));
             errs.AddRange(CheckInputSourceText());             // B3 源文本 + 零事件面
+            errs.AddRange(CheckHotPathStringLookups());        // E1 热路径字符串查找禁令(Story 010)
 
             // ── D2(Story 008):构建报告断言两面(编译产物元数据,非 grep)──
             var d2Dll = AssemblyGates.ScriptAssemblyPath(InputAssemblyName);
@@ -889,6 +907,132 @@ namespace DaYiJingCheng.EditorTools.Gates
             foreach (var f in Directory.GetFiles(root, "*.cs", SearchOption.AllDirectories))
                 errs.AddRange(SourceTextViolations(File.ReadAllText(f), f));
             return errs;
+        }
+
+        // ── E1(Story 010):热路径字符串查找禁令(源文本扫描)──
+        // 方法论:逐文件扫 Gameplay.Input 源树;对每个方法体做两步判定:
+        //  ① 方法名 ∈ HotPathMethodNames ⇒ 进入热路径面;
+        //  ② 方法体内出现任一 HotPathProhibitedTokens 或命中字符串索引器正则 ⇒ 红。
+        // 一次性初始化路径(构造 / Attach / 字段初始化)豁免:它们在方法名白名单之外,
+        // 故天然不触发本门(白名单只列「每帧/每回调」路径)。
+        /// <summary>E1 热路径字符串查找禁令(纯函数 overload —— 负例夹具喂合成文本)。</summary>
+        /// <param name="sourceText">待扫描的源文本(可为零长度 = 空文件 = 零违例)。</param>
+        /// <param name="fileName">错误消息里的文件标识(如 "Fixture.cs")。</param>
+        /// <returns>违例列表(空 = 绿)。</returns>
+        public static List<string> CheckHotPathStringLookups(string sourceText, string fileName)
+        {
+            var errs = new List<string>();
+            if (string.IsNullOrEmpty(sourceText))
+                return errs;
+
+            string stripped = AssemblyGates.StripCommentsPreserveStrings(sourceText);
+
+            // 判定是否含任何热路径方法声明
+            bool hasHotPath = HotPathMethodNames.Any(m =>
+                Regex.IsMatch(stripped, $@"\b{Regex.Escape(m)}\s*\("));
+            if (!hasHotPath) return errs;
+
+            var indexerRegex = new Regex(HotPathStringIndexerPattern, RegexOptions.Compiled);
+            foreach (string methodName in HotPathMethodNames)
+            {
+                var methodBody = ExtractMethodBody(stripped, methodName);
+                if (methodBody == null) continue;
+                foreach (string token in HotPathProhibitedTokens)
+                {
+                    if (methodBody.Contains(token))
+                    {
+                        errs.Add($"[E1] {fileName} 热路径方法「{methodName}」体内出现" +
+                                 $"「{token}」—— 预缓存禁令(AC-3-E1;Roslyn 守门;" +
+                                 "构造/Attach 等一次性路径豁免,不在此列)。");
+                    }
+                }
+                if (indexerRegex.IsMatch(methodBody))
+                {
+                    errs.Add($"[E1] {fileName} 热路径方法「{methodName}」体内出现字符串索引器" +
+                             "(asset[...] / actions[...]) —— 预缓存禁令(AC-3-E1)。");
+                }
+            }
+            return errs;
+        }
+
+        /// <summary>E1 热路径字符串查找禁令:扫 Gameplay.Input 源树,对热路径方法体内的
+        /// 字符串查找 token 与字符串索引器做源文本判定(零违例 = 绿)。</summary>
+        public static List<string> CheckHotPathStringLookups()
+        {
+            var errs = new List<string>();
+            const string root = "Assets/" + InputAssemblyName;
+            if (!Directory.Exists(root))
+            {
+                errs.Add("[E1] 源扫描面缺失「" + root + "」—— 拒以空集冒充绿(AC-3-E1)。");
+                return errs;
+            }
+
+            var indexerRegex = new Regex(HotPathStringIndexerPattern, RegexOptions.Compiled);
+            foreach (var filePath in Directory.GetFiles(root, "*.cs", SearchOption.AllDirectories))
+            {
+                string src;
+                try { src = File.ReadAllText(filePath); }
+                catch (IOException) { continue; }
+                string relPath = filePath.Replace('\\', '/');
+                string stripped = AssemblyGates.StripCommentsPreserveStrings(src);
+
+                // 先判定本文件是否含任何热路径方法声明
+                bool hasHotPath = HotPathMethodNames.Any(m =>
+                    Regex.IsMatch(stripped, $@"\b{Regex.Escape(m)}\s*\("));
+                if (!hasHotPath) continue;
+
+                // 对每个热路径方法名,提取其方法体并扫描禁令 token
+                foreach (string methodName in HotPathMethodNames)
+                {
+                    var methodBody = ExtractMethodBody(stripped, methodName);
+                    if (methodBody == null) continue;
+                    foreach (string token in HotPathProhibitedTokens)
+                    {
+                        if (methodBody.Contains(token))
+                        {
+                            errs.Add($"[E1] {relPath} 热路径方法「{methodName}」体内出现" +
+                                     $"「{token}」—— 预缓存禁令(AC-3-E1;Roslyn 守门;" +
+                                     "构造/Attach 等一次性路径豁免,不在此列)。");
+                        }
+                    }
+                    if (indexerRegex.IsMatch(methodBody))
+                    {
+                        errs.Add($"[E1] {relPath} 热路径方法「{methodName}」体内出现字符串索引器" +
+                                 "(asset[...] / actions[...]) —— 预缓存禁令(AC-3-E1)。");
+                    }
+                }
+            }
+            return errs;
+        }
+
+        /// <summary>从源文本中提取第一个匹配 <paramref name="methodName"/> 的方法体(大括号对)。
+        /// 返回 null = 找不到该方法声明或方法体不完整(跳过)。
+        /// ⚠️ 已知限制(2026-09-27 Story 010 评审 B3 —— 接受为当前方案):
+        /// ① 匹配不感知方法签名上的特性(attributes) —— `[Test] void Foo()` 的 `[Test]` 在
+        ///    正则到达 `Foo(` 之前不会被错误消费(特性不含方法名字面量),但 `async` 关键字
+        ///    (`async void OnAfterUpdate()`)会使 `\b` 边界失效(方法名前有 `async `);
+        /// ② 方法名去上下文匹配 —— 若热路径方法体内出现同名局部函数,正则取其**第一处**
+        ///    声明而非外层方法声明。本项目热路径无局部函数同名,当前可接受;
+        ///    日后新增方法须确保无同名局部函数或改用全签名匹配。
+        /// 这两点均为已知风险,登记为接受风险,不在本故事修复。</summary>
+        private static string ExtractMethodBody(string src, string methodName)
+        {
+            string pattern = $@"\b{Regex.Escape(methodName)}\s*\([^)]*\)\s*\{{";
+            var m = Regex.Match(src, pattern);
+            if (!m.Success) return null;
+            int bodyStart = m.Index + m.Length - 1; // 指向开括号 '{'
+            int depth = 0;
+            for (int i = bodyStart; i < src.Length; i++)
+            {
+                if (src[i] == '{') depth++;
+                else if (src[i] == '}')
+                {
+                    depth--;
+                    if (depth == 0)
+                        return src.Substring(bodyStart + 1, i - bodyStart - 1);
+                }
+            }
+            return null; // 不完整方法体
         }
 
         // ── D2 面 1:素材 TypeRef 扫描(编译产物元数据,非源码 grep;AC-3-D2)──
