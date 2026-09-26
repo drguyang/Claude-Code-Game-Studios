@@ -4,7 +4,7 @@
 > **GDD**: design/gdd/audio-system.md
 > **Architecture Module**: L5 Presentation(PRES)+ L3 契约程序集(`Sim.Contracts`: `AudioCueDto` / `IAudioCueSink`)
 > **Status**: Ready
-> **Stories**: 13 created(2026-09-26 `/create-stories`)
+> **Stories**: 14 created(13 on 2026-09-26 `/create-stories` + **014 on 2026-09-27 用户裁定**:tier 滤波载体缺口独立成 story)
 
 ## Stories
 
@@ -23,6 +23,7 @@
 | 011 | 设置暴露面与归零机制 | Config/Data | Ready | ADR-018(+013/014) |
 | 012 | 乐层护栏与性能/VR 切面 | Logic | Ready | ADR-018(+020) |
 | 013 | 主通道听测验收 | Visual/Feel | Ready | ADR-018 |
+| 014 | tier 滤波载体与 mixer 暴露参数 | Integration | **In Progress**(2026-09-27 立) | ADR-018 §四 需求③ |
 
 ## Overview
 

@@ -31,6 +31,7 @@
 *From GDD `design/gdd/audio-system.md`, scoped to this story:*
 
 - [ ] **AC-44-05**:构建期校验 —— ① 三输入直取 `tier_map` 列(`signal_db`/`noise_floor_db`/`contact_noise_floor_db`),`ComputeSnrDb` 按 F-44.2 计算,**测试自带常量夹具**(边界 −24/+24 恰含、±200 溢出钳位),`∀T: ComputeSnrDb(行) ∈ [−24,+24] dB`,超界 = 配置拒绝;② 三列 ∈ `Stethoscope` mixer 组暴露参数闭集(YAML 枚举断言)。
+  **② 的载体已于 2026-09-27 独立成 Story 014**(readiness 轮用户裁定)—— 现状 `.mixer` 25 个 effect 全 `Attenuation`、**零 filter effect**,而 `noise_floor_db`/`contact_noise_floor_db` **无任何组参数承载**(`bus_volume_stethoscope` 已暴露,是 7 名之一)⇒ ② 的「闭集」当前最多含 1 员。**本 story 的 ② 改为前置引用**:断言「载体已就绪」(Story 014 交付后自动满足),不重复实现。
 - [ ] **AC-44-06**:`noise_floor_db`/`contact_noise_db` 均**有限且 ≥ `NOISE_FLOOR_DB_MIN`**;`∀T: ComputeSnrDb ≥ −24 dB`(「不毁掉信号」的量化形态);与 8 侧 `READ_FLOOR_MIN > 0` 方向对齐断言(或注明归 8 轮)。
 
 ---
@@ -59,13 +60,16 @@
   - When: 跑夹具。
   - Then: (0,0,0)⇒0dB;边界(使输出恰 ±24)不被错钳;±200 输入 ⇒ 钳到 ±24;非法 NaN 输入 ⇒ 拒;`tier_map` 含一行使 SNR=+30 ⇒ **配置拒绝**(门红);暴露参数扫描三列 ∈ Stethoscope 闭集。
   - Edge cases: 两噪声同为最小负 dB ⇒ 分母最小但 >0(无除零);`signal_db` 缺列 ⇒ schema 门(002)红,不重复拦。
+  - **② 的 mixer 暴露断言**:前置引用 Story 014(2026-09-27 立)—— 载体未就绪时本条**不判红**,只记「载体未就绪」;Story 014 交付后自动满足。
 - **AC-44-06**: 下界断言。Given: `tier_map` 全行。When: 读两噪声列。Then: 均有限 ≥ `NOISE_FLOOR_DB_MIN`;`ComputeSnr ≥ −24`;负向:写 `-200` ⇒ 红;与 8 的 `READ_FLOOR_MIN` 方向对齐(双正断言或显式转 8 轮注记)。
 
 ## Test Evidence
 
 **Story Type**: Logic
 **Required evidence**:
-- `tests/unit/audio_system/snr_analysis_test.cs` — must exist and pass
+- 真身 `unity/Assets/Tests/EditMode/Audio/snr_analysis_test.cs` — must exist and pass
+  (登记路径原写仓库根 `tests/...`,Unity 只编译 `unity/Assets/` 树 —— 承 Story 002/003/004 先例,真身落 `unity/Assets/`)
+- 账本互链 `tests/unit/audio_system/README.md`(AC→测映射)
 
 **Status**: [ ] Not yet created
 
@@ -75,3 +79,4 @@
 
 - Depends on: Story 001 · 002(`tier_map` 载体与六列集)
 - Unlocks: Story 013(听测前的数据面就绪)
+- **Blocked by: Story 014**(2026-09-27 立)—— AC-44-05 ② 的 mixer 暴露载体(给组加 filter effect + 暴露参数);未交付前 ② 只作前置引用,不判红

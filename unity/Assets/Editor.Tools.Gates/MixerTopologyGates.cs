@@ -335,6 +335,8 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 无 m_Mute:1、无 tier×mute 名 ⇒ 既有 errors.Count 断言面(189/272 行,非 YAML 面)
             // 与 Is.Empty 面(210/317 行)均不位移;NOT-RUN 不触发(捕获值 ≥ 1 > 0)。
             errors.AddRange(ValidateNoTierMuteFlags(yamlText));
+            // 2026-09-27: tier filter carrier groups (story 014)
+            errors.AddRange(ValidateTierFilterCarrierGroups(yamlText));
             return errors;
         }
 
@@ -423,16 +425,19 @@ namespace DaYiJingCheng.EditorTools.Gates
             }
 
             // ③ exposed == 注册表 且每项对应存在的组
+            // 2026-09-27: 包含 bus_volume_* (7) + tier filter parameters (5) = 12 参数
             if (mixer.Exposed.Count == 0)
             {
                 errors.Add("[NOT-RUN 守卫] m_ExposedParameters 为空/缺失 —— 注册表断言不可执行");
             }
             else
             {
-                IReadOnlyList<string> registry = Gameplay.Presentation.Audio.MixerRegistry.BusVolumeParameters;
+                var registry = new List<string>(
+                    Gameplay.Presentation.Audio.MixerRegistry.BusVolumeParameters);
+                registry.AddRange(Gameplay.Presentation.Audio.MixerRegistry.TierFilterParameters);
                 foreach (string param in registry)
                     if (!Contains(mixer.Exposed, param))
-                        errors.Add($"[AC③] .mixer exposed 缺「{param}」—— 注册表 7 员须全暴露");
+                        errors.Add($"[AC③] .mixer exposed 缺「{param}」—— 注册表 12 员须全暴露");
                 foreach (string param in mixer.Exposed)
                     if (!Contains(registry, param))
                         errors.Add($"[AC③] .mixer exposed 含注册表外条目「{param}」—— 单一出处在 MixerRegistry");
@@ -444,6 +449,50 @@ namespace DaYiJingCheng.EditorTools.Gates
                     if (!groupNames.Contains(param))
                         errors.Add($"[AC③] exposed 参数「{param}」无同名组承载 —— 玩家音量组命名 = 参数名" +
                                    "(两级组结构约定)");
+            }
+
+            return errors;
+        }
+
+        /// <summary>Story 014: tier filter carrier groups validation.
+        /// Five tier parameter groups must exist under Stethoscope bus.
+        /// Group name = exposed parameter name (carrier form 乙).</summary>
+        public static IReadOnlyList<string> ValidateTierFilterCarrierGroups(string yamlText)
+        {
+            var errors = new List<string>();
+            List<MixerDoc> docs = ParseMixerYaml(yamlText, errors);
+
+            var groups = new Dictionary<long, MixerDoc>();
+            foreach (MixerDoc doc in docs)
+            {
+                if (doc.ClassName != GroupClassName) continue;
+                groups[doc.FileId] = doc;
+            }
+
+            // Find Stethoscope bus group
+            MixerDoc stethoscopeGroup = null;
+            foreach (MixerDoc g in groups.Values)
+                if (string.Equals(g.Name, "Stethoscope", StringComparison.Ordinal))
+                    { stethoscopeGroup = g; break; }
+
+            if (stethoscopeGroup == null)
+            {
+                errors.Add("[tier·载体] Stethoscope 总线组不存在 —— tier filter 载体组无处挂载");
+                return errors;
+            }
+
+            // Check all five tier parameter groups exist under Stethoscope
+            var tierParams = Gameplay.Presentation.Audio.MixerRegistry.TierFilterParameters;
+            var stethoscopeChildren = new HashSet<string>(StringComparer.Ordinal);
+            foreach (long childId in stethoscopeGroup.Children)
+                if (groups.TryGetValue(childId, out MixerDoc child) && child.Name != null)
+                    stethoscopeChildren.Add(child.Name);
+
+            foreach (string paramName in tierParams)
+            {
+                if (!stethoscopeChildren.Contains(paramName))
+                    errors.Add($"[tier·载体] Stethoscope 下缺 tier filter 载体组「{paramName}」—— " +
+                               "五名各需一个同名组(载体形态乙:每参数一名独立组)");
             }
 
             return errors;

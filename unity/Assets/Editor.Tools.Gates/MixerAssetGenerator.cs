@@ -317,6 +317,10 @@ namespace DaYiJingCheng.EditorTools.Gates
                 throw new InvalidOperationException(
                     "[拓扑·组] 取不到 masterGroup(property / get_masterGroup 均无)");
 
+            // 2026-09-27: tier filter carrier groups (story 014)
+            // Five tier parameter groups mounted on Stethoscope bus
+            // BuildTierFilterGroups(controller, master, log); // Moved below groups dict init
+
             var groups = new Dictionary<string, object>(StringComparer.Ordinal) { ["Master"] = master };
             foreach (string bus in DaYiJingCheng.Gameplay.Presentation.Audio.MixerRegistry.BusNames)
             {
@@ -343,6 +347,10 @@ namespace DaYiJingCheng.EditorTools.Gates
             // Reverb 返回组(Aux 目标 —— send 的落点,下一轮 send 阶段用)
             groups["Reverb"] = EnsureChildGroup(controller, master, "Reverb", log);
             log.Add($"[拓扑·组] 完成:七总线两级 + Reverb(组对象 {groups.Count} 个)");
+
+            // 2026-09-27: tier filter carrier groups (story 014)
+            // Five tier parameter groups mounted on Stethoscope bus
+            BuildTierFilterGroups(controller, groups["Stethoscope"], log);
 
             // ② 快照五员 —— **改走 YAML 文本合成**(五轮实测裁定:CloneNewSnapshotFromTarget
             //    依赖编辑器窗口态,batch 返回空;全库无 AddSnapshot/CreateSnapshot,
@@ -398,6 +406,21 @@ namespace DaYiJingCheng.EditorTools.Gates
 
             log.Add($"[拓扑·组] + {name}");
             return created;
+        }
+
+        /// <summary>2026-09-27: tier filter carrier groups (story 014).
+        /// Creates five independent groups under Stethoscope bus, one per tier parameter.
+        /// Group name = exposed parameter name (two-level group structure convention).
+        /// Carrier form: 乙 (one group per parameter) — matches existing pattern,
+        /// no internal API discovery needed for effect parameter exposure.</summary>
+        private static void BuildTierFilterGroups(object controller, object stethoscopeGroup, List<string> log)
+        {
+            var tierParams = DaYiJingCheng.Gameplay.Presentation.Audio.MixerRegistry.TierFilterParameters;
+            foreach (string paramName in tierParams)
+            {
+                EnsureChildGroup(controller, stethoscopeGroup, paramName, log);
+            }
+            log.Add($"[拓扑·tier] 完成: {tierParams.Count} tier filter carrier groups on Stethoscope");
         }
 
         /// <summary>快照五员阶段 —— **YAML 文本合成**(五轮实测裁定:internal API 无快照创建面,
@@ -994,7 +1017,8 @@ namespace DaYiJingCheng.EditorTools.Gates
         }
 
         /// <summary>exposed 阶段(软):备选路径 <c>set_exposedParameters(T[])</c> ——
-        /// 元素类型反射构造 + 名字成员探测填充;任一环形态不符 = 留待下轮,不猜签名。</summary>
+        /// 元素类型反射构造 + 名字成员探测填充;任一环形态不符 = 留待下轮,不猜签名。
+        /// 2026-09-27: 包含 bus_volume_* (7) + tier filter parameters (5) = 12 参数。</summary>
         private static void TryExposeBusVolumeParameters(object controller, List<string> log)
         {
             MethodInfo setter = null;
@@ -1011,7 +1035,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             }
 
             Type elementType = setter.GetParameters()[0].ParameterType.GetElementType();
-            var parameters = DaYiJingCheng.Gameplay.Presentation.Audio.MixerRegistry.BusVolumeParameters;
+            var parameters = new List<string>(
+                DaYiJingCheng.Gameplay.Presentation.Audio.MixerRegistry.BusVolumeParameters);
+            parameters.AddRange(DaYiJingCheng.Gameplay.Presentation.Audio.MixerRegistry.TierFilterParameters);
             Array array = Array.CreateInstance(elementType, parameters.Count);
             for (int i = 0; i < parameters.Count; i++)
             {
@@ -1028,7 +1054,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             try
             {
                 setter.Invoke(controller, new object[] { array });
-                log.Add($"[exposed] set_exposedParameters({parameters.Count}) 注册完成");
+                log.Add($"[exposed] set_exposedParameters({parameters.Count}) 注册完成 (7 bus + 5 tier)");
             }
             catch (Exception ex)
             {

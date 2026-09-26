@@ -17,6 +17,11 @@ AudioMixerController:
   - name: bus_volume_sfx
   - name: bus_volume_stethoscope
   - name: bus_volume_uicue
+  - name: tier_passband_center_hz
+  - name: tier_passband_width_hz
+  - name: tier_noise_floor_db
+  - name: tier_contact_noise_floor_db
+  - name: tier_signal_db
 --- !u!243 &2000
 AudioMixerGroupController:
   m_Name: Master
@@ -106,6 +111,11 @@ AudioMixerGroupController:
   m_Children:
   - {fileID: 2110}
   - {fileID: 2111}
+  - {fileID: 2120}
+  - {fileID: 2121}
+  - {fileID: 2122}
+  - {fileID: 2123}
+  - {fileID: 2124}
   m_Effects: []
 --- !u!243 &2110
 AudioMixerGroupController:
@@ -114,6 +124,26 @@ AudioMixerGroupController:
 --- !u!243 &2111
 AudioMixerGroupController:
   m_Name: duck_stethoscope
+  m_Children: []
+--- !u!243 &2120
+AudioMixerGroupController:
+  m_Name: tier_passband_center_hz
+  m_Children: []
+--- !u!243 &2121
+AudioMixerGroupController:
+  m_Name: tier_passband_width_hz
+  m_Children: []
+--- !u!243 &2122
+AudioMixerGroupController:
+  m_Name: tier_noise_floor_db
+  m_Children: []
+--- !u!243 &2123
+AudioMixerGroupController:
+  m_Name: tier_contact_noise_floor_db
+  m_Children: []
+--- !u!243 &2124
+AudioMixerGroupController:
+  m_Name: tier_signal_db
   m_Children: []
 --- !u!243 &2006
 AudioMixerGroupController:
