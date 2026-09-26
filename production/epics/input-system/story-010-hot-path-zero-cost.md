@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-25
+> **Last Updated**: 2026-09-27
 
 ## Context
 
@@ -31,9 +31,9 @@
 
 *From GDD `design/gdd/input-system.md`, scoped to this story:*
 
-- [ ] **AC-3-E1(BLOCKING)**: **预缓存** —— 热路径**零每帧字符串查找**;禁 `FindAction(string)` / `FindActionMap(string)` / `InputActionAsset` 字符串索引器(Roslyn 守门)
-- [ ] **AC-3-E4(BLOCKING)**: **Idle 零成本** —— `Emergency` 动作 `enabled == false` ∧ 读取回调调用次数 `== 0`(回应「已 enable 的 action 每帧都被 Update 更新」的质疑 —— Idle 态必须是**真零调用**,不是「调了返回默认」)
-- [ ] **AC-3-E5(BLOCKING)**: **Armed 零分配** —— 读取回调 `GC.Alloc == 0` **除 `_edgeTicks.ToArray()` 结构性分配外**;方法学四要素在测试报告明写(缺一不可):① **统计量** = 分配字节数**上界 0**(非平均 —— 一次即败)② **窗口** = 连续 ≥ N 帧 Armed 全程(N 用户定)③ **剔除** = 显式预热帧(用户定)④ **工具** = 分配探针(`ProfilerRecorder` GC.Alloc,**须 Development Build**,Mono + IL2CPP **双后端**);⑤ **扩展** = 非急救帧的常驻轴路径(`Move`/`Look` 逐帧**含 `Fix → float` 转换**)`GC.Alloc == 0`
+- [x] **AC-3-E1(BLOCKING)**: **预缓存** —— 热路径**零每帧字符串查找**;禁 `FindAction(string)` / `FindActionMap(string)` / `InputActionAsset` 字符串索引器(Roslyn 守门)
+- [x] **AC-3-E4(BLOCKING)**: **Idle 零成本** —— `Emergency` 动作 `enabled == false` ∧ 读取回调调用次数 `== 0`(回应「已 enable 的 action 每帧都被 Update 更新」的质疑 —— Idle 态必须是**真零调用**,不是「调了返回默认」)
+- [x] **AC-3-E5(BLOCKING)**: **Armed 零分配** —— 读取回调 `GC.Alloc == 0` **除 `_edgeTicks.ToArray()` 结构性分配外**;方法学四要素在测试报告明写(缺一不可):① **统计量** = 分配字节数**上界 0**(非平均 —— 一次即败)② **窗口** = 连续 ≥ N 帧 Armed 全程(N 用户定)③ **剔除** = 显式预热帧(用户定)④ **工具** = 分配探针(`ProfilerRecorder` GC.Alloc,**须 Development Build**,Mono + IL2CPP **双后端**);⑤ **扩展** = 非急救帧的常驻轴路径(`Move`/`Look` 逐帧**含 `Fix → float` 转换**)`GC.Alloc == 0`
 
 ---
 
@@ -92,8 +92,7 @@
 **Required evidence**:
 - Logic: `tests/unit/input_system/hot_path_zero_cost_test.cs` — must exist and pass(E5 需 Development Build 记录贴入测试报告段;真身可为 PlayMode + 文档路径登记口径)
 
-**Status**: [ ] Not yet created
-- 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 断言(E1/E4)落 `unity/Assets/Tests/EditMode/InputSystem/hot_path_zero_cost_test.cs`;E5 Development Build 探针记录落 `production/qa/evidence/` 附录,文档路径 `tests/unit/input_system/` 为登记口径
+**Status**: [x] Created — unity/Assets/Tests/EditMode/InputSystem/hot_path_zero_cost_test.cs (16 tests, E1/E4/E5); E5 Development Build 探针记录贴 production/qa/evidence/story-010-evidence.md
 
 ---
 
@@ -101,3 +100,10 @@
 
 - Depends on: Story 001(预缓存的对象是唯一资产上的 action)· Story 007(直读通道就位,E4/E5 才有可测的回调)
 - Unlocks: None(性能收口,下游故事不依赖其产出)
+
+## Completion Notes
+**Completed**: 2026-09-27
+**Criteria**: 3/3 passing (AC-3-E1, AC-3-E4, AC-3-E5)
+**Deviations**: None
+**Test Evidence**: Logic — unity/Assets/Tests/EditMode/InputSystem/hot_path_zero_cost_test.cs (16 tests) + production/qa/evidence/story-010-evidence.md (E5 methodology)
+**Code Review**: Complete (unity-specialist + qa-tester, 2026-09-27; all BLOCKING findings fixed and pushed)
