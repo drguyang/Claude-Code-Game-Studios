@@ -184,13 +184,15 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         public void test_deliveredIntentClosure_currentTree_closedSet()
         {
             // 交出物闭集:Intents 子命名空间公开类型 ⊆ 登记集,且登记集全在(缺一 = 闭集对
-            // 空集断言 = 假绿)。A6 四件 + B4 一件(上行聚合形状) + C1/C2 一件(FocusNavigationDirection)。
+            // 空集断言 = 假绿)。A6 四件 + B4 一件(上行聚合形状)。
+            // FocusNavigationDirection 枚举住根命名空间 DaYiJingCheng.Gameplay.Input(非 Intents
+            // 子空间) —— 它是 FocusNavigationIntent 的承载值,不属闭集成员,不参与 A6 闭集断言。
             var errs = InputBoundaryGates.CheckDeliveredIntentClosure();
 
             Assert.That(errs, Is.Empty, () => string.Join("\n", errs));
-            Assert.That(InputBoundaryGates.DeliveredIntentTypes, Has.Length.EqualTo(6),
+            Assert.That(InputBoundaryGates.DeliveredIntentTypes, Has.Length.EqualTo(5),
                 "交出物 = A6 四件(InteractIntent/EmergencyIntent/FocusNavigationIntent/" +
-                "EmergencyReading)+ B4 一件(AggregatedEmergency 上行形状)+ C1/C2 一件(FocusNavigationDirection)");
+                "EmergencyReading)+ B4 一件(AggregatedEmergency 上行形状)");
         }
 
         [Test]
