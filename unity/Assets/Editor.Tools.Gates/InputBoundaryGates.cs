@@ -37,6 +37,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Mono.Cecil;                          // B3 IL 面(构建期强制点 · 2026-09-26 S1)
 using UnityEditor;
 using DaYiJingCheng.Sim.Contracts;   // Fix(typeof(Fix) 叶子白名单;B3 允许定点叶子)
 
@@ -76,10 +77,32 @@ namespace DaYiJingCheng.EditorTools.Gates
         public static readonly string[] InputRefRegistered = { };
 
         /// <summary>B3 断言允许的字段叶子类型(int / long / bool / 枚举 / Fix / int[] ——
-        /// tick 计数 / edge 沿 / 枚举序号 / Q16.16 定点)。</summary>
+        /// tick 计数 / edge 沿 / 枚举序号 / Q16.16 定点)。
+        /// ⚠️ 2026-09-26(评审 S8):本白名单是**闭合**的 —— 无符号窄化类型
+        /// (`byte`/`short`/`uint`/`ulong`)、`char`、`Nullable&lt;T&gt;` 一律**不在**内。
+        /// B3 原文只列 int/Fix/bool/枚举/long,收窄(见 CheckReadingFieldLeaves ⚠️)后
+        /// 「不合格即红」才真正成立 ⇒ 日后给读数加 `uint tick` 之类会撞上一条红。
+        /// 新增叶子类型须**先回写 AC-3-B3 口径**,不得在实现侧单方面放宽。</summary>
         public static readonly Type[] EmergencyReadingAllowedLeaves =
         {
             typeof(int), typeof(long), typeof(bool), typeof(Fix),
+        };
+
+        /// <summary>B3 的 IL 面(构建期强制点)按**全名**认的合格叶子 —— 与上面的
+        /// <see cref="EmergencyReadingAllowedLeaves"/> 同一集合的第二形态。
+        /// ⚠️ 枚举在 IL 面上**不逐个登记**:判据是「本程序集内定义的类型递归展开后
+        /// 落到这几个基元之一」—— 枚举展开得到其基元(int)⇒ 天然合格。故此处只列
+        /// 基元 + <c>Fix</c>,不随枚举表增长(枚举表是数据不是判据)。</summary>
+        public static readonly string[] ReadingAllowedLeafFullNames =
+        {
+            "System.Int32", "System.Int64", "System.Boolean",
+            "DaYiJingCheng.Sim.Contracts.Fix",
+        };
+
+        /// <summary>B3 IL 面的浮点全名(别名同拒,承 reflection 面 IsFloatLeaf)。</summary>
+        public static readonly string[] ReadingFloatFullNames =
+        {
+            "System.Single", "System.Double",
         };
 
         /// <summary>B3「3 侧无 FixParse.Parse(」—— 扫描键 = 禁调标注(单一出处)。</summary>
@@ -137,17 +160,30 @@ namespace DaYiJingCheng.EditorTools.Gates
             }
 
             var asmdefPath = $"Assets/{InputAssemblyName}/{InputAssemblyName}.asmdef";
+            if (!File.Exists(asmdefPath))
+            {
+                errs.Add($"[A6] asmdef 缺失「{asmdefPath}」—— 扫描面不存在,拒以空集冒充绿" +
+                         "(与 b5 的 asmdef 缺失专属红行同口径;评审 S10)。");
+                return errs;
+            }
             var dllBase = AssemblyGates.ScriptAssemblyPath(InputAssemblyName);
             var declared = AssemblyGates.ReadDeclaredReferences(asmdefPath);
-            if (File.Exists(asmdefPath) && declared.Count == 0 &&
+            if (declared.Count == 0 &&
                 !Regex.Match(File.ReadAllText(asmdefPath), "\"references\"").Success)
                 errs.Add($"[A6] 「{asmdefPath}」无 references 键 —— 解析面异常,拒以空集冒充绿。");
-            var compiled = File.Exists(dllBase)
-                ? AssemblyGates.ReadCompiledReferenceNames(dllBase)
-                : new List<string> { "<产物缺失>" };   // ① 就产物缺失已另行报红,这里不让引用面静默为空
+            if (!File.Exists(dllBase))
+            {
+                // ⚠️ 2026-09-26(评审 S10):原式塞一个「<产物缺失>」哨兵进引用集,靠
+                // 漂移红分支兜底 —— 但那条红读起来像「引用集漂移」,实则是**编译产物不存在**,
+                // 且注释所称「已另行报红」全装配 grep 确认**不存在**。改为专属红行 + 早退。
+                errs.Add($"[A6] 编译产物缺失「{dllBase}」—— 拒扫(读不到引用面 = 假绿);" +
+                         "确认本装配已编译(Editor.Tools.Gates 不引 Gameplay.Input," +
+                         "故本门须读其产物元数据)。");
+                return errs;
+            }
+            var compiled = AssemblyGates.ReadCompiledReferenceNames(dllBase);
 
-            var refErrs = CheckInputReferenceSet(declared.Concat(compiled));
-            errs.AddRange(refErrs);
+            errs.AddRange(CheckInputReferenceSet(declared.Concat(compiled)));
             return errs;
         }
 
@@ -341,8 +377,15 @@ namespace DaYiJingCheng.EditorTools.Gates
                 for (var cur = t; cur != null && cur != typeof(object); cur = cur.BaseType)
                 {
                     if (!ShouldExpandMembers(cur)) break;
+                    // ⚠️ **跳过 const 字段**(评审 S7):const 是**编译期字面量**,使用点被内联,
+                    //   值不进任何实例的载荷 —— 一支无害的 `const float Scale` 让整族载荷恒红
+                    //   = 判据不可修(与 Fix.ToFloat 那次同型)。static **可变**字段仍扫(它确是
+                    //   运行期数据,是浮点藏身处)。
                     foreach (var f in cur.GetFields(fb))
+                    {
+                        if (f.IsLiteral) continue;
                         Visit(f.FieldType, path + "." + f.Name, depth + 1);
+                    }
                     foreach (var p in cur.GetProperties(fb))
                         Visit(p.PropertyType, path + "." + p.Name, depth + 1);
                 }
@@ -354,11 +397,44 @@ namespace DaYiJingCheng.EditorTools.Gates
             => t == typeof(float) || t == typeof(double) ||
                t.FullName == "System.Single" || t.FullName == "System.Double";
 
-        /// <summary>A7 全扫描根:Sim.Contracts 的 *Payload struct(真源 34 支)+ 四意图。
+        /// <summary>A7 载荷扫描根的**判据说明**(实现在 CheckAllPayloadClosures;2026-09-26 评审 S6)。</summary>
+        public const string PayloadRootDerivation =
+            "扫描根 = Sim.Contracts 全部 struct(减显式键型豁免)+ Gameplay.Input.Intents 交出物;" +
+            "**不按 `*Payload` 命名约定派生** —— ADR-024 §① 的载荷真源是 entities.yaml 的 34 支 " +
+            "SimEvent.Kind.*,命名约定只是它的影子;影子漂移会让 A7 漏扫一支载荷而全绿。";
+
+        /// <summary>A7 载荷侧扫描根的**显式豁免**类型名(键型 + header 引用,逐条点名,
+        /// 不用命名约定 —— 要豁免的东西必须能被人逐行读出来)。</summary>
+        public static readonly string[] PayloadScanExcludeTypeNames =
+        {
+            "DaYiJingCheng.Sim.Contracts.PayloadRef",   // 载荷引用是 header 场,非载荷本体
+            "DaYiJingCheng.Sim.Contracts.CaseId",       // 键型三元组:作为字段被扫,不单独立根
+            "DaYiJingCheng.Sim.Contracts.DiseaseIdSet", // 键型 bitmask:同上
+            // ⚠️ 呈现层 DTO —— **不是**豁免理由写着「呈现层所以不管」,而是它们
+            // **不是 SimEvent 载荷**:A7 的 AC 是「SimEvent 载荷可达闭包零浮点」。
+            // VitalsDto 是 ADR-005/ADR-012 :97 钉死的**全案唯一 float 出口**(呈现层读,
+            // sim 禁读回)—— 它带 float 是**裁决本体**,不是违例;若不显式豁免,
+            // 收成「全 struct」判据后它会恒红,而红它 = 把唯一合法出口判成违例
+            // = 判据不可修(与 Fix.ToFloat 那次同型)。
+            "DaYiJingCheng.Sim.Contracts.VitalsDto",
+            "DaYiJingCheng.Sim.Contracts.AudioCueHandle",
+            "DaYiJingCheng.Sim.Contracts.AudioCueDto",
+            "DaYiJingCheng.Sim.Contracts.WorldPosLatest",
+        };
+
+        /// <summary>A7 全扫描根(S6:已收成「全 struct」判据,不再依赖 `*Payload` 命名约定)。
         /// 返回 (红错, 命中数)—— 命中 0 = WARN(根空 = 平凡成立,由调用方转 WARN)。</summary>
         public static List<string> CheckAllPayloadClosures(out int roots)
+            => CheckAllPayloadClosures(out roots, out _);
+
+        /// <summary>同 <see cref="CheckAllPayloadClosures(out int)"/>,另交出实际根集(评审 S6:
+        /// 只交计数时「根数 30 / 实际应 39」这类**面缩小**仍可能全绿;集合面才闭)。
+        /// <paramref name="rootFullNames"/> = 实际参与扫描的根类型全名(已排序)。</summary>
+        public static List<string> CheckAllPayloadClosures(out int roots,
+                                                            out List<string> rootFullNames)
         {
             roots = 0;
+            rootFullNames = new List<string>();
             var errs = new List<string>();
             var rootsSet = new HashSet<Type>();
 
@@ -373,11 +449,21 @@ namespace DaYiJingCheng.EditorTools.Gates
             try { types = contracts.GetTypes(); }
             catch (ReflectionTypeLoadException ex) { types = ex.Types.Where(t => t != null).ToArray(); }
 
+            // ⚠️ 2026-09-26(评审 S6):此处**曾**按 `t.Name.EndsWith("Payload")` 命名约定派生
+            // 根。ADR-024 §① 的载荷真源是 `entities.yaml` 的 34 支 `SimEvent.Kind.*`,命名
+            // 约定是它的**影子**,不是它本身 —— 两张表各自维护,漂移无声:A7 会漏扫一支载荷
+            // 而**全绿**(这正是「假绿」最贵的一种:门在跑、面在缩小、报告说通过)。
+            // 收成「全部 struct」判据:Sim.Contracts 载荷层**没有**任何 struct 不是载荷,
+            // 所以「全 struct 减键型」与「34 支」是**同一集合**,但判据不再依赖命名 ——
+            // 将来登记一支不叫 `XxxPayload` 的载荷,本面自动纳入,不必回写第二张表。
+            // `PayloadScanExcludeTypeNames` 是**显式**豁免(键型 + header 引用),
+            // 刻意用全名而非命名约定 —— 要豁免的东西必须逐条点名。
+            var exclude = new HashSet<string>(PayloadScanExcludeTypeNames, StringComparer.Ordinal);
             foreach (var t in types)
             {
                 if (t.IsNested || t.IsAbstract) continue;
-                if (!t.Name.EndsWith("Payload", StringComparison.Ordinal)) continue;
-                if (t == typeof(PayloadRef)) continue;      // 载荷引用是 header 场,非载荷本体
+                if (!t.IsValueType) continue;
+                if (exclude.Contains(t.FullName)) continue;
                 rootsSet.Add(t);
             }
 
@@ -413,26 +499,171 @@ namespace DaYiJingCheng.EditorTools.Gates
             }
 
             roots = rootsSet.Count;
-            foreach (var root in rootsSet.OrderBy(r => r.FullName, StringComparer.Ordinal))
+            var ordered = rootsSet.OrderBy(r => r.FullName, StringComparer.Ordinal).ToList();
+            rootFullNames = ordered.Select(r => r.FullName).ToList();
+            foreach (var root in ordered)
                 errs.AddRange(CheckPayloadClosure(root));
             return errs;
         }
 
-        /// <summary>本门全部判定一次跑完(菜单 / 测试共用):A6 引用集 + A6 闭集 + A7 全根
-        /// 闭包 + B3 源文本。返回红错;roots = A7 扫描根数(0 = WARN 由调用方处理)。
-        /// ⚠️ B3 的 <see cref="CheckReadingFieldLeaves(Type)"/> 不入 RunAll —— 本装配
-        /// (Editor.Tools.Gates)**不引用 Gameplay.Input**,<c>typeof(EmergencyReading)</c> 在此不可用;
-        /// 该断言由测试装配(引用 Gameplay.Input)驱动,把 <c>typeof(EmergencyReading)</c> 喂给
-        /// 纯函数(见 intent_boundary_test.cs)。</summary>
+        /// <summary>本门全部判定一次跑完(菜单 / 测试 / 构建前门共用)。
+        /// A6 直接引用集 + A6 传递闭包 + A6 交出物闭集 + A7 全根闭包 + **B3 IL 面**
+        /// + B3 源文本。返回红错;roots = A7 扫描根数(0 = WARN 由调用方处理)。
+        /// ⚠️ reflection 面的 <see cref="CheckReadingFieldLeaves(Type)"/> 仍**不入**
+        /// RunAll —— 本装配(Editor.Tools.Gates)**不引用 Gameplay.Input**,该面上
+        /// `typeof(EmergencyReading)` 不可编译。B3 的构建期强制点由**读 IL**的
+        /// <see cref="CheckReadingFieldsIl"/> 承担(不产生程序集引用 ⇒ A6 边不破,
+        /// 2026-09-26 评审 S1);reflection 面作为**第二道**由测试装配驱动,两面同判据
+        /// (见 IsIlNonExpandableScope 与 ShouldExpandMembers 的逐条对应注记)。</summary>
         public static List<string> RunAll(out int roots)
         {
             var errs = new List<string>();
             errs.AddRange(CheckInputAssemblyReferences());     // A6 直接引用集
-            errs.AddRange(CheckInputReferenceClosure());      // A6 传递闭包(间接引用 · 2026-09-26 G3)
+            errs.AddRange(CheckInputReferenceClosure());      // A6 传递闭包(间接引用 · G3)
             errs.AddRange(CheckDeliveredIntentClosure());      // A6 交出物闭集
             errs.AddRange(CheckAllPayloadClosures(out roots)); // A7 全载荷闭包
+            errs.AddRange(CheckReadingFieldsIl(                // B3 字段全整数 · IL 面(S1)
+                AssemblyGates.ScriptAssemblyPath(InputAssemblyName), DeliveredIntentTypes, out _));
             errs.AddRange(CheckInputSourceText());             // B3 源文本 + 零事件面
             return errs;
+        }
+
+        // ── B3 的 **IL 面**(构建期强制点;2026-09-26 评审 S1)──
+        //
+        // 为什么要再开一面:S1 的根因是「reflection 面读不到 `Gameplay.Input` 的类型」——
+        // 门装配刻意不引被门对象(A6 自己禁这条边),于是 AC-3-B3 的字段全整数只由
+        // EditMode 测试驱动,**构建期零强制点**:把 `EmergencyReading.Magnitude` 从 int
+        // 改成 float,`unity build` 照样成功。同批 A6/A7 都上了 IPreprocessBuild,
+        // 唯独 B3 没有 = 判据强度不对等。
+        //
+        // 修法不是给门加一条引用(A6 禁令一旦破,整条边界自证失效),而是**读 IL**:
+        // Cecil 打开 Gameplay.Input.dll,按 `DeliveredIntentTypes` 全名取类型,对字段
+        // 做与 reflection 面**同判据**的叶子判定(合格叶子 / 浮点 / 不可展开 = 非合格)。
+        // 门读的是**产物元数据**,不产生任何程序集引用 ⇒ A6 的编译期边不被触碰。
+        //
+        // 已知漏报面:属性不在本面(读数字段一律用字段,reflection 面覆盖属性,两面并集
+        // = 字段 + 属性的全数据面);`const` 字面量**照判**(const 是载荷的类型面信息,
+        // 收窄 Instance 的理由见 reflection 面 S7 连带注记 —— 两面都判,口径一致)。
+        /// <summary>B3 IL 面:对 <paramref name="dllPath"/> 内 <paramref name="typeFullNames"/>
+        /// 逐个做字段叶子闭合判定(纯函数 —— 负例夹具喂自造产物)。
+        /// <paramref name="matched"/> = 实际在产物中找到的类型数(0 = 扫描面丢失 ⇒ 调用方红)。</summary>
+        public static List<string> CheckReadingFieldsIl(string dllPath, IReadOnlyList<string> typeFullNames,
+                                                        out int matched)
+        {
+            var errs = new List<string>();
+            matched = 0;
+            if (string.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
+            {
+                errs.Add($"[B3][IL] 编译产物缺失「{dllPath ?? "<null>"}」—— 扫描面不存在," +
+                         "拒以空集冒充绿 = 假绿(AC-3-B3 构建期强制点)。");
+                return errs;
+            }
+            if (typeFullNames == null || typeFullNames.Count == 0)
+            {
+                errs.Add("[B3][IL] 目标类型名集为空 —— 拒以空集冒充绿(AC-3-B3)。");
+                return errs;
+            }
+
+            using (var asm = AssemblyDefinition.ReadAssembly(dllPath, new ReaderParameters
+            {
+                // 与 AssemblyGates.CheckAudioAssemblyIl 同款:Deferred 才不触 Resolve,
+                // 否则 netstandard 等程序集解析失败(见该处实测注记 2026-09-26)。
+                ReadingMode = ReadingMode.Deferred,
+                InMemory = true,
+            }))
+            {
+                var wanted = new HashSet<string>(typeFullNames, StringComparer.Ordinal);
+                foreach (var type in AssemblyGates.AllTypes(asm.MainModule))
+                {
+                    if (type.FullName == "<Module>") continue;
+                    if (!wanted.Contains(type.FullName)) continue;
+                    matched++;
+                    errs.AddRange(ReadingTypeIlViolations(type, type.FullName));
+                }
+            }
+
+            if (matched == 0)
+                errs.Add($"[B3][IL] 产物「{dllPath}」内未找到任何登记交出物类型 —— 扫描面丢失," +
+                         "拒以空集冒充绿(AC-3-B3 构建期强制点)。");
+            return errs;
+        }
+
+        /// <summary>B3 IL 面的单类型判定(递归进字段 / 数组元素 / 基类链;纯函数)。
+        /// 与 reflection 面 CheckReadingFieldLeaves 同判据,故两面结论可互为对照。</summary>
+        private static List<string> ReadingTypeIlViolations(TypeDefinition type, string path)
+        {
+            var errs = new List<string>();
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var f in AllFields(type))
+                VisitRef(f.FieldType, path + "." + f.Name, 0);
+            return errs;
+
+            void VisitRef(TypeReference tr, string p, int depth)
+            {
+                if (tr == null) return;
+                if (depth > 64)
+                {
+                    errs.Add($"[B3][IL] 深度护栏触发于 {p}(depth > 64)—— AC-3-B3。");
+                    return;
+                }
+                if (tr.IsArray || tr.IsByReference || tr.IsPointer)
+                {
+                    VisitRef(tr.GetElementType(), p + "[]", depth + 1);
+                    return;
+                }
+                if (!visited.Add(tr.FullName)) return;
+
+                var full = tr.FullName;
+                if (ReadingFloatFullNames.Contains(full))
+                {
+                    errs.Add($"[B3][IL] 判定读数字段叶子出现浮点「{full}」(路径 {p})—— " +
+                             "全整数(字段 ∈ int/Fix/bool/枚举/long;AC-3-B3;float 经别名同拒)。");
+                    return;
+                }
+                if (ReadingAllowedLeafFullNames.Contains(full)) return;   // 合格叶子
+                if (IsIlNonExpandableScope(full))
+                {
+                    // 不可展开面(BCL / 引擎)= 非合格叶子 ⇒ 红(白名单闭合,同 reflection 面 ⚠️)
+                    errs.Add($"[B3][IL] 判定读数字段叶子「{full}」∉ {{int,long,bool,枚举,Fix}}"+
+                             $"(路径 {p})—— 全整数白名单**闭合**(AC-3-B3);string / object / " +
+                             "引擎类型不得作为读数字段。");
+                    return;
+                }
+                if (tr.HasGenericParameters)
+                {
+                    // ⚠️ Deferred 模式禁 Resolve(TypeReference)—— 真树里闭集五件**零泛型**,
+                    // 故此面不展开泛型实参;命中即记红(不静默绿),把「闭集件用泛型」显红出来。
+                    errs.Add($"[B3][IL] 判定读数字段类型「{full}」含泛型实参(路径 {p})—— " +
+                             "AC-3-B3 闭集五件为非泛型具体类型;泛型实参无法在 Deferred 模式" +
+                             "下判定(禁 Resolve),故此处显红而非静默放行。");
+                    return;
+                }
+                if (tr is TypeDefinition def)
+                {
+                    // ⚠️ `p` 必须**带上字段名**递归(2026-09-26 修):原写法 `p + "."` 把每个
+                    // 成员的路径都压成 `<路径>.`,多层嵌套时红行指向一堆同名 `..` —— 报错指不
+                    // 到具体字段,而这份报错的**用途**就是让人照着改字段。
+                    foreach (var f in AllFields(def)) VisitRef(f.FieldType, p + "." + f.Name, depth + 1);
+                    return;
+                }
+                if (tr.Scope is AssemblyNameReference) return;   // 第三方程序集面,不由本门裁决
+            }
+        }
+
+        /// <summary>IL 面的「不可展开程序集面」判定 —— 与 reflection 面
+        /// ShouldExpandMembers 的命名空间判定**逐条对应**(两面须同答案,否则同一份载荷
+        /// 在 reflection 面绿、IL 面红,或反之,日志无法解释)。</summary>
+        private static bool IsIlNonExpandableScope(string fullName)
+            => fullName == "System" || fullName.StartsWith("System.", StringComparison.Ordinal) ||
+               fullName.StartsWith("UnityEngine", StringComparison.Ordinal) ||
+               fullName.StartsWith("UnityEditor", StringComparison.Ordinal) ||
+               fullName.StartsWith("Unity.", StringComparison.Ordinal) ||
+               fullName.StartsWith("Microsoft.", StringComparison.Ordinal);
+
+        private static IEnumerable<FieldDefinition> AllFields(TypeDefinition t)
+        {
+            for (var cur = t; cur != null; cur = cur.BaseType as TypeDefinition)
+                foreach (var f in cur.Fields) yield return f;
         }
 
         // ── B3:EmergencyReading 字段类型断言 + 3 侧源文本禁调 ──

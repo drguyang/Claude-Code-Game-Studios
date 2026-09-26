@@ -112,7 +112,8 @@ namespace DaYiJingCheng.Gameplay.Input.Intents
         /// <param name="edgeTicks">单调非递减 press 沿 tick 数组;长度须 == <paramref name="edges"/>。</param>
         /// <param name="magnitude">该样本瞬时幅度(定点整数)。</param>
         /// <exception cref="ArgumentException"><paramref name="edgeTicks"/> null,
-        /// 或 <paramref name="edges"/> ≠ <paramref name="edgeTicks"/>.Length。</exception>
+        /// 或 <paramref name="edges"/> ≠ <paramref name="edgeTicks"/>.Length,
+        /// 或沿序列非单调非递减(F-10.5 附带口径:属 3 的断言义务)。</exception>
         public EmergencyReading(int action, int holdTicks, int edges, int[] edgeTicks, int magnitude)
         {
             if (edgeTicks == null)
@@ -121,6 +122,14 @@ namespace DaYiJingCheng.Gameplay.Input.Intents
                 throw new ArgumentException(
                     $"EmergencyReading.Edges({edges}) ≠ EdgeTicks.Length({edgeTicks?.Length})(规则一:沿计数 = 数组长度)",
                     nameof(edges));
+            for (int i = 1; i < edgeTicks.Length; i++)
+            {
+                if (edgeTicks[i] < edgeTicks[i - 1])
+                    throw new ArgumentException(
+                        $"EmergencyReading 沿 tick 非单调非递减(下标 {i}:{edgeTicks[i]} < {edgeTicks[i - 1]})" +
+                        " —— F-10.5 附带口径:边沿时刻非递减,属 3 的运行时断言义务。",
+                        nameof(edgeTicks));
+            }
             Action = action;
             HoldTicks = holdTicks;
             Edges = edges;

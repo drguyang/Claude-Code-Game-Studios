@@ -493,7 +493,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             return selfName;   // null / ModuleReference(同模块或 P/Invoke)→ 视为本装配
         }
 
-        private static IEnumerable<TypeDefinition> AllTypes(ModuleDefinition module)
+        // public(2026-09-26):InputBoundaryGates 的 B3 IL 面复用(同 Cecil Deferred 遍历
+        // 纪律;该面与 b5 音频 IL 面必须走同一套遍历,否则两面覆盖面会各自漂移)。
+        public static IEnumerable<TypeDefinition> AllTypes(ModuleDefinition module)
         {
             foreach (var t in module.Types)
             {
@@ -573,11 +575,19 @@ namespace DaYiJingCheng.EditorTools.Gates
                r.StartsWith("UnityEditor.", StringComparison.Ordinal) ||
                r.StartsWith("Unity.", StringComparison.Ordinal);
 
-        // BCL:netstandard / mscorlib / System* / Mono(核 —— ⚠️ 不含 "Mono." 前泛化:
-        // Mono.Cecil 之类第三方库不得借 BCL 面溜进引用集)。
+        // BCL:netstandard / mscorlib / System[.*] / Mono(核)
+        // ⚠️ 2026-09-26(评审 S9):`System` 一侧原先是 `StartsWith("System")` **不带点**的
+        // 泛化 —— `SystemFoo` / `Systemic.Data` 这类**无点相连**的同前缀名会命中 BCL 面。
+        // 收成点前缀(与 IsEngineRef 同款写法;同函数内 Mono 一侧本就刻意用 `r == "Mono"`)。
+        // ⚠️ 口径诚实化:**本面不闭合「零第三方」**。`System.Reactive` / `System.Data.SQLite`
+        //   这类第三方 NuGet 确实在 `System.` 点前缀之下,仍会命中本面 —— 评审 S9 的
+        //   「第三方整族溜过」措辞比本判据宽,别把它当零第三方保证读。真正闭合的是:
+        //   ① b3 的 manifest 封闭性(未登记 asmdef = 构建失败,ADR-025 §④);
+        //   ② CheckInputReferenceSet 的引用集登记表(要放行须逐条登记)。
+        //   本面只承担「BCL 无需逐条登记」的那半。
         // public(2026-09-26):InputBoundaryGates 复用(A6 引用集判据同族;与 IsEngineRef 同批公开)。
         public static bool IsBclRef(string r)
-            => r.StartsWith("System", StringComparison.Ordinal) ||
+            => r == "System" || r.StartsWith("System.", StringComparison.Ordinal) ||
                r == "netstandard" || r == "mscorlib" || r == "Mono";
 
         /// <summary>读 asmdef 的 references 数组;GUID: 形态经 AssetDatabase 解析为装配名

@@ -76,10 +76,33 @@ namespace DaYiJingCheng.Gameplay.Input.Intents
         /// <summary>动作结束时(t_end)的瞬时幅度 —— **不进任何门**(仅预表现定格 / 教学回放)。</summary>
         public readonly int MagLast;
 
-        /// <summary>构造(测试与聚合器使用;EdgeTicks 传入即持 —— 聚合器产物为快照)。</summary>
+        /// <summary>构造(聚合器内部使用 + 测试夹具)。<paramref name="edgeTicks"/> 传入即持 ——
+        /// 聚合器 <see cref="EndAttempt"/> 产出的已是 <c>ToArray()</c> 快照,不受此影响;
+        /// 外部夹具须自行不持有可变别名。
+        /// ⚠️ 与 <see cref="EmergencyReading"/> ctor **同款断言**(<c>edges == 沿数</c> +
+        /// 非 null + 单调非递减)—— 载荷侧 <c>EmergencyAttemptPayload</c> 的 codec 在
+        /// 解码时以 <c>InvalidDataException</c> 强判同一条不变量(且要求 <c>Edges=0</c>
+        /// 时数组**非 null**)。3 侧若不前置拦,违规记录会一路走到**主机编码路径**才炸
+        /// (运行期失败,而非构建期);两处各写一遍日后必漂移,故口径写在本处并由门与测试
+        /// 双向对照(评审 S3)。</summary>
+        /// <exception cref="ArgumentException"><paramref name="edgeTicks"/> null / <paramref name="edges"/>
+        /// ≠ 数组长度 / 沿序列非单调非递减。</exception>
         public AggregatedEmergency(int action, int holdTicks, int edges, int[] edgeTicks,
             int magPeak, int magLast)
         {
+            if (edgeTicks == null)
+                throw new ArgumentException("AggregatedEmergency.EdgeTicks 不得为 null" +
+                    "(载荷侧 EmergencyAttemptPayload 要求 Edges=0 时数组为**空数组非 null**)",
+                    nameof(edgeTicks));
+            if (edges != edgeTicks.Length)
+                throw new ArgumentException(
+                    $"AggregatedEmergency.Edges({edges}) ≠ EdgeTicks.Length({edgeTicks.Length})" +
+                    "(载荷侧 codec 解码面强判同一条不变量)", nameof(edges));
+            for (int i = 1; i < edgeTicks.Length; i++)
+                if (edgeTicks[i] < edgeTicks[i - 1])
+                    throw new ArgumentException(
+                        $"AggregatedEmergency 沿 tick 非单调非递减(下标 {i}:{edgeTicks[i]} < {edgeTicks[i - 1]})" +
+                        " —— F-10.5 附带口径,属 3 的运行时断言义务。", nameof(edgeTicks));
             Action = action;
             HoldTicks = holdTicks;
             Edges = edges;
@@ -104,6 +127,11 @@ namespace DaYiJingCheng.Gameplay.Input
     /// <see cref="AbortAttempt"/> = 规则六之甲中止 —— 丢弃累计、返回 void,**不发**。</para>
     /// <para><b>单调性(属 3 的运行时断言)</b>:新样本的新沿 tick ≥ 已累计的末沿(F-10.5 附带口径);
     /// 违例抛 <see cref="ArgumentException"/> —— 这是 3 侧的断言义务,不静默吸收。</para>
+    /// <para><b>caller-must 契约(2026-09-26 评审 S5 显红化)</b>:<see cref="EmergencyReading.EdgeTicks"/>
+    /// 是**动作内累计视图**而非每帧增量 —— 直读通道可复用同一数组实例、只增长前缀;
+    /// 本类按「已累计长度」当游标做差值追加,故**跨样本不得回退长度**(回退 ⇒ 显红,
+    /// 旧实现会静默丢沿 / 什么都不加 ⇒ 稳度门拿到残缺沿序列而全绿)。本类**不复制**
+    /// 调用方的数组,故调用方同样**不得跨帧持有**该引用(会被下一帧覆写)。</para>
     /// <para>纯 C# 整数域,零 UnityEngine / 零随机 / 零时间依赖;确定性可从样本序列重建。</para>
     /// </remarks>
     public sealed class EmergencyAggregator
@@ -119,7 +147,7 @@ namespace DaYiJingCheng.Gameplay.Input
         /// <summary>逐帧喂入读数(直读通道每帧一次)。首样本定动作身份,
         /// 此后动作身份若变 = 编程错误(抛异常,不静默换动作)。</summary>
         /// <param name="r">单帧全整数读数(通道 Armed/Reading 期产出)。</param>
-        /// <exception cref="ArgumentException">动作身份变更 / 新沿 tick 单调性违例。</exception>
+        /// <exception cref="ArgumentException">动作身份变更 / 沿序列非单调 / **累计视图契约违例**。</exception>
         public void Sample(EmergencyReading r)
         {
             if (!_started)            {
@@ -138,6 +166,15 @@ namespace DaYiJingCheng.Gameplay.Input
                 throw new ArgumentException(
                     $"EmergencyAggregator 动作身份中途变更(先 {_action} 后 {r.Action})——" +
                     "直读通道一个 Armed 期只应武装一个动作;换动作须先 EndAttempt/AbortAttempt。",
+                    nameof(r));
+            // 「累计视图」是**caller-must 契约**,不满足即显红(评审 S5):若通道改喂每帧
+            // 增量,旧实现会静默丢沿(`from` 越过长度 ⇒ 循环空转)或什么都不加 ⇒ 稳度门
+            // 拿到残缺沿序列、Edges 偏小,而**全绿**。这是最难查的静默失真面,必须前置断。
+            if (r.EdgeTicks.Length < _edgeTicks.Count)
+                throw new ArgumentException(
+                    $"EmergencyAggregator 累计视图契约违例(本帧沿数 {r.EdgeTicks.Length} < " +
+                    $"已累计 {_edgeTicks.Count})—— EdgeTicks 是**动作内累计视图**(Story 007 " +
+                    "通道每帧可复用同一数组、只增长前缀),不是每帧增量;改喂增量须先 EndAttempt。",
                     nameof(r));
             AppendEdges(r);
             _magPeak = Math.Max(_magPeak, r.Magnitude);
@@ -191,8 +228,11 @@ namespace DaYiJingCheng.Gameplay.Input
         }
 
         /// <summary>重置累计态(动作身份 / 沿 / 幅度);由 EndAttempt / AbortAttempt 调用。
-        /// public(2026-09-26):测试直用(中止后重开新动作的自证)。</summary>
-        public void Reset()
+        /// <b>private</b>(2026-09-26 评审 S11):本类**不向外部开放中途清空的入口** ——
+        /// 外部可在动作进行中静默丢弃已累计的沿与幅度(与 caller-must 契约违例叠加
+        /// 构成难查的失真路径)。测试侧走 <see cref="EndAttempt"/> / <see cref="AbortAttempt"/>
+        /// 两条**真出口**(它们内部调本方法),不需要也不该有第三条。</summary>
+        private void Reset()
         {
             _started = false;
             _firstEdge = null;

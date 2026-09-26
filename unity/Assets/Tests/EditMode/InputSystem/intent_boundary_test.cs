@@ -31,6 +31,7 @@ using UnityEditor;
 using DaYiJingCheng.EditorTools.Gates;
 using DaYiJingCheng.Gameplay.Input;
 using DaYiJingCheng.Gameplay.Input.Intents;
+using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Tests.Unit.InputSystem
 {
@@ -366,6 +367,60 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         }
 
         [Test]
+        public void test_payloadClosure_roots_coverEverySimContractsStruct()
+        {
+            // S6:旧断言只钉「≥ 30」—— 扫描键退化成空集 / 半集(漏掉 5 支)仍**全绿**,
+            // 而 A7 漏扫的载荷正是本该被拦的浮点藏身处。改成**集合断言**:
+            // 根集 = Sim.Contracts 全部 struct(减显式豁免)∪ Intents 交出物,一字不多一字不少。
+            Assert.That(EditorUtility.scriptCompilationFailed, Is.False,
+                "跑 A7 根集断言前提:编译成功");
+
+            // 期望集 = 门的判据(全部 struct − 显式豁免)∪ Intents 交出物;
+            // 实际集 = 门**实际交出**的根集。两者相减必须为空 ⇒ 面既不漏也不多。
+            var errs = InputBoundaryGates.CheckAllPayloadClosures(out var roots, out var rootNames);
+            Assert.That(errs, Is.Empty, () => "A7 红行:\n" + string.Join("\n", errs));
+
+            var contracts = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == "Sim.Contracts");
+            Assert.That(contracts, Is.Not.Null, "Sim.Contracts 未加载");
+            var exclude = new HashSet<string>(InputBoundaryGates.PayloadScanExcludeTypeNames,
+                                             StringComparer.Ordinal);
+            var expected = contracts.GetTypes()
+                .Where(t => !t.IsNested && !t.IsAbstract && t.IsValueType)
+                .Select(t => t.FullName)
+                .Where(n => !exclude.Contains(n))
+                .Concat(InputBoundaryGates.DeliveredIntentTypes)
+                .OrderBy(n => n, StringComparer.Ordinal)
+                .ToList();
+
+            var missing = expected.Except(rootNames, StringComparer.Ordinal).ToList();
+            var extra = rootNames.Except(expected, StringComparer.Ordinal).ToList();
+            Assert.That(missing, Is.Empty, () => "扫描面漏扫:\n" + string.Join("\n", missing));
+            Assert.That(extra, Is.Empty, () => "扫描面多扫:\n" + string.Join("\n", extra));
+            Assert.That(roots, Is.EqualTo(expected.Count),
+                $"根数 {roots} ≠ 期望 {expected.Count}(数目相等即可,内容断言见上两条差集)");
+        }
+
+        [Test]
+        public void test_payloadClosure_roots_includeStructNotNamedPayload()
+        {
+            // S6 的判据自证:根集判据是「全部 struct」,**不是**「名字以 Payload 结尾」。
+            // `ClinicEnvDto` 名字不带 Payload、**不是** SimEvent 载荷、也不是显式豁免 ——
+            // 收成「全 struct」后它进入扫描面(零浮点 ⇒ 绿);若判据退回命名约定,它**不在**
+            // 根集里。本测从门实际交出的根集上断言这一点,而不是复述判据本身。
+            InputBoundaryGates.CheckAllPayloadClosures(out var roots, out var rootNames);
+
+            var sibling = typeof(ClinicEnvDto);
+            Assert.That(sibling.Name.EndsWith("Payload", StringComparison.Ordinal), Is.False,
+                "夹具前提:名字刻意不带 Payload 后缀");
+            Assert.That(InputBoundaryGates.PayloadScanExcludeTypeNames,
+                Does.Not.Contain(sibling.FullName), "夹具前提:未被显式豁免");
+            Assert.That(rootNames, Does.Contain(sibling.FullName),
+                "非 Payload 命名的 struct 仍须落进扫描面(命名约定 ≠ 判据)");
+            Assert.That(roots, Is.EqualTo(rootNames.Count), "根数与根集长度必须一致");
+        }
+
+        [Test]
         public void test_payloadClosure_allRoots_zeroHits_isNotTrivialEmpty()
         {
             // 假绿防护:根数 0(扫描面丢失)必须可观测 —— 门以红错报「装配未加载」,
@@ -684,6 +739,116 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             return ns != null && ns.StartsWith("DaYiJingCheng.Sim", StringComparison.Ordinal);
         }
 
+        [Test]
+        public void test_bclRef_pointPrefixed_notPrefixGreedy()
+        {
+            // S9:`System` 一侧原先是 `StartsWith("System")` **带点泛化**,`SystemFoo` /
+            // `Systemic.Data` 这类**无点相连**的同前缀名会命中 BCL 白名单面。
+            // 判据已收成点前缀(`r == "System" || StartsWith("System.")`),这里钉住边界。
+            // ⚠️ 口径诚实化:`System.Reactive` **仍**返回 true —— 它确实在 `System.` 点前缀
+            //   之下,点前缀判据挡不住它(评审 S9 的措辞比判据宽)。真正闭合「零第三方」的
+            //   是 b3 的 manifest 封闭性(未登记 asmdef = 构建失败,ADR-025 §④)与
+            //   CheckInputReferenceSet 的**引用集**判据(第三张表要登记才放行);
+            //   BCL 面只是「不用逐条登记」的那半。本测断言判据真实行为,不虚构更严的保证。
+            Assert.That(AssemblyGates.IsBclRef("System"), Is.True);
+            Assert.That(AssemblyGates.IsBclRef("System.Runtime"), Is.True);
+            Assert.That(AssemblyGates.IsBclRef("netstandard"), Is.True);
+            Assert.That(AssemblyGates.IsBclRef("Mono"), Is.True, "Mono.Cecil 走的是 == 判定,非前缀");
+
+            // S9 收窄的那一半:无点相连的同前缀名**不再**命中。
+            Assert.That(AssemblyGates.IsBclRef("SystemFoo"), Is.False,
+                "无点相连的同前缀名不是 BCL(原 StartsWith(\"System\") 会误放)");
+            Assert.That(AssemblyGates.IsBclRef("Systemic.Data"), Is.False, "同上");
+
+            // 点前缀之内仍然放行(诚实记录该面的实际覆盖,不是更强的承诺)。
+            Assert.That(AssemblyGates.IsBclRef("System.Reactive"), Is.True,
+                "点前缀之内仍命中 —— 零第三方由 b3 manifest 封闭性 + 引用集登记表闭合");
+
+            // 端到端后果:非 BCL 且未登记的名字落到漂移红(A6 引用集门的第一道)。
+            var errs = InputBoundaryGates.CheckInputReferenceSet(new[] { "SystemFoo" });
+            Assert.That(errs, Has.Count.EqualTo(1));
+            Assert.That(errs[0], Does.Contain("漂移"));
+        }
+
+        [Test]
+        public void test_payloadClosure_constFloatField_isNotScanned()
+        {
+            // S7:const 是**编译期字面量**,使用点被内联,值不进任何实例的载荷 ——
+            // 一支无害的 `const float Scale` 让整族载荷恒红 = 判据不可修
+            // (与 Fix.ToFloat 那次同型)。static **可变**字段仍扫(那确是运行期数据)。
+            var errs = InputBoundaryGates.CheckPayloadClosure(typeof(ConstFloatFixture));
+
+            Assert.That(errs, Is.Empty, () => string.Join("\n", errs));
+        }
+
+        [Test]
+        public void test_payloadClosure_staticMutableFloatField_reportsRed()
+        {
+            // 与上一测并置:证明门确实只跳过 literal,不是整体不扫静态面。
+            var errs = InputBoundaryGates.CheckPayloadClosure(typeof(StaticMutableFloatFixture));
+
+            Assert.That(errs, Is.Not.Empty, "static 可变 float 字段必红(它是运行期数据)");
+            Assert.That(errs[0], Does.Contain("System.Single"));
+        }
+
+        // ═══════════════ B3 IL 面(构建期强制点;2026-09-26 评审 S1)═══════════════
+
+        [Test]
+        public void test_readingFieldsIl_realProduct_zeroErrors()
+        {
+            // S1 的兑现面:不靠 reflection 喂类型,直接读 Gameplay.Input.dll 的 IL。
+            // 本门**不引用** Gameplay.Input(A6 自己禁这条边),故真树只能走产物元数据 ——
+            // 这正是 B3 拿到构建期强制点的方式(否则 AC-3-B3 只由 EditMode 驱动,
+            // 把 Magnitude 改成 float 时 `unity build` 照样成功)。
+            Assert.That(EditorUtility.scriptCompilationFailed, Is.False,
+                "跑 B3 IL 面前提:编译成功(读上一版 DLL = 假绿)");
+
+            var dll = AssemblyGates.ScriptAssemblyPath(InputBoundaryGates.InputAssemblyName);
+            var errs = InputBoundaryGates.CheckReadingFieldsIl(
+                dll, InputBoundaryGates.DeliveredIntentTypes, out var matched);
+
+            Assert.That(errs, Is.Empty, () => "B3 IL 面红行:\n" + string.Join("\n", errs));
+            Assert.That(matched, Is.EqualTo(InputBoundaryGates.DeliveredIntentTypes.Length),
+                "闭集五件必须在产物中**逐件**找到(少 = 扫描面丢失,门已红;此断言防门自身漏检面失效)");
+        }
+
+        [Test]
+        public void test_readingFieldsIl_missingProduct_reportsRed()
+        {
+            var errs = InputBoundaryGates.CheckReadingFieldsIl(
+                "/tmp/definitely-not-a-real-assembly-006.dll",
+                InputBoundaryGates.DeliveredIntentTypes, out var matched);
+
+            Assert.That(errs, Has.Count.EqualTo(1));
+            Assert.That(matched, Is.Zero);
+            Assert.That(errs[0], Does.Contain("产物缺失"));
+            Assert.That(errs[0], Does.Contain("假绿"), "红行须写明后果");
+        }
+
+        [Test]
+        public void test_readingFieldsIl_emptyTypeNameSet_reportsRed()
+        {
+            var errs = InputBoundaryGates.CheckReadingFieldsIl(
+                AssemblyGates.ScriptAssemblyPath(InputBoundaryGates.InputAssemblyName),
+                new string[0], out var matched);
+
+            Assert.That(errs, Has.Count.EqualTo(1), "空目标集 = 扫描面丢失 ⇒ 红");
+            Assert.That(matched, Is.Zero);
+        }
+
+        [Test]
+        public void test_readingFieldsIl_unknownTypeName_reportsRed()
+        {
+            // 名字对不上 ⇒ matched 0 ⇒ 显红(不是静默绿 = 假绿防护)。
+            var errs = InputBoundaryGates.CheckReadingFieldsIl(
+                AssemblyGates.ScriptAssemblyPath(InputBoundaryGates.InputAssemblyName),
+                new[] { "DaYiJingCheng.Gameplay.Input.Intents.NoSuchIntentFixture" }, out var matched);
+
+            Assert.That(matched, Is.Zero);
+            Assert.That(errs, Has.Count.EqualTo(1));
+            Assert.That(errs[0], Does.Contain("未找到"), "红行须点明扫描面丢失");
+        }
+
         // ═══════════════ AC-3-B4 —— C 路聚合:恰一条 / 零条 / 中止不发 ═══════════════
 
         [Test]
@@ -857,6 +1022,86 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         }
 
         [Test]
+        public void test_aggregator_incrementalFeedInsteadOfCumulativeView_throws()
+        {
+            // S5 的兑现面:「累计视图」是 caller-must 契约。改喂**每帧增量**时旧实现
+            // 会静默丢沿(`from` 越过长度 ⇒ 循环空转)⇒ 稳度门拿到残缺沿序列而**全绿**。
+            // 现在显红:第二帧沿数(1)小于已累计(2)。
+            var agg = new EmergencyAggregator();
+            agg.Sample(Reading(action: 1, hold: 1, new[] { 10, 11 }, mag: 5));
+
+            var ex = Assert.Throws<ArgumentException>(
+                () => agg.Sample(Reading(action: 1, hold: 2, new[] { 12 }, mag: 6)));
+
+            Assert.That(ex!.Message, Does.Contain("累计视图"),
+                "红行须点名违的是累计视图契约(不是笼统的断言失败)");
+        }
+
+        [Test]
+        public void test_aggregator_sameLengthCumulativeView_isAccepted()
+        {
+            // 对照面:长度相同的新实例(内容是同一累计序列的拷贝)必须正常接受 ——
+            // 证明上一测红的是**长度回退**这一条具体违例,不是「换了实例就红」。
+            var agg = new EmergencyAggregator();
+            agg.Sample(Reading(action: 1, hold: 1, new[] { 10 }, mag: 5));
+            agg.Sample(Reading(action: 1, hold: 2, new[] { 10 }, mag: 6));
+
+            var out0 = agg.EndAttempt();
+            Assert.That(out0.Value.Edges, Is.EqualTo(1), "同长度重复帧不新增沿");
+        }
+
+        [Test]
+        public void test_emergencyReading_ctor_rejectsNonMonotonicEdgeTicks()
+        {
+            // S2 的兑现面:F-10.5 把单调性挂在**类型**层,原先只在聚合器里断言 ——
+            // 直接构造读数的调用方(Story 007 通道 / 10 侧夹具)可喂 [30, 20] 零阻力。
+            var ex = Assert.Throws<ArgumentException>(
+                () => new EmergencyReading(1, 20, 2, new[] { 30, 20 }, 7));
+
+            Assert.That(ex!.Message, Does.Contain("单调"));
+        }
+
+        [Test]
+        public void test_aggregatedEmergency_ctor_rejectsNullAndCountMismatch()
+        {
+            // S3 的兑现面:载荷侧 codec 解码时强判 `Edges == EdgeTicks.Length` 且
+            // `Edges=0` 时数组非 null;3 侧不前置拦,违规会一路走到**主机编码路径**
+            // 才炸(运行期失败)。ctor 前置拦。
+            var nullEx = Assert.Throws<ArgumentException>(
+                () => new AggregatedEmergency(1, 20, 0, null, 7, 7));
+            Assert.That(nullEx!.Message, Does.Contain("null"));
+
+            var countEx = Assert.Throws<ArgumentException>(
+                () => new AggregatedEmergency(1, 20, 3, new[] { 5, 6 }, 7, 7));
+            Assert.That(countEx!.Message, Does.Contain("≠"));
+
+            var monoEx = Assert.Throws<ArgumentException>(
+                () => new AggregatedEmergency(1, 20, 2, new[] { 9, 4 }, 7, 7));
+            Assert.That(monoEx!.Message, Does.Contain("单调"));
+        }
+
+        [Test]
+        public void test_aggregatedEmergency_ctor_acceptsEmptyNonNullArray()
+        {
+            // 正向边界:Edges=0 时必须是**空数组非 null**(载荷文档原话)—— ctor 放行。
+            var r = new AggregatedEmergency(1, 0, 0, new int[0], 0, 0);
+
+            Assert.That(r.EdgeTicks, Is.Not.Null);
+            Assert.That(r.EdgeTicks, Is.Empty);
+        }
+
+        [Test]
+        public void test_aggregator_resetIsNotPubliclyReachable()
+        {
+            // S11 的兑现面:Reset 是「中途丢弃已累计动作」的唯一入口,不得对外部开放 ——
+            // 外部可在动作进行中静默清空聚合态(丢沿、丢幅度)。
+            var t = typeof(EmergencyAggregator);
+            var reset = t.GetMethod("Reset", BindingFlags.Public | BindingFlags.Instance);
+
+            Assert.That(reset, Is.Null, "Reset 必须是 private(真出口只有 EndAttempt / AbortAttempt)");
+        }
+
+        [Test]
         public void test_aggregator_result_isSnapshot_notLiveView()
         {
             // 聚合产物是**快照**:EndAttempt 后再喂新动作,旧产物的沿数组不得被改动
@@ -898,26 +1143,47 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         [Test]
         public void test_aggregator_uplinkMatchesSimContractsPayloadShape()
         {
-            // B4 形状对齐:聚合产物的六个整数/数组面与 Sim.Contracts 的
-            // EmergencyAttemptPayload 同形(10 在其边界补 Method / ActorId 后即可 Append)。
-            // 本断言只做**结构对齐**(名与量纲),不构造载荷 —— 载荷构造归 10。
-            var fields = typeof(AggregatedEmergency)
-                .GetFields(BindingFlags.DeclaredOnly | BindingFlags.Public |
-                           BindingFlags.Instance)
-                .Where(f => !f.IsStatic)
+            // S4:原测试名承诺「与 EmergencyAttemptPayload 同形」,实际只对 AggregatedEmergency
+            // 自己的字段断言 —— **EmergencyAttemptPayload 一次都没出现**,把它删掉本测照绿。
+            // B4「上行形状」最该被钉住的一环正是跨程序集对齐(EditMode.asmdef 已引用
+            // Sim.Contracts,一切具备,唯独没做;评审 S3 的运行期炸点正由此而来)。
+            var mine = typeof(AggregatedEmergency)
+                .GetFields(BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.Instance)
+                .ToDictionary(f => f.Name, f => f.FieldType, StringComparer.Ordinal);
+            var theirs = typeof(DaYiJingCheng.Sim.Contracts.EmergencyAttemptPayload)
+                .GetFields(BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.Instance)
                 .ToDictionary(f => f.Name, f => f.FieldType, StringComparer.Ordinal);
 
-            Assert.That(fields.ContainsKey("Action"), Is.True, "action 面");
-            Assert.That(fields.ContainsKey("HoldTicks"), Is.True, "hold_ticks 面");
-            Assert.That(fields.ContainsKey("Edges"), Is.True, "edges 面");
-            Assert.That(fields.ContainsKey("EdgeTicks"), Is.True, "edge_ticks[] 面");
-            Assert.That(fields.ContainsKey("MagPeak"), Is.True, "mag_peak 面(幅度门)");
-            Assert.That(fields.ContainsKey("MagLast"), Is.True, "mag_last 面(预表现定格)");
+            // 3 交出的六项必须与载荷侧同名字段**类型逐一相等**
+            foreach (var name in new[] { "Action", "HoldTicks", "Edges", "EdgeTicks", "MagPeak", "MagLast" })
+            {
+                Assert.That(mine, Does.ContainKey(name), $"3 侧缺字段 {name}");
+                Assert.That(theirs, Does.ContainKey(name), $"载荷侧缺字段 {name}");
+                Assert.That(theirs[name], Is.EqualTo(mine[name]),
+                    $"上行形状漂移:字段 {name} 两侧类型不一致");
+                Assert.That(InputBoundaryGates.IsAllowedReadingLeaf(mine[name]) ||
+                            mine[name] == typeof(int[]),
+                    Is.True, $"{name} 类型 {mine[name].FullName} 须在全整数域");
+            }
 
-            foreach (var kv in fields)
-                Assert.That(InputBoundaryGates.IsAllowedReadingLeaf(kv.Value) ||
-                            kv.Value == typeof(int[]),
-                    Is.True, $"{kv.Key} 类型 {kv.Value.FullName} 须在全整数域");
+            // 载荷侧多出的两项 = 10 的边界补项(白名单式,不要求两侧等集)
+            var extra = theirs.Keys.Except(mine.Keys, StringComparer.Ordinal)
+                             .OrderBy(k => k, StringComparer.Ordinal).ToList();
+            Assert.That(extra, Is.EqualTo(new List<string> { "ActorId", "Method" }),
+                "载荷侧多出的字段须恰为 10 补的 Method / ActorId;多出别的 = 上行形状漂移");
+        }
+
+        [Test]
+        public void test_aggregator_uplinkFieldInvariantsMatchPayloadContract()
+        {
+            // S3 的连带面:两处不变量(Edges = 沿数 / Edges=0 时数组**非 null**)必须同款,
+            // 否则 3 侧放行的记录要到主机编码路径才炸(运行期失败而非构建期)。
+            var okZero = new AggregatedEmergency(1, 0, 0, new int[0], 0, 0);
+            Assert.That(okZero.EdgeTicks, Is.Not.Null,
+                "载荷文档:长度 = Edges(=0 时为空数组**非 null**);3 侧 ctor 同款");
+            Assert.Throws<ArgumentException>(
+                () => new AggregatedEmergency(1, 0, 0, null, 0, 0),
+                "null 违载荷契约(Edges=0 也必须非 null)");
         }
 
         // ── 读数构造助手(单帧样本;edges 必 == edgeTicks.Length)──
@@ -1052,6 +1318,19 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         private struct ConcreteFieldFixture
         {
             public PolymorphicFloatImpl Field;
+        }
+
+        // S7 组:const 跳过 vs static 可变仍扫(证明门只跳过 literal,不放过整个静态面)
+        private struct ConstFloatFixture
+        {
+            public const float Scale = 1.5f;
+            public int Value;
+        }
+
+        private struct StaticMutableFloatFixture
+        {
+            public static float Scale;
+            public int Value;
         }
     }
 }
