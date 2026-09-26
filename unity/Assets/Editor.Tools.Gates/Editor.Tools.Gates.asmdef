@@ -3,7 +3,8 @@
     "rootNamespace": "DaYiJingCheng.EditorTools.Gates",
     "references": [
         "GUID:f1e625c719f6812dcae9009189e8b2c0",
-        "GUID:49b36e3ee94a392fe97bd7fe76bb27fb"
+        "GUID:49b36e3ee94a392fe97bd7fe76bb27fb",
+        "GUID:e585432423db0e57686280bdaddcb53d"
     ],
     "includePlatforms": [ "Editor" ],
     "excludePlatforms": [],

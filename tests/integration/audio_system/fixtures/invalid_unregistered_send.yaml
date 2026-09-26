@@ -1,0 +1,176 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!241 &1000
+AudioMixerController:
+  m_MasterGroup: {fileID: 2000}
+  m_Snapshots:
+  - {fileID: 3000}
+  - {fileID: 3001}
+  - {fileID: 3002}
+  - {fileID: 3003}
+  - {fileID: 3004}
+  m_ExposedParameters:
+  - name: bus_volume_master
+  - name: bus_volume_music
+  - name: bus_volume_ambience
+  - name: bus_volume_voice
+  - name: bus_volume_sfx
+  - name: bus_volume_stethoscope
+  - name: bus_volume_uicue
+--- !u!243 &2000
+AudioMixerGroupController:
+  m_Name: Master
+  m_Children:
+  - {fileID: 2100}
+  - {fileID: 2101}
+  - {fileID: 2001}
+  - {fileID: 2002}
+  - {fileID: 2003}
+  - {fileID: 2004}
+  - {fileID: 2005}
+  - {fileID: 2006}
+  - {fileID: 2007}
+  m_Effects: []
+--- !u!243 &2100
+AudioMixerGroupController:
+  m_Name: bus_volume_master
+  m_Children: []
+--- !u!243 &2101
+AudioMixerGroupController:
+  m_Name: duck_master
+  m_Children: []
+--- !u!243 &2001
+AudioMixerGroupController:
+  m_Name: Music
+  m_Children:
+  - {fileID: 2102}
+  - {fileID: 2103}
+  m_Effects: []
+--- !u!243 &2102
+AudioMixerGroupController:
+  m_Name: bus_volume_music
+  m_Children: []
+--- !u!243 &2103
+AudioMixerGroupController:
+  m_Name: duck_music
+  m_Children: []
+--- !u!243 &2002
+AudioMixerGroupController:
+  m_Name: Ambience
+  m_Children:
+  - {fileID: 2104}
+  - {fileID: 2105}
+  m_Effects:
+  - {fileID: 24410}
+--- !u!243 &2104
+AudioMixerGroupController:
+  m_Name: bus_volume_ambience
+  m_Children: []
+--- !u!243 &2105
+AudioMixerGroupController:
+  m_Name: duck_ambience
+  m_Children: []
+--- !u!243 &2003
+AudioMixerGroupController:
+  m_Name: Voice
+  m_Children:
+  - {fileID: 2106}
+  - {fileID: 2107}
+  m_Effects: []
+--- !u!243 &2106
+AudioMixerGroupController:
+  m_Name: bus_volume_voice
+  m_Children: []
+--- !u!243 &2107
+AudioMixerGroupController:
+  m_Name: duck_voice
+  m_Children: []
+--- !u!243 &2004
+AudioMixerGroupController:
+  m_Name: SFX
+  m_Children:
+  - {fileID: 2108}
+  - {fileID: 2109}
+  m_Effects:
+  - {fileID: 24411}
+--- !u!243 &2108
+AudioMixerGroupController:
+  m_Name: bus_volume_sfx
+  m_Children: []
+--- !u!243 &2109
+AudioMixerGroupController:
+  m_Name: duck_sfx
+  m_Children: []
+--- !u!243 &2005
+AudioMixerGroupController:
+  m_Name: Stethoscope
+  m_Children:
+  - {fileID: 2110}
+  - {fileID: 2111}
+  m_Effects: []
+--- !u!243 &2110
+AudioMixerGroupController:
+  m_Name: bus_volume_stethoscope
+  m_Children: []
+--- !u!243 &2111
+AudioMixerGroupController:
+  m_Name: duck_stethoscope
+  m_Children: []
+--- !u!243 &2006
+AudioMixerGroupController:
+  m_Name: UICue
+  m_Children:
+  - {fileID: 2112}
+  - {fileID: 2113}
+  m_Effects: []
+--- !u!243 &2112
+AudioMixerGroupController:
+  m_Name: bus_volume_uicue
+  m_Children: []
+--- !u!243 &2113
+AudioMixerGroupController:
+  m_Name: duck_uicue
+  m_Children: []
+--- !u!243 &2007
+AudioMixerGroupController:
+  m_Name: Reverb
+  m_Children: []
+  m_Effects:
+  - {fileID: 24499}
+--- !u!244 &24410
+AudioMixerEffectController:
+  m_EffectName: ReverbSendAmbience
+  m_SendTarget: {fileID: 24499}
+--- !u!244 &24411
+AudioMixerEffectController:
+  m_EffectName: ExtraAirSend
+  m_SendTarget: {fileID: 24499}
+--- !u!244 &24499
+AudioMixerEffectController:
+  m_EffectName: ReverbReturn
+  m_SendTarget: {fileID: 0}
+--- !u!245 &3000
+AudioMixerSnapshotController:
+  m_Name: Default
+  m_FloatValues: {}
+  m_TransitionOverrides: {}
+--- !u!245 &3001
+AudioMixerSnapshotController:
+  m_Name: StethoscopeFocus
+  m_FloatValues: {2105: -12, 2103: -9}
+  m_TransitionOverrides: {}
+--- !u!245 &3002
+AudioMixerSnapshotController:
+  m_Name: DialogueFocus
+  m_FloatValues: {2105: -12, 2103: -9}
+  m_TransitionOverrides: {}
+--- !u!245 &3003
+AudioMixerSnapshotController:
+  m_Name: Paused
+  m_FloatValues: {2101: -60, 2103: -60, 2105: -60, 2107: -60, 2109: -60, 2111: -60, 2113: -60}
+  m_TransitionOverrides: {}
+--- !u!245 &3004
+AudioMixerSnapshotController:
+  m_Name: VRComfort
+  m_FloatValues: {2101: -6}
+  m_TransitionOverrides: {}
