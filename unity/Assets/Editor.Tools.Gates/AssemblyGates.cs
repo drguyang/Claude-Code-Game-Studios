@@ -621,6 +621,30 @@ namespace DaYiJingCheng.EditorTools.Gates
             return result;
         }
 
+        /// <summary>读 asmdef 的 precompiledReferences 数组(2026-09-26 评审 qa-F12):
+        /// 作者**显式声明**的预编译 DLL 面 —— 条目形如 <c>"Unity.ugui.dll"</c>,归一为装配名
+        /// (去 <c>.dll</c> 后缀)以对齐 <c>UiStackForbiddenAssemblyNames</c> 的无后缀口径。
+        /// ⚠️ 引擎**自动引用**模块(经 Cecil AssemblyRef 表可见的 UnityEngine.UIModule 等)
+        /// **不在本读取面** —— 那是每个脚本 DLL 的编译器注入,并入闭包图会恒红;
+        /// 本门只读作者显式写进 asmdef 的声明面(声明 = 可归责)。</summary>
+        public static List<string> ReadPrecompiledReferences(string asmdefPath)
+        {
+            var result = new List<string>();
+            if (!File.Exists(asmdefPath)) return result;
+            var json = File.ReadAllText(asmdefPath);
+            var m = Regex.Match(json, "\"precompiledReferences\"\\s*:\\s*\\[(.*?)\\]",
+                RegexOptions.Singleline);
+            if (!m.Success) return result;
+            foreach (Match e in Regex.Matches(m.Groups[1].Value, "\"([^\"]+)\""))
+            {
+                var token = e.Groups[1].Value;
+                if (token.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                    token = token.Substring(0, token.Length - ".dll".Length);
+                result.Add(token);
+            }
+            return result;
+        }
+
         // ── ①b 源文本层(b4 同格:不引 Roslyn,文本级)───────────────────────
         // 抓 using / nameof / 反射字符串形态(故事 QA「加 using ⇒ 必红」的兑现面)。
         // 注释剥离(文档性提及不算 —— 承 schema_types_primary_key_test 先例);

@@ -68,6 +68,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             private InputSettings.EditorInputBehaviorInPlayMode _savedBehavior;
             private InputSettings.BackgroundBehavior _savedBg;
             private bool _savedRunInBackground;
+            private bool _envSaved;
 
             public void Setup()
             {
@@ -76,39 +77,73 @@ namespace DaYiJingCheng.Tests.PlayMode
                 // DisabledWhileInBackground(InputManager 后台保活判定),此后 player
                 // update 里的事件全被 enabled 检查丢弃(诊断实测 evCount=0)。
                 // 三件套 + 关 Editor update = 官方 InputTestFixture 配方的 batch 等价物
-                // (公开 updateMask setter 在编辑器会强制 |= Editor,只能反射直写);
-                // Cleanup 恢复全部四项。
+                // (公开 updateMask setter 在编辑器会强制 |= Editor,只能反射直写)。
+                // ⚠️ Setup 自带回滚(2026-09-26 评审 qa-F1/us-F2):先保存并置 _envSaved,
+                // 之后整段 try/catch —— 任一后续步骤抛 ⇒ 拆对象 + 恢复四项 + rethrow,
+                // 调用方无需感知(调用点仍把 Setup 放 try 内,Cleanup 幂等兜底)。
+                // 不带回滚的失效模式:Setup 中途抛(如 AddDevice 失败)⇒ 四项全局环境
+                // 已改但无人恢复 ⇒ 污染同批后续所有测试。
                 _savedBehavior = InputSystem.settings.editorInputBehaviorInPlayMode;
                 _savedBg = InputSystem.settings.backgroundBehavior;
                 _savedRunInBackground = Application.runInBackground;
                 _manager = typeof(InputSystem).GetProperty("manager",
                     BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public).GetValue(null);
+                Assert.IsNotNull(_manager,
+                    "Input System 内部布局变更(找不到 InputSystem.manager)—— 本夹具四项环境" +
+                    "保存/恢复失效,须更新反射(Story 007 评审 us-F6)");
                 _maskField = typeof(InputSystem).Assembly
                     .GetType("UnityEngine.InputSystem.InputManager")
-                    .GetField("m_UpdateMask", BindingFlags.NonPublic | BindingFlags.Instance);
+                    ?.GetField("m_UpdateMask", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.IsNotNull(_maskField,
+                    "Input System 内部布局变更(找不到 InputManager.m_UpdateMask)—— 无法关" +
+                    " Editor update,须更新反射(Story 007 评审 us-F6)");
                 _savedMask = (InputUpdateType)_maskField.GetValue(_manager);
+                _envSaved = true;
 
-                InputSystem.settings.editorInputBehaviorInPlayMode =
-                    InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
-                InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
-                Application.runInBackground = true;
-                _maskField.SetValue(_manager,
-                    (InputUpdateType)((int)_savedMask & ~(int)InputUpdateType.Editor));
+                try
+                {
+                    InputSystem.settings.editorInputBehaviorInPlayMode =
+                        InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+                    InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+                    Application.runInBackground = true;
+                    _maskField.SetValue(_manager,
+                        (InputUpdateType)((int)_savedMask & ~(int)InputUpdateType.Editor));
 
-                Asset = ScriptableObject.CreateInstance<InputActionAsset>();
-                Asset.AddActionMap(ActionMapName);
-                Action = Asset.FindActionMap(ActionMapName, throwIfNotFound: true)
-                    .AddAction(ActionName, InputActionType.Button, binding: KeyboardBinding);
+                    Asset = ScriptableObject.CreateInstance<InputActionAsset>();
+                    Asset.AddActionMap(ActionMapName);
+                    Action = Asset.FindActionMap(ActionMapName, throwIfNotFound: true)
+                        .AddAction(ActionName, InputActionType.Button, binding: KeyboardBinding);
 
-                Keyboard = InputSystem.AddDevice<Keyboard>();
+                    Keyboard = InputSystem.AddDevice<Keyboard>();
 
-                Channel = new EmergencyDirectReadChannel(Asset, TestAxialScale, TestDzMag, TestMagMax);
-                Channel.Arm(ArmedOrdinal);
-                Channel.Attach();
-                Action.Enable();
+                    Channel = new EmergencyDirectReadChannel(Asset, TestAxialScale, TestDzMag, TestMagMax);
+                    Channel.Arm(ArmedOrdinal);
+                    Channel.Attach();
+                    Action.Enable();
+                }
+                catch
+                {
+                    TeardownObjects();
+                    if (_envSaved)
+                    {
+                        RestoreEnvironment();
+                        _envSaved = false;
+                    }
+                    throw;
+                }
             }
 
             public void Cleanup()
+            {
+                TeardownObjects();
+                if (_envSaved)
+                {
+                    RestoreEnvironment();
+                    _envSaved = false;
+                }
+            }
+
+            private void TeardownObjects()
             {
                 if (Channel != null)
                 {
@@ -131,6 +166,10 @@ namespace DaYiJingCheng.Tests.PlayMode
                     Object.DestroyImmediate(Asset);
                     Asset = null;
                 }
+            }
+
+            private void RestoreEnvironment()
+            {
                 _maskField.SetValue(_manager, _savedMask);
                 InputSystem.settings.editorInputBehaviorInPlayMode = _savedBehavior;
                 InputSystem.settings.backgroundBehavior = _savedBg;
@@ -152,9 +191,9 @@ namespace DaYiJingCheng.Tests.PlayMode
         public IEnumerator test_direct_read_phase_frame_plus_one_yields_sample_plus_one()
         {
             var fx = new ChannelFixture();
-            fx.Setup();
             try
             {
+                fx.Setup();   // Setup 在 try 内:中途抛 ⇒ Setup 自带回滚 + finally Cleanup 双保险(qa-F1)
                 // 先落一帧让 Attach 后的首次更新稳定(避免把 SetUp 帧的采样算进首步)
                 yield return null;
                 int expectedSamples = fx.Channel.SampleCount;
@@ -172,6 +211,18 @@ namespace DaYiJingCheng.Tests.PlayMode
                         " —— 输入更新相位必须与渲染帧相位 1:1(AC-3-B2③)");
                     expectedSamples = fx.Channel.SampleCount;
                 }
+
+                // Edge「一次推进跨多帧累积」(qa-F10):连续 2 帧 ⇒ 采样累积恰 2 ——
+                // 断言的是增量差(非单帧窗口),抓「累计计数与帧计数脱钩」。
+                int frameBeforeAccum = Time.frameCount;
+                int samplesBeforeAccum = fx.Channel.SampleCount;
+                yield return null;
+                yield return null;
+                int frameDeltaAccum = Time.frameCount - frameBeforeAccum;
+                int sampleDeltaAccum = fx.Channel.SampleCount - samplesBeforeAccum;
+                Assert.That(frameDeltaAccum, Is.EqualTo(2), "两步 yield 必须推进 2 帧");
+                Assert.That(sampleDeltaAccum, Is.EqualTo(frameDeltaAccum),
+                    $"跨 2 帧采样累积({sampleDeltaAccum})必须 = 帧推进({frameDeltaAccum})(AC-3-B2③ Edge)");
             }
             finally
             {
@@ -187,9 +238,9 @@ namespace DaYiJingCheng.Tests.PlayMode
         public IEnumerator test_direct_read_phase_manual_update_dry_run_does_not_double_count()
         {
             var fx = new ChannelFixture();
-            fx.Setup();
             try
             {
+                fx.Setup();   // Setup 在 try 内(qa-F1)
                 yield return null; // 稳定一帧
                 int beforeDryRun = fx.Channel.SampleCount;
 
@@ -222,9 +273,9 @@ namespace DaYiJingCheng.Tests.PlayMode
             bool caught = false;
 
             var fx = new ChannelFixture();
-            fx.Setup();
             try
             {
+                fx.Setup();   // Setup 在 try 内(qa-F1)
                 yield return null; // 稳定一帧
 
                 settings.updateMode = InputSettings.UpdateMode.ProcessEventsInFixedUpdate;
@@ -252,8 +303,11 @@ namespace DaYiJingCheng.Tests.PlayMode
             }
             finally
             {
+                // 顺序纪律(qa-F2):先恢复全局态 + 拆夹具,**最后**才断言恢复成功 ——
+                // 断言若红直接抛出,若放在 Cleanup 之前会把通道/设备连同四项环境一起泄漏。
                 settings.updateMode = savedMode;
                 Time.fixedDeltaTime = savedFixedDelta;
+                fx.Cleanup();
 
                 Assert.That(settings.updateMode, Is.EqualTo(savedMode),
                     "updateMode 未恢复到保存的原值(测试夹具不得污染工程状态)");
@@ -262,35 +316,40 @@ namespace DaYiJingCheng.Tests.PlayMode
                 // 容差 1e-6 远小于任何真实污染(测试写入的是 0.5f),只吸收 roundtrip 误差。
                 Assert.That(Time.fixedDeltaTime, Is.EqualTo(savedFixedDelta).Within(1e-6f),
                     "fixedDeltaTime 未恢复到保存的原值(测试夹具不得污染工程状态)");
-
-                fx.Cleanup();
             }
         }
 
         // ══════════ AC-3-B1a · 零硬件合成注入 → 读数同帧可见(真实接线面)══════════
 
-        /// <summary>AC-3-B1a 真实接线:Arm+Attach 后同一帧注入按键(QueueStateEvent),
-        /// 下一帧 onAfterUpdate 回调采样 ⇒ SampleCount 恰 ==1(轮询晚一帧 ⇒ 0 ⇒ 红)、
+        /// <summary>AC-3-B1a 真实接线:warm-up 一帧落稳后注入按键(QueueStateEvent),
+        /// 下一帧 onAfterUpdate 回调采样 ⇒ SampleCount 恰 **base+1**(相对增量 —— 轮询晚一帧
+        /// ⇒ base ⇒ 红;绝对计数会把「首段运行于本帧输入更新之后」的相位假设焊进断言,us-F4)、
         /// IsReading 同帧可观察、可见性延迟恰 1 帧;EndAction 聚合出非默认读数
         /// (Edges==1 · EdgeTicks=[0] · MagPeak=满幅)。持续按住后再释放+再按 ⇒ Edges==2。</summary>
         [UnityTest]
         public IEnumerator test_direct_read_channel_b1a_injected_reading_visible_same_frame_wired()
         {
             var fx = new ChannelFixture();
-            fx.Setup();
             try
             {
-                // 帧 N:Arm+Attach 已完成 ⇒ 同一帧注入按键(排队,下一帧 InputSystem.Update 生效)
+                fx.Setup();   // Setup 在 try 内(qa-F1)
+
+                // warm-up 一帧:注入基线与本帧输入更新相位解耦 —— 之后全部为相对增量断言
+                // (不假设「Setup 完成时本帧输入更新已过/未过」)。
+                yield return null;
+                int baseSamples = fx.Channel.SampleCount;
+
+                // 注入:按键排队,下一帧 InputSystem.Update 生效
                 fx.PressF();
                 int frameAtInject = Time.frameCount;
 
-                // 帧 N+1:InputSystem.Update 处理队列按键 → 动作触发 → onAfterUpdate 回调采样
+                // 下一帧:InputSystem.Update 处理队列按键 → 动作触发 → onAfterUpdate 回调采样
                 yield return null;
 
                 int frameDelta = Time.frameCount - frameAtInject;
                 Assert.That(frameDelta, Is.EqualTo(1), "注入到可见恰好跨 1 个渲染帧(AC-3-B1a ≤1 帧)");
-                Assert.That(fx.Channel.SampleCount, Is.EqualTo(1),
-                    "接线后首样必须在注入的下一帧恰到(轮询且晚一帧 ⇒ 此处 0 ⇒ 红)");
+                Assert.That(fx.Channel.SampleCount, Is.EqualTo(baseSamples + 1),
+                    "接线后首样必须在注入的下一帧恰到(base+1;轮询且晚一帧 ⇒ base ⇒ 红)");
                 Assert.That(fx.Channel.IsReading, Is.True,
                     "采样帧内 IsReading 必须同帧可见(AC-3-B1a)");
                 Assert.That(fx.Channel.State, Is.EqualTo(DirectChannelState.Armed),
@@ -298,7 +357,8 @@ namespace DaYiJingCheng.Tests.PlayMode
 
                 // 持续按住一帧(无新沿,持有态采样)
                 yield return null;
-                Assert.That(fx.Channel.SampleCount, Is.EqualTo(2), "持有帧每帧恰 1 样本(B2③ 性质兼验)");
+                Assert.That(fx.Channel.SampleCount, Is.EqualTo(baseSamples + 2),
+                    "持有帧每帧恰 1 样本(B2③ 性质兼验)");
 
                 // 释放 → 下一帧处理松键 → 无新沿(松键不是沿) → 但持有时长继续累计
                 fx.ReleaseF();
@@ -307,7 +367,8 @@ namespace DaYiJingCheng.Tests.PlayMode
                 // 再按 → 新沿
                 fx.PressF();
                 yield return null;
-                Assert.That(fx.Channel.SampleCount, Is.EqualTo(4), "四帧各恰一样本(注入/持有/释放/再按)");
+                Assert.That(fx.Channel.SampleCount, Is.EqualTo(baseSamples + 4),
+                    "四帧各恰一样本(注入/持有/释放/再按)");
 
                 // 收束:EndAction 聚合
                 var result = fx.Channel.EndAction();
@@ -326,6 +387,141 @@ namespace DaYiJingCheng.Tests.PlayMode
             {
                 fx.Cleanup();
             }
+        }
+
+        // ══════════ 评审修复批(2026-09-26 qa-F3/F4/F5/F8/F10 · us-F4/F6)══════════
+
+        /// <summary>qa-F4「非轮询」可执行判据(相位探针):通道的采样必须**在输入更新期
+        /// (onAfterUpdate 回调内)完成**,行为 Update 期不得再增长。探针挂在通道之后
+        /// (同事件后挂 = 后执行,读到通道采样后的计数);协程恢复点在本帧行为 Update 之后
+        /// (spike S3 实测:恢复点读到的本帧回调计数已 +1)。若通道改成在 Update() 里轮询,
+        /// 回调期计数会落后于 Update 后计数 ⇒ 「回调期 == Update 后」断言红。</summary>
+        [UnityTest]
+        public IEnumerator test_direct_read_phase_sampling_completes_in_input_update_not_behaviour_update()
+        {
+            var fx = new ChannelFixture();
+            int countInInputCallback = -1;
+            void Probe() => countInInputCallback = fx.Channel.SampleCount;
+            try
+            {
+                fx.Setup();   // Setup 在 try 内(qa-F1)
+                yield return null;   // 稳定帧
+                InputSystem.onAfterUpdate += Probe;   // 挂在通道 Attach 之后 ⇒ 通道先采样
+                try
+                {
+                    int prevAfterBehaviour = fx.Channel.SampleCount;
+                    for (int i = 0; i < 3; i++)
+                    {
+                        yield return null;
+                        int countAfterBehaviour = fx.Channel.SampleCount;
+                        Assert.That(countInInputCallback, Is.EqualTo(countAfterBehaviour),
+                            $"第 {i} 步:采样必须在输入更新期(回调)完成,行为 Update 期不得再增长" +
+                            " —— 通道若在 Update() 里轮询,回调期计数落后于 Update 后计数 ⇒ 此处红");
+                        Assert.That(countAfterBehaviour - prevAfterBehaviour, Is.EqualTo(1),
+                            $"第 {i} 步:每帧恰 1 样本");
+                        prevAfterBehaviour = countAfterBehaviour;
+                    }
+                }
+                finally
+                {
+                    InputSystem.onAfterUpdate -= Probe;
+                }
+            }
+            finally
+            {
+                fx.Cleanup();
+            }
+        }
+
+        /// <summary>qa-F5 场景②/③「同帧第二次回调」确定性面:CI batch 下手动
+        /// InputSystem.Update() 不触发回调(spike delta=0,删闸也绿 ⇒ 空转)——
+        /// 经 <see cref="EmergencyDirectReadChannel.NotifyAfterUpdateForTest"/> 缝同帧连调:
+        /// Arm 后同帧(回调已跑过)再驱动一次 = 同帧第二回调 ⇒ 闸拦、零采样;
+        /// 下一帧驱动 = 首样恰 1。</summary>
+        [UnityTest]
+        public IEnumerator test_direct_read_phase_same_frame_second_callback_deduplicated()
+        {
+            var fx = new ChannelFixture();
+            try
+            {
+                fx.Setup();   // Setup 在 try 内(qa-F1)
+                yield return null;   // 稳定帧:本帧真实回调已跑(闸记帧)
+                fx.Channel.EndAction();          // 回 Idle(丢弃周期,重开 Arm 窗口)
+                int baseCount = fx.Channel.SampleCount;
+
+                fx.Channel.Arm(ArmedOrdinal);
+                fx.Channel.NotifyAfterUpdateForTest();   // 同帧第二次回调 ⇒ 必须被闸拦
+                Assert.That(fx.Channel.SampleCount, Is.EqualTo(baseCount),
+                    "同帧第二+次回调不得采样(qa-F3:删闸 ⇒ 此处 +1 ⇒ 红)");
+
+                yield return null;   // 新帧:闸放行,恰采 1
+                Assert.That(fx.Channel.SampleCount, Is.EqualTo(baseCount + 1),
+                    "新帧首回调恰采 1 次(闸不跨帧漏采)");
+            }
+            finally
+            {
+                fx.Cleanup();
+            }
+        }
+
+        /// <summary>qa-F5 场景①「同帧 Detach→Attach 重挂」:重挂沿用旧帧戳
+        /// (<see cref="EmergencyDirectReadChannel"/> us-F3 注记②)⇒ 本帧剩余回调仍被拦;
+        /// 下一帧恰 1 样本 —— 不双挂、不双采。</summary>
+        [UnityTest]
+        public IEnumerator test_direct_read_phase_reattach_same_frame_no_double_count()
+        {
+            var fx = new ChannelFixture();
+            try
+            {
+                fx.Setup();   // Setup 在 try 内(qa-F1)
+                yield return null;
+                int baseCount = fx.Channel.SampleCount;
+
+                fx.Channel.Detach();
+                fx.Channel.Attach();
+                fx.Channel.NotifyAfterUpdateForTest();   // 同帧(本帧真实回调已跑)⇒ 闸拦
+                Assert.That(fx.Channel.IsAttached, Is.True, "重挂后必须处于已挂状态");
+                Assert.That(fx.Channel.SampleCount, Is.EqualTo(baseCount),
+                    "同帧 Detach→Attach 后本帧剩余回调不得再采(帧戳沿用,恰一样本语义)");
+
+                yield return null;
+                Assert.That(fx.Channel.SampleCount, Is.EqualTo(baseCount + 1),
+                    "重挂后下一帧恰 1 样本(不因重挂双采)");
+            }
+            finally
+            {
+                fx.Cleanup();
+            }
+        }
+
+        /// <summary>qa-F8 夹具自检:Setup→Cleanup 往返后四项全局输入环境逐项等于保存前
+        /// 原值(否则夹具本身就是污染源,同批其余测试的绿不可信)。</summary>
+        [Test]
+        public void test_direct_read_phase_fixture_restores_global_input_state()
+        {
+            var savedBehavior = InputSystem.settings.editorInputBehaviorInPlayMode;
+            var savedBg = InputSystem.settings.backgroundBehavior;
+            bool savedRunInBg = Application.runInBackground;
+            var manager = typeof(InputSystem).GetProperty("manager",
+                BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public).GetValue(null);
+            var maskField = typeof(InputSystem).Assembly
+                .GetType("UnityEngine.InputSystem.InputManager")
+                ?.GetField("m_UpdateMask", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(maskField, "Input System 内部布局变更(m_UpdateMask 不在)—— us-F6");
+            var savedMask = (InputUpdateType)maskField.GetValue(manager);
+
+            var fx = new ChannelFixture();
+            fx.Setup();
+            fx.Cleanup();
+
+            Assert.That(InputSystem.settings.editorInputBehaviorInPlayMode, Is.EqualTo(savedBehavior),
+                "Cleanup 后 editorInputBehaviorInPlayMode 必须复原(夹具不得污染工程状态)");
+            Assert.That(InputSystem.settings.backgroundBehavior, Is.EqualTo(savedBg),
+                "Cleanup 后 backgroundBehavior 必须复原");
+            Assert.That(Application.runInBackground, Is.EqualTo(savedRunInBg),
+                "Cleanup 后 runInBackground 必须复原");
+            Assert.That((InputUpdateType)maskField.GetValue(manager), Is.EqualTo(savedMask),
+                "Cleanup 后 updateMask(反射直写面)必须复原");
         }
     }
 }

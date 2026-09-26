@@ -103,6 +103,11 @@ namespace DaYiJingCheng.Tests.PlayMode
         [SetUp]
         public void BeforeEach() => LogAssert.ignoreFailingMessages = true;
 
+        // qa-F9:SetUp/OneTimeSetUp 抬起的 ignore 必须有对应回落 —— 否则泄漏到本装配其余测试
+        // (失败日志被吞 = 假绿面)。每测回落;末测后终值 = false。
+        [TearDown]
+        public void AfterEach() => LogAssert.ignoreFailingMessages = false;
+
         [OneTimeTearDown]
         public void ReportFooter()
         {
@@ -193,7 +198,6 @@ namespace DaYiJingCheng.Tests.PlayMode
                 int firesBefore2 = fires;
                 yield return null;
                 int firesAfter2 = fires - firesBefore2;
-                int frameAdvance2 = Time.frameCount - (Time.frameCount - 1); // 上一句已前进;仅记录
                 Report($"[007-S3] post_manual_frame: on_after_update_delta={firesAfter2} " +
                        $"(段内帧增量=1,手动段不应改变帧-采样对偶)");
             }

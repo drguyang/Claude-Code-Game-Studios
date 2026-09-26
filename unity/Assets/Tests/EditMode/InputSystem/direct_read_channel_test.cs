@@ -94,6 +94,9 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 "注入帧内必须同帧可见(AC-3-B1a;负例:通道改轮询且晚一帧 ⇒ 此处 false ⇒ 红)");
 
             // Assert —— 可见性延迟 ≤1 帧(AC 原文上界)
+            // qa-F7 注记:EditMode 同步调用间 Time.frameCount 不推进 ⇒ 差值恒 0 ⇒ 本断言**恒真**
+            // (性质恒成立但不证相位);同帧可见性的硬面由上方 IsReading 断言承载,
+            // 帧上界的真实执行面在 PlayMode phase 测试(真实 player loop 步进)。
             Assert.That(frameAfter - frameAtInject, Is.LessThanOrEqualTo(1),
                 "输入 → 读数可见性必须 ≤1 帧(AC-3-B1a)");
 
@@ -127,6 +130,7 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             // Assert —— 注入 1 同帧可见
             Assert.That(n1, Is.EqualTo(1));
             Assert.That(channel.IsReading, Is.True, "注入 1 必须在注入帧可见");
+            // qa-F7:EditMode 帧计数不推进 ⇒ 差值恒真;硬面在 IsReading(见首测注记)
             Assert.That(Time.frameCount - frame1, Is.LessThanOrEqualTo(1), "注入 1 可见性 ≤1 帧");
 
             // Act —— 持有帧(无新沿)+ 注入 2(半幅沿)
@@ -137,6 +141,7 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             // Assert —— 注入 2 同帧可见
             Assert.That(n3, Is.EqualTo(3), "连续注入 ⇒ 累计 3 个样本");
             Assert.That(channel.IsReading, Is.True, "注入 2 必须在注入帧可见(两次都同帧可见)");
+            // qa-F7:EditMode 帧计数不推进 ⇒ 差值恒真;硬面在 IsReading(见首测注记)
             Assert.That(Time.frameCount - frame2, Is.LessThanOrEqualTo(1), "注入 2 可见性 ≤1 帧");
 
             // Act —— 尾帧持有 + 收束
@@ -370,6 +375,69 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 "B2① 必须挂进 RunAll —— 门存在但未接线 = 构建期无人执行(Story 007 AC-3-B2①)");
         }
 
+        /// <summary>qa-F12 读取面:asmdef 的 precompiledReferences(作者显式声明的预编译 DLL 面)
+        /// 必须被捕获并归一去 <c>.dll</c> —— 否则直读程序集写
+        /// <c>"precompiledReferences": ["Unity.ugui.dll"]</c> 会静默溜过 B2①(只读 references 键的洞)。</summary>
+        [Test]
+        public void test_direct_read_gate_b2_1_reader_captures_precompiled_references()
+        {
+            string tmp = Path.Combine(Path.GetTempPath(),
+                "dyc_story007_precompiled_" + Process.GetCurrentProcess().Id + ".asmdef");
+            File.WriteAllText(tmp,
+                "{\"name\":\"Fixture\",\"references\":[\"Some.Assembly\"]," +
+                "\"precompiledReferences\":[\"Unity.ugui.dll\",\"Foo.dll\"]}");
+            try
+            {
+                var pre = AssemblyGates.ReadPrecompiledReferences(tmp);
+                Assert.That(pre, Is.EquivalentTo(new[] { "Unity.ugui", "Foo" }),
+                    "precompiledReferences 须捕获并去 .dll 归一(qa-F12):" + tmp);
+
+                var declared = AssemblyGates.ReadDeclaredReferences(tmp);
+                Assert.That(declared, Is.EqualTo(new[] { "Some.Assembly" }),
+                    "references 读取面不得被 precompiled 并集污染(两键分读)");
+
+                var edges = InputBoundaryGates.ReadGraphEdges(tmp);
+                Assert.That(edges, Is.EquivalentTo(new[] { "Some.Assembly", "Unity.ugui", "Foo" }),
+                    "图边 = declared ∪ precompiled(qa-F12 并集面)");
+            }
+            finally
+            {
+                try { File.Delete(tmp); } catch { /* 清理失败不掩盖断言 */ }
+            }
+        }
+
+        /// <summary>qa-F12 端到端:precompiled 声明的 UI 栈 DLL 并入图边后,B2① 闭包必须红
+        /// (证明并集不是纸面 —— Unity.ugui 经 precompiled 边可达即点名)。</summary>
+        [Test]
+        public void test_direct_read_gate_b2_1_precompiled_edge_reaches_ui_closure()
+        {
+            string tmp = Path.Combine(Path.GetTempPath(),
+                "dyc_story007_precompiled_closure_" + Process.GetCurrentProcess().Id + ".asmdef");
+            File.WriteAllText(tmp,
+                "{\"name\":\"" + InputBoundaryGates.InputAssemblyName + "\"," +
+                "\"references\":[],\"precompiledReferences\":[\"Unity.ugui.dll\"]}");
+            try
+            {
+                var graph = new Dictionary<string, List<string>>(StringComparer.Ordinal)
+                {
+                    [InputBoundaryGates.InputAssemblyName] = InputBoundaryGates.ReadGraphEdges(tmp),
+                };
+
+                var errs = InputBoundaryGates.UiStackReferenceClosureViolations(
+                    graph, InputBoundaryGates.InputAssemblyName);
+
+                Assert.That(errs, Has.Count.EqualTo(1),
+                    () => "precompiled 声明的 Unity.ugui 必须经闭包红点名(qa-F12):\n" +
+                          string.Join("\n", errs));
+                Assert.That(errs[0], Does.Contain("[B2①]"));
+                Assert.That(errs[0], Does.Contain("Unity.ugui"));
+            }
+            finally
+            {
+                try { File.Delete(tmp); } catch { /* 清理失败不掩盖断言 */ }
+            }
+        }
+
         // ══════════ AC-3-B2② · Roslyn 拒 UI 事件符号(编译期,非 grep)══════════
 
         /// <summary>AC-3-B2② 前置:分析器 DLL 已产出,且带 RoslynAnalyzer label(label 缺失 ⇒ 门静默失效)。</summary>
@@ -551,6 +619,155 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             Assert.That(exitCode, Is.EqualTo(0),
                 "直读作用域外的 UI 代码不受本门约束(作用域级门):\n" + output);
             Assert.That(output, Does.Not.Contain("DY0002"), "作用域外不得出现 DY0002:\n" + output);
+        }
+
+        /// <summary>AC-3-B2② 边界「别名形态」:using 别名 + 别名成员访问 —— 符号面判定与拼写无关
+        /// (alias 解析后仍指向 EventSystem 符号)⇒ 同样拒。</summary>
+        [Test]
+        public void test_direct_read_gate_b2_2_rejects_using_alias_member_access()
+        {
+            const string sample =
+                "using EvSys = UnityEngine.EventSystems;\n" +
+                "public static class BadAliasEventSystem\n" +
+                "{\n" +
+                "    public static EvSys.EventSystem Run() => EvSys.EventSystem.current;\n" +
+                "}\n";
+
+            var (exitCode, output) = RunCscWithAnalyzer(
+                "Assets/Gameplay.Input/bad_alias_eventsystem.cs", sample);
+
+            Assert.That(exitCode, Is.Not.EqualTo(0), "using 别名形态 UI 符号引用必须编译失败:\n" + output);
+            Assert.That(output, Does.Contain("DY0002"), "失败必须由 DY0002 报出:\n" + output);
+            Assert.That(output, Does.Match(@"bad_alias_eventsystem\.cs\(\d+,\d+\): error DY0002"),
+                "诊断必须带行列位置、指向该引用:\n" + output);
+        }
+
+        /// <summary>AC-3-B2② 负面「反射字符串」:Type.GetType("…EventSystem") 是**字符串字面量**,
+        /// 编译期不产生符号引用(编译期符号面门的边界)⇒ 通过、零 DY0002(不误报)。</summary>
+        [Test]
+        public void test_direct_read_gate_b2_2_allows_reflection_string_negative()
+        {
+            const string sample =
+                "using System;\n" +
+                "public static class GoodReflectString\n" +
+                "{\n" +
+                "    public static Type T() => Type.GetType(\"UnityEngine.EventSystems.EventSystem\");\n" +
+                "}\n";
+
+            var (exitCode, output) = RunCscWithAnalyzer(
+                "Assets/Gameplay.Input/good_reflect_string.cs", sample);
+
+            Assert.That(exitCode, Is.EqualTo(0),
+                "反射字符串不构成编译期符号引用,不得误报:\n" + output);
+            Assert.That(output, Does.Not.Contain("DY0002"), "反射字符串形态不得出现 DY0002:\n" + output);
+        }
+
+        /// <summary>AC-3-B2② 声明面(us-F5):字段声明与方法返回类型的禁引类型引用**不产生任何
+        /// operation** —— 只靠 operation 面会静默漏放 ⇒ 分析器须在符号面(Field/Method)补注册。</summary>
+        [Test]
+        public void test_direct_read_gate_b2_2_rejects_declaration_surface()
+        {
+            const string sample =
+                "public static class BadDeclarationSurface\n" +
+                "{\n" +
+                "    public static UnityEngine.EventSystems.EventSystem _es;\n" +
+                "    public static UnityEngine.EventSystems.EventSystem Make() { return null; }\n" +
+                "}\n";
+
+            var (exitCode, output) = RunCscWithAnalyzer(
+                "Assets/Gameplay.Input/bad_declaration.cs", sample);
+
+            Assert.That(exitCode, Is.Not.EqualTo(0),
+                "字段 / 方法返回类型的禁引类型声明必须编译失败(声明面零 operation,须符号面兜住):\n" + output);
+            Assert.That(output, Does.Contain("DY0002"), "失败必须由 DY0002 报出:\n" + output);
+        }
+
+        // ══════════ 评审修复批(2026-09-26 qa-F6/F13/F14)══════════
+
+        /// <summary>qa-F13 源扫描元测试:B2③ 禁以枚举成员名为主语(AC 原文)—— PlayMode phase 测试
+        /// **代码面**(剥行注释后)不得出现 `ProcessEventsInDynamicUpdate` 或 `updateMode ==`
+        /// 枚举字面比较(载体可换但不得把被禁形态写回来;注释里的诊断性提及合法 —— 如头注记录
+        /// spike 实测值,Negative 夹具赋值 ProcessEventsInFixedUpdate 亦合法)。</summary>
+        [Test]
+        public void test_direct_read_gate_b2_3_phase_test_source_has_no_update_mode_enum_comparison()
+        {
+            string phaseSrcPath = Path.Combine(RepoRoot, "unity", "Assets", "Tests",
+                "PlayMode", "direct_read_channel_phase_test.cs");
+            Assert.That(File.Exists(phaseSrcPath), Is.True, "PlayMode phase 测试源缺失:" + phaseSrcPath);
+            string src = File.ReadAllText(phaseSrcPath);
+
+            // 剥行注释(// 起至行尾)—— 只扫代码面,注释性提及(头注 / 断言说明)不算违例
+            var sb = new System.Text.StringBuilder();
+            foreach (string line in src.Split('\n'))
+            {
+                int i = line.IndexOf("//", StringComparison.Ordinal);
+                sb.AppendLine(i >= 0 ? line.Substring(0, i) : line);
+            }
+            string code = sb.ToString();
+
+            Assert.That(code, Does.Not.Contain("ProcessEventsInDynamicUpdate"),
+                "B2③ 断言禁以 updateMode 枚举成员为主语(AC-3-B2③ 原文)—— phase 测试**代码面**出现" +
+                "该成员名即违判据(qa-F13;注释提及合法):" + phaseSrcPath);
+            Assert.That(code, Does.Not.Contain("updateMode =="),
+                "B2③ 禁 updateMode 枚举字面比较(qa-F13)—— 须比性质(帧-采样对偶),不比模式名:" +
+                phaseSrcPath);
+        }
+
+        /// <summary>qa-F14 / G9:通道类**不得有 int[] 类型的实例字段**(EdgeTicks 每帧 ToArray 副本
+        /// 喂 Sample 后即弃;存字段 = 跨帧持有 = 静默数据损坏)。反射断言,非 grep。</summary>
+        [Test]
+        public void test_direct_read_channel_g9_no_defensive_copy_field_held()
+        {
+            var fields = typeof(EmergencyDirectReadChannel).GetFields(
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.Static |
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.NonPublic);
+
+            var arrayFields = fields.Where(f => f.FieldType == typeof(int[])).ToArray();
+            Assert.That(arrayFields, Is.Empty,
+                "G9:EmergencyReading.EdgeTicks 副本不得存进任何字段(跨帧持有 = 聚合数据被覆写):" +
+                string.Join(", ", arrayFields.Select(f => f.Name)));
+        }
+
+        /// <summary>qa-F6:Idle 期回调走「state != Armed → return」分支,不读动作、不推进
+        /// _holdTicks(逻辑层 null 动作安全);Armed 期同缝恰推进 1(真资产 —— ReadEmergency
+        /// 需要动作实例)。</summary>
+        [Test]
+        public void test_direct_read_channel_idle_callback_does_not_advance_hold_ticks()
+        {
+            // Idle:首次回调(每实例独立帧戳)不得推进任何计数
+            var logic = NewLogicChannel();
+            logic.NotifyAfterUpdateForTest();
+            Assert.That(ReadPrivateField<int>(logic, "_holdTicks"), Is.EqualTo(0),
+                "Idle 期回调不得推进 _holdTicks(qa-F6:否则零样本签约失真)");
+            Assert.That(logic.SampleCount, Is.EqualTo(0), "Idle 期回调零采样");
+
+            // Armed(真资产):同缝恰推进 1
+            var asset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(ActionAssetPath);
+            Assert.That(asset, Is.Not.Null, "动作资产未找到:" + ActionAssetPath);
+            var wired = new EmergencyDirectReadChannel(asset, TestAxialScale, TestDzMag, TestMagMax);
+            try
+            {
+                wired.Arm(5);
+                wired.NotifyAfterUpdateForTest();
+                Assert.That(ReadPrivateField<int>(wired, "_holdTicks"), Is.EqualTo(1),
+                    "Armed 期回调恰推进 _holdTicks 1(每帧一次)");
+                Assert.That(wired.SampleCount, Is.EqualTo(1), "Armed 期回调恰 1 样本");
+            }
+            finally
+            {
+                wired.Detach();
+            }
+        }
+
+        /// <summary>反射读私有字段(qa-F6 的 _holdTicks 观察面;布局变更 ⇒ 测试红,不静默)。</summary>
+        private static T ReadPrivateField<T>(object target, string fieldName)
+        {
+            var field = target.GetType().GetField(fieldName,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, "私有字段缺失(布局变更?):" + fieldName);
+            return (T)field.GetValue(target);
         }
 
         // ══════════ 子进程编译装置(AC-3-B2② 的执行体;不破坏工程编译)══════════

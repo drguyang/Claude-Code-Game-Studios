@@ -105,7 +105,14 @@ namespace DaYiJingCheng.Gameplay.Input
         /// <summary>同帧去重:每个渲染帧只处理第一次 onAfterUpdate 回调。手动
         /// <c>InputSystem.Update()</c>(聚焦环境 / 玩家构建路径)会在同帧再触发本回调,
         /// 不拦则 SampleCount 跟调用计数走、破坏「帧 +1 ⇒ 采样 +1」(AC-3-B2③
-        /// 「manual 干跑不双计」)。</summary>
+        /// 「manual 干跑不双计」)。
+        /// ⚠️ 两条已知边界(2026-09-26 评审 us-F3 —— 均为注记,不改行为):
+        /// ① 手动 <c>InputSystem.Update()</c> 除触发回调外还**消费事件队列** —— 若在通道
+        ///    本帧首次回调之后调用,press 沿可能被该次消费提前吃掉且通道不再采样(沿对
+        ///    通道不可见)。该形态只在违反 manifest 的手动驱动下可达(本工程样例唯一驱动
+        ///    源 = onAfterUpdate 自动相位),故不加防护;
+        /// ② Detach 不复位本字段,同实例同帧 Detach→Attach 后沿用旧帧戳 —— 本帧剩余回调
+        ///    仍被拦,采样从下一帧恢复(语义一致:一个渲染帧恰一个样本)。</summary>
         private int _lastCallbackFrame = -1;
 
         /// <summary>仅接线模式使用:注入的动作资产里解析出的 Emergency 动作(构造时缓存,
@@ -116,7 +123,7 @@ namespace DaYiJingCheng.Gameplay.Input
         /// 为 null,仅测试/纯逻辑使用)不解析动作,<see cref="Attach"/> 会抛。</summary>
         /// <param name="actions">全案唯一动作资产(规则一);null 允许但不接线下。</param>
         /// <param name="axialScale">AXIAL_SCALE:Q16.16 定点整数,须 ≥ <paramref name="magMax"/>。</param>
-        /// <param name="dzMag">DZ_MAG ≥ 0:大幅死区入口(tick 尺度。</param>
+        /// <param name="dzMag">DZ_MAG ≥ 0:幅度死区下限 —— 此下的静息漂移定点值归零(Q16.16 幅度量纲,与 magMax 同域;值归数值轮)。</param>
         /// <param name="magMax">MAG_MAX ∈ [0, 65536]:幅度上界(Q16.16 计数)。</param>
         /// <exception cref="ArgumentException"><paramref name="axialScale"/> &lt; <paramref name="magMax"/>
         /// (F-10.1 结构性要求 AXIAL_SCALE ≥ MAG_MAX)或 <paramref name="dzMag"/> &lt; 0。</exception>
@@ -249,11 +256,17 @@ namespace DaYiJingCheng.Gameplay.Input
             _holdTicks++;
             int magnitude = MagnitudeFromAxis(axis);
             int[] edges = _edgeTicks.ToArray();
-            var reading = new EmergencyReading(action, _holdTicks, edges.Length, edges, magnitude);
-            _sampledThisFrame = true;
-            _aggregator.Sample(reading);
-            return ++_sampleCount;
+            Feed(new EmergencyReading(action, _holdTicks, edges.Length, edges, magnitude));
+            return _sampleCount;
         }
+
+        /// <summary>测试专用:直接触发一次 <see cref="OnAfterUpdate"/> 回调体。**测试缝** ——
+        /// CI batch(未聚焦 / -nographics)下手动 <c>InputSystem.Update()</c> 不触发
+        /// onAfterUpdate(spike 实测 delta=0,环境依赖),同帧去重闸的机制验证若只靠
+        /// 「手动 Update 干跑」在该环境下是空转(删闸也绿)⇒ 本缝让测试以同一帧号
+        /// 连调两次、确定性验证「同帧第二+次回调不双计」(AC-3-B2③ Edge 的执行面)。
+        /// 仅供测试;生产路径不调用(样例唯一驱动源仍是 onAfterUpdate 自动相位)。</summary>
+        public void NotifyAfterUpdateForTest() => OnAfterUpdate();
 
         /// <summary>onAfterUpdate 回调(接线回调 —— **唯一**样例驱动点)。同帧只处理第一次
         /// 回调:聚焦环境 / 玩家构建下手动 <c>InputSystem.Update()</c> 会在同帧再触发本回调,

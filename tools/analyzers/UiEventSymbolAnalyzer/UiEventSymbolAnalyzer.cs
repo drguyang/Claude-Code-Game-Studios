@@ -128,6 +128,54 @@ namespace DaYiJingCheng.EditorTools.Analyzers
 
             context.RegisterOperationAction(AnalyzeOperation, Kinds);
             context.RegisterSymbolAction(AnalyzeNamedType, SymbolKind.NamedType);
+
+            // 声明面(us-F5,2026-09-26 评审):字段 / 属性 / 方法返回类型 / 参数的禁引类型引用
+            // **不产生任何 operation**(如 `public EventSystem _es;` 是纯声明)—— 只挂 operation
+            // 面会静默漏放 ⇒ 在符号面按「声明的类型」补判。
+            context.RegisterSymbolAction(AnalyzeDeclarationSurface, SymbolKind.Field);
+            context.RegisterSymbolAction(AnalyzeDeclarationSurface, SymbolKind.Property);
+            context.RegisterSymbolAction(AnalyzeDeclarationSurface, SymbolKind.Method);
+            context.RegisterSymbolAction(AnalyzeDeclarationSurface, SymbolKind.Parameter);
+        }
+
+        // ── 声明面:字段 / 属性 / 方法返回类型 / 参数的类型引用(零 operation 形态)──
+
+        private static void AnalyzeDeclarationSurface(SymbolAnalysisContext ctx)
+        {
+            if (ctx.Symbol.Locations.Length == 0)
+                return;
+            Location location = ctx.Symbol.Locations[0];
+            if (location.SourceTree == null || !IsInDirectReadScope(location.SourceTree))
+                return;
+
+            ITypeSymbol type;
+            string display;
+            switch (ctx.Symbol)
+            {
+                case IFieldSymbol field:
+                    type = field.Type;
+                    display = "field " + field.Name;
+                    break;
+                case IPropertySymbol property:
+                    type = property.Type;
+                    display = "property " + property.Name;
+                    break;
+                case IMethodSymbol method:
+                    type = method.ReturnType;
+                    display = "method " + method.Name;
+                    break;
+                case IParameterSymbol parameter:
+                    type = parameter.Type;
+                    display = "parameter " + parameter.Name;
+                    break;
+                default:
+                    return;
+            }
+
+            string hit = GatedTypeName(type);
+            if (hit == null)
+                return;
+            ctx.ReportDiagnostic(Diagnostic.Create(Rule, location, hit + " (" + display + ")"));
         }
 
         // ── 操作面:类型引用落在表达式静态类型 / typeof 操作数 / 成员所属类型 ──

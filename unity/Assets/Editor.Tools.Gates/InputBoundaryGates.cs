@@ -220,7 +220,12 @@ namespace DaYiJingCheng.EditorTools.Gates
         //   asmdef 的 name → references 建边;引擎 / BCL 面是叶,图里没有边 = 无穿透)。
         //   纯函数 Predicate:负例夹具喂合成图,真树喂真图。
         /// <summary>工程内装配引用图(读全 Assets 树 asmdef;同名后者覆盖前者 = 重复即歧义,
-        /// 以 Ordinal 序最后一个为准并在漂移红里如实显示)。引擎 / BCL 不建边。</summary>
+        /// 以 Ordinal 序最后一个为准并在漂移红里如实显示)。引擎 / BCL 不建边。
+        /// ⚠️ 2026-09-26 评审 qa-F12:边 = declared references ∪ **precompiledReferences**
+        /// (作者显式声明的预编译 DLL 面,归一去 <c>.dll</c> 后缀)—— 只读 references 键时,
+        /// 直读程序集写 <c>"precompiledReferences": ["Unity.ugui.dll"]</c> 会静默溜过 B2①;
+        /// Cecil AssemblyRef(引擎自动注入面)刻意**不**并入 —— 恒红且按引擎前缀过滤会让
+        /// 黑名单全被滤掉(门失效),见 ReadPrecompiledReferences 注记。</summary>
         public static Dictionary<string, List<string>> BuildProjectReferenceGraph()
         {
             var graph = new Dictionary<string, List<string>>(StringComparer.Ordinal);
@@ -231,9 +236,18 @@ namespace DaYiJingCheng.EditorTools.Gates
                 try { name = ReadDeclaredAssemblyName(asmdef); }
                 catch (IOException) { continue; }   // 并发导入期读到半文件 = 缺边,由闭包红兜
                 if (string.IsNullOrEmpty(name)) continue;
-                graph[name] = AssemblyGates.ReadDeclaredReferences(asmdef);
+                graph[name] = ReadGraphEdges(asmdef);
             }
             return graph;
+        }
+
+        /// <summary>单个 asmdef 的图边(qa-F12 并集面,纯读文件):declared references ∪
+        /// precompiledReferences(去 <c>.dll</c>)。测试可对临时 asmdef 直接喂本函数。</summary>
+        public static List<string> ReadGraphEdges(string asmdefPath)
+        {
+            var edges = AssemblyGates.ReadDeclaredReferences(asmdefPath);
+            edges.AddRange(AssemblyGates.ReadPrecompiledReferences(asmdefPath));
+            return edges;
         }
 
         private static string ReadDeclaredAssemblyName(string asmdefPath)
