@@ -592,37 +592,6 @@ namespace DaYiJingCheng.EditorTools.Gates
                 rootsSet.Add(t);
             }
 
-            var inputAsm = AppDomain.CurrentDomain.GetAssemblies()
-                .FirstOrDefault(a => a.GetName().Name == InputAssemblyName);
-            if (inputAsm == null)
-            {
-                errs.Add($"[A7] {InputAssemblyName} 装配未加载 —— 四意图扫描根不可得,拒以空集" +
-                         "冒充绿(AC-3-A7)。");
-                return errs;
-            }
-            try
-            {
-                foreach (var t in inputAsm.GetTypes())
-                {
-                    if (!t.IsPublic && !t.IsNestedPublic) continue;
-                    if (string.IsNullOrEmpty(t.Namespace)) continue;
-                    if (!t.Namespace.StartsWith("DaYiJingCheng.Gameplay.Input.Intents", StringComparison.Ordinal))
-                        continue;
-                    rootsSet.Add(t);
-                }
-            }
-            catch (ReflectionTypeLoadException ex)
-            {
-                foreach (var t in ex.Types)
-                {
-                    if (t == null || (!t.IsPublic && !t.IsNestedPublic)) continue;
-                    if (t.Namespace == null) continue;
-                    if (!t.Namespace.StartsWith("DaYiJingCheng.Gameplay.Input.Intents", StringComparison.Ordinal))
-                        continue;
-                    rootsSet.Add(t);
-                }
-            }
-
             roots = rootsSet.Count;
             var ordered = rootsSet.OrderBy(r => r.FullName, StringComparer.Ordinal).ToList();
             rootFullNames = ordered.Select(r => r.FullName).ToList();

@@ -374,7 +374,8 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             // S6:旧断言只钉「≥ 30」—— 扫描键退化成空集 / 半集(漏掉 5 支)仍**全绿**,
             // 而 A7 漏扫的载荷正是本该被拦的浮点藏身处。改成**集合断言**:
             // 根集 = Sim.Contracts 全部 struct(减显式豁免),一字不多一字不少。
-            // Intents 交出物不参与 A7 扫描根(它们是 A6 闭集,不是 Sim.Contracts 载荷)。
+            // Intents 交出物不参与 A7 扫描根(它们是 A6 闭集,不是 Sim.Contracts 载荷);
+            // 测试侧与门侧同步收窄到 Sim.Contracts struct 集,只断言这一侧。
             Assert.That(EditorUtility.scriptCompilationFailed, Is.False,
                 "跑 A7 根集断言前提:编译成功");
 
