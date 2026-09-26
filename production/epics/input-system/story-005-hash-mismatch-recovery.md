@@ -6,7 +6,7 @@
 > **Type**: Integration
 > **Estimate**: 3h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-25
+> **Last Updated**: 2026-09-26
 
 ## Context
 
@@ -91,7 +91,8 @@
 **Required evidence**:
 - Integration: `tests/integration/input_system/hash_mismatch_recovery_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — `unity/Assets/Tests/EditMode/InputSystem/hash_mismatch_recovery_test.cs`(14 测)+ 协调点 `overrides_sidecar_test.cs`(写面计数 2→4 + hashMismatch/headerMissingSchemaHash 备份断言)
+- 验证:EditMode **558/558 全绿 exit 0**(log `unity/Logs/build-story005-rerun2.log`,XML 已移 /tmp);本故事 14/14(含 2 失败修复轮:正则 `备份路径` 前空格 + `Distinct` 去重断言)
 - 真身落点注记:Unity 只编译 `unity/Assets/` 树 ⇒ EditMode 真身落 `unity/Assets/Tests/EditMode/InputSystem/hash_mismatch_recovery_test.cs`,文档路径 `tests/integration/input_system/` 为登记口径
 
 ---

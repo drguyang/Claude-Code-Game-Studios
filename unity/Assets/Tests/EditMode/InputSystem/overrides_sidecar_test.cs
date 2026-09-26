@@ -252,9 +252,10 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         }
 
         [Test]
-        public void test_overridesSidecar_hashMismatch_doesNotFeedPayload_fileUntouched()
+        public void test_overridesSidecar_hashMismatch_backupRecoveryAndDefault()
         {
-            // 读序负半边(实现期登记):hash 失配 ⇒ 不采用 + 记警告 + 载荷文件原样(恢复归 005)。
+            // QA A2 负半边 → Story 005 接管(实现期登记):hash 失配 ⇒ 陈旧 sidecar 改名备份 +
+            // 载入默认 + 日志三要素(AC-3-A3 的 store 级半边;完整断言住 005 的测试文件)。
             _asset.RemoveAllBindingOverrides();
             ApplyPathOverride(_asset, "Interact", "<Keyboard>/e", "<Keyboard>/q");
             var store = new BindingsStore(_tempDir);
@@ -263,14 +264,18 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             byte[] headerBefore = File.ReadAllBytes(store.SchemaPath);
 
             LogAssert.Expect(LogType.Warning, new Regex("失配"));
+            LogAssert.Expect(LogType.Warning, new Regex("备份路径"));
+            LogAssert.Expect(LogType.Warning, new Regex("恢复完成"));
             OverridesLoadResult result = store.Load(_asset, HashB);
 
             Assert.That(result, Is.EqualTo(OverridesLoadResult.Mismatch), "失配 ⇒ 不喂");
             AssertNoOverrides(Snapshot(_asset), "失配出口资产维持默认");
-            Assert.That(File.ReadAllBytes(store.OverridesPath), Is.EqualTo(payloadBefore),
-                "失配不得触碰载荷文件(改名备份归 Story 005)");
-            Assert.That(File.ReadAllBytes(store.SchemaPath), Is.EqualTo(headerBefore),
-                "失配不得触碰头部文件");
+            Assert.That(File.ReadAllBytes(store.OverridesPath + ".bak-001"), Is.EqualTo(payloadBefore),
+                "陈旧载荷已改名备份、逐字节保留(非删除)");
+            Assert.That(File.ReadAllBytes(store.SchemaPath + ".bak-001"), Is.EqualTo(headerBefore),
+                "陈旧头部已改名备份、逐字节保留");
+            Assert.That(File.Exists(store.OverridesPath), Is.False, "原路径已移除(后续 Save 可重建)");
+            Assert.That(File.Exists(store.SchemaPath), Is.False, "原路径已移除(后续 Save 可重建)");
         }
 
         [Test]
@@ -321,11 +326,16 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 Encoding.UTF8.GetBytes("format_version=1\nasset_id=AssetX"));
 
             LogAssert.Expect(LogType.Warning, new Regex("schema_hash"));
+            LogAssert.Expect(LogType.Warning, new Regex("备份路径"));
+            LogAssert.Expect(LogType.Warning, new Regex("恢复完成"));
             OverridesLoadResult result = store.Load(_asset, HashA);
 
             Assert.That(result, Is.EqualTo(OverridesLoadResult.Mismatch), "缺 hash 字段 ⇒ 视同失配");
             AssertNoOverrides(Snapshot(_asset), "缺 hash 字段出口资产维持默认");
-            Assert.That(File.Exists(store.OverridesPath), Is.True, "缺 hash 字段出口不得触碰载荷文件");
+            Assert.That(File.Exists(store.OverridesPath + ".bak-001"), Is.True,
+                "缺 hash 字段出口陈旧载荷已改名备份(不触碰不代表保留 —— Story 005 语义为改名备份)");
+            Assert.That(File.Exists(store.SchemaPath + ".bak-001"), Is.True,
+                "缺 hash 字段出口陈旧头部已改名备份");
         }
 
         [Test]
@@ -409,17 +419,19 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             }
 
             Assert.That(violations, Is.Empty, "输入程序集零违例(拒绝清单 + 写点白名单)");
-            Assert.That(writeTargets.Count, Is.EqualTo(2),
-                $"写盘点须恰为 2 处(实际 {writeTargets.Count}:{string.Join(", ", writeTargets)})");
-            // 基数断言保留 AC「仅…两处」原文。已知跨故事协调点(review F3):Story 005 在本程序集
-            // 增写点(改名备份 Move/Delete)时须同批扩展白名单与本断言 —— 红 = 正确信号,不是假红。
+            Assert.That(writeTargets.Count, Is.EqualTo(4),
+                $"写盘点须恰为 4 处(实际 {writeTargets.Count}:{string.Join(", ", writeTargets)})");
+            // 基数断言保留 AC「仅…两处」原文(每文件两写点:Save 两处 + Story 005 恢复备份两处)。
+            // 已知跨故事协调点(review F3 → Story 005 已同批兑现):失配恢复备份(File.Move)新增
+            // 两写点(载荷 + 头部),白名单不新增文件、计数 2 → 4 —— 红 = 正确信号,不是假红。
             // 已知 fail-closed 约束(review Q4):① 同义词表按单文件建,他文件 const 别名解析不到
             // ⇒ 误报红;② 插值字符串里的白名单文件名字面量解析不到 ⇒ 同样误报红。
             // 两者方向均为红(非漏报绿);放宽须扩到程序集级常量扫描 —— 见集成 README 扫描器段。
-            Assert.That(writeTargets, Is.EquivalentTo(new[]
+            // Is.EquivalentTo 按多重性计集合(每文件两写点 ⇒ 原始列表 4 项)⇒ 先 Distinct 再断言目标集。
+            Assert.That(writeTargets.Distinct(), Is.EquivalentTo(new[]
             {
                 BindingsStore.OverridesFileName, BindingsStore.SchemaFileName,
-            }), "写盘点目标 ∈ {bindings.overrides.json, bindings.schema.txt}");
+            }), "写盘点目标(去重后)∈ {bindings.overrides.json, bindings.schema.txt}");
         }
 
         [Test]
