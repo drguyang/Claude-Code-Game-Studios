@@ -68,7 +68,7 @@
 *Written at story creation(lean mode — QL-STORY-READY skipped;specs self-authored from AC text). Visual/Feel 类型 —— Manual check 格式:*
 
 - **AC-3-B1b①**: `L_input → pixel` 实测均值 ≤ 50 ms。
-  - Setup: Development Build + 目标硬件;挂载 InputLatencyProbe 到 Camera,按一次 E 启动采样,满 1000 样本自动导出。
+  - Setup: Development Build + 目标硬件;挂载 InputLatencyProbe 到 Camera。预热 60 帧后按 E 键每次产生一个样本，满 1000 样本自动导出。
   - Verify: 报告给出均值(及 p95);均值 ≤ 50 ms。
   - Pass condition: 均值 ≤ 50 ms **且** 硬件 = 已定的最低目标机型;设计阶段此条标 ADVISORY(无硬件,不执行)。
   - 现阶段产出:方法学文档 + 采集流程就位(**不跑实测**)。
@@ -98,5 +98,5 @@
 
 ## Dependencies
 
-- Depends on: Story 007(直读通道 + 相位正确是测量对象)
+- Depends on: None(探针自包含，直接读键盘 E 键；不依赖 EmergencyDirectReadChannel)
 - Unlocks: None(验收线收口;实测执行挂 `/test-setup` 轮)

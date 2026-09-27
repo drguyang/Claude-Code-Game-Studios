@@ -10,34 +10,31 @@
 //   Evidence: production/qa/evidence/latency-measurement-evidence.md
 //
 // 运行条件:Development Build only(条件编译剔除 Release 路径)。
-// 须与 EmergencyDirectReadChannel 接线侧配合:通道 OnAfterUpdate 调用 MarkInputTime(),
-// 本探针 OnPreRender 读 T_present,差值 = L_input→pixel。
 //
-// ⚠️ FrameTimingManager 前置:须在 Project Settings → Player → Other Settings 启用
-//   Frame Timing Stats。若平台不支持,降级为 OnPreRender + Stopwatch 双时间戳法。
+// 测量原理(自包含,不依赖 EmergencyDirectReadChannel):
+//   T_input = Update() 内检测到 E 键按下时的 Stopwatch 时间戳
+//   T_present = OnPreRender() 内同一 Stopwatch 的时间戳
+//   差值 = L_input→pixel(输入 → 像素呈现)
+//
+// 使用方式:挂到任意 Camera → 按一次 E → 预热 60 帧后每按一次 E 采一个样本
+// → 满 1000 样本自动导出并禁用。
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace DaYiJingCheng.Gameplay.Input
 {
     /// <summary>输入→像素延迟采集探针(Story 011 AC-3-B1b)。</summary>
     /// <remarks>
-    /// <para><b>测量原理</b>:
-    /// <c>T_input</c> = <see cref="EmergencyDirectReadChannel"/> 接线侧
-    /// <c>OnAfterUpdate</c> 内调用 <see cref="MarkInputTime"/> 记录的 Stopwatch 时间戳;
-    /// <c>T_present</c> = 本探针 <see cref="OnPreRender"/> 内记录的同一 Stopwatch 时间戳。
+    /// <para><b>测量原理</b>:<c>T_input</c> = <see cref="Update"/> 内检测到按键时的
+    /// Stopwatch 时间戳;<c>T_present</c> = <see cref="OnPreRender"/> 内同一 Stopwatch 时间戳。
     /// 差值 = <c>L_input→pixel</c>。</para>
-    /// <para><b>接线义务</b>:<see cref="EmergencyDirectReadChannel.OnAfterUpdate"/> 须在
-    /// Armed 分支内、<see cref="ReadEmergency"/> 之前调用
-    /// <see cref="MarkInputTime"/>()。</para>
-    /// <para><b>触发方式</b>:按 <see cref="TriggerKey"/> 开始一次测量;每次按压
-    /// Idle → Armed → EndAction 产生一个样本。<see cref="TargetSamples"/> 达到后自动
-    /// 导出并禁用自身。</para>
+    /// <para><b>自包含</b>:不依赖 <see cref="EmergencyDirectReadChannel"/>;直接读键盘 E 键。</para>
+    /// <para><b>触发方式</b>:按 <see cref="TriggerKey"/> 产生一个样本;累计
+    /// <see cref="TargetSamples"/> 个后自动导出并禁用自身。</para>
     /// </remarks>
     public sealed class InputLatencyProbe : MonoBehaviour
     {
@@ -49,8 +46,8 @@ namespace DaYiJingCheng.Gameplay.Input
         [Tooltip("目标样本数(建议 ≥ 1000)。")]
         [Range(100, 10000)] public int targetSamples = 1000;
 
-        [Tooltip("触发测量的按键(设计阶段用;挂接 10 装配层后改由动作触发)。")]
-        public UnityEngine.InputSystem.Key triggerKey = UnityEngine.InputSystem.Key.E;
+        [Tooltip("触发测量的按键。")]
+        public KeyCode triggerKey = KeyCode.E;
 
         // ── 采集状态 ──
 
@@ -60,13 +57,9 @@ namespace DaYiJingCheng.Gameplay.Input
         [Tooltip("是否正在测量(只读)。")]
         public bool isMeasuring => _measuring;
 
-        [Tooltip("是否已 Armed(等待 OnAfterUpdate 采样)。")]
-        public bool isArmed => _armed;
-
         private readonly List<double> _samples = new List<double>();
         private int _frameIndex;
         private bool _measuring;
-        private bool _armed;
 
         // ── 时间戳 ──
 
@@ -87,40 +80,33 @@ namespace DaYiJingCheng.Gameplay.Input
         {
             _frameIndex++;
 
-            // 预热段不采集、不触发
+            // 预热段不采集
             if (_frameIndex <= warmupFrames) return;
 
-            // 触发:按下 triggerKey 且未在测量中 → 开始一次测量
-            if (Keyboard.current != null && Keyboard.current[triggerKey].wasPressedThisFrame && !_measuring)
+            // 触发:按下 triggerKey → 本帧记录 T_input
+            if (Keyboard.current != null && Keyboard.current[triggerKey].wasPressedThisFrame)
             {
-                _measuring = true;
-                _samples.Clear();
-                collectedSamples = 0;
-            }
-        }
-
-        /// <summary>由 EmergencyDirectReadChannel 接线侧 OnAfterUpdate 在采样时调用。</summary>
-        /// <remarks>本方法在 Development Build 下记录本帧的 Stopwatch 时间戳;
-        /// Release Build 下为 #if 条件编译空操作,零开销。</remarks>
-        public static void MarkInputTime()
-        {
-            if (_instance != null)
-            {
-                _instance._currentFrameInputTimeMs = _instance._sw.Elapsed.TotalMilliseconds;
+                _inputTimeMs = _sw.Elapsed.TotalMilliseconds;
+                if (!_measuring)
+                {
+                    _measuring = true;
+                    _samples.Clear();
+                    collectedSamples = 0;
+                }
             }
         }
 
         /// <summary>在帧 present 前读取 T_present 并计算 L_input→pixel。</summary>
         private void OnPreRender()
         {
-            if (!_measuring || _currentFrameInputTimeMs < 0) return;
+            if (!_measuring || _inputTimeMs < 0) return;
 
             double tPresent = _sw.Elapsed.TotalMilliseconds;
-            double latencyMs = tPresent - _currentFrameInputTimeMs;
+            double latencyMs = tPresent - _inputTimeMs;
 
             _samples.Add(latencyMs);
             collectedSamples = _samples.Count;
-            _currentFrameInputTimeMs = -1;
+            _inputTimeMs = -1;
 
             UpdateStats();
 
@@ -128,7 +114,6 @@ namespace DaYiJingCheng.Gameplay.Input
             {
                 ExportResults();
                 _measuring = false;
-                _armed = false;
                 enabled = false;
             }
         }
@@ -160,10 +145,9 @@ namespace DaYiJingCheng.Gameplay.Input
         {
             _frameIndex = 0;
             _measuring = false;
-            _armed = false;
             _samples.Clear();
             collectedSamples = 0;
-            _currentFrameInputTimeMs = -1;
+            _inputTimeMs = -1;
             currentMeanMs = -1;
             currentP95Ms = -1;
             currentMaxMs = -1;
@@ -209,24 +193,10 @@ namespace DaYiJingCheng.Gameplay.Input
             return Math.Sqrt(sumSq / (samples.Count - 1));
         }
 
-        // ── 单例(接线侧静态调用用) ──
+        // ── 采样状态 ──
 
-        private static InputLatencyProbe _instance;
-        private double _currentFrameInputTimeMs = -1;
-
-        private void Awake()
-        {
-            if (_instance != null && _instance != this)
-            {
-                Debug.LogWarning("[InputLatencyProbe] 存在多个实例;最后一个注册的覆盖 MarkInputTime 目标。");
-            }
-            _instance = this;
-        }
-
-        private void OnDestroy()
-        {
-            if (_instance == this) _instance = null;
-        }
+        private double _inputTimeMs = -1;
     }
 }
+
 #endif

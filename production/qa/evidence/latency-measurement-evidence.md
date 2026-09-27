@@ -15,15 +15,15 @@
 **最低目标硬件**: GTX 1050 + 1080p 60Hz（已定）
 
 **实测前置条件**（桌面操作）:
-1. 启用 Frame Timing Stats（Project Settings → Player → Other Settings）
-2. Development Build 编译
-3. 挂载 `InputLatencyProbe` 到 Boot 场景 Camera
-4. 按 **一次 E 键** 开始采样；通道 Armed 期间每帧自动采集，满 1000 样本后自动导出
-5. 导出 Debug.Log 结果
+1. 挂载 `InputLatencyProbe` 到 Boot 场景 Camera
+2. Development Build 编译运行
+3. 预热约 1 秒（60 帧）
+4. 按 **E 键** 开始采样：每次按键产生一个样本（T_input = 按键时刻 Stopwatch）
+5. 满 1000 样本后自动导出 Debug.Log
 
 **交付物状态**:
 - ✅ `InputLatencyProbe.cs` 已移入 `unity/Assets/Gameplay.Input/`（同程序集）
-- ✅ `EmergencyDirectReadChannel.OnAfterUpdate()` 已加 `#if DEVELOPMENT_BUILD` 时间戳注入
+- ✅ 自包含设计：直接读键盘 E 键，不依赖 EmergencyDirectReadChannel
 - ✅ 采集脚本可编译、可运行
 
 ---
