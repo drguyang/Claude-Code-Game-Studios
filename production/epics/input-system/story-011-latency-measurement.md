@@ -1,7 +1,7 @@
 # Story 011: L_input→pixel 延迟实测与 L_render/L_poll 分解
 
 > **Epic**: 输入与设备
-> **Status**: In Progress
+> **Status**: In Progress（设计阶段完成，待桌面硬件实测）
 > **Layer**: Foundation
 > **Type**: Visual/Feel
 > **Estimate**: 2h(+ 真实硬件前置)
@@ -31,7 +31,7 @@
 
 *From GDD `design/gdd/input-system.md` `AC-3-B1b`, scoped to this story(拆三子条;分级:B1b 整体 = 发版前 BLOCKING · 设计阶段 ADVISORY):*
 
-- [ ] **AC-3-B1b①(发版前 BLOCKING · 设计阶段 ADVISORY)**: **均值 ≤ 50 ms** —— `L_input → pixel` 实测**均值 ≤ 50 ms**(硬件实测;最低目标硬件未定 ⇒ 现无法签核,挂 `/test-setup` 轮)
+- [ ] **AC-3-B1b①(发版前 BLOCKING · 设计阶段 ADVISORY)**: **均值 ≤ 50 ms** —— `L_input → pixel` 实测**均值 ≤ 50 ms**(硬件实测;最低目标硬件已定 = GTX 1050 + 1080p 60Hz;设计阶段标 ADVISORY,发版前翻 BLOCKING)
 - [ ] **AC-3-B1b②(BLOCKING)**: **方法学四要素明写** —— 报告须含:① **统计量/分位**(均值 + 建议 p95;阈值用户拍定)② **采样数**(建议 p95 ≥ 1000 次)③ **剔除规则**(显式、事前声明)④ **工具**(捕获手段);缺一 = 不可签核
 - [ ] **AC-3-B1b③(BLOCKING)**: **`L_render` / `L_poll` 分解** —— 报告给出 `L_input` 的诊断分解:`L_poll`(轮询/更新相位间隔)+ `L_render`(≈2 帧)+ 残差;分解是**诊断量**,验收线仍只有 `L_input` 一条(单判据)
 - 分级注:**抖动已移出** B1b(归 10 的 F-10.3b 时序误差 —— 3→10 两义务之②);VR 已移出 P0(归 P1b)

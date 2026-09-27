@@ -322,6 +322,9 @@ namespace DaYiJingCheng.Gameplay.Input
                 _emergencyCallbackCount++;   // AC-3-E4 第②半:只数 enabled 期间的 wired 回调
             if (_state != DirectChannelState.Armed || _emergencyAction == null)
                 return;
+#if DEVELOPMENT_BUILD
+            InputLatencyProbe.MarkInputTime();
+#endif
             var reading = ReadEmergency();
             Feed(reading);
         }
