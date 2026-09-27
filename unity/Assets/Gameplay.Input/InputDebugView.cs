@@ -69,6 +69,12 @@ namespace DaYiJingCheng.Gameplay.Input
             GUI.depth = -1000;
             GUI.color = Color.white;
 
+            GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = fontSize + 2,
+                fontStyle = FontStyle.Bold
+            };
+
             int lineCount = 6; // 标题 + 5 行数据
             int height = lineCount * LineHeight + Padding * 2;
             Rect panelRect = new Rect(Padding, Padding, PanelWidth, height);
@@ -79,7 +85,7 @@ namespace DaYiJingCheng.Gameplay.Input
             GUI.backgroundColor = Color.white;
 
             GUI.Label(new Rect(Padding + 4, Padding + 2, PanelWidth - 8, LineHeight),
-                "[Input Debug] F6 切换", GetTitleStyle());
+                "[Input Debug] F6 切换", titleStyle);
 
             float y = Padding + LineHeight + 2;
             GUI.Label(new Rect(Padding + 4, y, PanelWidth - 8, LineHeight),
