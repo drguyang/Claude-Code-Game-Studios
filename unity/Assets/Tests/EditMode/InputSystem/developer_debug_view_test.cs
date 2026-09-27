@@ -18,7 +18,6 @@
 using System.IO;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
-using UnityEditor;
 using UnityEngine;
 
 namespace DaYiJingCheng.Tests.Unit.InputSystem
@@ -47,6 +46,25 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 "E2①:源文件必须含 DEVELOPMENT_BUILD 条件编译块");
         }
 
+        /// <summary>E2① 类整体被条件编译包裹:整个 InputDebugView 类型(含命名空间)在 #if 块内。</summary>
+        [Test]
+        public void test_e2a_class_wrapped_in_conditional_block()
+        {
+            string src = GetSource(DebugViewPath);
+
+            // 验证源码包含组合条件编译块(#if UNITY_EDITOR || DEVELOPMENT_BUILD)
+            var ifMatch = Regex.Match(src,
+                @"#if\s+(UNITY_EDITOR\s*\|\|\s*DEVELOPMENT_BUILD)");
+            Assert.That(ifMatch.Success, Is.True,
+                "E2①:源文件必须含 #if UNITY_EDITOR || DEVELOPMENT_BUILD 包裹");
+
+            // 验证 public sealed class InputDebugView 出现在该块内
+            int ifPos = ifMatch.Index;
+            int classPos = src.IndexOf("public sealed class InputDebugView");
+            Assert.That(classPos, Is.GreaterThan(ifPos),
+                "E2①:InputDebugView 类定义必须在 #if 条件编译块内(Release 构建零代码路径)");
+        }
+
         /// <summary>E2① OnGUI 方法体被条件编译包裹(玩家构建中零代码路径)。</summary>
         [Test]
         public void test_e2a_ongui_method_body_conditionally_compiled()
@@ -58,13 +76,13 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
             Assert.That(onGuiMatch.Success, Is.True,
                 "E2①:InputDebugView 必须含 OnGUI() 方法");
 
-            // 从方法声明后查找第一个 #if 块
+            // OnGUI 方法体内不得出现 #if(类已包裹,方法体本身不再重复包裹)
             int pos = onGuiMatch.Index + onGuiMatch.Length;
             string afterDecl = src.Substring(pos);
 
             var ifMatch = Regex.Match(afterDecl, @"#if\s+(UNITY_EDITOR\s*\|\|\s*DEVELOPMENT_BUILD)");
-            Assert.That(ifMatch.Success, Is.True,
-                "E2①:OnGUI 方法体内必须含 #if UNITY_EDITOR || DEVELOPMENT_BUILD 包裹(玩家构建零代码路径)");
+            Assert.That(ifMatch.Success, Is.False,
+                "E2①:OnGUI 方法体内不应再出现条件编译块(类级包裹已覆盖)");
         }
 
         /// <summary>E2① 玩家构建路径不存在:OnGUI 内无 #if 时内容应被完全跳过。
@@ -83,8 +101,8 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 "E2①:必须含完整的 #if...#endif 块");
             string block = blockMatch.Groups[2].Value;
 
-            // 块内须包含实际绘制代码(不是空注释)
-            Assert.That(block.Contains("GUI.Label") || block.Contains("GUI.Box") || block.Contains("OnGUI"),
+            // 块内须包含实际绘制代码(不能是空壳 #if)
+            Assert.That(block.Contains("GUI.Label") || block.Contains("GUI.Box"),
                 Is.True,
                 "E2①:#if 块内必须包含实际绘制代码(不能是空壳注释)");
         }

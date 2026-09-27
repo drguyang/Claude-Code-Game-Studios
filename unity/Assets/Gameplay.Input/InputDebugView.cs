@@ -14,6 +14,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using DaYiJingCheng.Gameplay.Input.Intents;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
 namespace DaYiJingCheng.Gameplay.Input
 {
     /// <summary>开发者调试视图(Development Build / Editor 可见;玩家构建零存在)。
@@ -55,7 +56,6 @@ namespace DaYiJingCheng.Gameplay.Input
 
         private void OnGUI()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!IsVisible) return;
 
             Event e = Event.current;
@@ -110,17 +110,7 @@ namespace DaYiJingCheng.Gameplay.Input
 
             GUI.Label(new Rect(Padding + 4, y, PanelWidth - 8, LineHeight),
                 $"采样: {ChannelSampleCount}");
+        }
 #endif
-        }
-
-        private static GUIStyle GetTitleStyle()
-        {
-            var style = new GUIStyle(GUI.skin.label)
-            {
-                fontStyle = FontStyle.Bold,
-                fontSize = 14
-            };
-            return style;
-        }
     }
 }
