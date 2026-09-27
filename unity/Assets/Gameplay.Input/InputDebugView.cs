@@ -55,9 +55,7 @@ namespace DaYiJingCheng.Gameplay.Input
 
         private void OnGUI()
         {
-#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
-            return; // 玩家构建:零代码路径
-#else
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!IsVisible) return;
 
             Event e = Event.current;
