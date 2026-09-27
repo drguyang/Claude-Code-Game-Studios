@@ -361,10 +361,6 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             PropertyInfo exposedPi = mixerType.GetProperty(
                 "exposedParameters",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            Debug.Log($"[诊断·反射·读内部面] GetType() = {mixerType.FullName}; " +
-                      "GetProperty(\"exposedParameters\") = " +
-                      (exposedPi != null ? $"found({exposedPi.PropertyType.FullName})" : "null"));
-
             if (exposedPi != null)
             {
                 object exposed = null;
@@ -374,15 +370,12 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 }
                 catch (Exception ex)
                 {
-                    Debug.Log($"[诊断·反射·读内部面] GetValue 抛 {ex.GetType().Name}: {ex.Message}");
                 }
 
                 if (exposed is Array arr)
                 {
                     reflectReached = true;
                     Type elemType = arr.GetType().GetElementType();
-                    Debug.Log($"[诊断·反射·读内部面] 读到 {arr.Length} 条;元素类型 = {elemType?.FullName};" +
-                              " 逐项 GetFields + GetProperties 全量 dump(不预设字段名)");
                     foreach (object elem in arr)
                     {
                         if (elem == null) continue;
@@ -416,8 +409,6 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                             guidVal = guidVal ?? PickMemberValue(pi.Name, pv, "guid");
                         }
 
-                        Debug.Log($"[诊断·反射·读内部面] element dump:{dump}");
-
                         string finalName = nameVal ?? "(name 未取到)";
                         string finalGuid = guidVal ?? "(guid 未取到)";
                         readBack.Add(new KeyValuePair<string, string>(finalName, finalGuid));
@@ -426,18 +417,12 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 }
                 else
                 {
-                    Debug.Log("[诊断·反射·读内部面] 返回值非数组:" +
-                              (exposed == null ? "null" : exposed.GetType().FullName) +
-                              " —— [停手出口2]");
                 }
             }
             else
             {
-                Debug.Log("[诊断·反射·读内部面] 属性不存在 —— [停手出口2]");
             }
 
-            Debug.Log($"[诊断] 反射读回 {readBack.Count} 条;YAML 写入 {yamlWritten.Count} 条" +
-                      (reflectReached ? "(反射读内部面)" : "(反射未达 —— 见上,[停手出口2])"));
             bool allMatch = readBack.Count > 0 && readBack.Count == yamlWritten.Count;
             bool allGuidReadOk = readBack.Count > 0;
             foreach (KeyValuePair<string, string> pair in readBack)
@@ -450,11 +435,6 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                              string.Equals(pair.Value, written, StringComparison.OrdinalIgnoreCase);
                 if (!readOk) allGuidReadOk = false;
                 if (!match) allMatch = false;
-                Debug.Log($"[诊断] exposed: name={pair.Key} guid_type={typeLabel} guid_raw={pair.Value} | " +
-                          $"YAML 写入 guid={(written ?? "(无)")}" +
-                          (readOk
-                              ? (match ? " | 一致" : " | 不一致")
-                              : " | **原值未取到(读法问题,不据此判导入)**"));
             }
 
             // ── Act:先**采样** SetFloat / GetFloat 全部结果(后断言)——
@@ -475,37 +455,17 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             foreach (KeyValuePair<string, bool> kv in setResults)
                 if (!kv.Value) allSetTrue = false;
 
-            if (!reflectReached)
+            if (!allGuidReadOk)
             {
-                Debug.Log("[诊断结论·停手出口2] 反射读内部面失败(见 [诊断·反射·读内部面])——" +
-                          " 公开面(SerializedObject)与内部面(反射)读法均尽,按裁定**停手**," +
-                          " 不再提新修法;探针三证保持红");
-            }
-            else if (readBack.Count == 0)
-            {
-                Debug.Log("[诊断结论·停手出口2] 反射读到数组但 0 条有效 —— 按裁定**停手**," +
-                          " 不猜结构,不再提新修法");
-            }
-            else if (!allGuidReadOk)
-            {
-                Debug.Log("[诊断结论·停手出口2] guid 原值仍未取到(guid_type / guid_raw 见上行)" +
-                          " —— 读法未尽,**不据此判导入**;按裁定**停手**,不猜字段名");
             }
             else if (!allMatch)
             {
-                Debug.Log("[诊断结论·停手出口3] 读回 guid 与 YAML 写入**真不一致**" +
-                          "(原值已取到)—— 真实结构问题,按裁定**停手**,不提新修法");
-            }
-            else if (allSetTrue)
-            {
-                Debug.Log($"[诊断结论·已通] 读回 {readBack.Count} 条 == 写入值 且 7×SetFloat 全 true —— 通路成立");
             }
             else
             {
-                Debug.Log("[诊断结论·停手出口1(= 原候选4)] 读回条目 == YAML 写入值,但 SetFloat 仍 false ⇒" +
-                          " **公开面无法判定**:「配置缺一环」vs「EditMode 无活跃 DSP 图」不可区分;" +
-                          " 对照判别不可行(.mixer 无 Unity 自产 exposed 参数)—— 按裁定**停手**," +
-                          " 归 003 已知阻断缺陷,不再提新修法");
+                // H-B 定性已落(见 story-004 / breath_layers_test 同路径):EditMode 下
+                // SetFloat 对任何名字都 false,公开面无法判定。本出口只作分支记录,
+                // 不再输出诊断日志(探针已完成使命)。
             }
 
             // ── KNOWN DEFECT Skip(2026-09-26 出口1 确认后用户裁定;**Skip ≠ 通过**)──
@@ -515,13 +475,13 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // ── Assert(判据 = 配置正确性 + 读路径可用;H-B 确认后不再以 SetFloat 为判据)──
             // ① 反射读回 7 条 guid 与 YAML 写入逐条一致(配置正确性 = 本次缺陷真正的修复面)
             Assert.That(allMatch, Is.True,
-                "exposed 配置错误:反射读回的 guid 与 YAML 写入不一致(见上行 [诊断] 逐条对照)");
+                "exposed 配置错误:反射读回的 guid 与 YAML 写入不一致(对照上两行逐条核验:写值 vs 读值)");
             Assert.That(allGuidReadOk, Is.True,
                 "反射未能取到 guid 原值(读法问题,不据此判导入 —— 见上行)");
             // ② 读路径可用:GetFloat 对真实名字返回 true(证明 name→guid→参数解析成功)
             foreach (string param in MixerRegistry.BusVolumeParameters)
                 Assert.That(getResults[param], Is.True,
-                    $"GetFloat(\"{param}\") ⇒ false —— 读路径不通:name→guid→参数解析失败(见 [诊断] 日志)");
+                    $"GetFloat(\"{param}\") ⇒ false —— 读路径不通:name→guid→参数解析失败(核验顺序:①上两行 guid 对照 → ②本行读路径)");
 
             // ③ H-B 事实记录(**不作判据**):SetFloat 在 EditMode 对任何名字都 false(含明显不存在的
             //    名字),与 exposed 配置无关 ⇒ 运行期(播放态)仍有效,本限制只适用于 EditMode 测试环境
