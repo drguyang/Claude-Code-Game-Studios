@@ -116,7 +116,7 @@ namespace DaYiJingCheng.Sim.Contracts
             return neg ? unchecked(-(long)q) : (long)q;
         }
 
-        // ── 算术二元运算(加 / 减) ──────────────────────────────────────────
+        // ── 算术二元运算(加 / 减 / 乘 / 除) ─────────────────────────────────
         // Q16.16 同标度加法 = raw 直接相加,无舍入(同标度两 Fix 相加无需缩放)。
         // 溢出 = bug ⇒ checked 强制溢出检测(与 MulRaw 同口径)。
 
@@ -130,6 +130,43 @@ namespace DaYiJingCheng.Sim.Contracts
         public static Fix operator -(Fix a, Fix b)
         {
             checked { return new Fix(a._raw - b._raw); }
+        }
+
+        /// <summary>Q16.16 定点除法。全程整数域,舍入 = ROUND_HALF_AWAY_FROM_ZERO(ADR-006)。
+        /// <para>分母为零抛 <see cref="DivideByZeroException"/>;溢出抛 <see cref="OverflowException"/>。</para></summary>
+        /// <remarks>算法:先计算 |a| * 2^16 / |b| 的整数商(64 位安全,本系统所有 Fix 均满足),
+        /// 余数 >= 0x8000 时 +1(半 Away-From-Zero);最后回符号。</remarks>
+        public static Fix operator /(Fix a, Fix b)
+        {
+            if (b._raw == 0) throw new DivideByZeroException("Fix.Div:分母为 0");
+
+            bool neg = (a._raw < 0) ^ (b._raw < 0);
+            ulong ua = a._raw < 0 ? unchecked(0UL - (ulong)a._raw) : (ulong)a._raw;
+            ulong ub = b._raw < 0 ? unchecked(0UL - (ulong)b._raw) : (ulong)b._raw;
+
+            // 目标: Q16.16(a) / Q16.16(b) = (a_raw / b_raw) 仍在 Q16.16
+            // 即 floor( (a_raw * 2^16) / b_raw )
+            if (ua > (ulong.MaxValue >> FractionalBits))
+                throw new OverflowException("Fix.Div:被除数超出 Q16.16 可表示域(ua > 2^48)");
+            ulong scaled = unchecked(ua << FractionalBits);
+            ulong q = scaled / ub;                    // 整数商
+            ulong rem = scaled % ub;                  // 余数
+
+            // ROUND_HALF_AWAY_FROM_ZERO: 余数 * 2 >= 分母 → +1
+            // 用 rem*2 >= ub 而非 rem >= ub>>1,确保奇分母时阈值 = ceil(ub/2)(承 FixParse.RoundHalfAwayFromZero)
+            if (rem * 2 >= ub)
+            {
+                ulong before = q;
+                q = unchecked(q + 1UL);
+                if (q < before)                       // 溢出
+                    throw new OverflowException("Fix.Div:舍入进位溢出");
+            }
+
+            const ulong SignBound = 1UL << 63;
+            if (q > SignBound || (q == SignBound && !neg))
+                throw new OverflowException("Fix.Div:结果超出 int64 定点域");
+            // q == 2^63 时 unchecked -(long)q = long.MinValue(位形合法,同 MulRaw)
+            return new Fix(neg ? unchecked(-(long)q) : (long)q);
         }
 
         // ── 比较运算符 ──────────────────────────────────────────────────────

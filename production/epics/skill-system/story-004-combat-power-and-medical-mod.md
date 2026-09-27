@@ -1,7 +1,7 @@
 # Story 004: 战斗效能与医术修正
 
 > **Epic**: 技能与熟练度
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 4h
@@ -119,3 +119,12 @@
 
 - Depends on: Story 001(调参表加载 WeaponMultiplier / MED_COMBAT_MOD) · Story 002(Fix.Mul / Fix.Div 已就位)
 - Unlocks: Story 005(死亡掉级后 CombatPower 会变化,但公式独立)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-27
+**Criteria**: 8/8 passing
+**Deviations**: None
+**Test Evidence**: Integration: `unity/Assets/Tests/EditMode/SkillSystem/combat_power_test.cs` — 1036 passed, 0 failed
+**Code Review**: Skipped (lean mode)
