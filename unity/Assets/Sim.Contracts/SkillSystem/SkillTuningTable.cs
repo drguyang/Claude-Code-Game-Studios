@@ -65,19 +65,39 @@ namespace DaYiJingCheng.Sim.Contracts.SkillSystem
         /// <summary>敌人昏迷的生命阈值(恒为 0 = 生命归零即昏迷)。</summary>
         public static readonly Fix UnconsciousAt = default; // Fix(0)
 
+        // ── 构造器 ────────────────────────────────────────────────────────────
+
+        /// <summary>构造不可变调参表。</summary>
+        public SkillTuningTable(
+            Fix c, Fix p, Fix noveltyFirst, Fix noveltyDecay, int noveltyCooldownTicks,
+            Fix deathLoss, Fix medCombatMod, Fix[] weaponMultipliers,
+            int[] diagTiers, int[] insightTiers, Fix[] insightBonus)
+        {
+            C = c;
+            P = p;
+            NoveltyFirst = noveltyFirst;
+            NoveltyDecay = noveltyDecay;
+            NoveltyCooldownTicks = noveltyCooldownTicks;
+            DeathLoss = deathLoss;
+            MedCombatMod = medCombatMod;
+            WeaponMultipliers = weaponMultipliers;
+            DiagTiers = diagTiers;
+            InsightTiers = insightTiers;
+            InsightBonus = insightBonus;
+        }
+
         // ── 默认实例 ──────────────────────────────────────────────────────────
 
         /// <summary>默认调参表(用户数值轮最终值替换此处)。</summary>
-        public static readonly SkillTuningTable Default = new SkillTuningTable
-        {
-            C = new Fix(40L * Fix.OneRaw / 1),        // 40
-            P = new Fix(3L * Fix.OneRaw / 2),         // 1.5 (例值,G-1 允许)
-            NoveltyFirst = new Fix(3L * Fix.OneRaw / 1),   // 3.0
-            NoveltyDecay = new Fix(2L * Fix.OneRaw / 10),  // 0.2
-            NoveltyCooldownTicks = 24000,          // 20 min @ 20 Hz
-            DeathLoss = new Fix(19L * Fix.OneRaw / 20),    // 0.95
-            MedCombatMod = new Fix(20L * Fix.OneRaw / 100), // 0.20
-            WeaponMultipliers = new Fix[]
+        public static readonly SkillTuningTable Default = new SkillTuningTable(
+            c: new Fix(40L * Fix.OneRaw / 1),        // 40
+            p: new Fix(3L * Fix.OneRaw / 2),         // 1.5 (例值,G-1 允许)
+            noveltyFirst: new Fix(3L * Fix.OneRaw / 1),   // 3.0
+            noveltyDecay: new Fix(2L * Fix.OneRaw / 10),  // 0.2
+            noveltyCooldownTicks: 24000,          // 20 min @ 20 Hz
+            deathLoss: new Fix(19L * Fix.OneRaw / 20),    // 0.95
+            medCombatMod: new Fix(20L * Fix.OneRaw / 100), // 0.20
+            weaponMultipliers: new Fix[]
             {
                 new Fix(9L * Fix.OneRaw / 10),  // 徒手 = 0.9
                 new Fix(1L * Fix.OneRaw / 1),   // 短兵 = 1.0
@@ -85,16 +105,16 @@ namespace DaYiJingCheng.Sim.Contracts.SkillSystem
                 new Fix(11L * Fix.OneRaw / 10), // 长兵 = 1.1
                 new Fix(8L * Fix.OneRaw / 10),  // 暗器 = 0.8
             },
-            DiagTiers = new[] { 10, 20, 35, 50 },
-            InsightTiers = new[] { 10, 20, 35, 50 },
-            InsightBonus = new Fix[]
+            diagTiers: new[] { 10, 20, 35, 50 },
+            insightTiers: new[] { 10, 20, 35, 50 },
+            insightBonus: new Fix[]
             {
                 new Fix(5L * Fix.OneRaw / 100),  // +5%
                 new Fix(10L * Fix.OneRaw / 100), // +10%
                 new Fix(20L * Fix.OneRaw / 100), // +20%
                 new Fix(30L * Fix.OneRaw / 100), // +30%
-            },
-        };
+            }
+        );
 
         // ── 实例属性(只读公开) ────────────────────────────────────────────────
 
