@@ -1,12 +1,12 @@
 # Story 005: SNR 分析域与噪声下界
 
 > **Epic**: 音频系统
-> **Status**: Ready
+> **Status**: In Progress
 > **Layer**: Foundation(系统分类;实现落表现层 L5)
 > **Type**: Logic
 > **Estimate**: 3h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-09-27
 
 ## Context
 
