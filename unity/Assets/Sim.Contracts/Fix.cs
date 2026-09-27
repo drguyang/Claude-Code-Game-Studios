@@ -28,6 +28,15 @@ namespace DaYiJingCheng.Sim.Contracts
         //    因为 ADR-006 §五 要求编码器「显式写出 / 读入 _raw」却未给 API 面。
         //    b1b 复核(2026-09-22 批)**照准**:载荷 struct 的 `Fix` 字段(支 1-a 裁定)与
         //    Sim.Codec 编码器(未落地)均依赖此二成员;签名如需扩(FromRaw 命名等)归 codec 轮。
+        /// <summary>按有理数构造 Fix,舍入模式 = ROUND_HALF_AWAY_FROM_ZERO(ADR-006)。</summary>
+        /// <remarks>等价于 FixParse.FromRatio 的舍入路径,但接受原始分子/分母,不经字符串解析。</remarks>
+        public static Fix FromRational(long numerator, long denominator)
+        {
+            if (denominator == 0) throw new DivideByZeroException("Fix.FromRational:分母为 0");
+            long scaled = numerator << FractionalBits;
+            return new Fix(FixParse.RoundHalfAwayFromZero(scaled, denominator));
+        }
+
         public Fix(long raw) { _raw = raw; }
 
         /// <summary>落盘形状(8 字节小端的语义源)。编码器专用;非呈现路径。</summary>

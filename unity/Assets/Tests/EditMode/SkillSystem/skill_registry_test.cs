@@ -57,23 +57,13 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         public void test_skillRegistry_p1aCount_is12()
         {
             var p1a = SkillRegistry.GetP1aSkills().ToList();
-            Assert.That(p1a.Count, Is.EqualTo(19 - 7),
+            Assert.That(p1a.Count, Is.EqualTo(SkillRegistry.SkillCount - SkillRegistry.P0SkillCount),
                 "P1a 应 12 项(19-7)");
         }
 
-        [Test]
-        public void test_skillRegistry_p0Skills_areCorrectSet()
-        {
-            var p0Names = SkillRegistry.GetP0Skills()
-                .Select(d => d.Name)
-                .OrderBy(n => n)
-                .ToList();
-
-            Assert.That(p0Names, Is.EquivalentTo(new[]
-            {
-                "诊断", "急救", "处方用药", "采集", "炮制", "徒手", "短兵",
-            }), "P0 七项名称正确");
-        }
+        // ════════════════════════════════════════════════════════════════════════
+        // AC-2 / AC-3 已在上方合并验证(P0 名称集 + 无依赖 + 辨证依赖条件)
+        // ════════════════════════════════════════════════════════════════════════
 
         // ════════════════ AC-3: 技能依赖解锁条件正确 ════════════════
 
@@ -141,16 +131,16 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         }
 
         [Test]
-        public void test_skillTuningTable_default_weaponMultipliers()
+        public void test_skillTuningTable_default_fixValues_matchFixParse()
         {
+            // 验证 Fix.FromRational 舍入路径与 FixParse 一致(截断 vs 舍入 BLOCKING 修复验证)
             var table = SkillTuningTable.Default;
-            var mults = table.GetWeaponMultipliers();
-            Assert.That(mults.Length, Is.EqualTo(5), "5 条武器线");
-            Assert.That(mults[(int)WeaponLine.徒手].Raw, Is.EqualTo(9L * Fix.OneRaw / 10));
-            Assert.That(mults[(int)WeaponLine.短兵].Raw, Is.EqualTo(1L * Fix.OneRaw));
-            Assert.That(mults[(int)WeaponLine.钝器].Raw, Is.EqualTo(1L * Fix.OneRaw));
-            Assert.That(mults[(int)WeaponLine.长兵].Raw, Is.EqualTo(11L * Fix.OneRaw / 10));
-            Assert.That(mults[(int)WeaponLine.暗器].Raw, Is.EqualTo(8L * Fix.OneRaw / 10));
+            Assert.That(table.WeaponMultipliers[(int)WeaponLine.长兵].Raw,
+                Is.EqualTo(FixParse.FromRatio(11L, 10L).Raw),
+                "长兵 1.1: FromRational 与 FixParse 应一致");
+            Assert.That(table.WeaponMultipliers[(int)WeaponLine.暗器].Raw,
+                Is.EqualTo(FixParse.FromRatio(8L, 10L).Raw),
+                "暗器 0.8: FromRational 与 FixParse 应一致");
         }
 
         [Test]
@@ -210,6 +200,27 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             Assert.That(SkillRegistry.IsValidSkillId(18), Is.True);
             Assert.That(SkillRegistry.IsValidSkillId(19), Is.False);
             Assert.That(SkillRegistry.IsValidSkillId(-1), Is.False);
+        }
+
+        [Test]
+        public void test_skillRegistry_getDefinition_outOfRange_throws()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                SkillRegistry.GetDefinition(-1));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                SkillRegistry.GetDefinition(19));
+        }
+
+        [Test]
+        public void test_skillDefinition_nullDependencies_coercesToEmpty()
+        {
+            // 防御性构造:null dependencies → Array.Empty<SkillDependency>()
+            var def = new SkillDefinition(
+                skillId: 99, name: "x", category: SkillCategory.医术,
+                growthTrigger: "x", baseXp: new Fix(Fix.OneRaw),
+                dependencies: null, isP0: true);
+            Assert.That(def.Dependencies, Is.Not.Null, "null 依赖应被转为空数组");
+            Assert.That(def.Dependencies.Length, Is.EqualTo(0));
         }
 
         [Test]

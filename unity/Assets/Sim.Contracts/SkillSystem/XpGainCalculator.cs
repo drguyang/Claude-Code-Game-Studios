@@ -51,7 +51,7 @@ namespace DaYiJingCheng.Sim.Contracts.SkillSystem
                     $"NoveltyClass ordinal {noveltyIndex} 超出有效范围 [0, {NoveltyCoefficients.Length - 1}]");
             Fix noveltyCoeff = NoveltyCoefficients[noveltyIndex];
 
-            // XP_gain = BASE × K_difficulty × K_novelty (三次 Fix.Mul,中间 Q32.32 → 回 Q16.16)
+            // XP_gain = BASE × K_difficulty × K_novelty (两次 Fix.Mul 链,三因子连乘)
             Fix intermediate = baseXp * difficulty;
             Fix xpGain = intermediate * noveltyCoeff;
 

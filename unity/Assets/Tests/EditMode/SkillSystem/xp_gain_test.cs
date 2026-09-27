@@ -33,9 +33,9 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         }
 
         [Test]
-        public void test_xpGain_baseZero_returnsZero()
+        public void test_xpGain_smallBase_returnsCorrectValue()
         {
-            // 奔跑 BASE = 0.2, ×1.0 ×1.0 = 0.2 (非零,但 BASE 极小场景)
+            // 奔跑 BASE = 0.2 ×1.0 ×1.0 = 0.2
             Fix difficulty = new Fix(Fix.OneRaw); // 1.0
             Fix xpGain = XpGainCalculator.ComputeXpGain(
                 (int)SkillId.奔跑, NoveltyClass.Normal, difficulty);
