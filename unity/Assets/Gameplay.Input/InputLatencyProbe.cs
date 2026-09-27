@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace DaYiJingCheng.Gameplay.Input
 {
@@ -49,7 +50,7 @@ namespace DaYiJingCheng.Gameplay.Input
         [Range(100, 10000)] public int targetSamples = 1000;
 
         [Tooltip("触发测量的按键(设计阶段用;挂接 10 装配层后改由动作触发)。")]
-        public KeyCode triggerKey = KeyCode.E;
+        public UnityEngine.InputSystem.Key triggerKey = UnityEngine.InputSystem.Key.E;
 
         // ── 采集状态 ──
 
@@ -90,7 +91,7 @@ namespace DaYiJingCheng.Gameplay.Input
             if (_frameIndex <= warmupFrames) return;
 
             // 触发:按下 triggerKey 且未在测量中 → 开始一次测量
-            if (global::UnityEngine.Input.GetKeyDown(triggerKey) && !_measuring)
+            if (Keyboard.current != null && Keyboard.current[triggerKey].wasPressedThisFrame && !_measuring)
             {
                 _measuring = true;
                 _samples.Clear();
