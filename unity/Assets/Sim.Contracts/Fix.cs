@@ -21,6 +21,13 @@ namespace DaYiJingCheng.Sim.Contracts
     {
         public const int FractionalBits = 16;
         public const long OneRaw = 1L << FractionalBits;   // 1.0 == 65536
+        public const long ZeroRaw = 0L;                     // 0.0
+        public static readonly Fix One = new Fix(OneRaw);
+        public static readonly Fix Zero = new Fix(ZeroRaw);
+
+        /// <summary>满级哨兵(raw = long.MaxValue)。永远不在合法 Q16.16 取值域内;
+        /// 任何算术运算与之交互均触发 OverflowException。</summary>
+        public static readonly Fix PositiveInfinity = new Fix(long.MaxValue);
 
         private readonly long _raw;
 
@@ -107,6 +114,114 @@ namespace DaYiJingCheng.Sim.Contracts
                 throw new OverflowException("Fix.MulRaw:结果超出 int64 定点域");
             // q == 2^63 且 neg 时 unchecked -(long)q 恰回 long.MinValue(位形合法)
             return neg ? unchecked(-(long)q) : (long)q;
+        }
+
+        // ── 算术二元运算(加 / 减) ──────────────────────────────────────────
+        // Q16.16 同标度加法 = raw 直接相加,无舍入(同标度两 Fix 相加无需缩放)。
+        // 溢出 = bug ⇒ checked 强制溢出检测(与 MulRaw 同口径)。
+
+        /// <summary>Q16.16 加法(同标度,无舍入)。溢出时抛 <see cref="OverflowException"/>。</summary>
+        public static Fix operator +(Fix a, Fix b)
+        {
+            checked { return new Fix(a._raw + b._raw); }
+        }
+
+        /// <summary>Q16.16 减法(同标度,无舍入)。溢出时抛 <see cref="OverflowException"/>。</summary>
+        public static Fix operator -(Fix a, Fix b)
+        {
+            checked { return new Fix(a._raw - b._raw); }
+        }
+
+        // ── 比较运算符 ──────────────────────────────────────────────────────
+        // PositiveInfinity 判等: raw == long.MaxValue 为唯一哨兵。
+        // 语义上 Fix 相等 = raw 逐位相等(含 PositiveInfinity)。
+        // 注意:不重写 Object.Equals / GetHashCode(值类型默认已按字段比较,
+        // 重写反而不如默认;Fix 只用于比较/算术,不做 Dictionary 键)。
+
+        public static bool operator ==(Fix a, Fix b) => a._raw == b._raw;
+        public static bool operator !=(Fix a, Fix b) => a._raw != b._raw;
+        public override bool Equals(object obj) => obj is Fix other && _raw == other._raw;
+        public override int GetHashCode() => _raw.GetHashCode();
+
+        // ── 整数幂与平方根(ADR-026 §Decision 一 · ADR-026 §Decision 二)──
+        // 权威:ADR-026 ① FixPow 指数闭集 {整数, 整数+1/2};② 允许构建期定表记忆化;
+        // ADR-026 Implementation Guideline 1(先 Fix.Div/ISqrt/Pow 再写成长公式)。
+        // 全程整数域,禁 Math.Sqrt / Math.Pow / libm / 任意 float。
+
+        /// <summary>整数幂(指数 >= 0)。exponent = 0 → Fix.One;exponent = 1 → base;
+        /// exponent < 0 → ArgumentOutOfRangeException(本系统不用负指数)。</summary>
+        /// <remarks>用 <see cref="operator*"/> 循环自乘,逐位确定(承 ADR-012 黄金夹具)。</remarks>
+        public static Fix Pow(Fix baseValue, int exponent)
+        {
+            if (exponent < 0)
+                throw new ArgumentOutOfRangeException(nameof(exponent),
+                    "Fix.Pow(int):指数不可负(本系统只取非负整数)");
+            if (exponent == 0) return One;
+            if (exponent == 1) return baseValue;
+
+            Fix result = One;
+            for (int i = 0; i < exponent; i++)
+                result *= baseValue;
+            return result;
+        }
+
+        /// <summary>整数牛顿迭代求平方根,返回 Q16.16 定点值。
+        /// <para>对 Q16.16 值 v,目标结果是 floor(sqrt(v) * 2^16)。
+        /// 实现方式:把 v 的 raw 值左移 16 位(即乘以 65536),
+        /// 然后对该缩放后的整数做 Newton 迭代求整数平方根,
+        /// 迭代结果本身就是正确的 Q16.16 raw 值。</para>
+        /// <para>全程 ulong 运算,不调 libm / 不经过 float。</para>
+        /// </summary>
+        public static Fix Sqrt(Fix value)
+        {
+            if (value._raw == 0) return new Fix(0L);
+            if (value._raw < 0)
+                throw new ArgumentOutOfRangeException(nameof(value),
+                    "Fix.Sqrt:负数无实平方根");
+
+            // 目标: floor(sqrt(v) * 2^16) = floor(sqrt(v_raw * 2^16))
+            // 对 v_raw << 16 做整数 Newton 迭代,结果即为 Q16.16 raw 值
+            // v_raw 须 < 2^48(ulong 左移 16 位不溢出);本系统所有合法 Fix
+            // 均满足(技能系统最大中间值 ≈ 40 * 59^2 * 65536 ≈ 9.1e9 ≪ 2^48)
+            ulong v = ((ulong)value._raw) << FractionalBits;
+            ulong guess = v >> 1;
+            while (true)
+            {
+                ulong next = (guess + v / guess) >> 1;
+                if (next >= guess) break;          // 不动点(Newton 整数域单调递减收敛)
+                guess = next;
+            }
+
+            return new Fix((long)guess);            // guess 已经是 Q16.16 raw 值
+        }
+
+        /// <summary>幂运算的唯一实现(指数闭集 {整数, 整数 + 1/2})。
+        /// <para>整数部分(raw & 0xFFFF == 0) → <see cref="Pow(Fix,int)"/>;
+        /// 半整数部分(raw & 0xFFFF == 0x8000) → Pow(整数部分) * Sqrt(base);
+        /// 其余指数 → <see cref="ArgumentOutOfRangeException"/>。</para>
+        /// </summary>
+        public static Fix Pow(Fix baseValue, Fix exponent)
+        {
+            const ushort HalfFractional = 0x8000;  // 0.5 的 Q16.16 表示
+
+            // 提取整数部分(指数的小数部分须全零或全 0x8000)
+            int intPart = (int)(exponent._raw >> FractionalBits);
+            ushort fracPart = (ushort)(exponent._raw & 0xFFFF);
+
+            if (fracPart == 0)
+            {
+                // 纯整数指数
+                return Pow(baseValue, intPart);
+            }
+            if (fracPart == HalfFractional)
+            {
+                // 半整数指数 = 整数幂 × sqrt(base)
+                Fix intPow = Pow(baseValue, intPart);
+                return intPow * Sqrt(baseValue);
+            }
+
+            throw new ArgumentOutOfRangeException(nameof(exponent),
+                $"Fix.Pow(Fix):指数须 ∈ {{整数, 整数+1/2}},实际 raw={exponent._raw}(frac={exponent._raw & 0xFFFF:X4})");
         }
     }
 }
