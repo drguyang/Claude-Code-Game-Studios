@@ -289,15 +289,23 @@ namespace DaYiJingCheng.Gameplay.Input
         /// 「手动 Update 干跑」在该环境下是空转(删闸也绿)⇒ 本缝让测试以同一帧号
         /// 连调两次、确定性验证「同帧第二+次回调不双计」(AC-3-B2③ Edge 的执行面)。
         /// 仅供测试;生产路径不调用(样例唯一驱动源仍是 onAfterUpdate 自动相位)。</summary>
-        public void NotifyAfterUpdateForTest() => NotifyAfterUpdateForTest(UnityEngine.Time.frameCount);
+        public void NotifyAfterUpdateForTest() => InvokeCallbackBodyForTest();
 
-        /// <summary>测试专用:带帧号覆写的回调触发。<paramref name="frameOverride"/> 覆写
-        /// <see cref="_lastCallbackFrame"/>,使同帧内多次调用仍能累计回调计数(E4 测试确定性)。</summary>
-        /// <param name="frameOverride">模拟帧号(测试传入递增值以绕过同帧去重闸)。</param>
-        public void NotifyAfterUpdateForTest(int frameOverride)
+        /// <summary>测试兼容保留:跳过去重闸直接执行回调体(<paramref name="frameOverride"/>
+        /// 被忽略;只用于保持既有测试调用点编译通过)。</summary>
+        public void NotifyAfterUpdateForTest(int frameOverride) => InvokeCallbackBodyForTest();
+
+        /// <summary>测试专用:跳过去重闸、直接执行回调体( Armed 读动作 → Feed )。
+        /// 供测试精确控制帧边界语义,不依赖 <c>Time.frameCount</c>。</summary>
+        internal void InvokeCallbackBodyForTest()
         {
-            _lastCallbackFrame = frameOverride;
-            OnAfterUpdate();
+            _sampledThisFrame = false;
+            if (_emergencyActionEnabled)
+                _emergencyCallbackCount++;
+            if (_state != DirectChannelState.Armed)
+                return;
+            var reading = ReadEmergency();
+            Feed(reading);
         }
 
         /// <summary>onAfterUpdate 回调(接线回调 —— **唯一**样例驱动点)。同帧只处理第一次

@@ -743,7 +743,7 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 "Idle 期回调不得推进 _holdTicks(qa-F6:否则零样本签约失真)");
             Assert.That(logic.SampleCount, Is.EqualTo(0), "Idle 期回调零采样");
 
-            // Armed(真资产):同缝恰推进 1
+            // Armed(真资产):InvokeCallbackBodyForTest 直接推进,_holdTicks +1,采样 +1
             var asset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(ActionAssetPath);
             Assert.That(asset, Is.Not.Null, "动作资产未找到:" + ActionAssetPath);
             var wired = new EmergencyDirectReadChannel(asset, TestAxialScale, TestDzMag, TestMagMax);
@@ -752,8 +752,8 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 wired.Arm(5);
                 wired.NotifyAfterUpdateForTest();
                 Assert.That(ReadPrivateField<int>(wired, "_holdTicks"), Is.EqualTo(1),
-                    "Armed 期回调恰推进 _holdTicks 1(每帧一次)");
-                Assert.That(wired.SampleCount, Is.EqualTo(1), "Armed 期回调恰 1 样本");
+                    "Armed 期 InvokeCallbackBodyForTest 恰推进 _holdTicks 1");
+                Assert.That(wired.SampleCount, Is.EqualTo(1), "Armed 期 InvokeCallbackBodyForTest 恰 1 样本");
             }
             finally
             {
