@@ -169,3 +169,56 @@
 > 1. **Tier 不参与库轴**(F-44.3:364):`test_selectVariant_tierNotInLibAxis` 验证同 cue 同桶的不同 tier 选相同变体。
 > 2. **bucket(u) 边界含端点方向**(F-44.6:419):`test_bucket_boundaryLow_exactInclusion` / `test_bucket_boundaryHigh_exactInclusion` 验证 BUCKET_LOW/HIGH 本身落中/强桶。
 > 3. **五项调制 Forbidden**:`test_forbiddenModulations_zeroAppearance` 扫描 VoiceVariantLib.cs 源文件,验证音高/气声/语速/断句/共鸣零出现。
+
+## Story 007(联机分叉与远端派生 · 静态半 —— AC-44-07 / AC-44-D1 / AC-44-D7 / AC-44-D10 / EndLoop 兜底)
+
+故事头登记的证据路径为
+`tests/unit/audio_system/net_derivation_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/Audio/net_derivation_test.cs`**(类 `NetDerivationTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Audio/net_derivation_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 被测契约 | `unity/Assets/Sim.Contracts/PresentationDtos.cs`(`AudioCueDto` / `IAudioCueSink` / `IPositionalChannel` / `WorldPosLatest` / `TierSource`) |
+| 被测全序键 | `unity/Assets/Sim.Contracts/EventOrderKey.cs`(`EventOrderKey`) |
+| 被测哈希 | `unity/Assets/Sim.Contracts/SplitMix64.cs`(`SplitMix64`) |
+| 被测生产 44 类型 | `unity/Assets/Gameplay.Presentation/Audio/`(全命名空间,IL 扫描) |
+| 被测 GDD | `design/gdd/audio-system.md`(AC-44-07 / AC-44-D1 / AC-44-D7 / AC-44-D10) |
+| 运行方式 | `unity test unity --mode EditMode --filter NetDerivationTest` |
+
+> 读法纪律:本 story 为**静态半** —— 三腿(IL 扫描 / 重排差分 / 负向夹具)在 P0 可跑;
+> **4 人双实例对拍 = BLOCKED-BY-45**(P1b),不在本断言面。
+> `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`NetDerivationTest` 内) | 性质 |
+|---|---|---|
+| **AC-44-07 静态半**(SetTier 默认 Local) | `test_setTier_defaultLocalRecorded` | BLOCKING |
+| **AC-44-07 文档一致性**(GDD 无「取主机技能」残句) | `test_gdd_netSection_noHostTierWording` | BLOCKING |
+| **AC-44-D1 来源纪律**(IPositionalChannel 单实现) | `test_positionalChannel_singleConsumerImplementation` | BLOCKING |
+| **AC-44-D1 契约面**(WorldPosLatest 携带 ServerTick) | `test_worldPosLatest_carriesServerTick` | BLOCKING |
+| **AC-44-D1 + D-44 消费纪律**(派生面零 IPositionalChannel 引用) | `test_derivationSurfaceTypes_zeroPositionalChannelRefs` | BLOCKING |
+| **AC-44-D1 负向**(fixture 含通道引用 ⇒ 红) | `test_derivationSurfaceScan_fixtureWithChannelRef_flagged` | BLOCKING |
+| **AC-44-D7 ② 时钟面**(派生面 IL 禁 RNG/帧/墙钟) | `test_derivationSurfaceTypes_ilBody_noClockOrRandomRefs` | BLOCKING |
+| **AC-44-D7 ② 负向**(fixture 含 UnityEngine.Random ⇒ 红) | `test_derivationScan_ilBodyFixtureRandom_flagged` | BLOCKING |
+| **AC-44-D7 ③ 载荷面**(AudioCueDto 全字段整数域) | `test_audioCueDto_allFieldsIntegerDomain` | BLOCKING |
+| **AC-44-D7 ③**(Intensity = byte) | `test_audioCueDto_intensityIsByte` | BLOCKING |
+| **AC-44-D7 ③**(Cell = Int3) | `test_audioCueDto_cellIsInt3` | BLOCKING |
+| **AC-44-D7 重排差分核心**(同流乱序到达哈希一致) | `test_reorderInvariance_arrivalOrderPreservesCueHash` | BLOCKING |
+| **重排差分载荷面自证**(Intensity 进哈希) | `test_reorderInvariance_intensityFeedsHash` | BLOCKING |
+| **重排差分事件集自证**(事件数进哈希) | `test_reorderInvariance_eventCountFeedsHash` | BLOCKING |
+| **AC-44-D10 锚点缺席**(一次性丢弃/循环挂起) | `test_anchorAbsent_oneShotDropped_loopCuePending` | BLOCKING |
+| **AC-44-D10 锚点到达**(挂起补发) | `test_anchorArrived_pendingLoopReleased` | BLOCKING |
+| **AC-44-D10 陈旧检查**(ServerTick 陈旧拒读) | `test_anchorStale_refused` | BLOCKING |
+| **EndLoop 自评兜底**(纯函数判停 + 有界阈值) | `test_endLoop_selfAssessPredicate_pureAndBounded` | BLOCKING |
+| **EndLoop 有界性**(阈值为正常数) | `test_endLoop_selfAssessThreshold_isPositiveBoundedConstant` | BLOCKING |
+
+> **测试数**:`net_derivation_test` = **19**。
+> ⚠️ 三条易错点的落地证据:
+> 1. **IL 扫描用 token 解析**(不是字节 Contains):`MethodBodyReferences` 用 `Module.ResolveMethod` 解析 IL 里的 call/callvirt/newobj token,字符串字面量(ldstr)指向 #Blob 堆不在字节数组里。
+> 2. **重排差分哈希用 SplitMix64 链式折叠**:事件 → `EventOrderKey` 全序 → cue 记录 → `SplitMix64.Fold` 逐条折叠,哈希输入含 Intensity(载荷面自证)。
+> 3. **负向夹具住测试命名空间**:`ChannelRefFixture` / `RandomBodyFixture` 在 `DaYiJingCheng.Tests.Unit.Audio` 下,不入 44 生产扫描键(同 Story 001 `assembly_boundary_test` 分工)。

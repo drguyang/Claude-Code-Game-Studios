@@ -395,6 +395,127 @@ namespace DaYiJingCheng.EditorTools.Gates
             return errs;
         }
 
+        /// <summary>D7 时钟面:44 派生面类型**方法体 IL** 禁 RNG / 帧时钟 / 墙钟
+        /// (AC-44-D7 ①②:派生 = {流事件,烘焙数据}纯函数,时钟面由流/tick 驱动)。
+        /// 用 Mono.Cecil 遍历方法体指令(与 CheckAudioAssemblyIl 同构),检查每条
+        /// call/callvirt/newobj 指令的**方法引用**是否落在禁名类型上。
+        /// ⚠️ token 匹配按**类型名**(不是成员名):UnityEngine.Time 覆盖所有 Time.* 访问
+        /// (deltaTime/time/frameCount/fixedDeltaTime/unscaledDeltaTime...),
+        /// System.DateTime 覆盖所有 DateTime.* 访问。
+        /// ⚠️ 字符串字面量(ldstr)指向 #UserString 堆,不在 IL 字节数组里 —— 由源文本层
+        /// CheckAudioSourceText 兜(与 CheckAudioAssemblyIl 同纪律)。
+        /// ⚠️ 本扫描器只判**引用存在性**(黑名单语义归 b5;此处是 D7 时钟面的专用谓词)。</summary>
+        public static List<string> CheckAudioClockTokens(string dllPath, string nsPrefix)
+        {
+            var errs = new List<string>();
+            if (!File.Exists(dllPath))
+            {
+                errs.Add($"[D7②] 编译产物缺失「{dllPath}」—— 扫描面不存在,拒以空集冒充绿。");
+                return errs;
+            }
+
+            // 时钟面禁名类型(按**类型名**匹配,覆盖所有成员访问)
+            string[] forbiddenClockTypes =
+            {
+                "UnityEngine.Random",   // RNG 面
+                "System.Random",
+                "UnityEngine.Time",     // 帧时钟面(deltaTime/time/frameCount/fixedDeltaTime/...)
+                "System.DateTime",      // 墙钟面(Now/UtcNow/Today/...)
+            };
+
+            using (var asm = AssemblyDefinition.ReadAssembly(dllPath, new ReaderParameters
+            {
+                ReadingMode = ReadingMode.Deferred,
+                InMemory = true,
+            }))
+            {
+                var selfName = asm.Name.Name;
+                foreach (var type in AllTypes(asm.MainModule))
+                {
+                    if (type.Name == "<Module>") continue;
+                    if (!IsInNamespacePrefix(EffectiveNamespace(type), nsPrefix)) continue;
+                    var from = $"{selfName}::{type.FullName}";
+
+                    foreach (var m in type.Methods)
+                    {
+                        if (!m.HasBody) continue;
+                        foreach (var instr in m.Body.Instructions)
+                        {
+                            MethodReference mr = instr.Operand as MethodReference;
+                            if (mr == null) continue;
+                            string declaring = mr.DeclaringType?.FullName ?? "";
+                            foreach (string forbidden in forbiddenClockTypes)
+                            {
+                                if (declaring == forbidden)
+                                {
+                                    errs.Add($"[D7②] {from} 方法体引用禁名时钟/RNG 类型「{forbidden}」" +
+                                             $"({mr.Name})—— 派生须由流/tick 驱动,禁帧/墙钟/RNG" +
+                                             "(AC-44-D7 ①②)。");
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return errs;
+        }
+
+        /// <summary>D1 位置通道引用扫描:44 派生面类型**零** IPositionalChannel 引用
+        /// (AC-44-D1:44 不自建位置通道,位置读路径归 Story 008 空间化)。
+        /// 与 CheckAudioClockTokens 同构:Mono.Cecil 遍历方法体指令 + BCL 反射扫签名。
+        /// ⚠️ 扫描面 = 编译产物(IL 层),与 b5 同纪律。</summary>
+        public static List<string> CheckAudioPositionalChannelRefs(string dllPath, string nsPrefix)
+        {
+            var errs = new List<string>();
+            if (!File.Exists(dllPath))
+            {
+                errs.Add($"[D1] 编译产物缺失「{dllPath}」—— 扫描面不存在,拒以空集冒充绿。");
+                return errs;
+            }
+
+            const string token = "IPositionalChannel";
+            using (var asm = AssemblyDefinition.ReadAssembly(dllPath, new ReaderParameters
+            {
+                ReadingMode = ReadingMode.Deferred,
+                InMemory = true,
+            }))
+            {
+                var selfName = asm.Name.Name;
+                foreach (var type in AllTypes(asm.MainModule))
+                {
+                    if (type.Name == "<Module>") continue;
+                    if (!IsInNamespacePrefix(EffectiveNamespace(type), nsPrefix)) continue;
+                    var from = $"{selfName}::{type.FullName}";
+
+                    // 字段/方法签名面
+                    foreach (var f in type.Fields)
+                        if (f.FieldType.FullName.Contains(token))
+                            errs.Add($"[D1] {from} 字段「{f.Name}」类型含 {token} —— 44 派生面不得引用位置通道");
+                    foreach (var m in type.Methods)
+                    {
+                        if (m.ReturnType.FullName.Contains(token))
+                            errs.Add($"[D1] {from} 方法「{m.Name}」返回类型含 {token}");
+                        foreach (var p in m.Parameters)
+                            if (p.ParameterType.FullName.Contains(token))
+                                errs.Add($"[D1] {from} 方法「{m.Name}」参数含 {token}");
+                        if (!m.HasBody) continue;
+                        // 方法体 IL 面
+                        foreach (var instr in m.Body.Instructions)
+                        {
+                            var tr = instr.Operand as TypeReference;
+                            if (tr != null && tr.FullName.Contains(token))
+                            {
+                                errs.Add($"[D1] {from} 方法「{m.Name}」方法体引用 {token} —— 44 派生面不得引用位置通道");
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            return errs;
+        }
+
         /// <summary>读编译产物的 AssemblyRef 表(② 的实际引用面;与 asmdef 声明面并集送检)。</summary>
         public static List<string> ReadCompiledReferenceNames(string dllPath)
         {

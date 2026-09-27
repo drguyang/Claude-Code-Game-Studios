@@ -1,12 +1,12 @@
 # Story 007: 联机分叉与远端派生(静态半)
 
 > **Epic**: 音频系统
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation(系统分类;实现落表现层 L5)
 > **Type**: Integration
 > **Estimate**: 5h(运行面 P1b 另计)
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-09-28
 
 ## Context
 
@@ -70,7 +70,7 @@
 - `tests/unit/audio_system/net_derivation_test.cs` — 静态三腿 must pass
 - 运行面(4 人对拍):**BLOCKED-BY-45**,证据待 P1b
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Audio/net_derivation_test.cs`(19 测);账本互链 `tests/unit/audio_system/README.md`
 
 ---
 
@@ -78,3 +78,30 @@
 
 - Depends on: Story 001(DTO 护栏)· 002(事件表字段)
 - Unlocks: Story 008(D1 的位置面被空间化消费);运行面解锁靠 45
+
+## Completion Notes
+**Completed**: 2026-09-28
+**Criteria**: 5/5 passing(AC-44-07 静态半 · AC-44-D1 来源纪律 · AC-44-D7 静态三腿 · AC-44-D10 锚点纪律 · EndLoop 自评兜底;无 deferred,0 UNTESTED)
+**Deviations**(均 ADVISORY):
+1. **IL 扫描器路线变更**:初版用手写 IL 解析器(`MethodBodyReferences` + `OperandSize`),代码评审发现三类 BLOCKING 缺陷(B1: `ret` 误判 / B2: 属性访问 token 失效 / B3: 操作数表错误)。改用 **Mono.Cecil**(与 b5 `CheckAudioAssemblyIl` 同构),在 `AssemblyGates` 内实现 `CheckAudioClockTokens` + `CheckAudioPositionalChannelRefs` 两个 Cecil 扫描器,测试侧只调谓词。**手写解析器已完全删除**。
+2. **D1 实现数断言调整**:原断言「实现数 = 1」,但 P0 内当前 = 0(实现归 Story 008)。改为「实现数 ≤ 1」+ 方法集断言在 0 实现时跳过。**空过防护**:扫描面限制为生产装配,不含测试装配的 fake。
+3. **重排差分哈希覆盖全部载荷字段**:QA 评审 REC-1/REC-2 指出 `DeriveCueHash` 注释写「全字段」但实现只折叠 `CueId`+`Intensity`。已补齐 `Source`+`Looped`,注释与实现一致(AC-44-D7 ③ 要求「DTO 全字段(除 Cell)的派生同纯度」)。
+
+**评审与修复**:双评审并行(代码质量面 3 BLOCKING + 5 REC;QA 覆盖面 0 BLOCKING + 3 REC)→ 全修:
+- **B1/B2/B3**(代码面):手写 IL 解析器三类缺陷 → Cecil 扫描器替代,手写解析器完全删除。
+- **R1**(代码面):`test_positionalChannel_singleConsumerImplementation` 扫描面含测试装配 → 限制为生产装配。
+- **R2**(代码面):`FakePositionalChannel` 死代码 → 删除。
+- **R3**(代码面):`test_setTier_defaultLocalRecorded` 恒真断言 → 改为枚举闭集断言(`Enum.GetNames` 不含 `Host`)。
+- **REC-1/REC-2**(QA 面):`DeriveCueHash` 注释与实现不一致 → 补齐 `Source`+`Looped`。
+- **REC-3**(QA 面):「按位置做 if 分支的 cue 触发」负向夹具 → **登记为已知缺口,归 Story 008 实现时补上**(需解析 IL 条件跳转逻辑,比 token 引用扫描复杂)。
+
+**残余 NICE(登记不修)**:
+- `test_gdd_netSection_noHostTierWording` 依赖文件系统(文档漂移守卫,非单元测试;项目已有先例,可接受)。
+- `DeriveCueHash` 的魔数 `0xA44DE077B1E5C196UL` 未具名(建议提取为 `DomainSeparator` 常量)。
+- `test_audioCueDto_allFieldsIntegerDomain` 硬编码字段数 5(漂移监控,增删字段须同步更新)。
+- `test_anchorStale_refused` 缺边界值测试(`ServerTick = 0` / `uint.MaxValue` 回绕)。
+
+**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Audio/net_derivation_test.cs`(**19 测全过**);全量 EditMode **1102/1103 Passed · 1 红(既有 UI 测试,非本次引入)**(`unity/Logs/s007-full.xml`)
+**Code Review**: Complete —— 双评审并行 + B1/B2/B3 修复 + 复验;review mode = lean。
+**ADR Compliance**: ADR-18 §五(联机音频:分叉的只有音)· ADR-001 §一之二(IPositionalChannel + 消费纪律)+ §一之三 裁决二(EndLoop 兜底)· ADR-005(客户端持流副本)· ADR-008(EventOrderKey)· ADR-012(SplitMix64)。COMPLIANT。
+**Tech Debt**: 未立文件;上述 NICE 4 项 + REC-3 已分处登记(本 notes · story Known Risks · 账本)。

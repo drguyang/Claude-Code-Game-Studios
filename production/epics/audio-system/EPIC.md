@@ -16,14 +16,14 @@
 | 004 | 听诊呼吸两层与精度档 | Logic | Ready | ADR-018 |
 | 005 | SNR 分析域与噪声下界 | Logic | Ready | ADR-018 |
 | 006 | 语声变体库与 Intensity 分桶 | Logic | Ready | ADR-018 |
-| 007 | 联机分叉与远端派生(静态半) | Integration | Ready | ADR-001(+018)·运行面 BLOCKED-BY-45 |
+| 007 | 联机分叉与远端派生(静态半) | Integration | **Complete ✅ 2026-09-28**(5/5 · 19 测 · 双评审 B1-B3 修复验 1102/1103) | ADR-001(+018)·运行面 BLOCKED-BY-45 |
 | 008 | 空间化与世界语境呼吸 | Integration | Ready | ADR-028(+015/018) |
 | 009 | 声源生命周期与贴耳交接 | Logic | Ready | ADR-001 §一之三裁决二(+028) |
 | 010 | 素材管线与事件表烘焙门 | Integration | Ready | ADR-014(+018) |
 | 011 | 设置暴露面与归零机制 | Config/Data | Ready | ADR-018(+013/014) |
 | 012 | 乐层护栏与性能/VR 切面 | Logic | Ready | ADR-018(+020) |
 | 013 | 主通道听测验收 | Visual/Feel | Ready | ADR-018 |
-| 014 | tier 滤波载体与 mixer 暴露参数 | Integration | **In Progress**(2026-09-27 立) | ADR-018 §四 需求③ |
+| 014 | tier 滤波载体与 mixer 暴露参数 | Integration | **Complete ✅ 2026-09-27**(5/5 · 11 测 · 审查 7 修复验 872/872) | ADR-018 §四 需求③ |
 
 ## Overview
 
