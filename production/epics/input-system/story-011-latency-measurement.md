@@ -46,7 +46,7 @@
 - **方差不是算术**(ADR-011 §二):直读通道的存在理由 —— 报告须能说明链上每段的**分布**(至少均值 + p95),而非只给一个平均数
 - **两预算切分不可合并**(manifest Guardrail / F-10.6):`L_input` = 输入 → 呈现(10 的预表现,3 全责);`L_eval` = tick 求值次序(9 的节奏,50 ms + 求值次序,玩家对体征本就延迟一个 tick)—— 报告**不得**把两者加总报成「端到端」
 - **3→10 义务边界**:本故事只交①均值达标;抖动/时序误差上界归 10(`F-10.3b`)—— 报告若测到抖动,**记录但不归本故事签核**
-- **测量实现**:探针改用「下一帧 Update」作为 T_present，避免 `OnPreRender` 在构建目标差异下静默不调用的难以诊断失效。采样方式 = 按两次 E 键 / 样本（第一次 = T_input，下一帧 = T_present），差值 = `L_input→CPU`（量与 `L_input→pixel` 同阶）。
+- **测量实现**:探针改用**同一帧 LateUpdate**作为 T_present，避免 `OnPreRender` 在构建目标差异下静默不调用的难以诊断失效。采样方式 = 按一次 E 键 / 样本（Update 内记录 T_input，同一帧 LateUpdate 内记录 T_present），差值 = `L_input→CPU`（量与 `L_input→pixel` 同阶，且不含整帧等待噪声）。
 - **硬件前置**:最低目标硬件未定 ⇒ 设计阶段**不跑实测**(跑了也不是出货形态)—— 本故事现阶段产出 = **测试方法学 + 分解采集脚本/流程**(可先落地),实测执行挂 `/test-setup` 轮;发版前重开为 BLOCKING
 - **分级先例**:承 item-database story-012(阶段门 AC 照写不删,标注分级与前置)
 
@@ -69,7 +69,7 @@
 *Written at story creation(lean mode — QL-STORY-READY skipped;specs self-authored from AC text). Visual/Feel 类型 —— Manual check 格式:*
 
 - **AC-3-B1b①**: `L_input → pixel` 实测均值 ≤ 50 ms。
-  - Setup: Development Build + 目标硬件;挂载 InputLatencyProbe 到 Camera。预热 60 帧后按两次 E 键产生一个样本（第一次记录输入时间戳，下一帧 Update 记录呈现时间戳），满 1000 样本自动导出。
+  - Setup: Development Build + 目标硬件;挂载 InputLatencyProbe 到 Camera。预热 60 帧后按 E 键每次产生一个样本（Update 内记录输入时间戳，同一帧 LateUpdate 内记录呈现时间戳），满 1000 样本自动导出。
   - Verify: 报告给出均值(及 p95);均值 ≤ 50 ms。
   - Pass condition: 均值 ≤ 50 ms **且** 硬件 = 已定的最低目标机型;设计阶段此条标 ADVISORY(无硬件,不执行)。
   - 现阶段产出:方法学文档 + 采集流程就位(**不跑实测**)。

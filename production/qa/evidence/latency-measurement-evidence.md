@@ -18,7 +18,7 @@
 1. 挂载 `InputLatencyProbe` 到 Boot 场景 Camera
 2. Development Build 编译运行
 3. 预热约 1 秒（60 帧）
-4. 按 **两次 E 键** 产生一个样本：第一次记录 T_input，下一帧 Update 内记录 T_present，差值 = L_input→CPU
+4. 按 **E 键** 每次产生一个样本：Update 内记录 T_input，同一帧 LateUpdate 内记录 T_present，差值 = L_input→CPU
 5. 满 1000 样本后自动导出 Debug.Log
 
 **交付物状态**:
@@ -68,8 +68,8 @@ INPUT_UPDATE_MODE: Dynamic
   stddev: [X.XX ms]
 
 方法说明:
-  测量方式: 两次 E 键 / 样本（第一次 = T_input，下一帧 Update = T_present）
-  测量量: L_input→CPU（输入 → CPU Update 处理完毕；量与 L_input→pixel 同阶）
+  测量方式: 按一次 E 键 / 样本（Update 内记录 T_input，同一帧 LateUpdate 内记录 T_present）
+  测量量: L_input→CPU（输入 → CPU Update 完毕；量与 L_input→pixel 同阶）
 
 L_render / L_poll 分解:
   L_render: [X.XX ms] (≈ [N] 帧 @ [Hz])
