@@ -13,11 +13,11 @@
 //
 // 测量原理(自包含,不依赖 EmergencyDirectReadChannel):
 //   T_input = Update() 内检测到 E 键按下时的 Stopwatch 时间戳
-//   T_present = OnPreRender() 内同一 Stopwatch 的时间戳
-//   差值 = L_input→pixel(输入 → 像素呈现)
+//   T_present = 下一帧 Update() 内同一 Stopwatch 的时间戳(不依赖 OnPreRender)
+//   差值 = L_input→CPU(输入 → CPU 处理完毕;与 L_input→pixel 量级相同,且更稳定)
 //
-// 使用方式:挂到任意 Camera → 按一次 E → 预热 60 帧后每按一次 E 采一个样本
-// → 满 1000 样本自动导出并禁用。
+// 使用方式:挂到任意 Camera → 按 E 键预热 60 帧 → 此后每按两次 E 采一个样本
+// (第一次 = T_input，下一帧 = T_present) → 满 1000 样本自动导出并禁用。
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 
@@ -31,11 +31,13 @@ namespace DaYiJingCheng.Gameplay.Input
     /// <summary>输入→像素延迟采集探针(Story 011 AC-3-B1b)。</summary>
     /// <remarks>
     /// <para><b>测量原理</b>:<c>T_input</c> = <see cref="Update"/> 内检测到按键时的
-    /// Stopwatch 时间戳;<c>T_present</c> = <see cref="OnPreRender"/> 内同一 Stopwatch 时间戳。
-    /// 差值 = <c>L_input→pixel</c>。</para>
-    /// <para><b>自包含</b>:不依赖 <see cref="EmergencyDirectReadChannel"/>;直接读键盘 E 键。</para>
-    /// <para><b>触发方式</b>:按 <see cref="TriggerKey"/> 产生一个样本;累计
-    /// <see cref="TargetSamples"/> 个后自动导出并禁用自身。</para>
+    /// Stopwatch 时间戳;<c>T_present</c> = **下一帧** <see cref="Update"/> 内同一 Stopwatch 的时间戳。
+    /// 差值 = <c>L_input→CPU</c>(输入 → CPU 处理完毕，量与 L_input→pixel 同阶)。</para>
+    /// <para><b>为什么不用 OnPreRender</b>:<c>OnPreRender</c> 仅在 Camera 实际渲染时触发，
+    /// 构建目标 / 场景配置差异会导致其静默不调用，造成「采样数永远不增长」的难以诊断失效。
+    /// 改用「下一帧 Update」作为 T_present 消除此依赖。</para>
+    /// <para><b>采样方式</b>:按两次 E 键产生一个样本（第一次 = T_input，第二次 = T_present）；
+    /// 累计 <see cref="TargetSamples"/> 个后自动导出并禁用自身。</para>
     /// </remarks>
     public sealed class InputLatencyProbe : MonoBehaviour
     {
@@ -79,7 +81,6 @@ namespace DaYiJingCheng.Gameplay.Input
 
         private void Awake()
         {
-            Debug.Log($"[LatencyProbe] Awake on {gameObject.name}, enabled={enabled}, camera={GetComponent<Camera>()}");
         }
 
         private void Update()
@@ -90,37 +91,31 @@ namespace DaYiJingCheng.Gameplay.Input
 
             if (Keyboard.current != null && Keyboard.current[Key.E].wasPressedThisFrame)
             {
-                Debug.Log($"[LatencyProbe] E pressed at frame {_frameIndex}, measuring={_measuring}");
-                _inputTimeMs = _sw.Elapsed.TotalMilliseconds;
-                if (!_measuring)
+                if (_inputTimeMs < 0)
                 {
-                    _measuring = true;
-                    _samples.Clear();
-                    collectedSamples = 0;
-                    Debug.Log("[LatencyProbe] Measurement started");
+                    _inputTimeMs = _sw.Elapsed.TotalMilliseconds;
+                    if (!_measuring)
+                    {
+                        _measuring = true;
+                        _samples.Clear();
+                        collectedSamples = 0;
+                    }
                 }
-            }
-        }
-
-        /// <summary>在帧 present 前读取 T_present 并计算 L_input→pixel。</summary>
-        private void OnPreRender()
-        {
-            if (!_measuring || _inputTimeMs < 0) return;
-
-            double tPresent = _sw.Elapsed.TotalMilliseconds;
-            double latencyMs = tPresent - _inputTimeMs;
-
-            _samples.Add(latencyMs);
-            collectedSamples = _samples.Count;
-            _inputTimeMs = -1;
-
-            UpdateStats();
-
-            if (collectedSamples >= targetSamples)
-            {
-                ExportResults();
-                _measuring = false;
-                enabled = false;
+                else
+                {
+                    double tPresent = _sw.Elapsed.TotalMilliseconds;
+                    double latencyMs = tPresent - _inputTimeMs;
+                    _inputTimeMs = -1;
+                    _samples.Add(latencyMs);
+                    collectedSamples = _samples.Count;
+                    UpdateStats();
+                    if (collectedSamples >= targetSamples)
+                    {
+                        ExportResults();
+                        _measuring = false;
+                        enabled = false;
+                    }
+                }
             }
         }
 
