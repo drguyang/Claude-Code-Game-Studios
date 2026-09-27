@@ -83,7 +83,6 @@ namespace DaYiJingCheng.Gameplay.Input
 
         private double _pendingSample = -1;
         private int _pendingFrame = -1;
-        private int _pendingFrame = -1;
 
         // ── 统计量(实时更新,Inspector 可见) ──
 
@@ -218,10 +217,6 @@ namespace DaYiJingCheng.Gameplay.Input
             }
             return Math.Sqrt(sumSq / (samples.Count - 1));
         }
-
-        // ── 采样状态 ──
-
-        private double _pendingSample = -1;
     }
 }
 
