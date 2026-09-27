@@ -1,12 +1,12 @@
 # Story 011: L_input→pixel 延迟实测与 L_render/L_poll 分解
 
 > **Epic**: 输入与设备
-> **Status**: Ready
+> **Status**: In Progress
 > **Layer**: Foundation
 > **Type**: Visual/Feel
 > **Estimate**: 2h(+ 真实硬件前置)
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-25
+> **Last Updated**: 2026-09-27
 
 ## Context
 
@@ -89,9 +89,10 @@
 **Story Type**: Visual/Feel
 **Required evidence**:
 - Visual/Feel: `production/qa/evidence/latency-measurement-evidence.md` + 主创签核(截图/数据表 + 方法学四要素)
+- Design-phase deliverables: `tools/latency-measurement/InputLatencyProbe.cs` + evidence doc
 
-**Status**: [ ] Not yet created
-- 阶段注:设计阶段证据 = 方法学文档 + 流程就位(ADVISORY 可挂账);**发版前**须补实测数据翻 BLOCKING(先例:item-database story-012 阶段门)
+**Status**: [x] Design-phase deliverables created (methodology doc + probe script); hardware实测挂 `/test-setup` 轮
+- 阶段注:设计阶段证据 = 方法学文档 + 采集脚本就位(ADVISORY 可挂账);**发版前**须补实测数据翻 BLOCKING(先例:item-database story-012 阶段门)
 
 ---
 

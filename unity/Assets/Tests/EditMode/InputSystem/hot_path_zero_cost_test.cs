@@ -75,7 +75,7 @@ class Fixture {
         public void test_e1_hot_path_methods_no_prohibited_tokens()
         {
             var names = InputBoundaryGates.HotPathMethodNames;
-            Assert.That(names.Count, Is.EqualTo(14), "热路径集合应恰好 14 个方法名");
+            Assert.That(names.Count, Is.EqualTo(15), "热路径集合应恰好 15 个方法名");
             Assert.That(names, Does.Contain("OnAfterUpdate"));
             Assert.That(names, Does.Contain("Arm"));
             Assert.That(names, Does.Contain("DisableEmergencyAction"));

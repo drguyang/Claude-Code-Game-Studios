@@ -302,7 +302,7 @@ namespace DaYiJingCheng.Gameplay.Input
             _sampledThisFrame = false;
             if (_emergencyActionEnabled)
                 _emergencyCallbackCount++;
-            if (_state != DirectChannelState.Armed)
+            if (_state != DirectChannelState.Armed || _emergencyAction == null)
                 return;
             var reading = ReadEmergency();
             Feed(reading);
@@ -320,7 +320,7 @@ namespace DaYiJingCheng.Gameplay.Input
             _sampledThisFrame = false;   // 帧边界:每帧采样窗口起点
             if (_emergencyActionEnabled)
                 _emergencyCallbackCount++;   // AC-3-E4 第②半:只数 enabled 期间的 wired 回调
-            if (_state != DirectChannelState.Armed)
+            if (_state != DirectChannelState.Armed || _emergencyAction == null)
                 return;
             var reading = ReadEmergency();
             Feed(reading);
