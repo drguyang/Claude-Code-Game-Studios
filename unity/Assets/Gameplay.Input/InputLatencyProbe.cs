@@ -85,7 +85,7 @@ namespace DaYiJingCheng.Gameplay.Input
             if (_frameIndex <= warmupFrames) return;
 
             // 触发:按下 triggerKey → 本帧记录 T_input
-            if (Keyboard.current != null && Keyboard.current[triggerKey].wasPressedThisFrame)
+            if (Keyboard.current != null && Keyboard.current[Key.E].wasPressedThisFrame)
             {
                 _inputTimeMs = _sw.Elapsed.TotalMilliseconds;
                 if (!_measuring)
