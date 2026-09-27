@@ -49,13 +49,8 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             var names = p0.Select(d => d.Name).OrderBy(n => n).ToList();
             Assert.That(names, Is.EquivalentTo(new[]
             {
-                "采集", "处方用药", "急救", "手术", "炮制",
-                " diagnostics" /* stub */,
-            }).Or.EquivalentTo(new[]
-            {
-                "采集", "处方用药", "急救", "诊断", "炮制",
-            }).Using<string>((a, b) => a == b ? 0 : 1),
-                "P0 七项应包含:诊断/急救/处方用药/采集/炮制/徒手/短兵");
+                "采集", "处方用药", "急救", "诊断", "炮制", "徒手", "短兵",
+            }), "P0 七项应包含:诊断/急救/处方用药/采集/炮制/徒手/短兵");
         }
 
         [Test]
