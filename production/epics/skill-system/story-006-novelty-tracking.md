@@ -1,12 +1,12 @@
 # Story 006: 新颖度追踪与冷却
 
 > **Epic**: 技能与熟练度
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-27
+> **Last Updated**: 2026-09-28
 
 ## Context
 
@@ -112,7 +112,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `tests/unit/skill-system/novelty_tracker_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Created — `unity/Assets/Tests/EditMode/SkillSystem/novelty_tracker_test.cs`
 
 ---
 
@@ -120,3 +120,12 @@
 
 - Depends on: Story 001(调参表加载 NOVELTY_COOLDOWN)
 - Unlocks: Story 002(XP_gain 消费 noveltyClass)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-28
+**Criteria**: 6/6 passing
+**Deviations**: None
+**Test Evidence**: Logic: `unity/Assets/Tests/EditMode/SkillSystem/novelty_tracker_test.cs` — 20 tests covering AC-1..AC-6
+**Code Review**: unity-specialist pending + qa-tester reviewed (2 S3 + 2 S4 fixed: backward time-travel guard + tests added)
