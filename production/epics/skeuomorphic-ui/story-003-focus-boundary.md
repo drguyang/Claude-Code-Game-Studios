@@ -1,7 +1,7 @@
 # Story 003: 焦点导航边界(rank 数据断言 · 焦点悬空回退 · 空行反馈 · 同键双触发禁令)
 
 > **Epic**: 拟物 UI 框架
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 2-3 hours
