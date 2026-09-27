@@ -117,6 +117,6 @@ namespace DaYiJingCheng.Gameplay.Input
             GUI.Label(new Rect(Padding + 4, y, PanelWidth - 8, LineHeight),
                 $"采样: {ChannelSampleCount}");
         }
-#endif
     }
 }
+#endif
