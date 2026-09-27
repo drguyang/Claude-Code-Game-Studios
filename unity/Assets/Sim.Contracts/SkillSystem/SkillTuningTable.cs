@@ -63,7 +63,7 @@ namespace DaYiJingCheng.Sim.Contracts.SkillSystem
         // ── 昏迷阈值 ─────────────────────────────────────────────────────────
 
         /// <summary>敌人昏迷的生命阈值(恒为 0 = 生命归零即昏迷)。</summary>
-        public const Fix UnconsciousAt = default; // Fix(0)
+        public static readonly Fix UnconsciousAt = default; // Fix(0)
 
         // ── 默认实例 ──────────────────────────────────────────────────────────
 
