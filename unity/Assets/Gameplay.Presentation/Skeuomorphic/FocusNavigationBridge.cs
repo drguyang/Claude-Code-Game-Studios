@@ -1,11 +1,12 @@
 namespace DaYiJingCheng.Gameplay.Presentation.Skeuomorphic
 {
     using System;
+    using System.Collections.Generic;
     using UnityEngine;
     using UnityEngine.EventSystems;
 
     /// <summary>
-    /// 焦点导航呈现桥——单栈门路由 + 过渡窗口协调 + 同键双触发构造断言。
+    /// 焦点导航呈现桥——单栈门路由 + 过渡窗口协调 + 同键双触发构造断言 + 焦点悬空回退。
     /// <para>实现侧(MonoBehaviour),持有 Unity 引擎类型引用。</para>
     /// </summary>
     /// <remarks>
@@ -16,6 +17,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Skeuomorphic
     ///   <item><description>验证 EventSystem 共享前提(AC-42-A1)。</description></item>
     ///   <item><description>提供 <see cref="IFocusNavigationPresenter.IsFocusActive"/> 查询。</description></item>
     ///   <item><description>构造期断言:拒绝同一控件同时被官方 Navigate 与自建焦点动作绑定(AC-3-C2)。</description></item>
+    ///   <item><description>焦点悬空回退:当前焦点控件被销毁/禁用时,自动回退到最近有效控件(AC-42-B7)。</description></item>
     ///   <item><description>降级路径桩(预先写死):若 Unity 6.3 焦点质量不达预期,降级 = 自实现焦点算法;接口不变,代码住本程序集。</description></item>
     /// </list>
     /// </remarks>
@@ -52,11 +54,46 @@ namespace DaYiJingCheng.Gameplay.Presentation.Skeuomorphic
         /// <summary>过渡窗口剩余时间(秒)。</summary>
         public float TransitionRemaining { get; private set; }
 
+        /// <summary>焦点当前是否处于悬空态(无有效控件可聚焦)。</summary>
+        /// <remarks>
+        /// true = 当前焦点控件被销毁/禁用,且无有效回退目标(全部控件均无效)。
+        /// <para>焦点悬空态 ≠ 焦点卡在已销毁控件上 —— 本属性为 true 时,UI 应呈现"无焦点"视觉反馈。</para>
+        /// </remarks>
+        public bool IsFocusOrphaned { get; private set; }
+
+        /// <summary>焦点悬空后的回退 rank(仅在 <see cref="IsFocusOrphaned"/> 为 true 时有效)。</summary>
+        /// <remarks>
+        /// 由 <see cref="FocusOrphanHandler"/> 计算得出;值 >= 1 表示有效回退 rank, -1 表示无回退。
+        /// </remarks>
+        public int FocusOrphanFallbackRank { get; private set; }
+
+        /// <summary>全部可聚焦控件集合(用于焦点悬空回退)。</summary>
+        /// <remarks>
+        /// 外部系统(如 42 UI 初始化)在控件列表变更时更新本字段。
+        /// <para>集合中的控件必须实现 <see cref="IFocusable"/>;</para>
+        /// <para>rank 数据完整性由 <see cref="DaYiJingCheng.Gameplay.UI.Skeuomorphic.FocusBoundaryAssertions"/> 在装载时校验。</para>
+        /// </remarks>
+        public IEnumerable<IFocusable> AllFocusableControls
+        {
+            get => _allFocusableControls;
+            set
+            {
+                _allFocusableControls = value ?? throw new ArgumentNullException(nameof(value));
+                CheckFocusOrphan();
+            }
+        }
+
+        /// <summary>当前焦点的 rank(-1 = 尚未设定)。</summary>
+        private int _currentFocusRank = -1;
+
+        private IEnumerable<IFocusable> _allFocusableControls;
         private float _transitionTotal;
         private bool _isInitialized;
         private bool _pendingTransition;
 
-        /// <summary>初始化。</summary>
+        /// <summary>
+        /// 初始化。
+        /// </summary>
         /// <param name="eventSystem">共享 EventSystem(两栈共用)。</param>
         /// <param name="flatStack">平面拟物 UI 栈的呈现层根。</param>
         /// <param name="worldStack">世界空间 UI 栈的呈现层根。</param>
@@ -123,20 +160,30 @@ namespace DaYiJingCheng.Gameplay.Presentation.Skeuomorphic
 
         /// <summary>
         /// 每帧更新(由 MonoBehaviour Update 调用)。
-        /// <para>处理过渡窗口计时与完成过渡。</para>
+        /// <para>处理过渡窗口计时与焦点悬空检测。</para>
         /// </summary>
         public void Tick()
         {
-            if (!_isInitialized || !_pendingTransition)
+            if (!_isInitialized)
                 return;
 
-            TransitionRemaining -= Time.unscaledDeltaTime;
-
-            if (TransitionRemaining <= 0f)
+            // 过渡窗口计时
+            if (_pendingTransition)
             {
-                _pendingTransition = false;
-                TransitionRemaining = 0f;
-                _stateMachine.CompleteTransition();
+                TransitionRemaining -= Time.unscaledDeltaTime;
+
+                if (TransitionRemaining <= 0f)
+                {
+                    _pendingTransition = false;
+                    TransitionRemaining = 0f;
+                    _stateMachine.CompleteTransition();
+                }
+            }
+
+            // 焦点悬空检测(每帧检查当前焦点是否仍有效)
+            if (!IsDowngradeActive && _currentFocusRank >= 0)
+            {
+                CheckFocusOrphan();
             }
         }
 
@@ -197,13 +244,44 @@ namespace DaYiJingCheng.Gameplay.Presentation.Skeuomorphic
         }
 
         /// <summary>
-        /// 验证官方桥 Navigate 映射存在(AC-42-A1)。
+        /// 检查当前焦点是否悬空;若悬空则触发回退(AC-42-B7)。
+        /// <para>每帧由 <see cref="Tick()"/> 调用;控件列表变更时由 <see cref="AllFocusableControls"/> setter 调用。</para>
         /// </summary>
-        private void ValidateNavigateBinding()
+        private void CheckFocusOrphan()
         {
-            // 本验证自 v6.3 开始不再依赖 InputSystemUIInputModule 具体内部字段名,
-            // 改为由运行时初始化流程保证(42 初始化期检查 Input System Action Asset 配置)。
-            // 若后续 Unity 版本恢复可验证的内部 API,本方法可重新启用。
+            if (_currentFocusRank < 0 || _allFocusableControls == null)
+                return;
+
+            IFocusable currentControl = null;
+            foreach (var control in _allFocusableControls)
+            {
+                if (control != null && control.IsFocusEnabled && control.FocusRank == _currentFocusRank)
+                {
+                    currentControl = control;
+                    break;
+                }
+            }
+
+            if (currentControl != null)
+            {
+                IsFocusOrphaned = false;
+                FocusOrphanFallbackRank = -1;
+                return;
+            }
+
+            int fallbackRank = FocusOrphanHandler.HandleOrphan(_allFocusableControls, _currentFocusRank);
+            if (fallbackRank >= 0)
+            {
+                _currentFocusRank = fallbackRank;
+                IsFocusOrphaned = false;
+                FocusOrphanFallbackRank = fallbackRank;
+            }
+            else
+            {
+                _currentFocusRank = -1;
+                IsFocusOrphaned = true;
+                FocusOrphanFallbackRank = -1;
+            }
         }
 
         /// <summary>

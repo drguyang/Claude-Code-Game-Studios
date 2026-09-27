@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: 2-3 hours
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-27
+> **Last Updated**: 2026-09-28
 
 ## Context
 
@@ -106,9 +106,9 @@
 ## Test Evidence
 
 **Story Type**: Logic
-**Required evidence**: `tests/unit/skeuomorphic-ui/focus_boundary_test.cs` — must exist and pass
+**Required evidence**: `Assets/Tests/EditMode/SkeuomorphicUI/focus_boundary_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created
 
 ---
 
