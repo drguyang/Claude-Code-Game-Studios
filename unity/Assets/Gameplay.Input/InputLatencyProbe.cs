@@ -16,16 +16,19 @@
 //   T_present = 下一帧 LateUpdate() 内同一 Stopwatch 的时间戳
 //   差值 = L_input→CPU(输入 → 下一帧 CPU Update 完毕;与 L_input→pixel 量级相同)
 //
-// 为什么不用 OnPreRender:
-//   OnPreRender 仅在 Camera 实际渲染时触发，构建目标 / 场景配置差异会导致其静默不调用。
-//   LateUpdate 每帧必然执行（Camera 是否渲染不影响），采样可靠性更高。
+// 为什么不用 OnPreRender / OnPostRender:
+//   OnPreRender/OnPostRender 仅在 Camera 实际渲染时触发，构建目标/场景配置差异
+//   会导致其静默不调用。LateUpdate 每帧必然执行，采样可靠性更高。
 //
 // 为什么跨一帧:
-//   同帧 Update→LateUpdate 的差值 ≈ 0（代码在同一帧内连续执行，Stopwatch 分辨率无法区分）。
+//   同帧 Update→LateUpdate 连续执行，Stopwatch 分辨率无法区分（实测 ≈ 0）。
 //   跨一帧后差值 = 输入管线延迟 + 整帧调度开销，接近真实 L_input。
 //
-// 采样方式:按一次 E 键产生一个样本（Update 内记录 T_input，下一帧 LateUpdate 内记录 T_present）
-// → 满 1000 样本自动导出并禁用。按住 E 不会重复触发（同一次 press 只采一次）。
+// 采样时序:
+//   帧 N Update: 检测到 E 按，记录 _pendingSample = T_input
+//   帧 N LateUpdate: 跳过（同帧，不采样）
+//   帧 N+1 LateUpdate: 检测到 _pendingSample 是上一帧留下的，采样 = T_present - T_input
+//   用户只需按一次 E = 一个样本，无需特殊节奏。
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 
@@ -76,6 +79,12 @@ namespace DaYiJingCheng.Gameplay.Input
 
         private readonly System.Diagnostics.Stopwatch _sw = System.Diagnostics.Stopwatch.StartNew();
 
+        // ── 采样状态 ──
+
+        private double _pendingSample = -1;
+        private int _pendingFrame = -1;
+        private int _pendingFrame = -1;
+
         // ── 统计量(实时更新,Inspector 可见) ──
 
         [Tooltip("当前均值(ms)。样本不足时显示 -1。")]
@@ -102,6 +111,7 @@ namespace DaYiJingCheng.Gameplay.Input
                 if (_pendingSample < 0)
                 {
                     _pendingSample = _sw.Elapsed.TotalMilliseconds;
+                    _pendingFrame = _frameIndex;
                     if (!_measuring)
                     {
                         _measuring = true;
@@ -115,10 +125,12 @@ namespace DaYiJingCheng.Gameplay.Input
         private void LateUpdate()
         {
             if (_pendingSample < 0) return;
+            if (_pendingFrame == _frameIndex) return;
 
             double tPresent = _sw.Elapsed.TotalMilliseconds;
             double latencyMs = tPresent - _pendingSample;
             _pendingSample = -1;
+            _pendingFrame = -1;
             _samples.Add(latencyMs);
             collectedSamples = _samples.Count;
             UpdateStats();
@@ -161,6 +173,7 @@ namespace DaYiJingCheng.Gameplay.Input
             _samples.Clear();
             collectedSamples = 0;
             _pendingSample = -1;
+            _pendingFrame = -1;
             currentMeanMs = -1;
             currentP95Ms = -1;
             currentMaxMs = -1;
