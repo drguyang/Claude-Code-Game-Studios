@@ -81,18 +81,18 @@ namespace DaYiJingCheng.Gameplay.Input
         {
             _frameIndex++;
 
-            // 预热段不采集
             if (_frameIndex <= warmupFrames) return;
 
-            // 触发:按下 triggerKey → 本帧记录 T_input
             if (Keyboard.current != null && Keyboard.current[Key.E].wasPressedThisFrame)
             {
+                Debug.Log($"[LatencyProbe] E pressed at frame {_frameIndex}, measuring={_measuring}");
                 _inputTimeMs = _sw.Elapsed.TotalMilliseconds;
                 if (!_measuring)
                 {
                     _measuring = true;
                     _samples.Clear();
                     collectedSamples = 0;
+                    Debug.Log("[LatencyProbe] Measurement started");
                 }
             }
         }
