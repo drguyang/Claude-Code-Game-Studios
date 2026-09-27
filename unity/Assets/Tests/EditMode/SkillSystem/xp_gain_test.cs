@@ -36,7 +36,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         public void test_xpGain_baseZero_returnsZero()
         {
             // 奔跑 BASE = 0.2, ×1.0 ×1.0 = 0.2 (非零,但 BASE 极小场景)
-            Fix difficulty = Fix.OneRaw; // 1.0
+            Fix difficulty = new Fix(Fix.OneRaw); // 1.0
             Fix xpGain = XpGainCalculator.ComputeXpGain(
                 (int)SkillId.奔跑, NoveltyClass.Normal, difficulty);
 
@@ -48,7 +48,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         public void test_xpGain_difficultyZero_returnsZero()
         {
             // K_difficulty = 0 时 XP_gain = 0
-            Fix difficulty = Fix.ZeroRaw; // 0.0
+            Fix difficulty = new Fix(0L); // 0.0
             Fix xpGain = XpGainCalculator.ComputeXpGain(
                 (int)SkillId.诊断, NoveltyClass.First, difficulty);
 
@@ -63,7 +63,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         {
             // 仅 K_novelty=1.0, K_difficulty=1.0 → XP_gain = BASE
             Fix xpGain = XpGainCalculator.ComputeXpGain(
-                (int)SkillId.诊断, NoveltyClass.Normal, Fix.OneRaw);
+                (int)SkillId.诊断, NoveltyClass.Normal, new Fix(Fix.OneRaw));
 
             Assert.That(xpGain.Raw, Is.EqualTo(8L * Fix.OneRaw),
                 "诊断 BASE = 8, Normal ×1.0 ⇒ 8.0 XP");
@@ -73,7 +73,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         public void test_xpGain_baseFromRegistry_gathering_is1()
         {
             Fix xpGain = XpGainCalculator.ComputeXpGain(
-                (int)SkillId.采集, NoveltyClass.Normal, Fix.OneRaw);
+                (int)SkillId.采集, NoveltyClass.Normal, new Fix(Fix.OneRaw));
 
             Assert.That(xpGain.Raw, Is.EqualTo(1L * Fix.OneRaw),
                 "采集 BASE = 1, Normal ×1.0 ⇒ 1.0 XP");
@@ -85,7 +85,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         public void test_xpGain_noveltyFirst_coefficient3()
         {
             Fix xpGain = XpGainCalculator.ComputeXpGain(
-                (int)SkillId.诊断, NoveltyClass.First, Fix.OneRaw);
+                (int)SkillId.诊断, NoveltyClass.First, new Fix(Fix.OneRaw));
 
             // 8 × 1.0 × 3.0 = 24
             Assert.That(xpGain.Raw, Is.EqualTo(24L * Fix.OneRaw),
@@ -96,7 +96,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         public void test_xpGain_noveltyStale_coefficient02()
         {
             Fix xpGain = XpGainCalculator.ComputeXpGain(
-                (int)SkillId.诊断, NoveltyClass.Stale, Fix.OneRaw);
+                (int)SkillId.诊断, NoveltyClass.Stale, new Fix(Fix.OneRaw));
 
             // 8 × 1.0 × 0.2 = 1.6
             Assert.That(xpGain.Raw, Is.EqualTo(16L * Fix.OneRaw / 10),
@@ -107,7 +107,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         public void test_xpGain_noveltyNormal_coefficient1()
         {
             Fix xpGain = XpGainCalculator.ComputeXpGain(
-                (int)SkillId.诊断, NoveltyClass.Normal, Fix.OneRaw);
+                (int)SkillId.诊断, NoveltyClass.Normal, new Fix(Fix.OneRaw));
 
             // 8 × 1.0 × 1.0 = 8
             Assert.That(xpGain.Raw, Is.EqualTo(8L * Fix.OneRaw),
@@ -166,7 +166,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             // 期望 = 0.2 × 1.0 × 1.0 = 0.2
             // raw = 0.2 × 65536 = 13107
             Fix xpGain = XpGainCalculator.ComputeXpGain(
-                (int)SkillId.奔跑, NoveltyClass.Normal, Fix.OneRaw);
+                (int)SkillId.奔跑, NoveltyClass.Normal, new Fix(Fix.OneRaw));
 
             Assert.That(xpGain.Raw, Is.EqualTo(Fix.OneRaw / 5),
                 "奔跑 Normal = 0.2, raw = 65536/5 = 13107 逐位一致");
@@ -195,7 +195,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
                 "1.2 raw 预校验");
 
             Fix xpGain = XpGainCalculator.ComputeXpGain(
-                (int)SkillId.处方用药, NoveltyClass.Stale, Fix.OneRaw);
+                (int)SkillId.处方用药, NoveltyClass.Stale, new Fix(Fix.OneRaw));
 
             Assert.That(xpGain.Raw, Is.EqualTo(12L * Fix.OneRaw / 10),
                 "处方用药 Stale = 6 × 0.2 = 1.2, raw = 78643 逐位一致");
@@ -206,7 +206,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         [Test]
         public void test_xpGain_invalidNoveltyClass_throws()
         {
-            Fix difficulty = Fix.OneRaw;
+            Fix difficulty = new Fix(Fix.OneRaw);
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 XpGainCalculator.ComputeXpGain(
                     (int)SkillId.诊断, (NoveltyClass)99, difficulty));
