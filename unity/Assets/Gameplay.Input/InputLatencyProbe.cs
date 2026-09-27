@@ -57,8 +57,8 @@ namespace DaYiJingCheng.Gameplay.Input
         [Tooltip("预热帧数(建议 60 = 约 1 秒)。")]
         [Range(30, 300)] public int warmupFrames = 60;
 
-        [Tooltip("目标样本数(建议 ≥ 1000)。")]
-        [Range(100, 10000)] public int targetSamples = 1000;
+        [Tooltip("目标样本数(建议 20–1000，20 已足够估计均值与抖动)。")]
+        [Range(10, 10000)] public int targetSamples = 20;
 
         [Tooltip("触发测量的按键。")]
         public KeyCode triggerKey = KeyCode.E;

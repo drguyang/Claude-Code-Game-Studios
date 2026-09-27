@@ -19,7 +19,7 @@
 2. Development Build 编译运行
 3. 预热约 1 秒（60 帧）
 4. 按 **E 键** 每次产生一个样本：Update 内记录 T_input，**下一帧** LateUpdate 内记录 T_present，差值 = L_input→CPU
-5. 满 1000 样本后自动导出 Debug.Log
+5. 满目标样本数（默认 20）后自动导出 Debug.Log
 
 **交付物状态**:
 - ✅ `InputLatencyProbe.cs` 已移入 `unity/Assets/Gameplay.Input/`（同程序集）
@@ -33,7 +33,7 @@
 | 要素 | 内容 |
 |------|------|
 | 统计量/分位 | 均值 + p95 + max + stddev |
-| 采样数 | 1000 次（建议值，用户可调） |
+| 采样数 | 20 次（默认可调；用户选 20 以减少按 E 次数） |
 | 剔除规则 | 预热 60 帧；GC 暂停整段标注；Alt-Tab 整段丢弃 |
 | 工具 | `InputLatencyProbe`（Stopwatch）+ `FrameTimingManager`（可选） |
 
@@ -61,7 +61,7 @@ Unity: 6000.3.24f1 / 脚本后端: [Mono / IL2CPP]
 INPUT_UPDATE_MODE: Dynamic
 
 统计量:
-  样本数: [N ≥ 1000?]
+  样本数: [N，默认 20]
   均值:   [X.XX ms]
   p95:    [X.XX ms]
   max:    [X.XX ms]
@@ -88,6 +88,6 @@ L_render / L_poll 分解:
 - [x] 采集脚本交付
 - [x] 接线侧时间戳注入完成
 - [x] 桌面实测首轮（2026-09-27，13 样本）
-- [ ] 补采至 ≥ 1000 样本 + 报告归档 + 签核（待执行）
+- [ ] 补采至默认 20 样本 + 报告归档 + 签核（待执行）
 
 ---
