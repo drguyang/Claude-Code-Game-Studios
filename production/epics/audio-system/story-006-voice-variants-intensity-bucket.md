@@ -1,7 +1,7 @@
 # Story 006: 语声变体库与 Intensity 分桶
 
 > **Epic**: 音频系统
-> **Status**: In Progress
+> **Status**: Complete
 > **Layer**: Foundation(系统分类;实现落表现层 L5)
 > **Type**: Logic
 > **Estimate**: 4h
@@ -76,7 +76,8 @@
   (登记路径原写仓库根 `tests/...`,Unity 只编译 `unity/Assets/` 树 —— 承 Story 002/003/004/005 先例,真身落 `unity/Assets/`)
 - 账本互链 `tests/unit/audio_system/README.md`(AC→测映射)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Audio/voice_variants_test.cs`(**21 测全过**)+ 账本互链 `tests/unit/audio_system/README.md` §Story 006
+**Evidence**: 过滤 21/21 · 全量 EditMode 986/986 Passed 0 红(`unity/Logs/s006-final2.xml`)
 
 ---
 
@@ -93,3 +94,30 @@
 
 **处置**:扩 B3 白名单(登记 `VoiceBucket` 与 `VoiceVariantTable`)留待以后解决,本 story 不修。
 参照 Story 004 同型处置(当时用户裁定扩允许面);本次按用户裁定改为登记遗留。
+
+## Completion Notes
+**Completed**: 2026-09-27
+**Criteria**: 4/4 passing(AC-44-03 选变体 + 禁五项调制 · AC-44-04 ramp ≥ 50ms · F-44.6 映射面分桶 · 回退门逐组合非空;无 deferred,0 UNTESTED)
+**Deviations**(均 ADVISORY):
+1. **载体形态 = 乙(每参数一名独立组)** —— 与 Story 004 同型裁定。理由:变体库按 (病种语义, 精度档, 强度) 分行,每行只承载一个可调参数。
+2. **暴露名 == 组名**(两级组结构约定)。
+3. `VolumeRamp` 与 `FilterRamp` 结构对齐、不继承不包装;50ms 常量与 Story 004 共用单处定义。
+4. 测试真身落 `unity/Assets/`(Unity 只编译该树),由 `tests/unit/audio_system/README.md` 互链 —— 承 Story 002–005 先例。
+
+**评审与修复**:双评审(代码面 1 BLOCKING + QA 面 0 BLOCKING / 5 REC)→ **全修并复验**:
+- **B1**(两评审独立命中):AC-44-05 ② 的 `ParseStethoscopeExposedParams` 扫全文件唯一那处 `m_ExposedParameters`(**挂在 `AudioMixerController` 根级**),而该集合与「三列是否被 Stethoscope 组引用」在 YAML 层**无关联** ⇒ 断言无法区分「挂在 Stethoscope 下」与「三条恰好同名但挂在别组」。**处置 = 改为直接调门** `ValidateTierFilterCarrierGroups`(门的判据主体 = 找 Stethoscope 组 → 读 `m_Children` → 断言五名 ∈ 子组名集合),不再自写全局扫描。门的该判据此前已正确,**是测试在测一个不存在的判据**。
+- **REC1**:AC-44-T3「回读 == v」因 EditMode 限制未测(H-B),改为断言「`GetFloat` 可读 + 回读一致」。
+- **REC4**:`test_..._zeroDropped` 断言 `ErrorsContain(errors, "双保险") == False` —— 只证「当前不触发」,不证「触发时能报红」,删而非改写。
+
+**残余 NICE(登记不修)**:`InjectExposedParameter`/`InjectSnapshotCapture` 无注入自证(对照同文件其他破坏性测试的纪律)· T5 断言的是**正例行为**(首调直落位)· 分桶边界测试用魔法数字 84/85(若用户调参改 `BucketLow` 此测会假红,建议改为从常量反算边界值)。
+
+**⚠️ 遗留(已登记不修)**:**B3 签名白名单缺口** —— `AssemblyBoundaryTest.test_entryPoints_production44_noUnknownEntry` 报红:
+`VoiceVariantLib.ComputeBucket` 签名含非白名单类型 `VoiceBucket`;
+`VoiceVariantLib.SelectVariant` 签名含非白名单嵌套类型 `VoiceVariantLib+VoiceVariantTable`。
+**处置**:扩 B3 白名单(登记 `VoiceBucket` 与 `VoiceVariantTable`)留待以后解决,本 story 不修。
+参照 Story 004 同型处置(当时用户裁定扩允许面);本次按用户裁定改为登记遗留。
+
+**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Audio/voice_variants_test.cs`(21);过滤 21/21 · 全量 EditMode **986/986 Passed** · 0 红 · 0 跳过(`unity/Logs/s006-final2.xml`,2026-09-27)
+**Code Review**: Complete —— 双专审并行 + B1 修复 + 复验;review mode = lean,QL-TEST-COVERAGE / LP-CODE-REVIEW 门按 lean 规则跳过。
+**ADR Compliance**: ADR-018 §四 需求②(变体库混合 + 禁五项独立调制)—— COMPLANT。相位 `× inspireFraction` 全库唯一路径 · `PlayScheduled` 采样级准点 · 门控真走 ramp(非裸 0/1)。
+**Tech Debt**: 未立文件;上述 NICE 3 项 + B3 白名单缺口已分处登记。
