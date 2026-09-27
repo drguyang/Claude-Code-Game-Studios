@@ -118,3 +118,54 @@
 
 > **[L] 边界**:上表两条 `test_listenEvidenceSkeleton_*` 只断言**证据文档存在且含协议阈值标记**
 > (`n ≥ 6` / `≥ 75%` / 三对 / 未签署行)—— **不是听测本身**;听测结论只能由证据文档签署表承载。
+
+## Story 006(语声变体库与 Intensity 分桶 —— AC-44-03 / AC-44-04 / F-44.6 / 回退门)
+
+故事头登记的证据路径为
+`tests/unit/audio_system/voice_variants_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/Audio/voice_variants_test.cs`**(类 `VoiceVariantsTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Audio/voice_variants_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 被测运行期(纯函数) | `unity/Assets/Gameplay.Presentation/Audio/VoiceVariantLib.cs`(`ComputeBucket` / `ComputeGainScale` / `ComputeDensityMult` / `SelectVariant` / `ValidateVoiceVariantLib` / `ValidateBucketThresholdsDecoupled`) |
+| 被测运行期(ramp) | `unity/Assets/Gameplay.Presentation/Audio/VolumeRamp.cs`(`Begin` / `Step` / `MaxStepForFrame`) |
+| 运行方式 | `unity test unity --mode EditMode --filter VoiceVariantsTest` |
+
+> 读法纪律:仓库文件读取(真源文件扫描)前置 `File.Exists`(缺失即红,不静默跳过);
+> `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**(Audio→EditMode→Tests→Assets→unity→仓库根)。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`VoiceVariantsTest` 内) | 性质 |
+|---|---|---|
+| **AC-44-03 正例**(同输入恒选同变体) | `test_selectVariant_sameInput_sameOutput` | BLOCKING |
+| **AC-44-03 正例**(不同桶选不同变体) | `test_selectVariant_differentBuckets_differentVariants` | BLOCKING |
+| **AC-44-03 正例**(Tier 不参与库轴) | `test_selectVariant_tierNotInLibAxis` | BLOCKING |
+| **AC-44-03 正例**(缺 cue ⇒ -1) | `test_selectVariant_missingCue_returnsMinusOne` | BLOCKING |
+| **AC-44-03 正例**(缺桶 ⇒ -1) | `test_selectVariant_missingBucket_returnsMinusOne` | BLOCKING |
+| **AC-44-04 正例**(ramp ≥ 50ms) | `test_volumeRamp_reachesTarget_afterAtLeastRampFloor` | BLOCKING |
+| **AC-44-04 正例**(单帧推进 ≤ maxΔ) | `test_volumeRamp_singleFrameStep_withinMaxStep` | BLOCKING |
+| **AC-44-04 负例**(10ms ramp ⇒ 红) | `test_volumeRamp_shortDuration_red` | BLOCKING |
+| **F-44.6 正例**(桶序单调) | `test_bucket_monotonicWeakMediumStrong` | BLOCKING |
+| **F-44.6 正例**(u=0 ⇒ 弱+GAIN_MIN) | `test_bucket_intensityZero_weakAndGainMin` | BLOCKING |
+| **F-44.6 正例**(边界 BUCKET_LOW 恰含) | `test_bucket_boundaryLow_exactInclusion` | BLOCKING |
+| **F-44.6 正例**(边界 BUCKET_HIGH 恰含) | `test_bucket_boundaryHigh_exactInclusion` | BLOCKING |
+| **F-44.6 正例**(gain_scale 线性映射) | `test_gainScale_linearMapping` | BLOCKING |
+| **F-44.6 正例**(density_mult 线性映射) | `test_densityMult_linearMapping` | BLOCKING |
+| **回退门正例**(全组合非空) | `test_validateLib_fullTable_zeroErrors` | BLOCKING |
+| **回退门负例**(缺 cue ⇒ 红) | `test_validateLib_missingCue_red` | BLOCKING |
+| **回退门负例**(缺桶 ⇒ 红) | `test_validateLib_missingBucket_red` | BLOCKING |
+| **回退门负例**(空表 ⇒ 红) | `test_validateLib_emptyTable_red` | BLOCKING |
+| **分桶边界解耦正例**(无重叠) | `test_validateBucketDecoupled_noOverlap_zeroErrors` | BLOCKING |
+| **分桶边界解耦负例**(重叠 ⇒ 红) | `test_validateBucketDecoupled_overlapRed` | BLOCKING |
+| **五项调制 Forbidden**(零出现) | `test_forbiddenModulations_zeroAppearance` | BLOCKING |
+
+> **测试数**:`voice_variants_test` = **21**。
+> ⚠️ 三条易错点的落地证据:
+> 1. **Tier 不参与库轴**(F-44.3:364):`test_selectVariant_tierNotInLibAxis` 验证同 cue 同桶的不同 tier 选相同变体。
+> 2. **bucket(u) 边界含端点方向**(F-44.6:419):`test_bucket_boundaryLow_exactInclusion` / `test_bucket_boundaryHigh_exactInclusion` 验证 BUCKET_LOW/HIGH 本身落中/强桶。
+> 3. **五项调制 Forbidden**:`test_forbiddenModulations_zeroAppearance` 扫描 VoiceVariantLib.cs 源文件,验证音高/气声/语速/断句/共鸣零出现。

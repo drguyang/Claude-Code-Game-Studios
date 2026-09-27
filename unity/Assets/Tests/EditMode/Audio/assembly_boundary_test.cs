@@ -58,6 +58,12 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             typeof(AudioCueDto), typeof(TierSource), typeof(AudioCueHandle),
             typeof(IAudioCueSink), typeof(IPositionalChannel),
             typeof(FilterRamp.State),
+            // Story 006 增列:`VolumeRamp.State` 取代 `FilterRamp.State` 作为运行期 ramp 状态
+            // (前者在 Story 006 退役),两条铁律与四条 PASS 边界不变。
+            typeof(VolumeRamp.State),
+            // Story 006 增列:语声变体库的公开类型(纯函数域,见 VoiceVariantLib.cs 头注)。
+            typeof(VoiceBucket), typeof(VoiceVariantLib), typeof(VoiceVariantLib.VoiceVariantTable),
+            typeof(VoiceVariantLib.VoiceVariantRow),
         };
 
         // 44 实现的**项目接口**允许面(AC-44-B3 ①:原字面 = 「只有 IAudioCueSink」)。
