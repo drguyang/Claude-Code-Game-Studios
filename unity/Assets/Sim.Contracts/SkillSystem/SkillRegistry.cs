@@ -253,21 +253,21 @@ namespace DaYiJingCheng.Sim.Contracts.SkillSystem
                 new SkillDefinition((int)SkillId.急救,   "急救",   SkillCategory.医术, "执行止血/包扎/正骨/复苏",               new Fix(6L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), true),
                 new SkillDefinition((int)SkillId.手术,   "手术",   SkillCategory.医术, "执行手术",                              new Fix(10L * Fix.OneRaw / 1),      Array.Empty<SkillDependency>(), false),
                 new SkillDefinition((int)SkillId.处方用药,"处方用药",SkillCategory.医术, "开出一张处方并被执行",                   new Fix(6L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), true),
-                new SkillDefinition((int)SkillId.针灸,   "针灸",   SkillCategory.医术, "施针",                                  new Fix(6L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), true),
+                new SkillDefinition((int)SkillId.针灸,   "针灸",   SkillCategory.医术, "施针",                                  new Fix(6L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), false),
 
                 // ── 生产(3) ──────────────────────────────────────────────────────
                 new SkillDefinition((int)SkillId.采集,   "采集",   SkillCategory.生产, "采到一味药材",                          new Fix(1L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), true),
                 new SkillDefinition((int)SkillId.炮制,   "炮制",   SkillCategory.生产, "完成一次炮制",                           new Fix(3L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), true),
-                new SkillDefinition((int)SkillId.装备,   "装备",   SkillCategory.生产, "制作器械/设备",                          new Fix(5L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), true),
+                new SkillDefinition((int)SkillId.装备,   "装备",   SkillCategory.生产, "制作器械/设备",                          new Fix(5L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), false),
 
                 // ── 社会(3) ──────────────────────────────────────────────────────
-                new SkillDefinition((int)SkillId.沟通,   "沟通",   SkillCategory.社会, "完成一次交涉/问诊对话",                  new Fix(2L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), true),
-                new SkillDefinition((int)SkillId.公卫,   "公卫",   SkillCategory.社会, "处理一次防疫/检疫/群体救治",              new Fix(8L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), true),
-                new SkillDefinition((int)SkillId.商业,   "商业",   SkillCategory.社会, "完成一次买卖/定价",                       new Fix(2L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), true),
+                new SkillDefinition((int)SkillId.沟通,   "沟通",   SkillCategory.社会, "完成一次交涉/问诊对话",                  new Fix(2L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), false),
+                new SkillDefinition((int)SkillId.公卫,   "公卫",   SkillCategory.社会, "处理一次防疫/检疫/群体救治",              new Fix(8L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), false),
+                new SkillDefinition((int)SkillId.商业,   "商业",   SkillCategory.社会, "完成一次买卖/定价",                       new Fix(2L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), false),
 
                 // ── 生存(2) ──────────────────────────────────────────────────────
-                new SkillDefinition((int)SkillId.奔跑,   "奔跑",   SkillCategory.生存, "奔跑",                                  new Fix(1L * Fix.OneRaw / 5),       Array.Empty<SkillDependency>(), true), // 0.2
-                new SkillDefinition((int)SkillId.潜行,   "潜行",   SkillCategory.生存, "潜行",                                  new Fix(5L * Fix.OneRaw / 10),      Array.Empty<SkillDependency>(), true), // 0.5
+                new SkillDefinition((int)SkillId.奔跑,   "奔跑",   SkillCategory.生存, "奔跑",                                  new Fix(1L * Fix.OneRaw / 5),       Array.Empty<SkillDependency>(), false), // 0.2
+                new SkillDefinition((int)SkillId.潜行,   "潜行",   SkillCategory.生存, "潜行",                                  new Fix(5L * Fix.OneRaw / 10),      Array.Empty<SkillDependency>(), false), // 0.5
 
                 // ── 格斗(5) ──────────────────────────────────────────────────────
                 new SkillDefinition((int)SkillId.徒手,   "徒手",   SkillCategory.格斗, "徒手命中/制服",                          new Fix(2L * Fix.OneRaw / 1),       Array.Empty<SkillDependency>(), true),
