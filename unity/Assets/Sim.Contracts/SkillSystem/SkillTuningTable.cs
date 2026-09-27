@@ -70,29 +70,29 @@ namespace DaYiJingCheng.Sim.Contracts.SkillSystem
         /// <summary>默认调参表(用户数值轮最终值替换此处)。</summary>
         public static readonly SkillTuningTable Default = new SkillTuningTable
         {
-            C = Fix(40L * Fix.OneRaw / 1),        // 40
-            P = Fix(3L * Fix.OneRaw / 2),         // 1.5 (例值,G-1 允许)
-            NoveltyFirst = Fix(3L * Fix.OneRaw / 1),   // 3.0
-            NoveltyDecay = Fix(2L * Fix.OneRaw / 10),  // 0.2
+            C = new Fix(40L * Fix.OneRaw / 1),        // 40
+            P = new Fix(3L * Fix.OneRaw / 2),         // 1.5 (例值,G-1 允许)
+            NoveltyFirst = new Fix(3L * Fix.OneRaw / 1),   // 3.0
+            NoveltyDecay = new Fix(2L * Fix.OneRaw / 10),  // 0.2
             NoveltyCooldownTicks = 24000,          // 20 min @ 20 Hz
-            DeathLoss = Fix(19L * Fix.OneRaw / 20),    // 0.95
-            MedCombatMod = Fix(20L * Fix.OneRaw / 100), // 0.20
+            DeathLoss = new Fix(19L * Fix.OneRaw / 20),    // 0.95
+            MedCombatMod = new Fix(20L * Fix.OneRaw / 100), // 0.20
             WeaponMultipliers = new Fix[]
             {
-                Fix(9L * Fix.OneRaw / 10),  // 徒手 = 0.9
-                Fix(1L * Fix.OneRaw / 1),   // 短兵 = 1.0
-                Fix(1L * Fix.OneRaw / 1),   // 钝器 = 1.0
-                Fix(11L * Fix.OneRaw / 10), // 长兵 = 1.1
-                Fix(8L * Fix.OneRaw / 10),  // 暗器 = 0.8
+                new Fix(9L * Fix.OneRaw / 10),  // 徒手 = 0.9
+                new Fix(1L * Fix.OneRaw / 1),   // 短兵 = 1.0
+                new Fix(1L * Fix.OneRaw / 1),   // 钝器 = 1.0
+                new Fix(11L * Fix.OneRaw / 10), // 长兵 = 1.1
+                new Fix(8L * Fix.OneRaw / 10),  // 暗器 = 0.8
             },
             DiagTiers = new[] { 10, 20, 35, 50 },
             InsightTiers = new[] { 10, 20, 35, 50 },
             InsightBonus = new Fix[]
             {
-                Fix(5L * Fix.OneRaw / 100),  // +5%
-                Fix(10L * Fix.OneRaw / 100), // +10%
-                Fix(20L * Fix.OneRaw / 100), // +20%
-                Fix(30L * Fix.OneRaw / 100), // +30%
+                new Fix(5L * Fix.OneRaw / 100),  // +5%
+                new Fix(10L * Fix.OneRaw / 100), // +10%
+                new Fix(20L * Fix.OneRaw / 100), // +20%
+                new Fix(30L * Fix.OneRaw / 100), // +30%
             },
         };
 
