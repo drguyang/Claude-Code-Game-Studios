@@ -2,10 +2,10 @@
 
 .scroll {
     background-color: var(--skeuo-scroll-bg);
-    border-top-width: 1px;
-    border-right-width: 1px;
-    border-bottom-width: 1px;
-    border-left-width: 1px;
+    border-top-width: var(--skeuo-shared-border-width);
+    border-right-width: var(--skeuo-shared-border-width);
+    border-bottom-width: var(--skeuo-shared-border-width);
+    border-left-width: var(--skeuo-shared-border-width);
     border-top-color: var(--skeuo-scroll-border);
     border-right-color: var(--skeuo-scroll-border);
     border-bottom-color: var(--skeuo-scroll-border);
@@ -29,7 +29,7 @@
 /* 卷轴杆(纯装饰,不承载文本) */
 .scroll-rod {
     background-color: var(--skeuo-scroll-rod);
-    height: 6px;
+    height: var(--skeuo-scroll-rod-height);
     margin-top: var(--skeuo-shared-space-sm);
     margin-bottom: var(--skeuo-shared-space-sm);
 }

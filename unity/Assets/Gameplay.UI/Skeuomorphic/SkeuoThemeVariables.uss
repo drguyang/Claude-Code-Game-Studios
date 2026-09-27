@@ -21,6 +21,7 @@
     --skeuo-scroll-fg: #3a2e1c;
     --skeuo-scroll-border: #8c7355;
     --skeuo-scroll-rod: #5c4a32;
+    --skeuo-scroll-rod-height: 6px;
     --skeuo-scroll-shadow: rgba(58, 46, 28, 0.22);
 
     /* ── 墨迹(Ink) ── */
@@ -32,10 +33,13 @@
     --skeuo-seal-bg: #8b2500;
     --skeuo-seal-fg: #f5e6d3;
     --skeuo-seal-border: #5c1a00;
+    --skeuo-seal-border-width: 2px;
+    --skeuo-seal-radius: 3px;
     --skeuo-seal-shadow: rgba(92, 26, 0, 0.35);
 
     /* ── 共享(Shared) ── */
     --skeuo-shared-radius: 2px;
+    --skeuo-shared-border-width: 1px;
     --skeuo-shared-space-xs: 4px;
     --skeuo-shared-space-sm: 8px;
     --skeuo-shared-space-md: 16px;

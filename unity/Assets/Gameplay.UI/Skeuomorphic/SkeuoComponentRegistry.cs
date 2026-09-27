@@ -75,9 +75,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             if (_locked) return;
 
             Register(SkeuoElement.Paper, "paper", 2, "-aged");
+            RegisterVariant(SkeuoElement.Paper, "-aged");
+
             Register(SkeuoElement.Scroll, "scroll", 1);
-            Register(SkeuoElement.Ink, "ink", 3, "-faded");
+
+            Register(SkeuoElement.Ink, "ink", 2, "-faded");
+            RegisterVariant(SkeuoElement.Ink, "-faded");
+
             Register(SkeuoElement.Seal, "seal", 2, "-small");
+            RegisterVariant(SkeuoElement.Seal, "-small");
 
             Lock();
         }

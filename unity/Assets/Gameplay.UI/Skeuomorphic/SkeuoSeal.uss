@@ -2,18 +2,18 @@
 
 .seal {
     background-color: var(--skeuo-seal-bg);
-    border-top-width: 2px;
-    border-right-width: 2px;
-    border-bottom-width: 2px;
-    border-left-width: 2px;
+    border-top-width: var(--skeuo-seal-border-width);
+    border-right-width: var(--skeuo-seal-border-width);
+    border-bottom-width: var(--skeuo-seal-border-width);
+    border-left-width: var(--skeuo-seal-border-width);
     border-top-color: var(--skeuo-seal-border);
     border-right-color: var(--skeuo-seal-border);
     border-bottom-color: var(--skeuo-seal-border);
     border-left-color: var(--skeuo-seal-border);
-    border-top-left-radius: 3px;
-    border-top-right-radius: 3px;
-    border-bottom-right-radius: 3px;
-    border-bottom-left-radius: 3px;
+    border-top-left-radius: var(--skeuo-seal-radius);
+    border-top-right-radius: var(--skeuo-seal-radius);
+    border-bottom-right-radius: var(--skeuo-seal-radius);
+    border-bottom-left-radius: var(--skeuo-seal-radius);
     color: var(--skeuo-seal-fg);
     font-family: var(--skeuo-font-family);
     font-size: var(--skeuo-font-size-lg);

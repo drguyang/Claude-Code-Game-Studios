@@ -2,10 +2,10 @@
 
 .paper {
     background-color: var(--skeuo-paper-bg);
-    border-top-width: 1px;
-    border-right-width: 1px;
-    border-bottom-width: 1px;
-    border-left-width: 1px;
+    border-top-width: var(--skeuo-shared-border-width);
+    border-right-width: var(--skeuo-shared-border-width);
+    border-bottom-width: var(--skeuo-shared-border-width);
+    border-left-width: var(--skeuo-shared-border-width);
     border-top-color: var(--skeuo-paper-border);
     border-right-color: var(--skeuo-paper-border);
     border-bottom-color: var(--skeuo-paper-border);
