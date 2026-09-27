@@ -1,7 +1,7 @@
 # Story 012: 开发者调试视图与构建剥离
 
 > **Epic**: 输入与设备
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: UI
 > **Estimate**: 3h
@@ -30,9 +30,9 @@
 
 *From GDD `design/gdd/input-system.md`, scoped to this story:*
 
-- [ ] **AC-3-E2①(BLOCKING)**: **源侧断言** —— 调试代码块**被 `#if` 包裹**(`UNITY_EDITOR || DEVELOPMENT_BUILD`);静态扫描对全部调试视图代码路径断言包裹存在
-- [ ] **AC-3-E2②(BLOCKING · 载体待建)**: **检查已生成 player 的符号** —— 断言目标符号在出货 player 中**不存在**;须在 CI 中出现一个**命名 job**(建议 `player-symbol-check`)与一个**命名工具/脚本**。⚠️「判据已定、载体未建」(与 `AC-3-A4②` / `AC-3-B2` 分析器同族)—— **与 ADR-012 CI 门同批落地**,本故事交付工具本体 + 可跑断言,CI job 挂账
-- [ ] **AC-3-UI-2(BLOCKING · §UI 二三则)**: 开发者调试视图满足三条件:① 仅 Development Build 编译 ② 玩家构建中不存在该代码路径(= E2 的运行面)③ **不得显示 raw 轴值的数值**(显示数值会诱导实现去「调数字」而不是「调手感」—— 同 13 调试视图禁显病种的理路)。视图内容 = 当前动作值(非 raw 数值形态)· 设备态 · 直读通道态 · 最近一次意图 · overrides 装载结果(hit / mismatch-cleared)—— **「当前焦点栈」项已删**(三轮修正,与 AC-C3 冲突)
+- [x] **AC-3-E2①(BLOCKING)**: **源侧断言** —— 调试代码块**被 `#if` 包裹**(`UNITY_EDITOR || DEVELOPMENT_BUILD`);静态扫描对全部调试视图代码路径断言包裹存在
+- [x] **AC-3-E2②(BLOCKING · 载体待建)**: **检查已生成 player 的符号** —— 断言目标符号在出货 player 中**不存在**;须在 CI 中出现一个**命名 job**(建议 `player-symbol-check`)与一个**命名工具/脚本**。⚠️「判据已定、载体未建」(与 `AC-3-A4②` / `AC-3-B2` 分析器同族)—— **与 ADR-012 CI 门同批落地**,本故事交付工具本体 + 可跑断言,CI job 挂账
+- [x] **AC-3-UI-2(BLOCKING · §UI 二三则)**: 开发者调试视图满足三条件:① 仅 Development Build 编译 ② 玩家构建中不存在该代码路径(= E2 的运行面)③ **不得显示 raw 轴值的数值**(显示数值会诱导实现去「调数字」而不是「调手感」—— 同 13 调试视图禁显病种的理路)。视图内容 = 当前动作值(非 raw 数值形态)· 设备态 · 直读通道态 · 最近一次意图 · overrides 装载结果(hit / mismatch-cleared)—— **「当前焦点栈」项已删**(三轮修正,与 AC-C3 冲突)
 
 ---
 
@@ -87,7 +87,7 @@
 **Required evidence**:
 - UI: `production/qa/evidence/developer-debug-view-evidence.md`(手动走查:Dev 可见 / Release 不可见 / 无 raw 数值 / 无焦点栈条目 + 签核);E2① 源侧断言可另附自动化测试
 
-**Status**: [ ] Not yet created
+**Status**: ✅ Complete
 - 真身落点注记:自动化断言(如落地)随 EditMode 树 `unity/Assets/Tests/EditMode/InputSystem/`;证据文档路径按登记口径 `production/qa/evidence/`
 
 ---
