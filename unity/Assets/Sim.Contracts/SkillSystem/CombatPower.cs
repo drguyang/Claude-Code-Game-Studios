@@ -34,6 +34,12 @@ namespace DaYiJingCheng.Sim.Contracts.SkillSystem
         /// <exception cref="ArgumentOutOfRangeException">weaponLine 不在 WeaponLine 枚举范围内。</exception>
         public static Fix Compute(int combatSkillLevel, int medicalSkillLevel, WeaponLine weaponLine, SkillTuningTable tuning)
         {
+            if (combatSkillLevel < 0)
+                throw new ArgumentOutOfRangeException(nameof(combatSkillLevel),
+                    $"combatSkillLevel={combatSkillLevel} 不能为负");
+            if (medicalSkillLevel < 0)
+                throw new ArgumentOutOfRangeException(nameof(medicalSkillLevel),
+                    $"medicalSkillLevel={medicalSkillLevel} 不能为负");
             if ((int)weaponLine < 0 || (int)weaponLine >= tuning.WeaponMultipliers.Length)
                 throw new ArgumentOutOfRangeException(nameof(weaponLine),
                     $"WeaponLine {(int)weaponLine} 超出调参表 WeaponMultipliers 范围 [0, {tuning.WeaponMultipliers.Length - 1}]");

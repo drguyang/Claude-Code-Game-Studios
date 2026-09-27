@@ -105,8 +105,8 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             var tracker = new NoveltyTracker(NOVELTY_COOLDOWN);
             tracker.Query(1, 0, 1, 100);
 
-            Assert.That(tracker.Query(1, 0, 1, 24399), Is.EqualTo(NoveltyClass.Stale),
-                "currentTick=24399 < 100+24000 → Stale");
+            Assert.That(tracker.Query(1, 0, 1, 24099), Is.EqualTo(NoveltyClass.Stale),
+                "currentTick=24099 < 100+24000=24100 → Stale");
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -204,13 +204,14 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         public void test_peek_readOnly_doesNotModify()
         {
             var tracker = new NoveltyTracker(NOVELTY_COOLDOWN);
-            tracker.Query(1, 0, 1, 100); // First,记录
+            tracker.Query(1, 0, 1, 100); // First,记录 lastSeenTick=100
 
-            Assert.That(tracker.Peek(1, 0, 1, 100), Is.EqualTo(NoveltyClass.First),
-                "Peek 返回 First");
-            // Peek 不更新 lastSeenTick,再 Query 仍为 Stale(非 Normal)
+            // 同一 tick Peek → Stale,不更新 lastSeenTick
+            Assert.That(tracker.Peek(1, 0, 1, 100), Is.EqualTo(NoveltyClass.Stale),
+                "Peek 同一 tick 返回 Stale,不更新字典");
+            // 因为 Peek 未更新 lastSeenTick,Query 在同一 tick 仍为 Stale(非 Normal)
             Assert.That(tracker.Query(1, 0, 1, 100), Is.EqualTo(NoveltyClass.Stale),
-                "Peek 后 Query 仍 Stale(lastSeenTick 未变)");
+                "Peek 后同 tick Query 仍 Stale(lastSeenTick 未变)");
         }
 
         /// <summary>Peek 未见过键 → First。</summary>

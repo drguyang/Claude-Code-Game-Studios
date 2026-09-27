@@ -453,6 +453,38 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             }, "CombatPower 非法武器线须抛 ArgumentOutOfRangeException");
         }
 
+        /// <summary>CombatPower 负 combatSkillLevel → ArgumentOutOfRangeException。</summary>
+        [Test]
+        public void test_compute_negativeCombatSkillLevel_throws()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                CombatPower.Compute(-1, 60, WeaponLine.徒手, SkillTuningTable.Default);
+            }, "CombatPower 负 combatSkillLevel 须抛 ArgumentOutOfRangeException");
+        }
+
+        /// <summary>CombatPower 负 medicalSkillLevel → ArgumentOutOfRangeException。</summary>
+        [Test]
+        public void test_compute_negativeMedicalSkillLevel_throws()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                CombatPower.Compute(60, -1, WeaponLine.徒手, SkillTuningTable.Default);
+            }, "CombatPower 负 medicalSkillLevel 须抛 ArgumentOutOfRangeException");
+        }
+
+        /// <summary>医术修正 60 级独立断言: mod.Raw == MED_COMBAT_MOD.Raw。</summary>
+        [Test]
+        public void test_medicalModifier_60level_rawEqualsMedicalCombatModifierRaw()
+        {
+            Fix numerator = SkillTuningTable.Default.MedicalCombatModifier * new Fix(60L * Fix.OneRaw);
+            Fix denominator = new Fix(SKILL_CAP * Fix.OneRaw);
+            Fix mod = numerator / denominator;
+
+            Assert.That(mod.Raw, Is.EqualTo(SkillTuningTable.Default.MedicalCombatModifier.Raw),
+                "医术修正 60 级 = MED_COMBAT_MOD.Raw,保证 0.20 边界舍入回归可检测");
+        }
+
         // ═══════════════════════════════════════════════════════════════════
         // 医术修正超出 SKILL_CAP 的行为文档化(G-4 决策记录)
         // ═══════════════════════════════════════════════════════════════════

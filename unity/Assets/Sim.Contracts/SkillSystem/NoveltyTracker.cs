@@ -8,6 +8,7 @@
 // ============================================================================
 // 全路径整数求值。lastSeenTick = tick 序号(非墙钟)。冷却期 = tick 数比较。
 // 新颖度字典按 actor_id 独立,不进三流,不跨网络同步(联机各玩家各自维护)。
+// 注意:NoveltyClass 枚举定义在 SkillRegistry.cs,本文件不再重复定义。
 // ============================================================================
 
 using System;
@@ -16,20 +17,6 @@ using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Sim.Contracts.SkillSystem
 {
-    /// <summary>
-    /// 新颖度三档(承 Story 006 AC-1~AC-3)。
-    /// <para>First = 首次遇见(×3.0); Stale = 冷却期内再次遇见(×0.2); Normal = 冷却期外(×1.0)。</para>
-    /// </summary>
-    public enum NoveltyClass : int
-    {
-        /// <summary>首次遇见该对象 → ×3.0。</summary>
-        First = 0,
-        /// <summary>冷却期内再次遇见 → ×0.2。</summary>
-        Stale = 1,
-        /// <summary>冷却期外(已见过但冷却已过) → ×1.0。</summary>
-        Normal = 2,
-    }
-
     /// <summary>
     /// 新颖度追踪纯服务。
     /// <para>按 actor_id 独立维护 (skill_id, object_id) → lastSeenTick 字典。</para>
