@@ -2,11 +2,39 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
+    using System.Text.RegularExpressions;
 
     /// <summary>主题变量引用验证器:维护变量登记集并提供 USS 完整性断言。</summary>
     public static class ThemeVariableReferenceValidator
     {
         private static readonly HashSet<string> _registered = new HashSet<string>();
+
+        /// <summary>主题变量声明正则(匹配 <code>--skeuo-xxx:</code>)。</summary>
+        private static readonly Regex DeclarationRegex =
+            new Regex(@"(--skeuo-[a-z0-9-]+)\s*:", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        /// <summary>主题变量引用正则(匹配 <code>var(--skeuo-xxx)</code>)。</summary>
+        private static readonly Regex ReferenceRegex =
+            new Regex(@"var\((--skeuo-[a-z0-9-]+)\)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        /// <summary>从主题定义文件中提取全部声明的变量名。</summary>
+        public static IEnumerable<string> ExtractDeclaredNames(string themeUssText)
+        {
+            foreach (Match m in DeclarationRegex.Matches(themeUssText))
+            {
+                yield return m.Groups[1].Value;
+            }
+        }
+
+        /// <summary>从 USS 样式文件中提取全部引用的变量名。</summary>
+        public static IEnumerable<string> ExtractReferencedNames(string ussText)
+        {
+            foreach (Match m in ReferenceRegex.Matches(ussText))
+            {
+                yield return m.Groups[1].Value;
+            }
+        }
 
         /// <summary>登记一个主题变量名(构建期完成)。</summary>
         public static void Register(string variableName)

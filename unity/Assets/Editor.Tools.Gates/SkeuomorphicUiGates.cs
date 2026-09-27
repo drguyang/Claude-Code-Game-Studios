@@ -56,7 +56,7 @@ namespace DaYiJingCheng.EditorTools.Gates
 
         // 主题变量引用模式: var(--skeuo-*)
         private static readonly Regex ThemeVariableRegex =
-            new Regex(@"var\(--skeuo-[^)]+\)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            new Regex(@"var\((--skeuo-[a-z0-9-]+)\)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         // USS 注释去除(避免 regex 误报注释内容)
         private static readonly Regex UssCommentRegex =
@@ -91,13 +91,14 @@ namespace DaYiJingCheng.EditorTools.Gates
             if (!File.Exists(themeFile)) return;
 
             var text = File.ReadAllText(themeFile);
-            var matches = ThemeVariableRegex.Matches(text);
-            foreach (Match m in matches)
+            var declared = DaYiJingCheng.Gameplay.UI.Skeuomorphic.ThemeVariableReferenceValidator.ExtractDeclaredNames(text);
+            int count = 0;
+            foreach (var name in declared)
             {
-                string varRef = m.Value;
-                string varName = varRef.Substring(4, varRef.Length - 5);
-                DaYiJingCheng.Gameplay.UI.Skeuomorphic.ThemeVariableReferenceValidator.Register(varName);
+                DaYiJingCheng.Gameplay.UI.Skeuomorphic.ThemeVariableReferenceValidator.Register(name);
+                count++;
             }
+            Debug.Log($"[SkeuomorphicUiGates] 主题变量登记: {count} 个(来自 SkeuoThemeVariables.uss)");
         }
 
         /// <summary>执行全部 6 条 AC 校验,返回错误列表(空 = 通过)。</summary>
@@ -156,10 +157,9 @@ namespace DaYiJingCheng.EditorTools.Gates
                 var matches = ThemeVariableRegex.Matches(text);
                 foreach (Match m in matches)
                 {
-                    string varRef = m.Value; // var(--skeuo-...)
-                    string varName = varRef.Substring(4, varRef.Length - 5); // strip var(...)
+                    string varName = m.Groups[1].Value; // already --skeuo-xxx from capture group
                     if (!DaYiJingCheng.Gameplay.UI.Skeuomorphic.ThemeVariableReferenceValidator.IsRegistered(varName))
-                        errs.Add($"[C2] {Path.GetFileName(ussFile)} 引用了未登记主题变量「{varRef}」。");
+                        errs.Add($"[C2] {Path.GetFileName(ussFile)} 引用了未登记主题变量「{varName}」。");
                 }
             }
             return errs;
@@ -175,6 +175,7 @@ namespace DaYiJingCheng.EditorTools.Gates
 
             foreach (var ussFile in Directory.GetFiles(ussDir, "*.uss", SearchOption.TopDirectoryOnly))
             {
+                if (Path.GetFileName(ussFile) == "SkeuoThemeVariables.uss") continue;
                 string text = File.ReadAllText(ussFile);
                 string clean = UssCommentRegex.Replace(text, "");
                 var lines = clean.Split('\n');
@@ -195,6 +196,7 @@ namespace DaYiJingCheng.EditorTools.Gates
 
             foreach (var ussFile in Directory.GetFiles(ussDir, "*.uss", SearchOption.TopDirectoryOnly))
             {
+                if (Path.GetFileName(ussFile) == "SkeuoThemeVariables.uss") continue;
                 string text = File.ReadAllText(ussFile);
                 string clean = UssCommentRegex.Replace(text, "");
                 var lines = clean.Split('\n');
@@ -245,6 +247,7 @@ namespace DaYiJingCheng.EditorTools.Gates
 
             foreach (var ussFile in Directory.GetFiles(ussDir, "*.uss", SearchOption.TopDirectoryOnly))
             {
+                if (Path.GetFileName(ussFile) == "SkeuoThemeVariables.uss") continue;
                 var lines = File.ReadAllLines(ussFile);
                 for (int i = 0; i < lines.Length; i++)
                 {
@@ -263,6 +266,7 @@ namespace DaYiJingCheng.EditorTools.Gates
 
             foreach (var ussFile in Directory.GetFiles(ussDir, "*.uss", SearchOption.TopDirectoryOnly))
             {
+                if (Path.GetFileName(ussFile) == "SkeuoThemeVariables.uss") continue;
                 var lines = File.ReadAllLines(ussFile);
                 for (int i = 0; i < lines.Length; i++)
                 {
