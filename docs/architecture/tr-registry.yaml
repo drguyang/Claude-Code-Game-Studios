@@ -2221,7 +2221,7 @@
   - id: TR-input-020
     system: input
     gdd: design/gdd/input-system.md
-    requirement: "**反幻想守门(42 + 48 联合 BLOCKING,按阶段)**:目视**零按键提示浮层** + **手柄单机**可走查纸页(满足 `AC-8-44`)。**F1a(P0)** = 平面 + 键鼠/手柄(去 VR)+ 脉案 / 出诊箱;**F1b(P1a/P1b)** = VR + 纸质地图"
+    requirement: "**反幻想守门(42 + 48 联合 BLOCKING,按阶段)**:目视**零按键提示浮层** + **手柄单机**可走查纸页(满足 `AC-8-44`)。**F1a(P0)** = 平面 + 键鼠/手柄(去 VR)+ 脉案 / **20 容器界面**;**F1b(P1a/P1b)** = VR + 纸质地图(43 出诊箱)"
     domain: Presentation
     adr: ADR-011 + ADR-013
     status: partial
