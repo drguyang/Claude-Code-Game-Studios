@@ -77,6 +77,11 @@ namespace DaYiJingCheng.Gameplay.Input
         [Tooltip("当前最大值(ms)。样本不足时显示 -1。")]
         public double currentMaxMs = -1;
 
+        private void Awake()
+        {
+            Debug.Log($"[LatencyProbe] Awake on {gameObject.name}, enabled={enabled}, camera={GetComponent<Camera>()}");
+        }
+
         private void Update()
         {
             _frameIndex++;
