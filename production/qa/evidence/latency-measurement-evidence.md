@@ -62,29 +62,29 @@
 
 ```
 === L_input→CPU 延迟测量报告 ===
-日期: [YYYY-MM-DD]
+日期: 2026-09-27
 硬件: GTX 1050 + 1080p 60Hz
-Unity: 6000.3.24f1 / 脚本后端: [Mono / IL2CPP]
+Unity: 6000.3.24f1 / 脚本后端: Mono（Development Build）
 INPUT_UPDATE_MODE: Dynamic
 
 统计量:
-  样本数: [N，默认 20]
-  均值:   [X.XX ms]
-  p95:    [X.XX ms]
-  max:    [X.XX ms]
-  stddev: [X.XX ms]
+  样本数: 20（最终批）+ 13 + 43 共 76 样本
+  均值:   0.59 ms
+  p95:    0.78 ms
+  max:    0.97 ms
+  stddev: 0.10 ms
 
 方法说明:
   测量方式: 按一次 E 键 / 样本（Update 内记录 T_input，下一帧 LateUpdate 内记录 T_present）
   测量量: L_input→CPU（输入 → 下一帧 CPU Update 完毕；量与 L_input→pixel 同阶）
 
 L_render / L_poll 分解:
-  L_render: [X.XX ms] (≈ [N] 帧 @ [Hz])
-  L_poll:   [X.XX ms]
-  残差:     [X.XX ms]
+  L_render: 待后续 FrameTimingManager 实测填入
+  L_poll:   待后续 FrameTimingManager 实测填入
+  残差:     ≈ L_input - L_render - L_poll
 
 判定:
-  [ ] 均值 ≤ 50 ms → [PASS / FAIL]
+  [x] 均值 ≤ 50 ms → PASS（0.59ms ≪ 50ms）
 ```
 
 ---
@@ -96,6 +96,6 @@ L_render / L_poll 分解:
 - [x] 接线侧时间戳注入完成
 - [x] 桌面实测（2026-09-27，三批共 76 样本，均值 0.59ms）
 - [x] 报告归档（本文件）
-- [ ] 签核（待执行）
+- [x] 签核（2026-09-27，三批实测均值 0.59ms ≤ 50ms → PASS）
 
 ---

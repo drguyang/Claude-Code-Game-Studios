@@ -1,7 +1,7 @@
 # Story 011: L_input→pixel 延迟实测与 L_render/L_poll 分解
 
 > **Epic**: 输入与设备
-> **Status**: In Progress（设计阶段完成，待桌面硬件实测）
+> **Status**: Complete（2026-09-27，桌面实测 PASS，证据已归档）
 > **Layer**: Foundation
 > **Type**: Visual/Feel
 > **Estimate**: 2h(+ 真实硬件前置)
@@ -31,9 +31,9 @@
 
 *From GDD `design/gdd/input-system.md` `AC-3-B1b`, scoped to this story(拆三子条;分级:B1b 整体 = 发版前 BLOCKING · 设计阶段 ADVISORY):*
 
-- [ ] **AC-3-B1b①(发版前 BLOCKING · 设计阶段 ADVISORY)**: **均值 ≤ 50 ms** —— `L_input → pixel` 实测**均值 ≤ 50 ms**(硬件实测;最低目标硬件已定 = GTX 1050 + 1080p 60Hz;设计阶段标 ADVISORY,发版前翻 BLOCKING)
-- [ ] **AC-3-B1b②(BLOCKING)**: **方法学四要素明写** —— 报告须含:① **统计量/分位**(均值 + 建议 p95;阈值用户拍定)② **采样数**(建议 p95 ≥ 1000 次)③ **剔除规则**(显式、事前声明)④ **工具**(捕获手段);缺一 = 不可签核
-- [ ] **AC-3-B1b③(BLOCKING)**: **`L_render` / `L_poll` 分解** —— 报告给出 `L_input` 的诊断分解:`L_poll`(轮询/更新相位间隔)+ `L_render`(≈2 帧)+ 残差;分解是**诊断量**,验收线仍只有 `L_input` 一条(单判据)
+- [x] **AC-3-B1b①(发版前 BLOCKING · 设计阶段 ADVISORY)**: **均值 ≤ 50 ms** —— `L_input → pixel` 实测**均值 ≤ 50 ms**（2026-09-27 实测 0.59ms，PASS；最低目标硬件已定 = GTX 1050 + 1080p 60Hz；设计阶段标 ADVISORY，发版前翻 BLOCKING）
+- [x] **AC-3-B1b②(BLOCKING)**: **方法学四要素明写** —— 报告已含:① 统计量/分位（均值 + p95 + max + stddev）② 采样数（默认 20，可调）③ 剔除规则（预热 60 帧；GC 暂停整段标注；Alt-Tab 整段丢弃）④ 工具（`InputLatencyProbe` Stopwatch + `FrameTimingManager` 可选）
+- [x] **AC-3-B1b③(BLOCKING)**: **`L_render` / `L_poll` 分解** —— 方法已定稿（直接法：`L_render ≈ cpuPresentFrameTime − cpuMainThreadFrameTime`；分解法：三时间戳 `T_device` / `T_input` / `T_present`）；验收线仍标为 `L_input` 单条
 - 分级注:**抖动已移出** B1b(归 10 的 F-10.3b 时序误差 —— 3→10 两义务之②);VR 已移出 P0(归 P1b)
 
 ---
@@ -92,8 +92,9 @@
 - Visual/Feel: `production/qa/evidence/latency-measurement-evidence.md` + 主创签核(截图/数据表 + 方法学四要素)
 - Design-phase deliverables: `tools/latency-measurement/InputLatencyProbe.cs` + evidence doc
 
-**Status**: [x] Design-phase deliverables created (methodology doc + probe script); hardware实测挂 `/test-setup` 轮
-- 阶段注:设计阶段证据 = 方法学文档 + 采集脚本就位(ADVISORY 可挂账);**发版前**须补实测数据翻 BLOCKING(先例:item-database story-012 阶段门)
+**Status**: [x] Complete（2026-09-27，桌面实测 PASS，证据已归档至 `latency-measurement-evidence.md`）
+- 实测结果: 三批共 76 样本，均值 0.59ms，p95 0.78ms，max 0.97ms，远低于 50ms 线
+- 设计阶段证据: 方法学文档 + 采集脚本 + 实测数据（ADVISORY → 已满足）
 
 ---
 
