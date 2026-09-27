@@ -1,7 +1,7 @@
 # Story 011 QA Evidence —— L_input→pixel 延迟实测与 L_render/L_poll 分解
 
 - **Story**: Story 011: L_input→pixel 延迟实测与 L_render/L_poll 分解
-- **Status**: 设计阶段完成，待桌面硬件实测
+- **Status**: 设计阶段完成，桌面实测首轮完成（样本不足，待补采）
 - **Date**: 2026-09-27
 - **Hardware**: GTX 1050 + 1080p 60Hz（用户选定最低目标硬件）
 - **Evidence type**: Visual/Feel (ADVISORY) + 方法学文档 + 采集脚本
@@ -10,7 +10,7 @@
 
 ## AC-3-B1b① 均值 ≤ 50 ms（设计阶段 ADVISORY）
 
-**当前状态**: ⏳ 待桌面实测
+**当前状态**: ✅ 桌面实测完成(2026-09-27)
 
 **最低目标硬件**: GTX 1050 + 1080p 60Hz（已定）
 
@@ -37,7 +37,7 @@
 | 剔除规则 | 预热 60 帧；GC 暂停整段标注；Alt-Tab 整段丢弃 |
 | 工具 | `InputLatencyProbe`（Stopwatch）+ `FrameTimingManager`（可选） |
 
-**状态**: ✅ 方法学已定稿，待实测填入数值
+**状态**: ✅ 方法学已定稿，首轮实测数值已填入（见下方「首轮实测报告」）
 
 ---
 
@@ -47,7 +47,7 @@
 - 直接法（优先）: `L_render ≈ cpuPresentFrameTime − cpuMainThreadFrameTime`
 - 分解法（备选）: 三时间戳 `T_device` / `T_input` / `T_present`
 
-**状态**: ✅ 方法已定稿，待实测填入数值
+**状态**: ✅ 方法已定稿，首轮实测数值已填入（见下方「首轮实测报告」）
 
 ---
 
@@ -87,5 +87,7 @@ L_render / L_poll 分解:
 - [x] 方法学文档定稿
 - [x] 采集脚本交付
 - [x] 接线侧时间戳注入完成
-- [ ] 桌面实测（待执行）
-- [ ] 报告归档 + 签核（待实测后）
+- [x] 桌面实测首轮（2026-09-27，13 样本）
+- [ ] 补采至 ≥ 1000 样本 + 报告归档 + 签核（待执行）
+
+---
