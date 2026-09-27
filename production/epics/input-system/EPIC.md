@@ -68,13 +68,13 @@
 | 007 | 急救直读通道与输入更新相位 | Integration | Complete | ADR-011 |
 | 008 | 设备态与呈现契约(QueryBinding · 合成 release · Mixed 迟滞) | Integration | Complete | ADR-011 |
 | 009 | 焦点导航意图视图与单一真源 | Logic | Complete | ADR-011 + ADR-013 |
-| 010 | 热路径零成本(预缓存 · Idle 零调用 · 零分配) | Logic | Ready | ADR-011 |
+| 010 | 热路径零成本(预缓存 · Idle 零调用 · 零分配) | Logic | Complete | ADR-011 |
 | 011 | L_input→pixel 延迟实测与 L_render/L_poll 分解 | Visual/Feel | Ready | ADR-011 |
 | 012 | 开发者调试视图与构建剥离 | UI | Complete | ADR: N/A — GDD §UI 二纯呈现侧开发工具规格,无架构裁决需求(E2② CI 载体归 ADR-012,非治理件) |
 | 013 | 反幻想守门登记面(P0 / 后阶段) | UI | Complete | ADR-011 + ADR-013 |
 
 Counts: 5 Logic · 5 Integration · 1 Visual/Feel · 2 UI = 13 total.
-29 条 AC 全覆盖(A4/A9/B1b/B2/E2/E3/F1 按子条拆入);全 ADR Accepted ⇒ 零 ADR-blocked story。
+30 条 AC 全覆盖(A4/A9/B1b/B2/E2/E3/F1 按子条拆入);全 ADR Accepted ⇒ 零 ADR-blocked story。
 
 ## Definition of Done
 
