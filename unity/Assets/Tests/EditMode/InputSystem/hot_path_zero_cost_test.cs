@@ -266,6 +266,10 @@ class Fixture {
                 "_state", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             stateField.SetValue(channel, DirectChannelState.Suspended);
 
+            // 逻辑层模式须显式 EnableEmergencyAction，否则回调体内部
+            // `_emergencyActionEnabled` 为 false 而提前 return，不进入计数
+            channel.EnableEmergencyAction();
+
             // 模拟 Suspended 期若干 wired 回调
             int frame = UnityEngine.Time.frameCount;
             channel.NotifyAfterUpdateForTest(frame);
@@ -306,14 +310,15 @@ class Fixture {
             Assert.That(channel.EmergencyCallbackCount, Is.EqualTo(0));
         }
 
-        /// <summary>E5 结构可达性 ②:Arm → 触发 OnAfterUpdate → FeedForTest 走完
-        /// OnAfterUpdate → ReadEmergency → Feed 整条读路径,确认 `SampleCount` 递增 ——
-        /// 结构上 ReadEmergency 可达且产样本(分配测量本身须 Development Build + ProfilerRecorder,
-        /// 见 production/qa/evidence/story-010-evidence.md)。</summary>
+        /// <summary>E5 结构可达性 ②:Arm(真资产) → 触发 OnAfterUpdate → ReadEmergency → Feed
+        /// 整条读路径,确认 `SampleCount` 递增 —— 结构上 ReadEmergency 可达且产样本(分配测量本身
+        /// 须 Development Build + ProfilerRecorder,见 production/qa/evidence/story-010-evidence.md)。</summary>
         [Test]
         public void test_e5_armed_read_path_traversed_sample_increments()
         {
-            var channel = new EmergencyDirectReadChannel(null, TestAxialScale, TestDzMag, TestMagMax);
+            var asset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(ActionAssetPath);
+            Assert.That(asset, Is.Not.Null, "动作资产未找到:" + ActionAssetPath);
+            var channel = new EmergencyDirectReadChannel(asset, TestAxialScale, TestDzMag, TestMagMax);
             channel.Arm(0);
 
             int frame = UnityEngine.Time.frameCount;
