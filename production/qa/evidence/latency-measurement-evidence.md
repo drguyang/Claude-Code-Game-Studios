@@ -18,7 +18,7 @@
 1. 启用 Frame Timing Stats（Project Settings → Player → Other Settings）
 2. Development Build 编译
 3. 挂载 `InputLatencyProbe` 到 Boot 场景 Camera
-4. 按 E 键 1000 次触发采样
+4. 按 **一次 E 键** 开始采样；通道 Armed 期间每帧自动采集，满 1000 样本后自动导出
 5. 导出 Debug.Log 结果
 
 **交付物状态**:

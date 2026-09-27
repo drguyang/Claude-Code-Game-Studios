@@ -89,16 +89,12 @@ namespace DaYiJingCheng.Gameplay.Input
             // 预热段不采集、不触发
             if (_frameIndex <= warmupFrames) return;
 
-            // 触发:按下 triggerKey 且通道未 Armed → 开始一次测量
-            if (Input.GetKeyDown(triggerKey) && !_armed)
+            // 触发:按下 triggerKey 且未在测量中 → 开始一次测量
+            if (Input.GetKeyDown(triggerKey) && !_measuring)
             {
-                _armed = true;
-                if (!_measuring)
-                {
-                    _measuring = true;
-                    _samples.Clear();
-                    collectedSamples = 0;
-                }
+                _measuring = true;
+                _samples.Clear();
+                collectedSamples = 0;
             }
         }
 
@@ -116,14 +112,13 @@ namespace DaYiJingCheng.Gameplay.Input
         /// <summary>在帧 present 前读取 T_present 并计算 L_input→pixel。</summary>
         private void OnPreRender()
         {
-            if (!_armed || _currentFrameInputTimeMs < 0) return;
+            if (!_measuring || _currentFrameInputTimeMs < 0) return;
 
             double tPresent = _sw.Elapsed.TotalMilliseconds;
             double latencyMs = tPresent - _currentFrameInputTimeMs;
 
             _samples.Add(latencyMs);
             collectedSamples = _samples.Count;
-            _armed = false;
             _currentFrameInputTimeMs = -1;
 
             UpdateStats();
@@ -132,6 +127,7 @@ namespace DaYiJingCheng.Gameplay.Input
             {
                 ExportResults();
                 _measuring = false;
+                _armed = false;
                 enabled = false;
             }
         }
