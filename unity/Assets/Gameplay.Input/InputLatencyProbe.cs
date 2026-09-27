@@ -16,7 +16,7 @@
 // ⚠️ FrameTimingManager 前置:须在 Project Settings → Player → Other Settings 启用
 //   Frame Timing Stats。若平台不支持,降级为 OnPreRender + Stopwatch 双时间戳法。
 
-#if DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
 
 using System;
 using System.Collections.Generic;
