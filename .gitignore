@@ -168,3 +168,6 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 *.lnk
+
+# === IL2CPP Module Archives (local toolchain) ===
+unity/_tools/
