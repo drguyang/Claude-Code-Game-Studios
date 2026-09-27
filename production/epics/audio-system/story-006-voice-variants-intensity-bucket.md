@@ -1,12 +1,12 @@
 # Story 006: 语声变体库与 Intensity 分桶
 
 > **Epic**: 音频系统
-> **Status**: Ready
+> **Status**: In Progress
 > **Layer**: Foundation(系统分类;实现落表现层 L5)
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-09-27
 
 ## Context
 
@@ -44,6 +44,7 @@
 - **幽灵输入已废**:选择输入不含 `PatientSemantics`(44 读不到);病种语义由上游编进 `CueId`。
 - VariantLib = **per-CueId 行表**(烘焙整数索引查表,无运行期反射);gender 是**内容侧声明**(素材行携带),非选择输入 —— 悬空的「男/女选择轴」已修。
 - `bucket(u)` = F-44.6 分桶(弱/中/强,`BUCKET_LOW < BUCKET_HIGH`);`Intensity=0` ⇒ u=0 ⇒ 弱桶 + `GAIN_MIN` —— **是否发声**归 Edge Cases 边界(`DENS_MIN ≥ 0` 值域用户调;若 `DENS_MIN=0` 出现静音路径,挂 AC-44-01 同格断言,二轮已记)。
+  **⚠️ 显式钉死(2026-09-27 readiness 补)**:`DENS_MIN=0` 仅表示**值域下界**,**不等于**允许静音路径 —— 静音判据归族族 AC-44-01 同格断言(任何「档位 ⇒ 静音」路径 = 失败)。Edge Cases:592 的「不静默」指**缺组合要回退**,与此处不矛盾。
 - 50ms ramp 常量与 Story 004 共用单处定义。
 - 分桶边界解耦断言:`BUCKET_LOW/HIGH ∉ 已知 sim 阈值集`(静态对照注记;sim 阈值集来自9/52 常量表引用)。
 
@@ -71,7 +72,9 @@
 
 **Story Type**: Logic
 **Required evidence**:
-- `tests/unit/audio_system/voice_variants_test.cs` — must exist and pass
+- 真身 `unity/Assets/Tests/EditMode/Audio/voice_variants_test.cs` — must exist and pass
+  (登记路径原写仓库根 `tests/...`,Unity 只编译 `unity/Assets/` 树 —— 承 Story 002/003/004/005 先例,真身落 `unity/Assets/`)
+- 账本互链 `tests/unit/audio_system/README.md`(AC→测映射)
 
 **Status**: [ ] Not yet created
 
@@ -81,3 +84,12 @@
 
 - Depends on: Story 001 · 002(事件表字段载体)
 - Unlocks: Story 011(字幕文本与变体同表)· 内容批素材录制可开工(结构定)
+
+## 遗留登记(2026-09-27 · 用户裁定先登记不修)
+
+**B3 签名白名单缺口** —— `AssemblyBoundaryTest.test_entryPoints_production44_noUnknownEntry` 报红:
+`VoiceVariantLib.ComputeBucket` 签名含非白名单项目类型 `VoiceBucket`;
+`VoiceVariantLib.SelectVariant` 签名含非白名单嵌套类型 `VoiceVariantLib+VoiceVariantTable`。
+
+**处置**:扩 B3 白名单(登记 `VoiceBucket` 与 `VoiceVariantTable`)留待以后解决,本 story 不修。
+参照 Story 004 同型处置(当时用户裁定扩允许面);本次按用户裁定改为登记遗留。
