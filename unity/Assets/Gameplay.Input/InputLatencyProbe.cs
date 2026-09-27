@@ -90,7 +90,7 @@ namespace DaYiJingCheng.Gameplay.Input
             if (_frameIndex <= warmupFrames) return;
 
             // 触发:按下 triggerKey 且未在测量中 → 开始一次测量
-            if (Input.GetKeyDown(triggerKey) && !_measuring)
+            if (global::UnityEngine.Input.GetKeyDown(triggerKey) && !_measuring)
             {
                 _measuring = true;
                 _samples.Clear();
