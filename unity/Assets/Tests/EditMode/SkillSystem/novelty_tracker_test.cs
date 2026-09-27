@@ -290,6 +290,16 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         // 异常输入验证
         // ═══════════════════════════════════════════════════════════════════
 
+        /// <summary>构造器负冷却期 → ArgumentOutOfRangeException。</summary>
+        [Test]
+        public void test_negativeCooldownTicks_throws()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                new NoveltyTracker(cooldownTicks: -1);
+            }, "cooldownTicks 为负须抛 ArgumentOutOfRangeException");
+        }
+
         /// <summary>负 actorId → ArgumentOutOfRangeException。</summary>
         [Test]
         public void test_negativeActorId_throws()
@@ -299,6 +309,39 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             {
                 tracker.Query(-1, 0, 1, 100);
             }, "actorId 为负须抛 ArgumentOutOfRangeException");
+        }
+
+        /// <summary>负 skillId → ArgumentOutOfRangeException。</summary>
+        [Test]
+        public void test_negativeSkillId_throws()
+        {
+            var tracker = new NoveltyTracker();
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                tracker.Query(1, -1, 1, 100);
+            }, "skillId 为负须抛 ArgumentOutOfRangeException");
+        }
+
+        /// <summary>负 objectId → ArgumentOutOfRangeException。</summary>
+        [Test]
+        public void test_negativeObjectId_throws()
+        {
+            var tracker = new NoveltyTracker();
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                tracker.Query(1, 0, -1, 100);
+            }, "objectId 为负须抛 ArgumentOutOfRangeException");
+        }
+
+        /// <summary>负 currentTick → ArgumentOutOfRangeException。</summary>
+        [Test]
+        public void test_negativeCurrentTick_throws()
+        {
+            var tracker = new NoveltyTracker();
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                tracker.Query(1, 0, 1, -1);
+            }, "currentTick 为负须抛 ArgumentOutOfRangeException");
         }
 
         /// <summary>零冷却期 → 任何再次遇见均为 Normal。</summary>

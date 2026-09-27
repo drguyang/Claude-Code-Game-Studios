@@ -117,6 +117,9 @@ namespace DaYiJingCheng.Sim.Contracts.SkillSystem
                 return NoveltyClass.First;
 
             int elapsed = currentTick - lastSeenTick;
+            if (elapsed < 0)
+                throw new ArgumentOutOfRangeException(nameof(currentTick),
+                    $"currentTick={currentTick} 不能小于 lastSeenTick={lastSeenTick}(tick 必须单调递增)");
             return elapsed >= _cooldownTicks ? NoveltyClass.Normal : NoveltyClass.Stale;
         }
 
