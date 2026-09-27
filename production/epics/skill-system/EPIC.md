@@ -4,7 +4,7 @@
 > **GDD**: design/gdd/skill-system.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories skill-system`
+> **Stories**: 8 stories — see table below
 
 ## Overview
 
@@ -52,6 +52,15 @@ This epic is complete when:
 - All Logic and Integration stories have passing test files in `tests/`
 - All Visual/Feel and UI stories have evidence docs with sign-off in `production/qa/evidence/`
 
-## Next Step
+## Stories
 
-Run `/create-stories skill-system` to break this epic into implementable stories.
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | 技能注册表与技能定义 | Logic | Complete | ADR-026 |
+| 002 | 单次经验增益公式 | Logic | Ready | ADR-026 |
+| 003 | 升级曲线 | Logic | Ready | ADR-026 |
+| 004 | 战斗效能与医术修正 | Integration | Ready | ADR-026 |
+| 005 | 死亡掉级 | Logic | Ready | ADR-026 |
+| 006 | 新颖度追踪与冷却 | Logic | Ready | ADR-026 |
+| 007 | SkillGrown 事件发射 | Integration | Ready | ADR-005/007/009 |
+| 008 | 技能状态持久化与流重构 | Integration | Ready | ADR-010/009 |
