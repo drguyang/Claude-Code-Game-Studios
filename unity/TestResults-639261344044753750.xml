@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="16" result="Passed" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.1650653">
+  <test-suite type="TestSuite" id="1000" name="unity" fullname="unity" runstate="Runnable" testcasecount="965" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.165065" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="2015" name="Sim.Contracts.Tests.dll" fullname="/XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Library/ScriptAssemblies/Sim.Contracts.Tests.dll" runstate="Runnable" testcasecount="964" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.155701" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="3098634" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="2016" name="DaYiJingCheng" fullname="DaYiJingCheng" runstate="Runnable" testcasecount="964" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.153172" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="2017" name="Tests" fullname="DaYiJingCheng.Tests" runstate="Runnable" testcasecount="964" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.150899" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="2018" name="Unit" fullname="DaYiJingCheng.Tests.Unit" runstate="Runnable" testcasecount="964" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.148648" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestSuite" id="2022" name="InputSystem" fullname="DaYiJingCheng.Tests.Unit.InputSystem" runstate="Runnable" testcasecount="276" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.142923" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="TestFixture" id="1704" name="HotPathZeroCostTest" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" testcasecount="16" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.139797" total="16" passed="16" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1707" name="test_e1_hot_path_methods_no_prohibited_tokens" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e1_hot_path_methods_no_prohibited_tokens" methodname="test_e1_hot_path_methods_no_prohibited_tokens" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="620052239" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.015972" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1705" name="test_e1_hot_path_string_lookup_real_tree_zero_errors" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e1_hot_path_string_lookup_real_tree_zero_errors" methodname="test_e1_hot_path_string_lookup_real_tree_zero_errors" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="988294351" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.095609" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1720" name="test_e1_initialization_methods_excluded_from_ban" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e1_initialization_methods_excluded_from_ban" methodname="test_e1_initialization_methods_excluded_from_ban" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="132640279" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.000596" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1708" name="test_e1_initialization_path_exempt_from_ban" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e1_initialization_path_exempt_from_ban" methodname="test_e1_initialization_path_exempt_from_ban" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="1106643666" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.002033" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1706" name="test_e1_negative_fixture_hot_path_with_find_action_returns_red" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e1_negative_fixture_hot_path_with_find_action_returns_red" methodname="test_e1_negative_fixture_hot_path_with_find_action_returns_red" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="657723472" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.000963" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1711" name="test_e4_abort_to_idle_callback_count_resets_to_zero" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e4_abort_to_idle_callback_count_resets_to_zero" methodname="test_e4_abort_to_idle_callback_count_resets_to_zero" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="2004810208" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.000958" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1710" name="test_e4_armed_to_idle_callback_count_resets_to_zero" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e4_armed_to_idle_callback_count_resets_to_zero" methodname="test_e4_armed_to_idle_callback_count_resets_to_zero" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="2136918343" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.000689" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1713" name="test_e4_callback_count_only_counts_wired_onAfterUpdate" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e4_callback_count_only_counts_wired_onAfterUpdate" methodname="test_e4_callback_count_only_counts_wired_onAfterUpdate" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="454277957" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.000254" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1712" name="test_e4_disable_emergency_action_resets_callback_count" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e4_disable_emergency_action_resets_callback_count" methodname="test_e4_disable_emergency_action_resets_callback_count" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="680836160" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.000238" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1715" name="test_e4_idle_after_attach_no_callbacks" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e4_idle_after_attach_no_callbacks" methodname="test_e4_idle_after_attach_no_callbacks" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="1732113972" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.001836" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1709" name="test_e4_idle_emergency_action_disabled_by_default" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e4_idle_emergency_action_disabled_by_default" methodname="test_e4_idle_emergency_action_disabled_by_default" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="1987242200" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.000180" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1714" name="test_e4_multiple_callbacks_accumulate_then_reset" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e4_multiple_callbacks_accumulate_then_reset" methodname="test_e4_multiple_callbacks_accumulate_then_reset" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="804781327" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.000285" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1716" name="test_e4_rapid_enable_disable_jitter_count_stays_zero" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e4_rapid_enable_disable_jitter_count_stays_zero" methodname="test_e4_rapid_enable_disable_jitter_count_stays_zero" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="1493658501" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.000254" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1717" name="test_e4_suspended_to_idle_callback_count_resets" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e4_suspended_to_idle_callback_count_resets" methodname="test_e4_suspended_to_idle_callback_count_resets" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="1881354713" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.001357" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1719" name="test_e5_armed_read_path_traversed_sample_increments" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e5_armed_read_path_traversed_sample_increments" methodname="test_e5_armed_read_path_traversed_sample_increments" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="1393083958" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.003224" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1718" name="test_e5_enable_disable_structural_reachable" fullname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest.test_e5_enable_disable_structural_reachable" methodname="test_e5_enable_disable_structural_reachable" classname="DaYiJingCheng.Tests.Unit.InputSystem.HotPathZeroCostTest" runstate="Runnable" seed="2147069738" result="Passed" start-time="2026-09-27 11:33:24Z" end-time="2026-09-27 11:33:24Z" duration="0.000203" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <output><![CDATA[Saving results to: /XYFS01/sysu_tyu2_2/.config/unity3d/DefaultCompany/unity/TestResults.xml
+]]></output>
+                </test-case>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

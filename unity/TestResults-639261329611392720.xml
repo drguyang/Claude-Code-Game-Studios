@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="25" result="Failed(Child)" total="25" passed="20" failed="2" inconclusive="0" skipped="3" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:21Z" duration="0.3744442">
+  <test-suite type="TestSuite" id="1041" name="unity" fullname="unity" runstate="Runnable" testcasecount="25" result="Failed" site="Child" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:21Z" duration="0.374444" total="25" passed="20" failed="2" inconclusive="0" skipped="3" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1032" name="Gameplay.Tests.dll" fullname="/XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Library/ScriptAssemblies/Gameplay.Tests.dll" runstate="Runnable" testcasecount="25" result="Failed" site="Child" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:21Z" duration="0.366625" total="25" passed="20" failed="2" inconclusive="0" skipped="3" asserts="0">
+      <properties>
+        <property name="_PID" value="3093188" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1033" name="DaYiJingCheng" fullname="DaYiJingCheng" runstate="Runnable" testcasecount="23" result="Failed" site="Child" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:21Z" duration="0.364574" total="23" passed="18" failed="2" inconclusive="0" skipped="3" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1034" name="Tests" fullname="DaYiJingCheng.Tests" runstate="Runnable" testcasecount="23" result="Failed" site="Child" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:21Z" duration="0.364391" total="23" passed="18" failed="2" inconclusive="0" skipped="3" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="1035" name="Integration" fullname="DaYiJingCheng.Tests.Integration" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.132529" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestSuite" id="1036" name="ItemDatabase" fullname="DaYiJingCheng.Tests.Integration.ItemDatabase" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.132346" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="TestFixture" id="1004" name="RecipeSettlementSolverIntegrationTest" fullname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest" classname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.131346" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1005" name="test_bothEntryPoints_delegateToSameMethodInfo" fullname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest.test_bothEntryPoints_delegateToSameMethodInfo" methodname="test_bothEntryPoints_delegateToSameMethodInfo" classname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest" runstate="Runnable" seed="1348752479" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.013787" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1006" name="test_bothEntryPoints_sameParameters_bitIdenticalResults" fullname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest.test_bothEntryPoints_sameParameters_bitIdenticalResults" methodname="test_bothEntryPoints_sameParameters_bitIdenticalResults" classname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest" runstate="Runnable" seed="138519113" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.005280" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1007" name="test_bothEntryPoints_singleOutputSingleInput_bitIdentical" fullname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest.test_bothEntryPoints_singleOutputSingleInput_bitIdentical" methodname="test_bothEntryPoints_singleOutputSingleInput_bitIdentical" classname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest" runstate="Runnable" seed="131184018" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.002610" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1008" name="test_entryPointDelegates_haveNoFormulaBodyOfTheirOwn" fullname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest.test_entryPointDelegates_haveNoFormulaBodyOfTheirOwn" methodname="test_entryPointDelegates_haveNoFormulaBodyOfTheirOwn" classname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest" runstate="Runnable" seed="63272223" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.001424" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1009" name="test_formulaBodyIdentifiers_duplicatedOutsideUniqueSolver_none" fullname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest.test_formulaBodyIdentifiers_duplicatedOutsideUniqueSolver_none" methodname="test_formulaBodyIdentifiers_duplicatedOutsideUniqueSolver_none" classname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest" runstate="Runnable" seed="1636769230" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.094006" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1011" name="test_formulaBodyScan_missingNeighbourSystemDirs_tolerated" fullname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest.test_formulaBodyScan_missingNeighbourSystemDirs_tolerated" methodname="test_formulaBodyScan_missingNeighbourSystemDirs_tolerated" classname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest" runstate="Runnable" seed="1377594218" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.001781" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1010" name="test_formulaBodyScanner_selfProvesItCanDetectDuplication" fullname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest.test_formulaBodyScanner_selfProvesItCanDetectDuplication" methodname="test_formulaBodyScanner_selfProvesItCanDetectDuplication" classname="DaYiJingCheng.Tests.Integration.ItemDatabase.RecipeSettlementSolverIntegrationTest" runstate="Runnable" seed="919533472" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.000231" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+          <test-suite type="TestSuite" id="1037" name="PlayMode" fullname="DaYiJingCheng.Tests.PlayMode" runstate="Runnable" testcasecount="16" result="Failed" site="Child" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:21Z" duration="0.231621" total="16" passed="11" failed="2" inconclusive="0" skipped="3" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestFixture" id="1012" name="DeterminismGoldenCrossplatformTest" fullname="DaYiJingCheng.Tests.PlayMode.DeterminismGoldenCrossplatformTest" classname="DaYiJingCheng.Tests.PlayMode.DeterminismGoldenCrossplatformTest" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.027652" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1013" name="test_ac21a29_allScenarioHashes_writtenAndCompared_whenGoldenReachable" fullname="DaYiJingCheng.Tests.PlayMode.DeterminismGoldenCrossplatformTest.test_ac21a29_allScenarioHashes_writtenAndCompared_whenGoldenReachable" methodname="test_ac21a29_allScenarioHashes_writtenAndCompared_whenGoldenReachable" classname="DaYiJingCheng.Tests.PlayMode.DeterminismGoldenCrossplatformTest" runstate="Runnable" seed="243426200" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.024430" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[[AC-29] 计算结果已写入: /XYFS01/sysu_tyu2_2/.config/unity3d/DefaultCompany/unity/ac29-computed.txt(19 条, backend=Mono | Mono 6.13.0 (explicit/9d7c9afd))
+]]></output>
+              </test-case>
+              <test-case id="1015" name="test_ac21a29_f7_fixMulPeakProducts_knownValuesUnderCurrentBackend" fullname="DaYiJingCheng.Tests.PlayMode.DeterminismGoldenCrossplatformTest.test_ac21a29_f7_fixMulPeakProducts_knownValuesUnderCurrentBackend" methodname="test_ac21a29_f7_fixMulPeakProducts_knownValuesUnderCurrentBackend" classname="DaYiJingCheng.Tests.PlayMode.DeterminismGoldenCrossplatformTest" runstate="Runnable" seed="197870593" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.001265" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1014" name="test_ac21a29_f7_splitmix64Wraparound_knownValuesUnderCurrentBackend" fullname="DaYiJingCheng.Tests.PlayMode.DeterminismGoldenCrossplatformTest.test_ac21a29_f7_splitmix64Wraparound_knownValuesUnderCurrentBackend" methodname="test_ac21a29_f7_splitmix64Wraparound_knownValuesUnderCurrentBackend" classname="DaYiJingCheng.Tests.PlayMode.DeterminismGoldenCrossplatformTest" runstate="Runnable" seed="371432437" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.000606" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1016" name="DirectReadChannelPhaseTest" fullname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest" classname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest" runstate="Runnable" testcasecount="8" result="Failed" site="Child" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.053541" total="8" passed="6" failed="2" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-case id="1020" name="test_direct_read_channel_b1a_injected_reading_visible_same_frame_wired" fullname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest.test_direct_read_channel_b1a_injected_reading_visible_same_frame_wired" methodname="test_direct_read_channel_b1a_injected_reading_visible_same_frame_wired" classname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest" runstate="Runnable" seed="1251435332" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.030218" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1019" name="test_direct_read_phase_fixed_mode_negative_fixture_caught" fullname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest.test_direct_read_phase_fixed_mode_negative_fixture_caught" methodname="test_direct_read_phase_fixed_mode_negative_fixture_caught" classname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest" runstate="Runnable" seed="15078413" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.003643" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1024" name="test_direct_read_phase_fixture_restores_global_input_state" fullname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest.test_direct_read_phase_fixture_restores_global_input_state" methodname="test_direct_read_phase_fixture_restores_global_input_state" classname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest" runstate="Runnable" seed="27885326" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.002163" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1017" name="test_direct_read_phase_frame_plus_one_yields_sample_plus_one" fullname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest.test_direct_read_phase_frame_plus_one_yields_sample_plus_one" methodname="test_direct_read_phase_frame_plus_one_yields_sample_plus_one" classname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest" runstate="Runnable" seed="491516613" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.003235" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1018" name="test_direct_read_phase_manual_update_dry_run_does_not_double_count" fullname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest.test_direct_read_phase_manual_update_dry_run_does_not_double_count" methodname="test_direct_read_phase_manual_update_dry_run_does_not_double_count" classname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest" runstate="Runnable" seed="588837891" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.002131" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1023" name="test_direct_read_phase_reattach_same_frame_no_double_count" fullname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest.test_direct_read_phase_reattach_same_frame_no_double_count" methodname="test_direct_read_phase_reattach_same_frame_no_double_count" classname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest" runstate="Runnable" seed="1964337447" result="Failed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.005548" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  同帧 Detach→Attach 后本帧剩余回调不得再采(帧戳沿用,恰一样本语义)
+  Expected: 1
+  But was:  2
+]]></message>
+                  <stack-trace><![CDATA[at DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest+<test_direct_read_phase_reattach_same_frame_no_double_count>d__14.MoveNext () [0x000cc] in /XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Assets/Tests/PlayMode/direct_read_channel_phase_test.cs:484
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in ./Library/PackageCache/com.unity.test-framework@0bd5c5194236/UnityEngine.TestRunner/NUnitExtensions/Attributes/TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="1022" name="test_direct_read_phase_same_frame_second_callback_deduplicated" fullname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest.test_direct_read_phase_same_frame_second_callback_deduplicated" methodname="test_direct_read_phase_same_frame_second_callback_deduplicated" classname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest" runstate="Runnable" seed="1761673504" result="Failed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.002272" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <failure>
+                  <message><![CDATA[  同帧第二+次回调不得采样(qa-F3:删闸 ⇒ 此处 +1 ⇒ 红)
+  Expected: 1
+  But was:  2
+]]></message>
+                  <stack-trace><![CDATA[at DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest+<test_direct_read_phase_same_frame_second_callback_deduplicated>d__13.MoveNext () [0x000ab] in /XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Assets/Tests/PlayMode/direct_read_channel_phase_test.cs:454
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in ./Library/PackageCache/com.unity.test-framework@0bd5c5194236/UnityEngine.TestRunner/NUnitExtensions/Attributes/TestEnumerator.cs:44
+]]></stack-trace>
+                </failure>
+              </test-case>
+              <test-case id="1021" name="test_direct_read_phase_sampling_completes_in_input_update_not_behaviour_update" fullname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest.test_direct_read_phase_sampling_completes_in_input_update_not_behaviour_update" methodname="test_direct_read_phase_sampling_completes_in_input_update_not_behaviour_update" classname="DaYiJingCheng.Tests.PlayMode.DirectReadChannelPhaseTest" runstate="Runnable" seed="1572146018" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.002476" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1025" name="Story007PhaseSpikeTest" fullname="DaYiJingCheng.Tests.PlayMode.Story007PhaseSpikeTest" classname="DaYiJingCheng.Tests.PlayMode.Story007PhaseSpikeTest" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:21Z" duration="0.067721" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <output><![CDATA[
+IgnoreFailingMessages:true
+[007] dataPath=/XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Assets · persistentDataPath=/XYFS01/sysu_tyu2_2/.config/unity3d/DefaultCompany/unity · cwd=/XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity
+[[007]] === Story007 spike run 2026-09-27 19:09:20 · Unity 6000.3.24f1 · batch/editor ===
+[007] 结果文件 = /XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Logs/story007_spike_results.txt
+[[007]] marker:story007 spike 结果不存在时,搜 Console 前缀 [007-S 亦可拿到全部数字
+]]></output>
+              <test-case id="1026" name="test_007_s1_update_mode_reads_actual_settings" fullname="DaYiJingCheng.Tests.PlayMode.Story007PhaseSpikeTest.test_007_s1_update_mode_reads_actual_settings" methodname="test_007_s1_update_mode_reads_actual_settings" classname="DaYiJingCheng.Tests.PlayMode.Story007PhaseSpikeTest" runstate="Runnable" seed="1224433507" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:20Z" duration="0.006649" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[
+IgnoreFailingMessages:true
+
+IgnoreFailingMessages:true
+[[007]] [007-S1] updateMode_name=ProcessEventsInDynamicUpdate updateMode_int=1 (ProcessEventsInDynamicUpdate 实值在 InputSettings.cs:835;此处只诊断,正式判据走对偶)
+[[007]] [007-S1] is_manual=False is_fixed_only=False → B2③ 帧-采样对偶断言期望 dynamic/渲染帧相位;非此二值即视为可用的动态相位候选
+]]></output>
+              </test-case>
+              <test-case id="1027" name="test_007_s3_on_after_update_phase_dynamics_logs" fullname="DaYiJingCheng.Tests.PlayMode.Story007PhaseSpikeTest.test_007_s3_on_after_update_phase_dynamics_logs" methodname="test_007_s3_on_after_update_phase_dynamics_logs" classname="DaYiJingCheng.Tests.PlayMode.Story007PhaseSpikeTest" runstate="Runnable" seed="1502454469" result="Passed" start-time="2026-09-27 11:09:20Z" end-time="2026-09-27 11:09:21Z" duration="0.025311" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[
+IgnoreFailingMessages:true
+
+IgnoreFailingMessages:true
+[[007]] [007-S3] step0: frame_advance=1 on_after_update_delta=1 cumulative_frames=59 cumulative_fires=1
+[[007]] [007-S3] step1: frame_advance=1 on_after_update_delta=1 cumulative_frames=60 cumulative_fires=2
+[[007]] [007-S3] step2: frame_advance=1 on_after_update_delta=1 cumulative_frames=61 cumulative_fires=3
+[[007]] [007-S3] step3: frame_advance=1 on_after_update_delta=1 cumulative_frames=62 cumulative_fires=4
+[[007]] [007-S3] step4: frame_advance=1 on_after_update_delta=1 cumulative_frames=63 cumulative_fires=5
+[[007]] [007-S3] step5: frame_advance=1 on_after_update_delta=1 cumulative_frames=64 cumulative_fires=6
+[[007]] [007-S3] step6: frame_advance=1 on_after_update_delta=1 cumulative_frames=65 cumulative_fires=7
+[[007]] [007-S3] step7: frame_advance=1 on_after_update_delta=1 cumulative_frames=66 cumulative_fires=8
+[[007]] [007-S3] manual_dryrun_1: frame_advance=0 on_after_update_delta=0 (期望 1:一次 update 恰一次 onAfterUpdate;若 >1 ⇒ 自动更新与手动更新同帧叠合 = B2③「不得双计」要抓的面)
+[[007]] [007-S3] manual_dryrun_x3: on_after_update_delta=0 (期望 3:手动驱动的调用级可数性)
+[[007]] [007-S3] post_manual_frame: on_after_update_delta=1 (段内帧增量=1,手动段不应改变帧-采样对偶)
+[[007]] --- 捕获到的 Error/Exception/Assert 日志:0 条 ---
+[[007]] === run end ===
+[007] 本次结果文件 = /XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Logs/story007_spike_results.txt
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1028" name="U1SceneSpikesTest" fullname="DaYiJingCheng.Tests.PlayMode.U1SceneSpikesTest" classname="DaYiJingCheng.Tests.PlayMode.U1SceneSpikesTest" runstate="Runnable" testcasecount="3" result="Skipped" label="Ignored" start-time="2026-09-27 11:09:21Z" end-time="2026-09-27 11:09:21Z" duration="0.081954" total="3" passed="0" failed="0" inconclusive="0" skipped="3" asserts="0">
+              <properties />
+              <reason>
+                <message><![CDATA[One or more child tests were ignored]]></message>
+              </reason>
+              <output><![CDATA[
+IgnoreFailingMessages:true
+[U1] 结果文件候选: /XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Logs/u1_spike_results.txt | /XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Assets/u1_spike_results.txt | /XYFS01/sysu_tyu2_2/.config/unity3d/DefaultCompany/unity/u1_spike_results.txt
+[U1] dataPath=/XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Assets · persistentDataPath=/XYFS01/sysu_tyu2_2/.config/unity3d/DefaultCompany/unity · cwd=/XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity
+[U1] === U1 spike run 2026-09-27 19:09:21 · Unity 6000.3.24f1 ===
+[U1] 结果文件 = /XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Logs/u1_spike_results.txt
+[U1] marker:Logs 文件不存在时,搜 Console 前缀 [U1-S 亦可拿到全部数字
+]]></output>
+              <test-case id="1029" name="test_s1_additive_load_unload_logs_ms" fullname="DaYiJingCheng.Tests.PlayMode.U1SceneSpikesTest.test_s1_additive_load_unload_logs_ms" methodname="test_s1_additive_load_unload_logs_ms" classname="DaYiJingCheng.Tests.PlayMode.U1SceneSpikesTest" runstate="Runnable" seed="381480520" result="Skipped" label="Ignored" start-time="2026-09-27 11:09:21Z" end-time="2026-09-27 11:09:21Z" duration="0.038142" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <reason>
+                  <message><![CDATA[[U1] S1 load:Addressable key 不存在 —— 先跑菜单 大医精诚/Spike/Setup U1 Spikes 再 Run]]></message>
+                </reason>
+                <output><![CDATA[
+IgnoreFailingMessages:true
+
+IgnoreFailingMessages:true
+UnityEngine.AddressableAssets.InvalidKeyException: Exception of type 'UnityEngine.AddressableAssets.InvalidKeyException' was thrown. No Location found for Key=U1_SpikeS1
+OperationException : ChainOperation failed because dependent operation failed
+UnityEngine.AddressableAssets.InvalidKeyException: Exception of type 'UnityEngine.AddressableAssets.InvalidKeyException' was thrown. No Location found for Key=U1_SpikeS1
+[U1] [U1-S1] cold_load_ms=29.2 load_status=Failed scene_isLoaded=False op_ex=ChainOperation failed because dependent operation failed
+]]></output>
+              </test-case>
+              <test-case id="1030" name="test_s3_instance_survival_and_refcount_logs" fullname="DaYiJingCheng.Tests.PlayMode.U1SceneSpikesTest.test_s3_instance_survival_and_refcount_logs" methodname="test_s3_instance_survival_and_refcount_logs" classname="DaYiJingCheng.Tests.PlayMode.U1SceneSpikesTest" runstate="Runnable" seed="1413296420" result="Skipped" label="Ignored" start-time="2026-09-27 11:09:21Z" end-time="2026-09-27 11:09:21Z" duration="0.007357" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <reason>
+                  <message><![CDATA[[U1] S3 load:Addressable key 不存在 —— 先跑菜单 大医精诚/Spike/Setup U1 Spikes 再 Run]]></message>
+                </reason>
+                <output><![CDATA[
+IgnoreFailingMessages:true
+
+IgnoreFailingMessages:true
+[U1] [U1-S3] bundle baseline=1
+UnityEngine.AddressableAssets.InvalidKeyException: Exception of type 'UnityEngine.AddressableAssets.InvalidKeyException' was thrown. No Location found for Key=U1_SpikeS1
+[U1] [U1-S3] load_status=Failed scene_isLoaded=False op_ex=Exception of type 'UnityEngine.AddressableAssets.InvalidKeyException' was thrown. No Location found for Key=U1_SpikeS1
+]]></output>
+              </test-case>
+              <test-case id="1031" name="test_s4_scene_switch_vs_setactive_logs_ms" fullname="DaYiJingCheng.Tests.PlayMode.U1SceneSpikesTest.test_s4_scene_switch_vs_setactive_logs_ms" methodname="test_s4_scene_switch_vs_setactive_logs_ms" classname="DaYiJingCheng.Tests.PlayMode.U1SceneSpikesTest" runstate="Runnable" seed="1329698656" result="Skipped" label="Ignored" start-time="2026-09-27 11:09:21Z" end-time="2026-09-27 11:09:21Z" duration="0.003203" asserts="0">
+                <properties>
+                  <property name="_JOINTYPE" value="UnityCombinatorial" />
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <reason>
+                  <message><![CDATA[[U1] S4 A路 首载:Addressable key 不存在 —— 先跑菜单 大医精诚/Spike/Setup U1 Spikes 再 Run]]></message>
+                </reason>
+                <output><![CDATA[
+IgnoreFailingMessages:true
+
+IgnoreFailingMessages:true
+UnityEngine.AddressableAssets.InvalidKeyException: Exception of type 'UnityEngine.AddressableAssets.InvalidKeyException' was thrown. No Location found for Key=U1_SpikeS4A1
+[U1] --- 捕获到的 Error/Exception/Assert 日志:4 条 ---
+[U1] [U1-LOG] [Error] UnityEngine.AddressableAssets.InvalidKeyException: Exception of type 'UnityEngine.AddressableAssets.InvalidKeyException' was thrown. No Location found for Key=U1_SpikeS1
+[U1] [U1-LOG] [Error] OperationException : ChainOperation failed because dependent operation failed
+UnityEngine.AddressableAssets.InvalidKeyException: Exception of type 'UnityEngine.AddressableAssets.InvalidKeyException' was thrown. No Location found for Key=U1_SpikeS1
+[U1] [U1-LOG] [Error] UnityEngine.AddressableAssets.InvalidKeyException: Exception of type 'UnityEngine.AddressableAssets.InvalidKeyException' was thrown. No Location found for Key=U1_SpikeS1
+[U1] [U1-LOG] [Error] UnityEngine.AddressableAssets.InvalidKeyException: Exception of type 'UnityEngine.AddressableAssets.InvalidKeyException' was thrown. No Location found for Key=U1_SpikeS4A1
+[U1] === run end ===
+[U1] 本次结果文件 = /XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Logs/u1_spike_results.txt
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+      <test-suite type="TestFixture" id="1001" name="PlayMode" fullname="PlayMode" classname="PlayMode" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-09-27 11:09:21Z" end-time="2026-09-27 11:09:21Z" duration="0.001618" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1002" name="PlayModeSimplePasses" fullname="PlayMode.PlayModeSimplePasses" methodname="PlayModeSimplePasses" classname="PlayMode" runstate="Runnable" seed="2133394663" result="Passed" start-time="2026-09-27 11:09:21Z" end-time="2026-09-27 11:09:21Z" duration="0.000102" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1003" name="PlayModeWithEnumeratorPasses" fullname="PlayMode.PlayModeWithEnumeratorPasses" methodname="PlayModeWithEnumeratorPasses" classname="PlayMode" runstate="Runnable" seed="1897276560" result="Passed" start-time="2026-09-27 11:09:21Z" end-time="2026-09-27 11:09:21Z" duration="0.000753" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[Saving results to: /XYFS01/sysu_tyu2_2/.config/unity3d/DefaultCompany/unity/TestResults.xml
+]]></output>
+        </test-case>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

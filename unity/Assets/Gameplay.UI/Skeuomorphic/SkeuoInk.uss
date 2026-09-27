@@ -1,0 +1,22 @@
+/* Ink Element — USS (AC-42-C2 / AC-42-C5) */
+
+.ink {
+    color: var(--skeuo-ink-fg);
+    font-family: var(--skeuo-font-family);
+    font-size: var(--skeuo-font-size-md);
+    text-shadow: 1px 1px 0 var(--skeuo-ink-faded);
+}
+
+.ink-faded {
+    color: var(--skeuo-ink-faded);
+}
+
+.ink-title {
+    font-size: var(--skeuo-font-size-lg);
+    font-weight: 600;
+}
+
+.ink-body {
+    font-size: var(--skeuo-font-size-sm);
+    line-height: 1.6;
+}

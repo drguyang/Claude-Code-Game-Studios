@@ -1,0 +1,32 @@
+/* Seal Element — USS (AC-42-C2 / AC-42-C5) */
+
+.seal {
+    background-color: var(--skeuo-seal-bg);
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+    border-top-color: var(--skeuo-seal-border);
+    border-right-color: var(--skeuo-seal-border);
+    border-bottom-color: var(--skeuo-seal-border);
+    border-left-color: var(--skeuo-seal-border);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    color: var(--skeuo-seal-fg);
+    font-family: var(--skeuo-font-family);
+    font-size: var(--skeuo-font-size-lg);
+    padding-top: var(--skeuo-shared-space-sm);
+    padding-right: var(--skeuo-shared-space-sm);
+    padding-bottom: var(--skeuo-shared-space-sm);
+    padding-left: var(--skeuo-shared-space-sm);
+    -unity-slice-left: 8px;
+    -unity-slice-right: 8px;
+    -unity-slice-top: 8px;
+    -unity-slice-bottom: 8px;
+}
+
+.seal-small {
+    font-size: var(--skeuo-font-size-md);
+}

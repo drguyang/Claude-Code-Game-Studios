@@ -1,0 +1,57 @@
+/* Theme Variables — Skeuomorphic UI Foundation (Story 001)
+ * AC-42-C2: All USS colors/sizes/spacings MUST reference these variables.
+ * AC-42-C5: No hardcoded px font-size or literal text in USS.
+ * AC-42-C6: Fallback font stack registered in FallbackFontRegistry (zh + en).
+ *
+ * 命名约定: --skeuo-{layer}-{property}-{variant}
+ *   layer  ∈ {paper, scroll, ink, seal, shared}
+ *   property ∈ {bg, fg, border, shadow, radius, space}
+ */
+
+:root {
+    /* ── 纸面(Paper) ── */
+    --skeuo-paper-bg: #f4ecd8;
+    --skeuo-paper-bg-aged: #e8dcc4;
+    --skeuo-paper-fg: #2b2416;
+    --skeuo-paper-border: #a08c6c;
+    --skeuo-paper-shadow: rgba(43, 36, 22, 0.18);
+
+    /* ── 卷轴(Scroll) ── */
+    --skeuo-scroll-bg: #f0e4c8;
+    --skeuo-scroll-fg: #3a2e1c;
+    --skeuo-scroll-border: #8c7355;
+    --skeuo-scroll-rod: #5c4a32;
+    --skeuo-scroll-shadow: rgba(58, 46, 28, 0.22);
+
+    /* ── 墨迹(Ink) ── */
+    --skeuo-ink-fg: #1a1410;
+    --skeuo-ink-fg-light: #3d3228;
+    --skeuo-ink-faded: rgba(26, 20, 16, 0.55);
+
+    /* ── 印章(Seal) ── */
+    --skeuo-seal-bg: #8b2500;
+    --skeuo-seal-fg: #f5e6d3;
+    --skeuo-seal-border: #5c1a00;
+    --skeuo-seal-shadow: rgba(92, 26, 0, 0.35);
+
+    /* ── 共享(Shared) ── */
+    --skeuo-shared-radius: 2px;
+    --skeuo-shared-space-xs: 4px;
+    --skeuo-shared-space-sm: 8px;
+    --skeuo-shared-space-md: 16px;
+    --skeuo-shared-space-lg: 24px;
+    --skeuo-shared-space-xl: 32px;
+
+    /* ── 字体(AC-42-C6 fallback 链) ── */
+    --skeuo-font-family: "NotoSerifCJKsc-Regular", "NotoSerif-Regular", "Microsoft YaHei", "PingFang SC", sans-serif;
+    --skeuo-font-size-xs: 11px;
+    --skeuo-font-size-sm: 13px;
+    --skeuo-font-size-md: 15px;
+    --skeuo-font-size-lg: 18px;
+    --skeuo-font-size-xl: 22px;
+
+    /* ── 过渡 ── */
+    --skeuo-transition-fast: 120ms;
+    --skeuo-transition-normal: 220ms;
+    --skeuo-transition-slow: 360ms;
+}

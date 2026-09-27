@@ -4,7 +4,7 @@
 > **GDD**: design/gdd/skeuomorphic-ui.md
 > **Architecture Module**: L5 Presentation(PRES)
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories skeuomorphic-ui`
+> **Stories**: 18 stories created (2026-09-27)
 
 ## Overview
 
@@ -48,6 +48,32 @@
 | TR-skeuoui-011 | 图集护栏:Pages_frame 预算与溢出告警阈值 | ADR-013 ⚠️ partial(PAGES_MAX 待 spike) |
 | TR-skeuoui-012 | 无障碍四钩子:字号缩放/高对比/焦点指示/减少动效在元件库级内建 | ADR-013 ✅ |
 
+## Stories
+
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | 拟物元件库基础(纸/卷轴/墨迹/印章 · 九宫格 · 主题变量 · 图集) | UI | Ready | ADR-013 |
+| 002 | 焦点门状态机 + 焦点导航呈现桥 | Logic | Ready | ADR-013 + ADR-011 |
+| 003 | 焦点导航边界(rank 数据断言 · 焦点悬空回退 · 空行反馈 · 同键双触发禁令) | Logic | Ready | ADR-013 + ADR-011 |
+| 004 | 数据边界守卫(DTO Guard · 符号禁令 · 调试视图白名单 · IModalState) | Logic | Ready | ADR-013 + ADR-005 + ADR-008 |
+| 005 | 世界空间锚点面片(敌人读数条 · 黄铜侧 · billboard 面片) | Integration | Ready | ADR-013 |
+| 006 | 医馆面板渲染 + 刷新延迟契约 | Integration | Ready | ADR-013 |
+| 007 | 数据边界收尾(设置壳不缓存 · 元件库唯一出口 · 墨龄数据路径) | Logic | Ready | ADR-013 + ADR-005 |
+| 008 | 无血条替代反馈(纸面物理行为 · 印章 · 页边记号 · 拒绝权降级白名单) | Integration | Ready | ADR-013 |
+| 009 | 焦点可见样式 + 无障碍钩子接口(字号缩放 / 动效缩放 / 焦点可见样式契约) | UI | Ready | ADR-013 |
+| 010 | 焦点门时序与过渡(PlayMode 帧探针 · 过渡窗口 ≤1 frame · 不可重入) | Visual/Feel | Ready | ADR-013 |
+| 011 | 脉案页渲染 + 焦点导航(五通道区 + 两栏 · 焦点顺序面色→语声→呼吸→触感→病名) | UI | Ready | ADR-013 |
+| 012 | 存档位界面渲染 + 焦点 | UI | Ready | ADR-013 |
+| 013 | 库存容器界面渲染 + 焦点(翻页制 · ≤12 件/屏 · 器物有重量) | UI | Ready | ADR-013 |
+| 014 | 设置界面壳(总线音量 + mono · 条目语义归 44 · 42 不缓存) | UI | Ready | ADR-013 + ADR-018 |
+| 015 | 教学界面(纸堆翻页走查 · 零按键提示浮层 · 手柄单机走查) | UI | Ready | ADR-013 + ADR-011 |
+| 016 | 教学纸近景(ModalId.PaperCloseup48 · 世界内单张纸近景 · 走近摊纸) | UI | Ready | ADR-013 |
+| 017 | 敌人读数条完整实现(黄铜面片材质 · 蚀刻刻度 · 淡入淡出 · 六态机映射) | Visual/Feel | Ready | ADR-013 |
+| 018 | 开发者调试视图(仅 Development Build · 焦点栈/元件库/DTO 绑定结果 · 不显示游戏数值) | UI | Ready | ADR-013 |
+
+Counts: 5 Logic · 3 Integration · 2 Visual/Feel · 8 UI = 18 total.
+43 条 AC 全覆盖(按子条拆入);全 ADR Accepted ⇒ 零 ADR-blocked story。
+
 ## Definition of Done
 
 This epic is complete when:
@@ -58,4 +84,4 @@ This epic is complete when:
 
 ## Next Step
 
-Run `/create-stories skeuomorphic-ui` to break this epic into implementable stories.
+Run `/story-readiness` on each story before implementation. Work through stories in order — each story's `Depends on:` field tells you what must be DONE before you can start it.

@@ -1,0 +1,35 @@
+/* Scroll Element — USS (AC-42-C2 / AC-42-C5) */
+
+.scroll {
+    background-color: var(--skeuo-scroll-bg);
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-top-color: var(--skeuo-scroll-border);
+    border-right-color: var(--skeuo-scroll-border);
+    border-bottom-color: var(--skeuo-scroll-border);
+    border-left-color: var(--skeuo-scroll-border);
+    padding-top: var(--skeuo-shared-space-lg);
+    padding-right: var(--skeuo-shared-space-lg);
+    padding-bottom: var(--skeuo-shared-space-lg);
+    padding-left: var(--skeuo-shared-space-lg);
+    -unity-slice-left: 16px;
+    -unity-slice-right: 16px;
+    -unity-slice-top: 16px;
+    -unity-slice-bottom: 16px;
+}
+
+.scroll .ink {
+    color: var(--skeuo-scroll-fg);
+    font-family: var(--skeuo-font-family);
+    font-size: var(--skeuo-font-size-md);
+}
+
+/* 卷轴杆(纯装饰,不承载文本) */
+.scroll-rod {
+    background-color: var(--skeuo-scroll-rod);
+    height: 6px;
+    margin-top: var(--skeuo-shared-space-sm);
+    margin-bottom: var(--skeuo-shared-space-sm);
+}

@@ -1,0 +1,36 @@
+/* Paper Element — USS (AC-42-C2: colors/sizes reference variables only; AC-42-C5: no hardcoded font-size) */
+
+.paper {
+    background-color: var(--skeuo-paper-bg);
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-top-color: var(--skeuo-paper-border);
+    border-right-color: var(--skeuo-paper-border);
+    border-bottom-color: var(--skeuo-paper-border);
+    border-left-color: var(--skeuo-paper-border);
+    border-top-left-radius: var(--skeuo-shared-radius);
+    border-top-right-radius: var(--skeuo-shared-radius);
+    border-bottom-right-radius: var(--skeuo-shared-radius);
+    border-bottom-left-radius: var(--skeuo-shared-radius);
+    padding-top: var(--skeuo-shared-space-md);
+    padding-right: var(--skeuo-shared-space-md);
+    padding-bottom: var(--skeuo-shared-space-md);
+    padding-left: var(--skeuo-shared-space-md);
+    -unity-slice-left: 12px;
+    -unity-slice-right: 12px;
+    -unity-slice-top: 12px;
+    -unity-slice-bottom: 12px;
+}
+
+/* 变体: aged — 通过 USS 变量覆盖实现(禁止同类型内通过颜色/尺寸模拟变体, AC-42-C4) */
+.paper-aged {
+    background-color: var(--skeuo-paper-bg-aged);
+}
+
+.paper .ink {
+    color: var(--skeuo-ink-fg);
+    font-family: var(--skeuo-font-family);
+    font-size: var(--skeuo-font-size-md);
+}
