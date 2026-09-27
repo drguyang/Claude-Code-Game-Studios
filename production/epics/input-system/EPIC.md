@@ -3,8 +3,8 @@
 > **Layer**: Foundation
 > **GDD**: design/gdd/input-system.md
 > **Architecture Module**: L4 边界层(呈现侧 · EDGE)
-> **Status**: Ready
-> **Stories**: 13 stories created (2026-09-25)
+> **Status**: Complete
+> **Stories**: 13 stories created (2026-09-25), 13 complete (2026-09-27)
 
 ## Overview
 
@@ -69,21 +69,17 @@
 | 008 | 设备态与呈现契约(QueryBinding · 合成 release · Mixed 迟滞) | Integration | Complete | ADR-011 |
 | 009 | 焦点导航意图视图与单一真源 | Logic | Complete | ADR-011 + ADR-013 |
 | 010 | 热路径零成本(预缓存 · Idle 零调用 · 零分配) | Logic | Complete | ADR-011 |
-| 011 | L_input→pixel 延迟实测与 L_render/L_poll 分解 | Visual/Feel | In Progress | ADR-011 |
+| 011 | L_input→pixel 延迟实测与 L_render/L_poll 分解 | Visual/Feel | Complete | ADR-011 |
 | 012 | 开发者调试视图与构建剥离 | UI | Complete | ADR: N/A — GDD §UI 二纯呈现侧开发工具规格,无架构裁决需求(E2② CI 载体归 ADR-012,非治理件) |
 | 013 | 反幻想守门登记面(P0 / 后阶段) | UI | Complete | ADR-011 + ADR-013 |
 
 Counts: 5 Logic · 5 Integration · 1 Visual/Feel · 2 UI = 13 total.
 30 条 AC 全覆盖(A4/A9/B1b/B2/E2/E3/F1 按子条拆入);全 ADR Accepted ⇒ 零 ADR-blocked story。
 
-## Definition of Done
+## Epic Status
 
-This epic is complete when:
-- All stories are implemented, reviewed, and closed via `/story-done`
-- All acceptance criteria from `design/gdd/input-system.md` are verified
-- All Logic and Integration stories have passing test files in `tests/`
-- All Visual/Feel and UI stories have evidence docs with sign-off in `production/qa/evidence/`
+**Complete** — All 13 stories reviewed, tested, and closed.
 
 ## Next Step
 
-Run `/story-readiness production/epics/input-system/story-001-action-asset-identity.md` to validate before starting, then `/dev-story` to implement. Stories work in dependency order — each story's `Depends on:` field gates its start。
+All stories closed. No further work in this epic unless reopened by a new ADR or requirement change.
