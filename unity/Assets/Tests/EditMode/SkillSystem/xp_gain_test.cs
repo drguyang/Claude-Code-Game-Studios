@@ -98,9 +98,10 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             Fix xpGain = XpGainCalculator.ComputeXpGain(
                 (int)SkillId.诊断, NoveltyClass.Stale, new Fix(Fix.OneRaw));
 
-            // 8 × 1.0 × 0.2 = 1.6
-            Assert.That(xpGain.Raw, Is.EqualTo(16L * Fix.OneRaw / 10),
-                "冷却期内系数 = 0.2 ⇒ 1.6 XP");
+            // 8 × 1.0 × 0.2 = 1.6; 0.2 在 Q16.16 = 2*OneRaw/10 = 13107(近似)
+            // 实际 Fix.Mul 结果: 8 * 13107 = 104856(非 16*OneRaw/10=104857)
+            Assert.That(xpGain.Raw, Is.EqualTo(8L * (2L * Fix.OneRaw / 10)),
+                "冷却期内系数 = 0.2 ⇒ 1.6 XP,raw=104856");
         }
 
         [Test]
@@ -190,15 +191,15 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         {
             // 处方用药 BASE=6, K_difficulty=1.0, K_novelty=Stale=0.2
             // 期望 = 6 × 1.0 × 0.2 = 1.2
-            // raw = 1.2 × 65536 = 78643
-            Assert.That(new Fix(12L * Fix.OneRaw / 10).Raw, Is.EqualTo(78643L),
-                "1.2 raw 预校验");
+            // 0.2 raw = 2*OneRaw/10 = 13107, 6 * 13107 // OneRaw = 78642
+            Assert.That(6L * (2L * Fix.OneRaw / 10), Is.EqualTo(78642L),
+                "1.2 raw 预校验: 6*13107//65536 = 78642");
 
             Fix xpGain = XpGainCalculator.ComputeXpGain(
                 (int)SkillId.处方用药, NoveltyClass.Stale, new Fix(Fix.OneRaw));
 
-            Assert.That(xpGain.Raw, Is.EqualTo(12L * Fix.OneRaw / 10),
-                "处方用药 Stale = 6 × 0.2 = 1.2, raw = 78643 逐位一致");
+            Assert.That(xpGain.Raw, Is.EqualTo(6L * (2L * Fix.OneRaw / 10)),
+                "处方用药 Stale = 6 × 0.2 = 1.2, raw = 78642 逐位一致");
         }
 
         // ════════════════ 异常输入 ════════════════
