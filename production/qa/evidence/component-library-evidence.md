@@ -4,10 +4,11 @@
 > **Epic**: 拟物 UI 框架
 > **Status**: Complete (build-time contracts enforced; runtime spike pending)
 > **Date**: 2026-09-27
-> **Review Findings**: 4 BLOCKING findings fixed in final review batch:
->   - BLK-1/2: ThemeVariableReferenceValidator population (was unpopulated → C2 always false-positive)
->   - BLK-3: VariantSuffix hardcoded table → registry-driven (SkeuoElementLibrary)
->   - BLK-4: Registry initialization hook added (SkeuoComponentRegistry.InitializeDefaults)
+> **Review Findings**: Second-pass review fixed 3 additional BLOCKING items:
+>   - BLOCKING-1: Hardcoded px border/size values in USS → added theme variables and replaced
+>   - BLOCKING-2: GUID-based asmdef references → converted to string assembly names
+>   - BLOCKING-3: Variant quota mismatch (Ink 3 slots, only 1 variant) → matched slots to USS variants
+> First-pass BLOCKING items (B-1..B-4) were already fixed in earlier review batch.
 
 ---
 
