@@ -1,7 +1,7 @@
 # Story 002: 焦点门状态机 + 焦点导航呈现桥
 
 > **Epic**: 拟物 UI 框架
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4-5 hours
@@ -126,3 +126,13 @@
 
 - Depends on: None
 - Unlocks: Story 003 (焦点导航边界), Story 011 (脉案页焦点导航), Story 012 (存档位界面焦点), Story 013 (库存容器焦点)
+
+## Completion Notes
+**Completed**: 2026-09-27
+**Criteria**: 7/7 passing
+**Deviations**: None
+**Test Evidence**: Logic — test file at `tests/unit/skeuomorphic-ui/focus_gate_and_bridge_test.cs` (8 test functions, all passing on Unity 6.3 EditMode)
+**Code Review**: Complete — APPROVED WITH SUGGESTIONS (2 non-blocking test robustness suggestions)
+**Desktop Review Items** (require desktop Unity editor):
+- Verify `FocusNavigationBridge.Update()` transition window timing in actual Editor
+- Spike Unity 6.3 official focus quality to decide if downgrade path should activate
