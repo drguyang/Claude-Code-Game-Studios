@@ -66,6 +66,14 @@
 
 ---
 
+## Test Evidence
+
+**Story Type**: Logic
+**Required evidence**: `unity/Assets/Tests/EditMode/SkillSystem/skill_registry_test.cs` — must exist and pass
+**Status**: [x] Created 2026-09-28 — 23 tests, all passing
+
+---
+
 ## Completion Notes
 **Completed**: 2026-09-28
 **Criteria**: 23/23 passing

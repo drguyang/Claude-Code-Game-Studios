@@ -125,7 +125,7 @@ Story 003 生成器已用后者);`TierFilterDriver`(Story 004)经 `IMixerParamet
   (登记路径原写仓库根 `tests/...`,Unity 只编译 `unity/Assets/` 树 —— 承 Story 002/003/004 先例)
 - 账本互链 `tests/unit/audio_system/README.md`(AC→测映射)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Audio/tier_filter_carrier_test.cs`(11 测);账本互链 `tests/unit/audio_system/README.md`
 
 ---
 

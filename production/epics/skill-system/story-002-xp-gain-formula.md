@@ -64,6 +64,14 @@
 
 ---
 
+## Test Evidence
+
+**Story Type**: Logic
+**Required evidence**: `unity/Assets/Tests/EditMode/SkillSystem/xp_gain_test.cs` — must exist and pass
+**Status**: [x] Created 2026-09-28 — 18 tests, all passing
+
+---
+
 ## Completion Notes
 **Completed**: 2026-09-28
 **Criteria**: 18/18 passing
