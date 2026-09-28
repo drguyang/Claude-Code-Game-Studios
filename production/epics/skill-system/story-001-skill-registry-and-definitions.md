@@ -6,9 +6,7 @@
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-27
-> **Status**: Complete
-
+> **Last Updated**: 2026-09-28
 ## Context
 
 **GDD**: `design/gdd/skill-system.md`(§3.1 技能清单 · §3.3 死亡惩罚 · §4.1 BASE 默认值 · §7 调参旋钮)
