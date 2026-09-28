@@ -108,7 +108,7 @@
 **Story Type**: Logic
 **Required evidence**: `Assets/Tests/EditMode/SkeuomorphicUI/focus_boundary_test.cs` — must exist and pass
 
-**Status**: [x] Created
+**Status**: [x] Created + VERIFIED — 真身 `unity/Assets/Tests/EditMode/SkeuomorphicUI/focus_boundary_test.cs`(6 测全过)
 
 ---
 
@@ -116,3 +116,13 @@
 
 - Depends on: Story 002 (焦点门状态机 + 焦点导航呈现桥必须就绪)
 - Unlocks: Story 010 (焦点门时序与过渡)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-28
+**Criteria**: 6/6 AC passing（rank 满射单射 / K=0 门关 / 空行无字 / 置信度不溢 / 焦点悬空回退 / 同键双触发禁令）
+**Deviations**: None
+**Test Evidence**: Logic — `unity/Assets/Tests/EditMode/SkeuomorphicUI/focus_boundary_test.cs` — all passing
+**Code Review**: Complete — APPROVED
+**Manifest**: v2026-09-21 一致

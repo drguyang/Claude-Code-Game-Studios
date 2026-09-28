@@ -1,7 +1,7 @@
 # Story 013: 主通道听测验收
 
 > **Epic**: 音频系统
-> **Status**: Complete
+> **Status**: Complete — AC-44-17 文档判据 PASS（编辑侧 7 测全过）；听测执行 BLOCKED-BY 被试排期（人工 [L] AC，不在自动化覆盖面）
 > **Layer**: Foundation(系统分类;验收面落表现层)
 > **Type**: Visual/Feel
 > **Estimate**: 4h(含被试排期)

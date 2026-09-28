@@ -118,7 +118,7 @@
 **Story Type**: Logic
 **Required evidence**: `tests/unit/skeuomorphic-ui/focus_gate_and_bridge_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created + VERIFIED — 真身 `unity/Assets/Tests/EditMode/SkeuomorphicUI/focus_gate_and_bridge_test.cs`(8 测全过)
 
 ---
 

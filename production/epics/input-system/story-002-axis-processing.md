@@ -23,6 +23,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: 外部数据 → `Fix` 只经 `FixParse`(`FromRatio(long,long)`);浮点字面量 schema 层即拒(manifest Foundation · 定点域与边界)
 - Required: 常量比值化经 ADR-014 管线 —— 本 GDD 不引入任何 `float` 字面量(用户裁定③)
+- Forbidden: `float` 字面量直接出现在 F-3.1 常量定义;绕过 FixParse 的比值装载路径(D-21-17)
 - Guardrail: F-3.1 除装载期断言外**无其他机械门**(`AC-3-A9` 是它唯一的守门 —— GDD §Tuning Knobs 一)
 
 ---

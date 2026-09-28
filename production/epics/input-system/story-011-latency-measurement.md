@@ -102,3 +102,13 @@
 
 - Depends on: None(探针自包含，直接读键盘 E 键；不依赖 EmergencyDirectReadChannel)
 - Unlocks: None(验收线收口;实测执行挂 `/test-setup` 轮)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-27
+**Criteria**: 3/3 AC passing（均值 0.59ms ≤ 50ms，方法学四要素完整，L_render/L_poll 分解自洽）
+**Deviations**: None
+**Test Evidence**: Visual/Feel — `production/qa/evidence/latency-measurement-evidence.md` + 桌面实测 76 样本, 均值 0.59ms, p95 0.78ms
+**Code Review**: Complete — APPROVED
+**Manifest**: v2026-09-21 一致

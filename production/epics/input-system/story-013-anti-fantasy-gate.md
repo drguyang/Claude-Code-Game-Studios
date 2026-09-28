@@ -96,3 +96,13 @@
 
 - Depends on: Story 008(`iconKey` 键名是本故事的交接内容)
 - Unlocks: 42 / 48 联合走查轮(消费键名清单与门登记)· F1b 的 P1a/P1b 阶段门
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-25
+**Criteria**: 3/3 AC passing（F1a① 零渲染确认 · F1a② 键名清单交接 · F1b 登记不执行）
+**Deviations**: None — 联合走查部分标 BLOCKED-BY(42/48), 禁借绿
+**Test Evidence**: UI — `production/qa/evidence/anti-fantasy-gate-evidence.md`（3 侧交付完成:零渲染确认 + 键名交接 + 门登记）
+**Code Review**: Complete — APPROVED
+**Manifest**: v2026-09-21 一致

@@ -14,7 +14,9 @@
 **Requirement**: ⚠️ **无专属 TR** —— 直引 GDD `AC-3-E2` 与 §UI Requirements 二(开发者调试视图三条件)
 *(Requirement text lives in `docs/architecture/tr-registry.yaml` — read fresh at review time;本故事判据权威出处 = GDD AC 原文)*
 
-**ADR Governing Implementation**: `ADR: N/A — GDD §UI 二「开发者调试视图(非玩家可见)」是纯呈现侧开发工具规格,无架构裁决需求;取向已由 GDD 明文锚定(同 13 / 51 / ADR-019 §五),不新立边界。` **载体注记(非治理件)**:AC-E2② 的 CI 命名 job(`player-symbol-check`)与 `.github/workflows/` 同属「判据已定、载体未建」八条(GDD §Dependencies 五),**与 ADR-012 CI 门同批落地** —— ADR-012 不在本 Epic 治理清单,本故事只交付 ② 的**工具/脚本本体与其可跑断言**,CI job 挂账另轮。
+**ADR Governing Implementation**: ADR-011(主): 输入架构 · ADR-019(次): 遥测与隐私(§五 开发者切面)
+**ADR Decision Summary**: ADR-011 —— 3 的「零存在感」玩家幻想是反幻想门的动机来源;3 侧义务 = 交付 `iconKey` 键名而不渲染任何按键提示。ADR-019 §五 —— 开发者调试视图 = 本地优先的开发者切面,零出厂数据;呈现层只读不持状态。
+**载体注记(非治理件)**:AC-E2② 的 CI 命名 job(`player-symbol-check`)与 `.github/workflows/` 同属「判据已定、载体未建」八条(GDD §Dependencies 五),**与 ADR-012 CI 门同批落地** —— ADR-012 不在本 Epic 治理清单,本故事只交付 ② 的**工具/脚本本体与其可跑断言**,CI job 挂账另轮。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: MEDIUM
 **Engine Notes**: `#if UNITY_EDITOR || DEVELOPMENT_BUILD` 是长期稳定的编译期符号;MEDIUM 来自 ② 的「检查已生成 player 符号」—— 符号面在 IL2CPP/Mono 与裁剪下行为差异须实测(ADR-012 F7 spike 同族),且**载体(命名工具)尚不存在**,断言设计须先于载体落地。
@@ -96,3 +98,13 @@
 
 - Depends on: Story 001(视图观察的是唯一动作资产上的 action 值)
 - Unlocks: None(开发期工具,不被下游故事消费;调试视图显示「最近意图」读 Story 006 交出物)
+
+---
+
+## Completion Notes
+**Completed**: 2026-09-25
+**Criteria**: 3/3 AC passing（E2① #if 包裹断言 · E2② 符号工具可跑 · UI-2 三条件+内容清单）
+**Deviations**: None
+**Test Evidence**: UI — `production/qa/evidence/developer-debug-view-evidence.md`（Dev 可见 / Release 不可见 / 无 raw 数值 / 无焦点栈条目 + 签核）
+**Code Review**: Complete — APPROVED
+**Manifest**: v2026-09-21 一致
