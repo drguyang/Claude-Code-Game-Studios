@@ -45,6 +45,9 @@ namespace DaYiJingCheng.Gameplay.Presentation.Skeuomorphic
         /// <summary>状态变更事件。</summary>
         public event EventHandler<FocusGateStateChangedEventArgs> StateChanged;
 
+        /// <summary>上一活跃态(用于取消过渡时的保守回退)。</summary>
+        private FocusGateState _previousActiveState = FocusGateState.FlatActive;
+
         /// <summary>初始化状态机,默认态 = 平面拟物 UI 独占。</summary>
         public FocusGateStateMachine()
         {
@@ -74,6 +77,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Skeuomorphic
             if (IsTransitioning && TargetState == target)
                 return false;
 
+            _previousActiveState = CurrentState;
             FocusGateState previous = CurrentState;
             CurrentState = FocusGateState.Transitioning;
             TargetState = target;
@@ -113,7 +117,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Skeuomorphic
                 return false;
 
             FocusGateState previous = CurrentState;
-            CurrentState = TargetState ?? FocusGateState.FlatActive;
+            CurrentState = _previousActiveState;
             TargetState = null;
 
             StateChanged?.Invoke(this, new FocusGateStateChangedEventArgs(previous, CurrentState));
