@@ -407,3 +407,48 @@
 > 2. **字幕 per-cue 验证**:`test_subtitleKeySet_coveredByEventTable` 用 `HasSubtitleForCue` 检查该 cue 行内 500 字符内是否有 subtitle_text(非全局搜索)。
 > 3. **归零契约面形状**:3 个 reset 测试验证归零三步语义(写默认 → 推 mixer → 落 sidecar)+ sidecar 持久化契约面形状,生产实现后应替换为调用真实接口。
 > 4. **mono 出厂默认 inconclusive**:出厂默认值归 ADR-014 烘焙分区(用户调),当前阶段生产代码未实现,用 `Assert.Inconclusive` 明确标记待验证。
+
+## Story 012(乐层护栏与性能/VR 切面 —— AC-44-18 / E2 / E1 / AC-44-11)
+
+故事头登记的证据路径为
+`tests/unit/audio_system/music_guardrails_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/Audio/music_guardrails_test.cs`**(类 `MusicGuardrailsTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Audio/music_guardrails_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 被测契约 | `unity/Assets/Gameplay.Presentation/Audio/MixerRegistry.cs`(`BusVolumeParameters` 7 路) |
+| 被测 ADR | `docs/architecture/adr-018-audio-architecture.md`(§六 G1-G3 护栏) |
+| 被测 GDD | `design/gdd/audio-system.md`(AC-44-18/E2/E1/11 + §Tuning Knobs) |
+| 运行方式 | `unity test unity --mode EditMode --filter MusicGuardrailsTest` |
+
+> 读法纪律:本 story 生产代码(乐层护栏/DSP 预算探针/VR 切面)尚未实现,
+> 测试用自持谓词面(MusicXfadeGuard/DspBudgetGuard)。
+> `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`MusicGuardrailsTest` 内) | 性质 |
+|---|---|---|
+| **AC-44-18:xfade_ms 下界** | `test_musicXfade_belowMin_rejected` | BLOCKING |
+| **AC-44-18:xfade_ms 边界** | `test_musicXfade_atMin_accepted` | BLOCKING |
+| **AC-44-18:xfade_ms 上界** | `test_musicXfade_aboveMin_accepted` | BLOCKING |
+| **AC-44-18:trigger_source** | `test_musicLayer_triggerSource_isEncounterMusicLayer` | BLOCKING |
+| **AC-44-18 ②:G1-G3 护栏** | `test_musicLayer_g1g3Guardrails_registered` | BLOCKING |
+| **AC-44-18:MUSIC_XFADE_MIN_MS 登记** | `test_musicXfadeMinMs_registeredInTuning` | BLOCKING |
+| **AC-44-E2:P95 正例** | `test_dspBudget_p95WithinBudget` | BLOCKING |
+| **AC-44-E2:P95 负例** | `test_dspBudget_p95Exceeds_rejected` | BLOCKING |
+| **AC-44-E2:测量点注册表** | `test_dspBudget_measurementRegistry_noEmit` | BLOCKING |
+| **AC-44-E1:P0 无 VR 音频** | `test_vrAudio_p0Build_noVrAudioRefs` | BLOCKING |
+| **AC-44-E1:P1b 切面登记** | `test_vrAudio_p1bFacet_registered` | BLOCKING |
+| **AC-44-11:BLOCKED-BY-P1b** | `test_vrListen_ac4411_blockedByP1b` | BLOCKING |
+
+> **测试数**:`music_guardrails_test` = **12**。
+> ⚠️ 四条易错点的落地证据:
+> 1. **乐层护栏用自持谓词**:`MusicXfadeGuard.IsXfadeValid(xfadeMs, min)` = `xfadeMs >= min`(构建期数值比较)。
+> 2. **G1-G3 护栏登记**:`test_musicLayer_g1g3Guardrails_registered` 验证 ADR-018 §六含 G1/G2/G3 三条护栏文本。
+> 3. **AC-44-11 禁借绿**:GDD AC-44-11 行补 `状态 = BLOCKED-BY-P1b` 标记,测试改查 `Contains("BLOCKED-BY-P1b")`。
+> 4. **GDD 补登记 AUDIO_BUDGET_MS**:AC-44-E2 DSP 预算登记旋钮入 §Tuning Knobs(安全范围 ≤ 帧预算 15% 类)。
