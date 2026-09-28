@@ -1,6 +1,6 @@
 # UX Design Index
 
-> **Status**: Draft — 待 `/ux-review` 验收
+> **Status**: Approved(2026-09-28 `/ux-review` 轮评审通过;⚠️ 限定:评审通过 ≠ 走查执行 —— UX-01 全族 AC 仍逐条 `[ ]` NOT-RUN,残余 = 45 联机夹具 + 各屏走查执行)
 > **Last Updated**: 2026-09-28
 > **Purpose**: UX 设计的单一入口;每份 spec 的元信息、状态、关联文档在一处可查。
 
@@ -31,7 +31,7 @@
 | 焦点单栈门 | `interaction-patterns.md` P-03 | In Design |
 | 模态开集只读契约 `IModalState` | `interaction-patterns.md` P-04 | In Design |
 | 纸面近景渲染形态 | `interaction-patterns.md` P-05 | In Design |
-| 方笺 = 脉案同一本书 | `interaction-patterns.md` P-06 | In Design(2026-09-21 确认) |
+| 无提示音 / 无提示色报状态 | `interaction-patterns.md` P-06 | In Design(2026-09-21 确认) |
 
 > **状态说明**: Interaction Pattern Library 只登记**已由 Accepted ADR / Approved GDD 裁出**的模式;新屏新模态逐轮补。
 
@@ -77,6 +77,6 @@
 
 | # | 事项 | 说明 |
 |---|------|------|
-| UX-01 | 全族 AC 仍逐条 `[ ]` NOT-RUN | 评审通过 ≠ 走查执行;残余硬前置 = ~~R8~~ ✅ / 45 联机夹具(OQ-TUT-2 / OQ-CP-2 等) |
+| UX-01 | 全族 AC 仍逐条 `[ ]` NOT-RUN | R8 已解除(2026-09-25);残余 = 45 联机夹具 + 各屏走查执行(归实现轮) |
 | UX-02 | 手柄焦点导航 P1a 集中调试 | 不零散插入实现;桌面一轮解决(承 `feedback-gamepad-deferred.md`) |
 | UX-03 | VR 版本全部不做(P1a) | VR 急救不在 P0 关键路径;VR 版脉案/出诊箱推 P1a |
