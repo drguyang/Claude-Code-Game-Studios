@@ -162,7 +162,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Skeuomorphic
         /// 每帧更新(由 MonoBehaviour Update 调用)。
         /// <para>处理过渡窗口计时与焦点悬空检测。</para>
         /// </summary>
-        public void Tick()
+        private void Tick()
         {
             if (!_isInitialized)
                 return;
