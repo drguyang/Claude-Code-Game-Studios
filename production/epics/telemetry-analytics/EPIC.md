@@ -4,7 +4,7 @@
 > **GDD**: design/gdd/telemetry-analytics.md
 > **Architecture Module**: L4 边界层(呈现侧)· EDGE(`JudgmentMetrics` 本地只读重算)
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories telemetry-analytics`
+> **Stories**: 10 created(2026-09-28 `/create-stories` 拆分)
 
 ## Overview
 
@@ -63,6 +63,21 @@ This epic is complete when:
 - All Logic and Integration stories have passing test files in `tests/`
 - All Visual/Feel and UI stories have evidence docs with sign-off in `production/qa/evidence/`
 
+## Stories
+
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | 只读边界与零出厂 | Integration | **Complete ✅ 2026-09-28**(4/4 · 11 测 · 双评审 B1-B3+QA B1-B7 修复验 1180/1186) | ADR-019 |
+| 002 | F1 判断准确率 | Logic | Ready | ADR-019+006 |
+| 003 | F2 误诊分布 | Logic | Ready | ADR-019+006 |
+| 004 | F3 跳过率 | Logic | Ready | ADR-019 |
+| 005 | F4 熟练度成长 | Logic | Ready | ADR-019+006 |
+| 006 | F5 难度曲线 | Logic | Ready | ADR-019 |
+| 007 | F6 局内时长 + F7 节律 | Logic | Ready | ADR-019+006 |
+| 008 | 纯函数与可复算 | Logic | Ready | ADR-019+012 |
+| 009 | 空白与退化 | Logic | Ready | ADR-019 |
+| 010 | 越界拒绝 | Logic | Ready | ADR-019 |
+
 ## Next Step
 
-Run `/create-stories telemetry-analytics` to break this epic into implementable stories.
+Run `/story-readiness production/epics/telemetry-analytics/story-001-readonly-boundary-zero-egress.md` → `/dev-story` to begin implementation(依序:001 → 002 → …,各故事 `Depends on:` 为准)。
