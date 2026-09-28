@@ -24,7 +24,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
     {
         /// <summary>AC-1/AC-2 主例: 60 × 0.95(Q16.16 raw=62259) = floor(56.999) = 56。</summary>
         [Test]
-        public void test_ac1_level60_returns56()
+        public void test_ac2_level60_returns56()
         {
             int result = DeathPenalty.Apply(60, SkillTuningTable.Default.DeathLoss);
             Assert.That(result, Is.EqualTo(56),
@@ -33,7 +33,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
 
         /// <summary>AC-1/AC-2 边缘: 40 × 0.95(Q16.16 raw=62259) = floor(37.999) = 37。</summary>
         [Test]
-        public void test_ac1_level40_returns37()
+        public void test_ac2_level40_returns37()
         {
             int result = DeathPenalty.Apply(40, SkillTuningTable.Default.DeathLoss);
             Assert.That(result, Is.EqualTo(37),
@@ -47,6 +47,16 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             int result = DeathPenalty.Apply(20, SkillTuningTable.Default.DeathLoss);
             Assert.That(result, Is.EqualTo(18),
                 "Apply(20, 0.95) = floor(18.999) = 18(Q16.16 截断)");
+        }
+
+        /// <summary>定点中间值验证: 20 × DEATH_LOSS 的 raw 值 = 1245518(floor 截断前)。</summary>
+        [Test]
+        public void test_ac4_rawValue_beforeTruncation()
+        {
+            Fix product = new Fix(20L * Fix.OneRaw) * SkillTuningTable.Default.DeathLoss;
+            // 20 * 65536 * 0.95(Q16.16 raw=1245180), raw 值验证截断前定点乘积
+            Assert.That(product.Raw, Is.EqualTo(1245180L),
+                "20 × 0.95 的 Q16.16 raw = 1245518,floor(18.999) 前验证");
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -97,6 +107,15 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         // 异常输入验证
         // ═══════════════════════════════════════════════════════════════════
 
+        /// <summary>等级超出 SKILL_CAP: Apply(61, 0.95) → 56(不抛异常,仅上限越界)。</summary>
+        [Test]
+        public void test_ac2_levelAboveCap_returnsTruncated()
+        {
+            int result = DeathPenalty.Apply(61, SkillTuningTable.Default.DeathLoss);
+            Assert.That(result, Is.EqualTo(57),
+                "Apply(61, 0.95) = floor(57.949) = 57(超上限仍截断)");
+        }
+
         /// <summary>负等级 → ArgumentOutOfRangeException。</summary>
         [Test]
         public void test_negativeLevel_throws()
@@ -119,5 +138,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             Assert.That(SkillTuningTable.Default.DeathLoss.Raw, Is.EqualTo(expected.Raw),
                 "Default.DeathLoss = FixParse('19/20') = 0.95");
         }
+        // TODO: AC-5 — SkillGrown 事件触发契约由 Story 007 覆盖测试,
+        // 本文件只定义「掉级后触发」语义,不验证事件机制。
     }
 }
