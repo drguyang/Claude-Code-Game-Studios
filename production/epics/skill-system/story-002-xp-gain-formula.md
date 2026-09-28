@@ -1,12 +1,12 @@
 # Story 002: 单次经验增益公式
 
 > **Epic**: 技能与熟练度
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-27
+> **Last Updated**: 2026-09-28
 
 ## Context
 
@@ -64,55 +64,12 @@
 
 ---
 
-## QA Test Cases
-
-**[Logic story — automated test specs]:**
-
-- **AC-1**: XP_gain 定点求值正确
-  - Given: BASE(诊断)=8, K_difficulty=1.5, K_novelty=First(3.0)
-  - When: ComputeXpGain(诊断, object, First, 1.5)
-  - Then: Fix(8) × Fix(1.5) × Fix(3.0) = Fix(36) — 与手工 Q16.16 计算一致
-  - Edge cases: BASE=0(奔跑低频) → XP_gain=0; K_difficulty=0(异常入参) → XP_gain=0
-
-- **AC-2**: BASE 默认值可配置
-  - Given: 调参表已加载,诊断 BASE = Fix(8)
-  - When: 读取诊断的 BASE
-  - Then: 返回 Fix(8)
-  - Edge cases: 不存在的 skillId → KeyNotFound 或默认值(看注册表设计)
-
-- **AC-3**: K_novelty 三档系数正确
-  - Given: noveltyClass = First / Stale / Normal
-  - When: 查表获取系数
-  - Then: First → Fix(3.0), Stale → Fix(0.2), Normal → Fix(1.0)
-  - Edge cases: 未定义 noveltyClass → 构建期断言失败
-
-- **AC-4**: K_difficulty 作为外部入参
-  - Given: caller 传入 K_difficulty = Fix(0.5)(诊断错误场景)
-  - When: ComputeXpGain(诊断, object, Normal, 0.5)
-  - Then: BASE × 0.5 × 1.0 = 半值经验
-  - Edge cases: K_difficulty = 3.0(上限) → 三倍经验
-
-- **AC-5**: SKILL_CAP 上限由 caller 判断,本方法不做截断
-  - Given: 等级 59 的诊断, XP_gain = Fix(100)
-  - When: ComputeXpGain(...) 被调用
-  - Then: 返回 Fix(100)(不做截断;59→60 的升级判定在 Story 003)
-  - Edge cases: 等级 60 时 caller 不应调用本方法(Story 003 负责)
-
-- **AC-6**: 定点求值逐位一致
-  - Given: 手工计算的 Fix 期望值(如 Fix(36) raw = 2359296)
-  - When: 运行 ComputeXpGain 并提取 raw long
-  - Then: raw long == 手工计算值
-  - Edge cases: 边界值 BASE=0.2(奔跑)×K_difficulty=1.0×K_novelty=1.0 → Fix(0.2) raw = 13107
-
----
-
-## Test Evidence
-
-**Story Type**: Logic
-**Required evidence**: `tests/unit/skill-system/xp_gain_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
-
----
+## Completion Notes
+**Completed**: 2026-09-28
+**Criteria**: 18/18 passing
+**Deviations**: None
+**Test Evidence**: Logic: `unity/Assets/Tests/EditMode/SkillSystem/xp_gain_test.cs` — 18 tests, all passing
+**Code Review**: Unity-specialist APPROVED + qa-tester reviewed (3 GAP tests added)
 
 ## Dependencies
 

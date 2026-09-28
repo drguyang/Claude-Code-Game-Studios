@@ -1,12 +1,12 @@
 # Story 008: 技能状态持久化与流重构
 
 > **Epic**: 技能与熟练度
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-27
+> **Last Updated**: 2026-09-28
 
 ## Context
 
@@ -108,7 +108,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `tests/integration/skill-system/persistence_rebuild_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: ✅ Complete
 
 ---
 
@@ -116,3 +116,10 @@
 
 - Depends on: Story 007(SkillGrown 事件可写) · Story 005(掉级触发 SkillGrown)
 - Unlocks: None(末条 story,技能系统核心闭环)
+
+## Completion Notes
+**Completed**: 2026-09-28
+**Criteria**: 12/12 passing (SkillStateRebuilderTest)
+**Deviations**: None
+**Test Evidence**: Integration: `unity/Assets/Tests/EditMode/SkillSystem/skill_state_rebuilder_test.cs` — 12 tests, all passing
+**Code Review**: Unity-specialist APPROVED + qa-tester reviewed (named sentinel + ordering protection added)

@@ -268,6 +268,23 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
                 "level=0 → C × 0^P = 0 XP(0^0 不进入,因 level < SKILL_CAP 且 P>0)");
         }
 
+        /// <summary>G-1 修复: 从 level=0 给 XP → 正确升级到 level=1(XpToNext(0)=0 不消耗 XP)。</summary>
+        [Test]
+        public void test_ac6_tryLevelUp_fromLevel0_gainsLevel1_withoutConsumingXp()
+        {
+            int level = 0;
+            Fix xp = Fix.Zero;
+            Fix gained = Fix.FromRational(10L, 1L);
+            var tuning = MakeTuning(c: Fix.FromRational(40L, 1L), p: Fix.One);
+
+            bool changed = SkillProgression.TryLevelUp(ref level, ref xp, gained, tuning);
+
+            Assert.That(changed, Is.True, "level=0 时应触发一次免费升级");
+            Assert.That(level, Is.EqualTo(1), "0→1");
+            Assert.That(xp.Raw, Is.EqualTo(gained.Raw),
+                "XpToNext(0)=0 不消耗 XP,全部保留");
+        }
+
         /// <summary>AC-6 补充:从 level=58 给海量 XP → 连升至 60 并钳制。</summary>
         [Test]
         public void test_ac6_tryLevelUp_nearCap_multiLevel_clampedToCap()

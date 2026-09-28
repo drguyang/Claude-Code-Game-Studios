@@ -1,7 +1,7 @@
 # Story 003: 升级曲线
 
 > **Epic**: 技能与熟练度
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h

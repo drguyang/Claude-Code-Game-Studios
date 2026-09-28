@@ -138,6 +138,7 @@ namespace DaYiJingCheng.Sim.Contracts
     /// Level 未升级 ⇒ 缺省 = 哨兵,**不写 0**。</summary>
     public readonly struct SkillGrownPayload
     {
+        public const int LevelNotGrown = -1; // 未升级哨兵(非 0,零级是真实等级)
         public readonly int ActorId;         // 施予者 = 玩家,与 player_id 共用 id 空间(ADR-006 注记)
         public readonly int PatientId;       // 成长所依附的受伤实体;-1 = 无病例语境
         public readonly int SkillId;         // 枚举:技能表 ordinal
