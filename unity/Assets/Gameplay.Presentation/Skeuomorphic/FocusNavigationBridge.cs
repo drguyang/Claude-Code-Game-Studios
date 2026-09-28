@@ -307,6 +307,13 @@ namespace DaYiJingCheng.Gameplay.Presentation.Skeuomorphic
                     // 两门皆关已在 RequestTransition 中处理
                     IsFocusActive = false;
                     break;
+
+                default:
+                    // 防御性:未知态回退至平面独占
+                    _flatStack.SetFocusGate(true);
+                    _worldStack.SetFocusGate(false);
+                    IsFocusActive = true;
+                    break;
             }
         }
 
