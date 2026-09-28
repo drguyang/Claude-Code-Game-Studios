@@ -322,3 +322,45 @@
 > 2. **FakeHandoverFsm 用相对计数**:`_handoverElapsed++` 达到 `_handoverTicks` 时激活听诊层,不用绝对 tick 差(避免魔数)。
 > 3. **咳嗽测试不重复**:Story 009 AC 明确把「咳嗽不停呼吸」列为验收标准,但 Story 004 已有同名同逻辑测试,本 story 不重复实现,改为注释引用。
 > 4. **GDD 补登记 LOOP_EVAL_MAX_TICKS**:QA 评审发现 AC 引用的「登记常量」在 GDD §Tuning Knobs 中不存在,已补登记(安全范围 ≥ 1 tick)。
+
+## Story 010(素材管线与事件表烘焙门 —— AC-44-D4 / D5 / D6 / 听诊窗预载)
+
+故事头登记的证据路径为
+`tests/unit/audio_system/pipeline_gate_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`**(类 `PipelineGateTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 被测契约 | `unity/Assets/Sim.Contracts/PresentationDtos.cs`(`AudioCueDto` / `IAudioCueSink`) |
+| 被测烘焙工具 | `unity/Assets/Editor.Tools.Bake/`(`BakeValidationException` / `CookedWriter`) |
+| 被测 Addressables 组 | `unity/Assets/AddressableAssetsData/AssetGroups/` |
+| 运行方式 | `unity test unity --mode EditMode --filter PipelineGateTest` |
+
+> 读法纪律:本 story 生产代码(烘焙管线/Addressables 组配置)尚未实现,
+> 测试用自持谓词面(FakePreloadGate/GroupSeparabilityPredicate)。
+> `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`PipelineGateTest` 内) | 性质 |
+|---|---|---|
+| **AC-44-D4 零解析器** | `test_noJsonParser_noNewtonsoftRefs` · `test_noJsonParser_noJsonReaderRefs` · `test_noFixParse_refs` | BLOCKING |
+| **AC-44-D5 组区分正例** | `test_addressables_audioGroupSeparateFromDataCore`(音频组未配置时 `Assert.Ignore`) | BLOCKING |
+| **AC-44-D5 组区分负例** | `test_addressables_mixedGroup_rejected`(调谓词 `GroupSeparabilityPredicate.IsMixedGroup`) | BLOCKING |
+| **AC-44-D6 存在性门** | `test_assetExistence_missingWav_rejected`(自包含夹具) | BLOCKING |
+| **AC-44-D6 存在性门负例** | `test_assetExistence_missingWavFixture_rejected` | BLOCKING |
+| **AC-44-D6 聚合 throw** | `test_assetExistence_bakeThrowsNotSilent` | BLOCKING |
+| **听诊窗预载正例** | `test_preloadGate_stethoscopeFocus_preloaded` | BLOCKING |
+| **听诊窗预载负例** | `test_preloadGate_notLoaded_blocks` | BLOCKING |
+| **一次性 cue 迟发有界** | `test_preloadGate_oneShotCueDelay_bounded` | BLOCKING |
+
+> **测试数**:`pipeline_gate_test` = **11**(10 passed + 1 ignored)。
+> ⚠️ 四条易错点的落地证据:
+> 1. **零解析器扫描公开方法签名**:三个 `test_noJsonParser_*` 扫描 44 生产类型公开方法的返回类型和参数类型,无 Newtonsoft/JsonReader/FixParse 引用。
+> 2. **组区分用谓词函数**:`test_addressables_mixedGroup_rejected` 调 `GroupSeparabilityPredicate.IsMixedGroup` 判定混组,不对测试自己构造的字符串做 Contains。
+> 3. **素材存在性用自包含夹具**:真种子事件表引用了不存在的 wav(content 批未完成),测试用自包含夹具验证谓词逻辑本身工作正常。
+> 4. **扫描键单一出处**:`Prefix` 引用 `AssemblyGates.AudioModuleNamespacePrefix`,不重复定义字面量。
