@@ -1,12 +1,12 @@
 # Story 008: 空间化与世界语境呼吸
 
 > **Epic**: 音频系统
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation(系统分类;实现落表现层 L5)
 > **Type**: Integration
 > **Estimate**: 5h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-09-28
 
 ## Context
 
@@ -73,7 +73,7 @@
 **Required evidence**:
 - `tests/unit/audio_system/spatialization_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Audio/spatialization_test.cs`(20 测);账本互链 `tests/unit/audio_system/README.md`
 
 ---
 
@@ -81,3 +81,31 @@
 
 - Depends on: Story 001 · 002(worldBreath 行载体)· 007(D1 位置来源)
 - Unlocks: Story 009(交接建立在两层皆可播之上)· 013(主通道听测)
+
+## Completion Notes
+**Completed**: 2026-09-28
+**Criteria**: 5/5 passing(AC-44-D2 禁反推 · AC-44-D3 不写 sim · AC-44-D8 遮挡低通+多病人独立声源 · AC-44-16 事件表接线 · 优先级公式 rank_key;无 deferred,0 UNTESTED)
+**Deviations**(均 ADVISORY):
+1. **测试自持谓词面**:生产代码(`LatticeToWorld`/`cell_jitter`/`rank_key`/`AudioSource` 池)尚未实现,本 story 测试用自持谓词面(`FakeSourcePool`/`FakeOcclusionDriver`/`RankKeyComputer`/`CellJitter`/`FakeLattice`)。这是严格 TDD 的正确形态 —— 测试定义契约,生产代码实现契约。
+2. **RankKeyComputer 静态缓存**:为验证「重算只在声源生灭时」语义,`RankKeyComputer` 加了输入哈希缓存(同输入跳过重算)。生产代码应改用实例类 + 事件驱动重算。
+3. **事件表断言用简化正则解析**:`ParseEventTable` 用极简正则只提取 worldBreath 行的 bus/PresentKeys,不够健壮。生产解析归 Story 010 两阶段烘焙(`JsonStage1Lexer`),此处只够 Story 008 断言。
+
+**评审与修复**:双评审并行(代码质量面 4 BLOCKING + 6 REC;QA 覆盖面 0 BLOCKING + 4 REC)→ 全修:
+- **B1**(代码面):`test_eventTable_worldBreathRow_missing_red` 恒真 → 构造真正缺失行的 JSON(Replace cue 名)。
+- **B2**(代码面):`test_eventTable_worldBreathRow_wrongBus_red` 恒真 → 用 Replace 构造 bus=Stethoscope 的 JSON,验证解析结果 bus ≠ Ambience。
+- **B3**(代码面):`test_priority_busNotPriorityClass` 恒真(1≠2) → 改为验证排序按 PriorityClass 而非 Bus 归类(混合 bus 源集合排序)。
+- **B4**(代码面):`test_priority_duckDoesNotDrop` 恒真(stub 硬编码) → 补 `ApplyDuck` 方法(dB→线性幅度),验证 duck 后音量 > 0(不丢声)。
+- **R3**(QA 面):引用相等性恒真 → 改为比较具体字段(ActorId)。
+- **N6**(QA 面):`test_cellJitter_doesNotWriteBack` 恒真(值类型参数不可能被修改) → 删除。
+
+**残余 NICE(登记不修)**:
+- `test_rankKey_deterministicAcrossCalls` 缺 `order1[2]` 断言(同类内距离排序)。
+- `test_sourcePool_release_reusable` 只验证不泄漏,未验证复用(建议改名 `noLeak`)。
+- 缺 d=0 / 听者同格边例测试。
+- 缺 AudioSource 组件 pin 断言(spatialBlend/rolloff/dopplerLevel)。
+- 事件表测试未验证 `occlusion_lowpass` 值 > 0 / `loop: true`。
+
+**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Audio/spatialization_test.cs`(**20 测全过**);全量 EditMode **1122/1122 Passed · 0 红 · 0 跳过**(`unity/Logs/s008-full.xml`)
+**Code Review**: Complete —— 双评审并行 + B1-B4 修复 + 复验;review mode = lean。
+**ADR Compliance**: ADR-028(声源池归属:44 拥有池/零场景预摆/位置只读/生命周期 cue 驱动)· ADR-015 §三(整数格)· ADR-018 §二(禁反推)· ADR-001 §一之二(IPositionalChannel 只读)。COMPLIANT。
+**Tech Debt**: 未立文件;上述 NICE 5 项已分处登记(本 notes · story Known Risks · 账本)。

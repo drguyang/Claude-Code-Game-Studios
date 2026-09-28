@@ -222,3 +222,57 @@
 > 1. **IL 扫描用 token 解析**(不是字节 Contains):`MethodBodyReferences` 用 `Module.ResolveMethod` 解析 IL 里的 call/callvirt/newobj token,字符串字面量(ldstr)指向 #Blob 堆不在字节数组里。
 > 2. **重排差分哈希用 SplitMix64 链式折叠**:事件 → `EventOrderKey` 全序 → cue 记录 → `SplitMix64.Fold` 逐条折叠,哈希输入含 Intensity(载荷面自证)。
 > 3. **负向夹具住测试命名空间**:`ChannelRefFixture` / `RandomBodyFixture` 在 `DaYiJingCheng.Tests.Unit.Audio` 下,不入 44 生产扫描键(同 Story 001 `assembly_boundary_test` 分工)。
+
+## Story 008(空间化与世界语境呼吸 —— AC-44-D2 / D3 / D8 / 16 / 优先级公式)
+
+故事头登记的证据路径为
+`tests/unit/audio_system/spatialization_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/Audio/spatialization_test.cs`**(类 `SpatializationTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Audio/spatialization_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 被测契约 | `unity/Assets/Sim.Contracts/PresentationDtos.cs`(`AudioCueDto.Cell:Int3` / `IPositionalChannel`) |
+| 被测生产 44 类型 | `unity/Assets/Gameplay.Presentation/Audio/`(禁反推 Cecil 扫描 + IEventSink 扫描) |
+| 被测事件表 | `assets/data/audio_events.json`(worldBreath 行接线断言) |
+| 被测哈希 | `unity/Assets/Sim.Contracts/SplitMix64.cs`(`SplitMix64.Hash`) |
+| 运行方式 | `unity test unity --mode EditMode --filter SpatializationTest` |
+
+> 读法纪律:本 story 生产代码(LatticeToWorld/cell_jitter/rank_key/AudioSource 池)尚未实现,
+> 测试用自持谓词面(FakeSourcePool/FakeOcclusionDriver/RankKeyComputer/CellJitter/FakeLattice)。
+> `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`SpatializationTest` 内) | 性质 |
+|---|---|---|
+| **AC-44-D2 禁反推** | `test_latticeToWorld_noFloatToWorldPosMethod` | BLOCKING |
+| **AC-44-D2 负向** | `test_latticeToWorld_reverseDerivationFixture_flagged` | BLOCKING |
+| **AC-44-D3 不写 sim** | `test_spatialization_noEventSinkRefs` | BLOCKING |
+| **AC-44-D8 ① 遮挡低通正例** | `test_occlusionDriver_occluded_lowpassPositive` | BLOCKING |
+| **AC-44-D8 ① 无遮挡** | `test_occlusionDriver_notOccluded_noLowpass` | BLOCKING |
+| **AC-44-D8 ① 负向 cutoff≤0** | `test_occlusionDriver_zeroCutoff_rejected` | BLOCKING |
+| **AC-44-D8 ② 同 cell N 独立** | `test_sourcePool_sameCell_nSourcesNotMerged` | BLOCKING |
+| **AC-44-D8 ② N=1** | `test_sourcePool_singlePatient_oneSource` | BLOCKING |
+| **AC-44-D8 ② 释放不泄漏** | `test_sourcePool_release_reusable` | BLOCKING |
+| **rank_key 确定性** | `test_rankKey_deterministicAcrossCalls` | BLOCKING |
+| **rank_key 同类距离序** | `test_rankKey_sameClassCloserFirst` | BLOCKING |
+| **rank_key 等距平局** | `test_rankKey_equalDistance_cellJitterBreaksTie` | BLOCKING |
+| **rank_key 重算时机** | `test_rankKey_recalcOnlyOnBirthDeath` | BLOCKING |
+| **duck 只压不丢** | `test_priority_duckDoesNotDrop` | BLOCKING |
+| **bus ≠ 优先级类别** | `test_priority_busNotPriorityClass` | BLOCKING |
+| **AC-44-16 接线正例** | `test_eventTable_worldBreathRow_presentAndWired` | BLOCKING |
+| **AC-44-16 负向缺行** | `test_eventTable_worldBreathRow_missing_red` | BLOCKING |
+| **AC-44-16 负向错 bus** | `test_eventTable_worldBreathRow_wrongBus_red` | BLOCKING |
+| **F-44.4 LatticeToWorld** | `test_latticeToWorld_integerCellToFloat` | BLOCKING |
+| **F-44.4 cell_jitter 确定性** | `test_cellJitter_deterministicAndDistinguishesSameCell` | BLOCKING |
+
+> **测试数**:`spatialization_test` = **20**(原 21,删除 1 个恒真 `test_cellJitter_doesNotWriteBack`)。
+> ⚠️ 四条易错点的落地证据:
+> 1. **禁反推用 Cecil 扫描器**:`test_latticeToWorld_noFloatToWorldPosMethod` 调 `CheckAudioAssemblyIl` 扫生产类型签名,无 float→WorldPos 方法。
+> 2. **RankKeyComputer 输入哈希缓存**:同输入跳过重算(防增益抖动),输入变化(声源生灭)才重算。
+> 3. **duck 用 dB→线性幅度**:`ApplyDuck(linearVolume, depthDb)` = `linearVolume * 10^(depthDb/20)`,验证 duck 后音量 > 0。
+> 4. **负例构造用 JSON Replace**:missing_red 用 Replace cue 名,wrongBus_red 用 Replace bus 值,构造真正违例数据。
