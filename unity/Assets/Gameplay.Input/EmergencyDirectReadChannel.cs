@@ -291,9 +291,11 @@ namespace DaYiJingCheng.Gameplay.Input
         /// 仅供测试;生产路径不调用(样例唯一驱动源仍是 onAfterUpdate 自动相位)。</summary>
         public void NotifyAfterUpdateForTest() => InvokeCallbackBodyForTest();
 
-        /// <summary>测试兼容保留:跳过去重闸直接执行回调体(<paramref name="frameOverride"/>
-        /// 被忽略;只用于保持既有测试调用点编译通过)。</summary>
-        public void NotifyAfterUpdateForTest(int frameOverride) => InvokeCallbackBodyForTest();
+        /// <summary>测试专用:以指定帧号执行回调体,经过与 <see cref="OnAfterUpdate"/>
+        /// 相同的帧戳去重闸 —— <paramref name="frameOverride"/> 与上次不同则放行,
+        /// 相同则拦。供测试精确控制帧边界语义。</summary>
+        public void NotifyAfterUpdateForTest(int frameOverride)
+            => InvokeCallbackBodyForTest(frameOverride);
 
         /// <summary>测试专用:执行回调体( Armed 读动作 → Feed ),**经过与
         /// <see cref="OnAfterUpdate"/> 相同的帧戳去重闸** —— 同帧第二次调用被拦。
@@ -303,6 +305,23 @@ namespace DaYiJingCheng.Gameplay.Input
             if (UnityEngine.Time.frameCount == _lastCallbackFrame)
                 return;   // 同帧第二+次回调:与 OnAfterUpdate 同语义,被闸拦
             _lastCallbackFrame = UnityEngine.Time.frameCount;
+            _sampledThisFrame = false;
+            if (_emergencyActionEnabled)
+                _emergencyCallbackCount++;
+            if (_state != DirectChannelState.Armed || _emergencyAction == null)
+                return;
+            var reading = ReadEmergency();
+            Feed(reading);
+        }
+
+        /// <summary>测试专用:以指定帧号执行回调体,经过帧戳去重闸。
+        /// <paramref name="frame"/> 与 <see cref="_lastCallbackFrame"/> 相同则拦(同帧第二+次),
+        /// 不同则放行并更新帧戳。供 EditMode 测试精确控制帧边界。</summary>
+        internal void InvokeCallbackBodyForTest(int frame)
+        {
+            if (frame == _lastCallbackFrame)
+                return;   // 同帧第二+次回调:被闸拦
+            _lastCallbackFrame = frame;
             _sampledThisFrame = false;
             if (_emergencyActionEnabled)
                 _emergencyCallbackCount++;
