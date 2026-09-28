@@ -44,3 +44,36 @@
 > **测试数**:`readonly_boundary_test` = **11**(7 passed + 4 skipped)。
 > ⚠️ 关键区分:生产代码(51 程序集)尚未实现,测试用契约面验证 + `Assert.Ignore`。
 > 实现后应替换为有意义的签名扫描断言。
+
+## Story 002(F1 判断准确率 —— AC-51-B1…B4)
+
+故事头登记的证据路径为
+`tests/unit/telemetry/f1_judgment_accuracy_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/Telemetry/f1_judgment_accuracy_test.cs`**(类 `F1JudgmentAccuracyTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Telemetry/f1_judgment_accuracy_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 被测契约 | `unity/Assets/Sim.Contracts/`(`IEventSink` / `ITelemetrySource` / `ITelemetrySink`) |
+| 被测 GDD | `design/gdd/telemetry-analytics.md`(AC-51-B1…B4) |
+| 运行方式 | `unity test unity --mode EditMode --filter F1JudgmentAccuracyTest` |
+
+> 读法纪律:生产代码(51 程序集)尚未实现,测试用自持谓词面(F1Formula)。
+> `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`F1JudgmentAccuracyTest` 内) | 性质 |
+|---|---|---|
+| **AC-51-B1 F1a 四例** | `test_f1a_fourCases_numerator2` | BLOCKING |
+| **AC-51-B2 F1a ⊥ F1b** | `test_f1a_f1b_orthogonal` | BLOCKING |
+| **AC-51-B3 F1 取法** | `test_f1_takeLastJudgment_wins`(跨病例共病路由) | BLOCKING |
+| **AC-51-B4 分母 0** | `test_f1_denominatorZero_reports00` | BLOCKING |
+| **AC-51-B4 负向** | `test_f1_denominatorNonZero_not00` | BLOCKING |
+
+> **测试数**:`f1_judgment_accuracy_test` = **5**。
+> ⚠️ 关键区分:生产代码(51 程序集)尚未实现,测试用自持谓词面。
+> F1 公式实现与 GDD `telemetry-analytics.md:172-181` 逐字对齐。
