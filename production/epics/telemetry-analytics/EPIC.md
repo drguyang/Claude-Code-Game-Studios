@@ -72,7 +72,7 @@ This epic is complete when:
 | 003 | F2 误诊分布 | Logic | **Complete ✅ 2026-09-28**(3/3 · 3 测 · 双评审 B1/B2/R1/R2 修复验 1224/1230) | ADR-019+006 |
 | 004 | F3 跳过率 | Logic | **Complete ✅ 2026-09-28**(2/2 · 5 测 · 双评审 B1+R1-R3 修复验 1228/1235) | ADR-019 |
 | 005 | F4 熟练度成长 | Logic | **Complete ✅ 2026-09-28**(2/2 · 6 测 · 双评审 B1+R1-R2 修复验 1234/1241) | ADR-019+006 |
-| 006 | F5 难度曲线 | Logic | Ready | ADR-019 |
+| 006 | F5 难度曲线 | Logic | **Complete ✅ 2026-09-28**(3/3 · 4 测 · 双评审 B1/B2/R1/R2 修复验 1262/1269) | ADR-019 |
 | 007 | F6 局内时长 + F7 节律 | Logic | Ready | ADR-019+006 |
 | 008 | 纯函数与可复算 | Logic | Ready | ADR-019+012 |
 | 009 | 空白与退化 | Logic | Ready | ADR-019 |
