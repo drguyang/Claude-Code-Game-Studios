@@ -42,20 +42,21 @@ namespace DaYiJingCheng.EditorTools.Gates
     /// EditMode 测试经 public 面直调检查器,免 InternalsVisibleTo)。</summary>
     public static class AssemblyGates
     {
-        // ── b3 的登记清单(ADR-025 §① 七装配 ∪ 测试族两装配 ∪ Editor.Tools 族)──
+        // ── b3 的登记清单(ADR-025 §① 七装配 ∪ 测试族三装配 ∪ Editor.Tools 族)──
         // Editor.Tools 族拆 Level/Kindgen 两个具名装配是卡 §0.1 的落地形(ADR-025 表记「族」);
         // Gates(U0-b)+ Spike(U1 spike 批)+ Bake(Story 008 数据管线)同属该族追加 ——
         // 族内增员 = 改本清单 **且同批回写 ADR-025 §① 族行**(2026-09-26 审查 Required-5:
         // 原「只改本清单」与 §④「新 asmdef 须追加进表」字面冲突 = 封闭性自证闭环;
         // Gates/Spike/Bake 三支已于 2026-09-26 回写 ADR-025 §① —— 两处自此一致)。
         // Gameplay.Input = story-001 B1 拆装增员(ADR-025 §① 2026-09-25 已载;清单 2026-09-25 补登)。
+        // SkeuomorphicUI.Tests = Story 003 焦点导航边界测试装配(2026-09-28 补登)。
         private static readonly HashSet<string> Manifest = new HashSet<string>
         {
             "Sim", "Sim.Contracts", "Sim.Codec",
             "Gameplay.Presentation", "Gameplay.UI", "Gameplay.Input",
             "Editor.Tools.Level", "Editor.Tools.Kindgen", "Editor.Tools.Gates",
             "Editor.Tools.Spike", "Editor.Tools.Bake",
-            "Sim.Contracts.Tests", "Gameplay.Tests",
+            "Sim.Contracts.Tests", "Gameplay.Tests", "SkeuomorphicUI.Tests",
         };
 
         // ── b4 的白名单:允许调 ToFloat() 的装配(ADR-025 §② 甲案 = {Sim.Codec, Gameplay.*})──
