@@ -108,3 +108,36 @@
 > **测试数**:`f2_misdiagnosis_matrix_test` = **3**。
 > ⚠️ 关键区分:生产代码(51 程序集)尚未实现,测试用自持谓词面。
 > F2 公式实现与 GDD `telemetry-analytics.md:213-246` 逐字对齐。
+
+## Story 004(F3 跳过率 —— AC-51-B8…B9)
+
+故事头登记的证据路径为
+`tests/unit/telemetry/f3_skip_rate_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/Telemetry/f3_skip_rate_test.cs`**(类 `F3SkipRateTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Telemetry/f3_skip_rate_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 被测契约 | `unity/Assets/Sim.Contracts/`(`IEventSink` / `ITelemetrySource` / `ITelemetrySink`) |
+| 被测 GDD | `design/gdd/telemetry-analytics.md`(AC-51-B8…B9) |
+| 运行方式 | `unity test unity --mode EditMode --filter F3SkipRateTest` |
+
+> 读法纪律:生产代码(51 程序集)尚未实现,测试用自持谓词面(F3Formula)。
+> `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`F3SkipRateTest` 内) | 性质 |
+|---|---|---|
+| **AC-51-B8 分开报 + 分母口径** | `test_f3_separateNumerators_notOfferedExcluded` | BLOCKING |
+| **AC-51-B8 负向** | `test_f3_notOfferedNotInDenominator` | BLOCKING |
+| **AC-51-B4(F3 侧)分母 0** | `test_f3_denominatorZero_reports00` | BLOCKING |
+| **AC-51-B4 全 NotOffered** | `test_f3_allNotOffered_denominatorZero` | BLOCKING |
+| **AC-51-B9 真实会话可得性** | `test_f3_realSession_blockedByOQ108` | NOT-RUN(BLOCKED-BY-OQ-10-8) |
+
+> **测试数**:`f3_skip_rate_test` = **5**(4 passed + 1 skipped)。
+> ⚠️ 关键区分:生产代码(51 程序集)尚未实现,测试用自持谓词面。
+> F3 公式实现与 GDD `telemetry-analytics.md:259-280` 逐字对齐。

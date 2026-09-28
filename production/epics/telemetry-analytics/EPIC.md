@@ -70,7 +70,7 @@ This epic is complete when:
 | 001 | 只读边界与零出厂 | Integration | **Complete ✅ 2026-09-28**(4/4 · 11 测 · 双评审 B1-B3+QA B1-B7 修复验 1180/1186) | ADR-019 |
 | 002 | F1 判断准确率 | Logic | **Complete ✅ 2026-09-28**(4/4 · 5 测 · 双评审 R1-R3+B1 修复验 1221/1227) | ADR-019+006 |
 | 003 | F2 误诊分布 | Logic | **Complete ✅ 2026-09-28**(3/3 · 3 测 · 双评审 B1/B2/R1/R2 修复验 1224/1230) | ADR-019+006 |
-| 004 | F3 跳过率 | Logic | Ready | ADR-019 |
+| 004 | F3 跳过率 | Logic | **Complete ✅ 2026-09-28**(2/2 · 5 测 · 双评审 B1+R1-R3 修复验 1228/1235) | ADR-019 |
 | 005 | F4 熟练度成长 | Logic | Ready | ADR-019+006 |
 | 006 | F5 难度曲线 | Logic | Ready | ADR-019 |
 | 007 | F6 局内时长 + F7 节律 | Logic | Ready | ADR-019+006 |
