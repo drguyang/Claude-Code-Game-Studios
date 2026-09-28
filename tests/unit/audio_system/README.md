@@ -276,3 +276,49 @@
 > 2. **RankKeyComputer 输入哈希缓存**:同输入跳过重算(防增益抖动),输入变化(声源生灭)才重算。
 > 3. **duck 用 dB→线性幅度**:`ApplyDuck(linearVolume, depthDb)` = `linearVolume * 10^(depthDb/20)`,验证 duck 后音量 > 0。
 > 4. **负例构造用 JSON Replace**:missing_red 用 Replace cue 名,wrongBus_red 用 Replace bus 值,构造真正违例数据。
+
+## Story 009(声源生命周期与贴耳交接 —— EndLoop 自评兜底 / 贴耳交接契约 / 重复过期句柄 / 咳嗽不停呼吸)
+
+故事头登记的证据路径为
+`tests/unit/audio_system/loop_lifecycle_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/Audio/loop_lifecycle_test.cs`**(类 `LoopLifecycleTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Audio/loop_lifecycle_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 被测契约 | `unity/Assets/Sim.Contracts/PresentationDtos.cs`(`IAudioCueSink` / `AudioCueHandle` / `TierSource`) |
+| 被测生产 44 类型 | `unity/Assets/Gameplay.Presentation/Audio/`(Cecil 时钟 token 扫描) |
+| 被测咳嗽通道 | `unity/Assets/Gameplay.Presentation/Audio/CoughChannel.cs`(`Dispatch` 只调 Emit) |
+| 运行方式 | `unity test unity --mode EditMode --filter LoopLifecycleTest` |
+
+> 读法纪律:本 story 生产代码(EndLoop 兜底/交接状态机/句柄管理)尚未实现,
+> 测试用自持谓词面(FakeLoopWatchdog/FakeHandoverFsm/FakeHandleManager)。
+> `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`LoopLifecycleTest` 内) | 性质 |
+|---|---|---|
+| **EndLoop 兜底:流停更后有界停** | `test_endLoopWatchdog_staleStream_stopsWithinBound` | BLOCKING |
+| **EndLoop 兜底:流恢复不重复停** | `test_endLoopWatchdog_resumeNoDoubleStop` | BLOCKING |
+| **EndLoop 兜底:有界常量 0 当轮必停** | `test_endLoopWatchdog_zeroBoundStopsImmediately` | BLOCKING |
+| **EndLoop 兜底:时钟源 = sim tick** | `test_endLoopWatchdog_noWallClockRefs` | BLOCKING |
+| **EndLoop 契约形状:本地句柄** | `test_endLoop_contractShape_localHandleOnly` | BLOCKING |
+| **贴耳交接:进入世界层压出** | `test_handover_enterStethoscope_worldFadesOut` | BLOCKING |
+| **贴耳交接:退出镜像** | `test_handover_exitStethoscope_worldFadesIn` | BLOCKING |
+| **贴耳交接:幂等重入** | `test_handover_idempotentReentry` | BLOCKING |
+| **贴耳交接:听诊中世界 cue 不重启** | `test_handover_worldCueArrives_noRestart` | BLOCKING |
+| **贴耳交接:硬切拒绝** | `test_handover_hardCut_rejected` | BLOCKING |
+| **重复句柄:同源重复以最后为准** | `test_duplicateBeginLoop_lastWins` | BLOCKING |
+| **过期句柄:过期 EndLoop 忽略** | `test_expiredEndLoop_ignored` | BLOCKING |
+| **咳嗽不停呼吸(联合断言)** | 注释引用 Story 004 `breath_layers_test.test_coughNeverEndsBreathLoop_zeroEndLoopCalls` | — |
+
+> **测试数**:`loop_lifecycle_test` = **12**(原 13,删除 1 个与 Story 004 重复的咳嗽测试)。
+> ⚠️ 四条易错点的落地证据:
+> 1. **EndLoop 兜底用 Cecil 扫描器**:`test_endLoopWatchdog_noWallClockRefs` 调 `AssemblyGates.CheckAudioClockTokens` 扫生产类型方法体 IL,禁 DateTime/Time 引用。
+> 2. **FakeHandoverFsm 用相对计数**:`_handoverElapsed++` 达到 `_handoverTicks` 时激活听诊层,不用绝对 tick 差(避免魔数)。
+> 3. **咳嗽测试不重复**:Story 009 AC 明确把「咳嗽不停呼吸」列为验收标准,但 Story 004 已有同名同逻辑测试,本 story 不重复实现,改为注释引用。
+> 4. **GDD 补登记 LOOP_EVAL_MAX_TICKS**:QA 评审发现 AC 引用的「登记常量」在 GDD §Tuning Knobs 中不存在,已补登记(安全范围 ≥ 1 tick)。

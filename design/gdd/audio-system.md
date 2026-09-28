@@ -746,6 +746,7 @@ bucket       = (u < BUCKET_LOW) ? 弱 : (u < BUCKET_HIGH) ? 中 : 强
 | `world_breath.min/max_distance` | 3D 衰减起止距离 | max 内仍可辨 | 整张地图都听得见 | 隔一道门就消失(幻想落空) |
 | `occlusion_lowpass_hz` | 门 / 墙遮挡低通截止 | 穿门 ≠ 静音(**必须听得见,只是变闷**) | 穿墙如无物 | 穿门即静音(等于隔墙听不到) |
 | 世界语境呼吸总线增益 | 相对 Ambience 的电平 | 距近时压过环境 | 淹没一切 | 被环境盖掉(主通道埋没) |
+| `LOOP_EVAL_MAX_TICKS` | EndLoop 自评兜底的有界停滞阈值(ticks) | ≥ 1 tick | 呼吸层永不停止(兜底失效) | 误杀在推进的循环(停太早) |
 
 ### 全局
 
