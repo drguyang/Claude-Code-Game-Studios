@@ -1,6 +1,7 @@
 # U0 装配清单 · 工程根 + ADR-025 六装配
 
-> **Status**: **U0-a ✅ CLOSED(2026-09-22 桌面实测 + 超算复核 · 闭于 `7772e3d`)**;
+> **Status**: **U0-a ✅ CLOSED(2026-09-22 桌面实测 + 超算复核 · 闭于 `7772e3d`)**
+> **U0-a′ a7 ✅ CLOSED(2026-09-28 用户确认 · 三场景落地 checklist 关闭)**
 > **U0-b 待启**;§6.1 登记本轮实测勘误四条。
 > **前置**:U0a 工具链已闭合(`production/u0a-toolchain-checklist.md` · Unity `6000.3.24f1`)
 > **权威件**:`docs/architecture/adr-025-contract-assembly-manifest.md`(六装配裁决)+ ADR-017 §二(门 A)
@@ -387,10 +388,12 @@ U0a ✅ CLOSED → U0-a ✅ CLOSED(§2 · 桌面实测 + 超算复核 · 闭于 
 其 guid 被 `PC_RPAsset` + `Mobile_RPAsset` + `SampleScene` **三处**引用,是**两条管线共用的默认 Volume Profile**。
 ⇒ **删除引用扫描是硬前置,不得凭名判**。本条即 §6.2 a7 的前置方法。
 
-## §6.2 U0-a′ 缺口:a7 三场景落地(登记 · 待用户裁决归属)
+## §6.2 U0-a′ 缺口:a7 三场景落地 ✅ CLOSED(2026-09-28)
 
 **缺口**:ADR-023 §① 裁决 **三场景制**(`Boot.unity` 常驻 / `MainMenu.unity` / `World.unity` additive),
 而本卡 §2(a1–a6)与 §2.1(b1–b7)**均无建场景步骤** ⇒ 照卡走完 U0,工程里仍是模板的 `SampleScene`。
+
+**状态**: ✅ **2026-09-28 用户确认关闭** — 三场景落地 checklist 已关闭。
 
 **实测现状**:
 - `unity/ProjectSettings/EditorBuildSettings.asset:9` = `path: Assets/Scenes/SampleScene.unity`(**唯一场景**)
