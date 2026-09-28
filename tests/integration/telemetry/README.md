@@ -183,3 +183,44 @@
 > **测试数**:`f6_f7_session_rhythm_test` = **10**(9 passed + 1 skipped)。
 > ⚠️ 关键区分:生产代码(51 程序集)尚未实现,测试用自持谓词面。
 > F6/F7 公式实现与 GDD `telemetry-analytics.md:323-349` 逐字对齐。
+
+## Story 009(空白与退化 —— AC-51-D1…D9)
+
+故事头登记的证据路径为
+`tests/unit/telemetry/blank_and_degraded_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/Telemetry/blank_and_degraded_test.cs`**(类 `BlankAndDegradedTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Telemetry/blank_and_degraded_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 被测契约 | `unity/Assets/Sim.Contracts/`(`IEventSink` / `ITelemetrySource` / `ITelemetrySink`) |
+| 被测 GDD | `design/gdd/telemetry-analytics.md`(AC-51-D1…D9) |
+| 运行方式 | `unity test unity --mode EditMode --filter BlankAndDegradedTest` |
+
+> 读法纪律:生产代码(51 程序集)尚未实现,测试用自持谓词面(F6F7Formula)。
+> `test_f4_levelNotCarried_allZero` 覆盖 D2「Level 未携带 → 报不可得」。
+> `test_f3_emptyStream_allZero` 覆盖 D1「三流皆空 ⇒ Computed」。
+> `test_f7_degenerate_singleEvent_reportsUndefined` 覆盖 D7「n=1 报不可定义」。
+> `test_f7_noFloatStatistics` 覆盖 D8「禁浮点统计量」。
+> `test_f7_releaseNoDebugView` 用 `Assert.Ignore` 标记 D9「Release 无调试视图」(编译期剔除,无法自动化验证)。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`BlankAndDegradedTest` 内) | 性质 |
+|---|---|---|
+| **AC-51-D1 三流皆空** | `test_f3_emptyStream_allZero` | BLOCKING |
+| **AC-51-D2 Level 未携带** | `test_f4_levelNotCarried_allZero` | BLOCKING |
+| **AC-51-D3 Faulted 不产出半份** | `test_d3_faulted_noPartialOutput` | BLOCKING |
+| **AC-51-D4 Release 无调试视图** | `test_f7_releaseNoDebugView` | NOT-RUN(Assert.Ignore) |
+| **AC-51-D5 整数纪律** | `test_f5_integerDiscipline` | BLOCKING |
+| **AC-51-D6 规模不改变数值** | `test_f6_scaleDoesNotChangeValues` | BLOCKING |
+| **AC-51-D7 n=1 报不可定义** | `test_f7_degenerate_singleEvent_reportsUndefined` | BLOCKING |
+| **AC-51-D8 禁浮点统计量** | `test_f7_noFloatStatistics` | BLOCKING |
+| **AC-51-D9 样本不足标注** | `test_f9_insufficientSample_flagged` | BLOCKING |
+
+> **测试数**:`blank_and_degraded_test` = **10**(9 passed + 1 skipped)。
+> ⚠️ 关键区分:生产代码(51 程序集)尚未实现,测试用自持谓词面。
+> F6/F7 公式实现与 GDD `telemetry-analytics.md:323-349` 逐字对齐。
