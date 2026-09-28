@@ -141,3 +141,41 @@
 > **测试数**:`f3_skip_rate_test` = **5**(4 passed + 1 skipped)。
 > ⚠️ 关键区分:生产代码(51 程序集)尚未实现,测试用自持谓词面。
 > F3 公式实现与 GDD `telemetry-analytics.md:259-280` 逐字对齐。
+
+## Story 007(F6 局内时长 + F7 节律 —— AC-51-B15…B18)
+
+故事头登记的证据路径为
+`tests/unit/telemetry/f6_f7_session_rhythm_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/Telemetry/f6_f7_session_rhythm_test.cs`**(类 `F6F7SessionRhythmTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Telemetry/f6_f7_session_rhythm_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 被测契约 | `unity/Assets/Sim.Contracts/`(`IEventSink` / `ITelemetrySource` / `ITelemetrySink`) |
+| 被测 GDD | `design/gdd/telemetry-analytics.md`(AC-51-B15…B18) |
+| 运行方式 | `unity test unity --mode EditMode --filter F6F7SessionRhythmTest` |
+
+> 读法纪律:生产代码(51 程序集)尚未实现,测试用自持谓词面(F6F7Formula)。
+> `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`F6F7SessionRhythmTest` 内) | 性质 |
+|---|---|---|
+| **AC-51-B15 F6 可审计(单事件 span=0)** | `test_f6_auditable_singleEventSpanZero` | BLOCKING |
+| **AC-51-B15 F6 空流=0** | `test_f6_emptyStream_returnsZero` | BLOCKING |
+| **AC-51-B15 F6 多事件 span>0** | `test_f6_multiEvent_spanPositive` | BLOCKING |
+| **AC-51-B16 F7 上中位数(偶数项禁插值)** | `test_f7_upperMedian_evenCount_noInterpolation` | BLOCKING |
+| **AC-51-B16 F7 上中位数(奇数项)** | `test_f7_upperMedian_oddCount` | BLOCKING |
+| **AC-51-B17 F7 退化(n=1 报不可定义)** | `test_f7_degenerate_singleEvent_reportsUndefined` | BLOCKING |
+| **AC-51-B17 F7 n=2 MAD=0 合法** | `test_f7_twoEvents_madZeroIsLegal` | BLOCKING |
+| **AC-51-B14(F3 侧)分母 0** | `test_f3_denominatorZero_reports00` | BLOCKING |
+| **AC-51-B14(F3 负向)** | `test_f3_denominatorNonZero_not00` | BLOCKING |
+| **AC-51-B18 F7 禁浮点统计量** | `test_f7_noFloatStatistics` | BLOCKING |
+
+> **测试数**:`f6_f7_session_rhythm_test` = **10**(9 passed + 1 skipped)。
+> ⚠️ 关键区分:生产代码(51 程序集)尚未实现,测试用自持谓词面。
+> F6/F7 公式实现与 GDD `telemetry-analytics.md:323-349` 逐字对齐。
