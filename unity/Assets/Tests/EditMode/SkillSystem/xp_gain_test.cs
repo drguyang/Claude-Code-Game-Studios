@@ -212,5 +212,51 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
                 XpGainCalculator.ComputeXpGain(
                     (int)SkillId.诊断, (NoveltyClass)99, difficulty));
         }
+
+        // ════════════════ GAP 补充: 边界与防御性 ════════════════
+
+        /// <summary>GAP: 同一技能三档新颖度系数一次性验证(只变 noveltyCoeff)。</summary>
+        [Test]
+        public void test_xpGain_sameSkill_allNoveltyTiers_correctCoefficients()
+        {
+            Fix difficulty = new Fix(Fix.OneRaw); // 1.0
+
+            // 诊断 BASE=8 × 1.0 × First(3.0) = 24
+            Fix first = XpGainCalculator.ComputeXpGain(
+                (int)SkillId.诊断, NoveltyClass.First, difficulty);
+            // 诊断 BASE=8 × 1.0 × Normal(1.0) = 8
+            Fix normal = XpGainCalculator.ComputeXpGain(
+                (int)SkillId.诊断, NoveltyClass.Normal, difficulty);
+            // 诊断 BASE=8 × 1.0 × Stale(0.2) = 1.6
+            Fix stale = XpGainCalculator.ComputeXpGain(
+                (int)SkillId.诊断, NoveltyClass.Stale, difficulty);
+
+            Assert.That(first.Raw, Is.EqualTo(24L * Fix.OneRaw), "First = 24");
+            Assert.That(normal.Raw, Is.EqualTo(8L * Fix.OneRaw), "Normal = 8");
+            Assert.That(stale.Raw, Is.EqualTo(8L * (2L * Fix.OneRaw / 10)), "Stale = 1.6");
+        }
+
+        /// <summary>GAP: 双系数同时取最大值(BASE × 3.0 × 3.0)。</summary>
+        [Test]
+        public void test_xpGain_maxFactors_difficulty3First3_returnsMaxXp()
+        {
+            Fix difficulty = new Fix(3L * Fix.OneRaw / 1); // 3.0
+            Fix xpGain = XpGainCalculator.ComputeXpGain(
+                (int)SkillId.诊断, NoveltyClass.First, difficulty);
+
+            // 8 × 3.0 × 3.0 = 72
+            Assert.That(xpGain.Raw, Is.EqualTo(72L * Fix.OneRaw),
+                "诊断 ×3.0 难度 ×3.0 首次 = 72 XP");
+        }
+
+        /// <summary>GAP: NoveltyClass ordinal = -1(负值) → 抛 ArgumentOutOfRangeException。</summary>
+        [Test]
+        public void test_xpGain_noveltyClassMinusOne_throws()
+        {
+            Fix difficulty = new Fix(Fix.OneRaw);
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                XpGainCalculator.ComputeXpGain(
+                    (int)SkillId.诊断, (NoveltyClass)(-1), difficulty));
+        }
     }
 }
