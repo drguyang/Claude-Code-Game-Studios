@@ -9,7 +9,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
     /// <para>覆盖 AC-42-C1 ~ C6。</para>
     /// </summary>
     [TestFixture]
-    public class component_library_test
+    public class ComponentLibraryTest
     {
         // ── AC-42-C1: 九宫格装载断言 ──
 
@@ -133,6 +133,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         [SetUp]
         public void SetUp()
         {
+            SkeuoComponentRegistry.Reset();
             ThemeVariableReferenceValidator.Register("--skeuo-paper-bg");
             ThemeVariableReferenceValidator.Register("--skeuo-ink-fg");
             SkeuoComponentRegistry.InitializeDefaults();
@@ -250,6 +251,49 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 SkeuoElementLibrary.GetUssClassName((SkeuoElement)999));
+        }
+
+        // ── AC-42-C4: 内联变体 lint ──
+
+        [Test]
+        public void test_inline_color_hardcoded_detected_by_c4_regex()
+        {
+            string ussLine = "    background-color: #f5f0e8;";
+            bool matches = System.Text.RegularExpressions.Regex.IsMatch(
+                ussLine, @"(background-color|color|border-color)\s*:\s*(rgb\(|#)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            Assert.IsTrue(matches);
+        }
+
+        [Test]
+        public void test_inline_size_hardcoded_detected_by_c4_regex()
+        {
+            string ussLine = "    width: 120px;";
+            bool matches = System.Text.RegularExpressions.Regex.IsMatch(
+                ussLine, @"(padding|margin|width|height)\s*:\s*\d+px",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            Assert.IsTrue(matches);
+        }
+
+        [Test]
+        public void test_theme_variable_reference_not_flagged_as_inline_color()
+        {
+            string ussLine = "    background-color: var(--skeuo-paper-bg);";
+            bool matches = System.Text.RegularExpressions.Regex.IsMatch(
+                ussLine, @"(background-color|color|border-color)\s*:\s*(rgb\(|#)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            Assert.IsFalse(matches);
+        }
+
+        [Test]
+        public void test_inline_text_in_comment_not_flagged_as_hardcoded_text()
+        {
+            // USS 注释中的 content: "xxx" 不应被 C5 文本 regex 误报
+            string ussLine = "/* content: \"example\" */";
+            bool matches = System.Text.RegularExpressions.Regex.IsMatch(
+                ussLine, @"(content|text)\s*:\s*[""'][^""']+[""']",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            Assert.IsFalse(matches);
         }
 
         // ── AC-42-C5: USS 硬编码字号 / 文本 lint ──
