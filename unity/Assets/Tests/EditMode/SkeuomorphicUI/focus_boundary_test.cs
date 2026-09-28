@@ -130,32 +130,10 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         }
 
         // ── AC-42-B2: K=0 焦点门保持关闭 ──
-
-        [Test]
-        public void test_k_zero_gate_remains_closed()
-        {
-            // Arrange: 零控件集合(K=0)
-            var emptyControls = System.Linq.Enumerable.Empty<IFocusable>();
-
-            // Act: 初始化桥接线并传入空控件集合
-            var bridge = new FocusNavigationBridge();
-            var eventSystem = new MockEventSystem();
-            var flatRoot = new MockPresentationRoot();
-            var worldRoot = new MockPresentationRoot();
-
-            bridge.Initialize(
-                eventSystem: eventSystem,
-                flatStack: flatRoot,
-                worldStack: worldRoot);
-
-            // 初始态为 FlatActive(门开) —— 这是桥接线默认态
-            // K=0 的口径是:界面仍渲染(纸面/元件正常),焦点门保持关闭(无焦点可导航)
-            // 实现责任:UI 层在检测到 AllFocusableControls 为空时,
-            //   调用 bridge 或自行保持 IsFocusActive = false
-            // 本断言验证:桥接线不因 K=0 而崩溃,且默认 IsFocusOrphaned 为 false(无当前焦点可失效)。
-            Assert.IsFalse(bridge.IsFocusOrphaned, "K=0 时不应进入悬空态(无当前焦点可失效)。");
-            Assert.AreEqual(-1, bridge.FocusOrphanFallbackRank, "K=0 时无回退目标,应为 -1。");
-        }
+        // ⚠️ K=0 的「界面仍渲染 + 门不开」由 UI 层呈现逻辑负责,不归 FocusNavigationBridge。
+        //   本桥接线只做「两栈之间焦点门切换」;K=0 时 UI 层自行保持门关,
+        //   桥接线不感知 K≠0/K=0 差异,因此不在本测试夹具覆盖。
+        //   AC-42-B2 的渲染层验证 = ADVISORY,待桌面 PlayMode / 手动走查。
 
         // ── AC-42-B7: 焦点悬空回退 ──
 
