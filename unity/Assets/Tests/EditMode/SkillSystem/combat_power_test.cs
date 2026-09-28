@@ -101,19 +101,19 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         // AC-3: P0 仅 WeaponLine.徒手 吃到医术修正;其余 P0 线修正 = 0
         // ═══════════════════════════════════════════════════════════════════
 
-        /// <summary>AC-3 主例: 短兵=40, 手术=60 → 医术修正 = 0;
-        /// CombatPower = 40 × 1.0 × 1.0 = 40(手术 P1a,P0 不生效)。</summary>
+        /// <summary>AC-3 主例: 短兵=5, 手术=60 → 医术修正 = 0(手术 P1a,P0 不生效);
+        /// CombatPower = 5 × 1.0 × 1.0 = Fix(5.0)。</summary>
         [Test]
         public void test_ac3_shortBlade_medicalModIsZero()
         {
             Fix result = CombatPower.Compute(
-                combatSkillLevel: 40,
+                combatSkillLevel: 5,
                 medicalSkillLevel: 60,
                 weaponLine: WeaponLine.短兵,
                 tuning: SkillTuningTable.Default);
 
-            Assert.That(result.Raw, Is.EqualTo(40L * Fix.OneRaw),
-                "CombatPower(40短兵, 60手术) = 40 × 1.0 × 1.0 = 40(手术未上线,P0 修正=0)");
+            Assert.That(result.Raw, Is.EqualTo(5L * Fix.OneRaw),
+                "CombatPower(5短兵, 60手术) = 5 × 1.0 × 1.0 = 5(手术未上线,P0 修正=0)");
         }
 
         /// <summary>AC-3 补充: 钝器=40, 医疗=60 → 无关联医术 → 修正 = 0;
@@ -168,13 +168,13 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         public void test_ac3_shortBlade_zeroMedical_returnsBaseOnly()
         {
             Fix result = CombatPower.Compute(
-                combatSkillLevel: 40,
+                combatSkillLevel: 5,
                 medicalSkillLevel: 0,
                 weaponLine: WeaponLine.短兵,
                 tuning: SkillTuningTable.Default);
 
-            Assert.That(result.Raw, Is.EqualTo(40L * Fix.OneRaw),
-                "CombatPower(40短兵, 0手术) = 40 × 1.0 × 1.0 = 40");
+            Assert.That(result.Raw, Is.EqualTo(5L * Fix.OneRaw),
+                "CombatPower(5短兵, 0手术) = 5 × 1.0 × 1.0 = 5");
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -463,6 +463,16 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             }, "CombatPower 负 combatSkillLevel 须抛 ArgumentOutOfRangeException");
         }
 
+        /// <summary>CombatPower tuning == null → ArgumentNullException。</summary>
+        [Test]
+        public void test_compute_nullTuning_throws()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                CombatPower.Compute(40, 60, WeaponLine.徒手, null);
+            }, "tuning == null 须抛 ArgumentNullException");
+        }
+
         /// <summary>CombatPower 负 medicalSkillLevel → ArgumentOutOfRangeException。</summary>
         [Test]
         public void test_compute_negativeMedicalSkillLevel_throws()
@@ -485,22 +495,14 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
                 "医术修正 60 级 = MED_COMBAT_MOD.Raw,保证 0.20 边界舍入回归可检测");
         }
 
-        // ═══════════════════════════════════════════════════════════════════
-        // 医术修正超出 SKILL_CAP 的行为文档化(G-4 决策记录)
-        // ═══════════════════════════════════════════════════════════════════
-
-        /// <summary>医术修正超出 SKILL_CAP: medicalSkillLevel=120 → 0.40(超出 AC-2 声明的 [0, 0.20])。
-        /// <para>当前实现不做 clamp,调用方保证 medicalSkillLevel ∈ [0, SKILL_CAP]。</para></summary>
+        /// <summary>medicalSkillLevel=61 > SKILL_CAP=60 → ArgumentOutOfRangeException。</summary>
         [Test]
-        public void test_medicalModifier_aboveCap_returnsUnclamped()
+        public void test_compute_medicalSkillAboveCap_throws()
         {
-            Fix numerator = SkillTuningTable.Default.MedicalCombatModifier * new Fix(120L * Fix.OneRaw);
-            Fix denominator = new Fix(SKILL_CAP * Fix.OneRaw);
-            Fix mod = numerator / denominator;
-
-            // 0.20 * 120 / 60 = 0.40
-            Assert.That(mod.Raw, Is.EqualTo(Fix.FromRational(40L, 100L).Raw),
-                "医术修正(120级) = 0.40(超上限,调用方负责 clamp)");
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+            {
+                CombatPower.Compute(60, 61, WeaponLine.徒手, SkillTuningTable.Default);
+            }, "medicalSkillLevel=61 > SKILL_CAP=60 须抛 ArgumentOutOfRangeException");
         }
     }
 }

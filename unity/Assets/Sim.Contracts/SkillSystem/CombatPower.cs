@@ -6,7 +6,8 @@
 //   · ADR-006 §Decision 三(ROUND_HALF_AWAY_FROM_ZERO)
 // ============================================================================
 // 全路径 Q16.16 定点求值。医术修正 = FixDiv(MED_COMBAT_MOD × 关联医术等级, SKILL_CAP)。
-// P0 耦合:仅 WeaponLine.徒手 的关联医术(急救=P0) 吃到修正;其余 P0 线修正 = 0。
+// P0 耦合:仅 WeaponLine.徒手(急救=P0) 吃到修正;
+// WeaponLine.短兵(手术=P1a) 在代码中预留但 P0 被 IsP0 过滤为 0。
 // 本文件纯静态方法,零 Unity 依赖,住 Sim.Contracts。
 // ============================================================================
 
@@ -23,6 +24,7 @@ namespace DaYiJingCheng.Sim.Contracts.SkillSystem
     /// </summary>
     public static class CombatPower
     {
+        private static readonly Fix MAX_MEDICAL_MOD = Fix.FromRational(20L, 100L); // 0.20 hard cap per ADr-026
         /// <summary>
         /// 计算 CombatPower。
         /// </summary>
@@ -34,12 +36,16 @@ namespace DaYiJingCheng.Sim.Contracts.SkillSystem
         /// <exception cref="ArgumentOutOfRangeException">weaponLine 不在 WeaponLine 枚举范围内。</exception>
         public static Fix Compute(int combatSkillLevel, int medicalSkillLevel, WeaponLine weaponLine, SkillTuningTable tuning)
         {
+            if (tuning == null) throw new ArgumentNullException(nameof(tuning));
             if (combatSkillLevel < 0)
                 throw new ArgumentOutOfRangeException(nameof(combatSkillLevel),
                     $"combatSkillLevel={combatSkillLevel} 不能为负");
             if (medicalSkillLevel < 0)
                 throw new ArgumentOutOfRangeException(nameof(medicalSkillLevel),
                     $"medicalSkillLevel={medicalSkillLevel} 不能为负");
+            if (medicalSkillLevel > SkillRegistry.SKILL_CAP)
+                throw new ArgumentOutOfRangeException(nameof(medicalSkillLevel),
+                    $"medicalSkillLevel={medicalSkillLevel} 超出 SKILL_CAP={SkillRegistry.SKILL_CAP}");
             if ((int)weaponLine < 0 || (int)weaponLine >= tuning.WeaponMultipliers.Length)
                 throw new ArgumentOutOfRangeException(nameof(weaponLine),
                     $"WeaponLine {(int)weaponLine} 超出调参表 WeaponMultipliers 范围 [0, {tuning.WeaponMultipliers.Length - 1}]");
@@ -81,7 +87,12 @@ namespace DaYiJingCheng.Sim.Contracts.SkillSystem
 
             // 医术修正 = FixDiv(MED_COMBAT_MOD × 关联医术等级, SKILL_CAP)
             Fix numerator = tuning.MedicalCombatModifier * new Fix(medicalSkillLevel * Fix.OneRaw);
-            return numerator / new Fix(SkillRegistry.SKILL_CAP * Fix.OneRaw);
+            Fix mod = numerator / new Fix(SkillRegistry.SKILL_CAP * Fix.OneRaw);
+
+            // ADR-026 hard cap: 医术修正 ∈ [0, 0.20]
+            if (mod.Raw > MAX_MEDICAL_MOD.Raw)
+                return MAX_MEDICAL_MOD;
+            return mod;
         }
     }
 }
