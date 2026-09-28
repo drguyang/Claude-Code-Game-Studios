@@ -41,7 +41,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             Assert.That(payload.SkillId, Is.EqualTo((int)SkillId.诊断));
             Assert.That(payload.ObjectId, Is.EqualTo(1));
             Assert.That(payload.NoveltyClass, Is.EqualTo((int)NoveltyClass.First));
-            Assert.That(payload.Level, Is.EqualTo(-1), "未升级 → 哨兵 -1");
+            Assert.That(payload.Level, Is.EqualTo(SkillGrownPayload.LevelNotGrown), "未升级 → 哨兵");
         }
 
         /// <summary>AC-1: Tick 正确写入(由主机从 SimEvent.Tick 传入)。</summary>

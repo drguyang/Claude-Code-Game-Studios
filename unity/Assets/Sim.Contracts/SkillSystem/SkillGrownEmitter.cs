@@ -55,7 +55,7 @@ namespace DaYiJingCheng.Sim.Contracts.SkillSystem
                 throw new ArgumentOutOfRangeException(nameof(currentTick),
                     $"currentTick={currentTick} 不能为负");
 
-            int resolvedLevel = level ?? -1; // 未升级 → 哨兵 -1
+            int resolvedLevel = level ?? SkillGrownPayload.LevelNotGrown; // 未升级 → 哨兵
             int noveltyOrdinal = (int)novelty;
 
             return new SkillGrownPayload(actorId, patientId.Value, skillId, objectId,
