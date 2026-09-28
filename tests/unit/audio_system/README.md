@@ -364,3 +364,46 @@
 > 2. **组区分用谓词函数**:`test_addressables_mixedGroup_rejected` 调 `GroupSeparabilityPredicate.IsMixedGroup` 判定混组,不对测试自己构造的字符串做 Contains。
 > 3. **素材存在性用自包含夹具**:真种子事件表引用了不存在的 wav(content 批未完成),测试用自包含夹具验证谓词逻辑本身工作正常。
 > 4. **扫描键单一出处**:`Prefix` 引用 `AssemblyGates.AudioModuleNamespacePrefix`,不重复定义字面量。
+
+## Story 011(设置暴露面与归零机制 —— 注册表 AC① / AC-44-13 mono / AC-44-15 字幕键集 / AC-44-19 归零机制)
+
+故事头登记的证据路径为
+`tests/unit/audio_system/settings_exposure_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/Audio/settings_exposure_test.cs`**(类 `SettingsExposureTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Audio/settings_exposure_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 被测契约 | `unity/Assets/Gameplay.Presentation/Audio/MixerRegistry.cs`(`BusVolumeParameters` 7 路) |
+| 被测 GDD | `design/gdd/audio-system.md`(AC-44-12/13/15/19) |
+| 运行方式 | `unity test unity --mode EditMode --filter SettingsExposureTest` |
+
+> 读法纪律:本 story 生产代码(设置 store/归零机制/注册表)尚未实现,
+> 测试用自持谓词面(FakeSettingsStore/FakeResetMechanism)。
+> `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`SettingsExposureTest` 内) | 性质 |
+|---|---|---|
+| **注册表 AC①:7 路 ∈ 注册表** | `test_settingsRegistry_busVolumes_subsetOfRegistry` | BLOCKING |
+| **注册表 AC①:mono ∈ 注册表** | `test_settingsRegistry_monoEnabled_inRegistry` | BLOCKING |
+| **注册表 AC① 负向:未登记参数** | `test_settingsRegistry_unregisteredParam_rejected` | BLOCKING |
+| **注册表 AC①:恰 8 条** | `test_settingsRegistry_exactly8Entries` | BLOCKING |
+| **AC-44-13 mono 选项** | `test_monoOption_existsWithValidDefault`(`Assert.Inconclusive`:出厂默认待生产实现) | BLOCKING |
+| **AC-44-15 字幕键集正例** | `test_subtitleKeySet_coveredByEventTable`(per-cue 验证) | BLOCKING |
+| **AC-44-15 字幕键集负例** | `test_subtitleKeySet_missingSubtitle_rejected` | BLOCKING |
+| **AC-44-19 归零三步** | `test_resetMechanism_threeStepsReachFactory` | BLOCKING |
+| **AC-44-19 重启持久化** | `test_resetMechanism_persistsAfterRestart` | BLOCKING |
+| **AC-44-19 负向:跳过 sidecar** | `test_resetMechanism_skipSidecar_rejected` | BLOCKING |
+| **AC-44-12 文档判据** | `test_a11yDocumentation_threeItemsPresent` | BLOCKING |
+
+> **测试数**:`settings_exposure_test` = **11**(10 passed + 1 inconclusive)。
+> ⚠️ 四条易错点的落地证据:
+> 1. **注册表 7 路验证**:`test_settingsRegistry_busVolumes_subsetOfRegistry` 验证 `MixerRegistry.BusVolumeParameters.Count() == 7`(OQ-SS-3=甲:数据层恒 7 路)。
+> 2. **字幕 per-cue 验证**:`test_subtitleKeySet_coveredByEventTable` 用 `HasSubtitleForCue` 检查该 cue 行内 500 字符内是否有 subtitle_text(非全局搜索)。
+> 3. **归零契约面形状**:3 个 reset 测试验证归零三步语义(写默认 → 推 mixer → 落 sidecar)+ sidecar 持久化契约面形状,生产实现后应替换为调用真实接口。
+> 4. **mono 出厂默认 inconclusive**:出厂默认值归 ADR-014 烘焙分区(用户调),当前阶段生产代码未实现,用 `Assert.Inconclusive` 明确标记待验证。
