@@ -452,3 +452,41 @@
 > 2. **G1-G3 护栏登记**:`test_musicLayer_g1g3Guardrails_registered` 验证 ADR-018 §六含 G1/G2/G3 三条护栏文本。
 > 3. **AC-44-11 禁借绿**:GDD AC-44-11 行补 `状态 = BLOCKED-BY-P1b` 标记,测试改查 `Contains("BLOCKED-BY-P1b")`。
 > 4. **GDD 补登记 AUDIO_BUDGET_MS**:AC-44-E2 DSP 预算登记旋钮入 §Tuning Knobs(安全范围 ≤ 帧预算 15% 类)。
+
+## Story 013(主通道听测验收 —— AC-44-17 [L] 双盲 forced-choice)
+
+故事头登记的证据路径为
+`tests/unit/audio_system/main_channel_listen_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/Audio/main_channel_listen_test.cs`**(类 `MainChannelListenTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Audio/main_channel_listen_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 被测 GDD | `design/gdd/audio-system.md`(AC-44-17 [L]) |
+| 被测证据文档 | `production/qa/evidence/main-channel-listen-evidence.md` |
+| 运行方式 | `unity test unity --mode EditMode --filter MainChannelListenTest` |
+
+> 读法纪律:Story 013 是 **Visual/Feel** 类型,AC-44-17 是 **[L] 人工听测**(非 BLOCKING 断言)。
+> EditMode 测试覆盖**文档判据**(AC-44-17 存在且挂点正确 + 证据文档登记),
+> 不覆盖听测本身(双盲 forced-choice = 人工执行,无法自动化)。
+> `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`MainChannelListenTest` 内) | 性质 |
+|---|---|---|
+| **AC-44-17 存在** | `test_ac4417_existsInGdd` | [L] 文档判据 |
+| **AC-44-17 [L] 标注** | `test_ac4417_markedAsL` | [L] 文档判据 |
+| **AC-44-17 协议** | `test_ac4417_protocol_described` | [L] 文档判据 |
+| **AC-44-17 三态** | `test_ac4417_threeStates_distinguishable` | [L] 文档判据 |
+| **证据文档存在** | `test_evidenceDoc_exists` | [L] 文档判据 |
+| **证据文档协议** | `test_evidenceDoc_protocolPresent` | [L] 文档判据 |
+| **证据文档状态** | `test_evidenceDoc_statusPresent` | [L] 文档判据 |
+
+> **测试数**:`main_channel_listen_test` = **7**。
+> ⚠️ 关键区分:AC-44-17 是 [L] 人工听测,不能伪装成自动化 PASS。
+> EditMode 测试覆盖文档判据(AC 存在且挂点正确 + 证据文档登记),不是听测本身。
+> 听测协议(双盲 forced-choice / n ≥ 6 / 三对 ≥ 8 次 / 判对率 ≥ 75%)登记在证据文档中。
