@@ -1,7 +1,7 @@
 # Story 001: 技能注册表与技能定义
 
 > **Epic**: 技能与熟练度
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
@@ -66,57 +66,9 @@
 
 ---
 
-## QA Test Cases
-
-**[Logic story — automated test specs]:**
-
-- **AC-1**: 19 项技能全部可枚举
-  - Given: 技能注册表已加载
-  - When: 枚举全部技能
-  - Then: 恰好 19 项,每项有非空名称/类别/成长触发
-  - Edge cases: 重复 SkillId = 构建期断言失败
-
-- **AC-2**: P0/P1a 分流正确
-  - Given: 注册表已加载
-  - When: 按 P0 标志过滤
-  - Then: 恰好 7 项 P0(诊断/急救/处方用药/采集/炮制/徒手/短兵),其余 12 项为 P1a
-  - Edge cases: 新增 P1a 技能时不影响 P0 集合
-
-- **AC-3**: 技能依赖解锁条件正确
-  - Given: 诊断等级 = 5,辨证已注册为「诊断 ≥ 10 解锁」
-  - When: 查询辨证是否可解锁
-  - Then: 返回 false(5 < 10)
-  - Edge cases: 等于阈值时返回 true(≥ 语义)
-
-- **AC-4**: SKILL_CAP 单一常量
-  - Given: 注册表已加载
-  - When: 查询任何技能的等级上限
-  - Then: 全部返回 60
-  - Edge cases: 等级 60 后不能再获得经验(Story 003 覆盖)
-
-- **AC-5**: 调参表 Fix 字段 JSON 字符串可 Parse
-  - Given: `"0.95"` → `FixParse`
-  - When: 解析调参表的 DEATH_LOSS
-  - Then: 值 = `Fix(0.95)`(Q16.16 raw = 62233600)
-  - Edge cases: `"1/5"` → `Fix(0.2)`; 浮点字面量 `0.95` → schema 层拒绝(ADR-014)
-
-- **AC-6**: DIAG_TIERS 可查询,35 标记 P1a
-  - Given: 注册表已加载
-  - When: 读取诊断的档位阈值
-  - Then: 返回 {10, 20, 35, 50}; 35 有 P1a 标记
-  - Edge cases: 40 级诊断落在 35-50 之间(细档,非检验线)
-
----
-
-## Test Evidence
-
-**Story Type**: Logic
-**Required evidence**: `tests/unit/skill-system/skill_registry_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
-
----
-
-## Dependencies
-
-- Depends on: None(首批 story)
-- Unlocks: Story 002–008(均读取技能注册表)
+## Completion Notes
+**Completed**: 2026-09-28
+**Criteria**: 23/23 passing
+**Deviations**: None
+**Test Evidence**: Logic: `unity/Assets/Tests/EditMode/SkillSystem/skill_registry_test.cs` — 23 tests, all passing
+**Code Review**: Unity-specialist APPROVED + qa-tester reviewed

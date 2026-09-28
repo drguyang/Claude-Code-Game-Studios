@@ -1,12 +1,12 @@
 # Story 007: SkillGrown 事件发射
 
 > **Epic**: 技能与熟练度
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-27
+> **Last Updated**: 2026-09-28
 
 ## Context
 
@@ -109,7 +109,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `tests/integration/skill-system/skill_grown_stream_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: ✅ Complete
 
 ---
 
@@ -117,3 +117,10 @@
 
 - Depends on: Story 002(ComputeXpGain)· Story 006(NoveltyTracker)· Story 001(调参表)
 - Unlocks: Story 008(流重构依赖 SkillGrown 事件已可写)
+
+## Completion Notes
+**Completed**: 2026-09-28
+**Criteria**: 20/20 passing (SkillGrownEmitterTest)
+**Deviations**: None
+**Test Evidence**: Integration: `unity/Assets/Tests/EditMode/SkillSystem/skill_grown_emitter_test.cs` — 20 tests, all passing
+**Code Review**: Unity-specialist APPROVED + qa-tester reviewed
