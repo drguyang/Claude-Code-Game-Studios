@@ -172,6 +172,10 @@
 | **AC-51-B16 F7 上中位数(奇数项)** | `test_f7_upperMedian_oddCount` | BLOCKING |
 | **AC-51-B17 F7 退化(n=1 报不可定义)** | `test_f7_degenerate_singleEvent_reportsUndefined` | BLOCKING |
 | **AC-51-B17 F7 n=2 MAD=0 合法** | `test_f7_twoEvents_madZeroIsLegal` | BLOCKING |
+| **AC-51-B10 三分守恒** | `test_f4_noveltyThreeWayConservation` | BLOCKING |
+| **AC-51-B10 空窗口** | `test_f4_emptyWindow_allZero` | BLOCKING |
+| **AC-51-B10 skill 未命中** | `test_f4_skillNotMatched_allZero` | BLOCKING |
+| **AC-51-B11 不重算 XP** | `test_f4_noXpGainComputation` | BLOCKING |
 | **AC-51-B14(F3 侧)分母 0** | `test_f3_denominatorZero_reports00` | BLOCKING |
 | **AC-51-B14(F3 负向)** | `test_f3_denominatorNonZero_not00` | BLOCKING |
 | **AC-51-B18 F7 禁浮点统计量** | `test_f7_noFloatStatistics` | BLOCKING |
