@@ -60,9 +60,21 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             if (!SkeuoComponentRegistry.All.TryGetValue(kind, out var reg))
                 throw new KeyNotFoundException($"[SkeuoElementLibrary] 元件「{kind}」未注册。");
 
-            if (variantIndex > 0 && !string.IsNullOrEmpty(reg.VariantSuffix))
+            if (variantIndex < 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(variantIndex), variantIndex,
+                    $"[SkeuoElementLibrary] 变体索引不能为负。");
+
+            if (variantIndex > 0)
             {
-                element.AddToClassList(baseClass + reg.VariantSuffix);
+                if (variantIndex > reg.VariantCount)
+                    throw new ArgumentOutOfRangeException(
+                        nameof(variantIndex), variantIndex,
+                        $"[SkeuoElementLibrary] 元件「{kind}」变体索引 {variantIndex} 超出已登记变体数 {reg.VariantCount}。");
+                if (!string.IsNullOrEmpty(reg.VariantSuffix))
+                {
+                    element.AddToClassList(baseClass + reg.VariantSuffix);
+                }
             }
 
             return element;

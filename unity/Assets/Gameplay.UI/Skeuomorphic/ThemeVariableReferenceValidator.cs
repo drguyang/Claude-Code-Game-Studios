@@ -8,7 +8,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
     /// <summary>主题变量引用验证器:维护变量登记集并提供 USS 完整性断言。</summary>
     public static class ThemeVariableReferenceValidator
     {
-        private static readonly HashSet<string> _registered = new HashSet<string>();
+        private static readonly HashSet<string> _registered =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>主题变量声明正则(匹配 <code>--skeuo-xxx:</code>)。</summary>
         private static readonly Regex DeclarationRegex =
