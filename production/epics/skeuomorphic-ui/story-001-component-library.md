@@ -108,9 +108,9 @@
 **Story Type**: UI
 **Required evidence**: `production/qa/evidence/component-library-evidence.md` + EditMode `ComponentLibraryTest.cs`
 
-**Status**: [x] VERIFIED — EditMode `ComponentLibraryTest.cs` 33/33 passed (2026-09-29)
+**Status**: [x] VERIFIED — EditMode `ComponentLibraryTest.cs` 37/37 passed (2026-09-29 r3)
 **Test File**: `unity/Assets/Tests/EditMode/SkeuomorphicUI/ComponentLibraryTest.cs`
-**Result**: `TestResults-639262382880502130.xml` — passed=33, failed=0
+**Result**: `TestResults-639262389081743350.xml` r3 — passed=37, failed=0
 
 ---
 

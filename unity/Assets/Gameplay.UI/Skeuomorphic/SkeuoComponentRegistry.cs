@@ -48,6 +48,13 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             _locked = true;
         }
 
+        /// <summary>重置注册表为空闲状态(仅测试用;运行期不调用)。</summary>
+        public static void Reset()
+        {
+            _locked = false;
+            _registry.Clear();
+        }
+
         /// <summary>获取元件注册项(只读)。</summary>
         public static IReadOnlyDictionary<SkeuoElement, ComponentRegistration> All => _registry;
 
