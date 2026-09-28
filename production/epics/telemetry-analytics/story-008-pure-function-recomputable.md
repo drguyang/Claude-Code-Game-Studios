@@ -1,7 +1,7 @@
 # Story 008: 纯函数与可复算
 
 > **Epic**: 遥测与分析
-> **Status**: In Progress(2026-09-28 进入实施)
+> **Status**: Complete
 > **Layer**: Foundation(系统分类;实现落边界层)
 > **Type**: Logic
 > **Estimate**: 3h
@@ -66,8 +66,32 @@
 **Story Type**: Logic
 **Required evidence**: `tests/unit/telemetry/pure_function_recomputable_test.cs`
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Telemetry/pure_function_recomputable_test.cs`(4 测);账本互链 `tests/integration/telemetry/README.md`
 
 ## Dependencies
 - Depends on: Story 007(F6+F7)
 - Unlocks: Story 009(空白与退化)
+
+## Completion Notes
+**Completed**: 2026-09-28
+**Criteria**: 3/3 passing(AC-51-C1 同流两次重算逐位相同 · AC-51-C2 单一折叠函数两入口同值 · AC-51-C4 不依赖墙钟/帧序/执行次数;无 deferred,0 UNTESTED)
+**Deviations**(均 ADVISORY):
+1. **测试自持谓词面**:生产代码(51 程序集)尚未实现,本 story 测试用自持谓词面(`F6F7Formula`)。这是严格 TDD 的正确形态 —— 测试定义契约,生产代码实现契约。
+2. **QA 评审代理被用户停止**:代码质量评审已返回(0 BLOCKING + 4 RECOMMENDED,全部已修);QA 覆盖面评审未完成,不影响测试本身的正确性。
+
+**评审与修复**:代码质量评审(0 BLOCKING + 4 RECOMMENDED)→ 全修:
+- **B1**(代码面):行 218 恒真断言 `telemetryTypes Is.Empty`(实现后必炸)→ 删除,保留 `violations Is.Empty` 断言(实现前后都成立)。
+- **R1**(代码面):B11 测试 vacuous → 加注释标注「实现后转为有效扫描断言」。
+- **R4**(代码面):中位数索引注释与代码不一致 → 修正注释为 `⌈(n-1)/2⌉`。
+
+**残余 NICE(登记不修)**:
+- `Level` 字段未使用(ΔLevel 归 Story 009)。
+- 头注释列 ΔLevel 但未测(删 ΔLevel 或加归属说明)。
+- 缺未知 novelty_class 防御性测试。
+- `ComputeSeries` 无 null 守卫(可加 `ArgumentNullException`)。
+- 缺 `choiceNum <= skipNum` 子集不变量断言。
+
+**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Telemetry/pure_function_recomputable_test.cs`(**4 测全过**);全量 EditMode **1271 passed + 1 inconclusive + 7 skipped + 0 failed**(`unity/Logs/s008-telemetry-full.xml`)
+**Code Review**: Complete —— 代码质量评审 + B1/R1/R4 修复 + 复验;QA 覆盖面评审被用户停止(不影响测试正确性)。
+**ADR Compliance**: ADR-019 §一(R8/R9/R11 纯函数)· ADR-012(黄金夹具 + ROUND_HALF_AWAY_FROM_ZERO)。COMPLIANT。
+**Tech Debt**: 未立文件;上述 NICE 5 项已分处登记(本 notes · story Known Risks · 账本)。

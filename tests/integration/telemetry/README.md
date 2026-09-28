@@ -224,3 +224,38 @@
 > **测试数**:`blank_and_degraded_test` = **10**(9 passed + 1 skipped)。
 > ⚠️ 关键区分:生产代码(51 程序集)尚未实现,测试用自持谓词面。
 > F6/F7 公式实现与 GDD `telemetry-analytics.md:323-349` 逐字对齐。
+
+## Story 010(越界拒绝 —— AC-51-E1…E5)
+
+故事头登记的证据路径为
+`tests/unit/telemetry/out_of_bounds_rejection_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/Telemetry/out_of_bounds_rejection_test.cs`**(类 `OutOfBoundsRejectionTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Telemetry/out_of_bounds_rejection_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 被测契约 | `unity/Assets/Sim.Contracts/`(`IEventSink` / `ITelemetrySource` / `ITelemetrySink`) |
+| 被测 GDD | `design/gdd/telemetry-analytics.md`(AC-51-E1…E5) |
+| 运行方式 | `unity test unity --mode EditMode --filter OutOfBoundsRejectionTest` |
+
+> 读法纪律:生产代码(51 程序集)尚未实现,测试用契约面验证 + `Assert.Ignore` 明确标记待实现项。
+> `test_e1_noPlayerUi_noPresentationAssets` 在 51 资产目录不存在时用 `Assert.Pass`(目录不存在 = 无资产 = 通过)。
+> `test_e3_nonHostRejection_advisory` 用 `Assert.Ignore` 标记(ADVISORY:依赖 OQ-51-5 未裁)。
+> B1 假绿防护:空命名空间 ⇒ `Assert.Ignore`(当前阶段正确行为),非空命名空间 ⇒ 执行扫描断言(实现后有效)。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`OutOfBoundsRejectionTest` 内) | 性质 |
+|---|---|---|
+| **AC-51-E1 无玩家可见统计界面** | `test_e1_noPlayerUi_noPresentationAssets` + `test_e1_noPlayerUi_noMenuEntries` | BLOCKING |
+| **AC-51-E2 不写回数值** | `test_e2_noWriteBack_noFileWriteApis` + `test_e2_noWriteBack_noProposedFields` + `test_e2_noWriteBack_dataDirectoryUnchanged` | BLOCKING |
+| **AC-51-E3 非主机侧拒绝** | `test_e3_nonHostRejection_advisory` | NOT-RUN(Assert.Ignore,ADVISORY) |
+| **AC-51-E4 无因果字段** | `test_e4_noCausation_noCausalFields` | ADVISORY |
+| **AC-51-E5 无开关** | `test_e5_noSwitch_noSwitchFields` + `test_e5_noSwitch_noSwitchFieldsInNamespace` | BLOCKING |
+
+> **测试数**:`out_of_bounds_rejection_test` = **9**(3 passed + 6 skipped)。
+> ⚠️ 关键区分:生产代码(51 程序集)尚未实现,测试用契约面验证。
+> AC-51-E3 依赖 OQ-51-5(联机时 51 在哪跑)未裁,现不可签核,裁定后回升 BLOCKING。
