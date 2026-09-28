@@ -115,7 +115,8 @@
 **Story Type**: Logic
 **Required evidence**: `tests/unit/skeuomorphic-ui/dto_boundary_and_modal_test.cs` — must exist and pass
 
-**Status**: [ ] Not yet created
+**Status**: [x] VERIFIED — EditMode `dto_boundary_and_modal_test.cs` 12/12 passed (2026-09-29 r3)
+**Result**: `TestResults-639262397348624940.xml` — passed=12, failed=0
 
 ---
 
