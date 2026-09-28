@@ -295,10 +295,14 @@ namespace DaYiJingCheng.Gameplay.Input
         /// 被忽略;只用于保持既有测试调用点编译通过)。</summary>
         public void NotifyAfterUpdateForTest(int frameOverride) => InvokeCallbackBodyForTest();
 
-        /// <summary>测试专用:跳过去重闸、直接执行回调体( Armed 读动作 → Feed )。
+        /// <summary>测试专用:执行回调体( Armed 读动作 → Feed ),**经过与
+        /// <see cref="OnAfterUpdate"/> 相同的帧戳去重闸** —— 同帧第二次调用被拦。
         /// 供测试精确控制帧边界语义,不依赖 <c>Time.frameCount</c>。</summary>
         internal void InvokeCallbackBodyForTest()
         {
+            if (UnityEngine.Time.frameCount == _lastCallbackFrame)
+                return;   // 同帧第二+次回调:与 OnAfterUpdate 同语义,被闸拦
+            _lastCallbackFrame = UnityEngine.Time.frameCount;
             _sampledThisFrame = false;
             if (_emergencyActionEnabled)
                 _emergencyCallbackCount++;
