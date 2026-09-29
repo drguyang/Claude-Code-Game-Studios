@@ -41,7 +41,7 @@
 | `medical_bag_wood.png` | Texture | 木框底 + 内衬绒布，1024×1024 | P0 |
 | `medical_bag_brass.png` | Texture | 铜扣 / 包角 / 铜筹，含錾刻细节 | P0 |
 | `medical_bag_icons.png` | Texture Atlas | 药材/工具线描图标（12 格 × 64px），含铜筹堆叠图 | P0 |
-| `medical_bag_labels.png` | Texture | 纸签标签（药材名手写体） | P0 |
+| `medical_bag_labels.png` | Texture | 纸签标签（药材名，AI 生成含完整版式的材质层 → DA 裁切为独立纹理；动态文字内容由 UXML `<Label>` 叠层承载） | P0 |
 | `medical_bag_3d.fbx` | Mesh | 出诊箱 3D 模型（木框 + 铜扣 + 抽屉分隔） | P0 |
 | `medical_bag_wear.png` | Texture | 磨损 / 划痕 / 使用痕迹 | P1a |
 
@@ -68,8 +68,8 @@
 | 内衬绒布 | `#8B2323` (deep red) | 墨侧暖色 |
 | 黄铜扣 | `#B8863B` (brass) | 铜侧，有錾刻纹理 |
 | 铜筹 | `#D4A84B` (bright brass) | 铜侧，堆叠数量感 |
-| 纸签 | `#F5F0E8` (rice paper) | 墨侧，手写体标签 |
-| 墨迹 | `#1A1714` (ink) | 药材名手写 |
+| 纸签 | `#F5F0E8` (rice paper) | 墨侧，AI 材质层（文字内容由 UXML `<Label>` 承载） |
+| 墨迹 | `#1A1714` (ink) | 药材名墨迹质感 |
 
 ---
 

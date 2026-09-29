@@ -44,7 +44,7 @@
 | `casebook_paper_base.png` | Texture | **纯纸面**：宣纸纤维 / 泛黄 / 霉斑 / 水渍 / 卷边磨损。**不含界行、不含绳结、不含印章** | 9-slice | P0 |
 | `casebook_paper_ruling.png` | Texture | 红色界行（竖线）**单行可 repeat 条**，不含任何行标签文字 | 横向 repeat | P0 |
 | `casebook_paper_stitch.png` | Texture | 中缝线装绳结（一条窄图，含线环 + 结） | 9-slice | P0 |
-| `casebook_ink_font.png` | Texture Atlas | 手写体字库（病名楷书 + 四诊楷书 + 辨证行书），含墨迹浓淡变体 | — | P0 |
+| `casebook_ink_font.png` | Texture Atlas | 墨迹材质层（楷书四诊 / 行书辨证 / 界行 / 印章 / 落款，AI 生成含完整版式的材质参考图 → DA 裁切为独立纹理层；动态文字内容由 UXML `<Label>` 叠层承载） | — | P0 |
 | `casebook_stamp.png` | Texture | 印章样式（已识模式标记 / 鉴别诊断标记） | — | P0 |
 | `casebook_wear.png` | Texture | 边角磨损 / 折痕细节层 | 9-slice | P1a |
 | `casebook_cover.png` | Texture | 线装书封面（深褐漆面，书名烫金） | — | P1a |

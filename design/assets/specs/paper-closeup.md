@@ -13,7 +13,7 @@
 **教学纸近景**是教学态的核心纸面承载。形态为**单张纸页放大**——占屏 60%，纸面放大到足以阅读手写批注。
 
 - **纸张**: 宣纸质感，微黄底色，纤维纹理可见。纸面有轻微泛黄（非新纸），边角有磨损痕迹。
-- **墨迹**: 手写体教学文本（毛笔风格），楷书为主，行书点缀。墨色浓淡不一（模拟真实毛笔压力变化）。
+- **墨迹**: AI 生成含完整版式（楷书教学文本 + 行书批注 + 界行）的材质层 → DA 按材质语义裁切为独立纹理层；动态文字内容由 UXML `<Label>` 叠层承载，USS 控制字体 / 字号 / 行距。字号差异走 USS 变量，不产出字号系列材质。
 - **版式**: 单页横排（承清末民初账簿 / 账本风格——承 art-bible §2「卷宗/账本形态」），页边有红色竖线（界行）。
 - **状态痕迹**: 纸面有**手写批注**（红笔圈点 + 红笔箭头），承教学场景「师父批注」叙事。
 - **动画**: 纸页从屏幕外滑入占屏 60%，0.3s ease-out；关闭时滑出 0.2s ease-in。
@@ -39,7 +39,7 @@
 | Asset | Type | Description | Priority |
 |-------|------|-------------|----------|
 | `paper_closeup_base.png` | Texture | 宣纸底 + 界行，2048×2048 | P0 |
-| `paper_closeup_ink_text.png` | Texture | 手写体教学文本（楷书 + 行书），含墨迹浓淡变体 | P0 |
+| `paper_closeup_ink_text.png` | Texture | AI 生成含完整版式（楷书教学文本 + 行书批注 + 界行）的材质层，含墨迹浓淡变体 | P0 |
 | `paper_closeup_red_annotations.png` | Texture | 红笔批注（圈点 + 箭头 + 下划线） | P0 |
 | `paper_closeup_wear.png` | Texture | 边角磨损 / 泛黄 / 折痕细节层 | P1a |
 
@@ -51,7 +51,7 @@
 |-------|--------|
 | **Closed** | 纸页不可见 |
 | **Opening** | 纸页从屏幕外滑入占屏 60%，0.3s ease-out |
-| **Open — Reading** | 纸面全展开，手写文本 + 红笔批注清晰可读 |
+| **Open — Reading** | 纸面全展开，墨迹文本 + 红笔批注清晰可读 |
 | **Open — Next Page** | 纸页翻页 0.2s ease-in-out（左右滑动） |
 | **Open — Dismiss** | 纸页滑出 0.2s ease-in |
 | **Focus** | 黄 brass 边框 2px 高亮（承 ADR-013 §六 焦点呈现） |
@@ -82,18 +82,29 @@
 
 ## AI Generation Prompt (for reference)
 
+> ⚠️ **产出定位 = 材质板，不是版式图**（2026-09-29 裁定）。
+> 版式权威 = `casebook-39.md` §5 的版式规格（若适用）；本节 prompt 只负责**纸的质感 / 旧度 / 光影 / 调性**。
+> 生成图中的行数、行高、文字位置**一律不作为规格**；文字内容由 UXML `<Label>` 承载。
+
 ```
-A close-up of a traditional Chinese instructional paper (教学纸近景), taking 60% of screen.
+A traditional Chinese instructional paper close-up (教学纸近景), taking 60% of screen.
 Style: Late Qing / early Republican era, circa 1910s.
-Material: Rice paper (宣纸) with warm yellowish tone, visible fiber texture.
-Content: Handwritten Chinese characters in calligraphy style (楷书 for main text, 行书 for annotations), red vermilion pen annotations (圈点 + arrows + underlines).
-Layout: Single page, horizontal text (账簿 style), red vertical guide lines.
-Details: Slight wear at edges, minor aging discoloration, red pen marks from teacher's annotations.
+Material focus: Rice paper (宣纸) with warm yellowish tone, visible fiber texture,
+slight aging discoloration, foxing spots, water stains, darkened curled corners,
+gently cockled surface. Red vertical guide lines (界行) on both pages.
+Layout reference: horizontal ruled lines for text blocks, red vermilion pen annotations
+(圈点 + arrows + underlines) from teacher's markings.
 Lighting: Warm ambient, no harsh shadows, flat lay view.
-Mood: Educational, scholarly, historical.
+Mood: Educational, scholarly, historical authenticity.
 Constraints: NO modern UI, NO digital elements. Pure paper and ink aesthetic.
+Text content: Chinese characters in calligraphy style (楷书 for main text, 行书 for annotations)
+— these are reference placement guides only; actual text rendered via UXML overlay.
 Resolution: 2048x2048, high detail for close-up reading.
 ```
+
+> **该 prompt 刻意不追求文字像素级精准** —— SenseNova U1.5 Fast 对中国脉案/教学纸的强先验是「必落书法」，
+> v1–v5 五轮实测无法通过提示词消除。**正确做法**：让 AI 出含文字版式的参考构图 → DA 按材质语义裁切 → UXML `<Label>` 叠字。
+> 文字精度不追求像素级，追求整体质感。禁止 AI 出图后再人工描图/临摹/矢量化。
 
 ---
 
@@ -102,4 +113,5 @@ Resolution: 2048x2048, high detail for close-up reading.
 - [x] ~~教学纸是否支持多页（P0 = 单页；P1a = 多页翻页）？？~~ → **2026-09-29 裁定：P0 = 单页**。
 - [x] ~~红笔批注是否随教学进度动态显示（逐条出现 vs 全页一次显示）？？~~ → **2026-09-29 裁定：全页一次显示**。
 - [x] ~~教学纸是否支持玩家手写笔记（P0 = 只读；P1a = 手写笔记）？？~~ → **2026-09-29 裁定：只读**。
+- [x] ~~文字内容由材质层承载还是 UXML 叠字？？~~ → **2026-09-29 裁定：AI 材质层出含完整版式的参考图 → DA 裁切 → UXML `<Label>` 叠字**。
 ---
