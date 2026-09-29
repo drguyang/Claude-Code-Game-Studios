@@ -89,3 +89,35 @@
 > AC-42-F5 的 PlayMode 交互测试无法在 EditMode 中实现,用 `Assert.Inconclusive` 标记。
 > 代码评审修复:B1 扩展文件写入检查覆盖方法体;R1 删除恒真断言;R2 统一 DeclaredOnly;R3 删除死代码;R4 增加类型过滤;R5 提取重复代码;R6 增加 IEventSink 字段检查。
 > QA 评审修复:AC-42-D3 扩展至所有 DTO 类型(VitalsDto/AudioCueDto), 添加属性检查。
+
+## Story 007(数据边界收尾 —— AC-42-G1 · AC-42-G2 · AC-42-G6)
+
+故事头登记的证据路径为
+`tests/unit/skeuomorphic-ui/data_boundary_final_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/SkeuomorphicUI/data_boundary_final_test.cs`**(类 `DataBoundaryFinalTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/SkeuomorphicUI/data_boundary_final_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/SkeuomorphicUI/SkeuomorphicUI.Tests.asmdef`(name = `SkeuomorphicUI.Tests`) |
+| 被测契约 | `unity/Assets/Gameplay/UI/`(42 类型树) |
+| 被测 GDD | `design/gdd/skeuomorphic-ui.md`(AC-42-G1 · AC-42-G2 · AC-42-G6) |
+| 运行方式 | `unity test unity --mode EditMode --filter DataBoundaryFinalTest` |
+
+> 读法纪律:生产代码(42 程序集)尚未实现,测试用契约面验证 + `Assert.Inconclusive` 明确标记待实现项。
+> `test_ac42g1_componentRegistry_exists` 在 42 无元件库类型时用 `Assert.Inconclusive`(当前阶段无法判定)。
+> FallbackFontRegistry 排除(UI 基础设施,非字形生成)。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`DataBoundaryFinalTest` 内) | 性质 |
+|---|---|---|
+| **AC-42-G1 元件库唯一出口** | `test_ac42g1_noInlineVariants_noInlineStyles` + `test_ac42g1_componentRegistry_exists` | BLOCKING |
+| **AC-42-G2 设置壳不缓存他系统状态** | `test_ac42g2_noSystemState_noVolumeMonoFields` + `test_ac42g2_noAudioMixer_noAudioMixerFields` | BLOCKING |
+| **AC-42-G6 墨龄数据路径** | `test_ac42g6_noFreehand_noFreehandFields` + `test_ac42g6_noTimer_noTimerFields` + `test_ac42g6_noGlyphGeneration_noGlyphFields` + `test_ac42g6_noRandom_noRandomFields` | BLOCKING |
+
+> **测试数**:`data_boundary_final_test` = **8**(8 passed + 0 failed)。
+> ⚠️ 关键区分:生产代码(42 程序集)尚未实现,测试用契约面验证。
+> 代码评审修复:B1 删除恒真断言;B2 添加非空前置断言;R1 提取重复代码;R2 删除死代码;R3 统一引用类型过滤;R4 添加属性扫描;R5 重命名测试。
