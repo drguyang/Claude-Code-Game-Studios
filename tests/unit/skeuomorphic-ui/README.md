@@ -187,3 +187,33 @@
 > **测试数**:`focus_visual_and_accessibility_test` = **10**(4 passed + 6 inconclusive + 0 failed)。
 > ⚠️ 关键区分:生产代码(42 程序集)尚未实现,测试用契约面验证。
 > 代码评审修复:R2 将内联扫描逻辑改为调用 FindMatchingMembers;R1/R3/R4/R5 添加注释说明实现后补充。
+
+## Story 010(焦点门时序与过渡 —— AC-42-B3b · F8 不变量)
+
+故事头登记的证据路径为
+`production/qa/evidence/focus-gate-transition-evidence.md`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/SkeuomorphicUI/focus_gate_transition_test.cs`**(类 `FocusGateTransitionTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/SkeuomorphicUI/focus_gate_transition_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/SkeuomorphicUI/SkeuomorphicUI.Tests.asmdef`(name = `SkeuomorphicUI.Tests`) |
+| 被测契约 | `unity/Assets/Gameplay/UI/`(42 类型树) |
+| 被测 GDD | `design/gdd/skeuomorphic-ui.md`(AC-42-B3b · F8 不变量) |
+| 运行方式 | `unity test unity --mode EditMode --filter FocusGateTransitionTest` |
+
+> 读法纪律:本 story 要求 PlayMode 帧探针,当前阶段 42 未实现,用 `Assert.Inconclusive` 标记。
+> 5 个测试在当前阶段无法判定(42 未实现或 PlayMode 测试无法运行)。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`FocusGateTransitionTest` 内) | 性质 |
+|---|---|---|
+| **F8 不变量** | `test_f8_invariant_focusGateStateMachine_exists` + `test_f8_invariant_noBothGatesOpen_noBothOpenFields` + `test_f8_invariant_transitionWindow_exists` + `test_f8_invariant_noReentrancy_noReentrancyFields` | BLOCKING |
+| **AC-42-B3b 过渡窗口 ≤1 frame** | `test_ac42b3b_playModeFrameProbe_transitionWindow` + `test_ac42b3b_rapidSwitching_transitionWindow` + `test_ac42b3b_switchDuringTransition_transitionWindow` | BLOCKING |
+
+> **测试数**:`focus_gate_transition_test` = **7**(2 passed + 2 inconclusive + 3 skipped + 0 failed)。
+> ⚠️ 关键区分:本 story 要求 PlayMode 帧探针,当前阶段 42 未实现,PlayMode 测试无法运行。
+> 代码评审修复:R1/R2/R3 负向测试调用 FindMatchingMembers;R4 添加 [Ignore] 属性;R5 缓存程序集扫描结果。
