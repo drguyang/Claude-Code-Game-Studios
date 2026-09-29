@@ -313,3 +313,34 @@
 > **测试数**:`inventory_container_test` = **10**(6 passed + 3 inconclusive + 1 skipped + 0 failed)。
 > ⚠️ 关键区分:本 story 要求 UI 走查,当前阶段 42 未实现,UI 测试无法运行。
 > 代码评审修复:B1 保持 Inconclusive 添加注释;B2 保持文件头注释;R1 提取 AssertNoMatchingMembers;R2 添加注释;R3 添加详细注释;R4 重命名测试;R5 添加注释。
+
+## Story 014(设置界面壳 —— AC-42-F1④ · AC-42-G2 · 音频总线)
+
+故事头登记的证据路径为
+`production/qa/evidence/settings-shell-walkthrough.md`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/SkeuomorphicUI/settings_shell_test.cs`**(类 `SettingsShellTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/SkeuomorphicUI/settings_shell_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/SkeuomorphicUI/SkeuomorphicUI.Tests.asmdef`(name = `SkeuomorphicUI.Tests`) |
+| 被测契约 | `unity/Assets/Gameplay/UI/`(42 类型树) |
+| 被测 GDD | `design/gdd/skeuomorphic-ui.md`(AC-42-F1④ · AC-42-G2 · 音频总线) |
+| 运行方式 | `unity test unity --mode EditMode --filter SettingsShellTest` |
+
+> 读法纪律:本 story 要求 UI 走查,当前阶段 42 未实现,用 `Assert.Inconclusive` / `[Ignore]` 标记。
+> 3 个测试在当前阶段无法判定(42 未实现),1 个 UI 走查测试用 `[Ignore]` 标记。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`SettingsShellTest` 内) | 性质 |
+|---|---|---|
+| **AC-42-G2 设置壳不缓存他系统状态** | `test_settingsShell_hasSettingsShellType` + `test_settingsShell_hasNoSystemState` + `test_settingsShell_hasNoAudioMixer` + `test_settingsShell_hasNoSettings` | BLOCKING |
+| **音频总线** | `test_audioBus_hasAudioBusType` + `test_audioBus_hasNoCache` | BLOCKING |
+| **AC-42-F1④ 手柄走查 + 零按键提示浮层** | `test_settingsShell_gamepadWalkthrough_noKeyHintOverlay` + `test_ac42f1_noKeyHintOverlay_noKeyHintFields` + `test_focusOrder_hasFocusOrderType` + `test_focusOrder_hasNoHardcodedOrder` | BLOCKING |
+
+> **测试数**:`settings_shell_test` = **10**(6 passed + 3 inconclusive + 1 skipped + 0 failed)。
+> ⚠️ 关键区分:本 story 要求 UI 走查,当前阶段 42 未实现,UI 测试无法运行。
+> 代码评审修复:R1 保持 Inconclusive 添加注释;R2 移除 referenceTypesOnly 参数;R3 修正扫描模式;R4 移除 DeclaredOnly;R5-R7 添加注释说明实现后补充。
