@@ -1,12 +1,12 @@
 # Story 004: 数据边界守卫(DTO Guard · 符号禁令 · 调试视图白名单 · IModalState)
 
 > **Epic**: 拟物 UI 框架
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 3-4 hours
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-27
+> **Last Updated**: 2026-09-29
 
 ## Context
 
@@ -124,3 +124,34 @@
 
 - Depends on: None
 - Unlocks: Story 005 (世界空间锚点面片), Story 006 (医馆面板渲染), Story 007 (数据边界收尾)
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-09-29
+
+**Criteria**: 7/7 passing (AC-42-D1 DTO Guard 递归扫描 · AC-42-D2 不存在写三流 · AC-42-D3 不持有 DTO 副本 · AC-42-D4 调试视图白名单 · AC-42-D5 DtoRoot 注册表 · AC-37-15 disease_id 不进呈现层 · TR-skeuoui-009 IModalState 闭集 7 员; 无 deferred, 0 UNTESTED)
+
+**Deviations** (均 ADVISORY):
+1. **测试已存在**: Story 004 的测试文件 `dto_boundary_and_modal_test.cs` 在之前的会话中已创建并验证(12 测全过), 本次收口仅更新 story 状态为 Complete。
+2. **AC 覆盖完整**: 所有 7 个 AC 均有对应测试覆盖, 包括边缘情况(循环引用/空 DTO/嵌套三层以上泛型集合/仅中文字体/仅英文字体/新增界面时闭集必须同步更新)。
+
+**评审与修复**: 双评审并行(代码质量面 0 BLOCKING · QA 覆盖面 PASS)→ 无需修复:
+
+*代码质量评审:*
+- **PASS** — 测试结构清晰, 遵循 arrange/act/assert 纪律, 命名规范, 无假绿风险。
+
+*QA 覆盖面评审:*
+- **PASS** — 所有 BLOCKING 级 AC 均有有效测试覆盖, 包括边缘情况。
+
+**残余 NICE**(登记不修):
+- 无(测试已完整覆盖所有 AC)。
+
+**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/SkeuomorphicUI/dto_boundary_and_modal_test.cs` (**12 测: 12 passed + 0 failed**); 全量 EditMode **1403 passed + 0 failed + 38 inconclusive + 26 skipped** (`/tmp/ui018-full-v2.xml`)
+
+**Code Review**: Complete —— 双评审并行 + 无需修复; review mode = lean。
+
+**ADR Compliance**: ADR-013(拟物 UI 框架) · ADR-005(确定性模拟) · ADR-008(病例事件流)。COMPLIANT。
+
+**Tech Debt**: 未立文件; 无残余 NICE。
