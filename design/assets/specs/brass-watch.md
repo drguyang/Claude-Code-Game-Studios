@@ -1,0 +1,109 @@
+# Asset Spec: 铜怀表
+
+> **Tier**: Vertical Slice Critical
+> **Category**: Prop / Timepiece
+> **Source**: hud.md §4, time-and-weather.md
+> **Art Bible Ref**: §7.2 黄铜侧主导（怀表 = 铜器）; §1 P3「黄 brass 必须有来历」
+> **ADR Ref**: ADR-013 §三（UI Toolkit 主栈）; ADR-009 §五（游戏时间 = 派生态，由事件流确定性重建）
+
+---
+
+## Visual Description
+
+**铜怀表**是世界态常驻 HUD 元素（左上角）。形态为**老式黄铜怀表**——翻盖式，铜壳 + 玻璃面 + 指针。
+
+- **外壳**: 黄铜翻盖，表面有錾刻纹理（花卉纹样，清末民初常见图案）。边缘微磨（使用痕迹）。
+- **表盘**: 圆形铜面，刻度为**中文时辰**（子丑寅卯辰巳午未申酉戌亥，非阿拉伯数字）。指针 = 短针（时辰）+ 长针（刻）。
+- **玻璃面**: 圆形玻璃（非现代蓝宝石），略有划痕（使用痕迹）。
+- **链条**: 黄铜细链，从怀表顶部延伸（固定于 UI 左上角）。
+- **动态元素**:
+  - 指针实时转动（游戏时间流逝）
+  - 时辰切换时，表盘墨迹更新（时辰文字变化）
+- **材质归属**: 纯黄铜侧——外壳、表盘、指针、链条均为铜质感。
+
+---
+
+## Technical Specs
+
+| Property | Value | Notes |
+|----------|-------|-------|
+| **Resolution** | 256×256 (texture) | 怀表面 + 时辰文字 |
+| **Format** | PNG (sRGB) | 黄铜金属感 |
+| **Material slots** | 2 (brass_case + glass_face) | 铜壳 / 玻璃面 |
+| **Poly count** | ~100 tris (3D prop) | 翻盖 + 表盘 + 指针 |
+| **LOD** | LOD0 only | 世界态常驻 |
+| **Platform variants** | 无 | 全平台同一套 |
+
+---
+
+## Asset Breakdown
+
+| Asset | Type | Description | Priority |
+|-------|------|-------------|----------|
+| `watch_brass_case.png` | Texture | 黄铜外壳 + 錾刻纹理 + 链条，256×256 | P0 |
+| `watch_glass_face.png` | Texture | 玻璃面 + 时辰文字（子丑寅卯…） + 指针 | P0 |
+| `watch_wear.png` | Texture | 使用痕迹 / 氧化 / 划痕 | P1a |
+| `watch_3d.fbx` | Mesh | 怀表 3D 模型（翻盖 + 表盘 + 指针） | P0 |
+
+---
+
+## Interaction States
+
+| State | Visual |
+|-------|--------|
+| **Idle** | 指针实时转动（游戏时间流逝） |
+| **Hour Change** | 时辰文字切换（0.5s 淡入淡出） |
+| **Focus** | 黄铜边框 2px 高亮（承 ADR-013 §六 焦点呈现） |
+| **Active — Zoom** | 怀表放大至屏幕中央（0.3s ease-out），显示详细时间 |
+
+---
+
+## Color Palette (from Art Bible)
+
+| Element | Color | Role |
+|---------|-------|------|
+| 黄铜壳 | `#B8863B` (antique brass) | 铜侧主导 |
+| 錾刻纹理 | `#8B6914` (darker brass) | 手工锤纹 |
+| 玻璃面 | `#F5F5F5` (translucent white) | 散射介质 |
+| 时辰文字 | `#1A1714` (ink black) | 墨侧 |
+| 指针 | `#D4A84B` (bright brass) | 铜侧 |
+| 氧化斑块 | `#4A7C59` (verdigris, 边缘) | 使用痕迹 |
+
+---
+
+## Accessibility
+
+- 时辰文字 ≥ 10px（薄屏可辨识）
+- 指针 ≠ 仅颜色区分——有时针位置 + 分针位置差异
+- 焦点高亮 = 黄 brass 边框 2px（承 art-bible §3.3 / §7.4 + ADR-013）
+
+---
+
+## AI Generation Prompt (for reference)
+
+```
+An antique brass pocket watch (铜怀表), close-up view.
+Style: Late Qing / early Republican era, circa 1910s.
+Components: Brass flip cover with floral engraving, glass face with Chinese traditional time markers (子丑寅卯辰巳午未申酉戌亥), brass hour and minute hands, brass chain.
+Details: Slight oxidation on brass, glass scratches from use, aged patina.
+Lighting: Warm ambient, soft specular highlights on brass surface.
+Mood: Scholarly, precise, historical timepiece.
+Constraints: NO modern digital watch, NO Arabic numerals. Pure vintage brass pocket watch with Chinese characters.
+Resolution: 256x256 texture, clock face clearly legible.
+```
+
+---
+
+## Open Questions
+
+- [ ] 时辰系统精度（P0 = 时辰（2 小时）；P1a = 刻（15 分钟））？
+- [ ] 怀表是否支持闹钟功能（P0 = 无；P1a = 事件提醒）？
+- [ ] 怀表是否支持暂停时间（P0 = 时间持续流逝；P1a = 暂停）？
+
+---
+
+## Related Files
+
+- `design/ux/hud.md` §4 — 铜怀表 HUD spec
+- `design/gdd/time-and-weather.md` — 时间 / 天气系统
+- `design/art/art-bible.md` §7.2 — 黄 brass 侧材质规格
