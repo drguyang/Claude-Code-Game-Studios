@@ -407,3 +407,67 @@
 > **测试数**:`paper_closeup_test` = **9**(6 passed + 2 inconclusive + 1 skipped + 0 failed)。
 > ⚠️ 关键区分:本 story 要求 UI 走查,当前阶段 42 未实现,UI 测试无法运行。
 > 代码评审修复:R1 保持 Inconclusive 添加注释;R2 添加注释;R3 添加注释;R4 添加上下文注释;R5 重命名测试。
+
+## Story 017(敌人读数条完整实现 —— V-10 · 世界锚点 → billboard 面片完整链路 · 淡入淡出 · 六态机映射)
+
+故事头登记的证据路径为
+`production/qa/evidence/enemy-vitals-bar-evidence.md`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/SkeuomorphicUI/enemy_vitals_bar_test.cs`**(类 `EnemyVitalsBarTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/SkeuomorphicUI/enemy_vitals_bar_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/SkeuomorphicUI/SkeuomorphicUI.Tests.asmdef`(name = `SkeuomorphicUI.Tests`) |
+| 被测契约 | `unity/Assets/Gameplay/UI/`(42 类型树) |
+| 被测 GDD | `design/gdd/skeuomorphic-ui.md`(V-10 · 世界锚点 → billboard 面片完整链路 · 淡入淡出 · 六态机映射) |
+| 运行方式 | `unity test unity --mode EditMode --filter EnemyVitalsBarTest` |
+
+> 读法纪律:本 story 要求视觉测试(截图 + lead sign-off),当前阶段 42 未实现,用 `Assert.Inconclusive` / `[Ignore]` 标记。
+> 4 个测试在当前阶段无法判定(42 未实现),1 个视觉测试用 `[Ignore]` 标记。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`EnemyVitalsBarTest` 内) | 性质 |
+|---|---|---|
+| **V-10 铜面+蚀刻 哑光面片** | `test_enemyVitalsBar_hasEnemyVitalsBarType` + `test_enemyVitalsBar_hasNoTraditionalHealthBar` + `test_enemyVitalsBar_hasNoDtoCopy` | BLOCKING |
+| **世界锚点 → billboard 面片完整链路** | `test_billboard_hasBillboardType` + `test_billboard_hasNoDepthConflict` | BLOCKING |
+| **淡入淡出** | `test_fadeInOut_hasFadeInOutType` + `test_fadeInOut_hasNoHardcodedDuration` | BLOCKING |
+| **六态机映射** | `test_sixStateMapping_hasSixStateMappingType` + `test_sixStateMapping_hasNoHardcodedMapping` | BLOCKING |
+| **视觉测试(截图 + lead sign-off)** | `test_visual_screenshot_leadSignOff` | BLOCKING |
+
+> **测试数**:`enemy_vitals_bar_test` = **10**(5 passed + 4 inconclusive + 1 skipped + 0 failed)。
+> ⚠️ 关键区分:本 story 要求视觉测试(截图 + lead sign-off),当前阶段 42 未实现,视觉测试无法运行。
+
+## Story 018(开发者调试视图 —— AC-42-A6 · AC-42-D4 · 规则九)
+
+故事头登记的证据路径为
+`production/qa/evidence/dev-debug-view-evidence.md`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/SkeuomorphicUI/dev_debug_view_test.cs`**(类 `DevDebugViewTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/SkeuomorphicUI/dev_debug_view_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/SkeuomorphicUI/SkeuomorphicUI.Tests.asmdef`(name = `SkeuomorphicUI.Tests`) |
+| 被测契约 | `unity/Assets/Gameplay/UI/`(42 类型树) |
+| 被测 GDD | `design/gdd/skeuomorphic-ui.md`(AC-42-A6 · AC-42-D4 · 规则九) |
+| 运行方式 | `unity test unity --mode EditMode --filter DevDebugViewTest` |
+
+> 读法纪律:本 story 要求 UI 验证,当前阶段 42 未实现,用 `Assert.Inconclusive` / `[Ignore]` 标记。
+> 3 个测试在当前阶段无法判定(42 未实现),1 个 UI 验证测试用 `[Ignore]` 标记。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`DevDebugViewTest` 内) | 性质 |
+|---|---|---|
+| **AC-42-A6 构建期 debug 视图代码路径不存在于玩家构建** | `test_devDebugView_hasDebugViewType` + `test_devDebugView_hasNoPlayerBuildDebugView` | BLOCKING |
+| **AC-42-D4 调试视图读到的 DTO 成员 ⊆ 白名单** | `test_devDebugView_hasNoGameQuantityFields` + `test_devDebugView_hasNoNonWhitelistFields` | BLOCKING |
+| **规则九 调试视图内容 = 焦点栈/元件库/DTO 绑定结果** | `test_debugViewContent_hasContentType` + `test_debugViewContent_hasNoGameNumericDisplay` | BLOCKING |
+| **UI 验证(手动)** | `test_ui_screenshot_manualVerification` | BLOCKING |
+
+> **测试数**:`dev_debug_view_test` = **7**(5 passed + 1 inconclusive + 1 skipped + 0 failed)。
+> ⚠️ 关键区分:本 story 要求 UI 验证,当前阶段 42 未实现,UI 测试无法运行。
+> 代码评审修复:B1 保持 Inconclusive 添加注释;B2 添加注释;B3 添加注释;R1-R5 添加注释说明实现后补充。
