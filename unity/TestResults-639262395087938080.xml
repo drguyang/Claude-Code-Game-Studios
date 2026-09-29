@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="13" result="Failed(Child)" total="13" passed="11" failed="2" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.06038">
+  <test-suite type="TestSuite" id="1000" name="unity" fullname="unity" runstate="Runnable" testcasecount="1344" result="Failed" site="Child" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.060380" total="13" passed="11" failed="2" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="2434" name="SkeuomorphicUI.Tests.dll" fullname="/XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Library/ScriptAssemblies/SkeuomorphicUI.Tests.dll" runstate="Runnable" testcasecount="72" result="Failed" site="Child" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.045168" total="13" passed="11" failed="2" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="3710218" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="2435" name="DaYiJingCheng" fullname="DaYiJingCheng" runstate="Runnable" testcasecount="72" result="Failed" site="Child" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.044578" total="13" passed="11" failed="2" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="2436" name="Tests" fullname="DaYiJingCheng.Tests" runstate="Runnable" testcasecount="72" result="Failed" site="Child" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.044188" total="13" passed="11" failed="2" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="2437" name="Unit" fullname="DaYiJingCheng.Tests.Unit" runstate="Runnable" testcasecount="72" result="Failed" site="Child" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.043815" total="13" passed="11" failed="2" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestSuite" id="2438" name="SkeuomorphicUI" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI" runstate="Runnable" testcasecount="72" result="Failed" site="Child" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.043408" total="13" passed="11" failed="2" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-suite type="TestFixture" id="2396" name="dto_boundary_and_modal_test" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" runstate="Runnable" testcasecount="13" result="Failed" site="Child" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.041868" total="13" passed="11" failed="2" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <failure>
+                  <message><![CDATA[One or more child tests had errors]]></message>
+                </failure>
+                <test-case id="2407" name="test_dto_guard_all_known_dto_roots_clean" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_dto_guard_all_known_dto_roots_clean" methodname="test_dto_guard_all_known_dto_roots_clean" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" runstate="Runnable" seed="1080193607" result="Failed" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.015115" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <failure>
+                    <message><![CDATA[  DtoGuard found issues in DaYiJingCheng.Tests.Unit.SkeuomorphicUI.DtoDerived
+  Expected: <empty>
+  But was:  < "[DtoGuard] DtoDerived.<symptomCount>k__BackingField —— 字段名携带 disease 语义(含私有 / 自动属性背字段;AC-37-15 / AC-44-B2)。", "[DtoGuard] DtoDerived.symptomCount —— 属性名携带 disease 语义(AC-37-15 / AC-44-B2)。" >
+]]></message>
+                    <stack-trace><![CDATA[at DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_dto_guard_all_known_dto_roots_clean () [0x0003c] in /XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Assets/Tests/EditMode/SkeuomorphicUI/dto_boundary_and_modal_test.cs:123
+]]></stack-trace>
+                  </failure>
+                </test-case>
+                <test-case id="2403" name="test_dto_guard_scan_deep_nesting_terminates_at_depth_guard" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_dto_guard_scan_deep_nesting_terminates_at_depth_guard" methodname="test_dto_guard_scan_deep_nesting_terminates_at_depth_guard" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" runstate="Runnable" seed="977451845" result="Passed" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.002380" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2400" name="test_dto_guard_scan_derived_dto" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_dto_guard_scan_derived_dto" methodname="test_dto_guard_scan_derived_dto" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" runstate="Runnable" seed="1432636006" result="Failed" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.000325" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <failure>
+                    <message><![CDATA[  Expected: <empty>
+  But was:  < "[DtoGuard] DtoDerived.<symptomCount>k__BackingField —— 字段名携带 disease 语义(含私有 / 自动属性背字段;AC-37-15 / AC-44-B2)。", "[DtoGuard] DtoDerived.symptomCount —— 属性名携带 disease 语义(AC-37-15 / AC-44-B2)。" >
+]]></message>
+                    <stack-trace><![CDATA[at DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_dto_guard_scan_derived_dto () [0x0000f] in /XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Assets/Tests/EditMode/SkeuomorphicUI/dto_boundary_and_modal_test.cs:43
+]]></stack-trace>
+                  </failure>
+                </test-case>
+                <test-case id="2402" name="test_dto_guard_scan_inherited_field_with_disease_token_fails" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_dto_guard_scan_inherited_field_with_disease_token_fails" methodname="test_dto_guard_scan_inherited_field_with_disease_token_fails" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" runstate="Runnable" seed="1774883838" result="Passed" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.003559" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2399" name="test_dto_guard_scan_nested_list_dto" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_dto_guard_scan_nested_list_dto" methodname="test_dto_guard_scan_nested_list_dto" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" runstate="Runnable" seed="84415336" result="Passed" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.000184" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2398" name="test_dto_guard_scan_null_returns_error" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_dto_guard_scan_null_returns_error" methodname="test_dto_guard_scan_null_returns_error" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" runstate="Runnable" seed="1947432450" result="Passed" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.000153" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2401" name="test_dto_guard_scan_private_field_with_disease_token_fails" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_dto_guard_scan_private_field_with_disease_token_fails" methodname="test_dto_guard_scan_private_field_with_disease_token_fails" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" runstate="Runnable" seed="1460971737" result="Passed" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.000189" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2397" name="test_dto_guard_scan_vitals_dto_clean" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_dto_guard_scan_vitals_dto_clean" methodname="test_dto_guard_scan_vitals_dto_clean" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" runstate="Runnable" seed="161691438" result="Passed" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.000134" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2405" name="test_modal_id_enum_has_seven_members_plus_none" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_modal_id_enum_has_seven_members_plus_none" methodname="test_modal_id_enum_has_seven_members_plus_none" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" runstate="Runnable" seed="1145467119" result="Passed" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.004100" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2408" name="test_modal_id_none_is_zero" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_modal_id_none_is_zero" methodname="test_modal_id_none_is_zero" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" runstate="Runnable" seed="1488026930" result="Passed" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.000112" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2409" name="test_modal_id_paper_closeup_48_is_seventh_member" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_modal_id_paper_closeup_48_is_seventh_member" methodname="test_modal_id_paper_closeup_48_is_seventh_member" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" runstate="Runnable" seed="1197286441" result="Passed" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.000095" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2406" name="test_modal_id_values_are_unique" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_modal_id_values_are_unique" methodname="test_modal_id_values_are_unique" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" runstate="Runnable" seed="218204885" result="Passed" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.000894" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2404" name="test_modal_state_interface_readonly_no_setter" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test.test_modal_state_interface_readonly_no_setter" methodname="test_modal_state_interface_readonly_no_setter" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.dto_boundary_and_modal_test" runstate="Runnable" seed="1646813658" result="Passed" start-time="2026-09-28 16:45:08Z" end-time="2026-09-28 16:45:08Z" duration="0.000507" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <output><![CDATA[Saving results to: /XYFS01/sysu_tyu2_2/.config/unity3d/DefaultCompany/unity/TestResults.xml
+]]></output>
+                </test-case>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

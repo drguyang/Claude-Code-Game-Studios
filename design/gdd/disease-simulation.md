@@ -568,10 +568,10 @@ P0 病种 ~8(`systems-index.md` §8)。**新增病种 = 加一行数据,不改�
 | 发病 | 进展 / 好转 | `trend_backward_agg` 符号(规则四);由 `Base` 曲线 + 处置偏移决定 |
 | 进展 | 危殆 | `position_agg ≥ CRITICAL_THRESHOLD`(**合成量**,规则十) |
 | 危殆 | 昏迷 | `position_agg ≥ COMA_THRESHOLD` 且存活 —— **C1 的登记点** |
-| 危殆 | 死亡 | `LethalFor(entity, d)` 且 `position_agg ≥ DEATH_THRESHOLD` 且**干预窗口已过**(F4,P0-G1 B′ 起含照护窗口;`LethalFor` = 2026-09-17 R12 逐实体门,病人侧按注册表 `lethal` 派生) |
+| 危殆 | 死亡 | `LethalFor(entity, d) ∧ ¬SelfLimited(entity, d)` 且 `position_agg ≥ DEATH_THRESHOLD` 且**干预窗口已过**(F4;两门合并 = `lethal ∧ self_limit=false ∧ ¬IsCombatant`) |
 | 好转 | 发病(复发) | 病种有 `relapse.*` 块(如疟疾)且经过 `relapse_interval` —— **复发不是状态机加边,是 F1 的显式项;九态表无「复发」态**(2026-09-15 B5 改注) |
 | 迁延 | 发病(复发) | 同上。**复发型病种的脉冲间谷底判为迁延,不判痊愈**(见 R3.3 注) |
-| 昏迷 | 苏醒 / 死亡 | 救治成功 / **F4 死亡主谓词**(`LethalFor(entity,d) ∧ self_limit = false ∧ 越阈 ∧ 窗口过` —— 2026-09-16 三轮 A3:该边**不得只查 `lethal`**,否则绕过死亡门;2026-09-17 R12:`lethal` 已升为逐实体门) |
+| 昏迷 | 苏醒 / 死亡 | 救治成功 / **F4 死亡主谓词**(`LethalFor(entity,d) ∧ ¬SelfLimited(entity,d) ∧ 越阈 ∧ 窗口过` —— 2026-09-16 三轮 A3:该边**不得只查 `lethal`**,否则绕过死亡门;2026-09-17 R12:`lethal` 已升为逐实体门;2026-09-29 G2:`self_limit` 升为逐实体谓词 `SelfLimited`,与 `LethalFor` 正交) |
 | 痊愈 | — | `position_agg < RECOVER_THRESHOLD` ∧ 无 `relapse.*` 块 ∧ **非豁免类**(豁免类 = `plateau ∧ lethal = false`,永不入痊愈)且低位稳定 ≥ `W` 触发(终态判定,B5);非经由好转 `position_agg` 直接跌破痊愈阈也可触发(九态机闭合);**非上升期门(2026-09-16 四轮 K5)**:`trend_backward_agg ≤ 0` 或 `τ > τ_peak` —— 自限型上升段 `position` 尚低,缺门则「病刚发(τ<incubation)就判愈」(豁免类的 `τ` 恒 < τ_peak 不误伤) |
 | 危殆 / 迁延 | 痊愈 | `position_agg < RECOVER_THRESHOLD`(终态判定衔接:任何未达痊愈阈的非终态经此边入痊愈,2026-09-15 B5) |
 
@@ -1065,10 +1065,11 @@ boundary_mode(每病种注册表字段) = monotone | scan
 State(t) 只在 tick 采样点上判定 —— 不做一般求根
 
 【判定顺序:严重度降序 —— 这条顺序是规格的一部分,不可改动】
-   死亡 ← LethalFor(entity, d) ∧ self_limit = false        // 2026-09-17 R12(25 回填):`lethal` 升为逐实体门
+   死亡 ← LethalFor(entity, d) ∧ ¬SelfLimited(entity, d)       // 两门合并:lethal ∧ ¬combatant ∧ self_limit=false
           ∧ position_agg ≥ DEATH_THRESHOLD
           ∧ (t − last_intervention) > TREATMENT_WINDOW
-   昏迷 ← LethalFor(entity, d) ∧ position_agg ≥ COMA_THRESHOLD   // C1 的登记点
+   昏迷 ← LethalFor(entity, d) ∧ SelfLimited(entity, d)        // 自限型 combatant 归零 = 昏迷,不死
+          ∧ position_agg ≥ COMA_THRESHOLD                       // C1 的登记点
    危殆 ← position_agg ≥ CRITICAL_THRESHOLD
    潜伏 ← τ < incubation
    痊愈 ← position_agg < RECOVER_THRESHOLD ∧ 无 relapse.* 块
@@ -1118,6 +1119,16 @@ last_intervention = last of:
 > 两者正交:F4 死亡支 = `LethalFor ∧ self_limit=false ∧ …`,自限门**不**降格为逐实体量。
 > 注册表侧无需新增字段(谓词由 `kind` + 实体类别派生);若 25 的 OQ-25-1 用户裁定采别的形态,
 > 改判落点仍在本谓词,不散进 F4 各支。
+
+> **`SelfLimited(entity, d)` —— 逐实体自限门(2026-09-29 由 29 gate-check G2 回填)**:
+> `SelfLimited(entity, d) = self_limit(d) ∧ ¬IsCombatant(entity)`。**敌人 / 兽那一支恒
+> `true`**(非致命模型:归零 = 昏迷,ADR-016 §二,自限门对 combatant 恒开—— 昏迷支承接,
+> 死亡支关闭)。病人 / 玩家那一支 = 注册表 `self_limit(d)` 原语义。
+> **正交性**:`LethalFor` 和 `SelfLimited` 是**独立的逐实体谓词**,各自由注册表字段 +
+> `IsCombatant` 派生,互不蕴含。F4 死亡支同时引用两者: `LethalFor ∧ ¬SelfLimited ∧ …`
+> (= `LethalFor ∧ self_limit=false ∧ …`,两门合并为同一布尔表达式)。
+> **实现落点**:9 的注册表数据已含 `self_limit` 字段(`curve.self_limit`);谓词实现 = **9 的
+> 下一轮**(当前注册表读者可先读该字段,谓词封装延后到实现故事)。
 
 > **`IsCombatant(entity)` 真值表(2026-09-18 由 25 二轮回填 · 义务 R19c —— 此前全库无定义,
 > 而它是 F4 死亡谓词的承重输入)**:

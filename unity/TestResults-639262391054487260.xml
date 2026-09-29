@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="37" result="Passed" total="37" passed="37" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.0946324">
+  <test-suite type="TestSuite" id="1000" name="unity" fullname="unity" runstate="Runnable" testcasecount="1331" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.094632" total="37" passed="37" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="2420" name="SkeuomorphicUI.Tests.dll" fullname="/XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Library/ScriptAssemblies/SkeuomorphicUI.Tests.dll" runstate="Runnable" testcasecount="59" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.079310" total="37" passed="37" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="3707255" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="2421" name="DaYiJingCheng" fullname="DaYiJingCheng" runstate="Runnable" testcasecount="59" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.078952" total="37" passed="37" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="2422" name="Tests" fullname="DaYiJingCheng.Tests" runstate="Runnable" testcasecount="59" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.078782" total="37" passed="37" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="2423" name="Unit" fullname="DaYiJingCheng.Tests.Unit" runstate="Runnable" testcasecount="59" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.078633" total="37" passed="37" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestSuite" id="2424" name="SkeuomorphicUI" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI" runstate="Runnable" testcasecount="59" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.078453" total="37" passed="37" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="TestFixture" id="2358" name="ComponentLibraryTest" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" testcasecount="37" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.076907" total="37" passed="37" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="2370" name="test_component_registry_initialize_defaults_idempotent_after_lock" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_component_registry_initialize_defaults_idempotent_after_lock" methodname="test_component_registry_initialize_defaults_idempotent_after_lock" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="63460428" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.018127" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2372" name="test_component_registry_max_components_limit" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_component_registry_max_components_limit" methodname="test_component_registry_max_components_limit" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="1414425556" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000169" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2373" name="test_component_registry_max_variants_limit" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_component_registry_max_variants_limit" methodname="test_component_registry_max_variants_limit" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="1812093842" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000138" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2369" name="test_component_registry_quota_defaults_pass" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_component_registry_quota_defaults_pass" methodname="test_component_registry_quota_defaults_pass" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="522758634" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.001188" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2371" name="test_component_registry_register_after_lock_throws" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_component_registry_register_after_lock_throws" methodname="test_component_registry_register_after_lock_throws" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="616138892" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.002433" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2393" name="test_default_registry_has_all_four_elements" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_default_registry_has_all_four_elements" methodname="test_default_registry_has_all_four_elements" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="122834535" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000443" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2394" name="test_default_registry_paper_has_aged_variant" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_default_registry_paper_has_aged_variant" methodname="test_default_registry_paper_has_aged_variant" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="853233947" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000312" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2395" name="test_default_registry_scroll_has_no_variant" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_default_registry_scroll_has_no_variant" methodname="test_default_registry_scroll_has_no_variant" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="966866110" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000175" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2375" name="test_element_library_create_all_four_kinds" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_element_library_create_all_four_kinds" methodname="test_element_library_create_all_four_kinds" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="1488436724" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.025069" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2374" name="test_element_library_create_returns_element_with_correct_class" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_element_library_create_returns_element_with_correct_class" methodname="test_element_library_create_returns_element_with_correct_class" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="113504344" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000176" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2377" name="test_element_library_create_with_variant_adds_suffix_class" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_element_library_create_with_variant_adds_suffix_class" methodname="test_element_library_create_with_variant_adds_suffix_class" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="1803311889" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000386" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2380" name="test_element_library_create_with_variant_quota_mismatch_throws" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_element_library_create_with_variant_quota_mismatch_throws" methodname="test_element_library_create_with_variant_quota_mismatch_throws" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="2098016219" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000383" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2379" name="test_element_library_get_uss_class_name" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_element_library_get_uss_class_name" methodname="test_element_library_get_uss_class_name" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="1666119245" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000251" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2381" name="test_element_library_get_uss_class_name_invalid_kind_throws" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_element_library_get_uss_class_name_invalid_kind_throws" methodname="test_element_library_get_uss_class_name_invalid_kind_throws" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="1115277999" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000243" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2376" name="test_element_library_invalid_kind_throws" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_element_library_invalid_kind_throws" methodname="test_element_library_invalid_kind_throws" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="1052293048" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000231" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2378" name="test_element_library_variant_index_zero_no_suffix" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_element_library_variant_index_zero_no_suffix" methodname="test_element_library_variant_index_zero_no_suffix" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="1872427918" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000326" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2389" name="test_fallback_font_registry_chinese_slot_exists" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_fallback_font_registry_chinese_slot_exists" methodname="test_fallback_font_registry_chinese_slot_exists" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="1097654207" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000834" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2390" name="test_fallback_font_registry_english_slot_exists" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_fallback_font_registry_english_slot_exists" methodname="test_fallback_font_registry_english_slot_exists" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="205612138" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000151" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2391" name="test_fallback_font_registry_missing_slot_throws" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_fallback_font_registry_missing_slot_throws" methodname="test_fallback_font_registry_missing_slot_throws" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="1356191833" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000282" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2392" name="test_fallback_font_registry_validate_fallbacks_no_errors" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_fallback_font_registry_validate_fallbacks_no_errors" methodname="test_fallback_font_registry_validate_fallbacks_no_errors" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="2006796251" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000301" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2386" name="test_hardcoded_font_size_regex_detects_violation" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_hardcoded_font_size_regex_detects_violation" methodname="test_hardcoded_font_size_regex_detects_violation" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="255687057" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000251" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2387" name="test_hardcoded_text_regex_detects_violation" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_hardcoded_text_regex_detects_violation" methodname="test_hardcoded_text_regex_detects_violation" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="2017424725" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000589" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2382" name="test_inline_color_hardcoded_detected_by_c4_regex" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_inline_color_hardcoded_detected_by_c4_regex" methodname="test_inline_color_hardcoded_detected_by_c4_regex" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="1879530377" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000182" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2383" name="test_inline_size_hardcoded_detected_by_c4_regex" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_inline_size_hardcoded_detected_by_c4_regex" methodname="test_inline_size_hardcoded_detected_by_c4_regex" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="960220804" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000182" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2385" name="test_inline_text_in_comment_matches_regex_but_production_tool_strips_comments" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_inline_text_in_comment_matches_regex_but_production_tool_strips_comments" methodname="test_inline_text_in_comment_matches_regex_but_production_tool_strips_comments" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="194415900" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000317" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2362" name="test_nine_slice_at_half_size_boundary_invalid" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_nine_slice_at_half_size_boundary_invalid" methodname="test_nine_slice_at_half_size_boundary_invalid" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="1618798950" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000163" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2361" name="test_nine_slice_negative_throws_error" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_nine_slice_negative_throws_error" methodname="test_nine_slice_negative_throws_error" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="596283174" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.001526" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2359" name="test_nine_slice_positive_values_pass" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_nine_slice_positive_values_pass" methodname="test_nine_slice_positive_values_pass" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="1187235877" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000156" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2363" name="test_nine_slice_validate_error_message_contains_element_name" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_nine_slice_validate_error_message_contains_element_name" methodname="test_nine_slice_validate_error_message_contains_element_name" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="496355805" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000207" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2360" name="test_nine_slice_zero_throws_error" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_nine_slice_zero_throws_error" methodname="test_nine_slice_zero_throws_error" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="448239501" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000172" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2388" name="test_theme_variable_reference_not_flagged_as_hardcoded" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_theme_variable_reference_not_flagged_as_hardcoded" methodname="test_theme_variable_reference_not_flagged_as_hardcoded" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="748065545" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000148" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2384" name="test_theme_variable_reference_not_flagged_as_inline_color" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_theme_variable_reference_not_flagged_as_inline_color" methodname="test_theme_variable_reference_not_flagged_as_inline_color" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="2125667743" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000255" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2366" name="test_theme_variable_reference_validator_case_insensitive" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_theme_variable_reference_validator_case_insensitive" methodname="test_theme_variable_reference_validator_case_insensitive" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="698741401" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000192" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2368" name="test_theme_variable_reference_validator_empty_input_no_errors" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_theme_variable_reference_validator_empty_input_no_errors" methodname="test_theme_variable_reference_validator_empty_input_no_errors" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="545317369" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000328" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2365" name="test_theme_variable_reference_validator_extracts_declared_names" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_theme_variable_reference_validator_extracts_declared_names" methodname="test_theme_variable_reference_validator_extracts_declared_names" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="1564185280" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.001560" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2364" name="test_theme_variable_reference_validator_registers_and_queries" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_theme_variable_reference_validator_registers_and_queries" methodname="test_theme_variable_reference_validator_registers_and_queries" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="744711503" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000186" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2367" name="test_theme_variable_reference_validator_validates_missing" fullname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest.test_theme_variable_reference_validator_validates_missing" methodname="test_theme_variable_reference_validator_validates_missing" classname="DaYiJingCheng.Tests.Unit.SkeuomorphicUI.ComponentLibraryTest" runstate="Runnable" seed="441511891" result="Passed" start-time="2026-09-28 16:38:25Z" end-time="2026-09-28 16:38:25Z" duration="0.000761" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <output><![CDATA[Saving results to: /XYFS01/sysu_tyu2_2/.config/unity3d/DefaultCompany/unity/TestResults.xml
+]]></output>
+                </test-case>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
