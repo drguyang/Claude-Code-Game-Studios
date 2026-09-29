@@ -281,3 +281,35 @@
 > **测试数**:`save_slots_test` = **9**(5 passed + 3 inconclusive + 1 skipped + 0 failed)。
 > ⚠️ 关键区分:本 story 要求 UI 走查,当前阶段 42 未实现,UI 测试无法运行。
 > 代码评审修复:B1-B5 添加注释说明当前阶段测试无验证价值;R1-R5 添加注释说明实现后补充;R4 重命名测试。
+
+## Story 013(库存容器界面渲染 + 焦点 —— AC-42-F1③ · 翻页制 · 器物有重量 · 焦点顺序)
+
+故事头登记的证据路径为
+`production/qa/evidence/inventory-container-walkthrough.md`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/SkeuomorphicUI/inventory_container_test.cs`**(类 `InventoryContainerTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/SkeuomorphicUI/inventory_container_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/SkeuomorphicUI/SkeuomorphicUI.Tests.asmdef`(name = `SkeuomorphicUI.Tests`) |
+| 被测契约 | `unity/Assets/Gameplay/UI/`(42 类型树) |
+| 被测 GDD | `design/gdd/skeuomorphic-ui.md`(AC-42-F1③ · 翻页制 · 器物有重量 · 焦点顺序) |
+| 运行方式 | `unity test unity --mode EditMode --filter InventoryContainerTest` |
+
+> 读法纪律:本 story 要求 UI 走查,当前阶段 42 未实现,用 `Assert.Inconclusive` / `[Ignore]` 标记。
+> 3 个测试在当前阶段无法判定(42 未实现),1 个 UI 走查测试用 `[Ignore]` 标记。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`InventoryContainerTest` 内) | 性质 |
+|---|---|---|
+| **翻页制** | `test_inventoryContainer_hasContainerType` + `test_pagination_hasNoScrollList` + `test_pagination_hasNoHardcodedItemsPerPage` | BLOCKING |
+| **器物有重量** | `test_itemWeight_hasWeightType` + `test_itemWeight_hasNoHardcodedPageSpeed` | BLOCKING |
+| **焦点顺序** | `test_focusOrder_hasFocusOrderType` + `test_focusOrder_hasNoHardcodedOrder` | BLOCKING |
+| **AC-42-F1③ 手柄走查 + 零按键提示浮层** | `test_ac42f1_gamepadWalkthrough_noKeyHintOverlay` + `test_ac42f1_noKeyHintOverlay_noKeyHintFields` + `test_ac42f1_emptySlotNoText_noTextFields` | BLOCKING |
+
+> **测试数**:`inventory_container_test` = **10**(6 passed + 3 inconclusive + 1 skipped + 0 failed)。
+> ⚠️ 关键区分:本 story 要求 UI 走查,当前阶段 42 未实现,UI 测试无法运行。
+> 代码评审修复:B1 保持 Inconclusive 添加注释;B2 保持文件头注释;R1 提取 AssertNoMatchingMembers;R2 添加注释;R3 添加详细注释;R4 重命名测试;R5 添加注释。
