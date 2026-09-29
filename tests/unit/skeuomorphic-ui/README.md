@@ -217,3 +217,36 @@
 > **测试数**:`focus_gate_transition_test` = **7**(2 passed + 2 inconclusive + 3 skipped + 0 failed)。
 > ⚠️ 关键区分:本 story 要求 PlayMode 帧探针,当前阶段 42 未实现,PlayMode 测试无法运行。
 > 代码评审修复:R1/R2/R3 负向测试调用 FindMatchingMembers;R4 添加 [Ignore] 属性;R5 缓存程序集扫描结果。
+
+## Story 011(脉案页渲染 + 焦点导航 —— AC-42-F1① · AC-42-B5 · AC-42-B6 · 五通道区 · 两栏布局)
+
+故事头登记的证据路径为
+`production/qa/evidence/casebook-39-walkthrough.md`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/SkeuomorphicUI/casebook_rendering_test.cs`**(类 `CasebookRenderingTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/SkeuomorphicUI/casebook_rendering_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/SkeuomorphicUI/SkeuomorphicUI.Tests.asmdef`(name = `SkeuomorphicUI.Tests`) |
+| 被测契约 | `unity/Assets/Gameplay/UI/`(42 类型树) |
+| 被测 GDD | `design/gdd/skeuomorphic-ui.md`(AC-42-F1① · AC-42-B5 · AC-42-B6 · 五通道区 · 两栏布局) |
+| 运行方式 | `unity test unity --mode EditMode --filter CasebookRenderingTest` |
+
+> 读法纪律:本 story 要求 UI 走查,当前阶段 42 未实现,用 `Assert.Inconclusive` / `[Ignore]` 标记。
+> 5 个测试在当前阶段无法判定(42 未实现),1 个 UI 走查测试用 `[Ignore]` 标记。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`CasebookRenderingTest` 内) | 性质 |
+|---|---|---|
+| **五通道区** | `test_fiveChannels_exist` + `test_fiveChannels_noHealthbar_noHealthbarFields` | BLOCKING |
+| **两栏布局** | `test_twoColumnLayout_exist` + `test_twoColumnLayout_noHardcodedFontSize_noFontSizeFields` | BLOCKING |
+| **AC-42-B5 空行有格线无字** | `test_ac42b5_emptyRowRendering_exist` + `test_ac42b5_emptyRowNoText_noTextFields` | BLOCKING |
+| **AC-42-B6 置信度不出溢** | `test_ac42b6_confidenceRendering_exist` + `test_ac42b6_noConfidenceOverflow_noOverflowFields` | BLOCKING |
+| **AC-42-F1① 手柄走查 + 零按键提示浮层** | `test_ac42f1_gamepadWalkthrough_noKeyHintOverlay` + `test_ac42f1_focusOrder_exist` + `test_ac42f1_noKeyHintOverlay_noKeyHintFields` | BLOCKING |
+
+> **测试数**:`casebook_rendering_test` = **11**(5 passed + 5 inconclusive + 1 skipped + 0 failed)。
+> ⚠️ 关键区分:本 story 要求 UI 走查,当前阶段 42 未实现,UI 测试无法运行。
+> 代码评审修复:B1 保持 Inconclusive 添加注释;B2 添加注释;R1 提取 [SetUp];R2 提取助手方法;R3 添加注释;R4 重命名测试;R5 添加注释指向替代证据路径。
