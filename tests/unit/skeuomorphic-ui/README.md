@@ -344,3 +344,66 @@
 > **测试数**:`settings_shell_test` = **10**(6 passed + 3 inconclusive + 1 skipped + 0 failed)。
 > ⚠️ 关键区分:本 story 要求 UI 走查,当前阶段 42 未实现,UI 测试无法运行。
 > 代码评审修复:R1 保持 Inconclusive 添加注释;R2 移除 referenceTypesOnly 参数;R3 修正扫描模式;R4 移除 DeclaredOnly;R5-R7 添加注释说明实现后补充。
+
+## Story 015(教学界面 —— AC-42-F1⑤ · AC-3-F1a · AC-3-F1b · 纸堆翻页 · 教学纸近景)
+
+故事头登记的证据路径为
+`production/qa/evidence/tutorial-48-walkthrough.md`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/SkeuomorphicUI/tutorial_test.cs`**(类 `TutorialTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/SkeuomorphicUI/tutorial_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/SkeuomorphicUI/SkeuomorphicUI.Tests.asmdef`(name = `SkeuomorphicUI.Tests`) |
+| 被测契约 | `unity/Assets/Gameplay/UI/`(42 类型树) |
+| 被测 GDD | `design/gdd/skeuomorphic-ui.md`(AC-42-F1⑤ · AC-3-F1a · AC-3-F1b · 纸堆翻页 · 教学纸近景) |
+| 运行方式 | `unity test unity --mode EditMode --filter TutorialTest` |
+
+> 读法纪律:本 story 要求 UI 走查,当前阶段 42 未实现,用 `Assert.Inconclusive` / `[Ignore]` 标记。
+> 2 个测试在当前阶段无法判定(42 未实现),3 个 UI 走查测试用 `[Ignore]` 标记。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`TutorialTest` 内) | 性质 |
+|---|---|---|
+| **纸堆翻页** | `test_tutorial_hasTutorialType` + `test_tutorial_hasNoTraditionalUI` + `test_tutorial_hasNoHardcodedFontSize` | BLOCKING |
+| **教学纸近景** | `test_paperCloseup_hasModalId` + `test_paperCloseup_hasNoHardcodedTriggerDistance` | BLOCKING |
+| **AC-3-F1a 零按键提示浮层** | `test_ac3f1a_noKeyHintOverlay_visualCheck` + `test_ac3f1a_noKeyHintOverlay_noKeyHintFields` | BLOCKING |
+| **AC-3-F1b 手柄单机走查** | `test_ac3f1b_gamepadSoloWalkthrough` + `test_ac3f1b_hasNoKeyboardMouseDependency` | BLOCKING |
+| **AC-42-F1⑤ 手柄走查 + 零按键提示浮层** | `test_ac42f1_gamepadWalkthrough_noKeyHintOverlay` + `test_focusOrder_hasFocusOrderType` + `test_focusOrder_hasNoHardcodedOrder` | BLOCKING |
+
+> **测试数**:`tutorial_test` = **12**(7 passed + 2 inconclusive + 3 skipped + 0 failed)。
+> ⚠️ 关键区分:本 story 要求 UI 走查,当前阶段 42 未实现,UI 测试无法运行。
+
+## Story 016(教学纸近景 —— AC-42-F1⑦ · 世界内单张纸近景 · ModalId.PaperCloseup48)
+
+故事头登记的证据路径为
+`production/qa/evidence/paper-closeup-48-walkthrough.md`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/SkeuomorphicUI/paper_closeup_test.cs`**(类 `PaperCloseupTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/SkeuomorphicUI/paper_closeup_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/SkeuomorphicUI/SkeuomorphicUI.Tests.asmdef`(name = `SkeuomorphicUI.Tests`) |
+| 被测契约 | `unity/Assets/Gameplay/UI/`(42 类型树) |
+| 被测 GDD | `design/gdd/skeuomorphic-ui.md`(AC-42-F1⑦ · 世界内单张纸近景 · ModalId.PaperCloseup48) |
+| 运行方式 | `unity test unity --mode EditMode --filter PaperCloseupTest` |
+
+> 读法纪律:本 story 要求 UI 走查,当前阶段 42 未实现,用 `Assert.Inconclusive` / `[Ignore]` 标记。
+> 2 个测试在当前阶段无法判定(42 未实现),1 个 UI 走查测试用 `[Ignore]` 标记。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`PaperCloseupTest` 内) | 性质 |
+|---|---|---|
+| **ModalId.PaperCloseup48** | `test_modalId_hasPaperCloseup48` + `test_paperCloseup_hasNoHardcodedTriggerDistance` + `test_paperCloseup_hasNoDtoCopy` | BLOCKING |
+| **世界内单张纸近景** | `test_paperCloseup_hasPaperCloseupType` + `test_paperCloseup_hasNoTraditionalPopup` | BLOCKING |
+| **AC-42-F1⑦ 手柄走查** | `test_ac42f1_gamepadWalkthrough` + `test_ac42f1_noKeyHintOverlay_noKeyHintFields` + `test_focusOrder_hasFocusOrderType` + `test_focusOrder_hasNoHardcodedOrder` | BLOCKING |
+
+> **测试数**:`paper_closeup_test` = **9**(6 passed + 2 inconclusive + 1 skipped + 0 failed)。
+> ⚠️ 关键区分:本 story 要求 UI 走查,当前阶段 42 未实现,UI 测试无法运行。
+> 代码评审修复:R1 保持 Inconclusive 添加注释;R2 添加注释;R3 添加注释;R4 添加上下文注释;R5 重命名测试。
