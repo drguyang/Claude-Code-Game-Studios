@@ -1,0 +1,26 @@
+/* Focus Visible — 焦点可见样式契约 (AC-42-G4 / 规则十)
+ * 墨色加深 / 纸面压痕 — 禁纯色高亮(色盲可读)
+ * 靠形状不靠颜色 (8 的 UI-8.2)
+ */
+
+.focus-visible {
+    border-top-color: var(--skeuo-ink-fg);
+    border-right-color: var(--skeuo-ink-fg);
+    border-bottom-color: var(--skeuo-ink-fg);
+    border-left-color: var(--skeuo-ink-fg);
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+    /* 纸面压痕效果 */
+    box-shadow: inset 0 0 0 1px var(--skeuo-paper-bg);
+}
+
+/* 门关时不施加焦点高亮(无焦点 ⇒ 无高亮,不得残留) */
+.focus-visible-disabled {
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+    box-shadow: none;
+}

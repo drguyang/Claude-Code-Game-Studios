@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 脉案页 (39) — AC-42-F1① 手柄走查 + 目视零按键提示浮层 -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="casebook-root" class="paper">
+        <ui:Label name="casebook-title" text="脉案" class="ink" />
+        <ui:VisualElement name="five-channels" class="scroll">
+            <ui:VisualElement name="channel-complexion" class="ink">
+                <ui:Label text="面色" class="ink" />
+            </ui:VisualElement>
+            <ui:VisualElement name="channel-voice" class="ink">
+                <ui:Label text="语声" class="ink" />
+            </ui:VisualElement>
+            <ui:VisualElement name="channel-breathing" class="ink">
+                <ui:Label text="呼吸" class="ink" />
+            </ui:VisualElement>
+            <ui:VisualElement name="channel-palpation" class="ink">
+                <ui:Label text="触感" class="ink" />
+            </ui:VisualElement>
+            <ui:VisualElement name="channel-disease-name" class="ink">
+                <ui:Label text="病名" class="ink" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="two-columns" class="scroll">
+            <ui:VisualElement name="left-column-vitals" class="paper">
+                <ui:Label text="体征" class="ink" />
+            </ui:VisualElement>
+            <ui:VisualElement name="right-column-diagnosis" class="paper">
+                <ui:Label text="诊断" class="ink" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,29 @@
+/* Implement Tier — 器具档(木/皮/铜) 第三材质档 (OQ-IC-4)
+ * 20 箱屏是首个非纸非黄铜读数的混材屏
+ * 器具档自身禁不禁刻度条 — 未裁,按语义另定
+ */
+
+.implement {
+    background-color: #6b4423;
+    border-top-color: #4a2e18;
+    border-right-color: #4a2e18;
+    border-bottom-color: #4a2e18;
+    border-left-color: #4a2e18;
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    color: #e8dcc4;
+    font-family: var(--skeuo-font-family);
+    font-size: var(--skeuo-font-size-md);
+}
+
+/* 木纹变体 */
+.implement-wood {
+    background-color: #8b6914;
+}
+
+/* 皮纹变体 */
+.implement-leather {
+    background-color: #7a4a2b;
+}

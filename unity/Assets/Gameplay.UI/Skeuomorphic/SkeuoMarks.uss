@@ -1,0 +1,62 @@
+/* Marks — 记号登记表 (每个形状只有一个拥有者、一个语义)
+ * 勾=完成 · 点=陈旧 · 叠角=加工态 · 划改痕=改写留痕 · 印=计入/卸出 · 折角=不可写/已合上
+ * 形状可分义务: 折角(单折/双叠) 与 叠角(双线角) 在形状通道上两两可分
+ */
+
+/* 勾(单笔) — 完成 */
+.mark-check {
+    color: var(--skeuo-ink-fg);
+    font-size: var(--skeuo-font-size-lg);
+}
+
+/* 点(单点) — 陈旧 */
+.mark-dot {
+    background-color: var(--skeuo-ink-faded);
+    width: 4px;
+    height: 4px;
+    border-radius: 2px;
+}
+
+/* 叠角(双线角) — 加工态 */
+.mark-fold-double {
+    border-top-color: var(--skeuo-paper-border);
+    border-right-color: var(--skeuo-paper-border);
+    border-top-width: 2px;
+    border-right-width: 2px;
+    width: 8px;
+    height: 8px;
+}
+
+/* 划改痕 — 改写留痕 */
+.mark-strike {
+    text-decoration: line-through;
+    color: var(--skeuo-ink-faded);
+}
+
+/* 印(单方印) — 计入/卸出 */
+.mark-seal {
+    background-color: var(--skeuo-seal-bg);
+    color: var(--skeuo-seal-fg);
+    font-size: var(--skeuo-font-size-sm);
+    padding: 2px;
+}
+
+/* 折角(单折) — 不可写 */
+.mark-fold-single {
+    border-top-color: var(--skeuo-paper-border);
+    border-right-color: var(--skeuo-paper-border);
+    border-top-width: 1px;
+    border-right-width: 1px;
+    width: 6px;
+    height: 6px;
+}
+
+/* 折角(双叠) — 已合上 Locked */
+.mark-fold-locked {
+    border-top-color: var(--skeuo-paper-border);
+    border-right-color: var(--skeuo-paper-border);
+    border-top-width: 2px;
+    border-right-width: 2px;
+    width: 6px;
+    height: 6px;
+}

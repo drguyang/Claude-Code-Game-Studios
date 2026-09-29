@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 存档位界面 (7b) — AC-42-F1② 手柄走查 -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="save-slots-root" class="paper">
+        <ui:Label name="save-slots-title" text="存档位" class="ink" />
+        <ui:VisualElement name="slot-list" class="scroll">
+            <ui:VisualElement name="slot-item" class="paper">
+                <ui:Label text="存档 1" class="ink" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

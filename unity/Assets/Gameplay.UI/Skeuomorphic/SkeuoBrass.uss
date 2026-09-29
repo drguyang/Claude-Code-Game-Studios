@@ -1,0 +1,32 @@
+/* Brass Side — 黄铜侧元件 (AC-42-F3 材质分支)
+ * 铜面 + 蚀刻刻度(哑光) — 禁发光/泛光
+ * 读数条允许錾刻刻度(黄铜侧合法)
+ */
+
+.brass {
+    background-color: #b87333;
+    border-top-color: #8c5a2b;
+    border-right-color: #8c5a2b;
+    border-bottom-color: #8c5a2b;
+    border-left-color: #8c5a2b;
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    color: #f5e6d3;
+    font-family: var(--skeuo-font-family);
+    font-size: var(--skeuo-font-size-md);
+}
+
+/* 蚀刻刻度 — 黄铜侧合法(墨侧禁) */
+.brass-scale {
+    background-color: #8c5a2b;
+    height: 2px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
+/* 铜锈(氧化斑点) — 变体 */
+.brass-aged {
+    background-color: #a0653a;
+}

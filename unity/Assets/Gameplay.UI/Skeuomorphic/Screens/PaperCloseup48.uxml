@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 教学纸近景 (48) — AC-42-F1⑦ 世界内单张纸近景 -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="paper-closeup-root" class="paper">
+        <ui:Label name="paper-closeup-title" text="教学纸" class="ink" />
+        <ui:VisualElement name="paper-content" class="scroll">
+            <ui:Label text="纸面内容" class="ink" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

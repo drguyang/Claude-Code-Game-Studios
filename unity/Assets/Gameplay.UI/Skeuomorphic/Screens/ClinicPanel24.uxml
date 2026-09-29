@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 医馆面板 (24) — AC-42-F1⑥ 医馆面板渲染 + 刷新延迟契约 -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="clinic-panel-root" class="paper">
+        <ui:Label name="clinic-panel-title" text="医馆" class="ink" />
+        <ui:VisualElement name="multiplier-display" class="paper">
+            <ui:Label text="乘子" class="ink" />
+        </ui:VisualElement>
+        <ui:VisualElement name="situation-summary" class="paper">
+            <ui:Label text="情境摘要" class="ink" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 教学界面 (48) — AC-42-F1⑤ 手柄走查 + 纸堆翻页 -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="tutorial-root" class="paper">
+        <ui:Label name="tutorial-title" text="教学" class="ink" />
+        <ui:VisualElement name="paper-stack" class="scroll">
+            <ui:VisualElement name="paper-page" class="paper">
+                <ui:Label text="教学内容" class="ink" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 库存容器 (20) — AC-42-F1③ 手柄走查 + 翻页制 ≤12 件/屏 -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="inventory-root" class="paper">
+        <ui:Label name="inventory-title" text="库存" class="ink" />
+        <ui:VisualElement name="item-grid" class="scroll">
+            <ui:VisualElement name="item-slot" class="paper">
+                <ui:Label text="器物" class="ink" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="pagination" class="scroll">
+            <ui:Label text="翻页" class="ink" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 设置界面壳 (42) — AC-42-F1④ 手柄走查 + AC-42-G2 条目语义归 44 -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <ui:VisualElement name="settings-root" class="paper">
+        <ui:Label name="settings-title" text="设置" class="ink" />
+        <ui:VisualElement name="settings-entries" class="scroll">
+            <ui:VisualElement name="entry-volume" class="paper">
+                <ui:Label text="音量" class="ink" />
+            </ui:VisualElement>
+            <ui:VisualElement name="entry-mono" class="paper">
+                <ui:Label text="mono" class="ink" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
