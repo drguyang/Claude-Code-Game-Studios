@@ -79,6 +79,13 @@ namespace DaYiJingCheng.Gameplay.Presentation.Skeuomorphic
             set
             {
                 _allFocusableControls = value ?? throw new ArgumentNullException(nameof(value));
+
+                // 降级模式下同步刷新邻居查找器(控件列表变更)
+                if (IsDowngradeActive)
+                {
+                    _neighborResolver = new FocusNeighborResolver(_allFocusableControls, _currentFocusRank);
+                }
+
                 CheckFocusOrphan();
             }
         }
@@ -189,17 +196,50 @@ namespace DaYiJingCheng.Gameplay.Presentation.Skeuomorphic
 
         /// <summary>
         /// 激活降级路径(自实现焦点算法)。
-        /// <para>接口签名不变;代码住 Gameplay.UI 程序集内,不新开程序集。</para>
-        /// </summary>
+        /// <para>接口签名不变;降级算法住本程序集内,不新开程序集。</para>
+        /// <remarks>
+        /// 触发条件:Unity 6.3 焦点质量 spike 不达预期。
+        /// 邻居枚举 / 方向投影 / 几何查询类 = <see cref="FocusNeighborResolver"/>(internal,AC-42-B4)。
+        /// 完整降级行为的 ADR 登记仍待 spike 结论(本实现为可运行框架,非终局)。
+        /// </remarks>
         public void ActivateDowngrade()
         {
             IsDowngradeActive = true;
-            // TODO(story-002): 降级路径 = 自实现焦点算法。
-            //  触发条件:Unity 6.3 焦点质量 spike 不达预期。
-            //  实现方案:自实现焦点邻居查找 + 方向投影 + 焦点移动。
-            //  接口签名不变(IFocusNavigationPresenter 不增不减)。
-            //  邻居枚举 / 方向投影 / 几何查询类必须标记为 private/internal(AC-42-B4)。
-            //  触发后须另开 ADR 登记降级实现(不得以本 Story 直接补全)。
+
+            // 初始化降级路径的邻居查找器(AC-42-B4:internal 类型,不导出)
+            if (_allFocusableControls != null)
+            {
+                _neighborResolver = new FocusNeighborResolver(_allFocusableControls, _currentFocusRank);
+            }
+        }
+
+        /// <summary>降级路径的邻居查找器(仅降级模式下使用;internal,不进契约导出面)。</summary>
+        private FocusNeighborResolver _neighborResolver;
+
+        /// <summary>
+        /// 降级路径的焦点移动(仅 IsDowngradeActive 时可调用)。
+        /// <para>AC-42-B4:此方法为 private —— 焦点移动不得被 42 以外的系统计算。</para>
+        /// </summary>
+        /// <param name="direction">导航方向。</param>
+        /// <returns>移动后的目标 rank;无有效目标返回 -1。</returns>
+        private int MoveFocus(NavigationDirection direction)
+        {
+            if (!IsDowngradeActive)
+                throw new InvalidOperationException(
+                    "[FocusNavigationBridge] 焦点移动仅在降级模式下可用;正常模式走引擎焦点桥。");
+
+            if (_neighborResolver == null)
+                return -1;
+
+            int targetRank = _neighborResolver.Resolve(direction);
+            if (targetRank >= 0)
+            {
+                _currentFocusRank = targetRank;
+                _neighborResolver.SetCurrentRank(targetRank);
+                CheckFocusOrphan();
+            }
+
+            return targetRank;
         }
 
         /// <summary>
