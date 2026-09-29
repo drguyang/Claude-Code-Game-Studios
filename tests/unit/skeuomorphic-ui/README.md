@@ -121,3 +121,36 @@
 > **测试数**:`data_boundary_final_test` = **8**(8 passed + 0 failed)。
 > ⚠️ 关键区分:生产代码(42 程序集)尚未实现,测试用契约面验证。
 > 代码评审修复:B1 删除恒真断言;B2 添加非空前置断言;R1 提取重复代码;R2 删除死代码;R3 统一引用类型过滤;R4 添加属性扫描;R5 重命名测试。
+
+## Story 008(无血条替代反馈 —— 拒绝权降级白名单 · 记号登记表 · 无血条替代反馈)
+
+故事头登记的证据路径为
+`tests/integration/skeuomorphic-ui/no_healthbar_feedback_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/SkeuomorphicUI/no_healthbar_feedback_test.cs`**(类 `NoHealthbarFeedbackTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/SkeuomorphicUI/no_healthbar_feedback_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/SkeuomorphicUI/SkeuomorphicUI.Tests.asmdef`(name = `SkeuomorphicUI.Tests`) |
+| 被测契约 | `unity/Assets/Gameplay/UI/`(42 类型树) |
+| 被测 GDD | `design/gdd/skeuomorphic-ui.md`(拒绝权降级白名单 · 记号登记表 · 无血条替代反馈) |
+| 运行方式 | `unity test unity --mode EditMode --filter NoHealthbarFeedbackTest` |
+
+> 读法纪律:生产代码(42 程序集)尚未实现,测试用契约面验证 + `Assert.Inconclusive` 明确标记待实现项。
+> `test_rejectionWhitelist_continuationPage_exists` 在 42 无续页类型时用 `Assert.Inconclusive`(当前阶段无法判定)。
+> `test_markRegistry_sixMarkTypes_exist` 在 42 无记号类型时用 `Assert.Inconclusive`(当前阶段无法判定)。
+> `test_noHealthbar_paperProgress_exists` 在 42 无页数/纸厚/墨迹密度类型时用 `Assert.Inconclusive`(当前阶段无法判定)。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`NoHealthbarFeedbackTest` 内) | 性质 |
+|---|---|---|
+| **拒绝权降级白名单** | `test_rejectionWhitelist_noSilentClipping_noClipFields` + `test_rejectionWhitelist_continuationPage_exists` | BLOCKING |
+| **记号登记表** | `test_markRegistry_sixMarkTypes_exist` + `test_markRegistry_noPaperTear_noTearFields` | BLOCKING |
+| **无血条替代反馈** | `test_noHealthbar_noHealthbar_noHealthbarFields` + `test_noHealthbar_paperProgress_exists` + `test_noHealthbar_completionMark_noCompletionBar` | BLOCKING |
+
+> **测试数**:`no_healthbar_feedback_test` = **7**(4 passed + 3 inconclusive + 0 failed)。
+> ⚠️ 关键区分:生产代码(42 程序集)尚未实现,测试用契约面验证。
+> 代码评审修复:B1 添加属性扫描;B2 删除恒真断言;R1 提取重复代码;R3 重命名测试;B3/B4/B5/B6/R4-R9 添加注释说明实现后补充。
