@@ -30,7 +30,7 @@
 |----------|-------|-------|
 | **Resolution** | 256×256 (texture) | 怀表面 + 时辰文字 |
 | **Format** | PNG (sRGB) | 黄铜金属感 |
-| **Material slots** | 2 (brass_case + glass_face) | 铜壳 / 玻璃面 |
+| **Material slots** | 3 (brass_case + glass_face + ink_overlay) | 铜壳 / 玻璃面 / 时辰墨迹层 |
 | **Poly count** | ~100 tris (3D prop) | 翻盖 + 表盘 + 指针 |
 | **LOD** | LOD0 only | 世界态常驻 |
 | **Platform variants** | 无 | 全平台同一套 |
@@ -42,7 +42,8 @@
 | Asset | Type | Description | Priority |
 |-------|------|-------------|----------|
 | `watch_brass_case.png` | Texture | 黄铜外壳 + 錾刻纹理 + 链条，256×256 | P0 |
-| `watch_glass_face.png` | Texture | 玻璃面 + 时辰文字（子丑寅卯…） + 指针 | P0 |
+| `watch_glass_face.png` | Texture | 玻璃面 + 时辰刻度底纹（静态），不含文字内容 | P0 |
+| `watch_hour_labels.png` | Texture | 时辰墨迹材质层（子丑寅卯…），AI 生成含完整版式的材质参考图 → DA 裁切为独立纹理层；动态时辰文字由 UXML `<Label>` 叠层承载 | P0 |
 | `watch_wear.png` | Texture | 使用痕迹 / 氧化 / 划痕 | P1a |
 | `watch_3d.fbx` | Mesh | 怀表 3D 模型（翻盖 + 表盘 + 指针） | P0 |
 
@@ -85,12 +86,12 @@
 ```
 An antique brass pocket watch (铜怀表), close-up view.
 Style: Late Qing / early Republican era, circa 1910s.
-Components: Brass flip cover with floral engraving, glass face with Chinese traditional time markers (子丑寅卯辰巳午未申酉戌亥), brass hour and minute hands, brass chain.
-Details: Slight oxidation on brass, glass scratches from use, aged patina.
+Components: Brass flip cover with floral engraving, glass face with static hour tick marks (刻度底纹, 非文字), brass hour and minute hands, brass chain.
+Glass face details: Circular glass (非 modern sapphire), slight scratches from use, aged patina, static tick marks at 12 positions — these are visual guide positions only, not legible text.
 Lighting: Warm ambient, soft specular highlights on brass surface.
 Mood: Scholarly, precise, historical timepiece.
-Constraints: NO modern digital watch, NO Arabic numerals. Pure vintage brass pocket watch with Chinese characters.
-Resolution: 256x256 texture, clock face clearly legible.
+Constraints: NO modern digital watch, NO Arabic numerals, NO Chinese characters in texture. Pure vintage brass pocket watch. Chinese hour names (子丑寅卯…) are rendered via UXML overlay, not baked into texture.
+Resolution: 256x256 texture per layer, clock face guide positions clearly marked.
 ```
 
 ---
