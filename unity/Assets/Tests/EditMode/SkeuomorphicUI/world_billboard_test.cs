@@ -51,7 +51,8 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         public void test_ac42f3_componentLibrary_noForbiddenItems()
         {
             // Arrange:扫描 42 元件库目录
-            string componentDir = Path.Combine(repoRoot(), "unity", "Assets", "Gameplay", "UI", "Skeuomorphic");
+            // 路径修正(2026-09-30): 实际目录 = Assets/Gameplay.UI/(asmdef 式命名), 原写 Gameplay/UI/ 不存在 ⇒ 恒 Inconclusive
+            string componentDir = Path.Combine(repoRoot(), "unity", "Assets", "Gameplay.UI", "Skeuomorphic");
 
             // Act:检查目录是否存在
             if (!Directory.Exists(componentDir))
@@ -88,7 +89,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         public void test_ac42f3_brassSide_componentsExist()
         {
             // Arrange:扫描黄铜侧元件
-            string brassDir = Path.Combine(repoRoot(), "unity", "Assets", "Gameplay", "UI", "Skeuomorphic", "Brass");
+            string brassDir = Path.Combine(repoRoot(), "unity", "Assets", "Gameplay.UI", "Skeuomorphic", "Brass");
 
             // Act:检查目录是否存在
             if (!Directory.Exists(brassDir))

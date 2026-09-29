@@ -42,5 +42,27 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             var situationSummary = _library.Create(SkeuoElement.Paper);
             _root.Add(situationSummary);
         }
+
+        /// <summary>
+        /// 刷新延迟契约(AC-42-F5)—— Structure* 事件 Append 后**下一帧**刷新。
+        /// <para>本方法只置脏标;真正的重画发生在下一帧的 <see cref="ApplyDeferredRefresh"/>。
+        /// 不在同一帧内立即刷新(同一帧刷新 = 破 AC-42-F5 的判据)。</para>
+        /// </summary>
+        public void Refresh()
+        {
+            _refreshPending = true;
+        }
+
+        /// <summary>下一帧执行的延迟刷新(由帧循环调用;重读源数据,不缓存副本)。</summary>
+        public void ApplyDeferredRefresh()
+        {
+            if (!_refreshPending)
+                return;
+            _refreshPending = false;
+            // 重读绑定源并重画 —— 42 只读不持状态,此处无缓存字段
+            BuildUI();
+        }
+
+        private bool _refreshPending;
     }
 }

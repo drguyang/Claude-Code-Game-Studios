@@ -17,13 +17,13 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
     /// 库存容器(20)——翻页制 ≤12 件/屏。
     /// <para>ModalId.InventoryContainer,手柄走查。</para>
     /// </summary>
-    public sealed class InventoryScreen : PresentationRoot, IModalState
+    public sealed class InventoryContainerScreen : PresentationRoot, IModalState
     {
         private readonly VisualElement _root;
         private readonly SkeuoElementLibrary _library;
 
         /// <summary>创建库存容器。</summary>
-        public InventoryScreen(VisualElement root, SkeuoElementLibrary library) : base(root)
+        public InventoryContainerScreen(VisualElement root, SkeuoElementLibrary library) : base(root)
         {
             _root = root;
             _library = library;
