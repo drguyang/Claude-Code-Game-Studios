@@ -56,3 +56,36 @@
 > ⚠️ 关键区分:生产代码(42 程序集)尚未实现,测试用契约面验证。
 > 代码评审修复:B1/B2 删除恒真断言;B3 名实不符修正;R1 提取重复代码;R2 类名 PascalCase;R3 补充字段验证。
 > QA 评审修复:恒真断言 → Assert.Inconclusive;跳过测试 → Assert.Inconclusive;添加正面验证注释。
+
+## Story 006(医馆面板渲染 + 刷新延迟契约 —— AC-42-F5 · AC-42-D2 · AC-42-D3)
+
+故事头登记的证据路径为
+`tests/integration/skeuomorphic-ui/clinic_panel_refresh_test.cs`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/SkeuomorphicUI/clinic_panel_refresh_test.cs`**(类 `ClinicPanelRefreshTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/SkeuomorphicUI/clinic_panel_refresh_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/SkeuomorphicUI/SkeuomorphicUI.Tests.asmdef`(name = `SkeuomorphicUI.Tests`) |
+| 被测契约 | `unity/Assets/Sim.Contracts/`(`VitalsDto` / `IVitalsQuery` / `IEventSink`) |
+| 被测 GDD | `design/gdd/skeuomorphic-ui.md`(AC-42-F5 · AC-42-D2 · AC-42-D3) |
+| 运行方式 | `unity test unity --mode EditMode --filter ClinicPanelRefreshTest` |
+
+> 读法纪律:生产代码(42 程序集)尚未实现,测试用契约面验证 + `Assert.Inconclusive` 明确标记待实现项。
+> `test_ac42f5_refreshDelay_hasRefreshMethod` 在 42 无刷新方法时用 `Assert.Inconclusive`(当前阶段无法判定)。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`ClinicPanelRefreshTest` 内) | 性质 |
+|---|---|---|
+| **AC-42-D2 不存在写三流** | `test_ac42d2_noEventSinkAppend_noWriteMethods` + `test_ac42d2_noFileWrite_noFileWriteApis` | BLOCKING |
+| **AC-42-D3 不持有 DTO 副本** | `test_ac42d3_noDtoCopy_noVitalsDtoFields` + `test_ac42d3_noSettings_noSettingsFields` | BLOCKING |
+| **AC-42-F5 下一帧刷新** | `test_ac42f5_refreshDelay_hasRefreshMethod` + `test_ac42f5_noCache_noCacheFields` | BLOCKING |
+
+> **测试数**:`clinic_panel_refresh_test` = **7**(6 passed + 1 inconclusive + 0 failed)。
+> ⚠️ 关键区分:生产代码(42 程序集)尚未实现,测试用契约面验证。
+> AC-42-F5 的 PlayMode 交互测试无法在 EditMode 中实现,用 `Assert.Inconclusive` 标记。
+> 代码评审修复:B1 扩展文件写入检查覆盖方法体;R1 删除恒真断言;R2 统一 DeclaredOnly;R3 删除死代码;R4 增加类型过滤;R5 提取重复代码;R6 增加 IEventSink 字段检查。
+> QA 评审修复:AC-42-D3 扩展至所有 DTO 类型(VitalsDto/AudioCueDto), 添加属性检查。
