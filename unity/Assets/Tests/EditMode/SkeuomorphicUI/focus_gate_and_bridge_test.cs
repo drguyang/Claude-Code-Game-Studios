@@ -336,6 +336,11 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             {
                 Active = active;
             }
+
+            public void Bind(DaYiJingCheng.Sim.Contracts.IDtoSource source)
+            {
+                // 测试用空实现
+            }
         }
     }
 }

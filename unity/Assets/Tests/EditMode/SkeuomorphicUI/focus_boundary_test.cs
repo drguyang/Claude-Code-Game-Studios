@@ -217,6 +217,11 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             {
                 Active = active;
             }
+
+            public void Bind(DaYiJingCheng.Sim.Contracts.IDtoSource source)
+            {
+                // 测试用空实现
+            }
         }
 
         /// <summary>模拟 EventSystem(测试用)。</summary>

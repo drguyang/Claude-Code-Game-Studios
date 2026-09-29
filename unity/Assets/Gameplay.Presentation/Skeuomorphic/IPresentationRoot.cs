@@ -16,5 +16,11 @@ namespace DaYiJingCheng.Gameplay.Presentation.Skeuomorphic
         /// 同一时刻仅一栈的 active = true(焦点单栈门)。
         /// </remarks>
         void SetFocusGate(bool active);
+
+        /// <summary>
+        /// 绑定只读 DTO 源。
+        /// <para>呈现层通过此接口读取 DTO,永不缓存副本(caching = 第二份真相)。</para>
+        /// </summary>
+        void Bind(DaYiJingCheng.Sim.Contracts.IDtoSource source);
     }
 }
