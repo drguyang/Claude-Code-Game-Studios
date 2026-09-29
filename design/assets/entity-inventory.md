@@ -1,6 +1,8 @@
 # Visual Entity & Screen Inventory
 
 > **Generated**: 2026-09-29
+> **Updated**: 2026-09-29 (added spec file references)
+> **Specs Directory**: `design/assets/specs/` (17 spec files for 42 VS Critical assets)
 > **Sources**: systems-index.md (54 systems), game-concept.md, art-bible.md (1113 lines), hud.md, 7 UX screen specs, interaction-patterns.md, audio-system.md, combat-and-weapon-lines.md, item-database.md, enemy-ai.md, patient-ai.md, foraging.md, emergency-procedures.md, diagnosis-system.md, prescription-and-medication.md, modular-building.md, clinic-machine.md, world-and-ecozones.md, random-events.md, death-and-respawn.md, case-system.md, skill-system.md, persistence-service.md, telemetry-analytics.md
 
 ---
@@ -232,6 +234,30 @@
 | Ambient | 1 | 3 | 4 |
 | VFX Events | 7 | 6 | 13 |
 | **Total** | **42** | **57** | **99** |
+
+## Spec Files Index
+
+| Asset | Spec File | Tier | Status |
+|-------|-----------|------|--------|
+| 脉案纸页（线装书） | `specs/casebook-paper.md` | VS Critical | ✅ Specified |
+| 出诊箱（药箱） | `specs/medical-bag.md` | VS Critical | ✅ Specified |
+| 诊脉台铜器刻度盘 | `specs/pulse-dial.md` | VS Critical | ✅ Specified |
+| 听诊器 | `specs/stethoscope.md` | VS Critical | ✅ Specified |
+| 戥子（称药器具） | `specs/brass-scale.md` | VS Critical | ✅ Specified |
+| 手术灯（急救场景） | `specs/surgical-lamp.md` | VS Critical | ✅ Specified |
+| 主角（医者） | `specs/protagonist.md` | VS Critical | ✅ Specified |
+| 普通病人（T0–T3） | `specs/patient.md` | VS Critical | ✅ Specified |
+| 医馆（单房间） | `specs/clinic.md` | VS Critical | ✅ Specified |
+| 柳树皮 / 毛地黄 / 金鸡纳树皮 / 止血草 / 针具 / 绷带 | `specs/medicinal-herbs.md` | VS Critical | ✅ Specified |
+| 纸质地图卷轴 | `specs/paper-map.md` | VS Critical | ✅ Specified |
+| 铜怀表 | `specs/brass-watch.md` | VS Critical | ✅ Specified |
+| 呼吸波形纸带 | `specs/breath-waveform.md` | VS Critical | ✅ Specified |
+| 舌象色卡 | `specs/tongue-color-card.md` | VS Critical | ✅ Specified |
+| 体征异常脉冲 | `specs/vitals-pulse.md` | VS Critical | ✅ Specified |
+| 墨迹落笔 | `specs/ink-splash.md` | VS Critical | ✅ Specified |
+| 教学纸近景 | `specs/paper-closeup.md` | VS Critical | ✅ Specified |
+
+**Spec coverage**: 17 spec files covering all 42 VS Critical assets.
 
 **Key constraints**:
 - 纸面 (Paper) is the dominant visual vocabulary — 6 of 42 VS Critical items are paper-based
