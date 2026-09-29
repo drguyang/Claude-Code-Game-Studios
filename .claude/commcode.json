@@ -1,0 +1,12 @@
+{
+  "env": {
+    "ANTHROPIC_API_KEY": "user_3uz9FwDJBwEiss85CurwRcTD7EWoVqsTKoM2g5tgPKreaDTu89dbmR5SmnE12cik5v2g1JdNLPg5Eq4qEThXbBJ5",
+    "ANTHROPIC_BASE_URL": "https://api.commandcode.ai/provider",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "stealth/space-bunny-alpha",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "stealth/space-bunny-alpha",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "stealth/space-bunny-alpha",
+    "ANTHROPIC_MODEL": "stealth/space-bunny-alpha",
+    "ANTHROPIC_REASONING_MODEL": "stealth/space-bunny-alpha",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "stealth/space-bunny-alpha"
+  }
+}
