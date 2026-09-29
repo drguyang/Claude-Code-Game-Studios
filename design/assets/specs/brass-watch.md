@@ -1,6 +1,6 @@
 # Asset Spec: 铜怀表
 
-> **Tier**: Vertical Slice Critical
+> **Tier**: Full Production  ⚠️ 2026-09-29 修正:原误标 VS Critical —— 该资产在 entity-inventory.md 位于 Full Production 节(Props #1/#2/#8)
 > **Category**: Prop / Timepiece
 > **Source**: hud.md §4, time-and-weather.md
 > **Art Bible Ref**: §7.2 黄铜侧主导（怀表 = 铜器）; §1 P3「黄 brass 必须有来历」

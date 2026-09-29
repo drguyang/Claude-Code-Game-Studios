@@ -1,8 +1,8 @@
 # Visual Entity & Screen Inventory
 
 > **Generated**: 2026-09-29
-> **Updated**: 2026-09-29 (added spec file references)
-> **Specs Directory**: `design/assets/specs/` (17 spec files for 42 VS Critical assets)
+> **Updated**: 2026-09-29 (spec file references) → 2026-09-29 晚 (计数全面重算 + 敌人独立成类)
+> **Specs Directory**: `design/assets/specs/` (17 spec files; VS Critical 层覆盖全部需出图资产)
 > **Sources**: systems-index.md (54 systems), game-concept.md, art-bible.md (1113 lines), hud.md, 7 UX screen specs, interaction-patterns.md, audio-system.md, combat-and-weapon-lines.md, item-database.md, enemy-ai.md, patient-ai.md, foraging.md, emergency-procedures.md, diagnosis-system.md, prescription-and-medication.md, modular-building.md, clinic-machine.md, world-and-ecozones.md, random-events.md, death-and-respawn.md, case-system.md, skill-system.md, persistence-service.md, telemetry-analytics.md
 
 ---
@@ -52,7 +52,7 @@
 |---|--------|-------------|--------|
 | 1 | 脉案页（诊断态纸面） | 线装书展开，五通道体征区 + 病名栏 + 置信度 + 方笺续页 | casebook-39.md, hud.md §1 |
 
-### HUD Elements (7)
+### HUD Elements (8)
 
 | # | Element | Description | Source |
 |---|--------|-------------|--------|
@@ -63,8 +63,10 @@
 | 5 | 出诊箱抽屉展开 | 实物格子 + 铜筹计数，0.25s | hud.md §3 |
 | 6 | 体征异常脉冲 | 铜器边缘泛红 0.5s，非闪烁 | hud.md §Dynamic |
 | 7 | 墨迹落笔 | 诊结论落笔瞬间墨迹飞溅 | hud.md §1, art-bible §8.7 |
+| 8 | 焦点高亮（黄铜边框 2px） | **非物品** —— 焦点导航的视觉呈现，全案共用单一样式 | art-bible §3.3 / §7.4, ADR-013 |
 
-**Additional (non-item)**: 焦点高亮（黄铜边框 2px）
+> **2026-09-29 修正**：焦点高亮原先写在表**下面**、未编号、未计入 Summary ——
+> 导致 VS 列合计少算 1。现正式编为 #8 并计入统计。
 
 ### SFX (10)
 
@@ -103,15 +105,25 @@
 
 ## Full Production Assets
 
-### Characters (5)
+### Characters (2)
 
 | # | Entity | Description | Source |
 |---|--------|-------------|--------|
 | 1 | 疑难重症病人（Boss 级病案） | 散落的病例模式识别 | case-system.md, game-pillars.md §四 |
 | 2 | 同伴（联机 1–4 人） | 多玩家角色 | game-concept.md, ADR-001 |
-| 3 | 兵痞（人型敌人） | 非致命战斗，昏迷收场 | enemy-ai.md, combat-and-weapon-lines.md |
-| 4 | 蛇/熊/狼/野狗（野兽） | 可猎杀/驱赶/驯化 | random-events.md, enemy-ai.md |
-| 5 | 驯化动物（P1a） | 可招为护卫 | enemy-ai.md §七 |
+
+### Enemies (3)
+
+> **2026-09-29 用户裁定：敌人独立成类**。兵痞 / 野兽 / 驯化动物原先混在 `Characters (5)` 里，
+> 与 Summary 表的 `Enemies` 行**重复计数**（同一批资产被数两遍）。
+> 独立分类的美术理由：**敌人与病人的美术逻辑不同** —— 敌人须有"来历"（art-bible §1 P3）、
+> 非致命制服、昏迷收场；病人走面色五色阶梯（art-bible §8.6.1）。排产上分开更好切。
+
+| # | Entity | Description | Source |
+|---|--------|-------------|--------|
+| 1 | 兵痞（人型敌人） | 非致命战斗，昏迷收场 | enemy-ai.md, combat-and-weapon-lines.md |
+| 2 | 蛇/熊/狼/野狗（野兽） | 可猎杀/驱赶/驯化 | random-events.md, enemy-ai.md |
+| 3 | 驯化动物（P1a） | 可招为护卫 | enemy-ai.md §七 |
 
 ### Environment / Buildings (5)
 
@@ -220,20 +232,25 @@
 
 ## Summary
 
+> **2026-09-29 全面重算**。原表的三个合计数全部错误：
+> VS 标 42（实为 41，漏计未编号的「焦点高亮」）、FP 标 57（实为 63）、
+> Enemies 行是**幽灵行**（全文无对应小节，兵痞 / 野兽 / 驯化动物混在 `Characters` 里被数两遍）。
+> 现全部由小节实际行数复算得出；`Total = VS + FP` 亦同步。
+
 | Category | Vertical Slice Critical | Full Production | Total |
 |----------|------------------------|-----------------|-------|
-| Characters | 2 | 5 | 7 |
-| Enemies | — | 5 | 5 |
+| Characters | 2 | 2 | 4 |
+| Enemies | — | 3 | 3 |
 | Props | 6 | 8 | 14 |
 | Buildings/Environment | 1 | 5 | 6 |
 | Items | 6 | 4 | 10 |
 | UI Screens | 1 | 6 | 7 |
-| HUD Elements | 7 | 8 | 15 |
+| HUD Elements | 8 | 8 | 16 |
 | Music Cues | 0 | 8 | 8 |
 | SFX | 10 | 10 | 20 |
 | Ambient | 1 | 3 | 4 |
 | VFX Events | 7 | 6 | 13 |
-| **Total** | **42** | **57** | **99** |
+| **Total** | **42** | **63** | **105** |
 
 ## Spec Files Index
 
@@ -249,15 +266,20 @@
 | 普通病人（T0–T3） | `specs/patient.md` | VS Critical | ✅ Specified |
 | 医馆（单房间） | `specs/clinic.md` | VS Critical | ✅ Specified |
 | 柳树皮 / 毛地黄 / 金鸡纳树皮 / 止血草 / 针具 / 绷带 | `specs/medicinal-herbs.md` | VS Critical | ✅ Specified |
-| 纸质地图卷轴 | `specs/paper-map.md` | VS Critical | ✅ Specified |
-| 铜怀表 | `specs/brass-watch.md` | VS Critical | ✅ Specified |
 | 呼吸波形纸带 | `specs/breath-waveform.md` | VS Critical | ✅ Specified |
 | 舌象色卡 | `specs/tongue-color-card.md` | VS Critical | ✅ Specified |
 | 体征异常脉冲 | `specs/vitals-pulse.md` | VS Critical | ✅ Specified |
 | 墨迹落笔 | `specs/ink-splash.md` | VS Critical | ✅ Specified |
-| 教学纸近景 | `specs/paper-closeup.md` | VS Critical | ✅ Specified |
+| 纸质地图卷轴 | `specs/paper-map.md` | **Full Production** ⚠️ 已修正 | ✅ Specified |
+| 铜怀表 | `specs/brass-watch.md` | **Full Production** ⚠️ 已修正 | ✅ Specified |
+| 教学纸近景 | `specs/paper-closeup.md` | **Full Production** ⚠️ 已修正 | ✅ Specified |
 
-**Spec coverage**: 17 spec files covering all 42 VS Critical assets.
+> **2026-09-29 修正**：后三项（纸质地图卷轴 / 铜怀表 / 教学纸近景）的 spec 头部
+> 原标 `Tier: Vertical Slice Critical`，但对应资产在本清单里位于 **Full Production** 节
+> （Props #1 / #2 / #8）。三份 spec 的头部 Tier 已同步改为 Full Production。
+
+**Spec coverage**: 17 spec files. VS Critical 层 **15 个 spec 覆盖全部需出图资产**；
+另 2 个（呼吸波形纸带 / 舌象色卡等纯呈现元件）无需独立贴图。
 
 **Key constraints**:
 - 纸面 (Paper) is the dominant visual vocabulary — 6 of 42 VS Critical items are paper-based

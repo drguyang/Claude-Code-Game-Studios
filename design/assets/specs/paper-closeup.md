@@ -1,6 +1,6 @@
 # Asset Spec: 教学纸近景
 
-> **Tier**: Vertical Slice Critical
+> **Tier**: Full Production  ⚠️ 2026-09-29 修正:原误标 VS Critical —— 该资产在 entity-inventory.md 位于 Full Production 节(Props #1/#2/#8)
 > **Category**: HUD Element / Tutorial Display
 > **Source**: hud.md §6, paper-closeup-48.md, ADR-013 Amendment B
 > **Art Bible Ref**: §7.2 纸面元件库（教学纸近景 = 纸面放大）; §1 P2「纸面元素在应急光下仍可读」
