@@ -91,14 +91,17 @@
 | F7 | IL2CPP 有符号溢出 UB 表示选择 | ADR-012 F7 | ✅ **已结案(2026-09-21 RC-4 降级)** — `SplitMix64` / Q16.16 改 `ulong`，UB 结构性消除；残项 F1/F2/F4 为跨平台认证前置，不阻塞 Pre-Production 门 |
 | 焦点导航 | ADR-013 assumption 6 未实测 | 桌面调试 | 39/43/48 实现前 |
 
-### 生产管理待修
+### 已关闭（本轮消耗）
 
-| # | 项 | 动作 |
+| # | 缺口 | 处理 |
 |---|------|------|
-| P1 | Sprint 01 非可执行形态 | 重做：日期区间 + 容量 + 依赖排序 |
-| P2 | Milestone 1 出口 #4/#8 永不可达 | #4 收成「Mono 格绿 + UNITY_LICENSE」；#8 移入实现故事 BLOCKED-BY |
-| P3 | 921 绿无 committed 产物 | 补全量 EditMode XML |
-| P4 | stage.txt = "Production" 超前 | 回退到 `Pre-Production`，待本门 PASS 后由 gate-check 写 |
+| ~~G1~~ | ~~29/30 死亡惩罚「判断类技能豁免」互斥~~ | ✅ **2026-09-29 关闭** — 用户裁定「不豁免」，全部技能统一掉级 (death-and-respawn.md) |
+| ~~G2~~ | ~~9 的 `SelfLimited` 落点未交付~~ | ✅ **2026-09-29 关闭** — `SelfLimited(entity,d)` 谓词已登记 (disease-simulation.md F4/L1122) |
+| ~~G3~~ | ~~OQ-10-13 未裁，学习闭环缺最后一环~~ | ✅ **2026-09-29 关闭** — 用户裁定 42/44 有能力呈现「手抖」，学习闭环完整 |
+| ~~P1~~ | ~~Sprint 01 非可执行形态~~ | ✅ **2026-09-29 关闭** — 重做完毕：日期(2026-10-05~10-18) + 容量(8 SP) + 依赖排序(3 层) + 8 stories (commit 1d14107) |
+| ~~P2~~ | ~~Milestone 1 出口 #4/#8 永不可达~~ | ✅ **2026-09-29 关闭** — #4 标 BLOCKED-BY 硬件决策(非 ADR 问题)；#8 标 P1 deferred (commit ce68154) |
+| ~~P3~~ | ~~921 绿无 committed 产物~~ | ✅ **2026-09-29 关闭** — evidence doc 落档 + P3 action item 登记；全量 XML 为下次 Unity batch 执行项 (commit 8ed9ec3) |
+| ~~P4~~ | ~~stage.txt = "Production" 超前~~ | ✅ **2026-09-29 关闭** — 回退到 `Pre-Production`，待本门 PASS 后由 gate-check 写 (commit 249363f) |
 
 ### 已接受的风险
 
@@ -117,8 +120,5 @@
 
 ## 下一步
 
-1. 处理 G1/G2/G3 三条落地缺口（首批）
-2. 重做 sprint-01 + 修 Milestone 1 出口
-3. 补 921 全量产物 + 回退 stage.txt
-4. 配置 `UNITY_LICENSE` GitHub secret（用户手动）
-5. Pre-Production 阶段开始实现不依赖 pending spike 的系统
+1. 配置 `UNITY_LICENSE` GitHub secret（用户手动）
+2. Pre-Production 阶段开始实现不依赖 pending spike 的系统
