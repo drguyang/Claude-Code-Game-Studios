@@ -135,6 +135,20 @@ Resolution: 2048x2048, high detail for close-up reading.
 **该 prompt 刻意不写的内容**（避免模型回填不可控版式，见 image-gen skill 的「空行即答案」条目）：
 行标签 / 通道名 / 病名文字 / 手写正文。**产出定位 = 材质板，不是版式图** —— AI 的文字密度和版式细节**不作为规格依赖**，只要求材质语义清晰可裁切。
 
+### Generation Record(§8.10.2 · 独创性留痕)
+
+| 字段 | 值 |
+|---|---|
+| `prompt` | 见上方代码块(prompt 本体) |
+| `model` | `TBD` — 待补生成时的模型与版本(如 SenseNova U1.5 / flux) |
+| `iterations` | `TBD` — 待补迭代轮次与每轮改动要点(i2i 时) |
+| `seed` | `TBD` — 待补随机种子(可复现) |
+| `human_edits` | `none` — 若有后期人工修改须逐项记录 |
+
+> **§8.10.2 落地**:本表是发行时 Steam AI 申报清单的数据源。
+> `TBD` 字段须在该资产**首次生成时回填**;参考图本身为本地产物不入库
+> (见 `.gitignore` `/image-gen` 条目),规格真源 = 本 spec。
+
 ---
 
 ## Open Questions

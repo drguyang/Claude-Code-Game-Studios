@@ -132,6 +132,29 @@
 
 ---
 
+## AI Generation Prompt (for reference)
+
+```
+TBD — 主菜单背景/纸面材质的生成 prompt 待补。
+生成时须过 §4.5 对比度(≥7:1)与 §4.6 色觉安全核验,并遵守 §8.10.3 内容红线。
+```
+
+### Generation Record(§8.10.2 · 独创性留痕)
+
+| 字段 | 值 |
+|---|---|
+| `prompt` | 见上方代码块(prompt 本体) |
+| `model` | `TBD` — 待补生成时的模型与版本(如 SenseNova U1.5 / flux) |
+| `iterations` | `TBD` — 待补迭代轮次与每轮改动要点(i2i 时) |
+| `seed` | `TBD` — 待补随机种子(可复现) |
+| `human_edits` | `none` — 若有后期人工修改须逐项记录 |
+
+> **§8.10.2 落地**:本表是发行时 Steam AI 申报清单的数据源。
+> `TBD` 字段须在该资产**首次生成时回填**;参考图本身为本地产物不入库
+> (见 `.gitignore` `/image-gen` 条目),规格真源 = 本 spec。
+
+---
+
 ## Open Questions
 
 - [ ] 主菜单是否支持背景音乐（art-bible §2 列了「主菜单卷宗音乐」，但本 spec 只管视觉）

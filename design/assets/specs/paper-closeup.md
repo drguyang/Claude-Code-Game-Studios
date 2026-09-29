@@ -106,6 +106,20 @@ Resolution: 2048x2048, high detail for close-up reading.
 > v1–v5 五轮实测无法通过提示词消除。**正确做法**：让 AI 出含文字版式的参考构图 → DA 按材质语义裁切 → UXML `<Label>` 叠字。
 > 文字精度不追求像素级，追求整体质感。禁止 AI 出图后再人工描图/临摹/矢量化。
 
+### Generation Record(§8.10.2 · 独创性留痕)
+
+| 字段 | 值 |
+|---|---|
+| `prompt` | 见上方代码块(prompt 本体) |
+| `model` | `TBD` — 待补生成时的模型与版本(如 SenseNova U1.5 / flux) |
+| `iterations` | `TBD` — 待补迭代轮次与每轮改动要点(i2i 时) |
+| `seed` | `TBD` — 待补随机种子(可复现) |
+| `human_edits` | `none` — 若有后期人工修改须逐项记录 |
+
+> **§8.10.2 落地**:本表是发行时 Steam AI 申报清单的数据源。
+> `TBD` 字段须在该资产**首次生成时回填**;参考图本身为本地产物不入库
+> (见 `.gitignore` `/image-gen` 条目),规格真源 = 本 spec。
+
 ---
 
 ## Open Questions
