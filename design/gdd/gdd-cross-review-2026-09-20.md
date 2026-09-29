@@ -1,5 +1,9 @@
 # Cross-GDD Review Report — 2026-09-20
 
+> **Superseded**: 本报告反映 2026-09-20 的 GDD 状态。此后各 GDD 已逐份 Approved / 修订，
+> 31 项系统 GDD + 25 份 ADR 均已结案。本文件留档，不再更新。
+> 最新状态以各 GDD 的 `> Status` 行 + `systems-index.md` 为准。
+
 *范围:P0 全部 31 项系统 GDD(截至 2026-09-19 全 Approved)+ ADR-001…022 + TR 注册表 387 条。*
 *性质:评审件(只读,不含对 GDD 的修改);处置以本报告 + `systems-index.md` 标注为记账。*
 *生成:`/review-all-gdds`(full 模式)。Phase 2(一致性)+ Phase 3(设计整体论)+ Phase 4(跨系统走查)。*
