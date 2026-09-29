@@ -1,7 +1,7 @@
 # Story 013: 库存容器界面渲染 + 焦点(翻页制 · ≤12 件/屏 · 器物有重量)
 
 > **Epic**: 拟物 UI 框架
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: 3-4 hours

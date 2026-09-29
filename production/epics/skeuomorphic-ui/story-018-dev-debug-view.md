@@ -1,7 +1,7 @@
 # Story 018: 开发者调试视图(仅 Development Build · 焦点栈/元件库/DTO 绑定结果 · 不显示游戏数值)
 
 > **Epic**: 拟物 UI 框架
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: 2-3 hours

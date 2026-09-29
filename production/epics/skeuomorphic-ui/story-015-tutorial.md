@@ -1,7 +1,7 @@
 # Story 015: 教学界面(纸堆翻页走查 · 零按键提示浮层 · 手柄单机走查)
 
 > **Epic**: 拟物 UI 框架
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: 3-4 hours

@@ -1,7 +1,7 @@
 # Story 014: 设置界面壳(总线音量 + mono · 条目语义归 44 · 42 不缓存)
 
 > **Epic**: 拟物 UI 框架
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: 2-3 hours

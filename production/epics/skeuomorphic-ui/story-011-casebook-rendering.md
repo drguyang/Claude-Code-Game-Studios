@@ -1,7 +1,7 @@
 # Story 011: 脉案页渲染 + 焦点导航(五通道区 + 两栏 · 焦点顺序面色→语声→呼吸→触感→病名)
 
 > **Epic**: 拟物 UI 框架
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: 4-5 hours

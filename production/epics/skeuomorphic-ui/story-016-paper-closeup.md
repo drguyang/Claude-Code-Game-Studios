@@ -1,7 +1,7 @@
 # Story 016: 教学纸近景(ModalId.PaperCloseup48 · 世界内单张纸近景 · 走近摊纸)
 
 > **Epic**: 拟物 UI 框架
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: 2-3 hours

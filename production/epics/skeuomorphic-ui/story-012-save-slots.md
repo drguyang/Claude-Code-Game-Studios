@@ -1,7 +1,7 @@
 # Story 012: 存档位界面渲染 + 焦点
 
 > **Epic**: 拟物 UI 框架
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: 3-4 hours

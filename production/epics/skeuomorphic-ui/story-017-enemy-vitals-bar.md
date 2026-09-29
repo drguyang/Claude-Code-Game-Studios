@@ -1,7 +1,7 @@
 # Story 017: 敌人读数条完整实现(黄铜面片材质 · 蚀刻刻度 · 淡入淡出 · 六态机映射)
 
 > **Epic**: 拟物 UI 框架
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Presentation
 > **Type**: Visual/Feel
 > **Estimate**: 4-5 hours
