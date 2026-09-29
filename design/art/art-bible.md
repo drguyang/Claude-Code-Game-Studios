@@ -1,12 +1,9 @@
 # 美术圣经 (Art Bible) —— 《大医精诚:破晓之剂》
 
 > **Version**: 1.0(§1–9 全节成稿)
-> **Last Updated**: 2026-09-28
-> **Scope 本轮**:§1–9 全节补写完成(2026-09-28)。**Version 1.0 —— 全部九节成稿,AD-ART-BIBLE 可跑**。
-> §1–4 为 Visual Identity Foundation(门判要求);§5–7 / §9 于本轮补写完成。
-> §8 前置补写已完成(AB-10 / 2026-09-21 第十八批)。
-> **Art Director Sign-Off (AD-ART-BIBLE)**: **未做** —— 该门在 §1–9 全部完成后才跑
-> (见 `.claude/skills/art-bible/SKILL.md` Phase 5),本轮不记任何签署。
+> **Last Updated**: 2026-09-29
+> **Scope**:§1–9 全节成稿 + §8 补写完成(2026-09-29, art-director + technical-artist 并行)。
+> **Art Director Sign-Off (AD-ART-BIBLE)**: **APPROVED 2026-09-29** —— C1-C7 全部修复,C2/C3 引用修正,§8.6.1 SSS 实现约定订正。
 > **种子**: `design/gdd/game-concept.md:524-544` 的**视觉身份锚点《双材》**(用户直接给出)。
 > 锚点条款在本件**逐字保留,未改写**。
 > **AD 首轮门判(2026-09-20,`AD-PHASE-GATE` @ Technical Setup → Pre-Production)**:
@@ -583,11 +580,464 @@ UGUI 侧走同名 MaterialPropertyBlock 实例化。
 
 > **已有素材可用**:`concept-benchmark.md` 与 §1–4 中散见的对标(`game-concept.md:32` 全程第三人称 ·
 > 英灵神殿的读数条挂法 · 皴法转译)。§9 已完成,含每个对标取什么 / 避什么的完整记录。
+> **§8 补写完成(2026-09-29, art-director + technical-artist 并行)**:命名 / 档位 / 格式 /
+> LOD / 材质槽 / 皮肤材质 / VFX / 校准 + 技术约束(poly 预算 / 纹理内存 / 导入器 /
+> SRP Batcher / 性能规则 / 引擎安全备忘)。
 
 ---
 
+### 8.1 Naming Convention
 
-## 9. Style Prohibitions / Reference Direction
+所有资产文件名必须遵循以下格式,确保 42 元件库、Addressables 目录、和外包供应商三方可无歧义定位。
+
+**资产文件**:
+
+```
+[category]_[name]_[variant]_[size].[ext]
+```
+
+| 字段 | 语义 | 示例 |
+|---|---|---|
+| `category` | 资产族(见下方分类表) | `char` · `env` · `ui_paper` · `ui_ink` · `ui_seal` · `vfx` |
+| `name` | 语义名(蛇形小写,英文) | `villager_old` · `herb_fuling` · `prescription_slot` |
+| `variant` | 变体(状态/材质/方言) | `wet` · `worn` · `zh` · `en` · `v2` |
+| `size` | 分辨率档(见 §8.2) | `1K` · `2K` · `4K` |
+| `ext` | 扩展名 | `png` · `tga` · `fbx` · `wav` |
+
+**动画文件**:
+
+```
+anim_[actorclass]_[action]_[variant]
+```
+
+| 字段 | 语义 | 示例 |
+|---|---|---|
+| `actorclass` | 角色类(不绑具体角色) | `doctor` · `patient` · `enemy_bandit` · `enemy_beast` |
+| `action` | 动作语义 | `idle` · `walk` · `diagnose_pulse` · `cpr_compress` · `subdue` |
+| `variant` | 变体 | `loop` · `in` · `out` · `weapon_daggers` |
+
+**地区后缀规则**:
+
+- 含地区文本差异的 UI 纸面素材加 `_zh` / `_en` 后缀(落 `variant` 位)。
+- 插图素材(`illustrationKey` 指向的资产)若内嵌文字须出双份(`_zh` / `_en`);
+  纯图形插图(**无内嵌文字**)单份即可,不强制双份。
+- 后缀接在 `variant` 位,**不新增字段**:`ui_paper_herb_guide_zh_1K.png`。
+
+**分类 Taxonomy**:
+
+| 族 | 覆盖范围 | 材质侧 |
+|---|---|---|
+| `char` | 角色 mesh + 贴图(医者 / 同伴 / 病人 / 人形敌人 / 兽) | 墨/铜/皮肤(§5.1) |
+| `env` | 生态区建筑 / 地物 / 植被 / 道具(非 UI) | 墨(自然) + 铜(器械/构件) |
+| `ui_paper` | 纸面元件 / 纸纹底 / 卷轴切片 / 插图 | 墨侧(纸) |
+| `ui_ink` | 墨迹 brush / 印章 / 笔迹变体 | 墨侧(墨/印泥) |
+| `ui_seal` | 印章元件(单独族 = 印泥色语义独立管控,§4.2) | 铜侧(印泥 = 权力之红) |
+| `vfx` | 粒子 / mesh 特效 / 音画同步 cue | 视效果定(见 §8.7) |
+| `sfx` | 脚步声 / 器械声 / 语声 / 环境音 | 音频(不归本章材质侧) |
+| `anim` | 动画 clip(独立族,不与其他族共用 prefix) | 不适用(驱动动作) |
+
+> **新增分类**:任何不在上表的资产族须先在本节补登,再产出资产。
+
+---
+
+### 8.2 Texture Resolution Tiers
+
+> 以下为**提案值**,归数值轮手调;最终阈值以 `technical-preferences.md` 的 Draw Calls / Memory Ceiling 冻结值为硬约束反推。
+> 本节只定**语义分层**与**相对大小**,不定绝对像素上限。
+
+**分层结构(五档)**:
+
+| 档位 | 语义用途 | 典型资产 | 备注 |
+|---|---|---|---|
+| **Hero 4K** | 主角面部 / 关键手持器械 / 医馆主场景 hero prop | 医者面部 / 戥子特写 / 手术灯 | 最少资产;面部只在越肩可见范围内走此档 |
+| **环境 2K** | 生态区建筑 / 主要地物 / 敌人 hero mesh | 租界柱廊 / 贫民窟棚屋 / 人形敌人 | 可辨识缝线 / 錾刻刻度的最低档 |
+| **通用 1K** | 次要角色 / 普通道具 / 兽类 / 植被 | 同伴 / 病人 / 药草 / 普通器械 | P0 主力档;同屏密度最高 |
+| **UI-纸 1K** | 纸面 UI 元件 / 插图 / 纸纹底 | 脉案底 / 卷轴切片 / 纸上之图 | 单张不超过此档;合图走 atlas(见下) |
+| **VFX 512** | 粒子贴图 / 噪声 / 光晕 / 火花 | 墨晕粒子 / 铜锈飘散 / 手术灯光晕 | 无 mipmap(粒子恒正对相机或屏幕空间) |
+
+**Atlas 约束**:
+
+- UI-纸 1K 档的纸纹底 / 墨迹 brush / 印章图案须合入 atlas,atlas 本身 **≤2K** 短边。
+- 单张插图(`illustrationKey` 指向资产)**不进 atlas** —— 插图是独立图,不与其他元素合图。
+- 含 `_zh` / `_en` 变体的插图若内嵌文字,两变体**合入同一 atlas** 的不同 page(减少 draw calls);
+  无文字插图单页即可。
+
+**与 P0 基线的关系**:
+
+- P0 = 一间医馆 + 一个小场景(`game-concept.md:721`),以上五档在 P0 内**全部有效**。
+- 但 P0 实际产出顺序:UI-纸 1K → 通用 1K → 环境 2K → Hero 4K → VFX 512(优先级从高到低)。
+- 若 slice 用灰盒(proxy mesh + 单色材质),该资产**不进入以上任何档**,走灰盒豁免。
+
+---
+
+### 8.3 Format & Export Settings
+
+**纹理格式(按平台)**:
+
+| 平台 | 颜色纹理 | 数据纹理(normal/ORM) | 说明 |
+|---|---|---|---|
+| PC(Steam) | **BC7** | **BC5** | URP 默认;BC7 保色准,BC5 独立压缩 R/G |
+| Linux-x64 | **BC7** | **BC5** | x64 GPU 全系支持 BC7 |
+| Linux-ARM64 | **ASTC 6x6** | **ASTC 6x6** | ARM GPU BC7 支持不统一;ASTC 为全兼容 fallback |
+| 未来主机(P1b) | **待主机上线后定** | 待定 | 不在 P0 预设 |
+
+> ⚠️ **ETC2 不纳入 P0**:PC 为主平台,ETC2 色带 artifact 与「水墨晕染 / 纸纤维」语义冲突;
+> 若后续移动端上线,须**新建移动档**并在 42 元件库做平台分流,不得用 ETC2 硬压缩 PC 资产。
+
+**颜色空间**:
+
+- **sRGB 纹理**:纸纹底 / 墨迹 / 印泥 / 角色 albedo / 环境色 —— **导入时勾 sRGB**。
+- **线性纹理**:normal map / ORM(occlusion/roughness/metallic) / 高度图 / 数据贴图 —— **导入时勾 Linear**。
+- **例外**:铜锈/氧化色的 albedo 若含数据信息(锈的程度 = roughness 的预编码),须拆为两张:
+  albedo(sRGB) + rust_mask(linear),不得在 sRGB 纹理里藏线性数据。
+
+**Normal map 规范**:
+
+- 格式:OpenGL 风格(绿通道 Y-up);导入时 Normal Map 选项选 **OpenGL**。
+- 压缩:BC5(视平台 ASTC 6x6);**禁用 DXT1nm**(压缩比过高导致法线抖动,与「笔意形」冲突)。
+- 源图分辨率 = 目标档分辨率(4K 法线 = 4K 源),不降采样(法线细节在 PBR 光照下直接可见)。
+
+**Mesh 导出设置**:
+
+- 格式:FBX 2014(Unity 6.3 导入稳定版本)。
+- 单位:厘米(与 Unity 默认一致);导出时**不缩放**。
+- 法线:导出时 **Calculate Per-Vertex Normals**;切线与法线一并导出(Unity 导入时 Regenerate 选项关)。
+- 骨骼:角色 mesh 走 **Skin Weights 限量 4**;超出 4 的影响权重须在 DCC 里做 normalize 或拆分顶点。
+- UV:两套 UV —— UV0 给 albedo/emission(纸纹/墨迹需接缝不明显);UV1 给 lightmap(见下)。
+
+**Lightmap UV**:
+
+- 所有静态环境 mesh **必须生成 Lightmap UV1**;烘焙用渐进式 GI(URP Lightmapper)。
+- UV1 利用率目标 **≥85%**;接缝须与 UV0 视觉接缝错开(不重叠)。
+- 动态角色 mesh **不做 Lightmap UV**(不参与烘焙 GI)。
+
+---
+
+### 8.4 LOD Strategy
+
+> LOD 距离阈值为**语义档**,不绑绝对米数 —— 绝对阈值须在 `technical-preferences.md` 的 Draw Calls / 视距目标冻结后由 technical-artist 换算填入。
+
+**LOD 层级(四档)**:
+
+| 档位 | 距离语义 | 保留细节 | 适用对象 |
+|---|---|---|---|
+| **LOD0** | 近景可交互 / 越肩核心可见区 | 全分辨率 + 全材质槽 + 完整法线 + 墨笔触细节 | 玩家 / 同伴 / 当前目标病人 / 手持器械 |
+| **LOD1** | 中景辨识区 | 2K 纹理 + 材质槽不变 + 法线降 50% | 在场次要角色 / 可见敌人 / 主要地物 |
+| **LOD2** | 远景剪影区 | 1K 纹理 + 材质槽合并(见 §8.5) + 法线移除 | 同屏次要角色 / 远景建筑 / 兽类 |
+| **LOD3** | 极远 / 雾区 / 群集 | 512 纹理 + 单材质(墨侧合并为一张) + 仅位置/顶点色 | 群集背景角色 / 远山 / 大气雾层地物 |
+
+**各档细节保留规则**:
+
+- **剪影(LOD2–3)**:体态轮廓必须保留(§3.1 三层可读判据)。LOD2 用 1K 法线贴图保roughness variation;
+  LOD3 用顶点色区分墨/铜分区(两色已足够:浓墨 `#26241F` vs 黄铜 `#B8863B` → 降为顶点色 RGB)。
+- **材质(LOD2)**:墨侧与铜侧材质槽**不合并**;仅在 LOD3 合并为单墨色材质(铜侧在远距离不可见时隐去,不凭空消失 —— 通过 roughness 渐变过渡)。
+- **动画(LOD1–2)**:LOD1 保留完整 skeleton;LOD2 可降为 **1–2 根骨骼**的简化动画(只驱动位移 + 大致朝向,不驱动手指/面部)。
+- **纸面 UI(LOD 不适用)**:UI 元素不走 LOD,始终全分辨率渲染(UI 是自发光阅读面,不存在「远看模糊」)。
+
+**Hero vs Crowd 特殊规则**:
+
+- **Hero 角色**(玩家 / 同伴 / 当前任务关键 NPC):强制 **LOD0 锁定**,不进入 LOD1+。
+- **Crowd 角色**(背景村民 / 疫民):LOD2 起始(LOD0/LOD1 不产出),群集时走 GPU Instancing + LOD3 单材质。
+- **病人**:有诊断交互的病人强制 LOD0;其余病人 LOD1 起始。
+
+---
+
+### 8.5 Material Slot Constraints
+
+**单 mesh 材质槽上限**:
+
+| 资产类别 | 最大槽数 | 说明 |
+|---|---|---|
+| 角色(医者/同伴/病人/人形敌人) | **4** | 皮肤 / 衣料 / 铜侧器械 / 特效覆盖(血/汗) |
+| 兽类 | **3** | 皮毛/肌肉 / 牙爪甲(铜侧) / 特效覆盖 |
+| 环境建筑(hero prop) | **3** | 主体(墨/木石) / 铜构件 / 细节覆盖(锈/污渍) |
+| 环境地物(普通) | **2** | 主体 / 覆盖层 |
+| 建造模块 | **2** | 主体 / 接缝/氧化覆盖 |
+| UI 纸面元件 | **2** | 纸纹底 / 墨迹覆盖(压痕/笔锋) |
+
+**墨侧 vs 铜侧材质槽规则**:
+
+- 同一个 mesh 的材质槽**不得混合墨侧与铜侧的 PBR 参数在同一槽内**(即:一个槽要么是墨侧参数,要么是铜侧参数,不混写)。
+- 例外:手持器械(戥子 / 手术灯)因玩家始终在近景可见区,允许**皮肤槽 + 衣料槽 + 铜槽 + 血槽 = 4 槽**的上限。
+- 铜侧槽的 `metallic` 参数恒 > 0;墨侧槽的 `metallic` 参数恒 = 0(断言,technical-artist 在材质库做白名单校验)。
+
+**皮肤材质前置(承 §5.1 / §8.6)**:
+
+- 角色 mesh 的皮肤槽在 §8.5 只约束**槽位数量**,材质参数本身见 §8.6。
+- 皮肤槽**不得承载任何墨侧属性**(无纸纹 / 无笔锋 / 无墨色 tint)。
+- 皮肤槽**不得承载任何铜侧属性**(metallic = 0, roughness ≥ 0.6,无镜面高光)。
+
+---
+
+### 8.6 Special Material Standards
+
+本节定义三种全作**唯一允许**的「活体裸露 / 纸面 / 黄铜」材质的具体 PBR 参数。
+§5.1 的「皮肤 = PBR 非金属 + 高粗糙」在本节落地为可验证参数。
+
+#### 8.6.1 皮肤材质(全作唯一「活体裸露」)
+
+> 皮肤是全作**唯一允许的「bare living」材质**。所有其他「肉」的表达(肌肉 / 内脏 / 血液)走墨侧晕染,不走 PBR 皮肤材质。
+
+| 参数 | 值 | 说明 |
+|---|---|---|
+| `metallic` | **0.0**(断言) | 皮肤永不为金属;技术实现 = 材质库白名单,`metallic > 0.01` = 构建失败 |
+| `roughness` | **0.65–0.85** | 高粗糙 = 皮肤不反光;范围覆盖从「干燥」到「微汗」的面色变化 |
+| `albedo` | 明度阶梯(§4.6 五色) | 面色五色 = albedo 明度阶梯,无饱和度;范围 `#4A3B32`(晦暗) → `#E8D5C4`(白) |
+| `normal` | 细粒度皮肤纹理 | 毛孔 / 细纹可见;法线强度 ≤ 0.3(不夸张) |
+| `sss` | 次表面散射(SSS) | 薄透区域(耳 / 鼻尖)启 SSS;厚度 ≤ 2mm,散射色 = 暖橙(灯芯暖橙 `#D98E36` 降饱和) |
+  > **技术实现约定**:SSS 走 Shader Graph **Subsurface (Universal)** 节点(非 diffusion profile;
+  > URP 不提供 pipeline-asset 级 SSS 注册,HDRP 的 `DiffusionProfile` 机制不适用于本项目)。
+  > 实现前须在目标平台实测 SSS 对性能的影响(见 §8.9 版本标签)。
+| `emission` | **0** | 皮肤永不自发光(暗处靠环境光,不靠 emission 补亮) |
+
+**硬约束**:
+- 角色永无**纯黑 / 纯白皮肤**(§4.2 已裁);albedo 最低值不得低于 `#3A2E28`。
+- 皮肤不得出现**铜锈青绿**(`#4F7A6B`) —— 此条是 §4.6 色觉安全第一道防线的材质层落地。
+- 皮肤 shader **不得**接受墨色 tint(§4.2「墨只走纸/木/布」的材质层强制)。
+- 兽类皮毛走独立材质(不在本节范围;兽类毛发 shader 单独定,metallic = 0,roughness ≥ 0.7)。
+
+#### 8.6.2 纸面材质(UI 与 世界纸面)
+
+| 参数 | 值 | 说明 |
+|---|---|---|
+| `metallic` | **0.0** | 纸永不为金属 |
+| `roughness` | **0.9–0.95** | 极高粗糙 = 纸面吸光;与皮肤 0.65–0.85 形成材质可读性差 |
+| `albedo` | `#EAE0C8`(UI) / `#E4D5B7`(世界) | UI 纸面亮一档(自发光阅读面);世界纸是被照物体(§4.5 已裁,两值禁止合并) |
+| `normal` | 纤维纹理 | 纸纤维走向;法线强度 ≤ 0.15(微妙不抢墨迹) |
+| `emission` | **0** | 纸面永不自发光(光照来自环境光 / 油灯斑) |
+
+**世界纸面 vs UI 纸面的材质差异**:
+- 世界纸面(可拾取的纸质地图 / 脉案道具):走 `#E4D5B7` + 污渍/折角/虫洞 normal map。
+- UI 纸面(42 渲染的脉案 / 存档位):走 `#EAE0C8` + 纸纹底 + 压痕 normal。
+- 两套贴图**不得混用**(玩家手持道具纸 ≠ 界面纸面,否则「比例语法差」§3.3 失效)。
+
+#### 8.6.3 黄铜 / 铜锈材质(还原侧唯一金属)
+
+> 本作黄铜 = 「被带来之物」。(§1 P4 / 支柱四 ∩ 支柱五) 其材质必须可读「来历」—— 没有「全新黄铜」。
+
+| 参数 | 值 | 说明 |
+|---|---|---|
+| `metallic` | **1.0**(断言) | 黄铜恒为全金属 |
+| `roughness` | **0.35–0.55** | 新器械下限(仍有使用痕迹 = roughness ≥ 0.35);旧器械上限 |
+| `albedo` | `#B8863B`(基底) → `#4F7A6B`(锈) | 基底 = 黄铜;锈色 = 铜锈青绿;两者通过 rust_mask 线性插值 |
+| `normal` | 錾刻刻度 + 微划痕 | 錾刻深度 ≤ 0.02;划痕随机方向,不沿 UV 轴向 |
+| `ao` | 锈区 AO 增强 | 锈积处 AO 偏高(凹坑积锈 = 暗部);新器械 AO 干净 |
+| `emission` | **0** | 黄铜永不自发光(手术灯冷光白例外 —— 冷光是玻璃罩,黄铜底座不发光) |
+
+**黄铜「来历」材质化规则**:
+
+- **没有全新黄铜**:任何黄铜资产的 roughness 不得低于 0.35 —— 至少带一层「用过」的磨痕。
+- **没有深山黄铜**:深山疫区场景内**零黄铜资产**(§1 P4 的「深山没有商路」材质层强制;技术实现 = 6 布置时做资源清单断言)。
+- **锈是磨损证据**:`rust_mask` 贴图(linear,ORM 的 O 通道)控制锈分布;锈区 roughness 升至 0.55–0.65,albedo 向 `#4F7A6B` 偏移。
+- **黄铜光泽 ≠ 高光**:黄铜的 specular 来自 roughness 低(0.35),**不靠 emission 或 clearcoat** —— 清漆层不符合「工业品」语义。
+
+---
+
+### 8.7 VFX Asset Standards
+
+**VFX 分类 Taxonomy**:
+
+| 类别 | 用途 | 材质侧 | 粒子行为 |
+|---|---|---|---|
+| **combat_feedback** | 制服命中 / 压制特效 / 读数条出现 | 墨侧(墨点飞溅) + 铜侧(金属碰撞火花) | 短寿命(≤1.5s),高初速 |
+| **environmental** | 雨丝 / 雾 / 烟尘 / 石灰线(疫情爆发) | 墨侧 | 长寿命循环,低初速 |
+| **medical** | 急救操作反馈 / 听诊声波可视化 / CPR 节律指示 | 墨侧(血晕) + 铜侧(器械接触微光) | 中寿命(2–5s),响应体征变化 |
+| **ui_feedback** | 墨迹落笔 / 印章盖落 / 纸面墨晕 | 纯墨侧 | 屏幕空间,短寿命(≤1s) |
+
+**粒子数量预算【提案值】**:
+
+| 类别 | 同屏粒子上限 | 说明 |
+|---|---|---|
+| combat_feedback | **80** | 制服命中瞬间峰值;常态 ≤ 30 |
+| environmental | **120** | 雨/雾/烟尘循环;与帧率解耦(以 tick 为刷新单位,20 Hz) |
+| medical | **40** | 急救操作期间;CPR 节律粒子 ≤ 15 |
+| ui_feedback | **20** | 纸面内粒子;屏幕空间不影响世界渲染 |
+
+> ⚠️ 以上粒子数为**提案值**,最终上限须在 `technical-preferences.md` 的 Draw Calls / Memory Ceiling 冻结后由 technical-artist 反推确认。
+
+**全作禁用的 VFX 手法**:
+
+- **全屏后处理**:P0 零 custom Renderer Feature(ADR-023 ⑧);任何需 `ScriptableRenderPass` / RenderGraph 的效果全部禁用。
+- **闪白 / 闪屏**:急救操作不靠 flash-white 表达节奏(§2 已裁「急救 VR 全禁镜头效果」);CPR 节律 = 指针机械限位 + 音频,不闪屏。
+- **伤害数字**:全作无伤害数字弹出(支柱二「医者不杀」+ §7.8 全禁数字角标);制服效果 = 墨点飞溅(combat_feedback)表达。
+- **血雾 / 喷溅**:全作唯一合法「红」= 血暗红 `#7C2A28`;血只出现在活体与其流体上,不出现为环境粒子(§4.2 已裁)。
+- **发光墨迹**:墨迹永不自发光(emission = 0);「墨色深浅 = 信息权重」走明度轴,不走 emission。
+- **进度填充条**:纸面 / 卷轴 / 墨迹元件均无填充条语义(§7.2 已裁)。
+
+**Shader Graph vs 自定义 HLSL 边界**:
+
+- **Shader Graph**:纸纹底 / 墨迹 brush / 铜锈混合 / 皮肤 SSS —— 四类标准材质走 Shader Graph,技术-artist 在 Unity 6.3 的 Shader Graph 里实现,输出 `.shadergraph`。
+- **自定义 HLSL**:VFX 粒子需要 Shader Graph 无法表达的 behavior 时(如粒子沿 spline 分布 / 逐粒子寿命驱动形变),走自定义 `.shader` 文件,由 technical-artist 手写 HLSL。
+- **边界判据**:能在 Shader Graph 里用节点表达的效果,一律不进 HLSL;Shader Graph 节点无法满足的性能或行为需求,才开 HLSL。VFX 系统与 Shader Graph 的接口 = **Material Property Block**(不新建 Renderer Feature)。
+
+---
+
+### 8.8 Calibration & Linear Workflow
+
+> AB-1 登记为 §8.8(校准前置 · 仅登记不执行)。执行义务归属 technical-artist。
+
+**AB-1 要求(已裁定)**:
+
+全部 hex 值(§4.1 主调色板 / §4.5 UI 调色板 / §8.6 材质 albedo / §4.2 语义色规约)须在进入**代码常量**之前,经 **URP linear 工作流**校准。
+
+**校准步骤(technical-artist 执行)**:
+
+1. 在 Unity Editor 中,确认 **Project Settings → Graphics → Color Space = Linear**。
+2. 对每个 sRGB hex 值,在材质 inspector 里做 gamma 解码验证:
+   - 输入 hex(如 `#E4D5B7`),Unity 自动在 sRGB 纹理导入时做 gamma→linear 转换。
+   - 若该值用于 **代码常量**(如 `Color` 结构体字面量),须手动执行 `Mathf.GammaToLinearSpace(rgb)` 或用 `ColorSpace.GammaToLinear` 等效转换,得到 linear 空间值再写入代码。
+3. 校准后的 linear 值与原始 sRGB 值**并排记录**在 `design/art/color-calibration-log.md`(技术-artist 维护,与 art-bible 同版本)。
+
+**sRGB→linear gamma 解码警告**:
+
+> ⚠️ **未经校准的 hex 直接抄进代码常量会产生系统性偏色** —— 这是全案色彩系统的「第一条铁律」。
+> 表现层代码(42 / 44 / 特效)读取颜色时,若来源是材质/纹理(已由 Unity 导入管线做 gamma 解码),读到的已是 linear 值,无需再转;
+> 若来源是代码常量(硬编码 hex 或 JSON 配置),该值**必须是 linear 空间版本**。
+> 
+> 判定口诀:「**纹理给的是 linear,代码给 raw hex = 偏色**」。
+
+**谁 / 何时**:
+
+- **Who**:technical-artist(非 art-director,非程序员)。
+- **When**:资产导入管线配置阶段(编辑期,在 Addressables 构建之前);每次调色板换表(§4.3 生态区变体 / §4.6 色盲模式)须重新走一遍校准。
+
+**与 ADR-014 / ADR-023 的一致性**:
+
+- ADR-014 的构建期烘焙管线产出 `*.cooked` —— 颜色数据在烘焙阶段须已是 linear 空间值(technical-artist 在工具链里做 gamma 解码)。
+- ADR-023 ⑧ 的 P0 零 Renderer Feature 约束不变;颜色校准不走后处理,走**导入管线 + 烘焙管线**两端。
+
+---
+
+### 8.9 Unity-Specific Hard Constraints
+
+> 本节由 technical-artist 提供,约束引擎实现面;数值均为【提案值】,定值归数值轮。
+
+#### 8.9.1 Poly Count Budgets
+
+> **⚠️ 依赖未解**:所有上限为范围,最终值取决于 **Draw Calls 预算** 定稿(当前状态 = **待定**,
+> 见 `.claude/docs/technical-preferences.md`)。数值轮须同时给出 Draw Calls 目标才能将本表各
+> 档上界收敛为单值。slice 期间可用建议中值。
+
+| 资产类别 | 三角面上界 | 推荐范围 | 备注 |
+|---|---|---|---|
+| **主角 / 医者** | 40,000 tris | 25,000–40,000 | 全身可见(越肩相机);面部须保高分辨率 |
+| **同伴** | 40,000 tris | 25,000–40,000 | 与主角共享骨架,复用材质 |
+| **病人** | 30,000 tris | 15,000–30,000 | 躺卧姿态减少背部精度需求 |
+| **敌人——人形** | 25,000 tris | 15,000–25,000 | 同场上限由数值轮定 |
+| **敌人——兽** | 50,000 tris | 30,000–50,000 | 允许巨物化(AB-9);单只巨兽例外 |
+| **环境道具(可交互)** | 5,000 tris | 2,000–5,000 | 药草 / 戥子 / 脉案等 |
+| **环境道具(纯装饰)** | 3,000 tris | 1,000–3,000 | 瓶罐 / 家具 / 杂物 |
+| **建筑模块(建造件)** | 8,000 tris | 4,000–8,000 | 单模块;榫卯/铆接语汇需对应面数预算 |
+| **建筑主体(医馆/Poi)** | 20,000 tris | 10,000–20,000 | 每栋建筑/大型 Poi |
+| **植被(单株)** | 3,000 tris | 1,000–3,000 | 盆景 / 草药圃 / 小场景树 |
+| **UI 3D 纸面近景** | 6,000 tris | 3,000–6,000 | PaperCloseup48;唯一近景 3D 纸面 |
+
+**硬约束**:
+- 任何资产**不得**超过对应档位上界。
+- `PATIENT_APPEARANCE_CAP = 24` 的病人资产须走**最低 LOD**尽可能早以简模替代。
+- `LOD Group` 至少 3 级(LOD0 / LOD1 / Culled);跨级截距比 ≤ 0.6。
+
+#### 8.9.2 Texture Memory Limits
+
+**材质纹理计数上限**:
+
+| 资产类别 | 最大纹理槽数 | 分配规则 |
+|---|---|---|
+| **皮肤(角色通用)** | **2 个纹理** | albedo + ORM;独立 slot,不参与图集 |
+| **主角 / 同伴** | 4 个纹理 | albedo + normal + ORM + emissive(可选) |
+| **敌人——人形** | 3 个纹理 | albedo + normal + ORM;emissive 走 albedo 编码 |
+| **敌人——兽** | 4 个纹理 | albedo + normal + ORM + emissive(眼睛/甲壳) |
+| **病人** | 3 个纹理 | albedo + normal + ORM;面色走 albedo 明度 |
+| **环境道具** | 3 个纹理 | albedo + normal + ORM |
+| **建筑模块** | 2 个纹理 | albedo + ORM(合并);normal 走顶点法线或共享集 |
+| **建筑主体** | 4 个纹理 | albedo + normal + ORM + AO(如有独立 AO 烘焙) |
+| **植被** | 2 个纹理 | albedo(含 alpha) + normal(如有) |
+| **UI 纸面(平面)** | **1 个纹理** | albedo;纸纤维 / 折痕 / 污渍全在此通道 |
+| **UI 3D 纸面近景** | 2 个纹理 | albedo + AO(如有独立 AO) |
+| **黄铜(通用)** | 2 个纹理 | albedo + ORM;锈变走 ORM roughness 通道 |
+
+**UI Atlas 打包规则**:
+- 所有平面 UI 元件打包至一张或一组 Atlas,单张 Atlas **最大 2048 × 2048**。
+- **Bleed 要求**:纸面纹理须留 **4px bleed**;墨迹笔触须留 **2px bleed**。
+- 同一 Atlas 内**不得**同时放入铜侧与墨侧纹理。
+- 印章(暗红)须独立打包为最小图集。
+
+#### 8.9.3 SRP Batcher & URP Constraints
+
+**硬约束**:本项目中 **SRP Batcher 启用为默认**(URP Asset → `SRP Batcher` 勾选)。
+
+1. **同一 Shader 变体**:同一 Shader 的所有材质可入同一批次;不同 Shader = 不同批次。
+2. **同一 CBUFFER 属性集**:着色器内 `CBUFFER_START(UnityPerMaterial)` 内的属性名称和类型**必须全组一致**。`MaterialPropertyBlock` 会中断 SRP Batcher,仅用于少量运行时变化的属性(如敌人读数条淡出)。
+3. **关键字组合一致**:同一 Shader 内,若 A 材质启 `_NORMALMAP`、B 材质禁用,两者分属不同批次。
+
+**自定义 HLSL 边界**:Shader Graph **功能不足**时才允许手写 HLSL。触发前须提交技术美术走查,写入 Shader 的 HLSL 须附加 `// TA-REVIEW` 标记。
+
+**P0 零 custom Renderer Feature**(ADR-023 触发条款):
+- VFX 实现路径:§8.7 当前以 **VFX Graph** 为默认方案,但 `com.unity.visualeffectgraph`
+  **尚未登记为项目依赖**。在完成以下任一动作前,§8.7 的 VFX 条目**不视为已定**:
+  1. 经 technical-director 评审后将该包加入 `manifest.json` 并登记为 Approved Dependency;或
+  2. 另开 ADR 明确拒绝 VFX Graph,改走 `Particle System`(`com.unity.modules.particlesystem`,
+    已驻留 manifest)。
+- 若须自定义 Pass 实现(如 selective saturation mask) → **触发条款,须另开 ADR**。
+
+#### 8.9.4 Importer Constraints
+
+**Mesh Import Settings**:
+
+| 参数 | 角色 / 敌人 | 环境 / 建筑 | UI / 其他 |
+|---|---|---|---|
+| **Mesh Compression** | **Medium** | **Low**(建筑模块) / Medium(道具) | N/A |
+| **Normals** | **Calculate** | **Calculate** | N/A |
+| **Tangents** | **Calculate** | **Calculate** | N/A |
+| **Read/Write Enabled** | **禁用** | 建筑模块 **禁用**;可交互道具 **启用** | N/A |
+| **Optimize Mesh** | 勾选 | 勾选 | N/A |
+
+**Normal Map Import Settings**:
+- 格式:OpenGL 风格(绿通道 Y-up);导入时 Normal Map 选项选 **OpenGL**。
+- 压缩:BC5(视平台 ASTC 6x6);**禁用 DXT1nm**。
+- 手绘法线贴图须在 DCC 中校验绿通道方向。
+
+**LOD Group 配置**:
+- 所有角色**必须**配置 `LOD Group`,至少 3 级(LOD0 / LOD1 / Culled)。
+- **英雄角色**(玩家 / 同伴 / 当前任务关键 NPC):§8.4 的 LOD0 锁定规则**优先** —— 配置 LOD0 同屏可视为完整 3 级(其余级次不出资产,技术上仍满足 ≥3 级配置)。
+- 跨级截距比 **≤ 0.6**。
+- 建筑模块 / 环境道具使用 `LOD Group` 或 Simpler LOD 均可。
+
+**Addressables 标签约定**(承 ADR-014 §五):
+- 单一 `data-core` 组;禁止在 Addressables 内部分割美术资产为多个组。
+- `Bundled Asset Naming Mode` = **Full Path**;禁止以 GUID 硬编码引用。
+
+#### 8.9.5 Performance-Critical Asset Rules
+
+**Static Batching**(ADR-015 模块化建造适用):
+- 标记 `Static` 的建筑模块由 Unity 在编辑器期合并为少量大 Mesh。
+- 前提:模块须共用同一材质;不同材质的模块不进入同一 batch。
+- 模块设计时须考虑 UV 接缝走向(合并后 UV 不重映射)。
+
+**NavMesh Surface 约束**(ADR-015 §五 + ADR-016 §五):
+- NavMesh 烘焙输入以**视觉层地形 + 建造体**为主(ADR-016 §五),整数导航格为一致性覆盖层(ADR-022 C3 告警级,不要求逐格相等)。
+- 可移动对象(病人 / 敌人 / 玩家)不标记 `Navigation Static`。
+- 烘焙结果与逻辑层导航格的偏差 > 0.5m 时触发 C3 告警(ADR-022 C3)。
+
+**Addressables 内存预算**:
+- `data-core` 预载完成后内存占用**不得**超过 Memory Ceiling 待定值。
+- `data-core` 组内资产**不可按需卸载**(首 tick 后全驻留)。
+- `InstantiateAsync` 产物须**显式释放**;`Addressables.Release` 是唯一合法释放路径。
+
+#### 8.9.6 Engine Version Safety Notes
+
+> **Unity 6.3 LTS (6000.3.24f1) · LLM 知识截止 May 2025**
+
+| API / 功能 | 风险等级 | 本项目使用情况 | 应对 |
+|---|---|---|---|
+| URP **17.3.0** (RenderGraph) | **HIGH** | 零 custom Renderer Feature(ADR-023) | 触发条款已登记 |
+| Shader Graph (URP 17.3.0 内置) | MEDIUM | 全项目 Shader Graph | 已知兼容;MPB 中断 SRP Batcher 已确认 |
+| VFX Graph (**未登记** — 见 §8.7) | MEDIUM | VFX 实现路径 | 须经 TD 评审注册后方可引入 |
+| Addressables **2.10.3** | MEDIUM | `data-core` 预载 | ADR-014 §五 已登记 E-13 风险 |
+| `CharacterController` | LOW | 系统 29 玩家移动 | 长期稳定 API |
+| `NavMesh` / `com.unity.ai.navigation` **2.0.14** | MEDIUM | ADR-022 工具层 | 工具层 API 不污染运行期 |
+
+---
 
 ### 9.1 反支柱(本作明确不做的视觉形态)
 
@@ -631,17 +1081,33 @@ UGUI 侧走同名 MaterialPropertyBlock 实例化。
 | 玩家不会主动询问「什么时候能开始自由建造」 | AC-9(P0 测试判据) |
 
 
+## AD-ART-BIBLE Sign-Off (2026-09-29)
+
+**Verdict**: **APPROVED 2026-09-29**
+
+| # | Issue | Status |
+|---|-------|--------|
+| C1 | §8.9.5 NavMesh 约束与 ADR-016 §五 矛盾 | ✅ 已修复 |
+| C2 | §8.4 LOD 与「3 级配置」矛盾 | ✅ 已修复 |
+| C3 | §8.9.1 引用未验证数据("6-8 enemies") | ✅ 已修复 |
+| C4 | §8.7 VFX Graph 未在 manifest.json 注册 | ✅ 已修复 |
+| C5 | SSS 实现方式与 URP 6.3 实际不符 | ✅ 已修复 —— 改走 Shader Graph Subsurface 节点 |
+| C6 | §8.9.6 版本标签过时 | ✅ 已修复 |
+| C7 | Linux 纹理格式行未区分 x64/ARM64 | ✅ 已修复 |
+| C2/C3 引用 | §8.9.5 NavMesh 偏差告警引用错误 | ✅ 已修复 |
+
+
 ## 本批未决 / 待裁事项
 
 | # | 事项 | 归属 |
 |---|------|------|
-| **AB-1** | 全部 hex 值须经 **URP linear 工作流**校准(technical-artist),sRGB→linear 未做前**不得进代码常量** | ✅ §8 已补写 · **AB-1 登记为 §8.6A(校准前置 · 仅登记不执行)** |
+| **AB-1** | 全部 hex 值须经 **URP linear 工作流**校准(technical-artist),sRGB→linear 未做前**不得进代码常量** | ✅ §8.8 Calibration 已写 · **AB-1 落地为执行细则(§8.8)** |
 | AB-2 | `【本稿提案】` 各条 —— **2026-09-21 用户裁 = 全批为基线方向**:定性判据✓ 即刻升为已裁方向(不再复判);**全部自造数值仍归数值轮手调**(标记保持),slice 期间可按提案值直接用 | ✅ 已裁(数值待数值轮) |
 | AB-3 | 44×44 焦点落点底线 —— **2026-09-21 用户裁 = 升为无障碍承诺**(Standard 档;`accessibility-requirements.md` 已补 §Motor「手柄焦点目标尺寸」行 + 测试判据) | ✅ 已裁 |
 | AB-4 | §4.5 的 7:1 —— **2026-09-21 用户裁 = 提档**:正文对比承诺 ≥4.5:1 → **≥7:1**(该件 :84 / :181 已改) | ✅ 已裁 |
 | AB-5 | **《双材》支柱归属** —— **2026-09-21 用户裁 = 确认并加注**:「主归属三,来历判据归四∩五」成立;`casebook.md` / `camera-and-viewpoint.md:101` 已就地加注(史实约束面 vs 视觉立法面) | ✅ 已裁 |
 | AB-9 | **「兽」的形状语言立法** —— **2026-09-21 用户裁 = 巨物化门对兽不设禁**:§3.1 兽行此**不受**人形敌人「禁巨物化」约束(「失序非可憎」对兽不同判;巨化归危难的建筑尺度形);人形敌人四行不动;落点 = 25/27 敌人资产规格 | ✅ 已裁 |
-| AB-10 | **§8 Asset Standards 与 P0 基线竞争** —— **2026-09-21 用户裁 = §8 前置补写**:§8 登记为 Pre-Production 内容启动的**前置强制项**(P0 工期不改,只改档序:§8 先于 §5–9 其余),slice 用灰盒豁免 **不再隐式宽限** | ✅ 已裁 · **§8 已补写成稿(2026-09-21 第十八批)** |
+| AB-10 | **§8 Asset Standards 与 P0 基线竞争** —— **2026-09-21 用户裁 = §8 前置补写**:§8 登记为 Pre-Production 内容启动的**前置强制项**(P0 工期不改,只改档序:§8 先于 §5–9 其余),slice 用灰盒豁免 **不再隐式宽限** | ✅ 已裁 · **§8 已补写成稿(2026-09-29, art-director + technical-artist 并行)** |
 | AB-6 | 生态区四名的**史实核验**(`O-6-13`)未结案 ⇒ §3.2 / §4.3 继承待定态;§1 P4 的商路断言同批 | 40 考据轮 |
 | AB-7 | §4.4 的 `SAT_BLOOM_*` 四旋钮**定值**归数值轮(承「数值用户自己调」家规) | 数值轮 |
 | AB-8 | ~~§5–7 / §9 未写~~ → **✅ 已补写(2026-09-28)**;AD-ART-BIBLE 可跑 | 已结案 |
