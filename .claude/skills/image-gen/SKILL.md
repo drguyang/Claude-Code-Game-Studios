@@ -223,10 +223,14 @@ what to do rather than what to avoid:
 
 ## Committing results
 
-Reference art goes in `assets/design-references/`, committed normally. The API key never
-is — it lives only in the gitignored `.claude/sensenova.json`. See
-`memory: project-addressable-assetsdata-never-commit` for the sibling rule about
+Reference art goes in `assets/design-references/` and is **never committed** — the directory
+is in `.gitignore` (2026-09-29). Generated images are local intermediates, not repo assets:
+5–6 MB each, unreproducible without re-spending an API call, and each version means something
+different depending on which spec round produced it — committing them invents version authority
+that never existed. The spec is the truth; the image is a thing you look at while making it.
+
+The API key is likewise never committed — it lives only in the gitignored `.claude/sensenova.json`.
+See `memory: project-addressable-assetsdata-never-commit` for the sibling rule about
 machine-generated Unity data.
 
-Per `memory: feedback-commit-without-asking`, commit once self-checked — do not ask per
-image.
+When a spec change is the real deliverable, commit **the spec edit** and leave the PNGs on disk.

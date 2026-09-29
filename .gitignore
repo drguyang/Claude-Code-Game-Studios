@@ -177,3 +177,12 @@ unity/_tools/
 # by GitHub secret scanning within minutes and the account is revoked.
 # Get a key at https://console.sensecore.cn  →  read it into this file.
 .claude/sensenova.json
+
+# === Generated reference art (never committed) ===
+# /image-gen 产出的 AI 参考图是本地产物,不是可重建资产:
+#   · 5–6 MB/张,仓库已在 LFS 未配置的 100 MB 硬限边缘反复 rebase 冲突
+#   · 无法由代码重建 —— 丢掉就只能重新花 API 调用重出
+#   · 结论随之漂移 —— 同一张图在不同轮次承载不同规格,入库即制造版本权威的假象
+# 规格真源是 design/assets/specs/*.md 与 design/ux/*.md,图只是本地比对用的中间物。
+# 需要看历史版就重新生成,或留在本地目录里不入库。
+assets/design-references/
