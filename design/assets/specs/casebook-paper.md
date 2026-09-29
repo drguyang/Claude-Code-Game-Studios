@@ -18,6 +18,10 @@
 - **状态痕迹**: 空白行 = 未填写（非空格占位，是「空行即答案」的纪律）；已填写行有墨迹；错误/改写处有轻微涂改痕迹（非删除线）。
 - **翻页动画**: 书页展开 0.3s ease-out，收起 0.2s ease-in。
 
+> **版式归属**：本 spec 只描述**材质与状态**。版式（通道行数 / 行序 / 行高 / 分区）
+> 的唯一权威是 `design/ux/casebook-39.md` §5 —— 两者形状一致但**权责分离**，
+> 版式改动不触发本 spec 的贴图重出。
+
 ---
 
 ## Technical Specs
@@ -25,8 +29,8 @@
 | Property | Value | Notes |
 |----------|-------|-------|
 | **Resolution** | 2048×2048 (page spread) | 两页并排，左四诊 + 右辨证 |
-| **Format** | PNG (sRGB) | 纸面底 + 墨迹分层 |
-| **Material slots** | 2 (paper_base + ink_overlay) | 墨迹独立层，可动态替换内容 |
+| **Format** | PNG (sRGB) | 纸面底 + 界行 + 绳结 + 墨迹分层 |
+| **Material slots** | 4 (paper_base 9-slice + ruling repeat + stitch + ink_overlay) | 界行与绳结各自独立，版式改动不需重出纸底（见「为什么要拆成四层」） |
 | **Poly count** | N/A (UI element) | UI Toolkit UXML + USS |
 | **LOD** | 不适用 | UI 始终全分辨率 |
 | **Platform variants** | 无 | 全平台同一套纸面 |
@@ -35,13 +39,40 @@
 
 ## Asset Breakdown
 
-| Asset | Type | Description | Priority |
-|-------|------|-------------|----------|
-| `casebook_paper_base.png` | Texture | 宣纸底 + 界行 + 线装绳结，2048×2048 | P0 |
-| `casebook_ink_font.png` | Texture Atlas | 手写体字库（病名楷书 + 四诊楷书 + 辨证行书），含墨迹浓淡变体 | P0 |
-| `casebook_stamp.png` | Texture | 印章样式（已识模式标记 / 鉴别诊断标记） | P0 |
-| `casebook_wear.png` | Texture | 边角磨损 / 泛黄 / 折痕细节层 | P1a |
-| `casebook_cover.png` | Texture | 线装书封面（深褐漆面，书名烫金） | P1a |
+| Asset | Type | Description | Slicing | Priority |
+|-------|------|-------------|---------|----------|
+| `casebook_paper_base.png` | Texture | **纯纸面**：宣纸纤维 / 泛黄 / 霉斑 / 水渍 / 卷边磨损。**不含界行、不含绳结、不含印章** | 9-slice | P0 |
+| `casebook_paper_ruling.png` | Texture | 红色界行（竖线）**单行可 repeat 条**，不含任何行标签文字 | 横向 repeat | P0 |
+| `casebook_paper_stitch.png` | Texture | 中缝线装绳结（一条窄图，含线环 + 结） | 9-slice | P0 |
+| `casebook_ink_font.png` | Texture Atlas | 手写体字库（病名楷书 + 四诊楷书 + 辨证行书），含墨迹浓淡变体 | — | P0 |
+| `casebook_stamp.png` | Texture | 印章样式（已识模式标记 / 鉴别诊断标记） | — | P0 |
+| `casebook_wear.png` | Texture | 边角磨损 / 折痕细节层 | 9-slice | P1a |
+| `casebook_cover.png` | Texture | 线装书封面（深褐漆面，书名烫金） | — | P1a |
+
+### 为什么要拆成四层
+
+> **2026-09-29 裁定**：材质与版式**解耦**。
+
+原先 `casebook_paper_base.png` 把「宣纸底 + 界行 + 线装绳结」焊在一张图里，导致底图的竖线必须与
+UXML 的五行通道行**逐像素对齐**——改一次行高或行序，整张图作废。这是把**代码资产**（版式）
+与**美术资产**（材质）绑在一起的典型失败面。
+
+拆开后：
+
+| 改什么 | 动哪里 | 贴图重出？ |
+|--------|--------|-----------|
+| 通道行数 / 行序 / 行高 | UXML + USS 变量 | **否**（界行 repeat 次数自动跟随） |
+| 页面比例 | USS 尺寸 | **否**（底图 9-slice 拉伸） |
+| 印章位置 | USS anchor | **否** |
+| 焦点高亮粗细 | USS 变量 | **否** |
+| 纸的旧度 / 质感 | `casebook_paper_base.png` | **是**（仅此一种） |
+
+**版式权威 = `casebook-39.md` §5**（五行通道区 + 右页判断区 + 网格要点「行高恒定」）。
+**贴图只提供材质**，任何 AI 生成的参考图**不承载版式**，版式改动不得触发重出图。
+
+**行高恒定的实现约束**：界行是**均分 repeat**的，不是「按内容自适应」。
+未查的空行与已查的行视觉等重（`casebook-39.md` §5.4 网格要点）——空行若缩小/置底
+= 变相进度指示，直接违反支柱「绝不①」。
 
 ---
 
@@ -82,20 +113,27 @@
 
 ## AI Generation Prompt (for reference)
 
+> ⚠️ **产出定位 = 材质板，不是版式图**（2026-09-29 裁定）。
+> 版式权威是 `casebook-39.md` §5，本节 prompt 只负责**纸的质感 / 旧度 / 光影 / 调性**。
+> 生成图中的行数、行高、印章位置**一律不作为规格**；版式一改不需要重出图。
+
 ```
 A traditional Chinese medical casebook (脉案), open spread view.
-Left page: "四诊摘要" (Four Diagnostic Methods summary) with blank ruled lines.
-Right page: "辨证记录" (Pattern Differentiation record) with blank lines.
 Style: Late Qing / early Republican era (清末民初), circa 1910s.
-Material: Rice paper (宣纸) with warm yellowish tone, visible fiber texture.
-Ink: Handwritten Chinese characters in calligraphy style (楷书 for diagnostic items, 行书 for differentiation notes), black ink with varying pressure.
-Layout: Vertical text from right to left, red vertical guide lines, thread-bound spine visible at center.
-Details: Slight wear at edges, minor aging discoloration, red seal stamps (印章) for marked patterns.
+Material focus: Rice paper (宣纸) with warm yellowish tone, visible fiber texture,
+slight aging discoloration, foxing spots, a water stain, darkened curled corners,
+a gently cockled surface.
+Binding: thread-bound spine (线装) at the centre gutter — loose folded paper sewn
+with off-white cotton thread, visible thread loops and knots. No hardcover.
 Lighting: Warm ambient, no harsh shadows, flat lay view.
 Mood: Scholarly, meticulous, historical authenticity.
 Constraints: NO HP bars, NO numbers, NO modern UI elements. Pure paper and ink aesthetic.
 Resolution: 2048x2048, high detail for close-up reading.
 ```
+
+**该 prompt 刻意不写的内容**（避免模型回填版式，见 image-gen skill 的「空行即答案」条目）：
+行标签 / 通道名 / 病名文字 / 手写正文。模型对中国脉案的强先验是「必落书法」，
+v1–v5 五轮实测无法通过提示词消除——**正确做法是让版式根本不进图**，而不是继续和先验搏斗。
 
 ---
 
