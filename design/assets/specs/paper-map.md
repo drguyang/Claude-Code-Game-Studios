@@ -41,10 +41,11 @@
 | Asset | Type | Description | Priority |
 |-------|------|-------------|----------|
 | `map_paper_base.png` | Texture | 宣纸底 + 界行 + 卷轴边框，1024×1024 | P0 |
-| `map_ink_zones.png` | Texture | 生态区淡墨线 + POI 印章标记（四种印章形状） | P0 |
+| `map_ink_zones.png` | Texture | 生态区淡墨线 + POI 印章标记（四种印章形状），AI 生成含完整版式的材质参考图 → DA 裁切为独立纹理层；生态区 / POI 名称由 UXML `<Label>` 叠层承载 | P0 |
 | `map_player_dot.png` | Texture | 玩家位置小红点（唯一允许的红色标记） | P0 |
 | `map_explored_mask.png` | Texture | 已探索区域墨色加深遮罩 | P0 |
 | `map_wear.png` | Texture | 边角磨损 / 泛黄 / 折痕细节层 | P1a |
+| `map_zone_labels.png` | Texture | 生态区 / POI 名称墨迹材质层（AI 含完整版式参考图 → DA 裁切 → UXML `<Label>` 叠字；空行即答案 = 未识区域空白无文字） | P0 |
 
 ---
 
@@ -83,19 +84,26 @@
 
 ---
 
+## 生产方式
+
+AI 出含完整版式的材质参考图 → DA 按材质语义裁切为独立纹理层 → UXML `<Label>` 叠层承载生态区 / POI 名称等动态文字。
+「空行即答案」：未探索区域 = 空白无文字，不得烘死区名（ SenseNova 强先验「竖排书法」须经 i2i `prompt_extend: false` 绕开；v1–v5 实测结论）。
+
+---
+
 ## AI Generation Prompt (for reference)
 
 ```
 A traditional Chinese paper map (纸质地图), scroll view.
 Style: Late Qing / early Republican era, circa 1910s.
 Material: Rice paper (宣纸) with warm yellowish tone, visible fiber texture.
-Ink: Hand-drawn ink wash (水墨) ecozone boundaries (淡墨线), seal stamp (印章) POI markers in four shapes (circle, square, triangle, diamond).
-Layout: Scroll展开, vertical text from right to left, red vertical guide lines.
+Content: Ink wash (水墨) ecozone boundary lines (淡墨线), seal stamp (印章) POI markers in four shapes (circle, square, triangle, diamond). Zone/POI names rendered via UXML overlay, not baked into texture.
+Layout: Scroll layout with guide lines (界行). NO Chinese text in texture — text is UXML overlay only.
 Details: Slight wear at edges, minor aging discoloration, red vermilion dot for player location.
 Lighting: Warm ambient, no harsh shadows, flat lay view.
 Mood: Scholarly, historical, exploratory.
-Constraints: NO modern map UI, NO digital elements, NO color fills. Pure ink on rice paper aesthetic.
-Resolution: 1024x1024 texture, high detail for close-up reading.
+Constraints: NO modern map UI, NO digital elements, NO color fills, NO Chinese characters in texture. Pure ink on rice paper aesthetic.
+Resolution: 1024x1024 material reference board, flat lay.
 ```
 
 ---

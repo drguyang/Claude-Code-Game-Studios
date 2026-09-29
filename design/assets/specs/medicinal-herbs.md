@@ -95,18 +95,12 @@
 ```
 Traditional Chinese medicinal herbs and tools, ink wash illustration style.
 Style: Late Qing / early Republican era, circa 1910s.
-Items:
-1. Willow bark (柳树皮): Gray-brown curled bark fragments
-2. Foxglove (毛地黄): Purple bell-shaped flowers with green leaves
-3. Chinchona bark (金鸡纳树皮): Dark brown bark with white striations
-4. Hemostatic herb (止血草): Green slender leaves with red sap at break points
-5. Acupuncture needles (针具): Thin silver needles with slight curve at tips
-6. Bandage (绷带): Rolled white cloth with blood stains (used state)
+Items: Willow bark (gray-brown curled bark), foxglove (purple bell-shaped flowers), quinine bark (dark brown with white striations), hemostatic herb (green slender leaves with red sap), acupuncture needles (thin silver), bandage (rolled white cloth).
 Style: Ink wash (水墨) with varying pressure, rice paper texture background.
-Details: Hand-drawn botanical illustrations, traditional Chinese medicine materia medica style.
+Details: Hand-drawn botanical illustrations, NO captions, NO Chinese characters — item names rendered via UXML Label on the casebook labels layer.
 Lighting: Flat, no shadows, ink on paper aesthetic.
 Mood: Scholarly, precise, historical medical documentation.
-Constraints: NO modern medical packaging, NO digital elements. Pure ink illustration on rice paper.
+Constraints: NO modern medical packaging, NO digital elements, NO text labels in texture. Pure ink illustration on rice paper.
 Resolution: 64x64 icons, 256x256 world textures.
 ```
 

@@ -12,7 +12,7 @@
 
 **呼吸波形纸带**是诊断态五通道之一（闻诊通道）的核心视觉承载。形态为**滚动纸带**——两纹（通带 + 噪声底）实时滚动。
 
-- **纸带**: 宣纸质感，微黄底色，纤维纹理可见。纸带从右向左滚动（承心电图经典方向）。
+- **纸带**: 宣纸质感，微黄底色，纤维纹理可见。纸带从左到右滚动（承心电图经典方向，与 accessibility §一致）。
 - **波形墨迹**: 两纹分别以**不同墨色**绘制：
   - **通带纹（主纹）**: 浓墨（`#1A1714`），流畅曲线，反映呼吸节律。
   - **噪声底纹（辅纹）**: 淡墨（`#4A4640`），高频微颤，反映噪声底强度。
@@ -79,18 +79,26 @@
 
 ---
 
+## 生产方式
+
+AI 出含完整版式的材质参考图 → DA 按材质语义裁切为独立纹理层。
+**纸带底纹 = AI 材质层**（宣纸 + 界行）；**波形 = 运行期 shader/mesh 绘制**（随 20 Hz 体征动态变振幅，静态 AI 纹理做不到）。
+无动态文字需求，不涉及 `<Label>` 叠字。
+
+---
+
 ## AI Generation Prompt (for reference)
 
 ```
-A breathing waveform paper tape (呼吸波形纸带), scroll view.
+A breathing waveform paper tape (呼吸波形纸带), flat material board.
 Style: Late Qing / early Republican era, circa 1910s.
-Material: Rice paper (宣纸) with warm yellowish tone, visible fiber texture.
-Ink: Two parallel waveforms — main waveform (通带) in thick black ink, noise baseline (噪声底) in thin faded ink.
-Details: Paper scroll from right to left, red vertical guide lines, slight wear at edges.
-Lighting: Warm ambient, no harsh shadows, flat lay view.
+Material: Rice paper (宣纸) with warm yellowish tone, visible fiber texture, red vertical guide lines.
+Content: NO waveform lines in texture — this is a paper material reference only. Actual waveforms are drawn by shader at runtime.
+Details: Paper scroll direction left-to-right, slight wear at edges, minor aging discoloration.
+Lighting: Flat, no shadows, ink on paper aesthetic.
 Mood: Scholarly, precise, medical monitoring.
-Constraints: NO digital waveform display, NO modern medical equipment. Pure ink on rice paper aesthetic.
-Resolution: 1024x256 texture, scrollable.
+Constraints: NO Chinese characters, NO waveform lines, NO digital display elements. Pure paper material board.
+Resolution: 1024x256 material reference board, flat lay.
 ```
 
 ---

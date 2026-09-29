@@ -184,13 +184,19 @@ Each round: state the failures → write a numbered correction prompt → i2i ed
 what to do rather than what to avoid:
 
 ```
-1. MOST IMPORTANT: the pages must be mostly BLANK. Remove the dense handwriting.
-   Keep only a short title and 3-4 sparse characters in the top-left. At least 80%
-   of the ruled lines must be empty. An empty line means "not yet filled in".
+1. MOST IMPORTANT: preserve the complete traditional casebook page layout — all ruled
+   lines, four diagnostic section headers, seal stamp positions, and gutter binding
+   must remain visible. This is a material reference board, not a blank template.
 2. Replace the Western hardcover with thread binding: paper stitching and visible
    thread loops along the spine, no rigid cover.
 3. ...
 ```
+
+> **Note (2026-09-29 workflow update)**: The project now uses AI-generated **complete
+> composition reference boards** (full layout with ruled lines, headers, and placeholder
+> text positions), then slices by material semantics into independent texture layers.
+> Dynamic text is rendered via UXML `<Label>` overlay at runtime. The correction prompt
+> must preserve layout completeness — do NOT ask for "blank" or "empty" pages.
 
 ---
 

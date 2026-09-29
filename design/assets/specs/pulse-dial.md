@@ -38,9 +38,9 @@
 
 | Asset | Type | Description | Priority |
 |-------|------|-------------|----------|
-| `pulse_dial_brass.png` | Texture | 黄铜底盘 + 錾刻纹理 + 氧化细节，1024×1024 | P0 |
+| `pulse_dial_brass.png` | Texture | 黄铜底盘 + 錾刻纹理 + 氧化细节 + 寸/关/尺墨迹刻度（静态标签，直接烘入材质），1024×1024 | P0 |
 | `pulse_dial_needle.png` | Texture | 三枚铜针（寸/关/尺），独立层用于动画 | P0 |
-| `pulse_dial_marks.png` | Texture | 9 条刻度线（铜丝镶嵌），含三候位置标记 | P0 |
+| `pulse_dial_marks.png` | Texture | 9 条刻度线（铜丝镶嵌），含三候位置标记（几何线，不含文字） | P0 |
 | `pulse_dial_glow.png` | Texture | 异常脉象时的微光层（铜面泛红） | P1a |
 | `pulse_dial_3d.fbx` | Mesh | 诊脉台 3D 模型（底盘 + 三指槽 + 指针） | P0 |
 
@@ -85,13 +85,14 @@
 An antique Chinese pulse diagnosis dial (诊脉台), close-up view.
 Material: Solid brass with visible hand-hammered texture, slight verdigris oxidation at edges.
 Design: Three curved slots for fingers (寸/关/尺), each with a thin brass needle pointer.
+Ink labels: The three position names (寸/关/尺) are rendered as ink-wash characters on the brass surface — this is a baked material detail, not dynamic text. Prompt sense to generate: "Chinese characters (寸/关/尺) as ink-wash labels on brass".
 Marks: 9 equidistant arc marks with thin gold wire inlay.
 Style: Late Qing / early Republican era medical instrument, circa 1910s.
 Details: Warm brass patina, subtle reflections, aged but well-maintained.
 Lighting: Warm ambient, soft specular highlights on brass surface.
 Mood: Scholarly, precise, historical medical instrument.
 Constraints: NO digital elements, NO modern UI. Pure physical brass instrument.
-Resolution: 1024x1024 texture, high detail for close-up reading.
+Resolution: 1024x1024 texture material board, close-up view.
 ```
 
 ---

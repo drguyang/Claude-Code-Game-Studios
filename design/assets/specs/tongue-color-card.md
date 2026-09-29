@@ -41,7 +41,7 @@
 | Asset | Type | Description | Priority |
 |-------|------|-------------|----------|
 | `tongue_paper_base.png` | Texture | 宣纸底 + 界行，1024×1024 | P0 |
-| `tongue_color_swatches.png` | Texture | 9 个圆形墨迹色块（淡红 / 红 / 绛红 / 淡白 / 白 / 黄 / 黄腻 / 灰 / 黑） | P0 |
+| `tongue_color_swatches.png` | Texture | 9 个圆形墨迹色块，AI 生成含完整版式的材质参考图 → DA 裁切为独立纹理层；色块名称由 UXML `<Label>` 叠层承载 | P0 |
 | `tongue_stamp.png` | Texture | 印章样式（红色印泥，标记当前舌象） | P0 |
 | `tongue_wear.png` | Texture | 边角磨损 / 泛黄 / 折痕细节层 | P1a |
 
@@ -86,18 +86,26 @@
 
 ---
 
+## 生产方式
+
+AI 出含完整版式的材质参考图 → DA 按材质语义裁切为独立纹理层 → UXML `<Label>` 叠层承载色块名称。
+Prompt 需加 `NO text / NO Chinese characters in texture`（SenseNova 对中文色名强先验「落标签」，v1–v5 实测结论）。
+
+---
+
 ## AI Generation Prompt (for reference)
 
 ```
 A traditional Chinese tongue diagnosis color card (舌象色卡), paper view.
 Style: Late Qing / early Republican era, circa 1910s.
 Material: Rice paper (宣纸) with warm yellowish tone, visible fiber texture.
-Content: 9 circular ink wash color swatches arranged in 3x3 grid (淡红 / 红 / 绛红 / 淡白 / 白 / 黄 / 黄腻 / 灰 / 黑).
+Content: 9 circular ink wash color swatches arranged in 3x3 grid.
+Layout: NO text labels, NO Chinese characters in texture — swatch names rendered via UXML Label overlay only.
 Details: Red vermilion seal stamp marking current tongue diagnosis, slight wear at edges, minor aging discoloration.
 Lighting: Warm ambient, no harsh shadows, flat lay view.
 Mood: Scholarly, precise, medical diagnostic tool.
-Constraints: NO digital color picker, NO RGB values. Pure ink wash on rice paper aesthetic.
-Resolution: 1024x1024 texture, 9 color swatches clearly distinguishable.
+Constraints: NO digital color picker, NO RGB values, NO text, NO Chinese characters. Pure ink wash on rice paper aesthetic.
+Resolution: 1024x1022 material reference board, flat lay.
 ```
 
 ---

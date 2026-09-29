@@ -132,9 +132,8 @@ Constraints: NO HP bars, NO numbers, NO modern UI elements. Pure paper and ink a
 Resolution: 2048x2048, high detail for close-up reading.
 ```
 
-**该 prompt 刻意不写的内容**（避免模型回填版式，见 image-gen skill 的「空行即答案」条目）：
-行标签 / 通道名 / 病名文字 / 手写正文。模型对中国脉案的强先验是「必落书法」，
-v1–v5 五轮实测无法通过提示词消除——**正确做法是让版式根本不进图**，而不是继续和先验搏斗。
+**该 prompt 刻意不写的内容**（避免模型回填不可控版式，见 image-gen skill 的「空行即答案」条目）：
+行标签 / 通道名 / 病名文字 / 手写正文。**产出定位 = 材质板，不是版式图** —— AI 的文字密度和版式细节**不作为规格依赖**，只要求材质语义清晰可裁切。
 
 ---
 
