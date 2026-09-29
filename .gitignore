@@ -24,6 +24,7 @@ unity/Assets/production.meta
 production/session-state/active.md
 # Local agent-runner configs carry a plaintext ANTHROPIC_API_KEY. Never commit.
 .claude/opencode*.json
+.claude/commcode.json
 
 # === Internal Planning (not for public) ===
 
