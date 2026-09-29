@@ -154,3 +154,36 @@
 > **测试数**:`no_healthbar_feedback_test` = **7**(4 passed + 3 inconclusive + 0 failed)。
 > ⚠️ 关键区分:生产代码(42 程序集)尚未实现,测试用契约面验证。
 > 代码评审修复:B1 添加属性扫描;B2 删除恒真断言;R1 提取重复代码;R3 重命名测试;B3/B4/B5/B6/R4-R9 添加注释说明实现后补充。
+
+## Story 009(焦点可见样式 + 无障碍钩子接口 —— AC-42-G3 · AC-42-G4 · 焦点可见样式契约 · 文本缩放主题变量层 · TR-skeuoui-012)
+
+故事头登记的证据路径为
+`production/qa/evidence/focus-visual-and-accessibility-evidence.md`,但该路径在仓库根、**Unity 不编译**
+⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/SkeuomorphicUI/focus_visual_and_accessibility_test.cs`**(类 `FocusVisualAndAccessibilityTest`)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/SkeuomorphicUI/focus_visual_and_accessibility_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/SkeuomorphicUI/SkeuomorphicUI.Tests.asmdef`(name = `SkeuomorphicUI.Tests`) |
+| 被测契约 | `unity/Assets/Gameplay/UI/`(42 类型树) |
+| 被测 GDD | `design/gdd/skeuomorphic-ui.md`(AC-42-G3 · AC-42-G4 · 焦点可见样式契约 · 文本缩放主题变量层 · TR-skeuoui-012) |
+| 运行方式 | `unity test unity --mode EditMode --filter FocusVisualAndAccessibilityTest` |
+
+> 读法纪律:生产代码(42 程序集)尚未实现,测试用契约面验证 + `Assert.Inconclusive` 明确标记待实现项。
+> 6 个测试在 42 无相关类型时用 `Assert.Inconclusive`(当前阶段无法判定)。
+
+## AC → 测试函数映射
+
+| AC | 测试函数(`FocusVisualAndAccessibilityTest` 内) | 性质 |
+|---|---|---|
+| **AC-42-G3 对比度全档断言** | `test_ac42g3_contrastCheckInterface_exists` + `test_ac42g3_noThresholdIn42_noThresholdFields` | BLOCKING |
+| **AC-42-G4 动效缩放挂点** | `test_ac42g4_animationScaleHook_exists` + `test_ac42g4_noHardcodedDuration_noDurationFields` | BLOCKING |
+| **焦点可见样式契约** | `test_focusVisibleStyle_exists` + `test_focusVisibleStyle_noPureColorHighlight_noHighlightFields` | BLOCKING |
+| **文本缩放主题变量层** | `test_textScaleHook_exists` + `test_textScaleHook_noCachedFontSize_noCachedFontSizeFields` | BLOCKING |
+| **TR-skeuoui-012 无障碍四钩子** | `test_accessibilityFourHooks_exist` + `test_accessibilityNamingHook_exists` | BLOCKING |
+
+> **测试数**:`focus_visual_and_accessibility_test` = **10**(4 passed + 6 inconclusive + 0 failed)。
+> ⚠️ 关键区分:生产代码(42 程序集)尚未实现,测试用契约面验证。
+> 代码评审修复:R2 将内联扫描逻辑改为调用 FindMatchingMembers;R1/R3/R4/R5 添加注释说明实现后补充。
