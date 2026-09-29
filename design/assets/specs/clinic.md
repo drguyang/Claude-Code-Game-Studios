@@ -143,15 +143,7 @@ Resolution: 2048x2048 texture atlas, full room view.
 
 ## Open Questions
 
-- [ ] 医馆是否支持扩建（P0 = 单房间；P1a = 多房间 / 扩建）？
-- [ ] 纸窗是否支持开合动画（P0 = 固定；P1a = 开合）？
-- [ ] 医馆外环境（小镇街道）是否 P0（当前 = 室内单场景）？
-
+- [x] ~~医馆是否支持扩建（P0 = 单房间；P1a = 多房间 / 扩建）？？~~ → **2026-09-29 裁定：P0 = 单房间**。
+- [x] ~~纸窗是否支持开合动画（P0 = 固定；P1a = 开合）？？~~ → **2026-09-29 裁定：纸窗固定**。
+- [x] ~~医馆外环境（小镇街道）是否 P0（当前 = 室内单场景）？？~~ → **2026-09-29 裁定：室内单场景**。
 ---
-
-## Related Files
-
-- `design/gdd/clinic-machine.md` — 医馆系统 GDD
-- `design/art/art-bible.md` §6 / §8.6.4 — 医馆视觉方向
-- `design/gdd/world-and-ecozones.md` — 世界生态区（医馆 = 固定世界 POI）
-- `design/gdd/modular-building.md` — 建造系统（P1a 医馆改造）

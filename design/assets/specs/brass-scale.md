@@ -101,15 +101,7 @@ Resolution: 1024x1024 texture,刻度 marks clearly legible.
 
 ## Open Questions
 
-- [ ] 秤杆刻度是否支持小数（P0 = 整数格 + 半格线；P1a = 更精细刻度）？
-- [ ] 过载时是否叠加视觉反馈（秤杆抖动 + 秤砣滑落）？
-- [ ] 戥子是否支持多种药材同时称量（P0 = 单药材；P1a = 多药材对比）？
-
+- [x] ~~秤杆刻度是否支持小数（P0 = 整数格 + 半格线；P1a = 更精细刻度）？？~~ → **2026-09-29 裁定：P0 = 单药材,整数格+半格线**。
+- [x] ~~过载时是否叠加视觉反馈（秤杆抖动 + 秤砣滑落）？？~~ → **2026-09-29 裁定：无过载抖动**。
+- [x] ~~戥子是否支持多种药材同时称量（P0 = 单药材；P1a = 多药材对比）？？~~ → **2026-09-29 裁定：单药材**。
 ---
-
-## Related Files
-
-- `design/ux/hud.md` §2 — 戥子 HUD spec
-- `design/gdd/prescription-and-medication.md` — 处方 / 药材系统
-- `design/art/art-bible.md` §7.2 — 黄铜侧材质规格
-- `design/gdd/modular-building.md` — 建造槽位（视觉对齐参考：戥子读数格 = 建造槽位同格）

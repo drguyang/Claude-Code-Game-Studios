@@ -98,15 +98,7 @@ Resolution: 1024x1024 texture, high detail for close-up reading.
 
 ## Open Questions
 
-- [ ] 指针动画是否支持触觉反馈（手柄震动）？
-- [ ] 三指同时落 vs 逐个落是否影响指针动画节奏？
-- [ ] 脉象异常时是否叠加音频层（听诊器层 + 铜面共振音）？
-
+- [x] ~~指针动画是否支持触觉反馈（手柄震动）？？~~ → **2026-09-29 裁定：P0 = 三指逐个落**。
+- [x] ~~三指同时落 vs 逐个落是否影响指针动画节奏？？~~ → **2026-09-29 裁定：指针动画不叠音频**。
+- [x] ~~脉象异常时是否叠加音频层（听诊器层 + 铜面共振音）？？~~ → **2026-09-29 裁定：不触觉**。
 ---
-
-## Related Files
-
-- `design/ux/hud.md` §2 — 诊脉台 HUD spec
-- `design/gdd/diagnosis-system.md` V-8.0 — 诊脉读数机制
-- `design/art/art-bible.md` §7.2 — 黄铜侧材质规格
-- `design/ux/interaction-patterns.md` — 诊断通道交互模式

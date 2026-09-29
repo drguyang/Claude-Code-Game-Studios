@@ -102,15 +102,7 @@ Resolution: 1024x1024 texture, high detail for close-up reading.
 
 ## Open Questions
 
-- [ ] 地图是否支持缩放（P0 = 固定比例；P1a = 缩放）？
-- [ ] POI 印章形状是否随 POI 类型变化（城镇 / 野外 / 危险区）？
-- [ ] 地图是否支持手写标注（玩家在纸上画标记）？
-
+- [x] ~~地图是否支持缩放（P0 = 固定比例；P1a = 缩放）？？~~ → **2026-09-29 裁定：P0 = 固定比例**。
+- [x] ~~POI 印章形状是否随 POI 类型变化（城镇 / 野外 / 危险区）？？~~ → **2026-09-29 裁定：POI印章不随类型变**。
+- [x] ~~地图是否支持手写标注（玩家在纸上画标记）？？~~ → **2026-09-29 裁定：不支持手写标注**。
 ---
-
-## Related Files
-
-- `design/ux/hud.md` §4 — 纸质地图 HUD spec
-- `design/gdd/world-and-ecozones.md` — 世界生态区
-- `design/art/art-bible.md` §7.2 — 纸面元件库规格
-- `docs/architecture/adr-021-poi-state-ownership.md` — POI 状态所有权

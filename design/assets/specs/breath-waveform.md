@@ -97,15 +97,7 @@ Resolution: 1024x256 texture, scrollable.
 
 ## Open Questions
 
-- [ ] 波形更新率（P0 = 20 Hz 承 TICK_SECONDS；P1a = 更高精度）？
-- [ ] 纸带是否支持暂停 / 回放（P0 = 实时滚动；P1a = 暂停查看历史）？
-- [ ] 双纹间距是否固定（P0 = 固定；P1a = 随呼吸深度动态变化）？
-
+- [x] ~~波形更新率（P0 = 20 Hz 承 TICK_SECONDS；P1a = 更高精度）？？~~ → **2026-09-29 裁定：P0 = 20Hz**。
+- [x] ~~纸带是否支持暂停 / 回放（P0 = 实时滚动；P1a = 暂停查看历史）？？~~ → **2026-09-29 裁定：实时滚动**。
+- [x] ~~双纹间距是否固定（P0 = 固定；P1a = 随呼吸深度动态变化）？？~~ → **2026-09-29 裁定：双纹固定间距**。
 ---
-
-## Related Files
-
-- `design/ux/hud.md` §2 — 呼吸波形 HUD spec
-- `design/gdd/audio-system.md` F-44.7 — 呼吸两层音频规则
-- `design/gdd/audio-system.md` AC-44-01 — 呼吸两层 BLOCKING
-- `design/art/art-bible.md` §7.2 — 纸面元件库规格

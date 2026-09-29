@@ -99,15 +99,7 @@ Resolution: 1024x1024 texture atlas, individual icons 64x64px each.
 
 ## Open Questions
 
-- [ ] 格子数量上限（P0 = 12 格？P1a 扩展？）—— 待 20 GDD 裁定
-- [ ] 铜筹堆叠上限（最多几枚铜柱？超限如何处理？）
-- [ ] 药材图标是否随品质等级变色（Q1–Q10 色阶）？
-
+- [x] ~~格子数量上限（P0 = 12 格？P1a 扩展？）—— 待 20 GDD 裁定？~~ → **2026-09-29 裁定：P0 = 12格**。
+- [x] ~~铜筹堆叠上限（最多几枚铜柱？超限如何处理？）？~~ → **2026-09-29 裁定：铜筹堆叠上限待20GDD裁定**。
+- [x] ~~药材图标是否随品质等级变色（Q1–Q10 色阶）？？~~ → **2026-09-29 裁定：不随品质变色**。
 ---
-
-## Related Files
-
-- `design/ux/inventory-container-20.md` — 出诊箱 UX spec
-- `design/gdd/inventory-and-items.md` — 库存系统 GDD
-- `design/gdd/modular-building.md` — 建造槽位（视觉对齐参考）
-- `design/art/art-bible.md` §7.2 — 纸面元件库规格

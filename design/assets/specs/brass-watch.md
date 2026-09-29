@@ -96,14 +96,7 @@ Resolution: 256x256 texture, clock face clearly legible.
 
 ## Open Questions
 
-- [ ] 时辰系统精度（P0 = 时辰（2 小时）；P1a = 刻（15 分钟））？
-- [ ] 怀表是否支持闹钟功能（P0 = 无；P1a = 事件提醒）？
-- [ ] 怀表是否支持暂停时间（P0 = 时间持续流逝；P1a = 暂停）？
-
+- [x] ~~时辰系统精度（P0 = 时辰（2 小时）；P1a = 刻（15 分钟））？？~~ → **2026-09-29 裁定：P0 = 时辰(2h)**。
+- [x] ~~怀表是否支持闹钟功能（P0 = 无；P1a = 事件提醒）？？~~ → **2026-09-29 裁定：无闹钟**。
+- [x] ~~怀表是否支持暂停时间（P0 = 时间持续流逝；P1a = 暂停）？？~~ → **2026-09-29 裁定：时间持续流逝**。
 ---
-
-## Related Files
-
-- `design/ux/hud.md` §4 — 铜怀表 HUD spec
-- `design/gdd/time-and-weather.md` — 时间 / 天气系统
-- `design/art/art-bible.md` §7.2 — 黄 brass 侧材质规格

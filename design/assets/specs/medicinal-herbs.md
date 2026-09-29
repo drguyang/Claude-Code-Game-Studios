@@ -114,16 +114,7 @@ Resolution: 64x64 icons, 256x256 world textures.
 
 ## Open Questions
 
-- [ ] 药材是否支持品质等级（Q1–Q10 色阶）—— P0 = 无等级；P1a = 引入？
-- [ ] 药材是否支持加工（干燥 / 提取物 / 酊剂）—— P0 = 原形态；P1a = 加工形态？
-- [ ] 药材图标是否随库存数量变化（铜筹堆叠 = 数量；P0 = 单一图标）？
-
+- [x] ~~药材是否支持品质等级（Q1–Q10 色阶）—— P0 = 无等级；P1a = 引入？？~~ → **2026-09-29 裁定：P0 = 无品质等级**。
+- [x] ~~药材是否支持加工（干燥 / 提取物 / 酊剂）—— P0 = 原形态；P1a = 加工形态？？~~ → **2026-09-29 裁定：原形态**。
+- [x] ~~药材图标是否随库存数量变化（铜筹堆叠 = 数量；P0 = 单一图标）？？~~ → **2026-09-29 裁定：单一图标**。
 ---
-
-## Related Files
-
-- `design/gdd/foraging.md` — 野外采集系统
-- `design/gdd/item-database.md` — 物品数据库（药材属性）
-- `design/gdd/prescription-and-medication.md` — 处方 / 用药系统
-- `design/art/art-bible.md` §7.2 — 墨侧材质规格
-- `design/assets/specs/medical-bag.md` — 出诊箱（药材格承载）

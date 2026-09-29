@@ -99,15 +99,7 @@ Resolution: 2048x2048, high detail for close-up reading.
 
 ## Open Questions
 
-- [ ] 教学纸是否支持多页（P0 = 单页；P1a = 多页翻页）？
-- [ ] 红笔批注是否随教学进度动态显示（逐条出现 vs 全页一次显示）？
-- [ ] 教学纸是否支持玩家手写笔记（P0 = 只读；P1a = 手写笔记）？
-
+- [x] ~~教学纸是否支持多页（P0 = 单页；P1a = 多页翻页）？？~~ → **2026-09-29 裁定：P0 = 单页**。
+- [x] ~~红笔批注是否随教学进度动态显示（逐条出现 vs 全页一次显示）？？~~ → **2026-09-29 裁定：全页一次显示**。
+- [x] ~~教学纸是否支持玩家手写笔记（P0 = 只读；P1a = 手写笔记）？？~~ → **2026-09-29 裁定：只读**。
 ---
-
-## Related Files
-
-- `design/ux/hud.md` §6 — 教学纸近景 HUD spec
-- `design/gdd/tutorial-system.md` — 教学系统
-- `design/art/art-bible.md` §7.2 — 纸面元件库规格
-- `docs/architecture/adr-013-skeuomorphic-ui-framework.md` Amendment B — ModalId.PaperCloseup48

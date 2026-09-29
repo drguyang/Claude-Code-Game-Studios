@@ -111,16 +111,7 @@ Resolution: 1024x1024 texture atlas, individual components clearly separated.
 
 ## Open Questions
 
-- [ ] 导管物理摆动是否引入布料模拟？（P0 = 预制动画；P1a = 简易布料模拟）
-- [ ] 听诊器是否支持多种材质系数（皮肤/薄衣/厚衣/湿衣）—— P0 是否只做皮肤 + 薄衣两种？
-- [ ] 耳塞是否可见（第一人称视角）？还是仅导管 + 胸件可见？
-
+- [x] ~~导管物理摆动是否引入布料模拟？（P0 = 预制动画；P1a = 简易布料模拟）？~~ → **2026-09-29 裁定：P0 = 预制动画,无布料模拟**。
+- [x] ~~听诊器是否支持多种材质系数（皮肤/薄衣/厚衣/湿衣）—— P0 是否只做皮肤 + 薄衣两种？？~~ → **2026-09-29 裁定：皮肤+薄衣两种**。
+- [x] ~~耳塞是否可见（第一人称视角）？还是仅导管 + 胸件可见？？~~ → **2026-09-29 裁定：导管+胸件可见,耳塞不可见**。
 ---
-
-## Related Files
-
-- `design/ux/hud.md` §2 — 听诊器 HUD spec
-- `design/gdd/audio-system.md` F-44.7 — 听诊器音频层规则
-- `design/gdd/emergency-procedures.md` — 急救操作（听诊器触诊）
-- `design/art/art-bible.md` §7.2 — 黄铜侧材质规格
-- `design/gdd/diagnosis-system.md` V-8.0 — 诊脉/听诊读数机制
