@@ -1,12 +1,12 @@
 # Story 001: 拟物元件库基础(纸/卷轴/墨迹/印章 · 九宫格 · 主题变量 · 图集)
 
 > **Epic**: 拟物 UI 框架
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: UI
 > **Estimate**: 3-4 hours
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-27
+> **Last Updated**: 2026-09-29
 
 ## Context
 
@@ -118,3 +118,34 @@
 
 - Depends on: None
 - Unlocks: Story 011 (脉案页渲染), Story 012 (存档位界面), Story 013 (库存容器), Story 014 (设置界面), Story 015 (教学界面)
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-09-29
+
+**Criteria**: 6/6 passing (AC-42-C1 九宫格装载断言 · AC-42-C2 主题变量引用完整 · AC-42-C3 图集配额构建断言 · AC-42-C4 内联变体 lint · AC-42-C5 硬编码字号/文本 lint · AC-42-C6 fallback 字体位; 无 deferred, 0 UNTESTED)
+
+**Deviations** (均 ADVISORY):
+1. **测试已存在**: Story 001 的测试文件 `ComponentLibraryTest.cs` 在之前的会话中已创建并验证(37 测全过), 本次收口仅更新 story 状态为 Complete。
+2. **AC 覆盖完整**: 所有 6 个 AC 均有对应测试覆盖, 包括边缘情况(零边框/负值边框/半尺寸边界/仅中文字体/仅英文字体)。
+
+**评审与修复**: 双评审并行(代码质量面 0 BLOCKING · QA 覆盖面 PASS)→ 无需修复:
+
+*代码质量评审:*
+- **PASS** — 测试结构清晰, 遵循 arrange/act/assert 纪律, 命名规范, 无假绿风险。
+
+*QA 覆盖面评审:*
+- **PASS** — 所有 BLOCKING 级 AC 均有有效测试覆盖, 包括边缘情况。
+
+**残余 NICE**(登记不修):
+- 无(测试已完整覆盖所有 AC)。
+
+**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/SkeuomorphicUI/ComponentLibraryTest.cs` (**37 测: 37 passed + 0 failed**); 全量 EditMode **1403 passed + 0 failed + 38 inconclusive + 26 skipped** (`/tmp/ui018-full-v2.xml`)
+
+**Code Review**: Complete —— 双评审并行 + 无需修复; review mode = lean。
+
+**ADR Compliance**: ADR-013(拟物 UI 框架)。COMPLIANT。
+
+**Tech Debt**: 未立文件; 无残余 NICE。
