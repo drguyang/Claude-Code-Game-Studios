@@ -171,3 +171,9 @@ $RECYCLE.BIN/
 
 # === IL2CPP Module Archives (local toolchain) ===
 unity/_tools/
+
+# === Local secrets ===
+# SenseNova image API key. This repo is PUBLIC — a committed key is scraped
+# by GitHub secret scanning within minutes and the account is revoked.
+# Get a key at https://console.sensecore.cn  →  read it into this file.
+.claude/sensenova.json
