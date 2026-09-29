@@ -3,7 +3,7 @@
 **Date**: 2026-09-29
 **Checked by**: gate-check skill（review mode = **lean**；四门全跑）
 **Previous verdict**: FAIL → 用户承接 → CONCERNS（2026-09-21）
-**Current verdict**: **CONCERNS**（无 NOT READY 级阻塞）
+**Current verdict**: **CONCERNS**（3 条，无 NOT READY 级阻塞；G1/G2/G3 已关闭）
 
 ---
 
@@ -74,16 +74,21 @@
 
 ---
 
-## Verdict: CONCERNS（8 条，无阻塞级）
+## Verdict: CONCERNS（5 条，无阻塞级）
 
-### 必须处理的落地缺口
+### 已关闭（本轮消耗）
+
+| # | 缺口 | 处理 |
+|---|------|------|
+| ~~G1~~ | ~~29/30 死亡惩罚「判断类技能豁免」互斥~~ | ✅ **2026-09-29 关闭** — 用户裁定「不豁免」，全部技能统一掉级 (death-and-respawn.md) |
+| ~~G2~~ | ~~9 的 `SelfLimited` 落点未交付~~ | ✅ **2026-09-29 关闭** — `SelfLimited(entity,d)` 谓词已登记 (disease-simulation.md F4/L1122) |
+| ~~G3~~ | ~~OQ-10-13 未裁，学习闭环缺最后一环~~ | ✅ **2026-09-29 关闭** — 用户裁定 42/44 有能力呈现「手抖」，学习闭环完整 |
+
+### 仍待处理的落地缺口
 
 | # | 缺口 | 归口 | 时限 |
 |---|------|------|------|
-| G1 | 29/30 死亡惩罚「判断类技能豁免」互斥 | 29 或 30 实现故事开工前裁 | 首批 |
-| G2 | 9 的 `SelfLimited` 落点未交付 | 9 下一轮修订 | 首批 |
-| G3 | OQ-10-13 未裁，学习闭环缺最后一环 | 42/44 确认呈现条目 | 首批 |
-| F7 | IL2CPP 有符号溢出 UB spike 未执行 | ADR-012 F7 | 跨平台认证前 |
+| F7 | IL2CPP 有符号溢出 UB 表示选择 | ADR-012 F7 | ✅ **已结案(2026-09-21 RC-4 降级)** — `SplitMix64` / Q16.16 改 `ulong`，UB 结构性消除；残项 F1/F2/F4 为跨平台认证前置，不阻塞 Pre-Production 门 |
 | 焦点导航 | ADR-013 assumption 6 未实测 | 桌面调试 | 39/43/48 实现前 |
 
 ### 生产管理待修
