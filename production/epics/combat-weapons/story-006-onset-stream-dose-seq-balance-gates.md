@@ -1,12 +1,12 @@
 # Story 006: onset 事件流 · dose_seq 派生 · F-25-8 平衡门
 
 > **Epic**: 格斗与武器线
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 7h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 ## Context
 
 **GDD**: `design/gdd/combat-and-weapon-lines.md`(规则二/三 Kind 与载荷 · F-25-7 dose_seq · F-25-8 构建期平衡断言 · 归零转译入口 · §九 A↔AC 断言映射)
@@ -102,3 +102,24 @@
 ## Completion Notes
 
 *(留空 — story 关闭时回填)*
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `OnsetPayload` — onset 事件载荷（ActorId / TargetId / InjuryId / Magnitude / Tick / DoseSeq）
+- `CombatOnsetStream` — onset 事件流写入器（ComputeDoseSeq / IsDuplicate / ValidateNoTierField / ValidateF25Balance / ValidateEnemyOnRoute）
+- dose_seq 从既有流纯函数派生（禁可变计数器）
+- 五元组判重键 (tick, actor, target, injury_id, dose_seq)
+- F-25-8 构建期平衡断言（乘法形式，零除法路径）
+- 测试: 7 条单元测试（全部通过）
+
+**Deviations**: 
+- F-25-8 平衡门为简化版（无完整 Trauma_∞ 计算），完整版需要 9 的 F1 入口
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/Combat/combat_onset_dose_seq_test.cs` — 7 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
