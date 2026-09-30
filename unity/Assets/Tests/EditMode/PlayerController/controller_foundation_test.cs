@@ -59,7 +59,8 @@ namespace DaYiJingCheng.Tests.PlayerController
         [Test]
         public void test_asmdefReferenceWhitelist()
         {
-            string asmdefPath = Path.Combine(Application.dataPath, "../Assets/Gameplay.Player/Gameplay.Player.asmdef");
+            // PlayerController 住在 Gameplay.Presentation（ADR-025 已登记）
+            string asmdefPath = Path.Combine(Application.dataPath, "../Assets/Gameplay.Presentation/Gameplay.Presentation.asmdef");
             if (!File.Exists(asmdefPath))
             {
                 Assert.Ignore("asmdef 文件不存在");
