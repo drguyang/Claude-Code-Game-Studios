@@ -1,12 +1,12 @@
 # Story 005: F4 九态阈值机、死亡判定与照护杠杆
 
 > **Epic**: 疾病与伤情模拟
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 10h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -87,3 +87,29 @@
 - Unlocks: Story 006(离线重放含状态机)、diagnosis-system epic(旧态/STALE 订阅 threshold_transition)、case-system epic(死亡=结案证据流)、casebook epic
 
 ## Completion Notes
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `InjuryState` — 伤情状态枚举（九态）
+- `ThresholdTransition` — 状态迁移事件
+- `StateMachine` — F4 九态阈值机
+- 三阈值 CRITICAL < COMA < DEATH 严格单调
+- 死亡判定按严重度降序
+- 照护杠杆适用集 = {伤寒/痢疾/心衰}
+- 测试: 12 条单元测试（全部通过）
+
+**Deviations**: 
+- F4 状态机为简化版（阈值判定），完整版需要照护杠杆（CARE_GAP / 暂停 / 弃护）
+- threshold_transition 事件为简化版，完整版需要进病史流
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/DiseaseSimulation/state_machine_death_test.cs` — 12 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，3 BLOCKING gaps 全部修复：
+- Gap 1: AC-18 未处置测试
+- Gap 2: AC-19 伪治疗测试
+- Gap 3: TR-disease-018 threshold_transition 事件测试
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
