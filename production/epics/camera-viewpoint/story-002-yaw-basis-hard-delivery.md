@@ -1,12 +1,12 @@
 # Story 002: 硬交付 `YawBasis` —— 水平化 / 正交归一 / 俯角界 / 帧内次序契约(B 组 = 系统 1 的 O-8)
 
 > **Epic**: 摄像机与视角
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -154,4 +154,31 @@
 **Deviations**: _待填_
 **Test Evidence**: _待填_
 **Code Review**: _待填_
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `ICameraRig` — 只读接口，YawBasis 返回不可变 struct
+- `CameraRig` — 第三人称越肩，构造式 f̂ := (sin yaw, 0, cos yaw) / r̂ := (cos yaw, 0, −sin yaw)
+- `YAW_BASIS_EPS` — 唯一定义点（CameraRig.cs）
+- `PITCH_MIN/MAX` — 装载期断言常量
+- 测试: 9 条单元测试（全部通过）
+- 全量 EditMode: 1461/1489 Passed, 0 Failed
+
+**Deviations**: 
+- 程序集落点：`Gameplay.Presentation`（ADR-025 已登记）
+- AC-2-10① 帧内次序契约测试为简化版（UpdateYaw 后读取验证），完整版需探针消费方
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/Camera/yaw_basis_test.cs` — 9 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，5 BLOCKING 问题全部修复：
+- B1: AC-2-10② 反射测试验证无 public 写入面
+- B2: AC-2-10① 帧内次序契约测试
+- B3: AC-2-09② proj_h 正下界测试
+- B4: AC-2-09③ 防御性兜底测试
+- B5: AC-2-13 pitch 钳制不污染 yaw 测试
+
 **Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧

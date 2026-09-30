@@ -3,7 +3,7 @@
 > **Layer**: Presentation(控制器与相机 · manifest 该节适用)
 > **GDD**: design/gdd/camera-and-viewpoint.md
 > **Architecture Module**: 自建机位 `ICameraRig`(四段机器:跟随 + 绕点 + 出臂 + 收缩)+ 对系统 1 的硬交付 `YawBasis`
-> **Status**: In Progress
+> **Status**: In Progress (1/6 stories complete)
 > **Stories**: 6 stories created (2026-09-28)
 
 ## Overview

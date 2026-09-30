@@ -18,7 +18,7 @@
 | 3 | input-system | Story 001 — Action asset identity（Input System 动作资产契约） | 1 | — | ✅ Complete |
 | 4 | persistence-service | Story 001 — Storage abstraction（二进制 codec 接口 + 校验骨架） | 2 | — | ✅ Complete |
 | 5 | player-controller | Story 001 — Controller foundation（CharacterController 参数 + `ITickProvider` 接入） | 1 | 4 | ✅ Complete |
-| 6 | camera-viewpoint | Story 002 — Yaw basis hard delivery（`ICameraRig.YawBasis` + 半隐式积分器） | 1 | 5 | Ready |
+| 6 | camera-viewpoint | Story 002 — Yaw basis hard delivery（`ICameraRig.YawBasis` + 半隐式积分器） | 1 | 5 | ✅ Complete |
 | 7 | disease-simulation | Story 001 — Fixed-point math and hashing（`Fix` Q16.16 + `SplitMix64` + 单元级黄金哈希） | 1 | — | ✅ Complete |
 | 8 | telemetry-analytics | Story 001 — Readonly boundary, zero egress（51 接口层 + 构建期断言零网络） | 1 | — | ✅ Complete |
 
