@@ -101,7 +101,7 @@ This epic is complete when:
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
 | 001 | 池条目 schema、注入接口与构建期拒收表 | Logic | **Complete ✅ 2026-09-30** | ADR-006/014/024/017 |
-| 002 | 确定性掷骰与流登记(DC-1/DC-3) | Logic | Ready | ADR-007/005/012 |
+| 002 | 确定性掷骰与流登记(DC-1/DC-3) | Logic | **Complete ✅ 2026-09-30** | ADR-007/005/012 |
 | 003 | F1 抽取管线:配额、上下文门与强度轴 | Logic | Ready | ADR-005/006/009 |
 | 004 | F2 密度预算与 DeferredThreatSlot | Logic | Ready | ADR-005/007/009 |
 | 005 | 预告制、避险与因果可见 | Integration | Ready | ADR-009/013/018 |

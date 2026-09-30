@@ -1,12 +1,12 @@
 # Story 002: 确定性掷骰与流登记(DC-1/DC-3)
 
 > **Epic**: 随机事件导演
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 5h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -125,3 +125,29 @@
 ## Completion Notes
 
 *(empty — fill at story completion via `/story-done`)*
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `EventRollSeed` — 事件掷骰种子（Win / Tier / Ordinal）
+- `CdfWalkResult` — CDF walk 结果
+- `EventRng` — 确定性掷骰器（CdfWalk / ComputeWindowStart / ValidateSeedReproducible）
+- CDF walk key 升序遍历（修复非升序输入）
+- 禁墙钟 / 禁符号扫描
+- 测试: 9 条单元测试（全部通过）
+
+**Deviations**: 
+- CDF walk 为简化版（无 EventRolled / EventArrived 流登记），完整版归 Story 003/004
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/RandomEvents/event_rng_stream_test.cs` — 9 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，5 BLOCKING 问题全部修复：
+- B1: CDF walk key 升序修复（非升序输入按升序遍历）
+- B2: 禁墙钟测试修复（检查 DateTime / TimeSpan）
+- B3: 禁符号扫描测试修复（检查方法参数）
+- B4: SplitMix64 唯一性测试修复（验证确定性 + 不同输入不同输出）
+- B5: 种子可重算测试修复（验证不同输入产生不同输出）
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
