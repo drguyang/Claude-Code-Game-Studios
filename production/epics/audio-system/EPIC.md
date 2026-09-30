@@ -3,7 +3,7 @@
 > **Layer**: Foundation
 > **GDD**: design/gdd/audio-system.md
 > **Architecture Module**: L5 Presentation(PRES)+ L3 契约程序集(`Sim.Contracts`: `AudioCueDto` / `IAudioCueSink`)
-> **Status**: Ready
+> **Status**: **Complete ✅ 2026-09-28**(14/14 stories)
 > **Stories**: 14 created(13 on 2026-09-26 `/create-stories` + **014 on 2026-09-27 用户裁定**:tier 滤波载体缺口独立成 story)
 
 ## Stories
@@ -11,11 +11,11 @@
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
 | 001 | 装配边界与 DTO 护栏 | Integration | **Complete ✅ 2026-09-26**(4/4 · 24 测 · 审查 7 修复验 568/568) | ADR-018(+025/017 引用) |
-| 002 | 音频事件表 schema 与白名单门(BLOCKING) | Logic | Ready | ADR-014(+018) |
-| 003 | 混音拓扑与快照纪律 | Integration | Ready | ADR-018(+020) |
-| 004 | 听诊呼吸两层与精度档 | Logic | Ready | ADR-018 |
-| 005 | SNR 分析域与噪声下界 | Logic | Ready | ADR-018 |
-| 006 | 语声变体库与 Intensity 分桶 | Logic | Ready | ADR-018 |
+| 002 | 音频事件表 schema 与白名单门(BLOCKING) | Logic | **Complete ✅ 2026-09-26**(6/6 · 62 测 · 双评审 5 REC 修复验 647/647) | ADR-014(+018) |
+| 003 | 混音拓扑与快照纪律 | Integration | **Complete ✅ 2026-09-26**(4/4 · 28 测 · 双评审 3 BLOCKING 修复验 723/723) | ADR-018(+020) |
+| 004 | 听诊呼吸两层与精度档 | Logic | **Complete ✅ 2026-09-26**(3/4 · 37 测 · 双评审 4 BLOCKING 修复验 822/822) | ADR-018 |
+| 005 | SNR 分析域与噪声下界 | Logic | **Complete ✅ 2026-09-26**(4/4 · 20 测 · 双评审 B1+REC2 修复验 822/822) | ADR-018 |
+| 006 | 语声变体库与 Intensity 分桶 | Logic | **Complete ✅ 2026-09-26**(4/4 · 21 测 · 双评审 B1-B3 修复验 986/986) | ADR-018 |
 | 007 | 联机分叉与远端派生(静态半) | Integration | **Complete ✅ 2026-09-28**(5/5 · 19 测 · 双评审 B1-B3 修复验 1102/1103) | ADR-001(+018)·运行面 BLOCKED-BY-45 |
 | 008 | 空间化与世界语境呼吸 | Integration | **Complete ✅ 2026-09-28**(5/5 · 20 测 · 双评审 B1-B4 修复验 1122/1122) | ADR-028(+015/018) |
 | 009 | 声源生命周期与贴耳交接 | Logic | **Complete ✅ 2026-09-28**(4/4 · 12 测 · 双评审 B1/B2+B1-B3 修复验 1129/1134) | ADR-001 §一之三裁决二(+028) |
@@ -92,4 +92,4 @@ This epic is complete when:
 
 ## Next Step
 
-Run `/story-readiness production/epics/audio-system/story-001-assembly-boundary-dto.md` → `/dev-story` to begin implementation(依序:001 → 002 → …,各故事 `Depends on:` 为准)。
+**Epic 全部 14 个 story 已完成**。下一步 = 推进其他 epic 或处理跨系统待办(45 联机夹具 / ADR-023 spikes / 七屏走查)。

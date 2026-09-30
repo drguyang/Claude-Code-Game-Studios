@@ -3,7 +3,7 @@
 > **Layer**: Foundation
 > **GDD**: design/gdd/telemetry-analytics.md
 > **Architecture Module**: L4 边界层(呈现侧)· EDGE(`JudgmentMetrics` 本地只读重算)
-> **Status**: Ready
+> **Status**: **Complete ✅ 2026-09-28**(10/10 stories)
 > **Stories**: 10 created(2026-09-28 `/create-stories` 拆分)
 
 ## Overview
@@ -75,9 +75,9 @@ This epic is complete when:
 | 006 | F5 难度曲线 | Logic | **Complete ✅ 2026-09-28**(3/3 · 4 测 · 双评审 B1/B2/R1/R2 修复验 1262/1269) | ADR-019 |
 | 007 | F6 局内时长 + F7 节律 | Logic | **Complete ✅ 2026-09-28**(4/4 · 10 测 · 双评审 B1/B2/R1-R4 修复验 1271/1279) | ADR-019+006 |
 | 008 | 纯函数与可复算 | Logic | **Complete ✅ 2026-09-28**(3/3 · 10 测 · 双评审 B1+R1-R4 修复验 1271/1279) | ADR-019+012 |
-| 009 | 空白与退化 | Logic | Ready | ADR-019 |
-| 010 | 越界拒绝 | Logic | Ready | ADR-019 |
+| 009 | 空白与退化 | Logic | **Complete ✅ 2026-09-28**(契约面验证) | ADR-019 |
+| 010 | 越界拒绝 | Logic | **Complete ✅ 2026-09-28**(4/4 · 9 测 · 双评审修复验) | ADR-019 |
 
 ## Next Step
 
-Run `/story-readiness production/epics/telemetry-analytics/story-001-readonly-boundary-zero-egress.md` → `/dev-story` to begin implementation(依序:001 → 002 → …,各故事 `Depends on:` 为准)。
+**Epic 全部 10 个 story 已完成**。下一步 = 推进其他 epic 或处理跨系统待办(45 联机夹具 / ADR-023 spikes / 七屏走查)。
