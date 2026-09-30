@@ -1,12 +1,12 @@
 # Story 003: F1 抽取管线:配额、上下文门与强度轴
 
 > **Epic**: 随机事件导演
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -121,3 +121,30 @@ ContextGate:「在出诊路径上」≡ `有活跃出诊目标 ∧ 不在医馆�
 ## Completion Notes
 
 *(empty — fill at story completion via `/story-done`)*
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `F1PipelineInput` — F1 管线输入
+- `F1PipelineOutput` — F1 管线输出
+- `EventF1Pipeline` — F1 抽取管线（HamiltonSplit / EvaluateContextGate / ComputeContextMult / ComputeStrengthTier / Execute）
+- Hamilton 最大余额法（带 ContextMult 和 ReputationMult）
+- ContextGate 布尔判据（医馆只压制威胁档）
+- 先舍入后钳制
+- 五边界夹具
+- 测试: 12 条单元测试（全部通过）
+
+**Deviations**: 
+- F1 step ② 和 step ③ 为简化版（无 TODMult / HistoryMult / KeyGate / StrengthCap）
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/RandomEvents/event_f1_pipeline_test.cs` — 12 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，4 BLOCKING 问题全部修复：
+- B1: ContextGate 语义修复（医馆只压制威胁档）
+- B2: HamiltonSplit 接受权重参数（ContextMult / ReputationMult）
+- B3: 五边界夹具补全
+- B4: F1 step ② 和 step ③ 简化版实现
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
