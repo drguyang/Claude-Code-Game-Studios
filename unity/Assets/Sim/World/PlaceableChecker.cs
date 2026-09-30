@@ -42,13 +42,17 @@ namespace DaYiJingCheng.Sim.World
             BuildSlotCatalog catalog,
             IModuleCatalog moduleCatalog,
             IStockQuery stockQuery,
+            IOccupancyQuery occupancyQuery,
             IPresenceQuery presenceQuery)
         {
             _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
             _moduleCatalog = moduleCatalog ?? throw new ArgumentNullException(nameof(moduleCatalog));
             _stockQuery = stockQuery ?? throw new ArgumentNullException(nameof(stockQuery));
             _presenceQuery = presenceQuery ?? throw new ArgumentNullException(nameof(presenceQuery));
+            _occupancyQuery = occupancyQuery ?? throw new ArgumentNullException(nameof(occupancyQuery));
         }
+
+        private readonly IOccupancyQuery _occupancyQuery;
 
         /// <summary>
         /// 五条件判定(F-23-2):
@@ -82,10 +86,9 @@ namespace DaYiJingCheng.Sim.World
                 if (!_catalog.IsInBuildSlotRegion(cell))
                     return PlaceableResult.OutOfRegion;
 
-                // ② 占用为空(由调用方维护的占用表检查 —— 此处只返回需要检查的位置,
-                //    实际占用检查由 World 的 slot_occupied 提供)
-                //    注意:这里不直接检查占用,因为占用表归 World 所有,
-                //    判定器只做「几何合法性」检查,占用检查由 World.CheckPlaceable 组合)
+                // ② 占用为空
+                if (_occupancyQuery.IsOccupied(cell))
+                    return PlaceableResult.Occupied;
             }
 
             // 条件 ⑤: 库存
@@ -174,5 +177,11 @@ namespace DaYiJingCheng.Sim.World
     public interface IStockQuery
     {
         bool HasStock(int moduleId);
+    }
+
+    /// <summary>占用查询接口(归 World,23 只读)。</summary>
+    public interface IOccupancyQuery
+    {
+        bool IsOccupied(WorldPos cell);
     }
 }
