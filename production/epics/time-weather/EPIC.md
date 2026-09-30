@@ -64,6 +64,6 @@ This epic is complete when:
 |---|-------|------|--------|-----|
 | 001 | 时间基准 —— tick 只读与昼夜 / 季节相位 | Logic | **Complete ✅ 2026-09-30** | ADR-005/006/014 |
 | 002 | 天气纯函数 —— 块哈希掷骰与生态区查表 | Logic | **Complete ✅ 2026-09-30** | ADR-007/009/015 |
-| 003 | EnvMod_raw 环境修正输出 —— 原样传递、5 侧无钳制 | Logic | Ready | ADR-006/005-G |
+| 003 | EnvMod_raw 环境修正输出 —— 原样传递、5 侧无钳制 | Logic | **Complete ✅ 2026-09-30** | ADR-006/005-G |
 | 004 | 消费边界与确定性对拍 —— 不进流、天气不改移动、跨平台逐位 | Integration | Ready | ADR-012/009/020 |
 | 005 | 天空与体感读数呈现([L] 走查) | Visual-Feel | Ready | ADR-013/018 |

@@ -1,12 +1,12 @@
 # Story 003: EnvMod_raw 环境修正输出 —— 原样传递、5 侧无钳制
 
 > **Epic**: 时间与天气
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -88,3 +88,24 @@
 ---
 
 ## Completion Notes
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `EnvModInput` — EnvMod 输入参数（EcozoneBaseline / WeatherKind / WeatherIntensity / IsNight / SeasonIndex）
+- `EnvMod` — EnvMod_raw 环境修正输出（ComputeEnvModRaw / IsDeterministic）
+- 5 侧无钳制，负值合法
+- 中性缺省 = FIX_ONE
+- 测试: 7 条单元测试（全部通过）
+
+**Deviations**: 
+- EnvMod_raw 为简化版（线性组合），完整版需要实现分项表（生态区基线 / kind×强度矩阵 / 昼夜修正）
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/TimeWeather/envmod_raw_test.cs` — 7 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，1 BLOCKING 问题已修复：
+- B1: test_negativeComponent_notClamped 假阳性测试修复（使用非零天气/季节值）
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
