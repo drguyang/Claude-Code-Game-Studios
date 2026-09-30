@@ -1,12 +1,12 @@
 # Story 005: 冷却 / 切换 / 压制(S-1/S-2/S-3 与 IsSuppressed)
 
 > **Epic**: 格斗与武器线
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 ## Context
 
 **GDD**: `design/gdd/combat-and-weapon-lines.md`(F-25-3 冷却 · F-25-4 切换 · F-25-5 压制 · 三状态 S-1/S-2/S-3 · AC-25-3-* / AC-25-4-*)
@@ -104,3 +104,25 @@
 ## Completion Notes
 
 *(留空 — story 关闭时回填)*
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `SuppressionState` — 压制状态
+- `CombatCooldown` — 冷却/切换/压制管理器（IsSuppressed / ComputeSuppressedUntil / IsCooldownComplete / IsSwitchCooldownComplete / ValidateNoSuppressionInStream）
+- 冷却 ≥1 tick 硬门
+- 落空照常耗冷却
+- 切换冷却 = 仅当前线动作可执行
+- 压制刷新 = max 不 sum
+- 压制态永不进流
+- 测试: 7 条单元测试（全部通过）
+
+**Deviations**: 无
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/Combat/combat_cooldown_switch_suppress_test.cs` — 7 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧

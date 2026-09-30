@@ -76,5 +76,5 @@ This epic is complete when:
 | 002 | 攻击求值点:意图通道 · 占用门 · tick 内次序 | Logic | **Complete ✅ 2026-09-30** | ADR-005/016/011 |
 | 003 | 命中判定 F-25-1 | Logic | **Complete ✅ 2026-09-30** | ADR-015/005 |
 | 004 | magnitude 装配 F-25-2 与 CombatPower 交接 | Logic | **Complete ✅ 2026-09-30** | ADR-026/006 |
-| 005 | 冷却 / 切换 / 压制(S-1/S-2/S-3 与 IsSuppressed) | Logic | Ready | ADR-020/005 |
+| 005 | 冷却 / 切换 / 压制(S-1/S-2/S-3 与 IsSuppressed) | Logic | **Complete ✅ 2026-09-30** | ADR-020/005 |
 | 006 | onset 事件流 · dose_seq 派生 · F-25-8 平衡门 | Integration | Ready | ADR-009/024/016 |
