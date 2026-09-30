@@ -1,12 +1,12 @@
 # Story 001: 时间基准 —— tick 只读与昼夜 / 季节相位
 
 > **Epic**: 时间与天气
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -90,3 +90,26 @@
 ## Completion Notes
 
 *(empty at creation)*
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `TimeParams` — 时间参数（TICKS_PER_DAY / TICKS_PER_SEASON / SEASONS_PER_YEAR / NIGHT_START / NIGHT_SPAN）
+- `TimeBase` — 时间基准（FMod / FDiv / ComputePhase / IsNight / ComputeSeasonIndex）
+- `TimeState` — 时间状态快照
+- FMod 环绕安全（AC-5-20）
+- 非法参数硬失败（AC-5-14）
+- 测试: 10 条单元测试（全部通过）
+
+**Deviations**: 无
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/TimeWeather/time_base_test.cs` — 10 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，3 BLOCKING gaps 全部修复：
+- Gap 1: AC-5-06 triple fixture + boundary tests + reverse assertion
+- Gap 2: AC-5-11 NIGHT_SPAN ≥ TPD 和 TICKS_PER_SEASON = 0 测试
+- Gap 3: AC-5-20 int64 边界 + n=1 + C# % reverse sentinel
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧

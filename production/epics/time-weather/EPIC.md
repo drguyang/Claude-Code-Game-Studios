@@ -3,7 +3,7 @@
 > **Layer**: Foundation → Core → Feature
 > **GDD**: design/gdd/time-and-weather.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ 呈现消费侧(42/44)
-> **Status**: Ready
+> **Status**: In Progress (1/5 stories complete)
 > **Stories**: 5 stories — see table below
 
 ## Overview
