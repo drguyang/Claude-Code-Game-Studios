@@ -1,12 +1,12 @@
 # Story 001: 动作表 schema 与烘焙构建门
 
 > **Epic**: 格斗与武器线
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Config-Data
 > **Estimate**: 6h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 ## Context
 
 **GDD**: `design/gdd/combat-and-weapon-lines.md`(§一 动作表 schema · 规则二 Kind 登记面 · §九 构建断言 A1–A27 的表侧子集)
@@ -103,3 +103,30 @@
 ## Completion Notes
 
 *(留空 — story 关闭时回填)*
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `CombatActionEntry` — 动作表条目（11 字段）
+- `CombatActionSchema` — 动作表 schema 校验器（Validate / ValidateAll / ParseFixField）
+- A13a/b: MAG_FLOOR > 0 且 < MAG_CAP
+- A14: max_targets = 1
+- A17: maps_to_injury 外键校验
+- A18: weapon_line ⟺ Natural 等价关系
+- A22: Natural ⇒ range_override ≥ 1
+- 测试: 12 条单元测试（全部通过）
+
+**Deviations**: 无
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/Combat/combat_actions_schema_test.cs` — 12 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，5 BLOCKING 问题全部修复：
+- B1: A17 maps_to_injury 外键校验
+- B2: A18 weapon_line ⟺ Natural 等价关系
+- B3: A22 Natural ⇒ range_override ≥ 1
+- B4: A 编号标签系统性错位修复
+- B5: 校验器调用点补全
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
