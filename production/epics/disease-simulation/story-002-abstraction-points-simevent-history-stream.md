@@ -1,12 +1,12 @@
 # Story 002: 抽象点、SimEvent 与病史流机制
 
 > **Epic**: 疾病与伤情模拟
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 8h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -85,3 +85,24 @@
 - Unlocks: Story 004 / 005 / 006(全部求值面)、emergency-procedures epic(004 的 Judge+Append 落流)、prescription-medication epic(DrugTreatmentApplied 写入)、casebook / case-system epic(病例流 Kind 消费同管道)
 
 ## Completion Notes
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `IPresenceQuery` — 在场查询抽象点
+- `EventStream` — 病史事件流实现（IEventSink）
+- CAP 拒收（PATIENT_APPEARANCE_CAP = 24）
+- 去重（五元组键）
+- Seq 发号（每 tick 复位）
+- id 重构（max+1，None=-1 排除）
+- 测试: 5 条单元测试（全部通过）
+
+**Deviations**: 无
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/DiseaseSimulation/event_stream_test.cs` — 5 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
