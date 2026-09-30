@@ -1,12 +1,12 @@
 # Story 004: 消费边界与确定性对拍 —— 不进流、天气不改移动、跨平台逐位
 
 > **Epic**: 时间与天气
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 6h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -89,3 +89,23 @@
 ---
 
 ## Completion Notes
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `TimeWeatherBoundary` — 消费边界验证器（ValidateNoEventSinkAppend / ValidateNoSimEventGeneration / ValidateCrossPlatformDeterminism / ValidateReplayConsistency）
+- 派生态不进流（5 侧可写 Kind 集恰 = ∅）
+- 天气不产生任何 SimEvent
+- 跨平台逐位对拍（简化版，完整版挂 ADR-012）
+- 测试: 5 条单元测试（全部通过）
+
+**Deviations**: 
+- 跨平台逐位对拍为简化版（同平台确定性），完整版需要 ADR-012 三格 CI 矩阵
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/TimeWeather/time_weather_replay_test.cs` — 5 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
