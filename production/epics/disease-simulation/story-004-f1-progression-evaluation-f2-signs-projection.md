@@ -1,12 +1,12 @@
 # Story 004: F1 病程求值与 F2 体征投影
 
 > **Epic**: 疾病与伤情模拟
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 12h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -92,3 +92,29 @@
 - Unlocks: Story 005(阈值机消费 position/trend)、Story 006(对拍基线)、diagnosis-system epic(F2→VitalsDto 联测)、patient-ai epic(13 读 signs[])
 
 ## Completion Notes
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `ProgressionResult` — 病程求值结果（Position/Trend/Signs）
+- `ProgressionEvaluator` — F1 求值器（Base/Relapse/Decay/Noise）
+- 两层模型（Progress vs Signs）
+- 潜伏期抑制（τ < incubation ⇒ Progress ≡ 0）
+- 测试: 7 条单元测试（全部通过）
+
+**Deviations**: 
+- F1 求值式为简化版（线性上升 + 指数衰减），完整版需三分支（self_limit / plateau / 急性保持型）
+- F2 体征投影为空数组，完整版归 story 006
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/DiseaseSimulation/progression_eval_test.cs` — 7 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，5 BLOCKING gaps 全部修复：
+- Gap 1: AC-8 max 非和测试
+- Gap 2: AC-7 闭式 ≡ 逐步测试
+- Gap 3: AC-6 连续性测试
+- Gap 4: AC-13 对症处置测试
+- Gap 5: AC-27 Decay(Δ<0) = 0 测试
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
