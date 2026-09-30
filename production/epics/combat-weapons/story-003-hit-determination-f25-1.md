@@ -1,12 +1,12 @@
 # Story 003: 命中判定 F-25-1(整数格距离 · 白名单 · Down 查询)
 
 > **Epic**: 格斗与武器线
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 5h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 ## Context
 
 **GDD**: `design/gdd/combat-and-weapon-lines.md`(F-25-1 五合取项 · 规则〇 先判后打 · 落空仍耗冷却的判据半边)
@@ -103,3 +103,23 @@
 ## Completion Notes
 
 *(留空 — story 关闭时回填)*
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `HitDeterminationInput` — 命中判定输入
+- `HitDeterminationResult` — 命中判定结果
+- `CombatHitResolution` — 命中判定 F-25-1（ComputeD2 / Determine / ValidateIntegerDomain）
+- 五合取项：解锁 ∧ 距离 ∧ 友伤白名单 ∧ ¬Down(a) ∧ ¬Down(g)
+- 整数边界判定
+- 测试: 8 条单元测试（全部通过）
+
+**Deviations**: 无
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/Combat/combat_hit_resolution_test.cs` — 8 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
