@@ -1,12 +1,12 @@
 # Story 004: F2 密度预算与 DeferredThreatSlot
 
 > **Epic**: 随机事件导演
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -119,3 +119,25 @@
 ## Completion Notes
 
 *(empty — fill at story completion via `/story-done`)*
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `BudgetParams` — 预算参数（BASE / BUDGET_MAX / DEFER_MAX / COOLDOWN_TICKS）
+- `BudgetState` — 预算状态（派生态，从流重构）
+- `EventBudget` — F2 密度预算与 DeferredThreatSlot（ComputeDailyBudget / ShouldDefer / TryConsumeBudget / ResetForNewDay）
+- 预算 clamp + 零队列
+- 跨日作废不结转
+- 冷却去重
+- 测试: 7 条单元测试（全部通过）
+
+**Deviations**: 
+- DeferredThreatSlot 为简化版（无 ThreatDeferred / ThreatDeferralCleared 流登记），完整版归 Story 005/006
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/RandomEvents/event_budget_defer_test.cs` — 7 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
