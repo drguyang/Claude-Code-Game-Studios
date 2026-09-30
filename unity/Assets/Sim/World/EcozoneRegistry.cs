@@ -135,6 +135,7 @@ namespace DaYiJingCheng.Sim.World
         }
 
         /// <summary>保留接口兼容,已无操作。</summary>
+        [Obsolete("BuildCache is no longer used; EcozoneOf queries directly.")]
         public void BuildCache(IEnumerable<WorldPos> probeCells) { }
 
         /// <summary>获取所有已注册生态区 id 列表。</summary>

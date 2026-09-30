@@ -8,7 +8,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Sim.World
@@ -79,9 +78,6 @@ namespace DaYiJingCheng.Sim.World
         private readonly ChunkTopology _topology;
         private readonly int _streamingRadius; // 以 chunk 为单位的流式半径
         private readonly bool[] _activeChunks;  // 当前激活集(索引 => 布尔)
-        private readonly WorldPos[] _playerChunkHistory = new WorldPos[4]; // 最近 4 tick 的玩家 chunk
-        private int _historyIndex = 0;
-        private int _historyCount = 0;
 
         public ChunkTopology Topology => _topology;
         public int StreamingRadius => _streamingRadius;
@@ -95,19 +91,10 @@ namespace DaYiJingCheng.Sim.World
 
         /// <summary>更新玩家位置并重推激活集(纯函数,同输入 => 同输出)。</summary>
         /// <param name="playerCell">玩家当前所在格。</param>
-        /// <returns>当前激活 chunk 集。</returns>
+        /// <returns>当前激活 chunk 集(只读副本)。</returns>
         public bool[] ComputeActiveChunks(WorldPos playerCell)
         {
             WorldPos playerChunk = _topology.WorldToChunk(playerCell);
-
-            // 记录历史
-            _playerChunkHistory[_historyIndex] = playerChunk;
-            _historyIndex = (_historyIndex + 1) % _playerChunkHistory.Length;
-            if (_historyCount < _playerChunkHistory.Length)
-                _historyCount++;
-
-            // 取最近位置作为锚点(取众数可防瞬移抖动,这里用最新)
-            WorldPos anchorChunk = playerChunk;
 
             // 清空激活集
             Array.Clear(_activeChunks, 0, _activeChunks.Length);
@@ -124,9 +111,9 @@ namespace DaYiJingCheng.Sim.World
                     for (int dz = -rz; dz <= rz; dz++)
                     {
                         WorldPos chunkPos = new WorldPos(
-                            anchorChunk.X + dx,
-                            anchorChunk.Y + dy,
-                            anchorChunk.Z + dz);
+                            playerChunk.X + dx,
+                            playerChunk.Y + dy,
+                            playerChunk.Z + dz);
 
                         // 范围检查
                         if (chunkPos.X < 0 || chunkPos.X >= _topology.ChunksX ||
@@ -140,7 +127,10 @@ namespace DaYiJingCheng.Sim.World
                 }
             }
 
-            return _activeChunks;
+            // 返回副本,防止调用方修改内部状态
+            var result = new bool[_activeChunks.Length];
+            Array.Copy(_activeChunks, result, _activeChunks.Length);
+            return result;
         }
 
         /// <summary>判断某 chunk 是否激活。</summary>
