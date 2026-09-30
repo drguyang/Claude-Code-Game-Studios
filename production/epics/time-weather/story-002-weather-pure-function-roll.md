@@ -1,12 +1,12 @@
 # Story 002: 天气纯函数 —— 块哈希掷骰与生态区查表
 
 > **Epic**: 时间与天气
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 6h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -89,3 +89,23 @@
 ---
 
 ## Completion Notes
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `WeatherParams` — 天气参数（WEATHER_BLOCK_TICKS / INTENSITY_MAX）
+- `WeatherState` — 天气状态（Kind / Intensity）
+- `WeatherRoll` — 天气纯函数（ComputeBlockIndex / ComputeWeather / IsConstantWithinBlock）
+- 块哈希掷骰（SplitMix64）
+- 块内恒定 + 跨块允许跳变
+- 测试: 7 条单元测试（全部通过）
+
+**Deviations**: 无
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/TimeWeather/weather_roll_test.cs` — 7 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
