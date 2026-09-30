@@ -66,7 +66,7 @@ This epic is complete when:
 
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
-| 001 | EmergencyReading 读数与直读通道契约 | Integration | Ready | ADR-011/006 |
+| 001 | EmergencyReading 读数与直读通道契约 | Integration | **Complete ✅ 2026-09-30** | ADR-011/006 |
 | 002 | 动作表/熟练度表与 result_mul 烘焙 | Config-Data | Ready | ADR-014/006/024 |
 | 003 | Judge 三扇门定点纯函数 | Logic | Ready | ADR-005/006/012 |
 | 004 | Aggregate、可靠上行与主机落流 | Integration | Ready | ADR-001/009/011/024 |

@@ -1,12 +1,12 @@
 # Story 001: EmergencyReading 读数与直读通道契约
 
 > **Epic**: 急救动作模块
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 6h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -79,3 +79,22 @@
 - Unlocks: Story 003(Judge 输入)、Story 004(Aggregate)、Story 006(预表现)
 
 ## Completion Notes
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `EmergencyReading` — 急救读数（全整数域：Action / HoldTicks / Edges / EdgeTicks[] / Magnitude）
+- `EmergencyReadingContract` — 读数契约验证器（ValidateIntegerDomain / ValidateDeadzone / ValidateEdges / ValidateMagnitude）
+- 死区 DZ_MAG 吃摇杆漂移
+- edges 只计 press 沿（release 不计数）
+- 测试: 5 条单元测试（全部通过）
+
+**Deviations**: 无
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/EmergencyProcedures/reading_contract_test.cs` — 5 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
