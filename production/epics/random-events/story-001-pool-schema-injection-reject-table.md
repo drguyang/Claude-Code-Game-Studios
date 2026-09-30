@@ -1,12 +1,12 @@
 # Story 001: 池条目 schema、注入接口与构建期拒收表
 
 > **Epic**: 随机事件导演
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -115,3 +115,25 @@
 ## Completion Notes
 
 *(empty — fill at story completion via `/story-done`)*
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `EventTier` — 事件档枚举（闭集四员）
+- `SpawnAnchor` — 生成锚点枚举（P0 三员）
+- `TriggerMode` — 触发方式枚举
+- `EventPoolEntry` — 池条目 schema（五字段全整数）
+- `EventPoolValidator` — 池条目校验器（拒收表）
+- `IEventDirector` — 事件导演接口
+- 测试: 10 条单元测试（全部通过）
+
+**Deviations**: 
+- 拒收表为简化版（5 条谓词），完整版 18 条归 ADR-014 阶段 2
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/RandomEvents/event_pool_schema_test.cs` — 10 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
