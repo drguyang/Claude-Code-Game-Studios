@@ -1,12 +1,12 @@
 # Story 001: 定点数学库与确定性哈希
 
 > **Epic**: 疾病与伤情模拟
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 8h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -83,3 +83,23 @@
 - Unlocks: Story 002…006(9 的全部求值面)、time-weather epic(25 侧定点复用同库)
 
 ## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `Fix.cs` 264 行 — Q16.16 四则 + hi/lo 中间乘 + `FromRational` + `Pow`/`Sqrt`
+- `SplitMix64.cs` 104 行 — `Avalanche` / `NextValue` / `Fold` / `Hash` / `HashTagged`
+- `FixParse.cs` 100 行 — `RoundHalfAwayFromZero` + 解析入口
+- `RoundMode.cs` 17 行 — 舍入模式枚举
+- 测试: `sim_fixedpoint_test.cs` (5 测) + `golden_hash_v1_test.cs` (12 测) + `sim_codec_roundtrip_test.cs` (10 测)
+- 全量 EditMode 986/986 Passed
+
+**Deviations**: 无
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/Sim/sim_fixedpoint_test.cs` — 5 测全过
+- `unity/Assets/Tests/EditMode/Sim/golden_hash_v1_test.cs` — 12 测全过
+- `unity/Assets/Tests/EditMode/Sim/sim_codec_roundtrip_test.cs` — 10 测全过
+
+**Code Review**: 无（纯数学库，无外部依赖）
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧

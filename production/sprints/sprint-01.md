@@ -13,14 +13,14 @@
 
 | # | Epic | Story | Story Points | Depends On | Status |
 |---|------|-------|:------------:|------------|--------|
-| 1 | item-database | Story 003 — Recipe settlement solver（schema + 守恒硬门） | 1 | — | Ready |
-| 2 | skill-system | Story 001 — Skill registry and definitions（抽象接口 + 19 技能注册表） | 1 | — | Ready |
-| 3 | input-system | Story 001 — Action asset identity（Input System 动作资产契约） | 1 | — | Ready |
+| 1 | item-database | Story 003 — Recipe settlement solver（schema + 守恒硬门） | 1 | — | ✅ Complete |
+| 2 | skill-system | Story 001 — Skill registry and definitions（抽象接口 + 19 技能注册表） | 1 | — | ✅ Complete |
+| 3 | input-system | Story 001 — Action asset identity（Input System 动作资产契约） | 1 | — | ✅ Complete |
 | 4 | persistence-service | Story 001 — Storage abstraction（二进制 codec 接口 + 校验骨架） | 2 | — | Ready |
 | 5 | player-controller | Story 001 — Controller foundation（CharacterController 参数 + `ITickProvider` 接入） | 1 | 4 | Ready |
 | 6 | camera-viewpoint | Story 002 — Yaw basis hard delivery（`ICameraRig.YawBasis` + 半隐式积分器） | 1 | 5 | Ready |
-| 7 | disease-simulation | Story 001 — Fixed-point math and hashing（`Fix` Q16.16 + `SplitMix64` + 单元级黄金哈希） | 1 | — | Ready |
-| 8 | telemetry-analytics | Story 001 — Readonly boundary, zero egress（51 接口层 + 构建期断言零网络） | 1 | — | Ready |
+| 7 | disease-simulation | Story 001 — Fixed-point math and hashing（`Fix` Q16.16 + `SplitMix64` + 单元级黄金哈希） | 1 | — | ✅ Complete |
+| 8 | telemetry-analytics | Story 001 — Readonly boundary, zero egress（51 接口层 + 构建期断言零网络） | 1 | — | ✅ Complete |
 
 **Depends On 列 = 本 sprint 内依赖**（跨 sprint 依赖由 epic 的 GDD 自行登记，不在此表）。
 

@@ -3,7 +3,7 @@
 > **Layer**: Foundation(Core sim 模块)
 > **GDD**: design/gdd/disease-simulation.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)
-> **Status**: Ready
+> **Status**: In Progress (1/6 stories complete)
 > **Stories**: 6 stories — see table below
 
 ## Overview
@@ -79,7 +79,7 @@ This epic is complete when:
 
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
-| 001 | 定点数学库与确定性哈希 | Logic | Ready | ADR-005/006/012/025/026 |
+| 001 | 定点数学库与确定性哈希 | Logic | **Complete ✅ 2026-09-30** | ADR-005/006/012/025/026 |
 | 002 | 抽象点、SimEvent 与病史流机制 | Logic | Ready | ADR-005/006/007/010/024 |
 | 003 | 注册表 schema、烘焙管线与门 A 护栏 | Integration | Ready | ADR-014/017/024/025 |
 | 004 | F1 病程求值与 F2 体征投影 | Logic | Ready | ADR-005/006 |
