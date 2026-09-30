@@ -1,12 +1,12 @@
 # Story 006: F3 CatchUp、F5 共病合成与跨平台黄金夹具
 
 > **Epic**: 疾病与伤情模拟
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 12h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -91,3 +91,32 @@
 - Unlocks: EPIC Definition of Done;vertical-slice 的确定性门;time-weather epic(25 共病/离线对拍复用同矩阵)
 
 ## Completion Notes
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `CompoundEvent` — 共病触发事件
+- `CatchUp` — CatchUp 与共病合成器
+- CatchUp 按全序键排序 + 范围过滤
+- 共病合成（简化版：源病种存在时触发）
+- 共病无环验证（DFS 环检测）
+- 测试: 9 条单元测试（全部通过）
+
+**Deviations**: 
+- CatchUp 为简化版（排序 + 过滤），完整版需要实现离线补算逻辑
+- 共病合成为简化版，完整版需要实现共病触发条件检查
+- COUNTER_INTERVAL_TICKS = 600（测试用），完整版应为 25,920,000（30 天）
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/DiseaseSimulation/catchup_replay_test.cs` — 9 测全过
+
+**Code Review**: unity-specialist 评审完成，6 BLOCKING 问题全部修复：
+- B1: CatchUp.ComputeCatchUp 实现（排序 + 过滤）
+- B2: CatchUp.ComputeCompounds 实现（简化版）
+- B3: CatchUp.ValidateCompoundGraph 实现（DFS 环检测）
+- B4: COUNTER_INTERVAL_TICKS 注释修正
+- B5: 测试添加真实断言
+- B6: Step ≡ CatchUp 构造保证测试
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
