@@ -1,12 +1,12 @@
 # Story 001: 存储抽象层（二进制 codec 接口 + 校验骨架）
 
 > **Epic**: 7a 持久化服务
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 2h
 > **Manifest Version**: 2026-09-29
-> **Last Updated**: 2026-09-29
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -37,3 +37,28 @@
 - [ ] **AC-7a-05**: 翻转存档中任一非校验和字节 ⇒ 校验和验证失败（BLOCKING）
 - [ ] **AC-7a-06**: 写 checkpoint ⇒ tmp → final 原子替换（final 存在则先 final → bak）（BLOCKING）
 - [ ] **AC-7a-18**: grep 7a 侧全部源码 ⇒ 零 float/double 类型用于存档或事件流（BLOCKING）
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `SaveHeader` — 存档头部结构（magic + checksum + version + worldSeed + configVersion + tick + snapshotOffset）
+- `ISaveCodec` / `SaveCodec` — 按字段名/tag 编码接口与默认实现
+- `ISaveService` / `SaveService` — 低层原语（SaveBytes/LoadBytes）+ SHA256 校验和 + 原子写 + 双档 bak
+- `CodecWriter.WriteBytes` / `CodecReader.ReadBytes` — 新增原始字节读写方法
+- 测试: 7 条单元测试（全部通过）
+- 全量 EditMode: 1447/1474 Passed, 0 Failed
+
+**Deviations**: 
+- ADR-025 修订：`Sim.Codec` 引用集由「BCL only」改为「BCL + `Sim.Contracts`」
+- `ISaveService` 接口只保留低层原语（SaveBytes/LoadBytes），高层方法（Checkpoint/SaveOnExit/Load）归后续 story
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/PersistenceService/save_service_test.cs` — 7 测全过
+
+**Code Review**: unity-specialist 评审 3 BLOCKING 问题，全部修复：
+- B-1: `Sim.Codec.asmdef` `noEngineReferences` 恢复为 `true`
+- B-2: `SaveCodec.ReadEvent` 实现完整解码逻辑
+- B-3: `SaveService` 移除 stub 方法，只保留低层原语
+
+**Manifest**: story Manifest Version 2026-09-29 = 当前 manifest(2026-09-21),无陈旧
