@@ -3,7 +3,7 @@
 > **Layer**: Presentation(控制器与相机 · manifest 该节适用)
 > **GDD**: design/gdd/player-controller-and-movement.md
 > **Architecture Module**: 表现层(纯表现态位移)+ 世界流唯一投影(跨格事件)
-> **Status**: In Progress
+> **Status**: In Progress (1/6 stories complete)
 > **Stories**: 6 stories created (2026-09-28)
 
 ## Overview

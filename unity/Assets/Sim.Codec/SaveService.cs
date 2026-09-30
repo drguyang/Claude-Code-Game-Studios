@@ -133,10 +133,7 @@ namespace DaYiJingCheng.Sim.Codec
             return result;
         }
 
-        // 高层接口(需要数据提供者,暂留空)
-        public void Checkpoint(SaveSlot slot) => throw new NotImplementedException();
-        public void SaveOnExit() => throw new NotImplementedException();
-        public void Load(SaveSlot slot) => throw new NotImplementedException();
+        // 高层接口(Checkpoint/SaveOnExit/Load)归后续 story 实现
 
         private string GetFinalPath(SaveSlot slot) => Path.Combine(_basePath, $"save_{slot.SlotSeq}.bin");
         private string GetTmpPath(SaveSlot slot) => Path.Combine(_basePath, $"save_{slot.SlotSeq}.tmp");

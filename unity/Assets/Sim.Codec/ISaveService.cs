@@ -16,16 +16,13 @@ namespace DaYiJingCheng.Sim.Codec
         public SaveSlot(uint slotSeq) { SlotSeq = slotSeq; }
     }
 
-    /// <summary>存档服务接口。</summary>
+    /// <summary>存档服务接口（低层原语）。高层方法（Checkpoint/SaveOnExit/Load）归后续 story。</summary>
     public interface ISaveService
     {
-        /// <summary>写 checkpoint。序列化主线程,写盘后台线程。</summary>
-        void Checkpoint(SaveSlot slot);
+        /// <summary>原子写字节到存档文件。</summary>
+        void SaveBytes(SaveSlot slot, byte[] data);
 
-        /// <summary>退出保存。</summary>
-        void SaveOnExit();
-
-        /// <summary>读档。校验和 → 自动回退 bak → 迁移链 → 三流重放。</summary>
-        void Load(SaveSlot slot);
+        /// <summary>读档字节。校验和验证 + 自动回退 bak。</summary>
+        byte[] LoadBytes(SaveSlot slot);
     }
 }

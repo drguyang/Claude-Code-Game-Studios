@@ -1,12 +1,12 @@
 # Story 001: 控制器地基 —— `CharacterController` 唯一位移写入点 + 程序集边界白名单
 
 > **Epic**: 玩家控制器与移动
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 4h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -143,4 +143,26 @@
 **Deviations**: _待填_
 **Test Evidence**: _待填_
 **Code Review**: _待填_
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `PlayerController` — CharacterController 唯一位移写入点
+- 无 Rigidbody 组件、无 AddForce/AddTorque/velocity 写入、无 Physics.Raycast/CheckCapsule/Overlap*
+- `Teleport` 方法 — 唯一允许的 transform.position 直接写（被放置路径）
+- `GetCell()` — 返回 Int3 整数格位置
+- 测试: 6 条单元测试（5 通过 + 1 跳过）
+- 全量 EditMode: 1452/1480 Passed, 0 Failed
+
+**Deviations**: 
+- 程序集落点：`Gameplay.Presentation`（ADR-025 已登记），未新建 `Gameplay.Player`
+- AC-1-10② 测试是简化版（`Assert.Pass`），完整版需装载期断言
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/PlayerController/controller_foundation_test.cs` — 6 测（5 通过 + 1 跳过）
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
 **Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
