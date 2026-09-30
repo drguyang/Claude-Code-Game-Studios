@@ -49,6 +49,14 @@ namespace DaYiJingCheng.Sim.Codec
             _buffer[_pos++] = value;
         }
 
+        public void WriteBytes(byte[] value)
+        {
+            if (value == null) throw new ArgumentNullException(nameof(value));
+            Ensure(value.Length);
+            Array.Copy(value, 0, _buffer, _pos, value.Length);
+            _pos += value.Length;
+        }
+
         public void WriteInt32LittleEndian(int value)
         {
             Ensure(4);

@@ -48,6 +48,15 @@ namespace DaYiJingCheng.Sim.Codec
             return _src[_pos++];
         }
 
+        public byte[] ReadBytes(int count)
+        {
+            EnsureAvailable(count);
+            byte[] result = new byte[count];
+            _src.Slice(_pos, count).CopyTo(result);
+            _pos += count;
+            return result;
+        }
+
         public int ReadInt32LittleEndian()
         {
             EnsureAvailable(4);

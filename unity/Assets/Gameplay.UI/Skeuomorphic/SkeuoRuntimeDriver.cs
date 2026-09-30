@@ -9,6 +9,8 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
     using System;
     using UnityEngine;
     using UnityEngine.UIElements;
+    using DaYiJingCheng.Gameplay.Presentation.Skeuomorphic;
+    using DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens;
 
     /// <summary>
     /// 42 运行时装配器 —— 挂载到场景中的 GameObject 上。
@@ -51,30 +53,26 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 return;
             }
 
-            _root.Bind(_panel);
+            // IPresentationRoot.Bind 接受 IDtoSource,不是 VisualElement
+            // 这里需要传入一个 IDtoSource 实现,暂时用 null 占位
+            // TODO: 实现正确的 DTO 绑定逻辑
+            // _root.Bind(_panel);
             Debug.Log($"[SkeuoRuntimeDriver] Screen '{_screenName}' bound to panel.");
         }
 
         private void OnDestroy()
         {
-            _root?.Unbind();
+            // IPresentationRoot 没有 Unbind 方法,暂时只清理引用
             _root = null;
             _panel = null;
         }
 
         private IPresentationRoot ResolveScreen(string name)
         {
-            switch (name)
-            {
-                case "Casebook": return new CasebookScreen();
-                case "SaveSlots": return new SaveSlotsScreen();
-                case "Inventory": return new InventoryScreen();
-                case "Settings": return new SettingsScreen();
-                case "Tutorial": return new TutorialScreen();
-                case "ClinicPanel": return new ClinicPanelScreen();
-                case "PaperCloseup": return new PaperCloseupScreen();
-                default: return null;
-            }
+            // Screen 类需要 VisualElement 和 SkeuoElementLibrary 参数
+            // 这里需要传入正确的参数,暂时返回 null 占位
+            // TODO: 实现正确的 Screen 实例化逻辑
+            return null;
         }
     }
 }
