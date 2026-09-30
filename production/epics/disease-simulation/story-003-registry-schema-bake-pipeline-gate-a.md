@@ -1,12 +1,12 @@
 # Story 003: 注册表 schema、烘焙管线与门 A 护栏
 
 > **Epic**: 疾病与伤情模拟
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 8h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -83,3 +83,23 @@
 - Unlocks: Story 004 / 005(求值读注册表)、prescription-medication epic(story 001 的两表烘焙复用本管线载体)、time-weather epic(25 侧配置同管线)
 
 ## Completion Notes
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `DiseaseRegistryEntry` — 病种注册表项（17 个字段）
+- `RegistrySchemaValidator` — 17 条构建期校验（R1-01 到 R1-17）
+- `RegistryValidationException` — 校验异常（含规则号）
+- 门 A 硬化（Sim 无 UnityEngine 引用）
+- PATIENT_APPEARANCE_CAP 配置项
+- 测试: 22 条单元测试（全部通过）
+
+**Deviations**: 无
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/DiseaseSimulation/registry_bake_test.cs` — 22 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
