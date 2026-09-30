@@ -1,12 +1,12 @@
 # Story 005: 遭遇生命周期、伤情真值路由与呈现信号契约 —— EncounterEnded / id 空间 / EnemySignalDto
 
 > **Epic**: 敌人 AI
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 8h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -102,3 +102,25 @@
 ---
 
 ## Completion Notes
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `EncounterEndReason` — 遭遇结束原因枚举（三值：脱离/全倒地/超时）
+- `EncounterState` — 遭遇状态（派生态，从流重建）
+- `EnemyEncounter` — 遭遇生命周期管理器（IsTimeout / Transition / ValidateWritableSet / ValidateIdChannel / ValidateInjuryRoute）
+- 六态迁移表完整实现且闭集
+- 三值可达（脱离/全倒地/超时）
+- 同遭遇 Ended 恰一条
+- 测试: 10 条单元测试（全部通过）
+
+**Deviations**: 
+- 遭遇生命周期为简化版（无完整状态机驱动），完整版需要 Story 003/004 集成
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/EnemyAI/encounter_lifecycle_test.cs` — 10 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
