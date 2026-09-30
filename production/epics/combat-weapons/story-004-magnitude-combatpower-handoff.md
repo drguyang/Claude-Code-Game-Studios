@@ -1,12 +1,12 @@
 # Story 004: magnitude 装配 F-25-2 与 CombatPower 交接
 
 > **Epic**: 格斗与武器线
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 ## Context
 
 **GDD**: `design/gdd/combat-and-weapon-lines.md`(F-25-2 magnitude 式 · 规则〇 CP_MAX 派生 · PS 单位 · R11 对消)
@@ -103,3 +103,23 @@
 ## Completion Notes
 
 *(留空 — story 关闭时回填)*
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `MagnitudeParams` — magnitude 装配参数
+- `CombatMagnitude` — magnitude 装配 F-25-2（ComputeMagnitude / ComputeDegradedMagnitude / ValidateCPMaxDerived / ValidateRounding）
+- magnitude = clamp(MAG_FLOOR + base_step × CP/CP_MAX, MAG_FLOOR, MAG_CAP)
+- 敌/兽退化式 = MAG_FLOOR + base_step
+- 先舍入后钳制
+- 测试: 8 条单元测试（全部通过）
+
+**Deviations**: 无
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/Combat/combat_magnitude_f252_test.cs` — 8 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
