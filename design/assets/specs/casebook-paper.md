@@ -137,17 +137,28 @@ Resolution: 2048x2048, high detail for close-up reading.
 
 ### Generation Record(§8.10.2 · 独创性留痕)
 
+> **本条记录的是「纸面底材质」这一项**,对应 `casebook_paper_base.png`。
+> 同批生成的另外 15 张贴图(界行 / 绳结 / 墨迹 / 印章 / 卷轴配件 / 图标集 / 九宫格边框)
+> 的生成留痕见 `design/assets/ai-generation-prompts.md` §九。
+
 | 字段 | 值 |
 |---|---|
-| `prompt` | 见上方代码块(prompt 本体) |
-| `model` | `TBD` — 待补生成时的模型与版本(如 SenseNova U1.5 / flux) |
-| `iterations` | `TBD` — 待补迭代轮次与每轮改动要点(i2i 时) |
-| `seed` | `TBD` — 待补随机种子(可复现) |
-| `human_edits` | `none` — 若有后期人工修改须逐项记录 |
+| `prompt` | 见上方代码块(prompt 本体)。**实际出图用的是改写版**——原 prompt 生成的是完整脉案版式图,而本 spec §「为什么要拆成四层」已裁定材质与版式解耦,故改用单材质 macro prompt(见 `ai-generation-prompts.md` §一)。原 prompt 保留在此作为**风格基调**的权威表述。 |
+| `model` | `sensenova-u1.5-fast`(SenseNova U1.5 Fast)。端点 `POST {base}/images/generations`,t2i 与 i2i 同端点,i2i 以 base64 data URI 传源图。 |
+| `iterations` | **4 轮**(2026-09-30)。① 原 prompt 版式图 → 作废(材质与版式解耦裁定后不再需要版式参考)。② 换 "Extreme macro close-up" 单材质模板,std 3.0→7.3。③ 微调至 `#EDE6D9`(目标 `#F5F0E8`)、接缝比 1.14 —— **定稿**。④ 追加"更暖更深"指令 → 暗褐 `#7A624A`,回归。 |
+| `seed` | **无** —— SenseNova `images/generations` 端点不回传 seed。后果:该贴图**不可复现**,重出必得不同结果。若需可复现,须换回传 seed 的模型并在资产上另记 seed 值。 |
+| `human_edits` | `none` —— 全部经 API 生成与 i2i 编辑,无人工描图 / 临摹 / 矢量化(art-bible §7.2)。 |
 
 > **§8.10.2 落地**:本表是发行时 Steam AI 申报清单的数据源。
-> `TBD` 字段须在该资产**首次生成时回填**;参考图本身为本地产物不入库
-> (见 `.gitignore` `/image-gen` 条目),规格真源 = 本 spec。
+> **产出入库状态(2026-09-30 改判)**:定稿版 16 张(4.1 MB)已入库至
+> `unity/Assets/Gameplay.UI/Skeuomorphic/Textures/*-final.png` —— 它们是运行期资产,
+> DA 要裁、美术要改。**迭代版(`-v1`~`-v6`,78 MB)仍 gitignored** 留在
+> `assets/design-references/`,理由原样成立(无法重建、每轮规格不同、入库制造假版本权威)。
+> 规格真源 = 本 spec;生成留痕 = 本表 + `ai-generation-prompts.md` §九。
+>
+> ⚠️ **`seed` 缺失是申报风险项**:Steam 要求披露 AI 生成内容,本表已满足;
+> 但"可复现性"在多数平台的 AI 内容条款下并非强制项。若后续出现需要 seed 的场景
+> (如法务举证 / 争议溯源),须换模型重出并补记。
 
 ---
 

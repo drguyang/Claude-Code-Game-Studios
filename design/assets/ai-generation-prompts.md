@@ -125,20 +125,62 @@ A 9-slice border frame for Chinese scroll UI, dark brown wood texture edges, bra
 
 ```
 unity/Assets/Gameplay.UI/Skeuomorphic/Textures/
-├── paper_xuan.png
-├── paper_aged.png
-├── paper_burnt_edge.png
-├── paper_hemp.png
-├── ink_wet.png
-├── ink_dry.png
-├── ink_light.png
-├── ink_dot.png
-├── seal_red.png
-├── seal_surface.png
-├── scroll_rod.png
-├── scroll_knot.png
-├── scroll_cap.png
-├── ui_icons_sprite.png
-├── border_paper.png
-└── border_scroll.png
+├── paper_xuan-final.png
+├── paper_aged-final.png
+├── paper_burnt_edge-final.png
+├── paper_hemp-final.png
+├── ink_wet-final.png
+├── ink_dry-final.png
+├── ink_light-final.png
+├── ink_dot-final.png
+├── seal_red-final.png
+├── seal_surface-final.png
+├── scroll_rod-final.png
+├── scroll_knot-final.png
+├── scroll_cap-final.png
+├── ui_icons_sprite-final.png
+├── border_paper-final.png
+└── border_scroll-final.png
 ```
+
+> **`-final` 后缀的由来（2026-09-30）**：`/image-gen` 的迭代产物带 `-v1`/`-v2`… 后缀留在
+> `assets/design-references/`（gitignored，不入库）。入库的是每张的定稿版，改名为
+> `<资产名>-final.png`——**后缀本身是"这是定稿、不要再迭代"的标记**，去掉会让
+> 后续的 `-v7` 与定稿在目录里无法区分。
+
+---
+
+## 九、生成记录（2026-09-30 定稿）
+
+| 项 | 值 |
+|---|---|
+| **model** | `sensenova-u1.5-fast`（SenseNova U1.5 Fast） |
+| **endpoint** | `POST {base_url}/images/generations`（t2i 与 i2i 同端点，i2i 以 base64 data URI 传源图） |
+| **size** | 1024×1024（`ui_icons_sprite` 2048×2048，4×4 网格每格 512） |
+| **seed** | 未提供 —— SenseNova 该端点不回传 seed，**不可复现**（见下） |
+| **human_edits** | `none` —— 全部经 API 生成与 i2i 编辑，无人工描图 / 临摹 / 矢量化（art-bible §7.2） |
+| **迭代轮次** | 见下表 |
+
+| # | 资产 | 轮次 | 定稿版 | 关键迭代要点 |
+|---|---|---|---|---|
+| 1 | `paper_xuan` | 4 | v3 | v1–v2 无纤维感；v3 换 "Extreme macro close-up" 模板后 std 3.0→7.3、接缝比 1.14。v4 改坏（暗褐 `#7A624A`）弃用 |
+| 2 | `paper_aged` | 6 | v6 | v2–v3 在"黄"与"白"间来回；v4 去黄成功但过白；v5 过黄；v6 拉回 `#D9D6CC`，接缝比 1.34 |
+| 3 | `paper_burnt_edge` | 1 | v1 | 一次命中，接缝比 0.04（全批最低） |
+| 4 | `paper_hemp` | 4 | v4 | v2 有 TB=70.98 硬接缝；v3 修接缝但磨平了麻纹（std 4.8）；v4 补回纤维 std 18.0、接缝 0.52 |
+| 5 | `ink_wet` | 2 | v2 | v1 笔画太细；v2 要求"墨团占 80% 画面"→ 主体 `#190A07`（目标 `#1A1714`） |
+| 6 | `ink_dry` | 1 | v1 | 一次命中 |
+| 7 | `ink_light` | 2 | v2 | v2 暗区 `#4E4842`（目标 `#4A4640`），保留 p5=112/p95=210 的软渐变 |
+| 8 | `ink_dot` | 2 | v2 | v2 主体 `#030201`，LR 3.73 / TB 4.97 = 孤立墨点无杂边 |
+| 9 | `seal_red` | 5 | v5 | **触线资产**。轨迹：v1 太亮（sat 96.9）→ v2 过暗 → v3 亮对纯度未降（94.5）→ v4 降饱和成功但连亮度一起拖暗（81.4）→ v5 亮度正确、纯度 84.5（目标 ~68）。用户目视验收后定稿 |
+| 10 | `seal_surface` | 2 | v1 | v2 偏橙（`#E26B2F`）明显更差，退回 v1 `#851C10` |
+| 11 | `scroll_rod` | 1 | v1 | 深色抛光木，横贯画面 |
+| 12 | `scroll_knot` | 5 | v5 | 轨迹同 seal_red：v1 暗 → v3 降饱和但拖暗 → v4 提亮过头 → v5 `#B9403F` sat 70.9（目标 sat 68）命中 |
+| 13 | `scroll_cap` | 1 | v1 | 做旧黄铜 `#67532F` |
+| 14 | `ui_icons_sprite` | 1 | v1 | 4×4 网格分隔线精确落 512/1024/1536，16 格覆盖率 4.7%–35.4% |
+| 15 | `border_paper` | 1 | v1 | 中央 ½ 区纯白（可作九宫格空心区） |
+| 16 | `border_scroll` | 1 | v1 | 中央 ½ 区纯白，木带 + 黄铜包角 |
+
+> **验收方式**：颜色 / 饱和度 / 平铺接缝 / 构图结构由量化脚本判（分位灰度、HSV 饱和度、
+> 边缘邻域 std 归一化的接缝比、主体区取色、格线落点检查）；**内容语义与风格由用户目视定稿**。
+> `art-bible §7.2` 禁人工描图 —— 全部 16 张零人工编辑。
+

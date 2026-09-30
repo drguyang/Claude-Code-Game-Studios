@@ -179,11 +179,12 @@ unity/_tools/
 # Get a key at https://console.sensecore.cn  →  read it into this file.
 .claude/sensenova.json
 
-# === Generated reference art (never committed) ===
-# /image-gen 产出的 AI 参考图是本地产物,不是可重建资产:
-#   · 5–6 MB/张,仓库已在 LFS 未配置的 100 MB 硬限边缘反复 rebase 冲突
-#   · 无法由代码重建 —— 丢掉就只能重新花 API 调用重出
-#   · 结论随之漂移 —— 同一张图在不同轮次承载不同规格,入库即制造版本权威的假象
-# 规格真源是 design/assets/specs/*.md 与 design/ux/*.md,图只是本地比对用的中间物。
-# 需要看历史版就重新生成,或留在本地目录里不入库。
+# === AI 参考图:仅迭代版本不入库,定稿版入库 ===
+# 2026-09-29 裁定参考图全部不入库;2026-09-30 用户改判,理由是运行期要真用这些贴图。
+# 两者不矛盾 —— 分的是「哪一批」,不是「要不要」:
+#   · assets/design-references/ 留全部迭代版(78 MB / 43 个文件)。不入库的理由原样成立:
+#     5–6 MB/张无法重建、同一资产不同轮次承载不同规格、入库即制造版本权威的假象。
+#   · unity/Assets/Gameplay.UI/Skeuomorphic/Textures/*-final.png 是 16 张定稿(4.1 MB),
+#     进构建、DA 要裁、美术要改 —— 它们是项目资产,不是参考物。
+# 规格真源仍是 design/assets/specs/*.md;定稿版的生成留痕在 casebook-paper.md §8.10.2。
 assets/design-references/
