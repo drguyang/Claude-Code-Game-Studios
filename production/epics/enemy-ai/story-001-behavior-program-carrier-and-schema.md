@@ -1,12 +1,12 @@
 # Story 001: 行为程序载体 —— ai_enemy.json 烘焙 schema 与整数决策器
 
 > **Epic**: 敌人 AI
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 6h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -92,3 +92,24 @@
 ---
 
 ## Completion Notes
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `EnemyBehaviorRow` — 行为程序参数行
+- `EnemyBehaviorSchema` — schema 校验器（Validate / ValidateAll / ParseFixField）
+- `EnemyDecisionEvaluator` — 整数决策器（EvaluateTargetSelection / IsInRange / IsInChaseRange / EvaluateMorale）
+- 每参数行恰有 entity_kind / down_class / morale_enabled / flank_enabled / target_policy / default_attack
+- Fix 字段 JSON 写字符串 → FixParse
+- 测试: 11 条单元测试（全部通过）
+
+**Deviations**: 
+- 决策器为简化版（无完整状态机），完整版归 Story 003
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/EnemyAI/behavior_program_schema_test.cs` — 11 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
