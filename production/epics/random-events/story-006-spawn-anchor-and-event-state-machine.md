@@ -1,12 +1,12 @@
 # Story 006: spawn_anchor 解析与事件状态机
 
 > **Epic**: 随机事件导演
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 5h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -116,3 +116,27 @@
 ## Completion Notes
 
 *(empty — fill at story completion via `/story-done`)*
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `EventState` — 事件状态机六态枚举
+- `EventTrigger` — 状态机触发事件枚举
+- `AnchorContext` — 锚点解析上下文
+- `EventAnchor` — spawn_anchor 解析器（ResolveClinicFront / ResolveTravelPath / ResolveGatherPoint / Resolve）
+- `EventStateMachine` — 事件状态机（Transition / ValidateClosedSet）
+- 三锚点解析器各自确定性
+- 六态迁移表完整实现且闭集
+- 事件驱动零轮询
+- 测试: 8 条单元测试（全部通过）
+
+**Deviations**: 
+- 锚点解析为简化版（无完整烘焙数据查询），完整版需要 ADR-022 导出契约
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/RandomEvents/event_anchor_statemachine_test.cs` — 8 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧

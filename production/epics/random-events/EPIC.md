@@ -105,4 +105,4 @@ This epic is complete when:
 | 003 | F1 抽取管线:配额、上下文门与强度轴 | Logic | **Complete ✅ 2026-09-30** | ADR-005/006/009 |
 | 004 | F2 密度预算与 DeferredThreatSlot | Logic | **Complete ✅ 2026-09-30** | ADR-005/007/009 |
 | 005 | 预告制、避险与因果可见 | Integration | **Complete ✅ 2026-09-30** | ADR-009/013/018 |
-| 006 | spawn_anchor 解析与事件状态机 | Integration | Ready | ADR-015/007/016 |
+| 006 | spawn_anchor 解析与事件状态机 | Integration | **Complete ✅ 2026-09-30** | ADR-015/007/016 |
