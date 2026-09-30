@@ -1,12 +1,12 @@
 # Story 003: 敌意状态机 —— 六态转移、士气/脱离单一出处与 LOD 节流
 
 > **Epic**: 敌人 AI
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 8h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -93,3 +93,24 @@
 ---
 
 ## Completion Notes
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `EnemyStateMachine.State` — 六态枚举
+- `StateTrigger` — 触发事件枚举
+- `EnemyStateMachine` — 敌意状态机（Transition / ValidateClosedSet / IsInCombat / ComputeMorale / ShouldDisengage）
+- 六态转移表完整实现且闭集
+- 士气/脱离单一出处
+- LOD 节流三条现行
+- 测试: 8 条单元测试（全部通过）
+
+**Deviations**: 无
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/EnemyAI/hostility_state_machine_test.cs` — 8 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧

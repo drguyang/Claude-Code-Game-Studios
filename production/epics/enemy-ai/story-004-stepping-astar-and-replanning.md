@@ -1,12 +1,12 @@
 # Story 004: 确定性移动与寻路 —— 定点累加器步进、整数 A* 与路径重规划
 
 > **Epic**: 敌人 AI
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 8h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -93,3 +93,26 @@
 ---
 
 ## Completion Notes
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `PathNode` — 路径节点
+- `PathResult` — A* 寻路结果
+- `EnemyPathing` — 确定性 A* 寻路器（FindPath / ComputeOctileHeuristic / StepAccumulator / ValidateAccumulator）
+- 堆键 = 5 元整数元组 (f,h,Z,Y,X) 全序
+- OCTILE 整数启发式
+- NODE_BUDGET 超限返回空路径
+- path_cursor 重算保位
+- 测试: 7 条单元测试（全部通过）
+
+**Deviations**: 
+- A* 为简化版（6 方向邻居），完整版需要 26 方向或导航格切片
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/EnemyAI/deterministic_pathing_test.cs` — 7 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
