@@ -1,12 +1,12 @@
 # Story 005: 预告制、避险与因果可见
 
 > **Epic**: 随机事件导演
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 5h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 
 ## Context
 
@@ -116,3 +116,26 @@
 ## Completion Notes
 
 *(empty — fill at story completion via `/story-done`)*
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `PrecognitionState` — 预告状态（导演本地态，不进流）
+- `EventCueDto` — 线索 DTO（整数 key，呈现层自行映射定性文案）
+- `EventPrecognition` — 预告制、避险与因果可见（ShouldEvade / CanDisengage / ValidateNoNumeric / CreateCue / ValidateNoDirectDrop）
+- 预告制无直降路径
+- 避险一等公民（三条件门）
+- 可脱离
+- 因果线索零数值
+- 测试: 7 条单元测试（全部通过）
+
+**Deviations**: 
+- 预告窗为简化版（无完整预告窗计时），完整版归 Story 006
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/RandomEvents/event_precognition_evasion_test.cs` — 7 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
