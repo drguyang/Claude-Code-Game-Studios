@@ -18,10 +18,10 @@
     padding-right: var(--skeuo-shared-space-md);
     padding-bottom: var(--skeuo-shared-space-md);
     padding-left: var(--skeuo-shared-space-md);
-    -unity-slice-left: 12px;
-    -unity-slice-right: 12px;
-    -unity-slice-top: 12px;
-    -unity-slice-bottom: 12px;
+    -unity-slice-left: 42px;
+    -unity-slice-right: 42px;
+    -unity-slice-top: 42px;
+    -unity-slice-bottom: 42px;
 }
 
 /* 变体: aged — 通过 USS 变量覆盖实现(禁止同类型内通过颜色/尺寸模拟变体, AC-42-C4) */

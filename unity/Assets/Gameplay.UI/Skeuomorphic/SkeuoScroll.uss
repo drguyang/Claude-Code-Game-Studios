@@ -14,10 +14,10 @@
     padding-right: var(--skeuo-shared-space-lg);
     padding-bottom: var(--skeuo-shared-space-lg);
     padding-left: var(--skeuo-shared-space-lg);
-    -unity-slice-left: 16px;
-    -unity-slice-right: 16px;
-    -unity-slice-top: 16px;
-    -unity-slice-bottom: 16px;
+    -unity-slice-left: 68px;
+    -unity-slice-right: 68px;
+    -unity-slice-top: 68px;
+    -unity-slice-bottom: 68px;
 }
 
 .scroll .ink {
