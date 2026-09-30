@@ -1,12 +1,12 @@
 # Story 002: 攻击求值点:意图通道 · 占用门 · tick 内次序
 
 > **Epic**: 格斗与武器线
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-09-30
 ## Context
 
 **GDD**: `design/gdd/combat-and-weapon-lines.md`(规则〇 意图→求值点 · 先判后打 · 占用门三边界 · tick 内次序 · §〇 组 AC)
@@ -104,3 +104,24 @@
 ## Completion Notes
 
 *(留空 — story 关闭时回填)*
+
+## Completion Notes
+
+**Completed**: 2026-09-30
+**Criteria**: 
+- `AttackIntent` — 攻击意图
+- `CombatAttackEvalPoint` — 攻击求值点（IsOccupied / TryEvaluateAttack / ValidateNoBufferFields / ValidateTickOrder）
+- 占用门 Occupied(a) 由事件流 + cooldown 派生
+- 压制不占用
+- Natural 占用
+- 无缓冲字段断言
+- 测试: 5 条单元测试（全部通过）
+
+**Deviations**: 无
+
+**Test Evidence**: 
+- `unity/Assets/Tests/EditMode/Combat/combat_attack_eval_point_test.cs` — 5 测全过
+
+**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
