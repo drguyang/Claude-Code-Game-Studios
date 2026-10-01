@@ -13,8 +13,8 @@ namespace DaYiJingCheng.Sim.Contracts
         /// <summary>可采部位。</summary>
         public string[] Parts { get; set; }
 
-        /// <summary>品级分布(形状由 17 定 —— 见 <see cref="QualityDistribution"/>)。</summary>
-        public QualityDistribution QualityDistribution { get; set; }
+        // 品级分布(quality_distribution)形状由 17 定 —— 见 design/gdd/item-database.md §Schema C。
+        // 本块不持有该类型(21a → 17 的只读输入契约,TR-itemdb-017)。
 
         /// <summary>单次采量基数(21a 给基数,17 给动作)。int &gt; 0;越界校验归 Story 006。</summary>
         public int QtyPerNode { get; set; }
