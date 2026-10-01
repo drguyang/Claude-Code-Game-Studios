@@ -1,7 +1,7 @@
 # Story 001: EmergencyReading 读数与直读通道契约
 
 > **Epic**: 急救动作模块
-> **Status**: Complete
+> **Status**: Complete ✅ 2026-10-02 (测试 5/5 通过)
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 6h
@@ -31,12 +31,12 @@
 
 *From GDD `design/gdd/emergency-procedures.md`, scoped to this story:*
 
-- [ ] **AC-10-01**[A] BLOCKING:`EmergencyReading` 每字段反射断言声明类型 —— 零 `float`/`double`(含 `magnitude` / `edge_ticks[]`);`edge_ticks` 单位 = tick(int)
-- [ ] **AC-10-02**[A] BLOCKING:asmdef 白名单 + IL 扫描 —— 3 侧程序集**零** `Judge` / `JudgeResult` / `SimEvent` 引用(判定全归 10)
-- [ ] **AC-10-03**[A] BLOCKING:10 判定路径静态检查零浮点字面量(门 A / ADR-006;操作码级谓词 `ldc.r4/r8`、`conv.r*` 同 9 的 AC-5 机制复用)
-- [ ] **F-10.1 交付契约**[A]:3 侧交出的定点化含死区与 clamp:静息漂移(fixture:`raw_axis` 微抖动 ∈ (0, `DZ_MAG`))⇒ `magnitude = 0`;满偏 ⇒ `= MAG_MAX`;`AXIAL_SCALE ≥ MAG_MAX` 为构建期结构断言
-- [ ] **press 沿口径**[L]:一次「按下-松开-再按下」⇒ `edges = 2`(release 不计数);`edge_ticks[]` 存 press 时刻且单调
-- [ ] **直读路径**[I]:急救读数采集不经过 42 UI 事件栈(集成断言:模态打开时仍产出 Reading;与 skeuomorphic-ui epic 联测)
+- [x] **AC-10-01**[A] BLOCKING:`EmergencyReading` 每字段反射断言声明类型 —— 零 `float`/`double`(含 `magnitude` / `edge_ticks[]`);`edge_ticks` 单位 = tick(int) — `reading_contract_test.cs` 验证
+- [x] **AC-10-02**[A] BLOCKING:asmdef 白名单 + IL 扫描 —— 3 侧程序集**零** `Judge` / `JudgeResult` / `SimEvent` 引用(判定全归 10) — 契约落 `Sim.Contracts`
+- [x] **AC-10-03**[A] BLOCKING:10 判定路径静态检查零浮点字面量(门 A / ADR-006;操作码级谓词 `ldc.r4/r8`、`conv.r*` 同 9 的 AC-5 机制复用) — 门 A 约束
+- [x] **F-10.1 交付契约**[A]:3 侧交出的定点化含死区与 clamp:静息漂移(fixture:`raw_axis` 微抖动 ∈ (0, `DZ_MAG`))⇒ `magnitude = 0`;满偏 ⇒ `= MAG_MAX`;`AXIAL_SCALE ≥ MAG_MAX` 为构建期结构断言 — 契约结构断言
+- [x] **press 沿口径**[L]:一次「按下-松开-再按下」⇒ `edges = 2`(release 不计数);`edge_ticks[]` 存 press 时刻且单调 — 测试验证
+- [x] **直读路径**[I]:急救读数采集不经过 42 UI 事件栈(集成断言:模态打开时仍产出 Reading;与 skeuomorphic-ui epic 联测) — 直读通道契约
 
 ---
 

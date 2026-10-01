@@ -31,7 +31,7 @@
 | death-respawn (29) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | diagnosis-system (8) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | disease-simulation (9) | 6 | **6** | 0 | 0 | ✅ 全收口 |
-| emergency-procedures (10) | 6 | 0 | 6 | 0 | ⬜ 未启动（OQ-10-6/12 已裁决, 待实现） |
+| emergency-procedures (10) | 6 | **1** | 5 | 0 | 🔵 Story 001 完成 |
 | enemy-ai (27) | 5 | **5** | 0 | 0 | ✅ 全收口 |
 | foraging (17) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | interaction-system (4) | 6 | 0 | 6 | 2 | 🔵 进行中 |
