@@ -31,7 +31,7 @@
 | death-respawn (29) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | diagnosis-system (8) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | disease-simulation (9) | 6 | **6** | 0 | 0 | ✅ 全收口 |
-| emergency-procedures (10) | 6 | 0 | 6 | 0 | ⬜ 未启动（Story 002 BLOCKED-BY-OQ-10-6） |
+| emergency-procedures (10) | 6 | 0 | 6 | 0 | ⬜ 未启动（OQ-10-6/12 已裁决, 待实现） |
 | enemy-ai (27) | 5 | **5** | 0 | 0 | ✅ 全收口 |
 | foraging (17) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | interaction-system (4) | 6 | 0 | 6 | 2 | 🔵 进行中 |
@@ -88,7 +88,7 @@
 
 | 类别 | 事项 | 优先级 |
 |------|------|--------|
-| **Sprint 03 缺口** | emergency-procedures 6 story 未实现（Story 002 BLOCKED-BY-OQ-10-6） | 高 |
+| **Sprint 03 缺口** | emergency-procedures 6 story 未实现（OQ-10-6/12 已裁决, 待实现） | 高 |
 | **联机** | 45 联机夹具（P1b） | 非阻塞 |
 | **设计面 OQ** | OQ-SS-3（归 44）· OQ-IC-6（playtest）· OQ-24-1..6（数值轮） | 低 |
 | **走查** | 七屏走查 NOT-RUN（45 联机夹具是硬前置） | 中 |
@@ -98,7 +98,7 @@
 
 ### 下一步推荐
 
-1. **继续 Sprint 03**：推进 emergency-procedures（需先裁 OQ-10-6）
+1. **继续 Sprint 03**：推进 emergency-procedures（OQ-10-6/12 已裁决, 可开工）
 2. **或启动新 epic**：casebook / diagnosis-system / clinic-machine 等 Ready 队列
 3. **或处理待办**：45 联机夹具 / ADR-023 spikes / 七屏走查
 

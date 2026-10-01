@@ -24,6 +24,7 @@
 - Required: 全部 `Fix` 字段以字符串/`FromRatio` 进 JSON;DC-1…DC-5 五条烘焙期校验逐条实现(throw 级)
 - Forbidden: 数值硬编码在 C#;`half_life_ticks = 0`(DC-1);`mag_threshold` 越界(DC-2);新手容差 < `MUL_ONE`(DC-3)
 - Guardrail: **DC-4 悬置显式登记** —— `EmergencyAction` 枚举归属(`OQ-10-6`)未裁 ⇒ `action_id` 类型来源未定 ⇒ DC-4 **NOT-RUN,不得记绿**
+  - **✅ 2026-10-02 用户裁决: 归系统 10** —— 急救动作是系统 10 核心职责，枚举值（CPR/止血/包扎）是急救动作特有
 
 ---
 

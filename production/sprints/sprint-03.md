@@ -32,7 +32,7 @@
 | 10 | enemy-ai | Story 004 — 战斗行为 | 2 | 9 | Complete ✅ 2026-10-01 |
 | 11 | enemy-ai | Story 005 — 冻结与 LOD | 1 | 10 | Complete ✅ 2026-10-01 |
 | 12 | emergency-procedures | Story 001 — 急救动作基础 | 2 | — | Ready |
-| 13 | emergency-procedures | Story 002 — CPR 与心肺复苏 | 2 | 12 | BLOCKED-BY-OQ-10-6 |
+| 13 | emergency-procedures | Story 002 — CPR 与心肺复苏 | 2 | 12 | Ready (OQ-10-6 已裁决: 归系统 10) |
 | 14 | emergency-procedures | Story 003 — 止血与包扎 | 2 | 13 | Ready |
 | 15 | emergency-procedures | Story 004 — 急救判定与输入 | 2 | 14 | Ready |
 | 16 | emergency-procedures | Story 005 — 急救音频与反馈 | 1 | 15 | Ready |
