@@ -636,7 +636,9 @@ namespace DaYiJingCheng.EditorTools.Gates
         }
 
         // 嵌套类型的 Namespace 字段可能为空 —— 沿 DeclaringType 回取(扫描键不因此漏嵌套类)。
-        private static string EffectiveNamespace(TypeDefinition t)
+        // public(2026-10-01):EcozoneIntegerGates(AC-6-22)的 y 面扫描复用同一解析器 ——
+        // 两处各写一份会让「嵌套类型的命名空间怎么算」悄悄漂移(那正是扫描键漏面的成因)。
+        public static string EffectiveNamespace(TypeDefinition t)
         {
             while (string.IsNullOrEmpty(t.Namespace) && t.DeclaringType != null)
                 t = t.DeclaringType;

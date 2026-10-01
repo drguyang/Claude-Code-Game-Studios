@@ -1,0 +1,717 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="111" result="Passed" total="111" passed="111" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.3910539">
+  <test-suite type="TestSuite" id="1000" name="unity" fullname="unity" runstate="Runnable" testcasecount="1864" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.391054" total="111" passed="111" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="2788" name="Sim.Contracts.Tests.dll" fullname="/XYFS01/sysu_tyu2_2/gu/nm2/Claude-Code-Game-Studios/unity/Library/ScriptAssemblies/Sim.Contracts.Tests.dll" runstate="Runnable" testcasecount="1668" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.369728" total="111" passed="111" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="4094465" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="2789" name="DaYiJingCheng" fullname="DaYiJingCheng" runstate="Runnable" testcasecount="1668" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.350301" total="111" passed="111" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="2790" name="Tests" fullname="DaYiJingCheng.Tests" runstate="Runnable" testcasecount="1668" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.293685" total="111" passed="111" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="2802" name="Unit" fullname="DaYiJingCheng.Tests.Unit" runstate="Runnable" testcasecount="1271" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.188044" total="24" passed="24" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestSuite" id="2808" name="Audio" fullname="DaYiJingCheng.Tests.Unit.Audio" runstate="Runnable" testcasecount="297" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.160512" total="24" passed="24" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="TestFixture" id="2476" name="AssemblyBoundaryTest" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" testcasecount="24" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.152598" total="24" passed="24" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="2498" name="test_audioCueSink_onlyIntoNoStateOut" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_audioCueSink_onlyIntoNoStateOut" methodname="test_audioCueSink_onlyIntoNoStateOut" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="391566221" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.015659" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2493" name="test_dtoGuard_assertThrows_onViolation" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_dtoGuard_assertThrows_onViolation" methodname="test_dtoGuard_assertThrows_onViolation" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="1130530997" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.007828" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2488" name="test_dtoGuard_audioCueDto_noDiseaseField" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_dtoGuard_audioCueDto_noDiseaseField" methodname="test_dtoGuard_audioCueDto_noDiseaseField" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="1171902619" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000578" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2491" name="test_dtoGuard_baseClassPrivateField_reportsRed" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_dtoGuard_baseClassPrivateField_reportsRed" methodname="test_dtoGuard_baseClassPrivateField_reportsRed" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="1246011003" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000470" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2492" name="test_dtoGuard_diagnosticFamilyTokens_reportsRed" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_dtoGuard_diagnosticFamilyTokens_reportsRed" methodname="test_dtoGuard_diagnosticFamilyTokens_reportsRed" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="718883086" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000399" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2490" name="test_dtoGuard_listElementField_reportsRed" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_dtoGuard_listElementField_reportsRed" methodname="test_dtoGuard_listElementField_reportsRed" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="827889512" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000359" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2489" name="test_dtoGuard_nestedPrivateField_reportsRed" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_dtoGuard_nestedPrivateField_reportsRed" methodname="test_dtoGuard_nestedPrivateField_reportsRed" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="521331982" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000315" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2494" name="test_entryPoints_production44_noUnknownEntry" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_entryPoints_production44_noUnknownEntry" methodname="test_entryPoints_production44_noUnknownEntry" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="1953812805" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.004392" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2496" name="test_entryPoints_simSignature_reportsRed" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_entryPoints_simSignature_reportsRed" methodname="test_entryPoints_simSignature_reportsRed" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="860002131" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000477" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2495" name="test_entryPoints_vitalsDtoParam_reportsRed" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_entryPoints_vitalsDtoParam_reportsRed" methodname="test_entryPoints_vitalsDtoParam_reportsRed" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="266575926" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.001867" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2497" name="test_entryPoints_wrongInterface_reportsRed" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_entryPoints_wrongInterface_reportsRed" methodname="test_entryPoints_wrongInterface_reportsRed" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="495681095" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000341" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2499" name="test_fieldTypes_production44_withinWhitelist" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_fieldTypes_production44_withinWhitelist" methodname="test_fieldTypes_production44_withinWhitelist" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="1571575193" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.001991" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2500" name="test_fieldTypes_simStateAndEngineNonAudioField_reportsRed" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_fieldTypes_simStateAndEngineNonAudioField_reportsRed" methodname="test_fieldTypes_simStateAndEngineNonAudioField_reportsRed" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="1239274958" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000593" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2477" name="test_fullGate_currentTree_zeroErrors" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_fullGate_currentTree_zeroErrors" methodname="test_fullGate_currentTree_zeroErrors" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="1124553338" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.087973" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <output><![CDATA[[b5 WARN]
+[b5-W] 引用「Sim」= 既有工程债(基线放行,WARN 不红)—— Presentation→Sim 摘除归装配轮(Story 001 Out of Scope,另账)。
+]]></output>
+                </test-case>
+                <test-case id="2479" name="test_ilScan_negativeFixtureInTestAssembly_flagged" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_ilScan_negativeFixtureInTestAssembly_flagged" methodname="test_ilScan_negativeFixtureInTestAssembly_flagged" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="895146916" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.004457" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2480" name="test_referenceSet_baselineSim_warnsNotRed" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_referenceSet_baselineSim_warnsNotRed" methodname="test_referenceSet_baselineSim_warnsNotRed" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="1731759469" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.002115" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2482" name="test_referenceSet_dotsFamily_reportsRedUnconditionally" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_referenceSet_dotsFamily_reportsRedUnconditionally" methodname="test_referenceSet_dotsFamily_reportsRedUnconditionally" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="908573607" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000708" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2484" name="test_referenceSet_engineAndBcl_pass" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_referenceSet_engineAndBcl_pass" methodname="test_referenceSet_engineAndBcl_pass" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="794764508" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000355" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2481" name="test_referenceSet_newDrift_reportsRedWithThreeSegments" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_referenceSet_newDrift_reportsRedWithThreeSegments" methodname="test_referenceSet_newDrift_reportsRedWithThreeSegments" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="1682256328" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000444" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2483" name="test_referenceSet_simCodecBlacklist_reportsRed" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_referenceSet_simCodecBlacklist_reportsRed" methodname="test_referenceSet_simCodecBlacklist_reportsRed" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="1074568188" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000299" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2486" name="test_sourceScan_commentMention_notFlagged" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_sourceScan_commentMention_notFlagged" methodname="test_sourceScan_commentMention_notFlagged" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="1239926052" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000311" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2478" name="test_sourceScan_contractTokenWithoutPrefix_escapesRed" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_sourceScan_contractTokenWithoutPrefix_escapesRed" methodname="test_sourceScan_contractTokenWithoutPrefix_escapesRed" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="1565529492" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000369" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2485" name="test_sourceScan_forbiddenUsingAndTypeName_reportsRed" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_sourceScan_forbiddenUsingAndTypeName_reportsRed" methodname="test_sourceScan_forbiddenUsingAndTypeName_reportsRed" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="300427552" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000667" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="2487" name="test_sourceScan_reflectionString_reportsRed" fullname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest.test_sourceScan_reflectionString_reportsRed" methodname="test_sourceScan_reflectionString_reportsRed" classname="DaYiJingCheng.Tests.Unit.Audio.AssemblyBoundaryTest" runstate="Runnable" seed="1443599630" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000297" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+          <test-suite type="TestSuite" id="2791" name="WorldEcozones" fullname="DaYiJingCheng.Tests.WorldEcozones" runstate="Runnable" testcasecount="87" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.090974" total="87" passed="87" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1002" name="ChunkActivationTest" fullname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest" classname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.005873" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1003" name="test_activeChunks_pureFunction_identicalRuns" fullname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest.test_activeChunks_pureFunction_identicalRuns" methodname="test_activeChunks_pureFunction_identicalRuns" classname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest" runstate="Runnable" seed="506615279" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.002341" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1006" name="test_chunkConversion_inverse" fullname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest.test_chunkConversion_inverse" methodname="test_chunkConversion_inverse" classname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest" runstate="Runnable" seed="1169609445" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000378" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1007" name="test_chunkIndex_roundTrip" fullname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest.test_chunkIndex_roundTrip" methodname="test_chunkIndex_roundTrip" classname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest" runstate="Runnable" seed="231348886" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000490" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1008" name="test_outOfBoundsChunk_notActive" fullname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest.test_outOfBoundsChunk_notActive" methodname="test_outOfBoundsChunk_notActive" classname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest" runstate="Runnable" seed="1848122155" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000319" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1005" name="test_streamingRadius_correctActivation" fullname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest.test_streamingRadius_correctActivation" methodname="test_streamingRadius_correctActivation" classname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest" runstate="Runnable" seed="242161012" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000360" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1004" name="test_unloadedChunk_treatedAsBlock" fullname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest.test_unloadedChunk_treatedAsBlock" methodname="test_unloadedChunk_treatedAsBlock" classname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest" runstate="Runnable" seed="412334543" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000218" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1009" name="test_zeroRadius_onlySelfChunk" fullname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest.test_zeroRadius_onlySelfChunk" methodname="test_zeroRadius_onlySelfChunk" classname="DaYiJingCheng.Tests.WorldEcozones.ChunkActivationTest" runstate="Runnable" seed="1178560857" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000220" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1010" name="EcozoneQueryTest" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" testcasecount="25" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.043030" total="25" passed="25" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1013" name="test_ecozone_allZones_queried" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_allZones_queried" methodname="test_ecozone_allZones_queried" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="48992973" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.007175" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1018" name="test_ecozone_boundaryArbitration_minId" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_boundaryArbitration_minId" methodname="test_ecozone_boundaryArbitration_minId" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="39395612" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000617" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1029" name="test_ecozone_emptyRegistry_allNone" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_emptyRegistry_allNone" methodname="test_ecozone_emptyRegistry_allNone" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="467031863" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000474" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1027" name="test_ecozone_extentGuard_throwsBeyondSafeRange" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_extentGuard_throwsBeyondSafeRange" methodname="test_ecozone_extentGuard_throwsBeyondSafeRange" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="797945667" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000866" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1012" name="test_ecozone_externalCell_returnsNone" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_externalCell_returnsNone" methodname="test_ecozone_externalCell_returnsNone" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="1428171314" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000305" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1022" name="test_ecozone_flatAndSteepPolygons_sameResult" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_flatAndSteepPolygons_sameResult" methodname="test_ecozone_flatAndSteepPolygons_sameResult" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="2039432616" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000536" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1020" name="test_ecozone_getAllIds_isSortedAscending" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_getAllIds_isSortedAscending" methodname="test_ecozone_getAllIds_isSortedAscending" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="1470722073" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000433" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1023" name="test_ecozone_il_noFloatOps_noYReads" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_il_noFloatOps_noYReads" methodname="test_ecozone_il_noFloatOps_noYReads" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="732969686" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.005886" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1024" name="test_ecozone_ilClosure_containsCoreKernels" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_ilClosure_containsCoreKernels" methodname="test_ecozone_ilClosure_containsCoreKernels" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="831122849" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.002370" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1025" name="test_ecozone_ilGate_negativeFixture_reportsRed" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_ilGate_negativeFixture_reportsRed" methodname="test_ecozone_ilGate_negativeFixture_reportsRed" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="164952298" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.003462" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1011" name="test_ecozone_internalCell_returnsId" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_internalCell_returnsId" methodname="test_ecozone_internalCell_returnsId" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="640655625" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000315" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1019" name="test_ecozone_minId_independentOfRegistrationOrder" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_minId_independentOfRegistrationOrder" methodname="test_ecozone_minId_independentOfRegistrationOrder" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="575013107" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000515" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1028" name="test_ecozone_noneSentinel_semantics" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_noneSentinel_semantics" methodname="test_ecozone_noneSentinel_semantics" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="1523998027" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000253" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1014" name="test_ecozone_pointOnEdge_goesToBoundaryArbitration" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_pointOnEdge_goesToBoundaryArbitration" methodname="test_ecozone_pointOnEdge_goesToBoundaryArbitration" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="1757764718" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000991" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1026" name="test_ecozone_pureFunction_doubleRun_identical" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_pureFunction_doubleRun_identical" methodname="test_ecozone_pureFunction_doubleRun_identical" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="2120085580" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.009069" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1016" name="test_ecozone_rayThroughVertex_noDoubleCount" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_rayThroughVertex_noDoubleCount" methodname="test_ecozone_rayThroughVertex_noDoubleCount" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="578348104" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.001416" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1035" name="test_ecozone_register_acceptsValidSharingVertex" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_register_acceptsValidSharingVertex" methodname="test_ecozone_register_acceptsValidSharingVertex" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="346104041" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000314" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1033" name="test_ecozone_register_rejectsCoincidentAdjacentVertices" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_register_rejectsCoincidentAdjacentVertices" methodname="test_ecozone_register_rejectsCoincidentAdjacentVertices" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="1168671711" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000381" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1032" name="test_ecozone_register_rejectsDuplicateId" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_register_rejectsDuplicateId" methodname="test_ecozone_register_rejectsDuplicateId" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="1625032483" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000265" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1030" name="test_ecozone_register_rejectsFewerThanThreeVertices" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_register_rejectsFewerThanThreeVertices" methodname="test_ecozone_register_rejectsFewerThanThreeVertices" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="2000969709" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000286" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1034" name="test_ecozone_register_rejectsSelfIntersecting" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_register_rejectsSelfIntersecting" methodname="test_ecozone_register_rejectsSelfIntersecting" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="396303025" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000308" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1031" name="test_ecozone_register_rejectsSentinelId" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_register_rejectsSentinelId" methodname="test_ecozone_register_rejectsSentinelId" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="2043256765" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000230" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1017" name="test_ecozone_singleValue_sharedCorner_minId" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_singleValue_sharedCorner_minId" methodname="test_ecozone_singleValue_sharedCorner_minId" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="463196167" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000375" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1015" name="test_ecozone_vertexCell_boundaryNotInterior" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_vertexCell_boundaryNotInterior" methodname="test_ecozone_vertexCell_boundaryNotInterior" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="1162178477" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000432" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1021" name="test_ecozone_yComponent_noInfluence" fullname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest.test_ecozone_yComponent_noInfluence" methodname="test_ecozone_yComponent_noInfluence" classname="DaYiJingCheng.Tests.WorldEcozones.EcozoneQueryTest" runstate="Runnable" seed="774188073" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000526" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1036" name="PoiStateMachineTest" fullname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" classname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" runstate="Runnable" testcasecount="13" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.010238" total="13" passed="13" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1048" name="test_boundedEvents_atMostTwoPerPoi" fullname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest.test_boundedEvents_atMostTwoPerPoi" methodname="test_boundedEvents_atMostTwoPerPoi" classname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" runstate="Runnable" seed="1940469584" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.004435" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1040" name="test_discoveredToResolved_succeeds" fullname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest.test_discoveredToResolved_succeeds" methodname="test_discoveredToResolved_succeeds" classname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" runstate="Runnable" seed="2069027654" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000299" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1045" name="test_eachTransfer_emitsExactlyOneEvent" fullname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest.test_eachTransfer_emitsExactlyOneEvent" methodname="test_eachTransfer_emitsExactlyOneEvent" classname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" runstate="Runnable" seed="2091066321" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000729" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1044" name="test_idempotent_alreadyAtState" fullname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest.test_idempotent_alreadyAtState" methodname="test_idempotent_alreadyAtState" classname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" runstate="Runnable" seed="223449083" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000170" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1038" name="test_initialState_isUndiscovered" fullname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest.test_initialState_isUndiscovered" methodname="test_initialState_isUndiscovered" classname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" runstate="Runnable" seed="1117301656" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000136" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1047" name="test_noSecondStorage_snapshotIsReadOnly" fullname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest.test_noSecondStorage_snapshotIsReadOnly" methodname="test_noSecondStorage_snapshotIsReadOnly" classname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" runstate="Runnable" seed="961760895" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000144" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1049" name="test_poiNotFound_returnsNotFound" fullname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest.test_poiNotFound_returnsNotFound" methodname="test_poiNotFound_returnsNotFound" classname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" runstate="Runnable" seed="354103685" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000144" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1037" name="test_poiState_hasThreeValues" fullname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest.test_poiState_hasThreeValues" methodname="test_poiState_hasThreeValues" classname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" runstate="Runnable" seed="164324672" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000146" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1046" name="test_rebuildFromEvents_equalsLiveState" fullname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest.test_rebuildFromEvents_equalsLiveState" methodname="test_rebuildFromEvents_equalsLiveState" classname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" runstate="Runnable" seed="689982724" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000821" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1042" name="test_reverseTransfer_discoveredToUndiscovered_rejected" fullname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest.test_reverseTransfer_discoveredToUndiscovered_rejected" methodname="test_reverseTransfer_discoveredToUndiscovered_rejected" classname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" runstate="Runnable" seed="1001711484" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000174" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1043" name="test_reverseTransfer_resolvedToDiscovered_rejected" fullname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest.test_reverseTransfer_resolvedToDiscovered_rejected" methodname="test_reverseTransfer_resolvedToDiscovered_rejected" classname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" runstate="Runnable" seed="1005316706" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000152" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1041" name="test_skipDiscovered_undiscoveredToResolved_succeeds" fullname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest.test_skipDiscovered_undiscoveredToResolved_succeeds" methodname="test_skipDiscovered_undiscoveredToResolved_succeeds" classname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" runstate="Runnable" seed="554546604" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000166" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1039" name="test_undiscoveredToDiscovered_succeeds" fullname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest.test_undiscoveredToDiscovered_succeeds" methodname="test_undiscoveredToDiscovered_succeeds" classname="DaYiJingCheng.Tests.WorldEcozones.PoiStateMachineTest" runstate="Runnable" seed="944158674" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000155" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1050" name="WorldLatticeTest" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" testcasecount="42" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.029829" total="42" passed="42" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1072" name="test_logicalLayerOrigin_isSingleDefinedConstant" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_logicalLayerOrigin_isSingleDefinedConstant" methodname="test_logicalLayerOrigin_isSingleDefinedConstant" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="450489628" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000593" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1089" name="test_logicLayerTypes_noFloatDoubleVectorOrLocalFrame" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_logicLayerTypes_noFloatDoubleVectorOrLocalFrame" methodname="test_logicLayerTypes_noFloatDoubleVectorOrLocalFrame" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1662047049" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.003724" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1073" name="test_originConsistency_bakedOriginOffByOne_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_originConsistency_bakedOriginOffByOne_throws" methodname="test_originConsistency_bakedOriginOffByOne_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1582513239" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.001004" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1091" name="test_typeGraphScan_negativeFixtures_reportRed" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_typeGraphScan_negativeFixtures_reportRed" methodname="test_typeGraphScan_negativeFixtures_reportRed" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1995858348" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000435" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1092" name="test_typeGraphScan_registeredSet_coversAc601NamedSurface" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_typeGraphScan_registeredSet_coversAc601NamedSurface" methodname="test_typeGraphScan_registeredSet_coversAc601NamedSurface" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="381578889" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.002885" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1080" name="test_worldGeometry_constructedFromBaked_preservesSizes" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldGeometry_constructedFromBaked_preservesSizes" methodname="test_worldGeometry_constructedFromBaked_preservesSizes" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1705172163" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.001166" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1087" name="test_worldGeometry_extentGuard_onLoad" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldGeometry_extentGuard_onLoad" methodname="test_worldGeometry_extentGuard_onLoad" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="784626625" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000381" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1081" name="test_worldGeometry_gridLengthMismatch_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldGeometry_gridLengthMismatch_throws" methodname="test_worldGeometry_gridLengthMismatch_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="521656446" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000545" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1082" name="test_worldGeometry_outOfBounds_isNotWalkable" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldGeometry_outOfBounds_isNotWalkable" methodname="test_worldGeometry_outOfBounds_isNotWalkable" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1867398323" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000328" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1085" name="test_worldGeometry_poiAndResource_defaultMinusOne" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldGeometry_poiAndResource_defaultMinusOne" methodname="test_worldGeometry_poiAndResource_defaultMinusOne" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1775924658" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000287" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1084" name="test_worldGeometry_toIndex_noAliasingAcrossCells" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldGeometry_toIndex_noAliasingAcrossCells" methodname="test_worldGeometry_toIndex_noAliasingAcrossCells" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="141475395" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000187" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1083" name="test_worldGeometry_toIndex_outOfBoundsReturnsMinusOne" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldGeometry_toIndex_outOfBoundsReturnsMinusOne" methodname="test_worldGeometry_toIndex_outOfBoundsReturnsMinusOne" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="277793085" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000243" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1086" name="test_worldGeometry_walkabilityFromBakedData_isRespected" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldGeometry_walkabilityFromBakedData_isRespected" methodname="test_worldGeometry_walkabilityFromBakedData_isRespected" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="278177902" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000221" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1088" name="test_worldGeometry_zeroSizeAxis_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldGeometry_zeroSizeAxis_throws" methodname="test_worldGeometry_zeroSizeAxis_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1366869201" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000379" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1069" name="test_worldLattice_baselineRowDuplicated_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_baselineRowDuplicated_throws" methodname="test_worldLattice_baselineRowDuplicated_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="209085465" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.001345" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1068" name="test_worldLattice_baselineRowMissing_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_baselineRowMissing_throws" methodname="test_worldLattice_baselineRowMissing_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1512351591" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000309" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1070" name="test_worldLattice_baselineRowUnique_passes" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_baselineRowUnique_passes" methodname="test_worldLattice_baselineRowUnique_passes" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="976086085" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000353" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1052" name="test_worldLattice_boundaryEquality_passes" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_boundaryEquality_passes" methodname="test_worldLattice_boundaryEquality_passes" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1721913142" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000474" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1054" name="test_worldLattice_dimensionIsInexpensiveToGetWrong_guardedByBoundaryFixture" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_dimensionIsInexpensiveToGetWrong_guardedByBoundaryFixture" methodname="test_worldLattice_dimensionIsInexpensiveToGetWrong_guardedByBoundaryFixture" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1714469455" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000415" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1077" name="test_worldLattice_extentAtBoundary_passes" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_extentAtBoundary_passes" methodname="test_worldLattice_extentAtBoundary_passes" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1391025025" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000164" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1078" name="test_worldLattice_extentBeyondBoundary_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_extentBeyondBoundary_throws" methodname="test_worldLattice_extentBeyondBoundary_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1837945575" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000301" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1076" name="test_worldLattice_extentConstant_isBoundaryValue" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_extentConstant_isBoundaryValue" methodname="test_worldLattice_extentConstant_isBoundaryValue" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="660987576" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000553" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1079" name="test_worldLattice_extentMaxInt_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_extentMaxInt_throws" methodname="test_worldLattice_extentMaxInt_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="527325330" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000276" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1075" name="test_worldLattice_extentWithinSafeZone_passes" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_extentWithinSafeZone_passes" methodname="test_worldLattice_extentWithinSafeZone_passes" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="958066415" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000158" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1067" name="test_worldLattice_kAccelOrKDecelNonPositive_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_kAccelOrKDecelNonPositive_throws" methodname="test_worldLattice_kAccelOrKDecelNonPositive_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="506687001" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000650" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1066" name="test_worldLattice_kSpeedNegativeRow_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_kSpeedNegativeRow_throws" methodname="test_worldLattice_kSpeedNegativeRow_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="163402497" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000257" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1062" name="test_worldLattice_kSpeedTableEmpty_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_kSpeedTableEmpty_throws" methodname="test_worldLattice_kSpeedTableEmpty_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="93442371" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000275" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1063" name="test_worldLattice_kSpeedTableNull_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_kSpeedTableNull_throws" methodname="test_worldLattice_kSpeedTableNull_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1202874492" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000242" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1064" name="test_worldLattice_kSpeedTableReadonlyExposure_doesNotAliasCaller" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_kSpeedTableReadonlyExposure_doesNotAliasCaller" methodname="test_worldLattice_kSpeedTableReadonlyExposure_doesNotAliasCaller" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1518988478" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000864" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1065" name="test_worldLattice_kSpeedZeroRow_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_kSpeedZeroRow_throws" methodname="test_worldLattice_kSpeedZeroRow_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1027359136" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000310" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1058" name="test_worldLattice_kTerrainMax_derivedFromTable" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_kTerrainMax_derivedFromTable" methodname="test_worldLattice_kTerrainMax_derivedFromTable" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="315317398" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000135" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1059" name="test_worldLattice_kTerrainMax_followsTableChange" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_kTerrainMax_followsTableChange" methodname="test_worldLattice_kTerrainMax_followsTableChange" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="942926389" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000310" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1053" name="test_worldLattice_latticeBelowBound_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_latticeBelowBound_throws" methodname="test_worldLattice_latticeBelowBound_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="498627892" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000318" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1061" name="test_worldLattice_latticeBoundTracksTerrainTable" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_latticeBoundTracksTerrainTable" methodname="test_worldLattice_latticeBoundTracksTerrainTable" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1951720640" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000526" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1056" name="test_worldLattice_negativeFactors_throw" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_negativeFactors_throw" methodname="test_worldLattice_negativeFactors_throw" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="487289982" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000324" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1057" name="test_worldLattice_safetyMarginEqualsOne_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_safetyMarginEqualsOne_throws" methodname="test_worldLattice_safetyMarginEqualsOne_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1344225613" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000246" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1060" name="test_worldLattice_speedMax_derivesFromExpansion" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_speedMax_derivesFromExpansion" methodname="test_worldLattice_speedMax_derivesFromExpansion" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="112185560" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000187" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1074" name="test_worldLattice_speedMaxProduct_overflowsInt_throws" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_speedMaxProduct_overflowsInt_throws" methodname="test_worldLattice_speedMaxProduct_overflowsInt_throws" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1934009375" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000333" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1071" name="test_worldLattice_storyTc3Table_isRejectedByBaselineRule" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_storyTc3Table_isRejectedByBaselineRule" methodname="test_worldLattice_storyTc3Table_isRejectedByBaselineRule" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="549732087" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000344" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1051" name="test_worldLattice_validParams_constructs" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_validParams_constructs" methodname="test_worldLattice_validParams_constructs" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1837168500" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000186" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1055" name="test_worldLattice_zeroFactors_throw" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldLattice_zeroFactors_throw" methodname="test_worldLattice_zeroFactors_throw" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1400756113" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000531" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1090" name="test_worldPos_fieldsAreInt32" fullname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest.test_worldPos_fieldsAreInt32" methodname="test_worldPos_fieldsAreInt32" classname="DaYiJingCheng.Tests.WorldEcozones.WorldLatticeTest" runstate="Runnable" seed="1667317025" result="Passed" start-time="2026-10-01 05:20:01Z" end-time="2026-10-01 05:20:01Z" duration="0.000209" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: /XYFS01/sysu_tyu2_2/.config/unity3d/DefaultCompany/unity/TestResults.xml
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
