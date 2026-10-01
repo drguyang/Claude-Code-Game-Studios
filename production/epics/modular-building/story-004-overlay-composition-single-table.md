@@ -1,7 +1,7 @@
 # Story 004: OccupancyOverlay 合成与占用单一表(F-23-1 缝一)
 
 > **Epic**: 模块化建造
-> **Status**: Ready
+> **Status**: In Review — 测试绿,未走双代理评审(不记 Complete)
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
@@ -101,9 +101,9 @@
 
 **Story Type**: Logic
 **Required evidence**:
-- Logic: `unity/Assets/Tests/EditMode/Building/overlay_composition_test.cs` — must exist and pass(含反射断言 + 双路对拍)
+- Logic: 真身 `unity/Assets/Tests/EditMode/ModularBuilding/occupancy_overlay_test.cs`(6/6 全绿)· 账本路径 `EditMode/Building/` 未建(占位),实际落 `EditMode/ModularBuilding/`
 
-**Status**: [ ] Not yet created
+**Status**: ✅ 2026-10-01 实现落盘 + EditMode 验证(【超算】batchmode)—— Overlay 合成(`OccupancyOverlayTest` 6/6)
 
 ---
 

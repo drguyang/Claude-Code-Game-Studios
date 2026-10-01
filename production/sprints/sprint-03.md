@@ -1,5 +1,12 @@
 # Sprint 03 Plan
 
+> **Status (2026-10-01 停刷)**: **11/17 Complete** ✅ (combat-weapons 6 + enemy-ai 5) —
+> EditMode 全绿(【超算】batchmode:Combat 47 / EnemyAI 43),提行见
+> `production/epics/{combat-weapons,enemy-ai}/EPIC.md`。**emergency-procedures 6 个 story
+> 全部未实现**;其 Story 002(CPR)BLOCKED-BY-`OQ-10-6`,须先裁该 OQ 方可开工 —— 详见
+> `production/epics/emergency-procedures/EPIC.md`。⚠️ 本 sprint **提前 2 周以上开工**
+> (计划起 2026-11-02),属「逐个消耗」排序的执行结果,非计划漂移。
+
 **Sprint**: 3
 **Milestone**: Gameplay Core Complete
 **Duration**: 2026-11-02 ~ 2026-11-15（2 周）
@@ -13,19 +20,19 @@
 
 | # | Epic | Story | Story Points | Depends On | Status |
 |---|------|-------|:------------:|------------|--------|
-| 1 | combat-weapons | Story 001 — 战斗基础与伤害公式 | 2 | — | Ready |
-| 2 | combat-weapons | Story 002 — 武器线与攻击动作 | 2 | 1 | Ready |
-| 3 | combat-weapons | Story 003 — 压制与硬直 | 2 | 2 | Ready |
-| 4 | combat-weapons | Story 004 — 战斗效能与医术修正 | 1 | 3 | Ready |
-| 5 | combat-weapons | Story 005 — 战斗音频与反馈 | 1 | 4 | Ready |
-| 6 | combat-weapons | Story 006 — 跨平台黄金夹具 | 1 | 5 | Ready |
-| 7 | enemy-ai | Story 001 — 敌人 AI 基础与状态机 | 2 | — | Ready |
-| 8 | enemy-ai | Story 002 — 感知与决策 | 2 | 7 | Ready |
-| 9 | enemy-ai | Story 003 — 寻路与移动 | 2 | 8 | Ready |
-| 10 | enemy-ai | Story 004 — 战斗行为 | 2 | 9 | Ready |
-| 11 | enemy-ai | Story 005 — 冻结与 LOD | 1 | 10 | Ready |
+| 1 | combat-weapons | Story 001 — 战斗基础与伤害公式 | 2 | — | Complete ✅ 2026-10-01 |
+| 2 | combat-weapons | Story 002 — 武器线与攻击动作 | 2 | 1 | Complete ✅ 2026-10-01 |
+| 3 | combat-weapons | Story 003 — 压制与硬直 | 2 | 2 | Complete ✅ 2026-10-01 |
+| 4 | combat-weapons | Story 004 — 战斗效能与医术修正 | 1 | 3 | Complete ✅ 2026-10-01 |
+| 5 | combat-weapons | Story 005 — 战斗音频与反馈 | 1 | 4 | Complete ✅ 2026-10-01 |
+| 6 | combat-weapons | Story 006 — 跨平台黄金夹具 | 1 | 5 | Complete ✅ 2026-10-01 |
+| 7 | enemy-ai | Story 001 — 敌人 AI 基础与状态机 | 2 | — | Complete ✅ 2026-10-01 |
+| 8 | enemy-ai | Story 002 — 感知与决策 | 2 | 7 | Complete ✅ 2026-10-01 |
+| 9 | enemy-ai | Story 003 — 寻路与移动 | 2 | 8 | Complete ✅ 2026-10-01 |
+| 10 | enemy-ai | Story 004 — 战斗行为 | 2 | 9 | Complete ✅ 2026-10-01 |
+| 11 | enemy-ai | Story 005 — 冻结与 LOD | 1 | 10 | Complete ✅ 2026-10-01 |
 | 12 | emergency-procedures | Story 001 — 急救动作基础 | 2 | — | Ready |
-| 13 | emergency-procedures | Story 002 — CPR 与心肺复苏 | 2 | 12 | Ready |
+| 13 | emergency-procedures | Story 002 — CPR 与心肺复苏 | 2 | 12 | BLOCKED-BY-OQ-10-6 |
 | 14 | emergency-procedures | Story 003 — 止血与包扎 | 2 | 13 | Ready |
 | 15 | emergency-procedures | Story 004 — 急救判定与输入 | 2 | 14 | Ready |
 | 16 | emergency-procedures | Story 005 — 急救音频与反馈 | 1 | 15 | Ready |

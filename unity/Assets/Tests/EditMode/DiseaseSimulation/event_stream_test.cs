@@ -2,7 +2,6 @@
 //
 // AC-2: 五+一抽象点接口齐备
 // AC-15: 有界性（PATIENT_APPEARANCE_CAP = 24）
-// AC-36: id 机制（计数器永不复位）
 // AC-16: 流侧（Seq 单调 + 复位）
 // AC-15: 处置去重
 // TR-disease-005: patient_seed 纯函数

@@ -3,15 +3,6 @@
 
 namespace DaYiJingCheng.Sim.Contracts
 {
-    /// <summary><c>quality_distribution</c> 块占位 —— **逐字段形状由 17 采集系统的 GDD 定**
-    /// (§Schema C 明文「形状由 17 定」)。本故事只登记类型名与挂点,不发明字段
-    /// (GDD 纪律:「本节之外出现的字段一律视为未定义」)。支撑 ⊆ [1, MAX_QUALITY] 的
-    /// 校验 = AC-21a-14(归 Story 006)。</summary>
-    public readonly struct QualityDistribution
-    {
-        // P0 占位:字段表由 17 的 GDD 落定后回填本型;空 struct 合法且不携带任何未定义字段。
-    }
-
     /// <summary><c>gather_profile</c> 块(扩 17 采集)。仅 <c>category = material</c> 非空
     /// (反向校验归 Story 006)。TR-itemdb-017:本块是 21a → 17 的数据边界。</summary>
     public struct GatherProfile
@@ -22,7 +13,7 @@ namespace DaYiJingCheng.Sim.Contracts
         /// <summary>可采部位。</summary>
         public string[] Parts { get; set; }
 
-        /// <summary>品级分布(形状由 17 定 —— 见 <see cref="QualityDistribution"/> 占位注)。</summary>
+        /// <summary>品级分布(形状由 17 定 —— 见 <see cref="QualityDistribution"/>)。</summary>
         public QualityDistribution QualityDistribution { get; set; }
 
         /// <summary>单次采量基数(21a 给基数,17 给动作)。int &gt; 0;越界校验归 Story 006。</summary>

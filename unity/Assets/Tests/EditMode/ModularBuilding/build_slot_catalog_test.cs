@@ -78,7 +78,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_unregisteredSlot_notInRegion()
         {
-            Assert.IsFalse(_catalog.IsBuildSlotRegion(new WorldPos(50, 0, 50)));
+            Assert.IsFalse(_catalog.IsInBuildSlotRegion(new WorldPos(50, 0, 50)));
         }
 
         // AC-23-08: (0,0) ∈ OccupiedCells_local 目录校验

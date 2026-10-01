@@ -1,5 +1,11 @@
 # Sprint 02 Plan
 
+> **Status (2026-10-01 停刷)**: **16/16 Complete** ✅ — EditMode 全绿(【超算】batchmode:
+> DiseaseSimulation 55 / TimeWeather 32 / RandomEvents 53),提行见
+> `production/epics/{disease-simulation,time-weather,random-events}/EPIC.md`。
+> AC-S02-1 的「EditMode 全通过」已由本轮验证;AC-S02-5 的**跨平台对拍面**(IL2CPP/ARM64)
+> 仍归 CI / 桌面批,`[L]` 项不适用本 sprint。
+
 **Sprint**: 2
 **Milestone**: Sim Core Complete
 **Duration**: 2026-10-19 ~ 2026-11-01（2 周）
@@ -13,22 +19,22 @@
 
 | # | Epic | Story | Story Points | Depends On | Status |
 |---|------|-------|:------------:|------------|--------|
-| 1 | disease-simulation | Story 002 — 抽象点、SimEvent 与病史流机制 | 2 | — | Ready |
-| 2 | disease-simulation | Story 003 — 注册表 schema、烘焙管线与门 A 护栏 | 2 | 1 | Ready |
-| 3 | disease-simulation | Story 004 — F1 病程求值与 F2 体征投影 | 2 | 2 | Ready |
-| 4 | disease-simulation | Story 005 — F4 九态阈值机与照护杠杆 | 2 | 3 | Ready |
-| 5 | disease-simulation | Story 006 — F3 CatchUp、F5 共病合成与跨平台黄金夹具 | 2 | 4 | Ready |
-| 6 | time-weather | Story 001 — Tick provider 与时间推进 | 1 | — | Ready |
-| 7 | time-weather | Story 002 — 天气纯函数与季节调制 | 1 | 6 | Ready |
-| 8 | time-weather | Story 003 — 生态区查询与 cell 归属 | 1 | 7 | Ready |
-| 9 | time-weather | Story 004 — 天气影响与事件调制 | 1 | 8 | Ready |
-| 10 | time-weather | Story 005 — 跨平台黄金夹具与确定性验证 | 1 | 9 | Ready |
-| 11 | random-events | Story 001 — 事件导演与抽池机制 | 2 | — | Ready |
-| 12 | random-events | Story 002 — 脚本链与三案触发 | 2 | 11 | Ready |
-| 13 | random-events | Story 003 — 世界事件与 POI 触发 | 2 | 12 | Ready |
-| 14 | random-events | Story 004 — 事件调制与季节权重 | 1 | 13 | Ready |
-| 15 | random-events | Story 005 — 事件与模拟层接口 | 2 | 14 | Ready |
-| 16 | random-events | Story 006 — 跨平台黄金夹具与确定性验证 | 1 | 15 | Ready |
+| 1 | disease-simulation | Story 002 — 抽象点、SimEvent 与病史流机制 | 2 | — | Complete ✅ 2026-10-01 |
+| 2 | disease-simulation | Story 003 — 注册表 schema、烘焙管线与门 A 护栏 | 2 | 1 | Complete ✅ 2026-10-01 |
+| 3 | disease-simulation | Story 004 — F1 病程求值与 F2 体征投影 | 2 | 2 | Complete ✅ 2026-10-01 |
+| 4 | disease-simulation | Story 005 — F4 九态阈值机与照护杠杆 | 2 | 3 | Complete ✅ 2026-10-01 |
+| 5 | disease-simulation | Story 006 — F3 CatchUp、F5 共病合成与跨平台黄金夹具 | 2 | 4 | Complete ✅ 2026-10-01 |
+| 6 | time-weather | Story 001 — Tick provider 与时间推进 | 1 | — | Complete ✅ 2026-10-01 |
+| 7 | time-weather | Story 002 — 天气纯函数与季节调制 | 1 | 6 | Complete ✅ 2026-10-01 |
+| 8 | time-weather | Story 003 — 生态区查询与 cell 归属 | 1 | 7 | Complete ✅ 2026-10-01 |
+| 9 | time-weather | Story 004 — 天气影响与事件调制 | 1 | 8 | Complete ✅ 2026-10-01 |
+| 10 | time-weather | Story 005 — 跨平台黄金夹具与确定性验证 | 1 | 9 | Complete ✅ 2026-10-01 |
+| 11 | random-events | Story 001 — 事件导演与抽池机制 | 2 | — | Complete ✅ 2026-10-01 |
+| 12 | random-events | Story 002 — 脚本链与三案触发 | 2 | 11 | Complete ✅ 2026-10-01 |
+| 13 | random-events | Story 003 — 世界事件与 POI 触发 | 2 | 12 | Complete ✅ 2026-10-01 |
+| 14 | random-events | Story 004 — 事件调制与季节权重 | 1 | 13 | Complete ✅ 2026-10-01 |
+| 15 | random-events | Story 005 — 事件与模拟层接口 | 2 | 14 | Complete ✅ 2026-10-01 |
+| 16 | random-events | Story 006 — 跨平台黄金夹具与确定性验证 | 1 | 15 | Complete ✅ 2026-10-01 |
 
 ---
 

@@ -3,7 +3,7 @@
 > **Layer**: Foundation(Core sim 模块)
 > **GDD**: design/gdd/disease-simulation.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)
-> **Status**: In Progress (1/6 stories complete)
+> **Status**: Complete ✅ 2026-09-30(6/6 stories;测试 2026-10-01 复跑全绿,【超算】batchmode)
 > **Stories**: 6 stories — see table below
 
 ## Overview

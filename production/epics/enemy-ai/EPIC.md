@@ -3,7 +3,7 @@
 > **Layer**: Foundation → Core → Feature
 > **GDD**: design/gdd/enemy-ai.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ 呈现消费侧(42/44)
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-09-30(5/5 stories;测试 2026-10-01 复跑全绿,【超算】batchmode)
 > **Stories**: 5 stories — see table below
 
 ## Overview

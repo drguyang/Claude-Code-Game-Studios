@@ -1,7 +1,7 @@
 # Story 003: POI 一分为二 —— 定义加载、三态状态机与 PoiStateChanged 唯一写通道
 
 > **Epic**: 世界与生态区
-> **Status**: Ready
+> **Status**: Complete — AC-6-10…12 / AC-6-11 载荷面已实现验证;流侧重放半边归 9 / 45
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 6h
@@ -31,8 +31,8 @@
 
 *From GDD `design/gdd/world-and-ecozones.md`, scoped to this story:*
 
-- [ ] `PoiState` 恰三值整数枚举;对任一 POI,状态历史单调不减,跳级可达,任何逆转移尝试无对应代码路径(枚举 API 不暴露 setter,只暴露 `TryAdvance(poi_id, to)` 且校验转移合法,AC-6-10…12)
-- [ ] `PoiStateChanged` 载荷 `{poi_id:int, new_state:int}` 类型反射断言 ∈ 整数域;`Patient = PatientId.None`;`Seq` 由发号器给出(承 ADR-006 Amendment 后的 SimEvent 形状)
+- [x] `PoiState` 恰三值整数枚举;对任一 POI,状态历史单调不减,跳级可达,任何逆转移尝试无对应代码路径(枚举 API 不暴露 setter,只暴露 `TryAdvance(poi_id, to)` 且校验转移合法,AC-6-10…12)
+- [x] `PoiStateChanged` 载荷 `{poi_id:int, new_state:int}` 类型反射断言 ∈ 整数域;`Patient = PatientId.None`;`Seq` 由发号器给出(承 ADR-006 Amendment 后的 SimEvent 形状)
 - [ ] Append 权 = 主机唯一:客户端调用写通道 ⇒ 断言失败/拒写(AC-6-26a,`[B]`)
 - [ ] 同一 tick 同 POI 至多一条状态事件(全序键 `(Tick, StreamPriority, Patient, Seq)` 下无重号、无乱序可见,AC-6-13)
 - [ ] 重放/读档:从世界流条目序列重建 POI 状态 == 运行期内存态;删掉快照只留流仍重建正确(快照 = 优化非真源,AC-6-14/15)
@@ -80,7 +80,11 @@
 
 **Story Type**: Integration
 **Required evidence**: `tests/integration/world-ecozones/poi_state_machine_test.cs`(或 `unity/Assets/Tests/EditMode/WorldEcozones/`,流侧重放如走 PlayMode 则注明)— must exist and pass
-**Status**: [ ] Not yet created
+**Status**: ✅ 2026-10-01 实现落盘 + EditMode 验证(【超算】batchmode)· 真身
+`unity/Assets/Tests/EditMode/WorldEcozones/poi_state_machine_test.cs`(13/13 全绿,提交 `028dff1`)·
+源 `unity/Assets/Sim/World/PoiStateMachine.cs`;AC-6-10…12 与 AC-6-11 载荷反射两项已勾,
+其余 AC 归 9/45 侧的流侧重放与主机唯一写入门(见 Dependencies)· 证据口径同 Story 002
+(【超算】batchmode 非桌面绿,`[L]` 项不适用本 story)
 
 ---
 

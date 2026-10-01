@@ -1,7 +1,7 @@
 # Story 003: Structure* 三 Kind 载荷、唯一写权、实例表与字节稳定
 
 > **Epic**: 模块化建造
-> **Status**: Ready
+> **Status**: In Review — 测试绿,未走双代理评审(不记 Complete)
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 6h
@@ -102,10 +102,10 @@
 
 **Story Type**: Integration
 **Required evidence**:
-- Integration: `unity/Assets/Tests/PlayMode/building_stream_write_authority_test.cs` — must exist and pass(spy-sink + 守卫)
-- Logic(载荷/字节/扫描): `unity/Assets/Tests/EditMode/Building/structure_payload_and_codec_test.cs`
+- Integration(PlayMode 写权件): `unity/Assets/Tests/PlayMode/building_stream_write_authority_test.cs` — **未建**(NOT-RUN)
+- Logic: 真身 `unity/Assets/Tests/EditMode/ModularBuilding/structure_kinds_test.cs`(7/7)+ `WorldTest`(8/8)全绿 · 账本路径 `EditMode/Building/` 未建(占位),实际落 `EditMode/ModularBuilding/`
 
-**Status**: [ ] Not yet created
+**Status**: ✅ 2026-10-01 实现落盘 + EditMode 验证(【超算】batchmode)—— 三 Kind 载荷与实例表(`StructureKindsTest` 7/7 + `WorldTest` 8/8;PlayMode 写权件未建)
 
 ---
 

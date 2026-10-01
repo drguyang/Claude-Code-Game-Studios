@@ -46,7 +46,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 validOrientations: new[] { 0 },
                 refundable: 1));
 
-            _checker = new PlaceableChecker(_catalog, _moduleCatalog, new AlwaysHasStock(), new AlwaysEmptyPresence());
+            _checker = new PlaceableChecker(_catalog, _moduleCatalog, new AlwaysHasStock(), new AlwaysUnoccupied(), new AlwaysEmptyPresence());
         }
 
         // AC-23-01 ①: 槽位合法 + 类型匹配
@@ -85,7 +85,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public void test_rotation_0_identity()
         {
             var cells = PlaceableChecker.ComputeOccupiedCells(
-                _moduleCatalog.GetModuleDefinition(1),
+                _moduleCatalog.GetModuleDefinition(1)!.Value,
                 new WorldPos(5, 0, 5),
                 0);
             Assert.AreEqual(2, cells.Count);
@@ -98,7 +98,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         {
             // (1,0,0) → (0,0,1) in XZ
             var cells = PlaceableChecker.ComputeOccupiedCells(
-                _moduleCatalog.GetModuleDefinition(1),
+                _moduleCatalog.GetModuleDefinition(1)!.Value,
                 new WorldPos(5, 0, 5),
                 90);
             Assert.AreEqual(2, cells.Count);
@@ -110,7 +110,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public void test_rotation_180_inverts()
         {
             var cells = PlaceableChecker.ComputeOccupiedCells(
-                _moduleCatalog.GetModuleDefinition(1),
+                _moduleCatalog.GetModuleDefinition(1)!.Value,
                 new WorldPos(5, 0, 5),
                 180);
             Assert.AreEqual(new WorldPos(5, 0, 5), cells[0]);
@@ -121,7 +121,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public void test_rotation_270_swapsBack()
         {
             var cells = PlaceableChecker.ComputeOccupiedCells(
-                _moduleCatalog.GetModuleDefinition(1),
+                _moduleCatalog.GetModuleDefinition(1)!.Value,
                 new WorldPos(5, 0, 5),
                 270);
             Assert.AreEqual(new WorldPos(5, 0, 5), cells[0]);
@@ -134,7 +134,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         {
             Assert.Throws<ArgumentException>(() =>
                 PlaceableChecker.ComputeOccupiedCells(
-                    _moduleCatalog.GetModuleDefinition(1),
+                    _moduleCatalog.GetModuleDefinition(1)!.Value,
                     new WorldPos(0, 0, 0),
                     45));
         }
@@ -143,7 +143,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_anchorInLocalOccupancy()
         {
-            var def = _moduleCatalog.GetModuleDefinition(1);
+            var def = _moduleCatalog.GetModuleDefinition(1)!.Value;
             Assert.IsTrue(def.ContainsAnchor());
         }
     }
@@ -152,6 +152,12 @@ namespace DaYiJingCheng.Tests.ModularBuilding
     internal class AlwaysHasStock : IStockQuery
     {
         public bool HasStock(int moduleId) => true;
+    }
+
+    // 测试辅助: 总是无占用
+    internal class AlwaysUnoccupied : IOccupancyQuery
+    {
+        public bool IsOccupied(WorldPos cell) => false;
     }
 
     // 测试辅助: 总是无实体

@@ -1,7 +1,7 @@
 # Story 004: chunk 激活权与消费边界 —— 发现门、跨格事件、白名单只读
 
 > **Epic**: 世界与生态区
-> **Status**: Ready
+> **Status**: Complete — 整数 chunk 激活已实现验证;ADR-023 场景拓扑面归 CI / 桌面批
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 4h
@@ -79,7 +79,10 @@
 
 **Story Type**: Integration
 **Required evidence**: `tests/integration/world-ecozones/chunk_activation_discovery_gate_test.cs` — must exist and pass;ADR-023 spike 相关项以 CI/桌面产物另行登记
-**Status**: [ ] Not yet created
+**Status**: ✅ 2026-10-01 实现落盘 + EditMode 验证(【超算】batchmode)· 真身
+`unity/Assets/Tests/EditMode/WorldEcozones/chunk_activation_test.cs`(7/7 全绿,提交 `028dff1`)·
+源 `unity/Assets/Sim/World/ChunkActivator.cs`;ADR-023 spike 面归 CI / 桌面批另行登记
+(承 `active.md` 的 [L]/EXTERNAL 缓办口径)
 
 ---
 

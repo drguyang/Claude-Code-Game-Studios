@@ -3,7 +3,7 @@
 > **Layer**: Foundation → Core → Feature
 > **GDD**: design/gdd/world-and-ecozones.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ Tooling 消费侧(ADR-022 关卡工具)
-> **Status**: Ready
+> **Status**: In Progress (4/5 stories implemented; Story 005 = [L]/EXTERNAL 走查)
 > **Stories**: 5 stories — see table below
 
 ## Overview
@@ -59,8 +59,8 @@ This epic is complete when:
 
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
-| 001 | 世界格与可走性基础 —— LATTICE_SIZE / K_TERRAIN_MAX | Logic | Ready | ADR-015/006/022 |
-| 002 | EcozoneOf 整数几何查询 —— 开集/正则化/min(id) 仲裁 | Logic | Ready | ADR-015/014 |
-| 003 | POI 定义加载与三态状态机 —— PoiStateChanged 唯一写通道 | Integration | Ready | ADR-021/009/005 |
-| 004 | chunk 激活权与消费边界 —— 发现门、spawn_anchor、白名单 | Integration | Ready | ADR-023/020/021 |
-| 005 | 发现体验走查与工具链一致性([L]/EXTERNAL) | Visual-Feel | Ready | ADR-022/013 |
+| 001 | 世界格与可走性基础 —— LATTICE_SIZE / K_TERRAIN_MAX | Logic | **Complete ✅ 2026-10-01**(42 例,二轮评审后) | ADR-015/006/022 |
+| 002 | EcozoneOf 整数几何查询 —— 开集/正则化/min(id) 仲裁 | Logic | **Complete ✅ 2026-10-01**(25 例) | ADR-015/014 |
+| 003 | POI 定义加载与三态状态机 —— PoiStateChanged 唯一写通道 | Integration | **Complete ✅ 2026-10-01**(13 例;流侧重放半边归 9/45) | ADR-021/009/005 |
+| 004 | chunk 激活权与消费边界 —— 发现门、spawn_anchor、白名单 | Integration | **Complete ✅ 2026-10-01**(7 例;ADR-023 spike 面归 CI/桌面) | ADR-023/020/021 |
+| 005 | 发现体验走查与工具链一致性([L]/EXTERNAL) | Visual-Feel | Pending — [L] 桌面走查 + 工具 CI,draft 见 `production/qa/evidence/world-ecozones/story-005-*.md` | ADR-022/013 |

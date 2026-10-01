@@ -1,7 +1,7 @@
 # Story 005: 发现体验走查与两层世界一致性([L] / EXTERNAL)
 
 > **Epic**: 世界与生态区
-> **Status**: Ready
+> **Status**: Pending — [L] 桌面走查 + 工具 CI(draft 走查表已落 `production/qa/evidence/world-ecozones/story-005-discovery-walkthrough-2026-10-01.md`)
 > **Layer**: Feature
 > **Type**: Visual-Feel
 > **Estimate**: 4h
@@ -74,7 +74,10 @@
 
 **Story Type**: Visual-Feel
 **Required evidence**: `production/qa/evidence/world-ecozones/story-005-discovery-walkthrough-[date].md`(走查记录 + 截图 + 签核)+ 工具 CI 报告链接
-**Status**: [ ] Not yet created
+**Status**: [ ] Pending Desktop Verification — 非实现类 story:`[L]` 走查 + EXTERNAL 工具 CI 两项
+均需桌面 Unity Editor / 关卡工具流水线;draft 走查表已落
+`production/qa/evidence/world-ecozones/story-005-discovery-walkthrough-2026-10-01.md`(全项 Pending)。
+承 `active.md` 的 [L]/EXTERNAL 缓办口径,不阻塞 epic 其余 story。
 
 ---
 

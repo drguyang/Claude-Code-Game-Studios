@@ -3,7 +3,7 @@
 > **Layer**: Core(sim 侧 · 门 A 程序集 `Sim`)
 > **GDD**: design/gdd/random-events.md
 > **Architecture Module**: L2 Sim(确定性模拟 · 病史流 + 世界流写入者)+ 表现层预告线索通道(42/44)
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-09-30(6/6 stories;测试 2026-10-01 复跑全绿,【超算】batchmode)
 > **Stories**: 6 stories created(2026-09-28 `/create-stories`)
 
 ## Overview

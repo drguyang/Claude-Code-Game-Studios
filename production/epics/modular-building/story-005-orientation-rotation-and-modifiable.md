@@ -1,7 +1,7 @@
 # Story 005: 朝向整数旋转(F-23-2b)+ Modifiable 改造判定
 
 > **Epic**: 模块化建造
-> **Status**: Ready
+> **Status**: In Review — 测试绿,未走双代理评审(不记 Complete)
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 5h
@@ -102,9 +102,9 @@
 
 **Story Type**: Logic
 **Required evidence**:
-- Logic: `unity/Assets/Tests/EditMode/Building/orientation_rotation_and_modifiable_test.cs` — must exist and pass(含类型级反射断言)
+- Logic: 真身 `unity/Assets/Tests/EditMode/ModularBuilding/modifiable_checker_test.cs`(5/5 全绿)· 账本路径 `EditMode/Building/` 未建(占位),实际落 `EditMode/ModularBuilding/`
 
-**Status**: [ ] Not yet created
+**Status**: ✅ 2026-10-01 实现落盘 + EditMode 验证(【超算】batchmode)—— 朝向旋转 + Modified(`ModifiableCheckerTest` 5/5)
 
 ---
 

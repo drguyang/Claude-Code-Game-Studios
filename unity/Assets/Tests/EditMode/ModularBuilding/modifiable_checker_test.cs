@@ -26,9 +26,10 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             _moduleCatalog = new TestModuleCatalog();
             _registry = new StructureInstanceRegistry();
 
-            // 注册 3×1 槽位
+            // 注册 3×1 槽位 + 边上 (0,0,1) 使旋转 90° 的新格在区域内
             for (int x = 0; x < 3; x++)
                 _catalog.RegisterSlot(new BuildSlot(new WorldPos(x, 0, 0), BitMask.Single(SlotType.Bed)));
+            _catalog.RegisterSlot(new BuildSlot(new WorldPos(0, 0, 1), BitMask.Single(SlotType.Bed)));
 
             // 2×1 床模块(锚点(0,0,0)在占用格中)
             _moduleCatalog.RegisterModule(new ModuleDefinition(
@@ -56,8 +57,6 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         {
             // 放置 2×1 床(横向占 (0,0,0) + (1,0,0))
             int sid = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
-            _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0); // placeholder for occupancy
-
             // 旋转 90° 后占 (0,0,0) + (0,0,1), 旧格 (1,0,0) 释放
             // 新格 (0,0,1) 未被占 => 成功
             var result = _checker.Check(sid, 90, 0);

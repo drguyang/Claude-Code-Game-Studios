@@ -22,8 +22,8 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             // 模拟事件序列: Place at (0,0,0) → Place at (1,0,0) → Remove at (0,0,0)
             var events = new[]
             {
-                CreatePlacedEvent(1, new WorldPos(0, 0, 0), 1, 0, 0),
-                CreatePlacedEvent(2, new WorldPos(1, 0, 0), 1, 0, 0),
+                CreatePlacedEvent(1, new WorldPos(0, 0, 0), 1, 1, 0),
+                CreatePlacedEvent(2, new WorldPos(1, 0, 0), 2, 1, 0),
                 CreateRemovedEvent(3, new WorldPos(0, 0, 0), 1)
             };
 
@@ -35,8 +35,8 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 if (evt.Kind == EventKind.StructurePlaced)
                 {
                     int sid = evt.Payload.BlobId;
-                    int moduleId = evt.Payload.Offset;
                     WorldPos anchor = DecodeWorldPos(evt.Payload);
+                    int moduleId = 1;
                     rebuild[anchor] = moduleId;
                     structureMap[sid] = (anchor, moduleId);
                 }
@@ -122,29 +122,33 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.AreEqual(8, payload.Length);        // 载荷长度
         }
 
-    // 辅助: 创建 StructurePlaced 事件
-    private static SimEvent CreatePlacedEvent(long tick, WorldPos cell, int structureId, int moduleId, int orientation)
-    {
-        // 编码: BlobId = structure_id, Offset = module_id, Length = 8
-        // cell 编码到 payload 的高位(简化测试用)
-        var payload = new PayloadRef(blobId: structureId, offset: moduleId, length: 8);
-        return new SimEvent(tick, PatientId.None, 0, EventKind.StructurePlaced, payload);
-    }
+        // 辅助: 创建 StructurePlaced 事件
+        private static SimEvent CreatePlacedEvent(long tick, WorldPos cell, int structureId, int moduleId, int orientation)
+        {
+            // 编码: BlobId = structure_id, Offset = cell 信息, Length = 8
+            // ADR-024: payload 是 PayloadRef(int blob handle),不是内联值
+            // 测试直接传 WorldPos 通过 offset 域编码(测试夹具专用)
+            var payload = new PayloadRef(blobId: structureId, offset: EncodeWorldPos(cell), length: 8);
+            return new SimEvent(tick, PatientId.None, 0, EventKind.StructurePlaced, payload);
+        }
 
-    // 辅助: 创建 StructureRemoved 事件
-    private static SimEvent CreateRemovedEvent(long tick, WorldPos cell, int structureId)
-    {
-        var payload = new PayloadRef(blobId: structureId, offset: 0, length: 8);
-        return new SimEvent(tick, PatientId.None, 0, EventKind.StructureRemoved, payload);
-    }
+        // 辅助: 创建 StructureRemoved 事件
+        private static SimEvent CreateRemovedEvent(long tick, WorldPos cell, int structureId)
+        {
+            var payload = new PayloadRef(blobId: structureId, offset: EncodeWorldPos(cell), length: 8);
+            return new SimEvent(tick, PatientId.None, 0, EventKind.StructureRemoved, payload);
+        }
 
-    // 辅助: 从 PayloadRef 解码 WorldPos(简化版)
-    private static WorldPos DecodeWorldPos(PayloadRef payload)
-    {
-        // 测试用简化解码
-        int x = (payload.Offset >> 20) & 0xFFF;
-        int z = payload.Offset & 0xFFF;
-        return new WorldPos(x, 0, z);
-    }
+        // 测试夹具: 编码 WorldPos 到 int(仅用于本测试的重放断言)
+        private static int EncodeWorldPos(WorldPos p) => ((p.X & 0xFFF) << 20) | (p.Z & 0xFFF);
+
+        // 辅助: 从 PayloadRef 解码 WorldPos(简化版)
+        private static WorldPos DecodeWorldPos(PayloadRef payload)
+        {
+            // 测试用简化解码
+            int x = (payload.Offset >> 20) & 0xFFF;
+            int z = payload.Offset & 0xFFF;
+            return new WorldPos(x, 0, z);
+        }
     }
 }

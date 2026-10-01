@@ -76,10 +76,12 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.AreEqual(1, _appendedEvents.Count);
             Assert.AreEqual(EventKind.StructureModified, _appendedEvents[0].Kind);
 
-            // modified_fields 位掩码: 1 = 朝向
+            // StructureModified 载荷编码: offset = module_id | (modified_fields << 16) | (orientation << 20) | (variant << 24)
             int offset = _appendedEvents[0].Payload.Offset;
             int modifiedFields = (offset >> 16) & 0xF;
+            int rawNewOrientation = (offset >> 20) & 0x3FF; // 10 位窗口
             Assert.AreEqual(1, modifiedFields);
+            Assert.AreEqual(90, rawNewOrientation); // raw 90 = 度值编码
         }
 
         // AC-23-11: 无变更返回 false
@@ -114,7 +116,9 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                     int moduleId = evt.Payload.Offset & 0xFFFF;
                     int orientation = (evt.Payload.Offset >> 16) & 0xF;
                     int variant = (evt.Payload.Offset >> 24) & 0xF;
-                    rebuild.Register(new WorldPos(0, 0, 0), moduleId, orientation, variant);
+                    // 重放: anchor 信息在真实实现中从 blob 解码;测试用结构 id 顺序回填
+                    WorldPos anchor = sid == 1 ? new WorldPos(0, 0, 0) : new WorldPos(1, 0, 0);
+                    rebuild.Register(anchor, moduleId, orientation, variant);
                 }
                 else if (evt.Kind == EventKind.StructureRemoved)
                 {
@@ -124,9 +128,8 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 {
                     int sid = evt.Payload.BlobId;
                     int offset = evt.Payload.Offset;
-                    int orientation = (offset >> 16) & 0xF;
-                    int variant = (offset >> 24) & 0xF;
-                    rebuild.Update(sid, orientation, variant);
+                    int newOrientation = (offset >> 20) & 0x3FF; // 10 位窗口
+                    rebuild.Update(sid, newOrientation, null);
                 }
             }
 
@@ -134,7 +137,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.IsTrue(rebuild.TryGet(1, out var inst1));
             Assert.AreEqual(1, inst1.ModuleId);
             Assert.AreEqual(90, inst1.Orientation);
-            Assert.AreEqual(2, rebuild.Count); // 只有 id=1 存活
+            Assert.AreEqual(1, rebuild.Count); // id=2 已移除,只有 id=1 存活
         }
 
         // 边界: 实例表查询不存在的 id
