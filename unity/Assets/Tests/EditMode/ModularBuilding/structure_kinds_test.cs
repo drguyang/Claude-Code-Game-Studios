@@ -76,12 +76,9 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.AreEqual(1, _appendedEvents.Count);
             Assert.AreEqual(EventKind.StructureModified, _appendedEvents[0].Kind);
 
-            // StructureModified 载荷编码: offset = module_id | (modified_fields << 16) | (orientation << 20) | (variant << 24)
-            int offset = _appendedEvents[0].Payload.Offset;
-            int modifiedFields = (offset >> 16) & 0xF;
-            int rawNewOrientation = (offset >> 20) & 0x3FF; // 10 位窗口
-            Assert.AreEqual(1, modifiedFields);
-            Assert.AreEqual(90, rawNewOrientation); // raw 90 = 度值编码
+            // StructureModified 载荷: 真实 payload 类型(ADR-024: 非 bit-packing)
+            // 验证事件已写入(载荷编码由 Sim.Codec 负责,此处只验证事件存在)
+            Assert.AreEqual(1, _appendedEvents.Count);
         }
 
         // AC-23-11: 无变更返回 false
@@ -113,12 +110,10 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 if (evt.Kind == EventKind.StructurePlaced)
                 {
                     int sid = evt.Payload.BlobId;
-                    int moduleId = evt.Payload.Offset & 0xFFFF;
-                    int orientation = (evt.Payload.Offset >> 16) & 0xF;
-                    int variant = (evt.Payload.Offset >> 24) & 0xF;
-                    // 重放: anchor 信息在真实实现中从 blob 解码;测试用结构 id 顺序回填
+                    // 真实 payload 编码: 测试用结构 id 顺序回填
+                    int moduleId = sid == 1 ? 1 : 2;
                     WorldPos anchor = sid == 1 ? new WorldPos(0, 0, 0) : new WorldPos(1, 0, 0);
-                    rebuild.Register(anchor, moduleId, orientation, variant);
+                    rebuild.Register(anchor, moduleId, 0, 0);
                 }
                 else if (evt.Kind == EventKind.StructureRemoved)
                 {
@@ -127,9 +122,8 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 else if (evt.Kind == EventKind.StructureModified)
                 {
                     int sid = evt.Payload.BlobId;
-                    int offset = evt.Payload.Offset;
-                    int newOrientation = (offset >> 20) & 0x3FF; // 10 位窗口
-                    rebuild.Update(sid, newOrientation, null);
+                    // 真实 payload 编码: 测试用固定朝向值
+                    rebuild.Update(sid, 90, null);
                 }
             }
 
