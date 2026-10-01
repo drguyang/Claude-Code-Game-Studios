@@ -26,9 +26,9 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             _moduleCatalog = new TestModuleCatalog();
 
             // 注册槽位
-            _catalog.RegisterSlot(new BuildSlot(new WorldPos(0, 0, 0), (int)BitMask.Single(SlotType.Bed).Value));
-            _catalog.RegisterSlot(new BuildSlot(new WorldPos(1, 0, 0), (int)BitMask.Single(SlotType.Table).Value));
-            _catalog.RegisterSlot(new BuildSlot(new WorldPos(2, 0, 0), (int)(BitMask.Single(SlotType.Bed) | BitMask.Single(SlotType.Decor)).Value));
+            _catalog.RegisterSlot(new BuildSlot(new WorldPos(0, 0, 0), BitMask.Single(SlotType.Bed)));
+            _catalog.RegisterSlot(new BuildSlot(new WorldPos(1, 0, 0), BitMask.Single(SlotType.Table)));
+            _catalog.RegisterSlot(new BuildSlot(new WorldPos(2, 0, 0), BitMask.Single(SlotType.Bed) | BitMask.Single(SlotType.Decor)));
 
             // 注册模块(2×1 床,锚点(0,0,0)在占用格中)
             _moduleCatalog.RegisterModule(new ModuleDefinition(

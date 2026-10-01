@@ -19,7 +19,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         {
             _catalog = new BuildSlotCatalog();
             // 注册测试槽位:位置(0,0,0),允许类型 0b0011 (Bed=1, Table=2)
-            _catalog.RegisterSlot(new BuildSlot(new WorldPos(0, 0, 0), 0b0011));
+            _catalog.RegisterSlot(new BuildSlot(new WorldPos(0, 0, 0), new BitMask(0b0011)));
         }
 
         // AC-23-01: 已注册槽位 ⇒ IsValidSlot 返回 true

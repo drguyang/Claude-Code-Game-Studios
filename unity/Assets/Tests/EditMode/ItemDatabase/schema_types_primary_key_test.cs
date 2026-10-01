@@ -634,7 +634,7 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
             {
                 typeof(ItemDef), typeof(DrugProfile), typeof(GatherProfile), typeof(TcmProfile),
                 typeof(ItemInstance), typeof(Recipe), typeof(RecipeEntry), typeof(ItemKey),
-                typeof(DoseRange), typeof(QualityDistribution), typeof(ProcessingTransition),
+                typeof(DoseRange), typeof(ProcessingTransition),
             };
 
             foreach (Type type in types)
