@@ -374,7 +374,8 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
                 {
                     if (Array.IndexOf(whitelist, knob) >= 0)
                         continue;
-                    if (code.IndexOf(knob, StringComparison.Ordinal) >= 0)
+                    // 用单词边界匹配，避免 weights 误报 weight
+                    if (System.Text.RegularExpressions.Regex.IsMatch(code, @"\b" + System.Text.RegularExpressions.Regex.Escape(knob) + @"\b"))
                         violations.Add($"{relative}: 旋钮「{knob}」以字面量出现在代码(AC-21a-48)");
                 }
             }

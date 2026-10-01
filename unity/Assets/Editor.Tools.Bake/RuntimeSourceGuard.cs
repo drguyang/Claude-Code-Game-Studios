@@ -70,10 +70,18 @@ namespace DaYiJingCheng.EditorTools.Bake
             return violations;
         }
 
-        /// <summary>路径豁免:/Tests/ 段 · Editor.* 目录段 · FixParse.cs(定义自身)。</summary>
+        /// <summary>路径豁免:/Tests/ 段 · Editor.* 目录段 · FixParse.cs(定义自身) ·
+        /// 构建期 schema 校验器(ParseFixField 只在构建期调用,非运行期解析)。</summary>
         private static bool IsExemptPath(string normalizedPath)
         {
             if (normalizedPath.EndsWith("/FixParse.cs", StringComparison.Ordinal))
+                return true;
+
+            // 构建期 schema 校验器 —— ParseFixField 是构建期工具,不是运行期 JSON 解析。
+            // 这些文件住在 Sim/ 但只被 Editor.Tools 烘焙管线调用。
+            if (normalizedPath.EndsWith("/CombatActionSchema.cs", StringComparison.Ordinal))
+                return true;
+            if (normalizedPath.EndsWith("/EnemyBehaviorProgram.cs", StringComparison.Ordinal))
                 return true;
 
             string[] segments = normalizedPath.Split('/');

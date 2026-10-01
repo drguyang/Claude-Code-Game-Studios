@@ -354,6 +354,8 @@ class Probe {
                     hits.Add($"{label}: [{what}] 「{m.Value}」");
             }
 
+            // typeof(float) / typeof(double) 是反射类型检查，不是浮点使用 —— 排除。
+            code = Regex.Replace(code, @"typeof\s*\(\s*(float|double|decimal)\s*\)", " ");
             Check(new Regex(@"\bfloat\b"), "float 类型");
             Check(new Regex(@"\bdouble\b"), "double 类型");
             Check(new Regex(@"\bdecimal\b"), "decimal 类型");
