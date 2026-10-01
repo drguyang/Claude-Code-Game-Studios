@@ -105,5 +105,8 @@ namespace DaYiJingCheng.Sim.World
 
         /// <summary>创建单类型掩码。</summary>
         public static BitMask Single(SlotType type) => new BitMask(1 << (int)type);
+
+        /// <summary>隐式转换为 int（方便传入需要 int 位掩码的 API）。</summary>
+        public static implicit operator int(BitMask mask) => mask.Value;
     }
 }

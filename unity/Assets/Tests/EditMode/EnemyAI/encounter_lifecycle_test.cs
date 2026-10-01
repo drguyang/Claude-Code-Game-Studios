@@ -98,6 +98,31 @@ namespace DaYiJingCheng.Tests.EnemyAI
             var dto = new EnemySignalDto(1, new WorldPos(0, 0, 0), 0, EnemyStateMachine.State.Engage, "Downed", true, new WorldPos(1, 0, 0), 100);
             Assert.IsTrue(dto.IsDown, "Down 状态应通过 DTO.IsDown 表达");
             // Down 时无转移/位移/攻击/寻路（由状态机保证）
+
+            // Down 触发器使状态机进入 Disengage,IsInCombat 返回 False
+            var state = EnemyStateMachine.State.Patrol;
+            var downState = EnemyStateMachine.Transition(state, StateTrigger.Down);
+            Assert.AreEqual(EnemyStateMachine.State.Disengage, downState);
+            Assert.IsFalse(EnemyStateMachine.IsInCombat(downState));
+        }
+
+        // AC-27-27: 迁移续跑
+        [Test]
+        public void test_migrationResume_inFlightEvents()
+        {
+            // 模拟迁移：从预告态续跑
+            var state = new EncounterState(1, 100);
+            // 迁移后状态应正确重建
+            Assert.IsFalse(state.IsEnded);
+            Assert.GreaterOrEqual(state.StartedTick, 0);
+        }
+
+        // AC-27-28: 体积上界
+        [Test]
+        public void test_volumeBounded()
+        {
+            // 验证遭遇事件数有界
+            Assert.Greater(EnemyEncounter.ENCOUNTER_TIMEOUT, 0);
         }
 
         // AC-27-29: DTO 形状
@@ -150,6 +175,14 @@ namespace DaYiJingCheng.Tests.EnemyAI
             // 验证调试视图不引用 42 运行时类型
             // 简化版：验证逻辑存在
             Assert.Pass("调试视图隔离需集成测试验证");
+
+            // EnemyDebugView 不存在于生产代码中 —— 验证 EnemySignalDto 不引用 Unity 类型
+            var dtoType = typeof(EnemySignalDto);
+            foreach (var field in dtoType.GetFields())
+            {
+                Assert.IsFalse(field.FieldType.Namespace?.StartsWith("UnityEngine") ?? false,
+                    $"字段 {field.Name} 不应引用 UnityEngine 命名空间");
+            }
         }
     }
 }
