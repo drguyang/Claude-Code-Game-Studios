@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.World;
+using NUnit.Framework;
 
 internal sealed class FakeEventAuthority : IEventAuthority
 {
@@ -20,7 +21,6 @@ internal sealed class FakeEventAuthority : IEventAuthority
     public bool IsHost => true;
     public EventRollResult Roll(in RollRequest r) => new EventRollResult(0, 0, 0, 0);
 }
-using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.WorldEcozones
 {
