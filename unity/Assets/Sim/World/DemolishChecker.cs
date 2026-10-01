@@ -28,16 +28,19 @@ namespace DaYiJingCheng.Sim.World
         private readonly StructureInstanceRegistry _registry;
         private readonly IOccupancyQuery _occupancyQuery;
         private readonly IPresenceQuery _presenceQuery;
+        private readonly IModuleCatalog _moduleCatalog;
 
         /// <summary>构造 DemolishChecker。</summary>
         public DemolishChecker(
             StructureInstanceRegistry registry,
             IOccupancyQuery occupancyQuery,
-            IPresenceQuery presenceQuery)
+            IPresenceQuery presenceQuery,
+            IModuleCatalog moduleCatalog)
         {
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
             _occupancyQuery = occupancyQuery ?? throw new ArgumentNullException(nameof(occupancyQuery));
             _presenceQuery = presenceQuery ?? throw new ArgumentNullException(nameof(presenceQuery));
+            _moduleCatalog = moduleCatalog ?? throw new ArgumentNullException(nameof(moduleCatalog));
         }
 
         /// <summary>
@@ -52,13 +55,19 @@ namespace DaYiJingCheng.Sim.World
             if (!_registry.TryGet(structureId, out var inst))
                 return DemolishResult.StructureNotFound;
 
-            // ② Shell 不可拆
-            if (inst.ModuleId == (int)SlotType.Shell)
+            // ② Shell 不可拆(查模块目录获取 SlotType,非 ModuleId)
+            var moduleDefOpt = _moduleCatalog.GetModuleDefinition(inst.ModuleId);
+            if (moduleDefOpt == null)
+                return DemolishResult.StructureNotFound;
+            if (moduleDefOpt.Value.SlotType == SlotType.Shell)
                 return DemolishResult.ShellNotRemovable;
 
-            // ③ 实体检查(简化版:检查是否有任何被模拟实体在场)
-            if (_presenceQuery.PresentCount > 0)
-                return DemolishResult.EntityOnCell;
+            // ③ 实体检查:检查拆除占用格上是否有实体
+            foreach (var cell in inst.OccupiedCells)
+            {
+                if (_presenceQuery.IsPresentAt(cell))
+                    return DemolishResult.EntityOnCell;
+            }
 
             return DemolishResult.Success;
         }

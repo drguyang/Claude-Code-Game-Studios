@@ -79,7 +79,10 @@ namespace DaYiJingCheng.Sim.World
             return _slots.Keys;
         }
 
-        /// <summary>检查位置是否在骨架区域内(简化版:有槽位即区域内)。</summary>
+        /// <summary>
+        /// 检查位置是否在骨架区域内。
+        /// P0 简化: 有槽位即区域内(多边形包含检查需 ADR-022 烘焙数据,当前无多边形输入)。
+        /// </summary>
         public bool IsInBuildSlotRegion(WorldPos position)
         {
             return _slots.ContainsKey(position);

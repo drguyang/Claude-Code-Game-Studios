@@ -90,6 +90,10 @@ namespace DaYiJingCheng.Sim.World
                 // ② 占用为空
                 if (_occupancyQuery.IsOccupied(cell))
                     return PlaceableResult.Occupied;
+
+                // ⑥ 占用格上无实体(玩家/敌人)
+                if (_presenceQuery.IsPresentAt(cell))
+                    return PlaceableResult.EntityOnCell;
             }
 
             // 条件 ⑤: 库存

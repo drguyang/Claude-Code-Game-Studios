@@ -22,7 +22,8 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             _registry = new StructureInstanceRegistry();
             var occupancy = new EmptyOccupancyQuery();
             var presence = new AlwaysEmptyPresence();
-            _checker = new DemolishChecker(_registry, occupancy, presence);
+            var moduleCatalog = new TestModuleCatalog();
+            _checker = new DemolishChecker(_registry, occupancy, presence, moduleCatalog);
         }
 
         // AC-23-07: 不存在 => StructureNotFound
@@ -38,7 +39,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         {
             int sid = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
             var checkerWithEntity = new DemolishChecker(
-                _registry, new EmptyOccupancyQuery(), new AlwaysPresentPresence());
+                _registry, new EmptyOccupancyQuery(), new AlwaysPresentPresence(), new TestModuleCatalog());
             Assert.AreEqual(DemolishResult.EntityOnCell, checkerWithEntity.Check(sid));
         }
 
@@ -62,5 +63,6 @@ namespace DaYiJingCheng.Tests.ModularBuilding
     {
         public bool IsPresent(PatientId patientId) => true;
         public int PresentCount => 1;
+        public bool IsPresentAt(WorldPos cell) => true;
     }
 }

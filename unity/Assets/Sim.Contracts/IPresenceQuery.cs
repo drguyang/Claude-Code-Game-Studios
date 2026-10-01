@@ -26,5 +26,10 @@ namespace DaYiJingCheng.Sim.Contracts
         /// 当前在场病人数。
         /// </summary>
         int PresentCount { get; }
+
+        /// <summary>
+        /// 指定格上是否有实体（玩家/敌人）。
+        /// </summary>
+        bool IsPresentAt(WorldPos cell);
     }
 }

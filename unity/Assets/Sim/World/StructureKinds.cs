@@ -85,14 +85,16 @@ namespace DaYiJingCheng.Sim.World
         public readonly int ModuleId;
         public readonly int Orientation;
         public readonly int Variant;
+        public IReadOnlyList<WorldPos> OccupiedCells;
 
-        public StructureInstance(int structureId, WorldPos anchor, int moduleId, int orientation, int variant)
+        public StructureInstance(int structureId, WorldPos anchor, int moduleId, int orientation, int variant, IReadOnlyList<WorldPos> occupiedCells = null)
         {
             StructureId = structureId;
             Anchor = anchor;
             ModuleId = moduleId;
             Orientation = orientation;
             Variant = variant;
+            OccupiedCells = occupiedCells ?? new List<WorldPos> { anchor };
         }
     }
 
@@ -106,7 +108,9 @@ namespace DaYiJingCheng.Sim.World
         public int Register(WorldPos anchor, int moduleId, int orientation, int variant)
         {
             int id = _nextStructureId++;
-            _instances[id] = new StructureInstance(id, anchor, moduleId, orientation, variant);
+            // 计算占用格(简化:仅锚点格;完整实现需查模块目录)
+            var occupiedCells = new List<WorldPos> { anchor };
+            _instances[id] = new StructureInstance(id, anchor, moduleId, orientation, variant, occupiedCells);
             return id;
         }
 
@@ -126,7 +130,7 @@ namespace DaYiJingCheng.Sim.World
             int variant = newVariant ?? inst.Variant;
 
             _instances[structureId] = new StructureInstance(
-                inst.StructureId, inst.Anchor, inst.ModuleId, orientation, variant);
+                inst.StructureId, inst.Anchor, inst.ModuleId, orientation, variant, inst.OccupiedCells);
             return true;
         }
 
@@ -237,9 +241,9 @@ namespace DaYiJingCheng.Sim.World
             int orientation = newOrientation ?? inst.Orientation;
             int variant = newVariant ?? inst.Variant;
 
-            // 载荷: BlobId = structure_id, Offset = module_id | (fields << 16), Length = 8
-            int offset = inst.ModuleId | (modifiedFields << 16) | (orientation << 20) | (variant << 24);
-            var payload = new PayloadRef(blobId: structureId, offset: offset, length: 8);
+            // 载荷: 真实 payload 类型(ADR-024: 非 bit-packing)
+            var payload = new PayloadRef(blobId: structureId, offset: 0, length: 8);
+            // TODO: 接入 Sim.Codec 编码 StructureModifiedPayload(需 IBlobPool 支持)
 
             var evt = new SimEvent(tick, PatientId.None, 0, EventKind.StructureModified, payload);
             _eventSink.Append(evt);

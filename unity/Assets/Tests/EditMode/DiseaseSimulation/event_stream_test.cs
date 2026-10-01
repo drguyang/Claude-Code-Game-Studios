@@ -35,6 +35,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
 
         public bool IsPresent(PatientId patientId) => _presentPatients.Contains(patientId.Value);
         public int PresentCount => _presentPatients.Count;
+        public bool IsPresentAt(WorldPos cell) => false;
 
         public void Add(PatientId patientId) => _presentPatients.Add(patientId.Value);
         public void Clear() => _presentPatients.Clear();

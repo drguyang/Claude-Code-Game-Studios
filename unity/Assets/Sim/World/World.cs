@@ -135,4 +135,27 @@ namespace DaYiJingCheng.Sim.World
             }
         }
     }
+
+    /// <summary>
+    /// OccupancyOverlay —— slot_occupied 的纯函数投影。
+    /// 27 / 13 只读此类型,不读 Nav 原件。
+    /// </summary>
+    public readonly struct OccupancyOverlay
+    {
+        private readonly IReadOnlyList<bool> _slotOccupied;
+
+        public OccupancyOverlay(IReadOnlyList<bool> slotOccupied)
+        {
+            _slotOccupied = slotOccupied;
+        }
+
+        /// <summary>格是否被占用(blocked)。越界返回 true(fail-closed)。</summary>
+        public bool IsBlocked(WorldPos cell, WorldGeometry geometry)
+        {
+            int idx = geometry.ToIndex(cell);
+            if (idx < 0 || idx >= _slotOccupied.Length)
+                return true;
+            return _slotOccupied[idx];
+        }
+    }
 }
