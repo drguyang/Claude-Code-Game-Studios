@@ -153,7 +153,7 @@ namespace DaYiJingCheng.Sim.World
         public bool IsBlocked(WorldPos cell, WorldGeometry geometry)
         {
             int idx = geometry.ToIndex(cell);
-            if (idx < 0 || idx >= _slotOccupied.Length)
+            if (idx < 0 || idx >= _slotOccupied.Count)
                 return true;
             return _slotOccupied[idx];
         }
