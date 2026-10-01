@@ -89,15 +89,15 @@ namespace DaYiJingCheng.Sim.World
             _activeChunks = new bool[topology.ChunksX * topology.ChunksY * topology.ChunksZ];
         }
 
-        /// <summary>更新玩家位置并重推激活集(纯函数,同输入 => 同输出)。</summary>
+        /// <summary>计算激活 chunk 集(纯函数,同输入 => 同输出,不修改内部状态)。</summary>
         /// <param name="playerCell">玩家当前所在格。</param>
         /// <returns>当前激活 chunk 集(只读副本)。</returns>
         public bool[] ComputeActiveChunks(WorldPos playerCell)
         {
             WorldPos playerChunk = _topology.WorldToChunk(playerCell);
 
-            // 清空激活集
-            Array.Clear(_activeChunks, 0, _activeChunks.Length);
+            // 纯函数: 不修改 _activeChunks,使用局部数组
+            var result = new bool[_activeChunks.Length];
 
             // 半径范围内的 chunk 全部激活
             int rx = _streamingRadius;
@@ -122,14 +122,11 @@ namespace DaYiJingCheng.Sim.World
                             continue;
 
                         int idx = _topology.ChunkToIndex(chunkPos);
-                        _activeChunks[idx] = true;
+                        result[idx] = true;
                     }
                 }
             }
 
-            // 返回副本,防止调用方修改内部状态
-            var result = new bool[_activeChunks.Length];
-            Array.Copy(_activeChunks, result, _activeChunks.Length);
             return result;
         }
 

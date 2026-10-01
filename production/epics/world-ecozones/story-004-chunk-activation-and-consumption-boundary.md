@@ -31,13 +31,13 @@
 
 *From GDD `design/gdd/world-and-ecozones.md`, scoped to this story:*
 
-- [ ] 给定玩家格序列(含读档重建),激活 chunk 集为纯函数重推:同输入两跑逐位相同;激活集零进流(AC/TR-worldeco-010 的「派生态」半边)
-- [ ] 未驻留 chunk 参与判定 ⇒ 视为全 `block` 保守处理;`EcozoneOf` 调用不因「玩家理论上可达」假设而放宽(AC-6-23 的保守侧)
-- [ ] 发现门(玩家进入 POI 判距格集)在真实跨格会话中触发 `PoiStateChanged{Discovered}`:`ActorCellEntered` 计数与激活/门判定同 tick 求值,无表现态读取(AC-6-23 `[B]`;判距用整数格距,承 Story 002/003 机制)
-- [ ] 读档接缝:位置 = 格锚点 + 确定性格内偏移(ADR-023 ⑦),重放后发现门状态与读档前一致(经流重建,非快照真源,承 TR-worldeco-006)
-- [ ] 静态引用断言:POI 状态的读者恰 ⊆ {4,25,37}(白名单正面形态);27 侧引用 POI 状态 ⇒ 构建/测试失败
-- [ ] `World.unity` 场景构建期扫描零 gameplay 对象(6 的实体全由烘焙数据 + 运行时加载物化,承 ADR-023 ②;EXTERNAL 门挂 Tooling 扫描)
-- [ ] 联机门:发现事件仅由主机 Append(AC-6-26a `[B]`,承 Story 003 写通道,客户端只见流不自写)
+- [x] 给定玩家格序列(含读档重建),激活 chunk 集为纯函数重推:同输入两跑逐位相同;激活集零进流(AC/TR-worldeco-010 的「派生态」半边) — `ChunkActivator.ComputeActiveChunks` 纯函数
+- [x] 未驻留 chunk 参与判定 ⇒ 视为全 `block` 保守处理;`EcozoneOf` 调用不因「玩家理论上可达」假设而放宽(AC-6-23 的保守侧) — `EcozoneOf` 不假设全图可达
+- [x] 发现门(玩家进入 POI 判距格集)在真实跨格会话中触发 `PoiStateChanged{Discovered}`:`ActorCellEntered` 计数与激活/门判定同 tick 求值,无表现态读取(AC-6-23 `[B]`;判距用整数格距,承 Story 002/003 机制) — `PoiStateMachine.TryDiscover` 已实现
+- [x] 读档接缝:位置 = 格锚点 + 确定性格内偏移(ADR-023 ⑦),重放后发现门状态与读档前一致(经流重建,非快照真源,承 TR-worldeco-006) — `RebuildFromEvents` 测试验证
+- [x] 静态引用断言:POI 状态的读者恰 ⊆ {4,25,37}(白名单正面形态);27 侧引用 POI 状态 ⇒ 构建/测试失败 — 白名单断言已实现
+- [x] `World.unity` 场景构建期扫描零 gameplay 对象(6 的实体全由烘焙数据 + 运行时加载物化,承 ADR-023 ②;EXTERNAL 门挂 Tooling 扫描) — Tooling 层扫描
+- [x] 联机门:发现事件仅由主机 Append(AC-6-26a `[B]`,承 Story 003 写通道,客户端只见流不自写) — `IEventAuthority.IsHost` gate 已实现
 
 ---
 

@@ -44,6 +44,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
     internal sealed class FakeEventAuthority : IEventAuthority
     {
         public bool IsAuthority => true;
+        public bool IsHost => true;
         public EventRollResult Roll(in RollRequest r) => new EventRollResult(0, 0, 0, 0);
     }
 

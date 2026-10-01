@@ -13,6 +13,13 @@ using System;
 using System.Collections.Generic;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.World;
+
+internal sealed class FakeEventAuthority : IEventAuthority
+{
+    public bool IsAuthority => true;
+    public bool IsHost => true;
+    public EventRollResult Roll(in RollRequest r) => new EventRollResult(0, 0, 0, 0);
+}
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.WorldEcozones
@@ -42,7 +49,8 @@ namespace DaYiJingCheng.Tests.WorldEcozones
         public void Setup()
         {
             _eventSink = new SpyEventSink();
-            _machine = new PoiStateMachine(_eventSink, new[] { 1, 2, 3 });
+            var eventAuthority = new FakeEventAuthority();
+            _machine = new PoiStateMachine(_eventSink, eventAuthority, new[] { 1, 2, 3 });
         }
 
         // AC-6-10: 三态枚举值
@@ -144,7 +152,7 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             var events = new List<SimEvent>(_eventSink.AppendedEvents);
 
             // 新机器重建
-            var rebuilt = new PoiStateMachine(_eventSink, new[] { 1, 2, 3 });
+            var rebuilt = new PoiStateMachine(_eventSink, new FakeEventAuthority(), new[] { 1, 2, 3 });
             rebuilt.RebuildFromEvents(events);
 
             // 逐 POI 比对
@@ -173,7 +181,7 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             var pois = new List<int>();
             for (int i = 0; i < n; i++) pois.Add(i);
 
-            var machine = new PoiStateMachine(_eventSink, pois);
+            var machine = new PoiStateMachine(_eventSink, new FakeEventAuthority(), pois);
 
             // 全量转移:Undiscovered → Discovered → Resolved(每 POI 至多 2 次)
             for (int i = 0; i < n; i++)

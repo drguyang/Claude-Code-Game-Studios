@@ -57,6 +57,9 @@ namespace DaYiJingCheng.Sim.Contracts
         /// <summary>P0 恒 true;P1b 后区分主机 / 客户端。</summary>
         bool IsAuthority { get; }
 
+        /// <summary>是否主机(AC-6-26a: host-only write gate)。P0 恒 true。</summary>
+        bool IsHost { get; }
+
         /// <summary>仅权威侧可调用。</summary>
         EventRollResult Roll(in RollRequest r);
     }

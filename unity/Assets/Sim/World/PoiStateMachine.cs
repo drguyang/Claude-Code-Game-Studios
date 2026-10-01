@@ -34,15 +34,18 @@ namespace DaYiJingCheng.Sim.World
     public sealed class PoiStateMachine
     {
         private readonly IEventSink _eventSink;
+        private readonly IEventAuthority _eventAuthority;
         private readonly Dictionary<int, PoiState> _stateMap = new Dictionary<int, PoiState>();
         private readonly HashSet<int> _poiIdSet = new HashSet<int>();
 
         /// <summary>构造 POI 状态机。</summary>
         /// <param name="eventSink">事件写入通道(主机唯一)。</param>
+        /// <param name="eventAuthority">掷骰/发号权威(主机唯一)。</param>
         /// <param name="initialPoiIds">初始 POI id 集合(从烘焙数据加载的定义侧)。</param>
-        public PoiStateMachine(IEventSink eventSink, IEnumerable<int> initialPoiIds)
+        public PoiStateMachine(IEventSink eventSink, IEventAuthority eventAuthority, IEnumerable<int> initialPoiIds)
         {
             _eventSink = eventSink ?? throw new ArgumentNullException(nameof(eventSink));
+            _eventAuthority = eventAuthority ?? throw new ArgumentNullException(nameof(eventAuthority));
 
             if (initialPoiIds != null)
             {
@@ -60,6 +63,15 @@ namespace DaYiJingCheng.Sim.World
             return _stateMap.TryGetValue(poiId, out var state) ? state : PoiState.Undiscovered;
         }
 
+        /// <summary>
+        /// 发现门(AC-6-23): 玩家进入 POI 所在格时调用。
+        /// 仅 Undiscovered → Discovered 合法;已发现/已解决返回 AlreadyAtState。
+        /// </summary>
+        public PoiStateTransferResult TryDiscover(int poiId, long tick = 0)
+        {
+            return TryAdvance(poiId, PoiState.Discovered, tick);
+        }
+
         /// <summary>尝试推进 POI 状态(主机唯一入口)。</summary>
         /// <param name="poiId">POI id。</param>
         /// <param name="toState">目标状态。</param>
@@ -67,6 +79,10 @@ namespace DaYiJingCheng.Sim.World
         /// <returns>转移结果。</returns>
         public PoiStateTransferResult TryAdvance(int poiId, PoiState toState, long tick = 0)
         {
+            // AC-6-26a: host-only write gate
+            if (!_eventAuthority.IsHost)
+                return PoiStateTransferResult.PoiNotFound;
+
             if (!_poiIdSet.Contains(poiId))
                 return PoiStateTransferResult.PoiNotFound;
 
@@ -86,6 +102,7 @@ namespace DaYiJingCheng.Sim.World
 
             // PatientId.None = -1 哨兵(ADR-021 裁定④)
             // 载荷编码: BlobId = poiId, Offset = (int)toState, Length = 8 (两个 int32)
+            // TODO: 接入 Sim.Codec 真实 payload_schema(需 IBlobPool 支持)
             var payloadRef = new PayloadRef(blobId: poiId, offset: (int)toState, length: 8);
 
             var evt = new SimEvent(
@@ -111,6 +128,7 @@ namespace DaYiJingCheng.Sim.World
                     continue;
 
                 // 从 PayloadRef 解码: BlobId = poiId, Offset = new_state
+                // TODO: 接入 Sim.Codec 真实 payload_schema(需 IBlobPool 支持)
                 int poiId = evt.Payload.BlobId;
                 PoiState newState = (PoiState)evt.Payload.Offset;
 
@@ -121,10 +139,10 @@ namespace DaYiJingCheng.Sim.World
             }
         }
 
-        /// <summary>获取所有已知 POI 的当前状态快照。</summary>
+        /// <summary>获取所有已知 POI 的当前状态快照(防御性拷贝,防 aliasing)。</summary>
         public IReadOnlyDictionary<int, PoiState> Snapshot()
         {
-            return _stateMap;
+            return new Dictionary<int, PoiState>(_stateMap);
         }
 
         /// <summary>已知 POI 数量。</summary>
