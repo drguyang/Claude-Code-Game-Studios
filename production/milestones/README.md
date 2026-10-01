@@ -14,7 +14,7 @@
 - [x] All P0 systems have epic directories
 - [x] Sprint 1 plan defined in `production/sprints/sprint-01.md` — committed 1d14107
 - [x] CI EditMode baseline green (921 passed, 0 failed) — 2026-09-29 desktop verified
-- [ ] `UNITY_LICENSE` secret configured (manual step, user action required)
+- [x] `UNITY_LICENSE` secret configured — 改用服务账号授权（`UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`），CI workflow 已生成（`.github/workflows/unity-tests.yml`）
 - [x] OQ-1-12 (接地模型) decision recorded — `player-controller-and-movement.md`
 - [x] OQ-10-12 (两动作原型) decision recorded — `emergency-procedures.md`
 - [ ] Performance budgets finalized (Draw Calls, Memory Ceiling) — pending target hardware selection (BLOCKED-BY: hardware decision, not an ADR issue)

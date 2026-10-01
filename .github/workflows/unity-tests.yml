@@ -1,0 +1,100 @@
+name: Unity Tests
+
+# 2026-10-01: 恢复 Unity CI（服务账号授权）
+# 授权方式: unity auth login --client-id/--client-secret
+# 需要 secrets: UNITY_CLIENT_ID, UNITY_CLIENT_SECRET
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  editmode-tests:
+    name: "EditMode Tests (Linux-x64-Mono)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: unity/Library
+          key: Library-${{ hashFiles('unity/Assets/**', 'unity/Packages/**', 'unity/ProjectSettings/**') }}
+          restore-keys: |
+            Library-
+
+      - name: Unity CI Login
+        env:
+          UNITY_CLIENT_ID: ${{ secrets.UNITY_CLIENT_ID }}
+          UNITY_CLIENT_SECRET: ${{ secrets.UNITY_CLIENT_SECRET }}
+        run: |
+          if [ -z "$UNITY_CLIENT_ID" ] || [ -z "$UNITY_CLIENT_SECRET" ]; then
+            echo "⚠️ UNITY_CLIENT_ID / UNITY_CLIENT_SECRET 未配置 — 跳过 Unity 测试"
+            exit 0
+          fi
+          unity auth login --client-id "$UNITY_CLIENT_ID" --client-secret "$UNITY_CLIENT_SECRET"
+
+      - name: Run EditMode Tests
+        if: env.UNITY_CLIENT_ID != ''
+        run: |
+          unity test unity --mode EditMode --output test-results/editmode.xml
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editmode-test-results
+          path: test-results/editmode.xml
+
+  playmode-tests:
+    name: "PlayMode Tests (Linux-x64-Mono)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: unity/Library
+          key: Library-${{ hashFiles('unity/Assets/**', 'unity/Packages/**', 'unity/ProjectSettings/**') }}
+          restore-keys: |
+            Library-
+
+      - name: Unity CI Login
+        env:
+          UNITY_CLIENT_ID: ${{ secrets.UNITY_CLIENT_ID }}
+          UNITY_CLIENT_SECRET: ${{ secrets.UNITY_CLIENT_SECRET }}
+        run: |
+          if [ -z "$UNITY_CLIENT_ID" ] || [ -z "$UNITY_CLIENT_SECRET" ]; then
+            echo "⚠️ UNITY_CLIENT_ID / UNITY_CLIENT_SECRET 未配置 — 跳过 Unity 测试"
+            exit 0
+          fi
+          unity auth login --client-id "$UNITY_CLIENT_ID" --client-secret "$UNITY_CLIENT_SECRET"
+
+      - name: Run PlayMode Tests
+        if: env.UNITY_CLIENT_ID != ''
+        run: |
+          unity test unity --mode PlayMode --output test-results/playmode.xml
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playmode-test-results
+          path: test-results/playmode.xml
+
+  # ADR-012: IL2CPP 对拍需要 unity-builder 出 player + 独立 job
+  # 当前未实现，占位
+  il2cpp-determinism:
+    name: "IL2CPP Determinism Check (Linux-x64-IL2CPP)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: TODO - IL2CPP determinism check
+        run: |
+          echo "TODO(实现轮): unity-builder 出 player → 独立 job 跑 IL2CPP 对拍"
+          echo "需要: UNITY_CLIENT_ID / UNITY_CLIENT_SECRET + unity-builder 配置"
+          exit 0
