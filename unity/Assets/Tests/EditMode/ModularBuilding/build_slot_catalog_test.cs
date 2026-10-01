@@ -60,7 +60,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         {
             bool found = _catalog.TryGetSlot(new WorldPos(0, 0, 0), out var slot);
             Assert.IsTrue(found, "已注册槽位必须被找到");
-            Assert.AreEqual(0b0011, slot.AllowedTypes, "槽位类型必须匹配");
+            Assert.AreEqual(0b0011, slot.AllowedTypes.Value, "槽位类型必须匹配");
         }
 
         // AC-23-05: TryGetSlot 对未知位置返回 false

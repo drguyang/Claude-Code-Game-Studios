@@ -1,3 +1,6 @@
+
+
+
 # Claude Code Game Studios -- Game Studio Agent Architecture
 
 Indie game development managed through 54 coordinated Claude Code subagents.

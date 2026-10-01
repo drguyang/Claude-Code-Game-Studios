@@ -24,25 +24,25 @@ namespace DaYiJingCheng.Tests.TimeWeather
         [Test]
         public void test_isNight_correctRange()
         {
-            // NIGHT_START = 1800, NIGHT_SPAN = 1200
-            // tick = 1800 → phase = 1800 → isNight = true
-            Assert.IsTrue(TimeBase.IsNight(1800));
-            // tick = 600 → phase = 600 → isNight = false
-            Assert.IsFalse(TimeBase.IsNight(600));
-            // tick = 3000 → phase = 3000 → isNight = true (3000 >= 1800 && 3000 < 3000)
-            Assert.IsTrue(TimeBase.IsNight(3000));
+            // TICKS_PER_DAY = 480, NIGHT_START = 360, NIGHT_SPAN = 240
+            // tick = 360 → phase = 360 → isNight = true
+            Assert.IsTrue(TimeBase.IsNight(360));
+            // tick = 120 → phase = 120 → isNight = false
+            Assert.IsFalse(TimeBase.IsNight(120));
+            // tick = 0 → phase = 0 → isNight = true (0 ∈ [0, 120) ∪ [360, 480))
+            Assert.IsTrue(TimeBase.IsNight(0));
         }
 
         [Test]
         public void test_seasonIndex_correctRange()
         {
-            // TICKS_PER_SEASON = 10000, SEASONS_PER_YEAR = 4
+            // seasonLength = TICKS_PER_DAY * 30 = 14400, SEASONS_PER_YEAR = 4
             // tick = 0 → season = 0
             Assert.AreEqual(0, TimeBase.ComputeSeasonIndex(0));
-            // tick = 10000 → season = 1
-            Assert.AreEqual(1, TimeBase.ComputeSeasonIndex(10000));
-            // tick = 40000 → season = 0 (wraps)
-            Assert.AreEqual(0, TimeBase.ComputeSeasonIndex(40000));
+            // tick = 14400 → season = 1
+            Assert.AreEqual(1, TimeBase.ComputeSeasonIndex(14400));
+            // tick = 57600 → season = 0 (wraps)
+            Assert.AreEqual(0, TimeBase.ComputeSeasonIndex(57600));
         }
 
         [Test]
