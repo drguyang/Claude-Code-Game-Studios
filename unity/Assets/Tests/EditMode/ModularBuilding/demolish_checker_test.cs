@@ -23,6 +23,13 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             var occupancy = new EmptyOccupancyQuery();
             var presence = new AlwaysEmptyPresence();
             var moduleCatalog = new TestModuleCatalog();
+            // 注册测试模块(非 Shell)
+            moduleCatalog.RegisterModule(new ModuleDefinition(
+                moduleId: 1,
+                slotType: SlotType.Bed,
+                localOccupancy: new System.Collections.Generic.List<WorldPos> { new WorldPos(0, 0, 0) },
+                validOrientations: new[] { 0 },
+                refundable: 1));
             _checker = new DemolishChecker(_registry, occupancy, presence, moduleCatalog);
         }
 
@@ -38,8 +45,15 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public void test_entityOnCell_returnsEntityOnCell()
         {
             int sid = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
+            var moduleCatalog = new TestModuleCatalog();
+            moduleCatalog.RegisterModule(new ModuleDefinition(
+                moduleId: 1,
+                slotType: SlotType.Bed,
+                localOccupancy: new System.Collections.Generic.List<WorldPos> { new WorldPos(0, 0, 0) },
+                validOrientations: new[] { 0 },
+                refundable: 1));
             var checkerWithEntity = new DemolishChecker(
-                _registry, new EmptyOccupancyQuery(), new AlwaysPresentPresence(), new TestModuleCatalog());
+                _registry, new EmptyOccupancyQuery(), new AlwaysPresentPresence(), moduleCatalog);
             Assert.AreEqual(DemolishResult.EntityOnCell, checkerWithEntity.Check(sid));
         }
 
