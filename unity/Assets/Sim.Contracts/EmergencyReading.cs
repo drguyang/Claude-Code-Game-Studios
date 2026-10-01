@@ -67,11 +67,25 @@ namespace DaYiJingCheng.Sim.Contracts
         }
 
         /// <summary>
-        /// 验证 edges 只计 press 沿。
+        /// 验证 edges 只计 press 沿（release 不计数）。
         /// </summary>
-        public static bool ValidateEdges(int pressCount, int releaseCount)
+        public static bool ValidateEdges(int edges, int pressCount, int releaseCount)
         {
-            return pressCount >= 0 && releaseCount >= 0;
+            // edges 必须等于 pressCount（release 不计数）
+            return edges == pressCount && pressCount >= 0 && releaseCount >= 0;
+        }
+
+        /// <summary>
+        /// 验证 edge_ticks 单调递增。
+        /// </summary>
+        public static bool ValidateEdgeTicksMonotonic(int[] edgeTicks)
+        {
+            if (edgeTicks == null || edgeTicks.Length == 0) return true;
+            for (int i = 1; i < edgeTicks.Length; i++)
+            {
+                if (edgeTicks[i] <= edgeTicks[i - 1]) return false;
+            }
+            return true;
         }
 
         /// <summary>

@@ -69,7 +69,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/EmergencyProcedures/reading_contract_test.cs` — must exist and pass;`L_input` 实机面 NOT-RUN(归 story 006 / OQ-10-12 原型门)
-**Status**: [ ] Created — NOT STARTED
+**Status**: [x] Created — 11/11 passed (2026-10-02 双代理评审修复后复跑)
 
 ---
 
@@ -80,9 +80,7 @@
 
 ## Completion Notes
 
-## Completion Notes
-
-**Completed**: 2026-09-30
+**Completed**: 2026-10-02 (双代理评审修复后复跑)
 **Criteria**: 
 - `EmergencyReading` — 急救读数（全整数域：Action / HoldTicks / Edges / EdgeTicks[] / Magnitude）
 - `EmergencyReadingContract` — 读数契约验证器（ValidateIntegerDomain / ValidateDeadzone / ValidateEdges / ValidateMagnitude）
