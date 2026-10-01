@@ -33,14 +33,13 @@ namespace DaYiJingCheng.Sim.World
             _slotCatalog = slotCatalog ?? throw new ArgumentNullException(nameof(slotCatalog));
             _structures = new StructureInstanceRegistry();
 
-            // 初始化占用表(WorldGeometry 的 SizeX * SizeY * SizeZ)
-            int total = geometry.SizeX * geometry.SizeY * geometry.SizeZ;
-            _slotOccupied = new bool[total];
+            // 初始化占用表(WorldGeometry 的 TotalCells)
+            _slotOccupied = new bool[geometry.TotalCells];
         }
 
         // ── 占用查询(Overlay.blocked = slot_occupied 投影) ──
 
-        /// <summary>检查格是否被占用。</summary>
+        /// <summary>检查格是否被占用。越界返回 false(fail-closed)。</summary>
         public bool IsSlotOccupied(WorldPos cell)
         {
             int idx = _geometry.ToIndex(cell);

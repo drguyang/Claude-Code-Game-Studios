@@ -22,8 +22,13 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [SetUp]
         public void Setup()
         {
-            // 创建 5×1×5 小世界
-            _geometry = new WorldGeometry(5, 1, 5);
+            // 创建 5×1×5 小世界(烘焙产物形状:由测试自建数组,不经「尺寸构造」入口)
+            var terrain = new TerrainCell[5, 1, 5];
+            for (int x = 0; x < 5; x++)
+                for (int z = 0; z < 5; z++)
+                    terrain[x, 0, z] = new TerrainCell(true, 0);
+            int total = 5 * 1 * 5;
+            _geometry = new WorldGeometry(terrain, new int[total], new int[total]);
             _catalog = new BuildSlotCatalog();
 
             // 注册槽位: (0,0,0) Bed, (1,0,0) Table, (2,0,0) Bed
