@@ -52,8 +52,8 @@
 
 | 指标 | 值 |
 |------|---|
-| EditMode | 1462/1489 Passed · 0 Failed · 26 Skipped · 1 Inconclusive（2026-09-30 实测，待重跑） |
-| PlayMode | 25/25 Passed（2026-09-30 实测） |
+| EditMode | 1831/1858 Passed · 0 Failed · 26 Skipped · 1 Inconclusive（2026-10-01 实测） |
+| PlayMode | 25/25 Passed · 0 Failed（2026-10-01 实测） |
 | 确定性验证 | F7 反汇编 CLEAN · AC-29 三平台逐位一致 |
 
 ### 关键里程碑
