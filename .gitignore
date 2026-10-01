@@ -20,8 +20,6 @@ CLAUDE.local.md
 # hooks 已锚定 git root,此二行防再污染。
 unity/Assets/production/
 unity/Assets/production.meta
-# Ephemeral session checkpoint — see .claude/docs/directory-structure.md.
-production/session-state/active.md
 # Local agent-runner configs carry a plaintext ANTHROPIC_API_KEY. Never commit.
 .claude/opencode*.json
 .claude/commcode.json
