@@ -157,7 +157,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
     // 测试辅助: 总是无实体
     internal class AlwaysEmptyPresence : IPresenceQuery
     {
-        public bool IsPresent(int actorId) => false;
+        public bool IsPresent(PatientId patientId) => false;
         public int PresentCount => 0;
     }
 

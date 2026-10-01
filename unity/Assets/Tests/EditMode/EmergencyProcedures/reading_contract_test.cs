@@ -6,7 +6,7 @@
 // F-10.1 交付契约: 死区与 clamp
 
 using System;
-using DaYiJingCheng.Gameplay.Input.Intents;
+using DaYiJingCheng.Sim.Contracts;
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.EmergencyProcedures
@@ -17,7 +17,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         [Test]
         public void test_reading_allFieldsIntegerDomain()
         {
-            var type = typeof(EmergencyReading);
+            var type = typeof(DaYiJingCheng.Sim.Contracts.EmergencyReading);
             foreach (var field in type.GetFields())
             {
                 Assert.IsFalse(field.FieldType == typeof(float),

@@ -5,6 +5,7 @@
 // AC-23-16: Refund = ⌊cost × R⌋ 整数向下取整,失败走 DropSpawned
 
 using System;
+using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.World;
 using NUnit.Framework;
 
@@ -59,7 +60,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
     // 测试辅助: 总是有实体
     internal class AlwaysPresentPresence : IPresenceQuery
     {
-        public bool IsPresent(int actorId) => true;
+        public bool IsPresent(PatientId patientId) => true;
         public int PresentCount => 1;
     }
 }

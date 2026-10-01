@@ -121,7 +121,6 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.AreEqual(1, payload.Offset);        // module_id
             Assert.AreEqual(8, payload.Length);        // 载荷长度
         }
-    }
 
     // 辅助: 创建 StructurePlaced 事件
     private static SimEvent CreatePlacedEvent(long tick, WorldPos cell, int structureId, int moduleId, int orientation)
@@ -146,5 +145,6 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         int x = (payload.Offset >> 20) & 0xFFF;
         int z = payload.Offset & 0xFFF;
         return new WorldPos(x, 0, z);
+    }
     }
 }

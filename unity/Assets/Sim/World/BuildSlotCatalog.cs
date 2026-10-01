@@ -29,16 +29,16 @@ namespace DaYiJingCheng.Sim.World
     public readonly struct BuildSlot
     {
         public readonly WorldPos Position;      // 锚点格(整数)
-        public readonly BitMask AllowedTypes;   // 允许的 SlotType 位掩码
+        public readonly int AllowedTypes;       // 允许的 SlotType 位掩码
 
-        public BuildSlot(WorldPos position, BitMask allowedTypes)
+        public BuildSlot(WorldPos position, int allowedTypes)
         {
             Position = position;
             AllowedTypes = allowedTypes;
         }
 
         /// <summary>检查指定类型是否允许。</summary>
-        public bool Allows(SlotType type) => (AllowedTypes & BitMask.Single(type)) != new BitMask(0);
+        public bool Allows(SlotType type) => (AllowedTypes & (1 << (int)type)) != 0;
     }
 
     /// <summary>槽位骨架目录(装载自烘焙数据)。</summary>
@@ -67,10 +67,10 @@ namespace DaYiJingCheng.Sim.World
             return _slots.ContainsKey(position);
         }
 
-        /// <summary>获取指定位置的允许类型(无槽位返回空掩码)。</summary>
-        public BitMask GetAllowedTypes(WorldPos position)
+        /// <summary>获取指定位置的允许类型(无槽位返回0)。</summary>
+        public int GetAllowedTypes(WorldPos position)
         {
-            return _slots.TryGetValue(position, out var slot) ? slot.AllowedTypes : new BitMask(0);
+            return _slots.TryGetValue(position, out var slot) ? slot.AllowedTypes : 0;
         }
 
         /// <summary>获取所有槽位位置(用于迭代)。</summary>

@@ -32,6 +32,7 @@ using DaYiJingCheng.EditorTools.Gates;
 using DaYiJingCheng.Gameplay.Input;
 using DaYiJingCheng.Gameplay.Input.Intents;
 using DaYiJingCheng.Sim.Contracts;
+using EmergencyReading = DaYiJingCheng.Gameplay.Input.Intents.EmergencyReading;
 
 namespace DaYiJingCheng.Tests.Unit.InputSystem
 {
@@ -1188,8 +1189,8 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         }
 
         // ── 读数构造助手(单帧样本;edges 必 == edgeTicks.Length)──
-        private static EmergencyReading Reading(int action, int hold, int[] edgeTicks, int mag)
-            => new EmergencyReading(action, hold, edgeTicks.Length, edgeTicks, mag);
+        private static DaYiJingCheng.Gameplay.Input.Intents.EmergencyReading Reading(int action, int hold, int[] edgeTicks, int mag)
+            => new DaYiJingCheng.Gameplay.Input.Intents.EmergencyReading(action, hold, edgeTicks.Length, edgeTicks, mag);
 
         // ═══════════════ 负向夹具(住本测试装配,不污染生产扫描面)═══════════════
 

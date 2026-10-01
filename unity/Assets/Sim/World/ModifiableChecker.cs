@@ -60,13 +60,14 @@ namespace DaYiJingCheng.Sim.World
                 return ModifiableResult.NoChange;
 
             // 获取模块定义
-            var moduleDef = _moduleCatalog.GetModuleDefinition(inst.ModuleId);
-            if (!moduleDef.HasValue)
+            var moduleDefOpt = _moduleCatalog.GetModuleDefinition(inst.ModuleId);
+            if (moduleDefOpt == null)
                 return ModifiableResult.StructureNotFound;
+            var moduleDef = moduleDefOpt.Value;
 
             // 检查新朝向是否在模块允许集合内
             bool orientationAllowed = false;
-            foreach (var valid in moduleDef.Value.ValidOrientations)
+            foreach (var valid in moduleDef.ValidOrientations)
             {
                 if (valid == newOrientation)
                 {
@@ -79,11 +80,11 @@ namespace DaYiJingCheng.Sim.World
 
             // 计算新占用格集
             var newCells = PlaceableChecker.ComputeOccupiedCells(
-                moduleDef.Value, inst.Anchor, newOrientation);
+                moduleDef, inst.Anchor, newOrientation);
 
             // 检查: 新格 ∖ 旧格 全空
             var oldCells = PlaceableChecker.ComputeOccupiedCells(
-                moduleDef.Value, inst.Anchor, inst.Orientation);
+                moduleDef, inst.Anchor, inst.Orientation);
 
             var oldSet = new HashSet<WorldPos>(oldCells);
 

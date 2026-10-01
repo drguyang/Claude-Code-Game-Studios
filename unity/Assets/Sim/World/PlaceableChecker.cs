@@ -69,15 +69,16 @@ namespace DaYiJingCheng.Sim.World
             if (!_catalog.TryGetSlot(anchor, out var slot))
                 return PlaceableResult.SlotNotFound;
 
-            var moduleDef = _moduleCatalog.GetModuleDefinition(moduleId);
-            if (!moduleDef.HasValue)
+            var moduleDefOpt = _moduleCatalog.GetModuleDefinition(moduleId);
+            if (moduleDefOpt == null)
                 return PlaceableResult.ModuleNotFound;
+            var moduleDef = moduleDefOpt.Value;
 
-            if (!slot.Allows(moduleDef.Value.SlotType))
+            if (!slot.Allows(moduleDef.SlotType))
                 return PlaceableResult.TypeMismatch;
 
             // 计算占用格集(F-23-2b 整数旋转)
-            var occupiedCells = ComputeOccupiedCells(moduleDef.Value, anchor, orientation);
+            var occupiedCells = ComputeOccupiedCells(moduleDef, anchor, orientation);
 
             // 条件 ②: 占用为空 + ③ 区域包含 + ⑥ 实体空
             foreach (var cell in occupiedCells)
