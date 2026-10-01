@@ -1,0 +1,116 @@
+// emergency-procedures Story 002 — EmergencyAction 枚举与动作表 schema
+//
+// 权威来源:
+//   OQ-10-6 裁决: 归系统 10（急救动作是系统 10 核心职责）
+//   OQ-10-4 裁决: P0 = 2 个急救动作（止血包扎 + 节奏型通气）
+//   ADR-014: 两阶段烘焙
+//   GDD emergency-procedures.md: 数据契约 10-DC
+
+using System;
+
+namespace DaYiJingCheng.Sim.EmergencyProcedures
+{
+    /// <summary>
+    /// 急救动作枚举（OQ-10-6 裁决: 归系统 10）。
+    /// P0 动作清单（OQ-10-4 裁决）:
+    ///   0 = 止血包扎（包扎→按压两拍，同一动作序列）
+    ///   1 = 节奏型通气（总谱呈现「人工呼吸法」，内部映射 CPR 节奏动作集）
+    /// </summary>
+    public enum EmergencyAction : int
+    {
+        HemostasisBandage = 0,  // 止血包扎（包扎→按压）
+        RhythmVentilation = 1  // 节奏型通气（CPR 节奏集）
+    }
+
+    /// <summary>
+    /// 判定结果枚举（result_mul 三档索引）。
+    /// </summary>
+    public enum JudgeResult : int
+    {
+        Missed = 0,        // 未命中
+        AppliedWeak = 1,   // 弱应用
+        Applied = 2        // 完全应用
+    }
+
+    /// <summary>
+    /// 动作表行（烘焙产物）。
+    /// GDD 数据契约 10-DC: 动作表字段 = polarity / base_potency / mag_threshold / min_edges / min_hold_ticks / half_life_ticks / duration_ticks
+    /// </summary>
+    public sealed class EmergencyActionRow
+    {
+        public int ActionId;
+        public int Polarity;           // 枚举序数
+        public long BasePotency;       // Fix raw long
+        public int MagThreshold;       // 幅度门阈值（Fix raw long）
+        public int MinEdges;           // 最小边数
+        public int MinHoldTicks;       // 最小保持 tick
+        public int HalfLifeTicks;      // 衰减半衰期（tick）
+        public int DurationTicks;      // 持续 tick
+        public long[] ResultMul;       // result_mul 三档（Fix raw long，按 JudgeResult 序数索引）
+    }
+
+    /// <summary>
+    /// 熟练度表行（烘焙产物）。
+    /// GDD 数据契约 10-DC: 熟练度表字段 = jitter_relax_mul / mag_cap_mul
+    /// </summary>
+    public sealed class EmergencySkillRow
+    {
+        public int Level;              // 主键（QueryLevel 档）
+        public int JitterRelaxMul;     // 抖动松弛乘子（Fix raw long）
+        public int MagCapMul;          // 幅度上限乘子（Fix raw long）
+    }
+
+    /// <summary>
+    /// 动作表 schema 校验器（DC-1…DC-5）。
+    /// </summary>
+    public static class EmergencyActionSchema
+    {
+        public const int MUL_ONE = 65536; // 1.0 in Q16.16
+
+        /// <summary>DC-1: half_life_ticks >= 1</summary>
+        public static bool ValidateHalfLifeTicks(EmergencyActionRow row)
+        {
+            return row.HalfLifeTicks >= 1;
+        }
+
+        /// <summary>DC-2: 1 <= mag_threshold <= MAG_MAX</summary>
+        public static bool ValidateMagThreshold(EmergencyActionRow row, int magMax)
+        {
+            return row.MagThreshold >= 1 && row.MagThreshold <= magMax;
+        }
+
+        /// <summary>DC-3: jitter_relax_mul >= MUL_ONE（熟练度表约束）</summary>
+        public static bool ValidateJitterRelaxMul(EmergencySkillRow row)
+        {
+            return row.JitterRelaxMul >= MUL_ONE;
+        }
+
+        /// <summary>DC-4: action_id 闭集 = EmergencyAction 枚举全值</summary>
+        public static bool ValidateActionId(int actionId)
+        {
+            return Enum.IsDefined(typeof(EmergencyAction), actionId);
+        }
+
+        /// <summary>DC-5: Kind 白名单含三 Kind（引用 entities.yaml 注册表）</summary>
+        public static string[] GetRequiredKindWhitelist()
+        {
+            return new[] { "EmergencyAttempt", "EmergencyTreatmentApplied", "DrugTreatmentApplied" };
+        }
+
+        /// <summary>result_mul 三档（AC-10-16 已裁机制值，按 JudgeResult 序数索引）</summary>
+        public static long[] GetResultMulTiers()
+        {
+            // 按 JudgeResult 序数索引: Missed=0, AppliedWeak=1, Applied=2
+            // GDD F-10.4: Missed=0.25, AppliedWeak=0.5, Applied=1.0
+            return new long[] { 16384, 32768, 65536 };
+        }
+
+        /// <summary>F-10.2: MAG_CAP(L) 档位表（P0 全档相同，值归用户数值轮）</summary>
+        public static int[] GetMagCapTable()
+        {
+            // P0 效应关闭，允许全档相同
+            // 值归用户数值轮，此处为占位
+            return new int[] { 65536, 65536, 65536, 65536, 65536 };
+        }
+    }
+}

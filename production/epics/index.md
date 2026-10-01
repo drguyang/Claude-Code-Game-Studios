@@ -24,7 +24,7 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | death-respawn | Core | 29 死亡与复活 | design/gdd/death-and-respawn.md | 6 stories | Ready(未实现) |
 | diagnosis-system | Core | 8 诊断系统 | design/gdd/diagnosis-system.md | 6 stories | Ready(未实现) |
 | disease-simulation | Core | 9 疾病模拟 | design/gdd/disease-simulation.md | 6 stories | Complete ✅ 2026-09-30 |
-| emergency-procedures | Core | 10 急救动作 | design/gdd/emergency-procedures.md | 6 stories | In Progress(1/6 · Story 001 完成) |
+| emergency-procedures | Core | 10 急救动作 | design/gdd/emergency-procedures.md | 6 stories | In Progress(2/6 · Story 001/002 完成) |
 | enemy-ai | Core | 27 敌人 AI | design/gdd/enemy-ai.md | 5 stories | Complete ✅ 2026-09-30 |
 | interaction-system | Core | 4 交互系统 | design/gdd/interaction-system.md | 4 stories | Ready(未实现) |
 | inventory-items | Core | 21b 库存与物品 | design/gdd/inventory-and-items.md | 6 stories | Ready(未实现) |
