@@ -85,7 +85,7 @@ namespace DaYiJingCheng.Sim.World
         public readonly int ModuleId;
         public readonly int Orientation;
         public readonly int Variant;
-        public IReadOnlyList<WorldPos> OccupiedCells;
+        public readonly IReadOnlyList<WorldPos> OccupiedCells;
 
         public StructureInstance(int structureId, WorldPos anchor, int moduleId, int orientation, int variant, IReadOnlyList<WorldPos> occupiedCells = null)
         {
