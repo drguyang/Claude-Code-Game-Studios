@@ -70,14 +70,14 @@ namespace DaYiJingCheng.Sim.World
                 return PlaceableResult.SlotNotFound;
 
             var moduleDef = _moduleCatalog.GetModuleDefinition(moduleId);
-            if (moduleDef == null)
+            if (!moduleDef.HasValue)
                 return PlaceableResult.ModuleNotFound;
 
-            if (!slot.Allows(moduleDef.SlotType))
+            if (!slot.Allows(moduleDef.Value.SlotType))
                 return PlaceableResult.TypeMismatch;
 
             // 计算占用格集(F-23-2b 整数旋转)
-            var occupiedCells = ComputeOccupiedCells(moduleDef, anchor, orientation);
+            var occupiedCells = ComputeOccupiedCells(moduleDef.Value, anchor, orientation);
 
             // 条件 ②: 占用为空 + ③ 区域包含 + ⑥ 实体空
             foreach (var cell in occupiedCells)

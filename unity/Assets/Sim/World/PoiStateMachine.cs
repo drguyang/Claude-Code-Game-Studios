@@ -85,7 +85,7 @@ namespace DaYiJingCheng.Sim.World
             _stateMap[poiId] = toState;
 
             // PatientId.None = -1 哨兵(ADR-021 裁定④)
-            // 载荷编码: BlobId = poiId, Offset = (int)toState, Length = 8
+            // 载荷编码: BlobId = poiId, Offset = (int)toState, Length = 8 (两个 int32)
             var payloadRef = new PayloadRef(blobId: poiId, offset: (int)toState, length: 8);
 
             var evt = new SimEvent(

@@ -56,8 +56,8 @@ namespace DaYiJingCheng.Sim.World
             if (inst.ModuleId == (int)SlotType.Shell)
                 return DemolishResult.ShellNotRemovable;
 
-            // ③ 实体检查(简化版:检查锚点格是否有实体)
-            if (_presenceQuery.IsPresent(0)) // 简化:只检查玩家 id=0
+            // ③ 实体检查(简化版:检查是否有任何被模拟实体在场)
+            if (_presenceQuery.PresentCount > 0)
                 return DemolishResult.EntityOnCell;
 
             return DemolishResult.Success;

@@ -85,12 +85,17 @@ namespace DaYiJingCheng.Sim.World
                     continue; // 同侧,不相交
 
                 // 计算交点 X: x = a.X + (p.Z - a.Z) * (b.X - a.X) / (b.Z - a.Z)
-                // 用交叉相乘避免除法: (p.Z - a.Z)*(b.X - a.X) + a.X*(b.Z - a.Z) > p.X*(b.Z - a.Z)
+                // 用交叉相乘避免除法: 判 x_int > p.X
+                //   x_int > p.X
+                //   ⇔ (p.Z - a.Z)*dx/a.dz > p.X - a.X
+                //   dz > 0: (p.Z - a.Z)*dx > (p.X - a.X)*dz
+                //   dz < 0: 不等号翻转
                 int dz = b.Z - a.Z;
                 int dx = b.X - a.X;
-                long lhs = (long)(p.Z - a.Z) * dx + (long)a.X * dz;
-                long rhs = (long)p.X * dz;
-                if (lhs > rhs)
+                long lhs = (long)(p.Z - a.Z) * dx;
+                long rhs = (long)(p.X - a.X) * dz;
+                bool intersectionAhead = dz > 0 ? lhs > rhs : lhs < rhs;
+                if (intersectionAhead)
                     crossings++;
             }
 
@@ -141,7 +146,10 @@ namespace DaYiJingCheng.Sim.World
         /// <summary>获取所有已注册生态区 id 列表。</summary>
         public List<EcozoneId> GetAllEcozoneIds()
         {
-            return _polygons.Keys.ToList();
+            var list = new List<EcozoneId>(_polygons.Count);
+            foreach (var kv in _polygons)
+                list.Add(kv.Key);
+            return list;
         }
     }
 }

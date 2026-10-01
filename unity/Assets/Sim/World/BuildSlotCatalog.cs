@@ -38,14 +38,14 @@ namespace DaYiJingCheng.Sim.World
         }
 
         /// <summary>检查指定类型是否允许。</summary>
-        public bool Allows(SlotType type) => (AllowedTypes & (1 << (int)type)) != 0;
+        public bool Allows(SlotType type) => (AllowedTypes & BitMask.Single(type)) != new BitMask(0);
     }
 
     /// <summary>槽位骨架目录(装载自烘焙数据)。</summary>
     public sealed class BuildSlotCatalog
     {
         private readonly Dictionary<WorldPos, BuildSlot> _slots = new Dictionary<WorldPos, BuildSlot>();
-        private BitMask _regionMask = 0; // 骨架区域的位掩码(简化版:只记录是否有槽位)
+        private BitMask _regionMask = new BitMask(0); // 骨架区域的位掩码(简化版:只记录是否有槽位)
 
         public int Count => _slots.Count;
 
@@ -70,7 +70,7 @@ namespace DaYiJingCheng.Sim.World
         /// <summary>获取指定位置的允许类型(无槽位返回空掩码)。</summary>
         public BitMask GetAllowedTypes(WorldPos position)
         {
-            return _slots.TryGetValue(position, out var slot) ? slot.AllowedTypes : 0;
+            return _slots.TryGetValue(position, out var slot) ? slot.AllowedTypes : new BitMask(0);
         }
 
         /// <summary>获取所有槽位位置(用于迭代)。</summary>

@@ -29,7 +29,7 @@ namespace DaYiJingCheng.Sim.World
         /// <summary>构造 World。</summary>
         public World(WorldGeometry geometry, BuildSlotCatalog slotCatalog)
         {
-            _geometry = geometry ?? throw new ArgumentNullException(nameof(geometry));
+            _geometry = geometry;
             _slotCatalog = slotCatalog ?? throw new ArgumentNullException(nameof(slotCatalog));
             _structures = new StructureInstanceRegistry();
 

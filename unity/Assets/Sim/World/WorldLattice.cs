@@ -129,6 +129,12 @@ namespace DaYiJingCheng.Sim.World
             PoiGrid = new int[sizeX * sizeY * sizeZ];
             ResourceGrid = new int[sizeX * sizeY * sizeZ];
 
+            // ADR-015:道路/空地默认可走(烘焙数据可显式覆盖为不可走)
+            for (int x = 0; x < sizeX; x++)
+                for (int y = 0; y < sizeY; y++)
+                    for (int z = 0; z < sizeZ; z++)
+                        Terrain[x, y, z] = new TerrainCell(true, 0);
+
             // 初始化无 POI / 无资源
             for (int i = 0; i < PoiGrid.Length; i++)
             {
