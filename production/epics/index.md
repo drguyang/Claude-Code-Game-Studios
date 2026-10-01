@@ -36,3 +36,19 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | world-ecozones | Core | 6b 生态区与 POI | design/gdd/world-and-ecozones.md | 5 stories | In Progress(4/5;005 = [L] 桌面) |
 | persistence-service | Foundation | 7a 持久化服务 | design/gdd/persistence-service.md | — | Ready(未实现) |
 | save-slot-ui | Foundation | 7b 存档位 UI | design/gdd/save-slot-ui.md | — | Ready(未实现) |
+
+---
+
+
+## 越序实现登记(2026-10-01)
+
+以下两项在 **2026-10-01 大量落盘实现**,但**不属于任何 sprint 计划** —— 登记为
+**架构依赖先行(越序)**,sprint 计划表本身不改:
+
+| Epic | 计划归口 | 实际状态 | 越序成因 |
+|------|---------|---------|---------|
+| `world-ecozones`(6b) | 无(sprint-02 止于 sim 层三 epic;sprint-03 = combat/enemy/emergency) | In Progress(4/5 Complete) | ADR-015 单一整数格 `WorldPos` + ADR-021 POI 状态所有权 + ADR-022 关卡工具,三者同指世界层地基;ecozone 查询又是 sprint-03 `time-weather` Story 003 与 chunk 激活的直接输入。**先世界层基建、后计划内 epic**。 |
+| `modular-building`(6) | 无 | In Review(6/6 测试绿,未双评) | 同族:`BuildSlot` / `SlotType` 与地形共用 `WorldPos`(ADR-015 §三),建造槽位不先落盘则 world-ecozones 的 `EcozoneOf` 被消费侧提前引用。ADR-022 侧 `world_buildslots.json` 导出契约以本 epic 为第一个消费者。 |
+
+**纪律说明**:越序 ≠ 已完成治理。两项均**未走双代理评审**,依「不得借绿」不记 Complete;
+后续 gate-check 以本节为索引,须按 sprint 顺序补齐对应 sprint 的 AC 台账。
