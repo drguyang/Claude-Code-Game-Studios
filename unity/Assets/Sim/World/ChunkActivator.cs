@@ -78,6 +78,7 @@ namespace DaYiJingCheng.Sim.World
         private readonly ChunkTopology _topology;
         private readonly int _streamingRadius; // 以 chunk 为单位的流式半径
         private readonly bool[] _activeChunks;  // 当前激活集(索引 => 布尔)
+        private WorldPos _playerCell;  // 玩家当前位置(用于 IsChunkActive 重推)
 
         public ChunkTopology Topology => _topology;
         public int StreamingRadius => _streamingRadius;
@@ -94,6 +95,7 @@ namespace DaYiJingCheng.Sim.World
         /// <returns>当前激活 chunk 集(只读副本)。</returns>
         public bool[] ComputeActiveChunks(WorldPos playerCell)
         {
+            _playerCell = playerCell;
             WorldPos playerChunk = _topology.WorldToChunk(playerCell);
 
             // 纯函数: 不修改 _activeChunks,使用局部数组
@@ -130,7 +132,7 @@ namespace DaYiJingCheng.Sim.World
             return result;
         }
 
-        /// <summary>判断某 chunk 是否激活。</summary>
+        /// <summary>判断某 chunk 是否激活(纯函数,基于当前玩家位置重推)。</summary>
         public bool IsChunkActive(WorldPos chunkPos)
         {
             if (chunkPos.X < 0 || chunkPos.X >= _topology.ChunksX ||
@@ -138,7 +140,9 @@ namespace DaYiJingCheng.Sim.World
                 chunkPos.Z < 0 || chunkPos.Z >= _topology.ChunksZ)
                 return false;
 
-            return _activeChunks[_topology.ChunkToIndex(chunkPos)];
+            // 纯函数: 基于当前玩家位置重推激活集
+            var activeChunks = ComputeActiveChunks(_playerCell);
+            return activeChunks[_topology.ChunkToIndex(chunkPos)];
         }
 
         /// <summary>判断某世界格是否在激活 chunk 内(保守判定:未驻留 = block)。</summary>
