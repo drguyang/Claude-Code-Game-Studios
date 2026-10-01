@@ -28,12 +28,12 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | enemy-ai | Core | 27 敌人 AI | design/gdd/enemy-ai.md | 5 stories | Complete ✅ 2026-09-30 |
 | interaction-system | Core | 4 交互系统 | design/gdd/interaction-system.md | 4 stories | Ready(未实现) |
 | inventory-items | Core | 21b 库存与物品 | design/gdd/inventory-and-items.md | 6 stories | Ready(未实现) |
-| modular-building | Core | 6 世界与生态区 | design/gdd/modular-building.md | 6 stories | In Review(6/6 测试绿,未双评) |
+| modular-building | Core | 6 世界与生态区 | design/gdd/modular-building.md | 6 stories | In Review(双评审 REQUEST_CHANGES · 5 BLOCKING) |
 | patient-ai | Core | 13 病人 AI | design/gdd/patient-ai.md | 4 stories | Ready(未实现) |
 | player-controller | Core | 1 玩家控制器 | design/gdd/player-controller-and-movement.md | 6 stories | Ready(未实现) |
 | prescription-medication | Core | 11 处方与用药 | design/gdd/prescription-and-medication.md | 5 stories | Ready(未实现) |
 | processing | Core | 14 加工与制作 | design/gdd/processing.md | 5 stories | Ready(未实现) |
-| world-ecozones | Core | 6b 生态区与 POI | design/gdd/world-and-ecozones.md | 5 stories | In Progress(4/5;005 = [L] 桌面) |
+| world-ecozones | Core | 6b 生态区与 POI | design/gdd/world-and-ecozones.md | 5 stories | In Review(双评审 REQUEST_CHANGES · 4 BLOCKING) |
 | persistence-service | Foundation | 7a 持久化服务 | design/gdd/persistence-service.md | — | Ready(未实现) |
 | save-slot-ui | Foundation | 7b 存档位 UI | design/gdd/save-slot-ui.md | — | Ready(未实现) |
 
