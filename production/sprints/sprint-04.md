@@ -2,7 +2,8 @@
 
 > **Status (2026-10-02)**: **Phase 1 收尾中** — 4/6 任务已完成;剩下 modular-building 与
 > world-ecozones 双评审均为「REQUEST_CHANGES → BLOCKING 已修 → 逐例复跑绿」,
-> 但**评审报告件未落 `production/qa/evidence/`** ⇒ 依「不得借绿」维持 In Review 不转 Complete。
+> 但**评审报告件未落 `production/qa/evidence/`**(另 we 的 B1 未修被降级 TODO、host gate 无负向夹具 ——
+> 三条缺口明细见 `production/epics/index.md` §越序实现登记)⇒ 依「不得借绿」维持 In Review 不转 Complete。
 > **Phase 2 未启动**(`player-controller` 2/6 为 2026-10-01 桌面批越序先行的在建状态,非 Phase 2 开工)。
 > 三专家调研(TD + Producer + QA Lead)综合建议,方案 A 分阶段执行。
 
@@ -31,8 +32,8 @@
 
 | # | 任务 | 状态 | 理由 |
 |---|------|------|------|
-| 1 | 双评审 modular-building | 🔶 REQUEST_CHANGES→5B 已修(51/51 逐例复跑绿)· **评审报告件缺失** | 解除 3 个系统阻塞 |
-| 2 | 双评审 world-ecozones | 🔶 REQUEST_CHANGES→4B 已修(87/87 逐例复跑绿)· **评审报告件缺失** | 87/87 测试绿 |
+| 1 | 双评审 modular-building | 🔶 REQUEST_CHANGES→5B(`da04f41` 修复;51/51 逐例复跑绿)· **对账件缺 + Modified 接 codec 降级 TODO** | 解除 3 个系统阻塞 |
+| 2 | 双评审 world-ecozones | 🔶 REQUEST_CHANGES→4B(`43400dc`;**B1 未修、降级 TODO**(codec 已在库);87/87 逐例复跑绿)· **对账件缺 + host gate 无负向夹具** | 87/87 测试绿 |
 | 3 | 建立集成测试基础设施 | ✅ 完成 | tests/integration/ 目录 |
 | 4 | 修复状态文件漂移 | ✅ 完成 | 4 个文件已修复 |
 | 5 | 创建 QA 基础设施 | ✅ 完成 | bugs/ + evidence/ |
@@ -49,7 +50,7 @@
   ⚠️ **漂移登记(2026-10-02【超算】)**:本批 `da177e6` 曾把二者在 `index.md` 直改为
   `Complete ✅ 2026-10-02`,而三处 EPIC/story 行未同步 ⇒ 已回退为 `In Review`;
   本批 Phase 1 表原写「world-ecozones 双评 ✅ APPROVE」与 `bb477e6` 的
-  REQUEST_CHANGES(4 BLOCKING)不符,已订正为「REQUEST_CHANGES→4B 已修」。
+  REQUEST_CHANGES(4 BLOCKING)不符,已订正为「REQUEST_CHANGES→4B」;**2026-10-02 再订正**:B1 实为「降级 TODO」而**非已修**。
 - 集成测试基础设施就绪(`tests/integration/` 5 目录;须注意 `unity/Assets/` 之外的目录
   **不进 Unity 编译**,集成测试真身须落在 `unity/Assets/Tests/` 下,本目录为台账)
 - 状态文件可信
@@ -115,8 +116,9 @@ patient-ai → diagnosis-system → case-system → prescription-medication
 
 ## 下一步
 
-1. **Phase 1 残余**:两份评审报告件未落 evidence —— 补写「逐 BLOCKING:原判定 → 修复落点 →
-   验证命令」对账件(索引见 `production/epics/index.md` §越序实现登记的纪律说明),
-   落件后 modular-building / world-ecozones 方可转 Complete。**其余任务先不进行**。
+1. **Phase 1 残余**(三条缺口,明细与索引见 `production/epics/index.md` §越序实现登记):
+   ①a 两份逐 BLOCKING 对账件未落 evidence;**①b** we 的 B1(`PoiStateChanged` 接 `Sim.Codec`)
+   被降级 TODO 而 codec/`IBlobPool` 已在库 ⇒「前置未就绪」免责不成立;**①c** host gate
+   (`AC-6-26a [B]`)无 `IsHost => false` 负向夹具。三条闭合后两 epic 方可转 Complete。**其余任务先不进行**。
 2. Phase 1 全部收口后启动 Phase 2
 3. Phase 2 按依赖顺序推进

@@ -3,7 +3,7 @@
 > **Layer**: Core
 > **GDD**: design/gdd/modular-building.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ 世界流 Structure* 三支唯一写者
-> **Status**: In Review(双代理评审 **REQUEST_CHANGES → 5 BLOCKING 已修复**;51/51 **逐例复跑绿**(【超算】2026-10-02,`production/qa/evidence/editmode-full-rerun-2026-10-02.md`);**评审报告件未落 evidence** 且 story 级 AC 勾选未经逐条复核 ⇒ 依「不得借绿」不转 Complete)
+> **Status**: In Review(双代理评审 **REQUEST_CHANGES,5 BLOCKING 由 `da04f41` 修复(逐条对账件未落 evidence)**;51/51 **逐例复跑绿**(【超算】2026-10-02,`production/qa/evidence/editmode-full-rerun-2026-10-02.md`);**逐 BLOCKING 对账件未落 evidence**;另 `StructureModified` 接 codec 被降级 TODO 而其 codec 已在库、`StructurePlaced` 的 bit-pack 评审未点现状仍在 ⇒ 依「不得借绿」不转 Complete)
 > **Stories**: 6 stories — see table below
 
 ## Overview

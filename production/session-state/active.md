@@ -37,7 +37,7 @@
 | interaction-system (4) | 6 | 0 | 6 | 2 | 🔵 进行中 |
 | inventory-items (20) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | medical-consequences (53) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
-| modular-building (23) | 6 | **6** | 0 | 0 | 🔶 **In Review**（双评 REQUEST_CHANGES 5B 已修 · 51/51 **逐例复跑绿** 2026-10-02 · **报告件未落 evidence** ⇒ 依「不得借绿」不记 Complete） |
+| modular-building (23) | 6 | **6** | 0 | 0 | 🔶 **In Review**（双评 REQUEST_CHANGES 5B(`da04f41`)· 51/51 **逐例复跑绿** 2026-10-02 · **逐 BLOCKING 对账件未落 evidence** ⇒ 依「不得借绿」不记 Complete） |
 | patient-ai (13) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
 | player-controller (1) | 6 | 0 | 6 | 2 | 🔵 进行中 |
 | prescription-medication (11) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
@@ -45,7 +45,7 @@
 | random-events (52) | 6 | **6** | 0 | 0 | ✅ 全收口 |
 | time-weather (5) | 5 | **5** | 0 | 0 | ✅ 全收口 |
 | tutorial-onboarding (48) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
-| world-ecozones (6) | 5 | **4** | 1 | 0 | 🔶 **In Review**（双评 REQUEST_CHANGES 4B 已修 · 87/87 **逐例复跑绿** 2026-10-02 · Story 005 [L] Pending · **报告件未落 evidence**） |
+| world-ecozones (6) | 5 | **4** | 1 | 0 | 🔶 **In Review**（双评 REQUEST_CHANGES 4B(`43400dc`,**B1 未修降级 TODO**)· 87/87 **逐例复跑绿** 2026-10-02 · Story 005 [L] Pending · **对账件缺 + B1 降级 TODO(codec 已在库)+ host gate 无负向夹具**） |
 | **合计** | **191** | **93** | **95** | **6** | **49% 完成** |
 
 ### 测试状态

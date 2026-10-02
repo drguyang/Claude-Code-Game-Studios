@@ -1,7 +1,7 @@
 # Story 003: Structure* 三 Kind 载荷、唯一写权、实例表与字节稳定
 
 > **Epic**: 模块化建造
-> **Status**: In Review — 双代理评审 5 BLOCKING 已修复(`da04f41`),测试绿 `StructureKindsTest` 7/7 + `WorldTest` 8/8;EPIC 级不转 Complete(story 级 AC 勾选未逐条复跑复核)
+> **Status**: In Review — 双代理评审 REQUEST_CHANGES 5 BLOCKING(`da04f41` 修复,逐条对账件未落 evidence),测试绿 `StructureKindsTest` 7/7 + `WorldTest` 8/8;EPIC 级不转 Complete(对账件未落 evidence · story 级 AC 勾选未逐条复跑复核)
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 6h
@@ -120,4 +120,4 @@
 
 *(placeholder — to be filled at story completion)*
 
-**Code Review**: 双代理评审 2026-10-01 裁 REQUEST_CHANGES(5 BLOCKING:entity check 缺失/错误 · payload bit-packing · 无 `OccupancyOverlay` 独立类型),修复落 `da04f41`(2026-10-01);复跑 `StructureKindsTest` 7/7 + `WorldTest` 8/8 全绿。评审报告原文未落 `production/qa/evidence/`(桌面批遗留缺口,依「不得借绿」EPIC 级不转 Complete);全量复跑逐例证据见 `production/qa/evidence/editmode-full-rerun-2026-10-02.md`(实跑 15 例全绿)。
+**Code Review**: 双代理评审 2026-10-01 裁 REQUEST_CHANGES(5 BLOCKING:entity check 缺失/错误 · payload bit-packing · 无 `OccupancyOverlay` 独立类型),修复落 `da04f41`(2026-10-01);复跑 `StructureKindsTest` 7/7 + `WorldTest` 8/8 全绿。逐 BLOCKING 对账件未落 `production/qa/evidence/`(桌面批遗留缺口 —— `da04f41` 只给 commit message 自述,依「不得借绿」EPIC 级不转 Complete);全量复跑逐例证据见 `production/qa/evidence/editmode-full-rerun-2026-10-02.md`(实跑 15 例全绿)。

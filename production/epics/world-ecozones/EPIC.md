@@ -3,7 +3,7 @@
 > **Layer**: Foundation → Core → Feature
 > **GDD**: design/gdd/world-and-ecozones.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ Tooling 消费侧(ADR-022 关卡工具)
-> **Status**: In Review(4/5 stories Complete;双代理评审 4 BLOCKING 已修复 `43400dc`,87/87 测试绿;Story 005 = [L]/EXTERNAL 桌面走查 Pending;EPIC 级依「不得借绿」不转 Complete)
+> **Status**: In Review(4/5 stories Complete;双代理评审 REQUEST_CHANGES 4 BLOCKING(其中 **B1 未修、被降级 TODO**),`43400dc`,87/87 逐例复跑绿;Story 005 = [L]/EXTERNAL 桌面走查 Pending;⚠️ **B1 未修** —— `43400dc` 自陈修法为「添加 TODO 注释」,`PoiStateMachine.cs:105/131` TODO 仍在且 Append 绕过 `Sim.Codec` 手搓 `PayloadRef`,而 `PayloadCodec.World.cs:375-402` 与 `IBlobPool` 均已在库 ⇒「前置未就绪」免责不成立;另 host gate `AC-6-26a [B]` 无 `IsHost => false` 负向夹具;EPIC 级依「不得借绿」不转 Complete)
 > **Stories**: 5 stories — see table below
 
 ## Overview
