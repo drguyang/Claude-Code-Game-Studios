@@ -1,6 +1,6 @@
 ---
 name: placeholder-test-false-green
-description: 本仓测试的四类「假绿」——NOT-RUN 占位断言硬编码 true 的 helper、断言常量工厂(重言式)、空集合 All() 真空真、桩生产码/孤儿求值器
+description: 本仓测试的六类「假绿」——NOT-RUN 占位断言硬编码 true 的 helper、断言常量工厂(重言式)、空集合 All() 真空真、桩生产码/孤儿求值器、只断言类型存在/引擎行为、扫描作用域过窄
 metadata:
   type: feedback
 ---
@@ -29,6 +29,15 @@ metadata:
    grep 调用点;若只有 `Tests/**` 命中 ⇒ 该 AC 的**出货路径未被验证**。与第 2 类同源
    (真源在生产路径,测试却打自造的/离线的载体),但更隐蔽:测试**没有**用常量工厂,而是一个
    形状正确、逻辑正确、却**接错了线**的类。已见:`LocomotionEvaluator.cs`(player-controller story 003)。
+
+5. **断言的对象是「类型存在」或「引擎自己的行为」,不是生产路径** ——
+   `Assert.IsNotNull(typeof(CellTransitionDetector))` 只证类编译通过;`Assert.AreEqual(-1, Mathf.FloorToInt(-0.5f))`
+   证的是 Unity 的 `Mathf`,**与实现无关**(换成手写 floor 也绿)。**判定法**:把生产实现整段删成空壳,
+   测试是否仍绿?仍绿 ⇒ 该 AC 未验。已见:`cell_transition_test.cs` 的 `test_ac107_floorToIntUsed`(player-controller story 004)。
+
+6. **反射/扫描类断言作用域过窄 ⇒ 真空真** —— 只扫 `typeof(Detector).GetFields()` 找帧计数字段,
+   而目标代码(`Grounded` 进入条件)根本不在这个类里 ⇒ 无论生产码怎么写都绿。同 3 类的空集真空真变体。
+   已见:`test_ac117_noFrameCounterForGrounded`(player-controller story 004)。
 
 **Why**:本仓 `NOT-RUN 禁借绿` 是反复申明的纪律,但「绿灯冒充 NOT-RUN」与「断言常量」两类会静默稀释 BLOCKING 门;
 story 006 三条 BLOCKING AC(AC-10-09/17/21)正是被这三类假绿覆盖的典型。
