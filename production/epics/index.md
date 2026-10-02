@@ -28,12 +28,12 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | enemy-ai | Core | 27 敌人 AI | design/gdd/enemy-ai.md | 5 stories | Complete ✅ 2026-09-30 |
 | interaction-system | Core | 4 交互系统 | design/gdd/interaction-system.md | 4 stories | Ready(未实现) |
 | inventory-items | Core | 21b 库存与物品 | design/gdd/inventory-and-items.md | 6 stories | Ready(未实现) |
-| modular-building | Core | 6 世界与生态区 | design/gdd/modular-building.md | 6 stories | Complete ✅ 2026-10-02 |
+| modular-building | Core | 6 世界与生态区 | design/gdd/modular-building.md | 6 stories | In Review(6/6 测试绿;EPIC 级未转 Complete) |
 | patient-ai | Core | 13 病人 AI | design/gdd/patient-ai.md | 4 stories | Ready(未实现) |
-| player-controller | Core | 1 玩家控制器 | design/gdd/player-controller-and-movement.md | 6 stories | Ready(未实现) |
+| player-controller | Core | 1 玩家控制器 | design/gdd/player-controller-and-movement.md | 6 stories | In Progress(2/6:Sprint 04 Phase 2 进行中) |
 | prescription-medication | Core | 11 处方与用药 | design/gdd/prescription-and-medication.md | 5 stories | Ready(未实现) |
 | processing | Core | 14 加工与制作 | design/gdd/processing.md | 5 stories | Ready(未实现) |
-| world-ecozones | Core | 6b 生态区与 POI | design/gdd/world-and-ecozones.md | 5 stories | Complete ✅ 2026-10-02 |
+| world-ecozones | Core | 6b 生态区与 POI | design/gdd/world-and-ecozones.md | 5 stories | In Progress(4/5;005 = [L] 桌面走查) |
 | persistence-service | Foundation | 7a 持久化服务 | design/gdd/persistence-service.md | — | Ready(未实现) |
 | save-slot-ui | Foundation | 7b 存档位 UI | design/gdd/save-slot-ui.md | — | Ready(未实现) |
 
@@ -47,8 +47,12 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 
 | Epic | 计划归口 | 实际状态 | 越序成因 |
 |------|---------|---------|---------|
-| `world-ecozones`(6b) | 无(sprint-02 止于 sim 层三 epic;sprint-03 = combat/enemy/emergency) | In Progress(4/5 Complete) | ADR-015 单一整数格 `WorldPos` + ADR-021 POI 状态所有权 + ADR-022 关卡工具,三者同指世界层地基;ecozone 查询又是 sprint-03 `time-weather` Story 003 与 chunk 激活的直接输入。**先世界层基建、后计划内 epic**。 |
-| `modular-building`(6) | 无 | In Review(6/6 测试绿,未双评) | 同族:`BuildSlot` / `SlotType` 与地形共用 `WorldPos`(ADR-015 §三),建造槽位不先落盘则 world-ecozones 的 `EcozoneOf` 被消费侧提前引用。ADR-022 侧 `world_buildslots.json` 导出契约以本 epic 为第一个消费者。 |
+| `world-ecozones`(6b) | 无(sprint-02 止于 sim 层三 epic;sprint-03 = combat/enemy/emergency) | In Progress(4/5;005 = [L]) | ADR-015 单一整数格 `WorldPos` + ADR-021 POI 状态所有权 + ADR-022 关卡工具,三者同指世界层地基;ecozone 查询又是 sprint-03 `time-weather` Story 003 与 chunk 激活的直接输入。**先世界层基建、后计划内 epic**。 |
+| `modular-building`(6) | 无 | In Review(6/6 测试绿) | 同族:`BuildSlot` / `SlotType` 与地形共用 `WorldPos`(ADR-015 §三),建造槽位不先落盘则 world-ecozones 的 `EcozoneOf` 被消费侧提前引用。ADR-022 侧 `world_buildslots.json` 导出契约以本 epic 为第一个消费者。 |
 
-**纪律说明**:越序 ≠ 已完成治理。两项均**未走双代理评审**,依「不得借绿」不记 Complete;
-后续 gate-check 以本节为索引,须按 sprint 顺序补齐对应 sprint 的 AC 台账。
+**纪律说明**:越序 ≠ 已完成治理。`world-ecozones` 双评已 APPROVE(87/87 测试绿)、
+`modular-building` 双评桌面批进行中;**但二者对应的 `EPIC.md` 与该批 story 行尚未随之转
+Complete**(`modular-building/EPIC.md` 仍 `In Progress`、6 份 story 仍 `In Review`;
+`world-ecozones/EPIC.md` 仍 `In Progress`)—— 依「不得借绿」,`index.md` 的表格行以
+**EPIC 级最慢状态**为准,不抢跑。后续 gate-check 以本节为索引,须先补齐 EPIC/story 级
+状态与本次 pull 带回的双评结论对齐,再谈 sprint AC 台账。

@@ -37,7 +37,14 @@
 
 **Phase 1 产出**：
 - modular-building + world-ecozones 正式标记 Complete
-- 集成测试基础设施就绪
+  ⚠️ **状态漂移登记(2026-10-02【超算】复核)**:`production/epics/index.md` 的两行已被本批
+  改作 `Complete ✅ 2026-10-02`,但 `modular-building/EPIC.md`(仍 `In Progress`)+ 6 份 story
+  (仍 `In Review`)、`world-ecozones/EPIC.md`(仍 `In Progress`)三处**未随之更新** ⇒ 本批的
+  index 改标记与自家 EPIC 级自相矛盾。按「不得借绿」已把 index 两行回退为 `In Review` /
+  `In Progress`(以 EPIC 级最慢状态为准),待 ① modular-building 双评出结论、② 三处 EPIC/story
+  行补齐后,再一次性转 Complete。
+- 集成测试基础设施就绪(`tests/integration/` 5 目录;须注意 `unity/Assets/` 之外的目录
+  **不进 Unity 编译**,集成测试真身须落在 `unity/Assets/Tests/` 下,本目录为台账)
 - 状态文件可信
 - QA 基础设施就绪
 
