@@ -5,7 +5,7 @@
 > **Layer**: Foundation(系统分类;实现落表现层 L5)
 > **Type**: Logic
 > **Estimate**: 6h(含 [L] 听测排期)
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-26
 
 ## Context

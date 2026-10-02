@@ -5,7 +5,7 @@
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: 5h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-10-02
 
 ## Context
@@ -191,4 +191,4 @@
   ④ `AC-1-29`(ADVISORY)依赖 `OQ-1-12` 接地 spike 的 `slopeLimit`/`stepOffset` 取值(`O-9`),判据迟于本 story,已按原文只交付清单与流程。
 **Test Evidence**: `production/qa/evidence/` 无本 story 专项件;复跑证据 = 2026-10-02 batchmode 全量 EditMode(`total 2028 · passed 1995 · failed 0 · skipped 32 · inconclusive 1`),`MotorLeaseTest` **14/14 Passed**。
 **Code Review**: 尚无独立评审件。`5572d66` 为编译修复轮、本轮为判据修复轮,均由用户裁定后执行,非双代理评审。**评审报告原文未落 evidence**(与全 6 story 同缺口)。
-**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

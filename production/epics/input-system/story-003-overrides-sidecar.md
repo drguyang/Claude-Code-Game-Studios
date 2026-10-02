@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 3h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-26
 
 ## Context
@@ -133,4 +133,4 @@
 4. **F6 写失败注入方式与 QA 原文等价换法**:QA 原文「只读目录」实现用「目录占位挡路径」(超算 root 下 chmod 不可靠,同触发 `IOException` 面)—— 实现批登记块漏记,评审批补上。
 **Test Evidence**: Integration —— 真身 `unity/Assets/Tests/EditMode/InputSystem/overrides_sidecar_test.cs` **24/24 Passed**(A2 11 + A5 7 + E3⑥ 6);全套 EditMode **534/534 全绿 exit 0**(2026-09-26 评审修复批复跑,log `unity/Logs/build-story003-fixes.log`;初版 527 → 追加 7 测 534);登记口径路径 `tests/integration/input_system/`(README 落点说明 + 扫描器口径同批)。
 **Code Review**: Complete —— 会话内 /code-review 双代理并行(unity-specialist **APPROVED WITH SUGGESTIONS** F1–F9 · qa-tester **GAPS, no BLOCKING** Q1–Q12;AC 裁决 A2 COVERED / A5 PARTIAL→修复后 COVERED / E3⑥ COVERED);F1–F9 / Q1–Q12 **全修**(追加 7 测 + 扫描器补面 + F4 读失败 fail-safe),复跑 534/534 绿;残余 F4 无专测 / F7 归属 / Q4 约束 / F6 记上文 ADVISORY。
-**Manifest**: v2026-09-21 一致(staleness PASS)。
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

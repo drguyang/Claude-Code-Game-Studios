@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-26
 
 ## Context
@@ -148,4 +148,4 @@
 6. **Q7 suite 约束**:EditMode 对单实例 `.inputactions` 只做内存 override,全测试树零 `SaveAssets`/`SetDirty` —— **约束「测试不得对该资产 SaveAssets」**,违则 override 持久化进资产真源。
 **Test Evidence**: Logic —— 真身 `unity/Assets/Tests/EditMode/InputSystem/binding_schema_hash_test.cs` **9/9 Passed**(E3① 2 + E3② 1 + E3④ 1 + E3⑤ 2 + E3⑦ 2 + 不变量②牙齿 1);全套 EditMode **544/544 全绿 exit 0**(2026-09-26 评审修复批复跑,log `unity/Logs/build-story004-fixes.log`;初版 543 → F1 补牙齿测 544);登记口径路径 `tests/unit/input_system/`(README 落点说明同批)。
 **Code Review**: Complete —— 会话内 /code-review 双代理并行(unity-specialist **APPROVED WITH SUGGESTIONS** F1–F5 · qa-tester **TESTABLE** Q1–Q8,AC 裁决 E3①/②/⑤/⑦ = COVERED、E3④ = PARTIAL→修复后 COVERED);F1–F5 / Q1–Q8 **全修**(含次要:bindingId 牙齿测 + E3④ HashCode token + E3⑤ 全目录/overrideGroups/BindingsStore 豁免 + 插值剥离 + WriteList 克隆),复跑 544/544 绿;残余 Q3/Q4/Q7/Q8/F5 记上文 ADVISORY。
-**Manifest**: v2026-09-21 一致(staleness PASS)。
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

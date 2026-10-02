@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 4h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-26
 
 ## Context
@@ -130,5 +130,5 @@
 **Test Evidence**: Integration —— EditMode 真身 `unity/Assets/Tests/EditMode/InputSystem/direct_read_channel_test.cs`(32 测)+ PlayMode `unity/Assets/Tests/PlayMode/direct_read_channel_phase_test.cs`(8 测)+ spike 探针 `story007_phase_spike_playmode_test.cs`(2 测);复跑全绿 **EditMode 784/784 · PlayMode 22 passed / 0 failed / 3 skipped(既有 Ignored 的 U1SceneSpikesTest)· 双 exit 0**(`unity/Logs/build-story007-reviewfix-editmode.log` / `-playmode.log`)
 **Code Review**: Complete —— 会话内 `/code-review` 双代理并行:unity-specialist **us-F1~F8 全修** + qa-tester **F1~F15 全修**(全部 findings 含 minor);复跑双套件全绿后收口
 **Traceability**: AC-3-B1a → EditMode `test_direct_read_channel_b1a_injected_reading_visible_same_frame` / `_consecutive_injections_both_visible_same_frame` / `_idle_rejects_feed_default_reading` + PlayMode `_b1a_injected_reading_visible_same_frame_wired`(同帧可见 · ≤1 帧 · 连续两帧注入)· AC-3-B2① → `test_direct_read_gate_b2_1_*` 族(真图零 UI 闭包 / 直引红 / 间接红 / 引擎叶非误报 / RunAll 接线 / precompiled 捕获 / precompiled 边达闭包;qa-F12 = asmdef JSON `precompiledReferences` 并入闭包图,引擎 AssemblyRef 刻意不读)· AC-3-B2② → `test_direct_read_gate_b2_2_*` 族(DLL+label / platform off / freshness sidecar / 全限定 typeof 红 / using 短名红 / 别名成员红 / **声明面红(us-F5)** / 负例 using-only 不误报 / 反射字符串不算 / 作用域外不门 / InputAction 合法)· AC-3-B2③ → PlayMode `test_direct_read_phase_frame_plus_one_yields_sample_plus_one` / `_manual_update_dry_run_does_not_double_count` / `_fixed_mode_negative_fixture_caught` / `_sampling_completes_in_input_update_not_behaviour_update`(qa-F4 相位探针)/ `_same_frame_second_callback_deduplicated` / `_reattach_same_frame_no_double_count` + EditMode 源扫描 `_phase_test_source_has_no_update_mode_enum_comparison`(E4)+ 夹具恢复 `_fixture_restores_global_input_state` · **G9 handoff** → `test_direct_read_channel_g9_no_defensive_copy_field_held`(反射断通道无 `int[]` 字段)+ `_idle_callback_does_not_advance_hold_ticks`(Idle 采样零推进)—— **0/4 UNTESTED**
-**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
 **提交**: `9f35fff`(实现批)· `eaf5da3`(评审修复批)—— 均已 push

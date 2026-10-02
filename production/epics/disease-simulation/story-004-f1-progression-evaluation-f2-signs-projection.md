@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 12h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-30
 
 ## Context
@@ -117,4 +117,4 @@
 - Gap 4: AC-13 对症处置测试
 - Gap 5: AC-27 Decay(Δ<0) = 0 测试
 
-**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

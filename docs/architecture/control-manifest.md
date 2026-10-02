@@ -13,6 +13,33 @@ this date when created. `/story-readiness` compares a story's embedded version
 to this field to detect stories written against stale rules. Always matches
 `Last Updated` — they are the same date, serving different consumers.
 
+### 2026-10-02 版本升格的传播范围(先读,防误读)
+
+**本版唯一实质规则改动** = `Foundation → Required` 的 P0 抽象点计数
+**六个 → 七个**(新增 `IPayloadEncoder`;ADR-029 §①):
+
+```
+- 六个 P0 抽象点必须预留:… + SimEvent            — ADR-005 §Key Interfaces · ADR-007 §一
++ 七个 P0 抽象点必须预留:… + SimEvent + IPayloadEncoder — … · ADR-029 §①
+```
+
+⚠️ **本版本号已传播到全部 story 的 `Manifest Version` 字段(207 份),但那只表示
+「已对齐版本号」,不表示「已按新规则逐条复核」**。原因:计数订正牵动
+**GDD / `entities.yaml` / `tr-registry.yaml` / `architecture.md` 等权威件共 60 处**,
+其中含**现行态断言**与**历史陈述**两类,后者按 `adr-006` 先例应加注而非改写 ——
+该项**另立批次**处理,不在版本回刷范围内。
+
+⇒ **已知陈旧面(截至本版)**:以下位置仍写「六抽象点 / 六个 P0 / 五+一抽象点」,
+**待订正**:
+- **判据面**:`disease-simulation/story-002` 的 **AC-2**(明写「五+一抽象点接口齐备」并枚举六支)
+- **GDD**:`systems-index.md` · `player-controller-and-movement.md` · `combat-and-weapon-lines.md` ·
+  `disease-simulation.md` · `enemy-ai.md` · `random-events.md` · `persistence-service.md`
+- **registry**:`entities.yaml` · `tr-registry.yaml` · `traceability-index.md`
+- **architecture**:`architecture.md` · `adr-015` · `adr-017` · `adr-025` · 两份 `architecture-review-*`
+- **评审日志**:`design/gdd/reviews/*`(历史陈述 ⇒ 按 `adr-006` 先例**加注不改写**)
+
+**本清单不声称上述位置已复核。** 在订正批次落地前,引用抽象点计数时**以本 manifest 为准**。
+
 This manifest is a programmer's quick-reference extracted from all Accepted ADRs,
 technical preferences, and engine reference docs. For the reasoning behind each
 rule, see the referenced ADR.

@@ -5,7 +5,7 @@
 > **Layer**: Foundation(系统分类;验收面落表现层)
 > **Type**: Visual/Feel
 > **Estimate**: 4h(含被试排期)
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-28
 
 ## Context

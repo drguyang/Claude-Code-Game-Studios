@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: UI
 > **Estimate**: 3h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-25
 
 ## Context
@@ -107,4 +107,4 @@
 **Deviations**: None
 **Test Evidence**: UI — `production/qa/evidence/developer-debug-view-evidence.md`（Dev 可见 / Release 不可见 / 无 raw 数值 / 无焦点栈条目 + 签核）
 **Code Review**: Complete — APPROVED
-**Manifest**: v2026-09-21 一致
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

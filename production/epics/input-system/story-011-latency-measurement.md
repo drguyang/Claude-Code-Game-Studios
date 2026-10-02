@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Visual/Feel
 > **Estimate**: 2h(+ 真实硬件前置)
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-27
 
 ## Context
@@ -111,4 +111,4 @@
 **Deviations**: None
 **Test Evidence**: Visual/Feel — `production/qa/evidence/latency-measurement-evidence.md` + 桌面实测 76 样本, 均值 0.59ms, p95 0.78ms
 **Code Review**: Complete — APPROVED
-**Manifest**: v2026-09-21 一致
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

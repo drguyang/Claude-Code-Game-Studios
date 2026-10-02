@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-30
 
 ## Context
@@ -112,4 +112,4 @@
 - Gap 2: AC-5-11 NIGHT_SPAN ≥ TPD 和 TICKS_PER_SEASON = 0 测试
 - Gap 3: AC-5-20 int64 边界 + n=1 + C# % reverse sentinel
 
-**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: UI
 > **Estimate**: 2h
-> **Manifest Version**: 2026-09-29
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-29
 
 ## Context

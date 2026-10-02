@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 4h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-10-02
 
 ## Context
@@ -174,5 +174,5 @@
   含全部 3 条定向负例(`poiIdNotUsedAsBlobId` · `roundTrip_fieldOrderNotSwapped` ·
   `noManualPayloadRefInSource`)与两条既有重建用例。⇒ 判据真的能检出 B1。原文件已复原。
 **Code Review**: 尚无独立评审件(归后续轮)。
-**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
-**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 3h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-25
 
 ## Context
@@ -129,4 +129,4 @@
 3. **测试经 `[CallerFilePath]` 上溯仓库根读夹具/种子(QA Q4)**:违 test-standards「单测不依赖文件系统」字面;编译路径变动的失败方向是红(找不到夹具)不是假绿,Test Evidence 已有落点注记,接受。
 **Test Evidence**: Logic —— 真身 `unity/Assets/Tests/EditMode/InputSystem/axis_processing_test.cs` **25/25 Passed**;全套 EditMode **510/510 全绿 exit 0**(2026-09-25 超算 batch,log `unity/Logs/build-story002-fixes2.log`);登记口径路径 `tests/unit/input_system/`(fixtures 七组 + README 同批)。
 **Code Review**: Complete —— 会话内 /code-review 双代理并行(unity-specialist F1–F6 · qa-tester Q1–Q4);F1/F3/F4/F5 代码修 + F2/Q2 计数修 + F6/Q1 登记补测,残余 Q3/Q4 记上文 ADVISORY;verdict **APPROVED WITH SUGGESTIONS**(修复后复跑 510/510 绿)。
-**Manifest**: v2026-09-21 一致(staleness PASS)。
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

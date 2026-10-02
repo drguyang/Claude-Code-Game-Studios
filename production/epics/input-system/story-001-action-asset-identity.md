@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 4h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-25
 
 ## Context
@@ -131,5 +131,5 @@ AC 之外、由 TR-input-001/002 与 GDD 规则一/二/三派生的**结构断�
 - ④ **AC-3-A4② 的 CI job** = ADR-012 CI 轮挂账(本故事交付分析器本体 + EditMode 测试,不自建 CI —— 承故事「载体注记」)。
 **Test Evidence**: Integration —— 真身 `unity/Assets/Tests/EditMode/InputSystem/action_asset_identity_test.cs`(**17 [Test]**;账本路径 = `tests/integration/input_system/action_asset_identity_test.cs`,Story 001–010 同一先例)。执行 ✅ **VERIFIED 2026-09-25 超算 batch** —— EditMode **480 全绿**(log `unity/Logs/build-story001-full.log`,exit 0;W2 修复批复跑仍 480)
 **Code Review**: Complete —— `/code-review` 2026-09-25 会话内执行(6 目标文件:InputService / 测试 / 分析器 / 门 / build.sh / 本故事),findings F1–F11 全修(`af699a1` + `577ce7f`)
-**Manifest**: 2026-09-21 与 control-manifest 现行一致(staleness PASS)
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
 **引擎装配注**: 六装配计数漂移 9 处已随 W2 批修正(承 ADR-025 §① 清单)

@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: UI
 > **Estimate**: 2h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-25
 
 ## Context
@@ -105,4 +105,4 @@
 **Deviations**: None — 联合走查部分标 BLOCKED-BY(42/48), 禁借绿
 **Test Evidence**: UI — `production/qa/evidence/anti-fantasy-gate-evidence.md`（3 侧交付完成:零渲染确认 + 键名交接 + 门登记）
 **Code Review**: Complete — APPROVED
-**Manifest**: v2026-09-21 一致
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

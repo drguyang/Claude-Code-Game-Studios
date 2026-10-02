@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 2-3 hours
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-28
 
 ## Context
@@ -125,4 +125,4 @@
 **Deviations**: None
 **Test Evidence**: Logic — `unity/Assets/Tests/EditMode/SkeuomorphicUI/focus_boundary_test.cs` — all passing
 **Code Review**: Complete — APPROVED
-**Manifest**: v2026-09-21 一致
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

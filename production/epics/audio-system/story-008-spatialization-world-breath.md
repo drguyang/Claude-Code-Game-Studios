@@ -5,7 +5,7 @@
 > **Layer**: Foundation(系统分类;实现落表现层 L5)
 > **Type**: Integration
 > **Estimate**: 5h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-28
 
 ## Context

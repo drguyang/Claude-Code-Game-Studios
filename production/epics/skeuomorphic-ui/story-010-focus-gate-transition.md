@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Visual/Feel
 > **Estimate**: 2-3 hours
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-29
 
 ## Context

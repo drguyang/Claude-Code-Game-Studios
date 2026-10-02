@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 12h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-30
 
 ## Context
@@ -119,4 +119,4 @@
 - B5: 测试添加真实断言
 - B6: Step ≡ CatchUp 构造保证测试
 
-**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

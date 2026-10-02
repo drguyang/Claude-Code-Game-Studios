@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Config-Data
 > **Estimate**: 6h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-30
 ## Context
 
@@ -129,4 +129,4 @@
 - B4: A 编号标签系统性错位修复
 - B5: 校验器调用点补全
 
-**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

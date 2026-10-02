@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-28
 
 ## Context
@@ -181,4 +181,4 @@
 - `unity/Assets/Tests/EditMode/PlayerController/locomotion_chain_test.cs` — 23 测（22 通过 + 1 跳过）
 
 **Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
-**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

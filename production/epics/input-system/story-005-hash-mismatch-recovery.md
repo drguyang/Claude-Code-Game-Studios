@@ -6,7 +6,7 @@
 > **Type**: Integration
 > **Estimate**: 3h
 > **Last Updated**: 2026-09-26
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 
 ## Context
 
@@ -110,7 +110,7 @@
 - GAPS #4(读失败出口 / 孤文件备份):目录占用法直测 `headerWriteFailure_payloadAlone` 孤载荷下一载备份(`_backedUp` 变体);三个 half-sidecar 测试补 备份路径/恢复完成 Expect + `.bak-001` 断言;两条读失败 catch 出口**无直测**为文档化偏差 —— ① 同 `BackupSidecar` 代码已被 headerMissingSchemaHash 与主失配形状双重覆盖;② 触发需平台私有故障注入,`SetUnixFileMode`(.NET 7+)不在 Unity 6.3 netstandard2.1 API 面,目录占用法永远先走 half-sidecar 分支、到不了 catch;③ catch 契约 = Story 003 既有 fail-safe
 - S1(=GAPS #3 已修)· S2(half-sidecar `备份路径` Expect = 协调点扩展已修)
 **Traceability**: AC-3-A3 → `test_hashMismatch_syntheticMismatch_backupCreatedDefaultsLoaded_logged` + `_doubleMismatch_twoBackupsCoexist_noOverwrite` + `_backupDirUnwritable_skipsBackupStillDefaults_noCrash` + `_neg_clearWithoutRename_stillBackedUp` · AC-3-A8 → `test_hashMismatch_crossVersionRebuild_allBindingIdsChanged_backupDiagnosticLogDefault` + `_neg_logContainsAllThreeDiagnosticElements` + `_corruptHeaderReadsAsMismatch_backupCreated` + `_firstLaunch_noFiles_noBackupCreated` · AC-3-E3③ → `test_schemaHash_bindingIdDiffers_hashDiffers` + `_singleBindingIdChange_hashDiffers`(E3③ 第一/第二子句)+ `_sameBindingIds_orderChanged_hashSame`(排序吸收边界)+ `_pinnedGoldenFixtures_guardCanonStability`(钉值回归) —— **0/3 UNTESTED**
-**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
 **ADVISORY(未结,非本故事缺陷)**:① GDD 规则五「Load → Enable」的 Enable 归调用方(Boot 装配流),本故事只交付契约(Story 003 同口径)② P0 无改键 UI ⇒ 失配后「引导重新改键」交互不存在,载入默认即终点(`OQ-3-1`)
 
 ---

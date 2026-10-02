@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 2h
-> **Manifest Version**: 2026-09-29
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-30
 
 ## Context
@@ -61,4 +61,4 @@
 - B-2: `SaveCodec.ReadEvent` 实现完整解码逻辑
 - B-3: `SaveService` 移除 stub 方法，只保留低层原语
 
-**Manifest**: story Manifest Version 2026-09-29 = 当前 manifest(2026-09-21),无陈旧
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

@@ -5,7 +5,7 @@
 > **Layer**: Feature
 > **Type**: Visual-Feel
 > **Estimate**: 8h + 原型门(OQ-10-12)
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-28
 
 ## Context

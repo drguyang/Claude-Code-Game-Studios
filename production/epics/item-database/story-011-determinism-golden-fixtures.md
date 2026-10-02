@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-24(AC-29 实测补跑完成 —— 三 AC 全 VERIFIED;矩阵建设残余另账)
 
 ## Context

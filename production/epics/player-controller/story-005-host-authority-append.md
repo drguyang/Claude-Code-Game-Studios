@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 5h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-10-02
 
 ## Context
@@ -160,4 +160,4 @@
 **Deviations**: 🔴 **判据曾被退化替换后恢复,须记账**。`185063f` 把本 story 的 6 例换成 4 例:删去 ①②③(a)(b)(c) 全部真判据,替换为 `test_clientPrediction_rollbackOnMismatch` —— 该测试**不调用任何被测代码**,只是内联重演 `if (x != y) x = y`,对 AC-1-30 是**空转判据**。`5572d66` 已恢复 `45056e6` 的 6 例版本(用户裁定方案 A)。⇒ 本 story 的「测试通过」只对**恢复后**的版本成立。
 **Test Evidence**: `production/qa/evidence/` 无本 story 专项件;复跑证据 = 2026-10-02 batchmode 全量 EditMode(`total 2022 · passed 1989 · failed 0`),`HostAuthorityTest` 6/6 Passed。⚠️ **`O-4`(45 侧登记行)仍悬空** —— 45 无 GDD(P1b),未出现在任何 PR 描述中;本行不主张该义务已闭。
 **Code Review**: 双代理评审修复记录见 `e6be7ee` commit message;**评审报告原文未落 `production/qa/evidence/`**。
-**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

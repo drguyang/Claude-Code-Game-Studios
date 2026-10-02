@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 4h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-30
 
 ## Context
@@ -108,4 +108,4 @@
 **Code Review**: unity-specialist + qa-tester 评审完成，1 BLOCKING 问题已修复：
 - B1: test_negativeComponent_notClamped 假阳性测试修复（使用非零天气/季节值）
 
-**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

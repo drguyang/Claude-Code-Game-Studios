@@ -5,7 +5,7 @@
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 4h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-09-27
 
 ## Context
@@ -113,7 +113,7 @@
 **Deviations**: 零缺陷性偏差;ADVISORY 项全入本节。
 **Test Evidence**: Integration —— EditMode `unity/Assets/Tests/EditMode/InputSystem/device_and_presentation_test.cs`(39 测全绿);批跑 1/1 → 823/823 → 861/861 exit 0
 **Code Review**: Complete —— `/code-review` 双代理并行:unity-specialist **us-F1~F8 全修** + qa-tester **F1~F15 全修**(全部 findings 含 minor);复跑批跑 #9 = 861/861 exit 0
-**Manifest**: 2026-09-21 无陈旧
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
 **提交**: `9150cd2`(实现+评审修复批,已 push)
 
 ### Test-Criterion Traceability

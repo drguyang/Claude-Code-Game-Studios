@@ -5,7 +5,7 @@
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
-> **Manifest Version**: 2026-09-21
+> **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-10-02
 
 ## Context
@@ -190,4 +190,4 @@
 **Deviations**: ① AC-1-04 为 NOT-RUN(需 45 联机夹具,承 ADR-001 P1b)—— 已 `Assert.Skip`,非静默;② `CellTransitionDetector` 的事件载荷走 `PayloadRef(cell.X, cell.Y, cell.Z)` 三整数字段,**不**经 `Sim.Codec` 编码 —— 与 world-ecozones `PoiStateChanged` 同族的「codec 已在库而绕过」形态,但因 `Gameplay.Presentation.asmdef` **未引用** `Sim.Codec`,接线须先加程序集依赖边。**未登记为 TODO 注释**,此处如实记账。
 **Test Evidence**: `production/qa/evidence/` 无本 story 专项件;复跑证据 = 2026-10-02 batchmode 全量 EditMode(`total 2022 · passed 1989 · failed 0 · skipped 32 · inconclusive 1`),PlayerController 7 fixture 全绿 82 例。⚠️ **本行不主张独立取证充分** —— 见 EPIC 的逐 story 证据缺口登记。
 **Code Review**: 双代理评审修复记录见 `0db7830` commit message(QA Lead + Technical Director,REQUEST_CHANGES → 修复);**评审报告原文未落 `production/qa/evidence/`**。
-**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
