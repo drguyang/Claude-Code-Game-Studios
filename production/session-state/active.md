@@ -48,7 +48,7 @@
 | world-ecozones (6) | 5 | **4** | 1 | 0 | 🔶 **In Review**（双评 REQUEST_CHANGES 4B(`43400dc`,**B1 未修降级 TODO**)· 87/87 **逐例复跑绿** 2026-10-02 · Story 005 [L] Pending · **对账件缺 + B1 降级 TODO(codec 已在库)+ host gate 无负向夹具**） |
 | persistence-service (7a) | 1 | **1** | 0 | 0 | ✅ 全收口（EPIC 未在旧表列出） |
 | save-slot-ui (7b) | 1 | 0 | 0 | 1 | ⬜ 未启动（EPIC 未在旧表列出） |
-| **合计** | **206** | **121** | **6** | **79** | **58.7% 完成** |
+| **合计** | **207** | **124** | **6** | **77** | **59.9% 完成** |
 
 > ⚠️ **2026-10-02 再算**:ADR-029 实现轮立 3 条新 story ⇒ 总数 203 → **206**(Complete 数不变)。
 > `persistence-service` 由「Complete 1/1」回退为「**In Progress 1/2**」—— 002 为契约支新增。
@@ -111,7 +111,7 @@
 | **ADR-029 实现轮** | ✅ **三件全 Complete** —— 契约支 14/14 · modular 接线支 12/12(闭合 B4)· we 接线支 13/13(闭合 B1)。**Phase 1 的技术侧残余已清零** | — |
 | **注册表 id 类型** | `StructureInstanceRegistry` id = int,而 `entities.yaml:2068` 定 i64 ⇒ 超 2^31 回绕;**归独立轮** | 中 |
 | ~~**收口批**~~ | ✅ 已闭(2026-10-02) —— §③ 门已实现为 **b6** · ADR-005 计数订正(实际 **12 处**,非登记的 5 处)· ADR-010 义务 15 已落 · control-manifest 版本升 | — |
-| **10 手搓点** | 🔴 b6 门新查出 `HostEmergencyProcessor.cs:50/59`(比 B1/B4 更严重:字段大面积丢失);修复须先取 10 的 GDD 语义 ⇒ **归 emergency-procedures 实现轮**,已留具名豁免 | 高 |
+| **10 手搓点** | ✅ 语义已查清(GDD/registry/codec 三方核对一致)· **已立 `emergency-procedures/story-007`**;待办 = 实现(含 `Process` 输入面扩张确认:F-10.4 求值点 · method/cause 来源 · Seq 发号点) | 高 |
 | **评审原件** | 🔴 三 epic(modular / we / player-controller)的评审报告**原件不可得**;义务已立(`.claude/docs/review-workflow.md` + `coding-standards` + `story-done` 闸门)。**解除条件 = 各补做一次评审并落 `qa/evidence/review-*.md`** | 高 |
 | ~~**we 缺口 ①c**~~ | ✅ 已闭(2026-10-02) —— 6 例负向夹具,`PoiStateMachineTest` 19/19;突变测试坐实(删门 ⇒ 恰 4 例红)。新登记:gate 返回码 `PoiNotFound` 与「POI 不存在」混同(未修) | — |
 | **联机** | 45 联机夹具（P1b） | 非阻塞 |

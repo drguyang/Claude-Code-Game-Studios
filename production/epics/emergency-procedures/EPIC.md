@@ -3,7 +3,7 @@
 > **Layer**: Core(输入聚合 / 判定)× Feature(模态期交互)
 > **GDD**: design/gdd/emergency-procedures.md
 > **Architecture Module**: L3 Gameplay + L2 Sim 接缝(判定输入进流,主机权威)
-> **Status**: Complete ✅ 2026-10-02 (6/6 stories, 双代理评审修复后测试全绿;🔴 **2026-10-02 新发现(归实现轮)** —— b6 载荷手搓门首次查出 `HostEmergencyProcessor.cs:50/59` 两处手搓 `PayloadRef`,**比 B1/B4 更严重**:`EmergencyAttemptPayload` 8 字段只写 3 个(MagPeak/MagLast/Method/ActorId/EdgeTicks 全丢),applied 侧 9 字段只写 1 个有意义且首字段用错(Action 当 TreatmentId)。**修复须先取 10 的 GDD 对 applied 载荷八字段的语义**(不得靠猜);已留具名豁免)
+> **Status**: Complete ✅ 2026-10-02 (6/6 stories, 双代理评审修复后测试全绿;🔴 **2026-10-02 新发现(归实现轮)** —— b6 载荷手搓门首次查出 `HostEmergencyProcessor.cs:50/59` 两处手搓 `PayloadRef`,**比 B1/B4 更严重**:`EmergencyAttemptPayload` 8 字段只写 3 个(MagPeak/MagLast/Method/ActorId/EdgeTicks 全丢),applied 侧 9 字段只写 1 个有意义且首字段用错(Action 当 TreatmentId)。**修复须先取 10 的 GDD 对 applied 载荷八字段的语义**(不得靠猜);已留具名豁免;✅ **缺陷已立 story 007**(2026-10-03)—— 九字段语义经 GDD/registry/codec 三方核对,归 10 的实现轮(非就地补丁:填充依赖结算链,F-10.4 求值 · method/cause 判定路径 · Seq 发号))
 > **Stories**: 6 stories — see table below
 
 ## Overview
@@ -73,3 +73,4 @@ This epic is complete when:
 | 004 | Aggregate、可靠上行与主机落流 | Integration | Ready | ADR-001/009/011/024 |
 | 005 | 模态期:跳过/中止/档位意图/输入压制 | Integration | Ready | ADR-011/013/020 |
 | 006 | 手感、预表现与键鼠回退 | Visual-Feel | Ready | ADR-011/013/018 |
+| 007 | `EmergencyTreatmentApplied` 载荷的结算链补完 —— 九字段齐备(b6 门查出的手搓点) | Logic | Ready | ADR-029 + ADR-009 Amendment I |
