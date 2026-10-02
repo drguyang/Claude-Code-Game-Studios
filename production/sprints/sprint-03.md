@@ -36,7 +36,7 @@
 | 14 | emergency-procedures | Story 003 — Judge 三扇门 | 2 | 13 | Complete ✅ 2026-10-02 |
 | 15 | emergency-procedures | Story 004 — EmergencyAttempt 聚合与上行 | 2 | 14 | Complete ✅ 2026-10-02 |
 | 16 | emergency-procedures | Story 005 — 模态期跳过/中止/压制 | 1 | 15 | Complete ✅ 2026-10-02 |
-| 17 | emergency-procedures | Story 006 — 跨平台黄金夹具 | 1 | 16 | Ready |
+| 17 | emergency-procedures | Story 006 — 手感/预表现/键鼠回退 | 1 | 16 | Complete ✅ 2026-10-02 |
 
 ---
 

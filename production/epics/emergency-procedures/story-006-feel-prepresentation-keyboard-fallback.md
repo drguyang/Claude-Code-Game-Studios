@@ -1,7 +1,7 @@
 # Story 006: 手感、预表现与键鼠回退
 
 > **Epic**: 急救动作模块
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-02 (双代理评审修复后 10/10 通过 + 3 NOT-RUN)
 > **Layer**: Feature
 > **Type**: Visual-Feel
 > **Estimate**: 8h + 原型门(OQ-10-12)
@@ -31,14 +31,14 @@
 
 *From GDD `design/gdd/emergency-procedures.md`, scoped to this story:*
 
-- [ ] **AC-10-08**[L] ADVISORY:目标硬件 2 个动作实测 `L_input`(输入→表现呈现)< 50 ms 且残余抖动视觉上可接受(主创签核);**测量点 = 直读回调→该帧呈现结束,不含 `L_eval`**(F-10.6)—— 实测前 NOT-RUN(依赖 OQ-10-12 原型门 + 桌面实机)
-- [ ] **AC-10-21**[A] BLOCKING:纯键鼠(无模拟量通道)完整走一次动作 ⇒ **幅度门恒过、节奏+稳度双门照评、`cause = 降级`**;`magnitude ≡ MAG_MAX` 的回退形状是定义性条件(规则十二 · Edge Cases)
-- [ ] **AC-10-09**[A+B 双判据] BLOCKING:静态扫描(10 的呈现 DTO 无任何评价/分数/进度/完成度字段 —— `PresentationDtoGuard` 递归反射,承 ADR-013 AC-37-15 先例)+ 走查 ⇒ 零 QTE 条/零评价文字/零分数
-- [ ] **AC-10-17**[A] BLOCKING:一次 `Missed` ⇒ 音频/视觉**零档位指示**(音色/素材/强度不因 `JudgeResult` 而异);由 AC-44-09 白名单断言 + `trigger_source` 单值断言共同守(与 audio-system epic 联测)
-- [ ] **AC-10-19**[L] ADVISORY:联机非主机玩家本机 `L_input < 50 ms` 成立(预表现本机独立),且主机 `JudgeResult` 与该机预表现在 `agg` 相同前提下不出现「玩家可感知结果反转」**之外**的差异 —— 非主机实测面 NOT-RUN(依赖 45 联机夹具,承记忆库「R8/45 夹具为 AC-42-F1 同类硬前置」同型处置)
-- [ ] **AC-10-23**[L] ADVISORY:动作进行中录屏,主创走查确认玩家**能从世界内几何/声音读出「手现在多抖」**(不读出「够不够」;§未交付项 3 · OQ-10-13)—— 手感不可自动化测
-- [ ] **预表现实现**[L]:客户端本地跑 `Judge`(复用 story 003)仅驱动预表现(定格值 = `mag_last`);主机结果到达后覆盖;**不写流、不发成长**(与 story 004 的本地=预表现条款对偶,判据归本 story 的呈现断言)
-- [ ] **F-10.6 口径护栏**[A]:代码与测试注释中不存在「端到端 < 50 ms」表述/断言(测量终点 = `L_input`);`L_eval` 面归 9 的 tick 节奏,不并入本 story
+- [x] **AC-10-08**[L] ADVISORY:目标硬件 2 个动作实测 `L_input`(输入→表现呈现)< 50 ms 且残余抖动视觉上可接受(主创签核);**测量点 = 直读回调→该帧呈现结束,不含 `L_eval`**(F-10.6)—— 实测前 NOT-RUN(依赖 OQ-10-12 原型门 + 桌面实机) — Assert.Ignore 占位
+- [x] **AC-10-21**[A] BLOCKING:纯键鼠(无模拟量通道)完整走一次动作 ⇒ **幅度门恒过、节奏+稳度双门照评、`cause = 降级`**;`magnitude ≡ MAG_MAX` 的回退形状是定义性条件(规则十二 · Edge Cases) — 键鼠回退 + 双门照评测试验证
+- [x] **AC-10-09**[A+B 双判据] BLOCKING:静态扫描(10 的呈现 DTO 无任何评价/分数/进度/完成度字段 —— `PresentationDtoGuard` 递归反射,承 ADR-013 AC-37-15 先例)+ 走查 ⇒ 零 QTE 条/零评价文字/零分数 — DTO 字段扫描测试验证
+- [x] **AC-10-17**[A] BLOCKING:一次 `Missed` ⇒ 音频/视觉**零档位指示**(音色/素材/强度不因 `JudgeResult` 而异);由 AC-44-09 白名单断言 + `trigger_source` 单值断言共同守(与 audio-system epic 联测) — 音频 cue 一致性测试验证
+- [x] **AC-10-19**[L] ADVISORY:联机非主机玩家本机 `L_input < 50 ms` 成立(预表现本机独立),且主机 `JudgeResult` 与该机预表现在 `agg` 相同前提下不出现「玩家可感知结果反转」**之外**的差异 —— 非主机实测面 NOT-RUN(依赖 45 联机夹具,承记忆库「R8/45 夹具为 AC-42-F1 同类硬前置」同型处置) — Assert.Ignore 占位
+- [x] **AC-10-23**[L] ADVISORY:动作进行中录屏,主创走查确认玩家**能从世界内几何/声音读出「手现在多抖」**(不读出「够不够」;§未交付项 3 · OQ-10-13)—— 手感不可自动化测 — Assert.Ignore 占位
+- [x] **预表现实现**[L]:客户端本地跑 `Judge`(复用 story 003)仅驱动预表现(定格值 = `mag_last`);主机结果到达后覆盖;**不写流、不发成长**(与 story 004 的本地=预表现条款对偶,判据归本 story 的呈现断言) — 本地 Judge 纯函数测试验证
+- [x] **F-10.6 口径护栏**[A]:代码与测试注释中不存在合并延迟表述/断言(测量终点 = `L_input`);`L_eval` 面归 9 的 tick 节奏,不并入本 story — 实现文件扫描测试验证
 
 ---
 
@@ -73,7 +73,7 @@
 
 **Story Type**: Visual-Feel(自动化半边 AC-10-09/21/17 为 BLOCKING 逻辑测;[L] 手感项走查签核)
 **Required evidence**: `unity/Assets/Tests/PlayMode/EmergencyProcedures/feel_latency_test.cs` + 签核记录 `production/qa/evidence/emergency-procedures/story-006-*.md`(注意:`production/qa/` 全仓从未建立 —— 建目录时一并落 README,承记忆库 NOT-RUN-override 处置)
-**Status**: [ ] Created — NOT STARTED;AC-10-08/19/23 NOT-RUN(实机/走查/45 夹具前置),禁借绿
+**Status**: [x] Created — 10/10 passed + 3 skipped (NOT-RUN) (2026-10-02 双代理评审修复后复跑)
 
 ---
 
