@@ -59,7 +59,7 @@ Counts: 4 Logic · 2 Integration = 6 total.
 
 **In Review** — **6/6 story Complete**(001–006)。零 ADR-blocked story(全部治理 ADR Accepted;`TR-player-007` 的 partial 不阻塞,见上)。
 
-**EPIC 不转 Complete 的唯一原因 = evidence 对账件缺口(见下 §🔴 第 2 条)** —— 6 个 story 的 AC 均已落地且测试全绿(`MotorLeaseTest` 14/14 · `HostAuthorityTest` 6/6 · 全 epic 92 例),但「双代理评审 REQUEST_CHANGES → 修复」只有 commit message 自述,无逐 BLOCKING 对账件落 `production/qa/evidence/`。这与 `modular-building` / `world-ecozones` 的处置**同口径**(那两者亦因此不转 Complete)。补齐对账件后即可转 Complete。
+**EPIC 不转 Complete 的原因 = 评审报告原件缺口(见下 §🔴 第 2 条)** —— 6 个 story 的 AC 均已落地且测试全绿(全 epic 92 例),逐 BLOCKING 对账件已于 2026-10-02 补齐。**但双代理评审的报告原件从未落盘** ⇒ 「原判定是否完备」无法复核。**补落报告原件后即可转 Complete。**
 
 ### ⚠️ 状态回填轮记账(2026-10-02)
 
@@ -77,7 +77,8 @@ Counts: 4 Logic · 2 Integration = 6 total.
 ### 🔴 逐 story 证据缺口(依「不得借绿」登记)
 
 1. ~~**006 两条 BLOCKING 判据有缺陷**~~ ✅ **已闭(2026-10-02 判据修复轮)** —— `AC-1-27` 由字段名黑名单改为**字段类型白名单**(含负向夹具证明非恒真);`AC-1-23` 补 IL 调用点扫描 + UI 零符号引用双判据(各配非空转守卫)。`MotorLeaseTest` 14/14。明细见 `story-006` 的 `Criteria` / `Deviations`。
-2. **全部 6 个 story 均无 `production/qa/evidence/` 专项件** —— 「双代理评审 REQUEST_CHANGES → 修复」目前只有各 commit message 的自述,**无逐 BLOCKING 对账件**(原判定 → 修复落点 → 验证命令)。与 `modular-building` / `world-ecozones` 的缺口 ①a 同型。**这是本 EPIC 不转 Complete 的唯一残留原因。**
+2. ~~**全部 6 个 story 均无 `production/qa/evidence/` 专项件**~~ ✅ **已闭(2026-10-02 对账轮)** —— `production/qa/evidence/reconciliation-player-controller-2026-10-02.md` 已落,逐 story 含「原判定 → 修复落点 → 实测证据 → 验证命令」,并经**独立复核**。
+   ⚠️ **但该对账件揭示一处更深的局限**:双代理评审**报告原件从未落盘**,现存最早记录仅为各修复提交 message 的自述清单 ⇒ 对账件验证的是「自述的修复是否真在代码里」,**不验证「原判定是否完备」**。**后续双代理评审须落报告原件至本目录**,否则同类缺口会再生。
 3. **005 的 `O-4`(45 侧登记行)仍悬空** —— 45 无 GDD(P1b),该义务未出现在任何 PR 描述中。
 4. **004 的 AC-1-04 NOT-RUN** —— 需 45 联机夹具;已 `Assert.Skip`,非静默。
 5. **004 的 codec 绕行未登记为 TODO** —— `CellTransitionDetector` 走 `PayloadRef` 三整数字段,不经 `Sim.Codec`;因 asmdef 未引用 `Sim.Codec`,接线须先加程序集依赖边。

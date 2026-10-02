@@ -72,10 +72,12 @@ ModularBuilding **51/51** 与 WorldEcozones **87/87** 逐例全绿
 
 **不记 Complete 的硬缺口(共三条,均实测于 2026-10-02【超算】 HEAD)**:
 
-- **缺口 ①a —— 无逐 BLOCKING 对账件**。「5 / 4 个 BLOCKING 已修」目前只有 commit message 的自述(其中 we 的 B1 实为 TODO 化,见 ①b)
-  (`da04f41` 列 5 条 / `43400dc` 列 4 条),**无一份「原判定 → 修复落点 → 验证命令」的可证伪报告**
-  落 `production/qa/evidence/`。`43400dc` 虽改了 story 件的 AC 勾选,但那是**勾选动作**,
-  **不是评审分析**,不构成对账件。
+- ~~**缺口 ①a —— 无逐 BLOCKING 对账件**~~ ✅ **已闭(2026-10-02 对账轮)**。
+  两份逐 BLOCKING 对账件已落 `production/qa/evidence/`:
+  `reconciliation-modular-building-2026-10-02.md`(5 条)· `reconciliation-world-ecozones-2026-10-02.md`(4 条),
+  均含「原判定 → 修复落点 → 实测证据 → 验证命令」,且**逐条独立复核**而非转录 commit message。
+  ⚠️ **对账结论 ≠ 修复全部成立** —— 实测:**modular B4 部分修**(bit-packing 在 `StructurePlaced` 侧仍在)、
+  **we B1 未修**(仅 TODO 化)。详见 ①b 与下 §对账轮发现。
 - **缺口 ①b —— `world-ecozones` 的 B1 未修,被降级为 TODO**。`43400dc` message 自陈 B1 的修法是
   「**添加 TODO 注释**」,HEAD 中 `Sim/World/PoiStateMachine.cs:105` / `:131` 两处 TODO 仍在;
   且 `Append` 仍**绕过 codec 手搓** `new PayloadRef(blobId: poiId, offset: (int)toState, length: 8)`
@@ -92,6 +94,19 @@ ModularBuilding **51/51** 与 WorldEcozones **87/87** 逐例全绿
   但 `Tests/EditMode/WorldEcozones/poi_state_machine_test.cs:21` 的 `FakeEventAuthority.IsHost => true` 恒真,
   13 个 `[Test]` 中**无一**注入 `IsHost => false` 验证拒写路径 ⇒ 只有正路径,负向判据未执行。
 
-后续 gate-check 以本节为索引:**补齐一份逐 BLOCKING 对账件(原判定 → 修复落点 → 验证命令),
-并闭合 ①b(接 codec)与 ①c(补负向夹具)后,两 epic 方可转 Complete**。
+### 对账轮发现(2026-10-02 · 实测 HEAD `1a884c9`)
+
+对账件编制过程中**独立复核**出两处此前未登记的事项:
+
+- 🔴 **modular B4 是「部分修」而非「已修」** —— `da04f41` 自述「移除 bit-packing」,
+  实测 `Sim/World/StructureKinds.cs:191-198` 的 `StructurePlaced` 仍走
+  `moduleId | (orientation << 16) | (variant << 24)`,**且第一条干净赋值立即被覆盖 = 死代码**。
+  `index.md` 原 §①b 末句已点到该 bit-pack「评审未点、现状仍在」,本轮坐实为 **B4 的未闭半边**。
+  ⚠️ 接线存在**结构面障碍**:`Sim.Codec` 只引用 `Sim.Contracts`,而 ADR-025 §一 的 `Sim` 引用集白名单
+  **恰 = {BCL, Sim.Contracts}** ⇒ `Sim` → `Sim.Codec` 引用边**须先裁**,不得擅自加。
+- ⚠️ **we B2 的形式已闭但原处置有取证缺口** —— `43400dc` 勾 13 个 AC 时**未同批复跑**,
+  该缺口已由 `editmode-full-rerun-2026-10-02.md`(87/87)补齐。
+
+后续 gate-check 以本节为索引:**闭合 ①b(接 codec,含引用边裁定)与 ①c(补负向夹具)后,
+两 epic 方可转 Complete**。①a 已闭。
 `world-ecozones/story-003` 唯一未勾的 AC(`entities.yaml` ↔ kindgen 路由一致性,A1–A5)与 ①a 同类,可同批处理。
