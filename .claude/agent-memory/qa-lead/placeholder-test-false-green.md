@@ -1,6 +1,6 @@
 ---
 name: placeholder-test-false-green
-description: 本仓测试的三类「假绿」——NOT-RUN 占位断言硬编码 true 的 helper、断言常量工厂(重言式)、空集合 All() 真空真
+description: 本仓测试的四类「假绿」——NOT-RUN 占位断言硬编码 true 的 helper、断言常量工厂(重言式)、空集合 All() 真空真、桩生产码/孤儿求值器
 metadata:
   type: feedback
 ---
@@ -20,6 +20,15 @@ metadata:
 3. **空集合上的 `All()` / 类型名过滤后的断言 = 真空真** —— `methods.All(...)` 在 `methods` 为空时恒真;
    用 `t.Name.Contains("Dto")` 过滤类型后只扫 3 个硬编码关键字、且只 `GetFields()` 不递归不扫嵌套 = 对真实闭包无覆盖。
    正解 = 复用既有递归载体 `unity/Assets/Editor.Tools.Gates/PresentationDtoGuard.cs`(已做递归 + 字段 + 属性 + 泛型实参展开 + 负夹具)。
+
+4. **「桩生产码 / 孤儿求值器」—— 测的是死代码,不是出货路径** —— 生产类只实现「可测核心」
+   (`LocomotionEvaluator.SteadyStateSpeed` 等),**没有任何运行期调用者**(无 `Update`/`Awake` 调用点,
+   唯一调用者是测试),且**真实出货路径是另一个类**(`PlayerController.Move` 自己做
+   `moveInput * _moveSpeed`,不含链、不含加速/转向/地貌乘数)。绿测试证明的是「一个从未被调用的
+   函数返回了我喂进去的东西」⇒ 零覆盖。**判定法**:对每条 AC 问「生产码里谁在运行期调它?」
+   grep 调用点;若只有 `Tests/**` 命中 ⇒ 该 AC 的**出货路径未被验证**。与第 2 类同源
+   (真源在生产路径,测试却打自造的/离线的载体),但更隐蔽:测试**没有**用常量工厂,而是一个
+   形状正确、逻辑正确、却**接错了线**的类。已见:`LocomotionEvaluator.cs`(player-controller story 003)。
 
 **Why**:本仓 `NOT-RUN 禁借绿` 是反复申明的纪律,但「绿灯冒充 NOT-RUN」与「断言常量」两类会静默稀释 BLOCKING 门;
 story 006 三条 BLOCKING AC(AC-10-09/17/21)正是被这三类假绿覆盖的典型。
