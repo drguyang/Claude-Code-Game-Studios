@@ -1,7 +1,7 @@
 # Story 006: 拆除判定、返还舍入例外与 P0 范围门
 
 > **Epic**: 模块化建造
-> **Status**: In Review — 测试绿,未走双代理评审(不记 Complete)
+> **Status**: In Review — 双代理评审 5 BLOCKING 已修复(`da04f41`),测试绿 `DemolishCheckerTest` 3/3 + `RefundCalculatorTest` 5/5;EPIC 级不转 Complete(story 级 AC 勾选未逐条复跑复核)
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 5h
@@ -115,3 +115,5 @@
 ## Completion Notes
 
 *(placeholder — to be filled at story completion)*
+
+**Code Review**: 双代理评审 2026-10-01 裁 REQUEST_CHANGES(5 BLOCKING:entity check 缺失/错误 · payload bit-packing · 无 `OccupancyOverlay` 独立类型),修复落 `da04f41`(2026-10-01);复跑 `DemolishCheckerTest` 3/3 + `RefundCalculatorTest` 5/5 全绿。评审报告原文未落 `production/qa/evidence/`(桌面批遗留缺口,依「不得借绿」EPIC 级不转 Complete);全量复跑逐例证据见 `production/qa/evidence/editmode-full-rerun-2026-10-02.md`(实跑 8 例全绿)。

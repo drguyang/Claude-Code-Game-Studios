@@ -1,7 +1,10 @@
 # Sprint 04 Plan
 
-> **Status (2026-10-02 启动)**: **Phase 1 进行中** — 清债务 + 基础设施
-> 三专家调研（TD + Producer + QA Lead）综合建议，方案 A 分阶段执行。
+> **Status (2026-10-02)**: **Phase 1 收尾中** — 4/6 任务已完成;剩下 modular-building 与
+> world-ecozones 双评审均为「REQUEST_CHANGES → BLOCKING 已修 → 逐例复跑绿」,
+> 但**评审报告件未落 `production/qa/evidence/`** ⇒ 依「不得借绿」维持 In Review 不转 Complete。
+> **Phase 2 未启动**(`player-controller` 2/6 为 2026-10-01 桌面批越序先行的在建状态,非 Phase 2 开工)。
+> 三专家调研(TD + Producer + QA Lead)综合建议,方案 A 分阶段执行。
 
 **Sprint**: 4
 **Milestone**: Vertical Slice
@@ -28,21 +31,25 @@
 
 | # | 任务 | 状态 | 理由 |
 |---|------|------|------|
-| 1 | 双评审 modular-building | 🔄 进行中 | 解除 3 个系统阻塞 |
-| 2 | 双评审 world-ecozones | ✅ APPROVE | 87/87 测试绿 |
+| 1 | 双评审 modular-building | 🔶 REQUEST_CHANGES→5B 已修(51/51 逐例复跑绿)· **评审报告件缺失** | 解除 3 个系统阻塞 |
+| 2 | 双评审 world-ecozones | 🔶 REQUEST_CHANGES→4B 已修(87/87 逐例复跑绿)· **评审报告件缺失** | 87/87 测试绿 |
 | 3 | 建立集成测试基础设施 | ✅ 完成 | tests/integration/ 目录 |
 | 4 | 修复状态文件漂移 | ✅ 完成 | 4 个文件已修复 |
 | 5 | 创建 QA 基础设施 | ✅ 完成 | bugs/ + evidence/ |
 | 6 | 修复 G2 假绿 | ✅ 完成 | Assert.Ignore |
 
 **Phase 1 产出**：
-- modular-building + world-ecozones 正式标记 Complete
-  ⚠️ **状态漂移登记(2026-10-02【超算】复核)**:`production/epics/index.md` 的两行已被本批
-  改作 `Complete ✅ 2026-10-02`,但 `modular-building/EPIC.md`(仍 `In Progress`)+ 6 份 story
-  (仍 `In Review`)、`world-ecozones/EPIC.md`(仍 `In Progress`)三处**未随之更新** ⇒ 本批的
-  index 改标记与自家 EPIC 级自相矛盾。按「不得借绿」已把 index 两行回退为 `In Review` /
-  `In Progress`(以 EPIC 级最慢状态为准),待 ① modular-building 双评出结论、② 三处 EPIC/story
-  行补齐后,再一次性转 Complete。
+- modular-building + world-ecozones 双评审 BLOCKING 全修 + 测试全绿(51/51 · 87/87,
+  2026-10-02【超算】batchmode **逐例复跑**坐实,证据
+  `production/qa/evidence/editmode-full-rerun-2026-10-02.md`),
+  但仍 **In Review 未转 Complete** —— 残留硬缺口:**评审报告原文未落 `production/qa/evidence/`**
+  (`da04f41` / `43400dc` 的 `git show --stat | grep -c production/` = 0,
+  「BLOCKING 已修」目前只有 commit message 自述,无可证伪对账件)。见
+  `production/epics/index.md` §越序实现登记的纪律说明。
+  ⚠️ **漂移登记(2026-10-02【超算】)**:本批 `da177e6` 曾把二者在 `index.md` 直改为
+  `Complete ✅ 2026-10-02`,而三处 EPIC/story 行未同步 ⇒ 已回退为 `In Review`;
+  本批 Phase 1 表原写「world-ecozones 双评 ✅ APPROVE」与 `bb477e6` 的
+  REQUEST_CHANGES(4 BLOCKING)不符,已订正为「REQUEST_CHANGES→4B 已修」。
 - 集成测试基础设施就绪(`tests/integration/` 5 目录;须注意 `unity/Assets/` 之外的目录
   **不进 Unity 编译**,集成测试真身须落在 `unity/Assets/Tests/` 下,本目录为台账)
 - 状态文件可信
@@ -108,6 +115,8 @@ patient-ai → diagnosis-system → case-system → prescription-medication
 
 ## 下一步
 
-1. 等待 modular-building 双评审结果
-2. Phase 1 完成后启动 Phase 2
+1. **Phase 1 残余**:两份评审报告件未落 evidence —— 补写「逐 BLOCKING:原判定 → 修复落点 →
+   验证命令」对账件(索引见 `production/epics/index.md` §越序实现登记的纪律说明),
+   落件后 modular-building / world-ecozones 方可转 Complete。**其余任务先不进行**。
+2. Phase 1 全部收口后启动 Phase 2
 3. Phase 2 按依赖顺序推进

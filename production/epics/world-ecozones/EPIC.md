@@ -3,7 +3,7 @@
 > **Layer**: Foundation → Core → Feature
 > **GDD**: design/gdd/world-and-ecozones.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ Tooling 消费侧(ADR-022 关卡工具)
-> **Status**: In Progress (4/5 stories implemented; Story 005 = [L]/EXTERNAL 走查)
+> **Status**: In Review(4/5 stories Complete;双代理评审 4 BLOCKING 已修复 `43400dc`,87/87 测试绿;Story 005 = [L]/EXTERNAL 桌面走查 Pending;EPIC 级依「不得借绿」不转 Complete)
 > **Stories**: 5 stories — see table below
 
 ## Overview

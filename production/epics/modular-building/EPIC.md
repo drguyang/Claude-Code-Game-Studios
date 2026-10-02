@@ -3,7 +3,7 @@
 > **Layer**: Core
 > **GDD**: design/gdd/modular-building.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ 世界流 Structure* 三支唯一写者
-> **Status**: In Progress (6/6 实现落盘 + 53 例 EditMode 全绿;**未走双代理评审**,依「不得借绿」不记 Complete)
+> **Status**: In Review(双代理评审 **REQUEST_CHANGES → 5 BLOCKING 已修复**;51/51 **逐例复跑绿**(【超算】2026-10-02,`production/qa/evidence/editmode-full-rerun-2026-10-02.md`);**评审报告件未落 evidence** 且 story 级 AC 勾选未经逐条复核 ⇒ 依「不得借绿」不转 Complete)
 > **Stories**: 6 stories — see table below
 
 ## Overview
@@ -60,7 +60,7 @@ This epic is complete when:
 
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
-| 001 | 骨架与模块目录装载 + 构建期校验 | Logic | In Review — `BuildSlotCatalogTest` 9/9 | ADR-022/014/015 |
+| 001 | 骨架与模块目录装载 + 构建期校验 | Logic | In Review — `BuildSlotCatalogTest` **7/7**(CLI 坐实,原记 9/9) | ADR-022/014/015 |
 | 002 | 放置五条件判定 Placeable(全整数) | Logic | In Review — `PlaceableCheckerTest` 10/10 | ADR-015/009 |
 | 003 | Structure* 三 Kind 载荷、写权与实例表 | Integration | In Review — `StructureKindsTest` 7/7 + `WorldTest` 8/8 | ADR-009/010/024 |
 | 004 | OccupancyOverlay 合成与占用单一表 | Logic | In Review — `OccupancyOverlayTest` 6/6 | ADR-016/022 |

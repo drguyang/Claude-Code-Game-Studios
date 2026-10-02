@@ -1,6 +1,6 @@
-# Session State — 2026-10-01(**当前阶段 = Pre-Production · Sprint 03 进行中**)
+# Session State — 2026-10-02(**当前阶段 = Pre-Production · Sprint 04 Phase 1 收尾 · Phase 2 未启动**)
 
-## 📊 全项目进度总览（2026-10-01 刷新）
+## 📊 全项目进度总览（2026-10-02 刷新）
 
 ### 阶段状态
 
@@ -37,7 +37,7 @@
 | interaction-system (4) | 6 | 0 | 6 | 2 | 🔵 进行中 |
 | inventory-items (20) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | medical-consequences (53) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
-| modular-building (23) | 6 | 0 | 6 | 0 | 🔶 In Review（双评审修复完成 · 51/51 测试绿） |
+| modular-building (23) | 6 | **6** | 0 | 0 | 🔶 **In Review**（双评 REQUEST_CHANGES 5B 已修 · 51/51 **逐例复跑绿** 2026-10-02 · **报告件未落 evidence** ⇒ 依「不得借绿」不记 Complete） |
 | patient-ai (13) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
 | player-controller (1) | 6 | 0 | 6 | 2 | 🔵 进行中 |
 | prescription-medication (11) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
@@ -45,8 +45,8 @@
 | random-events (52) | 6 | **6** | 0 | 0 | ✅ 全收口 |
 | time-weather (5) | 5 | **5** | 0 | 0 | ✅ 全收口 |
 | tutorial-onboarding (48) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
-| world-ecozones (6) | 5 | **4** | 1 | 0 | 🔶 In Review（双评审修复完成 · 87/87 测试绿） |
-| **合计** | **191** | **91** | **97** | **6** | **48% 完成** |
+| world-ecozones (6) | 5 | **4** | 1 | 0 | 🔶 **In Review**（双评 REQUEST_CHANGES 4B 已修 · 87/87 **逐例复跑绿** 2026-10-02 · Story 005 [L] Pending · **报告件未落 evidence**） |
+| **合计** | **191** | **93** | **95** | **6** | **49% 完成** |
 
 ### 测试状态
 

@@ -1,7 +1,7 @@
 # Story 001: 槽位骨架与模块目录装载 + 构建期校验
 
 > **Epic**: 模块化建造
-> **Status**: In Review — 测试绿,未走双代理评审(不记 Complete)
+> **Status**: In Review — 双代理评审 5 BLOCKING 已修复(`da04f41`);测试绿 `BuildSlotCatalogTest` **7/7**(CLI 复跑坐实,原记 9/9 失实);EPIC 级不转 Complete(评审报告件未落 evidence)
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 5h
@@ -95,9 +95,9 @@
 
 **Story Type**: Logic
 **Required evidence**:
-- Logic: 真身 `unity/Assets/Tests/EditMode/ModularBuilding/build_slot_catalog_test.cs`(9/9 全绿)· 账本路径 `EditMode/Building/` 未建(占位),实际落 `EditMode/ModularBuilding/`
+- Logic: 真身 `unity/Assets/Tests/EditMode/ModularBuilding/build_slot_catalog_test.cs`(7/7 全绿 · 2026-10-02 CLI 坐实,原记 9/9 失实)· 账本路径 `EditMode/Building/` 未建(占位),实际落 `EditMode/ModularBuilding/`
 
-**Status**: ✅ 2026-10-01 实现落盘 + EditMode 验证(【超算】batchmode)—— 骨架与模块目录装载(真身 `BuildSlotCatalogTest` 9/9;账本路径 `Assets/Tests/EditMode/Building/` 为占位,实际落 `ModularBuilding/`)
+**Status**: ✅ 2026-10-01 实现落盘 + EditMode 验证(【超算】batchmode)—— 骨架与模块目录装载(真身 `BuildSlotCatalogTest` **7/7**;账本路径 `Assets/Tests/EditMode/Building/` 为占位,实际落 `ModularBuilding/`)
 
 ---
 
@@ -111,3 +111,5 @@
 ## Completion Notes
 
 *(placeholder — to be filled at story completion)*
+
+**Code Review**: 双代理评审 2026-10-01 裁 REQUEST_CHANGES(5 BLOCKING:entity check 缺失/错误 · payload bit-packing · 无 `OccupancyOverlay` 独立类型),修复落 `da04f41`(2026-10-01);复跑 `BuildSlotCatalogTest` **7/7** 全绿(2026-10-02 CLI 坐实)。评审报告原文未落 `production/qa/evidence/`(桌面批遗留缺口,依「不得借绿」EPIC 级不转 Complete);全量复跑逐例证据见 `production/qa/evidence/editmode-full-rerun-2026-10-02.md`(实跑 7 例全绿)。
