@@ -1,12 +1,12 @@
 # Story 005: 主机权威 Append 与第二 QoS 上行 —— 客户端零 Append + 提交态归主机
 
 > **Epic**: 玩家控制器与移动
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-02 (实现 `e6be7ee`;判据经 `5572d66` 恢复后 6/6 通过)
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 5h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-02
 
 ## Context
 
@@ -153,9 +153,11 @@
 
 ## Completion Notes
 
-**Completed**: _待实现_
-**Criteria**: _待填_
-**Deviations**: _待填_(`SimAuthorityMode` 命名定稿后回填;`O-3` 45 半边与 `O-4` 的登记行须出现在实现 PR 描述)
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Completed**: 2026-10-02(实现 `e6be7ee`;本行由 2026-10-02 状态回填轮补记 —— 此前 story 件长期停留 `Ready` 而代码/测试已在库,属状态漂移)
+**Criteria**: AC-1-30 ①②③(a)(b)(c) 全部落地。载体 = `host_authority_test.cs` **6 例**,逐条对应:① `test_ac130_clientMode_zeroAppendCalls`(`ILBodyScanner` 扫 `OnTickEdge` 的 `Append` 调用点)· ② `test_ac130_hostMode_emitsEvent`(反向用例)· ③(a) `test_ac130_payloadExcludesCommittedCell`(载荷字段 ⊆ `{ActorId, Cell, Tick}`)· ③(b) `test_ac130_sameValueUplink_discarded` · ③(c) `test_ac130_ghostCell_noPhantomInStream` · 另 `test_boundedness_nActors`(N-actor 有界性)。**6/6 Passed**。
+  ⚠️ **`SimAuthorityMode` 命名已定稿** = `{ Host, Client }`(`PlayerController.cs:27`),原 `Deviations` 的挂账条件已满足。
+  AC-1-22(EXTERNAL)与 AC-1-04 联机侧边界按原文**只登记挂账**,不进验收面 —— 与 `O-3` 45 半边一致。
+**Deviations**: 🔴 **判据曾被退化替换后恢复,须记账**。`185063f` 把本 story 的 6 例换成 4 例:删去 ①②③(a)(b)(c) 全部真判据,替换为 `test_clientPrediction_rollbackOnMismatch` —— 该测试**不调用任何被测代码**,只是内联重演 `if (x != y) x = y`,对 AC-1-30 是**空转判据**。`5572d66` 已恢复 `45056e6` 的 6 例版本(用户裁定方案 A)。⇒ 本 story 的「测试通过」只对**恢复后**的版本成立。
+**Test Evidence**: `production/qa/evidence/` 无本 story 专项件;复跑证据 = 2026-10-02 batchmode 全量 EditMode(`total 2022 · passed 1989 · failed 0`),`HostAuthorityTest` 6/6 Passed。⚠️ **`O-4`(45 侧登记行)仍悬空** —— 45 无 GDD(P1b),未出现在任何 PR 描述中;本行不主张该义务已闭。
+**Code Review**: 双代理评审修复记录见 `e6be7ee` commit message;**评审报告原文未落 `production/qa/evidence/`**。
 **Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧

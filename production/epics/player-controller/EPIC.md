@@ -3,7 +3,7 @@
 > **Layer**: Presentation(控制器与相机 · manifest 该节适用)
 > **GDD**: design/gdd/player-controller-and-movement.md
 > **Architecture Module**: 表现层(纯表现态位移)+ 世界流唯一投影(跨格事件)
-> **Status**: In Progress (1/6 stories complete)
+> **Status**: In Review (5/6 stories Complete;006 = In Review,**2 条 BLOCKING 判据有缺陷**)
 > **Stories**: 6 stories created (2026-09-28)
 
 ## Overview
@@ -45,19 +45,40 @@
 
 | # | Story | Type | Status | Layer | ADR |
 |---|-------|------|--------|-------|-----|
-| 001 | 控制器地基:`CharacterController` 唯一位移写入点 + 程序集边界白名单 | Integration | Ready | Foundation | ADR-020 + ADR-025 + ADR-015 |
-| 002 | 输入契约与相机相对方向(`MoveInput` 边界断言 + F-1-8 基投影) | Logic | Ready | Foundation | ADR-011 + ADR-020 |
-| 003 | 移动手感链:目标速度合成 / 加减速 / 转向 / 跳跃 / 地貌情境乘数 + 求值次序 | Logic | Ready | Core | ADR-020 + ADR-005 |
-| 004 | 跨格检测与归并算子:整数化、事件语义全表(F-1-1b / EC-1…8) | Logic | Ready | Core | ADR-020 + ADR-009 + ADR-015 |
-| 005 | 主机权威 Append 与第二 QoS 上行(客户端零 Append + 提交态归主机) | Integration | Ready | Core | ADR-020 + ADR-001 |
-| 006 | 状态纯净与 `MotorSuppressed` per-source lease(零游戏状态反射断言 + 调用面) | Logic | Ready | Feature | ADR-020 + ADR-013 |
+| 001 | 控制器地基:`CharacterController` 唯一位移写入点 + 程序集边界白名单 | Integration | Complete ✅ 2026-10-02 | Foundation | ADR-020 + ADR-025 + ADR-015 |
+| 002 | 输入契约与相机相对方向(`MoveInput` 边界断言 + F-1-8 基投影) | Logic | Complete ✅ 2026-10-02 | Foundation | ADR-011 + ADR-020 |
+| 003 | 移动手感链:目标速度合成 / 加减速 / 转向 / 跳跃 / 地貌情境乘数 + 求值次序 | Logic | Complete ✅ 2026-10-02 | Core | ADR-020 + ADR-005 |
+| 004 | 跨格检测与归并算子:整数化、事件语义全表(F-1-1b / EC-1…8) | Logic | Complete ✅ 2026-10-02 | Core | ADR-020 + ADR-009 + ADR-015 |
+| 005 | 主机权威 Append 与第二 QoS 上行(客户端零 Append + 提交态归主机) | Integration | Complete ✅ 2026-10-02 | Core | ADR-020 + ADR-001 |
+| 006 | 状态纯净与 `MotorSuppressed` per-source lease(零游戏状态反射断言 + 调用面) | Logic | In Review(2 条 BLOCKING 判据缺陷) | Feature | ADR-020 + ADR-013 |
 
 Counts: 4 Logic · 2 Integration = 6 total.
 38 个 AC 条目(35 编号,`06` 拆三 / `20` 拆二)全覆盖:BLOCKING 32 全部落 story;ADVISORY 5(`04`/`20b`/`25`/`26`/`29`)落 story 003/004/006 的签核面;EXTERNAL 1(`22`)不进本 Epic 验收面(主语 = 29/45 的 GDD),在 story 005 登记挂账。
 
 ## Epic Status
 
-**In Progress** — 6 stories created 2026-09-28;零 ADR-blocked story(全部治理 ADR Accepted;`TR-player-007` 的 partial 不阻塞,见上)。
+**In Review** — 5/6 Complete(001–005)· 006 = **In Review**。零 ADR-blocked story(全部治理 ADR Accepted;`TR-player-007` 的 partial 不阻塞,见上)。
+
+### ⚠️ 状态回填轮记账(2026-10-02)
+
+本 Epic 此前三处状态**互相矛盾且全部落后于实际**,已在本轮对齐:
+
+| 来源 | 回填前 | 回填后 |
+|---|---|---|
+| 本 EPIC | `In Progress (1/6)` | `In Review (5/6)` |
+| `epics/index.md` | `In Progress (2/6)` | `In Review (5/6)` |
+| story 004/005/006 | 均 `Ready`,AC 零勾,Completion Notes `待填` | 004/005 Complete · 006 In Review |
+| 实际 | 001–006 代码与测试**均已在库** | —— |
+
+**成因**:`0db7830` / `e6be7ee` / `45056e6` 三次提交只落代码与测试,**未同步 story/EPIC/index 三处状态**;随后 `185063f` 又以一次编译未通过的提交自称「全量测试通过」,使后续所有引用该数字的状态记载失去依据(`5572d66` 已修编译并撤销其退化替换)。
+
+### 🔴 逐 story 证据缺口(依「不得借绿」登记)
+
+1. **006 两条 BLOCKING 判据有缺陷** —— `AC-1-27` 用了 AC 明禁的字段名黑名单(恒真)· `AC-1-23` 调用点白名单零测试。明细见 `story-006` 的 `Criteria` / `Deviations`。**这是 006 不转 Complete 的唯一原因。**
+2. **全部 6 个 story 均无 `production/qa/evidence/` 专项件** —— 「双代理评审 REQUEST_CHANGES → 修复」目前只有各 commit message 的自述,**无逐 BLOCKING 对账件**(原判定 → 修复落点 → 验证命令)。与 `modular-building` / `world-ecozones` 的缺口 ①a 同型。
+3. **005 的 `O-4`(45 侧登记行)仍悬空** —— 45 无 GDD(P1b),该义务未出现在任何 PR 描述中。
+4. **004 的 AC-1-04 NOT-RUN** —— 需 45 联机夹具;已 `Assert.Skip`,非静默。
+5. **004 的 codec 绕行未登记为 TODO** —— `CellTransitionDetector` 走 `PayloadRef` 三整数字段,不经 `Sim.Codec`;因 asmdef 未引用 `Sim.Codec`,接线须先加程序集依赖边。
 
 ## Key Cross-References
 

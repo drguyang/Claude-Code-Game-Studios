@@ -1,12 +1,12 @@
 # Story 006: 状态纯净与 `MotorSuppressed` per-source lease —— 零游戏状态反射断言 + 调用面白名单
 
 > **Epic**: 玩家控制器与移动
-> **Status**: Ready
+> **Status**: In Review (实现 `5572d66`;8/8 测试绿,但 **2 条 BLOCKING 判据有缺陷** ⇒ 依「不得借绿」不转 Complete)
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: 5h
 > **Manifest Version**: 2026-09-21
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-02
 
 ## Context
 
@@ -176,9 +176,18 @@
 
 ## Completion Notes
 
-**Completed**: _待实现_
-**Criteria**: _待填_(交付时须附:`LeaseSource` 最终 ordinal 表 = `Self 4 / Emergency 10 / Combat 25`,及"旧 `SetSuppressed(bool)` 公开面已删除"的确认行)
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Completed**: _未完成 —— 机制已落,2 条 BLOCKING 判据待修_
+**Criteria**: **部分**。机制半边已交付(实现 `5572d66` 新建 `MotorLease.cs` 140 行):
+  - ✅ `LeaseSource` **最终 ordinal 表 = `Self 4 / Emergency 10 / Combat 25`**(原挂账条件已满足,值 = 系统号,append-only 禁重排)。
+  - ✅ 旧 `SetSuppressed(bool)` 公开面**不存在**(全仓 grep 零命中;新建文件从未提供该 API)。
+  - ✅ 纪律 ①–④ 机制:只碰自己位 / 幂等位语义 / 零计时器字段 / 作用域不含攻击 —— `MotorLeaseTest` 5 例覆盖。
+  - 🔴 **AC-1-27 判据形态违反其自身 Guardrail**。`motor_lease_test.cs:97` 的 `test_ac127_noGameStateFields` 实现的是**字段名黑名单**(`forbiddenPatterns = {"hp","skill","inventory","quest","health","mana"}`),而本 story `:29` 的 Guardrail 与 AC-1-27 原文均明写「反射扫描须按**字段类型白名单**,**不是**字段名黑名单 —— 后者是**假阴性机器**」。⇒ 该判据目前**恒真**(任何改名即绕过),BLOCKING 未真正执行。
+  - 🔴 **AC-1-23 的调用点白名单未测**。AC 明写「判据须区分接口归属与调用点 …… 断言的是**调用点集合**」= {4, 10, 25},且 UI(42/48)不得直触。现有 8 例**只验位图机制**,零调用点/AST 扫描、零程序集白名单断言。
+**Deviations**: 🔴 **两条 BLOCKING 判据有缺陷,故本 story 记 In Review 而非 Complete**(用户裁定 2026-10-02:记 In Review,缺口如实登记)。闭合路径:
+  ① `test_ac127_noGameStateFields` 改为**字段类型白名单**(允许集 = 表现层类型 + 边界程序集整数类型,其余一律红)—— 与 AC-1-27 原文同构;
+  ② 补 `AC-1-23` 调用点断言(AST 扫全工程 `Acquire`/`Release` 接收方所属程序集 ∈ {4, 10, 25},配程序集引用白名单双判据);
+  ③ 两条跑绿后本 story 方可转 Complete。**不得以「8/8 绿」主张完成** —— 绿的 8 例不含这两条判据。
+  另:`AC-1-29`(ADVISORY)依赖 `OQ-1-12` 接地 spike 的 `slopeLimit`/`stepOffset` 取值(`O-9`),判据迟于本 story,已按原文只交付清单与流程。
+**Test Evidence**: `production/qa/evidence/` 无本 story 专项件;复跑证据 = 2026-10-02 batchmode 全量 EditMode(`total 2022 · passed 1989 · failed 0`),`MotorLeaseTest` 8/8 Passed。⚠️ **8/8 绿不构成 AC-1-23 / AC-1-27 的取证** —— 见上 `Criteria` 两条 🔴。
+**Code Review**: 尚无评审件。`5572d66` 为编译修复轮(用户裁定方案 A),非双代理评审。
 **Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
