@@ -3,7 +3,7 @@
 > **Layer**: Foundation → Core → Feature
 > **GDD**: design/gdd/world-and-ecozones.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ Tooling 消费侧(ADR-022 关卡工具)
-> **Status**: In Review(5/6 stories Complete;双代理评审 REQUEST_CHANGES 4 BLOCKING —— **对账结论:B1/B3/B4 已修 · B2 形式已闭**;106/106 逐例复跑绿;✅ 逐 BLOCKING 对账件已落 evidence;✅ 缺口 ①c 已闭;✅ **B1 已闭(2026-10-02 ADR-029 接线支)**;Story 005 = [L]/EXTERNAL 桌面走查 Pending;🔴 **EPIC 不转 Complete 的唯一原因 = 评审报告原件从未落盘** + Story 005 走查未执行)
+> **Status**: In Review(5/6 stories Complete;双代理评审 REQUEST_CHANGES 4 BLOCKING —— **对账结论:B1/B3/B4 已修 · B2 形式已闭**;106/106 逐例复跑绿;✅ 逐 BLOCKING 对账件已落 evidence;✅ 缺口 ①c 已闭;✅ **B1 已闭(2026-10-02 ADR-029 接线支)**;Story 005 = [L]/EXTERNAL 桌面走查 Pending;🔴 **EPIC 不转 Complete 的唯一原因 = 评审报告原件从未落盘** + Story 005 走查未执行;🔴 **解除条件(可执行)** = 补做一次评审并落 `qa/evidence/review-*-2026-*.md`(原件不可得,不追认原判定) )
 > **Stories**: 5 stories — see table below
 
 ## Overview

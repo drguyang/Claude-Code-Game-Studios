@@ -10,6 +10,19 @@
   For UI changes, verify with screenshots. Compare expected output to actual output
   before marking work complete. Every implementation should have a way to prove it works.
 
+# Review Evidence Standards
+
+- **评审报告原件落盘(BLOCKING 级 · 2026-10-02 立)**:任何产出 **BLOCKING 判定**的评审,
+  其报告原件须落 `production/qa/evidence/review-<对象>-<YYYY-MM-DD>.md`,
+  含 **原判定 → 修复落点 → 验证命令**(可证伪)。**无原件 ⇒ 该对象不得转 `Complete`**。
+  - ⚠️ **commit message 摘要不构成原件** —— 它是索引,不是报告。
+  - ⚠️ **对账件(`reconciliation-*.md`)不可替代原件** —— 对账件验证的是
+    「自述的修复是否真在代码里」,**不验证「原判定是否完备」**。
+  - ⚠️ **评审不可事后追补** —— 事后重做评的是**当下**的代码,得到的是**新**判定,
+    **不追认**原判定。缺原件的对象,出路是**补做一次评审**(评当下)并落新原件。
+  - 完整义务与现存缺口见 `.claude/docs/review-workflow.md`;
+    收口闸门见 `.claude/skills/story-done/SKILL.md` §评审报告原件要求。
+
 # Design Document Standards
 
 - All design docs use Markdown

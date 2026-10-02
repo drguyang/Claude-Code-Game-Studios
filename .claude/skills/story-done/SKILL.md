@@ -177,6 +177,25 @@ referencing this story.
 **For Config/Data stories**: check for any `production/qa/smoke-*.md` file.
 If none: flag as **ADVISORY** — "No smoke check report found. Run `/smoke-check`."
 
+### 评审报告原件要求(BLOCKING 级 · 2026-10-02 立)
+
+**触发条件**:本 story 或其所归属的 epic 曾产出 **BLOCKING 级评审判定**
+(即 story 或 EPIC 内含「双代理评审 REQUEST_CHANGES」「N BLOCKING」等记载)。
+
+**检查**:`Glob production/qa/evidence/review-*.md`,核对是否存在覆盖本对象的报告原件。
+报告须含 **原判定 → 修复落点 → 验证命令**(可证伪)。
+
+- **无原件** ⇒ flag as **BLOCKING**:
+  "本对象有 BLOCKING 级评审记载但无报告原件。`bb477e6` 一类的 commit message
+  **摘要不构成原件** —— 它是索引,不是报告。补做一次评审并落
+  `production/qa/evidence/review-<对象>-<YYYY-MM-DD>.md` 后方可转 Complete。"
+  ⚠️ **不得以对账件(`reconciliation-*.md`)替代** —— 对账件验证的是
+  「自述的修复是否真在代码里」,**不验证「原判定是否完备」**,两者不可互替。
+- **有原件** ⇒ 读取并核对:每条 BLOCKING 须能追溯到「修复落点 + 验证命令」;
+  缺失条目按 **BLOCKING** 报(与上同款措辞)。
+- **有原件但为事后补做** ⇒ 须在对象内**如实登记**「该报告评的是补做时点的代码,
+  **不追认**原判定」(见 `.claude/docs/review-workflow.md` §不可追补)。
+
 **If no Story Type is set**: flag as **ADVISORY** —
 "Story Type not declared. Add `Type: [Logic|Integration|Visual/Feel|UI|Config/Data]`
 to the story header to enable test evidence gate enforcement in future stories."
