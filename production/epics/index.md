@@ -28,7 +28,7 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | enemy-ai | Core | 27 敌人 AI | design/gdd/enemy-ai.md | 5 stories | Complete ✅ 2026-09-30 |
 | interaction-system | Core | 4 交互系统 | design/gdd/interaction-system.md | 4 stories | Ready(未实现) |
 | inventory-items | Core | 21b 库存与物品 | design/gdd/inventory-and-items.md | 6 stories | Ready(未实现) |
-| modular-building | Core | 6 世界与生态区 | design/gdd/modular-building.md | 6 stories | In Review(双评 REQUEST_CHANGES 5B · 51/51 逐例复跑绿 · 对账件缺 + Modified 接 codec 降级 TODO) |
+| modular-building | Core | 6 世界与生态区 | design/gdd/modular-building.md | 7 stories | In Review(7/7 story 已实现 · B4 已闭 · 63/63 绿;**唯一残留 = 评审报告原件缺**;另 id 类型 int/i64 不合规登记) |
 | patient-ai | Core | 13 病人 AI | design/gdd/patient-ai.md | 4 stories | Ready(未实现) |
 | player-controller | Core | 1 玩家控制器 | design/gdd/player-controller-and-movement.md | 6 stories | In Review(6/6 story Complete · 仅因 evidence 对账件缺口未转 Complete;2026-10-02) |
 | prescription-medication | Core | 11 处方与用药 | design/gdd/prescription-and-medication.md | 5 stories | Ready(未实现) |

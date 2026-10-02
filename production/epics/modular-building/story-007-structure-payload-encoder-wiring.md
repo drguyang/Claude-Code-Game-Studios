@@ -1,7 +1,7 @@
 # Story 007: 结构载荷接线 —— `Structure*` 改走 `IPayloadEncoder`(闭合 B4)
 
 > **Epic**: 6 建造(模块化)
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-02 (7/7 AC 落地;12 例新测试 + 突变测试坐实;ModularBuilding 63/63)
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 5h
@@ -141,9 +141,41 @@
 
 ## Completion Notes
 
-**Completed**: _待实现_
-**Criteria**: _待填_
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Completed**: 2026-10-02
+**Criteria**: **7/7 AC 全部落地**。`StructureWriter` 三处写入全改走 `IPayloadEncoder`;
+  `StructureKinds.cs` 内 `new PayloadRef(` 仅剩文档注释里的一处规则声明(代码零命中)。
+  新测试 `structure_payload_encoder_test.cs` **12/12**;既有 `structure_kinds_test.cs` 同步更新后仍 **7/7**。
+**Deviations**: 🔴 **三处超出 story 原文的发现,均如实登记**:
+  ① **三支 payload struct 是重复定义(死代码),已删。**
+     `StructurePlacedPayload` / `StructureRemovedPayload` / `StructureModifiedPayload`
+     **同时**定义于 `Sim/World/StructureKinds.cs`(`DaYiJingCheng.Sim.World`)与
+     `Sim.Contracts/Payloads/WorldPayloads.cs`(`DaYiJingCheng.Sim.Contracts`)。
+     两份字段同序同义,**但 `StructureId` 类型不同**:Sim 版 = `int`,契约版 = `long`。
+     契约版才是权威(`PayloadCodec` 与全部测试用 long);Sim 版**零引用** ⇒ 删。
+     本 story 只登记该发现,删的是**死代码**,不涉语义变更。
+  ② 🔴 **`StructureInstanceRegistry` 的 id 类型不合规(int vs i64)—— 未修,登记归独立轮。**
+     `entities.yaml:2068` 定 **`structure_id: i64`**(「与 ItemInstanceId 同模式,计数器 + 高水位可重构」),
+     契约版载荷亦为 `long`;而注册表全链(`_nextStructureId` / `Register` / `Remove` / `Update` /
+     `TryGet` / `StructureInstance.StructureId` / `PeekNextId`)仍是 **`int`**
+     ⇒ **id 超 2^31 时静默回绕**。
+     ⚠️ **该不一致此前被 ① 的 int 版副本掩盖** —— 副本删掉后才暴露(测试侧编译失败 CS1503)。
+     本 story 在测试里用 `(int)` 收窄转换**临时桥接**(并在测试文件末登记),
+     **不擅自改注册表类型** —— 修法 = id 全链升 `long` 并同步 `IIdAuthority` 机制 A 的高水位口径,
+     归独立轮,**不属 B4 范围**。
+  ③ **既有 `structure_kinds_test.cs` 的两处断言实为「照着预期答案写」,已改真解码**:
+     · `Payload.BlobId == sid` —— 把**业务 id 耦合到 blob 寻址**(正是 B4 缺陷的形态)⇒ 改为解码验字段;
+     · 重建测试读 `Payload.BlobId` 当 structure_id 且**硬编码** moduleId / anchor / 朝向
+       (原注释自陈「测试用…回填」)⇒ 那不是真重建;改为**全部字段取自载荷**。
+     ⇒ 这两处不改,本 story 的「往返一致」会是在验证一个假重建。
+**Test Evidence**: `structure_payload_encoder_test.cs` **12/12** · `structure_kinds_test.cs` **7/7** ·
+  ModularBuilding 合计 **63/63**(原 51 + 新 12)。
+  全量 EditMode batchmode:`total 2060 · passed 2027 · failed 0 · skipped 32 · inconclusive 1`。
+  ✅ **突变测试坐实非空转**:把两处 B4 原缺陷还原(`Modify` 丢 orientation/variant 字段、
+  `Place` 走 bit-pack)后 **恰 7 例红** —— `test_ac2334_noManualPayloadRefInSource`(门判据)·
+  `test_ac2331_place_encodesFiveFields`(bit-pack 五字段读不回)·
+  `test_ac2333_modify_*` ×3(**字段丢弃** —— B4 核心)·
+  既有 `test_place_emitsStructurePlaced` / `test_rebuildFromEvents_equalsLiveState`。
+  ⇒ 判据真的能检出 B4。原文件已复原,工作树无残留。
+**Code Review**: 尚无独立评审件(归后续轮)。
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
 **Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
