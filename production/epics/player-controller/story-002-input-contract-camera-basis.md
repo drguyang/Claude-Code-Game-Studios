@@ -1,7 +1,7 @@
 # Story 002: 输入契约与相机相对方向 —— `MoveInput` 边界断言 + F-1-8 基投影
 
 > **Epic**: 玩家控制器与移动
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-02 (双代理评审修复后 16/16 测试通过)
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
@@ -33,14 +33,13 @@
 
 *From GDD `design/gdd/player-controller-and-movement.md`, scoped to this story:*
 
-- [ ] **AC-1-09(BLOCKING)** —— **3 → 1 边界硬断言**:`‖MoveInput‖ ≤ 1`,**越界即报错**(形态须写死:抛异常 vs. 记错误日志 + 拒绝该帧输入;**1 不 clamp** —— clamp 会掩盖 3 的 bug)。它是 F-1-1a 成立的输入项,失败形态是**水平隧穿**(静默)。测试缝:`MoveInput` 可注入。
-- [ ] **AC-1-31(BLOCKING · 复核新增 —— 根因 1「移动基向量」)** —— **`v̂_world` 单位性**:`GIVEN` 任意 `MoveInput`(含 `‖MoveInput‖ = 0`、极角输入)与任意相机 yaw,`WHEN` 走 F-1-8,`THEN` `|‖v̂_world‖ − 1| ≤ [容差——待定]`(**非单位 ⇒ F-1-1a 静默失效**),且 `v̂_world.y == 0`(水平面内)。**反向用例**:喂一个**带仰角**的相机 yaw(相机向 `y` 方向偏),断言 `v̂_world.y` **仍为 0**(否定"直接用相机 `forward`"的缺陷写法)。
-  - ⚠️ 容差常量:**回指 2 的 `YAW_BASIS_EPS`**(`AC-2-08` 订正:避免两侧各写一个字面量 ⇒ 调一处另一处静默失效)。2 侧常量未落前,1 侧引用同一符号(编译期依赖,见 Dependencies)。
-- [ ] **AC-1-35(BLOCKING · 复核新增 —— 求值次序的完整版本,本故事承担 ①②③④ 中方向相关的部分)**:
-  ① **基向量在 `v_target` 之前求值**:`YawBasis(本帧) → v̂_world → v_target → 加速 → 转向`(与 `AC-1-18` 的格求值次序同一条链,本项补前段);
-  ② **`YawBasis` 每帧只取样一次**(缓存在局部变量);
-  ③ **`ICameraRig.YawBasis` 是只读接口** —— 1 的调用点**零**对相机状态 / 变换的写入(AST 断言;`AC-1-28` 的程序集白名单**不覆盖此点** —— 同一程序集内的越权写);
-  ④ 断言 `r̂ := normalize(cross(worldUp, f̂))` **正交**(`|dot(f̂, r̂)| ≤ 容差`)—— 否定"分开取相机 `forward` 与 `right`"的缺陷写法。
+- [x] **AC-1-09(BLOCKING)** —— **3 → 1 边界硬断言**:`‖MoveInput‖ ≤ 1`,**越界即报错**(形态:抛异常 + 拒绝该帧输入;**1 不 clamp**)。测试: 4 用例（越界/边界/零/NaN）全通过。
+- [x] **AC-1-31(BLOCKING · 复核新增 —— 根因 1「移动基向量」)** —— **`v̂_world` 单位性 + 水平面内**。测试: 单位性/水平性/零输入/反向用例（带仰角相机）/全 yaw 扫描（36 点 × 3 幅值）全通过。
+- [x] **AC-1-35(BLOCKING · 复核新增 —— 求值次序的完整版本,本故事承担 ①②③④ 中方向相关的部分)**:
+  ① **基向量在 `v_target` 之前求值** — CountingCameraRig 验证 YawBasis 调用次序;
+  ② **`YawBasis` 每帧只取样一次** — CountingCameraRig 验证每帧一次;
+  ③ **`ICameraRig.YawBasis` 是只读接口** — readonly struct + 水平化断言;
+  ④ 断言 `r̂ := normalize(cross(worldUp, f̂))` **正交** — 正交性断言测试通过。
 
 ---
 
