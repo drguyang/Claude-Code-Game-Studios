@@ -15,6 +15,16 @@
 > **修正后实现面显著简化**:不改 34 个 struct、不写 kindgen,直接镜像既有模式。
 > ③ 评审另发现初稿的接口签名**不可实现** —— `T` 无法反推 `EventKind`,故 `Encode<T>` 须收
 > `EventKind` 形参(与 `Decode<T>` 同因)。签名据此修正。
+> ④ **实现期再发现一处签名缺口(2026-10-02 开工契约支时,用户裁定)**:34 支具名 `Encode` 重载中
+> **有 2 支签名不同** —— `Encode(in JudgmentRecordedPayload, string freehandText)` /
+> `Encode(in JudgmentRevisedPayload, string freehandText)`。成因 = **ADR-006 G-3** 把 `freehand_text`
+> 迁入 blob 的**变长 UTF-8 段**(tag 6),而该 struct **故意不含此字段**(G-3:「sim 消费面不持有该值」)。
+> ⇒ `Encode<T>(EventKind, in T)` **无法表达这两支**(`freehandText` 不在 `T` 里)。
+> **裁定**:`EncodeBoxed` 对这两支**抛 `NotSupportedException`**(错误串指向具名重载),
+> 即**覆盖 32 支 + 2 支显式不支持**。理由:G-3 既已禁止 sim 程序集**读** `freehand_text`,
+> sim 侧的通用编码面**更不应承载**它 —— 给 `Encode<T>` 加 `string` 形参等于把自由文本通道开进 `Sim`。
+> 且**当前无人需要**:全仓 `Sim/` 内零 Judgment 写入者(37 case-system 未实现)。
+> ⇒ `AC-29-04` 的判据由「覆盖 34 支」改为「**覆盖 32 支 + 2 支显式抛**」。
 
 > **Ordering Note**: 本 ADR **新增** ADR-005 的**第七个 P0 抽象点**,并**就地订正** ADR-005
 > 「六个抽象点」计数(五处)。同时**补 ADR-006 Amendment G-2 留下的洞** —— G-2 只定了

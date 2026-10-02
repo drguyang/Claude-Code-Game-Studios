@@ -34,7 +34,7 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | prescription-medication | Core | 11 处方与用药 | design/gdd/prescription-and-medication.md | 5 stories | Ready(未实现) |
 | processing | Core | 14 加工与制作 | design/gdd/processing.md | 5 stories | Ready(未实现) |
 | world-ecozones | Core | 6b 生态区与 POI | design/gdd/world-and-ecozones.md | 5 stories | In Review(4/5 · 双评 REQUEST_CHANGES 4B,**B1 未修降级 TODO** · 87/87 逐例复跑绿;005 [L]) |
-| persistence-service | Foundation | 7a 持久化服务 | design/gdd/persistence-service.md | 2 stories | In Progress(1/2 · 002 = ADR-029 契约支新增) |
+| persistence-service | Foundation | 7a 持久化服务 | design/gdd/persistence-service.md | 2 stories | Complete ✅ 2026-10-02(2/2;002 = ADR-029 契约支) |
 | save-slot-ui | Foundation | 7b 存档位 UI | design/gdd/save-slot-ui.md | — | Ready(未实现) |
 
 ---

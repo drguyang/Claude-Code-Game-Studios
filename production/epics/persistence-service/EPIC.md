@@ -3,7 +3,7 @@
 > **Layer**: Foundation
 > **GDD**: design/gdd/persistence-service.md
 > **Architecture Module**: L3 契约程序集(`Sim.Codec`: `ISaveCodec` / `ISaveService` / `SaveHeader`)
-> **Status**: **In Progress**(1/2 stories —— 002 为 ADR-029 实现轮新增,2026-10-02)
+> **Status**: **Complete ✅ 2026-10-02**(2/2 stories)
 > **Stories**: 2 stories
 
 ## Stories
@@ -11,7 +11,7 @@
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
 | 001 | 存储抽象层（二进制 codec 接口 + 校验骨架） | Logic | **Complete ✅ 2026-09-30** | ADR-010 |
-| 002 | 载荷编码契约 —— `IPayloadEncoder` + `IBlobSink` + `EncodeBoxed` 分派 | Logic | Ready | ADR-029 |
+| 002 | 载荷编码契约 —— `IPayloadEncoder` + `IBlobSink` + `EncodeBoxed` 分派 | Logic | **Complete ✅ 2026-10-02**(14/14) | ADR-029 |
 
 ## Overview
 
