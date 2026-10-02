@@ -17,8 +17,8 @@ using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.EmergencyProcedures;
 using NUnit.Framework;
 
-// 类型歧义解决: 使用完整命名空间
-using EmergencyTreatmentAppliedPayload = DaYiJingCheng.Sim.EmergencyProcedures.EmergencyTreatmentAppliedPayload;
+// ⚠️ 2026-10-03(Story 007):原别名指向 Sim.EmergencyProcedures 版 ——
+// 该重复 struct 已删(权威版在 Sim.Contracts)。现直接用权威版(经 using 可见)。
 
 namespace DaYiJingCheng.Tests.EmergencyProcedures
 {
@@ -31,8 +31,9 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         {
             // hold_ticks = 末沿 - 首沿
             var agg = EmergencyAttemptAggregator.Aggregate(
-                new[] { 10, 20, 30 },
-                new[] { 100, 200, 300 });
+                action: 0, edgeTicks: new[] { 10, 20, 30 },
+                magnitudes: new[] { 100, 200, 300 },
+                magLast: 300, method: 0, actorId: 1);
             Assert.AreEqual(20, agg.HoldTicks, "hold_ticks 应为末沿-首沿=20");
         }
 
@@ -41,8 +42,9 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         {
             // mag_peak = max
             var agg = EmergencyAttemptAggregator.Aggregate(
-                new[] { 10, 20, 30 },
-                new[] { 100, 300, 200 });
+                action: 0, edgeTicks: new[] { 10, 20, 30 },
+                magnitudes: new[] { 100, 300, 200 },
+                magLast: 200, method: 0, actorId: 1);
             Assert.AreEqual(300, agg.MagPeak, "mag_peak 应为 max=300");
         }
 
@@ -51,8 +53,9 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         {
             // 平局取 tick 较小者
             var agg = EmergencyAttemptAggregator.Aggregate(
-                new[] { 10, 20, 30 },
-                new[] { 300, 300, 100 });
+                action: 0, edgeTicks: new[] { 10, 20, 30 },
+                magnitudes: new[] { 300, 300, 100 },
+                magLast: 100, method: 0, actorId: 1);
             Assert.AreEqual(300, agg.MagPeak, "mag_peak 平局应取 tick 较小者");
         }
 
@@ -61,8 +64,9 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         {
             // edge_ticks 非递减
             var agg = EmergencyAttemptAggregator.Aggregate(
-                new[] { 10, 20, 30 },
-                new[] { 100, 200, 300 });
+                action: 0, edgeTicks: new[] { 10, 20, 30 },
+                magnitudes: new[] { 100, 200, 300 },
+                magLast: 300, method: 0, actorId: 1);
             Assert.IsTrue(agg.EdgeTicks.SequenceEqual(new[] { 10, 20, 30 }),
                 "edge_ticks 应非递减");
         }
@@ -73,20 +77,22 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         public void test_ac1006_payload_sevenFields()
         {
             var payload = new EmergencyTreatmentAppliedPayload(
-                polarity: 1,
-                drugPotency: 50000,
-                halfLifeTicks: 100,
+                tick: 100L,
                 treatmentId: 1,
-                provider: 2,
+                actorId: 2,
+                polarity: 1,
+                drugPotency: new Fix(50000L),
+                halfLife: 100L,
                 method: 0,
-                cause: 0);
+                cause: 0,
+                seq: 0L);
 
             // 验证七项齐备（非默认值）
             Assert.AreNotEqual(0, payload.Polarity, "polarity 应非默认");
             Assert.AreNotEqual(0, payload.DrugPotency, "drug_potency 应非默认");
-            Assert.AreNotEqual(0, payload.HalfLifeTicks, "half_life 应非默认");
+            Assert.AreNotEqual(0, payload.HalfLife, "half_life 应非默认");
             Assert.AreNotEqual(0, payload.TreatmentId, "treatment_id 应非默认");
-            Assert.AreNotEqual(0, payload.Provider, "provider 应非默认");
+            Assert.AreNotEqual(0, payload.ActorId, "actor_id 应非默认");
             // method/cause 可为 0（合法值）
         }
 
@@ -98,13 +104,15 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
             // 10 照常发事件（判「有用与否」归 9，非 10）
             // 验证: 构造 payload 不抛异常（10 不检查 treatable_by）
             var payload = new EmergencyTreatmentAppliedPayload(
-                polarity: 1,
-                drugPotency: 50000,
-                halfLifeTicks: 100,
+                tick: 100L,
                 treatmentId: 999, // 不在 treatable_by
-                provider: 2,
+                actorId: 2,
+                polarity: 1,
+                drugPotency: new Fix(50000L),
+                halfLife: 100L,
                 method: 0,
-                cause: 0);
+                cause: 0,
+                seq: 0L);
 
             Assert.DoesNotThrow(() => { var _ = payload; },
                 "10 不应因 treatmentId 不在 treatable_by 而拒绝发事件");

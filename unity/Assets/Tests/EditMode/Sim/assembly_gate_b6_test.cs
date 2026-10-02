@@ -124,9 +124,10 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 StringAssert.Contains("出口条件", reason, "豁免须写明出口条件(否则成永久债务)");
             }
 
-            // 当前实测 2 处(10 emergency-procedures 的手搓点)
-            Assert.AreEqual(2, count,
-                $"豁免数变化须显式复核(现 {count} 条)—— 新增豁免 = 新增已登记债务");
+            // ✅ 2026-10-03(story-007):豁免表**已清空** —— 手搓面全部改走 IPayloadEncoder。
+            // 空表 = 全库零手搓,门在**无豁免**状态下强制。
+            Assert.AreEqual(0, count,
+                $"豁免表应为空(现 {count} 条)—— 新增豁免 = 新增已登记债务,须显式复核");
         }
     }
 }

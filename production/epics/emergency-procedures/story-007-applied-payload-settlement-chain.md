@@ -1,7 +1,7 @@
 # Story 007: `EmergencyTreatmentApplied` 载荷的结算链补完 —— 九字段齐备
 
 > **Epic**: 10 急救动作
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-03 (7/7 AC 落地;17 例新测试 + 突变测试坐实;EditMode 0 红 · PlayMode 36/36)
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 8h
@@ -219,9 +219,47 @@ Process(EmergencyAttemptPayload attempt, EmergencyActionRow action, JudgeContext
 
 ## Completion Notes
 
-**Completed**: _待实现_
-**Criteria**: _待填_
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Completed**: 2026-10-03
+**Criteria**: **7/7 AC 全部落地**,**b6 门的两条豁免已清零**。交付:
+  - 删 `Sim.EmergencyProcedures` 内**两个 payload struct 副本**(权威版在 `Sim.Contracts`);
+  - `EmergencyAttemptAggregator` 改产**权威八字段**(`MagLast` **透传**不再丢 · `ActorId` 参数化 · **删自造 `Cause`**);
+  - `HostEmergencyProcessor` 两处载荷改走 `IPayloadEncoder`,**九字段 / 八字段逐项填充**;
+  - 补 F-10.4(`JudgeEvaluator.ScaleFixed` 即单一舍入实现,已存在);
+  - 新测试 `applied_payload_settlement_test.cs` **17/17**。
+**Deviations**: 🔴 **五处超出 story 原文的发现,均如实登记**:
+  ① **又一处同型重复(与 modular B4 同型,且更严重)**:两个 payload struct **重复定义**于
+     `Sim.EmergencyProcedures` 与 `Sim.Contracts`,且**两份字段集合不同** ——
+     attempt 版含自造的 `Cause`/`Provider` 并**丢弃 3 侧已交出的 `MagLast`**;
+     applied 版**仅 7 字段**(缺 `Tick`/`Seq`)。⇒ **`HostEmergencyProcessor` 用的根本不是权威 struct**,
+     故「九字段齐备」在该文件里连**类型都对不上**。已删副本统一用权威版(用户 2026-10-03 裁定 A=纳入)。
+  ② **`Cause` 的归属**(用户裁定 B=删自造字段):`entities.yaml:2253` 的 `payload_schema`
+     **不含 `cause`**;GDD `:464` 的「`Skipped` 须带 `cause`」在**处置事件**上下文
+     ⇒ `cause` 属 applied,不属 attempt。已删 attempt 版的自造字段。
+  ③ 🔴 **载荷 `Seq` 置 0 占位(用户裁定 A=丙)**:其真源「主机在 `Append` 时发号」发生在
+     `IEventSink.Append` **内部**(`SimEvent.Seq`),而载荷构造在其**之前** ⇒ 本处理器拿不到。
+     载荷 `Seq` 与 header `Seq` 的语义关系须由**上行链**落地时裁定(45 / P1b)。
+     ⚠️ **本处置不构成借绿** —— 测试 `test_ac1039_seqIsExplicitlyPlaceholder` **把占位事实钉死**,
+     若该断言变红即说明上行链已落地,须同步更新判据面。
+  ④ 🔴 **GDD 勘误(本 story 由测试实测发现)**:`design/gdd/emergency-procedures.md` A8 的 ulp 示例
+     写「`(32769 × 16384) ÷ 65536 = 8192.5`」—— **数字颠倒**。实测 `32769 × 16384 = 536887296`
+     ÷ 65536 = **8192.25**(rem=16384 ≠ 半)⇒ **无舍入分道**。正确组合 = `32768 × 16385 = 536903680`
+     ÷ 65536 = **8192.5**(rem=32768 恰为半)。**原文结论正确**(须用 `ROUND_HALF_AWAY_FROM_ZERO`),
+     仅示例数字错 —— 但该数字是「可复现验证」的载体,写错会让照抄者实测得 8192 后**误以为实现有 bug**。
+     ⇒ 归 GDD 勘误轮。已在测试内登记(§已知问题)。
+  ⑤ **`EmergencyActionRow.ResultMul` 的 schema 缺口**:该字段是 **per-row**,而 F-10.4 的取值
+     (`{16384,32768,65536}`)是 **GDD 全局常量**(`GetResultMulTiers()` 提供)—— 与动作无关。
+     两个后果:① `EmergencyActionSchema` 的 DC-1…DC-4 **不含 `ResultMul`** ⇒ 未设该字段的 row
+     能过全部烘焙门,直到 `Process` **NRE** 才暴露(PlayMode 两例即此形态);
+     ② **冗余**(全局常量挂在 per-row)。修法须裁(甲 = 加 DC-5 校验;乙 = 从 row 移除改直读常量),
+     **本 story 不擅自改**(属数据契约变更)。已在测试内登记。
+**Test Evidence**: `applied_payload_settlement_test.cs` **17/17**。
+  EditMode 全量:`total 2096 · passed 2063 · failed 0 · skipped 32 · inconclusive 1`。
+  PlayMode 全量:**36/36**(含 `HostAuthorityTest` 两例,已同步构造与 `ResultMul`)。
+  ✅ **突变测试坐实非空转**:还原手搓法(九字段只填 1 个有意义)后 **恰 7 例红**,
+  逐条对应手搓法的具体缺陷 —— `halfLifeNotZero`(恒 0 ⇒ 9 的 Decay 除零)·
+  `polarityNotZero`(恒 0)· `actorIdIsProviderNotJudgeResult`(`result` 当施予者 id)·
+  `nineFieldsAllPopulated`(字段缺失)· `methodAndCauseDiscriminable`(跳过不可判别)·
+  `threeTiersNonZero` / `missedStillEmits`(potency 丢失)。原文件已复原。
+**Code Review**: 尚无独立评审件(归后续轮)。
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

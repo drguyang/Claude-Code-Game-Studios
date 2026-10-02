@@ -244,21 +244,17 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// b6 的**具名豁免**(baseline)。每条须有:具体位置 + 已登记的原因 + 出口条件。
         /// ⚠️ 豁免不是修复 —— 它是**已登记债务**的可见化;新增位置一律红。
         /// </summary>
+        /// <summary>
+        /// b6 的**具名豁免**(baseline)。每条须有:具体位置 + 已登记的原因 + 出口条件。
+        /// ⚠️ 豁免不是修复 —— 它是**已登记债务**的可见化;新增位置一律红。
+        /// </summary>
+        /// <remarks>
+        /// **当前为空**(2026-10-03)—— `emergency-procedures/story-007` 已把手搓面全部清除
+        /// (两处 `HostEmergencyProcessor` 载荷改走 `IPayloadEncoder`),
+        /// 原两条豁免随之撤销。空表 = 全库零手搓,门在**无豁免**状态下强制。
+        /// </remarks>
         private static readonly (string Path, int Line, string Reason)[] PayloadRefWaivers =
-        {
-            ("Sim/EmergencyProcedures/HostEmergencyProcessor.cs", 50,
-             "10 emergency-procedures Story 004 的手搓点(2026-10-02 由 b6 门首次发现,"
-             + "前两轮评审与对账件均未登记)。⚠️ 比 B1/B4 更严重:"
-             + "`EmergencyAttemptPayload` 有 8 字段,此处只写 3 个 ⇒ MagPeak/MagLast/Method/ActorId/EdgeTicks **全被丢弃**。"
-             + "出口条件 = 接 IPayloadEncoder,但**须先取得 10 的 GDD 对 applied 载荷八字段的语义**"
-             + "(手搓法未给线索,不得靠猜);归 emergency-procedures 的实现轮。"),
-            ("Sim/EmergencyProcedures/HostEmergencyProcessor.cs", 59,
-             "10 emergency-procedures Story 004 的第二处手搓点(同上文件,2026-10-02 由 b6 门首次发现)。"
-             + "⚠️ 语义更错:把 `attempt.Action` 当 applied 载荷首字段(TreatmentId ≠ Action),"
-             + "且 `EmergencyTreatmentAppliedPayload` 9 字段只写 1 个有意义。"
-             + "出口条件 = 接 IPayloadEncoder,但**须先取得 10 的 GDD 对 applied 载荷八字段的语义**;"
-             + "归 emergency-procedures 的实现轮。"),
-        };
+            System.Array.Empty<(string, int, string)>();
 
         /// <summary>剥行注释与块注释 —— 判据扫**代码**,不扫文档里对规则本身的引用。</summary>
         private static string StripCommentsForScan(string src)

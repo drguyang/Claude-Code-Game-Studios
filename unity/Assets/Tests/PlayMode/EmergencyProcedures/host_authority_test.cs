@@ -15,9 +15,10 @@ using DaYiJingCheng.Sim.EmergencyProcedures;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+using DaYiJingCheng.Sim.Codec;
 
-// 类型歧义解决: 使用完整命名空间
-using EmergencyAttemptPayload = DaYiJingCheng.Sim.EmergencyProcedures.EmergencyAttemptPayload;
+// ⚠️ 2026-10-03(Story 007):原别名指向 Sim.EmergencyProcedures 版 ——
+// 该重复 struct 已删(权威版在 Sim.Contracts)。现直接用权威版(经 using 可见)。
 
 namespace DaYiJingCheng.Tests.PlayMode.EmergencyProcedures
 {
@@ -31,14 +32,26 @@ namespace DaYiJingCheng.Tests.PlayMode.EmergencyProcedures
             // Arrange
             var sink = new FakeEventSink();
             var idAuth = new FakeIdAuthority();
-            var processor = new HostEmergencyProcessor(sink, idAuth);
+            var pool = new InMemoryBlobPool();
+            var processor = new HostEmergencyProcessor(sink, idAuth, new PayloadEncoder(pool));
 
-            var attempt = new EmergencyAttemptPayload(0, 20, 3, new[] { 10, 20, 30 }, 800);
-            var action = new EmergencyActionRow { ActionId = 0, MinEdges = 2, MinHoldTicks = 50, MagThreshold = 400 };
+            // 权威八字段:action / holdTicks / edges / magPeak / magLast / method / actorId / edgeTicks
+            var attempt = new EmergencyAttemptPayload(
+                action: 0, holdTicks: 20, edges: 3, magPeak: 800, magLast: 800,
+                method: 0, actorId: 7, edgeTicks: new[] { 10, 20, 30 });
+            // ⚠️ 2026-10-03(story-007):须显式设 ResultMul —— F-10.4 读 action.ResultMul[result];
+            // 原夹具未设(为 null)⇒ Process 会 NRE。
+            // ⚠️ 该字段是**全局常量**(EmergencyActionSchema.GetResultMulTiers),
+            // 却挂在 per-row 上且**schema 无校验** ⇒ 已登记缺口(见文件末 §已知问题)。
+            var action = new EmergencyActionRow {
+                ActionId = 0, MinEdges = 2, MinHoldTicks = 50, MagThreshold = 400,
+                HalfLifeTicks = 120, Polarity = 1, BasePotency = 100000L,
+                ResultMul = EmergencyActionSchema.GetResultMulTiers(),
+            };
             var ctx = new JudgeContext { Level = 5, MagThresholdEffective = 400 };
 
             // Act
-            processor.Process(attempt, action, ctx, tick: 100);
+            processor.Process(attempt, action, ctx, tick: 100, cause: 0);
 
             // Assert: 恰两条事件（EmergencyAttempt + EmergencyTreatmentApplied）
             Assert.AreEqual(2, sink.AppendedEvents.Count, "一条完成动作应恰两条流事件");
@@ -55,13 +68,25 @@ namespace DaYiJingCheng.Tests.PlayMode.EmergencyProcedures
         {
             var sink = new FakeEventSink();
             var idAuth = new FakeIdAuthority();
-            var processor = new HostEmergencyProcessor(sink, idAuth);
+            var pool = new InMemoryBlobPool();
+            var processor = new HostEmergencyProcessor(sink, idAuth, new PayloadEncoder(pool));
 
-            var attempt = new EmergencyAttemptPayload(0, 20, 3, new[] { 10, 20, 30 }, 800);
-            var action = new EmergencyActionRow { ActionId = 0, MinEdges = 2, MinHoldTicks = 50, MagThreshold = 400 };
+            // 权威八字段:action / holdTicks / edges / magPeak / magLast / method / actorId / edgeTicks
+            var attempt = new EmergencyAttemptPayload(
+                action: 0, holdTicks: 20, edges: 3, magPeak: 800, magLast: 800,
+                method: 0, actorId: 7, edgeTicks: new[] { 10, 20, 30 });
+            // ⚠️ 2026-10-03(story-007):须显式设 ResultMul —— F-10.4 读 action.ResultMul[result];
+            // 原夹具未设(为 null)⇒ Process 会 NRE。
+            // ⚠️ 该字段是**全局常量**(EmergencyActionSchema.GetResultMulTiers),
+            // 却挂在 per-row 上且**schema 无校验** ⇒ 已登记缺口(见文件末 §已知问题)。
+            var action = new EmergencyActionRow {
+                ActionId = 0, MinEdges = 2, MinHoldTicks = 50, MagThreshold = 400,
+                HalfLifeTicks = 120, Polarity = 1, BasePotency = 100000L,
+                ResultMul = EmergencyActionSchema.GetResultMulTiers(),
+            };
             var ctx = new JudgeContext { Level = 5, MagThresholdEffective = 400 };
 
-            processor.Process(attempt, action, ctx, tick: 100);
+            processor.Process(attempt, action, ctx, tick: 100, cause: 0);
 
             // 有界性: 与帧率无关，一条动作恰两条
             Assert.AreEqual(2, sink.AppendedEvents.Count, "有界性: 一条动作应恰两条事件");
@@ -95,6 +120,25 @@ namespace DaYiJingCheng.Tests.PlayMode.EmergencyProcedures
         }
 
         // ══════════ 测试辅助 ══════════
+
+        // ══════════════════════════════════════════════════════════════
+        // §已知问题(story-007 暴露,**未修** —— 归 emergency-procedures 后续轮)
+        //
+        // `EmergencyActionRow.ResultMul` 是 **per-row 字段**,但 F-10.4 的取值
+        // (`{16384, 32768, 65536}` = 0.25 / 0.5 / 1.0)是 **GDD 全局常量**,
+        // 由 `EmergencyActionSchema.GetResultMulTiers()` 提供 —— 与具体动作无关。
+        //
+        // 两个后果:
+        //  ① **schema 无校验** —— `EmergencyActionSchema` 的 DC-1…DC-4 只覆盖
+        //     `HalfLifeTicks` / `MagThreshold` / `JitterRelaxMul` / `ActionId`,
+        //     **不含 `ResultMul`** ⇒ 一个未设 `ResultMul` 的 row 能通过全部烘焙门,
+        //     直到 `HostEmergencyProcessor.Process` **NRE** 才暴露(本测即此形态)。
+        //  ② **冗余** —— 全局常量挂在 per-row 上,每个动作都要重复填同一份。
+        //
+        // 修法(择一,须裁):甲 = 加 DC-5 校验 `ResultMul != null && Length == 3`;
+        // 乙 = 把 `ResultMul` 从 row 移除,`Process` 直读 `GetResultMulTiers()`。
+        // **本 story 不擅自改**(属数据契约变更);现仅把「测试须显式设」写明。
+        // ══════════════════════════════════════════════════════════════
 
         private sealed class FakeEventSink : IEventSink
         {
