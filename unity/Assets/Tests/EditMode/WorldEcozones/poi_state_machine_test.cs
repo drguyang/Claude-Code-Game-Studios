@@ -22,6 +22,23 @@ internal sealed class FakeEventAuthority : IEventAuthority
     public EventRollResult Roll(in RollRequest r) => new EventRollResult(0, 0, 0, 0);
 }
 
+/// <summary>
+/// 可切换主机位的 authority —— 供 AC-6-26a 的 host gate 负向夹具用。
+/// 原 <see cref="FakeEventAuthority"/> 的 <c>IsHost =&gt; true</c> 恒真,
+/// 故 13 个既有 [Test] 中**无一**能走到拒写路径(缺口 ①c)。
+/// </summary>
+internal sealed class SwitchableEventAuthority : IEventAuthority
+{
+    public SwitchableEventAuthority(bool isHost) { IsHost = isHost; }
+
+    public bool IsAuthority => true;
+
+    /// <summary>主机位 —— 夹具可中途翻转(验「先主机后降级」序列)。</summary>
+    public bool IsHost { get; set; }
+
+    public EventRollResult Roll(in RollRequest r) => new EventRollResult(0, 0, 0, 0);
+}
+
 namespace DaYiJingCheng.Tests.WorldEcozones
 {
     /// <summary>测试用 SpyEventSink —— 记录 Append 调用。</summary>
@@ -200,5 +217,122 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             var result = _machine.TryAdvance(999, PoiState.Discovered);
             Assert.AreEqual(PoiStateTransferResult.PoiNotFound, result);
         }
+
+        // ══════════════════════════════════════════════════════════════
+        // AC-6-26a [B] —— host-only write gate 的**负向夹具**(缺口 ①c 的闭合件)
+        //
+        // 原状态:测试夹具 `IsHost => true` 恒真,13 个 [Test] 无一注入 false
+        // ⇒ 只有正路径,负向判据未执行(见 `reconciliation-world-ecozones-2026-10-02.md`)。
+        // 判据原文:「Append 权 = 主机唯一:客户端调用写通道 ⇒ **断言失败/拒写**」。
+        // ⚠️ 本组只断言**行为**(拒写),不把具体错误码钉死 —— 见文件末 §已知缺陷。
+        // ══════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_ac626a_clientWriteChannel_rejected_noEventAppended()
+        {
+            var sink = new SpyEventSink();
+            var client = new PoiStateMachine(sink, new SwitchableEventAuthority(isHost: false), new[] { 1, 2, 3 });
+
+            var result = client.TryAdvance(1, PoiState.Discovered);
+
+            // 拒写(AC-6-26a)
+            Assert.AreNotEqual(PoiStateTransferResult.Success, result,
+                "客户端调用写通道不得成功(AC-6-26a)");
+            Assert.AreEqual(0, sink.AppendedEvents.Count,
+                "客户端调用写通道**不得产生任何 Append**(AC-6-26a:Append 权 = 主机唯一)");
+        }
+
+        [Test]
+        public void test_ac626a_clientWriteChannel_doesNotMutateState()
+        {
+            var sink = new SpyEventSink();
+            var client = new PoiStateMachine(sink, new SwitchableEventAuthority(isHost: false), new[] { 1, 2, 3 });
+
+            client.TryAdvance(1, PoiState.Resolved);   // 即使跳级目标合法,也应被门挡
+
+            Assert.AreEqual(PoiState.Undiscovered, client.GetState(1),
+                "被拒的写不得改变内存态(否则客户端出现「本地已发现」的幽灵状态)");
+        }
+
+        [Test]
+        public void test_ac626a_discoverGate_alsoRejectedOnClient()
+        {
+            // TryDiscover 是独立入口(发现门 AC-6-23),须同样受 host gate 覆盖。
+            var sink = new SpyEventSink();
+            var client = new PoiStateMachine(sink, new SwitchableEventAuthority(isHost: false), new[] { 1, 2, 3 });
+
+            var result = client.TryDiscover(1);
+
+            Assert.AreNotEqual(PoiStateTransferResult.Success, result,
+                "发现门亦须受 host gate 覆盖(AC-6-26a)");
+            Assert.AreEqual(0, sink.AppendedEvents.Count, "客户端发现门不得 Append");
+            Assert.AreEqual(PoiState.Undiscovered, client.GetState(1), "客户端发现门不得改状态");
+        }
+
+        [Test]
+        public void test_ac626a_rebuildFromEvents_allowedOnClient()
+        {
+            // 负向面的**边界**:门只挡「写通道」,**不挡只读重建**。
+            // 客户端必须能从主机回播的世界流重建 POI 状态(EC-16:全员读到同一序列)——
+            // 若门误挡重建,客户端将永远看不到任何 POI 状态,与 ADR-020 Amendment B ③ 冲突。
+            var hostSink = new SpyEventSink();
+            var host = new PoiStateMachine(hostSink, new SwitchableEventAuthority(isHost: true), new[] { 1, 2, 3 });
+            host.TryAdvance(1, PoiState.Discovered);
+            host.TryAdvance(2, PoiState.Resolved);
+            var stream = new List<SimEvent>(hostSink.AppendedEvents);
+
+            var client = new PoiStateMachine(new SpyEventSink(), new SwitchableEventAuthority(isHost: false), new[] { 1, 2, 3 });
+            client.RebuildFromEvents(stream);
+
+            Assert.AreEqual(PoiState.Discovered, client.GetState(1), "客户端须能从流重建");
+            Assert.AreEqual(PoiState.Resolved, client.GetState(2), "客户端须能从流重建");
+        }
+
+        [Test]
+        public void test_ac626a_hostToClientDemotion_blocksSubsequentWrites()
+        {
+            // 门须**每次调用**读取 IsHost(非构造期缓存一次)——
+            // 主机降级为客户端后,后续写必须立刻被挡(ADR-020 Amendment B:权责随模式变)。
+            var sink = new SpyEventSink();
+            var authority = new SwitchableEventAuthority(isHost: true);
+            var machine = new PoiStateMachine(sink, authority, new[] { 1, 2, 3 });
+
+            machine.TryAdvance(1, PoiState.Discovered);
+            Assert.AreEqual(1, sink.AppendedEvents.Count, "主机期应写成功");
+
+            authority.IsHost = false;   // 降级
+            var after = machine.TryAdvance(2, PoiState.Discovered);
+
+            Assert.AreNotEqual(PoiStateTransferResult.Success, after, "降级后写须被拒");
+            Assert.AreEqual(1, sink.AppendedEvents.Count, "降级后不得新增 Append");
+            Assert.AreEqual(PoiState.Undiscovered, machine.GetState(2), "降级后不得改状态");
+        }
+
+        [Test]
+        public void test_ac626a_hostBaseline_stillWrites()
+        {
+            // 反向用例(否定「两边都不写」的空实现)——
+            // 与 clientWriteChannel_rejected 配对:门必须**只挡客户端**。
+            var sink = new SpyEventSink();
+            var host = new PoiStateMachine(sink, new SwitchableEventAuthority(isHost: true), new[] { 1, 2, 3 });
+
+            var result = host.TryAdvance(1, PoiState.Discovered);
+
+            Assert.AreEqual(PoiStateTransferResult.Success, result, "主机写须成功");
+            Assert.AreEqual(1, sink.AppendedEvents.Count, "主机写须产生一条 Append");
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // §已知缺陷(本组未断言,登记不修 —— 见对账件)
+        //
+        // `PoiStateMachine.cs:84` 的 host gate 对客户端返回
+        // **`PoiStateTransferResult.PoiNotFound`** —— 与「poi_id 不存在」**混同**。
+        // 后果:客户端拒写时拿到的是误导性错误码,调用方无法区分
+        // 「我不是主机」与「这个 POI 不存在」。
+        //
+        // 本组刻意**不**断言具体错误码(只断言「非 Success」),理由:
+        // 若把 `PoiNotFound` 钉进断言,就等于**把缺陷固化为契约**;
+        // 正确修法是新增 `NotHost` 结果码,而该改动归 we 的实现轮(须同步 story-004)。
+        // ══════════════════════════════════════════════════════════════
     }
 }

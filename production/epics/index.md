@@ -123,6 +123,17 @@ ModularBuilding **51/51** 与 WorldEcozones **87/87** 逐例全绿
 - ⚠️ **we B2 的形式已闭但原处置有取证缺口** —— `43400dc` 勾 13 个 AC 时**未同批复跑**,
   该缺口已由 `editmode-full-rerun-2026-10-02.md`(87/87)补齐。
 
-后续 gate-check 以本节为索引:**闭合 ①b(接 codec,含引用边裁定)与 ①c(补负向夹具)后,
-两 epic 方可转 Complete**。①a 已闭。
+后续 gate-check 以本节为索引:**闭合 ①b(接 codec —— 路径已由 ADR-029 裁决)后,
+两 epic 方可转 Complete**。**①a 已闭 · ①c 已闭(2026-10-02)**。
+
+- ✅ **缺口 ①c 已闭(2026-10-02)** —— `poi_state_machine_test.cs` 补 host gate 负向夹具 6 例:
+  客户端拒写(零 Append)· 客户端不改状态 · 发现门同受覆盖 · 主机降级后写被挡 ·
+  只读重建**不**受门影响 · 主机基线仍写(反向用例)。`PoiStateMachineTest` **13 → 19/19 通过**。
+  ⚠️ **经突变测试坐实非空转** —— 临时移除 `PoiStateMachine.cs:83-84` 的 host gate 后,
+  **恰 4 例红**(全部为「拒写」断言),`rebuildFromEvents` 与 `hostBaseline` 不红(正确:
+  前者测只读重建、后者测主机侧,均不该依赖写门)。原文件已复原,工作树无残留。
+  📌 **同时登记一处新缺陷(未修)**:gate 对客户端返回 `PoiStateTransferResult.PoiNotFound`,
+  与「poi_id 不存在」**混同** —— 调用方无法区分「我不是主机」与「该 POI 不存在」。
+  夹具刻意**不**把该错误码钉进断言(否则等于把缺陷固化为契约);正确修法 = 新增 `NotHost` 结果码,
+  归 we 实现轮(须同步 story-004)。
 `world-ecozones/story-003` 唯一未勾的 AC(`entities.yaml` ↔ kindgen 路由一致性,A1–A5)与 ①a 同类,可同批处理。
