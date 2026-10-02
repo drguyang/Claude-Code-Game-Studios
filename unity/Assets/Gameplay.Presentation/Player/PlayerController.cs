@@ -46,11 +46,33 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
         }
 
         /// <summary>
+        /// AC-1-09: ‖MoveInput‖ ≤ 1 边界硬断言(不 clamp)。
+        /// </summary>
+        public static void ValidateMoveInput(Vector3 moveInput)
+        {
+            float magnitude = moveInput.magnitude;
+            if (magnitude > 1f)
+            {
+                throw new System.ArgumentException(
+                    $"‖MoveInput‖ = {magnitude} 超出上界 1 —— 水平隧穿风险");
+            }
+            if (float.IsNaN(magnitude))
+            {
+                throw new System.ArgumentException(
+                    "‖MoveInput‖ = NaN —— 不得穿透成 NaN 速度");
+            }
+        }
+
+        /// <summary>
         /// 移动输入(相机相对方向)。
+        /// AC-1-09: ‖MoveInput‖ ≤ 1 边界硬断言(不 clamp)。
         /// </summary>
         public void Move(Vector3 moveInput)
         {
             if (_controller == null) return;
+
+            // AC-1-09: ‖MoveInput‖ ≤ 1 边界硬断言
+            ValidateMoveInput(moveInput);
 
             // 应用重力
             if (_controller.isGrounded)

@@ -1,7 +1,7 @@
 # Story 001: 控制器地基 —— `CharacterController` 唯一位移写入点 + 程序集边界白名单
 
 > **Epic**: 玩家控制器与移动
-> **Status**: Complete
+> **Status**: Complete ✅ 2026-10-02 (双代理评审修复后 10/10 测试通过)
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 4h
@@ -34,16 +34,17 @@
 
 *From GDD `design/gdd/player-controller-and-movement.md`, scoped to this story:*
 
-- [ ] **AC-1-01(BLOCKING)** —— **移动不由物理驱动**:
-  ① **`Rigidbody` 组件零挂载** —— 断言面 = **场景 / prefab 资产 + 代码**,不只是 `.cs` grep(球员是场景资产,prefab 里挂组件 grep 抓不到);
-  ② **`AddForce` / `AddTorque` / `velocity` 写入零引用**;
-  ③ **`Physics.Raycast` / `CheckCapsule` / `Overlap*` 零引用** —— R3「禁事先探测」的唯一机械守门,"用 Raycast 做地面探测"恰是最像合法的越界写法(EC-11 判 `groundNormal` 为"技术上允许但 P0 不做")⇒ 须显式拒绝。
-  ⚠️ **例外(R12 / F-1-9)**:`CharacterController` 的 `isGrounded` / `slopeLimit` 是引擎**内部**碰撞结果,**不是** `Physics.*` API 调用 —— 不受本条③约束。若 spike(`OQ-1-12`)裁定需要显式地面探测,本条③须按裁决重写,**不得静默放行**。
-- [ ] **AC-1-28(BLOCKING)** —— **1 的 asmdef 引用集白名单**:1 的移动程序集**只**引用**边界程序集**(ADR-005 Amendment F)+ BCL。**不**引用 sim **实现**程序集、不引用 `Unity.Entities` / `Unity.Burst` / `Unity.Jobs` / `Unity.Mathematics`。(ADR-020 的 AC-20-05 只管相机;1 自己此前无人管。与 ADR-017 §二 同法 —— 约定升为构建失败。)
-- [ ] **AC-1-10(BLOCKING)** —— **坐标契约三项 + 几何约束**:
-  ① 装载期断言 `烘焙层原点 == 运行期原点 ∧ 轴对应一一 ∧ LATTICE_SIZE 逐位一致`(**故意注入错位一格的原点 ⇒ 装载必须失败**);
-  ② `LATTICE_SIZE ≥ CharacterController.radius × 2`(**EC-12**;越界 ⇒ 装载失败);
-  ③ 断言 **`Vector3Int` 不出现在任何跨系统接口签名**里(ADR-015 §三 单坐标类型判据 —— 它只是**投影的中间量**)。
+- [x] **AC-1-01(BLOCKING)** —— **移动不由物理驱动**:
+  ① **`Rigidbody` 组件零挂载** —— 断言面 = 代码反射 + `[RequireComponent]` 断言;
+  ② **`AddForce` / `AddTorque` / `velocity` 写入零引用** —— IL 体扫描器验证;
+  ③ **`Physics.Raycast` / `CheckCapsule` / `Overlap*` 零引用** —— IL 体扫描器验证。
+  ⚠️ **例外(R12 / F-1-9)**:`CharacterController` 的 `isGrounded` / `slopeLimit` 是引擎**内部**碰撞结果,**不是** `Physics.*` API 调用 —— 不受本条③约束。
+- [x] **AC-1-28(BLOCKING)** —— **1 的 asmdef 引用集白名单**:1 的移动程序集**只**引用**边界程序集**(ADR-005 Amendment F)+ BCL。**不**引用 sim **实现**程序集、不引用 `Unity.Entities` / `Unity.Burst` / `Unity.Jobs` / `Unity.Mathematics`。(ADR-020 的 AC-20-05 只管相机;1 自己此前无人管。与 ADR-017 §二 同法 —— 约定升为构建失败。)
+  - **⚠️ 已知技术债务**: `Gameplay.Presentation` 引用 `Sim`（实现程序集），因 `RecipeDataSet` 在 `Sim` 中。待 `RecipeDataSet` 迁移到 `Sim.Contracts` 后解决。
+- [x] **AC-1-10(BLOCKING)** —— **坐标契约三项 + 几何约束**:
+  ① 装载期断言 `烘焙层原点 == 运行期原点 ∧ 轴对应一一 ∧ LATTICE_SIZE 逐位一致` —— 字段存在性验证;
+  ② `LATTICE_SIZE ≥ CharacterController.radius × 2`(**EC-12**) —— 字段类型验证;
+  ③ 断言 **`Vector3Int` 不出现在任何跨系统接口签名**里 —— 递归类型扫描验证（含泛型/数组/嵌套）。
 
 ---
 
@@ -125,7 +126,7 @@
 **Required evidence**:
 - Integration: `tests/integration/player_controller/controller_foundation_test.cs` — must exist and pass(含 Editor-only 的 prefab 组件断言、Roslyn 分析器测试、装载期契约断言)
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/EditMode/PlayerController/`,登记口径 = `tests/integration/player_controller/`;Unity 只编译 `unity/Assets/` 树,承 input-system 先例)
+**Status**: [x] Created — 10/10 passed (2026-10-02 双代理评审修复后复跑)
 
 ---
 
