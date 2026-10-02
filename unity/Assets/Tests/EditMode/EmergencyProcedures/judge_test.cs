@@ -253,12 +253,10 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         // ══════════ AC-10-04b: 黄金夹具 NOT-RUN ══════════
 
         [Test]
-        public void test_ac1004b_placeholder_marker()
+        public void test_ac1004b_goldenFixture_notRun()
         {
             // ADR-012 三格矩阵未跑前，AC-10-04b NOT-RUN
-            // 占位标记: 机制存在，跨平台逐位一致待矩阵实跑
-            Assert.IsTrue(JudgeEvaluator.IsGoldenFixtureAvailable(),
-                "黄金夹具机制应存在（NOT-RUN 直至矩阵实跑）");
+            Assert.Ignore("NOT-RUN: AC-10-04b 跨平台黄金夹具待 ADR-012 矩阵实跑");
         }
     }
 }

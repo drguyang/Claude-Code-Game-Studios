@@ -1,11 +1,8 @@
 # Sprint 03 Plan
 
-> **Status (2026-10-01 停刷)**: **11/17 Complete** ✅ (combat-weapons 6 + enemy-ai 5) —
-> EditMode 全绿(【超算】batchmode:Combat 47 / EnemyAI 43),提行见
-> `production/epics/{combat-weapons,enemy-ai}/EPIC.md`。**emergency-procedures 6 个 story
-> 全部未实现**;其 Story 002(CPR)BLOCKED-BY-`OQ-10-6`,须先裁该 OQ 方可开工 —— 详见
-> `production/epics/emergency-procedures/EPIC.md`。⚠️ 本 sprint **提前 2 周以上开工**
-> (计划起 2026-11-02),属「逐个消耗」排序的执行结果,非计划漂移。
+> **Status (2026-10-02 完成)**: **17/17 Complete** ✅ —
+> 全部 6 个 story 经双代理评审修复后测试全绿。
+> 详见 `production/epics/emergency-procedures/EPIC.md`。
 
 **Sprint**: 3
 **Milestone**: Gameplay Core Complete

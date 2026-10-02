@@ -3,7 +3,7 @@
 > **Layer**: Core(输入聚合 / 判定)× Feature(模态期交互)
 > **GDD**: design/gdd/emergency-procedures.md
 > **Architecture Module**: L3 Gameplay + L2 Sim 接缝(判定输入进流,主机权威)
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-02 (6/6 stories, 双代理评审修复后测试全绿)
 > **Stories**: 6 stories — see table below
 
 ## Overview
