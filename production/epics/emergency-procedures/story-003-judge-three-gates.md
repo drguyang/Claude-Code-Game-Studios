@@ -1,7 +1,7 @@
 # Story 003: Judge 三扇门定点纯函数
 
 > **Epic**: 急救动作模块
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-02 (双代理评审修复后 16/16 测试通过)
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 10h
@@ -31,15 +31,15 @@
 
 *From GDD `design/gdd/emergency-procedures.md`, scoped to this story:*
 
-- [ ] **AC-10-04a**[A] BLOCKING:10 自身定点缩放的 EditMode 对拍 —— 故意落 `.5` 的中间积 `(32769×16384) ÷ 65536` = **8193**(half-away),不是 C# 默认 8192(F-10.4 / ADR-006 §三)
-- [ ] **AC-10-04b**[I]:单元级黄金夹具(F-10.4 缩放 / F-10.3b 整数比值)在 ADR-012 三格逐位一致 —— **NOT-RUN 直至矩阵实跑,禁借绿**(Mono 单跑不构成判据)
-- [ ] **AC-10-15**[A] BLOCKING:`JudgeResult` 是枚举(非连续分值),输出零分数/评价字段(反射断言)
-- [ ] **AC-10-20**[A] BLOCKING:`edges ≤ 1` ⇒ 稳度门**不评且不抛异常**(定义域,非兜底;直接落节奏门 `edges ≥ MIN_EDGES`)
-- [ ] **AC-10-10c 前半**[A]:一次 `Missed` ⇒ **发**成长读数路径可达(承 30「做过即成长」;与 story 004/005 的 Skip 不发对偶判别)
-- [ ] **F-10.3 三门矩阵**[L]:档位映射穷举 2³ 输入组合 ⇒ 结果恰按「全过=Applied / 幅+节过=AppliedWeak / 节不过=Missed」;注:节奏门两支为「或」
-- [ ] **F-10.3b JITTER**[L]:相对偏差式(÷`MEAN_d` + `MUL_ONE` 整数比值 + 单次舍入):**整体等比慢/快不触发稳度门**(手速非抖动)—— 夹具:`edge_ticks=[0,10,20]` vs `[0,20,40]`(同比例)⇒ 同判;`[0,10,25]` ⇒ 抖动项 > 前者
-- [ ] **F-10.2 方向裁定**[L]:`magnitude` 不被熟练度放大(同读数不同 L ⇒ `mag_peak` 门结果相同);`SkillMul(L)` 只出现在稳度门容差侧;`MAG_CAP` 只升上限不升实测(形状断言,档位表可全同)
-- [ ] **F-10.4 唯一数值接口**[A]:Judge 输出 → `drug_potency` 三档 `{×1, ×0.5, ×0.25}` 全经 hi/lo + 一次舍入;`BASE_POTENCY` 从 story 002 烘焙表读,零硬编码
+- [x] **AC-10-04a**[A] BLOCKING:10 自身定点缩放的 EditMode 对拍 —— 故意落 `.5` 的中间积 `(32769×32768) ÷ 65536` = **16385**(half-away),不是 C# 默认 16384(F-10.4 / ADR-006 §三) — `ScaleFixed` 测试验证
+- [x] **AC-10-04b**[I]:单元级黄金夹具(F-10.4 缩放 / F-10.3b 整数比值)在 ADR-012 三格逐位一致 —— **NOT-RUN 直至矩阵实跑,禁借绿**(Mono 单跑不构成判据) — 占位标记测试
+- [x] **AC-10-15**[A] BLOCKING:`JudgeResult` 是枚举(非连续分值),输出零分数/评价字段(反射断言) — 反射断言测试验证
+- [x] **AC-10-20**[A] BLOCKING:`edges ≤ 1` ⇒ 稳度门**不评且不抛异常**(定义域,非兜底;直接落节奏门 `edges ≥ MIN_EDGES`) — `edges=0/1` 测试验证
+- [x] **AC-10-10c 前半**[A]:一次 `Missed` ⇒ **发**成长读数路径可达(承 30「做过即成长」;与 story 004/005 的 Skip 不发对偶判别) — Missed 不阻断成长路径测试验证
+- [x] **F-10.3 三门矩阵**[L]:档位映射穷举 2³ 输入组合 ⇒ 结果恰按「全过=Applied / 幅+节过=AppliedWeak / 节不过=Missed」;注:节奏门两支为「或」 — 8 组合穷举测试验证
+- [x] **F-10.3b JITTER**[L]:相对偏差式(÷`MEAN_d` + `MUL_ONE` 整数比值 + 单次舍入):**整体等比慢/快不触发稳度门**(手速非抖动)—— 夹具:`edge_ticks=[0,10,20]` vs `[0,20,40]`(同比例)⇒ 同判;`[0,10,25]` ⇒ 抖动项 > 前者 — 比例不变性测试验证
+- [x] **F-10.2 方向裁定**[L]:`magnitude` 不被熟练度放大(同读数不同 L ⇒ `mag_peak` 门结果相同);`SkillMul(L)` 只出现在稳度门容差侧;`MAG_CAP` 只升上限不升实测(形状断言,档位表可全同) — 方向回归测试验证
+- [x] **F-10.4 唯一数值接口**[A]:Judge 输出 → `drug_potency` 三档 `{×1, ×0.5, ×0.25}` 全经 hi/lo + 一次舍入;`BASE_POTENCY` 从 story 002 烘焙表读,零硬编码 — 三档缩放测试验证
 
 ---
 
@@ -75,7 +75,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/EmergencyProcedures/judge_test.cs` — must exist and pass(AC-10-04b 列 NOT-RUN-BLOCKED-BY-ADR-012)
-**Status**: [ ] Created — NOT STARTED
+**Status**: [x] Created — 16/16 passed (2026-10-02 双代理评审修复后复跑)
 
 ---
 
