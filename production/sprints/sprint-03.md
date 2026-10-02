@@ -34,7 +34,7 @@
 | 12 | emergency-procedures | Story 001 — 急救动作基础 | 2 | — | Complete ✅ 2026-10-02 |
 | 13 | emergency-procedures | Story 002 — 动作表/熟练度表与 result_mul 烘焙 | 2 | 12 | Complete ✅ 2026-10-02 |
 | 14 | emergency-procedures | Story 003 — Judge 三扇门 | 2 | 13 | Complete ✅ 2026-10-02 |
-| 15 | emergency-procedures | Story 004 — 急救判定与输入 | 2 | 14 | Ready |
+| 15 | emergency-procedures | Story 004 — EmergencyAttempt 聚合与上行 | 2 | 14 | Complete ✅ 2026-10-02 |
 | 16 | emergency-procedures | Story 005 — 急救音频与反馈 | 1 | 15 | Ready |
 | 17 | emergency-procedures | Story 006 — 跨平台黄金夹具 | 1 | 16 | Ready |
 

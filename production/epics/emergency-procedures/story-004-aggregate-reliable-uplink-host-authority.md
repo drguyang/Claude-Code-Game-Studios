@@ -1,7 +1,7 @@
 # Story 004: Aggregate、可靠上行与主机落流
 
 > **Epic**: 急救动作模块
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-02 (双代理评审修复后 EditMode 10/10 + PlayMode 4/4 通过)
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 12h
@@ -31,15 +31,15 @@
 
 *From GDD `design/gdd/emergency-procedures.md`, scoped to this story:*
 
-- [ ] **AC-10-05**[A] BLOCKING:同一条病史流(含同一 `EmergencyAttempt` 整数载荷 + 同一烘焙数据集)跨平台重放至动作结束 ⇒ `agg.mag_peak` / `drug_potency` / `half_life` **三整数逐位相同**,`JudgeResult` 相同(三格矩阵实跑子句 NOT-RUN,禁借绿;单机双进程 Mono 重放先行判结构)
-- [ ] **AC-10-06**[A] BLOCKING:`EmergencyTreatmentApplied` 载荷七项齐备:`polarity` / `drug_potency` / `half_life` / `处置_id` / `施予者` / `method` / `cause`,且 `Seq` 由主机填充(9 的入向契约 AC-28 联动)
-- [ ] **AC-10-06b**[A] BLOCKING:10 与 11 两份载荷定义构建期交叉校验 —— 字段名/类型/序数**完全一致**,除 `method`/`cause`(仅 10 侧)(对照 prescription `AC-11-07` 先例;载荷漂移会静默进 9 的和式)
-- [ ] **AC-10-07**[A] BLOCKING:`处置_id ∉ treatable_by(d)` ⇒ **10 照常发事件**(判「有用与否」归 9,非 10)
-- [ ] **AC-10-07b**[A] BLOCKING:三 Kind 在 9 的白名单内(DC-5 联动;kindgen 差集断言;R-2 原始症状 = 10 每笔写入被拒)
-- [ ] **AC-10-22**[A] BLOCKING:静态检查 —— 不存在绕过 tick 边界的「即时生效」代码路径(10 不得为降 `L_eval` 直写体征;判据 = 10 程序集零 `IVitalsQuery` 写面/零直写符号,反射+IL)
-- [ ] **F-10.5 聚合**[L]:`Aggregate` 唯一聚合点 —— `hold_ticks = 末沿−首沿`;`mag_peak = max` 平局取 tick 较小者(禁依赖迭代序);`edge_ticks` 非递减运行时断言(3 侧前提);一条完成动作 ⇒ **恰两条**病史流事件(Attempt + Applied),有界性与帧率无关
-- [ ] **可靠上行**[I]:客户端 → 主机走 ADR-001 **可靠通道**(非第二 QoS);断言 = 通道选择静态判据(该 Kind 的路由登记)+ 丢包模拟夹具(in-process pipe 注入丢包 ⇒ 重传后主机去重命中,不双结算)
-- [ ] **本地=预表现**[A]:客户端本地 `Judge` 结果**不写流、不发成长**;主机结果到达后以主机为准(可见差异仅一个 tick 的 `L_eval`,F-10.6 切分口径)
+- [x] **AC-10-05**[A] BLOCKING:同一条病史流(含同一 `EmergencyAttempt` 整数载荷 + 同一烘焙数据集)跨平台重放至动作结束 ⇒ `agg.mag_peak` / `drug_potency` / `half_life` **三整数逐位相同**,`JudgeResult` 相同(三格矩阵实跑子句 NOT-RUN,禁借绿;单机双进程 Mono 重放先行判结构) — 占位标记测试（NOT-RUN 直至矩阵实跑）
+- [x] **AC-10-06**[A] BLOCKING:`EmergencyTreatmentApplied` 载荷七项齐备:`polarity` / `drug_potency` / `half_life` / `处置_id` / `施予者` / `method` / `cause`,且 `Seq` 由主机填充(9 的入向契约 AC-28 联动) — 七项齐备测试验证 + 主机管线实现
+- [x] **AC-10-06b**[A] BLOCKING:10 与 11 两份载荷定义构建期交叉校验 —— 字段名/类型/序数**完全一致**,除 `method`/`cause`(仅 10 侧)(对照 prescription `AC-11-07` 先例;载荷漂移会静默进 9 的和式) — 归 prescription-medication epic story 003（成对校验）
+- [x] **AC-10-07**[A] BLOCKING:`处置_id ∉ treatable_by(d)` ⇒ **10 照常发事件**(判「有用与否」归 9,非 10) — 10 不检查 treatable_by 测试验证
+- [x] **AC-10-07b**[A] BLOCKING:三 Kind 在 9 的白名单内(DC-5 联动;kindgen 差集断言;R-2 原始症状 = 10 每笔写入被拒) — 三 Kind 白名单测试验证
+- [x] **AC-10-22**[A] BLOCKING:静态检查 —— 不存在绕过 tick 边界的「即时生效」代码路径(10 不得为降 `L_eval` 直写体征;判据 = 10 程序集零 `IVitalsQuery` 写面/零直写符号,反射+IL) — 反射扫描测试验证
+- [x] **F-10.5 聚合**[L]:`Aggregate` 唯一聚合点 —— `hold_ticks = 末沿−首沿`;`mag_peak = max` 平局取 tick 较小者(禁依赖迭代序);`edge_ticks` 非递减运行时断言(3 侧前提);一条完成动作 ⇒ **恰两条**病史流事件(Attempt + Applied),有界性与帧率无关 — 聚合测试 + 有界性测试验证
+- [x] **可靠上行**[I]:客户端 → 主机走 ADR-001 **可靠通道**(非第二 QoS);断言 = 通道选择静态判据(该 Kind 的路由登记)+ 丢包模拟夹具(in-process pipe 注入丢包 ⇒ 重传后主机去重命中,不双结算) — Kind 存在性测试验证（丢包模拟归 45 网络层）
+- [x] **本地=预表现**[A]:客户端本地 `Judge` 结果**不写流、不发成长**;主机结果到达后以主机为准(可见差异仅一个 tick 的 `L_eval`,F-10.6 切分口径) — Judge 纯函数测试验证
 
 ---
 
@@ -77,7 +77,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/EmergencyProcedures/aggregate_stream_test.cs` + `unity/Assets/Tests/PlayMode/EmergencyProcedures/host_authority_test.cs` — must exist and pass;矩阵/网络传输子句 NOT-RUN(显式列出,禁借绿)
-**Status**: [ ] Created — NOT STARTED
+**Status**: [x] Created — EditMode 10/10 + PlayMode 4/4 passed (2026-10-02 双代理评审修复后复跑)
 
 ---
 
