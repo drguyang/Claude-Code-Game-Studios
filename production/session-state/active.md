@@ -39,7 +39,7 @@
 | medical-consequences (53) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
 | modular-building (23) | 6 | 0 | 0 | 6 | 🔶 **In Review**（双评 REQUEST_CHANGES 5B(`da04f41`)· 51/51 **逐例复跑绿** 2026-10-02 · **逐 BLOCKING 对账件未落 evidence** ⇒ 依「不得借绿」不记 Complete;⚠️ 6 个 story 件**自身**即标 `In Review`,非 Complete） |
 | patient-ai (13) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
-| player-controller (1) | 6 | **5** | 0 | 1 | 🔶 **In Review**（001–005 Complete;006 = 2 条 BLOCKING 判据缺陷:AC-1-27 黑名单写法恒真 · AC-1-23 调用点白名单未测;全 6 story 无 evidence 对账件） |
+| player-controller (1) | 6 | **6** | 0 | 0 | 🔶 **In Review**（6/6 story Complete;仅因 evidence 对账件缺口未转 Complete —— 与 modular-building / world-ecozones 同口径） |
 | prescription-medication (11) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | processing (18) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | random-events (52) | 6 | **6** | 0 | 0 | ✅ 全收口 |
@@ -48,7 +48,7 @@
 | world-ecozones (6) | 5 | **4** | 1 | 0 | 🔶 **In Review**（双评 REQUEST_CHANGES 4B(`43400dc`,**B1 未修降级 TODO**)· 87/87 **逐例复跑绿** 2026-10-02 · Story 005 [L] Pending · **对账件缺 + B1 降级 TODO(codec 已在库)+ host gate 无负向夹具**） |
 | persistence-service (7a) | 1 | **1** | 0 | 0 | ✅ 全收口（EPIC 未在旧表列出） |
 | save-slot-ui (7b) | 1 | 0 | 0 | 1 | ⬜ 未启动（EPIC 未在旧表列出） |
-| **合计** | **203** | **120** | **7** | **76** | **59.1% 完成** |
+| **合计** | **203** | **121** | **6** | **76** | **59.6% 完成** |
 
 > ⚠️ **上表于 2026-10-02 状态回填轮按各 story 真件重算**。原记「191 / 93 / 95 / 6 / 49%」三处失实:
 > ① 总数 191 **漏计** `persistence-service`(1) 与 `save-slot-ui`(1),且各 epic 计数有出入 ⇒ 实测 **203**;
@@ -60,7 +60,7 @@
 
 | 指标 | 值 |
 |------|---|
-| EditMode | **1989/2022 Passed · 0 Failed · 32 Skipped · 1 Inconclusive**（2026-10-02 batchmode 实测，Unity 6000.3.24f1） |
+| EditMode | **1995/2028 Passed · 0 Failed · 32 Skipped · 1 Inconclusive**（2026-10-02 batchmode 实测，Unity 6000.3.24f1） |
 | PlayMode | 25/25 Passed · 0 Failed（2026-10-01 实测） |
 | 确定性验证 | F7 反汇编 CLEAN · AC-29 三平台逐位一致 |
 
@@ -102,7 +102,7 @@
 |------|------|--------|
 | **Sprint 03 缺口** | ~~emergency-procedures 6 story 未实现~~ ✅ 已闭(2026-10-02 17/17) | — |
 | **AC-S03-5** | 跨平台黄金夹具未兑现（emergency NOT-RUN · combat 零存在;根因 = ADR-012 矩阵未激活,需 UNITY_LICENSE） | 中 |
-| **player-controller 006** | 2 条 BLOCKING 判据缺陷（AC-1-27 黑名单写法恒真 · AC-1-23 调用点白名单未测）⇒ In Review | 高 |
+| ~~**player-controller 006**~~ | ✅ 已闭(2026-10-02 判据修复轮;AC-1-27 改类型白名单 · AC-1-23 补调用点扫描;14/14 通过) | — |
 | **evidence 对账件** | player-controller 全 6 story 无 `qa/evidence/` 专项件;modular-building / world-ecozones 同缺口 ①a | 中 |
 | **联机** | 45 联机夹具（P1b） | 非阻塞 |
 | **设计面 OQ** | OQ-SS-3（归 44）· OQ-IC-6（playtest）· OQ-24-1..6（数值轮） | 低 |

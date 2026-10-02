@@ -1,7 +1,7 @@
 # Story 006: 状态纯净与 `MotorSuppressed` per-source lease —— 零游戏状态反射断言 + 调用面白名单
 
 > **Epic**: 玩家控制器与移动
-> **Status**: In Review (实现 `5572d66`;8/8 测试绿,但 **2 条 BLOCKING 判据有缺陷** ⇒ 依「不得借绿」不转 Complete)
+> **Status**: Complete ✅ 2026-10-02 (实现 `5572d66`;判据修复后 **14/14** 测试通过)
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: 5h
@@ -176,18 +176,19 @@
 
 ## Completion Notes
 
-**Completed**: _未完成 —— 机制已落,2 条 BLOCKING 判据待修_
-**Criteria**: **部分**。机制半边已交付(实现 `5572d66` 新建 `MotorLease.cs` 140 行):
-  - ✅ `LeaseSource` **最终 ordinal 表 = `Self 4 / Emergency 10 / Combat 25`**(原挂账条件已满足,值 = 系统号,append-only 禁重排)。
-  - ✅ 旧 `SetSuppressed(bool)` 公开面**不存在**(全仓 grep 零命中;新建文件从未提供该 API)。
-  - ✅ 纪律 ①–④ 机制:只碰自己位 / 幂等位语义 / 零计时器字段 / 作用域不含攻击 —— `MotorLeaseTest` 5 例覆盖。
-  - 🔴 **AC-1-27 判据形态违反其自身 Guardrail**。`motor_lease_test.cs:97` 的 `test_ac127_noGameStateFields` 实现的是**字段名黑名单**(`forbiddenPatterns = {"hp","skill","inventory","quest","health","mana"}`),而本 story `:29` 的 Guardrail 与 AC-1-27 原文均明写「反射扫描须按**字段类型白名单**,**不是**字段名黑名单 —— 后者是**假阴性机器**」。⇒ 该判据目前**恒真**(任何改名即绕过),BLOCKING 未真正执行。
-  - 🔴 **AC-1-23 的调用点白名单未测**。AC 明写「判据须区分接口归属与调用点 …… 断言的是**调用点集合**」= {4, 10, 25},且 UI(42/48)不得直触。现有 8 例**只验位图机制**,零调用点/AST 扫描、零程序集白名单断言。
-**Deviations**: 🔴 **两条 BLOCKING 判据有缺陷,故本 story 记 In Review 而非 Complete**(用户裁定 2026-10-02:记 In Review,缺口如实登记)。闭合路径:
-  ① `test_ac127_noGameStateFields` 改为**字段类型白名单**(允许集 = 表现层类型 + 边界程序集整数类型,其余一律红)—— 与 AC-1-27 原文同构;
-  ② 补 `AC-1-23` 调用点断言(AST 扫全工程 `Acquire`/`Release` 接收方所属程序集 ∈ {4, 10, 25},配程序集引用白名单双判据);
-  ③ 两条跑绿后本 story 方可转 Complete。**不得以「8/8 绿」主张完成** —— 绿的 8 例不含这两条判据。
-  另:`AC-1-29`(ADVISORY)依赖 `OQ-1-12` 接地 spike 的 `slopeLimit`/`stepOffset` 取值(`O-9`),判据迟于本 story,已按原文只交付清单与流程。
-**Test Evidence**: `production/qa/evidence/` 无本 story 专项件;复跑证据 = 2026-10-02 batchmode 全量 EditMode(`total 2022 · passed 1989 · failed 0`),`MotorLeaseTest` 8/8 Passed。⚠️ **8/8 绿不构成 AC-1-23 / AC-1-27 的取证** —— 见上 `Criteria` 两条 🔴。
-**Code Review**: 尚无评审件。`5572d66` 为编译修复轮(用户裁定方案 A),非双代理评审。
+**Completed**: 2026-10-02(实现 `5572d66`;两条 BLOCKING 判据于同日修复,`MotorLeaseTest` **14/14** 通过)
+**Criteria**: 4 条 AC 全部落地。载体 = `unity/Assets/Tests/EditMode/PlayerController/motor_lease_test.cs`(14 例):
+  - ✅ **AC-1-23(机制)** —— 位图 5 例:单源一位 / 幂等(位语义非引用计数)/ 只碰自己位(纪律①)/ 未持有 Release 无下溢 / 交错源。
+  - ✅ **AC-1-23(调用点白名单)** —— 4 例:**UI 源码零 `LeaseSource`/`MotorLease` 符号引用**(`Gameplay.UI` + `Gameplay.Presentation/Skeuomorphic`,目录缺失即红不静默)· **调用点集合 ⊆ 白名单**(IL 扫描器逐 `call`/`callvirt`/`newobj` 解析 `MotorLease.Acquire|Release` 的调用者)· **扫描器非空转自检**(对含 lease 调用的程序集必须报出 ≥1 处,否则判据失效即红)· **ordinal = 系统号**(`Self 4 / Emergency 10 / Combat 25`,ADR-014 append-only 禁重排)。
+  - ✅ **AC-1-27(字段类型白名单)** —— 3 例:1 的字段类型 ∈ 白名单(**DeclaredOnly**,不牵连 `MonoBehaviour` 基类;含**非空转守卫** —— 字段集为空即红)· **负向夹具**(自造 `FakeHealthState` / `FakeVitalityState` 须被拒,后者专证「改名后仍被拒」即原黑名单漏洞形态;`List<自造状态>` 递归须拒;未登记泛型 `Stack<int>` 须拒)· **正向半边**(白名单不得过窄)。
+  - ✅ **AC-1-12** —— 2 例:`SampleHeight`/`TerrainSample`/`NavMeshSample` 零引用。
+  - ✅ `LeaseSource` ordinal 表 = `Self 4 / Emergency 10 / Combat 25`(原挂账条件已满足)。
+  - ✅ 旧 `SetSuppressed(bool)` 公开面**不存在**(全仓零命中)。
+**Deviations**: **无残留缺陷**。本 story 曾于同日两次记账,留痕如下:
+  ① **首轮(状态回填轮)**:发现两条 BLOCKING 判据有缺陷 —— AC-1-27 实现为**字段名黑名单**(`{"hp","skill","inventory","quest","health","mana"}`),而 AC 原文与其 Guardrail 明写「须按**字段类型白名单** —— 后者是假阴性机器」,黑名单形态**恒真**;AC-1-23 只验位图机制,**零调用点断言**。据此记 `In Review`,依「不得借绿」不转 Complete。
+  ② **本轮(判据修复轮)**:两条均已按 AC 原文重写 —— AC-1-27 改为**类型域**判据(与命名无关,自造类型在类型域上即被拒);AC-1-23 补 IL 调用点扫描 + UI 零符号引用双判据。两条各配**非空转守卫**(否则「全绿」仍可能是空转)。
+  ③ **AC-1-23 调用点集合当前为空**(P0 尚未接线 —— 全仓生产代码零 `Acquire`/`Release` 调用点)。故该断言此刻是「白名单子集」守卫 + 扫描器有效性自检,而非调用点**覆盖**。真正的调用点覆盖须待 4 / 10 / 25 接线 —— 与「Unlocks」栏所列一致。**此为本 story 唯一的残留登记,不影响其 4 条 AC 的落地判定。**
+  ④ `AC-1-29`(ADVISORY)依赖 `OQ-1-12` 接地 spike 的 `slopeLimit`/`stepOffset` 取值(`O-9`),判据迟于本 story,已按原文只交付清单与流程。
+**Test Evidence**: `production/qa/evidence/` 无本 story 专项件;复跑证据 = 2026-10-02 batchmode 全量 EditMode(`total 2028 · passed 1995 · failed 0 · skipped 32 · inconclusive 1`),`MotorLeaseTest` **14/14 Passed**。
+**Code Review**: 尚无独立评审件。`5572d66` 为编译修复轮、本轮为判据修复轮,均由用户裁定后执行,非双代理评审。**评审报告原文未落 evidence**(与全 6 story 同缺口)。
 **Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
