@@ -104,8 +104,8 @@
 | **AC-S03-5** | 跨平台黄金夹具未兑现（emergency NOT-RUN · combat 零存在;根因 = ADR-012 矩阵未激活,需 UNITY_LICENSE） | 中 |
 | ~~**player-controller 006**~~ | ✅ 已闭(2026-10-02 判据修复轮;AC-1-27 改类型白名单 · AC-1-23 补调用点扫描;14/14 通过) | — |
 | ~~**evidence 对账件**~~ | ✅ 已闭(2026-10-02 对账轮) —— 三份逐 BLOCKING 对账件已落 `qa/evidence/`(modular · world-ecozones · player-controller);**对账结论 ≠ 修复全部成立**:modular B4 部分修 · we B1 未修 | — |
-| **modular B4** | `StructurePlaced` bit-packing 仍在(`StructureKinds.cs:191-198`)+ 死代码;接线须先裁 `Sim`→`Sim.Codec` 引用边 | 高 |
-| **we B1** | `PoiStateChanged` 接 `Sim.Codec`(codec 已在库,「前置未就绪」免责不成立) | 高 |
+| **ADR-029** | ✅ 已起草(Draft)—— `IPayloadEncoder` 第七抽象点;解 modular B4 + we B1 的**共同根因**(Sim 写者无合法编码路径) | 高 |
+| **ADR-029 实现轮** | 契约支(`IPayloadEncoder`+`IPayload`+`IBlobSink`+kindgen 分派)+ 接线支(6 的两位写者改走它);须另立 story | 高 |
 | **we 缺口 ①c** | host gate `AC-6-26a [B]` 无 `IsHost => false` 负向夹具 | 中 |
 | **联机** | 45 联机夹具（P1b） | 非阻塞 |
 | **设计面 OQ** | OQ-SS-3（归 44）· OQ-IC-6（playtest）· OQ-24-1..6（数值轮） | 低 |

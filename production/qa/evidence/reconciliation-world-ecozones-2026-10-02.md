@@ -114,7 +114,9 @@ grep -n "TryDiscover" unity/Assets/Sim/World/PoiStateMachine.cs
 
 ## 转 Complete 的前置
 
-1. **B1 接 `Sim.Codec`**(或按 ADR-025 口径确认引用边后接线)——
-   `Sim` → `Sim.Codec` 的引用边须先裁,不得擅自加;
+1. **B1 闭合路径已改判(2026-10-02)** —— 原写「接 `Sim.Codec`(或确认引用边)」,
+   该措辞**有误**:`Sim` → `Sim.Codec` 引用边**已由 ADR-025 §①:111 禁止且 b2 门强制**,
+   不是待裁项。正确路径 = **ADR-029 的 `IPayloadEncoder`**(住 `Sim.Contracts`),
+   由 `Sim.Codec` 实现 —— 见 `docs/architecture/adr-029-payload-encoder-abstraction.md`;
 2. **B3 补 `IsHost => false` 负向夹具**(缺口 ①c);
 3. `story-003` 最后 1 条 AC(`entities.yaml` ↔ kindgen 一致性)勾选。

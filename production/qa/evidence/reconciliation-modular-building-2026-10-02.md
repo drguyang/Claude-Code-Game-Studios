@@ -93,11 +93,16 @@ unity/Assets/Sim.Codec/PayloadCodec.World.cs:266  Encode(in StructurePlacedPaylo
 unity/Assets/Sim.Codec/PayloadCodec.World.cs:304  Encode(in StructureModifiedPayload p)
 ```
 
-⚠️ 但存在**结构面障碍**:`Sim/World/StructureKinds.cs` 住 `Sim` 程序集,而 `Sim.Codec`
-**只引用 `Sim.Contracts`**;`Sim` 未引用 `Sim.Codec`(全仓 `Sim.asmdef` 引用集核验)。
-故接线须先裁「`Sim` → `Sim.Codec` 的引用边是否允许」(门 A 约束的是 `UnityEngine`,
-非 `Sim.Codec`,但 ADR-025 §一 的 `Sim` 引用集白名单**恰 = {BCL, Sim.Contracts}**)。
-⇒ 这是**需 ADR-025 口径确认**的事项,不是单纯漏接。**此处不擅自接线,如实记账。**
+⚠️ **结构面障碍(2026-10-02 订正:此路已被关闭,非待裁)**。`StructureKinds.cs` 住 `Sim` 程序集,
+而 `PayloadCodec` 住 `Sim.Codec` —— 该引用边**已由 ADR-025 §①:111 明文禁止**
+(「`Sim` 期望引用集 = BCL + `Sim.Contracts`(仅此一件)」),且 **b2 门已将其变成构建失败**
+(`AssemblyGates.cs:148-150` 的 `.Except(new[]{"Sim.Contracts"})`)。
+⇒ **不是「须先裁」,是「已裁禁」** —— 本件原措辞有误,特此订正。
+
+真正的缺口在**上一层**:`Sim` 的写者**没有任何合法的编码路径**(codec 够不着、池也够不着)。
+该缺口已由 **ADR-029**(`IPayloadEncoder` 第七抽象点)裁决 —— 见
+`docs/architecture/adr-029-payload-encoder-abstraction.md`。
+本处**不擅自接线**,实现归 ADR-029 的实现轮。
 
 - **判决**:🔴 **部分修**。bit-packing 在 `StructurePlaced` 侧**仍在**;`StructureModified`
   侧已去 bit-packing 但载荷字段未真正编码。

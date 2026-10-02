@@ -102,8 +102,24 @@ ModularBuilding **51/51** 与 WorldEcozones **87/87** 逐例全绿
   实测 `Sim/World/StructureKinds.cs:191-198` 的 `StructurePlaced` 仍走
   `moduleId | (orientation << 16) | (variant << 24)`,**且第一条干净赋值立即被覆盖 = 死代码**。
   `index.md` 原 §①b 末句已点到该 bit-pack「评审未点、现状仍在」,本轮坐实为 **B4 的未闭半边**。
-  ⚠️ 接线存在**结构面障碍**:`Sim.Codec` 只引用 `Sim.Contracts`,而 ADR-025 §一 的 `Sim` 引用集白名单
-  **恰 = {BCL, Sim.Contracts}** ⇒ `Sim` → `Sim.Codec` 引用边**须先裁**,不得擅自加。
+
+- 🔴 **根因已上溯并裁决(2026-10-02)—— 两份对账件曾把根因写错,特此订正**
+
+  对账件初稿把 modular B4 / we B1 的阻塞写成「接线须先裁 `Sim` → `Sim.Codec` 引用边」。
+  **该措辞有误** —— 这条边**不是待裁项,是已裁的禁止项**:ADR-025 §①:111 明文
+  「`Sim` 期望引用集 = BCL + `Sim.Contracts`(仅此一件)」,且 **b2 门已将其变为构建失败**
+  (`AssemblyGates.cs:148-150`)。两处措辞已就地订正。
+
+  **真正的根因在上一层**:`Sim` 的写者(`PoiStateMachine` / `StructureKinds`)
+  **没有任何合法的编码路径** —— `PayloadCodec` 住 `Sim.Codec`(够不着),
+  不可变 blob 池住 7a/45(也够不着),而 `PayloadRef` 住 `Sim.Contracts`(够得着)。
+  实测后果:**全库每一个写者都在手搓 `PayloadRef`,且零字节真的进池**
+  (`craft_event_payload_test.cs:280` 这个「最正确」的写路径同样是 `PayloadRef(0,0,len)` 假引用)。
+  这是 **ADR-006 Amendment G-2 遗留的洞**(只定了载荷**读形**,未定**写形**)。
+
+  ⇒ 已由 **ADR-029**(`docs/architecture/adr-029-payload-encoder-abstraction.md`,
+  Draft)裁决:新增**第七个 P0 抽象点 `IPayloadEncoder`**(住 `Sim.Contracts`,乙案 —— 编码+入池一体)。
+  `Sim` 引用集**一字不改**。实现归 ADR-029 的实现轮(须另立 story)。
 - ⚠️ **we B2 的形式已闭但原处置有取证缺口** —— `43400dc` 勾 13 个 AC 时**未同批复跑**,
   该缺口已由 `editmode-full-rerun-2026-10-02.md`(87/87)补齐。
 
