@@ -7,7 +7,7 @@
 | 项 | 值 |
 |---|---|
 | **Stage** | Pre-Production |
-| **Sprint** | sprint-03 ✅ 已闭（17/17 story）· sprint-04 Phase 1 收尾中（Phase 2 未启动） |
+| **Sprint** | sprint-03 ✅ 已闭(17/17 story) · **sprint-04 Phase 1 ✅ 技术侧收口**(2026-10-03)· Phase 2 已解锁 |
 | **Gate Check** | CONCERNS（2026-09-29 二轮，无 NOT READY 阻塞） |
 | **ADRs** | 28/28 Accepted |
 | **P0 GDDs** | 31/31 Approved |
