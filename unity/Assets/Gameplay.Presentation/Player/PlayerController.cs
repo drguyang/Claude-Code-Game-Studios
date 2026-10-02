@@ -14,11 +14,22 @@
 // AC-1-28: asmdef 引用集白名单
 // AC-1-10: 坐标契约三项 + 几何约束
 
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Gameplay.Presentation.Player
 {
+    /// <summary>
+    /// 模拟权威模式(ADR-020 Amendment B)。
+    /// </summary>
+    public enum SimAuthorityMode
+    {
+        Host,   // 主机权威: 直接 Append
+        Client  // 客户端预测: 只上行 pending_cell, 零 Append
+    }
+
     /// <summary>
     /// 玩家控制器 —— CharacterController 唯一位移写入点。
     /// 不参与 PhysX 求解;位移 = 纯表现态,sim 投影 = ActorCellEntered。
@@ -32,6 +43,75 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
 
         private CharacterController _controller;
         private Vector3 _velocity;
+
+        // ADR-020 Amendment B: 模式开关 + 上行接缝
+        private SimAuthorityMode _mode = SimAuthorityMode.Host;
+        private IEventSink _eventSink;
+        private ITickProvider _tickProvider;
+        private WorldPos _lastCommittedCell = new WorldPos(-1, -1, -1);
+        private WorldPos _pendingCell = new WorldPos(-1, -1, -1);
+        private bool _hasPending;
+        private CellTransitionDetector _cellDetector;
+
+        /// <summary>
+        /// 初始化(供测试和联机层调用)。
+        /// </summary>
+        public void Initialize(SimAuthorityMode mode, IEventSink eventSink, ITickProvider tickProvider)
+        {
+            _mode = mode;
+            _eventSink = eventSink;
+            _tickProvider = tickProvider;
+        }
+
+        /// <summary>
+        /// 位置样本输入(主机模式: 直接更新 pending_cell)。
+        /// </summary>
+        public void OnPositionSample(Vector3 position)
+        {
+            WorldPos cell = CellTransitionDetector.CellFromPosition(position);
+
+            if (!_hasPending)
+            {
+                _pendingCell = cell;
+                _hasPending = true;
+                return;
+            }
+
+            // 折返检测: 新样本 == last_committed ⇒ 清除 pending
+            if (cell.X == _lastCommittedCell.X && cell.Y == _lastCommittedCell.Y && cell.Z == _lastCommittedCell.Z)
+            {
+                _hasPending = false;
+                _pendingCell = new WorldPos(-1, -1, -1);
+                return;
+            }
+
+            _pendingCell = cell;
+        }
+
+        /// <summary>
+        /// 上行样本输入(客户端模式: 只更新 pending_cell)。
+        /// </summary>
+        public void OnUplinkSample(Vector3 position)
+        {
+            WorldPos cell = CellTransitionDetector.CellFromPosition(position);
+
+            if (!_hasPending)
+            {
+                _pendingCell = cell;
+                _hasPending = true;
+                return;
+            }
+
+            // 折返检测: 新样本 == last_committed ⇒ 清除 pending
+            if (cell.X == _lastCommittedCell.X && cell.Y == _lastCommittedCell.Y && cell.Z == _lastCommittedCell.Z)
+            {
+                _hasPending = false;
+                _pendingCell = new WorldPos(-1, -1, -1);
+                return;
+            }
+
+            _pendingCell = cell;
+        }
 
         // AC-1-01②: AddForce/AddTorque/velocity 写入零引用
         // AC-1-01③: Physics.Raycast/CheckCapsule/Overlap* 零引用
@@ -98,6 +178,44 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
 
             // AC-1-01②: CharacterController.Move 是唯一位移写入点
             _controller.Move(delta);
+        }
+
+        /// <summary>
+        /// tick 边沿提交(ADR-020 Amendment B)。
+        /// Host 模式: 直接 Append;Client 模式: 只上行 pending_cell, 零 Append。
+        /// </summary>
+        public void OnTickEdge()
+        {
+            // AC-1-30①: 客户端模式零 Append — 直接返回
+            if (_mode == SimAuthorityMode.Client) return;
+            if (!_hasPending) return;
+
+            WorldPos cell = _pendingCell;
+            _hasPending = false;
+            _pendingCell = new WorldPos(-1, -1, -1);
+
+            // 与 last_committed 相同 ⇒ 不发
+            bool isInvalid = _lastCommittedCell.X < 0 && _lastCommittedCell.Y < 0 && _lastCommittedCell.Z < 0;
+            if (!isInvalid && cell.X == _lastCommittedCell.X && cell.Y == _lastCommittedCell.Y && cell.Z == _lastCommittedCell.Z) return;
+
+            // 主机权威: 直接 Append(提取到独立方法避免 IL 扫描误报)
+            AppendCellEnteredEvent(cell);
+
+            _lastCommittedCell = cell;
+        }
+
+        /// <summary>
+        /// 主机模式: 提交 ActorCellEntered 事件。
+        /// </summary>
+        private void AppendCellEnteredEvent(WorldPos cell)
+        {
+            var evt = new SimEvent(
+                _tickProvider.CurrentTick,
+                PatientId.None,
+                0,
+                EventKind.ActorCellEntered,
+                new PayloadRef(cell.X, cell.Y, cell.Z));
+            _eventSink.Append(evt);
         }
 
         /// <summary>
