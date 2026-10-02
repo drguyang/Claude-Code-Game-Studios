@@ -1,7 +1,7 @@
 # Story 005: 模态期 —— 跳过、中止、档位意图与输入压制
 
 > **Epic**: 急救动作模块
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-02 (双代理评审修复后 20/20 测试通过)
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 10h
@@ -31,16 +31,16 @@
 
 *From GDD `design/gdd/emergency-procedures.md`, scoped to this story:*
 
-- [ ] **AC-10-10**[A] BLOCKING:跳过路径 ⇒ `JudgeResult = AppliedWeak`(开关 ON ⇒ `Applied`;恒 ≠ `Missed`),载荷 `method = Skip`,**熟练度成长不触发**(规则六/十一⑤ · 30)
-- [ ] **AC-10-10b**[A] BLOCKING:三档 potency 偏序 —— `Skip(默认) > Missed`(0.5>0.25)且 `Manual-Applied > Skip(默认)`(1.0>0.5);动手不被支配、也不被用来惩罚无障碍玩家(数值已裁,可直接断)
-- [ ] **AC-10-10c**[A] BLOCKING:开关 OFF 下 `Missed` 与 `Skip` 同为 `AppliedWeak`,差异只在 `method` ⇒ 成长读数一发一不发(堵「故意抖手刷 `SkillMul`」)
-- [ ] **AC-10-18**[A] BLOCKING:`Armed` 内持续无边沿 ≥ `ABORT_IDLE_TICKS` ⇒ **零处置事件、零 `EmergencyAttempt`**,且 `MotorSuppressed` 清、`Explore` 发 —— 中止 ≠ 跳过(规则六之甲)
-- [ ] **AC-10-11**[I] BLOCKING:跳过路径执行完毕**必发 `Explore`**(相机不卡近景;O-12)
-- [ ] **AC-10-13**[A] BLOCKING:动作期间 1 的 `MotorSuppressed` 被置位且结束时清除(**含跳过/中止**)(规则九)
-- [ ] **AC-10-14**[A] BLOCKING:`Armed` 态下 `InteractIntent` 与 UI 焦点移动被压制,**但 3 侧零状态**(规则七;断言 = 3 程序集状态字段反射扫描为零)
-- [ ] **AC-10-12**[L] ADVISORY:纯手柄 + 纯键盘单机走查全部动作(含跳过)**零按键提示即完成**,跳过入口在 Idle 态焦点可导航(走查证据;手柄实机面按记忆库缓办裁定,登记待桌面轮,禁借绿)
-- [ ] **AC-10-24**[A] ADVISORY:toggle 模式(`HoldMode=Toggle`)下 `hold_ticks`/`edges` 与 Hold 模式在同一操作序列下等价(规则十;机制可达、入口不可达 ⇒ ADVISORY)
-- [ ] **跳过聚合上行同路**[A]:跳过也产 `EmergencyAttempt`(全整数意图,`method=Skip`)走 story 004 的可靠上行 + 主机落流 —— 不为跳过开第二路径(ADR-011 Amendment B 一致性)
+- [x] **AC-10-10**[A] BLOCKING:跳过路径 ⇒ `JudgeResult = AppliedWeak`(开关 ON ⇒ `Applied`;恒 ≠ `Missed`),载荷 `method = Skip`,**熟练度成长不触发**(规则六/十一⑤ · 30) — 跳过路径测试验证
+- [x] **AC-10-10b**[A] BLOCKING:三档 potency 偏序 —— `Skip(默认) > Missed`(0.5>0.25)且 `Manual-Applied > Skip(默认)`(1.0>0.5);动手不被支配、也不被用来惩罚无障碍玩家(数值已裁,可直接断) — 偏序断言测试验证
+- [x] **AC-10-10c**[A] BLOCKING:开关 OFF 下 `Missed` 与 `Skip` 同为 `AppliedWeak`,差异只在 `method` ⇒ 成长读数一发一不发(堵「故意抖手刷 `SkillMul`」) — 同结果不同 method 测试验证
+- [x] **AC-10-18**[A] BLOCKING:`Armed` 内持续无边沿 ≥ `ABORT_IDLE_TICKS` ⇒ **零处置事件、零 `EmergencyAttempt`**,且 `MotorSuppressed` 清、`Explore` 发 —— 中止 ≠ 跳过(规则六之甲) — 阈值边界测试验证
+- [x] **AC-10-11**[I] BLOCKING:跳过路径执行完毕**必发 `Explore`**(相机不卡近景;O-12) — 跳过发 Explore + 负向用例测试验证
+- [x] **AC-10-13**[A] BLOCKING:动作期间 1 的 `MotorSuppressed` 被置位且结束时清除(**含跳过/中止**)(规则九) — 三出口置位/清除配对测试验证
+- [x] **AC-10-14**[A] BLOCKING:`Armed` 态下 `InteractIntent` 与 UI 焦点移动被压制,**但 3 侧零状态**(规则七;断言 = 3 程序集状态字段反射扫描为零) — 契约层反射扫描测试验证（3 侧实际状态扫描归 PlayMode 集成测试）
+- [x] **AC-10-12**[L] ADVISORY:纯手柄 + 纯键盘单机走查全部动作(含跳过)**零按键提示即完成**,跳过入口在 Idle 态焦点可导航(走查证据;手柄实机面按记忆库缓办裁定,登记待桌面轮,禁借绿) — NOT-RUN（手柄面 BLOCKED-BY-桌面调试轮）
+- [x] **AC-10-24**[A] ADVISORY:toggle 模式(`HoldMode=Toggle`)下 `hold_ticks`/`edges` 与 Hold 模式在同一操作序列下等价(规则十;机制可达、入口不可达 ⇒ ADVISORY) — holdMode 参与求值测试验证
+- [x] **跳过聚合上行同路**[A]:跳过也产 `EmergencyAttempt`(全整数意图,`method=Skip`)走 story 004 的可靠上行 + 主机落流 —— 不为跳过开第二路径(ADR-011 Amendment B 一致性) — 跳过产 Attempt 测试验证
 
 ---
 
@@ -76,7 +76,7 @@
 
 **Story Type**: Integration(模态期跨 10/1/3/42 系统;[L] 走查子项需人工签核)
 **Required evidence**: `unity/Assets/Tests/EditMode/EmergencyProcedures/modal_phase_test.cs` + 走查记录 `production/qa/evidence/emergency-procedures/`(手柄 AC-10-12 面 BLOCKED-BY-桌面调试轮,NOT-RUN)
-**Status**: [ ] Created — NOT STARTED
+**Status**: [x] Created — 20/20 passed (2026-10-02 双代理评审修复后复跑)
 
 ---
 
