@@ -110,7 +110,8 @@
 | **ADR-029** | ✅ **Accepted 2026-10-02**(评审修正三处后转正)—— `IPayloadEncoder` 第七抽象点;解 modular B4 + we B1 的**共同根因**(Sim 写者无合法编码路径) | — |
 | **ADR-029 实现轮** | ✅ **三件全 Complete** —— 契约支 14/14 · modular 接线支 12/12(闭合 B4)· we 接线支 13/13(闭合 B1)。**Phase 1 的技术侧残余已清零** | — |
 | **注册表 id 类型** | `StructureInstanceRegistry` id = int,而 `entities.yaml:2068` 定 i64 ⇒ 超 2^31 回绕;**归独立轮** | 中 |
-| **收口批** | §③ 手搓门(**两接线支均已完成 ⇒ 现已可启用**)· ADR-005 计数订正五处 · ADR-010 义务 15 | 中 |
+| ~~**收口批**~~ | ✅ 已闭(2026-10-02) —— §③ 门已实现为 **b6** · ADR-005 计数订正(实际 **12 处**,非登记的 5 处)· ADR-010 义务 15 已落 · control-manifest 版本升 | — |
+| **10 手搓点** | 🔴 b6 门新查出 `HostEmergencyProcessor.cs:50/59`(比 B1/B4 更严重:字段大面积丢失);修复须先取 10 的 GDD 语义 ⇒ **归 emergency-procedures 实现轮**,已留具名豁免 | 高 |
 | **评审原件** | 🔴 三 epic(modular / we / player-controller)的评审报告**原件不可得**;义务已立(`.claude/docs/review-workflow.md` + `coding-standards` + `story-done` 闸门)。**解除条件 = 各补做一次评审并落 `qa/evidence/review-*.md`** | 高 |
 | ~~**we 缺口 ①c**~~ | ✅ 已闭(2026-10-02) —— 6 例负向夹具,`PoiStateMachineTest` 19/19;突变测试坐实(删门 ⇒ 恰 4 例红)。新登记:gate 返回码 `PoiNotFound` 与「POI 不存在」混同(未修) | — |
 | **联机** | 45 联机夹具（P1b） | 非阻塞 |

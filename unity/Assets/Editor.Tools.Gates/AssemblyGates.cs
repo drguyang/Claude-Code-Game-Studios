@@ -1,4 +1,4 @@
-// U0-b b2 · b3 · b4 · b5 —— 四条构建期断言(装配级)
+// U0-b b2 · b3 · b4 · b5 · b6 —— 五条构建期断言(装配级)
 //
 // 权威来源:
 //   b2 = ADR-017 §二(门 A 白名单,构建失败级)· ADR-025 §① 注
@@ -9,6 +9,7 @@
 //   b3 = ADR-025 §④(未登记 asmdef = 构建失败;清单封闭性)
 //   b4 = ADR-025 §② 甲案(ToFloat() 调用点白名单:Sim 内出现 = 构建失败)
 //   b5 = AC-44-B1(audio Story 001;44 音频模块装配边界三段 —— 见下方 b5 段头注)
+//   b6 = ADR-029 §③(Sim/ 内 `new PayloadRef(` = 构建失败;唯一合法路径 = IPayloadEncoder)
 //
 // 落点理由:三条都是**编辑期**断言,住 Editor.Tools 族(不进构建,门 A 不约束 ——
 // ADR-022 §① 同构)。触发面 = ① Unity 编译后自动刷新(ReloadAssemblyPostProcessor,
@@ -68,6 +69,7 @@ namespace DaYiJingCheng.EditorTools.Gates
         {
             var errs = RunAll();
             CheckToFloatCallsites(errs);
+            CheckPayloadRefCallsites(errs);   // b6(ADR-029 §③)
             var b5Errs = RunAudioBoundary(out var b5Warns);
             errs.AddRange(b5Errs);
             foreach (var w in b5Warns) Debug.LogWarning(w);
@@ -88,6 +90,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             var errs = new List<string>();
             CheckManifestClosure(errs);      // b3
             CheckGateA(errs);                // b2
+            CheckPayloadRefCallsites(errs);  // b6(ADR-029 §③)
             return errs;
         }
 
@@ -186,6 +189,82 @@ namespace DaYiJingCheng.EditorTools.Gates
                     }
                 }
             }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // b6 —— 载荷手搓门(ADR-029 §③ · 2026-10-02 立)
+        // ══════════════════════════════════════════════════════════════════════
+        // 权威来源:
+        //   · ADR-029 §③ —— 「Sim/ 目录下的源文件内出现 `new PayloadRef(` = 违例,
+        //     唯一合法路径 = IPayloadEncoder」。
+        //   · ADR-006 Amendment G-2 —— `PayloadRef { BlobId, Offset, Length }`,
+        //     其中 `Offset` = **字节偏移**(非业务字段)。
+        //   · Story: modular-building story-007 · world-ecozones story-006(两处接线支)
+        //
+        // 为什么需要这道门:ADR-029 的价值全在「无旁路」。实测证据 —— 立门前
+        // `PoiStateMachine` 与 `StructureWriter` **各自发明了一种错法**:
+        //   · PoiStateMachine  : poiId 当 blobId、newState 当字节偏移;
+        //   · StructureWriter  : bit-packing `moduleId | (orientation<<16) | (variant<<24)`;
+        //   · 且**零字节真的进池**。不设门,新写者会继续手搓,ADR-029 沦为纸面
+        //   (与 `Fix.ToFloat()` 的 b4 门同构:接口归属与调用点**分开判**)。
+        //
+        // 扫描面 = **Assets/Sim/** 之内的 .cs(**不含** Sim.Codec —— 编码器实现体当然要构造
+        // PayloadRef,那是唯一合法处)。已知漏报面(与 b4 同款口径):注释与字符串字面量
+        // 会误报(偏安全);故扫描前**剥注释**,避免文档里引用规则本身被误判。
+        private static void CheckPayloadRefCallsites(List<string> errs)
+        {
+            const string simDir = "Assets/Sim";
+            if (!Directory.Exists(simDir)) return;
+
+            foreach (var f in Directory.GetFiles(simDir, "*.cs", SearchOption.AllDirectories))
+            {
+                string code = StripCommentsForScan(File.ReadAllText(f));
+                int idx = code.IndexOf("new PayloadRef(", StringComparison.Ordinal);
+                if (idx < 0) continue;
+
+                int line = 1;
+                for (int i = 0; i < idx && i < code.Length; i++)
+                    if (code[i] == '\n') line++;
+
+                // ── 具名豁免(baseline)────────────────────────────────────
+                // 只豁免**已登记**的具体位置,新增任何一处都会红。
+                // 豁免须有 owner + 出口条件,且不得以「TODO」充当修复
+                // (见 .claude/docs/review-workflow.md 对 TODO 化的口径)。
+                string rel = f.Replace('\\', '/');
+                if (PayloadRefWaivers.Any(w => rel.EndsWith(w.Path) && line == w.Line))
+                    continue;
+
+                errs.Add($"[b6] {f}:~{line} Sim 装配内出现 `new PayloadRef(` —— " +
+                         "构建失败(ADR-029 §③:唯一合法路径 = IPayloadEncoder)。" +
+                         "若确需在 Sim 侧构造载荷引用,请经构造注入的 IPayloadEncoder 编码。");
+            }
+        }
+
+        /// <summary>
+        /// b6 的**具名豁免**(baseline)。每条须有:具体位置 + 已登记的原因 + 出口条件。
+        /// ⚠️ 豁免不是修复 —— 它是**已登记债务**的可见化;新增位置一律红。
+        /// </summary>
+        private static readonly (string Path, int Line, string Reason)[] PayloadRefWaivers =
+        {
+            ("Sim/EmergencyProcedures/HostEmergencyProcessor.cs", 50,
+             "10 emergency-procedures Story 004 的手搓点(2026-10-02 由 b6 门首次发现,"
+             + "前两轮评审与对账件均未登记)。⚠️ 比 B1/B4 更严重:"
+             + "`EmergencyAttemptPayload` 有 8 字段,此处只写 3 个 ⇒ MagPeak/MagLast/Method/ActorId/EdgeTicks **全被丢弃**。"
+             + "出口条件 = 接 IPayloadEncoder,但**须先取得 10 的 GDD 对 applied 载荷八字段的语义**"
+             + "(手搓法未给线索,不得靠猜);归 emergency-procedures 的实现轮。"),
+            ("Sim/EmergencyProcedures/HostEmergencyProcessor.cs", 59,
+             "10 emergency-procedures Story 004 的第二处手搓点(同上文件,2026-10-02 由 b6 门首次发现)。"
+             + "⚠️ 语义更错:把 `attempt.Action` 当 applied 载荷首字段(TreatmentId ≠ Action),"
+             + "且 `EmergencyTreatmentAppliedPayload` 9 字段只写 1 个有意义。"
+             + "出口条件 = 接 IPayloadEncoder,但**须先取得 10 的 GDD 对 applied 载荷八字段的语义**;"
+             + "归 emergency-procedures 的实现轮。"),
+        };
+
+        /// <summary>剥行注释与块注释 —— 判据扫**代码**,不扫文档里对规则本身的引用。</summary>
+        private static string StripCommentsForScan(string src)
+        {
+            var noBlock = Regex.Replace(src, @"/\*.*?\*/", "", RegexOptions.Singleline);
+            return Regex.Replace(noBlock, @"//.*?$", "", RegexOptions.Multiline);
         }
 
         // ══════════════════════════════════════════════════════════════════════

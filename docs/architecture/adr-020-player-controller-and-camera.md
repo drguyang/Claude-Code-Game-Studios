@@ -36,7 +36,7 @@ Accepted
 > ⇒ **表现层物理上拿不到 `WorldPos`**,与本 ADR §四 要求它发 `ActorCellEntered{cell(WorldPos)}` 直接冲突。
 > 这不是措辞问题,是**程序集划分缺失**。**用户裁定(2026-09-16):开边界程序集**:
 > 「边界层」**从「某个特定文件目录 / 某个特定系统的领域」重新定义为「任意两个住门 A 内外两侧的系统之间的通信契约」** ——
-> **边界程序集** = `WorldPos` + 六个 P0 抽象点(ADR-005 **§Key Interfaces**:`ITickProvider` / `IEventSink` /
+> **边界程序集** = `WorldPos` + 七个 P0 抽象点(ADR-005 **§Key Interfaces**:`ITickProvider` / `IEventSink` /
 > `IIdAuthority` / `IVitalsQuery` + ADR-007 的 `IEventAuthority`,以及 `SimEvent` 值类型 +
 > `PatientId` / `StreamId` 等整数枚举),**零 `UnityEngine` 引用**;
 > **sim 实现程序集与表现层都引用它**,门 A 的 `"noEngineReferences": true` **仅约束 sim 实现程序集**

@@ -73,6 +73,8 @@ ADR-005 规定「全部模拟数学在整数定点域」「Storage 中不出现�
 ### Current State
 
 - ADR-005 §Key Interfaces 定义五个抽象点与该处的 `SimEvent{Tick, Patient, Kind}`。
+  ⚠️ **历史陈述**(本 ADR 起草时点):现行计数 = **七个** —— 第六个 `IEventAuthority`(ADR-007 §一)、
+  第七个 `IPayloadEncoder`(**ADR-029**,2026-10-02)。本行不删,保留起草时点的事实。
 - ADR-005 §Implementation Guidelines 2 要求「`SimEvent` 必须可全序(`(Tick, Patient, Seq)`)」——
   **但 `SimEvent` 里没有 `Seq` 字段**。ADR-005 **自相矛盾**。
 - ADR-005 §Decision 三 规定 `patient_id` 由主机单调计数器分配、「id 随流持久化」,
@@ -520,6 +522,7 @@ Amendment A 的例外登记(唯一一条,「不得扩张」)不删,平移其**�
 
 - 不改变 `Fix` 的内部表示(Q16.16 / int64 仍归 ADR-005)。
 - 不改变**本 ADR 起草时**五个抽象点的数量与职责。
+  ⚠️ 本句**已明写「起草时」** ⇒ 不受 ADR-007 / ADR-029 的追加影响,无需改。
   > **2026-09-15 补注(C-9)**:ADR-007 §一 此后追加了**第六个**抽象点 `IEventAuthority`
   > (掷骰权与写入通道语义不同,不并入 `IEventSink`)。该增补**不由本 ADR 背书也不由本 ADR 禁止**
   > —— 本 ADR 只声明它未涉及。全案抽象点现为**六个**。

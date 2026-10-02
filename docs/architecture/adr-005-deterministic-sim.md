@@ -22,13 +22,13 @@ dr_guyang(用户)· technical-director(裁决)· systems-designer(公式复核)
 系统 9「疾病与伤情模拟」是全案数据核心(7 个系统读它),它同时要求**确定性模拟**
 (定 tick + 固定种子 + 状态可序列化)与 **P1b 的 1-4 人联机**(`systems-index.md` §9 C6)。
 本 ADR 裁决:**全部模拟数学在整数定点域(int64 / Q16.16)**,**事件流是唯一真源**,
-**主机唯一执行 Step / CatchUp**,并给出 **P0 必须预留的六个抽象点**。
+**主机唯一执行 Step / CatchUp**,并给出 **P0 必须预留的七个抽象点**。
 不现在做,P1b 重构是三个月级灾难。
 
 > **2026-09-15 复查轮就地修正(N-3 / N-4)**:
 > ① 原稿写「**病史**事件流是唯一真源」—— ADR-008 引入病例流后该句在权威层已不准确,
 > 现行口径见 **ADR-006 Amendment D**:真源 = **病史流 ∪ 病例流**,终态折叠**只作用于病史流**;
-> ② 原稿写「**五个**抽象点」—— ADR-007 §一 之后为 **六个** =
+> ② 原稿写「**五个**抽象点」—— ADR-007 §一 之后为 **六个**;**ADR-029(2026-10-02)再追加第七个 `IPayloadEncoder`** ⇒ 现行 **七个** =
 > **五个接口**(`ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery` / `IEventAuthority`)
 > **+ `SimEvent` 值类型**;
 > ③ **2026-09-15 ADR-009 追加**:真源口径再升格 —— 事件流 = **病史流 ∪ 病例流 ∪ 世界流**
@@ -255,7 +255,7 @@ public readonly struct Fix            // Q16.16, 内部 long
 }
 
 // ── P0 必须预留的抽象点(实现可为占位)──
-// 五个 + 第六个 IEventAuthority(ADR-007 §一)
+// 五个 + 第六个 IEventAuthority(ADR-007 §一)+ 第七个 IPayloadEncoder(ADR-029)
 public interface ITickProvider  { long CurrentTick { get; } }        // 全案 tick 唯一来源
 public interface IEventSink     { void Append(in SimEvent e); }       // P0 = 本地 list;ADR-008 扩展为按 Kind 路由
 public interface IIdAuthority   { PatientId Next();                  // 防运行时 instance id
@@ -267,6 +267,10 @@ public interface IIdAuthority   { PatientId Next();                  // 防运�
 public interface IVitalsQuery   { VitalsDto GetVitals(PatientId p); } // 唯一浮点出口
 public interface IEventAuthority { bool IsAuthority { get; }          // 第六抽象点,ADR-007 §一
                                    EventRollResult Roll(in RollRequest r); }
+// ⚠️ 2026-10-02 ADR-029 追加(原文不删,此为前向指针):
+//   第七抽象点 = `IPayloadEncoder`(住 Sim.Contracts)—— 载荷编码的唯一合法路径,
+//   解「Sim 的写者够不着 PayloadCodec 与 blob 池」的结构缺口(ADR-006 G-2 只定了读形)。
+//   权威定义见 `adr-029-payload-encoder-abstraction.md §①`;本块不重复其签名。
 
 // ── 事件必须带逻辑 tick 且可全序 ──
 // ⚠️ 2026-09-15 修正(C-6):原块只有 { Tick, Patient, Kind },与上一行注释
@@ -471,7 +475,7 @@ public readonly struct SimEvent      // 权威定义见 ADR-006 Amendment A
    病例流与世界流**永不物理折叠**。本 ADR §Summary / §Decision 三 / 架构图已据此修正。
   - **Amendment F(2026-09-16 · 边界程序集)**:**把「边界层」从「某个特定系统的领域」
     重定义为「任意两个住门 A 内外两侧的系统之间的通信契约」**,并新立**边界程序集**
-    (boundary assembly)承载它 —— `WorldPos`(ADR-015 §三/§七)+ 六个 P0 抽象点
+    (boundary assembly)承载它 —— `WorldPos`(ADR-015 §三/§七)+ 七个 P0 抽象点
     (§Key Interfaces:`ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery` /
     `IEventAuthority` + `SimEvent` 及其整数枚举 `PatientId` / `StreamId` / `EventKind`),
     **零 `UnityEngine` 引用**;**sim 实现程序集与表现层都引用它**。
@@ -482,7 +486,7 @@ public readonly struct SimEvent      // 权威定义见 ADR-006 Amendment A
     只约束 sim 实现程序集**(它是**单向**约束 —— 「sim 不得依赖引擎」,不是「引擎侧不得引用 sim 契约」);
     ③ 明确**门 B(IL 反射扫描)的扫描面仍只覆盖 sim 实现程序集** —— 边界程序集**无需**门 B
     (它没有可执行的方法体,只有 `readonly struct` 与接口签名)。**不改变**整数定点域、
-    事件流唯一真源、六个抽象点的语义。**同步修订**:ADR-015 §Implementation Guidelines 2 ·
+    事件流唯一真源、七个抽象点的语义。**同步修订**:ADR-015 §Implementation Guidelines 2 ·
     ADR-020 Status 的 **Amendment A 补注** + Verification Required ② · `architecture.yaml`
     的 `world_coordinate_lattice` 契约。
     > ⚠️ **本法不得被读作「表现层可以自由引用 sim」** —— 边界程序集是**白名单**,

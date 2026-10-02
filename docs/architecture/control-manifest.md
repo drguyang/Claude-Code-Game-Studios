@@ -1,10 +1,11 @@
 # Control Manifest
 
 > **Engine**: Unity 6.3 LTS
-> **Last Updated**: 2026-09-21
-> **Manifest Version**: 2026-09-21
+> **Last Updated**: 2026-10-02
+> **Manifest Version**: 2026-10-02
 > **ADRs Covered**: ADR-001, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 015,
-> 016, 017, 018, 019, 020, 021, 022, 023, 024, 025 —— **全部 22 份 Accepted ADR**
+> 016, 017, 018, 019, 020, 021, 022, 023, 024, 025, 026, 027, 028, 029
+> —— **全部 26 份 Accepted ADR**(⚠️ 2026-10-02 订正:原写「全部 22 份」,**计数陈旧**;本 manifest 只覆盖架构规则面,故未逐份列 002–004 —— 那三份已被 015/017 兑现结案)
 > **Status**: Active —— ADR 变更后用 `/create-control-manifest update` 重生成
 
 `Manifest Version` is the date this manifest was generated. Story files embed
@@ -60,7 +61,7 @@ rule, see the referenced ADR.
 - `Seq` 由**主机在 `Append` 时分配**,同一 `(Tick, Patient)` 内自 0 单调递增;`Seq` 随事件持久化;`Payload` 是值 struct、无引用字段 — ADR-006 Amendment A
 - 跨流全序键 = `(Tick, StreamPriority, Patient, Seq)`;**单流内** = `(Tick, Patient, Seq)`;**`Patient` 项不可省略**(同 tick 两位病人各有 `Seq=0` ⇒ 缺它即平局) — ADR-008 §二 · ADR-006 Amendment C
 - `StreamPriority`:病史 0 < 病例 1 < 世界 2;**`Seq` 不分流**,三流共享同一发放器与同一 `(Tick, Patient)` 计数域 — ADR-009 §三
-- 六个 P0 抽象点必须预留:`ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery` / `IEventAuthority` + `SimEvent` — ADR-005 §Key Interfaces · ADR-007 §一
+- 七个 P0 抽象点必须预留:`ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery` / `IEventAuthority` + `SimEvent` + `IPayloadEncoder` — ADR-005 §Key Interfaces · ADR-007 §一 · **ADR-029 §①**
 - `IEventAuthority` **不与 `IEventSink` 合并**(写入通道语义 ≠ 掷骰权语义);P0 = 本地占位,`IsAuthority` 恒 `true` — ADR-007 §一
 - `Roll` 必须是**纯函数**:入参即其全部输入,**不读任何运行时对象**;`Win` 由**调用方**从 `ITickProvider` 取,不在 `Roll` 内取 — ADR-007 §Implementation Guidelines 2/3
 - **掷骰的每个输入必须可从事件流重构**(或为外生常数);五个 Kind:`EventRolled` / `EventArrived` / `ThreatDeferred` / `ThreatDeferralCleared` / `HistoryFlagChanged` — ADR-007 §三

@@ -75,7 +75,7 @@ P0 默认零 custom Renderer Feature,但留**触发条款**(ADR-013 §6.6 假设
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | **ADR-005**(Accepted —— `Step` 不由渲染帧驱动;`ITickProvider` 是六个 P0 抽象点之一)· **ADR-010**(Accepted —— 存档时机:退出保存 + checkpoint ⇒ 拆序第 2 步的语义)· **ADR-014**(Accepted —— `data-core` 首次 `Step` 前预载;E-13 启动期硬失败)· **ADR-015**(Accepted —— 逻辑层烘焙数据 ⇒ World 场景无占位对象的依据)· **ADR-018**(Accepted —— 单 `AudioListener` 每设备一条总线)· **ADR-020**(Accepted —— `ICameraRig` 只读不持状态)· **ADR-013**(Accepted —— §6.6 假设 6 的 spike 是触发条款的开关) |
+| **Depends On** | **ADR-005**(Accepted —— `Step` 不由渲染帧驱动;`ITickProvider` 是七个 P0 抽象点之一)· **ADR-010**(Accepted —— 存档时机:退出保存 + checkpoint ⇒ 拆序第 2 步的语义)· **ADR-014**(Accepted —— `data-core` 首次 `Step` 前预载;E-13 启动期硬失败)· **ADR-015**(Accepted —— 逻辑层烘焙数据 ⇒ World 场景无占位对象的依据)· **ADR-018**(Accepted —— 单 `AudioListener` 每设备一条总线)· **ADR-020**(Accepted —— `ICameraRig` 只读不持状态)· **ADR-013**(Accepted —— §6.6 假设 6 的 spike 是触发条款的开关) |
 | **Blocks** | 任何 PlayMode 集成测试(急救流程 / 建造 / 联机基础 —— `technical-preferences.md` Testing);ADR #2 的 asmdef 装配(场景根对象的程序集落点);7a 的「读档 = 重建」实现 |
 | **Supersedes** | 无 |
 | **Related** | ADR-022 Tooling 层(切片者:导航格按 chunk 切片,运行期激活权在本件 ⑥ 裁定);QQ-08(菜单未缩放时钟,若开) |
