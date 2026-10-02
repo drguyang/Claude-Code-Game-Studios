@@ -1,7 +1,7 @@
 # Story 006: POI 载荷接线 —— `PoiStateChanged` 改走 `IPayloadEncoder`(闭合 B1)
 
 > **Epic**: 6b 生态区与 POI
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-02 (6/6 AC 落地;13 例新测试 + 突变测试坐实;WorldEcozones 106/106)
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 4h
@@ -145,9 +145,34 @@
 
 ## Completion Notes
 
-**Completed**: _待实现_
-**Criteria**: _待填_
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Completed**: 2026-10-02
+**Criteria**: **6/6 AC 全部落地**,**B1 已闭**。写侧经 `IPayloadEncoder`;读侧按**甲案**改为
+  `RebuildFromDecoded(IReadOnlyList<(int PoiId, PoiState State)>)` —— 解码归调用方。
+  `PoiStateMachine.cs` 内 `new PayloadRef(` **代码零命中**(仅剩两处注释:规则声明 + 修复记录);
+  **B1 的两处 TODO 已消失**(原处置正是留 TODO,`index.md` 已判「免责不成立」)。
+  新测试 `poi_payload_encoder_test.cs` **13/13**;既有 `poi_state_machine_test.cs` **19/19**(构造点同步)。
+**Deviations**: ① **读侧取甲案(用户 2026-10-02 预设,本 story 落实)** ——
+     `RebuildFromEvents(IReadOnlyList<SimEvent>)` → `RebuildFromDecoded(IReadOnlyList<(int, PoiState)>)`。
+     理由:解码器 `PayloadCodec` 住 `Sim.Codec`,而本类住 `Sim`(该引用边由 ADR-025 §①:111 禁止 + b2 门强制)。
+     ⇒ **与写侧对称**:写侧交出已编码 `PayloadRef`,读侧收下已解码字段;**`Sim` 侧零 codec 依赖**。
+     ⚠️ **若甲案不可行须回 ADR-029 追加裁决,不得擅自加第二个抽象点** —— 本 story 未遇该情形。
+  ② **`RebuildFromDecoded` 的语义边界**(实现期明确,已写进 XML doc):
+     它**不校验单调性**,按序列顺序覆盖,与「流是唯一真源」一致 ——
+     写入侧 `TryAdvance` 已保证单调不减,重建只需忠实重放。
+     另:未在 `_poiIdSet` 登记的 poi_id **跳过**(与旧行为一致);重放前先把全部已登记 POI 置回
+     `Undiscovered`(原实现只 `Clear()` 后按事件回填,语义相同但更显式)。
+  ③ **既有测试的构造点同步**:10 处 `new PoiStateMachine(...)` 加 `IPayloadEncoder` 形参
+     (统一经 `Make(...)` helper);重建用例改走甲案。
+     ⚠️ 一处**测试侧疏漏已就地修正**:定向负例刻意用 `poiId=7 ≠ newState=2` 暴露字段互换,
+     但 `Setup` 的登记集原为 `{1,2,3}` ⇒ `poiId=7` 触发 `PoiNotFound`、**不发事件** ⇒ 3 例假红。
+     已把 7 加入登记集,并在测试内注明该陷阱(「未登记 ⇒ 不发事件 ⇒ 测试假红」)。
+**Test Evidence**: `poi_payload_encoder_test.cs` **13/13** · `poi_state_machine_test.cs` **19/19** ·
+  WorldEcozones 合计 **106/106**(原 87 + 新 19)。
+  全量 EditMode batchmode:`total 2073 · passed 2040 · failed 0 · skipped 32 · inconclusive 1`。
+  ✅ **突变测试坐实非空转**:还原 B1 的手搓法
+  (`new PayloadRef(blobId: poiId, offset: (int)toState, length: 8)`)后 **恰 9 例红**,
+  含全部 3 条定向负例(`poiIdNotUsedAsBlobId` · `roundTrip_fieldOrderNotSwapped` ·
+  `noManualPayloadRefInSource`)与两条既有重建用例。⇒ 判据真的能检出 B1。原文件已复原。
+**Code Review**: 尚无独立评审件(归后续轮)。
+**Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧
 **Manifest**: story Manifest Version 2026-09-21 = 当前 manifest(2026-09-21),无陈旧

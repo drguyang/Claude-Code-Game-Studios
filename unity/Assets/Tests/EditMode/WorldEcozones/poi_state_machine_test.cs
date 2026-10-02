@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.World;
 using NUnit.Framework;
@@ -61,13 +62,44 @@ namespace DaYiJingCheng.Tests.WorldEcozones
     {
         private SpyEventSink _eventSink;
         private PoiStateMachine _machine;
+        private InMemoryBlobPool _pool;
+        private PayloadEncoder _encoder;
 
         [SetUp]
         public void Setup()
         {
             _eventSink = new SpyEventSink();
+            _pool = new InMemoryBlobPool();
+            _encoder = new PayloadEncoder(_pool);
             var eventAuthority = new FakeEventAuthority();
-            _machine = new PoiStateMachine(_eventSink, eventAuthority, new[] { 1, 2, 3 });
+            _machine = new PoiStateMachine(_eventSink, eventAuthority, new[] { 1, 2, 3 }, _encoder);
+        }
+
+        /// <summary>构造带独立池的机器(ADR-029:构造须注入 IPayloadEncoder)。</summary>
+        private static (PoiStateMachine Machine, InMemoryBlobPool Pool) Make(
+            IEventSink sink, IEventAuthority authority, IEnumerable<int> poiIds)
+        {
+            var pool = new InMemoryBlobPool();
+            return (new PoiStateMachine(sink, authority, poiIds, new PayloadEncoder(pool)), pool);
+        }
+
+        /// <summary>
+        /// ADR-029 甲案:解码归**调用方**(看得见 codec 的一侧)。
+        /// 本 helper 即扮演该侧 —— 从池取字节 → `PayloadCodec` 解码 → 喂给
+        /// `RebuildFromDecoded`。`PoiStateMachine` 自身零 codec 依赖。
+        /// </summary>
+        private static List<(int PoiId, PoiState State)> DecodePoiStates(
+            IReadOnlyList<SimEvent> events, IBlobPool pool)
+        {
+            var result = new List<(int, PoiState)>();
+            foreach (var evt in events)
+            {
+                if (evt.Kind != EventKind.PoiStateChanged) continue;
+                Assert.IsTrue(PayloadCodec.TryGetPayload(evt, pool, out PoiStateChangedPayload p),
+                    "PoiStateChanged 载荷须能经池 + codec 取回(字节真的进了池)");
+                result.Add((p.PoiId, (PoiState)p.NewState));
+            }
+            return result;
         }
 
         // AC-6-10: 三态枚举值
@@ -165,12 +197,12 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             _machine.TryAdvance(2, PoiState.Resolved);
             _machine.TryAdvance(3, PoiState.Discovered);
 
-            // 收集事件
+            // 收集事件(主机侧池:_pool 持有其字节)
             var events = new List<SimEvent>(_eventSink.AppendedEvents);
 
-            // 新机器重建
-            var rebuilt = new PoiStateMachine(_eventSink, new FakeEventAuthority(), new[] { 1, 2, 3 });
-            rebuilt.RebuildFromEvents(events);
+            // 新机器重建 —— ADR-029 甲案:调用方(看得见 codec 的一侧)先解码,再喂进来
+            var (rebuilt, _) = Make(_eventSink, new FakeEventAuthority(), new[] { 1, 2, 3 });
+            rebuilt.RebuildFromDecoded(DecodePoiStates(events, _pool));
 
             // 逐 POI 比对
             Assert.AreEqual(PoiState.Discovered, rebuilt.GetState(1));
@@ -198,7 +230,7 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             var pois = new List<int>();
             for (int i = 0; i < n; i++) pois.Add(i);
 
-            var machine = new PoiStateMachine(_eventSink, new FakeEventAuthority(), pois);
+            var machine = Make(_eventSink, new FakeEventAuthority(), pois).Machine;
 
             // 全量转移:Undiscovered → Discovered → Resolved(每 POI 至多 2 次)
             for (int i = 0; i < n; i++)
@@ -231,7 +263,7 @@ namespace DaYiJingCheng.Tests.WorldEcozones
         public void test_ac626a_clientWriteChannel_rejected_noEventAppended()
         {
             var sink = new SpyEventSink();
-            var client = new PoiStateMachine(sink, new SwitchableEventAuthority(isHost: false), new[] { 1, 2, 3 });
+            var client = Make(sink, new SwitchableEventAuthority(isHost: false), new[] { 1, 2, 3 }).Machine;
 
             var result = client.TryAdvance(1, PoiState.Discovered);
 
@@ -246,7 +278,7 @@ namespace DaYiJingCheng.Tests.WorldEcozones
         public void test_ac626a_clientWriteChannel_doesNotMutateState()
         {
             var sink = new SpyEventSink();
-            var client = new PoiStateMachine(sink, new SwitchableEventAuthority(isHost: false), new[] { 1, 2, 3 });
+            var client = Make(sink, new SwitchableEventAuthority(isHost: false), new[] { 1, 2, 3 }).Machine;
 
             client.TryAdvance(1, PoiState.Resolved);   // 即使跳级目标合法,也应被门挡
 
@@ -259,7 +291,7 @@ namespace DaYiJingCheng.Tests.WorldEcozones
         {
             // TryDiscover 是独立入口(发现门 AC-6-23),须同样受 host gate 覆盖。
             var sink = new SpyEventSink();
-            var client = new PoiStateMachine(sink, new SwitchableEventAuthority(isHost: false), new[] { 1, 2, 3 });
+            var client = Make(sink, new SwitchableEventAuthority(isHost: false), new[] { 1, 2, 3 }).Machine;
 
             var result = client.TryDiscover(1);
 
@@ -276,13 +308,14 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             // 客户端必须能从主机回播的世界流重建 POI 状态(EC-16:全员读到同一序列)——
             // 若门误挡重建,客户端将永远看不到任何 POI 状态,与 ADR-020 Amendment B ③ 冲突。
             var hostSink = new SpyEventSink();
-            var host = new PoiStateMachine(hostSink, new SwitchableEventAuthority(isHost: true), new[] { 1, 2, 3 });
+            var (host, hostPool) = Make(hostSink, new SwitchableEventAuthority(isHost: true), new[] { 1, 2, 3 });
             host.TryAdvance(1, PoiState.Discovered);
             host.TryAdvance(2, PoiState.Resolved);
             var stream = new List<SimEvent>(hostSink.AppendedEvents);
 
-            var client = new PoiStateMachine(new SpyEventSink(), new SwitchableEventAuthority(isHost: false), new[] { 1, 2, 3 });
-            client.RebuildFromEvents(stream);
+            var client = Make(new SpyEventSink(), new SwitchableEventAuthority(isHost: false), new[] { 1, 2, 3 }).Machine;
+            // ADR-029 甲案:客户端从主机回播的流重建 —— 解码归调用方
+            client.RebuildFromDecoded(DecodePoiStates(stream, hostPool));
 
             Assert.AreEqual(PoiState.Discovered, client.GetState(1), "客户端须能从流重建");
             Assert.AreEqual(PoiState.Resolved, client.GetState(2), "客户端须能从流重建");
@@ -295,7 +328,7 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             // 主机降级为客户端后,后续写必须立刻被挡(ADR-020 Amendment B:权责随模式变)。
             var sink = new SpyEventSink();
             var authority = new SwitchableEventAuthority(isHost: true);
-            var machine = new PoiStateMachine(sink, authority, new[] { 1, 2, 3 });
+            var machine = Make(sink, authority, new[] { 1, 2, 3 }).Machine;
 
             machine.TryAdvance(1, PoiState.Discovered);
             Assert.AreEqual(1, sink.AppendedEvents.Count, "主机期应写成功");
@@ -314,7 +347,7 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             // 反向用例(否定「两边都不写」的空实现)——
             // 与 clientWriteChannel_rejected 配对:门必须**只挡客户端**。
             var sink = new SpyEventSink();
-            var host = new PoiStateMachine(sink, new SwitchableEventAuthority(isHost: true), new[] { 1, 2, 3 });
+            var host = Make(sink, new SwitchableEventAuthority(isHost: true), new[] { 1, 2, 3 }).Machine;
 
             var result = host.TryAdvance(1, PoiState.Discovered);
 
