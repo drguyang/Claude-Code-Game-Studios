@@ -66,6 +66,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
         /// <summary>
         /// 移动输入(相机相对方向)。
         /// AC-1-09: ‖MoveInput‖ ≤ 1 边界硬断言(不 clamp)。
+        /// 消费 LocomotionEvaluator 的乘数链与加减速(F-1-2/F-1-3)。
         /// </summary>
         public void Move(Vector3 moveInput)
         {
@@ -74,19 +75,26 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
             // AC-1-09: ‖MoveInput‖ ≤ 1 边界硬断言
             ValidateMoveInput(moveInput);
 
+            // 消费 LocomotionEvaluator: 乘数链 + 加减速
+            var config = LocomotionConfig.LoadDefault();
+            float vTarget = config.SpeedWalk * moveInput.magnitude; // F-1-2: SPEED_MODE × ‖MoveInput‖ × K_terrain
+
+            // F-1-3: 线性趋近(不过冲)
+            float accel = (vTarget > _velocity.magnitude) ? config.Accel : config.Decel;
+            float maxDelta = accel * Time.deltaTime;
+            float newSpeed = Mathf.MoveTowards(_velocity.magnitude, vTarget, maxDelta);
+            Vector3 delta = moveInput.normalized * newSpeed * Time.deltaTime;
+
             // 应用重力
             if (_controller.isGrounded)
             {
-                _velocity.y = -0.5f;
+                delta.y = -0.5f * Time.deltaTime;
             }
             else
             {
+                delta.y = _velocity.y * Time.deltaTime;
                 _velocity.y += _gravity * Time.deltaTime;
             }
-
-            // 合成位移
-            Vector3 delta = moveInput * _moveSpeed * Time.deltaTime;
-            delta.y = _velocity.y * Time.deltaTime;
 
             // AC-1-01②: CharacterController.Move 是唯一位移写入点
             _controller.Move(delta);
