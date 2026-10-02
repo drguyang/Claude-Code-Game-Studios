@@ -245,13 +245,17 @@ Process(EmergencyAttemptPayload attempt, EmergencyActionRow action, JudgeContext
      ÷ 65536 = **8192.25**(rem=16384 ≠ 半)⇒ **无舍入分道**。正确组合 = `32768 × 16385 = 536903680`
      ÷ 65536 = **8192.5**(rem=32768 恰为半)。**原文结论正确**(须用 `ROUND_HALF_AWAY_FROM_ZERO`),
      仅示例数字错 —— 但该数字是「可复现验证」的载体,写错会让照抄者实测得 8192 后**误以为实现有 bug**。
-     ⇒ 归 GDD 勘误轮。已在测试内登记(§已知问题)。
+     ✅ **已于当日勘误落盘**(2026-10-03):A8 示例数字订正为 `32768 × 16385` + 勘误注。
   ⑤ **`EmergencyActionRow.ResultMul` 的 schema 缺口**:该字段是 **per-row**,而 F-10.4 的取值
      (`{16384,32768,65536}`)是 **GDD 全局常量**(`GetResultMulTiers()` 提供)—— 与动作无关。
      两个后果:① `EmergencyActionSchema` 的 DC-1…DC-4 **不含 `ResultMul`** ⇒ 未设该字段的 row
      能过全部烘焙门,直到 `Process` **NRE** 才暴露(PlayMode 两例即此形态);
-     ② **冗余**(全局常量挂在 per-row)。修法须裁(甲 = 加 DC-5 校验;乙 = 从 row 移除改直读常量),
-     **本 story 不擅自改**(属数据契约变更)。已在测试内登记。
+     ② **冗余**(全局常量挂在 per-row)。
+     ✅ **已于当日裁定并落盘(2026-10-03)**:查 GDD 10-DC 表,**承载归属早有明文** ——
+     `result_mul` 是 **per-action 数据表字段**(内联于 `emergency_action.json`,ADR-014 烘焙),
+     **不是全局常量** ⇒ 「从 row 移除」一路**与 GDD 冲突,已排除**;
+     缺的只是**校验** ⇒ 补 **DC-6**(`ValidateResultMul`)+ 3 例测试。
+     ⚠️ 落盘时发现 **`DC-5` 已被占用**(= Kind 白名单,`AC-10-07b` 引用它)⇒ 本校验编号为 **DC-6**。
 **Test Evidence**: `applied_payload_settlement_test.cs` **17/17**。
   EditMode 全量:`total 2096 · passed 2063 · failed 0 · skipped 32 · inconclusive 1`。
   PlayMode 全量:**36/36**(含 `HostAuthorityTest` 两例,已同步构造与 `ResultMul`)。

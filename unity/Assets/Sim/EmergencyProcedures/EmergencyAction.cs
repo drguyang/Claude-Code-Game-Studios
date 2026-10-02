@@ -61,7 +61,7 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
     }
 
     /// <summary>
-    /// 动作表 schema 校验器（DC-1…DC-5）。
+    /// 动作表 schema 校验器（DC-1…DC-6）。
     /// </summary>
     public static class EmergencyActionSchema
     {
@@ -95,6 +95,23 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         public static string[] GetRequiredKindWhitelist()
         {
             return new[] { "EmergencyAttempt", "EmergencyTreatmentApplied", "DrugTreatmentApplied" };
+        }
+
+        /// <summary>
+        /// DC-6: `result_mul` 恰三档(非 null,`Length == 3`,按 `JudgeResult` 序数索引)。
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ **2026-10-03 补(GDD 数据契约 10-DC 的 DC-6)**。
+        /// 缺此校验的后果(实测):漏填 `result_mul` 的 row **能过 DC-1…DC-5 全部烘焙门**,
+        /// 直到 `HostEmergencyProcessor.Process` 读 `ResultMul[(int)result]` **NRE** 才暴露
+        /// —— `Tests/PlayMode/EmergencyProcedures/host_authority_test.cs` 两例即此形态。
+        /// 档数 ≠ 3 ⇒ 索引越界(`Applied = 2`)或静默取错档。
+        /// **承载归属**:`result_mul` 是 **per-action 数据表字段**(内联于
+        /// `emergency_action.json`,ADR-014 烘焙),**不得**改从代码直读常量。
+        /// </remarks>
+        public static bool ValidateResultMul(EmergencyActionRow row)
+        {
+            return row != null && row.ResultMul != null && row.ResultMul.Length == 3;
         }
 
         /// <summary>result_mul 三档（AC-10-16 已裁机制值，按 JudgeResult 序数索引）</summary>

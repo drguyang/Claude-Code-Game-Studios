@@ -122,7 +122,7 @@ namespace DaYiJingCheng.Tests.PlayMode.EmergencyProcedures
         // ══════════ 测试辅助 ══════════
 
         // ══════════════════════════════════════════════════════════════
-        // §已知问题(story-007 暴露,**未修** —— 归 emergency-procedures 后续轮)
+        // §已修(2026-10-03 当日补齐)
         //
         // `EmergencyActionRow.ResultMul` 是 **per-row 字段**,但 F-10.4 的取值
         // (`{16384, 32768, 65536}` = 0.25 / 0.5 / 1.0)是 **GDD 全局常量**,
@@ -137,7 +137,11 @@ namespace DaYiJingCheng.Tests.PlayMode.EmergencyProcedures
         //
         // 修法(择一,须裁):甲 = 加 DC-5 校验 `ResultMul != null && Length == 3`;
         // 乙 = 把 `ResultMul` 从 row 移除,`Process` 直读 `GetResultMulTiers()`。
-        // **本 story 不擅自改**(属数据契约变更);现仅把「测试须显式设」写明。
+        // ✅ **已裁并落盘(2026-10-03)**:GDD 10-DC 补 **DC-6**(`result_mul` 恰三档),
+//    `EmergencyActionSchema.ValidateResultMul` 已实现 + 3 例测试。
+//    ⚠️ **「从 row 移除」一路已排除** —— GDD 10-DC 明写 `result_mul` 是
+//    **per-action 数据表字段**(内联于 `emergency_action.json`,ADR-014 烘焙),
+//    不是全局常量;故保留在 row 上是对的,缺的只是**校验**。
         // ══════════════════════════════════════════════════════════════
 
         private sealed class FakeEventSink : IEventSink

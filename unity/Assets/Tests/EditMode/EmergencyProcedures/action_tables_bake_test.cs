@@ -149,6 +149,37 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
             Assert.AreEqual(65536L, tiers[(int)JudgeResult.Applied], "Applied 档应为 65536 (1.0)");
         }
 
+        // ══════════ DC-6: result_mul 恰三档(2026-10-03 补)══════════
+
+        [Test]
+        public void test_dc6_resultMul_exactlyThreeTiers()
+        {
+            var ok = new EmergencyActionRow { ActionId = 0, ResultMul = EmergencyActionSchema.GetResultMulTiers() };
+            Assert.IsTrue(EmergencyActionSchema.ValidateResultMul(ok), "三档 ⇒ 过");
+        }
+
+        [Test]
+        public void test_dc6_resultMul_null_rejected()
+        {
+            // 🔴 这是实测暴露的形态:漏填 result_mul 的 row 此前能过全部烘焙门,
+            //    直到 Process 读 ResultMul[(int)result] NRE(PlayMode 两例即此形态)
+            var bad = new EmergencyActionRow { ActionId = 0, ResultMul = null };
+            Assert.IsFalse(EmergencyActionSchema.ValidateResultMul(bad),
+                "null ⇒ 拒(DC-6);否则 NRE 延后到运行期");
+        }
+
+        [Test]
+        public void test_dc6_resultMul_wrongArity_rejected()
+        {
+            Assert.IsFalse(EmergencyActionSchema.ValidateResultMul(
+                new EmergencyActionRow { ActionId = 0, ResultMul = new long[] { 65536L, 65536L } }),
+                "两档 ⇒ 拒(Applied=2 会越界)");
+            Assert.IsFalse(EmergencyActionSchema.ValidateResultMul(
+                new EmergencyActionRow { ActionId = 0, ResultMul = new long[4] }),
+                "四档 ⇒ 拒(超出 JudgeResult 闭集)");
+            Assert.IsFalse(EmergencyActionSchema.ValidateResultMul(null), "null row ⇒ 拒");
+        }
+
         [Test]
         public void test_resultMul_thirdTierNonZero()
         {

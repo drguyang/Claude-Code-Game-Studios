@@ -616,8 +616,17 @@ drug_potency(action, JudgeResult) = RoundFix( BASE_POTENCY[action] × ResultMul[
 
 > **🔴 首轮评审 R-2 的舍入修法(A8)**:缩放**阶**原稿就对(先乘后除、只除一次,已核
 > `0.5 × 0.25 = 0.125` ✓),但 **C# 的整数 `/` 是向零截断** —— 例
-> `(32769 × 16384) ÷ 65536 = 8192.5` → C# 得 **8192**,而 ADR-006 §三 要求
+> `(32768 × 16385) ÷ 65536 = 8192.5` → C# 得 **8192**,而 ADR-006 §三 要求
 > `ROUND_HALF_AWAY_FROM_ZERO` = **8193**。⇒ **`AC-10-05` 的跨平台对拍可被一个 ulp 打破(静默)**。
+>
+> ⚠️ **勘误(2026-10-03 · 由 `applied_payload_settlement_test.cs` 实测发现)**:本段原写
+> `(32769 × 16384) ÷ 65536 = 8192.5` —— **两数颠倒**。实测
+> `32769 × 16384 = 536887296` ÷ 65536 = **8192.25**(余数 16384 ≠ `MUL_ONE/2`)
+> ⇒ **根本无舍入分道**,照抄者实测得 8192 后会**误以为实现有 bug**。
+> 正确组合 = **`32768 × 16385` = 536903680** ÷ 65536 = **8192.5**(余数 32768 **恰为半**)✅
+> —— 唯此才使「向零截断(8192)」与「`ROUND_HALF_AWAY_FROM_ZERO`(8193)」分道。
+> **本段结论不变**(须用 `ROUND_HALF_AWAY_FROM_ZERO`,禁 C# 截断),**仅示例数字订正**;
+> 可复现判据 = `applied_payload_settlement_test.cs::test_ac1041_singleRounding_ulpCounterexample`。
 > **修法 = 明写中间积落 `Q32.32`、全程只做一次舍入**(上式)。
 > **`SKILL_MUL_ONE` 一名随 F-10.2 改判删除** —— 全节统一用 `MUL_ONE`(同值异名是漂移源)。
 
@@ -630,6 +639,14 @@ drug_potency(action, JudgeResult) = RoundFix( BASE_POTENCY[action] × ResultMul[
 | `Missed` | **0.25** | ⚠️ **非零,刻意为之** —— 抖了也不至于全废(**手感宽容**) |
 
 > **⚠️ 本式是 10 与 9 的唯一数值接口** —— 其结果是 9 的 F4 和式里的 `drug_potencyᵢ`。
+>
+> **⚠️ `ResultMul[]` 的承载归属(2026-10-03 澄清)**:它是 **per-action 数据表字段**
+> —— 按 10-DC 表,内联于 `assets/data/emergency_action.json` 的 `result_mul[3]`,
+> **由 ADR-014 烘焙产生**,随动作表行交付。
+> ⚠️ **不得**把它读成「全局常量」而改从代码直读 —— 本表的三档值是
+> **GDD 裁定的形状**(`OQ-10-1`),而**每行动作的承载**是数据契约;
+> 两者不矛盾:值由 GDD 定死,承载由 10-DC 定在行上。
+> 校验见 **DC-6**。
 >
 > **⚠️ `AppliedWeak` 的**两条来源**共用 0.5 档(首轮评审 R-6 的直接后果,显式点破)**:
 > ① 手动**三门过二**(稳度门不过);② **跳过**(默认层,`method = Skip`)。
@@ -812,6 +829,7 @@ Aggregate(reading[整个动作期]) → agg = {
 | **DC-2** | `1 ≤ mag_threshold ≤ MAG_MAX` | 幅度门恒真 / 恒假(F-10.2 结构下界②) |
 | **DC-3** | `jitter_relax_mul ≥ MUL_ONE` | 新手被收紧容差(F-10.2 结构下界①) |
 | **DC-4** | `action_id` 闭集 = `EmergencyAction` 枚举全值 | 9 的 `treatable_by[]` 引用到空动作 |
+| **DC-6** | **`result_mul` 恰三档**(`Length == 3`,按 `JudgeResult` 序数索引;且**非 null**) | ⚠️ **2026-10-03 补** —— 缺此校验时,漏填 `result_mul` 的行能过全部烘焙门,直到 `HostEmergencyProcessor.Process` 读 `ResultMul[(int)result]` **NRE** 才暴露(PlayMode 两例即此形态)。且档数 ≠ 3 ⇒ 索引越界或静默取错档 |
 | **DC-5** | 9 侧 `Kind` 白名单含 `EmergencyAttempt` / `EmergencyTreatmentApplied` / `DrugTreatmentApplied`(**三**者,非二者) | **9 构建期拒绝 10 的每一笔写入**(R-2 的原始症状)。**✅ `O-10-4` 已于 2026-09-18 落盘**(`disease-simulation.md:173` 病史流行) |
 
 > **⚠️ `OQ-10-6` 的连带**:`EmergencyAction` 枚举归属(10 定 or 21a 定)**决定 `action_id` 的类型来源**
