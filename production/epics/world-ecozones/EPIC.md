@@ -3,7 +3,7 @@
 > **Layer**: Foundation → Core → Feature
 > **GDD**: design/gdd/world-and-ecozones.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ Tooling 消费侧(ADR-022 关卡工具)
-> **Status**: In Review(4/5 stories Complete;双代理评审 REQUEST_CHANGES 4 BLOCKING —— **对账结论:B3/B4 已修 · B1 未修(TODO 化)· B2 形式已闭**;87/87 逐例复跑绿;✅ 逐 BLOCKING 对账件已落 `production/qa/evidence/reconciliation-world-ecozones-2026-10-02.md`;Story 005 = [L]/EXTERNAL 桌面走查 Pending;✅ **缺口 ①c 已闭(2026-10-02)** —— host gate 补 `IsHost => false` 负向夹具 6 例,`PoiStateMachineTest` 13 → **19/19**;突变测试坐实(删门 ⇒ 恰 4 例红);🔴 **B1 未闭** —— `PoiStateMachine.cs:105/131` TODO 仍在且 Append 绕过 `Sim.Codec` 手搓 `PayloadRef`;**闭合路径已由 ADR-029(`IPayloadEncoder`,✅ Accepted 2026-10-02)裁决**,实现归其实现轮)
+> **Status**: In Review(4/6 stories Complete;双代理评审 REQUEST_CHANGES 4 BLOCKING —— **对账结论:B3/B4 已修 · B1 未修(TODO 化)· B2 形式已闭**;87/87 逐例复跑绿;✅ 逐 BLOCKING 对账件已落 `production/qa/evidence/reconciliation-world-ecozones-2026-10-02.md`;Story 005 = [L]/EXTERNAL 桌面走查 Pending;✅ **缺口 ①c 已闭(2026-10-02)** —— host gate 补 `IsHost => false` 负向夹具 6 例,`PoiStateMachineTest` 13 → **19/19**;突变测试坐实(删门 ⇒ 恰 4 例红);🔴 **B1 未闭** —— `PoiStateMachine.cs:105/131` TODO 仍在且 Append 绕过 `Sim.Codec` 手搓 `PayloadRef`;**闭合路径已由 ADR-029(`IPayloadEncoder`,✅ Accepted 2026-10-02)裁决**,实现归其实现轮)
 > **Stories**: 5 stories — see table below
 
 ## Overview
@@ -64,3 +64,4 @@ This epic is complete when:
 | 003 | POI 定义加载与三态状态机 —— PoiStateChanged 唯一写通道 | Integration | **Complete ✅ 2026-10-01**(13 例;流侧重放半边归 9/45) | ADR-021/009/005 |
 | 004 | chunk 激活权与消费边界 —— 发现门、spawn_anchor、白名单 | Integration | **Complete ✅ 2026-10-01**(7 例;ADR-023 spike 面归 CI/桌面) | ADR-023/020/021 |
 | 005 | 发现体验走查与工具链一致性([L]/EXTERNAL) | Visual-Feel | Pending — [L] 桌面走查 + 工具 CI,draft 见 `production/qa/evidence/world-ecozones/story-005-*.md` | ADR-022/013 |
+| 006 | POI 载荷接线 —— `PoiStateChanged` 改走 `IPayloadEncoder`(闭合 B1) | Logic | Ready | ADR-029 + ADR-021 |

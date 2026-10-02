@@ -48,7 +48,10 @@
 | world-ecozones (6) | 5 | **4** | 1 | 0 | 🔶 **In Review**（双评 REQUEST_CHANGES 4B(`43400dc`,**B1 未修降级 TODO**)· 87/87 **逐例复跑绿** 2026-10-02 · Story 005 [L] Pending · **对账件缺 + B1 降级 TODO(codec 已在库)+ host gate 无负向夹具**） |
 | persistence-service (7a) | 1 | **1** | 0 | 0 | ✅ 全收口（EPIC 未在旧表列出） |
 | save-slot-ui (7b) | 1 | 0 | 0 | 1 | ⬜ 未启动（EPIC 未在旧表列出） |
-| **合计** | **203** | **121** | **6** | **76** | **59.6% 完成** |
+| **合计** | **206** | **121** | **6** | **79** | **58.7% 完成** |
+
+> ⚠️ **2026-10-02 再算**:ADR-029 实现轮立 3 条新 story ⇒ 总数 203 → **206**(Complete 数不变)。
+> `persistence-service` 由「Complete 1/1」回退为「**In Progress 1/2**」—— 002 为契约支新增。
 
 > ⚠️ **上表于 2026-10-02 状态回填轮按各 story 真件重算**。原记「191 / 93 / 95 / 6 / 49%」三处失实:
 > ① 总数 191 **漏计** `persistence-service`(1) 与 `save-slot-ui`(1),且各 epic 计数有出入 ⇒ 实测 **203**;
@@ -105,7 +108,8 @@
 | ~~**player-controller 006**~~ | ✅ 已闭(2026-10-02 判据修复轮;AC-1-27 改类型白名单 · AC-1-23 补调用点扫描;14/14 通过) | — |
 | ~~**evidence 对账件**~~ | ✅ 已闭(2026-10-02 对账轮) —— 三份逐 BLOCKING 对账件已落 `qa/evidence/`(modular · world-ecozones · player-controller);**对账结论 ≠ 修复全部成立**:modular B4 部分修 · we B1 未修 | — |
 | **ADR-029** | ✅ **Accepted 2026-10-02**(评审修正三处后转正)—— `IPayloadEncoder` 第七抽象点;解 modular B4 + we B1 的**共同根因**(Sim 写者无合法编码路径) | — |
-| **ADR-029 实现轮** | 契约支(`IPayloadEncoder`+`IBlobSink`+`EncodeBoxed` 分派)+ 接线支(6 的两位写者改走它);**须另立 story**。另:ADR-005 计数订正五处 · ADR-010 义务 15 | 高 |
+| **ADR-029 实现轮** | ✅ 三条 story 已立(2026-10-02):`persistence-service/story-002`(契约支)· `world-ecozones/story-006`(闭合 B1)· `modular-building/story-007`(闭合 B4)。**契约支是两条接线支的硬前置** | 高 |
+| **收口批** | §③ 手搓门(须待两接线支都完成)· ADR-005 计数订正五处 · ADR-010 义务 15 | 中 |
 | ~~**we 缺口 ①c**~~ | ✅ 已闭(2026-10-02) —— 6 例负向夹具,`PoiStateMachineTest` 19/19;突变测试坐实(删门 ⇒ 恰 4 例红)。新登记:gate 返回码 `PoiNotFound` 与「POI 不存在」混同(未修) | — |
 | **联机** | 45 联机夹具（P1b） | 非阻塞 |
 | **设计面 OQ** | OQ-SS-3（归 44）· OQ-IC-6（playtest）· OQ-24-1..6（数值轮） | 低 |

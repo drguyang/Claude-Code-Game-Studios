@@ -34,7 +34,7 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | prescription-medication | Core | 11 处方与用药 | design/gdd/prescription-and-medication.md | 5 stories | Ready(未实现) |
 | processing | Core | 14 加工与制作 | design/gdd/processing.md | 5 stories | Ready(未实现) |
 | world-ecozones | Core | 6b 生态区与 POI | design/gdd/world-and-ecozones.md | 5 stories | In Review(4/5 · 双评 REQUEST_CHANGES 4B,**B1 未修降级 TODO** · 87/87 逐例复跑绿;005 [L]) |
-| persistence-service | Foundation | 7a 持久化服务 | design/gdd/persistence-service.md | — | Ready(未实现) |
+| persistence-service | Foundation | 7a 持久化服务 | design/gdd/persistence-service.md | 2 stories | In Progress(1/2 · 002 = ADR-029 契约支新增) |
 | save-slot-ui | Foundation | 7b 存档位 UI | design/gdd/save-slot-ui.md | — | Ready(未实现) |
 
 ---
@@ -126,6 +126,20 @@ ModularBuilding **51/51** 与 WorldEcozones **87/87** 逐例全绿
 
 后续 gate-check 以本节为索引:**闭合 ①b(接 codec —— 路径已由 ADR-029 裁决)后,
 两 epic 方可转 Complete**。**①a 已闭 · ①c 已闭(2026-10-02)**。
+
+### ADR-029 实现轮 —— 三条 story 已立(2026-10-02)
+
+| Story | 落点 | 内容 |
+|---|---|---|
+| `persistence-service/story-002` | 7a(拥有 `Sim.Codec`) | **契约支**:`IPayloadEncoder` + `IBlobSink` + `PayloadEncoder` + `EncodeBoxed` 分派 |
+| `world-ecozones/story-006` | 6b | **接线支**:`PoiStateMachine` 改走 `IPayloadEncoder`(闭合 B1) |
+| `modular-building/story-007` | 6 | **接线支**:`StructureWriter` 三处写入改走 `IPayloadEncoder`(闭合 B4) |
+
+⚠️ **依赖序**:契约支是两条接线支的**硬前置**;§③ 手搓门须待**两条接线支都完成**后才可启用
+(否则会误报另一处未接线的写者)。
+⚠️ **落点理由**:无 infra epic;既有惯例是横切契约按系统分落(ADR-025 即散落 10+ epic)。
+`Sim.Codec` 的归属 = 7a(其 EPIC 自陈「Architecture Module: L3 契约程序集(`Sim.Codec`)」,
+`IBlobPool.cs` 头注亦把池生命周期归 7a/45)。代价:7a 由 Complete **回退 In Progress** —— 如实登记。
 
 - ✅ **缺口 ①c 已闭(2026-10-02)** —— `poi_state_machine_test.cs` 补 host gate 负向夹具 6 例:
   客户端拒写(零 Append)· 客户端不改状态 · 发现门同受覆盖 · 主机降级后写被挡 ·

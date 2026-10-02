@@ -3,7 +3,7 @@
 > **Layer**: Core
 > **GDD**: design/gdd/modular-building.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ 世界流 Structure* 三支唯一写者
-> **Status**: In Review(6/6 story 已实现;双代理评审 REQUEST_CHANGES 5 BLOCKING —— **对账结论:B1/B2/B3/B5 已修 · B4 部分修**;51/51 逐例复跑绿;✅ 逐 BLOCKING 对账件已落 `production/qa/evidence/reconciliation-modular-building-2026-10-02.md`;🔴 **B4 未闭** —— `StructureKinds.cs:191-198` 的 `StructurePlaced` 仍走 bit-packing `moduleId|(orientation<<16)|(variant<<24)`,且第一条干净赋值被立即覆盖 = 死代码;接线须先裁 `Sim` → `Sim.Codec` 引用边(ADR-025 §一 白名单恰 = {BCL, Sim.Contracts})⇒ 依「不得借绿」不转 Complete;**闭合路径已由 ADR-029(`IPayloadEncoder`,✅ Accepted 2026-10-02)裁决**,实现归其实现轮)
+> **Status**: In Review(6/7 story 已实现;双代理评审 REQUEST_CHANGES 5 BLOCKING —— **对账结论:B1/B2/B3/B5 已修 · B4 部分修**;51/51 逐例复跑绿;✅ 逐 BLOCKING 对账件已落 `production/qa/evidence/reconciliation-modular-building-2026-10-02.md`;🔴 **B4 未闭** —— `StructureKinds.cs:191-198` 的 `StructurePlaced` 仍走 bit-packing `moduleId|(orientation<<16)|(variant<<24)`,且第一条干净赋值被立即覆盖 = 死代码;接线须先裁 `Sim` → `Sim.Codec` 引用边(ADR-025 §一 白名单恰 = {BCL, Sim.Contracts})⇒ 依「不得借绿」不转 Complete;**闭合路径已由 ADR-029(`IPayloadEncoder`,✅ Accepted 2026-10-02)裁决**,实现归其实现轮)
 > **Stories**: 6 stories — see table below
 
 ## Overview
@@ -66,3 +66,4 @@ This epic is complete when:
 | 004 | OccupancyOverlay 合成与占用单一表 | Logic | In Review — `OccupancyOverlayTest` 6/6 | ADR-016/022 |
 | 005 | 朝向整数旋转 + StructureModified | Logic | In Review — `ModifiableCheckerTest` 5/5 | ADR-006/009 |
 | 006 | 拆除、返还舍入例外与 P0 范围门 | Logic | In Review — `DemolishCheckerTest` 3/3 + `RefundCalculatorTest` 5/5 | ADR-006/015/022 |
+| 007 | 结构载荷接线 —— `Structure*` 改走 `IPayloadEncoder`(闭合 B4) | Logic | Ready | ADR-029 + ADR-015 |
