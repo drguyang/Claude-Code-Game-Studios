@@ -2,7 +2,19 @@
 
 ## Status
 
-Draft —— 待用户裁定(2026-10-02 起草)
+**Accepted** —— 2026-10-02(用户裁定;经技术评审修正后转 Accepted)
+
+> **评审修正记录(2026-10-02 · 转 Accepted 同批)**:初稿有两处缺陷,已在转 Accepted 前修正 ——
+> ① **误把 ADR-006 G-2 的「禁装箱」升格为 codec 分派的要求**。G-2 禁的是**载荷字段**出现引用类型
+> (落盘/传输形状),其自身明写「解码后的 payload struct 是**瞬时读形**… 数组字段合法地只活在解码瞬间」
+> ⇒ **瞬时分派装箱不在 G-2 约束面内**。初稿据此写的「无装箱」硬约束**过紧**,且与既有
+> `PayloadCodec.Decode<T>`(`PayloadCodec.cs:41-47`,经 `object` 分派装箱)**标准不一**。
+> ② 由 ① 连带:初稿新立 `IPayload` 标记接口 —— 而既有姊妹路径 `Decode<T>` 只用
+> `where T : struct`,**不需要标记接口**(其 `DecodeBoxed` 已按 34 个 `EventKind` 穷举)。
+> ⇒ 修正为**与 `Decode<T>` 对称**:`where T : struct` + `EncodeBoxed` 同款分派,删 `IPayload`。
+> **修正后实现面显著简化**:不改 34 个 struct、不写 kindgen,直接镜像既有模式。
+> ③ 评审另发现初稿的接口签名**不可实现** —— `T` 无法反推 `EventKind`,故 `Encode<T>` 须收
+> `EventKind` 形参(与 `Decode<T>` 同因)。签名据此修正。
 
 > **Ordering Note**: 本 ADR **新增** ADR-005 的**第七个 P0 抽象点**,并**就地订正** ADR-005
 > 「六个抽象点」计数(五处)。同时**补 ADR-006 Amendment G-2 留下的洞** —— G-2 只定了
@@ -70,7 +82,7 @@ new PayloadRef(0, 0, blob.Length)     // blobId 恒 0,字节被丢弃
 | Depends On | **ADR-006 Amendment G-2** | 载荷 header/blob 形态(读形);本件补其**写形** |
 | Depends On | **ADR-025 §①** | `Sim` 引用集白名单 = {BCL, `Sim.Contracts`} —— 本件**遵守**,不修订 |
 | Depends On | **ADR-017 §二** | 门 A(noEngineReferences);b2 门 |
-| Depends On | **ADR-024 §⑤** | kindgen 生成器先例(本件的分派表拟走同一通道) |
+| Depends On | **ADR-024 §①** | `entities.yaml` = Kind 真源(本件的完备性断言对象) |
 | Depends On | **ADR-010 §三** | 义务汇总表;本件拟追加一条义务 |
 | Enables | 6 世界与生态区(we B1) | 闭合 `PoiStateChanged` 的编码路径 |
 | Enables | 6 建造(modular B4) | 闭合 `StructurePlaced` / `StructureModified` 的编码路径 |
@@ -106,7 +118,9 @@ new PayloadRef(0, 0, blob.Length)     // blobId 恒 0,字节被丢弃
 
 - **C1**:`Sim` 引用集不得变(ADR-025 §① + b2 门 + 门 A)。
 - **C2**:载荷字节必须住**不可变** blob 池(ADR-006 G-2)。
-- **C3**:载荷字段须 ∈ **整数域**,`SimEvent` 内禁装箱(ADR-006 G-2「无引用字段」意图保留并加强)。
+- **C3**:载荷**字段**须 ∈ **整数域**(ADR-006 G-2「无引用字段」意图保留并加强)。
+  ⚠️ **本条不约束 codec 的泛型分派** —— G-2 禁的是落盘/传输形状;编码/解码的**瞬时**装箱
+  不在其面内(G-2 自陈「payload struct 是瞬时读形」)。初稿曾误升格,已订正。
 - **C4**:`PayloadRef` 三字段全 `int`(ADR-006 G-2)。
 - **C5**:`Sim.Contracts` 引用集 = BCL(ADR-025 §①:112)—— 新接口只能依赖 BCL + 本装配类型。
 - **C6**:31 个 P0 系统里,写者不止 6 —— 本抽象点须对**所有** Sim 写者成立,不是 6 的专用补丁。
@@ -116,7 +130,7 @@ new PayloadRef(0, 0, blob.Length)     // blobId 恒 0,字节被丢弃
 - **R1**:`Sim` 的写者能**合法**产出 `PayloadRef`,零手搓。
 - **R2**:字节真的进池(不再出现 `PayloadRef(0,0,len)` 式假引用)。
 - **R3**:不破 C1–C5 任一条。
-- **R4**:分派不得引入装箱(C3)。
+- **R4**:分派须**覆盖全部 34 个 `EventKind`**,漏一即构建失败(与 `DecodeBoxed` 同口径)。
 
 ## Decision
 
@@ -138,21 +152,19 @@ namespace DaYiJingCheng.Sim.Contracts
         /// 编码 + 入池,返回 <see cref="PayloadRef"/>。
         /// 同一载荷多次编码**不保证**返回同一 BlobId(池去重是实现细节,非契约)。
         /// </summary>
-        PayloadRef Encode<T>(in T payload) where T : struct, IPayload;
+        PayloadRef Encode<T>(EventKind kind, in T payload) where T : struct;
     }
-
-    /// <summary>
-    /// 载荷标记接口 —— 34 支 per-Kind payload struct 均须实现(纯标记,无成员)。
-    /// 存在理由:给泛型约束一个可枚举的闭集,使分派可构建期生成并断言完备。
-    /// </summary>
-    public interface IPayload { }
 }
 ```
 
 **要点**:
 - 返回 **`PayloadRef`** 而非 `byte[]` —— **乙案**(用户 2026-10-02 裁定):编码与入池**一体**,
   使 `Sim` 侧只持**一个**依赖。`byte[]` 半途形态不得暴露给 `Sim`(否则 C3 的禁装箱意图被绕)。
-- `where T : struct, IPayload` —— **约束泛型,不装箱**(R4)。
+- `where T : struct` —— **与既有 `PayloadCodec.Decode<T>` 逐字对称**(`PayloadCodec.cs:41`)。
+  ⚠️ **不引入 `IPayload` 标记接口** —— 初稿曾新立该接口,但既有姊妹路径 `Decode<T>` 不需要它
+  (其 `DecodeBoxed` 已按 34 个 `EventKind` 穷举,不靠标记接口建闭集)。**对称优先于新增抽象**。
+- **`Encode<T>` 收 `EventKind` 形参** —— `T` 无法反推 `Kind`(与 `Decode<T>` 同因);
+  `Sim` 的写者本就知道自己发的 `Kind`,故不构成负担。初稿漏此形参,签名不可实现。
 - 命名 `IPayloadEncoder` 而非 `IEventEncoder`:它只做**载荷**;header 由 `SimEvent` 承载,不需编码面。
 
 ### ② blob 池的**写面**须定义(ADR-006 G-2 的遗留)
@@ -214,11 +226,12 @@ public sealed class PoiStateMachine
 
 ### Implementation Guidelines
 
-- **分派机制**:`PayloadCodec` 已有 34 个具名 `Encode(in XPayload)` 重载。泛型 `Encode<T>`
-  的分派**拟走 kindgen 生成**(ADR-024 §⑤ 先例:编辑期 .NET 工具 → 生成 `.g.cs`),
-  产出 `typeof(T)` → 具名重载的 switch,**禁装箱**(C3/R4)。
-  ⚠️ **生成器须断言完备性**:`IPayload` 的实现集 ⊇ registry 的 34 支 `payload_schema`
-  (ADR-024 §① 的真源 = `entities.yaml`),缺一 = 构建失败。
+- **分派机制 = 镜像既有 `Decode<T>`**(**不**走 kindgen,初稿方案已撤)。既有模式:
+  `Decode<T>` → `DecodeBoxed(EventKind)`(`object` 返回)→ 34 分支 switch → 具名 `DecodeXxx`。
+  本件照此写 `Encode<T>` → `EncodeBoxed(EventKind, object)` → 34 分支 switch → 具名 `Encode` 重载。
+  **接受瞬时装箱** —— 与既有解码路径同款;事件率上界 = tick 频率(20 Hz),每次一条 alloc 无实质影响。
+- **完备性断言**:`EncodeBoxed` 的分支集须 ⊇ `entities.yaml` 的 34 支 `payload_schema`
+  (ADR-024 §① 真源),双向差集归零 —— 与既有 `DecodeBoxed` 同口径,可共用同一探针覆盖两条路径。
 - **`PayloadEncoder` 落点**:`Sim.Codec`(它有 `PayloadCodec`),经构造注入 `IBlobSink`。
 - **池的去重**:同内容重复编码**不要求**返回同 BlobId(§① 契约明写);去重是 7a/45 的优化面。
 - **`Sim` 侧的测试缝**:`Sim` 的单测注入 `IPayloadEncoder` 的 fake
@@ -267,7 +280,7 @@ public sealed class PoiStateMachine
 ### Negative
 
 - **抽象点计数从六变七** —— ADR-005 五处计数须订正(§Migration Plan 列明)。
-- 34 支 payload struct 须加 `IPayload` 标记 + 一次 kindgen 生成。
+- 34 支 payload struct **无需改动**(初稿的标记接口方案已撤)—— 只需新增 `EncodeBoxed` 分派。
 - `IBlobSink` 是**新增契约面**,须 7a / 45 各自实现(此前只有读面)。
 
 ### Neutral
@@ -279,8 +292,8 @@ public sealed class PoiStateMachine
 
 | 风险 | 可能性 | 影响 | 缓解 |
 |---|---|---|---|
-| 分派经泛型引入装箱(C3 违) | 中 | 中 | 分派走 kindgen 生成的具名重载 switch;EditMode 探针断言无 `box` IL |
-| kindgen 完备性失守(漏一支 payload) | 中 | 高 | 生成器对 `entities.yaml` 的 34 支 `payload_schema` 做双向差集断言(承 ADR-024 A5 口径) |
+| ~~分派经泛型引入装箱~~ | — | — | **已撤** —— 该风险基于初稿对 G-2 的误读;装箱不在 G-2 约束面内,且既有 `Decode<T>` 同款。**接受**瞬时装箱 |
+| `EncodeBoxed` 分派漏一支 payload | 中 | 高 | 双向差集断言对 `entities.yaml` 的 34 支 `payload_schema`(承 ADR-024 A5 口径);与 `DecodeBoxed` 共用同一探针 |
 | `Sim` 写者绕过抽象点继续手搓 | 高 | 高 | §③ 新增门(`Sim/` 内 `new PayloadRef(` = 红) |
 | `IBlobSink` 被 `Sim` 直接引用,开第二旁路 | 中 | 中 | `IBlobSink` 刻意住 `Sim.Codec`(§②),`Sim` 引用集白名单天然挡住 |
 | 池实现方(7a/45)对写面理解不一 | 中 | 中 | §② 只定签名;`Store` 的并发 / 去重 / 容量归各自 ADR 轮 |
@@ -302,8 +315,8 @@ public sealed class PoiStateMachine
 
 ### 实现轮(须另立 story,建议拆两支)
 
-1. **契约支**:`Sim.Contracts` 加 `IPayloadEncoder` + `IPayload`;34 支 payload struct 加标记;
-   `Sim.Codec` 加 `IBlobSink` + `PayloadEncoder`;kindgen 生成分派表。
+1. **契约支**:`Sim.Contracts` 加 `IPayloadEncoder`;`Sim.Codec` 加 `IBlobSink` + `PayloadEncoder`
+   + `EncodeBoxed` 分派(**镜像 `DecodeBoxed`,不改 34 个 struct、不写 kindgen**)。
 2. **接线支**:`PoiStateMachine`(we B1)· `StructureKinds`(modular B4)改走 `IPayloadEncoder`;
    同时删 `StructureKinds.cs:191-198` 的死代码;新增 §③ 的门。
 
@@ -313,7 +326,7 @@ public sealed class PoiStateMachine
 |---|---|---|
 | `adr-005:25` | 「**六个**抽象点」 | 七个 |
 | `adr-005:31` | 「原稿写『五个』… 之后为 **六个**」 | 追加注:ADR-029 后为**七**个 |
-| `adr-005:257` | 「五个 + 第六个 `IEventAuthority`」 | 追加第七个 `IPayloadEncoder`(ADR-029) |
+| `adr-005:258` | 「五个 + 第六个 `IEventAuthority`」 | 追加第七个 `IPayloadEncoder`(ADR-029) |
 | `adr-005:474` | 「**六个** P0 抽象点」 | 七个 |
 | `adr-005:485` | 「**六个**抽象点的语义」 | 七个 |
 
@@ -329,14 +342,14 @@ public sealed class PoiStateMachine
 - [ ] **V-1** `Sim.Contracts` 的 `IPayloadEncoder` 引用集 ∈ {BCL, 本装配类型} —— 零 `Sim.Codec` 类型。
 - [ ] **V-2** `Sim` 引用集实测仍 = `["Sim.Contracts"]`(本件不改 `Sim.asmdef`)。
 - [ ] **V-3** `Sim/` 目录内 `new PayloadRef(` 零命中(§③ 门)。
-- [ ] **V-4** 34 支 payload struct 全部实现 `IPayload`;与 `entities.yaml` 双向差集归零。
-- [ ] **V-5** 泛型分派无装箱(`box` IL 零命中)。
+- [ ] **V-4** `EncodeBoxed` 的分支集与 `entities.yaml` 的 34 支 `payload_schema` 双向差集归零。
+- [ ] **V-5** `Encode<T>` 与 `Decode<T>` 的约束与分派形态对称(`where T : struct`;`EncodeBoxed` ↔ `DecodeBoxed`)。
 - [ ] **V-6** `PoiStateChanged` / `StructurePlaced` / `StructureModified` 三条载荷经
   `IPayloadEncoder` 编码后 `Encode→Decode` 逐字段往返一致。
 - [ ] **V-7** b2 门仍绿(`Sim` 引用集违例零)。
 - [ ] **V-8** ADR-005 五处计数订正落盘。
 
-⚠️ **本表全部未勾** —— 本件为 Draft,禁借绿。
+⚠️ **本表全部未勾** —— 本件虽已 Accepted,但**实现未落** ⇒ 判据仍禁借绿。
 
 ## GDD Requirements Addressed
 
@@ -353,7 +366,7 @@ public sealed class PoiStateMachine
 - `docs/architecture/adr-005-deterministic-sim.md` —— 抽象点集合(本件追加第七个)
 - `docs/architecture/adr-006-fixed-point-boundary-contract.md` —— Amendment G-2(载荷读形)
 - `docs/architecture/adr-025-contract-assembly-manifest.md` —— §① `Sim` 引用集白名单
-- `docs/architecture/adr-024-kind-single-source.md` —— §⑤ kindgen 先例
+- `docs/architecture/adr-024-kind-single-source.md` —— §① Kind 真源(`entities.yaml`)
 - `docs/architecture/adr-010-persistence-save-format.md` —— §三 义务表 / 池归属
 - `unity/Assets/Sim.Codec/IBlobPool.cs` —— 池读面(本件补写面)
 - `production/qa/evidence/reconciliation-world-ecozones-2026-10-02.md` —— we B1

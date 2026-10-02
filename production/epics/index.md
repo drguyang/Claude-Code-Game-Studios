@@ -118,8 +118,9 @@ ModularBuilding **51/51** 与 WorldEcozones **87/87** 逐例全绿
   这是 **ADR-006 Amendment G-2 遗留的洞**(只定了载荷**读形**,未定**写形**)。
 
   ⇒ 已由 **ADR-029**(`docs/architecture/adr-029-payload-encoder-abstraction.md`,
-  Draft)裁决:新增**第七个 P0 抽象点 `IPayloadEncoder`**(住 `Sim.Contracts`,乙案 —— 编码+入池一体)。
-  `Sim` 引用集**一字不改**。实现归 ADR-029 的实现轮(须另立 story)。
+  ✅ **Accepted 2026-10-02**)裁决:新增**第七个 P0 抽象点 `IPayloadEncoder`**
+  (住 `Sim.Contracts`,乙案 —— 编码+入池一体)。`Sim` 引用集**一字不改**。
+  实现归 ADR-029 的实现轮(**须另立 story**,拆契约支 + 接线支)。
 - ⚠️ **we B2 的形式已闭但原处置有取证缺口** —— `43400dc` 勾 13 个 AC 时**未同批复跑**,
   该缺口已由 `editmode-full-rerun-2026-10-02.md`(87/87)补齐。
 

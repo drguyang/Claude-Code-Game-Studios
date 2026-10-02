@@ -679,7 +679,36 @@
   「登记不立件」裁定(011 一侧)。Engine Knowledge Risk **LOW**(归属裁决,零 post-cutoff API;
   `AudioSource` 空间化 / `AudioLowPassFilter` 长期稳定;池化实现细节归 44 实现故事实测)。
 
-> **本日志状态**:全部 ADR(001–**028**)均有日志条目。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
+- [ADR-029 ✅ Accepted 2026-10-02]**载荷编码抽象点(`IPayloadEncoder` 第七抽象点)** ——
+  `docs/architecture/adr-029-payload-encoder-abstraction.md`。**由 modular-building B4 / world-ecozones B1
+  的对账轮上溯提出** —— 两者的阻塞被误记为「接线须先裁 `Sim` → `Sim.Codec` 引用边」,实测该边
+  **已由 ADR-025 §①:111 禁止且 b2 门强制**(非待裁空白)。**真正的根因在上一层**:
+  `Sim` 的写者(`PoiStateMachine` / `StructureKinds`)**没有任何合法的编码路径** ——
+  `PayloadCodec` 住 `Sim.Codec`(够不着),不可变 blob 池住 7a/45(也够不着),
+  而 `PayloadRef` 住 `Sim.Contracts`(够得着)。实测后果:**全库每一个写者都在手搓 `PayloadRef`,
+  且零字节真的进池**(`craft_event_payload_test.cs:280` 这个「最正确」的写路径同样是
+  `new PayloadRef(0, 0, blob.Length)` 假引用)。这是 **ADR-006 Amendment G-2 遗留的洞** ——
+  G-2 只定了载荷的**读形**(`PayloadRef` 寻址 + blob 池),未定**写形**(谁编码、谁入池)。
+  用户 2026-10-02 两项裁定:① **新增第七个 P0 抽象点 `IPayloadEncoder`**(住 `Sim.Contracts`);
+  ② **池走乙案** —— 编码 + 入池**一体**,接口直接出 `PayloadRef`(非 `byte[]`),`Sim` 侧只持一个依赖。
+  裁决:`PayloadRef Encode<T>(EventKind kind, in T payload) where T : struct;` ·
+  新增 **`IBlobSink`**(池的**写面**;`IBlobPool` 只有读面)—— 住 `Sim.Codec`,刻意**不**暴露给 `Sim` ·
+  新增门:**`Sim/` 目录内 `new PayloadRef(` = 违例**(唯一合法路径 = `IPayloadEncoder`)。
+  **`Sim` 引用集一字不改** —— b2 门 / 门 A / ADR-025 §① 全部继续成立。
+  **转 Accepted 前的技术评审修正三处**(2026-10-02):① 初稿**误把 ADR-006 G-2 的「禁装箱」升格为
+  codec 分派的要求** —— G-2 禁的是**载荷字段**出现引用类型(落盘/传输形状),其自陈
+  「payload struct 是瞬时读形」⇒ **瞬时分派装箱不在其面内**;初稿的「无装箱」硬约束**过紧**,
+  且与既有 `PayloadCodec.Decode<T>`(`:41-47`,经 `object` 分派装箱)**标准不一**。
+  ② 由 ① 连带**删 `IPayload` 标记接口** —— 既有姊妹路径 `Decode<T>` 只用 `where T : struct`,
+  不需要标记接口(其 `DecodeBoxed` 已按 34 个 `EventKind` 穷举)。⇒ 修正为**与 `Decode<T>` 对称**:
+  `where T : struct` + `EncodeBoxed` 同款分派。**修正后实现面显著简化**:不改 34 个 struct、不写 kindgen。
+  ③ 初稿接口签名**不可实现**(`T` 无法反推 `EventKind`)⇒ 补 `EventKind` 形参。
+  **连锁面(登记,归实现轮)**:ADR-005「六个抽象点」计数须订正**五处**(:25/:31/:258/:474/:485)·
+  ADR-010 §三 拟追加**义务 15**(blob 池写面实现,归 7a / 45)· 实现拆**契约支 + 接线支**两支
+  (须另立 story)。**V-1…V-8 全部未勾**(实现未落,禁借绿)。Engine Knowledge Risk **LOW**
+  (纯 C# 接口契约与装配边界,零引擎 API)。
+
+> **本日志状态**:全部 ADR(001–**029**)均有日志条目。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;
 > 洞 H1 / H3 的 ADR 由用户裁定**推迟 P1a**(本轮仅登记所有权,见 `systems-index.md` §11)。
