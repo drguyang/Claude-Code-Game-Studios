@@ -122,7 +122,7 @@ ADR-020 §一 通篇无此句(经 `git grep` 核对,该 ADR 从落盘起就没�
 ⚠️ **判据是载荷类型,不是 grep `Vector3`** —— F-1-6 要求 `FloorToInt(p / LATTICE_SIZE)`,
 合法路径**必然**读 `Vector3` ⇒ grep 式判据会**误杀正确实现**(`qa-lead` 复核)。
 本系统**不引用 sim 实现程序集**(不破门 A)—— 它**只**引用**边界程序集**
-(`WorldPos` + 六个 P0 抽象点,见 §Dependencies「程序集边界」/ ADR-005 Amendment F;守门 = `AC-1-28`)。
+(`WorldPos` + 七个 P0 抽象点,见 §Dependencies「程序集边界」/ ADR-005 Amendment F;守门 = `AC-1-28`)。
 
 **R5 —— 跨格事件是位移在 sim 中的唯一投影;且**主机是唯一的 Append 者**。**
 `ConsumeCellChanged()` 返回 `true` 的那一刻(且**只在那时**),经 `IEventSink.Append` 发**一条**
@@ -381,7 +381,7 @@ VR 只服务「急救动作」小游戏,形态是**站定式**(承 `technical-pr
   伤病修饰源,并**重核 `SPEED_MAX` 的速限约束**(否则构建期断言 `AC-1-06a/b/c` / F-1-1a 会红)。⇒ `OQ-1-5`
 - **1 不消费 30 技能。** 移动无技能成长(R7);本系统**不产生任何被 30 消费的量**。
 - **1 不交出任何游戏状态。** 无血量、无库存、无任务(R11)。下游若需状态,去问它该问的系统。
-- **1 不引用 sim 内部类型。** 只接触**边界程序集**:`WorldPos` + 六个 P0 抽象点
+- **1 不引用 sim 内部类型。** 只接触**边界程序集**:`WorldPos` + 七个 P0 抽象点
   (`IEventSink` / `ITickProvider` / `IIdAuthority` / `IVitalsQuery` / `IEventAuthority` / `SimEvent`)
   —— 这正是 **ADR-020 Amendment A**(订正判据 ②)+ **ADR-005 Amendment F**(新立边界程序集)
   的口径。**边界程序集是白名单,不是通道**:1 不得碰其中未列举的任何类型。
@@ -1079,7 +1079,7 @@ Guidelines 2 把 `WorldPos` 定为**住 sim 程序集**;ADR-020(订正后)又要
 
 **用户裁定(2026-09-16):开边界程序集。**
 「边界层」**从「某个特定系统的领域」重定义为「任意两个住门 A 内外两侧的系统之间的通信契约」**。
-**边界程序集** = `WorldPos` + 六个 P0 抽象点(ADR-005 §Key Interfaces:`ITickProvider` /
+**边界程序集** = `WorldPos` + 七个 P0 抽象点(ADR-005 §Key Interfaces:`ITickProvider` /
 `IEventSink` / `IIdAuthority` / `IVitalsQuery` / `IEventAuthority` + `SimEvent` 及其整数枚举),
 **零 `UnityEngine` 引用**;**sim 实现程序集与表现层都引用它**。
 
@@ -1659,7 +1659,7 @@ Guidelines 2 把 `WorldPos` 定为**住 sim 程序集**;ADR-020(订正后)又要
 | **谁 Append 跨格事件** | ✅ **主机唯一 Append**;客户端经第二 QoS 上行其格,不经可靠通道 | **2026-09-16 用户裁定 · R5 · EC-16** · `OQ-1-9` 结案 |
 | **F-1-1a 的变量与所有者** | ✅ 用 **`MAX_DT`**(非 `TICK_PERIOD`);不等式的所有者是 **`LATTICE_SIZE`**,而它归 **6**(F-6-1 的所有权反转),6 / 24 调表只抬高其下界 | **2026-09-16** · F-1-1a 订正 ①②;`LATTICE_SIZE` 归属 2026-09-16 `/consistency-check` C-1 订正 |
 | **接地模型** | ⏸ **未结案 —— 挂起到 spike**(三命题不相容,用户裁定先实测) | **R12 · `OQ-1-12`**(P0 开工前裁决) |
-| **`WorldPos` 的程序集归属** | ✅ 开**边界程序集**(`WorldPos` + 六个 P0 抽象点,零 `UnityEngine`);门 A 是**单向**约束 | ADR-005 **Amendment F**(2026-09-16 用户裁定) |
+| **`WorldPos` 的程序集归属** | ✅ 开**边界程序集**(`WorldPos` + 七个 P0 抽象点,零 `UnityEngine`);门 A 是**单向**约束 | ADR-005 **Amendment F**(2026-09-16 用户裁定) |
 | **ADR-006 定点域是否约束本系统** | ✅ **切分**:算术章节(§一/§三/§四)不适用;**边界章节(§二)适用** | ADR-006 **Amendment F**(2026-09-16 用户裁定) |
 | **「判据已定、载体未建」如何交付** | ✅ **只在本节之外记账**(写在 AC 节内,**不**另开 OQ 条目);载体由 **ADR-012** 一并建 | 2026-09-16 用户裁定 · AC 节头部 |
 | **`OQ-1-2` —— 可走性措辞的归属** | ✅ **出处记错并已订正** —— 该句**不在 ADR-020**(`git grep` 核对该 ADR 从落盘起无此句),而在 `docs/registry/architecture.yaml:760` 的 `player_movement_model.not` 一条;本轮已就地改写为「玩家可走性 = collide-and-slide;整数导航格只服务 AI」 | 2026-09-16 · 本 GDD R3 · `architecture.yaml:760` |

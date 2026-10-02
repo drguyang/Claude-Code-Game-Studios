@@ -317,7 +317,7 @@ python3 -c "import json; [json.load(open(p)) for p in __import__('glob').glob('u
 
 | # | 动作 | 承 |
 |---|---|---|
-| b1 | `Sim.Contracts` 类型本体(`WorldPos` · 六抽象点 · `SimEvent`/`PatientId`/`StreamId`/`EventKind` · `VitalsDto` · `Fix`+`FixParse` · `IDataProvider` · `AudioCueDto`+`IAudioCueSink` · `IPositionalChannel` · `ClinicEnvDto`+`IClinicEnvQuery`) | ADR-005 · §2.2 成员清单 |
+| b1 | `Sim.Contracts` 类型本体(`WorldPos` · 七抽象点 · `SimEvent`/`PatientId`/`StreamId`/`EventKind` · `VitalsDto` · `Fix`+`FixParse` · `IDataProvider` · `AudioCueDto`+`IAudioCueSink` · `IPositionalChannel` · `ClinicEnvDto`+`IClinicEnvQuery`) | ADR-005 · §2.2 成员清单 |
 | b2 | 门 A 白名单断言(构建期读 `GetReferencedAssemblies()`,Sim 引用集 ≠ {BCL, Sim.Contracts} = 失败) | ADR-017 §二 · ADR-025 §① 注 |
 | b3 | 装配封闭性断言(工程内 asmdef 集合 = §1 清单 ∪ 测试族) | ADR-025 §④ |
 | b4 | `ToFloat()` 调用点扫描(`Sim` 内出现 = 失败) | ADR-025 §② 甲案 · V-4 |

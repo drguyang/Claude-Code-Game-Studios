@@ -18,7 +18,7 @@
 **ADR Decision Summary**: `SimEvent` 形状 = `(Kind, Tick, Patient, Seq, Payload)`,全序键 `(Tick, StreamPriority, Patient, Seq)`;patient_id = 计数器永不复位 + 迁移后 `next = max(patient_id)+1` 由事件流重构,**终态折叠行必须保留 patient_id**;世界级事件用 `PatientId.None = -1` 哨兵不污染高水位;`Seq` 按 (Tick, Patient) 发号每 tick 复位。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: LOW(纯 C# 契约与机制;抽象点形状刻意不用任何 post-cutoff API)
-**Engine Notes**: 契约住 `Sim.Contracts`(六抽象点 + `SimEvent`);`IEventSink.Append` 的路由实现读 kindgen 产物 `src/Sim/StreamRouting.g.cs`(ADR-024)。
+**Engine Notes**: 契约住 `Sim.Contracts`(七抽象点 + `SimEvent`;成文时为六,ADR-029 后增第七个);`IEventSink.Append` 的路由实现读 kindgen 产物 `src/Sim/StreamRouting.g.cs`(ADR-024)。
 
 **Control Manifest Rules (this layer)**:
 - Required: 一切病情状态变更 = 进流事件(唯一真源);主机关口执行 Step/CatchUp;patient_seed 纯函数派生
@@ -31,7 +31,9 @@
 
 *From GDD `design/gdd/disease-simulation.md`, scoped to this story:*
 
-- [ ] **AC-2**[A]:五+一抽象点接口齐备且 `Sim` 内零引擎引用 —— `ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery` / `IPresenceQuery` / `IEventAuthority`(承 ADR-007 第六点裁定)
+- [ ] **AC-2**[A]:五+一抽象点接口齐备且 `Sim` 内零引擎引用
+  > ⚠️ **2026-10-03 注(不追改判据)**:本 AC 的枚举 = **成文时**的六支,**正确且已由本 story 交付**。ADR-029(2026-10-02)已追加**第七个** `IPayloadEncoder`;该点由 `persistence-service/story-002` 交付,归其判据面。**本条不扩**(改已 Complete story 的判据 = 范围变更);引用抽象点计数时以 `control-manifest` 为准。
+  > 原文: —— `ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery` / `IPresenceQuery` / `IEventAuthority`(承 ADR-007 第六点裁定)
 - [ ] **AC-2**[A]:`SimEvent` 载荷字段类型全 ∈ 整数域(Kind int 枚举 / Tick long / PatientId int / Seq int / Payload 整数域);反射断言判据(非 grep)
 - [ ] **AC-15 / 有界性**[A]:同场被模拟病人数硬上限 `PATIENT_APPEARANCE_CAP = 24`(超界拒收 = 集成断言失败);**在场才模拟**(离屏病人不进 Step,由 F3 CatchUp 补算 —— 补算本体归 story 006,本 story 交付 Presence 门与拒收断言)
 - [ ] **AC-36 系 id 机制**[L]:IIdAuthority 计数器永不复位 0;由事件流重构 `next = max(patient_id)+1`(`None=-1` 排除于 max);终态折叠行保留 patient_id 的往返断言

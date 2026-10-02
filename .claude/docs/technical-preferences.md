@@ -616,7 +616,7 @@
   的程序集对像;「仅门面可调用 `ToFloat()`」在「门面 = Sim 自身」读法下**恒假**;
   `tests/unit/sim/sim_fixedpoint_test.cs` 已因此不被编译)。裁定:① **具名六装配清单**
   (`Sim` 引用集**恰 = {BCL, `Sim.Contracts`}** / `Sim.Contracts` **恰 = BCL** 含 `WorldPos` +
-  六抽象点 + `Fix` + `ITeleportCommandSink` / `Sim.Codec`(BCL,`Fix` 编码器 `internal` +
+  七抽象点 + `Fix` + `ITeleportCommandSink` / `Sim.Codec`(BCL,`Fix` 编码器 `internal` +
   `InternalsVisibleTo("Sim.Contracts.Tests")`)/ `Gameplay.Presentation` / `Gameplay.UI`
   (= 焦点单栈门的**编译期**表达)/ `Editor.Tools` 族含 `tools/level/` + `tools/kindgen/`,
   `includePlatforms:["Editor"]` **不进构建**);② **QQ-03 = 甲案** —— `Fix` 保持 public,
@@ -703,7 +703,7 @@
   不需要标记接口(其 `DecodeBoxed` 已按 34 个 `EventKind` 穷举)。⇒ 修正为**与 `Decode<T>` 对称**:
   `where T : struct` + `EncodeBoxed` 同款分派。**修正后实现面显著简化**:不改 34 个 struct、不写 kindgen。
   ③ 初稿接口签名**不可实现**(`T` 无法反推 `EventKind`)⇒ 补 `EventKind` 形参。
-  **连锁面(登记,归实现轮)**:ADR-005「六个抽象点」计数须订正**五处**(:25/:31/:258/:474/:485)·
+  **连锁面**:ADR-005「六个抽象点」计数订正 ✅ **已于 2026-10-03 落盘**(实际 **12 处**,非登记的 5 处 —— 含 `adr-001`/`adr-020`/`adr-023`/`control-manifest` 等)·
   ADR-010 §三 拟追加**义务 15**(blob 池写面实现,归 7a / 45)· 实现拆**契约支 + 接线支**两支
   (须另立 story)。**V-1…V-8 全部未勾**(实现未落,禁借绿)。Engine Knowledge Risk **LOW**
   (纯 C# 接口契约与装配边界,零引擎 API)。

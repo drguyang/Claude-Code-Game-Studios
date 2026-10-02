@@ -110,6 +110,8 @@ dr_guyang(用户 · **2026-09-15 裁定 Accepted**)· technical-director(签:架
 
 **裁决:`IEventAuthority` 正式成为 ADR-005 五抽象点之外的第六个 P0 抽象点。**
 
+> ⚠️ **总数已于 2026-10-03 增至七个** —— ADR-029 追加第七个 `IPayloadEncoder`;本条所述「第 N 个」不变。
+
 ```
 public interface IEventAuthority   // P0 = 本地占位(永远是主机)
 {

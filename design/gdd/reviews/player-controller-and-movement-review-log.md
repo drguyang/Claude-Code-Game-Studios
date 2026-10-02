@@ -80,7 +80,7 @@ unity-specialist B9)—— 全场最强信号:**全篇没有任何公式把 `Mov
 
 | 落点 | 内容 |
 |------|------|
-| **ADR-005 Amendment F** | 开**边界程序集**(`WorldPos` + 六个 P0 抽象点,零 `UnityEngine`);门 A 是**单向**约束(只约束 sim 实现程序集) |
+| **ADR-005 Amendment F** | 开**边界程序集**(`WorldPos` + 六个 P0 抽象点,零 `UnityEngine`);门 A 是**单向**约束 [⚠️ 2026-10-03 注:该计数**当时**正确;ADR-029 已追加第七个 `IPayloadEncoder`,现为七个 —— 保留当时记录,不追改](只约束 sim 实现程序集) |
 | **ADR-006 Amendment F** | **算术域 vs 边界域切分** —— §一/§三/§四(定点算术)**不适用**于本系统;§二(边界)**适用** |
 | **ADR-009 Amendment G** | `ActorCellEntered` 登记为第 **10** 个 `Kind`;`tick` 语义收窄为「**观察到**跨格的那一 tick」;**频率口径订正**为上界 = tick 频率 |
 | **ADR-015 §一之补** | **可走性契约** —— `slopeLimit` / `stepOffset` 的语义 + 归属 + **同源纪律**(两侧不一致 = 装载失败);§Validation 增「可走性同源 BLOCKING」(**结清 `O-9`**) |

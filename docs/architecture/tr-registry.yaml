@@ -995,7 +995,7 @@
     domain: Core
     adr: ADR-005 + ADR-007
     status: covered
-    note: "2026-09-15 复查轮重裁(原为 covered):ADR-007 §一 追加第六抽象点 IEventAuthority 后,全案为六个(五个接口 + SimEvent)。disease-simulation.md §Dependencies 表同时补第六行(六抽象点)。ADR-005 §Summary / §Migration Plan 已同步"
+    note: "2026-09-15 复查轮重裁(原为 covered):ADR-007 §一 追加第六抽象点 IEventAuthority 后,全案为六个(五个接口 + SimEvent)。[⚠️ 2026-10-03 注:该计数**当时**正确;ADR-029 已追加第七个 `IPayloadEncoder`,现为七个 —— 本条保留当时的记录,不追改]disease-simulation.md §Dependencies 表同时补第六行(六抽象点)。ADR-005 §Summary / §Migration Plan 已同步"
 
   - id: TR-disease-009
     system: disease-simulation

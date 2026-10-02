@@ -29,8 +29,18 @@ to this field to detect stories written against stale rules. Always matches
 其中含**现行态断言**与**历史陈述**两类,后者按 `adr-006` 先例应加注而非改写 ——
 该项**另立批次**处理,不在版本回刷范围内。
 
-⇒ **已知陈旧面(截至本版)**:以下位置仍写「六抽象点 / 六个 P0 / 五+一抽象点」,
-**待订正**:
+✅ **订正已落盘(2026-10-03)** —— 下述陈旧面**已按「现行态断言→改 / 历史陈述→加注」二分处理完毕**。
+保留原清单作**闭环记录**(原文不删)。
+
+⚠️ **两类刻意不改**(附理由):
+- **判据面**(`disease-simulation/story-002` 的 **AC-2**):它是**判据**且该 story 已 `Complete`;
+  其枚举 = 成文时的六支,**正确且已交付**;ADR-029 的第七点由
+  `persistence-service/story-002` 交付。**改已 Complete story 的判据 = 范围变更** ⇒ 只**加注不追改**。
+- **历史陈述**(评审日志 · `architecture-review-*` · `adr-007` 的「第六个」·
+  `tr-registry.yaml` 的复查轮 note):按 `adr-006` 先例**加注不改写**。
+  且「**第 N 个**」本身**仍准确**(`IEventAuthority` 确实是第六个),只是**总数**变了。
+
+**原始待订正清单**(留档):
 - **判据面**:`disease-simulation/story-002` 的 **AC-2**(明写「五+一抽象点接口齐备」并枚举六支)
 - **GDD**:`systems-index.md` · `player-controller-and-movement.md` · `combat-and-weapon-lines.md` ·
   `disease-simulation.md` · `enemy-ai.md` · `random-events.md` · `persistence-service.md`
@@ -127,7 +137,7 @@ rule, see the referenced ADR.
 **程序集清单(ADR-025)**
 - **七装配**: `Sim` / `Sim.Contracts` / `Sim.Codec` / `Gameplay.Presentation` / `Gameplay.Input` / `Gameplay.UI` / `Editor.Tools` 族(2026-09-25 story-001 B1 拆装六 → 七);**asmdef 集合恰 = 表 ∪ 测试装配族**,多一个未登记装配 = 构建失败 — ADR-025 §①/§④
 - `Sim`:引用集 **恰 = {BCL, `Sim.Contracts`}**,`noEngineReferences: true`;含 19 个 sim 模块 + `StreamRouting.g.cs`,**25 与 9 同程序集** — ADR-025 §①
-- `Sim.Contracts`:引用集 **恰 = BCL**;含 `WorldPos` · 六抽象点 · `SimEvent`/`PatientId`/`StreamId`/`EventKind` · `VitalsDto` · `Fix`+`FixParse` · `IDataProvider` · `AudioCueDto`+`IAudioCueSink` · `IPositionalChannel` · `ITeleportCommandSink` — ADR-025 §①/§③
+- `Sim.Contracts`:引用集 **恰 = BCL**;含 `WorldPos` · **七抽象点** · `SimEvent`/`PatientId`/`StreamId`/`EventKind` · `VitalsDto` · `Fix`+`FixParse` · `IDataProvider` · `AudioCueDto`+`IAudioCueSink` · `IPositionalChannel` · `ITeleportCommandSink` — ADR-025 §①/§③
 - `Sim.Codec`:BCL only;7a 三流 codec + 存档头 + `Fix` 编码器(`internal` + `InternalsVisibleTo("Sim.Contracts.Tests")` = D-21-18 守卫的可执行形态) — ADR-025 §①
 - **QQ-03 甲案**:`Fix` 保持 public;执法 = 构建期断言「`ToFloat()` 调用点所在 asmdef ∈ {`Sim.Codec`, `Gameplay.*`}」,**`Sim` 内调用 = 构建失败** — ADR-025 §②
 - **QQ-01 ①′**:传送契约拆两半 —— 整数半 `ITeleportCommandSink.RequestTeleport(int actorId, WorldPos cell)` 进 `Sim.Contracts`,`Vector3` 连续半留 `Gameplay.Presentation` — ADR-025 §③

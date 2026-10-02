@@ -60,7 +60,7 @@ dr_guyang(用户 · **2026-09-20 全件照准,转 Accepted**)· technical-direct
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | **ADR-005**(Accepted —— 六个 P0 抽象点与边界程序集内容)· **ADR-006**(Accepted —— `Fix` 序列化禁令 D-21-18 / 唯一舍入)· **ADR-017**(Accepted —— `Sim.asmdef` 与门 A 白名单断言,本件把断言的**作用域事实**外推到全清单)· **ADR-010**(Accepted —— codec 义务清单)· **ADR-020**(Accepted —— `IPlayerMotor`/`ICameraRig` 契约)· **ADR-022**(Accepted —— Tooling 层「不进构建」先例)· **ADR-024**(Accepted 同批 —— `StreamRouting.g.cs` 的归属程序集在本件清单内落位) |
+| **Depends On** | **ADR-005**(Accepted —— 七个 P0 抽象点与边界程序集内容;计数经 ADR-029 追加第七个)· **ADR-006**(Accepted —— `Fix` 序列化禁令 D-21-18 / 唯一舍入)· **ADR-017**(Accepted —— `Sim.asmdef` 与门 A 白名单断言,本件把断言的**作用域事实**外推到全清单)· **ADR-010**(Accepted —— codec 义务清单)· **ADR-020**(Accepted —— `IPlayerMotor`/`ICameraRig` 契约)· **ADR-022**(Accepted —— Tooling 层「不进构建」先例)· **ADR-024**(Accepted 同批 —— `StreamRouting.g.cs` 的归属程序集在本件清单内落位) |
 | **Blocks** | 一切 C# 实现故事(**C2 的另一半**);`tests/` 种子测试的编译(其 asmdef 落点 = 本件);ADR-023 的 `ISceneRouter`/`IWorldSpawner` 归属 |
 | **Supersedes** | **散文三名** —— 「门面程序集」(ADR-005:228)与「独立契约程序集」(44 GDD:242)作为**称谓作废**,其内容并入具名清单项 |
 | **Related** | QQ-01 / QQ-03(本件主裁)· QQ-02(**本件不裁** —— 逐字回填 ADR-005 的独立义务,见 §Decision ⑥)|
@@ -109,7 +109,7 @@ dr_guyang(用户 · **2026-09-20 全件照准,转 Accepted**)· technical-direct
 | asmdef | 层 | 引用集 | `noEngineReferences` | 成员(§2.0/§2.2 的收口) |
 |---|---|---|---|---|
 | **`Sim`** | L2 | **期望引用集 = BCL + `Sim.Contracts`(仅此一件)** | **true**(ADR-017 原文) | 19 个 sim 模块(§2.1 表)+ `StreamRouting.g.cs`(ADR-024)+ **25 与 9 同程序集**(2026-09-20 已裁,§2.1 行内)|
-| **`Sim.Contracts`** | L3 | **期望引用集 = BCL** | **true** | `WorldPos` · 六抽象点 · `SimEvent`/`PatientId`/`StreamId`/`EventKind` · `VitalsDto` · `Fix` + `FixParse` · `IDataProvider` · `AudioCueDto`+`IAudioCueSink`(44 名义并入)· `IPositionalChannel` · `ClinicEnvDto`+`IClinicEnvQuery`(24 → 42 只读源,2026-09-22 OQ-CP-4 裁定)` |
+| **`Sim.Contracts`** | L3 | **期望引用集 = BCL** | **true** | `WorldPos` · **七抽象点**(含 ADR-029 的 `IPayloadEncoder`)· `SimEvent`/`PatientId`/`StreamId`/`EventKind` · `VitalsDto` · `Fix` + `FixParse` · `IDataProvider` · `AudioCueDto`+`IAudioCueSink`(44 名义并入)· `IPositionalChannel` · `ClinicEnvDto`+`IClinicEnvQuery`(24 → 42 只读源,2026-09-22 OQ-CP-4 裁定)` |
 | **`Sim.Codec`** | L3 | **BCL + `Sim.Contracts`** | **true** | 7a 三流 codec + 存档头 + `Fix` 自定义编码器(**`internal` + `InternalsVisibleTo("Sim.Contracts.Tests")`** —— D-21-18 守卫的可执行形态)· **2026-09-30 修订**:引用集由「BCL only」改为「BCL + `Sim.Contracts`」—— `Sim.Codec` 需要引用 `SimEvent`/`Fix` 等类型,原定义导致编译失败;`noEngineReferences` 保持 `true`(`Sim.Contracts` 不是引擎程序集)|
 | **`Gameplay.Presentation`** | L5(+L4) | UnityEngine · URP · `Sim.Contracts` | false | 1 · 2 · 42-UGUI 侧 · 44 · `ISceneRouter`/`IWorldSpawner`(ADR-023)· L4 边界层模块(4 / 8 / 13 / 51)|
 | **`Gameplay.Input`** | L4 | `Unity.InputSystem` only | false | 3 输入与设备(`InputService`,动作资产唯一持有者;**不引 `Sim.Contracts`** —— AC-3-A6 输入程序集不引任何声明 `IEventSink`/`SimEvent` 的程序集,2026-09-25 story-001 复核 B1 拆装)|

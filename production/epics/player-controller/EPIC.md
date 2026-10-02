@@ -20,7 +20,7 @@
 | ADR-009: 世界流边界 | `ActorCellEntered` 属世界流;有界性论证依赖「事件率上界 = tick 频率」 | MEDIUM |
 | ADR-015: 世界几何 | 单一整数格 `WorldPos`;`LATTICE_SIZE` 单一装载常量;`slopeLimit` 与逻辑层同源;可走性 = 烘焙整数查表,禁视觉地形采样 | LOW |
 | ADR-011: 输入架构 | `MoveInput` / `Jump` 动作映射供给(1 不消费 `Look`,朝向自动面向移动方向) | HIGH |
-| ADR-025: 契约程序集清单 | `Sim.Contracts`(边界程序集)=`WorldPos` + 六抽象点;1 的引用集白名单判据(AC-1-28)的可执行对像 | LOW |
+| ADR-025: 契约程序集清单 | `Sim.Contracts`(边界程序集)=`WorldPos` + 七抽象点;1 的引用集白名单判据(AC-1-28)的可执行对像 | LOW |
 | ADR-001: 网络 pipe | 第二 QoS 通道 = latest-value 按 `ActorId` 索引;P0 预埋 P1b 实现 | MEDIUM |
 
 **Engine Risk**: **LOW~HIGH 混载**。ADR-020 本体 LOW(`CharacterController` 长期稳定 API);抬到 HIGH 的是 ADR-011 输入面与 `OQ-1-12` 接地 spike(Unity 6.3 collide-and-slide / `isGrounded` 更新时机须实测)。

@@ -973,7 +973,7 @@ OCTILE := STEP_COST × (m3 + (D2·m2)/1024 + (D1·m1)/1024)     // 全整数,禁
 | ADR | 约束 |
 |---|---|
 | **ADR-016** AI 架构 | **本 GDD 的权威件**。§一 分层 · §二 复用 9 · §三 整数格感知 · §四 行为烘焙 · §五 整数寻路 · §七 `ITameable` · §八 52 接口 · §九 单原型 |
-| **ADR-005** 确定性模拟 | 整数定点域 · 主机唯一 Step · 六个 P0 抽象点 |
+| **ADR-005** 确定性模拟 | 整数定点域 · 主机唯一 Step · 七个 P0 抽象点 |
 | **ADR-006** 定点域边界 | `FixParse` · 单一舍入 · 禁 float 进流 · Amendment B 的 id 高水位 |
 | **ADR-009** 世界状态边界 | 三流路由 · `EncounterEnded` 落世界流 · 派生态判据(Q1)· **全序键 `(Tick, StreamPriority, Patient, Seq)`**(EC-27-16)· Amendment G(`ActorCellEntered`) |
 | **ADR-014** 数据管线 | `ai_enemy.json` → `.cooked` 两阶段烘焙 · 陈旧门 · 玩家构建零解析器 |

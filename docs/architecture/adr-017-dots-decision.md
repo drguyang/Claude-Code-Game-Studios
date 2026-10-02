@@ -266,7 +266,7 @@ Sim.asmdef:
   "noEngineReferences": true,          # 门 A —— 与 DOTS 全栈结构性互斥(§一)
   "references": []                      # ⚠️ 2026-09-20 ADR-025 V-6 订正(原文不删,就地加注):
                                         #   该空集是**示例简写**,作为断言文本**不可能成立** ——
-                                        #   `Sim` 必须能看见 `SimEvent` / 六个抽象点,故契约程序集
+                                        #   `Sim` 必须能看见 `SimEvent` / 七个抽象点,故契约程序集
                                         #   必然在其引用集内(ADR-025 §Context「Current State」)。
                                         #   现行裁决(ADR-025 §①):`Sim` 引用集**恰 = {BCL, Sim.Contracts}**
                                         #   —— 白名单升格为「恰等于两件套」,仍不含任何引擎程序集,

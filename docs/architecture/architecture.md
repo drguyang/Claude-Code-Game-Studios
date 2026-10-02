@@ -245,7 +245,7 @@ Polish / Tooling)是 **authoritative** —— 但它是**依赖档**(「谁依�
 │  L4  边界层(呈现侧)  4 交互 · 8 诊断 · 13 病人 AI · 51 遥测 · 3 输入        │
 │      可消费 float DTO(`VitalsDto`)· **不写三流** · 住门 A 外侧             │
 ├──────────────────────────────────────────────────────────────────────────┤
-│  L3  BOUNDARY(边界程序集)  `WorldPos` + 六个 P0 抽象点 + `SimEvent`         │
+│  L3  BOUNDARY(边界程序集)  `WorldPos` + 七个 P0 抽象点 + `SimEvent`         │
 │      + `VitalsDto` + `Fix→float` 门面 + 7a 的 codec                        │
 │      **仅 BCL · 零 `UnityEngine`** · sim 与门两侧**共同引用**(白名单,非通道) │
 ├──────────────────────────────────────────────────────────────────────────┤
@@ -426,7 +426,7 @@ docs/engine-reference/unity/plugins/addressables.md:301  ### Cleanup on Scene Un
 | 程序集(裁定名) | 层 | 引用集 | 状态与依据 |
 |---|---|---|---|
 | `Sim` | L2 门 A | **恰 = {BCL, `Sim.Contracts`}**(白名单升格,仍零引擎程序集) | ✅ ADR-017:251 + **ADR-025 ①**(⚠️ `references: []` 歧义订正 = ADR-025 V-6,**✅ 2026-09-23 回写轮已挂 ADR-017 §二** —— 该空集为示例简写非断言文本) |
-| `Sim.Contracts` | L3 BOUNDARY | **恰 = BCL** | ✅ ADR-025 ① —— 收 `WorldPos` + 六抽象点 + `SimEvent` 族 + `Fix`/`FixParse` + `VitalsDto` + `AudioCueDto`/`IAudioCueSink` + **`ITeleportCommandSink`(QQ-01 ①′ 整数半)** |
+| `Sim.Contracts` | L3 BOUNDARY | **恰 = BCL** | ✅ ADR-025 ① —— 收 `WorldPos` + 七抽象点 + `SimEvent` 族 + `Fix`/`FixParse` + `VitalsDto` + `AudioCueDto`/`IAudioCueSink` + **`ITeleportCommandSink`(QQ-01 ①′ 整数半)** |
 | ~~「门面程序集」~~ | (L3) | — | **称谓作废**(ADR-025 ①)—— ADR-005:228 的「仅门面可调用 `ToFloat()`」改由 **② 甲案白名单断言**执法;原文回写加注归 V-5 |
 | ~~「独立契约程序集」~~ | (L3) | — | **称谓作废** —— 内容并入 `Sim.Contracts`(同上,V-5 加注)|
 | `Sim.Codec` | L3 | BCL only | ✅ ADR-025 ① —— 收 7a 三流 codec + 存档头 + `Fix` 自定义编码器(`persistence-service.md:577` 的「边界层承载 codec 的程序集」现名)|
@@ -548,7 +548,7 @@ docs/engine-reference/unity/plugins/addressables.md:301  ### Cleanup on Scene Un
                     │ IEventSink(写)                    │ IVitalsQuery / 只读订阅
                     ▼                                   ▼
   L3 BOUNDARY  ┌─────────────────────────────────────────────────────────────┐
-  (仅 BCL)     │ WorldPos · 六抽象点 · SimEvent · VitalsDto · Fix.ToFloat()    │
+  (仅 BCL)     │ WorldPos · 七抽象点 · SimEvent · VitalsDto · Fix.ToFloat()    │
                │ · IDataProvider · AudioCueDto · IPositionalChannel · codec   │
                └───────┬──────────────────────────────────┬──────────────────┘
                        │                                  │
@@ -803,7 +803,7 @@ public readonly struct SimEvent
 // 全序键(跨流): (Tick asc) → StreamPriority(病史<病例<世界) → (Patient asc) → (Seq asc)
 // Seq 发放域唯一 = (Tick, Patient) —— 三流共享,零新全局计数器
 
-// ══ 六个 P0 抽象点(ADR-005 §Key Interfaces + ADR-007 §一)══
+// ══ 七个 P0 抽象点(ADR-005 §Key Interfaces + ADR-007 §一 + ADR-029 §①)══
 public interface ITickProvider   { long CurrentTick { get; } }
 public interface IEventSink      { void Append(in SimEvent e); }     // 主机唯一
 public interface IIdAuthority    { PatientId Next();
@@ -1209,7 +1209,7 @@ Required New ADRs 的落点上**(ADR-009 / 014 / 010 三份都被新 ADR 引用)
   **裁定项由此收窄为**:门 A 需不需要一个「命令传送」的整数域抽象 —— 而非「三处家规谁让步」。
 - **QQ-03 `Fix.ToFloat()` 的归属** —— `adr-005:228` 说「仅门面程序集可调用」,而该程序集从未定义。
   ⚠️ **与 §2.0 表的联动(2026-09-20)**:`adr-017:251` 给的 `Sim.asmdef` 是 `"references": []`
-  (**显式空数组**),而门 A 程序集**必须**能看见 `SimEvent` / 六抽象点(`IEventSink.Append` 的
+  (**显式空数组**),而门 A 程序集**必须**能看见 `SimEvent` / 七抽象点(`IEventSink.Append` 的
   实现方在门 A 内)⇒ **拟定名 `Sim.Contracts` 必然在 `Sim` 的引用集内** ⇒
   QQ-03 的「门面」有两种可能读法,须一并裁:
   **(i)** 门面 = 一个 L4 程序集,它是**唯一被允许 `references: [Sim]` 且调 `ToFloat()`** 的门面

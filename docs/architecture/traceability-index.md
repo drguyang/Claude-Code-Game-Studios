@@ -1357,7 +1357,7 @@
 > ① GDD 侧的硬编码行号引用腐化 —— ADR-006 / ADR-008 / ADR-005 中对
 >    `disease-simulation.md`、`diagnosis-system.md`、`random-events.md` 的行号引用
 >    **本轮已全部锚点化**(§Dependencies / §Core Rules 等章节名),GDD 侧零剩余;
-> ② ~~`TR-disease-008` 的「五抽象点」口径重述~~ ✅ 本轮已重裁(六抽象点);
+> ② ~~`TR-disease-008` 的「五抽象点」口径重述~~ ✅ 本轮已重裁(六抽象点;⚠️ **2026-10-03 再增至七个** —— ADR-029 追加 `IPayloadEncoder`);
 > ③ ~~`TR-disease-013` / `TR-disease-014` 状态重裁~~ ✅ 本轮已重裁(门 A + 门 B);
 > ④ ~~跨平台确定性四条无执行载体~~ ✅ ADR-012 落盘(双级黄金夹具矩阵);
 > ⑤ ~~拟物 UI 手柄焦点导航(R-6)~~ ✅ ADR-013 落盘(UI Toolkit 主 + UGUI 补 world/XR);

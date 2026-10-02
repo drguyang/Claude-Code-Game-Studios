@@ -395,7 +395,7 @@ onset 去重键 = (tick, actor_id, target_id, injury_id, dose_seq)
 但 R2 只登记 `Kind` 名、R9 只补邻居表,**emit 时机 + 重放同序这条义务此前无人承载**。
 本条把它钉给 9:**转移 tick = `position_agg` 越阈被 `Step` 求出的那一 tick;
 离线 `CatchUp` 须产生逐条相同的事件序列**(AC-25-5-02 的写者侧依据)。 | `disease-simulation.md` 规则五投影节 |
-| **R19** | **(2026-09-18 二轮新增 · A1/B-2/B-3)** 9 侧三行补齐:① `Down(ActorId) → bool` 的**签名 + 定义 + 程序集归属**(住 sim 程序集,整数返回,门 B 可过;`VitalsDto` 住边界 —— 现 9 全文只有 :1111 一句类比旁证,「引用而未登记」ADR-009 §三 同型)+ 程序集归属断言;② `IsCombatant(entity)` **真值表**(它是 `LethalFor` 的承重输入,现 :1098 有散文判据无真值表:13 病人 / 玩家 / 兽 / 自身非战斗源各算什么);③ `QueryHurtLevel` 折叠为**饱和累计量**(D-14 用户裁定 [甲]:与处置 Σ 同构折叠 ⇒ 查询 O(1);折算偏差量级归 OQ-25-7) | `disease-simulation.md` F4 / R1 / 六抽象点表 |
+| **R19** | **(2026-09-18 二轮新增 · A1/B-2/B-3)** 9 侧三行补齐:① `Down(ActorId) → bool` 的**签名 + 定义 + 程序集归属**(住 sim 程序集,整数返回,门 B 可过;`VitalsDto` 住边界 —— 现 9 全文只有 :1111 一句类比旁证,「引用而未登记」ADR-009 §三 同型)+ 程序集归属断言;② `IsCombatant(entity)` **真值表**(它是 `LethalFor` 的承重输入,现 :1098 有散文判据无真值表:13 病人 / 玩家 / 兽 / 自身非战斗源各算什么);③ `QueryHurtLevel` 折叠为**饱和累计量**(D-14 用户裁定 [甲]:与处置 Σ 同构折叠 ⇒ 查询 O(1);折算偏差量级归 OQ-25-7) | `disease-simulation.md` F4 / R1 / 七抽象点表 |
 | **R19b** | **(2026-09-18 二轮新增 · unity-F3/F4)** 3 的 P0 动作表(:130-144 现 11 行)**新增 `Attack` 行**(25:136 的意图源在 3 侧当前无载体 ⇒ 单机 P0 无法触发 25);边沿语义 = 「按住连发 = 每 tick 一个新意图,各自过占用门」(规则〇);**不入急救直读通道**(T1 二轮订正 [甲],走普通 action 回调)。附带:25 侧补门 A 条款(25 sim 程序集 asmdef `noEngineReferences: true` + 引用集白名单断言 —— 先澄清 25 是否独立 asmdef,若与 9 同程序集则一行回指 AC-5 即可) | `input-system.md` 规则二表 + 本 GDD 依赖表 / AC |
 
 ### States and Transitions
@@ -2321,7 +2321,7 @@ sim 时钟(tick,确定)   ── t = 求值 tick ──▶ Append(onset @ t) ─
 > 25 侧全部 `*_ticks` 的**量纲前置**就此解除,逐条读法 = `ticks × 50 ms`;⚠️ **`OQ-25-7`(数值旋钮本身)不随本条结案** —— 量纲有值 ≠ 数值已调,`cooldown_ticks` / `trauma_half_life` 仍归数值轮。
 
 **背景**:本 GDD **所有** `*_ticks` 旋钮(冷却 / 压制时长 / 切换代价 / `animation_ticks` D-12)
-以 tick 为单位,而 **tick 频率本身从未标定** —— 它是 `ITickProvider`(ADR-005 六抽象点之一)
+以 tick 为单位,而 **tick 频率本身从未标定** —— 它是 `ITickProvider`(ADR-005 七抽象点之一)
 的全局参数,**不归 25 定**。频率未定 ⇒ 「体感秒数」类验收(如 6.6 的 whiplash 上界、
 R2 的「停止输入 3 秒」)全部**无量纲**。它与 `disease-simulation.md:1329-1335` 的
 **OQ-8**(sim 实体数)互为表里:一个定时间分辨率,一个定空间分辨率,**ADR-017 的复评门

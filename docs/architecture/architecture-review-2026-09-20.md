@@ -482,7 +482,7 @@ E-3(FMA 禁令缓解不可执行)已结案(前者改判,后者由 RC-4 承接同
 
 - ✅ **系统覆盖**:**53 行系统全部有层归属,0 缺失**(逐行对 `systems-index.md`)。
 - ✅ **数据流**:三流 + 第二 QoS 通道 + `VitalsDto` / `PresentationDto` / `AudioCueDto` 边界齐。
-- ✅ **API 边界**:六抽象点(`ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery` /
+- ✅ **API 边界**:六抽象点 [⚠️ 2026-10-03 注:该计数**当时**正确;ADR-029 已追加第七个 `IPayloadEncoder`,现为七个 —— 保留当时记录,不追改](`ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery` /
   `SimEvent` / `IEventAuthority`)+ 第六项之后新增的 `ITeleportCommandSink`(ADR-025 QQ-01 = ①′)。
 - ✅ **孤立架构**:无 —— `Tooling` 层行 54 有 ADR-022 + 8 条 TR 支撑。
 - 🟡 **§5.4 分类表一处标签错**:`adr-005` 的「门面程序集」等死术语 → **RC-8**,已就地修。

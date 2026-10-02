@@ -77,7 +77,7 @@
 
 *Derived from ADR-029 §①/§②/§Implementation Guidelines:*
 
-- **`IPayloadEncoder` 落 `Sim.Contracts`** —— 与六抽象点同装配。加 doc comment 注明
+- **`IPayloadEncoder` 落 `Sim.Contracts`** —— 与七抽象点同装配。加 doc comment 注明
   「第七抽象点 · ADR-029 · 消费者 = `Sim` 的全部事件写者」。
 - **`IBlobSink` 落 `Sim.Codec`** —— 与 `IBlobPool`(读面)配对。**两条接口的装配归属不同是刻意的**:
   读面 `IBlobPool` 归 `Sim.Codec`(消费者 = `PayloadCodec.TryGet*`),写面 `IBlobSink` 也归 `Sim.Codec`

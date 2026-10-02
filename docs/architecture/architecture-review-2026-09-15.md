@@ -737,7 +737,7 @@ ADR-007 §Constraints / §Related:    { Tick, Patient, Kind, Seq, Payload }
 
 | 文件 | 改动 |
 |------|------|
-| `adr-005-deterministic-sim.md` | C-11 `Seq` → `long`;C-12 全序键补跨流;N-4「六抽象点」;E-1 门 A/B;C-15 行号锚点化 |
+| `adr-005-deterministic-sim.md` | C-11 `Seq` → `long`;C-12 全序键补跨流;N-4「六抽象点」(⚠️ 2026-10-03 注:ADR-029 后为七个,保留当时记录);E-1 门 A/B;C-15 行号锚点化 |
 | `adr-006-fixed-point-boundary-contract.md` | C-16 补三条验收判据;C-18「按字段名编码」;**「两处修正案」→ A/B/C/D**;GDD 行号 → 章节锚点 |
 | `adr-007-event-authority-and-roll-state.md` | C-18 字段序对齐;C-15 行号锚点化;§Related 补 Amendment C 指针 |
 | `adr-008-case-event-stream.md` | 依赖表补 A–D;C-15 行号锚点化(GDD 行号 → 章节锚点) |
