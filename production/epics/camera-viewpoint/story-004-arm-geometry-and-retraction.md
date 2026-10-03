@@ -175,7 +175,7 @@ AC-2-25 肩位常量几何 + 档位闭集 + **ARM_LEN > 0 装载期守卫**(本�
 | **B3** | **AC-2-15① 判据空转(自证假绿)+ 生产默认即违例** —— 测试用工厂字面量比同级字面量,从未读生产值;生产 `CamCollideMask` 默认 **0**(空掩码 ⇒ 永不收缩 ⇒ 穿墙)且无写入点 | 期望取**登记常量** `DefaultCollideMask`· 补 `ValidateCollideMask`(空掩码 / 含角色层 ⇒ 抛)· 补**两个真负夹具**· 断言**生产默认**经守卫 |
 | **B4** | **AC-2-25④ 无装载期守卫**,测试对夹具字面量自证 | 补 `ValidateArmLen`(ARM_LEN ≤ 0 ⇒ 抛)+ `ValidateAll` 单入口 · 断言生产默认 + 负夹具 |
 
-**Test Evidence**: CameraViewpoint **75 例 · 68 过 · 0 红 · 7 跳过**(`unity/TestResults-639266620000180660.xml`);全量 EditMode **2202 · 2161 过 · 0 红 · 1 inconclusive(既有)· 40 跳过**(`unity/TestResults-639266620876787780.xml`)(2026-10-03 batchmode)。
+**Test Evidence**: CameraViewpoint **75 例 · 68 过 · 0 红 · 7 跳过**(`unity/TestResults-639266620000180660.xml`);全量 EditMode `total 2202 · passed 2161 · failed 0 · skipped 40 · inconclusive 1`(既有 Audio 项)(2026-10-03 batchmode)。
 **Code Review**: ✅ 双代理评审原件 `production/qa/evidence/review-camera-viewpoint-story-004-{qa-lead,td}-2026-10-03.md`;本轮 5B 修复复跑 0 红。
 ⚠️ **残留(登记,非本批可闭)**:`PhysicsArmQuery` 生产接线 + `CountingArmQuery` 实例化归 story 005(本轮已随 005 接线);
 组 5 单一参数表对象(C2)· `CameraRig._distance` 第二臂长源收敛(C4)归 005 接线轮。

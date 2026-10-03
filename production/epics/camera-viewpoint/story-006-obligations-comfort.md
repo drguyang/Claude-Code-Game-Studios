@@ -159,7 +159,7 @@
 | **B-6/B-7** | 例数「11」实为 12;`obligationsHaveDeclaredReceivers` 自指空转且无 null guard;「禁混入 BLOCKING 计数」半句**零断言** | 计数订正 · 补 null guard + **接收方**断言 · 补 **EPIC 就绪度表级**断言(BLOCKING 枚举不含 03/24/26) |
 | **EPIC(TD §5)** | EPIC 头行 `Complete 6/6` 与 §Epic Status `In Progress`、Stories 表全 `Ready` **三处自相矛盾** | 三者口径统一为 **In Progress**;头行去 `Complete`;Stories 表按真件回填 |
 
-**Test Evidence**: CameraViewpoint **75 例 · 68 过 · 0 红 · 7 跳过**(`unity/TestResults-639266620000180660.xml`);全量 EditMode **2202 · 2161 过 · 0 红 · 1 inconclusive(既有)· 40 跳过**(`unity/TestResults-639266620876787780.xml`)(2026-10-03 batchmode)。
+**Test Evidence**: CameraViewpoint **75 例 · 68 过 · 0 红 · 7 跳过**(`unity/TestResults-639266620000180660.xml`);全量 EditMode `total 2202 · passed 2161 · failed 0 · skipped 40 · inconclusive 1`(既有 Audio 项)(2026-10-03 batchmode)。
 **Code Review**: ✅ 双代理评审原件 `production/qa/evidence/review-camera-viewpoint-story-006-{qa-lead,td}-2026-10-03.md`;本轮 5B 修复复跑 0 红。
 ⚠️ **残留(EXTERNAL/ADVISORY,不记绿)**:AC-2-21(PITCH_MAX 取值归用户)· AC-2-23(O-13 验收归相机 spike)· AC-2-03/24/26(playtest 签核)—— 均显式 NOT-RUN。
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

@@ -170,7 +170,7 @@
 | **文档** | §Implementation Notes 陈旧断言「半隐式证明稳定性内化」;Completion Notes 四栏 `_待填_`;Test Evidence `[ ] Pending`;例数「11」 | 就地回刷为「该测**只证有界不区分积分器**;区分靠首帧位移(n=1 前提)」· 四栏填实 · 例数订正 **12** |
 
 **Test Evidence**: `unity/TestResults-639266620000180660.xml` —— CameraViewpoint **75 例 · 68 过 · 0 红 · 7 跳过**;
-全量 EditMode `unity/TestResults-639266620876787780.xml` —— **2202 例 · 2161 过 · 0 红 · 1 inconclusive(既有 Audio 项)· 40 跳过**(2026-10-03 batchmode,Unity 6000.3.24f1)。
+全量 EditMode `total 2202 · passed 2161 · failed 0 · skipped 40 · inconclusive 1`(既有 Audio 项)(2026-10-03 batchmode,Unity 6000.3.24f1)。
 ⚠️ **2026-10-03 落盘前订正**:初稿引 `TestResults-639266614112558110.xml`(中间轮 73/69/0/4)与「73 例 / 2200」计数 —— 二者**均早于最终复跑**,已改为**末次**产物;源文件 mtime 全部早于该跑,绿灯有效。
 **Code Review**: ✅ 双代理评审已落 `production/qa/evidence/review-camera-viewpoint-story-003-{qa-lead,td}-2026-10-03.md`;
 本轮修复为五步循环的「5B 修复」步,复跑 0 红。

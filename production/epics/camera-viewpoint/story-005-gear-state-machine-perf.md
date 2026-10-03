@@ -187,7 +187,7 @@ AC-2-19 Casebook 冻结 + 固定俯角(**真收敛承载物**)· AC-2-20 无存�
 | **AC-2-20(QA §4)** | 名字黑名单(故事自列负夹具 `_idleTicks` **能通过**) | 改**语义可达性**(任何标量计时字段 ⇒ 红,放开可见性)+ 墙钟/帧钟禁串 |
 | **K** | Completion Notes「13 例」实为 12;四字段 `_待填_` | 本批订正 + 填实 |
 
-**Test Evidence**: CameraViewpoint **75 例 · 68 过 · 0 红 · 7 跳过**(`unity/TestResults-639266620000180660.xml`);全量 EditMode **2202 · 2161 过 · 0 红 · 1 inconclusive(既有)· 40 跳过**(`unity/TestResults-639266620876787780.xml`)(2026-10-03 batchmode)。
+**Test Evidence**: CameraViewpoint **75 例 · 68 过 · 0 红 · 7 跳过**(`unity/TestResults-639266620000180660.xml`);全量 EditMode `total 2202 · passed 2161 · failed 0 · skipped 40 · inconclusive 1`(既有 Audio 项)(2026-10-03 batchmode)。
 **Code Review**: ✅ 双代理评审原件 `production/qa/evidence/review-camera-viewpoint-story-005-{qa-lead,td}-2026-10-03.md`;本轮 5B 修复复跑 0 红。
 ⚠️ **残留(登记)**:`SetModeForTest` 仍为公开测试缝(QA §6①)—— 生产路径的档切换已走 `ICameraRig.SetMode` / `Tick`,但「生产码不得调 `SetModeForTest`」的结构断言未加(归后续);真 `Physics.SphereCast` 需在真实场景资产就位后集成实测(本批只接线,未跑场景级)。
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
