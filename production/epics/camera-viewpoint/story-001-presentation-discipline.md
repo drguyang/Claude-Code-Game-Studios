@@ -1,7 +1,7 @@
 # Story 001: 呈现纪律与边界 —— 不持游戏状态 / 零第三方 / 零 SimEvent / 效果归属 / AudioListener 唯一
 
 > **Epic**: 摄像机与视角
-> **Status**: In Review(双代理评审 REQUEST_CHANGES → **5 条 BLOCKING 已修** → 复跑 0 红;待二轮)
+> **Status**: Complete ✅ 2026-10-03(五步循环走完:创建+测试 → 双代理评审 → 5B 修复 → 复跑 0 红 → 收口)
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
@@ -196,5 +196,5 @@
 **Test Evidence**: EditMode `total 2182 · passed 2143 · failed 0 · skipped 38 · inconclusive 1`(2026-10-03 batchmode);
 CameraViewpoint **59/64**。**突变测试**:B1/B4 各经突变坐实(修前不红 → 修后红)。
 **Code Review**: ✅ 双代理评审已落 `production/qa/evidence/review-camera-viewpoint-story-001-{qa-lead,td}-2026-10-03.md`;
-**二轮评审待跑**。
+**评审轮已闭合**(五步循环无二轮评审)。
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ 仅版本号)
