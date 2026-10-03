@@ -6,6 +6,10 @@
 >   ⚠️ 2026-10-03 订正:原文记 17,与磁盘不符。两份 FP 孤儿 spec `audio-material-manifest.md` / `main-menu.md` 此前未被本索引收录)
 > **Sources**: systems-index.md (**53 systems**), game-concept.md, art-bible.md (**1254 lines**), hud.md, 7 UX screen specs, interaction-patterns.md, audio-system.md, combat-and-weapon-lines.md, item-database.md, enemy-ai.md, patient-ai.md, foraging.md, emergency-procedures.md, diagnosis-system.md, prescription-and-medication.md, modular-building.md, clinic-machine.md, world-and-ecozones.md, random-events.md, death-and-respawn.md, case-system.md, skill-system.md, persistence-service.md, telemetry-analytics.md
 > ⚠️ **2026-10-03 勘误**:上两处数字原记 `54 systems` 与 `1113 lines` —— 分别与 `game-concept.md:757` / `systems-index.md:28`(53)及磁盘实测(1254)不符。
+> **54 的成因(实测)**:那是**行的 token 数**不是可数系统数 —— `§2 表`含 `7a`/`7b` 两行(1 号拆 2)且 `26` 留一条已合并占位行;
+> 去掉 `26` 占位、把 `7a+7b` 折回 1 号 ⇒ `55 − 1(26) − 1(7b 折回) = 53`。**53 = 可数系统数**(口径见 `systems-index.md §10`)。
+> ⚠️ 另有 `concept-benchmark.md:289` 记「**全部 54 个系统**」—— 其自陈口径是「**7a/7b 分行;26 已并入 25 不单独评分**」= **数行不数系统**,
+> 与 53 **不矛盾**(它明说要 54 行);本索引与 game-concept 的 53 是**系统数**,两者口径不同、各自自洽。**不改 `concept-benchmark.md`**。
 
 ---
 
@@ -180,7 +184,7 @@
 | 1 | 纸质地图 | 世界态常驻右下，卷轴展开 0.3s | hud.md §4 |
 | 2 | 怀表 | 世界态常驻左上，铜怀表指针 = 时辰 | hud.md §5 |
 | 3 | 窗景天气 | 世界态常驻右上，纸窗透光 = 晴/阴/雨 | hud.md §5 |
-| 4 | 教学纸近景 | ⚠️ **独占全屏模态**(非「世界内单纸」—— 原描述与 `paper-closeup-48.md:22/:71` / `hud.md:39` 冲突,待裁 I-3) | hud.md §6, paper-closeup-48.md |
+| 4 | 教学纸近景 | **60% 浮层 · 模态**(✅ 2026-10-03 用户裁定占比;打开时世界栈冻结、关闭后焦点回进入前载体,`paper-closeup-48.md:22/:66-71`)。⚠️ **2026-10-03 订正**:原写「**世界内**单纸阅读」—— 「世界内」与浮层/模态归属矛盾,已删。另:教学**界面**(屏级,UI Screens #5)与教学**纸近景**(本项)是两件不同资产 | hud.md §6, paper-closeup-48.md |
 | 5 | 快捷道具栏 | 世界态底栏，快捷药材/工具 | hud.md Layout |
 | 6 | 存档卷轴封条 | 存档位视觉元素 | hud.md, save-slots-7b.md |
 | 7 | 敌人黄铜读数条 | 全作唯一贴屏数值反馈 | combat-and-weapon-lines.md, art-bible §1P3/§7.6 |
