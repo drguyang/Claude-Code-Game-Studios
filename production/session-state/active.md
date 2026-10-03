@@ -112,7 +112,8 @@
 | **注册表 id 类型** | `StructureInstanceRegistry` id = int,而 `entities.yaml:2068` 定 i64 ⇒ 超 2^31 回绕;**归独立轮** | 中 |
 | ~~**收口批**~~ | ✅ 已闭(2026-10-02) —— §③ 门已实现为 **b6** · ADR-005 计数订正(实际 **12 处**,非登记的 5 处)· ADR-010 义务 15 已落 · control-manifest 版本升 | — |
 | ~~**10 手搓点**~~ | ✅ **已修**(`story-007` Complete,17/17 + 突变坐实);含结构性收口(删两个 payload struct 副本)。✅ GDD A8 勘误已落盘 · ✅ `ResultMul` 缺口已补 **DC-6**;**唯一待裁 = 载荷 `Seq` 占位**(归上行链 45) | — |
-| **评审原件** | 🔴 三 epic(modular / we / player-controller)的评审报告**原件不可得**;义务已立(`.claude/docs/review-workflow.md` + `coding-standards` + `story-done` 闸门)。**解除条件 = 各补做一次评审并落 `qa/evidence/review-*.md`** | 高 |
+| ~~**评审原件**~~ | ✅ **已闭**(2026-10-03)—— 四份补做评审已落盘;🔴 **但四 epic 均查出缺陷 ⇒ 全部不转 Complete**。**跨 epic 缺陷汇总**:`qa/evidence/cross-epic-defect-summary-2026-10-03.md`(A 判据空转 7 · B 已勾无实现 4 · C 实现缺口 9 · D 文档 3) | 高 |
+| **A 类判据空转** | 🔴 **最优先** —— 7 条 AC 已勾但判据恒真/重复/只查常量非零(含 2 条 `[B]`);**禁以空转判据记绿** | 高 |
 | ~~**we 缺口 ①c**~~ | ✅ 已闭(2026-10-02) —— 6 例负向夹具,`PoiStateMachineTest` 19/19;突变测试坐实(删门 ⇒ 恰 4 例红)。新登记:gate 返回码 `PoiNotFound` 与「POI 不存在」混同(未修) | — |
 | **联机** | 45 联机夹具（P1b） | 非阻塞 |
 | **设计面 OQ** | OQ-SS-3（归 44）· OQ-IC-6（playtest）· OQ-24-1..6（数值轮） | 低 |

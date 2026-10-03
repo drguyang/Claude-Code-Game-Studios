@@ -254,7 +254,7 @@ grep -n "Assert.Ignore" unity/Assets/Tests/EditMode/EmergencyProcedures/feel_lat
 | # | 严重度 | 发现 | 落点 | 说明 |
 |---|---|---|---|---|
 | **N-1** | 🔴 高 | **两条 BLOCKING AC(10-02/10-03)判据空转** | `reading_contract_test.cs:154-177` | AC-10-02 断言的是「程序集名不含 'Input'」这一恒真命题;AC-10-03 与字段类型测重复。二者均**无 IL/操作码扫描**,却标 `[x]`。GDD 明文要求「asmdef 白名单 + IL 扫描」。 |
-| **N-2** | 🔴 高 | **`SimEvent` header `Seq` 亦硬编码 0(未登记)** | `HostEmergencyProcessor.cs:87,114` | story-007 只登记了**载荷** `Seq` 占位;header `Seq` 同样未发号却**无任何文档登记**。破坏 ADR-008 全序键与 ADR-006「主机发号」,且比载荷 `Seq` 影响面更大(去重/排序都读 header)。 |
+| ~~**N-2**~~ | ~~🔴 高~~ → **❌ 撤回** | ~~`SimEvent` header `Seq` 硬编码 0~~ | `HostEmergencyProcessor.cs:87,114` | ❌ **经主会话复核,本判不成立** —— 传 `0` 是**全库既定占位约定**:`EventStream.cs:89-92` 明写「如果事件没有 Seq,则发号」并给 `Seq == 0` 赋值;`PoiStateMachine.cs:129` 同样传 0。**header `Seq` 由流发号,非缺陷。** 原文保留以留痕。 |
 | **N-3** | 🟠 中 | **A8 勘误未同步 AC 表** | `design/gdd/emergency-procedures.md:1014` | F-10.4 正文 `:617-630` 已订正为 `32768×16385`,但 AC-10-04a 单元格仍写 `32769×16384`(错误数字)。勘误不完整。 |
 | **N-4** | 🟠 中 | **story-006 测试文件位置与声明不符** | story-006 Test Evidence vs `Tests/EditMode/.../feel_latency_test.cs` | story 声明证据在 `Tests/PlayMode/.../feel_latency_test.cs`,实际文件在 **EditMode**。3 项 NOT-RUN 也全在 EditMode。 |
 | **N-5** | 🟠 中 | **`SkillMul` 死代码 + JITTER 违 Forbidden** | `JudgeEvaluator.cs:113,116,82` | `skillMul` 算出即弃;稳度门未按 F-10.2 公式用 `SkillMul(L)`;JITTER 用 C# 裸 `/` 截断(Control Manifest 明列 Forbidden)。P0 数值无害但公式与文档不符。 |
@@ -285,7 +285,7 @@ grep -n "Assert.Ignore" unity/Assets/Tests/EditMode/EmergencyProcedures/feel_lat
 **EPIC 转 Complete 的硬前置**:
 1. **本报告已落盘**(2026-10-03)—— 兑现「评审报告原件落盘」义务。
 2. **N-1 修复**:AC-10-02/10-03 补真 IL/操作码扫描,或**降级为 NOT-RUN**(禁以空转判据记绿)。
-3. **N-2 登记**:`SimEvent` header `Seq` 占位须与载荷 `Seq` 同款显式登记(归上行链 45/P1b)。
+3. ~~**N-2 登记**:header `Seq` 占位须显式登记~~ —— ❌ **已撤回(复核判定非缺陷)**。
 4. **N-3 修复**:AC-10-04a 单元格数字同步 A8 勘误。
 5. **N-7 修复**:story-007 Test Evidence / EPIC 表 / story-001 计数三处状态对齐。
 
