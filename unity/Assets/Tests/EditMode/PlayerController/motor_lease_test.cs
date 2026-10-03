@@ -156,24 +156,39 @@ namespace DaYiJingCheng.Tests.PlayerController
             var callSites = new List<string>();
             var disallowed = new List<string>();
 
-            foreach (string asmName in AllowedCallerAssemblies)
+            // ⚠️ **2026-10-03 修复结构性空转(第二轮评审 #1)**:
+            //    初版 `foreach (asmName in AllowedCallerAssemblies)` —— **只遍历白名单**,
+            //    而判据 `!AllowedCallerAssemblies.Contains(asmName)` 在该循环内**永假**
+            //    ⇒ `disallowed` 恒空,**排他半边从未执行**(与 A 类同型,我自己重犯)。
+            //    现改为遍历**全部已加载程序集** ⇒ 白名单外的调用者**真的会被检出**。
+            var allAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+            int scannedAsms = 0;
+            foreach (var asm in allAssemblies)
             {
-                var asm = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == asmName);
-                if (asm == null) continue;
+                var asmName = asm.GetName().Name;
+                if (asmName == null) continue;
+                // 跳过测试框架自身(其夹具**故意**调用 Acquire/Release)
+                if (asmName.Contains("Tests") || asmName.StartsWith("nunit") ||
+                    asmName.StartsWith("UnityEngine.TestRunner") || asmName.StartsWith("UnityEditor.TestRunner"))
+                    continue;
 
-                foreach (var site in FindLeaseCallSites(asm))
+                var sites = FindLeaseCallSites(asm);
+                if (sites.Count == 0) continue;
+                scannedAsms++;
+
+                foreach (var site in sites)
                 {
                     callSites.Add($"{asmName}:{site.Caller}.{site.Method}");
                     if (!AllowedCallerAssemblies.Contains(asmName))
-                        disallowed.Add(site.Caller);
+                        disallowed.Add($"{asmName}:{site.Caller}.{site.Method}");
                 }
             }
 
             Assert.IsEmpty(disallowed,
                 "lease 调用者不在白名单 {4, 10, 25} 内(AC-1-23):\n" + string.Join("\n", disallowed));
 
-            // 显式记账:集合当前为空 ⇒ 本断言此刻是「白名单子集」的守卫,
+            // 显式记账:集合当前为空(生产代码零调用点)⇒ 本断言此刻是「白名单子集」的守卫,
+            // 且已扫 `scannedAsms` 个**含 lease 调用的**程序集(全库扫描面,非仅白名单)。
             // 真正的调用点覆盖须待 4 / 10 / 25 接线(见 story-006 Deviations)。
             TestContext.WriteLine(
                 $"AC-1-23 调用点集合(当前 {callSites.Count} 处,预期 P0 为 0):\n" +

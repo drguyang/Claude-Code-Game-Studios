@@ -68,8 +68,10 @@ namespace DaYiJingCheng.Sim.World
                             IReadOnlyList<WorldPos> occupiedCells = null)
         {
             int id = _nextStructureId++;
-            // ⚠️ 兜底仅为向后兼容(旧调用方);**新调用方须传真足迹**。
-            //    兜底仍 = {anchor} ⇒ 若调用方不传,该缺陷会复现 ⇒ 由 C1 的测试守住。
+            // ⚠️ **2026-10-03(N-r1)**:兜底仍 = `{anchor}`,但**生产路径已 fail-closed**
+            //    (`StructureWriter.Place` 无目录即抛)⇒ 该兜底**只服务既有测试的直调**。
+            //    新调用方**须传真足迹**;若生产代码出现直调 `Register` 而不传足迹,
+            //    须在评审中判为 C1 复现。
             var cells = occupiedCells ?? new List<WorldPos> { anchor };
             _instances[id] = new StructureInstance(id, anchor, moduleId, orientation, variant, cells);
             return id;
@@ -170,21 +172,40 @@ namespace DaYiJingCheng.Sim.World
         public int Place(WorldPos anchor, int moduleId, int orientation, int variant, long tick)
         {
             // ── C1:真足迹(与放置判定同源)─────────────────────────────
-            IReadOnlyList<WorldPos> occupied = null;
-            if (_moduleCatalog != null)
-            {
-                var defOpt = _moduleCatalog.GetModuleDefinition(moduleId);
-                if (defOpt.HasValue)
-                    occupied = PlaceableChecker.ComputeOccupiedCells(defOpt.Value, anchor, orientation);
-            }
+            // ⚠️ **2026-10-03 fail-closed(第二轮评审 N-r1)**:
+            //    初版把 `moduleCatalog` / `occupancy` 设为**可选**(默认 null)以求向后兼容 ——
+            //    结果 `moduleCatalog == null` 时 `occupied` 保持 null ⇒ `Register` 兜底 `{anchor}`
+            //    (**C1 复现**)且 `OccupyCells` 不调(**C2 复现**),**全程静默**。
+            //    更糟:`test_c2_noCatalog_noOccupancy_noThrow` 把该退化路径**断言为正确行为**。
+            //    ⇒ 现改为 **fail-closed**:
+            //      · 未注入 `moduleCatalog` ⇒ **抛**(结构写者无目录即不可用);
+            //      · `moduleId` 不在目录 ⇒ **抛**(不许拿 `{anchor}` 冒充真足迹)。
+            if (_moduleCatalog == null)
+                throw new InvalidOperationException(
+                    "StructureWriter 未注入 IModuleCatalog —— 无法算真足迹(F-23-2b)。" +
+                    "静默兜底 {{anchor}} 会复现 C1(占用集退化)与 C2(Overlay 不写),故 fail-closed。");
+
+            var defOpt = _moduleCatalog.GetModuleDefinition(moduleId);
+            if (!defOpt.HasValue)
+                throw new InvalidOperationException(
+                    $"moduleId={moduleId} 不在模块目录内 —— 无法算真足迹。" +
+                    "静默兜底 {{anchor}} 会复现 C1/C2,故 fail-closed。");
+
+            IReadOnlyList<WorldPos> occupied =
+                PlaceableChecker.ComputeOccupiedCells(defOpt.Value, anchor, orientation);
 
             int structureId = _registry.Register(anchor, moduleId, orientation, variant, occupied);
             if (structureId >= _nextStructureId)
                 _nextStructureId = structureId + 1;
 
             // ── C2:同步世界占用表(F-23-1 EffectiveWalkable 的写路径)──────
-            if (_occupancy != null && occupied != null)
-                _occupancy.OccupyCells(occupied);
+            // ⚠️ **fail-closed(N-r1)**:未注入 `occupancy` ⇒ 抛。
+            //    静默跳过会让 F-23-1 对已放置结构**不生效**(C2),且**无任何信号**。
+            if (_occupancy == null)
+                throw new InvalidOperationException(
+                    "StructureWriter 未注入 IWorldOccupancy —— 放置不会写 Overlay ⇒ " +
+                    "F-23-1 EffectiveWalkable 对已放置结构不生效(C2)。故 fail-closed。");
+            _occupancy.OccupyCells(occupied);
 
             // ADR-029 §③:载荷经 IPayloadEncoder —— 五字段全载,零 bit-packing
             var payload = _encoder.Encode(EventKind.StructurePlaced,

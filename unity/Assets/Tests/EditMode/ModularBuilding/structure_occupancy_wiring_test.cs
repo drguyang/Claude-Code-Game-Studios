@@ -9,6 +9,7 @@
 // ⚠️ 本文件补的是**集成判据** —— 既有测试全为单元级(直调 World.OccupyCells 或
 //    不传 moduleCatalog),**掩盖了**这两条缺陷。
 
+using System;   // InvalidOperationException(N-r1 fail-closed 判据)
 using System.Collections.Generic;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
@@ -55,7 +56,8 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         {
             var catalog = new StubCatalog();
             catalog.Add(7, LShapeLocal);
-            var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder, catalog);
+            var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder,
+                                             catalog, new NoopOccupancy());
 
             int sid = writer.Place(new WorldPos(10, 0, 10), moduleId: 7, orientation: 0, variant: 0, tick: 1);
 
@@ -72,7 +74,8 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             // 同源性:Register 用的足迹须 == PlaceableChecker 对同一模块/朝向算出的足迹
             var catalog = new StubCatalog();
             catalog.Add(7, LShapeLocal);
-            var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder, catalog);
+            var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder,
+                                             catalog, new NoopOccupancy());
 
             var anchor = new WorldPos(3, 0, 4);
             int sid = writer.Place(anchor, 7, orientation: 90, variant: 0, tick: 1);
@@ -119,12 +122,47 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             Assert.AreEqual(2, occupancy.LastFreed.Count, "须释放**完整足迹**");
         }
 
+        // ══════════ N-r1:fail-closed(第二轮评审补)══════════
+
         [Test]
-        public void test_c2_noCatalog_noOccupancy_noThrow()
+        public void test_nr1_noCatalog_throwsFailClosed()
         {
-            // 向后兼容:不传 catalog/occupancy ⇒ 不接线,但**不得抛**
+            // ⚠️ **2026-10-03 反转**:初版本测名为 `noCatalog_noOccupancy_noThrow`,
+            //    断言「不抛」—— 那等于把 **C1/C2 的静默退化路径合法化**(第二轮评审 N-r1)。
+            //    现改为 **fail-closed**:无目录 ⇒ 抛。
             var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder);
-            Assert.DoesNotThrow(() => writer.Place(new WorldPos(1, 0, 1), 7, 0, 0, tick: 1));
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => writer.Place(new WorldPos(1, 0, 1), 7, 0, 0, tick: 1),
+                "未注入 IModuleCatalog ⇒ 须 fail-closed(静默兜底 {anchor} = C1 复现)");
+            StringAssert.Contains("ModuleCatalog", ex.Message);
+        }
+
+        [Test]
+        public void test_nr1_unknownModuleId_throwsFailClosed()
+        {
+            // moduleId 不在目录 ⇒ 不得拿 {anchor} 冒充真足迹
+            var catalog = new StubCatalog();   // 空目录
+            var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder,
+                                             catalog, new NoopOccupancy());
+            Assert.Throws<InvalidOperationException>(
+                () => writer.Place(new WorldPos(1, 0, 1), 999, 0, 0, tick: 1),
+                "moduleId 不在目录 ⇒ fail-closed");
+        }
+
+        [Test]
+        public void test_nr1_noOccupancy_throwsFailClosed()
+        {
+            // 有目录但无 occupancy ⇒ 不得静默跳过 Overlay 写(C2)
+            var catalog = new StubCatalog();
+            catalog.Add(7, LShapeLocal);
+            // ⚠️ 本用例**刻意不传** occupancy(上一轮我的批量替换误加了 `NoopOccupancy`,
+            //    致该测失去判据 —— 已修正)
+            var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder,
+                                             catalog);
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => writer.Place(new WorldPos(1, 0, 1), 7, 0, 0, tick: 1),
+                "未注入 IWorldOccupancy ⇒ 须 fail-closed(C2:Overlay 不写)");
+            StringAssert.Contains("WorldOccupancy", ex.Message);
         }
 
         // ══════════ 辅助 ══════════
@@ -134,6 +172,12 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             private readonly List<SimEvent> _sink;
             public CapturingSink(List<SimEvent> sink) { _sink = sink; }
             public void Append(in SimEvent e) => _sink.Add(e);
+        }
+
+        private sealed class NoopOccupancy : IWorldOccupancy
+        {
+            public void OccupyCells(IEnumerable<WorldPos> cells) { }
+            public void FreeCells(IEnumerable<WorldPos> cells) { }
         }
 
         private sealed class SpyOccupancy : IWorldOccupancy

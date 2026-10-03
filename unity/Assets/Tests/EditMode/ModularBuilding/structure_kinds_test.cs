@@ -33,7 +33,9 @@ namespace DaYiJingCheng.Tests.ModularBuilding
 
             // Mock IEventSink
             var mockSink = new MockEventSink(evt => _appendedEvents.Add(evt));
-            _writer = new StructureWriter(mockSink, _registry, encoder);
+            // ⚠️ N-r1:fail-closed 要求注入目录/占用表(生产路径不得静默退化)
+            _writer = new StructureWriter(mockSink, _registry, encoder,
+                                          new MinimalModuleCatalog(), new NoopOccupancy());
         }
 
         /// <summary>经池 + codec 取回强类型载荷(ADR-029 的合法读路径)。</summary>
@@ -187,6 +189,36 @@ namespace DaYiJingCheng.Tests.ModularBuilding
     //   修法 = 注册表 id 全链升 `long`(须同步 `IIdAuthority` 机制 A 的高水位口径);
     //   归独立轮,**不属 B4 的范围**。
     // ══════════════════════════════════════════════════════════════
+
+
+    /// <summary>
+    /// 最小模块目录 + 占位 occupancy —— 供本文件既有用例满足 fail-closed(N-r1)。
+    /// ⚠️ 2026-10-03:fail-closed 要求生产路径必注入目录/占用表;
+    /// 本文件测的是**载荷编码**与**实例表语义**,与足迹无关,故注入最小夹具
+    /// (而非给 fail-closed 开逃生舱 —— 那会让 C1/C2 的静默退化重新合法化)。
+    /// </summary>
+    internal sealed class MinimalModuleCatalog : IModuleCatalog
+    {
+        private readonly System.Collections.Generic.Dictionary<int, ModuleDefinition> _defs =
+            new System.Collections.Generic.Dictionary<int, ModuleDefinition>();
+        public void Add(int id, WorldPos[] local) =>
+            _defs[id] = new ModuleDefinition(id, SlotType.Decor, local, new[] { 0, 90, 180, 270 });
+        /// <summary>任意 id 都返回单格定义(本文件不测足迹)。</summary>
+        public ModuleDefinition? GetModuleDefinition(int moduleId)
+        {
+            if (!_defs.ContainsKey(moduleId)) Add(moduleId, new[] { new WorldPos(0, 0, 0) });
+            return _defs[moduleId];
+        }
+        public bool ContainsModule(int moduleId) => true;
+        public System.Collections.Generic.IReadOnlyCollection<int> GetAllModuleIds() => _defs.Keys;
+    }
+
+    /// <summary>空占位 occupancy —— 本文件不验 Overlay 写面。</summary>
+    internal sealed class NoopOccupancy : IWorldOccupancy
+    {
+        public void OccupyCells(System.Collections.Generic.IEnumerable<WorldPos> cells) { }
+        public void FreeCells(System.Collections.Generic.IEnumerable<WorldPos> cells) { }
+    }
 
     // Mock IEventSink
     internal class MockEventSink : IEventSink

@@ -35,7 +35,8 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             _registry = new StructureInstanceRegistry();
             _events = new List<SimEvent>();
             _writer = new StructureWriter(
-                new CapturingSink(_events), _registry, _encoder);
+                new CapturingSink(_events), _registry, _encoder,
+                new MinimalModuleCatalog(), new NoopOccupancy());   // N-r1:注入以过 fail-closed
         }
 
         private T PayloadOf<T>(SimEvent evt) where T : struct
@@ -253,6 +254,36 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             return System.Text.RegularExpressions.Regex.Replace(noBlock, @"//.*?$", "",
                 System.Text.RegularExpressions.RegexOptions.Multiline);
         }
+
+
+    /// <summary>
+    /// 最小模块目录 + 占位 occupancy —— 供本文件既有用例满足 fail-closed(N-r1)。
+    /// ⚠️ 2026-10-03:fail-closed 要求生产路径必注入目录/占用表;
+    /// 本文件测的是**载荷编码**与**实例表语义**,与足迹无关,故注入最小夹具
+    /// (而非给 fail-closed 开逃生舱 —— 那会让 C1/C2 的静默退化重新合法化)。
+    /// </summary>
+    internal sealed class MinimalModuleCatalog : IModuleCatalog
+    {
+        private readonly System.Collections.Generic.Dictionary<int, ModuleDefinition> _defs =
+            new System.Collections.Generic.Dictionary<int, ModuleDefinition>();
+        public void Add(int id, WorldPos[] local) =>
+            _defs[id] = new ModuleDefinition(id, SlotType.Decor, local, new[] { 0, 90, 180, 270 });
+        /// <summary>任意 id 都返回单格定义(本文件不测足迹)。</summary>
+        public ModuleDefinition? GetModuleDefinition(int moduleId)
+        {
+            if (!_defs.ContainsKey(moduleId)) Add(moduleId, new[] { new WorldPos(0, 0, 0) });
+            return _defs[moduleId];
+        }
+        public bool ContainsModule(int moduleId) => true;
+        public System.Collections.Generic.IReadOnlyCollection<int> GetAllModuleIds() => _defs.Keys;
+    }
+
+    /// <summary>空占位 occupancy —— 本文件不验 Overlay 写面。</summary>
+    internal sealed class NoopOccupancy : IWorldOccupancy
+    {
+        public void OccupyCells(System.Collections.Generic.IEnumerable<WorldPos> cells) { }
+        public void FreeCells(System.Collections.Generic.IEnumerable<WorldPos> cells) { }
+    }
 
         private sealed class CapturingSink : IEventSink
         {
