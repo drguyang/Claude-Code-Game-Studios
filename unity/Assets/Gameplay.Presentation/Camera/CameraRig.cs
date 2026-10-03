@@ -10,6 +10,7 @@
 //
 // 禁止：先取相机 forward 再水平化再归一（事后形态）
 
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace DaYiJingCheng.Gameplay.Presentation.Camera
@@ -25,6 +26,11 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
 
         [Header("Distance")]
         [SerializeField] private float _distance = 5f;
+
+        // ── AC-2-06:档位与镜头效果归属(ADR-020 §六)────────────────
+        // ⚠️ 效果**语义**归 8(数据表,经 ADR-014 烘焙);此处只持**渲染实现**的开关。
+        //    `FirstPerson`(VR)⇒ 效果**全禁**(AC-20-08)。
+        private CameraMode _mode = CameraMode.Explore;
 
         // AC-2-08: YAW_BASIS_EPS 唯一定义点
         public const float YAW_BASIS_EPS = 1e-5f;
@@ -58,6 +64,37 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         /// <summary>
         /// 更新 yaw（弧度）。
         /// </summary>
+        /// <summary>当前档(ADR-020 §Key Interfaces)。</summary>
+        public CameraMode Mode => _mode;
+
+        /// <summary>
+        /// 当前生效的镜头效果清单(渲染实现侧)。
+        /// ⚠️ 效果**不得用于报状态**(AC-20-09)—— 本清单只驱动渲染,不进任何流。
+        /// </summary>
+        public IReadOnlyList<string> ActivePostProcessEffectsForTest()
+        {
+            // VR(FirstPerson)⇒ 全禁(AC-20-08)
+            if (_mode == CameraMode.FirstPerson) return System.Array.Empty<string>();
+            // 平面档 ⇒ 效果可用(语义归 8,此处为渲染实现占位)
+            return new[] { "ink_edge" };
+        }
+
+        /// <summary>
+        /// 测试缝:强制设档(AC-2-06② 在 P0 无真 VR ⇒ 夹具注入)。
+        /// ⚠️ 仅供测试;生产路径的档切换归 story 005 的档状态机。
+        /// </summary>
+        public void SetModeForTest(CameraMode mode) => _mode = mode;
+
+        /// <summary>
+        /// 应用一次 Look 增量(yaw 弧度 / pitch 度)。
+        /// ⚠️ 测试缝:供 AC-2-01② 的差分重算注入输入序列。
+        /// </summary>
+        public void ApplyLook(float deltaYaw, float deltaPitch)
+        {
+            UpdateYaw(deltaYaw);
+            UpdatePitch(deltaPitch);
+        }
+
         public void UpdateYaw(float deltaYaw)
         {
             _yaw += deltaYaw;

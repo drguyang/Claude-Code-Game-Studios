@@ -31,6 +31,18 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
     /// <summary>
     /// 相机机位接口 —— 只读，供系统 1 投影 MoveInput。
     /// </summary>
+    /// <summary>
+    /// 相机档(ADR-020 §Key Interfaces 的权威形状)。
+    /// ⚠️ `FirstPerson`(VR)= **P1a**;P0 只落枚举与接口(TR-camera-002)。
+    /// </summary>
+    public enum CameraMode
+    {
+        Explore,      // 平面探索(第三人称越肩)
+        Treatment,    // 处置态(10 急救)
+        Casebook,     // 脉案(39)
+        FirstPerson,  // VR(P1a)—— 头显驱动,不经本链;镜头效果全禁
+    }
+
     public interface ICameraRig
     {
         /// <summary>

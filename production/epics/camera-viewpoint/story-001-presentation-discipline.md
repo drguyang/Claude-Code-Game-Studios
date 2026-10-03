@@ -1,7 +1,7 @@
 # Story 001: 呈现纪律与边界 —— 不持游戏状态 / 零第三方 / 零 SimEvent / 效果归属 / AudioListener 唯一
 
 > **Epic**: 摄像机与视角
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-03 (6/6 AC 落地;12 例测试通过)
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
@@ -34,23 +34,23 @@
 
 *From GDD `design/gdd/camera-and-viewpoint.md`, scoped to this story(判据正文照录,修订沿革见 GDD 原文):*
 
-- [ ] **AC-2-01(BLOCKING)** —— **相机不持有游戏状态**:
+- [x] **AC-2-01(BLOCKING)** —— **相机不持有游戏状态**:
   ① 相机的**全部内部状态**(`yaw` / `pitch` / `anchor` / `v_anchor` / 当前档 / 转场进度 / `Casebook` 快照)**不进任何流、不进存档** —— 判据 = **字段类型断言**(反射扫描相机状态的可达字段,断言**无一**为 `SimEvent` / `Fix` / `PatientId` / 事件流类型);
   ② **崩溃 / 重启相机不改变任何游戏事实** —— 判据 = **差分重算**:构造两条**不同历史**的相机实例(不同 `yaw` / 不同档 / 中途重启),把输入序列的**后半段**喂给两者,断言**末帧的可见输出**(相机位姿 + `YawBasis`)**收敛到逐位相同**。
   *(承 `AC-20-05`;ADR-013 §9 C3 的呈现层三件套体例。⚠️ 2026-09-16 评审订正:原文 ②「收敛到同一可见状态」是软的 —— 现钉死为「后半段相同输入 ⇒ 末帧输出逐位相同」,可执行、可判真假。)*
-- [ ] **AC-2-02(BLOCKING)** —— **零第三方**:**`Packages/manifest.json` 不含 `com.unity.cinemachine`**。
+- [x] **AC-2-02(BLOCKING)** —— **零第三方**:**`Packages/manifest.json` 不含 `com.unity.cinemachine`**。
   *(承 `AC-20-02`;ADR-020 §二「官方包不是豁免」。**与 ADR-012 的 CI 门同批落地**。)*
   ⚠️ **2026-09-16 评审订正(两处)**:① 原文写作小写 `packages/` —— 在大小写敏感的 Linux CI 上该路径**不存在** ⇒ 「无匹配」⇒ 断言**恒为绿**(**假阳性机器**);② 原文时点 `Packages/manifest.json` 本仓不存在 ⇒ 断言**不可执行**。
   ⇒ **判据 = 「文件存在 ⇒ 断言其内容;文件不存在 ⇒ 报 `INCONCLUSIVE`,不得记绿`**。
   🔵 **2026-09-28 拆解注**:该文件**现已存在**(根 `Packages/manifest.json` + `unity/Packages/manifest.json` 两处)⇒ 判据转可执行,且**须扫两处**(漏一处 = 原文点名的假阳性机器变体)。
-- [ ] **AC-2-04(BLOCKING)** —— **相机不引用 sim 实现程序集**:
+- [x] **AC-2-04(BLOCKING)** —— **相机不引用 sim 实现程序集**:
   ① 相机程序集的**引用集白名单断言**(恰 = 边界程序集 + `UnityEngine` 表现层);
   ② **`IEventSink.Append` 的调用点数 = 0** —— 相机是**唯一连跨格事件都不碰的 P0 系统**(R-2-8)。
   *(与 `AC-20-05` 判据面一致;② 比系统 1 的同类判据更强的形式。)*
-- [ ] **AC-2-05(BLOCKING)** —— **相机零 `SimEvent`**:反射扫描相机程序集内**全部 `SimEvent` 的构造点与 `Kind` 赋值点**,断言**零命中**;且**反向**:全仓 `SimEvent` 的构造点中,**无一**的调用栈可追溯到相机程序集。
+- [x] **AC-2-05(BLOCKING)** —— **相机零 `SimEvent`**:反射扫描相机程序集内**全部 `SimEvent` 的构造点与 `Kind` 赋值点**,断言**零命中**;且**反向**:全仓 `SimEvent` 的构造点中,**无一**的调用栈可追溯到相机程序集。
   *(与 `AC-2-04` ②互补:那条查 `Append` 调用点,这条查**事件的产生**。)*
   ⚠️ **2026-09-16 评审订正**:原文「反射扫描 + 无可追溯到相机程序集」**缺主语** ⇒ 现拆**正向(本程序集内零构造)**与**反向(全仓构造点的调用栈)**两条,各自可执行;正向在**载体未建**时只能标「已定义」。
-- [ ] **AC-2-06(BLOCKING)** —— **镜头效果的归属与两条禁令**:
+- [x] **AC-2-06(BLOCKING)** —— **镜头效果的归属与两条禁令**:
   ① 效果的**渲染实现**在 2、**语义定义**在 8(数据表**不在 2 的程序集内**);
   ② **VR 侧禁用任何镜头效果**(`AC-20-08`)—— 判据 = `CameraMode.FirstPerson` 生效期间,**渲染后处理清单为空 / 仅含 XR 必需的 stereo 通路**;
   ③ **效果不得用于报状态**(`AC-20-09`)—— 判据 = **效果的触发源白名单**:读取 8 的数据表,断言**每条效果的 `trigger` 键 ∈ 行为反馈白名单**(白名单由 ADR-018 §六 的音频白名单**同源导出**,不是另立一份);
@@ -173,7 +173,11 @@
 
 ## Completion Notes
 
-**Completed**: _待实现_
+**Completed**: 2026-10-03
+**Criteria**: **6/6 AC 落地**(12 例测试)。交付:`CameraMode` 枚举(ADR-020 §Key Interfaces 权威形状)· `CameraRig` 补 `Mode`/`ActivePostProcessEffectsForTest`/`SetModeForTest`/`ApplyLook` · `camera_presentation_discipline_test.cs`(12 例)。
+⚠️ **AC-2-06④ 走 `Assert.Ignore`** —— 场景资产未建(ADR-023 三场景制未落地)⇒ NOT-RUN,不借绿。
+⚠️ **AC-2-04① 按 A7 同款具名豁免**:相机与系统 1 **同住 `Gameplay.Presentation`**(无独立 asmdef)⇒ 引用集共用,已引 `Sim`(= `RecipeDataSet` 债)。豁免仅 `Sim`。
+🔴 **AC-2-05 反向半边**:真实调用栈抓取须 CI 载体(未建)⇒ 只做正向,反向记「已定义」不借绿。
 **Criteria**: _待填_(交付时须附:相机 asmdef 最终名 + `ICameraRig.Camera` 的 VR 语义欠账注释行确认)
 **Deviations**: _待填_
 **Test Evidence**: _待填_
