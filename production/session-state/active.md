@@ -1,13 +1,16 @@
-# Session State — 2026-10-02(**当前阶段 = Pre-Production · Sprint 04 Phase 1 收尾 · Phase 2 未启动**)
+# Session State — 2026-10-03(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中 2/7**)
 
-## 📊 全项目进度总览（2026-10-02 刷新）
+## 📊 全项目进度总览（2026-10-03 实测重算）
+
+> ⚠️ **本表于 2026-10-03 按各 story 真件逐件重算**(口径:`> **Status**:` 首行 + 体 `**Status**: [x]`)。
+> 下表为**实测值**;旧值(124 Complete / 6 Ready / 77 In Progress / 59.9%)系**陈旧转录**,已废。
 
 ### 阶段状态
 
 | 项 | 值 |
 |---|---|
 | **Stage** | Pre-Production |
-| **Sprint** | sprint-03 ✅ 已闭(17/17 story) · **sprint-04 Phase 1 ✅ 技术侧收口**(2026-10-03)· Phase 2 已解锁 |
+| **Sprint** | sprint-03 ✅ 已闭(17/17) · **sprint-04 Phase 1 ✅ 已收口** · **Phase 2 进行中 = 2/7 系统(~12/37 SP)** —— 关键路径断于 `interaction-system` |
 | **Gate Check** | CONCERNS（2026-09-29 二轮，无 NOT READY 阻塞） |
 | **ADRs** | 28/28 Accepted |
 | **P0 GDDs** | 31/31 Approved |
@@ -31,44 +34,53 @@
 | death-respawn (29) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | diagnosis-system (8) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | disease-simulation (9) | 6 | **6** | 0 | 0 | ✅ 全收口 |
-| emergency-procedures (10) | 6 | **6** | 0 | 0 | ✅ 全收口 |
+| emergency-procedures (10) | 7 | 0 | **7** | 0 | 🔶 **In Review**（7/7 已实现 · A1/A2/A6/B4/C4/C5 已闭;✅ 评审原件两份均在库;**真实残留 = D1/D2/D3 文档对齐 + 实跑测试套件**(round2 自陈未实跑,结论均基于源码阅读)） |
 | enemy-ai (27) | 5 | **5** | 0 | 0 | ✅ 全收口 |
 | foraging (17) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
-| interaction-system (4) | 6 | 0 | 6 | 2 | 🔵 进行中 |
+| interaction-system (4) | 4 | 0 | 4 | 0 | ⬜ 未启动(**Phase 2 关键路径断点**) |
 | inventory-items (20) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | medical-consequences (53) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
-| modular-building (23) | 6 | 0 | 0 | 6 | 🔶 **In Review**（双评 REQUEST_CHANGES 5B(`da04f41`)· 51/51 **逐例复跑绿** 2026-10-02 · **逐 BLOCKING 对账件未落 evidence** ⇒ 依「不得借绿」不记 Complete;⚠️ 6 个 story 件**自身**即标 `In Review`,非 Complete） |
+| modular-building (23) | 7 | **7** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红，`9bb912b`+`bfa6234`;**未闭登记 = N-r2 生产装配根 + AC-23-09 跨平台签名**） |
 | patient-ai (13) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
-| player-controller (1) | 6 | **6** | 0 | 0 | 🔶 **In Review**（6/6 story Complete;仅因 evidence 对账件缺口未转 Complete —— 与 modular-building / world-ecozones 同口径） |
+| player-controller (1) | 6 | **6** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（两轮评审判据缺陷已修;88 过 + 3 NOT-RUN，`a78c27a`） |
 | prescription-medication (11) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | processing (18) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | random-events (52) | 6 | **6** | 0 | 0 | ✅ 全收口 |
 | time-weather (5) | 5 | **5** | 0 | 0 | ✅ 全收口 |
 | tutorial-onboarding (48) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
-| world-ecozones (6) | 5 | **4** | 1 | 0 | 🔶 **In Review**（双评 REQUEST_CHANGES 4B(`43400dc`,**B1 未修降级 TODO**)· 87/87 **逐例复跑绿** 2026-10-02 · Story 005 [L] Pending · **对账件缺 + B1 降级 TODO(codec 已在库)+ host gate 无负向夹具**） |
-| persistence-service (7a) | 1 | **1** | 0 | 0 | ✅ 全收口（EPIC 未在旧表列出） |
-| save-slot-ui (7b) | 1 | 0 | 0 | 1 | ⬜ 未启动（EPIC 未在旧表列出） |
-| **合计** | **207** | **124** | **6** | **77** | **59.9% 完成** |
+| world-ecozones (6) | 6 | **5** | 1 | 0 | ✅ **Complete ✅ 2026-10-03**（6/6 story;N1/N5 已修 · 本轮 109/109 绿;**未闭登记 = N3 白名单判据(待 27 侧落地)+ Story 005 [L] 走查 EXTERNAL**) |
+| persistence-service (7a) | 2 | **2** | 0 | 0 | ✅ 全收口（002 = ADR-029 契约支） |
+| save-slot-ui (7b) | 1 | 0 | 1 | 0 | ⬜ 未启动 |
+| **合计** | **207** | **136** | **71** | **0** | **65.7% 完成(136/207)** |
 
-> ⚠️ **2026-10-02 再算**:ADR-029 实现轮立 3 条新 story ⇒ 总数 203 → **206**(Complete 数不变)。
-> `persistence-service` 由「Complete 1/1」回退为「**In Progress 1/2**」—— 002 为契约支新增。
+> ⚠️ **2026-10-03 实测重算(当前口径)**:按各 story 真件逐件解析 ⇒ **207 / 136 Complete / 0 In Progress / 71 Ready**。
+> 与上一版(124 / 6 / 77 / 59.9%)的差额来源:
+> ① `modular-building` 6 → **7** 且 0 → **7 Complete**(story-007 = ADR-029 接线支;本轮并闭 C1/C2/N-r1/C8-ID → 转 Complete);
+> ② `world-ecozones` 5 → **6**,4 → **5 Complete**(story-006 = ADR-029 接线支;转 Complete);
+> ③ `player-controller` / **`emergency-procedures`** 由「Complete」/「In Review」重分类 —— 前者转 Complete,后者按 story 真件归 In Review(7 件,非旧记 6);
+> ④ `persistence-service` 002 契约支 ⇒ 1 → **2 Complete**;`save-slot-ui` 归 Ready(非 In Progress);
+> ⑤ **`camera-viewpoint` 6 Complete** —— 旧表已记 ✅,本轮无变;
+> ⑥ 旧「In Progress 77」系把 `In Review` 与 `Ready` 混同计;实测 **In Progress = 0**(无 story 件标 `In Progress`)。
+> 重算口径:逐 story 件解析 `> **Status**:` 首行 + 体 `**Status**: [x]`;`Complete*` / `In Review*` / `In Progress*` / 其余=Ready。
 
-> ⚠️ **上表于 2026-10-02 状态回填轮按各 story 真件重算**。原记「191 / 93 / 95 / 6 / 49%」三处失实:
-> ① 总数 191 **漏计** `persistence-service`(1) 与 `save-slot-ui`(1),且各 epic 计数有出入 ⇒ 实测 **203**;
-> ② `modular-building` 原记「6 Complete」为**误** —— 其 6 个 story 件**自身**标 `In Review`(EPIC 依「不得借绿」未转 Complete),故归 In Review 而非 Complete;
-> ③ 原「In Progress 6」的 6 个计数(`camera-viewpoint` 2 · `interaction-system` 2 · `player-controller` 2)在 story 件中**均标 `Ready`**,无 `In Progress` ⇒ 归 Ready。
-> 重算口径:逐 story 件解析 `> **Status**:` 首行,`Complete*` / `In Review*` / `In Progress*` / 其余=Ready。
+> 📌 **历史转录订正记录(保留闭环)**:原记「191 / 93 / 95 / 6 / 49%」及 2026-10-02 口径「203 → 206」
+> 均已作废,勿再引用。成因同族:总数漏计 `persistence-service` / `save-slot-ui`,
+> 且把 `In Review` 与 `In Progress` 混计。
 
 ### 测试状态
 
 | 指标 | 值 |
 |------|---|
-| EditMode | **1995/2028 Passed · 0 Failed · 32 Skipped · 1 Inconclusive**（2026-10-02 batchmode 实测，Unity 6000.3.24f1） |
+| EditMode | **2204 total = 2163 Passed · 0 Failed · 40 Skipped · 1 Inconclusive**（2026-10-03 batchmode 实测，Unity 6000.3.24f1） |
 | PlayMode | 25/25 Passed · 0 Failed（2026-10-01 实测） |
 | 确定性验证 | F7 反汇编 CLEAN · AC-29 三平台逐位一致 |
 
-> ⚠️ **上表 EditMode 一行于 2026-10-02 订正**。原记「1831/1858」出自 `185063f`,而该提交**编译未通过**
-> (`Scripts have compiler errors`)⇒ 测试从未跑起来,数字**无源**。`5572d66` 修复编译后实测 = 1989/2022。
+> ⚠️ **上表 EditMode 一行 2026-10-03 更新为当前 HEAD 实测**(2204/2163/0/40/1)。
+> 历史链条(保留闭环):原记「1831/1858」出自 `185063f`,该提交**编译未通过**
+> (`Scripts have compiler errors`)⇒ 测试从未跑起来,数字**无源**;`5572d66` 修复编译后 = 1989/2022;
+> 2026-10-02 = 1995/2028;2026-10-03(本轮,三 epic 收口后)= **2204/2163**。
+> ⚠️ 旧行把 `total` 写成分子分母两个数(1995/2028),易误读为「1995 通过 / 2028 应为」——
+> 现行口径按 `total = passed + failed + inconclusive + skipped` 记账。
 > exit code 2 源自唯一 Inconclusive(`Audio/SettingsExposureTest.test_monoOption_existsWithValidDefault`,既有项),**非失败**。
 
 ### 关键里程碑
@@ -122,14 +134,18 @@
 | **CI 矩阵** | ARM64 交叉格 / 发版前两格 / 三格常驻 job（需 UNITY_LICENSE secret） | 低 |
 | **Milestone 1** | UNITY_LICENSE secret · 性能预算 · ADR-023 spikes | 中 |
 
-### 下一步推荐
+### 下一步推荐（2026-10-03 订正）
 
-1. **Sprint 03 已闭**(17/17 story);残余 = AC-S03-5 黄金夹具(待 ADR-012 矩阵)
-2. **闭合 Sprint 04 Phase 1 三条缺口** ⇒ modular-building / world-ecozones 转 Complete:
-   ①a 逐 BLOCKING 对账件 · ①b we 的 B1 接 `Sim.Codec` · ①c host gate 负向夹具。
-   **Phase 1 未收口前不启动 Phase 2**(`sprint-04.md` §下一步 明令)
-3. **修 player-controller Story 006 两条判据缺陷** ⇒ 该 epic 方可转 Complete
-4. **或处理待办**：45 联机夹具 / ADR-023 spikes / 七屏走查 / CI 矩阵激活
+1. ~~Sprint 03 已闭;残余 = AC-S03-5 黄金夹具~~ —— **仍开**:根因 = **ADR-012 CI 矩阵未激活**(需 `UNITY_LICENSE` secret)
+2. ~~闭合 Sprint 04 Phase 1 三条缺口~~ ✅ **已完成(2026-10-03)** —— ①a/①b/①c 全闭;
+   modular-building / world-ecozones / player-controller **三 epic 均已转 Complete**
+3. ~~修 player-controller Story 006 两条判据缺陷~~ ✅ **已完成** —— 该 epic 已转 Complete(`a78c27a`)
+4. **▶ Phase 2 继续 —— 下一件 = `interaction-system`(4,6 stories)**,它是关键路径断点
+   (`player-controller ✅ → camera-viewpoint ✅ → interaction-system ⬜`);
+   依赖 1、3 均已 done,可直接开工。其后:patient-ai(13)→ diagnosis(8)→ case-system(37)→ prescription(11)
+5. **`emergency-procedures` 收尾** —— 转 Complete 的真实前置(round2 §5):
+   D1/D2/D3 文档状态对齐 + **实跑 Unity 测试套件**(round2 未实跑)
+6. **待办池**：45 联机夹具 / ADR-023 spikes(✅ S1/S3/S4 已过) / 七屏走查 / CI 矩阵激活
 
 ---
 
