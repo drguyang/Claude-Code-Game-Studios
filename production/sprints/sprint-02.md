@@ -7,7 +7,11 @@
 > 仍归 CI / 桌面批,`[L]` 项不适用本 sprint。
 
 **Sprint**: 2
-**Milestone**: Sim Core Complete
+**Milestone**: Systems Complete(M3)
+> ⚠️ **2026-10-03 订正**:原写 `Sim Core Complete` —— 该名在**任何里程碑文件中都不存在**。
+> `milestones/README.md` 定义的五档为 **M1 Pre-Production Complete · M2 Vertical Slice ·
+> M3 Systems Complete · M4 Content Complete · M5 MVP / Release Candidate**;
+> 本 sprint 的 sim 层核心工作归 **M3「31 系统机制齐」**。
 **Duration**: 2026-10-19 ~ 2026-11-01（2 周）
 **Goal**: 完成 sim 层核心 — 疾病模拟、时间天气、随机事件
 **Capacity**: ~16 story points

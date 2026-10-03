@@ -10,7 +10,9 @@
 > 但该缺口**不得被「17/17」掩盖**(2026-10-02 状态回填轮实测登记)。
 
 **Sprint**: 3
-**Milestone**: Gameplay Core Complete
+**Milestone**: Systems Complete(M3)
+> ⚠️ **2026-10-03 订正**:原写 `Gameplay Core Complete` —— 同 sprint-02,该名在里程碑文件中不存在。
+> 本 sprint 的 gameplay 层核心工作归 **M3「31 系统机制齐」**。
 **Duration**: 2026-11-02 ~ 2026-11-15（2 周）
 **Goal**: 完成 gameplay 层核心 — 战斗、敌人 AI、急救动作
 **Capacity**: ~17 story points
