@@ -3,8 +3,8 @@
 > **Layer**: Foundation
 > **GDD**: design/gdd/skeuomorphic-ui.md
 > **Architecture Module**: L5 Presentation(PRES)
-> **Status**: **Complete ✅ 2026-09-28**(18/18 stories)
-> **Stories**: 18 stories created (2026-09-27)
+> **Status**: **Complete ✅ 2026-09-28**(18/18 stories)· ⚠️ **范围**见下方 §范围边界声明
+> **Stories**: 18 stories created (2026-09-27) + **019 贴图接入(2026-10-03 补 · Ready)**
 
 ## Overview
 
@@ -48,6 +48,42 @@
 | TR-skeuoui-011 | 图集护栏:Pages_frame 预算与溢出告警阈值 | ADR-013 ⚠️ partial(PAGES_MAX 待 spike) |
 | TR-skeuoui-012 | 无障碍四钩子:字号缩放/高对比/焦点指示/减少动效在元件库级内建 | ADR-013 ✅ |
 
+> ### ⚠️ TR-skeuoui-011 混计两量 —— 登记(2026-10-03 实测)
+>
+> **本条解释一个乍看矛盾的现象:为何 `TR-skeuoui-011` 是 `partial`,而其对应 story-001 已 `Complete`。**
+> 实测发现:该 TR 条目把**两个不同的量**记成了一条 ——
+>
+> | 量 | 实现在哪 | 状态 |
+> |---|---|---|
+> | **① 注册表配额**(元件种类上限 / 每元件变体槽上限) | `SkeuoComponentRegistry.cs`(`MaxRegisteredComponents = 16` + `ValidateQuotas()`);AC-42-C3 | **已实现且有测**(story-001 37/37) |
+> | **② 图集页数预算**(`Pages_frame` / `PAGES_MAX` + 溢出告警阈值) | **无实现** —— `tr-registry.yaml` 注「具体阈值仍待 spike」 | **未做** |
+>
+> ⇒ **两者不是同一个量,却共用一个 TR 号。** story-001 兑现的是 ①(所以它 Complete);
+> TR 条目因 ② 未做而为 `partial`。**二者不矛盾,但共用一号会误导读者以为 story-001 欠账。**
+>
+> **处置(登记,不擅自拆号)**:本条只**登记该混计事实**,把 ② 归 **story 019**(与贴图绑定同批 ——
+> 二者都要求「图集实际布局」这一前提,分开做会做完又拆)。
+> **不拆 `TR-skeuoui-011` 为两条** —— 拆号触及 `tr-registry.yaml` + `traceability-index.md` 计数,
+> 属**登记处变更**,须用户裁定;本轮只落「此处知悉两者不同」。
+> ⇒ 引用 `TR-skeuoui-011` 时**须指明是哪一半**。
+
+## ⚠️ 范围边界声明(2026-10-03 补 · 实测)
+
+> **本条防的是一个已被实测证实的误读:「元件库 Complete」≠「贴图已接入」。**
+> 本 epic 的 18 条 story **全部真做真测**(37/37 · 12/12 等,非假绿),但**无一条**的
+> AC 要求「把贴图绑到元素上」—— story 001 的 6 条 AC(C1 九宫格区间 / C2 变量完整 /
+> C3 图集配额 / C4 内联变体 lint / C5 硬编码字号 lint / C6 fallback 字体)**全为 USS 结构断言**。
+>
+> **实测(2026-10-03)**:
+> - `unity/Assets/Gameplay.UI/Skeuomorphic/Textures/` 的 **16 张 `*-final.png` 已入库**(真图 0.9–4.6 MB)
+> - 但这 16 个 GUID **在全库(非 `.meta`)引用数 = 0**,逐个查证无一例外
+> - 全部 `.uss` / `.uxml` 内 `url(` / `background-image` / `resource(` **零命中**
+> - 整条链是**按 USS 类名**走的:`Register(SkeuoElement.Paper, "paper", …)` → `element.AddToClassList("paper")`
+>
+> ⇒ **现状 = 元件库的骨架与护栏已建,皮未贴。** 故:
+> **`Status: Complete` 只覆盖「契约 + 渲染通道 + 结构护栏」,不覆盖「贴图/图集绑定」。**
+> 绑定工作归 **story 019**(见下),**不因本 epic 标 Complete 而推定已完成**。
+
 ## Stories
 
 | # | Story | Type | Status | ADR |
@@ -70,9 +106,12 @@
 | 016 | 教学纸近景(ModalId.PaperCloseup48 · 世界内单张纸近景 · 走近摊纸) | UI | **Complete ✅ 2026-09-28**(9 测,6 passed + 2 inconclusive + 1 skipped) | ADR-013 |
 | 017 | 敌人读数条完整实现(黄铜面片材质 · 蚀刻刻度 · 淡入淡出 · 六态机映射) | Visual/Feel | **Complete ✅ 2026-09-28**(契约面验证) | ADR-013 |
 | 018 | 开发者调试视图(仅 Development Build · 焦点栈/元件库/DTO 绑定结果 · 不显示游戏数值) | UI | **Complete ✅ 2026-09-28**(7 测,5 passed + 1 inconclusive + 1 skipped) | ADR-013 |
+| 019 | 贴图接入(16 张 `*-final.png` → USS 元件族 · 九宫格 slice 对齐图集真实切图 · 图集页数实测) | UI | **Ready ⬜**(承上方 §范围边界声明) | ADR-013 |
 
-Counts: 5 Logic · 3 Integration · 2 Visual/Feel · 8 UI = 18 total.
+Counts: 5 Logic · 3 Integration · 2 Visual/Feel · 9 UI = 19 total (18 Complete + 1 Ready)。
 43 条 AC 全覆盖(按子条拆入);全 ADR Accepted ⇒ 零 ADR-blocked story。
+⚠️ **story 019 是范围补件,非原 18 条的追加** —— 它填的是「贴图绑定」这个原本**没有任何 story 覆盖**的面
+(见上方 §范围边界声明)。**上表 18 条 Complete 不因 019 Ready 而失效** —— 二者覆盖不同的面。
 
 ## Definition of Done
 
@@ -84,4 +123,15 @@ This epic is complete when:
 
 ## Next Step
 
-**Epic 全部 18 个 story 已完成**。下一步 = 推进其他 epic 或处理跨系统待办(45 联机夹具 / ADR-023 spikes / 七屏走查)。
+**Epic 全部 18 个 story 已完成**;补件 **story 019(贴图接入)** 为 **Ready ⬜** ——
+它是 M2 形态件 ①② 的前置(见下),不是可选优化。
+下一步 = 推进其他 epic 或处理跨系统待办(45 联机夹具 / ADR-023 spikes / 七屏走查)。
+
+---
+
+## 里程碑归属
+
+| Story | 里程碑 | 依据 |
+|---|---|---|
+| 001–018 | —(已 Complete,归 M3 计数) | `production/milestones/README.md` §五 M3 |
+| **019** | **M2 Vertical Slice**(硬前置) | `milestones/README.md` §三 Exit Criteria 第 6 条「纸/墨/铜三族切图与 atlas 布局冻结」+ 第 5 条「4 项形态件」—— **① 脉案线格/空行/明度轴压在九宫格切图上,② 墨乾湿两态压在墨迹 brush 上**。⇒ **不接图则 ①② 无法交付**,019 是它们的直接前置,非额外美化 |
