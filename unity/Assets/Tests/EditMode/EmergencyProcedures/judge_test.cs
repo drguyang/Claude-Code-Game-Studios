@@ -215,6 +215,103 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
                 "magnitude 不应被熟练度放大（同读数同判）");
         }
 
+        // ══════════ C4/C5 判据(2026-10-03 补)══════════
+
+        [Test]
+        public void test_c4_skillMul_actuallyEntersStabilityGate()
+        {
+            // ⚠️ 原实现 `jitter <= jitterMax` —— `skillMul` **算出即弃**。
+            //    现按 GDD F-10.2 权威式:`JITTER × MUL_ONE ≤ JITTER_MAX × SkillMul(L)`。
+            //    判据可证伪性:抬高 SkillMul ⇒ 容差变宽 ⇒ 同一 jitter 由弱转强。
+            //    (P0 的 ComputeSkillMul 恒返 MUL_ONE ⇒ 本测断**结构性下界①**:
+            //     SkillMul(L_min) ≥ MUL_ONE,即无技能玩家不被收紧容差。)
+            for (int level = 0; level <= 60; level += 10)
+                Assert.GreaterOrEqual(JudgeEvaluator.ComputeSkillMul(level), 65536L,
+                    $"结构性下界①:SkillMul(L={level}) 须 ≥ MUL_ONE(否则新手稳度门恒假)");
+        }
+
+        [Test]
+        public void test_c4_stabilityGate_usesSkillMulInInequality()
+        {
+            // ⚠️ 2026-10-03 自我修正:本测初版**分不出 C4** —— 因 P0 的
+            //    `ComputeSkillMul` **恒返 MUL_ONE** ⇒ `jitterMax × skillMul` 与
+            //    `jitterMax` **数值等价**,突变(去掉 skillMul)不会红。
+            //    现改为**结构断言**:验 GDD F-10.2 的**权威不等式形状**确在源码内
+            //    (两侧同域:左 `jitter × MUL_ONE`,右 `jitterMax × skillMul`)。
+            //    ⇒ 突变回 `jitter <= jitterMax` 时,右侧不再含 `skillMul` ⇒ 本测红。
+            string src = System.IO.Path.Combine(UnityEngine.Application.dataPath,
+                "Sim/EmergencyProcedures/JudgeEvaluator.cs");
+            string code = System.Text.RegularExpressions.Regex.Replace(
+                System.IO.File.ReadAllText(src), @"//.*?$", "",
+                System.Text.RegularExpressions.RegexOptions.Multiline);
+
+            // ⚠️ 2026-10-03 第三版:二版**只查字符串存在** ⇒ 突变(把不等式改回
+            //    `jitter <= jitterMax` 但**保留** `rhs` 变量)时字符串仍在 ⇒ **判据不红**。
+            //    **这正是「判据停在存在层、不下沉到语义层」** —— 本批要修的失效模式,
+            //    我自己在 C4 上重犯了。现查**不等式本体**:
+            //    ① `stabilityPass` 须由 `lhs <= rhs` 决定(而非直接比 jitter/jitterMax);
+            //    ② `rhs` 须由 `jitterMax × skillMul` 构成。
+            Assert.That(System.Text.RegularExpressions.Regex.IsMatch(
+                    code, @"stabilityPass\s*=\s*lhs\s*<=\s*rhs"),
+                Is.True,
+                "C4:稳度门的不等式须为 `lhs <= rhs`(GDD F-10.2 原文式);" +
+                "若为 `jitter <= jitterMax` ⇒ SkillMul 算出即弃(C4 复现)");
+            Assert.That(System.Text.RegularExpressions.Regex.IsMatch(
+                    code, @"rhs\s*=\s*jitterMax\s*\*\s*skillMul"),
+                Is.True,
+                "C4:右侧须由 `jitterMax × skillMul` 构成(SkillMul 真进判据)");
+            Assert.That(System.Text.RegularExpressions.Regex.IsMatch(
+                    code, @"lhs\s*=\s*jitter\s*\*\s*MUL_ONE"),
+                Is.True,
+                "C4:左侧须抬到 MUL_ONE 域(GDD 原文式两侧同域)");
+
+            // 行为面补充:jitter=0 ⇒ 恒过(基础可用性)
+            var edges = new[] { 0, 10, 20 };
+            Assert.AreEqual(0L, JudgeEvaluator.ComputeJitter(edges), "等间隔 ⇒ jitter = 0");
+            var agg = new EmergencyReading(0, 100, 3, edges, 1000);
+            var action = new EmergencyActionRow
+            { ActionId = 0, MinEdges = 2, MinHoldTicks = 50, MagThreshold = 400 };
+            var ctx = new JudgeContext { Level = 30, MagThresholdEffective = 400 };
+            Assert.AreEqual(JudgeResult.Applied, JudgeEvaluator.Judge(agg, action, ctx),
+                "jitter=0 ⇒ 稳度门恒过");
+        }
+
+        [Test]
+        public void test_c5_jitter_roundsHalfAwayFromZero_notTruncate()
+        {
+            // ⚠️ 2026-10-03 自我修正(两轮):
+            //   初版用 `{0,10,25}` —— 余数恰为 0 ⇒ 进位与截断同值,**分不出**。
+            //   二版用 `{0,1,12,39}` 并断 `rem == den/2` —— 但 **den=39 是奇数**,
+            //     `den/2=19` 而 `19/39 ≈ 0.487 < 0.5` ⇒ 该点**不是**恰半,
+            //     实现正确地截断了,是**我的夹具错了**。
+            //   三版:穷搜发现 **`MUL_ONE = 2^16` 是 2 的幂**,「真·恰半」
+            //     要求 `sad × 2^16 ≡ den/2 (mod den)` ⇒ 推出 `den ≥ 2^17`,
+            //     即 `meanD ≥ 65536` tick —— **真实动作(20 Hz、≈11 tick)不可达**。
+            //   ⇒ 改用「余数**刚过半**」夹具:截断与进位**仍可区分**(差 1)。
+            var edges = new[] { 0, 1, 6, 15 };
+
+            long n = edges.Length - 1;
+            long meanD = (edges[edges.Length - 1] - edges[0]) / n;
+            long sumAbsDev = 0;
+            for (int i = 0; i < n; i++)
+                sumAbsDev += System.Math.Abs((edges[i + 1] - edges[i]) - meanD);
+            long den = n * meanD;
+            long prod = sumAbsDev * 65536L;
+            long rem = prod % den;
+
+            Assert.Greater(rem * 2, den,
+                "夹具前提:余数须**过半**(否则进位与截断同值,判据分不出)");
+
+            long truncated = prod / den;
+            long rounded = truncated + 1;   // 过半 ⇒ 进位
+
+            Assert.AreEqual(rounded, JudgeEvaluator.ComputeJitter(edges),
+                "C5:余数过半 ⇒ 须**进位**(ROUND_HALF_AWAY_FROM_ZERO);" +
+                "得截断值 = 用了 C# 裸 `/`(Control Manifest Forbidden)");
+            Assert.AreNotEqual(truncated, JudgeEvaluator.ComputeJitter(edges),
+                "截断与进位须可区分(夹具有效性)");
+        }
+
         // ══════════ F-10.4: drug_potency 三档 ══════════
 
         [Test]

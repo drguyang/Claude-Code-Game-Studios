@@ -36,7 +36,16 @@ namespace DaYiJingCheng.Sim.World
         Success,           // 转移成功
         AlreadyAtState,    // 已在目标状态(幂等,不写事件)
         InvalidTransfer,   // 逆转移或不可达转移
-        PoiNotFound        // poi_id 不存在
+        PoiNotFound,       // poi_id 不存在(定义侧未登记)
+
+        /// <summary>
+        /// **非主机** —— 客户端调用写通道被 host gate 拒。
+        /// ⚠️ **2026-10-03 新增(评审 C3)**:此前该情形**与 `PoiNotFound` 同码**,
+        /// 调用方**无法区分**「我不是主机」与「该 POI 不存在」⇒ 可能触发错误的降级路径
+        /// (如误以为 POI 数据缺失而重载定义)。AC-6-26a 要求「客户端调用写通道 ⇒
+        /// 断言失败/拒写」,**拒写已成立,但可诊断性此前不成立**。
+        /// </summary>
+        NotHost
     }
 
     /// <summary>POI 状态机(主机唯一写者)。</summary>
@@ -96,8 +105,10 @@ namespace DaYiJingCheng.Sim.World
         public PoiStateTransferResult TryAdvance(int poiId, PoiState toState, long tick = 0)
         {
             // AC-6-26a: host-only write gate
+            // ⚠️ 2026-10-03(评审 C3):原返回 `PoiNotFound` —— 与「poi_id 不存在」**同码**,
+            //    调用方不可区分。现返回专用码 `NotHost`(拒写行为不变,可诊断性修复)。
             if (!_eventAuthority.IsHost)
-                return PoiStateTransferResult.PoiNotFound;
+                return PoiStateTransferResult.NotHost;
 
             if (!_poiIdSet.Contains(poiId))
                 return PoiStateTransferResult.PoiNotFound;

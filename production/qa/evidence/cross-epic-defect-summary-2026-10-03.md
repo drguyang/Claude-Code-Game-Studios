@@ -103,9 +103,9 @@
 |---|---|---|---|---|---|
 | ~~**C1**~~ ✅**已闭** | modular-building | 占用格集恒 = `{anchor}`(`StructureKinds.cs:60-61` 自陈「简化」),**不查模块目录** | **直接抵消 B2**:多格模块的非锚点足迹格**不参与拆除实体检查** ⇒ **B2 的「已修」是纸面** | 🔴 高 | ✅ 实测成立 |
 | ~~**C2**~~ ✅**已闭** | modular-building | `World.OccupyCells/FreeCells` **零调用方**;`Place` 只调 `registry.Register` | Overlay 写路径**未接线** ⇒ F-23-1 `EffectiveWalkable` 对**已放置结构不生效** | 🔴 高 | ✅ 实测成立 |
-| **C3** | world-ecozones | host gate 返回 `PoiNotFound`,与「POI 不存在」**同码**(`:100` vs `:103`) | 调用方**无法区分**「我不是主机」与「该 POI 不存在」⇒ 可能触发错误降级路径 | 🟠 中 | ✅ 实测成立 |
-| **C4** | emergency-procedures | `SkillMul` **死代码**(算出即弃);稳度门未按 F-10.2 用 `SkillMul(L)` | 公式与文档不符(P0 数值无害) | 🟠 中 | ✅ 成立 |
-| **C5** | emergency-procedures | JITTER 用 **C# 裸 `/` 截断** | **Control Manifest 明列 Forbidden** | 🟠 中 | ✅ 成立 |
+| ~~**C3**~~ ✅**已闭** | world-ecozones | host gate 返回 `PoiNotFound`,与「POI 不存在」**同码**(`:100` vs `:103`) | 调用方**无法区分**「我不是主机」与「该 POI 不存在」⇒ 可能触发错误降级路径 | 🟠 中 | ✅ 实测成立 |
+| ~~**C4**~~ ✅**已闭** | emergency-procedures | `SkillMul` **死代码**(算出即弃);稳度门未按 F-10.2 用 `SkillMul(L)` | 公式与文档不符(P0 数值无害) | 🟠 中 | ✅ 成立 |
+| ~~**C5**~~ ✅**已闭** | emergency-procedures | JITTER 用 **C# 裸 `/` 截断** | **Control Manifest 明列 Forbidden** | 🟠 中 | ✅ 成立 |
 | **C6** | world-ecozones | `RebuildFromDecoded` **无生产调用方**(仅测试) | 重建链未闭环(归 7a/45) | 🟡 低 | ✅ 成立 |
 | **C7** | emergency-procedures | `Cause` 真源不在本处理器(由调用方传,自陈「真实调用方 = 45/P1b」) | AC-10-39 的 `Cause` 在 P0 **无真实生产者** | 🟡 低 | ✅ 成立 |
 | **C8** | modular-building | 注册表 id `int` vs `entities.yaml:2068` 的 `i64` | 超 2^31 静默回绕 | 🟠 中 | ✅ 既有登记,未修 |

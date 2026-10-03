@@ -270,6 +270,26 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             // 拒写(AC-6-26a)
             Assert.AreNotEqual(PoiStateTransferResult.Success, result,
                 "客户端调用写通道不得成功(AC-6-26a)");
+
+            // ⚠️ 2026-10-03(评审 C3):此前**刻意不钉错误码**(因 gate 返回 `PoiNotFound`,
+            //    与「POI 不存在」同码,钉死等于把缺陷固化为契约)。
+            //    现 gate 已改返回专用码 `NotHost` ⇒ 可钉死,且须与 `PoiNotFound` **可区分**。
+            Assert.AreEqual(PoiStateTransferResult.NotHost, result,
+                "客户端拒写须返回专用码 `NotHost`(不得与 `PoiNotFound` 混同)");
+            Assert.AreNotEqual(PoiStateTransferResult.PoiNotFound, result,
+                "「我不是主机」与「该 POI 不存在」**须可区分**(C3)");
+
+            // 对照:真·不存在的 poi_id 在**主机**身份下 ⇒ PoiNotFound
+            // (⚠️ 不能在同一客户端上测 —— gate **先于** poi_id 检查 ⇒ 客户端下必得 NotHost,
+            //  这正是「两码可分」的体现:先验主机权,再验 id 存在性)
+            var hostSink2 = new SpyEventSink();
+            var host2 = new PoiStateMachine(hostSink2, new SwitchableEventAuthority(isHost: true),
+                                           new[] { 1, 2, 3 }, new PayloadEncoder(new InMemoryBlobPool()));
+            var notFound = host2.TryAdvance(999, PoiState.Discovered);
+            Assert.AreEqual(PoiStateTransferResult.PoiNotFound, notFound,
+                "主机身份 + 未登记 poi_id ⇒ PoiNotFound(与 NotHost 是**两个不同的码**)");
+            Assert.AreNotEqual(PoiStateTransferResult.NotHost, notFound,
+                "主机身份**不得**返回 NotHost");
             Assert.AreEqual(0, sink.AppendedEvents.Count,
                 "客户端调用写通道**不得产生任何 Append**(AC-6-26a:Append 权 = 主机唯一)");
         }

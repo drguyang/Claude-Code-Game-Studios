@@ -78,8 +78,15 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
             long denominator = (long)n * meanD;
             if (denominator == 0) return 0;
 
-            // 先乘后除，避免整数除法截断
-            return (sumAbsDev * MUL_ONE) / denominator;
+            // ⚠️ **2026-10-03 修复(评审 C5)**:原实现 `(a * MUL_ONE) / denominator`
+            //    是 **C# 裸 `/`(向零截断)** —— **Control Manifest 明列 Forbidden**
+            //    (ADR-006 §三:全案单一舍入模式 `ROUND_HALF_AWAY_FROM_ZERO`)。
+            //    与 `ScaleFixed` 同口径复用,使 JITTER 与其余定点运算**同一舍入**。
+            long product = sumAbsDev * MUL_ONE;
+            long quotient = product / denominator;
+            long remainder = product % denominator;
+            // ROUND_HALF_AWAY_FROM_ZERO:余数 ≥ 半 ⇒ 进位(被除数非负 ⇒ 等价于远离零)
+            return remainder * 2 >= denominator ? quotient + 1 : quotient;
         }
 
         /// <summary>
@@ -107,13 +114,24 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
             // 稳度门: edges <= 1 时不评（AC-10-20）
             if (agg.Edges <= 1) return JudgeResult.Applied;
 
-            // 稳度门: JITTER <= JITTER_MAX × SkillMul(L)
-            // JITTER_MAX 归一化到 MUL_ONE 域（0-1 范围）
+            // 稳度门(GDD F-10.2 的**权威判据式**):
+            //     JITTER(agg.edge_ticks) × MUL_ONE ≤ JITTER_MAX × SkillMul(L)
+            // ⚠️ **2026-10-03 修复(评审 C4)**:原实现写 `jitter <= jitterMax` ——
+            //    `skillMul` **算出即弃**,从未进判据 ⇒
+            //    ① F-10.2 的**方向裁定**(熟练度作用于**稳度容差**)在代码里不成立;
+            //    ② 结构性下界 ① (`SkillMul(L_min) ≥ MUL_ONE`,无技能玩家不得被收紧容差)
+            //       无判据可守。
+            //    现按 GDD 原文式落地(两侧同域,不等式等价于
+            //    `jitter ≤ JITTER_MAX × SkillMul / MUL_ONE`)。
             long jitter = ComputeJitter(agg.EdgeTicks);
             long skillMul = ComputeSkillMul(ctx.Level);
             long jitterMax = MUL_ONE / 2; // JITTER_MAX = 0.5（占位，值归用户数值轮）
 
-            bool stabilityPass = jitter <= jitterMax;
+            // 左侧抬到 MUL_ONE 域(GDD 原文式),右侧乘 SkillMul ⇒ 熟练度真进判据
+            long lhs = jitter * MUL_ONE;
+            long rhs = jitterMax * skillMul;
+
+            bool stabilityPass = lhs <= rhs;
             return stabilityPass ? JudgeResult.Applied : JudgeResult.AppliedWeak;
         }
 

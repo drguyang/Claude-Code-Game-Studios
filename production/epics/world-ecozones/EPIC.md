@@ -3,7 +3,7 @@
 > **Layer**: Foundation → Core → Feature
 > **GDD**: design/gdd/world-and-ecozones.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ Tooling 消费侧(ADR-022 关卡工具)
-> **Status**: In Review(5/6 stories Complete;双代理评审 REQUEST_CHANGES 4 BLOCKING —— **对账结论:B1/B3/B4 已修 · B2 形式已闭**;106/106 逐例复跑绿;✅ 逐 BLOCKING 对账件已落 evidence;✅ 缺口 ①c 已闭;✅ **B1 已闭(2026-10-02 ADR-029 接线支)**;Story 005 = [L]/EXTERNAL 桌面走查 Pending;🔴 **EPIC 不转 Complete 的唯一原因 = 评审报告原件从未落盘** + Story 005 走查未执行;✅ **评审原件已落盘**(`qa/evidence/review-world-ecozones-2026-10-03.md`,2026-10-03 补做);🔴 **但评审查出三处新缺口 ⇒ 不转 Complete**:**N1** host gate 返回码 `PoiNotFound` 与「POI 不存在」混同 · **N5** story-004 的 [B] 发现门集成 AC 已勾但 `chunk_activation_test.cs` 7 例**零** `TryDiscover` 集成用例 · **N3** 「白名单静态断言」AC 已勾但 `Editor.Tools.Gates/` 零 POI 白名单断言 )
+> **Status**: In Review(5/6 stories Complete;双代理评审 REQUEST_CHANGES 4 BLOCKING —— **对账结论:B1/B3/B4 已修 · B2 形式已闭**;106/106 逐例复跑绿;✅ 逐 BLOCKING 对账件已落 evidence;✅ 缺口 ①c 已闭;✅ **B1 已闭(2026-10-02 ADR-029 接线支)**;Story 005 = [L]/EXTERNAL 桌面走查 Pending;🔴 **EPIC 不转 Complete 的唯一原因 = 评审报告原件从未落盘** + Story 005 走查未执行;✅ **评审原件已落盘**(`qa/evidence/review-world-ecozones-2026-10-03.md`,2026-10-03 补做);🔴 **但评审查出三处新缺口 ⇒ 不转 Complete**:**N1** host gate 返回码 `PoiNotFound` 与「POI 不存在」混同 · **N5** story-004 的 [B] 发现门集成 AC 已勾但 `chunk_activation_test.cs` 7 例**零** `TryDiscover` 集成用例 · **N3** 「白名单静态断言」AC 已勾但 `Editor.Tools.Gates/` 零 POI 白名单断言 ;✅ **C3 已闭(2026-10-03)** —— host gate 新增专用结果码 `NotHost`(此前与 `PoiNotFound` 混同,不可诊断))
 > **Stories**: 5 stories — see table below
 
 ## Overview
