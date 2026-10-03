@@ -23,7 +23,7 @@
 | **telemetry-analytics (51)** | 10 | **10** | 0 | 0 | ✅ 全收口 |
 | **input-system (3)** | 13 | **13** | 0 | 0 | ✅ 全收口 |
 | **item-database (21a)** | 12 | **12** | 0 | 0 | ✅ 全收口 |
-| camera-viewpoint (2) | 6 | 0 | 6 | 2 | 🔵 进行中 |
+| camera-viewpoint (2) | 6 | **6** | 0 | 0 | ✅ 全收口(2026-10-03) |
 | casebook (39) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | case-system (37) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | clinic-machine (24) | 5 | 0 | 5 | 0 | ⬜ 未启动 |

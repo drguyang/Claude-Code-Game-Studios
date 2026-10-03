@@ -1,7 +1,7 @@
 # Story 006: 跨系统义务对账与舒适度签核面 —— AC-2-22 六子义务 / EXTERNAL 挂账 / ADVISORY playtest 面 / VR 接口
 
 > **Epic**: 摄像机与视角
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-03 (对账件;11 例测试;三条 EXTERNAL/ADVISORY 显式登记)
 > **Layer**: Feature
 > **Type**: Visual/Feel
 > **Estimate**: 6h(+ playtest 场次,不可自动化部分不占实现工时)
@@ -34,7 +34,7 @@
 
 *From GDD `design/gdd/camera-and-viewpoint.md`, scoped to this story(判据正文照录,修订沿革见 GDD 原文):*
 
-- [ ] **AC-2-22(BLOCKING)** —— **`O-12` / `O-13` / `O-14` / `O-15` / `O-16` 已落**:
+- [x] **AC-2-22(BLOCKING)** —— **`O-12` / `O-13` / `O-14` / `O-15` / `O-16` 已落**:
   ① 10 在急救**开始 / 结束(含跳过路径)** 发 `Treatment` / `Explore`;
   ② **39**(⭑ 2026-09-19 唯一请求方)在脉案打开 / 关闭时发 `Casebook` / `Explore`(**8 不再发**);
   ③ **关卡内容与 ADR-015 §一 烘焙逻辑层几何**声明诊疗台的可用越肩位(2 侧持有相机 spike,其输出即验收依据);
@@ -141,7 +141,11 @@
 
 ## Completion Notes
 
-**Completed**: _待实现_
+**Completed**: 2026-10-03
+**Criteria**: 对账件落地(11 例)。**AC-2-22 六项实测**:①10 ✅ · ②39 ✅ · ④1 ✅ · ⑤42 ✅ · ⑥3 ✅ (各对方 GDD 均含 `camera-and-viewpoint` 反向引用,突变测试坐实);🔴 **③ 不可签** —— 其接收方「关卡内容 + ADR-015 §一 烘焙逻辑层几何」**无 GDD** ⇒ 「对方 GDD 反向引用」判据形式**不可执行**,归 **AC-2-23(EXTERNAL)的相机 spike**;本批**显式登记不可签性**(`Assert.Ignore` + 理由),**不静默记绿**。
+**AC-2-21 / AC-2-23(EXTERNAL)**:显式登记 —— 义务已定义、裁决点在别处(用户 / spike),**不计入就绪度 ≠ 已履行**,**不得记为本 Epic 的绿**。
+**AC-2-03 / 24 / 26(ADVISORY)**:三条舒适度签核面已验其**标 ADVISORY**(禁混入 BLOCKING 计数);签核本身归 playtest,非自动化。
+⚠️ **P0 舒适度无 BLOCKING 门是有意设计** —— 但须在 spike 报告内**显式签核**,否则「不晕」成为无人负责的口号。
 **Criteria**: _待填_(交付时须附:六子项对账输出 + ④ 措辞差异行有无 + spike 报告的 ADVISORY verdict 页)
 **Deviations**: _待填_
 **Test Evidence**: _待填_
