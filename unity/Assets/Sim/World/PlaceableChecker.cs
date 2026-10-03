@@ -178,6 +178,25 @@ namespace DaYiJingCheng.Sim.World
         IReadOnlyCollection<int> GetAllModuleIds();
     }
 
+    /// <summary>
+    /// 世界占用表**写面**(F-23-1 `EffectiveWalkable` 的 slot_occupied 项)。
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ **2026-10-03 新增(评审 C2)**:`World.OccupyCells/FreeCells` 此前
+    /// **零生产调用方**(其注释却自陈「模块放置时使用」)⇒ 放置结构**不会**标记占用表
+    /// ⇒ `IsEffectivelyWalkable` 对已放置结构**不生效**。
+    /// 本接口把该写面抽出,使 `StructureWriter` 可在不依赖 `World` 具体类型的前提下接线。
+    /// **实现者 = `World`**;消费者 = `StructureWriter`。
+    /// </remarks>
+    public interface IWorldOccupancy
+    {
+        /// <summary>批量占用(模块放置时)。</summary>
+        void OccupyCells(IEnumerable<WorldPos> cells);
+
+        /// <summary>批量释放(模块拆除时)。</summary>
+        void FreeCells(IEnumerable<WorldPos> cells);
+    }
+
     /// <summary>库存查询接口(归 20,23 只读)。</summary>
     public interface IStockQuery
     {

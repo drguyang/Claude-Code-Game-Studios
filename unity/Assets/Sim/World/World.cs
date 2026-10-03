@@ -15,7 +15,7 @@ using DaYiJingCheng.Sim.Contracts;
 namespace DaYiJingCheng.Sim.World
 {
     /// <summary>世界状态(组合 Nav + Overlay)。</summary>
-    public sealed class World
+    public sealed class World : IWorldOccupancy
     {
         private readonly WorldGeometry _geometry;               // 静态几何(ADR-015)
         private readonly StructureInstanceRegistry _structures; // 结构实例表(派生态)

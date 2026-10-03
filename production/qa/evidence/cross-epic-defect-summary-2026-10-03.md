@@ -101,8 +101,8 @@
 
 | # | Epic | 缺陷 | 后果 | 严重度 | 复核 |
 |---|---|---|---|---|---|
-| **C1** | modular-building | 占用格集恒 = `{anchor}`(`StructureKinds.cs:60-61` 自陈「简化」),**不查模块目录** | **直接抵消 B2**:多格模块的非锚点足迹格**不参与拆除实体检查** ⇒ **B2 的「已修」是纸面** | 🔴 高 | ✅ 实测成立 |
-| **C2** | modular-building | `World.OccupyCells/FreeCells` **零调用方**;`Place` 只调 `registry.Register` | Overlay 写路径**未接线** ⇒ F-23-1 `EffectiveWalkable` 对**已放置结构不生效** | 🔴 高 | ✅ 实测成立 |
+| ~~**C1**~~ ✅**已闭** | modular-building | 占用格集恒 = `{anchor}`(`StructureKinds.cs:60-61` 自陈「简化」),**不查模块目录** | **直接抵消 B2**:多格模块的非锚点足迹格**不参与拆除实体检查** ⇒ **B2 的「已修」是纸面** | 🔴 高 | ✅ 实测成立 |
+| ~~**C2**~~ ✅**已闭** | modular-building | `World.OccupyCells/FreeCells` **零调用方**;`Place` 只调 `registry.Register` | Overlay 写路径**未接线** ⇒ F-23-1 `EffectiveWalkable` 对**已放置结构不生效** | 🔴 高 | ✅ 实测成立 |
 | **C3** | world-ecozones | host gate 返回 `PoiNotFound`,与「POI 不存在」**同码**(`:100` vs `:103`) | 调用方**无法区分**「我不是主机」与「该 POI 不存在」⇒ 可能触发错误降级路径 | 🟠 中 | ✅ 实测成立 |
 | **C4** | emergency-procedures | `SkillMul` **死代码**(算出即弃);稳度门未按 F-10.2 用 `SkillMul(L)` | 公式与文档不符(P0 数值无害) | 🟠 中 | ✅ 成立 |
 | **C5** | emergency-procedures | JITTER 用 **C# 裸 `/` 截断** | **Control Manifest 明列 Forbidden** | 🟠 中 | ✅ 成立 |

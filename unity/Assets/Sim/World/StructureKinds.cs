@@ -53,13 +53,25 @@ namespace DaYiJingCheng.Sim.World
         private readonly Dictionary<int, StructureInstance> _instances = new Dictionary<int, StructureInstance>();
         private int _nextStructureId = 1;
 
-        /// <summary>注册新实例(返回新 id)。</summary>
-        public int Register(WorldPos anchor, int moduleId, int orientation, int variant)
+        /// <summary>
+        /// 注册新实例(返回新 id)。
+        /// </summary>
+        /// <param name="occupiedCells">
+        /// **完整占用格集**(F-23-2b 整数旋转后的世界格)。
+        /// ⚠️ **2026-10-03 修复(评审 C1)**:原实现自造 `new List&lt;WorldPos&gt; { anchor }`
+        /// (注释自陈「简化:仅锚点格」)⇒ **多格模块的非锚点足迹格不进实例表**,
+        /// 使 `DemolishChecker` 的逐格实体检查**只查锚点** ⇒ **抵消 B2 的修复**。
+        /// 现由调用方传入**真足迹**(源 = `PlaceableChecker.ComputeOccupiedCells`,
+        /// 即放置判定所用的同一函数 —— 两处自此同源)。
+        /// </param>
+        public int Register(WorldPos anchor, int moduleId, int orientation, int variant,
+                            IReadOnlyList<WorldPos> occupiedCells = null)
         {
             int id = _nextStructureId++;
-            // 计算占用格(简化:仅锚点格;完整实现需查模块目录)
-            var occupiedCells = new List<WorldPos> { anchor };
-            _instances[id] = new StructureInstance(id, anchor, moduleId, orientation, variant, occupiedCells);
+            // ⚠️ 兜底仅为向后兼容(旧调用方);**新调用方须传真足迹**。
+            //    兜底仍 = {anchor} ⇒ 若调用方不传,该缺陷会复现 ⇒ 由 C1 的测试守住。
+            var cells = occupiedCells ?? new List<WorldPos> { anchor };
+            _instances[id] = new StructureInstance(id, anchor, moduleId, orientation, variant, cells);
             return id;
         }
 
@@ -122,6 +134,8 @@ namespace DaYiJingCheng.Sim.World
         private readonly IEventSink _eventSink;
         private readonly StructureInstanceRegistry _registry;
         private readonly IPayloadEncoder _encoder;
+        private readonly IModuleCatalog _moduleCatalog;
+        private readonly IWorldOccupancy _occupancy;
         private int _nextStructureId = 1;
 
         /// <param name="eventSink">事件写入通道(主机唯一)。</param>
@@ -130,12 +144,23 @@ namespace DaYiJingCheng.Sim.World
         /// 载荷编码器(ADR-029 §③)—— **唯一合法的载荷构造路径**。
         /// 本类内不得出现 <c>new PayloadRef(</c>(ADR-029 §③ 的门判据)。
         /// </param>
+        /// <param name="moduleCatalog">
+        /// 模块目录 —— 用于取 `LocalOccupancy` 算**真足迹**(C1)。
+        /// </param>
+        /// <param name="occupancy">
+        /// 世界占用表写面 —— **放置/拆除须同步 Overlay**(C2)。
+        /// 可传 null 表示「不接线」(向后兼容;但 F-23-1 对已放置结构将不生效)。
+        /// </param>
         public StructureWriter(IEventSink eventSink, StructureInstanceRegistry registry,
-                               IPayloadEncoder encoder)
+                               IPayloadEncoder encoder,
+                               IModuleCatalog moduleCatalog = null,
+                               IWorldOccupancy occupancy = null)
         {
             _eventSink = eventSink ?? throw new ArgumentNullException(nameof(eventSink));
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
             _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
+            _moduleCatalog = moduleCatalog;
+            _occupancy = occupancy;
         }
 
         /// <summary>下一个可用 structure_id(不递增,仅预览)。</summary>
@@ -144,9 +169,22 @@ namespace DaYiJingCheng.Sim.World
         /// <summary>放置模块(Append StructurePlaced 事件)。</summary>
         public int Place(WorldPos anchor, int moduleId, int orientation, int variant, long tick)
         {
-            int structureId = _registry.Register(anchor, moduleId, orientation, variant);
+            // ── C1:真足迹(与放置判定同源)─────────────────────────────
+            IReadOnlyList<WorldPos> occupied = null;
+            if (_moduleCatalog != null)
+            {
+                var defOpt = _moduleCatalog.GetModuleDefinition(moduleId);
+                if (defOpt.HasValue)
+                    occupied = PlaceableChecker.ComputeOccupiedCells(defOpt.Value, anchor, orientation);
+            }
+
+            int structureId = _registry.Register(anchor, moduleId, orientation, variant, occupied);
             if (structureId >= _nextStructureId)
                 _nextStructureId = structureId + 1;
+
+            // ── C2:同步世界占用表(F-23-1 EffectiveWalkable 的写路径)──────
+            if (_occupancy != null && occupied != null)
+                _occupancy.OccupyCells(occupied);
 
             // ADR-029 §③:载荷经 IPayloadEncoder —— 五字段全载,零 bit-packing
             var payload = _encoder.Encode(EventKind.StructurePlaced,
@@ -163,6 +201,10 @@ namespace DaYiJingCheng.Sim.World
         {
             if (!_registry.TryGet(structureId, out var inst))
                 return false;
+
+            // ── C2:先释放占用格,再移除实例 ──────────────────────────
+            if (_occupancy != null)
+                _occupancy.FreeCells(inst.OccupiedCells);
 
             _registry.Remove(structureId);
 
