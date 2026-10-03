@@ -24,13 +24,33 @@
 |---|---|---|---|---|---|
 | ~~**A1**~~ ✅**已闭** | emergency-procedures | ~~**AC-10-02** `[B]`~~ | 断言取 `Sim.Contracts` 程序集,却查其名 `Contains("Input")` —— **该名永不含 "Input"** ⇒ 零扫描、恒过 | `reading_contract_test.cs:174` | ✅ 主会话实测成立 |
 | ~~**A2**~~ ✅**已闭** | emergency-procedures | ~~**AC-10-03** `[B]`~~ | 与 `:20-38` 的字段类型测**逐字重复**;无任何操作码/IL 检查 | `reading_contract_test.cs:154-166` | ✅ 成立 |
-| **A3** | player-controller | **AC-1-06a/b/c** `[B]`×3 ⚠️**待裁** | 三个测试**都只查 `config.SpeedWalk > 0`** ⇒ 手填常数与派生量**无法区分** | `locomotion_chain_test.cs` | ✅ 成立 |
+| ~~**A3**~~ ✅**已闭** | player-controller | ~~**AC-1-06a/b/c** `[B]`×3~~ | 三个测试**都只查 `config.SpeedWalk > 0`** ⇒ 手填常数与派生量**无法区分** | `locomotion_chain_test.cs` | ✅ 成立 |
 | ~~**A4**~~ ✅**已闭** | player-controller | AC-1-10② | 只查 `LatticeSizeMm` **字段存在**,不验 `LATTICE_SIZE >= radius*2` | `controller_foundation_test.cs` | ✅ 成立 |
 | ~~**A5**~~ ✅**已闭** | player-controller | AC-1-17 | 用 `field.Name.Contains("frame")` **字段名匹配**,非 AST ⇒ 改名即绕过 | 同上 | ✅ 成立 |
 | ~~**A6**~~ ✅**已闭** | emergency-procedures | AC-10-24 | `holdMode`/`accessibilityOn` **参数被忽略** ⇒ 两模式必然同值,测试恒绿 | `ModalPhaseEvaluator.cs:82-99` | ✅ 成立 |
 | ~~**A7**~~ ✅**已闭** | player-controller | AC-1-28 | 检测到 `Sim` 引用时 `Assert.Pass` ⇒ **pass-through**,不真失败 | `controller_foundation_test.cs` | ✅ 成立(已知技术债) |
 
 > **同型根因**:判据**停在「对象存在」层**,未下沉到**字段/操作码层**。
+
+> ### ✅ A 类**全部 7 条已闭**(2026-10-03)
+>
+> | 批 | 内容 |
+> |---|---|
+> | A1/A2 | emergency `AC-10-02/03` → 新增 `EmergencyIntegerGates`(**真 IL 扫描**:引用面 + call 图闭包 + 负向夹具 + 非空转守卫) |
+> | A4 | player-controller `AC-1-10②` → 真约束断言 + 负例 |
+> | A5 | `AC-1-17` → 类型面 + 源码面双判据 |
+> | A6 | emergency `AC-10-24` → `holdMode` 真参与 + **非空转守卫**(闭集外须抛) |
+> | A7 | `AC-1-28` → 真断言 + **具名豁免**(仅 `Sim` = RecipeDataSet 债;AC 记**部分成立**) |
+> | A3 | player-controller `AC-1-06a/b/c` → **重定判据面**(见下) |
+>
+> **A3 的重定(用户裁定取「甲」)** —— 查证发现原测「只查 `SpeedWalk > 0`」**是因无物可查**:
+> 1 侧**零 `K_TERRAIN_MAX`/`K_CONTEXT_MAX` 概念**(它们是 `SteadyStateSpeed`/`ComputeVTarget` 的**入参**),
+> `DeriveMaxSpeed` 全库不存在;story-003 `:19` 自陈**所有者反转**(约束对象 = `LATTICE_SIZE`,归 6)。
+> ⇒ 现:① **06a** 验「1 不自持派生量」+ 6 侧差分神谕(独立第二路径扫表);
+> ② **06b** 验变异性 + 双向(注入抬上界 ⇒ 红;删行 ⇒ 绿);
+> ③ **06c 降级 NOT-RUN** —— 其载体 = Roslyn,而 **ADR-024 §⑤ 明令不引**;
+> 判据面在 6 侧 `AC-6-07` 的值级守卫。**AC-1-06c 的 `[x]` 已撤**。
+> 判据落**测试装配**(已引 `Sim`),**不动生产 asmdef**。
 
 > ### ✅ A1/A2 已闭(2026-10-03)
 > 新增 `unity/Assets/Editor.Tools.Gates/EmergencyIntegerGates.cs`(与既有 `EcozoneIntegerGates` 同族,

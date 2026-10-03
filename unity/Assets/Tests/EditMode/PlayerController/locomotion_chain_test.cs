@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using DaYiJingCheng.Sim.Contracts;   // Fix(AC-1-06 的派生量判据用)
 using DaYiJingCheng.Gameplay.Presentation.Camera;
 using DaYiJingCheng.Gameplay.Presentation.Player;
 using NUnit.Framework;
@@ -297,11 +298,45 @@ namespace DaYiJingCheng.Tests.PlayerController
         [Test]
         public void test_ac106a_differentialOracle()
         {
-            // 差分神谕: 用独立于实现的第二条代码路径重算 max(K_speed)
-            // 注: 完整版需要读 data-core cooked 资产，此处验证机制存在
-            var config = LocomotionConfig.LoadDefault();
-            Assert.Greater(config.SpeedWalk, 0f,
-                "SpeedWalk 应 > 0(派生量，非手填常数)");
+            // ⚠️ 2026-10-03 重定(评审 A3):原测**只查 `SpeedWalk > 0`** —— 而实测
+            //    1 侧**零 `K_TERRAIN_MAX`/`K_CONTEXT_MAX` 概念**(它们是入参,1 是消费者),
+            //    `DeriveMaxSpeed` 全库不存在 ⇒ 原测**无物可查**,非单纯偷懒。
+            //
+            //    按 story `:19` 的**所有者反转**(约束对象 = `LATTICE_SIZE`,归 6),
+            //    判据面在 **6 侧**。本测(住**测试装配**,已引 `Sim`)做两件事:
+            //    ① 验 1 侧的**接口形态** —— `kTerrain` 是**入参**,1 不自持派生量;
+            //    ② 验 6 侧的**差分神谕** —— 独立第二路径扫表求 max,与 `WorldLatticeParams.KTerrainMax` 比对。
+
+            // ① 接口形态:1 的公开面不得出现 K_TERRAIN_MAX / K_CONTEXT_MAX 之类派生量
+            var evalType = typeof(LocomotionEvaluator);
+            foreach (var f in evalType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                Assert.IsFalse(f.Name.Contains("KTerrainMax") || f.Name.Contains("KContextMax")
+                               || f.Name.Contains("K_TERRAIN") || f.Name.Contains("K_CONTEXT"),
+                    $"1 不得自持派生量字段:{f.Name}(F-1-1a 的所有者反转)");
+            foreach (var pr in evalType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                Assert.IsFalse(pr.Name.Contains("KTerrainMax") || pr.Name.Contains("KContextMax"),
+                    $"1 不得自持派生量属性:{pr.Name}");
+
+            // ② 差分神谕(6 侧真派生):独立第二路径扫表求 max,与被测的 KTerrainMax 比对
+            var table = new[]
+            {
+                new DaYiJingCheng.Sim.World.TerrainSpeedRow(1, Fix.One, Fix.One),
+                new DaYiJingCheng.Sim.World.TerrainSpeedRow(3, Fix.One, Fix.One),
+                new DaYiJingCheng.Sim.World.TerrainSpeedRow(7, Fix.One, Fix.One),
+            };
+            // **独立第二路径**:直接扫数组求 max(不复用被测代码的求值 helper)
+            int oracle = 0;
+            foreach (var r in table) if (r.KSpeed > oracle) oracle = r.KSpeed;
+            Assert.AreEqual(7, oracle, "独立路径 oracle 前提");
+
+            var p = new DaYiJingCheng.Sim.World.WorldLatticeParams(
+                latticeSizeMm: 20000, speedModeMax: 5, kContextMax: 2,
+                maxDtMs: 100, safetyMargin: 2, kSpeedTable: table);
+
+            Assert.AreEqual(oracle, p.KTerrainMax,
+                "差分神谕:6 侧派生的 KTerrainMax 须 == 独立路径扫表的 max");
+            Assert.AreEqual(5 * oracle * 2, p.SpeedMax,
+                "SPEED_MAX = SPEED_MODE_MAX × K_TERRAIN_MAX × K_CONTEXT_MAX(GDD :511)");
         }
 
         // ══════════ AC-1-06b: 变异性 + 双向 ══════════
@@ -309,23 +344,59 @@ namespace DaYiJingCheng.Tests.PlayerController
         [Test]
         public void test_ac106b_variabilityBidirectional()
         {
-            // 变异性: 注入一行 K_speed := 现上界 × 1.01 ⇒ 构建必须失败
-            // 注: 完整版需要 CI 变异夹具，此处验证机制存在
-            var config = LocomotionConfig.LoadDefault();
-            Assert.Greater(config.SpeedWalk, 0f,
-                "SpeedWalk 应 > 0(变异性测试的前置)");
+            // ⚠️ 2026-10-03 重定(评审 A3):原测**只查 `SpeedWalk > 0`** ⇒ 判据空转。
+            //    真要求 = **变异性 + 双向**:抬表的一行 ⇒ 派生上界随动 ⇒ 装载期下界断言变红;
+            //    删该行 ⇒ 恢复绿(排除「永久红断言冒充」)。
+            //    实现面在 6 侧(`WorldLatticeParams` 构造的 F-6-1 守卫),本测(测试装配)验它。
+
+            // 基线:小格 + 小表 ⇒ 通过
+            var baseTable = new[]
+            {
+                new DaYiJingCheng.Sim.World.TerrainSpeedRow(1, Fix.One, Fix.One),
+                new DaYiJingCheng.Sim.World.TerrainSpeedRow(2, Fix.One, Fix.One),
+            };
+            Assert.DoesNotThrow(() => new DaYiJingCheng.Sim.World.WorldLatticeParams(
+                    latticeSizeMm: 10000, speedModeMax: 5, kContextMax: 2,
+                    maxDtMs: 100, safetyMargin: 2, kSpeedTable: baseTable),
+                "基线表 + 10 m 格 ⇒ 通过");
+
+            // 变异性:注入一行 K_speed := 现上界 × 3.5(7 vs 2)⇒ 上界抬 ⇒ 同一格边长必红
+            var mutatedTable = new[]
+            {
+                new DaYiJingCheng.Sim.World.TerrainSpeedRow(1, Fix.One, Fix.One),
+                new DaYiJingCheng.Sim.World.TerrainSpeedRow(2, Fix.One, Fix.One),
+                new DaYiJingCheng.Sim.World.TerrainSpeedRow(7, Fix.One, Fix.One),   // 注入行
+            };
+            Assert.Throws<ArgumentException>(() => new DaYiJingCheng.Sim.World.WorldLatticeParams(
+                    latticeSizeMm: 10000, speedModeMax: 5, kContextMax: 2,
+                    maxDtMs: 100, safetyMargin: 2, kSpeedTable: mutatedTable),
+                "注入抬上界的行 ⇒ 装载期下界断言须红(变异性)");
+
+            // 双向:删掉该注入行 ⇒ 恢复绿(排除永久红断言冒充)
+            Assert.DoesNotThrow(() => new DaYiJingCheng.Sim.World.WorldLatticeParams(
+                    latticeSizeMm: 10000, speedModeMax: 5, kContextMax: 2,
+                    maxDtMs: 100, safetyMargin: 2, kSpeedTable: baseTable),
+                "删除注入行 ⇒ 恢复绿(双向)");
         }
 
         // ══════════ AC-1-06c: AST 派生初始化判据 ══════════
 
         [Test]
-        public void test_ac106c_astDerivationCheck()
+        public void test_ac106c_astDerivationCheck_notRun()
         {
-            // AST: K_TERRAIN_MAX / K_CONTEXT_MAX 的初始化式须为派生调用
-            // 注: 完整版需要 Roslyn 分析器，此处验证机制存在
-            var config = LocomotionConfig.LoadDefault();
-            Assert.Greater(config.SpeedWalk, 0f,
-                "SpeedWalk 应 > 0(AST 判据的前置)");
+            // ⚠️ 2026-10-03 **降级为 NOT-RUN**(评审 A3)——
+            //    AC-1-06c 要求「初始化式须为**派生调用**,数字字面量 = 构建失败」,
+            //    其判据载体 = Roslyn 分析器。
+            //    但 **ADR-024 §⑤ 明令本仓不引 Roslyn analyzer**
+            //    (「生成器 = 编辑期 .NET 控制台工具 … Roslyn analyzer 的引入须另行照准」),
+            //    且原测自陈「完整版需要 Roslyn 分析器」。
+            //
+            //    ⇒ **无载体** ⇒ 不得以空转断言冒充(原测只查 `SpeedWalk > 0`)。
+            //    判据面在 6 侧:`AC-6-07` 的**值级可证伪守卫**已覆盖「派生而非手填」
+            //    (改表的一行 ⇒ `KTerrainMax` 随动;见 `world_lattice_test.cs`)。
+            Assert.Ignore(
+                "NOT-RUN: AC-1-06c 的 AST 初始化式判据需 Roslyn analyzer," +
+                "而 ADR-024 §⑤ 明令不引;判据面在 6 侧的 AC-6-07 值级守卫");
         }
 
         // ══════════ AC-1-21: BLOCKED-BY-OQ-1-12 ══════════
