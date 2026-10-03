@@ -113,7 +113,8 @@ namespace DaYiJingCheng.Sim.World
         /// <summary>获取指定格的模块 id(无则返回 -1)。</summary>
         public int GetModuleAt(WorldPos cell)
         {
-            int sid = _structures.GetInstanceAt(cell);
+            // ⚠️ 2026-10-03(C8/ID):structure id 全链升 `long` —— 局部变量随之。
+            long sid = _structures.GetInstanceAt(cell);
             if (sid < 0)
                 return -1;
 

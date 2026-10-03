@@ -51,7 +51,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_ac2331_place_encodesFiveFields()
         {
-            int sid = _writer.Place(new WorldPos(3, 0, 4), moduleId: 70000,
+            long sid = _writer.Place(new WorldPos(3, 0, 4), moduleId: 70000,
                                     orientation: 90, variant: 2, tick: 100);
 
             Assert.AreEqual(1, _events.Count);
@@ -66,7 +66,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_ac2332_remove_encodesThreeFields()
         {
-            int sid = _writer.Place(new WorldPos(5, 0, 6), 7, 180, 1, 100);
+            long sid = _writer.Place(new WorldPos(5, 0, 6), 7, 180, 1, 100);
             _events.Clear();
 
             Assert.IsTrue(_writer.Remove(sid, 101));
@@ -81,7 +81,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         {
             // 🔴 B4 的核心缺陷:原实现把 orientation / variant **算出却未放进载荷**
             //    (只写 offset: 0)⇒ 两字段被静默丢弃。本测即该缺陷的回归夹具。
-            int sid = _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);
+            long sid = _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);
             _events.Clear();
 
             Assert.IsTrue(_writer.Modify(sid, newOrientation: 270, newVariant: 3, tick: 200));
@@ -96,7 +96,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_ac2333_modify_onlyOrientation_maskIs1()
         {
-            int sid = _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);
+            long sid = _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);
             _events.Clear();
 
             _writer.Modify(sid, newOrientation: 90, newVariant: null, tick: 200);
@@ -109,7 +109,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_ac2333_modify_onlyVariant_maskIs2()
         {
-            int sid = _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);
+            long sid = _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);
             _events.Clear();
 
             _writer.Modify(sid, newOrientation: null, newVariant: 5, tick: 200);

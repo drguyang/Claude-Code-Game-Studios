@@ -44,7 +44,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_entityOnCell_returnsEntityOnCell()
         {
-            int sid = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
+            long sid = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
             var moduleCatalog = new TestModuleCatalog();
             moduleCatalog.RegisterModule(new ModuleDefinition(
                 moduleId: 1,
@@ -61,7 +61,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_validStructure_returnsSuccess()
         {
-            int sid = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
+            long sid = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
             Assert.AreEqual(DemolishResult.Success, _checker.Check(sid));
         }
     }

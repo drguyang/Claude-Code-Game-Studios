@@ -50,7 +50,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_place_emitsStructurePlaced()
         {
-            int sid = _writer.Place(new WorldPos(0, 0, 0), moduleId: 1, orientation: 0, variant: 0, tick: 100);
+            long sid = _writer.Place(new WorldPos(0, 0, 0), moduleId: 1, orientation: 0, variant: 0, tick: 100);
 
             Assert.AreEqual(1, _appendedEvents.Count);
             Assert.AreEqual(EventKind.StructurePlaced, _appendedEvents[0].Kind);
@@ -69,7 +69,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_remove_emitsStructureRemoved()
         {
-            int sid = _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);
+            long sid = _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);
             _appendedEvents.Clear();
 
             bool removed = _writer.Remove(sid, 101);
@@ -91,7 +91,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_modify_orientation_emitsModified()
         {
-            int sid = _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);
+            long sid = _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);
             _appendedEvents.Clear();
 
             bool modified = _writer.Modify(sid, newOrientation: 90, newVariant: null, tick: 200);
@@ -108,7 +108,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_modify_noChange_returnsFalse()
         {
-            int sid = _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);
+            long sid = _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);
             _appendedEvents.Clear();
 
             bool modified = _writer.Modify(sid, newOrientation: 0, newVariant: 0, tick: 200);
@@ -122,7 +122,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         {
             // 构造事件序列
             _writer.Place(new WorldPos(0, 0, 0), 1, 0, 0, 100);   // id=1
-            int sid2 = _writer.Place(new WorldPos(1, 0, 0), 2, 0, 0, 101); // id=2
+            long sid2 = _writer.Place(new WorldPos(1, 0, 0), 2, 0, 0, 101); // id=2
             _writer.Remove(sid2, 102);
             _writer.Modify(1, newOrientation: 90, newVariant: null, 200);
 
@@ -140,12 +140,8 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 else if (evt.Kind == EventKind.StructureRemoved)
                 {
                     var p = PayloadOf<StructureRemovedPayload>(evt);
-                    // ⚠️ 收窄转换:`StructureRemovedPayload.StructureId` = **long**
-                    // (entities.yaml:2068 定 structure_id = i64),而 `StructureInstanceRegistry`
-                    // 的 id 仍是 **int** —— 二者不一致。此前被 StructureKinds.cs 内的
-                    // int 版副本**掩盖**;删副本后暴露。**本 story 只做收窄转换并登记该缺陷**,
-                    // 注册表 id 升 long 归独立轮(见 §已知缺陷)。
-                    rebuild.Remove((int)p.StructureId);
+                    // ✅ 2026-10-03(C8/ID 已修):注册表 id 全链升 `long`,此处**不再需要收窄转换**。
+                    rebuild.Remove(p.StructureId);
                 }
                 else if (evt.Kind == EventKind.StructureModified)
                 {
@@ -153,7 +149,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                     // ModifiedFields 位掩码决定改哪一维(1=朝向, 2=变体)
                     int? newOri = (p.ModifiedFields & 1) != 0 ? p.NewOrientation : (int?)null;
                     int? newVar = (p.ModifiedFields & 2) != 0 ? p.NewVariant : (int?)null;
-                    rebuild.Update((int)p.StructureId, newOri, newVar);   // 同上:收窄转换
+                    rebuild.Update(p.StructureId, newOri, newVar);   // ✅ C8/ID 已修:无需收窄
                 }
             }
 
@@ -170,24 +166,67 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         {
             Assert.IsFalse(_registry.TryGet(999, out _));
         }
+
+        // ── C8/ID 回归(2026-10-03)──────────────────────────────
+        // 原缺陷:id 全链 int,与 entities.yaml:2068 的 i64 不符 ⇒ **超 2^31 静默回绕**。
+        // 本测存在的理由:既有用例的 id 均「小」(1/2/999),即便实现退回 int 也**照样全绿**
+        // ⇒ 判据必须**真的把 id 推过 int 上界**,否则捕获不到原缺陷。
+        [Test]
+        public void test_ac23_id_exceedsIntRange_survivesRoundTrip()
+        {
+            // 前提断言:夹具值确在 int 域外(夹具自毁守卫 —— 若写成小值,本测即失效)
+            const long bigId = 4_000_000_000L; // > int.MaxValue(2_147_483_647)
+            Assert.Greater(bigId, int.MaxValue, "夹具前提:该 id 必须**超出 int 域**,否则捕获不到原缺陷");
+
+            // Act:直接把 id **推过 int 上界**再走全链 ——
+            // 若实现退回 int,`id` 在注册时即回绕成负数/错误值,后续断言必红。
+            Assert.IsFalse(_registry.TryGet(bigId, out _), "int 域外的 id 须可表达为查询参数(签名 = long)");
+            Assert.IsFalse(_registry.Remove(bigId), "int 域外的 id 须可表达为删除参数(签名 = long)");
+
+            // 行为半边:正常 id 全链可用(证明上面不是「一律 false」的空实现)
+            long id = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
+            Assert.IsTrue(_registry.TryGet(id, out var inst), "注册的 id 须可查回");
+            Assert.AreEqual(id, inst.StructureId, "实例内 StructureId 须与注册返回**同值**(long 无截断)");
+            Assert.AreEqual(1, inst.ModuleId);
+            Assert.IsTrue(_registry.Remove(id), "注册的 id 须可移除");
+            Assert.IsFalse(_registry.TryGet(id, out _), "移除后须查不到");
+        }
+
+        [Test]
+        public void test_ac23_id_typeIsInt64_inBothRegistryAndPayload()
+        {
+            // 判据 = **类型身份**,非行为 —— 把「与权威件同宽度」钉成契约。
+            Assert.AreEqual(typeof(long), typeof(StructureInstance).GetField("StructureId").FieldType,
+                "StructureInstance.StructureId 须为 long(entities.yaml:2068 = i64)");
+            Assert.AreEqual(typeof(long), typeof(StructureInstanceRegistry)
+                .GetMethod("Register").ReturnType,
+                "Registry.Register 返回须为 long");
+            Assert.AreEqual(typeof(long), typeof(StructureWriter).GetMethod("Place").ReturnType,
+                "StructureWriter.Place 返回须为 long");
+            Assert.AreEqual(typeof(long), typeof(StructurePlacedPayload).GetField("StructureId").FieldType,
+                "契约版载荷须同为 long(两侧同宽度 —— 原缺陷 = 一侧 int 一侧 long)");
+        }
     }
 
     // ══════════════════════════════════════════════════════════════
-    // §已知缺陷(本 story 暴露并登记,**未修** —— 归独立轮)
+    // §历史缺陷(**已闭** 2026-10-03 —— 保留原文作闭环记录)
     //
-    // `StructureInstanceRegistry` 的 structure id 是 **int**
-    // (`_nextStructureId` / `Register` / `Remove` / `Update` / `TryGet` /
-    //  `StructureInstance.StructureId` / `StructureWriter.PeekNextId`),
-    // 而权威件 `design/registry/entities.yaml:2068` 定
-    // **`structure_id: i64`**(「与 ItemInstanceId 同模式,计数器 + 高水位可重构」),
-    // 契约版载荷 `StructurePlacedPayload.StructureId` 亦为 **long**。
+    // 【原缺陷】`StructureInstanceRegistry` 的 structure id 曾是 **int**
+    //   (`_nextStructureId` / `Register` / `Remove` / `Update` / `TryGet` /
+    //    `StructureInstance.StructureId` / `StructureWriter.PeekNextId`),
+    //   而权威件 `design/registry/entities.yaml:2068` 定
+    //   **`structure_id: i64`**,契约版载荷 `StructurePlacedPayload.StructureId`
+    //   与 codec(`WriteFieldInt64`)亦皆为 **long**
+    //   ⇒ int 承载 i64 语义,id 超 2^31 时静默回绕。
+    //   该不一致此前被 `StructureKinds.cs` 内的 int 版 payload 副本掩盖。
     //
-    // ⇒ **注册表侧不合规**(int 承载 i64 语义):id 超 2^31 时静默回绕。
-    //   该不一致此前被 `StructureKinds.cs` 内的 **int 版 payload 副本掩盖**
-    //   (副本已由 ADR-029 接线支删除,故暴露)。
-    //   本测试的 `(int)` 收窄转换是**临时桥接**,不是修复。
-    //   修法 = 注册表 id 全链升 `long`(须同步 `IIdAuthority` 机制 A 的高水位口径);
-    //   归独立轮,**不属 B4 的范围**。
+    // 【原处置】本测试当时用 `(int)` 收窄转换作**临时桥接**,并登记该缺口。
+    //
+    // 【已修】`StructureKinds.cs` 注册表 + 写者全链升 `long`(2026-10-03,评审 C8/ID):
+    //   `StructureInstance.StructureId` / `_instances` 键 / `_nextStructureId`(两处)/
+    //   `Register` / `Remove` / `Update` / `TryGet` / `GetInstanceAt` / `Place` /
+    //   `PeekNextId` —— 与契约 / codec / `entities.yaml` 的 i64 口径**全链一致**。
+    //   本文件的两处 `(int)` 收窄转换**已移除**。
     // ══════════════════════════════════════════════════════════════
 
 

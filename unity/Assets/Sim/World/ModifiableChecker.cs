@@ -49,7 +49,7 @@ namespace DaYiJingCheng.Sim.World
         /// Modifiable(m, anchor, new_orientation, new_variant):
         /// 新占用格集 ∖ 旧格 全空 ∧ 新朝向 TypeOK
         /// </summary>
-        public ModifiableResult Check(int structureId, int newOrientation, int newVariant)
+        public ModifiableResult Check(long structureId, int newOrientation, int newVariant)
         {
             // 查询实例
             if (!_registry.TryGet(structureId, out var inst))

@@ -59,7 +59,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder,
                                              catalog, new NoopOccupancy());
 
-            int sid = writer.Place(new WorldPos(10, 0, 10), moduleId: 7, orientation: 0, variant: 0, tick: 1);
+            long sid = writer.Place(new WorldPos(10, 0, 10), moduleId: 7, orientation: 0, variant: 0, tick: 1);
 
             Assert.IsTrue(_registry.TryGet(sid, out var inst));
             Assert.AreEqual(2, inst.OccupiedCells.Count,
@@ -78,7 +78,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                                              catalog, new NoopOccupancy());
 
             var anchor = new WorldPos(3, 0, 4);
-            int sid = writer.Place(anchor, 7, orientation: 90, variant: 0, tick: 1);
+            long sid = writer.Place(anchor, 7, orientation: 90, variant: 0, tick: 1);
             _registry.TryGet(sid, out var inst);
 
             var expected = PlaceableChecker.ComputeOccupiedCells(
@@ -115,7 +115,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             var writer = new StructureWriter(new CapturingSink(_events), _registry, _encoder,
                                              catalog, occupancy);
 
-            int sid = writer.Place(new WorldPos(10, 0, 10), 7, 0, 0, tick: 1);
+            long sid = writer.Place(new WorldPos(10, 0, 10), 7, 0, 0, tick: 1);
             writer.Remove(sid, tick: 2);
 
             Assert.AreEqual(1, occupancy.FreeCalls, "C2:Remove 须调用 FreeCells");

@@ -29,14 +29,24 @@ namespace DaYiJingCheng.Sim.World
     /// <summary>结构实例数据。</summary>
     public readonly struct StructureInstance
     {
-        public readonly int StructureId;
+        /// <summary>
+        /// 结构身份 —— **`long`(i64)**,非 `int`。
+        /// ⚠️ **2026-10-03 修复(评审 C8/ID)**:原为 `int`,与
+        /// `entities.yaml:2068` 登记的 `structure_id: i64` **类型不符**,
+        /// 也与契约侧 `Sim.Contracts.StructurePlacedPayload.StructureId`(**long**)
+        /// 及 codec(`PayloadCodec.World.cs:269` `WriteFieldInt64`)**不一致** ——
+        /// 同一 id 在两处不同宽度,是**静默截断**风险(`int` 溢出即失真,
+        /// 且与 `ItemInstanceId` 同模式的「计数器 + 高水位可重构」口径不匹配)。
+        /// 现全链升 `long`,与契约 / codec / ADR-010 §五 的 `IIdAuthority` 机制 A 对齐。
+        /// </summary>
+        public readonly long StructureId;
         public readonly WorldPos Anchor;
         public readonly int ModuleId;
         public readonly int Orientation;
         public readonly int Variant;
         public readonly IReadOnlyList<WorldPos> OccupiedCells;
 
-        public StructureInstance(int structureId, WorldPos anchor, int moduleId, int orientation, int variant, IReadOnlyList<WorldPos> occupiedCells = null)
+        public StructureInstance(long structureId, WorldPos anchor, int moduleId, int orientation, int variant, IReadOnlyList<WorldPos> occupiedCells = null)
         {
             StructureId = structureId;
             Anchor = anchor;
@@ -50,8 +60,8 @@ namespace DaYiJingCheng.Sim.World
     /// <summary>结构实例表(派生态,不存事件流,由 Structure* 事件重建)。</summary>
     public sealed class StructureInstanceRegistry
     {
-        private readonly Dictionary<int, StructureInstance> _instances = new Dictionary<int, StructureInstance>();
-        private int _nextStructureId = 1;
+        private readonly Dictionary<long, StructureInstance> _instances = new Dictionary<long, StructureInstance>();
+        private long _nextStructureId = 1;
 
         /// <summary>
         /// 注册新实例(返回新 id)。
@@ -64,10 +74,10 @@ namespace DaYiJingCheng.Sim.World
         /// 现由调用方传入**真足迹**(源 = `PlaceableChecker.ComputeOccupiedCells`,
         /// 即放置判定所用的同一函数 —— 两处自此同源)。
         /// </param>
-        public int Register(WorldPos anchor, int moduleId, int orientation, int variant,
-                            IReadOnlyList<WorldPos> occupiedCells = null)
+        public long Register(WorldPos anchor, int moduleId, int orientation, int variant,
+                             IReadOnlyList<WorldPos> occupiedCells = null)
         {
-            int id = _nextStructureId++;
+            long id = _nextStructureId++;
             // ⚠️ **2026-10-03(N-r1)**:兜底仍 = `{anchor}`,但**生产路径已 fail-closed**
             //    (`StructureWriter.Place` 无目录即抛)⇒ 该兜底**只服务既有测试的直调**。
             //    新调用方**须传真足迹**;若生产代码出现直调 `Register` 而不传足迹,
@@ -78,13 +88,13 @@ namespace DaYiJingCheng.Sim.World
         }
 
         /// <summary>移除实例(返回 true 如果存在并移除)。</summary>
-        public bool Remove(int structureId)
+        public bool Remove(long structureId)
         {
             return _instances.Remove(structureId);
         }
 
         /// <summary>更新实例(朝向/变体)。</summary>
-        public bool Update(int structureId, int? newOrientation, int? newVariant)
+        public bool Update(long structureId, int? newOrientation, int? newVariant)
         {
             if (!_instances.TryGetValue(structureId, out var inst))
                 return false;
@@ -98,13 +108,13 @@ namespace DaYiJingCheng.Sim.World
         }
 
         /// <summary>查询实例。</summary>
-        public bool TryGet(int structureId, out StructureInstance instance)
+        public bool TryGet(long structureId, out StructureInstance instance)
         {
             return _instances.TryGetValue(structureId, out instance);
         }
 
         /// <summary>获取锚点格上的实例 id(无则返回 -1)。</summary>
-        public int GetInstanceAt(WorldPos anchor)
+        public long GetInstanceAt(WorldPos anchor)
         {
             foreach (var kv in _instances)
             {
@@ -138,7 +148,7 @@ namespace DaYiJingCheng.Sim.World
         private readonly IPayloadEncoder _encoder;
         private readonly IModuleCatalog _moduleCatalog;
         private readonly IWorldOccupancy _occupancy;
-        private int _nextStructureId = 1;
+        private long _nextStructureId = 1;
 
         /// <param name="eventSink">事件写入通道(主机唯一)。</param>
         /// <param name="registry">结构实例表。</param>
@@ -166,10 +176,10 @@ namespace DaYiJingCheng.Sim.World
         }
 
         /// <summary>下一个可用 structure_id(不递增,仅预览)。</summary>
-        public int PeekNextId => _nextStructureId;
+        public long PeekNextId => _nextStructureId;
 
         /// <summary>放置模块(Append StructurePlaced 事件)。</summary>
-        public int Place(WorldPos anchor, int moduleId, int orientation, int variant, long tick)
+        public long Place(WorldPos anchor, int moduleId, int orientation, int variant, long tick)
         {
             // ── C1:真足迹(与放置判定同源)─────────────────────────────
             // ⚠️ **2026-10-03 fail-closed(第二轮评审 N-r1)**:
@@ -194,7 +204,7 @@ namespace DaYiJingCheng.Sim.World
             IReadOnlyList<WorldPos> occupied =
                 PlaceableChecker.ComputeOccupiedCells(defOpt.Value, anchor, orientation);
 
-            int structureId = _registry.Register(anchor, moduleId, orientation, variant, occupied);
+            long structureId = _registry.Register(anchor, moduleId, orientation, variant, occupied);
             if (structureId >= _nextStructureId)
                 _nextStructureId = structureId + 1;
 
@@ -218,7 +228,7 @@ namespace DaYiJingCheng.Sim.World
         }
 
         /// <summary>拆除模块(Append StructureRemoved 事件)。</summary>
-        public bool Remove(int structureId, long tick)
+        public bool Remove(long structureId, long tick)
         {
             if (!_registry.TryGet(structureId, out var inst))
                 return false;
@@ -240,7 +250,7 @@ namespace DaYiJingCheng.Sim.World
         }
 
         /// <summary>修改模块(朝向/变体,Append StructureModified 事件)。</summary>
-        public bool Modify(int structureId, int? newOrientation, int? newVariant, long tick)
+        public bool Modify(long structureId, int? newOrientation, int? newVariant, long tick)
         {
             if (!_registry.TryGet(structureId, out var inst))
                 return false;

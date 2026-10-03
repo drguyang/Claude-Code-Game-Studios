@@ -46,7 +46,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_noChange_returnsNoChange()
         {
-            int sid = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
+            long sid = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
             var result = _checker.Check(sid, 0, 0);
             Assert.AreEqual(ModifiableResult.NoChange, result);
         }
@@ -56,7 +56,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public void test_validOrientationChange_returnsSuccess()
         {
             // 放置 2×1 床(横向占 (0,0,0) + (1,0,0))
-            int sid = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
+            long sid = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
             // 旋转 90° 后占 (0,0,0) + (0,0,1), 旧格 (1,0,0) 释放
             // 新格 (0,0,1) 未被占 => 成功
             var result = _checker.Check(sid, 90, 0);
@@ -68,8 +68,8 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public void test_newCellsOccupied_returnsNewCellsOccupied()
         {
             // 放置两张床: (0,0,0) 横向 + (1,0,0) 自身
-            int sid1 = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
-            int sid2 = _registry.Register(new WorldPos(2, 0, 0), 1, 0, 0);
+            long sid1 = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
+            long sid2 = _registry.Register(new WorldPos(2, 0, 0), 1, 0, 0);
 
             // 将 sid1 旋转 180°: 新占 (-1,0,0) + (0,0,0), 旧占 (0,0,0) + (1,0,0)
             // 新格 (-1,0,0) 超出区域 => OutOfRegion
@@ -81,7 +81,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         [Test]
         public void test_invalidOrientation_returnsTypeMismatch()
         {
-            int sid = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
+            long sid = _registry.Register(new WorldPos(0, 0, 0), 1, 0, 0);
             var result = _checker.Check(sid, 45, 0);
             Assert.AreEqual(ModifiableResult.TypeMismatch, result);
         }

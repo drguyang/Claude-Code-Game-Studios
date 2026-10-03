@@ -49,7 +49,7 @@ namespace DaYiJingCheng.Sim.World
         /// ② 不是 Shell 类
         /// ③ 占用格上无实体(玩家/敌人,量化格 + 宽容半径)
         /// </summary>
-        public DemolishResult Check(int structureId)
+        public DemolishResult Check(long structureId)
         {
             // ① 结构存在
             if (!_registry.TryGet(structureId, out var inst))
