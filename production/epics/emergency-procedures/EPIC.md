@@ -68,9 +68,15 @@ This epic is complete when:
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
 | 001 | EmergencyReading 读数与直读通道契约 | Integration | **Complete ✅ 2026-09-30** | ADR-011/006 |
-| 002 | 动作表/熟练度表与 result_mul 烘焙 | Config-Data | Ready | ADR-014/006/024 |
-| 003 | Judge 三扇门定点纯函数 | Logic | Ready | ADR-005/006/012 |
-| 004 | Aggregate、可靠上行与主机落流 | Integration | Ready | ADR-001/009/011/024 |
-| 005 | 模态期:跳过/中止/档位意图/输入压制 | Integration | Ready | ADR-011/013/020 |
-| 006 | 手感、预表现与键鼠回退 | Visual-Feel | Ready | ADR-011/013/018 |
+| 002 | 动作表/熟练度表与 result_mul 烘焙 | Config-Data | **Complete ✅ 2026-10-02** | ADR-014/006/024 |
+| 003 | Judge 三扇门定点纯函数 | Logic | **Complete ✅ 2026-10-02** | ADR-005/006/012 |
+| 004 | Aggregate、可靠上行与主机落流 | Integration | **Complete ✅ 2026-10-02** | ADR-001/009/011/024 |
+| 005 | 模态期:跳过/中止/档位意图/输入压制 | Integration | **Complete ✅ 2026-10-02** | ADR-011/013/020 |
+| 006 | 手感、预表现与键鼠回退 | Visual-Feel | **Complete ✅ 2026-10-02** | ADR-011/013/018 |
 | 007 | `EmergencyTreatmentApplied` 载荷的结算链补完 —— 九字段齐备(b6 门查出的手搓点) | Logic | **Complete ✅ 2026-10-03**(17/17) | ADR-029 + ADR-009 Amendment I |
+
+---
+
+> ⚠️ **2026-10-03 状态订正(D3-b)**:本表 002–006 原标 `Ready`,
+> 而各 story 件**自身**标 `Complete ✅ 2026-10-02`(双代理评审修复后)。
+> 本表已对齐 story 件 —— **以 story 件为准**(本表为索引,不产生状态)。

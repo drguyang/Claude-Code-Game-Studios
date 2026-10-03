@@ -1,7 +1,8 @@
 # Story 001: EmergencyReading 读数与直读通道契约
 
 > **Epic**: 急救动作模块
-> **Status**: Complete ✅ 2026-10-02 (测试 5/5 通过)
+> **Status**: Complete ✅ 2026-10-02 (测试 **11/11** 通过 —— 双代理评审修复后复跑;
+> ⚠️ **2026-10-03 订正(D3-c)**:头部原写「5/5」,与 Test Evidence 行的「11/11」不符)
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: 6h

@@ -72,7 +72,10 @@
 ## Test Evidence
 
 **Story Type**: Visual-Feel(自动化半边 AC-10-09/21/17 为 BLOCKING 逻辑测;[L] 手感项走查签核)
-**Required evidence**: `unity/Assets/Tests/PlayMode/EmergencyProcedures/feel_latency_test.cs` + 签核记录 `production/qa/evidence/emergency-procedures/story-006-*.md`(注意:`production/qa/` 全仓从未建立 —— 建目录时一并落 README,承记忆库 NOT-RUN-override 处置)
+**Required evidence**: `unity/Assets/Tests/EditMode/EmergencyProcedures/feel_latency_test.cs`
+  ⚠️ **2026-10-03 订正(D2)**:原声明为 `Tests/PlayMode/`,而**文件真身在 `Tests/EditMode/`**
+(实测:`Tests/PlayMode/EmergencyProcedures/feel_latency_test.cs` **不存在**)。
+  3 项 NOT-RUN 亦全在 EditMode。 + 签核记录 `production/qa/evidence/emergency-procedures/story-006-*.md`(注意:`production/qa/` 全仓从未建立 —— 建目录时一并落 README,承记忆库 NOT-RUN-override 处置)
 **Status**: [x] Created — 10/10 passed + 3 skipped (NOT-RUN) (2026-10-02 双代理评审修复后复跑)
 
 ---

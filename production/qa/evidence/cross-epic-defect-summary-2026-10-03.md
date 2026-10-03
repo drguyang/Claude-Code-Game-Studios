@@ -115,9 +115,9 @@
 
 | # | Epic | 问题 |
 |---|---|---|
-| **D1** | emergency-procedures | **A8 勘误未同步 AC 表** —— F-10.4 正文 `:617-630` 已订正为 `32768×16385`,但 **AC-10-04a 单元格仍写 `32769×16384`** |
-| **D2** | emergency-procedures | story-006 的 Test Evidence 声明证据在 `Tests/PlayMode/`,实际在 **EditMode**;3 项 NOT-RUN 亦全在 EditMode |
-| **D3** | emergency-procedures | story-007 头「Complete」而 Test Evidence 仍 `[ ] Pending`;EPIC 表 002–006 标 `Ready` 而各 story 标 `Complete`;story-001 头「5/5」vs 证据「11/11」 |
+| ~~**D1**~~ ✅**已闭** | emergency-procedures | **A8 勘误未同步 AC 表** —— F-10.4 正文 `:617-630` 已订正为 `32768×16385`,但 **AC-10-04a 单元格仍写 `32769×16384`** |
+| ~~**D2**~~ ✅**已闭** | emergency-procedures | story-006 的 Test Evidence 声明证据在 `Tests/PlayMode/`,实际在 **EditMode**;3 项 NOT-RUN 亦全在 EditMode |
+| ~~**D3**~~ ✅**已闭** | emergency-procedures | story-007 头「Complete」而 Test Evidence 仍 `[ ] Pending`;EPIC 表 002–006 标 `Ready` 而各 story 标 `Complete`;story-001 头「5/5」vs 证据「11/11」 |
 
 ---
 

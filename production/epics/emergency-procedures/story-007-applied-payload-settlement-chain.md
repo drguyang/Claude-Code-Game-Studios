@@ -204,7 +204,7 @@ Process(EmergencyAttemptPayload attempt, EmergencyActionRow action, JudgeContext
 - ⚠️ **既有 `Tests/PlayMode/EmergencyProcedures/host_authority_test.cs` 须同步**(构造加 `IPayloadEncoder` 形参),
   其 4 例须保持全绿
 
-**Status**: [ ] Pending — story not yet implemented
+**Status**: [x] Complete — 17/17 passed(2026-10-03;含突变测试坐实)
 
 ---
 
