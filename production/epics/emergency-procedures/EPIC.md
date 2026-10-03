@@ -3,8 +3,60 @@
 > **Layer**: Core(输入聚合 / 判定)× Feature(模态期交互)
 > **GDD**: design/gdd/emergency-procedures.md
 > **Architecture Module**: L3 Gameplay + L2 Sim 接缝(判定输入进流,主机权威)
-> **Status**: In Review(7/7 story 已实现 —— 007 Complete ✅ 2026-10-03;b6 手搓点已修(九字段/八字段齐备 + 删两个 payload struct 副本);EditMode 0 红 · PlayMode 36/36;✅ **评审原件已落盘**(`qa/evidence/review-emergency-procedures-2026-10-03.md`,补做,不追认原判定);🔴 **但评审查出多条判据空转 ⇒ 不转 Complete**:**AC-10-02/03** 两条 BLOCKING **恒真**(`reading_contract_test.cs:174` 取 `Sim.Contracts` 程序集,断言其名不含 "Input" ⇒ 零扫描)· `SkillMul` 死代码 · JITTER 用 C# 裸 `/`(违 Forbidden)· `DC-5` 仅返回字符串数组无校验体。⚠️ 复核已排除 agent 误报(header `Seq` 传 0 系全库既定占位约定,非缺陷);残留待裁:`载荷 Seq` 占位(归上行链 45);✅ **C4/C5 已闭(2026-10-03)** —— 稳度门真用 `SkillMul`(GDD F-10.2 原文式)· JITTER 改 `ROUND_HALF_AWAY_FROM_ZERO`(此前 C# 裸 `/` 违 Forbidden))
-> **Stories**: 6 stories — see table below
+> **Status**: In Review(7/7 story 已实现;两轮评审 A1/A2/A6/B4/C4/C5 **已全闭**;✅ **评审原件两份均在库**(首轮 + round2)—— 旧记「评审原件缺」为**方向性错记**,已订正。**不转 Complete 的真实原因**:① **实跑 Unity 测试套件**(round2 自陈**未实跑**,「测试通过」类结论均来自读测试源码)⇒ 现记的「0 红」**未经验证**;② D1/D2/D3 文档状态对齐(round2 未验证)。其余未闭项:载荷 `Seq` 占位(归上行链 45)· AC-10-04b 三格逐位(ADR-012 矩阵未激活,禁借绿)。⚠️ 详见下方 §Epic Status)
+> **Stories**: **7 stories** — see table below
+
+## Epic Status(2026-10-03)
+
+**不转 Complete** —— 但**原因已变**(旧记「评审原件缺」是**方向性错记**,见下)。
+
+### ① 评审原件**不但在库,还是两份**(订正)
+
+本 EPIC 此前被登记为「**评审原件缺**」,`epics/index.md` 与 `session-state/active.md` 同此口径。
+**实测该登记为误** —— 两份原件**均已在库**:
+
+| 件 | 路径 |
+|---|---|
+| 首轮 | `production/qa/evidence/review-emergency-procedures-2026-10-03.md` |
+| 二轮 | `production/qa/evidence/review-emergency-procedures-round2-2026-10-03.md` |
+
+⇒ 「评审原件缺」这条残留**不成立**。原措辞已就地在 `index.md` / `active.md` 订正。
+
+### ② 判据缺陷结算(两轮评审 → 实测)
+
+| # | 原判定 | 实测 | 结算 |
+|---|---|---|---|
+| **A1** AC-10-02 恒真 | 🔴 断言取 `Sim.Contracts` 查其名 `Contains("Input")` ⇒ 零扫描 | round2 逐行复核:`EmergencyIntegerGates.cs:89-174` 已扫**引用面 + IL 面**,配非空转守卫(`scannedMethods == 0` ⇒ 记红) | ✅ **已闭** |
+| **A2** AC-10-03 恒真 | 🔴 与字段类型测逐字重复,无操作码检查 | round2 复核:`:186-322` 真实 call 图闭包 + 浮点指令扫描 + 签名面 | ✅ **已闭** |
+| **A6** AC-10-24 holdMode 被忽略 | 🔴 `Complete` 不读 `holdMode` | `ModalPhaseEvaluator.cs:94-130` | ✅ **已闭** |
+| **B4** DC-5 无校验体 | 🔴 仅返回字符串数组 | `EmergencyAction.cs:114-155` + `action_tables_bake_test.cs:154-162` | ✅ **已闭** |
+| **C4** SkillMul 死代码 | 🔴 算出即弃 | `JudgeEvaluator.cs:126-134` 真用(GDD F-10.2 原文式) | ✅ **已闭** |
+| **C5** JITTER 违 Forbidden | 🔴 C# 裸 `/` 向零截断 | `JudgeEvaluator.cs:81-89` 改 `ROUND_HALF_AWAY_FROM_ZERO` | ✅ **已闭** |
+| **D1/D2/D3** 文档状态 | ⏳ round2 **未验证** | round2 自陈「本轮未读 `design/gdd/emergency-procedures.md` 的 AC-10-04a 单元格与 story-006/007 的 Test Evidence 行」 | ⏳ **仍未验证** |
+
+⚠️ **D3-b(2026-10-03 已局部处置)**:本 EPIC §Stories 表 002–006 曾标 `Ready`,而各 story 件**自身**标 `Complete` —— 已对齐 story 件。story-007 头/体矛盾(头 `Complete ✅` vs 体 `[ ] Pending`)在同批**同型**缺陷中,但 **story-007 的体已由 modular-building 轮订正** —— 本 epic 侧尚需逐件复核。
+
+### ③ 转 Complete 的真实前置(round2 §5 逐条)
+
+1. ✅ **报告已落盘**(2026-10-03)—— **两份**。
+2. ⏳ **D1/D2/D3 文档状态对齐** —— AC-10-04a 单元格数字同步 A8 勘误 · story-006 测试位置声明 · story-007 Test Evidence 行。
+3. 🔴 **实跑 Unity 测试套件** —— **本轮最大盲区**:round2 **未实跑**,
+   自陈「凡『测试通过』类结论均来自**读测试源码**而非执行结果」。
+   ⇒ 本 EPIC 现记的「EditMode 0 红 · PlayMode 36/36」**须按此口径重读** ——
+   **在 round2 基线(`265ad85`)上未经验证**;任何转 Complete 前须以当前 HEAD 重跑。
+
+### ④ round2 自陈的其余评审盲区
+
+- `action_tables_bake_test.cs` / `modal_phase_test.cs` / `aggregate_stream_test.cs` /
+  `host_authority_test.cs` / `feel_latency_test.cs` **全文未读**;
+- 第一轮证据(如 `applied_payload_settlement_test.cs:131-140` 的 Seq 占位)二轮**未重新验证**。
+
+### 未闭项登记(不阻塞本 epic,但阻塞转 Complete)
+
+- ⏸️ **D1/D2/D3** 文档状态对齐(round2 明确未验证)。
+- 🔴 **实跑 EditMode/PlayMode** —— round2 的判据均为源码阅读;「0 红」为**未执行**状态。
+- ⏸️ **载荷 `Seq` 占位** —— 归上行链 45(现有测试已钉死占位事实,合规)。
+- ⏸️ **AC-10-04b 三格逐位** —— ADR-012 矩阵未激活,NOT-RUN,禁借绿。
 
 ## Overview
 

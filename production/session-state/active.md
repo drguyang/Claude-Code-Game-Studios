@@ -18,6 +18,16 @@
 
 ### Epic 故事进度
 
+> **列语义(防混计 · 2026-10-03 明写)**:四列为**互斥且穷尽**的分类,口径 = story 件 `> **Status**:` 首行。
+> - **Complete** = 首行含 `Complete`(或体 `**Status**: [x]`)
+> - **Ready** = 首行为 `Ready` **或 `In Review`** —— 二者皆「story 已实现但 epic 未收口」,
+>   本表**不分开列**(此为既定口径,非疏漏;`In Review` 的明细读「备注」列)
+> - **In Progress** = 首行含 `In Progress`(**实测恒为 0**)
+>
+> ⚠️ **旧表误读的成因**:把「`In Review`」当成 `In Progress` 计 ⇒ 虚报 77。
+> **`In Review` ≠ `In Progress`** —— 前者是「已实现待收口」,后者是「实现进行中」。
+> 同理 **`In Review` ≠ `Complete`**(「不得借绿」)。
+
 | Epic | Stories | Complete | Ready | In Progress | 备注 |
 |------|---------|----------|-------|-------------|------|
 | **audio-system (44)** | 14 | **14** | 0 | 0 | ✅ 全收口 |
@@ -34,10 +44,10 @@
 | death-respawn (29) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | diagnosis-system (8) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | disease-simulation (9) | 6 | **6** | 0 | 0 | ✅ 全收口 |
-| emergency-procedures (10) | 7 | 0 | **7** | 0 | 🔶 **In Review**（7/7 已实现 · A1/A2/A6/B4/C4/C5 已闭;✅ 评审原件两份均在库;**真实残留 = D1/D2/D3 文档对齐 + 实跑测试套件**(round2 自陈未实跑,结论均基于源码阅读)） |
+| emergency-procedures (10) | 7 | **7** | 0 | 0 | 🔶 **story 7/7 Complete;EPIC 未收口**(A1/A2/A6/B4/C4/C5 已闭;✅ 评审原件两份均在库,**旧记「评审原件缺」为方向性错记**;**真实残留 = D1/D2/D3 文档对齐 + 实跑测试套件**(round2 自陈未实跑,「0 红」系读源码而非执行)) |
 | enemy-ai (27) | 5 | **5** | 0 | 0 | ✅ 全收口 |
 | foraging (17) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
-| interaction-system (4) | 4 | 0 | 4 | 0 | ⬜ 未启动(**Phase 2 关键路径断点**) |
+| interaction-system (4) | 6 | 0 | 6 | 0 | ⬜ 未启动(**Phase 2 关键路径断点**) |
 | inventory-items (20) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | medical-consequences (53) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
 | modular-building (23) | 7 | **7** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红，`9bb912b`+`bfa6234`;**未闭登记 = N-r2 生产装配根 + AC-23-09 跨平台签名**） |
@@ -124,7 +134,7 @@
 | **注册表 id 类型** | `StructureInstanceRegistry` id = int,而 `entities.yaml:2068` 定 i64 ⇒ 超 2^31 回绕;**归独立轮** | 中 |
 | ~~**收口批**~~ | ✅ 已闭(2026-10-02) —— §③ 门已实现为 **b6** · ADR-005 计数订正(实际 **12 处**,非登记的 5 处)· ADR-010 义务 15 已落 · control-manifest 版本升 | — |
 | ~~**10 手搓点**~~ | ✅ **已修**(`story-007` Complete,17/17 + 突变坐实);含结构性收口(删两个 payload struct 副本)。✅ GDD A8 勘误已落盘 · ✅ `ResultMul` 缺口已补 **DC-6**;**唯一待裁 = 载荷 `Seq` 占位**(归上行链 45) | — |
-| ~~**评审原件**~~ | ✅ **已闭**(2026-10-03)—— 四份补做评审已落盘;🔴 **但四 epic 均查出缺陷 ⇒ 全部不转 Complete**。**跨 epic 缺陷汇总**:`qa/evidence/cross-epic-defect-summary-2026-10-03.md`(A 判据空转 7 · B 已勾无实现 4 · C 实现缺口 9 · D 文档 3) | 高 |
+| ~~**评审原件**~~ | ✅ **已闭**(2026-10-03)—— 四份补做评审已落盘(各首轮 + round2)。**跨 epic 缺陷汇总**:`qa/evidence/cross-epic-defect-summary-2026-10-03.md`(A 判据空转 7 · B 已勾无实现 4 · C 实现缺口 9 · D 文档 3)。⚠️ **原记「但四 epic 均查出缺陷 ⇒ 全部不转 Complete」已失效** —— 该结论系当时快照;四条 epic 中 `player-controller` / `world-ecozones` / `modular-building` **缺陷已逐条修复并复跑 0 红,均已转 Complete**(`a78c27a` / `0010d81` / `9bb912b`+`bfa6234`);`emergency-procedures` 的 A1/A2/A6/B4/C4/C5 亦已闭,余 D1/D2/D3 文档对齐 + 实跑套件 | — |
 | **A 类判据空转** | 🔴 **最优先** —— 7 条 AC 已勾但判据恒真/重复/只查常量非零(含 2 条 `[B]`);**禁以空转判据记绿** | 高 |
 | ~~**we 缺口 ①c**~~ | ✅ 已闭(2026-10-02) —— 6 例负向夹具,`PoiStateMachineTest` 19/19;突变测试坐实(删门 ⇒ 恰 4 例红)。新登记:gate 返回码 `PoiNotFound` 与「POI 不存在」混同(未修) | — |
 | **联机** | 45 联机夹具（P1b） | 非阻塞 |
