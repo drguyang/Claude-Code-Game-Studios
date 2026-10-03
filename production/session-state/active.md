@@ -2684,3 +2684,19 @@ D-R2 随 tools/kindgen 同批 · R-A/R-B/R-C spikes(实现轮)· U0a(挂起)→ 
 - Tests: voice_variants_test 21 全过 · 全量 EditMode **986/986 Passed 0 红 0 跳过**
 - Next recommended: production/epics/audio-system/story-007-net-divergence-remote-derivation.md(006 已 Complete)
 - 工作树:仅 .gitignore(本地项)—— 按纪律不入批
+
+## Session Extract — camera-viewpoint 003–006 评审修复轮 2026-10-03
+- 范围: camera-viewpoint Story 003/004/005/006(五步循环第 3 步「5B 修复」;用户确认「创建测试已完成,继续后续步骤」)
+- 前置: 8 份双代理评审原件已落(qa-lead + td × 4),四 story 均判「不应维持 Complete」
+- 用户三轮裁定: ① 004 B1「按 GDD 主用例改」② 005 AC-2-27「本轮补齐生产接线」③ VR/接口面「本轮一并修」
+- 修复落点:
+  - 003: `AnchorFollowConfig.FromWorldLattice`(MAX_DT 单一来源) + `ApplyOrbit` 按 GDD F-2-2 式(LOOK_SENS_X/Y)
+  - 004: `dRaw = hit ? dist : ArmLen`(恢复主用例) · `ViewDir` 逐字 Rodrigues(+sinθ) · `DefaultCollideMask`+`ValidateCollideMask` · `ValidateArmLen`
+  - 005: `FirstPerson` 独立路径早退 · 新增 `PhysicsArmQuery` + `CameraEvaluationDriver`(单一相位) · `CountingArmQuery.BeginFrame(frameId)` 严格递增 · `TRANSITION_JUMP_EPS` 实体 · `CasebookPitch` private set · `IsFrozen` 含 FirstPerson · Settle 返回本帧变更
+  - 006: `AssertReverseReference` 改 §Deps 节内行级 · AC-2-21 守卫锚定行 · VR 四成员+OQ-2-6 断言 · EPIC 三处口径统一 In Progress
+- 接口扩容: `ICameraRig` 补 Mode/SetMode/Tick/Camera(ADR-020 §Key Interfaces)⇒ 连带修 `input_contract_test` 两假 rig + `yaw_basis_test` 写入面判据
+- 验证: CameraViewpoint **75 例 · 68 过 · 0 红 · 7 跳过**;全量 EditMode **2202 · 2161 过 · 0 红 · 1 inconclusive(既有)· 40 跳过**
+- 跳过集 diff: 仅 ac221 EXTERNAL 由「假绿 pass」正确转 skip(B-3 修复的预期效果);零回归
+- 产出: `production/qa/evidence/review-camera-viewpoint-fix-round-2026-10-03.md`(逐 BLOCKING 对账)
+- 残留(登记): 起点重叠区分 spike · PhysicsArmQuery 场景级实测 · SetModeForTest 结构断言 · 组5单表/_distance 收敛 · AC-2-21/23 EXTERNAL · ADVISORY playtest
+- 未提交(无用户指令)—— 工作树 = 19 改 + 10 新(含 8 评审原件 + 对账件 + CameraEvaluationDriver)

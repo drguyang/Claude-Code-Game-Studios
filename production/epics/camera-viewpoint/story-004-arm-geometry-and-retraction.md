@@ -1,7 +1,7 @@
 # Story 004: 出臂与收缩 —— 肩位常量几何 / 瞬时收缩·阻尼回弹(非对称)/ 掩码与裁剪面
 
 > **Epic**: 摄像机与视角
-> **Status**: Complete ✅ 2026-10-03 (4/4 AC 落地;17 例测试)
+> **Status**: Complete ✅ 2026-10-03(评审修复轮完成;16 例(2026-10-03 订正,原误记 17))
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 6h
@@ -143,7 +143,7 @@
 - Logic: `tests/unit/camera/shoulder_geometry_test.cs` — `AC-2-25` 四子 + `AC-2-16` AST
 - Build/Load gate: `AC-2-15` 掩码相等 + 裁剪面不等式(装载失败级)
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/`;登记口径 = `tests/unit|integration/camera/`)
+**Status**: [x] Done — `unity/Assets/Tests/EditMode/CameraViewpoint/camera_arm_solver_test.cs`(经本 story 评审修复轮)
 ⚠️ 不得借绿:`AC-2-25③④` 真值半边(数值留白 ⇒ 注入表签判据本体,真表 INCONCLUSIVE);`SphereCast` 起点重叠 distance 语义 = 实现期一次性实测(spike)未跑前,该夹具记 BLOCKED-BY-spike(回退分支代码可先落)。
 
 ---
@@ -163,8 +163,20 @@
 **本批取保守语义**:`false` ⇒ 一律回退 `CAM_MIN_DIST`(**绝不穿模**;代价 = 真未命中时臂长为最短,但那要求球半径内完全无几何,极罕见且保守方向安全)。
 ⚠️ 若要区分须改用 `CheckSphere` 预判 ⇒ **多一次查询**,与 story 005 的「每帧恰一次 SphereCast」义务冲突 ⇒ **须另裁**。
 ⚠️ 两处 NOT-RUN(不借绿):**AC-2-15③** 真 `SphereCast` 未接线(经缝)⇒ `QueryTriggerInteraction.Ignore` 判据不可执行;**AC-2-25③** 真档位表(组 5)未在库 ⇒ 序关系只对注入表成立,「取值是否存在」归 AC-2-21(EXTERNAL)。
-**Criteria**: _待填_(交付时附:`SphereCast` distance 语义实测结论 + 掩码同源计算处 + 起点重叠回退的注释行)
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Criteria**: 4/4 AC 落地(测试 **16** 例,非自述 17 —— 2026-10-03 订正)。
+AC-2-14 收缩瞬时 / 回弹阻尼(非对称)· AC-2-15 掩码 + 近裁剪链 + Trigger · AC-2-16 无跨帧遮挡状态 ·
+AC-2-25 肩位常量几何 + 档位闭集 + **ARM_LEN > 0 装载期守卫**(本轮补)。
+**Deviations**: 🔴 **2026-10-03 双代理评审(QA Lead + TD)判 REJECT;3 处 BLOCKING 已修**:
+
+| # | 原缺陷 | 修法 |
+|---|---|---|
+| **B1** | **F-2-4 第①行语义反转**(开放世界主路径回归)—— `false ⇒ CAM_MIN_DIST`,而 GDD 主用例是「**未命中 ⇒ `d_raw := ARM_LEN`**」;`SphereCast` 返回 false 的常见情形恰是「背后无墙」⇒ 臂长每帧塌到 0.5 m ≈ 贴脸第一人称。初版注释称该情形「极罕见」**是事实错误** | **按用户裁定「按 GDD 主用例改」**:`false ⇒ ARM_LEN`(远)· 补**真走 `Hit=false` 期望远臂长**的夹具(此前全被 `Hit=true,10f` 掩盖);**起点重叠**(EC-2-1)的区分登记 spike / 另裁(须 `CheckSphere` 预判,与「每帧恰一次」冲突) |
+| **B2** | **`ViewDir` 手性符号反转 + 零覆盖** —— 实现在 `y = −sinθ`(相机移到肩**下方**),GDD F-2-3 订正② 钉死绕局部右轴 ⇒ `y = +sinθ`;且 `r̂` 声明未用、全测试目录 `ViewDir` 零命中 | 按 Rodrigues 逐字重写 `ê_view = ê_back·cosθ + (r̂ × ê_back)·sinθ`(= `+ŷ·sinθ`)· 补四角 yaw × 正负 pitch 的手性夹具(与 003 `GetCameraPosition` 的 +sinPitch 对齐) |
+| **B3** | **AC-2-15① 判据空转(自证假绿)+ 生产默认即违例** —— 测试用工厂字面量比同级字面量,从未读生产值;生产 `CamCollideMask` 默认 **0**(空掩码 ⇒ 永不收缩 ⇒ 穿墙)且无写入点 | 期望取**登记常量** `DefaultCollideMask`· 补 `ValidateCollideMask`(空掩码 / 含角色层 ⇒ 抛)· 补**两个真负夹具**· 断言**生产默认**经守卫 |
+| **B4** | **AC-2-25④ 无装载期守卫**,测试对夹具字面量自证 | 补 `ValidateArmLen`(ARM_LEN ≤ 0 ⇒ 抛)+ `ValidateAll` 单入口 · 断言生产默认 + 负夹具 |
+
+**Test Evidence**: CameraViewpoint **75 例 · 68 过 · 0 红 · 7 跳过**(`unity/TestResults-639266620000180660.xml`);全量 EditMode **2202 · 2161 过 · 0 红 · 1 inconclusive(既有)· 40 跳过**(`unity/TestResults-639266620876787780.xml`)(2026-10-03 batchmode)。
+**Code Review**: ✅ 双代理评审原件 `production/qa/evidence/review-camera-viewpoint-story-004-{qa-lead,td}-2026-10-03.md`;本轮 5B 修复复跑 0 红。
+⚠️ **残留(登记,非本批可闭)**:`PhysicsArmQuery` 生产接线 + `CountingArmQuery` 实例化归 story 005(本轮已随 005 接线);
+组 5 单一参数表对象(C2)· `CameraRig._distance` 第二臂长源收敛(C4)归 005 接线轮。
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

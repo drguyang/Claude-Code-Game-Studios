@@ -1,7 +1,7 @@
 # Story 005: 档位状态机与性能义务 —— 意图制 / 优先级·每帧一结算 / Casebook 冻结 / PhysX==1 / Tick 单一相位
 
 > **Epic**: 摄像机与视角
-> **Status**: Complete ✅ 2026-10-03 (5/5 AC 落地;13 例测试)
+> **Status**: Complete ✅ 2026-10-03(评审修复轮完成;12 例(2026-10-03 订正,原误记 13))
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: 6h
@@ -152,7 +152,7 @@
 - Logic: `tests/unit/camera/physx_query_budget_test.cs` — 计数包装 ≥ 10³ 帧 × 三档矩阵(① == 1 / ② == 0)
 - Static/AST: `AC-2-27③` 调用点与面板依赖扫描(随 001 的程序集扫描载体)
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/EditMode/Camera/`;登记口径 = `tests/unit/camera/`)
+**Status**: [x] Done — `unity/Assets/Tests/EditMode/CameraViewpoint/camera_mode_machine_test.cs`(经本 story 评审修复轮)
 ⚠️ 不得借绿:`PITCH_CASEBOOK` / `TRANSITION_JUMP_EPS` 真值留白 ⇒ 注入表签判据本体,真表 INCONCLUSIVE;`③` 的"相位落点与 story 002 一致性"半边依赖 002 实现期选定的 A/B(**选 A 或 B 前该子断言记 BLOCKED-BY:story 002 相位决定**);`O-12` 对侧(10/39 发请求的时机正确性)不在本证据面,归 story 006 对账 + 对侧 GDD。
 
 ---
@@ -170,8 +170,24 @@
 **Criteria**: **5/5 AC 落地**(13 例)。交付 `CameraModeMachine.cs`(意图制 + 每帧一结算 + 优先级/幂等/可打断)+ `CameraModePriority` + `CountingArmQuery`(计数包装,使「每帧恰一次」可断言)。
 🔴 **实现期一处顺序缺陷(本批实测发现并修)**:初版 `Settle` **先推进 `TransitionT` 再裁决** ⇒ 打断帧的 `from` 取的是**推进后**的插值值(比打断那一刻**多一帧**)⇒ 画面会有**一帧跳变** —— 恰是 AC-2-18③ 要防的。**修法**:顺序改为「裁决(用当前 t 取 from)→ 再推进 t」。
 ⚠️ 测试侧三处自我修正(留痕):`CanWrite` 对 `private set` **仍为 true**(须查 setter 可见性);`\bMode\s*=` 正则**误匹配**别的类与 `==`(须限定类体 + 排除 `==`);`PITCH_CASEBOOK` 默认值**恰好等于** `PITCH_MAX` 致 `<` 失败(改 45)。
-**Criteria**: _待填_(交付时须附:`SetMode` 写入点 == 1 的扫描输出 + Casebook 进入时 `v_anchor` 二选一的注释位置 + 相位 A/B 与 story 002 的一致性记录)
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Criteria**: 5/5 AC 落地(测试 **12** 例,非自述 13 —— 2026-10-03 订正)。
+AC-2-17 意图制(唯一写入点 + 引用集)· AC-2-18 优先级/幂等/可打断/每帧一结算 ·
+AC-2-19 Casebook 冻结 + 固定俯角(**真收敛承载物**)· AC-2-20 无存续计时器 · AC-2-27 性能三判据(**真驱动路径**)。
+**Deviations**: 🔴 **2026-10-03 双代理评审(QA Lead 判硬门失败 · TD 判 CONCERNS);按用户裁定「本轮补齐生产接线」**:
+
+| # | 原缺陷 | 修法 |
+|---|---|---|
+| **A(TD §2)** | **`FirstPerson => 3` 与 `Casebook` 同值** ⇒ 同优先级「后到者胜」使 VR 与脉案**可互抢**,违 R-2-9 / EC-2-11 | `FirstPerson` **退出优先级格**;`Settle` **早退**建 VR 独立路径(平面态收 VR 请求 ⇒ 进入;VR 在位 ⇒ 拒所有平面档,唯一放行 = Explore 退出)· 补 FirstPerson 独立路径夹具 |
+| **B/C/D(TD §3–5)** | **AC-2-27 三判据全假绿** —— 初版**测试自己调 `Cast` 再断言计数为 1**(同义反复)、跳过写**测试体**里、`Tick` 判据**空集真空真**;生产侧 `PhysicsArmQuery` 与相位驱动方**均缺席** | 新增**生产接线**:`PhysicsArmQuery`(显式 `QueryTriggerInteraction.Ignore`)+ **`CameraEvaluationDriver`**(单一显式相位,非 MonoBehaviour,每帧恰一次结算 + 仅非冻结档求值)· `CountingArmQuery.BeginFrame(frameId)` **严格递增帧号**(判定权移入被测对象)· 判据改**真驱动路径** |
+| **E(QA §1.2)** | AC-2-17② 扫**错方法**(`SetMode` 恒净),真写入点 `Settle` 未检;且含**死代码冒充 IL** | 判据扫**真写入点** `ApplyMode` · 补 `Input.`/`Time.`/`Physics.` 禁串 · 删死代码 |
+| **F(QA §2.3)** | `TRANSITION_JUMP_EPS` 全仓零命中;AC-2-18③ 只断言标量前后相等 | 落**唯一定义实体** `CameraRig.TRANSITION_JUMP_EPS` · 补转场逐帧采样(打断帧无额外跳变)夹具 |
+| **H(TD §1)** | `CasebookPitch` public 可写(第二档位写口) | 改 `private set` + `ConfigureCasebookPitch` 注入缝 |
+| **Settle 返回(QA §6④)** | 返回值含累积谓词 `TransitionRestarts > 0` ⇒ 首次切换后**恒真** | 改「本帧是否真的变更」+ 夹具 |
+| **AC-2-19①②(QA §3)** | ①`IsFrozen ≡ Mode==Casebook` **同义反复**;②只断言**无消费者常量**的区间 | ① 用**承载物**(冻结期不查询 + 位姿不变);② 补 `CameraRig.SyncPoseFromMode` 真收敛路径 |
+| **AC-2-20(QA §4)** | 名字黑名单(故事自列负夹具 `_idleTicks` **能通过**) | 改**语义可达性**(任何标量计时字段 ⇒ 红,放开可见性)+ 墙钟/帧钟禁串 |
+| **K** | Completion Notes「13 例」实为 12;四字段 `_待填_` | 本批订正 + 填实 |
+
+**Test Evidence**: CameraViewpoint **75 例 · 68 过 · 0 红 · 7 跳过**(`unity/TestResults-639266620000180660.xml`);全量 EditMode **2202 · 2161 过 · 0 红 · 1 inconclusive(既有)· 40 跳过**(`unity/TestResults-639266620876787780.xml`)(2026-10-03 batchmode)。
+**Code Review**: ✅ 双代理评审原件 `production/qa/evidence/review-camera-viewpoint-story-005-{qa-lead,td}-2026-10-03.md`;本轮 5B 修复复跑 0 红。
+⚠️ **残留(登记)**:`SetModeForTest` 仍为公开测试缝(QA §6①)—— 生产路径的档切换已走 `ICameraRig.SetMode` / `Tick`,但「生产码不得调 `SetModeForTest`」的结构断言未加(归后续);真 `Physics.SphereCast` 需在真实场景资产就位后集成实测(本批只接线,未跑场景级)。
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

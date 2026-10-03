@@ -1,7 +1,7 @@
 # Story 003: 锚跟随与绕点 —— 二阶临界阻尼(半隐式 + 子步)/ `dt` 位移预算钳位 / yaw-pitch 解耦
 
 > **Epic**: 摄像机与视角
-> **Status**: Complete ✅ 2026-10-03 (4/4 AC 落地;11 例测试通过)
+> **Status**: Complete ✅ 2026-10-03(评审修复轮完成;12 例(2026-10-03 订正,原误记 11))
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
@@ -133,7 +133,7 @@
 **Required evidence**:
 - Logic: `tests/unit/camera/anchor_follow_test.cs` — must exist and pass(过冲不变量三档 ω + 钳位差分重算 + 同源符号扫描 + 解耦实验 + 吸附三边界 + timeScale)
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/EditMode/Camera/`;登记口径 = `tests/unit/camera/`)
+**Status**: [x] Done — `unity/Assets/Tests/EditMode/CameraViewpoint/anchor_follow_orbit_test.cs`(经本 story 评审修复轮)
 ⚠️ 真表数值全留白 ⇒ 本故事全部夹具 = 注入假表签"判据真实存在";真表跑记 INCONCLUSIVE;**不得借绿**。`AC-2-12②` 的"1 侧常量已存在"半边依赖玩家控制器 Epic Story 001 落地(`MAX_DT` 定义点)—— 未落前该子条记 BLOCKED-BY(player Epic 001)。
 
 ---
@@ -158,8 +158,20 @@
 ⚠️ 建议 GDD 回刷该句(「发散」→「首帧位移」)归 2 的 GDD 轮。
 ⚠️ **MAX_DT 归属**(用户裁定取乙):2 **读 `WorldLatticeParams.MaxDtMs`**(单一装载常量),
 **不在 2 侧造第二份** —— 与 GDD 组 6 的「归系统 1」字面冲突已登记(GDD 轮回刷)。
-**Criteria**: _待填_(交付时须附:`ω` 超大档不发散的实测输出 + 吸附/钳位优先序的实现注释位置)
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Criteria**: 4/4 AC 落地(测试 **12** 例,非自述的 11 —— 2026-10-03 订正)。
+① AC-2-11 过冲有界(容差注入自 `cfg.AnchorOvershootEps`)+ 收敛 + 稳定性;② AC-2-12 位移预算钳位
+(差分重算)+ **MAX_DT 同源**;③ AC-2-13 yaw/pitch 解耦;④ F-2-1 边界(EC-2-4 吸附 / EC-2-5 unscaled)。
+**Deviations**: 🔴 **2026-10-03 双代理评审(QA Lead + TD)判「不应维持 Complete」;BLOCKING 已修**:
+
+| # | 原缺陷 | 修法 |
+|---|---|---|
+| **B1** | **AC-2-12② MAX_DT 单一来源红线违反且判据假绿** —— `AnchorFollowConfig.MaxDtMs = 100` 是**字面量默认**,全仓生产码**零处**读 `WorldLatticeParams.MaxDtMs`;判据只验「字段可写 + 两注入互异 + 另一类型有 int 字段」,对「2 自造第二份」**零抓错力** | 移除字面量默认(`MaxDtMs` 必注入)· 新增**唯一装载路径** `AnchorFollowConfig.FromWorldLattice(in WorldLatticeParams)` 读同一实体 · 判据改三面(① 装载改值⇒消费值随动 ② 消费点真读该字段 ③ 源码断言无 `MaxDtMs = 数字` 字面量默认) |
+| **A1** | **`ApplyOrbit` 丢弃 `dtSeconds` 与 `SENS`**(`_ = dtSeconds;`,注释却称「以 dt 线性缩放」);AC-2-13 期望值 `Dx×N` **恰好等于**该非规格实现 ⇒ 测试钉死实现而非规格 | 按 GDD F-2-2 输入侧式逐字落地(`yaw += Look.x × LOOK_SENS_X × dt`;`pitch += Look.y × LOOK_SENS_Y × dt`)· 期望值改**由规格推导** `Dx × LOOK_SENS_X × dt × N` |
+| **文档** | §Implementation Notes 陈旧断言「半隐式证明稳定性内化」;Completion Notes 四栏 `_待填_`;Test Evidence `[ ] Pending`;例数「11」 | 就地回刷为「该测**只证有界不区分积分器**;区分靠首帧位移(n=1 前提)」· 四栏填实 · 例数订正 **12** |
+
+**Test Evidence**: `unity/TestResults-639266620000180660.xml` —— CameraViewpoint **75 例 · 68 过 · 0 红 · 7 跳过**;
+全量 EditMode `unity/TestResults-639266620876787780.xml` —— **2202 例 · 2161 过 · 0 红 · 1 inconclusive(既有 Audio 项)· 40 跳过**(2026-10-03 batchmode,Unity 6000.3.24f1)。
+⚠️ **2026-10-03 落盘前订正**:初稿引 `TestResults-639266614112558110.xml`(中间轮 73/69/0/4)与「73 例 / 2200」计数 —— 二者**均早于最终复跑**,已改为**末次**产物;源文件 mtime 全部早于该跑,绿灯有效。
+**Code Review**: ✅ 双代理评审已落 `production/qa/evidence/review-camera-viewpoint-story-003-{qa-lead,td}-2026-10-03.md`;
+本轮修复为五步循环的「5B 修复」步,复跑 0 红。
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

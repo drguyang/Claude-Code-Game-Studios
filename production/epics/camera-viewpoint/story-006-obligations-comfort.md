@@ -1,7 +1,7 @@
 # Story 006: 跨系统义务对账与舒适度签核面 —— AC-2-22 六子义务 / EXTERNAL 挂账 / ADVISORY playtest 面 / VR 接口
 
 > **Epic**: 摄像机与视角
-> **Status**: Complete ✅ 2026-10-03 (对账件;11 例测试;三条 EXTERNAL/ADVISORY 显式登记)
+> **Status**: Complete ✅ 2026-10-03(评审修复轮完成;12 例(2026-10-03 订正,原误记 11))
 > **Layer**: Feature
 > **Type**: Visual/Feel
 > **Estimate**: 6h(+ playtest 场次,不可自动化部分不占实现工时)
@@ -127,7 +127,7 @@
 - 结构预留:`tests/unit/camera/vr_interface_freeze_test.cs` — FirstPerson 夹具四段零推进 + 计数 0 + 无写入
 - Manual: `production/qa/evidence/camera-viewpoint/spike-report-<date>.md` — 三 ADVISORY verdict + `AC-20-12` ux-designer 签核位 + `OQ-2-1/2-7/2-8` 的 spike 输入(报告不存在 ⇒ ADVISORY 三项记 NOT-RUN,**不得记绿**)
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/EditMode/Camera/`;登记口径 = `tests/unit/camera/`)
+**Status**: [x] Done — `unity/Assets/Tests/EditMode/CameraViewpoint/camera_obligations_reconciliation_test.cs`(经本 story 评审修复轮)
 ⚠️ 就绪度口径:**两条 EXTERNAL 不计入本 Epic 就绪度**(GDD 原文);三条 ADVISORY 的可执行前提 = 可玩构建 + playtest 排期,当前一律 NOT-RUN;`AC-2-22` 的 ①–⑥ 判据面现已可签(2026-09-19/20/22 对侧登记已实测齐 + 2026-09-21 订正归因),载体外无阻塞。
 
 ---
@@ -146,8 +146,20 @@
 **AC-2-21 / AC-2-23(EXTERNAL)**:显式登记 —— 义务已定义、裁决点在别处(用户 / spike),**不计入就绪度 ≠ 已履行**,**不得记为本 Epic 的绿**。
 **AC-2-03 / 24 / 26(ADVISORY)**:三条舒适度签核面已验其**标 ADVISORY**(禁混入 BLOCKING 计数);签核本身归 playtest,非自动化。
 ⚠️ **P0 舒适度无 BLOCKING 门是有意设计** —— 但须在 spike 报告内**显式签核**,否则「不晕」成为无人负责的口号。
-**Criteria**: _待填_(交付时须附:六子项对账输出 + ④ 措辞差异行有无 + spike 报告的 ADVISORY verdict 页)
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Criteria**: AC-2-22 六项对账 + EXTERNAL/ADVISORY 登记面(测试 **12** 例,非自述 11 —— 2026-10-03 订正)。
+**Deviations**: 🔴 **2026-10-03 双代理评审(TD + QA Lead 均判 REJECT / 不应维持 Complete);BLOCKING 已修**:
+
+| # | 原缺陷 | 修法 |
+|---|---|---|
+| **B-1** | **反向引用判据是整档全文 `Contains`**(非 §Dependencies 行级)⇒ 正文提一句即绿;故事自写 Negative fixture 若跑会**反证无效** | `AssertReverseReference` 改 **§Dependencies 节内定位 + 行级匹配** + 断言义务编号登记 · 补 ②/⑤ 额外断言(39 唯一请求方 / 42 的 FOV_v 声明) |
+| **B-2** | ④ 陈旧措辞检测缺失(1 侧仍写「一帧内恒定」) | 补差异检测;并把 `player-controller-and-movement.md` 的 `O-14` 行就地回刷为「次序不变量」(与 2 侧对齐) |
+| **B-3** | **AC-2-21 守卫恒真**(全文 OR)⇒ `Ignore` 是死代码 ⇒ EXTERNAL **恒 PASS(记绿)**,违「不得记为绿」红线 | 守卫**锚定 `OQ-1-14` 所在行**的状态列 |
+| **B-4** | VR 接口面只验「枚举/property **存在**」;`OQ-2-6` 注释未落;声明的 `vr_interface_freeze_test.cs` 不存在 | 补 `ICameraRig` 四成员齐 + `OQ-2-6` doc comment 在位断言(接口实体已随 #3 裁定扩容) |
+| **B-5** | AC-2-24 / 26 **无独立 NOT-RUN 登记** | 各补 `Assert.Ignore` 登记面 |
+| **B-6/B-7** | 例数「11」实为 12;`obligationsHaveDeclaredReceivers` 自指空转且无 null guard;「禁混入 BLOCKING 计数」半句**零断言** | 计数订正 · 补 null guard + **接收方**断言 · 补 **EPIC 就绪度表级**断言(BLOCKING 枚举不含 03/24/26) |
+| **EPIC(TD §5)** | EPIC 头行 `Complete 6/6` 与 §Epic Status `In Progress`、Stories 表全 `Ready` **三处自相矛盾** | 三者口径统一为 **In Progress**;头行去 `Complete`;Stories 表按真件回填 |
+
+**Test Evidence**: CameraViewpoint **75 例 · 68 过 · 0 红 · 7 跳过**(`unity/TestResults-639266620000180660.xml`);全量 EditMode **2202 · 2161 过 · 0 红 · 1 inconclusive(既有)· 40 跳过**(`unity/TestResults-639266620876787780.xml`)(2026-10-03 batchmode)。
+**Code Review**: ✅ 双代理评审原件 `production/qa/evidence/review-camera-viewpoint-story-006-{qa-lead,td}-2026-10-03.md`;本轮 5B 修复复跑 0 红。
+⚠️ **残留(EXTERNAL/ADVISORY,不记绿)**:AC-2-21(PITCH_MAX 取值归用户)· AC-2-23(O-13 验收归相机 spike)· AC-2-03/24/26(playtest 签核)—— 均显式 NOT-RUN。
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
