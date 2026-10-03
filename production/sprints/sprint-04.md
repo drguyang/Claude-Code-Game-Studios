@@ -1,11 +1,12 @@
 # Sprint 04 Plan
 
-> **Status (2026-10-03)**: **Phase 1 技术侧残余已清零** —— 三条缺口 ①a/①b/①c **全部闭合**,
+> **Status (2026-10-03 · 已订正)**: **Phase 1 完全收口** —— 三条缺口 ①a/①b/①c **全部闭合**,
 > 且**另查出并修复了两处更深的缺陷**(见 §Phase 1 产出)。
-> **Phase 2 现已解锁**(原门禁「Phase 1 未收口前不启动 Phase 2」已满足)。
-> ⚠️ **但两 epic 仍记 `In Review`** —— 残留**不是**技术缺口,而是
-> **双代理评审的报告原件从未落盘**(不可追补;义务已立,解除条件 = 各补做一次评审)。
-> 详见 `production/epics/index.md` §越序实现登记 与 `.claude/docs/review-workflow.md`。
+> ✅ **原「两 epic 仍记 `In Review`」的残留已解除** —— 该残留是「双代理评审的报告原件从未落盘」,
+> **现评审原件已全部补做并落盘**(modular-building / world-ecozones / player-controller 各两份:
+> 首轮 + round2),三个 epic **均已转 `Complete ✅ 2026-10-03`**。
+> 详见 `production/epics/index.md` 与 `.claude/docs/review-workflow.md`。
+> **Phase 2 现已解锁**(原门禁「Phase 1 未收口前不启动 Phase 2」已满足),**实际进度 = 2/7 系统**(见 §Phase 2)。
 > 三专家调研(TD + Producer + QA Lead)综合建议,方案 A 分阶段执行。
 
 **Sprint**: 4
@@ -100,22 +101,24 @@
 
 | # | 系统 | 故事数 | SP | 依赖 | 理由 |
 |---|------|--------|-----|------|------|
-| 1 | player-controller (1) | 6 | 6 | 3 (done) | ✅ **6/6 Complete**(Phase 1 期间完成) |
-| 2 | camera-viewpoint (2) | 6 | 6 | 1 | 垂直切片可玩性 |
-| 3 | interaction-system (4) | 4 | 4 | 1, 3 (done) | 交互是核心循环的动词路由 |
-| 4 | patient-ai (13) | 4 | 4 | 9 (done) | 病人是诊断对象 |
-| 5 | diagnosis-system (8) | 6 | 6 | 9, 30 (done) | 诊断是核心循环的关键环节 |
-| 6 | case-system (37) | 6 | 6 | 8, 9 (done) | 病例是诊断与治疗的容器 |
-| 7 | prescription-medication (11) | 5 | 5 | 21, 9 (done) | 处方是治疗手段 |
+| 1 | player-controller (1) | 6 | 6 | 3 (done) | ✅ **Complete ✅ 2026-10-03**(Phase 1 期间完成) |
+| 2 | camera-viewpoint (2) | 6 | 6 | 1 | ✅ **Complete ✅ 2026-10-03**(计划外增量 —— 本表原无此行,实际已完成) |
+| 3 | interaction-system (4) | 4 | 4 | 1, 3 (done) | ⬜ Ready(未实现)—— **关键路径断点** |
+| 4 | patient-ai (13) | 4 | 4 | 9 (done) | ⬜ Ready(未实现) |
+| 5 | diagnosis-system (8) | 6 | 6 | 9, 30 (done) | ⬜ Ready(未实现) |
+| 6 | case-system (37) | 6 | 6 | 8, 9 (done) | ⬜ Ready(未实现) |
+| 7 | prescription-medication (11) | 5 | 5 | 21, 9 (done) | ⬜ Ready(未实现) |
 
-**Phase 2 总计**：~37 SP（其中 player-controller 6 SP 已在 Phase 1 期间完成）
+**Phase 2 总计**：~37 SP —— **实际完成 2/7 = ~12 SP**
+(player-controller 6 SP 于 Phase 1 期间完成;camera-viewpoint 6 SP 于 2026-10-03 完成)
 
-**关键路径**：
+**关键路径(现状)**：
 ```
-player-controller ✅ → camera-viewpoint → interaction-system
+player-controller ✅ → camera-viewpoint ✅ → interaction-system ⬜(断点)
                     ↘
-patient-ai → diagnosis-system → case-system → prescription-medication
+patient-ai ⬜ → diagnosis-system ⬜ → case-system ⬜ → prescription-medication ⬜
 ```
+⇒ 下游四项(13→8→37→11)**整条链未动**。
 
 ---
 
@@ -138,7 +141,7 @@ patient-ai → diagnosis-system → case-system → prescription-medication
 | ADR-012 矩阵不存在 | 高 | 中 | 激活 CI 矩阵 | ⚠️ **仍在**(需 `UNITY_LICENSE`;也是 sprint-03 AC-S03-5 未兑现的根因) |
 | 生产文档状态漂移 | 高 | 中 | 状态文件回填 | ✅ 已缓解(两轮回填) |
 | 集成测试门未执行 | 高 | 高 | 建立集成测试基础设施 | ⚠️ **基础设施就绪但未接门** |
-| **评审原件缺** | — | 中 | **新立 BLOCKING 义务** | ⚠️ 三 epic 待补做评审 |
+| ~~**评审原件缺**~~ | — | 中 | **新立 BLOCKING 义务** | ✅ **已闭(2026-10-03)** —— 三 epic 评审原件全部补做并落盘(modular/we/player-controller 各首轮+round2),三 epic 均转 Complete |
 
 ---
 
@@ -155,12 +158,16 @@ patient-ai → diagnosis-system → case-system → prescription-medication
 
 ## 下一步
 
-1. **补做三份评审**(modular / we / player-controller)——
-   这是三者转 `Complete` 的**唯一解除条件**,非技术缺口;
-   义务与措辞见 `.claude/docs/review-workflow.md`
+1. ~~**补做三份评审**(modular / we / player-controller)~~ ✅ **已完成(2026-10-03)** ——
+   三 epic 均已转 `Complete`;义务与措辞见 `.claude/docs/review-workflow.md`
 2. **`emergency-procedures/story-007`**(b6 门查出的手搓点)——
    首步须确认三处输入面(`DrugPotency` 求值点 · `method`/`cause` 来源 · `Seq` 发号点),
    **可能需用户裁定**
-3. **Phase 2 开工**(现已解锁)—— 按依赖顺序:camera-viewpoint → interaction-system → …
+   ⚠️ **状态订正**:该 epic 的**两份评审原件均已在库**
+   (`review-emergency-procedures-{2026-10-03,round2-2026-10-03}.md`),
+   `index.md:27` 记的「评审原件缺」为**陈旧读数**。
+   round2 的**真实转 Complete 前置** = ①报告已落盘 ✅;②**D1/D2/D3 文档状态对齐**;③**实跑 Unity 测试套件**
+   (round2 未实跑,结论均基于源码阅读)。
+3. **Phase 2 继续**(现已解锁,实际 2/7)—— 下一件 = `interaction-system`(关键路径断点)
 4. **Phase 3 两项未做**(垂直切片 PlayMode 测试 · playtest)—— Milestone 2 出口所需
 5. **抽象点计数订正(60 处)** —— 牵动 GDD/registry/architecture **权威件**,须先定归属方

@@ -1,7 +1,7 @@
 # Story 001: 槽位骨架与模块目录装载 + 构建期校验
 
 > **Epic**: 模块化建造
-> **Status**: In Review — 双代理评审 REQUEST_CHANGES 5 BLOCKING(`da04f41` 修复,逐条对账件未落 evidence);测试绿 `BuildSlotCatalogTest` **7/7**(CLI 复跑坐实,原记 9/9 失实);EPIC 级不转 Complete(逐 BLOCKING 对账件未落 evidence)
+> **Status**: **Complete ✅ 2026-10-03** —— 双代理评审 REQUEST_CHANGES 5 BLOCKING 已全部结算(`reconciliation-modular-building-2026-10-02.md` 逐条对账件已落 evidence);测试 `BuildSlotCatalogTest` **7/7**;EPIC 已转 Complete ✅ 2026-10-03(`production/qa/evidence/modular-building/editmode-rerun-2026-10-03.md`)
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 5h

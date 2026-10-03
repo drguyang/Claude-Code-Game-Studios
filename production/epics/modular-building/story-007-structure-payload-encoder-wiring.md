@@ -127,7 +127,12 @@
 - ⚠️ **既有 `structure_kinds_test.cs` 等须同步**(构造加 `IPayloadEncoder` 形参)——
   51 例须保持全绿,**不得**因本 story 而删改判据
 
-**Status**: [ ] Pending — story not yet implemented
+**Status**: [x] **Done** —— 2026-10-02 实现落盘并收口(12 例新测试 + 突变测试坐实;
+ModularBuilding 全 fixture 复跑见 `production/qa/evidence/modular-building/editmode-rerun-2026-10-03.md`)。
+⚠️ 2026-10-03 订正:本行原写 `[ ] Pending — story not yet implemented`,与同文件头行
+`Complete ✅ 2026-10-02` **直接矛盾**(与 `world-ecozones/story-006` 同型的头体漂移)。
+现按头行订正为 Done。
+⚠️ 上面「51 例须保持全绿」为 story 当时的基线口径;现行基线为 ModularBuilding **72/72**。
 
 ---
 

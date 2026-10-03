@@ -1,7 +1,7 @@
 # Story 006: 拆除判定、返还舍入例外与 P0 范围门
 
 > **Epic**: 模块化建造
-> **Status**: In Review — 双代理评审 REQUEST_CHANGES 5 BLOCKING(`da04f41` 修复,逐条对账件未落 evidence),测试绿 `DemolishCheckerTest` 3/3 + `RefundCalculatorTest` 5/5;EPIC 级不转 Complete(对账件未落 evidence · story 级 AC 勾选未逐条复跑复核)
+> **Status**: **Complete ✅ 2026-10-03** —— 双代理评审 REQUEST_CHANGES 5 BLOCKING 已全部结算(`reconciliation-modular-building-2026-10-02.md` 逐条对账件已落 evidence);测试 `DemolishCheckerTest` **3/3 + `RefundCalculatorTest` 5/5**;EPIC 已转 Complete ✅ 2026-10-03(`production/qa/evidence/modular-building/editmode-rerun-2026-10-03.md`)
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 5h

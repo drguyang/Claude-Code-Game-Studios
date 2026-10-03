@@ -3,8 +3,8 @@
 > **Layer**: Core
 > **GDD**: design/gdd/modular-building.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ 世界流 Structure* 三支唯一写者
-> **Status**: In Review(7/7 story 已实现;双代理评审 REQUEST_CHANGES 5 BLOCKING —— **对账结论:B1/B2/B3/B5 已修 · B4 已闭(2026-10-02 ADR-029 接线支)**;63/63 逐例复跑绿;✅ 逐 BLOCKING 对账件已落 evidence;🔴 **EPIC 不转 Complete 的唯一原因 = 评审报告原件从未落盘**(见 player-controller EPIC 同款缺口);另登记:`StructureInstanceRegistry` 的 id 类型 int vs i64 不合规(归独立轮);✅ **评审原件已落盘**(`qa/evidence/review-modular-building-2026-10-03.md`,2026-10-03 补做);🔴 **但评审查出两条新缺陷(N1/N2)⇒ 不转 Complete**:**N1** 占用格集恒 = `{anchor}`(`StructureKinds.cs:60-61` 自陈简化)⇒ 多格模块非锚点足迹格不参与拆除检查,**使 B2 的「已修」成为纸面**;**N2** `World.OccupyCells/FreeCells` **零调用方** ⇒ Overlay 写路径未接线 ;✅ **C1/C2 已闭(2026-10-03)** —— 占用格集改用**真足迹**(`PlaceableChecker.ComputeOccupiedCells`,与放置判定**同源**)· `Place`/`Remove` 接 **Overlay 写路径**(新增 `IWorldOccupancy`,由 `World` 实现)+ 5 例集成判据(突变测试坐实);⚠️ **C6–C9 已定性(2026-10-03)**:均**非本批可闭** —— **C8**(注册表 id `int` vs `i64`)是唯一真实不合规,须在 **7a/ADR-006 机制轮**一并处理(修法 = id 全链升 `long` + 同步 `IIdAuthority` 高水位口径);其余为「待上游落地」或状态确认项。详见 `qa/evidence/cross-epic-defect-summary-2026-10-03.md` §C6–C9)
-> **Stories**: 6 stories — see table below
+> **Status**: **Complete ✅ 2026-10-03**(7/7 story 已实现;两轮评审判据缺陷 C1/C2/N-r1/C8-ID 全闭;本轮 `2204/2163/0红` 全量复跑 + ModularBuilding **72/72**;未闭项 = **N-r2** 生产装配根,已登记不阻塞 —— 详见 §Epic Status)
+> **Stories**: 7 stories — see table below
 
 ## Overview
 
@@ -67,3 +67,59 @@ This epic is complete when:
 | 005 | 朝向整数旋转 + StructureModified | Logic | In Review — `ModifiableCheckerTest` 5/5 | ADR-006/009 |
 | 006 | 拆除、返还舍入例外与 P0 范围门 | Logic | In Review — `DemolishCheckerTest` 3/3 + `RefundCalculatorTest` 5/5 | ADR-006/015/022 |
 | 007 | 结构载荷接线 —— `Structure*` 改走 `IPayloadEncoder`(闭合 B4) | Logic | **Complete ✅ 2026-10-02**(12/12) | ADR-029 + ADR-015 |
+
+## Epic Status
+
+**Complete ✅ 2026-10-03**(7/7 story 已实现;两轮评审判据缺陷全闭)。
+
+**Test Evidence(2026-10-03 batchmode 实测)**:ModularBuilding **72/72**
+**= 72 Passed + 0 Failed + 0 Skipped + 0 Inconclusive**,
+逐 fixture:`StructurePayloadEncoderTest` 12 · `PlaceableCheckerTest` 10 · `StructureKindsTest` 9 ·
+`WorldTest` 8 · `BuildSlotCatalogTest` 7 · `StructureOccupancyWiringTest` 7 · `OccupancyOverlayTest` 6 ·
+`ModifiableCheckerTest` 5 · `RefundCalculatorTest` 5 · `DemolishCheckerTest` 3。
+全量 EditMode 同批复跑 **`2204 = 2163 过 + 0 红 + 1 inconclusive(既有 Audio)+ 40 跳过`**
+—— 与 player-controller 轮基线(`2202/2161/0/1/40`)逐位比对 **恰 +2**(本轮两条新回归用例),**零回归**。
+证据原件:`production/qa/evidence/modular-building/editmode-rerun-2026-10-03.md`。
+⚠️ 旧计数(51/51 · 63/63 · 70/70)系不同快照,**不再作为依据**(承「不得借绿」)。
+
+### 逐条判据缺陷结算(两轮评审 → 当前 HEAD 实测)
+
+| # | 原判定 | 当前 HEAD 实测 | 结算 |
+|---|---|---|---|
+| **C1** 占用格集恒 = `{anchor}`(多格模块足迹不入实例表) | 🔴 真缺陷 | 改由调用方传入**真足迹**(`PlaceableChecker.ComputeOccupiedCells`,与放置判定**同源**);`test_c1_register_usesFullFootprint_notAnchorOnly` 钉死 | ✅ **已修** |
+| **C2** `World.OccupyCells/FreeCells` 零调用方 ⇒ Overlay 写路径未接线 | 🔴 真缺陷 | `Place`/`Remove` 接 `IWorldOccupancy`;`test_c2_place_writesOccupancy` / `test_c2_remove_freesOccupancy` 钉死 | ✅ **已修** |
+| **N-r1** `moduleCatalog == null` 时静默退化(复现 C1/C2) | 🔴 真缺陷 | 改 **fail-closed**:未注入目录 / 未知 moduleId / 未注入 occupancy 三处**抛**;三条 `test_nr1_*_throwsFailClosed` 钉死 | ✅ **已修(真到位)** |
+| **C8/ID** 注册表 id `int` vs 权威件 `i64` | 🔴 真缺陷 | **本轮修复**(2026-10-03)—— 全链升 `long`,与契约 / codec / `entities.yaml:2068` 口径一致;两条回归用例 + 两次突变测试 | ✅ **已修** |
+| **N-r2** 无生产装配根(非测试代码 `new World(` / `new StructureWriter(` 零引用) | ⚠️ 缺口(低-中) | 实测仍为 **0 引用**;ADR-023 三场景制下 `World.unity` 尚不存在,现在补装配点 = **孤岛接线**(零消费者、其自身正确性无处验证) | ⚠️ **登记为待办(用户裁定 2026-10-03),不阻塞本 epic** |
+
+### 未闭项登记(不阻塞本 epic 转 Complete)
+
+- ⚠️ **N-r2 —— 生产装配根**:实缺陷仍开。**重开条件** = ADR-023 三场景制落地 / Boot 装配轮开工时,
+  同批补 `World` + `StructureWriter` 的生产装配入口(`IModuleCatalog` / `IWorldOccupancy` /
+  `IPayloadEncoder` 注入),并补该接线自身的集成判据。
+- ⏸️ **AC-23-09 跨平台签名半边**:按 ADR-012 现状处置 —— 本仓先钉 **Mono 往返等值**(已绿),
+  **跨平台黄金夹具矩阵未建**,落地后补签,**禁单平台独签**。
+- ⏸️ **`TR-building-004` / `-009` / `-010` 三条 `⚠️ partial`**:归数值轮 / P1a,非本 epic 阻塞项。
+- ⏸️ **story-004 `World.unity` 构建期扫描**(ADR-023 三场景制):场景文件尚不存在,重开条件 = 该场景创建时同批补。
+
+### 文档卫生订正(2026-10-03,零行为影响)
+
+- `structure_kinds_test.cs` §已知缺陷 段(原写「id 用 `(int)` 收窄作临时桥接,归独立轮」)
+  → 改为 §历史缺陷(**已闭**),保留闭环记录(【原缺陷】/【原处置】/【已修】)。
+- `StructureKinds.cs` 头注的「本文件三支 payload struct 副本为零引用死代码」记录保留 ——
+  该删除(2026-10-02)与 id 宽度修复(2026-10-03)是两个独立事件,不合并不删注。
+- EPIC 原 §Status 行(约 900 字单体字符串,内含「不转 Complete」的旧判定与已闭项混杂)
+  → 收敛为一行 `Complete` + 本节逐条结算,**避免读者从单体字符串里读到已失效的结论**。
+
+## Next Step
+
+**本 Epic 已 Complete(2026-10-03)** —— 无剩余**本 epic 范围内**的实现工作。
+等待事项均属外部主语 / 外部轮次:
+
+- **N-r2 生产装配根** ⇒ ADR-023 三场景制 / Boot 装配轮开工时同批补(带该接线自身的集成判据)。
+- **AC-23-09 跨平台签名** ⇒ ADR-012 黄金夹具矩阵落地后补签(禁单平台独签)。
+- **`TR-building-004/-009/-010`** ⇒ 数值轮交付 `R` / `BUILD_TIME` / 目录成本后翻真值;`-010` 归 P1a。
+- **story-004 `World.unity` 构建期扫描** ⇒ 该场景创建时同批补。
+
+下一件:见 `production/epics/index.md` —— Route A 三 epic(player-controller → world-ecozones → modular-building)
+**全部收口完毕**。

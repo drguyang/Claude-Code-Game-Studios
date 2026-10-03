@@ -24,11 +24,11 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | death-respawn | Core | 29 死亡与复活 | design/gdd/death-and-respawn.md | 6 stories | Ready(未实现) |
 | diagnosis-system | Core | 8 诊断系统 | design/gdd/diagnosis-system.md | 6 stories | Ready(未实现) |
 | disease-simulation | Core | 9 疾病模拟 | design/gdd/disease-simulation.md | 6 stories | Complete ✅ 2026-09-30 |
-| emergency-procedures | Core | 10 急救动作 | design/gdd/emergency-procedures.md | 7 stories | In Review(7/7 已实现 · 007 修 b6 手搓点 · 0 红;**残留 = 评审原件缺 + 三项待裁**) |
+| emergency-procedures | Core | 10 急救动作 | design/gdd/emergency-procedures.md | 7 stories | In Review(7/7 已实现 · A1/A2/A6/B4/C4/C5 已闭 · 0 红;✅ **评审原件两份均已在库**(首轮+round2,2026-10-03);**真实残留 = D1/D2/D3 文档对齐 + 实跑测试套件**(round2 未实跑,结论均基于源码阅读);另 007 = b6 门查出的手搓点) |
 | enemy-ai | Core | 27 敌人 AI | design/gdd/enemy-ai.md | 5 stories | Complete ✅ 2026-09-30 |
 | interaction-system | Core | 4 交互系统 | design/gdd/interaction-system.md | 4 stories | Ready(未实现) |
 | inventory-items | Core | 21b 库存与物品 | design/gdd/inventory-and-items.md | 6 stories | Ready(未实现) |
-| modular-building | Core | 6 世界与生态区 | design/gdd/modular-building.md | 7 stories | In Review(7/7 story 已实现 · B4 已闭 · 63/63 绿;**唯一残留 = 评审报告原件缺**;另 id 类型 int/i64 不合规登记) |
+| modular-building | Core | 6 世界与生态区 | design/gdd/modular-building.md | 7 stories | Complete ✅ 2026-10-03(7/7 story;C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红;**未闭登记 = N-r2 生产装配根(待 Boot 装配轮)+ AC-23-09 跨平台签名(待 ADR-012 矩阵)**) |
 | patient-ai | Core | 13 病人 AI | design/gdd/patient-ai.md | 4 stories | Ready(未实现) |
 | player-controller | Core | 1 玩家控制器 | design/gdd/player-controller-and-movement.md | 6 stories | Complete ✅ 2026-10-03(6/6 story Complete;两轮评审判据缺陷已修;88 过 + 3 NOT-RUN) |
 | prescription-medication | Core | 11 处方与用药 | design/gdd/prescription-and-medication.md | 5 stories | Ready(未实现) |

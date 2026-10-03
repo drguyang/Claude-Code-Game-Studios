@@ -1,7 +1,7 @@
 # Story 005: 朝向整数旋转(F-23-2b)+ Modifiable 改造判定
 
 > **Epic**: 模块化建造
-> **Status**: In Review — 双代理评审 REQUEST_CHANGES 5 BLOCKING(`da04f41` 修复,逐条对账件未落 evidence),测试绿 `ModifiableCheckerTest` 5/5;EPIC 级不转 Complete(对账件未落 evidence · story 级 AC 勾选未逐条复跑复核)
+> **Status**: **Complete ✅ 2026-10-03** —— 双代理评审 REQUEST_CHANGES 5 BLOCKING 已全部结算(`reconciliation-modular-building-2026-10-02.md` 逐条对账件已落 evidence);测试 `ModifiableCheckerTest` **5/5**;EPIC 已转 Complete ✅ 2026-10-03(`production/qa/evidence/modular-building/editmode-rerun-2026-10-03.md`)
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 5h
