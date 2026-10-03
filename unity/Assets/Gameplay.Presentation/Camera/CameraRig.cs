@@ -47,6 +47,30 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         public const float PITCH_MIN = -45f;
         public const float PITCH_MAX = 60f;
 
+        /// <summary>
+        /// AC-2-09 装载期校验(PITCH_MAX &lt; 90° 等俯角界)。
+        /// ⚠️ **2026-10-03 补(评审 F3)**:原 AC-2-09① 无校验体 —— const 写在那里
+        /// 但从未有任何断言/校验消费它,判据挂空。
+        /// Guardrail 口径(「取值一旦存在即被守住」):值已存在 ⇒ 装载期即校验;
+        /// **参数化**是为让负向夹具注入违例值(不违反「不在空值上跑断言」—— 校验的是具体值)。
+        /// </summary>
+        /// <exception cref="System.ArgumentErrorException">违反俯角界时抛,错误串点名双值。</exception>
+        public static void ValidatePitchLimits(float min, float max)
+        {
+            if (!(max < 90f))
+                throw new System.ArgumentException(
+                    $"AC-2-09①:PITCH_MAX({max}) 须 < 90° —— 过大俯角使相机翻转穿地", nameof(max));
+            if (!(min > -90f))
+                throw new System.ArgumentException(
+                    $"PITCH_MIN({min}) 须 > -90°(同族下界,防翻仰)", nameof(min));
+            if (min >= max)
+                throw new System.ArgumentException(
+                    $"PITCH_MIN({min}) 须 < PITCH_MAX({max}) —— 空区间使 pitch 恒被钳死", nameof(min));
+            if (!(min < 0f))
+                throw new System.ArgumentException(
+                    $"PITCH_MIN({min}) 须 < 0 —— 仰视允许是 R-2-3 符号约定的直接判据(AC-2-09①)", nameof(min));
+        }
+
         /// <inheritdoc />
         public float Yaw => _yaw;
 
@@ -154,6 +178,17 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
             UpdatePitch(deltaPitch);
         }
 
+        /// <summary>
+        /// 更新 yaw(绕点段)。
+        /// </summary>
+        /// <remarks>
+        /// **AC-2-10① 相位落点决策(2026-10-03 实现期定死,承 EC-2-14 原文要求)**:
+        /// 选 **B 路 = `ICameraRig.UpdateYaw()` 显式驱动** —— 调用方在自身固定相位
+        /// (如 `InputSystem.onAfterUpdate`,ADR-011 先例)调入本方法;
+        /// **禁止**依赖 `Script Execution Order` 面板的隐式排序
+        /// (场景资产,跨 prefab 不传递 ⇒ 静默失效)。
+        /// 注:此前该决策**只写在 story 文档里、代码零注释**(评审 F2)⇒ 现落码。
+        /// </remarks>
         public void UpdateYaw(float deltaYaw)
         {
             _yaw += deltaYaw;

@@ -1,5 +1,12 @@
 # Story 002: 输入契约与相机相对方向 —— `MoveInput` 边界断言 + F-1-8 基投影
 
+> ⚠️ **2026-10-03 跨 Epic 登记(由 camera-viewpoint story-002 评审查出)**:
+> 本 story 的 AC-1-31 测试(`input_contract_test.cs`)用**自有字面量 `0.001f`** 做单位性容差,
+> 未回指 `CameraRig.YAW_BASIS_EPS`(story-002 规格:「系统 1 的 AC-1-31 引用同一容差时
+> **须回指本常量**」)⇒ **跨 Epic 漂移已发生**(改一处另一处静默失效)。
+> 修法:`input_contract_test` 的容差改为引用 `CameraRig.YAW_BASIS_EPS`。**待修**。
+
+
 > **Epic**: 玩家控制器与移动
 > **Status**: Complete ✅ 2026-10-02 (双代理评审修复后 16/16 测试通过)
 > **Layer**: Foundation

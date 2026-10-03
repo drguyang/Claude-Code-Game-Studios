@@ -135,7 +135,7 @@
 **Required evidence**:
 - Logic: `tests/unit/camera/yaw_basis_test.cs` — must exist and pass(07 两子 + 08 全周 + 09 三组表值 + 10 探针/形状双向)
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/EditMode/Camera/`;登记口径 = `tests/unit/camera/`)
+**Status**: [x] Done — `unity/Assets/Tests/EditMode/Camera/yaw_basis_test.cs`(经本 story 评审修复轮扩容)
 ⚠️ `AC-2-09①②` 的**真实表值半边** = 数值留白(归用户)⇒ 当前以注入夹具签"判据真实存在",真表跑记 INCONCLUSIVE;**不得借绿**。`YAW_BASIS_EPS` 取值未落 ⇒ 同上口径(夹具用占位值 + 反空转注入证明断言不空转)。
 
 ---
@@ -149,15 +149,6 @@
 
 ## Completion Notes
 
-**Completed**: _待实现_
-**Criteria**: _待填_(交付时须附:相位落点二选一的**选定项 + 代码注释位置**;`YAW_BASIS_EPS` 唯一定义点行号;1 侧互指夹具的登记)
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
-**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
-
-## Completion Notes
-
 **Completed**: 2026-09-30
 **Criteria**: 
 - `ICameraRig` — 只读接口，YawBasis 返回不可变 struct
@@ -168,17 +159,14 @@
 - 全量 EditMode: 1461/1489 Passed, 0 Failed
 
 **Deviations**: 
+
 - 程序集落点：`Gameplay.Presentation`（ADR-025 已登记）
-- AC-2-10① 帧内次序契约测试为简化版（UpdateYaw 后读取验证），完整版需探针消费方
-
-**Test Evidence**: 
-- `unity/Assets/Tests/EditMode/Camera/yaw_basis_test.cs` — 9 测全过
-
-**Code Review**: unity-specialist + qa-tester 评审完成，5 BLOCKING 问题全部修复：
-- B1: AC-2-10② 反射测试验证无 public 写入面
-- B2: AC-2-10① 帧内次序契约测试
-- B3: AC-2-09② proj_h 正下界测试
-- B4: AC-2-09③ 防御性兜底测试
-- B5: AC-2-13 pitch 钳制不污染 yaw 测试
-
-**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
+- **⚠️ 2026-10-03 双代理评审修复轮(QA Lead + TD 均判 REQUEST_CHANGES)**:
+  ① **F1/S3** 水平化判据用 1e-6 容差吞掉 1e-8 抓错力 ⇒ 改**精确 0**;
+  ② **F2/S2** AC-2-10① 相位决策只在文档、代码零注释 ⇒ **落码注释** + `[DefaultExecutionOrder]` 禁用判据 + 多次交错探针;
+  ③ **F3/S2** AC-2-09①②③ 无校验体/恒真/空转 ⇒ 补 `ValidatePitchLimits`(含 `min<0`)+ 俯侧下界 + 错配不抛;
+  ④ **S3** AC-2-08 采样 360 < 规格 4096 ⇒ 扩至 **4096 含回绕点**;补全周 `r̂==cross` 手性等式;
+  ⑤ **F6** 采样用 `UpdateYaw` 增量 API 致**累积漂移**(采样格非设计值)⇒ 改 `ResetLookForTest` 绝对角;
+  ⑥ **S3** AC-2-10② 只扫接口未扫字段 ⇒ 补 YawBasis **readonly 字段**扫描。
+  另登记**跨 Epic**:AC-1-31(1 侧)用自有字面量 `0.001f` 未回指 `YAW_BASIS_EPS` ⇒ 归 player-controller。
+- **Manifest**: 版本号已对齐 2026-10-02(仅版本号)
