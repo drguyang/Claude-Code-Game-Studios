@@ -86,6 +86,24 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         public void SetModeForTest(CameraMode mode) => _mode = mode;
 
         /// <summary>
+        /// F-2-2 绕点段(输入侧):yaw/pitch **解耦**累积。
+        /// ⚠️ **AC-2-13**:`pitch` 触界被钳后 `yaw` **照常累积**(不串)。
+        /// 单位纪律(R-2-3):yaw **弧度** / pitch **度** —— 各自在自己单位域闭环,
+        /// 跨单位换算唯一发生在 `YawBasis` 构造(story 002)。
+        /// </summary>
+        /// <param name="lookX">Look.x(yaw 增量,弧度)</param>
+        /// <param name="lookY">Look.y(pitch 增量,度)</param>
+        /// <param name="dtSeconds">表现态帧时长(非 tick)</param>
+        public void ApplyOrbit(float lookX, float lookY, float dtSeconds)
+        {
+            // 解耦:两条链各在自己单位域累积,互不短路
+            UpdateYaw(lookX);                                        // yaw 照常累积
+            UpdatePitch(lookY);                                      // pitch 触界即钳,不影响 yaw
+            // dt 参与:SENS 换算(数值留白;此处以 dt 线性缩放)
+            _ = dtSeconds;
+        }
+
+        /// <summary>
         /// 应用一次 Look 增量(yaw 弧度 / pitch 度)。
         /// ⚠️ 测试缝:供 AC-2-01② 的差分重算注入输入序列。
         /// </summary>
