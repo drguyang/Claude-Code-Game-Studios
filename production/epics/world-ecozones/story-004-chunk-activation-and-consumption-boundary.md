@@ -40,6 +40,12 @@
   现补 3 例:`firesOnCellEntry_sameTick`(跨格 → 激活 → 发现门,且**同 tick**)
   · `idempotentOnSecondEntry`(二次进入 ⇒ `AlreadyAtState`)
   · `blockedOnUnloadedChunk`(AC-6-23 的**保守侧**:未驻留 ⇒ 不可达)。
+  ⚠️ **2026-10-03 再修(第二轮评审 N2-1)**:上述三例的 `firesOnCellEntry_sameTick` 初版
+  「同 tick」断言**恒真** —— `Tick` 是测试**直传入参**,激活与门**无因果**;且全文
+  `ActorCellEntered` 只出现在注释,**零真实跨格事件** ⇒ 核心判据仍未真验。
+  **现重写为 `drivenByRealCellEntry`**:经 `CellTransitionDetector`(表现层跨格检测器)
+  喂位置样本 → 产**真 `ActorCellEntered`** → 从**该事件的格**驱动激活 →
+  发现门的 tick **取自事件本身**。⇒ 因果链真实(突变:把 tick 改硬编码 ⇒ 该测**红**)。
 - [x] 读档接缝:位置 = 格锚点 + 确定性格内偏移(ADR-023 ⑦),重放后发现门状态与读档前一致(经流重建,非快照真源,承 TR-worldeco-006) — `RebuildFromEvents` 测试验证
 - [ ] 静态引用断言:POI 状态的读者恰 ⊆ {4,25,37}(白名单正面形态);27 侧引用 POI 状态 ⇒ 构建/测试失败
   ⚠️ **2026-10-03 撤勾(评审 B1)** —— 原勾并自陈「白名单断言已实现」,**实测无实现**:

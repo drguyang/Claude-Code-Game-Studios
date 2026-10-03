@@ -149,29 +149,70 @@ namespace DaYiJingCheng.Tests.WorldEcozones
         // ══════════════════════════════════════════════════════════════
 
         [Test]
-        public void test_ac623_discoverGate_firesOnCellEntry_sameTick()
+        public void test_ac623_discoverGate_drivenByRealCellEntry()
         {
+            // ⚠️ **2026-10-03 重写(第二轮评审 N2-1)**:
+            //    初版的「同 tick」断言**恒真** —— `Tick` 是测试**直传入参**,
+            //    激活与门之间**无因果**;且全文 `ActorCellEntered` 只出现在注释里,
+            //    **零真实跨格事件** ⇒ [B] AC-6-23 的核心判据从未真验。
+            //    现改为**真驱动链**:`CellTransitionDetector`(表现层跨格检测器,已在库)
+            //    喂位置样本 → 产**真 `ActorCellEntered`** → 测试从该事件的格驱动激活与门,
+            //    且**tick 取自事件本身**(而非测试硬编码)⇒ 因果真实。
+
             var topology = new ChunkTopology(16, 1, 16, 4, 1, 4);
             var activator = new ChunkActivator(topology, streamingRadius: 1);
             var sink = new SpyEventSink();
+
+            // ① **真驱动**:跨格检测器按位置样本产出 ActorCellEntered
+            const long Tick = 100;
+            var tickProvider = new FixedTickProvider(Tick);
+            var detector = new DaYiJingCheng.Gameplay.Presentation.Player.CellTransitionDetector(
+                sink, tickProvider);
+
+            detector.OnPositionSample(new UnityEngine.Vector3(20.5f, 0f, 20.5f));  // → 格 (20,0,20)
+            detector.OnTickEdge();                                                  // tick 边沿提交
+
+            // ② 断言**真事件**已产生(而非零跨格事件)
+            var cellEntry = sink.AppendedEvents.Find(e => e.Kind == EventKind.ActorCellEntered);
+            Assert.IsNotNull(cellEntry,
+                "跨格检测器须产出**真 `ActorCellEntered`** —— 这是本测的驱动源(N2-1)");
+            Assert.AreEqual(Tick, cellEntry.Tick, "事件的 tick 须来自 tick provider(非测试硬编码)");
+
+            // ③ 从**事件的格**驱动激活判定(因果链:事件 → 格 → 激活)
+            var enteredCell = CellFromActorCellEntered(cellEntry);
+            var chunk = topology.WorldToChunk(enteredCell);
+            Assert.IsTrue(activator.IsChunkActive(chunk),
+                $"玩家进入格 {enteredCell.X},{enteredCell.Z} 所在 chunk 须被激活(激活权 = 6)");
+
+            // ④ 发现门在**同一 tick** 求值(tick 取自事件,非直传)
             var machine = new PoiStateMachine(sink, new AlwaysHostAuthority(),
                                             new[] { 1 }, new NoopEncoder());
+            var result = machine.TryDiscover(1, cellEntry.Tick);
 
-            var poiCell = new WorldPos(20, 0, 20);
-            var chunk = topology.WorldToChunk(poiCell);
-            Assert.IsTrue(activator.IsChunkActive(chunk),
-                "玩家所在格所在 chunk 须被激活(激活是发现门的前置)");
+            Assert.AreEqual(PoiStateTransferResult.Success, result, "发现门须成功");
+            Assert.AreEqual(PoiState.Discovered, machine.GetState(1));
 
-            const long Tick = 100;
-            var result = machine.TryDiscover(1, Tick);
+            var poiEvent = sink.AppendedEvents.Find(e => e.Kind == EventKind.PoiStateChanged);
+            Assert.IsNotNull(poiEvent, "须发 PoiStateChanged");
+            Assert.AreEqual(cellEntry.Tick, poiEvent.Tick,
+                "**同 tick 求值**:PoiStateChanged.tick 须 == 驱动它的 ActorCellEntered.tick" +
+                "(因果真实 —— 前者由后者的 tick 驱动,非测试各传一个常量)");
+        }
 
-            Assert.AreEqual(PoiStateTransferResult.Success, result,
-                "POI 未被发现时,TryDiscover 须成功(发现门)");
-            Assert.AreEqual(PoiState.Discovered, machine.GetState(1), "状态须推进到 Discovered");
-            Assert.AreEqual(1, sink.AppendedEvents.Count, "须恰发一条 PoiStateChanged");
-            Assert.AreEqual(EventKind.PoiStateChanged, sink.AppendedEvents[0].Kind);
-            Assert.AreEqual(Tick, sink.AppendedEvents[0].Tick,
-                "**同 tick 求值**:事件 tick 须 == 激活判定的 tick(无表现态读取)");
+        /// <summary>
+        /// 从 `ActorCellEntered` 事件还原格。
+        /// ⚠️ 该事件的载荷经 `PayloadRef` 三整数字段(`CellTransitionDetector` 的既有形态;
+        /// 其 codec 接线归 ADR-029 的实现轮),故此处按该形态读。
+        /// </summary>
+        private static WorldPos CellFromActorCellEntered(SimEvent e)
+            => new WorldPos(e.Payload.BlobId, e.Payload.Offset, e.Payload.Length);
+
+        /// <summary>固定 tick 的 provider —— 使「同 tick」可被真实驱动。</summary>
+        private sealed class FixedTickProvider : ITickProvider
+        {
+            private readonly long _tick;
+            public FixedTickProvider(long tick) { _tick = tick; }
+            public long CurrentTick => _tick;
         }
 
         [Test]
