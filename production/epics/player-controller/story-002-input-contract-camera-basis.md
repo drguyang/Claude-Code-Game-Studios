@@ -127,7 +127,8 @@
 **Required evidence**:
 - Logic: `tests/unit/player_controller/move_basis_test.cs` — must exist and pass(单位性/水平性全周扫描 + 边界断言 + 时序 fake + AST 只读断言)
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/EditMode/PlayerController/`,登记口径 = `tests/unit/player_controller/`)
+**Status**: [x] Done — `unity/Assets/Tests/EditMode/PlayerController/input_contract_test.cs`(**16/16 Passed**,2026-10-03 batchmode 复跑)
+⚠️ 本节此前记 `[ ] Pending` —— 与文件头 `Status: Complete ✅ 2026-10-02` 及本文件 §Completion Notes 自相矛盾,系状态漂移残留,2026-10-03 订正。
 
 ---
 
@@ -140,9 +141,14 @@
 
 ## Completion Notes
 
-**Completed**: _待实现_
-**Criteria**: _待填_
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Completed**: 2026-10-02(状态回刷 2026-10-03)
+**Criteria**: 3/3 AC 落地。载体 = `unity/Assets/Tests/EditMode/PlayerController/input_contract_test.cs`(**16 例全过**)。
+- `MoveInput` 边界断言(单位性 / 水平性 / 幅值 ≤ 1)
+- F-1-8 相机相对基投影(`YawBasis` 消费,读 2 的输出)
+- 同一帧取样纪律 + AST 只读断言(1 不消费 `Look`)
+
+**Deviations**: 无遗留 —— 跨 Epic 硬前置(系统 2 Epic Story 002 的 `YawBasis` + `YAW_BASIS_EPS` 常量实体)已随 camera-viewpoint 落盘满足(`O-8`/`O-14` 对侧已闭)。
+**Test Evidence**: `InputContractTest` **16/16 Passed**(2026-10-03 batchmode)。
+
+**Code Review**: 双代理评审(记录见 `production/qa/evidence/review-player-controller-{2026-10-03,round2-2026-10-03}.md`)。
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

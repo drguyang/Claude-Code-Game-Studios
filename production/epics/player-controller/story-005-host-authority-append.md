@@ -34,7 +34,7 @@
 
 *From GDD `design/gdd/player-controller-and-movement.md`, scoped to this story:*
 
-- [ ] **AC-1-30(BLOCKING · 复核新增 —— 根因 3「谁 Append」)** —— **客户端不 `Append`**:
+- [x] **AC-1-30(BLOCKING · 复核新增 —— 根因 3「谁 Append」)** —— **客户端不 `Append`**:
   1 的控制器有**两种模式**(主机权威 / 客户端预测):
   ① 断言 **客户端模式下 `IEventSink.Append` 调用点数为 0**(程序集白名单 + 调用点 AST 断言);
   客户端的 `pending_cell` 只经第二 QoS 上行。
@@ -49,7 +49,7 @@
   **本 Epic 只登记挂账,不进验收面**:主语是**外部系统**(29 复活 / 45 网络修正;25 已于 2026-09-17 S3 裁定撤销 —— 击退不注入位移)。
   ⚠️ **残缺须显式记账**:「在它落地之前,EC-4 的有界性论证只有 1 这一半」。
   29 半边已落(`death-and-respawn.md:174`/`:194-202` 登记复活传送上界);**45 半边仍悬空(45 无 GDD,P1b)= `O-3`**。
-- [ ] **AC-1-04 的联机侧边界(登记,不重签)** —— `远端队友` 行(EC-16 第三行)的"全员读到同一条事件序列"由**世界流回播**保证(13 / 27 读流,不读第二 QoS 原始上行);本故事断言**回播路径存在且唯一**(第二 QoS 上行 → 主机 Append → 流回播),**不**断言 13 / 27 侧消费(归 AI Epics)。
+- [x] **AC-1-04 的联机侧边界(登记,不重签)** —— `远端队友` 行(EC-16 第三行)的"全员读到同一条事件序列"由**世界流回播**保证(13 / 27 读流,不读第二 QoS 原始上行);本故事断言**回播路径存在且唯一**(第二 QoS 上行 → 主机 Append → 流回播),**不**断言 13 / 27 侧消费(归 AI Epics)。
 
 ---
 
@@ -139,8 +139,9 @@
 - Integration: `tests/integration/player_controller/host_authority_test.cs` — must exist and pass(两模式对照 + ③(a)(b)(c) 三子断言 + N actor 有界性,fake pipe 注入乱序/丢失/重复)
 - Logic: `tests/unit/player_controller/upstream_payload_test.cs` — 上行载荷字段闭包白名单(递归)
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/`;登记口径 = `tests/integration/player_controller/`)
-⚠️ **P0 范围内可全签**(fake pipe 判据自足);**真实跨机往返记 BLOCKED-BY-45(P1b,`O-4`)**,不得借 fake 绿冒充跨机绿。`AC-1-22` = EXTERNAL,不进本故事验收面(只挂账)。
+**Status**: [x] Done — `unity/Assets/Tests/EditMode/PlayerController/host_authority_test.cs`(**6/6 Passed**,2026-10-03 batchmode 复跑)
+⚠️ 本节此前记 `[ ] Pending` —— 与文件头 `Status: Complete ✅ 2026-10-02` 及 §Completion Notes 自相矛盾,系状态漂移残留,2026-10-03 订正。
+⚠️ **P0 范围内可全签**(fake pipe 判据自足);**真实跨机往返记 BLOCKED-BY-45(P1b,`O-4`)**,不得借 fake 绿冒充跨机绿。`AC-1-22` = EXTERNAL,不进本故事验收面(只挂账,**故其 AC 项保持未勾**)。
 
 ---
 

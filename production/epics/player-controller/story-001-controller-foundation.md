@@ -146,31 +146,25 @@
 
 ## Completion Notes
 
-**Completed**: _待实现_
-**Criteria**: _待填_
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+> ⚠️ **2026-10-03 重复节合并**:本文件此前有**两个** `## Completion Notes` —— 前者为 `_待填_` 占位(状态漂移残留),
+> 后者为 2026-09-30 实记。已合并为一节并回刷到当前 HEAD 实测,占位节删除。
+
+**Completed**: 2026-09-30(状态回刷 2026-10-03)
+**Criteria**: 3/3 AC 落地。载体 = `unity/Assets/Tests/EditMode/PlayerController/controller_foundation_test.cs`(**11 例全过**)。
+- `PlayerController` — `CharacterController` 唯一位移写入点
+- 无 `Rigidbody` 组件、无 `AddForce`/`AddTorque`/`velocity` 写入、无 `Physics.Raycast`/`CheckCapsule`/`Overlap*`
+- `Teleport` 方法 — 唯一允许的 `transform.position` 直接写(被放置路径)
+- `GetCell()` — 返回整数格位置 `WorldPos`
+- **AC-1-10②** —— `LATTICE_SIZE ≥ radius × 2`(EC-12)真约束断言,已含负向夹具
+
+**Deviations**:
+- 程序集落点:`Gameplay.Presentation`(ADR-025 已登记),未新建 `Gameplay.Player`
+- ~~AC-1-10② 测试是简化版(`Assert.Pass`),完整版需装载期断言~~ ✅ **2026-10-03 闭**:该 `Assert.Pass` pass-through 已被真约束断言取代(评审 A4/A7);本轮进一步把「规范格边长」由**局部字面量 `1000`** 改为**读生产同一实体** `WorldLatticeParams.LatticeSizeMm`(同源纪律,防硬编码漂移)。负向夹具 `hugeRadius` 同步改为按读出值派生,不再与格边长取值耦合。
+
+**Test Evidence**: `ControllerFoundationTest` **11/11 Passed**;全量 EditMode 计数见 EPIC §Test Evidence(2026-10-03 batchmode)。
+⚠️ 原记「6 测(5 通过 + 1 跳过)」与「1452/1480」均为 2026-09-30 快照,已过期 —— 现为 11 例全过(跳过的 1 例已随判据修复转真断言)。
+
+**Code Review**: 双代理评审(统一评审记录见 `production/qa/evidence/review-player-controller-{2026-10-03,round2-2026-10-03}.md`)。
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
-
-## Completion Notes
-
-**Completed**: 2026-09-30
-**Criteria**: 
-- `PlayerController` — CharacterController 唯一位移写入点
-- 无 Rigidbody 组件、无 AddForce/AddTorque/velocity 写入、无 Physics.Raycast/CheckCapsule/Overlap*
-- `Teleport` 方法 — 唯一允许的 transform.position 直接写（被放置路径）
-- `GetCell()` — 返回 Int3 整数格位置
-- 测试: 6 条单元测试（5 通过 + 1 跳过）
-- 全量 EditMode: 1452/1480 Passed, 0 Failed
-
-**Deviations**: 
-- 程序集落点：`Gameplay.Presentation`（ADR-025 已登记），未新建 `Gameplay.Player`
-- AC-1-10② 测试是简化版（`Assert.Pass`），完整版需装载期断言
-
-**Test Evidence**: 
-- `unity/Assets/Tests/EditMode/PlayerController/controller_foundation_test.cs` — 6 测（5 通过 + 1 跳过）
-
-**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
 
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

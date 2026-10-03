@@ -272,25 +272,53 @@ namespace DaYiJingCheng.Tests.PlayerController
         [Test]
         public void test_ac118_cellCrossing_usesOldCellMultiplier()
         {
-            // AC-1-18: 跨格那一帧用旧格乘数（真实跨格夹具）
-            // 修复: 之前只验证单格，缺少跨格测试
+            // AC-1-18(BLOCKING):「跨格那一帧断言 `v_target` 用的是**旧格**的乘数
+            // (注入两格乘数不同的地貌,断言切换发生在**下一帧**)」。
+            //
+            // 🔴 **2026-10-03 第二轮评审前置 #4 修复** —— 初版**未真测跨格**:
+            //    注释称「第二帧: 跨到格 1」,但实际调用传的是 `currentCellIndex = 0`
+            //    (**与第一帧同一索引**)⇒ 所谓「跨格那帧」只是同索引调了两次,
+            //    「用旧格乘数」是**重言式**。第三帧才传 1 ⇒ 从未模拟「跨格发生的那一帧」。
+            //
+            // 真实跨格夹具 = 让**位置**真的越过格边界(经 `CellTransitionDetector.CellFromPosition`),
+            // 由位置派生格索引 ⇒ 这不是测试自己挑索引,而是位置驱动。
             var evaluator = new LocomotionEvaluator();
             var basis = new YawBasis(new Vector3(0, 0, 1), new Vector3(1, 0, 0));
+            var kTerrainSpeeds = new[] { 1f, 0.5f };   // 格 0 = 1.0,格 1 = 0.5
 
-            // 注入两格乘数不同的地貌
-            var kTerrainSpeeds = new[] { 1f, 0.5f };
+            // ── 第 1 帧:起点在格 0 内(x = 0.4)──
+            Vector3 posF1 = new Vector3(0.4f, 0f, 0f);
+            int cellF1 = CellIndexOf(posF1);
+            Assert.AreEqual(0, cellF1, "夹具前提:第 1 帧位置应落在格 0");
+            float vTargetF1 = evaluator.ComputeVTarget(1f, kTerrainSpeeds, cellF1, basis);
+            Assert.AreEqual(5f, vTargetF1, 0.001f, "格 0 ⇒ 乘数 1.0");
 
-            // 第一帧: 在格 0，用 kTerrainSpeeds[0] = 1
-            float vTargetFrame1 = evaluator.ComputeVTarget(1f, kTerrainSpeeds, 0, basis);
-            Assert.AreEqual(5f, vTargetFrame1, 0.001f, "第一帧应用格 0 乘数");
+            // ── 第 2 帧:**位置真的跨过格边界**(x = 1.6 已进格 1)──
+            //    但按 F-1-3 求值次序,v_target **先于** Move / 位置更新 ⇒ 本帧仍用**帧起始格**。
+            Vector3 posF2 = new Vector3(1.6f, 0f, 0f);
+            int cellAtFrameStartF2 = cellF1;                    // 帧起始格 = 上一帧末格
+            int cellAfterMoveF2 = CellIndexOf(posF2);           // Move 后的新格
+            Assert.AreEqual(1, cellAfterMoveF2,
+                "夹具前提:第 2 帧的 Move **确实**把玩家送进了格 1(真跨格,非重言)");
 
-            // 第二帧: 跨到格 1，仍用旧格(格 0)乘数
-            float vTargetFrame2 = evaluator.ComputeVTarget(1f, kTerrainSpeeds, 0, basis);
-            Assert.AreEqual(5f, vTargetFrame2, 0.001f, "跨格那一帧仍应用旧格乘数");
+            float vTargetF2 = evaluator.ComputeVTarget(1f, kTerrainSpeeds, cellAtFrameStartF2, basis);
+            Assert.AreEqual(5f, vTargetF2, 0.001f,
+                "跨格那一帧 v_target 仍用**旧格(格 0)**乘数 —— 切换发生在下一帧(AC-1-18 判据本体)");
 
-            // 第三帧: 已在新格，用新格(格 1)乘数
-            float vTargetFrame3 = evaluator.ComputeVTarget(1f, kTerrainSpeeds, 1, basis);
-            Assert.AreEqual(2.5f, vTargetFrame3, 0.001f, "新格应用新格乘数");
+            // ── 第 3 帧:帧起始格已是格 1 ⇒ 这才切到新乘数 ──
+            float vTargetF3 = evaluator.ComputeVTarget(1f, kTerrainSpeeds, cellAfterMoveF2, basis);
+            Assert.AreEqual(2.5f, vTargetF3, 0.001f,
+                "下一帧才应用新格(格 1)乘数 —— 「切换发生在下一帧」");
+        }
+
+        /// <summary>
+        /// 由**位置**派生格索引(非测试自选索引)—— 跨格夹具的驱动源。
+        /// 与生产 `CellTransitionDetector.CellFromPosition` 同源,避免测试自造第二套格算法。
+        /// </summary>
+        private static int CellIndexOf(Vector3 position)
+        {
+            // 沿 +x 单轴演示;格边长取 CanonicalLattice = 1 m(ADR-015 §三)
+            return CellTransitionDetector.CellFromPosition(position).X;
         }
 
         // ══════════ AC-1-06a: 差分神谕(抓手填常数) ══════════

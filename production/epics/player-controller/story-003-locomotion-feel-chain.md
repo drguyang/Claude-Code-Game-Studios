@@ -1,7 +1,7 @@
 # Story 003: 移动手感链 —— 目标速度合成 / 加减速 / 转向 / 跳跃 / 地貌情境乘数 + F-1-1a 派生不变量
 
 > **Epic**: 玩家控制器与移动
-> **Status**: Complete ✅ 2026-10-02 (双代理评审修复后 22/23 测试通过 + 1 NOT-RUN)
+> **Status**: Complete ✅ 2026-10-02 (判据重定 2026-10-03:21 Passed + 2 Skipped —— `AC-1-06c` NOT-RUN + `AC-1-21` BLOCKED-BY-OQ-1-12)
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
@@ -166,8 +166,8 @@
 - Logic: `tests/unit/player_controller/locomotion_chain_test.cs` — must exist and pass(因子稳态 / 转向契约四子条 / 链序探针 / AST 与差分神谕 / 装载期参数与调参自检)
 - 数据 lint: `AC-1-25`/`26` 的 lint 脚本本体随本故事交付;真表跑 = NOT-RUN 直到 6/24 内容就位(ADVISORY 不红构建)
 
-**Status**: [x] Created — 22/23 passed + 1 skipped (NOT-RUN) (2026-10-02 双代理评审修复后复跑)
-⚠️ **开工前置**: `OQ-1-12` 接地 spike 未跑 ⇒ `AC-1-21`(速限运行期断言 + `ε_slide`)与起跳 `Grounded` 进入条件**记 BLOCKED-BY-OQ-1-12,不得借绿**;本故事其余 AC 不受该挂起影响,可先行。
+**Status**: [x] Done — `unity/Assets/Tests/EditMode/PlayerController/locomotion_chain_test.cs`(**21 Passed + 2 Skipped**,2026-10-03 batchmode 复跑)
+⚠️ **开工前置**: `OQ-1-12` 接地 spike 未跑 ⇒ `AC-1-21`(速限运行期断言 + `ε_slide`)与起跳 `Grounded` 进入条件**记 BLOCKED-BY-OQ-1-12,不得借绿**(该 2 例 Skipped 即此挂起面);本故事其余 AC 不受该挂起影响,已可签。
 
 ---
 
@@ -180,20 +180,23 @@
 
 ## Completion Notes
 
-**Completed**: 2026-10-02 (双代理评审修复后 22/23 测试通过 + 1 NOT-RUN)
-**Criteria**: 
-- 乘数链: v_target := SPEED_MODE × ‖MoveInput‖ × K_terrain
+**Completed**: 2026-10-02(判据重定 2026-10-03)
+**Criteria**: 11/12 AC 落地(1 NOT-RUN = `AC-1-06c`)。载体 = `locomotion_chain_test.cs`(**21 Passed + 2 Skipped**)。
+- 乘数链: `v_target := SPEED_MODE × ‖MoveInput‖ × K_terrain`
 - 加减速: 线性趋近(不过冲)
-- 转向: 自动面向移动方向, Mathf.DeltaAngle
-- 求值次序: 读格 → v_target → 加速 → 转向 → Move
-- 测试: 22/23 passed + 1 skipped (AC-1-21 BLOCKED-BY-OQ-1-12)
+- 转向: 自动面向移动方向, `Mathf.DeltaAngle`
+- 求值次序: 读格 → `v_target` → 加速 → 转向 → Move
+- 测试: 21 passed + 2 skipped(`AC-1-06c` NOT-RUN + `AC-1-21` BLOCKED-BY-OQ-1-12)
 
-**Deviations**: 
-- AC-1-06a/b/c: 完整版需要读 data-core cooked 资产 + Roslyn 分析器，此处验证机制存在
-- AC-1-18: 完整版需要跨格夹具，此处验证单格乘数
+**Deviations**:
+- ~~**AC-1-06a/b/c**: 完整版需要读 data-core cooked 资产 + Roslyn 分析器,此处验证机制存在~~ ✅ **2026-10-03 重定(评审 A3)**:
+  - **06a** —— 原测只查 `config.SpeedWalk > 0`(无物可查:1 侧零 `K_TERRAIN_MAX`/`K_CONTEXT_MAX` 概念,它们是**入参**)。现按 story `:19` 的**所有者反转**(约束对象 = `LATTICE_SIZE`,归 6)分两面:① 断言 1 的公开面**不得自持派生量字段**;② 在 6 侧做**差分神谕**(独立第二路径扫表求 max,与 `WorldLatticeParams.KTerrainMax` 比对),并断言 `SPEED_MAX = SPEED_MODE_MAX × K_TERRAIN_MAX × K_CONTEXT_MAX`。
+  - **06b** —— 改为**变异性 + 双向**:抬表一行 ⇒ 派生上界随动 ⇒ 装载期下界断言**变红**;删该行 ⇒ **恢复绿**(排除「永久红断言冒充」)。
+  - **06c** —— **降级为 NOT-RUN**(`Assert.Ignore`):其判据载体 = Roslyn 分析器,而 ADR-024 §⑤ 明令本仓不引;判据面在 6 侧的 `AC-6-07` 值级可证伪守卫。**不静默记绿**。
+- ~~**AC-1-18**: 完整版需要跨格夹具,此处验证单格乘数~~ ✅ **2026-10-03 闭(评审前置 #4)**:初版**未真测跨格** —— 注释称「第二帧: 跨到格 1」,实际调用传的仍是 `currentCellIndex = 0`(与第一帧**同一索引**)⇒「用旧格乘数」是**重言式**。现改为**位置驱动**夹具:帧 2 的 `Move` 真的把玩家送进格 1(经 `CellTransitionDetector.CellFromPosition` 由位置派生格索引,非测试自选),断言该帧 `v_target` 仍用旧格乘数、**下一帧**才切换。
 
-**Test Evidence**: 
-- `unity/Assets/Tests/EditMode/PlayerController/locomotion_chain_test.cs` — 23 测（22 通过 + 1 跳过）
+**Test Evidence**: `LocomotionChainTest` **21 Passed + 2 Skipped**;2 例跳过 = `AC-1-06c`(NOT-RUN,无 Roslyn 载体)+ `AC-1-21`(BLOCKED-BY-OQ-1-12)。
+⚠️ 原记「23 测(22 通过 + 1 跳过)」为 2026-10-02 快照;现 `AC-1-06c` 由假绿转**显式 skip** ⇒ 21+2。
 
-**Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
+**Code Review**: 双代理评审(记录见 `production/qa/evidence/review-player-controller-{2026-10-03,round2-2026-10-03}.md`)。
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

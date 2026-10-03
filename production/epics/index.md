@@ -1,6 +1,6 @@
 # Epics Index
 
-Last Updated: 2026-10-02
+Last Updated: 2026-10-03
 Engine: Unity 6.3 LTS (6000.3.24f1)
 
 | Epic | Layer | System | GDD | Stories | Status |
@@ -30,7 +30,7 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | inventory-items | Core | 21b 库存与物品 | design/gdd/inventory-and-items.md | 6 stories | Ready(未实现) |
 | modular-building | Core | 6 世界与生态区 | design/gdd/modular-building.md | 7 stories | In Review(7/7 story 已实现 · B4 已闭 · 63/63 绿;**唯一残留 = 评审报告原件缺**;另 id 类型 int/i64 不合规登记) |
 | patient-ai | Core | 13 病人 AI | design/gdd/patient-ai.md | 4 stories | Ready(未实现) |
-| player-controller | Core | 1 玩家控制器 | design/gdd/player-controller-and-movement.md | 6 stories | In Review(6/6 story Complete · 仅因 evidence 对账件缺口未转 Complete;2026-10-02) |
+| player-controller | Core | 1 玩家控制器 | design/gdd/player-controller-and-movement.md | 6 stories | Complete ✅ 2026-10-03(6/6 story Complete;两轮评审判据缺陷已修;88 过 + 3 NOT-RUN) |
 | prescription-medication | Core | 11 处方与用药 | design/gdd/prescription-and-medication.md | 5 stories | Ready(未实现) |
 | processing | Core | 14 加工与制作 | design/gdd/processing.md | 5 stories | Ready(未实现) |
 | world-ecozones | Core | 6b 生态区与 POI | design/gdd/world-and-ecozones.md | 6 stories | In Review(5/6 · B1/B3/B4 已修 · 106/106 绿;**残留 = 评审报告原件缺 + Story 005 走查未执行**) |

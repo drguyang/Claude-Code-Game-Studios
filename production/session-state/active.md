@@ -2700,3 +2700,20 @@ D-R2 随 tools/kindgen 同批 · R-A/R-B/R-C spikes(实现轮)· U0a(挂起)→ 
 - 产出: `production/qa/evidence/review-camera-viewpoint-fix-round-2026-10-03.md`(逐 BLOCKING 对账)
 - 残留(登记): 起点重叠区分 spike · PhysicsArmQuery 场景级实测 · SetModeForTest 结构断言 · 组5单表/_distance 收敛 · AC-2-21/23 EXTERNAL · ADVISORY playtest
 - 未提交(无用户指令)—— 工作树 = 19 改 + 10 新(含 8 评审原件 + 对账件 + CameraEvaluationDriver)
+
+## Session Extract — Route A / Epic 1: player-controller 判据修复轮 2026-10-03
+- 范围: player-controller Epic(用户裁定「A」= 逐件复刻五步循环 5B 修复,顺序 player-controller → world-ecozones → modular-building)
+- 前置: 两轮评审原件已在库(review-player-controller-{2026-10-03,round2-2026-10-03}.md);第二轮列「转 Complete 前置 1–5」
+- 逐前置对账:
+  - #1 motor_lease 白名单自指空转 —— ✅ 已在 `28f7911` 修(源码实测:遍历全部已加载程序集)
+  - #2 story 件文本同步 —— ✅ 修,且**实测范围 6 文件 12 处 > 评审判定 5 处**(含 story-001 重复 Completion Notes 节、004/005/006 头体 `Complete` vs `Pending` 直接矛盾)
+  - #3 复跑 —— ✅ PlayerController **91 = 88 过 + 3 跳过 + 0 红**
+  - #4 AC-1-18 真跨格夹具 —— ✅ 改**位置驱动**(帧 2 Move 真把玩家从 x=0.4 送进 x=1.6,格索引经 `CellTransitionDetector.CellFromPosition` 同源派生);自带前提断言防重言
+  - #5 CanonicalLatticeMm 硬编码 —— ✅ 新增 helper **构造真实 `WorldLatticeParams` 读回 LatticeSizeMm**;负向夹具 hugeRadius 改按读出值派生
+- 实现期留痕: 首次夹具参数 (1000mm + speedModeMax 5) 被 `WorldLatticeParams` **F-6-1 防隧穿守卫**拒收(LATTICE_SIZE 1000 < 10×100×2=2000mm)⇒ 改 10000mm;守卫按设计工作,非缺陷
+- 文档: 6 story 件 + EPIC.md + epics/index.md 同步;EPIC 转 **Complete ✅ 2026-10-03**
+- 产出: `production/qa/evidence/reconciliation-player-controller-2026-10-03.md`(逐前置对账 · 明确声明「本件不主张 NOT-RUN/EXTERNAL 已通过」)
+- 验证: 全量 EditMode **2202 · 2161 过 · 0 红 · 1 inconclusive(既有 Audio)· 40 跳过** —— 与基线逐位一致,零回归
+- 未闭(登记): OQ-1-12 接地 spike(唯一真待用户裁决的开工前置)· O-9 · O-4 · AC-1-22(EXTERNAL)· AC-1-04(VR P1a)· story-004 codec 绕行
+- 未提交(无用户指令)—— 工作树 = 10 改 + 1 新
+- Next: Route A / Epic 2 = **world-ecozones**(8 前置,3 🔴 blocking:N1 主机门返回码与 `PoiNotFound` 混淆 · N5 缺发现门集成测试 · N3 白名单静态断言未验)

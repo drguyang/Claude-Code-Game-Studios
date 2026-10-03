@@ -3,7 +3,8 @@
 > **Layer**: Presentation(控制器与相机 · manifest 该节适用)
 > **GDD**: design/gdd/player-controller-and-movement.md
 > **Architecture Module**: 表现层(纯表现态位移)+ 世界流唯一投影(跨格事件)
-> **Status**: In Review(6/6 story Complete;EPIC 未转 Complete 仅因 **评审报告原件从未落盘** —— 对账件已于 2026-10-02 补齐并揭示该更深缺口;✅ **评审原件已落盘**(`qa/evidence/review-player-controller-2026-10-03.md`,2026-10-03 补做);🔴 **但评审查出 6 条判据简化 ⇒ 不转 Complete**:最重 = **AC-1-06a/b/c** 三个 BLOCKING 判据的测试都只查 `config.SpeedWalk > 0`,**手填常数与派生量在测试中无法区分**;另 AC-1-10②/1-07/1-17/1-23/1-28 各有简化(详见报告))
+> **Status**: Complete ✅ 2026-10-03(6/6 story Complete;两轮双代理评审的判据缺陷已修复 ⇒ 全 epic **88 例全过 + 3 例显式 NOT-RUN**;评审原件已落盘 `qa/evidence/review-player-controller-{2026-10-03,round2-2026-10-03}.md`)
+> ⚠️ 本轮(2026-10-03)修复的判据缺陷:**A3**(`AC-1-06a/b/c` 由「只查 `SpeedWalk > 0`」改为接口形态扫描 + 6 侧差分神谕 + 变异性双向;`06c` 无载体 ⇒ 显式 NOT-RUN)· **A4**(`AC-1-10②` 真约束断言 + 格边长改**读生产同一实体**,消硬编码漂移)· **A5/A7**(`AC-1-07`/`1-23` 调用点与类型白名单真判据)· **#1**(`motor_lease` 白名单遍历改**全部已加载程序集**,消自指空转)· **#4**(`AC-1-18` 改**位置驱动**真跨格夹具)· 另 sync 六份 story 件的状态漂移(story 004/005/006 的 `Pending` 残留、story-001 重复 `Completion Notes` 节、story-002 空占位)。
 > **Stories**: 6 stories created (2026-09-28)
 
 ## Overview
@@ -57,9 +58,21 @@ Counts: 4 Logic · 2 Integration = 6 total.
 
 ## Epic Status
 
-**In Review** — **6/6 story Complete**(001–006)。零 ADR-blocked story(全部治理 ADR Accepted;`TR-player-007` 的 partial 不阻塞,见上)。
+**Complete ✅ 2026-10-03** — **6/6 story Complete**(001–006)。零 ADR-blocked story(全部治理 ADR Accepted;`TR-player-007` 的 partial 不阻塞,见上)。
 
-**EPIC 不转 Complete 的原因 = 评审报告原件从未落盘(见下 §🔴 第 2 条)** —— 6 个 story 的 AC 均已落地且测试全绿(全 epic 92 例),逐 BLOCKING 对账件已于 2026-10-02 补齐。**但双代理评审的报告原件从未落盘** ⇒ 「原判定是否完备」无法复核。**补落报告原件后即可转 Complete。**
+**转 Complete 的两个前置均已满足**:
+1. ✅ **评审报告原件已落盘** —— `production/qa/evidence/review-player-controller-2026-10-03.md` 与 `review-player-controller-round2-2026-10-03.md`(含原判定 → 修复落点 → 验证命令)。
+2. ✅ **评审查出的判据缺陷已修复并复跑** —— 详见头部 §Status 的 A3/A4/A5/A7/#1/#4 清单;`AC-1-06c` 无 Roslyn 载体 ⇒ **显式 NOT-RUN**(非静默)。
+
+**Test Evidence(2026-10-03 batchmode 复跑,逐 fixture)**:`PlayerController` **91 例 = 88 Passed + 3 Skipped + 0 Failed**:
+`ControllerFoundationTest` 11 · `InputContractTest` 16 · `LocomotionChainTest` 21(+2 skip)· `CellTransitionTest` 18(+1 skip)· `StreamBoundTest` 2 · `HostAuthorityTest` 6 · `MotorLeaseTest` 14。
+3 例跳过 = `AC-1-06c`(NOT-RUN,无 Roslyn 载体)· `AC-1-21` + `AC-1-04`(后者随 `AC-1-17` 接地半边,BLOCKED-BY-OQ-1-12 / P0 无 VR)。
+
+**仍未闭(登记,不阻塞本 Epic 转 Complete —— 均属 P1a/P1b 或外部主语)**:
+- `OQ-1-12` 接地 spike(P0 开工前须裁决;`AC-1-21` 与 `AC-1-17` 接地进入条件半边挂此)
+- `O-4` / `O-9`(45 侧登记行 · ADR-015 点名 `slopeLimit`/`stepOffset` 几何值)
+- `AC-1-22`(EXTERNAL,主语 = 29/45)
+- `AC-1-04`(VR,P1a)
 
 ### ⚠️ 状态回填轮记账(2026-10-02)
 
@@ -73,6 +86,21 @@ Counts: 4 Logic · 2 Integration = 6 total.
 | 实际 | 001–006 代码与测试**均已在库** | —— |
 
 **成因**:`0db7830` / `e6be7ee` / `45056e6` 三次提交只落代码与测试,**未同步 story/EPIC/index 三处状态**;随后 `185063f` 又以一次编译未通过的提交自称「全量测试通过」,使后续所有引用该数字的状态记载失去依据(`5572d66` 已修编译并撤销其退化替换)。
+
+### ⚠️ 状态漂移第二轮回刷(2026-10-03)
+
+`2026-10-02` 那轮回填**只改了 story 件头行与 EPIC/index 的汇总计数,未触及文件体的 `Status:` 行与 AC 复选框** ⇒ 遗留三处新的自相矛盾(同一 story 件内,头行 `Complete` 而体 `Pending`)。本轮逐文件订正:
+
+| story | 回填前(文件体) | 回填后 |
+|---|---|---|
+| 001 | 两个 `## Completion Notes`(前者 `_待填_`)+ 四栏 `_待填_` + :169 陈旧「`Assert.Pass` 简化版」 | 重复节合并为一;四栏填实;:169 标记已闭(真约束断言 + 同源读格边长) |
+| 002 | `**Status**: [ ] Pending` + 四栏 `_待填_` | `[x] Done`(16/16)+ 四栏填实 |
+| 003 | 头行 22/23(与实跑 21+2 不符)+ Deviations 两条已失效的「完整版需要…」 | 头行与 Criteria 订正;Deviations 重定为 06a/b/c 与 1-18 的实际修法 |
+| 004 | `**Status**: [ ] Pending`,**14 条 AC 零勾** | `[x] Done`(18+1/2);14 条 AC 勾选(`AC-1-04` 标 **NOT-RUN**) |
+| 005 | `**Status**: [ ] Pending`,AC 零勾 | `[x] Done`(6/6);`AC-1-30` + 联机侧边界勾选(**`AC-1-22` EXTERNAL 保持未勾**) |
+| 006 | `**Status**: [ ] Pending`,AC 零勾 | `[x] Done`(14/14);4 条 AC 勾选(`AC-1-29` 标 **NOT-RUN**) |
+
+⚠️ **口径**:AC 勾选 = 「判据已落 / 已登记」,**不**等于「该子条已通过」—— NOT-RUN / EXTERNAL / BLOCKED 的子条一律保持未勾或就地标注,承「不得借绿」纪律。
 
 ### 🔴 逐 story 证据缺口(依「不得借绿」登记)
 
@@ -91,4 +119,9 @@ Counts: 4 Logic · 2 Integration = 6 total.
 
 ## Next Step
 
-Story 001(地基)先行;002 与 2 的 Epic B 组咬合后推进;003 等 `OQ-1-12` spike 结果回填接地判据。
+**本 Epic 已 Complete(2026-10-03)** —— 无剩余实现工作。等待事项均属外部主语或 P1a/P1b:
+- `OQ-1-12` 接地 spike(P0 开工前须由用户裁决)⇒ 回填 `AC-1-21` 与 `AC-1-17` 的接地进入条件
+- `O-9`(ADR-015 §一 点名 `slopeLimit`/`stepOffset` 几何值)⇒ 回填 `AC-1-33②`
+- `O-4`(45 侧登记行,P1b)· `AC-1-22`(EXTERNAL,主语 29/45)· `AC-1-04`(VR,P1a)
+
+下一件(Sprint 04 Phase 2 关键路径):`interaction-system`(见 `production/sprints/sprint-04.md`)。

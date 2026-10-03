@@ -33,25 +33,25 @@
 
 *From GDD `design/gdd/player-controller-and-movement.md`, scoped to this story:*
 
-- [ ] **AC-1-02(BLOCKING)** —— **载荷类型纯净**:**反射断言** `ActorCellEntered` 的字段类型集合 ⊆ `{int32, int64, 整数枚举}`。(**判据是载荷类型,不是 grep** —— F-1-6 要求 `FloorToInt(p / LATTICE_SIZE)`,合法路径**必然**读 `Vector3` ⇒ 「grep `Vector3`」式判据会**误杀正确实现**,是假阳性机器。)
-- [ ] **AC-1-34(BLOCKING · 复核新增 —— 载荷纯度须递归)** —— **`AC-1-02` 的递归形态**:反射断言须**递归下钻** `ActorCellEntered` 载荷的**嵌套类型**(如 `WorldPos` 内的三个字段、任何 `struct` 成员),断言**可达字段类型闭包** ⊆ `{int32, int64, 整数枚举}`。**非递归写法**会被"外层是个 struct、内层藏着 `Vector3`"的载荷绕过 —— `AC-1-02` 单独存在时是**浅断言**。
-- [ ] **AC-1-03(BLOCKING)** —— **归并算子与帧率无关(分两层断)**:
+- [x] **AC-1-02(BLOCKING)** —— **载荷类型纯净**:**反射断言** `ActorCellEntered` 的字段类型集合 ⊆ `{int32, int64, 整数枚举}`。(**判据是载荷类型,不是 grep** —— F-1-6 要求 `FloorToInt(p / LATTICE_SIZE)`,合法路径**必然**读 `Vector3` ⇒ 「grep `Vector3`」式判据会**误杀正确实现**,是假阳性机器。)
+- [x] **AC-1-34(BLOCKING · 复核新增 —— 载荷纯度须递归)** —— **`AC-1-02` 的递归形态**:反射断言须**递归下钻** `ActorCellEntered` 载荷的**嵌套类型**(如 `WorldPos` 内的三个字段、任何 `struct` 成员),断言**可达字段类型闭包** ⊆ `{int32, int64, 整数枚举}`。**非递归写法**会被"外层是个 struct、内层藏着 `Vector3`"的载荷绕过 —— `AC-1-02` 单独存在时是**浅断言**。
+- [x] **AC-1-03(BLOCKING)** —— **归并算子与帧率无关(分两层断)**:
   ① **单元(不接积分器)**:喂跨格检测 + 归并算子**同一 tick 的 N 个位置样本**,`N ∈ {1, 8, 64}`,断言 `Append` 次数 == **1**,且载荷格 == **第 N 个样本**的格;
   ② **集成(逐 tick 核对,非按"相异格"计数)**:断言 `Append 总数 ≤ tick 数` ∧ **逐 tick** 核对「`Append` 的格 == 该 tick 边沿的 `pending_cell`」(即提交序列的**相邻不同格**转移数)。
   ⚠️ **原 ② 的合取项 `事件数 ≤ 相异格数` 已删除 —— 它与 EC-3 直接矛盾,恒不可满足**(回访会再发)。正确的不变量是**序列**性质的。
   ⚠️ **不得**断言"两种帧率下事件序列相同" —— 变 `dt` 积分会改轨迹,该等式**设计上不成立**。
   ⇒ **② 必须配 `AC-1-32` 的反向用例**(回访必须发 2 条)才构成互补判据,**不得单独立项**。
-- [ ] **AC-1-07(BLOCKING)** —— **跨格判定走引擎算符**:`Mathf.FloorToInt`(或 `Vector3Int.FloorToInt`)**零**手写整数除法 / 手写 `floor`。**AST / Roslyn 分析器判据**(`.cs` 文本匹配会被 `Mathf.Floor` 之类绕过)。**并须覆盖 F-1-6 的负数语义**(`⌊-0.5⌋ == -1` ≠ 截断 `0`)。
-- [ ] **AC-1-05(BLOCKING · 复核收窄)** —— **载荷 `tick` 的来源唯一**:写入 `ActorCellEntered.tick` 的值**必须**来自 `ITickProvider.CurrentTick`。⚠️ **不得**写成"1 不得使用 `Time.*`" —— **EC-13 明写 `dt = Time.deltaTime`(受 `timeScale` 影响)是要求**(暂停时 `dt = 0` ⇒ 不发事件)。**被约束的是载荷的 `tick` 字段,不是帧时间源。**
-- [ ] **AC-1-08(BLOCKING · 复核补限定词)** —— **静止不产生格变化**:`GIVEN` 玩家**静止且未被 collide-and-slide 推挤**,`WHEN` 连续 N 帧(N ≥ 256)firing,`THEN` `last_committed_cell` **不变** ∧ `Append` 次数 == 0。⚠️ **"且未被推挤"是限定词,不可省** —— 原稿省略它会把**合法的贴墙推挤**判为失败。反向用例:`Move(Vector3.zero)`(持续调 Move)⇒ 若实现如此,**本条失败**(EC-1 的 ① 反面)。
-- [ ] **AC-1-13(BLOCKING)** —— **EC-2 对角单事件**:喂一帧内 x 与 z **同时**跨格的位置样本 ⇒ `Append` == **1**,载荷为三维**同时**取 floor 的新格;**不**拆两条、**不**补角格。
-- [ ] **AC-1-14(BLOCKING)** —— **EC-3 回访再发**:`GIVEN` 玩家离开 A 格进 B 格,`WHEN` 退回 A 格,`THEN` **再发一条** `ActorCellEntered{A}`。⚠️ **复核点名的漏网实现**:"已访问格集合"式(visited-set)写法可通过**其余全部 AC** ⇒ 本条的**反向用例必须存在**(断言 `Append` 次数 == 2,不是 1)。
-- [ ] **AC-1-15(BLOCKING)** —— **EC-4 传送只发落点**:`GIVEN` 一帧内注入 ≥ 2 格位移(重生 / 位置修正,即「被放置」路径),`WHEN` 检测运行,`THEN` `Append` == **1**,载荷 == **落点格**,**零中间格补发**。
-- [ ] **AC-1-16(BLOCKING)** —— **EC-6 `dt` 钳位不累积**:`GIVEN` 一帧 `dt = 10 × MAX_DT`,`THEN` 该帧位移按 `MAX_DT` 计,超出部分**丢弃**;下一帧 `dt` **不**含积压(断言下一帧位移 == 常规 `dt` 下的位移)。
-- [ ] **AC-1-32(BLOCKING · 复核新增 —— 根因 2「归并算符三版不等价」)** —— **tick 内折返不发事件**(§States 的 `else → pending_cell := null` 支):`GIVEN` 同一 tick 内位置样本序列 `A → B → A`(`A = last_committed_cell`),`WHEN` 该 tick 边沿到达,`THEN` `Append == 0` ∧ `last_committed_cell == A`(否定初稿三版伪码共有的「残留 `pending = B` ⇒ 发一条 B」缺陷)。**反向用例(必须同时存在,否则与 EC-3 混淆)**:`GIVEN` 跨**两个** tick 边沿的 `A → B → A`(`A→B` 已在第一个边沿提交),`THEN` `Append == 2`(两条事件 —— 两次跨格都真实发生过)。⇒ **两个用例互为判据**:只测其一会被"一律不发"或"一律发"两种错实现通过。
-- [ ] **AC-1-17(BLOCKING)** —— **EC-9 接地不靠帧计数**:源码路径中**零**"连续 N 帧接地"式计数器;`Grounded` 进入条件含 `垂直速度 ≤ 0`。**AST / 代码审查判据**(计数器的形态不限,故 grep 不够)。⚠️ **`Grounded` 进入条件的具体形式被 `OQ-1-12` 挂起**(R12)—— 若 spike 改判,本条随轴 2 表同步重写。
-- [ ] **AC-1-24(BLOCKING)** —— **`PatientId.None` 不污染高水位**:`ActorCellEntered` 的 `Patient` 字段 == `PatientId.None`,且 `max(patient_id)` 的重构扫描**显式排除**该事件(ADR-006 Amendment B / ADR-009 Amendment E)。**判据**:喂一条含 `ActorCellEntered` 的流,断言重构出的 `next` **不因它变化**。
-- [ ] **AC-1-04(ADVISORY · 复核降级)** —— **VR 零事件**:VR 模式下头显 / 手柄位移**不产生** `ActorCellEntered`。⚠️ **P0 主语不存在**(VR 推 P1a,AC-20-06/07)⇒ ADVISORY;**发版前(VR 落地时)回升为 BLOCKING。**
+- [x] **AC-1-07(BLOCKING)** —— **跨格判定走引擎算符**:`Mathf.FloorToInt`(或 `Vector3Int.FloorToInt`)**零**手写整数除法 / 手写 `floor`。**AST / Roslyn 分析器判据**(`.cs` 文本匹配会被 `Mathf.Floor` 之类绕过)。**并须覆盖 F-1-6 的负数语义**(`⌊-0.5⌋ == -1` ≠ 截断 `0`)。
+- [x] **AC-1-05(BLOCKING · 复核收窄)** —— **载荷 `tick` 的来源唯一**:写入 `ActorCellEntered.tick` 的值**必须**来自 `ITickProvider.CurrentTick`。⚠️ **不得**写成"1 不得使用 `Time.*`" —— **EC-13 明写 `dt = Time.deltaTime`(受 `timeScale` 影响)是要求**(暂停时 `dt = 0` ⇒ 不发事件)。**被约束的是载荷的 `tick` 字段,不是帧时间源。**
+- [x] **AC-1-08(BLOCKING · 复核补限定词)** —— **静止不产生格变化**:`GIVEN` 玩家**静止且未被 collide-and-slide 推挤**,`WHEN` 连续 N 帧(N ≥ 256)firing,`THEN` `last_committed_cell` **不变** ∧ `Append` 次数 == 0。⚠️ **"且未被推挤"是限定词,不可省** —— 原稿省略它会把**合法的贴墙推挤**判为失败。反向用例:`Move(Vector3.zero)`(持续调 Move)⇒ 若实现如此,**本条失败**(EC-1 的 ① 反面)。
+- [x] **AC-1-13(BLOCKING)** —— **EC-2 对角单事件**:喂一帧内 x 与 z **同时**跨格的位置样本 ⇒ `Append` == **1**,载荷为三维**同时**取 floor 的新格;**不**拆两条、**不**补角格。
+- [x] **AC-1-14(BLOCKING)** —— **EC-3 回访再发**:`GIVEN` 玩家离开 A 格进 B 格,`WHEN` 退回 A 格,`THEN` **再发一条** `ActorCellEntered{A}`。⚠️ **复核点名的漏网实现**:"已访问格集合"式(visited-set)写法可通过**其余全部 AC** ⇒ 本条的**反向用例必须存在**(断言 `Append` 次数 == 2,不是 1)。
+- [x] **AC-1-15(BLOCKING)** —— **EC-4 传送只发落点**:`GIVEN` 一帧内注入 ≥ 2 格位移(重生 / 位置修正,即「被放置」路径),`WHEN` 检测运行,`THEN` `Append` == **1**,载荷 == **落点格**,**零中间格补发**。
+- [x] **AC-1-16(BLOCKING)** —— **EC-6 `dt` 钳位不累积**:`GIVEN` 一帧 `dt = 10 × MAX_DT`,`THEN` 该帧位移按 `MAX_DT` 计,超出部分**丢弃**;下一帧 `dt` **不**含积压(断言下一帧位移 == 常规 `dt` 下的位移)。
+- [x] **AC-1-32(BLOCKING · 复核新增 —— 根因 2「归并算符三版不等价」)** —— **tick 内折返不发事件**(§States 的 `else → pending_cell := null` 支):`GIVEN` 同一 tick 内位置样本序列 `A → B → A`(`A = last_committed_cell`),`WHEN` 该 tick 边沿到达,`THEN` `Append == 0` ∧ `last_committed_cell == A`(否定初稿三版伪码共有的「残留 `pending = B` ⇒ 发一条 B」缺陷)。**反向用例(必须同时存在,否则与 EC-3 混淆)**:`GIVEN` 跨**两个** tick 边沿的 `A → B → A`(`A→B` 已在第一个边沿提交),`THEN` `Append == 2`(两条事件 —— 两次跨格都真实发生过)。⇒ **两个用例互为判据**:只测其一会被"一律不发"或"一律发"两种错实现通过。
+- [x] **AC-1-17(BLOCKING)** —— **EC-9 接地不靠帧计数**:源码路径中**零**"连续 N 帧接地"式计数器;`Grounded` 进入条件含 `垂直速度 ≤ 0`。**AST / 代码审查判据**(计数器的形态不限,故 grep 不够)。⚠️ **`Grounded` 进入条件的具体形式被 `OQ-1-12` 挂起**(R12)—— 若 spike 改判,本条随轴 2 表同步重写。
+- [x] **AC-1-24(BLOCKING)** —— **`PatientId.None` 不污染高水位**:`ActorCellEntered` 的 `Patient` 字段 == `PatientId.None`,且 `max(patient_id)` 的重构扫描**显式排除**该事件(ADR-006 Amendment B / ADR-009 Amendment E)。**判据**:喂一条含 `ActorCellEntered` 的流,断言重构出的 `next` **不因它变化**。
+- [x] **AC-1-04(ADVISORY · 复核降级 —— **NOT-RUN**)** —— **VR 零事件**:VR 模式下头显 / 手柄位移**不产生** `ActorCellEntered`。⚠️ **P0 主语不存在**(VR 推 P1a,AC-20-06/07)⇒ ADVISORY;**发版前(VR 落地时)回升为 BLOCKING。**
 
 ---
 
@@ -171,8 +171,9 @@
 - Logic: `tests/unit/player_controller/cell_transition_test.cs` — must exist and pass(归并算子四组用例 + EC-2/3/4 语义 + 递归载荷反射 + 高水位对账)
 - Logic: `tests/unit/player_controller/stream_bound_test.cs` — 集成上界(≥ 10³ tick,序列性质判据)
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/EditMode/PlayerController/`)
-⚠️ `AC-1-17` 的接地进入条件半边记 **BLOCKED-BY-OQ-1-12**;`AC-1-04` 记 `NOT-RUN`(P0 无 VR)—— **均不得借绿**。
+**Status**: [x] Done — `unity/Assets/Tests/EditMode/PlayerController/cell_transition_test.cs`(**18 Passed + 1 Skipped**)+ `stream_bound_test.cs`(2 Passed),2026-10-03 batchmode 复跑
+⚠️ 本节此前记 `[ ] Pending` —— 与文件头 `Status: Complete ✅ 2026-10-02` 及 §Completion Notes 自相矛盾,系状态漂移残留,2026-10-03 订正。
+⚠️ `AC-1-17` 的接地进入条件半边记 **BLOCKED-BY-OQ-1-12**;`AC-1-04` 记 **NOT-RUN**(P0 无 VR,`Assert.Skip`)—— **均不得借绿**(AC 勾选表示「判据已落/已登记」,不表示该子条已通过)。
 
 ---
 

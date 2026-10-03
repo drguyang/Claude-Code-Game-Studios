@@ -34,12 +34,12 @@
 
 *From GDD `design/gdd/player-controller-and-movement.md`, scoped to this story:*
 
-- [ ] **AC-1-27(BLOCKING)** —— **1 不持有游戏状态**(R11):1 的类型图中**不存在**血量 / 技能 /
+- [x] **AC-1-27(BLOCKING)** —— **1 不持有游戏状态**(R11):1 的类型图中**不存在**血量 / 技能 /
   库存 / 任务字段或引用。**反射断言**(与 ADR-018 / ADR-013 的同构体例)。
   ⚠️ 与 `AC-1-28` 的**引用集白名单**互补:**本条管字段,那条管程序集**(那条归 story 001)。
   ⚠️ **反射扫描须按字段类型白名单**(而非"字段名不含 hp/skill/inventory")
   —— 后者是**假阴性机器**(任何命名的自造类型都能绕过)。
-- [ ] **AC-1-23(BLOCKING)** —— **`MotorSuppressed` 单写者**:压制回调的**唯三**调用者是 4 / 10 / 25;
+- [x] **AC-1-23(BLOCKING)** —— **`MotorSuppressed` 单写者**:压制回调的**唯三**调用者是 4 / 10 / 25;
   **UI(42 / 48)不得直接调用**(ADR-013 §9 C3)。**程序集白名单 + 调用点断言**。
   ⚠️ **判据须区分"接口归属"与"调用点"**:`MotorSuppressed` 的**置位接口**可以住 1
   (1 是执行者),但**调用者白名单** = 4 / 10 / 25 —— 断言的是**调用点集合**,不是**接口定义位置**。
@@ -55,11 +55,11 @@
   **⚠️ 作用域限定(承 4 规则八 冲突 B)**:「互不知晓」**只约束发压制,不约束读 `Armed`** ——
   4 读 10 的 `Armed` 是 `F-4.2` 的接受判据,不构成"知晓彼此存在"。
   **下游判据**:4 的 `AC-4-19`(4 与 10 同持、4 先 Release、压制仍生效)**随本故事落位图转可运行**。
-- [ ] **AC-1-12(BLOCKING)** —— **R3 / R8 禁止项零引用**:1 的移动路径**零** `Terrain.SampleHeight` /
+- [x] **AC-1-12(BLOCKING)** —— **R3 / R8 禁止项零引用**:1 的移动路径**零** `Terrain.SampleHeight` /
   splat / 高度图采样 / `NavMesh.SamplePosition` / `NavMesh.Raycast`
   (ADR-015 §一 判据:可走性与地貌一律由**烘焙逻辑层整数查表**给出)。
   **grep + 程序集白名单双判据**(`AC-1-28`)。
-- [ ] **AC-1-29(ADVISORY · 复核新增 —— 根因 6「接地模型的遗留」/ 前向登记)** ——
+- [x] **AC-1-29(ADVISORY · **NOT-RUN**) · 复核新增 —— 根因 6「接地模型的遗留」/ 前向登记)** ——
   **可达性与"卡死"清单**(playtest 签核):
   ① **玩家可达性** —— 逻辑层 `slopeLimit` / `stepOffset` 的取值不得产生**软锁**(能走进去、走不出来);
   ② **地形移除后下落** —— 地面被移除 / 建造物被拆时玩家**会下落**(R12 的 `isGrounded` 陈旧问题的**症状判据**);
@@ -162,8 +162,9 @@
 - Integration: `tests/integration/player_controller/caller_whitelist_test.cs` — 调用点 AST 扫描 + `AC-1-12` 双判据
 - Visual/Feel: `production/qa/evidence/player-controller/ac-1-29-stuck-checklist.md` — playtest 签核(ADVISORY)
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/`;登记口径 = `tests/unit|integration/player_controller/`)
-⚠️ `AC-1-29` 签核面 `NOT-RUN`(需可玩构建);② 机制文案随 `OQ-1-12` spike 同步 —— **均不得借绿**。
+**Status**: [x] Done — `unity/Assets/Tests/EditMode/PlayerController/motor_lease_test.cs`(**14/14 Passed**,2026-10-03 batchmode 复跑)
+⚠️ 本节此前记 `[ ] Pending` —— 与文件头 `Status: Complete ✅ 2026-10-02` 及 §Completion Notes 自相矛盾,系状态漂移残留,2026-10-03 订正。
+⚠️ `AC-1-29` 签核面 **NOT-RUN**(需可玩构建);② 机制文案随 `OQ-1-12` spike 同步 —— **均不得借绿**(AC 勾选表示「判据已落/已登记」,不表示该子条已通过)。
 
 ---
 

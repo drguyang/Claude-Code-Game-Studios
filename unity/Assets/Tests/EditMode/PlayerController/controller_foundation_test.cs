@@ -228,12 +228,17 @@ namespace DaYiJingCheng.Tests.PlayerController
             Assert.Greater(config.Radius, 0f, "radius 须 > 0(AC-1-33③)");
 
             // EC-12 本体:直径须装得进一格(单位 mm)
+            //
+            // ⚠️ **2026-10-03 修复硬编码漂移(评审 A4)**:原测把「规范格边长」写成
+            //    **局部字面量 1000**,与生产 `WorldLatticeParams.LatticeSizeMm` 各持一份
+            //    ⇒ 生产改格边长,本测**静默测旧值**(恒绿既可能因真满足,也可能因字面量恰好
+            //    大于旧 radius)。现改**读同一实体**(同源纪律,与 AC-1-12 的 `MAX_DT` 同型)。
             const float MmPerMeter = 1000f;
-            const int CanonicalLatticeMm = 1000;   // 1 m 格(ADR-015 §三 单一整数格)
+            int canonicalLatticeMm = CanonicalLatticeSizeMm();
             float diameterMm = config.Radius * 2f * MmPerMeter;
 
-            Assert.GreaterOrEqual(CanonicalLatticeMm, diameterMm,
-                $"EC-12 违例:直径 {diameterMm} mm 装不进 {CanonicalLatticeMm} mm 格 " +
+            Assert.GreaterOrEqual(canonicalLatticeMm, diameterMm,
+                $"EC-12 违例:直径 {diameterMm} mm 装不进 {canonicalLatticeMm} mm 格 " +
                 "(LATTICE_SIZE ≥ radius × 2)");
         }
 
@@ -242,14 +247,34 @@ namespace DaYiJingCheng.Tests.PlayerController
         public void test_ac110_negativeFixture_radiusTooLarge()
         {
             const float MmPerMeter = 1000f;
-            const int CanonicalLatticeMm = 1000;
-            float hugeRadius = 0.6f;              // 直径 1200 mm > 1000 mm
+            int canonicalLatticeMm = CanonicalLatticeSizeMm();
+            // 半径取「规范格边长的一半再多一点」⇒ 直径必超格,与格边长实际取值解耦
+            float hugeRadius = (canonicalLatticeMm / MmPerMeter) * 0.6f;
             float diameterMm = hugeRadius * 2f * MmPerMeter;
 
-            Assert.Greater(diameterMm, CanonicalLatticeMm,
+            Assert.Greater(diameterMm, canonicalLatticeMm,
                 "夹具前提:该 radius 的直径须**超过**规范格边长");
-            Assert.IsFalse(CanonicalLatticeMm >= diameterMm,
+            Assert.IsFalse(canonicalLatticeMm >= diameterMm,
                 "EC-12 违例(直径 > 格边长)⇒ 约束不成立 —— 证明判据能分辨");
+        }
+
+        /// <summary>
+        /// 规范格边长(mm)—— **读生产同一实体** `WorldLatticeParams.LatticeSizeMm`,
+        /// 不在此处复制第二个字面量(同源纪律;漂移会让判据静默测旧值)。
+        /// </summary>
+        private static int CanonicalLatticeSizeMm()
+        {
+            // ⚠️ 取值须**自洽**:F-6-1 守卫要求 LATTICE_SIZE ≥ SPEED_MAX × MAX_DT × SAFETY_MARGIN。
+            //    这里 SPEED_MAX = 5 × 1 × 2 = 10 m/s,MAX_DT = 100 ms,SAFETY = 2
+            //    ⇒ 下界 2000 mm;取 1 m 格(1000)会**先被 F-6-1 拒**,故用 10 m 格。
+            //    本测只关心「格边长从生产实体读出」,不指定其具体值。
+            var row = new DaYiJingCheng.Sim.World.TerrainSpeedRow(
+                1, DaYiJingCheng.Sim.Contracts.Fix.One, DaYiJingCheng.Sim.Contracts.Fix.One);
+            var p = new DaYiJingCheng.Sim.World.WorldLatticeParams(
+                latticeSizeMm: 10000, speedModeMax: 5, kContextMax: 2,
+                maxDtMs: 100, safetyMargin: 2,
+                kSpeedTable: new[] { row });
+            return p.LatticeSizeMm;
         }
     }
 }
