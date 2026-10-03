@@ -1,6 +1,6 @@
 ---
 name: placeholder-test-false-green
-description: 本仓测试的六类「假绿」——NOT-RUN 占位断言硬编码 true 的 helper、断言常量工厂(重言式)、空集合 All() 真空真、桩生产码/孤儿求值器、只断言类型存在/引擎行为、扫描作用域过窄
+description: 本仓测试的八类「假绿」——NOT-RUN 占位断言硬编码 true 的 helper、断言常量工厂(重言式)、空集合 All() 真空真、桩生产码/孤儿求值器、只断言类型存在/引擎行为、扫描作用域过窄、IL 谓词永不命中、同变量重复断言/同起点差分
 metadata:
   type: feedback
 ---
@@ -38,6 +38,20 @@ metadata:
 6. **反射/扫描类断言作用域过窄 ⇒ 真空真** —— 只扫 `typeof(Detector).GetFields()` 找帧计数字段,
    而目标代码(`Grounded` 进入条件)根本不在这个类里 ⇒ 无论生产码怎么写都绿。同 3 类的空集真空真变体。
    已见:`test_ac117_noFrameCounterForGrounded`(player-controller story 004)。
+
+7. **IL 谓词永不命中(名匹配 + 漏操作码)** —— `ILBodyScanner.ContainsMethodCall(m, "SimEvent")` 追 `new SimEvent(...)`
+   永远 false:① 该扫描器只认 `call`/`callvirt`,**不识别 `newobj`(0x73)**,而构造走 newobj;
+   ② 即便识别,`ResolveMethodToken` 取 `Name`,struct 构造函数名恒为 **`.ctor`**,不等于 `"SimEvent"`;
+   ③ `SimEvent.Kind` 是**字段**(`public readonly EventKind Kind;`),无 `get_Kind`。⇒ `Assert.AreEqual(0, hits)` 恒绿。
+   **判定法**:凡「零命中」型 IL 断言,先 `grep` 扫描器是否认 `Newobj`/`Ldfld`/`Stfld` 等目标操作码,
+   再用**突变**(在被扫程序集里真加一处目标调用)证明会变红。已见:`camera_presentation_discipline_test.cs`
+   的 `test_ac205_zeroSimEventConstruction`(camera-viewpoint story 001)。
+
+8. **同变量重复断言 / 「同起点差分」重言式** —— ① 反向半边写 `Assert.AreEqual(0, hits, ...)` 复用正向的**同一 `hits`**
+   ⇒ 无独立扫描面、无因果,却给报告「反向也绿」的假象;② 「差分重算」用**相同起点 + 相同输入序列**比两实例末帧,
+   对任何确定性实例状态实现(含带隐藏静态态者)必然绿 ⇒ 不可证伪。AC 原文若要求「**不同历史**的后半段收敛」,
+   实现换成「同起点」就是**偷换 AC 语义**(开发者常以「修正」名义这么做 ⇒ 须回到 AC 原文/权威件,不得由测试单方改判)。
+   已见:同上测试的 `test_ac201b_differentialRecompute_lastFrameBitIdentical`。
 
 **Why**:本仓 `NOT-RUN 禁借绿` 是反复申明的纪律,但「绿灯冒充 NOT-RUN」与「断言常量」两类会静默稀释 BLOCKING 门;
 story 006 三条 BLOCKING AC(AC-10-09/17/21)正是被这三类假绿覆盖的典型。

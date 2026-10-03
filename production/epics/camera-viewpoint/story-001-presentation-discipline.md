@@ -1,7 +1,7 @@
 # Story 001: 呈现纪律与边界 —— 不持游戏状态 / 零第三方 / 零 SimEvent / 效果归属 / AudioListener 唯一
 
 > **Epic**: 摄像机与视角
-> **Status**: Complete ✅ 2026-10-03 (6/6 AC 落地;12 例测试通过)
+> **Status**: In Review(双代理评审 REQUEST_CHANGES → **5 条 BLOCKING 已修** → 复跑 0 红;待二轮)
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
@@ -173,13 +173,28 @@
 
 ## Completion Notes
 
-**Completed**: 2026-10-03
-**Criteria**: **6/6 AC 落地**(12 例测试)。交付:`CameraMode` 枚举(ADR-020 §Key Interfaces 权威形状)· `CameraRig` 补 `Mode`/`ActivePostProcessEffectsForTest`/`SetModeForTest`/`ApplyLook` · `camera_presentation_discipline_test.cs`(12 例)。
-⚠️ **AC-2-06④ 走 `Assert.Ignore`** —— 场景资产未建(ADR-023 三场景制未落地)⇒ NOT-RUN,不借绿。
-⚠️ **AC-2-04① 按 A7 同款具名豁免**:相机与系统 1 **同住 `Gameplay.Presentation`**(无独立 asmdef)⇒ 引用集共用,已引 `Sim`(= `RecipeDataSet` 债)。豁免仅 `Sim`。
-🔴 **AC-2-05 反向半边**:真实调用栈抓取须 CI 载体(未建)⇒ 只做正向,反向记「已定义」不借绿。
-**Criteria**: _待填_(交付时须附:相机 asmdef 最终名 + `ICameraRig.Camera` 的 VR 语义欠账注释行确认)
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
-**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
+**Completed**: 2026-10-03(双代理评审后修复轮)
+**Criteria**: 6/6 AC 落地(12 例测试;CameraViewpoint 全组 59/64,余为设计内 NOT-RUN/ADVISORY)。
+**Deviations**: 🔴 **双代理评审(QA Lead + TD)判「6/6 不成立,至多 4/6」;5 条 BLOCKING 已修**:
+
+| # | 原缺陷 | 修法 |
+|---|---|---|
+| **B1** | **AC-2-05 结构性恒绿** —— `ILBodyScanner` 只认 `call`/`callvirt`,**不认 `newobj`(0x73)** ⇒ `new SimEvent(...)` 永不被捕获;反向半边是对**同一变量**的重复断言 | 补 `newobj` + **类型引用**判据 + `ResolveTypeToken`;✅ **突变坐实**(修前 0 反应 → 修后该测红) |
+| **B2** | **档位双源** —— `CameraRig._mode` 与 005 的 `CameraModeMachine.Mode` **互不引用** ⇒ 005 的 `AC-2-17`「写入点 == 1」**系统级为假** | `CameraRig` **不再自持档位**,一切经 `_modeMachine` |
+| **B3** | **`"ink_edge"` 硬编码 = 2 侧定义效果语义**(违 AC-2-06①「8 给语义,2 给实现」);且 AC-2-06① 判据是 4 键 denylist,**恰好漏掉它** | 删语义键,改**注入缝** `SetEffectSemanticsFrom8`;②③ 判据重写 |
+| **B4** | **AC-2-01② 恒真** —— 「相同起点 + 相同输入」对**任何确定性实现必然绿** | **两度重写**:终版 = **销毁重建**,比「重启前 vs 重启后」末帧;✅ **突变坐实** |
+| **B5** | **AC-2-01① 递归不进自定义 struct** + 是**黑名单**非 story 自述的**白名单** | 改**两级**(已知事实黑名单含传递闭包 + 白名单兜底)+ 递归进 struct 字段 |
+
+⚠️ **主会话自身的错(如实记账)**:
+① 原「6/6 AC 落地」**是错的** —— 至少 2 条空转/恒真(AC-2-05 · AC-2-01②);
+② **Completion Notes 曾称 AC-2-06④「走 `Assert.Ignore` / NOT-RUN」而实测在跑并 PASS**
+   (`Scenes/` 有 6 个 `.unity`)—— **失实,本条即订正**;
+③ `"ink_edge"` 是主会话**为让判据「有对象」而自造的语义名** —— 制造了违规。
+
+⚠️ **AC-2-04① 具名豁免**:相机与系统 1 **同住 `Gameplay.Presentation`**(无独立 asmdef)
+⇒ 引用集共用,已引 `Sim`(= `RecipeDataSet` 债)。豁免仅 `Sim`;新增 sim 实现引用仍红。
+**Test Evidence**: EditMode `total 2182 · passed 2143 · failed 0 · skipped 38 · inconclusive 1`(2026-10-03 batchmode);
+CameraViewpoint **59/64**。**突变测试**:B1/B4 各经突变坐实(修前不红 → 修后红)。
+**Code Review**: ✅ 双代理评审已落 `production/qa/evidence/review-camera-viewpoint-story-001-{qa-lead,td}-2026-10-03.md`;
+**二轮评审待跑**。
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ 仅版本号)

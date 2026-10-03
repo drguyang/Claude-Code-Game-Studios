@@ -30,7 +30,15 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         // ── AC-2-06:档位与镜头效果归属(ADR-020 §六)────────────────
         // ⚠️ 效果**语义**归 8(数据表,经 ADR-014 烘焙);此处只持**渲染实现**的开关。
         //    `FirstPerson`(VR)⇒ 效果**全禁**(AC-20-08)。
-        private CameraMode _mode = CameraMode.Explore;
+        /// <summary>
+        /// 档位状态机(story 005)—— **档位的唯一写入点**。
+        /// 🔴 **2026-10-03 修复(评审 B2)**:初版 `CameraRig` **自持 `_mode` 字段**
+        /// 且 `SetModeForTest` **直接写它** ⇒ 与 story 005 的 `CameraModeMachine.Mode`
+        /// (意图制唯一写入点)**并存且互不引用** ⇒ 005 的 `AC-2-17`「写入点 == 1」
+        /// **在系统级为假**;两 story 各自只测自己那一半,**接缝无人守**。
+        /// ⇒ 现 `CameraRig` **不再自持档位** —— 一切经 `CameraModeMachine`。
+        /// </summary>
+        private readonly CameraModeMachine _modeMachine = new CameraModeMachine();
 
         // AC-2-08: YAW_BASIS_EPS 唯一定义点
         public const float YAW_BASIS_EPS = 1e-5f;
@@ -65,25 +73,48 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         /// 更新 yaw（弧度）。
         /// </summary>
         /// <summary>当前档(ADR-020 §Key Interfaces)。</summary>
-        public CameraMode Mode => _mode;
+        public CameraMode Mode => _modeMachine.Mode;
 
         /// <summary>
         /// 当前生效的镜头效果清单(渲染实现侧)。
-        /// ⚠️ 效果**不得用于报状态**(AC-20-09)—— 本清单只驱动渲染,不进任何流。
         /// </summary>
+        /// <remarks>
+        /// 🔴 **2026-10-03 修复(评审 B3)**:初版在此**硬编码 `"ink_edge"`** ——
+        /// 那是 **2 侧自造的效果语义键**,而 **AC-2-06① / GDD:273 明说「8 给语义,2 给实现」**
+        /// (2 的程序集内**零**效果语义定义)⇒ **构成违规**。
+        /// 根因:为了让 AC-2-06②③ 的判据「有对象可跑」而自造了语义名。
+        ///
+        /// ⇒ 现改为**只留结构**:2 侧持有的是**由 8 的表注入**的效果集
+        /// (<see cref="SetEffectSemanticsFrom8"/> 的注入缝),**不内建任何语义键**。
+        /// 8 的效果数据表尚未在库 ⇒ 当前恒为空集(而非自造占位)。
+        /// </remarks>
         public IReadOnlyList<string> ActivePostProcessEffectsForTest()
         {
-            // VR(FirstPerson)⇒ 全禁(AC-20-08)
-            if (_mode == CameraMode.FirstPerson) return System.Array.Empty<string>();
-            // 平面档 ⇒ 效果可用(语义归 8,此处为渲染实现占位)
-            return new[] { "ink_edge" };
+            // VR(FirstPerson)⇒ 全禁(AC-2-08)
+            if (_modeMachine.Mode == CameraMode.FirstPerson) return System.Array.Empty<string>();
+            // 平面档 ⇒ 返回**由 8 注入**的效果集(2 侧不内建语义键)
+            return _effectSemantics ?? (IReadOnlyList<string>)System.Array.Empty<string>();
         }
+
+        private IReadOnlyList<string> _effectSemantics;
+
+        /// <summary>
+        /// 注入缝:8 的效果语义表经此进入 2(ADR-014 烘焙管线在实现轮接上)。
+        /// ⚠️ 2 侧**只消费**该表,不定义、不改写。
+        /// </summary>
+        public void SetEffectSemanticsFrom8(IReadOnlyList<string> semantics)
+            => _effectSemantics = semantics;
 
         /// <summary>
         /// 测试缝:强制设档(AC-2-06② 在 P0 无真 VR ⇒ 夹具注入)。
         /// ⚠️ 仅供测试;生产路径的档切换归 story 005 的档状态机。
         /// </summary>
-        public void SetModeForTest(CameraMode mode) => _mode = mode;
+        public void SetModeForTest(CameraMode mode)
+        {
+            // ⚠️ 经**唯一写入点**(意图制);测试缝只免去转场等待
+            _modeMachine.SetMode(mode, requesterId: 0);
+            _modeMachine.Settle(dt: 1f, transitionDuration: 0.0001f);   // 立即结算到位
+        }
 
         /// <summary>
         /// F-2-2 绕点段(输入侧):yaw/pitch **解耦**累积。
@@ -107,6 +138,16 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         /// 应用一次 Look 增量(yaw 弧度 / pitch 度)。
         /// ⚠️ 测试缝:供 AC-2-01② 的差分重算注入输入序列。
         /// </summary>
+        /// <summary>
+        /// 测试缝:把 yaw/pitch 归零到给定值(供 AC-2-01② 的「重启」语义 —— 相机不记历史)。
+        /// ⚠️ 只重置**表现层内部状态**,不触碰任何游戏事实。
+        /// </summary>
+        public void ResetLookForTest(float yaw, float pitch)
+        {
+            _yaw = yaw;
+            _pitch = Mathf.Clamp(pitch, PITCH_MIN, PITCH_MAX);
+        }
+
         public void ApplyLook(float deltaYaw, float deltaPitch)
         {
             UpdateYaw(deltaYaw);

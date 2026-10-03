@@ -31,10 +31,46 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
 
         // ══════════════ AC-2-01①:字段类型闭包(递归)══════════════
 
-        /// <summary>游戏事实类型 —— 一律红(按**类型**判,非字段名)。</summary>
-        private static readonly HashSet<Type> ForbiddenStateTypes = new HashSet<Type>
+        /// <summary>
+        /// **游戏事实类型**(判据 = 类型域黑名单,**仅**用于「已知的游戏事实类型」这一层)。
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ **2026-10-03 修复(评审 B5)**:story 自述判据为「**白名单**按**类型**」
+        /// (「`SimEvent`/`Fix`/`PatientId`/事件流集合类型一律红;
+        /// `Vector3`/`float`/档位枚举/转场进度 `t`/`Casebook` 锚快照 `Vector3` 一律**绿**」)
+        /// —— 而初版实现是 **5 元黑名单** ⇒ `PayloadRef` / `EventOrderKey` / 任何
+        /// **未列入的**游戏事实类型**全部漏检**。
+        /// ⇒ 现改为**真白名单**:未在允许集内的一律红(见 <see cref="AllowedCameraStateTypes"/>)。
+        /// 本黑名单仅作**可读的具名补充**(错误消息友好),判据本体是白名单。
+        /// </remarks>
+        private static readonly HashSet<Type> KnownGameFactTypes = new HashSet<Type>
         {
             typeof(SimEvent), typeof(PatientId), typeof(Fix), typeof(StreamId), typeof(EventKind),
+            typeof(PayloadRef), typeof(EventOrderKey), typeof(WorldPos), typeof(Int3),
+        };
+
+        /// <summary>
+        /// **允许**的相机内部状态类型(白名单;AC-2-01① 的判据本体)。
+        /// 出处 = story 001 §Implementation Notes 的绿名单 + 边界程序集整数类型的**排除**。
+        /// </summary>
+        private static readonly HashSet<Type> AllowedCameraStateTypes = new HashSet<Type>
+        {
+            // BCL 基元 / 字符串
+            typeof(bool), typeof(byte), typeof(sbyte), typeof(short), typeof(ushort),
+            typeof(int), typeof(uint), typeof(long), typeof(ulong),
+            typeof(float), typeof(double), typeof(char), typeof(string),
+            // UnityEngine 表现层
+            typeof(Vector2), typeof(Vector3), typeof(Vector4), typeof(Quaternion),
+            typeof(Transform), typeof(GameObject), typeof(UnityEngine.Camera),
+            // 2 自有类型 + 档位枚举 + 基
+            typeof(CameraMode), typeof(YawBasis), typeof(ICameraRig), typeof(CameraRig),
+            typeof(CameraModeMachine), typeof(CameraArmParams), typeof(CameraArmSolver),
+            typeof(AnchorFollowConfig), typeof(AnchorFollower),
+            typeof(IArmCollisionQuery), typeof(CountingArmQuery),
+            typeof(CameraModeRequest), typeof(CameraModePriority),
+            // 允许的容器(元素递归判定)
+            typeof(System.Collections.Generic.List<>),
+            typeof(IReadOnlyList<>), typeof(IList<>), typeof(IEnumerable<>),
         };
 
         [Test]
@@ -70,15 +106,47 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
                 string.Join("\n", violations));
         }
 
-        /// <summary>递归判定:数组 / 泛型容器递归到元素类型(仅扫顶层会漏)。</summary>
-        private static bool IsGameFactType(Type t)
+        /// <summary>
+        /// **白名单判定**:未在允许集内 ⇒ 视为游戏事实(红)。
+        /// ⚠️ 递归进**数组 / 泛型容器元素**,并**递归进自定义 struct 的字段**
+        /// (评审 B5:初版只扫顶层 + 不进 struct ⇒ story 自己点名的 `struct{PatientId}` 逃逸)。
+        /// </summary>
+        private static bool IsGameFactType(Type t) => IsKnownGameFact(t, 0) || !IsAllowedType(t, 0);
+
+        private static bool IsKnownGameFact(Type t, int depth)
+        {
+            if (t == null || depth > 4) return false;
+            if (KnownGameFactTypes.Contains(t)) return true;
+            if (t.IsArray) return IsKnownGameFact(t.GetElementType(), depth + 1);
+            if (t.IsGenericType)
+                return t.GetGenericArguments().Any(a => IsKnownGameFact(a, depth + 1));
+            if (t.IsValueType && !t.IsPrimitive && !t.IsEnum)
+                foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.Instance))
+                    if (IsKnownGameFact(f.FieldType, depth + 1)) return true;
+            return false;
+        }
+
+        private static bool IsAllowedType(Type t, int depth)
         {
             if (t == null) return false;
-            if (ForbiddenStateTypes.Contains(t)) return true;
-            if (t.IsArray) return IsGameFactType(t.GetElementType());
+            if (depth > 4) return false;                 // 防环
+            if (AllowedCameraStateTypes.Contains(t)) return true;
+            if (t.IsEnum) return true;                   // 枚举 = 整数域
+            if (t.IsArray) return IsAllowedType(t.GetElementType(), depth + 1);
             if (t.IsGenericType)
-                return t.GetGenericArguments().Any(IsGameFactType);
-            return false;
+            {
+                var def = t.GetGenericTypeDefinition();
+                if (!AllowedCameraStateTypes.Contains(def)) return false;
+                return t.GetGenericArguments().All(a => IsAllowedType(a, depth + 1));
+            }
+            // 🔴 **递归进自定义 struct 的字段**(评审 B5 的关键补齐)
+            if (t.IsValueType && !t.IsPrimitive)
+            {
+                foreach (var f in t.GetFields(BindingFlags.Public | BindingFlags.Instance))
+                    if (!IsAllowedType(f.FieldType, depth + 1)) return false;
+                return true;
+            }
+            return false;                                // 其余一律红
         }
 
         [Test]
@@ -90,6 +158,13 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
             Assert.IsTrue(IsGameFactType(typeof(Fix[])), "数组元素递归须命中");
             Assert.IsFalse(IsGameFactType(typeof(Vector3)), "Vector3 是合法表现层状态");
             Assert.IsFalse(IsGameFactType(typeof(float)), "float 是合法表现层状态");
+
+            // 🔴 **评审 B5 的逃逸形态**:`struct { PatientId }` —— 初版只扫顶层 ⇒ 漏检
+            Assert.IsTrue(IsGameFactType(typeof(FakeWrapperWithPatientId)),
+                "**嵌套自定义 struct 内的游戏事实类型须被检出**(B5:初版逃逸)");
+            // 未列入黑名单的游戏事实类型也须红(白名单的本意)
+            Assert.IsTrue(IsGameFactType(typeof(PayloadRef)),
+                "PayloadRef 不在白名单 ⇒ 须红(黑名单形态会漏掉它)");
         }
 
         [Test]
@@ -109,6 +184,9 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
                 string.Join("\n", statics));
         }
 
+        /// <summary>负向夹具:嵌套游戏事实类型的自定义 struct(评审 B5 的逃逸形态)。</summary>
+        private struct FakeWrapperWithPatientId { public PatientId P; public int Pad; }
+
         // ══════════════ AC-2-01②:差分重算(后半段相同 ⇒ 末帧逐位相同)══════════════
 
         [Test]
@@ -116,24 +194,36 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
         {
             // ⚠️ 前提:相机无隐藏静态状态(上一条已守)。
             // 构造两条**不同历史**的 rig,喂**相同后半段**输入,断言末帧输出逐位相同。
-            // ⚠️ **2026-10-03 修正(首次运行发现)**:`CameraRig.UpdateYaw` 是**增量** API
-            //    (`_yaw += deltaYaw`)—— 初版让两 rig 有**不同初值**再喂相同增量 ⇒
-            //    末帧自然不同,但那是**增量语义的必然**,不是「隐藏状态」。
-            //    AC-2-01② 的真要求 = **无隐藏状态** ⇒ 判据须为:
-            //    **相同起点 + 相同输入序列 ⇒ 末帧逐位相同**。
-            var inputTail = new[] { 0.5f, -0.25f, 0.75f, 0.0f, -0.5f };
+            // 🔴 **2026-10-03 二次重写(评审 B4 的连带)**:
+            //    第二版用「两实例 + 不同历史 + 相同后半段」—— **仍抓不到隐藏静态态**:
+            //    静态态在两实例间**共享** ⇒ 末帧**仍相同**(实测:注入静态态后该测不红,
+            //    是另一条 `noHiddenStaticState` 兜住的 —— 但**本条应自己能抓**)。
+            //    AC-2-01② 要守的是「**崩溃 / 重启不改变游戏事实**」
+            //    ⇒ 正确形态 = **销毁并重建**实例,比「重建前 vs 重建后」的末帧。
+            var tail = new[] { 0.5f, -0.25f, 0.75f, 0.0f, -0.5f };
 
+            // ① 实例 A:预置一段历史后归零,喂 tail,记末帧
             var goA = new GameObject("rigA");
-            var goB = new GameObject("rigB");
-            var rigA = goA.AddComponent<CameraRig>();   // 同起点(默认初值)
-            var rigB = goB.AddComponent<CameraRig>();
+            var rigA = goA.AddComponent<CameraRig>();
+            rigA.ApplyLook(1.0f, 0.2f);
+            rigA.ApplyLook(0.3f, -0.1f);
+            rigA.ResetLookForTest(yaw: 0f, pitch: 30f);
+            foreach (var x in tail) rigA.ApplyLook(x, 0f);
+            float yawBefore = rigA.Yaw, pitchBefore = rigA.Pitch;
+            var basisBefore = rigA.YawBasis;
 
-            // 两 rig 都从**默认初值**出发(同起点),喂**相同序列**
-            foreach (var x in inputTail)
-            {
-                rigA.ApplyLook(x, 0f);
-                rigB.ApplyLook(x, 0f);
-            }
+            // ② **销毁 + 重建**(「崩溃 / 重启」的机械语义)
+            UnityEngine.Object.DestroyImmediate(goA);
+            var goB = new GameObject("rigB");
+            var rigB = goB.AddComponent<CameraRig>();
+            rigB.ResetLookForTest(yaw: 0f, pitch: 30f);
+            foreach (var x in tail) rigB.ApplyLook(x, 0f);
+
+            // ③ 末帧须**逐位相同** —— 重启不得改变任何可见事实
+            Assert.AreEqual(yawBefore, rigB.Yaw,
+                "**重启后末帧 Yaw 须逐位相同**(AC-2-01②:崩溃/重启不改变游戏事实;" +
+                "若隐藏静态态存在,重建实例后它会继续累积 ⇒ 此处红)");
+            Assert.AreEqual(pitchBefore, rigB.Pitch, "重启后末帧 Pitch 须逐位相同");
 
             // 末帧可见输出须**逐位相同**
             Assert.AreEqual(rigA.Yaw, rigB.Yaw, "末帧 Yaw 须逐位相同(AC-2-01②)");
@@ -145,7 +235,6 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
             Assert.AreEqual(basisA.Fwd.y, basisB.Fwd.y);
             Assert.AreEqual(basisA.Fwd.z, basisB.Fwd.z);
 
-            UnityEngine.Object.DestroyImmediate(goA);
             UnityEngine.Object.DestroyImmediate(goB);
         }
 
@@ -290,9 +379,11 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
             // P0 无真 VR ⇒ 走**夹具注入**:强制 Mode = FirstPerson,断言后处理清单为空。
             var go = new GameObject("rigFP");
             var rig = go.AddComponent<CameraRig>();
+            rig.SetEffectSemanticsFrom8(new[] { "sys8_effect_a" });
             rig.SetModeForTest(CameraMode.FirstPerson);
 
-            Assert.AreEqual(CameraMode.FirstPerson, rig.Mode);
+            Assert.AreEqual(CameraMode.FirstPerson, rig.Mode,
+                "FirstPerson 须生效(P1a 独立路径,不受三档优先级门约束)");
             Assert.IsEmpty(rig.ActivePostProcessEffectsForTest(),
                 "FirstPerson(VR)模式下后处理清单须为空(AC-2-06②;VR 全禁镜头效果)");
             UnityEngine.Object.DestroyImmediate(go);
@@ -301,12 +392,20 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
         [Test]
         public void test_ac206c_exploreMode_allowsEffects()
         {
-            // 对照:平面模式下允许效果(否定「永远空清单」的空实现)
+            // ⚠️ 2026-10-03 重写(B3 的连带):初版要求 Explore **必有**效果
+            //    ⇒ 那要求 2 侧**内建**语义键,与 AC-2-06① 冲突。
+            //    现改为:2 侧**不内建**;效果只能经 8 注入。
             var go = new GameObject("rigEx");
             var rig = go.AddComponent<CameraRig>();
             rig.SetModeForTest(CameraMode.Explore);
+
+            Assert.IsEmpty(rig.ActivePostProcessEffectsForTest(),
+                "2 侧不得内建效果语义键(AC-2-06①)—— 未注入时应为空集");
+
+            rig.SetEffectSemanticsFrom8(new[] { "sys8_effect_a" });
             Assert.IsNotEmpty(rig.ActivePostProcessEffectsForTest(),
-                "Explore 模式下须有效果(否则上一条是空实现)");
+                "8 注入后须生效(否则注入缝是空实现)");
+
             UnityEngine.Object.DestroyImmediate(go);
         }
 

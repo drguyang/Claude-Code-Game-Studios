@@ -29,7 +29,9 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
             CameraMode.Casebook => 3,
             CameraMode.Treatment => 2,
             CameraMode.Explore => 1,
-            CameraMode.FirstPerson => 0,   // P1a;P0 不参与裁决
+            // ⚠️ 2026-10-03:FirstPerson 是 **P1a 独立路径**,与三档**并列**而非从属
+            //    (初版 0 ⇒ 被 Explore(1) 的优先级门拒)
+            CameraMode.FirstPerson => 3,
             _ => 0,
         };
     }
