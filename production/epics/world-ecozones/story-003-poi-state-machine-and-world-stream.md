@@ -33,9 +33,9 @@
 
 - [x] `PoiState` 恰三值整数枚举;对任一 POI,状态历史单调不减,跳级可达,任何逆转移尝试无对应代码路径(枚举 API 不暴露 setter,只暴露 `TryAdvance(poi_id, to)` 且校验转移合法,AC-6-10…12)
 - [x] `PoiStateChanged` 载荷 `{poi_id:int, new_state:int}` 类型反射断言 ∈ 整数域;`Patient = PatientId.None`;`Seq` 由发号器给出(承 ADR-006 Amendment 后的 SimEvent 形状)
-- [x] Append 权 = 主机唯一:客户端调用写通道 ⇒ 断言失败/拒写(AC-6-26a,`[B]`) — `IEventAuthority.IsHost` gate 已实现;**负向夹具已于 2026-10-02 补齐**(6 例:客户端拒写/不改状态/发现门同覆盖/降级后拒写/只读重建不受影响/主机基线仍写),`PoiStateMachineTest` **19/19**;突变测试坐实非空转。⚠️ 残留:gate 返回码 `PoiNotFound` 与「POI 不存在」混同(未修,归实现轮)
+- [x] Append 权 = 主机唯一:客户端调用写通道 ⇒ 断言失败/拒写(AC-6-26a,`[B]`) — `IEventAuthority.IsHost` gate 已实现;**负向夹具已于 2026-10-02 补齐**(6 例:客户端拒写/不改状态/发现门同覆盖/降级后拒写/只读重建不受影响/主机基线仍写),`PoiStateMachineTest` **19/19**;突变测试坐实非空转。✅ **可诊断性残留已闭(2026-10-03)**:gate 原返 `PoiNotFound` 与「POI 不存在」混同 ⇒ 已新增专用码 `NotHost`(`PoiStateMachine.cs:48`,`:110-111` gate 先于 `:113` 的 id 检查),测试**双向钉死**
 - [x] 同一 tick 同 POI 至多一条状态事件(全序键 `(Tick, StreamPriority, Patient, Seq)` 下无重号、无乱序可见,AC-6-13) — `EventStream.Append` 去重键保证
-- [x] 重放/读档:从世界流条目序列重建 POI 状态 == 运行期内存态;删掉快照只留流仍重建正确(快照 = 优化非真源,AC-6-14/15) — `RebuildFromEvents` 测试验证
+- [x] 重放/读档:从世界流条目序列重建 POI 状态 == 运行期内存态;删掉快照只留流仍重建正确(快照 = 优化非真源,AC-6-14/15) — `RebuildFromDecoded` 测试验证
 - [x] 无第二存储扫描:静态检查(反射 + 存档字段清单)证明 POI 状态无旁路持久化(AC-6-16) — `_stateMap` 是流重建视图
 - [x] 有界性:构造 N 个 POI 全量转移的会话,世界流条目数 `≤ 2N`;52 的 `spawn_anchor` 抽池在「状态任意变化」后结果不变(只读定义,AC-6-17/18) — 每 POI 至多 2 条事件
 - [ ] `entities.yaml` 中 `PoiStateChanged` 的 `stream/author/payload_schema` 与 kindgen 生成的路由一致(A1–A5 断言绿,ADR-024)

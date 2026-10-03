@@ -46,7 +46,7 @@
   **现重写为 `drivenByRealCellEntry`**:经 `CellTransitionDetector`(表现层跨格检测器)
   喂位置样本 → 产**真 `ActorCellEntered`** → 从**该事件的格**驱动激活 →
   发现门的 tick **取自事件本身**。⇒ 因果链真实(突变:把 tick 改硬编码 ⇒ 该测**红**)。
-- [x] 读档接缝:位置 = 格锚点 + 确定性格内偏移(ADR-023 ⑦),重放后发现门状态与读档前一致(经流重建,非快照真源,承 TR-worldeco-006) — `RebuildFromEvents` 测试验证
+- [x] 读档接缝:位置 = 格锚点 + 确定性格内偏移(ADR-023 ⑦),重放后发现门状态与读档前一致(经流重建,非快照真源,承 TR-worldeco-006) — `RebuildFromDecoded` 测试验证
 - [ ] 静态引用断言:POI 状态的读者恰 ⊆ {4,25,37}(白名单正面形态);27 侧引用 POI 状态 ⇒ 构建/测试失败
   ⚠️ **2026-10-03 撤勾(评审 B1)** —— 原勾并自陈「白名单断言已实现」,**实测无实现**:
   `Editor.Tools.Gates/` 内**零** POI 白名单断言;测试侧仅 `chunk_activation_test.cs:6`

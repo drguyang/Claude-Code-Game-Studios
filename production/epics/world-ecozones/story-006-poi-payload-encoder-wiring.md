@@ -38,7 +38,7 @@
   **删** `PoiStateMachine.cs:104-106` 的手搓 `new PayloadRef(blobId: poiId, offset: (int)toState, length: 8)`
   及其 TODO 注释。
   ⚠️ 现状的两处语义冲突须一并消除:`poiId` 当 `blobId` 用、`newState` 当**字节偏移**用。
-- [ ] **AC-6-28(BLOCKING)** —— **`RebuildFromEvents` 经 codec 解码**:
+- [ ] **AC-6-28(BLOCKING)** —— **`RebuildFromDecoded` 经 codec 解码**:
   **删** `PoiStateMachine.cs:131-133` 的手搓反解(`BlobId` → poiId、`Offset` → state)及 TODO,
   改为从 blob 池取字节 → `PayloadCodec.Decode<PoiStateChangedPayload>`。
   ⚠️ 解码面**须经池**(`IBlobPool`),而 `Sim` 够不着 —— **见 §Implementation Notes 的接缝设计**。
@@ -57,9 +57,9 @@
 
 - **构造注入**:`PoiStateMachine(IEventSink, IEventAuthority, IEnumerable<int>)` →
   加 `IPayloadEncoder` 形参。**既有 6 个调用点须同步**(测试夹具 + 可能的装配代码)。
-- 🔴 **接缝问题(本 story 的技术难点)**:`RebuildFromEvents` 要**解码**载荷,
+- 🔴 **接缝问题(本 story 的技术难点)**:`RebuildFromDecoded` 要**解码**载荷,
   而解码器 `PayloadCodec` 住 `Sim.Codec`(`Sim` 够不着)。三条路:
-  - **甲**:`RebuildFromEvents` **不在此处解码** —— 改由**调用方**(看得见 codec 的一侧)
+  - **甲**:`RebuildFromDecoded` **不在此处解码** —— 改由**调用方**(看得见 codec 的一侧)
     把已解码的 `(poiId, newState)` 序列喂进来。`PoiStateMachine` 只接受**已解码**的输入。
     ⇒ `Sim` 侧零 codec 依赖,**与写侧对称**(写侧也是把已编码的 `PayloadRef` 交出去)。
   - **乙**:为读侧也加一个 `IPayloadDecoder` 抽象点。
@@ -116,7 +116,7 @@
 
 - **AC-6-32**:重建不回归。
   - Given: 一组已编码事件。
-  - When: `RebuildFromEvents`(经甲案 —— 已解码输入)。
+  - When: `RebuildFromDecoded`(经甲案 —— 已解码输入)。
   - Then: 与运行期内存态逐 POI 相等(承 AC-6-14/15 既有判据)。
 
 ---
@@ -130,7 +130,10 @@
 - ⚠️ **既有 `poi_state_machine_test.cs` 须同步**(构造加 `IPayloadEncoder` 形参)——
   其 19 例须保持全绿,**不得**因本 story 而删改判据
 
-**Status**: [ ] Pending — story not yet implemented
+**Status**: [x] Done — `poi_payload_encoder_test.cs` **13/13** + 既有 `poi_state_machine_test.cs` **19/19**(2026-10-03 batchmode 复跑,WorldEcozones 全组 **109/109**)
+⚠️ 本行此前记 `[ ] Pending — story not yet implemented` —— 与文件头 `Status: Complete ✅ 2026-10-02`
+及 §Completion Notes「6/6 AC 全部落地」自相矛盾,系状态漂移残留,2026-10-03 订正
+(与 player-controller story 004/005/006 同型)。复跑证据 = `production/qa/evidence/world-ecozones/editmode-rerun-2026-10-03.md`。
 
 ---
 

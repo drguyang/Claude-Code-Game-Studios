@@ -33,7 +33,7 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | player-controller | Core | 1 玩家控制器 | design/gdd/player-controller-and-movement.md | 6 stories | Complete ✅ 2026-10-03(6/6 story Complete;两轮评审判据缺陷已修;88 过 + 3 NOT-RUN) |
 | prescription-medication | Core | 11 处方与用药 | design/gdd/prescription-and-medication.md | 5 stories | Ready(未实现) |
 | processing | Core | 14 加工与制作 | design/gdd/processing.md | 5 stories | Ready(未实现) |
-| world-ecozones | Core | 6b 生态区与 POI | design/gdd/world-and-ecozones.md | 6 stories | In Review(5/6 · B1/B3/B4 已修 · 106/106 绿;**残留 = 评审报告原件缺 + Story 005 走查未执行**) |
+| world-ecozones | Core | 6b 生态区与 POI | design/gdd/world-and-ecozones.md | 6 stories | Complete ✅ 2026-10-03(6/6 story;N1/N5 已修 · 本轮 109/109 绿;**未闭登记 = N3 白名单判据(待 27 侧落地)+ Story 005 走查 EXTERNAL**) |
 | persistence-service | Foundation | 7a 持久化服务 | design/gdd/persistence-service.md | 2 stories | Complete ✅ 2026-10-02(2/2;002 = ADR-029 契约支) |
 | save-slot-ui | Foundation | 7b 存档位 UI | design/gdd/save-slot-ui.md | — | Ready(未实现) |
 

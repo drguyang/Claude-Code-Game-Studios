@@ -45,14 +45,19 @@ This is a [L] Visual-Feel story requiring manual verification on desktop Unity E
 ### Notes
 Tool CI is EXTERNAL to sim assembly (ADR-022). Verification deferred to desktop session.
 
-## AC-6-27 P0 范围守门
+## P0 范围守门(走查项 · 原误标 `AC-6-27`)
+
+> ⚠️ **2026-10-03 订正(评审 N6 附带项)**:本二节原标 `AC-6-27` / `AC-6-28`,
+> 但该二编号**已由 `story-006`(POI 载荷接线 · ADR-029 支)占用** ——
+> 走查件与之冲突。**本件不占用 AC 编号**,改用描述性标题;
+> 本项的判据归属须待 story-005 的 AC 编号最终定稿时回填。
 
 ### Scope Verification
 - [ ] Active scene = 医馆 + 1 small scene
 - [ ] No open-world content beyond P0 scope
 - [ ] Scope debt explicitly logged (if any)
 
-## AC-6-28 帧率无关激活体验
+## 帧率无关激活体验(走查项 · 原误标 `AC-6-28`)
 
 ### Verification Method
 - Scripted playback at 60fps and 144fps

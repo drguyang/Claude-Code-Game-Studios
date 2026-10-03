@@ -376,16 +376,20 @@ namespace DaYiJingCheng.Tests.WorldEcozones
         }
 
         // ══════════════════════════════════════════════════════════════
-        // §已知缺陷(本组未断言,登记不修 —— 见对账件)
+        // §历史缺陷(**已闭** 2026-10-03 —— 保留原文作闭环记录)
         //
-        // `PoiStateMachine.cs:84` 的 host gate 对客户端返回
-        // **`PoiStateTransferResult.PoiNotFound`** —— 与「poi_id 不存在」**混同**。
-        // 后果:客户端拒写时拿到的是误导性错误码,调用方无法区分
-        // 「我不是主机」与「这个 POI 不存在」。
+        // 【原缺陷】host gate 对客户端曾返回 `PoiStateTransferResult.PoiNotFound`,
+        //   与「poi_id 不存在」**混同** —— 调用方无法区分「我不是主机」与
+        //   「这个 POI 不存在」,可能误走「POI 数据缺失 ⇒ 重载定义」的降级路径。
         //
-        // 本组刻意**不**断言具体错误码(只断言「非 Success」),理由:
-        // 若把 `PoiNotFound` 钉进断言,就等于**把缺陷固化为契约**;
-        // 正确修法是新增 `NotHost` 结果码,而该改动归 we 的实现轮(须同步 story-004)。
+        // 【原处置】当时的本组刻意**不**把 `PoiNotFound` 钉进断言
+        //   (否则等于把缺陷固化为契约),只断言「非 Success」。
+        //
+        // 【已修】`PoiStateMachine.cs:48` 新增专用枚举成员 `NotHost`,`:110-111`
+        //   gate 改返 `NotHost`(:113 的 id 检查在其**之后**,语义各得其码)。
+        //   本组现已**双向钉死**:`test_ac626a_clientWriteChannel_rejected_noEventAppended`
+        //   正面断言 `== NotHost`,`test_ac626a_hostBaseline_stillWrites` 反向断言
+        //   主机身份**不得**返回 `NotHost`、未登记 id 返 `PoiNotFound`(见本文件上方对应 [Test])。
         // ══════════════════════════════════════════════════════════════
     }
 }
