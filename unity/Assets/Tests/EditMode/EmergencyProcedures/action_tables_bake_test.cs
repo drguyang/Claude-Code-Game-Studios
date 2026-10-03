@@ -149,6 +149,28 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
             Assert.AreEqual(65536L, tiers[(int)JudgeResult.Applied], "Applied 档应为 65536 (1.0)");
         }
 
+        // ══════════ DC-5: 三 Kind 在 9 侧白名单内(2026-10-03 补真校验)══════════
+
+        [Test]
+        public void test_dc5_requiredKinds_routable()
+        {
+            // ⚠️ 2026-10-03 补(评审 B4):原 `GetRequiredKindWhitelist()` **只返回字符串数组、
+            //    无校验体** ⇒ AC-10-07b 判据空转。现经 kindgen 产物 `StreamRouting` 真校验。
+            var errs = EmergencyActionSchema.ValidateRequiredKindsRoutable();
+            Assert.IsEmpty(errs,
+                "10 的三个 Kind 须全在 9 侧白名单内且落病史流:\n" + string.Join("\n", errs));
+        }
+
+        [Test]
+        public void test_dc5_whitelistIsExactlyThreeKinds()
+        {
+            var kinds = EmergencyActionSchema.GetRequiredKindWhitelist();
+            Assert.AreEqual(3, kinds.Length, "恰三支(DC-5:非二者)");
+            CollectionAssert.AreEquivalent(
+                new[] { "EmergencyAttempt", "EmergencyTreatmentApplied", "DrugTreatmentApplied" },
+                kinds);
+        }
+
         // ══════════ DC-6: result_mul 恰三档(2026-10-03 补)══════════
 
         [Test]

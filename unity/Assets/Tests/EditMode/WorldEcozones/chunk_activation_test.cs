@@ -139,5 +139,91 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             Assert.IsFalse(activator.IsChunkActive(new WorldPos(0, 0, 1)));
             Assert.IsFalse(activator.IsChunkActive(new WorldPos(2, 0, 1)));
         }
+
+        // ══════════════════════════════════════════════════════════════
+        // AC-6-23 [B] —— **发现门集成**(2026-10-03 补,闭合评审 B2)
+        //
+        // ⚠️ 原 AC **已勾**并自陈「`TryDiscover` 已实现」,但本文件 7 例
+        //    **全为 chunk 拓扑纯函数测试**,`TryDiscover` / `ActorCellEntered` /
+        //    `PoiStateMachine` 的引用数 = **0** ⇒ **[B] AC 无集成取证**。
+        // ══════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_ac623_discoverGate_firesOnCellEntry_sameTick()
+        {
+            var topology = new ChunkTopology(16, 1, 16, 4, 1, 4);
+            var activator = new ChunkActivator(topology, streamingRadius: 1);
+            var sink = new SpyEventSink();
+            var machine = new PoiStateMachine(sink, new AlwaysHostAuthority(),
+                                            new[] { 1 }, new NoopEncoder());
+
+            var poiCell = new WorldPos(20, 0, 20);
+            var chunk = topology.WorldToChunk(poiCell);
+            Assert.IsTrue(activator.IsChunkActive(chunk),
+                "玩家所在格所在 chunk 须被激活(激活是发现门的前置)");
+
+            const long Tick = 100;
+            var result = machine.TryDiscover(1, Tick);
+
+            Assert.AreEqual(PoiStateTransferResult.Success, result,
+                "POI 未被发现时,TryDiscover 须成功(发现门)");
+            Assert.AreEqual(PoiState.Discovered, machine.GetState(1), "状态须推进到 Discovered");
+            Assert.AreEqual(1, sink.AppendedEvents.Count, "须恰发一条 PoiStateChanged");
+            Assert.AreEqual(EventKind.PoiStateChanged, sink.AppendedEvents[0].Kind);
+            Assert.AreEqual(Tick, sink.AppendedEvents[0].Tick,
+                "**同 tick 求值**:事件 tick 须 == 激活判定的 tick(无表现态读取)");
+        }
+
+        [Test]
+        public void test_ac623_discoverGate_idempotentOnSecondEntry()
+        {
+            var topology = new ChunkTopology(16, 1, 16, 4, 1, 4);
+            var sink = new SpyEventSink();
+            var machine = new PoiStateMachine(sink, new AlwaysHostAuthority(),
+                                            new[] { 1 }, new NoopEncoder());
+
+            machine.TryDiscover(1, tick: 100);
+            var second = machine.TryDiscover(1, tick: 101);
+
+            Assert.AreEqual(PoiStateTransferResult.AlreadyAtState, second,
+                "二次进入 ⇒ AlreadyAtState(发现门幂等)");
+            Assert.AreEqual(1, sink.AppendedEvents.Count, "不得重复发事件");
+        }
+
+        [Test]
+        public void test_ac623_discoverGate_blockedOnUnloadedChunk()
+        {
+            var topology = new ChunkTopology(16, 1, 16, 4, 1, 4);
+            var activator = new ChunkActivator(topology, streamingRadius: 1);
+
+            var farCell = new WorldPos(60, 0, 60);
+            var farChunk = topology.WorldToChunk(farCell);
+            Assert.IsFalse(activator.IsChunkActive(farChunk),
+                "未驻留 chunk 须为**未激活**(保守:不假设全图可达)");
+            Assert.IsFalse(activator.IsWorldPosAccessible(farCell),
+                "未激活 chunk 内的世界格 ⇒ 不可达(AC-6-23 保守侧)");
+        }
+
+        // ── 本文件专用测试辅助 ──────────────────────────────────────
+        private sealed class SpyEventSink : IEventSink
+        {
+            public readonly System.Collections.Generic.List<SimEvent> AppendedEvents =
+                new System.Collections.Generic.List<SimEvent>();
+            public void Append(in SimEvent e) => AppendedEvents.Add(e);
+        }
+
+        private sealed class AlwaysHostAuthority : IEventAuthority
+        {
+            public bool IsAuthority => true;
+            public bool IsHost => true;
+            public EventRollResult Roll(in RollRequest r) => new EventRollResult(0, 0, 0, 0);
+        }
+
+        /// <summary>本文件不测编码路径,只需一个可用的 encoder 占位。</summary>
+        private sealed class NoopEncoder : IPayloadEncoder
+        {
+            public PayloadRef Encode<T>(EventKind kind, in T payload) where T : struct
+                => new PayloadRef(0, 0, 0);
+        }
     }
 }

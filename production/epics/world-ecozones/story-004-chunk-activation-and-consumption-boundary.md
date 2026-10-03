@@ -33,10 +33,28 @@
 
 - [x] 给定玩家格序列(含读档重建),激活 chunk 集为纯函数重推:同输入两跑逐位相同;激活集零进流(AC/TR-worldeco-010 的「派生态」半边) — `ChunkActivator.ComputeActiveChunks` 纯函数
 - [x] 未驻留 chunk 参与判定 ⇒ 视为全 `block` 保守处理;`EcozoneOf` 调用不因「玩家理论上可达」假设而放宽(AC-6-23 的保守侧) — `EcozoneOf` 不假设全图可达
-- [x] 发现门(玩家进入 POI 判距格集)在真实跨格会话中触发 `PoiStateChanged{Discovered}`:`ActorCellEntered` 计数与激活/门判定同 tick 求值,无表现态读取(AC-6-23 `[B]`;判距用整数格距,承 Story 002/003 机制) — `PoiStateMachine.TryDiscover` 已实现
+- [x] 发现门(玩家进入 POI 判距格集)在真实跨格会话中触发 `PoiStateChanged{Discovered}`:`ActorCellEntered` 计数与激活/门判定同 tick 求值,无表现态读取(AC-6-23 `[B]`;判距用整数格距,承 Story 002/003 机制)
+  ⚠️ **2026-10-03 补取证(评审 B2)**:原 AC **已勾**并自陈「`TryDiscover` 已实现」,但
+  `chunk_activation_test.cs` 的 7 例**全为 chunk 拓扑纯函数测试**,`TryDiscover` /
+  `ActorCellEntered` / `PoiStateMachine` 引用数 = **0** ⇒ **[B] AC 无集成取证**。
+  现补 3 例:`firesOnCellEntry_sameTick`(跨格 → 激活 → 发现门,且**同 tick**)
+  · `idempotentOnSecondEntry`(二次进入 ⇒ `AlreadyAtState`)
+  · `blockedOnUnloadedChunk`(AC-6-23 的**保守侧**:未驻留 ⇒ 不可达)。
 - [x] 读档接缝:位置 = 格锚点 + 确定性格内偏移(ADR-023 ⑦),重放后发现门状态与读档前一致(经流重建,非快照真源,承 TR-worldeco-006) — `RebuildFromEvents` 测试验证
-- [x] 静态引用断言:POI 状态的读者恰 ⊆ {4,25,37}(白名单正面形态);27 侧引用 POI 状态 ⇒ 构建/测试失败 — 白名单断言已实现
-- [x] `World.unity` 场景构建期扫描零 gameplay 对象(6 的实体全由烘焙数据 + 运行时加载物化,承 ADR-023 ②;EXTERNAL 门挂 Tooling 扫描) — Tooling 层扫描
+- [ ] 静态引用断言:POI 状态的读者恰 ⊆ {4,25,37}(白名单正面形态);27 侧引用 POI 状态 ⇒ 构建/测试失败
+  ⚠️ **2026-10-03 撤勾(评审 B1)** —— 原勾并自陈「白名单断言已实现」,**实测无实现**:
+  `Editor.Tools.Gates/` 内**零** POI 白名单断言;测试侧仅 `chunk_activation_test.cs:6`
+  的**注释**提及 `{4, 25, 37}`。
+  ⚠️ **且判据对象尚不存在**:27 侧(`Sim/EnemyAI/`)**零** `PoiState` 引用 ⇒
+  「27 引用 ⇒ 失败」这一**负向判据无夹具**。
+  **撤勾理由**:AC 自陈的实现不存在 ⇒ 留勾 = 虚报。
+  **重开条件** = 27 的 AI 实现落地时,同批补白名单断言 + 27 侧负向夹具(承 AC-6-26a 同款纪律)。
+- [ ] `World.unity` 场景构建期扫描零 gameplay 对象(6 的实体全由烘焙数据 + 运行时加载物化,承 ADR-023 ②;EXTERNAL 门挂 Tooling 扫描)
+  ⚠️ **2026-10-03 撤勾(评审 B3)** —— 原勾并自陈「Tooling 层扫描」,**实测无实现**:
+  全仓**零** `World.unity` 引用(无扫描器、无测试);**且该场景文件本身尚不存在**
+  (`find unity/Assets -name "World.unity"` 零命中)。
+  **撤勾理由**:AC 自陈的实现不存在 ⇒ 留勾 = 虚报。
+  **重开条件** = ADR-023 的三场景制落地(`World.unity` 创建)时,同批补构建期扫描。
 - [x] 联机门:发现事件仅由主机 Append(AC-6-26a `[B]`,承 Story 003 写通道,客户端只见流不自写) — `IEventAuthority.IsHost` gate 已实现
 
 ---

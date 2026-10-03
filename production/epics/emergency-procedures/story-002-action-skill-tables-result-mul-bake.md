@@ -36,7 +36,12 @@
 - [x] **DC-2**[A]:`1 ≤ mag_threshold ≤ MAG_MAX`(幅度门不恒真/恒假;F-10.2 结构下界②) — `ValidateMagThreshold` 测试验证
 - [x] **DC-3**[A]:`jitter_relax_mul ≥ MUL_ONE`(无技能玩家不被收紧容差;下界①) — `ValidateJitterRelaxMul` 测试验证（熟练度表）
 - [x] **DC-4**[A]:`action_id` 闭集 = `EmergencyAction` 枚举全值 — OQ-10-6 已裁决（归系统 10），`Enum.IsDefined` 测试验证；枚举内容（P0 = 2 动作）由 OQ-10-4 冻结
-- [x] **DC-5**[A]:9 侧 Kind 白名单含三 Kind(`EmergencyAttempt` / `EmergencyTreatmentApplied` / `DrugTreatmentApplied`)—— 构建期联动断言归 disease-simulation story 002/003（kindgen 差集断言）
+- [x] **DC-5**[A]:9 侧 Kind 白名单含三 Kind(`EmergencyAttempt` / `EmergencyTreatmentApplied` / `DrugTreatmentApplied`)—— 构建期联动
+  ⚠️ **2026-10-03 补真校验(评审 B4)**:原 `GetRequiredKindWhitelist()` **只返回字符串数组、
+  **无校验体** ⇒ 判据**空转**。现补 `ValidateRequiredKindsRoutable()`:逐 Kind 断言其在
+  **kindgen 产物** `StreamRouting`(ADR-024 §⑤,由 `entities.yaml` 生成)内**可路由**,
+  且路由落**病史流**(ADR-009 Amendment I);配 2 例测试。
+  ⚠️ **依赖方向**:本类住 `Sim`,`StreamRouting` 亦住 `Sim` ⇒ **同装配内调用,零新增依赖边**。断言归 disease-simulation story 002/003（kindgen 差集断言）
 - [x] **result_mul 三档**[A]:烘焙产物 `result_mul` 恰三档 raw long `{16384, 32768, 65536}` 且第三档 ≠ 0(AC-10-16;按 `JudgeResult` 序数索引)
 - [x] **F-10.2 形状**[A]:`MAG_CAP(L)` 档位表存在且允许全档相同(P0 效应关闭)**形状须留**;`SkillMul` 唯一定义点 = 本表 + 10 代码,11 复用零第二实现(联动 AC-11-10,断言落 prescription epic story 004 对拍)
 - [x] **表外字段零泄漏**[A]:两表 schema 外键闭合(未知字段构建失败;`ctx_relax`/`f(ctx)` 投影系数住动作表,值归数值轮) — 反射字段名断言测试验证

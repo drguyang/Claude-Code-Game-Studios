@@ -7,6 +7,7 @@
 //   GDD emergency-procedures.md: 数据契约 10-DC
 
 using System;
+using DaYiJingCheng.Sim.Contracts;   // EventKind / StreamId(DC-5 校验用)
 
 namespace DaYiJingCheng.Sim.EmergencyProcedures
 {
@@ -95,6 +96,62 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         public static string[] GetRequiredKindWhitelist()
         {
             return new[] { "EmergencyAttempt", "EmergencyTreatmentApplied", "DrugTreatmentApplied" };
+        }
+
+        /// <summary>
+        /// **DC-5 的真校验**(2026-10-03 补,闭合评审 B4):三 Kind 须**确实在
+        /// 9 侧的 Kind 白名单表内** —— 否则 9 构建期拒收 10 的每一笔写入(R-2 的原始症状)。
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ 原实现**只返回字符串数组、无校验体** ⇒ AC-10-07b 的判据**空转**。
+        /// <para><b>校验面</b>:9 侧的白名单真源 = kindgen 产物
+        /// <c>Sim.StreamRouting</c>(ADR-024 §⑤ —— 由 <c>entities.yaml</c> 生成)。
+        /// 本方法逐 Kind 断言其在路由表内(**能被路由 ⇒ 在白名单内**)。</para>
+        /// <para>⚠️ <b>依赖方向</b>:本类住 <c>Sim</c>,<c>StreamRouting</c> 亦住 <c>Sim</c>
+        /// ⇒ **同装配内调用,零新增依赖边**。</para>
+        /// </remarks>
+        /// <returns>错误列表(空 = 通过)。拒以空集冒充绿。</returns>
+        public static System.Collections.Generic.List<string> ValidateRequiredKindsRoutable()
+        {
+            var errs = new System.Collections.Generic.List<string>();
+            var required = GetRequiredKindWhitelist();
+            if (required == null || required.Length == 0)
+            {
+                errs.Add("[DC-5] 必需 Kind 清单为空 —— 拒以空集冒充绿。");
+                return errs;
+            }
+
+            int routable = 0;
+            foreach (var name in required)
+            {
+                if (!System.Enum.TryParse<EventKind>(name, out var kind))
+                {
+                    errs.Add($"[DC-5] 必需 Kind「{name}」在 EventKind 枚举内**不存在** —— " +
+                             "9 侧白名单不可能含它(AC-10-07b 会失败)。");
+                    continue;
+                }
+
+                try
+                {
+                    // 能被路由 ⇒ 在 kindgen 白名单内(否则 switch 落 default 抛)
+                    var stream = StreamRouting.Of(kind);
+                    if (stream != StreamId.History)
+                        errs.Add($"[DC-5] Kind「{name}」路由到 {stream},而 10 的三个 Kind " +
+                                 "须全落**病史流**(ADR-009 Amendment I)。");
+                    else
+                        routable++;
+                }
+                catch (System.InvalidOperationException ex)
+                {
+                    errs.Add($"[DC-5] Kind「{name}」**不可路由** ⇒ 不在 9 的白名单内" +
+                             $"(9 构建期会拒收 10 的每一笔写入,R-2 原始症状):{ex.Message}");
+                }
+            }
+
+            if (routable == 0 && errs.Count == 0)
+                errs.Add("[DC-5] 无任何 Kind 通过 —— 拒以空集冒充绿。");
+
+            return errs;
         }
 
         /// <summary>

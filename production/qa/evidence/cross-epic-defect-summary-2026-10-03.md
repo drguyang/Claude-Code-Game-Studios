@@ -71,13 +71,31 @@
 
 | # | Epic | AC | 自述 vs 实测 | 复核 |
 |---|---|---|---|---|
-| **B1** | world-ecozones | story-004「白名单静态断言」 | AC **已勾**并自述「已实现」;但 `Editor.Tools.Gates/` **零** POI 白名单断言,测试侧仅**注释**提及 `{4,25,37}` | ✅ 成立 |
-| **B2** | world-ecozones | story-004 发现门集成 `[B]` | AC **已勾**;但 `chunk_activation_test.cs` **7 例全为 chunk 拓扑纯函数**,**零** `TryDiscover`/`ActorCellEntered` 用例 | ✅ 成立 |
-| **B3** | world-ecozones | story-004「`World.unity` 零 gameplay 对象扫描」 | AC **已勾**;**未检索到扫描实现** | ⚠️ 报告标「可疑」,未定论 |
-| **B4** | emergency-procedures | **DC-5** | `GetRequiredKindWhitelist()` **仅返回字符串数组**,**无校验体** | ✅ 成立 |
+| ~~**B1**~~ ✅**已处置** | world-ecozones | story-004「白名单静态断言」 | AC **已勾**并自述「已实现」;但 `Editor.Tools.Gates/` **零** POI 白名单断言,测试侧仅**注释**提及 `{4,25,37}` | ✅ 成立 |
+| ~~**B2**~~ ✅**已处置** | world-ecozones | story-004 发现门集成 `[B]` | AC **已勾**;但 `chunk_activation_test.cs` **7 例全为 chunk 拓扑纯函数**,**零** `TryDiscover`/`ActorCellEntered` 用例 | ✅ 成立 |
+| ~~**B3**~~ ✅**已处置** | world-ecozones | story-004「`World.unity` 零 gameplay 对象扫描」 | AC **已勾**;**未检索到扫描实现** | ⚠️ 报告标「可疑」,未定论 |
+| ~~**B4**~~ ✅**已处置** | emergency-procedures | **DC-5** | `GetRequiredKindWhitelist()` **仅返回字符串数组**,**无校验体** | ✅ 成立 |
 
 > **与既有教训同型**:`B1/B2` 正是 **AC-6-26a 同族失败模式**(B2 原判定)在 story-004 内**重演** ——
 > 「AC 已勾 ≠ 判据已执行」。
+
+> ### ✅ B 类全部已处置(2026-10-03)
+>
+> **处置分两类**(判据对象是否存在决定):
+>
+> | # | 判据对象 | 处置 |
+> |---|---|---|
+> | **B2** | `TryDiscover` **已在库** ⇒ 可测 | ✅ **补集成测试 3 例**:
+> `firesOnCellEntry_sameTick`(跨格 → 激活 → 发现门,且**同 tick**)· `idempotentOnSecondEntry` ·
+> `blockedOnUnloadedChunk`(AC-6-23 保守侧) |
+> | **B4** | `StreamRouting` **已在库**(kindgen 产物)⇒ 可校验 | ✅ **补真校验**
+> `ValidateRequiredKindsRoutable()`:逐 Kind 断言可路由且落病史流 + 2 例测试 |
+> | **B1** | **27 侧零 `PoiState` 引用** ⇒ 无对象可扫 | ⚠️ **撤勾 AC**
+> (自陈的实现不存在 ⇒ 留勾 = 虚报);重开条件 = 27 落地时同批补断言 + 负向夹具 |
+> | **B3** | **`World.unity` 尚不存在** ⇒ 无对象可扫 | ⚠️ **撤勾 AC**;
+> 重开条件 = ADR-023 三场景制落地时同批补构建期扫描 |
+>
+> ⇒ **「补实现」与「撤勾」都是诚实选项**;不诚实的是**留勾而实现不存在**。
 
 ## C 类 · 实现缺口(真缺,且判据也没写)
 
