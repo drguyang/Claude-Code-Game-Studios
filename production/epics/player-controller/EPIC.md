@@ -3,7 +3,7 @@
 > **Layer**: Presentation(控制器与相机 · manifest 该节适用)
 > **GDD**: design/gdd/player-controller-and-movement.md
 > **Architecture Module**: 表现层(纯表现态位移)+ 世界流唯一投影(跨格事件)
-> **Status**: In Review(6/6 story Complete;EPIC 未转 Complete 仅因 **评审报告原件从未落盘** —— 对账件已于 2026-10-02 补齐并揭示该更深缺口;🔴 **解除条件(可执行)** = 补做一次评审并落 `qa/evidence/review-*-2026-*.md`(原件不可得,不追认原判定))
+> **Status**: In Review(6/6 story Complete;EPIC 未转 Complete 仅因 **评审报告原件从未落盘** —— 对账件已于 2026-10-02 补齐并揭示该更深缺口;✅ **评审原件已落盘**(`qa/evidence/review-player-controller-2026-10-03.md`,2026-10-03 补做);🔴 **但评审查出 6 条判据简化 ⇒ 不转 Complete**:最重 = **AC-1-06a/b/c** 三个 BLOCKING 判据的测试都只查 `config.SpeedWalk > 0`,**手填常数与派生量在测试中无法区分**;另 AC-1-10②/1-07/1-17/1-23/1-28 各有简化(详见报告))
 > **Stories**: 6 stories created (2026-09-28)
 
 ## Overview

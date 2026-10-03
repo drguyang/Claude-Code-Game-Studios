@@ -3,7 +3,7 @@
 > **Layer**: Core
 > **GDD**: design/gdd/modular-building.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ 世界流 Structure* 三支唯一写者
-> **Status**: In Review(7/7 story 已实现;双代理评审 REQUEST_CHANGES 5 BLOCKING —— **对账结论:B1/B2/B3/B5 已修 · B4 已闭(2026-10-02 ADR-029 接线支)**;63/63 逐例复跑绿;✅ 逐 BLOCKING 对账件已落 evidence;🔴 **EPIC 不转 Complete 的唯一原因 = 评审报告原件从未落盘**(见 player-controller EPIC 同款缺口);另登记:`StructureInstanceRegistry` 的 id 类型 int vs i64 不合规(归独立轮);🔴 **解除条件(可执行)** = 补做一次评审并落 `qa/evidence/review-*-2026-*.md`(原件不可得,不追认原判定) )
+> **Status**: In Review(7/7 story 已实现;双代理评审 REQUEST_CHANGES 5 BLOCKING —— **对账结论:B1/B2/B3/B5 已修 · B4 已闭(2026-10-02 ADR-029 接线支)**;63/63 逐例复跑绿;✅ 逐 BLOCKING 对账件已落 evidence;🔴 **EPIC 不转 Complete 的唯一原因 = 评审报告原件从未落盘**(见 player-controller EPIC 同款缺口);另登记:`StructureInstanceRegistry` 的 id 类型 int vs i64 不合规(归独立轮);✅ **评审原件已落盘**(`qa/evidence/review-modular-building-2026-10-03.md`,2026-10-03 补做);🔴 **但评审查出两条新缺陷(N1/N2)⇒ 不转 Complete**:**N1** 占用格集恒 = `{anchor}`(`StructureKinds.cs:60-61` 自陈简化)⇒ 多格模块非锚点足迹格不参与拆除检查,**使 B2 的「已修」成为纸面**;**N2** `World.OccupyCells/FreeCells` **零调用方** ⇒ Overlay 写路径未接线 )
 > **Stories**: 6 stories — see table below
 
 ## Overview

@@ -3,7 +3,7 @@
 > **Layer**: Core(输入聚合 / 判定)× Feature(模态期交互)
 > **GDD**: design/gdd/emergency-procedures.md
 > **Architecture Module**: L3 Gameplay + L2 Sim 接缝(判定输入进流,主机权威)
-> **Status**: In Review(7/7 story 已实现 —— 006 + **007 Complete ✅ 2026-10-03**;🔴 **b6 门查出的手搓点已修**(九字段/八字段齐备 + 结构性收口:删两个 payload struct 副本);EditMode 0 红 · PlayMode 36/36;⚠️ EPIC 不转 Complete 的残留 = **评审报告原件缺**(与 modular/we/player-controller 同款)+ 三项已登记待裁:`载荷 Seq` 占位(归上行链 45)· **GDD A8 勘误** · `ResultMul` schema 缺口)
+> **Status**: In Review(7/7 story 已实现 —— 007 Complete ✅ 2026-10-03;b6 手搓点已修(九字段/八字段齐备 + 删两个 payload struct 副本);EditMode 0 红 · PlayMode 36/36;✅ **评审原件已落盘**(`qa/evidence/review-emergency-procedures-2026-10-03.md`,补做,不追认原判定);🔴 **但评审查出多条判据空转 ⇒ 不转 Complete**:**AC-10-02/03** 两条 BLOCKING **恒真**(`reading_contract_test.cs:174` 取 `Sim.Contracts` 程序集,断言其名不含 "Input" ⇒ 零扫描)· `SkillMul` 死代码 · JITTER 用 C# 裸 `/`(违 Forbidden)· `DC-5` 仅返回字符串数组无校验体。⚠️ 复核已排除 agent 误报(header `Seq` 传 0 系全库既定占位约定,非缺陷);残留待裁:`载荷 Seq` 占位(归上行链 45))
 > **Stories**: 6 stories — see table below
 
 ## Overview
