@@ -13,7 +13,15 @@
 //
 // 两行顺序是判据不是风格:①先更新速度 ②再用**新**速度更新位置。
 // 写反 = 前向欧拉 ⇒ 大 ω + 大 dt 处**发散**而非仅过冲。
+//
+// ⚠️ **2026-10-03 评审回刷(诚实口径)**:「ω 超大档不发散」这条**只证有界**,
+//   **不区分**两种积分器 —— 子步机制保证 ω·h ≤ 0.5,而该条件下**前向欧拉也稳定**
+//   (实测:ω=1e4、dt=1/60 ⇒ n=334、ω·h≈0.499,两者 300 帧后 max|anchor| 均 ≈ 1.0)。
+//   ⇒ 区分两行顺序的**唯一**判据是**首帧位移**(半隐式首帧即动,前向欧拉用旧速度 0
+//   ⇒ 首帧零位移),且该判据**仅在 n == 1 时成立**(ω 小到不触发子步)。
 
+using System;
+using DaYiJingCheng.Sim.World;
 using UnityEngine;
 
 namespace DaYiJingCheng.Gameplay.Presentation.Camera
@@ -27,10 +35,15 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         public float AnchorResponse = 8f;
 
         /// <summary>
-        /// 位移预算钳位常量(**毫秒**,与 `WorldLatticeParams.MaxDtMs` **同一来源**)。
-        /// ⚠️ **不得**在 2 侧定义第二份(GDD 组 6 的静默失配防线)。
+        /// 位移预算钳位常量(**毫秒**,**唯一来源 = 系统 1 的 `WorldLatticeParams.MaxDtMs`)。
+        /// 🔴 **2026-10-03 评审修复(B1)**:初版此处持**字面量默认值 `= 100`**
+        /// ⇒ 2 侧**自造了第二份 `MAX_DT`**,而「同源」的机械含义是**读同一实体**
+        /// (`WorldLatticeParams.MaxDtMs`),不是两份相等的字面量(相等字面量会各自漂移 ——
+        /// GDD 组 6 的静默失配防线)。
+        /// ⇒ 现**移除字面量默认**:本字段为**必注入**;唯一合法装载路径 =
+        /// <see cref="AnchorFollowConfig.FromWorldLattice"/>。
         /// </summary>
-        public int MaxDtMs = 100;
+        public int MaxDtMs;
 
         /// <summary>超过该距离 ⇒ 直接吸附(EC-2-4;数值留白)。</summary>
         public float TeleportSnapDist = 50f;
@@ -40,6 +53,24 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
 
         /// <summary>位移上界(组 1 的派生界/登记量;数值留白)。</summary>
         public float AnchorSpeedMax = 100f;
+
+        /// <summary>
+        /// **单一来源工厂**(AC-2-12② 的机制本体):从系统 1 的装载常量
+        /// <see cref="WorldLatticeParams.MaxDtMs"/> 读取位移预算,在 2 侧**不定义第二份**。
+        /// </summary>
+        /// <remarks>
+        /// 余下旋钮(ω / 吸附距 / 容差 / 位移上界)仍留白 ⇒ 由调用方在返回后注入;
+        /// 本工厂只钉死「同源」的那一个量。GDD 组 6:「若 2 自行定义第二个 `MAX_DT`,
+        /// 即构成静默失配」—— 本方法即该纪律的唯一合法入口。
+        /// </remarks>
+        public static AnchorFollowConfig FromWorldLattice(in WorldLatticeParams lattice)
+        {
+            if (lattice.MaxDtMs <= 0)
+                throw new ArgumentException(
+                    $"WorldLatticeParams.MaxDtMs 须 > 0,实际 = {lattice.MaxDtMs} ms —— " +
+                    "相机位移预算不得在 2 侧兜底(读同一实体,不造第二份)。", nameof(lattice));
+            return new AnchorFollowConfig { MaxDtMs = lattice.MaxDtMs };
+        }
     }
 
     /// <summary>

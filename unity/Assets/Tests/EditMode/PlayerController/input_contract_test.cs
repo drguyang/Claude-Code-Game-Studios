@@ -274,6 +274,11 @@ namespace DaYiJingCheng.Tests.PlayerController
 
             public float Yaw => _yaw;
             public float Pitch => 0f;
+            // ADR-020 §Key Interfaces 四成员(2026-10-03 接口扩容)— 本夹具只用 YawBasis 面
+            public CameraMode Mode => CameraMode.Explore;
+            public void SetMode(CameraMode mode) { }
+            public void Tick(float deltaTime) { }
+            public UnityEngine.Camera Camera => null;
         }
 
         private sealed class TestCameraRig : ICameraRig
@@ -299,6 +304,10 @@ namespace DaYiJingCheng.Tests.PlayerController
 
             public float Yaw => _yaw;
             public float Pitch => 0f;
+            public CameraMode Mode => CameraMode.Explore;
+            public void SetMode(CameraMode mode) { }
+            public void Tick(float deltaTime) { }
+            public UnityEngine.Camera Camera => null;
         }
     }
 }

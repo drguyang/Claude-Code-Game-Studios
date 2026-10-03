@@ -43,8 +43,38 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         /// <summary>回弹速度(收缩路径**不受**它影响 —— AC-2-14①)。</summary>
         public float RecoverSpeed = 4f;
 
-        /// <summary>碰撞掩码(**恰好等于**白名单,非包含 —— AC-2-15①)。</summary>
-        public int CamCollideMask = 0;
+        /// <summary>
+        /// 碰撞掩码(**恰好等于**白名单,非包含 —— AC-2-15①)。
+        /// 🔴 **2026-10-03 评审修复(B3)**:初版默认 `0` = **空掩码** ⇒ 相机**永不收缩 ⇒ 穿墙**,
+        /// 恰是本 AC 亲自写下的负向夹具形态(且生产侧零写入点)。现默认取登记白名单,
+        /// 并由 <see cref="ValidateNearClipChain"/> 的兄弟守护 <see cref="ValidateCollideMask"/> 拒空。
+        /// </summary>
+        public int CamCollideMask = DefaultCollideMask;
+
+        /// <summary>
+        /// 登记白名单:静态世界几何 + 建造物(**不含**角色层 / 触发体 —— EC-2-2)。
+        /// ⚠️ 真层名归项目设置(ADR-015);这里给出**登记的位模式**,
+        /// 生产装载须经 ADR-014 烘焙的层表覆盖(数值留白)。
+        /// </summary>
+        public const int DefaultCollideMask = 0b1010;
+
+        /// <summary>角色层(玩家 / 病人 / 敌人 / 触发体)—— 掩码**不得**与之相交。</summary>
+        public const int CharacterLayerMask = 0b0101;
+
+        /// <summary>
+        /// 掩码装载期守卫(AC-2-15①):空掩码 ⇒ 永不收缩 ⇒ 穿墙;含角色层 ⇒ 把玩家顶穿画面。
+        /// </summary>
+        /// <exception cref="ArgumentException">空掩码或含角色层 ⇒ 抛,错误串点名诊断位。</exception>
+        public void ValidateCollideMask()
+        {
+            if (CamCollideMask == 0)
+                throw new ArgumentException(
+                    "CAM_COLLIDE_MASK 不得为空(空掩码 ⇒ 相机永不收缩 ⇒ 穿墙;AC-2-15①)。");
+            if ((CamCollideMask & CharacterLayerMask) != 0)
+                throw new ArgumentException(
+                    $"CAM_COLLIDE_MASK(0b{Convert.ToString(CamCollideMask, 2)}) 不得含角色层" +
+                    $"(0b{Convert.ToString(CharacterLayerMask, 2)})⇒ 贴墙时相机把玩家顶穿画面(EC-2-2)。");
+        }
 
         /// <summary>
         /// 装载期不等式链(AC-2-15② · F-2-4 红线):
@@ -60,6 +90,26 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
                 throw new ArgumentException(
                     $"NEAR_CLIP({NearClip}) ≤ CAM_MIN_DIST − CAM_RADIUS({CamMinDist - CamRadius}) 不成立 —— " +
                     "相机贴到 CAM_MIN_DIST 时会**自己切进几何体**(表现为「贴墙时墙被剖开」)。");
+        }
+
+        /// <summary>
+        /// 臂长装载期守卫(AC-2-25④):`ARM_LEN > 0`(= 0 即实质第一人称,**平面模式禁用**)。
+        /// 🔴 **2026-10-03 评审修复(B4)**:初版无任何装载期守卫,测试只对**夹具字面量**自证。
+        /// </summary>
+        /// <exception cref="ArgumentException">`ARM_LEN ≤ 0` ⇒ 抛。</exception>
+        public void ValidateArmLen()
+        {
+            if (!(ArmLen > 0f))
+                throw new ArgumentException(
+                    $"ARM_LEN({ArmLen}) 须 > 0(= 0 即实质第一人称,平面模式禁用 —— F-2-3 失效模式;AC-2-25④)。");
+        }
+
+        /// <summary>装载期全量校验(AC-2-15② + AC-2-25④ 的单一入口)。</summary>
+        public void ValidateAll()
+        {
+            ValidateNearClipChain();
+            ValidateCollideMask();
+            ValidateArmLen();
         }
     }
 
@@ -117,12 +167,21 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         public Vector3 ViewDir(in YawBasis basis, float pitchDeg)
         {
             float pitchRad = pitchDeg * Mathf.Deg2Rad;
-            // ê_back = −f̂(相机在锚后方);俯角使视线向下
+            // ê_back = −f̂(相机在锚后方)
             Vector3 back = -basis.Fwd;
+            // 🔴 **2026-10-03 评审修复(B2)**:GDD F-2-3 订正② 钉死 `ê_view = R(yaw,pitch) × ê_back`,
+            //    R = 先绕世界 +Y 转 yaw,再绕**该局部右轴** `r̂` 转 pitch。
+            //    按 Rodrigues:v_rot = v·cosθ + (k × v)·sinθ,其中 k = r̂,v = ê_back = −f̂
+            //    (r̂ ⟂ ê_back ⇒ k·v = 0,故无第三项)。
+            //    k × v = r̂ × (−f̂) = +ŷ(对任意 yaw 恒成立:f̂ ⟂ r̂ 且两者皆水平)
+            //    ⇒ ê_view = ê_back·cosθ + ŷ·sinθ ⇒ **y 分量 = +sinθ**
+            //    (正 pitch = 俯 ⇒ 相机在肩**上方**,与 003 的 `GetCameraPosition` 的 +sinPitch 一致)。
+            //    初版写 `back·cos − up·sin` ⇒ y = −sinθ,**符号反转**(相机移到肩下方),
+            //    且 `r̂` 声明后未用 —— 恰说明没有真的「绕局部右轴」转。现改为逐字 Rodrigues。
             Vector3 right = basis.Right;
-            // 绕局部右轴转 pitch(正 = 俯 ⇒ 视线向下)
-            Vector3 dir = back * Mathf.Cos(pitchRad) - Vector3.up * Mathf.Sin(pitchRad);
-            return dir.normalized;
+            Vector3 rotated = (back * Mathf.Cos(pitchRad))
+                            + (Vector3.Cross(right, back) * Mathf.Sin(pitchRad));
+            return rotated.normalized;
         }
 
         /// <summary>
@@ -133,19 +192,22 @@ namespace DaYiJingCheng.Gameplay.Presentation.Camera
         /// <param name="dt">表现态帧时长。</param>
         public void Step(Vector3 shoulder, Vector3 viewDir, float dt)
         {
-            // ① d_raw:SphereCast(未命中 ⇒ ARM_LEN;起点重叠 false ⇒ CAM_MIN_DIST 回退)
+            // ① d_raw:SphereCast(未命中 ⇒ ARM_LEN;起点重叠 ⇒ CAM_MIN_DIST 回退)
             var (hit, dist) = _query.Cast(shoulder, viewDir, _p.CamRadius, _p.ArmLen);
-            // ⚠️ **2026-10-03:GDD 此处有一处歧义(登记)** ——
-            //    F-2-4 公式写「未命中 ⇒ `d_raw := ARM_LEN`」,又写「起点重叠(false)⇒
-            //    `d_raw := CAM_MIN_DIST`」;但 Unity 的 `SphereCast` 在**两种情形下都返回
-            //    `false`**,且 `distance` 在 false 时**未定义**(实测常为 0)
-            //    ⇒ **调用方无法从返回值区分二者**。
-            //    ⇒ 取**保守语义**:`false` ⇒ 一律回退 `CAM_MIN_DIST`(绝不穿模;
-            //    代价 = 真未命中时臂长为最短而非 `ARM_LEN`,但那要求「球半径内完全无几何」,
-            //    在开放世界中极罕见,且保守方向是**安全**的)。
-            //    ⚠️ 若后续要区分,须改用 `CheckSphere` 预判(多一次查询 ⇒ 与 story 005 的
-            //    「每帧恰一次 SphereCast」义务冲突)⇒ **须另裁**;本批不擅自加查询。
-            float dRaw = hit ? dist : _p.CamMinDist;
+            // 🔴 **2026-10-03 评审修复(B1 · 按用户裁定「按 GDD 主用例改」)**:
+            //    初版写 `false ⇒ CAM_MIN_DIST`,**反转了 GDD F-2-4 的主用例**。
+            //    GDD 主规则(权威):「**未命中 ⇒ `d_raw := ARM_LEN`**」——
+            //    开放世界最常见的情形恰是「背后 4 m 内无墙」⇒ 初版使臂长**每帧塌到
+            //    CAM_MIN_DIST(0.5 m)≈ 实质第一人称**,破坏 ADR-020 §三 越肩取景。
+            //    初版注释称该情形「极罕见」**是事实错误**:`SphereCast` 返回 false 的条件是
+            //    **沿射线无命中**,不是「球体内无几何」。
+            //    ⇒ 现恢复主用例:`false ⇒ ARM_LEN`(远)。
+            //      ⚠️ **起点重叠**(EC-2-1)这一罕见退化**本批不在此处区分** ——
+            //      Unity `SphereCast` 在「起点重叠」与「真未命中」两种情形都返回 `false`,
+            //      调用方**无法从返回值区分**;要区分须 `CheckSphere` 预判(多一次查询 ⇒ 与
+            //      story 005 的「每帧恰一次」义务冲突)⇒ **登记为 spike / 另裁**(评审 B1 的
+            //      「安全一侧」提议);本批只回正主用例,不擅自加查询。
+            float dRaw = hit ? dist : _p.ArmLen;
 
             // ② d_block := clamp(d_raw − CAM_RADIUS, CAM_MIN_DIST, ARM_LEN)
             float dBlock = Mathf.Clamp(dRaw - _p.CamRadius, _p.CamMinDist, _p.ArmLen);

@@ -122,17 +122,30 @@ namespace DaYiJingCheng.Tests.Camera
             Assert.Less(CameraRig.PITCH_MAX, 90f, "PITCH_MAX 应 < 90°");
         }
 
-        // AC-2-10②: 相机对 1 零 public 写入面
+        // AC-2-10②: 相机对系统 1 零 public **写入面**(只读契约)
         [Test]
         public void test_noPublicWriteSurface()
         {
-            // 反射验证 ICameraRig 无 public 方法（只有属性）
+            // 🔴 **2026-10-03 评审修复(B-4/③)**:ICameraRig 依 ADR-020 §Key Interfaces
+            //    补齐 `Mode` / `SetMode` / `Tick` / `Camera` 四成员 ⇒ `SetMode` / `Tick`
+            //    是**命令方法**(意图制请求 + 帧求值入口),故「无任何 public 方法」不再成立。
+            //    本 AC 的**本意**是「系统 1 对相机的**状态 / 变换**零写入面」——
+            //    判据改为:**属性面无 public setter** 且 **无 `Vector3`/变换类写入方法**。
             var interfaceType = typeof(ICameraRig);
+
+            // ① 属性一律只读(无 public setter)
+            foreach (var prop in interfaceType.GetProperties())
+                Assert.IsNull(prop.GetSetMethod(nonPublic: false),
+                    $"ICameraRig.{prop.Name} 不得有 public setter(AC-2-10②)");
+
+            // ② 不得有写入相机的状态/变换方法(SetMode / Tick 是命令入口,不写相机状态)
             foreach (var method in interfaceType.GetMethods())
             {
-                // 属性 getter 是特殊方法，允许
-                if (method.IsSpecialName && method.Name.StartsWith("get_")) continue;
-                Assert.Fail($"ICameraRig 不应有 public 方法: {method.Name}");
+                if (method.IsSpecialName) continue;   // 属性 getter 跳过
+                var n = method.Name;
+                Assert.IsTrue(n == "SetMode" || n == "Tick",
+                    $"ICameraRig 的方法须仅为命令入口 SetMode / Tick(实得 {n});" +
+                    "不得暴露状态 / 变换写入面给系统 1(AC-2-10②)");
             }
         }
 

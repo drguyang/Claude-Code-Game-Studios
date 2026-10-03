@@ -10,6 +10,8 @@
 
 using System;
 using DaYiJingCheng.Gameplay.Presentation.Camera;
+using DaYiJingCheng.Sim.Contracts;
+using DaYiJingCheng.Sim.World;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -17,15 +19,32 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
 {
     public class AnchorFollowOrbitTest
     {
-        private static AnchorFollowConfig Cfg(float omega = 8f, float snap = 50f) =>
-            new AnchorFollowConfig
-            {
-                AnchorResponse = omega,
-                MaxDtMs = 100,              // = WorldLatticeParams.MaxDtMs 的形态(单一来源)
-                TeleportSnapDist = snap,
-                AnchorOvershootEps = 1e-2f,
-                AnchorSpeedMax = 1000f,
-            };
+        /// <summary>合法 K_speed 基准表(含基准地貌 1;与 world_lattice_test 同形)。</summary>
+        private static TerrainSpeedRow[] Table() => new[]
+        {
+            new TerrainSpeedRow(1, Fix.FromRational(3, 2), Fix.FromRational(3, 2)),
+            new TerrainSpeedRow(2, Fix.One, Fix.One),
+            new TerrainSpeedRow(5, Fix.FromRational(4, 3), Fix.One),
+        };
+
+        /// <summary>系统 1 的装载常量(MaxDtMs 的**唯一来源实体**)。</summary>
+        private static WorldLatticeParams Lattice(int maxDtMs = 100) =>
+            new WorldLatticeParams(
+                latticeSizeMm: 20000, speedModeMax: 5, kContextMax: 2,
+                maxDtMs: maxDtMs, safetyMargin: 2, kSpeedTable: Table());
+
+        /// <summary>
+        /// 夹具配置 —— **经单一来源工厂**取 `MaxDtMs`(不再自持字面量)。
+        /// </summary>
+        private static AnchorFollowConfig Cfg(float omega = 8f, float snap = 50f)
+        {
+            var cfg = AnchorFollowConfig.FromWorldLattice(Lattice());
+            cfg.AnchorResponse = omega;
+            cfg.TeleportSnapDist = snap;
+            cfg.AnchorOvershootEps = 1e-2f;
+            cfg.AnchorSpeedMax = 1000f;
+            return cfg;
+        }
 
         // ══════════════ AC-2-11:过冲有界(带容差)══════════════
 
@@ -137,17 +156,45 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
         [Test]
         public void test_ac212b_maxDt_singleSource_notSecondDefinition()
         {
-            // AC-2-12②:MAX_DT 须与系统 1 / 装载常量**同源**,2 不得自定义第二份。
-            // 判据:AnchorFollowConfig 的 MaxDtMs 是**注入值**(非 const 字面量),
-            // 且其语义 = 毫秒(与 WorldLatticeParams.MaxDtMs 同量纲)。
-            var cfg = Cfg();
-            var injected = new AnchorFollowConfig { MaxDtMs = 250 };
-            Assert.AreEqual(250, injected.MaxDtMs, "MaxDtMs 须可注入(单一来源的前提)");
-            Assert.AreNotEqual(cfg.MaxDtMs, injected.MaxDtMs, "不同注入 ⇒ 不同值(非硬编码 const)");
+            // AC-2-12②:MAX_DT 须与系统 1 的装载常量**同源**(读同一实体),2 不得自定义第二份。
+            // 🔴 **2026-10-03 评审修复(B1)**:初版只断言「字段可写 + 两注入互异 + 另一类型有
+            //    int 字段」—— **没有一条能证伪「2 侧自造第二份」**(AC 自陈的负向夹具会通过)。
+            //    现判据分三面:
+
+            // ① **真来源面**:装载常量改值 ⇒ 2 侧消费值**随动**(同源 = 读同一实体)
+            var cfg100 = AnchorFollowConfig.FromWorldLattice(Lattice(maxDtMs: 100));
+            var cfg150 = AnchorFollowConfig.FromWorldLattice(Lattice(maxDtMs: 150));
+            Assert.AreEqual(100, cfg100.MaxDtMs, "须读系统 1 的 MaxDtMs(100)");
+            Assert.AreEqual(150, cfg150.MaxDtMs,
+                "装载常量改值 ⇒ 2 侧消费值须**随动**(单一来源的机械含义:读同一实体)");
+            Assert.AreNotEqual(cfg100.MaxDtMs, cfg150.MaxDtMs, "不同装载 ⇒ 不同值(非同源则恒同)");
+
+            // ② **消费点真读该字段**:钳位行为随装载常量变化
+            //    (若实现改读数第二份常量,下面两行的位移预算会与装载值脱钩 ⇒ 红)
+            cfg100.TeleportSnapDist = 1e6f; cfg100.AnchorSpeedMax = 1000f;
+            cfg150.TeleportSnapDist = 1e6f; cfg150.AnchorSpeedMax = 1000f;
+            var f100 = new AnchorFollower(cfg100);
+            var f150 = new AnchorFollower(cfg150);
+            var target = new Vector3(100f, 0f, 0f);
+            f100.Step(target, dtSeconds: 10f);
+            f150.Step(target, dtSeconds: 10f);
+            Assert.Greater(f150.Anchor.magnitude, f100.Anchor.magnitude,
+                "消费值须真来自装载常量:MaxDtMs 大 ⇒ 单帧位移预算大(若为第二份常量则两者相同 ⇒ 红)");
+
+            // ③ **负向夹具(反空转)**:`AnchorFollowConfig` 内**不得**存在 `MAX_DT` 的
+            //    **数值字面量默认**(复制值形态 —— GDD 组 6 点名的静默失配)。
+            string src = System.IO.Path.Combine(Application.dataPath,
+                "Gameplay.Presentation", "Camera", "AnchorFollower.cs");
+            string code = System.Text.RegularExpressions.Regex.Replace(
+                System.IO.File.ReadAllText(src), @"//.*?$", "",
+                System.Text.RegularExpressions.RegexOptions.Multiline);
+            Assert.IsFalse(
+                System.Text.RegularExpressions.Regex.IsMatch(code, @"MaxDtMs\s*=\s*\d"),
+                "AnchorFollowConfig 内不得有 MaxDtMs 的字面量默认(2 侧第二份常量);" +
+                "唯一装载路径 = FromWorldLattice(WorldLatticeParams.MaxDtMs)");
 
             // 机械前提:WorldLatticeParams.MaxDtMs 存在且为 int 毫秒(同量纲)
-            var f = typeof(DaYiJingCheng.Sim.World.WorldLatticeParams)
-                .GetField("MaxDtMs");
+            var f = typeof(WorldLatticeParams).GetField("MaxDtMs");
             Assert.IsNotNull(f, "WorldLatticeParams.MaxDtMs 须存在(单一装载常量)");
             Assert.AreEqual(typeof(int), f.FieldType, "MAX_DT 为 int(毫秒)");
         }
@@ -162,8 +209,10 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
             var go = new GameObject("rigOrbit");
             var rig = go.AddComponent<CameraRig>();
 
-            // 压到底
-            for (int i = 0; i < 100; i++) rig.ApplyOrbit(lookX: 0f, lookY: 100f, dtSeconds: 1f / 60f);
+            const float Dt = 1f / 60f;
+
+            // 压到底(经 GDD 式 lookY × SENS_Y × dt;默认 pitch=30 ⇒ 需足够帧数到 PITCH_MAX)
+            for (int i = 0; i < 400; i++) rig.ApplyOrbit(lookX: 0f, lookY: 100f, dtSeconds: Dt);
             Assert.AreEqual(CameraRig.PITCH_MAX, rig.Pitch, 1e-3f, "pitch 须压到 PITCH_MAX");
 
             float yawBefore = rig.Yaw;
@@ -171,12 +220,16 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
             const int N = 10;
 
             // pitch 已钳死,继续施压 + 施加 yaw
-            for (int i = 0; i < N; i++) rig.ApplyOrbit(lookX: Dx, lookY: 100f, dtSeconds: 1f / 60f);
+            for (int i = 0; i < N; i++) rig.ApplyOrbit(lookX: Dx, lookY: 100f, dtSeconds: Dt);
             float yawAfter = rig.Yaw;
 
-            // 净 yaw 变化 = Dx × N(回绕已由 UpdateYaw 处理;此处增量小,不回绕)
-            Assert.AreEqual(Dx * N, yawAfter - yawBefore, CameraRig.YAW_BASIS_EPS,
-                "pitch 触界被钳后 yaw 须**照常累积**(AC-2-13 解耦)");
+            // 🔴 **2026-10-03 评审修复(A1)**:期望值须**由规格推导** ——
+            //    GDD F-2-2 输入侧式 `yaw += Look.x × SENS × dt`;初版期望 `Dx × N`
+            //    恰好等于「丢弃 dt 与 SENS」的实现 ⇒ **把非规格实现钉死**
+            //    (按规格补回 dt/SENS 后该测反而变红)。
+            float expected = Dx * CameraRig.LOOK_SENS_X * Dt * N;
+            Assert.AreEqual(expected, yawAfter - yawBefore, CameraRig.YAW_BASIS_EPS,
+                "pitch 触界被钳后 yaw 须**照常累积**且 = Look.x × SENS × dt × N(AC-2-13 解耦, 规格式)");
 
             UnityEngine.Object.DestroyImmediate(go);
         }

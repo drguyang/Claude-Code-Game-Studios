@@ -23,7 +23,9 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
             {
                 ArmLen = arm, ShoulderLateral = 0.6f, ShoulderHeight = 1.5f, FovV = 60f,
                 CamRadius = radius, CamMinDist = minDist, NearClip = 0.1f,
-                RecoverSpeed = recover, CamCollideMask = 0b1010,
+                RecoverSpeed = recover,
+                // ⚠️ 掩码**不在此硬编码** —— 取生产默认(登记白名单),避免「夹具字面量自证」。
+                CamCollideMask = CameraArmParams.DefaultCollideMask,
             };
 
         private static YawBasis Basis(float yaw = 0f)
@@ -141,18 +143,34 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
         [Test]
         public void test_ac215a_maskEqualsWhitelist_notSuperset()
         {
-            // ⚠️ 判据 = **相等**,非包含 ——
-            //    「不含角色层」与「不含任何层」都能通过「不含角色层」⇒ 后者会让相机**永不收缩**(穿墙)。
+            // ⚠️ 判据 = **相等**,非包含;且期望值须自**登记处**取,不得另写字面量。
+            // 🔴 **2026-10-03 评审修复(B3)**:初版用 `P()`(工厂内硬编码 0b1010)比同级字面量
+            //    0b1010 ⇒ **夹具字面量自证**,从未读生产值;且生产默认恰为 `0`(空掩码 =
+            //    该 AC 要防的穿墙形态),测试因工厂覆写而永远看不到它。
+            //    现:① 期望取**登记常量**;② 断言**生产默认**(未覆写)即合法;
+            //    ③ 补**两个真负夹具**(空掩码 / 含角色层)证明守卫可证伪。
             var p = P();
-            const int ExpectedWhitelist = 0b1010;   // 静态世界几何 + 建造物(层名归项目设置)
-            const int CharacterLayerMask = 0b0101;  // 玩家/病人/敌人/触发体
-
-            Assert.AreEqual(ExpectedWhitelist, p.CamCollideMask,
-                "掩码须**恰好等于**白名单(AC-2-15①)");
-            Assert.AreEqual(0, p.CamCollideMask & CharacterLayerMask,
-                "掩码不得含角色层(否则贴墙时相机把玩家顶穿画面)");
+            Assert.AreEqual(CameraArmParams.DefaultCollideMask, p.CamCollideMask,
+                "掩码须**恰好等于**登记白名单(AC-2-15①;期望取自登记处,非夹具字面量)");
+            Assert.AreEqual(0, p.CamCollideMask & CameraArmParams.CharacterLayerMask,
+                "掩码不得含角色层(否则贴墙时相机把玩家顶穿画面;EC-2-2)");
             Assert.AreNotEqual(0, p.CamCollideMask,
                 "掩码**不得为空**(空掩码 ⇒ 永不收缩 ⇒ 穿墙)");
+
+            // ① 生产默认(未经夹具覆写)须通过守卫 —— 厂默认即违例形态的回归
+            new CameraArmParams().ValidateCollideMask();
+
+            // ② 负向夹具:空掩码 ⇒ 红
+            var empty = P(); empty.CamCollideMask = 0;
+            var exEmpty = Assert.Throws<ArgumentException>(() => empty.ValidateCollideMask());
+            StringAssert.Contains("空", exEmpty.Message, "空掩码须点名诊断");
+
+            // ③ 负向夹具:含角色层 ⇒ 红
+            var withChar = P();
+            withChar.CamCollideMask = CameraArmParams.DefaultCollideMask |
+                                      CameraArmParams.CharacterLayerMask;
+            Assert.Throws<ArgumentException>(() => withChar.ValidateCollideMask(),
+                "含角色层须红(AC-2-15① 的负向夹具)");
         }
 
         [Test]
@@ -309,15 +327,6 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
         }
 
         [Test]
-        public void test_ac225d_armLenPositive_planeNotFirstPerson()
-        {
-            // ARM_LEN > 0(= 0 即实质第一人称,**平面禁用** —— F-2-3 失效模式)
-            var p = P();
-            Assert.Greater(p.ArmLen, 0f,
-                "ARM_LEN 须 > 0(AC-2-25④;= 0 即实质第一人称,平面模式禁用)");
-        }
-
-        [Test]
         public void test_ac225c_orderingRelations()
         {
             // 序关系(**非数值断言**):ARM_LEN_TREATMENT < ARM_LEN_EXPLORE ∧
@@ -336,19 +345,101 @@ namespace DaYiJingCheng.Tests.CameraViewpoint
                           "AC-2-21(EXTERNAL)覆盖「取值是否存在」;不借绿");
         }
 
-        // ══════════════ EC-2-1:起点重叠 ⇒ CAM_MIN_DIST 回退(不穿模)══════════════
+        // ══════════════ F-2-4 未命中语义:false ⇒ ARM_LEN(GDD 主用例)══════════════
 
         [Test]
-        public void test_ec21_originOverlap_fallsBackToMinDist()
+        public void test_f24_miss_returnsArmLen_openWorldNoOcclusion()
         {
-            // ⚠️ Unity `SphereCast` 契约:起点球与碰撞体重叠 ⇒ 返回 **false 且 distance = 0**。
-            //    不处理则医馆墙角**直接穿模** ⇒ 回退形态 = `d_raw := CAM_MIN_DIST`(贴到最近,不穿墙)。
-            var q = new FakeQuery { Hit = false, Distance = 0f };   // 重叠形态(false ⇒ 保守回退)
-            var s = new CameraArmSolver(P(minDist: 0.5f), q);
+            // 🔴 **2026-10-03 评审修复(B1 · 用户裁定「按 GDD 主用例改」)**:
+            //    GDD F-2-4 主规则 = 「**未命中 ⇒ d_raw := ARM_LEN**」。
+            //    开放世界最常见情形(背后 4 m 内无墙)⇒ SphereCast 返回 false ⇒ 臂长须为 **ARM_LEN**(远),
+            //    而非初版的 CAM_MIN_DIST(0.5 m,≈ 贴脸第一人称,破坏 ADR-020 §三 越肩)。
+            var q = new FakeQuery { Hit = false, Distance = 0f };
+            var s = new CameraArmSolver(P(arm: 4f), q);
             s.Step(Vector3.zero, Vector3.forward, 1f / 60f);
 
-            Assert.AreEqual(0.5f, s.CurrentDistance, 1e-5f,
-                "起点重叠(false + distance=0)⇒ 回退 CAM_MIN_DIST(EC-2-1;不穿模)");
+            // d_raw := ARM_LEN(4.0)⇒ d_block = clamp(4.0 − CAM_RADIUS(0.3), 0.5, 4) = 3.7
+            Assert.AreEqual(3.7f, s.CurrentDistance, 1e-5f,
+                "未命中 ⇒ d_raw := ARM_LEN ⇒ d_block = ARM_LEN − CAM_RADIUS(GDD F-2-4 主用例;" +
+                "≠ CAM_MIN_DIST ⇒ 开放世界无遮挡时不塌成贴脸)");
+            Assert.Greater(s.CurrentDistance, 1f,
+                "未命中须给**远**臂长(初版 false ⇒ CAM_MIN_DIST 的回归守卫)");
+        }
+
+        [Test]
+        public void test_f24_missThenHit_retractsToBlockedDistance()
+        {
+            // 未命中(臂伸满)后遇到几何 ⇒ 单帧收缩到 d_block(证明 false 不是被当作「贴到最近」)
+            var q = new FakeQuery { Hit = false, Distance = 0f };
+            var s = new CameraArmSolver(P(arm: 4f), q);
+            s.Step(Vector3.zero, Vector3.forward, 1f / 60f);
+            Assert.AreEqual(3.7f, s.CurrentDistance, 1e-5f, "先:未命中 ⇒ ARM_LEN − CAM_RADIUS");
+
+            q.Hit = true; q.Distance = 1.0f;   // 遮挡出现
+            s.Step(Vector3.zero, Vector3.forward, 1f / 60f);
+            Assert.AreEqual(0.7f, s.CurrentDistance, 1e-5f,   // clamp(1.0−0.3, 0.5, 4)
+                "后:命中 1.0 ⇒ 单帧收缩到 d_block(false 路径不得干扰命中路径)");
+        }
+
+        // ══════════════ F-2-3 订正②:ê_view 手性(R(yaw,pitch),绕局部右轴)══════════════
+
+        [Test]
+        public void test_ac225_viewDir_matchesRodrigues_positivePitch()
+        {
+            // 🔴 **2026-10-03 评审修复(B2)**:GDD F-2-3 订正② 钉死 ê_view = R(yaw,pitch)×ê_back,
+            //    R = 绕世界 +Y 转 yaw 后绕**局部右轴**转 pitch;正 pitch = 俯 ⇒ ê_view.y = +sinθ
+            //    (与 003 的 GetCameraPosition 的 +sinPitch 一致)。初版符号相反(y = −sinθ)。
+            var basis = Basis(0f);          // yaw=0 ⇒ f̂=(0,0,1), r̂=(1,0,0)
+            var s = new CameraArmSolver(P(), new FakeQuery());
+
+            var v0 = s.ViewDir(basis, 0f);
+            Assert.AreEqual(0f, v0.y, 1e-6f, "pitch=0 ⇒ 水平(零参考)");
+            Assert.AreEqual(-1f, v0.z, 1e-6f, "ê_view 与 f̂ 反向(z:−cos0=−1)");
+
+            var v30 = s.ViewDir(basis, 30f);
+            float sin30 = Mathf.Sin(30f * Mathf.Deg2Rad);
+            float cos30 = Mathf.Cos(30f * Mathf.Deg2Rad);
+            Assert.AreEqual(sin30, v30.y, 1e-6f,
+                "正 pitch(俯)⇒ ê_view.y = +sinθ(GDD 构造;初版 −sinθ = 相机移到肩下方,B2)");
+            Assert.AreEqual(-cos30, v30.z, 1e-6f, "ê_view.z = −cosθ");
+            Assert.AreEqual(0f, v30.x, 1e-6f, "yaw=0 ⇒ x 分量 0");
+
+            // 负 pitch(仰)⇒ y 为负(仰望天空)
+            var vNeg = s.ViewDir(basis, -30f);
+            Assert.Less(vNeg.y, 0f, "负 pitch(仰)⇒ ê_view.y < 0");
+        }
+
+        [Test]
+        public void test_ac225_viewDir_handnessUnderYaw_rotatesWithLocalRightAxis()
+        {
+            // 换 yaw ⇒ 视线须**绕世界 +Y** 随之旋转(而非仅翻转 x/z),且恒为单位向量、y 只由 pitch 定
+            var s = new CameraArmSolver(P(), new FakeQuery());
+            foreach (var yaw in new[] { 0f, Mathf.PI / 3f, Mathf.PI, 4f * Mathf.PI / 3f })
+            {
+                var v = s.ViewDir(Basis(yaw), 25f);
+                Assert.AreEqual(1f, v.magnitude, 1e-5f, $"ê_view 须为单位向量(yaw={yaw})");
+                float expectedY = Mathf.Sin(25f * Mathf.Deg2Rad);
+                Assert.AreEqual(expectedY, v.y, 1e-5f,
+                    $"ê_view.y 只由 pitch 定,与 yaw 无关(yaw={yaw})");
+            }
+        }
+
+        // ══════════════ AC-2-25④:ARM_LEN > 0 装载期守卫(B4)══════════════
+
+        [Test]
+        public void test_ac225d_armLenPositive_planeNotFirstPerson()
+        {
+            // ARM_LEN > 0(= 0 即实质第一人称,平面禁用 —— F-2-3 失效模式)
+            // 🔴 **2026-10-03 评审修复(B4)**:初版只对**夹具字面量**自证;现断言**生产默认**
+            //    经装载期守卫,且**负向夹具**(ARM_LEN = 0)必红。
+            new CameraArmParams().ValidateArmLen();   // 生产默认须合法
+
+            var zero = P(arm: 0f);
+            Assert.Throws<ArgumentException>(() => zero.ValidateArmLen(),
+                "ARM_LEN = 0 ⇒ 装载期守卫须拒(AC-2-25④ 的负夹具)");
+
+            var neg = P(arm: -1f);
+            Assert.Throws<ArgumentException>(() => neg.ValidateArmLen(), "ARM_LEN < 0 同样非法");
         }
     }
 }
