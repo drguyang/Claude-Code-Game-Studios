@@ -4,7 +4,7 @@
 > **Category**: UI Screen
 > **Source**: hud.md §主菜单, art-bible §2, game-concept.md
 > **Art Bible Ref**: §2 菜单/存档位卷宗动画（卷宗/账本形态）; §1 P2「纸面正文对比承诺 ≥7:1」
-> **ADR Ref**: ADR-013 §三（UI Toolkit 主栈）; ADR-013 §十（ModalId.MainMenu 闭集—— 待定）
+> **ADR Ref**: ADR-013 §三（UI Toolkit 主栈）; **ADR-023 §一（主菜单 = 独立场景,非模态 —— 不入 `ModalId` 闭集）**
 
 ---
 

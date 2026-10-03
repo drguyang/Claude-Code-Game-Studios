@@ -2,7 +2,7 @@
 
 > **Tier**: Vertical Slice Critical
 > **Category**: HUD Element / Diagnostic Alert
-> **Source**: hud.md §Dynamic
+> **Source**: hud.md §Dynamic Behaviors
 > **Art Bible Ref**: §7.2 黄 brass 侧主导（体征异常脉冲 = 铜器边缘泛红）; §1 P3「黄 brass 必须有来历」
 > **ADR Ref**: ADR-013 §三（UI Toolkit 主栈）; ADR-018 §六（镜头效果归属 = 8 语义 + 2 实现，全禁闪烁 / 抖动）
 

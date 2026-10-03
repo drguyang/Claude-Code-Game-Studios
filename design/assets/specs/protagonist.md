@@ -2,7 +2,7 @@
 
 > **Tier**: Vertical Slice Critical
 > **Category**: Character / Player Avatar
-> **Source**: game-concept.md, systems-index #1, hud.md §Dynamic
+> **Source**: game-concept.md, systems-index #1, hud.md §Dynamic Behaviors
 > **Art Bible Ref**: §5「清末民初医师装束，布衣 + 布鞋 + 药囊」; §1 P1「水墨 + 黄铜双轨」
 > **ADR Ref**: ADR-020（玩家控制器 CharacterController + 自建机位）; ADR-016 §三（玩家位移 = 连续态，跨格写世界流事件）
 

@@ -25,7 +25,7 @@
 |---|------|------|
 | 1 | CLAUDE.md 技术栈非 `[CHOOSE]` | ✅ Unity 6.3 LTS / URP / OpenXR |
 | 2 | `.claude/docs/technical-preferences.md` 已填 | ✅（含 20 Hz / CAP 24 / DOTS 门 / 命名约定 / 性能预算） |
-| 3 | `design/art/art-bible.md` §1–4 | ✅ 1113 行，9 节全部成稿 |
+| 3 | `design/art/art-bible.md` §1–4 | ✅ 1113 行(门时读数)，9 节全部成稿<br>⚠️ **2026-10-03 订正**:此为**门当日的行数快照**;该件此后历经 §8 补写(2026-09-29)、§8.10(2026-09-30)、§8.11(2026-10-03),**现行 1254 行 / §1–11**。门判据基于 1113 行,不追改 —— 但引用该行数者须改用现值 |
 | 4 | ≥3 ADR 覆盖 Foundation | ✅ **25 份** ADR 全部 Accepted |
 | 5 | `docs/engine-reference/unity/` | ✅ VERSION + breaking-changes + deprecated-apis + modules/ |
 | 6 | `tests/unit/` + `tests/integration/` | ✅ 存在 |

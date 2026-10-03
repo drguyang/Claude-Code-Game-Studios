@@ -1,9 +1,11 @@
 # Visual Entity & Screen Inventory
 
 > **Generated**: 2026-09-29
-> **Updated**: 2026-09-29 (spec file references) → 2026-09-29 晚 (计数全面重算 + 敌人独立成类)
-> **Specs Directory**: `design/assets/specs/` (17 spec files; VS Critical 层覆盖全部需出图资产)
-> **Sources**: systems-index.md (54 systems), game-concept.md, art-bible.md (1113 lines), hud.md, 7 UX screen specs, interaction-patterns.md, audio-system.md, combat-and-weapon-lines.md, item-database.md, enemy-ai.md, patient-ai.md, foraging.md, emergency-procedures.md, diagnosis-system.md, prescription-and-medication.md, modular-building.md, clinic-machine.md, world-and-ecozones.md, random-events.md, death-and-respawn.md, case-system.md, skill-system.md, persistence-service.md, telemetry-analytics.md
+> **Updated**: 2026-09-29 (spec file references) → 2026-09-29 晚 (计数全面重算 + 敌人独立成类) → **2026-10-03 (spec 计数 / 行数 / 系统数勘误)**
+> **Specs Directory**: `design/assets/specs/` (**19 spec files** —— 磁盘实测:14 VS Critical + 5 Full Production;
+>   ⚠️ 2026-10-03 订正:原文记 17,与磁盘不符。两份 FP 孤儿 spec `audio-material-manifest.md` / `main-menu.md` 此前未被本索引收录)
+> **Sources**: systems-index.md (**53 systems**), game-concept.md, art-bible.md (**1254 lines**), hud.md, 7 UX screen specs, interaction-patterns.md, audio-system.md, combat-and-weapon-lines.md, item-database.md, enemy-ai.md, patient-ai.md, foraging.md, emergency-procedures.md, diagnosis-system.md, prescription-and-medication.md, modular-building.md, clinic-machine.md, world-and-ecozones.md, random-events.md, death-and-respawn.md, case-system.md, skill-system.md, persistence-service.md, telemetry-analytics.md
+> ⚠️ **2026-10-03 勘误**:上两处数字原记 `54 systems` 与 `1113 lines` —— 分别与 `game-concept.md:757` / `systems-index.md:28`(53)及磁盘实测(1254)不符。
 
 ---
 
@@ -56,13 +58,13 @@
 
 | # | Element | Description | Source |
 |---|--------|-------------|--------|
-| 1 | 脉案纸页展开 | 诊断态常驻，占屏中央偏上，0.3s 书页展开 | hud.md §1, hud.md §Dynamic |
+| 1 | 脉案纸页展开 | 诊断态常驻，占屏中央偏上，0.3s 书页展开 | hud.md §1, hud.md §Dynamic Behaviors |
 | 2 | 诊脉台刻度盘 | 铜器三指寸/关/尺，指针偏转 | hud.md §2, diagnosis-system V-8.0 |
 | 3 | 呼吸波形纸带 | 两纹滚动（通带 + 噪声底） | hud.md §2, audio-system.md F-44.7 |
 | 4 | 舌象色卡 | 纸面色块比对，非数字 | hud.md §2, diagnosis-system.md |
 | 5 | 出诊箱抽屉展开 | 实物格子 + 铜筹计数，0.25s | hud.md §3 |
-| 6 | 体征异常脉冲 | 铜器边缘泛红 0.5s，非闪烁 | hud.md §Dynamic |
-| 7 | 墨迹落笔 | 诊结论落笔瞬间墨迹飞溅 | hud.md §1, art-bible §8.7 |
+| 6 | 体征异常脉冲 | 铜器边缘泛红 0.5s，非闪烁 | hud.md §Dynamic Behaviors |
+| 7 | 墨迹落笔 | 诊结论落笔瞬间墨迹飞溅 | hud.md §1, art-bible §8.6.2 |
 | 8 | 焦点高亮（黄铜边框 2px） | **非物品** —— 焦点导航的视觉呈现，全案共用单一样式 | art-bible §3.3 / §7.4, ADR-013 |
 
 > **2026-09-29 修正**：焦点高亮原先写在表**下面**、未编号、未计入 Summary ——
@@ -96,7 +98,7 @@
 | 1 | 水墨晕染 | 诊断态纸面背景，墨侧材质 | art-bible §1 |
 | 2 | 黄铜反光 | 急救器械盘，铜侧反射 | art-bible §1 |
 | 3 | 呼吸波形滚动 | 纸带 VFX，两纹驱动 | hud.md §2, audio-system.md |
-| 4 | 病历落笔墨迹 | 脉案书写，墨迹飞溅 | hud.md §1, art-bible §8.7 |
+| 4 | 病历落笔墨迹 | 脉案书写，墨迹飞溅 | hud.md §1, art-bible §8.6.2 |
 | 5 | 病人状态变化 | 面色/姿态骤变 | patient-ai.md |
 | 6 | 急救止血包扎 VFX | 止血处理视觉反馈 | emergency-procedures.md |
 | 7 | CPR 节律视觉反馈 | 按压节律视觉 | emergency-procedures.md |
@@ -146,7 +148,7 @@
 | 5 | 药柜 / 抽屉 |  modular-building.md, clinic-machine.md |
 | 6 | 铜压尺（存档位视觉） |  art-bible §2 |
 | 7 | 印泥盒 |  art-bible §2 |
-| 8 | 教学纸近景（PaperCloseup48） | 纸页放大，手写批注 | paper-closeup-48.md, ADR-013 Amendment B |
+| 8 | ~~教学纸近景（PaperCloseup48）~~ **删 —— 重复计数** | ⚠️ **2026-10-03**:本项与 **HUD #4** 是**同一资产**,列两遍 ⇒ 本小节实数 **7**(非 8)。归属见 HUD 侧 | paper-closeup-48.md, ADR-013 §十 ⑦ |
 
 ### Items (4)
 
@@ -168,14 +170,17 @@
 | 5 | 教学界面（调度壳） | ModalId.Tutorial | tutorial-48.md |
 | 6 | 医馆面板（案头账本） | ModalId.ClinicPanel | clinic-panel-24.md |
 
-### HUD Elements (8 additional)
+### HUD Elements (7 additional)
+
+> ⚠️ **2026-10-03**:原标 8,其中 **#4 = 教学纸近景** 与 `Props` 侧 #8 **同资产重复计数**。
+> 归属**定为 HUD 侧**(它是「呈现元件」而非「场景道具」—— 由 `hud.md §6` 承载,且 `ModalId.PaperCloseup48` 属模态呈现),`Props` 侧已划线删除。
 
 | # | Element | Description | Source |
 |---|--------|-------------|--------|
 | 1 | 纸质地图 | 世界态常驻右下，卷轴展开 0.3s | hud.md §4 |
 | 2 | 怀表 | 世界态常驻左上，铜怀表指针 = 时辰 | hud.md §5 |
 | 3 | 窗景天气 | 世界态常驻右上，纸窗透光 = 晴/阴/雨 | hud.md §5 |
-| 4 | 教学纸近景 | 世界内单纸阅读，占屏 60% | hud.md §6, paper-closeup-48.md |
+| 4 | 教学纸近景 | ⚠️ **独占全屏模态**(非「世界内单纸」—— 原描述与 `paper-closeup-48.md:22/:71` / `hud.md:39` 冲突,待裁 I-3) | hud.md §6, paper-closeup-48.md |
 | 5 | 快捷道具栏 | 世界态底栏，快捷药材/工具 | hud.md Layout |
 | 6 | 存档卷轴封条 | 存档位视觉元素 | hud.md, save-slots-7b.md |
 | 7 | 敌人黄铜读数条 | 全作唯一贴屏数值反馈 | combat-and-weapon-lines.md, art-bible §1P3/§7.6 |
@@ -241,16 +246,19 @@
 |----------|------------------------|-----------------|-------|
 | Characters | 2 | 2 | 4 |
 | Enemies | — | 3 | 3 |
-| Props | 6 | 8 | 14 |
+| Props | 6 | 7 | 13 |
 | Buildings/Environment | 1 | 5 | 6 |
 | Items | 6 | 4 | 10 |
 | UI Screens | 1 | 6 | 7 |
-| HUD Elements | 8 | 8 | 16 |
+| HUD Elements | 8 | 7 | 15 |
 | Music Cues | 0 | 8 | 8 |
 | SFX | 10 | 10 | 20 |
 | Ambient | 1 | 3 | 4 |
 | VFX Events | 7 | 6 | 13 |
-| **Total** | **42** | **63** | **105** |
+| **Total** | **42** | **61** | **103** |
+
+> ⚠️ **2026-10-03 二次订正**:上表 FP 列 **Props 8→7 / HUD 8→7**(教学纸近景同资产重复计数,归属定 HUD),
+> ⇒ FP **63 → 61**、Total **105 → 103**。VS 列 42 不受影响。
 
 ## Spec Files Index
 
@@ -278,12 +286,21 @@
 > 原标 `Tier: Vertical Slice Critical`，但对应资产在本清单里位于 **Full Production** 节
 > （Props #1 / #2 / #8）。三份 spec 的头部 Tier 已同步改为 Full Production。
 
-**Spec coverage**: 17 spec files. VS Critical 层 **15 个 spec 覆盖全部需出图资产**；
-另 2 个（呼吸波形纸带 / 舌象色卡等纯呈现元件）无需独立贴图。
+**Spec coverage**(**2026-10-03 订正**): 磁盘实测 **19 份 spec** = **14 VS Critical** + **5 Full Production**
+(`audio-material-manifest` · `main-menu` · 及三份原标 VS 后改 FP 者);VS Critical 层覆盖全部需出图资产。
+⚠️ 原文记「17 spec files / 15 个 spec」两值并列,**均与磁盘不符**;
+「另 2 个(呼吸波形纸带 / 舌象色卡)无需独立贴图」一句**概念混淆** ——
+那两项是**42 项内的呈现元件**,与 `specs/` 目录的文件数**不是一回事**(两者已分别有 spec)。
 
 **Key constraints**:
-- 纸面 (Paper) is the dominant visual vocabulary — 6 of 42 VS Critical items are paper-based
-- 黄铜 (Brass) is the dominant prop vocabulary — 8 brass props, all with 来历 requirement
-- 深海区 = 零铜资产（art-bible §8.6.2）
+- 纸面 (Paper) is the dominant visual vocabulary — **7 of 42** VS Critical items are paper-based
+  (脉案纸页 · 脉案页 · 脉案纸页展开 · 呼吸波形纸带 · 舌象色卡 · 墨迹落笔 · 病历落笔墨迹)。
+  ⚠️ **2026-10-03 订正**:原文记 6,逐条复算为 7(原文未写剔除规则);若剔除「呼吸波形纸带」则为 6
+- 黄铜 (Brass) is the dominant prop vocabulary — 黄铜道具均带**来历**要求。
+  ⚠️ **2026-10-03 订正**:原文记「8 brass props」,**无对应小节小计**(VS 约 5 处 + FP 另 5 处),该数未复算
+- **深山疫区** = 零铜资产（`art-bible §8.6.3` 黄铜/铜锈材质;条款原文见 `art-bible.md:401`）
+  ⚠️ **2026-10-03 订正**:原文作「深海区」并引 §8.6.2 —— 术语与节号**双错**
+  (「深海区」全库仅此 1 处;四生态区正确名为租界城镇/贫民窟/战乱前线/深山疫区,
+  见 `art-bible.md:209-211`;§8.6.2 = 纸面材质,零铜条款属 §8.6.3)
 - 敌人黄铜读数条 is the ONLY allowed "贴屏数值反馈" — protagonist has no HP bar, no minimap, no progress bars
 - 皮肤材质 = 唯一活体裸露，PBR non-metal + high roughness (0.65–0.85) + SSS only on ears/nose

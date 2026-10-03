@@ -258,7 +258,7 @@
 | `papers[]` | `title` | string | 纸名 / 图题;≤2 行(承 paper-closeup-48.md §12) | narrative |
 | `papers[]` | `body` | string | 一句话说明;≤170 字符(承 §12) | narrative |
 | `papers[]` | `aspectRatio` | string | 出版纵横比(近景纸与道具纸一致性判据,承 paper-closeup-48.md §14 OQ-C2) | 48 |
-| `papers[]` | `illustrationKey` | string | 插图素材键(归 art,AB §8.3 UI-纸 1K 档;素材键不随文本走 —— 48 零素材,承 AC-48-02) | art |
+| `papers[]` | `illustrationKey` | string | 插图素材键(归 art,AB **§8.2** UI-纸 1K 档;素材键不随文本走 —— 48 零素材,承 AC-48-02) | art |
 
 **校验规则(构建期硬失败,执行体 = ADR-014 阶段 2)**:
 

@@ -2,10 +2,118 @@
 
 **Project**: 《大医精诚:破晓之剂》
 **Target**: Production
+**Last Updated**: 2026-10-03
 
 ---
 
-## Milestone 1: Pre-Production Complete
+## 一、MVP 是什么(先定义,后分档)
+
+**MVP = P0(垂直切片)**。它不是「demo」,是**核心假设的证伪装置**:
+
+> **核心假设**(`design/gdd/game-concept.md:689`):玩家会认为「**判断 → 施治**」这个医疗循环
+> **本身**就好玩,且「亲手做小游戏」与「跳过用判断结算」两种路径都能带来满足感。
+> 全案唯一「**不知道好不好玩**」的东西就是判断层 —— 加人解决不了(`game-concept.md` §优先级排序原则 1)。
+
+**MVP 的内容面**(`game-concept.md:686` §MVP 定义,8 项):
+判断链(西医诊断)· 两个急救动作 · 处方用药 · 一间固定医馆 + 小改造 · 极简采集 + 炮制 ·
+极简脉案日记 · 格斗线(徒手 + 短兵)· P0 熟练度七项。
+
+**MVP 的系统面**(`design/gdd/systems-index.md:180`):**P0 = 31 个系统**。
+⚠️ **两个数不矛盾** —— 8 项是**内容条目**(玩家看得见的玩法块),31 是**系统条目**
+(承载这些内容的工程件,含 42 拟物 UI / 44 音频 / 7a 持久化 / 51 遥测 / 52 随机事件导演 / 53 医疗后果等
+不直接表现为「一项内容」的地基系统)。
+
+**MVP 的工期基线**:**6-9 个月**(2026-09-14 用户裁定「重算不用,写一个 6-9 就当你重算了」——
+`systems-index.md:190`)。⚠️ 该值按 26 项估,后实为 31 项;**用户已裁定不重算,此即基线**,
+此后任何文档**不得**自行改算此值。
+
+**MVP 明确不做**(`game-concept.md:719`):联机、VR、开放世界、自由建造、时代事件、精神压力、
+辨证与一切中医内容、中药与针灸、装备/商业/公沟/公卫、异步医案 UGC、主机、火器。
+⇒ **MVP 是纯西医切片**:有「**诊断**」(西医,看得清),没有「**辨证**」(中医,看得全)。
+
+---
+
+## 二、里程碑分档(5 个)
+
+> **为什么是 5 个而不是 3 个**(2026-10-03 用户批准):
+> 原三档(M1 Pre-Prod / M2 Vertical Slice / M3 Production)里,**原 M3「Production」是不可判据的过程陈述**
+> (「开发开始了」—— 什么时候算开始?),且 **M2 → MVP 之间隔着两个独立完成面**:
+> **机制面**(31 系统骨架齐,靠代码)→ **内容面**(资产与数值冻结,靠美术 + 数值轮)。
+> 两者的**阻塞源不同、退出条件不同**,合成一个里程碑会让「做完了吗」无法回答。
+> 故拆为 5 个,每个都有**可机械验证**的退出条件。
+
+| # | 里程碑 | 一句话 | 阻塞源 | 当前 |
+|---|--------|--------|--------|------|
+| **M1** | Pre-Production Complete | 架构与生产档齐备,可以开工 | 硬件选型 / spike | 7/9(**未闭 2**:性能预算 · ADR-023 spike) |
+| **M2** | Vertical Slice(**美术待裁**) | **核心循环跑通** —— 机制闭环优先 | 代码 | **Phase 2 = 2/7 系统**(见 §三) |
+| **M3** | Systems Complete | **31 系统机制齐** —— P0 的每一件都在跑 | 代码 + 集成 | 16/31 epic 全 Complete |
+| **M4** | Content Complete | **42 VS Critical 资产 + 数值冻结** —— 能看了 | 美术 + 数值轮 | 0/42(灰盒豁免中) |
+| **M5** | MVP / Release Candidate | 上述合流,可交外部试玩 | 全部 | 未开始 |
+
+> ### ⚠️ **M2 ≠ MVP** —— 这是本次改写最要紧的一条
+>
+> | | M2 Vertical Slice | M5 MVP |
+> |---|---|---|
+> | **验证问题** | 「循环能跑通吗」 | 「循环**好玩**吗」 |
+> | **美术** | **待裁**(灰盒为主 / 是否含最小真资产 — 见 §六) | **42 VS Critical 真资产** |
+> | **系统** | core-loop 子集(7 系统见 §三) | **31 系统全** |
+> | **数值** | 占位可调 | **数值轮冻结** |
+> | **内容** | 1 病人 + 1 诊断 + 1 治疗 | 8 项内容面全 |
+>
+> ⇒ **M2 是 M5 的前置验证,不是 M5 的缩小版。** 任何把 M2 的完成读成「MVP 快好了」的表述都是错的。
+
+---
+
+## 三、M2 Vertical Slice 明细(**美术待裁**)
+
+**Goal**: 1 病人 + 1 诊断 + 1 治疗 —— **机制闭环**,**灰盒美术**,验证核心循环。
+
+**M2 要证的是什么**(此条为本文**主张**,非已裁定 —— 待多专家轮与用户确认):
+「**管道通不通**」(跨格 → 采集 → 诊断 → 处方 → 施治 → 事件流 → 体征变化),
+而非「**好不好看**」。
+⚠️ **但「机制真」是否**足以**替代「贴图真」是开放问题** —— 拟物 UI(纸质感)本身是 pillar,
+若灰盒 UI 会掩盖手感问题,则 M2 的结论失真。见 §六。
+
+> ### ✅ **美术口径已裁(2026-10-03)**
+> 用户裁定:**形态优先** —— M2 只做**创意总监 4 项「呈现契约」**,不做 42 项全真,不做全灰盒。
+> 依据:`art-bible §8.11 Gray-Box Policy`(2026-10-03 补)—— 灰盒**不得用于验证手感与可读性**,
+> 而以下 4 项**全属手感/可读性** ⇒ **必须真做**。
+>
+> | # | 4 项形态件 | 为何不可灰盒 |
+> |---|---|---|
+> | ① | 脉案**线格 / 空行 / 焦点明度轴** | 判断链的**读入形态** —— 无血条无小地图,可读性全靠纸面物理形态 |
+> | ② | 墨**乾湿两态** | 落笔反馈 = 手感本体(§8.11.1 明列「手感不得用灰盒验证」) |
+> | ③ | 急救**零数字 + 可跳过** | 反数值化是 pillar;数字角标会绕开要证的东西 |
+> | ④ | **一条真实状态反馈通道** | playtest 要测「玩家读懂了没有」,灰盒无反馈通道可读 |
+>
+> ⚠️ **①② 的执行前置 = 三族切图先冻结**:①压在**九宫格切图**上,②压在**墨迹 brush** 上。
+> 美术总监裁定(`art-asset-ruling-recommendation-2026-10-03.md` §一):
+> **「纸 / 墨 / 铜」三族的九宫格切图与 atlas 布局须先定稿** ——
+> 切图早错是**全局返工**(牵连全部 USS + atlas,ADR-013 §三),模型晚做只是局部返工。
+> ⇒ **不额外铺贴图**,只把 4 项涉及的那几张切图定稿。
+>
+> 其余(主角 / 病人 / 医馆 / 敌人 / 环境 / 药材 / 手术灯 / 听诊器)**全部灰盒**,
+> 按 §8.11.2 **D1 逐项登记**(清单落本文档,见下)。
+
+**Exit Criteria**(可机械验证):
+- [ ] `interaction-system` 实现(关键路径断点,见 §四)
+- [ ] `patient-ai` → `diagnosis-system` → `case-system` → `prescription-medication` 链至少端到端可跑
+- [ ] PlayMode 集成测试 `unity/Assets/Tests/PlayMode/vertical_slice_test.cs` **零桩方法**
+      (⚠️ 现 **8 个 `Assert.Pass` 桩方法** —— 均为**假绿**:测试恒过但零断言;
+      `grep -c TODO` 因其重复计数而报 14,**以方法数为准**)
+- [ ] ≥1 次**文档化** playtest,报告落 `production/playtests/`
+      (⚠️ 该目录**尚不存在**;`production/qa/` 下零 playtest 记录)
+- [ ] **4 项形态件交付**(① 脉案线格/空行/明度轴 · ② 墨乾湿两态 · ③ 急救零数字+可跳过 ·
+      ④ 一条真实状态反馈通道)—— 承 `art-bible §8.11.1`「手感/可读性不得用灰盒验证」
+- [ ] **「纸/墨/铜」三族切图与 atlas 布局冻结**(①② 的前置;切图早错 = 全局返工)
+- [ ] 其余资产**显式登记为灰盒**(见下 §五),不留「看起来像忘了做」的空白
+      (⚠️ **「§五」为占位** —— 灰盒清单待逐项登记后落,现无此节)
+
+**ETA**: TBD
+
+---
+
+## 四、M1 Pre-Production Complete(保持原档,仅订正计数)
 
 **Goal**: All architecture decisions finalized, production management artifacts in place, first sprint ready to start.
 
@@ -14,6 +122,7 @@
 - [x] All P0 systems have epic directories
 - [x] Sprint 1 plan defined in `production/sprints/sprint-01.md` — committed 1d14107
 - [x] CI EditMode baseline green (921 passed, 0 failed) — 2026-09-29 desktop verified
+      (⚠️ 2026-10-03 实测现行基线 = **2204 total / 2163 passed / 0 failed / 40 skipped / 1 inconclusive**)
 - [x] `UNITY_LICENSE` secret configured — 改用服务账号授权（`UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`），CI workflow 已生成（`.github/workflows/unity-tests.yml`）
 - [x] OQ-1-12 (接地模型) decision recorded — `player-controller-and-movement.md`
 - [x] OQ-10-12 (两动作原型) decision recorded — `emergency-procedures.md`
@@ -22,30 +131,78 @@
 
 **ETA**: TBD
 
+> ⚠️ **M1 未闭的 2 项与 M2 的关系**(待技术侧裁定,见 §六):性能预算未冻结 ⇒ 纹理档位无硬约束反推;
+> ADR-023 spike 未跑 ⇒ 三场景拓扑未实测。二者**是否**为 M2 的硬前置,**尚未裁定**。
+
+**M2 已解锁**(2026-10-03):`sprint-04.md` 原门禁「Phase 1 未收口前不启动 Phase 2」已满足,
+Phase 2 实际进度 = **2/7 系统**(player-controller ✅ · camera-viewpoint ✅ · interaction-system ⬜ 断点 ·
+patient-ai ⬜ · diagnosis-system ⬜ · case-system ⬜ · prescription-medication ⬜)。
+
 ---
 
-## Milestone 2: Vertical Slice
+## 五、M3 / M4 / M5(新增档)
 
-**Goal**: Playable vertical slice demonstrating the full core loop.
+### Milestone 3: Systems Complete
+
+**Goal**: P0 的 **31 个系统机制全部落地** —— 每一件都在跑,能用灰盒资产走完全部路径。
 
 **Exit Criteria**:
-- [ ] Core gameplay loop playable end-to-end
-- [ ] At least one complete [start → challenge → resolution] cycle
-- [ ] Vertical slice playtested with ≥1 documented session
-- [ ] Playtest report at `production/playtests/`
+- [ ] 31 个 P0 epic 全部 `Complete`(⚠️ 现 **16/31**)
+- [ ] 全部 P0 story `Complete`(⚠️ 现 207 story / 136 Complete / 71 Ready)
+- [ ] `Sim` 引用集门 / b2 / b6 全绿(承 ADR-025 §① / ADR-029 §③)
+- [ ] 零 S1/S2 未关闭 bug
+
+**ETA**: TBD
+
+### Milestone 4: Content Complete
+
+**Goal**: **42 项 VS Critical 资产做完 + 数值轮冻结** —— 游戏能**看**了。
+
+**Exit Criteria**:
+- [ ] `design/assets/entity-inventory.md` 的 **42 项 VS Critical 全交付**(⚠️ 现 **0/42**,全部灰盒豁免中)
+- [ ] 全部资产通过 art-bible §8 的格式 / LOD / 材质槽 / 线性工作流约束
+- [ ] 数值轮冻结(阈值 / 系数 / `MAG_MAX` 等 —— 承「数值用户自己调」纪律)
+- [ ] 资产验收证据落 `production/qa/evidence/`(Visual/Feel = Screenshot + lead sign-off)
+
+**ETA**: TBD
+
+### Milestone 5: MVP / Release Candidate
+
+**Goal**: M3 + M4 合流,`game-concept.md:686` 的 8 项内容面全齐,可交**外部**试玩。
+
+**Exit Criteria**:
+- [ ] `game-concept.md:686` 的 8 项 MVP 内容面逐项可验
+- [ ] ≥1 次**外部**(非团队成员)文档化 playtest
+- [ ] 核心假设**获证或证伪** —— 「判断 → 施治」本身好玩(这是全案的立项问题)
+- [ ] AC 走查全闭;[L] ADVISORY 项经主创签核
 
 **ETA**: TBD
 
 ---
 
-## Milestone 3: Production
+## 六、开放问题(待用户裁定)
 
-**Goal**: Full feature development begins.
+> 本节由 2026-10-03 的 7 位专家调研提出,**尚未裁决**。裁定前 M2 **只锁机制面**(§三 退出条件),
+> 美术面**不做任何预设** —— 不预设灰盒,也不预设真资产。
 
-**Exit Criteria**:
-- [ ] All Foundation + Core layer ADRs Accepted
-- [ ] All P0 stories decomposed
-- [ ] Sprint 1 in progress
-- [ ] All blocking concerns from Pre-Production gate resolved
+1. **M2 是否允许「最小真实体验资产」?**
+   全灰盒能验证「管道通」,但**拟物 UI 是 pillar**(无血条 / 无小地图 / 纸质感是视觉识别的一半)——
+   灰盒 UI(**纯色方块**)可能让 M2 的评审结论**失真**(评审说「不好玩」,而实际是灰盒掩盖了纸感的乐趣)。
+   待裁:是否至少把**纸面 UI 元件**做成真资产(承 art-bible §8.2「UI-纸 1K」档,单张 ≤1K + atlas ≤2K)。
+2. **M1 未闭的 2 项是否为 M2 硬前置?**
+   性能预算(待硬件)与 ADR-023 spike(S2/S5/S6/S7)未闭,是否阻塞 M2 开工?
+3. **`art-bible.md` ↔ `entity-inventory.md` ↔ `sprint-04.md` 三处资产口径的合流**
+   —— 勘误轮上与本文对齐(勘误清单另行落盘)。
 
-**ETA**: TBD
+---
+
+## 附:计数与基线(2026-10-03 实测)
+
+| 量 | 值 | 来源 |
+|---|---|---|
+| P0 系统 | 31 | `systems-index.md:180` |
+| epic 全 Complete | 16 / 31 | 各 epic 目录 story 件首行实测 |
+| story | 207 total · 136 Complete · 71 Ready · 0 In Progress | 同上 |
+| EditMode 基线 | 2204 total · 2163 passed · **0 failed** · 40 skipped · 1 inconclusive | `production/qa/evidence/modular-building/editmode-rerun-2026-10-03.md` |
+| VS Critical 资产 | 42(全 spec 化) | `design/assets/entity-inventory.md` |
+| P0 工期基线 | 6-9 个月(不得重算) | `systems-index.md:190` 用户裁定 2026-09-14 |
