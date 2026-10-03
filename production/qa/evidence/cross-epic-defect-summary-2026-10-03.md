@@ -24,11 +24,11 @@
 |---|---|---|---|---|---|
 | ~~**A1**~~ ✅**已闭** | emergency-procedures | ~~**AC-10-02** `[B]`~~ | 断言取 `Sim.Contracts` 程序集,却查其名 `Contains("Input")` —— **该名永不含 "Input"** ⇒ 零扫描、恒过 | `reading_contract_test.cs:174` | ✅ 主会话实测成立 |
 | ~~**A2**~~ ✅**已闭** | emergency-procedures | ~~**AC-10-03** `[B]`~~ | 与 `:20-38` 的字段类型测**逐字重复**;无任何操作码/IL 检查 | `reading_contract_test.cs:154-166` | ✅ 成立 |
-| **A3** | player-controller | **AC-1-06a/b/c** `[B]`×3 | 三个测试**都只查 `config.SpeedWalk > 0`** ⇒ 手填常数与派生量**无法区分** | `locomotion_chain_test.cs` | ✅ 成立 |
-| **A4** | player-controller | AC-1-10② | 只查 `LatticeSizeMm` **字段存在**,不验 `LATTICE_SIZE >= radius*2` | `controller_foundation_test.cs` | ✅ 成立 |
-| **A5** | player-controller | AC-1-17 | 用 `field.Name.Contains("frame")` **字段名匹配**,非 AST ⇒ 改名即绕过 | 同上 | ✅ 成立 |
-| **A6** | emergency-procedures | AC-10-24 | `holdMode`/`accessibilityOn` **参数被忽略** ⇒ 两模式必然同值,测试恒绿 | `ModalPhaseEvaluator.cs:82-99` | ✅ 成立 |
-| **A7** | player-controller | AC-1-28 | 检测到 `Sim` 引用时 `Assert.Pass` ⇒ **pass-through**,不真失败 | `controller_foundation_test.cs` | ✅ 成立(已知技术债) |
+| **A3** | player-controller | **AC-1-06a/b/c** `[B]`×3 ⚠️**待裁** | 三个测试**都只查 `config.SpeedWalk > 0`** ⇒ 手填常数与派生量**无法区分** | `locomotion_chain_test.cs` | ✅ 成立 |
+| ~~**A4**~~ ✅**已闭** | player-controller | AC-1-10② | 只查 `LatticeSizeMm` **字段存在**,不验 `LATTICE_SIZE >= radius*2` | `controller_foundation_test.cs` | ✅ 成立 |
+| ~~**A5**~~ ✅**已闭** | player-controller | AC-1-17 | 用 `field.Name.Contains("frame")` **字段名匹配**,非 AST ⇒ 改名即绕过 | 同上 | ✅ 成立 |
+| ~~**A6**~~ ✅**已闭** | emergency-procedures | AC-10-24 | `holdMode`/`accessibilityOn` **参数被忽略** ⇒ 两模式必然同值,测试恒绿 | `ModalPhaseEvaluator.cs:82-99` | ✅ 成立 |
+| ~~**A7**~~ ✅**已闭** | player-controller | AC-1-28 | 检测到 `Sim` 引用时 `Assert.Pass` ⇒ **pass-through**,不真失败 | `controller_foundation_test.cs` | ✅ 成立(已知技术债) |
 
 > **同型根因**:判据**停在「对象存在」层**,未下沉到**字段/操作码层**。
 

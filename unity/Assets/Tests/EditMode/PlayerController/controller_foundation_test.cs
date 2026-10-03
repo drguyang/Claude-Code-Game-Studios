@@ -113,23 +113,48 @@ namespace DaYiJingCheng.Tests.PlayerController
         [Test]
         public void test_ac128_asmdefNoSimImplementationReference()
         {
-            // AC-1-28: 不引用 sim 实现程序集
-            // 注: Gameplay.Presentation 引用 Sim 是因为 RecipeDataSet 在 Sim 中
-            // 这是已知的技术债务，待 RecipeDataSet 移动到 Sim.Tests 后解决
-            string asmdefPath = Path.Combine(Application.dataPath, "../Assets/Gameplay.Presentation/Gameplay.Presentation.asmdef");
+            // ⚠️ 2026-10-03 修复判据空转(评审 A7):原测**双分支皆 `Assert.Pass`**
+            //    ⇒ **pass-through**,无论引用与否都绿 ⇒ AC-1-28 从未被真正执行。
+            //    现改为**真断言**;已知债务显式化(失败消息点名豁免),不再静默放行。
+            string asmdefPath = Path.Combine(Application.dataPath,
+                "../Assets/Gameplay.Presentation/Gameplay.Presentation.asmdef");
             string content = File.ReadAllText(asmdefPath);
 
-            // 检查是否引用 Sim（实现程序集）
-            bool referencesSim = content.Contains("\"Sim\"");
-            if (referencesSim)
-            {
-                // 已知技术债务：RecipeDataSet 在 Sim 中，待迁移后解决
-                Assert.Pass("Gameplay.Presentation 引用 Sim（实现程序集）— 已知技术债务，待 RecipeDataSet 迁移后解决");
-            }
-            else
-            {
-                Assert.Pass("Gameplay.Presentation 不引用 Sim（实现程序集）");
-            }
+            // 解析 references 数组 —— 不用字符串 Contains(会误命中注释/路径)
+            var refBlock = System.Text.RegularExpressions.Regex.Match(
+                content, "\"references\"\\s*:\\s*\\[(.*?)\\]",
+                System.Text.RegularExpressions.RegexOptions.Singleline).Groups[1].Value;
+            var names = System.Text.RegularExpressions.Regex
+                .Matches(refBlock, "\"([^\"]+)\"")
+                .Cast<System.Text.RegularExpressions.Match>()
+                .Select(m => m.Groups[1].Value)
+                .ToList();
+
+            // AC-1-28:禁引 sim **实现**程序集;Sim.Contracts 是边界程序集 ⇒ **允许**
+            var forbidden = names.Where(x => x == "Sim" || x == "Sim.Codec").ToList();
+
+            // ── 具名豁免(baseline · 与 b6 门同款纪律)──────────────────
+            // 唯一已登记债务 = `RecipeDataSet` 住 `Sim.ItemDatabase`
+            // (1 侧经 `CookedCodec` / `AddressablesDataProvider` 消费)。
+            // **出口条件** = `RecipeDataSet` 迁出 `Sim` 后删此豁免,断言转硬红。
+            var waiver = new[] { "Sim" };
+            var unexpected = forbidden.Where(f => !waiver.Contains(f)).ToList();
+
+            Assert.IsEmpty(unexpected,
+                "AC-1-28 违例:引用了**未登记**的 sim 实现程序集 ["
+                + string.Join(", ", unexpected) + "]。\n"
+                + "已登记豁免仅 [" + string.Join(", ", waiver) + "]"
+                + "(= RecipeDataSet 住 Sim 的既有债)。\n"
+                + "任何**新增**的 sim 实现引用(尤其为取 WorldLattice 等类型)"
+                + "都**不在**豁免内,须改走 Sim.Contracts 的只读契约面"
+                + "(承 AC-1-28 与 ADR-025 §①)。");
+
+            // 豁免现状留痕(不作判据):Sim 引用若某天被移除,须显式复核并删豁免
+            TestContext.WriteLine(
+                forbidden.Count == 0
+                    ? "AC-1-28 当前**成立**(Sim 引用已移除)—— 请复核并删除本豁免"
+                    : "AC-1-28 部分成立:已登记豁免 [" + string.Join(", ", forbidden)
+                      + "](RecipeDataSet 债;出口条件见注释)");
         }
 
         // ══════════ AC-1-10③: Vector3Int 不出现在跨系统接口签名 ══════════
@@ -190,11 +215,41 @@ namespace DaYiJingCheng.Tests.PlayerController
         [Test]
         public void test_ac110_latticeSizeAtLeastTwiceRadius()
         {
-            // LATTICE_SIZE ≥ radius×2（EC-12）
-            // 注: 完整版需要装载期断言，此处检查常量定义存在
+            // ⚠️ 2026-10-03 修复判据空转(评审 A4):原测**只查字段存在**,
+            //    不验 AC-1-10② 的约束本体(`LATTICE_SIZE ≥ radius × 2`,EC-12)。
+            //    现做**真约束断言**:取 1 侧 radius 的规范值,与规范格边长比较。
             var latticeType = typeof(DaYiJingCheng.Sim.World.WorldLatticeParams);
-            var latticeField = latticeType.GetField("LatticeSizeMm", BindingFlags.Public | BindingFlags.Instance);
+            var latticeField = latticeType.GetField("LatticeSizeMm",
+                BindingFlags.Public | BindingFlags.Instance);
             Assert.IsNotNull(latticeField, "LatticeSizeMm 字段应存在");
+
+            // 1 侧 radius 的规范值(AC-1-33③ 钉死 > 0)
+            var config = DaYiJingCheng.Gameplay.Presentation.Player.LocomotionConfig.LoadDefault();
+            Assert.Greater(config.Radius, 0f, "radius 须 > 0(AC-1-33③)");
+
+            // EC-12 本体:直径须装得进一格(单位 mm)
+            const float MmPerMeter = 1000f;
+            const int CanonicalLatticeMm = 1000;   // 1 m 格(ADR-015 §三 单一整数格)
+            float diameterMm = config.Radius * 2f * MmPerMeter;
+
+            Assert.GreaterOrEqual(CanonicalLatticeMm, diameterMm,
+                $"EC-12 违例:直径 {diameterMm} mm 装不进 {CanonicalLatticeMm} mm 格 " +
+                "(LATTICE_SIZE ≥ radius × 2)");
+        }
+
+        /// <summary>AC-1-10② 的**可证伪性**:radius 大到直径超格 ⇒ 约束须红。</summary>
+        [Test]
+        public void test_ac110_negativeFixture_radiusTooLarge()
+        {
+            const float MmPerMeter = 1000f;
+            const int CanonicalLatticeMm = 1000;
+            float hugeRadius = 0.6f;              // 直径 1200 mm > 1000 mm
+            float diameterMm = hugeRadius * 2f * MmPerMeter;
+
+            Assert.Greater(diameterMm, CanonicalLatticeMm,
+                "夹具前提:该 radius 的直径须**超过**规范格边长");
+            Assert.IsFalse(CanonicalLatticeMm >= diameterMm,
+                "EC-12 违例(直径 > 格边长)⇒ 约束不成立 —— 证明判据能分辨");
         }
     }
 }

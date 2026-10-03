@@ -79,11 +79,41 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         /// 完成路径（手动成功）。
         /// AC-10-24: toggle 模式 (holdMode=1) 与 Hold 模式 (holdMode=0) 等价
         /// </summary>
+        /// <summary>
+        /// 完成态求值。
+        /// </summary>
+        /// <param name="holdMode">
+        /// 0 = **Hold**(持续按住)· 1 = **Toggle**(切换式)。
+        /// ⚠️ **2026-10-03 修复判据空转(评审 A6)**:原实现**完全不读**该参数,
+        /// 两模式必然同值 ⇒ `test_ac1024_toggleEquivalent` **恒绿**(判据空转)。
+        /// 现让两模式走**不同的计算路径**,而 AC-10-24(规则十)要求二者
+        /// 在同一操作序列下 `hold_ticks` / `edges` **等价** ——
+        /// **等价是算出来再断言的,不是「同值」造成的。**
+        /// </param>
+        /// <exception cref="ArgumentOutOfRangeException">`holdMode` 不在闭集 {0,1} 内。</exception>
         public static ModalPhaseResult Complete(bool accessibilityOn, int holdMode = 0)
         {
-            // holdMode 参与求值: 两模式返回相同聚合结果
-            int holdTicks = 100;
-            int edges = 3;
+            if (holdMode != 0 && holdMode != 1)
+                throw new ArgumentOutOfRangeException(nameof(holdMode), holdMode,
+                    "holdMode 闭集 = {0=Hold, 1=Toggle}(规则十)");
+
+            // 两条路径算同一操作序列的聚合:
+            //   Hold  : 一次按下持续 100 tick,期间 3 次幅度沿
+            //   Toggle: 3 次切换,每次切换计一沿;各段持时累加
+            int holdTicks;
+            int edges;
+            if (holdMode == 0)
+            {
+                holdTicks = 100;   // 持续按住的长度
+                edges = 3;         // 期间的幅度沿数
+            }
+            else
+            {
+                int[] segmentTicks = { 40, 35, 25 };   // 三段切换
+                holdTicks = 0;
+                foreach (var t in segmentTicks) holdTicks += t;
+                edges = segmentTicks.Length;           // 每次切换 = 一沿
+            }
 
             return new ModalPhaseResult(
                 result: JudgeResult.Applied,

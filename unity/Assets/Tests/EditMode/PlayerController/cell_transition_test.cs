@@ -376,14 +376,35 @@ namespace DaYiJingCheng.Tests.PlayerController
         [Test]
         public void test_ac117_noFrameCounterForGrounded()
         {
-            // 零"连续 N 帧接地"式计数器
+            // ⚠️ 2026-10-03 修复判据空转(评审 A5):原测用 **字段名匹配**
+            //    (`field.Name.Contains("frame")`)—— 改名即绕过,且**只查字段不查方法体**。
+            //    现改为**类型面 + 源码面**双判据。
             var detectorType = typeof(CellTransitionDetector);
-            var fields = detectorType.GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
-            foreach (var field in fields)
-            {
-                Assert.IsFalse(field.Name.Contains("frame") || field.Name.Contains("Frame"),
-                    $"不应含帧计数字段: {field.Name}");
-            }
+
+            // ① 类型面:除已登记的格坐标 / 事件 tick 外,不得有额外整型累计器
+            //    (帧计数器改名后仍会被「多出一个 int 字段」这一类型面判据捕获)
+            var allowedIntFields = new[] { "_lastCellX", "_lastCellZ", "_lastEventTick" };
+            var intFields = detectorType
+                .GetFields(BindingFlags.NonPublic | BindingFlags.Instance)
+                .Where(f => f.FieldType == typeof(int) || f.FieldType == typeof(long))
+                .Select(f => f.Name)
+                .ToList();
+            var unexpected = intFields.Where(f => !allowedIntFields.Contains(f)).ToList();
+            Assert.IsEmpty(unexpected,
+                "AC-1-17:不得有额外整型累计器字段(改名后仍被类型面捕获):"
+                + string.Join(", ", unexpected));
+
+            // ② 源码面:不得出现帧计数语义
+            string src = System.IO.Path.Combine(UnityEngine.Application.dataPath,
+                "Gameplay.Presentation/Player/CellTransitionDetector.cs");
+            Assert.IsTrue(System.IO.File.Exists(src), "CellTransitionDetector.cs 应存在");
+            string code = System.Text.RegularExpressions.Regex.Replace(
+                System.IO.File.ReadAllText(src), @"//.*?$", "",
+                System.Text.RegularExpressions.RegexOptions.Multiline);
+
+            foreach (var pat in new[] { "groundedFrames", "frameCount", "Frames++", "frames++", "GroundedCount" })
+                Assert.IsFalse(code.Contains(pat),
+                    $"AC-1-17:源码出现帧计数语义「{pat}」—— EC-9 的接地不靠帧计数");
         }
 
         // ══════════ AC-1-04: VR 零事件（ADVISORY） ══════════

@@ -211,6 +211,21 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
 
         // ══════════ AC-10-24: toggle 模式等价 (ADVISORY) ══════════
 
+        /// <summary>
+        /// AC-10-24 的**非空转守卫** —— 证明 `holdMode` **真的被消费**。
+        /// ⚠️ 2026-10-03 补(评审 A6):原实现不读该参数,两模式必然同值,
+        /// 上一条「等价」断言**恒绿**。本守卫用**闭集外的值**证明参数被读:
+        /// 若实现忽略 `holdMode`,越界值不会抛 ⇒ 本测红。
+        /// </summary>
+        [Test]
+        public void test_ac1024_holdModeIsActuallyConsumed()
+        {
+            Assert.Throws<System.ArgumentOutOfRangeException>(
+                () => ModalPhaseEvaluator.Complete(accessibilityOn: false, holdMode: 99),
+                "holdMode 闭集外须抛 —— 若实现忽略该参数,本断言红(证明上一条判据非空转)");
+        }
+
+        /// <summary>AC-10-24 的两模式**路径不同**但聚合**等价**(规则十)。</summary>
         [Test]
         public void test_ac1024_toggleEquivalent()
         {

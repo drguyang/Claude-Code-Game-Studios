@@ -39,11 +39,18 @@
   ② **`AddForce` / `AddTorque` / `velocity` 写入零引用** —— IL 体扫描器验证;
   ③ **`Physics.Raycast` / `CheckCapsule` / `Overlap*` 零引用** —— IL 体扫描器验证。
   ⚠️ **例外(R12 / F-1-9)**:`CharacterController` 的 `isGrounded` / `slopeLimit` 是引擎**内部**碰撞结果,**不是** `Physics.*` API 调用 —— 不受本条③约束。
-- [x] **AC-1-28(BLOCKING)** —— **1 的 asmdef 引用集白名单**:1 的移动程序集**只**引用**边界程序集**(ADR-005 Amendment F)+ BCL。**不**引用 sim **实现**程序集、不引用 `Unity.Entities` / `Unity.Burst` / `Unity.Jobs` / `Unity.Mathematics`。(ADR-020 的 AC-20-05 只管相机;1 自己此前无人管。与 ADR-017 §二 同法 —— 约定升为构建失败。)
+- [x] **AC-1-28(BLOCKING)** —— **1 的 asmdef 引用集白名单**:1 的移动程序集**只**引用**边界程序集**(ADR-005 Amendment F)+ BCL。**不**引用 sim **实现**程序集、不引用 `Unity.Entities` / `Unity.Burst` / `Unity.Jobs` / `Unity.Mathematics`。
+  ⚠️ **2026-10-03 判据修复(评审 A7)**:原测**双分支皆 `Assert.Pass`** ⇒ **pass-through**,从未执行。
+  现为**真断言 + 具名豁免**:豁免仅 `Sim`(=`RecipeDataSet` 住 `Sim.ItemDatabase` 的既有债,
+  1 侧经 `CookedCodec` / `AddressablesDataProvider` 消费);**任何新增的 sim 实现引用都红**。
+  **出口条件** = `RecipeDataSet` 迁出 `Sim` 后删豁免、断言转硬红。
+  ⚠️ **本 AC 因此为「部分成立」** —— `Sim` 引用仍在,豁免是**已登记债务的显式化**,不是满足。
   - **⚠️ 已知技术债务**: `Gameplay.Presentation` 引用 `Sim`（实现程序集），因 `RecipeDataSet` 在 `Sim` 中。待 `RecipeDataSet` 迁移到 `Sim.Contracts` 后解决。
 - [x] **AC-1-10(BLOCKING)** —— **坐标契约三项 + 几何约束**:
   ① 装载期断言 `烘焙层原点 == 运行期原点 ∧ 轴对应一一 ∧ LATTICE_SIZE 逐位一致` —— 字段存在性验证;
-  ② `LATTICE_SIZE ≥ CharacterController.radius × 2`(**EC-12**) —— 字段类型验证;
+  ② `LATTICE_SIZE ≥ CharacterController.radius × 2`(**EC-12**)
+     ⚠️ **2026-10-03 判据修复(评审 A4)**:原测**只查字段存在**,不验约束本体。
+     现做真约束断言(直径 mm 须装进规范格边长)+ 负例(`radius=0.6` ⇒ 直径 1200 > 1000)。
   ③ 断言 **`Vector3Int` 不出现在任何跨系统接口签名**里 —— 递归类型扫描验证（含泛型/数组/嵌套）。
 
 ---

@@ -35,7 +35,12 @@
 *From GDD `design/gdd/player-controller-and-movement.md`, scoped to this story(判据正文照录,修订沿革见 GDD 原文):*
 
 - [x] **AC-1-06a(BLOCKING)** —— **差分神谕(抓手填常数)**:测试验证 `SpeedWalk` 派生量存在且 > 0。
-- [x] **AC-1-06b(BLOCKING)** —— **变异性 + 双向(抓过期上界)**:测试验证 `SpeedWalk` 可注入变异。
+- [x] **AC-1-06b(BLOCKING)** —— **变异性 + 双向(抓过期上界)**
+  ⚠️ **2026-10-03(评审 A3)**:本 AC 与 `AC-1-06a/c` 的判据面**待重定** ——
+  实测 1 侧**零 `K_TERRAIN_MAX`/`K_CONTEXT_MAX` 概念**(它们是**入参**,1 是消费者),
+  且 `DeriveMaxSpeed` 全库不存在 ⇒ 原测「只查 `SpeedWalk > 0`」**是因无物可查**。
+  按 story `:19` 的**所有者反转**(约束对象 = `LATTICE_SIZE`,归 6),判据面在 6 侧
+  (`AC-6-07` 已有可证伪守卫)。**重定方案待裁(见 §Cross-References)**。
 - [x] **AC-1-06c(BLOCKING)** —— **AST 派生初始化判据**:测试验证 `SpeedWalk` 初始化式存在。
 - [x] **AC-1-11(BLOCKING)** —— **空中水平速限 + 跳跃调参自检**:① `AIR_CONTROL ≤ 1` 装载期断言;② `JUMP_HEIGHT_MIN ≤ JUMP_HEIGHT_MAX` ∧ `GRAVITY_FALL_MULT > 1` ∧ `a ≥ 0`。测试: 6 用例（含负向夹具）全通过。
 - [x] **AC-1-19(BLOCKING)** —— **`‖MoveInput‖` 是因子不是开关**(F-1-2):半推摇杆应得半速(因子非开关)。测试: 2 用例（半速/半≠满）全通过。
