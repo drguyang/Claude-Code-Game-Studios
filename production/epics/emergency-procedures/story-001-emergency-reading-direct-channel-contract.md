@@ -32,8 +32,16 @@
 *From GDD `design/gdd/emergency-procedures.md`, scoped to this story:*
 
 - [x] **AC-10-01**[A] BLOCKING:`EmergencyReading` 每字段反射断言声明类型 —— 零 `float`/`double`(含 `magnitude` / `edge_ticks[]`);`edge_ticks` 单位 = tick(int) — `reading_contract_test.cs` 验证
-- [x] **AC-10-02**[A] BLOCKING:asmdef 白名单 + IL 扫描 —— 3 侧程序集**零** `Judge` / `JudgeResult` / `SimEvent` 引用(判定全归 10) — 契约落 `Sim.Contracts`
-- [x] **AC-10-03**[A] BLOCKING:10 判定路径静态检查零浮点字面量(门 A / ADR-006;操作码级谓词 `ldc.r4/r8`、`conv.r*` 同 9 的 AC-5 机制复用) — 门 A 约束
+- [x] **AC-10-02**[A] BLOCKING:asmdef 白名单 + IL 扫描 —— 3 侧程序集**零** `Judge` / `JudgeResult` / `SimEvent` 引用(判定全归 10)
+  ⚠️ **2026-10-03 判据修复(评审 A1)**:原判据**恒真、零扫描** —— 断言取 `Sim.Contracts` 程序集,
+  却查其名 `Contains("Input")`(该名**永不含 "Input"**)。现经 `EmergencyIntegerGates.CheckInputBoundaryIl`
+  扫**真 3 侧**(`Gameplay.Input`)的**引用面 + 全类型 IL**;配负向夹具(`EmergencyInputBoundaryFixture`)
+  与「扫描方法数 > 0」的非空转守卫。✅ 4/4 通过,并经突变测试坐实
+- [x] **AC-10-03**[A] BLOCKING:10 判定路径静态检查零浮点字面量(门 A / ADR-006;操作码级谓词 `ldc.r4/r8`、`conv.r*` 同 9 的 AC-5 机制复用)
+  ⚠️ **2026-10-03 判据修复(评审 A2)**:原判据与 AC-10-01 的字段类型测**逐字重复**,**无任何操作码检查**。
+  现经 `EmergencyIntegerGates.CheckJudgeIntegerIl` 取 `JudgeEvaluator` 四根的**真实 call 图闭包**,
+  扫浮点指令 + 局部/签名类型;配**闭包形状守卫**(核心核须在闭包内)。✅ 通过,并经突变测试坐实
+  (注入浮点 ⇒ 该测**红**)
 - [x] **F-10.1 交付契约**[A]:3 侧交出的定点化含死区与 clamp:静息漂移(fixture:`raw_axis` 微抖动 ∈ (0, `DZ_MAG`))⇒ `magnitude = 0`;满偏 ⇒ `= MAG_MAX`;`AXIAL_SCALE ≥ MAG_MAX` 为构建期结构断言 — 契约结构断言
 - [x] **press 沿口径**[L]:一次「按下-松开-再按下」⇒ `edges = 2`(release 不计数);`edge_ticks[]` 存 press 时刻且单调 — 测试验证
 - [x] **直读路径**[I]:急救读数采集不经过 42 UI 事件栈(集成断言:模态打开时仍产出 Reading;与 skeuomorphic-ui epic 联测) — 直读通道契约

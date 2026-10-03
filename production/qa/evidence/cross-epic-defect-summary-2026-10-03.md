@@ -22,8 +22,8 @@
 
 | # | Epic | AC | 恒真/空转的机制 | 落点 | 复核 |
 |---|---|---|---|---|---|
-| **A1** | emergency-procedures | **AC-10-02** `[B]` | 断言取 `Sim.Contracts` 程序集,却查其名 `Contains("Input")` —— **该名永不含 "Input"** ⇒ 零扫描、恒过 | `reading_contract_test.cs:174` | ✅ 主会话实测成立 |
-| **A2** | emergency-procedures | **AC-10-03** `[B]` | 与 `:20-38` 的字段类型测**逐字重复**;无任何操作码/IL 检查 | `reading_contract_test.cs:154-166` | ✅ 成立 |
+| ~~**A1**~~ ✅**已闭** | emergency-procedures | ~~**AC-10-02** `[B]`~~ | 断言取 `Sim.Contracts` 程序集,却查其名 `Contains("Input")` —— **该名永不含 "Input"** ⇒ 零扫描、恒过 | `reading_contract_test.cs:174` | ✅ 主会话实测成立 |
+| ~~**A2**~~ ✅**已闭** | emergency-procedures | ~~**AC-10-03** `[B]`~~ | 与 `:20-38` 的字段类型测**逐字重复**;无任何操作码/IL 检查 | `reading_contract_test.cs:154-166` | ✅ 成立 |
 | **A3** | player-controller | **AC-1-06a/b/c** `[B]`×3 | 三个测试**都只查 `config.SpeedWalk > 0`** ⇒ 手填常数与派生量**无法区分** | `locomotion_chain_test.cs` | ✅ 成立 |
 | **A4** | player-controller | AC-1-10② | 只查 `LatticeSizeMm` **字段存在**,不验 `LATTICE_SIZE >= radius*2` | `controller_foundation_test.cs` | ✅ 成立 |
 | **A5** | player-controller | AC-1-17 | 用 `field.Name.Contains("frame")` **字段名匹配**,非 AST ⇒ 改名即绕过 | 同上 | ✅ 成立 |
@@ -31,6 +31,20 @@
 | **A7** | player-controller | AC-1-28 | 检测到 `Sim` 引用时 `Assert.Pass` ⇒ **pass-through**,不真失败 | `controller_foundation_test.cs` | ✅ 成立(已知技术债) |
 
 > **同型根因**:判据**停在「对象存在」层**,未下沉到**字段/操作码层**。
+
+> ### ✅ A1/A2 已闭(2026-10-03)
+> 新增 `unity/Assets/Editor.Tools.Gates/EmergencyIntegerGates.cs`(与既有 `EcozoneIntegerGates` 同族,
+> 复用它已验的解析器形态),提供**真 IL 判据**:
+> - **AC-10-02** → `CheckInputBoundaryIl`:扫**真 3 侧**(`Gameplay.Input`)的**引用面 + 全类型 IL**;
+>   配负向夹具 + 「扫描方法数 > 0」非空转守卫;
+> - **AC-10-03** → `CheckJudgeIntegerIl`:`JudgeEvaluator` 四根的**真实 call 图闭包**,
+>   扫浮点指令 + 局部/签名类型;配**闭包形状守卫**。
+>
+> **突变测试坐实非空转**:向 `ScaleFixed` 注入浮点 ⇒ `test_ac1003_judgePath_zeroFloatIl` **红**。
+>
+> ⚠️ **实现期三处自身错误(已修,留痕)**:① 闭包初版用 `callee.Resolve()` ⇒ 跨程序集(BCL)
+> `AssemblyResolutionException`(改为**名字级闭包**,零 Resolve);② 突变第一版 `double probe=1.5; _=probe;`
+> **被编译器死代码消除** ⇒ 未触发;③ 突变第二版破坏编译(`CS0103`)。⇒ 改**结构不变**的突变后坐实。
 > emergency 报告的 §5 对此有专门分析(见下 §方法论)。
 
 ## B 类 · AC 已勾但实现/取证不存在
