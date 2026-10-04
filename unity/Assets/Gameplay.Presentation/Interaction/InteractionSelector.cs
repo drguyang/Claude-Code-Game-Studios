@@ -76,12 +76,12 @@ namespace DaYiJingCheng.Gameplay.Interaction
             if (candidates == null || candidates.Count == 0) return InteractTarget.None;
 
             // F-4.1 三键全序(取 argmin)—— 机器数学归 story 002。
-            // 本故事只交付「形状成立」:一次线性扫描取最小者,不含 KindPriority 表
-            // (该表及其十项互异断言归 story 006 的 4-DC-3 构建期校验)。
+            // ⚠️ 第一键是 d∞(**player_cell**, cell)—— **相对玩家格**,不是到原点(story 002)。
+            //    裁剪(≤ R_INTERACT)发生在 argmin **之前**,归 story 003/004(本故事夹具候选集已裁剪)。
             Candidate best = candidates[0];
             for (int i = 1; i < candidates.Count; i++)
             {
-                if (IsBetter(candidates[i], best)) best = candidates[i];
+                if (IsBetter(candidates[i], best, intent.PlayerCell)) best = candidates[i];
             }
 
             // 主动交互了 POI ⇒ 请 6 记账(**请求**,不是写入 —— AC-4-02 注释义务)。
@@ -95,30 +95,54 @@ namespace DaYiJingCheng.Gameplay.Interaction
         }
 
         /// <summary>
-        /// 两候选的全序比较(F-4.1 三键)。<b>本故事只签形态</b> —— 三键的完整体
-        /// (Chebyshev `d∞` int64 → `KindPriority` 十项互异 → `StableId` int64 标量)
-        /// 归 story 002 的 AC-4-06。
+        /// 两候选的全序比较(F-4.1 三键,story 002 / AC-4-06)。
+        /// <para><b>字典序</b>:⟨<c>d∞</c>, <c>KindPriority[kind]</c>, <c>StableId</c>⟩ ——
+        /// 逐键比较,首个不等的键定胜负,小者胜(F-4.1 的三键全序)。</para>
+        /// <para>⚠️ 第一键是 <c>d∞(playerCell, cell)</c> —— <b>相对玩家格</b>(F-4.1 判定式),
+        /// <b>不是</b>到原点。原点距只在玩家恰在原点时相等(F-4.1b 例即常踩此线)。</para>
+        /// <para>⚠️ 第二键用 <see cref="KindPriorityOf"/> 查表,<b>不是</b>枚举序 ——
+        /// 枚举声明序只是登记序,优先级数值归数值轮(F-4.1 明写)。</para>
         /// </summary>
-        private bool IsBetter(in Candidate a, in Candidate b)
+        private static bool IsBetter(in Candidate a, in Candidate b, in WorldPos playerCell)
         {
-            // 第一键:d∞(Chebyshev 整数距离),小者胜。
-            long da = Chebyshev(a.Cell);
-            long db = Chebyshev(b.Cell);
+            // 第一键:d∞(player_cell, cell) —— Chebyshev 整数距离(相对玩家格),小者胜。
+            long da = Chebyshev(playerCell, a.Cell);
+            long db = Chebyshev(playerCell, b.Cell);
             if (da != db) return da < db;
 
-            // 第二键:种类序(本故事用枚举序占位;真表 + 十项互异断言归 002/006)。
-            if (a.Kind != b.Kind) return a.Kind < b.Kind;
+            // 第二键:KindPriority 查表(F-4.1 中间键)。十项互异保证本键对
+            // (Kind 不同 ⇒ 优先级不同)是全序,等距决胜归于此 —— 4-DC-3 构建期校验(006)守之。
+            int pa = KindPriorityOf(a.Kind);
+            int pb = KindPriorityOf(b.Kind);
+            if (pa != pb) return pa < pb;
 
-            // 第三键:稳定 id,单一 int64 标量,小者胜(F-4.1:禁析取)。
+            // 第三键:稳定 id,单一 int64 标量,小者胜(F-4.1:禁析取 —— 折成单标量)。
             return a.StableId < b.StableId;
         }
 
-        /// <summary>Chebyshev 距离的整数平方(全整数,无 float —— AC-4-05 / ADR-006 定点纪律面外但同纪律)。</summary>
-        private static long Chebyshev(in WorldPos c)
+        /// <summary>
+        /// F-4.1 第二键 <c>KindPriority</c> 的查表。
+        /// <para>⚠️ <b>数值归数值轮</b> —— 这里签发的是<b>表本体存在且十项两两互异</b>的形状,
+        /// 不签具体取值(真表的十项互异断言归 4-DC-3 构建期校验 / story 006)。
+        /// 表值落 <c>interaction_kinds.json</c>(ADR-014 烘焙管线)后由本方法读取。</para>
+        /// </summary>
+        private static int KindPriorityOf(InteractableKind kind) => (int)kind;
+
+        /// <summary>
+        /// 两格之间的 Chebyshev 距离 <c>d∞(a,b) := max(|Δx|,|Δy|,|Δz|)</c>(F-4.1 第一键)。
+        /// <para>⚠️ <b>先拓宽到 int64 再取绝对值</b>(story 002 承重纪律):
+        /// <c>(long)a.X - b.X</c> 必须在 <c>Math.Abs</c> 之前 —— 否则两格分量相减
+        /// (如 <c>int.MinValue - 1</c>)在 int 域溢出,末位错号 ⇒ 全序第一键崩。
+        /// 原稿「int 距离」已就此改判(见 GDD F-4.1 订正)。</para>
+        /// <para>全整数,无 float —— AC-4-05 / ADR-006 定点纪律同款。</para>
+        /// </summary>
+        private static long Chebyshev(in WorldPos a, in WorldPos b)
         {
-            long ax = Math.Abs((long)c.X), ay = Math.Abs((long)c.Y), az = Math.Abs((long)c.Z);
-            long m = ax > ay ? ax : ay;
-            return m > az ? m : az;
+            long dx = Math.Abs((long)a.X - b.X);
+            long dy = Math.Abs((long)a.Y - b.Y);
+            long dz = Math.Abs((long)a.Z - b.Z);
+            long m = dx > dy ? dx : dy;
+            return m > dz ? m : dz;
         }
     }
 }

@@ -1,7 +1,7 @@
 # Story 002: 确定性全序目标选择 —— F-4.1 三键 / `d∞` int64 加宽 / 等距必有唯一胜者 / 夹具出处纪律
 
 > **Epic**: 交互系统
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
@@ -35,8 +35,8 @@
 *From GDD `design/gdd/interaction-system.md`, scoped to this story(判据正文照录,修订沿革见 GDD 原文):*
 
 - [ ] **AC-4-06([A])** —— `GIVEN` `4-DC-3` 已过硬校验(**前置**),`WHEN` 单测等距并列场景(同种 / 异种 / 三键全 tied),`THEN` 恒定给出**唯一**胜者且**跨运行不抖**。**前置未落 ⇒ 本条 `NOT-RUN`,不得标 ✅**(规则三)
-- [ ] **AC-4-14([A])** —— `GIVEN` 同一 **`(WorldSeed, 四源格序列, 输入序列)`**(**⚠️ 13 的病人格序列须作为显式夹具输入**,承 F-4.1b / `AC-4-16`),`WHEN` 跨平台(ADR-012 三格)重放,`THEN` **`F-4.1` 的选择序列相同**。**⚠️ 首轮收窄作用域**:本条**只覆盖纯选择函数**,**不覆盖 `Accept`**(其输入 `Armed` / `ModalOpen` 是第四来源,见 F-4.2 —— 改由 AC-4-20 立判)。**原稿把两者混在一条里 ⇒ 含模态的序列无从验证**
-- [ ] **AC-4-16([A])** —— `GIVEN` 本 AC 的**夹具数值全部来源可追**(每个 `patient_id` / `cell` 标注来自 13 的格序列生成器**还是**手工 fixture),`WHEN` 审阅夹具,`THEN` **零**「凭空写的数」。⚠️ **原稿的验算例数字来源不可考** ⇒ unity-specialist 误判「`F-13.7` float 驱动」的直接后果(规则二 · F-4.1b)。**这是「假绿」的形式判据:无出处的数字 = 无法复核**
+- [~] **AC-4-14([A])** —— ⚠️ **单机半边已交付,跨平台半边 BLOCKED-BY ADR-012** —— `GIVEN` 同一 **`(WorldSeed, 四源格序列, 输入序列)`**(**⚠️ 13 的病人格序列须作为显式夹具输入**,承 F-4.1b / `AC-4-16`),`WHEN` 跨平台(ADR-012 三格)重放,`THEN` **`F-4.1` 的选择序列相同**。**⚠️ 首轮收窄作用域**:本条**只覆盖纯选择函数**,**不覆盖 `Accept`**(其输入 `Armed` / `ModalOpen` 是第四来源,见 F-4.2 —— 改由 AC-4-20 立判)。**原稿把两者混在一条里 ⇒ 含模态的序列无从验证**
+- [x] **AC-4-16([A])** —— `GIVEN` 本 AC 的**夹具数值全部来源可追**(每个 `patient_id` / `cell` 标注来自 13 的格序列生成器**还是**手工 fixture),`WHEN` 审阅夹具,`THEN` **零**「凭空写的数」。⚠️ **原稿的验算例数字来源不可考** ⇒ unity-specialist 误判「`F-13.7` float 驱动」的直接后果(规则二 · F-4.1b)。**这是「假绿」的形式判据:无出处的数字 = 无法复核**
 
 ---
 
@@ -101,7 +101,7 @@
 - Logic: `tests/unit/interaction/target_selection_test.cs` — must exist and pass(F-4.1b 三验算例 + 全序四性质穷举 + `int.MinValue` 加宽 + 桶序打乱稳定性)
 - Logic: `tests/unit/interaction/replay_selection_test.cs` — 单机重放半边(三格半边待 ADR-012 矩阵)
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/EditMode/Interaction/`;登记口径 = `tests/unit/interaction/`)
+**Status**: [x] Delivered — `unity/Logs/interaction-s002-final.xml` 41/41 green(真身落点 = `unity/Assets/Tests/EditMode/Interaction/`;登记口径 = `tests/unit/interaction/`)
 ⚠️ 不得借绿账本:**`AC-4-06` = NOT-RUN**(前置 `4-DC-3` 归 story 006,GDD 原文「前置未落 ⇒ 不得标 ✅」);**`AC-4-14` 跨平台半边 = BLOCKED-BY ADR-012 三格矩阵**(CI `UNITY_LICENSE` 未配,单机重放绿不豁免三格);`AC-4-06` 注入假表签的是算法性质,真 `KindPriority` 序 INCONCLUSIVE(值留白归用户)。
 
 ---
@@ -115,9 +115,43 @@
 
 ## Completion Notes
 
-**Completed**: _待实现_
-**Criteria**: _待填_(交付时须附:`int.MinValue` 夹具输出 + 桶序打乱稳定性统计 + 三验算例与 GDD 对拍记录 + 出处审阅脚本)
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Completed**: 2026-10-04
+**Criteria**: 交付件 = `target_selection_test.cs`(**13 条**)+ `replay_selection_test.cs`(**4 条**)+
+生产 `InteractionSelector.cs`(第一键改测 `d∞(playerCell, cell)`)。**实跑 41/41 green**
+(`unity/Logs/interaction-s002-final.xml`;含 story-001 的 24 条边界纪律)。
+- `int.MinValue` 夹具输出:玩家在原点、extreme 在 `(int.MinValue,0,0)` ⇒ Δx = `int.MinValue` ⇒
+  正确实现 `d∞ = 2^31`(正)、near 胜;若 int 域取 Abs 则回绕为负、extreme 胜。
+  **变异测试 MUT1 验过**:删 int64 拓宽 ⇒ 该测试红。
+- 桶序打乱稳定性:`test_ac406_winnerIsStableUnderShuffledInsertionAndBucketOrder`(**200 次**,
+  固定种子 20261004)+ `test_ac406_productionSelectorStableUnderShuffledInput`(200 次)。
+  **变异测试 MUT5 验过**:删键② ⇒ 该测试红。
+- 三验算例与 GDD 对拍:三例**逐字照抄** GDD §F-4.1b(`patient_id=17`、B @ `(10,0,6)`、
+  C @ `(11,0,5)`、B'' @ `(10,0,4)`)。(a)(c) 生产解与 GDD 逐字一致;(b) 因生产第二键**暂为
+  枚举序占位**,与 GDD 演示表**分歧**(生产解 Drop/812,演示表解 Container/44)——
+  该分歧由 `test_ac406_slippedProductionKindLiterals` **显式登记并断言必不同**,真表落地后
+  由 story 006 的查表断言取代。
+- 出处审阅:`test_ac416_demoTableCoversClosedSetWithDistinctValues`(正表覆盖闭集 + 互异)+
+  `test_ac416_negativeFixture_untraceableNumberIsReported`(缺出处即红)。全部夹具标 `source:`/`manual:`。
+- **反空转证据(变异测试)**:MUT1–MUT5 逐项令对应测试变红(详见评审报告原件 §3)。
+
+**Deviations**:
+- ⚠️ **生产侧第一键修正(评审外发现,属本故事正管面)**:原 `InteractionSelector` 第一键测
+  「到**原点**」的 Chebyshev,与 F-4.1 判定式 `d∞(player_cell, cell(c))` 不符 —— 这是 F-4.1b
+  三例初跑全部失败的真因。已改为 `Chebyshev(intent.PlayerCell, cell)`(签名升为两参)。
+- ⚠️ **生产侧第二键仍为枚举序占位**(`KindPriorityOf(k) => (int)k`)—— 真表 `interaction_kinds.json`
+  归 story 006。故 F-4.1b (b) 的**演示表结论不可对拍**,只签生产可观测面(见上)。
+- ⚠️ **刻意缺口**:故事 QA 的「全体出半径 ⇒ None」属**邻域裁剪**面,归 story 003/004
+  (故事 Out-of-Scope 明写;本故事夹具候选集已裁剪)。已在该例处登记,**不借绿**。
+
+**Test Evidence**: `unity/Logs/interaction-s002-final.xml` —— 41/41 green。
+（`target_selection_test.cs` 13 条 + `replay_selection_test.cs` 4 条 + story-001 的 24 条。）
+
+**Code Review**: 双代理评审(结构 + QA)**均 REJECT** ⇒ 修复轮 ⇒ 复跑绿 ⇒ 变异测试证可红。
+原件落 `production/qa/evidence/review-interaction-story-002-2026-10-04.md`(含原判定 → 修复落点 → 验证命令)。
+
+⚠️ **不得借绿账本(维持)**:`AC-4-06` = **NOT-RUN**(前置 `4-DC-3` 归 story 006);
+`AC-4-14` 跨平台半边 = **BLOCKED-BY ADR-012**(单机绿不豁免三格);
+第二键真表序 **INCONCLUSIVE**(值归用户)。
+
+**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
