@@ -45,8 +45,9 @@
 - **patient-ai 45/45**(38 → 45,+7)· 全量 EditMode **2384 / 2340 / 0 / 43 / 1**
 - **变异 5/5 各恰一条红**(MUT-B1/B2/F2/F3/m3,日志 `unity/Logs/mut-*.xml`)
 
-### 步骤 5 🔄 进行中 —— 收口提交推送
-- ⬜ 提交(排除 `unity/Assets/unity.meta` + `unity/Assets/unity/Logs.meta`)→ 推送
+### 步骤 5 ✅ 已完成 —— 收口提交推送(`4076e1e`,已 push)
+- 22 文件 · 排除 `unity/Assets/unity.meta` + `unity/Assets/unity/Logs.meta` + `.gitignore`
+- ⬜ 提交 → ✅ 推送 origin/main
 
 ### 待办
 - ⬜ 评审回收 → 修复轮 → 复跑绿 → 收口提交推送
@@ -64,7 +65,7 @@
 | 项 | 值 |
 |---|---|
 | **Stage** | Pre-Production |
-| **Sprint** | sprint-03 ✅ 已闭(17/17) · **sprint-04 Phase 1 ✅ 已收口** · **Phase 2 进行中 = 2/7 系统(~12/37 SP)** —— 关键路径断于 `interaction-system` |
+| **Sprint** | sprint-03 ✅ 已闭(17/17) · **sprint-04 Phase 1 ✅ 已收口** · **Phase 2 进行中 = 3/7 系统完成 + 第 4 系统首件**(patient-ai story-001 已收口)—— 关键路径断于 `patient-ai` story-002 |
 | **Gate Check** | CONCERNS（2026-09-29 二轮，无 NOT READY 阻塞） |
 | **ADRs** | 28/28 Accepted |
 | **P0 GDDs** | 31/31 Approved |
