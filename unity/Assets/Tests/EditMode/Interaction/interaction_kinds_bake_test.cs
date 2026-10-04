@@ -31,6 +31,7 @@ using System.Runtime.CompilerServices;
 using DaYiJingCheng.EditorTools.Bake;
 using DaYiJingCheng.Gameplay.Interaction;
 using DaYiJingCheng.Gameplay.Presentation;
+using DaYiJingCheng.Sim.Contracts;
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.Interaction
@@ -88,7 +89,19 @@ namespace DaYiJingCheng.Tests.Interaction
             // 仓库真种子须**真通过** —— 这是「装载路径可用」的最直接判据。
             InteractionKindBaker.BakeOutput outp = InteractionKindBaker.BakeFromRepo(RepoRoot);
             Assert.AreEqual(10, outp.Rows.Count, "仓库种子须 10 行(4-DC-2 闭集十项)");
-            Assert.Greater(outp.Cooked.Length, 20, "真种子须烘出产物");
+            // ⚠️ QA §5:`> 20` 太松 —— 截断的载荷也能满足。断言**精确字节长**:
+            //    头 20 B(HeaderSize)+ 头后维度四元 4×int(16 B)+ 行数 int(4 B)
+            //    + 10 行 × 单行宽度;单行 = KindPriority int(4)· RoutesTo int(4)·
+            //    DurationOwnerSystemId int(4)· W/H/D 三 int(12) = 24 B 的 int 段,
+            //    加 5 个 byte 枚举/布尔(Kind · StableIdSource · SuppressesMotor ·
+            //    DurationOwnerKind · IntentUplink)= 5 B ⇒ 单行 29 B。
+            const int headerAfterSize = 16 + 4;      // 维度四元 + 行数
+            const int rowBytes = 24 + 5;             // int 段 + 5 个 byte 段
+            Assert.AreEqual(CookedFormat.HeaderSize + headerAfterSize + 10 * rowBytes,
+                outp.Cooked.Length, "真种子产物须为精确长度(证载荷无截断)");
+            // 回读须得完整 10 行 —— 与长度断言互补(长度对而内容被截不可能同时成立)。
+            InteractionKindDataSet ds = InteractionKindCookedCodec.Read(outp.Cooked);
+            Assert.AreEqual(10, ds.Rows.Count, "回读须得完整 10 行(证载荷未截断)");
         }
 
         [Test]

@@ -10,6 +10,9 @@
 > ⚠️ **评审方法说明(诚实登记)**:结构侧代理交付完整报告;QA 侧代理交付报告后**触及回合上限**,
 > 其首份报告已到手并逐条采纳(下表即其原文判定)。修复轮**不再重评**(承「评审只做一轮」)——
 > 下表「修复」列是**修复动作的落点**,不是二次评审结论;修复的**可证伪性**由变异日志独立承担。
+>
+> ⚠️ **计数口径**:下表 §一 引用的「17 夹具 / 7 负」是**修复前**树的实测;修复轮删 ③ 及其四夹具后,
+> 现树为 **15 夹具 / 11 负**。两数均正确,差异即 F-0/F-1 的修复本身。
 
 ---
 
@@ -64,6 +67,7 @@
 | **MUT-A** | 删 `InteractionKindBinder.Bind` 里的 `Validate(...)` 调用 | **7/7** 4-DC 负夹具转红 ⇒ 校验器**真在装载路径上承重** |
 | **MUT-B′** | 删 `ValidateStableIdSource` 的 ② 判据体 | 恰 1 红(`test_..._dc4SlotLinearKeyMissingDimensionHardFails`) |
 | **MUT-F7** | 读方把落盘维度读成 0 | 恰 1 红(`test_ac415loader_legalTablePassesValidatorAfterRoundTrip`)· `unity/Logs/s007-mut-f7.xml` |
+| **MUT-LEN** | 写方丢弃一行(截断形态,`Cooked.Length` 仍 > 20 ⇒ 旧的 `> 20` 断言**接不住**) | 3 红(含被加固的 `test_ac415loader_repoSeedBakesSuccessfully`)· `unity/Logs/s007-mut-len.xml` |
 
 ---
 
@@ -95,7 +99,11 @@ unity test unity --mode EditMode --output "$PWD/unity/Logs/editmode-s007-full.xm
 4. **`schema_version` 两文件交叉一致性**:无夹具,且维度表缺 `schema_version` 时守卫短路。
 5. **聚合多错一次抛出**(Aggregate then throw)纪律:无夹具证明「不首个错即停」。
 6. **4-DC-6 对 `ForageSpot`/`Container`**(`OQ-17-3` 未裁):种子占位值在正向绿里被部分放行(QA F-8)。
-7. **ADR-014 §三 其余绑定层规则**:`"3/4"` 日期强制负例 / 非对象根 / 缺必填键 / u32 域 / bool 类型 —— 均无夹具(QA §3)。
+7. **ADR-014 §三 其余绑定层规则**:`"3/4"` 日期强制负例 / 非对象根 / 缺必填键 / u32 域 / bool 类型,
+   以及「int 字段拒 float token」未覆盖 `routes_to` / `duration_owner_system_id` / `world_w` —— 均无夹具(QA §3)。
+8. **4-DC-2 另两个半边**:①「多项」(表有而枚举无)零夹具;②「`Player ∉ 枚举`」恒不触发(枚举无 `Player`)⇒ 不可达(QA §3)。
+9. **4-DC-3「行 ≡ `KindPriorityTable`」半边**:端到端无夹具;story-006 C# 夹具承重(QA §3)。
+   ⚠️ `invalid_dc3_priority_tie.json` **不能区分** 4-DC-3 的两个半边谁先红(同一 `ValidatePriorityTotalOrder`)。
 
 > ⚠️ 以上为**覆盖缺口,非安全洞** —— 所有**已覆盖**子句的夹具各红在己,`Validate` 调用点在
 > `errors.Count == 0` 时**必跑**(对已覆盖子句无短路)。缺的是**未覆盖子句**的端到端证明,已逐条显式登记,不得读作已证。

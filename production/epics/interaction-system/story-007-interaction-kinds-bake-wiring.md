@@ -160,6 +160,14 @@ NOT-RUN 项见 §已知未闭。⚠️ 不得借绿:NOT-RUN 分句**未证**,只
 另 3 条 Interaction skip 与 1 条 inconclusive 均为先存 NOT-RUN/探针)。
 变异:见 `unity/Logs/s007-mut-f7.xml`(F-7 修复的可证伪性)。
 
+**QA §5 加固(正向断言过松)**:`test_ac415loader_repoSeedBakesSuccessfully` 原只断 `Cooked.Length > 20`
+(截断载荷亦满足)⇒ 改断**精确长度**(头 20 B + 维度四元 16 B + 行数 4 B + 10 × 29 B)并补回读行数断言。
+**MUT-LEN**(写方丢一行 ⇒ 长度仍 > 20)⇒ 3 红,证加固承重(`unity/Logs/s007-mut-len.xml`)。
+
+**复核补充登记**:QA 续报补出三处**覆盖面缺口**(4-DC-2「多项」半边 · 4-DC-2「`Player ∉ 枚举`」恒不触发 ·
+4-DC-3「行 ≡ `KindPriorityTable`」半边)⇒ 已一并登记 NOT-RUN(见 §已知未闭);并注明
+`invalid_dc3_priority_tie` **不能区分** 4-DC-3 两个半边谁先红。
+
 ### Deviations
 
 - **D-1(`SlotLinearKey` 行的 W/H/D 行内载体)** —— GDD `:1026` 的 4-DC-4 ② 字面是
@@ -200,4 +208,12 @@ NOT-RUN 项见 §已知未闭。⚠️ 不得借绿:NOT-RUN 分句**未证**,只
 - **4-DC-6 对 `ForageSpot` / `Container`**(`OQ-17-3` 未裁):种子中该行 `suppress=true` +
   `duration_owner_system_id:17`(占位值)**在正向「烘焙成功」测试内**被部分放行 ⇒ 登记 **NOT-RUN**(承 QA F-8)。
 - **ADR-014 §三 其余绑定层规则**无夹具(`schema_version` 两文件交叉一致性已列上;
-  另含 ADR 强制的 `"3/4"` 日期强制负例、非对象根、缺必填键、u32 域、bool 类型)⇒ 登记 **NOT-RUN**(承 QA §3)。
+  另含 ADR 强制的 `"3/4"` 日期强制负例、非对象根、缺必填键、u32 域、bool 类型;
+  以及「int 字段拒 float token」只在 `kind_priority` 上有夹具,未覆盖 `routes_to` /
+  `duration_owner_system_id` / `world_w` 同规则)⇒ 登记 **NOT-RUN**(承 QA §3)。
+- **4-DC-2 的另两个半边**无夹具 —— ①「**多**项」(表有而枚举无的 kind)零夹具
+  (只有「缺项」有 `invalid_dc2_missing_kind.json`);②「`Player ∉ 枚举`」无夹具
+  (枚举里没有 `Player` ⇒ 该判据在当前代码下**恒不触发**,同 4-DC-4 ① 的不可达形态)⇒ 登记 **NOT-RUN**(承 QA §3)。
+- **4-DC-3 的「行 ≡ `KindPriorityTable`」半边**端到端无夹具 —— 只有「两两互异」半边有
+  `invalid_dc3_priority_tie.json`(且该校验行与该半边同属一个 `ValidatePriorityTotalOrder`,
+  故该夹具**不能区分是哪半边先红**)。行⟷表对拍由 story-006 的 C# 夹具承重 ⇒ 装载路径侧登记 **NOT-RUN**(承 QA §3)。
