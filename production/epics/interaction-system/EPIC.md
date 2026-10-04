@@ -3,8 +3,8 @@
 > **Layer**: 边界层(呈现侧)—— **不是 Core / 门 A 程序集**(GDD Overview 首轮改判:归属判据 = 引用集/读侧,4 读 13 的 `IPresentPatients` / 42 的模态开集 / 10 的 `Armed`,门 A 引用不到任何一项;承 ADR-017 §二 判据)
 > **GDD**: design/gdd/interaction-system.md
 > **Architecture Module**: 纯目标选择器 `(玩家格, 世界状态, 输入意图) → 目标(Kind, id) | None` + 按种类路由 + 模态门(两方向)+ POI 自报(→6,非写)
-> **Status**: In Progress
-> **Stories**: 6 stories created (2026-09-28)
+> **Status**: Complete
+> **Stories**: 6/6 Complete (2026-10-04 · 收口)
 
 ## Overview
 
@@ -57,26 +57,53 @@
 
 | # | Story | Type | Status | Layer | ADR |
 |---|-------|------|--------|-------|-----|
-| 001 | 边界纪律与程序集归属(零结算类型 / 零 `Append` 结构不可达 / 玩法数值隔离 / 无状态纯函数 / 不发档位) | Logic | Ready | Foundation | ADR-005 + ADR-021 + ADR-017 §二 |
-| 002 | 确定性全序目标选择(F-4.1 三键 / `d∞` int64 加宽 / 等距必有一个胜者 / 重建幂等) | Logic | Ready | Core | ADR-006 + ADR-015 |
-| 003 | 候选集四源构造与整数格输入(禁读表现态 / 经流确立格 / 第四源 `BakedInitial` / 格来源可追) | Integration | Ready | Core | ADR-016 + ADR-020 |
-| 004 | POI 自报链路(`IDiscoveryReporter.Request` / 广播式非 argmin / 主动交互非碰撞 / 有界性 / `R_INTERACT` 单源) | Integration | Ready | Core | ADR-021 + ADR-009 |
-| 005 | 模态门与路由边沿(`Accept` 两方向 / `ModalId` 引用非复制 / 丢弃不排队 / 路由表 / `Acquire/Release(Self)` / 上行缺口登记) | Logic | Ready | Feature | ADR-013 + ADR-011 |
-| 006 | 数据契约构建期校验与呈现/手柄验收面(`4-DC-1…6` 夹具矩阵 / 身位即光标走查 / 零播报音 / 手柄无指针可选出) | Config-Data | Ready | Feature | ADR-014 + ADR-018 |
+| 001 | 边界纪律与程序集归属(零结算类型 / 零 `Append` 结构不可达 / 玩法数值隔离 / 无状态纯函数 / 不发档位) | Logic | **Complete** | Foundation | ADR-005 + ADR-021 + ADR-017 §二 |
+| 002 | 确定性全序目标选择(F-4.1 三键 / `d∞` int64 加宽 / 等距必有一个胜者 / 重建幂等) | Logic | **Complete** | Core | ADR-006 + ADR-015 |
+| 003 | 候选集四源构造与整数格输入(禁读表现态 / 经流确立格 / 第四源 `BakedInitial` / 格来源可追) | Integration | **Complete** | Core | ADR-016 + ADR-020 |
+| 004 | POI 自报链路(`IDiscoveryReporter.Request` / 广播式非 argmin / 主动交互非碰撞 / 有界性 / `R_INTERACT` 单源) | Integration | **Complete** | Core | ADR-021 + ADR-009 |
+| 005 | 模态门与路由边沿(`Accept` 两方向 / `ModalId` 引用非复制 / 丢弃不排队 / 路由表 / `Acquire/Release(Self)` / 上行缺口登记) | Logic | **Complete** | Feature | ADR-013 + ADR-011 |
+| 006 | 数据契约构建期校验与呈现/手柄验收面(`4-DC-1…6` 夹具矩阵 / 身位即光标走查 / 零播报音 / 手柄无指针可选出) | Config-Data | **Complete** | Feature | ADR-014 + ADR-018 |
 
 Counts: 3 Logic · 2 Integration · 1 Config-Data = 6 total(注:story 006 含 `[L]` 走查面,类型按主载体 Config-Data 登记;`AC-4-07/08/21` 的 Visual/Feel 属性在故事内显式标 `[L]`)。
 **22 个 AC 全覆盖**:001 = `AC-4-01/02/04/05/11/12`;002 = `AC-4-06/14/16`;003 = `AC-4-03/20/22`;004 = `AC-4-13/17/18`;005 = `AC-4-09/10/19`;006 = `AC-4-07/08/15/21`。
-**NOT-RUN/挂账硬清单**:`AC-4-06`(前置 = `4-DC-3` 构建期校验落地,归 story 006)/ `AC-4-15` ②(`ForageSpot`/`Container` 时长待 17 `OQ-17-3` / 20 登记;`PoiCell` 已结构性消解**不得并列记同一种红**)/ `AC-4-19`(载体 = 1 的位图,玩家 Epic Story 006;测试目录未建前记 NOT-RUN)/ `OQ-4-10` 上行通道**不存在** ⇒ 联机出境全链路 Out of Scope(归 45 轮 + ADR-001 窄修订,与 `OQ-10-9`/BL-4 同批,P1b 前)。
+**NOT-RUN/挂账硬清单**(2026-10-04 收口刷新):~~`AC-4-06`~~ ✅ **前置已落**(`4-DC-3` 构建期校验 + 生产第二键接线,归 story 006;相关断言已更新为真表期望)/ `AC-4-15` ②(`ForageSpot`/`Container` 时长待 17 `OQ-17-3` / 20 登记;`PoiCell` 已结构性消解**不得并列记同一种红**)/ `AC-4-19`(载体 = 1 的位图,玩家 Epic Story 006;测试目录未建前记 NOT-RUN)/ `OQ-4-10` 上行通道**不存在** ⇒ 联机出境全链路 Out of Scope(归 45 轮 + ADR-001 窄修订,与 `OQ-10-9`/BL-4 同批,P1b 前)。
 
 ## Epic Status
 
-**In Progress** — 6 stories created 2026-09-28;零 ADR-blocked story(`OQ-4-10` 是**登记缺口**而非裁决缺口,GDD 已裁「不打补丁、不自造通道」)。
+**Complete** — 6/6 stories 收口(2026-10-04)。全 22 条 AC 各有落点;**未闭项按下表显式登记(禁借绿)**。
+
+### 收口判据(逐条)
+
+| 项 | 状态 |
+|---|---|
+| 6 stories | ✅ 001/002/003/004/005/006 全 Complete(`> **Status**:` 首行 + 体 `[x]` 双向一致) |
+| AC 覆盖 | 22/22 各有判据落点;`[A]` 面均机检,`[L]` 面显式 NOT-RUN |
+| 实跑 | `unity/Logs/interaction-s006-final.xml` = 116/113/0/3(3 skipped = story-004 NOT-RUN 机检) |
+| 评审原件 | 001…006 逐故事落 `production/qa/evidence/review-interaction-story-00*.md` |
+| **未闭登记** | 见下 |
+
+### 未闭登记(NOT-RUN —— 禁借绿)
+
+| 项 | 内容 | 归属 |
+|---|---|---|
+| **AC-4-07 / AC-4-08 / AC-4-21 手柄半边** | 三条 `[L]` 人工走查/听测/手柄 | 可玩构建(证据文件不存在,story-006 已显式登记) |
+| **AC-4-15 ②** | `ForageSpot`(17)/`Container`(20)的真实时长登记 | `OQ-17-3` 未裁 |
+| **`4-DC-1…6` 装载器/烘焙接线** | 校验器的**调用点**(ADR-014 阶段 2 位点) | **story 007**(本 Epic 只产校验器 + 夹具) |
+| **`KindPriorityTable` 真表取值** | 当前 = GDD §F-4.1b 演示序(逐字照录) | 数值轮 |
+| **AC-4-13 6 半 / AC-4-17 6 消费半 / AC-4-18 接收侧** | 需系统 6 的 latch/幂等/判距复验/唯一 `Append` 真身 | **系统 6 Epic** |
+| **`AC-4-19` 联机半边** | 载体 = 1 的 per-source 位图(4 侧形态已签) | 玩家控制器 Epic |
+| **`OQ-4-10` 上行通道** | 通道**不存在** ⇒ 联机出境全链路 Out of Scope | 45 轮 + ADR-001 窄修订(P1b 前) |
+| **`TR-interaction-015`** | `blocked_by: 实现轮` **不撤销**(裁定 ≠ 验收) | 保持 partial |
+
+> ⚠️ **AC-4-06 的前置已落**:`4-DC-3` 构建期校验(story-006)已落,且**接线到生产的第二键**
+> (`KindPriorityTable`)—— 原「前置未落 ⇒ NOT-RUN」条目**由此解除**(相关断言已随 story-006
+> 定向修复更新为真表期望)。⇒ story-002 的 `AC-4-06` 从 NOT-RUN 转为**可运行**。
 
 ## Key Cross-References
 
 - **跨 Epic 硬依赖**:story 005 的 `AC-4-19` 依赖**玩家控制器 Epic Story 006**(`MotorSuppressed` per-source 位图,`LeaseSource.Self`;`OQ-4-13` 已裁归 1);反向解锁 = 1 的 `AC-1-23` 注「4 的 AC-4-19 随位图转可运行」
 - **`OQ-4-10` 铁律**:4 **不得自行选一个通道填上**(「那会让『无』变成假 ✅」)—— 各 story 的上行面一律 Out of Scope 并指向 45 轮
-- **禁借绿**:`TR-interaction-015` 的 `blocked_by: 实现轮` 不因本 Epic 的判据形状落地而撤销;`AC-4-06` 前置未落 ⇒ NOT-RUN 不得标 ✅(GDD 原文)
+- **禁借绿**:`TR-interaction-015` 的 `blocked_by: 实现轮` 不因本 Epic 的判据形状落地而撤销(裁定 ≠ 验收)。~~`AC-4-06` 前置未落~~ ✅ **前置已于 2026-10-04 落地**(story-006 的 `4-DC-3` + `KindPriorityTable` 接线)
 - **`R_INTERACT` 单源**:`AC-4-17` 同时锁 4 的选择与 6 的「已发现」触发于**同一烘焙字段**(两处各填一个数 = 静默脱钩)
 - **广播式自报 ≠ argmin**(F-4.3b):POI 不因落选被吞;`T1 自报` 与 `定身` 是两条互不蕴含的路径(二轮解耦)
 - **数值冻结**:全部取值(`R_INTERACT` / `KindPriority` 十项 / 时长)归用户;本 Epic 交付区间 + 注入假表夹具
@@ -84,4 +111,6 @@ Counts: 3 Logic · 2 Integration · 1 Config-Data = 6 total(注:story 006 含 `[
 
 ## Next Step
 
-Story 001(边界)与 006(`4-DC` 校验)先行 —— 006 是 `AC-4-06` 的硬前置;002/003/004 依「选择 → 输入 → 出境」链推进;005 待 1 侧位图落地后补 `AC-4-19`;`[L]` 三项待可玩构建的走查场次。
+**Epic 已收口(2026-10-04)**。后续落点:① **story 007** —— `4-DC-1…6` 的装载器/烘焙接线(ADR-014 阶段 2 位点);
+② **系统 6 Epic** —— 接收侧(latch/幂等/判距复验/唯一 `Append`),转绿 AC-4-13 6 半 + AC-4-17 6 消费半;
+③ **数值轮** —— `KindPriorityTable` 真表落 `assets/data/interaction_kinds.json`;④ `[L]` 三项待可玩构建走查场次。

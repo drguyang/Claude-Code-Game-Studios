@@ -1,7 +1,7 @@
 # Story 001: 边界纪律与程序集归属 —— 零结算类型可达 / 零 `Append` 结构不可达 / 玩法数值隔离 / 无状态纯函数 / 不发档位
 
 > **Epic**: 交互系统
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 6h
@@ -112,7 +112,7 @@
 **Required evidence**:
 - Logic: `tests/unit/interaction/boundary_discipline_test.cs` — must exist and pass(AC-4-01/02/04/05/11/12 六条结构断言 + 负夹具;EditMode)
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/EditMode/Interaction/`;登记口径 = `tests/unit/interaction/`;CI 载体归 ADR-012 轮)
+**Status**: [x] Done —— `unity/Logs/s001-full.xml`(story-001 主体)
 ⚠️ 不得借绿:本故事六条 AC 均为形状判据,**无外部前置**,可实现即签;`AC-4-11` 的存续前提是 `OQ-4-2` 现裁「不发档位」——若该 OQ 改判,本条作废重立(GDD 原文,不得静默保留旧判据)。禁入类型登记表若缺项 ⇒ 扫描器空转假绿,负夹具是反空转的唯一防线(交付时须附负夹具红态截图/日志)。
 
 ---

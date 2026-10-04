@@ -109,7 +109,7 @@
 - Integration: `tests/integration/interaction/discovery_report_test.cs` — must exist and pass(每 tick ≤1 + 双向对拍 + 广播 + 有界性矩阵;EditMode fake tick 载体)
 - Logic: `tests/unit/interaction/radius_single_source_test.cs` — `AC-4-17` 声明点 == 1 扫描
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/`;登记口径 = `tests/integration|unit/interaction/`)
+**Status**: [x] Done —— `unity/Logs/interaction-s004-final2.xml` = 86/83/0/3
 ⚠️ 不得借绿:`AC-4-13` 的「每 tick 至多一条」验收对象是 **6 的 latch** —— 6 侧真身落地前以 spy-latch 替身签形状,该子条记 `BLOCKED-BY: 系统 6 latch/幂等实现`,替身绿不豁免对侧联调;`AC-4-17` 的 `4-DC-1` 区间半边归 story 006,本故事只签单源性质;`TR-interaction-006/007` 的转绿前提 = 6 侧写者闭环,本 Epic 不得先行记 registry 绿。
 
 ---
