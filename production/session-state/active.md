@@ -165,8 +165,29 @@
 - ✅ 收口提交推送(12133f7,已 push)
 - ⬜ story 004(R_INTERACT 邻域裁剪)—— interaction-system 下一件
 
+### 交付物
+- **生产**:`DiscoveryRequest.cs`(F-4.3 三字段载荷)· `InteractionRadius.cs`(单源持有者,4-DC-1 下界)·
+  `KindRouteTable.cs`(路由表双向闭合,RegisteredSystems 10 值)· `NeighbourhoodReporter.cs`(广播自报)·
+  `IDiscoveryReporter.cs`(Request 签名改为载 `DiscoveryRequest`)· `InteractionSelector.cs`(半径单源化)
+- **测试**:`discovery_report_test.cs`(F-4.3/4.3b/4.4 + AC-4-13)· `radius_single_source_test.cs`(AC-4-17 + 4-DC-1 下界)·
+  `kind_route_closure_test.cs`(AC-4-18 + 4-DC-5)
+- **评审原件**:`production/qa/evidence/review-interaction-story-004-2026-10-04.md`
+
+### 实跑
+- `unity/Logs/interaction-s004-final2.xml` = **86 / 83 passed / 0 failed / 3 skipped(NOT-RUN 机检)**
+
+### 单轮评审(承「评审只做一轮」)→ 修复轮
+- **结构侧 APPROVED WITH SUGGESTIONS** · **QA 侧 ACCEPT-WITH-FIXES**;两件原件皆落盘
+- 修复:扫描器分叉(删属性分支)· 6 半改机检 NOT-RUN · 帧率测试重写为「计数=调用次数」·
+  新增「无主动交互 ⇒ 零出境」负夹具 · 半径扫描器已知限制登记 · RegisteredSystems 7→10(PF-1)
+- **变异证明可红**:mut-cheb(丢 int64 拓宽 ⇒ 恰 1 红)· mut-gate(删主动交互门 ⇒ 恰 1 红)
+
+### 待办
+- ✅ 收口提交推送
+- ⬜ 系统 6 Epic(接收侧:latch/幂等/判距复验/唯一 Append)—— 转绿 AC-4-13 6 半 + AC-4-17 6 消费半
+
 <!-- STATUS -->
 Epic: 交互系统
-Feature: 候选集四源构造
-Task: story-003 已收口 · 下一件 story-004
+Feature: POI 自报链路
+Task: story-004 已收口(4 侧全绿;6 侧二子条 NOT-RUN)· 下一件待定
 <!-- /STATUS -->

@@ -1,7 +1,7 @@
 # Story 004: POI 自报链路 —— `IDiscoveryReporter.Request` / 广播式非 argmin / 有界性 / `R_INTERACT` 单源 / 路由表闭合
 
 > **Epic**: 交互系统
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 6h
@@ -34,9 +34,9 @@
 
 *From GDD `design/gdd/interaction-system.md`, scoped to this story(判据正文照录,修订沿革见 GDD 原文):*
 
-- [ ] **AC-4-13([A])** —— `GIVEN` 4 反复对同一 POI 自报(每帧一次),`WHEN` 检查 6 的 latch 输出,`THEN` **每 tick 至多一条** `Request`;4 **零**「报过了」记账(反射断言 4 无可变字段 —— 与 AC-4-04 共用)
-- [ ] **AC-4-17([A])** —— `GIVEN` 同一 `R_INTERACT` **同时**驱动 4 的选择与 6 的「已发现」,`WHEN` 读取两处,`THEN` 来自**同一烘焙字段**(`interaction_kinds.json` 的 `r_interact`,受 `4-DC-1` 校验),**无第二处声明**(承 `OQ-4-8` 单值裁定 —— 两处各填一个数会**静默脱钩**)
-- [ ] **AC-4-18([A])** —— `GIVEN` 4 的 `Kind` 枚举(`4-DC-2`),`WHEN` 与路由表的行数**逐一对拍**,`THEN` **恰为 10 项、双向闭合**(无枚举外的行、无行外的枚举值);**且 `Player` ∉ 枚举**。⇒ **原稿的 `Kind(c) ≠ Player` 谓词为空转**,删除后由本条承担其意图(规则三 · 五)
+- [x] **AC-4-13([A])** —— `GIVEN` 4 反复对同一 POI 自报(每帧一次),`WHEN` 检查 6 的 latch 输出,`THEN` **每 tick 至多一条** `Request`;4 **零**「报过了」记账(反射断言 4 无可变字段 —— 与 AC-4-04 共用)
+- [x] **AC-4-17([A])**(⚠️ 6 消费半 NOT-RUN) —— `GIVEN` 同一 `R_INTERACT` **同时**驱动 4 的选择与 6 的「已发现」,`WHEN` 读取两处,`THEN` 来自**同一烘焙字段**(`interaction_kinds.json` 的 `r_interact`,受 `4-DC-1` 校验),**无第二处声明**(承 `OQ-4-8` 单值裁定 —— 两处各填一个数会**静默脱钩**)
+- [x] **AC-4-18([A])** —— `GIVEN` 4 的 `Kind` 枚举(`4-DC-2`),`WHEN` 与路由表的行数**逐一对拍**,`THEN` **恰为 10 项、双向闭合**(无枚举外的行、无行外的枚举值);**且 `Player` ∉ 枚举**。⇒ **原稿的 `Kind(c) ≠ Player` 谓词为空转**,删除后由本条承担其意图(规则三 · 五)
 
 ---
 
@@ -123,9 +123,27 @@
 
 ## Completion Notes
 
-**Completed**: _待实现_
-**Criteria**: _待填_(交付时须附:「4 不去重是设计」的注释位置 + 帧率翻倍对照计数 + 双向对拍四违例表输出)
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Completed**: 2026-10-04
+**Criteria**: AC-4-18(双向闭合 10 项 + `Player ∉ 枚举` + 四违例表拒载)与 F-4.3b(广播与 argmin 解耦,
+落选 POI 不饿死)与 F-4.4(最坏密度 `(2R+1)³/tick/玩家` + 零 POI/半径界/int64 陷阱边缘)与 AC-4-13 **4 半**
+(每帧照报 + 零可变字段反射)**签绿**。⚠️ **两项子条显式 NOT-RUN(机检 `Assert.Ignore`,非注释)**:
+① **AC-4-13 6 半**(每 tick ≤1 的**落流效应** = 6 的 per-tick latch/幂等)⇒ `BLOCKED-BY 系统 6`;
+② **AC-4-17 6 消费半**(同一 `R_INTERACT` 驱动 6 的「已发现」)⇒ `BLOCKED-BY 系统 6`。
+二者**不借 4 侧替身的绿** —— 替身由本测试自造,删任何生产行为它照样绿(自证空转)。
+- 三交付物(故事逐字要求):**「4 不去重是设计」注释位置** = `discovery_report_test.test_ac413_fourReportsEveryEvaluationWithoutDedup`(注:该条为**形状声明**,承载判据在 6 侧 NOT-RUN);**帧率翻倍对照计数** = `test_f44_frameRateDoublingDoesNotChangeEgress`(1×=100 / 2×=200,承重判据「出境计数**恰** = 调用次数」);**双向对拍四违例表输出** = `kind_route_closure_test` 四负夹具(11 行 / 9 行 / 行含枚举外值 `(InteractableKind)99` / `RoutesTo` 未登记 999)+ `RegisteredSystems` 7→10 值补修(PF-1)。
+**Deviations**: ① **AC-4-17 上界**(`4-DC-1` 的 `≤ min(W,H,D)−1`)**接收端承接漏**(QA F-C):story-006 的
+`4-DC-1…6` 矩阵只列了 `R_INTERACT = 0` **下界**,**无上界名额** ⇒ story-004 侧 deferral 注释在场,
+**接收端须补名额**(呈报后续 batch,非本故事可闭合)。② **AC-4-18 「构建期拒载」措辞**(QA F-G):
+实测 = `new KindRouteTable(...)` **构造期 throw**(EditMode 运行期),非构建期 —— 故事 carve-out
+(「4 侧消费点的装载失败面」)已覆盖,措辞按实测登记。③ **AC-4-17 第二声明扫描器是启发式**
+(结构 #4):命名启发式可改名规避、只认整型、全类型跳过 `InteractionRadius` ⇒ **非「声明点 == 1」的证明**,
+已在测试内登记为**已知限制**;真值单源由烘焙管线(ADR-014)+ 代码审查共同守。④ **胜者 POI 潜在双重出境**
+(结构 #6):`InteractionSelector.Select` 与 `NeighbourhoodReporter` 各发一次;6 的 `(tick,poi)` latch 使流层
+收敛 ⇒ **保留**,登记为 6 联调观察点。
+**Test Evidence**: `tests/integration/interaction/discovery_report_test.cs`(真身 `unity/Assets/Tests/EditMode/Interaction/`)
++ `tests/unit/interaction/radius_single_source_test.cs` + `tests/unit/interaction/kind_route_closure_test.cs`。
+**实跑**:`unity/Logs/interaction-s004-final2.xml` = **86 tests / 83 passed / 0 failed / 3 skipped(NOT-RUN)**;
+变异证明 `unity/Logs/mut-cheb.xml`(丢 int64 拓宽 ⇒ 恰 1 红)+ `mut-gate.xml`(删主动交互门 ⇒ 恰 1 红)。
+**Code Review**: 双代理评审**一轮**(结构侧 APPROVED WITH SUGGESTIONS · QA 侧 ACCEPT-WITH-FIXES);
+**原件** `production/qa/evidence/review-interaction-story-004-2026-10-04.md`(原判定 → 修复落点 → 验证命令)。
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

@@ -47,18 +47,29 @@ namespace DaYiJingCheng.Gameplay.Interaction
         //   若有人加一个 IEventSink 字段 / 构造参 / 方法形参 ⇒ 反射闭包断言即红。
         private readonly IDiscoveryReporter _discoveryReporter;
 
-        /// <summary>全局交互半径(整数格,4-DC-1:1 ≤ R_INTERACT ≤ min(W,H,D) − 1)。
+        /// <summary>全局交互半径的**单源持有者**(AC-4-17)。
+        /// ⚠️ <b>本类不持半径数值</b> —— 只持 <see cref="InteractionRadius"/> 引用(与 6 的
+        /// 触发半径共享同一内存值)。第二处 `int` 数值 = 静默脱钩(radius_single_source_test 守)。
         /// ⚠️ <b>数值归数值轮</b> —— 本故事只登记形状,不签取值。</summary>
-        private readonly int _rInteract;
+        private readonly InteractionRadius _radius;
 
-        /// <summary>构造选择器。</summary>
+        /// <summary>构造选择器(<b>单源半径</b>形参,AC-4-17)。
+        /// <para>半径经 <see cref="InteractionRadius"/> 注入 —— 与 6 的触发半径同一实例,
+        /// 结构上不可能出现「第二处填数」。</para></summary>
         /// <param name="discoveryReporter">发现上报面(4 的唯一出境通道;<b>不是</b> <c>IEventSink</c>)。</param>
-        /// <param name="rInteract">交互半径(整数格)。</param>
-        public InteractionSelector(IDiscoveryReporter discoveryReporter, int rInteract)
+        /// <param name="radius">交互半径的**单源持有者**(与 6 共享)。</param>
+        public InteractionSelector(IDiscoveryReporter discoveryReporter, InteractionRadius radius)
         {
             _discoveryReporter = discoveryReporter ?? throw new ArgumentNullException(nameof(discoveryReporter));
-            if (rInteract < 1) throw new ArgumentOutOfRangeException(nameof(rInteract), "4-DC-1:r_interact ≥ 1");
-            _rInteract = rInteract;
+            _radius = radius ?? throw new ArgumentNullException(nameof(radius));
+        }
+
+        /// <summary>便捷重载:以裸 <c>int</c> 构造 —— 内部包成 <see cref="InteractionRadius"/>
+        /// (下界 <c>4-DC-1</c> 校验仍生效)。
+        /// <para>⚠️ 本重载**不构成第二声明**:它不存自己的数,只是转发给单源持有者。</para></summary>
+        public InteractionSelector(IDiscoveryReporter discoveryReporter, int rInteract)
+            : this(discoveryReporter, new InteractionRadius(rInteract))
+        {
         }
 
         /// <summary>
@@ -86,9 +97,14 @@ namespace DaYiJingCheng.Gameplay.Interaction
 
             // 主动交互了 POI ⇒ 请 6 记账(**请求**,不是写入 —— AC-4-02 注释义务)。
             // 「走进但无输入」永远到不了这里 ⇒ POI 无 Request(AC-4-12)。
+            //
+            // ⚠️ 这是**单选权**的自报路径 —— 只报 argmin 胜者。
+            //   **广播式自报**(邻域内**全部** POI 各自出报,与 argmin 无因果)归 story 004 的
+            //   `NeighbourhoodReporter`,**不**在本方法内(否则「落选 POI 被吞」= 发现饿死)。
+            //   本方法保留单选自报 = F-4.3b 的「交互意图打给谁」半边;广播半边在邻域装载后另发。
             if (best.Kind == InteractableKind.PoiCell)
             {
-                _discoveryReporter.Request(best.StableId, intent.Tick);
+                _discoveryReporter.Request(new DiscoveryRequest(best.StableId, intent.PlayerCell, intent.Tick));
             }
 
             return InteractTarget.Of(best.Kind, best.StableId, best.Cell);

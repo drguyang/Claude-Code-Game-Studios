@@ -23,14 +23,16 @@ namespace DaYiJingCheng.Gameplay.Interaction
     /// <remarks>
     /// P0 实现 = 本地转发给 6;spy 替身住测试侧(story 001 的 AC-4-12 夹具)。
     /// 真实链路、latch 归 6、有界性、<c>R_INTERACT</c> 单源归 story 004。
+    /// <para>⚠️ <b>载荷 = <see cref="DiscoveryRequest"/>(F-4.3 逐字三字段)</b> ——
+    /// story 004 起通道承载 <c>{ poi_id, evidence_cell, tick }</c>(原二参签名缺 <c>evidence_cell</c>,
+    /// 无法满足 ADR-009 §七 的主机判距复验)。</para>
     /// </remarks>
     public interface IDiscoveryReporter
     {
         /// <summary>
-        /// 上报一次发现请求。
+        /// 上报一次发现请求(载荷 = <see cref="DiscoveryRequest"/>,F-4.3 逐字三字段)。
         /// </summary>
-        /// <param name="poiId">被主动交互的 POI id(<c>poi_id</c> 空间,ADR-021 §三)。</param>
-        /// <param name="tick">发生时的逻辑 tick。</param>
-        void Request(long poiId, long tick);
+        /// <param name="request">发现请求载荷(<c>poi_id</c> + <c>evidence_cell</c> + <c>tick</c>)。</param>
+        void Request(in DiscoveryRequest request);
     }
 }
