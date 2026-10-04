@@ -113,8 +113,42 @@ namespace DaYiJingCheng.EditorTools.Gates
             errs.AddRange(ValidateUssHardcodedText());            // C5
             errs.AddRange(ValidateFallbackFonts());               // C6
             errs.AddRange(ValidateNineSliceBounds());             // C1
+            // ── Story 019-c:贴图接入护栏(纯逻辑面住 TextureBindingGates)──
+            errs.AddRange(ValidateScreenLevelNoTextureUrl());     // C10
+            errs.AddRange(ValidateTextureReferencesResolve());    // C11
+            errs.AddRange(ValidateRegisteredClassSelectors());    // C7(骨架半)
+            // ⚠️ C7「接图半」(每类须有 background-image)现**必红**(零引用)⇒ 归 019-d,
+            //    不聚合进本门(恒红门 = 噪声);019-d 接图后由 TextureBindingGates
+            //    .ValidateRegisteredClassesHaveTexture 承接。
+            // ⚠️ C8(slice=冻结件元数据)/ C9(Pages_frame ≤ PAGES_MAX)分别归 019-d / 019-b,NOT-RUN。
             return errs;
         }
+
+        /// <summary>已注册元件类名集(从注册表读,不维护第二份)。</summary>
+        private static IEnumerable<string> RegisteredClassNames()
+            => DaYiJingCheng.Gameplay.UI.Skeuomorphic.SkeuoComponentRegistry.All
+                   .Values.Select(v => v.UssClassName);
+
+        // ── Story 019-c 门体:纯逻辑住在 TextureBindingGates(零引擎依赖,夹具可直调)──
+
+        /// <summary>AC-42-C7 骨架半:每个已注册类须有选择器块。</summary>
+        internal static List<string> ValidateRegisteredClassSelectors()
+            => DaYiJingCheng.EditorTools.Gates.TextureBindingGates
+                   .ValidateRegisteredClassesHaveSelectorBlock(
+                       DaYiJingCheng.EditorTools.Gates.TextureBindingGates.DefaultRepoRoot, RegisteredClassNames());
+
+        /// <summary>AC-42-C10:屏幕级文件不得出现任何 url()。</summary>
+        internal static List<string> ValidateScreenLevelNoTextureUrl()
+            => DaYiJingCheng.EditorTools.Gates.TextureBindingGates
+                   .ValidateScreenLevelNoTextureUrl(
+                       DaYiJingCheng.EditorTools.Gates.TextureBindingGates.DefaultRepoRoot);
+
+        /// <summary>AC-42-C11:元件库贴图引用须全部可解析(GUID 走 AssetDatabase)。</summary>
+        internal static List<string> ValidateTextureReferencesResolve()
+            => DaYiJingCheng.EditorTools.Gates.TextureBindingGates
+                   .ValidateTextureReferencesResolve(
+                       DaYiJingCheng.EditorTools.Gates.TextureBindingGates.DefaultRepoRoot,
+                       AssetDatabase.GUIDToAssetPath);
 
         // ═══ AC-42-C3: 元件库配额断言 ═══
 
