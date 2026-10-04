@@ -1,4 +1,58 @@
-# Session State — 2026-10-03(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中 2/7**)
+# Session State — 2026-10-04(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中 3/7**)
+
+## 🔄 当前工作 = patient-ai(13)story-001 —— 协议步骤 2/5(双代理评审进行中)
+
+> 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。
+> **评审只做一轮**。
+
+### 步骤 1 ✅ 已完成 —— 实现 + Unity CLI 测试
+- **生产**(`unity/Assets/Gameplay.Presentation/PatientAI/`):`BehaviorBands.cs` · `BehaviorState.cs` ·
+  `BehaviorMap.cs`(决策核心,修掉了 `_ = trend;` 不可达缺陷)· `PatientBehavior.cs`(滞回 + Terminal 闩锁 + 三判据)·
+  `PresentPatientView.cs`(F-13.6 优先级表)· `PatientCue.cs`(13 命名空间:纯函数核 + `CueKind`/`CueIntervals`)·
+  **`PatientCueEmit.cs`**(44 前缀命名空间:唯一发射桥)
+- **测试**:`unity/Assets/Tests/EditMode/PatientAI/behavior_map_test.cs`(**38 条** —— 含后补的
+  `test_ac13a5_trendIsInertInMap_branching`(MUT-B 首轮 0 红暴露的缺口)+ NaN/±Infinity 边界)
+- **⚠️ 本轮最重的接线发现 = AC-44-B1 ① / AC-44-B3 双门**:
+  ① **b5① 逃逸谓词按文件判** —— 含 44 契约 token(`AudioCueDto`/`IAudioCueSink`)的文件**必须且只能**
+     声明 44 前缀命名空间 ⇒ 13 的调度面与发射桥**拆成两个文件**;
+  ② **AC-44-B3 入口白名单扫「44 前缀下每个类型的公开方法签名」** ⇒ `Emit` 签名缩成**纯基元**
+     (`int patientId` / `int kind` / `int cellX/Y/Z`),13 命名空间类型一律在**体内**装配。
+- **绿**:patient-ai 38/38 · 全量 EditMode **2375 / 2331 passed / 0 failed / 43 skipped / 1 inconclusive**
+  (inconclusive = 既有 `SettingsExposureTest`,与本 story 无关;全量数取自 36 条时点,38 条后未重跑全量)
+- **变异证明**:MUT-A(删夹取)⇒2 红 · MUT-B(给 `Map` 加 trend 分支)⇒ 首轮 **0 红(缺口)**,
+  补 `test_ac13a5_trendIsInertInMap_branching` 后 ⇒ 红 · MUT-C(删 Terminal 闩锁)⇒2 红
+
+### 步骤 2 ✅ 已完成 —— 双代理评审(单轮)
+- 结构侧(`aa64bdaa32ad46640`)= **CHANGES REQUIRED**(无 BLOCKING;F-1…F-7)
+- QA 侧(`a21992cb2ace8b063`)= **REJECT**(2 BLOCKING:B1 扫描根阴性恒真 · B2 只证「持了接口」;
+  M1/M2 · m1/m2/m3 · NOT-RUN 10 条)
+- ⚠️ 两位曾停在轮次上限(转录 idle ≈73 min),按「子代理满轮可以接着再送」显式重送后收回
+- **原件落盘**:`production/qa/evidence/review-patient-ai-story-001-2026-10-04.md`
+
+### 步骤 3 ✅ 已完成 —— 修复轮(逐条落实 + 变异坐实)
+- **B1/M2**:`ScanClosureForNames` 生产根改 `ProductionScanSeeds()`(13 前缀 **∪** 44 桥前缀)
+  + 新增 `test_ac13a1_scanRootCoversAudioBridgeNamespace_b1` 锁根枚举
+- **B2**:新增 `test_ac13a2_vitalsProducedOnlyByIVitalsQuery_sourceClosure` + 负夹具
+- **F-3/M1**:`test_ac13b5_sessionWriterIsUnique_reflection` 重写为 **IL 写入点扫描**
+  (`ScanSessionWriters`:stfld 后备字段 ∪ call set_Session)+ 负夹具 `ShadowSessionWriter`
+- **F-2**:`PatientBehaviorDirector` ctor 调 `Validate`,破表 `throw ArgumentException`
+- **m3**:`BehaviorBands.Validate` 补 `SeekMin < DeathBandMin` 独立项
+- **m1**:trend 惰性断言补带符号邻域球(±1e-6/±1e-3/±0.01/ε)
+- **m2**:`ResetForLoad` 补方向对照负夹具
+- **M2 注释订正**:如实声明扫描器归一化口径 ≠ `PresentationDtoGuard.NormalizeMemberName`
+
+### 步骤 4 ✅ 已完成 —— 复跑绿
+- **patient-ai 45/45**(38 → 45,+7)· 全量 EditMode **2384 / 2340 / 0 / 43 / 1**
+- **变异 5/5 各恰一条红**(MUT-B1/B2/F2/F3/m3,日志 `unity/Logs/mut-*.xml`)
+
+### 步骤 5 🔄 进行中 —— 收口提交推送
+- ⬜ 提交(排除 `unity/Assets/unity.meta` + `unity/Assets/unity/Logs.meta`)→ 推送
+
+### 待办
+- ⬜ 评审回收 → 修复轮 → 复跑绿 → 收口提交推送
+- ⬜ `unity/Assets/unity.meta` + `unity/Assets/unity/Logs.meta`(早前相对路径测试输出误建的空树,
+  `Logs/` 本身已被 `.gitignore` 覆盖)—— 提交时**排除**;删除需用户批准(`rm -rf` 被拒)
+- ⬜ `sprint-04.md` §Phase 2 表与关键路径图更新(story-007 已闭、13 进行中)
 
 ## 📊 全项目进度总览（2026-10-03 实测重算）
 

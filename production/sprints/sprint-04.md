@@ -107,23 +107,24 @@
 |---|------|--------|-----|------|------|
 | 1 | player-controller (1) | 6 | 6 | 3 (done) | ✅ **Complete ✅ 2026-10-03**(Phase 1 期间完成) |
 | 2 | camera-viewpoint (2) | 6 | 6 | 1 | ✅ **Complete ✅ 2026-10-03**(计划外增量 —— 本表原无此行,实际已完成) |
-| 3 | interaction-system (4) | 6 | 6 | 1, 3 (done) | 🔄 **In Progress** —— story-001 边界纪律已实现并复跑绿(22/22),余 5 件 —— **关键路径断点** |
-| 4 | patient-ai (13) | 4 | 4 | 9 (done) | ⬜ Ready(未实现) |
+| 3 | interaction-system (4) | 6 | 6 | 1, 3 (done) | ✅ **Complete ✅ 2026-10-04**(7/7;story-007 收口,评审原件 `production/qa/evidence/review-interaction-story-007-2026-10-04.md`) |
+| 4 | patient-ai (13) | 4 | 4 | 9 (done) | 🔄 **In Progress** —— story-001 ✅ **Complete 2026-10-04**(双代理单轮评审修复轮 + 45 绿 + 变异 5/5);余 story-002/003/004;**当前关键路径断点** |
 | 5 | diagnosis-system (8) | 6 | 6 | 9, 30 (done) | ⬜ Ready(未实现) |
 | 6 | case-system (37) | 6 | 6 | 8, 9 (done) | ⬜ Ready(未实现) |
 | 7 | prescription-medication (11) | 5 | 5 | 21, 9 (done) | ⬜ Ready(未实现) |
 
-**Phase 2 总计**：~39 SP —— **实际完成 2/7 = ~12 SP**(⚠️ 勘误 2026-10-04:`interaction-system` 原记 4/4,
+**Phase 2 总计**：~39 SP —— **实际完成 3/7 系统完成 + 第 4 系统首件**(⚠️ 勘误 2026-10-04:`interaction-system` 原记 4/4,
 实际 6 story ⇒ 6 SP,总计数 37 → 39;其余六行与各自 Epic 实际 story 数逐一核对无误)
-(player-controller 6 SP 于 Phase 1 期间完成;camera-viewpoint 6 SP 于 2026-10-03 完成)
+(player-controller 6 SP 于 Phase 1 期间完成;camera-viewpoint 6 SP 于 2026-10-03 完成;
+interaction-system 6 SP 于 2026-10-04 完成;patient-ai story-001 于 2026-10-04 完成,余 3 story)
 
 **关键路径(现状)**：
 ```
-player-controller ✅ → camera-viewpoint ✅ → interaction-system ⬜(断点)
+player-controller ✅ → camera-viewpoint ✅ → interaction-system ✅
                     ↘
-patient-ai ⬜ → diagnosis-system ⬜ → case-system ⬜ → prescription-medication ⬜
+patient-ai 🔄(故事 001 已收口 2026-10-04 —— 断点在 002) → diagnosis-system ⬜ → case-system ⬜ → prescription-medication ⬜
 ```
-⇒ 下游四项(13→8→37→11)**整条链未动**。
+⇒ 下游四项(13→8→37→11)中,13 **已开工**(story-001 已收口 2026-10-04,余 002/003/004);8→37→11 未动。
 
 ---
 

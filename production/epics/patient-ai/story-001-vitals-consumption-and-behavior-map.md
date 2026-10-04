@@ -1,12 +1,18 @@
 # Story 001: 体征只读消费与行为映射 —— VitalsDto 取数、双维状态与滞回
 
 > **Epic**: 病人 AI 与行为
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-04
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-04
+>
+> **收口**:双代理单轮评审(结构 **CHANGES REQUIRED** · QA **REJECT**,2 BLOCKING)⇒ 修复轮 **全落实 + 变异坐实**。
+> 评审原件 `production/qa/evidence/review-patient-ai-story-001-2026-10-04.md`。
+> 实测 **patient-ai 45/45** · 全量 EditMode **2384 / 2340 / 0 / 43 / 1** · 变异 **5/5 各恰一条红**。
+> **未闭登记(NOT-RUN,禁借绿)**:AC-13-A1 运行期半边 · 边缘「band 空表」(规格与 readonly struct 形态不匹配)·
+> 终态后 `Tier` 规格 · `Material` 正向唯一消费点 · `Emit` 签名类型信息 · QA TC-1/TC-2 —— **均归 story 003**。
 
 ## Context
 
