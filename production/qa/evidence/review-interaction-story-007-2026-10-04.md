@@ -13,6 +13,13 @@
 >
 > ⚠️ **计数口径**:下表 §一 引用的「17 夹具 / 7 负」是**修复前**树的实测;修复轮删 ③ 及其四夹具后,
 > 现树为 **15 夹具 / 11 负**。两数均正确,差异即 F-0/F-1 的修复本身。
+>
+> ⚠️ **QA 报告 §3 表中「4-DC-4 ② 无夹具」一行已过期 —— 勿据以做事**。该行描述的是**修复前**树
+> (「`BindRows` 注入每一行」),而 F-2 的修复**正是改这一处**:现 W/H/D 只注入 `SlotLinearKey` 行
+> (可核 `InteractionKindBinder.cs:197`),端到端由 `invalid_slotlinear_row_zero_dimension.json` +
+> `test_ac415loader_dc4SlotLinearKeyMissingDimensionHardFails` 承重(MUT-B′ ⇒ 恰该测试红)。
+> **4-DC-4 ② = 已覆盖,非 NOT-RUN**;本件与 story 的登记均为 ② 覆盖 / **①** NOT-RUN —— 与 QA 报告的
+> 该行冲突时,**以本件与代码为准**(该行是报告未随修复轮刷新的残留,非新判定)。
 
 ---
 
