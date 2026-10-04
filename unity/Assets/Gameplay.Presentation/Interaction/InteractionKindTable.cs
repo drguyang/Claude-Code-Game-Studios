@@ -291,6 +291,7 @@ namespace DaYiJingCheng.Gameplay.Interaction
                         $"({row.WorldW}/{row.WorldH}/{row.WorldD})" +
                         " ⇒ 线性键 x + W·(y + H·z) 不可比 ⇒ F-4.1 第三键失去全序性(静默)");
             }
+
         }
 
         /// <summary>

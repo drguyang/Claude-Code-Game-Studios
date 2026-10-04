@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "r_interact": 3,
+  "kinds": [
+    {
+      "kind": 2,
+      "kind_priority": 0,
+      "stable_id_source": "PatientId",
+      "routes_to": 37,
+      "suppresses_motor": false,
+      "duration_owner": "None",
+      "duration_owner_system_id": 0,
+      "intent_uplink": "HostOnlyIntent"
+    },
+    {
+      "kind": 3,
+      "kind_priority": 1,
+      "stable_id_source": "PoiId",
+      "routes_to": 6,
+      "suppresses_motor": false,
+      "duration_owner": "None",
+      "duration_owner_system_id": 0,
+      "intent_uplink": "None"
+    },
+    {
+      "kind": 6,
+      "kind_priority": 2,
+      "stable_id_source": "StructureId",
+      "routes_to": 18,
+      "suppresses_motor": false,
+      "duration_owner": "None",
+      "duration_owner_system_id": 0,
+      "intent_uplink": "None"
+    },
+    {
+      "kind": 4,
+      "kind_priority": 3,
+      "stable_id_source": "InstanceId",
+      "routes_to": 20,
+      "suppresses_motor": true,
+      "duration_owner": "RoutedSystem",
+      "duration_owner_system_id": 20,
+      "intent_uplink": "None"
+    },
+    {
+      "kind": 8,
+      "kind_priority": 4,
+      "stable_id_source": "StructureId",
+      "routes_to": 23,
+      "suppresses_motor": false,
+      "duration_owner": "None",
+      "duration_owner_system_id": 0,
+      "intent_uplink": "None"
+    },
+    {
+      "kind": 9,
+      "kind_priority": 5,
+      "stable_id_source": "StructureId",
+      "routes_to": 6,
+      "suppresses_motor": false,
+      "duration_owner": "None",
+      "duration_owner_system_id": 0,
+      "intent_uplink": "None"
+    },
+    {
+      "kind": 1,
+      "kind_priority": 6,
+      "stable_id_source": "BakedResourceIndex",
+      "routes_to": 17,
+      "suppresses_motor": true,
+      "duration_owner": "RoutedSystem",
+      "duration_owner_system_id": 17,
+      "intent_uplink": "HostOnlyIntent"
+    },
+    {
+      "kind": 5,
+      "kind_priority": 7,
+      "stable_id_source": "SlotLinearKey",
+      "routes_to": 23,
+      "suppresses_motor": false,
+      "duration_owner": "None",
+      "duration_owner_system_id": 0,
+      "intent_uplink": "None",
+      "world_w": 32,
+      "world_h": 16,
+      "world_d": 0
+    },
+    {
+      "kind": 7,
+      "kind_priority": 8,
+      "stable_id_source": "StructureId",
+      "routes_to": 24,
+      "suppresses_motor": false,
+      "duration_owner": "None",
+      "duration_owner_system_id": 0,
+      "intent_uplink": "None"
+    },
+    {
+      "kind": 0,
+      "kind_priority": 9,
+      "stable_id_source": "InstanceId",
+      "routes_to": 20,
+      "suppresses_motor": false,
+      "duration_owner": "None",
+      "duration_owner_system_id": 0,
+      "intent_uplink": "None"
+    }
+  ]
+}

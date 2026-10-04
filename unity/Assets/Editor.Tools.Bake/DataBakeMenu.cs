@@ -37,6 +37,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>产物文件名(配方 + 常量)。</summary>
         public const string RecipesCookedAssetName = "item_database_recipes.cooked.bytes";
 
+        /// <summary>产物文件名(交互数据契约行集;<c>4-DC-1…6</c> 的烘焙产物)。</summary>
+        public const string InteractionKindsCookedAssetName = "interaction_kinds.cooked.bytes";
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -69,6 +72,41 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"[大医精诚] 烘焙完成:item_database_items.cooked.bytes = {result.ItemsCooked.Length} B, " +
                     $"item_database_recipes.cooked.bytes = {result.RecipesCooked.Length} B, " +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}({DataCoreGroup} 组条目须经下一菜单项确保)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 interaction-system 的 `4-DC-1…6` 契约行集(NR-1 接线,story 007):
+        /// 仓库 <c>assets/data/interaction_kinds.json</c> + `_dimensions.json` → 校验(**聚合 throw**)→
+        /// 产物写入 Assets/DataCooked/。
+        /// <para>⚠️ 本菜单是 <see cref="InteractionKindTableValidator"/> 的**唯一调用点** ——
+        /// 删掉它就退回 story-006 评审 F-1 的「死代码」态,而 AC-4-15 的
+        /// 「WHEN 阶段 2 烘焙 THEN throw」正是由本菜单兑现。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 interaction_kinds(4-DC)")]
+        public static void BakeInteractionKinds()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                InteractionKindBaker.BakeOutput result = InteractionKindBaker.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, InteractionKindsCookedAssetName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{InteractionKindsCookedAssetName} = {result.Cooked.Length} B, " +
+                    $"{result.Rows.Count} 行行集,ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }
             catch (BakeValidationException ex)
             {

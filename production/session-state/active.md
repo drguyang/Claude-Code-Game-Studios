@@ -47,7 +47,7 @@
 | emergency-procedures (10) | 7 | **7** | 0 | 0 | 🔶 **story 7/7 Complete;EPIC 未收口**(A1/A2/A6/B4/C4/C5 已闭;✅ 评审原件两份均在库,**旧记「评审原件缺」为方向性错记**;**真实残留 = D1/D2/D3 文档对齐 + 实跑测试套件**(round2 自陈未实跑,「0 红」系读源码而非执行)) |
 | enemy-ai (27) | 5 | **5** | 0 | 0 | ✅ 全收口 |
 | foraging (17) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
-| interaction-system (4) | 6 | **6** | 0 | 0 | ✅ **全收口 2026-10-04**(001/002/003/004/005/006;**未闭登记 = NR-1 装载接线归 007 · NR-2 真表数值轮 · NR-3/4/5 三条 `[L]` 走查 · NR-6 `OQ-17-3`**) |
+| interaction-system (4) | 7 | **7** | 0 | 0 | ✅ **全收口 2026-10-04**(001…006 + **007 装载接线 · NR-1 已闭**;**未闭登记 = NR-2 真表数值轮 · NR-3/4/5 三条 `[L]` 走查 · NR-6 `OQ-17-3` · 007 新增 4-DC-4①/跨会话/§三其余规则 等七条 NOT-RUN**) |
 | inventory-items (20) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | medical-consequences (53) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
 | modular-building (23) | 7 | **7** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红，`9bb912b`+`bfa6234`;**未闭登记 = N-r2 生产装配根 + AC-23-09 跨平台签名**） |
@@ -188,8 +188,8 @@
 
 <!-- STATUS -->
 Epic: 交互系统
-Feature: 数据契约构建期校验
-Task: interaction-system Epic 已收口(6/6 · 116/113/0/3)
+Feature: 数据契约烘焙接线
+Task: story-007 收口(7/7 · 135/132/0/3)
 <!-- /STATUS -->
 
 ---
@@ -250,3 +250,29 @@ Task: interaction-system Epic 已收口(6/6 · 116/113/0/3)
 ### 待办
 - ✅ 收口提交推送
 - ✅ **interaction-system Epic 收口**(6/6 Complete · 2026-10-04;未闭项已显式登记)
+- ✅ **story-007 装载接线收口**(NR-1 已闭 · 2026-10-04;见下)
+
+---
+
+## story-007(interaction_kinds 烘焙接线 · NR-1)—— ✅ 收口 2026-10-04
+
+### 交付物
+- **生产**:`InteractionKindBinder.cs`(阶段 2 绑定 + **唯一 `Validate(...)` 调用点** —— 消解 story-006 F-1 死代码)·
+  `InteractionKindBaker.cs`(仓根种子 → 产物)· `InteractionKindCookedWriter.cs` + `InteractionKindCookedCodec.cs`(镜像编解码)·
+  `InteractionKindBinderProbe.cs`(测试可见薄转发)· `DataBakeMenu.BakeInteractionKinds`(菜单调用点)
+- **测试**:`interaction_kinds_bake_test.cs`(**19 条**)· `tests/unit/interaction/fixtures/`(15 夹具 / 11 负)
+
+### 单轮评审(承「评审只做一轮」)→ 修复轮
+- **结构侧 CHANGES REQUIRED**(F-1 BLOCKING = 首轮自造 4-DC-4 ③)· **QA 侧 REJECT**(无 BLOCKING 安全洞;F-0/F-3/F-6/F-7 MAJOR)
+- 修复:**删自造判据 ③**(收回 4-DC-4 ①②,与 GDD 一字对齐)· **4-DC-4 ② 接生产接缝**(W/H/D 只注入 `SlotLinearKey` 行 + 行内自报)·
+  **维度随产物落盘**(writer/reader 头部扩展,(D) 改读 `ds.*`)· **ConfigVersion 测试前置守卫** · **跨会话范围订正**
+- **变异证明**:MUT-A(删 `Validate` 调用 ⇒ 7/7 负夹具红)· MUT-B′(4-DC-4 ② 承重)· MUT-F7(维度落盘可证伪,`unity/Logs/s007-mut-f7.xml`)
+- **评审原件**:`production/qa/evidence/review-interaction-story-007-2026-10-04.md`
+
+### 未闭登记(NOT-RUN,禁借绿 —— 覆盖缺口,非安全洞)
+- 4-DC-4 ①(类型面恒真不可达)· 跨会话逐位一致(只证同进程)· 4-DC-6 归属方未登记半边(编译期常量无注入点)·
+  `schema_version` 交叉一致性(守卫短路)· 聚合多错纪律 · 4-DC-6 对 17/20(`OQ-17-3`)· §三其余绑定层规则
+
+### 待办
+- ✅ 收口提交推送
+- ⬜ interaction-system 7/7 全闭;下一系统见 Phase 2 关键路径
