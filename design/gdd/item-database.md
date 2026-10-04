@@ -986,6 +986,10 @@ The quality-to-timeline formula is defined as:
 > **21a 只保留一条上游约束**(交给 42,不替它选解):
 > **「重量必须以拟物方式呈现,玩家可亲手读取,不得以数字 HUD 呈现」**(支撑原则二)。
 
+> **资产登记**:本系统为**物品定义注册处**,本身不消费美术资产;其承载的物品资产
+> 归**消费方**登记 —— VS Critical 药材类见 `foraging.md`,Full Production 加工形态见 `processing.md`。
+> 逐件规格见 `design/assets/specs/`。
+
 ## UI Requirements
 
 **本系统无 UI。** 它不持有任何玩家可见的界面元素。

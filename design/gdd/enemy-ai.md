@@ -1227,6 +1227,11 @@ EnemySignalDto  (呈现层,整数语义,无指针 / 无 float / 无 Unity 引用
 - **动画素材与状态机** —— 归 42 / technical-artist;27 只发**触发**
 - **UI 的焦点导航** —— 27 无 UI(下节)
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **Full Production**: Enemies #1 兵痞（人型敌人）、#2 蛇/熊/狼/野狗（野兽）、#3 驯化动物（P1a）; SFX #7 敌人受伤/昏迷音。
+> 逐件规格(如有)见 `design/assets/specs/`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## UI Requirements
 
 ### 一、P0:27 零玩家可见 UI

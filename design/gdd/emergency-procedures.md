@@ -894,6 +894,11 @@ Aggregate(reading[整个动作期]) → agg = {
 
 ---
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **VS Critical**: Props #6 手术灯（急救场景，冷光白）; Items #5 针具（针灸）、#6 绷带 / 止血包; SFX #4 止血包扎接触音、#5 CPR 节律音; VFX Events #6 急救止血包扎 VFX、#7 CPR 节律视觉反馈 · **Full Production**: Props #3 针囊。
+> 逐件规格见 `design/assets/specs/`:`surgical-lamp.md`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## Game Feel
 
 | 面 | 目标 | 依据 |

@@ -1030,6 +1030,11 @@ Material(p) = MaterialTable[ signs(p) ]        # 词条 id → 表现材质(声�
 > 「13 表现层渲染」加进 DTO 的字段(`disease-simulation.md:1759`),
 > **不映射它 = 9 扩的字段没人用**。
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **VS Critical**: HUD Elements #6 体征异常脉冲; VFX Events #5 病人状态变化。
+> 逐件规格见 `design/assets/specs/`:`vitals-pulse.md`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## UI Requirements
 
 > **P0 结论:13 没有玩家可见 UI。** 这不是遗漏,是**设计结果** ——

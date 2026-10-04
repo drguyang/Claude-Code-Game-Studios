@@ -4,6 +4,25 @@
 > **GDD**: design/gdd/audio-system.md
 > **Architecture Module**: L5 Presentation(PRES)+ L3 契约程序集(`Sim.Contracts`: `AudioCueDto` / `IAudioCueSink`)
 > **Status**: **Complete ✅ 2026-09-28**(14/14 stories)
+>
+> ### ⚠️ 范围边界声明(2026-10-03 补 · 实测)
+>
+> **本条防的是一个已被实测证实的误读:「烘焙管线 Complete」≠「素材本体已接入」。**
+> 本 epic 的 14 条 story **全部真做真测**,但 story 010 的 AC-44-D6(素材缺失⇒编辑期门拒绝)
+> 的 11 测**用的是夹具,不是真 `assets/audio/` 里的文件**。
+>
+> **实测(2026-10-03)**:
+> - `assets/audio/` = **空目录**
+> - 全库 `.wav` 文件数(非 `.git`)= **0**
+> - 但 `assets/data/audio_events.json` **引用了 5 个具体 `.wav` 文件名**(逐个均不存在)
+>
+> ⇒ **现状 = 管线与门已建,素材未落地。** 同型先例 = `skeuomorphic-ui` 的 16 张 `*-final.png`
+> (GUID 全库引用 = 0)。两者失败模式一致:**引用存在、资产不存在,而它无任何告警**。
+>
+> **✅ 2026-10-03 已立补件**:该缺口由 **`story-015 音频资产接入`(Ready ⬜)** 承接 ——
+> AC = 被引 `.wav` 真实存在 / 删任一 ⇒ 构建期硬失败(真素材复验,非夹具)/
+> 5 个 `.wav` 列入 Addressables 素材组 / 双向差集归零。
+> ⚠️ **015 Ready ≠ 缺口已闭** —— 本行登记的是「已有承接件」,非「已完成」。
 > **Stories**: 14 created(13 on 2026-09-26 `/create-stories` + **014 on 2026-09-27 用户裁定**:tier 滤波载体缺口独立成 story)
 
 ## Stories
@@ -24,6 +43,7 @@
 | 012 | 乐层护栏与性能/VR 切面 | Logic | **Complete ✅ 2026-09-28**(4/4 · 12 测 · 双评审 B1+R1-R4 修复验 1166/1168) | ADR-018(+020) |
 | 013 | 主通道听测验收 | Visual/Feel | **Complete ✅ 2026-09-28**(1/1 · 7 测文档判据 + 证据文档 · 双评审 REC-1/R1-R3 修复验 1173/1175) | ADR-018 |
 | 014 | tier 滤波载体与 mixer 暴露参数 | Integration | **Complete ✅ 2026-09-27**(5/5 · 11 测 · 审查 7 修复验 872/872) | ADR-018 §四 需求③ |
+| 015 | 音频资产接入(5 个被引 `.wav` 落地 · 存在性门真素材复验 · 缺失⇒构建期硬失败) | Integration | **Ready ⬜**(承下方 §范围边界声明) | ADR-018 §五(+014) |
 
 ## Overview
 

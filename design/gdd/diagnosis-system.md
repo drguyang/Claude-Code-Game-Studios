@@ -1716,6 +1716,11 @@ L*_j = min { Skill ∈ ℤ : 把握度_j(Skill) ≥ EXCLUDE_CONF_MIN }   # 仅 p
 > **42 只渲染、永不持有状态**(`systems-index.md` §9 C3)——
 > 「体征 → 呈现形态」的映射**归 8**,因为那是**医学知识**,不是渲染知识。
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **VS Critical**: Characters #2 普通病人（T0–T3）; Props #3 诊脉台读数（铜器刻度盘）、#4 听诊器; HUD Elements #2 诊脉台刻度盘、#3 呼吸波形纸带、#4 舌象色卡; VFX Events #3 呼吸波形滚动。
+> 逐件规格见 `design/assets/specs/`:`breath-waveform.md`、`patient.md`、`pulse-dial.md`、`stethoscope.md`、`tongue-color-card.md`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## UI Requirements
 
 > **8 不建造界面,8 定义形态。** 本节是**给 39 脉案 / 42 拟物 UI 的契约**:

@@ -696,6 +696,11 @@ id 由主机回填」,而 `adr-001:170-184` 的第二通道载荷 = `WorldPosLat
 
 ---
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **VS Critical**: Props #2 出诊箱（药箱）; HUD Elements #5 出诊箱抽屉展开 · **Full Production**: Items #4 携带物资（补给管理）; UI Screens #3 库存容器 / 出诊箱; HUD Elements #5 快捷道具栏; SFX #4 物品拾取音。
+> 逐件规格见 `design/assets/specs/`:`medical-bag.md`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## Game Feel
 
 | 面 | 目标 | 依据 |

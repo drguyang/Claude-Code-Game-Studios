@@ -666,6 +666,9 @@ GapCount := |{ i : Δ_i > GAP_THRESHOLD }| // GAP_THRESHOLD *待定*
 > 而 51 之所以安全,**完全依赖**「无呈现面」这一事实 —— 见 `AC-51-A5`(该断言是 `AC-37-15`
 > 的「无呈现面」半边,与 ADR-013 §9 C3 的 `PresentationDtoGuard` 正交 —— 51 靠**不呈现**而非脱敏)。
 
+> **资产登记**:本系统无直接美术资产 —— 不产出也不消费 `design/assets/entity-inventory.md`
+> 的任何登记项。若后续新增,须回到 `entity-inventory.md` 登记并在此处补引。
+
 ## UI Requirements
 
 **无 —— 51 不拥有任何玩家可见界面。**

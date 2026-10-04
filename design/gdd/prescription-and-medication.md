@@ -783,6 +783,11 @@ GateHit = ( 本次处置的 `dose` 为**该药 `dose_range` 的合法档** ∧ �
 
 ---
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **VS Critical**: Props #5 戥子（称药器具，黄铜） · **Full Production**: Props #4 铜筹计数器; Items #2 成药（P1a 扩展）。
+> 逐件规格见 `design/assets/specs/`:`brass-scale.md`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## Game Feel
 
 | 面 | 目标 | 依据 |

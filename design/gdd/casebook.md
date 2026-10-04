@@ -386,6 +386,11 @@ Traces(p, c) = { e ∈ JudgmentRevised(c) : e.author_player_id = p }   // ⭑ �
 
 ---
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **VS Critical**: Props #1 脉案纸页（线装书）; UI Screens #1 脉案页（诊断态纸面）; HUD Elements #1 脉案纸页展开、#7 墨迹落笔; VFX Events #4 病历落笔墨迹 · **Full Production**: Props #1 纸质地图卷轴; HUD Elements #1 纸质地图; SFX #8 翻脉案纸声; VFX Events #4 死亡褪色（脉案墨色褪淡）。
+> 逐件规格见 `design/assets/specs/`:`casebook-paper.md`、`paper-map.md`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## Game Feel
 
 | 面 | 目标 | 依据 |

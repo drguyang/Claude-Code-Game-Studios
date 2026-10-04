@@ -1108,6 +1108,11 @@ RebuildCost_razed = FullCost_mark × ( 1 − SALVAGE_RATE_RAZED )  // 焚毁档(
 
 > **原则**:预告线索必须**可被主角感知,但不能被读出数字** —— 视觉锚点支撑原则二。
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **Full Production**: Environment / Buildings #5 疫情爆发区域（Boss 场景）; Ambient #3 疫情爆发区域环境音; VFX Events #1 瘟疫扩散石灰撒线。
+> 逐件规格(如有)见 `design/assets/specs/`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## UI Requirements
 
 **本系统无 UI。** 唯一例外是一条**否定声明**:

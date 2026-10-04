@@ -1270,6 +1270,11 @@ N 个 draw call,且与其它 UI 的批次无法合并),UI 帧时间上升 ——
 42 只报「纸被翻了 / 笔落下去了」;**「这代表什么」归 44 与上游**。
 **空间化:** 平面 UI 一律不发空间化 cue;world 侧若需,复用 44 的单 `AudioListener` 拓扑(ADR-018 §五)。
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **VS Critical**: HUD Elements #8 焦点高亮（黄铜边框 2px）; VFX Events #1 水墨晕染、#2 黄铜反光。
+> 逐件规格见 `design/assets/specs/`:`ink-splash.md`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## UI Requirements
 
 > **42 是全案唯一的 UI 系统** —— 本节的性质与别的 GDD 不同:

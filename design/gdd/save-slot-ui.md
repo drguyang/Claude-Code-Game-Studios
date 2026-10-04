@@ -314,6 +314,11 @@ Loadable(slot) ⟺ ¬Locked(slot) ∧ InNarrativeContext(t)
 
 ---
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **Full Production**: Props #6 铜压尺（存档位视觉）、#7 印泥盒; UI Screens #1 主菜单、#2 存档位界面（登记簿形态）、#4 设置界面壳（调治簿形态）; HUD Elements #6 存档卷轴封条、#8 菜单/存档位卷宗动画; SFX #9 存档封条音; VFX Events #5 菜单/存档位卷宗动画。
+> 逐件规格见 `design/assets/specs/`:`main-menu.md`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## Game Feel
 
 | 面 | 目标 | 依据 |

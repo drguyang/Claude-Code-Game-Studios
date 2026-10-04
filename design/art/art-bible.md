@@ -1167,6 +1167,36 @@ anim_[actorclass]_[action]_[variant]
 > **落点**:各里程碑的灰盒清单住 `production/milestones/README.md` 对应档的 §五
 > —— 本政策**不另立清单**,避免第二真源。
 
+#### 8.11.6 资产需求引用边(**2026-10-03 补 · 承 R-1 裁定**)
+
+> **病因**:实测(2026-10-03)`design/gdd/` 与 `design/assets/` 之间**零引用边** ——
+> GDD 侧 35/37 无资产清单,`entity-inventory.md` 不被任何 GDD 引用,
+> 导致「需求在哪定义」无人可答。§8.11.2 D1 早已要求「资产挂在消费它的系统 story 里」,
+> 但**没有引用边时无人能找到对方**。
+
+**口径**:**资产需求的唯一登记处 = `design/assets/entity-inventory.md`**(42 VS Critical + 62 FP = 104 项);
+各系统 GDD 的 `## Visual/Audio Requirements` 节**末尾**须有一行指针,写明本系统涉及的资产编号。
+
+**指针格式**(单一句式,禁变体):
+
+```markdown
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md`
+> —— VS Critical #<编号 / 类>;Full Production #<编号 / 类>。
+> 逐件规格(如有)见 `design/assets/specs/<name>.md`。
+```
+
+**硬性约束**:
+
+- **指针 = 引用边,不是第二清单** —— 禁止在本行内重述资产描述 / 件数 / 规格细节
+  (重述即第二真源,与 §8.11.4「不另立清单」同源纪律)
+- **无资产涉及的系统**(如 `persistence-service` / `telemetry-analytics` / `skill-system`)写
+  「**本系统无直接美术资产**」—— **不得留空**(留空与「忘了写」不可区分)
+- **有 spec 的资产须在指针内点名** `specs/<name>.md` —— 因实测 19 份 spec **不被任何 story / GDD 引用**
+  (R-3 的落地面)
+
+> **执行**:32 份系统 GDD 逐份回填(29 份已有 `## Visual/Audio Requirements` 节,3 份无节者
+> 按 §8.11.6 口径处理)。回填**不改变**任何 GDD 的 8 必需节结构。
+
 #### 8.11.5 与既有条款的关系
 
 - **不改写** §8.1–8.10 —— 灰盒是**临时态**,脱离后仍须全量满足规范

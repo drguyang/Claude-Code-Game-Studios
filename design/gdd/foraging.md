@@ -549,6 +549,11 @@ season_index(t)     由 5 的 F-5.2 提供(2026-09-18 · `OQ-5-1`)
 
 ---
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **VS Critical**: Items #1 柳树皮、#2 毛地黄、#3 金鸡纳树皮、#4 止血草 · **Full Production**: SFX #2 草药采集音; VFX Events #2 草药采集闪光。
+> 逐件规格见 `design/assets/specs/`:`medicinal-herbs.md`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## Game Feel
 
 | 面 | 目标 | 依据 |

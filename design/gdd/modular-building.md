@@ -451,6 +451,13 @@ Q16.16 原始值;`⌈1/R⌉ = ⌈65536/rawR⌉ = (65536 + rawR − 1) / rawR`(�
 > **规则六的判据落点**:以上任何一条若在 P0 实现时需要「改 sim 侧代码才能支持 P1a 自由建造」,
 > 即为回归(AC-23-BL)。
 
+## Visual/Audio Requirements
+
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **Full Production**: Environment / Buildings #4 建造模块（模块化网格）; SFX #5 建造放置音; VFX Events #3 建造模块放置 VFX。
+> 逐件规格(如有)见 `design/assets/specs/`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## Dependencies
 
 ### 上游(23 依赖谁)

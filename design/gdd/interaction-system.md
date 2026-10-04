@@ -1083,6 +1083,9 @@ Accept(intent) ⟺ ¬Armed(10) ∧ ¬ModalOpen(42)
 
 ---
 
+> **资产登记**:本系统无直接美术资产 —— 不产出也不消费 `design/assets/entity-inventory.md`
+> 的任何登记项。若后续新增,须回到 `entity-inventory.md` 登记并在此处补引。
+
 ## Game Feel
 
 | 面 | 目标 | 依据 |

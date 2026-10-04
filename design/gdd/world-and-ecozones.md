@@ -1028,6 +1028,10 @@ Transitions(POI)  ≤  2 × |POI_DEF|
 - 音频资源 / 混音拓扑 / 快照清单 → **44 + ADR-018**;
 - 角色 / 建筑的具体美术资产清单 → 关卡与美术的交付物,6 只提供**逻辑层骨架**(R-6-2)。
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **Full Production**: Environment / Buildings #1 小镇街道（P0 小场景）、#2 野外生态区 ×4、#3 POI（各生态区地点）; Ambient #1 野外生态区环境音 ×4、#2 小镇街道环境音。
+> 逐件规格(如有)见 `design/assets/specs/`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
 
 ## Game Feel
 

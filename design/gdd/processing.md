@@ -613,6 +613,11 @@ CompleteTick(craft) = craft.start_tick + recipe.duration_ticks
 
 ---
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **Full Production**: Items #1 草药（干燥/提取物/酊剂）; SFX #1 砵/捣药声、#3 药物研磨/加工音。
+> 逐件规格(如有)见 `design/assets/specs/`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## Game Feel
 
 | 面 | 目标 | 依据 |

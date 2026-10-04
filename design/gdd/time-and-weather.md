@@ -549,6 +549,11 @@ F1 入参             = clamp( EnvMod_total, ENV_MOD_MIN, ENV_MOD_MAX )   // 唯
 
 ---
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **Full Production**: Props #2 铜怀表; HUD Elements #2 怀表、#3 窗景天气; SFX #10 天气音（雨/风）。
+> 逐件规格见 `design/assets/specs/`:`brass-watch.md`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## Game Feel
 
 | 面 | 目标 | 依据 |

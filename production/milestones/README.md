@@ -196,6 +196,11 @@ patient-ai ⬜ · diagnosis-system ⬜ · case-system ⬜ · prescription-medica
 
 **Exit Criteria**:
 - [ ] `design/assets/entity-inventory.md` 的 **42 项 VS Critical 全交付**(⚠️ 现 **0/42**,全部灰盒豁免中)
+      ⇒ **归属已裁(2026-10-03,R-2「按类型分别归属」)** —— 42 项分到 **11 个 epic**,
+      逐项归属见 `production/qa/evidence/r2-asset-ownership-ruling-2026-10-03.md`:
+      消费系统类(角色/环境/道具/物品/界面/HUD)= 挂消费它的系统 epic;
+      **SFX/Ambient** = 集中 `audio-system`(**急救专用音例外** → `emergency-procedures`);
+      **VFX** = 挂触发系统。承接 story 的**编号与排期归 producer**(`art-bible §8.11.3`)
 - [ ] 全部资产通过 art-bible §8 的格式 / LOD / 材质槽 / 线性工作流约束
 - [ ] 数值轮冻结(阈值 / 系数 / `MAG_MAX` 等 —— 承「数值用户自己调」纪律)
 - [ ] 资产验收证据落 `production/qa/evidence/`(Visual/Feel = Screenshot + lead sign-off)

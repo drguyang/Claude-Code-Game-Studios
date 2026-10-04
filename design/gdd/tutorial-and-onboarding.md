@@ -443,6 +443,11 @@ step ∈ {1, 2, 3, 4, 5, 6}      // 判断(→含观察)→ 落笔 → 手段 �
 
 ---
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **Full Production**: UI Screens #5 教学界面（调度壳）; HUD Elements #4 教学纸近景。
+> 逐件规格见 `design/assets/specs/`:`paper-closeup.md`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## Game Feel
 
 | 面 | 目标 | 依据 |

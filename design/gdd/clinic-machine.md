@@ -350,6 +350,11 @@ P0 单房单情境下本族无区分度,**不实现**;此处仅立取舍证据(`
 > **无 audio 侧承诺**:24 不拥有任何素材 / 事件;若未来医馆需要专属氛围音,归 44 的音频事件表
 > (ADR-014 烘焙管线),不入本 GDD。
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **VS Critical**: Environment / Buildings #1 医馆（单房间，P0） · **Full Production**: Props #5 药柜 / 抽屉; UI Screens #6 医馆面板（案头账本）。
+> 逐件规格见 `design/assets/specs/`:`clinic.md`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## UI Requirements
 
 **24 无自有 UI。** 医馆面板(房间类型 / 情境乘数 / 布局判分读数)归 **42 拟物 UI 框架**;

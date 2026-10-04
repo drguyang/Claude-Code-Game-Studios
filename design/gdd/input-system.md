@@ -1001,6 +1001,9 @@ QueryBinding(actionId) → { device, bindingPath, iconKey }
 - **VFX** → 表现层。3 **零 VFX**
 - **UI** → 见 `## UI Requirements`(P0 结论:**无玩家可见 UI**)
 
+> **资产登记**:本系统无直接美术资产 —— 不产出也不消费 `design/assets/entity-inventory.md`
+> 的任何登记项。若后续新增,须回到 `entity-inventory.md` 登记并在此处补引。
+
 ## UI Requirements
 
 > **P0 结论:3 没有玩家可见 UI。** 这不是遗漏,是**设计结果** ——

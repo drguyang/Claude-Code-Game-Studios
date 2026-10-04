@@ -1272,6 +1272,11 @@ Guidelines 2 把 `WorldPos` 定为**住 sim 程序集**;ADR-020(订正后)又要
 ⇒ 25 若需要**独立的格斗位移手感**,须提出**自己的旋钮**(不得复用 1 的 `SPEED_*`,
 否则调走路会改战斗)。
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **VS Critical**: Characters #1 主角（医者）。
+> 逐件规格见 `design/assets/specs/`:`protagonist.md`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## UI Requirements
 
 > **本节 1 的内容同样是"不要求"** —— 移动**没有任何 UI**。

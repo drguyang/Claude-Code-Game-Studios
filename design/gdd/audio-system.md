@@ -882,6 +882,11 @@ rank_key(source) = ( priority_class ASC,          // 上面四条的类序:自�
 > 📌 **Asset Spec** — Visual/Audio requirements 已定义。art bible 批准后,
 > 运行 `/asset-spec system:audio-system` 生成逐素材的视觉描述与生成提示。
 
+> **资产登记**:本系统涉及资产见 `design/assets/entity-inventory.md` ——
+> **VS Critical**: SFX #1 诊脉接触音、#2 听诊器接触音、#3 病人呼吸两层、#6 病人语声、#7 纸面物理声、#8 脚步声、#9 药柜/器物声、#10 世界声; Ambient #1 医馆室内环境音 · **Full Production**: Music Cues #1 主菜单卷宗音乐、#2 出诊探索音乐、#3 诊断态音乐、#4 急救操作音乐、#5 疫情爆发音乐、#6 医馆经营音乐、#7 遭遇与遏制音乐、#8 死亡与后果音乐。
+> 逐件规格见 `design/assets/specs/`:`audio-material-manifest.md`。
+> ⚠️ 本行只登记**本系统涉及哪些资产**(引用边),**不表示归属已定** —— 归属裁定另见待裁清单。
+
 ## UI Requirements
 
 > **44 零 UI**(与 42 的栈无关)。它不渲染任何界面元素。
