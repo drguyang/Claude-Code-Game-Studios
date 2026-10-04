@@ -134,4 +134,4 @@ This epic is complete when:
 | Story | 里程碑 | 依据 |
 |---|---|---|
 | 001–018 | —(已 Complete,归 M3 计数) | `production/milestones/README.md` §五 M3 |
-| **019** | **M2 Vertical Slice**(硬前置) | `milestones/README.md` §三 Exit Criteria 第 6 条「纸/墨/铜三族切图与 atlas 布局冻结」+ 第 5 条「4 项形态件」—— **① 脉案线格/空行/明度轴压在九宫格切图上,② 墨乾湿两态压在墨迹 brush 上**。⇒ **不接图则 ①② 无法交付**,019 是它们的直接前置,非额外美化 |
+| **019** | **M2 Vertical Slice**(硬前置) | `milestones/README.md` §三 Exit Criteria「**五族切图与 atlas 布局冻结**」(⚠️ 2026-10-04 D 订正:原文写「纸/墨/铜三族」为措辞误,实测五族) + 第 5 条「4 项形态件」—— **① 脉案线格/空行/明度轴压在九宫格切图上,② 墨乾湿两态压在墨迹 brush 上**。⇒ **不接图则 ①② 无法交付**,019 是它们的直接前置,非额外美化。⚠️ **019 现为 Blocked ⛔**(2026-10-04 J 拆分,见 story 文件 §状态拆分) |

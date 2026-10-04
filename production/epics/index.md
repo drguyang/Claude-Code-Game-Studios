@@ -9,7 +9,7 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | input-system | Foundation | 3 输入与设备 | design/gdd/input-system.md | 13 stories | Complete ✅ 2026-09-28 |
 | skill-system | Foundation | 30 技能与熟练度 | design/gdd/skill-system.md | 8 stories | Complete ✅ 2026-09-27 |
 | skeuomorphic-ui | Foundation | 42 拟物 UI 框架 | design/gdd/skeuomorphic-ui.md | 18 stories + **019 贴图接入 Ready** | Complete ✅ 2026-09-28(⚠️ 范围见 EPIC §范围边界声明:不含贴图绑定) |
-| audio-system | Foundation | 44 音频系统 | design/gdd/audio-system.md | 14 stories + **015 资产接入 Ready** | Complete ✅ 2026-09-28(⚠️ 范围见 EPIC §范围边界声明:不含素材本体) |
+| audio-system | Foundation | 44 音频系统 | design/gdd/audio-system.md | 14 stories + **015 资产接入 Ready**(5 个被引 `.wav`)+ **016 资产接入 Ready**(余 7 项 / R-2 九项闭合) | Complete ✅ 2026-09-28(⚠️ 范围见 EPIC §范围边界声明 **一/二**:不含素材本体;015/016 两件刻意分件,不合并) |
 | telemetry-analytics | Foundation | 51 遥测与分析 | design/gdd/telemetry-analytics.md | 8 stories | Complete ✅ 2026-09-26 |
 | time-weather | Foundation | 5 时间与天气 | design/gdd/time-and-weather.md | 5 stories | Complete ✅ 2026-09-30 |
 | clinic-machine | Core | 24 医馆即机器 | design/gdd/clinic-machine.md | 5 stories | Ready(未实现) |
