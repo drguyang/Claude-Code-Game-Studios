@@ -47,7 +47,7 @@
 | emergency-procedures (10) | 7 | **7** | 0 | 0 | 🔶 **story 7/7 Complete;EPIC 未收口**(A1/A2/A6/B4/C4/C5 已闭;✅ 评审原件两份均在库,**旧记「评审原件缺」为方向性错记**;**真实残留 = D1/D2/D3 文档对齐 + 实跑测试套件**(round2 自陈未实跑,「0 红」系读源码而非执行)) |
 | enemy-ai (27) | 5 | **5** | 0 | 0 | ✅ 全收口 |
 | foraging (17) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
-| interaction-system (4) | 6 | **4** | 2 | 0 | 🔄 进行中 —— story 001/002/003/005 ✅ 收口(2026-10-04);**注:004 已完工待收口计数** |
+| interaction-system (4) | 6 | **5** | 1 | 0 | 🔄 进行中 —— story 001/002/003/005 ✅ 收口(2026-10-04);006 ✅ 收口(2026-10-04);**注:004 已完工待收口计数** |
 | inventory-items (20) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | medical-consequences (53) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
 | modular-building (23) | 7 | **7** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红，`9bb912b`+`bfa6234`;**未闭登记 = N-r2 生产装配根 + AC-23-09 跨平台签名**） |
@@ -188,8 +188,8 @@
 
 <!-- STATUS -->
 Epic: 交互系统
-Feature: 模态门与路由边沿
-Task: story-005 已收口(101/98/0/3)· 下一件 = story-006
+Feature: 数据契约构建期校验
+Task: story-006 已收口(116/113/0/3)· Epic 待收口
 <!-- /STATUS -->
 
 ---
@@ -218,3 +218,35 @@ Task: story-005 已收口(101/98/0/3)· 下一件 = story-006
 ### 待办
 - ✅ 收口提交推送
 - ⬜ story-006(数据契约构建期校验与呈现/手柄验收面)—— interaction-system 下一件
+
+
+---
+
+## story-006(数据契约构建期校验与呈现/手柄验收面)—— ✅ 收口 2026-10-04
+
+### 交付物
+- **生产**:`InteractionKindTable.cs`(`KindContractRow` + `DurationOwnerKind` + `InteractionKindTableValidator` 六条校验
+  + **`KindPriorityTable`** 第二键唯一真源)· `RoutedSystems.cs`(被路由系统集单一来源)
+- **测试**:`data_contract_validation_test.cs`(**13 条**:6 条 DC 夹具 + 4-DC-4 W/H/D + 4-DC-6 归属方 + 4-DC-3 行⟷表
+  + AC-4-21 机器代理 + 反空转门 + 独立性)
+- **评审原件**:`production/qa/evidence/review-interaction-story-006-2026-10-04.md`
+
+### 实跑
+- `unity/Logs/interaction-s006-final.xml` = **116 / 113 passed / 0 failed / 3 skipped**(3 = story-004 NOT-RUN 机检)
+
+### 单轮评审(承「评审只做一轮」)→ 修复轮
+- **结构侧 CHANGES REQUIRED**(F-1 BLOCKING 死代码;F-2…F-9)· **QA 侧 REJECT(AC-4-15)**(F-0 skip 归因更正;F-1…F-7)
+- 修复:**真表单一来源接线**(F-2,消除「校验的表 ≠ 选择的表」)· 补 4-DC-4 W/H/D 半边(F-1/F-2)·
+  `DurationOwner` 拆形态 + id 并断登记(F-3)· `RegisteredSystems` 单一来源(F-4/F-5)·
+  **AC-4-21 机器代理**落地(F-3)· story 登记 NOT-RUN + 实际夹具数(F-6/F-7)
+- **连带定向修复 story-002**:真表接线后 `target_selection_test` 4 条断言方向相反 ⇒ 按真表更新(MUT-7 先复现)
+- **变异证明 10 项全落盘**:MUT-1…6(六条 DC 逐条可红)· **MUT-7**(接线真表 ⇒ story-002 恰 4 红,证接缝真实)·
+  MUT-A(4-DC-4 W/H/D)· MUT-B(4-DC-6 归属方)· MUT-C(4-DC-3 行⟷表)
+
+### 未闭登记(NOT-RUN,禁借绿)
+- NR-1 装载器/烘焙接线(归 **story 007**)· NR-2 `KindPriorityTable` 真表(数值轮)·
+  NR-3/4/5 三条 `[L]` 走查(可玩构建)· NR-6 4-DC-6 对 17/20 的真实时长登记(`OQ-17-3`)
+
+### 待办
+- ✅ 收口提交推送
+- ⬜ **interaction-system Epic 收口**(story 004 完工待收口 + Epic 级验收)

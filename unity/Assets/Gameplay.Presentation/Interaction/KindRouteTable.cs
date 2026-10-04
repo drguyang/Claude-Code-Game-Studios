@@ -31,30 +31,13 @@ namespace DaYiJingCheng.Gameplay.Interaction
     /// </remarks>
     public sealed class KindRouteTable
     {
-        /// <summary>
-        /// 已登记的被路由系统集(GDD 规则一表的**第二列 distinct 值** + <c>4-DC-5</c>)。
-        /// <para>⚠️ <c>4-DC-5</c> 明写「见 <c>4-DC-2</c> 的 10 项表」—— 即规则一表第二列的**全部去重值**,
-        /// 含 <c>Patient</c> 行的四义 <c>37 / 8 / 10 / 11</c>(规则五 S-8.4 路线甲:模态内动作仍路由到 8 / 10 / 11)。
-        /// <b>不得只取 LegalTable 实际用到的值</b> —— 那会把判据收紧到 <c>4-DC-5</c> 之外,
-        /// 使一张**合法**表(如 <c>Patient → 8</c>)被误拒。</para>
-        /// <para>⚠️ 逐项来自登记系统(20 / 17 / 37 / 8 / 10 / 11 / 6 / 23 / 18 / 24)——
-        /// 引用却无登记 = 仓库头号失效模式。</para>
-        /// <para>⚠️ 本集是**装载替身** —— 真值随 <c>interaction_kinds.json</c> 烘焙(ADR-014),
-        /// 装载本体归 story 006;本故事只在 4 侧消费点的**装载失败面**验闭合。</para>
+                /// <summary>
+        /// 已登记的被路由系统集 —— **单一来源** <see cref="RoutedSystems.Registered"/>。
+        /// <para>⚠️ story-006 评审 F-4 修复:此前本处与校验器各持一份字面量拷贝(两机器一份数据 ⇒ 漂移)。
+        /// 现两处引用同一常量;`kind_route_closure_test` 的「集合不得窄于 GDD 规则一表第二列」判据
+        /// 自此对**唯一**真源生效。</para>
         /// </summary>
-        private static readonly HashSet<int> RegisteredSystems = new HashSet<int>
-        {
-            20,  // 掉落物 / 容器 —— 拾取 / 开箱裁决
-            17,  // 采集点 —— 采集裁决(散布 / 再生长)
-            37,  // 病人 —— 就诊立案(S-8.4 路线甲:世界空间裸 Interact 单义)
-            8,   // 病人 —— 查体(S-8.4 模态内动作行;4 的**世界路由**不经此,但 4-DC-5 集须含)
-            10,  // 病人 —— 急救(ADR-011 直读通道;同上,集须含)
-            11,  // 病人 —— 施治(方笺落笔;同上,集须含)
-            6,   // POI 格 / 门 / 开关 —— 校验 + 判距复验 + Append(唯一写者)
-            23,  // 建造槽位 / 门 / 开关 —— 放置 / 拆除(世界几何)
-            18,  // 灶台 / 器具 —— 进入炮制(准入门 + 时序)
-            24,  // 医馆面板 —— 面板(评分 / 布局)
-        };
+        private static readonly HashSet<int> RegisteredSystems = RoutedSystems.Registered;
 
         private readonly Dictionary<InteractableKind, int> _routes;
 

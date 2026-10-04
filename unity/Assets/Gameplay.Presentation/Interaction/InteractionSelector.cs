@@ -138,11 +138,12 @@ namespace DaYiJingCheng.Gameplay.Interaction
 
         /// <summary>
         /// F-4.1 第二键 <c>KindPriority</c> 的查表。
-        /// <para>⚠️ <b>数值归数值轮</b> —— 这里签发的是<b>表本体存在且十项两两互异</b>的形状,
-        /// 不签具体取值(真表的十项互异断言归 4-DC-3 构建期校验 / story 006)。
-        /// 表值落 <c>interaction_kinds.json</c>(ADR-014 烘焙管线)后由本方法读取。</para>
+        /// <para>⚠️ <b>数值归数值轮,接线不归</b> —— 表本体 = <see cref="KindPriorityTable"/>
+        /// (story-006 评审 F-2 修复后的**唯一**真源):选择器与 4-DC-3 校验器读**同一张表**,
+        /// 物理上不可能是两张。当前取值 = GDD §F-4.1b 演示序,真表待数值轮落
+        /// <c>interaction_kinds.json</c>(ADR-014 烘焙,装载归 story 007)。</para>
         /// </summary>
-        private static int KindPriorityOf(InteractableKind kind) => (int)kind;
+        private static int KindPriorityOf(InteractableKind kind) => KindPriorityTable.PriorityOf(kind);
 
         /// <summary>
         /// 两格之间的 Chebyshev 距离 <c>d∞(a,b) := max(|Δx|,|Δy|,|Δz|)</c>(F-4.1 第一键)。

@@ -21,11 +21,10 @@
 //   夹具守护的是「另一台机器」(删掉生产 F-4.1 实现夹具照绿)。修复轮**已删除**该本地机器:
 //   每条断言都必须能因**生产**读错而变红(负夹具是反空转的唯一防线)。
 //
-// ⚠️ 生产侧第二键当前 = 枚举序占位(`KindPriorityOf(k) => (int)k`);
-//   真表 `interaction_kinds.json` 落后方由查表取代(story 006)。故**F-4.1b 样例 (b)**
-//   (Container vs Drop,演示表解 Container、枚举序解 Drop)在本故事下**不可对拍演示表结论**
-//   —— 见 test_ac406_slippedProductionKindLiterals:改为对拍**生产可观测的裁决面**,
-//   并显式声明 (b) 的演示表结论归 story 006。
+// ⚠️ 生产侧第二键 = **查表**(`KindPriorityTable`,story-006 评审 F-2 修复后为唯一真源)。
+//   此前为枚举序占位(`KindPriorityOf(k) => (int)k`)⇒ F-4.1b 样例 (b) 在枚举序下解 Drop,
+//   与 GDD 演示表(解 Container)分歧。story-006 接线到真表后**分歧消除**:
+//   本文件已按真表更新期望值(见 test_ac406_exampleB / test_ac406_realTableIsWiredToProduction)。
 
 using System;
 using System.Collections.Generic;
@@ -90,7 +89,8 @@ namespace DaYiJingCheng.Tests.Interaction
         private static readonly Dictionary<InteractableKind, int> DemoKindPriorityReversed =
             DemoKindPriority.ToDictionary(kv => kv.Key, kv => 9 - kv.Value);
 
-        /// <summary>生产侧第二键当前的表(枚举序)—— 与 `KindPriorityOf` 实现同源(过渡占位)。</summary>
+        /// <summary>枚举序假表 —— 供「生产确实读真表而非 (int)kind」的**负对拍**
+        /// (story-006 评审 F-2 修复:生产已接线到 `KindPriorityTable`)。</summary>
         private static readonly Dictionary<InteractableKind, int> ProductionKindPriority =
             Enum.GetValues(typeof(InteractableKind)).Cast<InteractableKind>()
                 .ToDictionary(k => k, k => (int)k);
@@ -183,10 +183,10 @@ namespace DaYiJingCheng.Tests.Interaction
             var intent = new InteractIntent(PlayerCell, true, 0);
 
             // 照抄 GDD:B@(10,0,6) 与 C@(11,0,5) 同 d∞=1 ⇒ 键① 等,由键②/③ 决胜。
-            // 生产枚举序:Drop=0 < Container=4 ⇒ 键② 即定 ⇒ B(812)。
-            Assert.AreEqual(812L, selector.Select(in intent, new List<Candidate> { ExampleC, ExampleB }).StableId,
-                "AC-4-06 样例(b)生产面:第一键等距 ⇒ 生产枚举序表解 Drop(B,812);" +
-                "⚠️ GDD 演示表解 Container(C,44) —— 该结论归 story 006(本故事生产未读真表)");
+            // 真表(GDD §F-4.1b 演示序):Container=3 < Drop=9 ⇒ 键② 即定 ⇒ C(44)。
+            Assert.AreEqual(44L, selector.Select(in intent, new List<Candidate> { ExampleC, ExampleB }).StableId,
+                "AC-4-06 样例(b):第一键等距 ⇒ 真表 Container(3) < Drop(9) ⇒ 解 Container(C,44)" +
+                "(story-006 接线到 KindPriorityTable 后与 GDD 演示表一致)");
         }
 
         [Test]
@@ -201,12 +201,14 @@ namespace DaYiJingCheng.Tests.Interaction
         }
 
         /// <summary>
-        /// F-4.1b (b) 的两表分歧**显式登记**:生产第二键暂为枚举序 ⇒ 它与 GDD 演示表在
-        /// 「异种等距」处给出不同胜者。本条对拍**生产可观测裁决面**,并证明两表**确实不同**
-        /// (而非自洽空转)—— 真表落地后本断言即失效并须由 story 006 的查表断言取代。
+        /// **真表接线断言**(story-006 评审 F-2):证明生产第二键**确实读表**
+        /// (<see cref="KindPriorityTable"/>),而非枚举序占位。
+        /// <para>形态:同一候选集,生产裁决必须与「按真表算出的 argmin」一致;
+        /// 且与「按枚举序算出的 argmin」**不同**(否则生产仍走占位)。</para>
+        /// <para>⚠️ 本断言是 AC-4-06 的机器判据 —— 删掉生产接线(退回枚举序)即红。</para>
         /// </summary>
         [Test]
-        public void test_ac406_slippedProductionKindLiterals()
+        public void test_ac406_realTableIsWiredToProduction()
         {
             var selector = new InteractionSelector(new NoopDiscoveryReporter(), RInteract);
             var intent = new InteractIntent(PlayerCell, true, 0);
@@ -214,15 +216,14 @@ namespace DaYiJingCheng.Tests.Interaction
 
             long productionWinner = selector.Select(in intent, set).StableId;
             long demoTableWinner  = ArgMinWithTable(set, DemoKindPriority).StableId;
+            long enumOrderWinner  = ArgMinWithTable(set, ProductionKindPriority).StableId;
 
-            // 前置:两表在演示表下解 C(44),在枚举序下解 B(812)—— 必不同。
             Assert.AreEqual(44L, demoTableWinner,
                 "前置:GDD 演示表在 (b) 上解 Container(C,44)");
-            Assert.AreNotEqual(demoTableWinner, productionWinner,
-                "AC-4-06:生产(枚举序)与 GDD 演示表在异种等距处**结论必须不同** —— " +
-                "若相同则说明生产已读真表(本断言须由 story 006 取代)或测试未真驱动生产");
-            Assert.AreEqual(812L, productionWinner,
-                "AC-4-06:生产当前枚举序 ⇒ Drop(0) < Container(4) ⇒ 解 B(812)");
+            Assert.AreEqual(productionWinner, demoTableWinner,
+                "AC-4-06:生产第二键须与真表(GDD §F-4.1b 演示序)一致 ⇒ 生产确实读表");
+            Assert.AreNotEqual(productionWinner, enumOrderWinner,
+                "AC-4-06:生产裁决须**不同于**枚举序占位 ⇒ 证第二键不是 `(int)kind`");
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -271,8 +272,8 @@ namespace DaYiJingCheng.Tests.Interaction
             var c = new Candidate(new WorldPos(11, 0, 5), InteractableKind.Drop,      812L, StableIdSource.InstanceId); // d∞=1, Drop
 
             Assert.Less(ProductionSign(a, b), 0, "传递前提:a < b(d∞ 先决)");
-            // 生产枚举序:Drop(0) < Container(4) ⇒ c < b。
-            Assert.Less(ProductionSign(c, b), 0, "传递前提:c < b(枚举序 Drop < Container)");
+            // 真表:Container(3) < Drop(9) ⇒ b < c。
+            Assert.Less(ProductionSign(b, c), 0, "传递前提:b < c(真表 Container < Drop)");
             Assert.Less(ProductionSign(a, c), 0, "AC-4-06 传递:a<c 由 d∞ 先决");
         }
 
@@ -338,10 +339,10 @@ namespace DaYiJingCheng.Tests.Interaction
                 }
             }
 
-            // 期望胜者:生产枚举序下 Drop(0) 最小(Drop=0 < Patient=2 < Container=4)。
-            // ⚠️ 若换 GDD 演示表(Patient:0…Drop:9),胜者会翻为 Patient —— 生产尚未读真表。
-            Assert.AreEqual(InteractableKind.Drop, expected.Value.Kind,
-                "AC-4-06:等距同格下生产枚举序 Drop(0) 应为唯一胜者");
+            // 期望胜者:真表(GDD §F-4.1b 演示序)下 Patient(0) 最小
+            // (Patient=0 < Container=3 < Drop=9)⇒ 患者优先(与 AC-4-21 同向)。
+            Assert.AreEqual(InteractableKind.Patient, expected.Value.Kind,
+                "AC-4-06:等距同格下真表 Patient(0) 应为唯一胜者(患者优先)");
         }
 
         [Test]
