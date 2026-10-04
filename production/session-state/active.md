@@ -47,7 +47,7 @@
 | emergency-procedures (10) | 7 | **7** | 0 | 0 | 🔶 **story 7/7 Complete;EPIC 未收口**(A1/A2/A6/B4/C4/C5 已闭;✅ 评审原件两份均在库,**旧记「评审原件缺」为方向性错记**;**真实残留 = D1/D2/D3 文档对齐 + 实跑测试套件**(round2 自陈未实跑,「0 红」系读源码而非执行)) |
 | enemy-ai (27) | 5 | **5** | 0 | 0 | ✅ 全收口 |
 | foraging (17) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
-| interaction-system (4) | 6 | **3** | 3 | 0 | 🔄 进行中 —— story 001/002/003 ✅ 收口(2026-10-04) |
+| interaction-system (4) | 6 | **4** | 2 | 0 | 🔄 进行中 —— story 001/002/003/005 ✅ 收口(2026-10-04);**注:004 已完工待收口计数** |
 | inventory-items (20) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | medical-consequences (53) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
 | modular-building (23) | 7 | **7** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红，`9bb912b`+`bfa6234`;**未闭登记 = N-r2 生产装配根 + AC-23-09 跨平台签名**） |
@@ -61,7 +61,7 @@
 | world-ecozones (6) | 6 | **5** | 1 | 0 | ✅ **Complete ✅ 2026-10-03**（6/6 story;N1/N5 已修 · 本轮 109/109 绿;**未闭登记 = N3 白名单判据(待 27 侧落地)+ Story 005 [L] 走查 EXTERNAL**) |
 | persistence-service (7a) | 2 | **2** | 0 | 0 | ✅ 全收口（002 = ADR-029 契约支） |
 | save-slot-ui (7b) | 1 | 0 | 1 | 0 | ⬜ 未启动 |
-| **合计** | **207** | **136** | **71** | **0** | **65.7% 完成(136/207)** |
+| **合计** | **207** | **137** | **70** | **0** | **66.2% 完成(137/207)** |
 
 > ⚠️ **2026-10-03 实测重算(当前口径)**:按各 story 真件逐件解析 ⇒ **207 / 136 Complete / 0 In Progress / 71 Ready**。
 > 与上一版(124 / 6 / 77 / 59.9%)的差额来源:
@@ -188,6 +188,33 @@
 
 <!-- STATUS -->
 Epic: 交互系统
-Feature: POI 自报链路
-Task: story-004 已收口(4 侧全绿;6 侧二子条 NOT-RUN)· 下一件待定
+Feature: 模态门与路由边沿
+Task: story-005 已收口(101/98/0/3)· 下一件 = story-006
 <!-- /STATUS -->
+
+---
+
+## story-005(模态门与路由边沿)—— ✅ 收口 2026-10-04
+
+### 交付物
+- **生产**:`ModalGate.cs`(`IModalGateState` 单布尔消费契约 + `IArmedState` + `ModalGate.Accept/Select/SetMotorSuppression`)
+- **测试**:`modal_gate_test.cs`(AC-4-09/10/19 + 规则九,含选择器自报计数接缝、单 bool 可执行影子、闭集基数守卫、零出现 `ModalId` 断言)
+- **评审原件**:`production/qa/evidence/review-interaction-story-005-2026-10-04.md`
+
+### 实跑
+- `unity/Logs/interaction-s005-final.xml` = **101 / 98 passed / 0 failed / 3 skipped**(3 = story-004 NOT-RUN)
+
+### 单轮评审(承「评审只做一轮」)→ 修复轮
+- **结构侧 CHANGES REQUIRED**(F-1 BLOCKING;F-2…F-11)· **QA 侧 ACCEPT-WITH-FIXES**(F1…F6);两件判定皆回填原件
+- 修复:F-1 丢弃接缝改选择器自报计数 · F-2 删 ordinal 死代码 · F-3 闭集基数守卫 · F-4 单 bool 可执行影子 ·
+  F-6 cref 订正 · F-8 零出现 `ModalId` · F-9 正向对照反空转门
+- **变异证明 6 项全可红**:MUT-A(删模态门 → 2 红)· MUT-B(排队替代丢弃 → 2 红)· MUT-C(清全位图 → 3 红)·
+  MUT-D(闭集 +1 员 → 1 红)· MUT-E(生产引用 `ModalId` → **编译错**,方向性实证)· MUT-E2(代码级串 → 3 红)
+
+### 未闭登记(NOT-RUN,禁借绿)
+- NR-1 方向① 生产实现体(归 10)· NR-2 方向② 适配器(归 42)· NR-3 AC-4-10 3 侧扫描(归 story-006)·
+  NR-4 动态第 8 屏夹具 · NR-5 运行期消费者接线
+
+### 待办
+- ✅ 收口提交推送
+- ⬜ story-006(数据契约构建期校验与呈现/手柄验收面)—— interaction-system 下一件

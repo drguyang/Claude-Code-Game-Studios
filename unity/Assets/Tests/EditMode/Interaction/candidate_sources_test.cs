@@ -355,7 +355,7 @@ namespace DaYiJingCheng.Tests.Interaction
 
         private sealed class NoopDiscoveryReporter : IDiscoveryReporter
         {
-            public void Request(long poiId, long tick) { }
+            public void Request(in DiscoveryRequest request) { }
         }
 
         // ── 四源替身 ────────────────────────────────────────────

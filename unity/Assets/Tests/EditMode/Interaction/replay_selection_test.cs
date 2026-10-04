@@ -294,7 +294,7 @@ namespace DaYiJingCheng.Tests.Interaction
         /// <summary>spy 替身(本文件只作 no-op;真实链路归 story 004)。</summary>
         private sealed class NoopDiscoveryReporter : IDiscoveryReporter
         {
-            public void Request(long poiId, long tick) { }
+            public void Request(in DiscoveryRequest request) { }
         }
     }
 }

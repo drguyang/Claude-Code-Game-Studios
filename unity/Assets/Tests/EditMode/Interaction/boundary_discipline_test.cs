@@ -748,12 +748,12 @@ namespace DaYiJingCheng.Tests.Interaction
                 _dispatchToSink = dispatchToSink;
             }
 
-            public void Request(long poiId, long tick)
+            public void Request(in DiscoveryRequest request)
             {
                 RequestCount++;
-                RequestedPoiIds.Add(poiId);
+                RequestedPoiIds.Add(request.PoiId);
                 if (_dispatchToSink && _wiredSink != null)
-                    _wiredSink.Append(new SimEvent(tick, PatientId.None, 0L,
+                    _wiredSink.Append(new SimEvent(request.Tick, PatientId.None, 0L,
                         EventKind.PoiStateChanged, new PayloadRef(0, 0, 0)));  // 漏出的写入 ⇒ 链上 sink 记账
             }
         }
@@ -810,7 +810,7 @@ namespace DaYiJingCheng.Tests.Interaction
             public ShadowCollisionSelector(IDiscoveryReporter r) { _r = r; }
             public InteractTarget Select(in InteractIntent i, IReadOnlyList<Candidate> c)
             {
-                if (c != null && c.Count > 0) _r.Request(c[0].StableId, i.Tick); // 碰撞即 Request(错误实现)
+                if (c != null && c.Count > 0) _r.Request(new DiscoveryRequest(c[0].StableId, i.PlayerCell, i.Tick)); // 碰撞即 Request(错误实现)
                 return InteractTarget.None;
             }
         }

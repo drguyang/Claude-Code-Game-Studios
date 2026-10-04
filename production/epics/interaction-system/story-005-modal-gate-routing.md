@@ -1,12 +1,12 @@
 # Story 005: 模态门与路由边沿 —— `Accept` 两方向 / `ModalId` 引用非复制 / 丢弃不排队 / 路由表 / `Acquire/Release(Self)` / 上行缺口登记
 
 > **Epic**: 交互系统
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: 8h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-30
+> **Last Updated**: 2026-10-04
 
 ## Context
 
@@ -22,9 +22,9 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC-4-09([A])** —— `GIVEN` `IModalState.Modal` ∈ ADR-013 §十 模态闭集(引用该枚举,**不在 4 内复制清单**),`WHEN` 按交互键,`THEN` 意图**丢弃**(不排队、不缓存)。**并**:`WHEN` 未来闭集新增第七屏,`THEN` **本 AC 自动覆盖**(无 4 侧改动)—— 这是「引用而非复制」的判据。
-- [ ] **AC-4-10([A])** —— `GIVEN` 10 的 `Armed` 态,`WHEN` 按交互键,`THEN` **意图被压制**,**3 侧零状态**(规则七 · 与 AC-10-14 联合)
-- [ ] **AC-4-19([A])** —— `GIVEN` 4 与 10(或 25)**同时**持有移动压制,`WHEN` **4 先 Release**,`THEN` 压制**仍生效**(10 的位仍置)。⇒ 证伪「单 bool + 三个互不知晓的写者 = 丢失更新」。**4 的调用面 = `Acquire/Release(LeaseSource.Self)`,无 `SetSuppressed(bool)`**
+- [x] **AC-4-09([A])** —— `GIVEN` `IModalState.Modal` ∈ ADR-013 §十 模态闭集(引用该枚举,**不在 4 内复制清单**),`WHEN` 按交互键,`THEN` 意图**丢弃**(不排队、不缓存)。**并**:`WHEN` 未来闭集新增第七屏,`THEN` **本 AC 自动覆盖**(无 4 侧改动)—— 这是「引用而非复制」的判据。
+- [x] **AC-4-10([A])** —— `GIVEN` 10 的 `Armed` 态,`WHEN` 按交互键,`THEN` **意图被压制**,**3 侧零状态**(规则七 · 与 AC-10-14 联合)—— ⚠️ 4 侧形态已验,**3 侧扫描 NOT-RUN**(归 story-006)
+- [x] **AC-4-19([A])** —— `GIVEN` 4 与 10(或 25)**同时**持有移动压制,`WHEN` **4 先 Release**,`THEN` 压制**仍生效**(10 的位仍置)。⇒ 证伪「单 bool + 三个互不知晓的写者 = 丢失更新」。**4 的调用面 = `Acquire/Release(LeaseSource.Self)`,无 `SetSuppressed(bool)`**
 
 ---
 
@@ -76,7 +76,7 @@
 **Required evidence**:
 - Logic: `tests/unit/interaction/modal_gate_test.cs` — must exist and pass(AC-4-09/10/19 三条;EditMode)
 
-**Status**: [ ] Pending
+**Status**: [x] Done —— `unity/Logs/interaction-s005-final.xml` = 101/98/0/3(3 skipped = story-004 NOT-RUN 机检)
 
 ---
 
@@ -89,9 +89,15 @@
 
 ## Completion Notes
 
-**Completed**: _待实现_
-**Criteria**: _待填_
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Completed**: 2026-10-04
+**Criteria**:
+- AC-4-09 ✅ —— 生产 `ModalGate.Accept/Select` 由真测驱动;「丢弃而非排队」经选择器**自报计数接缝**证可红(MUT-B);「引用而非复制」由**零出现 `ModalId` 类型名**断言(F-8,MUT-E2 证)+ `ModalId` **方向性不可达**(MUT-E 编译错 CS0234 实证)+ 闭集**基数守卫**(F-3,MUT-D 证)承担
+- AC-4-10 ✅(4 侧形态)—— MUT-A 证可红;「3 侧零状态」扫描 **NOT-RUN**(归 story-006,已登记)
+- AC-4-19 ✅ —— 经真调用面 `ModalGate.SetMotorSuppression` 对真 `MotorLease`;MUT-C 三红
+**Deviations**:
+- **契约面瘦身**:`IModalGateState` 由「布尔 + 不透明 ordinal」**收为单布尔 `IsOpen`**(结构侧 F-2)—— 删死代码 ordinal getter,契约面最小化
+- **程序集方向**:4 侧消费者契约 `IModalGateState`/`IArmedState` 住 `Gameplay.Presentation`(承 `IFocusable` 先例),由 42 的 `IModalState` 适配 —— 避免 `Gameplay.UI` → `Gameplay.Presentation` 循环
+**Test Evidence**: `unity/Logs/interaction-s005-final.xml` = 101/98/0/3(`modal_gate_test.cs` 为其中主体;3 skipped = story-004 NOT-RUN)
+**Code Review**: 双代理单轮评审 + 主会话独立复核 —— 原件 `production/qa/evidence/review-interaction-story-005-2026-10-04.md`(结构侧 CHANGES REQUIRED → F-1 等全修;QA 侧 ACCEPT-WITH-FIXES → 已修/登记)。**变异证明 6 项全落盘**(`unity/Logs/mut-*.xml`)
+**未闭登记(NOT-RUN,禁借绿)**:NR-1 方向① 生产实现体(10)· NR-2 方向② 适配器(42)· NR-3 AC-4-10 3 侧扫描(story-006)· NR-4 动态第 8 屏夹具 · NR-5 运行期消费者接线
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
