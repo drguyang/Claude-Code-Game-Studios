@@ -140,8 +140,16 @@ unity/Assets/Gameplay.UI/Skeuomorphic/Textures/
 ├── scroll_cap-final.png
 ├── ui_icons_sprite-final.png
 ├── border_paper-final.png
-└── border_scroll-final.png
+├── border_scroll-final.png
+├── casebook_paper_base-final.png   ← 2026-10-05 第 17 张(脉案五层拆分第一层,另一套 spec)
+└── …
 ```
+
+> **⚠️ 第 17 张(2026-10-05)**:`casebook_paper_base-final.png` **不是**上面那 16 张的同批产物 ——
+> 它属 `design/assets/specs/casebook-paper.md`(脉案纸页五层拆分里的第一层),生成留痕见下 §九之二。
+> 树里列它是为了**让目录与库位一一对应**(否则下一个人会以为它是孤儿)。
+> **脉案还剩 4 个 P0 层未出**:`casebook_paper_ruling` / `casebook_paper_stitch` /
+> `casebook_ink_font` / `casebook_stamp`。
 
 > **`-final` 后缀的由来（2026-09-30）**：`/image-gen` 的迭代产物带 `-v1`/`-v2`… 后缀留在
 > `assets/design-references/`（gitignored，不入库）。入库的是每张的定稿版，改名为
@@ -185,6 +193,24 @@ unity/Assets/Gameplay.UI/Skeuomorphic/Textures/
 | 14 | `ui_icons_sprite` | 1 | v1 | 4×4 网格分隔线精确落 512/1024/1536，16 格覆盖率 4.7%–35.4% |
 | 15 | `border_paper` | 4 | **v4** | v1 边线内缩 109px → v2 贴边但暗带后有中性白 rim(R-B +0.3、亮度 0→248 硬跳≈127、近白 88.4%) → v3 修好白 rim + 改暖褐纸(R-B +136)但墨线外缩 11px → v4 墨线落 22–57px、四条边不对称(top 收 57 / left 收 51) |
 | 16 | `border_scroll` | 2 | **v2** | v1 木带内缩 69px 且带宽 102px(几乎占满半图) → v2 贴边(最外 68px),暗带落 0–67px,中央 ½ 区纯白 |
+
+### 九之二 · `casebook_paper_base`(2026-10-05 重出轮 —— **已入库,不在上表 16 张内**)
+
+> **为什么单列**:上表 16 张是 2026-09-30 那批**拟物 UI 边框 / 纸纹 / 墨迹 / 卷轴配件 / 印章**,
+> 走 `ai-generation-prompts.md §一`~`§六` 的 prompt。`casebook_paper_base` 属
+> `design/assets/specs/casebook-paper.md`(脉案纸页五层拆分里的第一层),**另一套 spec**,
+> 其生成留痕主表在该 spec 的 §8.10.2。**本节只登记 2026-10-05 那一次重出**,避免两处主表重复。
+
+| 字段 | 值 |
+|---|---|
+| **定稿版** | **v9E-b**(2026-10-05 · 用户目视验收后定稿) |
+| **入库位** | `unity/Assets/Gameplay.UI/Skeuomorphic/Textures/casebook_paper_base-final.png`(2048² · 7.3 MB) |
+| **新建方式** | **t2i + PIL 频域重建,无新 API 调用** —— 全部由当时库里的 v9D 数值重建(`d = v9D − #F6DEBC` → 纤维 `hi` / 云斑 `lo` 拆开独立缩放 → `tanh` 软滚降消高光过曝) |
+| **轮次** | **9 版**(v7 → v9B → v9C → v9D → v9E-a…e)。v7 纤维够但冷白无纸感;v9D 找回暖调却把霉斑/水渍的低频起伏抹平;v9E-b 两者兼顾。**v1–v8 与 v9B/C/D/E-a/c/d/e 已按用户裁定删除,唯留 v9E-b** |
+| **实测** | 纤维 std **7.59** · 云斑 std **1.104** · 裁剪 **0.000%** · 冷色 **0.00%** · 接缝 TB/LR **0.94 / 0.77** · 淡墨对比 **p50 7.11:1 / 最亮像素 9.02:1**(两种读法均过 7:1 门) |
+| **两项口径裁定(用户 2026-10-05)** | ① 7:1 门**只管正文 / 墨迹淡 `#4A4640`**,浓墨与界行红单列目视;② 对比按 **p50 中位**量,不按 p5 最差 5% 霉斑 |
+| **分辨率裁定** | **2048² 原样入库,不降到 1024²** —— 降采样会把纤维 std 削到 4.73(−38%)。⚠️ 偏离 `art-bible §8.2` 的「UI-纸 1K」**提案档**,偏离理由与 story-019 的连带义务已登记在 `casebook-paper.md` 的 Resolution tier 行 |
+| **未兑现(禁借绿)** | 无 slice 值(尚未量,归 story-019 切图冻结件)· 无 USS 绑定(全库零 `casebook_paper_base` 引用)· 未进任何 `.spriteatlas` |
 
 ### 九宫格 slice 值(2026-09-30 初版 · **2026-10-05 甲-B 口径订正**)
 

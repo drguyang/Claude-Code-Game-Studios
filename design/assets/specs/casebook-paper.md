@@ -28,7 +28,8 @@
 
 | Property | Value | Notes |
 |----------|-------|-------|
-| **Resolution** | 2048×2048 (page spread) | 两页并排，左四诊 + 右辨证 |
+| **Resolution** | 2048×2048 | ⚠️ **「page spread / 两页并排 / 左四诊 + 右辨证」是 2026-09-29 四层拆分前的旧口径,已作废** —— 本表现在只是**四层里的第一层**:一张**无缝、可平铺、可 9-slice 拉伸的素纸背板**。**不含界行、不含绳结、不含印章**,也**不承载任何版式**(版式权威 = `casebook-39.md` §5) |
+| **Resolution tier** | ⚠️ **偏离 `art-bible §8.2` 的「UI-纸 1K」提案档**(2026-10-05 用户裁定 = 2048² 原样入库,**不**降采样到 1024²) | 降采样会把纤维 std **7.59 → 4.73(−38%)**,等于削掉本轮的修正成果。§8.2 该档自陈「提案值 / 不定绝对像素上限」且 `Memory Ceiling` 仍待定 ⇒ **不构成硬冲突**。⚠️ 连带义务:story-019 建 atlas 时须复核(「atlas ≤2K 短边」对着一张 2048² 素纸,是**切片进 atlas** 还是**作独立大图**须裁) |
 | **Format** | PNG (sRGB) | 纸面底 + 界行 + 绳结 + 墨迹分层 |
 | **Material slots** | 4 (paper_base 9-slice + ruling repeat + stitch + ink_overlay) | 界行与绳结各自独立，版式改动不需重出纸底（见「为什么要拆成四层」） |
 | **Poly count** | N/A (UI element) | UI Toolkit UXML + USS |
@@ -41,7 +42,7 @@
 
 | Asset | Type | Description | Slicing | Priority |
 |-------|------|-------------|---------|----------|
-| `casebook_paper_base.png` | Texture | **纯纸面**：宣纸纤维 / 泛黄 / 霉斑 / 水渍 / 卷边磨损。**不含界行、不含绳结、不含印章** | 9-slice | P0 |
+| `casebook_paper_base.png` | Texture | **纯纸面**：宣纸纤维 / 泛黄 / 霉斑 / 水渍 / 卷边磨损。**不含界行、不含绳结、不含印章** | 9-slice | P0 ✅ **已入库 2026-10-05**(v9E-b · `casebook_paper_base-final.png` 2048²) |
 | `casebook_paper_ruling.png` | Texture | 红色界行（竖线）**单行可 repeat 条**，不含任何行标签文字 | 横向 repeat | P0 |
 | `casebook_paper_stitch.png` | Texture | 中缝线装绳结（一条窄图，含线环 + 结） | 9-slice | P0 |
 | `casebook_ink_font.png` | Texture Atlas | 墨迹材质层（楷书四诊 / 行书辨证 / 界行 / 印章 / 落款，AI 生成含完整版式的材质参考图 → DA 裁切为独立纹理层；动态文字内容由 UXML `<Label>` 叠层承载） | — | P0 |
@@ -107,6 +108,13 @@ UXML 的五行通道行**逐像素对齐**——改一次行高或行序，整�
 ## Accessibility
 
 - 纸面正文对比度 ≥ 7:1（AB-4 已裁定）
+  > ⚠️ **2026-10-05 用户裁定:该门只对「正文 / 墨迹淡 `#4A4640`」生效,且按 p50 中位量**
+  > (原条款字面是「最亮像素」,重心在「别让纸比字更亮」;**不是**把 07 整张纸当判据 ——
+  > 07 是**纹理**,不是被读的文本面)。**浓墨 `#1A1714` 与界行红 `#8B3A3A` 不在门内**,
+  > 单列目视判断。入库定稿 v9E-b 实测:**淡墨 p50 = 7.11:1 / 最亮像素 = 9.02:1**
+  > —— **两种读法都过门**(不是靠改判才过的)。
+  > **界行红 5.77:1(p50)= 结构性事实,登记不隐藏**:任何暖色纸底上 `#8B3A3A` 都过不了 7:1;
+  > 若将来它也要过门,该改的是**界行红自己的色值或加描边**,**不是**这张纸。
 - 墨迹浓 ≠ 仅颜色区分——有笔触粗细 / 位置 / 形态差异
 - 焦点高亮 = 黄铜边框 2px（承 art-bible §3.3 / §7.4 + ADR-013）
 
@@ -145,15 +153,23 @@ Resolution: 2048x2048, high detail for close-up reading.
 |---|---|
 | `prompt` | 见上方代码块(prompt 本体)。**实际出图用的是改写版**——原 prompt 生成的是完整脉案版式图,而本 spec §「为什么要拆成四层」已裁定材质与版式解耦,故改用单材质 macro prompt(见 `ai-generation-prompts.md` §一)。原 prompt 保留在此作为**风格基调**的权威表述。 |
 | `model` | `sensenova-u1.5-fast`(SenseNova U1.5 Fast)。端点 `POST {base}/images/generations`,t2i 与 i2i 同端点,i2i 以 base64 data URI 传源图。 |
-| `iterations` | **4 轮**(2026-09-30)。① 原 prompt 版式图 → 作废(材质与版式解耦裁定后不再需要版式参考)。② 换 "Extreme macro close-up" 单材质模板,std 3.0→7.3。③ 微调至 `#EDE6D9`(目标 `#F5F0E8`)、接缝比 1.14 —— **定稿**。④ 追加"更暖更深"指令 → 暗褐 `#7A624A`,回归。 |
+| `iterations` | **4 轮**(2026-09-30)。① 原 prompt 版式图 → 作废(材质与版式解耦裁定后不再需要版式参考)。② 换 "Extreme macro close-up" 单材质模板,std 3.0→7.3。③ 微调至 `#EDE6D9`(目标 `#F5F0E8`)、接缝比 1.14 —— 当时定稿。④ 追加"更暖更深"指令 → 暗褐 `#7A624A`,回归。 |
+| `iterations`(⑤ 2026-10-05 重出轮) | **9 版**(v7 → v9B → v9C → v9D → v9E-a…e,**定稿 v9E-b**)。根因:③ 的"定稿"落在**冷白调**上(纸面偏灰白、无纸感),而④ 的"更暖"又**只留纤维、把霉斑/水渍的低频起伏整个抹平**(云斑 std 1.155 → v9D 的 1.104 之前几近于无)。轮内:a) 频域拆解(`d = v9D − #F6DEBC` → 纤维 `hi` + 云斑 `lo`,再把两者**独立**缩放)把纤维 std 拉回 **7.59**、云斑 std 保住 **1.104**;b) 高光通道过 `tanh` 软滚降(W=250/A=6)消掉高光过曝(clip **0.000%**);c) 用户裁**两项口径**后重测 —— 7:1 门只管正文、按 p50 量 —— **淡墨 p50 7.11:1 / 最亮 9.02:1**。⚠️ **本轮无新 API 调用**:全部由 v9D 经 PIL 数值重建产生(不可复现性**不因此恶化**,该图本就无 seed)。 |
 | `seed` | **无** —— SenseNova `images/generations` 端点不回传 seed。后果:该贴图**不可复现**,重出必得不同结果。若需可复现,须换回传 seed 的模型并在资产上另记 seed 值。 |
 | `human_edits` | `none` —— 全部经 API 生成与 i2i 编辑,无人工描图 / 临摹 / 矢量化(art-bible §7.2)。 |
 
 > **§8.10.2 落地**:本表是发行时 Steam AI 申报清单的数据源。
-> **产出入库状态(2026-09-30 改判)**:定稿版 16 张(4.1 MB)已入库至
-> `unity/Assets/Gameplay.UI/Skeuomorphic/Textures/*-final.png` —— 它们是运行期资产,
-> DA 要裁、美术要改。**迭代版(`-v1`~`-v6`,78 MB)仍 gitignored** 留在
+> **产出入库状态(2026-10-05 改判 · 取代 2026-09-30 口径)**:`casebook_paper_base`
+> 的定稿位图 = **v9E-b**,已入库至
+> `unity/Assets/Gameplay.UI/Skeuomorphic/Textures/casebook_paper_base-final.png`(2048² · 7.3 MB)。
+> **此时它只是素材图,尚不是运行期资产** —— 它尚无 slice 值、无 USS 绑定、未进任何
+> `.spriteatlas`(与同族 16 张相同,归 story-019,`AC-42-C8` 禁手填 ⇒ 必须等切图冻结件)。
+>
+> 其余 15 张贴图仍走 2026-09-30 原口径(定稿版入库 + 迭代版 gitignored)。
+> **迭代版(`-v1`~`-v6` 及其后的 `-v7`/`-v9*` 系列)依然 gitignored** 留在
 > `assets/design-references/`,理由原样成立(无法重建、每轮规格不同、入库制造假版本权威)。
+> ⚠️ 2026-10-05 已按用户裁定**删除 casebook 侧 v1–v8 与 v9B/C/D/E-a/c/d/e**,
+> **唯留定稿 v9E-b**(目录里已无其他 `casebook_*` 版本 = 库位文件的出处,不是 orphan)。
 > 规格真源 = 本 spec;生成留痕 = 本表 + `ai-generation-prompts.md` §九。
 >
 > ⚠️ **`seed` 缺失是申报风险项**:Steam 要求披露 AI 生成内容,本表已满足;
