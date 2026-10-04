@@ -18,10 +18,14 @@
     padding-right: var(--skeuo-shared-space-md);
     padding-bottom: var(--skeuo-shared-space-md);
     padding-left: var(--skeuo-shared-space-md);
-    -unity-slice-left: 42px;
-    -unity-slice-right: 42px;
-    -unity-slice-top: 42px;
-    -unity-slice-bottom: 42px;
+    /* 2026-10-05 用户裁定(甲-B 口径):border_paper-final.png 重出后三道墨线实测落
+       22–57px(四条边不对称,top 收 57 / left 收 51),slice 须 ≥ 最宽边才不被切。
+       取 64px:接缝跳变 mean 4.00 ≈ 普通邻域梯度 4.61(等于无缝),占边 6.2%。
+       旧值 42px 来自 2026-09-30 白框版(暗带 0–41px),该版已删,整行作废。 */
+    -unity-slice-left: 64px;
+    -unity-slice-right: 64px;
+    -unity-slice-top: 64px;
+    -unity-slice-bottom: 64px;
 }
 
 /* 变体: aged — 通过 USS 变量覆盖实现(禁止同类型内通过颜色/尺寸模拟变体, AC-42-C4) */
