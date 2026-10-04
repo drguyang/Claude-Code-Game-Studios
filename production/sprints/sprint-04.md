@@ -17,7 +17,7 @@
 > `milestones/README.md §三` 冲突。口径现为:**除 4 项必须真形态者外全灰盒**;
 > 4 项(①脉案线格/空行/焦点明度轴 ②墨乾湿两态 ③急救零数字+可跳过 ④一条真实状态反馈通道)
 > **不可灰盒** —— 它们承担的正是「验证核心循环」本身(手感与可读性),灰盒会掩盖要验的东西。
-**Capacity**: ~37 SP + 基础设施工作
+**Capacity**: ~39 SP + 基础设施工作(⚠️ 2026-10-04 勘误:37 → 39,随 `interaction-system` 的 4→6 更正)
 **Dependency order**: 按「先清债务、再核心循环、后集成验证」排序
 
 ---
@@ -107,13 +107,14 @@
 |---|------|--------|-----|------|------|
 | 1 | player-controller (1) | 6 | 6 | 3 (done) | ✅ **Complete ✅ 2026-10-03**(Phase 1 期间完成) |
 | 2 | camera-viewpoint (2) | 6 | 6 | 1 | ✅ **Complete ✅ 2026-10-03**(计划外增量 —— 本表原无此行,实际已完成) |
-| 3 | interaction-system (4) | 4 | 4 | 1, 3 (done) | ⬜ Ready(未实现)—— **关键路径断点** |
+| 3 | interaction-system (4) | 6 | 6 | 1, 3 (done) | 🔄 **In Progress** —— story-001 边界纪律已实现并复跑绿(22/22),余 5 件 —— **关键路径断点** |
 | 4 | patient-ai (13) | 4 | 4 | 9 (done) | ⬜ Ready(未实现) |
 | 5 | diagnosis-system (8) | 6 | 6 | 9, 30 (done) | ⬜ Ready(未实现) |
 | 6 | case-system (37) | 6 | 6 | 8, 9 (done) | ⬜ Ready(未实现) |
 | 7 | prescription-medication (11) | 5 | 5 | 21, 9 (done) | ⬜ Ready(未实现) |
 
-**Phase 2 总计**：~37 SP —— **实际完成 2/7 = ~12 SP**
+**Phase 2 总计**：~39 SP —— **实际完成 2/7 = ~12 SP**(⚠️ 勘误 2026-10-04:`interaction-system` 原记 4/4,
+实际 6 story ⇒ 6 SP,总计数 37 → 39;其余六行与各自 Epic 实际 story 数逐一核对无误)
 (player-controller 6 SP 于 Phase 1 期间完成;camera-viewpoint 6 SP 于 2026-10-03 完成)
 
 **关键路径(现状)**：

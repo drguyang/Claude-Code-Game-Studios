@@ -2743,3 +2743,122 @@ D-R2 随 tools/kindgen 同批 · R-A/R-B/R-C spikes(实现轮)· U0a(挂起)→ 
 - 未闭(登记): OQ-1-12 接地 spike(唯一真待用户裁决的开工前置)· O-9 · O-4 · AC-1-22(EXTERNAL)· AC-1-04(VR P1a)· story-004 codec 绕行
 - 未提交(无用户指令)—— 工作树 = 10 改 + 1 新
 - Next: Route A / Epic 2 = **world-ecozones**(8 前置,3 🔴 blocking:N1 主机门返回码与 `PoiNotFound` 混淆 · N5 缺发现门集成测试 · N3 白名单静态断言未验)
+
+## Session Extract — 轨 A / interaction-system story-001(重启轮)2026-10-04
+- 用户令: 「严格执行：创建并unity cli测试 →双代理评审 → 修复 → 复跑绿 →收口提交推.重新001」+「按你的建议继续,没有选项不要停」
+- 范围: interaction-system story-001(边界纪律与程序集归属,六条 AC-4-01/02/04/05/11/12)
+- 装配裁定: **新建 `Gameplay.Interaction` 装配**(ADR-025 §④ 清单封闭性 —— 未登记 asmdef = 构建失败;
+  story-001 Implementation Notes 明写「本故事同时是该装配的存在性验收点」)
+  · 引用集 = {Sim.Contracts, Gameplay.Presentation},**刻意不引 Sim / Sim.Codec**(AC-4-05 引用集半边)
+- 新建文件:
+  · `unity/Assets/Gameplay.Interaction/Gameplay.Interaction.asmdef`(+meta)
+  · `.../InteractableKind.cs` —— 十项闭集,刻意不含 Player
+  · `.../Candidate.cs` —— Candidate / StableIdSource / InteractIntent / InteractTarget(全整数域)
+  · `.../IDiscoveryReporter.cs` —— 4 唯一出境面(请求 ≠ 写入)
+  · `.../InteractionSelector.cs` —— F-4.2 门 + 主动交互触发门;三键全序本故事只签形态(数学归 002)
+  · `unity/Assets/Tests/EditMode/Interaction/boundary_discipline_test.cs` —— 六条结构断言 + 负夹具
+- 改: `unity/Assets/Tests/EditMode/EditMode.asmdef`(references 增 `Gameplay.Interaction`)
+- 编译期首轮红(已修): CS1612 tuple 索引器不可变 ⇒ RunScenario/interleave 夹具改取局部拷贝
+- **复跑第 2 轮红(3 条)—— 自我发现的自造缺陷(全部已修)**:
+  ① `ScanClosureForNames` 每类型独立 `visited` ⇒ 闭包不跨装配展开(弱于故事 Implementation Notes
+     的「递归进入泛型实参 / 接口实现」);且 `CheckName` 只比**类型全名** ⇒ `disease_id` /
+     `tier_named` / `drug_profile`(字段**名**)永不命中 = 空转假绿。**已重写**:新增
+     `ExpandAndCheck`(跨装配递归展开,名称检查覆盖**类型名 + 字段 / 属性 / 方法 / 形参名**,
+     命名空间剪枝 + 深度 64 + 已访问集防环);`ScanTypeTreeForNames` 同步补剪枝(此前无 ⇒ 递归冲进
+     `System.Runtime.Serialization` 并在深度护栏假报)。
+  ② `ShadowSettlementLeak` 原为 `{ public object Payload; }` —— **不含任何禁入类型**,旁边的
+     `JudgeResult` 只是同级类、从未被引用 ⇒ AC-4-01 负夹具本身是坏的(不是扫描器)。**已修**为
+     `{ public JudgeResult Verdict; }`。
+  ③ `ShadowCameraLeak` 原为空类 ⇒ 同理坏。**已修**为 `{ public ICameraRig Rig; }`。
+  ④ **新增** `ShadowGameplayValueNameLeak { int disease_id; int tier_named; string drug_profile; }`
+     —— 字段类型全为 int/string,只靠**名**违禁 ⇒ 成为「成员名半边」的反空转第二道防线
+     (原三条字段名 token **零覆盖**,是 AC-4-05 假绿的真正入口)。
+- **✅ AC-4-02 spy 半边红态证据已取得(第二条红态)**:把主测 `Wire(dispatchToSink: false)`
+  临时翻成 `true` ⇒ `test_ac402_spyAppendCountIsZero` **红**(1 failed/0 passed)⇒ 证修好后的
+  0 计数**非恒真**。证据落 `unity/Logs/probe-ac402.xml`;探针已回滚(`RED PROBE` 标记 0 处,
+  接线恢复 `false`)。
+- **用户中途指令(2026-10-04)**:**「子代理满轮可以接着再送,不要只有主会话意见」** ——
+  即:评审代理撞 20 轮上限后须**继续 SendMessage 重送**,不得退回「只凭主会话自审」收口。
+  已据此重送两代理(限定「停读文件、只回文本、≤500 词」以避开再撞轮)。
+- **复跑第 4 轮(自审修复后):✅ 全绿** —— `total=23 passed=23 failed=0`
+  (新增 AC-4-02 spy 独立性测;AC-4-02 主测改为 sink 真接线。证据同上路径,时间戳 2026-10-04 13:36)
+- **复跑第 3 轮:✅ 全绿** —— `total=22 passed=22 failed=0`
+  (证据:`unity/Logs/interaction-s001-results.xml` · 命令
+  `unity test unity --mode EditMode --filter BoundaryDisciplineTest --output unity/Logs/interaction-s001-results.xml`)
+- **协议进度**:①创建 + CLI 测试 ✅ ②双代理评审 ⚠️ **两代理均未交付报告**
+  (unity-specialist `a36eb0c…` + qa-lead `aa5c03ae…`,opf 20 轮上限各停一次;SendMessage 复启后
+  转录仍静止、未经 SubagentHandback 交出报告)⇒ **不得记「已双代理评审」**
+  → ③修复(自审已落 3 条)→ ④复跑绿 → ⑤收口提交推
+- **自审替代理结论(本轮实际修复项,均有红态证据或结构论证)**:
+  · 闭包扫描器重写(跨装配递归 + 成员名点名 + 命名空间剪枝)—— 修前 `disease_id` 等三条**永不命中**
+  · 三处坏夹具修复(`ShadowSettlementLeak` / `ShadowCameraLeak` 未引任何禁入类型)
+  · 新增成员名负夹具(`ShadowGameplayValueNameLeak`)
+  · AC-4-02 spy 半边:原 sink **孤立** ⇒ 恒真;**已接线**(reporter 替身真持 sink)+ 新增独立性测
+- Next: 收双代理评审结论 → 逐条修复 → 再复跑 → 收口
+- **自审待决(A 类空转,先记后修;等双代理独立结论再定?)**:
+  · `test_ac402_spyAppendCountIsZero`(`:95-116`)—— `sink` **构造后从未接入任何对象**,
+    `InteractionSelector` 构造只收 `IDiscoveryReporter` ⇒ `AppendCount == 0` **构造性恒真**,
+    改坏 4 也不会红 ⇒ **该断言不能失败**(故事要求 spy 半边证「调用计数 = 0」,须 sink 真在链上)。
+    同测的 `reporter.RequestCount == 1` 是**有效**断言(三次 Select 仅 POI 触发一次 Request)。
+- **✅ 负夹具红态证据已取得(收口闸门 ② 已满足)**:临时向 `InteractionSelector` 注入
+  `private readonly IEventSink _redStateProbeSink;` ⇒ 复跑 `total=22 passed=21 failed=1`,
+  **唯一红** = `test_ac402_structurallyNoEventSinkInTypeGraph`(其余 21 全绿)⇒ 证结构半边
+  **非空转且判据精准**(只在应红处红)。证据落 `unity/Logs/interaction-s001-RED.xml`;
+  探针已回滚,`sha256sum -c` 验证与注入前**逐位一致**
+  (`45b0730c0610a263faf35d58b2427df00e37931b91b77cacf9842826d27ce2ea`)。
+- **✅ 禁入类型登记表全文(收口闸门 ① 已具备)**:`SettlementSideNames` = {CanCarry, F1Result,
+  JudgeResult, TreatableBy, CapacityCompare} · `GameplayValueNames` = {VitalsDto, disease_id/
+  DiseaseId/diseaseId, tier_named/TierNamed/tierNamed, drug_profile/DrugProfile/drugProfile, EnvMod}
+  · `CameraTierNames` = {ICameraRig, CameraMode, CameraTier, TierEnum, LodTier}
+  (`boundary_discipline_test.cs:41-65`)
+- **自审待决(第二条 A 类空转)**:`ScanIlForCalledType`(AC-4-11「或调用」半边)
+  **只在正向断言 `Assert.IsEmpty` 被调一次**(`:283`),**零负夹具** ⇒ 与首轮 AC-4-01 夹具
+  同类病:无人证它可红。另注:该扫描器按**每字节偏移**猜 4 字节 metadata token(启发式,
+  非 opcode-aware),`ResolveType`/`ResolveMethod` 的 catch 吞掉多数失败 ⇒ 既有假阳风险也有漏报。
+  **须补一条负夹具**(注入真的 `ICameraRig` 调用形态)证明它能红。
+  ⚠️ **但该扫描器当前无注入缝**:它硬编码 `CollectNamespaceClosure("DaYiJingCheng.Gameplay.Interaction")`,
+  夹具住测试装配的**另一命名空间** ⇒ 任何夹具都扫不到 ⇒ **结构性不可证伪**。修法 = 给
+  `ScanIlForCalledType` 加一个 `IEnumerable<Type>` 形参(默认用生产闭包),夹具传自己的类型。
+  这条比「补夹具」更深:不加重载就永远写不出能红的 IL 夹具。
+- **收口闸门(story-001 §Completion Notes 逐字要求,不得漏)**:
+  · `Criteria` 须附 **① 禁入类型登记表全文**(`SettlementSideNames` / `GameplayValueNames` /
+    `CameraTierNames` 三表)· **② 负夹具红态输出**(故事 Test Evidence 明写「交付时须附负夹具
+    红态截图/日志」—— 现只有绿态 XML,**红态须另跑一次并留证**)· **③ 「零 Append ≠ 零上行」
+    注释位置**(实测 = `IDiscoveryReporter.cs:8-12` + `InteractionSelector.cs:20,46-47`)
+  · `Test Evidence` 填 `unity/Logs/interaction-s001-results.xml`(22/22)+ 复跑命令
+  · `Code Review` 填本轮双代理评审(原件须落 `production/qa/evidence/`,承 BLOCKING 原件纪律)
+- **附带勘误(承「有问题就修正」)**:`production/sprints/sprint-04.md` 把 `interaction-system`
+  记为 **4 story / 4 SP**,实测 Epic 有 **6 story**(`story-001`…`story-006`,EPIC 自载
+  「3 Logic · 2 Integration · 1 Config-Data = 6 total」)。同表其余六行与各自 Epic 实际 story 数
+  逐一核对**全部相符**(6/6 · 6/6 · 4/4 · 6/6 · 6/6 · 5/5)⇒ 仅此一行陈旧。已改:
+  · `:110` 行 → `6 | 6` 且状态 `⬜ Ready` → `🔄 In Progress`(story-001 已绿)
+  · `:20` Capacity + `Phase 2 总计` → 37 → **39 SP**(均带勘误注记,不静默改数)
+
+---
+
+## 2026-10-04 —— story-001 严格执行轮(创建+CLI测试 → 双代理评审 → 修复 → 复跑绿)
+
+**协议**(用户令,逐字):`创建并unity cli测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推`。
+
+### 双代理评审已交付(两份均 REJECT)
+- 结构评审 `a36eb0c43b9344d98` · QA 评审 `aa5c03ae138be0963`
+- **原件落盘**:`production/qa/evidence/review-interaction-story-001-2026-10-04.md`(承 BLOCKING 原件纪律)
+- 用户令「子代理满轮可以接着再送,不要只有主会话意见」⇒ 两份均**多次重送**并最终送达
+
+### 主会话逐条复核结论
+| 来源 | 判定 | 处置 |
+|---|---|---|
+| 结构 #4 `Gameplay.Interaction` 未登记 asmdef | ✅ 真 | **改归属**:四源迁 `Gameplay.Presentation/Interaction/`,撤私增装配 |
+| 结构 #3 / QA#2 两台扫描机 | ✅ 真 | 删 `ScanTypeTreeForNames`,夹具改走 `ScanClosureForNames(names, roots)` 同一台 |
+| 结构 #3(AC-4-05 的 `∌ Sim`) | ✅ 真(规格矛盾) | 按 AC 正文改判**类型可达**口径 |
+| 结构 #4(QA#4)五类型仅 1 可证伪 | ✅ 真 | 补全五成员 + 逐条点名断言 |
+| QA#1 `FakeTickProvider` 空转 | ✅ 真 | **登记前置缺失**归 story 004,**不伪造 tick 敏感度** |
+| QA#7 IL 无夹具 | ✅ 已修 | 可注入缝 + 真 `callvirt` 夹具 |
+| 主会话自判「`[AC]` 前缀碰撞」 | ❌ **证伪** | 仅 `candidate` 参与匹配,`where` 不参与;记录不删 |
+
+### 复跑
+`unity/Logs/interaction-s001-results.xml` = **24/24 green `0 failed`**(2026-10-04 13:47)
+
+### 待办
+- ⬜ **突变探针**(注入真违例 ⇒ 验共享扫描器真在判)运行中 → `unity/Logs/probe-mutation.xml`
+- ⬜ 收口提交推(**须用户明示**)

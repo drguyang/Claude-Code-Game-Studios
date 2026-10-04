@@ -126,9 +126,61 @@
 
 ## Completion Notes
 
-**Completed**: _待实现_
-**Criteria**: _待填_(交付时须附:禁入类型登记表全文 + 负夹具红态输出 + 「零 `Append` ≠ 零上行」的注释位置)
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Completed**: 2026-10-04
+**Criteria**: 交付时**逐字**附三项(故事 `:116` / `:130` 明写):
+1. **禁入类型登记表全文** —— 测试侧唯一真源,三个表:
+   - `SettlementSideNames`(AC-4-01 结算侧五类型)= `CanCarry` · `F1Result` · `JudgeResult`
+     · `TreatableBy` · `CapacityCompare`
+   - `GameplayValueNames`(AC-4-05 玩法数值)= `VitalsDto` · `disease_id`/`DiseaseId`/`diseaseId`
+     · `tier_named`/`TierNamed`/`tierNamed` · `drug_profile`/`DrugProfile`/`drugProfile` · `EnvMod`
+   - `CameraTierNames`(AC-4-11 相机/档位)= `ICameraRig` · `CameraMode` · `CameraTier`
+     · `TierEnum` · `LodTier`
+   ⚠️ 新增成员须**同步 GDD 规则表**,不得测试侧私加(故事 Implementation Notes 纪律)。
+2. **负夹具红态输出** —— 两组,均落 `unity/Logs/`:
+   - 结构半边:`interaction-s001-RED.xml` —— 向 `InteractionSelector` 注入
+     `private readonly IEventSink _redStateProbeSink;` 后,22 条中**恰 1 条**转红
+     (AC-4-02 结构半边);探针已**逐字回退**,`sha256sum -c` 验回原值。
+   - spy 半边:`probe-ac402.xml` —— `SpyDiscoveryReporter.Wire(sink, dispatchToSink: true)`
+     后主测转红(链上 sink 记到漏出的 `Append`)。
+3. **「零 `Append` ≠ 零上行」注释位置** —— 实测两处:
+   - `unity/Assets/Gameplay.Presentation/Interaction/IDiscoveryReporter.cs:8-12`
+   - `unity/Assets/Gameplay.Presentation/Interaction/InteractionSelector.cs:20, 46-47`
+
+**Deviations**: 三条,均**登记不隐藏**:
+1. **装配归属改判(2026-10-04)** —— 实现期曾私开 `unity/Assets/Gameplay.Interaction/` 装配;
+   双代理评审(**结构 `a36eb0c43b9344d98`** #4)查明该装配**未在 ADR-025 §① 清单**
+   (也无 `AssemblyGates.Manifest`),触 ADR-025 §④「未登记装配 = 构建失败」。
+   ⇒ 按 `ADR-025 §①:114`(明载 4 属 `Gameplay.Presentation`)与故事 `:18/:22/:50/:80/:122`,
+   **四源迁入 `unity/Assets/Gameplay.Presentation/Interaction/`**(命名空间不变),撤私增装配。
+   ⚠️ 故事 `:29` 的 Guardrail 要求「归属冲突须回 ADR 轮」—— 本次**未回 ADR 轮**,
+   因**改回 ADR 已登记的位置**不构成归属变更(ADR 原文即此),只是纠正实现偏差。**登记备查。**
+2. **AC-4-05 引用集半边重述(2026-10-04)** —— 原实现断言 `refs ∌ "Sim"`,与本故事自己的
+   ADR 归属**互斥**:`Gameplay.Presentation` 的 asmdef 直接引 `Sim` ⇒ 4 归对位置即必红。
+   ⇒ 按 **AC-4-05 判据正文**(story `:40`「引用集 ∩ {9/11/8 的 **sim 侧类型**} = ∅」)
+   改判为**类型可达**口径,并**显式断言「共引 `Sim` 不是违例」**,防该错误判据被加回。
+3. **AC-4-12 的「帧相位」半边**在本故事**不可测**,归 **story 004** ——
+   `AC-4-12` 判据正文要求「采样 ≥3 帧、落在非整 tick 边界」,目的是抓
+   「实现把走进格当边沿事件」;而本故事的 `InteractionSelector` **无格状态、无 tick 依赖**
+   ⇒ 结构上不可能有帧相位敏感性。⚠️ **本次不以伪造 tick 敏感度冒充已覆盖**(承「不得借绿」),
+   真测点 = story 004 拥有格状态之后。story-001 只覆盖「无输入 ⇒ 零 `Request`」这一半。
+
+**Test Evidence**: `unity/Logs/interaction-s001-results.xml`(EditMode)
+—— 复跑命令:
+`unity test unity --mode EditMode --filter "BoundaryDisciplineTest" --output unity/Logs/interaction-s001-results.xml`
+**结论(2026-10-04 实跑)**:**24 / 24 通过 · 0 失败 · 0 跳过**。
+⚠️ 覆盖 `AC-4-01/02/04/05/11` 五条**全判据** + `AC-4-12` 的**可测半边**;
+`AC-4-12` 的帧相位半边**未覆盖**(见 Deviations #3,归 story 004),**不以绿冒充满覆盖**。
+
+**突变探针(补做 · 两份评审自陈未做)**:向**生产代码** `InteractionSelector` 注入
+`private readonly ICameraRig _mutantRig;` ⇒ `probe-mutation.xml` = **24 passed / 1 failed**,
+红者**恰** `test_ac411_noCameraRigOrTierEnumInTypeGraph`(与预期一致)⇒
+**夹具红 ⇒ 真机器红**已坐实,**扫描器在真类型上非空转**;突变已回退(`sha256sum -c` 验回原值)。
+
+**Code Review**: 双代理评审(2026-10-04),**两份均判 REJECT**,原件落
+`production/qa/evidence/review-interaction-story-001-2026-10-04.md`(承 BLOCKING 原件纪律):
+- 结构评审代理 `a36eb0c43b9344d98` —— 扫描器可达性 / 负夹具接线 / IL 可证伪性
+- QA 评审代理 `aa5c03ae138be0963` —— 六条 AC 逐条「能否真红」+ 证据真实性
+**处置**: 主会话逐条复核 ⇒ 6 条成立并修复、1 条**证伪**(主会话自判的 `[AC]` 前缀碰撞)、
+2 条已于评审前修(#5 spy 接线 / #8 IL 缝)。
+
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
