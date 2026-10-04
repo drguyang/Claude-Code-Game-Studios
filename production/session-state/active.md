@@ -1,6 +1,35 @@
 # Session State — 2026-10-05(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 最近收口 = 拟物 UI story-019-c(贴图接入护栏)—— ✅ 收口 2026-10-05 · commit `a10fa6c` · 已推送
+## 🔄 最近收口 = 拟物 UI story-019-e(导入格式订正)—— ✅ 收口 2026-10-05 · commit `7739142` · 已推送
+
+> 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
+> 前置:用户裁定「拆成 DEF,c7 范围窄读法写死」⇒ 019-d 拆为 d(接图,美术)/e(格式,零依赖)/f(C8 冻结件,美术)。
+
+### 交付物
+- **生产**:16 个 `*-final.png.meta`(spriteMode 0→1 = **Single** · textureType 0→8 · alphaIsTransparency 0→1;`spriteBorder` 留零哨兵)·
+  `TextureBindingGates.cs` 增 `ValidateSlicedTextureImportFormat` + `ValidateSpriteBorderLeftAsSentinel`
+- **测试**:`texture_binding_gate_test.cs` **+5 条 E1 夹具**(22 条本件)
+
+### 单轮评审 → 关键取证(QA 侧 BLOCKING 被实测推翻)
+- QA 侧判「`spriteMode:1` = Multiple ⇒ 与单图九宫格矛盾」(据本机文档**文本顺序**推断)
+- **独立取证推翻**:运行期反射 `SpriteImportMode` = **`None=0/Single=1/Multiple=2/Polygon=3`** ⇒ `spriteMode:1` **= Single**;
+  引擎回读 16 张全 `mode=Single · spriteCount=1`(临时探针,日志 `unity/Logs/probe-enum.xml` / `probe-sprite-mode.xml`,探针已删)
+- **但暴露真缺陷(文档级)**:原文括注 `(Multiple)` 是**误标**(自 commit `6049204` 引入,从未核过)
+  ⇒ **已修** story-019 §AC-42-E1 + `art-assets-required-for-019`(改为「= `SpriteImportMode.Single`」+ 枚举真值)
+- **绿**:过滤 217/204 passed/0 failed · 全量 EditMode 2439/2395/0/43/1(基线 2434/2390,+5 零回归)
+- **变异**:MUT-E1a(spriteMode 回落)⇒1 红 · MUT-E1b(border 注入非零)⇒1 红(日志留档)
+- **原件**:`production/qa/evidence/review-skeuomorphic-ui-story-019e-2026-10-05.md`
+
+### ⬜ 待办 / 未闭登记(禁借绿)
+- **019-d(接图)** = BLOCKED-BY 美术(逐变体映射语义;导入格式前提已由 019-e 解除)
+- **019-f(C8 冻结件)** = BLOCKED-BY 美术(九宫格 slice 真值;现 `spriteBorderActual=(0,0,0,0)`)
+- **019-b(图集预算 C9)** = Blocked,`PAGES_MAX` 未冻结
+- 未闭:018-e 的 `-unity-slice-*` **运行期实测**归 019-d(截图签核)· `nPOTScale` 无门覆盖(登记为引擎派生值)
+- 下一件:见 Phase 2 关键路径
+
+---
+
+## 📋 历史状态(2026-10-05)—— 拟物 UI story-019-c(贴图接入护栏)—— commit `a10fa6c` · 已推送
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
 
