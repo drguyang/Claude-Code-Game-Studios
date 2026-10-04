@@ -49,11 +49,30 @@
 - 22 文件 · 排除 `unity/Assets/unity.meta` + `unity/Assets/unity/Logs.meta` + `.gitignore`
 - ⬜ 提交 → ✅ 推送 origin/main
 
-### 待办
-- ⬜ 评审回收 → 修复轮 → 复跑绿 → 收口提交推送
-- ⬜ `unity/Assets/unity.meta` + `unity/Assets/unity/Logs.meta`(早前相对路径测试输出误建的空树,
-  `Logs/` 本身已被 `.gitignore` 覆盖)—— 提交时**排除**;删除需用户批准(`rm -rf` 被拒)
-- ⬜ `sprint-04.md` §Phase 2 表与关键路径图更新(story-007 已闭、13 进行中)
+### 待办(已闭)
+- ✅ 评审回收 → 修复轮 → 复跑绿 → 收口提交推送(`4076e1e` / `eb8b718`)
+- ✅ `sprint-04.md` §Phase 2 表与关键路径图更新(interaction 全闭、patient-ai story-001 已收口)
+- ⛔ `unity/Assets/unity.meta` + `unity/Assets/unity/Logs.meta`(早前相对路径测试输出误建的空树,
+  `Logs/` 本身已被 `.gitignore` 覆盖)—— 已排除出提交;删除需用户批准(`rm -rf` 被拒)
+
+---
+
+## 🔜 下一件 = patient-ai(13)story-002 —— 空间行为(轨 A)
+
+> 用户令「马上开始轨 A」⇒ 关键路径续行:**13 story-002/003/004 → 8 → 37 → 11**。
+> 承「严格执行:创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送。评审只做一轮」。
+
+**story-002 规格**(`production/epics/patient-ai/story-002-spatial-behavior-perception-and-stepping.md`)——
+感知格距 `Perceives = Δx²+Δy²+Δz² ≤ PERCEPT_R²`(禁 sqrt)· HomeRegion = `EcozoneOf(spawn_anchor(p))` ·
+LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p) := ¬Frozen ∧ State ∈ {Seeking}` ·
+`Seeking{EnRoute/AtClinic}` 双相 · 升序 id 求值 · 解冻不补算。
+
+**依赖面**:story-001 ✅ · 6 的 `EcozoneOf` / `spawn_anchor`(world-ecozones Story 002/003 — 需确认落点)·
+9 的在场判定接口 · 整数导航格(23/27 基础设施,消费级)。
+
+**下一步动作**:① 确认 `EcozoneOf` / `spawn_anchor` / 在场判定 三处消费面**是否已在库**
+(未落则登记消费点桩 + NOT-RUN,禁借绿);② 读 `design/gdd/patient-ai.md` F-13.2/F-13.3/F-13.4/F-13.7 + B/E 组 AC 原文;③ 落实现。
+
 
 ## 📊 全项目进度总览（2026-10-03 实测重算）
 
