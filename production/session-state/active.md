@@ -47,7 +47,7 @@
 | emergency-procedures (10) | 7 | **7** | 0 | 0 | 🔶 **story 7/7 Complete;EPIC 未收口**(A1/A2/A6/B4/C4/C5 已闭;✅ 评审原件两份均在库,**旧记「评审原件缺」为方向性错记**;**真实残留 = D1/D2/D3 文档对齐 + 实跑测试套件**(round2 自陈未实跑,「0 红」系读源码而非执行)) |
 | enemy-ai (27) | 5 | **5** | 0 | 0 | ✅ 全收口 |
 | foraging (17) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
-| interaction-system (4) | 6 | 0 | 6 | 0 | ⬜ 未启动(**Phase 2 关键路径断点**) |
+| interaction-system (4) | 6 | **3** | 3 | 0 | 🔄 进行中 —— story 001/002/003 ✅ 收口(2026-10-04) |
 | inventory-items (20) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | medical-consequences (53) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
 | modular-building (23) | 7 | **7** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红，`9bb912b`+`bfa6234`;**未闭登记 = N-r2 生产装配根 + AC-23-09 跨平台签名**） |
@@ -139,4 +139,34 @@
   MUT5(删键②)—— 逐项令对应测试红,生产已还原
 
 ### 待办
-- ⬜ 收口提交推送(**须用户明示**)
+- ✅ story-002 收口提交推送(12133f7 前的 13891b3/893f3a3)
+
+---
+
+## story-003(候选集四源构造)—— ✅ 收口 2026-10-04
+
+### 交付物
+- **生产**:`SourceDtos.cs`(九个具名输入形状)· `CandidateSources.cs`(四源只读接口 +
+  装配包)· `CandidateSetLoader.cs`(四源合并 · **无玩家格形参** = 取路 (a) 结构保证 ·
+  不裁剪 · 不持 sink)
+- **测试**:`candidate_dto_reflection_test.cs`(**14 条** AC-4-03)·
+  `candidate_sources_test.cs`(**11 条** AC-4-20/22 + 装载形状)
+- **评审原件**:`production/qa/evidence/review-interaction-story-003-2026-10-04.md`
+
+### 实跑
+- `unity/Logs/interaction-s003-final.xml` = **56/56 green**(14 + 11 + story-001 24 + story-002 7)
+
+### 单轮评审(承「评审只做一轮」)→ 修复轮
+- **QA ACCEPT**;F-3(装箱判据循环论证)/ F-4(基类展开零覆盖)/ F-5(边缘登记)逐条修复
+- 结构侧无独立代理原件(代理触顶未回)⇒ 主会话复核通过,缺口登记在案
+- **变异证明可红**:MUT-base(删基类展开 ⇒ 恰单条红 55/56)
+
+### 待办
+- ✅ 收口提交推送(12133f7,已 push)
+- ⬜ story 004(R_INTERACT 邻域裁剪)—— interaction-system 下一件
+
+<!-- STATUS -->
+Epic: 交互系统
+Feature: 候选集四源构造
+Task: story-003 已收口 · 下一件 story-004
+<!-- /STATUS -->
