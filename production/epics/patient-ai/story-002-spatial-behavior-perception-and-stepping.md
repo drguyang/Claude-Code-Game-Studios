@@ -1,7 +1,7 @@
 # Story 002: 空间行为 —— 感知格距、HomeRegion 寻医与定点累加器步进
 
 > **Epic**: 病人 AI 与行为
-> **Status**: Ready
+> **Status**: Complete ✅
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
@@ -31,14 +31,14 @@
 
 *From GDD `design/gdd/patient-ai.md`, scoped to this story:*
 
-- [ ] `Bedridden` 态**不产生逻辑位移**:该态下 `Moving(p)==false` 且 `acc` 不变(AC-13-B2 —— 注意断言对象是逻辑量,13 不拥有表现态位置)
-- [ ] `Perceives` 与 LOD 分档输入**恰 ⊆ {d², 常数}**(整数平方和,禁 sqrt);反射断言无相机可见性/墙钟/帧号(AC-13-E3/E4)
-- [ ] 同配置逐位一致:同一份 LOD 配置跑同一事件流两遍 ⇒ 决策轨迹哈希逐位相同(AC-13-E2);**不**比较「LOD 开 vs 关」(物理上不该相同)
-- [ ] 解冻不补算:冻结 Δ tick 后解冻,`acc` 冻结期不变(`0 ≤ acc < FIX_ONE` 恒成立),解冻 tick 从三源重新求值,不追加 Δ 次推进;解冻态 ≠ 从不冻结态且差异可重放复现(AC-13-E5 / F-13.7)
-- [ ] 性质测试:任意合法 `PATIENT_SPEED < FIX_ONE` 与任意 `Moving` 真假序列下,每 tick 位移 ≤ 1 格、`LogiPose.Cell` 整数性恒成立(承 27 AC-27-19 同判据)
-- [ ] `Seeking` 双相:目标医馆可达 → `EnRoute`;到位 → `AtClinic`;`HomeRegion` 只在初始化时经 `EcozoneOf(spawn_anchor)` 求一次(静态定义,状态变化不回改)
-- [ ] 13 零 spawn/despawn 调用,在场判定消费 9 的输出(含 CAP=24 场景:第 25 个在场病人不进 13 的决策集,TR-patient-006/013)
-- [ ] 行为决策可重建:同事件流 + 同烘焙数据 ⇒ 同决策序列;重建后 `p.Cell` 与 `acc` 由格+锚点**重新播种**(`acc := 0`),不承诺与冻结前连续(AC-13-B3/B4)
+- [x] `Bedridden` 态**不产生逻辑位移**:该态下 `Moving(p)==false` 且 `acc` 不变(AC-13-B2 —— 注意断言对象是逻辑量,13 不拥有表现态位置)
+- [x] `Perceives` 与 LOD 分档输入**恰 ⊆ {d², 常数}**(整数平方和,禁 sqrt);反射断言无相机可见性/墙钟/帧号(AC-13-E3/E4)
+- [x] 同配置逐位一致:同一份 LOD 配置跑同一事件流两遍 ⇒ 决策轨迹哈希逐位相同(AC-13-E2);**不**比较「LOD 开 vs 关」(物理上不该相同)
+- [x] 解冻不补算:冻结 Δ tick 后解冻,`acc` 冻结期不变(`0 ≤ acc < FIX_ONE` 恒成立),解冻 tick 从三源重新求值,不追加 Δ 次推进;解冻态 ≠ 从不冻结态且差异可重放复现(AC-13-E5 / F-13.7)
+- [x] 性质测试:任意合法 `PATIENT_SPEED < FIX_ONE` 与任意 `Moving` 真假序列下,每 tick 位移 ≤ 1 格、`LogiPose.Cell` 整数性恒成立(承 27 AC-27-19 同判据)
+- [x] `Seeking` 双相:目标医馆可达 → `EnRoute`;到位 → `AtClinic`;`HomeRegion` 只在初始化时经 `EcozoneOf(spawn_anchor)` 求一次(静态定义,状态变化不回改)
+- [x] 13 零 spawn/despawn 调用,在场判定消费 9 的输出(含 CAP=24 场景:第 25 个在场病人不进 13 的决策集,TR-patient-006/013)
+- [x] 行为决策可重建:同事件流 + 同烘焙数据 ⇒ 同决策序列;重建后 `p.Cell` 与 `acc` 由格+锚点**重新播种**(`acc := 0`),不承诺与冻结前连续(AC-13-B3/B4)
 
 ---
 
@@ -82,7 +82,14 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/PatientAI/spatial_behavior_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] **78/78 绿**(`unity/Logs/s002-fix5.xml`;全量 EditMode = `unity/Logs/full-editmode-s002-fix.xml`
+= 2417/2373 passed/0 failed)
+
+**评审原件**: `production/qa/evidence/review-patient-ai-story-002-2026-10-05.md`
+(双代理单轮:结构侧 CHANGES REQUIRED · QA 侧 REJECT ⇒ 修复轮 4 MAJOR 全闭,各配 MUT 坐实恰一条红)
+
+**变异证明**: MUT-F1a(`atClinic` 还原旧判据 ⇒ 恰 2 红)· MUT-F2(删 `ids.Sort()` ⇒ 恰 1 红)·
+MUT-F3(`HomeRegion` 每 tick 重求 ⇒ 恰 1 红)· MUT-F4(生产件注入 `Math.Sqrt` ⇒ 恰 1 红)
 
 ---
 

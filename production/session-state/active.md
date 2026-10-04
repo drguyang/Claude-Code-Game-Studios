@@ -57,7 +57,38 @@
 
 ---
 
-## 🔜 下一件 = patient-ai(13)story-002 —— 空间行为(轨 A)
+## ✅ patient-ai(13)story-002 —— 空间行为(轨 A)—— 收口 2026-10-05
+
+### 交付物(4 生产件 + 1 测试件 = 78 条)
+- `SpatialPerception.cs`(F-13.3 整数平方和禁 sqrt · F-13.4 LOD 三档 + 节流判据 · EC-13-02 量程护栏)
+- `ClinicKnowledge.cs`(F-13.2 `HomeRegion` / `KnowsClinic` 两事实析取)
+- `LogicalStepper.cs`(F-13.7 累加器步进 `acc` · `Moving(p)` 五合取项 · 防跳格断言)
+- `PatientSpatialDirector.cs`(在场循环 · 升序求值 · `AtClinic` 格成员判定 · `PhaseOf` / `EcozoneOfCallCount` 可观测面)
+- `spatial_behavior_test.cs` = **78/78 绿**
+
+### 单轮评审(承「评审只做一轮」)→ 修复轮
+- **结构侧 CHANGES REQUIRED**(4 MAJOR)· **QA 侧 REJECT**(F-1 MAJOR + F-2/3/4 MAJOR)—— 两侧独立收敛到**同一组四条**
+- 修复:**F-1 `AtClinic` 改回 GDD 的格成员判定**(注入 `Func<WorldPos,bool> inClinicCells`;
+  旧实现用路径游标代偿 ⇒ 假阳/假阴/单格路径三向皆错,下游 F-13.6 `AwaitingCare` 直接受害)·
+  **F-2 TC-7 换顺序敏感场景**(哈希序 ≠ 升序序键集 + `onEvaluated` 求值序探针)·
+  **F-3 `EcozoneOfCallCount`**(「HomeRegion 只求一次」可证伪)·
+  **F-4 AC-13-E3 IL 引用扫描**(`Math.Sqrt`/`Physics.Raycast`/NavMesh,影子件共用机器)
+- **变异证明**:MUT-F1a(还原旧 `atClinic` ⇒ 恰 2 红)· MUT-F2(删 `ids.Sort()` ⇒ 恰 1 红)·
+  MUT-F3(`HomeRegion` 每 tick 重求 ⇒ 恰 1 红)· MUT-F4(生产件注入 `Math.Sqrt` ⇒ 恰 1 红)
+- **评审原件**:`production/qa/evidence/review-patient-ai-story-002-2026-10-05.md`
+
+### 未闭登记(NOT-RUN,禁借绿)
+- **NR-S2-1 `ClinicCells` 真实数据接入**(本 story 只接注入谓词,未接 24 `CONTEXT_TABLE` ∪ 52 `CLINIC_FRONT`)
+  ⇒ **story-003 前置**(F-13.6 `AwaitingCare`)· NR-S2-5 `ShouldDecideNow` 驱动接入 ⇒ story-003/004 ·
+  NR-S2-6 `ResetForLoad` 真负夹具 · NR-S2-7/8 story-001 遗留 5 项仍开
+
+### 待办
+- ✅ 收口提交推送
+- ⬜ **下一件 = patient-ai story-003**(ViewState 投影 / cue 发射 / Material 映射 —— 吃本 story 的 `PhaseOf` 与 `LogicalPose`)
+
+---
+
+## 📌 历史 —— patient-ai(13)story-002 规格与依赖面(已兑现)
 
 > 用户令「马上开始轨 A」⇒ 关键路径续行:**13 story-002/003/004 → 8 → 37 → 11**。
 > 承「严格执行:创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送。评审只做一轮」。
@@ -84,7 +115,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 | 项 | 值 |
 |---|---|
 | **Stage** | Pre-Production |
-| **Sprint** | sprint-03 ✅ 已闭(17/17) · **sprint-04 Phase 1 ✅ 已收口** · **Phase 2 进行中 = 3/7 系统完成 + 第 4 系统首件**(patient-ai story-001 已收口)—— 关键路径断于 `patient-ai` story-002 |
+| **Sprint** | sprint-03 ✅ 已闭(17/17) · **sprint-04 Phase 1 ✅ 已收口** · **Phase 2 进行中 = 3/7 系统完成 + 第 4 系统 2/4 story**(patient-ai story-001/002 已收口)—— 关键路径断于 `patient-ai` story-003 |
 | **Gate Check** | CONCERNS（2026-09-29 二轮，无 NOT READY 阻塞） |
 | **ADRs** | 28/28 Accepted |
 | **P0 GDDs** | 31/31 Approved |
