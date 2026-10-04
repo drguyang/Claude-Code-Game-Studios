@@ -114,7 +114,7 @@
 **实测**(16 个 `.meta` 逐个核):
 
 ```
-spriteMode: 0                        ← 单图,九宫格须 1(Multiple)
+spriteMode: 1                        ← = SpriteImportMode.Single(枚举 None=0/Single=1/Multiple=2/Polygon=3)
 spriteBorder: {x:0, y:0, z:0, w:0}   ← 零边界
 textureType: 0                       ← Default,须 8(Sprite)
 alphaIsTransparency: 0               ← 须 1

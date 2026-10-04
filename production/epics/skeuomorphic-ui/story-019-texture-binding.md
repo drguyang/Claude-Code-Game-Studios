@@ -1,37 +1,31 @@
 # Story 019: 贴图接入(16 张 `*-final.png` → USS 元件族 · 九宫格 slice 对齐真实切图 · 图集页数实测)
 
 > **Epic**: 拟物 UI 框架
-> **Status**: **部分完成** —— **019-c `Complete ✅`(2026-10-05)** · 019-a/d/b 见下 §状态拆分
+> **Status**: **部分完成** —— **019-c `Complete ✅`(2026-10-05)** · **019-e `Complete ✅`(2026-10-05)** · 019-d/f/b 见下 §状态拆分
 > **Layer**: Foundation
 > **Type**: UI
 > **Estimate**: 待估(依赖五族切图冻结)
 > **Manifest Version**: 2026-10-03
 > **Last Updated**: 2026-10-05
 
-### ⚠️ 状态拆分(2026-10-04 J 裁 + 2026-10-05 三档再裁)
+### ⚠️ 状态拆分(2026-10-04 J 裁 → 2026-10-05 三档再裁 → 2026-10-05 用户裁定拆 d/e/f)
 
 **原状态 `Ready` 与文件自身登记矛盾** —— 本 story §Dependencies 挂着两件 **BLOCKED-BY**
 (ADR-013 §6.6 假设 6 spike 未跑 · `PAGES_MAX` 未冻结),却标 `Ready`。技术美术实测指出:
 其 5 条 AC 中 **AC-42-C9 现在根本无法判**(它要求「页数 ≤ `PAGES_MAX`」,而 `PAGES_MAX` 未冻结)。
 
-**2026-10-04 J 初裁:拆 a/b 两半** ——
+**2026-10-04 J 初裁:拆 a/b 两半** —— a(接图,C7/C8/C10/C11)· b(图集预算,C9,结构性 NOT-RUN)。
 
-| 半 | AC | 可做性 | 状态 |
-|---|---|---|---|
-| **019-a · 接图** | AC-42-C7 / C8 / C10 / C11 | ✅ 现在可做(只依赖五族切图冻结件,不依赖 spike) | 待冻结点亮 |
-| **019-b · 图集预算** | AC-42-C9(页数 ≤ `PAGES_MAX`) | ⛔ 结构性 NOT-RUN | **Blocked**(禁借绿) |
+**2026-10-05 逐 AC 实测再裁 —— J 的 a/b 二分不够细,按「卡什么」重划**:
 
-> ⚠️ **019-b 不是「没跑」,是「不可判」** —— 它与「没跑」在登记上须区分(承 `coding-standards.md`
-> §测试证据「NOT-RUN vs 未做」纪律)。
+实测发现 019-a 的 4 条 AC 卡点**各不相同**,其中两条**零外部依赖**,另有一条**只卡数据不卡裁定**:
 
-**2026-10-05 逐 AC 实测再裁 —— J 的 a/b 二分不够细,按「卡什么」重划三档**:
-
-实测发现 019-a 的 4 条 AC 卡点**各不相同**,其中两条**零外部依赖**:
-
-| 分档 | AC | 卡什么(2026-10-05 实测) | 状态 |
+| 分档 | AC / 内容 | 卡什么(实测) | 状态 |
 |---|---|---|---|
 | **019-c · 护栏** | **C10** + **C11** + C7(骨架半) | **零外部依赖** —— 屏幕层禁引 / 悬空即红,均为**纯 lint 断言** | ✅ **Complete 2026-10-05** |
-| **019-d · 接图** | C7(接图半) + **C8** + 导入格式 | **美术** —— 需五族切图冻结件 + 逐变体映射语义;16 张 `.meta` 全 `spriteMode:0` | 待冻结点亮 |
+| **019-e · 导入格式订正** | 16 张 `.meta`:`spriteMode 0→1` · `textureType 0→8` · `alphaIsTransparency 0→1` · **`spriteBorder` 值(留哨兵待美术)** | **零裁定依赖** —— 格式是**机械的**;唯 `spriteBorder` 的**数值**待 019-f 冻结件 | ✅ **Complete 2026-10-05** |
+| **019-d · 接图** | C7(接图半)+ 4 类加 `background-image` + `-unity-slice-*` | **美术** —— 需逐变体映射语义(4 类用哪张图)(导入格式前提已由 019-e 解除) | 待裁定点亮 |
+| **019-f · C8 冻结件** | 九宫格 slice 值**来自切图冻结件的元数据**(不得手填) | **美术** —— 需美术实测真实切图边界,产出冻结记录 | 待美术点亮 |
 | **019-b · 图集预算** | C9 | **spike** —— `PAGES_MAX` 未冻结(非美术) | **Blocked** |
 
 > **019-c 的实测依据**:① 7 个屏幕 UXML 全部只引类名,`url(` 命中 **0** ⇒ C10 可立即锁死;
@@ -40,6 +34,40 @@
 >
 > ⇒ **019-c 不受冻结件阻塞,不该陪 C8 一起等** —— 它现在就把「皮未贴」这个失效模式
 > 变成**构建失败**(C11 悬空即红 + C10 屏幕层不许绕开元件库),正是本 story 的存在理由。
+
+### ⚠️ 拆 d/e/f 的理由(2026-10-05 用户裁定)
+
+**原 019-d 把「格式订正」与「美术裁定」混成一件,导致最轻的一块被最重的一块拖着。** 实测三者的卡点完全不同:
+
+| 块 | 卡的是什么 | 谁能解开 |
+|---|---|---|
+| **019-e · 格式** | 无 —— `.meta` 的四项是**机械订正**,值域确定 | **工程**(立即) |
+| **019-d · 接图** | 4 类 → 哪张图的**语义映射** | 裁定(一句话) |
+| **019-f · C8** | 真实切图**边界的数值** | 美术(实测) |
+
+> ⚠️ **019-e 与 019-f 的耦合点(承 story:126「做完即错」纪律)**:`spriteBorder` 的**值**正是
+> 019-f 的冻结件边界 —— 故 019-e **不能自填** `spriteBorder`。裁:019-e 先把**格式**改对,
+> `spriteBorder` 留**零哨兵**(与现状同值,不引入第二真源),由 019-f 落冻结件后**一次填入**。
+> ⇒ 分开做**不**等于「做完即错」;**自填才算**。
+
+### ⚠️ C7「已注册元件类」范围 = **窄读法(4 类)** —— 用户裁定 2026-10-05
+
+**问题**:元件库 USS 实有 **24 个类选择器**,而 `SkeuoComponentRegistry` 只登记 4 类
+(纸/卷轴/墨/印章)。C7 说「每个**已注册元件类**」——「已注册」指哪个面?
+
+**裁定:窄读法 = `SkeuoComponentRegistry` 登记的 4 类(+ 3 变体)。宽读法(24 类)否决。**
+
+**依据(三条)**:
+1. **AC 原文自限**:C7 写的是「`SkeuoComponentRegistry` 登记的全部种类与变体」——
+   **AC 自己就点了注册表**,不是「全部 USS 类」。
+2. **记号族本就不是贴图元件**:`.mark-*`(6 形状)是**几何形状**(点/划),由 `MarkRegistry` 派生绘制,
+   **物理上无对应贴图** —— 拉进来只会制造「有类无图」的假缺口。
+3. **黄铜/器具/焦点族零实物且无登记表**:`.brass*` / `.implement*` / `.focus-visible*` **无登记表**
+   ⇒ 「已注册」判据无法适用(它们**未注册**)。
+
+> ⇒ **019-d 的接图量 = 4 类**(不是 24)。24 个选择器中的其余 19 个(记号 7 / 黄铜 3 / 器具 3 /
+> 焦点 2 / 排版 2 / 变体已含)由**各自机制**承接(记号归 `MarkRegistry` 派生、黄铜归 019-f 的铜 2px 切片、
+> 焦点归 `FocusVisibleStyle`),**不在 C7 面内**。已同步:门注释 · 夹具断言 · `art-assets-required-for-019` §六。
 
 > ⚠️ **019 与 `interaction-system` 的排序(2026-10-04 I 裁)**:**先 `interaction`,`019` 后置**
 > —— `019` 不做 ⇒ M2 少一条 Exit Criteria;`interaction` 不做 ⇒ **整条判断链不通**,M2 判据直接不成立。
@@ -96,20 +124,26 @@ Exit Criteria 第 5 条的形态件 **① 脉案线格/空行/焦点明度轴压
 - [ ] **AC-42-C7(新)**: 每个**已注册元件类**(`SkeuoComponentRegistry` 登记的全部种类与变体)对应的 USS 规则
       含 `background-image: url(...)`,指向**真实贴图资产**;纯色填充模拟贴图 ⇒ 构建期/lint 报冲突
       ⇒ **骨架半 ✅(019-c,2026-10-05)**:`ValidateRegisteredClassesHaveSelectorBlock` + 4 类注册表实测;
-      **接图半 ⬜ 归 019-d**(须逐变体映射语义 + 冻结件)。⚠️ 接图半现**必红**(零引用),
+      **接图半 ⬜ 归 019-d**(须逐变体映射语义)。⚠️ 接图半现**必红**(零引用),
       故 `ValidateAll` **不聚合**该半(恒红门 = 噪声),由 `TextureBindingGates.ValidateRegisteredClassesHaveTexture` 承接。
-      ⚠️ **「已注册元件类」范围待裁(2026-10-05 评审放大)**:元件库 USS 实有 **24 个类选择器**,
-      而注册表仅 4 类(记号族 6 / 黄铜族 3 / 器具族 3 / 焦点族 2 等住 `MarkRegistry` 或**零登记表**)。
-      **窄读法(4 类)= 019-c 现采**;**宽读法(24 类)** 会把 `.brass`/`.implement`(零实物)拉入。**决定 019-d 接图量,主会话不自裁。**
-- [ ] **AC-42-C8(新)** ⛔ **归 019-d · 受限美术**: 九宫格 `-unity-slice-left/right/top/bottom` 值与该元件图集内的**实际切图边界**一致
+      ✅ **「已注册元件类」范围 = 窄读法(4 类)** —— **用户裁定 2026-10-05**(依据见 §状态拆分):
+      AC 原文自点 `SkeuoComponentRegistry` · 记号族是形状非贴图 · 黄铜/器具/焦点族零登记表。
+      **宽读法(24 类)否决。⇒ 019-d 接图量 = 4 类**(不是 24)。
+- [ ] **AC-42-C8(新)** ⛔ **归 019-f · 受限美术**: 九宫格 `-unity-slice-left/right/top/bottom` 值与该元件图集内的**实际切图边界**一致
       (值来自切图冻结件的元数据,不得手填)
       ⇒ ⚠️ **实测 2026-10-05**:`design/assets/specs/` **零九宫格边界元数据**;`SkeuoPaper.uss` 的 64px 为**人工实测填**
       = 本 AC 的**教科书反例**。且 16 张 `.meta` 全 `spriteMode:0`(九宫格在此模式下**不可能工作**)
-      ⇒ 须先作导入格式订正 + 冻结件落盘。**禁借绿。**
+      ⇒ 须先作 **019-e 格式订正** + **019-f 冻结件落盘**。**禁借绿。**
 - [ ] **AC-42-C9(新)** ⛔ **归 019-b · Blocked**: 实测**图集页数 ≤ `PAGES_MAX`**;超限 => 构建期冲突并给出溢出告警
       (兑现 `TR-skeuoui-011` 第 ② 半;`PAGES_MAX` 值待与图集布局同批冻结)
       ⇒ ⚠️ **2026-10-04 J:本条现不可判** —— `PAGES_MAX` 未冻结,填占位值 = 第二真源。
       **须待 ADR-013 §6.6 假设 6 spike 落定后方可勾。禁借绿。**
+- [x] **AC-42-E1(新)** ✅ **019-e Complete 2026-10-05**: 16 张元件贴图的 `.meta` 导入格式须满足九宫格要求 ——
+      `spriteMode: 1`(**= `SpriteImportMode.Single`** —— 枚举 `None=0/Single=1/Multiple=2/Polygon=3`,
+      实测 Unity 回读 `spriteImportMode == Single`;「Multiple」是**误标**)· `textureType: 8`(Sprite)· `alphaIsTransparency: 1`;
+      `spriteBorder` **不得自填**(值 = 019-f 冻结件;先留哨兵,由 019-f 一次填入)
+      ⇒ **依据**:story:404 明写这是 AC-42-C8 的「物理前提」(`spriteMode:0` 下九宫格**不可能工作**)。
+      **可判**:构建期/EditMode 断言逐张核三项格式;`spriteBorder` 只核「不早于 019-f 被写死」。
 - [x] **AC-42-C10(新)** ✅ **019-c Complete 2026-10-05**: 贴图**只经元件库接入** —— 屏幕级 UXML/USS(脉案 / 存档位 / 库存 / 设置 / 教学 / 调试视图)
       内**不得**出现指向 `Textures/` 的 `url()`;违者构建期报冲突(与「元件库唯一出口」同源)
       ⇒ 实现:`TextureBindingGates.ValidateScreenLevelNoTextureUrl`(门聚合);实测 7 屏幕 `url(` 命中 **0**。
@@ -253,6 +287,27 @@ unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.Unit.Skeuomorphic
 - 实测发现:注册表**仅 4 类**;图标族(`ui_icons_sprite`)无注册类;16 张 `.meta` 全 `spriteMode:0`
 - 实测发现(修复轮):元件库 USS 实有 **24 个类选择器**(注册表只覆盖 4)⇒ C7 的「已注册类」范围待裁(见 §状态拆分 + 美术资产清单 §六)
 
-**019-d(接图)/ 019-b(图集预算)· NOT-RUN** —— 分别受限美术冻结件与 spike,见 §状态拆分。
+**019-e(导入格式订正)· Complete ✅ 2026-10-05** —— 零裁定依赖块,同五步协议。
+
+- 交付:**16 个 `.meta`** 三项格式订正(`spriteMode 0→1` · `textureType 0→8` · `alphaIsTransparency 0→1`)+
+  两道门:`ValidateSlicedTextureImportFormat`(逐张核三项)· `ValidateSpriteBorderLeftAsSentinel`(**耦合守卫**:
+  `spriteBorder` 须仍为零哨兵 —— 其值归 019-f 冻结件,019-e **不得自填**,违者即「第二真源」)
+- **⚠️ Unity 重导入副产物(实测,非手改)**:三项订正触发 Unity 重导入 ⇒ 引擎**自动**补齐
+  `spriteSheet.sprites`(1 条 `rect` = 全图)· `nPOTScale: 1→0` · sprite `internalID`/`spriteID` ——
+  **这才是九宫格切片真正的物理前提**(仅改三项而 spriteSheet 空 ⇒ 切片不生效)。16 张逐张已验一致性。
+- 绿:过滤 217/204 passed/0 failed/13 skipped · 全量 EditMode **2439/2395/0/43/1**(基线 2434 ⇒ +5 零回归)
+- 变异:**MUT-E1a**(单张回落 `spriteMode:0`)⇒ 1 红(`unity/Logs/mut-e1a.xml`)· **MUT-E1b**
+  (单张注入 `spriteBorder:{64,64,64,64}`)⇒ 1 红(`unity/Logs/mut-e1b.xml`)
+- **单轮评审(QA 侧 BLOCKING 被实测推翻 —— 详见评审原件)**:
+  QA 判「`spriteMode:1` = Multiple ⇒ 与单图九宫格矛盾」。**独立取证推翻之**:
+  运行期反射 `SpriteImportMode` = **`None=0/Single=1/Multiple=2/Polygon=3`** ⇒ `spriteMode:1` **= Single**;
+  引擎回读 16 张全 `mode=Single /* spriteCount=1 */`。**交付态正确**。
+  ⚠️ 但暴露**真缺陷(文档级)**:原文括注 `(Multiple)` 是**误标**(自 commit `6049204` 引入,从未核过),
+  **已修** story-019 + `art-assets-required-for-019`(改为「= `SpriteImportMode.Single`」+ 枚举真值)。
+  取证日志 `unity/Logs/probe-enum.xml` / `probe-sprite-mode.xml`(探针已删,日志留档)。
+- 原件:`production/qa/evidence/review-skeuomorphic-ui-story-019e-2026-10-05.md`
+- 未闭(禁借绿):`spriteBorder` 的**值**仍待 019-f;`-unity-slice-*` 的**运行期实测**归 019-d(截图签核)
+
+**019-d(接图)/ 019-f(冻结件)/ 019-b(图集预算)· NOT-RUN** —— 分别受限美术映射裁定 / 切图实测 / spike,见 §状态拆分。
 
 **本件为 2026-10-03 补立**,填「贴图绑定」这个原本**没有任何 story 覆盖**的面。

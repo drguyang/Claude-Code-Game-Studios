@@ -1,4 +1,4 @@
-// Story 019-c —— 贴图接入护栏(AC-42-C7 骨架半 / C10 / C11 的**纯逻辑**半)。
+// Story 019-c / 019-e —— 贴图接入护栏(AC-42-C7 骨架半 / C10 / C11)与导入格式门(AC-42-E1)的**纯逻辑**半。
 //
 // 权威来源:
 //   · production/epics/skeuomorphic-ui/story-019-texture-binding.md §Acceptance Criteria
@@ -23,10 +23,12 @@ using System.Text.RegularExpressions;
 
 namespace DaYiJingCheng.EditorTools.Gates
 {
-    /// <summary>贴图接入护栏(Story 019-c)。
+    /// <summary>贴图接入护栏(Story 019-c)+ 导入格式门(Story 019-e)。
     /// <para>**纯逻辑**:无 `UnityEditor` / `UnityEngine` 依赖 ⇒ EditMode 夹具可直调。</para>
     /// <para>⚠️ **C8(slice = 冻结件元数据)/ C9(`Pages_frame ≤ PAGES_MAX`)不在本件** ——
-    /// 前者待切图冻结件、后者待图集阈值 spike(见 story-019 §状态拆分)。</para></summary>
+    /// 前者待切图冻结件(019-f)、后者待图集阈值 spike(019-b);见 story-019 §状态拆分。</para>
+    /// <para>⚠️ **019-e 的门只核「格式已订正」+「border 仍是零哨兵」** ——
+    /// `spriteBorder` 的**值**归 019-f 冻结件,本件**刻意不填、也不验值**。</para></summary>
     public static class TextureBindingGates
     {
         // ── url() 取值正则 ──
@@ -199,6 +201,114 @@ namespace DaYiJingCheng.EditorTools.Gates
                 var m = Regex.Match(text, @"\." + Regex.Escape(cls) + @"\s*\{", RegexOptions.IgnoreCase);
                 if (!m.Success)
                     errs.Add($"[C7] 已注册元件类「.{cls}」在选择器块中不存在。");
+            }
+            return errs;
+        }
+
+        // ═══ AC-42-E1 谓词(019-e:导入格式订正)═══
+
+        /// <summary>贴图族目录(仓库相对)—— 019-e 的扫描面。</summary>
+        public const string TexturesRelDir = "Assets/Gameplay.UI/Skeuomorphic/Textures";
+
+        /// <summary>把 `.meta` 文本里的单个 `key: value` 读出来(找不到返回 null)。
+        /// <para>只做**机械读取**,不解析 YAML —— `.meta` 是 Unity 生成的固定缩进文本。</para></summary>
+        private static string MetaScalar(string metaText, string key)
+        {
+            var m = Regex.Match(metaText, @"^\s*" + Regex.Escape(key) + @":\s*(\S+)\s*$",
+                RegexOptions.Multiline);
+            return m.Success ? m.Groups[1].Value : null;
+        }
+
+        /// <summary>AC-42-E1:16 张元件贴图的 `.meta` 须满足九宫格导入格式
+        /// (`spriteMode: 1` · `textureType: 8` · `alphaIsTransparency: 1`)。
+        /// <para>⚠️ 这是 **AC-42-C8 的物理前提** —— `spriteMode: 0` 下九宫格**不可能工作**
+        /// (story-019 「物理前提」条)。</para>
+        /// <para>⚠️ **反空跑守卫**:贴图目录须存在且找到 ≥1 张 `*-final.png`。</para></summary>
+        public static List<string> ValidateSlicedTextureImportFormat(string repoRoot)
+        {
+            var errs = new List<string>();
+            var texDir = Path.Combine(repoRoot, TexturesRelDir);
+            if (!Directory.Exists(texDir))
+            {
+                errs.Add($"[E1] 贴图目录不存在:{texDir} —— 扫描空跑,判据不成立(非合规)。");
+                return errs;
+            }
+
+            var pngs = Directory.GetFiles(texDir, "*-final.png", SearchOption.TopDirectoryOnly)
+                .OrderBy(f => f, StringComparer.Ordinal).ToArray();
+            if (pngs.Length == 0)
+            {
+                errs.Add($"[E1] 贴图目录无 `*-final.png`:{texDir} —— 扫描空跑,判据不成立(非合规)。");
+                return errs;
+            }
+
+            // 期望值(AC-42-E1 三项;`spriteBorder` **刻意不在此列** —— 归 019-f 冻结件)
+            var expected = new (string Key, string Want)[]
+            {
+                ("spriteMode", "1"),
+                ("textureType", "8"),
+                ("alphaIsTransparency", "1"),
+            };
+
+            foreach (var png in pngs)
+            {
+                string metaPath = png + ".meta";
+                if (!File.Exists(metaPath))
+                {
+                    errs.Add($"[E1] {Path.GetFileName(png)} 缺 `.meta` —— 资产未导入。");
+                    continue;
+                }
+                string meta = File.ReadAllText(metaPath);
+                foreach (var (key, want) in expected)
+                {
+                    string got = MetaScalar(meta, key);
+                    if (got == null)
+                        errs.Add($"[E1] {Path.GetFileName(metaPath)} 无 `{key}` 键 —— 导入格式订正未落。");
+                    else if (!string.Equals(got, want, StringComparison.Ordinal))
+                        errs.Add($"[E1] {Path.GetFileName(metaPath)} 的 `{key}` = {got},须为 {want}" +
+                                 "(九宫格物理前提;AC-42-E1)。");
+                }
+            }
+            return errs;
+        }
+
+        /// <summary>AC-42-E1(耦合守卫):`spriteBorder` 的**值**归 019-f 冻结件 ——
+        /// 本门只核「**不早于 019-f 被写死**」,即**必须仍是零哨兵**。
+        /// <para>⚠️ **为什么这条守卫是承重的**:019-e 若顺手把 `spriteBorder` 填了,
+        /// 就制造了**第二真源**(手填值 vs 冻结件),正是 story-019 承 `:126`
+        /// 「做完即错」纪律要消灭的形态。零哨兵 ⇒ 019-f 落冻结件时**一次填入**,无中间态。</para>
+        /// <para>⚠️ 本门**不**验证「值对不对」(那是 019-f 的活),只验证「**还没被填**」。</para></summary>
+        public static List<string> ValidateSpriteBorderLeftAsSentinel(string repoRoot)
+        {
+            var errs = new List<string>();
+            var texDir = Path.Combine(repoRoot, TexturesRelDir);
+            if (!Directory.Exists(texDir))
+            {
+                errs.Add($"[E1] 贴图目录不存在:{texDir} —— 扫描空跑,判据不成立(非合规)。");
+                return errs;
+            }
+
+            var pngs = Directory.GetFiles(texDir, "*-final.png", SearchOption.TopDirectoryOnly)
+                .OrderBy(f => f, StringComparer.Ordinal).ToArray();
+            if (pngs.Length == 0)
+            {
+                errs.Add($"[E1] 贴图目录无 `*-final.png`:{texDir} —— 扫描空跑,判据不成立(非合规)。");
+                return errs;
+            }
+
+            // `spriteBorder: {x: 0, y: 0, z: 0, w: 0}` = 零哨兵。
+            // ⚠️ 缩进非固定(实测 2 空格),故**不锚 `^`**,用 `[^\n{]*` 吞掉前导任意空白 ——
+            //    锚 `^` 会因缩进宽度变化而静默失配 ⇒ 假报「已自填」(本门首跑即踩此坑)。
+            var sentinel = new Regex(@"spriteBorder:\s*\{\s*x:\s*0,\s*y:\s*0,\s*z:\s*0,\s*w:\s*0\s*\}");
+            foreach (var png in pngs)
+            {
+                string metaPath = png + ".meta";
+                if (!File.Exists(metaPath)) continue;   // 缺 .meta 由格式门报
+                string meta = File.ReadAllText(metaPath);
+                if (!sentinel.IsMatch(UssCommentRegex.Replace(meta, "")))
+                    errs.Add($"[E1] {Path.GetFileName(metaPath)} 的 `spriteBorder` **已非零哨兵** —— " +
+                             "其值须来自 019-f 的切图冻结件元数据,019-e **不得自填**(禁第二真源;" +
+                             "story-019 §状态拆分「做完即错」纪律)。");
             }
             return errs;
         }

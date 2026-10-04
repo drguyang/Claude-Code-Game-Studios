@@ -1,6 +1,41 @@
-# Session State — 2026-10-04(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中 3/7**)
+# Session State — 2026-10-05(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 当前工作 = patient-ai(13)story-001 —— 协议步骤 2/5(双代理评审进行中)
+## 🔄 最近收口 = 拟物 UI story-019-c(贴图接入护栏)—— ✅ 收口 2026-10-05 · commit `a10fa6c` · 已推送
+
+> 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
+
+### 交付物
+- **生产**:`unity/Assets/Editor.Tools.Gates/TextureBindingGates.cs`(纯逻辑,零引擎依赖,照 `PresentationDtoGuard` 先例)·
+  `SkeuomorphicUiGates.cs` 门聚合(C10/C11/C7 骨架半 → `ValidateAll`)
+- **测试**:`unity/Assets/Tests/EditMode/SkeuomorphicUI/texture_binding_gate_test.cs`(**17 条**)
+
+### 单轮评审(结构侧 unity-specialist + QA 侧 qa-lead)→ 修复轮
+- **两侧独立收敛同一根因 = C10 主入口假绿**:`Directory.GetCurrentDirectory()` 在 Unity CLI EditMode 下
+  = **`<repo>/unity`(工程根)**,非 `<repo>`;门以 `Path.Combine(cwd,"Assets",…)` 拼路径 ⇒ 拼不中 ⇒ 扫描**静默空跑**
+  ⇒ `Assert.IsEmpty` 恒真。**变异测试证伪不了这类假绿**(注入物与扫描面同落泄漏目录)。
+  铁证 `unity/Logs/probe.xml:46`;同族订正先例 `modal_gate_test.cs:502`(早已自陈「cwd = unity/」)
+- 修复:① `DefaultRepoRoot` 上溯寻含 `Assets/` 的那层;② 三扫描函数加**反空跑守卫**(缺失/空 ⇒ 硬报错);
+  ③ `UrlTargetsTextures` 由死代码降为诊断分级;④ 新增 5 条夹具(12→17)
+- **变异**:MUT-C10 / MUT-C11 各 **2 红**(含真扫描面锚 —— 证 B1 关闭),两变异文件均还原
+- **绿**:过滤 212/199 passed/0 failed · 全量 EditMode 2434/2390 passed/0 failed/43 skipped/1 inconclusive(基线 2429/2385,+5 零回归)
+- **原件**:`production/qa/evidence/review-skeuomorphic-ui-story-019c-2026-10-05.md`
+
+### 同批产出 = 019 完全实现所需美术资产清单
+- `production/qa/evidence/art-assets-required-for-019-2026-10-05.md`
+- **结论**:美术侧瓶颈**仅 3 件** —— ① 五族九宫格切图边界元数据(冻结件)· ② 逐变体映射语义裁定 ·
+  ③ 铜族焦点黄铜 2px 最小切片(**唯一新出图**;M2 硬前置,E 裁)。16 张主贴图早已入库,非缺口。
+- **实测附加发现**:元件库 USS 实有 **24 个类选择器**,而 `SkeuoComponentRegistry` 仅登记 4 类
+  (记号族住 `MarkRegistry`;黄铜/器具/焦点族**零登记表**)⇒ **C7「已注册类」范围待裁**(决定 019-d 接图量 4 vs 24)。
+
+### ⬜ 待办 / 未闭登记(禁借绿)
+- **019-d(接图)** = BLOCKED-BY 美术(冻结件 + 映射裁定 + 导入格式订正 16 `.meta` 全 `spriteMode:0`)
+- **019-b(图集预算 C9)** = Blocked,`PAGES_MAX` 未冻结(ADR-013 §6.6 假设 6 spike 未跑)
+- **待裁**:C7「已注册类」范围 · AC-42-C7/C8/C9/C10/C11 未入 GDD(架构侧治理项)· C11 未覆盖 `resource()`/`.uxml`
+- 下一件:见 Phase 2 关键路径(patient-ai story-003 = ViewState 投影 / cue 发射 / Material 映射)
+
+---
+
+## 📋 历史状态(2026-10-04)—— patient-ai(13)story-001 协议步骤 2/5
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。
 > **评审只做一轮**。

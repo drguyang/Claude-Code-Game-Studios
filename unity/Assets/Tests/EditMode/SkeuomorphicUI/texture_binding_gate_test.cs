@@ -162,6 +162,75 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         }
 
         // ══════════════════════════════════════════════════════
+        // AC-42-E1 —— 导入格式订正(019-e:九宫格物理前提)
+        // ══════════════════════════════════════════════════════
+
+        [Test]
+        public void test_ac42e1_all_sixteen_textures_have_sliced_import_format()
+        {
+            // Act: 逐张核 spriteMode/textureType/alphaIsTransparency
+            var errs = TextureBindingGates.ValidateSlicedTextureImportFormat(RepoRoot);
+
+            // Assert: 订正后须零错(spriteMode:0 下九宫格不可能工作 —— AC-42-C8 的物理前提)
+            Assert.IsEmpty(errs,
+                "贴图导入格式不满足九宫格要求(AC-42-E1):\n" + string.Join("\n", errs));
+        }
+
+        [Test]
+        public void test_ac42e1_covers_all_sixteen_textures_not_a_subset()
+        {
+            // Arrange: 扫描面须真覆盖 16 张(否则「零错」是漏扫出来的)
+            var pngs = Directory.GetFiles(TexturesDir, "*-final.png", SearchOption.TopDirectoryOnly);
+
+            // Assert
+            Assert.AreEqual(16, pngs.Length,
+                "019-e 的扫描面须恰 16 张 —— 少一张就是漏改。实际:\n" +
+                string.Join("\n", pngs.Select(Path.GetFileName)));
+            foreach (var p in pngs)
+                Assert.IsTrue(File.Exists(p + ".meta"), $"{Path.GetFileName(p)} 缺 .meta。");
+        }
+
+        [Test]
+        public void test_ac42e1_sprite_border_still_zero_sentinel_pending_019f()
+        {
+            // Act: 耦合守卫 —— spriteBorder 的值归 019-f 冻结件,019-e 不得自填
+            var errs = TextureBindingGates.ValidateSpriteBorderLeftAsSentinel(RepoRoot);
+
+            // Assert: 须仍为零哨兵(非零 = 已手填 = 第二真源)
+            Assert.IsEmpty(errs,
+                "spriteBorder 被自填 —— 违「做完即错」纪律(值须来自 019-f 冻结件):\n" +
+                string.Join("\n", errs));
+        }
+
+        [Test]
+        public void test_ac42e1_missing_textures_dir_fails_loud_not_silent()
+        {
+            // Arrange: 不存在的仓库根
+            string bogus = Path.Combine(Path.GetTempPath(), "__no_such_repo_root_019e__");
+
+            // Act
+            var fmt = TextureBindingGates.ValidateSlicedTextureImportFormat(bogus);
+            var border = TextureBindingGates.ValidateSpriteBorderLeftAsSentinel(bogus);
+
+            // Assert: 两条门都须**报错**,而非静默空(空跑 ≠ 通过)
+            Assert.IsNotEmpty(fmt, "贴图目录不存在时格式门须硬报错,否则 C8 物理前提恒真。");
+            Assert.IsNotEmpty(border, "贴图目录不存在时哨兵门须硬报错,否则耦合守卫恒真。");
+        }
+
+        [Test]
+        public void test_negative_fixture_wrong_sprite_mode_would_be_caught()
+        {
+            // ⚠️ **本夹具是文档性说明,不是判别力证据**(单轮评审 QA 侧 MINOR-3 正确地指出:
+            //    `Assert.IsFalse(<常量>.Contains(...))` 是字符串自证,**恒真**,与门是否坏无关)。
+            //    AC-42-E1 的真实判别力由 **MUT-E1a 的门级变异**提供(单张回落 spriteMode:0 ⇒ 1 红,
+            //    原件 `unity/Logs/mut-e1a.xml`)—— 那才是「门会红」的凭证。此处保留仅为
+            //    AC↔夹具 可追溯性。
+            const string stale = "  spriteMode: 0\n  textureType: 8\n  alphaIsTransparency: 1\n";
+            Assert.IsFalse(stale.Contains("spriteMode: 1"),
+                "仅作文档性说明 —— 不充当判别力证据(见方法上方注)。");
+        }
+
+        // ══════════════════════════════════════════════════════
         // 判别力(负夹具)—— 证明护栏不是恒真
         // ══════════════════════════════════════════════════════
 

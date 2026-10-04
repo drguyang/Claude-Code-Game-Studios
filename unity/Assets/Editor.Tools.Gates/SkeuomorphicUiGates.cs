@@ -120,7 +120,10 @@ namespace DaYiJingCheng.EditorTools.Gates
             // ⚠️ C7「接图半」(每类须有 background-image)现**必红**(零引用)⇒ 归 019-d,
             //    不聚合进本门(恒红门 = 噪声);019-d 接图后由 TextureBindingGates
             //    .ValidateRegisteredClassesHaveTexture 承接。
-            // ⚠️ C8(slice=冻结件元数据)/ C9(Pages_frame ≤ PAGES_MAX)分别归 019-d / 019-b,NOT-RUN。
+            // ── Story 019-e:导入格式订正(九宫格物理前提)──
+            errs.AddRange(ValidateSlicedTextureImportFormat());   // E1(三项格式)
+            errs.AddRange(ValidateSpriteBorderSentinel());        // E1(耦合守卫:border 归 019-f)
+            // ⚠️ C8(slice=冻结件元数据)归 019-f / C9(Pages_frame ≤ PAGES_MAX)归 019-b,NOT-RUN。
             return errs;
         }
 
@@ -149,6 +152,18 @@ namespace DaYiJingCheng.EditorTools.Gates
                    .ValidateTextureReferencesResolve(
                        DaYiJingCheng.EditorTools.Gates.TextureBindingGates.DefaultRepoRoot,
                        AssetDatabase.GUIDToAssetPath);
+
+        /// <summary>AC-42-E1:16 张贴图的九宫格导入格式(spriteMode/textureType/alphaIsTransparency)。</summary>
+        internal static List<string> ValidateSlicedTextureImportFormat()
+            => DaYiJingCheng.EditorTools.Gates.TextureBindingGates
+                   .ValidateSlicedTextureImportFormat(
+                       DaYiJingCheng.EditorTools.Gates.TextureBindingGates.DefaultRepoRoot);
+
+        /// <summary>AC-42-E1 耦合守卫:spriteBorder 须仍为零哨兵(其值归 019-f 冻结件)。</summary>
+        internal static List<string> ValidateSpriteBorderSentinel()
+            => DaYiJingCheng.EditorTools.Gates.TextureBindingGates
+                   .ValidateSpriteBorderLeftAsSentinel(
+                       DaYiJingCheng.EditorTools.Gates.TextureBindingGates.DefaultRepoRoot);
 
         // ═══ AC-42-C3: 元件库配额断言 ═══
 
