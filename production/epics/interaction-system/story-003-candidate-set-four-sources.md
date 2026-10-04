@@ -1,12 +1,12 @@
 # Story 003: 候选集四源构造与整数格输入 —— 禁读表现态位置 / 经流确立格 vs `pending_cell` / `BakedInitial` 第四源
 
 > **Epic**: 交互系统
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-04
 
 ## Context
 
@@ -101,7 +101,9 @@
 - Integration: `tests/integration/interaction/candidate_sources_test.cs` — must exist and pass(四源装载 + (a) 取路 + 双客户端出境 + 第四源夹具;EditMode fake tick + spy sink 即可跑,依 `AC-4-12` 的 `[I]`→`[A]` 同款先例,真集成环境**不作本条前提**)
 - Logic: `tests/unit/interaction/candidate_dto_reflection_test.cs` — `AC-4-03` 闭包扫描 + 白名单断言
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/`;登记口径 = `tests/integration|unit/interaction/`)
+**Status**: [x] Complete(2026-10-04)— 真身落点:
+- 集成:`unity/Assets/Tests/EditMode/Interaction/candidate_sources_test.cs`(`AC-4-20`/`AC-4-22` + 装载形状)
+- 单元:`unity/Assets/Tests/EditMode/Interaction/candidate_dto_reflection_test.cs`(`AC-4-03` 闭包扫描 + 白名单反空转探针)
 ⚠️ 不得借绿:`AC-4-20`/`AC-4-22` 依赖的对侧(1 的 `ActorCellEntered` 写方链、23 的 `BakedInitial` 表形状)以**注入替身**签本故事的读方形状;对侧真身联调归各自 Epic,本绿不豁免之,该注记随证据归档。chunk 驻留口径(未驻留 POI 进不进候选)未裁 ⇒ 夹具两侧都不断言,登记为 BLOCKED-BY:`OQ-6-8` 4 侧对齐回写。
 
 ---
@@ -115,9 +117,50 @@
 
 ## Completion Notes
 
-**Completed**: _待实现_
-**Criteria**: _待填_(交付时须附:白名单成员清单 + `object` 装箱口径的测试侧规则注 + 双客户端出境差异全枚举表)
-**Deviations**: _待填_
-**Test Evidence**: _待填_
-**Code Review**: _待填_
+**Completed**: 2026-10-04
+**Criteria**: **AC-4-03 ✅ / AC-4-20 ✅ / AC-4-22 ✅** —— 逐条落点见下「交付物」。
+
+**交付物**(`unity/Assets/` 内,EditMode 可跑):
+- 生产:`Gameplay.Presentation/Interaction/SourceDtos.cs`(九个具名输入形状)· `CandidateSources.cs`(四源只读接口 + 装配包)· `CandidateSetLoader.cs`(四源合并,**不裁剪**、**无格形参**)
+- 单元:`Tests/EditMode/Interaction/candidate_dto_reflection_test.cs`(**14 条**)
+- 集成:`Tests/EditMode/Interaction/candidate_sources_test.cs`(**11 条**)
+- 实跑:`unity/Logs/interaction-s003-r5.xml` = **56/56 green**
+
+**必附 ① —— 白名单成员清单**(AC-4-03 允许类型,逐个断言防扫描器空转):
+
+| 类型 | 出处 | 允许理由 |
+|---|---|---|
+| `DaYiJingCheng.Sim.Contracts.WorldPos` | ADR-015 §三 | 单一整数格(`int X/Y/Z`)—— **非** `UnityEngine.*`;四源格坐标唯一合法载体 |
+| `System.Int32` / `System.Int64` | ADR-006 §一 | id 标量空间(instance/structure/poi/patient/slot 皆 int64) |
+| `System.Boolean` | — | `InteractIntent.Pressed` 等判定位 |
+| 本项目枚举(`InteractableKind` / `StableIdSource` 等) | GDD 4-DC-2 | 闭集计数,整数底层 |
+
+反空转探针 = `test_ac403_whitelistMembersAreActuallyVisited`:同一台扫描器、把**合法白名单成员** `System.Int32` 当禁入跑 `Ac403Subjects` ⇒ 违规集**必非空**(证明扫描器真走到底层 `WorldPos.X/Y/Z` 的 int 字段,不是被剪枝短路报了个假绿)。
+
+**必附 ② —— `object` 装箱口径的测试侧规则注**:
+- **规则**:DTO 字段**不得**为 `System.Object`(装箱是藏引擎类型 / 藏任意值的入口,静态反射看不见箱内值 ⇒ **以「类型即违规」断言**)。
+- **落点**:`test_ac403_noProductionDtoCarriesBoxedObjectField` 扫**生产** `Ac403Subjects` + `Candidate`,禁入 `System.Object` ⇒ 违规集须空。
+- **反空转**:`test_ac403_negativeFixture_boxedObjectInShadowDtoIsPointedlyRed` —— 同机器同禁入集、换 `ShadowDtoWithBoxedField` ⇒ **必红**(证明上条的「空违规集」非扫描器空转)。
+- **豁免程序**:若日后某生产 DTO 确需 `object` 字段,须在**本条测试内显式加白名单标注**(而非放宽扫描器),使该决定留痕可审。
+
+**必附 ③ —— 双客户端出境差异全枚举表**(AC-4-20,A/B 模态组合 × 格输入):
+
+| 场景 | A `ModalOpen` | B `ModalOpen` | 出境集合 | 判定 | 夹具 |
+|---|---|---|---|---|---|
+| 一开一闭(基本) | true | false | 仅 B 一笔 | ✅ 合法(被拒 = **不存在的出境**) | `test_ac420_modalInconsistentClientsProduceEqualEgressSet` |
+| 双方都开 | true | true | ∅ | ✅ 合法(零出境) | `test_ac420_edge_bothClientsModalOpenProduceZeroEgress` |
+| 双方都闭 | false | false | A、B 各一笔 | ✅ 合法(与单客户端等价) | 由上二条的外插(未单列 —— 见 Deviations) |
+| 被拒也 Publish(缺陷) | true | — | 应显 ∅,**缺陷实现出 1 笔** | 🔴 负夹具必红 | `test_ac420_negativeFixture_rejectedIntentThatStillPublishesIsCaught` |
+| 确立格 vs `pending_cell` | — | — | 两格输入**选出不同 POI**(岔口可观测) | 🔴 误用 pending 格 ⇒ 选择分叉 | `test_ac420_edge_pendingCellEgressDivergesFromEstablishedCell` |
+
+**Deviations**(刻意留白 + 理由 —— 登记不隐藏):
+1. **AC-4-20「双方都闭」未单列夹具** —— 它与单客户端场景同形(双方各自出境、互不影响),由「一开一闭」条外插可得;不另立夹具以免与上表「双方都开」条重复占位。
+2. **AC-4-20「A 先闭后开(同 tick 内 `ModalOpen` 翻转,意图按在闭态)」未覆盖** —— `ClientEgressSpy` 是**同步、单次按压**替身,**无法表达「同 tick 内翻转」**(需要 tick 内时序);该形态的真值面归 **story 005** 的 `Accept` 门读取侧(`Armed`/`ModalOpen` 的 tick 内时序),本故事只交付流侧后果。
+3. **AC-4-22「同格 `BakedInitial` + 掉落物共存」(KindPriority 决胜)未覆盖** —— 决胜判据 = **`KindPriority` 真值表**,归 **story 006**(本故事的 `KindPriorityOf` 是**枚举序号占位**,非真表);在占位表上断言「谁胜」= 断言占位符,正是 story-002 评审点名的**「测了错的对象」**失效类,刻意不写。
+4. **AC-4-22「建成(世界流第二形态)vs 开档(第四源)两形态路由等价」未覆盖** —— 建成形态需要**世界流 `StructureBuilt` 类事件**的写方链(系统 1/6/23),本故事只**读**其形状且以替身注入;两形态真等价性归 **story 006** 的真装载联调。
+5. **6 侧主机复验器(判距 / latch / 幂等)缺席** —— `AC-4-20` 的「6 主机复验不因客户端少发一笔而误判违规」半边**以替身签**;真复验器归 **story 006**,本绿不豁免之。
+6. **`depth > 64` 静默截断** —— 扫描器 `Expand` 的深度护栏超限时**静默 return**(不抛不记);本项目 DTO 全为扁平 readonly struct(深度 ≪ 64),登记为已知边界。基类展开发生在 `ShouldPrune` **之后** ⇒ **住 `System.*`/`UnityEngine.*` 的基类**会在展开字段前被剪;本项目 DTO **不继承 BCL 基类**(全扁平),无真实触发面。项目内基类继承形态由 `test_ac403_negativeFixture_engineTypeViaBaseClassIsCaught` 覆盖。
+
+**Test Evidence**: `unity/Logs/interaction-s003-r5.xml` = **56/56 green**(单元 14 + 集成 11 + story-001 边界 24 + story-002 全序 7 同 run 复跑,零回归)。**变异证明可红**(逐项令对应测试红、生产/test 文件 md5 逐字节还原):MUT1(删 int64 拓宽)/ MUT2(删键③)/ MUT3(键③ 改哈希序)/ **MUT-base(删基类展开 ⇒ 恰 `test_ac403_negativeFixture_engineTypeViaBaseClassIsCaught` 单条红,55/56)**。
+**Code Review**: 双代理评审(**单轮**,承用户「评审只做一轮」)—— 结构评审 + QA 评审;原件落 `production/qa/evidence/review-interaction-story-003-2026-10-04.md`。
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
