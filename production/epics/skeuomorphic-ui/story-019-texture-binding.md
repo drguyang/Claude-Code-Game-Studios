@@ -24,12 +24,12 @@
 |---|---|---|---|
 | **019-c · 护栏** | **C10** + **C11** + C7(骨架半) | **零外部依赖** —— 屏幕层禁引 / 悬空即红,均为**纯 lint 断言** | ✅ **Complete 2026-10-05** |
 | **019-e · 导入格式订正** | 16 张 `.meta`:`spriteMode 0→1` · `textureType 0→8` · `alphaIsTransparency 0→1` · **`spriteBorder` 值(留哨兵待美术)** | **零裁定依赖** —— 格式是**机械的**;唯 `spriteBorder` 的**数值**待 019-f 冻结件 | ✅ **Complete 2026-10-05** |
-| **019-d · 接图** | C7(接图半)+ 4 类加 `background-image` + `-unity-slice-*` | **美术** —— 需逐变体映射语义(4 类用哪张图)(导入格式前提已由 019-e 解除) | 待裁定点亮 |
+| **019-d · 接图** | C7(接图半)+ **贴图容器类**加 `background-image` + `-unity-slice-*` | ✅ **裁定已闭(2026-10-05)** —— 见 §C7 收窄;余 **工程实施**(注册表增列 + `.ink` 补背景 + 焦点改铜侧) | 可点亮 |
 | **019-f · C8 冻结件** | 九宫格 slice 值**来自切图冻结件的元数据**(不得手填) | **美术** —— 需美术实测真实切图边界,产出冻结记录 | 待美术点亮 |
 | **019-b · 图集预算** | C9 | **spike** —— `PAGES_MAX` 未冻结(非美术) | **Blocked** |
 
 > **019-c 的实测依据**:① 7 个屏幕 UXML 全部只引类名,`url(` 命中 **0** ⇒ C10 可立即锁死;
-> ② 16 张图 GUID 均在,可解析 ⇒ C11 可立即实现;③ 注册表实测仅 **4 类**(纸/卷轴/墨/印章),
+> ② 16 张图 GUID 均在,可解析 ⇒ C11 可立即实现;③ 注册表实测仅 **4 类**(纸/卷轴/墨/印章 —— 截至 019-c),
 > 图标族(`ui_icons_sprite`)**无注册类**。
 >
 > ⇒ **019-c 不受冻结件阻塞,不该陪 C8 一起等** —— 它现在就把「皮未贴」这个失效模式
@@ -42,7 +42,7 @@
 | 块 | 卡的是什么 | 谁能解开 |
 |---|---|---|
 | **019-e · 格式** | 无 —— `.meta` 的四项是**机械订正**,值域确定 | **工程**(立即) |
-| **019-d · 接图** | 4 类 → 哪张图的**语义映射** | 裁定(一句话) |
+| **019-d · 接图** | 贴图容器类 → 哪张图的**语义映射** | ✅ **已裁 2026-10-05**(见 §C7 收窄) |
 | **019-f · C8** | 真实切图**边界的数值** | 美术(实测) |
 
 > ⚠️ **019-e 与 019-f 的耦合点(承 story:126「做完即错」纪律)**:`spriteBorder` 的**值**正是
@@ -50,24 +50,62 @@
 > `spriteBorder` 留**零哨兵**(与现状同值,不引入第二真源),由 019-f 落冻结件后**一次填入**。
 > ⇒ 分开做**不**等于「做完即错」;**自填才算**。
 
-### ⚠️ C7「已注册元件类」范围 = **窄读法(4 类)** —— 用户裁定 2026-10-05
+### ⚠️ C7「已注册元件类」范围 = **「贴图容器类」** —— 用户裁定 2026-10-05(**取代原窄读法**)
 
-**问题**:元件库 USS 实有 **24 个类选择器**,而 `SkeuoComponentRegistry` 只登记 4 类
+> 🔴 **本节 2026-10-05 第二轮裁定后重写** —— 原裁「窄读法 = 注册表 4 类」**已被取代**。
+> **新判据**:`SkeuoComponentRegistry` **增列 `IsTextureContainer: bool`**,
+> C7 判据 = **「`IsTextureContainer == true` 的类须含 `background-image`」**。
+> 依据:实测发现原「4 类全须有 `background-image`」**本身不自洽** ——
+> `.ink` 整类**无** `background-color`(纯字色 + `text-shadow`,承 `art-bible §7.2`
+> 「字号差异走 USS 变量」)· `.seal-small` 仅 `font-size` · `.scroll-rod` 注释自陈「纯装饰」。
+> ⇒ 把「已注册」与「贴图容器」**解耦**。
+
+**问题**(2026-10-05 首轮):元件库 USS 实有 **24 个类选择器**,而 `SkeuoComponentRegistry` 只登记 4 类
 (纸/卷轴/墨/印章)。C7 说「每个**已注册元件类**」——「已注册」指哪个面?
 
-**裁定:窄读法 = `SkeuoComponentRegistry` 登记的 4 类(+ 3 变体)。宽读法(24 类)否决。**
+**首轮裁定(已被取代,留档)**:~~窄读法 = 注册表 4 类(+3 变体);宽读法(24 类)否决~~。
 
-**依据(三条)**:
-1. **AC 原文自限**:C7 写的是「`SkeuoComponentRegistry` 登记的全部种类与变体」——
-   **AC 自己就点了注册表**,不是「全部 USS 类」。
-2. **记号族本就不是贴图元件**:`.mark-*`(6 形状)是**几何形状**(点/划),由 `MarkRegistry` 派生绘制,
-   **物理上无对应贴图** —— 拉进来只会制造「有类无图」的假缺口。
-3. **黄铜/器具/焦点族零实物且无登记表**:`.brass*` / `.implement*` / `.focus-visible*` **无登记表**
-   ⇒ 「已注册」判据无法适用(它们**未注册**)。
+**现行裁定(2026-10-05 第二轮):判据 = `IsTextureContainer`。** 见本节节首。
+逐类判定(实测 + 用户裁定):
 
-> ⇒ **019-d 的接图量 = 4 类**(不是 24)。24 个选择器中的其余 19 个(记号 7 / 黄铜 3 / 器具 3 /
-> 焦点 2 / 排版 2 / 变体已含)由**各自机制**承接(记号归 `MarkRegistry` 派生、黄铜归 019-f 的铜 2px 切片、
-> 焦点归 `FocusVisibleStyle`),**不在 C7 面内**。已同步:门注释 · 夹具断言 · `art-assets-required-for-019` §六。
+| 类 | `IsTextureContainer` | 依据 |
+|---|---|---|
+| `paper` | **true** | `.paper` 有 `background-color` |
+| `paper-aged` | **true** | 覆盖 `--skeuo-paper-bg-aged` |
+| `scroll` | **true** | `.scroll` 有 `background-color` |
+| `ink` | **true** ⚠️ **改判** | 原判 false(纯字色);因 `ink_light` 归此族 ⇒ 改判 · **`.ink` 须补 `background-image`** |
+| `ink-faded` | **false** | 仅 `color:`,且无对应图(裁:仅基类改判,变体保持) |
+| `seal` | **true** | `.seal` 有 `background-color`;`seal_red` / `seal_surface` 有处挂 |
+| `seal-small` | **false** | 仅 `font-size` |
+
+> ⇒ **贴图容器 = 5 项**(`paper` / `paper-aged` / `scroll` / `ink` / `seal`)= **019-d 接图面**
+> (原「4 类」已被取代 —— `ink` 改判加入)。
+> ⚠️ **24 个选择器其余部分**(记号 7 归 `MarkRegistry` 派生 · 黄铜 3 归铜族登记表 ·
+> 器具 3 无对应图 · 焦点 2 归 `FocusVisibleStyle` · 排版 2 非元件)**仍不在 C7 面内**。
+
+### ⚠️ 6 张无类图 —— 逐个裁定(2026-10-05 用户裁定 · 混合路径)
+
+| 图 | 裁定 | 连带 |
+|---|---|---|
+| `paper_hemp` | **新增注册类 `paper-hemp`** | 元件 4→5 |
+| `paper_burnt_edge` | **新增注册类(状态类贴图)** | 元件 5→6 |
+| `ink_light` | **归 `ink` 族** | 🔴 `.ink` 须补 `background-image` |
+| `scroll_cap` | **归铜族** | 🔴 铜族须立登记表(见下) |
+| `scroll_knot` | **与 `casebook_paper_stitch` 合并** | 🔴 跨链(语义归 `casebook-paper.md`) |
+| `ui_icons_sprite` | **交图标系统**(不走元件库) | 🔴 承接方须登记 |
+
+### ⚠️ 铜族 = **立登记表**(成员 ≥2) —— 2026-10-05 用户裁定
+
+**原口径**:E 裁(2026-10-04)「不拉整个铜族进来」,焦点 2px **只此一件**。
+**现行**:用户裁 **铜族立登记表**,成员 = `scroll_cap` + **焦点黄铜 2px** ≥ **2 件**。
+⇒ **E 裁的「只此一件」范围已扩**。须定义:切图冻结 · USS 落点 · atlas 归属。
+
+### ⚠️ 焦点载体 = **铜侧 2px**(2026-10-05 用户裁定 · 取代墨侧)
+
+**原状**:`art-bible §7.4` 原文 = 墨色加深 + 纸面压痕边对;`SkeuoFocusVisible.uss`
+**实测亦为墨侧实现**。
+**现行**:用户裁 **焦点载体 = 黄铜 2px**;`art-bible §7.4` + `:331` **已落 Amendment 注记**(保留原文 + 记改判)。
+⇒ 🔴 **`SkeuoFocusVisible.uss` 须由墨侧改为铜侧**(019-d 义务)。
 
 > ⚠️ **019 与 `interaction-system` 的排序(2026-10-04 I 裁)**:**先 `interaction`,`019` 后置**
 > —— `019` 不做 ⇒ M2 少一条 Exit Criteria;`interaction` 不做 ⇒ **整条判断链不通**,M2 判据直接不成立。
@@ -112,8 +150,10 @@ Exit Criteria 第 5 条的形态件 **① 脉案线格/空行/焦点明度轴压
 > ✅ **口径订正(2026-10-04 用户裁定 D)**:**「三族(纸 / 墨 / 铜)」为措辞误**,
 > 实测 **五族**(16 张逐张复验)—— 与本文件 §Implementation Notes 第 1 条**自陈的五族分法一致**
 > (该条原已正确列出纸/墨/卷轴/印章/图标)。原文两处口径不一致,现统一为**五族**。
-> ⚠️ 「铜」族**零实物**,其最小切片已另由 **2026-10-04 E 裁**升为 M2 硬前置
+> ⚠️ 「铜」族**零实物**(截至 2026-10-04),其最小切片已另由 **2026-10-04 E 裁**升为 M2 硬前置
 > (`milestones/README.md` §三 Exit Criteria 第 5 条括注)。
+> ✅ **2026-10-05 更新**:用户裁定 **铜族立登记表**(成员 ≥2 = `scroll_cap` + 焦点 2px),
+> **焦点载体 = 铜侧 2px**(取代墨侧)—— 见 §状态拆分 铜族 / 焦点两小节。
 
 ---
 
@@ -121,14 +161,17 @@ Exit Criteria 第 5 条的形态件 **① 脉案线格/空行/焦点明度轴压
 
 *承 EPIC.md §范围边界声明;GDD `design/gdd/skeuomorphic-ui.md` AC-42-C3 的图集半边 + 第 ② 半 TR。*
 
-- [ ] **AC-42-C7(新)**: 每个**已注册元件类**(`SkeuoComponentRegistry` 登记的全部种类与变体)对应的 USS 规则
+- [ ] **AC-42-C7(新)**: 每个**贴图容器类**(`SkeuoComponentRegistry` 中 `IsTextureContainer == true` 者)对应的 USS 规则
       含 `background-image: url(...)`,指向**真实贴图资产**;纯色填充模拟贴图 ⇒ 构建期/lint 报冲突
-      ⇒ **骨架半 ✅(019-c,2026-10-05)**:`ValidateRegisteredClassesHaveSelectorBlock` + 4 类注册表实测;
+      ⇒ **骨架半 ✅(019-c,2026-10-05)**:`ValidateRegisteredClassesHaveSelectorBlock` + 4 类注册表实测(当时值);
       **接图半 ⬜ 归 019-d**(须逐变体映射语义)。⚠️ 接图半现**必红**(零引用),
       故 `ValidateAll` **不聚合**该半(恒红门 = 噪声),由 `TextureBindingGates.ValidateRegisteredClassesHaveTexture` 承接。
-      ✅ **「已注册元件类」范围 = 窄读法(4 类)** —— **用户裁定 2026-10-05**(依据见 §状态拆分):
-      AC 原文自点 `SkeuoComponentRegistry` · 记号族是形状非贴图 · 黄铜/器具/焦点族零登记表。
-      **宽读法(24 类)否决。⇒ 019-d 接图量 = 4 类**(不是 24)。
+      ✅ **「已注册元件类」范围 = `IsTextureContainer == true`** —— **用户裁定 2026-10-05**
+      (**取代**首轮窄读法 4 类;依据见 §状态拆分):
+      注册表增列 `IsTextureContainer` ⇒ **贴图容器 = 5 项**(
+      `paper` / `paper-aged` / `scroll` / `ink`(改判加入)/ `seal`)。
+      **`ink-faded` / `seal-small` = false**(仅基类改判,变体保持)。
+      ⇒ **019-d 接图量 = 5 项**(不是 24,也不是原 4)。
 - [ ] **AC-42-C8(新)** ⛔ **归 019-f · 受限美术**: 九宫格 `-unity-slice-left/right/top/bottom` 值与该元件图集内的**实际切图边界**一致
       (值来自切图冻结件的元数据,不得手填)
       ⇒ ⚠️ **实测 2026-10-05**:`design/assets/specs/` **零九宫格边界元数据**;`SkeuoPaper.uss` 的 64px 为**人工实测填**
@@ -191,10 +234,11 @@ Exit Criteria 第 5 条的形态件 **① 脉案线格/空行/焦点明度轴压
 *Written by qa-lead at story creation. The developer implements against these — do not invent new test cases during implementation.*
 
 **AC-42-C7**:
-- Given: `SkeuoComponentRegistry` 全部登记项 + 元件库 USS
+- Given: `SkeuoComponentRegistry` 全部登记项(`IsTextureContainer` 标志)+ 元件库 USS
 - When: 构建期断言 + lint 扫描
-- Then: 每个登记类都有 `background-image: url(...)` 指向真实资产
-- Edge cases: 纯色模拟贴图(非法);有类无图(非法);有图未注册(非法)
+- Then: 每个 **`IsTextureContainer == true`** 的类都有 `background-image: url(...)` 指向真实资产
+- Edge cases: 纯色模拟贴图(非法);**容器类**有类无图(非法);非容器类有图(**合法** —— 如
+  `ink-faded` / `seal-small` 明确豁免);有图未注册(非法)
 
 **AC-42-C8**:
 - Given: 切图冻结件元数据 + 元件库 USS 的 `-unity-slice-*`
