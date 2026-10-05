@@ -107,7 +107,7 @@
 > 按 §8.11.2 **D1 逐项登记**(清单落本节日录后的「附:M2 灰盒登记表」)。
 
 **Exit Criteria**(可机械验证):
-- [ ] `interaction-system` 实现(关键路径断点,见 §四)
+- [x] `interaction-system` 实现(**已闭** —— 7/7 story Complete 2026-10-04;原「关键路径断点」措辞已作废)
 - [ ] `patient-ai` → `diagnosis-system` → `case-system` → `prescription-medication` 链至少端到端可跑
 - [ ] PlayMode 集成测试 `unity/Assets/Tests/PlayMode/vertical_slice_test.cs` **零桩方法**
       (⚠️ 现 **8 个 `Assert.Pass` 桩方法** —— 均为**假绿**:测试恒过但零断言;
@@ -191,8 +191,11 @@
 > ADR-023 spike 未跑 ⇒ 三场景拓扑未实测。二者**是否**为 M2 的硬前置,**尚未裁定**。
 
 **M2 已解锁**(2026-10-03):`sprint-04.md` 原门禁「Phase 1 未收口前不启动 Phase 2」已满足,
-Phase 2 实际进度 = **2/7 系统**(player-controller ✅ · camera-viewpoint ✅ · interaction-system ⬜ 断点 ·
+Phase 2 实际进度 = **3/7 系统**(player-controller ✅ · camera-viewpoint ✅ · **interaction-system ✅ 7/7 收口 2026-10-04** ·
 patient-ai ⬜ · diagnosis-system ⬜ · case-system ⬜ · prescription-medication ⬜)。
+> ⚠️ **2026-10-04 口径订正**:原记「interaction-system ⬜ 断点」**已作废** —— 实测 7 份 story 全 Complete
+> (001…006 + 007 装载接线,NR-1 已闭)。剩余关键路径 = `patient-ai → diagnosis-system → case-system →
+> prescription-medication` 四系统端到端链(见上一条 Exit Criteria)。
 
 ---
 

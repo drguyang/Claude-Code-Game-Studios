@@ -1,7 +1,7 @@
 # Story 007: `interaction_kinds.json` 烘焙接线 —— 装载路径落地 / 校验器调用点 / Addressables 进组
 
 > **Epic**: 交互系统
-> **Status**: In Progress
+> **Status**: Complete
 > **Layer**: Feature
 > **Type**: Config-Data
 > **Estimate**: 6h

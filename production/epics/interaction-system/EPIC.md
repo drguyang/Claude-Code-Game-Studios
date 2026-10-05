@@ -4,7 +4,7 @@
 > **GDD**: design/gdd/interaction-system.md
 > **Architecture Module**: 纯目标选择器 `(玩家格, 世界状态, 输入意图) → 目标(Kind, id) | None` + 按种类路由 + 模态门(两方向)+ POI 自报(→6,非写)
 > **Status**: Complete
-> **Stories**: 6/6 Complete (2026-10-04 · 收口)
+> **Stories**: 7/7 Complete (2026-10-04 · 收口)
 
 ## Overview
 
