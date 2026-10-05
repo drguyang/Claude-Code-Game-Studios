@@ -1,12 +1,12 @@
 # Story 003: 呈现投影 —— ViewState 优先级、IPresentPatients 视图与 cue / Material 通道
 
 > **Epic**: 病人 AI 与行为
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-05
 
 ## Context
 
@@ -31,16 +31,16 @@
 
 *From GDD `design/gdd/patient-ai.md`, scoped to this story:*
 
-- [ ] `IPresentPatients` 载荷类型递归反射断言:恰 = {`PatientId`, `WorldPos`, 粗状态枚举};无 `disease_id` / `position` / `trend` / `signs[]`(AC-13-C1,与 AC-37-15 同门)
-- [ ] `ViewState`(F-13.6)与 §States 二枚举表**逐字一致**:真值表叉乘 `(BehaviorState, SessionState, SeekingPhase)` 全部合法组合,优先级 `InTreatment > Collapsed > AwaitingCare > Present` 锁死(AC-13-C5)
-- [ ] 场外病人不出现在视图;13 不生成/不删除病人(AC-13-C3/C4 视图侧)
-- [ ] 13 不引用 37 程序集(单向无环,静态引用断言,AC-13-C2)
-- [ ] `CueInterval` 分段常函数性质测试 + `Intensity` 对越界输入(position ∈ [−10,10] 夹具)恒 ∈ [0,255] 无回绕(AC-13-D4/D6)
-- [ ] cue 路径零 PRNG 调用点(AC-13-D5);同 id 病人相位稳定、异 id 去同步(哈希分布抽查)
-- [ ] 死亡表现 = 呼吸层消失,无一次性播报音效;昏迷/死亡区分仅靠呼吸层+姿态(AC-13-D3,承 ADR-018)
-- [ ] `MaterialTable`(F-13.8)存在、覆盖症状三档 × `signs[]` 词条两栏、落 `assets/data/ai_patient.json` 且带 44 签署记录(AC-13-D1 `[A]`)
-- [ ] **[L]** 无障碍三判据:AC-13-F1 三类 cue 均有非色相可辨的可见对应物且默认可见;AC-13-F2 会移动病人在 `PERCEPT_R` 内至少呼吸层可闻;AC-13-F3 非目标条款存在且被 `design/accessibility-requirements.md` 引用(文档判据,引用已兑现 ≠ 本条记绿)
-- [ ] 调试视图:玩家构建中代码路径不存在(构建产物扫描,AC-13-A4 `[A]`)
+- [x] `IPresentPatients` 载荷类型递归反射断言:恰 = {`PatientId`, `WorldPos`, 粗状态枚举};无 `disease_id` / `position` / `trend` / `signs[]`(AC-13-C1,与 AC-37-15 同门)
+- [x] `ViewState`(F-13.6)与 §States 二枚举表**逐字一致**:真值表叉乘 `(BehaviorState, SessionState, SeekingPhase)` 全部合法组合,优先级 `InTreatment > Collapsed > AwaitingCare > Present` 锁死(AC-13-C5)
+- [x] 场外病人不出现在视图;13 不生成/不删除病人(AC-13-C3/C4 视图侧;判据 = IL 引用面)
+- [x] 13 不引用 37(**源码面 grep**,承 GDD `:1134` 字面,AC-13-C2;原程序集引用面判据恒真已订正)
+- [x] `CueInterval` 分段常函数性质测试(**行为面**:经 `Decide` 扫 position,首拍+稳态间隔恒等)+ `Intensity` 越界无回绕(AC-13-D4/D6)
+- [x] cue 路径零 PRNG(IL 引用面,AC-13-D5);同 id 相位稳定、异 id **去同步**(TC-5,**经 `entryTick + phase` 判据**,2026-10-05 修复)
+- [x] 死亡表现 = 呼吸层消失 + **姿态落最静止档**(`PostureTier == 0`),无一次性播报音效(AC-13-D3,承 ADR-018;姿态呈现归 42)
+- [~] `MaterialTable`(F-13.8)**查表器**存在且行为正确(空集→中性/非空不折叠中性/纯函数/整数位域);⚠️ **表内容落 `assets/data/ai_patient.json` + 44 签署 = BLOCKED-BY 外部 —— NOT-RUN**(AC-13-D1 `[A]`,禁借绿)
+- [~] **[L]** 无障碍三判据(**部分闭 + 四项 BLOCKED-BY 外部,禁借绿**):AC-13-F1 三类 cue 均有非色相可辨的可见对应物且默认可见;AC-13-F2 会移动病人在 `PERCEPT_R` 内至少呼吸层可闻;AC-13-F3 非目标条款存在且被 `design/accessibility-requirements.md` 引用(文档判据,引用已兑现 ≠ 本条记绿)
+- [~] 调试视图:13 数据层零调试 UI **引用**(IL 面,已闭);⚠️「玩家构建中剥离」= **构建产物探针,EditMode 不可达 —— NOT-RUN**(AC-13-A4 `[A]`,禁借绿)
 
 ---
 
@@ -83,7 +83,10 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/PatientAI/presentation_projection_test.cs`(投影/视图/cue)+ `production/qa/evidence/patient-ai/story-003-accessibility-signoff.md`([L] 项) — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] 已交付 —— 131/131 绿(`unity/Logs/s003-fixgreen-pa.xml`);全库回归 2455 passed / 0 failed(`s003-fixgreen.xml`)
+**Review original**: `production/qa/evidence/review-patient-ai-story-003-2026-10-05.md`(单轮双代理 · 原判定 CHANGES REQUIRED → 修复 → 复跑绿)
+**Mutation proofs**: `unity/Logs/s003-mutG.xml`(G 去同步)· `s003-mutB3.xml`(C4 IL 面)· `s003-mutH2.xml`(D6 稳态)· `s003-mutC2.xml`(C2 源码面)
+**NOT-RUN(禁借绿)**: AC-13-D1 达成(表落盘+44 签署)· AC-13-A4 剥离半边(构建产物探针)· [L] 无障碍达成面(F1 归 42 / F2 归 44)—— 见 signoff 的 NR-S3-1…4
 
 ---
 

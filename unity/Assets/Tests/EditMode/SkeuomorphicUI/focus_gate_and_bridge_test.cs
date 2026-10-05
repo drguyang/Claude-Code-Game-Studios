@@ -242,18 +242,28 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 .Where(t => t.IsPublic || t.IsNestedPublic)
                 .ToList();
 
-            // 查找是否存在「邻居枚举 / 方向投影 / 几何查询」类入口
-            // 这些类的特征是:包含 NavigationDirection / Neighbor / Projection / Geometry 等名称
-            var forbiddenNames = new[] { "Neighbor", "Projection", "Geometry", "DirectionalProjection", "NeighborEnum" };
+            // ⚠️ **判据 = 「是否导出焦点计算入口」,不是「名字里是否含某词」**(2026-10-05 订正)。
+            //    原实现按类名子串(`Neighbor`/`Projection`/`Geometry`)判 —— 那是**代理判据**:
+            //    真正的 AC-42-B4 要求是「焦点移动的计算不得被 42 以外的系统调用」
+            //    (见 `FocusNeighborResolver.cs` 头注 + `FocusNavigationBridge.ActivateDowngrade`)。
+            //    名字子串把**任何**含这些词的公共类型一律判红,与焦点域无关者亦中招
+            //    (既有实例:13 的 `PresentationProjection` —— 它做的是病人视图投影,零焦点语义)。
+            //    订正后的判据:禁入类的特征是 **public 且暴露「焦点邻居/方向」计算面**:
+            //    名字含焦点域词(`Neighbor`/`NavigationDirection`/`DirectionalProjection`)
+            //    **且** 位于 Skeuomorphic 焦点命名空间内 —— 二者俱备才是导出面上的焦点计算入口。
+            var focusNamespace = "DaYiJingCheng.Gameplay.Presentation.Skeuomorphic";
+            var forbiddenFocusTokens = new[] { "Neighbor", "NavigationDirection", "DirectionalProjection", "NeighborEnum" };
 
             var violations = publicTypes
                 .Where(t => t.IsClass && !t.IsInterface)
-                .Where(t => forbiddenNames.Any(fn => t.Name.Contains(fn, StringComparison.Ordinal)))
+                .Where(t => string.Equals(t.Namespace, focusNamespace, StringComparison.Ordinal))
+                .Where(t => forbiddenFocusTokens.Any(fn => t.Name.Contains(fn, StringComparison.Ordinal)))
                 .ToList();
 
             Assert.IsEmpty(violations,
                 $"导出面发现禁入类: {string.Join(", ", violations.Select(v => v.FullName))}。"
-                + " AC-42-B4: IFocusNavigationPresenter 导出面不得包含「邻居枚举 / 方向投影 / 几何查询」类入口。");
+                + " AC-42-B4: 焦点邻居枚举 / 方向投影类不得从焦点契约导出面导出"
+                + "(须 internal/private —— 焦点移动的计算不得被 42 以外的系统调用)。");
         }
 
         // ── AC-42-A3a: 契约侧不引用桥专有类型 ──
