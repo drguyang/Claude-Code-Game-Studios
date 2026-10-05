@@ -90,7 +90,7 @@ This epic is complete when:
 |---|-------|------|--------|-----|
 | 001 | 程序集边界与 VitalsDto 只读门面 | Integration | **Complete** | ADR-005/006/013/025 |
 | 002 | 体征词条表 schema 与 P0 数据行 | Config-Data | **Complete** | ADR-014/009 |
-| 003 | F-8.1 可读地板与 F-8.2 精度档槽 | Logic | Ready | ADR-005/006/026 |
+| 003 | F-8.1 可读地板与 F-8.2 精度档槽 | Logic | **Complete** | ADR-005/006/026 |
 | 004 | F-8.3 阴性把握度与不泄漏不变量 | Logic | Ready | ADR-005/006 |
 | 005 | 读数状态机 S-8.1/8.2/8.3 与成长门控 | Integration | Ready | ADR-009/011/013 |
 | 006 | 呈现层:脉案五通道、动作词表路由与反幻想护栏 | UI | Ready | ADR-011/013 |

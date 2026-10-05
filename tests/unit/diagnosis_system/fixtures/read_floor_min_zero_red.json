@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "skill_cap": 60,
+  "base_read": "1",
+  "read_floor_min": "0",
+  "read_gamma": "2"
+}

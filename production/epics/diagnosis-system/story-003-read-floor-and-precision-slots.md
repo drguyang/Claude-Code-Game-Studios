@@ -1,12 +1,12 @@
 # Story 003: F-8.1 可读地板与 F-8.2 精度档槽
 
 > **Epic**: 诊断与体征揭示
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 8h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-05
 
 ## Context
 
@@ -31,15 +31,15 @@
 
 *From GDD `design/gdd/diagnosis-system.md`, scoped to this story:*
 
-- [ ] **AC-8-5**[L] BLOCKING:C-1 端点与单调 —— `READ_FLOOR(0)=BASE_READ` · `READ_FLOOR(SKILL_CAP)=READ_FLOOR_MIN` · `BASE_READ > READ_FLOOR_MIN > 0` · ∀ `Skill₁<Skill₂ ⇒ READ_FLOOR(Skill₁) ≥ READ_FLOOR(Skill₂)`;扫描全整数档
-- [ ] **AC-8-F3**[L] BLOCKING:`READ_FLOOR_MIN > 0`(回归锚:地板不为 0 ⇒ 满技能也留「读不出」的合法空间);与 D-8-5 的 `≥ Project(σ)` 子句联动断言(σ 来自 9 fixture)
-- [ ] **双条件「与」门**[L]:构造四象限夹具(`Skill ≥ tier ∧ Sign ≥ FLOOR` / 仅前者 / 仅后者 / 皆非)⇒ 可读恰 {(1,1)};**`Skill < tier_named` 时即使 `Sign` 满值也不可读**(熟练度不发明体征)
-- [ ] **有词 ≠ 可读**[L]:同一 `(Skill, sign_id)` 下 `display_词`(slot_j)恒有值,而「可读」四态独立 —— 断言两输出在夹具矩阵中可分(承 story 005 的状态机语义输入)
-- [ ] **AC-8-7**[L] BLOCKING:G-3 档位判定走整数等级 —— 每个切点 `T` 构造 `Skill=T−1/T` 落相邻两档;插入 `Precision(T)` 浮点边界用例**不改变** `slot_j`
-- [ ] **AC-8-8**[L] BLOCKING:空白档向下回退(`sign_koplik` 夹具:粗/中为「—」)⇒ 粗、中档回退到最近非空档;更低档全空 ⇒ **读不出记为阴性形态,不是阳性**;「不得把空档读成一定读得到」
-- [ ] **AC-8-9**[L] BLOCKING:手段不上锁(裁定⑨)—— `reveal_by` 五值全部在最小合法 Skill 可执行、有读数、有 `EmitGrowth` 意图;∀ Skill 不存在「手段不可用/锁闭」状态(`[U]` 无灰按钮半边归 story 006)
-- [ ] **G-1 定表化**[A]:运行期零幂运算 —— 查表命中断言 + IL 扫描(复用 story 001 机制,本 story 覆盖 F-8.1 表);定表生成期舍入 = HALF_AWAY_FROM_ZERO
-- [ ] **掉级回升**[L]:AC-8-46 前半 —— `Skill` 降跨切点 ⇒ `READ_FLOOR` 回升、`slot_j` 跌回低档、词变粗(曲线单测半边;病名不回退归 37,走查半边 story 006)
+- [x] **AC-8-5**[L] BLOCKING:C-1 端点与单调 —— `READ_FLOOR(0)=BASE_READ` · `READ_FLOOR(SKILL_CAP)=READ_FLOOR_MIN` · `BASE_READ > READ_FLOOR_MIN > 0` · ∀ `Skill₁<Skill₂ ⇒ READ_FLOOR(Skill₁) ≥ READ_FLOOR(Skill₂)`;扫描全整数档
+- [x] **AC-8-F3**[L] BLOCKING:`READ_FLOOR_MIN > 0`(回归锚:地板不为 0 ⇒ 满技能也留「读不出」的合法空间);与 D-8-5 的 `≥ Project(σ)` 子句联动断言(σ 来自 9 fixture)
+- [x] **双条件「与」门**[L]:构造四象限夹具(`Skill ≥ tier ∧ Sign ≥ FLOOR` / 仅前者 / 仅后者 / 皆非)⇒ 可读恰 {(1,1)};**`Skill < tier_named` 时即使 `Sign` 满值也不可读**(熟练度不发明体征)
+- [x] **有词 ≠ 可读**[L]:同一 `(Skill, sign_id)` 下 `display_词`(slot_j)恒有值,而「可读」四态独立 —— 断言两输出在夹具矩阵中可分(承 story 005 的状态机语义输入)
+- [x] **AC-8-7**[L] BLOCKING:G-3 档位判定走整数等级 —— 每个切点 `T` 构造 `Skill=T−1/T` 落相邻两档;插入 `Precision(T)` 浮点边界用例**不改变** `slot_j`
+- [x] **AC-8-8**[L] BLOCKING:空白档向下回退(`sign_koplik` 夹具:粗/中为「—」)⇒ 粗、中档回退到最近非空档;更低档全空 ⇒ **读不出记为阴性形态,不是阳性**;「不得把空档读成一定读得到」
+- [x] **AC-8-9**[L] BLOCKING:手段不上锁(裁定⑨)—— `reveal_by` 五值全部在最小合法 Skill 可执行、有读数、有 `EmitGrowth` 意图;∀ Skill 不存在「手段不可用/锁闭」状态(`[U]` 无灰按钮半边归 story 006)
+- [x] **G-1 定表化**[A]:运行期零幂运算 —— 查表命中断言 + IL 扫描(复用 story 001 机制,本 story 覆盖 F-8.1 表);定表生成期舍入 = HALF_AWAY_FROM_ZERO
+- [x] **掉级回升**[L]:AC-8-46 前半 —— `Skill` 降跨切点 ⇒ `READ_FLOOR` 回升、`slot_j` 跌回低档、词变粗(曲线单测半边;病名不回退归 37,走查半边 story 006)
 
 ---
 
@@ -79,7 +79,9 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/DiagnosisSystem/read_floor_slots_test.cs` — must exist and pass
-**Status**: [ ] Created — NOT STARTED
+**Status**: [x] Complete — 94 total / 93 passed / 0 failed / 1 skipped(filter `DaYiJingCheng.Tests.DiagnosisSystem`);全量 2630/2583/0/46/1。
+**Evidence logs**: `unity/Logs/s003-fix3.xml`(filter 绿)· `s003-fixfull.xml`(全量绿)· `s003-mutD.xml`(MUT-D 恰 3 红)· `s003-mutE.xml`(MUT-E 恰 1 红)
+**Review**: `production/qa/evidence/review-diagnosis-story-003-2026-10-05.md`(双代理单轮 · 0 BLOCKING / 2 MAJOR / 11 MINOR 全收口 · 转 APPROVED)
 
 ---
 
@@ -89,3 +91,22 @@
 - Unlocks: Story 004(双族正交断言的另一族)、Story 005(状态机输入字母表)、Story 006(精度档渲染)
 
 ## Completion Notes
+
+**2026-10-05 收口**。交付物:
+- **生产**:`DiagnosisReadFloorBinder.cs`(阶段 2 绑定 + 唯一校验点 C-1/C-5/skill_cap)· `DiagnosisReadFloorBaker.cs`(仓根种子 → 产物)· `DiagnosisReadFloorCookedWriter.cs` + `DiagnosisReadFloorCookedCodec.cs`(镜像编解码;固定头 32 B)· `DiagnosisReadFloorBinderProbe.cs`(测试薄转发)· `DiagnosisReadFloorTable.cs`(运行期定表 + `DiagnosisReadFloorEvaluator` 求值器 + `DiagnosisSlot`/`SignReadState` 枚举)· `DiagnosisChannelMaskMap.cs`(Note 6 通道序数↔位掩码映射 + 双向断言,接生产路径 `DiagnosisSignTableValidator.Validate`)· `DataBakeMenu.BakeDiagnosisReadFloor`
+- **测试**:`read_floor_slots_test.cs`(28 条)· `DiagnosisGoldenScan.cs`(story-002/003 共享金标扫描真源)· `tests/unit/diagnosis_system/fixtures/read_floor_*.json`(10 夹具)
+- **账本**:`tests/unit/diagnosis_system/README.md` 补 Story 003 段(AC→测映射 + 夹具 + NOT-RUN)
+
+**设计决定(2)**:
+1. **空白档回退方向 = 严格向下**(GDD §F-8.2 规则字面)。GDD 散文**示例**(`sign_rales` 粗档无词回退**中档**)方向与规则相悖、且 `sign_rales` 粗档实有词 ⇒ 示例永不触发 —— 登记为 **GDD 散文勘误**(待设计轮),实现以规则(向下)为准;就地注于 `DiagnosisReadFloorTable.cs` `DisplayWord` doc。
+2. **金标重钉 `b9354110`(story-002)→ `5bba361c`(story-003 扩枚举/映射常量面)→ `f75a8170`(修复轮)**,均**有意识**(后一次由结构侧 MINOR-1 的代码常量修正驱动:`FixedHeadBytes` 36→32,属前缀 ns 代码常量故入扫描面)。
+
+**未闭登记(NOT-RUN,禁借绿 —— 覆盖缺口,非安全洞)**:
+- AC-8-F3 的 `≥ Project(σ)` 联动子句(`Project(` 在 `unity/Assets/**.cs` 零命中,归 disease-simulation story 004)
+- AC-8-9 的 EmitGrowth 实际门控调用(归 story 005,Out of Scope)
+- AC-8-46 的「词变粗」子句(四档配三档词 ⇒ 满→细同词,数据形状下不可观测;词面粗化归 story 006)+ 病名持久化半边(归 37/story 005)
+- 跨会话/跨平台烘焙逐位一致(只证同进程;跨平台归 AC-8-F5 / story 004 矩阵)
+- AC-8-35 的 F-8.1/F-8.3 **曲线参数**半边(参数住 `assets/data/*.json` 数据,由产物 ConfigVersion 覆盖,非前缀 ns 代码常量)
+- AC-8-7 的 **AC 字面**浮点边界用例(只判代理;待 9 侧 `Precision` 落地)
+
+**关键前置**:`SKILL_CAP` 与 `SLOT_BOUNDS ⊂ DIAG_TIERS` 双向耦合(TR-diag-014 / D-8-9)由 `AssertSlotBoundsCoupled` 构建期守。**残留**:数值轮曲线系数定值(用户)—— 现 `assets/data/diagnosis_read_floor.json` = 合成值(base_read=1 · read_floor_min=1/4 · read_gamma=2),换系数即换表、代码零改动。

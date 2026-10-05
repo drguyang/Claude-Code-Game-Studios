@@ -1,6 +1,59 @@
 # Session State — 2026-10-05(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 最近收口 = diagnosis-system story-002(体征词条表 schema 与 P0 数据行)—— ✅ 收口 2026-10-05 · 已提交推送
+## 🔄 最近收口 = diagnosis-system story-003(F-8.1 可读地板与 F-8.2 精度档槽)—— ✅ 收口 2026-10-05 · 已提交推送
+
+> 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
+> 前置:结构侧 CHANGES REQUIRED(1 MAJOR + 5 MINOR)+ QA 侧 CHANGES REQUIRED(1 MAJOR + 6 MINOR),
+> **0 BLOCKING 双侧**;2 MAJOR + 11 MINOR 全部落点(**全为文本/文档 + 判据强度,零运行期改动**)⇒ 复跑绿 + 两处新 MUT 证明。
+
+### 交付物
+- **作者态**:`assets/data/diagnosis_read_floor.json`(合成系数:base_read=1 · read_floor_min=1/4 · read_gamma=2;**数值归用户数值轮**)
+- **生产**:`DiagnosisReadFloorBinder.cs`(阶段 2 绑定 + **唯一**校验点 C-1/C-5/skill_cap)·
+  `DiagnosisReadFloorBaker.cs`(仓根种子 → 产物)· `DiagnosisReadFloorCookedWriter.cs` +
+  `DiagnosisReadFloorCookedCodec.cs`(严格镜像;固定头 **32 B**)· `DiagnosisReadFloorBinderProbe.cs`(薄转发)·
+  `DiagnosisReadFloorTable.cs`(运行期定表 + `DiagnosisReadFloorEvaluator` 求值器 + `DiagnosisSlot`/`SignReadState` 枚举)·
+  `DiagnosisChannelMaskMap.cs`(**Note 6** 通道序数↔位掩码映射 + 双向断言,接生产路径)·
+  `DataBakeMenu.BakeDiagnosisReadFloor`(菜单调用点)
+- **测试**:`read_floor_slots_test.cs`(**28 条**)· `DiagnosisGoldenScan.cs`(story-002/003 **共享**金标扫描真源 —— 兑现 story-002 头注「扩金标」承诺)·
+  `tests/unit/diagnosis_system/fixtures/read_floor_*.json`(**10 夹具**)+ README 账本补 Story 003 段
+- **金标**:`GoldenConstantsHash = f75a8170`(`b9354110` s002 → `5bba361c` s003 扩枚举/映射面 → `f75a8170` 修复轮,
+  由 `FixedHeadBytes` 36→32 的**有意识**代码常量修正驱动)
+- **证据**:`production/qa/evidence/review-diagnosis-story-003-2026-10-05.md`
+
+### 单轮评审 → 修复轮(要点)
+- **MAJOR-1(结构)** AC-8-35 金标「覆盖」声明 **over-claim**:`read_floor_slots_test` 写「F-8.1 参数半边转 covered」
+  与 `sign_table_test` 头注矛盾 ⇒ 四处统一为准确边界(扫描面 = 前缀 ns **代码常量** + DIAG_TIERS;
+  **曲线参数**住 `assets/data/*.json` 由 ConfigVersion 覆盖,**仍 NOT-RUN**)
+- **M-1(QA)/MINOR-3** `README.md` 缺 Story 003 段(标称夹具 21 实存 **31**;无 AC→测映射;未登记 NOT-RUN)⇒ 补全段
+- **MINOR-1(结构)** codec `FixedHeadBytes` 36 → **32**(注释双错订正;E-13 文本阈值)
+- **MINOR-4(结构)** GDD §F-8.2 回退散文**示例**方向反 + 永不触发(`sign_rales` 粗档实有词)⇒
+  登记 **GDD 散文勘误**(待设计轮),就地注 `DisplayWord` doc;**不改 GDD 权威件**
+- **MINOR-5** 删死 import(`DiagnosisReadFloorTable.cs` `Sim.Contracts`)
+- **m-1** `test_ac89` 去恒真 `DoesNotContain(...,99)` ⇒ 改断**枚举值域**(零锁闭成员)+ 五手段**各有真读数**(`DisplayWord` 非 null)
+- **m-2** `test_g1` 去同参自等循环(纯函数必等)⇒ 改断**表项=存储值**(`FloorAt`) + 跨档区分(非退化)
+- **m-3/m-4/m-5** 反射幂名清单扩 9 名 + 明写「真守卫在边界门」· AC-8-7 代理判据登记 · AC-8-46「词变粗」NOT-RUN 登记
+- **m-6** story Test Evidence / Status / AC 勾选回填
+
+### 设计决定(2)
+1. **空白档回退方向 = 严格向下**(GDD §F-8.2 规则字面;koplik 粗/中为空 ⇒ 粗/中档读不出,细档起出词)。
+2. **金标两次重钉均有意识**(扩面 + 修复轮常量修正),理由已登记。
+
+### 验证(实测)
+- filter:`unity/Logs/s003-fix3.xml` = **94 / 93 passed / 0 failed / 1 skipped**
+- 全量:`s003-fixfull.xml` = **2630 / 2583 passed / 0 failed / 46 skipped / 1 inconclusive**
+- MUT-D(`DisplayWord` 下界 `i>=0`→`i>=1`)⇒ **恰 3 红**(含 `test_ac89` —— 证 m-1 增强判据承重;旧 `DoesNotThrow` 版不红)
+- MUT-E(`FloorAt` 返 0f)⇒ **恰 1 红**(`test_g1` —— 证 m-2 增强判据承重;旧自等版不红)
+
+### ⬜ 待办 / 未闭登记(禁借绿)
+- **NOT-RUN 6 项**(本 story):AC-8-F3 σ 联动(归 disease 004)· AC-8-9 EmitGrowth 门控(story 005)·
+  AC-8-46「词变粗」+ 病名半边(story 006/37)· 跨会话/跨平台逐位(AC-8-F5/story 004)·
+  AC-8-35 曲线参数半边(ConfigVersion 覆盖)· AC-8-7 AC 字面浮点用例(待 `Precision`)
+- **GDD 散文勘误 1 项**:`diagnosis-system.md` §F-8.2 回退示例(方向反 + 永不触发),待设计轮
+- **TR-registry 回填**(TR-diag-008/009/011/012 等 gap→covered)= 独立 docs 轮,未动
+- 下一件:diagnosis-system **story-004(F-8.3 阴性把握度与不泄漏不变量)**,同协议;
+  epic 链 diagnosis(**3/6**)→ case → prescription
+
+## 📋 历史状态(2026-10-05)—— diagnosis story-002(体征词条表 schema 与 P0 数据行)—— ✅ 收口 · commit `f27ca3e` · 已推送
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
 > 前置:结构侧 CHANGES REQUIRED(1 MAJOR + 10 MINOR)+ QA 侧 CHANGES REQUIRED(2 MAJOR + 10 MINOR),

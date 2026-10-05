@@ -178,6 +178,10 @@ namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis
             // TR-diag-014 / D-8-9:SLOT_BOUNDS ⊂ DIAG_TIERS 双向耦合(构建期)
             AssertSlotBoundsCoupled(SkillTuningTable.Default.GetDiagTiers(), DiagnosisTuning.SlotBounds);
 
+            // story-003 Note 6 / 承 S-MAJOR:通道序数 ↔ 位掩码映射的构建期双向断言
+            // (五通道恰满 · 零重复位 · 零悬空 · Wound/History 两处不全等显式登记)
+            DiagnosisChannelMaskMap.AssertConsistent();
+
             var seen = new HashSet<string>(StringComparer.Ordinal);
             var allowedTiers = BuildTierDomain();
 

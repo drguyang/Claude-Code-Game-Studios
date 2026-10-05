@@ -35,9 +35,12 @@
 //   · tripwire:test_ac834_forward9sideSignsStillEmpty —— 现 F2 投影未实现
 //     (ProgressionEvaluator 返回空 signs[],归 disease story 004);9 填入真实 sign_id 后本测转红,
 //     强制把 Evaluate 产出的 signs[] 接进 ValidateForwardClosure(接线义务的触发器,非回归)。
-//   · **AC-8-35 的 F-8.1/F-8.3 参数半边 NOT-RUN(QA MAJOR-2)** —— 现常量金标只覆盖
-//     前缀 ns 常量 + DIAG_TIERS,不含 READ_FLOOR 曲线参数(story 003)与 NEG_CONF 族
-//     (story 004);两 story 落地时须**扩金标前缀或另立金标**,并在此登记。
+//   · **AC-8-35 的 F-8.1/F-8.3 参数半边 NOT-RUN(QA MAJOR-2;story-003 复核后订正)** ——
+//     扫描面 = 前缀 ns **代码常量** + DIAG_TIERS。story-003 已把 **运行期枚举 / 映射常量**
+//     (DiagnosisSlot / SignReadState 枚举字面 + DiagnosisChannelMaskMap 静态数组)扩入面并
+//     重钉 `b9354110` → `5bba361c`;**曲线系数**(BASE_READ / READ_FLOOR_MIN / READ_GAMMA)
+//     与 NEG_CONF 族(story 004)**仍 NOT-RUN** —— 它们是 `assets/data/*.json` **数据**,
+//     由产物 ConfigVersion 覆盖,非前缀 ns 代码常量(故「参数半边」仍不在此面)。
 //   · **跨会话烘焙逐位一致 NOT-RUN**(承 interaction story-007 同款口径)——
 //     本文件只证**同进程**内双跑一致。
 // ═════════════════════════════════════════════════════════════════════════
@@ -586,12 +589,12 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
         // ═══════════════════════════════════════════════════════════
 
         /// <summary>AC-8-35 金标(FNV-1a 32 over 有序常量行 UTF8)。
-        /// <para>引导值 = 2026-10-05 修复轮 bootstrap 重钉(<c>PENDING</c> → <c>b9354110</c>;
-        /// 修复轮增前缀常量 ExpectedSchemaVersion / MinRowBytes、SlotBounds → SlotBoundsStorage
-        /// 改名 ⇒ 旧值 <c>a3ab2ea5</c> 失效);前缀侧常量 / 枚举字面 / DIAG_TIERS 任一改动 ⇒ 金标红 ——
-        /// 须**有意识**重钉(数值轮),不得顺手重钉。
-        /// MUT:临时 <c>private const int</c> 进 DiagnosisTuning ⇒ 金标转红。</para></summary>
-        private const string GoldenConstantsHash = "b9354110";
+        /// <para>⚠️ story-003 起**单一真源** = <see cref="DiagnosisGoldenScan.GoldenConstantsHash"/>
+        /// (story-002 头注承诺的「扩金标」已兑现 —— story-003 新增 F-8.1 参数面后重钉,
+        /// 两测试文件共用同一扫描器,不再各持一份)。</para>
+        /// <para>前缀侧常量 / 枚举字面 / DIAG_TIERS 任一改动 ⇒ 金标红 ——
+        /// 须**有意识**重钉(数值轮),不得顺手重钉。</para></summary>
+        private const string GoldenConstantsHash = DiagnosisGoldenScan.GoldenConstantsHash;
 
         [Test]
         public void test_ac835_constantsGolden()
@@ -673,98 +676,12 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
         }
 
         // ═══════════════════════════════════════════════════════════
-        //  helpers:AC-8-35 常量哈希(FNV-1a 32 over 有序行 UTF8)
+        //  helpers:AC-8-35 常量哈希 —— **单一真源** = DiagnosisGoldenScan
+        //  (story-002 建立;story-003 抽为共享件,两测试文件共用同一扫描器)
         // ═══════════════════════════════════════════════════════════
 
-        private const string Prefix = DiagnosisBoundaryGatesNamespacePrefix;
+        private static List<string> BuildConstantLines() => DiagnosisGoldenScan.BuildConstantLines();
 
-        // 与 DiagnosisBoundaryGates.DiagnosisModuleNamespacePrefix 同值(避免引用 Gates 程序集耦合测试面)
-        private const string DiagnosisBoundaryGatesNamespacePrefix =
-            "DaYiJingCheng.Gameplay.Presentation.Diagnosis";
-
-        /// <summary>常量行集:住前缀类型的字面量 / 静态只读字段(含枚举字面),
-        /// 加一行「30 侧诊断档位」(耦合常量的另一半),按 ordinal 排序。</summary>
-        private static List<string> BuildConstantLines()
-        {
-            var asm = AppDomain.CurrentDomain.GetAssemblies()
-                .FirstOrDefault(a => a.GetName().Name == "Gameplay.Presentation");
-            Assert.That(asm, Is.Not.Null, "Gameplay.Presentation 装配须已加载");
-
-            Type[] all;
-            try
-            {
-                all = asm.GetTypes();
-            }
-            catch (ReflectionTypeLoadException ex)
-            {
-                all = ex.Types.Where(t => t != null).ToArray();
-            }
-
-            var lines = new List<string>();
-            foreach (Type t in all)
-            {
-                if (t == null || !InPrefix(t)) continue;
-                if (t.Name.IndexOf('<') >= 0 || t.Name.IndexOf('>') >= 0) continue;  // 编译器生成
-
-                foreach (FieldInfo f in t.GetFields(
-                    BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.NonPublic |
-                    BindingFlags.Instance | BindingFlags.Static))
-                {
-                    if (f.Name.IndexOf('<') >= 0 || f.Name.IndexOf('>') >= 0) continue;
-                    if (!(f.IsLiteral || (f.IsStatic && f.IsInitOnly))) continue;
-                    lines.Add($"{t.FullName}.{f.Name}={FormatConst(f)};");
-                }
-            }
-
-            // 30 侧 DIAG_TIERS(与 SLOT_BOUNDS 耦合的常量另一半;30 的 GDD 数值层)
-            int[] tiers = SkillTuningTable.Default.GetDiagTiers();
-            lines.Add(
-                $"{typeof(SkillTuningTable).FullName}." +
-                $"{nameof(SkillTuningTable.GetDiagTiers)}={string.Join(",", tiers)};");
-
-            lines.Sort(StringComparer.Ordinal);
-            return lines;
-        }
-
-        private static bool InPrefix(Type t)
-        {
-            while (t != null && string.IsNullOrEmpty(t.Namespace)) t = t.DeclaringType;
-            if (t == null) return false;
-            string ns = t.Namespace;
-            return ns == Prefix || ns.StartsWith(Prefix + ".", StringComparison.Ordinal);
-        }
-
-        private static string FormatConst(FieldInfo f)
-        {
-            object v = f.GetValue(null);
-            if (v == null) return "";
-            if (v is int[] arr)
-                return string.Join(",", Array.ConvertAll(arr,
-                    x => x.ToString(CultureInfo.InvariantCulture)));
-            if (f.FieldType.IsEnum)
-                return Convert.ToInt64(v, CultureInfo.InvariantCulture)
-                    .ToString(CultureInfo.InvariantCulture);
-            if (v is bool b) return b ? "True" : "False";
-            if (v is IFormattable form) return form.ToString(null, CultureInfo.InvariantCulture);
-            // 兜底(QA MINOR-9):非 IFormattable 只记**类型名**(对象状态值不进金标 ——
-            // 否则引用态内容波动会污染常量金标;类型变化仍可证伪)。
-            return "<" + f.FieldType.FullName + ">";
-        }
-
-        /// <summary>FNV-1a 32(UTF8 字节流;固定初值/素数,跨平台确定)。</summary>
-        private static string Fnv1aHex(IEnumerable<string> lines)
-        {
-            uint hash = 2166136261u;
-            foreach (string line in lines)
-            {
-                byte[] bytes = Encoding.UTF8.GetBytes(line);
-                foreach (byte b in bytes)
-                {
-                    hash ^= b;
-                    hash *= 16777619u;
-                }
-            }
-            return hash.ToString("x8", CultureInfo.InvariantCulture);
-        }
+        private static string Fnv1aHex(IEnumerable<string> lines) => DiagnosisGoldenScan.Fnv1aHex(lines);
     }
 }
