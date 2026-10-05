@@ -1,6 +1,50 @@
 # Session State — 2026-10-05(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 最近收口 = diagnosis-system story-001(程序集边界与 VitalsDto 只读门面)—— ✅ 收口 2026-10-05 · 已提交推送
+## 🔄 最近收口 = diagnosis-system story-002(体征词条表 schema 与 P0 数据行)—— ✅ 收口 2026-10-05 · 已提交推送
+
+> 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
+> 前置:结构侧 CHANGES REQUIRED(1 MAJOR + 10 MINOR)+ QA 侧 CHANGES REQUIRED(2 MAJOR + 10 MINOR),
+> **0 BLOCKING 双侧**;3 MAJOR + 20 MINOR 全部落点 ⇒ 复跑绿 + MUT 变异证明。
+
+### 交付物
+- **作者态**:`assets/data/diagnosis_signs.json`(R-8.2 冻结 34 行 = 阳 30 / 阴 4)
+- **生产**:`DiagnosisSignTable.cs`(validator + 三枚举 + `SlotBounds` **首次成文**)· `DiagnosisSignBinder`
+  (**唯一 `Validate` 调用点**,聚合硬失败 + 空表拒收)· Baker / Writer / Codec(严格镜像 +
+  schema 期望比对 + count 钳制 + 枚举序数界)· Probe · 菜单 `BakeDiagnosisSigns`
+- **测试**:`sign_table_test.cs`(**42 条**)+ `tests/unit/diagnosis_system/`(**21 夹具** + README 账本)
+- **双金标**:`GoldenConstantsHash = b9354110`(AC-8-35)· `GoldenContentHash = 3954e294`(R-8.2 内容逐字)
+- **证据**:`production/qa/evidence/review-diagnosis-story-002-2026-10-05.md`
+
+### 单轮评审 → 修复轮(要点)
+- **S-MAJOR** `SignChannel` 同名不同物(本表序数 vs `Sim.Contracts` AC-21 位掩码)→ 枚举 doc 警示
+  + **story-003 Note 6 登记映射表与双向断言义务**(未立映射前禁 cast)
+- **Q-MAJOR-1** R-8.2 逐行内容无守卫 → `test_r82_contentFrozen_golden` 内容金标
+- **Q-MAJOR-2** F-8.1/F-8.3 参数半边零覆盖 → 头注 + story AC 显式 NOT-RUN
+- **MINOR ×20 全落点**:binder `catch (Exception)`(防 `/0` 逃逸)+ 空表拒收 + BindResult doc ·
+  codec schema/钳制/序数界 · `SlotBounds` 收只读视图 · writer CS0104 别名 · 文件族名注 ·
+  story-004 占位值预警 · `BakeFails` **恰一条排他** · P1a 8 值 TestCase 全值 · +4 违例夹具 ·
+  tier 触底 / C-6 双标 / addRow 绑金标 / 切点上下文 / FormatConst 兜底 · README 账本 · Test Evidence 回填
+- **两处 story 文本订正**(实现前对账登记):依赖「disease story 003 载体」不实 → `Editor.Tools.Bake` 模式;
+  Note 1 三态可分错引 AC-8-F → **AC-8-21(+ V-8.2 / AC-8-24)**
+- **MUT-Validate**:注释唯一调用点 ⇒ **恰 8 条校验器路径红**(tier35/tier15/阳性带权/阴性缺权/
+  阴性零权/重复主键/lab/病史白名单),绑定层全绿 —— 承重面从推断变实测
+
+### 验证(实测)
+- bootstrap:`unity/Logs/s002-bootstrap.xml`(金标 PENDING→打出实际值;途中自查出 reveal
+  TestCase 传裸串 bug,改数组后绿)
+- filter:`s002-run2.xml` = **67 / 66 passed / 0 failed / 1 skipped**(skipped = 反向孤儿 [Ignore])
+- MUT:`s002-mut-validate.xml` = **恰 8 红**;还原后复绿
+- 全量:`s002-full.xml` = **2603 / 2556 passed / 0 failed / 46 skipped / 1 inconclusive**(基线 2561 + 42)
+
+### ⬜ 待办 / 未闭登记(禁借绿)
+- **NOT-RUN 8 项**全表见评审原件 §4:反向孤儿(BLOCKED disease 006)· 正向接线(tripwire)·
+  F-8 金标半边(story 003/004 扩)· 跨会话确定性 · 人工核对字面 · cooked.bytes 数据轮口径 · …
+- `neg_weight = "1"` 占位已挂 story-004 Note 7;枚举↔位掩码映射已挂 story-003 Note 6
+- **TR-registry 回填**(TR-diag-014 等 gap→covered)= 独立 docs 轮,未动
+- 下一件:diagnosis-system **story-003(F-8.1 可读地板 + F-8.2 精度档槽)**,同协议;
+  epic 链 diagnosis(2/6)→ case → prescription
+
+## 📋 历史状态(2026-10-05)—— diagnosis story-001(程序集边界与 VitalsDto 只读门面)—— ✅ 收口 · commit `6685046` · 已推送
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
 > 前置:双代理评审 **结构侧 CHANGES REQUIRED(3 MAJOR)+ QA 侧 APPROVED(2 MAJOR 收口前置)**,

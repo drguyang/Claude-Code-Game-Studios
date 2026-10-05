@@ -1,0 +1,311 @@
+{
+  "schema_version": 1,
+  "signs": [
+    {
+      "sign_id": "sign_pallor",
+      "display_词": ["面色不好", "面色发白", "面色苍白、口唇发绀"],
+      "channel": "面色",
+      "reveal_by": ["视诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_flush",
+      "display_词": ["面色发红", "面色潮红", "面色潮红、结膜充血"],
+      "channel": "面色",
+      "reveal_by": ["视诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_diaphoresis",
+      "display_词": ["出汗", "汗出较多", "大汗淋漓、汗出身凉"],
+      "channel": "面色",
+      "reveal_by": ["视诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_rash",
+      "display_词": ["身上有东西", "身上起了红点", "红色斑丘疹"],
+      "channel": "面色",
+      "reveal_by": ["视诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_koplik",
+      "display_词": [null, null, "口腔黏膜斑(Koplik 斑)"],
+      "channel": "面色",
+      "reveal_by": ["视诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_jaundice",
+      "display_词": ["面色发黄", "面色发黄、眼白也黄", "巩膜黄染"],
+      "channel": "面色",
+      "reveal_by": ["视诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_voice_weak",
+      "display_词": ["说话没力气", "语声低微", "语声低微、断续"],
+      "channel": "语声",
+      "reveal_by": ["视诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_delirium",
+      "display_词": ["说胡话", "言语错乱", "谵妄、表情淡漠"],
+      "channel": "语声",
+      "reveal_by": ["问诊"],
+      "tier_named": 10,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_moan",
+      "display_词": ["呻吟", "呻吟不止", "呻吟、呼痛"],
+      "channel": "语声",
+      "reveal_by": ["视诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_dyspnea_speech",
+      "display_词": ["说话喘", "说话断续", "言语断续、不能成句"],
+      "channel": "语声",
+      "reveal_by": ["视诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_orthopnea",
+      "display_词": ["躺不平", "躺下就喘,得坐起来", "端坐呼吸"],
+      "channel": "姿态",
+      "reveal_by": ["视诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_curled",
+      "display_词": ["蜷着", "蜷着、不让碰肚子", "蜷缩、拒按腹部"],
+      "channel": "姿态",
+      "reveal_by": ["视诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_trismus",
+      "display_词": ["张不开嘴", "嘴张不大", "牙关紧闭"],
+      "channel": "姿态",
+      "reveal_by": ["视诊"],
+      "tier_named": 20,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_opisthotonus",
+      "display_词": ["身子反弓", "身子往后弓", "角弓反张"],
+      "channel": "姿态",
+      "reveal_by": ["视诊"],
+      "tier_named": 20,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_neck_stiffness",
+      "display_词": ["脖子发硬", "脖子转不动", "颈项强直"],
+      "channel": "姿态",
+      "reveal_by": ["触诊"],
+      "tier_named": 20,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_risus",
+      "display_词": ["怪笑", "笑得不对劲", "苦笑面容"],
+      "channel": "姿态",
+      "reveal_by": ["视诊"],
+      "tier_named": 20,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_joint_swelling",
+      "display_词": ["关节肿", "关节红肿", "游走性关节红肿"],
+      "channel": "姿态",
+      "reveal_by": ["视诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_tachypnea",
+      "display_词": ["喘得急", "呼吸又浅又快", "呼吸浅快"],
+      "channel": "呼吸",
+      "reveal_by": ["视诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_rales",
+      "display_词": ["「胸里有声,说不清」", "「肺里有水声」", "双肺底细湿啰音"],
+      "channel": "呼吸",
+      "reveal_by": ["听诊"],
+      "tier_named": 10,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_retraction",
+      "display_词": ["吸气费劲", "吸气时胸口往里陷", "三凹征"],
+      "channel": "呼吸",
+      "reveal_by": ["视诊"],
+      "tier_named": 20,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_cheyne_stokes",
+      "display_词": ["呼吸忽深忽浅", "呼吸一阵深一阵浅", "潮式呼吸"],
+      "channel": "呼吸",
+      "reveal_by": ["视诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_dullness",
+      "display_词": ["「叩着发闷」", "「叩着比旁边闷」", "叩诊浊音 / 实音"],
+      "channel": "呼吸",
+      "reveal_by": ["叩诊"],
+      "tier_named": 20,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_fever_skin",
+      "display_词": ["身上发烫", "皮温高", "皮温升高"],
+      "channel": "触感",
+      "reveal_by": ["触诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_cold_clammy",
+      "display_词": ["手脚冰凉", "四肢发凉、有汗", "四肢湿冷"],
+      "channel": "触感",
+      "reveal_by": ["触诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_pulse_rapid",
+      "display_词": ["脉快", "脉快而细", "脉细速"],
+      "channel": "触感",
+      "reveal_by": ["触诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_pulse_bounding",
+      "display_词": ["脉大", "脉大有力", "脉洪大"],
+      "channel": "触感",
+      "reveal_by": ["触诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_relative_bradycardia",
+      "display_词": ["热高、脉却快不起来", "热高、脉不快", "相对缓脉"],
+      "channel": "触感",
+      "reveal_by": ["触诊"],
+      "tier_named": 20,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_hepatosplenomegaly",
+      "display_词": ["「肚子按着有点满」", "「肚子能摸到块」", "肝脾肿大"],
+      "channel": "触感",
+      "reveal_by": ["触诊", "叩诊"],
+      "tier_named": 20,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_abd_tenderness",
+      "display_词": ["「按下去他皱眉」", "「一按就疼」", "腹部压痛、拒按"],
+      "channel": "触感",
+      "reveal_by": ["触诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_purulent_stool",
+      "display_词": ["「拉肚子,拉的东西不对」", "「大便带黏液」", "脓血便、里急后重"],
+      "channel": "问诊(非体格通道)",
+      "reveal_by": ["问诊"],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_lung_clear",
+      "display_词": ["「听着没什么」", "「听着挺干净」", "双肺未闻及啰音"],
+      "channel": "呼吸",
+      "reveal_by": ["听诊"],
+      "tier_named": 20,
+      "polarity": "阴性体征",
+      "neg_weight": "1"
+    },
+    {
+      "sign_id": "sign_abd_soft",
+      "display_词": ["「肚子按着还行」", "「肚子是软的」", "腹部柔软、无压痛"],
+      "channel": "触感",
+      "reveal_by": ["触诊"],
+      "tier_named": 20,
+      "polarity": "阴性体征",
+      "neg_weight": "1"
+    },
+    {
+      "sign_id": "sign_neck_supple",
+      "display_词": ["「脖子能转」", "「脖子转得开」", "颈项不强直"],
+      "channel": "姿态",
+      "reveal_by": ["触诊"],
+      "tier_named": 20,
+      "polarity": "阴性体征",
+      "neg_weight": "1"
+    },
+    {
+      "sign_id": "sign_no_organomegaly",
+      "display_词": ["「没摸出什么」", "「没摸到块」", "未扪及肝脾"],
+      "channel": "触感",
+      "reveal_by": ["触诊", "叩诊"],
+      "tier_named": 20,
+      "polarity": "阴性体征",
+      "neg_weight": "1"
+    }
+  ]
+}

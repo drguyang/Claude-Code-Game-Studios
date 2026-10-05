@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "signs": [
+    {
+      "sign_id": "sign_lung_clear",
+      "display_词": [
+        "「听着没什么」",
+        "「听着挺干净」",
+        "双肺未闻及啰音"
+      ],
+      "channel": "呼吸",
+      "reveal_by": [
+        "听诊"
+      ],
+      "tier_named": 20,
+      "polarity": "阴性体征",
+      "neg_weight": "0"
+    }
+  ]
+}

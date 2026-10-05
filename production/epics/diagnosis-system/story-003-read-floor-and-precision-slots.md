@@ -52,6 +52,10 @@
 3. `TierIndex` 实现为 `SLOT_BOUNDS` 计数比较(int),禁浮点插值;档序语义 0=粗 1=中 2=细 3=满 与 `DIAG_TIERS` 的映射写死为常量注释引 GDD。
 4. 回退算法:自 `TierIndex` 向下找首个非空档;全空返回 `UNREADABLE_NEGATIVE` 哨兵(与「未查」`BLANK` 三值分开 —— story 005 状态机的输入字母表在此钉死)。
 5. 合成 fixture 系数至少覆盖:单调严格 / 平段 / 端点相等三类形态,防「单调断言被平台噪声假绿」。
+6. **通道序数 ↔ 位掩码映射(承 story 002 结构侧评审 S-MAJOR)**:`Diagnosis.SignChannel`
+   (序数标签 0..5)与 `Sim.Contracts.SignChannel`(AC-21 位掩码静态类 `1<<n`)同名不同物 ——
+   本 story 首次消费 `channel` 字段前须立**映射表**(每序数 → 掩码位)+ **构建期双向断言**
+   (五通道+病史恰好映满、零悬空掩码位、零重复位);**未立映射前禁 cast / 禁当掩码位用**。
 
 ## Out of Scope
 

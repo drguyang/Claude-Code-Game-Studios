@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "signs": [
+    {
+      "sign_id": "sign_pallor",
+      "display_词": [
+        "面色不好",
+        "面色发白",
+        "面色苍白、口唇发绀"
+      ],
+      "channel": "面色",
+      "reveal_by": [
+        "视诊"
+      ],
+      "tier_named": 1,
+      "polarity": "阳性体征",
+      "neg_weight": null
+    },
+    {
+      "sign_id": "sign_lung_clear",
+      "display_词": [
+        "「听着没什么」",
+        "「听着挺干净」",
+        "双肺未闻及啰音"
+      ],
+      "channel": "呼吸",
+      "reveal_by": [
+        "听诊"
+      ],
+      "tier_named": 20,
+      "polarity": "阴性体征",
+      "neg_weight": "1"
+    }
+  ]
+}
