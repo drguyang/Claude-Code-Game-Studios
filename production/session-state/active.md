@@ -1,6 +1,39 @@
 # Session State — 2026-10-05(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 最近收口 = 拟物 UI story-019-d(接图落地 + C4 消红)—— ✅ 收口 2026-10-05 · commit `155a9b1` · 已推送
+## 🔄 最近收口 = patient-ai story-004(重建、联机单跑与写路径归 10)—— ✅ 收口 2026-10-05 · 待提交
+
+> 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
+> 前置:双代理评审 11 项(5 BLOCKING + 6 MAJOR)⇒ 逐条修复 ⇒ 复跑绿。
+
+### 交付物
+- **生产**:`PatientBehavior.ResetForLoad()` 扩为全字段重置(Prev/Session/Terminal/Current/Tier)·
+  `PatientSpatialDirector.ResetForLoad()` 扩为全字段重置(Pose/Phase/HomeRegion/KnowsClinic,Cell 归零)
+- **测试**:`reconstruction_and_write_path_test.cs`(**37 条**,含 2 `[Ignore]` NOT-RUN)
+- **证据**:`production/qa/evidence/patient-ai/story-004-readability-walkthrough.md`([L] 项)
+
+### 单轮评审 → 修复轮(5 BLOCKING + 6 MAJOR)
+- **B1**:重建测试恒真 ⇒ `Run()` 复用导演 + `Reset()` 调 `ResetForLoad()` + 两生产件扩字段
+- **B2**:负夹具不共用扫描机器 ⇒ 抽 `ScanFieldsForToken` 函数,正测与负夹具共用
+- **B3/B4**:`Assert.Pass` 空操作 ⇒ 改 `[Ignore]` + `Assert.Ignore`(V8 联机 + 跨平台)
+- **B5**:[L] 证据错位 ⇒ 重写为五档可读性走查(Idle/Seeking/Bedridden/InTreatment/Terminal)
+- **M2/M5**:补 `IIdAuthority`/`NextPatientId` 扫描 + 负夹具
+- **M3**:补 `SessionState.None` 断言(会诊重置)
+- **M4**:补 IL 级扫描 `ScanTypeForForbiddenCalls` + 负夹具 `ShadowWithAppendCall`
+- **M6**:补影子注入夹具(MovingInputs/决策方法签名/noNewKind/程序集卫生)
+
+### 验证(实测)
+- 过滤:`unity/Logs/s004-final-green.xml` = **168 / 166 passed / 0 failed / 2 skipped**
+- 全量 EditMode:待跑(收口时补)
+
+### ⬜ 待办 / 未闭登记(禁借绿)
+- **AC-13-V8**(联机客户端不重算)= BLOCKED-BY 45,NOT-RUN
+- **AC-13-CrossPlatform**(跨平台逐位)= EXTERNAL,CI 矩阵产物为证
+- **[L] 五档可读性** = 部分闭(13 侧结构前提)+ BLOCKED-BY 42/44(呈现/音频)
+- 下一件:见 Phase 2 关键路径(patient-ai 4/4 全闭;余 diagnosis / case / prescription)
+
+---
+
+## 📋 历史状态(2026-10-05)—— 拟物 UI story-019-d(接图落地 + C4 消红)—— commit `155a9b1` · 已推送
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
 > 前置:上一轮评审后用户裁定「**先清 44 条 C4,再收口 019-d**」+「**抽主题变量 + 铜色,一并解决 4 条 C4**」。
@@ -250,7 +283,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 | 项 | 值 |
 |---|---|
 | **Stage** | Pre-Production |
-| **Sprint** | sprint-03 ✅ 已闭(17/17) · **sprint-04 Phase 1 ✅ 已收口** · **Phase 2 进行中 = 3/7 系统完成 + 第 4 系统 3/4 story**(patient-ai story-001/002/003 已收口)—— 关键路径断于 `patient-ai` story-004 |
+| **Sprint** | sprint-03 ✅ 已闭(17/17) · **sprint-04 Phase 1 ✅ 已收口** · **Phase 2 进行中 = 4/7 系统完成**(patient-ai story-001/002/003/004 已收口)—— 关键路径移至 diagnosis-system |
 | **Gate Check** | CONCERNS（2026-09-29 二轮，无 NOT READY 阻塞） |
 | **ADRs** | 28/28 Accepted |
 | **P0 GDDs** | 31/31 Approved |
@@ -291,7 +324,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 | inventory-items (20) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | medical-consequences (53) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
 | modular-building (23) | 7 | **7** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红，`9bb912b`+`bfa6234`;**未闭登记 = N-r2 生产装配根 + AC-23-09 跨平台签名**） |
-| patient-ai (13) | 4 | **3** | 1 | 0 | story-001/002/003 已收口;剩 story-004(联机投影一致性) |
+| patient-ai (13) | 4 | **4** | 0 | 0 | ✅ **全收口 2026-10-05**(story-001/002/003/004;未闭登记 = V8 联机 BLOCKED-BY 45 · 跨平台 EXTERNAL · [L] 五档可读性部分闭) |
 | player-controller (1) | 6 | **6** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（两轮评审判据缺陷已修;88 过 + 3 NOT-RUN，`a78c27a`） |
 | prescription-medication (11) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | processing (18) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
@@ -427,9 +460,9 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 - ⬜ 系统 6 Epic(接收侧:latch/幂等/判距复验/唯一 Append)—— 转绿 AC-4-13 6 半 + AC-4-17 6 消费半
 
 <!-- STATUS -->
-Epic: 交互系统
-Feature: 数据契约烘焙接线
-Task: story-007 收口(7/7 · 135/132/0/3)
+Epic: patient-ai
+Feature: 重建与写路径
+Task: story-004 收口(4/4 · 166/166/0/2)
 <!-- /STATUS -->
 
 ---

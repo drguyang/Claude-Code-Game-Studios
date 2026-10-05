@@ -76,12 +76,19 @@ namespace DaYiJingCheng.Gameplay.PatientAI
             Session = active ? SessionState.InTreatment : SessionState.None;
         }
 
-        /// <summary>加载后重置 —— `SessionState := None`(AC-13-B5 ③ / EC-13-05)。
+        /// <summary>加载后重置 —— **全部派生态归零**(AC-13-B5 ③ / EC-13-05 / story-004 B1 修复)。
         /// <para>⚠️ 会诊态**不进存档**(它由边界层在加载后重新赐予),故加载期必须显式清零 ——
-        /// 否则「存档时会诊中」的病人会在加载后**永远**保持 `InTreatment`。</para></summary>
+        /// 否则「存档时会诊中」的病人会在加载后**永远**保持 `InTreatment`。</para>
+        /// <para>⚠️ **story-004 修复**:原实现只重置 `Session`,遗漏 `Prev` / `Current` / `Terminal` / `Tier` ——
+        /// 导致读档后滞回 `prev` 与终态闩锁**跨加载存活**,重建测试若复用同一批 director 会红。
+        /// 现全部归零,与「 freshly constructed 」语义一致。</para></summary>
         public void ResetForLoad()
         {
+            Prev = BehaviorState.Idle;
             Session = SessionState.None;
+            Terminal = TerminalFlag.None;
+            Current = BehaviorState.Idle;
+            Tier = SymptomTier.Recover;
         }
     }
 
