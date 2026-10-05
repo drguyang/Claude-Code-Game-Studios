@@ -78,8 +78,11 @@
 | `seal` | **true** | `.seal` 有 `background-color`;`seal_red` / `seal_surface` 有处挂 |
 | `seal-small` | **false** | 仅 `font-size` |
 
-> ⇒ **贴图容器 = 5 项**(`paper` / `paper-aged` / `scroll` / `ink` / `seal`)= **019-d 接图面**
-> (原「4 类」已被取代 —— `ink` 改判加入)。
+> ⇒ **贴图容器(注册项)= 4 项**(`paper` / `scroll` / `ink` / `seal`)= **019-d 的 C7 判据面**
+> (原「3 类」被 `ink` 改判加入取代)。
+> ⚠️ **2026-10-05 019-d 实施勘误**:原记「5 项」把 `.paper-aged` 误作独立项 —— 实测
+> `SkeuoElement` 枚举**只 4 值**,`.paper-aged` 是 `paper` 的**变体类**(`VariantSuffix = "-aged"`),
+> 非注册项。⇒ **接图落地 = 5 处选择器**,但 **C7 判据面 = 4 注册项**(门只查注册项)。
 > ⚠️ **24 个选择器其余部分**(记号 7 归 `MarkRegistry` 派生 · 黄铜 3 归铜族登记表 ·
 > 器具 3 无对应图 · 焦点 2 归 `FocusVisibleStyle` · 排版 2 非元件)**仍不在 C7 面内**。
 
@@ -168,11 +171,12 @@ Exit Criteria 第 5 条的形态件 **① 脉案线格/空行/焦点明度轴压
       故 `ValidateAll` **不聚合**该半(恒红门 = 噪声),由 `TextureBindingGates.ValidateRegisteredClassesHaveTexture` 承接。
       ✅ **「已注册元件类」范围 = `IsTextureContainer == true`** —— **用户裁定 2026-10-05**
       (**取代**首轮窄读法 4 类;依据见 §状态拆分):
-      注册表增列 `IsTextureContainer` ⇒ **贴图容器 = 5 项**(
-      `paper` / `paper-aged` / `scroll` / `ink`(改判加入)/ `seal`)。
+      注册表增列 `IsTextureContainer` ⇒ **贴图容器(注册项)= 4 项**(
+      `paper` / `scroll` / `ink`(改判加入)/ `seal`)。
       **`ink-faded` / `seal-small` = false**(仅基类改判,变体保持)。
-      ⇒ **019-d 接图量 = 5 项**(不是 24,也不是原 4)。
-- [ ] **AC-42-C8(新)** ⛔ **归 019-f · 受限美术**: 九宫格 `-unity-slice-left/right/top/bottom` 值与该元件图集内的**实际切图边界**一致
+      ⚠️ **`.paper-aged` 非注册项**(`paper` 的变体类)⇒ 不计入本判据面;
+      **接图落地 = 5 处选择器**(4 基类 + `.paper-aged`),但**门只查 4 注册项**。
+      ⇒ **019-d 接图量 = 5 处选择器 / C7 判据面 = 4 项**(不是 24,也不是原 3)。
       (值来自切图冻结件的元数据,不得手填)
       ⇒ ⚠️ **实测 2026-10-05**:`design/assets/specs/` **零九宫格边界元数据**;`SkeuoPaper.uss` 的 64px 为**人工实测填**
       = 本 AC 的**教科书反例**。且 16 张 `.meta` 全 `spriteMode:0`(九宫格在此模式下**不可能工作**)

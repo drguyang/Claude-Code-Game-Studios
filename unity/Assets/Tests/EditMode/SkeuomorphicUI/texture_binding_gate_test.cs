@@ -109,10 +109,13 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         [Test]
         public void test_ac42c11_current_library_has_no_dangling_refs()
         {
-            // Act: 当前元件库 USS 内所有 background-image url() 均可解析
-            var errs = TextureBindingGates.ValidateTextureReferencesResolve(RepoRoot, g => null);
+            // ⚠️ 2026-10-05(019-d 同步):原传 `g => null` 桩是可以的 —— 因 019-c 时
+            //    元件库**零 `url()` 引用**,null 桩等于「无引用可解析」。
+            //    019-d 接图后(paper/scroll/ink/seal + paper-aged 共 5 条 guid: 引用),
+            //    null 桩 ⇒ 5 条全报悬空(假红)。生产门走**真 resolver**,夹具须同口径。
+            var errs = TextureBindingGates.ValidateTextureReferencesResolve(
+                RepoRoot, UnityEditor.AssetDatabase.GUIDToAssetPath);
 
-            // Assert: 尚无引用 ⇒ 零悬空(「没有引用」是合法态,非假绿)
             Assert.IsEmpty(errs,
                 "元件库出现悬空贴图引用:\n" + string.Join("\n", errs));
         }
@@ -378,7 +381,10 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         {
             // Arrange / Act: 用**生产锚**跑,确认扫描面真非空
             var c10 = TextureBindingGates.ValidateScreenLevelNoTextureUrl(RepoRoot);
-            var c11 = TextureBindingGates.ValidateTextureReferencesResolve(RepoRoot, g => null);
+            // ⚠️ 2026-10-05(019-d 同步):同 test_ac42c11_current_library_has_no_dangling_refs ——
+            //    接图后须走真 resolver,null 桩会把 5 条真实引用全判悬空。
+            var c11 = TextureBindingGates.ValidateTextureReferencesResolve(
+                RepoRoot, UnityEditor.AssetDatabase.GUIDToAssetPath);
 
             // Assert: 真扫描面下,**合规态就是零错误**(与上面的空跑错误区分开)
             Assert.IsEmpty(c10, "真仓库根下屏幕层应零 url —— 实际:\n" + string.Join("\n", c10));

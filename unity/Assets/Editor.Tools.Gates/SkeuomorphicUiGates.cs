@@ -117,9 +117,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             errs.AddRange(ValidateScreenLevelNoTextureUrl());     // C10
             errs.AddRange(ValidateTextureReferencesResolve());    // C11
             errs.AddRange(ValidateRegisteredClassSelectors());    // C7(骨架半)
-            // ⚠️ C7「接图半」(每类须有 background-image)现**必红**(零引用)⇒ 归 019-d,
-            //    不聚合进本门(恒红门 = 噪声);019-d 接图后由 TextureBindingGates
-            //    .ValidateRegisteredClassesHaveTexture 承接。
+            // ── 2026-10-05(019-d):C7「接图半」入聚合 —— 四基类接图已完成,不再恒红。
+            //    ⚠️ 判据面收窄为**贴图容器类**(IsTextureContainer == true),非全部注册类。
+            errs.AddRange(ValidateTextureContainerHasTexture());  // C7(接图半)
             // ── Story 019-e:导入格式订正(九宫格物理前提)──
             errs.AddRange(ValidateSlicedTextureImportFormat());   // E1(三项格式)
             errs.AddRange(ValidateSpriteBorderSentinel());        // E1(耦合守卫:border 归 019-f)
@@ -132,6 +132,12 @@ namespace DaYiJingCheng.EditorTools.Gates
             => DaYiJingCheng.Gameplay.UI.Skeuomorphic.SkeuoComponentRegistry.All
                    .Values.Select(v => v.UssClassName);
 
+        /// <summary>**贴图容器类名集**(`IsTextureContainer == true` 者)—— AC-42-C7 接图半的判据面。
+        /// <para>⚠️ 2026-10-05 用户裁定:C7 判据由「全部已注册类」**收窄**为本集。
+        /// 差集 = `ink-faded` / `seal-small`(仅字色 / 字号,无贴图)。</para></summary>
+        private static IEnumerable<string> TextureContainerClassNames()
+            => DaYiJingCheng.Gameplay.UI.Skeuomorphic.SkeuoComponentRegistry.TextureContainerClassNames;
+
         // ── Story 019-c 门体:纯逻辑住在 TextureBindingGates(零引擎依赖,夹具可直调)──
 
         /// <summary>AC-42-C7 骨架半:每个已注册类须有选择器块。</summary>
@@ -139,6 +145,14 @@ namespace DaYiJingCheng.EditorTools.Gates
             => DaYiJingCheng.EditorTools.Gates.TextureBindingGates
                    .ValidateRegisteredClassesHaveSelectorBlock(
                        DaYiJingCheng.EditorTools.Gates.TextureBindingGates.DefaultRepoRoot, RegisteredClassNames());
+
+        /// <summary>AC-42-C7(接图半):每个**贴图容器类**须含 `background-image: url(...)`。
+        /// <para>⚠️ 2026-10-05(019-d):由「恒红待办」转为**入聚合的判据** —— 四基类已完成接图。</para></summary>
+        internal static List<string> ValidateTextureContainerHasTexture()
+            => DaYiJingCheng.EditorTools.Gates.TextureBindingGates
+                   .ValidateRegisteredClassesHaveTexture(
+                       DaYiJingCheng.EditorTools.Gates.TextureBindingGates.DefaultRepoRoot,
+                       TextureContainerClassNames());
 
         /// <summary>AC-42-C10:屏幕级文件不得出现任何 url()。</summary>
         internal static List<string> ValidateScreenLevelNoTextureUrl()

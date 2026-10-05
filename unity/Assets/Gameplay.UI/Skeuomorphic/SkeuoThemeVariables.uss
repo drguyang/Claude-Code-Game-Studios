@@ -4,8 +4,15 @@
  * AC-42-C6: Fallback font stack registered in FallbackFontRegistry (zh + en).
  *
  * 命名约定: --skeuo-{layer}-{property}-{variant}
- *   layer  ∈ {paper, scroll, ink, seal, shared}
- *   property ∈ {bg, fg, border, shadow, radius, space}
+ *   layer  ∈ {paper, scroll, ink, seal, brass, implement, marks, focus, shared}
+ *   property ∈ {bg, fg, border, shadow, radius, space, width, height, gap}
+ *
+ * ⚠️ 2026-10-05(019-d 连带清理):layer 由 5 员扩至 9 员。
+ *   brass / implement / marks / focus 四族此前**硬编码内联**(C4 红 44 条),
+ *   本批抽变量消红 —— 权威出处 = **本文件 `:root` 块**(变量单一真源);
+ *   清理轮记录见 production/epics/skeuomorphic-ui/story-019-texture-binding.md §Completion Notes。
+ *   ⚠️ **brass-bg 取 art-bible §4.1 权威值 `#B8863B`**,订正 `SkeuoBrass.uss`
+ *   原内联的 `#b87333`(绿通道差 19 —— 该值是网上通用「铜色」,非本项目裁定值)。
  */
 
 :root {
@@ -36,6 +43,39 @@
     --skeuo-seal-border-width: 2px;
     --skeuo-seal-radius: 3px;
     --skeuo-seal-shadow: rgba(92, 26, 0, 0.35);
+
+    /* ── 黄铜(Brass)— §1 P4 有来历之物;整体墨侧 / 还原铜侧 ── */
+    --skeuo-brass-bg: #B8863B;              /* art-bible §4.1 权威值(订正 USS 原 #b87333) */
+    --skeuo-brass-fg: #F5E6D3;
+    --skeuo-brass-border: #8C5A2B;
+    --skeuo-brass-aged: #A0653A;            /* ⚠️ 注:此值「铜锈」语义与 art-bible §4.1/§8.6.3 冲突
+                                                (Bible 铜锈 = #4F7A6B 青绿);既有值,保值抽变量未改,待裁。 */
+    --skeuo-brass-border-width: 1px;
+    --skeuo-brass-scale-height: 2px;        /* 蚀刻刻度条 */
+    --skeuo-brass-scale-gap: 2px;
+    --skeuo-brass-scale-color: #8C5A2B;     /* 蚀刻刻度条底色 —— 与 border 解耦(评审 M4:
+                                               描边语义 ≠ 实心蚀刻面语义,同值不同义,防调边连带改刻度) */
+
+    /* ── 器具档(Implement)— 木/皮/铜 第三材质档(OQ-IC-4)── */
+    --skeuo-implement-bg: #6B4423;
+    --skeuo-implement-fg: #E8DCC4;
+    --skeuo-implement-border: #4A2E18;
+    --skeuo-implement-wood: #8B6914;        /* 木纹变体 */
+    --skeuo-implement-leather: #7A4A2B;     /* 皮纹变体 */
+
+    /* ── 记号(Marks)— 形状几何(尺寸走此族,非 shared-space)──
+       ⚠️ 记号是**几何形状**非排版间距 ⇒ 不占 shared-space 语义位。 */
+    --skeuo-marks-border-width: 1px;        /* 单折角线宽 */
+    --skeuo-marks-border-width-double: 2px; /* 双线角 / 双叠角线宽 */
+    --skeuo-marks-dot-size: 4px;            /* 点(陈旧) */
+    --skeuo-marks-dot-radius: 2px;
+    --skeuo-marks-fold-size: 6px;           /* 单折 / 双叠角尺寸 */
+    --skeuo-marks-fold-double-size: 8px;    /* 双线角尺寸 */
+    --skeuo-marks-seal-padding: 2px;        /* 印(计入/卸出)内衬 */
+
+    /* ── 焦点(Focus)— 载体 = 黄铜 2px(2026-10-05 用户裁定,原墨侧)── */
+    --skeuo-focus-border: #B8863B;          /* 同 brass-bg;独立命名以承「改判可溯源」 */
+    --skeuo-focus-border-width: 2px;
 
     /* ── 共享(Shared) ── */
     --skeuo-shared-radius: 2px;

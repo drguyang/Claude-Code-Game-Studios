@@ -1,29 +1,31 @@
 /* Implement Tier — 器具档(木/皮/铜) 第三材质档 (OQ-IC-4)
  * 20 箱屏是首个非纸非黄铜读数的混材屏
  * 器具档自身禁不禁刻度条 — 未裁,按语义另定
+ *
+ * ⚠️ 2026-10-05(019-d 连带清理):全部硬编码色/尺寸抽为主题变量(C4 消红)。
  */
 
 .implement {
-    background-color: #6b4423;
-    border-top-color: #4a2e18;
-    border-right-color: #4a2e18;
-    border-bottom-color: #4a2e18;
-    border-left-color: #4a2e18;
-    border-top-width: 1px;
-    border-right-width: 1px;
-    border-bottom-width: 1px;
-    border-left-width: 1px;
-    color: #e8dcc4;
+    background-color: var(--skeuo-implement-bg);
+    border-top-color: var(--skeuo-implement-border);
+    border-right-color: var(--skeuo-implement-border);
+    border-bottom-color: var(--skeuo-implement-border);
+    border-left-color: var(--skeuo-implement-border);
+    border-top-width: var(--skeuo-shared-border-width);
+    border-right-width: var(--skeuo-shared-border-width);
+    border-bottom-width: var(--skeuo-shared-border-width);
+    border-left-width: var(--skeuo-shared-border-width);
+    color: var(--skeuo-implement-fg);
     font-family: var(--skeuo-font-family);
     font-size: var(--skeuo-font-size-md);
 }
 
 /* 木纹变体 */
 .implement-wood {
-    background-color: #8b6914;
+    background-color: var(--skeuo-implement-wood);
 }
 
 /* 皮纹变体 */
 .implement-leather {
-    background-color: #7a4a2b;
+    background-color: var(--skeuo-implement-leather);
 }

@@ -1,6 +1,8 @@
 /* Scroll Element — USS (AC-42-C2 / AC-42-C5) */
 
 .scroll {
+    /* 2026-10-05 019-d 接图:引 border_scroll-final.png(九宫格边框图,与下列 68px slice 匹配)。 */
+    background-image: url("guid:1c689262fb8fba66badc6204cda03478");
     background-color: var(--skeuo-scroll-bg);
     border-top-width: var(--skeuo-shared-border-width);
     border-right-width: var(--skeuo-shared-border-width);

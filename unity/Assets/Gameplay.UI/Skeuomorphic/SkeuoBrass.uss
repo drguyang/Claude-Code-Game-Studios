@@ -1,32 +1,39 @@
 /* Brass Side — 黄铜侧元件 (AC-42-F3 材质分支)
  * 铜面 + 蚀刻刻度(哑光) — 禁发光/泛光
  * 读数条允许錾刻刻度(黄铜侧合法)
+ *
+ * ⚠️ 2026-10-05(019-d 连带清理):全部硬编码色/尺寸抽为主题变量(C4 消红)。
+ *    ⚠️ **background-color 由 `#b87333` 改为 `--skeuo-brass-bg` = `#B8863B`**
+ *    —— 取 art-bible §4.1 权威值。原 `#b87333` 是网上通用「铜色」,非本项目裁定值
+ *    (绿通道差 19,肉眼可辨);本批订正。
  */
 
 .brass {
-    background-color: #b87333;
-    border-top-color: #8c5a2b;
-    border-right-color: #8c5a2b;
-    border-bottom-color: #8c5a2b;
-    border-left-color: #8c5a2b;
-    border-top-width: 1px;
-    border-right-width: 1px;
-    border-bottom-width: 1px;
-    border-left-width: 1px;
-    color: #f5e6d3;
+    background-color: var(--skeuo-brass-bg);
+    border-top-color: var(--skeuo-brass-border);
+    border-right-color: var(--skeuo-brass-border);
+    border-bottom-color: var(--skeuo-brass-border);
+    border-left-color: var(--skeuo-brass-border);
+    border-top-width: var(--skeuo-brass-border-width);
+    border-right-width: var(--skeuo-brass-border-width);
+    border-bottom-width: var(--skeuo-brass-border-width);
+    border-left-width: var(--skeuo-brass-border-width);
+    color: var(--skeuo-brass-fg);
     font-family: var(--skeuo-font-family);
     font-size: var(--skeuo-font-size-md);
 }
 
 /* 蚀刻刻度 — 黄铜侧合法(墨侧禁) */
 .brass-scale {
-    background-color: #8c5a2b;
-    height: 2px;
-    margin-top: 2px;
-    margin-bottom: 2px;
+    /* ⚠️ 评审 M4:刻度条底色**独立命名**,不复用 `--skeuo-brass-border` ——
+       描边语义 ≠ 实心蚀刻面语义(值暂同,但调边框不应连带改刻度条)。 */
+    background-color: var(--skeuo-brass-scale-color);
+    height: var(--skeuo-brass-scale-height);
+    margin-top: var(--skeuo-brass-scale-gap);
+    margin-bottom: var(--skeuo-brass-scale-gap);
 }
 
 /* 铜锈(氧化斑点) — 变体 */
 .brass-aged {
-    background-color: #a0653a;
+    background-color: var(--skeuo-brass-aged);
 }

@@ -1,6 +1,9 @@
 /* Paper Element — USS (AC-42-C2: colors/sizes reference variables only; AC-42-C5: no hardcoded font-size) */
 
 .paper {
+    /* 2026-10-05 019-d 接图:引 border_paper-final.png(九宫格边框图,与下列 64px slice 匹配)。
+       GUID 引用(非路径)—— 路径引用在资产移动时静默失联(casebook 移库即此失效模式)。 */
+    background-image: url("guid:9c7bc40f300a2c5539a0dfece9d9e43b");
     background-color: var(--skeuo-paper-bg);
     border-top-width: var(--skeuo-shared-border-width);
     border-right-width: var(--skeuo-shared-border-width);
@@ -30,6 +33,9 @@
 
 /* 变体: aged — 通过 USS 变量覆盖实现(禁止同类型内通过颜色/尺寸模拟变体, AC-42-C4) */
 .paper-aged {
+    /* 2026-10-05 019-d:旧纸态贴图。⚠️ 本类**不进 C7 判据面**
+       (用户裁甲:变体类非注册项,门只查 4 基类)—— 接图靠人工守护,无门覆盖。 */
+    background-image: url("guid:3ebbce0eca27f8999856715176f08e4d");
     background-color: var(--skeuo-paper-bg-aged);
 }
 

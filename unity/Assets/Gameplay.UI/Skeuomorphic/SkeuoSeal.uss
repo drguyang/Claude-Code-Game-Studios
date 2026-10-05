@@ -1,6 +1,10 @@
 /* Seal Element — USS (AC-42-C2 / AC-42-C5) */
 
 .seal {
+    /* 2026-10-05 019-d 接图:引 seal_surface-final.png(印面石材质 —— 容器底)。
+       ⚠️ 用 seal_surface 而非 seal_red:seal_red 是「盖章后的印泥痕迹」(叠加层语义),
+       本类是**容器底**。 */
+    background-image: url("guid:86de93e30c2c97f4fb72f7be67352444");
     background-color: var(--skeuo-seal-bg);
     border-top-width: var(--skeuo-seal-border-width);
     border-right-width: var(--skeuo-seal-border-width);

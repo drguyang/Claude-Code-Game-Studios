@@ -313,9 +313,12 @@ namespace DaYiJingCheng.EditorTools.Gates
             return errs;
         }
 
-        /// <summary>AC-42-C7(接图半):每个已注册类的选择器块须含 `background-image: url(...)`。
-        /// <para>⚠️ **本半为 019-d 的目标** —— 现无任何引用 ⇒ 必红。恒红 = 019-d 的待办清单,
-        /// 故 `SkeuomorphicUiGates.ValidateAll` **不聚合本半**(见该处 `C7 接图半` 注)。</para></summary>
+        /// <summary>AC-42-C7(接图半):每个**贴图容器类**的选择器块须含 `background-image: url(...)`。
+        /// <para>⚠️ 2026-10-05(019-d):四基类接图完成 ⇒ 本半**已入 `ValidateAll` 聚合**
+        /// (见 `SkeuomorphicUiGates.ValidateTextureContainerHasTexture`)。
+        /// 判据面 = `SkeuoComponentRegistry.TextureContainerClassNames`(收窄,非全部注册类)。</para>
+        /// <para>⚠️ 调用方亦可直传任意类名集(夹具测试用)—— 传空集时**不报「集空」**
+        /// (集空守卫在 `<see cref="ValidateRegisteredClassesHaveSelectorBlock"/>` 骨架半)。</para></summary>
         public static List<string> ValidateRegisteredClassesHaveTexture(
             string repoRoot, IEnumerable<string> registeredClasses)
         {

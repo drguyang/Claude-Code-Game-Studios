@@ -1,6 +1,9 @@
 /* Marks — 记号登记表 (每个形状只有一个拥有者、一个语义)
  * 勾=完成 · 点=陈旧 · 叠角=加工态 · 划改痕=改写留痕 · 印=计入/卸出 · 折角=不可写/已合上
  * 形状可分义务: 折角(单折/双叠) 与 叠角(双线角) 在形状通道上两两可分
+ *
+ * ⚠️ 2026-10-05(019-d 连带清理):硬编码尺寸抽为主题变量(C4 消红)。
+ *    尺寸走 marks 族(几何形状),非 shared-space(排版间距)。
  */
 
 /* 勾(单笔) — 完成 */
@@ -12,19 +15,19 @@
 /* 点(单点) — 陈旧 */
 .mark-dot {
     background-color: var(--skeuo-ink-faded);
-    width: 4px;
-    height: 4px;
-    border-radius: 2px;
+    width: var(--skeuo-marks-dot-size);
+    height: var(--skeuo-marks-dot-size);
+    border-radius: var(--skeuo-marks-dot-radius);
 }
 
 /* 叠角(双线角) — 加工态 */
 .mark-fold-double {
     border-top-color: var(--skeuo-paper-border);
     border-right-color: var(--skeuo-paper-border);
-    border-top-width: 2px;
-    border-right-width: 2px;
-    width: 8px;
-    height: 8px;
+    border-top-width: var(--skeuo-marks-border-width-double);
+    border-right-width: var(--skeuo-marks-border-width-double);
+    width: var(--skeuo-marks-fold-double-size);
+    height: var(--skeuo-marks-fold-double-size);
 }
 
 /* 划改痕 — 改写留痕 */
@@ -38,25 +41,25 @@
     background-color: var(--skeuo-seal-bg);
     color: var(--skeuo-seal-fg);
     font-size: var(--skeuo-font-size-sm);
-    padding: 2px;
+    padding: var(--skeuo-marks-seal-padding);
 }
 
 /* 折角(单折) — 不可写 */
 .mark-fold-single {
     border-top-color: var(--skeuo-paper-border);
     border-right-color: var(--skeuo-paper-border);
-    border-top-width: 1px;
-    border-right-width: 1px;
-    width: 6px;
-    height: 6px;
+    border-top-width: var(--skeuo-marks-border-width);
+    border-right-width: var(--skeuo-marks-border-width);
+    width: var(--skeuo-marks-fold-size);
+    height: var(--skeuo-marks-fold-size);
 }
 
 /* 折角(双叠) — 已合上 Locked */
 .mark-fold-locked {
     border-top-color: var(--skeuo-paper-border);
     border-right-color: var(--skeuo-paper-border);
-    border-top-width: 2px;
-    border-right-width: 2px;
-    width: 6px;
-    height: 6px;
+    border-top-width: var(--skeuo-marks-border-width-double);
+    border-right-width: var(--skeuo-marks-border-width-double);
+    width: var(--skeuo-marks-fold-size);
+    height: var(--skeuo-marks-fold-size);
 }

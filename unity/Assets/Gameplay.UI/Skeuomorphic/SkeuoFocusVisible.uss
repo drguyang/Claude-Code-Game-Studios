@@ -1,17 +1,20 @@
 /* Focus Visible — 焦点可见样式契约 (AC-42-G4 / 规则十)
- * 墨色加深 / 纸面压痕 — 禁纯色高亮(色盲可读)
- * 靠形状不靠颜色 (8 的 UI-8.2)
+ * 载体 = 黄铜 2px(2026-10-05 用户裁定改判;原为墨色)
+ * 靠形状不靠颜色 (8 的 UI-8.2) — 色相由铜族承担,形状(2px 边框)不变
+ *
+ * ⚠️ 2026-10-05(019-d):① 载体墨 → 铜(用户裁定,承 art-bible §7.4 Amendment);
+ *    ② 硬编码 2px 抽为 `--skeuo-focus-border-width`(C4 消红)。
  */
 
 .focus-visible {
-    border-top-color: var(--skeuo-ink-fg);
-    border-right-color: var(--skeuo-ink-fg);
-    border-bottom-color: var(--skeuo-ink-fg);
-    border-left-color: var(--skeuo-ink-fg);
-    border-top-width: 2px;
-    border-right-width: 2px;
-    border-bottom-width: 2px;
-    border-left-width: 2px;
+    border-top-color: var(--skeuo-focus-border);
+    border-right-color: var(--skeuo-focus-border);
+    border-bottom-color: var(--skeuo-focus-border);
+    border-left-color: var(--skeuo-focus-border);
+    border-top-width: var(--skeuo-focus-border-width);
+    border-right-width: var(--skeuo-focus-border-width);
+    border-bottom-width: var(--skeuo-focus-border-width);
+    border-left-width: var(--skeuo-focus-border-width);
     /* 纸面压痕效果 */
     box-shadow: inset 0 0 0 1px var(--skeuo-paper-bg);
 }

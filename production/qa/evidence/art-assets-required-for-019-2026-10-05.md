@@ -351,7 +351,11 @@ grep -h '^guid:' unity/Assets/Gameplay.UI/Skeuomorphic/Textures/*.png.meta | sor
 | `seal` | **true** | `.seal` 有 `background-color`;`seal_red` / `seal_surface` 有处挂 ⇒ 019-d 接图面 **4 类**(非 3) |
 | `seal-small` | **false** | 仅 `font-size` |
 
-> ⇒ **贴图容器 = 5 项**(`paper` / `paper-aged` / `scroll` / `ink` / `seal`)= **019-d 接图面**。
+> ⇒ **贴图容器(注册项)= 4 项**(`paper` / `scroll` / `ink` / `seal`)= **019-d 的 C7 判据面**。
+> ⚠️ **2026-10-05 019-d 实施勘误**:原记「5 项」把 `.paper-aged` 误作独立项 ——
+> 实测 `SkeuoElement` 枚举**只 4 值**(`Paper`/`Scroll`/`Ink`/`Seal`),`.paper-aged`
+> 是 `paper` 的**变体类**(`VariantSuffix = "-aged"`),**非注册项**。
+> ⇒ **接图落地 = 5 处选择器**(4 基类 + `.paper-aged` 变体),但 **C7 判据面 = 4 注册项**。
 > ⚠️ **变体遵循基类之外单列**:`ink` 改判 true 但 `ink-faded` **保持 false**(用户裁:
 > 仅基类改判,变体保持 —— 否则造出「`ink-faded` 容器无图」的新红)。
 
