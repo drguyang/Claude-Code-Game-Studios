@@ -1,6 +1,44 @@
 # Session State — 2026-10-05(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 最近收口 = 拟物 UI story-019-e(导入格式订正)—— ✅ 收口 2026-10-05 · commit `7739142` · 已推送
+## 🔄 最近收口 = 拟物 UI story-019-d(接图落地 + C4 消红)—— ✅ 收口 2026-10-05 · commit `155a9b1` · 已推送
+
+> 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
+> 前置:上一轮评审后用户裁定「**先清 44 条 C4,再收口 019-d**」+「**抽主题变量 + 铜色,一并解决 4 条 C4**」。
+
+### 交付物
+- **接图(C7 接图半)**:四基类 `paper`/`scroll`/`ink`/`seal` 加 `background-image: url("guid:…")`;
+  `.paper-aged` 变体随 `paper` 落地 ⇒ **落地 5 处选择器 / C7 判据面 4 注册项**
+- **判据收窄**:`SkeuoComponentRegistry` 增列 `IsTextureContainer`(默认 `false`,须显式传 `true`)
+  ⇒ C7 判据 = 「贴图容器类」(2026-10-05 用户裁定,取代首轮窄读法 4 类)
+- **C4 消红 44 → 0**:`SkeuoThemeVariables.uss` layer **5 → 9 员**(brass/implement/marks/focus 抽变量)·
+  `brass-bg` 取 art-bible §4.1 权威值 **`#B8863B`**(订正原内联 `#b87333`,绿通道差 19,非本项目裁定值)·
+  `.brass-scale` 底色与 border **解耦**(评审 M4,独立命名 `--skeuo-brass-scale-color`)·
+  焦点载体 **墨 → 铜**(承 `art-bible §7.4` Amendment + GDD 规则十注记)
+- **夹具补真缺口**:新增 `validate_all_aggregate_test.cs`(**7 条**)—— `ValidateAll()` 此前**全 `Tests/` 零调用**,
+  C1/C2/C4/C5/C6 在 CI **长期无覆盖**;`texture_binding_gate_test.cs` 两处 `null` 桩改真
+  `AssetDatabase.GUIDToAssetPath`(019-c 遗留,接图后误判悬空)
+- **文档订正 4 处**:「贴图容器 5 项」→「**4 注册项 / 5 落地选择器**」(story-019 ×2 · art-assets ×1 · GDD ×1)
+
+### 验证(实测)
+- 过滤:`unity/Logs/skeuo-019d-final.xml` = **224 / 211 passed / 0 failed / 13 skipped**
+- 全量 EditMode:`unity/Logs/full-editmode-019d.xml` = **2446 / 2402 / 0 / 43 / 1**(基线 2445 ⇒ **+1,零回归**;
+  唯一 inconclusive = 既有 `SettingsExposureTest.test_monoOption_existsWithValidDefault`)
+- **门探针**:复刻 `RunMenu()` 契约(反射先调 private `InitializeDefaults()`)⇒ `ValidateAll()` = **0 条 · VERDICT=GREEN**
+  (探针已删,日志 `unity/Logs/probe-019d-build.log`)
+- **变异**:删 `.ink` 接图 ⇒ C7 精确报 `.ink` 缺贴图;还原 `#b87333` ⇒ C4 精确报 line 4;均还原后全绿
+
+### ⬜ 待办 / 未闭登记(禁借绿)
+- ⚠️ **019-d 残余义务**:`-unity-slice-*` 的**运行期实测 + 截图签核**仍未做 —— 现仅断言「有引用」,
+  **证明不了「贴对了」**;切片值待 019-f 冻结件(故 C8 未闭)
+- ⚠️ **未闭色值(待裁)**:`--skeuo-brass-aged`(`#A0653A`,注释自称「铜锈」)与 art-bible §4.1/§8.6.3 的
+  铜锈 `#4F7A6B`(青绿)**语义冲突**;`#8C5A2B` art-bible 全文无出处。经 `git show HEAD` 确证均为**既有值**,
+  本轮保值抽变量**未纠正**,已就地加警示注释
+- **019-f(C8 冻结件)** = BLOCKED-BY 美术(九宫格 slice 真值;现 `spriteBorderActual=(0,0,0,0)`)
+- **019-b(图集预算 C9)** = Blocked,`PAGES_MAX` 未冻结
+- m1:`seal_red` 全库零挂载
+- 下一件:**见 Phase 2 关键路径**(interaction-system 已 7/7 全闭;余 patient-ai / diagnosis / case / prescription)
+
+## 📋 历史状态(2026-10-05)—— 拟物 UI story-019-e(导入格式订正)—— commit `7739142` · 已推送
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
 > 前置:用户裁定「拆成 DEF,c7 范围窄读法写死」⇒ 019-d 拆为 d(接图,美术)/e(格式,零依赖)/f(C8 冻结件,美术)。

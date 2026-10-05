@@ -1,7 +1,7 @@
 # Story 019: 贴图接入(16 张 `*-final.png` → USS 元件族 · 九宫格 slice 对齐真实切图 · 图集页数实测)
 
 > **Epic**: 拟物 UI 框架
-> **Status**: **部分完成** —— **019-c `Complete ✅`(2026-10-05)** · **019-e `Complete ✅`(2026-10-05)** · 019-d/f/b 见下 §状态拆分
+> **Status**: **部分完成** —— **019-c `Complete ✅`(2026-10-05)** · **019-d `Complete ✅`(2026-10-05)** · **019-e `Complete ✅`(2026-10-05)** · 019-f/b 见下 §状态拆分
 > **Layer**: Foundation
 > **Type**: UI
 > **Estimate**: 待估(依赖五族切图冻结)
@@ -24,7 +24,7 @@
 |---|---|---|---|
 | **019-c · 护栏** | **C10** + **C11** + C7(骨架半) | **零外部依赖** —— 屏幕层禁引 / 悬空即红,均为**纯 lint 断言** | ✅ **Complete 2026-10-05** |
 | **019-e · 导入格式订正** | 16 张 `.meta`:`spriteMode 0→1` · `textureType 0→8` · `alphaIsTransparency 0→1` · **`spriteBorder` 值(留哨兵待美术)** | **零裁定依赖** —— 格式是**机械的**;唯 `spriteBorder` 的**数值**待 019-f 冻结件 | ✅ **Complete 2026-10-05** |
-| **019-d · 接图** | C7(接图半)+ **贴图容器类**加 `background-image` + `-unity-slice-*` | ✅ **裁定已闭(2026-10-05)** —— 见 §C7 收窄;余 **工程实施**(注册表增列 + `.ink` 补背景 + 焦点改铜侧) | 可点亮 |
+| **019-d · 接图** | C7(接图半)+ **贴图容器类**加 `background-image` + `-unity-slice-*` | ✅ **裁定已闭 + 工程已落(2026-10-05)** —— 注册表增列 `IsTextureContainer` · 四基类接图(落地 5 选择器)· `.ink` 补背景 · 焦点改铜侧 · C4 硬编码 44→0 | ✅ **Complete 2026-10-05** |
 | **019-f · C8 冻结件** | 九宫格 slice 值**来自切图冻结件的元数据**(不得手填) | **美术** —— 需美术实测真实切图边界,产出冻结记录 | 待美术点亮 |
 | **019-b · 图集预算** | C9 | **spike** —— `PAGES_MAX` 未冻结(非美术) | **Blocked** |
 
@@ -164,11 +164,11 @@ Exit Criteria 第 5 条的形态件 **① 脉案线格/空行/焦点明度轴压
 
 *承 EPIC.md §范围边界声明;GDD `design/gdd/skeuomorphic-ui.md` AC-42-C3 的图集半边 + 第 ② 半 TR。*
 
-- [ ] **AC-42-C7(新)**: 每个**贴图容器类**(`SkeuoComponentRegistry` 中 `IsTextureContainer == true` 者)对应的 USS 规则
+- [x] **AC-42-C7(新)** ✅ **019-d Complete 2026-10-05**: 每个**贴图容器类**(`SkeuoComponentRegistry` 中 `IsTextureContainer == true` 者)对应的 USS 规则
       含 `background-image: url(...)`,指向**真实贴图资产**;纯色填充模拟贴图 ⇒ 构建期/lint 报冲突
       ⇒ **骨架半 ✅(019-c,2026-10-05)**:`ValidateRegisteredClassesHaveSelectorBlock` + 4 类注册表实测(当时值);
-      **接图半 ⬜ 归 019-d**(须逐变体映射语义)。⚠️ 接图半现**必红**(零引用),
-      故 `ValidateAll` **不聚合**该半(恒红门 = 噪声),由 `TextureBindingGates.ValidateRegisteredClassesHaveTexture` 承接。
+      **接图半 ✅(019-d,2026-10-05)**:四基类接图落地 ⇒ 接图半已入 `ValidateAll` 聚合
+      (`ValidateTextureContainerHasTexture`,原恒红故此前不入聚合)。
       ✅ **「已注册元件类」范围 = `IsTextureContainer == true`** —— **用户裁定 2026-10-05**
       (**取代**首轮窄读法 4 类;依据见 §状态拆分):
       注册表增列 `IsTextureContainer` ⇒ **贴图容器(注册项)= 4 项**(
@@ -356,6 +356,26 @@ unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.Unit.Skeuomorphic
 - 原件:`production/qa/evidence/review-skeuomorphic-ui-story-019e-2026-10-05.md`
 - 未闭(禁借绿):`spriteBorder` 的**值**仍待 019-f;`-unity-slice-*` 的**运行期实测**归 019-d(截图签核)
 
-**019-d(接图)/ 019-f(冻结件)/ 019-b(图集预算)· NOT-RUN** —— 分别受限美术映射裁定 / 切图实测 / spike,见 §状态拆分。
+**019-d(接图)· Complete ✅ 2026-10-05** —— 同五步协议。
+
+- 交付:C7 接图半(**落地 5 处选择器** = 四基类 + `.paper-aged` 变体;判据面 = **4 注册项**)·
+  `SkeuoComponentRegistry` 增列 `IsTextureContainer`(默认 false,须显式传 true)⇒ C7 判据收窄为「贴图容器类」·
+  C7 接图半入 `ValidateAll()` 聚合 · **C4 硬编码全清 44 → 0**(主题变量 layer 5 → 9 员)
+- `brass-bg` 取 art-bible §4.1 权威值 `#B8863B`,订正原内联 `#b87333`(绿通道差 19,非本项目裁定值);
+  `.brass-scale` 底色与 border **解耦**(评审 M4,独立命名 `--skeuo-brass-scale-color`)
+- 焦点载体墨 → 铜(承 `art-bible §7.4` Amendment + GDD 规则十注记;三处实现侧注释同步)
+- **夹具补齐(实测缺口)**:新增 `validate_all_aggregate_test.cs`(**7 条**)—— `ValidateAll()` 此前
+  **全 `Tests/` 零调用**,C1/C2/C4/C5/C6 在 CI 长期无覆盖;`texture_binding_gate_test.cs` 两处 `null` 桩
+  改真 `AssetDatabase.GUIDToAssetPath`(019-c 遗留,接图后误判悬空)
+- 绿:过滤 **224/211 passed/0 failed/13 skipped** · 全量 EditMode **2446/2402/0/43/1**(基线 2445 ⇒ +1 零回归)
+- 门探针:`ValidateAll()` = **0 条 VERDICT=GREEN**
+- 变异:删 `.ink` 接图 ⇒ C7 精确报 `.ink`;还原 `#b87333` ⇒ C4 精确报 line 4;均还原后全绿
+- ⚠️ **残余 obligation(禁借绿)**:`-unity-slice-*` 的**运行期实测 + 截图签核**仍归本 story 的
+  目视半 —— 现仅断言「有引用」,证明不了「贴对了」;切片值待 019-f 冻结件
+- ⚠️ **未闭色值(待裁)**:`--skeuo-brass-aged`(`#A0653A`,注释自称「铜锈」)与 art-bible §4.1/§8.6.3
+  的铜锈 `#4F7A6B`(青绿)**语义冲突**;`#8C5A2B` 全文无出处 —— 经 `git show HEAD` 确证均为**既有值**,
+  本轮保值抽变量未纠正,已就地加警示注释
+
+**019-f(冻结件)/ 019-b(图集预算)· NOT-RUN** —— 分别受限切图实测 / spike,见 §状态拆分。
 
 **本件为 2026-10-03 补立**,填「贴图绑定」这个原本**没有任何 story 覆盖**的面。
