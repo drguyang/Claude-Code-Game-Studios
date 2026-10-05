@@ -186,7 +186,40 @@
 
 ### 待办
 - ✅ 收口提交推送
-- ⬜ **下一件 = patient-ai story-003**(ViewState 投影 / cue 发射 / Material 映射 —— 吃本 story 的 `PhaseOf` 与 `LogicalPose`)
+- ✅ **patient-ai story-003 已收口**(见下节)
+- ⬜ **下一件 = patient-ai story-004**(或按 epic 内剩余 story 序 —— 见 sprint-04 关键路径)
+
+---
+
+## ✅ patient-ai(13)story-003 —— 呈现投影与视图 API —— 收口 2026-10-05
+
+> 承「严格执行:创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送。评审只做一轮」。
+
+### 交付物
+- **生产**:`PresentationProjection.cs`(ViewState 投影链 / `IPresentPatients` 视图 / `MaterialTable` 查表器)·
+  `PatientCueSchedule.cs`(cue 调度 + 呼吸层生命周期;终局 = 呼吸停止 + 姿态落最静止档)
+- **测试**:`presentation_projection_test.cs`(**131 条**,AC-13-A4/A5/C1…C5/D1…D6/F1…F3)
+- **证据**:`production/qa/evidence/patient-ai/story-003-accessibility-signoff.md`([L] 项)·
+  `production/qa/evidence/review-patient-ai-story-003-2026-10-05.md`(评审原件)
+
+### 单轮评审 → 修复轮(三条 BLOCKING)
+- **G(真 bug)**:`Decide` 首拍 `firstDue = phase` 把相位当**绝对 tick** ⇒ 真实入场 tick 下恒真 ⇒
+  **去同步彻底失效**(实证 6 id 全 due)。修复:增 `entryTick` 形参,`firstDue = entryTick + phase`
+- **A/C2**:AC-13-C2 走程序集引用面而 37 程序集**不存在** ⇒ 恒真借绿 ⇒ 改**源码面 grep**
+- **B/C4**:AC-13-C4 只扫成员名 ⇒ 改 **IL 引用面**(看得见 new GameObject/Object.Destroy/Instantiate)
+- MAJOR:AC-13-D3 姿态半边零承载(增 `PostureTier` 字段)· D6 分段常函数测恒真(改行为面)·
+  C3 负夹具恒真(影子真计数)· A4 名字面(改 IL 面 + NOT-RUN 剥离半边)· F1/F2 过claim(改名 `*_structuralHalf_*`)
+- **变异证明**:MUT-G/B3/H2/C2 逐个注入 ⇒ 必红且点名。⚠️ MUT-H 首轮暴露 D6 修复只测首拍会漏网 ⇒ 补稳态半边
+
+### 验证
+- patient-ai **131/131 绿**(`unity/Logs/s003-final.xml`)
+- 全库 EditMode **2455 passed / 0 failed / 1 inconclusive / 43 skipped**(`s003-fixgreen.xml`,**零回归**)
+- 提交 `a1f7a36` 已推送 origin/main
+
+### 未闭登记(NOT-RUN,禁借绿)
+AC-13-D1 达成(表落盘 + 44 签署)· AC-13-A4 剥离半边(构建产物探针,EditMode 不可达)·
+[L] 无障碍达成面(AC-13-F1 归 42 冗余通道 / AC-13-F2 归 44 空间化 + 用户拍定 `PERCEPT_R`)·
+AC-13-D3 姿态的**呈现**归 42 —— 见 signoff NR-S3-1…4。承 story-002 的 NR-S2-1(真 `ClinicCells`)继续滚入。
 
 ---
 
@@ -217,7 +250,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 | 项 | 值 |
 |---|---|
 | **Stage** | Pre-Production |
-| **Sprint** | sprint-03 ✅ 已闭(17/17) · **sprint-04 Phase 1 ✅ 已收口** · **Phase 2 进行中 = 3/7 系统完成 + 第 4 系统 2/4 story**(patient-ai story-001/002 已收口)—— 关键路径断于 `patient-ai` story-003 |
+| **Sprint** | sprint-03 ✅ 已闭(17/17) · **sprint-04 Phase 1 ✅ 已收口** · **Phase 2 进行中 = 3/7 系统完成 + 第 4 系统 3/4 story**(patient-ai story-001/002/003 已收口)—— 关键路径断于 `patient-ai` story-004 |
 | **Gate Check** | CONCERNS（2026-09-29 二轮，无 NOT READY 阻塞） |
 | **ADRs** | 28/28 Accepted |
 | **P0 GDDs** | 31/31 Approved |
@@ -258,7 +291,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 | inventory-items (20) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
 | medical-consequences (53) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
 | modular-building (23) | 7 | **7** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红，`9bb912b`+`bfa6234`;**未闭登记 = N-r2 生产装配根 + AC-23-09 跨平台签名**） |
-| patient-ai (13) | 4 | 0 | 4 | 0 | ⬜ 未启动 |
+| patient-ai (13) | 4 | **3** | 1 | 0 | story-001/002/003 已收口;剩 story-004(联机投影一致性) |
 | player-controller (1) | 6 | **6** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（两轮评审判据缺陷已修;88 过 + 3 NOT-RUN，`a78c27a`） |
 | prescription-medication (11) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | processing (18) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
