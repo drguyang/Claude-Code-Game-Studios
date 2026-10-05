@@ -79,9 +79,14 @@ namespace DaYiJingCheng.EditorTools.Gates
             if (inputRoots == 0)
                 Debug.LogWarning("[InputBoundaryGates] A7 扫描根为 0 —— 扫描面丢失(假绿面),请查装配加载。");
             errs.AddRange(inputErrs);
+            // 2026-10-05(diagnosis story-001):8 的边界门此前零调用方(只被 EditMode 测试
+            // 驱动)—— 接进菜单与构建前门,与 b5 / 3 同格。
+            var diagErrs = DiagnosisBoundaryGates.RunAll(out var diagWarns);
+            errs.AddRange(diagErrs);
+            foreach (var w in diagWarns) Debug.LogWarning(w);
             foreach (var e in errs) Debug.LogError(e);
             Debug.Log(errs.Count == 0
-                ? "[AssemblyGates] b2/b3/b4/b5 + 3 意图边界门 全过"
+                ? "[AssemblyGates] b2/b3/b4/b5 + 3 意图边界门 + 8 边界门 全过"
                 : $"[AssemblyGates] {errs.Count} 条失败(见红行)");
         }
 
@@ -1051,6 +1056,10 @@ namespace DaYiJingCheng.EditorTools.Gates
                 errs.AddRange(AssemblyGates.RunAll());
                 AssemblyGates.CheckToFloatCallsites(errs);
                 errs.AddRange(AssemblyGates.RunAudioBoundary(out _));
+                // 2026-10-05(diagnosis story-001):8 的边界门接入构建前门 fail-fast。
+                // warnings `out _` 与 44 门同格(本门当前无 WARN 级发现,预留)——
+                // 一旦启用 WARN 级发现,须同步在本路径补转发,勿静默吞(评审登记)。
+                errs.AddRange(DiagnosisBoundaryGates.RunAll(out _));
                 errs.AddRange(InputBoundaryGates.RunAll(out var roots));
                 if (roots == 0)
                     errs.Add("[InputBoundaryGates] A7 扫描根为 0 —— 扫描面丢失(假绿面),构建中止。");
@@ -1058,7 +1067,7 @@ namespace DaYiJingCheng.EditorTools.Gates
                 foreach (var e in errs) Debug.LogError(e);
                 throw new BuildFailedException(
                     $"[AssemblyGates] 构建前门失败 {errs.Count} 条(装配封闭性 / ToFloat 白名单 / " +
-                    "44 边界门 / 3 意图边界门)—— 见构建日志红行。");
+                    "44 边界门 / 8 边界门 / 3 意图边界门)—— 见构建日志红行。");
             }
         }
     }

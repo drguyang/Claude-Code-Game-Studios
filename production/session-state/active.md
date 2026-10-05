@@ -1,35 +1,43 @@
 # Session State — 2026-10-05(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 最近收口 = patient-ai story-004(重建、联机单跑与写路径归 10)—— ✅ 收口 2026-10-05 · 待提交
+## 🔄 最近收口 = diagnosis-system story-001(程序集边界与 VitalsDto 只读门面)—— ✅ 收口 2026-10-05 · 已提交推送
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
-> 前置:双代理评审 11 项(5 BLOCKING + 6 MAJOR)⇒ 逐条修复 ⇒ 复跑绿。
+> 前置:双代理评审 **结构侧 CHANGES REQUIRED(3 MAJOR)+ QA 侧 APPROVED(2 MAJOR 收口前置)**,
+> 无 BLOCKING;5 MAJOR + 8 MINOR 逐条修复 ⇒ 复跑绿。
 
 ### 交付物
-- **生产**:`PatientBehavior.ResetForLoad()` 扩为全字段重置(Prev/Session/Terminal/Current/Tier)·
-  `PatientSpatialDirector.ResetForLoad()` 扩为全字段重置(Pose/Phase/HomeRegion/KnowsClinic,Cell 归零)
-- **测试**:`reconstruction_and_write_path_test.cs`(**37 条**,含 2 `[Ignore]` NOT-RUN)
-- **证据**:`production/qa/evidence/patient-ai/story-004-readability-walkthrough.md`([L] 项)
+- **生产**:`DiagnosisVitalsFacade`(静态零字段唯一取数门面)· `DiagnosisGrowthExit`(7 参纯转发
+  出口,IL 调用点恰=1)· `DiagnosisBoundaryGates`(Cecil IL + 源文本 + 逃逸,11 个 tag)·
+  `AssemblyGates` RunMenu + BuildGate 接线(reload hook 刻意不加,承 Required-7c)
+- **测试**:`unity/Assets/Tests/EditMode/DiagnosisSystem/boundary_guard_test.cs`(**25 条**,
+  含 EOF 真 IL 负例夹具)
+- **证据**:`production/qa/evidence/review-diagnosis-story-001-2026-10-05.md`
 
-### 单轮评审 → 修复轮(5 BLOCKING + 6 MAJOR)
-- **B1**:重建测试恒真 ⇒ `Run()` 复用导演 + `Reset()` 调 `ResetForLoad()` + 两生产件扩字段
-- **B2**:负夹具不共用扫描机器 ⇒ 抽 `ScanFieldsForToken` 函数,正测与负夹具共用
-- **B3/B4**:`Assert.Pass` 空操作 ⇒ 改 `[Ignore]` + `Assert.Ignore`(V8 联机 + 跨平台)
-- **B5**:[L] 证据错位 ⇒ 重写为五档可读性走查(Idle/Seeking/Bedridden/InTreatment/Terminal)
-- **M2/M5**:补 `IIdAuthority`/`NextPatientId` 扫描 + 负夹具
-- **M3**:补 `SessionState.None` 断言(会诊重置)
-- **M4**:补 IL 级扫描 `ScanTypeForForbiddenCalls` + 负夹具 `ShadowWithAppendCall`
-- **M6**:补影子注入夹具(MovingInputs/决策方法签名/noNewKind/程序集卫生)
+### 单轮评审 → 修复轮(结构 3 MAJOR + QA 2 MAJOR + 8 MINOR)
+- **S-1** `Mathf` 双层补入(G-4 邀请式绕行)· **S-2** `IModifierType` 修饰符侧遍历(b5 Required-2)
+- **S-3** `DateTimeOffset`/`Stopwatch`/`TickCount` 时钟补全 · **S-4** 深度超限改落红
+- **S-5** 缺失不叠报 + `[D-TREF]`→`[D-0]` tag 统一 · **S-6** 哈希段标结构占位(禁称已生效)
+- **S-7** 消费者住前缀纪律登记 · **S-8** `IVitalsQuery` 成员集锁 · **S-9** BuildGate WARN 口径
+- **Q-1** 全量复跑 · **Q-2** AC 逐条括注 NOT-RUN · **Q-3** `RecipeDataSet` 替代括注
+- **Q-4** 铁律③ 判据等价性(IL+源 ⊃ 反射)入 Completion Notes · **Q-5** 三处 `Is.Not.Empty` 自证
+- **Q-6** 漏测分支负例补齐(`Fix.One` 字段 / 源层 `IEventSink`+`FixParse` / `Mathf` / 时钟三族)
 
 ### 验证(实测)
-- 过滤:`unity/Logs/s004-final-green.xml` = **168 / 166 passed / 0 failed / 2 skipped**
-- 全量 EditMode:待跑(收口时补)
+- 过滤:`unity/Logs/s001-diag-fix.xml` = **25 / 25 passed / 0 failed**
+- 全量:`unity/Logs/full-diag-001.xml` = **2561 total / 2515 passed / 0 failed / 45 skipped /
+  1 inconclusive**(增量 115 = patient-ai s003+s004+本批;根 `Skipped:Ignored` 与基线 019d 同态)
 
 ### ⬜ 待办 / 未闭登记(禁借绿)
-- **AC-13-V8**(联机客户端不重算)= BLOCKED-BY 45,NOT-RUN
-- **AC-13-CrossPlatform**(跨平台逐位)= EXTERNAL,CI 矩阵产物为证
-- **[L] 五档可读性** = 部分闭(13 侧结构前提)+ BLOCKED-BY 42/44(呈现/音频)
-- 下一件:见 Phase 2 关键路径(patient-ai 4/4 全闭;余 diagnosis / case / prescription)
+- 残余 NOT-RUN 全表见评审原件 §四:AC-8-1 全流程脚本+哈希鉴别力(005/006)· 跨 epic 基线(CI)·
+  AC-8-3 四输出(002/003)· AC-8-6 定表+G-4 IL2CPP(003/004)· AC-8-4 11 侧+D-11 词面回补
+  (prescription story 003)· `typeof(Fix)` 构造性绕行复查(11/005 轮)
+- **TR-registry 回填**(TR-diag-004 gap→covered、002/010 partial 等)= 独立 docs 轮,未动
+- 下一件:diagnosis-system **story-002(词条表 schema)**,同协议;epic 链 diagnosis → case → prescription
+
+### 前一收口(同日,已推送)= patient-ai story-004 `0b6f948`
+- 4/4 全闭;过滤 168/166/0/2;残余 AC-13-V8(BLOCKED-BY 45)· CrossPlatform(CI)·
+  [L] 五档(BLOCKED-BY 42/44)。⚠️ patient-ai EPIC 行仍 `Ready`(先例账,归该 epic 收尾轮)。
 
 ---
 
