@@ -204,13 +204,13 @@ unity/Assets/Gameplay.UI/Skeuomorphic/Textures/
 | 字段 | 值 |
 |---|---|
 | **定稿版** | **v9E-b**(2026-10-05 · 用户目视验收后定稿) |
-| **入库位** | `unity/Assets/Gameplay.UI/Skeuomorphic/Textures/casebook_paper_base-final.png`(2048² · 7.3 MB) |
+| **入库位** | `unity/Assets/Gameplay.UI/Skeuomorphic/Textures/Casebook/casebook_paper_base-final.png`(2048² · 7.3 MB)。⚠️ **2026-10-05 已移入 `Textures/Casebook/` 子目录** —— 它**不进 story-019 的五族贴图扫描面**(门与夹具扫 `Textures/` 顶层 `TopDirectoryOnly`),因为它是脉案专用纸,走 `casebook-paper.md` 那条独立链,不是五族元件库元件。原入库位在 `Textures/` 根目录时会被五族夹具误扫(实测致 3 条夹具红,已修) |
 | **新建方式** | **t2i + PIL 频域重建,无新 API 调用** —— 全部由当时库里的 v9D 数值重建(`d = v9D − #F6DEBC` → 纤维 `hi` / 云斑 `lo` 拆开独立缩放 → `tanh` 软滚降消高光过曝) |
 | **轮次** | **9 版**(v7 → v9B → v9C → v9D → v9E-a…e)。v7 纤维够但冷白无纸感;v9D 找回暖调却把霉斑/水渍的低频起伏抹平;v9E-b 两者兼顾。**v1–v8 与 v9B/C/D/E-a/c/d/e 已按用户裁定删除,唯留 v9E-b** |
 | **实测** | 纤维 std **7.59** · 云斑 std **1.104** · 裁剪 **0.000%** · 冷色 **0.00%** · 接缝 TB/LR **0.94 / 0.77** · 淡墨对比 **p50 7.11:1 / 最亮像素 9.02:1**(两种读法均过 7:1 门) |
 | **两项口径裁定(用户 2026-10-05)** | ① 7:1 门**只管正文 / 墨迹淡 `#4A4640`**,浓墨与界行红单列目视;② 对比按 **p50 中位**量,不按 p5 最差 5% 霉斑 |
 | **分辨率裁定** | **2048² 原样入库,不降到 1024²** —— 降采样会把纤维 std 削到 4.73(−38%)。⚠️ 偏离 `art-bible §8.2` 的「UI-纸 1K」**提案档**,偏离理由与 story-019 的连带义务已登记在 `casebook-paper.md` 的 Resolution tier 行 |
-| **未兑现(禁借绿)** | 无 slice 值(尚未量,归 story-019 切图冻结件)· 无 USS 绑定(全库零 `casebook_paper_base` 引用)· 未进任何 `.spriteatlas` |
+| **未兑现(禁借绿)** | 无 slice 值(尚未量;**须另立承接方** —— 非 story-019,见入库位行)· 无 USS 绑定(全库零 `casebook_paper_base` 引用)· 未进任何 `.spriteatlas` |
 
 ### 九宫格 slice 值(2026-09-30 初版 · **2026-10-05 甲-B 口径订正**)
 

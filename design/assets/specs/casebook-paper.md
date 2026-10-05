@@ -161,9 +161,14 @@ Resolution: 2048x2048, high detail for close-up reading.
 > **§8.10.2 落地**:本表是发行时 Steam AI 申报清单的数据源。
 > **产出入库状态(2026-10-05 改判 · 取代 2026-09-30 口径)**:`casebook_paper_base`
 > 的定稿位图 = **v9E-b**,已入库至
-> `unity/Assets/Gameplay.UI/Skeuomorphic/Textures/casebook_paper_base-final.png`(2048² · 7.3 MB)。
+> `unity/Assets/Gameplay.UI/Skeuomorphic/Textures/Casebook/casebook_paper_base-final.png`(2048² · 7.3 MB)。
+> ⚠️ **2026-10-05 移入 `Textures/Casebook/` 子目录** —— 它**不属于 story-019 的五族元件库**,
+> 走本 spec 这条独立链;门与夹具只扫 `Textures/` 顶层,故移入子目录即脱离其扫描面。
+> (原置于根目录时被五族夹具误扫,实测致 3 条夹具红。)
 > **此时它只是素材图,尚不是运行期资产** —— 它尚无 slice 值、无 USS 绑定、未进任何
-> `.spriteatlas`(与同族 16 张相同,归 story-019,`AC-42-C8` 禁手填 ⇒ 必须等切图冻结件)。
+> `.spriteatlas`。⚠️ **它的切图边界同样禁手填**(承 `AC-42-C8` 同款纪律:值须来自冻结件元数据),
+> 但**不由 story-019 承接** —— story-019 的面是五族元件库(16 张),
+> 本件是脉案专用纸,其 slice 冻结须**另立承接方**(待裁)。
 >
 > 其余 15 张贴图仍走 2026-09-30 原口径(定稿版入库 + 迭代版 gitignored)。
 > **迭代版(`-v1`~`-v6` 及其后的 `-v7`/`-v9*` 系列)依然 gitignored** 留在
