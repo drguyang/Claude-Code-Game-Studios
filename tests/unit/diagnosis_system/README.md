@@ -23,7 +23,7 @@ diagnosis-system 逻辑类故事的 BLOCKING 证据落点(coding-standards §Tes
 | 阶段 2 全链 | `DiagnosisSignBaker`(种子)→ `DiagnosisSignBinder.Bind`(绑定+校验)→ `DiagnosisSignCookedWriter`(编码) |
 | 读方 | `unity/Assets/Gameplay.Presentation/Diagnosis/DiagnosisSignCookedCodec.cs` |
 | 真种子(正例) | `assets/data/diagnosis_signs.json`(34 行 = 阳性 30 + 阴性 4) |
-| 夹具 | `tests/unit/diagnosis_system/fixtures/*.json`(story-002 段 **21 个**,见下表;全目录共 **31 个** = 21 + story-003 的 10 个) |
+| 夹具 | `tests/unit/diagnosis_system/fixtures/*.json`(story-002 段 **21 个**,见下表;全目录共 **45 个** = 21 + story-003 的 10 个 + story-004 的 14 个) |
 | 运行方式 | `unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.DiagnosisSystem"` |
 
 ## AC → 测试函数映射
@@ -164,3 +164,99 @@ diagnosis-system 逻辑类故事的 BLOCKING 证据落点(coding-standards §Tes
 **同名不同物** —— `DiagnosisChannelMaskMap` 立映射表 + **构建期双向断言**(五通道恰满 ·
 零重复位 · 零悬空 · Wound=唯一悬空位显式登记 · History→0 显式登记),由
 `DiagnosisSignTableValidator.Validate`(生产路径)调用。
+
+---
+
+## Story 004(F-8.3 阴性把握度与不泄漏不变量 —— AC-8-10/11/12/14/15/16/17/18 · AC-8-F1/F2/F4/F5 · AC-8-50 · C-3/C-4/C-6/C-7)
+
+真身(实际编译、实际运行)=
+
+**`unity/Assets/Tests/EditMode/DiagnosisSystem/confidence_leak_test.cs`**(类 `ConfidenceLeakTest`,**39 条**)
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/DiagnosisSystem/confidence_leak_test.cs` |
+| 共享金标扫描真源 | `unity/Assets/Tests/EditMode/DiagnosisSystem/DiagnosisGoldenScan.cs`(story-002/003/004 共用) |
+| 被测运行期 | `unity/Assets/Gameplay.Presentation/Diagnosis/DiagnosisNegativeConfidenceTable.cs`(`DiagnosisNegativeConfidenceTable` 定表 + `DiagnosisNegativeConfidenceEvaluator` 求值器) |
+| 阶段 2 全链 | `DiagnosisNegativeConfidenceBaker`(种子)→ `DiagnosisNegativeConfidenceBinder.Bind`(**唯一**校验点)→ `DiagnosisNegativeConfidenceCookedWriter`(编码) |
+| 读方 | `unity/Assets/Gameplay.Presentation/Diagnosis/DiagnosisNegativeConfidenceCookedCodec.cs` |
+| 真种子(正例) | `assets/data/diagnosis_negative_confidence.json`(合成旋钮;**数值归用户数值轮**) |
+| 夹具 | `tests/unit/diagnosis_system/fixtures/neg_conf_*.json`(**14 个**,见下表) |
+| 运行方式 | `unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.DiagnosisSystem.ConfidenceLeakTest"` |
+
+**C-4 正交的物化面**:F-8.3 与 F-8.1 **分表分文件、各走一条消费路径** —— 阴性族
+(`diagnosis_negative_confidence.*` + `{NEG_*}` 旋钮)与阳性族(`diagnosis_read_floor.*` +
+`{READ_*, READ_GAMMA}` 旋钮)在**绑定器键集**、**定表类型**、**求值器实参表**三处互不相认。
+
+### AC → 测试函数映射
+
+| AC | 测试函数(`ConfidenceLeakTest` 内) | 性质 |
+|---|---|---|
+| **AC-8-10 C-3 死内容扫描** | `test_ac810_seedNegatives_noDeadContent`(四条阴性逐条算 `L*_j`,`≤ SKILL_CAP` 且非 `NeverExcludes`,**点名**违规行) · `test_ac810_deadContentAlarm_namesRow`(合成死内容定表 ⇒ 报警面真实,非恒绿) | BLOCKING |
+| **AC-8-11 C-7** | `test_ac811_negativeGroup_lStarEqualsTierNamed`(`L*_j ≥ tier_named_j`;阴性组四行同锚 `tier_named=20` ∧ `L*=20`) | BLOCKING |
+| **AC-8-12 C-4 正交** | `test_ac812_readGamma_doesNotMoveNegativeFamily`(阴性烘焙接缝**无**读地板入口 + 阴性族**确实**响应自己的旋钮 + 该旋钮**确实**驱动阳性可读性) · `test_ac812_negGamma_doesNotMovePositiveFamily`(镜像:阳性烘焙接缝**无**阴性定表入口 + 阳性族**确实**响应自己的 READ_GAMMA) · `test_ac812_noCrossFamilyParameter`(两求值器实参表互不相认 + 两表字段名零跨族 token) · `test_ac812_separateFiles_crossFeedRejected`(**交叉喂源两方向皆硬失败** + 反向自证各自真源能过) —— ⚠️ 字面的「换旋钮重算另一族」**按构造不可表达**(烘焙唯一入参 = 本族源文本,那正是 C-4 的物化面),故四条测均取**等价可证伪命题**(接缝实参表 + 反向响应),**已登记为口径替代** | BLOCKING |
+| **AC-8-14 多证据不合并** | `test_ac814_multiEvidence_notMerged`(两强一弱;调低第三条不改前两条) · `test_ac814_noAggregateConfidenceType`(反射扫描:前缀内零聚合置信度字段/置信度条) | BLOCKING |
+| **AC-8-15 `neg_weight` 只影响排除路径** | `test_ac815_positiveWeight_hasNoEffectOnReadabilityOrExclusion`(阳性误填 ⇒ 可读性/四态不变、恒不构成排除、把握度走兜底) · `test_ac815_positivePolarityGate_isLoadBearing`(高兜底夹具:阳性把握度**已达阈值**仍不得构成排除 —— 极性门是唯一防线) | BLOCKING |
+| **把握度 clamp**(F-8.3 Note 3) | `test_confidence_clampedToUnitRange`(`W_j > 1` 合法 ⇒ 乘积 4.0 钳到 1.0;负权重钳到 0;全档 ∈ [0,1]) | BLOCKING |
+| **Q16 常量锚定**(D-FIX 禁 `Fix.OneRaw`) | `test_q16one_matchesFixCanonical`(本地 `Q16One` 逐位锚到 `Fix.ToFloat()` / `FractionalBits`;`RawToFloat` 唯一换算出口) | BLOCKING |
+| **退化表消费 = 硬失败** | `test_curveat_unloadedTable_throws`(`default` 定表不得静默返回 `0f` —— 否则 C-3 死内容报警被伪装) | BLOCKING |
+| **AC-8-16 F-8.4 无随机** | `test_ac816_tenThousandReplays_bitIdentical`(N=10⁴,**交错行×档**驱动,与独立重算表逐位对) · `test_ac816_productionAssembly_zeroPrngCallSites`(源层 + IL 层零 PRNG;扫描面非空) | BLOCKING |
+| **AC-8-17 极性不翻转** | `test_ac817_polarityNeverFlips`(六档;阳性不得见 `Negative`、阴性不得见 `Positive`;输出 ⊆ 字母表) | BLOCKING |
+| **AC-8-18 F-8.5 不泄漏(公式层)** | `test_ac818_confidenceArgTable_lacksSignValue`(求值器零 `float`/`double` 形参 + `C_neg` 只吃 `int`) | BLOCKING |
+| **AC-8-F4 不泄漏(数值层,两极性)** | `test_ac818_ac8f4_noLeak_bothPolarities`(阳性/阴性各一条;F-8.1 侧**确实**随 `Sign_j` 分叉 ⇒ 非恒真;F-8.3 侧逐位等于独立重算 `C_neg×W_j`) | BLOCKING |
+| **AC-8-F1 `L* ∈ (15,20]`** | `test_ac8f1_signAbdSoft_lStarInHalfOpenRange`(`sign_abd_soft`;`L*=20` + 等价式 `C_neg(15)<MIN ≤ C_neg(20)`) · `test_ac8f1_lv15AndLv20_readAsNegativeNotPositive`(UC-8-F1 公式级) | BLOCKING |
+| **AC-8-50 回归锚常驻** | `test_ac850_anchorSuiteResident`(F1/F2/F4/F5 四条入口名存在性) | BLOCKING |
+| **AC-8-F5 Mono 侧自洽** | `test_ac8f5_monoSideSelfConsistent`(同源双烘逐位一致 + 定表值自洽);**跨平台三格矩阵 NOT-RUN** | BLOCKING(限 Mono 侧) |
+| **构建期校验(正例)** | `test_bind_seedAndLegalBaseline_pass`(种子 + 合法夹具真通过;定表 61 档 + `skill_cap` 同源) · `test_bind_halfGammaAndPlateau_pass`(C-5 半整数 + 平段) | BLOCKING |
+| **C-5 违例**(G-1 闭集) | `test_bind_gammaThird_red` · `test_bind_gammaFloatToken_red` | BLOCKING |
+| **C-6 违例** | `test_bind_zeroWeight_red`(`neg_weight_fallback = 0`) | BLOCKING |
+| **F-8.3 值域违例** | `test_bind_capBelowZero_red`(曲线反向) · `test_bind_excludeAboveCap_red` · `test_bind_conf0OutOfRange_red` | BLOCKING |
+| **绑定层**(skill_cap 漂移 / 未知键 / schema 版本) | `test_bind_skillCapDrift_red` · `test_bind_unknownKey_red` · `test_bind_schemaVersionMismatch_red` | BLOCKING |
+| **C_neg 形状** | `test_curve_monotonicAndEndpoints`(`C_neg(0)=NEG_CONF_0` · `C_neg(CAP)=NEG_CONF_CAP` · 60 对单调) | BLOCKING |
+| **codec 硬失败(E-13)** | `test_codec_badMagic_red` · `test_codec_truncatedPayload_red` · `test_codec_schemaMismatch_red` · `test_configVersion_deterministic` | BLOCKING |
+
+### 夹具清单(`fixtures/neg_conf_*.json`,14 个)
+
+| 夹具 | 单因违例 / 角色 |
+|---|---|
+| `neg_conf_legal_baseline.json` | 正例(与种子同旋钮) |
+| `neg_conf_half_gamma.json` | 正例(`neg_gamma = 1/2`,走 `FixPow` 半整数支;C-5 闭集内) |
+| `neg_conf_plateau_cap_eq_zero.json` | 正例(平段:`neg_conf_cap == neg_conf_0`,序关系非严格) |
+| `neg_conf_strict_monotonic.json` | 正例(`0 → 1` + `gamma=2`,严格单调) |
+| `neg_conf_high_fallback.json` | 正例(兜底权重 = 1.0 —— 让**阳性把握度达阈值**,使极性门成为唯一防线) |
+| `neg_conf_gamma_third_red.json` | C-5 违例(gamma `1/3`,闭集外) |
+| `neg_conf_gamma_float_token_red.json` | gamma JSON 数字(禁 double 中转;须字符串) |
+| `neg_conf_zero_weight_red.json` | C-6 违例(`neg_weight_fallback = 0`) |
+| `neg_conf_cap_below_zero_red.json` | F-8.3 违例(`cap < 0`,曲线反向) |
+| `neg_conf_exclude_above_cap_red.json` | F-8.3 违例(`exclude_conf_min > neg_conf_cap` ⇒ 全表死) |
+| `neg_conf_conf0_out_of_range_red.json` | F-8.3 违例(`neg_conf_0 < 0`,值域外) |
+| `neg_conf_skillcap_drift_red.json` | skill_cap ≠ 30 侧 SKILL_CAP(59) |
+| `neg_conf_unknown_key_red.json` | 未知键(ADR-014 §三) |
+| `neg_conf_schema_version_red.json` | `schema_version = 2` ⇒ 构建期硬失败(ADR-014 §五;修复轮 —— 堵「漏到运行期装载才抛 E-13」) |
+
+> 读法纪律同 story-002/003:违例经 `DiagnosisNegativeConfidenceBinderProbe.Bake` 端到端黑盒驱动
+> (**生产同一台机器**),断言 = 抛 + **恰一条错误**(排他)+ 触底规则 tag(`NegBakeFails` helper)。
+
+### 未闭登记(NOT-RUN,禁借绿 —— 覆盖缺口,非安全洞)
+
+- **AC-8-F5 的跨平台三格矩阵**(ADR-012:Linux-x64-Mono / Linux-x64-IL2CPP /
+  Linux-ARM64-IL2CPP)—— 未实跑;本 story 只证 **Mono 侧自洽**(同进程双跑 + 定表值自洽)。
+  跨平台逐位面归 ADR-012 矩阵,禁借绿。
+- **AC-8-16 的「跨两个独立进程」半边** —— EditMode 无法起独立进程;本 story 证**同进程**
+  N ≥ 10⁴ 次逐位相同 + 静态守门零 PRNG(跨进程确定性由 ADR-005 结构性保证,判据归 ADR-012 矩阵)。
+- **AC-8-13(UC-8-F1 端到端)** —— 依赖 9 侧 `Project(Sign_j)` 未落地(disease-simulation
+  story 004),本 story Out of Scope;公式级 AC-8-F1 在此判。
+- **数值轮占位**(承 story-002 S-9 / story-004 Note 7)—— R-8.2 阴性条目的 `neg_weight = "1"`
+  与 `assets/data/diagnosis_negative_confidence.json` 的五个旋钮均为**合成值**(GDD 原值 `*待裁*`)。
+  本 story 以合成旋钮判**形状**(存在性 / 序关系 / 不等式 / 正交性),**不把 `1` 当终值**;
+  数值轮落定后须重签相关向量。
+- **AC-8-35 的 F-8.3 曲线参数半边** —— 同 story-003:参数住 `assets/data/*.json`(数据,
+  非代码常量),由 ConfigVersion 覆盖;金标面 = 前缀 ns 代码常量 + DIAG_TIERS。
+
+### 金标重钉记录
+
+`GoldenConstantsHash`:`b9354110`(story-002 建立)→ `5bba361c`(story-003 首轮)
+→ `f75a8170`(story-003 修复轮)→ **`a7bfec31`**(story-004)→ **`72db379c`**(story-004 评审修复轮:**消重** —— 求值器自持的
+第二份 `Q16One` 副本删除,前缀 ns 常量少一行)。story-004 入面的四个新常量即
+F-8.3 的**结构形状**:`ExpectedSchemaVersion=1` · `FixedHeadBytes=48` · `NeverExcludes=-1` ·
+`Q16One=65536`(×2 处),**非数值轮产物**。

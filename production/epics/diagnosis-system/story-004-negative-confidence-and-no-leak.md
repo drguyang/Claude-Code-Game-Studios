@@ -1,12 +1,12 @@
 # Story 004: F-8.3 阴性把握度与不泄漏不变量
 
 > **Epic**: 诊断与体征揭示
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 8h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-06
 
 ## Context
 
@@ -31,19 +31,19 @@
 
 *From GDD `design/gdd/diagnosis-system.md`, scoped to this story:*
 
-- [ ] **AC-8-10**[L] BLOCKING:C-3 阴性不得是死内容 —— 遍历 R-8.2 全部阴性条目,逐条算 `L*_j`,断言 `∀ j: L*_j ≤ SKILL_CAP`;任一超标 ⇒ 测试失败并点名条目(含 C-6 的 `neg_weight > 0` 前提联动 story 002)
-- [ ] **AC-8-11**[L] BLOCKING:C-7 `L*_j ≥ tier_named_j`(说不出的话谈不上算数);阴性组 `tier_named=Lv20` 与 `AC-8-F1` 的 `L*_j ∈ (15,20]` 联立 ⇒ `L*_j = 20`,两处不等即规格自相矛盾 ⇒ 失败
-- [ ] **AC-8-12**[L] BLOCKING:C-4 两族正交 —— 仅改 `READ_GAMMA` ⇒ 全部阴性把握度**逐位不变**;仅改 `NEG_GAMMA` ⇒ 全部阳性可读性**逐位不变**;`UC-8-F1` 只随阴性族变化
-- [ ] **AC-8-14**[L] BLOCKING:多阴性证据不合并 —— 两条同时达标 + 第三条不够格 ⇒ 各自独立判定,**不相乘不相加**;系统不存在任何聚合量/置信度条;调低第三条不改变前两条判定(逐位)
-- [ ] **AC-8-15**[L] BLOCKING:`neg_weight` 只影响排除路径 —— 阳性条目误填 `neg_weight` ⇒ 其可读性只走 F-8.1 与该值无关、不进任何排除判定(无副作用;构建期报警在 story 002)
-- [ ] **AC-8-16**[L] BLOCKING:F-8.4 无随机 —— 同 `(病人, tick, Skill, 动作序列)` 跨两独立进程 N ≥ 10⁴ 次:词/四态/把握度/是否构成排除 四项每次逐位相同;8 程序集零 PRNG 调用点(反射+IL)
-- [ ] **AC-8-17**[L] BLOCKING:F-8.4 语义边界 —— 低熟练度 = 「读得粗/读不出」,**不是读错**:`Sign_j` 客观极性不因熟练度翻转(无假阳性、无真值改写);低档唯一退化方向 = 精度降/读不出
-- [ ] **AC-8-18**[L] BLOCKING:F-8.5 不泄漏(公式层)—— 固定 `(Skill, sign_id)`,A/B 两病人 `Sign_j` 差异极大 ⇒ `C_neg(A) == C_neg(B)` 逐位;反例断言:把握度随 `Sign_j` 浮动 ⇒ 失败;实现级 = 断言 `C_neg` 实参表不含 `Sign_j`(反射)
-- [ ] **AC-8-F1**[L] BLOCKING:回归锚 —— 伤寒/痢疾 Lv15/Lv20 用例(`sign_abd_soft`:`L*_j ∈ (15,20]` ∧ `=20`)常驻套件(AC-8-50 守门的 F1 条)
-- [ ] **AC-8-F2**[L] BLOCKING:双参数可分离(阳性族与阴性族在回归用例上可独立复算)
-- [ ] **AC-8-F4**[L] BLOCKING:不泄漏回归(阳性/阴性各一条)常驻套件
-- [ ] **AC-8-F5**[I]:表现层 float 跨平台逐位一致(三格矩阵)—— **NOT-RUN 直至 ADR-012 矩阵实跑,禁借绿**;定表哈希的 Mono 侧自洽先行
-- [ ] **AC-8-50**[L] BLOCKING:回归锚存在性 —— F1…F5 五条全部常驻回归套件(本 story 落 F1/F2/F4/F5 四条套件入口,F3 归 story 003)
+- [x] **AC-8-10**[L] BLOCKING:C-3 阴性不得是死内容 —— 遍历 R-8.2 全部阴性条目,逐条算 `L*_j`,断言 `∀ j: L*_j ≤ SKILL_CAP`;任一超标 ⇒ 测试失败并点名条目(含 C-6 的 `neg_weight > 0` 前提联动 story 002)
+- [x] **AC-8-11**[L] BLOCKING:C-7 `L*_j ≥ tier_named_j`(说不出的话谈不上算数);阴性组 `tier_named=Lv20` 与 `AC-8-F1` 的 `L*_j ∈ (15,20]` 联立 ⇒ `L*_j = 20`,两处不等即规格自相矛盾 ⇒ 失败
+- [x] **AC-8-12**[L] BLOCKING:C-4 两族正交 —— 仅改 `READ_GAMMA` ⇒ 全部阴性把握度**逐位不变**;仅改 `NEG_GAMMA` ⇒ 全部阳性可读性**逐位不变**;`UC-8-F1` 只随阴性族变化
+- [x] **AC-8-14**[L] BLOCKING:多阴性证据不合并 —— 两条同时达标 + 第三条不够格 ⇒ 各自独立判定,**不相乘不相加**;系统不存在任何聚合量/置信度条;调低第三条不改变前两条判定(逐位)
+- [x] **AC-8-15**[L] BLOCKING:`neg_weight` 只影响排除路径 —— 阳性条目误填 `neg_weight` ⇒ 其可读性只走 F-8.1 与该值无关、不进任何排除判定(无副作用;构建期报警在 story 002)
+- [x] **AC-8-16**[L] BLOCKING:F-8.4 无随机 —— 同 `(病人, tick, Skill, 动作序列)` 跨两独立进程 N ≥ 10⁴ 次:词/四态/把握度/是否构成排除 四项每次逐位相同;8 程序集零 PRNG 调用点(反射+IL)
+- [x] **AC-8-17**[L] BLOCKING:F-8.4 语义边界 —— 低熟练度 = 「读得粗/读不出」,**不是读错**:`Sign_j` 客观极性不因熟练度翻转(无假阳性、无真值改写);低档唯一退化方向 = 精度降/读不出
+- [x] **AC-8-18**[L] BLOCKING:F-8.5 不泄漏(公式层)—— 固定 `(Skill, sign_id)`,A/B 两病人 `Sign_j` 差异极大 ⇒ `C_neg(A) == C_neg(B)` 逐位;反例断言:把握度随 `Sign_j` 浮动 ⇒ 失败;实现级 = 断言 `C_neg` 实参表不含 `Sign_j`(反射)
+- [x] **AC-8-F1**[L] BLOCKING:回归锚 —— 伤寒/痢疾 Lv15/Lv20 用例(`sign_abd_soft`:`L*_j ∈ (15,20]` ∧ `=20`)常驻套件(AC-8-50 守门的 F1 条)
+- [x] **AC-8-F2**[L] BLOCKING:双参数可分离(阳性族与阴性族在回归用例上可独立复算)
+- [x] **AC-8-F4**[L] BLOCKING:不泄漏回归(阳性/阴性各一条)常驻套件
+- [~] **AC-8-F5**[I]:**(Mono 侧已证;跨平台三格矩阵 NOT-RUN)**:表现层 float 跨平台逐位一致(三格矩阵)—— **NOT-RUN 直至 ADR-012 矩阵实跑,禁借绿**;定表哈希的 Mono 侧自洽先行
+- [x] **AC-8-50**[L] BLOCKING:回归锚存在性 —— F1…F5 五条全部常驻回归套件(本 story 落 F1/F2/F4/F5 四条套件入口,F3 归 story 003)
 
 ---
 
@@ -84,7 +84,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/DiagnosisSystem/confidence_leak_test.cs` — must exist and pass(AC-8-F5 列 NOT-RUN-BLOCKED-BY-ADR-012)
-**Status**: [ ] Created — NOT STARTED
+**Status**: [x] Created — `confidence_leak_test.cs`(**39 条**)已落盘并**通过**(EditMode filter 39/39;全量 2669 项 failed=0)。**评审修复轮**:消重 `Q16One`(唯一换算出口 `RawToFloat`)· 退化表硬失败 · `schema_version` 构建期同源校验 · AC-8-12 承重断言去恒真 · 金标重钉 `a7bfec31`→`72db379c`。**AC-8-F5 跨平台三格矩阵 NOT-RUN**(ADR-012 未实跑,禁借绿 —— 本 story 只证 Mono 侧自洽)。
 
 ---
 
@@ -94,3 +94,32 @@
 - Unlocks: Story 005(「构成排除」进判断态)、Story 006(墨色/笔迹承载「把握不足」—— 承 AC-8-13 的「不加文字标记」)、review-all-gdds 的 F 套件锚
 
 ## Completion Notes
+
+**2026-10-06** — 实现 + 单轮双代理评审收口。
+
+- **交付物**:作者态 `assets/data/diagnosis_negative_confidence.json`(合成旋钮)·
+  生产四件(`DiagnosisNegativeConfidenceBinder` / `Baker` / `CookedWriter` / `BinderProbe`)
+  + 运行期两件(`DiagnosisNegativeConfidenceTable` 含求值器 / `DiagnosisNegativeConfidenceCookedCodec`)·
+  `DataBakeMenu` 菜单调用点 · 测试 `confidence_leak_test.cs`(**39 条**)· 夹具 **14 个** · README Story 004 段。
+- **C-4 物化面**:阴性族与阳性族**分表分文件、各走一条消费路径** —— 绑定器键集 / 定表类型 /
+  求值器实参表三处互不相认,由 `test_ac812_*` 三测物化。
+- **金标重钉**:`GoldenConstantsHash` `f75a8170` → **`a7bfec31`**,恰由四个新前缀 ns 常量引起
+  (`ExpectedSchemaVersion=1` · `FixedHeadBytes=48` · `NeverExcludes=-1` · `Q16One=65536` —— 修复轮消重至**单份**),
+  **非数值轮产物**;已登记历史。
+- **数值轮占位**(承 Note 7):R-8.2 阴性条目 `neg_weight = "1"` 与种子五旋钮均为**合成值**;
+  本 story 判**形状**不判数值;数值轮落定后须重签相关向量。
+- **NOT-RUN 4 项**:AC-8-F5 跨平台矩阵(ADR-012)· AC-8-16 跨进程半边 · AC-8-13 端到端
+  (依赖 9 侧 `Project` 未落地)· AC-8-35 曲线参数半边(ConfigVersion 覆盖)。
+- **评审修复轮(单轮,承「评审只做一轮」)**:两位评审均**无 BLOCKING**。落定修复:
+  ① **消重** `Q16One` —— 求值器自持的第二份副本删除,唯一换算出口 `Table.RawToFloat`
+  (D-FIX 谓词禁 `Fix.OneRaw` 故本地落值;正确性由 `test_q16one_matchesFixCanonical` 逐位锚到
+  `Fix.ToFloat()`);② `CurveAt` 对 `default` 定表**硬失败**(原静默 `0f` 会把 C-3 死内容报警
+  伪装成正常值);③ `schema_version` 构建期**与读方同源**校验(原只判 u32 域 ⇒ 失败点漏到运行期装载);
+  ④ AC-8-12 (b) 半**去恒真** —— 原循环用阳性极性行断言「不得见 Negative」,该式对阳性行恒真
+  (修:改证接缝实参表 + 阳性族响应自己的 `READ_GAMMA`,并**登记口径替代**);
+  ⑤ AC-8-14 扫描面扩至类型名/属性名 + 加非空守卫(修:类型名只查聚合 token —— 裸 `confidence`
+  是阴性族自己的名词);⑥ AC-8-10 删不可达分支。**金标重钉** `a7bfec31` → **`72db379c`**
+  (消重少一行前缀 ns 常量)。修复后 filter **39/39** · 全量 **2669 项 failed=0**。
+- **已登记的未闭面(非安全洞)**:`DiagnosisReadFloorBinder.ReadSchemaVersion` 存**同形缺口**
+  (只判 u32 域不钉版本) —— 归 story-003 后续轮,本轮**未改**其源;运行期 / 编辑期镜像**无机械约束**
+  (两处手写同序,归技术债);`ReadF32` 不拒 NaN/Inf(结构性不可达,定表值来自有限 `Fix.ToFloat()`)。

@@ -45,8 +45,16 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
         /// **运行期枚举 / 映射常量**面 —— DiagnosisSlot / SignReadState 枚举字面 +
         /// DiagnosisChannelMaskMap 静态数组)→ <c>f75a8170</c>(story-003 评审修复轮:
         /// **代码常量修正** —— DiagnosisReadFloorCookedCodec.FixedHeadBytes 36 → 32,
-        /// 该常量属前缀 ns 代码常量故入面;有意识重钉)。</para></summary>
-        public const string GoldenConstantsHash = "f75a8170";
+        /// 该常量属前缀 ns 代码常量故入面;有意识重钉)→ <c>a7bfec31</c>(story-004:
+        /// **新族落地** —— 四个新前缀 ns 常量自动入面:
+        /// <c>DiagnosisNegativeConfidenceCookedCodec.ExpectedSchemaVersion=1</c> /
+        /// <c>…CookedCodec.FixedHeadBytes=48</c> /
+        /// <c>DiagnosisNegativeConfidenceEvaluator.NeverExcludes=-1</c> /
+        /// <c>DiagnosisNegativeConfidenceTable.Q16One=65536</c>)→ <c>72db379c</c>(story-004
+        /// **评审修复轮**:消重 —— 求值器自持的第二份 <c>Q16One</c> 副本删除(经
+        /// <c>Table.RawToFloat</c> 复用),前缀 ns 常量**少一行**故重钉;
+        /// 该行的消失即「唯一换算出口」的物化面,非数值轮产物)。</para></summary>
+        public const string GoldenConstantsHash = "72db379c";
 
         /// <summary>常量行集:住前缀类型的字面量 / 静态只读字段(含枚举字面),
         /// 加一行「30 侧诊断档位」(耦合常量的另一半),按 ordinal 排序。</summary>

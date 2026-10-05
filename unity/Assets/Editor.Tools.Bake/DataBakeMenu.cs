@@ -46,6 +46,10 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>产物文件名(8 门槛定表;F-8.1 / AC-8-5…8-8 的烘焙产物)。</summary>
         public const string DiagnosisReadFloorCookedAssetName = "diagnosis_read_floor.cooked.bytes";
 
+        /// <summary>F-8.3 阴性把握度定表产物名(story 004)。</summary>
+        public const string DiagnosisNegativeConfidenceCookedAssetName =
+            "diagnosis_negative_confidence.cooked.bytes";
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -182,6 +186,43 @@ namespace DaYiJingCheng.EditorTools.Bake
                 Debug.Log(
                     $"[大医精诚] 烘焙完成:{DiagnosisReadFloorCookedAssetName} = {result.Cooked.Length} B, " +
                     $"{result.Table.Count} 档定表,ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 diagnosis-system 的 F-8.3 阴性把握度定表(story 004):
+        /// 仓库 <c>assets/data/diagnosis_negative_confidence.json</c> → 校验(**聚合 throw**)→
+        /// 生成期定点求值 → 产物写入 Assets/DataCooked/。
+        /// <para>⚠️ 本菜单是 <see cref="DiagnosisNegativeConfidenceBinder"/> 的**唯一调用点链路**
+        /// (菜单 → BakeFromRepo → Bind → 定表生成)—— 值域 / C-5 / C-6 的「构建期硬失败」由此兑现;
+        /// 运行期 8 只见 float 定表值,零幂运算(G-1)。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 diagnosis_negative_confidence(8 阴性把握度定表)")]
+        public static void BakeDiagnosisNegativeConfidence()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                DiagnosisNegativeConfidenceBaker.BakeOutput result =
+                    DiagnosisNegativeConfidenceBaker.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, DiagnosisNegativeConfidenceCookedAssetName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{DiagnosisNegativeConfidenceCookedAssetName} = " +
+                    $"{result.Cooked.Length} B, {result.Table.Count} 档定表, " +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }
             catch (BakeValidationException ex)

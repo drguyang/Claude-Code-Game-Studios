@@ -654,3 +654,40 @@ Task: story-004 收口(4/4 · 166/166/0/2)
 ### 待办
 - ✅ 收口提交推送
 - ⬜ interaction-system 7/7 全闭;下一系统见 Phase 2 关键路径
+
+---
+
+## diagnosis-system story-004(F-8.3 阴性把握度与不泄漏不变量)—— ✅ 收口 2026-10-06
+
+### 交付物
+- **生产**:`DiagnosisNegativeConfidenceBinder.cs`(阶段 2 绑定 + **唯一校验点**)·
+  `DiagnosisNegativeConfidenceBaker.cs`(仓根种子 → 产物)· `DiagnosisNegativeConfidenceCookedWriter.cs` +
+  `DiagnosisNegativeConfidenceCookedCodec.cs`(镜像编解码)· `DiagnosisNegativeConfidenceBinderProbe.cs`(薄转发)·
+  `DiagnosisNegativeConfidenceTable.cs`(定表 + 求值器,运行期读侧)· `DataBakeMenu.BakeDiagnosisNegativeConfidence`(菜单调用点)
+- **作者态**:`assets/data/diagnosis_negative_confidence.json`(5 合成旋钮)
+- **测试**:`confidence_leak_test.cs`(**39 条**)· `tests/unit/diagnosis_system/fixtures/neg_conf_*.json`(**14 个** / 9 负)
+
+### 实跑
+- filter `unity/Logs/story004-fix2.xml` = **39 / 39 passed / 0 failed**
+- 全量 `unity/Logs/story004-fix3-full.xml` = **2669 / 2622 passed / 0 failed / 46 skipped / 1 inconclusive**
+
+### 单轮评审(承「评审只做一轮」)→ 修复轮
+- **两位评审均无 BLOCKING**(A:1 MAJOR · 5 MINOR · 4 NIT;B:APPROVED WITH SUGGESTIONS · 1 MAJOR · 3 MINOR · 4 NIT)
+- 修复:**MAJOR-1** AC-8-12 (b) 承重断言恒真 ⇒ 改证接缝实参表 + 反向响应(登记口径替代)·
+  **MAJOR-2** 消重 `Q16One`(唯一换算出口 `Table.RawToFloat`)+ `test_q16one_matchesFixCanonical` 逐位锚 `Fix.ToFloat()`·
+  `CurveAt` 退化表**硬失败**(原静默 `0f` 会伪装 C-3 报警)· `schema_version` 构建期**同源**校验(堵「漏到运行期装载」)·
+  AC-8-14 扫描面扩至类型名/属性名 + 非空守卫 · AC-8-10 删不可达分支 · AC-8-18 去 `??` 静默回退
+- **变异证明**:MUT-A(权重路径)7 红 · MUT-B(去 clamp)首轮 0 红 → 补测后**恰 1 红** ·
+  MUT-C(去极性门)首轮 0 红 → 补 `neg_conf_high_fallback.json` + 测后**恰 1 红** · MUT-D 恰 1 红
+- **金标重钉**:`f75a8170` → `a7bfec31`(story-004 四常量)→ **`72db379c`**(修复轮消重少一行)
+- **评审原件**:`production/qa/evidence/review-diagnosis-story-004-2026-10-06.md`
+
+### 未闭登记(NOT-RUN,禁借绿 —— 覆盖缺口,非安全洞)
+- AC-8-F5 跨平台三格矩阵(ADR-012 未实跑;只证 Mono 侧自洽)· AC-8-16 跨进程半边(只证同进程 N ≥ 10⁴)·
+  AC-8-13 端到端(依赖 9 侧 `Project` 未落地)· AC-8-35 曲线参数半边(ConfigVersion 覆盖)·
+  `ReadF32` 不拒 NaN/Inf(结构性不可达)· codec 不校验 `skillCap == SKILL_CAP`(姊妹件同形,须两处同改)·
+  运行期/编辑期镜像无机械约束(技术债)· `DiagnosisReadFloorBinder.ReadSchemaVersion` 同形缺口(归 story-003 后续轮)
+
+### 待办
+- ✅ 收口提交推送
+- ⬜ diagnosis-system 4/4 全闭;下一系统见 Phase 2 关键路径

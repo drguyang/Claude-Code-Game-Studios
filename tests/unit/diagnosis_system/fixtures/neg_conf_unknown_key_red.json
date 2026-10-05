@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "skill_cap": 60,
+  "neg_conf_0": "1/2",
+  "neg_conf_cap": "1",
+  "neg_gamma": "1",
+  "neg_weight_fallback": "1/2",
+  "exclude_conf_min": "33/50",
+  "neg_gamma_dummy": "1"
+}
