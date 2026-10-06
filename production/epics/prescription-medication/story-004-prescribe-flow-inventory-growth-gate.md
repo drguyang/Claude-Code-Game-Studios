@@ -70,7 +70,7 @@
 *Written at story creation(lean mode).*
 
 - **无货全拒**: portions 缺 1 ⇒ 事件计数 0、成长计数 0、库存不变(AC-11-04)。
-- **错药三效果**: 夹具病种不含该 action ⇒ 事件恰 1(恒 Applied)+ 成长 0 + 零惩罚符号(AC-11-05)。
+- **错药三效果**: 夹具病种不含该 action ⇒ 事件恰 1(恒 Applied)+ **成长照发**(门不读 `treatable_by`,F-11.5 BL-3 改判;2026-10-06 订正)+ 零惩罚符号(AC-11-05)。
 - **整剂路径**: 空 `dose_range` 药 ⇒ `dose=1`、potency=表值、GateHit① 真(AC-11-17)。
 - **混堆乱序等值**: 同多重集 6 种排列 ⇒ quality 相同、载荷相同(混堆确定性)。
 - **同 tick 双玩家**: 两笔事件不同 `Seq`、全序键可判序、互不吞并(TR-prescription-012)。

@@ -27,6 +27,47 @@
 
 ---
 
+## 🔄 当前进行 = prescription-medication story-004(Prescribe 流程 —— 域检查、原子扣减与成长门)
+
+> 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
+
+### 跨系统重开输入清单(story-003 遗留,已整理)
+
+| # | 未闭登记 | 承接件 | 卡在哪 | 输入 |
+|---|---|---|---|---|
+| 1 | AC-11-08 ② | 21a | 用户定值 + 21a 重开 | `MIN_USABLE_HALF_LIFE` 值(OQ-11-3 同批)→ 21a F5 断言升格 |
+| 2 | AC-11-15 | ADR-012 | CI 矩阵未激活 | 三格矩阵落地 → story-003 夹具跨平台对拍 |
+| 3 | TR-prescription-008 | 21a + 42 | 数据/元件未落盘 | 21a `dose_range` 数据 + 42 戥子档位元件 |
+
+### 交付物
+- **生产**:`PrescribeFlow.cs`(五步编排:域检查 → F-11.1/F-11.2 求值 → 20 扣减 → 发事件 → 成长门)
+- **测试**:`prescribe_flow_test.cs`
+- **证据**:`production/qa/evidence/review-prescription-story-004-2026-10-06.md`
+
+### 单轮评审 → 修复轮(要点)
+- **结构侧** `APPROVED WITH SUGGESTIONS`(0 BLOCKING · 1 MAJOR · 6 MINOR · 4 NIT)· **QA 侧** `CHANGES REQUIRED`(0 BLOCKING · 4 MAJOR · 6 MINOR · 5 NIT)
+- **M1(结构 · 唯一 MAJOR = 文档冲突非代码 bug)**:AC-11-05③ / Edge Case 写「给错药 ⇒ `SkillGrown` 零发出」,与 F-11.5 **BL-3 改判**(门不读 `treatable_by`)相抵 ⇒ **零代码改动**,订正 GDD `:942`/`:645` + story 卡 `:73` 三处陈旧字面为「**成长照发**」
+- **m1(结构)** `IPortionsConversion` 把 `dose × per-dose` 推给兄弟 epic(与 GDD `:408`「求值在 11」冲突)⇒ 端口改 `PortionsPerDose(ItemKey)` 只查表,**乘法移回 11**(宽算防溢出 + 上下界守卫)
+- **m2 / QA M1+M2** 两处**恒真反射断言**(比对固定类型名 / 手写类型数组)⇒ 改枚举 11 全成员**符号名**差集 + 真取构造签名形参(变异:声明 `SkillMul` ⇒ 2 红)
+- **m4(结构)** `PrescribePorts` 不校验 `doseBase > 0`(错误推迟到步骤⑤,事件已进流)⇒ 装配期 fail-fast + 2 条负测
+- **QA M3** 零浮点扫描**无正控**(改成恒空 ⇒ story-002/003/004 三处共享断言**全部真空绿**)⇒ 新增临时目录正控
+- **QA M4** `HasPortions` 实参无界(全用 `PerDose = 1` ⇒ `portions == dose`)⇒ `LastHasPortions` 记录 + 2 条有界测(变异:传错实参 ⇒ 2 红,原稿 **0 红**)
+- **QA m2/m3** `EvaluateGateHit` 的 `doseLegal == false` 分支永不执行 ⇒ 补直调负支;五处空值守卫无测试 ⇒ 补 5 条负测
+- **QA m6** 同 tick 双剂「Seq 各不同」未实现也未登记 ⇒ 文件头 NOT-RUN 5 处 → **6 处**
+- **m5/m6/n1/n2/n4**:测名名副其实化 · 混堆注释收窄(集合选择归 20)· `TreatmentEvent != null` · `Seq` 占位显式断言 · `StripComments` 统一剥注释+字符串
+
+### 验证(实测)
+- filter(修复后):`unity/Logs/prescribe_flow_5.xml` = **53 / 53 passed / 0 failed**(原 41 条 → 补 12 条)
+- PrescriptionMedication 全目录:`prescribe_flow_all4.xml` = **103 / 103 passed / 0 failed**
+- 全量 EditMode:`prescribe_flow_full5.xml` = **2826 passed / 0 failed / 46 skipped / 1 inconclusive**(既有,非失败)
+- **变异证明**:MUT-B 2 红 · MUT-C 2 红 · MUT-D 7 红 · MUT-E 2 红 · MUT-F 1 红(后两者原稿 **0 红**);变异后均 `diff` 验证干净回滚
+
+### ⬜ 待办 / 未闭登记(禁借绿)
+- **NOT-RUN 6 项**:AC-11-16 正式对拍(BLOCKED-BY-30 实现)· AC-11-15 三格矩阵(ADR-012)· 换算表真源(21a 未落 C# 字段,BLOCKED-BY-OQ-11-10)· 省料数值(BL-6)· 非主机传输(BLOCKED-BY-45)· 同 tick 双剂 Seq(归 45/7a)
+- **跨故事缺口**:story-003 卡要求的 `drug_event_test.cs` **全库不存在** ⇒ AC-11-01① / AC-11-22 / AC-11-10 assembly 面**三处 BLOCKING 无真判据**,story-003 收口前不得记为已有证据
+
+---
+
 ## 📋 历史状态(2026-10-06)—— prescription-medication story-001(处方表与本草词表 —— 双表 polarity 硬门)—— ✅ 收口 2026-10-06 · 已提交推送
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
@@ -491,7 +532,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 | modular-building (23) | 7 | **7** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红，`9bb912b`+`bfa6234`;**未闭登记 = N-r2 生产装配根 + AC-23-09 跨平台签名**） |
 | patient-ai (13) | 4 | **4** | 0 | 0 | ✅ **全收口 2026-10-05**(story-001/002/003/004;未闭登记 = V8 联机 BLOCKED-BY 45 · 跨平台 EXTERNAL · [L] 五档可读性部分闭) |
 | player-controller (1) | 6 | **6** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（两轮评审判据缺陷已修;88 过 + 3 NOT-RUN，`a78c27a`） |
-| prescription-medication (11) | 5 | 2 | 3 | 0 | 🔄 **In Progress** — story-003 ✅ 2026-10-06(F-11.2 半衰期;17/17 绿;双代理评审修复轮全闭) |
+| prescription-medication (11) | 5 | **4** | 1 | 0 | 🔄 **In Progress** — story-004 ✅(story-001/002/003/004;未闭登记 = AC-11-08 ② / AC-11-15 / TR-prescription-008 / AC-11-16 乙 / AC-11-15 流程半边 / 非主机传输 / 影子换算表 / **同 tick 双剂 Seq**;**跨故事缺口 = story-003 `drug_event_test.cs` 全库不存在 ⇒ AC-11-01①/AC-11-22/AC-11-10 assembly 面三处 BLOCKING 无真判据**;余 story-005 戥子输入与方笺呈现) |
 | processing (18) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | random-events (52) | 6 | **6** | 0 | 0 | ✅ 全收口 |
 | time-weather (5) | 5 | **5** | 0 | 0 | ✅ 全收口 |
