@@ -50,6 +50,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         public const string DiagnosisNegativeConfidenceCookedAssetName =
             "diagnosis_negative_confidence.cooked.bytes";
 
+        /// <summary>产物文件名(处方表 + 本草词表;DC-1…DC-7 / AC-11-02/20 的烘焙产物)。</summary>
+        public const string PrescriptionActionsCookedAssetName = "prescription_actions.cooked.bytes";
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -223,6 +226,40 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"[大医精诚] 烘焙完成:{DiagnosisNegativeConfidenceCookedAssetName} = " +
                     $"{result.Cooked.Length} B, {result.Table.Count} 档定表, " +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 prescription-medication 的处方表 + 本草词表(story 001):
+        /// 仓库 <c>assets/data/prescription_actions.json</c> + <c>materia_lexicon.json</c> →
+        /// 校验(**聚合 throw**)→ 产物写入 Assets/DataCooked/。
+        /// <para>⚠️ 本菜单是 <see cref="PrescriptionActionsBinder"/> 的**唯一调用点链路**
+        /// (菜单 → BakeFromRepo → Bind → 校验)—— DC-1/DC-3/DC-5/DC-7 的「构建期硬失败」由此兑现。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 prescription_actions(11 处方表)")]
+        public static void BakePrescriptionActions()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                PrescriptionActionsBaker.BakeOutput result = PrescriptionActionsBaker.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, PrescriptionActionsCookedAssetName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{PrescriptionActionsCookedAssetName} = {result.Cooked.Length} B, " +
+                    $"{result.Rows.Count} 行行集,ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }
             catch (BakeValidationException ex)

@@ -1,6 +1,39 @@
-# Session State — 2026-10-05(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
+# Session State — 2026-10-06(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 最近收口 = diagnosis-system story-003(F-8.1 可读地板与 F-8.2 精度档槽)—— ✅ 收口 2026-10-05 · 已提交推送
+## 🔄 最近收口 = prescription-medication story-001(处方表与本草词表 —— 双表 polarity 硬门)—— ✅ 收口 2026-10-06 · 已提交推送
+
+> 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
+> 前置:结构侧 CHANGES REQUIRED(3 BLOCKING + 3 MAJOR + 3 MINOR + 2 NIT)+ QA 侧 NOT APPROVED(3 BLOCKING + 3 MAJOR + 2 MINOR + 1 NIT),
+> **6 BLOCKING 双侧**;全部落点 ⇒ 复跑绿。
+
+### 交付物
+- **作者态**:`assets/data/prescription_actions.json`(处方表种子)+ `assets/data/materia_lexicon.json`(本草词表种子)
+- **生产**:`PrescriptionActionsBaker.cs`(仓根装载器)· `PrescriptionActionsBinder.cs`(阶段 2 绑定 + **唯一**校验点 DC-1/DC-3/DC-5/DC-7/AC-11-20)·
+  `PrescriptionActionsCookedWriter.cs`(确定性写入器)· `PrescriptionActionsBinderProbe.cs`(薄转发)·
+  `DataBakeMenu.BakePrescriptionActions`(菜单调用点)
+- **测试**:`prescription_tables_test.cs`(**12 条**)
+- **证据**:`production/qa/evidence/review-prescription-story-001-2026-10-06.md`
+
+### 单轮评审 → 修复轮(要点)
+- **结构 B-1**: 绑定器不读 `item_database_items.json` — DC-1/DC-5(覆盖)/DC-7(上界)/AC-11-20 在生产路径上未强制
+  ⇒ `Bind` 签名加 `itemsJson` 参数,绑定阶段执行跨文件校验
+- **结构 B-2**: AC-11-02 注释误导(说"扫描源文本"但无代码)⇒ 改为说明"由 RejectUnknownKeys 隐式满足"
+- **结构 B-3**: 测试用 regex 解析 JSON 驱动断言,而非驱动生产绑定器 ⇒ 全部改为调用 `PrescriptionActionsBinderProbe.Bind`
+- **QA B-1**: `test_bakeDeterminism` 恒真(只比较两次 ReadAllText)⇒ 改为调用 `BakeFromRepo` 两次比较字节
+- **QA B-2**: `test_dc7_doseBaseWithinUpperBound` 空集真空真 ⇒ 内联构造带非 null dose_range 的夹具
+- **QA B-3**: 四条负夹具是正向测试复制品 ⇒ 构造违反条件数据喂给 Binder 断言拒绝
+
+### 验证(实测)
+- filter:`unity/Logs/prescription_tables_fix5.xml` = **12 / 12 passed / 0 failed**
+- 全量:`prescription_tables_full.xml` = **2796 / 2749 passed / 0 failed / 46 skipped / 1 inconclusive**
+
+### ⬜ 待办 / 未闭登记(禁借绿)
+- **NOT-RUN 3 项**:DC-2(action_id 闭集,依赖 OQ-11-2)· DC-6(依赖 9 侧 NOISE_BAND_9)· AC-11-07(双表 polarity 交叉硬门,依赖 9 侧 disease_registry.json)
+- 下一件:prescription-medication **story-002**(F-11.2 半衰期),同协议
+
+---
+
+## 📋 历史状态(2026-10-05)—— diagnosis-system story-003(F-8.1 可读地板与 F-8.2 精度档槽)—— ✅ 收口 2026-10-05 · 已提交推送
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
 > 前置:结构侧 CHANGES REQUIRED(1 MAJOR + 5 MINOR)+ QA 侧 CHANGES REQUIRED(1 MAJOR + 6 MINOR),

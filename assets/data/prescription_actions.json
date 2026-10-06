@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "_note": "Story 001 占位种子 —— 本表数值 = 夹具值,不是游戏平衡值(数值归用户轮)。主键 item_key → action_id(处置 id 枚举序数)+ polarity(causal/symptomatic)。DC-1: item_key ⊂ ItemDef 闭集;DC-3: polarity ∈ {causal, symptomatic};DC-7: 0 < DOSE_BASE ≤ 65536 × hi。两阶段烘焙 → *.cooked → IDataProvider。",
+  "dose_const": {
+    "DOSE_BASE": 65536,
+    "MAX_DOSE_DETENTS": 5
+  },
+  "actions": [
+    {
+      "item_key": "salicylic_acid",
+      "action_id": 1,
+      "polarity": "symptomatic"
+    }
+  ]
+}

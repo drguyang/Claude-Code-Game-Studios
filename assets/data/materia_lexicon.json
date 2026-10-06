@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "_note": "Story 001 占位种子 —— 每味药恰一条古籍功效词(DC-5)。零自动匹配逻辑(不出现遍历 indications[] 比对的代码路径)。功效词 = 烘焙期转出的字符串,病种 id 止步于构建期。两阶段烘焙 → *.cooked → IDataProvider。",
+  "lexicon": [
+    {
+      "item_key": "salicylic_acid",
+      "功效词": "苦寒清热,泻火解毒",
+      "体征轴": ["heat", "inflammation"]
+    }
+  ]
+}
