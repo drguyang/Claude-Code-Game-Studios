@@ -181,7 +181,7 @@
       (⚠️ 2026-10-03 实测现行基线 = **2204 total / 2163 passed / 0 failed / 40 skipped / 1 inconclusive**)
 - [x] `UNITY_LICENSE` secret configured — 改用服务账号授权（`UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`），CI workflow 已生成（`.github/workflows/unity-tests.yml`）
 - [x] OQ-1-12 (接地模型) decision recorded — `player-controller-and-movement.md`
-- [x] OQ-10-12 (两动作原型) decision recorded — `emergency-procedures.md`
+- [x] OQ-10-12 (两动作原型) decision recorded — `emergency-procedures.md` · ✅ **OQ-10-6(枚举归属归系统 10)2026-10-02 同批裁,落 `production/decisions/oq-10-6-oq-10-12-adjudication.md`**
 - [ ] Performance budgets finalized (Draw Calls, Memory Ceiling) — pending target hardware selection (BLOCKED-BY: hardware decision, not an ADR issue)
 - [ ] Spike results recorded: ADR-023 S2/S5/S6/S7, ADR-013 assumption 6 — P1 deferred per user
 

@@ -1,8 +1,14 @@
 # OQ-10-6 + OQ-10-12 裁决文档
 
-**日期**: 2026-10-02
-**状态**: 待用户裁决
-**阻塞**: emergency-procedures 6 stories
+**日期**: 2026-10-02(成文) · **2026-10-06(裁夺取向 + 回写结案)
+**状态**: ✅ **已裁(用户 2026-10-02 取建议甲)** —— 两条均按本文建议落地
+**阻塞**: ~~emergency-procedures 6 stories~~ **已解除**
+**裁决记录**:
+
+| OQ | 裁向 | 依据 | 回写落点 |
+|----|------|------|----------|
+| **OQ-10-6** | **甲 · 归系统 10** | 语义归属 / 枚举值特有 / 避免反向依赖 / 代码已按甲落地 | `emergency-procedures.md` OQ 行 + `:217` + `:835` 注 · `entities.yaml`(`EmergencyAttempt.action` 类型源)· 本文件 §裁决 |
+| **OQ-10-12** | **乙 · 推迟 P1a** | 见本文件 §OQ-10-12 四判据 | `emergency-procedures.md:1077` 已于 **2026-09-29** 先行结案(原型实测 L_input < 35 ms)**—— 两处口径已对齐** |
 
 ---
 
@@ -40,11 +46,15 @@
 3. 系统 21a（物品数据库）不应包含动作枚举
 4. 避免反向依赖（系统 10 → 系统 21a）
 
-### 裁决后行动
+### 裁决后行动(✅ 2026-10-06 逐条核销)
 
-1. 在 `unity/Assets/Sim/EmergencyProcedures/` 定义 `EmergencyAction` 枚举
-2. 更新 `entities.yaml` 注册 `action_id` 类型
-3. 解除 Story 002 的 DC-4 BLOCKED 状态
+1. ~~在 `unity/Assets/Sim/EmergencyProcedures/` 定义 `EmergencyAction` 枚举~~ ✅ **已存在**:`unity/Assets/Sim/EmergencyProcedures/EmergencyAction.cs:20`(P0 = `HemostasisBandage=0` / `RhythmVentilation=1`)
+2. ~~更新 `entities.yaml` 注册 `action_id` 类型~~ ✅ 已回写:`EmergencyAttempt.payload_schema.action` 注明「类型源 = `EmergencyAction` 枚举 ordinal,归系统 10,非 21a 物品表」
+3. ~~解除 Story 002 的 DC-4 BLOCKED 状态~~ ✅ **已解除**:`story-002:38` 的 DC-4 已按裁定表述;`action_tables_bake_test.cs:90-118` 实跑 `Enum.IsDefined`
+
+⚠️ **一条已修的三处不一致(本文件结案时发现)**:`story-002:38` / `story-007:147` 曾引
+`oq-adjudication-2026-10-01.md` —— **该文件不存在(幽灵引据)**,而本文档实际名
+`oq-10-6-oq-10-12-adjudication.md`(2026-10-02 提交 `163cb1d`)。两处引据已在同批订正为本文档。
 
 ---
 

@@ -3262,8 +3262,8 @@
     requirement: "EmergencyAction 枚举的取值集与语义归属(10 定 vs 21a 定 —— 动作是否进物品表)"
     domain: Core
     adr: ADR-014
-    status: partial
-    note: "OQ-10-6。承 3 的 TR-input-017。烘焙管线归 ADR-014(covered),但枚举归属未裁 ⇒ 数据管线归属随之未定 ⇒ partial。"
+    status: covered
+    note: "✅ OQ-10-6 已裁(2026-10-02 用户 = 归系统 10)⇒ partial→covered。承 3 的 TR-input-017。烘焙管线归 ADR-014(covered);枚举归属既定(住 Sim/EmergencyProcedures/EmergencyAction.cs,非 21a 物品表)⇒ 数据管线归属随之确定。entities.yaml 的 EmergencyAttempt.action 已按「EmergencyAction 枚举 ordinal」登记(2026-10-06 回写)。⚠️ 残留与本 TR 不同源:枚举**内容**(P0 = 2 动作)随 OQ-10-4 冻结。"
 
   - id: TR-emergency-021
     system: emergency-procedures

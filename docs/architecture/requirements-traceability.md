@@ -38,7 +38,7 @@
 > 背景:建 Epic 3(`input-system.md`)前用户裁定「Pause — ADRs first」,复核后选定**不开新 ADR**、
 > 改以 registry 对症重判 —— 三条 gap 的真实归属是**已 Approved 的 10 GDD 决定**(非 ADR 缺口)。
 > **`TR-input-017` / `-019` / `-021` gap→◆ `no-adr-by-design`**(逐条 `adr` 改 `null`,
-> 归属件 + 残余登记入 note:017 残 `OQ-10-6` 枚举归属 · 019 残 `OQ-10-3` 键鼠档数 ·
+> 归属件 + 残余登记入 note:017 残 ~~`OQ-10-6` 枚举归属~~ ✅ 2026-10-02 已裁 · 019 残 `OQ-10-3` 键鼠档数 ·
 > 021 残 `OQ-10-11` 无障碍开关归 49/P2);**`TR-input-016` 维持 gap 不翻**(实测前置:最低目标
 > 硬件 + 可跑 player,域 Performance);**`TR-input-008` status/adr 不变**,仅 requirement/note
 > 由 Amendment B 前「本地即时」陈旧口径刷为 C 路文本(主机 `Judge`+`Append`+`Seq`,本地预表现)。

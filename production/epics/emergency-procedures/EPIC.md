@@ -90,7 +90,7 @@
 | ADR-024 / ADR-025 | 三 Kind 经 entities.yaml + kindgen 入白名单(AC-10-07b);装配落点 `Gameplay.*` 与 `Sim.Contracts` 边界 | LOW |
 
 **Engine Risk**: **HIGH** —— Input System 直读通道时序、UI Toolkit 手柄焦点(承假设 6,⚠️半可信)、
-IL2CPP 逐位对拍三处叠加;**OQ-10-12 原型门(2 动作实测 `L_input`<50 ms + 抖动门 11×)= 排程级前置**,
+IL2CPP 逐位对拍三处叠加;**~~OQ-10-12 原型门~~ ✅ 已执行(原型结论:手感成立,`L_input` 实测 < 35 ms 通过 50 ms 预算、抖动门 11× 通过 ≥ 11×)** ⇒ 排程级前置**已解除**,
 未过门前本 epic 不得进入实现故事执行。
 
 ## GDD Requirements

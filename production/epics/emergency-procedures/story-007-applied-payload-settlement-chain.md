@@ -144,7 +144,7 @@ Process(EmergencyAttemptPayload attempt, EmergencyActionRow action, JudgeContext
 - **F-10.4 的 `ResultMul[]` 数值**(`Applied=1.0` / `AppliedWeak=0.5` / `Missed=0.25`)——
   **已由用户裁定 2026-09-18(`OQ-10-1` 结清)**,本 story **不改数值**,只实现求值与舍入
 - **`BASE_POTENCY[action]` 的数值** —— 归数值轮(数值用户自己调)
-- **`OQ-10-6`(`EmergencyAction` 枚举归属)** —— **已裁定归系统 10**(见 `oq-adjudication-2026-10-01.md`);
+- **`OQ-10-6`(`EmergencyAction` 枚举归属)** —— **✅ 已裁定归系统 10**(2026-10-02 用户裁,见 `production/decisions/oq-10-6-oq-10-12-adjudication.md` —— ⚠️ **2026-10-06 订正**:原文引的 `oq-adjudication-2026-10-01.md` **不存在(幽灵引据)**,真源是本路径);
   本 story 只是它的消费者,不重开该裁定
 - **`Polarity` / `HalfLife` 的处置词表与动作数据表内容** —— 归 ADR-014 烘焙管线与 10 的数据轮
 - **`DrugTreatmentApplied`(11 写)** —— 载荷形状一致但**写者是 11**;

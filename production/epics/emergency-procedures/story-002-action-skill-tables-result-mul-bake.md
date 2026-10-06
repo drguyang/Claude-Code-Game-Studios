@@ -23,7 +23,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: 全部 `Fix` 字段以字符串/`FromRatio` 进 JSON;DC-1…DC-5 五条烘焙期校验逐条实现(throw 级)
 - Forbidden: 数值硬编码在 C#;`half_life_ticks = 0`(DC-1);`mag_threshold` 越界(DC-2);新手容差 < `MUL_ONE`(DC-3)
-- Guardrail: **DC-4 悬置显式登记** —— `EmergencyAction` 枚举归属(`OQ-10-6`)未裁 ⇒ `action_id` 类型来源未定 ⇒ DC-4 **NOT-RUN,不得记绿**
+- Guardrail: ~~**DC-4 悬置显式登记**~~ **✅ `OQ-10-6` 已于 2026-10-02 裁(归系统 10)** ⇒ `action_id` 类型来源已定 ⇒ DC-4 的类型源阻塞**已解除**。⚠️ **NOT-RUN 的余留理由改变**:不再是「归属未裁」,而是「**枚举内容(P0 = 2 动作)随 `OQ-10-4` 冻结清单验证**」—— `action_tables_bake_test.cs:12-13` 的注记已按此口径登记,机制侧 `Enum.IsDefined` 已实跑
   - **✅ 2026-10-02 用户裁决: 归系统 10** —— 急救动作是系统 10 核心职责，枚举值（CPR/止血/包扎）是急救动作特有
 
 ---
@@ -54,20 +54,20 @@
 
 1. 复用 disease-simulation story 003 的阶段 2 绑定器(本表 = 新增 per-schema 绑定 `EmergencyActionSet` / `EmergencySkillSet`)。
 2. 合成 fixture 病种/动作集先行:P0 动作清单(CPR/止血/包扎/…R3 表)以**行存在性**验证,数值列全注入;数值轮替换 JSON 零代码改动。
-3. DC-4 的「机制可跑」= 以 `test_` 前缀影子枚举跑同一校验函数;OQ-10-6 裁定后切换类型来源(10 定 or 21a 定),登记回写本 story。
+3. ✅ DC-4 的「机制可跑」= 以 `test_` 前缀影子枚举跑同一校验函数;~~OQ-10-6 裁定后切换类型来源~~ **OQ-10-6 已于 2026-10-02 裁 = 归系统 10**,`EmergencyAction` 枚举已就位(`Sim/EmergencyProcedures/EmergencyAction.cs:20`),本条**已兑现**。
 4. `level:int` 主键须与 30 的 `QueryLevel` 档值域对齐(档表归 30 skill-system epic;本 story 断「键类型一致 + 缺档构建失败」)。
 
 ## Out of Scope
 
 - [Story 003]: Judge 对表的读取与求值
 - 动作内容设计(哪些动作、每动作语义)—— GDD 已冻结 P0 清单,增员走 `/design-review`
-- `EmergencyAction` 枚举归属裁定(OQ-10-6,登记制,不代裁)
+- ~~`EmergencyAction` 枚举归属裁定(OQ-10-6,登记制,不代裁)~~ ✅ **2026-10-02 已裁 = 甲(归系统 10)**,落点见 `production/decisions/oq-10-6-oq-10-12-adjudication.md`。⚠️ 本条**不是**「本 story 未兑现」—— 它已兑现;余下的是**枚举内容**随 `OQ-10-4` 冻结
 
 ## QA Test Cases
 
 *Written at story creation(lean mode).*
 
-- **五条 DC 逐负例**: 每条构造「只违该条」反例源 ⇒ 恰该条红(DC-4 用影子枚举证机制;真枚举到位前该项证据记 NOT-RUN)。
+- **五条 DC 逐负例**: 每条构造「只违该条」反例源 ⇒ 恰该条红(✅ DC-4 影子枚举机制已证;⚠️ 真枚举内容验证仍 NOT-RUN —— 理由 = `OQ-10-4` 清单验证,非类型来源)。
 - **raw long 断言**: 烘 `result_mul` ⇒ 字节级 `{65536,32768,16384}`;`"1/1"` 写法 ≡ `FromRatio` 优先口径。
 - **字符串 Fix**: `"mag_threshold": 0.75` 数字字面量 ⇒ 构建拒;`"49152/65536"` 或 `"3/4"` ⇒ 过。
 - **缺档**: 动作引用 level=7 而熟练度表止于 6 ⇒ 构建失败。

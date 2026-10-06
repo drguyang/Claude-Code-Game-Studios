@@ -121,7 +121,7 @@ No playtest sessions required for this sprint.
 
 **Stories requiring playtest sign-off before close**: None
 
-**Remaining**: emergency-procedures 6 stories 未实现（Story 002 BLOCKED-BY-OQ-10-6）
+**Remaining**: emergency-procedures 6 stories 未实现(Story 002 的 `BLOCKED-BY-OQ-10-6` **✅ 已于 2026-10-02 解除** —— 枚举归属裁归系统 10;余 NOT-RUN 理由 = `OQ-10-4` 枚举内容验证)
 
 ---
 

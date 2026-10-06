@@ -214,7 +214,7 @@ EmergencyTreatmentApplied = {          // Kind 名,已登记 entities.yaml + ADR
 | `polarity` | **10**(由处置词表查得) | 9 的 `treatable_by[]` 每项带极性 |
 | `drug_potency` | **10 的 F-10.4**(动作类)· **11 的 F-11.2**(药物类) | 9 的 F4 需要 |
 | `half_life` | **药物类 = 11 经 21a `drug_profile`**;**动作类 = 10 的动作数据表** `half_life_ticks[action]` | ⚠️ **首轮评审 R-2 结清**,见下注 |
-| `处置_id` | 10 的动作枚举(`EmergencyAction`,归属仍 `OQ-10-6`) | — |
+| `处置_id` | 10 的动作枚举(`EmergencyAction`,归属 **✅ `OQ-10-6` 已裁 2026-10-02 = 归系统 10**) | — |
 | `method` / `cause` | **10**(由规则六 / 十一的结算路径决定) | 51 `OQ-51-9`(2026-09-16 已裁) |
 | `Seq` | **主机在 `Append` 时发号**(施予者客户端**不填**) | 9 的 `AC-15` · 25 的 `F-25-7` 同款 |
 
@@ -832,9 +832,11 @@ Aggregate(reading[整个动作期]) → agg = {
 | **DC-6** | **`result_mul` 恰三档**(`Length == 3`,按 `JudgeResult` 序数索引;且**非 null**) | ⚠️ **2026-10-03 补** —— 缺此校验时,漏填 `result_mul` 的行能过全部烘焙门,直到 `HostEmergencyProcessor.Process` 读 `ResultMul[(int)result]` **NRE** 才暴露(PlayMode 两例即此形态)。且档数 ≠ 3 ⇒ 索引越界或静默取错档 |
 | **DC-5** | 9 侧 `Kind` 白名单含 `EmergencyAttempt` / `EmergencyTreatmentApplied` / `DrugTreatmentApplied`(**三**者,非二者) | **9 构建期拒绝 10 的每一笔写入**(R-2 的原始症状)。**✅ `O-10-4` 已于 2026-09-18 落盘**(`disease-simulation.md:173` 病史流行) |
 
-> **⚠️ `OQ-10-6` 的连带**:`EmergencyAction` 枚举归属(10 定 or 21a 定)**决定 `action_id` 的类型来源**
-> ⇒ **DC-4 在 `OQ-10-6` 裁定前无法执行**。这是本 GDD 唯一的「契约已写、判据待前置」项,
-> 显式登记,**不静默**。
+> **✅ `OQ-10-6` 已裁(2026-10-02 用户 = 归系统 10)** ⇒ **`DC-4` 的类型来源已定**:
+> `action_id` = `EmergencyAction` 枚举 ordinal(住 `Sim/EmergencyProcedures/`,非 21a 物品表)。
+> 原注「DC-4 在本项裁定前无法执行」是**契约已写、判据待前置**的显式登记,**现已解除**。
+> ⚠️ 残留与本条无关:`DC-4` 验的是**枚举内容**(P0 = 2 动作)随 `OQ-10-4` 冻结,
+> 机制侧(`Enum.IsDefined`)已在 `action_tables_bake_test.cs:90-118` 实跑。
 
 ---
 
@@ -1068,7 +1070,7 @@ Aggregate(reading[整个动作期]) → agg = {
 | **OQ-10-3** | 🔴 **本评审升为 P0 门(原为 open question)** —— 键鼠的幅度回退:回退**形状已定**(Edge Cases + `AC-10-21`:`magnitude ≡ MAG_MAX` 走双门 + `cause = 降级`),**残留 = 是否引入离散档(几档)** | 用户 + `ux-designer` | **写第一个 `Step` 前** | 无回退形状 = **幻想在第一平台不成立**(R-5);形状已兜住,残档数 = 手感密度取舍 |
 | ~~**OQ-10-4**~~ | ✅ **已结案(用户裁定 2026-09-20)** —— P0 两动作具名 = **① 止血包扎**(「包扎→按压」两拍 = 同一动作序列,承 `game-concept.md:695` 点名口径)· **② 节奏型通气动作**(总谱呈现为「人工呼吸法」,内部映射本系统 CPR 节奏动作集)。⚠️ **残留收窄,非清零**:a) 玩家可见文本的年代措辞(「通气 vs 心肺复苏」)**仍归 40 史实复核**(`he-returns.md` §八;不得把年代不成立的「CPR」字面写进玩家可见文本);b) **枚举归属 = `OQ-10-6` 仍 open**(`EmergencyAction` 定在 10 还是 21a)⇒ `DC-4` 闭集校验仍悬;c) 动作数据表行与伤情挂钩归实现轮,**红线退路照旧**(内容随动作集换伤情,红线不改,`he-returns.md` §七) | 用户 | ✅ **已裁**(2026-09-20;原登记的三项输入 ①②③ 全部兑现) | — |
 | **OQ-10-5** | **动作被打断的语义**(受伤 / 敌人靠近)—— 打断 = `Missed`?中止不发事件?已入流的部分怎么办?⚠️ **本评审已把「玩家主动停手」结清(规则六之甲:中止不发)**,残留 = **外力打断**(涉及 25 / 29 的 cross-field) | 用户 + 10 / 9 / 25 | 10 的二轮评审 | 战斗中急救的行为未定义 |
-| **OQ-10-6** | **`EmergencyAction` 枚举的取值集与语义归属** —— 10 定枚举还是 21a 定(动作是否进物品表)?⚠️ **连带 `DC-4` 无法执行**(主键类型无源) | 用户 + 10 / 21a | **本 GDD 二轮评审前**(它是数据契约的前置,不再是「内容轮」的事) | 枚举归属未定 ⇒ **§数据契约的闭集校验形同虚设** |
+| ~~**OQ-10-6**~~ | ✅ **已裁 2026-10-02(用户)= 甲「归系统 10」** —— **`EmergencyAction` 枚举住 10 侧,不住 21a 物品表**。**裁决依据**(`production/decisions/oq-10-6-oq-10-12-adjudication.md`):① 语义归属:急救动作是 10 的核心职责;② 枚举值(CPR / 止血 / 包扎)是急救特有,物品表无动作概念;③ **避免反向依赖**(若归 21a,10 → 21a 读动作表 = 反向);④ 代码已按甲落地 (`unity/Assets/Sim/EmergencyProcedures/EmergencyAction.cs:20` — 该枚举**确实**在 10 侧,P0 = `HemostasisBandage=0` / `RhythmVentilation=1`,承 `OQ-10-4` 两动作清单)。**⇒ `DC-4` 的「主键类型无源」阻塞解除**:`action_id` 类型源 = `EmergencyAction` 枚举 ordinal,`entities.yaml` 的 `EmergencyAttempt.action` 已按此登记(2026-10-06 回写)。⚠️ **本条的枚举闭集内容(P0 = 2 动作)仍随 `OQ-10-4` 冻结**,增员走 `/design-review` | **用户(2026-10-02 裁)** · 10 / 21a(否) | ✅ 已结 | 无(取值集归 `OQ-10-4`) |
 | **OQ-10-7** | **`magnitude` / `edge_ticks` 通道在 3 侧的命名与资产表达**(须回填 input-system 的 Amendment)—— 🔻 **本评审扩容**:新增 `edge_ticks[]`(规则一)+ 3 侧的 `AXIAL_SCALE` / `DZ_MAG`(F-10.1)。**✅ 2026-09-18 已落点到 3 侧**:`input-system.md` 的 `## Open Questions` 新增以 `OQ-10-7` 为 ID 的行(三问逐条:命名与产出时机 / 两乘子住哪张表 / `raw_axis` 不进流的守门 AC),并**结案 `OQ-3-5`**(10 裁定 = 独立模拟量通道,`IEmergencyInput` **未加宽**)。**本项仍 open** —— 结案的是「10 欠 3 的裁定」,残留是「3 欠自己的 Amendment」 | 用户 + 3 | 3 的修订轮(3 = Needs Revision,同批) | 3 的 GDD 与实现不同步(⚠️ **须补 Amendment,不得静默**)—— 后果具体化:10 的两个门**无输入**(F-10.1 无 `magnitude`、F-10.3b 无 `edge_ticks`)⇒ **静默失败,非构建期失败** |
 | **OQ-10-8** | 🔴 **本评审新增** —— 51 的 `resolution` 三值 `{Played, Skipped, NotOffered}` 中,`NotOffered` 由「事件缺席」推定(规则十二)。⚠️ **缺席推定在折叠 / 快照后是否仍成立**(9 的终态折叠会不会吃掉「缺席」的证据)?**须与 7a 的折叠谓词 `Folded(p)` 核对**(ADR-010 §三) | 51 + 7a | 51 / 7a 的下一次触及时 | 跳过率读数在折叠档上失真 |
 | ~~**OQ-10-9**~~ | ✅ **已结案(2026-09-23 用户裁定「ADR-001 窄修订·同族三项」,原定 P1b 前提前执行)** —— `EmergencyAttempt` 上行 = **可靠通道**(ADR-001 **§一之三 裁决一**:上行按语义二分「最新值 / 自愈类 → 第二 QoS vs **判定输入类 → 可靠通道**」;第二 QoS 语义**不变**,仍只承载表现态位置;`ActorCellEntered` 不受影响,承 ADR-020 Amendment B)⇒「判定输入静默丢失」消解,「丢了怎么办」一问**不再存在**(结构上不会丢)。同批 `QQ-14` 同步结案;裁决二结 `TR-audio-012`(EndLoop 兜底) | 用户 + ADR-001 | ✅ **已裁**(2026-09-23;ADR-001 §一之三) | — |

@@ -136,7 +136,7 @@
 > `TR-input-021`(跳过路径):三者的真实归属是**已 Approved 的 10 GDD 决定**
 > (`emergency-procedures.md` 2026-09-18;分别落 `OQ-10-4` 结案 / 规则一 `magnitude: int` /
 > 规则六三条件),**非 ADR 缺口** —— 019/021 原挂 `ADR-011` 系借绿(Amendment A 明写 defer 10),
-> 本批撤指针改 `null`;残余 `OQ-10-6` / `OQ-10-3` / `OQ-10-11` 登记入 note,不随本条。
+> 本批撤指针改 `null`;残余 `OQ-10-3` / `OQ-10-11` 登记入 note,不随本条。(✅ 2026-10-06 订正:`OQ-10-6` 已于 2026-10-02 裁 = 归系统 10,不再是残余)
 > `TR-input-016` **维持 gap**(实测前置);`TR-input-008` **status/adr 不变**,requirement/note
 > 由 Amendment B 前「本地即时」刷为 C 路文本(GDD 已回刷,registry-only 卫生)。
 > ⇒ **gap 75 → 72 / ◆13 → 16**(337 / 75 partial 不变,**ID 恒 500**)。三条全 `domain: Core` ⇒

@@ -888,7 +888,7 @@
 | TR-emergency-017 | 四个判定门的具体阈值(`MAG_MAX` / `JITTER_MAX` / `MAG_THRESHOLD` / `MIN_EDGES`)+ `JudgeResult` 取值集 | — | ❌ **OQ-10-2**;`JITTER_MAX` 是最承重的旋钮(杀死「手稳」的是抖动,非平均延迟)。形状已定,值归用户 |
 | TR-emergency-018 | 无模拟量设备(纯键盘)的幅度回退形态 —— 离散档还是自动通过 | — | ❌ **OQ-10-3**;键鼠玩家的幅度通道无实现;归用户 + `ux-designer` |
 | TR-emergency-019 | 动作被打断的语义 —— 打断 = `Missed`?还是动作中止不发事件?已入流的部分怎么办 | — | ❌ **OQ-10-5**;战斗中急救的行为未定义;归用户 + 10 / 9 |
-| TR-emergency-020 | `EmergencyAction` 枚举的取值集与语义归属(10 定 vs 21a 定 —— 动作是否进物品表) | ADR-014 | ⚠️ **OQ-10-6**;承 3 的 `TR-input-017`。烘焙管线 covered,枚举归属未裁 ⇒ partial |
+| TR-emergency-020 | `EmergencyAction` 枚举的取值集与语义归属(10 定 vs 21a 定 —— 动作是否进物品表) | ADR-014 | ✅ **OQ-10-6 已裁 2026-10-02(归系统 10)** ⇒ `partial → covered`;承 3 的 `TR-input-017`。烘焙管线 covered,枚举归属既定(住 `Sim/EmergencyProcedures/EmergencyAction.cs:20`,非 21a 物品表)。残余 = 枚举**内容**(P0 = 2 动作)随 `OQ-10-4` 冻结 |
 | TR-emergency-021 | `magnitude` 通道在 3 侧的命名与资产表达 —— 须回填 input-system 的 Amendment,不得静默 | ADR-011 | ⚠️ **OQ-10-7**;直读通道裁决 covered,但 3 的 GDD 与实现不同步 ⇒ partial。回归义务 = 3 的修订轮 |
 
 ---
