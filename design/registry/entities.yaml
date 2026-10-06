@@ -120,7 +120,7 @@ entities:
     outcome: 简单止血(神父所教)→ 救回
     notes: "三案 = 三次失血,同 D;角色名/伤情在四件间逐字一致(2026-09-20 全扫核)。"
     added: 2026-09-20
-    revised: ""
+    revised: "2026-10-06"
 
   - name: 三案·乙(挑夫)
     status: active
@@ -2459,9 +2459,9 @@ constants:
     stream: history
     author: "30 技能与熟练度(主机经 EmitGrowth 统一物化;调用方 ∈ {8 诊断 / 17 采集 / 11 处方用药}——37 不调用,2026-09-20 R-3 口径:37 的 CaseClosed / PatternRecognized 作为派生输入喂 30)"
     payload_schema: "actor_id: i32(施予者 = 玩家,与 player_id 共用 id 空间,ADR-006 注记); patient_id: i32(本次成长所依附的受伤实体;无病例语境的动作类成长(采集 / 奔跑等)取 PatientId.None = −1); skill_id: i32(技能表 ordinal); object_id: i32(对象表 ordinal —— 病种 / 品种 / 处方对象,由 skill_id 决定读哪张表); novelty_class: 枚举(首次 | 冷却内 | 其它,三值); level: i32(仅升级事件携带 = §4.2 Level_end;未升级 ⇒ 缺省 = 哨兵,不写 0)"
-    constraint: "落**病史流**(30 §3.2 规则二「SkillGrown 事件落病史流」;ADR-005 病史流唯一真源);**写者 = 30 唯一** —— 调用方 8/17/11 经 `EmitGrowth` 入口、主机统一 `Append`(承 ADR-005 主机权威);**载荷权威 = skill-system.md §3.2 规则二**,携**绝对 `level`**(30 原文 `Level`)而非 Δ —— ⚠️ 29 的 F-29-4 表格「携带 `ΔLevel`」系**派生量口径混写**:Δ = 相邻两条 `level` 之差,由 29 / 51 读流时自算,**不改 30 的载荷**(换算口径已在 `death-and-respawn.md` F-29-4 就地登记,冻结纪律:机制与数值零改动);`level` 仅升级事件携带 = 兑现 51 的 `AC-51-D2`;有界性 = **每完成一次成长动作 ≤ 1 条**,与帧率 / tick 相位无关(成长由动作结算触发,非逐帧);跨流全序键 `(Tick, StreamPriority, Patient, Seq)` 的 `Patient` 项 = `patient_id`(非世界级 —— 与 ADR-007 五支恒 `None` 不同);⚠️ **待裁(第二十七批登记,不代拍)**:7a F-7a-4 终态折叠行形状 `(onset, 病种_id, patient_id, patient_seed, outcome, t_end)`**不含非折叠 Kind** ⇒ 病人终态后其 `SkillGrown` 在折叠视图下消失,而 29 的 F-29-4 / AC-29-16 前提 = 本支**参与重放折叠且幸存**(等级永不被死亡夺走 ⇒ 折叠丢成长 = `Level(s)@t` 逐位重放的破口);折叠豁免 / 折叠行扩列归 7a × 29 × 30 三方裁决,已立 **`OQ-7a-9`**(persistence-service.md,2026-09-21 第二十七批);`OQ-11-11` 两面中 **(甲) Kind 契约面随本条闭合**(发出方 / 载荷 / 门控出处已登记),`EmitGrowth` 完整入参签名的 `K_difficulty` 形参须待 **(乙) `OQ-11-13`**(仍 open)裁定后方可写定 ⇒ `AC-11-16` 因乙仍 `NOT-RUN`"
+    constraint: "落**病史流**(30 §3.2 规则二「SkillGrown 事件落病史流」;ADR-005 病史流唯一真源);**写者 = 30 唯一** —— 调用方 8/17/11 经 `EmitGrowth` 入口、主机统一 `Append`(承 ADR-005 主机权威);**载荷权威 = skill-system.md §3.2 规则二**,携**绝对 `level`**(30 原文 `Level`)而非 Δ —— ⚠️ 29 的 F-29-4 表格「携带 `ΔLevel`」系**派生量口径混写**:Δ = 相邻两条 `level` 之差,由 29 / 51 读流时自算,**不改 30 的载荷**(换算口径已在 `death-and-respawn.md` F-29-4 就地登记,冻结纪律:机制与数值零改动);`level` 仅升级事件携带 = 兑现 51 的 `AC-51-D2`;有界性 = **每完成一次成长动作 ≤ 1 条**,与帧率 / tick 相位无关(成长由动作结算触发,非逐帧);跨流全序键 `(Tick, StreamPriority, Patient, Seq)` 的 `Patient` 项 = `patient_id`(非世界级 —— 与 ADR-007 五支恒 `None` 不同);⚠️ **待裁(第二十七批登记,不代拍)**:7a F-7a-4 终态折叠行形状 `(onset, 病种_id, patient_id, patient_seed, outcome, t_end)`**不含非折叠 Kind** ⇒ 病人终态后其 `SkillGrown` 在折叠视图下消失,而 29 的 F-29-4 / AC-29-16 前提 = 本支**参与重放折叠且幸存**(等级永不被死亡夺走 ⇒ 折叠丢成长 = `Level(s)@t` 逐位重放的破口);折叠豁免 / 折叠行扩列归 7a × 29 × 30 三方裁决,已立 **`OQ-7a-9`**(persistence-service.md,2026-09-21 第二十七批);`OQ-11-11` 两面中 **(甲) Kind 契约面随本条闭合**(发出方 / 载荷 / 门控出处已登记);**(乙) ✅ 2026-10-06 已闭合** —— `OQ-11-13` 裁定 `K_difficulty` 由调用方推入(11 从自表 `drug_profile` 派生,不读 severity),`OQ-11-11` 同日由 30 侧登记 `EmitGrowth(actor, skill, object, novelty_hint, k_difficulty)` 完整签名(`skill-system.md` §3.1)⇒ `AC-11-16` 的契约债**三因全清**,其 `NOT-RUN` 剩余理由仅为**测试未跑**"
     added: 2026-09-21
-    revised: ""
+    revised: "2026-10-06"
 
   # ── 37 病例系统 · 同源检测（唯一整数旋钮）─────────────────────────────
   - name: PATTERN_THRESHOLD
