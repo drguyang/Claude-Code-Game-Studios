@@ -416,7 +416,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 | **item-database (21a)** | 12 | **12** | 0 | 0 | ✅ 全收口 |
 | camera-viewpoint (2) | 6 | **6** | 0 | 0 | ✅ 全收口(2026-10-03) |
 | casebook (39) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
-| case-system (37) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
+| case-system (37) | 4 | **4** | 0 | 0 | ✅ 全收口(2026-10-06) |
 | clinic-machine (24) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | combat-weapons (25) | 6 | **6** | 0 | 0 | ✅ 全收口 |
 | death-respawn (29) | 6 | 0 | 6 | 0 | ⬜ 未启动 |
