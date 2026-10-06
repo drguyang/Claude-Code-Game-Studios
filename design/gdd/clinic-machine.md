@@ -390,12 +390,12 @@ P0 若 42 未落地,医馆反馈走 23 的既有建造反馈路径(设施摆放�
 
 | # | 问题 | 状态 |
 |---|------|------|
-| **OQ-24-1** | `K_CONTEXT_MAX` **定值**(K_speed 上界) | **✅ 已裁 2026-09-25 数值轮**:`CONTEXT_TABLE.K_speed` 档集 = **{1, 7/8, 3/4}**(中性 / 一般工作 / 重操作;值域 (0,1] 合 AC-24-05)⇒ 派生 **`K_CONTEXT_MAX = max(·) = 1`**(F-24-3 表派生非手填)⇒ **零抬 1 的 `LATTICE_SIZE` 下界**(F-1-1a);手感微调归 playtest。⚠️ 表未落盘(OQ-24-3 内容轮待 23 家具目录),本行 = 档集级裁定 |
-| **OQ-24-2** | `TIER_MAX` / `EQUIP_MOD_CAP` / `ENV_MOD_MIN` / `ENV_MOD_MAX` 定值 | **✅ 已裁 2026-09-25 数值轮**:`TIER_MAX = 3` · `EQUIP_MOD_CAP = 1/4` · `ENV_MOD_MIN = −1/2` · `ENV_MOD_MAX = +1/2` —— 三个 Fix 值同批落 `assets/data/item_database_constants.json`(`TIER_MAX` 待 FURN_TABLE 内容轮落数)。**承重前提 `ENV_MOD_MIN < 0` 已登记 `O-24-4`** ✓。⚠️ 同轮强拍配套:21a `QTY_MULT_MAX = 2` + `SKILL/QUAL_MOD_CAP = 1/10` + 配方 `extract_salicylic` 输入 qty 1→2(AC-21a-9/8 两把锁) |
+| ~~**OQ-24-1**~~ | `K_CONTEXT_MAX` **定值**(K_speed 上界) | **✅ 已裁 2026-09-25 数值轮**:`CONTEXT_TABLE.K_speed` 档集 = **{1, 7/8, 3/4}**(中性 / 一般工作 / 重操作;值域 (0,1] 合 AC-24-05)⇒ 派生 **`K_CONTEXT_MAX = max(·) = 1`**(F-24-3 表派生非手填)⇒ **零抬 1 的 `LATTICE_SIZE` 下界**(F-1-1a);手感微调归 playtest。⚠️ 表未落盘(OQ-24-3 内容轮待 23 家具目录),本行 = 档集级裁定 |
+| ~~**OQ-24-2**~~ | `TIER_MAX` / `EQUIP_MOD_CAP` / `ENV_MOD_MIN` / `ENV_MOD_MAX` 定值 | **✅ 已裁 2026-09-25 数值轮**:`TIER_MAX = 3` · `EQUIP_MOD_CAP = 1/4` · `ENV_MOD_MIN = −1/2` · `ENV_MOD_MAX = +1/2` —— 三个 Fix 值同批落 `assets/data/item_database_constants.json`(`TIER_MAX` 待 FURN_TABLE 内容轮落数)。**承重前提 `ENV_MOD_MIN < 0` 已登记 `O-24-4`** ✓。⚠️ 同轮强拍配套:21a `QTY_MULT_MAX = 2` + `SKILL/QUAL_MOD_CAP = 1/10` + 配方 `extract_salicylic` 输入 qty 1→2(AC-21a-9/8 两把锁) |
 | **OQ-24-3** | `ROOM_TABLE` / `CONTEXT_TABLE` 的具体房间类型清单与判定谓词 | 内容层 —— 归 23 / 21a / 关卡内容的家具目录定稿后填;24 只定机制(规则二 / 三)。**谓词语言已定可含邻接子句**(2026-09-17 复核,规则二) |
 | **OQ-24-4** | P1a `ROOM_INTEROP` 的邻接矩阵语义(交叉污染强度) | 归 P1a(EC-24-06 / F-24-4 已留口,机制不重开) |
 | **OQ-24-5** | `n_max`(单房间格数上界)定值 | `*待定*` —— 归 6 / 24 调表同批核(`O-24-2`);F-24-1 int64 算术域论证 / F-24-2 int32 溢出的前置 |
-| **OQ-24-6** | `ADJ_TABLE` 的 `W_MIN` / `W_MAX` / `C_max` 定值 | **W 域 ✅ 已裁 2026-09-25 数值轮 = [−1/4, +1/4]**(硬约束 `W_MIN < 0 < W_MAX` 且 `|W_MIN| ≤ W_MAX` ✓;对称域装下 F-24-1 算例权重 +0.06/−0.18 且 Φ=1/4 使 int64 界最干净);`C_max` **维持待定**(随 `n_max`(OQ-24-5)与 `e_env` 内容轮,只定量级口径 C_max ≈ 1/n_max);`|W_MIN| ≤ W_max` 由烘焙门保证(`O-24-5`)。⚠️ 表未落盘(OQ-24-3),本行 = 域级裁定 |
+| ~~**OQ-24-6**~~ | `ADJ_TABLE` 的 `W_MIN` / `W_MAX` / `C_max` 定值 | **W 域 ✅ 已裁 2026-09-25 数值轮 = [−1/4, +1/4]**(硬约束 `W_MIN < 0 < W_MAX` 且 `|W_MIN| ≤ W_MAX` ✓;对称域装下 F-24-1 算例权重 +0.06/−0.18 且 Φ=1/4 使 int64 界最干净);`C_max` **维持待定**(随 `n_max`(OQ-24-5)与 `e_env` 内容轮,只定量级口径 C_max ≈ 1/n_max);`|W_MIN| ≤ W_max` 由烘焙门保证(`O-24-5`)。⚠️ 表未落盘(OQ-24-3),本行 = 域级裁定 |
 
 **已裁定闭合(不得重开,2026-09-17)**:
 1. P0 只做**单房间评分**(方案甲;`systems-index.md:575`)—— 跨房间 → P1a;
