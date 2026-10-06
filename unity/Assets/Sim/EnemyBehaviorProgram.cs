@@ -63,16 +63,20 @@ namespace DaYiJingCheng.Sim
                 throw new EnemyBehaviorValidationException(
                     $"TargetPolicy 不在闭集内: {row.TargetPolicy}", row.Id);
 
-            // R_VIS ≤ R_ALERT ≤ R_CHASE ≤ R_CONTACT
-            if (row.RVis > row.RAlert)
+            // R_CONTACT ≤ R_CHASE ≤ R_ALERT ≤ R_VIS(GDD F-27-1 关系式)
+            // ⚠️ 原稿把三条全部写反(R_VIS ≤ R_ALERT ≤ R_CHASE ≤ R_CONTACT),而测试与 fixture
+            //    一同验证了反向 ⇒ 三重自洽对一份 GDD。反方向不自洽:Alert 的进入条件是
+            //    `Visible ∧ d2 ≤ R_ALERT²`,而 `Visible ⟺ d2 ≤ R_VIS²`;若 R_ALERT > R_VIS,
+            //    存在 `d2 > R_VIS² ∧ d2 ≤ R_ALERT²` 的格 ⇒ 看不见却停下转头。
+            if (row.RContact > row.RChase)
                 throw new EnemyBehaviorValidationException(
-                    $"R_VIS ({row.RVis}) > R_ALERT ({row.RAlert})", row.Id);
-            if (row.RAlert > row.RChase)
+                    $"R_CONTACT ({row.RContact}) > R_CHASE ({row.RChase})", row.Id);
+            if (row.RChase > row.RAlert)
                 throw new EnemyBehaviorValidationException(
-                    $"R_ALERT ({row.RAlert}) > R_CHASE ({row.RChase})", row.Id);
-            if (row.RChase > row.RContact)
+                    $"R_CHASE ({row.RChase}) > R_ALERT ({row.RAlert})", row.Id);
+            if (row.RAlert > row.RVis)
                 throw new EnemyBehaviorValidationException(
-                    $"R_CHASE ({row.RChase}) > R_CONTACT ({row.RContact})", row.Id);
+                    $"R_ALERT ({row.RAlert}) > R_VIS ({row.RVis})", row.Id);
         }
 
         /// <summary>

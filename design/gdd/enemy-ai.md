@@ -497,10 +497,10 @@ Flank   := Chase ∧ flank_enabled ∧ (∃ ally ≠ e : ally.State = Engage)
 
 | 变量 | 类型 | 含义 | 安全范围 |
 |---|---|---|---|
-| `R_VIS` | `int` 格 | 视线半径(硬上限;超出即不可见) | ≥ `R_ALERT` |
-| `R_ALERT` | `int` 格 | 警戒半径 | `R_CHASE ≤ R_ALERT ≤ R_VIS` |
-| `R_CHASE` | `int` 格 | 追击半径 | ≥ `R_CONTACT` |
-| `R_CONTACT` | `int` 格 | 接触半径(进入 = 贴身) | ≥ 1 |
+| `R_VIS` | `int` 格 | 视线半径(硬上限;超出即不可见) | ≥ `R_ALERT`;✅ **= 12** |
+| `R_ALERT` | `int` 格 | 警戒半径 | `R_CHASE ≤ R_ALERT ≤ R_VIS`;✅ **= 8** |
+| `R_CHASE` | `int` 格 | 追击半径 | ≥ `R_CONTACT`;✅ **= 6** |
+| `R_CONTACT` | `int` 格 | 接触半径(进入 = 贴身) | ≥ 1;✅ **= 2** |
 
 **关系式(构建期断言)**:`R_CONTACT ≤ R_CHASE ≤ R_ALERT ≤ R_VIS` —— 四值**必须单调**。
 **破了会怎样**:非单调 ⇒ 存在「进了追击半径但仍在警戒半径外」的格,
@@ -1014,8 +1014,10 @@ OCTILE := STEP_COST × (m3 + (D2·m2)/1024 + (D1·m1)/1024)     // 全整数,禁
 
 ## Tuning Knobs
 
-> **定值归用户**(硬约束)。本表只给**安全范围**与**破了会怎样** ——
-> 「安全范围」是**构建期断言**,不是建议;超出即 `throw`(与 24 的 B3 / B6 同纪律)。
+> **⚠️ 2026-10-06 口径订正**:本节原先通篇写「定值归用户」。经用户当日明确授权
+> (**「图形旋钮归你、数字归我这个约定作废,都可以归你!」**),数值轮的**定值权已移交**;
+> 下表「默认」列现按 **[旋钮 = 值]** 落定并逐行标注日期,值仍可调(数据驱动,改 JSON 即改值)。
+> 安全范围与「破了会怎样」的**判据不变** —— 「安全范围」是**构建期断言**,不是建议;超出即 `throw`(与 24 的 B3 / B6 同纪律)。
 
 ### 一、感知半径(F-27-1)—— `OQ-27-1`
 
@@ -1025,6 +1027,17 @@ OCTILE := STEP_COST × (m3 + (D2·m2)/1024 + (D1·m1)/1024)     // 全整数,禁
 | `R_ALERT` | `int` 格 | `[R_CHASE, R_VIS]` | 警戒半径(停下转头) | < `R_CHASE` ⇒ `Chase` 不可达,敌人永不追 |
 | `R_CHASE` | `int` 格 | `[R_CONTACT, R_ALERT]` | 追击半径 | < `R_CONTACT` ⇒ `Engage` 不可达,贴身却不打 |
 | `R_CONTACT` | `int` 格 | ≥ 1 | 贴身半径 | 0 ⇒ 永不 `Engage` |
+
+> ✅ **2026-10-06 数值轮定值(`OQ-27-1` 结案 —— 代拍,值可调)**:`R_VIS = 12` · `R_ALERT = 8` ·
+> `R_CHASE = 6` · `R_CONTACT = 2`(格)。单调 `12 ≥ 8 ≥ 6 ≥ 2` ✓;
+> **25 侧 A24 联动**:徒手 `RANGE_CELLS = 1 ≤ R_CONTACT = 2` ✓;`RANGE ≪ R_CONTACT` 成立 ⇒ 属**告警登记**
+> 方向(贴到 2 格内才打),非硬失败。
+> **⚠️ 同批订正一处代码反向断言**:`EnemyBehaviorProgram.Validate` 原把三条单调写成
+> `R_VIS ≤ R_ALERT ≤ R_CHASE ≤ R_CONTACT`(**与本节关系式完全相反**),配合同向的 fixture 与
+> 三条 throws 测试 ⇒ **三重自洽对一份 GDD**,旧 fixture(2/5/8/10)在本节属下**非法**却全绿。
+> 反方向不只在数值上相反,它还**不自洽**:`Alert` 的进入条件是 `Visible ∧ d2 ≤ R_ALERT²`,
+> 而 `Visible ⟺ d2 ≤ R_VIS²`;`R_ALERT > R_VIS` 时存在「看不见却停下转头」的格。
+> 已改代码为 `R_CONTACT ≤ R_CHASE ≤ R_ALERT ≤ R_VIS` 并重写三条测试与感知 fixture。
 
 > **四值同调**:改任意一个都可能破单调;**烘焙器对每个参数行独立校验**。
 > 调大 `R_VIS` 而不同调 `R_ALERT` 是**最常见的作者错误** —— 断言会当场拦下。
@@ -1065,6 +1078,17 @@ OCTILE := STEP_COST × (m3 + (D2·m2)/1024 + (D1·m1)/1024)     // 全整数,禁
 > 但它**抹掉了兵痞与野兽的核心差异**。故在 §Edge Cases 之外单列此注 ——
 > 它是**内容设计决策**伪装成的一个系数。
 
+> ✅ **2026-10-06 定值(代拍,值可调)** —— 全部写成 `Fix` 分数:
+> `MORALE_MIN = −1/2` · `MORALE_MAX = 1` · `MORALE_BASE = 3/5` · `MORALE_BREAK = 1/5` ·
+> `MORALE_K = 1/4` · `w_hurt = w_peer = w_threat[*] = 1/4` · **`HURT_LEVEL_MAX = 4`**(int 档)。
+> 约束核验:`MIN(−1/2) < 0 < MAX(1)` ✓;`BREAK(1/5) < BASE(3/5)` ✓(不开局即逃);
+> 四个 `w_*` 全 `> 0` ✓(抹掉任何一个即触发上面那条「沉默的平衡选择」);
+> `HURT_LEVEL_MAX = 4 ≥ 1` ✓。
+> **设计意图**(供事后调整时参照):单敌 `w_threat = 1/4` 使三名持械者即可把士气从 `BASE` 推到
+> `BREAK` 附近;`w_hurt` 同权使「打到它痛」与「人多」等价;
+> `w_peer` 同权使**孤身与成群的主要差别在 flank 而非士气** —— 与规则十一「可脱离是承重约束」一致
+> (敌人**可**被士气打退,但退出门从来不是唯一出口)。
+
 ### 三、移动与步进(F-27-4)—— `OQ-27-3`
 
 | 旋钮 | 类型 | 安全范围 | 影响了什么 | 破了会怎样 |
@@ -1085,6 +1109,13 @@ OCTILE := STEP_COST × (m3 + (D2·m2)/1024 + (D1·m1)/1024)     // 全整数,禁
 | `DECIDE_PERIOD_FAR` | `int` tick | ≥ `DECIDE_PERIOD_NEAR` | 远距决策周期 | < NEAR ⇒ 远处比近处**更灵敏**(反直觉,且违背 LOD 初衷) |
 | `DECIDE_RADIUS` | `int` 格 | ≥ `R_ALERT` | 冻结半径 | < `R_ALERT` ⇒ 警戒态敌人永不决策(EC-27-03) |
 
+> ✅ **2026-10-06 定值(代拍,值可调)**:`DECIDE_PERIOD_NEAR = 10` · `DECIDE_PERIOD_FAR = 40` ·
+> `DECIDE_RADIUS = 10`(格)。`FAR(40) ≥ NEAR(10)` ✓;`DECIDE_RADIUS(10) ≥ R_ALERT(8)` ✓
+> (承 `OQ-27-1` 同批定值;`≤ R_VIS(12)` 是刻意的 —— 冻结半径不必超出可见上限)。
+> 20 Hz 下 NEAR = 10 tick = **0.5 s**(战斗中每半秒重决策),FAR = 40 tick = **2 s**。
+> ⚠️ **`OQ-27-4` 的「与 13 的 `BEHAVIOR` LOD 同口径」半边仍未结** —— 13 侧 `BEHAVIOR_BAND_*`
+> 阈值归 `patient-ai.md` 自己的数值轮,本轮只定 27 侧三个量;两套 LOD 同口径的核对照旧待 13 侧。
+
 > **本组须与 13 的 `BEHAVIOR` LOD 同批核**(`patient-ai.md` §Tuning Knobs 二)。
 > 13 与 27 **共享同一套 LOD 基础设施**(ADR-016 合并裁决)——
 > 两套 LOD 参数**不必相同,但必须同一口径**,否则「共享基础设施」变成两套实现。
@@ -1101,6 +1132,21 @@ OCTILE := STEP_COST × (m3 + (D2·m2)/1024 + (D1·m1)/1024)     // 全整数,禁
 > 若实现者给 `Engage → Chase` 与 `Disengage → 结束` 各写一个常量,
 > 就会出现「脱离接触 3 tick 后敌人退出 `Engage`,但 5 tick 后才真的开始退」
 > 这类**玩家可感知的迟滞**。**单一定义、两处引用**(门分裂教训的同型防御)。
+
+> ✅ **2026-10-06 定值(代拍,值可调)** —— `DISENGAGE_DELAY = 40` · `PATH_FAIL_GRACE = 60` ·
+> `REPLAN_PERIOD = 40`(tick,20 Hz ⇒ 分别 = 2 s / 3 s / 2 s)。
+> `40 ≥ 1` ✓;**`DISENGAGE_DELAY(40) < ENCOUNTER_TIMEOUT(=200)` 同批定值**,避开
+> `OQ-27-7` 的「超时 / 脱离」两路径竞态;`PATH_FAIL_GRACE(60) > DISENGAGE_DELAY(40)` ——
+> 被围死时敌人先尝试重规划(最多 60 tick),而非 40 tick 就凭空消失。
+
+> ✅ **2026-10-06 定值(计时器组,代拍,值可调)** —— `ALERT_TIMEOUT = 60` · `CHASE_TIMEOUT = 120` ·
+> `FLANK_TIMEOUT = 200` · **`ENCOUNTER_TIMEOUT = 200`**(tick;分别 = 3 s / 6 s / 10 s / 10 s)。
+> `FLANK(200) ≥ CHASE(120)` ✓(包抄至少有一次机会);**`ENCOUNTER_TIMEOUT(200) > DISENGAGE_DELAY(40)`** ✓
+> (未接战遭遇的「超时 / 脱离」两条路径不竞态);`ALERT(60) < CHASE(120)` —— 张望比追失更短,
+> 与「停下来确认一下」的语义一致。
+> ⚠️ **`NODE_BUDGET` / `STEP_COST` 本轮不定** —— 二者有**正确性面**(`NODE_BUDGET` 太小 =
+> `AC-52-16` **假阳性**),`OQ-27-7` 自陈「半规格、不能推迟到调参轮」,须与 `O-27-7` 的
+> 烘焙校验同批标定;值本身归手测 A* 开销后定,不代拍。
 
 ### 五之二、A* 预算与启发式(F-27-7)—— `OQ-27-7`
 
@@ -1497,17 +1543,17 @@ EnemySignalDto  (呈现层,整数语义,无指针 / 无 float / 无 Unity 引用
 
 ## Open Questions
 
-### 一、待解(**7 条 → 6 条**:2026-09-17 `OQ-27-3` 耦合解除,余者归数值轮)
+### 一、待解(**7 条 → 2 条**:2026-09-17 `OQ-27-3` 耦合解除;2026-10-06 数值轮结案 `OQ-27-1/2/4/5`,半结 `OQ-27-7`)
 
 | # | 问题 | 归属 | 阻塞? |
 |---|---|---|---|
-| **`OQ-27-1`** | `R_VIS` / `R_ALERT` / `R_CHASE` / `R_CONTACT` 的**定值**(须同调,单调) | 用户 | 不阻塞设计,阻塞手感验收 |
-| **`OQ-27-2`** | 士气组的定值(`MORALE_BASE` / `BREAK` / `w_*` / `MIN` / `MAX` / `MORALE_K` / `HURT_LEVEL_MAX`) | 用户 | 同上 |
-| ~~**`OQ-27-3`**~~ | `ENEMY_SPEED` / `ENEMY_SPEED_MAX` —— **须与 1 的 `SPEED_*` 及 25 的武器线同批核** | 用户 + 25 | ✅ **2026-09-17 解除与 `O-27-3` 的耦合**(25 已落盘;档位折叠归 9,见 §一① 订正)—— 余「与 1 的速度同批核」仍待数值轮 |
-| **`OQ-27-4`** | `DECIDE_PERIOD_NEAR` / `FAR` / `DECIDE_RADIUS` —— 须与 13 的 `BEHAVIOR` LOD 同口径 | 用户 + 13 | 不阻塞 |
-| **`OQ-27-5`** | `DISENGAGE_DELAY` / `PATH_FAIL_GRACE` / `REPLAN_PERIOD` 的定值(**`DISENGAGE_DELAY` 单一出处、两处引用**) | 用户 | 不阻塞 |
+| ~~**`OQ-27-1`**~~ | ✅ **已裁 2026-10-06(代拍,值可调)** = `R_VIS=12` · `R_ALERT=8` · `R_CHASE=6` · `R_CONTACT=2`(单调 ✓;25 侧 A24 联动满足)。**同批订正一处代码反向断言**(`EnemyBehaviorProgram.Validate` 原写 `R_VIS ≤ R_ALERT ≤ R_CHASE ≤ R_CONTACT`,与 F-27-1 关系式相反,配合同向 fixture + 三条 throws ⇒ 假绿) | 用户(**已裁**) | ✅ 已裁 |
+| ~~**`OQ-27-2`**~~ | ✅ **已裁 2026-10-06(代拍,值可调)** = `MIN=−1/2` · `MAX=1` · `BASE=3/5` · `BREAK=1/5` · `K=1/4` · `w_hurt=w_peer=w_threat[*]=1/4` · `HURT_LEVEL_MAX=4`(四条约束全过) | 用户(**已裁**) | ✅ 已裁 |
+| **`OQ-27-3`** 🔶 | `ENEMY_SPEED` / `ENEMY_SPEED_MAX` —— **须与 1 的 `SPEED_*` 及 25 的武器线同批核** | 用户 + 25 | ✅ **2026-09-17 解除与 `O-27-3` 的耦合**(25 已落盘;档位折叠归 9,见 §一① 订正);🔶 **2026-10-06 复核:原行把 ID 打成 `~~` 属提前结案** —— 「与 1 的 `SPEED_WALK` 同批核」仍是开放半(`SPEED_WALK` 本身仍未定值,`OQ-1-10` 只裁了形状),**故恢复 ID 不加划除** |
+| ~~**`OQ-27-4`**~~ | 🔶 **半裁 2026-10-06** —— 27 侧三值已裁(`NEAR=10` · `FAR=40` · `DECIDE_RADIUS=10`);**「与 13 的 `BEHAVIOR` LOD 同口径」半边仍开**(13 侧 `BEHAVIOR_BAND_*` 归它自己的数值轮) | 用户 + 13 | 27 侧 ✅ / 同口径核对待 13 |
+| ~~**`OQ-27-5`**~~ | ✅ **已裁 2026-10-06(代拍,值可调)** = `DISENGAGE_DELAY=40` · `PATH_FAIL_GRACE=60` · `REPLAN_PERIOD=40`(tick;`GRACE > DELAY` 刻意) | 用户(**已裁**) | ✅ 已裁 |
 | **`OQ-27-6`** | **无障碍需求的成文**(与 13 的 `OQ-13-4` 同一缺口)—— 27 侧的具体义务 | 与 42 / 44 联合 | 不阻塞 P0 实现,F1a 前 |
-| **`OQ-27-7`** | **计时器 / 搜索预算组**(`ALERT_TIMEOUT` / `CHASE_TIMEOUT` / `FLANK_TIMEOUT` / **`ENCOUNTER_TIMEOUT`** / `NODE_BUDGET` / `STEP_COST`)—— **须同批标定**:`FLANK_TIMEOUT ≥ CHASE_TIMEOUT`(否则包抄永无结果);**`ENCOUNTER_TIMEOUT > DISENGAGE_DELAY`**(否则未接战遭遇的「超时 / 脱离」两路径竞态);`NODE_BUDGET` 太小 ⇒ **假阳性失败**(AC-27-21);`STEP_COST` 与 6 的导航格「代价」字段的调和见 `O-27-9` | 用户 + 6 | ⚠️ **`NODE_BUDGET` 须在写 A* 之前有量级**;**`ENCOUNTER_TIMEOUT` 须在写遭遇生命周期(规则二十之二)之前有量级**;其余不阻塞 |
+| **`OQ-27-7`** | 🔶 **半裁 2026-10-06** —— 计时器四值已裁(`ALERT=60` · `CHASE=120` · `FLANK=200` · **`ENCOUNTER_TIMEOUT=200`**;`FLANK ≥ CHASE` ✓ · `ENCOUNTER(200) > DISENGAGE_DELAY(40)` ✓);**`NODE_BUDGET` / `STEP_COST` 未裁** —— 二者有正确性面(`NODE_BUDGET` 太小 = `AC-52-16` 假阳性),须与 `O-27-7` 的烘焙校验、6 的导航格「代价」字段(`O-27-9`)同批标定 | 用户 + 6 | ⚠️ **`NODE_BUDGET` 须在写 A\* 之前有量级**;其余 ✅ |
 
 > **本组与前六条的区别**:`OQ-27-1…6` 多数是**手感数值**(标定晚了只影响调参);
 > **`OQ-27-7` 是半规格** —— `NODE_BUDGET` / `FLANK_TIMEOUT` 有**正确性面**

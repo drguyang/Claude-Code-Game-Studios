@@ -80,6 +80,8 @@
 
 **Story Type**: Integration
 **Required evidence**: `tests/integration/patient-ai/reconstruction_and_write_path_test.cs` + CI 矩阵产物链接(EXTERNAL 项)+ `production/qa/evidence/patient-ai/story-004-readability-walkthrough.md`([L] 项) — must exist and pass / SIGN-OFF
+
+> **✅ 2026-10-07 修一处假红**:`FindRepoRoot()` 原把【本机绝对路径】`/home/gu/文档/nm/nm2/…` 写死,> 故只有桌面机的检出能跑通,超算 / CI / 任何其他克隆一律 > `DirectoryNotFoundException`(`test_ac13assembly_patientAiRefSetWhitelist_catchesForbiddenRef_negativeFixture` 红)。> 改用 `[CallerFilePath]` 相对求解(与 `InputSystem.AxisProcessingTest` 同一手法);37 项 35 过 2 跳过(2 跳过 = > `AC-13-CrossPlatform` EXTERNAL 与 `AC-13-V8` BLOCKED-BY-45,均既有登记)。
 **Status**: [ ] Not yet created
 
 ---

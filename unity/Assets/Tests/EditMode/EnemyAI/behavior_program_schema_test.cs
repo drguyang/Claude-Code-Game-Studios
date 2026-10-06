@@ -31,10 +31,10 @@ namespace DaYiJingCheng.Tests.EnemyAI
                 TargetPolicy = "LowestVitality",
                 DefaultAttack = 0,
                 Speed = new Fix(5000),
-                RVis = 2,
-                RAlert = 5,
-                RChase = 8,
-                RContact = 10
+                RVis = 12,
+                RAlert = 8,
+                RChase = 6,
+                RContact = 2
             };
         }
 
@@ -53,30 +53,30 @@ namespace DaYiJingCheng.Tests.EnemyAI
             Assert.Throws<EnemyBehaviorValidationException>(() => EnemyBehaviorSchema.Validate(_validRow));
         }
 
-        // AC-27-10: R_VIS ≤ R_ALERT
+        // AC-27-10: R_ALERT ≤ R_VIS(反向断言,2026-10-06 订正 —— 原三条全写反)
         [Test]
-        public void test_rVisGreaterThanRAlert_throws()
-        {
-            _validRow.RVis = 10;
-            _validRow.RAlert = 5;
-            Assert.Throws<EnemyBehaviorValidationException>(() => EnemyBehaviorSchema.Validate(_validRow));
-        }
-
-        // AC-27-10: R_ALERT ≤ R_CHASE
-        [Test]
-        public void test_rAlertGreaterThanRChase_throws()
+        public void test_rAlertGreaterThanRVis_throws()
         {
             _validRow.RAlert = 15;
-            _validRow.RChase = 10;
+            _validRow.RVis = 10;
             Assert.Throws<EnemyBehaviorValidationException>(() => EnemyBehaviorSchema.Validate(_validRow));
         }
 
-        // AC-27-10: R_CHASE ≤ R_CONTACT
+        // AC-27-10: R_CHASE ≤ R_ALERT
         [Test]
-        public void test_rChaseGreaterThanRContact_throws()
+        public void test_rChaseGreaterThanRAlert_throws()
         {
-            _validRow.RChase = 5;
-            _validRow.RContact = 2;
+            _validRow.RChase = 15;
+            _validRow.RAlert = 10;
+            Assert.Throws<EnemyBehaviorValidationException>(() => EnemyBehaviorSchema.Validate(_validRow));
+        }
+
+        // AC-27-10: R_CONTACT ≤ R_CHASE
+        [Test]
+        public void test_rContactGreaterThanRChase_throws()
+        {
+            _validRow.RContact = 5;
+            _validRow.RChase = 2;
             Assert.Throws<EnemyBehaviorValidationException>(() => EnemyBehaviorSchema.Validate(_validRow));
         }
 

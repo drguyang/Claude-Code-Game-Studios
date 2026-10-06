@@ -24,6 +24,7 @@
 - Required: `Band` 求值顺序 = Patrol → Alert → Chase **自上而下首个为真**(互斥,`ChaseReady` 把 Chase 从 Alert 摘出);`Chase` 进入条件含**承重的 `Visible` 项**(`PathExists` 只保证有路不保证看得见);`Target(e)` 决胜键 = lowest actor_id(**规则不是实现细节**)
 - Forbidden: `sqrt` / `Mathf` / `Physics.Raycast` / NavMesh 采样 / `Transform.position` / 从动画或输入推断玩家状态(粗枚举必取 sim 真值)
 - Guardrail: 构建期断言 `R_CONTACT ≤ R_CHASE ≤ R_ALERT ≤ R_VIS` 单调 + 世界量程 `3×(2W)² < 2^63`(断言对象是 `W` 不是 `R_VIS` —— 原稿写反已订正,EC-27-01/24);输入类型反射白名单正面断言
+- [x] **✅ 2026-10-07 订正一处假绿(与 `OQ-27-1` 数值轮同批发现)**:`EnemyBehaviorProgram.Validate` 把本 guardrail 的三条比较**全部写反**(`R_VIS ≤ R_ALERT ≤ R_CHASE ≤ R_CONTACT`),而 `behavior_program_schema_test` 的 fixture(`2/5/8/10`)与三条 `_throws` 测试**同向验证反向** ⇒ 11 个测试全绿却守着一套与 GDD 相反的语义。**反方向不自洽**:`Alert` 的进入条件是 `Visible ∧ d2 ≤ R_ALERT²` 而 `Visible ⟺ d2 ≤ R_VIS²`,`R_ALERT > R_VIS` 时存在「看不见却停下转头」的格。已改代码为 guardrail 方向、重写三条测试(改名 `test_rAlertGreaterThanRVis_throws` 等)、fixture 换成定值 `12/8/6/2`;`perception_and_targeting_test` 的 `EvaluateBand` 造参同步换成满足单调的 `(12, 8, 6)`(原 `(5, 8, 3)` 在 GDD 属下非法)。Reg测试 = 同上 11 项 + 45 项 EnemyAI 全绿
 
 ---
 

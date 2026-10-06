@@ -892,13 +892,19 @@ namespace DaYiJingCheng.Tests.PatientAI
                      ns.StartsWith("NUnit.", StringComparison.Ordinal));
         }
 
-        private static string FindRepoRoot()
+        /// <summary>
+        /// 仓库根。⚠️ 2026-10-07 订正:原实现把【本机绝对路径】写死
+        /// (`/home/gu/文档/…`),故只有桌面机的检出能跑,超算 / CI / 任何其他克隆
+        /// 一律 <see cref="System.IO.DirectoryNotFoundException"/> ⇒ 假红。改用
+        /// <c>[CallerFilePath]</c> 相对求解(与 <c>InputSystem.AxisProcessingTest</c> 同一手法)。
+        /// </summary>
+        private static string FindRepoRoot([System.Runtime.CompilerServices.CallerFilePath] string callerPath = "")
         {
-            // ⚠️ 从仓库根开始搜索(不是从 AppDomain.BaseDirectory,那可能在 unity/ 下)
-            var dir = new System.IO.DirectoryInfo("/home/gu/文档/nm/nm2/Claude-Code-Game-Studios");
+            var dir = new System.IO.DirectoryInfo(
+                System.IO.Path.GetDirectoryName(callerPath) ?? System.IO.Path.GetTempPath());
             while (dir != null && !System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "CLAUDE.md")))
                 dir = dir.Parent;
-            return dir?.FullName ?? "/home/gu/文档/nm/nm2/Claude-Code-Game-Studios";
+            return dir?.FullName ?? string.Empty;
         }
 
         // ═══════════════════════════════════════════════════════════

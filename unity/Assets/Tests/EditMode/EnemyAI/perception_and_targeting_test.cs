@@ -21,18 +21,21 @@ namespace DaYiJingCheng.Tests.EnemyAI
         [Test]
         public void test_bandMutuallyExclusive()
         {
-            // R_CHASE=3 < R_ALERT=6 配置
-            // d2=20 → Alert (不是 Chase)
-            var band = EnemyPerception.EvaluateBand(20, true, true, 5, 8, 3);
-            Assert.AreEqual(Band.Alert, band, "d2=20 应判 Alert");
+            // 2026-10-06 OQ-27-1 定值:R_VIS=12 ≥ R_ALERT=8 ≥ R_CHASE=6 ≥ R_CONTACT=2
+            // ⚠️ 原配置 (5, 8, 3) 违反该单调性(R_ALERT 8 > R_VIS 5)—— 与同一轮订正的
+            //    EnemyBehaviorProgram 反向断言同源;互斥性质测试必须在**合法**半径组上跑,
+            //    否则它证明的是另一套语义的互斥性。
+            // d2=40 → Alert(40 > 36=R_CHASE², 40 ≤ 64=R_ALERT²)
+            var band = EnemyPerception.EvaluateBand(40, true, true, 12, 8, 6);
+            Assert.AreEqual(Band.Alert, band, "d2=40 应判 Alert");
 
             // d2=4 → Chase
-            var band2 = EnemyPerception.EvaluateBand(4, true, true, 5, 8, 3);
+            var band2 = EnemyPerception.EvaluateBand(4, true, true, 12, 8, 6);
             Assert.AreEqual(Band.Chase, band2, "d2=4 应判 Chase");
 
-            // d2=36 → Alert (36 > 25=R_VIS², 36 ≤ 64=R_ALERT²)
-            var band3 = EnemyPerception.EvaluateBand(36, false, false, 5, 8, 3);
-            Assert.AreEqual(Band.Alert, band3, "d2=36 应判 Alert");
+            // d2=100 → Patrol(100 > 64=R_ALERT²,100 ≤ 144=R_VIS²:看得见但未警戒)
+            var band3 = EnemyPerception.EvaluateBand(100, false, false, 12, 8, 6);
+            Assert.AreEqual(Band.Patrol, band3, "d2=100 应判 Patrol");
         }
 
         // AC-27-03: Visible 承重
@@ -40,7 +43,7 @@ namespace DaYiJingCheng.Tests.EnemyAI
         public void test_visibleRequiredForChase()
         {
             // 不可见时不应进入 Chase
-            var band = EnemyPerception.EvaluateBand(4, false, true, 5, 8, 3);
+            var band = EnemyPerception.EvaluateBand(4, false, true, 12, 8, 6);
             Assert.AreNotEqual(Band.Chase, band, "不可见时不应进入 Chase");
         }
 
