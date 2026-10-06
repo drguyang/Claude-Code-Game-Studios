@@ -52,9 +52,17 @@ namespace DaYiJingCheng.EditorTools.Bake
             public readonly int MaxDoseDetents;
             public readonly uint SchemaVersion;
 
-            public BindResult(List<PrescriptionActionRow> rows, int doseBase, int maxDoseDetents, uint schemaVersion)
+            /// <summary>烘焙期派生常量 `single_dose_max`(raw Q16.16;AC-11-09 —— **零手填**)。
+            /// <para>= max over(全部药 × `dose_range.hi`) of |`dose_potency`|,
+            /// 由 <see cref="PrescriptionDerivedBaker"/> 在绑定末尾派生;
+            /// 供 9 的 F1 clamp 上界 `MAX_ACTIVE_DOSE × single_dose_max` 消费。</para></summary>
+            public readonly long SingleDoseMaxRaw;
+
+            public BindResult(List<PrescriptionActionRow> rows, int doseBase, int maxDoseDetents,
+                              uint schemaVersion, long singleDoseMaxRaw)
             {
-                Rows = rows; DoseBase = doseBase; MaxDoseDetents = maxDoseDetents; SchemaVersion = schemaVersion;
+                Rows = rows; DoseBase = doseBase; MaxDoseDetents = maxDoseDetents;
+                SchemaVersion = schemaVersion; SingleDoseMaxRaw = singleDoseMaxRaw;
             }
         }
 
@@ -230,7 +238,12 @@ namespace DaYiJingCheng.EditorTools.Bake
             if (errors.Count > 0)
                 throw new BakeValidationException(errors);
 
-            return new BindResult(rows, doseBase, maxDoseDetents, schemaVersion);
+            // ── AC-11-09:single_dose_max 烘焙期派生(零手填;唯一派生点 = PrescriptionDerivedBaker)──
+            //    改任一源字段(drug_potency / dose_range / DOSE_BASE)⇒ 派生值自动重算,
+            //    并随 ConfigVersion(源内容哈希)一起变 —— 测试据此判「联动」。
+            long singleDoseMaxRaw = PrescriptionDerivedBaker.DeriveSingleDoseMaxRaw(itemsRoot, doseBase);
+
+            return new BindResult(rows, doseBase, maxDoseDetents, schemaVersion, singleDoseMaxRaw);
         }
 
         // ── 处方表行集 ────────────────────────────────────────────────────

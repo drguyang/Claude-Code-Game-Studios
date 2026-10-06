@@ -180,6 +180,107 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             Assert.AreEqual(result1.ConfigVersion, result2.ConfigVersion, "烘焙确定性:同源两次 ConfigVersion 不等");
         }
 
+        // ── AC-11-09:single_dose_max 烘焙期派生(零手填 + 联动)────────────────
+
+        [Test]
+        public void test_singleDoseMax_derivedNotHandFilled()
+        {
+            // ⚠️ 补做评审 B1:AC-11-09 原稿**全库零实现零测试**。本组补上。
+            // 判据 ①:派生值 = max over(全部药 × dose_range.hi) of |dose_potency| ——
+            // 由生产派生器给出,且**与手算一致**(证明它真的是从数据算出来的,不是常量)。
+            string actionsJson = ReadActionsJson();
+            string lexiconJson = ReadLexiconJson();
+            string itemsJson = ReadItemsJson();
+
+            long derived = PrescriptionActionsBinderProbe.SingleDoseMaxRawOf(actionsJson, lexiconJson, itemsJson);
+
+            // 独立复算(测试侧重算 = 对拍,不是重实现 —— 用的是同一 F-11.1 生产件):
+            // 当前数据集只有 salicylic_acid 带 drug_profile(dose_range = null ⇒ 整剂路径)
+            // ⇒ single_dose_max = |drug_potency| = |1/2| = 32768 raw。
+            Assert.AreEqual(32768L, derived,
+                "single_dose_max 与独立复算不符 ⇒ 派生器读错了源或公式不是 max|dose_potency|");
+        }
+
+        [Test]
+        public void test_singleDoseMax_tracksDoseRangeHiChange()
+        {
+            // 判据 ②(AC-11-09「改任一源字段 ⇒ 派生值自动重算」):
+            // 把同一味药的 dose_range 从 null 改成 [1, 4] ⇒ 派生值须随之走 F-11.1 除式。
+            // 夹具 DOSE_BASE = 65536(= 1.0 Q16.16),potency = 1/2(raw 32768):
+            //   hi 档 dose_potency = ROUND_HALF_AWAY(32768 × 4 / 65536) = ROUND(2.0) = 2 raw。
+            // 空 dose_range ⇒ 整剂旁路 ⇒ dose_potency = drug_potency = 32768 raw。
+            // 两者**相差三个数量级** ⇒ 本测对「派生器真读了 dose_range」有强判别力。
+            string actionsJson = ReadActionsJson();
+            string lexiconJson = ReadLexiconJson();
+
+            string itemsWithRange = @"{
+              ""schema_version"": 1,
+              ""items"": [
+                { ""base_id"": ""salicylic_acid"", ""category"": ""drug"",
+                  ""drug_profile"": { ""drug_potency"": ""1/2"", ""dose_range"": [1, 4] } }
+              ]
+            }";
+            string itemsNoRange = @"{
+              ""schema_version"": 1,
+              ""items"": [
+                { ""base_id"": ""salicylic_acid"", ""category"": ""drug"",
+                  ""drug_profile"": { ""drug_potency"": ""1/2"", ""dose_range"": null } }
+              ]
+            }";
+
+            long withRange = PrescriptionActionsBinderProbe.SingleDoseMaxRawOf(actionsJson, lexiconJson, itemsWithRange);
+            long noRange = PrescriptionActionsBinderProbe.SingleDoseMaxRawOf(actionsJson, lexiconJson, itemsNoRange);
+
+            Assert.AreEqual(2L, withRange, "dose_range = [1,4] 时派生值未按 F-11.1 随 hi 重算");
+            Assert.AreEqual(32768L, noRange, "空 dose_range 应走整剂路径(dose_potency = drug_potency)");
+            Assert.AreNotEqual(withRange, noRange, "改 dose_range 后派生值不变 ⇒ 派生器读的是常量,不是数据");
+        }
+
+        [Test]
+        public void test_singleDoseMax_configVersionTracksSourceChange()
+        {
+            // 判据 ③(AC-11-09「哈希进 ConfigVersion」):
+            // 源文本变 ⇒ ConfigVersion 变。⚠️ 哈希命名键与生产 BakeFromRepo 逐字同源
+            // (仅 actions + lexicon 两键 —— 生产侧是否纳入 items 归 story-001 的域,
+            //  本测只证**已纳入的那部分**确实随内容变,不谎称覆盖 items)。
+            string actionsJson = ReadActionsJson();
+            string lexiconJson = ReadLexiconJson();
+
+            uint baseline = PrescriptionActionsBinderProbe.ConfigVersionOf(actionsJson, lexiconJson);
+
+            string changedActions = actionsJson.Replace("\"MAX_DOSE_DETENTS\": 5", "\"MAX_DOSE_DETENTS\": 6");
+            Assert.AreNotEqual(actionsJson, changedActions, "夹具替换未生效 ⇒ 本测真空");
+            uint afterChange = PrescriptionActionsBinderProbe.ConfigVersionOf(changedActions, lexiconJson);
+
+            Assert.AreNotEqual(baseline, afterChange,
+                "源内容变了而 ConfigVersion 未变 ⇒ 内容哈希派生失效(AC-11-09 的联动半边)");
+        }
+
+        [Test]
+        public void test_singleDoseMax_noPotencyDrug_throws()
+        {
+            // 判据 ④(零手填的负向面):药行在而 drug_potency 缺 ⇒ 硬失败,不静默填 0。
+            // (静默 0 会让 9 的 F1 clamp 上界退化为 0 ⇒ 全药效被截断,是**静默**数据错误。)
+            string actionsJson = ReadActionsJson();
+            string lexiconJson = ReadLexiconJson();
+            string badItems = @"{
+              ""schema_version"": 1,
+              ""items"": [
+                { ""base_id"": ""salicylic_acid"", ""category"": ""drug"", ""drug_profile"": {} }
+              ]
+            }";
+
+            var ex = RecordException(() =>
+                PrescriptionActionsBinderProbe.SingleDoseMaxRawOf(actionsJson, lexiconJson, badItems));
+
+            Assert.IsNotNull(ex, "药行缺 drug_potency 应硬失败,实际静默通过(派生值会退化为 0)");
+            bool mentionsPotency = false;
+            foreach (string e in ex.Errors)
+                if (e.Contains("drug_potency")) { mentionsPotency = true; break; }
+            Assert.IsTrue(mentionsPotency,
+                $"错误消息未点出 drug_potency: {string.Join("; ", ex.Errors)}");
+        }
+
         // ── 负夹具:DC-1 外键违反 ───────────────────────────────────────────
 
         [Test]

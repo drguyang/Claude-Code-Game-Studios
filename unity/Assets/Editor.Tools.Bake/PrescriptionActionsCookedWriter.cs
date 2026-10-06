@@ -7,8 +7,9 @@
 // ⚠️ 载荷布局:
 //    [0..3]   DOSE_BASE (i32)
 //    [4..7]   MAX_DOSE_DETENTS (i32)
-//    [8..11]  row_count (i32)
-//    [12..]   逐行:item_key (i32 len + UTF-8) + action_id (i32) + polarity (i32 len + UTF-8)
+//    [8..15]  single_dose_max (i64 raw Q16.16;AC-11-09 烘焙期派生,零手填)
+//    [16..19] row_count (i32)
+//    [20..]   逐行:item_key (i32 len + UTF-8) + action_id (i32) + polarity (i32 len + UTF-8)
 
 using System.Collections.Generic;
 using System.IO;
@@ -24,13 +25,14 @@ namespace DaYiJingCheng.EditorTools.Bake
     {
         /// <summary>编码处方表行集(含 20 字节头)。</summary>
         public static byte[] Write(IReadOnlyList<PrescriptionActionRow> rows, uint schemaVersion, uint configVersion,
-                                   int doseBase, int maxDoseDetents)
+                                   int doseBase, int maxDoseDetents, long singleDoseMaxRaw)
         {
             using (var payload = new MemoryStream())
             using (var w = new BinaryWriter(payload, Encoding.UTF8))
             {
                 w.Write(doseBase);
                 w.Write(maxDoseDetents);
+                w.Write(singleDoseMaxRaw);   // AC-11-09 派生常量(i64 raw)
                 w.Write(rows?.Count ?? -1);
                 if (rows != null)
                 {

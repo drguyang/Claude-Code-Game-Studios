@@ -84,7 +84,7 @@ This epic is complete when:
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
 | 001 | 处方表与本草词表:双表 polarity 硬门 | Config-Data | ✅ Complete 2026-10-06 | ADR-014/024/005 |
-| 002 | F-11.1 剂量舍入与 F-11.2 F5 求值点 | Logic | ✅ Complete 2026-10-06(⚠️ 评审原件缺失) | ADR-006/005/012 |
+| 002 | F-11.1 剂量舍入与 F-11.2 F5 求值点 | Logic | ✅ Complete 2026-10-06(评审原件已补:2026-10-06 补做轮) | ADR-006/005/012 |
 | 003 | DrugTreatmentApplied 构造、零病名与写者独占 | Integration | ❌ **未开工**(Required evidence `drug_event_test.cs` 全库不存在) | ADR-009/024/013 |
 | 004 | Prescribe 流程:库存、扣减与成长门 | Integration | ✅ Complete 2026-10-06 | ADR-009/026/010 |
 | 005 | 戥子输入与方笺呈现 | UI | ✅ Complete 2026-10-06(结构半边;走查半边 NOT-RUN) | ADR-011/013 |

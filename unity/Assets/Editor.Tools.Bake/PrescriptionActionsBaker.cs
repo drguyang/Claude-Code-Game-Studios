@@ -75,7 +75,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             });
 
             byte[] cooked = PrescriptionActionsCookedWriter.Write(bound.Rows, bound.SchemaVersion, configVersion,
-                bound.DoseBase, bound.MaxDoseDetents);
+                bound.DoseBase, bound.MaxDoseDetents, bound.SingleDoseMaxRaw);
             return new BakeOutput(cooked, configVersion, bound.Rows);
         }
     }

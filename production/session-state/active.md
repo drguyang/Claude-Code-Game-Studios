@@ -1,6 +1,37 @@
 # Session State — 2026-10-06(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 当前进行 = prescription-medication story-005(戥子输入与方笺呈现 —— 离散整数档与黄铜读数)
+## ✅ 本轮 = prescription-medication **story-002 补评审件**(2026-10-06 · 已收口)
+
+> 承「补002评审件」。依 `.claude/docs/coding-standards.md` §Review Evidence Standards:
+> 缺原件的对象**出路 = 补做一次评审(评当下)并落新原件**,**不追认**原判定。
+
+- **原件**:`production/qa/evidence/review-prescription-story-002-2026-10-06.md`(新建)
+  —— 含 **评审时点声明**(不追认 `f2bad6b`)· 原判定 → 修复落点 → 验证命令 · 变异证明 · 未闭登记
+- **判定**:QA 侧 **2 BLOCKING · 3 MAJOR · 6 MINOR · 2 NIT**;
+  结构侧代理**正文未回收**(交付前被协调方中断),其探索轨迹与 QA 侧 B1/B2 **独立重合**
+  —— 原件 §〇 已**如实登记该回收缺口**,不凭记忆补写
+- **修复落点**:
+  - **B1(AC-11-09)** 新建 `PrescriptionDerivedBaker.cs`(唯一派生点,经 `DoseCalculator` 不重写 F-11.1)
+    + Binder/CookedWriter/Baker/Probe 全链接线 + 4 测
+  - **B2(AC-11-08)** 反射扫描(除两所有者外零 `axis_offset` 消费点)+ **阳性对照** +
+    **双实现对拍**(`HalfLifeCalculator` ↔ `QualityTimelineSolver` 在 `half_life` 轴逐位相等)
+  - **M1/M2/M3** loCarry 夹具 · 禁 `Int128`/`BigInteger` 扫描路径 · 新建 `PerceptibleFloorComparator.cs`
+  - **m1/m2/m4/m6** 负 dose 两测 · `SignBound` 两测(恰 `2^63`)· 三处改名 · 扫描器注释剥离重写
+- **变异证明 7 项全落盘**(MUT-1…7);
+  ⚠️ **MUT-3 首轮存活 127/127**(原夹具全被更早的 `qHi != 0` 守卫拦下,`SignBound` 不可达)
+  ⇒ 补 `test_dose_quotientAtSignBound_throws` 后**恰 1 红** —— 印证 QA 侧 m2 判定为真
+- **复跑绿**:过滤套件 `dose_fix_2.xml` = **129/129 / 0 failed**;
+  全量 `full_editmode_story002.xml` = **2890 / 2843 passed / 0 failed / 1 inconclusive / 46 skipped**
+  (基线 2826 ⇒ +17 = 本卡 13 + 表卡 4)
+- **未闭(禁借绿)**:AC-11-11④(BL-7)· AC-11-19 断言本体(BL-2)· AC-11-15 矩阵(ADR-012)·
+  TR-prescription-007 21a 半边(BL-1)· **F5 双实现合并归 21a**(本卡只把重复可证伪)
+- **诚实边界**:① `single_dose_max` **消费侧未接线**(9 的 F1 clamp 归 disease story-004);
+  ② 生产 `ConfigVersion` **不含 `item_database_items.json`** ⇒ 「改药 ⇒ 哈希变」**当前不成立**;
+  ③ F5 双实现**异常契约不一致**,对拍只证合法域内逐位相等
+
+---
+
+## 🔄 上一轮 = prescription-medication story-005(戥子输入与方笺呈现 —— 离散整数档与黄铜读数)
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
 > **本件 = prescription-medication epic 末件**;⚠️ **但 epic 未全闭** —— story-003 未开工(见下方 EPIC 表)。
@@ -587,7 +618,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 | modular-building (23) | 7 | **7** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红，`9bb912b`+`bfa6234`;**未闭登记 = N-r2 生产装配根 + AC-23-09 跨平台签名**） |
 | patient-ai (13) | 4 | **4** | 0 | 0 | ✅ **全收口 2026-10-05**(story-001/002/003/004;未闭登记 = V8 联机 BLOCKED-BY 45 · 跨平台 EXTERNAL · [L] 五档可读性部分闭) |
 | player-controller (1) | 6 | **6** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（两轮评审判据缺陷已修;88 过 + 3 NOT-RUN，`a78c27a`） |
-| prescription-medication (11) | 5 | **4** | **1** | 0 | 🔄 **In Progress(未全闭)** — ✅ 001 / 002(⚠️ 评审原件缺失)· 004 · 005(结构半边);❌ **story-003 未开工** —— 其标题所指的 `DrugTreatmentApplied` 构造点 / 写者独占**库内无实现件**(提交的 story-003 实为 F-11.2 半衰期,与本卡范围不符),`Required evidence` 的 `drug_event_test.cs` 全库不存在 ⇒ **AC-11-01① / AC-11-22 / AC-11-10 三条 BLOCKING 无真判据**;**epic 收口前置 = producer 裁定补做 story-003 或改派这三条 AC 并同步 TR 登记**;另 story-005 走查半边(AC-11-12/13/21 人工签核)+ AC-11-18 ② 实体元件承担方(skeuomorphic-ui)待闭 |
+| prescription-medication (11) | 5 | **4** | **1** | 0 | 🔄 **In Progress(未全闭)** — ✅ 001 / 002(**评审原件已补 2026-10-06**)· 004 · 005(结构半边);❌ **story-003 未开工** —— 其标题所指的 `DrugTreatmentApplied` 构造点 / 写者独占**库内无实现件**(提交的 story-003 实为 F-11.2 半衰期,与本卡范围不符),`Required evidence` 的 `drug_event_test.cs` 全库不存在 ⇒ **AC-11-01① / AC-11-22 / AC-11-10 三条 BLOCKING 无真判据**;**epic 收口前置 = producer 裁定补做 story-003 或改派这三条 AC 并同步 TR 登记**;另 story-005 走查半边(AC-11-12/13/21 人工签核)+ AC-11-18 ② 实体元件承担方(skeuomorphic-ui)待闭 |
 | processing (18) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | random-events (52) | 6 | **6** | 0 | 0 | ✅ 全收口 |
 | time-weather (5) | 5 | **5** | 0 | 0 | ✅ 全收口 |
