@@ -1,43 +1,73 @@
 # Session State — 2026-10-06(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 最近收口 = prescription-medication story-003(F-11.2 半衰期)—— ✅ 收口 2026-10-06 · 已提交推送
+## 🔄 当前进行 = prescription-medication story-005(戥子输入与方笺呈现 —— 离散整数档与黄铜读数)
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
+> **本件 = prescription-medication epic 末件(story 001–004 已全部收口)。**
 
 ### 交付物
-- **生产**:`HalfLifeCalculator.cs`(F-11.2 半衰期计算器,走 `Fix.operator+` 加法)
-- **测试**:`half_life_test.cs`(**24 条**)· `PrescriptionFloatScan.cs`(零浮点扫描共享实现)
-- **证据**:`production/qa/evidence/review-prescription-story-003-2026-10-06.md`
+- **生产**:`unity/Assets/Gameplay.UI/Skeuomorphic/DentchDoseSelector.cs`
+  —— `DentchDetent`(实现 `IFocusable`)· `PrescribeStrokeIntent` / `PrescribeStrokeResult`(呈现 → 11 唯一输入形状)
+  · 档位序列生成 / `DoseValueOf` 档值换算 / `LoadInto(BrassScaleElement)` 黄铜刻度装载
+- **测试**:`unity/Assets/Tests/PlayMode/PrescriptionMedication/dentch_input_test.cs`(**49 条**)
+- **装配**:`unity/Assets/Tests/PlayMode/PlayMode.asmdef` 增 `Gameplay.UI` / `Gameplay.Presentation` 引用
+- **证据**:`production/qa/evidence/review-prescription-story-005-2026-10-06.md`
 
 ### 单轮评审 → 修复轮(要点)
-- **结构 B-1**: raw `long` 加法绕过 `Fix.operator+` 的 `checked` 溢出保护(静默回绕;IL2CPP 下 UB)
-  ⇒ 改走 `Fix effective = axisBase + offset;`(`Fix.cs:124-127` 的 `operator+` 抛 `OverflowException`)
-- **结构 M-1**: `CalculateForDrug` 纯透传无价值 ⇒ 改为读 `DrugProfile` 的真实组合入口(可空校验)
-- **结构 M-2**: 缺溢出行为测试 ⇒ 补 3 条(正向/负向/边界)
-- **结构 m-1/m-2/m-3**: 误导性注释删 · 扫描面加注说明 · `EffectiveQuality` 透传注释
-- **QA M1/M2 + m1~m4/m7/m8**: 溢出显式检测 · `Assert.Ignore`→硬失败 · 扫描面扩至 `ToFloat()`/`Math.*`/`decimal`/大小写不敏感 · 补上界与单元素测试
-- **修复轮连带发现(非评审提出)**: 两测试共享扫描面的**重复实现漂移** ⇒ 抽共享 `PrescriptionFloatScan.Scan()`
+- **结构侧** `APPROVED WITH SUGGESTIONS`(0 BLOCKING · 3 MAJOR · 7 MINOR · 3 NIT)· **QA 侧** `APPROVED WITH SUGGESTIONS`(0 BLOCKING · 4 MAJOR · 7 MINOR · 3 NIT)
+  —— **两位评审均无 BLOCKING 落在生产件上**,全部 MAJOR 集中在**测试证伪力**与**登记完备性**
+- **MAJOR-1(共指)** `Assert.AreEqual(sel.Detents.Count, sel.TickCount)` = `x == x` **恒真重言**(同源同字段),跨组件绑定从未被验证
+  ⇒ 生产件新增 `LoadInto(BrassScaleElement)` **真装载路径**;测试改 `test_loadInto_brassElement_tickCountIsBound`(**反控**:未装载前刻度数须为默认 0)+ null 负测
+- **MAJOR-2(QA)** 「零第二 EventSystem」断言面 = `Gameplay.UI` 程序集,该程序集**不引用** `UnityEngine.EventSystems` ⇒ 谓词**结构上不可能为真** = 恒真空真;故事卡点名的**双 EventSystem 夹具未交付**
+  ⇒ 新增夹具 `DualEventSystemProbe : EventSystem` + 谓词正控(正控 + 反控)
+- **MAJOR-3(共指)** `IsFocusEnabled` 文档称「满档 / 缺药时为 false」但生成路径**恒传 true**,分支从未产生也从未断言;常规档 `IsWholeDose` / `PresentationLabel` 零断言
+  ⇒ 门控位改**可从装载期注入**(`BuildDetents(..., isFocusEnabled)` + ctor 重载)+ 文档收窄「判定源归 20」;补 4 条注入/常规档断言
+- **MAJOR-4(QA)** `FocusRank` 值域(AC-42-B1 满射)**实为空判据** —— `FocusBoundaryAssertions.AssertRankDataSurjective` 只查 null(其源码自陈「不限制具体数值范围」);变异 `focusRank: i` 可存活
+  ⇒ 补真判据 `CollectionAssert.AreEqual(Enumerable.Range(1,K), ranks)` + 单射 distinct 计数
+- **MAJOR-4b(QA)** TR-prescription-011 ③「禁忌命中 ⇒ UI 无差异」`[A]` 条**零证据且未登记**
+  ⇒ 生产件 `PrescribeStrokeIntent` **结构上不含**禁忌 / 拦截 / 扣减语义 ⇒ DTO 洁净扫描 + 字段面负断言覆盖结构半边;端到端等价性登记 **NOT-RUN 7**
+- **MINOR-1(共指)** 两条「正控」近恒真(调被测方法 / 复算正式期望值)⇒ 换 `test_positiveControl_mutatedReferenceDiffersFromProduction`(**独立参考实现 + 变异公式**)
+- **MINOR-2(共指)** `PrescribeStrokeIntent` / `Result` 全库**零生产消费方**,而 XML 声称「唯一输入形状」当前为假且未登记 ⇒ NOT-RUN **5 → 7 处**;补同域性真断言
+- **MINOR-4(QA)** 零降级读数扫描面**只收单文件**(真正挂角标的 `Brass/` 不在面内)+ 禁词含中文字面量经剥离后**永不可能命中**(死词条)
+  ⇒ 扫描面扩到 `Brass/` 目录 · 删死词条 · 补词面正控(证可命中 + 注释须被剥离)
+- **MINOR-6(结构)** `MAX_DOSE_DETENTS` 单位与 GDD `:497`「`hi − lo` 档数上限」**差一** ⇒ 生产件旋钮文档显式钉「**单位 = 落点数**(= 焦点路径长度,承 Fitts 理据)」;GDD 侧登记订正
+- **MINOR-7(共指)** 「同键双触发禁止」/「焦点单栈门」`[A]` 条除 EventSystem 计数外无判据且未登记 ⇒ 由 MAJOR-2 夹具覆盖结构半边;运行期实跑登记 **NOT-RUN 4**
+- **NIT-1(QA)** `RegisteredMaxDoseDetents` **自守其门** ⇒ 合成扫描改以测试内**字面量**为循环上界 + 断言常量值域
+- **NIT-2(QA)** 故事卡 QA 行 `dose_range=(2,5) ⇒ 长度 3` 是**算术笔误**(权威公式 `hi−lo+1` = **4**)⇒ 测试内显式标注笔误并取 4(**未镜像错误**)
+- **QA 追加** `PresentationLabel` 原生成 `"第 {i+1} 档"`(含阿拉伯数字)与 AC-11-12「零数字读数」张力 ⇒ 改**零数字**标签「戥子档」/「整剂」
+- **QA 追加** 本目录受 **AC-42-F3 词面门**扫**原文(注释也扫)** ⇒ 生产件注释改写为释义表述 + 文件头加注该纪律(实测原稿 `world_billboard_test` 报 3 处)
 
 ### 验证(实测)
-- filter:`unity/Logs/half_life_fix4.xml` = **59 / 59 passed / 0 failed**(PrescriptionMedication 全目录)
-- 全量:`unity/Logs/half_life_full3.xml` = **2773 passed / 0 failed**(exit 2 = 既有 Inconclusive)
+- filter(评审前):`unity/Logs/dentch_input_6.xml` = **41 / 41 passed / 0 failed**
+- filter(修复后):`unity/Logs/dentch_fix_2.xml` = **49 / 49 passed / 0 failed**(41 → 49,补 8 条)
+- PlayMode 全目录(修复后):`unity/Logs/dentch_playmode_full3.xml` = **85 / 85 passed / 0 failed**(77 → 85,新增 8 条随套件全绿)
+- 全量 EditMode(修复后):`unity/Logs/dentch_editmode_full3.xml` = **2826 passed / 0 failed / 46 skipped / 1 inconclusive**(既有,非失败;含 AC-42-F3 词面门通过)
+- **变异证明(五条全部 ≥ 1 红,逐条命中预期新断言)**:
+  MUT-A `focusRank: i` ⇒ 1 红 `test_detents_focusRankIsSurjectiveAndInjective` ·
+  MUT-C 标签回带数字 ⇒ 1 红 `test_presentationLabel_containsNoDigits` ·
+  MUT-D 忽略门控注入 ⇒ 1 红 `test_focusEnabled_injectedFalse_propagatesToAllDetents` ·
+  MUT-E `LoadInto` 空体 ⇒ 1 红 `test_loadInto_brassElement_tickCountIsBound`(**原稿恒真断言 0 红**)·
+  MUT-F 越界抛改 `Math.Clamp` ⇒ 2 红(源码面 + 行为面);
+  变异后 `diff /tmp/Dentch.orig.cs <生产件>` **无输出 = 干净回滚**
 
-### ⬜ 待办 / 未闭登记(禁借绿)
-- **NOT-RUN 3 项**:AC-11-08 ②(21a 构建期断言不存在,BL-1)· AC-11-15(三格矩阵,ADR-012 未实跑)· TR-prescription-008(21a 半边)
+### ⬜ 待办 / 未闭登记(禁借绿 —— 覆盖缺口,非安全洞)
+测试文件头显式登记 **7 处**(本轮由 5 处扩至 7 处):
+1. **AC-11-18 ②** 42 侧「下一档」焦点落点缺失 + `hi` 档纸面反馈 —— BLOCKED-BY-42 元件落地;本件只证**消费方**序列长度
+2. **手柄(无指针)路径** —— BLOCKED-BY 桌面调试集中轮 + ADR-013 假设 6 spike(半可信)
+3. **AC-11-13 / AC-11-12 / AC-11-21 走查子项** —— 可判 ≠ 已判,须实现轮人工执行 + 签核(主创 / 主创+医学从业 / 音频 lead)
+4. **真实 UX 夹具下的焦点单栈门实跑** —— 本件只做**结构**断言;引擎运行期实跑判据归 42 侧 spike
+5. **`materia_lexicon.cooked` 真装载** —— 21a 产出方未落 C# 字段(承 story-004 NOT-RUN 3);本件以烘焙 JSON 源件 + 结构扫描走通
+6. **`IsFocusEnabled = false` 分支的判定源** —— 门控位已可注入(本件有判据),但**判定源**(满档 / 缺药)归 20 库存扣减面,未落地 ⇒ 恒 true 是当前唯一实跑路径
+7. **`PrescribeStrokeIntent` / `Result` 的生产消费方** —— 全库零生产接线;落笔 → 11 接线归 8 侧 `S-8.4` 路线甲 + 39 方笺页
+
+### 跨故事缺口(本故事范围外,但影响判据完整性)
+- **AC-11-18 ② 的实体元件**(42 侧「下一档」落点 + `hi` 档纸面反馈)本 epic **不实现** ⇒ 该 `[A]` BLOCKING 的 ② 半边**当前无判据**;建议 skeuomorphic-ui epic 收口时确认承担方
+- **3 侧 float→int 量化实现**(input-system epic story 006/007)未落地 ⇒ 本件只断言入参形状为整数,**未断言量化真在 3 侧发生**
+- **`ModalId` 闭集与 `PaperCloseup48` 的「勿混读」**两处警示本件均已通过(闭集仍 7 员 · 方笺不成新模态 · 第七员在集内且与本条无关)
 
 ---
 
-## 🔄 当前进行 = prescription-medication story-004(Prescribe 流程 —— 域检查、原子扣减与成长门)
-
-> 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
-
-### 跨系统重开输入清单(story-003 遗留,已整理)
-
-| # | 未闭登记 | 承接件 | 卡在哪 | 输入 |
-|---|---|---|---|---|
-| 1 | AC-11-08 ② | 21a | 用户定值 + 21a 重开 | `MIN_USABLE_HALF_LIFE` 值(OQ-11-3 同批)→ 21a F5 断言升格 |
-| 2 | AC-11-15 | ADR-012 | CI 矩阵未激活 | 三格矩阵落地 → story-003 夹具跨平台对拍 |
-| 3 | TR-prescription-008 | 21a + 42 | 数据/元件未落盘 | 21a `dose_range` 数据 + 42 戥子档位元件 |
+## 📋 历史状态(2026-10-06)—— prescription-medication story-004(Prescribe 流程 —— 域检查、原子扣减与成长门)—— ✅ 收口 · commit `db369d0` · 已推送
 
 ### 交付物
 - **生产**:`PrescribeFlow.cs`(五步编排:域检查 → F-11.1/F-11.2 求值 → 20 扣减 → 发事件 → 成长门)
@@ -65,6 +95,31 @@
 ### ⬜ 待办 / 未闭登记(禁借绿)
 - **NOT-RUN 6 项**:AC-11-16 正式对拍(BLOCKED-BY-30 实现)· AC-11-15 三格矩阵(ADR-012)· 换算表真源(21a 未落 C# 字段,BLOCKED-BY-OQ-11-10)· 省料数值(BL-6)· 非主机传输(BLOCKED-BY-45)· 同 tick 双剂 Seq(归 45/7a)
 - **跨故事缺口**:story-003 卡要求的 `drug_event_test.cs` **全库不存在** ⇒ AC-11-01① / AC-11-22 / AC-11-10 assembly 面**三处 BLOCKING 无真判据**,story-003 收口前不得记为已有证据
+
+---
+
+## 📋 历史状态(2026-10-06)—— prescription-medication story-003(F-11.2 半衰期)—— ✅ 收口 2026-10-06 · 已提交推送
+
+### 交付物
+- **生产**:`HalfLifeCalculator.cs`(F-11.2 半衰期计算器,走 `Fix.operator+` 加法)
+- **测试**:`half_life_test.cs`(**24 条**)· `PrescriptionFloatScan.cs`(零浮点扫描共享实现)
+- **证据**:`production/qa/evidence/review-prescription-story-003-2026-10-06.md`
+
+### 单轮评审 → 修复轮(要点)
+- **结构 B-1**: raw `long` 加法绕过 `Fix.operator+` 的 `checked` 溢出保护(静默回绕;IL2CPP 下 UB)
+  ⇒ 改走 `Fix effective = axisBase + offset;`(`Fix.cs:124-127` 的 `operator+` 抛 `OverflowException`)
+- **结构 M-1**: `CalculateForDrug` 纯透传无价值 ⇒ 改为读 `DrugProfile` 的真实组合入口(可空校验)
+- **结构 M-2**: 缺溢出行为测试 ⇒ 补 3 条(正向/负向/边界)
+- **结构 m-1/m-2/m-3**: 误导性注释删 · 扫描面加注说明 · `EffectiveQuality` 透传注释
+- **QA M1/M2 + m1~m4/m7/m8**: 溢出显式检测 · `Assert.Ignore`→硬失败 · 扫描面扩至 `ToFloat()`/`Math.*`/`decimal`/大小写不敏感 · 补上界与单元素测试
+- **修复轮连带发现(非评审提出)**: 两测试共享扫描面的**重复实现漂移** ⇒ 抽共享 `PrescriptionFloatScan.Scan()`
+
+### 验证(实测)
+- filter:`unity/Logs/half_life_fix4.xml` = **59 / 59 passed / 0 failed**(PrescriptionMedication 全目录)
+- 全量:`unity/Logs/half_life_full3.xml` = **2773 passed / 0 failed**(exit 2 = 既有 Inconclusive)
+
+### ⬜ 待办 / 未闭登记(禁借绿)
+- **NOT-RUN 3 项**:AC-11-08 ②(21a 构建期断言不存在,BL-1)· AC-11-15(三格矩阵,ADR-012 未实跑)· TR-prescription-008(21a 半边)
 
 ---
 
@@ -532,7 +587,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 | modular-building (23) | 7 | **7** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红，`9bb912b`+`bfa6234`;**未闭登记 = N-r2 生产装配根 + AC-23-09 跨平台签名**） |
 | patient-ai (13) | 4 | **4** | 0 | 0 | ✅ **全收口 2026-10-05**(story-001/002/003/004;未闭登记 = V8 联机 BLOCKED-BY 45 · 跨平台 EXTERNAL · [L] 五档可读性部分闭) |
 | player-controller (1) | 6 | **6** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（两轮评审判据缺陷已修;88 过 + 3 NOT-RUN，`a78c27a`） |
-| prescription-medication (11) | 5 | **4** | 1 | 0 | 🔄 **In Progress** — story-004 ✅(story-001/002/003/004;未闭登记 = AC-11-08 ② / AC-11-15 / TR-prescription-008 / AC-11-16 乙 / AC-11-15 流程半边 / 非主机传输 / 影子换算表 / **同 tick 双剂 Seq**;**跨故事缺口 = story-003 `drug_event_test.cs` 全库不存在 ⇒ AC-11-01①/AC-11-22/AC-11-10 assembly 面三处 BLOCKING 无真判据**;余 story-005 戥子输入与方笺呈现) |
+| prescription-medication (11) | 5 | **5** | 0 | 0 | ✅ **Stories Complete** — story-001/002/003/004/005 全收口;未闭登记(禁借绿,非安全洞)= AC-11-08 ② / AC-11-15 三格矩阵 / TR-prescription-008 / AC-11-16 乙 / 非主机传输 / 影子换算表 / 同 tick 双剂 Seq / **story-005 七项**(AC-11-18 ② 42 元件 · 手柄路径 · AC-11-12/13/21 走查 · 焦点单栈门实跑 · `materia_lexicon.cooked` 真装载 · 门控判定源归 20 · 落笔接线归 8/39);**跨故事缺口 = story-003 `drug_event_test.cs` 全库不存在 ⇒ AC-11-01①/AC-11-22/AC-11-10 assembly 面三处 BLOCKING 无真判据**;**epic 收口待办 = AC-11-18 ② 实体元件承担方确认(skeuomorphic-ui)** |
 | processing (18) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | random-events (52) | 6 | **6** | 0 | 0 | ✅ 全收口 |
 | time-weather (5) | 5 | **5** | 0 | 0 | ✅ 全收口 |
