@@ -878,3 +878,45 @@ Task: story-004 收口(4/4 · 166/166/0/2)
 ### 待办
 - ✅ 收口提交推送
 - ⬜ diagnosis-system 4/4 全闭;下一系统见 Phase 2 关键路径
+
+---
+
+## 2026-10-06 · prescription-medication story-003 收口
+
+### 任务
+「开工003」—— `DrugTreatmentApplied` 构造、零病名与写者独占(Integration / 8h)。
+
+### 交付
+- **新建门**:`unity/Assets/Editor.Tools.Gates/PrescriptionWriterGates.cs`(AC-11-22 写者独占 /
+  AC-11-10 算法独占 + 引用面 / AC-11-01① 病名面 / AC-10-06b 载荷成对)
+- **接线**:`AssemblyGates.cs` —— **菜单**(`RunMenu`)+ **构建前门**(`BuildGate.OnPreprocessBuild`)
+- **测试**:`unity/Assets/Tests/EditMode/PrescriptionMedication/drug_event_test.cs`(**26 条**)
+
+### 实跑
+- filter `unity/Logs/drug_event_final.xml` = **155 / 155 passed / 0 failed**
+- 全量 `unity/Logs/full_editmode_story003_final.xml` = **2916 / 2869 passed / 0 failed / 1 inconclusive / 46 skipped**
+
+### 单轮双代理评审(承「评审只做一轮」)→ 修复轮
+- **结构侧**:1 BLOCKING · 3 MAJOR · 2 MINOR · 2 NIT
+- **QA 侧**:1 MAJOR · 3 MINOR · 2 NIT · **6 变异(MUT-A…F,其中 MUT-B / MUT-D 存活)**
+- **B-1 全闭**:`IsBannedName` 对**属性访问器调用点恒假阴性**(`get_Indications` 无词边界)
+  ⇒ 增 `get_`/`set_` 前缀展开 + 原测**重写**(阳性对照改打真调用点 `Editor.Tools.Bake`)+ 新增单元判据
+- **M-1 全闭(两侧独立重合)**:门补接 `BuildGate` + `CheckSimReferenceFace` 补阳性对照
+- **M-2 全闭(显式记账式)**:`PayloadCodec` 移出生产白名单 → 新立 `DecoderCtorSites`,
+  `RunAll` 摘要报「⚠️ 判据-文本背离」;**AC 文本收窄归 producer / TD**
+- **M-3 全闭**:`DiseaseNameForbidden` 补 GDD 逐字点名的 `DiagnosisResult`
+- **MUT-A 的真实事故版**:修复前门只扫 `newobj`,而载荷是 **struct**(C# 发 `call .ctor`)
+  ⇒ 站点集恒空、白名单「零命中」误报 **3 测红** —— 已改双指令收口
+
+### 未闭登记(NOT-RUN,禁借绿)
+- AC-11-22 的「影子装配注入」半边 · **AC-11-22 / TR-prescription-018 的文本收窄**(归 producer / TD)·
+  `CheckPayloadPairing` 不覆盖 codec tag 序 · AC-11-01① 的 `DiagnosisResult` 反射面(8 侧未落型)·
+  AC-11-15 三格矩阵与跨进程半边 · AC-11-10「双路径对拍」降级为 AC-10-06b 逐位比较 ·
+  AC-11-22 的 7a 白名单本体(BLOCKED-BY-7a)
+
+### 评审原件
+`production/qa/evidence/review-prescription-story-003-2026-10-06.md`
+
+### 待办
+- ✅ 收口提交推送
+- ⬜ prescription-medication epic **5/5 全闭**(story-005 走查半边仍 NOT-RUN)

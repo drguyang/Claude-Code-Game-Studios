@@ -85,11 +85,16 @@ This epic is complete when:
 |---|-------|------|--------|-----|
 | 001 | 处方表与本草词表:双表 polarity 硬门 | Config-Data | ✅ Complete 2026-10-06 | ADR-014/024/005 |
 | 002 | F-11.1 剂量舍入与 F-11.2 F5 求值点 | Logic | ✅ Complete 2026-10-06(评审原件已补:2026-10-06 补做轮) | ADR-006/005/012 |
-| 003 | DrugTreatmentApplied 构造、零病名与写者独占 | Integration | ❌ **未开工**(Required evidence `drug_event_test.cs` 全库不存在) | ADR-009/024/013 |
+| 003 | DrugTreatmentApplied 构造、零病名与写者独占 | Integration | ✅ Complete 2026-10-06(评审原件 + 双代理一轮修复) | ADR-009/024/013 |
 | 004 | Prescribe 流程:库存、扣减与成长门 | Integration | ✅ Complete 2026-10-06 | ADR-009/026/010 |
 | 005 | 戥子输入与方笺呈现 | UI | ✅ Complete 2026-10-06(结构半边;走查半边 NOT-RUN) | ADR-011/013 |
 
-> ⚠️ **epic 未全闭**:story-003 未开工 ⇒ **AC-11-01① / AC-11-22 / AC-11-10 三条 BLOCKING 无真判据**。
-> 且 story-003 标题所指的 `DrugTreatmentApplied` 构造点 / 写者独占在库内**无实现件**
-> (本 epic 提交的 story-003 实为 F-11.2 半衰期,与本卡范围不符)。
-> 收口前须由 producer 裁定:补做 story-003,或把这三条 AC 的承担方改派并同步 TR 登记。
+> ✅ **epic 全闭(2026-10-06)**:story-003 已收口 —— AC-11-01① / AC-11-22 / AC-11-10 三条 BLOCKING
+> 现有**真判据**(新建门 `PrescriptionWriterGates.cs` + `drug_event_test.cs` 26 测;
+> 门已接 `AssemblyGates` 的**菜单与构建前门**两处)。
+> 评审原件:`production/qa/evidence/review-prescription-story-003-2026-10-06.md`。
+>
+> ⚠️ **本 epic 的未闭项(按原口径 NOT-RUN,禁借绿)**:story-005 走查半边 · AC-11-15 三格矩阵与跨进程 ·
+> AC-11-10「双路径对拍」降级为 AC-10-06b 逐位比较 · AC-11-22 的 7a 白名单本体(BLOCKED-BY-7a)·
+> **AC-11-22 / TR-prescription-018 与实现的文本背离**(解码点在 11 之外构造载荷;门已显式记账,
+> 收窄裁定归 producer / TD)。

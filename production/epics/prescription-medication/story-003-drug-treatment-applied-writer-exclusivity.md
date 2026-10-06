@@ -1,12 +1,12 @@
 # Story 003: DrugTreatmentApplied —— 构造、零病名与写者独占
 
 > **Epic**: 处方用药
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-06
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 8h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-06
 
 ## Context
 
@@ -31,14 +31,14 @@
 
 *From GDD `design/gdd/prescription-and-medication.md`, scoped to this story:*
 
-- [ ] **AC-11-01**[A] BLOCKING:零病名双判据 —— ① 反射断言 11 的公开签名(输入/输出类型)不含 `DiagnosisResult`/病种 id/`tier_named`;② **行为断言**:体征相同、病种不同的两病人,同药同剂 ⇒ 产出的 `DrugTreatmentApplied` 载荷**逐字段相等**(8↔11 零数据流的端到端证明,承支柱一守门;对偶 = diagnosis story 001 的 AC-8-4)
-- [ ] **AC-11-03**[A] BLOCKING:载荷七项齐备 —— `polarity`/`drug_potency`/`half_life`/`处置_id`/`施予者`/`tick`/`Seq`(与 10 的 AC-10-06 **同项数**;`Seq` 主机填充),缺任一项写入期被拒(联动 9 的 AC-28 写入期拒收)
-- [ ] **AC-11-22**[A] BLOCKING:**写者独占** —— `DrugTreatmentApplied` 构造点仅在 11 程序集(IL/metadata 扫描唯一 `newobj` 站点集 ⊆ 11;与 AC-11-10 算法独占并列);7a 序列化白名单两支齐(本 Kind + 10 的 `EmergencyTreatmentApplied`,TR-prescription-018)
-- [ ] **AC-11-10**[A] BLOCKING:算法独占 —— 11 不定义 `SkillMul`/`ResultMul`/`JudgeResult`(程序集引用集断言 + 双路径对拍测试:同 agg 形状下 11 恒 Applied 路径与 10 的 Judge 路径**不共享代码**,仅共享「恒 1.0 名义值」的口径声明)
-- [ ] **AC-10-06b 成对**[A]:11/10 载荷定义构建期交叉校验 —— 字段名/类型/序数完全一致,除 `method`/`cause`(仅 10);漂移 ⇒ 构建失败(载荷漂移会静默进 9 的和式)
-- [ ] **恒 Applied 无分支**[L]:任何输入(含零技艺玩家、极小剂量)⇒ 不产生 `AppliedWeak`/`Missed` 概念;不存在手部门槛代码路径(10 vs 11 对照表)
+- [x] **AC-11-01**[A] BLOCKING:零病名双判据 —— ① 反射断言 11 的公开签名(输入/输出类型)不含 `DiagnosisResult`/病种 id/`tier_named`;② **行为断言**:体征相同、病种不同的两病人,同药同剂 ⇒ 产出的 `DrugTreatmentApplied` 载荷**逐字段相等**(8↔11 零数据流的端到端证明,承支柱一守门;对偶 = diagnosis story 001 的 AC-8-4)
+- [x] **AC-11-03**[A] BLOCKING:载荷七项齐备 —— `polarity`/`drug_potency`/`half_life`/`处置_id`/`施予者`/`tick`/`Seq`(与 10 的 AC-10-06 **同项数**;`Seq` 主机填充),缺任一项写入期被拒(联动 9 的 AC-28 写入期拒收)
+- [x] **AC-11-22**[A] BLOCKING:**写者独占** —— `DrugTreatmentApplied` 构造点仅在 11 程序集(IL/metadata 扫描唯一 `newobj` 站点集 ⊆ 11;与 AC-11-10 算法独占并列);7a 序列化白名单两支齐(本 Kind + 10 的 `EmergencyTreatmentApplied`,TR-prescription-018)
+- [x] **AC-11-10**[A] BLOCKING:算法独占 —— 11 不定义 `SkillMul`/`ResultMul`/`JudgeResult`(程序集引用集断言 + 双路径对拍测试:同 agg 形状下 11 恒 Applied 路径与 10 的 Judge 路径**不共享代码**,仅共享「恒 1.0 名义值」的口径声明)
+- [x] **AC-10-06b 成对**[A]:11/10 载荷定义构建期交叉校验 —— 字段名/类型/序数完全一致,除 `method`/`cause`(仅 10);漂移 ⇒ 构建失败(载荷漂移会静默进 9 的和式)
+- [x] **恒 Applied 无分支**[L]:任何输入(含零技艺玩家、极小剂量)⇒ 不产生 `AppliedWeak`/`Missed` 概念;不存在手部门槛代码路径(10 vs 11 对照表)
 - [ ] **AC-11-15**[I] 重放半边:同 `(WorldSeed, 药, 剂, 实例集, 玩家)` 跨进程重放 ⇒ 处置事件逐位相同;**输入集刻意不含技能等级**(熟练度只经省料/解锁出口,不改载荷,story 004 对偶);三格矩阵子句 NOT-RUN(BLOCKED-BY-ADR-012,禁借绿)
-- [ ] **主机权威**[A]:客户端上下文 ⇒ 零 `Append`(上行交主机路径);与 emergency story 004 的落流口同构,但 11 **无判定**(意图即效果,规则五:有用与否归 9 的离牌门)
+- [x] **主机权威**[A]:客户端上下文 ⇒ 零 `Append`(上行交主机路径);与 emergency story 004 的落流口同构,但 11 **无判定**(意图即效果,规则五:有用与否归 9 的离牌门)
 
 ---
 
@@ -74,7 +74,14 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/PrescriptionMedication/drug_event_test.cs` — must exist and pass(AC-11-15 矩阵子句 NOT-RUN 显式登记)
-**Status**: [ ] Created — NOT STARTED(⚠️ **不得标 Done** —— 本卡 `Required evidence` 的 `drug_event_test.cs` **全库不存在**,且 AC-11-01① / AC-11-22 / AC-11-10 三条 BLOCKING **无真判据**;story-003 提交实际交付的是 F-11.2 半衰期(`half_life_test.cs`),**非本卡范围**)
+**Status**: [x] Done 2026-10-06 — 真身 `unity/Assets/Tests/EditMode/PrescriptionMedication/drug_event_test.cs`
+(**26 测**:AC-11-01① 反射 + IL + 访问器单元判据 · AC-11-03 七项 · AC-11-22 写者独占双向 · AC-11-10 算法独占 + 阳性对照 · AC-10-06b 成对 · 恒 Applied · 主机权威 · 同进程重放)+
+新建门 `unity/Assets/Editor.Tools.Gates/PrescriptionWriterGates.cs`(接 `AssemblyGates` 的**菜单与构建前门**两处)
+**评审原件**: ✅ `production/qa/evidence/review-prescription-story-003-2026-10-06.md`(2026-10-06,双代理一轮)
+**复跑绿**:过滤套件 `drug_event_final.xml` = **155/155 passed / 0 failed**;
+全量 `full_editmode_story003_final.xml` = **2916 / 2869 passed / 0 failed / 1 inconclusive / 46 skipped**
+**变异证明 6 项**(QA 侧实跑 MUT-A…F):MUT-A 3 红 · **MUT-B 存活 ⇒ 由修复轮补单元判据** · MUT-C 1 红 · **MUT-D 存活 ⇒ 由修复轮补阳性对照** · MUT-E 4 红 · MUT-F 1 红
+⚠️ **MUT-A 的真实事故版**:修复前门只扫 `newobj`,而载荷是 **struct**(C# 发 `call .ctor`)⇒ 站点集恒空、白名单「零命中」误报 3 测红 —— 已改双指令收口。
 
 ---
 
@@ -84,3 +91,20 @@
 - Unlocks: Story 004(流程调用构造)、disease epic story 004(9 消费载荷)、case-system epic(处置证据窗口)、7a persistence epic(序列化白名单)
 
 ## Completion Notes
+
+**2026-10-06 双代理评审修复轮**(评审只做一轮):
+- **原件**:`production/qa/evidence/review-prescription-story-003-2026-10-06.md`
+- **判定**:结构侧 1 BLOCKING · 3 MAJOR · 2 MINOR · 2 NIT;QA 侧 1 MAJOR · 3 MINOR · 2 NIT · 6 变异
+- **B-1(结构侧)全闭**:`IsBannedName` 对**属性访问器调用点恒假阴性**(`get_Indications` 无词边界)
+  ⇒ 增 `get_`/`set_` 前缀展开(只剥一次)+ 原测**重写**(阳性对照改打**真调用点** `Editor.Tools.Bake`)+
+  新增单元级判据 `test_drugEvent_isBannedName_expandsAccessorPrefixes`
+- **M-1 全闭(两侧独立重合)**:门补接 `BuildGate.OnPreprocessBuild`(此前只接菜单,
+  AC-10-06b 的「构建失败」无执行体)+ `CheckSimReferenceFace` 补阳性对照
+- **M-2 全闭(显式记账式)**:`Sim.Codec/PayloadCodec` 从 `ProductionCtorSites` **移出**,
+  新立 `DecoderCtorSites` 分离登记 + `RunAll` 摘要报「⚠️ 判据-文本背离」——
+  **AC-11-22 / TR-prescription-018 的收窄裁定归 producer / TD,本件不改 AC 文本**
+- **M-3 全闭**:`DiseaseNameForbidden` 补 GDD 逐字点名的 `DiagnosisResult`
+- **MINOR**:m-2(卡陈旧)本刷 · m-4 由 B-1 一并覆盖 · m-1/m-3 如实保留;
+  **NIT**:NIT-2 补空集守卫 · 其余如实保留
+- **未闭项按原口径 NOT-RUN,禁借绿**(影子装配注入半边 / AC 文本收窄 / tag 序判据 /
+  AC-11-15 矩阵与跨进程 / AC-11-10 对拍降级 / 7a 白名单本体)
