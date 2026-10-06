@@ -28,6 +28,8 @@
 //   仍是「解码瞬间引用」,ctor 只透传不复制(长度对位约束的拒收面在 Sim.Codec 写/读侧)。
 //   本文件的 PayloadRef / CaseId / DiseaseIdSet 带 ctor(header 与键型在 codec 之外有组装需求)。
 
+using System;
+
 namespace DaYiJingCheng.Sim.Contracts
 {
     /// <summary>
@@ -50,14 +52,31 @@ namespace DaYiJingCheng.Sim.Contracts
     /// <summary>
     /// 病例锚点三元组 = 全序键 (Tick, Patient, Seq)(ADR-008 复核 #1:全序键补 Patient)。
     /// registry 五处「case_id: 三元组」/「anchor_case」的转录形。
+    /// <para><b>相等性</b>:逐字段值相等(三元组判等 = 全序无平局,ADR-008 §一)。
+    /// 实现 <see cref="IEquatable{T}"/> 以支持字典键 / 集合去重 —— 测试与后续写流故事
+    /// (story-002 立案唯一性)需要以 case_id 为键。</para>
     /// </summary>
-    public readonly struct CaseId
+    public readonly struct CaseId : IEquatable<CaseId>
     {
         public readonly long Tick;
         public readonly int Patient;   // registry: i32(同 SimEvent.Patient 的值域;世界级 = None = -1)
         public readonly long Seq;
 
         public CaseId(long tick, int patient, long seq) { Tick = tick; Patient = patient; Seq = seq; }
+
+        public bool Equals(CaseId other) => Tick == other.Tick && Patient == other.Patient && Seq == other.Seq;
+        public override bool Equals(object obj) => obj is CaseId other && Equals(other);
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int h = Tick.GetHashCode();
+                h = (h * 397) ^ Patient.GetHashCode();
+                return (h * 397) ^ Seq.GetHashCode();
+            }
+        }
+        public static bool operator ==(CaseId a, CaseId b) => a.Equals(b);
+        public static bool operator !=(CaseId a, CaseId b) => !a.Equals(b);
     }
 
     /// <summary>
@@ -65,11 +84,18 @@ namespace DaYiJingCheng.Sim.Contracts
     /// ordinal 映射表住 9 的病种注册表(ADR-014 烘焙,append-only:既有条目号永不重用、永不改义,
     /// case-system.md 2026-09-17 裁定)。**上限 = 64 病种**;超界 = 数据层构建失败,非本 struct 职责。
     /// 禁 Fix(塞 Q16.16 = D-21-17 同类错,ADR-008 订正①点名)。
+    /// <para><b>相等性</b>:bitmask 值相等。实现 <see cref="IEquatable{T}"/> 以支持字典键。</para>
     /// </summary>
-    public readonly struct DiseaseIdSet
+    public readonly struct DiseaseIdSet : IEquatable<DiseaseIdSet>
     {
         public readonly ulong Bits;
 
         public DiseaseIdSet(ulong bits) { Bits = bits; }
+
+        public bool Equals(DiseaseIdSet other) => Bits == other.Bits;
+        public override bool Equals(object obj) => obj is DiseaseIdSet other && Equals(other);
+        public override int GetHashCode() => Bits.GetHashCode();
+        public static bool operator ==(DiseaseIdSet a, DiseaseIdSet b) => a.Equals(b);
+        public static bool operator !=(DiseaseIdSet a, DiseaseIdSet b) => !a.Equals(b);
     }
 }
