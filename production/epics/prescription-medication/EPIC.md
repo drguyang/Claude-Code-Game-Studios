@@ -83,8 +83,13 @@ This epic is complete when:
 
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
-| 001 | 处方表与本草词表:双表 polarity 硬门 | Config-Data | Ready | ADR-014/024/005 |
-| 002 | F-11.1 剂量舍入与 F-11.2 F5 求值点 | Logic | Ready | ADR-006/005/012 |
-| 003 | DrugTreatmentApplied 构造、零病名与写者独占 | Integration | Ready | ADR-009/024/013 |
-| 004 | Prescribe 流程:库存、扣减与成长门 | Integration | Ready | ADR-009/026/010 |
-| 005 | 戥子输入与方笺呈现 | UI | Ready | ADR-011/013 |
+| 001 | 处方表与本草词表:双表 polarity 硬门 | Config-Data | ✅ Complete 2026-10-06 | ADR-014/024/005 |
+| 002 | F-11.1 剂量舍入与 F-11.2 F5 求值点 | Logic | ✅ Complete 2026-10-06(⚠️ 评审原件缺失) | ADR-006/005/012 |
+| 003 | DrugTreatmentApplied 构造、零病名与写者独占 | Integration | ❌ **未开工**(Required evidence `drug_event_test.cs` 全库不存在) | ADR-009/024/013 |
+| 004 | Prescribe 流程:库存、扣减与成长门 | Integration | ✅ Complete 2026-10-06 | ADR-009/026/010 |
+| 005 | 戥子输入与方笺呈现 | UI | ✅ Complete 2026-10-06(结构半边;走查半边 NOT-RUN) | ADR-011/013 |
+
+> ⚠️ **epic 未全闭**:story-003 未开工 ⇒ **AC-11-01① / AC-11-22 / AC-11-10 三条 BLOCKING 无真判据**。
+> 且 story-003 标题所指的 `DrugTreatmentApplied` 构造点 / 写者独占在库内**无实现件**
+> (本 epic 提交的 story-003 实为 F-11.2 半衰期,与本卡范围不符)。
+> 收口前须由 producer 裁定:补做 story-003,或把这三条 AC 的承担方改派并同步 TR 登记。

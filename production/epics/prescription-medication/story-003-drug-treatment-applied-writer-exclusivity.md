@@ -74,7 +74,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/PrescriptionMedication/drug_event_test.cs` — must exist and pass(AC-11-15 矩阵子句 NOT-RUN 显式登记)
-**Status**: [ ] Created — NOT STARTED
+**Status**: [ ] Created — NOT STARTED(⚠️ **不得标 Done** —— 本卡 `Required evidence` 的 `drug_event_test.cs` **全库不存在**,且 AC-11-01① / AC-11-22 / AC-11-10 三条 BLOCKING **无真判据**;story-003 提交实际交付的是 F-11.2 半衰期(`half_life_test.cs`),**非本卡范围**)
 
 ---
 

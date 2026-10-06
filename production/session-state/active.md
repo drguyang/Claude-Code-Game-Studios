@@ -3,7 +3,7 @@
 ## 🔄 当前进行 = prescription-medication story-005(戥子输入与方笺呈现 —— 离散整数档与黄铜读数)
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
-> **本件 = prescription-medication epic 末件(story 001–004 已全部收口)。**
+> **本件 = prescription-medication epic 末件**;⚠️ **但 epic 未全闭** —— story-003 未开工(见下方 EPIC 表)。
 
 ### 交付物
 - **生产**:`unity/Assets/Gameplay.UI/Skeuomorphic/DentchDoseSelector.cs`
@@ -587,7 +587,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 | modular-building (23) | 7 | **7** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红，`9bb912b`+`bfa6234`;**未闭登记 = N-r2 生产装配根 + AC-23-09 跨平台签名**） |
 | patient-ai (13) | 4 | **4** | 0 | 0 | ✅ **全收口 2026-10-05**(story-001/002/003/004;未闭登记 = V8 联机 BLOCKED-BY 45 · 跨平台 EXTERNAL · [L] 五档可读性部分闭) |
 | player-controller (1) | 6 | **6** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（两轮评审判据缺陷已修;88 过 + 3 NOT-RUN，`a78c27a`） |
-| prescription-medication (11) | 5 | **5** | 0 | 0 | ✅ **Stories Complete** — story-001/002/003/004/005 全收口;未闭登记(禁借绿,非安全洞)= AC-11-08 ② / AC-11-15 三格矩阵 / TR-prescription-008 / AC-11-16 乙 / 非主机传输 / 影子换算表 / 同 tick 双剂 Seq / **story-005 七项**(AC-11-18 ② 42 元件 · 手柄路径 · AC-11-12/13/21 走查 · 焦点单栈门实跑 · `materia_lexicon.cooked` 真装载 · 门控判定源归 20 · 落笔接线归 8/39);**跨故事缺口 = story-003 `drug_event_test.cs` 全库不存在 ⇒ AC-11-01①/AC-11-22/AC-11-10 assembly 面三处 BLOCKING 无真判据**;**epic 收口待办 = AC-11-18 ② 实体元件承担方确认(skeuomorphic-ui)** |
+| prescription-medication (11) | 5 | **4** | **1** | 0 | 🔄 **In Progress(未全闭)** — ✅ 001 / 002(⚠️ 评审原件缺失)· 004 · 005(结构半边);❌ **story-003 未开工** —— 其标题所指的 `DrugTreatmentApplied` 构造点 / 写者独占**库内无实现件**(提交的 story-003 实为 F-11.2 半衰期,与本卡范围不符),`Required evidence` 的 `drug_event_test.cs` 全库不存在 ⇒ **AC-11-01① / AC-11-22 / AC-11-10 三条 BLOCKING 无真判据**;**epic 收口前置 = producer 裁定补做 story-003 或改派这三条 AC 并同步 TR 登记**;另 story-005 走查半边(AC-11-12/13/21 人工签核)+ AC-11-18 ② 实体元件承担方(skeuomorphic-ui)待闭 |
 | processing (18) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | random-events (52) | 6 | **6** | 0 | 0 | ✅ 全收口 |
 | time-weather (5) | 5 | **5** | 0 | 0 | ✅ 全收口 |

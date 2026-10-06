@@ -1,7 +1,7 @@
 # Story 005: 戥子输入与方笺呈现 —— 离散整数档与黄铜读数
 
 > **Epic**: 处方用药
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-06
 > **Layer**: Feature
 > **Type**: UI
 > **Estimate**: 10h
@@ -85,7 +85,8 @@
 
 **Story Type**: UI
 **Required evidence**: `unity/Assets/Tests/PlayMode/PrescriptionMedication/dentch_input_test.cs`(结构半边:焦点落点数、入参类型、DTO 洁净、闭集与意图零调用)+ 走查文档与截图 `production/qa/evidence/prescription-medication/story-005-*.md`(主创签核 AC-11-12;主创+医学从业 AC-11-13;音频 lead AC-11-21)
-**Status**: [ ] Created — NOT STARTED;AC-11-13 / AC-11-12 / AC-11-21 走查子项 `NOT-RUN`(可判 ≠ 已判);AC-11-18 ② 与手柄面分别 BLOCKED-BY-42 元件落地 / 桌面调试集中轮 + 假设 6 spike
+**Status**: [x] Done 2026-10-06(结构半边)—— 真身 `unity/Assets/Tests/PlayMode/PrescriptionMedication/dentch_input_test.cs`(**49 测**,commit `1e19106`);评审原件 `production/qa/evidence/review-prescription-story-005-2026-10-06.md`
+⚠️ **走查半边仍 `NOT-RUN`(禁借绿)**:AC-11-13 / AC-11-12 / AC-11-21 走查子项**可判 ≠ 已判**,须实现轮人工执行 + 签核(主创 / 主创+医学从业 / 音频 lead),走查文档与截图 `production/qa/evidence/prescription-medication/story-005-*.md` **未产出**;AC-11-18 ② 与手柄面分别 BLOCKED-BY-42 元件落地 / 桌面调试集中轮 + 假设 6 spike
 
 ---
 

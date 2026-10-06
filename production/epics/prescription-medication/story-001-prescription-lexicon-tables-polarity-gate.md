@@ -1,7 +1,7 @@
 # Story 001: 处方表与本草词表 —— 双表 polarity 硬门
 
 > **Epic**: 处方用药
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-06
 > **Layer**: Foundation
 > **Type**: Config-Data
 > **Estimate**: 6h
@@ -76,7 +76,7 @@
 
 **Story Type**: Config-Data
 **Required evidence**: `unity/Assets/Tests/EditMode/PrescriptionMedication/prescription_tables_test.cs` — must exist and pass(DC-2/DC-6 子项 NOT-RUN 须在证据文件头显式写出)
-**Status**: [ ] Created — NOT STARTED
+**Status**: [x] Done 2026-10-06 — 真身 `unity/Assets/Tests/EditMode/PrescriptionMedication/prescription_tables_test.cs`(12 测);评审原件 `production/qa/evidence/review-prescription-story-001-2026-10-06.md`
 
 ---
 

@@ -1,7 +1,7 @@
 # Story 004: Prescribe 流程 —— 域检查、原子扣减与成长门
 
 > **Epic**: 处方用药
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-06
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 10h
@@ -82,7 +82,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/PrescriptionMedication/prescribe_flow_test.cs` — must exist and pass(AC-11-16 正式对拍 / AC-11-15 三格 / 换算表真源 / 省料数值 / 客户端传输:五处 BLOCKED/NOT-RUN 显式列于证据文件头)
-**Status**: [ ] Created — NOT STARTED
+**Status**: [x] Done 2026-10-06 — 真身 `unity/Assets/Tests/EditMode/PrescriptionMedication/prescribe_flow_test.cs`(53 测,commit `db369d0`);评审原件 `production/qa/evidence/review-prescription-story-004-2026-10-06.md`
 
 ---
 

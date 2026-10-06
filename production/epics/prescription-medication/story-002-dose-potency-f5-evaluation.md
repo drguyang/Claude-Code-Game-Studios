@@ -1,7 +1,7 @@
 # Story 002: F-11.1 剂量舍入除与 F-11.2 F5 求值点
 
 > **Epic**: 处方用药
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-06
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 8h
@@ -74,7 +74,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/PrescriptionMedication/dose_potency_test.cs` — must exist and pass(AC-11-11④ 分支判据 / AC-11-19 / AC-11-15 矩阵子句 / TR-prescription-007 的 21a 半边:四处 NOT-RUN 显式列于证据文件头)
-**Status**: [ ] Created — NOT STARTED
+**Status**: [x] Done 2026-10-06 — 真身 `unity/Assets/Tests/EditMode/PrescriptionMedication/dose_potency_test.cs`(23 测,commit `f2bad6b`);⚠️ **评审原件缺失**(story-002 收口时未落 `review-prescription-story-002-*.md`);依 `.claude/docs/coding-standards.md` §Review Evidence Standards,其 BLOCKING 级评审记载**不可由 commit message 摘要顶替**,补件出路 = **补做一次评审**(评当下)并落新原件
 
 ---
 
