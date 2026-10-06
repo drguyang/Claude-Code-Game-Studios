@@ -85,38 +85,13 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
         public void test_dose_noFloat_staticScan()
         {
             // AC-11-11① 静态半:扫描 Sim/Prescription/ 源码,禁 float/double 类型与字面量
+            // 扫描实现共享于 PrescriptionFloatScan(story-002 / story-003 同面,避免重复实现漂移)
             string simDir = Path.Combine(RepoRoot, "unity", "Assets", "Sim", "Prescription");
-            if (!Directory.Exists(simDir))
-            {
-                Assert.Ignore($"Sim/Prescription/ 目录不存在: {simDir}");
-                return;
-            }
+            // M2:目录缺失 = 环境错误,须硬失败(原 Assert.Ignore 会静默跳过 ⇒ 借绿)
+            Assert.IsTrue(Directory.Exists(simDir),
+                $"Sim/Prescription/ 目录不存在(AC-11-11① 静态扫描无处可跑): {simDir}");
 
-            var floatPattern = new Regex(@"\b(float|double)\b");
-            var floatLiteralPattern = new Regex(@"\b\d+\.\d+[fdm]?\b|\b\d+[fdm]\b");
-            var violations = new System.Collections.Generic.List<string>();
-
-            foreach (string file in Directory.GetFiles(simDir, "*.cs", SearchOption.AllDirectories))
-            {
-                string content = File.ReadAllText(file);
-                foreach (Match m in floatPattern.Matches(content))
-                {
-                    // 允许注释中的 float/double 提及
-                    int lineStart = content.LastIndexOf('\n', m.Index) + 1;
-                    string line = content.Substring(lineStart, m.Index - lineStart).Trim();
-                    if (line.StartsWith("//") || line.StartsWith("*") || line.StartsWith("/*"))
-                        continue;
-                    violations.Add($"{Path.GetFileName(file)}:{m.Index}: type '{m.Value}'");
-                }
-                foreach (Match m in floatLiteralPattern.Matches(content))
-                {
-                    int lineStart = content.LastIndexOf('\n', m.Index) + 1;
-                    string line = content.Substring(lineStart, m.Index - lineStart).Trim();
-                    if (line.StartsWith("//") || line.StartsWith("*") || line.StartsWith("/*"))
-                        continue;
-                    violations.Add($"{Path.GetFileName(file)}:{m.Index}: literal '{m.Value}'");
-                }
-            }
+            var violations = PrescriptionFloatScan.Scan(simDir);
 
             Assert.IsEmpty(violations,
                 $"Sim/Prescription/ 源码含浮点类型/字面量(AC-11-11① 零浮点):\n{string.Join("\n", violations)}");

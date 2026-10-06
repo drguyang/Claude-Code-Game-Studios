@@ -1,6 +1,33 @@
 # Session State — 2026-10-06(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 最近收口 = prescription-medication story-001(处方表与本草词表 —— 双表 polarity 硬门)—— ✅ 收口 2026-10-06 · 已提交推送
+## 🔄 最近收口 = prescription-medication story-003(F-11.2 半衰期)—— ✅ 收口 2026-10-06 · 已提交推送
+
+> 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
+
+### 交付物
+- **生产**:`HalfLifeCalculator.cs`(F-11.2 半衰期计算器,走 `Fix.operator+` 加法)
+- **测试**:`half_life_test.cs`(**24 条**)· `PrescriptionFloatScan.cs`(零浮点扫描共享实现)
+- **证据**:`production/qa/evidence/review-prescription-story-003-2026-10-06.md`
+
+### 单轮评审 → 修复轮(要点)
+- **结构 B-1**: raw `long` 加法绕过 `Fix.operator+` 的 `checked` 溢出保护(静默回绕;IL2CPP 下 UB)
+  ⇒ 改走 `Fix effective = axisBase + offset;`(`Fix.cs:124-127` 的 `operator+` 抛 `OverflowException`)
+- **结构 M-1**: `CalculateForDrug` 纯透传无价值 ⇒ 改为读 `DrugProfile` 的真实组合入口(可空校验)
+- **结构 M-2**: 缺溢出行为测试 ⇒ 补 3 条(正向/负向/边界)
+- **结构 m-1/m-2/m-3**: 误导性注释删 · 扫描面加注说明 · `EffectiveQuality` 透传注释
+- **QA M1/M2 + m1~m4/m7/m8**: 溢出显式检测 · `Assert.Ignore`→硬失败 · 扫描面扩至 `ToFloat()`/`Math.*`/`decimal`/大小写不敏感 · 补上界与单元素测试
+- **修复轮连带发现(非评审提出)**: 两测试共享扫描面的**重复实现漂移** ⇒ 抽共享 `PrescriptionFloatScan.Scan()`
+
+### 验证(实测)
+- filter:`unity/Logs/half_life_fix4.xml` = **59 / 59 passed / 0 failed**(PrescriptionMedication 全目录)
+- 全量:`unity/Logs/half_life_full3.xml` = **2773 passed / 0 failed**(exit 2 = 既有 Inconclusive)
+
+### ⬜ 待办 / 未闭登记(禁借绿)
+- **NOT-RUN 3 项**:AC-11-08 ②(21a 构建期断言不存在,BL-1)· AC-11-15(三格矩阵,ADR-012 未实跑)· TR-prescription-008(21a 半边)
+
+---
+
+## 📋 历史状态(2026-10-06)—— prescription-medication story-001(处方表与本草词表 —— 双表 polarity 硬门)—— ✅ 收口 2026-10-06 · 已提交推送
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
 > 前置:结构侧 CHANGES REQUIRED(3 BLOCKING + 3 MAJOR + 3 MINOR + 2 NIT)+ QA 侧 NOT APPROVED(3 BLOCKING + 3 MAJOR + 2 MINOR + 1 NIT),
@@ -29,7 +56,7 @@
 
 ### ⬜ 待办 / 未闭登记(禁借绿)
 - **NOT-RUN 3 项**:DC-2(action_id 闭集,依赖 OQ-11-2)· DC-6(依赖 9 侧 NOISE_BAND_9)· AC-11-07(双表 polarity 交叉硬门,依赖 9 侧 disease_registry.json)
-- 下一件:prescription-medication **story-002**(F-11.2 半衰期),同协议
+- 下一件:prescription-medication **story-003**(F-11.2 半衰期),同协议
 
 ---
 
@@ -464,7 +491,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 | modular-building (23) | 7 | **7** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红，`9bb912b`+`bfa6234`;**未闭登记 = N-r2 生产装配根 + AC-23-09 跨平台签名**） |
 | patient-ai (13) | 4 | **4** | 0 | 0 | ✅ **全收口 2026-10-05**(story-001/002/003/004;未闭登记 = V8 联机 BLOCKED-BY 45 · 跨平台 EXTERNAL · [L] 五档可读性部分闭) |
 | player-controller (1) | 6 | **6** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（两轮评审判据缺陷已修;88 过 + 3 NOT-RUN，`a78c27a`） |
-| prescription-medication (11) | 5 | 1 | 4 | 0 | 🔄 **In Progress** — story-002 ✅ 2026-10-06(F-11.1 剂量定点化;23/23 绿;双代理评审修复轮全闭) |
+| prescription-medication (11) | 5 | 2 | 3 | 0 | 🔄 **In Progress** — story-003 ✅ 2026-10-06(F-11.2 半衰期;17/17 绿;双代理评审修复轮全闭) |
 | processing (18) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | random-events (52) | 6 | **6** | 0 | 0 | ✅ 全收口 |
 | time-weather (5) | 5 | **5** | 0 | 0 | ✅ 全收口 |
