@@ -431,7 +431,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 | modular-building (23) | 7 | **7** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红，`9bb912b`+`bfa6234`;**未闭登记 = N-r2 生产装配根 + AC-23-09 跨平台签名**） |
 | patient-ai (13) | 4 | **4** | 0 | 0 | ✅ **全收口 2026-10-05**(story-001/002/003/004;未闭登记 = V8 联机 BLOCKED-BY 45 · 跨平台 EXTERNAL · [L] 五档可读性部分闭) |
 | player-controller (1) | 6 | **6** | 0 | 0 | ✅ **Complete ✅ 2026-10-03**（两轮评审判据缺陷已修;88 过 + 3 NOT-RUN，`a78c27a`） |
-| prescription-medication (11) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
+| prescription-medication (11) | 5 | 1 | 4 | 0 | 🔄 **In Progress** — story-002 ✅ 2026-10-06(F-11.1 剂量定点化;23/23 绿;双代理评审修复轮全闭) |
 | processing (18) | 5 | 0 | 5 | 0 | ⬜ 未启动 |
 | random-events (52) | 6 | **6** | 0 | 0 | ✅ 全收口 |
 | time-weather (5) | 5 | **5** | 0 | 0 | ✅ 全收口 |

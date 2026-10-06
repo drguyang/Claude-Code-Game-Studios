@@ -111,7 +111,7 @@
 | 4 | patient-ai (13) | 4 | 5 | 9 (done) | 🔄 **In Progress** —— story-001 ✅ 2026-10-04 · **story-002 ✅ Complete 2026-10-05**(双代理单轮 CHANGES REQUIRED/REJECT ⇒ 修复轮 4 MAJOR 全闭 + MUT 4/4);余 story-003/004;**当前关键路径断点 = 003** |
 | 5 | diagnosis-system (8) | 6 | 6 | 9, 30 (done) | ⬜ Ready(未实现) |
 | 6 | case-system (37) | 4 | 4 | 8, 9 (done) | ✅ **Complete ✅ 2026-10-06**(4/4;story-001~004 全收口,commit `8a693fd`) |
-| 7 | prescription-medication (11) | 5 | 5 | 21, 9 (done) | ⬜ Ready(未实现) |
+| 7 | prescription-medication (11) | 5 | 1 | 21, 9 (done) | 🔄 **In Progress** — story-002 ✅ 2026-10-06(F-11.1 剂量定点化;23/23 绿;双代理评审修复轮全闭) |
 
 **Phase 2 总计**：~39 SP —— **实际完成 4/7 系统完成 + 第 5 系统首件**(⚠️ 勘误 2026-10-04:`interaction-system` 原记 4/4,
 实际 6 story ⇒ 6 SP,总计数 37 → 39;其余六行与各自 Epic 实际 story 数逐一核对无误)
