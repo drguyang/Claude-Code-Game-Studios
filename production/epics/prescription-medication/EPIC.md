@@ -102,7 +102,7 @@ This epic is complete when:
 
 | 归属 | 未闭项 | 阻塞源 |
 |---|---|---|
-| story-001 | DC-2(`polarity` 枚举值)· DC-6(`NOISE_BAND_9` 无主) | OQ-11-2 · BL-2(O-11→9) |
+| story-001 | DC-2(`action_id` 闭集)· DC-6(`NOISE_BAND_9` 无主) | OQ-11-2 · BL-2(O-11→9) |
 | story-002 | AC-11-11④ 宽度分支 · AC-11-19 **断言本体** · TR-prescription-007 的 21a 半边 | BL-7 / BL-2 / BL-1(均 O-11→21a) |
 | story-002/003 | AC-11-15 三格矩阵 + 跨进程半边 | ADR-012 矩阵未激活 |
 | story-003 | 影子装配注入半边 · `CheckPayloadPairing` 不覆盖 codec tag 序 · AC-11-22 的 7a 白名单本体 | 需动态生成程序集 · 归 ADR-014 阶段 2 · BLOCKED-BY-7a |
@@ -112,3 +112,22 @@ This epic is complete when:
 
 > ⚠️ **AC-11-10 的口径降级**(非静默):「双路径对拍」降为 AC-10-06b 逐位字段比较
 > —— 两条路径载荷形状不同,已在 story-002/003 文件头登记。
+
+### 2026-10-07 增量:DC-2 / DC-6 **校验机制**落地(判据本体仍 NOT-RUN)
+
+> 承 story-001 卡面授权「校验机制 + 负夹具以影子枚举证明可跑」,本轮把两条**从未有执行体**的
+> 构建期判据建成可跑的机器。**判据本体维持 `NOT-RUN`**(真源仍缺席,见下表)——
+> 本轮证的是「机制可跑、可红、非静默」,**不是**「11 的表已合规」。
+>
+> - **DC-2 此前零校验**(`action_id` 读入后从不校验,任何 int 放行);
+>   **DC-6 的比较器此前从未接进烘焙门**(只在 Sim 有实现)。
+> - 新增 `PrescriptionActionIdRegistry.cs`(影子闭集 + 影子地板)+ binder 接线 +
+>   **覆盖率显式记账** + 菜单侧**生产路径报出**(此前影子诊断在非测试代码中零消费者)。
+> - 评审原件:`production/qa/evidence/review-prescription-dc26-shadow-2026-10-07.md`
+>   (双代理一轮;代码面 CHANGES REQUIRED 8 条 + 测试面 4 条必须修,全部处置或显式登记)。
+> - 测试:filtered **174/174/0** · 全量 EditMode **2935/2888/0 红**。
+>   **5 条新守卫经突变验证有抓错力**(注入改坏点 ⇒ 实测红 ⇒ 还原)。
+>
+> ⚠️ **仍未闭**(禁借绿):DC-2 处置 id master 未登记 · DC-6 `NOISE_BAND_9` 未立(BL-2)·
+> **DC-6 对当前数据集零求值**(`salicylic_acid` 的 `dose_range = null`,已由覆盖率记账逐字声明)·
+> 两条已知测试弱点(M1 反守卫用干净夹具 / M4 正向判别力过窄,已登记不静默)。

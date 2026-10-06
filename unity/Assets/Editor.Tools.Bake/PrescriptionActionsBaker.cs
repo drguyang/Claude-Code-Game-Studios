@@ -37,9 +37,20 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// <summary>校验通过后的行集(供调用方核数,不落盘)。</summary>
             public readonly IReadOnlyList<PrescriptionActionRow> Rows;
 
-            public BakeOutput(byte[] cooked, uint configVersion, IReadOnlyList<PrescriptionActionRow> rows)
+            /// <summary>⚠️ 本次烘焙的 DC-2 / DC-6 用了**影子真源**(见
+            /// <see cref="PrescriptionActionsBinder.BindResult.ShadowRegistryUsed"/>)。
+            /// 调用方须**显式报出**,不静默 —— 禁借绿。</summary>
+            public readonly bool ShadowRegistryUsed;
+
+            /// <summary>影子期诊断(DC-2 / DC-6 的发现)—— 不硬失败,须显式报出。</summary>
+            public readonly IReadOnlyList<string> ShadowWarnings;
+
+            public BakeOutput(byte[] cooked, uint configVersion, IReadOnlyList<PrescriptionActionRow> rows,
+                              bool shadowRegistryUsed, IReadOnlyList<string> shadowWarnings)
             {
                 Cooked = cooked; ConfigVersion = configVersion; Rows = rows;
+                ShadowRegistryUsed = shadowRegistryUsed;
+                ShadowWarnings = shadowWarnings ?? new string[0];
             }
         }
 
@@ -76,7 +87,8 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             byte[] cooked = PrescriptionActionsCookedWriter.Write(bound.Rows, bound.SchemaVersion, configVersion,
                 bound.DoseBase, bound.MaxDoseDetents, bound.SingleDoseMaxRaw);
-            return new BakeOutput(cooked, configVersion, bound.Rows);
+            return new BakeOutput(cooked, configVersion, bound.Rows,
+                                  bound.ShadowRegistryUsed, bound.ShadowWarnings);
         }
     }
 }

@@ -261,6 +261,22 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"[大医精诚] 烘焙完成:{PrescriptionActionsCookedAssetName} = {result.Cooked.Length} B, " +
                     $"{result.Rows.Count} 行行集,ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+
+                // ⚠️ **影子期诚实性机制的生产出口**(2026-10-07 评审缺陷 1):
+                //    此前 `ShadowWarnings` / `ShadowRegistryUsed` 在**非测试代码中零消费者**
+                //    ⇒ 「判据非真判」这件事在生产路径上完全不可见,与
+                //    `PrescriptionActionIdRegistry.cs` 自陈的「供构建日志显式报出」直接矛盾。
+                //    ⇒ 菜单是 `BakeFromRepo` 的唯一生产调用点,此处**必须**报出。
+                //    真源落地后本段与 `ShadowRegistryUsed` 一并撤除(禁借绿)。
+                if (result.ShadowRegistryUsed)
+                {
+                    Debug.LogWarning(
+                        "[大医精诚] ⚠️ 本次烘焙的 **DC-2 / DC-6 用的是影子真源** —— " +
+                        "处置 id master 未登记(GDD `:748`)· `NOISE_BAND_9` 归 9 未立(BL-2)" +
+                        "⇒ 两条判据本体仍 **NOT-RUN**,不得据本次烘焙结果判「11 的表已合规」。");
+                }
+                foreach (string w in result.ShadowWarnings)
+                    Debug.LogWarning("[大医精诚] 影子期诊断:" + w);
             }
             catch (BakeValidationException ex)
             {

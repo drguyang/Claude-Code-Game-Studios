@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using DaYiJingCheng.Sim.Contracts;   // FixParse(ADR-006 §一:JSON 里 Fix 字段写字符串)
 
 namespace DaYiJingCheng.EditorTools.Bake
 {
@@ -58,11 +59,26 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// 供 9 的 F1 clamp 上界 `MAX_ACTIVE_DOSE × single_dose_max` 消费。</para></summary>
             public readonly long SingleDoseMaxRaw;
 
+            /// <summary>⚠️ 本次烘焙的 **DC-2 / DC-6 用了影子真源**(闭集 / 地板值均为合成夹具)。
+            /// <para>理由:两条判据的真源都不存在 —— DC-2 的处置 id master 未登记(9 侧
+            /// `disease_registry.json` 缺席)· DC-6 的 `NOISE_BAND_9` 归 9 未立(BL-2)。
+            /// **恒为 true 直至真源落地** —— 存在的意义是让「判据非真判」在构建日志里**可见**,
+            /// 不静默(承 story-003 的「判据-文本背离」记账纪律)。</para></summary>
+            public readonly bool ShadowRegistryUsed;
+
+            /// <summary>影子期诊断(DC-2 / DC-6 的发现)—— **不进 `errors`、不硬失败**。
+            /// <para>⚠️ 用无主门槛硬失败 = GDD 点名的「判据对合法输入类误判」。
+            /// 真源落地后,调用方须把本列**显式升格**为硬失败(禁借绿)。</para></summary>
+            public readonly List<string> ShadowWarnings;
+
             public BindResult(List<PrescriptionActionRow> rows, int doseBase, int maxDoseDetents,
-                              uint schemaVersion, long singleDoseMaxRaw)
+                              uint schemaVersion, long singleDoseMaxRaw, bool shadowRegistryUsed,
+                              List<string> shadowWarnings = null)
             {
                 Rows = rows; DoseBase = doseBase; MaxDoseDetents = maxDoseDetents;
                 SchemaVersion = schemaVersion; SingleDoseMaxRaw = singleDoseMaxRaw;
+                ShadowRegistryUsed = shadowRegistryUsed;
+                ShadowWarnings = shadowWarnings ?? new List<string>();
             }
         }
 
@@ -75,6 +91,12 @@ namespace DaYiJingCheng.EditorTools.Bake
         public static BindResult Bind(string actionsJson, string lexiconJson, string itemsJson)
         {
             var errors = new List<string>();
+
+            // ⚠️ DC-2 / DC-6 的影子期产出走本列,**不进 errors**(不硬失败)。
+            //    理由:两条判据的真源都缺席(处置 id master / NOISE_BAND_9),
+            //    用无主门槛硬失败 = GDD 点名的「判据对合法输入类误判」。
+            //    真源落地后,调用方须把本列**显式升格**为 errors(禁借绿)。
+            var warnings = new List<string>();
 
             // ── 阶段 1:词法(复用仓库唯一入口,零 JsonConvert / JObject)──
             if (!JsonStage1Lexer.TryParse(actionsJson, out JsonNode actionsRoot, out string lexErr1))
@@ -145,7 +167,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
             else
             {
-                BindActionRows(actionsArr, rows, errors);
+                BindActionRows(actionsArr, rows, errors, warnings);
             }
 
             // ── 本草词表行集 ──
@@ -184,6 +206,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             // 收集 ItemDef 闭集(base_id)和药品的 dose_range
             var itemDefIds = new HashSet<string>(StringComparer.Ordinal);
             var drugDoseRanges = new Dictionary<string, (int lo, int hi)?>(StringComparer.Ordinal);
+            var drugPotencyRaw = new Dictionary<string, long>(StringComparer.Ordinal);
             if (itemsRoot.Kind == JsonNodeKind.Object && itemsRoot.TryGet("items", out JsonNode itemsArr) && itemsArr.Kind == JsonNodeKind.Array)
             {
                 for (int i = 0; i < itemsArr.Items.Count; i++)
@@ -201,9 +224,30 @@ namespace DaYiJingCheng.EditorTools.Bake
                             if (item.TryGet("drug_profile", out JsonNode dp) && dp.Kind == JsonNodeKind.Object &&
                                 dp.TryGet("dose_range", out JsonNode dr) && dr.Kind == JsonNodeKind.Array && dr.Items.Count == 2)
                             {
-                                doseRange = ((int)dr.Items[0].Int, (int)dr.Items[1].Int);
+                                int lo = (int)dr.Items[0].Int, hi = (int)dr.Items[1].Int;
+                                // ⚠️ 逆序域是**非法输入**(非「整剂路径」)—— 静默放行会让 DC-6
+                                //    在空档序列上恒通过(2026-10-07 评审缺陷 2)。与 42 侧
+                                //    `DentchDoseSelector` 同口径显式拒。
+                                if (lo > hi)
+                                    errors.Add($"DC-7/DC-6 输入:药 '{drugId}' dose_range = [{lo}, {hi}] 逆序" +
+                                               "(下界 > 上界 ⇒ 相邻档序列为空 ⇒ DC-6 静默恒通过)");
+                                else
+                                    doseRange = (lo, hi);
                             }
                             drugDoseRanges[drugId] = doseRange;
+
+                            // DC-6 输入:药效幅值(ADR-006 §Decision 一:JSON 形 = 字符串,经 FixParse)
+                            if (dp.Kind == JsonNodeKind.Object &&
+                                dp.TryGet("drug_potency", out JsonNode dpn) &&
+                                dpn.Kind == JsonNodeKind.String)
+                            {
+                                try { drugPotencyRaw[drugId] = FixParse.Parse(dpn.Str).Raw; }
+                                catch (Exception ex)
+                                {
+                                    errors.Add($"DC-6 输入:药 '{drugId}' 的 drug_potency " +
+                                               $"\"{dpn.Str}\" 非合法 Fix 字面量:{ex.Message}");
+                                }
+                            }
                         }
                     }
                 }
@@ -235,6 +279,38 @@ namespace DaYiJingCheng.EditorTools.Bake
                 }
             }
 
+            // ── DC-6:逐药相邻档 dose_potency 差 ≥ 可感知地板 ──
+            //    ⚠️ 2026-10-06 补:机制此前**只存在于 Sim 的比较器**,从未接进烘焙门。
+            //    地板值现为**影子**(BL-2:`NOISE_BAND_9` 归 9,未立)⇒ 判据本体仍 NOT-RUN。
+            //    求值经 DoseCalculator(F-11.1 唯一实现,AC-11-02)。
+            int dc6Evaluated = 0, dc6SkippedNoRange = 0, dc6SkippedNoPotency = 0;
+            foreach (var kvp in drugDoseRanges)
+            {
+                if (!kvp.Value.HasValue) { dc6SkippedNoRange++; continue; }   // 整剂路径 ⇒ 无相邻档
+                if (!drugPotencyRaw.TryGetValue(kvp.Key, out long potencyRaw))
+                { dc6SkippedNoPotency++; continue; }                          // 21a 可空 ⇒ 见下方记账
+
+                var dr = new Sim.Contracts.DoseRange(kvp.Value.Value.lo, kvp.Value.Value.hi);
+                warnings.AddRange(PrescriptionActionIdRegistry.ValidatePerceptibleFloor(
+                    potencyRaw, dr, doseBase));
+                dc6Evaluated++;
+            }
+
+            // ⚠️ **覆盖率显式记账**(2026-10-07 评审缺陷 4):上面两条 `continue` 是**合法**跳过,
+            //    但静默跳过 = 「看起来绿但没跑」。当前数据集 salicylic_acid 恰 `dose_range = null`
+            //    ⇒ DC-6 **对当前数据集零求值**;不记账则读者会把「零覆盖」读成「已合规」。
+            //    另:第 2 条跳过与 `single_dose_max` 对同一输入类判定**相反**(后者硬失败)——
+            //    该背离须可见,故此处强制报出。
+            warnings.Add($"[DC-6 覆盖] 求值 {dc6Evaluated} 味 · 跳过(无 dose_range/整剂路径){dc6SkippedNoRange} 味 · " +
+                         $"跳过(无 drug_potency){dc6SkippedNoPotency} 味 —— " +
+                         (dc6Evaluated == 0
+                             ? "⚠️ **本次 DC-6 零求值**(判据未跑,禁读成绿)。"
+                             : "仅上述被求值的药受判。") +
+                         (dc6SkippedNoPotency > 0
+                             ? $" ⚠️ 其中 {dc6SkippedNoPotency} 味缺 drug_potency 被跳过 —— " +
+                               "同一输入类对 single_dose_max **硬失败**、对 DC-6 **静默通过**,背离须记账。"
+                             : string.Empty));
+
             if (errors.Count > 0)
                 throw new BakeValidationException(errors);
 
@@ -243,12 +319,14 @@ namespace DaYiJingCheng.EditorTools.Bake
             //    并随 ConfigVersion(源内容哈希)一起变 —— 测试据此判「联动」。
             long singleDoseMaxRaw = PrescriptionDerivedBaker.DeriveSingleDoseMaxRaw(itemsRoot, doseBase);
 
-            return new BindResult(rows, doseBase, maxDoseDetents, schemaVersion, singleDoseMaxRaw);
+            return new BindResult(rows, doseBase, maxDoseDetents, schemaVersion, singleDoseMaxRaw,
+                                  shadowRegistryUsed: true, shadowWarnings: warnings);
         }
 
         // ── 处方表行集 ────────────────────────────────────────────────────
 
-        private static void BindActionRows(JsonNode arr, List<PrescriptionActionRow> rows, List<string> errors)
+        private static void BindActionRows(JsonNode arr, List<PrescriptionActionRow> rows,
+                                           List<string> errors, List<string> warnings)
         {
             for (int i = 0; i < arr.Items.Count; i++)
             {
@@ -262,12 +340,23 @@ namespace DaYiJingCheng.EditorTools.Bake
                 RejectUnknownKeys(node, ActionRowKeys, where, errors);
 
                 string itemKey = ReadString(node, "item_key", errors, where);
+                bool actionIdPresent = node.TryGet("action_id", out JsonNode actionIdNode) &&
+                                       actionIdNode.Kind == JsonNodeKind.Integer;
                 int actionId = ReadInt(node, "action_id", errors, where);
                 string polarity = ReadString(node, "polarity", errors, where);
 
                 // ── DC-3:polarity ∈ {causal, symptomatic} ──
                 if (polarity != "causal" && polarity != "symptomatic")
                     errors.Add($"DC-3 违反:{where}.polarity=\"{polarity}\" ∉ {{causal, symptomatic}}");
+
+                // ── DC-2:action_id ∈ 处置 id 注册表闭集 ──
+                //    ⚠️ 2026-10-06 补:此前 action_id **读入后从不校验**(任何 int 放行)。
+                //    现以**影子闭集**驱动 —— 判据本体仍 NOT-RUN(真源 = 9 的处置 id master,
+                //    GDD `:748` 逐字登记「该枚举的 master 住哪一份文件未登记」)。
+                //    ⚠️ **影子期落 Warnings 不落 errors** —— 用无主的闭集硬失败 =
+                //    GDD 点名的「判据对合法输入类误判」。真源落地后由调用方升格。
+                //    字段**缺失**时不再报「0 ∉ 闭集」—— 那是失真(缺失已由 ReadInt 记账)。
+                warnings.AddRange(PrescriptionActionIdRegistry.ValidateActionId(actionId, null, actionIdPresent));
 
                 rows.Add(new PrescriptionActionRow(itemKey, actionId, polarity));
             }
