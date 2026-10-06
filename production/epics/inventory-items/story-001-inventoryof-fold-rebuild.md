@@ -46,7 +46,7 @@
 2. 索引结构 = `(instance_id → {item_key, quality, qty, owner})` 纯内存字典,派生视图(按玩家 / 按格)都从该 fold 读;存档/快照只存事件流(ADR-010),读档 = 从流重建 + 快照作起点优化(冲突时流赢 —— 该优先级写进断言)。
 3. 品级载体:实例的 `quality` 只在 `ResourceHarvested`(采出)与 `Craft.OutputQuality`(制出)两条上出现,fold 一次性绑定;此后只读(承 21a 品级不抬高纪律的投影侧)。
 4. AC-20-03 的可执行子集(不违禁借绿):交付「重建器本体 + 用**完整夹具流**跑通」—— 夹具流内构造 R2/R3 尚未定稿字段的合法占位(如 `DropDespawned` 按单事件形状),但 AC 行保持未勾 + `Ignore` 标注,真实定稿后摘除;`Ignore` 理由逐条点名五前置(镜像 processing Story 001 的 O-18-R1 处理形)。
-5. 用药/跨栈消耗形状(BL-23④ 选栈点名 `[(instance_id, qty)]`)由 Story 005 落地;本故事只保证 fold 消费端能表达「按实例扣 qty」(OQ-20-10 事件形状未裁 ⇒ 多条 `DropDespawned` 兜底读法先测)。
+5. 用药/跨栈消耗形状(BL-23④ 选栈点名 `[(instance_id, qty)]`)由 Story 005 落地;本故事只保证 fold 消费端能表达「按实例扣 qty」(✅ OQ-20-10 已于 2026-10-06 裁「相邻多条 N 条」⇒ 兜底读法不再是猜测,fold 侧直接按「逐实例 qty」实现)。
 6. 性能门:溢出界 `|Inventory| × stack_max × max(weight) < 2^31` 是烘焙期常量 + 构建期断言(TR-inventory-010 partial,值班方未裁)—— 本故事在 fold 读入口做防御断言,值班方裁定外抛登记。
 
 ---

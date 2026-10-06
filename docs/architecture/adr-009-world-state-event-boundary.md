@@ -287,7 +287,9 @@ StructureRemoved       // 拆除(23)—— 载荷归 R-10
 StructureModified      // 改造 / 医馆即机器状态变更(23 / 24)—— 载荷归 R-10
 DropSpawned            // 掉落实体出生:instance_id + spawn_anchor(20 / 25 / 死亡掉落)
 DropClaimed            // 拾取:主机裁决的归属变更(20)
-DropDespawned          // 消失 / 过期(20)
+DropDespawned          // 消失 / 过期(20)—— 载荷含 `qty` + `reason`(R-2 落定值域);
+                       //   ✅ 2026-10-06 `OQ-20-10` 已裁:颗粒度 = **一实例一条**,一次用药跨 N 栈 =
+                       //   N 条同 tick 相邻 `Seq`(「请求级单事件」候选结构性否决;分组键 = `(tick)`,不加 payload 字段)
 Craft                  // 制作 / 炮制 —— **发起方 = 18 炮制 / 19 制作,求解 = 21a**(Amendment J,
                        //   2026-09-19:原记「(21a)」为归属误记);载荷**已定稿**(18 规则八 R-18-A:
                        //   actor_id / output_instance_ids[] / tool_cell / start_tick / ActualConsumed[])

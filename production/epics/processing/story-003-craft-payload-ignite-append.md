@@ -58,7 +58,7 @@
 - Story 002:F1 调用与供料(本故事消费其出参)
 - Story 004:完成派生(`CompleteTick = start + duration`)与等待期行为(本故事只落 start 侧)
 - Story 005:完成时点调度、起货、溢出 `DropSpawned`
-- inventory-items epic:20.Apply 本体、`DropDespawned` 消耗形状(R2/OQ-20-10 未裁面)、高水位扫流含 Craft 产出 id(R3)
+- inventory-items epic:20.Apply 本体、`DropDespawned` 消耗形状(✅ OQ-20-10 已裁 2026-10-06 相邻多条 N 条;余 R2 `reason` 值域)、高水位扫流含 Craft 产出 id(R3)
 - 7a(ADR-010):Craft 行的二进制序列化与折叠(18 不写 codec)
 - ADR-012 落地轮:AC-18-15 跨平台三出参逐位(EXTERNAL,矩阵不存在)
 

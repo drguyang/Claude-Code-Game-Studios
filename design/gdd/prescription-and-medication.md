@@ -414,6 +414,9 @@ single_dose_max = max over (全部药 × dose_range.hi) of | dose_potency |     
     ① 域检查(剂量 ∈ dose_range ∧ (域可空 ⇒ 整剂) · **`portions = dose × portions_per_dose`(空表值 ⇒ 1)后份数有货** · 对象在场) —— 失败 ⇒ 不进入
     ② 算 F-11.1(药效)/ F-11.2(半衰期),**查 `D-21-29` 换算表(`portions_per_dose`)得份数**
     ③ 交 20:Apply(消耗 portions 份) —— 多份时 `quality` 取该次消耗实例集中**确定性的最低档**
+       (⚠️ 2026-10-06 补:`Apply` 的**事件颗粒度已裁(`OQ-20-10` 取 ①)** —— 20 落 **N 条**同 tick 相邻
+        `DropDespawned`(一实例一条),不是一条请求级事件;11 侧**不需要**知道 N、不需要带实例清单,
+        20 只收「份数 + 玩家点名的实例集」(BL-23④))
        (⚠️ 新增裁定:原稿未定「多份消耗时 F-11.2 读哪个 `quality`」,直接影响重放逐位性;
         取最低档 = 保守,且**须是可重放的纯函数**,禁「取第一个」这类依赖列表序的读法,承 ADR-016 三源不变量)
     ④ 发 `DrugTreatmentApplied`(规则三)—— ⚠️ **无条件**

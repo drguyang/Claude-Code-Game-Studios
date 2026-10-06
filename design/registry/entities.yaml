@@ -2359,14 +2359,14 @@ constants:
     source: docs/architecture/adr-009-world-state-event-boundary.md
     referenced_by:
       - docs/architecture/adr-009-world-state-event-boundary.md   # §三 骨架(消失 / 过期)
-      - design/gdd/inventory-and-items.md                          # 20:规则六/九 · BL-4/BL-5 形名失配 · OQ-20-10
+      - design/gdd/inventory-and-items.md                          # 20:规则六/九 · BL-4/BL-5 形名失配 · ✅ OQ-20-10 已裁(相邻多条)
     unit: kind
     stream: world
     author: "20 库存与物品(唯一)"
-    payload_schema: "instance_id: i64; qty: i32; reason: 枚举(过期 | 被消耗 —— reason 档表归 R-2 定稿)"
-    constraint: "落**世界流**(ADR-009 §二/§三「消失 / 过期(20)」);载荷 = { instance_id, qty, reason }(全整数;`qty` = **份数**,实例级部分消耗 `qty ≤ 实例当前 qty` 由主机裁决);⚠️ **残留义务**:`qty` + `reason` 载荷扩项**归 R-2 定稿时补全**(20 BL-4/BL-5「形名失配」登记,ADR-009 §三 原载荷未含二项);⚠️ **`OQ-20-10` 未裁**:一次用药跨两栈须两条事件还是请求级 `consumed:[(instance_id, qty)]` —— 本条按现状「一实例一事件」登记,**不预设答案**(现口径若按单事件定稿会截断跨栈量,20 规则九 BL-31);用药消耗走本 Kind 不走新 Kind(`inventory-and-items.md` 规则六,世界流 fold 域不变);**写者 = 20**;`Patient = PatientId.None`;有界性 ≤ 实例数(只减不增侧)"
+    payload_schema: "instance_id: i64; qty: i32; reason: 枚举(过期 | 被消耗 —— reason 档表归 R-2 定稿);载荷颗粒度 = **一实例一条**(✅ 2026-10-06 `OQ-20-10` 裁 ①:一次用药跨 N 栈 = N 条本 Kind,同 tick 相邻 Seq;「同一次用药」分组键 = `(tick)`,**不加 payload 分组字段**)"
+    constraint: "落**世界流**(ADR-009 §二/§三「消失 / 过期(20)」);载荷 = { instance_id, qty, reason }(全整数;`qty` = **份数**,实例级部分消耗 `qty ≤ 实例当前 qty` 由主机裁决);⚠️ **残留义务**:`reason` 枚举档表**归 R-2 定稿时补全**(20 BL-4/BL-5「形名失配」登记,ADR-009 §三 原载荷未含该项;`qty` 同为 R-2 落地面);✅ **`OQ-20-10` 已裁(2026-10-06 · 取 ① 相邻多条)**:一次用药跨 N 栈 ⇒ **N 条本 Kind,同 `tick` 内 `Seq` 相邻**(全序键 `(Tick, StreamPriority, Patient=None, Seq)` 的 `Seq` 由主机 `Append` 当场发放 —— ADR-005 / ADR-006 Amendment A);**② 请求级 `consumed:[(instance_id, qty)]` 结构性否决** —— 实体级 Kind 扩为容器级与 Kind 语义冲突(「一次用药」= N 次实体消失,不是一次消失),且 fold 谓词须加「列表型载荷」分支 = 谓词歧义;「同一次用药」的分组**不需要 payload 字段** —— 因果链住病史流 `DrugTreatmentApplied`(同 `tick` 先于世界流消耗,`StreamPriority` 0 < 2,ADR-008 §一),分组键 = `(tick)`;fold 侧只读 `(instance_id, qty)`,分组缺失不影响 `InventoryOf` 逐位重建;用药消耗走本 Kind 不走新 Kind(`inventory-and-items.md` 规则六/九,世界流 fold 域不变);**写者 = 20**;`Patient = PatientId.None`;有界性 = 每次用药 ≤ 玩家携带的同 `StackKey` 栈数(`(item_key, quality)` 决定,上界 = 21a 交付的堆叠基数 —— **不按实例总数计**,原「≤ 实例数」口径过宽)"
     added: 2026-09-20
-    revised: ""
+    revised: "2026-10-06"
 
   # ── 病史流 5 支(出处 = ADR-007 §三 承重条款;此前五支**零 registry 条目**
   #    而有 12~20 处/支下游引用 —— ADR-024 双向缺口表;掷骰输入可重构 = 核心不变量)──

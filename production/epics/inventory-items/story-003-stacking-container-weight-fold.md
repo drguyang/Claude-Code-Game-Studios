@@ -57,7 +57,7 @@
 *Handled by neighbouring stories — do not implement here:*
 
 - Story 001:folds/投影;Story 004:CarryLoad 与容量裁决(折重只给定义件)
-- Story 005:消耗转移原子性(堆叠扣减的多栈形状在 R2/OQ-20-10 定稿处)
+- Story 005:消耗转移原子性(堆叠扣减的多栈形状 ✅ OQ-20-10 已于 2026-10-06 裁「相邻多条 N 条」;余 R2 `reason` 值域)
 - Story 006:药箱界面、翻页、色盲非颜色通道走查(AC-20-20/23 的呈现半边,BLOCKED-BY-R9)
 - skeuomorphic-ui(42)epic:`COLUMNS`/布局、ModalId `InventoryContainer` 模态、器具第三材质档(木/皮/铜)元件
 - item-database epic:`StackKey` 与 `weight` schema 本体(21a F4)

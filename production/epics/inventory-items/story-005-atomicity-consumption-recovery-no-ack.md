@@ -15,7 +15,7 @@
 *(Requirement texts live in `docs/architecture/tr-registry.yaml` — read fresh at review time)*
 
 **ADR Governing Implementation**: ADR-005(主): 状态可序列化前提 ⇒ 部分成功的中间态无处归因 · ADR-011(次,Amendment B): 意图上行 + 主机终裁(单机 P0 = 本地主机)· ADR-024(次): 零新增 Kind 即 registry 无变更 · ADR-009(次): 死亡散落 = `DropSpawned` 身份进流 / 位置表现
-**ADR Decision Summary**: 拾取**整件拒绝**(超容量 ⇒ 地面实例留存、`InventoryOf` 零变化);炮制/建造**先验容量后扣**(AC-18-12 同构),失败**整体回滚**(料不扣、货不出);跨栈消耗须多条 `DropDespawned` —— **OQ-20-10 事件形状未裁**(R2 定稿按单事件即截断 = 静默失败风险,本故事兜底读法先测并留反例);选栈:消耗意图点名 `[(instance_id, qty)]`(BL-23④ 已裁,落地 = R14 归 11/45/21 共编,未落地前 id 升序按「兜底序」读);死亡回捡(R7 已兑现 AC-29-17):每条 `DropClaimed` 前置移动意图含死亡格;无负确认(AC-20-25):零 `PickupRejected`/`IntentAck` Kind,被拒 = 流零事件、客户端 fold 自然收敛;禁向 45 索 ack(ADR-001 纯管道);23 交互:build_part 在 `StructurePlaced` **接受后**被扣,P0 拆除全额返还经 `StructureRemoved` 入箱。
+**ADR Decision Summary**: 拾取**整件拒绝**(超容量 ⇒ 地面实例留存、`InventoryOf` 零变化);炮制/建造**先验容量后扣**(AC-18-12 同构),失败**整体回滚**(料不扣、货不出);跨栈消耗须多条 `DropDespawned` —— **✅ OQ-20-10 已于 2026-10-06 裁取 ① 相邻多条 N 条**(R2 定稿按单事件即截断的风险已由形状裁定封死;余下仅 R2 的 `reason` 值域未定稿);选栈:消耗意图点名 `[(instance_id, qty)]`(BL-23④ 已裁,落地 = R14 归 11/45/21 共编,未落地前 id 升序按「兜底序」读);死亡回捡(R7 已兑现 AC-29-17):每条 `DropClaimed` 前置移动意图含死亡格;无负确认(AC-20-25):零 `PickupRejected`/`IntentAck` Kind,被拒 = 流零事件、客户端 fold 自然收敛;禁向 45 索 ack(ADR-001 纯管道);23 交互:build_part 在 `StructurePlaced` **接受后**被扣,P0 拆除全额返还经 `StructureRemoved` 入箱。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: LOW
 **Engine Notes**: 原子性与意图路径为门 A 纯逻辑 + spy-sink 集成;跨系统走查(AC-20-14)经 23 集成测试载体;下行 instance_id 依赖客户端世界流副本(单机 P0 同源,联机半边 R1/45 未立 ⇒ 不外纳)。
@@ -23,7 +23,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: 全部写入路径 = 「验容量(Story 004 `CanCarry`)→ 预演扣减 → 原子 Apply → Append 事件」;被拒意图 ⇒ 世界流零新增;消耗意图载荷 ⊆ `[(instance_id, qty)]` 整数对;返还失败走 Story 006 引用的落地路径(同 23 规则九)
 - Forbidden: 半途状态(部分入包/部分扣料);否定信令事件(`PickupRejected`/`IntentAck`/`ConsumeFailed`);静默吞失败(被拒无感知 = 机制侧也要零事件 + fold 收敛,呈现半边归 42);先扣后补
-- Guardrail: OQ-20-10 未裁 ⇒ 跨栈多条 `DropDespawned` 以「单事件即截断」反例夹具登记交付(同 R3 债的机器锚点处理形,Story 002 先例),不私裁事件形状
+- Guardrail: ~~OQ-20-10 未裁 ⇒ 反例夹具~~ **✅ 2026-10-06 已裁(相邻多条)** ⇒ 本故事按裁定形状交付(跨栈 = N 条同 tick 相邻 `Seq`),不再需要「单事件即截断」反例夹具;**不得**自行改回请求级单事件形状(违 `entities.yaml` DropDespawned 裁定)
 
 ---
 
@@ -45,10 +45,10 @@
 *Derived from ADR-005 §Decision(主)/ ADR-011 Amendment B:*
 
 1. 统一写入事务模板(拾取/放下/消耗/建造扣/返还入箱共用):快照前态 → 判 `CanCarry`/预演扣减 → 通过 ⇒ 改投影 + `Append` 既有三支(`DropClaimed`/`DropSpawned`/`DropDespawned`)或复用上游扣减(Craft/StructurePlaced);失败 ⇒ 回滚 + **零事件**(AC-20-25 信令侧:被拒的「反馈」在 P0 单机 = 呈现层读 fold 差值,机制零信令)。
-2. 选栈消耗:上游(11 用药 / 18 炮制 / 23 建造)点名 `[(instance_id, qty)]`;20 按点逐栈扣,单栈 qty 不足 ⇒ 该栈整扣 + 后续栈续扣(跨栈 = 多条 `DropDespawned` 兜底形状,OQ-20-10 反例夹具同锁);id 升序「兜底序」仅作非点名查询的稳定遍历(承 Story 003 摆放序同一函数)。
+2. 选栈消耗:上游(11 用药 / 18 炮制 / 23 建造)点名 `[(instance_id, qty)]`;20 按点逐栈扣,单栈 qty 不足 ⇒ 该栈整扣 + 后续栈续扣(跨栈 = **N 条同 tick 相邻 `DropDespawned`**,✅ OQ-20-10 已裁形状,不再需要反例夹具);id 升序「兜底序」仅作非点名查询的稳定遍历(承 Story 003 摆放序同一函数)。
 3. 死亡回捡接线:消费 29 的死亡散落产物(`DropSpawned` 群)+ 回捡移动意图(经 interaction/4 的目标选择)⇒ 回捡 = 标准拾取事务(容量不足的回捡也走整件拒绝,无特例);谓词形态 = AC-20-19 的正向可判伪(逐条 `DropClaimed` 查其前置意图含死亡格)。
 4. 23 交互半边:放置 = 23 判定通过 → 20 扣料(先验容量,BL-6 与 Story 004 共件)→ 23 `Append(StructurePlaced)` —— 时序「接受后被扣」的可观测形式 = spy-sink 断 `StructurePlaced` 在前、扣减效果(由 cost 推出的 fold 差)在后且原子;返还失败(满)→ `DropSpawned`(EC-23-11,发出者 = 20,23 触发 —— 与 processing Story 005 溢出同路径复用)。
-5. 用药消耗(AC-20-16 相关):实例级 `DropDespawned`(载荷扩 `qty`+`reason` = R2 未定稿 ⇒ 消费端按「单事件 + 兜底多条」双形状可解析,定稿前挂 Ignore —— Story 001 同款债锚点)。
+5. 用药消耗(AC-20-16 相关):实例级 `DropDespawned`(**✅ OQ-20-10 已裁:跨栈 = N 条同 tick 相邻 `Seq`**,单事件候选已否决 ⇒ 不再需双形状解析;余 `reason` 值域归 R2,定稿前该半仍挂 Ignore)。
 6. 无负确认的呈现侧(被拒反馈的拟物形态)归 42/10 UX Flag(承 processing「禁负信令但反馈可读」的分裂处理先例:机制零事件 + 呈现读差值)。
 
 ---
@@ -97,9 +97,9 @@
   - Then: `StructurePlaced` 接受后才见扣减效果;拆除 ⇒ 全额返还入箱(投影含返还栈);返还满 ⇒ 落地 `DropSpawned`(23 触发/20 发出)。
   - Edge cases: cost 恰满剩余容量;返还栈与既存栈同 key 同 q ⇒ 并栈(stack_max 界内)。
 - **AC-20-16/03 债锚点**: Ignore 用例群。
-  - Given: R2/OQ-20-10/OQ-20-5 字段与形状未裁。
+  - Given: R2 的 `reason` 值域未定稿(形状已裁,不再计入阻塞)。
   - When: 涉及载荷扩字段(qty/reason)的子用例。
-  - Then: `Ignore("BLOCKED-BY R2/OQ-20-10")` 显式挂起,理由点名(禁静默跳过)。
+  - Then: `Ignore("BLOCKED-BY R2")` 显式挂起,理由点名(禁静默跳过)。
   - Edge cases: 定稿后摘除 Ignore ⇒ 同一测试体翻真绿(回归锚)。
 
 ---

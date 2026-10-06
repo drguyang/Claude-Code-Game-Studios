@@ -3755,7 +3755,7 @@
     domain: Core
     adr: ADR-009
     status: covered
-    note: "OQ-20-1 ✅ 已结清(用户裁定 2026-09-18):**全部复用既有 Kind,零新增** —— 炮制 Craft(扣减 = ActualConsumed 纯函数,21a AC-21a-52)· 建造 StructurePlaced(扣减 = cost(m),23 规则七)· 用药 DropDespawned(实例级;处置事件住病史流且不含 instance_id,若以其为载体 fold 域须扩到三流)· 转移 DropSpawned→DropClaimed。落点 = 20 规则一 + AC-20-16/17。**零 ADR 涟漪**(不走 ADR-021 的追加流程);残留:R-2 落定 DropDespawned 载荷时须含 reason 枚举。"
+    note: "OQ-20-1 ✅ 已结清(用户裁定 2026-09-18):**全部复用既有 Kind,零新增** —— 炮制 Craft(扣减 = ActualConsumed 纯函数,21a AC-21a-52)· 建造 StructurePlaced(扣减 = cost(m),23 规则七)· 用药 DropDespawned(实例级;处置事件住病史流且不含 instance_id,若以其为载体 fold 域须扩到三流)· 转移 DropSpawned→DropClaimed。落点 = 20 规则一 + AC-20-16/17。**零 ADR 涟漪**(不走 ADR-021 的追加流程);残留:R-2 落定 DropDespawned 载荷时须含 reason 枚举。**✅ 2026-10-06 OQ-20-10 已裁(相邻多条 N 条)** —— 用药跨 N 栈 = N 条同 tick 相邻 DropDespawned,请求级单事件载荷结构性否决;「同一次用药」分组键 = (tick) 不加 payload 字段 ⇒ 本 TR 的「零新增」结论强化:连分组载体都不需要。残留收窄为 reason 枚举值域 + qty(R2)。"
 
   - id: TR-inventory-015
     system: inventory-and-items
