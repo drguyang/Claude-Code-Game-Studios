@@ -3,7 +3,7 @@
 > **Layer**: Core(结算写流)× Feature(开方流程)× Presentation(戥子/本草呈现)
 > **GDD**: design/gdd/prescription-and-medication.md
 > **Architecture Module**: L3 Gameplay + L2 Sim 接缝(11 = `DrugTreatmentApplied` 唯一写者)
-> **Status**: Ready
+> **Status**: **Complete ✅ 2026-10-06**(5/5 story 已收口;filtered **155/155** · 全量 EditMode **2916/2869/0红**;评审原件五份齐备)· ⚠️ **未闭项按登记 NOT-RUN / BLOCKED-BY,禁借绿 —— 详见下方 §Epic Status**
 > **Stories**: 5 stories — see table below
 
 ## Overview
@@ -83,18 +83,32 @@ This epic is complete when:
 
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
-| 001 | 处方表与本草词表:双表 polarity 硬门 | Config-Data | ✅ Complete 2026-10-06 | ADR-014/024/005 |
-| 002 | F-11.1 剂量舍入与 F-11.2 F5 求值点 | Logic | ✅ Complete 2026-10-06(评审原件已补:2026-10-06 补做轮) | ADR-006/005/012 |
-| 003 | DrugTreatmentApplied 构造、零病名与写者独占 | Integration | ✅ Complete 2026-10-06(评审原件 + 双代理一轮修复) | ADR-009/024/013 |
-| 004 | Prescribe 流程:库存、扣减与成长门 | Integration | ✅ Complete 2026-10-06 | ADR-009/026/010 |
+| 001 | 处方表与本草词表:双表 polarity 硬门 | Config-Data | ✅ Complete 2026-10-06(DC-2 / DC-6 NOT-RUN) | ADR-014/024/005 |
+| 002 | F-11.1 剂量舍入与 F-11.2 F5 求值点 | Logic | ✅ Complete 2026-10-06(评审原件已补:2026-10-06 补做轮;AC-11-11④ / AC-11-19 断言本体 / TR-007 21a 半边 NOT-RUN) | ADR-006/005/012 |
+| 003 | DrugTreatmentApplied 构造、零病名与写者独占 | Integration | ✅ Complete 2026-10-06(评审原件 + 双代理一轮修复;AC-11-15 矩阵 / 影子装配半边 / tag 序 / 7a 白名单 NOT-RUN) | ADR-009/024/013 |
+| 004 | Prescribe 流程:库存、扣减与成长门 | Integration | ✅ Complete 2026-10-06(AC-11-16 正式对拍 / 换算表真源 / 非主机半边 NOT-RUN) | ADR-009/026/010 |
 | 005 | 戥子输入与方笺呈现 | UI | ✅ Complete 2026-10-06(结构半边;走查半边 NOT-RUN) | ADR-011/013 |
 
-> ✅ **epic 全闭(2026-10-06)**:story-003 已收口 —— AC-11-01① / AC-11-22 / AC-11-10 三条 BLOCKING
+## Epic Status
+
+> ✅ **5/5 story 已收口(2026-10-06)**:story-003 的 AC-11-01① / AC-11-22 / AC-11-10 三条 BLOCKING
 > 现有**真判据**(新建门 `PrescriptionWriterGates.cs` + `drug_event_test.cs` 26 测;
 > 门已接 `AssemblyGates` 的**菜单与构建前门**两处)。
-> 评审原件:`production/qa/evidence/review-prescription-story-003-2026-10-06.md`。
+> 评审原件:`production/qa/evidence/review-prescription-story-00{1..5}-2026-10-06.md`(五份齐备)。
 >
-> ⚠️ **本 epic 的未闭项(按原口径 NOT-RUN,禁借绿)**:story-005 走查半边 · AC-11-15 三格矩阵与跨进程 ·
-> AC-11-10「双路径对拍」降级为 AC-10-06b 逐位比较 · AC-11-22 的 7a 白名单本体(BLOCKED-BY-7a)·
-> **AC-11-22 / TR-prescription-018 与实现的文本背离**(解码点在 11 之外构造载荷;门已显式记账,
-> 收窄裁定归 producer / TD)。
+> ⚠️ **但 epic 未达 DoD** —— DoD 第 2 条「AC-11-01…22 全部 verified」与第 4 条
+> 「与 emergency-procedures 载荷交叉校验**双向**绿」**均未满足**(后者对面 epic 仍 `In Review`)。
+> 下列项**按原口径 NOT-RUN / BLOCKED-BY,禁借绿**,等待前置件回写:
+
+| 归属 | 未闭项 | 阻塞源 |
+|---|---|---|
+| story-001 | DC-2(`polarity` 枚举值)· DC-6(`NOISE_BAND_9` 无主) | OQ-11-2 · BL-2(O-11→9) |
+| story-002 | AC-11-11④ 宽度分支 · AC-11-19 **断言本体** · TR-prescription-007 的 21a 半边 | BL-7 / BL-2 / BL-1(均 O-11→21a) |
+| story-002/003 | AC-11-15 三格矩阵 + 跨进程半边 | ADR-012 矩阵未激活 |
+| story-003 | 影子装配注入半边 · `CheckPayloadPairing` 不覆盖 codec tag 序 · AC-11-22 的 7a 白名单本体 | 需动态生成程序集 · 归 ADR-014 阶段 2 · BLOCKED-BY-7a |
+| story-003 | **AC-11-22 / TR-prescription-018 与实现的文本背离**(解码点在 11 之外构造载荷) | 门已**显式记账**;收窄裁定**归 producer / TD**,本 epic 不自行改 AC 文本 |
+| story-004 | AC-11-16 正式对拍 · 换算表真源 `D-21-29` · 非主机传输半边 | OQ-11-13(`K_difficulty` 无主)· OQ-11-10 · BLOCKED-BY-45 |
+| story-005 | **走查半边 AC-11-12 / AC-11-13 / AC-11-21 全 NOT-RUN**(须人工执行 + 主创 / 医学从业 / 音频 lead 签核)· 手柄面 | 走查文档与截图未产出 · ADR-013 假设 6(UI Toolkit 手柄焦点导航) |
+
+> ⚠️ **AC-11-10 的口径降级**(非静默):「双路径对拍」降为 AC-10-06b 逐位字段比较
+> —— 两条路径载荷形状不同,已在 story-002/003 文件头登记。
