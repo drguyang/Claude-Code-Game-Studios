@@ -151,3 +151,41 @@ unity test unity --mode EditMode --output unity/Logs/editmode-full-2026-10-07.xm
 | n14 朴素 IL 匹配 | 真不可修(本轮授权) | 失活面由两个 IL 负夹具看住,负夹具活性由突变 #4 证 |
 | TC-4 迁移腿 | 真不可修(载体 = 7a 二进制往返) | 维持登记,双侧口径一致 |
 | AC3 端到端 | 真不可修(10 的 Kind 未进 registry) | 维持登记;13 侧可执行半边 = 载荷闭包不可达(突变 #3 看住) |
+
+---
+
+## 七、突变实跑记录(2026-10-07 · 边界评估轮 · 两批次全红后还原)
+
+> §四 的可证伪判据自此**由「若复验」升为实跑见证**。过滤套件 =
+> `unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.PatientAI"`;
+> 注入只碰两文件(`BehaviorBands.cs` + `reconstruction_and_write_path_test.cs`),
+> 还原 = `git checkout -- <两文件>`;修复先于突变提交(`75754e9`),还原不冲修复。
+
+### 批次A(6 注入合 1 跑 → `mutA-2026-10-07.xml`)
+
+**结果:175 total / 166 passed / 8 failed / 1 skipped —— 8 条点名红全数命中,零突变存活,零编译错。**
+
+| # | 注入 | 期望红 | 实测 |
+|---|---|---|---|
+| 1 · B1 | `BehaviorBands.cs` 首行注释形态 `// using Unity.Entities;` | `test_ac13assembly_patientAiSourceFiles_zeroForbiddenRefs` | ✅ 红 |
+| 2 · M7 | 摘 V8 测试 `[Ignore]` | `test_ac13v8_online_clientDoesNotRecompute_stubOnly` | ✅ 红(Assert.Fail 闸门触发) |
+| 3 · 条4 | 删 `ShadowWithTreatmentPayload.Payload` | `test_ac13c4_writePath_spasm_catchesPayloadReference_negativeFixture` | ✅ 红 |
+| 4 · IL 失活 | `0x28\|\|0x6F` → `0x00` | `ilScan_catchesAppendCall_negativeFixture` | ✅ 红 |
+| 4 附带 | 同上(同机) | `ilScan_catchesConcreteAppendCall_negativeFixture` + `decisionMethodBodies_ilScan_catchesDateTimeNow_negativeFixture` | ✅ 红 ×2 |
+| 5 · m11 | 正测白名单追加不存在字段 `"Phase"` | `test_ac13a5_behaviorInputFields_areExactlyWhitelist` | ✅ 红(双向「缺失」分支活) |
+| 6 · n13 降级 | 程序集正测期望值 `"Gameplay.Presentation"` → `"Sim"` | `test_ac13assembly_patientAiIsInBoundaryLayer_notInSim` | ✅ 红(n13 结构事实由正测活性代证) |
+
+附带观测:skipped 2 → **1**(V8 摘盖后由 skip 转 failed,`crossPlatform` 仍 skip)—— 与注入一致。
+
+### 批次B(M2 守卫 · 独立跑 → `mutB-2026-10-07.xml`)
+
+**结果:175 / 172 / 1 failed / 2 skipped —— 恰 1 红。**
+
+| 注入 | 期望红 | 实测 |
+|---|---|---|
+| 仅回退**具体类型夹具**测试内 token `{"Append"}` → `{"IEventSink.Append","IEventSink"}` | `test_ac13c4_writePath_ilScan_catchesConcreteAppendCall_negativeFixture` | ✅ 红,且**只**此一条(正测/接口夹具不动)—— M2 修复自此有回归守卫 |
+
+### 还原与回绿
+
+两批次后 `git checkout --` 还原 → 复跑 `boundary-mut-final-2026-10-07.xml`
+⇒ **175 / 173 / 0 红 / 2 跳**,与修复基线一致(结果见下段收口行)。

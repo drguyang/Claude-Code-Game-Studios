@@ -1043,3 +1043,15 @@ Task: story-005 断点(ReadingFSM/JudgmentFSM 未开工)
 - **评审原件**:`production/qa/evidence/review-patient-ai-story-004-2026-10-07.md`(原判定 → 修复落点 → 验证命令)。
 - **账目**:patient-ai EPIC 头行/004 行 · `index.md:32` · sprint-04(四处)全部摘 caveat ⇒ **13 epic Complete ✅**。
 - **当前关键路径断点 = `diagnosis/story-005`**(13 全闭,8 的 005/006 解锁)。
+
+### 追记 · 边界评估轮(同日,用户指令「三个如实边界调用子代理评估修复」)✅ 闭环
+
+- **双席只读评估**(lead-programmer 结构面 + qa-lead 测试面)→ 判定:可修 7 / 真不可修 5 / 维持 2。
+- **修复落笔(`75754e9`)**:S7 孤儿 `PatientMaterial`+`Material()` 删除(零生产调用方,原「需 44 契约」理由证伪)·
+  AC6 空体补 `Assert.Fail` 防借绿(与 M7 同型首轮漏项)· 补具体类型 IL 负夹具(M2 回归守卫 —— 原接口夹具对
+  新旧 token 均命中 = 突变存活)· 卡面五处措辞(Completion Notes 空壳 / AC5 转勾判据 / AC6 拆腿 + CI TODO 桩指针 /
+  Test Evidence must-exist 矛盾 / Note 3 未兑现主张)· 走查件 `[ ] Approved` 机器形态 · 原件 §四 两处失实判据订正(B1 真行=编译炸 / M2 判别力零)+ §五 S3 精确化(悬空落点 + F-13.3/13.4 整链死 + 13 零生产构造点根因)。
+- **突变实跑(原件 §七)**:批次A 6 注入合跑 → **8 红全点名命中,零存活**;批次B token 回退 → **恰 1 红**(M2 守卫);
+  还原复跑 → **175/173/0/2 回绿**。
+- **维持登记**:AC5(YAGNI 接缝)· AC8(纯外部)· n13/n14(降级突变代证)· TC-4 归 7a · AC3 归 10 ·
+  S3 落点待裁(新 story-005 或挂 tick 接线 epic —— 归 TD 裁)。
