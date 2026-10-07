@@ -9,6 +9,8 @@
 //       不引多进程框架)⇒ 输出逐字相同;字段反射遍历 ⇒ 无跨调用累积量 / 零 tick 持久字段
 //     · AC-8-4 8 侧:零 8→11 数据边(11 侧反射半边归 prescription story-003,括注)
 //     · 铁律③/④:零持久化 API 调用点;EmitGrowth 唯一出口形状(IL 调用点恰 = 1)
+//       + 门控闭合 [D-EXIT-GATE](2026-10-07 story-005 评审 M3:出口唯一合法调用方 = GrowthGate)
+//     · ⚠️ 本文件「查体+落笔+2改写」完整脚本占位**归 story-006**(story-005 未落,显式钉住)
 //     · AC-8-6:零 libm 超越函数(IL + 源双层);内部标量一律 System.Single(无 double 混算)
 //     · TR-diag-019/020 前置:PresentationDtoGuard 挂入 8 的全部呈现 DTO
 //   GDD diagnosis-system.md 边界五条铁律 · F-8.6 · control-manifest 本层 Guardrail
@@ -341,6 +343,17 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
             var errs = DiagnosisBoundaryGates.CheckDiagnosisIl(TestDll, Prefix, out _, out _);
             Assert.That(errs.Any(e => e.Contains("[D-EXIT]") && e.Contains("DiagnosisGrowthExit")),
                 Is.True, "出口之外直调 EmitGrowth 须红(8 内唯一调用点在 DiagnosisGrowthExit)");
+        }
+
+        /// <summary>铁律④「经门控」静态闭合(2026-10-07 story-005 评审 M3):
+        /// 影子绕门直调 DiagnosisGrowthExit.EmitGrowth ⇒ [D-EXIT-GATE] 必红;
+        /// 生产侧由 test_rule4_exitShape 的 errs.Is.Empty 同批覆盖(仅 Gate 一个调用方)。</summary>
+        [Test]
+        public void test_rule4_gateIlNegative_bypassGate_red()
+        {
+            var errs = DiagnosisBoundaryGates.CheckDiagnosisIl(TestDll, Prefix, out _, out _);
+            Assert.That(errs.Any(e => e.Contains("[D-EXIT-GATE]") && e.Contains("DiagnosisGrowthGate")),
+                Is.True, "绕门直调出口须红(8 内出口唯一合法调用方 = DiagnosisGrowthGate)");
         }
 
         // ════════════════════ AC-8-6:libm 超越函数与位宽 ═════════════════════
@@ -737,6 +750,11 @@ namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis
 
         // [D-EXIT]:直调契约入口 —— 8 内唯一调用点须在 DiagnosisGrowthExit(铁律④)
         internal SkillGrownPayload DirectEmit() => SkillGrownEmitter.EmitGrowth(
+            0, 0, 0, NoveltyClass.First, 1, 0, PatientId.None);
+
+        // [D-EXIT-GATE]:绕门直调出口(2026-10-07 story-005 评审 M3)——
+        // 出口的 8 前缀内调用方必须 = DiagnosisGrowthGate(铁律④「经门控」静态闭合)
+        internal SkillGrownPayload BypassGate() => DiagnosisGrowthExit.EmitGrowth(
             0, 0, 0, NoveltyClass.First, 1, 0, PatientId.None);
     }
 }

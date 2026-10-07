@@ -1055,3 +1055,27 @@ Task: story-005 断点(ReadingFSM/JudgmentFSM 未开工)
   还原复跑 → **175/173/0/2 回绿**。
 - **维持登记**:AC5(YAGNI 接缝)· AC8(纯外部)· n13/n14(降级突变代证)· TC-4 归 7a · AC3 归 10 ·
   S3 落点待裁(新 story-005 或挂 tick 接线 epic —— 归 TD 裁)。
+
+
+---
+
+## 追记 · diagnosis/story-005 收口(2026-10-07)✅ 全闭环
+
+**协议执行**:创建并 unity cli 测试 → 双代理评审(单轮)→ 修复 → 复跑绿 → 原件 → 收口提交推送。
+
+- **生产四件**(`Gameplay.Presentation/Diagnosis/`):`DiagnosisReadingFsm`(S-8.2 四态 + 两窗口 +
+  **单一完成入口**)/ `DiagnosisJudgmentFsm`(S-8.3 三态 + 关病例三步次序)/ `DiagnosisSnapshotSampler`
+  (快照冻结 + 持续刷新,签名无 currentTick = 结构防错)/ `DiagnosisGrowthGate`(`IEventAuthority.IsHost` 门控)。
+- **测试两件**:`reading_state_test.cs` 16 测 + `snapshot_staleness_test.cs` 3 测(PlayMode,新建目录)+
+  `boundary_guard_test` 新增 gate 负例 1 条。
+- **Gates**:`[D-EXIT-GATE]` 谓词(出口唯一合法调用方 = GrowthGate,铁律④静态闭合)。
+- **双代理单轮**(lead-programmer 8 条 / qa-lead 10 条,均 CHANGES REQUIRED)→ **18 条全处置**
+  (修复:S-1 单一入口 · M1 恒真假流换类型面+影子 · M2 负夹具收编共用机器 · M3 谓词 · M4 API恰三 ·
+  M5 三段源 · S-5 真源参数面;登记:S-2/S-3/S-4 语义裁定 · 门控措辞订正 · 金标重钉 · NOT-RUN 族)。
+- **复跑绿**:DiagnosisSystem 过滤 **150/149/0 红/1 跳** · 全量 **2972/2925/0 红/1 inc/46 跳**
+  (基线 2955/2908,+17)· PlayMode **3/3** · 突变 `[D-EXIT-GATE]` 失活 ⇒ 恰 1 红点名,还原 26/26。
+- **金标**:`72db379c` → **`7ce0ce27`**(ReadingForm 4 + JudgmentState 3 枚举字面入面,+7 行,有意识重钉)。
+- **原件**:`production/qa/evidence/review-diagnosis-story-005-2026-10-07.md`;卡 Status → Complete ✅。
+- **NOT-RUN(不静默)**:AC-8-45 网络子句(BLOCKED-BY-45)· 9/37/39 真接线集成(39 Ready)·
+  IsHost 恒 true 下真客户端端到端(归 45/P1b)· [L] 走查归 story-006。
+- **卡面语义裁定三条(39 接线前生效)**:S-2 回溯抹除 · S-3 状态判重替代当帧集 · S-4 抑制复查不刷新。

@@ -1,7 +1,7 @@
 # Story 005: 读数状态机与判断状态机(快照/旧态/成长门控)
 
 > **Epic**: 诊断与体征揭示
-> **Status**: Ready
+> **Status**: **Complete ✅ 2026-10-07**(单轮双代理评审:`review-diagnosis-story-005-2026-10-07.md` 落库 + 修复 + 复跑绿 —— 承用户「评审只做一轮」)
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 10h
@@ -88,7 +88,13 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/DiagnosisSystem/reading_state_test.cs` + `unity/Assets/Tests/PlayMode/DiagnosisSystem/snapshot_staleness_test.cs` — must exist and pass;AC-8-45 网络传输子句 NOT-RUN(BLOCKED-BY-45 epic)
-**Status**: [ ] Created — NOT STARTED
+**Status**: [x] Created — PASS(2026-10-07)
+  - EditMode `reading_state_test.cs` 16 测 + `boundary_guard_test` 新增 `test_rule4_gateIlNegative_bypassGate_red`(+1)⇒ DiagnosisSystem 过滤 **150/149/0 红/1 跳**(跳 = 既有 `test_ac834_reverseOrphan_blockedish`)
+  - 全量 EditMode **2972/2925/0 红/1 inconclusive/46 跳**(基线 2955/2908/0/1/46,**+17** = 本 story 新测;inconclusive = 既有音频 mono 项,CLI exit 2 同形)
+  - PlayMode `snapshot_staleness_test.cs` **3/3**(`dx005-play3.xml`)
+  - 突变实跑:`[D-EXIT-GATE]` 谓词失活 ⇒ **恰 1 红且点名** `test_rule4_gateIlNegative_bypassGate_red`,还原回绿 26/26
+  - **NOT-RUN(禁借绿)**:① AC-8-45 网络传输子句(BLOCKED-BY-45,本卡判据 = in-process 双端结构面);② **9/37/39 真接线集成**(39 casebook 未实现 Ready、9 Progress 端点与 37 关病例触发未接 —— 本 story 测试止于测试内 fake,真接线归后续接线 story,M-6 登记);③ [L] 走查归 story-006
+  - 评审原件:`production/qa/evidence/review-diagnosis-story-005-2026-10-07.md`
 
 ---
 
@@ -98,3 +104,26 @@
 - Unlocks: Story 006(呈现消费四态/三态)、review-all-gdds(判断链端到端)、#53 结算(改写次数缺席的前提)
 
 ## Completion Notes
+
+**2026-10-07 收口(单轮双代理评审 → 修复 → 复跑绿)** —— 原件 `review-diagnosis-story-005-2026-10-07.md`(结构 8 条 / 测试 10 条)。
+
+**修复轮要点(判定 CHANGES REQUIRED → 全部处置)**:
+- **S-1(MAJOR)**:读数 FSM **收单一完成入口** —— 原 `GateChannel` 可得分支绕过 RECHECK 抑制,与 `OnExaminationCompleted` 构成两条 BLOCKING AC 互为可击穿面;现 `OnExaminationCompleted(current, outcome, channelAccessible, …)` 同路径强制串联(不可得 ⇒ 空行优先于窗口与读数)。
+- **M3(MAJOR)**:Gates 增 **`[D-EXIT-GATE]` 谓词** —— 出口 `DiagnosisGrowthExit.EmitGrowth` 在 8 前缀内唯一合法调用方 = `DiagnosisGrowthGate`(铁律④「经门控」静态闭合);影子 `BypassGate` 负例 + 突变实跑证可红。
+- **M1/M2(MAJOR)**:AC-8-45 恒真死胡同 fake 换**类型面扫描 + 影子负夹具**;AC-8-46 手搓负夹具收编**共用参数机器**(影子改 static 匹配 BindingFlags)。
+- **S-5/M4**:AC-8-30 补**对错真源参数面**扫描(correct/truth/answer/match/truedisease,双 FSM)+ 影子;AC-8-28 路径 2 恒真断言废除,改**判断 FSM 公开 API 恰三**(零催办/自动填写入口)+ 刹车参数扫描。
+- **M5**:EditMode AC-8-48 改**三段源**(completion 落段边界,中段词必异)+ mid 断言。
+- 其余 NIT/登记:M8 占位钉归 006 · M9 命名面防线头注 · M10 恰一次代理注记 · S-7 P0 恒 true NOT-RUN 头注 · 金标重钉(见下)。
+
+**语义裁定登记(39 接线前生效,评审 S-2/S-3/S-4)**:
+1. **S-2**:通道由可得翻不可得 ⇒ **回溯抹除已定读数**(AC-8-31「恒空行」字面;与 AC-8-25 快照冻结的张力已登记)—— 39 接线前可改判,改判只动本 FSM 分支。
+2. **S-3**:「旧」幂等机制 = **状态判重**(当前态即幂等),**不落地** Note 3 的「(patient,旧,新,tick) 当帧集」——「需持久化则登记评审点」触发条件消解;代价(延迟投递的排序判别)归 39 接线复评。
+3. **S-4**:被 RECHECK 抑制的复查**不刷新** `lastRecheckTick`(测试编排现状;GDD「上次查体的 tick」字面张力已登记)—— 刷新与否涉 OQ-8-1 复查 spam 与标旧节奏,随 39 接线一并裁定。
+4. **S-1 附带**:RECHECK 抑制**不命中** Blank(首查)与 Stale(转移图「旧─查─►新读数」优先)—— 卡文未细分状态处的补白,已入 `OnExaminationCompleted` doc。
+
+**登记订正(卡面措辞 vs 代码事实)**:
+- **门控成员**:Note 5 / TR-diag-005 写「`IIdAuthority.IsHost`」——实测 `IIdAuthority` **无**该成员(仅 NextPatientId/NextItemInstanceId);主机权威在 **`IEventAuthority.IsHost`**(ADR-007 §一)⇒ 实现按代码事实取后者,已在 `DiagnosisGrowthGate` 头注登记;TR 侧措辞订正归 TR 轮。
+- **金标重钉**:`GoldenConstantsHash` `72db379c` → **`7ce0ce27`** —— 新枚举 `ReadingForm`(4 值)+ `JudgmentState`(3 值)字面入前缀扫描面(**+7 行**,与 doc 历史逐字吻合),属**有意识重钉**(枚举扩面),非数值轮产物;`read_floor_slots`/`sign_table` 以实算 FNV 比对(含变异敏感性)守门。
+- **字段改名**(过 AC-8-3 累积量 token 表):`ClearedReading`→`ClearedState` · `ProducedNewReading`→`ProducedNewOutcome` · `SampledTick`→`SampledAt`。
+
+**NOT-RUN(不静默)**:AC-8-45 网络传输子句(BLOCKED-BY-45)· 9/37/39 真接线集成(M-6)· `IsHost` 恒 true 下真客户端拦截端到端(S-7,归 45/P1b)· [L] 走查归 story-006。

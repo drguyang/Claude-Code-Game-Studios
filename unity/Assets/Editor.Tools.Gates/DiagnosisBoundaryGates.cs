@@ -55,6 +55,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             "DaYiJingCheng.Gameplay.Presentation.Diagnosis";
 
         private const string GrowthExitTypeName = "DiagnosisGrowthExit";
+        private const string GrowthGateTypeName = "DiagnosisGrowthGate";
+        private const string GrowthExitFullName =
+            "DaYiJingCheng.Gameplay.Presentation.Diagnosis.DiagnosisGrowthExit";
         private const string FacadeTypeName = "DiagnosisVitalsFacade";
         private const string QueryInterfaceName = "IVitalsQuery";
         private const string GrowthEmitterFullName =
@@ -323,6 +326,20 @@ namespace DaYiJingCheng.EditorTools.Gates
                     errs.Add($"[D-EXIT] {from} 直接调用 SkillGrownEmitter.EmitGrowth —— " +
                              $"8 内唯一调用点在 {GrowthExitTypeName}" +
                              "(铁律④ / TR-diag-005「存在唯一出口形状」)。");
+            }
+
+            // 铁律④门控闭合(2026-10-07 story-005 评审 M3):出口的调用方必须经门 ——
+            // DiagnosisGrowthExit.EmitGrowth 在 8 前缀内的调用点 enclosing 恰 = DiagnosisGrowthGate,
+            // 防未来调用方绕门直调出口(否则门控只靠「今日恰一个调用方」的巧合)。
+            if (dFull == GrowthExitFullName && name == "EmitGrowth")
+            {
+                if (!(enclosingType != null && enclosingType.Name == GrowthGateTypeName &&
+                      AssemblyGates.IsInNamespacePrefix(
+                          AssemblyGates.EffectiveNamespace(enclosingType),
+                          DiagnosisModuleNamespacePrefix)))
+                    errs.Add($"[D-EXIT-GATE] {from} 绕门直调 {GrowthExitTypeName}.EmitGrowth —— " +
+                             $"8 内唯一合法调用方是 {GrowthGateTypeName}" +
+                             "(铁律④「经门控」静态闭合 / TR-diag-005)。");
             }
 
             // 门面收口:IVitalsQuery.GetVitals 调用仅限 DiagnosisVitalsFacade

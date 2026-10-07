@@ -53,8 +53,11 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
         /// <c>DiagnosisNegativeConfidenceTable.Q16One=65536</c>)→ <c>72db379c</c>(story-004
         /// **评审修复轮**:消重 —— 求值器自持的第二份 <c>Q16One</c> 副本删除(经
         /// <c>Table.RawToFloat</c> 复用),前缀 ns 常量**少一行**故重钉;
-        /// 该行的消失即「唯一换算出口」的物化面,非数值轮产物)。</para></summary>
-        public const string GoldenConstantsHash = "72db379c";
+        /// 该行的消失即「唯一换算出口」的物化面,非数值轮产物)→ 本值(story-005:
+        /// **新枚举面落地** —— 读数状态机扩前缀 ns 枚举字面:<c>ReadingForm</c> 四值 +
+        /// <c>JudgmentState</c> 三值自动入面,常量行集 +7 ⇒ 有意识重钉;
+        /// 实测 <c>7ce0ce27</c>,2026-10-07)。</para></summary>
+        public const string GoldenConstantsHash = "7ce0ce27";
 
         /// <summary>常量行集:住前缀类型的字面量 / 静态只读字段(含枚举字面),
         /// 加一行「30 侧诊断档位」(耦合常量的另一半),按 ordinal 排序。</summary>
