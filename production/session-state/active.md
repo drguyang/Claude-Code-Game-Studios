@@ -787,9 +787,9 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 - ⬜ 系统 6 Epic(接收侧:latch/幂等/判距复验/唯一 Append)—— 转绿 AC-4-13 6 半 + AC-4-17 6 消费半
 
 <!-- STATUS -->
-Epic: patient-ai
-Feature: 重建与写路径
-Task: story-004 收口(4/4 · 166/166/0/2)
+Epic: diagnosis-system
+Feature: 阅读与判断
+Task: story-005 断点(ReadingFSM/JudgmentFSM 未开工)
 <!-- /STATUS -->
 
 ---
@@ -1018,3 +1018,28 @@ Task: story-004 收口(4/4 · 166/166/0/2)
   `OQ-11-3`(等 `O-11→21a`)· `OQ-17-10`(CDF walk 对拍,等 ADR-012 CI)。
 - **下一步候选**:`OQ-11-3` 的前置只剩 `O-11→21a`(21a 重开:落断言 + 声明 `drug_potency` 域)
   —— 这是唯一「一个 ADR 动作解一串」的杠杆点。
+
+## 2026-10-07 — **patient-ai story-004 补做评审**(评当下,不追认)—— ✅ 已闭环
+
+> 协议逐字执行:**补做评审(双代理单轮)→ 修复 → 复跑绿 → 收口提交推送;评审只做一轮**。
+
+- **双代理评审**(单轮,均 CHANGES REQUIRED):
+  - **测试面 15 条**(1 BLOCKING + 7 MAJOR + 4 MINOR + 3 NIT):B1 程序集负夹具恒真/断言倒置 ·
+    M2 IL token 不命中具体类型 · M3 A5 方法体/静态私有盲区 · M4 spasm 同机器 · M5 case 流装饰 ·
+    M6 AC1 代理未登记 · M7 V8 桩恒真 · M8 走查件双错 · m9/m10/m11/m12 · n13/n14/n15。
+  - **结构侧 12 条**:S1/S2/S4 `ResetForLoad` 非全重置 + 「重新求值」无路径 + 三处口径不一致 ·
+    S3 LOD 死链 · S5 唯一消费点双主张 · S6 `IsVisible` 恒真 · S7 平行 Material · S8/S10/S12 通过 ·
+    S9 未核面由 M3 补齐 · S11 随 S1 消除。
+- **修复落笔**:生产 3 文件(`PatientSpatialDirector` Clear 三件 + doc · `PatientBehavior` 导演 Clear +
+  Material 注释 · `PresentationProjection` 删 IsVisible)+ 测试 2 文件(`reconstruction_and_write_path_test`
+  B1/M2/M3/M4/M5/M7/m9/m10/m11/n15 · `spatial_behavior_test` B4 重写);
+  **文档轮**:走查件整体重写(档1 判据订正 Idle⇒Begin + 五档落点改真身测试 + 签署行)· story 卡回填
+  (Status Complete / AC 勾选+代理登记 / Test Evidence `[x]` 真身路径)。
+- **复跑绿**:**PatientAI 175/173/0 红/2 跳**(`patientai-fix-2026-10-07.xml`,基线 168/166,+7)·
+  **全量 2955/2908/0 红**/1 inconclusive/46 跳(`editmode-full-2026-10-07.xml`,基线 2948/2901,+7;
+  inconclusive = 音频 mono 出厂默认既有项,CLI exit 2 系其所致)。
+- **登记不修(不静默)**:S3 LOD 死链 · S7 平行类型 · n13/n14 · TC-4 迁移腿(归 7a)·
+  AC3 端到端(BLOCKED-BY 10)· AC5(BLOCKED-BY 45)· AC6(EXTERNAL)· [L] 整体签署(待 42/44)。
+- **评审原件**:`production/qa/evidence/review-patient-ai-story-004-2026-10-07.md`(原判定 → 修复落点 → 验证命令)。
+- **账目**:patient-ai EPIC 头行/004 行 · `index.md:32` · sprint-04(四处)全部摘 caveat ⇒ **13 epic Complete ✅**。
+- **当前关键路径断点 = `diagnosis/story-005`**(13 全闭,8 的 005/006 解锁)。

@@ -120,23 +120,20 @@ namespace DaYiJingCheng.Gameplay.PatientAI
         /// <summary>病人离开在场范围 —— 13 仅丢弃派生态(不生成 / 不删除病人实体)。</summary>
         public void OnPresentLeft(PatientId id) => _states.Remove(id.Value);
 
-        /// <summary>加载后重置(AC-13-B4 / story-004 B1 修复):全部派生态归零。
-        /// <para>⚠️ **story-004 修复**:原实现只重置 `Pose`,遗漏 `Phase` / `HomeRegion` / `KnowsClinic` ——
-        /// 导致读档后求医子相与 HomeRegion 缓存**跨加载存活**。现全部归零,与「 freshly constructed 」语义一致。
-        /// <para>⚠️ **Cell 也归零**:`LogicalPose.Seed` 保留 `Cell` 但归零 `Acc` —— 重放后 Cell 不同。
-        /// 现 `Cell` 也归零(重新播种到起始格),与「 freshly constructed 」语义一致。</para></summary>
+        /// <summary>加载后重置(AC-13-B4):**清空全部派生态** —— fresh construct 语义。</summary>
+        /// <para>⚠️ **语义 = freshly constructed**(与 `PresentPatientsView.ResetForLoad` 的 `Clear()` 同口径):
+        /// 读档接线在**在场集重建**后重新触发 <see cref="OnPresentEntered"/> —— 由**格 + 烘焙锚点**
+        /// 重新播种(GDD AC-13-B4),`HomeRegion` / `KnowsClinic` 在该路径**重新求值**
+        /// (求值点仍唯一在 `OnPresentEntered`,AC 第 6 条「只求一次」按入表计,
+        /// `EcozoneOfCallCount` 随本方法归零、随再入表重计)。</para>
+        /// <para>⚠️ **story-004 评审修复(S1/S2,2026-10-07)**:原实现「就地逐字段归零」保留 stale key、
+        /// 不清 `_pathOverride`、不归零 `_ecozoneOfCalls`,且注释谎称「重新求值」而 Reset 后**无人再求**
+        /// (唯一求值点是 `OnPresentEntered`)。现改为清空 —— 「重新求值」由**重新入表**兑现。</para></summary>
         public void ResetForLoad()
         {
-            var keys = new List<int>(_states.Keys);
-            foreach (var k in keys)
-            {
-                var s = _states[k];
-                s.Pose = LogicalPose.Seed(new WorldPos(0, 0, 0));   // Cell + Acc 全归零
-                s.Phase = SeekingPhase.EnRoute;            // 求医子相归零(重新求值)
-                s.HomeRegion = EcozoneId.None;             // HomeRegion 缓存清空(重新求值)
-                s.KnowsClinic = false;                     // 医馆认知清空(重新求值)
-                _states[k] = s;
-            }
+            _states.Clear();
+            _pathOverride.Clear();
+            _ecozoneOfCalls = 0;
         }
 
         /// <summary>取某一病人的派生态(只读;不存在返回 null)。</summary>

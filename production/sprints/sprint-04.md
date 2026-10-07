@@ -108,13 +108,13 @@
 | 1 | player-controller (1) | 6 | 6 | 3 (done) | ✅ **Complete ✅ 2026-10-03**(Phase 1 期间完成) |
 | 2 | camera-viewpoint (2) | 6 | 6 | 1 | ✅ **Complete ✅ 2026-10-03**(计划外增量 —— 本表原无此行,实际已完成) |
 | 3 | interaction-system (4) | 6 | 6 | 1, 3 (done) | ✅ **Complete ✅ 2026-10-04**(7/7;story-007 收口,评审原件 `production/qa/evidence/review-interaction-story-007-2026-10-04.md`) |
-| 4 | patient-ai (13) | 4 | 5 | 9 (done) | ✅ **4/4 实现全闭** —— 001 ✅ 10-04(`4076e1e`)· 002 ✅ 10-05(`6e0d178`)· 003 ✅ 10-05(`a1f7a36`)· **004 ✅ 10-05(`0b6f948`:37 测试 + 5B/6M 修复轮)**;⚠️ 004 **评审原件缺,待补做**(非实现缺口) |
+| 4 | patient-ai (13) | 4 | 5 | 9 (done) | **Complete ✅ 2026-10-07**(4/4)—— 001 ✅ 10-04(`4076e1e`)· 002 ✅ 10-05(`6e0d178`)· 003 ✅ 10-05(`a1f7a36`)· 004 ✅ 10-05 收口(`0b6f948`)+ **10-07 补做评审原件落库并转 Complete**(复跑绿) |
 | 5 | diagnosis-system (8) | 6 | 6 | 9, 30 (done) | 🔄 **In Progress 4/6** —— 001–004 ✅ 2026-10-05/06(`6685046`/`f27ca3e`/`57c34c2`/`351d097`);**断点 = story-005** |
 | 6 | case-system (37) | 6 | 6 | 8, 9 (done) | 🔄 **In Progress 4/6** —— 001–004 ✅ 2026-10-06(`e64efad`/`c4e3708`/`31e3f9b`/`8a693fd`);**断点 = story-005**(story 数勘误:原记 4,实际 6) |
 | 7 | prescription-medication (11) | 5 | 1 | 21, 9 (done) | ✅ **收口 5/5 · 2026-10-06** —— 但 **DoD 未达**(AC-11 系列 NOT-RUN / BLOCKED-BY 按登记,禁借绿;`96e40a4` 已撤「全闭」过头结论) |
 
 **Phase 2 总计**：行合计 **41 SP**(2026-10-07 按真实 story 数重算:6+6+6+5+6+6+1;原记 ~39) ——
-**4/7 实现全闭(player-controller / camera-viewpoint / interaction-system / patient-ai* · *13 的 004 评审原件缺待补)+ 2 有残余(diagnosis 4/6 · case 4/6)+ 1 收口未达 DoD(prescription)**
+**4/7 全闭(player-controller / camera-viewpoint / interaction-system / patient-ai —— 13 已于 2026-10-07 补原件转 Complete)+ 2 有残余(diagnosis 4/6 · case 4/6)+ 1 收口未达 DoD(prescription)**
 (⚠️ 勘误 2026-10-04:`interaction-system` 原记 4 story,实际 7;
 ⚠️ 勘误 2026-10-07a:`case-system` 原记 4 story,实际 6;
 ⚠️ 勘误 2026-10-07b:patient-ai **实为 4/4 全闭**(004 于 `0b6f948` 2026-10-05 收口,账面从未回刷)——
@@ -124,9 +124,9 @@
 ```
 player-controller ✅ → camera-viewpoint ✅ → interaction-system ✅
                     ↘
-patient-ai ✅ 4/4(004 原件缺待补) → diagnosis-system 🔄 4/6(断点 = 005) → case-system 🔄 4/6(断点 = 005) → prescription-medication ✅ 5/5(DoD 残余按登记)
+patient-ai ✅ 4/4(004 原件已补 10-07) → diagnosis-system 🔄 4/6(断点 = 005) → case-system 🔄 4/6(断点 = 005) → prescription-medication ✅ 5/5(DoD 残余按登记)
 ```
-⇒ 下游四项(13→8→37→11):13 **实现全闭**(仅 004 评审原件待补) · 8 余 005/006 · 37 余 005/006 · 11 已收口(DoD 残余 = AC-11 系列 NOT-RUN/BLOCKED-BY)。
+⇒ 下游四项(13→8→37→11):13 **全闭**(004 原件 2026-10-07 已补) · 8 余 005/006 · 37 余 005/006 · 11 已收口(DoD 残余 = AC-11 系列 NOT-RUN/BLOCKED-BY)。
 **当前关键路径断点 = `diagnosis/story-005`**(13 已通,8 的 005/006 解锁;005 的 ReadingFSM/JudgmentFSM 全库零命中 = 真未做,已核)。
 
 ---
@@ -177,8 +177,8 @@ patient-ai ✅ 4/4(004 原件缺待补) → diagnosis-system 🔄 4/6(断点 = 0
    `index.md:27` 记的「评审原件缺」为**陈旧读数**。
    round2 的**真实转 Complete 前置** = ①报告已落盘 ✅;②**D1/D2/D3 文档状态对齐**;③**实跑 Unity 测试套件**
    (round2 未实跑,结论均基于源码阅读)。
-3. **Phase 2 继续**(现已解锁;2026-10-07 二次订正 = 4/7 实现全闭* + 2 有残余 + 1 未达 DoD;*13 的 004 原件缺)——
-   **当前断点 = `diagnosis/story-005`**(13 已通;其后 8-005/006 → 37-005/006)· 另:**补 `review-patient-ai-story-004` 原件**(评当下,不追认)
+3. **Phase 2 继续**(2026-10-07 订正 = 4/7 全闭(含 13 补原件)+ 2 有残余 + 1 未达 DoD)——
+   **当前断点 = `diagnosis/story-005`**(13 已通;其后 8-005/006 → 37-005/006)· ~~补 `review-patient-ai-story-004` 原件~~ **✅ 已闭 2026-10-07**
 4. **Phase 3 两项未做**(垂直切片 PlayMode 测试 · playtest)—— Milestone 2 出口所需
 5. **抽象点计数订正(60 处)** —— 牵动 GDD/registry/architecture **权威件**,须先定归属方
 6. **⚠️ U-8:产能分母(2026-10-04 登记 —— ◐ 半闭)**

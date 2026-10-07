@@ -147,13 +147,21 @@ namespace DaYiJingCheng.Gameplay.PatientAI
         /// <summary>会诊态入口(转发;唯一写入者)。</summary>
         public void OnExamSessionChanged(PatientId id, bool active) => For(id).ApplyExamSession(active);
 
-        /// <summary>加载后重置全部病人会诊态(AC-13-B5 ③)。</summary>
-        public void ResetForLoad()
-        {
-            foreach (var b in _states.Values) b.ResetForLoad();
-        }
+        /// <summary>加载后重置全部病人派生态(AC-13-B5 ③):**清空字典** —— fresh construct
+        /// 语义(与空间侧 `PatientSpatialDirector.ResetForLoad` 及 `PresentPatientsView` 同口径)。</summary>
+        /// <para>读档后由 <see cref="For"/> 按需惰性重建(首拍 `prev = Idle`、`Session = None`)。
+        /// ⚠️ **story-004 评审修复(S4,2026-10-07)**:原「逐个对象字段归零但不清字典」
+        /// 与空间侧不一致且留 stale key;现两导演统一 `Clear()` 语义。
+        /// 逐对象 <c>PatientBehavior.ResetForLoad</c> 保留(其 `Session → None` 契约仍由
+        /// behavior_map 反射写入点测试钉住)。</para></summary>
+        public void ResetForLoad() => _states.Clear();
 
-        /// <summary>表现材质映射(F-13.8)—— **`signs[]` 的唯一消费点**(AC-13-A5)。
+        /// <summary>表现材质映射(F-13.8)—— 行为面的 `signs[]` 消费点(AC-13-A5)。
+        /// <para>⚠️ **story-004 评审修复(S5,2026-10-07)**:原注自称「**唯一**消费点」与
+        /// `PresentationProjection` 的 `MaterialTable.Material` 同名主张**互相矛盾** ——
+        /// 呈现面真源 = `MaterialTable.Material`;本方法为行为面签名透传,
+        /// story-003 迁移后**零生产调用方**(结构债登记于
+        /// `production/qa/evidence/review-patient-ai-story-004-2026-10-07.md`)。</para>
         /// <para>⚠️ 本方法**只读** DTO 的通道位 / 计数,**不推断病种、不改行为态**。</para></summary>
         public static PatientMaterial Material(in VitalsDto v)
         {

@@ -29,7 +29,7 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | interaction-system | Core | 4 交互系统 | design/gdd/interaction-system.md | 7 stories | Complete ✅ 2026-10-04(7/7;story-007 评审原件 `review-interaction-story-007-2026-10-04.md`) |
 | inventory-items | Core | 21b 库存与物品 | design/gdd/inventory-and-items.md | 6 stories | Ready(未实现) |
 | modular-building | Core | 6 世界与生态区 | design/gdd/modular-building.md | 7 stories | Complete ✅ 2026-10-03(7/7 story;C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红;**未闭登记 = N-r2 生产装配根(待 Boot 装配轮)+ AC-23-09 跨平台签名(待 ADR-012 矩阵)**) |
-| patient-ai | Core | 13 病人 AI | design/gdd/patient-ai.md | 4 stories | ✅ **4/4 实现全闭**(001–004 至 2026-10-05,004 = `0b6f948`);⚠️ story-004 **评审原件缺,待补做评审**方可转 Complete(非实现缺口;**关键路径断点已后移 = diagnosis/story-005**) |
+| patient-ai | Core | 13 病人 AI | design/gdd/patient-ai.md | 4 stories | **Complete ✅ 2026-10-07**(4/4;story-004 补做评审原件 `review-patient-ai-story-004-2026-10-07.md` 落库 + 修复 + 复跑绿;**关键路径断点 = diagnosis/story-005**) |
 | player-controller | Core | 1 玩家控制器 | design/gdd/player-controller-and-movement.md | 6 stories | Complete ✅ 2026-10-03(6/6 story Complete;两轮评审判据缺陷已修;88 过 + 3 NOT-RUN) |
 | prescription-medication | Core | 11 处方与用药 | design/gdd/prescription-and-medication.md | 5 stories | Complete ✅ 2026-10-06(5/5 收口 · 评审原件五份齐备;⚠️ DoD 未达 —— AC-11 系列 NOT-RUN / BLOCKED-BY 按登记,禁借绿,见 EPIC §Epic Status) |
 | processing | Core | 14 加工与制作 | design/gdd/processing.md | 5 stories | Ready(未实现) |

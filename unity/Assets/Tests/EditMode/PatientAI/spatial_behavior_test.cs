@@ -487,7 +487,15 @@ namespace DaYiJingCheng.Tests.PatientAI
             director.SetPoseForTest(new PatientId(0), state.Pose);
             Assert.AreNotEqual(0L, director.StateOf(new PatientId(0)).Pose.Acc.Raw, "前提:acc ≠ 0");
 
+            // ── story-004 评审修复(S1,2026-10-07):fresh construct 语义 ──
             director.ResetForLoad();
+            Assert.IsNull(director.StateOf(new PatientId(0)),
+                "ResetForLoad = fresh construct:字典清空(stale key 不残留,S1 判据)");
+            Assert.AreEqual(0, director.EcozoneOfCallCount,
+                "ResetForLoad 归零 EcozoneOf 调用计数(fresh construct,S1 判据)");
+
+            // 读档路径 = 在场重建后**重新入表**(镜像生产接线)⇒ acc 从格 + 锚点重新播种
+            director.OnPresentEntered(new PatientId(0), new WorldPos(0, 0, 0));
             var after = director.StateOf(new PatientId(0));
             Assert.AreEqual(0L, after.Pose.Acc.Raw, "AC-13-B4:重建后 acc := 0(不沿用存档前值)");
         }

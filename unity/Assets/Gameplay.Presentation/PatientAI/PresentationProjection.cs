@@ -136,10 +136,10 @@ namespace DaYiJingCheng.Gameplay.PatientAI
         public static PresentMaterial Material(in PatientProjectionInput input)
             => MaterialTable.Material(input.Vitals);
 
-        /// <summary>场外者不进视图(AC-13-C3)。
-        /// <para>判据 = **在场集给出的行才投影** —— 13 不生成 / 不删除病人(AC-13-C4),
-        /// 故「在场」不由 13 判定,只由 <see cref="IPresenceQuery"/> 给。</para></summary>
-        public static bool IsVisible(bool present) => present;
+        // story-004 评审修复(S6,2026-10-07):此处原有 `IsVisible(bool present) => present`
+        // —— **恒真死代码**(零生产调用方,唯一提及处是 spatial_behavior_test 的禁词数组字符串)
+        // ⇒ 已删除。「场外者不进视图」的判据本就由 `IPresentPatients` 的在场登记承载,
+        // 不需要一个恒真谓词。
     }
 
     /// <summary>`IPresentPatients` 的实装(Story 003)—— 在场登记 → 只读视图快照。

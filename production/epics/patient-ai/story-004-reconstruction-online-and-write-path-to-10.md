@@ -1,12 +1,12 @@
 # Story 004: 重建、联机单跑与写路径归 10 —— 端到端确定性与接缝验收
 
 > **Epic**: 病人 AI 与行为
-> **Status**: 实现收口 ✅ 2026-10-05(`0b6f948`:37 测试 + 5B/6M 修复轮 + 走查证据)· ⚠️ **评审原件未落库 —— 须补做一次评审(评当下)方可转 Complete**(承 review-workflow BLOCKING 义务)
+> **Status**: **Complete ✅ 2026-10-07**(补做评审轮:`review-patient-ai-story-004-2026-10-07.md` 落库 + 修复 + 复跑绿 —— 承 review-workflow「评当下,不追认」;原 2026-10-05 收口 `0b6f948` 的 37 测试与 5B/6M 修复轮留档)
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-07
 
 ## Context
 
@@ -31,14 +31,20 @@
 
 *From GDD `design/gdd/patient-ai.md`, scoped to this story:*
 
-- [ ] 端到端重建:一段含在场进出、恶化、会诊开闭、死亡的真实会话,存档→读档→重放,决策序列与原始运行**逐位一致**(重建三源不变量的落地判据,AC-13-B3 扩面)
-- [ ] 第四来源静态扫描:13 决策器全部读输入类型**恰 ⊆ 白名单**(正面反射断言,非「无 Vector3」负断言,承 27 AC-27-02 同法);注入 `Transform` 读取的负面夹具被拦下
-- [ ] 写路径归 10:「查体诱发痉挛」「搬运昏迷病人」两场场景 —— 13 侧**零 Append**;痉挛效果经 10 的意图事件→主机判定→效果进流,13 仅从结果表现(姿态骤变/呻吟);13 无新增 Kind 义务(归 10 的 GDD 轮,承 ADR-024)
-- [ ] id 边界:敌人与病人共用 `IIdAuthority` 空间与高水位成立(含敌人行场景,`max(id)+1` 扫三流并集排除 `PatientId.None`),13 只消费 id 不发号(AC-13-C4 扩面,承 ADR-006 Amendment B / ADR-016 §二)
-- [ ] 联机:客户端不重算 13 —— 断言客户端进程内 13 决策器零求值;病人在客户端的表现(位置/姿态)来自第二 QoS 投影(该 AC **BLOCKED-BY 45**,P0 以桩+断言存在为准,NOT-RUN 照登)
-- [ ] 跨平台逐位:同事件流在 Mono/IL2CPP 各跑,13 决策轨迹哈希一致(挂 ADR-012 集成级夹具,EXTERNAL,CI 产物为证)
-- [ ] 程序集卫生:13 住边界层,不进 `Sim`(门 A);引用集白名单断言(不含引擎物理/ECS;EditMode 探针)
-- [ ] **[L]** 行为可读性走查:Idle/Seeking/Bedridden/InTreatment/Terminal 五档玩家可从姿态+音**无 UI** 读出(承支柱四「瘟疫表现为散落的病例」与 13 的 Player Fantasy;SIGN-OFF,[L])
+- [x] 端到端重建:一段含在场进出、恶化、会诊开闭、死亡的真实会话,存档→读档→重放,决策序列与原始运行**逐位一致**(重建三源不变量的落地判据,AC-13-B3 扩面)——
+  **2026-10-07 登记口径**:P0 测试面 = **内存重置代理存档腿**(`ResetForLoad` fresh construct + 重新入表后 run1==run2 决策相等);**二进制序列化腿归 7a**(ADR-010,13 无 codec 义务)
+- [x] 第四来源静态扫描:13 决策器全部读输入类型**恰 ⊆ 白名单**(正面反射断言,非「无 Vector3」负断言,承 27 AC-27-02 同法);注入 `Transform` 读取的负面夹具被拦下 ——
+  闭包扫 + 方法体 IL 扫 + 签名扫 + 源码文本扫四台机器,负夹具共用同机(2026-10-07 修复轮重写)
+- [x] 写路径归 10:「查体诱发痉挛」「搬运昏迷病人」两场场景 —— 13 侧**零 Append**;痉挛效果经 10 的意图事件→主机判定→效果进流,13 仅从结果表现(姿态骤变/呻吟);13 无新增 Kind 义务(归 10 的 GDD 轮,承 ADR-024)——
+  **2026-10-07 登记口径**:13 侧零 Append + 三个处置载荷类型闭包**不可达**已断言;**端到端契约(10 写流→13 读表现)BLOCKED-BY-10 NOT-RUN**
+- [x] id 边界:敌人与病人共用 `IIdAuthority` 空间与高水位成立(含敌人行场景,`max(id)+1` 扫三流并集排除 `PatientId.None`),13 只消费 id 不发号(AC-13-C4 扩面,承 ADR-006 Amendment B / ADR-016 §二)——
+  **2026-10-07 登记口径**:逐流增量断言(病史 3 / 病例 6 / 世界 8);**TC-4 迁移腿(`max(id)+1` 重构)归 7a**;`None` 排除谓词在本 API 下不可观测(`m10` 注记),只钉可观测契约
+- [ ] 联机:客户端不重算 13 —— 断言客户端进程内 13 决策器零求值;病人在客户端的表现(位置/姿态)来自第二 QoS 投影(该 AC **BLOCKED-BY 45**,P0 以桩+断言存在为准,NOT-RUN 照登)—— **NOT-RUN**(V8 桩已置防借绿闸门,摘 `[Ignore]` 即红)
+- [ ] 跨平台逐位:同事件流在 Mono/IL2CPP 各跑,13 决策轨迹哈希一致(挂 ADR-012 集成级夹具,EXTERNAL,CI 产物为证)—— **EXTERNAL**(挂 ADR-012 CI 矩阵)
+- [x] 程序集卫生:13 住边界层,不进 `Sim`(门 A);引用集白名单断言(不含引擎物理/ECS;EditMode 探针)——
+  2026-10-07 修复:原负夹具为恒真 ⇒ 改**共用源码文本扫描机器**(`LoadProductionPatientAiSources` 正测 + 影子源文本负夹具)
+- [ ] **[L]** 行为可读性走查:Idle/Seeking/Bedridden/InTreatment/Terminal 五档玩家可从姿态+音**无 UI** 读出(承支柱四「瘟疫表现为散落的病例」与 13 的 Player Fantasy;SIGN-OFF,[L])——
+  **13 侧结构前提已闭**(五档落点表见走查件);**整体签署待 NR-S4-1(42)/ NR-S4-2、3(44)解除,本 story 不代签**
 
 ---
 
@@ -79,10 +85,17 @@
 ## Test Evidence
 
 **Story Type**: Integration
-**Required evidence**: `tests/integration/patient-ai/reconstruction_and_write_path_test.cs` + CI 矩阵产物链接(EXTERNAL 项)+ `production/qa/evidence/patient-ai/story-004-readability-walkthrough.md`([L] 项) — must exist and pass / SIGN-OFF
+**Required evidence**: EditMode 夹具 + CI 矩阵产物链接(EXTERNAL 项)+ `production/qa/evidence/patient-ai/story-004-readability-walkthrough.md`([L] 项) — must exist and pass / SIGN-OFF
 
-> **✅ 2026-10-07 修一处假红**:`FindRepoRoot()` 原把【本机绝对路径】`/home/gu/文档/nm/nm2/…` 写死,> 故只有桌面机的检出能跑通,超算 / CI / 任何其他克隆一律 > `DirectoryNotFoundException`(`test_ac13assembly_patientAiRefSetWhitelist_catchesForbiddenRef_negativeFixture` 红)。> 改用 `[CallerFilePath]` 相对求解(与 `InputSystem.AxisProcessingTest` 同一手法);37 项 35 过 2 跳过(2 跳过 = > `AC-13-CrossPlatform` EXTERNAL 与 `AC-13-V8` BLOCKED-BY-45,均既有登记)。
-**Status**: [ ] Not yet created
+> **✅ 2026-10-07 修一处假红**:`FindRepoRoot()` 原把【本机绝对路径】`/home/gu/文档/nm/nm2/…` 写死,故只有桌面机的检出能跑通,超算 / CI / 任何其他克隆一律 `DirectoryNotFoundException`(`test_ac13assembly_patientAiRefSetWhitelist_catchesForbiddenRef_negativeFixture` 红)。改用 `[CallerFilePath]` 相对求解(与 `InputSystem.AxisProcessingTest` 同一手法)。
+>
+> **✅ 2026-10-07 补做评审轮测试证据**:
+> - 真身夹具:`unity/Assets/Tests/EditMode/PatientAI/reconstruction_and_write_path_test.cs`(主)+ `spatial_behavior_test.cs` + `presentation_projection_test.cs` + `behavior_map_test.cs`(五档落点)—— **本仓测试住 `unity/Assets/Tests/EditMode/`,卡面原写 `tests/integration/patient-ai/` 为模板假路径,已订正**
+> - PatientAI 过滤套件复跑:`unity/Logs/patientai-fix-2026-10-07.xml` —— **175 / 173 过 / 0 红 / 2 跳过**(基线 168/166/0/2,+7 新测;2 跳过 = `AC-13-CrossPlatform` EXTERNAL + `AC-13-V8` BLOCKED-BY-45,既有登记)
+> - 全量 EditMode 复跑:`unity/Logs/editmode-full-2026-10-07.xml`
+> - 评审原件:`production/qa/evidence/review-patient-ai-story-004-2026-10-07.md`(原判定 → 修复落点 → 验证命令)
+>
+> **Status**: [x] Created —— 夹具绿 + 原件落库 2026-10-07
 
 ---
 

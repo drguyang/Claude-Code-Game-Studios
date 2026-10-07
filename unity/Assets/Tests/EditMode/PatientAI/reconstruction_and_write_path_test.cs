@@ -331,6 +331,62 @@ namespace DaYiJingCheng.Tests.PatientAI
                 "违例须点名 Transform");
         }
 
+        // ⚠️ **评审 M3 修复(2026-10-07)**:原 A5 只扫 `Public|Instance` 字段 + 5 个写死方法的
+        //    **签名** —— 方法体与静态/私有字段面穿透(在 `BehaviorMap.Map` 体内插 `DateTime.Now`
+        //    或加 `static Transform _cached` ⇒ 原 8 条 A5 测试全绿)。现补两面:
+        //    ① 闭包装扫(含 static / NonPublic 字段、参数、返回类型);
+        //    ② IL 方法体扫(call/callvirt 禁入类型)。根 = PatientAI 决策命名空间。
+
+        [Test]
+        public void test_ac13a5_decisionClosure_noForbiddenSourceTypes()
+        {
+            var violations = ScanClosureForNames(ForbiddenSourceTypeTokens, PatientAiScanSeeds());
+            Assert.IsEmpty(violations,
+                "AC-13-A5:13 决策闭包(含静态/私有字段面)零禁入源类型:\n" +
+                string.Join("\n", violations));
+        }
+
+        [Test]
+        public void test_ac13a5_decisionClosure_catchesPrivateStaticField_negativeFixture()
+        {
+            // ⚠️ 负夹具(同一台机器,换根):**私有 + 静态** Transform 字段 ⇒ 必红且点名
+            //    (原 `Public|Instance` 面对它不可见 —— 正是 M3 指的穿透面)。
+            var violations = ScanClosureForNames(
+                ForbiddenSourceTypeTokens, new[] { typeof(ShadowWithPrivateStaticTransform) });
+            Assert.IsNotEmpty(violations, "负夹具失败:私有静态 Transform 字段未被抓到 = 空转");
+            Assert.IsTrue(string.Join("\n", violations).Contains("Transform"), "违例须点名 Transform");
+        }
+
+        [Test]
+        public void test_ac13a5_decisionMethodBodies_ilScan_noForbiddenCalls()
+        {
+            var violations = ScanTypeForForbiddenCalls(ForbiddenSourceTypeTokens, PatientAiScanSeeds());
+            Assert.IsEmpty(violations,
+                "AC-13-A5:13 决策方法体内零禁入调用(墙钟/随机/Transform,IL 级):\n" +
+                string.Join("\n", violations));
+        }
+
+        [Test]
+        public void test_ac13a5_decisionMethodBodies_ilScan_catchesDateTimeNow_negativeFixture()
+        {
+            // ⚠️ 负夹具(同一台机器):影子方法体 `DateTime.Now` ⇒ IL 扫描必红且点名。
+            var violations = ScanTypeForForbiddenCalls(
+                new[] { "System.DateTime" }, new[] { typeof(ShadowWithDateTimeBodyCall) });
+            Assert.IsNotEmpty(violations, "负夹具失败:方法体 DateTime.Now 未被 IL 扫描抓到 = 空转");
+            Assert.IsTrue(string.Join("\n", violations).Contains("DateTime"), "违例须点名 DateTime");
+        }
+
+        [Test]
+        public void test_scanMachines_seedsNonEmpty_selfGuard()
+        {
+            // ⚠️ **评审 n15**:闭包 / IL 扫描共用 `ProductionScanSeeds` —— 命名空间重构令
+            //    种子为空则全部扫描**静默空转**。自卫:种子非空且含决策器类型。
+            var seeds = ProductionScanSeeds().ToList();
+            Assert.IsNotEmpty(seeds, "ProductionScanSeeds 为空 ⇒ 全部闭包扫描空转(自卫)");
+            Assert.IsTrue(seeds.Any(t => t.Name.Contains("PatientBehavior")),
+                "种子须含决策器类型(命名空间漂移自卫)");
+        }
+
         [Test]
         public void test_ac13a5_decisionMethodSignatures_containNoForbiddenTypes()
         {
@@ -346,39 +402,26 @@ namespace DaYiJingCheng.Tests.PatientAI
                 typeof(LogicalStepper).GetMethod("Step"),
             };
 
+            var violations = new List<string>();
             foreach (var m in decisionMethods)
-            {
-                Assert.IsNotNull(m, $"方法须存在:{m?.Name}");
-                var sig = string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name))
-                          + "->" + m.ReturnType.Name;
-                foreach (var forbidden in forbiddenTypes)
-                {
-                    Assert.IsFalse(sig.Contains(forbidden),
-                        $"AC-13-A5:{m.Name} 的签名不得含禁入类型 {forbidden}({sig})");
-                }
-            }
+                violations.AddRange(ScanSignatureForForbidden(m, forbiddenTypes));
+            Assert.IsEmpty(violations,
+                "AC-13-A5:决策方法签名不得含禁入类型:\n" + string.Join("\n", violations));
         }
 
         [Test]
         public void test_ac13a5_decisionMethodSignatures_catchesForbiddenType_negativeFixture()
         {
-            // ⚠️ **负夹具**:影子方法签名含 `Transform` ⇒ 禁入类型检查**必须**失败并点名。
-            var forbiddenTypes = new[] { "Transform", "Vector3", "DateTime", "Stopwatch", "Random" };
-            var shadowMethod = typeof(ShadowWithForbiddenMethod).GetMethod("Decide");
-            Assert.IsNotNull(shadowMethod, "影子方法须存在");
-            var sig = string.Join(",", shadowMethod.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name))
-                      + "->" + shadowMethod.ReturnType.Name;
-            bool caught = false;
-            foreach (var forbidden in forbiddenTypes)
-            {
-                if (sig.Contains(forbidden))
-                {
-                    caught = true;
-                    Assert.IsTrue(sig.Contains(forbidden),
-                        $"负夹具:影子方法签名须含禁入类型 {forbidden}({sig})");
-                }
-            }
-            Assert.IsTrue(caught, "负夹具失败:影子方法签名未含任何禁入类型(空转)");
+            // ⚠️ **负夹具(同一台机器,换根 —— 评审 m9 修复 2026-10-07)**:
+            //    影子方法签名含 `Transform` ⇒ 签名扫描**必须**失败并点名。
+            //    原实现内联 `if (sig.Contains) Assert.IsTrue(sig.Contains)` = 恒真(x==x),
+            //    现与正测共用 `ScanSignatureForForbidden`。
+            var violations = ScanSignatureForForbidden(
+                typeof(ShadowWithForbiddenMethod).GetMethod("Decide"),
+                new[] { "Transform", "Vector3", "DateTime", "Stopwatch", "Random" });
+            Assert.IsNotEmpty(violations, "负夹具失败:影子方法签名未被签名扫描抓到(空转)");
+            Assert.IsTrue(string.Join("\n", violations).Contains("Transform"),
+                "违例须点名 Transform");
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -432,31 +475,56 @@ namespace DaYiJingCheng.Tests.PatientAI
         }
 
         [Test]
-        public void test_ac13c4_writePath_spasmAndComaTransport_zeroAppend()
+        public void test_ac13c4_writePath_spasmAndComaTransport_13ReadsOnlyPresentation()
         {
-            // ⚠️ **写路径归 10**:「查体诱发痉挛」「搬运昏迷病人」两场场景 ——
-            //    13 侧**零 Append**;痉挛效果经 10 的意图事件→主机判定→效果进流。
-            //    本测证:13 的类型图中**零** IEventSink.Append 调用(与上面同机器)。
-            var violations = ScanClosureForNames(new[] { "Append", "IEventSink" });
+            // ⚠️ **AC3 后半「13 仅从结果表现」(评审 M4 修复 2026-10-07)**:
+            //    13 的类型图**不得**直接引用 10/11 的处置载荷类型 —— 痉挛/搬运的效果经
+            //    「10 意图事件 → 主机判定 → 效果进流 → 9 体征 → 表现通道」到达 13;
+            //    直接引用载荷 = 绕过表现层读 sim(违 ADR-027「13 只出表现」)。
+            //    ⚠️ 「效果经 10 进流」的**端到端契约测试**(订阅面形状)BLOCKED-BY-10,
+            //    NOT-RUN 已登记于 story 卡 AC3 —— 本测**不冒充**它(原实现与
+            //    `zeroAppendInTypeGraph` 同一台机器重跑 Append 扫描 = 空转,已废)。
+            var violations = ScanClosureForNames(new[]
+            {
+                "EmergencyAttemptPayload",
+                "EmergencyTreatmentAppliedPayload",
+                "DrugTreatmentAppliedPayload",
+            });
             Assert.IsEmpty(violations,
-                "AC-13-C4:痉挛/搬运场景 13 侧零 Append(写路径归 10):\n" + string.Join("\n", violations));
+                "AC-13-C4:13 不得直接引用处置载荷类型(仅从结果表现):\n" + string.Join("\n", violations));
+        }
+
+        [Test]
+        public void test_ac13c4_writePath_spasm_catchesPayloadReference_negativeFixture()
+        {
+            // ⚠️ 负夹具(同一台机器,换根):影子字段注入处置载荷 ⇒ 必红且点名。
+            var violations = ScanClosureForNames(
+                new[] { "EmergencyTreatmentAppliedPayload" }, new[] { typeof(ShadowWithTreatmentPayload) });
+            Assert.IsNotEmpty(violations, "负夹具失败:注入处置载荷字段后未红 = 空转");
+            Assert.IsTrue(string.Join("\n", violations).Contains("EmergencyTreatmentAppliedPayload"),
+                "违例须点名 EmergencyTreatmentAppliedPayload");
         }
 
         [Test]
         public void test_ac13c4_writePath_ilScan_zeroAppendInMethodBodies()
         {
-            // ⚠️ **M4 修复**:IL 级扫描 —— 方法体内的 `call`/`callvirt` 不得指向 `IEventSink.Append`。
-            var violations = ScanTypeForForbiddenCalls(new[] { "IEventSink.Append", "IEventSink" });
+            // ⚠️ **M2 修复(2026-10-07)**:token 由 `{"IEventSink.Append","IEventSink"}` 改 **`"Append"`** ——
+            //    具体类型接收者 `EventStream.Append` 的 token 解析为
+            //    `DaYiJingCheng.Sim.EventStream.Append`,原两 token **均不命中**(漏网);
+            //    `"Append"` 子串对**接口形态与具体类型形态**双覆盖(与负夹具同 token)。
+            var violations = ScanTypeForForbiddenCalls(new[] { "Append" });
             Assert.IsEmpty(violations,
-                "AC-13-C4:13 的方法体内不得有 IEventSink.Append 调用(IL 级):\n" + string.Join("\n", violations));
+                "AC-13-C4:13 的方法体内不得有 Append 调用(接口或具体接收者,IL 级):\n" +
+                string.Join("\n", violations));
         }
 
         [Test]
         public void test_ac13c4_writePath_ilScan_catchesAppendCall_negativeFixture()
         {
-            // ⚠️ 负夹具:影子方法体内真发起 `IEventSink.Append` 调用 ⇒ IL 扫描器**必须**抓到。
+            // ⚠️ 负夹具(同一台机器、同一 token):影子方法体内真发起 `IEventSink.Append` 调用
+            //    ⇒ IL 扫描器**必须**抓到。
             var violations = ScanTypeForForbiddenCalls(
-                new[] { "IEventSink.Append" }, new[] { typeof(ShadowWithAppendCall) });
+                new[] { "Append" }, new[] { typeof(ShadowWithAppendCall) });
             Assert.IsNotEmpty(violations, "负夹具失败:注入 Append 调用后 IL 扫描未红 = 空转");
             Assert.IsTrue(string.Join("\n", violations).Contains("Append"), "违例须点名 Append");
         }
@@ -497,30 +565,42 @@ namespace DaYiJingCheng.Tests.PatientAI
             // ⚠️ 高水位 = max(三流并集) + 1,排除 PatientId.None(−1)
             var stream = new EventStream(new FakeIdAuthority(), new SimpleFakePresence());
 
+            // ⚠️ **M5 修复(2026-10-07)**:原病例流行用病人 0/1(与病史流重复)——
+            //    **删掉期望值仍是 5**,两行是装饰;且生产 `EventStream` 单 `_events` 列表,
+            //    「三流并集」在此实现上退化为单流扫描(如实登记,不假装有三本册)。
+            //    现改为**逐流增量断言**:每条流并入都必须抬高期望 ⇒ 删任一流即红(承重)。
+            //    ⚠️ TC-4「迁移后 next id」半边 = 存档折叠后从三流重构计数器,归 7a
+            //    (ADR-006 Amendment B 机制 A);本测覆盖**流扫描**半边,迁移腿未测(登记)。
+
             // 病史流:病人 0, 1, 2
             stream.Append(MakeEvent(0, new PatientId(0), EventKind.InjuryOnset));
             stream.Append(MakeEvent(0, new PatientId(1), EventKind.InjuryOnset));
             stream.Append(MakeEvent(0, new PatientId(2), EventKind.InjuryOnset));
+            Assert.AreEqual(3, stream.GetNextPatientId().Value,
+                "病史流: max(0,1,2)+1 = 3");
 
-            // 病例流:病人 0, 1
-            stream.Append(MakeEvent(0, new PatientId(0), EventKind.CaseOpened));
-            stream.Append(MakeEvent(0, new PatientId(1), EventKind.CaseOpened));
+            // 病例流:病人 5 —— **与病史流 id 不重叠** ⇒ 本行删掉期望回落 3(承重)
+            stream.Append(MakeEvent(0, new PatientId(5), EventKind.CaseOpened));
+            Assert.AreEqual(6, stream.GetNextPatientId().Value,
+                "病例流并入: max=5 ⇒ 6 —— 病例流行承重(删掉则此处红)");
 
-            // 世界流:世界级事件(PatientId.None = −1)+ 敌人(病人 3, 4)
+            // 世界流:世界级事件(PatientId.None = −1)+ 敌人(病人 7,共空间)
             stream.Append(MakeEvent(0, PatientId.None, EventKind.ActorCellEntered));
-            stream.Append(MakeEvent(0, new PatientId(3), EventKind.EnemyInjuryOnset));
-            stream.Append(MakeEvent(0, new PatientId(4), EventKind.EnemyInjuryOnset));
-
-            // 高水位 = max(0,1,2,3,4) + 1 = 5
-            var next = stream.GetNextPatientId();
-            Assert.AreEqual(5, next.Value,
-                "高水位 = max(三流并集) + 1 = 5(排除 PatientId.None)");
+            stream.Append(MakeEvent(0, new PatientId(7), EventKind.EnemyInjuryOnset));
+            Assert.AreEqual(8, stream.GetNextPatientId().Value,
+                "世界流并入(敌人与病人共空间): max=7 ⇒ 8 —— 敌人行承重;None 不抬高水位");
+            // ⚠️ None 行本身对期望值**不可承重**(排除 −1 的谓词在本 API 下不可观测 ——
+            //    max(含 −1) 与 max(不含 −1) 结果恒同);该半边由下方两个 None 专测钉契约(评审 m10 登记)。
         }
 
         [Test]
         public void test_ac13c4_idBoundary_excludesPatientIdNone()
         {
-            // ⚠️ PatientId.None(−1)必须排除在高水位计算之外
+            // ⚠️ PatientId.None(−1)必须排除在高水位计算之外。
+            // ⚠️ **评审 m10 登记(2026-10-07)**:「None 被排除」这一**内部谓词本身不可证伪** ——
+            //    `max(含 −1)` 与 `max(不含 −1)` 在本 API 下**结果恒同**(−1 < 任何真实 id;
+            //    全 None 时 `max+1 = 0` 亦同空流)。本测钉的是**可观测契约**(只有 None ⇒ 0),
+            //    不冒充对排除逻辑的证伪;排除逻辑的断言归 7a/registry 集成断言(登记)。
             var stream = new EventStream(new FakeIdAuthority(), new SimpleFakePresence());
 
             // 只有世界级事件(PatientId.None = −1),用不同 Kind 避免去重
@@ -591,23 +671,15 @@ namespace DaYiJingCheng.Tests.PatientAI
                 "真实第二 QoS 走 45 P1b,NOT-RUN。解除条件:45 网络层实装(P1b)后。")]
         public void test_ac13v8_online_clientDoesNotRecompute_stubOnly()
         {
-            // ⚠️ **P0 桩+断言**:客户端进程内 13 决策器**零求值**。
-            //    ⚠️ 这是**静态验证**(可证伪):客户端进程不引用 13 决策器类型。
-            //    ⚠️ **NOT-RUN**:真实第二 QoS 走 45 P1b —— 不阻塞 P0 判据的「零重算」断言。
-            var clientAsm = typeof(ReconstructionAndWritePathTest).Assembly;
-            var decisionTypes = new[]
-            {
-                typeof(BehaviorMap),
-                typeof(LogicalStepper),
-                typeof(PatientBehaviorDirector),
-                typeof(PatientSpatialDirector),
-            };
-
-            // 客户端进程**不引用** 13 决策器类型(静态验证)
-            foreach (var t in decisionTypes)
-            {
-                Assert.IsNotNull(t, $"决策器类型须存在:{t.Name}");
-            }
+            // ⚠️ **评审 M7 修复(2026-10-07)**:原桩体 `Assert.IsNotNull(typeof(...))` 对
+            //    `typeof` **恒真** —— 45 实装摘 [Ignore] 后会**纯空转转绿**(借绿)。
+            //    现改为:本体未实现 ⇒ **一旦摘掉 [Ignore] 即红**,强制先实现再放行。
+            //    ⚠️ 判据本体(P0 可做的静态验证 = 客户端装配引用集零 13 决策器类型)
+            //    归 45 P1b 实装时落;**NOT-RUN 状态不变**(story 卡照登)。
+            Assert.Fail(
+                "AC-13-V8 判据未实现(BLOCKED-BY 45):客户端进程内 13 决策器零求值 —— " +
+                "45 P1b 实装时先实现本体(客户端装配引用集 / 求值计数静态验证),再摘 [Ignore]。" +
+                "本 Fail 是防借绿闸门,不是失败报告。");
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -676,29 +748,62 @@ namespace DaYiJingCheng.Tests.PatientAI
         }
 
         [Test]
+        public void test_ac13assembly_patientAiSourceFiles_zeroForbiddenRefs()
+        {
+            // ⚠️ **BLOCKING 修复(评审 B1,2026-10-07)**:新增**源码面正测** ——
+            //    与下方负夹具**共用同一台机器** `ScanSourceTextsForTokens`。
+            //    原实现只有「程序集引用面」正测 + 一个**整体恒真**的负夹具
+            //    (生产真出现 Unity.Entities 时负夹具依旧绿)⇒ 判据不可红,已废。
+            var violations = ScanSourceTextsForTokens(
+                LoadProductionPatientAiSources(), ForbiddenAssemblyRefTokens);
+            Assert.IsEmpty(violations,
+                "AC-13-AssemblyHygiene:13 生产源码面零禁入引用(ECS/DOTS):\n" +
+                string.Join("\n", violations));
+        }
+
+        [Test]
         public void test_ac13assembly_patientAiRefSetWhitelist_catchesForbiddenRef_negativeFixture()
         {
-            // ⚠️ 负夹具:影子程序集引用 `Unity.Entities` ⇒ 白名单断言**必须**失败并点名。
-            //    ⚠️ 无法在 EditMode 测试中真正引用 Unity.Entities(程序集不存在),
-            //    故用**源码面 grep** 作为替代判据(承 story-003 的 `ScanSourceFilesForTokens`)。
-            var sourceDir = FindRepoRoot() + "/unity/Assets/Gameplay.Presentation/PatientAI";
-            var files = System.IO.Directory.GetFiles(sourceDir, "*.cs", System.IO.SearchOption.AllDirectories);
-            bool found = false;
-            foreach (var f in files)
+            // ⚠️ **负夹具(同一台机器,换输入)**:影子源文本含 `Unity.Entities` ⇒
+            //    `ScanSourceTextsForTokens` **必须**返回违例并点名。
+            //    (无法在 EditMode 真正引用 Unity.Entities —— 程序集不存在,
+            //    故源码面 grep 是唯一可执行判据;正/负共用机器 ⇒ 夹具红蕴含真断言可红。)
+            var shadowSource = "// 影子源(注入用)\nusing Unity.Entities;\nusing Unity.Burst;\n";
+            var violations = ScanSourceTextsForTokens(
+                new[] { shadowSource }, ForbiddenAssemblyRefTokens);
+            Assert.IsNotEmpty(violations, "负夹具失败:影子源含 Unity.Entities 而机器未红 = 空转");
+            Assert.IsTrue(string.Join("\n", violations).Contains("Unity.Entities"),
+                "违例须点名 Unity.Entities");
+        }
+
+        /// <summary>源码面扫描机器 —— 逐文本查禁入 token,返回点名违例。
+        /// <para>⚠️ **正测与负夹具共用本函数**(反空转规则①);`found` 布尔 / 内嵌断言形态已废。</para></summary>
+        private static List<string> ScanSourceTextsForTokens(IEnumerable<string> texts, string[] tokens)
+        {
+            var violations = new List<string>();
+            int i = 0;
+            foreach (var text in texts)
             {
-                var text = System.IO.File.ReadAllText(f);
-                if (text.Contains("Unity.Entities"))
+                i++;
+                foreach (var tok in tokens)
                 {
-                    found = true;
-                    Assert.IsTrue(text.Contains("Unity.Entities"),
-                        $"负夹具:影子源文件须含 Unity.Entities 引用({f})");
+                    if (text.Contains(tok))
+                        violations.Add($"[AC] 源文本 #{i} 含禁入引用「{tok}」");
                 }
             }
-            // ⚠️ 生产源文件不含 Unity.Entities ⇒ 负夹具走**影子源文件**路径
-            var shadowFile = FindRepoRoot() + "/unity/Assets/Tests/EditMode/PatientAI/reconstruction_and_write_path_test.cs";
-            var shadowText = System.IO.File.ReadAllText(shadowFile);
-            Assert.IsTrue(shadowText.Contains("Unity.Entities"),
-                "负夹具:影子源文件须含 Unity.Entities 引用");
+            return violations;
+        }
+
+        private static readonly string[] ForbiddenAssemblyRefTokens =
+            { "Unity.Entities", "Unity.Burst", "Unity.Jobs", "Unity.Mathematics" };
+
+        /// <summary>生产 PatientAI 目录的全部 `.cs` 源文本(源码面扫描的正测输入)。</summary>
+        private static IEnumerable<string> LoadProductionPatientAiSources()
+        {
+            var sourceDir = FindRepoRoot() + "/unity/Assets/Gameplay.Presentation/PatientAI";
+            var files = System.IO.Directory.GetFiles(sourceDir, "*.cs", System.IO.SearchOption.AllDirectories);
+            Assert.IsNotEmpty(files, "源码面扫描输入为空 ⇒ 判据空转(自卫)");
+            return files.Select(System.IO.File.ReadAllText).ToList();
         }
 
         [Test]
@@ -725,8 +830,31 @@ namespace DaYiJingCheng.Tests.PatientAI
         //  扫描机器(正测与负夹具共用的同一台)
         // ═══════════════════════════════════════════════════════════
 
-        /// <summary>扫描类型的字段集,返回不在白名单中的字段名。
-        /// <para>⚠️ <paramref name="whitelist"/> 是**精确集** —— 任何不在白名单中的字段名都会返回。
+        /// <summary>扫描方法签名,返回含禁入类型名的违例。
+        /// <para>⚠️ **评审 m9 修复(2026-10-07)**:抽出共用机器 —— 正测与负夹具**同一台**,
+        /// 换根而已(反空转规则①);原负夹具内联 `if (contains) Assert.IsTrue(contains)` 恒真。</para></summary>
+        private static List<string> ScanSignatureForForbidden(MethodInfo m, string[] forbiddenTypes)
+        {
+            var violations = new List<string>();
+            if (m == null)
+            {
+                violations.Add("[AC] 方法不存在(夹具根缺失 ⇒ 扫描空转)");
+                return violations;
+            }
+            var sig = string.Join(",", m.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name))
+                      + "->" + m.ReturnType.Name;
+            foreach (var forbidden in forbiddenTypes)
+            {
+                if (sig.Contains(forbidden))
+                    violations.Add($"[AC] {m.Name} 签名含禁入类型「{forbidden}」({sig})");
+            }
+            return violations;
+        }
+
+        /// <summary>扫描类型的字段集,返回**双向**违例(非白名单字段 + 缺失白名单字段)。
+        /// <para>⚠️ <paramref name="whitelist"/> 是**精确集** —— 任何不在白名单中的字段名、
+        /// 以及白名单中缺失的字段,都会返回(评审 m11 修复 2026-10-07:原为单向断言,
+        /// 「恰 = 白名单」对**缺字段**不敏感)。
         /// 正测与负夹具**共用本函数**(反空转规则①)。</para></summary>
         private static List<string> ScanFieldsForToken(Type t, string[] whitelist)
         {
@@ -737,6 +865,11 @@ namespace DaYiJingCheng.Tests.PatientAI
             {
                 if (!whitelist.Contains(f))
                     violations.Add($"[AC] {t.Name}.{f} —— 不在白名单(实为 {f})");
+            }
+            foreach (var w in whitelist)
+            {
+                if (!fields.Contains(w))
+                    violations.Add($"[AC] {t.Name} 缺白名单字段 {w}(精确集双向判据)");
             }
             return violations;
         }
@@ -879,6 +1012,18 @@ namespace DaYiJingCheng.Tests.PatientAI
                 .ToList();
         }
 
+        /// <summary>A5 决策面扫描根 —— 仅 `Gameplay.PatientAI` 命名空间(不含 Audio 呈现侧;
+        /// 音频驱动的音色抖动归 44 域,不属决策第四来源)。</summary>
+        private static IEnumerable<Type> PatientAiScanSeeds()
+            => ProductionScanSeeds().Where(t => t.Namespace != null &&
+                (t.Namespace == "DaYiJingCheng.Gameplay.PatientAI" ||
+                 t.Namespace.StartsWith("DaYiJingCheng.Gameplay.PatientAI.", StringComparison.Ordinal)));
+
+        /// <summary>A5 禁入源类型 token(签名 / 闭包 / IL 三面共用;评审 M3 修复)。</summary>
+        private static readonly string[] ForbiddenSourceTypeTokens =
+            { "System.DateTime", "System.Diagnostics.Stopwatch", "Random",
+              "UnityEngine.Transform", "UnityEngine.Vector3", "UnityEngine.Time" };
+
         /// <summary>命名空间剪枝。</summary>
         private static bool ShouldExpandMembers(Type t)
         {
@@ -950,6 +1095,24 @@ namespace DaYiJingCheng.Tests.PatientAI
             {
                 sink.Append(default);
             }
+        }
+
+        // ── 评审修复补的影子(2026-10-07:M3 / M4)──────────────────
+
+        private sealed class ShadowWithPrivateStaticTransform
+        {
+            private static UnityEngine.Transform _cached;   // 私有 + 静态(原扫描面不可见)
+            public static int Touch() => _cached == null ? 0 : 1;
+        }
+
+        private sealed class ShadowWithDateTimeBodyCall
+        {
+            public long Ticks() => DateTime.Now.Ticks;   // 方法体 IL:call System.DateTime.get_Now
+        }
+
+        private sealed class ShadowWithTreatmentPayload
+        {
+            public EmergencyTreatmentAppliedPayload Payload;   // AC3「13 仅从结果表现」负夹具
         }
 
         // ── 重建会话夹具 ──────────────────────────────────────────
@@ -1089,14 +1252,22 @@ namespace DaYiJingCheng.Tests.PatientAI
                 return new ReconstructionRun(decisions);
             }
 
-            /// <summary>重置(模拟读档)—— 复用同一批导演,清零派生态。
+            /// <summary>重置(模拟读档)—— 复用同一批导演,清零派生态,并**重新入表**。
             /// <para>⚠️ **B1 修复**:原实现 `Run()` 每次重建导演,`Reset()` 作用于被丢弃的旧对象。
-            /// 现 `Run()` 复用同一批导演,`Reset()` 调 `ResetForLoad()` 清零派生态。</para></summary>
+            /// 现 `Run()` 复用同一批导演,`Reset()` 调 `ResetForLoad()` 清零派生态。</para>
+            /// <para>⚠️ **story-004 评审修复(S1,2026-10-07)**:`ResetForLoad` 现为 **fresh construct
+            /// 语义**(清字典)⇒ 读档路径须**重新入表**(镜像生产接线:在场集重建后
+            /// `OnPresentEntered` 再触发 + 路径接缝重设)。run1 / run2 从同一播种起点出发 ⇒ 逐位可比。</para></summary>
             public void Reset()
             {
                 EnsureInitialized();
                 _behaviorDir.ResetForLoad();
                 _spatialDir.ResetForLoad();
+                foreach (var id in _positions.Keys)
+                {
+                    _spatialDir.OnPresentEntered(new PatientId(id), new WorldPos(0, 0, 0));
+                    _spatialDir.SetPathForTest(new PatientId(id), Path(0, 20));
+                }
             }
         }
 

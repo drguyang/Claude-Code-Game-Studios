@@ -3,7 +3,7 @@
 > **Layer**: Foundation → Core → Feature
 > **GDD**: design/gdd/patient-ai.md
 > **Architecture Module**: 边界层(呈现侧)· **不在门 A sim 程序集内**(ADR-016 §一 补注)
-> **Status**: ✅ **4/4 story 实现全闭**(001 `4076e1e` · 002 `6e0d178` · 003 `a1f7a36` · **004 `0b6f948` 2026-10-05**)· ⚠️ **治理缺口:story-004 评审原件未落库**(评审做过 5B+6M,原件缺 —— 按 `review-workflow.md` 须**补做一次评审**(评当下,不追认)方可转 Complete;**不是实现缺口**)
+> **Status**: ✅ **4/4 story 全闭**(001 `4076e1e` · 002 `6e0d178` · 003 `a1f7a36` · 004 `0b6f948` 2026-10-05 实现收口)· **story-004 评审原件已于 2026-10-07 补做落库**(`review-patient-ai-story-004-2026-10-07.md`:双代理单轮 → 修复 → 复跑绿 175/173 + 全量 2955/2908/0 红 ⇒ 004 转 Complete,治理缺口闭)
 > **Stories**: 4 stories — see table below
 
 ## Overview
@@ -77,4 +77,4 @@ This epic is complete when:
 | 001 | 体征只读消费与行为映射 —— VitalsDto 取数、双维状态与滞回 | Logic | **Complete ✅ 2026-10-04**(`4076e1e`) | ADR-016/027/005 |
 | 002 | 空间行为 —— 感知格距、HomeRegion 寻医与定点累加器步进 | Logic | **Complete ✅ 2026-10-05**(`6e0d178`) | ADR-016/015/006 |
 | 003 | 呈现投影 —— ViewState 优先级、IPresentPatients 与 cue / Material 通道 | Integration | **Complete ✅ 2026-10-05**(`a1f7a36`) | ADR-016/013/018 |
-| 004 | 重建、联机单跑与写路径归 10 —— 端到端确定性与接缝验收 | Integration | **实现收口 ✅ 2026-10-05**(`0b6f948`;37 测试 + 走查证据)· ⚠️ **评审原件缺,待补做** | ADR-027/016/012 |
+| 004 | 重建、联机单跑与写路径归 10 —— 端到端确定性与接缝验收 | Integration | **Complete ✅ 2026-10-07** —— 实现收口 2026-10-05(`0b6f948`)+ 补做评审原件 `review-patient-ai-story-004-2026-10-07.md`(15+12 条修复,复跑绿) | ADR-027/016/012 |
