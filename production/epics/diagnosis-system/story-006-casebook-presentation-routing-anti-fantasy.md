@@ -1,12 +1,12 @@
 # Story 006: 呈现层 —— 脉案五通道、动作词表路由与反幻想护栏
 
 > **Epic**: 诊断与体征揭示
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature
 > **Type**: UI
 > **Estimate**: 10h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-08
 
 ## Context
 
@@ -31,7 +31,11 @@
 
 *From GDD `design/gdd/diagnosis-system.md`, scoped to this story:*
 
-- [ ] **AC-8-23**[U] BLOCKING(显式半边):未查必须留下一行 —— 只做视诊 ⇒ 触诊所辖行为**空行**;五行固定成序、永不隐藏、永不留空;焦点顺序恒 `面色→…→置信度` 不因已查集合重排;零进度条/零计数/零完成度
+- [x] **AC-8-23**[U] BLOCKING(显式半边):未查必须留下一行 —— 只做视诊 ⇒ 触诊所辖行为**空行**;五行固定成序、永不隐藏、永不留空;焦点顺序恒 `面色→…→置信度` 不因已查集合重排;零进度条/零计数/零完成度
+  > ⚠️ **订正注(2026-10-08,随本 story 收口)**:本行「焦点顺序…→ 置信度」为 **OQ-CB-5 订正前旧序**。
+  > 权威 = GDD UI-8.2(✅ 2026-10-06 订正面):`面色→语声→姿态→呼吸→触感→问诊栏→病名`
+  > (问诊栏 = `OQ-8-9` 第 6 停;置信度不落独立焦点控件,K=6 = 病名焦点内循环)。
+  > 实现与测试以 GDD 为准,差异登记见 Completion Notes。空行截图半边与「重排」数据场景 → NOT-RUN(走查件 §四)。
 - [ ] **AC-8-36**[V] BLOCKING:精度档 = 解析带宽不是遮挡开关 —— Lv1 vs Lv50 两图:低档画面**完整干净诚实**;零全屏模糊/马赛克/雾遮/灰色未解锁/「技能不够」提示;差异只在局部层;整体层不变
 - [ ] **AC-8-37**[V] BLOCKING(须医学从业签核):最危险三点不许「装傻」—— `sign_orthopnea`/`sign_retraction`/`sign_pallor`:要么整体层本可见(如实给粗档词如「躺不平」),要么**根本不在低档世界里成形**;绝不呈现教科书征象配含糊词
 - [ ] **AC-8-38**[V] BLOCKING(渲染路径断言半边 [L]):阴性绝不抹掉世界上的体征 —— `Sign ≥ FLOOR` 且持续型而精度不足指名 ⇒ 世界侧照旧渲染(病人看起来就是不对的),只有纸上是阴性形态;断言阴性渲染路径不触碰世界层(13 动画/shader)
@@ -43,7 +47,9 @@
 - [ ] **AC-8-44**[U](手柄半边 NOT-RUN 缓办):UI-8.2 无指针焦点导航 —— 键鼠半边本 story 走查;手柄(无指针)面:焦点走完五通道+病名+置信度且顺序固定、落空行有反馈(纸面压痕声/行高亮)且无提示文案、无灰按钮、「旧」无 hover 可读(页边铅笔勾不靠颜色)、病名手写输入手柄下可完成 —— **登记 BLOCKED-BY 桌面调试集中轮(记忆库裁定)与 ADR-013 假设 6 spike**
 - [ ] **AC-8-13**[L/I] BLOCKING(端到端呈现半边):Lv15 → 阴性形态+把握不足(**只由墨色/笔迹承载,零文字零标记**,不构成排除);Lv20 → 细档词且构成排除(V-8.3 / 阻断 #8 口径)
 - [ ] **AC-8-19**[V] BLOCKING:「?」不泄漏(表现层)—— 有体征但低于门槛 vs 确实无体征,两病人同通道同低熟练度两张脉案**像素级不可区分**(同词/墨浓度/收锋/形态/页边标记)
-- [ ] **AC-8-51**[I] BLOCKING:S-8.4 词表闭合 —— 裸 `Interact` 打病人四种粗状态(未立案/已立案未查/已落笔/10 Armed 期)语义**恒为「就诊」**不漂移;`Armed` 期该意图被压制(story 005 of emergency 联动);未立案 ⇒ 37 `CaseOpened`
+- [x] **AC-8-51**[I] BLOCKING:S-8.4 词表闭合 —— 裸 `Interact` 打病人四种粗状态(未立案/已立案未查/已落笔/10 Armed 期)语义**恒为「就诊」**不漂移;`Armed` 期该意图被压制(story 005 of emergency 联动);未立案 ⇒ 37 `CaseOpened`
+  > **半边拆分(评审 S1)**:① **词表半边 [A] 已覆盖** —— `DiagnosisActionLexicon` + `test_ac8_51_*`(四态语义 / Armed 计数 0 / 枚举闭集四项穷尽);
+  > ② **端到端半边 [I] NOT-RUN** —— 裸 Interact ⇒ 37 `CaseOpened` 的生产接线无调用点,**具名归 case-system epic(37)与 interaction-system epic(4)接线轮**(届时补集成测试)。禁以词表单测借绿整条 AC(走查件 §四.4)。
 - [ ] **AC-8-52**[A] BLOCKING:边界 B-1/B-2 —— ① 结案前后 4 的输出形状不变:4 仍只交 `(病人, InteractIntent)` 全整数零语义字段(词表在 8 侧,4 无 `TreatmentIntent` 枚举膨胀);② 裁决输入集不扩大 —— 只读已落盘 `IModalState.Modal`(反射扫描断言)
 - [ ] **TR-diag-019/020**[A] BLOCKING:脉案全部 DTO 静态检查 + `PresentationDtoGuard` 递归(disease_id 不进呈现层;story 001 挂入门禁,本 story 判呈现字段集实际内容)
 - [ ] **AC-8-29 截图半边**[V] ADVISORY:改写留痕可被看见(划痕),痕不进任何评分输入
@@ -89,7 +95,15 @@
 
 **Story Type**: UI
 **Required evidence**: `unity/Assets/Tests/PlayMode/DiagnosisSystem/casebook_render_test.cs`(自动化半边)+ 走查与截图 `production/qa/evidence/diagnosis-system/story-006-*.md`(医学签核位:AC-8-37/42)
-**Status**: [ ] Created — NOT STARTED;AC-8-44 手柄子项 NOT-RUN(缓办+假设 6 spike);AC-8-42 视 disease story 003 兑现判
+**Status**: [x] Created — 2026-10-08 收口:
+- **EditMode** `casebook_lexicon_test.cs` 7 测:DiagnosisSystem 过滤 **157/156 过/0 红/1 跳**(跳 = 既有 `test_ac834`);
+  全量 **2979/2932/0 红/1 inc/46 跳**(基线 2978/2931,+1)
+- **PlayMode** `casebook_render_test.cs` 8 测(Required evidence):PlayMode Diagnosis **11/11 过**(3 既有 + 8 新)
+- **走查件**: `production/qa/evidence/diagnosis-system/story-006-walkthrough-2026-10-08.md`(目录首批建,
+  含 README)[V]/[U] 签核位全部 🔲 未签 —— **签核半边未收口,禁借绿**
+- **NOT-RUN 清单**: AC-8-44 手柄(缓办+假设 6 spike)· AC-8-19 像素腿(batch 无渲染面)·
+  AC-8-51 端到端接线半边(具名 37/4 接线轮)· AC-8-13 [I](9 投影接线,依赖注记陈旧待回写)·
+  AC-8-23 重排数据场景与空行截图半边 · AC-8-36 遮挡节点断言子半边 —— 逐条见走查件 §四
 
 ---
 
@@ -99,3 +113,41 @@
 - Unlocks: EPIC DoD;AC-42-F1 式全 UI 走查批次;ux-review 轮
 
 ## Completion Notes
+
+**2026-10-08 收口(协议:创建并 unity cli 测试 → 双代理单轮评审 → 修复 → 复跑绿 → 收口)。**
+
+**生产件三件**:
+- `DiagnosisActionLexicon`(S-8.4 路线甲词表,住 `Gameplay.Presentation/Diagnosis/`,静态零字段):四粗态
+  `Resolve` + `IsVisitSemantics`;词表住 8,4 只见 `InteractIntent` 整数(B-1)。
+- `CasebookScreen.BuildUI` + `Casebook39.uxml` 结构订正:UI-8.1 五通道(+姿态)+ 问诊栏第 6 行
+  (`OQ-8-9`)+ 病名/置信度归右栏(铁律③)+ focusable 序按 UI-8.2 订正面(七停)。
+
+**评审(单轮双代理)**:lead-programmer 2 MAJOR+3 MINOR+1 NIT · qa-lead 6 MAJOR+7 MINOR+3 NIT
+→ **全部处置**(修复 11 / 登记 9),原件 =
+`production/qa/evidence/review-diagnosis-story-006-2026-10-08.md`。要点:
+
+1. **焦点序差异裁定(评审 S2/q7)**:卡 AC-8-23 与 ADR Decision Summary 的
+   `面色→…→病名→置信度` 为 OQ-CB-5 订正前旧序;**权威 = GDD UI-8.2(2026-10-06 订正面)**
+   `面色→语声→姿态→呼吸→触感→问诊栏→病名`(置信度 K=6 病名内循环,非独立停)。
+   实现/测试取 GDD;AC-8-23 行已加订正注;本 Notes 即差异登记(原证据件「已登记卡面」声明
+   曾悬空,评审点出后本轮补齐)。
+2. **AC-8-51 半边拆分(评审 S1)**:词表半边 [A] 自动化覆盖;端到端(⇒37 `CaseOpened`)接线
+   半边 NOT-RUN,**具名归 case-system(37)/ interaction-system(4)接线轮**,禁借绿。
+3. **AC-8-42 依赖判定**:disease story-003 `Status: Complete`(R3 含 `DIS_NEURASTHENIA` 行)
+   ⇒ **不记 BLOCKED-BY**;[V] 视觉半边归走查件医学签核位。
+4. **双真源声明(评审 S3/q1)**:UXML spec 面 ≡ BuildUI 代码面,由 PlayMode
+   `test_cross_uxmlSpec_buildUi_nameSequence_equivalent`(name 序全等)交叉守护;改一面不同步
+   即红。唯一运行面选择归 42 接线轮(`SkeuoRuntimeDriver` 现 TODO)。
+5. **禁词集双面同步(评审 q9/q15)**:EditMode(UXML 属性/文本)与 PlayMode(运行树)的
+   `ForbiddenUiTokens` 为同一集合两面,头注互指,改一处须同步。
+6. **金标重钉(有意识)**:`7ce0ce27` → `b711a17c` —— `PatientCoarseState` 4 +
+   `VisitRoute` 4 枚举字面入面,行集 +8,史注已写入 `DiagnosisGoldenScan`。
+7. **AC-8-38 [L] 半边(评审 q5 疑似借绿 → 修复)**:新增
+   `test_ac8_38_negativeRenderPath_8prefix_zeroWorldLayerTypes`(8 前缀零世界层类型 + 影子负夹具),
+   [L] 断言半边现**有真身**;[V] 半边归走查件。
+8. **AC-8-13 登记(评审 q6)**:[I] 端到端 NOT-RUN;`confidence_leak_test` 头注的依赖注记
+   (9 侧 `Project(Sign_j)` 未落地)**已陈旧**(disease story-004 现 Complete)—— 依赖状态回写
+   归 9/8 投影接线轮,不静默。
+9. **NOT-RUN 总清单**:见 Test Evidence 与走查件 §四(AC-8-44 手柄 · AC-8-19 像素腿 ·
+   [V]/[U] 签核位 · AC-8-51 端到端 · AC-8-13 · AC-8-23 重排/空行截图 · AC-8-36 遮挡节点断言)——
+   **全部未签未跑,禁借绿**。

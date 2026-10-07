@@ -1,31 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 脉案页 (39) — AC-42-F1① 手柄走查 + 目视零按键提示浮层 -->
+<!-- 脉案页 (39) — AC-42-F1① 手柄走查 + 目视零按键提示浮层
+     story-006 结构订正(承 design/gdd/diagnosis-system.md UI-8.1/UI-8.2 · OQ-8-9):
+       · 五通道区 = 面色/语声/姿态/呼吸/触感(病名移出通道区 —— 归属不同栏,UI-8.1 铁律③)
+       · 问诊栏 = 第 6 行(体征区末行下,OQ-8-9 ✅ 2026-10-06;非第六体征通道)
+       · 病名 + 置信度(「?」)归右栏 —— 「?」只在病名/置信度处(AC-8-39)
+       · 焦点序(AC-8-23 措辞以 GDD UI-8.2 2026-10-06 订正面为准):
+         面色 → 语声 → 姿态 → 呼吸 → 触感 → 问诊栏 → 病名(置信度不落独立控件,OQ-CB-5 K=6 循环) -->
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
     <ui:VisualElement name="casebook-root" class="paper">
         <ui:Label name="casebook-title" text="脉案" class="ink" />
         <ui:VisualElement name="five-channels" class="scroll">
-            <ui:VisualElement name="channel-complexion" class="ink">
+            <ui:VisualElement name="channel-complexion" class="ink" focusable="true">
                 <ui:Label text="面色" class="ink" />
             </ui:VisualElement>
-            <ui:VisualElement name="channel-voice" class="ink">
+            <ui:VisualElement name="channel-voice" class="ink" focusable="true">
                 <ui:Label text="语声" class="ink" />
             </ui:VisualElement>
-            <ui:VisualElement name="channel-breathing" class="ink">
+            <ui:VisualElement name="channel-posture" class="ink" focusable="true">
+                <ui:Label text="姿态" class="ink" />
+            </ui:VisualElement>
+            <ui:VisualElement name="channel-breathing" class="ink" focusable="true">
                 <ui:Label text="呼吸" class="ink" />
             </ui:VisualElement>
-            <ui:VisualElement name="channel-palpation" class="ink">
+            <ui:VisualElement name="channel-palpation" class="ink" focusable="true">
                 <ui:Label text="触感" class="ink" />
             </ui:VisualElement>
-            <ui:VisualElement name="channel-disease-name" class="ink">
-                <ui:Label text="病名" class="ink" />
+            <ui:VisualElement name="channel-inquiry" class="ink" focusable="true">
+                <ui:Label text="问诊" class="ink" />
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:VisualElement name="two-columns" class="scroll">
-            <ui:VisualElement name="left-column-vitals" class="paper">
-                <ui:Label text="体征" class="ink" />
+        <ui:VisualElement name="right-column" class="scroll">
+            <ui:VisualElement name="channel-disease-name" class="ink" focusable="true">
+                <ui:Label text="病名" class="ink" />
             </ui:VisualElement>
-            <ui:VisualElement name="right-column-diagnosis" class="paper">
-                <ui:Label text="诊断" class="ink" />
+            <ui:VisualElement name="confidence-mark" class="ink">
+                <ui:Label name="confidence-question" text="?" class="ink" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

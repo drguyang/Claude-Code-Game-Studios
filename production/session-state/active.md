@@ -1059,6 +1059,30 @@ Task: story-005 断点(ReadingFSM/JudgmentFSM 未开工)
 
 ---
 
+## 追记 · diagnosis/story-006 收口(2026-10-08)✅ 全闭环
+
+**协议执行**:创建并 unity cli 测试 → 双代理评审(单轮)→ 修复 → 复跑绿 → 原件 → 收口提交推送。
+
+- **生产三件**:`DiagnosisActionLexicon`(S-8.4 路线甲词表,静态零字段,四粗态 Resolve +
+  枚举闭集)+ `CasebookScreen.BuildUI`/`Casebook39.uxml` 结构订正(五通道 + 姿态 + 问诊栏第 6 行
+  + 病名/置信度归右栏 + focusable 七停按 GDD UI-8.2 2026-10-06 订正面)。
+- **测试两件**:`casebook_lexicon_test.cs` 7 测(EditMode:词表/形状/DTO/UXML-XDocument/
+  AC-8-38 世界层零引用)+ `casebook_render_test.cs` 8 测(PlayMode,Required evidence:结构/
+  焦点序/负向声明树遍历/IModalState 只读/**双真源 cross 断言**)。
+- **双代理单轮**:lead-programmer 2 MAJOR+4 建议 / qa-lead 6 MAJOR+7 MINOR+3 NIT → **18 条全处置**
+  (修复:枚举闭集 · AssertIntegralShape+消费点绑定 · 类型面零 Gameplay.UI · AC-8-38 新测试 ·
+  cross 断言+title 对齐 · XDocument 化 · 禁词 17 token 两面统一 · AC-8-19 降格冒烟 · 「?」放宽;
+  登记:AC-8-51 半边拆分 · AC-8-13 陈旧依赖注记 · 焦点序差异卡面回填 · NOT-RUN 族)。
+- **复跑绿**:DiagnosisSystem **157/156/0 红/1 跳** · 全量 **2979/2932/0 红/1 inc/46 跳**
+  (基线 2978/2931,+1)· PlayMode **11/11** · 突变两笔(Armed 分支失活 / 删 title)各恰 1 红点名,
+  还原回绿。
+- **金标**:`7ce0ce27` → **`b711a17c`**(+8 = PatientCoarseState 4 + VisitRoute 4 枚举字面,有意识重钉)。
+- **原件**:`production/qa/evidence/review-diagnosis-story-006-2026-10-08.md`;证据目录首批
+  `production/qa/evidence/diagnosis-system/`(README + 走查件);卡 Status → Complete ✅。
+- **NOT-RUN(不静默)**:AC-8-44 手柄 · AC-8-19 像素腿 · [V]/[U] 签核位全未签 ·
+  AC-8-51 端到端(具名 37/4 接线轮)· AC-8-13 [I](依赖注记陈旧待回写)· AC-8-23 重排/空行截图 ·
+  AC-8-36 遮挡节点断言 —— 逐条见走查件 §四与卡 Test Evidence,禁借绿。
+
 ## 追记 · diagnosis/story-005 收口(2026-10-07)✅ 全闭环
 
 **协议执行**:创建并 unity cli 测试 → 双代理评审(单轮)→ 修复 → 复跑绿 → 原件 → 收口提交推送。
