@@ -991,3 +991,13 @@ Task: story-004 收口(4/4 · 166/166/0/2)
   R1-19 = NotImplementedException 哨兵 · DC-6 当前数据集零求值 · MINOR/NIT 登记不修 ·
   `清创`(O-9→10)归 10 GDD 轮。
 - **状态**:disease-simulation epic **7/7 全闭**。
+
+## 2026-10-07 — Phase 2 三层账目回刷 + 生产代码口径二次订正(未提交)
+
+- **回刷(第一轮)**:EPIC 头行 ×3(patient/case/diagnosis)+ case 4 张 story 卡 + index 5 行 + sprint-04(头行/Phase2 表/关键路径图/:176 待办行)—— 纯账目对齐,零实现改动。
+- **二次订正(生产代码口径复查)**:patient-ai **实为 4/4 实现全闭**(004 = `0b6f948` 2026-10-05:37 测试 + 5B/6M 修复轮 + 走查证据,账面从未回刷)⇒ 13 行改「4/4 + 原件 caveat」。
+- **真未做的 4 个 story(已核,token/测试/commit 三零)**:diagnosis-005(ReadingFSM/JudgmentFSM 零命中)· diagnosis-006 · case-005 · case-006。
+- **新立治理缺口**:`review-patient-ai-story-004` **评审原件缺**(001/002/003 均在库)—— 须**补做一次评审(评当下,不追认)**方可转 Complete;已登记进 patient-ai EPIC 头行/卡/index/sprint。
+- **Phase 2 现状**:4/7 实现全闭(13 含 caveat)+ 2 有残余(8/37 各 4/6)+ 1 未达 DoD(11)。
+- **当前关键路径断点 = `diagnosis/story-005`**。
+- ⬜ 本批账目文件待提交。

@@ -1,7 +1,7 @@
 # Story 001: 病例流 Kind 登记与病例身份
 
 > **Epic**: 病例系统
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-06(`e64efad`)
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 5h

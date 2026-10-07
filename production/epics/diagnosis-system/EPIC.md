@@ -3,7 +3,7 @@
 > **Layer**: Core(读侧判定)× Presentation(UI)
 > **GDD**: design/gdd/diagnosis-system.md
 > **Architecture Module**: L4 Presentation 接缝 + L2 Sim 只读消费(8 不在门 A 内,经 IVitalsQuery→VitalsDto)
-> **Status**: Ready
+> **Status**: 🔄 In Progress(4/6 story 已收口 —— 001–004 于 10-05/10-06 收口(`6685046`/`f27ca3e`/`57c34c2`/`351d097`);**断点 = story-005**)
 > **Stories**: 6 stories — see table below
 
 ## Overview
@@ -91,6 +91,6 @@ This epic is complete when:
 | 001 | 程序集边界与 VitalsDto 只读门面 | Integration | **Complete** | ADR-005/006/013/025 |
 | 002 | 体征词条表 schema 与 P0 数据行 | Config-Data | **Complete** | ADR-014/009 |
 | 003 | F-8.1 可读地板与 F-8.2 精度档槽 | Logic | **Complete** | ADR-005/006/026 |
-| 004 | F-8.3 阴性把握度与不泄漏不变量 | Logic | Ready | ADR-005/006 |
+| 004 | F-8.3 阴性把握度与不泄漏不变量 | Logic | **Complete ✅ 2026-10-06**(`351d097`) | ADR-005/006 |
 | 005 | 读数状态机 S-8.1/8.2/8.3 与成长门控 | Integration | Ready | ADR-009/011/013 |
 | 006 | 呈现层:脉案五通道、动作词表路由与反幻想护栏 | UI | Ready | ADR-011/013 |

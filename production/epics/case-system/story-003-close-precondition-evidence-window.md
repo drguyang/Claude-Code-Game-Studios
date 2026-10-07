@@ -1,7 +1,7 @@
 # Story 003: 结案前置 —— 处置证据窗口与快照(复诊后门关闭)
 
 > **Epic**: 病例系统
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-06(`31e3f9b`)
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: 5h

@@ -1,7 +1,7 @@
 # Story 004: F-37.1 同源检测与 PatternRecognized(含 F-37.1b 脚本链)
 
 > **Epic**: 病例系统
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-06(`8a693fd`)
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: 7h

@@ -1,7 +1,7 @@
 # Story 002: 立案两路径 · 开案唯一 · 判断记录事件化
 
 > **Epic**: 病例系统
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-06(`c4e3708`)
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 6h

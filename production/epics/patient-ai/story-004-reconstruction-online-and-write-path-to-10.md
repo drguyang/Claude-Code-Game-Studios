@@ -1,7 +1,7 @@
 # Story 004: 重建、联机单跑与写路径归 10 —— 端到端确定性与接缝验收
 
 > **Epic**: 病人 AI 与行为
-> **Status**: Ready
+> **Status**: 实现收口 ✅ 2026-10-05(`0b6f948`:37 测试 + 5B/6M 修复轮 + 走查证据)· ⚠️ **评审原件未落库 —— 须补做一次评审(评当下)方可转 Complete**(承 review-workflow BLOCKING 义务)
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 6h

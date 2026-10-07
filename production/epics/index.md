@@ -1,6 +1,6 @@
 # Epics Index
 
-Last Updated: 2026-10-03
+Last Updated: 2026-10-07
 Engine: Unity 6.3 LTS (6000.3.24f1)
 
 | Epic | Layer | System | GDD | Stories | Status |
@@ -19,19 +19,19 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | casebook | Presentation | 39 脉案 | design/gdd/casebook.md | 6 stories | Ready(未实现) |
 | tutorial-onboarding | Presentation | 48 教学与引导 | design/gdd/tutorial-and-onboarding.md | 5 stories | Ready(未实现) |
 | camera-viewpoint | Foundation | 20 相机与视角 | design/gdd/camera-and-viewpoint.md | 6 stories | Complete ✅ 2026-10-03(6/6) |
-| case-system | Core | 37 病例系统 | design/gdd/case-system.md | 6 stories | Ready(未实现) |
+| case-system | Core | 37 病例系统 | design/gdd/case-system.md | 6 stories | 🔄 In Progress(4/6 · 001–004 ✅ 2026-10-06;断点 = story-005) |
 | combat-weapons | Core | 25 战斗与武器 | design/gdd/combat-and-weapon-lines.md | 6 stories | Complete ✅ 2026-09-30 |
 | death-respawn | Core | 29 死亡与复活 | design/gdd/death-and-respawn.md | 6 stories | Ready(未实现) |
-| diagnosis-system | Core | 8 诊断系统 | design/gdd/diagnosis-system.md | 6 stories | Ready(未实现) |
+| diagnosis-system | Core | 8 诊断系统 | design/gdd/diagnosis-system.md | 6 stories | 🔄 In Progress(4/6 · 001–004 ✅ 2026-10-05/06;断点 = story-005) |
 | disease-simulation | Core | 9 疾病模拟 | design/gdd/disease-simulation.md | 7 stories | ✅ Complete(story-007 重开轮闭环 2026-10-07:处置轴 + treatable_by + NOISE_BAND_9 双常量;双代理评审修复后复跑全绿:9 侧 67/67 · 11 侧 174/174 · 10 侧 116/116 · 全量 2948-2901/0 红) |
 | emergency-procedures | Core | 10 急救动作 | design/gdd/emergency-procedures.md | 7 stories | In Review(7/7 已实现 · A1/A2/A6/B4/C4/C5 已闭 · 0 红;✅ **评审原件两份均已在库**(首轮+round2,2026-10-03);**真实残留 = D1/D2/D3 文档对齐 + 实跑测试套件**(round2 未实跑,结论均基于源码阅读);另 007 = b6 门查出的手搓点) |
 | enemy-ai | Core | 27 敌人 AI | design/gdd/enemy-ai.md | 5 stories | Complete ✅ 2026-09-30 |
-| interaction-system | Core | 4 交互系统 | design/gdd/interaction-system.md | 4 stories | Ready(未实现) |
+| interaction-system | Core | 4 交互系统 | design/gdd/interaction-system.md | 7 stories | Complete ✅ 2026-10-04(7/7;story-007 评审原件 `review-interaction-story-007-2026-10-04.md`) |
 | inventory-items | Core | 21b 库存与物品 | design/gdd/inventory-and-items.md | 6 stories | Ready(未实现) |
 | modular-building | Core | 6 世界与生态区 | design/gdd/modular-building.md | 7 stories | Complete ✅ 2026-10-03(7/7 story;C1/C2/N-r1/C8-ID 全闭 · 本轮 72/72 绿 · 全量 2204/2163/0红;**未闭登记 = N-r2 生产装配根(待 Boot 装配轮)+ AC-23-09 跨平台签名(待 ADR-012 矩阵)**) |
-| patient-ai | Core | 13 病人 AI | design/gdd/patient-ai.md | 4 stories | Ready(未实现) |
+| patient-ai | Core | 13 病人 AI | design/gdd/patient-ai.md | 4 stories | ✅ **4/4 实现全闭**(001–004 至 2026-10-05,004 = `0b6f948`);⚠️ story-004 **评审原件缺,待补做评审**方可转 Complete(非实现缺口;**关键路径断点已后移 = diagnosis/story-005**) |
 | player-controller | Core | 1 玩家控制器 | design/gdd/player-controller-and-movement.md | 6 stories | Complete ✅ 2026-10-03(6/6 story Complete;两轮评审判据缺陷已修;88 过 + 3 NOT-RUN) |
-| prescription-medication | Core | 11 处方与用药 | design/gdd/prescription-and-medication.md | 5 stories | Ready(未实现) |
+| prescription-medication | Core | 11 处方与用药 | design/gdd/prescription-and-medication.md | 5 stories | Complete ✅ 2026-10-06(5/5 收口 · 评审原件五份齐备;⚠️ DoD 未达 —— AC-11 系列 NOT-RUN / BLOCKED-BY 按登记,禁借绿,见 EPIC §Epic Status) |
 | processing | Core | 14 加工与制作 | design/gdd/processing.md | 5 stories | Ready(未实现) |
 | world-ecozones | Core | 6b 生态区与 POI | design/gdd/world-and-ecozones.md | 6 stories | Complete ✅ 2026-10-03(6/6 story;N1/N5 已修 · 本轮 109/109 绿;**未闭登记 = N3 白名单判据(待 27 侧落地)+ Story 005 走查 EXTERNAL**) |
 | persistence-service | Foundation | 7a 持久化服务 | design/gdd/persistence-service.md | 2 stories | Complete ✅ 2026-10-02(2/2;002 = ADR-029 契约支) |
