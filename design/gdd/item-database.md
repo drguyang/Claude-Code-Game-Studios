@@ -2,10 +2,10 @@
 
 > **Status**: ✅ **Approved**(2026-09-18 用户裁定接受三轮修订 —— **覆盖评审日志的「仍 In Review」结论**,显式风险接受结案)
 > **⚠️ 2026-09-18 结案口径**:评审日志(三轮)末段明写「21a 仍 **In Review,不得标 Approved**」,并建议「第四轮复核以『逐条核对冻结裁决表 ↔ 可执行体』为唯一靶子」。**用户裁定:接受三轮修订落盘状态、以显式风险接受标记 Approved,不开第四轮**(承 37 / 42 / 51 的「免二轮 = 显式风险接受」先例)。**这意味着** —— 三轮指出的**「一处声明、另一处漏改」类传导缺口**(§D-21-x / §Tuning Knobs / §AC / `entities.yaml` 四方漂移)在 Approval 时**未被独立复核清点**,由实现期第一道构建期门兜底。
-> **重开触发条件(五者任一)**:① 实现期构建期门(守恒律上界 / `EFF_MIN` / `ordinal` 类)拦下运行时击穿 = 冻结裁决表与可执行体不一致;② `instance_id` / `structure_id` 高水位在迁移后出现复用;③ F5 偏移落入 9 的噪声带(可感知地板失效);④ 9 侧字段名与 `drug_potency` / `half_life` 对不上(D-21-25);**⑤ 2026-09-19 新增(由 11 二轮评审提出):`D-21-34` —— F5 下界断言 `> 0` 与 11 的 `≥ MIN_USABLE_HALF_LIFE` 不是同一把尺 + `drug_potency` 无声明域**(合法 `Axis_effective = 2` 静默退化为「无药效」而 11 侧 AC 全过)。⚠️ **本条为已 Approved 件的具名重开条件,非补丁** —— 修 F5 断言 = 改 21a 已批机制 |
+> **重开触发条件(五者任一)**:① 实现期构建期门(守恒律上界 / `EFF_MIN` / `ordinal` 类)拦下运行时击穿 = 冻结裁决表与可执行体不一致;② `instance_id` / `structure_id` 高水位在迁移后出现复用;③ F5 偏移落入 9 的噪声带(可感知地板失效);④ 9 侧字段名与 `drug_potency` / `half_life` 对不上(D-21-25);**⑤ 2026-09-19 新增(由 11 二轮评审提出):`D-21-34` —— F5 下界断言 `> 0` 与 11 的 `≥ MIN_USABLE_HALF_LIFE` 不是同一把尺 + `drug_potency` 无声明域**(合法 `Axis_effective = 2` 静默退化为「无药效」而 11 侧 AC 全过)。**✅ 2026-10-07 本条已执行并结案** —— `AC-21a-38b` 升格 + 新立 `AC-21a-38c`(`drug_potency ∈ (0, 2^47]`),`MIN_USABLE_HALF_LIFE = 100 tick`;本条从「重开触发条件」转为「已兑现的历史登记」(留档不删,供追溯)。⚠️ **本条为已 Approved 件的具名重开条件,非补丁** —— 修 F5 断言 = 改 21a 已批机制 |
 > **实现期门(不阻塞 Approval,阻塞开工)**:`D-21-21`(守恒律两侧封)· `D-21-24`(F5 可感知地板)· `D-21-25`(9 侧字段名对齐)· `D-21-26`/`D-21-27`(`instance_id` 权威契约)· `D-21-28`(Craft 事件总序键)+ `AC-21a-53`(改型后)/ `AC-21a-56…62`
 > **Author**: dr_guyang + game-designer / technical-director(开工前盲点复核 + Q1–Q5 裁决)
-> **Last Updated**: 2026-10-06(**`D-21-29` 结清**:`drug_profile.portions_per_dose` 字段落盘 + 新 `AC-21a-67`;此前 2026-09-19 18 首轮评审涟漪:D-21-30/31/32 落盘 + `Recipe.owner` + `EnvMod_total` 钳制式 + 守恒极值式 + AC-21a-65/66;此前 2026-09-14 三轮)
+> **Last Updated**: 2026-10-07(**`D-21-34` 经具名重开条件 ⑤ 结案**:`AC-21a-38b` 尺 `> 0` → `≥ MIN_USABLE_HALF_LIFE = 100 tick` · 新立 `AC-21a-38c` 声明 `drug_potency ∈ (0, 2^47]` · 新增 `MIN_USABLE_HALF_LIFE` 旋钮行 · F5 正文 / Edge Cases / §Schema B / §D-21-34 / 文首⑤ 五处同步)+ 2026-10-06(**`D-21-29` 结清**:`drug_profile.portions_per_dose` 字段落盘 + 新 `AC-21a-67`;此前 2026-09-19 18 首轮评审涟漪:D-21-30/31/32 落盘 + `Recipe.owner` + `EnvMod_total` 钳制式 + 守恒极值式 + AC-21a-65/66;此前 2026-09-14 三轮)
 > **Implements Pillar**: 支柱一(判断为骨)· **超硬约束:专家受众首次接触不出戏**(见 D-21-12)
 > **上游**: 无工作流依赖 —— 全案唯一零依赖的 Foundation 系统(仅两条**常量/契约**引用:30 的 `SKILL_CAP`、ADR-006)
 > **下游**: 9 个系统读它(11 处方 · 12 药物槽 · 16 中药选项 · 17 采集 · 18 炮制 · 19 制作 · 20 库存 · 42 拟物 UI · 7a 持久化)
@@ -318,7 +318,7 @@ Recipe = { recipe_id, owner, inputs: [{ item_key, qty }], outputs: [{ item_key, 
 | `indications[]` | string[] | 可空 | 适应症(指向 9 的病种 id) |
 | `contraindications[]` | string[] | 可空 | 禁忌 |
 | `dose_range` | {int, int} | 可空 | 剂量范围 |
-| `drug_potency` | **Q16.16 int** | 可空 | **药效幅值(D-21-22,原 `Offset`)** —— **9 处置事件 `Offset` 的来源**;静态基础幅值,**不受品级调制**(品级只调时间轴,见 F5) |
+| `drug_potency` | **Q16.16 int** | 可空 | **药效幅值(D-21-22,原 `Offset`)** —— **9 处置事件 `Offset` 的来源**;静态基础幅值,**不受品级调制**(品级只调时间轴,见 F5)。**✅ 2026-10-07 声明域(`AC-21a-38c`):`0 < drug_potency ≤ 2^47`**(Q16.16 合法域上确界)—— 该域是下游 11 判「中间积是否须 128 位」的**唯一可证伪来源**(`AC-11-11` ④) |
 | `onset` | **Q16.16 int** | 可空 | 起效(时间轴) |
 | `peak` | **Q16.16 int** | 可空 | 达峰 |
 | `half_life` | **Q16.16 int** | 可空 | **半衰期 = 9 的 `τ_half` 的来源** |
@@ -746,16 +746,17 @@ The quality-to-timeline formula is defined as:
   那等于锚点二在成药侧落空,**AC 不得替它背书**。
   原料侧的「质地」另有 `quality_character[]`(D-21-16)、成药侧有 `drug_quality_character[]`(D-21-24)承担;
   成药侧**必须靠本式真发生**。**具体各档填什么数 = OQ 待你裁(数值)。**
-- **域钳制(三轮补)**:`Axis_effective` 须 **`> 0`** —— 9 的衰减用 `half_life` 作除数,
-  **偏移把它推到 ≤ 0 ⇒ 除零 / 反向衰减**。构建期须断言 `Axis_base + min(axis_offset_by_quality) > 0`。
-  > ⚠️ **🔴 2026-09-19 登记 `D-21-34`(未见裁定,勿当已改)**:本断言的**尺**与下游 11 的 F-11.2 不一致 ——
-  > 11 按 **`≥ MIN_USABLE_HALF_LIFE`** 写(理由:合法极小正数如 `2` 虽不除零,却使衰减快于一个 tick ⇒
-  > 玩家看到的仍是「无药效」,而两侧 AC 全过)。**把 `> 0` 升格为 `≥ MIN_USABLE_HALF_LIFE` = 改本件机制**,
-  > 须走 21a 的**重开流程**(见文首重开触发条件 ⑤ 与 §Debt Register `D-21-34`),**不得就地改**。
-  > 11 侧的登记点是 `prescription-and-medication.md` §Cross-References **`O-11→21a`**(BL-1)。
+- **域钳制(三轮补)**:`Axis_effective` 须 **`≥ MIN_USABLE_HALF_LIFE`** —— 9 的衰减用 `half_life` 作除数,
+  **偏移把它推到 `≤ 0` ⇒ 除零 / 反向衰减**;推到「正但极小」⇒ 退得比一 tick 还快 ⇒ **无药效**(静默失败)。
+  构建期须断言 `Axis_base + min(axis_offset_by_quality) ≥ MIN_USABLE_HALF_LIFE`(**✅ 2026-10-07 已由 `> 0` 升格**,见文首重开触发条件 ⑤ 的结案 + `AC-21a-38b`;**值 = `100` tick**)。
+  > ✅ **2026-10-07 `D-21-34` ① 结案**:升格经**具名重开条件 ⑤**执行(非就地打补丁)。
+  > **原 `> 0` 为什么不够**:合法输入 `Axis_effective = 2`(Q16.16 的极小正数)在旧尺下**通过**,
+  > 却在 11 侧退化为「退得比一 tick 还快 ⇒ 无药效」—— **静默失败,且两侧 AC 全过**。
+  > **新尺的两侧收益**:21a 侧 bake 即拒(不再等 11 侧发现);11 侧 F-11.2 的 `≥ MIN_USABLE_HALF_LIFE`
+  > **不再是「结构恒真而非校验」** —— 它由本侧断言兜底,两侧从此**同一把尺**。
 
 **Output Range:** `Axis_base + min(axis_offset_by_quality)` 到 `Axis_base + max(axis_offset_by_quality)`,
-**且下界必须 `> 0`**(构建期断言;否则 9 的 `half_life` 除数 ≤ 0)。
+**且下界必须 `≥ MIN_USABLE_HALF_LIFE`(= 100 tick)**(构建期断言;否则 9 的 `half_life` 除数 ≤ 0 或退化为无药效)。
 
 > ⚠️ **代价(已登记)**:品级经此式**进入了 ADR-005 的定点域** ——
 > 这正是 ADR-006 必须存在的原因(见 §Dependencies)。**档位表必须是 Q16.16,禁 float 字面量**。
@@ -830,7 +831,7 @@ The quality-to-timeline formula is defined as:
 | **`EFF_MIN ≤ 0`** | **校验拒绝** | `EFF` 是 F1 的**除数**(`ActualConsumed = Ceil(base / EFF)`)—— `EFF_MIN = 0` ⇒ **运行期除零**;`EFF_MIN < 0` ⇒ **实耗为负**(凭空造料)。此前只约束了 `EFF_MAX ≤ 1`,**下端无人守**(三轮 blocking #6) |
 | **`EFF_MIN > EFF_MAX`** | **校验拒绝** | 区间为空,`clamp` 静默取上界 |
 | **`drug_potency` / 时间轴四字段 / `axis_offset_by_quality[]` 写浮点字面量** | **导入期硬失败** | D-21-9/22:逐元素经 `FixParse` —— **原稿只有 `axis_offset_by_quality[]` 有这条守门**,`drug_potency` 与时间轴四字段漏(三轮 blocking #2 的伴生缺口) |
-| **`Axis_base + min(axis_offset_by_quality) ≤ 0`** | **校验拒绝** | F5:9 的衰减用 `half_life` 作**除数** —— 偏移把它推到 `≤ 0` ⇒ 除零 / 反向衰减 |
+| **`Axis_base + min(axis_offset_by_quality) < MIN_USABLE_HALF_LIFE`(= 100 tick)** | **校验拒绝** | F5:9 的衰减用 `half_life` 作**除数** —— 偏移把它推到 `< 0` ⇒ 除零 / 反向衰减;推到 `[0, 100)` ⇒ 退得比一次复查(300 tick)还快 ⇒ **无药效**(D-21-34 ① 的静默失败)。✅ **2026-10-07 尺由 `≤ 0` 升格** |减 |
 | **F5 非零档偏移 `|offset|` < 可感知地板** | **校验拒绝** | D-21-24:小于 9 的噪声带 ⇒ 偏移**统计上不可区分** ⇒ 玩家感觉不到,而 U-1/U-2 禁数字 ⇒ **无出口**。地板数值 = 调参旋钮 |
 | **`drug_quality_character[]` 长度 ≠ `MAX_QUALITY`** | **校验拒绝** | D-21-24:成药侧标签与品级档须一一对应(非空时);与 `quality_character[]` 同型 |
 | **`quality_axis` 在 P0 期取 `onset`/`peak`/`elimination`** | **校验拒绝** | D-21-23:P0 只有 `half_life` 在 9 的处置载荷有落点,其余三轴**产出即被丢弃** |
@@ -902,7 +903,7 @@ The quality-to-timeline formula is defined as:
 | **D-21-31** | **`EnvMod` 的求和+钳制全文无执行落点** —— 5:395 与 AC-5-19 互相指认、原 `:484` 变量表是入参断言非操作 ⇒ `:533` 构建期不等式保护了一个**不存在的包络** | **21a** | ✅ **已裁(2026-09-19,18 R-18-C)并在本轮落盘** —— F1 正文新增 `EnvMod_total = clamp(climate + clinic, MIN, MAX)`;5 侧 AC-5-19 收窄为只断自家不钳(涟漪) |
 | **D-21-32** | **构建期守恒聚合式与运行期逐条 `Round` 不同形** —— 可被击穿(实测反例 `w_in=10/w_out=6/QM=1.5/qty=1`:构建 `9≤10` ✓、运行 `12>10` ✗;缝在 `Round` 不在 `max(1,·)`) | **21a** | 🟡 **修法已落盘(2026-09-19,承 18 O-18-R3)** —— 逐条同形极值式已写进规则八注,**AC-21a-65** 承接;⏳ **烘焙管线实现未写** ⇒ 18 的 AC-18-19 在此之前不得记绿 |
 | **D-21-33** | **`SkillLevel` 具名 newtype 缺失** —— 18 的 AC-18-03 要机器可验「传 `Level` 不传 `cap×Level/SKILL_CAP` 的结果」,但两者都是 `int`,**类型系统不可分辨**;落地前 18 侧只能以运行时恒等断言(spy 夹具)现测 | **21a**(类型定义落点)/ 18(判据发起方) | ⏳ **待认领** —— 2026-09-19 由 18 首轮评审登记(义务 `O-18-R7`);落地后 AC-18-03 升级为类型系统断言,不阻塞 18 验收(恒等断言为现行判据) |
-| **D-21-34** | **F5 的下界断言与 `drug_potency` 的声明域双双缺失** —— ① F5 现断言 **`Axis_base + min(axis_offset_by_quality) > 0`**(`:732` / `:810` / `AC-21a-38b`),而下游 11 的 F-11.2 按 **`≥ MIN_USABLE_HALF_LIFE`** 写。**两者不是同一把尺**:合法输入 `Axis_effective = 2`(如 Q16.16 的极小正数)在现断言下**通过**,却在 11 侧退化为「退得比一 tick 还快 ⇒ 无药效」—— **静默失败,且 11 侧 AC 全过**(11 不重复 clamp,刻意掩盖上游失败)。② `drug_profile.drug_potency` 在 §Schema B(`:321`)只有类型 `Q16.16 int`、**无取值范围** ⇒ 11 的 F-11.1「中间积是否必须 128 位」在文档层**不可判定**(Q16.16 合法域 ≤ 2^47 时 `× dose` 不可能溢出;不声明域则可能) | **21a**(F5 断言落点 + §Schema 域声明)/ 11(判据发起方) | ⏳ **待认领(须重开)** —— 2026-09-19 由 11 二轮评审登记(BL-1 + BL-7);11 侧口径见 `prescription-and-medication.md` §Cross-References **`O-11→21a`** |
+| **D-21-34** | **F5 的下界断言与 `drug_potency` 的声明域双双缺失** —— ① F5 现断言 **`Axis_base + min(axis_offset_by_quality) > 0`**(`:732` / `:810` / `AC-21a-38b`),而下游 11 的 F-11.2 按 **`≥ MIN_USABLE_HALF_LIFE`** 写。**两者不是同一把尺**:合法输入 `Axis_effective = 2`(如 Q16.16 的极小正数)在现断言下**通过**,却在 11 侧退化为「退得比一 tick 还快 ⇒ 无药效」—— **静默失败,且 11 侧 AC 全过**(11 不重复 clamp,刻意掩盖上游失败)。② `drug_profile.drug_potency` 在 §Schema B(`:321`)只有类型 `Q16.16 int`、**无取值范围** ⇒ 11 的 F-11.1「中间积是否必须 128 位」在文档层**不可判定**(Q16.16 合法域 ≤ 2^47 时 `× dose` 不可能溢出;不声明域则可能) | **21a**(F5 断言落点 + §Schema 域声明)/ 11(判据发起方) | ✅ **已结 2026-10-07(经具名重开条件 ⑤,非打补丁)** —— ① `AC-21a-38b` 升格为 `≥ MIN_USABLE_HALF_LIFE`,**值 = 100 tick**(判据 `3 × 100 = 300 = RECHECK_WINDOW`);② 新立 `AC-21a-38c` 声明 `drug_potency ∈ (0, 2^47]`。**残留**:11 侧 `O-11→21a` 的 BL-7 半边由本条解,`O-11→30`(等级→`EFF` 映射)仍 open |
 | **D-9-D** | `SimEvent` 须补 `Seq` + 载荷(ADR-005 自相矛盾) | **ADR-006** | ✅ **已办**(Amendment A)+ ADR-005 已加前向指针 |
 | **D-9-E** | `PatientId` 跨权威稳定性 | **ADR-006** | ✅ **已裁**(2026-09-14 机制 A「计数器 + 高水位可重构」,Amendment B);残留实现项归 7a / 45 |
 | **D-9-B** | 神经衰弱史实出处(**非时代错误**,缺口是可引用的一手来源) | 考据 | ⏳ 待考据(支柱五,**不得凭空落盘**) |
@@ -934,6 +935,7 @@ The quality-to-timeline formula is defined as:
 | `MAX_QUALITY` | F2 / F5 / D-21-16 / D-21-24 | *待定*(**推迟有因**,2026-09-25 数值批注:现种子 5 与 golden-v1 / AC-28 全域耦合 ⇒ 改 = **golden-v2 全平台重签**,单独立项) | ≥ 2(整数) | 品级档数。↑ 则品级维度更细,但堆叠基数、`axis_offset_by_quality[]` 与 `quality_character[]` **及 `drug_quality_character[]`** 长度同步放大 |
 | `quality_axis` | F5 | *待定* | **P0 固定 `half_life`**(D-21-23);其余三轴标 P1a | 品级偏移落在哪根时间轴上(逐条药物)。**P0 收窄** —— 其余三轴在 9 的处置载荷无落点 |
 | `axis_offset_by_quality[]` | F5 | *待定* | 长度 = `MAX_QUALITY`;**Q16.16**;**非零档 `|值|` ≥ 可感知地板** | 品级 → 时间轴档位偏移。**全 0 ⇒ AC-21a-37 拒绝**(不是「可接受的现状」—— 那等于锚点二在成药侧落空)|
+| **`MIN_USABLE_HALF_LIFE`** | F5 / `AC-21a-38b` | **✅ `100` tick**(5.0 s @20 Hz · 2026-10-07) | **≥ 1 tick**;判据见下 | 过低 = 「退得快」退化为「无药效」,而 **21a / 11 两侧 AC 全过**(D-21-34 ① 的静默失败)。**取值依据**:`3 × 100 = 300 tick = RECHECK_WINDOW`(8 侧已裁的同通道复查去重窗)⇒ 给药后至少 3 个半衰期才能复查 ⇒ 药效剩 1/8 ⇒ 「给药→读数变化」闭环可感知;同时 600 s 后残留 e^(−120) ≈ 0 ⇒ 疗效不永驻 |
 | `F5 偏移可感知地板` | F5 | *待定* | **> 9 的病史噪声带** | 低于噪声 ⇒ 偏移不可区分 ⇒ 玩家永远感觉不到(D-21-24)。**须与 9 的噪声带宽一起定** |
 | `quality_character[]` | D-21-16 | **✅ 已落值 2026-09-25**(P0 词集见 `assets/data/item_database_items.json`,5 档经用户审定 + OQ-17-9 筛;R13=甲 必填) | 长度 = `MAX_QUALITY`;**string**;逐档非空 | **原料侧**每档定性修饰(⚠️ 原示例「陈放」= **OQ-17-9 禁词已废**,见 §B2 废例注);42 以外观/药签呈现 |
 | `drug_quality_character[]` | D-21-24 | **✅ 已落值 2026-09-25**(成药词集同批,见数据文件;R13=甲 必填) | 长度 = `MAX_QUALITY`;**string**;逐档非空 | **成药侧**每档定性修饰(示例「炮制得法」为工艺词 ✓,实词以数据文件为准);42 以药签措辞呈现(U-6)。与 `quality_character[]` **互为补充、不可互替** |
@@ -942,7 +944,7 @@ The quality-to-timeline formula is defined as:
 | `ItemDef.weight` | F4 | *逐条* | ≥ 1(**整数,非 `Fix`**) | 单件重量(最小单位个数);**数值冻结至单位考据落定**;**守恒律按它求值** |
 | `weight_unit` | F4 | **待考据** | — | 重量**展示**单位名。**21a 不填**(支柱五 / D-21b-2) |
 | `ActualConsumed` 基数表 | F1 | *逐条* | = `inputs[].qty` | 配方**输入基数**(非实耗);结算 × F1 得真实消耗 |
-| `drug_potency` | D-21-22 | *逐条* | **Q16.16 int**(9 的 `Offset` 来源) | 药效**静态基础幅值**(**不受品级调制**)。↑ 则所有品级的这一味药都更强 —— **它的品级差别不在此轴**,在 `axis_offset_by_quality[]` |
+| `drug_potency` | D-21-22 | *逐条* | **Q16.16 int**;**✅ 2026-10-07 声明域 `(0, 2^47]`**(`AC-21a-38c`;9 的 `Offset` 来源) | 药效**静态基础幅值**(**不受品级调制**)。↑ 则所有品级的这一味药都更强 —— **它的品级差别不在此轴**,在 `axis_offset_by_quality[]` |
 | `drug_profile.<时间轴四字段>` | D-21-6 | *逐条* | **Q16.16 int** | `onset` / `peak` / `half_life` / `elimination`;P0 只 `half_life` 有落点 |
 
 > ⚠️ **联动**:`QTY_MULT_MAX` ↑ 会**降低品级的相对价值** ——
@@ -1131,7 +1133,29 @@ The quality-to-timeline formula is defined as:
 | **AC-21a-36** | **[L]** | **GIVEN** `axis_offset_by_quality[]` 与 `quality_axis`,**WHEN** 施加于 F5,`THEN` `Axis_effective = Axis_base + axis_offset_by_quality[quality − 1]`,**且为 `Fix`(Q16.16 整数域,无浮点中间量)**;**P0 下 `quality_axis` 必须 = `half_life`**(D-21-23,否则构建期拒) |
 | **AC-21a-37** | **[L]** | **GIVEN** `axis_offset_by_quality[]`,**THEN** **至少一档非零,且每个非零档 `|offset| ≥ 可感知地板`**(> 9 的病史噪声带,D-21-24)。「全零 ⇒ 通过」**不是合格结果** —— P0 若真填零,就是锚点二「品级的质地」在机制上落空,**AC 不得替它背书**;若偏移小于噪声带,则**统计上不可区分于噪声** ⇒ 玩家永远感觉不到,而 U-1/U-2 禁数字 ⇒ 出口名存实亡 |
 | **AC-21a-38** | **[L]** | **GIVEN** 任意品级,**WHEN** 计算 F5,**THEN** **仅** `quality_axis` 所指的那一条轴按 `axis_offset_by_quality[]` 偏移,**其余三条时间轴逐位不变**(P0 下其余三轴无落点,仅 P1a 后适用)—— 21a **不拥有** `polarity` / `tau_half` 语义(那是 9 的字段),原稿越权断言「极性不变」已删 |
-| **AC-21a-38b** | **[L]** | **GIVEN** 任意合法 `drug_profile`,**WHEN** 校验,**THEN** `Axis_base + min(axis_offset_by_quality) > 0` —— 否则 9 的衰减用 `half_life` 作除数会**除零 / 反向衰减**(三轮补,域钳制) |
+| **AC-21a-38b** | **[L]** | **GIVEN** 任意合法 `drug_profile`,**WHEN** 校验,**THEN** `Axis_base + min(axis_offset_by_quality) ≥ MIN_USABLE_HALF_LIFE` —— 否则 9 的衰减用 `half_life` 作除数会**除零 / 反向衰减**(三轮补,域钳制) |
+| **AC-21a-38c** | **[L]** | **GIVEN** `drug_profile.drug_potency`,**WHEN** 校验,**THEN** 字段**带显式取值范围** `0 < drug_potency ≤ 2^47`(Q16.16 合法域上确界)—— **零声明域 = 校验拒绝**。**为什么这是 21a 的义务**:下游 11 的 F-11.1 中间积 `drug_potency × dose` 是否需要 128 位,**只能由这个域算出**(`AC-11-11` ④ 的判据);域不声明 ⇒ 11 无法在文档层证伪「int64 直乘会不会溢」,只能无条件上 128 位(与 ADR-005 Amendment G 的「无条件钉 hi/lo」形态同类) |
+
+> **⛔ 2026-10-07 `D-21-34` 结案(O-11→21a 兑现 · 已 Approved 件的具名重开条件 ⑤)**:
+> ① **`AC-21a-38b` 的尺由 `> 0` 升格为 `≥ MIN_USABLE_HALF_LIFE`**,与下游 11 的 F-11.2 统一。
+> **值 = `100` tick**(5.0 s @20 Hz)· **取值依据三条**:
+> a) **`3 × 100 = 300 tick = RECHECK_WINDOW`**(8 侧 2026-10-06 已裁的同通道复查去重窗)
+>    ⇒ 给药后至少经历 **3 个半衰期**才能做下一次同通道复查 ⇒ 药效剩 **1/8**。
+>    这保证「给药 → 读数变化」的闭环**可感知**(玩家看得见药在起作用),
+>    又不至于让疗效永驻(`MIN = 100` 时 600 s 后残留 e^(−120) ≈ 0)。
+> b) **短于此则退得比一次读数还快** ⇒ 玩家做完一次复查,药效已尽,
+>    「给药」与「读数」因果脱钩,而两侧 AC 全过(**静默失败**,正是 D-21-34 ① 登记的病灶)。
+> c) **与 `TICK_SECONDS = 0.05` 同量纲**,不需要新时钟源。
+> ② **新增 `AC-21a-38c` 声明 `drug_potency` 域** = `(0, 2^47]`(Q16.16 合法域上确界)。
+> **连带订正 11 侧 `AC-11-11` ④ 的算术**:原句写「`2^47 × 2^16 = 2^63`,int64 直乘合法」
+> —— **signed int64 上确界是 `2^63 − 1`,`2^47 × 2^16` 恰好溢出 1**。正确表述:
+> **`2^47 × dose` 在 `dose ≤ 7`(`MAX_DOSE_DETENTS`,11 侧同批裁)下 ≤ `0.985 × 2^63` ⇒ int64 直乘合法**;
+> 反向的 `dose ≤ 2^16` **不能与 `2^47` 同时取等**。**本条不是新裁决,是 11 侧 BL-7 的条件化在本侧的算术兑现**。
+> ③ **残留(不并入本条)**:21a 的 **`F5 偏移可感知地板`仍是 `*待定*`** ——
+> 它**不是** 11 的 `NOISE_BAND_POTENCY_9`(100 raw,幅值域)能直接借的:该地板在**时间轴域**,
+> 且判据**依赖逐药 `drug_potency`**(同一 offset 在不同 potency 下造成的累积药效差与 potency 线性)
+> ⇒ **必须写成逐药烘焙期求值式** `|potency × [ (H+off)(1−e^{−W/(H+off)}) − H(1−e^{−W/H}) ]| ≥ NOISE_BAND_POTENCY_9`
+> (`W = RECHECK_WINDOW = 300`),**不能拍一个固定 tick 常量**。数值轮另案处理。
 
 ### 组七 · 守恒律与整数边界
 
