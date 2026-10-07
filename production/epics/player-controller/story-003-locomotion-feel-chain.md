@@ -1,7 +1,7 @@
 # Story 003: 移动手感链 —— 目标速度合成 / 加减速 / 转向 / 跳跃 / 地貌情境乘数 + F-1-1a 派生不变量
 
 > **Epic**: 玩家控制器与移动
-> **Status**: Complete ✅ 2026-10-02 (判据重定 2026-10-03:21 Passed + 2 Skipped —— `AC-1-06c` NOT-RUN + `AC-1-21` BLOCKED-BY-OQ-1-12)
+> **Status**: Complete ✅ 2026-10-02 (判据重定 2026-10-03:21 Passed + 2 Skipped —— `AC-1-06c` NOT-RUN + `AC-1-21` ~~BLOCKED-BY-OQ-1-12~~ → **2026-10-07 改述为 BLOCKED-BY-ε-实测**:方案已裁,只剩数值)
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
@@ -19,7 +19,7 @@
 **ADR Decision Summary**: F-1-1a:`SPEED_MAX := SPEED_MODE_MAX × ‖MoveInput‖_max × K_TERRAIN_MAX × K_CONTEXT_MAX`,`INVARIANT: SPEED_MAX × MAX_DT ≤ LATTICE_SIZE` —— **两处订正**:① 用 `MAX_DT` 不用 `TICK_PERIOD`(跨格检测每帧跑,帧率 < tick 频率是常态);② 所有者反转 —— 约束对象是 `LATTICE_SIZE`(归 6),故 CI 断言落在装载期差分神谕而非 1 的源码。F-1-1c:**y 轴显式豁免**(竖直隧穿是真实的,与 EC-4 传送同构;事件数仍受 F-1-1b 管,归 story 004)。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: HIGH(局部)
-**Engine Notes**: ⚠️ **`OQ-1-12`(接地 spike)= 本故事的开工前置**(用户裁定 P0 开工前须裁决):R12 三命题(静止不调 `Move` / `isGrounded` 可信 / 斜坡不滑)数学上不能同真,轴 2 进入条件与 EC-1/9/10/11 共用该上游裁定 —— 起跳条件 `Grounded ∨ coyote` 与 `AC-1-17` 的具体判据形式**须待 spike 回填**(候选方向甲/乙/丙不预判)。`Mathf.DeltaAngle`(度、返回 `(−180°,180°]`、引擎既定)= F-1-4 的**唯一允许**角差算符,**不自写 `wrap180`**(弧度误喂 = 57 倍静默误差)。`CharacterController` 参数(`minMoveDistance` P0 = 0 等)为长期稳定 API。
+**Engine Notes**: ✅ **`OQ-1-12` 已于 2026-09-29 裁(方案甲),不再是本故事的开工前置** —— R12 三命题的解法 = 静止时**水平输入归零 + 纯垂直下压**(`v_y = -0.015 > skinWidth`)· `Grounded = isGrounded ∧ v_y ≤ 0` · 接地时**归零坡面投影水平分量**。轴 2 进入条件 / EC-1 / EC-9 / EC-10 / EC-11 已回填;`AC-1-17` 解除 BLOCKED-BY。**残余靶子(不阻塞开工)**:① `AC-1-34`(装载期断言 `DOWNWARD_PRESSURE > skinWidth ∧ > minMoveDistance`);② `AC-1-21` 的 ε 与斜坡滑向量 —— 须【桌面】PlayMode 实测。`Mathf.DeltaAngle`(度、返回 `(−180°,180°]`、引擎既定)= F-1-4 的**唯一允许**角差算符,**不自写 `wrap180`**(弧度误喂 = 57 倍静默误差)。`CharacterController` 参数(`minMoveDistance` P0 = 0 等)为长期稳定 API。
 
 **Control Manifest Rules (this layer)**:
 - Required: 地貌查询来源 = 烘焙逻辑层整数格(`cell → terrain_id` 整数判定)× 表现域值表层(`terrain_id → 乘数`,浮点在此合法:**永不进流、永不落盘**)—— ADR-015 §一 + ADR-014 §五
@@ -58,7 +58,7 @@
 - [x] **AC-1-20b(ADVISORY)** —— **"转向是否跟得上"**:属 Visual/Feel ⇒ **playtest 签核**。
 - [x] **AC-1-33(BLOCKING)** —— **参数契约已钉(F-1-9)**:① `minMoveDistance == 0`;② `slopeLimit`/`stepOffset` 等于 ADR-015 §一 几何取值;③ `skinWidth > 0 ∧ radius > 0 ∧ height > 0`。测试: 2 用例全通过。
 - [x] **AC-1-18(BLOCKING)** —— **F-1-3 求值次序钉死**:断言单帧内的调用序为 `读格 → v_target → 加速 → 转向 → Move`。测试: 3 用例（求值次序/旧格乘数/真实调用序探针）全通过。
-- [x] **AC-1-21(BLOCKING,接地半边挂起)** —— **F-1-1a 的运行期断言 + `ε_slide`**:① 代码级不变量;② 运行期断言;③ `ε_slide` 由 spike 实测。**本条记 BLOCKED-BY-OQ-1-12**(spike 未跑 ⇒ ③ 无上确界可填;① 半边可先行)。测试: 1 用例（Assert.Ignore）正确跳过。
+- [~] **AC-1-21(BLOCKING,接地半边待 ε 实测;~~挂起~~ ✅ 2026-10-07 方案已定)** —— **F-1-1a 的运行期断言 + `ε_slide`**:① 代码级不变量;② 运行期断言;③ `ε_slide` 由 spike 实测。**本条记 BLOCKED-BY-OQ-1-12**(spike 未跑 ⇒ ③ 无上确界可填;① 半边可先行)。测试: 1 用例（Assert.Ignore）正确跳过。
 - [x] **AC-1-25(ADVISORY)** —— **地貌可辨**:数据 lint 脚本本体随本故事交付;真表跑 = NOT-RUN 直到 6/24 内容就位。
 - [x] **AC-1-26(ADVISORY)** —— **医馆克己可感**:数据 lint 脚本本体随本故事交付;真表跑 = NOT-RUN 直到 6/24 内容就位。
 
@@ -74,7 +74,7 @@
 - **转向(F-1-4)**:`yaw_target = atan2(v_horiz.x, v_horiz.z)`(**自动面向移动方向**,用户裁定 [C];`Look` 归 2 不归 1);`Δ := Mathf.DeltaAngle(yaw, yaw_target)`;`K_context_turn` 与 `K_context_speed` **是两个符号两个物理量**(初稿一符多用无法调出"医馆内走慢但转身自由")。
 - **跳跃(F-1-5)**:变高跳 + `COYOTE_TIME` / `JUMP_BUFFER_TIME` 宽容窗口;闭式**分段**(情况甲 `a < g'` / 情况乙 `a ≥ g'` —— 初稿单支算错);`v_y` 重力倍率上升/下落分段(`GRAVITY_FALL_MULT > 1`);水平空中以 `AIR_CONTROL` 替代输入幅值。**起跳的 `Grounded` 判据形式挂起于 `OQ-1-12` spike** —— 先落 `coyote ∨ buffer` 窗口与 v_y 积分,接地进入条件按 spike 回填(轴 2 表是方向性的)。
 - **F-1-1a 载体**:`K_TERRAIN_MAX`/`K_CONTEXT_MAX` 与 `TERRAIN_TABLE`/`CONTEXT_TABLE` **同源加载**(同一 `.cooked` 资产内派生)+ 装载期跨系统校验。注:`K_CONTEXT_MAX` 的 P0 导出值已由 24 档集 {1, 7/8, 3/4} 拍定 ⇒ max = 1,**零抬 `LATTICE_SIZE` 下界**(2026-09-25 注),但派生纪律不变(24 是活跃改表方)。
-- **`ε_slide` 禁止手填**(AC-1-21 的 ③ 半边):三项引擎侧位移(stepOffset 抬升水平分量 / 斜坡投影滑移 / 贴墙分离)的**上确界 + 安全裕度**须由 `OQ-1-12` spike **逐项实测**;AC-1-21 本体随 spike 回填后与故事 003 同批签(见 Test Evidence 的 BLOCKED-BY-OQ-1-12 口径)。
+- **`ε_slide` 禁止手填**(AC-1-21 的 ③ 半边):三项引擎侧位移(stepOffset 抬升水平分量 / 斜坡投影滑移 / 贴墙分离)的**上确界 + 安全裕度**须由【桌面】PlayMode **逐项实测**(~~`OQ-1-12` spike~~ 的方案面已于 2026-09-29 裁;spike 不再承担「选方案」);AC-1-21 本体随 spike 回填后与故事 003 同批签(见 Test Evidence 的 BLOCKED-BY-OQ-1-12 口径)。
 - **表内容零定义**:1 只消费 6/24 的表(`1 不定义表的内容`)—— fake 表注入是测试缝,真表装载断言判「取值一旦存在即被守住」。
 
 ---
@@ -167,13 +167,13 @@
 - 数据 lint: `AC-1-25`/`26` 的 lint 脚本本体随本故事交付;真表跑 = NOT-RUN 直到 6/24 内容就位(ADVISORY 不红构建)
 
 **Status**: [x] Done — `unity/Assets/Tests/EditMode/PlayerController/locomotion_chain_test.cs`(**21 Passed + 2 Skipped**,2026-10-03 batchmode 复跑)
-⚠️ **开工前置**: `OQ-1-12` 接地 spike 未跑 ⇒ `AC-1-21`(速限运行期断言 + `ε_slide`)与起跳 `Grounded` 进入条件**记 BLOCKED-BY-OQ-1-12,不得借绿**(该 2 例 Skipped 即此挂起面);本故事其余 AC 不受该挂起影响,已可签。
+✅ **2026-10-07 开工前置已清** —— ~~`OQ-1-12` 接地 spike 未跑 ⇒ `AC-1-21` 记 BLOCKED-BY-OQ-1-12~~ **该裁定已于 2026-09-29 完成(方案甲),本文件的挂起标注是传导滞后**:`AC-1-21` 的**接地半边方案已定**(水平输入归零 + 纯垂直下压 + 坡面水平投影归零),`AC-1-17` 的 BLOCKED-BY 已解除。**残余 = 纯数值实测**(`ε_slide` 与斜坡滑向量),归【桌面】PlayMode,**不阻塞本故事签收**;该 2 例 Skipped 中 `AC-1-21` 的挂起理由须从「方案未裁」改述为「ε 未实测」。
 
 ---
 
 ## Dependencies
 
-- Depends on: Story 001(程序集 / prefab / `LATTICE_SIZE` 单一源)/ Story 002(`v̂_world` 消费端)+ **`OQ-1-12` spike**(接地与滑移判据回填,承 GDD「P0 开工前须裁决」)+ **`O-9`**(ADR-015 §一 点名 `slopeLimit`/`stepOffset` 几何值 —— 登记义务,未点名前 `AC-1-33②` 记 BLOCKED)
+- Depends on: Story 001(程序集 / prefab / `LATTICE_SIZE` 单一源)/ Story 002(`v̂_world` 消费端)+ ~~**`OQ-1-12` spike**~~ ✅ **已裁 2026-09-29(方案甲)** —— 接地判据已回填;`ε_slide` 数值待【桌面】PlayMode 实测+ **`O-9`**(ADR-015 §一 点名 `slopeLimit`/`stepOffset` 几何值 —— 登记义务,未点名前 `AC-1-33②` 记 BLOCKED)
 - Unlocks: Story 004(跨格检测吃本链的位置更新)/ Story 006(`MotorSuppressed` 消费侧性质)
 
 ---
@@ -186,7 +186,7 @@
 - 加减速: 线性趋近(不过冲)
 - 转向: 自动面向移动方向, `Mathf.DeltaAngle`
 - 求值次序: 读格 → `v_target` → 加速 → 转向 → Move
-- 测试: 21 passed + 2 skipped(`AC-1-06c` NOT-RUN + `AC-1-21` BLOCKED-BY-OQ-1-12)
+- 测试: 21 passed + 2 skipped(`AC-1-06c` NOT-RUN + `AC-1-21` BLOCKED-BY-ε-实测;~~BLOCKED-BY-OQ-1-12~~ 已于 2026-10-07 解除)
 
 **Deviations**:
 - ~~**AC-1-06a/b/c**: 完整版需要读 data-core cooked 资产 + Roslyn 分析器,此处验证机制存在~~ ✅ **2026-10-03 重定(评审 A3)**:
@@ -195,7 +195,7 @@
   - **06c** —— **降级为 NOT-RUN**(`Assert.Ignore`):其判据载体 = Roslyn 分析器,而 ADR-024 §⑤ 明令本仓不引;判据面在 6 侧的 `AC-6-07` 值级可证伪守卫。**不静默记绿**。
 - ~~**AC-1-18**: 完整版需要跨格夹具,此处验证单格乘数~~ ✅ **2026-10-03 闭(评审前置 #4)**:初版**未真测跨格** —— 注释称「第二帧: 跨到格 1」,实际调用传的仍是 `currentCellIndex = 0`(与第一帧**同一索引**)⇒「用旧格乘数」是**重言式**。现改为**位置驱动**夹具:帧 2 的 `Move` 真的把玩家送进格 1(经 `CellTransitionDetector.CellFromPosition` 由位置派生格索引,非测试自选),断言该帧 `v_target` 仍用旧格乘数、**下一帧**才切换。
 
-**Test Evidence**: `LocomotionChainTest` **21 Passed + 2 Skipped**;2 例跳过 = `AC-1-06c`(NOT-RUN,无 Roslyn 载体)+ `AC-1-21`(BLOCKED-BY-OQ-1-12)。
+**Test Evidence**: `LocomotionChainTest` **21 Passed + 2 Skipped**;2 例跳过 = `AC-1-06c`(NOT-RUN,无 Roslyn 载体)+ `AC-1-21`(~~BLOCKED-BY-OQ-1-12~~ → 2026-10-07 改述为 **BLOCKED-BY-ε-实测**:`OQ-1-12` 方案甲已裁,挂起的仅是 `ε_slide` 数值)。
 ⚠️ 原记「23 测(22 通过 + 1 跳过)」为 2026-10-02 快照;现 `AC-1-06c` 由假绿转**显式 skip** ⇒ 21+2。
 
 **Code Review**: 双代理评审(记录见 `production/qa/evidence/review-player-controller-{2026-10-03,round2-2026-10-03}.md`)。

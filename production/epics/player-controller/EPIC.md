@@ -24,7 +24,7 @@
 | ADR-025: 契约程序集清单 | `Sim.Contracts`(边界程序集)=`WorldPos` + 七抽象点;1 的引用集白名单判据(AC-1-28)的可执行对像 | LOW |
 | ADR-001: 网络 pipe | 第二 QoS 通道 = latest-value 按 `ActorId` 索引;P0 预埋 P1b 实现 | MEDIUM |
 
-**Engine Risk**: **LOW~HIGH 混载**。ADR-020 本体 LOW(`CharacterController` 长期稳定 API);抬到 HIGH 的是 ADR-011 输入面与 `OQ-1-12` 接地 spike(Unity 6.3 collide-and-slide / `isGrounded` 更新时机须实测)。
+**Engine Risk**: **LOW~HIGH 混载**。ADR-020 本体 LOW(`CharacterController` 长期稳定 API);抬到 HIGH 的是 ADR-011 输入面;~~`OQ-1-12`~~ 接地模型 ✅ 2026-09-29 已裁(方案甲),残余 = 斜坡滑向量与 ε 的【桌面】实测(Unity 6.3 collide-and-slide / `isGrounded` 更新时机须实测)。
 
 ## GDD Requirements
 
@@ -66,10 +66,10 @@ Counts: 4 Logic · 2 Integration = 6 total.
 
 **Test Evidence(2026-10-03 batchmode 复跑,逐 fixture)**:`PlayerController` **91 例 = 88 Passed + 3 Skipped + 0 Failed**:
 `ControllerFoundationTest` 11 · `InputContractTest` 16 · `LocomotionChainTest` 21(+2 skip)· `CellTransitionTest` 18(+1 skip)· `StreamBoundTest` 2 · `HostAuthorityTest` 6 · `MotorLeaseTest` 14。
-3 例跳过 = `AC-1-06c`(NOT-RUN,无 Roslyn 载体)· `AC-1-21` + `AC-1-04`(后者随 `AC-1-17` 接地半边,BLOCKED-BY-OQ-1-12 / P0 无 VR)。
+3 例跳过 = `AC-1-06c`(NOT-RUN,无 Roslyn 载体)· `AC-1-21`(只剩 ε 实测,BLOCKED-BY-PlayMode)· `AC-1-04`(随 `AC-1-17` 接地半边,~~BLOCKED-BY-OQ-1-12~~ ✅ 已解除 / P0 无 VR)。
 
 **仍未闭(登记,不阻塞本 Epic 转 Complete —— 均属 P1a/P1b 或外部主语)**:
-- `OQ-1-12` 接地 spike(P0 开工前须裁决;`AC-1-21` 与 `AC-1-17` 接地进入条件半边挂此)
+- ~~`OQ-1-12`~~ ✅ **已裁 2026-09-29(方案甲:恒定下压 + 归零坡面水平投影),2026-10-07 传导订正** ⇒ `AC-1-17` 解除 BLOCKED-BY;`AC-1-21` 的 ε(静止推挤容差)仍待【桌面】PlayMode 实测
 - `O-4` / `O-9`(45 侧登记行 · ADR-015 点名 `slopeLimit`/`stepOffset` 几何值)
 - `AC-1-22`(EXTERNAL,主语 = 29/45)
 - `AC-1-04`(VR,P1a)
@@ -113,14 +113,14 @@ Counts: 4 Logic · 2 Integration = 6 total.
 
 ## Key Cross-References
 
-- **`OQ-1-12`(接地 spike)= Story 003 的开工前置**(用户裁定 P0 开工前须裁决;轴 2 进入条件、EC-1/9/10/11 共用该上游裁定)
+- ~~**`OQ-1-12`(接地 spike)= Story 003 的开工前置**~~ ✅ **2026-09-29 已裁(方案甲),不再是前置** —— 轴 2 进入条件 / EC-1 / 9 / 10 / 11 的**方案已定**,2026-10-07 完成 GDD 正文与 EPIC 的传导回填;Story 003 的开工前置自此**清零**(残余 = `AC-1-34` 装载期断言 + ε / 斜坡滑向量实测)
 - **Story 002 依赖系统 2 的 `YawBasis` 交付**(2 的 Epic Story 002 = 本故事的硬前置;1 的 `O-8`)
 - **载体纪律**:GDD AC 节明写「判据已定、载体未建」——`tests/` CI 载体由 ADR-012 轮建;此前 AC 只可标「已定义」不得标「已验证」
 
 ## Next Step
 
 **本 Epic 已 Complete(2026-10-03)** —— 无剩余实现工作。等待事项均属外部主语或 P1a/P1b:
-- `OQ-1-12` 接地 spike(P0 开工前须由用户裁决)⇒ 回填 `AC-1-21` 与 `AC-1-17` 的接地进入条件
+- ~~`OQ-1-12`~~ ✅ **已裁**(方案甲)⇒ `AC-1-17` 已回填;`AC-1-21` 只剩 ε 实测;新立 `AC-1-34` 守「下压量 > skinWidth ∧ > minMoveDistance」
 - `O-9`(ADR-015 §一 点名 `slopeLimit`/`stepOffset` 几何值)⇒ 回填 `AC-1-33②`
 - `O-4`(45 侧登记行,P1b)· `AC-1-22`(EXTERNAL,主语 29/45)· `AC-1-04`(VR,P1a)
 
