@@ -17,8 +17,9 @@ C = 处置记录投影(病史流)、D = 9 的病程投影@Tick(结案)(对因手
 致死唯一路径 = 9 的对因手柄门(支柱二)。**误诊自愈 = 无痕即无回响**;回响轴 = 判断错误的物理痕迹
 (后遗 / 复现 / 试药史)。Outcome 是**枚举不是分数**(AC-53-01);回响**延迟发出且不可归因**
 (payload 零 case_id,AC-53-07);`ConsequenceResolved` 落**世界流**(OQ-53-7 已裁直登 registry)。
-逐条数值(`DelayTable` / 试药史阈值等)归用户数值轮 —— 机制与值域冻结,`DelayTable[outcome] > 0`
-是硬约束(OQ-53-2 值未裁,已登记)。
+逐条数值(试药史阈值等)归用户数值轮 —— 机制与值域冻结,`DelayTable[outcome] > 0`
+(`DelayTable` ✅ 2026-10-07 已裁:600/1200/2400,定义域 = 回响轴三分立值)
+是硬约束(OQ-53-2 ✅ 2026-10-07 已裁:600/1200/2400,定义域 = 回响轴三分立值)。
 
 ## Governing ADRs
 
@@ -63,7 +64,7 @@ This epic is complete when:
 - All P0 acceptance criteria from `design/gdd/medical-consequences.md`(AC-53-01 … AC-53-15,除 P1a 项)are verified
 - AC-53-02/15 黄金夹具在 ADR-012 三格矩阵刷新并常驻绿(实测未跑 ⇒ 禁借绿)
 - AC-53-09 [L] 走查(延迟 + 不可归因 + 病人可见 + ≥1 在场者先见)有主创签核
-- ⚠️ 未裁数值(`DelayTable` 具体值,OQ-53-2)与载体预裁(OQ-53-6 承载者)按登记口径:**机制实现照跑、值/文案留数值轮**,不阻塞 story
+- ~~⚠️ 未裁数值(`DelayTable` 具体值,OQ-53-2)~~ **✅ 2026-10-07 已裁**(600/1200/2400)与 ~~载体预裁(OQ-53-6 承载者)~~ **✅ 同日已裁**(13 病人 AI + 在场 NPC)按登记口径:**机制实现照跑、值/文案留数值轮**,不阻塞 story
 - F-53.3 RegionOutcome / 村落信任 / 31 订阅 = P1a,**不在** DoD
 
 ## Stories

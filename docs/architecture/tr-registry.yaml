@@ -4708,7 +4708,7 @@
     domain: Core
     adr: null
     status: gap
-    note: "D-R3 回填(2026-09-21)。❌ 反渗形态无架构件;值归 OQ-53-2(数值轮)。P1a 注。 ✅ P1a 主照登已确认(2026-09-21 第二十六批 · 用户裁定:不立件,挂至 53 的 ADR 轮)。"
+    note: "D-R3 回填(2026-09-21)。❌ 反渗形态无架构件;值归 OQ-53-2(数值轮)。P1a 注。 ✅ P1a 主照登已确认(2026-09-21 第二十六批 · 用户裁定:不立件,挂至 53 的 ADR 轮)。 ✅ 2026-10-07 值已裁(600/1200/2400,定义域 = 回响轴三分立值);status 维持 gap —— 未裁面 = 反渗形态本身(无架构件),不是值。"
   - id: TR-medcons-007
     system: medical-consequences
     gdd: design/gdd/medical-consequences.md

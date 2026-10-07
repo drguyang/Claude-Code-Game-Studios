@@ -15,7 +15,7 @@
 *(Requirement texts live in `docs/architecture/tr-registry.yaml` — read fresh at review time)*
 
 **ADR Governing Implementation**: ADR-009(主): 三态分类(后果状态 = 模拟态进流)· ADR-024: Kind 单一登记真源(OQ-53-7 已裁:`ConsequenceResolved` 直登 `entities.yaml`,`stream: world`、`author: 53`、载荷 ∈ 整数域)· ADR-007: 掷骰/时序可重构 · ADR-010: 序列化
-**ADR Decision Summary**: `EmitTick = Tick(CaseClosed) + DelayTicks`,`DelayTable[outcome] > 0` **硬约束**(构建期拒收 ≤0;具体值未裁 = OQ-53-2,归数值轮)。延迟后果**重放时重建、零独立状态**(AC-53-06:53 不持任何跨 tick 可变态 —— 待发表 = 流的纯函数)。不可归因(规则六):后果事件载荷**零 case_id / 零指向触发病例的指针**;`patient_id` 允许;AC-53-07 反渗扫描。`ConsequenceResolved` 载荷 = 整数枚举 + `patient_id`(无 case_id);**P0 零订阅者仍照发**(水龙头纪律);53 不持可变态(重放重建);疫区持续状态 = 模拟态须进世界流的义务已登记 ⇒ OQ-53-1(P1a,不在本 story)。药物禁忌/过量代价 P0 开放项(OQ-53-8):限定 伤/后遗、**永不致死** —— 本 story 交形状门,值归数值轮。
+**ADR Decision Summary**: `EmitTick = Tick(CaseClosed) + DelayTicks`,`DelayTable[outcome] > 0` **硬约束**(构建期拒收 ≤0;✅ 2026-10-07 已裁 = `Residual 600` / `Recurrence 1200` / `TrialHistory 2400`,定义域 = **回响轴三分立值**;结局轴 `PatientLives`/`PatientLoses` **不入表** —— 由 9 即时结算、53 只读)。延迟后果**重放时重建、零独立状态**(AC-53-06:53 不持任何跨 tick 可变态 —— 待发表 = 流的纯函数)。不可归因(规则六):后果事件载荷**零 case_id / 零指向触发病例的指针**;`patient_id` 允许;AC-53-07 反渗扫描。`ConsequenceResolved` 载荷 = 整数枚举 + `patient_id`(无 case_id);**P0 零订阅者仍照发**(水龙头纪律);53 不持可变态(重放重建);疫区持续状态 = 模拟态须进世界流的义务已登记 ⇒ OQ-53-1(P1a,不在本 story)。药物禁忌/过量代价 P0 开放项(OQ-53-8):限定 伤/后遗、**永不致死** —— 本 story 交形状门,值归数值轮。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: LOW
 **Engine Notes**: 纯流写 + 重放重建,门 A 内;kindgen 联动(既有 registry 条目)。
@@ -31,7 +31,7 @@
 
 *From GDD `design/gdd/medical-consequences.md`, scoped to this story:*
 
-- [ ] `EmitTick = Tick(CaseClosed) + DelayTable[outcome]` 纯整数;`DelayTable` 烘焙校验 = **每条 > 0**(≤0 构建期 `throw`;值本身留槽 OQ-53-2)
+- [ ] `EmitTick = Tick(CaseClosed) + DelayTable[outcome]` 纯整数;`DelayTable` 烘焙校验 = **定义域内每条 > 0**(≤0 构建期 `throw`;✅ 值已于 2026-10-07 裁定:回响轴三分立值 600/1200/2400,定义域 = 回响轴,**不含结局轴**)
 - [ ] **AC-53-06**:任意前缀重放 ⇒ 待发后果集与在线态逐位一致;53 程序集**零跨 tick 可变字段**(反射断言:无实例态承载延后)
 - [ ] `ConsequenceResolved` 经 registry 路由进**世界流**:`stream: world`、`author: 53`、载荷 = `{patient_id:int, consequence_kind:枚举int, …}` **无 case_id 字段**(schema 级,ADR-024 A2 绿)
 - [ ] **AC-53-07 反渗扫描**:53 全部发出载荷 + 内部类型递归反射,无 `case_id` / 病例指针 / `salted_key` 回渗(病人可指向,病例不可 —— 不可归因的机制面)
@@ -51,7 +51,7 @@
 3. `consequence_kind` 枚举值集 = GDD 回响轴三类(后遗/复现/试药史表现)+ 开放项;值映射表数据驱动,新增 = 表改动非代码改动(评审门)。
 4. 载荷「零 case_id」在**构造器层**物理不可传(参数集不含),不是运行期置 null(能力面纪律,同 39 Story 003 形制)。
 5. 疫区持续状态义务(OQ-53-1)与本 story 边界:P1a 另轮;本 story 不为其预留字段(预留 = 渗风险)。
-6. ⚠️ **数值冻结**:`DelayTable` 各值 / lookback 窗 / 禁忌代价强度 —— 全部归用户数值轮;`>0` 与「永不致死」是机制约束已钉。
+6. ⚠️ **数值冻结**:lookback 窗 / 禁忌代价强度 —— 全部归用户数值轮;`>0` 与「永不致死」是机制约束已钉。`DelayTable` 三条值 ✅ **2026-10-07 已裁定**(600/1200/2400,用户事后仍可调,但不再是「未裁」)。
 
 ---
 
@@ -76,9 +76,9 @@
   - Edge cases: Delay 恰跨存档点(7a 读档后补算照发不重发)
 
 - **AC-2**: DelayTable 构建期 >0 拒收
-  - Given: 某 outcome 值 = 0 / 负 的违规表夹具
+  - Given: **定义域(回响轴三分立值)内**某 outcome 值 = 0 / 负 的违规表夹具
   - Then: 烘焙 `throw`;合规边界 min=1 绿
-  - Edge cases: 表缺 outcome 行 = 也红(全覆盖校验联动 Story 002 表)
+  - Edge cases: 表缺 outcome 行 = 也红(全覆盖校验联动 Story 002 表);**结局轴两值不出现在夹具全集里**(它们不是 key —— 若出现 = schema 错,同样 `throw`)
 
 - **AC-3**: 载荷零 case_id(AC-53-07)
   - Given: `ConsequenceResolved` 构造器 + 全部内部类型
