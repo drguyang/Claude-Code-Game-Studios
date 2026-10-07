@@ -1376,8 +1376,16 @@ overrides 装载结果(hit / mismatch-cleared)。条件三条:
 > `ClampToDomain(round_fixed(raw_axis × AXIAL_SCALE), DZ_MAG, MAG_MAX)`)+
 > `edge_ticks: int[]`(**无时刻则方差无输入** —— 10 首轮评审的补齐,原 `EmergencyReading`
 > 只有边沿计数)。**`raw_axis: float` 留在手感层,不进流、不进 sim**(承 F4 / `AC-3-A7`)。
-> **3 侧的连带义务(未结,`OQ-10-7`)**:`AXIAL_SCALE` / `DZ_MAG` 两乘子住在**哪张表**、
-> 3 侧叫什么名 —— **须 3 补一条 Amendment**,不得静默改。归 3 的修订轮。
+> **✅ 2026-10-07 `OQ-10-7` 结案(三问一次答完,原「须 3 补一条 Amendment」的主张部分为假)** ——
+> ① **住哪张表 = `assets/data/emergency_action.json`(10 侧),3 不拥有这两值**:判据 = `AXIAL_SCALE`
+> 是 **`Fix`**(Q16.16),按 **ADR-014** 承载 `Fix` 的字段必须**外部化 + 构建期烘焙**;而 `.inputactions`
+> 是**引擎资产、装不了 `Fix` 字面量** ⇒ 「住 3 的动作资产侧」这个选项**结构性不可行**,
+> 不是取舍问题。3 侧只**读烘焙产物经 `IDataProvider`**(与 21a `drug_profile` / `EFF` 同型:
+> 单一出处,边界层只读)。**② 命名 = 沿用 `AXIAL_SCALE` / `DZ_MAG` 同名** —— 它们是边界类型的
+> 字段级常量,10 的表已用此名,**改名 = 立双名单**。③ **`raw_axis` 不进流的守门 = 既有 `AC-3-A7`**
+> (载荷路径上无可达 `float` / `double` 字段),**不需新 AC**。
+> ⚠️ **残留(不并入本条)**:两乘子的**表值**归数值轮;「3 补 Amendment」的义务**已消解**
+> —— 3 已于 2026-09-16 Approved,而该 Amendment 的**内容推定 = 归一**,补它是空转。
 
 ### 二、已结案(本轮裁定,留档)
 
