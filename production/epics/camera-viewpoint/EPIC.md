@@ -3,7 +3,7 @@
 > **Layer**: Presentation(控制器与相机 · manifest 该节适用)
 > **GDD**: design/gdd/camera-and-viewpoint.md
 > **Architecture Module**: 自建机位 `ICameraRig`(四段机器:跟随 + 绕点 + 出臂 + 收缩)+ 对系统 1 的硬交付 `YawBasis`
-> **Status**: **In Progress**(001/002 经五步循环收口 · 003–006 评审修复轮进行中)
+> **Status**: **Complete ✅ 2026-10-03**(6/6 story 已收口 —— 001 于 10-03 收口(`ef38a0c`);002 于 10-03 收口(`3c29a89`);003–006 于 10-03 收口(`ea91373`))
 > **Stories**: 6 stories created (2026-09-28)
 
 ## Overview
@@ -46,21 +46,23 @@
 |---|-------|------|--------|-------|-----|
 | 001 | 呈现纪律与边界(不持状态 / 零第三方 / 零事件 / 效果归属 / AudioListener) | Logic | Complete ✅ | Foundation | ADR-020 + ADR-013 + ADR-023 |
 | 002 | 硬交付 `YawBasis`(系统 1 的 O-8:水平化 / 正交归一 / 俯角界 / 次序契约) | Logic | Complete ✅ | Foundation | ADR-020 Amendment B + ADR-011 |
-| 003 | 锚跟随与绕点(二阶临界阻尼半隐式 + 子步 / `dt` 位移预算 / yaw-pitch 解耦) | Logic | In Progress | Core | ADR-020 + ADR-005 |
-| 004 | 出臂与收缩(肩位常量几何 / 瞬时收缩·阻尼回弹 / 掩码与裁剪面) | Integration | In Progress | Core | ADR-020 + ADR-015 |
-| 005 | 档位状态机与性能义务(意图制 / 优先级 / Casebook 冻结 / PhysX==1 / Tick 相位) | Logic | In Progress | Feature | ADR-020 + ADR-011 |
-| 006 | 跨系统义务对账与舒适度签核面(EXTERNAL 登记 / O-11…O-16 / VR 接口 / playtest) | Visual/Feel | In Progress | Feature | ADR-020 + ADR-015 |
+| 003 | 锚跟随与绕点(二阶临界阻尼半隐式 + 子步 / `dt` 位移预算 / yaw-pitch 解耦) | Logic | Complete ✅ 2026-10-03(`ea91373`) | Core | ADR-020 + ADR-005 |
+| 004 | 出臂与收缩(肩位常量几何 / 瞬时收缩·阻尼回弹 / 掩码与裁剪面) | Integration | Complete ✅ 2026-10-03(`ea91373`) | Core | ADR-020 + ADR-015 |
+| 005 | 档位状态机与性能义务(意图制 / 优先级 / Casebook 冻结 / PhysX==1 / Tick 相位) | Logic | Complete ✅ 2026-10-03(`ea91373`) | Feature | ADR-020 + ADR-011 |
+| 006 | 跨系统义务对账与舒适度签核面(EXTERNAL 登记 / O-11…O-16 / VR 接口 / playtest) | Visual/Feel | Complete ✅ 2026-10-03(`ea91373`) | Feature | ADR-020 + ADR-015 |
 
 Counts: 4 Logic · 1 Integration · 1 Visual/Feel = 6 total.
 27 个 AC 条目全覆盖:**BLOCKING 22**(`01/02/04/05/06` → 001;`07–10` → 002;`11/12/13` → 003;`14/15/16/25` → 004;`17/18/19/20/27` → 005;`22` → 006)全部落 story;**ADVISORY 3**(`03/24/26` → 006 的 playtest 签核面,不得混入 BLOCKING 计数);**EXTERNAL 2**(`21` = `PITCH_MAX` 取值归用户 · `23` = `O-13` 验收归相机 spike —— 006 登记挂账,不计入本 Epic 就绪度)。
 
 ## Epic Status
 
-**In Progress** — 6 stories created 2026-09-28;零 ADR-blocked story(治理 ADR 全部 Accepted)。
-🔴 **2026-10-03 评审回滚(TD §5)**:头行曾单方面标 `Complete ✅ 6/6`,而 003–006 的双代理评审
+**Complete ✅ 2026-10-03** — 6/6 story 已收口;零 ADR-blocked story(治理 ADR 全部 Accepted)。
+**2026-10-03 评审回滚(TD §5)**:头行曾单方面标 `Complete ✅ 6/6`,而 003–006 的双代理评审
 （当日 20:37–21:02 落盘）**均判「不应维持 Complete」** ⇒ 该宣布**无逐故事签核支撑**。
-头行、Stories 表、本节三者口径已统一为 **In Progress**:001/002 经五步循环收口;
-003–006 正在复走(创建测试已完成,评审修复进行中)。
+**2026-10-03 评审修复轮完成**:003–006 全 BLOCKING 修复 + 复跑 0 红(`ea91373`);
+002 双代理评审修复轮 6 项判据缺陷全修 + 复跑 0 红(`3c29a89`);
+001 双代理评审修复轮 5 条 BLOCKING 全修 + 复跑 0 红(`ef38a0c`)。
+头行、Stories 表、本节三者口径已统一为 **Complete**。
 
 ## Key Cross-References
 
