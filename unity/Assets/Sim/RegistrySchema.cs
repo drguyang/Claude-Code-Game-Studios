@@ -17,6 +17,23 @@ using DaYiJingCheng.Sim.Contracts;
 namespace DaYiJingCheng.Sim
 {
     /// <summary>
+    /// treatable_by 关系行(处置 × 病种 → 极性)。
+    /// </summary>
+    public sealed class TreatableByEntry
+    {
+        /// <summary>处置 id(须 ∈ 处置轴闭集)。</summary>
+        public int ActionId;
+
+        /// <summary>极性(causal / symptomatic)。</summary>
+        public string Polarity;
+
+        public TreatableByEntry(int actionId, string polarity)
+        {
+            ActionId = actionId; Polarity = polarity;
+        }
+    }
+
+    /// <summary>
     /// 病种注册表项。
     /// </summary>
     public sealed class DiseaseRegistryEntry
@@ -37,6 +54,22 @@ namespace DaYiJingCheng.Sim
         public int OccupationMod; // 0-100
         public int RegionMod; // 0-100
         public int ClimateMod; // 0-100
+
+        /// <summary>
+        /// treatable_by 关系(处置 × 病种 → 极性)。
+        /// ⚠️ 2026-10-07 补:9 GDD R1.3 把 treatable_by[] 定义为病种条目内的字段,
+        /// 但病种条目的其余字段数值全冻结(曲线/严重度/传染性等),故 treatable_by
+        /// 拆到独立文件 `disease_action_axis.json`(见 story-007)。
+        /// 本字段是**派生字段**(写入期不填,构建期从 treatable_by 极性 / 病种 id 计算并校验)。
+        /// </summary>
+        public TreatableByEntry[] TreatableBy;
+
+        /// <summary>
+        /// handle 派生字段(写入期不填,构建期从 treatable_by 极性 / 病种 id 计算并校验)。
+        /// 规则九(GDD `:329`):causal ⇔ ∃对因处置;否则 ∈ {伤寒, 痢疾, 心衰} ⇒ care;
+        /// DIS_TETANUS ⇒ none;其余 ⇒ symptomatic_only。
+        /// </summary>
+        public string Handle;
     }
 
     /// <summary>
@@ -62,6 +95,8 @@ namespace DaYiJingCheng.Sim
         public const int R1_CHECK_15 = 15; // RegionMod ∈ [0,100]
         public const int R1_CHECK_16 = 16; // ClimateMod ∈ [0,100]
         public const int R1_CHECK_17 = 17; // 至少 1 个病种
+        public const int R1_CHECK_18 = 18; // treatable_by[].polarity ∈ {causal, symptomatic}
+        public const int R1_CHECK_19 = 19; // treatable_by[].action ∈ 处置轴闭集
 
         /// <summary>
         /// 校验病种注册表 —— 17 条构建期校验。
@@ -142,6 +177,36 @@ namespace DaYiJingCheng.Sim
                 // R1-16: ClimateMod ∈ [0,100]
                 if (entry.ClimateMod < 0 || entry.ClimateMod > 100)
                     throw new RegistryValidationException(R1_CHECK_16, $"ClimateMod 越界: {entry.ClimateMod}");
+
+                // R1-18: treatable_by[].polarity ∈ {causal, symptomatic}
+                if (entry.TreatableBy != null)
+                {
+                    for (int i = 0; i < entry.TreatableBy.Length; i++)
+                    {
+                        var tb = entry.TreatableBy[i];
+                        if (tb.Polarity != "causal" && tb.Polarity != "symptomatic")
+                            throw new RegistryValidationException(R1_CHECK_18,
+                                $"treatable_by[{i}].polarity=\"{tb.Polarity}\" ∉ {{causal, symptomatic}}");
+                    }
+                }
+
+                // R1-19: treatable_by[].action ∈ 处置轴闭集
+                // ⚠️ 2026-10-07 补:9 GDD R1.3 把 treatable_by[] 定义为病种条目内的字段,
+                //    但病种条目的其余字段数值全冻结,故 treatable_by 拆到独立文件
+                //    `disease_action_axis.json`(见 story-007)。
+                //    本校验在**完整 disease_registry.json** 存在时生效(当前不存在)。
+                //    校验逻辑:action ∈ 处置轴闭集(由 DiseaseActionAxisBaker 产出)。
+                //    ⚠️ 当前数据集:病种条目不存在 ⇒ 本校验**结构性不可达**(登记为已知弱点)。
+                // ⚠️ 2026-10-07 评审 M1:空实现显式标记为未实现 —— 调用方无法区分
+                //    「校验通过」与「校验未实现」。
+                if (entry.TreatableBy != null)
+                {
+                    throw new NotImplementedException(
+                        "R1-19: treatable_by[].action ∈ 处置轴闭集 —— " +
+                        "待 disease_registry.json 存在后实现(当前结构性不可达)。" +
+                        "登记为已知弱点:9 的 C# 16 字段 + 17 条区间校验 vs GDD §R1 的 17 条语义校验" +
+                        "是**既有**问题,不属本轮授权面。归 9 的下一轮。");
+                }
             }
         }
     }

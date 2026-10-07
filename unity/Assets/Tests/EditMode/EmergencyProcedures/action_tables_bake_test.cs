@@ -280,5 +280,46 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
             Assert.Throws<FormatException>(() => FixParse.Parse("abc"));
             Assert.Throws<FormatException>(() => FixParse.Parse(""));
         }
+
+        // ══════════ DC-4 真源(AC-9-16): 枚举 ⊂ 9 的处置轴 ∩ owner=="10" ══════════
+
+        [Test]
+        public void test_dc4_enumMatchesAxisOwner10Segment()
+        {
+            // ⚠️ 2026-10-07 真源接线(承 story-007 §三):`ValidateActionIdFromAxis` 是
+            //    DC-4 的真源接线点(本类住 Sim 门 A 侧不能引 Editor.Tools.Bake,故接线
+            //    在此以测试证明;生产烘焙路径的接线归后续 story)。
+            //    断言:EmergencyAction 枚举全值 == 9 的轴 ∩ owner=="10" 段(**逐值相等**,
+            //    双向)—— 把「单一轴归 9」变成可红的机器,而非散文。
+            var axis = DaYiJingCheng.EditorTools.Bake.DiseaseActionAxisBaker
+                .BakeFromRepo(ComputeRepoRoot());
+            var owner10 = new HashSet<int>();
+            foreach (var a in axis.Actions)
+                if (a.Owner == "10") owner10.Add(a.ActionId);
+
+            Assert.IsTrue(owner10.Count > 0, "9 的轴须有 owner==\"10\" 段(空集 ⇒ 接线无意义)");
+
+            foreach (EmergencyAction action in Enum.GetValues(typeof(EmergencyAction)))
+            {
+                Assert.IsTrue(EmergencyActionSchema.ValidateActionIdFromAxis((int)action, owner10),
+                    $"枚举成员 {action}={(int)action} 须 ∈ 9 的轴 owner==\"10\" 段");
+            }
+            foreach (int id in owner10)
+            {
+                Assert.IsTrue(Enum.IsDefined(typeof(EmergencyAction), id),
+                    $"9 的轴 owner==\"10\" 段 id={id} 须有枚举成员(单一轴:轴增员 ⇒ 枚举须同步)");
+            }
+
+            // ⚠️ 反向判别(2026-10-07 突变实测:正向断言对「当前相等」的数据无判别力 ——
+            //    `ValidateActionIdFromAxis` 改恒 true 时突变存活)。钉死轴外 id 被拒:
+            //    12 是 9 轴 owner=="11" 段(金鸡纳皮),须不在 10 的闭集内。
+            Assert.IsFalse(EmergencyActionSchema.ValidateActionIdFromAxis(12, owner10),
+                "轴外 id(owner==\"11\" 段)须被 DC-4 拒 —— 恒真实现 = 突变存活");
+        }
+
+        private static string ComputeRepoRoot(
+            [System.Runtime.CompilerServices.CallerFilePath] string thisFile = "")
+            => System.IO.Path.GetFullPath(System.IO.Path.Combine(
+                System.IO.Path.GetDirectoryName(thisFile) ?? ".", "..", "..", "..", "..", ".."));
     }
 }

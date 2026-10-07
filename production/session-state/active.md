@@ -1,6 +1,41 @@
-# Session State — 2026-10-06(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
+# Session State — 2026-10-07(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## ✅ 本轮 = prescription-medication **story-002 补评审件**(2026-10-06 · 已收口)
+## 🔄 本轮 = disease-simulation **story-007 重开 9 落地**(2026-10-07 · 进行中)
+
+> 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
+
+### 交付物
+- **数据**:`assets/data/disease_action_axis.json`(新建,9 的处置轴 + treatable_by 关系,单一 master)
+- **9 侧烘焙三件套**:`DiseaseActionAxisBaker.cs` / `DiseaseActionAxisBinder.cs` / `DiseaseActionAxisCookedWriter.cs` / `DiseaseActionAxisValidator.cs`(新建)
+- **9 侧 schema**:`RegistrySchema.cs` 增 `TreatableByEntry` + R1-18/R1-19 校验
+- **10 侧**:`EmergencyAction.cs` DC-4 判据源改指 9(文档已更新,实现仍用 `Enum.IsDefined`)
+- **11 侧**:`PrescriptionActionIdRegistry.cs` 影子→真源(闭集 = 9 的轴,地板 = `NOISE_BAND_POTENCY_9` = 100 raw)
+- **11 侧**:`PrescriptionActionsBinder.cs` DC-2/DC-6 从 warnings 升格为 errors(硬失败)
+- **11 侧**:`prescription_actions.json` 的 `action_id` 重排 1→10
+- **菜单**:`DataBakeMenu.cs` 增 `BakeDiseaseActionAxis` 菜单项
+- **文档**:`entities.yaml` / `disease-simulation.md` / `prescription-and-medication.md` / `architecture.yaml` / `tr-registry.yaml` / `traceability-index.md` / `EPIC.md` / `index.md` / `story-007` 全量更新
+
+### 测试(实测)
+- 9 侧:`unity/Logs/disease_axis.xml` = **55 / 55 passed / 0 failed**
+- 11 侧:`unity/Logs/prescription_axis.xml` = **174 / 174 passed / 0 failed**
+- 10 侧:`unity/Logs/emergency_dc4.xml` = **115 / 115 passed / 0 failed**(4 skipped 既有)
+- 全量:`unity/Logs/editmode_full_axis.xml` = **2935 / 2888 passed / 0 failed / 46 skipped / 1 inconclusive**(与基线一致)
+
+### 待办
+- ⬜ 双代理一轮评审(代码面 + 测试面)
+- ⬜ 修复评审发现
+- ⬜ 复跑绿
+- ⬜ 评审原件落 `production/qa/evidence/review-disease-action-axis-2026-10-07.md`
+- ⬜ 收口提交推送
+
+### 未闭登记(禁借绿)
+- **9 的 C# 16 字段 + 17 条区间校验 vs GDD §R1 的 17 条语义检查** —— 结构性断裂,归 9 的下一轮
+- **`清创`** —— 9 点名、10 无实现,归 10 的 GDD 轮
+- **10 侧 `ValidateActionId` 实现** —— 文档说读 9 的轴,实现仍用 `Enum.IsDefined`,须后续改为读 9 的烘焙产物
+
+---
+
+## ✅ 上一轮 = prescription-medication **story-002 补评审件**(2026-10-06 · 已收口)
 
 > 承「补002评审件」。依 `.claude/docs/coding-standards.md` §Review Evidence Standards:
 > 缺原件的对象**出路 = 补做一次评审(评当下)并落新原件**,**不追认**原判定。
@@ -920,3 +955,39 @@ Task: story-004 收口(4/4 · 166/166/0/2)
 ### 待办
 - ✅ 收口提交推送
 - ⬜ prescription-medication epic **5/5 全闭**(story-005 走查半边仍 NOT-RUN)
+
+
+## 2026-10-07 — story-001 DC-2/DC-6 校验机制落地(已提交 6fdd86b)
+
+- **交付**:`PrescriptionActionIdRegistry.cs`(新)+ binder 接线 + 覆盖率记账 + 菜单侧生产报出。
+  **判据本体维持 NOT-RUN**(处置 id master 未登记 · `NOISE_BAND_9` 未立 BL-2)。
+- **测试**:filtered **174/174/0** · 全量 EditMode **2935/2888/0 红**。
+- **双代理一轮**:代码面 8 条(1 高/3 中/4 低)+ 测试面 4 条必须修 —— 全部处置或显式登记。
+- **突变验证**:5 条新守卫注入改坏点 ⇒ 全部实测红 ⇒ 还原。
+- **评审原件**:`production/qa/evidence/review-prescription-dc26-shadow-2026-10-07.md`。
+- **登记的两条已知弱点(不静默)**:M1 反守卫用干净夹具 · M4 正向判别力过窄。
+- **仍未闭**:DC-6 对当前数据集零求值(`salicylic_acid` 的 `dose_range = null`)。
+
+
+## 2026-10-07 — disease-simulation story-007 重开轮闭环(处置轴 + NOISE_BAND_9 真源)
+
+- **交付**:`assets/data/disease_action_axis.json`(单一 master:处置轴 + treatable_by)·
+  9 侧烘焙三件套 + Validator(9-DC-1…7)· `NOISE_BAND_PROGRESS_9` / `NOISE_BAND_POTENCY_9`
+  双常量(值 = 100 raw,用户裁定)· 11 侧 `PrescriptionActionIdRegistry` 真源接线 ·
+  10 侧 `ValidateActionIdFromAxis` 接线点 · `architecture.yaml` 幽灵引据订正 ·
+  D-9-J / O-11→9 结案 · `salicylic_acid` action_id 1→10。
+- **双代理一轮**:原判代码面 CHANGES REQUIRED(2B/6M/6m/3n)+ 测试面不予通过(S1×5 借绿…)。
+  **修复轮全落**:B1 聚合化(消息聚合 + 首个违规规则号,保测试契约)· B2/M1/M4/M6 ·
+  S1-1/1-2 真源读烘焙产物(⚠️ repoRoot 曾用 Assembly.Location+5层.. 落错,改
+  `Application.dataPath/../..` 同 DataBakeMenu 先例)· S1-3 接线点 + 真源测试 ·
+  S1-4 canary 验行为 · S2-1/2-2 补 DC-1/DC-2 负夹具 · S2-3 判**误报**(4 红系突变短路副作用,
+  复验 1 红与结构一致)· S3 全修 · S4-1/4-2 补 AC-9-11…13 / AC-9-17 测试。
+- **测试**:9 侧 **67/67** · 11 侧 **174/174** · 10 侧 **116/116**(+4 skipped)·
+  全量 **2948/2901/0 红**(基线 2935/2888,+13 = 本轮新增)。
+- **突变复验**:9-DC-1…7 全红;10 侧 DC-4 真源点首跑**突变存活** ⇒ 补反向断言(轴外 id=12)
+  ⇒ 复跑红 ⇒ 还原绿(评审式自查抓到判别力缺口)。
+- **评审原件**:`production/qa/evidence/review-disease-action-axis-2026-10-07.md`。
+- **已知弱点(不静默)**:DC-4 生产烘焙侧接线归后续 story(`ValidateActionId` 仍影子)·
+  R1-19 = NotImplementedException 哨兵 · DC-6 当前数据集零求值 · MINOR/NIT 登记不修 ·
+  `清创`(O-9→10)归 10 GDD 轮。
+- **状态**:disease-simulation epic **7/7 全闭**。

@@ -23,7 +23,7 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | combat-weapons | Core | 25 战斗与武器 | design/gdd/combat-and-weapon-lines.md | 6 stories | Complete ✅ 2026-09-30 |
 | death-respawn | Core | 29 死亡与复活 | design/gdd/death-and-respawn.md | 6 stories | Ready(未实现) |
 | diagnosis-system | Core | 8 诊断系统 | design/gdd/diagnosis-system.md | 6 stories | Ready(未实现) |
-| disease-simulation | Core | 9 疾病模拟 | design/gdd/disease-simulation.md | 6 stories | Complete ✅ 2026-09-30 |
+| disease-simulation | Core | 9 疾病模拟 | design/gdd/disease-simulation.md | 7 stories | ✅ Complete(story-007 重开轮闭环 2026-10-07:处置轴 + treatable_by + NOISE_BAND_9 双常量;双代理评审修复后复跑全绿:9 侧 67/67 · 11 侧 174/174 · 10 侧 116/116 · 全量 2948-2901/0 红) |
 | emergency-procedures | Core | 10 急救动作 | design/gdd/emergency-procedures.md | 7 stories | In Review(7/7 已实现 · A1/A2/A6/B4/C4/C5 已闭 · 0 红;✅ **评审原件两份均已在库**(首轮+round2,2026-10-03);**真实残留 = D1/D2/D3 文档对齐 + 实跑测试套件**(round2 未实跑,结论均基于源码阅读);另 007 = b6 门查出的手搓点) |
 | enemy-ai | Core | 27 敌人 AI | design/gdd/enemy-ai.md | 5 stories | Complete ✅ 2026-09-30 |
 | interaction-system | Core | 4 交互系统 | design/gdd/interaction-system.md | 4 stories | Ready(未实现) |

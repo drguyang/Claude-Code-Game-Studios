@@ -637,7 +637,7 @@ api_decisions:
     api: "自定义编码器(值 struct / 禁 float / Q16.16),经 ADR-006 §五序列化探针守住;枚举字段走 **版本化整数 ordinal**(ADR-006 D-21-13 2026-09-17 收窄)"
     not: "Unity 内置序列化器(ADR-006 D-21-18: Fix 不可经内置序列化器承载);**禁**跨持久化的配置态枚举改写成 ordinal(那类仍须稳定字符串名)"
     adr: docs/architecture/adr-008-case-event-stream.md
-    reason: "病例流载荷(disease_set 的 ordinal / treated / judgment)须逐位稳定可回放;ordinal 的可读语义由 `assets/data/case_judgment_lexicon.json` + `disease_registry.json` 承担,构建期烘焙进 `ConfigVersion` 覆盖集,且受 **append-only 硬门**(adr-014 §五 承接条 ③:`_ordinal_baseline.json` 基线断言,改号 = 构建期失败)"
+    reason: "病例流载荷(disease_set 的 ordinal / treated / judgment)须逐位稳定可回放;ordinal 的可读语义由 `assets/data/case_judgment_lexicon.json` + `disease_action_axis.json` 承担,构建期烘焙进 `ConfigVersion` 覆盖集,且受 **append-only 硬门**(adr-014 §五 承接条 ③:`_ordinal_baseline.json` 基线断言,改号 = 构建期失败)。⚠️ 2026-10-07 订正:原写 `disease_registry.json` 是**幽灵引据**(该文件全库不存在);真源 = `disease_action_axis.json`(9 的处置轴 + treatable_by 关系,story-007 落地)。"
     referenced_by:
       - docs/architecture/adr-008-case-event-stream.md
       - docs/architecture/adr-014-data-pipeline-and-json-parser.md   # §五 D-21-13 承接条
@@ -739,7 +739,7 @@ api_decisions:
       - design/gdd/item-database.md
       - design/gdd/case-system.md   # case_judgment_lexicon.json(2026-09-17 登记)
     added: 2026-09-15
-    revised: "2026-09-17 登记 `case_judgment_lexicon.json`(37 的 Judgment 词表作者态入口)+ 其构建期非一一对应校验(对 9 的 disease_registry.json)"
+    revised: "2026-09-17 登记 `case_judgment_lexicon.json`(37 的 Judgment 词表作者态入口)+ 其构建期非一一对应校验(对 9 的 disease_action_axis.json)。⚠️ 2026-10-07 订正:原写 `disease_registry.json` 是**幽灵引据**(该文件全库不存在);真源 = `disease_action_axis.json`(9 的处置轴 + treatable_by 关系,story-007 落地)。"
 
   - purpose: data_distribution_and_preload
     status: active

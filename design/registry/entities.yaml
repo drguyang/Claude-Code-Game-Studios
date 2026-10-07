@@ -1449,13 +1449,51 @@ constants:
       - design/gdd/item-database.md   # F5 偏移可感知地板
       - design/gdd/skeuomorphic-ui.md # 42(已成稿 2026-09-16):F5 消费方 —— 42 只承载【形态】,须把非零档偏移渲染成可感知差异;画不出即报冲突(规则七),不得静默降级
       # 9 疾病与伤情 —— 噪声带宽由 9 提供,地板须与之联定
-    value: "待定 —— 须 > 9 的病史噪声带"
+    value: "待定 —— 须 > 9 的病史噪声带(NOISE_BAND_PROGRESS_9 = 100 raw,Progress 幅值域)"
     unit: "Q16.16 Fix"
     constraint: "⚠️ 2026-09-14 三轮新增(D-21-24):F5 的非零档 |axis_offset| 必须 > 9 的病史噪声带,
       否则偏移【统计上不可区分于噪声】⇒ 玩家永远感觉不到,而 U-1/U-2 禁数字 ⇒ 出口名存实亡(AC-21a-61)。
-      须与 9 的噪声带宽一起定(跨系统常量)"
+      须与 9 的噪声带宽一起定(跨系统常量)。
+      ⚠️ 2026-10-07 回刷:9 的病史噪声带已具名 = NOISE_BAND_PROGRESS_9(Progress 幅值域,值 = 100 raw);
+      本值仍待定,但**不得**直接搬用 NOISE_BAND_PROGRESS_9 的数值(量纲不同)。"
     added: 2026-09-14
-    revised: ""
+    revised: 2026-10-07
+
+  # ── NOISE_BAND_PROGRESS_9 ─────────────────────────────────────────────
+  # 首次登记:disease-simulation.md 的 D-9-J 引用了它作为 9 自身的噪声带。
+  # 由 disease-simulation.md 拥有(11 只引用、不拥有)。
+  # ⚠️ 2026-10-07:9 侧已立具名常量(重开 9 落地),D-9-J 结案。
+  - name: NOISE_BAND_PROGRESS_9
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # 9 自身的噪声带(Progress 幅值域)
+      - design/gdd/item-database.md        # F5 品级地板须与之联定(不同轴)
+    value: "100 (Q16.16 raw) —— 2026-10-07 用户委托赋值;须 < RECOVER_THRESHOLD(校验 16)"
+    unit: "Q16.16 Fix (Progress 幅值域)"
+    constraint: "⚠️ 2026-10-07 新增(D-9-J 结案):9 自身的噪声带(Progress 幅值域)。
+      ⚠️ 与 NOISE_BAND_POTENCY_9(药效幅值域)、F5_PERCEPTIBILITY_FLOOR(tick 域)【不是同一把尺】,
+      不得互相借用数值。"
+    added: 2026-10-07
+    revised: 2026-10-07
+
+  # ── NOISE_BAND_POTENCY_9 ──────────────────────────────────────────────
+  # 首次登记:disease-simulation.md 的 D-9-J 引用了它作为 11 的剂量可感知地板。
+  # 由 disease-simulation.md 拥有(11 只引用、不拥有)。
+  # ⚠️ 2026-10-07:9 侧已立具名常量(重开 9 落地),D-9-J 结案。
+  - name: NOISE_BAND_POTENCY_9
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md   # 9 的噪声带(药效幅值域)
+      - design/gdd/prescription-and-medication.md  # 11 的 DC-6 / AC-11-19(剂量可感知地板)
+    value: "100 (Q16.16 raw) —— 2026-10-07 用户委托赋值;须 < drug_potency / DOSE_BASE(逐药逐档)"
+    unit: "Q16.16 Fix (药效幅值域)"
+    constraint: "⚠️ 2026-10-07 新增(D-9-J 结案):11 的剂量可感知地板(药效幅值域)。
+      ⚠️ 与 NOISE_BAND_PROGRESS_9(Progress 幅值域)、F5_PERCEPTIBILITY_FLOOR(tick 域)【不是同一把尺】,
+      不得互相借用数值。"
+    added: 2026-10-07
+    revised: 2026-10-07
 
   - name: drug_potency
     status: active

@@ -8,7 +8,7 @@
   "actions": [
     {
       "item_key": "salicylic_acid",
-      "action_id": 1,
+      "action_id": 10,
       "polarity": "symptomatic"
     }
   ]

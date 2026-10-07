@@ -3,14 +3,14 @@
 //
 // 测试处方表与本草词表的构建期校验(DC-1…DC-7)。
 //
-// NOT-RUN 声明(禁借绿):
-// - DC-2:action_id 闭集 = 处置注册表全值 —— **真源仍缺席**(9 侧 disease_registry.json 不存在、
-//   全库无 ACT_* 符号;GDD `:748` 登记「该枚举的 master 住哪一份文件未登记」)。
-//   ⚠️ 2026-10-06:OQ-11-2 只裁了**归属**(映射住 11),**未产出 master** ⇒ 判据本体仍 NOT-RUN。
-//   现补 = **校验机制 + 负夹具**(影子闭集驱动,证可跑可红);`ShadowRegistryUsed` 显式报出。
-// - DC-6:依赖 9 侧 NOISE_BAND_9 常量(BL-2,O-11→9,**仍 ⏳ 待认领**)。
-//   现补 = **构建期机制化**(接进烘焙门,求值经 DoseCalculator)+ 影子地板驱动。
-// - AC-11-07 双表 polarity 交叉硬门:9 的 disease_registry.json 不存在(9 侧未建)
+// 真源声明(2026-10-07 重开 9 落地):
+// - DC-2:action_id 闭集 = 9 的处置轴(`disease_action_axis.json` → `DiseaseActionAxisBaker` 烘焙产物)。
+//   ⚠️ 单一轴归 9,两贡献者共用 id 空间(用户 2026-10-07 裁定)。
+//   判据本体 `RUN`(真源已落地);`RealRegistryUsed` 显式报出。
+// - DC-6:地板 = 9 的 `NOISE_BAND_POTENCY_9`(具名常量,住 9 的烘焙产物)。
+//   ⚠️ 量纲纪律:本值住**药效幅值域**(Q16.16 raw),不得跨量纲挪用。
+//   判据本体 `RUN`(真源已落地)。
+// - AC-11-07 双表 polarity 交叉硬门:9 的 `disease_action_axis.json` 已建(9 侧已落地)
 
 using System;
 using System.Collections.Generic;
@@ -211,10 +211,11 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
         {
             // 判据 ②(AC-11-09「改任一源字段 ⇒ 派生值自动重算」):
             // 把同一味药的 dose_range 从 null 改成 [1, 4] ⇒ 派生值须随之走 F-11.1 除式。
-            // 夹具 DOSE_BASE = 65536(= 1.0 Q16.16),potency = 1/2(raw 32768):
-            //   hi 档 dose_potency = ROUND_HALF_AWAY(32768 × 4 / 65536) = ROUND(2.0) = 2 raw。
-            // 空 dose_range ⇒ 整剂旁路 ⇒ dose_potency = drug_potency = 32768 raw。
-            // 两者**相差三个数量级** ⇒ 本测对「派生器真读了 dose_range」有强判别力。
+            // 夹具 DOSE_BASE = 65536(= 1.0 Q16.16),potency = 100(raw 6553600):
+            //   hi 档 dose_potency = ROUND_HALF_AWAY(6553600 × 4 / 65536) = ROUND(400.0) = 400 raw。
+            // 空 dose_range ⇒ 整剂旁路 ⇒ dose_potency = drug_potency = 6553600 raw。
+            // 两者**相差四个数量级** ⇒ 本测对「派生器真读了 dose_range」有强判别力。
+            // ⚠️ 真源期:相邻档差 = 6553600/65536 = 100 ≥ 真源地板 100 ⇒ DC-6 通过。
             string actionsJson = ReadActionsJson();
             string lexiconJson = ReadLexiconJson();
 
@@ -222,22 +223,22 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
               ""schema_version"": 1,
               ""items"": [
                 { ""base_id"": ""salicylic_acid"", ""category"": ""drug"",
-                  ""drug_profile"": { ""drug_potency"": ""1/2"", ""dose_range"": [1, 4] } }
+                  ""drug_profile"": { ""drug_potency"": ""100"", ""dose_range"": [1, 4] } }
               ]
             }";
             string itemsNoRange = @"{
               ""schema_version"": 1,
               ""items"": [
                 { ""base_id"": ""salicylic_acid"", ""category"": ""drug"",
-                  ""drug_profile"": { ""drug_potency"": ""1/2"", ""dose_range"": null } }
+                  ""drug_profile"": { ""drug_potency"": ""100"", ""dose_range"": null } }
               ]
             }";
 
             long withRange = PrescriptionActionsBinderProbe.SingleDoseMaxRawOf(actionsJson, lexiconJson, itemsWithRange);
             long noRange = PrescriptionActionsBinderProbe.SingleDoseMaxRawOf(actionsJson, lexiconJson, itemsNoRange);
 
-            Assert.AreEqual(2L, withRange, "dose_range = [1,4] 时派生值未按 F-11.1 随 hi 重算");
-            Assert.AreEqual(32768L, noRange, "空 dose_range 应走整剂路径(dose_potency = drug_potency)");
+            Assert.AreEqual(400L, withRange, "dose_range = [1,4] 时派生值未按 F-11.1 随 hi 重算");
+            Assert.AreEqual(6553600L, noRange, "空 dose_range 应走整剂路径(dose_potency = drug_potency)");
             Assert.AreNotEqual(withRange, noRange, "改 dose_range 后派生值不变 ⇒ 派生器读的是常量,不是数据");
         }
 
@@ -373,15 +374,17 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
 
         // ══════════════════════════════════════════════════════════════════
         // DC-2:action_id 闭集(2026-10-06 补 —— 此前 action_id 读入后从不校验)
-        // ⚠️ 判据本体 NOT-RUN:真源 = 9 的处置 id master,GDD `:748` 登记「未登记」。
+        // ⚠️ 判据本体 RUN:真源 = 9 的处置轴(`disease_action_axis.json` → 烘焙产物)。
         //    本组证「机制可跑 + 负夹具可红 + 空集不冒充绿」,**不证表已合规**。
         // ══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void test_dc2_shadowRegistryMechanism_acceptsClosedSetMember()
+        public void test_dc2_realRegistryMechanism_acceptsClosedSetMember()
         {
             // 机制阳性:闭集内成员 ⇒ 零错
-            var errs = PrescriptionActionIdRegistry.ValidateActionId(1);
+            // ⚠️ 2026-10-07 真源期:11 的闭集 = 9 的轴 ∩ owner=="11" = {10, 11, 12}
+            //    (影子期写死的 1 已随 action_id 重排退役 —— salicylic_acid → 10)。
+            var errs = PrescriptionActionIdRegistry.ValidateActionId(10);
             Assert.AreEqual(0, errs.Count,
                 $"闭集内 action_id 应通过,实际:{string.Join("; ", errs)}");
         }
@@ -405,10 +408,10 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
         }
 
         [Test]
-        public void test_dc2_binder_warnsOnOutOfRegistryActionId()
+        public void test_dc2_binder_throwsOnOutOfRegistryActionId()
         {
             // 端到端:烘焙门确实接线(此前 action_id 从不校验 ⇒ 本测在原实现下必红)。
-            // ⚠️ 影子期落 **Warnings 不落 errors** —— 用无主闭集硬失败 = 对合法输入类误判。
+            // ⚠️ 真源期硬失败(2026-10-07 升格):DC-2 违反落 **errors** ⇒ Bind 抛异常。
             string badActionsJson = @"{
                 ""schema_version"": 1,
                 ""dose_const"": { ""DOSE_BASE"": 65536, ""MAX_DOSE_DETENTS"": 5 },
@@ -417,27 +420,28 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
                 ]
             }";
 
-            var bound = PrescriptionActionsBinderProbe.Bind(badActionsJson, ReadLexiconJson(), ReadItemsJson());
-            Assert.IsTrue(ContainsWarning(bound.ShadowWarnings, "DC-2"),
-                $"DC-2 的发现须出现在影子诊断里,实际:{string.Join("; ", bound.ShadowWarnings)}");
+            var ex = Assert.Throws<BakeValidationException>(() =>
+                PrescriptionActionsBinderProbe.Bind(badActionsJson, ReadLexiconJson(), ReadItemsJson()));
+            Assert.IsTrue(ContainsError(ex, "DC-2"),
+                $"DC-2 的违反须出现在 errors 里,实际:{string.Join("; ", ex.Errors)}");
         }
 
         [Test]
-        public void test_dc2_shadowWarning_doesNotHardFailLegalFixture()
+        public void test_dc2_realRegistry_doesNotHardFailLegalFixture()
         {
-            // ⚠️ 反向守卫(2026-10-06 实测踩中的坑):合法夹具**不得**因影子判据而烘焙失败。
+            // ⚠️ 反向守卫(2026-10-06 实测踩中的坑):合法夹具**不得**因真源判据而烘焙失败。
             //    最初把影子发现并入 errors ⇒ 打断了 test_singleDoseMax_tracksDoseRangeHiChange
             //    (其 dose_potency = 1/2 的相邻档差低于影子地板) —— 这正是 GDD 点名的
-            //    「判据对合法输入类误判」。本测钉死:影子期不硬失败。
+            //    「判据对合法输入类误判」。本测钉死:真源期合法夹具仍不硬失败。
             string legalActionsJson = ReadActionsJson();
             Assert.DoesNotThrow(() =>
                 PrescriptionActionsBinderProbe.Bind(legalActionsJson, ReadLexiconJson(), ReadItemsJson()),
-                "影子判据不得让合法夹具烘焙失败(用无主门槛硬失败 = 对合法输入类误判)");
+                "真源判据不得让合法夹具烘焙失败(用有主门槛硬失败 = 对合法输入类误判)");
         }
 
         // ══════════════════════════════════════════════════════════════════
         // DC-6:可感知地板(2026-10-06 补 —— 机制此前只在 Sim,未接进烘焙门)
-        // ⚠️ 判据本体 NOT-RUN:门槛 `NOISE_BAND_9` 归 9 未立(BL-2)。现用**影子地板**。
+        // ⚠️ 判据本体 RUN:门槛 = 9 的 `NOISE_BAND_POTENCY_9`(具名常量,已立)。
         // ══════════════════════════════════════════════════════════════════
 
         // ⚠️ 夹具口径:F-11.1 是 `dose_potency = drug_potency × dose / DOSE_BASE`
@@ -445,9 +449,9 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
         //    故「大药效」= drug_potency raw 远大于 DOSE_BASE。
 
         [Test]
-        public void test_dc6_shadowFloorMechanism_acceptsSufficientGap()
+        public void test_dc6_realFloorMechanism_acceptsSufficientGap()
         {
-            // 机制阳性:相邻档差 = 65536×1000 / 65536 = 1000 ≥ 影子地板 100 ⇒ 零错
+            // 机制阳性:相邻档差 = 65536×1000 / 65536 = 1000 ≥ 真源地板 100 ⇒ 零错
             var range = new DoseRange(1, 5);
             var errs = PrescriptionActionIdRegistry.ValidatePerceptibleFloor(
                 drugPotencyRaw: 65536L * 1000L, range: range, doseBase: 65536);
@@ -455,9 +459,9 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
         }
 
         [Test]
-        public void test_dc6_negative_gapBelowShadowFloor()
+        public void test_dc6_negative_gapBelowRealFloor()
         {
-            // 机制阴性:相邻档差 = 1000/65536 = 0 < 影子地板 100 ⇒ 报错且点名 DC-6
+            // 机制阴性:相邻档差 = 1000/65536 = 0 < 真源地板 100 ⇒ 报错且点名 DC-6
             var range = new DoseRange(1, 5);
             var errs = PrescriptionActionIdRegistry.ValidatePerceptibleFloor(
                 drugPotencyRaw: 1000L, range: range, doseBase: 65536);
@@ -488,54 +492,62 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // 影子真源的**显式记账**(禁借绿:判据非真判须可见)
+        // 真源的**显式记账**(禁借绿:判据非真判须可见)
         // ══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void test_shadowRegistry_flagIsSurfaced_notSilent()
+        public void test_realRegistry_flagIsSurfaced_notSilent()
         {
-            // 本次烘焙用的影子真源必须**显式报出** —— 不得静默冒充真判据
+            // 本次烘焙用的真源必须**显式报出** —— 不得静默冒充真判据
             var bound = PrescriptionActionsBinderProbe.Bind(
                 ReadActionsJson(), ReadLexiconJson(), ReadItemsJson());
-            Assert.IsTrue(bound.ShadowRegistryUsed,
-                "DC-2 / DC-6 真源缺席 ⇒ 影子标记须为 true;若已落地请更新本断言与登记");
+            Assert.IsTrue(bound.RealRegistryUsed,
+                "DC-2 / DC-6 真源已落地 ⇒ 真源标记须为 true;若已落地请更新本断言与登记");
         }
 
         [Test]
-        public void test_shadowRegistry_realRegistryFileStillAbsent_canary()
+        public void test_realRegistry_axisFilePresent_canary()
         {
-            // ⚠️ **真源落地的可执行钉子**(2026-10-07 评审缺陷 5):`ShadowRegistryUsed` 是硬编码
+            // ⚠️ **真源落地的可执行钉子**(2026-10-07 重开 9 落地):`RealRegistryUsed` 是硬编码
             //    true,若真源落地后忘改,该标记会**静默保持 true** 而无人察觉。
-            //    本测盯的是**文件系统事实**(而非那个硬编码布尔):
-            //    一旦 `prescription_action_registry.json` 出现,本测即红,强制更新登记与影子闭集。
-            string realRegistryPath = Path.Combine(
-                DataDir, PrescriptionActionIdRegistry.RealRegistryFileName);
-            Assert.IsFalse(File.Exists(realRegistryPath),
-                $"真源 '{PrescriptionActionIdRegistry.RealRegistryFileName}' 已出现于 {DataDir} —— " +
-                "DC-2 的真源已落地:须撤除影子闭集、把 ValidateActionId 升格为硬失败、更新 EPIC 登记。");
+            //    本测盯的是**代码行为**(而非文件系统事实):
+            //    `RealActionIds()` 的返回值 == 9 烘焙产物中 owner=="11" 段的 id 集。
+            //    ⚠️ 文件存在 ≠ 代码读它 —— 本测验证的是后者。
+            var axisResult = DiseaseActionAxisBaker.BakeFromRepo(RepoRoot);
+            var expectedIds = new HashSet<int>();
+            foreach (var a in axisResult.Actions)
+                if (a.Owner == "11")
+                    expectedIds.Add(a.ActionId);
+            var actualIds = PrescriptionActionIdRegistry.RealActionIds();
+            Assert.AreEqual(expectedIds, actualIds,
+                $"RealActionIds() 须读 9 的烘焙产物(owner==\"11\" 段)。" +
+                $"期望: [{string.Join(", ", expectedIds)}], 实际: [{string.Join(", ", actualIds)}]");
         }
 
         [Test]
-        public void test_shadowWarnings_areConsumedOnProductionPath_notOnlyInTests()
+        public void test_realWarnings_areConsumedOnProductionPath_notOnlyInTests()
         {
-            // ⚠️ 2026-10-07 评审缺陷 1:`ShadowWarnings` / `ShadowRegistryUsed` 此前在**非测试代码中
-            //    零消费者** ⇒ 「判据非真判」在生产路径上完全不可见,与影子件自陈矛盾。
+            // ⚠️ 2026-10-07 评审缺陷 1:`RealWarnings` / `RealRegistryUsed` 此前在**非测试代码中
+            //    零消费者** ⇒ 「判据非真判」在生产路径上完全不可见,与真源件自陈矛盾。
             //    本测是**源码面守卫**:菜单(唯一生产调用点)必须读这两列并报出。
             //    (菜单是 Editor 回调,EditMode 下不可直接调用 ⇒ 只能以源码面钉住接线。)
             string menuSrc = ReadSourceFile("DataBakeMenu.cs");
-            Assert.IsTrue(menuSrc.Contains("result.ShadowWarnings"),
-                "菜单须消费 result.ShadowWarnings —— 否则影子诊断只在测试里活着(生产路径静默)");
-            Assert.IsTrue(menuSrc.Contains("result.ShadowRegistryUsed"),
-                "菜单须消费 result.ShadowRegistryUsed —— 否则「本次用影子真源」生产路径不可见");
+            Assert.IsTrue(menuSrc.Contains("result.RealWarnings"),
+                "菜单须消费 result.RealWarnings —— 否则真源诊断只在测试里活着(生产路径静默)");
+            Assert.IsTrue(menuSrc.Contains("result.RealRegistryUsed"),
+                "菜单须消费 result.RealRegistryUsed —— 否则「本次用真源」生产路径不可见");
         }
 
         [Test]
-        public void test_shadowRegistry_declaresItsOwnNonAuthority()
+        public void test_realRegistry_declaresItsAuthority()
         {
-            // 影子件必须**自陈非真源** —— 防后来者误读为已闭
+            // 真源件必须**自陈是真源** —— 防后来者误读为未闭
+            // ⚠️ 2026-10-07 改:断言**具体的行为契约**,而非「包含真源二字」。
             string src = ReadSourceFile("PrescriptionActionIdRegistry.cs");
-            Assert.IsTrue(src.Contains("影子注册表,不是真源") || src.Contains("NOT-RUN"),
-                "影子件须自陈非真源 / NOT-RUN,防误读为已闭");
+            Assert.IsTrue(src.Contains("DiseaseActionAxisBaker"),
+                "真源件须引用 DiseaseActionAxisBaker —— 否则「真源」只是注释,不是行为");
+            Assert.IsTrue(src.Contains("RealPerceptibleFloorRaw"),
+                "真源件须有 RealPerceptibleFloorRaw 方法 —— 否则 DC-6 真源未接线");
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -585,8 +597,8 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             // ⇒ 读者会把「零覆盖」读成「已合规」。覆盖率必须显式记账。
             var bound = PrescriptionActionsBinderProbe.Bind(
                 ReadActionsJson(), ReadLexiconJson(), ReadItemsJson());
-            Assert.IsTrue(ContainsWarning(bound.ShadowWarnings, "DC-6 覆盖"),
-                $"DC-6 覆盖率须显式记账,实际:{string.Join("; ", bound.ShadowWarnings)}");
+            Assert.IsTrue(ContainsWarning(bound.RealWarnings, "DC-6 覆盖"),
+                $"DC-6 覆盖率须显式记账,实际:{string.Join("; ", bound.RealWarnings)}");
         }
 
         [Test]
@@ -597,7 +609,7 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             var bound = PrescriptionActionsBinderProbe.Bind(
                 ReadActionsJson(), ReadLexiconJson(), ReadItemsJson());
             string coverage = null;
-            foreach (string w in bound.ShadowWarnings)
+            foreach (string w in bound.RealWarnings)
                 if (w.Contains("DC-6 覆盖")) coverage = w;
             Assert.IsNotNull(coverage, "须有 DC-6 覆盖记账行");
             Assert.IsTrue(coverage.Contains("零求值"),

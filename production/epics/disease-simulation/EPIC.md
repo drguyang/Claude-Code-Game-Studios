@@ -3,8 +3,8 @@
 > **Layer**: Foundation(Core sim 模块)
 > **GDD**: design/gdd/disease-simulation.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)
-> **Status**: Complete ✅ 2026-09-30(6/6 stories;测试 2026-10-01 复跑全绿,【超算】batchmode)
-> **Stories**: 6 stories — see table below
+> **Status**: ✅ Complete(7/7 stories 已收口;**story-007 重开轮已闭环** —— 处置轴 + treatable_by 数据面 + NOISE_BAND_9 具名常量;双代理一轮评审 → 修复 → 2026-10-07 复跑全绿:9 侧 67/67 · 11 侧 174/174 · 10 侧 116/116 · 全量 2948/2901/0 红;评审原件 `production/qa/evidence/review-disease-action-axis-2026-10-07.md`)
+> **Stories**: 7 stories — see table below
 
 ## Overview
 
@@ -85,3 +85,4 @@ This epic is complete when:
 | 004 | F1 病程求值与 F2 体征投影 | Logic | **Complete ✅ 2026-09-30** | ADR-005/006 |
 | 005 | F4 九态阈值机与照护杠杆 | Logic | **Complete ✅ 2026-09-30** | ADR-005/009 |
 | 006 | F3 CatchUp、F5 共病合成与跨平台黄金夹具 | Integration | **Complete ✅ 2026-09-30** | ADR-005/012 |
+| 007 | 处置轴 + treatable_by 数据面 + NOISE_BAND_9 具名常量 | Config-Data | **Complete ✅ 2026-10-07**(重开轮闭环;DC-2/DC-6 真源已立;评审原件已落) | ADR-014/024/005 |

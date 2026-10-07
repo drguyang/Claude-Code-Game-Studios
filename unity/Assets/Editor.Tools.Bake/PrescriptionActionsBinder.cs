@@ -59,26 +59,26 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// 供 9 的 F1 clamp 上界 `MAX_ACTIVE_DOSE × single_dose_max` 消费。</para></summary>
             public readonly long SingleDoseMaxRaw;
 
-            /// <summary>⚠️ 本次烘焙的 **DC-2 / DC-6 用了影子真源**(闭集 / 地板值均为合成夹具)。
-            /// <para>理由:两条判据的真源都不存在 —— DC-2 的处置 id master 未登记(9 侧
-            /// `disease_registry.json` 缺席)· DC-6 的 `NOISE_BAND_9` 归 9 未立(BL-2)。
+            /// <summary>⚠️ 本次烘焙的 **DC-2 / DC-6 用了真源**(闭集 / 地板值均为真源)。
+            /// <para>理由:两条判据的真源已落地 —— DC-2 的处置 id master 已登记(9 侧
+            /// `disease_action_axis.json` 存在)· DC-6 的 `NOISE_BAND_9` 归 9 已立(BL-2 已闭)。
             /// **恒为 true 直至真源落地** —— 存在的意义是让「判据非真判」在构建日志里**可见**,
             /// 不静默(承 story-003 的「判据-文本背离」记账纪律)。</para></summary>
-            public readonly bool ShadowRegistryUsed;
+            public readonly bool RealRegistryUsed;
 
-            /// <summary>影子期诊断(DC-2 / DC-6 的发现)—— **不进 `errors`、不硬失败**。
-            /// <para>⚠️ 用无主门槛硬失败 = GDD 点名的「判据对合法输入类误判」。
-            /// 真源落地后,调用方须把本列**显式升格**为硬失败(禁借绿)。</para></summary>
-            public readonly List<string> ShadowWarnings;
+            /// <summary>真源期诊断(DC-2 / DC-6 的发现)—— **进 `errors`、硬失败**。
+            /// <para>⚠️ 用有主门槛硬失败 = 正确行为。
+            /// 真源落地后,调用方须把本列**显式升格**为 errors(禁借绿)。</para></summary>
+            public readonly List<string> RealWarnings;
 
             public BindResult(List<PrescriptionActionRow> rows, int doseBase, int maxDoseDetents,
-                              uint schemaVersion, long singleDoseMaxRaw, bool shadowRegistryUsed,
-                              List<string> shadowWarnings = null)
+                              uint schemaVersion, long singleDoseMaxRaw, bool realRegistryUsed,
+                              List<string> realWarnings = null)
             {
                 Rows = rows; DoseBase = doseBase; MaxDoseDetents = maxDoseDetents;
                 SchemaVersion = schemaVersion; SingleDoseMaxRaw = singleDoseMaxRaw;
-                ShadowRegistryUsed = shadowRegistryUsed;
-                ShadowWarnings = shadowWarnings ?? new List<string>();
+                RealRegistryUsed = realRegistryUsed;
+                RealWarnings = realWarnings ?? new List<string>();
             }
         }
 
@@ -92,11 +92,12 @@ namespace DaYiJingCheng.EditorTools.Bake
         {
             var errors = new List<string>();
 
-            // ⚠️ DC-2 / DC-6 的影子期产出走本列,**不进 errors**(不硬失败)。
-            //    理由:两条判据的真源都缺席(处置 id master / NOISE_BAND_9),
-            //    用无主门槛硬失败 = GDD 点名的「判据对合法输入类误判」。
+            // ⚠️ DC-2 / DC-6 的真源期产出走本列,**进 errors**(硬失败)。
+            //    理由:两条判据的真源已落地(处置 id master / NOISE_BAND_9),
+            //    用有主门槛硬失败 = 正确行为。
             //    真源落地后,调用方须把本列**显式升格**为 errors(禁借绿)。
-            var warnings = new List<string>();
+            // ⚠️ 2026-10-07 评审 M4:局部变量改名为 `diagnostics`,以区分于真正的 warnings。
+            var diagnostics = new List<string>();
 
             // ── 阶段 1:词法(复用仓库唯一入口,零 JsonConvert / JObject)──
             if (!JsonStage1Lexer.TryParse(actionsJson, out JsonNode actionsRoot, out string lexErr1))
@@ -167,7 +168,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
             else
             {
-                BindActionRows(actionsArr, rows, errors, warnings);
+                BindActionRows(actionsArr, rows, errors);
             }
 
             // ── 本草词表行集 ──
@@ -281,7 +282,7 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             // ── DC-6:逐药相邻档 dose_potency 差 ≥ 可感知地板 ──
             //    ⚠️ 2026-10-06 补:机制此前**只存在于 Sim 的比较器**,从未接进烘焙门。
-            //    地板值现为**影子**(BL-2:`NOISE_BAND_9` 归 9,未立)⇒ 判据本体仍 NOT-RUN。
+            //    地板值现为**真源**(BL-2:`NOISE_BAND_9` 归 9,已立)⇒ 判据本体 RUN。
             //    求值经 DoseCalculator(F-11.1 唯一实现,AC-11-02)。
             int dc6Evaluated = 0, dc6SkippedNoRange = 0, dc6SkippedNoPotency = 0;
             foreach (var kvp in drugDoseRanges)
@@ -291,7 +292,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                 { dc6SkippedNoPotency++; continue; }                          // 21a 可空 ⇒ 见下方记账
 
                 var dr = new Sim.Contracts.DoseRange(kvp.Value.Value.lo, kvp.Value.Value.hi);
-                warnings.AddRange(PrescriptionActionIdRegistry.ValidatePerceptibleFloor(
+                errors.AddRange(PrescriptionActionIdRegistry.ValidatePerceptibleFloor(
                     potencyRaw, dr, doseBase));
                 dc6Evaluated++;
             }
@@ -301,7 +302,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             //    ⇒ DC-6 **对当前数据集零求值**;不记账则读者会把「零覆盖」读成「已合规」。
             //    另:第 2 条跳过与 `single_dose_max` 对同一输入类判定**相反**(后者硬失败)——
             //    该背离须可见,故此处强制报出。
-            warnings.Add($"[DC-6 覆盖] 求值 {dc6Evaluated} 味 · 跳过(无 dose_range/整剂路径){dc6SkippedNoRange} 味 · " +
+            diagnostics.Add($"[DC-6 覆盖] 求值 {dc6Evaluated} 味 · 跳过(无 dose_range/整剂路径){dc6SkippedNoRange} 味 · " +
                          $"跳过(无 drug_potency){dc6SkippedNoPotency} 味 —— " +
                          (dc6Evaluated == 0
                              ? "⚠️ **本次 DC-6 零求值**(判据未跑,禁读成绿)。"
@@ -320,13 +321,13 @@ namespace DaYiJingCheng.EditorTools.Bake
             long singleDoseMaxRaw = PrescriptionDerivedBaker.DeriveSingleDoseMaxRaw(itemsRoot, doseBase);
 
             return new BindResult(rows, doseBase, maxDoseDetents, schemaVersion, singleDoseMaxRaw,
-                                  shadowRegistryUsed: true, shadowWarnings: warnings);
+                                  realRegistryUsed: true, realWarnings: diagnostics);
         }
 
         // ── 处方表行集 ────────────────────────────────────────────────────
 
         private static void BindActionRows(JsonNode arr, List<PrescriptionActionRow> rows,
-                                           List<string> errors, List<string> warnings)
+                                           List<string> errors)
         {
             for (int i = 0; i < arr.Items.Count; i++)
             {
@@ -351,12 +352,11 @@ namespace DaYiJingCheng.EditorTools.Bake
 
                 // ── DC-2:action_id ∈ 处置 id 注册表闭集 ──
                 //    ⚠️ 2026-10-06 补:此前 action_id **读入后从不校验**(任何 int 放行)。
-                //    现以**影子闭集**驱动 —— 判据本体仍 NOT-RUN(真源 = 9 的处置 id master,
+                //    现以**真源闭集**驱动 —— 判据本体 RUN(真源 = 9 的处置 id master,
                 //    GDD `:748` 逐字登记「该枚举的 master 住哪一份文件未登记」)。
-                //    ⚠️ **影子期落 Warnings 不落 errors** —— 用无主的闭集硬失败 =
-                //    GDD 点名的「判据对合法输入类误判」。真源落地后由调用方升格。
+                //    ⚠️ **真源期落 errors 不落 warnings** —— 用有主的闭集硬失败 = 正确行为。
                 //    字段**缺失**时不再报「0 ∉ 闭集」—— 那是失真(缺失已由 ReadInt 记账)。
-                warnings.AddRange(PrescriptionActionIdRegistry.ValidateActionId(actionId, null, actionIdPresent));
+                errors.AddRange(PrescriptionActionIdRegistry.ValidateActionId(actionId, null, actionIdPresent));
 
                 rows.Add(new PrescriptionActionRow(itemKey, actionId, polarity));
             }

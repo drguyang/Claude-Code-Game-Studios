@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "_note": "系统 9 的**处置轴单一 master** + treatable_by 关系(2026-10-07 重开 9 落地)。两段同住一份文件 = 单一真源:DC-2 / DC-4 读 actions 段(闭集本体);9 的 F1 门与 11 的 DC-4 双表对拍读 treatable_by 段。⚠️ 本文件**只承载动作轴子集** —— 病种条目的曲线/严重度/传染性等数值仍冻结待用户数值轮,故**不**建完整 disease_registry.json(建全表 = 被迫填占位值,而 9 的 17 条区间校验会面对假数据 = GDD 点名的「判据对合法输入类误判」)。⚠️ 背离登记:9 GDD R1.3 把 treatable_by[] 定义为病种条目内的字段,本文件把它拆到独立文件 —— 理由见上。两阶段烘焙 → disease_action_axis.cooked.bytes → IDataProvider。",
+  "actions": [
+    { "id": 0,  "name": "止血包扎",   "owner": "10" },
+    { "id": 1,  "name": "节奏型通气", "owner": "10" },
+    { "id": 10, "name": "柳树皮",     "owner": "11" },
+    { "id": 11, "name": "毛地黄",     "owner": "11" },
+    { "id": 12, "name": "金鸡纳皮",   "owner": "11" }
+  ],
+  "treatable_by": {
+    "DIS_MALARIA":         [ { "action": 12, "polarity": "causal" } ],
+    "DIS_RHEUMATIC_FEVER": [ { "action": 10, "polarity": "symptomatic" } ],
+    "DIS_HEART_FAILURE":   [ { "action": 11, "polarity": "symptomatic" } ],
+    "DIS_TYPHOID":         [ { "action": 10, "polarity": "symptomatic" } ],
+    "DIS_MEASLES":         [ { "action": 10, "polarity": "symptomatic" } ],
+    "DIS_DYSENTERY":       [ { "action": 10, "polarity": "symptomatic" } ],
+    "DIS_TETANUS":         [],
+    "DIS_NEURASTHENIA":    []
+  }
+}

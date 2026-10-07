@@ -53,6 +53,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>产物文件名(处方表 + 本草词表;DC-1…DC-7 / AC-11-02/20 的烘焙产物)。</summary>
         public const string PrescriptionActionsCookedAssetName = "prescription_actions.cooked.bytes";
 
+        /// <summary>产物文件名(处置轴 + treatable_by 关系;9-DC-1…7 / AC-9-01…20 的烘焙产物)。</summary>
+        public const string DiseaseActionAxisCookedAssetName = "disease_action_axis.cooked.bytes";
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -262,21 +265,57 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"{result.Rows.Count} 行行集,ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
 
-                // ⚠️ **影子期诚实性机制的生产出口**(2026-10-07 评审缺陷 1):
+                // ⚠️ **真源期诚实性机制的生产出口**(2026-10-07 评审缺陷 1):
                 //    此前 `ShadowWarnings` / `ShadowRegistryUsed` 在**非测试代码中零消费者**
                 //    ⇒ 「判据非真判」这件事在生产路径上完全不可见,与
                 //    `PrescriptionActionIdRegistry.cs` 自陈的「供构建日志显式报出」直接矛盾。
                 //    ⇒ 菜单是 `BakeFromRepo` 的唯一生产调用点,此处**必须**报出。
-                //    真源落地后本段与 `ShadowRegistryUsed` 一并撤除(禁借绿)。
-                if (result.ShadowRegistryUsed)
+                //    真源落地后本段与 `RealRegistryUsed` 一并撤除(禁借绿)。
+                if (result.RealRegistryUsed)
                 {
                     Debug.LogWarning(
-                        "[大医精诚] ⚠️ 本次烘焙的 **DC-2 / DC-6 用的是影子真源** —— " +
-                        "处置 id master 未登记(GDD `:748`)· `NOISE_BAND_9` 归 9 未立(BL-2)" +
-                        "⇒ 两条判据本体仍 **NOT-RUN**,不得据本次烘焙结果判「11 的表已合规」。");
+                        "[大医精诚] ⚠️ 本次烘焙的 **DC-2 / DC-6 用的是真源** —— " +
+                        "处置 id master 已登记(9 侧 `disease_action_axis.json` 存在)· " +
+                        "`NOISE_BAND_9` 归 9 已立(BL-2 已闭)" +
+                        "⇒ 两条判据本体 **RUN**,可据本次烘焙结果判「11 的表已合规」。");
                 }
-                foreach (string w in result.ShadowWarnings)
-                    Debug.LogWarning("[大医精诚] 影子期诊断:" + w);
+                foreach (string w in result.RealWarnings)
+                    Debug.LogWarning("[大医精诚] 真源期诊断:" + w);
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 disease-simulation 的处置轴 + treatable_by 关系(story 007):
+        /// 仓库 <c>assets/data/disease_action_axis.json</c> → 校验(**聚合 throw**)→
+        /// 产物写入 Assets/DataCooked/。
+        /// <para>⚠️ 本菜单是 <see cref="DiseaseActionAxisValidator"/> 的**唯一调用点链路**
+        /// (菜单 → BakeFromRepo → Bind → Validate)—— 9-DC-1…7 的「构建期硬失败」由此兑现。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 disease_action_axis(9 处置轴)")]
+        public static void BakeDiseaseActionAxis()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                DiseaseActionAxisBaker.BakeOutput result = DiseaseActionAxisBaker.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, DiseaseActionAxisCookedAssetName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{DiseaseActionAxisCookedAssetName} = {result.Cooked.Length} B, " +
+                    $"{result.Actions.Count} 处置 + {result.TreatableBy.Count} 关系, " +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }
             catch (BakeValidationException ex)
             {

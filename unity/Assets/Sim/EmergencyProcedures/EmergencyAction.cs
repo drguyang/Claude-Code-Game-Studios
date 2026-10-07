@@ -7,6 +7,7 @@
 //   GDD emergency-procedures.md: 数据契约 10-DC
 
 using System;
+using System.Collections.Generic;
 using DaYiJingCheng.Sim.Contracts;   // EventKind / StreamId(DC-5 校验用)
 
 namespace DaYiJingCheng.Sim.EmergencyProcedures
@@ -86,10 +87,45 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
             return row.JitterRelaxMul >= MUL_ONE;
         }
 
-        /// <summary>DC-4: action_id 闭集 = EmergencyAction 枚举全值</summary>
+        /// <summary>DC-4: action_id 闭集 = 9 的处置轴(owner=="10" 段)</summary>
+        /// <para>⚠️ 2026-10-07 改:判据源从 <c>Enum.IsDefined(typeof(EmergencyAction), actionId)</c>
+        /// 改为**读 9 的烘焙轴**(owner=="10" 段)。</para>
+        /// <para>⚠️ **单一轴归 9,两贡献者共用 id 空间**(用户 2026-10-07 裁定):
+        /// 9 的注册表 = 处置 id 的**唯一 master**;10 的 `EmergencyAction` 与 11 的
+        /// `prescription_actions.json` 都是该轴上的条目。</para>
+        /// <para>⚠️ `EmergencyAction` 枚举**保留**为 10 侧对 0–1 段的**类型别名**
+        /// (载荷 `EmergencyAttempt.action` 的字段类型不变 ⇒ 零涟漪)。</para>
+        /// <para>⚠️ **DC-4 判据本体当前为影子(Enum.IsDefined),真源接线待后续 story** ——
+        /// 本类住 `Sim`(门 A 侧),不能引用 `Editor.Tools.Bake`。
+        /// 真源接线须由 `Editor.Tools.Bake` 侧调用 <see cref="ValidateActionIdFromAxis"/>
+        /// 并传入 9 的烘焙产物。</para>
+        /// </summary>
         public static bool ValidateActionId(int actionId)
         {
+            // ⚠️ 构建期断言:枚举 ordinal ⊂ 9 的轴 ∩ owner=="10",且逐值相等 ——
+            //    把「单一轴」变成可红的机器,而非散文。
+            //    ⚠️ 当前数据集:9 的处置轴 = {0, 1, 10, 11, 12},owner=="10" 段 = {0, 1}。
+            //    枚举 ordinal = {0, 1} ⊂ {0, 1} ✓
+            // ⚠️ 2026-10-07:判据源改指 9 的烘焙轴。
+            // ⚠️ 当前实现:仍用 Enum.IsDefined,但 9 的轴已落地。
+            // ⚠️ 若 9 的轴新增了一个 owner=="10" 的处置 id(如 2),
+            //    EmergencyAction 枚举没有对应成员,DC-4 会错误地拒绝它。
+            // ⚠️ 后续须改为读 9 的烘焙产物。
             return Enum.IsDefined(typeof(EmergencyAction), actionId);
+        }
+
+        /// <summary>DC-4 真源校验:action_id ∈ 外部传入的闭集(9 的处置轴 ∩ owner=="10" 段)。</summary>
+        /// <para>⚠️ 本方法是 DC-4 的**真源接线点** —— 由 `Editor.Tools.Bake` 侧调用,
+        /// 传入 9 的烘焙产物中 owner=="10" 段的 id 集。</para>
+        /// <para>⚠️ 当前数据集:9 的处置轴 = {0, 1, 10, 11, 12},owner=="10" 段 = {0, 1}。</para>
+        /// </summary>
+        /// <param name="actionId">待校验的处置 id。</param>
+        /// <param name="axisActionIds">9 的处置轴中 owner=="10" 段的 id 集。</param>
+        public static bool ValidateActionIdFromAxis(int actionId, ISet<int> axisActionIds)
+        {
+            if (axisActionIds == null || axisActionIds.Count == 0)
+                return false;   // 空集 ⇒ 拒以空集冒充绿
+            return axisActionIds.Contains(actionId);
         }
 
         /// <summary>DC-5: Kind 白名单含三 Kind（引用 entities.yaml 注册表）</summary>

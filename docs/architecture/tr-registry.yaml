@@ -1130,6 +1130,16 @@
     revised: "2026-09-23"
     note: "2026-09-23 用户裁定路线 [A]:ADR-005 Amendment G 窄修订钉死类型(承 GDD §F0 2026-09-16 三轮二轮 E1 + AC-4 + ADR-012 F7)⇒ gap→covered,`adr: ADR-005`,**去 blocking: true**(原阻塞 = E-2 类型缺失,现由 hi/lo 消解);原 requirement「System.Int128」措辞作废(netstandard2.1/IL2CPP 无此 .NET 7 类型)"
 
+  - id: TR-disease-023
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: "处置轴 + treatable_by 数据面(单一 master 归 9,两贡献者共用 id 空间);NOISE_BAND_9 具名常量(两个量纲各一把尺)"
+    domain: Core
+    adr: ADR-014
+    status: covered
+    revised: "2026-10-07"
+    note: "2026-10-07 重开 9 落地(story-007):`disease_action_axis.json` 建成单一 master;`NOISE_BAND_PROGRESS_9`(Progress 域)与 `NOISE_BAND_POTENCY_9`(药效幅值域)已立,各给一把尺;D-9-J 结案。"
+
   # ═══════════════════════════════════════════════════════════════════════════
   # 诊断与体征 (Diagnosis System, #8) — design/gdd/diagnosis-system.md
   # ═══════════════════════════════════════════════════════════════════════════
@@ -3324,7 +3334,7 @@
     domain: Core
     adr: ADR-014
     status: covered
-    note: "规则五 · AC-11-07。两表漂移 = 静默撒谎(F1 用注册表值而 F4 的 last_intervention 用事件载荷值)。承 clinic-machine 的 ADJ_TABLE 对称性升烘焙硬门先例。"
+    note: "规则五 · AC-11-07。两表漂移 = 静默撒谎(F1 用注册表值而 F4 的 last_intervention 用事件载荷值)。承 clinic-machine 的 ADJ_TABLE 对称性升烘焙硬门先例。⚠️ 2026-10-07 更新:9 侧真源 = `disease_action_axis.json`(story-007 落地),原 `disease_registry.json` 幽灵引据已订正。"
 
   - id: TR-prescription-006
     system: prescription-and-medication
@@ -3452,8 +3462,8 @@
     requirement: "可感知地板的量纲一致：剂量档位的可感知地板必须与 9 的噪声同量纲方可比较;不得把 9 的 σ(Progress 域)或 21a 的品级地板(tick 域)的数值挪用到药效幅值域"
     domain: Core
     adr: null
-    status: gap
-    note: "**AC-11-19** —— 🔴 **2026-09-19 二轮(BL-2)新立**:**9 侧无具名噪声带常量**(只有 `σ` 旋钮与 `Noise(seed,t)` 函数),该 AC 记 `NOT-RUN`;承接件 = **9**(`disease-simulation.md` **`D-9-J`** / `O-11→9`)。**本条的价值在「防跨量纲挪用」这一侧**(修法本身可能被误当成「借个数」:拿 σ 的倍数当 `NOISE_BAND_9` = 跨量纲挪用,不在授权内)。"
+    status: covered
+    note: "**AC-11-19** —— ✅ **2026-10-07 重开 9 落地**:9 侧已立 `NOISE_BAND_POTENCY_9`(药效幅值域,值 = 100 raw),该 AC 记 `RUN`;承接件 = **9**(`disease-simulation.md` **`D-9-J`** / `O-11→9`)。**本条的价值在「防跨量纲挪用」这一侧**(修法本身可能被误当成「借个数」:拿 σ 的倍数当 `NOISE_BAND_9` = 跨量纲挪用,不在授权内)。"
 
   # ═══════════════════════════════════════════════════════════════════════════
   # 炮制 (Processing / Preparation, #18) — design/gdd/processing.md
