@@ -438,17 +438,11 @@ namespace DaYiJingCheng.Tests.PatientAI
                 "AC-13-A5:signs[] 不同不得改变行为输出(signs 只喂材质)");
         }
 
-        [Test]
-        public void test_ac13a5_signsConsumedOnlyByMaterial()
-        {
-            // signs[] 的**唯一合法消费点** = Material();空集 ⇒ Neutral(不做特判)
-            Assert.AreEqual(PatientMaterial.Neutral,
-                PatientBehaviorDirector.Material(new VitalsDto(0.5f, 0f, 0, 0)),
-                "空集 signs[] ⇒ 中性表现(F-13.8 空集行)");
-            var withSigns = PatientBehaviorDirector.Material(new VitalsDto(0.5f, 0f, SignChannel.Voice, 3));
-            Assert.AreEqual(SignChannel.Voice, withSigns.ChannelMask, "非空 ⇒ 通道透传");
-            Assert.AreEqual(3, withSigns.Count, "词条计数透传");
-        }
+        // ── S7 删除(2026-10-07 边界评估轮):原 `test_ac13a5_signsConsumedOnlyByMaterial` ──
+        // 守的 `PatientBehaviorDirector.Material` + `PatientMaterial` 已随孤儿半迁移件删除
+        // (零生产调用方)。AC-13-A5「signs 唯一消费点」由 presentation_projection_test 的
+        // `MaterialTable.Material` 断言承载;「signs 不改行为」由上方
+        // `test_ac13a5_signsDoNotChangeBehaviorOutput` 承载 —— 语义不减弱。
 
         [Test]
         public void test_ac13a5_reflectionScanner_catchesSignsLeak_negativeFixture()

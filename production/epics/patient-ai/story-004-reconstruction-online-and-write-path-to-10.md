@@ -40,7 +40,9 @@
 - [x] id 边界:敌人与病人共用 `IIdAuthority` 空间与高水位成立(含敌人行场景,`max(id)+1` 扫三流并集排除 `PatientId.None`),13 只消费 id 不发号(AC-13-C4 扩面,承 ADR-006 Amendment B / ADR-016 §二)——
   **2026-10-07 登记口径**:逐流增量断言(病史 3 / 病例 6 / 世界 8);**TC-4 迁移腿(`max(id)+1` 重构)归 7a**;`None` 排除谓词在本 API 下不可观测(`m10` 注记),只钉可观测契约
 - [ ] 联机:客户端不重算 13 —— 断言客户端进程内 13 决策器零求值;病人在客户端的表现(位置/姿态)来自第二 QoS 投影(该 AC **BLOCKED-BY 45**,P0 以桩+断言存在为准,NOT-RUN 照登)—— **NOT-RUN**(V8 桩已置防借绿闸门,摘 `[Ignore]` 即红)
-- [ ] 跨平台逐位:同事件流在 Mono/IL2CPP 各跑,13 决策轨迹哈希一致(挂 ADR-012 集成级夹具,EXTERNAL,CI 产物为证)—— **EXTERNAL**(挂 ADR-012 CI 矩阵)
+  **转勾判据(2026-10-07 补,qa-lead 席)**:45 P1b 实装客户端装配 → 实现判据本体(客户端装配引用集零 13 决策器类型 / 求值计数)→ 摘 `[Ignore]` → 绿。
+- [ ] 跨平台逐位:同事件流在 Mono/IL2CPP 各跑,13 决策轨迹哈希一致(挂 ADR-012 集成级夹具,EXTERNAL,CI 产物为证)—— **EXTERNAL**
+  **拆腿 + 产出者现状(2026-10-07 补)**:① 夹具腿 = 轨迹哈希 + 四场景 tick 列表(Implementation Note 4)**尚不存在**,P0 可写、归 ADR-012 CI 轮;② 对拍腿 = Mono↔IL2CPP 依赖 `.github/workflows/unity-tests.yml:91-98` `il2cpp-determinism` job(**现为 TODO 空桩,无产出者**)⇒ Test Evidence 的 CI 产物按 `(EXTERNAL, 未产出)` 登记。
 - [x] 程序集卫生:13 住边界层,不进 `Sim`(门 A);引用集白名单断言(不含引擎物理/ECS;EditMode 探针)——
   2026-10-07 修复:原负夹具为恒真 ⇒ 改**共用源码文本扫描机器**(`LoadProductionPatientAiSources` 正测 + 影子源文本负夹具)
 - [ ] **[L]** 行为可读性走查:Idle/Seeking/Bedridden/InTreatment/Terminal 五档玩家可从姿态+音**无 UI** 读出(承支柱四「瘟疫表现为散落的病例」与 13 的 Player Fantasy;SIGN-OFF,[L])——
@@ -52,8 +54,14 @@
 
 1. 重建测试用 `Sim` 侧假时钟 + 事件流重放器,13 决策器以纯函数形式暴露(禁单例);播种点 = 在场进入 tick。
 2. 写路径联调与 10 的 epic 共用夹具:10 的意图事件 Kind 若尚未入 registry(归 10 GDD 轮),13 侧以**契约测试**(订阅面形状)代替端到端,登记 BLOCKED-BY-10。
-3. 联机桩:`IPresentPatients` 消费方(37)与客户端投影用 ADR-001 pipe 接口打桩;真实第二 QoS 走 45 P1b —— 不阻塞 P0 判据的「零重算」断言(可静态验证)。
+3. 联机桩:`IPresentPatients` 消费方(37)与客户端投影用 ADR-001 pipe 接口打桩;真实第二 QoS 走 45 P1b。
+   ⚠️ **2026-10-07 边界评估订正**(qa-lead 席点名「未兑现主张」):原写「零重算断言可静态验证、不阻塞 P0」——
+   **仓内零客户端装配**(仅 `Sim.Contracts` DTO 提及),静态断言**无主体** ⇒ 该半边**归 45 P1b 实装时落**,
+   非当期可静态验证。P0 现状 = 桩 + `Assert.Fail` 防借绿闸门 + NOT-RUN 照登。
 4. 跨平台轨迹哈希的夹具 tick 列表须含:滞回带内、Seeking→AtClinic、Terminal 闩锁、在场进出。
+   ⚠️ **2026-10-07 边界评估登记**:该**夹具本体尚不存在**(全文件零轨迹哈希计算);`.github/workflows/unity-tests.yml:91-98`
+   的 `il2cpp-determinism` job = `echo "TODO(实现轮)"` 空桩 ⇒ AC6 拆两腿 —— **夹具 + 单平台金标准(P0 可写,归 ADR-012 CI 轮)** ·
+   **Mono↔IL2CPP 对拍(EXTERNAL,依赖 job 落地)**;测试体已置防借绿闸门(摘 `[Ignore]` 即红)。
 5. 任何 13 侧新 Kind 需求 = 停,走 10 的 GDD 轮 + entities.yaml(禁 Amendment 追加通道,承 ADR-024 裁定③)。
 
 ---
@@ -85,7 +93,8 @@
 ## Test Evidence
 
 **Story Type**: Integration
-**Required evidence**: EditMode 夹具 + CI 矩阵产物链接(EXTERNAL 项)+ `production/qa/evidence/patient-ai/story-004-readability-walkthrough.md`([L] 项) — must exist and pass / SIGN-OFF
+**Required evidence**: EditMode 夹具 + CI 矩阵产物链接 + `production/qa/evidence/patient-ai/story-004-readability-walkthrough.md`([L] 项)
+> **2026-10-07 拆腿订正**(qa-lead 席点名「must exist 与产物不存在矛盾」):EditMode 夹具与走查件 = **must exist and pass / SIGN-OFF(已满足)**;CI 矩阵产物 = **(EXTERNAL, 未产出)** —— `il2cpp-determinism` job 现为 TODO 空桩,产出者落地前本行不构成缺口(见 AC6 拆腿登记)。
 
 > **✅ 2026-10-07 修一处假红**:`FindRepoRoot()` 原把【本机绝对路径】`/home/gu/文档/nm/nm2/…` 写死,故只有桌面机的检出能跑通,超算 / CI / 任何其他克隆一律 `DirectoryNotFoundException`(`test_ac13assembly_patientAiRefSetWhitelist_catchesForbiddenRef_negativeFixture` 红)。改用 `[CallerFilePath]` 相对求解(与 `InputSystem.AxisProcessingTest` 同一手法)。
 >
@@ -107,3 +116,15 @@
 ---
 
 ## Completion Notes
+
+### 2026-10-07 —— 补做评审轮收口(本轮即完成笔记)
+
+- **Criteria**:8 条 AC —— **5 勾**(①②③④⑦)+ **3 未勾按登记**(⑤ BLOCKED-BY 45 · ⑥ EXTERNAL/CI · ⑧ [L] 待 NR-S4-1/2/3)= 62.5% ≤ 50% 未勾线,ADVISORY 记录非阻塞。
+- **未勾 AC 与解除条件**(逐条可证伪,详见各 AC 行内「转勾判据 / 拆腿」注):
+  - ⑤:45 P1b 实装客户端装配 → 判据本体落地 → 摘 `[Ignore]` → 绿(现 `Assert.Fail` 闸门)。
+  - ⑥:夹具腿归 ADR-012 CI 轮(四场景 tick 列表见 Note 4);对拍腿依赖 `il2cpp-determinism` job(现 TODO 桩)。
+  - ⑧:NR-S4-1(42 呈现接线)/ NR-S4-2、3(44 素材混音)解除后的走查轮签署(走查件 §四 `[ ]` 行)。
+- **评审与证据**:原件 `production/qa/evidence/review-patient-ai-story-004-2026-10-07.md`(补做 · 评当下不追认);
+  复跑 `patientai-fix-2026-10-07.xml` + `editmode-full-2026-10-07.xml`;走查件已重写(档1 判据订正)。
+- **边界评估轮(同日,双子代理)**:S7 孤儿 `PatientMaterial` 删除 · AC6 防借绿闸门 · 具体类型 IL 负夹具补(M2 守卫)·
+  Note 3/AC5/AC6/Test Evidence 措辞订正 · 突变批次实跑记录见原件 §四。

@@ -529,6 +529,22 @@ namespace DaYiJingCheng.Tests.PatientAI
             Assert.IsTrue(string.Join("\n", violations).Contains("Append"), "违例须点名 Append");
         }
 
+        [Test]
+        public void test_ac13c4_writePath_ilScan_catchesConcreteAppendCall_negativeFixture()
+        {
+            // ⚠️ **边界评估轮补(2026-10-07,lead-programmer 席判定「M2 修复回归无守卫」)**:
+            //    既有负夹具 `ShadowWithAppendCall` 走**接口形态**(DeclaringType = IEventSink)——
+            //    旧 token `{"IEventSink.Append","IEventSink"}` 本就命中它 ⇒ 把 token 退回旧值,
+            //    该夹具**依旧绿**(突变存活)。M2 真正修的**具体类型 `EventStream.Append` 形态**
+            //    此前全库无夹具 ⇒ 本测补上:影子持具体 `EventStream` 并调 `.Append`。
+            //    可证伪:token 退回旧两值 ⇒ 本测必红;`{"Append"}` ⇒ 绿。
+            var violations = ScanTypeForForbiddenCalls(
+                new[] { "Append" }, new[] { typeof(ShadowWithConcreteAppendCall) });
+            Assert.IsNotEmpty(violations,
+                "负夹具失败:具体类型 EventStream.Append 调用未被 IL 扫描抓到 = 空转(M2 判别力)");
+            Assert.IsTrue(string.Join("\n", violations).Contains("Append"), "违例须点名 Append");
+        }
+
         // ═══════════════════════════════════════════════════════════
         //  AC-13-C4 (扩面)—— id 边界:13 只消费 id 不发号
         // ═══════════════════════════════════════════════════════════
@@ -701,7 +717,18 @@ namespace DaYiJingCheng.Tests.PatientAI
         {
             // ⚠️ **EXTERNAL**:跨平台逐位对拍须 CI 矩阵(ADR-012)。
             //    EditMode 单测跑在 Editor 程序集(Mono),**看不见** IL2CPP 的面。
-            //    ⚠️ 本测**显式登记为 NOT-RUN**,不借绿。
+            //
+            // ⚠️ **边界评估轮修复(2026-10-07,qa-lead 席判定「与 M7 刚修掉的 V8 借绿同型」)**:
+            //    原体**纯注释零断言** ⇒ 摘 [Ignore] 即**静默绿**(借绿)。
+            //    现与 V8 同构置防借绿闸门:夹具本体(轨迹哈希 + 四场景 tick 列表,
+            //    Implementation Notes 4)未实现 ⇒ 一旦摘 [Ignore] 即红,强制先实现再放行。
+            //    产出者现状:`.github/workflows/unity-tests.yml:91-98` 的 `il2cpp-determinism`
+            //    job 为 TODO 桩 —— 卡面 Test Evidence 已按「夹具腿 / 对拍腿」拆开登记。
+            Assert.Fail(
+                "AC-13-CrossPlatform 夹具未实现(EXTERNAL):轨迹哈希 + 四场景 tick 列表 " +
+                "(滞回带内 / Seeking→AtClinic / Terminal 闩锁 / 在场进出)归 ADR-012 CI 轮落地," +
+                "Mono↔IL2CPP 对拍腿依赖 il2cpp-determinism job(现为 TODO 桩)。" +
+                "本 Fail 是防借绿闸门,不是失败报告。");
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -1094,6 +1121,17 @@ namespace DaYiJingCheng.Tests.PatientAI
             public void DoAppend(IEventSink sink)
             {
                 sink.Append(default);
+            }
+        }
+
+        /// <summary>具体类型 `EventStream.Append` 形态负夹具(M2 判别力补,2026-10-07):
+        /// 旧 token 对该形态不命中 —— 它是 M2 修复的**被测对象本体**。</summary>
+        private sealed class ShadowWithConcreteAppendCall
+        {
+            public void DoConcreteAppend()
+            {
+                var s = new EventStream(new FakeIdAuthority(), new SimpleFakePresence());
+                s.Append(MakeEvent(0, new PatientId(0), EventKind.InjuryOnset));
             }
         }
 

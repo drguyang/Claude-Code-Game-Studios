@@ -89,17 +89,65 @@ unity test unity --mode EditMode --output unity/Logs/editmode-full-2026-10-07.xm
 **XML 解析口径**:按根节点 `<test-suite type="TestSuite" name="unity">`(或根 `test-run`)取 total/passed/failed —— per-fixture 节点会误导(已踩两次)。
 > 全量 CLI 报 `Unity 进程以代码 2 退出`:溯源 = `SettingsExposureTest.test_monoOption…` 的 1 条 Inconclusive(既有,与本轮无关),基线同形。
 
-**关键修复的可证伪判据**(评审时点若复验,应满足):
-- B1:`grep -rn "using Unity.Entities" unity/Assets/Gameplay.Presentation/PatientAI/` ⇒ 空(正测绿的依据);把任一生产文件加该行 ⇒ `patientAiSourceFiles_zeroForbiddenRefs` 必红。
-- M2:负夹具(方法体调具体类型 `Append`)⇒ 必红且点名;token 退回 `IEventSink.Append` ⇒ 红。
+**关键修复的可证伪判据**(⚠️ **2026-10-07 边界评估轮就地订正两处失实判据** —— qa-lead 席点名:
+原 B1 判据「加真行 `using Unity.Entities;` ⇒ 断言红」会以 **CS0246 编译失败**收场(杀它的是编译器不是断言,
+`manifest.json` 零 entities 包 + asmdef 引用集无该程序集);原 M2 判据指向的负夹具走**接口形态**,
+旧 token 本就命中它 ⇒ 按原判据突变**不红**(判别力为零)。现文如下,**实跑结果见 §六**):
+- B1:注释形态注入 —— 往 `PatientAI/` 任一生产文件加 `// using Unity.Entities;`(子串命中 `ScanSourceTextsForTokens`
+  且可编译)⇒ `test_ac13assembly_patientAiSourceFiles_zeroForbiddenRefs` 必红;干净基线 = `grep -rn "Unity.Entities" unity/Assets/Gameplay.Presentation/PatientAI/` ⇒ 零命中。
+- M2(订正版):**具体类型形态负夹具已补**(边界评估轮新增 `ShadowWithConcreteAppendCall` + `..._ilScan_catchesConcreteAppendCall_negativeFixture`);
+  可证伪 = 该测试内 token 退回 `{"IEventSink.Append","IEventSink"}` ⇒ 本测必红;`{"Append"}` ⇒ 绿。
+  (原接口形态夹具 `ShadowWithAppendCall` 对新旧 token 均命中,不构成 M2 守卫 —— 已如实登记。)
 - M7:摘 `test_ac13v8…` 的 `[Ignore]` ⇒ 必红(Assert.Fail 闸门)。
-- 条4:给影子类加 `EmergencyTreatmentAppliedPayload` 字段 ⇒ `..._spasm_catchesPayloadReference_negativeFixture` 必红。
+- AC6(边界评估轮新增闸门):摘 `test_ac13crossPlatform…` 的 `[Ignore]` ⇒ 必红(原体纯注释零断言 = 与 V8 同型借绿,已补 `Assert.Fail`)。
+- 条4:删 `ShadowWithTreatmentPayload.Payload` 字段 ⇒ `..._spasm_catchesPayloadReference_negativeFixture` 必红(IsNotEmpty 失败)。
+- m11(改判可达版):正测白名单数组追加不存在的字段名 `"Phase"` ⇒ `..._behaviorInputFields_areExactlyWhitelist` 必红(双向「缺失」分支活性;原案「改回单向 ⇒ 正测红」在现夹具下不可达,已由 qa-lead 席替换)。
+- n13(降级覆盖):正测期望值 `"Gameplay.Presentation"` 改 `"Sim"` ⇒ `..._patientAiIsInBoundaryLayer_notInSim` 红(n13 影子恒真的结构事实由正测活性代证)。
 - S1/S4:`director.ResetForLoad()` 后 `StateOf(id)` ⇒ null、`EcozoneOfCallCount` ⇒ 0(spatial B4 测试钉住)。
 
 ---
 
 ## 五、残余与边界(不静默)
 
-- **登记不修**:S3(LOD 死链,归 13 后续 story)· S7(平行 Material 类型,需 44 消费面契约)· n13(影子程序集恒真的结构事实)· n14(朴素 IL 匹配,已扩形态)· TC-4 迁移腿(归 7a)· AC3 端到端契约(BLOCKED-BY 10)· AC5 联机(BLOCKED-BY 45)· AC6 跨平台(EXTERNAL/CI)· [L] 整体签署(待 NR-S4-1/2/3,即 42/44)。
+- **登记不修(边界评估轮复核后)**:S3(LOD 死链 —— 精确化见 §六)· n13(影子程序集恒真的结构事实,正测活性由突变代证)·
+  n14(朴素 IL 匹配,已扩形态,失活性由 IL 负夹具 + 突变看住)· TC-4 迁移腿(归 7a)·
+  AC3 端到端契约(BLOCKED-BY 10)· AC5 联机(BLOCKED-BY 45,闸门已在,接缝 = YAGNI)·
+  AC6 跨平台(EXTERNAL —— 拆腿登记,夹具腿归 ADR-012 CI 轮)· [L] 整体签署(待 NR-S4-1/2/3,即 42/44)。
+- ~~S7(平行 Material 类型,需 44 消费面契约)~~ → **已于边界评估轮删除**(判定与落点见 §六)。
 - **本件即** `review-workflow.md` 要求的补做评审原件;**评的是 2026-10-07 修复轮落笔后的当下代码**(测试面/结构面两份原始判定全文见 §一/§二 摘要表,原报告经单轮双代理产出、未改任何文件)。
 - 复跑绿后 story-004 转 **Complete**;三层账目 caveat 同批摘除。
+
+---
+
+## 六、边界评估轮(2026-10-07 · 双子代理 · 用户指令「三个如实边界调用子代理评估修复」)
+
+对收口时如实登记的三个边界,双席只读评估(lead-programmer 结构面 + qa-lead 测试面),判定与处置:
+
+### 6.1 边界 1(三条未勾 AC)
+
+- **三本体均合规、不借绿**(⑤⑥⑧);可推进半边只在**措辞/闸门级**,已全部落笔:
+  Completion Notes 空壳已填 · AC5 转勾判据上卡 · AC6 拆腿 + CI 现状指针(`unity-tests.yml:91-98` = TODO 空桩)·
+  Test Evidence「must exist」与不存在产物的矛盾拆腿 · Note 3「可静态验证」未兑现主张订正 ·
+  走查件签署行改机器可检 `[ ] Approved` 形态。
+- **AC6 由「空体 [Ignore]」补 `Assert.Fail` 防借绿闸门**(与 M7 同型的借绿,首轮漏项)。
+- AC5 维持(接缝 = YAGNI)· AC8 纯外部签署。
+
+### 6.2 边界 2(突变验证)
+
+清单 6+1 条(批次A 6 合 1 跑 + 批次B 具体类型夹具 1 条),含两处原案替换:
+- B1 改**注释形态**注入(真行 = 编译炸,非断言红);
+- m11 改**「白名单追加不存在字段名」**可达版(原「改回单向 ⇒ 正测红」在现夹具下不可达);
+- **M2 前置修复已落**:补 `ShadowWithConcreteAppendCall` + `..._ilScan_catchesConcreteAppendCall_negativeFixture`
+  (原接口夹具对新旧 token 均命中 = M2 回归无守卫,lead 席判定「突变存活」)。
+**实跑结果见 §七**(执行后回填)。
+
+### 6.3 边界 3(登记不修六项复核)
+
+| 项 | 判定 | 处置 |
+|---|---|---|
+| S3 LOD 死链 | **维持登记,但原登记三处失实**:① 落点「归 13 后续 story」悬空(EPIC 4/4 无 005);② 范围低估 —— `SpatialPerception` 全类(`SqrDistance`/`Perceives`/`Band`/`DecisionInterval`/`ShouldDecideNow`)+ `_bands` 均测试独占,根因是 **13 零生产构造点(尚无 tick driver)**,本轮无处可接;③ 接线还牵「节流落决策还是落积分」未裁设计问(ADR-016 §九) | 精确化登记:残债 = F-13.3/F-13.4 整链零生产接线,落点**待裁**(新 story-005 或挂表现层 tick 接线 epic),GDD 背离显式登记;(a) 接线风险清单已备(四类单 tick 测试节流下必红等),归后续 story 前置 |
+| S7 平行 Material | **可修(删除)** —— 原判理由「需 44 消费面契约」证伪:`PatientMaterial` + `PatientBehaviorDirector.Material` **零生产调用方**(story-003 孤儿半迁移件),测试仅 1 处 | ✅ **已删**:`PatientBehavior.cs` 方法 + struct · `behavior_map_test` 对应测试;删前核两处 `GetMethods` 扫描(返回 VitalsDto 面 / 禁词面)均不受影响;残债收窄为 `PresentMaterial` ↔ `MaterialTable` 命名统一(归 44) |
+| n13 影子恒真 | 真不可修(负夹具形态物理上不可能)+ 可降级突变 | 突变 #6(改正测期望值 ⇒ 红)代证正测活性 |
+| n14 朴素 IL 匹配 | 真不可修(本轮授权) | 失活面由两个 IL 负夹具看住,负夹具活性由突变 #4 证 |
+| TC-4 迁移腿 | 真不可修(载体 = 7a 二进制往返) | 维持登记,双侧口径一致 |
+| AC3 端到端 | 真不可修(10 的 Kind 未进 registry) | 维持登记;13 侧可执行半边 = 载荷闭包不可达(突变 #3 看住) |

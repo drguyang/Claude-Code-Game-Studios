@@ -156,33 +156,11 @@ namespace DaYiJingCheng.Gameplay.PatientAI
         /// behavior_map 反射写入点测试钉住)。</para></summary>
         public void ResetForLoad() => _states.Clear();
 
-        /// <summary>表现材质映射(F-13.8)—— 行为面的 `signs[]` 消费点(AC-13-A5)。
-        /// <para>⚠️ **story-004 评审修复(S5,2026-10-07)**:原注自称「**唯一**消费点」与
-        /// `PresentationProjection` 的 `MaterialTable.Material` 同名主张**互相矛盾** ——
-        /// 呈现面真源 = `MaterialTable.Material`;本方法为行为面签名透传,
-        /// story-003 迁移后**零生产调用方**(结构债登记于
-        /// `production/qa/evidence/review-patient-ai-story-004-2026-10-07.md`)。</para>
-        /// <para>⚠️ 本方法**只读** DTO 的通道位 / 计数,**不推断病种、不改行为态**。</para></summary>
-        public static PatientMaterial Material(in VitalsDto v)
-        {
-            // 空集 signs[] ⇒ 中性表现(GDD F-13.8 表「空集」行)—— 不做特判
-            if (v.SignCount == 0) return PatientMaterial.Neutral;
-            // 通道位 → 材质通道(词条→素材的解析住 13 的烘焙表;本 story 只签通道透传形状)
-            return new PatientMaterial(v.SignChannelMask, v.SignCount);
-        }
-    }
-
-    /// <summary>表现材质选择(F-13.8)—— **纯表现层**,不含任何决策语义。</summary>
-    public readonly struct PatientMaterial
-    {
-        /// <summary>通道位(与 9 的 `SignChannel` 对齐)。</summary>
-        public readonly int ChannelMask;
-        /// <summary>词条计数(素材档选择用)。</summary>
-        public readonly int Count;
-
-        public PatientMaterial(int channelMask, int count) { ChannelMask = channelMask; Count = count; }
-
-        /// <summary>空集 `signs[]` 的中性表现(GDD F-13.8:「无词条即无附加材质」)。</summary>
-        public static PatientMaterial Neutral => new PatientMaterial(0, 0);
+        // ── story-004 边界评估轮(S7 删除,2026-10-07)───────────────
+        // 此处原有 `Material(in VitalsDto)` + `PatientMaterial` struct —— 全库**零生产调用方**
+        // (story-003 迁移后的孤儿半迁移件),且与 `PresentationProjection` 的
+        // `MaterialTable.Material` 构成「唯一消费点」双主张矛盾(S5 同根)。
+        // 呈现面真源 = `MaterialTable.Material`;本文件不再持平行 Material 类型。
+        // 残债收窄登记:`PresentMaterial` ↔ `MaterialTable` 命名统一归 44 消费面裁定。
     }
 }
