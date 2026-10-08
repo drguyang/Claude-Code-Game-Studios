@@ -1,6 +1,36 @@
-# Session State — 2026-10-07(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
+# Session State — 2026-10-08(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 本轮 = disease-simulation **story-007 重开 9 落地**(2026-10-07 · 进行中)
+## 🔄 本轮 = case-system **story-005 守密纪律**(2026-10-08 · 已收口)
+
+> 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
+
+### 交付物
+- **测试**:`unity/Assets/Tests/EditMode/CaseSystem/case_secrecy_discipline_test.cs`(12 测,覆盖 AC-37-15/24/35/32/31/20 + quill_tick)
+- **夹具**:`unity/Assets/Tests/EditMode/CaseSystem/Fixtures/lexicon_bijection_fail.json` + `lexicon_bijection_pass.json`(AC-37-35 双射反例)
+- **评审原件**:`production/qa/evidence/review-case-system-story-005-2026-10-08.md`
+
+### 测试(实测)
+- `unity/Logs/case_secrecy_v2.xml` = **12 / 12 passed / 0 failed**
+
+### 评审
+- 双代理一轮(lead-programmer 代码面 + qa-lead 测试面)一致判 **BLOCKED**(6 条)
+- 核心 = 「真载体缺失却报绿」+「恒真断言」+“必交夹具缺失”
+- 修复:补空集绿守卫 + [TestFixture] + 命名修正 + 类型面/NOT-RUN 口径分离
+
+### 未闭登记(禁借绿)
+- AC-37-15 的 39/42/48 闭集半边:39/42/48 病例 DTO 载体未建 ⇒ NOT-RUN
+- AC-37-24 的生产码排序键枚举半边:生产码无 `SortKey` 枚举 ⇒ NOT-RUN
+- AC-37-20 的 53 入向契约半边:53 载体未建 ⇒ NOT-RUN
+- quill_tick 的正存在断言半边:呈现判定 DTO 载体未建 ⇒ NOT-RUN
+- AC-37-32 的写路径扫描半边:37 逻辑件无 `IEventSink` 字段(纯函数)⇒ NOT-RUN
+- AC-37-35 的构建期双射校验半边:ADR-014 阶段 2 校验器未建 ⇒ NOT-RUN
+
+### 收口
+- Commit: `f57376d` — 已推送
+
+---
+
+## 🔄 上一轮 = disease-simulation **story-007 重开 9 落地**(2026-10-07 · 进行中)
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
 
