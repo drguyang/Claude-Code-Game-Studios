@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "description": "AC-37-35 ② 非一一对应(双射)正例夹具 —— 多对一映射 ⇒ 构建期校验器须通过",
+  "lexicon": [
+    { "id": 0, "text": "风寒", "disease_ordinals": [0, 1] },
+    { "id": 1, "text": "风热", "disease_ordinals": [1] },
+    { "id": 2, "text": "风湿", "disease_ordinals": [2] }
+  ],
+  "diseases": [
+    { "ordinal": 0, "name": "DIS_A" },
+    { "ordinal": 1, "name": "DIS_B" },
+    { "ordinal": 2, "name": "DIS_C" }
+  ]
+}

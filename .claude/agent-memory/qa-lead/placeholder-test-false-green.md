@@ -75,6 +75,18 @@ metadata:
     再 grep **生产写入点/装载路径**;若为零 ⇒ 该 AC 的出货路径未被验证。
     已见:`camera_arm_solver_test.cs` 的 `test_ac215a`(掩码)、`test_ac225d`(ArmLen)、`test_ac225c`(序,纯注入 + `Assert.Ignore`)。
 
+14. **「闭集被换成另一组既有载体」+ 自书字面量当枚举 + 重言式 default 断言(2026-10-08 复审确认)** ——
+   AC 点名闭集 = {39 脉案, 42 元件, 48 教学} 的 DTO,测试却扫 `{AudioCueDto(44), WorldPosLatest(1/45),
+   ClinicEnvDto(24)}` —— **全是别的系统的 DTO**,真闭集(39/48)在磁盘上**根本不是 C# 类型**(零命中),
+   测试以「既有 DTO」名义静默换载体 ⇒ 规则九的**唯一落点**判 NOT-VERIFIED 却报绿。
+   同型:「排序键枚举」用测试体内 `new[]{"patient_id",...}` 字面量扫 token(真源在测试内,生产码
+   `grep SortKey` = 0 ⇒ 生产若有违例枚举照样绿);`Assert.AreEqual(0, default(T).Field)` 是重言式
+   (default(int)==0),冒充「u16 值域边界」。另:story Test Evidence 点名的夹具
+   `Fixtures/lexicon_bijection_fail.json` **磁盘不存在**,但 story 仍记绿。
+   **判定法**:先 `grep` AC 点名闭集里的**每个类型**是否存在为生产 C# 类型;零命中 ⇒ 该闭集判 NOT-RUN
+   (直接 `Assert.Ignore`),**不得**用「另一组已建 DTO」顶替。已见:
+   `case_secrecy_discipline_test.cs`(case-system story-005)。
+
 12. **「同源 / 单一来源」类 AC:判据只验「可注入/类型存在」,不验「读取来源」;且生产侧零消费者** ——
     AC 要求「A 读 B 的**那一个**常量,不得自造第二份」,测试却只断言「字段可注入」+「两注入互异」+ 反射查 B 存在同名字段。
     **这四条对「A 自造第二份常量」零抓错力** —— AC 自陈的负向夹具(复制值)会照样通过;更重的是 grep 生产码

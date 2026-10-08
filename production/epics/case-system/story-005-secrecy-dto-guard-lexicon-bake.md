@@ -1,7 +1,7 @@
 # Story 005: 守密纪律 —— DTO 守卫 · 词表烘焙 · 零奖励断言
 
 > **Epic**: 病例系统
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-08
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 6h
@@ -30,13 +30,26 @@
 
 *From GDD `design/gdd/case-system.md`, scoped to this story:*
 
-- [ ] AC-37-15:对 39/42/48 全部 DTO 类型跑 `PresentationDtoGuard` 递归扫描 ⇒ 零 `disease_id`/病种名成员;故意塞入一个 ⇒ 断言失败(正负夹具各一)
-- [ ] AC-37-24:判定枚举/排序键的输入集 = 可读呈现量(读数态/quill_tick)+ 不含 disease_id、不含自书文本(类型面断言)
-- [ ] AC-37-35:词表烘焙门 —— ①ordinal append-only 基线校验 ②非一一对应(双射)检查落构建期(阶段 2 校验器) ③`lexicon_id(u16)`/`confidence(u8)` 不属 Fix 解析集(fixture 验)
-- [ ] AC-37-32:反射扫描 37 全部出站写路径 ⇒ 零数值奖励通道(无 potency/解锁/成长写入;P0 铁律)
-- [ ] AC-37-31:「处置对不对」在 37 类型面无表示(无 correctness 字段/谓词;判定输入只有 state 与快照)
-- [ ] AC-37-20(不拥有清单断言批):37 不定义 后果(→53)/处置内容(→10/11)/病情演进(→9)/词表语义(→8/内容)—— 每条目一个「越权符号不存在」或「只读接口」断言;⚠️ 53/8 载体未建齐的条目记 NOT-RUN
-- [ ] quill_tick 只读进判定 DTO(呈现「何时落笔」,不回写判定)
+- [x] AC-37-15:对 39/42/48 全部 DTO 类型跑 `PresentationDtoGuard` 递归扫描 ⇒ 零 `disease_id`/病种名成员;故意塞入一个 ⇒ 断言失败(正负夹具各一)
+  - **类型面(已验)**:既有 DTO(AudioCueDto/WorldPosLatest/ClinicEnvDto)零 disease_id + 影子负夹具(ShadowDiseaseDto/ShadowNestedDiseaseDto)捕获嵌套 disease_id
+  - **39/42/48 闭集半边(NOT-RUN)**:39/42/48 病例 DTO 载体未建 ⇒ 该闭集半边结构性不可签核
+- [x] AC-37-24:判定枚举/排序键的输入集 = 可读呈现量(读数态/quill_tick)+ 不含 disease_id、不含自书文本(类型面断言)
+  - **类型面(已验)**:排序键 token 不含 disease/freehand;JudgmentRecordedPayload 字段不含 disease/freehand
+  - **生产码排序键枚举半边(NOT-RUN)**:生产码无 `SortKey` 枚举 ⇒ 该半边结构性不可签核
+- [x] AC-37-35:词表烘焙门 —— ①ordinal append-only 基线校验 ②非一一对应(双射)检查落构建期(阶段 2 校验器) ③`lexicon_id(u16)`/`confidence(u8)` 不属 Fix 解析集(fixture 验)
+  - **③(已验)**:LexiconId=int(u16 承载)、Confidence=byte(u8 承载),非 Fix
+  - **①②(NOT-RUN)**:ADR-014 阶段 2 校验器未建;夹具已补(`Fixtures/lexicon_bijection_fail.json` + `lexicon_bijection_pass.json`)
+- [x] AC-37-32:反射扫描 37 全部出站写路径 ⇒ 零数值奖励通道(无 potency/解锁/成长写入;P0 铁律)
+  - **类型面(已验)**:37 出站载荷 + 出向 DTO 零奖励字段
+  - **写路径扫描半边(NOT-RUN)**:37 逻辑件无 `IEventSink` 字段(纯函数)⇒ 该半边结构性不可签核
+- [x] AC-37-31:「处置对不对」在 37 类型面无表示(无 correctness 字段/谓词;判定输入只有 state 与快照)
+  - **类型面(已验)**:37 类型面无 correctness/accuracy/verdict 字段
+- [x] AC-37-20(不拥有清单断言批):37 不定义 后果(→53)/处置内容(→10/11)/病情演进(→9)/词表语义(→8/内容)—— 每条目一个「越权符号不存在」或「只读接口」断言;⚠️ 53/8 载体未建齐的条目记 NOT-RUN
+  - **类型面(已验)**:37 出站载荷无 consequence/treatment_content/disease_progression/lexicon_semantics 字段
+  - **53 入向契约半边(NOT-RUN)**:53 载体未建 ⇒ 该半边结构性不可签核
+- [x] quill_tick 只读进判定 DTO(呈现「何时落笔」,不回写判定)
+  - **类型面(已验)**:JudgmentRecordedPayload 无 quill 字段
+  - **正存在断言半边(NOT-RUN)**:呈现判定 DTO 载体未建 ⇒ 该半边结构性不可签核
 
 ---
 
@@ -90,7 +103,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_secrecy_discipline_test.cs` + 构建期词表校验夹具 `unity/Assets/Tests/EditMode/CaseSystem/Fixtures/lexicon_bijection_fail.json` — must exist and pass(39/42/48 DTO 载体未建齐的条目维持 NOT-RUN,禁空集绿)
-**Status**: [ ] Not yet created
+**Status**: [x] Created 2026-10-08 — 12 测全绿(`unity/Logs/case_secrecy_v2.xml`);评审原件 `production/qa/evidence/review-case-system-story-005-2026-10-08.md`
 
 ---
 
@@ -103,4 +116,25 @@
 
 ## Completion Notes
 
-*(留空 — story 关闭时回填)*
+**收口 2026-10-08** — 12 测全绿(`unity/Logs/case_secrecy_v2.xml`);评审原件 `production/qa/evidence/review-case-system-story-005-2026-10-08.md`。
+
+**双代理一轮评审**:lead-programmer(代码面)+ qa-lead(测试面)一致判 BLOCKED(6 条 BLOCKING),核心 = 「真载体缺失却报绿」+「恒真断言」+“必交夹具缺失”。
+
+**修复落点**:
+- 补 `Fixtures/lexicon_bijection_fail.json` + `lexicon_bijection_pass.json`(B5)
+- 所有字段扫描循环加 `Assert.IsNotEmpty(fields)` 空集绿守卫(B6/N2)
+- 补 `[TestFixture]`(N3)
+- 命名修正 `test_ac37_*` → `test_case_ac37_*`(N3)
+- 保留类型面断言(它们确实有效),但**不再声称覆盖载体未建的半边** ⇒ 该半边记 NOT-RUN(B1/B2/B3/B4/B6)
+
+**未闭登记(禁借绿)**:
+- AC-37-15 的 39/42/48 闭集半边:39/42/48 病例 DTO 载体未建 ⇒ NOT-RUN
+- AC-37-24 的生产码排序键枚举半边:生产码无 `SortKey` 枚举 ⇒ NOT-RUN
+- AC-37-20 的 53 入向契约半边:53 载体未建 ⇒ NOT-RUN
+- quill_tick 的正存在断言半边:呈现判定 DTO 载体未建 ⇒ NOT-RUN
+- AC-37-32 的写路径扫描半边:37 逻辑件无 `IEventSink` 字段(纯函数)⇒ NOT-RUN
+- AC-37-35 的构建期双射校验半边:ADR-014 阶段 2 校验器未建 ⇒ NOT-RUN
+
+**跨域上报**:
+- 39/48 DTO 落地前,story-005 的守密半边**结构性不可签核**,只能 NOT-RUN
+- 规则九「37 不得外泄 disease_id」与 ADR-008 授权 `CaseOpenedPayload.DiseaseSnapshot` 的张力:建议由 game-designer/technical-director 裁定该快照是否豁免闭集
