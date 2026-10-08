@@ -69,7 +69,7 @@ new PayloadRef(attempt.Action, (int)result, 0)   // 三字段,其中一项还是
 
 *From GDD 规则五 `:195-224` + AC-10-06 + F-10.4:*
 
-- [ ] **AC-10-39(BLOCKING)** —— **`EmergencyTreatmentApplied` 九字段齐备**(AC-10-06 的「七项 + `Seq`」):
+- [x] **AC-10-39(BLOCKING)** —— **`EmergencyTreatmentApplied` 九字段齐备**(AC-10-06 的「七项 + `Seq`」):
   `Tick` / `TreatmentId` / `ActorId` / `Polarity` / `DrugPotency` / `HalfLife` / `Method` / `Cause` / `Seq`
   **逐字段**取值正确,**零手搓 `PayloadRef`**。
   - **`Polarity`** 须由**处置词表查得**(9 的 `treatable_by[]` 每项带极性),**不得恒 0**;
@@ -78,20 +78,23 @@ new PayloadRef(attempt.Action, (int)result, 0)   // 三字段,其中一项还是
   - **`ActorId`** 须为**施予者 id**,**不得填 `JudgeResult`**;
   - **`Method`** ∈ {Manual, Skip};**`Cause`** ∈ {玩家选择, 降级};
   - **`Seq`** 由**主机**发号。
-- [ ] **AC-10-40(BLOCKING)** —— **`EmergencyAttempt` 载荷八字段齐备**(同文件 `:50` 的同病):
+- [x] **AC-10-40(BLOCKING)** —— **`EmergencyAttempt` 载荷八字段齐备**(同文件 `:50` 的同病):
   `Action` / `HoldTicks` / `Edges` / `MagPeak` / `MagLast` / `Method` / `ActorId` / `EdgeTicks`。
   ⚠️ `EdgeTicks.Length == Edges`(codec 侧跨字段约束,违反 ⇒ `ArgumentException`「坏数据不进字节面」)。
-- [ ] **AC-10-41(BLOCKING)** —— **`drug_potency` 经 F-10.4 单一舍入**:
+- [x] **AC-10-41(BLOCKING)** —— **`drug_potency` 经 F-10.4 单一舍入**:
   `RoundFix(BASE_POTENCY[action] × ResultMul[JudgeResult]) / MUL_ONE`,
   中间积落 **Q32.32**,**全程只做一次舍入**,模式 = `ROUND_HALF_AWAY_FROM_ZERO`(ADR-006 §三)。
-  ⚠️ **负例须覆盖 R-2/A8 的 ulp 反例**:`(32769 × 16384) ÷ 65536 = 8192.5`
+  ⚠️ **负例须覆盖 R-2/A8 的 ulp 反例**:`(32768 × 16385) ÷ 65536 = 8192.5`
   ⇒ C# 整数 `/` 向零截断得 **8192**(错),正确 = **8193**。
-- [ ] **AC-10-42(BLOCKING)** —— **`HostEmergencyProcessor` 零手搓 `PayloadRef`**;
+  (⚠️ **2026-10-08 订正**:本单元格原写 `(32769 × 16384)` —— 与 GDD A8 同源的**数字颠倒**;
+  实测 `32769 × 16384 = 536887296` ÷ 65536 = **8192.25**,余数非半 ⇒ 无舍入分道。
+  GDD A8 与测试文件均已订正,本处为**第三处**漏网,同批修正。)
+- [x] **AC-10-42(BLOCKING)** —— **`HostEmergencyProcessor` 零手搓 `PayloadRef`**;
   载荷经 `IPayloadEncoder` 编码。
-- [ ] **AC-10-43(BLOCKING)** —— **`Sim` 引用集仍 = `["Sim.Contracts"]`**;b6 门绿。
-- [ ] **AC-10-44(BLOCKING)** —— **b6 门的两条具名豁免被清除**
+- [x] **AC-10-43(BLOCKING)** —— **`Sim` 引用集仍 = `["Sim.Contracts"]`**;b6 门绿。
+- [x] **AC-10-44(BLOCKING)** —— **b6 门的两条具名豁免被清除**
   (`AssemblyGates.PayloadRefWaivers` 中本文件的两条),且**不得新增**豁免。
-- [ ] **AC-10-45** —— **`Missed` 仍照常发处置事件**(GDD `:716`):
+- [x] **AC-10-45** —— **`Missed` 仍照常发处置事件**(GDD `:716`):
   `drug_potency = BASE_POTENCY × 0.25`,**不发任何提示**(反幻想;音频侧由 AC-44-09 白名单守)。
 
 ---
@@ -176,7 +179,7 @@ Process(EmergencyAttemptPayload attempt, EmergencyActionRow action, JudgeContext
   - Negative fixture: 还原手搓法(3 字段)⇒ `MagPeak` / `Method` / `ActorId` 读不回 ⇒ 红。
 
 - **AC-10-41**:F-10.4 单一舍入。
-  - Given: **R-2/A8 的 ulp 反例** `BASE_POTENCY × ResultMul` 使中间积 = `32769 × 16384`。
+  - Given: **R-2/A8 的 ulp 反例** `BASE_POTENCY × ResultMul` 使中间积 = `32768 × 16385`(余数恰为半)。
   - When: 求 `drug_potency`。
   - Then: `8193`(**非 8192**)—— 证明用的是 `ROUND_HALF_AWAY_FROM_ZERO` 而非 C# 截断。
   - Edge cases: 三档 `ResultMul`(1.0 / 0.5 / 0.25)各一例;`Missed` 须**非零**。
@@ -265,5 +268,4 @@ Process(EmergencyAttemptPayload attempt, EmergencyActionRow action, JudgeContext
   `nineFieldsAllPopulated`(字段缺失)· `methodAndCauseDiscriminable`(跳过不可判别)·
   `threeTiersNonZero` / `missedStillEmits`(potency 丢失)。原文件已复原。
 **Code Review**: 尚无独立评审件(归后续轮)。
-**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)

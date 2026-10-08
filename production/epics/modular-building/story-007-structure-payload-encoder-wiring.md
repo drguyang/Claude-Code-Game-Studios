@@ -183,4 +183,3 @@ ModularBuilding 全 fixture 复跑见 `production/qa/evidence/modular-building/e
   ⇒ 判据真的能检出 B4。原文件已复原,工作树无残留。
 **Code Review**: 尚无独立评审件(归后续轮)。
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
-**Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
