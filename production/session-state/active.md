@@ -1,6 +1,65 @@
-# Session State — 2026-10-08(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ✅ · M2 形态件前置链本轮收口**)
+# Session State — 2026-10-08(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ✅ · M2 形态件① 本轮交付(story-021)**)
 
-## ✅ 本轮 = 黄铜环图绑定到焦点样式(2026-10-08 · 绑定轮 · 见本轮提交)
+## ✅ 本轮 = story-021 M2 形态件①(2026-10-08 · 线格/空行等重/明度轴 · 双代理评审修复复跑全绿 · **收口提交中**)
+
+**流程对账(用户指令:创建+unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送)**:
+创建+测试 ✅ → **双代理评审恰一轮 ✅**(代码面 PASS 0B/3R/4n · 测试面 BLOCKING:1 + R1-R4 + n1-n4)→
+**修复 14 项全落 ✅** → **复跑绿 ✅**(过滤 230/217/0 + 变异 6 发全中 + 全量双套零回归)→ 提交推送(本步)。
+评审原件 `production/qa/evidence/review-story-021-form-item-1-2026-10-08.md`(原判定→修复落点→验证命令)。
+**修复要点**:B1 贴图桶非空守卫 · 公式锚定三连(白/黑/128灰) · 021-1 锚 `AddChannel` 方法体 ·
+R1 44px 值锚(无障碍承诺可锚,提案色不锚) · R2 选择器恰一次(防后挂覆盖块) · R3 两载体 empty-row 挂载 ·
+SkeuoFocusVisible 头注 = 明度轴口径更新 + **焦点环×线格单类级联冲突**登记(接线前置裁定项,今日不可观测)。
+**判别力 6 发**:挂载挪方法体→021-1红 · SaveSlot 摘类→021-2红 · 第二覆盖块「实见2」→021-2红 ·
+44→20px→021-2红 · minFraction 桶空「BLOCKING B1」→021-3红 · gamma 2.2「128灰锚定」→021-3红;
+逐发 python 反向恢复,终态零 MUT 残留。
+
+> 用户指令「开始做形态件①」+ 承载裁定 =「新开 story-021」。判据权威 = art-bible **G1**(格线语义)
+> + **G3**(焦点明度轴);边界裁定(勘察轮定):线格 border 零新图 / 空行只交形态半(数据四态归数据绑定轮)/
+> 阈值 0.12 提案值归数值轮 / 布局探针与截图级归桌面走查。
+
+### 交付物(三步)
+1. **步① 线格**:`SkeuoPaper.uss` 新 `.ruled, .empty-row` 声明块(border-bottom 走 var ×2);
+   theme +`--skeuo-paper-rule: rgba(43,36,22,0.35)`【提案·归数值轮】+ property 枚举补 `rule`;
+   `CasebookScreen.AddChannel` 行挂 `ruled`(脉案五行 + 问诊栏 = 满版纸线格行级兑现)
+2. **步② 空行等重**:`.empty-row` 与 `.ruled` **同一声明块**同格线 + 同 `min-height` =
+   `--skeuo-shared-row-height: 44px`(新变量 = AB-3 焦点落点高半);
+   `SaveSlotItem` 空槽复用 `.empty-row` 语义正合(未改其代码);
+   **story-011 B2 转正**:`test_ac021_2_…equal_weight_in_uss`(读 USS 去注释,锁「拆块即红」)
+   + `test_ac021_1_casebook_rows_mount_ruled_class`(源真挂类)
+3. **步③ 明度轴(G3)**:`test_ac021_3_focus_ring_luminance_delta_over_paper` —— 环 L=0.2756 vs
+   纸面(`border_paper` 不透明像素 **≥1% 面积桶** ∪ 两主题底色**从 theme 现抽** —— 改色跟随)
+   **实测 minΔ = 0.2656 ≥ 0.12**;gamma 线性化 + Rec.709;**环 vs 环自比对 = 0** 证公式非恒真;
+   python 预演同口径复核(危险桶空集)。首跑红 = `varName` 误带尾冒号致双冒号,一次修复
+
+### 测试证据(评审修复后终态 r2)
+- 过滤 **230/217/0 红/13 跳**(三条新断言终态全 Passed;基线 227/214)
+  `unity/Logs/editmode_skeuo_final.xml`
+- 初轮变异三处恰 3 红(story 创建期)+ **评审修复后判别力变异 6 发全中**(逐发注入/恢复,零 MUT 残留)
+- 全量 EditMode **3007/2960/0 红/46 跳/1 inc**(与基线逐项一致,零回归)
+  `unity/Logs/editmode_full_20261008_form01_r2.xml`
+- 全量 PlayMode **98/97/0 红/1 跳**(与基线逐数一致)`playmode_full_20261008_form01_r2.xml`
+
+### 文档回刷(八处)
+story-021(新建 → Complete,三步/AC/DoD 全勾含绿数据)· story-011(头部日期 + **B5 勾** + B2 闭环注 +
+残余 NICE 划账)· casebook-39 AC `[A]`(◐ 注:声明层已断 / 布局探针归桌面,**保持 `[ ]` 禁借绿**)·
+milestones `:131`(① ◐ 注,**整条保持 `[ ]`**)· sprint-04(形态件 0/4→**1/4**)· EPIC(Stories 头 +
+021 行 + Counts 21 total + Next Step + 里程碑归属 021 行)· index.md(+021)· active.md(本段)
+
+### 本批提交文件
+`story-021`(新)· `story-011` · `casebook-39.md` · `milestones/README.md` · `sprint-04.md` ·
+`EPIC.md` · `index.md` · `SkeuoPaper.uss` · `SkeuoThemeVariables.uss` · `SkeuoFocusVisible.uss` ·
+`CasebookScreen.cs` · `texture_binding_gate_test.cs` · `focus_visual_and_accessibility_test.cs` ·
+`casebook_rendering_test.cs` · **`review-story-021-form-item-1-2026-10-08.md`(评审原件,新)** ·
+active.md(本段)—— 照旧排除:`.gitignore` · `.trae/…` · 孤儿 `Casebook.meta` ·
+`Brass/__pycache__(.meta)` · `generate_focus_brass_2px.py.meta`(py 本体已入库,meta 留工作树)
+
+### 下一步候选
+① 形态件 ② 墨乾湿两态(story-020 已解其切图前置)· ② 急救零数字 · ③ 状态反馈通道 ·
+④ 桌面走查队列累积(明度轴截图级 / 布局探针 / AC-42-C10 主题复跑 / **焦点环×线格级联接线前裁定**)。
+
+---
+
+## ✅ 上一轮 = 黄铜环图绑定到焦点样式(2026-10-08 · 绑定轮 · 已提交 36e5c72)
 
 > 用户指令「那就绑定到焦点样式」。前置答问:**环图来源 = 程序化出图**(上一轮按 art-assets-required §二③
 > 规格脚本直出,非外部美术;冻结件 R3「规格出图」即此意)。
@@ -38,7 +97,7 @@
 
 ---
 
-## ✅ 上一轮 = story-020 M2 形态件解锁链(2026-10-08 · 三步全交付 · 已提交 d3eefe7)
+## ✅ 上上轮 = story-020 M2 形态件解锁链(2026-10-08 · 三步全交付 · 已提交 d3eefe7)
 
 > 用户指令「完成020再提交」。三步 = ① 019-f 切图冻结件 ② 黄铜 2px 出图 ③ 019-a 余项绑定回填。
 

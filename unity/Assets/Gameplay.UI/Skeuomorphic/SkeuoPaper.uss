@@ -47,3 +47,18 @@
     font-family: var(--skeuo-font-family);
     font-size: var(--skeuo-font-size-md);
 }
+
+/* ── 线格 · M2 形态件①(story-021 · AC-021-1/2)──
+ * art-bible §7.7:「字段由线格划出,不画成按钮」—— 行的字段感 = 底部一道淡墨线,
+ * 零新图(承 story-020 冻结件:形态件① 不追加贴图,冻结轮不重开)。
+ * `.ruled` = 有字行(脉案五行 + 问诊栏,CasebookScreen 挂载);
+ * `.empty-row` = 空行(EmptyRowElement 唯一载体;存档空槽 SaveSlotItem 复用同语义)。
+ * 两态**同格线同 min-height**(同一声明块)= 视觉等重的声明层(AC-021-2):
+ * 下限 44 = AB-3 焦点落点 ≥44×44 的高半 ⇒ 空行塌陷不可能。
+ * 线宽走 var(C4 门禁 `border-*-width:\s*\d+px` 硬编码)。 */
+.ruled,
+.empty-row {
+    border-bottom-width: var(--skeuo-shared-border-width);
+    border-bottom-color: var(--skeuo-paper-rule);
+    min-height: var(--skeuo-shared-row-height);
+}

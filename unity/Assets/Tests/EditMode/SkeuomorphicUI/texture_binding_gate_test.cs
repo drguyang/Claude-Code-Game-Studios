@@ -298,6 +298,100 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         }
 
         [Test]
+        public void test_ac021_2_ruled_and_empty_row_gridline_equal_weight_in_uss()
+        {
+            // ══ M2 形态件①(story-021 · AC-021-1/2):线格 + 空行等重声明层 ═══
+            // B2 转正:story-011 登记的「格线存在性零覆盖 = 借绿」在此补正向断言
+            //          (casebook_rendering_test 侧 B2 Inconclusive 兜底改指针注)。
+
+            // Arrange
+            string ussPath = Path.Combine(SkeuoDir, "SkeuoPaper.uss");
+            Assert.IsTrue(File.Exists(ussPath), $"前置失败:{ussPath} 不存在。");
+            // 剥块注释 + 行注释(USS 官方仅支持块注释,行注释防御性同剥 —— 评审 nit n2,与 C# 侧对称)
+            string body = Regex.Replace(File.ReadAllText(ussPath), @"/\*.*?\*/", "", RegexOptions.Singleline);
+            body = Regex.Replace(body, @"//[^\r\n]*", "");
+
+            // Act:两态必须**同一声明块**(拆块 = 各自下限漂移,等重失守);
+            //      选择器顺序容错(评审 nit n3:`.empty-row, .ruled` 反序同样合法)
+            var block = Regex.Match(body,
+                @"(\.ruled\s*,\s*\.empty-row|\.empty-row\s*,\s*\.ruled)\s*\{[^}]*\}");
+            Assert.IsTrue(block.Success,
+                "缺 `.ruled, .empty-row` 共同声明块 —— 脉案线格/空行格线不存在(AC-021-1)," +
+                "或两态被拆成两块(视觉等重的声明层失守,AC-021-2)。");
+            string css = block.Value;
+
+            // Assert:① 格线走 var(C4);② 色/宽变量真被引用;③ 等重下限;④ 禁硬编码线宽
+            //         ⑤ 两选择器全文恰各出现一次(防「第二覆盖块」绕过 —— 评审 R2:
+            //            后段追加 `.empty-row { min-height: 0; }` 类覆盖块即等重运行期失守)
+            Assert.IsTrue(Regex.IsMatch(css, @"border-bottom-width:\s*var\(--skeuo-shared-border-width\)"),
+                "线格线宽须走 var(--skeuo-shared-border-width)(C4 门禁 border-*-width 硬编码)。");
+            Assert.IsTrue(Regex.IsMatch(css, @"border-bottom-color:\s*var\(--skeuo-paper-rule\)"),
+                "线格色须走 var(--skeuo-paper-rule)(C2 门 + 数值轮可调 —— 提案值不得内联)。");
+            Assert.IsTrue(Regex.IsMatch(css, @"min-height:\s*var\(--skeuo-shared-row-height\)"),
+                "空行/有字行须同 min-height 下限(= 44 焦点落点高,AC-021-2 视觉等重声明层)。");
+            Assert.IsFalse(Regex.IsMatch(css, @"border-bottom-width:\s*\d+px"),
+                "线宽硬编码字面量 = C4 违例(须走主题变量)。");
+            foreach (string cls in new[] { "ruled", "empty-row" })
+            {
+                int n = Regex.Matches(body, $@"\.{cls}\s*(,|\{{)").Count;
+                Assert.AreEqual(1, n,
+                    $"`.{cls}` 作为选择器须**恰出现一次**(含反序块合并计),实见 {n} —— " +
+                    "多处声明 = 可后挂覆盖块使等重/格线运行期失守而本断言仍绿(评审 R2)。");
+            }
+
+            // ⑥ 44px 值锚(评审 R1):故事主张「下限 = 44 = AB-3 焦点落点高半」,
+            //    只锁 var 引用则主题文件里 44px 改 20px 全绿 = 主张无守卫。
+            //    ⚠️ 44 是无障碍承诺值(非数值轮提案)⇒ 可锚;格线**色**是提案值 ⇒ 不锚(归数值轮)。
+            string themeText = File.ReadAllText(Path.Combine(SkeuoDir, "SkeuoThemeVariables.uss"));
+            Assert.IsTrue(Regex.IsMatch(themeText, @"--skeuo-shared-row-height:\s*44px\b"),
+                "--skeuo-shared-row-height 须 = 44px(AB-3 焦点落点 ≥44×44 的高半,AC-021-2 主张)。");
+
+            // ⑦ empty-row 挂载侧(评审 R3):与 test_ac021_1 对称 ——
+            //    声明在而无人挂类 = 格线永不渲染;两载体(空行元素/存档空槽)都须真挂
+            foreach (string rel in new[]
+                     {
+                         "EmptyRowElement.cs",
+                         Path.Combine("SaveSlotItem.cs"),
+                     })
+            {
+                string csPath = Path.Combine(SkeuoDir, rel);
+                Assert.IsTrue(File.Exists(csPath), $"前置失败:{csPath} 不存在。");
+                string cs = Regex.Replace(File.ReadAllText(csPath), @"/\*.*?\*/", "", RegexOptions.Singleline);
+                cs = Regex.Replace(cs, @"//[^\r\n]*", "");
+                Assert.IsTrue(Regex.IsMatch(cs, @"AddToClassList\([^)]*""empty-row"""),
+                    $"{rel} 须 AddToClassList 挂 \"empty-row\" —— 否则该载体格线/等重不渲染(AC-021-2)。");
+            }
+        }
+
+        [Test]
+        public void test_ac021_1_casebook_rows_mount_ruled_class()
+        {
+            // ══ M2 形态件①(story-021 · AC-021-1):脉案行真挂线格类 ═══
+            // USS 声明存在但无人挂类 = 格线永不渲染(声明与施加脱节的假绿面)。
+
+            // Arrange
+            string csPath = Path.Combine(SkeuoDir, "Screens", "CasebookScreen.cs");
+            Assert.IsTrue(File.Exists(csPath), $"前置失败:{csPath} 不存在。");
+            // 去注释(块 + 行)—— 注释里的调用样例不算挂载
+            string text = Regex.Replace(File.ReadAllText(csPath), @"/\*.*?\*/", "", RegexOptions.Singleline);
+            text = Regex.Replace(text, @"//[^\r\n]*", "");
+
+            // Act:锚定 **AddChannel 方法体**(评审修复 代码面#3 —— 全文 grep 的假绿面:
+            //     挂载调用挪到别处(如只挂 confidence-mark)而行上摘掉,全文断言仍绿)
+            var method = Regex.Match(text,
+                @"private void AddChannel\s*\([^)]*\)\s*\{.*?\n        \}",
+                RegexOptions.Singleline);
+            Assert.IsTrue(method.Success,
+                "未找到 AddChannel 方法体(结构漂移?)—— 锚定失败不得退化为全文 grep。");
+
+            // Assert:行挂载点在 AddChannel 体内真调 AddToClassList("ruled")(代码本体,非注释)
+            Assert.IsTrue(
+                Regex.IsMatch(method.Value, @"AddToClassList\(\s*""ruled""\s*\)"),
+                "CasebookScreen.AddChannel 须在行上 AddToClassList(\"ruled\") —— " +
+                "否则脉案线格不渲染(AC-021-1);挂在方法体外不算(评审修复 代码面#3)。");
+        }
+
+        [Test]
         public void test_negative_fixture_unregistered_subdir_png_caught()
         {
             // ══ 2026-10-08 覆盖检查递归化的判别力:子目录漏登记须被抓(原顶层面是盲区)══

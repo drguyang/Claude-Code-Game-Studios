@@ -6,7 +6,7 @@
 > **Type**: UI
 > **Estimate**: 4-5 hours
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-27
+> **Last Updated**: 2026-10-08(B5 格线半由 story-021 兑现回勾)
 
 ## Context
 
@@ -31,7 +31,12 @@
 *From GDD `design/gdd/skeuomorphic-ui.md`, scoped to this story:*
 
 - [ ] **AC-42-F1**①: 脉案页 手柄走查 + 目视零按键提示浮层
-- [ ] **AC-42-B5**: 空行有格线无字(格线渲染存在但无文本节点)
+- [x] **AC-42-B5**: 空行有格线无字(格线渲染存在但无文本节点)✅ **2026-10-08(story-021)**——
+      格线半 = `.ruled, .empty-row` 声明块(`SkeuoPaper.uss`)+ 正向断言
+      `test_ac021_2_ruled_and_empty_row_gridline_equal_weight_in_uss`(B2 转正);无文本半 =
+      既有 `test_ac42b5_emptyRowNoText_noTextFields` + `EmptyRowElement` 零文本子节点。
+      **⚠️ 勾的是声明级 + 源码级半边** —— **渲染级**(真渲染下肉眼见格线/等重)归**桌面走查**
+      (与 `casebook-39` AC `[A]` 同宽严口径,布局探针不借绿)
 - [ ] **AC-42-B6**: 置信度不出溢体征栏(置信度数值 ≤ 体征栏承载上限)
 - [ ] **五通道区**: 面色 / 语声 / 呼吸 / 触感 / 病名五通道完整渲染
 - [ ] **两栏布局**: 脉案页两栏布局正确;左栏体征 / 右栏诊断
@@ -131,6 +136,10 @@
 *代码质量评审修复:*
 - **B1**(代码面): 五处存在性测试的断言是恒真命题(假绿风险) — 当前阶段 42 未实现, 无法确定预期类型名 → 修复: 保持 `Assert.Inconclusive`, 添加注释说明实现后改为对预期类型集合的断言(如五通道区应断言五个通道类型全部存在)。
 - **B2**(代码面): AC-42-B5 的「格线存在」一半零覆盖 — 当前仅扫描空行渲染类型, 格线存在性未覆盖 → 修复: 添加注释说明实现后补充格线存在性正向断言。
+  ✅ **2026-10-08 闭环(story-021)**:正向断言已落
+  `texture_binding_gate_test.test_ac021_2_ruled_and_empty_row_gridline_equal_weight_in_uss`
+  (读 `SkeuoPaper.uss` 格线声明块,去注释匹配)——「格线存在性零覆盖 = 借绿」注销;
+  `casebook_rendering_test` 侧 B2 注改指针。
 - **R1**(代码面): Arrange 段九次重复 → 修复: 提取 `[SetUp]` 方法。
 - **R2**(代码面): 五处 `Inconclusive + return` 样板 → 修复: 提取 `FindTypesByPatterns` 助手方法。
 - **R3**(代码面): 负向字段扫描是子串匹配, 存在漏报/误报 → 修复: 添加注释说明实现后改为显式期望类型清单断言。
@@ -152,7 +161,7 @@
 - 焦点顺序由 rank 数据驱动待实现后补充。
 - 边缘情况(单通道数据为空/全部通道数据为空/窄屏布局/宽屏布局/置信度 = 上限/置信度 > 上限/快速导航/焦点边界切换)待实现后补充。
 - 存在性测试改为对预期类型集合的断言待实现后补充。
-- 格线存在性正向断言待实现后补充。
+- ~~格线存在性正向断言待实现后补充。~~ ✅ **2026-10-08 已补**(story-021 `test_ac021_2`,见上 B2 闭环注)。
 - 负向字段扫描改为显式期望类型清单断言待实现后补充。
 
 **Test Evidence**: 真身 `unity/Assets/Tests/EditMode/SkeuomorphicUI/casebook_rendering_test.cs` (**11 测: 5 passed + 5 inconclusive + 1 skipped + 0 failed**); 全量 EditMode **1363 passed + 0 failed + 20 inconclusive + 17 skipped** (`/tmp/ui011-full-v2.xml`)

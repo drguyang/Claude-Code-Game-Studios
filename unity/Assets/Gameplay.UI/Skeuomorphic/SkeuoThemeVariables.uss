@@ -5,7 +5,7 @@
  *
  * 命名约定: --skeuo-{layer}-{property}-{variant}
  *   layer  ∈ {paper, scroll, ink, seal, brass, implement, marks, focus, shared}
- *   property ∈ {bg, fg, border, shadow, radius, space, width, height, gap}
+ *   property ∈ {bg, fg, border, shadow, radius, space, width, height, gap, rule}
  *
  * ⚠️ 2026-10-05(019-d 连带清理):layer 由 5 员扩至 9 员。
  *   brass / implement / marks / focus 四族此前**硬编码内联**(C4 红 44 条),
@@ -22,6 +22,9 @@
     --skeuo-paper-fg: #2b2416;
     --skeuo-paper-border: #a08c6c;
     --skeuo-paper-shadow: rgba(43, 36, 22, 0.18);
+    /* 格线(rule)= 线格划线色(M2 形态件① · story-021)。同 paper-shadow 色系深一档。
+       ⚠️ 【本稿提案值】art-bible 无格线专色 ⇒ 归数值轮,可调(AC-021-1 注记)。 */
+    --skeuo-paper-rule: rgba(43, 36, 22, 0.35);
 
     /* ── 卷轴(Scroll) ── */
     --skeuo-scroll-bg: #f0e4c8;
@@ -82,6 +85,9 @@
     /* ── 共享(Shared) ── */
     --skeuo-shared-radius: 2px;
     --skeuo-shared-border-width: 1px;
+    /* 行高下限(M2 形态件① · story-021)= 44 = AB-3 焦点落点 ≥44×44 的高半
+       (art-bible 无障碍承诺)—— 行即焦点落点,空行/有字行同下限 ⇒ 视觉等重(AC-021-2)。 */
+    --skeuo-shared-row-height: 44px;
     --skeuo-shared-space-xs: 4px;
     --skeuo-shared-space-sm: 8px;
     --skeuo-shared-space-md: 16px;

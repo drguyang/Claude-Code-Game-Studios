@@ -177,8 +177,10 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         // ══════════════ AC-42-B5: 空行有格线无字 ══════════════
 
         /// <summary>AC-42-B5: 空行有格线无字(格线渲染存在但无文本节点)。
-        /// B2 说明:当前仅扫描空行渲染类型,格线存在性未覆盖;
-        /// 实现后补充格线存在性正向断言。</summary>
+        /// ✅ **B2 转正(2026-10-08 · story-021)**:格线存在性正向断言已落
+        /// `texture_binding_gate_test.test_ac021_2_ruled_and_empty_row_gridline_equal_weight_in_uss`
+        /// (读 `SkeuoPaper.uss` 的 `.ruled, .empty-row` 声明块)—— 原「格线存在性零覆盖 = 借绿」
+        /// 闭环;本方法只保留**类型存在性**扫描面。</summary>
         [Test]
         public void test_ac42b5_emptyRowRendering_exist()
         {

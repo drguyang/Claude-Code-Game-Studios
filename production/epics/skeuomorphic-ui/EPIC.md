@@ -4,7 +4,7 @@
 > **GDD**: design/gdd/skeuomorphic-ui.md
 > **Architecture Module**: L5 Presentation(PRES)
 > **Status**: **Complete ✅ 2026-09-28**(18/18 stories)· ⚠️ **范围**见下方 §范围边界声明
-> **Stories**: 18 stories created (2026-09-27) + **019 贴图接入(2026-10-03 补 · ◐ 部分完成:c/d/e/f ✅ · b Blocked)** + **020 M2 形态件解锁链(2026-10-08 补 · Complete ✅ 同日)**
+> **Stories**: 18 stories created (2026-09-27) + **019 贴图接入(2026-10-03 补 · ◐ 部分完成:c/d/e/f ✅ · b Blocked)** + **020 M2 形态件解锁链(2026-10-08 补 · Complete ✅ 同日)** + **021 M2 形态件①(2026-10-08 补 · Complete ✅ 同日)**
 
 ## Overview
 
@@ -108,8 +108,9 @@
 | 018 | 开发者调试视图(仅 Development Build · 焦点栈/元件库/DTO 绑定结果 · 不显示游戏数值) | UI | **Complete ✅ 2026-09-28**(7 测,5 passed + 1 inconclusive + 1 skipped) | ADR-013 |
 | 019 | 贴图接入(16 张 `*-final.png` → USS 元件族 · 九宫格 slice 对齐图集真实切图 · 图集页数实测) | UI | **部分完成 ◐**(019-c/d/e `Complete ✅ 2026-10-05` · **019-f `Complete ✅ 2026-10-08`** · 019-b Blocked(PAGES_MAX spike);承上方 §范围边界声明) | ADR-013 |
 | 020 | M2 形态件解锁链(切图冻结 → 黄铜 2px 出图 → 绑定回填) | UI/美术前置 | **Complete ✅ 2026-10-08**(三步全交付:冻结件落盘 + 黄铜 2px 入库 + 绑定回填/C8 门接棒) | ADR-013 + `milestones §三` |
+| 021 | M2 形态件①(脉案线格 · 空行等重 · 焦点明度轴) | UI/Visual-Feel | **Complete ✅ 2026-10-08**(三步全交付:格线挂行 + 等重声明层 + 贴图级明度轴 0.266 ≥ 0.12;B2 转正、M2 形态件 1/4) | ADR-013 + `milestones §三` + art-bible G1/G3 |
 
-Counts: 5 Logic · 3 Integration · 2 Visual/Feel · **10 UI** = **20 total (19 Complete + 1 ◐ = story-019)**。
+Counts: 5 Logic · 3 Integration · 3 Visual/Feel · **10 UI** = **21 total (20 Complete + 1 ◐ = story-019)**。
 43 条 AC 全覆盖(按子条拆入);全 ADR Accepted ⇒ 零 ADR-blocked story。
 ⚠️ **story 019 是范围补件,非原 18 条的追加** —— 它填的是「贴图绑定」这个原本**没有任何 story 覆盖**的面
 (见上方 §范围边界声明)。**上表 18 条 Complete 不因 019 Ready 而失效** —— 二者覆盖不同的面。
@@ -126,7 +127,9 @@ This epic is complete when:
 
 ## Next Step
 
-**Epic 全部 18 个 story 已完成**;补件 **story 020(M2 形态件解锁链)Complete ✅ 2026-10-08**,
+**Epic 全部 18 个 story 已完成**;补件 **story 020(M2 形态件解锁链)Complete ✅ 2026-10-08**、
+**story 021(M2 形态件①)Complete ✅ 2026-10-08**(线格/等重/明度轴三步全交付,art-bible G1/G3 转可验;
+M2 形态件 1/4 —— ② 墨乾湿 / ③ 急救零数字 / ④ 状态反馈通道未开)——
 补件 **story 019(贴图接入)为 ◐ 部分完成(c/d/e/f ✅ · b Blocked)** ——
 019-b 的 `PAGES_MAX` spike 卡 atlas 页数预算(AC-42-C9),**不卡 M2 形态件**;截图签核目视义务仍归 019-d。
 下一步 = 推进 M2 形态件 ①②③④ 本体交付(前置已解)· 019-b spike · 或跨系统待办(45 联机夹具 / ADR-023 spikes / 七屏走查)。
@@ -140,3 +143,4 @@ This epic is complete when:
 | 001–018 | —(已 Complete,归 M3 计数) | `production/milestones/README.md` §五 M3 |
 | **019** | **M2 Vertical Slice**(硬前置) | `milestones/README.md` §三 Exit Criteria「**五族切图与 atlas 布局冻结**」(⚠️ 2026-10-04 D 订正:原文写「纸/墨/铜三族」为措辞误,实测五族) + 第 5 条「4 项形态件」—— **① 脉案线格/空行/明度轴压在九宫格切图上,② 墨乾湿两态压在墨迹 brush 上**。⇒ **不接图则 ①② 无法交付**,019 是它们的直接前置,非额外美化。◐ **c/d/e/f ✅(2026-10-08 冻结轮收口)** —— 切图冻结件落盘 + 绑定回填,形态件 ①② 的**切图前置已解**;余 019-b(atlas 页数)不卡 M2,见 story 文件 §状态拆分 |
 | **020** | **M2 Vertical Slice**(硬前置汇总) | `milestones/README.md` §三 —— 019 分档 + G-1b(黄铜 2px)的 **M2 视角汇总执行 story**;✅ **Complete 2026-10-08**:三步全交付 ⇒ M2「焦点黄铜 2px」条勾、「五族冻结」条切图半勾(余 atlas 半归 019-b) |
+| **021** | **M2 形态件①**(脉案线格/空行/明度轴) | `milestones/README.md` §三「4 项形态件」① + art-bible **G1/G3**;✅ **Complete 2026-10-08**:线格 border 零新图 + 空行等重声明层 + 贴图级明度轴 ⇒ ① 交付(形态件 1/4);B5 勾、B2 转正;布局探针半归桌面走查 |

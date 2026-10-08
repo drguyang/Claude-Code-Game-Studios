@@ -88,6 +88,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             var row = _library.Create(SkeuoElement.Paper);
             row.name = rowName;
             row.focusable = true;
+            row.AddToClassList("ruled"); // 线格(M2 形态件① · story-021):字段由线格划出(art-bible §7.7)
             row.Add(new Label(labelText));
             parent.Add(row);
         }
