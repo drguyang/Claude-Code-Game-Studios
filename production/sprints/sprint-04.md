@@ -1,12 +1,13 @@
 # Sprint 04 Plan
 
-> **Status (2026-10-03 · 已订正)**: **Phase 1 完全收口** —— 三条缺口 ①a/①b/①c **全部闭合**,
+> **Status (2026-10-08 · 已订正)**: **Phase 1 完全收口** —— 三条缺口 ①a/①b/①c **全部闭合**,
 > 且**另查出并修复了两处更深的缺陷**(见 §Phase 1 产出)。
 > ✅ **原「两 epic 仍记 `In Review`」的残留已解除** —— 该残留是「双代理评审的报告原件从未落盘」,
 > **现评审原件已全部补做并落盘**(modular-building / world-ecozones / player-controller 各两份:
 > 首轮 + round2),三个 epic **均已转 `Complete ✅ 2026-10-03`**。
 > 详见 `production/epics/index.md` 与 `.claude/docs/review-workflow.md`。
-> **Phase 2 现已解锁**(原门禁「Phase 1 未收口前不启动 Phase 2」已满足),**实际进度 = 4/7 实现全闭(13 含原件 caveat)+ 2 有残余 + 1 收口未达 DoD**(2026-10-07 回刷二次订正,见 §Phase 2)。
+> **Phase 2 已收口(2026-10-08)** —— 7/7 系统全闭,关键路径 13→8→37→11 全通。
+> diagnosis-system 与 case-system 的 story-005/006 于同日收口,垂直切片核心链无断点。
 > 三专家调研(TD + Producer + QA Lead)综合建议,方案 A 分阶段执行。
 
 **Sprint**: 4
@@ -101,33 +102,33 @@
 
 ---
 
-## Phase 2: 垂直切片核心（~15 天）—— **现已解锁**
+## Phase 2: 垂直切片核心（~15 天）—— ✅ **已收口(2026-10-08)**
 
 | # | 系统 | 故事数 | SP | 依赖 | 理由 |
 |---|------|--------|-----|------|------|
 | 1 | player-controller (1) | 6 | 6 | 3 (done) | ✅ **Complete ✅ 2026-10-03**(Phase 1 期间完成) |
 | 2 | camera-viewpoint (2) | 6 | 6 | 1 | ✅ **Complete ✅ 2026-10-03**(计划外增量 —— 本表原无此行,实际已完成) |
 | 3 | interaction-system (4) | 6 | 6 | 1, 3 (done) | ✅ **Complete ✅ 2026-10-04**(7/7;story-007 收口,评审原件 `production/qa/evidence/review-interaction-story-007-2026-10-04.md`) |
-| 4 | patient-ai (13) | 4 | 5 | 9 (done) | **Complete ✅ 2026-10-07**(4/4)—— 001 ✅ 10-04(`4076e1e`)· 002 ✅ 10-05(`6e0d178`)· 003 ✅ 10-05(`a1f7a36`)· 004 ✅ 10-05 收口(`0b6f948`)+ **10-07 补做评审原件落库并转 Complete**(复跑绿) |
-| 5 | diagnosis-system (8) | 6 | 6 | 9, 30 (done) | 🔄 **In Progress 4/6** —— 001–004 ✅ 2026-10-05/06(`6685046`/`f27ca3e`/`57c34c2`/`351d097`);**断点 = story-005** |
-| 6 | case-system (37) | 6 | 6 | 8, 9 (done) | 🔄 **In Progress 4/6** —— 001–004 ✅ 2026-10-06(`e64efad`/`c4e3708`/`31e3f9b`/`8a693fd`);**断点 = story-005**(story 数勘误:原记 4,实际 6) |
-| 7 | prescription-medication (11) | 5 | 1 | 21, 9 (done) | ✅ **收口 5/5 · 2026-10-06** —— 但 **DoD 未达**(AC-11 系列 NOT-RUN / BLOCKED-BY 按登记,禁借绿;`96e40a4` 已撤「全闭」过头结论) |
+| 4 | patient-ai (13) | 4 | 5 | 9 (done) | ✅ **Complete ✅ 2026-10-07**(4/4)—— 001 ✅ 10-04(`4076e1e`)· 002 ✅ 10-05(`6e0d178`)· 003 ✅ 10-05(`a1f7a36`)· 004 ✅ 10-05 收口(`0b6f948`)+ **10-07 补做评审原件落库并转 Complete**(复跑绿) |
+| 5 | diagnosis-system (8) | 6 | 6 | 9, 30 (done) | ✅ **Complete ✅ 2026-10-08**(6/6;005 体征揭示 + 006 重放持久化) |
+| 6 | case-system (37) | 6 | 6 | 8, 9 (done) | ✅ **Complete ✅ 2026-10-08**(6/6;005 守密纪律 + 006 重放持久化) |
+| 7 | prescription-medication (11) | 5 | 1 | 21, 9 (done) | ✅ **Complete ✅ 2026-10-06**(5/5 收口 · 评审原件五份齐备;⚠️ DoD 未达 —— AC-11 系列 NOT-RUN / BLOCKED-BY 按登记,禁借绿,见 EPIC §Epic Status) |
 
 **Phase 2 总计**：行合计 **41 SP**(2026-10-07 按真实 story 数重算:6+6+6+5+6+6+1;原记 ~39) ——
-**4/7 全闭(player-controller / camera-viewpoint / interaction-system / patient-ai —— 13 已于 2026-10-07 补原件转 Complete)+ 2 有残余(diagnosis 4/6 · case 4/6)+ 1 收口未达 DoD(prescription)**
+**7/7 全闭**(2026-10-08 回刷:diagnosis-system 与 case-system 于 2026-10-08 同日收口,关键路径 13→8→37→11 全通)。
 (⚠️ 勘误 2026-10-04:`interaction-system` 原记 4 story,实际 7;
 ⚠️ 勘误 2026-10-07a:`case-system` 原记 4 story,实际 6;
 ⚠️ 勘误 2026-10-07b:patient-ai **实为 4/4 全闭**(004 于 `0b6f948` 2026-10-05 收口,账面从未回刷)——
 **生产代码口径复查发现**,非 commit 新增;「~39」与行表历来不自洽,一并按行重算为 41)
 
-**关键路径(现状 · 2026-10-07 二次订正)**：
+**关键路径(现状 · 2026-10-08 收口)**：
 ```
 player-controller ✅ → camera-viewpoint ✅ → interaction-system ✅
                     ↘
-patient-ai ✅ 4/4(004 原件已补 10-07) → diagnosis-system 🔄 4/6(断点 = 005) → case-system 🔄 4/6(断点 = 005) → prescription-medication ✅ 5/5(DoD 残余按登记)
+patient-ai ✅ 4/4 → diagnosis-system ✅ 6/6 → case-system ✅ 6/6 → prescription-medication ✅ 5/5(DoD 残余按登记)
 ```
-⇒ 下游四项(13→8→37→11):13 **全闭**(004 原件 2026-10-07 已补) · 8 余 005/006 · 37 余 005/006 · 11 已收口(DoD 残余 = AC-11 系列 NOT-RUN/BLOCKED-BY)。
-**当前关键路径断点 = `diagnosis/story-005`**(13 已通,8 的 005/006 解锁;005 的 ReadingFSM/JudgmentFSM 全库零命中 = 真未做,已核)。
+⇒ 下游四项(13→8→37→11):**全闭**。关键路径无断点。
+**Phase 2 收口(2026-10-08)**:diagnosis-system 与 case-system 的 story-005/006 于同日收口,垂直切片核心链全通。
 
 ---
 
@@ -177,8 +178,8 @@ patient-ai ✅ 4/4(004 原件已补 10-07) → diagnosis-system 🔄 4/6(断点 
    `index.md:27` 记的「评审原件缺」为**陈旧读数**。
    round2 的**真实转 Complete 前置** = ①报告已落盘 ✅;②**D1/D2/D3 文档状态对齐**;③**实跑 Unity 测试套件**
    (round2 未实跑,结论均基于源码阅读)。
-3. **Phase 2 继续**(2026-10-07 订正 = 4/7 全闭(含 13 补原件)+ 2 有残余 + 1 未达 DoD)——
-   **当前断点 = `diagnosis/story-005`**(13 已通;其后 8-005/006 → 37-005/006)· ~~补 `review-patient-ai-story-004` 原件~~ **✅ 已闭 2026-10-07**
+3. ~~**Phase 2 继续**~~ ✅ **Phase 2 已收口(2026-10-08)** —— 7/7 系统全闭,关键路径 13→8→37→11 全通。
+   diagnosis-system 与 case-system 的 story-005/006 于同日收口。
 4. **Phase 3 两项未做**(垂直切片 PlayMode 测试 · playtest)—— Milestone 2 出口所需
 5. **抽象点计数订正(60 处)** —— 牵动 GDD/registry/architecture **权威件**,须先定归属方
 6. **⚠️ U-8:产能分母(2026-10-04 登记 —— ◐ 半闭)**
