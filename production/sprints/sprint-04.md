@@ -275,7 +275,9 @@ patient-ai ✅ 4/4 → diagnosis-system ✅ 6/6 → case-system ✅ 6/6 → pres
 > ⚠️ **三处**不得借绿**(已按纪律切出,不建在假绿上):
 > - **AC-42-C9**(atlas 页数 ≤ `PAGES_MAX`)—— `PAGES_MAX` 未冻结,**归 019-b,Blocked**,**不计入** I-4;
 > - **`story-019`** 现 `Blocked ⛔`,其 019-a 半**待五族冻结件点亮**;
-> - **M2 Exit Criteria 七条中五条为空**(`interaction` 未实现 · 端到端链未动 · PlayMode 8 假绿桩 · 零 playtest · 形态件 0/4)。
+> - **M2 Exit Criteria 旧读数(2026-10-08 订正)**:原记「七条中五条为空」—— 现状:
+>   `interaction` ✅ 闭 · PlayMode 零桩 ✅ 闭(6 passed + 1 NOT-RUN)· playtest ◐ 首份已落(自动化文档化,人工待裁)·
+>   端到端链 ⬜(写者缺失)· 形态件 ⬜ 0/4;另 2026-10-08 补三条判据(写者存在性 / 体征变化 / 施治腿)均 ⬜。
 
 #### ⚠️ 强制复核结果(③ 的显式义务)—— **甲′ 不成立**
 

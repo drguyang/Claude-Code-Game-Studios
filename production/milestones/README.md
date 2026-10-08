@@ -109,11 +109,25 @@
 **Exit Criteria**(可机械验证):
 - [x] `interaction-system` 实现(**已闭** —— 7/7 story Complete 2026-10-04;原「关键路径断点」措辞已作废)
 - [ ] `patient-ai` → `diagnosis-system` → `case-system` → `prescription-medication` 链至少端到端可跑
-- [ ] PlayMode 集成测试 `unity/Assets/Tests/PlayMode/vertical_slice_test.cs` **零桩方法**
-      (⚠️ 现 **8 个 `Assert.Pass` 桩方法** —— 均为**假绿**:测试恒过但零断言;
-      `grep -c TODO` 因其重复计数而报 14,**以方法数为准**)
+- [ ] ⚠️ **链的写者存在性前置(2026-10-08 补)** —— 上一条链上的每个 `Kind` 至少有 1 个**生产 `Append` 调用点**
+      实测生产侧 `Append` 仅 3 处(`HostEmergencyProcessor`×2 · `PrescribeFlow`×1),
+      **9/25/37 的写者不存在** ⇒ epic 全 `Complete` 链仍跑不起来(**epic Complete ≠ 写者存在**;
+      `vertical_slice_test` 病人腿 `Assert.Ignore` 即此缺口的可证伪表现)
+- [ ] ⚠️ **管道终点 = 体征变化可测(2026-10-08 补)** —— 至少 1 条事件写入病史流后,
+      **`IVitalsQuery` 可观测到体征变化**。依据:Goal 管道终点是「体征变化」(本文件 §三 M2 Goal),
+      原判据 8 条**无一条**覆盖该末端 —— 事件流写进去了、体征变没变**无人验**
+- [ ] ⚠️ **施治腿纳入 M2 链(2026-10-08 补)** —— 核心假设 `design/gdd/game-concept.md:687` 为「**判断 → 施治**」,
+      现 7 系统只有 **11 处方**半边,10 急救(`EmergencyTreatmentApplied`)**不在链内** ⇒ 实际只证
+      「诊断 → 处方」半环。**7 系统集须补 10**(急救已 Complete 2026-10-08,系登记遗漏非未实现)
+- [x] PlayMode 集成测试 `unity/Assets/Tests/PlayMode/vertical_slice_test.cs` **零桩方法**
+      (**已闭 2026-10-08** —— 7 测重写为真验证(驱动 `PrescribeFlow` / `CaseOpenDecider` 真生产路径 + `IPayloadEncoder`),
+      结果 **6 passed + 1 skipped(NOT-RUN: 病人腿 25/9 写者未实现)**,`Assert.Pass` 桩 **0 个**;
+      证据 `production/qa/evidence/review-phase3-vertical-slice-2026-10-08.md`。
+      原记「现 8 个 `Assert.Pass` 桩 / `grep -c TODO` = 14」为**陈旧读数**,已于同日消除)
 - [ ] ≥1 次**文档化** playtest,报告落 `production/playtests/`
-      (⚠️ 该目录**尚不存在**;`production/qa/` 下零 playtest 记录)
+      (◐ 目录与首份报告**已落** 2026-10-08(`playtest-2026-10-08-vertical-slice.md`)—— 但该轮是
+      **自动化测试的文档化**,是否满足本条「文档化 playtest」按口径待用户裁定;
+      若要求**人工**执行则仍未闭)
 - [ ] **4 项形态件交付**(① 脉案线格/空行/明度轴 · ② 墨乾湿两态 · ③ 急救零数字+可跳过 ·
       ④ 一条真实状态反馈通道)—— 承 `art-bible §8.11.1`「手感/可读性不得用灰盒验证」
 - [ ] **五族切图与 atlas 布局冻结**(①② 的前置;切图早错 = 全局返工)
