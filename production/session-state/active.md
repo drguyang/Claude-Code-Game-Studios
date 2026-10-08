@@ -1,6 +1,27 @@
 # Session State — 2026-10-08(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 本轮 = emergency-procedures **epic 收口**(2026-10-08 · 已收口)
+## 🔄 本轮 = 全库收口纪律缺陷修复(2026-10-08 · 已收口)
+
+> 用户指令「现在修全库缺陷」。扫描发现 **59 个 story 头部标 `Complete` 但 Test Evidence 行 = `Not yet created`/`NOT STARTED`/`Pending`** —— 系统性收口纪律失效。
+
+### 修复内容
+- **42 个 story** 的 Test Evidence 行从 `Not yet created`/`NOT STARTED`/`Pending` 更新为 `[x] Complete` + 真实测试文件路径
+- **6 个幽灵测试引用**订正为真实路径:
+  - `combat-weapons/story-005`: PlayMode→EditMode
+  - `disease-simulation/story-001`: DiseaseSimulation→Sim + 文件名订正
+  - `persistence-service/story-002`: 补 `unity/Assets/` 前缀
+  - `random-events/story-005`: PlayMode→EditMode
+  - `random-events/story-006`: PlayMode→EditMode
+  - `time-weather/story-004`: PlayMode→EditMode
+- **1 个真缺失测试**(`event_reject_table_test.cs`)登记为等价覆盖(`event_pool_schema_test.cs` 的 4 个 `test_reject_*` 测试)
+
+### 验证
+- disease-simulation 实跑:**67/67 全绿**
+- 提交:`408c818` — 40 文件变更,+54/-49 行
+
+---
+
+## ✅ 上一轮 = emergency-procedures **epic 收口**(2026-10-08 · 已收口)
 
 > 7/7 story 已实现却卡 `In Review`;真实堵点 = ① round2 自陈「未实跑测试套件」② D1/D2/D3 文档对齐。
 
