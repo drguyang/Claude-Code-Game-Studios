@@ -82,3 +82,24 @@
     font-family: var(--skeuo-font-family);
     font-size: var(--skeuo-font-size-md);
 }
+
+/* ── 通道值区 · M2 形态件④(story-024 · AC-024-2)──
+ * 一条真实状态反馈通道的**呈现端**:已查词条 → 脉案通道行的值区。
+ * 判据权威 = diagnosis-system 规则五 / V-8.2 / :1178-1186。
+ * 四态:未查 = **空行**(复用 `.empty-row`,:329 明文「不是 badge/灰字/占位符」——
+ * 本批零新增未查态类)· 已查阳性 = `.channel-reading`(ink-fg 满墨)·
+ * 已查阴性/读不出 = `.channel-reading-negative`(**墨色降档 ink-faded**,
+ * :1185「把握不足只由承载形态传达,不以文字或标记出现」⇒ 零标注零徽章)。
+ * ⚠️ 「体征 → 通道/词」映射归 8(`SignLexemeRow`);本处只画(SignChannelBinder 分发产物)。
+ * 运行时挂行(值区元素创建)归 9 实现轮 / 数据绑定轮 —— **本批零施加点**(承 story-022/023)。 */
+.channel-reading {
+    color: var(--skeuo-ink-fg);
+    font-family: var(--skeuo-font-family);
+    font-size: var(--skeuo-font-size-md);
+}
+
+.channel-reading-negative {
+    color: var(--skeuo-ink-faded);
+    font-family: var(--skeuo-font-family);
+    font-size: var(--skeuo-font-size-md);
+}

@@ -4,7 +4,7 @@
 > **GDD**: design/gdd/skeuomorphic-ui.md
 > **Architecture Module**: L5 Presentation(PRES)
 > **Status**: **Complete ✅ 2026-09-28**(18/18 stories)· ⚠️ **范围**见下方 §范围边界声明
-> **Stories**: 18 stories created (2026-09-27) + **019 贴图接入(2026-10-03 补 · ◐ 部分完成:c/d/e/f ✅ · b Blocked)** + **020 M2 形态件解锁链(2026-10-08 补 · Complete ✅ 同日)** + **021 M2 形态件①(2026-10-08 补 · Complete ✅ 同日)** + **022 M2 形态件②墨乾湿两态(2026-10-08 补 · Complete ✅ 同日)** + **023 M2 形态件③急救零数字+可跳过(2026-10-09 补 · Complete ✅ 同日)**
+> **Stories**: 18 stories created (2026-09-27) + **019 贴图接入(2026-10-03 补 · ◐ 部分完成:c/d/e/f ✅ · b Blocked)** + **020 M2 形态件解锁链(2026-10-08 补 · Complete ✅ 同日)** + **021 M2 形态件①(2026-10-08 补 · Complete ✅ 同日)** + **022 M2 形态件②墨乾湿两态(2026-10-08 补 · Complete ✅ 同日)** + **023 M2 形态件③急救零数字+可跳过(2026-10-09 补 · Complete ✅ 同日)** + **024 M2 形态件④状态反馈通道(2026-10-09 补 · Complete ✅ 同日)**
 
 ## Overview
 
@@ -111,8 +111,9 @@
 | 021 | M2 形态件①(脉案线格 · 空行等重 · 焦点明度轴) | UI/Visual-Feel | **Complete ✅ 2026-10-08**(三步全交付:格线挂行 + 等重声明层 + 贴图级明度轴 0.266 ≥ 0.12;B2 转正、M2 形态件 1/4) | ADR-013 + `milestones §三` + art-bible G1/G3 |
 | 022 | M2 形态件②(墨乾湿两态 —— 主题色明度轴 · 双态接图 · 洇开语义) | UI/Visual-Feel | **Complete ✅ 2026-10-08**(三步全交付:两态主题色 + `.ink-wet`/`.ink-dry` 接冻结图 + 洇开覆盖方向判据;M2 形态件 2/4) | ADR-013 + `milestones §三` + art-bible §4.5/G4 |
 | 023 | M2 形态件③(急救零数字 + 可跳过 —— 跳过入口元件 · 零数字角标门 · 焦点落点形态) | UI/Visual-Feel | **Complete ✅ 2026-10-09**(三步全交付:`.skip-entry` 元件 + G2 零数字门 + 焦点落点/属性交集判据;零新变量零新图;M2 形态件 3/4) | ADR-013 + `milestones §三` + art-bible G2 + `O-10-1` |
+| 024 | M2 形态件④(一条真实状态反馈通道 —— 体征词条→五通道分发 · 通道值区形态 · 真表端到端) | UI/Visual-Feel | **Complete ✅ 2026-10-09**(三步全交付:`SignChannelBinder` 分发纯函数 + `.channel-reading`/`-negative` 两态类 + 34 行真表端到端;零新图零新变量;M2 形态件 4/4) | ADR-013 + `milestones §三` + diagnosis-system 规则五/F-8.2 |
 
-Counts: 5 Logic · 3 Integration · 5 Visual/Feel · **10 UI** = **23 total (22 Complete + 1 ◐ = story-019)**。
+Counts: 5 Logic · 3 Integration · 5 Visual/Feel · **10 UI** = **24 total (23 Complete + 1 ◐ = story-019)**。
 43 条 AC 全覆盖(按子条拆入);全 ADR Accepted ⇒ 零 ADR-blocked story。
 ⚠️ **story 019 是范围补件,非原 18 条的追加** —— 它填的是「贴图绑定」这个原本**没有任何 story 覆盖**的面
 (见上方 §范围边界声明)。**上表 18 条 Complete 不因 019 Ready 而失效** —— 二者覆盖不同的面。
@@ -132,11 +133,12 @@ This epic is complete when:
 **Epic 全部 18 个 story 已完成**;补件 **story 020(M2 形态件解锁链)Complete ✅ 2026-10-08**、
 **story 021(M2 形态件①)Complete ✅ 2026-10-08**、**story 022(M2 形态件②墨乾湿两态)Complete ✅ 2026-10-08**、
 **story 023(M2 形态件③急救零数字+可跳过)Complete ✅ 2026-10-09**
-(跳过入口元件 + G2 零数字角标门 + 焦点落点形态三步全交付,art-bible G2 转可验;
-M2 形态件 3/4 —— ④ 状态反馈通道未开)——
+(跳过入口元件 + G2 零数字角标门 + 焦点落点形态三步全交付,art-bible G2 转可验)、
+**story 024(M2 形态件④状态反馈通道)Complete ✅ 2026-10-09**
+(通道分发纯函数 + 通道值区两态类 + 真表端到端三步全交付;**M2 形态件 4/4 齐**)——
 补件 **story 019(贴图接入)为 ◐ 部分完成(c/d/e/f ✅ · b Blocked)** ——
 019-b 的 `PAGES_MAX` spike 卡 atlas 页数预算(AC-42-C9),**不卡 M2 形态件**;截图签核目视义务仍归 019-d。
-下一步 = 推进 M2 形态件 ④ 本体交付(①②③ 已交付,前置已解)· 019-b spike · 或跨系统待办(45 联机夹具 / ADR-023 spikes / 七屏走查)。
+下一步 = M2 形态件 4/4 已齐(①②③④ 全交付);余 = 9/数据绑定轮的运行时接线(形态件④的施加点)· 019-b spike · 或跨系统待办(45 联机夹具 / ADR-023 spikes / 七屏走查)。
 
 ---
 
