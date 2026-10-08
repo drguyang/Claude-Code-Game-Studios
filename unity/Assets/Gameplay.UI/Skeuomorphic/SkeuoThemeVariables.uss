@@ -38,6 +38,12 @@
     --skeuo-ink-fg: #1a1410;
     --skeuo-ink-fg-light: #3d3228;
     --skeuo-ink-faded: rgba(26, 20, 16, 0.55);
+    /* ── 墨乾湿两态(story-022 · M2 形态件② · art-bible §4.5 墨龄)──
+       湿 = §4.1 权威浓墨(非提案,可锚);干 = 同色相降明度(色沉)【提案·归数值轮】。
+       两值只走明度轴不色相漂移(色盲安全 —— §4.5),由
+       test_ac022_1_…luminance_axis_only 结构判据守(改色判据跟随,不锚具体 hex)。 */
+    --skeuo-ink-fg-wet: #26241f;
+    --skeuo-ink-fg-dry: #191714;
 
     /* ── 印章(Seal) ── */
     --skeuo-seal-bg: #8b2500;

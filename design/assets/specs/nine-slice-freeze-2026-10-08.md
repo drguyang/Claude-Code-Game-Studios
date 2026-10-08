@@ -50,8 +50,8 @@
 | 8 | `scroll_rod-final.png` | 卷轴 | 件 | 623 / 359 / 1024 / 1024 | **0** | — | 未接线 |
 | 9 | `scroll_knot-final.png` | 卷轴 | 件 | 1024 ×4 | **0** | — | 未接线;与 `casebook_paper_stitch` 合并裁定归 casebook 链 |
 | 10 | `ink_light-final.png` | 墨 | 渐变底 | 1024 ×4 | **0** | `SkeuoInk.uss` | R2:`SkeuoInk.uss` **明示不加 `-unity-slice-*`**(软渐变底非框,承该文件注释)⇒ 冻结 0,门验「USS 无 slice 行」 |
-| 11 | `ink_wet-final.png` | 墨 | 件 | 212 / 53 / 158 / 274 | **0** | — | 未接线 |
-| 12 | `ink_dry-final.png` | 墨 | 件 | 1024 ×4 | **0** | — | 未接线 |
+| 11 | `ink_wet-final.png` | 墨 | 件 | 212 / 53 / 158 / 274 | **0** | `SkeuoInk.uss` | ✅ 接线 2026-10-08(story-022 `.ink-wet` 状态类;slice 0 ⇒ USS 无 `-unity-slice-*` 行,C8 双侧一致) |
+| 12 | `ink_dry-final.png` | 墨 | 件 | 1024 ×4 | **0** | `SkeuoInk.uss` | ✅ 接线 2026-10-08(story-022 `.ink-dry` 状态类;同上) |
 | 13 | `ink_dot-final.png` | 墨 | 件 | 116 / 94 / 95 / 89 | **0** | — | 未接线 |
 | 14 | `seal_surface-final.png` | 印章 | 满铺(石面) | 1024 ×4 | **8** | `SkeuoSeal.uss` | R2:印面石材质无框边界(中心非空,掩膜法不适用)⇒ 冻结 = 现行渲染切片 8 |
 | 15 | `seal_red-final.png` | 印章 | 件 | 1024 ×4 | **0** | — | 未接线 |
@@ -83,8 +83,8 @@ scroll_cap-final.png|0|-
 scroll_rod-final.png|0|-
 scroll_knot-final.png|0|-
 ink_light-final.png|0|SkeuoInk.uss
-ink_wet-final.png|0|-
-ink_dry-final.png|0|-
+ink_wet-final.png|0|SkeuoInk.uss
+ink_dry-final.png|0|SkeuoInk.uss
 ink_dot-final.png|0|-
 seal_surface-final.png|8|SkeuoSeal.uss
 seal_red-final.png|0|-

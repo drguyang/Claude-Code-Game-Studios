@@ -19,6 +19,26 @@
     color: var(--skeuo-ink-faded);
 }
 
+/* ── 墨乾湿两态(M2 形态件② · story-022 · art-bible §4.5 墨龄)──
+   湿墨(边缘洇开)→ 干墨(边缘收干、色沉);**只走明度轴不色相漂移**(色盲安全)。
+   两态是**状态类**(随墨龄切换,同 `.focus-visible` 时间状态语义),**非注册变体** ——
+   不进 SkeuoComponentRegistry(变体 = 离散形态选择如 `-faded`;状态 ≠ 变体)。
+   ⚠️ 切换时机(墨龄 = 当前 tick − 落笔 tick,规则十三 / AC-42-G6④)归**数据绑定轮** ——
+   本类今日零施加点,只交形态对;洇开过渡「烘」归资产轮(V-4)。
+   ⚠️ 单槽语义(显式登记,非缺陷):`.ink-wet`/`.ink-dry` 的 background-image **有意**顶掉
+   `.ink` 基类的 ink_light 渐变底 —— 墨渍形态替代渐变底 = 该状态的正确语义(非闪烁)。
+   图 = 冻结件 freeze-v1 ink_wet/ink_dry(slice 冻结 0 ⇒ 无 `-unity-slice-*` 行,承
+   nine-slice-freeze-2026-10-08.md:53/:54);色走 theme(湿 = 权威浓墨 / 干 = 提案,归数值轮)。 */
+.ink-wet {
+    background-image: url("guid:4ccb158dd9726284480349d2a168e05b");
+    color: var(--skeuo-ink-fg-wet);
+}
+
+.ink-dry {
+    background-image: url("guid:fbae6e469acaf9fb2b9966cd8a276877");
+    color: var(--skeuo-ink-fg-dry);
+}
+
 .ink-title {
     font-size: var(--skeuo-font-size-lg);
     font-weight: 600;
