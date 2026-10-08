@@ -1208,9 +1208,20 @@ Task: story-005 断点(ReadingFSM/JudgmentFSM 未开工)
      signed int64 上确界是 `2^63 − 1`,**恰好溢出 1**;真上界取决于 `dose ≤ 7` ⇒ 安全。
 - **新增三条 AC**:`AC-1-34`(下压量不等式)· `AC-42-C10`(首次导航必落焦)·
   `AC-21a-38c`(`drug_potency ∈ (0, 2^47]`);`AC-21a-38b` 尺 `> 0` → `≥ 100 tick`。
+- ✅ **2026-10-08 `AC-42-C10` 已交付并跑绿**(集群 2/2 Passed)——
+  - 测试:`unity/Assets/Tests/PlayMode/SkeuomorphicUI/ac42c10_focus_landing_test.cs`(两条:主断言 + 反向守卫)
+  - 证据:`production/qa/evidence/ac42c10-2026-10-08.md` · run-book:`production/desktop-ac42c10-runbook.md`
+  - **三条结构性发现**(已回填 GDD `AC-42-C10` 段 + E-14 归属):① `SendEvent` 只跑用户回调阶段,
+    引擎默认不落焦;② 默认动作阶段 = `protected internal` ⇒ 测试侧**不可达**(别再尝试);
+    ③ `IFocusRing.GetNextFocusable` 在「当前焦点 == null」的 GIVEN 上拿不到起点。
+  - **定位改写(不重开裁定)**:测试守的是**不变量**,断言对象 = **桥的响应式兜底**,不是引擎默认。
+  - ⚠️ **未结(显式记账)**:落焦执行体是测试自带 BFS,**不是** `FocusNavigationBridge`(它还没实现这条路径)
+    ⇒ 现证的是「不变量成立」,**不是**「桥实现了它」。
+  - ⏳ 桌面复跑待做(集群 `-nographics` 无渲染;桌面须配 `themeStyleSheet` 否则焦点高亮不可见会误导走查)。
 - **未结 OQ**:31 条,其中**仅剩 `OQ-1-12` 的 ε 实测**是真 P0 前置(归【桌面】PlayMode,
   不阻塞文档);其余自带 P1a/P1b/实现期/数值轮 deadline。
-- **下一步候选**:①【桌面】PlayMode 跑 `AC-1-21` 的 ε 与 `AC-42-C10` 落焦断言;
-  ② 11/9/3/25 各 GDD 的 review-log 与本轮裁定回写;③ 21a 的 F5 偏移可感知地板
+- **下一步候选**:①【桌面】PlayMode 跑 `AC-1-21` 的 ε(**`AC-42-C10` 已不需桌面跑判据,
+  只需复跑留痕**);② 11/9/3/25 各 GDD 的 review-log 与本轮裁定回写;③ 21a 的 F5 偏移可感知地板
   (判据须写成**逐药求值式** `|potency × [ (H+off)(1−e^{−W/(H+off)}) − H(1−e^{−W/H}) ]| ≥ NOISE_BAND_POTENCY_9`,
-  不能拍固定 tick 常量)。
+  不能拍固定 tick 常量);④ `FocusNavigationBridge` 的兜底路径(把它从测试 BFS 换成桥入口,
+  见 run-book §7 的四步义务)。
