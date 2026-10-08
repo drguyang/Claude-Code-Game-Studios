@@ -285,8 +285,8 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// 020 步③ 已一次填入,本门接棒守「填的只能是冻结件的值」。</para>
         /// <para>**真源** = `FreezeRecordRelPath` 文件内 `freeze-v1` 机器块,行式
         /// `文件(相对 Textures/)|冻结值|USS 文件名 或 -`;`-` = 该图无 USS slice 落点。</para>
-        /// <para>**反空跑(空跑 ≠ 通过)**:冻结件缺失 / 机器块缺失或 0 行 / 顶层 `*-final.png`
-        /// 有漏登记 / 登记的 USS 文件缺失 ⇒ 全部硬报错。</para>
+        /// <para>**反空跑(空跑 ≠ 通过)**:冻结件缺失 / 机器块缺失或 0 行 / `Textures/` 下(含子目录)
+        /// `*-final.png` 有漏登记 / 登记的 USS 文件缺失 ⇒ 全部硬报错。</para>
         /// <para>**USS 侧**:`冻结值 > 0` ⇒ 该文件恰 4 条 slice 且全等;`冻结值 = 0` ⇒ 该文件
         /// **零** slice 行(明示不走九宫格,如 `SkeuoInk.uss`);同一 USS 被登记两值 ⇒ 冻结件内部冲突报错。</para></summary>
         public static List<string> ValidateSpriteBorderMatchesFreeze(string repoRoot)
@@ -328,21 +328,23 @@ namespace DaYiJingCheng.EditorTools.Gates
                 return errs;
             }
 
-            // ── 2. 覆盖检查:顶层每张 -final.png 必须有登记行(漏冻 = 冻结清单缺陷)──
+            // ── 2. 覆盖检查:Textures/ 下**每张**(含子目录)`-final.png` 必须有登记行(漏冻 = 冻结清单缺陷)──
+            //    ⚠️ 2026-10-08 绑定轮修盲区:原 `TopDirectoryOnly` 不含 `Brass/` 子目录 ⇒ 第 17 行
+            //    若被误删,门不会报漏冻。改 AllDirectories 后子目录新图漏登记即红。
+            //    (E1 格式门 / 16 张计数仍是顶层面 —— 见冻结件 §六 登记,不连动。)
             var texDir = Path.Combine(repoRoot, TexturesRelDir);
             if (!Directory.Exists(texDir))
             {
                 errs.Add($"[C8] 贴图目录不存在:{texDir} —— 扫描空跑,判据不成立(非合规)。");
                 return errs;
             }
-            var topPngs = Directory.GetFiles(texDir, "*-final.png", SearchOption.TopDirectoryOnly)
-                                   .Select(Path.GetFileName)
+            var allPngs = Directory.GetFiles(texDir, "*-final.png", SearchOption.AllDirectories)
+                                   .Select(f => Path.GetRelativePath(texDir, f).Replace('\\', '/'))
                                    .ToHashSet(StringComparer.Ordinal);
-            var rowTops = rows.Where(r => r.File.IndexOf('/') < 0)
-                              .Select(r => r.File)
-                              .ToHashSet(StringComparer.Ordinal);
-            foreach (var missing in topPngs.Except(rowTops).OrderBy(x => x, StringComparer.Ordinal))
-                errs.Add($"[C8] 顶层贴图 `{missing}` 未登记进冻结件机器块 —— 冻结清单漏项。");
+            var rowFiles = rows.Select(r => r.File)
+                               .ToHashSet(StringComparer.Ordinal);
+            foreach (var missing in allPngs.Except(rowFiles).OrderBy(x => x, StringComparer.Ordinal))
+                errs.Add($"[C8] 贴图 `{missing}` 未登记进冻结件机器块 —— 冻结清单漏项。");
 
             // ── 3. meta 侧:spriteBorder 四值均须等于冻结值 ──
             foreach (var r in rows)

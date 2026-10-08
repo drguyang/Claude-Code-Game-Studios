@@ -1,6 +1,44 @@
 # Session State — 2026-10-08(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ✅ · M2 形态件前置链本轮收口**)
 
-## ✅ 本轮 = story-020 M2 形态件解锁链(2026-10-08 · 三步全交付)
+## ✅ 本轮 = 黄铜环图绑定到焦点样式(2026-10-08 · 绑定轮 · 见本轮提交)
+
+> 用户指令「那就绑定到焦点样式」。前置答问:**环图来源 = 程序化出图**(上一轮按 art-assets-required §二③
+> 规格脚本直出,非外部美术;冻结件 R3「规格出图」即此意)。
+
+### 绑定形态(甲案 · 同元素 background-image,单槽风险显式登记)
+- `SkeuoFocusVisible.uss` `.focus-visible`:`background-image = 铜环 guid 6d4c0acb…` + 4 条 slice 2px;
+  **实色 border 宽退役(0,铜色锚 `var(--skeuo-focus-border)` 保留** —— 守住 `test_focus_carrier_is_brass_not_ink`);
+  **inset box-shadow 压痕移除**(自边缘起吃环 1px ⇒ 违 2px 视觉厚度);disabled 补 `background-image: none`
+- **单槽铁律登记**(非静默):环图整槽替换 —— 带纹理焦点目标获焦时纸纹被顶;现状 `FocusVisibleStyle.ClassName`
+  全库零调用 ⇒ 今日零可见风险;出路 = 乙案环子元素(重开焦点样式轮),已写进 USS 注释 + 冻结件 §六
+- `SkeuoThemeVariables.uss`:`--skeuo-focus-border-width` 失引用加注(勿当死变量删)
+
+### C8 门覆盖检查递归化(修盲区,当场抓出真漏冻)
+- 原 `TopDirectoryOnly` ⇒ 子目录图漏登记不报。改 `AllDirectories`(E1/16 计数门仍顶层面,冻结件 §六 登记)
+- **当场抓出**: `Textures/Casebook/casebook_paper_base-final.png`(2026-10-05 入库 2048²、零引用未接线)
+  —— 冻结轮顶层面视野外 ⇒ 补登记为第 18 行(0 值登记态;三项格式手验合规但 E1 门不扫它,§六 登记)
+- 冻结件:§二 行 17 USS 落点落实 + 行 18 补登记 · freeze-v1 两行同步 · 范围 17→18 条 · §六 三条新登记
+
+### 测试证据
+- 过滤 **227/214/0 红/13 跳**(+2 新夹具:`test_ac42c8_brass_focus_ring_bound…` + `…unregistered_subdir_png_caught`)
+- 变异(slice-left 2→4 + guid 拔换)⇒ **恰 5 红**(C8 slice 失配 / 新绑定夹具 / C11 悬空 ×2 / ValidateAll 聚合),
+  报文精确;python 反向还原复核 → 过滤复绿 227/214/0
+- 全量 EditMode **3004/2957/0 红/46 跳/1 inc**(基线 3002/2955 ⇒ +2 新夹具零回归)
+- 全量 PlayMode **98/97/0 红/1 跳**(与基线逐数一致)
+
+### 出图脚本补存(用户指令 2026-10-08)
+`Textures/Brass/generate_focus_brass_2px.py` —— 与图同目录;`--check` 实测**字节级一致**
+(235 bytes 逐字节同入库版,证明上轮即 PIL 同参产出);`.py` 不在任何 `*.png` 门/测试扫描面;
+依赖 Pillow(注释含清华源安装命令)。冻结件 §七 已补指针。
+
+### 本批提交文件
+`SkeuoFocusVisible.uss` · `SkeuoThemeVariables.uss` · `TextureBindingGates.cs` ·
+`texture_binding_gate_test.cs` · 冻结件 · `Brass/generate_focus_brass_2px.py`(新)· active.md(本段)
+—— 照旧排除:`.gitignore` · `.trae/…` · 孤儿 `Casebook.meta`
+
+---
+
+## ✅ 上一轮 = story-020 M2 形态件解锁链(2026-10-08 · 三步全交付 · 已提交 d3eefe7)
 
 > 用户指令「完成020再提交」。三步 = ① 019-f 切图冻结件 ② 黄铜 2px 出图 ③ 019-a 余项绑定回填。
 

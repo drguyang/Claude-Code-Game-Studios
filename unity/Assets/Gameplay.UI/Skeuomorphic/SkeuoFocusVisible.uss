@@ -4,23 +4,47 @@
  *
  * ⚠️ 2026-10-05(019-d):① 载体墨 → 铜(用户裁定,承 art-bible §7.4 Amendment);
  *    ② 硬编码 2px 抽为 `--skeuo-focus-border-width`(C4 消红)。
+ * ✅ 2026-10-08(020 步② 后续 · 绑定轮):2px 形状的载体由**实色 border** 换为
+ *    **黄铜 2px 贴图环**(Brass/focus_brass_2px-final.png)—— 明度轴判据需要
+ *    「贴图 × 主题色最亮像素」,实色边没有肌理可判。
  */
 
 .focus-visible {
+    /* ── 黄铜环图接管 2px 形状(C8 门比对冻结件,禁手填)──
+       slice = 2 = 冻结件 freeze-v1 `Brass/focus_brass_2px-final.png|2|SkeuoFocusVisible.uss`;
+       环中心透明 ⇒ 元素自身 background-color 纸底透出。
+       ⚠️ 单槽铁律(显式登记,非静默 —— 承冻结件 §六):`background-image` 是**整槽替换**。
+       焦点目标若自身带纸纹(paper/scroll 等容器类),获焦瞬间纸纹被环图顶掉 ——
+       环中心透明救不了**被顶掉的纹理层**。现状:运行期施加者尚不存在
+       (FocusVisibleStyle.ClassName 全库零调用)⇒ 今日零可见风险。
+       铁律:焦点目标只许 background-color 底;未来若须带纹理元素可焦 ⇒
+       改走**环子元素**(overlay child,乙案)重开焦点样式轮,不得静默接受纸纹闪烁。 */
+    background-image: url("guid:6d4c0acbd9a141348c34017e96d20ee2");
+    -unity-slice-left: 2px;
+    -unity-slice-right: 2px;
+    -unity-slice-top: 2px;
+    -unity-slice-bottom: 2px;
+
+    /* ── 铜色锚保留(2026-10-05 载体墨→铜改判的声明层落点;
+          test_focus_carrier_is_brass_not_ink 断言此引用)──
+       width 归 0 = **实色 border 渲染退役**,2px 厚度由环图独挑
+       (若两者并存 = 外实内纹双环 4px,违「2px 视觉厚度」规格)。 */
     border-top-color: var(--skeuo-focus-border);
     border-right-color: var(--skeuo-focus-border);
     border-bottom-color: var(--skeuo-focus-border);
     border-left-color: var(--skeuo-focus-border);
-    border-top-width: var(--skeuo-focus-border-width);
-    border-right-width: var(--skeuo-focus-border-width);
-    border-bottom-width: var(--skeuo-focus-border-width);
-    border-left-width: var(--skeuo-focus-border-width);
-    /* 纸面压痕效果 */
-    box-shadow: inset 0 0 0 1px var(--skeuo-paper-bg);
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+    /* 纸面压痕(inset box-shadow)2026-10-08 同批移除:自边缘起 0–1px 会吃掉
+       环的内半 ⇒ 环视觉厚度剩 1px,违 2px 规格。压痕语义若要回,须避让环厚 ⇒
+       归乙案(环子元素时代由外层 shadow 解决)。 */
 }
 
 /* 门关时不施加焦点高亮(无焦点 ⇒ 无高亮,不得残留) */
 .focus-visible-disabled {
+    background-image: none;
     border-top-width: 0;
     border-right-width: 0;
     border-bottom-width: 0;

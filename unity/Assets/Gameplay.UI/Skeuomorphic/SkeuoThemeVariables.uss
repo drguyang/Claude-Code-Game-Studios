@@ -74,8 +74,10 @@
     --skeuo-marks-seal-padding: 2px;        /* 印(计入/卸出)内衬 */
 
     /* ── 焦点(Focus)— 载体 = 黄铜 2px(2026-10-05 用户裁定,原墨侧)── */
-    --skeuo-focus-border: #B8863B;          /* 同 brass-bg;独立命名以承「改判可溯源」 */
-    --skeuo-focus-border-width: 2px;
+    --skeuo-focus-border: #B8863B;          /* 同 brass-bg;独立命名以承「改判可溯源」;SkeuoFocusVisible.uss border-color 锚仍引用 */
+    --skeuo-focus-border-width: 2px;        /* ⚠️ 2026-10-08 绑定轮起**无 USS 引用**(2px 形状由黄铜环图独挑,
+                                               border 宽退役见 SkeuoFocusVisible.uss)—— 留作改判溯源,
+                                               **勿当死变量删除**(删除须同批改 story-009 载体契约叙述) */
 
     /* ── 共享(Shared) ── */
     --skeuo-shared-radius: 2px;

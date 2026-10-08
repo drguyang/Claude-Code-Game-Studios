@@ -269,6 +269,76 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         }
 
         [Test]
+        public void test_ac42c8_brass_focus_ring_bound_to_focus_visible_uss()
+        {
+            // ══ 2026-10-08 绑定轮:黄铜 2px 环图须真绑到焦点样式(明度轴判据的渲染载体)══
+
+            // Arrange
+            string ussPath = Path.Combine(SkeuoDir, "SkeuoFocusVisible.uss");
+            Assert.IsTrue(File.Exists(ussPath), $"前置失败:{ussPath} 不存在。");
+            string text = File.ReadAllText(ussPath);
+            string body = Regex.Replace(text, @"/\*.*?\*/", "", RegexOptions.Singleline);
+
+            // Act: slice 行集(去注释后)
+            var slices = Regex.Matches(body, @"-unity-slice-(left|right|top|bottom)\s*:\s*(\d+)px");
+
+            // Assert: ① 环图 guid 真被引用;② 恰 4 条 slice 全 = 冻结值 2;
+            //         ③ 实色 border 不得回归(并存 = 双环 4px,违「2px 视觉厚度」);④ 禁用态复位环
+            Assert.IsTrue(body.Contains("6d4c0acbd9a141348c34017e96d20ee2"),
+                ".focus-visible 须绑黄铜 2px 环图(guid 6d4c0acb…)—— 否则焦点高亮无贴图载体。");
+            Assert.AreEqual(4, slices.Count,
+                $".focus-visible 须恰 4 条 -unity-slice-*,实见 {slices.Count}。");
+            foreach (Match m in slices)
+                Assert.AreEqual("2", m.Groups[2].Value,
+                    $"-unity-slice-{m.Groups[1].Value} = {m.Groups[2].Value}px,冻结件 = 2(AC-42-C8)。");
+            Assert.IsFalse(Regex.IsMatch(body, @"border-top-width:\s*var\(--skeuo-focus-border-width\)"),
+                "实色 2px border 不得回归 —— 2px 形状由环图独挑,并存 = 外实内纹双环。");
+            Assert.IsTrue(body.Contains("background-image: none"),
+                "禁用态 .focus-visible-disabled 须复位环图,否则门关后高亮残留。");
+        }
+
+        [Test]
+        public void test_negative_fixture_unregistered_subdir_png_caught()
+        {
+            // ══ 2026-10-08 覆盖检查递归化的判别力:子目录漏登记须被抓(原顶层面是盲区)══
+
+            // Arrange: 顶层图已登记(meta 合规 0=0)+ 子目录图未登记 + 冻结件只含顶层行
+            string tmp = Path.Combine(Path.GetTempPath(), "__c8_subdir_fixture__");
+            try
+            {
+                if (Directory.Exists(tmp)) Directory.Delete(tmp, true);
+                string repo = Path.Combine(tmp, "repo");
+                string texDir = Path.Combine(repo, "Assets", "Gameplay.UI", "Skeuomorphic", "Textures");
+                string subDir = Path.Combine(texDir, "Sub");
+                string ussDir = Path.Combine(repo, "Assets", "Gameplay.UI", "Skeuomorphic");
+                string recDir = Path.Combine(tmp, "design", "assets", "specs");
+                Directory.CreateDirectory(subDir);
+                Directory.CreateDirectory(ussDir);
+                Directory.CreateDirectory(recDir);
+
+                File.WriteAllText(Path.Combine(texDir, "toplevel-final.png"), "png");
+                File.WriteAllText(Path.Combine(texDir, "toplevel-final.png.meta"),
+                    "fileFormatVersion: 2\nguid: 0000000000000000000000000000c8f2\n" +
+                    "TextureImporter:\n  spriteBorder: {x: 0, y: 0, z: 0, w: 0}\n");
+                File.WriteAllText(Path.Combine(subDir, "orphan-final.png"), "png");
+                File.WriteAllText(Path.Combine(recDir, "nine-slice-freeze-2026-10-08.md"),
+                    "# fixture\n\n```freeze-v1\ntoplevel-final.png|0|-\n```\n");
+
+                // Act
+                var errs = TextureBindingGates.ValidateSpriteBorderMatchesFreeze(repo);
+
+                // Assert: 子目录未登记图须被抓 —— 证明覆盖检查是 AllDirectories 面
+                Assert.IsTrue(errs.Any(e => e.Contains("orphan-final.png") && e.Contains("未登记")),
+                    "子目录漏登记须报错(覆盖检查应为递归面)。实际:\n" + string.Join("\n", errs));
+            }
+            finally
+            {
+                try { if (Directory.Exists(tmp)) Directory.Delete(tmp, true); }
+                catch { /* 清理失败不掩护断言结果 */ }
+            }
+        }
+
+        [Test]
         public void test_negative_fixture_wrong_sprite_mode_would_be_caught()
         {
             // ⚠️ **本夹具是文档性说明,不是判别力证据**(单轮评审 QA 侧 MINOR-3 正确地指出:

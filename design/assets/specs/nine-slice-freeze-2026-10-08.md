@@ -5,6 +5,8 @@
 > **依据**: AC-42-C8「slice 值须来自切图冻结件的元数据,**不得手填**」·
 > `production/qa/evidence/art-assets-required-for-019-2026-10-05.md` §二①(冻结件规格)
 > **范围**: 已入库 16 张 `*-final.png`(五族:纸/墨/卷轴/印章/图标)+ 铜族新出图 1 张 = **17 条**
+> + **2026-10-08 同日绑定轮补登记 1 条**(第 18 行 `Casebook/…`,递归覆盖检查抓出的冻结轮盲区漏项;
+> 未接线 ⇒ 0 值登记态,非新实测)⇒ 现 **18 条**,`freeze-v1` 块与门已同步。
 >
 > 🔴 **本件是 `spriteBorder` 与 `-unity-slice-*` 的唯一真源。**
 > 改任何冻结值 = **重开冻结轮**(改本件 → 同批改 `.meta` / USS → 复跑 C8 门),
@@ -54,7 +56,8 @@
 | 14 | `seal_surface-final.png` | 印章 | 满铺(石面) | 1024 ×4 | **8** | `SkeuoSeal.uss` | R2:印面石材质无框边界(中心非空,掩膜法不适用)⇒ 冻结 = 现行渲染切片 8 |
 | 15 | `seal_red-final.png` | 印章 | 件 | 1024 ×4 | **0** | — | 未接线 |
 | 16 | `ui_icons_sprite-final.png` | 图标 | 表(2048) | 2034 / 2035 / 2039 / 2039 | **0** | — | 2026-10-05 裁定**不走元件库**,交图标系统 ⇒ 不参与元件库九宫格 |
-| 17 | `Brass/focus_brass_2px-final.png` | **铜** | 规格出图 | n/a(非实测) | **2** | —(登记) | **本冻结轮唯一新图**;值 = art-assets-required §二③ 规格「2px 视觉厚度」,**非边界实测**(规则 R3);承载落点登记为 `SkeuoFocusVisible.uss`,绑定形态归焦点样式轮(UI Toolkit 无 border-image,`background-image` 会覆盖目标元素自身纸底 —— 不得静默绑) |
+| 17 | `Brass/focus_brass_2px-final.png` | **铜** | 规格出图 | n/a(非实测) | **2** | `SkeuoFocusVisible.uss` | **本冻结轮唯一新图**;值 = art-assets-required §二③ 规格「2px 视觉厚度」,**非边界实测**(规则 R3)。✅ **绑定已落 2026-10-08(同日绑定轮)**:`.focus-visible` 以 `background-image` + slice 2 承载环图,实色 border 宽退役(0)、压痕 box-shadow 移除 —— 单槽风险(带纹理元素获焦纸纹被顶)已**显式登记**于 `SkeuoFocusVisible.uss` 注释与下方 §六,非静默绑 |
+| 18 | `Casebook/casebook_paper_base-final.png` | 纸(脉案底) | 满铺底 | n/a(未接线未实测) | **0** | — | ⚠️ **2026-10-08 绑定轮递归覆盖检查抓出的冻结轮漏登记**(原扫 `TopDirectoryOnly` 盲区;2026-10-05 入库 casebook P0 四层)。**未接线**(全库零引用)⇒ 0 = 登记态,同未接线族;**接线时必须重开冻结轮实测**。三项格式手验合规(spriteMode 1 / textureType 8 / alphaIsTransparency 1)但 E1 门顶层面不扫它(见 §六) |
 
 ## 三、冻结值取值规则
 
@@ -86,7 +89,8 @@ ink_dot-final.png|0|-
 seal_surface-final.png|8|SkeuoSeal.uss
 seal_red-final.png|0|-
 ui_icons_sprite-final.png|0|-
-Brass/focus_brass_2px-final.png|2|-
+Brass/focus_brass_2px-final.png|2|SkeuoFocusVisible.uss
+Casebook/casebook_paper_base-final.png|0|-
 ```
 
 ## 五、本轮发现(冻结轮的存在理由实例)
@@ -107,8 +111,24 @@ Brass/focus_brass_2px-final.png|2|-
 - **`spriteSheet.sprites[].border` 仍为 0**:UI Toolkit 九宫格只读 USS,
   不读该字段;日后若走 uGUI Sliced,须 Sprite Editor 重刷(登记,不阻塞)。
 - **未接线 11 张的 0 值**是登记态:日后接线**必须重开冻结轮**补测,不得直接抄现值。
+- **单槽纸底风险(2026-10-08 绑定轮登记)**:`.focus-visible` 的 `background-image` 是**整槽替换** ——
+  焦点目标若自身带纸纹,获焦瞬间纸纹被环图顶掉(环中心透明救不了被顶掉的纹理层)。
+  现状运行期施加者不存在(`FocusVisibleStyle.ClassName` 零调用)⇒ 今日零可见风险;
+  铁律与出路(乙案环子元素)见 `SkeuoFocusVisible.uss` 注释 —— **不得静默接受纸纹闪烁**。
+- **C8 覆盖检查面 = `Textures/` 递归**(2026-10-08 同批修):原 `TopDirectoryOnly` 不含子目录
+  ⇒ 第 17 行若被误删,门**不会**报漏冻(登记盲区)。已改递归,子目录新图漏登记即红。
+  **改面当场抓出冻结轮自身的一笔漏登记** = 第 18 行 `Casebook/casebook_paper_base-final.png`
+  (2026-10-05 入库、2048²、零引用未接线)—— 冻结轮当时只扫顶层 16 张,它落在视野外;
+  已按「未接线 ⇒ 0 值登记态」补登记(见 §二 行 18)。
+  ⚠️ **E1 格式门仍为顶层 16 张面**(不递归):Brass 的三项格式已手验合规
+  (`spriteMode 1 / textureType 8 / alphaIsTransparency 1`)但**门不覆盖** —— 扩面须连动
+  `test_ac42e1_covers_all_sixteen`(断言恰 16)与五族计数叙述,归后续轮(登记,不阻塞)。
 
 ## 七、复算脚本
 
 见会话日志(2026-10-08);要点即 §一 六步,零依赖(numpy + PIL)。
 复算期望:第 1 行 `40/39/43/43`、第 6 行 `66/64/68/69` —— 对不上即说明方法或图变了。
+
+**出图脚本(第 17 行铜环,2026-10-08 绑定轮补存)**:
+`unity/Assets/Gameplay.UI/Skeuomorphic/Textures/Brass/generate_focus_brass_2px.py`
+—— 与图同目录;`--check` 校验复现(实测**字节级一致**,235 bytes)。依赖 Pillow(清华源安装)。
