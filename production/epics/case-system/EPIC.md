@@ -3,7 +3,7 @@
 > **Layer**: Feature
 > **GDD**: design/gdd/case-system.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ 病例流(第二逻辑流)+ Presentation(只读 DTO 侧)
-> **Status**: 🔄 In Progress(5/6 story 已收口 —— 001–004 于 2026-10-06 收口(`e64efad`/`c4e3708`/`31e3f9b`/`8a693fd`);005 于 2026-10-08 收口;**断点 = story-006**)
+> **Status**: ✅ Complete(6/6 story 全部收口 —— 001–004 于 2026-10-06 收口(`e64efad`/`c4e3708`/`31e3f9b`/`8a693fd`);005 于 2026-10-08 收口;006 于 2026-10-08 收口)
 > **Stories**: 6 stories — see table below
 
 ## Overview
@@ -62,4 +62,4 @@ This epic is complete when:
 | 003 | 结案前置:处置证据窗口与快照 | Logic | **Complete ✅ 2026-10-06**(`31e3f9b`) | ADR-008/007 |
 | 004 | F-37.1 同源检测与 PatternRecognized | Logic | **Complete ✅ 2026-10-06**(`8a693fd`) | ADR-008/007/012 |
 | 005 | 守密纪律:DTO 守卫 · 词表烘焙 · 零奖励断言 | Integration | **Complete ✅ 2026-10-08** | ADR-013/014/006 |
-| 006 | 重放持久化与跨系统边界义务 | Integration | Ready | ADR-010/005/008 |
+| 006 | 重放持久化与跨系统边界义务 | Integration | **Complete ✅ 2026-10-08** | ADR-010/005/008 |

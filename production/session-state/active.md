@@ -1,6 +1,39 @@
 # Session State — 2026-10-08(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 本轮 = case-system **story-005 守密纪律**(2026-10-08 · 已收口)
+## 🔄 本轮 = case-system **story-006 重放持久化与跨系统边界义务**(2026-10-08 · 已收口)
+
+> 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
+
+### 交付物
+- **测试**:`unity/Assets/Tests/EditMode/CaseSystem/case_replay_persistence_test.cs`(10 测,覆盖 AC-37-06/不折叠/高水位/53 边界两条/D-37-B/[V] 移交)
+- **评审原件**:`production/qa/evidence/review-case-system-story-006-2026-10-08.md`
+- **本 epic 收口**:case-system 6/6 story 全 Complete ⇒ EPIC ✅ Complete
+
+### 测试(实测)
+- `unity/Logs/case_replay_v3.xml` = **22 / 22 passed / 0 failed**(story-006 10 测 + story-005 12 测)
+- `unity/Logs/editmode_full_case006.xml` = **3001 / 2954 / 0 红 / 1 inc / 46 跳**(无回归)
+
+### 评审
+- 双代理一轮(lead-programmer 9 条 + qa-lead 5 条)**独立收敛**于同一根因:「8 测全绿」不构成 AC 覆盖 —— 恒真断言 / 空集绿 / 测测试私有 helper
+- 修复:接生产码(`SaveCodec`/`PayloadCodec.Case`/`EventStream.GetNextPatientId`/`CaseStreamQuery`)+ 删私有 helper + 具体值断言 + 双向谓词测 + 乱序夹具
+
+### 可红性证明(突变验证)
+- A 高水位 off-by-one ✅杀 · B 哨兵守卫 ⚪等价突变 · D 哨兵初值 ✅杀 · E 载荷引用 ✅杀
+- 生产码已还原(`git diff` 无输出)
+
+### 未闭登记(禁借绿)
+- AC-37-06 IL2CPP 半边:归 ADR-012 矩阵批
+- 7a `Folded(p)` 折叠执行:生产谓词不存在 ⇒ NOT-RUN
+- D-37-B 转登 9/7a:两 GDD 零命中 ⇒ NOT-RUN(producer 传播)
+- 53 消费半边:挂 `AC-53-04`
+- 整档字节级相等(部分):ADR-010 §一 三流段分帧 codec 未实现
+
+### 收口
+- Commit: 见本轮提交
+
+---
+
+## ✅ 上一轮 = case-system **story-005 守密纪律**(2026-10-08 · 已收口)
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
 
@@ -16,14 +49,6 @@
 - 双代理一轮(lead-programmer 代码面 + qa-lead 测试面)一致判 **BLOCKED**(6 条)
 - 核心 = 「真载体缺失却报绿」+「恒真断言」+“必交夹具缺失”
 - 修复:补空集绿守卫 + [TestFixture] + 命名修正 + 类型面/NOT-RUN 口径分离
-
-### 未闭登记(禁借绿)
-- AC-37-15 的 39/42/48 闭集半边:39/42/48 病例 DTO 载体未建 ⇒ NOT-RUN
-- AC-37-24 的生产码排序键枚举半边:生产码无 `SortKey` 枚举 ⇒ NOT-RUN
-- AC-37-20 的 53 入向契约半边:53 载体未建 ⇒ NOT-RUN
-- quill_tick 的正存在断言半边:呈现判定 DTO 载体未建 ⇒ NOT-RUN
-- AC-37-32 的写路径扫描半边:37 逻辑件无 `IEventSink` 字段(纯函数)⇒ NOT-RUN
-- AC-37-35 的构建期双射校验半边:ADR-014 阶段 2 校验器未建 ⇒ NOT-RUN
 
 ### 收口
 - Commit: `f57376d` — 已推送

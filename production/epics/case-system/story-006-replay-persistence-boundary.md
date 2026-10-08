@@ -1,12 +1,12 @@
 # Story 006: 重放持久化与跨系统边界义务
 
 > **Epic**: 病例系统
-> **Status**: Ready
+> **Status**: Complete ✅ 2026-10-08
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-08
 ## Context
 
 **GDD**: `design/gdd/case-system.md`(规则十一 重放/持久化边界 · EC-37-6 主机迁移 · 53 消费两条 · D-37-B · [V] 走查三条移交)
@@ -30,12 +30,24 @@
 
 *From GDD `design/gdd/case-system.md`, scoped to this story:*
 
-- [ ] AC-37-06(Mono 半边):含开案/结案/改写/已触发图样的复合存档 ⇒ 编码→解码→重放 ⇒ 病例状态集逐位同;迁移(新主机续跑)不产生分叉
-- [ ] 不折叠验证:同一 `patient_id` 既往全部病例行在重放后完整可数(无历史行被终态吸收);`Folded(p)` 谓词对「有未结案病例」的 p 返回 false(接口断言,折叠执行归 7a)
-- [ ] 高水位联查:病人 id 高水位扫描 = 三流并集(病史/病例/世界),病例流的哨兵行不污染(承 story-001,此处用真实存档路径复验)
-- [ ] 53 边界两条登记断言:37 出站仅事件流本身(无直接接口调用 53);夹具证明「PatternRecognized 乱序到达 ⇒ 按 Tick 重排后 FiredSet 解读不变」(37 侧只做发出方纪律,消费方测试载体在 53 ⇒ 该半边记 NOT-RUN 挂 AC-53-04)
-- [ ] D-37-B 转登:「同源检测引入结案行为 ⇒ 事件率新前提」写入 7a/9 的有界性登记(文档义务,PR 附链接)
-- [ ] [V] 移交登记:AC-37-16/17/19 在 39/42 走查批的留档路径回填本 epic DoD(不在本 story 执行走查)
+- [x] AC-37-06(Mono 半边):含开案/结案/改写/已触发图样的复合存档 ⇒ 编码→解码→重放 ⇒ 病例状态集逐位同;迁移(新主机续跑)不产生分叉
+  - **Mono 半边(已验)**:真实载荷(`PayloadCodec.Case.cs` 五支)经 `InMemoryBlobPool` → 生产 `SaveCodec` round-trip 字节级相等 + `Payload.BlobId/Offset/Length` 逐位同 + `TryGetPayload` 可还原;突变 E 杀
+  - **IL2CPP 半边(BLOCKED-BY-ADR-012)**:归三格矩阵批
+  - **整档字节级相等(部分)**:ADR-010 §一 的**三流段分帧 codec 未实现** ⇒ 本测用 story 侧帧(计数前缀 + `SaveCodec.WriteEvent`)
+- [x] 不折叠验证:同一 `patient_id` 既往全部病例行在重放后完整可数(无历史行被终态吸收);`Folded(p)` 谓词对「有未结案病例」的 p 返回 false(接口断言,折叠执行归 7a)
+  - **已验**:重放后病人 1 = 2 开案 + 2 结案(具体值,开/结分别计数);`CaseStreamQuery.HasOpenCase` 双向断言(有未结案⇒true / 全结⇒false / 重开⇒true)
+  - **7a `Folded(p)` 折叠执行半边(NOT-RUN)**:生产谓词不存在(grep 零命中)
+- [x] 高水位联查:病人 id 高水位扫描 = 三流并集(病史/病例/世界),病例流的哨兵行不污染(承 story-001,此处用真实存档路径复验)
+  - **已验**:生产 `EventStream.GetNextPatientId()` 三流并集 max=5 ⇒ next=6(具体值);「只含哨兵 ⇒ next=0」反向测;突变 A / D 均杀
+- [x] 53 边界两条登记断言:37 出站仅事件流本身(无直接接口调用 53);夹具证明「PatternRecognized 乱序到达 ⇒ 按 Tick 重排后 FiredSet 解读不变」(37 侧只做发出方纪律,消费方测试载体在 53 ⇒ 该半边记 NOT-RUN 挂 AC-53-04)
+  - **①(已验)**:载荷面无延迟/归因语义字段(token 白名单)+ `Sim` 程序集引用集不含 53 侧(ADR-025 §① 结构性)
+  - **②(已验)**:2 条乱序 PatternRecognized ⇒ 按 Tick 重排后 salted_key 序 = 时间序,且断言「到达序 ≠ 时间序」证非恒真
+  - **53 消费半边(NOT-RUN)**:挂 `AC-53-04`
+- [x] D-37-B 转登:「同源检测引入结案行为 ⇒ 事件率新前提」写入 7a/9 的有界性登记(文档义务,PR 附链接)
+  - **37 GDD 侧登记(已验)**:`case-system.md` 含 `D-37-B` + 标题「病史流有界性的行为学前提」+ 转登目标「9 / 7a / technical-director 会签」
+  - **转登 9/7a 半边(NOT-RUN)**:两 GDD 零命中 ⇒ 未落盘(producer 传播)
+- [x] [V] 移交登记:AC-37-16/17/19 在 39/42 走查批的留档路径回填本 epic DoD(不在本 story 执行走查)
+  - **已登记**:见 §Completion Notes 跨域上报;走查执行归 39/42
 
 ---
 
@@ -88,7 +100,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_replay_persistence_test.cs` — must exist and pass(Mono 半边);IL2CPP 半边 `BLOCKED-BY-ADR-012` 矩阵批,53 消费半边 NOT-RUN 挂 AC-53-04
-**Status**: [ ] Not yet created
+**Status**: [x] Created 2026-10-08 — 10 测全绿(`unity/Logs/case_replay_v3.xml`;全量 `editmode_full_case006.xml` = 3001/2954/0 红/1 inc/46 跳,无回归);突变验证 4 项(A/D/E 杀 · B 等价);评审原件 `production/qa/evidence/review-case-system-story-006-2026-10-08.md`
 
 ---
 
@@ -101,4 +113,31 @@
 
 ## Completion Notes
 
-*(留空 — story 关闭时回填)*
+**收口 2026-10-08** — 10 测全绿(`unity/Logs/case_replay_v3.xml`);全量无回归(`editmode_full_case006.xml` = 3001/2954/0 红);评审原件 `production/qa/evidence/review-case-system-story-006-2026-10-08.md`。
+
+**双代理一轮评审**:lead-programmer(代码面,9 条 BLOCKING)+ qa-lead(测试面,5 条 BLOCKING)**独立收敛**于同一根因 —— **「8 测全绿」不构成 AC 覆盖**:多条断言恒真 / 空集绿 / 测的是测试私有 helper 而非生产码。两份报告的 B1/B4/B5 与 B2/B6/B7 互为独立复现。
+
+**修复落点**:
+- 载荷改真实 `PayloadCodec.Case.cs` 五支 + `InMemoryBlobPool`;逐字段比对增列 `Payload` 三元组(B1/B5)
+- **删除测试私有 helper**,改生产 `SaveCodec`/`CodecWriter`/`CodecReader`(B2)
+- 高水位改生产 `EventStream.GetNextPatientId()` 并钉具体值;新增哨兵反向测(B6)
+- 不折叠改具体值断言(2 开案 + 2 结案,分别计数)(B4)
+- 谓词测双向化(有未结案⇒true / 全结⇒false / 重开⇒true)(B5)
+- 53 边界改载荷 token 白名单 + `Sim` 程序集引用集断言(B7)
+- 乱序夹具改 2 条 + 断言「到达序 ≠ 时间序」(B8)
+- D-37-B 改读 GDD 断言登记存在,转登半边 NOT-RUN(B9)
+
+**可红性证明(突变验证)**:A 高水位 off-by-one ✅杀 · B 哨兵守卫 ⚪等价突变 · D 哨兵初值 ✅杀 · E 载荷引用 ✅杀。生产码已还原(`git diff` 无输出)。
+
+**未闭登记(禁借绿)**:
+- AC-37-06 IL2CPP 半边:归 ADR-012 矩阵批
+- 7a `Folded(p)` 折叠执行:生产谓词不存在 ⇒ NOT-RUN
+- D-37-B 转登 9/7a:两 GDD 零命中 ⇒ NOT-RUN(producer 传播)
+- 53 消费半边:挂 `AC-53-04`
+- 整档字节级相等(部分):ADR-010 §一 三流段分帧 codec 未实现 ⇒ 本测用 story 侧帧
+
+**跨域上报**:
+- 7a 折叠谓词 `Folded(p)` 生产实现缺失 ⇒ 37「不折叠」不变量无法端到端验证,只能验判据接口
+- D-37-B 转登未落盘(37 GDD 已登记「须在 9 或 7a 登记」,两 GDD 零命中)
+- ADR-010 §一 三流段分帧 codec 缺失 ⇒ 归 7a
+- [V] 走查 AC-37-16/17/19 移交 39/42 走查批留档
