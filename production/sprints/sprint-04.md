@@ -132,12 +132,12 @@ patient-ai ✅ 4/4 → diagnosis-system ✅ 6/6 → case-system ✅ 6/6 → pres
 
 ---
 
-## Phase 3: 集成验证（~5 天）—— ✅ **已收口(2026-10-08)**
+## Phase 3: 集成验证（~5 天）—— ◐ **半闭(2026-10-08)**
 
 | # | 任务 | 状态 | 理由 |
 |---|------|------|------|
 | 1 | 实现垂直切片 PlayMode 测试（替换 TODO 骨架） | ✅ **已完成 2026-10-08** | 7 测 = 6 passed + 1 NOT-RUN（病人出现腿 25/9 写者未实现）；驱动真生产路径（PrescribeFlow + CaseOpenDecider） |
-| 2 | 至少 1 次文档化 playtest | ✅ **已完成 2026-10-08** | `production/qa/playtests/playtest-2026-10-08-vertical-slice.md`（自动化测试的文档化 playtest） |
+| 2 | 至少 1 次**人工**文档化 playtest | ⬜ **未做** | M2 退出条件要求**人工** playtest；本轮交付的是自动化测试的文档化 playtest（`playtest-2026-10-08-vertical-slice.md`），**不满足** M2 要求 |
 | 3 | 运行 ADR-023 场景加载 spikes | ✅ **已完成 2026-09-23**(S1/S3/S4 三条全通过,见 `adr-023` §Validation) | 解锁 chunk 激活 |
 
 ---
@@ -160,7 +160,7 @@ patient-ai ✅ 4/4 → diagnosis-system ✅ 6/6 → case-system ✅ 6/6 → pres
 - [x] 所有 BLOCKING AC 有自动化测试覆盖（b6 门已立;两接线支判据经突变测试坐实）
 - [x] 所有 Integration story 有集成测试或文档化 playtest（player-controller 005 有 6 例）
 - [x] 垂直切片 PlayMode 测试通过（无 TODO）—— ✅ **已完成 2026-10-08**（6 passed + 1 NOT-RUN）
-- [x] 至少 1 次文档化 playtest —— ✅ **已完成 2026-10-08**（自动化测试的文档化 playtest）
+- [ ] 至少 1 次**人工**文档化 playtest —— ⬜ **未做**（M2 出口硬前置）
 - [x] 状态文件准确（sprint/epic/index）—— 两轮回填后
 - [x] 零 S1/S2 未关闭 bug（`production/qa/bugs/` 无未关闭项）
 

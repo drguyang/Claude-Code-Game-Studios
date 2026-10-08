@@ -71,4 +71,4 @@ unity test unity --mode EditMode --output unity/Logs/editmode_full_phase3_v2.xml
 ## 未闭登记
 
 - **病人出现腿 NOT-RUN** — 25/9 的 `InjuryOnset` 写者未实现，归各系统 GDD 轮
-- **人工 playtest 未做** — 本轮是自动化测试的文档化 playtest，M2 退出条件要求「≥1 次文档化 playtest」
+- **人工 playtest 未做** — 本轮是自动化测试的文档化 playtest，**不满足** M2 退出条件「≥1 次**人工**文档化 playtest」
