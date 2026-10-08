@@ -39,7 +39,8 @@ Required changes:
 
 ### 2. playtest 文档修正
 
-**文件**: `production/qa/playtests/playtest-2026-10-08-vertical-slice.md`
+**文件**: `production/playtests/playtest-2026-10-08-vertical-slice.md`
+(⚠️ 原落 `production/qa/playtests/`,2026-10-08 订正至里程碑判据要求的 `production/playtests/`)
 
 **修复内容**:
 - 删除过度声称（Seq/去重/CAP 正确 → 本文件零断言）

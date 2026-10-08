@@ -132,7 +132,10 @@ Present the creative director's assessment before saving the report. If CONCERNS
 
 ## Phase 4: Save Report
 
-Ask: "May I write this playtest report to `production/qa/playtests/playtest-[date]-[tester].md`?"
+Ask: "May I write this playtest report to `production/playtests/playtest-[date]-[tester].md`?"
+
+> ⚠️ 路径权威 = `production/milestones/README.md` M2 Exit Criteria(报告落 `production/playtests/`)。
+> 原写 `production/qa/playtests/` 为措辞错,2026-10-08 订正。
 
 If yes, write the file, creating the directory if needed.
 
