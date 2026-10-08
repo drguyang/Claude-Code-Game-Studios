@@ -122,8 +122,10 @@ namespace DaYiJingCheng.EditorTools.Gates
             errs.AddRange(ValidateTextureContainerHasTexture());  // C7(接图半)
             // ── Story 019-e:导入格式订正(九宫格物理前提)──
             errs.AddRange(ValidateSlicedTextureImportFormat());   // E1(三项格式)
-            errs.AddRange(ValidateSpriteBorderSentinel());        // E1(耦合守卫:border 归 019-f)
-            // ⚠️ C8(slice=冻结件元数据)归 019-f / C9(Pages_frame ≤ PAGES_MAX)归 019-b,NOT-RUN。
+            // ── 2026-10-08(019-f 冻结轮 / 020 步③):零哨兵耦合守卫退役,C8 冻结件一致性门接棒。
+            //    真源 = design/assets/specs/nine-slice-freeze-2026-10-08.md 的 freeze-v1 机器块。
+            errs.AddRange(ValidateSpriteBorderFreeze());          // C8(spriteBorder + USS slice = 冻结件)
+            // ⚠️ C9(Pages_frame ≤ PAGES_MAX)归 019-b,仍 NOT-RUN。
             return errs;
         }
 
@@ -173,10 +175,10 @@ namespace DaYiJingCheng.EditorTools.Gates
                    .ValidateSlicedTextureImportFormat(
                        DaYiJingCheng.EditorTools.Gates.TextureBindingGates.DefaultRepoRoot);
 
-        /// <summary>AC-42-E1 耦合守卫:spriteBorder 须仍为零哨兵(其值归 019-f 冻结件)。</summary>
-        internal static List<string> ValidateSpriteBorderSentinel()
+        /// <summary>AC-42-C8:spriteBorder 与 USS slice 须等于切图冻结件(2026-10-08 接棒原零哨兵守卫)。</summary>
+        internal static List<string> ValidateSpriteBorderFreeze()
             => DaYiJingCheng.EditorTools.Gates.TextureBindingGates
-                   .ValidateSpriteBorderLeftAsSentinel(
+                   .ValidateSpriteBorderMatchesFreeze(
                        DaYiJingCheng.EditorTools.Gates.TextureBindingGates.DefaultRepoRoot);
 
         // ═══ AC-42-C3: 元件库配额断言 ═══

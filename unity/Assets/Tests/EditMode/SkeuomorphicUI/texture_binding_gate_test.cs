@@ -8,12 +8,13 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
     using System.Text.RegularExpressions;
 
     /// <summary>
-    /// Story 019-c: 贴图接入护栏 · 单元测试。
+    /// Story 019-c / 019-e / 019-f: 贴图接入护栏 · 单元测试。
     /// <para>覆盖 **AC-42-C10**(屏幕层禁直引贴图)与 **AC-42-C11**(贴图缺失 / GUID 悬空 ⇒ 硬失败);
-    /// 另含 AC-42-C7 的**骨架半**(已注册元件类须有 background-image)与 C8/C9 的**NOT-RUN 登记**。</para>
+    /// 另含 AC-42-C7 的**骨架半**、AC-42-E1 导入格式,以及 **AC-42-C8 冻结件一致性**
+    /// (2026-10-08 冻结轮接棒,原零哨兵测试退役)。**C9 仍 NOT-RUN**(019-b / PAGES_MAX spike)。</para>
     ///
-    /// <para>⚠️ **本 story 只做护栏,不接图** —— C7 的「每类有真实贴图」须待 019-d(切图冻结件 + 映射语义),
-    /// C8(slice = 冻结件元数据)/ C9(`Pages_frame ≤ PAGES_MAX`)分别为 019-d / 019-b,均 NOT-RUN。</para>
+    /// <para>⚠️ **C8 真源** = `design/assets/specs/nine-slice-freeze-2026-10-08.md` 的
+    /// `freeze-v1` 机器块;meta 与 USS 任一单点改 ⇒ 本夹具红(禁第二真源)。</para>
     /// </summary>
     [TestFixture]
     public class texture_binding_gate_test
@@ -194,30 +195,77 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         }
 
         [Test]
-        public void test_ac42e1_sprite_border_still_zero_sentinel_pending_019f()
+        public void test_ac42c8_sprite_border_and_uss_match_freeze_record()
         {
-            // Act: 耦合守卫 —— spriteBorder 的值归 019-f 冻结件,019-e 不得自填
-            var errs = TextureBindingGates.ValidateSpriteBorderLeftAsSentinel(RepoRoot);
+            // Arrange: 冻结件 = design/assets/specs/nine-slice-freeze-2026-10-08.md 的 freeze-v1 块
+            //    (2026-10-08 冻结轮落盘;原零哨兵测试同批退役 —— 哨兵态使命已完成)
 
-            // Assert: 须仍为零哨兵(非零 = 已手填 = 第二真源)
+            // Act: C8 冻结件一致性门(meta spriteBorder + USS slice 双侧 = 冻结值)
+            var errs = TextureBindingGates.ValidateSpriteBorderMatchesFreeze(RepoRoot);
+
+            // Assert: 真仓库须零错 —— 任一侧被单点改(≠ 冻结件)即红(禁第二真源)
             Assert.IsEmpty(errs,
-                "spriteBorder 被自填 —— 违「做完即错」纪律(值须来自 019-f 冻结件):\n" +
+                "spriteBorder / -unity-slice-* 与切图冻结件不一致(AC-42-C8,2026-10-08 冻结轮):\n" +
                 string.Join("\n", errs));
         }
 
         [Test]
-        public void test_ac42e1_missing_textures_dir_fails_loud_not_silent()
+        public void test_ac42c8_missing_freeze_record_fails_loud_not_silent()
         {
-            // Arrange: 不存在的仓库根
+            // Arrange: 不存在的仓库根(无冻结件、无贴图目录)
             string bogus = Path.Combine(Path.GetTempPath(), "__no_such_repo_root_019e__");
 
             // Act
             var fmt = TextureBindingGates.ValidateSlicedTextureImportFormat(bogus);
-            var border = TextureBindingGates.ValidateSpriteBorderLeftAsSentinel(bogus);
+            var freeze = TextureBindingGates.ValidateSpriteBorderMatchesFreeze(bogus);
 
             // Assert: 两条门都须**报错**,而非静默空(空跑 ≠ 通过)
-            Assert.IsNotEmpty(fmt, "贴图目录不存在时格式门须硬报错,否则 C8 物理前提恒真。");
-            Assert.IsNotEmpty(border, "贴图目录不存在时哨兵门须硬报错,否则耦合守卫恒真。");
+            Assert.IsNotEmpty(fmt, "贴图目录不存在时格式门须硬报错,否则 E1 物理前提恒真。");
+            Assert.IsNotEmpty(freeze, "冻结件不存在时 C8 门须硬报错,否则冻结一致性判据恒真。");
+        }
+
+        [Test]
+        public void test_negative_fixture_border_and_slice_mismatch_would_be_caught()
+        {
+            // Arrange: 最小假仓库 <tmp>/repo/Assets/... + 冻结件落 <tmp>/design/...
+            //   失配两处:meta border 9 ≠ 冻结 8;USS slice 16 ≠ 冻结 8
+            string tmp = Path.Combine(Path.GetTempPath(), "__c8_freeze_fixture__");
+            try
+            {
+                if (Directory.Exists(tmp)) Directory.Delete(tmp, true);
+                string repo = Path.Combine(tmp, "repo");
+                string texDir = Path.Combine(repo, "Assets", "Gameplay.UI", "Skeuomorphic", "Textures");
+                string ussDir = Path.Combine(repo, "Assets", "Gameplay.UI", "Skeuomorphic");
+                string recDir = Path.Combine(tmp, "design", "assets", "specs");
+                Directory.CreateDirectory(texDir);
+                Directory.CreateDirectory(ussDir);
+                Directory.CreateDirectory(recDir);
+
+                File.WriteAllText(Path.Combine(texDir, "mismatch-final.png"), "png-bytes");
+                File.WriteAllText(Path.Combine(texDir, "mismatch-final.png.meta"),
+                    "fileFormatVersion: 2\nguid: 0000000000000000000000000000c8f1\n" +
+                    "TextureImporter:\n  spriteBorder: {x: 9, y: 9, z: 9, w: 9}\n");
+                File.WriteAllText(Path.Combine(ussDir, "SkeuoC8Fixture.uss"),
+                    ".c8-fixture {\n" +
+                    "  -unity-slice-left: 16px;\n  -unity-slice-right: 16px;\n" +
+                    "  -unity-slice-top: 16px;\n  -unity-slice-bottom: 16px;\n}\n");
+                File.WriteAllText(Path.Combine(recDir, "nine-slice-freeze-2026-10-08.md"),
+                    "# fixture\n\n```freeze-v1\nmismatch-final.png|8|SkeuoC8Fixture.uss\n```\n");
+
+                // Act
+                var errs = TextureBindingGates.ValidateSpriteBorderMatchesFreeze(repo);
+
+                // Assert: 两处失配都必须被抓(证明门非恒真)
+                Assert.IsTrue(errs.Any(e => e.Contains("spriteBorder")),
+                    "meta spriteBorder(9)≠ 冻结件(8)须报错。实际:\n" + string.Join("\n", errs));
+                Assert.IsTrue(errs.Any(e => e.Contains("-unity-slice")),
+                    "USS slice(16)≠ 冻结件(8)须报错。实际:\n" + string.Join("\n", errs));
+            }
+            finally
+            {
+                try { if (Directory.Exists(tmp)) Directory.Delete(tmp, true); }
+                catch { /* 清理失败不掩护断言结果 */ }
+            }
         }
 
         [Test]

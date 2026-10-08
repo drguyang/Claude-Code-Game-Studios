@@ -1,4 +1,45 @@
-# Session State — 2026-10-08(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
+# Session State — 2026-10-08(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ✅ · M2 形态件前置链本轮收口**)
+
+## ✅ 本轮 = story-020 M2 形态件解锁链(2026-10-08 · 三步全交付)
+
+> 用户指令「完成020再提交」。三步 = ① 019-f 切图冻结件 ② 黄铜 2px 出图 ③ 019-a 余项绑定回填。
+
+### 交付物
+1. **步① 冻结件**:`design/assets/specs/nine-slice-freeze-2026-10-08.md`(§一 测量方法 6 步可复算 ·
+   §二 逐张冻结表 17 行 · §三 取值规则 R1/R2/R3 · §四 `freeze-v1` 机器块 · §五 发现 · §六 局限 · §七 复算锚)。
+   实测口径 = **可复算掩膜法**(灰度→白底合成→中心 1/3 中位背景→掩膜 12→**边带限制**(测上下边只统计中 1/3 列)→连续内容带)。
+   **冻结轮查出真缺陷**:border_scroll 右框实测延展 **69 > 现值 68**(切右框 1px)⇒ 冻结 **72**,USS 四条同批改;
+   border_paper 64 维持(max(64, ceil8(43)) = 64,覆盖 22–57 / 40–43 双口径)
+2. **步② 黄铜 2px**:`unity/Assets/Gameplay.UI/Skeuomorphic/Textures/Brass/focus_brass_2px-final.png`
+   (64×64 RGBA,2px 环 `#B8863B`,中心透明)+ meta(`spriteBorder: 2`)+ `Brass.meta`;
+   放子目录**刻意**(顶层 `*-final.png` 恰 16 张计数/格式门用 `TopDirectoryOnly`)
+3. **步③ 回填**:4 张 meta `spriteBorder` 一次填入(border_paper 64 · border_scroll 72 · paper_aged 64 ·
+   seal_surface 8;余 12 张冻结值 0 = 明示不走九宫格)+ 哨兵门 `ValidateSpriteBorderLeftAsSentinel`
+   **退役** → `ValidateSpriteBorderMatchesFreeze`(C8:冻结件解析→覆盖检查→meta 侧→USS 侧,`[C8]` 硬报错)
+
+### 测试证据(三连 + PlayMode 留痕)
+- 过滤 **225/212/0 红/13 跳**(`unity/Logs/c8-freeze-round.xml`)
+- **MUT-C8**(border_scroll meta 72→68)⇒ **恰 2 红**(C8 夹具 + ValidateAll 聚合;报文点名「68 vs 冻结 72」;
+  python 反向替换还原复核)(`unity/Logs/c8-mut.xml`)
+- 全量 EditMode **3002/2955/0 红/46 跳/1 inc**(基线 3001/2954 ⇒ **+1 新负夹具,零回归**)
+  (`unity/Logs/editmode-full-c8-round.xml`)
+- 全量 PlayMode **98/97/0 红/1 跳**(与基线**逐数一致**;grep 实测 PlayMode 零耦合面)
+  (`unity/Logs/playmode-c8-round.xml`)
+
+### 文档回刷(七处)
+story-019(头部状态 / 三步表全 ✅ / 拆分表 019-f ✅ + 019-e 耦合点闭 / **AC-42-C8 悬空片段拆出独立勾选条目** /
+Test Evidence C8 表 / Completion Notes 019-f 条目 + 019-d/e 残余闭记)· story-020(Status + 三步 AC + 3 AC + 2 DoD 全勾)·
+EPIC.md(Stories 头 / 019/020 行 / Counts 20 total / Next Step / 里程碑归属 019 注 + 020 新行)·
+`epics/index.md`(skeuomorphic-ui 行)· milestones `:133`(保持 `[ ]` 加切图半注 + 修「现 Blocked ⛔」陈旧措辞)·
+milestones `:139`(**勾 `[x]`** + 证据路径)· active.md(本段)
+
+### 提交范围(排除项)
+**含**:story-019/020 · EPIC · index · milestones · 冻结件 MD · 门 ×2 · 测试 · USS ×4 · meta ×4 ·
+`Brass/`(PNG+meta+`Brass.meta`)· active.md
+**不含**:`.gitignore`(本地改动永不提交,memory)· `.trae/skills/switch-claude-model/scripts/switch-model.sh` ·
+`unity/Assets/Tests/EditMode/Casebook.meta`(孤儿,非本任务产物)
+
+---
 
 ## 🔄 本轮 = 全库收口纪律缺陷修复(2026-10-08 · 已收口)
 

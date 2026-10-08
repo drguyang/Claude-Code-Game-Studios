@@ -25,6 +25,9 @@
     padding-right: var(--skeuo-shared-space-sm);
     padding-bottom: var(--skeuo-shared-space-sm);
     padding-left: var(--skeuo-shared-space-sm);
+    /* ✅ 2026-10-08 冻结轮(019-f):8 维持 —— 印面石材质为满铺纹理无框边界(规则 R2),
+       冻结 = 现行渲染切片。值真源 = design/assets/specs/nine-slice-freeze-2026-10-08.md
+       (C8 门比对,禁手填)。 */
     -unity-slice-left: 8px;
     -unity-slice-right: 8px;
     -unity-slice-top: 8px;

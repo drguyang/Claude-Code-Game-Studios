@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 9c7bc40f300a2c5539a0dfece9d9e43b
+guid: 6d4c0acbd9a141348c34017e96d20ee2
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 6873098128680736071
-    second: border_paper-final_0
+      213: -7603197581393948296
+    second: focus_brass_2px-final_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -52,7 +52,7 @@ TextureImporter:
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
-  spriteBorder: {x: 64, y: 64, z: 64, w: 64}
+  spriteBorder: {x: 2, y: 2, z: 2, w: 2}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
@@ -100,13 +100,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: border_paper-final_0
+      name: focus_brass_2px-final_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 1024
-        height: 1024
+        width: 64
+        height: 64
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -115,8 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 745da623556226f50800000000000000
-      internalID: 6873098128680736071
+      spriteID: 87197eb45140c7690800000000000000
+      internalID: -7603197581393948296
       vertices: []
       indices: 
       edges: []

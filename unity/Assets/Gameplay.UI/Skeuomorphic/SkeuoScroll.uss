@@ -1,7 +1,9 @@
 /* Scroll Element — USS (AC-42-C2 / AC-42-C5) */
 
 .scroll {
-    /* 2026-10-05 019-d 接图:引 border_scroll-final.png(九宫格边框图,与下列 68px slice 匹配)。 */
+    /* 2026-10-05 019-d 接图:引 border_scroll-final.png(九宫格边框图)。
+       🔴 2026-10-08 冻结轮(019-f)改判 68 → 72:右框实测延展 69 > 68(现值切掉右框 1px),
+       ceil8(69) = 72。值真源 = design/assets/specs/nine-slice-freeze-2026-10-08.md(C8 门比对,禁手填)。 */
     background-image: url("guid:1c689262fb8fba66badc6204cda03478");
     background-color: var(--skeuo-scroll-bg);
     border-top-width: var(--skeuo-shared-border-width);
@@ -16,10 +18,10 @@
     padding-right: var(--skeuo-shared-space-lg);
     padding-bottom: var(--skeuo-shared-space-lg);
     padding-left: var(--skeuo-shared-space-lg);
-    -unity-slice-left: 68px;
-    -unity-slice-right: 68px;
-    -unity-slice-top: 68px;
-    -unity-slice-bottom: 68px;
+    -unity-slice-left: 72px;
+    -unity-slice-right: 72px;
+    -unity-slice-top: 72px;
+    -unity-slice-bottom: 72px;
 }
 
 .scroll .ink {

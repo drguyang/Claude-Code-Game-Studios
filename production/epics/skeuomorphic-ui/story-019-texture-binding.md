@@ -1,7 +1,7 @@
 # Story 019: 贴图接入(16 张 `*-final.png` → USS 元件族 · 九宫格 slice 对齐真实切图 · 图集页数实测)
 
 > **Epic**: 拟物 UI 框架
-> **Status**: **部分完成** —— **019-c `Complete ✅`(2026-10-05)** · **019-d `Complete ✅`(2026-10-05)** · **019-e `Complete ✅`(2026-10-05)** · **019-f ⬜ 待美术(关键路径,🔑 解锁 M2 形态件 ①②)** · 019-b `Blocked`(与形态件无关)
+> **Status**: **部分完成** —— **019-c `Complete ✅`(2026-10-05)** · **019-d `Complete ✅`(2026-10-05)** · **019-e `Complete ✅`(2026-10-05)** · **019-f `Complete ✅`(2026-10-08)** · 019-b `Blocked`(与形态件无关,卡 atlas 页数不卡形态件)
 > **Layer**: Foundation
 > **Type**: UI
 > **Estimate**: 待估(依赖五族切图冻结)
@@ -10,14 +10,18 @@
 
 ### 📌 M2 形态件解锁三步(2026-10-08 登记 —— 本 story 是 M2 Exit Criteria「4 形态件」的前置咽喉)
 
+> ⚠️ **执行汇总归 `story-020-m2-form-item-unlock.md`(2026-10-08)** —— 三步已另立 **story-020** 作
+> M2 视角的可排期/可收口 story;**019 侧各分档状态仍归本文件**(不搬),020 只引用与验收。
+> **双真源防线**:019-f 完成 ⇒ 020 步① 同批勾,两处不得各记一份状态后漂移。
+
 > 依据:`production/milestones/README.md §三` 形态件 ①② 压在切图上(`:89`「①② 的执行前置 = 切图先冻结」)。
 > **净美术缺口实测 = 冻结工作(019-f)+ 1 张黄铜 2px,非 42 项全真**(2026-10-03「形态优先」裁定)。
 
 | 步 | 事项 | 谁 | 解锁什么 | 状态 |
 |---|---|---|---|---|
-| **①** | **019-f 冻结件** —— 对**已入库 16 张**实测九宫格 slice 边界,产冻结记录(**零新图**) | 美术 | 形态件 ①②(禁手填,AC-42-C8)| ⬜ **待美术点亮**(关键路径) |
-| **②** | **黄铜 2px 新出图** —— 全库唯一真新图(1 人日,M2 硬前置 `milestones:140`) | 美术 | 形态件 ① 的明度轴判据载体 | ⬜ 待出(**可与 ① 并行**) |
-| **③** | **019-a 绑定回填** —— `spriteBorder` 哨兵值由冻结件一次填入 + USS 绑定(格式已由 019-e 订正,机械) | 工程 | ①② 真正可验收 | ⬜ 待 ① 完成 |
+| **①** | **019-f 冻结件** —— 对**已入库 16 张**实测九宫格 slice 边界,产冻结记录(**零新图**) | 美术 | 形态件 ①②(禁手填,AC-42-C8)| ✅ **Complete 2026-10-08**(冻结件落盘,随 story-020 验收) |
+| **②** | **黄铜 2px 新出图** —— 全库唯一真新图(1 人日,M2 硬前置 `milestones:140`) | 美术 | 形态件 ① 的明度轴判据载体 | ✅ **Complete 2026-10-08**(`Textures/Brass/focus_brass_2px-final.png` 入库) |
+| **③** | **019-a 绑定回填** —— `spriteBorder` 哨兵值由冻结件一次填入 + USS 绑定(格式已由 019-e 订正,机械) | 工程 | ①② 真正可验收 | ✅ **Complete 2026-10-08**(4 张回填 + C8 门接棒,随 story-020 验收) |
 
 > ⚠️ **不被本链 block 的(可立即开工)**:形态件 **③ 急救零数字+可跳过**(纯 UI 逻辑,零美术依赖)·
 > **④ 状态反馈通道**(用已入库族绑定即可,判据是「可读」非精修)。
@@ -38,9 +42,9 @@
 | 分档 | AC / 内容 | 卡什么(实测) | 状态 | M2 关联(2026-10-08 增列) |
 |---|---|---|---|---|
 | **019-c · 护栏** | **C10** + **C11** + C7(骨架半) | **零外部依赖** —— 屏幕层禁引 / 悬空即红,均为**纯 lint 断言** | ✅ **Complete 2026-10-05** | — |
-| **019-e · 导入格式订正** | 16 张 `.meta`:`spriteMode 0→1` · `textureType 0→8` · `alphaIsTransparency 0→1` · **`spriteBorder` 值(留哨兵待美术)** | **零裁定依赖** —— 格式是**机械的**;唯 `spriteBorder` 的**数值**待 019-f 冻结件 | ✅ **Complete 2026-10-05** | 哨兵值待 019-f 一次填入(解锁三步 ③) |
+| **019-e · 导入格式订正** | 16 张 `.meta`:`spriteMode 0→1` · `textureType 0→8` · `alphaIsTransparency 0→1` · **`spriteBorder` 值(留哨兵待美术)** | **零裁定依赖** —— 格式是**机械的**;唯 `spriteBorder` 的**数值**待 019-f 冻结件 | ✅ **Complete 2026-10-05** | ~~哨兵值待 019-f 一次填入(解锁三步 ③)~~ → ✅ **2026-10-08 已闭**(019-f 冻结轮一次填入 4 张) |
 | **019-d · 接图** | C7(接图半)+ **贴图容器类**加 `background-image` + `-unity-slice-*` | ✅ **裁定已闭 + 工程已落(2026-10-05)** —— 注册表增列 `IsTextureContainer` · 四基类接图(落地 5 选择器)· `.ink` 补背景 · 焦点改铜侧 · C4 硬编码 44→0 | ✅ **Complete 2026-10-05** | — |
-| **019-f · C8 冻结件** | 九宫格 slice 值**来自切图冻结件的元数据**(不得手填) | **美术** —— 需美术实测真实切图边界,产出冻结记录(**零新图**) | ⬜ **待美术点亮**(关键路径) | 🔑 **解锁 M2 形态件 ①② 的咽喉**(解锁三步 ①) |
+| **019-f · C8 冻结件** | 九宫格 slice 值**来自切图冻结件的元数据**(不得手填) | ~~美术~~ → **工程实测口径已闭**(2026-10-08:可复算掩膜法实测,非人工目测、非估计;方法/复算锚见冻结件 §一/§七) | ✅ **Complete 2026-10-08** | 🔑 **M2 形态件 ①② 的咽喉已解**(解锁三步 ① ✅;冻结轮查出 scroll 68→72) |
 | **019-b · 图集预算** | C9 | **spike** —— `PAGES_MAX` 未冻结(非美术) | **Blocked** | ❌ 与形态件无关(卡 atlas 页数,不卡 M2) |
 
 > **019-c 的实测依据**:① 7 个屏幕 UXML 全部只引类名,`url(` 命中 **0** ⇒ C10 可立即锁死;
@@ -192,10 +196,23 @@ Exit Criteria 第 5 条的形态件 **① 脉案线格/空行/焦点明度轴压
       ⚠️ **`.paper-aged` 非注册项**(`paper` 的变体类)⇒ 不计入本判据面;
       **接图落地 = 5 处选择器**(4 基类 + `.paper-aged`),但**门只查 4 注册项**。
       ⇒ **019-d 接图量 = 5 处选择器 / C7 判据面 = 4 项**(不是 24,也不是原 3)。
-      (值来自切图冻结件的元数据,不得手填)
-      ⇒ ⚠️ **实测 2026-10-05**:`design/assets/specs/` **零九宫格边界元数据**;`SkeuoPaper.uss` 的 64px 为**人工实测填**
-      = 本 AC 的**教科书反例**。且 16 张 `.meta` 全 `spriteMode:0`(九宫格在此模式下**不可能工作**)
-      ⇒ 须先作 **019-e 格式订正** + **019-f 冻结件落盘**。**禁借绿。**
+- [x] **AC-42-C8(新)** ✅ **019-f Complete 2026-10-08**: 九宫格 slice 值(`spriteBorder` 与 `-unity-slice-*`)
+      **来自切图冻结件的元数据,不得手填**
+      ⇒ **2026-10-08 冻结轮交付**(随 story-020 步①③):冻结件
+      `design/assets/specs/nine-slice-freeze-2026-10-08.md` 落盘(§一 测量方法 · §二 逐张冻结表 17 行 ·
+      §三 取值规则 R1/R2/R3 · §四 `freeze-v1` 机器块 · §五 本轮发现 · §六 局限登记 · §七 复算锚);
+      4 张 meta `spriteBorder` 一次填入(border_paper **64** · border_scroll **72** · paper_aged **64** ·
+      seal_surface **8**),其余 12 张冻结值 **0**(满铺/件/表明示不走九宫格,非占位)。
+      **冻结轮查出真缺陷**:border_scroll 右框实测延展 **69 > 现值 68**(切掉右框 1px)⇒ 冻结 **72**(ceil8),
+      `SkeuoScroll.uss` 四条 slice 68→72 同批改。
+      ⚠️ **原「教科书反例」已消除**:2026-10-05 实测 `design/assets/specs/` 零九宫格元数据、
+      `SkeuoPaper.uss` 的 64px 为人工填 —— 现由冻结件作唯一真源,R1 规则核验 64 维持
+      (掩膜法实测四边 40/39/43/43,ceil8=48,max(64,48)=64,覆盖 22–57 与 40–43 双口径)。
+      **哨兵门退役**:`ValidateSpriteBorderLeftAsSentinel`(019-e 期「不得自填」耦合守卫)使命完成,
+      由 **`ValidateSpriteBorderMatchesFreeze`**(C8 冻结件一致性门)接棒 —— 冻结件解析 → 覆盖检查
+      (顶层每张 `*-final.png` 须有登记行)→ meta 侧 → USS 侧,任一单点改 ⇒ 红(禁第二真源)。
+      **证据**:过滤 225/212/0 红 · 变异(border_scroll 72→68)**恰 2 红** ·
+      全量 EditMode **3002/2955/0 红** · 全量 PlayMode **98/97/0 红**(详见 §Test Evidence)。
 - [ ] **AC-42-C9(新)** ⛔ **归 019-b · Blocked**: 实测**图集页数 ≤ `PAGES_MAX`**;超限 => 构建期冲突并给出溢出告警
       (兑现 `TR-skeuoui-011` 第 ② 半;`PAGES_MAX` 值待与图集布局同批冻结)
       ⇒ ⚠️ **2026-10-04 J:本条现不可判** —— `PAGES_MAX` 未冻结,填占位值 = 第二真源。
@@ -291,7 +308,7 @@ Exit Criteria 第 5 条的形态件 **① 脉案线格/空行/焦点明度轴压
 **Required evidence**: `production/qa/evidence/texture-binding-evidence.md`(含**截图** —— 贴图接入与否**只有肉眼可判**,
 故本 story 的 AC 走「构建断言 + 目视截图」双轨,不能只靠断言)+ 构建期断言测试
 
-**Status**: **019-c ✅ 17/17 绿(2026-10-05)** · 019-d / 019-b NOT-RUN
+**Status**: **019-c ✅(2026-10-05)** · **019-e ✅(2026-10-05)** · **019-d ✅(2026-10-05)** · **019-f ✅(2026-10-08)** · 019-b NOT-RUN(归 C9 / PAGES_MAX spike)
 **Test File**: `unity/Assets/Tests/EditMode/SkeuomorphicUI/texture_binding_gate_test.cs`(17 条)
 **Implementation**: `unity/Assets/Editor.Tools.Gates/TextureBindingGates.cs`(纯逻辑,零引擎依赖)·
   `unity/Assets/Editor.Tools.Gates/SkeuomorphicUiGates.cs`(门聚合,`#if UNITY_EDITOR`)
@@ -312,6 +329,19 @@ unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.Unit.Skeuomorphic
 |---|---|---|---|
 | **MUT-C10** | 屏幕 UXML(`Casebook39.uxml`)注入 `background-image: url("Textures/paper_xuan-final.png")` | **2 红**:C10 原夹具 + `test_current_repo_root_scan_finds_real_files_not_empty`(证明扫到**真** `Screens/`;报文路径 `Casebook39.uxml:4`,非 `<repo>/Assets/...`) | `unity/Logs/mut-c10.xml` |
 | **MUT-C11** | 元件库(`SkeuoPaper.uss`)注入悬空 `url("Textures/__dangling_mut__-final.png")` | **2 红**:C11 原夹具 + 同上真扫描面夹具 | `unity/Logs/mut-c11.xml` |
+
+**019-f / AC-42-C8 冻结轮证据(2026-10-08 · 随 story-020 步①③ 同批)**:
+
+| 项 | 结果 | 日志 |
+|---|---|---|
+| 过滤跑(`Unit.SkeuomorphicUI`) | **225 total / 212 passed / 0 failed / 13 skipped** | `unity/Logs/c8-freeze-round.xml` |
+| **MUT-C8**(border_scroll meta `spriteBorder` 72→68) | **恰 2 红**:`test_ac42c8_sprite_border_and_uss_match_freeze_record` + `test_validate_all_is_green_after_20261005_c4_cleanup`(报文精确点名「`spriteBorder = {68,…}`,冻结件 = 72」);变异已反向还原复核 | `unity/Logs/c8-mut.xml` |
+| 全量 EditMode | **3002 / 2955 / 0 failed / 46 skipped / 1 inconclusive**(基线 3001/2954 ⇒ **+1 新夹具,零回归**) | `unity/Logs/editmode-full-c8-round.xml` |
+| 全量 PlayMode | **98 / 97 / 0 failed / 1 skipped**(与基线**逐数一致**;grep 实测 PlayMode 零耦合面) | `unity/Logs/playmode-c8-round.xml` |
+
+> ⚠️ **MUT-E1b 历史证据在新门下已换代**:019-e 期「注 `spriteBorder:{64}` 即红」的哨兵判据**随哨兵门退役失效**
+> (border_paper 冻结恰 64,填 64 = 合规)。C8 期的判别力由 **MUT-C8(72→68 失配冻结值)** 承担 ——
+> 两代变异各自有效,不得互相替代引用。
 
 > ⚠️ **修复轮要旨(2026-10-05 · 单轮评审发现)**:评审实测 `Directory.GetCurrentDirectory()` 在
 > Unity CLI EditMode 下 = **`<repo>/unity`(工程根)**,而原门以 `Path.Combine(cwd,"Assets",…)` 拼路径
@@ -370,6 +400,7 @@ unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.Unit.Skeuomorphic
   取证日志 `unity/Logs/probe-enum.xml` / `probe-sprite-mode.xml`(探针已删,日志留档)。
 - 原件:`production/qa/evidence/review-skeuomorphic-ui-story-019e-2026-10-05.md`
 - 未闭(禁借绿):`spriteBorder` 的**值**仍待 019-f;`-unity-slice-*` 的**运行期实测**归 019-d(截图签核)
+  → ✅ **`spriteBorder` 半已闭 2026-10-08**(019-f 冻结轮一次填入 4 张 + C8 门接棒);截图签核半仍归 019-d 目视义务
 
 **019-d(接图)· Complete ✅ 2026-10-05** —— 同五步协议。
 
@@ -387,10 +418,41 @@ unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.Unit.Skeuomorphic
 - 变异:删 `.ink` 接图 ⇒ C7 精确报 `.ink`;还原 `#b87333` ⇒ C4 精确报 line 4;均还原后全绿
 - ⚠️ **残余 obligation(禁借绿)**:`-unity-slice-*` 的**运行期实测 + 截图签核**仍归本 story 的
   目视半 —— 现仅断言「有引用」,证明不了「贴对了」;切片值待 019-f 冻结件
+  → ◐ **切片值半已闭 2026-10-08**(019-f 冻结件落盘 + C8 门比对 meta/USS;scroll 并修正 68→72);
+  **截图签核半仍未闭**(目视证明「贴对了」的义务不因数值冻结而免除)
 - ⚠️ **未闭色值(待裁)**:`--skeuo-brass-aged`(`#A0653A`,注释自称「铜锈」)与 art-bible §4.1/§8.6.3
   的铜锈 `#4F7A6B`(青绿)**语义冲突**;`#8C5A2B` 全文无出处 —— 经 `git show HEAD` 确证均为**既有值**,
   本轮保值抽变量未纠正,已就地加警示注释
 
-**019-f(冻结件)/ 019-b(图集预算)· NOT-RUN** —— 分别受限切图实测 / spike,见 §状态拆分。
+**019-f(C8 冻结件)· Complete ✅ 2026-10-08** —— 随 story-020 步①③ 同批交付
+(**双真源防线兑现**:状态归本文件,story-020 只引用与验收,两处同批勾)。
+
+- 交付:冻结件 `design/assets/specs/nine-slice-freeze-2026-10-08.md`(round-1)——
+  §一 测量方法(6 步可复算)· §二 逐张冻结表 17 行 · §三 取值规则 R1/R2/R3 · §四 `freeze-v1` 机器块 ·
+  §五 本轮发现 · §六 局限登记 · §七 复算锚
+- **实测口径(工程侧可复算脚本,非人工目测、非估计)**:灰度 → (带 alpha 先合成白底)→ 背景 = 中心 1/3 中位数 →
+  掩膜 `|px−bg|>12` → **边带限制**(测上下边只统计中 1/3 列、测左右边只统计中 1/3 行 —— 不做边带裁剪会把对侧边
+  每行点亮导致四边恒 1024)→ 连续内容带(带内 ≤40 行空隙)
+- **冻结轮查出真缺陷**:`border_scroll` 右框实测延展 **69 > 现值 68**(现值切掉右框 1px)⇒ 冻结 **72**(ceil8),
+  `SkeuoScroll.uss` 四条 `-unity-slice-*` 68→72 同批改并改判注释;`border_paper` 64 维持(R1:
+  max(64, ceil8(43)) = 64,覆盖 22–57 / 40–43 双口径,锚不敏感原因见 §五)
+- 4 张 meta `spriteBorder` 一次填入(border_paper 64 · border_scroll 72 · paper_aged 64 · seal_surface 8),
+  其余 12 张 = **0**(冻结值 0 = 满铺/件/表明示不走九宫格,非占位);`SkeuoPaper/Seal/Ink.uss` 注释同批标注真源
+- **黄铜 2px 出图**(020 步② 同批):`Textures/Brass/focus_brass_2px-final.png`(64×64 RGBA,2px 环
+  `#B8863B`,中心透明)+ meta(`spriteBorder: 2`)+ `Brass.meta` 文件夹 meta。
+  放**子目录**是刻意的 —— 顶层 `*-final.png` **恰 16 张**的计数/格式门用 `TopDirectoryOnly`,新图入子目录不破面
+- **门**:哨兵门 `ValidateSpriteBorderLeftAsSentinel` **退役** → `ValidateSpriteBorderMatchesFreeze`
+  (① 冻结件存在 + `freeze-v1` 块解析 ② 覆盖检查:顶层每张须有登记行(漏冻报错)③ meta 侧四值全等冻结值
+  ④ USS 侧:冻结值 >0 ⇒ 恰 4 条 slice 全等 / =0 ⇒ 零 slice 行;同 USS 登记两值 ⇒ 冻结件内部冲突)。
+  缺文件 / 不可解析 / 失配**全硬报错**,错误标签统一 `[C8]`;`SkeuomorphicUiGates.ValidateAll` 聚合同步改名
+- 夹具:原哨兵 2 条改判 `test_ac42c8_*` + **新增负夹具** `test_negative_fixture_border_and_slice_mismatch_would_be_caught`
+  (临时假仓库:meta 9≠冻结 8 + USS 16≠冻结 8,断言两类报错都出现)
+- 绿:过滤 **225/212/0 红/13 跳** · 变异 MUT-C8 恰 2 红(还原复核)· 全量 EditMode **3002/2955/0 红/46 跳/1 inc**
+  (+1 新夹具,零回归)· 全量 PlayMode **98/97/0 红/1 跳**(基线逐数一致)
+- 局限(冻结件 §六 登记,**禁借绿**):paper 双口径锚(阈值敏感)· 底部斑点 y941-973(cnt≤24 未计入)·
+  铜 2px 为**规格值**(R3,非实测)· spriteSheet 内 border 仍 0 · **未接线 11 张 0 值接线时须重开冻结轮**
+- 实测发现:`design/assets/specs/` 此前**零九宫格元数据**(2026-10-05 记为「教科书反例」)—— 冻结件即其补齐件
+
+**019-b(图集预算)· Blocked** —— 受限 `PAGES_MAX` spike,见 §状态拆分。
 
 **本件为 2026-10-03 补立**,填「贴图绑定」这个原本**没有任何 story 覆盖**的面。

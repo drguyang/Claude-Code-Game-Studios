@@ -4,7 +4,10 @@
     /* 2026-10-05 019-d 接图:引 ink_light-final.png(淡墨渲染软渐变)。
        ⚠️ **不加 `-unity-slice-*`** —— 本图是「软渐变底」,不是九宫格边框
        (与 border_paper / border_scroll 那类不同);省略 slice 是**正确省略**,非遗漏。
-       ⚠️ 2026-10-05 用户裁定:`.ink` 由「非容器」**改判为容器**(因 ink_light 归此族)。 */
+       ⚠️ 2026-10-05 用户裁定:`.ink` 由「非容器」**改判为容器**(因 ink_light 归此族)。
+       ✅ 2026-10-08 冻结轮(019-f):ink_light 冻结值 = **0(明示不走九宫格)**,C8 门
+       反向核验本文件无任何 `-unity-slice-*` 行。真源 =
+       design/assets/specs/nine-slice-freeze-2026-10-08.md。 */
     background-image: url("guid:5fdd6642437ced664996d9e8d195acac");
     color: var(--skeuo-ink-fg);
     font-family: var(--skeuo-font-family);

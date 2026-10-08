@@ -23,12 +23,14 @@ using System.Text.RegularExpressions;
 
 namespace DaYiJingCheng.EditorTools.Gates
 {
-    /// <summary>贴图接入护栏(Story 019-c)+ 导入格式门(Story 019-e)。
+    /// <summary>贴图接入护栏(Story 019-c)+ 导入格式门(Story 019-e)+ **C8 冻结件一致性门(019-f,2026-10-08)**。
     /// <para>**纯逻辑**:无 `UnityEditor` / `UnityEngine` 依赖 ⇒ EditMode 夹具可直调。</para>
-    /// <para>⚠️ **C8(slice = 冻结件元数据)/ C9(`Pages_frame ≤ PAGES_MAX`)不在本件** ——
-    /// 前者待切图冻结件(019-f)、后者待图集阈值 spike(019-b);见 story-019 §状态拆分。</para>
-    /// <para>⚠️ **019-e 的门只核「格式已订正」+「border 仍是零哨兵」** ——
-    /// `spriteBorder` 的**值**归 019-f 冻结件,本件**刻意不填、也不验值**。</para></summary>
+    /// <para>✅ **C8 已入本件**(2026-10-08 冻结轮):`spriteBorder` 与 `-unity-slice-*`
+    /// **只能等于切图冻结件**(唯一真源 = `design/assets/specs/nine-slice-freeze-2026-10-08.md`
+    /// 的 `freeze-v1` 机器块);原零哨兵耦合守卫(019-e 期)同批**退役** —— 其使命
+    /// 「不早于 019-f 被填」已随冻结件落盘完成。</para>
+    /// <para>⚠️ **C9(`Pages_frame ≤ PAGES_MAX`)仍不在本件** —— 待图集阈值 spike(019-b);见 story-019 §状态拆分。</para>
+    /// <para>⚠️ **019-e 的门只核三项格式**;`spriteBorder` 的**值**由 C8 冻结门验,本门不重复管。</para></summary>
     public static class TextureBindingGates
     {
         // ── url() 取值正则 ──
@@ -210,6 +212,10 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <summary>贴图族目录(仓库相对)—— 019-e 的扫描面。</summary>
         public const string TexturesRelDir = "Assets/Gameplay.UI/Skeuomorphic/Textures";
 
+        /// <summary>切图冻结件(仓库相对,**从 `unity/` 上溯一级** —— 冻结件属 `design/`,不在工程内)。
+        /// <para>唯一真源 = 文件内 `freeze-v1` 机器块(AC-42-C8;019-f 冻结轮 2026-10-08 落盘)。</para></summary>
+        public const string FreezeRecordRelPath = "../design/assets/specs/nine-slice-freeze-2026-10-08.md";
+
         /// <summary>把 `.meta` 文本里的单个 `key: value` 读出来(找不到返回 null)。
         /// <para>只做**机械读取**,不解析 YAML —— `.meta` 是 Unity 生成的固定缩进文本。</para></summary>
         private static string MetaScalar(string metaText, string key)
@@ -242,7 +248,7 @@ namespace DaYiJingCheng.EditorTools.Gates
                 return errs;
             }
 
-            // 期望值(AC-42-E1 三项;`spriteBorder` **刻意不在此列** —— 归 019-f 冻结件)
+            // 期望值(AC-42-E1 三项;`spriteBorder` 由 C8 冻结件一致性门验值 —— 本门只管三项格式)
             var expected = new (string Key, string Want)[]
             {
                 ("spriteMode", "1"),
@@ -272,43 +278,127 @@ namespace DaYiJingCheng.EditorTools.Gates
             return errs;
         }
 
-        /// <summary>AC-42-E1(耦合守卫):`spriteBorder` 的**值**归 019-f 冻结件 ——
-        /// 本门只核「**不早于 019-f 被写死**」,即**必须仍是零哨兵**。
-        /// <para>⚠️ **为什么这条守卫是承重的**:019-e 若顺手把 `spriteBorder` 填了,
-        /// 就制造了**第二真源**(手填值 vs 冻结件),正是 story-019 承 `:126`
-        /// 「做完即错」纪律要消灭的形态。零哨兵 ⇒ 019-f 落冻结件时**一次填入**,无中间态。</para>
-        /// <para>⚠️ 本门**不**验证「值对不对」(那是 019-f 的活),只验证「**还没被填**」。</para></summary>
-        public static List<string> ValidateSpriteBorderLeftAsSentinel(string repoRoot)
+        /// <summary>AC-42-C8(冻结件一致性门,2026-10-08 接棒):`spriteBorder` 与 USS `-unity-slice-*`
+        /// **只能等于切图冻结件**,两侧任一单点改动即红(禁第二真源)。
+        /// <para>**生命周期**:原哨兵门 `ValidateSpriteBorderLeftAsSentinel`(019-e 期「不得自填」
+        /// 耦合守卫)已随冻结件落盘**退役** —— 其使命「值不早于 019-f 被填」已完成;
+        /// 020 步③ 已一次填入,本门接棒守「填的只能是冻结件的值」。</para>
+        /// <para>**真源** = `FreezeRecordRelPath` 文件内 `freeze-v1` 机器块,行式
+        /// `文件(相对 Textures/)|冻结值|USS 文件名 或 -`;`-` = 该图无 USS slice 落点。</para>
+        /// <para>**反空跑(空跑 ≠ 通过)**:冻结件缺失 / 机器块缺失或 0 行 / 顶层 `*-final.png`
+        /// 有漏登记 / 登记的 USS 文件缺失 ⇒ 全部硬报错。</para>
+        /// <para>**USS 侧**:`冻结值 > 0` ⇒ 该文件恰 4 条 slice 且全等;`冻结值 = 0` ⇒ 该文件
+        /// **零** slice 行(明示不走九宫格,如 `SkeuoInk.uss`);同一 USS 被登记两值 ⇒ 冻结件内部冲突报错。</para></summary>
+        public static List<string> ValidateSpriteBorderMatchesFreeze(string repoRoot)
         {
             var errs = new List<string>();
+
+            // ── 1. 冻结件存在 + 机器块可解析 ──
+            var recordPath = Path.GetFullPath(Path.Combine(repoRoot, FreezeRecordRelPath));
+            if (!File.Exists(recordPath))
+            {
+                errs.Add($"[C8] 切图冻结件不存在:{recordPath} —— 判据无真源,非合规。");
+                return errs;
+            }
+            var fence = Regex.Match(File.ReadAllText(recordPath),
+                @"```freeze-v1\s*\r?\n(.*?)\r?\n```", RegexOptions.Singleline);
+            if (!fence.Success)
+            {
+                errs.Add($"[C8] 冻结件无 `freeze-v1` 机器块:{recordPath} —— 门无解析源,非合规。");
+                return errs;
+            }
+
+            var rows = new List<(string File, int Slice, string Uss)>();
+            foreach (var raw in fence.Groups[1].Value.Split('\n'))
+            {
+                var line = raw.Trim();
+                if (line.Length == 0) continue;
+                var p = line.Split('|');
+                if (p.Length != 3 || !p[0].EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+                                   || !int.TryParse(p[1].Trim(), out int slice))
+                {
+                    errs.Add($"[C8] 冻结件机器行不可解析(须 `文件|值|USS`):`{line}`");
+                    continue;
+                }
+                rows.Add((p[0].Trim(), slice, p[2].Trim()));
+            }
+            if (rows.Count == 0)
+            {
+                errs.Add("[C8] 冻结件机器块 0 行 —— 扫描空跑,判据不成立(非合规)。");
+                return errs;
+            }
+
+            // ── 2. 覆盖检查:顶层每张 -final.png 必须有登记行(漏冻 = 冻结清单缺陷)──
             var texDir = Path.Combine(repoRoot, TexturesRelDir);
             if (!Directory.Exists(texDir))
             {
-                errs.Add($"[E1] 贴图目录不存在:{texDir} —— 扫描空跑,判据不成立(非合规)。");
+                errs.Add($"[C8] 贴图目录不存在:{texDir} —— 扫描空跑,判据不成立(非合规)。");
                 return errs;
             }
+            var topPngs = Directory.GetFiles(texDir, "*-final.png", SearchOption.TopDirectoryOnly)
+                                   .Select(Path.GetFileName)
+                                   .ToHashSet(StringComparer.Ordinal);
+            var rowTops = rows.Where(r => r.File.IndexOf('/') < 0)
+                              .Select(r => r.File)
+                              .ToHashSet(StringComparer.Ordinal);
+            foreach (var missing in topPngs.Except(rowTops).OrderBy(x => x, StringComparer.Ordinal))
+                errs.Add($"[C8] 顶层贴图 `{missing}` 未登记进冻结件机器块 —— 冻结清单漏项。");
 
-            var pngs = Directory.GetFiles(texDir, "*-final.png", SearchOption.TopDirectoryOnly)
-                .OrderBy(f => f, StringComparer.Ordinal).ToArray();
-            if (pngs.Length == 0)
+            // ── 3. meta 侧:spriteBorder 四值均须等于冻结值 ──
+            foreach (var r in rows)
             {
-                errs.Add($"[E1] 贴图目录无 `*-final.png`:{texDir} —— 扫描空跑,判据不成立(非合规)。");
-                return errs;
+                var metaPath = Path.Combine(texDir,
+                    r.File.Replace('/', Path.DirectorySeparatorChar) + ".meta");
+                if (!File.Exists(metaPath))
+                {
+                    errs.Add($"[C8] `{r.File}` 缺 `.meta` —— 冻结值无载体(资产未导入)。");
+                    continue;
+                }
+                var meta = UssCommentRegex.Replace(File.ReadAllText(metaPath), "");
+                var bm = Regex.Match(meta,
+                    @"spriteBorder:\s*\{\s*x:\s*(-?\d+),\s*y:\s*(-?\d+),\s*z:\s*(-?\d+),\s*w:\s*(-?\d+)\s*\}");
+                if (!bm.Success)
+                {
+                    errs.Add($"[C8] `{Path.GetFileName(metaPath)}` 无 `spriteBorder` 键 —— 导入格式缺字段。");
+                    continue;
+                }
+                if (bm.Groups[1].Value != r.Slice.ToString() || bm.Groups[2].Value != r.Slice.ToString()
+                    || bm.Groups[3].Value != r.Slice.ToString() || bm.Groups[4].Value != r.Slice.ToString())
+                    errs.Add($"[C8] `{Path.GetFileName(metaPath)}` spriteBorder = " +
+                             $"{{{bm.Groups[1].Value}, {bm.Groups[2].Value}, {bm.Groups[3].Value}, {bm.Groups[4].Value}}}" +
+                             $",冻结件 = {r.Slice} —— 值只能源自冻结件(AC-42-C8 禁手填)。");
             }
 
-            // `spriteBorder: {x: 0, y: 0, z: 0, w: 0}` = 零哨兵。
-            // ⚠️ 缩进非固定(实测 2 空格),故**不锚 `^`**,用 `[^\n{]*` 吞掉前导任意空白 ——
-            //    锚 `^` 会因缩进宽度变化而静默失配 ⇒ 假报「已自填」(本门首跑即踩此坑)。
-            var sentinel = new Regex(@"spriteBorder:\s*\{\s*x:\s*0,\s*y:\s*0,\s*z:\s*0,\s*w:\s*0\s*\}");
-            foreach (var png in pngs)
+            // ── 4. USS 侧:登记了落点的文件,slice 行集须与冻结值一致 ──
+            var ussWant = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var row in rows.Where(row => row.Uss != "-"))
             {
-                string metaPath = png + ".meta";
-                if (!File.Exists(metaPath)) continue;   // 缺 .meta 由格式门报
-                string meta = File.ReadAllText(metaPath);
-                if (!sentinel.IsMatch(UssCommentRegex.Replace(meta, "")))
-                    errs.Add($"[E1] {Path.GetFileName(metaPath)} 的 `spriteBorder` **已非零哨兵** —— " +
-                             "其值须来自 019-f 的切图冻结件元数据,019-e **不得自填**(禁第二真源;" +
-                             "story-019 §状态拆分「做完即错」纪律)。");
+                if (ussWant.TryGetValue(row.Uss, out int prev) && prev != row.Slice)
+                    errs.Add($"[C8] 冻结件内部冲突:`{row.Uss}` 同时登记 {prev} 与 {row.Slice} —— 同一落点须同值。");
+                ussWant[row.Uss] = row.Slice;
+            }
+            foreach (var kv in ussWant)
+            {
+                var ussPath = Path.Combine(repoRoot, SkeuoUssRelDir, kv.Key);
+                if (!File.Exists(ussPath))
+                {
+                    errs.Add($"[C8] 冻结件登记的 USS 不存在:`{kv.Key}` —— 判据无载体,非合规。");
+                    continue;
+                }
+                var body = UssCommentRegex.Replace(File.ReadAllText(ussPath), "");
+                var slices = Regex.Matches(body, @"-unity-slice-(?:left|right|top|bottom)\s*:\s*(\d+)px")
+                                  .Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
+                if (kv.Value == 0)
+                {
+                    if (slices.Length != 0)
+                        errs.Add($"[C8] `{kv.Key}` 冻结值 = 0(明示不走九宫格)但实见 " +
+                                 $"{slices.Length} 条 `-unity-slice-*`:{string.Join(",", slices)}。");
+                }
+                else if (slices.Length != 4)
+                    errs.Add($"[C8] `{kv.Key}` 须恰 4 条 `-unity-slice-*`(实见 {slices.Length}) —— 冻结值 {kv.Value}。");
+                else if (slices.Any(s => s != kv.Value.ToString()))
+                    errs.Add($"[C8] `{kv.Key}` -unity-slice-* = {string.Join(",", slices)}," +
+                             $"冻结件 = {kv.Value} —— USS 值只能源自冻结件(AC-42-C8)。");
             }
             return errs;
         }
