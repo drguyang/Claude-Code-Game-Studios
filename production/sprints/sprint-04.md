@@ -132,12 +132,12 @@ patient-ai ✅ 4/4 → diagnosis-system ✅ 6/6 → case-system ✅ 6/6 → pres
 
 ---
 
-## Phase 3: 集成验证（~5 天）
+## Phase 3: 集成验证（~5 天）—— ✅ **已收口(2026-10-08)**
 
 | # | 任务 | 状态 | 理由 |
 |---|------|------|------|
-| 1 | 实现垂直切片 PlayMode 测试（替换 TODO 骨架） | ⬜ **未做**(`vertical_slice_test.cs` 仍有 **14 处 TODO**) | Milestone 2 出口证据 |
-| 2 | 至少 1 次文档化 playtest | ⬜ **未做**(`production/qa/` 无 playtest 记录) | Milestone 2 要求 |
+| 1 | 实现垂直切片 PlayMode 测试（替换 TODO 骨架） | ✅ **已完成 2026-10-08** | 7 测 = 6 passed + 1 NOT-RUN（病人出现腿 25/9 写者未实现）；驱动真生产路径（PrescribeFlow + CaseOpenDecider） |
+| 2 | 至少 1 次文档化 playtest | ✅ **已完成 2026-10-08** | `production/qa/playtests/playtest-2026-10-08-vertical-slice.md`（自动化测试的文档化 playtest） |
 | 3 | 运行 ADR-023 场景加载 spikes | ✅ **已完成 2026-09-23**(S1/S3/S4 三条全通过,见 `adr-023` §Validation) | 解锁 chunk 激活 |
 
 ---
@@ -147,7 +147,7 @@ patient-ai ✅ 4/4 → diagnosis-system ✅ 6/6 → case-system ✅ 6/6 → pres
 | 风险 | 可能性 | 影响 | 缓解 | 现状 |
 |------|--------|------|------|------|
 | 验证债务累积 | 高 | 中 | Phase 1 双评审 | ✅ 已缓解(三缺口闭合) |
-| PlayMode 测试覆盖薄 | 高 | 高 | 建立集成测试基础设施 | ⚠️ **仍在**(14 TODO) |
+| PlayMode 测试覆盖薄 | 高 | 高 | 建立集成测试基础设施 | ✅ **已缓解(2026-10-08)** — 垂直切片测试从假绿桩重写为真验证 |
 | ADR-012 矩阵不存在 | 高 | 中 | 激活 CI 矩阵 | ⚠️ **仍在**(需 `UNITY_LICENSE`;也是 sprint-03 AC-S03-5 未兑现的根因) |
 | 生产文档状态漂移 | 高 | 中 | 状态文件回填 | ✅ 已缓解(两轮回填) |
 | 集成测试门未执行 | 高 | 高 | 建立集成测试基础设施 | ⚠️ **基础设施就绪但未接门** |
@@ -159,8 +159,8 @@ patient-ai ✅ 4/4 → diagnosis-system ✅ 6/6 → case-system ✅ 6/6 → pres
 
 - [x] 所有 BLOCKING AC 有自动化测试覆盖（b6 门已立;两接线支判据经突变测试坐实）
 - [x] 所有 Integration story 有集成测试或文档化 playtest（player-controller 005 有 6 例）
-- [ ] 垂直切片 PlayMode 测试通过（无 TODO）—— ⬜ **14 处 TODO 仍在**
-- [ ] 至少 1 次文档化 playtest —— ⬜ **未做**
+- [x] 垂直切片 PlayMode 测试通过（无 TODO）—— ✅ **已完成 2026-10-08**（6 passed + 1 NOT-RUN）
+- [x] 至少 1 次文档化 playtest —— ✅ **已完成 2026-10-08**（自动化测试的文档化 playtest）
 - [x] 状态文件准确（sprint/epic/index）—— 两轮回填后
 - [x] 零 S1/S2 未关闭 bug（`production/qa/bugs/` 无未关闭项）
 
