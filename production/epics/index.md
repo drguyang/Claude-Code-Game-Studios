@@ -13,16 +13,16 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | telemetry-analytics | Foundation | 51 遥测与分析 | design/gdd/telemetry-analytics.md | 8 stories | Complete ✅ 2026-09-26 |
 | time-weather | Foundation | 5 时间与天气 | design/gdd/time-and-weather.md | 5 stories | Complete ✅ 2026-09-30 |
 | clinic-machine | Core | 24 医馆即机器 | design/gdd/clinic-machine.md | 5 stories | Ready(未实现) |
-| foraging | Core | 17 采集 | design/gdd/foraging.md | 5 stories | In Progress(WIP · 未提交) |
+| foraging | Core | 17 采集 | design/gdd/foraging.md | 5 stories | Ready(未实现) |
 | random-events | Core | 52 随机事件导演 | design/gdd/random-events.md | 6 stories | Complete ✅ 2026-09-30 |
 | medical-consequences | Core | 53 医疗后果与责任 | design/gdd/medical-consequences.md | 4 stories | Ready(未实现) |
 | casebook | Presentation | 39 脉案 | design/gdd/casebook.md | 6 stories | Ready(未实现) |
 | tutorial-onboarding | Presentation | 48 教学与引导 | design/gdd/tutorial-and-onboarding.md | 5 stories | Ready(未实现) |
 | camera-viewpoint | Foundation | 20 相机与视角 | design/gdd/camera-and-viewpoint.md | 6 stories | Complete ✅ 2026-10-03(6/6) |
-| case-system | Core | 37 病例系统 | design/gdd/case-system.md | 6 stories | 🔄 In Progress(4/6 · 001–004 ✅ 2026-10-06;断点 = story-005) |
+| case-system | Core | 37 病例系统 | design/gdd/case-system.md | 6 stories | Complete ✅ 2026-10-08(6/6;005 守密纪律 + 006 重放持久化) |
 | combat-weapons | Core | 25 战斗与武器 | design/gdd/combat-and-weapon-lines.md | 6 stories | Complete ✅ 2026-09-30 |
 | death-respawn | Core | 29 死亡与复活 | design/gdd/death-and-respawn.md | 6 stories | Ready(未实现) |
-| diagnosis-system | Core | 8 诊断系统 | design/gdd/diagnosis-system.md | 6 stories | 🔄 In Progress(4/6 · 001–004 ✅ 2026-10-05/06;断点 = story-005) |
+| diagnosis-system | Core | 8 诊断系统 | design/gdd/diagnosis-system.md | 6 stories | Complete ✅ 2026-10-08(6/6;005 体征揭示 + 006 重放持久化) |
 | disease-simulation | Core | 9 疾病模拟 | design/gdd/disease-simulation.md | 7 stories | ✅ Complete(story-007 重开轮闭环 2026-10-07:处置轴 + treatable_by + NOISE_BAND_9 双常量;双代理评审修复后复跑全绿:9 侧 67/67 · 11 侧 174/174 · 10 侧 116/116 · 全量 2948-2901/0 红) |
 | emergency-procedures | Core | 10 急救动作 | design/gdd/emergency-procedures.md | 7 stories | **Complete ✅ 2026-10-08**(7/7 已实现 · A1/A2/A6/B4/C4/C5 已闭;✅ 评审原件两份均在库(首轮+round2,2026-10-03);**两条前置 2026-10-08 结清** = D1/D2/D3 文档对齐核实 + **实跑测试套件**(EditMode 急救 120/116/0 红/4 NOT-RUN · PlayMode 急救 4/4 · 全量 EditMode 3001/2954/0 红 · 全量 PlayMode 96/96);验证原件 `verification-emergency-procedures-tests-2026-10-08.md`;未闭 = Seq 占位(归 45)/ AC-10-04b(ADR-012 矩阵)均归属他 epic) |
 | enemy-ai | Core | 27 敌人 AI | design/gdd/enemy-ai.md | 5 stories | Complete ✅ 2026-09-30 |
