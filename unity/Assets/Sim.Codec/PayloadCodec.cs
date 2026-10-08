@@ -1,4 +1,4 @@
-// R-1(U0-b 残留)· 34 支载荷编解码主体 + PayloadRef 访问签名(支 0 甲 / 拍板点 0-2)。
+// R-1(U0-b 残留)· 35 支载荷编解码主体 + PayloadRef 访问签名(支 0 甲 / 拍板点 0-2)。
 //
 // 权威来源:
 //   ADR-024 §① —— schema 真源 = design/registry/entities.yaml 各 Kind 的 payload_schema;
@@ -10,7 +10,7 @@
 //     JudgmentRecorded / JudgmentRevised 恒写 tag 6 = byteLen + 严格 UTF-8;
 //     **sim 消费面不持有该值**(struct 无字段;Decode<T> 读出即弃 —— 违例面在消费,
 //     不在游标推进)。呈现读取 = TryGetFreehandText(仅 42 / 37 呈现侧调用)。
-//   b1b 设计卡 · 支 1 —— 34 支 struct 由本 codec 构造(ctor 已于本批补入,
+//   b1b 设计卡 · 支 1 —— 35 支 struct 由本 codec 构造(ctor 已于本批补入,
 //     依 PayloadCommon.cs 原注「归首个消费代码批补 ctor」)。
 //   b1b 拍板点 0-2 —— codec 访问签名 = TryGetPayload<T>(...);原卡签名省写了
 //     pool 形参(载荷字节必须寻址 blob 池),本批补全,登记于此。
@@ -29,7 +29,7 @@ using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Sim.Codec
 {
-    /// <summary>34 支 per-Kind 载荷的唯一编解码器(b1b 支 0 甲:解码即构造)。</summary>
+    /// <summary>35 支 per-Kind 载荷的唯一编解码器(b1b 支 0 甲:解码即构造)。</summary>
     public static partial class PayloadCodec
     {
         // ── 分发 ──────────────────────────────────────────────────────────
@@ -51,6 +51,7 @@ namespace DaYiJingCheng.Sim.Codec
             switch (kind)
             {
                 case EventKind.InjuryOnset:               return DecodeInjuryOnset(payloadBytes);
+                case EventKind.DiseaseOnset:             return DecodeDiseaseOnset(payloadBytes);
                 case EventKind.CompoundTriggered:         return DecodeCompoundTriggered(payloadBytes);
                 case EventKind.CompoundExpired:           return DecodeCompoundExpired(payloadBytes);
                 case EventKind.CareApplied:               return DecodeCareApplied(payloadBytes);
@@ -85,7 +86,7 @@ namespace DaYiJingCheng.Sim.Codec
                 case EventKind.ConsequenceResolved:       return DecodeConsequenceResolved(payloadBytes);
                 case EventKind.PlayerDied:                return DecodePlayerDied(payloadBytes);
                 default:
-                    throw new InvalidDataException($"未知 EventKind={(int)kind} —— 不在 34 支闭集内");
+                    throw new InvalidDataException($"未知 EventKind={(int)kind} —— 不在 35 支闭集内");
             }
         }
 

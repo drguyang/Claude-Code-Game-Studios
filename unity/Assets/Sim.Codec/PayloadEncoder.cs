@@ -9,7 +9,7 @@
 //   ADR-006 Amendment G-3 —— freehand_text 迁入 blob 变长段;sim 消费面不持有该值
 //
 // 分派完备性(ADR-029 §① 修正 ④,用户 2026-10-02 裁定):
-//   34 支具名 Encode 重载中 **32 支**可经 Encode<T> 表达;余 2 支
+//   35 支具名 Encode 重载中 **33 支**可经 Encode<T> 表达;余 2 支
 //   (JudgmentRecorded / JudgmentRevised)多收一个 `string freehandText` ——
 //   该值**不在 T 里**(struct 故意不含,承 G-3「sim 消费面不持有该值」),
 //   故本实现对其**抛 NotSupportedException**(错误串指向具名重载)。
@@ -58,8 +58,9 @@ namespace DaYiJingCheng.Sim.Codec
         {
             switch (kind)
             {
-                // ── 病史流(13)────────────────────────────────────────────
+                // ── 病史流(14)────────────────────────────────────────────
                 case EventKind.InjuryOnset:               return PayloadCodec.Encode((InjuryOnsetPayload)payload);
+                case EventKind.DiseaseOnset:             return PayloadCodec.Encode((DiseaseOnsetPayload)payload);
                 case EventKind.CompoundTriggered:         return PayloadCodec.Encode((CompoundTriggeredPayload)payload);
                 case EventKind.CompoundExpired:           return PayloadCodec.Encode((CompoundExpiredPayload)payload);
                 case EventKind.CareApplied:               return PayloadCodec.Encode((CareAppliedPayload)payload);
@@ -114,7 +115,7 @@ namespace DaYiJingCheng.Sim.Codec
                         "(写者归 37 case-system 的 GDD 轮另裁。)");
 
                 default:
-                    throw new InvalidOperationException($"未知 EventKind={(int)kind} —— 不在 34 支闭集内");
+                    throw new InvalidOperationException($"未知 EventKind={(int)kind} —— 不在 35 支闭集内");
             }
         }
     }

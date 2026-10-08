@@ -182,6 +182,16 @@
 > `technical-preferences.md` ADR-005 日志 Amendment G 补注、
 > `diagnosis-system.md` / `disease-simulation.md` D-8-6 两侧结案注。
 > **零新 ADR 号、零数值改动**(机制数值冻结)。
+> **2026-10-09 第十四次动(ADR-030 `DiseaseOnset` Kind 登记 · 用户裁定「按建议来」)**:结清一处
+> **registry 缺口** —— 三处权威件(9 规则六 `:162` 病史流第一行 / `:174` 边界表「病程类(onset …)」·
+> 7a F-7a-4 `:161` 折叠行首字段 `onset`)引用「病程 onset / 病人出现」却无 `entities.yaml` 登记
+> (同 `CompoundTriggered` / `ActorCellEntered` / ADR-022 关卡工具的「引用却无登记」失效模式);
+> 且 34 支 `SimEvent.Kind` 无一表示它 ⇒ ADR-008 §二 按 `Kind` 纯函数路由**无法路由**该事件。
+> 立 **`SimEvent.Kind.DiseaseOnset`**(病史流 · 写者 = 9 · 载荷逐字对齐 9 规则六病史流第一行并补
+> `patient_id`;「病人出现」= 该事件的语义投影,不立第二个 `Kind`)。**`SimEvent.Kind.*` 条目数
+> 34 → 35**(ADR-024 V-2 实测值同步;不变量仍是「两数相等」)。**TR 追加 1 条(ID 501 → 502,
+> append-only)**:`TR-disease-024`(病程 onset / 病人出现的 Kind 登记 = `DiseaseOnset`,病史流,
+> 写者 = 9;同型先例 = `TR-combat-005`)⇒ **计数 342/74/69/◆17 → 344/73/68/◆17**。**零数值改动**。
 > ⚠️ 下表分层数字**不随本批重算**(Axis B 归并口径的逐条重归属仍归 `/architecture-review`)。
 > 下表的分层数字**尚未按 C4 重算** —— 8 条按注册表 `domain` 落 Core ×5 / Feature ×2 / Presentation ×1,
 > 而本表用的是 **Axis B 归并口径**(≠ `domain` 字段),逐条重归属归 `/architecture-review`。

@@ -238,7 +238,7 @@ public static class StreamRouting {
 ## Validation Criteria
 
 - [ ] **V-1** 生成器跑通且 A1–A5 全绿(断言失败必须 `throw`,禁 `Debug.Assert` —— 承 ADR-022 C 系口径)
-- [ ] **V-2** `StreamRouting.g.cs` 的 case 数 = registry `SimEvent.Kind.*` 条目数 = **34**(可复算;不变量是「两数相等」,34 = 2026-09-21 第二十七批登记 `SkillGrown` 后的实测值,此前为 33)
+- [ ] **V-2** `StreamRouting.g.cs` 的 case 数 = registry `SimEvent.Kind.*` 条目数 = **34**(可复算;不变量是「两数相等」,34 = 2026-09-21 第二十七批登记 `SkillGrown` 后的实测值,此前为 33) —— ⚠️ **2026-10-09 起实测值 = 35**(ADR-030 追加 `SimEvent.Kind.DiseaseOnset`;**不变量仍是「两数相等」**,35 为最新实测值,禁把本条读成硬编码 34)
 - [x] **V-3** 补齐 9 支的载荷字段名表逐支与出处件 diff 为空 —— **✅ 2026-09-23 回写轮**:9 支 registry 条目已建(`Craft` / `DropSpawned` / `DropClaimed` / `DropDespawned` + ADR-007 五支 `EventRolled` / `EventArrived` / `ThreatDeferred` / `ThreatDeferralCleared` / `HistoryFlagChanged`),载荷按其出处件逐字搬入(另 2026-09-21 第二十七批补 `SkillGrown` 入 registry)
 - [x] **V-4** 全库 `grep "9-Kind"` 命中 = 0(陈旧计数清零) —— **✅ 2026-09-23 回写轮**:4 处陈旧计数(`entities.yaml:2002/2043/2077/2107`)已就地改写为「ADR-024 前历史值,现由 registry 机读」;⚠️ 残余字面「9-Kind」均为**历史引述**(非计数本身):`entities.yaml:2060`(引述注)· `adr-009:707`(史实陈述)· `adr-024` 本件 §Context/§④ 行(登记文本)· `architecture.md` D-1 行(评审留档)—— 若判据须**字面**清零,须另行裁定是否追改引述文本(本件不追改)
 - [ ] **V-5** ADR-009 Amendment M 及以后**不存在**(通道退役的可证伪判据)

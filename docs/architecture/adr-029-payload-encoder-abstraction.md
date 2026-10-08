@@ -141,6 +141,7 @@ new PayloadRef(0, 0, blob.Length)     // blobId 恒 0,字节被丢弃
 - **R2**:字节真的进池(不再出现 `PayloadRef(0,0,len)` 式假引用)。
 - **R3**:不破 C1–C5 任一条。
 - **R4**:分派须**覆盖全部 34 个 `EventKind`**,漏一即构建失败(与 `DecodeBoxed` 同口径)。
+  ⚠️ **2026-10-09**:`EventKind` 总数 **34 → 35**(ADR-030 追加 `DiseaseOnset`)⇒ 分派覆盖数同步为 35;R4 的不变量是「覆盖全部」,非硬编码 34。
 
 ## Decision
 

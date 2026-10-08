@@ -1,11 +1,11 @@
 # Requirements Traceability Matrix (RTM)
 
-> Last Updated: 2026-09-23
+> Last Updated: 2026-10-09
 > Mode: /architecture-review rtm —— **本文件当前不处于 rtm 模式输出态**(见 §形态说明)
 > Coverage: **0%** full chain complete (GDD → ADR → Story → Test)—— 非缺件,是阶段事实
 > Engine: Unity 6.3 LTS
-> 登记处(数据权威):`docs/architecture/tr-registry.yaml`(500 条,`status:` 字段为计数真源)
-> 人读矩阵:`docs/architecture/traceability-index.md`(GDD → ADR 两级;**340 ✅ / 74 ⚠️ / 69 ❌ / ◆17 no-adr-by-design** —— 2026-09-23 Blocking 清账批后实测;同日前序 ADR-001 窄修订批后值 338/75/71/◆16;同日前序 Epic-3 对症复核批后值 337/75/72/◆16;同日前序 ADR-009 TR 复核轮后值 337/75/75/◆13;同日前序 ADR-028 小裁批后值 335/76/76/◆13;#4/#5 兑现轮后值 328/76/94/◆2;回写轮值 318/77/103;第二十八批值 317/77/103;第二十六批值 316/78/103;D-R3 批次后值 314/79/104;更早 245/51/89 系分母不含 12 项零 TR 系统的偏高口径)
+> 登记处(数据权威):`docs/architecture/tr-registry.yaml`(502 条,`status:` 字段为计数真源)
+> 人读矩阵:`docs/architecture/traceability-index.md`(GDD → ADR 两级;**344 ✅ / 73 ⚠️ / 68 ❌ / ◆17 no-adr-by-design** —— 2026-10-09 ADR-030 批后实测(新增 `TR-disease-024` covered);同日前序 ADR-001 窄修订批后值 338/75/71/◆16;同日前序 Epic-3 对症复核批后值 337/75/72/◆16;同日前序 ADR-009 TR 复核轮后值 337/75/75/◆13;同日前序 ADR-028 小裁批后值 335/76/76/◆13;#4/#5 兑现轮后值 328/76/94/◆2;回写轮值 318/77/103;第二十八批值 317/77/103;第二十六批值 316/78/103;D-R3 批次后值 314/79/104;更早 245/51/89 系分母不含 12 项零 TR 系统的偏高口径)
 >
 > **2026-09-23 更新(Blocking 清账批 —— 用户裁定路线 [A] 分治,2 条 blocking 残余清零,零新 ADR 号)**
 > —— **338/75/71/◆16 → 340/74/69/◆17**(ID 恒 500,零新增;`yaml.safe_load` 复算自洽)。

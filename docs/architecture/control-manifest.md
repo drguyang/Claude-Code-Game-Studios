@@ -4,8 +4,8 @@
 > **Last Updated**: 2026-10-02
 > **Manifest Version**: 2026-10-02
 > **ADRs Covered**: ADR-001, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 015,
-> 016, 017, 018, 019, 020, 021, 022, 023, 024, 025, 026, 027, 028, 029
-> —— **全部 26 份 Accepted ADR**(⚠️ 2026-10-02 订正:原写「全部 22 份」,**计数陈旧**;本 manifest 只覆盖架构规则面,故未逐份列 002–004 —— 那三份已被 015/017 兑现结案)
+> 016, 017, 018, 019, 020, 021, 022, 023, 024, 025, 026, 027, 028, 029, 030
+> —— **全部 27 份 Accepted ADR**(⚠️ 2026-10-02 订正:原写「全部 22 份」,**计数陈旧**;2026-10-09 追加 ADR-030 `DiseaseOnset` Kind 归属 ⇒ 26 → **27**。本 manifest 只覆盖架构规则面,故未逐份列 002–004 —— 那三份已被 015/017 兑现结案)
 > **Status**: Active —— ADR 变更后用 `/create-control-manifest update` 重生成
 
 `Manifest Version` is the date this manifest was generated. Story files embed

@@ -1,4 +1,4 @@
-// 权威来源:ADR-024 §① 真源 = design/registry/entities.yaml(34 支,stream 分布 13/5/16)
+// 权威来源:ADR-024 §① 真源 = design/registry/entities.yaml(35 支,stream 分布 14/5/16)
 //          · 成员级出处见各支 registry 条目的 source 字段(ADR-007 §三 / ADR-008 §三 /
 //            ADR-009 Amendment F–I / ADR-016 §二 / ADR-021 §三 等)
 //
@@ -10,11 +10,12 @@
 
 namespace DaYiJingCheng.Sim.Contracts
 {
-    /// <summary>三逻辑流全部 34 支具名事件 Kind。</summary>
+    /// <summary>三逻辑流全部 35 支具名事件 Kind。</summary>
     public enum EventKind : int
     {
-        // ── 病史流 History(13)────────────────────────────────────────────
+        // ── 病史流 History(14)────────────────────────────────────────────
         InjuryOnset,                 // 25 直登(ADR-006)
+        DiseaseOnset,                // ADR-030(病程 onset / 病人出现 · 写者 = 9)
         CompoundTriggered,           // 9(ADR-009 §三 骨架)
         CompoundExpired,             // 9
         CareApplied,                 // 8(判断链)

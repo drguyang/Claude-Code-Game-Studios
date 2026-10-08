@@ -150,27 +150,27 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
         // ══════════ AC-29-04: 分派完备性(32 + 2)══════════
 
-        /// <summary>可由 Encode&lt;T&gt; 表达的 32 支(34 − Judgment 两支)。</summary>
+        /// <summary>可由 Encode&lt;T&gt; 表达的 33 支(35 − Judgment 两支)。</summary>
         private static readonly EventKind[] EncodableKinds =
             Enum.GetValues(typeof(EventKind)).Cast<EventKind>()
                 .Where(k => k != EventKind.JudgmentRecorded && k != EventKind.JudgmentRevised)
                 .ToArray();
 
         [Test]
-        public void test_ac2904_dispatchCovers32Kinds()
+        public void test_ac2904_dispatchCovers33Kinds()
         {
-            Assert.AreEqual(32, EncodableKinds.Length,
-                "可编码 Kind 须恰 32 支(34 总 − 2 Judgment)");
+            Assert.AreEqual(33, EncodableKinds.Length,
+                "可编码 Kind 须恰 33 支(35 总 − 2 Judgment)");
 
             // 与 PayloadCodec 的具名 Encode 重载集双向差集归零(承 ADR-024 A5 口径)
             var named = typeof(PayloadCodec).GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .Where(m => m.Name == "Encode" && !m.IsGenericMethodDefinition)
                 .ToList();
 
-            // 32 支单参重载 + 2 支双参(Judgment)重载 = 34
+            // 33 支单参重载 + 2 支双参(Judgment)重载 = 35
             int singleArg = named.Count(m => m.GetParameters().Length == 1);
             int doubleArg = named.Count(m => m.GetParameters().Length == 2);
-            Assert.AreEqual(32, singleArg, "单参具名 Encode 重载须恰 32");
+            Assert.AreEqual(33, singleArg, "单参具名 Encode 重载须恰 33");
             Assert.AreEqual(2, doubleArg, "双参(Judgment)具名 Encode 重载须恰 2");
         }
 

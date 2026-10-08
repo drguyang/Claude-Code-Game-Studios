@@ -1,5 +1,41 @@
 # Session State — 2026-10-09(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ✅ · M2 形态件 4/4 齐(story-021…024)**)
 
+## ✅ 本轮 = ADR-030 病程 onset / 病人出现的 Kind 归属(2026-10-09 立 · **已落盘 Accepted** · 待用户指令提交)
+
+**用户指令**:「走 A,先把「病人出现」该写什么 Kind 查透」→「**按建议来,落 ADR**」。
+
+**勘察结论(已呈现并获裁定)**:34 支 `SimEvent.Kind` **无一表示「病人出现 / 病程 onset」**,
+而三处权威件引用它(9 规则六 `:162` 病史流第一行 / `:174` 边界表「病程类(onset …)」/
+7a F-7a-4 `:161` 折叠行首字段 `onset`)⇒ **真实 registry 缺口**(同 `CompoundTriggered` /
+`ActorCellEntered` / ADR-022 关卡工具的「引用却无登记」失效模式)。旁证:垂直切片测试病人腿
+(`vertical_slice_test.cs:6/78/83`)把「病人出现」**误标为 `InjuryOnset`** —— 而后者是 25 的
+战斗伤害结算(`actor_id`/`target_id`/`injury_id`/`magnitude`/`dose_seq`),载荷与语义完全不同。
+
+**四项裁定(用户「按建议来」)**:① 「病人出现」与「病程 onset」= **同一个事件**(甲案,不立第二个 Kind)·
+② 立一个 Kind `SimEvent.Kind.DiseaseOnset` · ③ 写者(Append 调用者)= **9** · ④ 落**病史流**。
+
+**交付件**:`docs/architecture/adr-030-disease-onset-kind.md`(329 行,格式对齐 ADR-027)。
+**载荷** = `(onset_tick, disease_id, patient_id, patient_seed, seq)` —— 逐字对齐 9 规则六 `:162`
+并**补 `patient_id`**(7a F-7a-4「`patient_id` 必留」;ADR-006 Amendment B 高水位重构依赖)。
+**有界性** ≤ 病人创建率 ≤ `PATIENT_APPEARANCE_CAP`(24,`TR-disease-021`),与 tick 频率无关。
+**47 的 onset 义务**(9 GDD `:436` 神经衰弱 `causes[]`)= 义务方/入向数据引用方,`Append` 调用者**恒为 9**。
+
+**同批落盘(6 件涟漪)**:
+- `design/registry/entities.yaml` 追加 `SimEvent.Kind.DiseaseOnset` 条目(三字段齐,ADR-024 ①)⇒ **Kind 34 → 35**
+- `docs/architecture/tr-registry.yaml` 追加 `TR-disease-024`(covered,`adr: ADR-030`)⇒ **ID 501 → 502**
+- `docs/architecture/traceability-index.md` + `requirements-traceability.md` 计数回刷
+  ⇒ **344 ✅ / 73 ⚠️ / 68 ❌ / ◆17**(原 342/74/69/◆17)
+- `docs/architecture/architecture.md` 第十四次动 · `control-manifest.md` ADRs Covered(26 → 27 份)
+- `.claude/docs/technical-preferences.md` ADR 日志(001–030)
+- `adr-024` V-2 / `adr-029` R4 加注(34 → 35,承 adr-006「加注不改写」先例)
+
+**⚠️ 未结(不在本 ADR 裁决面,均归各自实现轮)**:9 的写者实现(`IIdAuthority.Next()` → `Append`)·
+47 的 `causes[]` 落地 · 垂直切片测试病人腿由 `InjuryOnset` 订正为 `DiseaseOnset` · kindgen 重跑。
+**未跑 kindgen / 未跑 Unity 测试** —— 本批纯文档 + registry 登记,零代码改动。
+
+---
+
+
 ## ✅ 本轮 = story-024 M2 形态件④ 一条真实状态反馈通道(2026-10-09 立 · 双代理评审修复复跑全绿 · **收口提交中**)
 
 **流程对账(用户指令:创建+unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送;评审恰一轮)**:

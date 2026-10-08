@@ -81,7 +81,7 @@ namespace DaYiJingCheng.Sim.Codec
             r.EnsureFullyConsumed();
 
             if (!Enum.IsDefined(typeof(EventKind), kindRaw))
-                throw new InvalidDataException($"SimEvent.Kind={kindRaw} 不在 34 支闭集内");
+                throw new InvalidDataException($"SimEvent.Kind={kindRaw} 不在 35 支闭集内");
             if (payload.Offset < 0 || payload.Length < 0)
                 throw new InvalidDataException(
                     $"PayloadRef 越界值(Offset={payload.Offset}, Length={payload.Length})");

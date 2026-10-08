@@ -26,7 +26,7 @@
 //     负例经反射 / 合成文本注入即可证真(真 IL 边界已在 b5 先例兑现)。
 //   · 「IEventSink / SimEvent 禁名」= A6 的零事件面(源文本):任何 Gameplay.Input 源树
 //     .cs 出现任一禁名 token ⇒ 红(注释剥离后;偏安全,非可达性精确分析)。
-//   · A7 扫描根 = Sim.Contracts 全部 *Payload struct(register 真源 34 支)+ 四意图类型。
+//   · A7 扫描根 = Sim.Contracts 全部 *Payload struct(register 真源 35 支)+ 四意图类型。
 //
 // 假绿防护同 b5 三处:scriptCompilationFailed 拒扫 / asmdef·产物缺失红 / 扫描键 0 命中 WARN。
 
@@ -547,7 +547,7 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <summary>A7 载荷扫描根的**判据说明**(实现在 CheckAllPayloadClosures;2026-09-26 评审 S6)。</summary>
         public const string PayloadRootDerivation =
             "扫描根 = Sim.Contracts 全部 struct(减显式键型豁免)+ Gameplay.Input.Intents 交出物;" +
-            "**不按 `*Payload` 命名约定派生** —— ADR-024 §① 的载荷真源是 entities.yaml 的 34 支 " +
+            "**不按 `*Payload` 命名约定派生** —— ADR-024 §① 的载荷真源是 entities.yaml 的 35 支 " +
             "SimEvent.Kind.*,命名约定只是它的影子;影子漂移会让 A7 漏扫一支载荷而全绿。";
 
         /// <summary>A7 载荷侧扫描根的**显式豁免**类型名(键型 + header 引用,逐条点名,
@@ -597,11 +597,11 @@ namespace DaYiJingCheng.EditorTools.Gates
             catch (ReflectionTypeLoadException ex) { types = ex.Types.Where(t => t != null).ToArray(); }
 
             // ⚠️ 2026-09-26(评审 S6):此处**曾**按 `t.Name.EndsWith("Payload")` 命名约定派生
-            // 根。ADR-024 §① 的载荷真源是 `entities.yaml` 的 34 支 `SimEvent.Kind.*`,命名
+            // 根。ADR-024 §① 的载荷真源是 `entities.yaml` 的 35 支 `SimEvent.Kind.*`,命名
             // 约定是它的**影子**,不是它本身 —— 两张表各自维护,漂移无声:A7 会漏扫一支载荷
             // 而**全绿**(这正是「假绿」最贵的一种:门在跑、面在缩小、报告说通过)。
             // 收成「全部 struct」判据:Sim.Contracts 载荷层**没有**任何 struct 不是载荷,
-            // 所以「全 struct 减键型」与「34 支」是**同一集合**,但判据不再依赖命名 ——
+            // 所以「全 struct 减键型」与「35 支」是**同一集合**,但判据不再依赖命名 ——
             // 将来登记一支不叫 `XxxPayload` 的载荷,本面自动纳入,不必回写第二张表。
             // `PayloadScanExcludeTypeNames` 是**显式**豁免(键型 + header 引用),
             // 刻意用全名而非命名约定 —— 要豁免的东西必须逐条点名。

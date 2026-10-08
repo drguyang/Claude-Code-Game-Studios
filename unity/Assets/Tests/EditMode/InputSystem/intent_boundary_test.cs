@@ -357,7 +357,7 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
         [Test]
         public void test_payloadClosure_allRoots_currentTree_zeroFloats()
         {
-            // 端到端:Sim.Contracts 全部 *Payload struct(ADR-024 真源 34 支)+ Intents
+            // 端到端:Sim.Contracts 全部 *Payload struct(ADR-024 真源 35 支)+ Intents
             // 交出物五件,逐根递归扫。零 float/double。
             Assert.That(EditorUtility.scriptCompilationFailed, Is.False,
                 "跑 A7 端到端前提:编译成功");

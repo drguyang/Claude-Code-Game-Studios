@@ -1140,6 +1140,16 @@
     revised: "2026-10-07"
     note: "2026-10-07 重开 9 落地(story-007):`disease_action_axis.json` 建成单一 master;`NOISE_BAND_PROGRESS_9`(Progress 域)与 `NOISE_BAND_POTENCY_9`(药效幅值域)已立,各给一把尺;D-9-J 结案。"
 
+  - id: TR-disease-024
+    system: disease-simulation
+    gdd: design/gdd/disease-simulation.md
+    requirement: "病程 onset / 病人出现的 Kind 登记 —— SimEvent.Kind.DiseaseOnset(病史流,写者 = 9);载荷 = (onset_tick, disease_id, patient_id, patient_seed, seq)"
+    domain: Core
+    adr: ADR-030
+    status: covered
+    revised: "2026-10-09"
+    note: "**2026-10-09 新立(ADR-030 · 用户裁定「按建议来」)**:结清一处 registry 缺口 —— 9 规则六 `:162`(病史流第一行)/ `:174`(边界表「病程类(onset …)」)/ 7a F-7a-4 `:161`(折叠行首字段 `onset`)三处引用「病程 onset / 病人出现」而 `entities.yaml` 零登记(同 `CompoundTriggered` / `ActorCellEntered` / ADR-022 关卡工具的「引用却无登记」失效模式);34 支 `SimEvent.Kind` 无一表示它 ⇒ ADR-008 §二 按 `Kind` 纯函数路由**无法路由**该事件。四项裁定:① 「病人出现」= 病程 onset(**同一个事件**,不立第二个 Kind)· ② 一个 Kind `DiseaseOnset` · ③ 写者 = **9**(`random-events.md:683` / `ADR-007:386`)· ④ 落**病史流**。载荷逐字对齐 9 规则六 `:162` 并**补 `patient_id`**(7a F-7a-4「`patient_id` 必留」)。`entities.yaml` 同批追加条目(`stream: history` / `author` / `payload_schema` 三字段齐,ADR-024 ①)。**同型先例 = `TR-combat-005`**(伤情 onset 三元组 Kind 登记)。"
+
   # ═══════════════════════════════════════════════════════════════════════════
   # 诊断与体征 (Diagnosis System, #8) — design/gdd/diagnosis-system.md
   # ═══════════════════════════════════════════════════════════════════════════

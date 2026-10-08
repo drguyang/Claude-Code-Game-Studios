@@ -13,7 +13,7 @@
 //
 // **b1b 改写记录(原 :14-16 的「EventPayload 占位待定型」就此兑现)**:
 //   `Payload` 字段类型 = `PayloadRef`(全整数 header,见 Payloads/PayloadCommon.cs)。
-//   per-Kind 强类型载荷 = Payloads/ 下 34 支 struct,由 Sim.Codec 按 registry schema 解码。
+//   per-Kind 强类型载荷 = Payloads/ 下 35 支 struct,由 Sim.Codec 按 registry schema 解码。
 //   本形状与 ADR-006 Amendment A「Payload 是值 struct 无引用字段」的读法变更,
 //   归 **X-2 修正案回写 ADR-006**(卡 u0-b-b1b §支 5,Amendment G)。
 

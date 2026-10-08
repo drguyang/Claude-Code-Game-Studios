@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """kindgen —— SimEvent.Kind 单一真源生成器 + 构建期断言(ADR-024 §⑤)。
 
-输入 : design/registry/entities.yaml(`SimEvent.Kind.*` 34 支,stream/author/payload_schema 必填)
+输入 : design/registry/entities.yaml(`SimEvent.Kind.*` 35 支,stream/author/payload_schema 必填)
        unity/Assets/Sim.Contracts/EventKind.cs(C# 侧镜像)
 输出 : unity/Assets/Sim/StreamRouting.g.cs(Kind→StreamId 纯函数 switch)
 
@@ -176,8 +176,8 @@ def main():
 
     kinds = parse_registry()
     rep = []
-    if len(kinds) != 34:
-        fail(rep, f"kindgen: registry Kind 总数 = {len(kinds)},须 34(ADR-024 V-2 条目数)")
+    if len(kinds) != 35:
+        fail(rep, f"kindgen: registry Kind 总数 = {len(kinds)},须 35(ADR-024 V-2 条目数;2026-10-09 ADR-030 起 34 → 35)")
     a1_streams(kinds, rep)
     a2_payload_domain(kinds, rep)
     a3_unique_names(kinds, rep)

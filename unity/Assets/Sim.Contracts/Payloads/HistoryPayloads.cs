@@ -22,6 +22,29 @@ namespace DaYiJingCheng.Sim.Contracts
         }
     }
 
+    /// <summary>ADR-030(病程 onset / 病人出现 · 写者 = 9)。病人实体被创建、分配
+    /// <c>patient_id</c> 的那一 tick 写出的**唯一**事件 —— 「病人出现」是它在在场视图 /
+    /// 立案链上的**语义投影**,不立第二个 Kind(ADR-030 ① 甲案)。去重键 =
+    /// (OnsetTick, PatientId)。<b>有界性</b> ≤ 病人创建率 ≤ <c>PATIENT_APPEARANCE_CAP</c>(24,
+    /// ADR-008 §六),与 tick 频率无关。<para><c>PatientSeed</c> = <c>hash(world_seed, patient_id)</c>
+    /// (禁 <c>Random.Range</c>,规则六 :164)—— 事件流纯函数派生量,主机迁移后可重构
+    /// (ADR-007 核心不变量)。</para></summary>
+    public readonly struct DiseaseOnsetPayload
+    {
+        public readonly long OnsetTick;      // 病人出现 / 病程开始的那一 tick
+        public readonly int DiseaseId;       // 病种枚举(P0 · 8 项)
+        public readonly int PatientId;       // IIdAuthority 机制 A(ADR-006 Amendment B 高水位重构依赖)
+        public readonly long PatientSeed;    // = hash(world_seed, patient_id)
+        public readonly long Seq;            // 主机 Append 时分配(ADR-006 Amendment A/C)
+
+        public DiseaseOnsetPayload(long onsetTick, int diseaseId, int patientId,
+            long patientSeed, long seq)
+        {
+            OnsetTick = onsetTick; DiseaseId = diseaseId; PatientId = patientId;
+            PatientSeed = patientSeed; Seq = seq;
+        }
+    }
+
     /// <summary>9(ADR-009 §三 骨架)。触发即落 —— 条件首次满足时写(给 F3 闭式求值一个锚点)。
     /// 触发次数 ≤ compound_max_triggers(每病人每规则)。</summary>
     public readonly struct CompoundTriggeredPayload

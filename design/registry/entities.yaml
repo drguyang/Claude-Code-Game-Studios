@@ -37,7 +37,7 @@
 #   Each entry: name, status, source, referenced_by[], attributes{}, added, revised
 
 version: 1
-last_updated: "2026-09-22"
+last_updated: "2026-10-09"   # ADR-030 追加 SimEvent.Kind.DiseaseOnset(35 支)
 
 # ─── 跨系统欠账 (2026-09-14 追加) ─────────────────────────────────────────────
 # 本注册表只登记【已存在的实体/公式/常量】。未兑现的跨文档债务不属于任何一类,
@@ -2335,6 +2335,30 @@ constants:
     payload_schema: "tick: i64; treatment_id: i32; actor_id: i32; polarity: 枚举; drug_potency: i64(Fix raw,来自 21a drug_profile); half_life: i64(来自 21a drug_profile); seq: i64。形状与 EmergencyTreatmentApplied 一致但不带 method / cause(药物类恒 Manual,携带即空字段);不与动作类共用 Kind 的理由 = 写者结算来源不同 + 一个 Kind 无法同时落两条流"
     constraint: "落**病史流**;载荷形状与 `EmergencyTreatmentApplied` 一致但**不带 `method` / `cause`**(药物类恒 `Manual`,携带即空字段)。**`Append` 调用者 = 11**;`drug_potency` / `half_life` 来自 **21a `drug_profile`**(非动作表)。**为什么不与动作类共用一个 Kind**:① 两条写者的结算来源不同(11 **不用** `SkillMul` / `Judge` —— 2026-09-18 11 首轮评审 R-2:`SkillMul` 经 10 的 A6 改判 = 稳度容差乘子,11 恒 `Applied` 无消费点),共用即必须区分来源;② 承 ADR-008 §一「路由是 `Kind` 的纯函数 —— 一个 Kind 无法同时落两条流」+ ADR-021「写者 = 所有者」。**10 与 11 仍写同一条病史流、除 `method`/`cause` 外形状一致 ⇒ 不破 C5 的实质「载荷与流语义唯一」**(⚠️ C5 原字面「结算函数唯一」已在 11 首轮被重新解释,见 `systems-index.md` §5 C5)"
     added: 2026-09-18
+    revised: ""
+
+  # ── 病程 onset / 病人出现 (ADR-030 · 2026-10-09)──────────────────────────
+  # 命名首现于 ADR-030;此前三处权威件引用「病程 onset / 病人出现」却无 registry 登记
+  # (9 规则六 :162 病史流第一行 / :174 边界表「病程类(onset …)」/ 7a F-7a-4 :161 折叠行
+  # 首字段)—— 同 CompoundTriggered / ActorCellEntered / 关卡工具的「引用却无登记」失效模式。
+  # 「病人出现」= 本事件的**语义投影**(同一个事件,不立第二个 Kind;ADR-030 ①)。
+  - name: SimEvent.Kind.DiseaseOnset
+    status: active
+    source: design/gdd/disease-simulation.md   # 规则六 :162 病史流第一行(命名首现归 ADR-030)
+    referenced_by:
+      - design/gdd/disease-simulation.md     # 9:规则六病史流第一行 :162 · :174 边界表「病程类(onset …)」· :436 神经衰弱 causes
+      - design/gdd/patient-ai.md             # 13:规则十一 :167「病人出现由 52 注入、经 37 立案落地」
+      - design/gdd/random-events.md          # 52::683「病人的创建与 patient_id 分配唯一归主机 9」
+      - design/gdd/case-system.md            # 37:规则二 立案两路径(病人实体须先存在)
+      - design/gdd/persistence-service.md    # 7a:F-7a-4 :161 折叠行首字段 onset(patient_id 必留)
+      - docs/architecture/adr-030-disease-onset-kind.md   # 本件(命名 / 流别 / 写者 / 载荷)
+      - docs/architecture/adr-007-event-authority-and-roll-state.md  # :386 52 零 IIdAuthority.Next()
+    unit: kind
+    stream: history
+    author: "9 疾病与伤情(病人创建唯一归主机 9 —— random-events.md:683 / ADR-007:386;52 只发事件不改状态,Append 调用者恒为 9)"
+    payload_schema: "onset_tick: i64; disease_id: i32(P0 · 8 项,R3); patient_id: i32(IIdAuthority 机制 A); patient_seed: i64(= hash(world_seed, patient_id),禁 Random.Range); seq: i64(主机 Append 时分配,ADR-006 Amendment A/C)。去重键 = 二元组 (onset_tick, patient_id)(同一病人在同一 tick 只出现一次);上界 ≤ 病人创建率 ≤ PATIENT_APPEARANCE_CAP(24,TR-disease-021)"
+    constraint: "落**病史流**(病人侧;与 InjuryOnset / CareApplied 同流 —— 9 的主场,可随终态折叠)。**「病人出现」= 本事件的语义投影**(同一个事件,不立第二个 Kind —— ADR-030 ① 甲案;病人在出现的那一刻就带着某个病种,两条事件之间零独立信息)。载荷逐字对齐 9 规则六 :162 病史流第一行 `(onset_tick, 病种_id, patient_seed, Seq)`,并**补 `patient_id`**(7a F-7a-4 :161 折叠行明文「patient_id 必留」—— ADR-006 Amendment B 高水位重构依赖它)。**写者 = 9**(内容归属与 Append 调用者重合 —— 与 InjuryOnset「内容归 9 / 调用者 25」形成对照;9 边界表 :180「调用者按事件逐一指定」口径一致)。**52 零 IIdAuthority.Next()**(ADR-007:386);**patient_seed 禁 Random.Range**(规则六 :164,须 hash(world_seed, patient_id) 派生 —— 主机迁移后可重构)。⚠️ **47 的 onset 义务**(:436 神经衰弱 causes[]):47 是**义务方 / 入向数据引用方**,`Append` 调用者**恒为 9**,非 47。有界性 ≤ 病人创建率 ≤ PATIENT_APPEARANCE_CAP(24,ADR-008 §六 硬界),**与 tick 频率无关**(病人创建是玩家抵达 / 事件驱动的离散动作)"
+    added: 2026-10-09
     revised: ""
 
   # ── ADR-024 ④ 补齐 9 支(2026-09-20 回写轮)──────────────────────────────

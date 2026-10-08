@@ -49,7 +49,44 @@ namespace DaYiJingCheng.Sim.Codec
             return new InjuryOnsetPayload(actorId, targetId, injuryId, magnitude, tick, doseSeq);
         }
 
-        // ── 2. CompoundTriggered(9)───────────────────────────────────────
+        // ── 2. DiseaseOnset(ADR-030 · 写者 = 9)──────────────────────────
+        // tag: 1 OnsetTick · 2 DiseaseId · 3 PatientId · 4 PatientSeed · 5 Seq
+
+        public static byte[] Encode(in DiseaseOnsetPayload p)
+        {
+            var w = new CodecWriter();
+            w.WriteFieldInt64(1, p.OnsetTick);
+            w.WriteFieldInt32(2, p.DiseaseId);
+            w.WriteFieldInt32(3, p.PatientId);
+            w.WriteFieldInt64(4, p.PatientSeed);
+            w.WriteFieldInt64(5, p.Seq);
+            return w.ToArray();
+        }
+
+        private static DiseaseOnsetPayload DecodeDiseaseOnset(ReadOnlySpan<byte> bytes)
+        {
+            var r = new CodecReader(bytes);
+            uint seen = 0;
+            long onsetTick = 0, patientSeed = 0, seq = 0;
+            int diseaseId = 0, patientId = 0;
+            while (r.HasMore)
+            {
+                switch (ReadTagChecked(ref r, nameof(EventKind.DiseaseOnset), ref seen))
+                {
+                    case 1: onsetTick = r.ReadInt64LittleEndian(); break;
+                    case 2: diseaseId = r.ReadInt32LittleEndian(); break;
+                    case 3: patientId = r.ReadInt32LittleEndian(); break;
+                    case 4: patientSeed = r.ReadInt64LittleEndian(); break;
+                    case 5: seq = r.ReadInt64LittleEndian(); break;
+                    default: throw new InvalidDataException($"DiseaseOnset: 未知 tag");
+                }
+            }
+            RequireCompleteMask(nameof(EventKind.DiseaseOnset), seen, (1u << 5) - 1);
+            r.EnsureFullyConsumed();
+            return new DiseaseOnsetPayload(onsetTick, diseaseId, patientId, patientSeed, seq);
+        }
+
+        // ── 3. CompoundTriggered(9)───────────────────────────────────────
         // tag: 1 Tick · 2 TargetId · 3 RuleId · 4 ComponentId
 
         public static byte[] Encode(in CompoundTriggeredPayload p)

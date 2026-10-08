@@ -529,7 +529,7 @@ namespace DaYiJingCheng.Tests.WorldEcozones
                 typeof(EcozonePolygon)
             };
 
-            // 34 支 per-Kind payload 的真源 = Sim.Contracts 程序集(不是 .Payloads 子命名空间
+            // 35 支 per-Kind payload 的真源 = Sim.Contracts 程序集(不是 .Payloads 子命名空间
             // —— 实际 namespace 是 DaYiJingCheng.Sim.Contracts,子目录只是文件组织)。
             // 判据取「全集里具名 *Payload 的值类型」,与 entities.yaml 的 registry 逐支对应。
             IEnumerable<Type> payloads = typeof(SimEvent).Assembly
@@ -675,7 +675,7 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             var payloadCount = registered.Count(t =>
                 t.Name.EndsWith("Payload", StringComparison.Ordinal));
             Assert.Greater(payloadCount, 30,
-                $"34 支 per-Kind payload 须全在扫描集内,实际 {payloadCount}");
+                $"35 支 per-Kind payload 须全在扫描集内,实际 {payloadCount}");
         }
     }
 }

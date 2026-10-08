@@ -201,6 +201,7 @@
   (规则九「不独立快照玩家 id 计数器」已声明)· ② **仍 open**(45 GDD 轮 + ADR-001 窄修订同批);
   同批兑现 **ADR-024 补齐轮另一残留** = `SimEvent.Kind.SkillGrown` 入 registry
   (V-2 条目数 33 → **34**;登记暴露 7a 折叠丢成长的新缺口 = 新立 `OQ-7a-9` 待裁)。
+  **2026-10-09**:V-2 条目数 **34 → 35**(ADR-030 追加 `SimEvent.Kind.DiseaseOnset`)。
   Engine Knowledge Risk **MEDIUM**(不依赖 post-cutoff API)。
 
 - [ADR-007 🟢 Accepted 2026-09-15]**事件权威与掷骰状态** ——
@@ -708,7 +709,36 @@
   (须另立 story)。**V-1…V-8 全部未勾**(实现未落,禁借绿)。Engine Knowledge Risk **LOW**
   (纯 C# 接口契约与装配边界,零引擎 API)。
 
-> **本日志状态**:全部 ADR(001–**029**)均有日志条目。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
+- [ADR-030 ✅ Accepted 2026-10-09]**病程 onset 与病人出现的 Kind 归属(`DiseaseOnset`)** ——
+  `docs/architecture/adr-030-disease-onset-kind.md`。**结清一处 registry 缺口** ——
+  三处权威件引用「病程 onset / 病人出现」却无 `entities.yaml` 登记:9 规则六 `:162`(病史流第一行
+  `(onset_tick, 病种_id, patient_seed, Seq)`)/ `:174`(边界表「病程类(onset / 处置 / …)」)/
+  7a F-7a-4 `:161`(折叠行首字段 `onset`)—— 同 `CompoundTriggered` / `ActorCellEntered` /
+  ADR-022 关卡工具的「引用却无登记」失效模式;且 34 支 `SimEvent.Kind` **无一表示它**,
+  ⇒ ADR-008 §二 的按 `Kind` 纯函数路由**无法路由**该事件(列表外构建期拒绝)。
+  **旁证**:垂直切片测试的病人腿注释把「病人出现」**误标为 `InjuryOnset`** ——
+  而后者是 25 的战斗伤害结算(`actor_id`/`target_id`/`injury_id`/`magnitude`/`dose_seq`),
+  载荷与语义**完全不同**。四项用户裁定(2026-10-09,「按建议来」):
+  ① **Q1 = 甲案**「病人出现」与「病程 onset」= **同一个事件**(病人在出现的那一刻就带着某个病种,
+  两条事件零独立信息;9 规则六病史流**只有一行**)⇒ **不立第二个 `Kind`**;
+  ② **Q2** = 立**一个** `Kind` `SimEvent.Kind.DiseaseOnset`(命名首现于本 ADR);
+  ③ **Q3** = 写者(`Append` 调用者)= **9**(`random-events.md:683`「病人的创建与 `patient_id` 分配
+  唯一归主机 9」+ `ADR-007:386`「52 零 `IIdAuthority.Next()` 调用」;52 只发事件不改状态);
+  ④ **Q4** = 落**病史流**(病人侧,与 `InjuryOnset` / `CareApplied` 同流 —— 9 的主场可折叠)。
+  **载荷**逐字对齐 9 规则六 `:162` 并**补 `patient_id`**(7a F-7a-4「`patient_id` 必留」——
+  ADR-006 Amendment B 高水位重构依赖):`(onset_tick, disease_id, patient_id, patient_seed, seq)`,
+  全整数域(ADR-024 A2);`patient_seed = hash(world_seed, patient_id)`(禁 `Random.Range`,规则六 `:164`)。
+  **有界性** ≤ 病人创建率 ≤ `PATIENT_APPEARANCE_CAP`(24,`TR-disease-021`),**与 tick 频率无关**
+  (扩展 ADR-008 §六,不重写)。**⚠️ 47 的 onset 义务**(`:436` 神经衰弱 `causes[]`)——
+  47 是**义务方 / 入向数据引用方**,`Append` 调用者**恒为 9**,非 47(具名债,归 47 的 GDD 轮)。
+  **被否**:Alt 1 立两个 `Kind`(零独立信息)· Alt 2 复用 `InjuryOnset`(载荷零重叠,
+  会把病人出现伪装成「有人打了他」)· Alt 3 落世界流(病人侧事件,与 `EnemyInjuryOnset` 分流判据冲突)·
+  Alt 4 写者 = 52(破坏 ADR-007 核心不变量)。**同批落盘**:`entities.yaml` 追加条目
+  (`stream: history` / `author` / `payload_schema` 三字段齐,ADR-024 ①)。**未结(不在本 ADR 裁决面)**:
+  9 的写者实现 · 47 的 `causes[]` 落地 · 垂直切片测试订正 —— 均归各自实现轮。
+  Engine Knowledge Risk **LOW**(纯 `Kind` 登记与所有权裁决,零引擎 API)。
+
+> **本日志状态**:全部 ADR(001–**030**)均有日志条目。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;
 > 洞 H1 / H3 的 ADR 由用户裁定**推迟 P1a**(本轮仅登记所有权,见 `systems-index.md` §11)。

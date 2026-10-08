@@ -15,6 +15,12 @@ golden_v1_reference.py —— item-database 确定性黄金夹具 golden-v1 的*
 不读取任何 C# 运行结果;C# 侧测试(determinism_golden_fixtures_test.cs)**只读** golden,
 永不回写。复现:`python3 golden_v1_reference.py`(确定性,输出逐位相同)。
 
+**版本化刷新记录**:
+  · 2026-10-09(ADR-030):EVENTKIND_CRAFT 23 → 24(DiseaseOnset 插入 InjuryOnset 之后,
+    registry 声明序第 2 位)。仅 B03_sim_event_header_bytes 失效(664fe273bad2425a →
+    1afb8e64b04323c6);其余 18 条不变。实现正确(编码按声明序 ordinal),夹具失效 =
+    ADR-012 §四「编码变更 invalidate 夹具」刷新路径。
+
 canonical 哈希口径(值级):state = u64(v0);逐后续 w: state = Avalanche(state + w);
                         终态再 Avalanche 一次。
 canonical 哈希口径(字节级):state = 0;逐 byte b: state = Avalanche(state + b);
@@ -30,7 +36,7 @@ GAMMA = 0x9E3779B97F4A7C15
 MUL1 = 0xBF58476D1CE4E5B9
 MUL2 = 0x94D049BB133111EB
 
-EVENTKIND_CRAFT = 23           # EventKind 枚举序(病史 13 + 病例 5 + 世界第 6 支)
+EVENTKIND_CRAFT = 24           # EventKind 枚举序(病史 14 + 病例 5 + 世界第 6 支;ADR-030 起 23 → 24)
 PROCESSING_DRIED = 1           # ProcessingState.Dried
 
 
