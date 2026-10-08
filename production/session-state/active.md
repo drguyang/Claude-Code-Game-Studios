@@ -1,6 +1,53 @@
-# Session State — 2026-10-09(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ✅ · M2 形态件② 本轮交付(story-022)**)
+# Session State — 2026-10-09(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ✅ · M2 形态件③ 本轮交付(story-023)**)
 
-## ✅ 本轮 = story-022 M2 形态件② 墨乾湿两态(2026-10-08 立 · 双代理评审修复复跑全绿 · **收口提交中**)
+## ✅ 本轮 = story-023 M2 形态件③ 急救零数字+可跳过(2026-10-09 立 · 双代理评审修复复跑全绿 · **收口提交中**)
+
+**流程对账(用户指令:创建+unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送;评审恰一轮)**:
+创建+测试 ✅(首跑即绿 236/223/0)→ 变异 4 发全中 ✅ → **双代理评审恰一轮 ✅**(代码面 1B+4A ·
+测试面 1B+7A)→ **13 项同批修复 ✅** → **补变异 2 发恰红 ✅** → **复跑绿 ✅**(过滤 236/223/0 +
+全量 EditMode 3013/2966/0/46/1inc + PlayMode 98/97/0/1,零回归)→ 提交推送(本步)。
+评审原件 `production/qa/evidence/review-story-023-form-item-3-2026-10-09.md`。
+
+**修复要点(13 项)**:BLOCKING ① story AC「全量零回归」时序虚报收窄(全量归 DoD,原全量 XML 系
+022 时段产物)② 023-1 属性集 ⊇ 点名六属性 + 逐声明值 `var(--skeuo-`(原「≥5 计数」三分支假绿:
+删 background-color 行 / `color: black` 具名色 / 异命名空间 var —— 补 MUT-5/6 恰红实证)·
+头注锚改紧邻选择器注释组(原从全文件首 /* 起圈靠巧合收得紧)· 补 owner 关键词断言 ·
+`PropsOf` 行首锚(消 `url(guid:)` 幻影属性)· X/N 扫描白名单口径登记(禁整体放宽)·
+Registry 零注册守卫(边界④)· 全库声明块恰一(后置覆盖复活面)· AB-3 宽半归 10 轮登记 ·
+删未用 using · 相对路径报错。
+
+**判别力 6 发**:内联 hex→023-1+C4涟漪 · content:"3/5"→023-2+C4涟漪 · background-image→恰023-3 ·
+border 交集→恰023-3 · **删行→恰023-1(BLOCKING 修复)** · **color:black→恰023-1(BLOCKING 修复)**;
+逐发 python 反向恢复,终态零 MUT 残留,净态 +20 行。
+
+> 判据权威 = art-bible **G2**(反数值化 —— 灰盒「色块+数字」自证反数值化不需要做)+
+> emergency-procedures 规则六/六之甲(`O-10-1` 跳过入口 owner = 42)+ `milestones:84` ③。
+> 边界裁定五条(勘察轮定):只交形态半(施加点/载体/Idle 时序归 10 轮,AB-3 宽半同归)/
+> 零数字 = USS 结构面(文本内容层归 UXML/C# 后续轮,story 如实登记)/ VR = P1b 不进 /
+> 不进 Registry(语义样式类同 .ruled)/ 焦点单槽铁律(零 background-image 零 border-*)。
+
+### 交付物(三步)
+1. **步① 跳过入口元件**:`SkeuoPaper.uss` +`.skip-entry`(aged 纸底 + ink 墨字 + 行高/缩进全 var;
+   零新变量零新图);头注 = 规格本体(O-10-1 / owner=42 / 零施加点 / 单槽铁律 / 零数字)
+2. **步② 零数字门(G2)**:`test_ac023_2` 剥注释后全库 Skeuo *.uss 零 `X/N`(\d+\s*/\s*\d+)
+   + 零 `content:` 含数字(数字角标唯一 USS 载体;现状全库零 content ⇒ 新增即红)+
+   `.skip-entry` 块复查;白名单口径登记(合法出现须显式白名单,禁放宽正则)
+3. **步③ 焦点落点形态**:`test_ac023_3` min-height 锚 row-height(=44 AB-3 高半)+
+   零 background-image(单槽铁律)+ 属性集 ∩ `.focus-visible` = ∅(动态解析;
+   `.ruled` border 冲突 = story-021 已登记别案,本类不新增同类)
+
+### 测试证据(终态)
+- 过滤 **236/223/0 红/13 跳**(= 基线 233/220 +3)`unity/Logs/editmode_skeuo_023_final.xml`
+- 全量 EditMode **3013/2966/0 红/46 跳/1 inc**(基线 3010/2963 +3,逐项一致)`editmode_full_20261009_form03.xml`
+- 全量 PlayMode **98/97/0 红/1 跳**(逐数 = 基线)`playmode_full_20261009_form03.xml`
+- 变异 6 发恰红(4 初轮 + 2 修复补验),零 MUT 残留
+
+### 同批文档回刷
+EPIC 五处(头部 Stories / Stories 表 023 行 / Counts 22→23 total(22 Complete+1◐) / Next Step 3/4 /
+里程碑归属 023 行)· `milestones:131` 形态件条 ◐ 注加③(整条仍 `[ ]` 禁借绿)·
+sprint-04 `形态件 3/4` · epics/index 行 11 加 023 · story-023 AC/DoD 实数回填。
+
+## ✅ 上轮 = story-022 M2 形态件② 墨乾湿两态(2026-10-08 立 · 双代理评审修复复跑全绿 · 已提交 `a39d60b`)
 
 **流程对账(用户指令:创建+unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送;评审恰一轮)**:
 创建+测试 ✅ → 变异 4 发全中 ✅ → **双代理评审恰一轮 ✅**(代码面 FIX-THEN-APPROVE 1B+3A ·

@@ -62,3 +62,23 @@
     border-bottom-color: var(--skeuo-paper-rule);
     min-height: var(--skeuo-shared-row-height);
 }
+
+/* ── 跳过入口 · M2 形态件③(story-023 · AC-023-1/2/3)──
+ * 判据权威 = art-bible G2(反数值化)+ emergency-procedures 规则六 / 规则六之甲。
+ * **owner = 42**(ADR-013 §三 · `O-10-1`:10 不拥有任何 UI 元素,10 向 42 提规格)——
+ * 跳过入口 = 候选动作列表上的一项(对 AC-3-F1a 零按键提示浮层兼容)。
+ * ⚠️ 本 story **零施加点**:载体(候选动作列表)与 `Idle` 态可达时序归 **10 实现轮**
+ * (规则六之甲状态机);此处只交形态对(同 story-022「形态半先立」先例)。
+ * ⚠️ **焦点单槽铁律**(承 SkeuoFocusVisible.uss 头注):焦点目标只许 background-color 底,
+ * 环图整槽替换会顶掉 background-image 纸纹 ⇒ 本类**零 background-image**;
+ * 亦**零 border-***(与 .focus-visible 声明属性集零交集;.ruled 的 border 冲突是
+ * story-021 已登记别案,本类不新增同类)。aged 纸底与主纸面区分 = 纸签叠纸,零新变量。
+ * 零数字(AC-023-2):类块与全库 USS 零 `content:` 数字 / `X/N` 角标形态(G2 机械化)。 */
+.skip-entry {
+    background-color: var(--skeuo-paper-bg-aged);
+    color: var(--skeuo-ink-fg);
+    min-height: var(--skeuo-shared-row-height);
+    padding-left: var(--skeuo-shared-space-sm);
+    font-family: var(--skeuo-font-family);
+    font-size: var(--skeuo-font-size-md);
+}
