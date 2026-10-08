@@ -111,7 +111,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/RandomEvents/event_rng_stream_test.cs` + `tests/golden/random-events/*`(ADR-012 夹具族,IL2CPP 格 NOT-RUN 如实标注) — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/RandomEvents/event_rng_stream_test.cs`)
 
 ---
 

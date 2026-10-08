@@ -92,7 +92,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_pattern_detection_test.cs` — must exist and pass(AC-37-29 的 ScriptedChain 联调半边 BLOCKED-BY-W-1 不记绿)
-**Status**: [ ] Not yet created
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/CaseSystem/case_pattern_detection_test.cs`)
 
 ---
 

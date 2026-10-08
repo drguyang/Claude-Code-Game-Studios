@@ -89,7 +89,7 @@
 
 **Story Type**: Config-Data
 **Required evidence**: `unity/Assets/Tests/EditMode/Combat/combat_actions_schema_test.cs` — must exist and pass(含 invalid fixture 拒收断言 + kindgen 断言)
-**Status**: [ ] Not yet created
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/Combat/combat_actions_schema_test.cs`)
 
 ---
 

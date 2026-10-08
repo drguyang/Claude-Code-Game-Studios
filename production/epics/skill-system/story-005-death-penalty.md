@@ -102,7 +102,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `tests/unit/skill-system/death_penalty_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/SkillSystem/death_penalty_test.cs`)
 
 ---
 

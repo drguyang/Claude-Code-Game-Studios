@@ -100,8 +100,9 @@
 ## Test Evidence
 
 **Story Type**: Logic
-**Required evidence**: `unity/Assets/Tests/EditMode/RandomEvents/event_pool_schema_test.cs` + `unity/Assets/Tests/EditMode/RandomEvents/event_reject_table_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Required evidence**: `unity/Assets/Tests/EditMode/RandomEvents/event_pool_schema_test.cs` — must exist and pass
+  (⚠️ 2026-10-08 订正:原引 `event_reject_table_test.cs` **不存在**;reject table 语义已由 `event_pool_schema_test.cs` 的 4 个 `test_reject_*` 测试覆盖)
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/RandomEvents/event_pool_schema_test.cs`)
 
 ---
 

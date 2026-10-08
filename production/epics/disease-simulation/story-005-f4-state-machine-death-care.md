@@ -77,7 +77,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/DiseaseSimulation/state_machine_death_test.cs` — must exist and pass(Gate(C2) 数值子句以合成 fixture 判结构,真实阈值断言 NOT-RUN 待数值轮)
-**Status**: [ ] Created — NOT STARTED
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/DiseaseSimulation/state_machine_death_test.cs`)
 
 ---
 

@@ -90,7 +90,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `tests/integration/enemy-ai/encounter_lifecycle_and_routing_test.cs`(或 `unity/Assets/Tests/EditMode/EnemyAI/`)— must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/EnemyAI/encounter_lifecycle_test.cs`)
 
 ---
 

@@ -105,7 +105,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/RandomEvents/event_budget_defer_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/RandomEvents/event_budget_defer_test.cs`)
 
 ---
 

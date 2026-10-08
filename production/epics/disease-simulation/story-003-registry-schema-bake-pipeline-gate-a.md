@@ -73,7 +73,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/DiseaseSimulation/registry_bake_test.cs` — must exist and pass
-**Status**: [ ] Created — NOT STARTED;E-13 Addressables 引擎实跑面 BLOCKED-BY-Unity 桌面批(超算无编辑器;禁借绿)
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/DiseaseSimulation/registry_bake_test.cs`)
 
 ---
 

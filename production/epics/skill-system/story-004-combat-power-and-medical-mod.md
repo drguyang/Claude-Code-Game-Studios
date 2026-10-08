@@ -111,7 +111,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `tests/unit/skill-system/combat_power_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/SkillSystem/combat_power_test.cs`)
 
 ---
 

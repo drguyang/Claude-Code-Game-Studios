@@ -89,7 +89,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/Combat/combat_hit_resolution_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/Combat/combat_hit_resolution_test.cs`)
 
 ---
 

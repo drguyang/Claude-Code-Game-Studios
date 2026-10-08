@@ -76,8 +76,9 @@
 ## Test Evidence
 
 **Story Type**: Integration
-**Required evidence**: `unity/Assets/Tests/PlayMode/TimeWeather/time_weather_replay_test.cs` 或 `tests/integration/time-weather/` 集成测试 + CI 矩阵产物 — must exist and pass
-**Status**: [ ] Not yet created
+**Required evidence**: `unity/Assets/Tests/EditMode/TimeWeather/time_weather_replay_test.cs` 或 `tests/integration/time-weather/` 集成测试 + CI 矩阵产物 — must exist and pass
+  (⚠️ 2026-10-08 订正:原写 `Tests/PlayMode/`,真身在 `Tests/EditMode/`)
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/TimeWeather/time_weather_replay_test.cs`)
 
 ---
 

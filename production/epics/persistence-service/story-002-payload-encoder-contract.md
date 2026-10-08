@@ -161,9 +161,10 @@
 **Story Type**: Logic
 **Required evidence**:
 - Logic: `unity/Assets/Tests/EditMode/PersistenceService/payload_encoder_test.cs` — must exist and pass
+  (⚠️ 2026-10-08 订正:原写 `Tests/EditMode/PersistenceService/`,缺 `unity/Assets/` 前缀)
   (签名/对称性 + 分派完备性 32+2 + 装配边界 + 32 支往返 + 字节真入池)
 
-**Status**: [ ] Pending — story not yet implemented
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/PersistenceService/payload_encoder_test.cs`)
 
 ---
 
@@ -186,7 +187,7 @@
   - `Sim.Codec/PayloadEncoder.cs` —— 实现,经构造注入 `IBlobSink`;`EncodeBoxed` 分派
     **镜像既有 `DecodeBoxed`**(AC-29-03/04)。
   - `Sim.Codec/InMemoryBlobPool.cs` —— 测试/接线期内存池(读面 + 写面同实现,append-only ⇒ 不可变性天然成立)。
-  - `Tests/EditMode/PersistenceService/payload_encoder_test.cs` —— **14 例全绿**。
+  - `unity/Assets/Tests/EditMode/PersistenceService/payload_encoder_test.cs` —— **14 例全绿**。
 **Deviations**: ① **AC-29-04 由「覆盖 34 支」改为「32 支 + 2 支显式抛」**(用户 2026-10-02 裁定,已回写 ADR-029 §Status 修正 ④)。
     根因:34 个具名 `Encode` 重载中 **2 支签名不同** —— `Encode(in JudgmentRecordedPayload, string freehandText)` /
     `Encode(in JudgmentRevisedPayload, string freehandText)`(ADR-006 G-3 的 blob 变长段,该值**不在 `T` 里**)。
@@ -200,7 +201,7 @@
   ③ **反射限制(测试侧,非实现)**:`where T : struct` 在反射下产出 **1 条**约束(`System.ValueType`)而非 0 条
     —— 判据意图须写成「**无接口约束**」;且 `byte[]` → `ReadOnlySpan<byte>` 的隐式转换**不参与** `Invoke` 实参绑定,
     故经编译期泛型 helper 过渡。两处均已就地注明。
-**Test Evidence**: `Tests/EditMode/PersistenceService/payload_encoder_test.cs` **14/14 Passed**。
+**Test Evidence**: `unity/Assets/Tests/EditMode/PersistenceService/payload_encoder_test.cs` **14/14 Passed**。
   全量 EditMode batchmode:`total 2048 · passed 2015 · failed 0 · skipped 32 · inconclusive 1`。
   ✅ **突变测试坐实非空转**:把 `PayloadEncoder.Encode` 改成现状的手搓形态(字节丢弃、`blobId` 恒 0)后,
   **恰 2 例红** —— `test_ac2903_bytesActuallyEnterPool`(核心判据:字节须真的进池)

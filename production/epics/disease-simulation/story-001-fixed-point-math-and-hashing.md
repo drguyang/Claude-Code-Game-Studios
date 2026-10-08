@@ -49,7 +49,7 @@
 3. `FixSqrt`/`FixPow` **本 story 不重实现**(skill-system story 003 已有),9 侧只声明复用入口;若引用形参不同须回写 skill epic,不私改。
 4. SplitMix64 落在 `Sim.Contracts`(patient_seed 派生链的最底层);`patient_seed = hash(WorldSeed 派生盐, patient_id)` 的**语义**归 story 002,本 story 只交付哈希原语。
 5. 位移纪律:负值右移必须显式定义(单元级黄金夹具已列「负值右移」项)。
-6. 测试真身 `unity/Assets/Tests/EditMode/DiseaseSimulation/fixedpoint_math_test.cs`;账本镜像 `tests/unit/sim/`(承 skill-system 先例:Unity 只编译 `unity/Assets/` 树)。
+6. 测试真身 `unity/Assets/Tests/EditMode/Sim/sim_fixedpoint_test.cs`;账本镜像 `tests/unit/sim/`(承 skill-system 先例:Unity 只编译 `unity/Assets/` 树)。
 7. 一切数值常数(Exp 项数、误差带)以 `fixture` 参数传入,story 文本不拍定值(数值用户自己调)。
 
 ## Out of Scope
@@ -72,8 +72,8 @@
 ## Test Evidence
 
 **Story Type**: Logic
-**Required evidence**: `unity/Assets/Tests/EditMode/DiseaseSimulation/fixedpoint_math_test.cs` — must exist and pass(跨平台 [I] 半边除外)
-**Status**: [ ] Created — NOT STARTED;[I] 跨平台项 BLOCKED-BY-ADR-012 三格矩阵(NOT-RUN,禁借绿)
+**Required evidence**: `unity/Assets/Tests/EditMode/Sim/sim_fixedpoint_test.cs` — must exist and pass(跨平台 [I] 半边除外)
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/Sim/sim_fixedpoint_test.cs`)
 
 ---
 

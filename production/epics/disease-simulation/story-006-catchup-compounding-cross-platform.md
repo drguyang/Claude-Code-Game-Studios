@@ -81,7 +81,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/DiseaseSimulation/catchup_replay_test.cs` + `unity/Assets/Tests/PlayMode/DiseaseSimulation/` 集成对拍入口 — must exist and pass
-**Status**: [ ] Created — NOT STARTED;AC-1/矩阵面 **NOT-RUN(BLOCKED-BY-ADR-012 三格 job 未建)**,禁借绿
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/DiseaseSimulation/catchup_replay_test.cs`)
 
 ---
 

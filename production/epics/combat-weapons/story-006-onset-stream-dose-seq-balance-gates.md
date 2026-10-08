@@ -88,7 +88,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/Combat/combat_onset_dose_seq_test.cs` + 构建断言落点 `Editor.Tools` 族(与 ADR-014 阶段2 同批);`AC-25-6-08` 无证据 —— BLOCKED-BY-9,登记不落测
-**Status**: [ ] Not yet created
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/Combat/combat_onset_dose_seq_test.cs`)
 
 ---
 

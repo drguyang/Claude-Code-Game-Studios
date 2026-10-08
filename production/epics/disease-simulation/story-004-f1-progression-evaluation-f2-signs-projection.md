@@ -82,7 +82,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/DiseaseSimulation/progression_eval_test.cs` — must exist and pass(AC-37 阈值数值子句 NOT-RUN,待数值轮)
-**Status**: [ ] Created — NOT STARTED
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/DiseaseSimulation/progression_eval_test.cs`)
 
 ---
 

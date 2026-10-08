@@ -89,7 +89,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_open_and_judgment_test.cs` — must exist and pass(就诊动作 master 未闭合 ⇒ AC-4-15 侧联动维持 NOT-RUN 标注)
-**Status**: [ ] Not yet created
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/CaseSystem/case_open_and_judgment_test.cs`)
 
 ---
 

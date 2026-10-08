@@ -159,7 +159,7 @@
 - Integration: `tests/integration/camera/event_and_listener_test.cs` — 引用闭包 + Append/SimEvent 双向零命中 + 全场景 `AudioListener == 1`
 - Build gate: `AC-2-06③` 的效果 trigger 白名单断言(构建失败级,随 ADR-012 CI 载体接)
 
-**Status**: [ ] Pending — story not yet implemented(真身落点预期 = `unity/Assets/Tests/`;登记口径 = `tests/unit|integration/camera/`)
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/CameraViewpoint/camera_presentation_discipline_test.cs`)
 ⚠️ 不得借绿清单:`AC-2-05` 反向半边(载体未建,记「已定义/NOT-RUN」—— GDD 可签署性实测原话);`AC-2-06③`(白名单数据表未落 ⇒ BLOCKED-BY 8/44 载体);`AC-2-02` 现可执行(文件已存在)但**注入变红**的反空转夹具必须存在,否则视同未验。
 
 ---

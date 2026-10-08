@@ -77,7 +77,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/DiseaseSimulation/event_stream_test.cs` — must exist and pass
-**Status**: [ ] Created — NOT STARTED
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/DiseaseSimulation/event_stream_test.cs`)
 
 ---
 

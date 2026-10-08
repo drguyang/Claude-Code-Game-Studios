@@ -89,8 +89,8 @@
 ## Test Evidence
 
 **Story Type**: Logic
-**Required evidence**: `unity/Assets/Tests/EditMode/Combat/combat_cooldown_switch_suppress_test.cs` — must exist and pass;AC-25-4-03 的 ★PlayMode 面 `unity/Assets/Tests/PlayMode/Combat/combat_suppress_attack_playmode_test.cs`(另批,未跑记 NOT-RUN)
-**Status**: [ ] Not yet created
+**Required evidence**: `unity/Assets/Tests/EditMode/Combat/combat_cooldown_switch_suppress_test.cs` — must exist and pass;AC-25-4-03 的 ★PlayMode 面 `unity/Assets/Tests/PlayMode/Combat/combat_suppress_attack_playmode_test.cs`(**文件不存在** —— 该 PlayMode 测试未创建,记 NOT-RUN)
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/Combat/combat_cooldown_switch_suppress_test.cs`)
 
 ---
 

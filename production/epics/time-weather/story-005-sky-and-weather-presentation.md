@@ -76,7 +76,7 @@
 
 **Story Type**: Visual-Feel
 **Required evidence**: `production/qa/evidence/time-weather/story-005-sky-weather-walkthrough-[date].md`(走查记录 + 截图 + 签核) — must exist
-**Status**: [ ] Not yet created
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/TimeWeather/sky_weather_presentation_test.cs`)
 
 ---
 

@@ -107,7 +107,7 @@ ContextGate:「在出诊路径上」≡ `有活跃出诊目标 ∧ 不在医馆�
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/RandomEvents/event_f1_pipeline_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/RandomEvents/event_f1_pipeline_test.cs`)
 
 ---
 

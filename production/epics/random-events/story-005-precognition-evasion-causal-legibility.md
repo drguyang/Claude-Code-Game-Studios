@@ -101,8 +101,9 @@
 ## Test Evidence
 
 **Story Type**: Integration
-**Required evidence**: `unity/Assets/Tests/PlayMode/RandomEvents/event_precognition_evasion_test.cs` + `production/qa/evidence/random-events/story-005-m1-playtest-script.md` — must exist
-**Status**: [ ] Not yet created
+**Required evidence**: `unity/Assets/Tests/EditMode/RandomEvents/event_precognition_evasion_test.cs` + `production/qa/evidence/random-events/story-005-m1-playtest-script.md` — must exist
+  (⚠️ 2026-10-08 订正:原写 `Tests/PlayMode/`,真身在 `Tests/EditMode/`)
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/RandomEvents/event_precognition_evasion_test.cs`)
 
 ---
 

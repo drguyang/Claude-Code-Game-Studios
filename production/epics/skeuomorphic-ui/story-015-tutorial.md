@@ -101,7 +101,7 @@
 **Story Type**: UI
 **Required evidence**: `production/qa/evidence/tutorial-48-walkthrough.md` + manual verification
 
-**Status**: [ ] Not yet created
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/SkeuomorphicUI/tutorial_test.cs`)
 
 ---
 

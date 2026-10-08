@@ -101,8 +101,9 @@
 ## Test Evidence
 
 **Story Type**: Integration
-**Required evidence**: `unity/Assets/Tests/PlayMode/RandomEvents/event_anchor_statemachine_test.cs` + `docs/architecture/`(出诊启动义务单随 story 证据落 `production/qa/evidence/random-events/story-006-outbreak-anchor-registry-memo.md`) — must exist and pass
-**Status**: [ ] Not yet created
+**Required evidence**: `unity/Assets/Tests/EditMode/RandomEvents/event_anchor_statemachine_test.cs` + `docs/architecture/`(出诊启动义务单随 story 证据落 `production/qa/evidence/random-events/story-006-outbreak-anchor-registry-memo.md`) — must exist and pass
+  (⚠️ 2026-10-08 订正:原写 `Tests/PlayMode/`,真身在 `Tests/EditMode/`)
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/RandomEvents/event_anchor_statemachine_test.cs`)
 
 ---
 

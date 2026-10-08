@@ -93,7 +93,7 @@
 **Story Type**: Visual/Feel
 **Required evidence**: `production/qa/evidence/enemy-vitals-bar-evidence.md` + screenshot + lead sign-off
 
-**Status**: [ ] Not yet created
+**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/SkeuomorphicUI/enemy_vitals_bar_test.cs`)
 
 ---
 
