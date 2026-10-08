@@ -3,7 +3,7 @@
 // 目标: 1 病人 + 1 诊断 + 1 治疗, 无美术, 验证核心循环
 //
 // 核心循环:
-//   1. 病人出现 (InjuryOnset → 病史流) — 25/9 写者未实现, NOT-RUN
+//   1. 病人出现 (DiseaseOnset → 病史流) — 9 写者未实现, NOT-RUN(ADR-030 起病人出现 = DiseaseOnset)
 //   2. 诊断 (CaseOpened → 病例流) — 37 写者未实现, 用 CaseOpenDecider 驱动
 //   3. 治疗 (DrugTreatmentApplied → 病史流) — 11 PrescribeFlow 驱动
 //   4. 病人状态更新 (VitalsDto via IVitalsQuery)
@@ -75,12 +75,15 @@ namespace DaYiJingCheng.Tests.PlayMode
 
         /// <summary>
         /// 验证病人出现事件写入病史流。
-        /// ⚠️ NOT-RUN: 25/9 的 InjuryOnset 写者未实现。
+        /// ⚠️ NOT-RUN: 9 的 DiseaseOnset 写者未实现(ADR-030 起病人出现 = DiseaseOnset,
+        /// 写者 = 9;9 的 Append(DiseaseOnset) 调用点不存在)。
+        /// 语义订正(ADR-030 §Migration Plan 步 4):原误标为 InjuryOnset(25 的战斗伤害结算,
+        /// 载荷与语义都不同),现订正为 DiseaseOnset。
         /// </summary>
         [Test]
-        public void test_injuryOnset_writesToHistoryStream()
+        public void test_diseaseOnset_writesToHistoryStream()
         {
-            Assert.Ignore("NOT-RUN: 25/9 的 InjuryOnset 写者未实现");
+            Assert.Ignore("NOT-RUN: 9 的 DiseaseOnset 写者未实现(ADR-030 起病人出现 = DiseaseOnset)");
         }
 
         /// <summary>
@@ -171,7 +174,7 @@ namespace DaYiJingCheng.Tests.PlayMode
 
         /// <summary>
         /// 验证完整核心循环: 诊断 → 治疗 → 状态更新。
-        /// ⚠️ 病人出现腿 NOT-RUN (25/9 写者未实现)。
+        /// ⚠️ 病人出现腿 NOT-RUN(9 的 DiseaseOnset 写者未实现,ADR-030 起病人出现 = DiseaseOnset)。
         /// </summary>
         [UnityTest]
         public IEnumerator test_fullCoreLoop_patientToTreatment()
