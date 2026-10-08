@@ -1,6 +1,36 @@
 # Session State — 2026-10-08(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ 已收口 · Phase 2 进行中**)
 
-## 🔄 本轮 = case-system **story-006 重放持久化与跨系统边界义务**(2026-10-08 · 已收口)
+## 🔄 本轮 = emergency-procedures **epic 收口**(2026-10-08 · 已收口)
+
+> 7/7 story 已实现却卡 `In Review`;真实堵点 = ① round2 自陈「未实跑测试套件」② D1/D2/D3 文档对齐。
+
+### 实跑验证(2026-10-08 · 当前 HEAD)
+- EditMode 急救:**120 / 116 / 0 红 / 4 NOT-RUN**
+- PlayMode 急救:**4 / 4 / 0 红**
+- 全量 EditMode:**3001 / 2954 / 0 红 / 1 inc / 46 跳**
+- 全量 PlayMode:**96 / 96 / 0 红**
+- 4 条 skip 逐条核验 = 合规 NOT-RUN(带理由,非借绿)
+
+### D1/D2/D3 核实(全部已对齐)
+- D1 GDD:1030 `(32768×16385)` ⇒ 8193 + `:1031` 订正说明(算术复核 ✅)
+- D2 story-006:76 测试位置声明(`Tests/EditMode/`)✅
+- D3 story-007:207 Test Evidence `[x] Complete` ✅
+- D3-b EPIC Stories 表 001–007 全 `Complete` ✅
+
+### 交付物
+- **验证原件**:`production/qa/evidence/verification-emergency-procedures-tests-2026-10-08.md`
+- EPIC 状态 In Review → **Complete ✅ 2026-10-08**;`epics/index.md` 同步
+
+### 未闭项(均归属他 epic,不阻塞)
+- 载荷 `Seq` 占位 → 归上行链 45
+- AC-10-04b 三格逐位 → ADR-012 矩阵未激活,NOT-RUN
+
+### 收口
+- Commit: 见本轮提交
+
+---
+
+## ✅ 上一轮 = case-system **story-006 重放持久化与跨系统边界义务**(2026-10-08 · 已收口)
 
 > 严格执行协议:**创建并 unity cli 测试 → 双代理评审 → 修复 → 复跑绿 → 收口提交推送**。**评审只做一轮**。
 

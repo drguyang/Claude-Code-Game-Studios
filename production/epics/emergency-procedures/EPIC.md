@@ -3,12 +3,24 @@
 > **Layer**: Core(输入聚合 / 判定)× Feature(模态期交互)
 > **GDD**: design/gdd/emergency-procedures.md
 > **Architecture Module**: L3 Gameplay + L2 Sim 接缝(判定输入进流,主机权威)
-> **Status**: In Review(7/7 story 已实现;两轮评审 A1/A2/A6/B4/C4/C5 **已全闭**;✅ **评审原件两份均在库**(首轮 + round2)—— 旧记「评审原件缺」为**方向性错记**,已订正。**不转 Complete 的真实原因**:① **实跑 Unity 测试套件**(round2 自陈**未实跑**,「测试通过」类结论均来自读测试源码)⇒ 现记的「0 红」**未经验证**;② D1/D2/D3 文档状态对齐(round2 未验证)。其余未闭项:载荷 `Seq` 占位(归上行链 45)· AC-10-04b 三格逐位(ADR-012 矩阵未激活,禁借绿)。⚠️ 详见下方 §Epic Status)
+> **Status**: **Complete ✅ 2026-10-08**(7/7 story 已实现;两轮评审 A1/A2/A6/B4/C4/C5 **已全闭**;✅ **评审原件两份均在库**(首轮 + round2);**转 Complete 的两条真实前置已于 2026-10-08 全部结清** —— ① **实跑 Unity 测试套件**(EditMode 急救模块 **120/116/0 红/4 NOT-RUN** · PlayMode 急救模块 **4/4** · 全量 EditMode **3001/2954/0 红** · 全量 PlayMode **96/96**);② D1/D2/D3 文档状态对齐(逐项核实已对齐)。验证原件 `production/qa/evidence/verification-emergency-procedures-tests-2026-10-08.md`。其余未闭项:载荷 `Seq` 占位(归上行链 45)· AC-10-04b 三格逐位(ADR-012 矩阵未激活,NOT-RUN)—— **均结构性归属其他 epic,不阻塞本 epic**。⚠️ 详见下方 §Epic Status)
 > **Stories**: **7 stories** — see table below
 
-## Epic Status(2026-10-03)
+## Epic Status(2026-10-03 · **2026-10-08 结清**)
 
-**不转 Complete** —— 但**原因已变**(旧记「评审原件缺」是**方向性错记**,见下)。
+**✅ 已转 Complete(2026-10-08)** —— 两条前置全部结清:
+
+### ⓪ 转 Complete 前置结清(2026-10-08)
+
+| # | 前置 | 结算 |
+|---|------|------|
+| 1 | 报告已落盘(两份) | ✅ 2026-10-03(首轮 + round2) |
+| 2 | D1/D2/D3 文档状态对齐 | ✅ 2026-10-08 逐项核实**全部已对齐**(D1 `:1030` 数字 + `:1031` 订正说明 · D2 `story-006:76` 位置声明 · D3 `story-007:207` Test Evidence 行 · D3-b EPIC Stories 表 001–007 全 `Complete`) |
+| 3 | **实跑 Unity 测试套件** | ✅ **2026-10-08 完成** —— EditMode 急救 **120/116/0 红/4 NOT-RUN**(4 条均带理由,合规)· PlayMode 急救 **4/4** · 全量 EditMode **3001/2954/0 红** · 全量 PlayMode **96/96** |
+
+验证原件:`production/qa/evidence/verification-emergency-procedures-tests-2026-10-08.md`
+
+---
 
 ### ① 评审原件**不但在库,还是两份**(订正)
 
@@ -36,14 +48,15 @@
 
 ⚠️ **D3-b(2026-10-03 已局部处置)**:本 EPIC §Stories 表 002–006 曾标 `Ready`,而各 story 件**自身**标 `Complete` —— 已对齐 story 件。story-007 头/体矛盾(头 `Complete ✅` vs 体 `[ ] Pending`)在同批**同型**缺陷中,但 **story-007 的体已由 modular-building 轮订正** —— 本 epic 侧尚需逐件复核。
 
-### ③ 转 Complete 的真实前置(round2 §5 逐条)
+### ③ 转 Complete 的真实前置(round2 §5 逐条)—— **✅ 全部结清 2026-10-08**
 
 1. ✅ **报告已落盘**(2026-10-03)—— **两份**。
-2. ⏳ **D1/D2/D3 文档状态对齐** —— AC-10-04a 单元格数字同步 A8 勘误 · story-006 测试位置声明 · story-007 Test Evidence 行。
-3. 🔴 **实跑 Unity 测试套件** —— **本轮最大盲区**:round2 **未实跑**,
-   自陈「凡『测试通过』类结论均来自**读测试源码**而非执行结果」。
-   ⇒ 本 EPIC 现记的「EditMode 0 红 · PlayMode 36/36」**须按此口径重读** ——
-   **在 round2 基线(`265ad85`)上未经验证**;任何转 Complete 前须以当前 HEAD 重跑。
+2. ✅ **D1/D2/D3 文档状态对齐**(2026-10-08 核实)—— AC-10-04a 单元格数字同步 A8 勘误(`:1030` `(32768×16385)` + `:1031` 订正说明)· story-006 测试位置声明(`:76`)· story-007 Test Evidence 行(`:207` `[x] Complete`)。**全部已对齐**。
+3. ✅ **实跑 Unity 测试套件**(2026-10-08 完成)—— round2 曾自陈**未实跑**(结论均来自读测试源码)。
+   本轮以当前 HEAD 重跑:EditMode 急救 **120/116/0 红/4 NOT-RUN** · PlayMode 急救 **4/4** ·
+   全量 EditMode **3001/2954/0 红** · 全量 PlayMode **96/96**。
+   ⇒ 现记的「EditMode 0 红 · PlayMode 全绿」**实测成立**。验证原件:
+   `production/qa/evidence/verification-emergency-procedures-tests-2026-10-08.md`。
 
 ### ④ round2 自陈的其余评审盲区
 
@@ -51,10 +64,10 @@
   `host_authority_test.cs` / `feel_latency_test.cs` **全文未读**;
 - 第一轮证据(如 `applied_payload_settlement_test.cs:131-140` 的 Seq 占位)二轮**未重新验证**。
 
-### 未闭项登记(不阻塞本 epic,但阻塞转 Complete)
+### 未闭项登记(均**结构性归属其他 epic**,不阻塞本 epic)
 
-- ⏸️ **D1/D2/D3** 文档状态对齐(round2 明确未验证)。
-- 🔴 **实跑 EditMode/PlayMode** —— round2 的判据均为源码阅读;「0 红」为**未执行**状态。
+- ✅ ~~**D1/D2/D3** 文档状态对齐~~ —— 2026-10-08 核实全部已对齐。
+- ✅ ~~**实跑 EditMode/PlayMode**~~ —— 2026-10-08 完成(0 红)。
 - ⏸️ **载荷 `Seq` 占位** —— 归上行链 45(现有测试已钉死占位事实,合规)。
 - ⏸️ **AC-10-04b 三格逐位** —— ADR-012 矩阵未激活,NOT-RUN,禁借绿。
 

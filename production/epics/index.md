@@ -24,7 +24,7 @@ Engine: Unity 6.3 LTS (6000.3.24f1)
 | death-respawn | Core | 29 死亡与复活 | design/gdd/death-and-respawn.md | 6 stories | Ready(未实现) |
 | diagnosis-system | Core | 8 诊断系统 | design/gdd/diagnosis-system.md | 6 stories | 🔄 In Progress(4/6 · 001–004 ✅ 2026-10-05/06;断点 = story-005) |
 | disease-simulation | Core | 9 疾病模拟 | design/gdd/disease-simulation.md | 7 stories | ✅ Complete(story-007 重开轮闭环 2026-10-07:处置轴 + treatable_by + NOISE_BAND_9 双常量;双代理评审修复后复跑全绿:9 侧 67/67 · 11 侧 174/174 · 10 侧 116/116 · 全量 2948-2901/0 红) |
-| emergency-procedures | Core | 10 急救动作 | design/gdd/emergency-procedures.md | 7 stories | In Review(7/7 已实现 · A1/A2/A6/B4/C4/C5 已闭 · 0 红;✅ **评审原件两份均已在库**(首轮+round2,2026-10-03);**真实残留 = D1/D2/D3 文档对齐 + 实跑测试套件**(round2 未实跑,结论均基于源码阅读);另 007 = b6 门查出的手搓点) |
+| emergency-procedures | Core | 10 急救动作 | design/gdd/emergency-procedures.md | 7 stories | **Complete ✅ 2026-10-08**(7/7 已实现 · A1/A2/A6/B4/C4/C5 已闭;✅ 评审原件两份均在库(首轮+round2,2026-10-03);**两条前置 2026-10-08 结清** = D1/D2/D3 文档对齐核实 + **实跑测试套件**(EditMode 急救 120/116/0 红/4 NOT-RUN · PlayMode 急救 4/4 · 全量 EditMode 3001/2954/0 红 · 全量 PlayMode 96/96);验证原件 `verification-emergency-procedures-tests-2026-10-08.md`;未闭 = Seq 占位(归 45)/ AC-10-04b(ADR-012 矩阵)均归属他 epic) |
 | enemy-ai | Core | 27 敌人 AI | design/gdd/enemy-ai.md | 5 stories | Complete ✅ 2026-09-30 |
 | interaction-system | Core | 4 交互系统 | design/gdd/interaction-system.md | 7 stories | Complete ✅ 2026-10-04(7/7;story-007 评审原件 `review-interaction-story-007-2026-10-04.md`) |
 | inventory-items | Core | 21b 库存与物品 | design/gdd/inventory-and-items.md | 6 stories | Ready(未实现) |
