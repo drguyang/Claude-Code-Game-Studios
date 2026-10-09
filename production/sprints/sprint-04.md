@@ -132,13 +132,28 @@ patient-ai ✅ 4/4 → diagnosis-system ✅ 6/6 → case-system ✅ 6/6 → pres
 
 ---
 
-## Phase 3: 集成验证（~5 天）—— ◐ **半闭(2026-10-08)**
+## Phase 3: 集成接线 + 验证（~11 个工作日 · 至 10-23）—— ◐ **扩行(2026-10-09 四方专家评估后用户裁定)**
 
-| # | 任务 | 状态 | 理由 |
+> **2026-10-09 裁定记录**(TD / Producer / QA Lead / unity-specialist 四代理并行评估 → 用户四项裁定):
+> ① **载体 = 本 Phase 扩行**(不新立 epic —— 触及的 epic 只在「未闭登记」区加注,Complete 不重开,承 N-r2 先例);
+> ② **范围 = 全保留**(采集腿 / 019-b spike / 形态件施加全做;超载只在 10-16 检查点显式顺延,不在执行侧自行压缩 —— 承用户「尊重里程碑」裁定);
+> ③ **组合根 = 案 A 新装配 `Gameplay.Boot`**(unity-specialist 实测 b5 门把 `Sim.Codec` 装配级标红,`PayloadEncoder` 住那里 ⇒ 塞 Presentation 无法构造;ADR-025 §① 清单同批回写);
+> ④ **质量门 = 5 项 Go/No-Go**(见下表后)。
+> **关键缺口(三方独立实测)**:`IVitalsQuery` **零生产实现**(仅测试 Fake)—— 「体征变化可测」的管道终点生产机制不存在,是最大剩余工程量。
+
+| # | 任务 | 状态 | 理由 / 判据 |
 |---|------|------|------|
-| 1 | 实现垂直切片 PlayMode 测试（替换 TODO 骨架） | ✅ **已完成 2026-10-08** | 7 测 = 6 passed + 1 NOT-RUN（病人出现腿 25/9 写者未实现）；驱动真生产路径（PrescribeFlow + CaseOpenDecider） |
+| 1 | 实现垂直切片 PlayMode 测试（替换 TODO 骨架） | ✅ **已完成 2026-10-08**(10-09 病人腿转全绿) | 当日 7 测 = 6 passed + 1 NOT-RUN(病人出现腿 9/25 写者未实现);**2026-10-09 解除** —— 9 的 `DiseaseOnset` 写者(`PatientSpawner`,ADR-030 步②)落地 ⇒ 病人腿由 `Assert.Ignore` 改驱动真写者 ⇒ **7/7 Passed,PlayMode 98/98 零 skip**;驱动真生产路径(PrescribeFlow + CaseOpenDecider + PatientSpawner) |
 | 2 | 至少 1 次**人工**文档化 playtest | ⬜ **未做** | M2 退出条件要求**人工** playtest；本轮交付的是自动化测试的文档化 playtest（`playtest-2026-10-08-vertical-slice.md`），**不满足** M2 要求 |
-| 3 | 运行 ADR-023 场景加载 spikes | ✅ **已完成 2026-09-23**(S1/S3/S4 三条全通过,见 `adr-023` §Validation) | 解锁 chunk 激活 |
+| 3 | 运行 ADR-023 场景加载 spikes | ✅ **已完成 2026-09-23**(S1/S3/S4 三条全通过,见 `adr-023` §Validation) | 解锁 chunk 激活;**剩余 S2/S6 由 #5/#4 同批补跑**(触发条件已到) |
+| 4 | **阶段 1「装配轮」**:新装配 `Gameplay.Boot` 组合根 + tick driver(`Update`+`unscaledDeltaTime` double 累加器,MaxStepsPerFrame 防死亡螺旋)+ Boot→World 最小 additive 场景(S1 API + 坑 A/B 修法)+ `Initialize` 生产调用点 + `PresenceRegistry` 灌入 + 施治腿生产喂入 | ⬜ Ready(~4.5 天,至 10-15) | 全库第一次真装配;**同批跑 S6 spike**(tick 停机时钟)· E-13 失败路径实测;World 零 gameplay ⇒ 病人/玩家必须运行期 spawn;**永不用 `LoadSceneMode.Single`** |
+| 5 | **阶段 2「链补全轮」**:`CaseOpened` 写者(37/4)· 体征链(`IVitalsQuery` 生产实装 + 事件→体征 apply,先勘察 9 的 Step→体征投影现状)· `ResourceHarvested` 写者(17/21a)· 写者存在性 grep 门(新立) | ⬜ Ready(~3 天,至 10-20) | 勘察 = 最大估算不确定度(0.5–1 天,阶段 0 先行);**体征链禁 Fake**(vertical_slice_test 现体征断言跑在 FakeVitalsQuery 上 = 不能作证据) |
+| 6 | **阶段 3「形态件施加轮」**:`SkeuoRuntimeDriver` 两 TODO(DTO 绑定 / Screen 实例化)+ `SignChannelBinder` 挂真词条 + story-023 载体;焦点施加者级联口径同批裁 | ⬜ Ready(~2 天,至 10-22) | 四形态件真通道呈现;不改 021-024 已交付形态与判据 |
+| 7 | **阶段 4「收口轮」**:灰盒登记表审计 → 5 项 Go/No-Go 门 → 人工 playtest(9 节模板,§1/§3/§4/§9 须实质填写)→ M2 Exit 11 条逐条复评 → 7 处登记回填(N-r2 / we+modular story-004 / u1-S2 / u0 a7-5 / AC-8-51 / O-1…O-6 / skeuo 021-024) | ⬜ Ready(~1.5 天,至 10-23) | 报告落 `production/playtests/`;**Logic/Integration 条禁止单以 playtest 报告转绿** |
+
+**Go/No-Go(playtest 前 5 项,全绿才开人工 playtest)**:① 全量 EditMode+PlayMode 绿(0 failed);② b6 门 + Sim 引用集门绿;③ **写者存在性门**(M2 链每 Kind —— DiseaseOnset/CaseOpened/DrugTreatmentApplied/EmergencyTreatmentApplied/ActorCellEntered —— 生产程序集内 `Append` ≥1);④ 组合根冒烟(PlayMode:根对象存在 + Initialize 已调用 + EventStream 非空);⑤ 体征回路断言(生产 `IVitalsQuery`,治疗事件后返回值变化,**路径禁 Fake**)。
+
+**10-16 检查点(溢出规则)**:阶段 1 未完成 ⇒ 剩余条目**显式**转 sprint-05 起始段 + 用户裁 M2 是否附条件关闭(默认不顺延,以显式裁剪换按期)—— **裁剪只发生在该检查点,不发生在执行侧**。
 
 ---
 
@@ -159,8 +174,9 @@ patient-ai ✅ 4/4 → diagnosis-system ✅ 6/6 → case-system ✅ 6/6 → pres
 
 - [x] 所有 BLOCKING AC 有自动化测试覆盖（b6 门已立;两接线支判据经突变测试坐实）
 - [x] 所有 Integration story 有集成测试或文档化 playtest（player-controller 005 有 6 例）
-- [x] 垂直切片 PlayMode 测试通过（无 TODO）—— ✅ **已完成 2026-10-08**（6 passed + 1 NOT-RUN）
-- [ ] 至少 1 次**人工**文档化 playtest —— ⬜ **未做**（M2 出口硬前置）
+- [x] 垂直切片 PlayMode 测试通过（无 TODO）—— ✅ **已完成 2026-10-08**(7 测零桩)·
+  **2026-10-09 病人腿 NOT-RUN 解除 ⇒ 7/7 Passed**(9 的 `DiseaseOnset` 写者落地,PlayMode 98/98 零 skip)
+- [ ] 至少 1 次**人工**文档化 playtest —— ⬜ **未做**（M2 出口硬前置;**前置 = Phase 3 扩行 #4–#7 + 5 项 Go/No-Go 门**,见 §Phase 3）
 - [x] 状态文件准确（sprint/epic/index）—— 两轮回填后
 - [x] 零 S1/S2 未关闭 bug（`production/qa/bugs/` 无未关闭项）
 
@@ -180,7 +196,11 @@ patient-ai ✅ 4/4 → diagnosis-system ✅ 6/6 → case-system ✅ 6/6 → pres
    (round2 未实跑,结论均基于源码阅读)。
 3. ~~**Phase 2 继续**~~ ✅ **Phase 2 已收口(2026-10-08)** —— 7/7 系统全闭,关键路径 13→8→37→11 全通。
    diagnosis-system 与 case-system 的 story-005/006 于同日收口。
-4. **Phase 3 两项未做**(垂直切片 PlayMode 测试 · playtest)—— Milestone 2 出口所需
+4. **Phase 3 已扩行为「集成接线 + 验证」(2026-10-09 四方专家评估 + 用户四裁定)** ——
+   余项不止人工 playtest:组合根零接线(生产 `Initialize`/tick provider/场景加载全零调用点)·
+   `IVitalsQuery` **零生产实现**(体征终点机制不存在)· 缺 `CaseOpened`/`ResourceHarvested` 写者 ·
+   形态件施加点未接。**执行序 = 阶段 0 勘察 → 1 装配轮 → 2 链补全 → 3 形态件施加 → 4 收口**,
+   载体 = 本 Phase 任务行(不新立 epic,见 §Phase 3 裁定记录)
 5. **抽象点计数订正(60 处)** —— 牵动 GDD/registry/architecture **权威件**,须先定归属方
 6. **⚠️ U-8:产能分母(2026-10-04 登记 —— ◐ 半闭)**
    **工时已估出**(`production/asset-batches/README.md`:外部 ≈58.5 + 内部 ≈10.5 ≈ **69.0 人日**)。

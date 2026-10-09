@@ -1,6 +1,35 @@
-# Session State — 2026-10-09(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ✅ · M2 形态件 4/4 齐(story-021…024)**)
+# Session State — 2026-10-09(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ 扩行「集成接线+验证」(四裁定落定,待阶段 0 勘察起步)· M2 形态件 4/4 齐(story-021…024)**)
 
-## ◐ 本轮 = O-6 观察项修复轮(2026-10-09 · 评审→修复→6 发变异全中→复跑全绿 · **收口提交中**)
+## 🎯 本轮 = M2 接线轮推进方案裁定(2026-10-09 · 四方专家评估 → 用户四裁定 · **方案已落 sprint-04 §Phase 3**)
+
+**用户指令链**:「按甲来,开M2接线轮专项」→ 写 epic 中途改令「去掉 epic,送专家评估」→
+四代理(TD/Producer/QA Lead/unity-specialist)并行评估 →「综合四份给方案」→
+**「不要为了跑通而压缩任务,要尊重计划目标和里程碑」**(已存记忆 `feedback-milestone-integrity`:
+方案以 Exit 判据全集为纲,裁剪只作显式裁定项,不许执行侧自行压缩)→ 用户四裁定:
+① **载体 = sprint-04 Phase 3 扩行**(不新立 epic;触及的 epic 只加登记注,Complete 不重开)·
+② **范围 = 全保留**(采集腿/019-b/形态件施加全做;超载只在 10-16 检查点显式顺延)·
+③ **组合根 = 案 A 新装配 `Gameplay.Boot`** · ④ **质量门 = 5 项 Go/No-Go**。
+
+**四方评估关键事实(独立实测,推翻/加深原认知)**:
+- **`IVitalsQuery` 零生产实现**(仅 5 个测试 Fake)—— 「体征变化可测」的**管道终点生产机制不存在**,
+  是最大剩余工程量;现有 vertical_slice_test 体征断言跑在 Fake 上 = **不能作证据**(假绿红旗);
+- 全库关键符号生产调用点为零:`Initialize`/`new PatientSpawner`/`PrescribeFlow.Prescribe`/
+  `DataCorePreloader`/`LoadSceneAsync`/`ITickProvider` 生产实现 —— 工程是「纯函数库+测试」形态;
+- **b5 门硬冲突**:黑名单含 `"Sim.Codec"`(装配级无条件红)而 `PayloadEncoder` 住那里
+  ⇒ 组合根塞 `Gameplay.Presentation` 永远构造不了编码器(案 A 新装配的依据);
+- 缺写者仍 = `CaseOpened` + `ResourceHarvested`(codec/载荷/路由全齐,零 Append 调用者);
+- ADR-023 spikes:S1/S3/S4 ✅;**S2(建 World 即触发)/ S6(tick driver 落地即触发)同批补跑**。
+
+**执行序**(sprint-04 §Phase 3 #4–#7):阶段 0 体征链勘察(0.5–1 天,最大估算不确定度)+
+双写者二选一 → 阶段 1 装配轮(~10-15)→ 阶段 2 链补全(~10-20)→ 阶段 3 形态件施加(~10-22)→
+阶段 4 收口(灰盒表 → 5 项门 → 人工 playtest → M2 Exit 11 条复评 → 7 处登记回填,至 10-23)。
+
+**下一步**: 阶段 0 —— 体征链勘察(9 的 Step→体征投影现状:核心 sim 到底产不产体征 / 投影路径
+是否已存在)→ 修正阶段 2 估算 → 出勘察结论后再开阶段 1(`Gameplay.Boot` 装配轮)。
+
+---
+
+## ✅ 前轮 = O-6 观察项修复轮(2026-10-09 · 评审→修复→6 发变异全中→复跑全绿 · **已收口** `f148fab`)
 
 **一条观察项**(O-4/O-5 轮代码面 F2 登记,本轮兑现):
 - **O-6 两写者绕过 encoder + b6 门只扫 `Sim/`**: `PlayerController` / `CellTransitionDetector`
