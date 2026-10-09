@@ -1,4 +1,4 @@
-# Session State — 2026-10-09(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ 扩行「集成接线+验证」(四裁定落定,待阶段 0 勘察起步)· M2 形态件 4/4 齐(story-021…024)**)
+# Session State — 2026-10-09(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ 扩行「集成接线+验证」(阶段 0 ✅ 勘察 · 阶段 1 ✅ 装配轮 · 阶段 1 尾 ✅ 输入→采样 · 均未提交待用户指令 · 阶段 2 待四裁定)· M2 形态件 4/4 齐(story-021…024)**)
 
 ## 🎯 本轮 = M2 接线轮推进方案裁定(2026-10-09 · 四方专家评估 → 用户四裁定 · **方案已落 sprint-04 §Phase 3**)
 
@@ -61,8 +61,37 @@
 - **评审原件**:`production/qa/evidence/review-m2-boot-phase1-2026-10-09.md`。
 - ⚠️ **未验**:编辑器真机 Play(Boot 四步启动序首次运行)+ S6 spike 实跑 —— 归门④/收口轮。
 
-**下一步**: ① 阶段 1 收口提交(等用户指令);② 阶段 1 尾(可选,与阶段 2 并行):OnPositionSample
-采样喂入接线;③ 阶段 2 开工前须先裁四项(曲线数值 fixture / 定点 Exp / F3 NOT-RUN / 急救归因)。
+**✅ 阶段 1 尾「输入→采样接线」已收口(2026-10-09 · 实现→双评审→F1–F8 修复→复跑绿→2 发变异恰中 · 未提交)**:
+- **闭合对象**:阶段 1 评审 代码-4(`OnPositionSample` 零生产调用点 ⇒ ActorCellEntered 运行期恒不发)。
+- **交付**:`MovementFeed`(帧泵:Move→采样→Advance→逐 OnTickEdge,次序钉死头注)·
+  `MovementInputReader`(Keyboard/Gamepad 直读兜底;action 装载器缺失=未来故事,文件头登记)·
+  `BootRoot.Update` 薄壳化 · asmdef +`Unity.InputSystem` · ADR-025 §① 引用集回写(补 InputSystem)·
+  `movement_feed_test.cs` 4 条(真装配袋)+ 修复轮增 1 条自由落体回归测。
+- **PlayerController 两处偏离(动了已 Complete epic,已登记)**:① CharacterController 懒绑定
+  (EditMode 不跑 Awake);② **速度记账真 bug 修复**(原式以含 v.y 全模长当当前速 + 水平分量
+  不回写 + 落地不清负 y ⇒ 落地残值漂移;修=水平速独立记账 + 落地清 y)。epic 登记注已落
+  `production/epics/player-controller/EPIC.md`(Complete 不重开)。
+- **双评审**:代码面 FIX-THEN-APPROVE(0B+10A,核过 15 项)· 测试面 FIX-THEN-APPROVE(1B+6 项)
+  ⇒ F1–F8 修复全落(reader 出口钳制 · ToMoveInput 出口钳制 · DefaultConfig static 缓存 ·
+  fixture 非零 id · 次序颠倒判别断言(复用 CellTransitionDetector 同源判格)· ∞ 分支 ·
+  速度变异实证 + 回归测 · InputSystem 虚拟键盘注入)。**F3 连带**:AC-1-27 白名单增列
+  `typeof(LocomotionConfig)`(纯常量配置,主会话核零游戏状态;门拒绝用例/守卫均绿)。
+- **测试**:过滤 71/68/0/3(3 跳全既有 Ignore)· 全量 EditMode **3074/3027/0 红/46 跳**
+  (基线 3073/3026 ⇒ +1=回归测)· **变异 2 发恰中**:旧速度式 3 红 · 次序颠倒恰红 ①③
+  CommitTimeCell 断言 · python 恢复复跑绿。
+- **登记不修(8 项)**:生产静置骑 y 格界(结构性,挂 EC-1/AC-1-21,门④ PlayMode 实测)·
+  急停 Decel/瞬时反转/TurnRate 死配置/接地常数 -0.5 字面核对/MAX_DT(手感轮、调参轮)·
+  BootRoot.Update 转发零测(门④)· 手柄虚拟设备零测。
+- **评审原件**:`production/qa/evidence/review-m2-boot-p1tail-2026-10-09.md`。
+- ⚠️ **未验**:生产配置(地面顶 0 + 出生 y=1.0)静置 Y 翻转噪声 —— 归门④ PlayMode。
+
+**✅ 阶段 2 四项开工裁定已裁(2026-10-09 用户,均按推荐;已回写 sprint-04 #5 行)**:
+① 曲线数值 = 合成 fixture(占位非最终,数值轮整表替换)· ② 定点 Exp = 手写整数域(照 FixPow/FixSqrt
+先例)· ③ F3 CatchUp = M2 显式 NOT-RUN 背离(非静默)· ④ 急救归因 = 阶段 2 内修(HostEmergencyProcessor
+两处 Append 传真实 patientId)。
+
+**下一步**: ① **阶段 1 + 阶段 1 尾合并提交(等用户指令;HEAD 仍 `9437baf`,工作树含两阶段全部改动)**;
+② 阶段 2 链补全开工(CaseOpened/ResourceHarvested 写者 + 体征链禁 Fake + 定点 Exp + fixture 数据面 + 归因修)。
 
 ---
 
