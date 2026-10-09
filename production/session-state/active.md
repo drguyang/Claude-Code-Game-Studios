@@ -1,6 +1,46 @@
 # Session State — 2026-10-09(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ✅ · M2 形态件 4/4 齐(story-021…024)**)
 
-## ◐ 本轮 = O-4/O-5 观察项修复轮(2026-10-09 · 评审→补测→5 发变异全中→复跑全绿 · **收口提交中**)
+## ◐ 本轮 = O-6 观察项修复轮(2026-10-09 · 评审→修复→6 发变异全中→复跑全绿 · **收口提交中**)
+
+**一条观察项**(O-4/O-5 轮代码面 F2 登记,本轮兑现):
+- **O-6 两写者绕过 encoder + b6 门只扫 `Sim/`**: `PlayerController` / `CellTransitionDetector`
+  手搓 `PayloadRef(cell.X,cell.Y,cell.Z)` 伪引用(零字节进池、无 actor 身份)⇒ O-4 条件键
+  (`Seq<0` 补 `BlobId/Offset/Length`)下联机两 actor 同 tick 同格 **PayloadRef 同值**,
+  第二条被 `EventStream` 去重吞掉。
+  **修法三条**:① 载荷编码唯一路径 = `IPayloadEncoder`(ADR-029 §③ ——
+  `ActorCellEnteredPayload{ActorId,Cell,Tick}` → 每次 `Encode` 发新 BlobId ⇒ 条件键可区分两 actor);
+  ② asmdef 边界不破 —— `Gameplay.Presentation` **只持接口**、不引 `Sim.Codec`
+  (`motor_lease_test` 白名单 + `IsInitOnly` 钉住);③ **b6 门扩扫 + 可测化** ——
+  扫描面提为 `PayloadRefScanDirs = {Assets/Sim, Assets/Gameplay.Presentation}`(字段可反射断言),
+  扫描体抽目录形参 `CheckPayloadRefCallsitesIn(errs, dirs)`(工程外临时目录负向探针,
+  验递归深度 / 入口接线 / 剥注释三面)。
+
+**双评审(恰一轮)已返回**:代码面 **APPROVE**(0B+9A,核过 12 项)·
+测试面 **FIX-THEN-APPROVE**(1B+9A)⇒ **评审后 6 项修复 + 1 项双写消解全落**:
+① BLOCKING `test_b6_entryUsesScanDirs_andDirsExist`(入口接线负向证明 + 扫描面目录存在性,
+杀 C′「入口改硬编码却全绿」);② 探针改子目录 `tmp/Sub/`(兼验 `AllDirectories`);
+③ controller 双 actor 同格对偶测;④ `_actorId.IsInitOnly` 结构断言;
+⑤ client 池断言出口条件注(F1 聚合上行须换判据);⑥ b6 门头 O-6 扩面注(代码-1);
+⑦ O6 扫描面断言改**不同维度**(恰两面 + `Distinct` 去重)消解与 b6 测试的判据双写。
+**新观察项 O-7(登记,下轮)**:`occupancy_overlay_test.cs:37,45,126-139` **伪引用自洽环**
+(测试自造 `PayloadRef(blobId: structureId,…)` + 自己按 `BlobId` 读回,只测夹具不测生产;
+生产 `StructureKinds` 已走 encoder)⇒ 归 O-7 轮改真 `PayloadCodec` 解码。
+**登记不修(11 项)**:扫描面未含 `Gameplay.UI` 等 · 块注释剥除行号下偏 · `EndsWith` 豁免偏松 ·
+重编码重发去重 → 45 轮(承 O-4 F1)· 组合层零接线 → 接线轮 · 同 actor 双写者二选一 → 接线轮 ·
+重复 `<summary>`(既有)· 文件系统探针 = **豁免型** · 多 actor×多 tick 真流有界性 ·
+存档/网络 blob 重映射 round-trip(7a/45 轮)。
+
+**测试证据(终态)**: 过滤 fix2 **79/78/0 红/1 跳** · 全量 EditMode **3059/3012/0 红/46 跳/1 inc**
+(+10 于 O-4/O-5 基线 3049/3002,零回归)· PlayMode **98/98/0 红** · 变异 **6 发全中**
+(A 11 红 · B 2 · C 2 · D 1 · E 3 · F 1 —— F = 题面 C′「入口改硬编码」正面闭合 BLOCKING)·
+净态:三生产文件哈希匹配 + `MUT-` 残留 0 + postrun 过滤复跑 79/78 绿。
+判定链已收口:**APPROVE**(原件 §六)。
+**评审原件**: `production/qa/evidence/review-o6-fixes-2026-10-09.md`(§一 双判定 ·
+§二 修复+设计论证 · §二之二 登记不修+O-7 · §三 验证命令 · §四 6 发变异 · §五 实数 · §六 APPROVE)。
+
+---
+
+## ✅ 前轮 = O-4/O-5 观察项修复轮(2026-10-09 · 评审→补测→5 发变异全中→复跑全绿 · **已收口** `18a6aad`)
 
 **两条观察项**(上轮代码面评审 ADVISORY #4/#5 登记,本轮兑现):
 - **O-4 去重键坍缩**: `EventStream` 未发号事件同 (Kind,Patient,Tick) 静默合并

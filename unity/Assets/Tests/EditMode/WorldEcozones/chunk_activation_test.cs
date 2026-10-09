@@ -7,6 +7,7 @@
 
 using System;
 using NUnit.Framework;
+using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.World;
 using DaYiJingCheng.Sim.Contracts;
 
@@ -166,8 +167,11 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             // ① **真驱动**:跨格检测器按位置样本产出 ActorCellEntered
             const long Tick = 100;
             var tickProvider = new FixedTickProvider(Tick);
+            // O-6(2026-10-09):写者经构造注入 IPayloadEncoder ⇒ 真编码器 + 真池,
+            // 下方格还原走「池 + codec」的合法读路径(原伪 ref 形态已失效)。
+            var pool = new InMemoryBlobPool();
             var detector = new DaYiJingCheng.Gameplay.Presentation.Player.CellTransitionDetector(
-                sink, tickProvider);
+                sink, tickProvider, new PayloadEncoder(pool), actorId: 0);
 
             detector.OnPositionSample(new UnityEngine.Vector3(20.5f, 0f, 20.5f));  // → 格 (20,0,20)
             detector.OnTickEdge();                                                  // tick 边沿提交
@@ -179,7 +183,7 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             Assert.AreEqual(Tick, cellEntry.Tick, "事件的 tick 须来自 tick provider(非测试硬编码)");
 
             // ③ 从**事件的格**驱动激活判定(因果链:事件 → 格 → 激活)
-            var enteredCell = CellFromActorCellEntered(cellEntry);
+            var enteredCell = CellFromActorCellEntered(cellEntry, pool);
             var chunk = topology.WorldToChunk(enteredCell);
             Assert.IsTrue(activator.IsChunkActive(chunk),
                 $"玩家进入格 {enteredCell.X},{enteredCell.Z} 所在 chunk 须被激活(激活权 = 6)");
@@ -200,12 +204,17 @@ namespace DaYiJingCheng.Tests.WorldEcozones
         }
 
         /// <summary>
-        /// 从 `ActorCellEntered` 事件还原格。
-        /// ⚠️ 该事件的载荷经 `PayloadRef` 三整数字段(`CellTransitionDetector` 的既有形态;
-        /// 其 codec 接线归 ADR-029 的实现轮),故此处按该形态读。
+        /// 从 `ActorCellEntered` 事件还原格(经池 + codec 的合法读路径)。
+        /// ⚠️ O-6(2026-10-09)订正:原实现读 `PayloadRef` 三整数字段 —— 那是手搓伪引用的
+        /// 形态(格坐标塞引用三字段,零字节进池)。写者改走 `IPayloadEncoder` 后载荷真进池,
+        /// 此处必须解码;解码失败 = 字节没进池 = 写者退回手搓,本断言即红。
         /// </summary>
-        private static WorldPos CellFromActorCellEntered(SimEvent e)
-            => new WorldPos(e.Payload.BlobId, e.Payload.Offset, e.Payload.Length);
+        private static WorldPos CellFromActorCellEntered(SimEvent e, IBlobPool pool)
+        {
+            Assert.IsTrue(PayloadCodec.TryGetPayload(e, pool, out ActorCellEnteredPayload p),
+                "ActorCellEntered 载荷须能经池 + codec 取回(字节真的进了池 —— O-6)");
+            return p.Cell;
+        }
 
         /// <summary>固定 tick 的 provider —— 使「同 tick」可被真实驱动。</summary>
         private sealed class FixedTickProvider : ITickProvider

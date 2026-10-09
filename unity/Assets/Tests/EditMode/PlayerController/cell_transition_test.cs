@@ -19,6 +19,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.World;
 using DaYiJingCheng.Gameplay.Presentation.Player;
@@ -29,6 +30,32 @@ namespace DaYiJingCheng.Tests.PlayerController
 {
     public class CellTransitionTest
     {
+        // ══════════ O-6(2026-10-09): 编码器夹具 ══════════
+        // 表现层写者经构造注入 IPayloadEncoder ⇒ 测试侧须给真编码器 + 真池,
+        // 载荷断言走「池 + codec 取回」的合法读路径(ADR-029 §③)。
+
+        private InMemoryBlobPool _pool;
+        private PayloadEncoder _encoder;
+
+        [SetUp]
+        public void Setup()
+        {
+            _pool = new InMemoryBlobPool();
+            _encoder = new PayloadEncoder(_pool);
+        }
+
+        /// <summary>构造检测器(O-6:encoder + actorId 两参必填)。</summary>
+        private CellTransitionDetector NewDetector(IEventSink sink, ITickProvider provider, int actorId = 0)
+            => new CellTransitionDetector(sink, provider, _encoder, actorId);
+
+        /// <summary>经池 + codec 取回强类型载荷(ADR-029 §③ 的合法读路径)。</summary>
+        private ActorCellEnteredPayload PayloadOf(SimEvent e)
+        {
+            Assert.IsTrue(PayloadCodec.TryGetPayload(e, _pool, out ActorCellEnteredPayload p),
+                "ActorCellEntered 载荷须能经池 + codec 取回(字节真的进了池 —— O-6)");
+            return p;
+        }
+
         // ══════════ AC-1-02/AC-1-34: 载荷类型纯净（递归反射） ══════════
 
         [Test]
@@ -102,7 +129,7 @@ namespace DaYiJingCheng.Tests.PlayerController
         {
             // 同 tick 内 N 个位置样本 ⇒ Append == 1
             var sink = new FakeEventSink();
-            var detector = new CellTransitionDetector(sink, new FakeTickProvider(100));
+            var detector = NewDetector(sink, new FakeTickProvider(100));
 
             // 同 tick 内 8 个位置样本（单调跨格）
             for (int i = 0; i < 8; i++)
@@ -120,7 +147,7 @@ namespace DaYiJingCheng.Tests.PlayerController
         {
             // 载荷格 == 第 N 个样本的格
             var sink = new FakeEventSink();
-            var detector = new CellTransitionDetector(sink, new FakeTickProvider(100));
+            var detector = NewDetector(sink, new FakeTickProvider(100));
 
             for (int i = 0; i < 8; i++)
             {
@@ -129,8 +156,9 @@ namespace DaYiJingCheng.Tests.PlayerController
             detector.OnTickEdge(); // tick 边沿提交
 
             var evt = sink.AppendedEvents[0];
-            var cell = evt.Payload.BlobId; // 简化: BlobId 存 cell.X
-            Assert.AreEqual(7, cell,
+            // O-6(2026-10-09):原断言读 `Payload.BlobId` 当 cell.X —— 那是手搓伪引用的
+            // 形态(格坐标塞引用三字段)。现载荷经 IPayloadEncoder 进池 ⇒ 走解码路径。
+            Assert.AreEqual(7, PayloadOf(evt).Cell.X,
                 "载荷格应为第 N 个样本的格");
         }
 
@@ -140,15 +168,16 @@ namespace DaYiJingCheng.Tests.PlayerController
             // AC-113: 对角跨格 ⇒ 载荷为三维同时 floor 的新格
             // 修复: 之前只断言事件数,不断言 Z 值
             var sink = new FakeEventSink();
-            var detector = new CellTransitionDetector(sink, new FakeTickProvider(100));
+            var detector = NewDetector(sink, new FakeTickProvider(100));
 
             detector.OnPositionSample(new Vector3(0.5f, 0, 0.5f));
             detector.OnPositionSample(new Vector3(1.5f, 0, 1.5f));
             detector.OnTickEdge();
 
             var evt = sink.AppendedEvents[0];
-            Assert.AreEqual(1, evt.Payload.BlobId, "X 应为 1");
-            Assert.AreEqual(1, evt.Payload.Length, "Z 应为 1(Length 存 Z)");
+            var decoded = PayloadOf(evt);
+            Assert.AreEqual(1, decoded.Cell.X, "X 应为 1");
+            Assert.AreEqual(1, decoded.Cell.Z, "Z 应为 1(解码取 Cell.Z)");
         }
 
         // ══════════ AC-1-07: 跨格判定走引擎算符 ══════════
@@ -187,7 +216,7 @@ namespace DaYiJingCheng.Tests.PlayerController
             // 载荷 tick == provider.CurrentTick
             var sink = new FakeEventSink();
             var provider = new FakeTickProvider(42);
-            var detector = new CellTransitionDetector(sink, provider);
+            var detector = NewDetector(sink, provider);
 
             detector.OnPositionSample(new Vector3(5, 0, 0));
             detector.OnTickEdge(); // tick 边沿提交
@@ -203,7 +232,7 @@ namespace DaYiJingCheng.Tests.PlayerController
         {
             // 静止且未被推挤 ⇒ Append == 0
             var sink = new FakeEventSink();
-            var detector = new CellTransitionDetector(sink, new FakeTickProvider(100));
+            var detector = NewDetector(sink, new FakeTickProvider(100));
 
             // 连续 256 帧同一位置
             for (int i = 0; i < 256; i++)
@@ -222,7 +251,7 @@ namespace DaYiJingCheng.Tests.PlayerController
         {
             // 一帧内 x 与 z 同时跨格 ⇒ Append == 1
             var sink = new FakeEventSink();
-            var detector = new CellTransitionDetector(sink, new FakeTickProvider(100));
+            var detector = NewDetector(sink, new FakeTickProvider(100));
 
             // 从 (0.5, 0, 0.5) 跳到 (1.5, 0, 1.5) — 对角跨格
             detector.OnPositionSample(new Vector3(0.5f, 0, 0.5f));
@@ -239,15 +268,16 @@ namespace DaYiJingCheng.Tests.PlayerController
             // AC-113: 对角跨格 ⇒ 载荷为三维同时 floor 的新格
             // 修复: 之前只断言事件数,不断言 Z 值
             var sink = new FakeEventSink();
-            var detector = new CellTransitionDetector(sink, new FakeTickProvider(100));
+            var detector = NewDetector(sink, new FakeTickProvider(100));
 
             detector.OnPositionSample(new Vector3(0.5f, 0, 0.5f));
             detector.OnPositionSample(new Vector3(1.5f, 0, 1.5f));
             detector.OnTickEdge();
 
             var evt = sink.AppendedEvents[0];
-            Assert.AreEqual(1, evt.Payload.BlobId, "X 应为 1");
-            Assert.AreEqual(1, evt.Payload.Length, "Z 应为 1(Length 存 Z)");
+            var decoded = PayloadOf(evt);
+            Assert.AreEqual(1, decoded.Cell.X, "X 应为 1");
+            Assert.AreEqual(1, decoded.Cell.Z, "Z 应为 1(解码取 Cell.Z)");
         }
 
         // ══════════ AC-1-14: EC-3 回访再发 ══════════
@@ -259,7 +289,7 @@ namespace DaYiJingCheng.Tests.PlayerController
             // 修复: 同 tick 内折返会被清除，需要跨 tick 才能测试回访
             var sink = new FakeEventSink();
             var provider = new FakeTickProvider(100);
-            var detector = new CellTransitionDetector(sink, provider);
+            var detector = NewDetector(sink, provider);
 
             // tick 100: A → B
             detector.OnPositionSample(new Vector3(0.5f, 0, 0)); // A
@@ -282,7 +312,7 @@ namespace DaYiJingCheng.Tests.PlayerController
         {
             // 一帧内 ≥ 2 格位移 ⇒ Append == 1，载荷 == 落点格
             var sink = new FakeEventSink();
-            var detector = new CellTransitionDetector(sink, new FakeTickProvider(100));
+            var detector = NewDetector(sink, new FakeTickProvider(100));
 
             detector.OnPositionSample(new Vector3(0.5f, 0, 0));
             detector.OnPositionSample(new Vector3(5.5f, 0, 0)); // 传送 5 格
@@ -290,8 +320,8 @@ namespace DaYiJingCheng.Tests.PlayerController
 
             Assert.AreEqual(1, sink.AppendedEvents.Count,
                 "传送应只发落点（零中间格补发）");
-            Assert.AreEqual(5, sink.AppendedEvents[0].Payload.BlobId,
-                "载荷应为落点格");
+            Assert.AreEqual(5, PayloadOf(sink.AppendedEvents[0]).Cell.X,
+                "载荷应为落点格(O-6:经池 + codec 解码取 Cell.X)");
         }
 
         // ══════════ AC-1-16: EC-6 dt 钳位不累积 ══════════
@@ -318,7 +348,7 @@ namespace DaYiJingCheng.Tests.PlayerController
             // 同 tick 内 A → B → A ⇒ Append == 0
             // 需要先提交一个格，否则折返检测无法工作
             var sink = new FakeEventSink();
-            var detector = new CellTransitionDetector(sink, new FakeTickProvider(100));
+            var detector = NewDetector(sink, new FakeTickProvider(100));
 
             // 先提交格 A
             detector.OnPositionSample(new Vector3(0.5f, 0, 0)); // A
@@ -339,7 +369,7 @@ namespace DaYiJingCheng.Tests.PlayerController
             // 跨两 tick 的 A → B → A ⇒ Append == 2
             var sink = new FakeEventSink();
             var provider = new FakeTickProvider(100);
-            var detector = new CellTransitionDetector(sink, provider);
+            var detector = NewDetector(sink, provider);
 
             // tick 100: A → B
             detector.OnPositionSample(new Vector3(0.5f, 0, 0)); // A
@@ -362,7 +392,7 @@ namespace DaYiJingCheng.Tests.PlayerController
         {
             // ActorCellEntered.Patient == PatientId.None
             var sink = new FakeEventSink();
-            var detector = new CellTransitionDetector(sink, new FakeTickProvider(100));
+            var detector = NewDetector(sink, new FakeTickProvider(100));
 
             detector.OnPositionSample(new Vector3(5, 0, 0));
             detector.OnTickEdge(); // tick 边沿提交
@@ -383,7 +413,9 @@ namespace DaYiJingCheng.Tests.PlayerController
 
             // ① 类型面:除已登记的格坐标 / 事件 tick 外,不得有额外整型累计器
             //    (帧计数器改名后仍会被「多出一个 int 字段」这一类型面判据捕获)
-            var allowedIntFields = new[] { "_lastCellX", "_lastCellZ", "_lastEventTick" };
+            // O-6(2026-10-09):`_actorId` 是**注入的身份**(构造必填、不自增),
+            // 非累计器 —— 登记进白名单;新增任何自增 int/long 仍会被类型面抓住。
+            var allowedIntFields = new[] { "_lastCellX", "_lastCellZ", "_lastEventTick", "_actorId" };
             var intFields = detectorType
                 .GetFields(BindingFlags.NonPublic | BindingFlags.Instance)
                 .Where(f => f.FieldType == typeof(int) || f.FieldType == typeof(long))
@@ -393,6 +425,14 @@ namespace DaYiJingCheng.Tests.PlayerController
             Assert.IsEmpty(unexpected,
                 "AC-1-17:不得有额外整型累计器字段(改名后仍被类型面捕获):"
                 + string.Join(", ", unexpected));
+
+            // 测试面 F-6(O-6):白名单按**名字**豁免 `_actorId` ⇒ 同名被改成自增计数器
+            // 就绕过类型面。补**结构**断言:它必须是构造期一次性写入的注入身份(readonly)。
+            var actorIdField = detectorType.GetField("_actorId",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(actorIdField, "_actorId 字段须存在(否则 O-6 的 actor 身份没落点)");
+            Assert.IsTrue(actorIdField.IsInitOnly,
+                "_actorId 必须 readonly(注入身份,不得成为自增累计器)");
 
             // ② 源码面:不得出现帧计数语义
             string src = System.IO.Path.Combine(UnityEngine.Application.dataPath,

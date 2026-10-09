@@ -203,7 +203,7 @@ namespace DaYiJingCheng.EditorTools.Gates
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // b6 —— 载荷手搓门(ADR-029 §③ · 2026-10-02 立)
+        // b6 —— 载荷手搓门(ADR-029 §③ · 2026-10-02 立 · 2026-10-09 O-6 扩面)
         // ══════════════════════════════════════════════════════════════════════
         // 权威来源:
         //   · ADR-029 §③ —— 「Sim/ 目录下的源文件内出现 `new PayloadRef(` = 违例,
@@ -212,6 +212,10 @@ namespace DaYiJingCheng.EditorTools.Gates
         //     其中 `Offset` = **字节偏移**(非业务字段)。
         //   · Story: modular-building story-007 · world-ecozones story-006(两处接线支)
         //
+        // ⚠️ 2026-10-09 O-6 扩面注:ADR-029 §③ 原文只写「Sim/ 目录内」;O-6 证明该面
+        //    **不够** —— 表现层两写者(PlayerController / CellTransitionDetector)手搓
+        //    伪引用,原扫描面零可见。本注 = 扩面的门侧记录(ADR 侧回写归登记轮)。
+        //
         // 为什么需要这道门:ADR-029 的价值全在「无旁路」。实测证据 —— 立门前
         // `PoiStateMachine` 与 `StructureWriter` **各自发明了一种错法**:
         //   · PoiStateMachine  : poiId 当 blobId、newState 当字节偏移;
@@ -219,35 +223,59 @@ namespace DaYiJingCheng.EditorTools.Gates
         //   · 且**零字节真的进池**。不设门,新写者会继续手搓,ADR-029 沦为纸面
         //   (与 `Fix.ToFloat()` 的 b4 门同构:接口归属与调用点**分开判**)。
         //
-        // 扫描面 = **Assets/Sim/** 之内的 .cs(**不含** Sim.Codec —— 编码器实现体当然要构造
-        // PayloadRef,那是唯一合法处)。已知漏报面(与 b4 同款口径):注释与字符串字面量
+        // 扫描面 = **Assets/Sim/** + **Assets/Gameplay.Presentation/** 之内的 .cs
+        // (**不含** Sim.Codec —— 编码器实现体当然要构造 PayloadRef,那是唯一合法处)。
+        // ⚠️ 2026-10-09 O-6 扩面:原扫描面仅 `Assets/Sim` ⇒ 表现层写者
+        // (PlayerController / CellTransitionDetector)手搓 `PayloadRef(cell.X, cell.Y, cell.Z)`
+        // 伪引用**零字节进池、无 actor 身份**,门完全看不见(评审代码面 F2 登记的根因)。
+        // 已知漏报面(与 b4 同款口径):注释与字符串字面量
         // 会误报(偏安全);故扫描前**剥注释**,避免文档里引用规则本身被误判。
-        private static void CheckPayloadRefCallsites(List<string> errs)
+        //
+        /// <summary>
+        /// b6 的扫描面(2026-10-09 O-6 扩至表现层)。测试断言此数组含
+        /// `Assets/Sim` 与 `Assets/Gameplay.Presentation` —— 从数组删任一项 = 该面退回零门。
+        /// </summary>
+        internal static readonly string[] PayloadRefScanDirs =
         {
-            const string simDir = "Assets/Sim";
-            if (!Directory.Exists(simDir)) return;
+            "Assets/Sim",
+            "Assets/Gameplay.Presentation",
+        };
 
-            foreach (var f in Directory.GetFiles(simDir, "*.cs", SearchOption.AllDirectories))
+        private static void CheckPayloadRefCallsites(List<string> errs)
+            => CheckPayloadRefCallsitesIn(errs, PayloadRefScanDirs);
+
+        /// <summary>
+        /// b6 扫描体(目录形参 —— 测试可注入**临时目录**做行为级负向验证:
+        /// 在 Assets 外造含 `new PayloadRef(` 的探针文件,无需污染工程)。
+        /// </summary>
+        internal static void CheckPayloadRefCallsitesIn(List<string> errs, string[] dirs)
+        {
+            foreach (var dir in dirs)
             {
-                string code = StripCommentsForScan(File.ReadAllText(f));
-                int idx = code.IndexOf("new PayloadRef(", StringComparison.Ordinal);
-                if (idx < 0) continue;
+                if (!Directory.Exists(dir)) continue;
 
-                int line = 1;
-                for (int i = 0; i < idx && i < code.Length; i++)
-                    if (code[i] == '\n') line++;
+                foreach (var f in Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories))
+                {
+                    string code = StripCommentsForScan(File.ReadAllText(f));
+                    int idx = code.IndexOf("new PayloadRef(", StringComparison.Ordinal);
+                    if (idx < 0) continue;
 
-                // ── 具名豁免(baseline)────────────────────────────────────
-                // 只豁免**已登记**的具体位置,新增任何一处都会红。
-                // 豁免须有 owner + 出口条件,且不得以「TODO」充当修复
-                // (见 .claude/docs/review-workflow.md 对 TODO 化的口径)。
-                string rel = f.Replace('\\', '/');
-                if (PayloadRefWaivers.Any(w => rel.EndsWith(w.Path) && line == w.Line))
-                    continue;
+                    int line = 1;
+                    for (int i = 0; i < idx && i < code.Length; i++)
+                        if (code[i] == '\n') line++;
 
-                errs.Add($"[b6] {f}:~{line} Sim 装配内出现 `new PayloadRef(` —— " +
-                         "构建失败(ADR-029 §③:唯一合法路径 = IPayloadEncoder)。" +
-                         "若确需在 Sim 侧构造载荷引用,请经构造注入的 IPayloadEncoder 编码。");
+                    // ── 具名豁免(baseline)────────────────────────────────
+                    // 只豁免**已登记**的具体位置,新增任何一处都会红。
+                    // 豁免须有 owner + 出口条件,且不得以「TODO」充当修复
+                    // (见 .claude/docs/review-workflow.md 对 TODO 化的口径)。
+                    string rel = f.Replace('\\', '/');
+                    if (PayloadRefWaivers.Any(w => rel.EndsWith(w.Path) && line == w.Line))
+                        continue;
+
+                    errs.Add($"[b6] {f}:~{line} `{dir}` 内出现 `new PayloadRef(` —— " +
+                             "构建失败(ADR-029 §③:唯一合法路径 = IPayloadEncoder)。" +
+                             "若确需构造载荷引用,请经构造注入的 IPayloadEncoder 编码。");
+                }
             }
         }
 

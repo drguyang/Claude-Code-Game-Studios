@@ -48,6 +48,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
         private SimAuthorityMode _mode = SimAuthorityMode.Host;
         private IEventSink _eventSink;
         private ITickProvider _tickProvider;
+        private IPayloadEncoder _encoder;
+        private int _actorId;
         private WorldPos _lastCommittedCell = new WorldPos(-1, -1, -1);
         private WorldPos _pendingCell = new WorldPos(-1, -1, -1);
         private bool _hasPending;
@@ -56,11 +58,21 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
         /// <summary>
         /// 初始化(供测试和联机层调用)。
         /// </summary>
-        public void Initialize(SimAuthorityMode mode, IEventSink eventSink, ITickProvider tickProvider)
+        /// <param name="encoder">载荷编码器(ADR-029 §③:手搓 PayloadRef 由 b6 门拒)。</param>
+        /// <param name="actorId">本 actor 的 id(ADR-006 Amendment B id 空间;非负 —— 玩家开局
+        /// 经 <c>IIdAuthority</c> 分配一份)。O-6:缺它 ⇒ 联机两 actor 同 tick 同格的两条
+        /// 事件 <see cref="PayloadRef"/> 同值 ⇒ 被 O-4 条件键吞成一条。</param>
+        public void Initialize(SimAuthorityMode mode, IEventSink eventSink, ITickProvider tickProvider,
+                               IPayloadEncoder encoder, int actorId)
         {
             _mode = mode;
             _eventSink = eventSink;
             _tickProvider = tickProvider;
+            _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
+            if (actorId < 0)
+                throw new ArgumentOutOfRangeException(nameof(actorId), actorId,
+                    "actorId 走 ADR-006 Amendment B 计数器 id 空间,不得为负");
+            _actorId = actorId;
         }
 
         /// <summary>
@@ -206,15 +218,19 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
 
         /// <summary>
         /// 主机模式: 提交 ActorCellEntered 事件。
+        /// 载荷经 IPayloadEncoder 编码(ADR-029 §③;O-6 · 2026-10-09 —— 原手搓伪引用
+        /// 无 actor 身份,联机两 actor 同 tick 同格会被 O-4 条件键吞成一条)。
         /// </summary>
         private void AppendCellEnteredEvent(WorldPos cell)
         {
+            long tick = _tickProvider.CurrentTick;
+            var payload = new ActorCellEnteredPayload(_actorId, cell, tick);
             var evt = new SimEvent(
-                _tickProvider.CurrentTick,
+                tick,
                 PatientId.None,
                 -1, // 未发号哨兵 O-1
                 EventKind.ActorCellEntered,
-                new PayloadRef(cell.X, cell.Y, cell.Z));
+                _encoder.Encode(EventKind.ActorCellEntered, payload));
             _eventSink.Append(evt);
         }
 

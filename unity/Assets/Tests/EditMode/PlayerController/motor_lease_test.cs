@@ -244,10 +244,13 @@ namespace DaYiJingCheng.Tests.PlayerController
             typeof(LocomotionEvaluator), typeof(MotorLease), typeof(SimAuthorityMode),
             typeof(LeaseSource),
 
-            // 只读接口引用(六抽象点 + 相机只读基)
+            // 只读接口引用(六抽象点 + ADR-029 第七抽象点 + 相机只读基)
             typeof(IEventSink), typeof(ITickProvider), typeof(IEventAuthority),
             typeof(IIdAuthority), typeof(IVitalsQuery), typeof(IPresenceQuery),
             typeof(IDataProvider), typeof(ICameraRig), typeof(YawBasis),
+            // O-6(2026-10-09):PlayerController._encoder 为只读接口引用
+            // (构造注入、非游戏状态;其构造体 PayloadEncoder 不得进表现层字段)
+            typeof(IPayloadEncoder),
         };
 
         /// <summary>

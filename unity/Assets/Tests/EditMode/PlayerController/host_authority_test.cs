@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Gameplay.Presentation.Player;
 using NUnit.Framework;
@@ -21,6 +22,15 @@ namespace DaYiJingCheng.Tests.PlayerController
 {
     public class HostAuthorityTest
     {
+        // ══════════ O-6(2026-10-09): 编码器夹具 ══════════
+        private PayloadEncoder _encoder;
+
+        [SetUp]
+        public void Setup()
+        {
+            _encoder = new PayloadEncoder(new InMemoryBlobPool());
+        }
+
         // ══════════ AC-1-30①: 客户端模式零 Append ══════════
 
         [Test]
@@ -42,7 +52,7 @@ namespace DaYiJingCheng.Tests.PlayerController
         {
             // 主机模式下同一位置样本序列必须产生 1 次 Append
             var sink = new FakeEventSink();
-            var detector = new CellTransitionDetector(sink, new FakeTickProvider(100));
+            var detector = new CellTransitionDetector(sink, new FakeTickProvider(100), _encoder, actorId: 0);
 
             detector.OnPositionSample(new Vector3(0.5f, 0, 0));
             detector.OnPositionSample(new Vector3(1.5f, 0, 0));
@@ -78,7 +88,7 @@ namespace DaYiJingCheng.Tests.PlayerController
             var sink = new FakeEventSink();
             var provider = new FakeTickProvider(100);
             var controller = new PlayerControllerType();
-            controller.Initialize(SimAuthorityMode.Host, sink, provider);
+            controller.Initialize(SimAuthorityMode.Host, sink, provider, _encoder, actorId: 0);
 
             // 先提交格 A
             controller.OnPositionSample(new Vector3(0.5f, 0, 0));
@@ -104,7 +114,7 @@ namespace DaYiJingCheng.Tests.PlayerController
             var sink = new FakeEventSink();
             var provider = new FakeTickProvider(100);
             var controller = new PlayerControllerType();
-            controller.Initialize(SimAuthorityMode.Host, sink, provider);
+            controller.Initialize(SimAuthorityMode.Host, sink, provider, _encoder, actorId: 0);
 
             // 提交 A
             controller.OnPositionSample(new Vector3(0.5f, 0, 0));
@@ -133,7 +143,7 @@ namespace DaYiJingCheng.Tests.PlayerController
             var sink = new FakeEventSink();
             var provider = new FakeTickProvider(0);
             var controller = new PlayerControllerType();
-            controller.Initialize(SimAuthorityMode.Host, sink, provider);
+            controller.Initialize(SimAuthorityMode.Host, sink, provider, _encoder, actorId: 0);
 
             int actorCount = 4;
             int tickCount = 100;

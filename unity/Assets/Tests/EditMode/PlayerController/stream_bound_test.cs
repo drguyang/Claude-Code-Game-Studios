@@ -4,6 +4,7 @@
 // 断言 Append 总数 ≤ tick 数
 
 using System.Collections.Generic;
+using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Gameplay.Presentation.Player;
 using NUnit.Framework;
@@ -13,13 +14,19 @@ namespace DaYiJingCheng.Tests.PlayerController
 {
     public class StreamBoundTest
     {
+        // O-6(2026-10-09):写者经构造注入 IPayloadEncoder ⇒ 测试给真编码器
+        private PayloadEncoder _encoder;
+
+        [SetUp]
+        public void Setup() => _encoder = new PayloadEncoder(new InMemoryBlobPool());
+
         [Test]
         public void test_ac103_streamBound_appendCountLessThanTickCount()
         {
             // 跑 1000 tick 的移动序列
             var sink = new FakeEventSink();
             var provider = new FakeTickProvider(0);
-            var detector = new CellTransitionDetector(sink, provider);
+            var detector = new CellTransitionDetector(sink, provider, _encoder, actorId: 0);
 
             int tickCount = 1000;
             for (int tick = 0; tick < tickCount; tick++)
@@ -43,7 +50,7 @@ namespace DaYiJingCheng.Tests.PlayerController
             // 含折返的移动序列
             var sink = new FakeEventSink();
             var provider = new FakeTickProvider(0);
-            var detector = new CellTransitionDetector(sink, provider);
+            var detector = new CellTransitionDetector(sink, provider, _encoder, actorId: 0);
 
             int tickCount = 1000;
             for (int tick = 0; tick < tickCount; tick++)

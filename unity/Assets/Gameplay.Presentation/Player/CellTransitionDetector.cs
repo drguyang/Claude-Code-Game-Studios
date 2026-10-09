@@ -13,6 +13,7 @@
 //   - 传送只发落点: 零中间格补发
 //   - dt 钳位不累积: 超出 MAX_DT 的部分丢弃
 //   - 载荷 tick 来源唯一: ITickProvider.CurrentTick
+//   - 载荷编码唯一路径 = IPayloadEncoder(ADR-029 §③;O-6 · 2026-10-09)
 
 using System;
 using UnityEngine;
@@ -28,15 +29,27 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
     {
         private readonly IEventSink _eventSink;
         private readonly ITickProvider _tickProvider;
+        private readonly IPayloadEncoder _encoder;
+        private readonly int _actorId;
 
         private WorldPos _lastCommittedCell = new WorldPos(-1, -1, -1); // (-1,-1,-1) = 无效, 首个样本必触发转移
         private WorldPos _pendingCell = new WorldPos(-1, -1, -1);
         private bool _hasPending;
 
-        public CellTransitionDetector(IEventSink eventSink, ITickProvider tickProvider)
+        /// <param name="encoder">载荷编码器(ADR-029 §③:手搓 PayloadRef 由 b6 门拒)。</param>
+        /// <param name="actorId">本 actor 的 id(ADR-006 Amendment B id 空间;非负 —— 玩家开局经
+        /// <c>IIdAuthority</c> 分配一份,组合层注入)。O-6:无 actor 身份 ⇒ 联机两 actor
+        /// 同 tick 同格的两条事件载荷引用同值 ⇒ 被 O-4 条件键吞成一条。</param>
+        public CellTransitionDetector(IEventSink eventSink, ITickProvider tickProvider,
+                                      IPayloadEncoder encoder, int actorId)
         {
             _eventSink = eventSink ?? throw new ArgumentNullException(nameof(eventSink));
             _tickProvider = tickProvider ?? throw new ArgumentNullException(nameof(tickProvider));
+            _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
+            if (actorId < 0)
+                throw new ArgumentOutOfRangeException(nameof(actorId), actorId,
+                    "actorId 走 ADR-006 Amendment B 计数器 id 空间,不得为负");
+            _actorId = actorId;
         }
 
         /// <summary>
@@ -81,14 +94,19 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
             bool isInvalid = _lastCommittedCell.X < 0 && _lastCommittedCell.Y < 0 && _lastCommittedCell.Z < 0;
             if (!isInvalid && cell.X == _lastCommittedCell.X && cell.Y == _lastCommittedCell.Y && cell.Z == _lastCommittedCell.Z) return;
 
-            // 提交事件 — 载荷编码由 IEventSink 实现负责(ADR-024)
-            // PayloadRef.BlobId 存 cell.X, Offset 存 cell.Y, Length 存 cell.Z
+            // 提交事件 — 载荷经 IPayloadEncoder 编码(ADR-029 §③;O-6 · 2026-10-09)
+            // ⚠️ 原实现手搓 `new PayloadRef(cell.X, cell.Y, cell.Z)` 把格坐标塞进引用
+            //    三字段(伪引用,零字节进池):① 解码方拿到的是坐标不是载荷;② 无 actor
+            //    身份 ⇒ 联机两 actor 同 tick 同格 ⇒ 两条事件 PayloadRef 同值 ⇒ 被 O-4
+            //    条件键吞成一条。现走 registry 已定义的 ActorCellEnteredPayload。
+            long tick = _tickProvider.CurrentTick;
+            var payload = new ActorCellEnteredPayload(_actorId, cell, tick);
             var evt = new SimEvent(
-                _tickProvider.CurrentTick,
+                tick,
                 PatientId.None,
                 -1, // 未发号哨兵 O-1
                 EventKind.ActorCellEntered,
-                new PayloadRef(cell.X, cell.Y, cell.Z));
+                _encoder.Encode(EventKind.ActorCellEntered, payload));
             _eventSink.Append(evt);
 
             _lastCommittedCell = cell;
