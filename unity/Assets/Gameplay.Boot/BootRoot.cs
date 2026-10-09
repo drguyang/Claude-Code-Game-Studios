@@ -152,23 +152,24 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
-        /// 每帧 tick 泵:把墙钟折成整 tick,并按实际发生的 tick 数逐个触发订阅者的 tick 边沿。
+        /// 每帧帧泵(薄壳):读移动输入 → <see cref="MovementFeed.PumpFrame"/>(喂入 / 采样 /
+        /// tick 推进 / 边沿提交的次序全在那)。
         /// <para>Phase 1 只接 PlayerController(其公开每 tick 入口 = <c>OnTickEdge</c>);
         /// 其余已装配订阅者(sim Step / 疾病求值 / 体征查询)归 Phase 2 —— 本阶段刻意不接。</para>
-        /// <para><b>已登记缺口(不静默)</b>:生产代码 <c>OnPositionSample</c> / <c>OnUplinkSample</c>
-        /// <b>零调用点</b> ⇒ <c>ActorCellEntered</c> 写者(PlayerController / CellTransitionDetector)
-        /// 运行期恒不发事件;采样喂入(输入接线)归 Phase 1 尾 / Phase 2 —— 此处登记,
-        /// 不作为「已接线」读。</para>
+        /// <para><b>2026-10-09 采样缺口已闭</b>:原登记「<c>OnPositionSample</c> / <c>OnUplinkSample</c>
+        /// 零生产调用点 ⇒ <c>ActorCellEntered</c> 运行期恒不发事件」—— 现由
+        /// <see cref="MovementFeed.ProcessMovementFrame"/> 提供唯一生产调用点
+        /// (Move 后立刻采样)。<c>OnUplinkSample</c> 仍零调用点是**设计**:它是 Client 模式的
+        /// 上行缝,联机(P1b · 45)才接,单机 Host 模式永不走它。</para>
+        /// <para>急救动作不在此读(ADR-011 §二 独立直读通道);本文件只接普通移动。</para>
         /// </summary>
         private void Update()
         {
             if (!_booted || _tickDriver == null || _player == null) return;
 
-            int steps = _tickDriver.Advance(Time.unscaledDeltaTime);
-            for (int i = 0; i < steps; i++)
-            {
-                _player.OnTickEdge();
-            }
+            MovementFeed.PumpFrame(_player, _tickDriver,
+                                   MovementInputReader.ReadMoveAxis(),
+                                   Time.unscaledDeltaTime);
         }
 
         /// <summary>

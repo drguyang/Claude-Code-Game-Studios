@@ -111,6 +111,28 @@ Counts: 4 Logic · 2 Integration = 6 total.
 4. **004 的 AC-1-04 NOT-RUN** —— 需 45 联机夹具;已 `Assert.Skip`,非静默。
 5. **004 的 codec 绕行未登记为 TODO** —— `CellTransitionDetector` 走 `PayloadRef` 三整数字段,不经 `Sim.Codec`;因 asmdef 未引用 `Sim.Codec`,接线须先加程序集依赖边。
 
+### 📌 Complete 后回归修复登记(2026-10-09 · M2 接线轮阶段 1 尾)
+
+本 Epic 已 Complete,但 M2 首次把 `Move` 接上生产泵(BootRoot.Update → MovementFeed)后,
+发现并修复**一处真 bug**与两处可达性/性能适配 —— 状态仍 Complete,登记如下:
+
+1. **速度记账真 bug 修复**(生产行为变更):原式以含 `v.y` 的 `_velocity` 全模长当当前速 +
+   水平分量从不回写 + 落地不清负 `v.y` ⇒ 落地后按 `|v.y|` 残值持续水平位移(落地瞬移/跨格噪声)。
+   修法 = 水平速独立记账(`currentSpeed` 只取 x/z)+ 落地清负 y + `_velocity.x/z` 回写。
+   **变异实证**:还原旧式 → 恰红 3 条(自由落体回归测 7.61 vs 0.83 · 跨格 +2 · 噪声 9 条)。
+2. **CharacterController 懒绑定**:EditMode AddComponent 不跑 Awake ⇒ `_controller` 恒 null ⇒
+   Move/Teleport 静默 no-op;改懒绑定属性,运行期行为等价。
+3. **`DefaultConfig` static 缓存**:原 `Move` 每帧 `LocomotionConfig.LoadDefault()` ~44B 堆分配
+   (此前 Move 零生产调用点故不可见,本批接上泵后违「Update 循环无分配」)。
+4. **AC-1-27 白名单增列** `typeof(LocomotionConfig)`(3 的连带):static readonly 常量配置缓存,
+   非实例态、零游戏状态(主会话核字段面 = 12 个出厂 float),与 `LocomotionEvaluator` 同组;
+   门拒绝用例/空转守卫均绿。
+
+评审原件:`production/qa/evidence/review-m2-boot-p1tail-2026-10-09.md`(双面 FIX-THEN-APPROVE
+→ F1–F8 修复 → 全量 3074/3027/0 红 → 2 发变异恰中)。已登记不修项(手感轮/调参轮):急停
+Decel 跨帧不可达 · 方向瞬时反转 + TurnRate 死配置 · 接地常数 -0.5f·dt 与 GDD EC-1 字面 -0.015
+核对 · EC-6 MAX_DT 待调参定值。
+
 ## Key Cross-References
 
 - ~~**`OQ-1-12`(接地 spike)= Story 003 的开工前置**~~ ✅ **2026-09-29 已裁(方案甲),不再是前置** —— 轴 2 进入条件 / EC-1 / 9 / 10 / 11 的**方案已定**,2026-10-07 完成 GDD 正文与 EPIC 的传导回填;Story 003 的开工前置自此**清零**(残余 = `AC-1-34` 装载期断言 + ε / 斜坡滑向量实测)

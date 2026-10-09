@@ -44,6 +44,33 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
         private CharacterController _controller;
         private Vector3 _velocity;
 
+        /// <summary>
+        /// 默认移动配置的**热路径缓存**(2026-10-09 修 · M2 接线轮阶段 1 尾):
+        /// <see cref="Move"/> 每帧调一次 <c>LocomotionConfig.LoadDefault()</c>,
+        /// 而它每次 new 一个 ~44 B 的对象 ⇒ 每帧一次小堆分配(GC 抖动)。
+        /// 配置形状为纯常量工厂,静态缓存一份即可;**数值本身不动**(归调参轮)。
+        /// </summary>
+        private static readonly LocomotionConfig DefaultConfig = LocomotionConfig.LoadDefault();
+
+        /// <summary>
+        /// CharacterController 懒绑定(2026-10-09 · M2 接线轮阶段 1 尾)。
+        /// <para>运行期 <c>Awake</c> 先于一切外部调用,单靠它本就够;但 <b>EditMode 测试不触发生命周期</b>
+        /// (实测 <c>AddComponent</c> 后 <c>Awake</c> 不跑 ⇒ <c>_controller</c> 恒 null ⇒
+        /// <c>Move</c> / <c>Teleport</c> 静默 no-op,「输入 → 位移 → 采样 → 跨格事件」整条生产链
+        /// 在 EditMode 不可达)。懒绑定把这条链变成与生命周期无关:<see cref="Awake"/> 只做
+        /// 缺件告警,真正取件在此。</para>
+        /// <para>返回值可为 null(组件被毁 / 未挂)—— 调用方仍按原契约「null ⇒ 不动」。</para>
+        /// </summary>
+        private CharacterController Controller
+        {
+            get
+            {
+                if (_controller == null)
+                    _controller = GetComponent<CharacterController>();
+                return _controller;
+            }
+        }
+
         // ADR-020 Amendment B: 模式开关 + 上行接缝
         private SimAuthorityMode _mode = SimAuthorityMode.Host;
         private IEventSink _eventSink;
@@ -130,8 +157,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
 
         private void Awake()
         {
-            _controller = GetComponent<CharacterController>();
-            if (_controller == null)
+            if (Controller == null)   // 触发懒绑定 + 缺件告警(运行期唯一正常路径)
             {
                 Debug.LogError("[PlayerController] CharacterController component missing.");
             }
@@ -162,23 +188,43 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
         /// </summary>
         public void Move(Vector3 moveInput)
         {
-            if (_controller == null) return;
+            CharacterController controller = Controller;   // 懒绑定(Awake 前 / EditMode 亦可达)
+            if (controller == null) return;
 
             // AC-1-09: ‖MoveInput‖ ≤ 1 边界硬断言
             ValidateMoveInput(moveInput);
 
-            // 消费 LocomotionEvaluator: 乘数链 + 加减速
-            var config = LocomotionConfig.LoadDefault();
+            // 消费 LocomotionEvaluator: 乘数链 + 加减速(静态缓存,避免每帧 ~44B 分配)
+            var config = DefaultConfig;
             float vTarget = config.SpeedWalk * moveInput.magnitude; // F-1-2: SPEED_MODE × ‖MoveInput‖ × K_terrain
 
-            // F-1-3: 线性趋近(不过冲)
-            float accel = (vTarget > _velocity.magnitude) ? config.Accel : config.Decel;
+            bool grounded = controller.isGrounded;
+
+            // 落地清竖直速度 —— 否则自由落体累积的 v.y 会**永驻** _velocity(地面分支不写它),
+            // 把下面「当前速」的量纲污染成 |v.y|(见下)。
+            if (grounded && _velocity.y < 0f)
+            {
+                _velocity.y = 0f;
+            }
+
+            // F-1-3: 线性趋近(不过冲)—— 取**水平分量**的当前速。
+            // ⚠️ 2026-10-09 修正(M2 接线轮阶段 1 尾 · movement_feed_test 实测暴露):
+            //   原式以 ‖_velocity‖(含 v.y)当当前速,且 _velocity 的水平分量**从不回写**
+            //   (newSpeed 算完就丢)⇒ 当前速恒 = |v.y| 残值:落地后按残值继续水平位移,
+            //   落得越久、落地后冲得越远(落地瞬移);小推杆也会按残值算出 ~1 m/帧的位移
+            //   ⇒ 跨格事件噪声(违 spec「原地/小位移不产噪声」)。现:水平速独立记账 + 落地清 y。
+            float currentSpeed = Mathf.Sqrt(_velocity.x * _velocity.x + _velocity.z * _velocity.z);
+            float accel = (vTarget > currentSpeed) ? config.Accel : config.Decel;
             float maxDelta = accel * Time.deltaTime;
-            float newSpeed = Mathf.MoveTowards(_velocity.magnitude, vTarget, maxDelta);
-            Vector3 delta = moveInput.normalized * newSpeed * Time.deltaTime;
+            float newSpeed = Mathf.MoveTowards(currentSpeed, vTarget, maxDelta);
+
+            Vector3 dir = moveInput.normalized;   // 零向量 ⇒ normalized 为零向量(原地不动)
+            _velocity.x = dir.x * newSpeed;
+            _velocity.z = dir.z * newSpeed;
+            Vector3 delta = new Vector3(_velocity.x, 0f, _velocity.z) * Time.deltaTime;
 
             // 应用重力
-            if (_controller.isGrounded)
+            if (grounded)
             {
                 delta.y = -0.5f * Time.deltaTime;
             }
@@ -189,7 +235,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
             }
 
             // AC-1-01②: CharacterController.Move 是唯一位移写入点
-            _controller.Move(delta);
+            controller.Move(delta);
         }
 
         /// <summary>
@@ -239,10 +285,11 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
         /// </summary>
         public void Teleport(Vector3 position)
         {
-            if (_controller == null) return;
-            _controller.enabled = false;
+            CharacterController controller = Controller;   // 懒绑定(同 Move)
+            if (controller == null) return;
+            controller.enabled = false;
             transform.position = position;
-            _controller.enabled = true;
+            controller.enabled = true;
         }
 
         /// <summary>

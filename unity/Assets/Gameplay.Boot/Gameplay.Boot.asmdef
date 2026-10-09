@@ -6,6 +6,7 @@
         "Sim.Codec",
         "Sim.Contracts",
         "Gameplay.Presentation",
+        "Unity.InputSystem",
         "Unity.Addressables",
         "Unity.ResourceManager",
         "UnityEngine"

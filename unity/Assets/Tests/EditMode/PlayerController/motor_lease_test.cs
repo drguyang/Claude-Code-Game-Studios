@@ -243,6 +243,11 @@ namespace DaYiJingCheng.Tests.PlayerController
             typeof(PlayerControllerType), typeof(CellTransitionDetector),
             typeof(LocomotionEvaluator), typeof(MotorLease), typeof(SimAuthorityMode),
             typeof(LeaseSource),
+            // F3(2026-10-09 · M2 接线轮阶段 1 尾):PlayerController.DefaultConfig ——
+            // **static readonly 默认配置缓存**(LoadDefault() 原每帧 new ~44B)。
+            // 形状 = 常量配置工厂的单例:非实例态、不随玩家对象走、非血量/技能/库存/任务
+            // (与 LocomotionEvaluator 同组「1 自有类型」),不构成 AC-1-27 要拒的游戏状态。
+            typeof(LocomotionConfig),
 
             // 只读接口引用(六抽象点 + ADR-029 第七抽象点 + 相机只读基)
             typeof(IEventSink), typeof(ITickProvider), typeof(IEventAuthority),
