@@ -1,6 +1,36 @@
 # Session State — 2026-10-09(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ✅ · M2 形态件 4/4 齐(story-021…024)**)
 
-## ◐ 本轮 = O-1/O-2/O-3 观察项修复轮(2026-10-09 立 · 评审→修复→变异→复跑全绿 · **收口提交中**)
+## ◐ 本轮 = O-4/O-5 观察项修复轮(2026-10-09 · 评审→补测→5 发变异全中→复跑全绿 · **收口提交中**)
+
+**两条观察项**(上轮代码面评审 ADVISORY #4/#5 登记,本轮兑现):
+- **O-4 去重键坍缩**: `EventStream` 未发号事件同 (Kind,Patient,Tick) 静默合并
+  ⇒ 改**条件键**:未发号(Seq<0)补 `PayloadRef(BlobId,Offset,Length)` 身份;已发号维持
+  四元组(Seq 即身份,重编码免疫)。**设计三条**:发号后键破幂等 · Sim 门 A 读不了
+  payload 内容(只能取 ref)· 已发号补载荷会被重编码击穿(假阴性)。
+- **O-5 CAP 误拒世界事件**: `PatientId.None` 世界事件(结构×3/POI/玩家跨格/急救两支)
+  满 24 被拒 ⇒ CAP 分支加 `e.Patient != PatientId.None` 守卫;真实 id 写者
+  (DiseaseOnset/DrugTreatmentApplied)语义不变。
+  **登记边界**:真实 id 非病人实体(玩家/敌人共用 id 空间)满 CAP 仍被拒 —— 归 25 写者/接线轮。
+
+**双评审(恰一轮)已返回**:代码面 **APPROVE**(0B+4A)· 测试面 **FIX-THEN-APPROVE**(2B 补测+2A)
+⇒ **补测/注释全落**:① `test_dedup_explicitSeq_payloadBlind_andSeqDistinguished`(一测三面,
+杀 M1 恒真/M2 丢 Seq);② `test_o5` 并入 CAP 满 × 在场病人断言(杀 M3 删 !IsPresent);
+③ `test_clear_resetsDedupKeysAndSeq`;④ 文件头条件键订正 + CAP/去重次序警示行。
+**边界声明(F1)**:未发号重发幂等边界 = 同一 PayloadRef;重编码重发归写者幂等/45 意图层。
+**新观察项 O-6(登记)**:`ActorCellEntered` 两写者绕过 encoder 手搓伪 ref ⇒ 联机同格坍缩
+(根因先于本轮;归 encoder 接线轮 + b6 门扩扫 Presentation)。
+**登记不修**:测试 F-4(CAP/去重次序→45 轮)· dose_seq 五元组键未实现(处置去重轮)。
+
+**测试证据(终态)**: 过滤 **49/49** · 全量 EditMode **3049/3002/0 红/46 跳/1 inc**
+(+5 于基线 3044/2997,零回归)· PlayMode **98/98/0 红** · 变异 **5 发全中**
+(评审前 O4/O5 + 评审后 M1/M2/M3,各恰红 1;净态零残留)。
+判定链已收口:**APPROVE**(原件 §六)。
+**评审原件**: `production/qa/evidence/review-o4o5-fixes-2026-10-09.md`(§一 双判定 ·
+§二 修复+设计论证+F1 边界声明 · §二之二 评审后修复+O-6 · §四 5 发变异 · §五 实数 · §六 APPROVE)。
+
+---
+
+## ✅ 前轮 = O-1/O-2/O-3 观察项修复轮(2026-10-09 · 评审→修复→变异→复跑全绿 · **已收口** `4b5aae6`)
 
 **用户指令**:「继续修复新登记观察项123」→「开这三个修复轮」。
 

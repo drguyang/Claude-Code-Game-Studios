@@ -90,8 +90,8 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
 
             // Tick 100: 未发号事件(哨兵 -1,O-1)—— 得首号 0
             _stream.Append(new SimEvent(100, patient, -1, EventKind.ActorCellEntered, default));
-            // 同 (kind, tick, patient) 的未发号重发 = 去重(承既有语义:入流键含入流 Seq,
-            // 未发号键同为 -1 ⇒ 幂等重试不产生重复)
+            // 同一未发号事件重发 = 去重(O-4 后口径:未发号键含 PayloadRef 身份,
+            // 同一 SimEvent 重发 ⇒ 同 PayloadRef ⇒ 同键 ⇒ 幂等重试不产生重复)
             _stream.Append(new SimEvent(100, patient, -1, EventKind.ActorCellEntered, default));
             // 显式 Seq 事件不受发号影响(入流键不同 ⇒ 不去重)
             _stream.Append(new SimEvent(100, patient, 1, EventKind.SkillGrown, default));
@@ -154,6 +154,94 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             // ⇒ ② 已把 _currentSeq 推到 1,③ 得 2。
             _stream.Append(new SimEvent(10, patient, -1, EventKind.InjuryOnset, default));
             Assert.AreEqual(2L, _stream.Events[2].Seq, "后续未发号应得递增值(计数器含显式事件前进)");
+        }
+
+        // O-4 修复(2026-10-09):未发号事件键补载荷身份 —— 不同载荷不得坍缩
+        [Test]
+        public void test_o4_distinctPayloads_sameKindTickPatient_bothKept()
+        {
+            // 现实触发:同 tick 放置两个结构(均 None 世界事件 + 不同 structureId 载荷)
+            _stream.Append(new SimEvent(10, PatientId.None, -1, EventKind.StructurePlaced, new PayloadRef(1, 0, 8)));
+            _stream.Append(new SimEvent(10, PatientId.None, -1, EventKind.StructurePlaced, new PayloadRef(2, 0, 8)));
+
+            Assert.AreEqual(2, _stream.Count, "不同载荷 = 不同事件,均应入流(同 tick 双结构不再坍缩)");
+            Assert.AreEqual(0L, _stream.Events[0].Seq, "首条得首号");
+            Assert.AreEqual(1L, _stream.Events[1].Seq, "次条续号");
+        }
+
+        // O-4 反向守卫:载荷身份入键不得破坏「同一事件重发」的幂等去重
+        [Test]
+        public void test_o4_resendSameUnreleasedEvent_deduped()
+        {
+            var evt = new SimEvent(10, PatientId.None, -1, EventKind.StructurePlaced, new PayloadRef(7, 0, 8));
+
+            _stream.Append(evt);
+            _stream.Append(evt); // 同一 SimEvent 重发(同 PayloadRef)
+
+            Assert.AreEqual(1, _stream.Count, "重发仍须幂等拒收(载荷入键 ≠ 放弃去重)");
+        }
+
+        // O-5 修复(2026-10-09):PatientId.None 世界事件不受 CAP 拒收
+        [Test]
+        public void test_o5_worldEvents_nonePatient_bypassesCap()
+        {
+            for (int i = 0; i < EventStream.PATIENT_APPEARANCE_CAP; i++)
+                _presenceQuery.Add(new PatientId(i)); // 灌满 CAP
+            Assert.AreEqual(EventStream.PATIENT_APPEARANCE_CAP, _presenceQuery.PresentCount);
+
+            // 三种 None 世界事件在 CAP 满时均应入流(结构 / POI / 玩家跨格)
+            _stream.Append(new SimEvent(0, PatientId.None, -1, EventKind.StructurePlaced, new PayloadRef(1, 0, 8)));
+            _stream.Append(new SimEvent(0, PatientId.None, -1, EventKind.PoiStateChanged, new PayloadRef(2, 0, 8)));
+            _stream.Append(new SimEvent(0, PatientId.None, -1, EventKind.ActorCellEntered, new PayloadRef(3, 0, 8)));
+
+            Assert.AreEqual(3, _stream.Count, "CAP 满不得拒收世界事件(None 非病人)");
+
+            // 测试面 F-2:CAP 满 × **在场**真实病人 —— 稳态满员不得冻结
+            // (杀「删 !IsPresent 条件」变异:否则 24 个在场病人的后续事件全抛 AC-15)
+            _stream.Append(new SimEvent(1, new PatientId(0), -1, EventKind.DiseaseOnset, new PayloadRef(4, 0, 8)));
+            Assert.AreEqual(4, _stream.Count, "在场病人(0..23)的事件在 CAP 满稳态下仍可入流");
+            // 非 None 且**不在场**的病人在 CAP 满时仍须拒收 —— 由 test_cap_rejectsBeyond24 守另一半
+        }
+
+        // 代码面 F3 + 测试面 F-1(合并):条件键第二分支(已发号/显式 Seq)—— 一测两面
+        [Test]
+        public void test_dedup_explicitSeq_payloadBlind_andSeqDistinguished()
+        {
+            var patient = new PatientId(1);
+
+            // 面①:同 (Kind, Patient, Tick)、显式 Seq=5、**不同 PayloadRef** ⇒ 去重
+            // (已发号键不补载荷 ⇒ 重编码/重映射的重传命中同键;杀「条件改恒真」变异)
+            _stream.Append(new SimEvent(20, patient, 5, EventKind.SkillGrown, new PayloadRef(1, 0, 8)));
+            _stream.Append(new SimEvent(20, patient, 5, EventKind.SkillGrown, new PayloadRef(2, 0, 8)));
+            Assert.AreEqual(1, _stream.Count, "显式同 Seq = 同一事件,载荷差异不得造成假阴性去重");
+
+            // 面②:同参但 Seq=5 / Seq=6(同 PayloadRef)⇒ 各自入流
+            // (已发号键含 Seq 分量;杀「issued 键丢 Seq」变异)
+            _stream.Append(new SimEvent(20, patient, 6, EventKind.SkillGrown, new PayloadRef(1, 0, 8)));
+            Assert.AreEqual(2, _stream.Count, "不同显式 Seq = 不同事件,须都入流");
+
+            // Seq 发号器不受显式 Seq 写入影响的既有语义:计数器对同 (Tick, Patient) 每条事件
+            // 都前进(含显式)—— 首条 reset 至 0,显式 6 推进至 1,本条未发号得 2。
+            _stream.Append(new SimEvent(20, patient, -1, EventKind.InjuryOnset, new PayloadRef(9, 0, 8)));
+            Assert.AreEqual(3, _stream.Count);
+            Assert.AreEqual(2L, _stream.Events[2].Seq, "未发号续发(计数器含显式事件前进,承既有行为)");
+        }
+
+        // 测试面 F-3:Clear 清键 + 发号复位(test-only API 的键重建)
+        [Test]
+        public void test_clear_resetsDedupKeysAndSeq()
+        {
+            var patient = new PatientId(1);
+            var evt = new SimEvent(30, patient, -1, EventKind.SkillGrown, new PayloadRef(5, 0, 8));
+            _stream.Append(evt);
+            Assert.AreEqual(1, _stream.Count);
+
+            _stream.Clear();
+
+            Assert.AreEqual(0, _stream.Count, "Clear 清事件");
+            _stream.Append(evt); // 同一事件:键已清 ⇒ 须可再入
+            Assert.AreEqual(1, _stream.Count, "Clear 须同时清去重键(否则同事件永远进不来)");
+            Assert.AreEqual(0L, _stream.Events[0].Seq, "Clear 须复位发号器(再入得首号 0)");
         }
 
         // 评审 A3:发号复位条件的 patient 分量 —— 同 tick 换患者必须复位 0(AC-16 另一半)

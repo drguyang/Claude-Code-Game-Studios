@@ -9,8 +9,11 @@
 // 核心机制:
 //   - Append 纯函数路由（Kind → StreamId）
 //   - Seq 发号器（每 tick 复位）
-//   - 去重（五元组键）
-//   - 有界性（PATIENT_APPEARANCE_CAP = 24）
+//   - 去重（条件键:已发号 = 四元组 (Kind, Patient, Tick, Seq);未发号补 PayloadRef 身份 —— O-4）
+//   - 有界性（PATIENT_APPEARANCE_CAP = 24;跳过 PatientId.None —— O-5）
+//
+// ⚠️ 次序(承既有,测试面 F-4 登记):CAP 检查在去重**之前** ⇒ 病人已离场且 CAP 满时,
+//    重发事件先抛而非走去重短路。45 重传路径的重试语义须知悉(归 45 轮)。
 
 using System;
 using System.Collections.Generic;
@@ -55,8 +58,12 @@ namespace DaYiJingCheng.Sim
         /// <inheritdoc />
         public void Append(in SimEvent e)
         {
-            // AC-15: 有界性检查
-            if (!_presenceQuery.IsPresent(e.Patient))
+            // AC-15: 有界性检查(O-5 修复 · 2026-10-09:跳过 PatientId.None)
+            // 失效模式(O-5):世界事件(StructurePlaced / PoiStateChanged / ActorCellEntered /
+            // 急救两支 …)一律带 PatientId.None,IsPresent(None) 恒 false ⇒ 在场满 CAP 时
+            // 被误判「新病人」拒收 —— 玩家立刻不能盖房、POI 状态机与跨格事件全抛异常。
+            // CAP 守的是**同场被模拟病人数**(ADR-008 §六 有界性),None 不是病人 ⇒ 不进本分支。
+            if (e.Patient != PatientId.None && !_presenceQuery.IsPresent(e.Patient))
             {
                 if (_presenceQuery.PresentCount >= PATIENT_APPEARANCE_CAP)
                 {
@@ -65,8 +72,22 @@ namespace DaYiJingCheng.Sim
                 }
             }
 
-            // AC-15: 去重（五元组键）
-            string dedupKey = $"{e.Kind}_{e.Patient.Value}_{e.Tick}_{e.Seq}";
+            // AC-15: 去重(O-4 修复 · 2026-10-09:未发号键补载荷身份)
+            // 失效模式(O-4):入流 Seq 对未发号事件恒为 -1,只按 (Kind, Patient, Tick, Seq)
+            // 取键会让同 tick 同 Kind 的**两条不同事件**坍缩 —— 第二条静默丢弃,而其业务
+            // 结果(如 structureId 已返回调用方)已生效 ⇒ 重建 / 回放时该结果消失。
+            // 现实触发:同一 tick 放置两个结构 ⇒ 第二条 StructurePlaced 被吞。
+            // 口径:
+            //   · 未发号(Seq < 0):键补 PayloadRef 身份 (BlobId, Offset, Length) ——
+            //     未发号事件的唯一区分只能来自载荷;同一 SimEvent 重发 ⇒ 同 PayloadRef ⇒
+            //     同键 ⇒ 幂等拒收(既有重发语义保留)。
+            //   · 已发号 / 显式 Seq:维持四元组 —— Seq 已是事件身份(重传带原 Seq 命中同键),
+            //     且不受载荷重编码影响(重建 / 传输路径不产生假阴性去重)。
+            // ⚠️ Sim 门 A 只见 Sim.Contracts ⇒ 只能取 PayloadRef 三字段,读不了 payload
+            //    内容(那归 Sim.Codec)—— 故身份 = ref 本身,不是首字段语义值。
+            string dedupKey = e.Seq < 0
+                ? $"{e.Kind}_{e.Patient.Value}_{e.Tick}_{e.Seq}_{e.Payload.BlobId}_{e.Payload.Offset}_{e.Payload.Length}"
+                : $"{e.Kind}_{e.Patient.Value}_{e.Tick}_{e.Seq}";
             if (_dedupKeys.Contains(dedupKey))
             {
                 return; // 重发拒收
