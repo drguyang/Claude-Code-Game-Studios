@@ -1,6 +1,50 @@
 # Session State — 2026-10-09(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ✅ · M2 形态件 4/4 齐(story-021…024)**)
 
-## ✅ 本轮 = ADR-030 §Migration Plan 步 2/4 —— 9 的 DiseaseOnset 写者实现(2026-10-09 立 · 已跑绿 · 已收口)
+## ◐ 本轮 = O-1/O-2/O-3 观察项修复轮(2026-10-09 立 · 评审→修复→变异→复跑全绿 · **收口提交中**)
+
+**用户指令**:「继续修复新登记观察项123」→「开这三个修复轮」。
+
+**三条观察项与修法**(源自 review-disease-onset-writer §七):
+- **O-1 Seq 哨兵冲突**: `EventStream` 的 `e.Seq == 0` 与 `_currentSeq` 首值 0 冲突
+  ⇒ 哨兵改 **-1**(0 是合法首号值)。落点:`SimEvent.cs` doc · `EventStream.cs:90` ·
+  **10 处生产调用方** Seq 实参 0→-1 · `event_stream_test` 4 组 + 新增 o1 哨兵测试 ·
+  `vertical_slice` 2 处。**保留既有语义**:去重键用入流 Seq ⇒ 同 (kind,tick,patient)
+  未发号重发幂等去重(既有行为,测试已按此落)。
+- **O-2 IPresenceQuery 无生产实装**: 新建 `Gameplay.Presentation/PatientAI/PresenceRegistry.cs`
+  (读面 IPresenceQuery + 写面 Add/Remove/Move/ResetForLoad;同格不夺格;Move 不隐式入场)。
+  在场集 = 派生态,组合层灌入;13 侧接线归组合层(P0 无组合根,登记为后续义务)。
+  新测试 9 条(含 **CAP 三方交互**:灌满 24→SpawnNext 抛→回滚→重发同号)。
+- **O-3 先发号后 Append 空洞**: 新接口 `IRollbackableIdAuthority`(Sim.Contracts,
+  可选能力)· `IdAuthority` 实现(仅最后号可回滚;与机制 A 不冲突 —— 回滚号从未进流)·
+  `PatientSpawner` try/catch 回滚后 rethrow。新测试 3 条。
+
+**双代理评审(恰一轮)已返回,均 FIX-THEN-APPROVE**:
+- 代码面 1B + 8A · 测试面 3B + 8A(判定表已录原件 §一)
+- **修复全落**:① BLOCKING 甲案 = `PresenceRegistry` 占格/在场分离(`SetOccupant`/
+  `RemoveOccupant` 不计 CAP;`IPresenceQuery` 契约不动)+ 玩家占格用例;
+  ② B1/B2 补 Move 两分支测 · B3 负哨兵守卫 `id.Value<0` + 测试;
+  ③ A1/A2/A3 补测 · #2 原子性前提注 · #6 `event PresentChanged` + 测试 · #7 回执 Seq 注;
+  ④ **登记不修**:新观察项 **O-4**(去重键发号前取 Seq,StructureKinds 同 tick 两结构坍缩 →
+  事件流/建造轮)· **O-5**(CAP 判据对 None 世界事件生效,满 24 拒世界事件 → 组合层接线轮)。
+
+**测试证据**:
+- **终态**:过滤 **44/44** · 全量 EditMode **3044/2997/0 红/46 跳/1 inc**(+21 于基线
+  3023/2976,零回归)· PlayMode **98/98/0 红**(= 基线)
+- 变异 **9 发全中**:MUT-O1/O2/O3 各恰红 2;评审后 6 发(B1/B2/MUT-1/A1/B3/A3)恰红
+  1-2 条(A1 超集 2);净态零残留(锚点各 1)
+- 判定链已收口:**APPROVE**(原件 §六)
+
+**⚠️ 硬教训(本轮踩坑)**: 手写 `.cs.meta` 用 64 位 hex guid ⇒ **Unity 静默忽略整个文件**
+(Editor.log「does not have a valid GUID … ignored」)⇒ PresenceRegistry 9 条测试假缺席
+(过滤 27 全绿的假象)。**meta guid 必须 32 位**(`uuid.uuid4().hex`);
+判「是否被编译」看全量 XML 的 discovered 计数,不能只看绿。
+
+**评审原件**: `production/qa/evidence/review-observation-fixes-o1o2o3-2026-10-09.md`
+(§一 判定 · §二 修复落点 · §二之二 评审后修复+O-4/O-5 登记 · §四 变异 · §五 终态实数 · §六 判定链 APPROVE)。
+
+---
+
+## ✅ 前轮 = ADR-030 §Migration Plan 步 2/4 —— 9 的 DiseaseOnset 写者实现(2026-10-09 立 · 已跑绿 · 已收口)
 
 **用户指令**:「继续」(承前轮「按建议来」选 A —— 9 的疾病模拟核心最小框架)。
 

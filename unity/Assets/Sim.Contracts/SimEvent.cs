@@ -33,7 +33,10 @@ namespace DaYiJingCheng.Sim.Contracts
         /// <summary>受伤实体身份。世界级事件用 <see cref="PatientId.None"/>(ADR-007 §四)。</summary>
         public readonly PatientId Patient;
 
-        /// <summary>(Tick, Patient) 内由主机 Append 时发放的单调流水号。</summary>
+        /// <summary>(Tick, Patient) 内由主机 Append 时发放的单调流水号。
+        /// <para>哨兵口径(O-1 修复 · 2026-10-09):**-1 = 未发号**(交由主机 `EventStream` 发放);
+        /// **0 是合法已发号值**(每 (Tick, Patient) 的首号)。构造待发事件一律传 -1,
+        /// 禁再以 0 充当「未发号」—— 原哨兵 0 与首号值冲突,「发了 0 号」与「没发号」不可区分。</para></summary>
         public readonly long Seq;
 
         public readonly EventKind Kind;

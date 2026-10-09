@@ -70,14 +70,22 @@ namespace DaYiJingCheng.Sim.DiseaseSimulation
                 patientSeed: patientSeed,
                 seq: 0); // 载荷 Seq = 占位 0;header Seq 由主机 Append 时发号(承 10 的同一现状)
 
-            var encoded = _encoder.Encode(EventKind.DiseaseOnset, payload);
-            _sink.Append(new SimEvent(tick, patientId, 0, EventKind.DiseaseOnset, encoded));
+            try
+            {
+                var encoded = _encoder.Encode(EventKind.DiseaseOnset, payload);
+                // header Seq = -1(未发号哨兵,O-1)—— 主机 Append 时发号。
+                _sink.Append(new SimEvent(tick, patientId, -1, EventKind.DiseaseOnset, encoded));
+            }
+            catch
+            {
+                // O-3 修复(2026-10-09):写入失败(如 AC-15 CAP 满)⇒ 回滚刚发放的号,
+                // 防 ID 空洞(NextPatientId = _nextPatient++,不扫流,空洞不可自愈)。
+                // 仅最后号可回滚;若回滚被拒(他处已续发),按原行为留空洞(不可挽回)。
+                if (_idAuthority is IRollbackableIdAuthority rb)
+                    rb.TryRollbackLastPatientId(patientId);
+                throw;
+            }
 
-            // A1(评审 ADVISORY): 若 Append 抛异常(如 CAP 满),ID 已分配但事件未写入 ⇒ ID 空洞。
-            // 生产路径 PresentCount 恒 0(IPresenceQuery 无写面),CAP 永不触发 ⇒ 当前不可达。
-            // 且 IdAuthority.NextPatientId = _nextPatient++(不扫流),空洞不可自愈。
-            // 真正修法 = 发号时机后移(Append 成功后才 NextPatientId),需改 IIdAuthority 契约,超本轮。
-            // 登记为观察项 O-3,待 9 实现轮或 IIdAuthority 契约修订轮处理。
             return patientId;
         }
     }

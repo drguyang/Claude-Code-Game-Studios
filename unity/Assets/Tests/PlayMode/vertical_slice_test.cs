@@ -126,7 +126,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             if (decision == CaseOpenDecision.OpenNew)
             {
                 var payload = new CaseOpenedPayload(patient.Value, default);
-                var e = new SimEvent(0, patient, 0, EventKind.CaseOpened,
+                var e = new SimEvent(0, patient, -1, EventKind.CaseOpened, // -1 = 未发号哨兵 O-1
                     _encoder.Encode(EventKind.CaseOpened, payload));
                 _sink.Append(e);
             }
@@ -205,7 +205,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             var decision = CaseOpenDecider.Decide(false, true, CaseOpenSource.B);
             Assert.AreEqual(CaseOpenDecision.OpenNew, decision);
             var casePayload = new CaseOpenedPayload(patient.Value, default);
-            _sink.Append(new SimEvent(0, patient, 0, EventKind.CaseOpened,
+            _sink.Append(new SimEvent(0, patient, -1, EventKind.CaseOpened, // -1 = 未发号哨兵 O-1
                 _encoder.Encode(EventKind.CaseOpened, casePayload)));
 
             // Act: 治疗 (PrescribeFlow 驱动)

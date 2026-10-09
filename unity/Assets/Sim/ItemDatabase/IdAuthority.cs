@@ -20,7 +20,7 @@ using DaYiJingCheng.Sim.Contracts;
 namespace DaYiJingCheng.Sim
 {
     /// <summary><see cref="IIdAuthority"/> 的 P0 实现(机制 A:计数器 + 高水位可重构)。</summary>
-    public sealed class IdAuthority : IIdAuthority
+    public sealed class IdAuthority : IIdAuthority, IRollbackableIdAuthority
     {
         private long _nextItem;
         private int _nextPatient;
@@ -43,6 +43,26 @@ namespace DaYiJingCheng.Sim
 
         /// <summary>单调发放下一个受伤实体 id(0, 1, 2, …)。病人 / 敌人 / 玩家共用本空间。</summary>
         public PatientId NextPatientId() => new PatientId(_nextPatient++);
+
+        /// <summary>回滚最后发放的病人号(O-3 修复 · <see cref="IRollbackableIdAuthority"/>)。
+        /// <para>仅当 <c>id</c> == 最后号(<c>_nextPatient - 1</c>)时成功;非最后号拒绝(返回 false,
+        /// 计数器不动 —— 他处已续发,强回滚会造成重号)。</para>
+        /// <para>⚠️ 与机制 A「计数器永不复位」**不冲突**:该不变量守的是**已进流 / 已落档**的号
+        /// 永不重发;回滚只发生在**写入失败**(事件未进流,无任何持久引用),号从未离开本进程
+        /// ⇒ 重发不产生重号。回滚成功后该号对外界依然「从未存在」。</para></summary>
+        public bool TryRollbackLastPatientId(PatientId id)
+        {
+            // B3 守卫(2026-10-09):负域属哨兵(ADR-007 §四),永不进号空间 ——
+            // _nextPatient==0 时 PatientId.None(-1) == _nextPatient-1 会误命中,
+            // 把计数器降到 -1,下一号发出 None 哨兵。
+            if (id.Value < 0) return false;
+            if (id.Value == _nextPatient - 1)
+            {
+                _nextPatient--;
+                return true;
+            }
+            return false;
+        }
 
         /// <summary>读档 / 迁移后的物品 id 高水位重构:<c>next = max(next, max(已见) + 1)</c>。
         /// <para>**只升不降** —— 计数器永不复位 0(机制 A 不变量①);已多发的号不回收(不变量②)。</para>

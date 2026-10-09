@@ -212,7 +212,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
             var evt = new SimEvent(
                 _tickProvider.CurrentTick,
                 PatientId.None,
-                0,
+                -1, // 未发号哨兵 O-1
                 EventKind.ActorCellEntered,
                 new PayloadRef(cell.X, cell.Y, cell.Z));
             _eventSink.Append(evt);

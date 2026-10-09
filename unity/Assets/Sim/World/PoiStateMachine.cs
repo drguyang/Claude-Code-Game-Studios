@@ -137,7 +137,7 @@ namespace DaYiJingCheng.Sim.World
             var evt = new SimEvent(
                 tick,
                 PatientId.None,
-                0, // seq 由发号器给出
+                -1, // 未发号哨兵 O-1(由发号器给出)
                 EventKind.PoiStateChanged,
                 payloadRef);
 

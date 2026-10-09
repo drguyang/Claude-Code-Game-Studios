@@ -157,7 +157,11 @@ namespace DaYiJingCheng.Sim.Prescription
         /// <summary>是否进入并完成(主机五步 / 客户端本地编排)。</summary>
         public readonly bool Applied;
 
-        /// <summary>四步后的处置事件(**仅主机**非空)。</summary>
+        /// <summary>四步后的处置事件(**仅主机**非空)。
+        /// <para>⚠️ Seq = **-1(未发号)**—— 本字段是本地未编号副本,发号由主机
+        /// <c>EventStream.Append</c> 完成(O-1 哨兵口径)。45 若把本回执当可传输
+        /// 对象发出,传输前须由主机发号,不得把 -1 当已发号 Seq 排序 / 去重
+        /// (评审 ADVISORY #7)。</para></summary>
         public readonly SimEvent? TreatmentEvent;
 
         /// <summary>成长门是否命中(⑤ 的准入)。</summary>
@@ -332,7 +336,7 @@ namespace DaYiJingCheng.Sim.Prescription
             SimEvent? treatmentEvent = null;
             if (req.IsHost)
             {
-                var e = new SimEvent(tick, req.PatientId, 0, EventKind.DrugTreatmentApplied,
+                var e = new SimEvent(tick, req.PatientId, -1 /* 未发号哨兵 O-1 */, EventKind.DrugTreatmentApplied,
                                      encoder.Encode(EventKind.DrugTreatmentApplied, payload));
                 eventSink.Append(e);
                 treatmentEvent = e;

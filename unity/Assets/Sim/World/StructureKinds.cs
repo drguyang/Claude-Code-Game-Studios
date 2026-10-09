@@ -221,7 +221,7 @@ namespace DaYiJingCheng.Sim.World
             var payload = _encoder.Encode(EventKind.StructurePlaced,
                 new StructurePlacedPayload(structureId, anchor, moduleId, orientation, variant));
 
-            var evt = new SimEvent(tick, PatientId.None, 0, EventKind.StructurePlaced, payload);
+            var evt = new SimEvent(tick, PatientId.None, -1 /* 未发号哨兵 O-1 */, EventKind.StructurePlaced, payload);
             _eventSink.Append(evt);
 
             return structureId;
@@ -243,7 +243,7 @@ namespace DaYiJingCheng.Sim.World
             var payload = _encoder.Encode(EventKind.StructureRemoved,
                 new StructureRemovedPayload(structureId, inst.Anchor, inst.ModuleId));
 
-            var evt = new SimEvent(tick, PatientId.None, 0, EventKind.StructureRemoved, payload);
+            var evt = new SimEvent(tick, PatientId.None, -1 /* 未发号哨兵 O-1 */, EventKind.StructureRemoved, payload);
             _eventSink.Append(evt);
 
             return true;
@@ -277,7 +277,7 @@ namespace DaYiJingCheng.Sim.World
                 new StructureModifiedPayload(structureId, inst.Anchor, inst.ModuleId,
                                              orientation, variant, modifiedFields));
 
-            var evt = new SimEvent(tick, PatientId.None, 0, EventKind.StructureModified, payload);
+            var evt = new SimEvent(tick, PatientId.None, -1 /* 未发号哨兵 O-1 */, EventKind.StructureModified, payload);
             _eventSink.Append(evt);
 
             return true;

@@ -179,5 +179,55 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
             Assert.Throws<ArgumentOutOfRangeException>(() => new IdAuthority(nextPatient: -1),
                 "同上(病人侧)");
         }
+
+        // ══════════════ O-3:可回滚发号(IRollbackableIdAuthority)══════════════
+
+        [Test]
+        public void test_o3_rollback_lastId_reissued()
+        {
+            var authority = new IdAuthority();
+            var first = authority.NextPatientId();  // 0
+            var second = authority.NextPatientId(); // 1
+
+            Assert.IsTrue(authority.TryRollbackLastPatientId(second),
+                "最后号可回滚(写入失败时防 ID 空洞)");
+            Assert.That(authority.NextPatientId().Value, Is.EqualTo(second.Value),
+                "回滚后同一号应重发(不产生空洞)");
+            Assert.That(authority.NextPatientId().Value, Is.EqualTo(second.Value + 1),
+                "重发后计数器继续单调");
+        }
+
+        [Test]
+        public void test_o3_rollback_nonLast_rejected()
+        {
+            var authority = new IdAuthority();
+            var first = authority.NextPatientId();  // 0
+            var second = authority.NextPatientId(); // 1
+
+            Assert.IsFalse(authority.TryRollbackLastPatientId(first),
+                "非最后号拒绝回滚(他处已续发,强回滚 = 重号)");
+            Assert.That(authority.NextPatientId().Value, Is.EqualTo(second.Value + 1),
+                "计数器不动");
+        }
+
+        [Test]
+        public void test_o3_rollback_neverIssued_rejected()
+        {
+            var authority = new IdAuthority();
+            Assert.IsFalse(authority.TryRollbackLastPatientId(new PatientId(0)),
+                "从未发放的号不可回滚");
+        }
+
+        // 评审 B3:负哨兵边界 —— _nextPatient==0 时 None(-1)==_nextPatient-1 会误命中,
+        // 把计数器降到 -1 ⇒ 下一号发出 None 哨兵(负域属哨兵,不属号空间 —— ADR-007 §四)。
+        [Test]
+        public void test_o3_rollback_noneSentinel_rejected()
+        {
+            var authority = new IdAuthority(); // nextPatient = 0
+            Assert.IsFalse(authority.TryRollbackLastPatientId(PatientId.None),
+                "None 哨兵永不可回滚(负域不进号空间)");
+            Assert.That(authority.NextPatientId().Value, Is.EqualTo(0),
+                "计数器不动 —— 首号仍发 0,不发 -1 哨兵");
+        }
     }
 }

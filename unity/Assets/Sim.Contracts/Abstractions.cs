@@ -47,6 +47,22 @@ namespace DaYiJingCheng.Sim.Contracts
         ItemInstanceId NextItemInstanceId();
     }
 
+    /// <summary>可回滚发号(可选能力;O-3 修复 · 2026-10-09)。
+    /// <para>用途:写入失败(如 AC-15 CAP 满)时回滚刚发放的病人号,防 ID 空洞
+    /// —— <see cref="IIdAuthority.NextPatientId"/> 是计数器递增,不扫流,空洞不可自愈。</para>
+    /// <para>语义:仅当 <c>id</c> 是**最后发放**的号时可回滚(单线程 tick 语义下,
+    /// 写入失败的必是最后号);回滚后该号可再次发放。非最后号拒绝回滚(返回 false),
+    /// 调用方不得强求 —— 空洞已不可挽回,按原行为继续。</para>
+    /// <para>⚠️ <b>前提(评审 ADVISORY #2)</b>:`IEventSink.Append` 必须**原子**
+    /// (失败 = 零写入)。非原子 sink(部分写入后抛出 / 网络 tee 中途失败)不得实现
+    /// 本接口 —— 否则「写入失败」时事件可能已进流,回滚会重发流中号 ⇒ 同 id 两条
+    /// 事件,高水位重构与折叠全乱。</para></summary>
+    public interface IRollbackableIdAuthority : IIdAuthority
+    {
+        /// <summary>回滚最后发放的病人号。仅当 <c>id</c> == 最后号时成功。</summary>
+        bool TryRollbackLastPatientId(PatientId id);
+    }
+
     /// <summary>
     /// 掷骰权(ADR-007 §一,第六抽象点;与 IEventSink 刻意不合并 —— 写入通道语义 ≠ 掷骰权语义)。
     /// P0 = 本地占位,IsAuthority 恒 true。Roll 必须是纯函数:给定

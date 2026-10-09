@@ -86,8 +86,11 @@ namespace DaYiJingCheng.Sim
                 _currentSeq++;
             }
 
-            // 如果事件没有 Seq，则发号
-            if (e.Seq == 0)
+            // 如果事件没有 Seq,则发号
+            // O-1 修复(2026-10-09):哨兵由 `Seq == 0` 改为 `Seq < 0` ——
+            // 0 是合法首号值,原哨兵与 _currentSeq 首值冲突,
+            // 「发了 0 号」与「没发号」不可区分。调用方待发事件一律传 -1。
+            if (e.Seq < 0)
             {
                 eventWithSeq = new SimEvent(e.Tick, e.Patient, _currentSeq, e.Kind, e.Payload);
             }

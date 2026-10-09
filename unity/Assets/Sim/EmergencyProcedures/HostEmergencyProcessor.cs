@@ -84,7 +84,7 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
             var attemptEvent = new SimEvent(
                 tick,
                 PatientId.None,
-                0, // Seq 由发号器给出(header)
+                -1, // 未发号哨兵 O-1(由发号器给出 header Seq)
                 EventKind.EmergencyAttempt,
                 _encoder.Encode(EventKind.EmergencyAttempt, attempt));
             _eventSink.Append(attemptEvent);
@@ -111,7 +111,7 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
             var appliedEvent = new SimEvent(
                 tick,
                 PatientId.None,
-                0,
+                -1, // 未发号哨兵 O-1
                 EventKind.EmergencyTreatmentApplied,
                 _encoder.Encode(EventKind.EmergencyTreatmentApplied, applied));
             _eventSink.Append(appliedEvent);
