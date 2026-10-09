@@ -3,7 +3,7 @@
 // 目标: 1 病人 + 1 诊断 + 1 治疗, 无美术, 验证核心循环
 //
 // 核心循环:
-//   1. 病人出现 (DiseaseOnset → 病史流) — 9 写者未实现, NOT-RUN(ADR-030 起病人出现 = DiseaseOnset)
+//   1. 病人出现 (DiseaseOnset → 病史流) — 驱动 PatientSpawner(9 的写者, ADR-030)
 //   2. 诊断 (CaseOpened → 病例流) — 37 写者未实现, 用 CaseOpenDecider 驱动
 //   3. 治疗 (DrugTreatmentApplied → 病史流) — 11 PrescribeFlow 驱动
 //   4. 病人状态更新 (VitalsDto via IVitalsQuery)
@@ -15,6 +15,7 @@ using System.Collections;
 using System.Collections.Generic;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
+using DaYiJingCheng.Sim.DiseaseSimulation;
 using DaYiJingCheng.Sim.Prescription;
 using DaYiJingCheng.Sim.Codec;
 using NUnit.Framework;
@@ -74,16 +75,32 @@ namespace DaYiJingCheng.Tests.PlayMode
         // ══════════ 核心循环验证 ══════════
 
         /// <summary>
-        /// 验证病人出现事件写入病史流。
-        /// ⚠️ NOT-RUN: 9 的 DiseaseOnset 写者未实现(ADR-030 起病人出现 = DiseaseOnset,
-        /// 写者 = 9;9 的 Append(DiseaseOnset) 调用点不存在)。
-        /// 语义订正(ADR-030 §Migration Plan 步 4):原误标为 InjuryOnset(25 的战斗伤害结算,
-        /// 载荷与语义都不同),现订正为 DiseaseOnset。
+        /// 验证病人出现事件写入病史流 — 驱动 PatientSpawner(9 的 DiseaseOnset 写者)真生产路径。
+        /// ADR-030 §③:写者 = 9 · §④:落病史流。
+        /// ⚠️ 用**真 EventStream**(非 FakeEventSink)以覆盖路由 / Seq 发号 / 有界性全链路。
+        /// ⚠️ 登记缺口:病人创建后「进入在场视图」无写面(`IPresenceQuery` 只有读面),
+        /// 测试侧以 FakePresenceQuery.AddPresent 代偿;该写面归属待裁(9 实现轮)。
         /// </summary>
         [Test]
         public void test_diseaseOnset_writesToHistoryStream()
         {
-            Assert.Ignore("NOT-RUN: 9 的 DiseaseOnset 写者未实现(ADR-030 起病人出现 = DiseaseOnset)");
+            // Arrange: 9 的写者,写向真 EventStream
+            var spawner = new PatientSpawner(_idAuth, _stream, _encoder, worldSeed: 12345UL);
+
+            // Act: 驱动真生产路径
+            var patientId = spawner.SpawnNext(diseaseId: 1, tick: 0);
+
+            // Assert: 事件确实写入病史流
+            Assert.AreEqual(1, _stream.Count, "DiseaseOnset 应写入病史流");
+            var e = _stream.Events[0];
+            Assert.AreEqual(EventKind.DiseaseOnset, e.Kind);
+            Assert.AreEqual(patientId, e.Patient, "事件的 Patient 应为新建病人");
+            Assert.AreEqual(0L, e.Tick);
+            Assert.AreEqual(StreamId.History, StreamRouting.Of(e.Kind),
+                "DiseaseOnset 应路由到病史流");
+            // 评审 A2: 补 header Seq 发号断言(首个事件 Seq = 0)。
+            // 真 EventStream 在 Append 时发号(EventStream.cs:90-93),此断言覆盖 DiseaseOnset 路径。
+            Assert.AreEqual(0L, e.Seq, "首个事件 header Seq 应由 EventStream 发号为 0");
         }
 
         /// <summary>
@@ -173,14 +190,15 @@ namespace DaYiJingCheng.Tests.PlayMode
         // ══════════ 集成验证 ══════════
 
         /// <summary>
-        /// 验证完整核心循环: 诊断 → 治疗 → 状态更新。
-        /// ⚠️ 病人出现腿 NOT-RUN(9 的 DiseaseOnset 写者未实现,ADR-030 起病人出现 = DiseaseOnset)。
+        /// 验证完整核心循环: 病人出现 → 诊断 → 治疗 → 状态更新。
+        /// 病人出现腿驱动 PatientSpawner(9 的 DiseaseOnset 写者,ADR-030)。
         /// </summary>
         [UnityTest]
         public IEnumerator test_fullCoreLoop_patientToTreatment()
         {
-            // Arrange
-            var patient = new PatientId(0);
+            // Act: 病人出现 (9 的 DiseaseOnset 写者驱动)
+            var spawner = new PatientSpawner(_idAuth, _sink, _encoder, worldSeed: 12345UL);
+            var patient = spawner.SpawnNext(diseaseId: 1, tick: 0);
             _presence.AddPresent(patient);
 
             // Act: 诊断 (CaseOpenDecider 驱动)
@@ -202,10 +220,12 @@ namespace DaYiJingCheng.Tests.PlayMode
             // Act: 状态更新
             _vitals.SetVitals(patient, new VitalsDto(0.8f, -0.2f, SignChannel.Breathing, 1));
 
-            // Assert: 两条事件全部写入
-            Assert.AreEqual(2, _sink.AppendedEvents.Count, "完整核心循环应产生两条事件");
-            Assert.AreEqual(EventKind.CaseOpened, _sink.AppendedEvents[0].Kind);
-            Assert.AreEqual(EventKind.DrugTreatmentApplied, _sink.AppendedEvents[1].Kind);
+            // Assert: 三条事件全部写入(病人出现 → 诊断 → 治疗)
+            Assert.AreEqual(3, _sink.AppendedEvents.Count, "完整核心循环应产生三条事件");
+            Assert.AreEqual(EventKind.DiseaseOnset, _sink.AppendedEvents[0].Kind,
+                "首条应为病人出现(9 的 DiseaseOnset)");
+            Assert.AreEqual(EventKind.CaseOpened, _sink.AppendedEvents[1].Kind);
+            Assert.AreEqual(EventKind.DrugTreatmentApplied, _sink.AppendedEvents[2].Kind);
             Assert.IsTrue(outcome.Applied, "处方应成功");
 
             // Assert: 状态可查

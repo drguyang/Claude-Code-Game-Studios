@@ -1,6 +1,54 @@
 # Session State — 2026-10-09(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ✅ · M2 形态件 4/4 齐(story-021…024)**)
 
-## ✅ 本轮 = ADR-030 病程 onset / 病人出现的 Kind 归属(2026-10-09 立 · **已落盘 Accepted** · 待用户指令提交)
+## ✅ 本轮 = ADR-030 §Migration Plan 步 2/4 —— 9 的 DiseaseOnset 写者实现(2026-10-09 立 · 已跑绿 · 已收口)
+
+**用户指令**:「继续」(承前轮「按建议来」选 A —— 9 的疾病模拟核心最小框架)。
+
+**交付件**:
+- `unity/Assets/Sim/DiseaseSimulation/PatientSpawner.cs` —— 9 的 `DiseaseOnset` 写者(ADR-030 §③)。
+  注入 `IIdAuthority` + `IEventSink` + `IPayloadEncoder` + `ulong WorldSeed`;
+  `SpawnNext(diseaseId, tick)`:入参校验 → 发号 → `SplitMix64.Hash(worldSeed, patientId)` 派生 seed →
+  编码 → `Append`。**`Sim` 引用集一字未改**(只加 `Sim.Contracts` 的 `using System`)。
+- `unity/Assets/Tests/EditMode/DiseaseSimulation/patient_spawner_test.cs` —— 7 条 EditMode 测试
+  (5 原有 + 2 新增入参校验)。
+- `unity/Assets/Tests/PlayMode/vertical_slice_test.cs` —— **病人腿由 NOT-RUN 桩转真验证**
+  (驱动 `PatientSpawner` + 真 `EventStream`);`fullCoreLoop` 三条事件链(出现→诊断→治疗);
+  补 header Seq 发号断言。
+
+**双代理评审(恰一轮)**:代码面 APPROVE(0B+4A)· 测试面 APPROVE(0B+4A)⇒ 去重 6 项。
+评审原件 `production/qa/evidence/review-disease-onset-writer-2026-10-09.md`。
+
+**同批修复(6 项)**:A1(码)先发号后 Append → 注释+登记 O-3(空洞不可自愈,当前不可达)·
+A2(码)载荷 seq 注释订正 · A3(码)入参校验 · A4(码)ctor doc comment ·
+A1(测)patient_seed 注释订正 · A2(测)补 header Seq 断言 · A3(测)补 2 条校验测试。
+
+**测试证据(终态 · 修复后净态)**:
+- 过滤 `PatientSpawnerTest` **7/7 Passed/0 红** `unity/Logs/editmode_spawner_final.xml`(基线 5/5 +2)
+- 变异 **4 发全中**:MUT-1(去掉 hash)→ 恰红 1 条;MUT-2(不写事件)→ 恰红 4 条;
+  MUT-3(删入参校验)→ 恰红 2 条(修复前逃逸);MUT-4(删 Seq 断言)→ 恰红 1 条(修复前逃逸)。
+  逐发 python 反向恢复,终态零残留。
+- 垂直切片 **7/7 Passed/0 红/0 跳** `unity/Logs/playmode_slice_final.xml`(基线 7/7/0/0 +0)
+- 全量 EditMode **3023/2976/0 红/46 跳/1 inc** `unity/Logs/editmode_full_20261009_spawner.xml`
+  (基线 3021/2974 +2,零回归)
+- 全量 PlayMode **98/98/0 红/0 跳** `unity/Logs/playmode_full_20261009_spawner.xml`
+  (基线 98/98/0/0 +0,零回归)
+
+**⚠️ 新登记的架构缺口(未结 · 待裁)**:
+- O-1: `EventStream:90` 的 Seq 哨兵 `e.Seq == 0` 与 `_currentSeq` 首值 0 冲突 ⇒ 断言无法区分
+  「发了 0 号」与「没发号」。候选 = EventStream 修复轮 / ADR-006 Amendment 轮。
+- O-2: `IPresenceQuery` 只有读面、无写面 ⇒ 生产路径下 `PresentCount` 恒 0 ⇒
+  `PATIENT_APPEARANCE_CAP`(24) 永不触发。测试侧以 `FakePresenceQuery.AddPresent` 代偿。
+  候选 = 9 / 表现层注入点。
+- O-3: `PatientSpawner.SpawnNext` 先发号后 Append ⇒ 若 Append 抛异常(如 CAP 满),
+  ID 空洞且 `IdAuthority.NextPatientId = _nextPatient++`(不扫流)不可自愈。
+  当前不可达(`PresentCount` 恒 0),真正修法 = 发号时机后移,需改 `IIdAuthority` 契约。
+  候选 = 9 实现轮 / IIdAuthority 契约修订轮。
+
+**⚠️ 未结(归各自轮)**:47 的 `causes[]` 落地 · kindgen 重跑 · O-1/O-2/O-3 归属。
+
+---
+
+## ✅ 前轮 = ADR-030 病程 onset / 病人出现的 Kind 归属(2026-10-09 立 · **已落盘 Accepted**)
 
 **用户指令**:「走 A,先把「病人出现」该写什么 Kind 查透」→「**按建议来,落 ADR**」。
 
