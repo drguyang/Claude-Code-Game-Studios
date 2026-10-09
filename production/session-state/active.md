@@ -24,8 +24,45 @@
 双写者二选一 → 阶段 1 装配轮(~10-15)→ 阶段 2 链补全(~10-20)→ 阶段 3 形态件施加(~10-22)→
 阶段 4 收口(灰盒表 → 5 项门 → 人工 playtest → M2 Exit 11 条复评 → 7 处登记回填,至 10-23)。
 
-**下一步**: 阶段 0 —— 体征链勘察(9 的 Step→体征投影现状:核心 sim 到底产不产体征 / 投影路径
-是否已存在)→ 修正阶段 2 估算 → 出勘察结论后再开阶段 1(`Gameplay.Boot` 装配轮)。
+**✅ 阶段 0 体征链勘察已完成(2026-10-09,探索代理实测,要点)**:
+- **无 sim 主循环**:`ITickProvider`/`DataCorePreloader` 调用点/`Initialize` 全零;
+  `ProgressionEvaluator` 零生产调用 —— 病人出现后**没有任何东西推进疾病**;
+- **求值器 = 简化占位**:`ComputeDrugContribution` 恒 0 · Noise/Trend 恒 0 · `signs` 恒空
+  (有 tripwire 钉死)· `CatchUp` 只有排序壳;**定点 `Exp` 全库不存在**(GDD F1/F2 依赖,
+  `Fix.Pow/Sqrt` 在);
+- **投影链三断点**:① 事件→状态 apply 层无(`ProgressionEvaluator` 收 events 但不解码不用)·
+  ② `ProgressionResult→VitalsDto` 桥不存在(`new VitalsDto` 仅 Tests)· ③ 查询面零生产实现;
+  另:急救两事件 `Patient = PatientId.None`(`HostEmergencyProcessor:86,113`)⇒ 无法按病人归因;
+- **数据面从零建**:`disease_registry.json` 不存在 · curve 字段结构在 `DiseaseRegistryEntry` 无家 ·
+  无病种 cooked · `CookedCodec`/`AddressablesDataProvider` 无病种装载分支
+  (`disease_action_axis` 有作者态+烘焙件但运行期装载面缺);**curve 数值冻结待用户数值轮**;
+- **估算修正(承「登记不隐藏」)**:阶段 2 原估 ~3 天**偏乐观** ⇒ 实测最小可证链
+  (体征禁 Fake)≈ **7–12 天**(数据面 2–4d + 真曲线/投影 4–6d + apply/域校正/归因 2–3d);
+  M2 可玩级(1 病种真实曲线+signs+F4)另计 1.5–2.5 人周;**F3 CatchUp 数周级**,
+  建议 M2 显式登记 NOT-RUN 背离。⇒ **10-16 检查点大概率触发**(承「全保留,溢出显式顺延」,
+  裁剪不发生在执行侧)。
+- **将至裁定项(阶段 2 开工前须裁)**:① 病种曲线数值 —— 合成 fixture(验收口径单独登记)
+  vs 等用户数值轮;② 定点 `Exp` 手写 vs 简化 Decay 登记背离;③ F3 CatchUp M2 NOT-RUN 背离登记;
+  ④ 急救事件病人归因(涉 10 侧上行链)。
+
+**✅ 阶段 1「装配轮」首批已收口(2026-10-09 · 实现→双评审→13 项修复→复跑绿→1 发变异 · 未提交)**:
+- **交付**:新装配 `Gameplay.Boot`(SimTickDriver double 累加器 + CompositionRoot 装配 + BootRoot
+  四步启动序)· **全库首个生产 `Initialize` 调用点**(BootRoot 玩家生成,Host/真流/真 encoder/
+  IdAuthority id)· Boot→World 最小 additive 场景(永不用 Single;玩家 `MoveGameObjectToScene`
+  移入 Boot 防拆序误杀)· World.unity 零 gameplay(地面+光)· Addressable 注册(address=`world`,
+  ⚠️ AddressableAssetsData 被 gitignore,注册是本地工作配置)· ADR-025 §① 六→八装配(含
+  AssemblyGates Manifest 同批,b3 差集 0)· Boot.unity 挂 BootRoot · b6 扫描面扩至三面。
+- **双评审**:代码面 APPROVE(0B+13A)· 测试面 FIX-THEN-APPROVE(2B+8A)⇒ 13 项修复全落。
+- **测试**:过滤 10/10 · 全量 EditMode **3069/3022/0 红/46 跳**(基线 +10)·
+  变异 `>=`→`>` 恰红 T1 等值边界 · 还原复跑绿。
+- **登记不修(6 项)**:`OnPositionSample` 零调用点(跨格写者运行期不发,归 Phase 1 尾/Phase 2)·
+  死亡螺旋丢余量 = 已知行为(非确定性背离)· 零 gameplay 构建期扫描(→S2)· b4 面同缺 ·
+  命名统一轮 · **门④ PlayMode 冒烟 = 收口轮前置 NOT-RUN**(按门定义排期,禁借绿)。
+- **评审原件**:`production/qa/evidence/review-m2-boot-phase1-2026-10-09.md`。
+- ⚠️ **未验**:编辑器真机 Play(Boot 四步启动序首次运行)+ S6 spike 实跑 —— 归门④/收口轮。
+
+**下一步**: ① 阶段 1 收口提交(等用户指令);② 阶段 1 尾(可选,与阶段 2 并行):OnPositionSample
+采样喂入接线;③ 阶段 2 开工前须先裁四项(曲线数值 fixture / 定点 Exp / F3 NOT-RUN / 急救归因)。
 
 ---
 

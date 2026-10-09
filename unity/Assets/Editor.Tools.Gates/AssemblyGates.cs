@@ -43,7 +43,8 @@ namespace DaYiJingCheng.EditorTools.Gates
     /// EditMode 测试经 public 面直调检查器,免 InternalsVisibleTo)。</summary>
     public static class AssemblyGates
     {
-        // ── b3 的登记清单(ADR-025 §① 七装配 ∪ 测试族三装配 ∪ Editor.Tools 族)──
+        // ── b3 的登记清单(ADR-025 §① 八装配 ∪ 测试族三装配 ∪ Editor.Tools 族)──
+        // (2026-10-09 Gameplay.Boot 增员后 七 → 八,与 ADR-025 §① 表头同步)
         // Editor.Tools 族拆 Level/Kindgen 两个具名装配是卡 §0.1 的落地形(ADR-025 表记「族」);
         // Gates(U0-b)+ Spike(U1 spike 批)+ Bake(Story 008 数据管线)同属该族追加 ——
         // 族内增员 = 改本清单 **且同批回写 ADR-025 §① 族行**(2026-09-26 审查 Required-5:
@@ -51,9 +52,12 @@ namespace DaYiJingCheng.EditorTools.Gates
         // Gates/Spike/Bake 三支已于 2026-09-26 回写 ADR-025 §① —— 两处自此一致)。
         // Gameplay.Input = story-001 B1 拆装增员(ADR-025 §① 2026-09-25 已载;清单 2026-09-25 补登)。
         // SkeuomorphicUI.Tests = Story 003 焦点导航边界测试装配(2026-09-28 补登)。
+        // Gameplay.Boot = M2 接线轮阶段 1 装配轮 · 组合根案 A(2026-10-09 增员;
+        //   ADR-025 §① 同批回写 —— b5 把 Sim.Codec 装配级标红 ⇒ 编码器构造点须独立装配)。
         private static readonly HashSet<string> Manifest = new HashSet<string>
         {
             "Sim", "Sim.Contracts", "Sim.Codec",
+            "Gameplay.Boot",
             "Gameplay.Presentation", "Gameplay.UI", "Gameplay.Input",
             "Editor.Tools.Level", "Editor.Tools.Kindgen", "Editor.Tools.Gates",
             "Editor.Tools.Spike", "Editor.Tools.Bake",
@@ -232,13 +236,15 @@ namespace DaYiJingCheng.EditorTools.Gates
         // 会误报(偏安全);故扫描前**剥注释**,避免文档里引用规则本身被误判。
         //
         /// <summary>
-        /// b6 的扫描面(2026-10-09 O-6 扩至表现层)。测试断言此数组含
+        /// b6 的扫描面(2026-10-09 O-6 扩至表现层;同日再扩 `Assets/Gameplay.Boot` ——
+        /// 新装配同型扩面,防组合根侧手搓而门不可见)。测试断言此数组含
         /// `Assets/Sim` 与 `Assets/Gameplay.Presentation` —— 从数组删任一项 = 该面退回零门。
         /// </summary>
         internal static readonly string[] PayloadRefScanDirs =
         {
             "Assets/Sim",
             "Assets/Gameplay.Presentation",
+            "Assets/Gameplay.Boot",
         };
 
         private static void CheckPayloadRefCallsites(List<string> errs)

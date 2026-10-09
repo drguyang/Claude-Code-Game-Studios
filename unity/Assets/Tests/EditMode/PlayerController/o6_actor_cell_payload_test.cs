@@ -237,24 +237,27 @@ namespace DaYiJingCheng.Tests.PlayerController
         }
 
         [Test]
-        public void test_o6_b6Gate_scanDirsExactlyTwoFaces()
+        public void test_o6_b6Gate_scanDirsExactlyThreeFaces()
         {
             // ⚠️ 测试面 F-7(与 assembly_gate_b6_test 的 Contains 判据**不同维度**,
-            //    刻意不双写):本条断言**恰两面 + 无重复** —— 增面/删面/重复登记
+            //    刻意不双写):本条断言**恰三面 + 无重复** —— 增面/删面/重复登记
             //    一律红,须显式复核(清单封闭性,承 ADR-024/025 的本法)。
-            //    删 `Assets/Gameplay.Presentation` ⇒ 长度 1 ⇒ 红(逃逸变异 C 的第二网)。
+            //    删 `Assets/Gameplay.Presentation` ⇒ 长度 2 ⇒ 红(逃逸变异 C 的第二网)。
+            //    2026-10-09 F3-②:第三面 = `Assets/Gameplay.Boot`(新装配同型扩面,
+            //    防组合根侧手搓而门不可见)—— 原「恰两面」判据随扩面同步为恰三面。
             var dirsField = typeof(AssemblyGates).GetField("PayloadRefScanDirs",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
             Assert.IsNotNull(dirsField, "扫描面数组须存在");
             var dirs = (string[])dirsField.GetValue(null);
 
-            Assert.AreEqual(2, dirs.Length,
-                "b6 扫描面恰两面(Sim + Gameplay.Presentation)—— 增删面须显式复核,实测: "
-                + string.Join(", ", dirs));
+            Assert.AreEqual(3, dirs.Length,
+                "b6 扫描面恰三面(Sim + Gameplay.Presentation + Gameplay.Boot)—— " +
+                "增删面须显式复核,实测: " + string.Join(", ", dirs));
             Assert.AreEqual(dirs.Length, dirs.Distinct().Count(),
-                "扫描面不得有重复目录(重复 = 门以为扫了两遍): " + string.Join(", ", dirs));
+                "扫描面不得有重复目录(重复 = 门以为扫了多遍): " + string.Join(", ", dirs));
             CollectionAssert.Contains(dirs, "Assets/Sim");
             CollectionAssert.Contains(dirs, "Assets/Gameplay.Presentation");
+            CollectionAssert.Contains(dirs, "Assets/Gameplay.Boot");
         }
 
         // ══════════ 测试辅助 ══════════

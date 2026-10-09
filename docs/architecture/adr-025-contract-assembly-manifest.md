@@ -104,7 +104,7 @@ dr_guyang(用户 · **2026-09-20 全件照准,转 Accepted**)· technical-direct
 
 ## Decision
 
-### ① 具名装配清单(**七装配 = 六具名 + `Editor.Tools` 工具族**;2026-09-20 裁定:清单与命名全照准,不改名;**2026-09-25 story-001 复核 B1 增 `Gameplay.Input`**,六 → 七)
+### ① 具名装配清单(**八装配 = 七具名 + `Editor.Tools` 工具族**;2026-09-20 裁定:清单与命名全照准,不改名;**2026-09-25 story-001 复核 B1 增 `Gameplay.Input`**,六 → 七;**2026-10-09 M2 接线轮阶段 1 · 组合根案 A 增 `Gameplay.Boot`**,七 → 八)
 
 | asmdef | 层 | 引用集 | `noEngineReferences` | 成员(§2.0/§2.2 的收口) |
 |---|---|---|---|---|
@@ -114,6 +114,7 @@ dr_guyang(用户 · **2026-09-20 全件照准,转 Accepted**)· technical-direct
 | **`Gameplay.Presentation`** | L5(+L4) | UnityEngine · URP · `Sim.Contracts` | false | 1 · 2 · 42-UGUI 侧 · 44 · `ISceneRouter`/`IWorldSpawner`(ADR-023)· L4 边界层模块(4 / 8 / 13 / 51)|
 | **`Gameplay.Input`** | L4 | `Unity.InputSystem` only | false | 3 输入与设备(`InputService`,动作资产唯一持有者;**不引 `Sim.Contracts`** —— AC-3-A6 输入程序集不引任何声明 `IEventSink`/`SimEvent` 的程序集,2026-09-25 story-001 复核 B1 拆装)|
 | **`Gameplay.UI`** | L5 | + UI Toolkit | false | 42 UI Toolkit 栈 · 39 · 7b · 48(与 Presentation 分装配 = 焦点单栈门的**编译期**表达,ADR-013)|
+| **`Gameplay.Boot`** | L5(组合根) | `Sim` · `Sim.Codec` · `Sim.Contracts` · `Gameplay.Presentation` · `Unity.Addressables` · `Unity.ResourceManager` · UnityEngine | false | **2026-10-09 增补(M2 接线轮阶段 1 · 组合根案 A)** —— 依据 = b5 门把 `Sim.Codec` **装配级标红**,而 `PayloadEncoder` 实现体住 `Sim.Codec`、`Gameplay.Presentation` 不可引用它 ⇒ 编码器构造点须独立装配。承载 `BootRoot`(Boot.unity 启动序宿主)· `CompositionRoot` / `CompositionRootServices`(生产装配)· `SimTickDriver`(`ITickProvider` 实装)。**无生产装配引用 `Gameplay.Boot`**(组合根为装配叶;仅 `Sim.Contracts.Tests` 即 EditMode 测试装配引用;Boot.unity 仅以脚本 guid 挂 `BootRoot`)|
 | **`Editor.Tools`** 族 | L6 | UnityEditor 自由 | n/a | `tools/level/`(ADR-022)+ `tools/kindgen/`(ADR-024)+ **`Editor.Tools.Gates`(U0-b 四门 b2–b5)· `Editor.Tools.Spike`(U1 spike 批)· `Editor.Tools.Bake`(Story 008 数据管线)**(2026-09-26 audio Story 001 代码审查 Required-5 回写 —— 三支此前仅在 `AssemblyGates` 清单内、本表零登记,与 §④「新 asmdef 须追加进本表」冲突,今补平;**全部不进构建**,asmdef 限 `includePlatforms: ["Editor"]`) |
 | **`SkeuomorphicUI.Tests`** | L6(测试) | `Gameplay.Presentation` · `Gameplay.UI` · `Unity.InputSystem` | n/a | Story 003 焦点导航边界单元测试(`focus_boundary_test.cs`, 8 测;**不进构建**,asmdef 限 `includePlatforms: ["Editor"]`) |
 

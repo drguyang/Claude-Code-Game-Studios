@@ -1,0 +1,22 @@
+{
+    "name": "Gameplay.Boot",
+    "rootNamespace": "DaYiJingCheng.Gameplay.Boot",
+    "references": [
+        "Sim",
+        "Sim.Codec",
+        "Sim.Contracts",
+        "Gameplay.Presentation",
+        "Unity.Addressables",
+        "Unity.ResourceManager",
+        "UnityEngine"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
