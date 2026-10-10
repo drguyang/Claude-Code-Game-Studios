@@ -446,6 +446,7 @@ namespace DaYiJingCheng.Tests.EditMode.CaseSystem
             public bool IsPresent(PatientId patientId) => _present.Contains(patientId.Value);
             public int PresentCount => _present.Count;
             public bool IsPresentAt(WorldPos cell) => false;
+            public IReadOnlyCollection<int> PresentPatientIds() => _present.ToArray();
             public void Add(PatientId patientId) => _present.Add(patientId.Value);
         }
     }

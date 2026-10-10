@@ -23,6 +23,7 @@
 
 using System;
 using System.Threading.Tasks;
+using DaYiJingCheng.Gameplay.Presentation.Camera;
 using DaYiJingCheng.Gameplay.Presentation.Player;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
@@ -42,6 +43,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private SimTickDriver _tickDriver;
         private CompositionRootServices _services;
         private PlayerController _player;
+        private CameraRig _cameraRig;
 
         /// <summary>World 场景的加载句柄(Phase 2 拆序第 4 步 <c>UnloadSceneAsync</c> 所需;
         /// 本版默认 releaseMode = 场景卸载时自动释放,常驻不等于泄漏)。</summary>
@@ -148,6 +150,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 落到世界原点上方 1 m(CharacterController 需落地;落地表现后续 PlayMode 验)。
             _player.Teleport(new Vector3(0f, 1f, 0f));
 
+            // ── 5. 相机机位装配(sprint-05 T1.5)──
+            // ADR-020:相机 = 自建机位,不引入 Cinemachine
+            // 跟随 = 每帧把相机位置设到玩家位置 + 偏移
+            var cameraObj = new GameObject("CameraRig");
+            _cameraRig = cameraObj.AddComponent<CameraRig>();
+            var camera = cameraObj.AddComponent<UnityEngine.Camera>();
+            var audioListener = cameraObj.AddComponent<UnityEngine.AudioListener>();
+            _cameraRig.SetModeForTest(CameraMode.Explore);
+
             _booted = true;
         }
 
@@ -170,10 +181,60 @@ namespace DaYiJingCheng.Gameplay.Boot
         {
             if (!_booted || _tickDriver == null || _player == null) return;
 
+            // 先跑 tick 泵(Advance + 逐边沿),再按推进后的 CurrentTick 驱动病人出现 ——
+            // 次序不可反:驱动读的是**本帧推进后**的 tick;若在 PumpFrame 之前调,
+            // CurrentTick 恒 0(首帧未 Advance)⇒ 驱动把 _lastSpawnTick 钉在 0,
+            // 之后每个新 tick 都满足 `tick - 0 < 间隔` ⇒ 永不 spawn(2026-10-10 实测红)。
+            // 帧节奏注入(sprint-05 T1.1):captureDeltaTime 只影响 Time.deltaTime,
+            // **不传导到 unscaledDeltaTime**(2026-10-10 实测:tick Δ=0 恒不推进)。
+            // 而 tick 泵吃的是 unscaledDeltaTime ⇒ 需要时显式注入固定步长,令
+            // 「batch 快帧」与「编辑器 16.7ms 真帧」在 tick 语义上等价。
+            // ⚠️ 只在 capture 激活时注入(生产路径永远走真实墙钟,不受影响)。
+            double delta = Time.unscaledDeltaTime;
+            if (Time.captureDeltaTime > 0d)
+                delta = Time.captureDeltaTime;
+
+            long tickBefore = _tickDriver.CurrentTick;
             MovementFeed.PumpFrame(_player, _tickDriver,
                                    MovementInputReader.ReadMoveAxis(),
-                                   Time.unscaledDeltaTime,
+                                   delta,
                                    StepVitals);
+
+            // 病人出现驱动:仅在**本帧真推进了 tick** 时驱动(未推进 = 无 tick 边沿)
+            if (_tickDriver.CurrentTick > tickBefore
+                && _services != null && _services.PatientAppearedDriver != null)
+            {
+                _services.PatientAppearedDriver.OnTickEdge(_tickDriver.CurrentTick);
+            }
+
+            // 病例开账驱动(sprint-05 T1.2):在同一 tick 边沿序列内,病人出现驱动**之后**调用
+            // 次序 = 病人先出现(DiseaseOnset 入流)→ 再开案(CaseOpened 入流)
+            if (_tickDriver.CurrentTick > tickBefore
+                && _services != null && _services.CaseOpenedDriver != null)
+            {
+                _services.CaseOpenedDriver.OnTickEdge(_tickDriver.CurrentTick);
+            }
+
+            // 急救链接线驱动(sprint-05 T1.3):在同一 tick 边沿序列内,开案驱动**之后**调用
+            // 次序 = 病人先出现 → 再开案 → 最后触发急救(EmergencyAttempt + EmergencyTreatmentApplied 入流)
+            if (_tickDriver.CurrentTick > tickBefore
+                && _services != null && _services.EmergencyAttemptDriver != null)
+            {
+                _services.EmergencyAttemptDriver.OnTickEdge(_tickDriver.CurrentTick);
+            }
+
+            // 相机跟随(sprint-05 T1.5):每帧把相机位置设到玩家位置 + 偏移
+            // ADR-020:相机 = 自建机位,不引入 Cinemachine
+            if (_cameraRig != null && _player != null)
+            {
+                var cam = _cameraRig.Camera;
+                if (cam != null)
+                {
+                    Vector3 target = _player.transform.position;
+                    cam.transform.position = _cameraRig.GetCameraPosition(target);
+                    cam.transform.LookAt(target);
+                }
+            }
         }
 
         /// <summary>

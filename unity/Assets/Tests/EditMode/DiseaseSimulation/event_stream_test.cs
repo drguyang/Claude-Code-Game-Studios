@@ -8,6 +8,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 using NUnit.Framework;
@@ -36,6 +37,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         public bool IsPresent(PatientId patientId) => _presentPatients.Contains(patientId.Value);
         public int PresentCount => _presentPatients.Count;
         public bool IsPresentAt(WorldPos cell) => false;
+        public IReadOnlyCollection<int> PresentPatientIds() => _presentPatients.ToArray();
 
         public void Add(PatientId patientId) => _presentPatients.Add(patientId.Value);
         public void Clear() => _presentPatients.Clear();

@@ -23,14 +23,15 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Gameplay.PatientAI
 {
-    /// <summary>在场登记簿 —— <see cref="IPresenceQuery"/> 的生产实装(O-2)。
+    /// <summary>在场登记簿 —— <see cref="IPresenceQuery"/> 读面 + <see cref="IPresenceWriter"/> 写面的生产实装(O-2)。
     /// <para>写面给组合层;读面给 sim(EventStream 的 AC-15 有界性等)。
     /// 在场 = 病人(计 CAP);占格 = 任意实体(IsPresentAt,不计 CAP)。</para></summary>
-    public sealed class PresenceRegistry : IPresenceQuery
+    public sealed class PresenceRegistry : IPresenceQuery, IPresenceWriter
     {
         private readonly HashSet<int> _present = new HashSet<int>();
         private readonly Dictionary<int, WorldPos> _cellOf = new Dictionary<int, WorldPos>();
@@ -47,6 +48,12 @@ namespace DaYiJingCheng.Gameplay.PatientAI
 
         /// <summary>当前在场病人数(AC-15 与 PATIENT_APPEARANCE_CAP 比较;玩家 / 敌人不计)。</summary>
         public int PresentCount => _present.Count;
+
+        /// <summary>当前在场病人的 id 集合(只读快照;sprint-05 T1.2 新增)。</summary>
+        public IReadOnlyCollection<int> PresentPatientIds()
+        {
+            return _present.ToArray();
+        }
 
         /// <summary>指定格上是否有实体(玩家 / 敌人 / 病人)。</summary>
         public bool IsPresentAt(WorldPos cell) => _occupiedCells.Contains(cell);

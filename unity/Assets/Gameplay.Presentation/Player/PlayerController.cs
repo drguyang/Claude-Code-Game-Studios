@@ -236,7 +236,28 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
 
             // AC-1-01②: CharacterController.Move 是唯一位移写入点
             controller.Move(delta);
+
+            // 坠落重置(sprint-05 T1.4):玩家掉出世界边界时重置回出生点
+            // playtest bug #1 修复:出界无底会被每个玩家读成 bug
+            // 最低成本修复 = 坠落重置(完整方案归阶段 3 世界扩展)
+            if (transform.position.y < FallResetThreshold)
+            {
+                Teleport(SpawnPosition);
+                _velocity = Vector3.zero;
+            }
         }
+
+        /// <summary>
+        /// 坠落重置阈值(sprint-05 T1.4):y 低于此值时重置回出生点。
+        /// 默认 -10f(足够低,不会误触发;足够高,能在掉出世界前重置)。
+        /// </summary>
+        private const float FallResetThreshold = -10f;
+
+        /// <summary>
+        /// 出生点(sprint-05 T1.4):坠落重置的目标位置。
+        /// 默认 (0, 1, 0)(与 BootRoot 生成玩家时的 Teleport 位置一致)。
+        /// </summary>
+        private static readonly Vector3 SpawnPosition = new Vector3(0f, 1f, 0f);
 
         /// <summary>
         /// tick 边沿提交(ADR-020 Amendment B)。

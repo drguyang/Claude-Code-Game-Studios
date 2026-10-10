@@ -166,6 +166,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public bool IsPresent(PatientId patientId) => false;
         public int PresentCount => 0;
         public bool IsPresentAt(WorldPos cell) => false;
+        public IReadOnlyCollection<int> PresentPatientIds() => Array.Empty<int>();
     }
 
     // 测试辅助: 模块目录

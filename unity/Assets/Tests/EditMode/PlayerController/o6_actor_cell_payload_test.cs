@@ -305,6 +305,7 @@ namespace DaYiJingCheng.Tests.PlayerController
             public bool IsPresent(PatientId patientId) => false;
             public int PresentCount => 0;
             public bool IsPresentAt(WorldPos cell) => false;
+            public IReadOnlyCollection<int> PresentPatientIds() => Array.Empty<int>();
         }
     }
 }

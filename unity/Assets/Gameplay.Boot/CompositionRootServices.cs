@@ -41,6 +41,18 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>病人创建器(9 的 DiseaseOnset 写者,ADR-030)。</summary>
         public PatientSpawner PatientSpawner { get; }
 
+        /// <summary>病人出现驱动(sprint-05 T1.1)—— 按 tick 节奏调 <see cref="PatientSpawner"/>
+        /// 写 DiseaseOnset;由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
+        public PatientAppearedDriver PatientAppearedDriver { get; }
+
+        /// <summary>病例开账驱动(sprint-05 T1.2)—— 对在场且未开案的病人自动开案;
+        /// 由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
+        public CaseOpenedDriver CaseOpenedDriver { get; }
+
+        /// <summary>急救链接线驱动(sprint-05 T1.3)—— 对在场且未触发过急救的病人自动触发一次;
+        /// 由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
+        public EmergencyAttemptDriver EmergencyAttemptDriver { get; }
+
         /// <summary>体征链核心服务(批次 C):apply 驱动 + 投影桥 +
         /// <see cref="IVitalsQuery"/> 生产实装。由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
         public DiseaseVitalsService VitalsService { get; }
@@ -51,6 +63,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         internal CompositionRootServices(EventStream stream, IIdAuthority idAuthority,
                                          InMemoryBlobPool blobPool, IPayloadEncoder encoder,
                                          PresenceRegistry presence, PatientSpawner patientSpawner,
+                                         PatientAppearedDriver patientAppearedDriver,
+                                         CaseOpenedDriver caseOpenedDriver,
+                                         EmergencyAttemptDriver emergencyAttemptDriver,
                                          ulong worldSeed, DiseaseVitalsService vitalsService)
         {
             Stream = stream;
@@ -59,6 +74,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             Encoder = encoder;
             Presence = presence;
             PatientSpawner = patientSpawner;
+            PatientAppearedDriver = patientAppearedDriver;
+            CaseOpenedDriver = caseOpenedDriver;
+            EmergencyAttemptDriver = emergencyAttemptDriver;
             VitalsService = vitalsService;
             WorldSeed = worldSeed;
         }

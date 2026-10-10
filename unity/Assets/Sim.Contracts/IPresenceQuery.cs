@@ -10,6 +10,8 @@
 //   - sim 侧只读整数在场标志
 //   - 禁接收连续位置（AC-20-03 同构纪律）
 
+using System.Collections.Generic;
+
 namespace DaYiJingCheng.Sim.Contracts
 {
     /// <summary>
@@ -31,5 +33,11 @@ namespace DaYiJingCheng.Sim.Contracts
         /// 指定格上是否有实体（玩家/敌人）。
         /// </summary>
         bool IsPresentAt(WorldPos cell);
+
+        /// <summary>
+        /// 当前在场病人的 id 集合（只读快照）。
+        /// <para>sprint-05 T1.2 新增:病例开账驱动需要遍历在场病人。</para>
+        /// </summary>
+        IReadOnlyCollection<int> PresentPatientIds();
     }
 }

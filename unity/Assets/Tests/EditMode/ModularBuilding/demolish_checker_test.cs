@@ -5,6 +5,7 @@
 // AC-23-16: Refund = ⌊cost × R⌋ 整数向下取整,失败走 DropSpawned
 
 using System;
+using System.Collections.Generic;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.World;
 using NUnit.Framework;
@@ -78,5 +79,6 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         public bool IsPresent(PatientId patientId) => true;
         public int PresentCount => 1;
         public bool IsPresentAt(WorldPos cell) => true;
+        public IReadOnlyCollection<int> PresentPatientIds() => Array.Empty<int>();
     }
 }

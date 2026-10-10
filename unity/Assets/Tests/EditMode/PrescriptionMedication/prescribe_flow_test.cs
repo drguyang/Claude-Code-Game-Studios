@@ -56,6 +56,7 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
         public bool IsPresent(PatientId patientId) => Present;
         public int PresentCount => Present ? 1 : 0;
         public bool IsPresentAt(WorldPos cell) => Present;
+        public IReadOnlyCollection<int> PresentPatientIds() => Present ? new[] { 0 } : Array.Empty<int>();
     }
 
     /// <summary>换算表桩(影子 schema —— 21a 产出方落位后仅换实现)。

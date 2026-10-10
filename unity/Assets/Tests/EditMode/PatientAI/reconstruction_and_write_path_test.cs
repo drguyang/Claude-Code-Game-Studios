@@ -1099,6 +1099,7 @@ namespace DaYiJingCheng.Tests.PatientAI
             public bool IsPresent(PatientId patientId) => true;
             public int PresentCount => 0;
             public bool IsPresentAt(WorldPos cell) => false;
+            public IReadOnlyCollection<int> PresentPatientIds() => Array.Empty<int>();
         }
 
         // ── 影子类型(负夹具)──────────────────────────────────────
@@ -1426,6 +1427,7 @@ namespace DaYiJingCheng.Tests.PatientAI
             public bool IsPresent(PatientId patientId) => _present.Contains(patientId.Value);
             public int PresentCount => _present.Count;
             public bool IsPresentAt(WorldPos cell) => false;
+            public IReadOnlyCollection<int> PresentPatientIds() => _present.ToArray();
         }
 
         private sealed class FakeClinicSource : IClinicKnowledgeSource
