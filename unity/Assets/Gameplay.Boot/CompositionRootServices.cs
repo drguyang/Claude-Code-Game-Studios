@@ -61,6 +61,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <see cref="IVitalsQuery"/> 生产实装。由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
         public DiseaseVitalsService VitalsService { get; }
 
+        /// <summary>42 侧脉案只读数源(sprint-05 T2.1)—— 把 <see cref="VitalsService"/>
+        /// 接到 <c>ICasebookDtoSource</c>(42 装配的唯一数据入口)。</summary>
+        public CasebookVitalsSource CasebookSource { get; }
+
         /// <summary>世界种子(存档头量;patient_seed = hash(world_seed, patient_id) 的入参)。</summary>
         public ulong WorldSeed { get; }
 
@@ -71,7 +75,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          CaseOpenedDriver caseOpenedDriver,
                                          EmergencyAttemptDriver emergencyAttemptDriver,
                                          PatientVisualSpawner patientVisualSpawner,
-                                         ulong worldSeed, DiseaseVitalsService vitalsService)
+                                         ulong worldSeed, DiseaseVitalsService vitalsService,
+                                         CasebookVitalsSource casebookSource)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -84,6 +89,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             EmergencyAttemptDriver = emergencyAttemptDriver;
             PatientVisualSpawner = patientVisualSpawner;
             VitalsService = vitalsService;
+            CasebookSource = casebookSource;
             WorldSeed = worldSeed;
         }
     }

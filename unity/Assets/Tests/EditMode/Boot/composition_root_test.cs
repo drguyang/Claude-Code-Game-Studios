@@ -13,6 +13,7 @@ using DaYiJingCheng.Gameplay.PatientAI;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
+using DaYiJingCheng.Sim.DiseaseSimulation;
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.Boot
@@ -111,6 +112,38 @@ namespace DaYiJingCheng.Tests.Boot
             Assert.AreEqual(1, second.Value - first.Value, "第二次 SpawnNext 的 patient_id 须递增 1");
             Assert.AreEqual(2, bag.Stream.Count, "两次创建 = 流内两条(同 tick 不同 patient_id,不去重)");
             Assert.AreEqual(EventKind.DiseaseOnset, bag.Stream.Events[bag.Stream.Count - 1].Kind);
+        }
+
+        [Test]
+        public void test_assemble_wiresCasebookSource_toVitalsQuery()
+        {
+            // sprint-05 T2.1:42 侧只读数源须在装配袋内,且其 CurrentVitals 真穿过
+            // DiseaseVitalsService(IVitalsQuery 生产实装)—— 不是「构造出来没人接」的摆设。
+            CompositionRootServices bag = CompositionRoot.Assemble();
+
+            Assert.NotNull(bag.CasebookSource, "42 侧只读数源须在袋内(T2.1 接线判据)");
+
+            // Act:spawn 一个真病人。⚠️ diseaseId 须取**注册表内**的 1 —— 组合根的
+            //    最小内联注册表只有 DiseaseId=1(数值轮未开前的接线载体);传 3 会让
+            //    体征链 Step fail-loud「病种不在注册表内」(这是判据本身,不是缺陷)。
+            PatientId patient = bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 0);
+            bag.CasebookSource.ChangePatient(patient);
+            bag.VitalsService.OnTickEdge(0);
+
+            // Assert:ActiveSignCount 真穿过求值器(0 = tripwire 现形:9 侧未接 signs 词表;
+            // 一旦接线产出真词条,本值即 > 0,无需改此处)。
+            Assert.AreEqual(0, bag.CasebookSource.ActiveSignCount,
+                "F2 signs tripwire 现形:9 侧当前无阈值可判活跃词条 ⇒ 恒 0(接通判据,非缺陷)");
+
+            // Assert:未建档病人 ⇒ 门退化为 0(42 侧转空行),不把 fail-loud 泄进 UI 帧
+            bag.CasebookSource.ChangePatient(new PatientId(9999));
+            Assert.AreEqual(0, bag.CasebookSource.ActiveSignCount,
+                "未建档病人 ⇒ 空行(门不抛 —— 异常不得以 UI 帧崩掉呈现层)");
+
+            // Assert:fail-loud 仍在门面侧保留(直调 IVitalsQuery 未建档 ⇒ 具名异常)
+            Assert.Throws<PatientCourseNotFoundException>(
+                () => { var _ = bag.VitalsService.GetVitals(new PatientId(9999)); },
+                "未建档病人直调 query 须 fail-loud —— 全零 DTO 与「真无症状」不可区分");
         }
 
         [Test]

@@ -25,6 +25,7 @@ using System;
 using System.Threading.Tasks;
 using DaYiJingCheng.Gameplay.Presentation.Camera;
 using DaYiJingCheng.Gameplay.Presentation.Player;
+using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -44,6 +45,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private CompositionRootServices _services;
         private PlayerController _player;
         private CameraRig _cameraRig;
+        private SkeuoRuntimeDriver _uiDriver;
 
         /// <summary>World 场景的加载句柄(Phase 2 拆序第 4 步 <c>UnloadSceneAsync</c> 所需;
         /// 本版默认 releaseMode = 场景卸载时自动释放,常驻不等于泄漏)。</summary>
@@ -172,11 +174,44 @@ namespace DaYiJingCheng.Gameplay.Boot
             cameraObj.AddComponent<UnityEngine.Camera>();
             _cameraRig.SetModeForTest(CameraMode.Explore);
 
+            // ── 6. 拟物 UI 运行时装配(sprint-05 T2.1 / T2.2)──
+            // ADR-023 §①:UI 载体由运行期生成。**例外(prefab 空壳)**:Boot.unity 预摆的
+            //    `SkeuoUI`(Transform + UIDocument + SkeuoRuntimeDriver)只持**渲染资源**
+            //    (PanelSettings),与预摆 Main Camera 只持 AudioListener 同型 —— 零游戏状态、
+            //    零 Screen 实例(BuildUI 在 Awake 里由 driver 跑)。
+            //    ⚠️ 为何必须有预摆:2026-10-10 实测(PlayMode 探针)UIDocument 无 PanelSettings
+            //       ⇒ `rootVisualElement.panel == null` ⇒ **逻辑树在但不渲染**。因此预摆不是
+            //       「第二真源」,是让 panel 非 null 的唯一途径(运行时脚本无法凭空造图标资源);
+            //    真 Screen / 真绑定 / 真值区仍在运行期,预摆不参与任何一态。
+            _uiDriver = FindOrCreateSkeuoUi();
+            if (_services.CasebookSource != null)
+                _uiDriver.Source = _services.CasebookSource;
+
             // fail-loud(AudioListener 单挂点 · AC-20-10):>1 即抛。
             // 把「运行期每帧刷 3 万条日志 →  Editor 卡死」的失效模式提前成具名异常。
             AssertSingleAudioListener();
 
             _booted = true;
+        }
+
+        /// <summary>
+        /// 取 / 建拟物 UI 运行宿主(场景预摆优先,缺则自建)。
+        /// <para>预摆 = Boot.unity 的 <c>SkeuoUI</c>(持 UIDocument + PanelSettings);
+        /// 缺失 = 测试里没造 fixture ⇒ 自建(此时无 PanelSettings ⇒ 逻辑树在、不渲染,
+        /// 见 <see cref="AssertSingleAudioListener"/> 旁注的实测记录)。</para>
+        /// </summary>
+        private SkeuoRuntimeDriver FindOrCreateSkeuoUi()
+        {
+            var existing = UnityEngine.Object.FindObjectOfType<SkeuoRuntimeDriver>();
+            if (existing != null)
+                return existing;
+
+            var uiObj = new GameObject("SkeuoUI");
+            UnityEngine.Debug.LogWarning(
+                "[BootRoot] Boot.unity 未预摆 SkeuoUI(UIDocument + PanelSettings)—— " +
+                "自建空壳 ⇒ UI 逻辑树在但不渲染(panel == null,2026-10-10 实测)。" +
+                "生产场景应保留预摆;测试环境可忽略本警告。");
+            return uiObj.AddComponent<SkeuoRuntimeDriver>();
         }
 
         /// <summary>
@@ -280,6 +315,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.PatientVisualSpawner.OnTickEdge(_tickDriver.CurrentTick);
             }
 
+            // 拟物 UI 值区(sprint-05 T2.1/T2.3):视觉实体**之后**调用 —— UI 读的是
+            // **本 tick 已推进完**的体征(Driver.Bind 的源零缓存,每次读都过体征链)。
+            // 次序不可反:若在体征 Step 前刷新,同一 tick 里 UI 显示的是上一 tick 的读数。
+            if (_tickDriver.CurrentTick > tickBefore && _uiDriver != null)
+            {
+                _uiDriver.OnTickEdge();
+            }
+
             // 相机跟随(sprint-05 T1.5):每帧把相机位置设到玩家位置 + 偏移
             // ADR-020:相机 = 自建机位,不引入 Cinemachine
             if (_cameraRig != null && _player != null)
@@ -320,6 +363,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _player = null;
             _services = null;
             _tickDriver = null;
+            _uiDriver = null;
         }
     }
 }

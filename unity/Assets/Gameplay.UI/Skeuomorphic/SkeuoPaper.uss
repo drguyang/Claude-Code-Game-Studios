@@ -83,6 +83,19 @@
     font-size: var(--skeuo-font-size-md);
 }
 
+/* ── 候选动作列表项 · M2 形态件③(sprint-05 T2.4 · EmergencyCandidateList 载体)──
+ * 判据权威 = story-023 边界裁定①/警示②:`O-10-1` 跳过入口 owner = 42;
+ * **跳过入口 = 候选动作列表上的一项**(规则六之甲)——候选列表本身归 10 轮,
+ * 本类只承接**列表项**的宽半承诺(AB-3 ≥44×44:高半由 `.skip-entry` 锁,见上块;
+ * 宽半 = 载体布局属性,story-023 已登记「由 10 轮候选动作列表载体锁定」——
+ * 本轮 T2.4 建的载体即该锁定方,故在此承接,不越界承诺别处)。
+ * ⚠️ 复用 `.skip-entry` 零 background-image / 零 border-* 的焦点单槽纪律
+ *    (story-023 边界⑤;本类零新增属性冲突)。
+ * ⚠️ 零数字(AC-023-2):本块零 `content:` / 零 `X/N` 形态。 */
+.candidate-entry {
+    min-width: var(--skeuo-shared-row-height);
+}
+
 /* ── 通道值区 · M2 形态件④(story-024 · AC-024-2)──
  * 一条真实状态反馈通道的**呈现端**:已查词条 → 脉案通道行的值区。
  * 判据权威 = diagnosis-system 规则五 / V-8.2 / :1178-1186。

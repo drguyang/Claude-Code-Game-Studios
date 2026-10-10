@@ -1,0 +1,59 @@
+// sprint-05 T2.1 / T2.3 · 42 侧只读绑定面(2026-10-10 立)
+//
+// 权威来源:
+//   ADR-013 §9 C3 —— 42 只渲染,永不持有游戏状态(本接口零可变字段契约)
+//   story-024 边界裁定 ①②④ —— 42 零自定义映射(通道/词/极性全消费 8 的表)
+//   ADR-005 抽象点之四 `IVitalsQuery` / `VitalsDto`(全案唯一浮点出口)
+//   story-011 双真源声明 —— `BuildUI()` 代码面与 `Casebook39.uxml` spec 面
+//     **不得因数据绑定而变形**:本接口把「读」与「建树」分开 ⇒ BuildUI 不变、
+//     PlayMode `casebook_render_test` 六条 + 交叉断言零回归。
+//
+// 设计说明:
+//   · `IDtoSource` 是**标记接口**(具体 DTO 访问方法由实现方定义,Apr-ADR-013
+//     原文)—— 本接口是 42 侧对该契约的**唯一收口形状**:driver 只知道要读什么,
+//     不知道谁产这些数,更不自己造(禁假数据:零 fallback 词 / 零占位读数)。
+//   · `VitalsDto` 是**门**(通道活跃掩码 + SignCount,AC-20 字段白名单),词条来自 8 的
+//     `SignLexemeRow`(revealed 集归 9 查体链;本接口只消费,不生产)。
+//   · 实现方住装配层(ADR-025 §① `Gameplay.Boot` 组合根案 A),运行期经场景引用
+//     注入 driver —— 42 不反向引用装配层(装配方向不可倒)。
+
+namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
+{
+    using System.Collections.Generic;
+    using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
+    using DaYiJingCheng.Sim.Contracts;
+
+    /// <summary>
+    /// 脉案页的只读数据源契约(T2.1 DTO 绑定面)。
+    /// <para>实现方 = 装配层的数据提供者(测试侧 = 合成 fixture);42 只读不写,
+    /// 每次刷新**重读**(caching = 第二份真相,ADR-013 §9 C3 / IDtoSource 铁律)。</para>
+    /// </summary>
+    public interface ICasebookDtoSource : IDtoSource
+    {
+        /// <summary>活跃体征数(**门**;= <c>VitalsDto.SignCount</c>,AC-20 字段白名单内的整数)。
+        /// <para>0 = 无体征可显示 ⇒ 全部通道空行(story-024 边界③ 未查 = 空行);&gt; 0 = 放行
+        /// <see cref="RevealedRows"/> 进值区。</para>
+        /// <para>⚠️ 为何不是 <c>VitalsDto</c> 属性:AC-42-D3 断言 42 命名空间**零 DTO 副本**
+        /// (反射扫字段/属性类型)—— 那是「不持有」的机械判据,读穿属性也在其面上。
+        /// 本接口因此只收 AC-20 白名单**整数**,DTO 本体留在装配层;这不是绕过 AC,
+        /// 而是让 42 与 DTO 的耦合降到「一个白名单 int」。</para></summary>
+        int ActiveSignCount { get; }
+
+        /// <summary>已查体征词条流(9 查体链的 revealed 集 —— 归 9,42 只消费)。
+        /// <c>null</c> / 空集 = 尚未查体 ⇒ 全部通道空行(story-024 边界③:
+        /// 未查 = 空行,复用 <c>.empty-row</c>,`:329` 明文非 badge)。</summary>
+        IReadOnlyList<SignLexemeRow> RevealedRows { get; }
+
+        /// <summary>当前精度档槽位(0 = 粗 … 2 = 细;F-8.2 向尾回退起点)。
+        /// 取值归读数侧(8 / 9),42 只透传给 <see cref="SignChannelBinder"/>。</summary>
+        int PrecisionSlot { get; }
+
+        /// <summary>当前读数行的墨龄 = `当前 tick − 落笔 tick`(**派生态**,两个 tick 相减)。
+        /// <para>规则十三:`skeuomorphic-ui.md:351` —— 落笔 tick 归 37(判断记录落病例流,
+        /// ADR-008),`当前 tick` 归 `ITickProvider` 只读视图(OQ-42-14 裁定:P0 就绪,
+        /// **降级为会话内伪 tick 路径已否决**)。本属性 = **已减好的差值**,
+        /// 42 侧因此**零计时器 / 零时钟读取**(AC-42-G6 反射面:42 内无计时器字段)。</para>
+        /// <para>负值 = 落笔 tick 在未来 = 数据错误(fail-loud 由实现方负责)。</para>
+        long InkAgeTicks { get; }
+    }
+}

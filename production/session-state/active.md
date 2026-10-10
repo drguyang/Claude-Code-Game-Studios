@@ -1,4 +1,99 @@
-# Session State — 2026-10-10(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ 扩行「集成接线+验证」(阶段 0 ✅ · 阶段 1 ✅ · 阶段 1 尾 ✅(已提交 `1621efd`/`6a01d73`)· **阶段 2 ◐ A–E 五批 + 登记债码-1…5/GDD 八项收口 已提交推送 `f5879c3`**(提交前全量 3191/3144/0 红/1 inc/46 跳,两份原件入册;剩批次 F 收口轮)· 阶段 3 形态件待开)· M2 形态件 4/4 齐(story-021…024)**)
+# Session State — 2026-10-10(**当前阶段 = Pre-Production · Sprint 05 ◐ 阶段 3 开工(T1.1 ✅)· Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ 扩行「集成接线+验证」(阶段 0 ✅ · 阶段 1 ✅ · 阶段 1 尾 ✅(已提交 `1621efd`/`6a01d73`)· **阶段 2 ◐ A–E 五批 + 登记债码-1…5/GDD 八项收口 已提交推送 `f5879c3`**(提交前全量 3191/3144/0 红/1 inc/46 跳,两份原件入册;剩批次 F 收口轮 ✅ 已提交 `e38132a`)· 阶段 3 形态件待开)· M2 形态件 4/4 齐(story-021…024)**)
+
+## Sprint 05 进展(2026-10-10)
+
+- **T1.1 ✅ Complete**(B 案修订后)—— `PatientSpawner` 运行期调用方接线完成:
+  - 新驱动类 `PatientAppearedDriver`(首 tick 即 spawn + 每 400 tick 再一个 + 接线期上限哨 3)
+  - 新抽象点 `IPresenceWriter`(Sim.Contracts,解装配方向)
+  - `PresenceRegistry` 实现写面接口
+  - 组合根注入驱动 + 最小内联病种注册表(1 病种,数值轮未开)
+  - `BootRoot.Update` 在 PumpFrame 后调驱动
+  - **验证测通过**:PlayMode 病史流含 `DiseaseOnset` + 在场 ≥1 + `SpawnedCount ∈ [1,3]`
+  - 证据:`unity/Logs/s5_t1_1_bfix.xml`(首轮 `s5_t1_1_patient_wiring12.xml`)
+    - **关键修复 1**:`EventStream.Append` 的 AC-15 在场检查要求 spawn 前 `AddPresent`;测试反射用 `GetField` 而非 `GetProperty`(readonly struct 字段)
+    - **关键修复 2(B 案)**:playtest 人工实测「胶囊刷屏 + xyz 钉住」⇒ 病根 = 编辑器 tick 极慢,
+      原 400-tick 节奏把可见性绑死在 tick 速率上 ⇒ 首 tick 即 spawn + 上限哨 3
+      (不改已裁定的 `TICK_SECONDS = 0.05`;详见下方 B 案修订段)
+
+- **T1.2 ✅ Complete** —— `CaseOpenWriter.TryOpen` 运行期入口接线完成:
+  - 新驱动类 `CaseOpenedDriver`(tick 边沿驱动,对在场且未开案的病人自动开案)
+  - 扩展 `IPresenceQuery` 添加 `PresentPatientIds()` 方法(sprint-05 T1.2 新增)
+  - `PresenceRegistry` 实现新方法
+  - 组合根装配 `CaseOpenWriter` + `CaseOpenedDriver`
+  - `BootRoot.Update` 在病人出现驱动之后调用开案驱动
+  - **验证测通过**:PlayMode 启动后病史流含 `CaseOpened` + 在场病人数 ≥1
+  - 证据:`unity/Logs/s5_t1_2_case_open.xml`
+  - **关键修复**:6 个测试文件的 `FakePresenceQuery` 需要实现 `PresentPatientIds()`(subagent 批量修复)
+
+- **T1.3 ✅ Complete** —— 急救链接线完成:
+  - 新驱动类 `EmergencyAttemptDriver`(tick 边沿驱动,对在场且未触发过急救的病人自动触发一次)
+  - 组合根装配 `HostEmergencyProcessor` + `EmergencyAttemptDriver`
+  - `BootRoot.Update` 在开案驱动之后调用急救驱动
+  - **验证测通过**:PlayMode 启动后病史流含 `EmergencyAttempt` + `EmergencyTreatmentApplied` + 在场病人数 ≥1
+  - 证据:`unity/Logs/s5_t1_3_emergency_verify.xml`
+  - **病史流完整事件序列**:ActorCellEntered → DiseaseOnset → CaseOpened → EmergencyAttempt → EmergencyTreatmentApplied
+
+- **T1.4 ✅ Complete** —— 边界语义(出界)修复完成:
+  - `PlayerController.Move` 添加坠落重置逻辑(playtest bug #1 修复)
+  - 坠落重置阈值 = -10f,出生点 = (0, 1, 0)
+  - **验证测通过**:PlayMode 玩家传送到远处后 y 回到 1.08(≥0)
+  - 证据:`unity/Logs/s5_t1_4_fall_reset.xml`
+
+- **T2.0 ✅ Complete** —— 病人最小可见实体完成:
+  - 新驱动类 `PatientVisualSpawner`(tick 边沿读在场集 → spawn 占位胶囊体 + 中性灰)
+  - 自持 `PatientVisuals` 根节点(PlayMode 各测试 teardown 只显式销毁自己知道的对象)
+  - `BootRoot.OnDestroy` 显式调 `DestroyAll()`(Boot 场景常驻,看不见 World 卸载)
+  - **验证测通过**:PlayMode 启动后 Hierarchy 病人视觉实体数 = 在场病人数(1:1)
+  - 证据:`unity/Logs/s5_t2_0_patient_visual2.xml`
+
+- **⚠️⚠️ T1.5 引入的真 bug + 修复(AudioListener 泄漏 → Editor 进程被日志洪泛杀死)**:
+  - **用户报告**:「程序无法关闭 play,点关闭程序也无法退出」
+  - **日志实证**:Editor.log **31868 条** `There are 2 audio listeners in the scene`(一帧一条)
+    + 尾部 `Application terminated due to an uncaught exception: Error: write EPIPE`
+  - **病根**:T1.5 装配 CameraRig 时 `AddComponent<AudioListener>()`,而 Boot.unity 预摆
+    `Main Camera`(**Transform + Camera + AudioListener + URP data**)已有一个 ⇒ 恒 2 个
+    ⇒ Unity 每帧一警告;Console 管道超载 → EPIPE → 进程异常终止(主线程卡在写死管道,
+    UI 输入进不来 =「点关闭无响应」)。**不是死循环,是日志洪泛**。
+  - **顺带查实**:World.unity **无** AudioListener(只有 Directional Light);我先前说它「自带一个」是错的
+  - **修复**:① BootRoot 启动序第 5 步**不再加** AudioListener,改为 `SetActive(false)`
+    禁用预摆相机(它只持 listener 语义),运行时相机由 CameraRig 自持 ⇒ **单挂点**。
+    ② 新增 `AssertSingleAudioListener()` fail-loud —— Unity 对多 listener **只警告不抛**,
+    而一条不可抛的警告足以杀死进程 ⇒ 必须由我方变成具名异常。
+  - ⚠️ **断言实现两处踩坑(实测订正)**:
+    ① `Object.FindObjectsOfType<T>` 只查 **active** ⇒ 预摆已被禁用 ⇒ 得 0,
+       把**正确形态**判成错误 → 改 `Resources.FindObjectsOfTypeAll<T>`(含 inactive,挂载数语义);
+    ② `Object.FindObjectsInactiveByType` 在本工程 C# 语言版本**不存在**(CS0117)。
+  - **PlayMode fixture 义务**:测试须自建预摆 `Main Camera`(Camera + AudioListener),
+    否则断言按设计抛(listener=0);teardown 须恢复 activeState 防污染同套件。
+  - **回归全绿**:PlayMode 105/105(camera 测试 `audio listeners` 警告条数 = **0**);
+    EditMode 3146/0红/1inc/46skip。证据:`unity/Logs/s5_al_fix_camera4.xml` ·
+    `unity/Logs/s5_al_fix_playmode_full.xml` · `unity/Logs/s5_al_fix_editmode_full.xml`
+  - **残留**:Editor 崩溃后 `unity/Temp/UnityLockfile` 残留(空文件,非真占用,
+    但会让下次打开误判)⇒ 已告知用户 `rm -f` 后重开
+  - **病根**:编辑器里 tick 推进极慢(300 帧仅 +2 tick)⇒ 原「每 400 tick spawn 一个」把病人可见性
+    绑死在 tick 速率上;观察窗口一拉长 tick 累积过 400 就又 spawn ⇒ 看着「越来越多」。
+    xyz 钉住同源:tick 不动 ⇒ `MovementFeed` 位移驱动源不动。
+  - **诊断探针实测**(已删):`BootRoot` 单实例 / spawner 单实例 / VisualCount 稳定 1 ⇒
+    **不是重复装配、不是崩溃**,是 tick 慢。
+  - **用户裁定 B 案**(不碰已裁定的 `TICK_SECONDS = 0.05`):① 首 tick 即 spawn 一个;
+    ② 接线期上限哨 3(防刷屏,真节奏归 52 后删除)。A 案(改 tick 速率)被否 ——
+    改 `TICK_SECONDS` = 9/5/25/7a 四份文档失效 + 重算全部历史事件时间戳与存档。
+  - **修复落点**:`PatientAppearedDriver`(firstTick 分支 + `MaxPatientsDuringWiring = 3` + `SpawnedCount` 测试接缝)
+  - **回归全绿**:PlayMode 105/105 · EditMode 3146/0红/1inc/46skip
+  - 证据:`unity/Logs/s5_t1_1_bfix.xml` · `unity/Logs/s5_bfix_playmode_full.xml` · `unity/Logs/s5_bfix_editmode_full.xml`
+  - `BootRoot.Start` 启动序第 5 步装配 `CameraRig`(ADR-020 自建机位,零 Cinemachine)
+  - `BootRoot.Update` 每帧 `GetCameraPosition(player)` + `LookAt`
+  - **验证测通过**:PlayMode 玩家移到 (3,1,3),相机跟到 (3.00, 3.59, 7.33)(水平偏移 4.33)
+  - 证据:`unity/Logs/s5_t1_5_camera_follow2.xml`
+  - **关键修复**:首轮红 = 送玩家到界外 (10,1,10),被 T1.4 坠落复位送回出生点 ⇒ 假阴性;改送界内 (3,1,3) 且每帧钉住位置
+
+- **T3.1 ✅ Complete(Phase A 收口)** —— 全量门复跑:
+  - PlayMode **104/104 全绿**(+5 新增接线测;T1.1/T1.2/T1.3/T1.4/T1.5 各一)
+  - EditMode **3146 passed / 0 failed / 1 inconclusive / 46 skipped**(F-4 基线 3144/0/1/46, +2 = 新增两个 wiring 测在 PlayMode 侧,EditMode 侧 +2 来自既有基线漂移)
+  - **修复**:`CompositionRoot` 原硬编码 fallback 注册表 ⇒ VerticalSliceTest 传合成 fixture(9001) 时体征链查不到病种 fail-loud(两条红)⇒ 改 `ResolveRegistry(caller)` caller 优先、fallback 让位
+  - 证据:`unity/Logs/s5_t3_playmode_full2.xml` · `unity/Logs/s5_t3_editmode_full.xml`
+
+**Phase A(T1.1–T1.5)全部收口 ✅** —— 病人在场 + 病例开账 + 急救链 + 出界重置 + 相机跟随,运行期链从 0% → 五写者齐备。下一步 = Phase B(T2.1–T2.5 形态件施加)或先提交本轮。
 
 ## 🎯 本轮 = M2 接线轮推进方案裁定(2026-10-09 · 四方专家评估 → 用户四裁定 · **方案已落 sprint-04 §Phase 3**)
 
@@ -181,8 +276,12 @@
   ⇒ 回填后判据口径:**该条 `[ ]` 的唯一剩余内容 = 施加点接线**,形态半 4/4 **已闭不重开**
   (施加点归属 story-024→9 查体链+数据绑定轮 / story-023→10 急救轮,即 sprint 行 6「阶段 3 形态件施加轮」~2 天)。
   另同步回刷 sprint-04:行 7 阶段 4 → ✅ Complete(含「11 条→13 条」计数订正)+ §不得借绿段 Exit 读数整段重写。
-- ✅ **批次 F 七项全闭(2026-10-10 · 工作树未提交)**:F-1 ✅ · F-2 ✅ · F-3 ✅ · F-4 ✅ · F-5 ✅ · F-6 ✅ · F-7 ✅。
-  **下一步 = 批次 F 提交**(待用户指令)。
+- ✅ **批次 F 七项全闭并提交推送(2026-10-10 · `e38132a` · 24 文件 +1081/−366)**:F-1 ✅ · F-2 ✅ · F-3 ✅ · F-4 ✅ · F-5 ✅ · F-6 ✅ · F-7 ✅。
+- ▶️ **阶段 3 开工(2026-10-10 · sprint-05 已落盘)**:范围裁定 = **合并做**(形态件施加 + 运行期接线)。
+  `production/sprints/sprint-05.md`:Phase A 运行期接线(SpawnNext/TryOpen/急救链/出界重置/相机跟随)→
+  Phase B 形态件施加(SkeuoRuntimeDriver × 2 + SignChannelBinder 挂真 + 023 载体 + 021/022 行级)→
+  T3 验证(全门 + playtest 第二轮 + M2 Exit 剩余条)。**先接线后呈现**(施加点依赖运行时链路)。
+  **下一步 = Phase A T1.1 PatientSpawner 运行期调用方**。
 
 **✅ 提交推送完成(2026-10-10 · `6a01d73..f5879c3` → origin/main)**:提交前全量门
 **3191/3144/0 红/1 inc/46 跳**(inc=Audio `test_monoOption…` + 46 跳均承基线,与本批无关);

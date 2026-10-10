@@ -48,6 +48,17 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
 
         private static readonly string[] ExpectedBindingGroups = { "Keyboard&Mouse", "Gamepad", "XR" };
 
+        /// <summary>UI map 动作清单 = 语义层 5 + 运行时必需层 5(2026-10-11 修订)。
+        /// 语义层:GDD 规则二表(3 的契约,Navigate/Submit/Cancel/PagePrev/PageNext)。
+        /// 运行时必需层:Unity Input System UI 运行集成(InputSystemUIInputModule)硬性要求,
+        /// 少一个 ⇒ 运行时 UI 输入不可用(UI/Click not found 警告)—— 归 ADR-011「官方 UI 栈」。
+        /// </summary>
+        private static readonly string[] ExpectedUiActionNames =
+        {
+            "Navigate", "Submit", "Cancel", "PagePrev", "PageNext",
+            "Point", "Click", "ScrollWheel", "MiddleClick", "RightClick",
+        };
+
         private static string ComputeRepoRoot([CallerFilePath] string callerPath = "")
             => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(callerPath), "..", "..", "..", "..", ".."));
 
@@ -182,8 +193,20 @@ namespace DaYiJingCheng.Tests.Unit.InputSystem
                 Is.EqualTo(new[] { "Move", "Look", "Sprint", "Jump", "Interact", "Emergency", "Attack", "OpenInventory" }),
                 "规则二:Player map 动作清单(GDD 表)");
             Assert.That(ui.actions.Select(a => a.name).ToArray(),
-                Is.EqualTo(new[] { "Navigate", "Submit", "Cancel", "PagePrev", "PageNext" }),
+                Is.EqualTo(ExpectedUiActionNames),
                 "规则二:UI map 动作清单(GDD 表;规则十:3 的 Navigate 即 UI map 的这一个实例)");
+
+            // 断言 UI map 的每动作又分「语义层 / 运行时必需层」两类:
+            // 语义层(5 个)= GDD 规则二表(3 的契约);
+            // 运行时必需层(Point/Click/ScrollWheel/MiddleClick/RightClick)
+            // = Unity Input System UI 运行集成(InputSystemUIInputModule)的硬性要求
+            //   (少一个即 UserConsole 报 "UI/Click not found" → 运行时 UI 输入不可用),
+            //   由 ADR-011 的「官方 UI 栈」锁定 —— 2026-10-11 修订,见 GDD 规则二表注。
+            var uiNames = ui.actions.Select(a => a.name).ToHashSet();
+            var semantic = new[] { "Navigate", "Submit", "Cancel", "PagePrev", "PageNext" };
+            var runtimeReq = new[] { "Point", "Click", "ScrollWheel", "MiddleClick", "RightClick" };
+            Assert.That(semantic.All(uiNames.Contains), Is.True, "UI map 语义层动作必须齐(GDD 规则二表)");
+            Assert.That(runtimeReq.All(uiNames.Contains), Is.True, "UI map 运行时必需动作必须齐(InputSystemUIInputModule 集成)");
 
             // Assert —— 每动作 × 三组覆盖
             foreach (var map in asset.actionMaps)

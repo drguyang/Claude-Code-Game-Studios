@@ -138,6 +138,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 只读在场集 spawn 占位胶囊体;不写流、不持状态(ADR-013 §9 C3)。
             var patientVisuals = new PatientVisualSpawner(presence);
 
+            // ── 42 侧只读数源(T2.1):把拟物 UI 接到唯一浮点出口 ──
+            // 病因(sprint-05 §1):`SkeuoRuntimeDriver` 两处 TODO ⇒ 42 是空壳,
+            //   playtest 人工面看不到脉案 / 体征。本桥 = 42 与体征链的**唯一**接点,
+            //   实现住本装配(ADR-025 §① 案 A 同理由:42 不可反向引用装配层)。
+            var casebookSource = new CasebookVitalsSource(vitals);
+
             // ── fail-loud 兜底:任一产物为 null = 装配器自身缺陷,立即具名抛出 ──
             // 2026-10-09(评审代码面 F6):以下 InvalidOperationException 为
             // **不可达兜底**(上游构造器已抛 / 参数检查先 ANE),不计入覆盖。
@@ -161,10 +167,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: EmergencyAttemptDriver 装配产出 null");
             if (patientVisuals == null)
                 throw new InvalidOperationException("Assemble: PatientVisualSpawner 装配产出 null");
+            if (casebookSource == null)
+                throw new InvalidOperationException("Assemble: CasebookVitalsSource 装配产出 null");
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder,
                                                presence, spawner, patientDriver, caseDriver,
-                                               emergencyDriver, patientVisuals, worldSeed, vitals);
+                                               emergencyDriver, patientVisuals, worldSeed, vitals,
+                                               casebookSource);
         }
 
         /// <summary>

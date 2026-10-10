@@ -40,17 +40,17 @@ M2 Exit F-6 复评(`production/qa/evidence/m2-exit-recheck-2026-10-10.md`)实测
 | # | 任务 | 落点 | 判据 |
 |---|---|---|---|
 | T2.0 | 病人最小可见实体 | `PatientVisualSpawner`(Gameplay.Boot)+ BootRoot 清理 | ✅ **Complete 2026-10-10** —— PlayMode:Hierarchy 病人视觉实体数 = 在场病人数(1:1)。证据:`unity/Logs/s5_t2_0_patient_visual2.xml` |
-| T2.1 | `SkeuoRuntimeDriver` DTO 绑定 TODO | 42 UI 表现 | `VitalsDto` → 脉案页数据绑定;DTO 变化驱动 UI 更新;禁假数据 |
-| T2.2 | `SkeuoRuntimeDriver` Screen 实例化 TODO | 同上 | 四形态件载体 Screen 运行时实例化;零残留 TODO |
-| T2.3 | `SignChannelBinder` 挂真词条 | story-024 施加点 | 体征词条经 `SignChannelBinder` 分发到五通道;真表端到端 |
-| T2.4 | story-023 候选列表载体 | 10 急救轮 | `.skip-entry` 候选列表载体运行时实例化;跳过入口可用 |
-| T2.5 | story-021/022 行级施加 | 脉案行 + 墨态 | 线格 `.ruled` 挂行运行期生效;`.ink-wet`/`.ink-dry` 接图运行期可见 |
+| T2.1 | `SkeuoRuntimeDriver` DTO 绑定 TODO | 42 UI 表现 | ✅ **Complete 2026-10-10** —— 两处 TODO 之一落地:新建 `ICasebookDtoSource`(住 Gameplay.UI)+ 生产实装 `CasebookVitalsSource`(住 Gameplay.Boot,接到 `IVitalsQuery` 唯一浮点出口)+ `CasebookScreen.ApplyData` 值区施加 + `BootRoot` 每 tick 边沿刷新。**禁假数据**:`RevealedRows` 恒空集(F2 signs tripwire:词表内容与阈值归 8,9 侧当前无阈值可判活跃词条)⇒ 走「未查 = 空行」(`:329`)。证据:`unity/Logs/s5_t2_driver8.xml`(15/15) |
+| T2.2 | `SkeuoRuntimeDriver` Screen 实例化 TODO | 同上 | ✅ **Complete 2026-10-10** —— 七具名 Screen 查表工厂(`(VisualElement, SkeuoElementLibrary)` 同形构造,**零反射**);未知名 fail-loud 不 fallback;UIDocument 运行期自建(ADR-023 §① 零预摆)。**SkeuoRuntimeDriver 两处 TODO 全清零**(T2.2 判据「零残留 TODO」)。证据同上 |
+| T2.3 | `SignChannelBinder` 挂真词条 | story-024 施加点 | ✅ **Complete 2026-10-10(载体半)** —— `SignChannelBinder.Bind` 在运行期有**生产调用方**(此前零施加点:全库唯一引用 = 测试):`CasebookScreen.ApplyData` 每 tick 经它分流 + F-8.2 档位取词,落到五通道 + 问诊栏行。分发纯函数本身 AC-024-1/2/3 早已全绿(story-024),本轮补的是**运行期挂行**。真表端到端(34 词条)已由 story-024 AC-024-3 断言;本轮新增:阳性/阴性形态类分化 + 读不出(`Word=null`)降阴性 + 同通道多词并列保序 |
+| T2.4 | story-023 候选列表载体 | 10 急救轮 | ✅ **Complete 2026-10-10** —— 新建 `EmergencyCandidateList`(Gameplay.UI):`.skip-entry` 跳过入口**恒在列表末项**(规则六之甲)+ 零候选也实例化 + AB-3 宽半由 `.candidate-entry` 承接(story-023-3 只锁高半,宽半已登记归 10 轮载体 —— 本轮建的载体即锁定方)+ 零数字(G2)+ 可见性门零时序(Idle 可达归 10 状态机)。USS `SkeuoPaper.uss` + `.candidate-entry` 块。证据:`unity/Logs/s5_t2_t24.xml`(23/23) |
+| T2.5 | story-021/022 行级施加 | 脉案行 + 墨态 | ✅ **Complete 2026-10-10** —— ① 线格 `.ruled` 挂行运行期生效(承 T2.0:`CasebookScreen.AddChannel` 已挂,本轮 `BuildUI` 一字未改 ⇒ 既有六条 + 交叉断言零回归);② 墨龄状态类运行期可见:`ApplyData` 按 `InkAgeTicks` 挂 `.ink-wet` / `.ink-dry`(规则十三 派生态,42 侧零计时器 —— 门面 `ICasebookDtoSource.InkAgeTicks` 收**已减好的差值**)。⚠️ 加载序冲突已登记(story-021 边界⑥:与 `.channel-reading*` 同写 `color`,单元素双类胜负由未钉死 stylesheet 加载序决定 —— 今日零焦点施加者不可观测,非缺陷,裁决项不擅自裁) |
 
 ### T3 验证与收口
 
 | # | 任务 | 判据 |
 |---|---|---|
-| T3.1 | 全量门复跑 | ✅ **Complete 2026-10-10** —— PlayMode **104/104 全绿**(+5 新增接线测)· EditMode **3146 passed / 0 failed / 1 inconclusive / 46 skipped**(与 F-4 基线 3144/0/1/46 一致,+2)。证据:`unity/Logs/s5_t3_playmode_full2.xml` · `unity/Logs/s5_t3_editmode_full.xml`。修复:组合根 `ResolveRegistry` caller 表优先(原 fallback 硬编码 ⇒ VerticalSliceTest 两条红) |
+| T3.1 | 全量门复跑 | ✅ **Complete 2026-10-10**(Phase A) —— PlayMode **104/104 全绿**(+5 新增接线测)· EditMode **3146 passed / 0 failed / 1 inconclusive / 46 skipped**。证据:`unity/Logs/s5_t3_playmode_full2.xml` · `unity/Logs/s5_t3_editmode_full.xml`。修复:组合根 `ResolveRegistry` caller 表优先。◐ **Phase B 后复跑(2026-10-10 晚)**:PlayMode **128/128 全绿**(基线 105 + 15 driver + 8 候选列表)· EditMode **3147 passed / 0 failed / 1 inconclusive / 46 skipped**(基线 3146 + 1 新 composition_root 测)证据:`unity/Logs/s5_t2_playmode2.xml` · `unity/Logs/s5_t2_editmode7.xml` |
 | T3.2 | 人工 playtest 第二轮 | 报告落 `production/playtests/`;验证运行期病人在场 + 拟物 UI 呈现 |
 | T3.3 | M2 Exit 剩余条复评 | #2 端到端(接线后判)、#8 形态件(施加后判) |
 
