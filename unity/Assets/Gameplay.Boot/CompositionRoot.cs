@@ -132,6 +132,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             var emergencyProcessor = new HostEmergencyProcessor(stream, idAuthority, encoder);
             var emergencyDriver = new EmergencyAttemptDriver(emergencyProcessor, presence);
 
+            // ── 病人最小可见实体(sprint-05 T2.0):给运行期病人生成占位视觉 ──
+            // 病因(playtest 2026-10-10 §6):病人在场但**零视觉实体** ⇒ 人工面看不到病人,
+            //   核心循环入口不可感知,第二轮 playtest 无法覆盖「病人出现」。
+            // 只读在场集 spawn 占位胶囊体;不写流、不持状态(ADR-013 §9 C3)。
+            var patientVisuals = new PatientVisualSpawner(presence);
+
             // ── fail-loud 兜底:任一产物为 null = 装配器自身缺陷,立即具名抛出 ──
             // 2026-10-09(评审代码面 F6):以下 InvalidOperationException 为
             // **不可达兜底**(上游构造器已抛 / 参数检查先 ANE),不计入覆盖。
@@ -153,10 +159,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: HostEmergencyProcessor 装配产出 null");
             if (emergencyDriver == null)
                 throw new InvalidOperationException("Assemble: EmergencyAttemptDriver 装配产出 null");
+            if (patientVisuals == null)
+                throw new InvalidOperationException("Assemble: PatientVisualSpawner 装配产出 null");
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder,
                                                presence, spawner, patientDriver, caseDriver,
-                                               emergencyDriver, worldSeed, vitals);
+                                               emergencyDriver, patientVisuals, worldSeed, vitals);
         }
 
         /// <summary>

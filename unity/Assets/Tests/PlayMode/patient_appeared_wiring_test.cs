@@ -140,6 +140,24 @@ namespace DaYiJingCheng.Tests.PlayMode
             Assert.IsTrue(hasOnset,
                 "病史流应含 DiseaseOnset 事件 —— 缺失 = 写者未运行期触发(接线未闭合)");
 
+            // Assert 1b:首 tick 即 spawn(B 案 · 2026-10-10)
+            // 用户 playtest 报告「随 WASD 出现很多个胶囊 + xyz 钉住」⇒ 诊断:编辑器里 tick
+            // 推进极慢(300 帧仅 +2 tick),原驱动「每 400 tick 一个」使病人可见性被 tick
+            // 速率绑架;观察窗口一拉长 tick 累积过 400 就又 spawn。B 案 = 首 tick 即 spawn
+            // + 接线期上限哨 3(不碰 TICK_SECONDS 裁定值)。
+            var driverProp = services.GetType().GetProperty("PatientAppearedDriver");
+            Assert.IsNotNull(driverProp, "CompositionRootServices.PatientAppearedDriver 应存在");
+            var driver = driverProp.GetValue(services);
+            Assert.IsNotNull(driver, "PatientAppearedDriver 应非 null");
+            var spawnedProp = driver.GetType().GetProperty("SpawnedCount");
+            Assert.IsNotNull(spawnedProp, "PatientAppearedDriver.SpawnedCount 应存在(测试接缝)");
+            int spawnedCount = (int)spawnedProp.GetValue(driver);
+            Debug.Log($"[PatientWiring] 接线期已 spawn 病人数 = {spawnedCount}");
+            Assert.That(spawnedCount, Is.GreaterThanOrEqualTo(1),
+                $"首 tick 应即 spawn(实际 {spawnedCount})—— B 案接线判据;0 = 首 tick spawn 未生效");
+            Assert.That(spawnedCount, Is.LessThanOrEqualTo(3),
+                $"接线期上限哨 3(实际 {spawnedCount})—— 超出 = B 案上限哨失效(playtest 刷屏复发)");
+
             // Assert 2:在场视图非空(AC-15 在场检查的运行期证据)
             // ⚠️ 依赖 T1.1 自己的驱动已做 AddPresent(2026-10-10 修后);
             // T1.2(37 立案时登记)是另一条路径,本测只验 T1.1。

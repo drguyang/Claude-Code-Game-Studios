@@ -29,7 +29,7 @@ M2 Exit F-6 复评(`production/qa/evidence/m2-exit-recheck-2026-10-10.md`)实测
 
 | # | 任务 | 落点 | 判据(可证伪) |
 |---|---|---|---|
-| T1.1 | `PatientSpawner` 运行期调用方 | 组合根(CompositionRoot)+ tick 驱动 | ✅ **Complete 2026-10-10** —— PlayMode 验证测通过:启动后病史流含 `DiseaseOnset` 事件 + 在场病人数 ≥1。证据:`unity/Logs/s5_t1_1_patient_wiring12.xml` |
+| T1.1 | `PatientSpawner` 运行期调用方 | 组合根(CompositionRoot)+ tick 驱动 | ✅ **Complete 2026-10-10**(B 案修订) —— PlayMode:启动即 spawn ≥1 病人 + 接线期上限哨 3。证据:`unity/Logs/s5_t1_1_bfix.xml` |
 | T1.2 | `CaseOpenWriter.TryOpen` 运行期入口 | 9 诊断链触发点 | ✅ **Complete 2026-10-10** —— PlayMode 验证测通过:启动后病史流含 `CaseOpened` 事件 + 在场病人数 ≥1。证据:`unity/Logs/s5_t1_2_case_open.xml` |
 | T1.3 | 急救链接线 | `HostEmergencyProcessor` ← 输入聚合器 | ✅ **Complete 2026-10-10** —— PlayMode 验证测通过:启动后病史流含 `EmergencyAttempt` + `EmergencyTreatmentApplied` 事件。证据:`unity/Logs/s5_t1_3_emergency_verify.xml` |
 | T1.4 | 边界语义(出界) | 6 世界扩展或 World.unity 出界重置 | ✅ **Complete 2026-10-10** —— PlayMode 验证测通过:玩家出界后 y 回到 ≥0(坠落重置生效)。证据:`unity/Logs/s5_t1_4_fall_reset.xml` |
@@ -39,6 +39,7 @@ M2 Exit F-6 复评(`production/qa/evidence/m2-exit-recheck-2026-10-10.md`)实测
 
 | # | 任务 | 落点 | 判据 |
 |---|---|---|---|
+| T2.0 | 病人最小可见实体 | `PatientVisualSpawner`(Gameplay.Boot)+ BootRoot 清理 | ✅ **Complete 2026-10-10** —— PlayMode:Hierarchy 病人视觉实体数 = 在场病人数(1:1)。证据:`unity/Logs/s5_t2_0_patient_visual2.xml` |
 | T2.1 | `SkeuoRuntimeDriver` DTO 绑定 TODO | 42 UI 表现 | `VitalsDto` → 脉案页数据绑定;DTO 变化驱动 UI 更新;禁假数据 |
 | T2.2 | `SkeuoRuntimeDriver` Screen 实例化 TODO | 同上 | 四形态件载体 Screen 运行时实例化;零残留 TODO |
 | T2.3 | `SignChannelBinder` 挂真词条 | story-024 施加点 | 体征词条经 `SignChannelBinder` 分发到五通道;真表端到端 |

@@ -150,16 +150,65 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 落到世界原点上方 1 m(CharacterController 需落地;落地表现后续 PlayMode 验)。
             _player.Teleport(new Vector3(0f, 1f, 0f));
 
-            // ── 5. 相机机位装配(sprint-05 T1.5)──
+            // ── 5. 相机机位装配(sprint-05 T1.5 · 2026-10-10 AudioListener 泄漏修复)──
             // ADR-020:相机 = 自建机位,不引入 Cinemachine
             // 跟随 = 每帧把相机位置设到玩家位置 + 偏移
+            //
+            // ⚠️ **不自加 AudioListener**(ADR-020 §七 / AC-20-10 单挂点铁律):
+            //   T1.5 初版在此 `AddComponent<AudioListener>()`,而 Boot.unity 预摆的
+            //   `Main Camera`(Transform + Camera + AudioListener + URP data)**已有一个**
+            //   ⇒ 场景内恒 2 个 listener,Unity 每帧刷一条警告。
+            //   实测代价(2026-10-10 人工 playtest):Editor.log 31868 条同文本,
+            //   Console 被淹 → Editor IPC 管道超载 → `write EPIPE` → 进程异常终止,
+            //   表现为「无法退出 Play / 点关闭无响应」。根因是日志洪泛,不是死循环。
+            //   修复 = 单挂点:本节**禁用**预摆相机(它只持 listener 语义),
+            //   运行时相机由 CameraRig 自持;AudioListener 恒 1 个(预摆那个)。
+            var presetCamera = GameObject.Find("Main Camera");
+            if (presetCamera != null)
+                presetCamera.SetActive(false);
+
             var cameraObj = new GameObject("CameraRig");
             _cameraRig = cameraObj.AddComponent<CameraRig>();
-            var camera = cameraObj.AddComponent<UnityEngine.Camera>();
-            var audioListener = cameraObj.AddComponent<UnityEngine.AudioListener>();
+            cameraObj.AddComponent<UnityEngine.Camera>();
             _cameraRig.SetModeForTest(CameraMode.Explore);
 
+            // fail-loud(AudioListener 单挂点 · AC-20-10):>1 即抛。
+            // 把「运行期每帧刷 3 万条日志 →  Editor 卡死」的失效模式提前成具名异常。
+            AssertSingleAudioListener();
+
             _booted = true;
+        }
+
+        /// <summary>
+        /// AudioListener 单挂点断言(ADR-020 §七 / AC-20-10)—— **fail-loud**。
+        /// <para><b>为何必须是断言而不是依赖 Unity 的警告</b>:Unity 对多 listener
+        /// 只发一条**每帧重复**的警告(不抛、不阻断)。2026-10-10 实测:该警告刷满
+        /// Editor.log 31868 条,Console 管道超载后 Editor 进程以 <c>write EPIPE</c>
+        /// 异常终止 —— 人工表现为「无法退出 Play / 点关闭无响应」。
+        /// 一条不可抛的警告足以杀死进程 ⇒ 必须由我方在启动序内把它变成具名异常。</para>
+        /// <para><b>为何是启动序末而不是 Awake</b>:本章第 5 步才装配相机,
+        /// Awake 时场景内的 listener 集尚未反映运行期装配结果。</para>
+        /// </summary>
+        /// <exception cref="InvalidOperationException">场景内 AudioListener ≠ 1 个。
+        /// 含 0 个(无听音点)与 ≥2 个(多挂点)—— 两者都是配置错误。</exception>
+        private static void AssertSingleAudioListener()
+        {
+            // ⚠️ 必须用 `FindObjectsInactive`(含 inactive),**不是** `FindObjectsOfType`(只查 active):
+            //    启动序先 `presetCamera.SetActive(false)` 再断言 —— 预摆相机被禁用后,
+            //    listener 仍应参与计数(它就是唯一合法的那个)。实测(2026-10-10):
+            //    用含 active-only 的 FindObjectsOfType 得 0(预摆已禁用、CameraRig 不加)
+            //    ⇒ 断言把**正确形态**判成错误。IncludeInactive 才是「挂载数」语义。
+            var listeners = Resources.FindObjectsOfTypeAll<UnityEngine.AudioListener>();
+            if (listeners == null || listeners.Length != 1)
+            {
+                int n = listeners?.Length ?? 0;
+                throw new InvalidOperationException(
+                    $"AC-20-10 AudioListener 单挂点:场景内应有**恰好 1 个**,实际 {n} 个。" +
+                    "多挂点 = Unity 每帧刷警告 → Console 管道超载 → Editor 进程 EPIPE 终止" +
+                    "(2026-10-10 实测 31868 条);零挂点 = 无听音点。" +
+                    "正确形态:Boot.unity 预摆 Main Camera 持唯一 listener," +
+                    "CameraRig 运行时相机**不加** listener。");
+            }
         }
 
         /// <summary>
@@ -223,6 +272,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.EmergencyAttemptDriver.OnTickEdge(_tickDriver.CurrentTick);
             }
 
+            // 病人视觉实体(sprint-05 T2.0):急救驱动**之后**调用 —— 视觉跟着在场集走,
+            // 与写者次序解耦(视觉是派生态,不参与事件入流次序)
+            if (_tickDriver.CurrentTick > tickBefore
+                && _services != null && _services.PatientVisualSpawner != null)
+            {
+                _services.PatientVisualSpawner.OnTickEdge(_tickDriver.CurrentTick);
+            }
+
             // 相机跟随(sprint-05 T1.5):每帧把相机位置设到玩家位置 + 偏移
             // ADR-020:相机 = 自建机位,不引入 Cinemachine
             if (_cameraRig != null && _player != null)
@@ -255,6 +312,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </summary>
         private void OnDestroy()
         {
+            // 病人视觉实体清理(sprint-05 T2.0):视觉根节点由 PatientVisualSpawner 自持,
+            // 不靠层级继承(Boot 场景常驻,看不见 World 卸载)⇒ 显式调用销毁面。
+            _services?.PatientVisualSpawner?.DestroyAll();
+
             _booted = false;
             _player = null;
             _services = null;

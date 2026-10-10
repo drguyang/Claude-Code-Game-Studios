@@ -41,6 +41,10 @@ namespace DaYiJingCheng.Tests.PlayMode
                 _captureActive = false;
             }
 
+            // 预摆 Main Camera 被启动序 SetActive(false) ⇒ 恢复,防污染同套件其他测试
+            var preset = GameObject.Find("Main Camera");
+            if (preset != null) preset.SetActive(true);
+
             var player = GameObject.Find("Player");
             if (player != null) UnityEngine.Object.Destroy(player);
 
@@ -79,14 +83,27 @@ namespace DaYiJingCheng.Tests.PlayMode
         [UnityTest]
         public IEnumerator test_cameraFollow_followsPlayerMovement()
         {
-            // Arrange:真启动序(与门④冒烟同源)
+            // Arrange:预摆 Main Camera(承 Boot.unity 工厂形态 —— ADR-023 §①)
+            // ⚠️ 必须先造预摆:启动序第 5 步会禁用它并断言「恰好 1 个 AudioListener」。
+            //    不补这个 fixture ⇒ listener = 0 ⇒ 断言按设计抛(fail-loud 是对的,
+            //    是测试环境缺了生产场景本有的东西)。
+            var presetCamObj = new GameObject("Main Camera");
+            presetCamObj.AddComponent<Camera>();
+            presetCamObj.AddComponent<AudioListener>();
+
             _root = new GameObject("BootRoot_CameraFollow");
             _boot = _root.AddComponent<BootRoot>();
 
             float deadline = Time.realtimeSinceStartup + BootTimeoutSeconds;
             while (!ReadBooted() && Time.realtimeSinceStartup < deadline)
                 yield return null;
-            Assert.IsTrue(ReadBooted(), "启动序须在超时内完成");
+            Assert.IsTrue(ReadBooted(),
+                "启动序须在超时内完成(未完成 = AudioListener 单挂点断言可能已抛 —— " +
+                "Boot.unity 预摆 Main Camera 持唯一 listener,CameraRig 不得再加)");
+
+            // 预摆相机应被禁用(不渲染,只持 listener 语义)
+            Assert.IsFalse(presetCamObj.activeSelf,
+                "预摆 Main Camera 应被启动序禁用 —— 不禁用 = 两个 Camera 都在渲染(浪费 + 双 listener 面)");
 
             // 强制编辑器帧节奏(与 landing 探针同纪律)
             Time.captureDeltaTime = 1f / 60f;
@@ -97,7 +114,6 @@ namespace DaYiJingCheng.Tests.PlayMode
             Assert.IsNotNull(cameraRig, "CameraRig 应存在");
             var camera = cameraRig.GetComponent<Camera>();
             Assert.IsNotNull(camera, "Camera 组件应存在");
-
             Vector3 initialCamPos = camera.transform.position;
             Debug.Log($"[CameraFollow] 初始相机位置 = {initialCamPos}");
 

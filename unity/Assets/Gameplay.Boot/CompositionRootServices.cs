@@ -53,6 +53,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
         public EmergencyAttemptDriver EmergencyAttemptDriver { get; }
 
+        /// <summary>病人最小可见实体驱动(sprint-05 T2.0)—— 按在场集 spawn 占位视觉;
+        /// 由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
+        public PatientVisualSpawner PatientVisualSpawner { get; }
+
         /// <summary>体征链核心服务(批次 C):apply 驱动 + 投影桥 +
         /// <see cref="IVitalsQuery"/> 生产实装。由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
         public DiseaseVitalsService VitalsService { get; }
@@ -66,6 +70,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          PatientAppearedDriver patientAppearedDriver,
                                          CaseOpenedDriver caseOpenedDriver,
                                          EmergencyAttemptDriver emergencyAttemptDriver,
+                                         PatientVisualSpawner patientVisualSpawner,
                                          ulong worldSeed, DiseaseVitalsService vitalsService)
         {
             Stream = stream;
@@ -77,6 +82,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             PatientAppearedDriver = patientAppearedDriver;
             CaseOpenedDriver = caseOpenedDriver;
             EmergencyAttemptDriver = emergencyAttemptDriver;
+            PatientVisualSpawner = patientVisualSpawner;
             VitalsService = vitalsService;
             WorldSeed = worldSeed;
         }
