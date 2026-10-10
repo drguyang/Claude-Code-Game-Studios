@@ -14,6 +14,12 @@
 //
 // ⚠️ 次序(承既有,测试面 F-4 登记):CAP 检查在去重**之前** ⇒ 病人已离场且 CAP 满时,
 //    重发事件先抛而非走去重短路。45 重传路径的重试语义须知悉(归 45 轮)。
+//
+// BCD-码-3(2026-10-10 · 登记债收口):**流按 Tick 非降**是写入期硬不变量。
+//   消费端 `DiseaseVitalsService.ApplyNewEvents` 的 `if (e.Tick > tick) break` 依赖
+//   物理列表按 Tick 非降;乱序入流 ⇒ 未来事件挡道,其后的过去事件要等它自己的边沿
+//   才被读到(静默晚到一整个 tick 跨度)。故去重短路**之后**、入列表**之前**断言
+//   `e.Tick ≥ 上次入流 tick`,违例 = fail-loud。重发(旧 tick)走去重短路,不触断言。
 
 using System;
 using System.Collections.Generic;
@@ -39,6 +45,9 @@ namespace DaYiJingCheng.Sim
         private PatientId _lastSeqPatient = PatientId.None;
         private long _currentSeq = 0;
 
+        // 单调断言状态(BCD-码-3):上次**实际入流**的 tick;初值 long.MinValue 使首条无下界。
+        private long _lastAppendedTick = long.MinValue;
+
         public EventStream(IIdAuthority idAuthority, IPresenceQuery presenceQuery)
         {
             _idAuthority = idAuthority ?? throw new ArgumentNullException(nameof(idAuthority));
@@ -59,9 +68,11 @@ namespace DaYiJingCheng.Sim
         public void Append(in SimEvent e)
         {
             // AC-15: 有界性检查(O-5 修复 · 2026-10-09:跳过 PatientId.None)
-            // 失效模式(O-5):世界事件(StructurePlaced / PoiStateChanged / ActorCellEntered /
-            // 急救两支 …)一律带 PatientId.None,IsPresent(None) 恒 false ⇒ 在场满 CAP 时
+            // 失效模式(O-5):世界事件(StructurePlaced / PoiStateChanged / ActorCellEntered …)
+            // 带 PatientId.None,IsPresent(None) 恒 false ⇒ 在场满 CAP 时
             // 被误判「新病人」拒收 —— 玩家立刻不能盖房、POI 状态机与跨格事件全抛异常。
+            // ⚠️ 2026-10-09 批次 E 起,急救两支(EmergencyAttempt / EmergencyTreatmentApplied)
+            // 已带真实病人归因(不再是 None 举例)⇒ 会进本分支的在场/CAP 检查。
             // CAP 守的是**同场被模拟病人数**(ADR-008 §六 有界性),None 不是病人 ⇒ 不进本分支。
             if (e.Patient != PatientId.None && !_presenceQuery.IsPresent(e.Patient))
             {
@@ -90,8 +101,19 @@ namespace DaYiJingCheng.Sim
                 : $"{e.Kind}_{e.Patient.Value}_{e.Tick}_{e.Seq}";
             if (_dedupKeys.Contains(dedupKey))
             {
-                return; // 重发拒收
+                return; // 重发拒收(旧 tick 重发到此短路,不触单调断言 —— 45 重传语义保留)
             }
+
+            // BCD-码-3(2026-10-10):流按 Tick 非降 —— 去重之后、任何状态写入之前断言。
+            // 断言点选在 `_dedupKeys.Add` 之前:违例抛出时流零污染(键 / 发号器均未动)。
+            if (e.Tick < _lastAppendedTick)
+            {
+                throw new InvalidOperationException(
+                    $"BCD-码-3: 事件 tick {e.Tick} 回退于已入流 tick {_lastAppendedTick} —— " +
+                    "流必须按 Tick 非降(消费端游标 `if (e.Tick > tick) break` 依赖该不变量," +
+                    "乱序入流会让过去事件被未来事件挡住、静默晚到)。");
+            }
+
             _dedupKeys.Add(dedupKey);
 
             // AC-36: Seq 发号（每 tick 复位）
@@ -117,6 +139,7 @@ namespace DaYiJingCheng.Sim
             }
 
             _events.Add(eventWithSeq);
+            _lastAppendedTick = e.Tick; // BCD-码-3:单调基线只随**实际入流**前进(去重短路不触)
         }
 
         /// <summary>
@@ -145,6 +168,7 @@ namespace DaYiJingCheng.Sim
             _lastSeqTick = -1;
             _lastSeqPatient = PatientId.None;
             _currentSeq = 0;
+            _lastAppendedTick = long.MinValue; // BCD-码-3:清空即解除单调基线(与发号器同格复位)
         }
     }
 }

@@ -260,5 +260,115 @@ namespace DaYiJingCheng.Sim.Contracts
             throw new ArgumentOutOfRangeException(nameof(exponent),
                 $"Fix.Pow(Fix):指数须 ∈ {{整数, 整数+1/2}},实际 raw={exponent._raw}(frac={exponent._raw & 0xFFFF:X4})");
         }
+
+        // ── 指数函数(ADR-026 FixPow/FixSqrt 同族先例 · disease-simulation.md F0「定点库范围包含 Exp」)──
+        // 权威:
+        //   design/gdd/disease-simulation.md
+        //     · F0「⚠️ 定点 Exp 必须计入实现量 —— F1/F2 通篇依赖它」(Base / Relapse / Decay 全是 e^(−τ/·))
+        //     · F0「定点 Exp 是纯确定性函数(同输入同输出)」+ 中间精度行「精度取舍归 Gate 待标」
+        //   docs/architecture/adr-026-skill-growth-fixed-point.md —— 唯一整数幂实现先例
+        //     (禁 float / libm / Math.Exp;构建期查表允许但须逐值相等)
+        //   docs/architecture/adr-006 —— ROUND_HALF_AWAY_FROM_ZERO 单一舍入
+        //
+        // 算法(ln2 范围规约 + Taylor 级数,全程整数域):
+        //   e^x = 2^k · e^r , k = round(x / ln2) [ln2 取 Q32.32 常量 2977044472 = round(ln2·2^32),
+        //         绝对误差 0.1804/2³² ≈ 4.2e-11,相对 ≈ 6.06e-11], r = x − k·ln2 ⇒ |r| ≤ ln2/2 ≈ 0.3466
+        //   e^r = Σ_{n=0..10} r^n/n!,项递推 t_n = t_{n−1} · r / n:
+        //         乘走既有 <see cref="MulRaw"/>(128 位 hi/lo 唯一路径),除走
+        //         <see cref="FixParse.RoundHalfAwayFromZero"/> —— **不新造第二条宽乘路径**
+        //   k ≥ 0:出口 = sum << k(纯移位,精确);k < 0:出口 = 半-away 移位
+        //
+        // 截断判据与收敛域:
+        //   |R_10| ≤ |r|^11/11! ≤ (ln2/2)^11/11! ≈ 2.2e-13 ≈ 1.4e-8 LSB ≪ 1 ulp(整数域可分辨的最小量)
+        //   级数在 r ∈ (−∞,∞) 绝对收敛;本实现锚定 |r| ≤ ln2/2。
+        //   即便 k 因 ln2̂ 舍入偏差错取 ±1(实际不会:k 的误差 < 1e-8),|r| ≤ 1.5·ln2 时
+        //   |R_10| ≤ 1.04^11/11! ≈ 3.8e-8,仍 ≪ 1 ulp —— 截断不构成误差预算项。
+        //
+        // 误差上界论证(相对结果值,1 ulp = 2⁻¹⁶):
+        //   ① r 从 Q32.32 舍入到 Q16.16:|δr| ≤ 0.5×2⁻¹⁶ ⇒ e^r 相对误差 ≤ 0.5 ulp
+        //   ② 级数 20 次舍入(10 乘 + 10 除,各 ≤ 0.5 LSB,误差随后乘 r/n 收缩):宽松计数
+        //      ≤ ~10 LSB on S ∈ [0.707,1.414] ⇒ ≤ 16 ulp 相对(粗界,仅用于断言的可论证性;
+        //      精确界由全域穷举给出,见下)
+        //   ③ k·δ(ln2 常量误差):|k| ≤ 47 ⇒ 相对误差 ≤ 47·4.2e-11 ≈ 2e-9 ≪ 1 ulp
+        //   ④ 截断 2.2e-13(上条);⑤ k ≥ 0 出口纯移位零误差;⑥ k < 0 出口 ≤ 0.5 LSB 绝对
+        //   ⇒ **全域穷举实测**(2,907,261 点 = 本域全部整数 raw,对 Math.Exp 浮点神谕,
+        //      神谕仅测试侧存在),误差三段口径(评审码-1 修正:3.12 仅在值 ≥ 1.0 子域成立,
+        //      全域相对最大 100% 出现在量化下限 -772243 处 v=1/o=0.5 —— 属 Q16.16 固有量化,
+        //      由绝对项承担,非缺陷):
+        //      · 值 ≥ 1.0(oracle ≥ 65536 LSB):最大相对 3.12×2⁻¹⁶
+        //      · 小值区(oracle < 4096 LSB):最大绝对 0.595 LSB
+        //      · 中间带 [0.0625, 1.0):相对最大 8.43×2⁻¹⁶,由断言的绝对项 3 LSB 承担
+        //   ⇒ 断言界 ε = 4×2⁻¹⁶ 相对 + 3 LSB 绝对(tests/EditMode/Sim/fix_exp_test.cs)
+        //
+        // 定义域与异常(GDD 未规定;形态对齐 FixPow / FixMul 惯例):
+        //   · x_raw > 2135016(≈ 32.5777)⇒ OverflowException。数学上界 = floor(47·ln2·2^16)
+        //     = 2135026(e^x ≥ 2^47 时 Fix 的 raw(long)装不下),实现收到 2135016 留 10 raw
+        //     余量:级数出口 S 的舍入(+3 LSB 量级)会在最顶上数个 raw 把结果顶过 long.MaxValue
+        //     —— 与其放行后再溢出,不如在域检查处一致地抛(同 FixMul「溢出即 bug」口径)。
+        //     亦是 xQ32 = x_raw<<16 防静默回绕与 k 防出 int 的前置门。
+        //   · x_raw ≤ −772244(= floor(−17·ln2·2^16),即 e^x < 0.5 LSB)⇒ Fix.Zero。
+        //     这是「半 away 舍入把 < 0.5 LSB 收为 0」的**精确提前**,不是饱和近似 ——
+        //     对该范围内每个 raw,真值舍入后就是 0(与 F1 的 Decay 不同,GDD 的 Δ ≥ 0 门在求值侧,
+        //     本函数不代偿负指数爆炸:域检查已保证 |x| ≤ 11.79 以下全部归零,k ∈ [−17,47] 有界)。
+        //   · x = 0 ⇒ Fix.One(级数恒等,快路径只省算不改值)。
+        //   · 负有理指数(F1 的 e^(−W/H):W、H 为 Fix,指数 = Fix 除法结果)全支持 ——
+        //     这是 Decay / Base 衰减段 / Relapse 的主用面。
+        //   ⚠️ GDD F0 中间精度行「Exp 的中间量也在 128 位域,不『每步回降』」与本实现的
+        //     「级数每项经 FixMul 落回 Q16.16」存在字面张力(F0 自标「精度取舍归 Gate 待标」;
+        //     批次裁定 = 走既有 FixMul、不新造宽乘路径)—— 已在批次报告中登记,不在此自行改标。
+
+        /// <summary>定点指数 e^x(Q16.16 → Q16.16),纯整数域:ln2 范围规约 + 10 阶 Taylor 级数。
+        /// <para>全程禁 float / double / libm / <c>Math.Exp</c>;中间乘 = <see cref="MulRaw"/>
+        /// (128 位 hi/lo 唯一路径),舍入 = ROUND_HALF_AWAY_FROM_ZERO(ADR-006)。</para>
+        /// <para><b>误差</b>:相对 ≤ 4×2⁻¹⁶ + 绝对 ≤ 3 LSB(全域 2,907,261 点穷举对拍
+        /// <c>Math.Exp</c> 神谕实测 3.12×2⁻¹⁶ / 0.595 LSB,断言见
+        /// <c>tests/EditMode/Sim/fix_exp_test.cs</c>)。</para>
+        /// <para><b>域</b>:x_raw ≤ 2135016(e^x ≥ 2^47 无处可放);x_raw ≤ −772244 ⇒ Zero
+        /// (e^x &lt; 0.5 LSB,半-away 舍入恰为 0,精确提前非饱和);x = 0 ⇒ One。</para></summary>
+        /// <param name="value">指数(Fix 有理数;F1/F2 的用面全为 ≤ 0 的衰减指数,本实现双向支持)。</param>
+        /// <returns>e^x 的 Q16.16 定点值。</returns>
+        /// <exception cref="OverflowException">x_raw &gt; 2135016(超可表示域),
+        /// 或出口移位结果超出 long(域顶余量被级数舍入吃穿时的兜底,实际域检查已挡住)。</exception>
+        public static Fix Exp(Fix value)
+        {
+            // 域常量(整数域内钉死;推导见文件头)。
+            const long XMaxRaw = 2135016L;      // ≈ floor(47·ln2·2^16) − 10
+            const long XZeroRaw = -772244L;     // = floor(−17·ln2·2^16):e^x < 0.5 LSB
+            const long Ln2Q32 = 2977044472L;    // round(ln2 × 2^32)(Q32.32)
+            const int SeriesTerms = 10;         // n = 0..10,截断余项 ≤ (ln2/2)^11/11! ≈ 2.2e-13
+
+            long xr = value._raw;
+            if (xr > XMaxRaw)
+                throw new OverflowException(
+                    $"Fix.Exp:x_raw={xr} 超出可表示域(上界 {XMaxRaw} ≈ ln(2^47),e^x ≥ 2^47 装不进 Fix)");
+            if (xr <= XZeroRaw) return Zero;    // e^x < 0.5 LSB ⇒ 舍入即 0(精确,非饱和)
+            if (xr == 0) return One;
+
+            // 范围规约:Q32.32 域内求 k 与 r(|xr| ≤ 2135016 ⇒ xQ32 ≤ 1.4e11,不溢出)
+            long xQ32 = xr << FractionalBits;
+            int k = (int)FixParse.RoundHalfAwayFromZero(xQ32, Ln2Q32);          // |k| ≤ 47
+            long rRaw = FixParse.RoundHalfAwayFromZero(xQ32 - k * Ln2Q32, 1L << FractionalBits);
+
+            // e^r 的 Taylor 级数(t_0 = 1;t_n = t_{n−1}·r/n),项值单调衰减,累加同标度无舍入
+            long term = OneRaw;
+            long sum = OneRaw;
+            for (int n = 1; n <= SeriesTerms; n++)
+            {
+                term = MulRaw(term, rRaw);
+                term = FixParse.RoundHalfAwayFromZero(term, n);
+                sum += term;
+            }
+
+            if (k >= 0)
+            {
+                ulong scaled = (ulong)sum << k;   // k ≤ 47:移位计数合法;纯移位零舍入
+                if (scaled > long.MaxValue)
+                    throw new OverflowException("Fix.Exp:结果超出 Q16.16 可表示域");
+                return new Fix((long)scaled);
+            }
+
+            if (k <= -63) return Zero;            // 防御(域内 k ≥ −17 不可达):防 1L<<-k 移位计数越界
+            return new Fix(FixParse.RoundHalfAwayFromZero(sum, 1L << -k));
+        }
     }
 }

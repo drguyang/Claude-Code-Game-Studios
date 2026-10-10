@@ -65,8 +65,12 @@ namespace DaYiJingCheng.EditorTools.Gates
         };
 
         // ── b4 的白名单:允许调 ToFloat() 的装配(ADR-025 §② 甲案 = {Sim.Codec, Gameplay.*})──
-        private static readonly string[] ToFloatWhitelistPrefixes =
-            { "Sim.Codec", "Gameplay.Presentation", "Gameplay.UI", "Gameplay.Tests" };
+        // BCD-码-4(2026-10-10):补 Gameplay.Boot —— 全案唯一生产 ToFloat 投影出口
+        // (DiseaseVitalsService 的 VitalsDto 桥)在 Boot,原白名单漏它 ⇒ 一旦 Boot 进
+        // 扫描面即假红;原 asmDirs 更是**根本不扫 Boot** ⇒ 门对 Boot 完全不可见。
+        // internal(b6 同格):结构测试断言 Boot ∈ 白名单,删条目 = 测试红。
+        internal static readonly string[] ToFloatWhitelistPrefixes =
+            { "Sim.Codec", "Gameplay.Presentation", "Gameplay.UI", "Gameplay.Tests", "Gameplay.Boot" };
 
         [MenuItem("大医精诚/Validation/Run Assembly Gates")]
         private static void RunMenu()
@@ -106,6 +110,10 @@ namespace DaYiJingCheng.EditorTools.Gates
             CheckManifestClosure(errs);      // b3
             CheckGateA(errs);                // b2
             CheckPayloadRefCallsites(errs);  // b6(ADR-029 §③)
+            // b7 写者存在性门(M2 阶段 2 · 批次 D,2026-10-10):registry 每支 author 声明
+            // 的 Kind ∈ 已写者集 ∪ 具名豁免表。接进本路径(菜单 / reload / 构建前门三处
+            // 共用 RunAll)—— 承「零调用方的门形同虚设」口径。
+            errs.AddRange(WriterExistenceGate.RunAll());
             return errs;
         }
 
@@ -176,16 +184,22 @@ namespace DaYiJingCheng.EditorTools.Gates
         // 命中 = `.ToFloat(` 出现在 Sim/Gameplay.Presentation 之外装配目录下。
         // 已知漏报面:注释与字符串字面量(误报方向,偏安全);`Fix x; x.ToFloat()` 经
         // 变量名任意 ⇒ 必须带点前缀匹配,不做纯标识符匹配(会漏 this.x.ToFloat() 的反向)。
-        private static void CheckToFloatCallsites(List<string> errs)
-        {
-            var asmDirs = new Dictionary<string, string>
+        // BCD-码-4(2026-10-10):b4 扫描面提为字段(b6 `PayloadRefScanDirs` 同格)
+        // —— 原为方法内局部字典 ⇒ 测试不可见、删面无门可红。补 { Gameplay.Boot }:
+        // Boot 内的 ToFloat(体征投影桥)原在门下零覆盖。
+        internal static readonly Dictionary<string, string> ToFloatScanDirs =
+            new Dictionary<string, string>
             {
                 { "Sim", "Assets/Sim" },
                 { "Sim.Codec", "Assets/Sim.Codec" },
                 { "Gameplay.Presentation", "Assets/Gameplay.Presentation" },
                 { "Gameplay.UI", "Assets/Gameplay.UI" },
+                { "Gameplay.Boot", "Assets/Gameplay.Boot" },
             };
-            foreach (var kv in asmDirs)
+
+        private static void CheckToFloatCallsites(List<string> errs)
+        {
+            foreach (var kv in ToFloatScanDirs)
             {
                 if (!Directory.Exists(kv.Value)) continue;
                 foreach (var f in Directory.GetFiles(kv.Value, "*.cs", SearchOption.AllDirectories))

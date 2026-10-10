@@ -154,8 +154,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>
         /// 每帧帧泵(薄壳):读移动输入 → <see cref="MovementFeed.PumpFrame"/>(喂入 / 采样 /
         /// tick 推进 / 边沿提交的次序全在那)。
-        /// <para>Phase 1 只接 PlayerController(其公开每 tick 入口 = <c>OnTickEdge</c>);
-        /// 其余已装配订阅者(sim Step / 疾病求值 / 体征查询)归 Phase 2 —— 本阶段刻意不接。</para>
+        /// <para>接线面 = 两个订阅者:① PlayerController(其公开每 tick 入口 = <c>OnTickEdge</c>);
+        /// ② <c>DiseaseVitalsService.OnTickEdge</c>(批次 C · 体征链核心,2026-10-09 接入)——
+        /// 每个 tick 边沿在 ① **之后**驱动 ②,语义 = <b>体征在 tick 边沿后可见</b>,
+        /// 且本边沿写入的病史事件在**本 tick** 内进求值(次序与 tick 回推的可测身全在
+        /// <see cref="MovementFeed.PumpFrame"/>,本类只做转发)。仍待 Phase 2:全局 sim Step(非疾病侧)。</para>
         /// <para><b>2026-10-09 采样缺口已闭</b>:原登记「<c>OnPositionSample</c> / <c>OnUplinkSample</c>
         /// 零生产调用点 ⇒ <c>ActorCellEntered</c> 运行期恒不发事件」—— 现由
         /// <see cref="MovementFeed.ProcessMovementFrame"/> 提供唯一生产调用点
@@ -169,7 +172,20 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             MovementFeed.PumpFrame(_player, _tickDriver,
                                    MovementInputReader.ReadMoveAxis(),
-                                   Time.unscaledDeltaTime);
+                                   Time.unscaledDeltaTime,
+                                   StepVitals);
+        }
+
+        /// <summary>
+        /// tick 边沿第二驱动口(批次 C):体征链 Step —— 在同边沿 <c>PlayerController.OnTickEdge</c>
+        /// **之后**调用(见 <see cref="MovementFeed.PumpFrame"/> 次序头注)。
+        /// </summary>
+        /// <remarks>薄转发:本类不持游戏状态(ADR-013 §9 C3),病程真源在事件流。</remarks>
+        /// <param name="tick">该边沿自己的逻辑 tick(由帧泵回推,非末 tick)。</param>
+        private void StepVitals(long tick)
+        {
+            if (_services == null || _services.VitalsService == null) return;
+            _services.VitalsService.OnTickEdge(tick);
         }
 
         /// <summary>

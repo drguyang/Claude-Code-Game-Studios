@@ -242,7 +242,10 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
         /// tick 边沿提交(ADR-020 Amendment B)。
         /// Host 模式: 直接 Append;Client 模式: 只上行 pending_cell, 零 Append。
         /// </summary>
-        public void OnTickEdge()
+        /// <param name="tick">该边沿自己的逻辑 tick(由帧泵逐边沿回推,非帧末 CurrentTick)。
+        /// BCD-码-2 修复(2026-10-10):multi-tick 帧内,帧末 CurrentTick 超前边沿 steps−1,
+        /// 事件头须用边沿自有 tick 才与「边沿驱动」语义同源。</param>
+        public void OnTickEdge(long tick)
         {
             // AC-1-30①: 客户端模式零 Append — 直接返回
             if (_mode == SimAuthorityMode.Client) return;
@@ -257,7 +260,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
             if (!isInvalid && cell.X == _lastCommittedCell.X && cell.Y == _lastCommittedCell.Y && cell.Z == _lastCommittedCell.Z) return;
 
             // 主机权威: 直接 Append(提取到独立方法避免 IL 扫描误报)
-            AppendCellEnteredEvent(cell);
+            AppendCellEnteredEvent(cell, tick);
 
             _lastCommittedCell = cell;
         }
@@ -267,9 +270,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
         /// 载荷经 IPayloadEncoder 编码(ADR-029 §③;O-6 · 2026-10-09 —— 原手搓伪引用
         /// 无 actor 身份,联机两 actor 同 tick 同格会被 O-4 条件键吞成一条)。
         /// </summary>
-        private void AppendCellEnteredEvent(WorldPos cell)
+        private void AppendCellEnteredEvent(WorldPos cell, long tick)
         {
-            long tick = _tickProvider.CurrentTick;
             var payload = new ActorCellEnteredPayload(_actorId, cell, tick);
             var evt = new SimEvent(
                 tick,

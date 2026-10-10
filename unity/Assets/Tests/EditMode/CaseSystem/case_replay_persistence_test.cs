@@ -171,18 +171,18 @@ namespace DaYiJingCheng.Tests.EditMode.CaseSystem
             var stream = new EventStream(new FakeIdAuthority(), new FakePresenceQuery());
             var pool = new InMemoryBlobPool();
 
-            // 病史流:病人 1 / 2 / 4
-            stream.Append(MakeEvent(5, 1, 0, EventKind.InjuryOnset, pool));
-            stream.Append(MakeEvent(8, 2, 0, EventKind.InjuryOnset, pool));
-            stream.Append(MakeEvent(11, 4, 0, EventKind.InjuryOnset, pool));
-            // 病例流:病人 1 / 2 / 3 + 哨兵 PatternRecognized
-            stream.Append(MakeCaseEvent(10, 1, 0, EventKind.CaseOpened, pool));
-            stream.Append(MakeCaseEvent(12, 2, 0, EventKind.CaseOpened, pool));
-            stream.Append(MakeCaseEvent(14, 3, 0, EventKind.CaseOpened, pool));
-            stream.Append(MakeEvent(50, PatientId.None.Value, 0, EventKind.PatternRecognized, pool));
-            // 世界流:哨兵 ActorCellEntered + 病人 5(全局最大)
-            stream.Append(MakeEvent(3, PatientId.None.Value, 0, EventKind.ActorCellEntered, pool));
-            stream.Append(MakeEvent(7, 5, 0, EventKind.ActorCellEntered, pool));
+            // ⚠️ BCD-码-3(2026-10-10):真 EventStream 现按 Tick 非降断言(生产写路径
+            // 恒时间序 Append)—— 三流事件须**按 tick 升序**入流,不再按流分组;
+            // 高水位扫描与入流序无关,断言语义不变。注释标各条所属流:
+            stream.Append(MakeEvent(3, PatientId.None.Value, 0, EventKind.ActorCellEntered, pool)); // 世界(哨兵)
+            stream.Append(MakeEvent(5, 1, 0, EventKind.InjuryOnset, pool));                          // 病史
+            stream.Append(MakeEvent(7, 5, 0, EventKind.ActorCellEntered, pool));                     // 世界(病人 5 = 全局最大)
+            stream.Append(MakeEvent(8, 2, 0, EventKind.InjuryOnset, pool));                          // 病史
+            stream.Append(MakeCaseEvent(10, 1, 0, EventKind.CaseOpened, pool));                      // 病例
+            stream.Append(MakeEvent(11, 4, 0, EventKind.InjuryOnset, pool));                         // 病史
+            stream.Append(MakeCaseEvent(12, 2, 0, EventKind.CaseOpened, pool));                      // 病例
+            stream.Append(MakeCaseEvent(14, 3, 0, EventKind.CaseOpened, pool));                      // 病例
+            stream.Append(MakeEvent(50, PatientId.None.Value, 0, EventKind.PatternRecognized, pool)); // 病例(哨兵)
 
             // Act:生产高水位函数
             PatientId next = stream.GetNextPatientId();

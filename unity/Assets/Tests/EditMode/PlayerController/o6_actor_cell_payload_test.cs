@@ -98,8 +98,8 @@ namespace DaYiJingCheng.Tests.PlayerController
 
             c1.OnPositionSample(new Vector3(3.5f, 0f, 4.5f));
             c2.OnPositionSample(new Vector3(3.5f, 0f, 4.5f));
-            c1.OnTickEdge();
-            c2.OnTickEdge();
+            c1.OnTickEdge(100);
+            c2.OnTickEdge(100);
 
             Assert.AreEqual(2, stream.Count,
                 "O-6:两个 PlayerController 同 tick 同格的两条事件须都入流(与 detector 支对偶)");
@@ -151,7 +151,7 @@ namespace DaYiJingCheng.Tests.PlayerController
             controller.Initialize(SimAuthorityMode.Host, _sink, _provider, _encoder, actorId: 42);
 
             controller.OnPositionSample(new Vector3(6.5f, 0f, 6.5f));
-            controller.OnTickEdge();
+            controller.OnTickEdge(100);
 
             Assert.AreEqual(1, _sink.AppendedEvents.Count, "主机模式须发 1 条");
             var p = PayloadOf(_sink.AppendedEvents[0]);
@@ -169,7 +169,7 @@ namespace DaYiJingCheng.Tests.PlayerController
 
             controller.OnPositionSample(new Vector3(1.5f, 0f, 1.5f));
             controller.OnUplinkSample(new Vector3(2.5f, 0f, 2.5f));
-            controller.OnTickEdge();
+            controller.OnTickEdge(100);
 
             Assert.AreEqual(0, _sink.AppendedEvents.Count, "客户端模式零 Append");
             // ⚠️ 出口条件:本断言守的是「**OnTickEdge** 不泄漏编码」。若将来 ADR-011 F1

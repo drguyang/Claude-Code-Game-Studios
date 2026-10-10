@@ -261,6 +261,51 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             Assert.AreEqual(1L, _stream.Events[3].Seq, "患者2 续号 1");
         }
 
+        // BCD-码-3(2026-10-10):流按 Tick 非降 —— 回退 tick 的新事件入流期 fail-loud
+        [Test]
+        public void test_monotonic_tickRegression_throwsBeforeWrite()
+        {
+            var patient = new PatientId(1);
+            _stream.Append(new SimEvent(100, patient, -1, EventKind.ActorCellEntered, default));
+            _stream.Append(new SimEvent(110, patient, -1, EventKind.InjuryOnset, default));
+
+            // 不同 Kind ⇒ 不走去重短路,撞单调断言(游标 break 门的写入期护栏)
+            Assert.Throws<InvalidOperationException>(() =>
+                _stream.Append(new SimEvent(50, patient, -1, EventKind.DiseaseOnset, default)),
+                "tick 回退(110 → 50)的新事件须 fail-loud(BCD-码-3)");
+
+            Assert.AreEqual(2, _stream.Count,
+                "断言在入列表之前抛出 ⇒ 流不被污染(去重键 / 发号器均未写)");
+        }
+
+        // BCD-码-3 配套:旧 tick **重发**走去重短路,不得误触断言(45 重传语义保留)
+        [Test]
+        public void test_monotonic_resendOldTick_dedupedNotThrown()
+        {
+            var patient = new PatientId(1);
+            var old = new SimEvent(100, patient, -1, EventKind.ActorCellEntered, default);
+            _stream.Append(old);
+            _stream.Append(new SimEvent(120, patient, -1, EventKind.InjuryOnset, default));
+
+            Assert.DoesNotThrow(() => _stream.Append(old),
+                "旧 tick 同一事件重发 = 去重短路,先于单调断言(重传不因新事件入流而炸)");
+            Assert.AreEqual(2, _stream.Count, "重发仍被去重拒收");
+        }
+
+        // BCD-码-3 配套:Clear 复位单调基线(与发号器 / 去重键同格)
+        [Test]
+        public void test_monotonic_clearResetsBaseline()
+        {
+            var patient = new PatientId(1);
+            _stream.Append(new SimEvent(100, patient, -1, EventKind.ActorCellEntered, default));
+            _stream.Clear();
+
+            Assert.DoesNotThrow(
+                () => _stream.Append(new SimEvent(50, patient, -1, EventKind.InjuryOnset, default)),
+                "Clear 须一并清单调基线(否则清空后旧基线拦住合法的低 tick 重建)");
+            Assert.AreEqual(1, _stream.Count);
+        }
+
         // AC-2: 抽象点接口齐备
         [Test]
         public void test_abstractionPoints_exist()

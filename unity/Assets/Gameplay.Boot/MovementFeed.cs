@@ -11,10 +11,20 @@
 //   的可测身住在本静态类 —— EditMode 直接调 <see cref="PumpFrame"/> 即可驱动真装配袋,
 //   不依赖键盘硬件、不依赖场景、不依赖 Boot 启动序(Addressables 那两步与移动无关)。
 //
-// 帧内次序(不可改):**Move(表现态位移)→ OnPositionSample(采样判格)→ Advance → OnTickEdge
-//   (边沿提交)**。先采样后边沿 ⇒ 本帧位移在本帧可达的最近一次 tick 边沿被提交;
-//   次序颠倒 ⇒ 跨格事件恒晚一 tick 才可见(表现与流撕裂)。
+// 帧内次序(不可改):**Move(表现态位移)→ OnPositionSample(采样判格)→ Advance → 逐边沿
+//   [OnTickEdge(玩家提交)→ onTickEdge(体征链 Step)]**。先采样后边沿 ⇒ 本帧位移在本帧可达的
+//   最近一次 tick 边沿被提交;次序颠倒 ⇒ 跨格事件恒晚一 tick 才可见(表现与流撕裂)。
+//
+// M2 阶段 2 · 批次 C 追加的**第二驱动口**(2026-10-09):
+//   每个 tick 边沿在 `PlayerController.OnTickEdge()` **之后**回调 `onTickEdge(tick)`
+//   ⇒ 疾病 Step 与玩家提交落在**同一个 tick 边沿内**,且顺序 = 先提交后求值。
+//   失效模式(若次序反过来):玩家/处置在本边沿写入的病史事件要等到**下一个** tick
+//   才进求值 —— 体征晚一 tick,与「体征在 tick 边沿后可见」的语义相悖。
+//   tick 取值 = 该边沿**自己的**逻辑 tick(`Advance` 一次可能补多个 tick;
+//   `SimTickDriver.CurrentTick` 在 Advance 后已是末 tick,故按 `first = CurrentTick − steps + 1`
+//   逐个回推 —— 不回推则一次补 3 tick 时三次回调全给同一个 tick)。
 
+using System;
 using DaYiJingCheng.Gameplay.Presentation.Player;
 using UnityEngine;
 
@@ -82,8 +92,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="tickDriver">tick 驱动器(墙钟 → 整 tick;测试可注入受控 delta 使边沿确定性)。</param>
         /// <param name="moveAxis">原始输入轴。</param>
         /// <param name="deltaSeconds">本帧逻辑时间(生产传 <c>Time.unscaledDeltaTime</c>)。</param>
+        /// <param name="onTickEdge">
+        /// 第二驱动口(批次 C):每个 tick 边沿在 <see cref="PlayerController.OnTickEdge"/> **之后**
+        /// 调用一次,入参 = **该边沿自己的**逻辑 tick(不是末 tick)。
+        /// 生产传 <c>DiseaseVitalsService.OnTickEdge</c>(体征链);null = 不接(既有调用方兼容)。
+        /// </param>
         public static void PumpFrame(PlayerController player, SimTickDriver tickDriver,
-                                     Vector2 moveAxis, double deltaSeconds)
+                                     Vector2 moveAxis, double deltaSeconds,
+                                     Action<long> onTickEdge = null)
         {
             if (player == null) return;
 
@@ -91,9 +107,14 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             if (tickDriver == null) return;
             int steps = tickDriver.Advance(deltaSeconds);
-            for (int i = 0; i < steps; i++)
+            if (steps <= 0) return;
+
+            // Advance 已把 CurrentTick 推到本帧最后一个 tick ⇒ 逐边沿回推各自的 tick。
+            long edgeTick = tickDriver.CurrentTick - steps + 1;
+            for (int i = 0; i < steps; i++, edgeTick++)
             {
-                player.OnTickEdge();
+                player.OnTickEdge(edgeTick);   // BCD-码-2:边沿自有 tick(非帧末 CurrentTick)
+                onTickEdge?.Invoke(edgeTick);
             }
         }
     }

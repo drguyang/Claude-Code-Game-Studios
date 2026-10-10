@@ -68,7 +68,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         [Test]
         public void test_ac1039_applied_nineFieldsAllPopulated()
         {
-            _processor.Process(Attempt(), Action(), Ctx(), tick: 100, cause: 0);
+            _processor.Process(Attempt(), Action(), Ctx(), patientId: Patient(), tick: 100, cause: 0);
 
             var p = Decode<EmergencyTreatmentAppliedPayload>(1);   // [0]=Attempt, [1]=Applied
 
@@ -87,7 +87,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         public void test_ac1039_halfLifeNotZero()
         {
             // 🔴 手搓法的硬雷:HalfLife 恒 0 ⇒ registry 明写「触发 9 的 Decay 除零,AC-28 写入期拒收」
-            _processor.Process(Attempt(), Action(), Ctx(), tick: 1, cause: 0);
+            _processor.Process(Attempt(), Action(), Ctx(), patientId: Patient(), tick: 1, cause: 0);
             var p = Decode<EmergencyTreatmentAppliedPayload>(1);
             Assert.AreNotEqual(0L, p.HalfLife, "HalfLife 不得为 0(会触发 9 的 Decay 除零)");
         }
@@ -95,7 +95,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         [Test]
         public void test_ac1039_polarityNotZero()
         {
-            _processor.Process(Attempt(), Action(), Ctx(), tick: 1, cause: 0);
+            _processor.Process(Attempt(), Action(), Ctx(), patientId: Patient(), tick: 1, cause: 0);
             var p = Decode<EmergencyTreatmentAppliedPayload>(1);
             Assert.AreNotEqual(0, p.Polarity, "Polarity 须由处置词表查得(手搓法恒 0)");
         }
@@ -104,7 +104,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         public void test_ac1039_actorIdIsProviderNotJudgeResult()
         {
             // 🔴 手搓法把 `(int)result` 当施予者 id ⇒ 此处用 actorId=7 而 result 非 7 来钉死
-            _processor.Process(Attempt(actorId: 7), Action(), Ctx(), tick: 1, cause: 0);
+            _processor.Process(Attempt(actorId: 7), Action(), Ctx(), patientId: Patient(), tick: 1, cause: 0);
             var p = Decode<EmergencyTreatmentAppliedPayload>(1);
             Assert.AreEqual(7, p.ActorId, "ActorId 须为施予者 id,不得填 JudgeResult");
         }
@@ -115,7 +115,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
             // GDD R-1:「跳过」须在流上可判别
             var sink2 = new CapturingSink();
             var proc2 = new HostEmergencyProcessor(sink2, new FakeIdAuthority(), _encoder);
-            proc2.Process(Attempt(method: 1), Action(), Ctx(), tick: 1, cause: 1);
+            proc2.Process(Attempt(method: 1), Action(), Ctx(), patientId: Patient(), tick: 1, cause: 1);
             var p = Decode2<EmergencyTreatmentAppliedPayload>(sink2, 1);
             Assert.AreEqual(1, p.Method, "Method = Skip 须可判别");
             Assert.AreEqual(1, p.Cause, "Cause = 降级 须可判别");
@@ -132,7 +132,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         {
             // ⚠️ 裁定 A=丙:载荷 Seq 置 0 占位(其真源「主机 Append 时发号」发生在 IEventSink 内部,
             //    载荷构造在其之前)。**本测把占位事实钉死,防它被读成「已齐备」。**
-            _processor.Process(Attempt(), Action(), Ctx(), tick: 100, cause: 0);
+            _processor.Process(Attempt(), Action(), Ctx(), patientId: Patient(), tick: 100, cause: 0);
             var p = Decode<EmergencyTreatmentAppliedPayload>(1);
             Assert.AreEqual(0L, p.Seq,
                 "载荷 Seq 当前为**占位 0**(裁定 A=丙)—— 真源归上行链(45/P1b);" +
@@ -144,7 +144,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         [Test]
         public void test_ac1040_attempt_eightFieldsAllPopulated()
         {
-            _processor.Process(Attempt(), Action(), Ctx(), tick: 100, cause: 0);
+            _processor.Process(Attempt(), Action(), Ctx(), patientId: Patient(), tick: 100, cause: 0);
 
             var p = Decode<EmergencyAttemptPayload>(0);
             Assert.AreEqual(0, p.Action, "Action");
@@ -161,7 +161,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         public void test_ac1040_edgeTicksLengthMatchesEdges()
         {
             // codec 侧跨字段约束:EdgeTicks.Length == Edges(违反 ⇒ ArgumentException)
-            _processor.Process(Attempt(), Action(), Ctx(), tick: 1, cause: 0);
+            _processor.Process(Attempt(), Action(), Ctx(), patientId: Patient(), tick: 1, cause: 0);
             var p = Decode<EmergencyAttemptPayload>(0);
             Assert.AreEqual(p.Edges, p.EdgeTicks.Length, "Edges 须等于 EdgeTicks 长度");
         }
@@ -199,7 +199,7 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         [Test]
         public void test_ac1041_threeTiersNonZero()
         {
-            _processor.Process(Attempt(), Action(basePotency: 100000L), Ctx(), tick: 1, cause: 0);
+            _processor.Process(Attempt(), Action(basePotency: 100000L), Ctx(), patientId: Patient(), tick: 1, cause: 0);
             var applied = Decode<EmergencyTreatmentAppliedPayload>(1);
             Assert.AreEqual(100000L, applied.DrugPotency.Raw, "Applied 档 = ×1.0");
         }
@@ -213,11 +213,53 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
                 action: 0, holdTicks: 1, edges: 1, magPeak: 100, magLast: 100,
                 method: 0, actorId: 7, edgeTicks: new[] { 10 });
 
-            _processor.Process(bad, Action(basePotency: 100000L), Ctx(), tick: 1, cause: 0);
+            _processor.Process(bad, Action(basePotency: 100000L), Ctx(), patientId: Patient(), tick: 1, cause: 0);
 
             Assert.AreEqual(2, _sink.Events.Count, "Missed 仍须发两条事件(非零,失败也留一笔)");
             var p = Decode<EmergencyTreatmentAppliedPayload>(1);
             Assert.AreEqual(25000L, p.DrugPotency.Raw, "Missed 档 = ×0.25,且**非零**");
+        }
+
+        // ══════════ 病人归因(M2 阶段 2 · 批次 E · 2026-10-09)══════════
+        //
+        // 原 bug:HostEmergencyProcessor 两处 Append 写死 `PatientId.None`
+        //   ⇒ 急救事件无法按病人归因,37 结案门 / 9 体征链 / 7a 高水位拿不到身份。
+        // 判据(ADR-009 Amendment I + ADR-006 Amendment B):事件头 Patient = 传入的病人 id,
+        //   且 None / 负值在入口被拒(fail-loud,零事件)。
+
+        [Test]
+        public void test_emergency_attribution_twoEventsCarryGivenPatientId()
+        {
+            // Arrange
+            var patient = new PatientId(42);
+
+            // Act
+            _processor.Process(Attempt(), Action(), Ctx(), patientId: patient, tick: 100, cause: 0);
+
+            // Assert
+            Assert.AreEqual(2, _sink.Events.Count, "一条完成动作恰两条病史流事件");
+            Assert.AreNotEqual(PatientId.None, _sink.Events[0].Patient,
+                "EmergencyAttempt 不得为 PatientId.None(原 bug 形态)");
+            Assert.AreNotEqual(PatientId.None, _sink.Events[1].Patient,
+                "EmergencyTreatmentApplied 不得为 PatientId.None(原 bug 形态)");
+            Assert.AreEqual(patient, _sink.Events[0].Patient,
+                "EmergencyAttempt 事件头 Patient 须 = 传入的病人 id");
+            Assert.AreEqual(patient, _sink.Events[1].Patient,
+                "EmergencyTreatmentApplied 事件头 Patient 须 = 传入的病人 id(与 ① 同一病人)");
+        }
+
+        [TestCase(-1, TestName = "test_emergency_attribution_patientNone_throws")]       // PatientId.None
+        [TestCase(-99, TestName = "test_emergency_attribution_negativePatientId_throws")] // 任意负 id
+        public void test_emergency_attribution_invalidPatientId_throwsBeforeAnyAppend(int badId)
+        {
+            // Arrange
+            var bad = new PatientId(badId);
+
+            // Act + Assert:入口拒(fail-loud)
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => _processor.Process(Attempt(), Action(), Ctx(), patientId: bad, tick: 1, cause: 0),
+                $"patientId = {badId} 须在入口被拒(ArgumentOutOfRangeException)");
+            Assert.AreEqual(0, _sink.Events.Count, "门拒后零事件 —— 不得 Judge/Append 半程执行");
         }
 
         // ══════════ AC-10-42 / AC-10-44: 手搓面 + 豁免 ══════════
@@ -306,6 +348,9 @@ namespace DaYiJingCheng.Tests.EmergencyProcedures
         // ══════════ 辅助 ══════════
 
         private static JudgeContext Ctx() => new JudgeContext { Level = 5, MagThresholdEffective = 400 };
+
+        /// <summary>被施救病人夹具(批次 E 事件头归因;≠ 施予者 actorId=7,防两者被混读)。</summary>
+        private static PatientId Patient() => new PatientId(3);
 
         private static string StripComments(string src)
         {

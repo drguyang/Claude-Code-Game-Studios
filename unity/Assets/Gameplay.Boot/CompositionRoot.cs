@@ -8,11 +8,13 @@
 //   ADR-005(六 + 一抽象点)· ADR-006 Amendment B(机制 A 计数器 = IdAuthority)
 //   ADR-029(第七抽象点 IPayloadEncoder,乙案:编码 + 入池一体)
 //   ADR-030(9 的 DiseaseOnset 写者 = PatientSpawner)
+//   ADR-025 §①(IVitalsQuery 生产实装落本装配 · M2 阶段 2 批次 C)· ADR-025 §② 甲案(ToFloat 出口白名单)
 //
 // fail-loud 口径:任一依赖缺失 ⇒ 具名 ArgumentNullException / InvalidOperationException,
 // **不返回半装配袋**;所有实装类自身构造器同样 fail-loud,任何一步抛出都中止整次装配。
 
 using System;
+using System.Collections.Generic;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
@@ -30,11 +32,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>
         /// 全自动装配(全新世界:计数器从 0 起、空在场登记簿、内存 blob 池、world_seed = 0)。
         /// </summary>
+        /// <param name="registry">病种注册表(体征链 Step 的查表输入;null = 空表 ——
+        /// 空表下体征链仍可装配,但任何 <c>DiseaseOnset</c> 都会 fail-loud「病种不在注册表内」,
+        /// 属预期而非半装配)。</param>
         /// <returns>装配完成的服务袋(绝不为 null)。</returns>
         /// <exception cref="InvalidOperationException">防御性,实际不可达(装配环节产出 null 的
         /// fail-loud 兜底断言 —— 上游构造器已抛 / 参数检查先 ANE)。</exception>
-        public static CompositionRootServices Assemble()
-            => AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(), 0UL);
+        public static CompositionRootServices Assemble(
+            IReadOnlyList<DiseaseRegistryEntry> registry = null)
+            => AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(),
+                            0UL, registry);
 
         /// <summary>
         /// 显式依赖注入装配(读档 / 测试用:由调用方给出发号权威、在场登记簿、blob 池与世界种子)。
@@ -43,6 +50,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="presence">在场登记簿(EventStream 的 AC-15 有界性依赖)。</param>
         /// <param name="blobPool">不可变 blob 池(同时作编码器的写面 <see cref="IBlobSink"/>)。</param>
         /// <param name="worldSeed">世界种子(存档头;派生 patient_seed)。</param>
+        /// <param name="registry">病种注册表(见 <see cref="Assemble(IReadOnlyList{DiseaseRegistryEntry})"/>)。</param>
         /// <returns>装配完成的服务袋(绝不为 null)。</returns>
         /// <exception cref="ArgumentNullException">任一引用依赖为 null(参数名具名)。</exception>
         /// <exception cref="InvalidOperationException">防御性,实际不可达(装配环节产出 null 的
@@ -50,18 +58,20 @@ namespace DaYiJingCheng.Gameplay.Boot
         public static CompositionRootServices Assemble(IIdAuthority idAuthority,
                                                        PresenceRegistry presence,
                                                        InMemoryBlobPool blobPool,
-                                                       ulong worldSeed)
+                                                       ulong worldSeed,
+                                                       IReadOnlyList<DiseaseRegistryEntry> registry = null)
         {
             if (idAuthority == null) throw new ArgumentNullException(nameof(idAuthority));
             if (presence == null) throw new ArgumentNullException(nameof(presence));
             if (blobPool == null) throw new ArgumentNullException(nameof(blobPool));
-            return AssembleCore(idAuthority, presence, blobPool, worldSeed);
+            return AssembleCore(idAuthority, presence, blobPool, worldSeed, registry);
         }
 
         private static CompositionRootServices AssembleCore(IIdAuthority idAuthority,
                                                              PresenceRegistry presence,
                                                              InMemoryBlobPool blobPool,
-                                                             ulong worldSeed)
+                                                             ulong worldSeed,
+                                                             IReadOnlyList<DiseaseRegistryEntry> registry)
         {
             // ── 依赖前置校验(全自动路径同样 fail-loud)──
             if (idAuthority == null)
@@ -85,6 +95,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ── 病人创建器:9 的 DiseaseOnset 写者(ADR-030 §③)──
             PatientSpawner spawner = new PatientSpawner(idAuthority, stream, encoder, worldSeed);
 
+            // ── 体征链核心(批次 C):apply 驱动 + 投影桥 + IVitalsQuery 生产实装 ──
+            // 它**同时**需要 EventStream/Sim(状态与求值)与 Sim.Codec(载荷解码)
+            // ⇒ 只能在本装配(案 A)构造;客户端侧不装配(ADR-005 主机唯一 Step)。
+            DiseaseVitalsService vitals = new DiseaseVitalsService(
+                stream, blobPool, registry ?? new DiseaseRegistryEntry[0], worldSeed);
+
             // ── fail-loud 兜底:任一产物为 null = 装配器自身缺陷,立即具名抛出 ──
             // 2026-10-09(评审代码面 F6):以下三条 InvalidOperationException 为
             // **不可达兜底**(上游构造器已抛 / 参数检查先 ANE),不计入覆盖。
@@ -94,9 +110,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: PayloadEncoder 装配产出 null");
             if (spawner == null)
                 throw new InvalidOperationException("Assemble: PatientSpawner 装配产出 null");
+            if (vitals == null)
+                throw new InvalidOperationException("Assemble: DiseaseVitalsService 装配产出 null");
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder,
-                                               presence, spawner, worldSeed);
+                                               presence, spawner, worldSeed, vitals);
         }
     }
 }

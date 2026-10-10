@@ -51,12 +51,18 @@ namespace DaYiJingCheng.Tests.PlayMode.EmergencyProcedures
             var ctx = new JudgeContext { Level = 5, MagThresholdEffective = 400 };
 
             // Act
-            processor.Process(attempt, action, ctx, tick: 100, cause: 0);
+            processor.Process(attempt, action, ctx, patientId: new PatientId(3), tick: 100, cause: 0);
 
             // Assert: 恰两条事件（EmergencyAttempt + EmergencyTreatmentApplied）
             Assert.AreEqual(2, sink.AppendedEvents.Count, "一条完成动作应恰两条流事件");
             Assert.AreEqual(EventKind.EmergencyAttempt, sink.AppendedEvents[0].Kind);
             Assert.AreEqual(EventKind.EmergencyTreatmentApplied, sink.AppendedEvents[1].Kind);
+
+            // 病人归因(M2 阶段 2 · 批次 E):两事件头 Patient 须 = 传入 id,非 None
+            Assert.AreEqual(new PatientId(3), sink.AppendedEvents[0].Patient,
+                "EmergencyAttempt 事件头须归因到传入病人(原 bug = PatientId.None)");
+            Assert.AreEqual(new PatientId(3), sink.AppendedEvents[1].Patient,
+                "EmergencyTreatmentApplied 事件头须归因到同一病人");
 
             yield return null;
         }
@@ -86,7 +92,7 @@ namespace DaYiJingCheng.Tests.PlayMode.EmergencyProcedures
             };
             var ctx = new JudgeContext { Level = 5, MagThresholdEffective = 400 };
 
-            processor.Process(attempt, action, ctx, tick: 100, cause: 0);
+            processor.Process(attempt, action, ctx, patientId: new PatientId(3), tick: 100, cause: 0);
 
             // 有界性: 与帧率无关，一条动作恰两条
             Assert.AreEqual(2, sink.AppendedEvents.Count, "有界性: 一条动作应恰两条事件");

@@ -13,6 +13,12 @@
 //   :59  new PayloadRef(attempt.Action, (int)result, 0)                     —— 9 字段只写 1 个有意义
 //        且把 `attempt.Action` 当 applied 首字段(`TreatmentId ≠ Action`)、`result` 当施予者 id。
 //   ⇒ 现全部经 IPayloadEncoder,九字段/八字段逐项填充。
+//
+// ⚠️ 2026-10-09(M2 接线轮阶段 2 · 批次 E)病人归因修复:两处 Append 原写 `PatientId.None`
+//   ⇒ 急救事件无法按病人归因,体征链缺急救分支。按 ADR-009 Amendment I(急救三 Kind 属
+//   判定输入 / 处置事件,落病史流、归属具体病人)+ ADR-006 Amendment B(patient_id 必留,
+//   高水位重构依赖),现改由 `Process` 形参 `patientId` 传入,入口 fail-loud 拒 None/负值。
+//   与 11 侧 `PrescribeFlow` 写 `DrugTreatmentApplied` 时用 `req.PatientId` 同构。
 
 using System;
 using DaYiJingCheng.Sim.Contracts;
@@ -57,6 +63,12 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         /// <param name="attempt">判定输入载荷(八字段,含 `Method` / `ActorId`)。</param>
         /// <param name="action">动作表行(含 `Polarity` / `BasePotency` / `HalfLifeTicks` / `ResultMul`)。</param>
         /// <param name="ctx">判定上下文。</param>
+        /// <param name="patientId">
+        /// 接受急救的病人 id(事件头 `SimEvent.Patient` 归因)。
+        /// 两条落流事件(<c>EmergencyAttempt</c> / <c>EmergencyTreatmentApplied</c>)均归属它 ——
+        /// ADR-009 Amendment I + ADR-006 Amendment B(<c>patient_id</c> 必留)。
+        /// ⚠️ 归因主体是**被施救的病人**,不是施予者 <c>attempt.ActorId</c>(施予者在载荷内)。
+        /// </param>
         /// <param name="tick">当前 tick。</param>
         /// <param name="cause">
         /// 处置原因枚举(GDD `:467-469` 的判据:设备无模拟量通道 ⇒ **降级**;
@@ -64,10 +76,25 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         /// ⚠️ 该判据的信息源在**输入层(3)**,本处理器收不到 ⇒ 由调用方传入。
         /// **真实调用方 = 主机上行链,归 45 / P1b;当前仅测试调用。**
         /// </param>
+        /// <exception cref="ArgumentNullException"><paramref name="action"/> 为 null。</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="patientId"/> 为 <see cref="PatientId.None"/>(-1)或负值 ——
+        /// 急救事件必须归属具体病人,None 是事件侧哨兵,不得进入病史流归因。
+        /// </exception>
         public void Process(EmergencyAttemptPayload attempt, EmergencyActionRow action,
-                            JudgeContext ctx, long tick, int cause)
+                            JudgeContext ctx, PatientId patientId, long tick, int cause)
         {
             if (action == null) throw new ArgumentNullException(nameof(action));
+
+            // ── fail-loud 门(入口,先于 Judge 与任何 Append)──────────────────
+            // 失效模式(2026-10-09 批次 E 修的原 bug):归因写死 PatientId.None
+            //   ⇒ 消费方(37 结案门 / 9 体征链 / 7a 高水位重构)拿不到病人身份。
+            // 哨兵与负 id 都不是合法病人 id(IIdAuthority 发号自 0 起)⇒ 入口拒,
+            // 不允许 Judge / Append 半程执行后才暴露。
+            if (patientId.Value < 0)
+                throw new ArgumentOutOfRangeException(nameof(patientId), patientId.Value,
+                    $"急救事件须归属具体病人,{nameof(PatientId)}.None(-1) 是事件侧哨兵," +
+                    "不得作为病史流事件头的归因(ADR-009 Amendment I / ADR-006 Amendment B)");
 
             // 构造 EmergencyReading 供 Judge 使用
             var reading = new EmergencyReading(
@@ -83,7 +110,7 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
             // ── Append ① EmergencyAttempt(物化;八字段全载)────────────────
             var attemptEvent = new SimEvent(
                 tick,
-                PatientId.None,
+                patientId, // 病人归因(批次 E;原 PatientId.None ⇒ 体征链/结案门拿不到病人)
                 -1, // 未发号哨兵 O-1(由发号器给出 header Seq)
                 EventKind.EmergencyAttempt,
                 _encoder.Encode(EventKind.EmergencyAttempt, attempt));
@@ -110,7 +137,7 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
 
             var appliedEvent = new SimEvent(
                 tick,
-                PatientId.None,
+                patientId, // 病人归因(与 ① 同一病人;批次 E)
                 -1, // 未发号哨兵 O-1
                 EventKind.EmergencyTreatmentApplied,
                 _encoder.Encode(EventKind.EmergencyTreatmentApplied, applied));

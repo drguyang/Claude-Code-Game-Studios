@@ -41,13 +41,17 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>病人创建器(9 的 DiseaseOnset 写者,ADR-030)。</summary>
         public PatientSpawner PatientSpawner { get; }
 
+        /// <summary>体征链核心服务(批次 C):apply 驱动 + 投影桥 +
+        /// <see cref="IVitalsQuery"/> 生产实装。由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
+        public DiseaseVitalsService VitalsService { get; }
+
         /// <summary>世界种子(存档头量;patient_seed = hash(world_seed, patient_id) 的入参)。</summary>
         public ulong WorldSeed { get; }
 
         internal CompositionRootServices(EventStream stream, IIdAuthority idAuthority,
                                          InMemoryBlobPool blobPool, IPayloadEncoder encoder,
                                          PresenceRegistry presence, PatientSpawner patientSpawner,
-                                         ulong worldSeed)
+                                         ulong worldSeed, DiseaseVitalsService vitalsService)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -55,6 +59,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             Encoder = encoder;
             Presence = presence;
             PatientSpawner = patientSpawner;
+            VitalsService = vitalsService;
             WorldSeed = worldSeed;
         }
     }

@@ -1,4 +1,4 @@
-# Session State — 2026-10-09(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ 扩行「集成接线+验证」(阶段 0 ✅ 勘察 · 阶段 1 ✅ 装配轮 · 阶段 1 尾 ✅ 输入→采样 · 均未提交待用户指令 · 阶段 2 待四裁定)· M2 形态件 4/4 齐(story-021…024)**)
+# Session State — 2026-10-10(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ 扩行「集成接线+验证」(阶段 0 ✅ · 阶段 1 ✅ · 阶段 1 尾 ✅(已提交 `1621efd`/`6a01d73`)· **阶段 2 ◐ A/B/C/D/E 五批全收口未提交**(终态全量 3182/3135/0 红/46 跳,两份原件落盘,等提交指令)· 阶段 3 形态件待开)· M2 形态件 4/4 齐(story-021…024)**)
 
 ## 🎯 本轮 = M2 接线轮推进方案裁定(2026-10-09 · 四方专家评估 → 用户四裁定 · **方案已落 sprint-04 §Phase 3**)
 
@@ -90,8 +90,65 @@
 先例)· ③ F3 CatchUp = M2 显式 NOT-RUN 背离(非静默)· ④ 急救归因 = 阶段 2 内修(HostEmergencyProcessor
 两处 Append 传真实 patientId)。
 
-**下一步**: ① **阶段 1 + 阶段 1 尾合并提交(等用户指令;HEAD 仍 `9437baf`,工作树含两阶段全部改动)**;
-② 阶段 2 链补全开工(CaseOpened/ResourceHarvested 写者 + 体征链禁 Fake + 定点 Exp + fixture 数据面 + 归因修)。
+**▶ 阶段 2「链补全轮」(2026-10-09 开工,「按你的建议开工阶段2」+「依次进行BCD」)**:
+**✅ A/E/B/C/D 五批全部收口(2026-10-10 · 全部未提交,HEAD 仍 `6a01d73`,等用户提交指令)**:
+
+**✅ B/C/D 合批收口(2026-10-10 · 三批依序实现→合批双代理恰一轮评审(双 APPROVE 零必修)→
+2 处窄修 + 3 发变异(M13 抓出双评审共误判并补测闭合)→ 终态全量 **3182/3135/0 红/46 跳**→ 原件
+`production/qa/evidence/review-m2-stage2-bcd-2026-10-10.md`)**:
+- **代码面 APPROVE**(0B+6L):核过 15 项(独立 grep 闭合 11 写者+24 豁免=35 支与 yaml author
+  吻合 · b7 三红判据真实现 · 门 A/asmdef 全核)。登记:码-1 ε_MIN/R1-30(数值轮)·
+  码-2 玩家事件 stamp 与边沿 tick 不同源(接线轮)· 码-3 游标单调无断言 · 码-4/5 b4/b7 门面
+  缺 Gameplay.Boot/Sim.Contracts(gate 轮)· 码-6 GDD 注记归属(已修:补登 A+E 原件)。
+- **测试面 APPROVED**(2S4 零阻塞):测-1 B 时点 XML 为过滤跑(已被 C/D 全量重证)·
+  测-2 b7 豁免 Kind 零覆盖(三重防护设计可接受)。
+- **⭐ M13 变异逃逸(本会话最重要发现)**:删游标门 `if(e.Tick>tick)break` 后测试仍全绿 ——
+  双评审纸面推演均判「真判」被**证伪**;根因 = Decay 的 Δ<0 归零门冗余吸收(双层防护等价变异)。
+  闭合:补 `test_vitalsChain_futureOnset_notRegisteredBeforeItsTick`(未来 onset 不得提前建档)→
+  M13b 重放**恰红 1**。**教训:纸面推演对多层门冗余结构性盲,变异实测不可省**(本会话第 3 次实证)。
+- **变异实数**:MUT-M10(泵次序反转)恰红 1 ✓ · MUT-M13 初次逃逸(0 红)· M13b 补测后恰红 1 ✓ ·
+  恢复复跑 VitalsChain 13/13 绿零残留。
+- **终态全量** 3182/3135/0 红/46 跳(+1=D 时点 3181+游标门补测,精确对账)。
+- 登记不修 8 项(码-1…5 + 测-1/2 + C 批 GDD 缺口 8 项与 D 批豁免表 24 条各归其轮)。
+
+**✅ A/E 批已收口(2026-10-09 · 双批并行实现→合批双评审→5 项注记修复→合批终态全量
+3125/3078/0 红→2 发变异恰中(MUT1 k-round→trunc 红 6 · MUT2 Append→None 红 1)→ 原件
+`production/qa/evidence/review-m2-stage2-ae-2026-10-09.md`(2026-10-10 补登 GDD 归属)· 未提交)**:
+- A:`Fix.Exp`(ln2 规约+10 阶 Taylor,全整数,MulRaw 唯一宽乘路径;域 Overflow>2135016 raw /
+  Zero≤−772244 raw;全域穷举 290 万点标定 ε=4×2⁻¹⁶ 相对+3 LSB 绝对)· 48/48 · 全量回归 3125/3078/0 红。
+  **F0 张力已裁**:每步舍入=FixPow 同构(F0 自标「精度取舍归 Gate 待标」),评审修复轮给 F0 加窄注记。
+- E:`Process` 签名 +`PatientId`(无默认值)+ 入口 fail-loud(Value<0→AOORE,先于 Judge/Append)+
+  两处事件头归因(被施救者,非施予者)· 急保守集 123/119/0 · PlayMode 4/4 · 全量 3077/3030/0 红。
+  涟漪注记 3 条(AC-15 有界性真实流生效/高水位计入/45 上行链义务)。
+登记不修 4 项(确定性复算测弱判别/10→9 盲区/施救离场语义归批次 C/Process 行长建议)。
+**B/C 已交付(2026-10-09),D(最后一批)进行中**:
+- B:`RegistrySchema.cs` +215 行(NaturalProgressCurve/RelapseCurve/Scale/SignEntry[]/六通道位域+
+  校验 R1-20…29)· fixture DIS_SYNTH_FIXTURE(id 9001,合成占位)· 不造 IDiseaseRegistry(拒绝
+  无消费者预留)· DiseaseSimulation 116/116 · 登记 9 项(cooked 装载面/DEATH_THRESHOLD 待数值轮等)。
+- C:三断点+主循环闭合 —— apply 层拆两半(解码在 Gameplay.Boot/DiseaseVitalsService,
+  状态在 Sim/DiseaseCourse+CourseBook 门 A 内)· 投影桥 position=clamp(Progress/SCALE)整数域·
+  **全库首个 IVitalsQuery 生产实装**(未建档抛具名异常)· 泵第二驱动口(OnTickEdge 后逐边沿
+  回推 tick)· DrugContribution 接真(Decay 走 Fix.Exp;noise/trend/signs tripwire 保留)·
+  禁 Fake 真链测试 15 条 · 全量 **3160/3113/0 红**(+35=B20+C15 精确对账)· GDD 缺口 8 项
+  如实登记未发明字段 · 判别力 15 发纸面 · 登记 7 项(b4 门补 Boot 面/9 GDD 轮/数值轮等)。
+- D:`CaseOpenWriter.TryOpen`(GDD 规则二前置写者内复核:在场+未开案,具名结果码)·
+  `ResourceHarvestWriter.Record`(五字段,Patient=None 不污染高水位)· **b7 WriterExistenceGate**
+  (registry author ⊆ 5 面源码扫描写者集 ∪ 24 条具名豁免;三假绿防护:豁免=红/陈旧=红/空集=红)·
+  **关键证伪:零生产写者实为 26 支非 2 支**(11 已有+24 豁免+2 新=35 闭合)· AssemblyGates.RunAll +4 行接线 ·
+  D 批全量 3181/3134/0 红(+21 精确对账)。
+
+**▶ 阶段 2 拆批全数收口(B→C→D 已完),剩批次 F(收口轮)**:
+F3 CatchUp NOT-RUN 背离登记 · vertical_slice_test 禁 Fake 换真复评 · 灰盒表 ·
+5 项 Go/No-Go(含门④ PlayMode 冒烟收口轮前置 NOT-RUN 必须补齐)· 人工 playtest ·
+M2 Exit 11 条复评 · 7 处登记回填(至 10-23)。
+
+**下一步**: 向用户报告 A+B+C+D+E 全量收口(终态 3182/3135/0/46)→ **等提交指令**(不得自行提交)→
+提交后开批次 F。
+
+**✅ 登记债总册已建(2026-10-10 ·「清理登记债」指令)**:`production/registration-debt-register.md`
+—— 全案未结登记债唯一真源(A 类 M2 阶段 2 十四项 · B 类 O-6 一组 · C 类 GDD 内联四项 ·
+D 类散落六项 ≈ 25 项),每项带归属轮;已结项留审计轨迹不删。GDD / active.md 的「登记债」
+字样自此指向本册。
 
 ---
 

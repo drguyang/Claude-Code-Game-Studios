@@ -92,12 +92,12 @@ namespace DaYiJingCheng.Tests.PlayerController
 
             // 先提交格 A
             controller.OnPositionSample(new Vector3(0.5f, 0, 0));
-            controller.OnTickEdge();
+            controller.OnTickEdge(100);
             Assert.AreEqual(1, sink.AppendedEvents.Count, "初始提交 A");
 
             // 注入上行 A(同值)
             controller.OnUplinkSample(new Vector3(0.5f, 0, 0));
-            controller.OnTickEdge();
+            controller.OnTickEdge(100);
 
             // 不应产生新事件
             Assert.AreEqual(1, sink.AppendedEvents.Count,
@@ -118,15 +118,15 @@ namespace DaYiJingCheng.Tests.PlayerController
 
             // 提交 A
             controller.OnPositionSample(new Vector3(0.5f, 0, 0));
-            controller.OnTickEdge();
+            controller.OnTickEdge(100);
 
             // 上行 B(客户端预测)
             controller.OnUplinkSample(new Vector3(1.5f, 0, 0));
-            controller.OnTickEdge();
+            controller.OnTickEdge(100);
 
             // 上行 A(回滚)
             controller.OnUplinkSample(new Vector3(0.5f, 0, 0));
-            controller.OnTickEdge();
+            controller.OnTickEdge(100);
 
             // 主机侧格序列: A, B, A — 不应含幽灵格
             Assert.AreEqual(3, sink.AppendedEvents.Count,
@@ -159,7 +159,7 @@ namespace DaYiJingCheng.Tests.PlayerController
                         controller.OnUplinkSample(new Vector3(actor + sample * 0.1f, 0, 0));
                     }
                 }
-                controller.OnTickEdge();
+                controller.OnTickEdge(tick);
             }
 
             Assert.LessOrEqual(sink.AppendedEvents.Count, actorCount * tickCount,

@@ -340,7 +340,7 @@ P0 病种 ~8(`systems-index.md` §8)。**新增病种 = 加一行数据,不改�
 9. **三阈值严格单调** `CRITICAL < COMA < DEATH`,且 **`DEATH_THRESHOLD < 1`** —— 见 F4(把理论满格留给上界,避免保守舍入让死亡不可达)。
 10. **`compounds[]` 无环**(A→B→A 构建期拒绝);**每条 `compounds` 的 `target_id` 必须在本表存在**。
 11. **`causes[]` 不含反向引用(R1.1 数据化,2026-09-16 三轮)** —— 病种表不得出现「上 x → 9」类错误箭头;`causes` 是**入边**(武器 / 事件 / 环境 id 或空),**不反向 knows 21a / 47**(病种不反向依赖内容层)。**本条取代原 11「`DIS_MALARIA` 类组合禁止」** —— 那条的动机是 A3(昏迷→死亡 边只查 `lethal`)的症状,今该边已按 F4 主谓词修正(见转移表),组合禁止**不再需要,删除**;**`DIS_MALARIA` 保留 `lethal`**(用户 2026-09-16 裁定)。
-12. **`R_rise` 分母防零** —— 校验 2 已查 `τ_rise > 0`,但 `τ_rise ≫ (τ_peak − incubation)` 时 `R_rise → 0`,Q16.16 下可**舍入为 0 ⇒ 除零 NaN**;与校验 7(`τ_fall = 0`)**对称缺口**。修:`R_rise` 计算须在 Q32.32 中间域完成,或为分子分母设**显式下限**(三轮:与 F3 的 `ε_MIN` 全局不等式**合并为同一条校验** —— 见 F3 全局不等式注)。
+12. **`R_rise` 分母防零** —— 校验 2 已查 `τ_rise > 0`,但 `τ_rise ≫ (τ_peak − incubation)` 时 `R_rise → 0`,Q16.16 下可**舍入为 0 ⇒ 除零 NaN**;与校验 7(`τ_fall = 0`)**对称缺口**。修:`R_rise` 计算须在 Q32.32 中间域完成,或为分子分母设**显式下限**(三轮:与 F3 的 `ε_MIN` 全局不等式**合并为同一条校验** —— 见 F3 全局不等式注)。**✅ 2026-10-10 落地**(BCD 码-1):`ε_MIN = 1/65536`(Q16.16 一 LSB,用户授权定值,见 Tuning §六)—— 写入期 = `RegistrySchema` **`R1-30`**(计算形与求值侧 `ExpNeg` 逐位同源);求值侧 `rRise ≤ 0` fail-loud 保留为子集兜底。
 13. **事件载荷写入期校验** —— ① 处置事件携带的 `half_life`(原 `τ_half`)非零(`half_life = 0` ⇒ `Decay` 除零;`drug_profile` 侧非零由 21a `Axis_base + min(axis_offset_by_quality) > 0` 保证,9 侧再兜一道);② **护理动作事件**:`t(止) ≥ t(起)`,`K ≤ |护理动作表|`(2026-09-16 三轮)。
 14. **痊愈门按型下界(2026-09-16 三轮重写,并入原 14)** —— 三类各设下界,否则或「永不死亡」或「永久危殆」:
     - `plateau ∧ lethal` ⇒ `A_peak/SCALE ≥ DEATH_THRESHOLD`(否则 plateau 致死病**永不可达死亡**,与铁律二直接冲突);
@@ -767,7 +767,7 @@ GetInterventionability(patient_id) → handle × 可读档门槛信息, 每病/�
 | 纪律 | 内容 |
 | ---- | ---- |
 | **舍入** | 保守带内的一切比较用**向下保守舍入**(宁多扫一步);表现层用就近舍入。**全局唯一舍入模式 `ROUND_HALF_AWAY_FROM_ZERO`**(ADR-006 §三)—— **禁 `Math.Round` 默认 ties-to-even**,任何四舍五入路径不得另起模式,须可区分 |
-| **中间精度** | 乘法与 `Exp` 的中间量**在 Q32.32(或更宽)求值**,只在**最终出口**落回 Q16.16 —— 见 F1/F2 的抵消说明。**中间表示宽度是唯一权威(2026-09-16 三轮 · 集群 5,CD 裁定)**:`Fix` 乘法 = **32 位数字四路拆分,128 位中间结果(hi/lo 两 `ulong` 带进位,四轮 K6 —— signed long 带进位加法 = signed overflow = UB)**,对 Q16.16 / Q32.32 统一 —— 不许「Q16.16 用 64 位、Q32.32 另开」的两套路径(见 AC-4/F7)。定点 `Exp` 走多项式逼近,求值必乘中间量,故 **Exp 的中间量也在 128 位域**,不「每步回降」(精度取舍归 Gate 待标)。**F7 的中间乘法=无符号交叉项 + 掩码提取,禁有符号右移** —— 见 AC-4 域界 |
+| **中间精度** | 乘法与 `Exp` 的中间量**在 Q32.32(或更宽)求值**,只在**最终出口**落回 Q16.16 —— 见 F1/F2 的抵消说明。**中间表示宽度是唯一权威(2026-09-16 三轮 · 集群 5,CD 裁定)**:`Fix` 乘法 = **32 位数字四路拆分,128 位中间结果(hi/lo 两 `ulong` 带进位,四轮 K6 —— signed long 带进位加法 = signed overflow = UB)**,对 Q16.16 / Q32.32 统一 —— 不许「Q16.16 用 64 位、Q32.32 另开」的两套路径(见 AC-4/F7)。定点 `Exp` 走多项式逼近,求值必乘中间量,故 **Exp 的中间量也在 128 位域**,不「每步回降」(精度取舍归 Gate 待标)。(2026-10-09 实现注,不改本行裁定:`Fix.Exp` = ln2 规约 + 10 阶多项式,级数每项经既有 `Fix.MulRaw`(128 位 hi/lo 唯一路径)求值后舍回 Q16.16 出口——即本行「不每步回降」在 Exp 上按「走唯一宽乘路径、逐项落回」实现;其误差标定见 `tests/EditMode/Sim/fix_exp_test.cs` ε 界,归 AC-5b Gate。)**F7 的中间乘法=无符号交叉项 + 掩码提取,禁有符号右移** —— 见 AC-4 域界 |
 | **误差预算** | 每次运算 ≤ 1 ulp(2⁻¹⁶);保守带外扩 `ops × 2⁻¹⁶`。**⚠️「实测 ≤ 3×2⁻¹⁶」为无出处自引,已撤销** —— 待 `src/` 实现后标定(否则保守带可能窄于真实误差 → 静默漏事件) |
 | **唯一投影点** | 系统 9 的**查询门面**(`GetVitals(patient) → VitalsDto`)。8 / 13 / 24 只能拿到 DTO。**门面与 DTO 住【边界程序集】(2026-09-16 三轮 · 集群 5)**<!-- ⚠️ 2026-09-20 ADR-025 回写加注:「边界程序集 / 门面程序集」称谓作废,现名 = `Sim.Contracts`(`IVitalsQuery`/`VitalsDto` 在 ADR-025 §① 成员列内);承 ADR-005「仅门面程序集可调用 `ToFloat()`」改由 **ADR-025 ② 甲案白名单断言**执法(调用点 ∈ {Sim.Codec, Gameplay.*},`Sim` 内调用 = 构建失败)。本行「门 B 断言只覆盖 sim 程序集」判据不变。 --> —— 承 ADR-005「仅门面程序集可调用」+ ADR-016 §二「13 消费 float 唯一出口」:sim 程序集**零 `float`/`double`**(门 B 签名断言),`GetVitals` 是**边界程序集**的显式 `ToFloat()` 出口 —— **门 B 断言只覆盖 sim 程序集**;补「只出不进」AC:sim 内**禁读回** DTO 的 float 字段(sim 数学全程整数域,不消费投影结果) |
 | **强制手段** | `Fix` **不定义**到 float 的隐式转换,唯一出口是**边界程序集门面**内的显式 `ToFloat()`;sim 层类型放**独立程序集**(需 `"noEngineReferences": true`,见 §Dependencies),**门 B 断言扫 sim 程序集:签名零 `float`/`double`、拒 `Math.*`/`MathF.*` IL 调用与浮点操作码**,code review 加检查项。**IL 拒集 = 类型谓词 + 操作码(2026-09-16 四轮 K6 硬化,替换三轮的方法名黑名单)**:对 sim 程序集每个 `call/callvirt/ldfld/ldsfld`,断言**返回 / 参数 / 字段类型 ∉ {`single`, `double`}**,并按操作码拒 `conv.r4` / `conv.r8` / `conv.r.un` / `ldc.r4` / `ldc.r8` / `BitConverter.Int64BitsToDouble` / `decimal` 运算 —— **类型谓词兜底:新增方法若碰浮点类型即被拦,不靠方法名枚举**(四轮 K6:unity 探针指出方法名黑名单漏 `decimal.Parse` / `double.TryParse` 等所有「签名碰浮点类型」的新增路径)**;**引用集白名单断言恰 = BCL(ADR-017 §二,构建失败级);Roslyn analyzer 属编辑器期新工具面,须另开 ADR 签核,P0 用零依赖 EditMode 反射门 |
@@ -807,6 +807,8 @@ Base(τ) = 0                                                  , τ < incubation
 
 Relapse(τ) = A_rel × e^(−(τ − τ_rel)/τ_rel_fall) · [τ ≥ τ_rel]
 τ_rel      = relapse_interval × (复发次数 + 1)      ; 相对量 —— 与 τ 同原点
+             ; 复发次数 = 派生态:clamp(⌊τ / relapse_interval⌋ − 1, ≥ 0)—— 闭式自 τ 求,
+             ; 不经事件流(D-9-M,2026-10-10 裁定;35 支 Kind 无复发事件,亦无需新立)
 
 Decay(Δ)   = e^(−Δ/half_life) · [Δ ≥ 0]             ; Δ < 0 一律取 0 —— 禁止负 Δ 让指数爆炸
                                                      ; half_life 随 21a 命名(原 τ_half)
@@ -891,6 +893,11 @@ Decay(Δ)   = e^(−Δ/half_life) · [Δ ≥ 0]             ; Δ < 0 一律取 0
    **不在 `treatable_by(d)` 内的处置不产生任何 Progress 贡献**(规则三注),它是**有效动作**
    (写入病史 / 消耗资源 / 记入 8),9 只记**空效果**不判错。同一味药对不同病可不同极性
    (柳树皮对风湿热 = 对症);F2 对症层同受此门。
+   **双源优先级(2026-10-10 `D-9-K` 已裁)**:本门的成员与极性**同查轴行 —— 轴为准**
+   (per-(处置,病种)极性只存在于轴;`handle` 派生与 8 的呈现读的都是轴极性;story-007 已要求
+   11「Polarity 由处置词表查得」);载荷 `polarity` 保留 AC-28 完整性语义,**不参与本门判定**,
+   与轴不一致 = 上游 bug(开发者断言,不拒收事件 —— 承 Decay 除零防御同口径「历史不可回滚」)。
+   装载面接通前实现侧的「载荷为准 + null 不拦」是**登记临时口径**(批 C 缺口 ①/②),轴接通即废。
 5. **ε_OFFSET 折叠与 clamp 的先后(2026-09-16 三轮 · 集群 1,CD 裁定;四轮 K1 后 clamp 只罩 Σ)**:**带在前、clamp 在后、两侧同 clamp** ——
    ε_OFFSET 折叠把贡献并入**记账的 Σ 常数项**,然后整个 Σ 再过 clamp(四轮式体重写后 clamp 的界 = ±(MAX×single));
    两侧(在线 Step / 离线 CatchUp)**用同一个表达式**,否则折叠常数项在 clamp 界内外两侧分叉,`Step ≢ CatchUp`。
@@ -1031,6 +1038,7 @@ boundary_mode(每病种注册表字段) = monotone | scan
 > 四者的**边界须满足一条全局不等式** —— `R_rise = 1 − e^(−(τ_peak−incubation)/τ_rise) > ε_MIN > 0`
 > (即分子跨度 `τ_peak − incubation` 相对 `τ_rise` **不得过小**,否则 `R_rise` 在 Q16.16 下舍为 0)。
 > 这与校验 12 是同一缺口的**两个观测面**(除法防零 / 归一化防零),**合并为一条写入期校验**。
+> **✅ 2026-10-10 定值并落地:`ε_MIN = 1/65536`(1 LSB),写入期 = `R1-30`**(三件套的 F3 侧同步)。
 >
 > ⚠️ **性能联合不等式(2026-09-16 三轮 · 集群 7,CD 裁定;四轮补 CAP 乘子)**:AC-3b(计数器)与 AC-3c(墙钟)
 > 是两个独立判据,**不能只各自成立** —— 须有**一条把四项预算串起来的联合不等式**:
@@ -1461,6 +1469,14 @@ last_intervention = last of:
 | **D-9-H** | **`CompoundTriggered` / `CompoundExpired` 登记 `entities.yaml`**(2026-09-16 三轮 · 集群 3) | `entities.yaml` | ✅ **已办(2026-09-16 三轮)**:两 Kind 已按 ADR-009 §三 纪律登记病史流(载荷 / 有界性见注册表约束) |
 | **D-9-I** | **`handle` 可干预性接口的呈现侧义务(2026-09-16 四轮,K7 裁定)** —— 9 侧数据面已落盘(接口铁律四 + R1.3 派生字段 + AC-43);**门槛与呈现归 8 / 13**(技能解锁决定 `handle` 是否呈现 · `care` 读法经 24 护理动作 · `none` 读法经 8 体征「摸不到转机」) | 8 / 13 / 24 | ⏳ 待 8 GDD 撰写时回填(9 侧已把「病种名不跨接口」交 `PresentationDtoGuard` 白名单守) |
 | **D-9-J** | **具名「噪声带」常量缺失(唯一旋钮 `σ` 不是带宽度)** —— 九现只有 `curve.sigma`(旋钮,§四 噪声与读数)与 `Noise(seed,t)`(函数),**无**一个**具名的、可直接作比较门槛的**噪声带量。下游 11 的 `AC-11-19`(剂量可感知地板 `drug_potency / DOSE_BASE ≥ NOISE_BAND_9`)把一个**从未在 9 存在的符号**挂在 9 名下 ⇒ 该 AC **不可执行**(不崩溃、只是永不判)。⚠️ **两个量纲,两把尺** —— ①`σ` 是 **Progress 幅值域**的波动(9 的 F1/F3);11 要的带是 **药效幅值域**(`drug_potency`);21a 的 F5 品级地板要的又是 **时间轴(tick)域**(`D-21-24`)。**三处并非同一把尺**,不得借用彼此数值 | **9**(常量落点)/ 11(判据发起方) | ✅ **已结案(2026-10-07 重开 9 落地)** —— 由 9 立具名常量 `NOISE_BAND_PROGRESS_9`(Progress 域)与 `NOISE_BAND_POTENCY_9`(药效幅值域),并**为两个量纲各给一把尺**;11 侧口径见 `prescription-and-medication.md` §Cross-References **`O-11→9`**。**裁决形状(用户已定)**:由 **9 立具名常量**(或明确「带 = k × σ,k 归 9」),并**为两个量纲各给一把尺** |
+| **D-9-K** | **极性双源优先级未裁(批次 C 缺口 ③,2026-10-10)** —— `treatable_by` 轴行带极性(F1 取舍 4 / R1-18),载荷又必须自带 `polarity`(AC-28):冲突时谁赢此前无裁决 | 9(已裁) | ✅ **已裁(2026-10-10)**:**轴为准** —— ① per-(处置,病种)极性只存在于轴;② `handle` 派生(规则九)与 8 的呈现读的都是轴极性;③ story-007 已要求 11「Polarity 由处置词表查得」。**9 求值以轴行为准**(成员 + 极性同行一次查得);载荷 `polarity` 保留 AC-28 完整性语义,不一致 = 上游 bug(开发者断言,不拒收事件)。裁定落点 = F1 取舍 4;批 C 的「载荷为准」是装载面接通前的登记临时口径,轴装载面接通即废(归 9 装载轮) |
+| **D-9-L** | **极性序数映射只有一半(批次 C 缺口 ④,2026-10-10)** —— 11 的 `PrescriptionPolarity` 声明 `Symptomatic=0 / Causal=1`,10 的 `EmergencyActionRow.Polarity` 是另一张表,`emergency-procedures.md:203` 只给集合不给序数:两表若反向,急救对因门**静默反号** | 9(权威)+ 10(回填) | ✅ **已裁(2026-10-10)**:**全案唯一极性序数契约 = `Symptomatic = 0 · Causal = 1`**(锚 11 既有声明;9 的 `PolarityCausal = 1` 已锚同源);载荷 `polarity` 裸 int 按此序数解释,**一切新极性表必须同序**(构建期断言归装配轮)。10 侧 `emergency-procedures.md:203` 补序数声明 = **具名债**,归 10 的 GDD 轮。裁定落点 = AC-28 |
+| **D-9-M** | **Relapse 多次复发不可求值(批次 C 缺口 ⑤,2026-10-10)** —— F1 `τ_rel = interval × (复发次数 + 1)` 注明「由病史事件流直接计数」,但 35 支 `EventKind` **无任何复发事件**;且按字面读「数已发生的复发」,首击窗内 count=1 会使 `τ_rel ≥ τ` 恒 0(与 oracle 相反) | 9(已裁) | ✅ **已裁(2026-10-10)**:**复发次数是派生态,闭式自 τ 求:`复发次数(τ) = clamp(⌊τ / relapse_interval⌋ − 1, ≥ 0)`,不经事件流**(ADR-009 三问:真源 = 曲线 + τ 纯函数;复发脉冲非独立可感知事件,不进流、零新 Kind)。F1 / F3 / AC-9 式体**不变** —— 本裁定补的是「计数从哪来」;多脉冲(每 interval 一起跳)与 F3 边界表 / `ε_PRUNE`「后续脉冲」口径一致。**k ≥ 1 的多次复发求值实现归 9 实现轮**(现仅首击,批 C 已登记);若日后需要玩家可感知的「复发」表现事件,另立 Kind 归呈现轮。裁定落点 = F1 Relapse 式注 |
+| **D-9-N** | **`R_rise > ε_MIN`(AC-23 校验 12)未进写入期(批次 C 缺口 ⑥ = 登记债 BCD 码-1)** | 9(已办) | ✅ **已办(2026-10-10)**:`ε_MIN = 1/65536`(1 LSB,定值见 Tuning §六);写入期 **`R1-30`** 落 `RegistrySchema`(计算形与求值侧 `ExpNeg` 逐位同源),负夹具 + 边界正夹具入 `curve_fixture_test`;求值侧 `rRise ≤ 0` fail-loud 保留为子集兜底。三件套同步:校验 12 / F3 全局不等式注 / AC-23 均已注记 |
+| **D-9-O** | **剂量 clamp 界两旋钮 + 装载面(批次 C 缺口 ①)** —— `MAX_ACTIVE_DOSE` / `single_dose_max` 取值 `*待定*`(Tuning §五);`single_dose_max` 由 11 `PrescriptionDerivedBaker` 派生但**未进 9 的 Sim 装载面** ⇒ 生产路径 `doseClampBound = null` = 不 clamp(接口 + 饱和截断语义已实现并有测) | 数值轮(值)+ 9 装载轮(面) | ⏳ **open** —— 值归数值轮;**装载面义务**:9 侧装载接 `PrescriptionDerivedBaker` 派生值并传入 `Evaluate(…, doseClampBound)`,归 9 装载轮(接通前不 clamp 是**登记行为**,非 bug) |
+| **D-9-P** | **`treatable_by` 门结构性缺位(批次 C 缺口 ②)** —— `DiseaseRegistryEntry.TreatableBy` 是派生字段,写入期不填,R1-19 对非 null 直接 `NotImplementedException` ⇒ 数据面恒 null ⇒ 现口径 **null 不拦**(拦则生产治疗恒 0,最小可证链不可证);真门值在 `disease_action_axis.json`(story-007,烘焙件已有)但**运行期装载面未接** | 9 装载轮 | ⏳ **open** —— 装载面接通后 `IsInTreatableBy` 改为按 `(treatment, disease)` 查轴(**成员 + 极性同行,承 D-9-K 单源裁定**);R1-19 的 `NotImplementedException` 同批消解 |
+| **D-9-Q** | **F2 `position ≤ 1` 上臂不可达(批次 C 缺口 ⑦)** —— R1-23(`SCALE ≥ A_peak`)+ 对因 Σ 与 Base 异号(四轮 K1)⇒ `Progress ≤ A_peak ≤ SCALE` 恒 `position < 1` ⇒ 投影 clamp **上臂零判别力**(下臂由 `max(0, ·)` 承担);测试注释已登记 | 9 | ⏳ **登记为已知测试盲区** —— clamp 保留(防御性);若日后 Σ 语义允许正向超 `A_peak`(过度治疗语义变化),上臂复活,须回补判别测试 |
+| **D-9-R** | **`Signⱼ = Project(Progress, disease)` 需 8 侧阈值(批次 C 缺口 ⑧)** —— 9 只出离散词键 + 通道位(R1.3 / R1-29);投影阈值归 8 的词表(§Visual/Audio 二),阈值数据未落 ⇒ signs 恒空;`GetVitals` 对意外非空 signs 置 `NotSupportedException` 兜底(tripwire,禁静默丢通道掩码) | 8(GDD)+ 9 接线轮 | ⏳ 待 8 的词表 / 阈值数据落盘后接 F2 投影;tripwire 移除归接线轮 |
 
 ## Tuning Knobs
 
@@ -1567,7 +1583,7 @@ last_intervention = last of:
 | `CARE_EVENTS_PER_TICK` | **每病人每 tick 护理动作事件数上界**(2026-09-16 三轮 · 集群 7)—— 护理是 F4 存活杠杆,须防刷事件 | 非负整数。超界拒收(丢弃 + 记账),不静默;`K ≤ \|护理动作表\|` 只界种类不界条数。**密度界 ≠ 速率界(2026-09-16 四轮 K3)**:持续护理动作的续照判定按**每 N tick ≤ 1 次**记账(速率界),与密度界双约束(复杂度表护理行) | `*待定*` |
 | `ε_OFFSET` | **处置历史剪枝门**(B4③)—— `\|drug_potency × Decay(Δ)\| < ε_OFFSET` 后该条折叠 | **`< \|drug_potency_min\|`**(否则第一条即被剪);残差并入保守带 | `*待定*` |
 | `ε_PRUNE` | **复发脉冲剪枝门** —— 峰值低于它后续脉冲全部忽略 | `> 0`;**`< A_rel`**(否则第一脉冲即被剪);残差 = `ε_PRUNE/(1−e^(−interval/τ_rel_fall))` **并入保守带** | `*待定*` |
-| `ε_MIN` | **归一化 `R_rise` 的下界守卫(2026-09-16 四轮登记,qa S3-11)** —— `R_rise = 1 − e^(−(τ_peak−incubation)/τ_rise) > ε_MIN > 0` 全局不等式(F3 全局不等式注,与校验 12 同一条)**防止 Q16.16 下 `R_rise` 舍为 0 除零** | `> 0`;**`< R_rise(最小合法配置)`** —— 具体数值随 `τ_rise` / `τ_peak` 边界走;**登记三件套**(校验 12 / F3 全局不等式注 / AC-23 必含项) | `*待定*` |
+| `ε_MIN` | **归一化 `R_rise` 的下界守卫(2026-09-16 四轮登记,qa S3-11)** —— `R_rise = 1 − e^(−(τ_peak−incubation)/τ_rise) > ε_MIN > 0` 全局不等式(F3 全局不等式注,与校验 12 同一条)**防止 Q16.16 下 `R_rise` 舍为 0 除零** | `> 0`;**`< R_rise(最小合法配置)`** —— 具体数值随 `τ_rise` / `τ_peak` 边界走;**登记三件套**(校验 12 / F3 全局不等式注 / AC-23 必含项)。**定值依据(2026-10-10)**:1 LSB = 与「防舍为 0」字面目的逐位对齐,且是参数安全区间(数值轮)未定前**唯一可证满足** `< R_rise(最小合法配置)` 的取值;数值轮收紧 `τ_rise` / `τ_peak` 边界后可**抬升**(抬 ε_MIN = 收紧),须同批复核现网数据 | **`1/65536`**(2026-10-10 用户授权裁定;写入期 `R1-30` 同批落地) |
 | `boundary_mode` | **每病种**:能否闭式求解 | enum `monotone` / `scan`。**默认 `monotone`,配错了要显式认领 `scan`** | **P0 8 项全 `monotone`**(2026-09-13 定,见 OQ-5) |
 
 > **`FIXED_ITER` 的正确性依赖 `σ`**:保守带内才二分,`σ` 越小带越窄、迭代越少。
@@ -1770,7 +1786,7 @@ last_intervention = last of:
 | **AC-14** | 对因处置对 `Progress` 的贡献为 `drug_potency × Decay(Δ)`,**随处置后时间衰减** | 单测 | [L] BLOCKING |
 | **AC-15** | **处置去重键(2026-09-16 三轮 · 集群 6 重写,CD 裁定 —— 弃 `seq_of_that_kind`;四轮 K4 补 `dose_seq`)**:`seq_of_that_kind` 在 GDD / ADR-006 / entities.yaml **三处无定义**,且 `Seq` 宿主按 `(Tick,Patient)` 每 tick 复位 ⇒ 重发必得新 `Seq` ⇒ 键必不同 ⇒ 同一处置重发**永不判出**。**改用稳定派生键**:`(patient_id, 处置_id, 施予者, tick, dose_seq)` —— 同五元组**判为同一处置重发(拒收)**;**`dose_seq` = 同一 `(tick, patient, 施予者, 处置)` 内宿主 Append 序(主机权威,ADR-005),重传事件携带原 `dose_seq` ⇒ 重传命中同一键被拒**;**同一 tick 多次同种处置 = 各得不同 `dose_seq`,互相不判重、各自叠加**(四轮 K1/K4:原四元组 `(patient_id, 处置_id, 施予者, tick)` 会把同 tick 两剂同药压成一条,与「允许多剂」自相矛盾 —— 键补 `dose_seq` 消解);不同 `tick` / 不同处置 = 新处置(**叠加**,`drug_potency × Decay` 之和)。叠加受 `MAX_ACTIVE_DOSE` 记账(clamp)**与 AC-16 乱序重放兼容**(重放已按 `(Tick, StreamPriority, Patient, Seq)` 排序,`dose_seq` 随之确定,F1 和式可交换 ⇒ Σ 不变) | 单测(去重 + 叠加 + 同 tick 多剂各一条) | [L] BLOCKING |
 | **AC-16** | 事件流按**跨流全序** `(Tick, StreamPriority, Patient, Seq)` 排序(病史流 < 病例流,ADR-006 Amendment C / ADR-008 §二);**打乱到达顺序,折叠结果相同**。**Append 顺序即权威(2026-09-16 三轮 · 集群 6,CD 裁定)**:同 tick 同病人同流内的事件序由**宿主 Append 顺序**决定 —— 这是**主机权威**,不是「静默不可重建」;**补乱序不变 AC**:同 tick 同病人的事件**任意重排**后 Σ 结果不变(F1 和式可交换 —— 结构保证);排序只用于判重与折叠。**四轮 K4 限定范围**:乱序不变只对**加性项**承诺(F1 的 Σ drug_potency×Decay 与 compounds 的 Δ_progress 均可交换);**乘性 `Δ_rate`(τ_rise 缩放)不参与该承诺** —— 与加性项混用时应用顺序改变结果 ⇒ **构建期拒绝同 target 混用 `Δ_rate` 与 `Δ_progress`**(校验,见 F5),从根上让「乱序不变」只在加性面成立 | 单测(乱序重放 + 共靶拒绝) | [L] BLOCKING |
-| **AC-28** | **处置事件必须携带 `polarity` / `drug_potency` / `half_life`**(字段名随 21a,2026-09-15 D2 裁定「9 跟随 21a」;原 `Offset` / `τ_half` 是旧名);缺字段的处置在写入期被拒绝(否则 F1/F4 无法在 9 侧求值) | 单测 + schema 校验 | [L] BLOCKING |
+| **AC-28** | **处置事件必须携带 `polarity` / `drug_potency` / `half_life`**(字段名随 21a,2026-09-15 D2 裁定「9 跟随 21a」;原 `Offset` / `τ_half` 是旧名);缺字段的处置在写入期被拒绝(否则 F1/F4 无法在 9 侧求值);**极性序数契约(2026-10-10 `D-9-L`)**:`polarity` 裸 int 序数 = **`Symptomatic = 0 · Causal = 1`**(锚 11 `PrescriptionPolarity` 既有声明,一切新极性表同序) | 单测 + schema 校验 | [L] BLOCKING |
 
 ### 组四 · 阈值与死亡(F4)
 
@@ -1795,7 +1811,7 @@ last_intervention = last of:
 
 | # | 判据 | 验证方式 | 级 |
 | ---- | ---- | ---- | ---- |
-| **AC-23** | R1.3 **十七条写入期校验**各生效且各配单测(必含:`SCALE≥A_peak` · 急性保持型须 `lethal` 且 `A_peak/SCALE≥DEATH` · `τ_fall>0` · `DEATH<1` · `compounds` 无环 · `relapse` 四段值域 · `causes` 无反向引用(11) · `R_rise` 分母防零(**12,含 ε_MIN 全局不等式** —— `R_rise > ε_MIN > 0`,四轮登记三件套之 AC 侧) · 事件载荷 `half_life`/护理起止(13) · 痊愈门按型下界(14) · `MAX_ACTIVE_DOSE>0`(15) · **可愈性结构门(16,三轮新增)** · **TW ≥ CARE_GAP 排序(17,四轮升为独立校验 + AC-23 更新)**) | 十七条单测 | [L] BLOCKING |
+| **AC-23** | R1.3 **十七条写入期校验**各生效且各配单测(必含:`SCALE≥A_peak` · 急性保持型须 `lethal` 且 `A_peak/SCALE≥DEATH` · `τ_fall>0` · `DEATH<1` · `compounds` 无环 · `relapse` 四段值域 · `causes` 无反向引用(11) · `R_rise` 分母防零(**12,含 ε_MIN 全局不等式** —— `R_rise > ε_MIN > 0`,四轮登记三件套之 AC 侧) · 事件载荷 `half_life`/护理起止(13) · 痊愈门按型下界(14) · `MAX_ACTIVE_DOSE>0`(15) · **可愈性结构门(16,三轮新增)** · **TW ≥ CARE_GAP 排序(17,四轮升为独立校验 + AC-23 更新)** · **`R1-30`(12 的写入期落地,2026-10-10 ε_MIN 定值批)**) | 十七条单测 | [L] BLOCKING |
 | **AC-24** | **伤情与疾病走同一 schema,伤情字段不省略** —— 构造一条伤情条目,过同一验证管线;代码中**无 `if kind == injury` 分支** | 单测 + grep 守门(规则九) | [L] BLOCKING |
 | **AC-25** | **黄金夹具入库(2026-09-16 三轮重写,替代「GDD 参考求值器」)**:固定病史 / 处置序列 → `entities.yaml` 的表达式对**同源生成**的算子求值,输出与**入库的期望 `position` / `trend` / `state` 样例表逐位相等**。**补手算锚点(2026-09-16 三轮 · 集群 8,qa REC)**:同源生成 = 实现自产,须至少一条**由人从定义推导的锚点样例**(如 `A_peak=SCALE ∧ τ→∞ ⇒ position=1`),防「自产自评」 | 黄金夹具(自动化) | [L] BLOCKING |
 
