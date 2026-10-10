@@ -109,6 +109,14 @@
 **Exit Criteria**(可机械验证):
 - [x] `interaction-system` 实现(**已闭** —— 7/7 story Complete 2026-10-04;原「关键路径断点」措辞已作废)
 - [ ] `patient-ai` → `diagnosis-system` → `case-system` → `prescription-medication` 链至少端到端可跑
+      **✅ 2026-10-11 T3.3 复评 ◐ 转「机制侧闭环 · 处方腿机制半」** —— 五写者**全部**有运行期生产调用方:
+      `PatientSpawner`←`PatientAppearedDriver:100` · `CaseOpenWriter.TryOpen`←`CaseOpenedDriver:59` ·
+      `HostEmergencyProcessor`←`EmergencyAttemptDriver`(BootRoot tick 序列)⇒ 运行期病史流完整
+      `DiseaseOnset → CaseOpened → EmergencyAttempt → EmergencyTreatmentApplied`
+      (patient_appeared / case_opened / emergency_attempt 三 wiring 测 + 第三轮 playtest 世界侧确认)。
+      **唯一悬空 = 11 处方腿**:`PrescribeFlow.Prescribe` 全库**零生产调用方**(无「开方」驱动/输入端)⇒
+      启动物理上写不出 `DrugTreatmentApplied`(PlayMode 该事件均为测试直喂)。**这是机制半边
+      (玩家交互轮未开),非接线缺口** —— 复评原件 `production/qa/evidence/m2-exit-recheck-2026-10-11.md`。
 - [x] ⚠️ **链的写者存在性前置(2026-10-08 补 · ✅ 2026-10-10 批次 F-6 复评转闭)** —— 上一条链上的每个 `Kind` 至少有 1 个**生产 `Append` 调用点**
       ~~实测生产侧 `Append` 仅 3 处(`HostEmergencyProcessor`×2 · `PrescribeFlow`×1),
       **9/25/37 的写者不存在** ⇒ epic 全 `Complete` 链仍跑不起来(**epic Complete ≠ 写者存在**;
@@ -124,9 +132,13 @@
       **✅ 2026-10-10 批次 F-2 兑现**:`vertical_slice_test` 禁 Fake 换真 —— 真 `CompositionRoot` 装配 + 真写者 +
       生产 `IVitalsQuery`,**7/7 绿**,含 `test_vitalsQuery_returnsAfterTreatment`;
       **变异实测**(`sum += Fix.Zero`)恰红 2 = 判据有牙。原文不删,留闭环记录。
-- [ ] ⚠️ **施治腿纳入 M2 链(2026-10-08 补)** —— 核心假设 `design/gdd/game-concept.md:687` 为「**判断 → 施治**」,
+- [x] ⚠️ **施治腿纳入 M2 链(2026-10-08 补 · ✅ 2026-10-11 T3.3 转闭)** —— 核心假设 `design/gdd/game-concept.md:687` 为「**判断 → 施治**」,
       现 7 系统只有 **11 处方**半边,10 急救(`EmergencyTreatmentApplied`)**不在链内** ⇒ 实际只证
       「诊断 → 处方」半环。**7 系统集须补 10**(急救已 Complete 2026-10-08,系登记遗漏非未实现)
+      **✅ 2026-10-11 T3.3 转闭**:急救链运行期已接 —— `EmergencyAttemptDriver` 对在场且未触发过的病人
+      **每 400 tick 自动触发一次急救** ⇒ 病史流含 `EmergencyAttempt` + `EmergencyTreatmentApplied`
+      (`emergency_attempt_wiring_test` 断言 + 第三轮 playtest 世界侧确认)。**11 处方腿的机制半
+      由 #2 复评承接**(无玩家交互驱动,非接线缺陷)。原文不删,留闭环记录。
 - [x] PlayMode 集成测试 `unity/Assets/Tests/PlayMode/vertical_slice_test.cs` **零桩方法**
       (**已闭 2026-10-08** —— 7 测重写为真验证(驱动 `PrescribeFlow` / `CaseOpenDecider` 真生产路径 + `IPayloadEncoder`),
       结果 **6 passed + 1 skipped(NOT-RUN: 病人腿 25/9 写者未实现)**,`Assert.Pass` 桩 **0 个**;
@@ -162,6 +174,16 @@
       形态半(4/4)**已闭不再重开**;施加点归属 = story-024 → 9 查体链 + 数据绑定轮 ·
       story-023 → 10 急救轮(sprint-04 行 6「阶段 3 形态件施加轮」·~2 天)。
       原文不删,留闭环记录。复评原件 `production/qa/evidence/m2-exit-recheck-2026-10-10.md`。
+      ⇒ **✅ 2026-10-11 T3.3 复评(施加点接一半,维持 ◐ 不勾)**:运行时已接 ——
+      `SkeuoRuntimeDriver` 两 TODO 清零(Boot.unity 预摆 + 七具名 Screen 工厂 + UIDocument 运行期
+      自建);`CasebookScreen.ApplyData` 每 tick 生产调用 `SignChannelBinder` ⇒ **形态件① 线格
+      (`.ruled` 挂脉案行)、② 墨龄两态(`InkAgeTicks` 挂 `.ink-wet`/`.ink-dry`)、④ 通道分发
+      (脉案五通道+问诊栏挂真源读取面)** —— 第三轮 playtest(5A)人工确认纸页/线格/空行呈现。
+      **仍未接(诚实登记,不禁借绿)**:③ 急救候选列表 `EmergencyCandidateList` **零生产实例化**
+      (仅测试;载体形态就绪,施加点归 10 交互轮);② 的墨龄上游落笔 tick 归 37 未实现;
+      ④ 的**词条真值源**(9 查体 revealed 集)归 9 未接线 —— `CasebookVitalsSource.RevealedRows`
+      恒空集(F2 tripwire)⇒ 脉案值区运行期**空行**(禁假数据,恰是判据)。复评原件
+      `production/qa/evidence/m2-exit-recheck-2026-10-11.md`。
 - [ ] **五族切图与 atlas 布局冻结**(①② 的前置;切图早错 = 全局返工)
       ⇒ ⚠️ **口径订正(2026-10-04 D)**:原文写「纸/墨/铜」三族 —— 实测为**五族**(纸/墨/卷轴/印章/图标),
       「铜」族零实物。**冻结清单须按五族枚举**,否则三族已入库资产漏冻
