@@ -9,7 +9,9 @@
 //
 // 真装配:`CompositionRoot.Assemble(registry)` —— 真 `EventStream`(Seq 发号 / 去重 / AC-15)、
 //   真 `PayloadEncoder` + `InMemoryBlobPool`、真 `PatientSpawner`。**零 FakeVitalsQuery /
-//   零 FakeEventSink 自洽环**(既有 `vertical_slice_test` 的 Fake 断言本批不动,归批次 F 复评)。
+//   零 FakeEventSink 自洽环**(✅ 2026-10-10 批次 F:`vertical_slice_test` 已同款换真复评 ——
+//   PlayMode 垂直切片自此零 Fake 自洽环;唯 PrescribeFlow 三端口 Fake 为生产实装缺位登记,
+//   两文件同款,归 19/21a/30 实现轮)。
 //
 // 确定性:零随机、零墙钟 —— tick 由本文件按序显式驱动;期望值在 Fix 域内用
 //   `Fix.Exp` / `Fix` 四则独立算出,最后一步才转 float 比较(与生产投影同一出口)。

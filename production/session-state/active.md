@@ -1,4 +1,4 @@
-# Session State — 2026-10-10(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ 扩行「集成接线+验证」(阶段 0 ✅ · 阶段 1 ✅ · 阶段 1 尾 ✅(已提交 `1621efd`/`6a01d73`)· **阶段 2 ◐ A/B/C/D/E 五批全收口未提交**(终态全量 3182/3135/0 红/46 跳,两份原件落盘,等提交指令)· 阶段 3 形态件待开)· M2 形态件 4/4 齐(story-021…024)**)
+# Session State — 2026-10-10(**当前阶段 = Pre-Production · Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ 扩行「集成接线+验证」(阶段 0 ✅ · 阶段 1 ✅ · 阶段 1 尾 ✅(已提交 `1621efd`/`6a01d73`)· **阶段 2 ◐ A–E 五批 + 登记债码-1…5/GDD 八项收口 已提交推送 `f5879c3`**(提交前全量 3191/3144/0 红/1 inc/46 跳,两份原件入册;剩批次 F 收口轮)· 阶段 3 形态件待开)· M2 形态件 4/4 齐(story-021…024)**)
 
 ## 🎯 本轮 = M2 接线轮推进方案裁定(2026-10-09 · 四方专家评估 → 用户四裁定 · **方案已落 sprint-04 §Phase 3**)
 
@@ -91,7 +91,8 @@
 两处 Append 传真实 patientId)。
 
 **▶ 阶段 2「链补全轮」(2026-10-09 开工,「按你的建议开工阶段2」+「依次进行BCD」)**:
-**✅ A/E/B/C/D 五批全部收口(2026-10-10 · 全部未提交,HEAD 仍 `6a01d73`,等用户提交指令)**:
+**✅ A/E/B/C/D 五批全部收口(2026-10-10 · 已提交推送 `f5879c3` → origin/main,同批携带
+登记债码-1…5 + GDD 八项收口 + 登记册建册)**:
 
 **✅ B/C/D 合批收口(2026-10-10 · 三批依序实现→合批双代理恰一轮评审(双 APPROVE 零必修)→
 2 处窄修 + 3 发变异(M13 抓出双评审共误判并补测闭合)→ 终态全量 **3182/3135/0 红/46 跳**→ 原件
@@ -109,7 +110,8 @@
 - **变异实数**:MUT-M10(泵次序反转)恰红 1 ✓ · MUT-M13 初次逃逸(0 红)· M13b 补测后恰红 1 ✓ ·
   恢复复跑 VitalsChain 13/13 绿零残留。
 - **终态全量** 3182/3135/0 红/46 跳(+1=D 时点 3181+游标门补测,精确对账)。
-- 登记不修 8 项(码-1…5 + 测-1/2 + C 批 GDD 缺口 8 项与 D 批豁免表 24 条各归其轮)。
+- 登记不修 8 项 → **2026-10-10 同日回补**:码-1…5 全部修复 + C 批 GDD 缺口 8 项全落册
+  (D-9-K…R)+ D 批豁免复核转监控,随 `f5879c3` 入库;仅剩测-1(措辞)/ 测-2(设计可接受)维持登记。
 
 **✅ A/E 批已收口(2026-10-09 · 双批并行实现→合批双评审→5 项注记修复→合批终态全量
 3125/3078/0 红→2 发变异恰中(MUT1 k-round→trunc 红 6 · MUT2 Append→None 红 1)→ 原件
@@ -137,13 +139,56 @@
   **关键证伪:零生产写者实为 26 支非 2 支**(11 已有+24 豁免+2 新=35 闭合)· AssemblyGates.RunAll +4 行接线 ·
   D 批全量 3181/3134/0 红(+21 精确对账)。
 
-**▶ 阶段 2 拆批全数收口(B→C→D 已完),剩批次 F(收口轮)**:
-F3 CatchUp NOT-RUN 背离登记 · vertical_slice_test 禁 Fake 换真复评 · 灰盒表 ·
-5 项 Go/No-Go(含门④ PlayMode 冒烟收口轮前置 NOT-RUN 必须补齐)· 人工 playtest ·
-M2 Exit 11 条复评 · 7 处登记回填(至 10-23)。
+**▶ 批次 F(收口轮)推进(2026-10-10,工作树未提交)**:
+- ✅ **F-1** CatchUp NOT-RUN 三处同源登记(GDD §F3 节首 + AC-3/3b/3c 行 + `ProgressionEvaluator` 注)。
+- ✅ **F-2** vertical_slice_test 禁 Fake 换真复评:真 `CompositionRoot` 装配 + 真写者 + 生产
+  `IVitalsQuery`,**7/7 绿**;修三红(AC-26 潜伏期抑制含处置 ⇒ DoseTick = Incubation 边界恰自然曲线 0 ·
+  doseBase=1 直通药力 · case 测漏算 spawn 事件);**变异实测**(`sum += Fix.Zero`)恰红 2(唯二体征断言)
+  → python 还原 SHA-256 逐位一致 → 复跑 7/7 绿。
+- ✅ **F-3** 灰盒登记表审计 —— 原件 `production/qa/evidence/graybox-register-audit-2026-10-10.md`:
+  登记面完备(D1 无漏登 · 4 真形态件 4/4 · D3 预演过);**1 存量违例仍存**(§8.11.5 spike 7 件仍在
+  `Scenes/`,10-03 已登记,处置归待裁 L-1)。
+- ✅ **F-4 五门全绿**:① 全量 EditMode **3193/3146/0 红**(+2=新门测精确对账;1 inc/46 跳承基线)
+  + PlayMode **99/99/0 红**;② b6+引用集 —— **新建 `assembly_gate_runall_test`(2/2 绿,补
+  `AssemblyGates.RunAll` 测试侧零直调缺口 = b2 此前无测试证据)** + AssemblyGateB6Test 9/9;
+  ③ WriterExistenceGateTest 10/10;④ **新建 `composition_root_smoke_test`(1/1 绿)** —— 根因排查:
+  Addressables catalog=10-02 早于 world 注册 10-09 ⇒ InvalidKey,**BuildPlayerContent 刷新**(本地
+  Library 产物,不入库 —— 他机/CI 复跑门④须先 build content,已为登记项);⑤ = F-2(vitals 7/7 真路径)。
+- ◐ **F-7 6/7**:N-r2(重开条件已到·引用仍 0 待接线)· we+modular story-004(World.unity 已建·扫描归 S2)
+  · u1-S2(触发已到)· u0 a7-5(§② 扫描触发待过)· AC-8-51(37 半边就位·[L]/[I] 仍 NOT-RUN)
+  · O-1…O-6(复扫:O-1 全闭 · 余三条维持 · O-4 单机侧前置登记注);**余 skeuo 021-024 归 F-5/F-6 后**
+  (sprint 行 7 时序:playtest → Exit 复评 → 回填)。
+- ✅ **F-5 人工 playtest 完成(2026-10-10)**:报告 `production/playtests/playtest-2026-10-10-m2-manual.md`
+  (9 节模板;§1/§3/§4/§7/§9 实质填写)。用户观察:Console 干净 · x/z 随 WASD 正常 ·
+  **「y 不受控制地一直变化」已定性 = 走出 10×10 Ground(内置 Plane,±5m)边缘后无限下落**
+  (可玩面不足,**非移动/落地 bug**)—— batch 8 版探针证据链:`f5_landing_probe{4..8}.xml`;
+  决定性两发 = v6(capture 1/60 静置 240 帧 y 峰谷 0 / 接地 240/240,落地稳定)+ v8(单驱动出界,
+  z>5.042 后 y 1.080→-10.088 自由落体)。**顺带落网**:① `LocomotionConfig`
+  (SkinWidth=0.01/MinMoveDistance=0/Height=1.8)**未接线**,controller 裸用 Unity 默认
+  (0.08/0.001/2)⇒ 浮空 8cm(登记,归移动实现轮);② **方法学**:PlayMode 测 CC 必须
+  `Time.captureDeltaTime`(batch 快帧 minMoveDistance 吞帧 ⇒ v2/v5 伪绿),直调 `Move()` 须停
+  `BootRoot.Update` 防双驱动互抢(v7 教训)。诊断探针按用户裁定已删(XML 证据留存)。
+  Top 3 优先:① 边界语义 ② 相机跟随 ③ 核心循环可达性。
+- ✅ **F-6 M2 Exit 复评完成(2026-10-10)**:原件 `production/qa/evidence/m2-exit-recheck-2026-10-10.md`。
+  **计数订正**:Exit 实为 **13 条**(非 sprint 行 7 的「11 条」—— 2026-10-08 补的 3 条未计入)。
+  **三条核心判决**:① **写者存在性转闭**(原文「9/25/37 写者不存在」是 2026-10-08 旧快照 ——
+  实测 `PatientSpawner.cs:77`/`CaseOpenWriter.cs:135`/应急/处方写者齐);
+  ② **#2 端到端仍开,但缺口迁移** —— 写者**零生产调用方**(`SpawnNext`/`CaseOpenWriter.TryOpen`
+  全库唯一引用 = 测试)⇒ 运行期链可达性 0%(与 playtest §6 互证,归阶段 3 接线轮);
+  ③ **playtest 口径裁明** = 至少一次人工执行,F-5 已满足。三条判决已就地回写 README(不删原文)。
+- ✅ **F-7 收尾 7/7(2026-10-10)**:skeuo 021-024 回填 = **「4 项形态件」条的施加点口径锁定** ——
+  实测**零个形态件在运行期被施加**(`SkeuoRuntimeDriver` 两 TODO 仍是空壳;playtest 人工面 0% 独立互证)
+  ⇒ 回填后判据口径:**该条 `[ ]` 的唯一剩余内容 = 施加点接线**,形态半 4/4 **已闭不重开**
+  (施加点归属 story-024→9 查体链+数据绑定轮 / story-023→10 急救轮,即 sprint 行 6「阶段 3 形态件施加轮」~2 天)。
+  另同步回刷 sprint-04:行 7 阶段 4 → ✅ Complete(含「11 条→13 条」计数订正)+ §不得借绿段 Exit 读数整段重写。
+- ✅ **批次 F 七项全闭(2026-10-10 · 工作树未提交)**:F-1 ✅ · F-2 ✅ · F-3 ✅ · F-4 ✅ · F-5 ✅ · F-6 ✅ · F-7 ✅。
+  **下一步 = 批次 F 提交**(待用户指令)。
 
-**下一步**: 向用户报告 A+B+C+D+E 全量收口(终态 3182/3135/0/46)→ **等提交指令**(不得自行提交)→
-提交后开批次 F。
+**✅ 提交推送完成(2026-10-10 · `6a01d73..f5879c3` → origin/main)**:提交前全量门
+**3191/3144/0 红/1 inc/46 跳**(inc=Audio `test_monoOption…` + 46 跳均承基线,与本批无关);
+55 文件,+4705/−102;排除项(.gitignore 本地改动 / .trae / mono_crash blob /
+`__pycache__.meta`)留工作树不入库。
+**下一步 = F-5 人工 playtest(请用户)→ F-6 Exit 复评 → F-7 收尾 → 批次 F 提交**。
 
 **✅ 登记债总册已建(2026-10-10 ·「清理登记债」指令)**:`production/registration-debt-register.md`
 —— 全案未结登记债唯一真源(A 类 M2 阶段 2 十四项 · B 类 O-6 一组 · C 类 GDD 内联四项 ·
@@ -1493,9 +1538,9 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 - ⬜ 系统 6 Epic(接收侧:latch/幂等/判距复验/唯一 Append)—— 转绿 AC-4-13 6 半 + AC-4-17 6 消费半
 
 <!-- STATUS -->
-Epic: diagnosis-system
-Feature: 阅读与判断
-Task: story-005 断点(ReadingFSM/JudgmentFSM 未开工)
+Epic: sprint-04 Phase 3(M2 接线轮)
+Feature: 阶段 2 链补全轮
+Task: A–E 五批 + 登记债收口已提交 f5879c3 → 下一步批次 F 收口轮
 <!-- /STATUS -->
 
 ---

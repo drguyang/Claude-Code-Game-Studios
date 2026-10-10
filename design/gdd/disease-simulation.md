@@ -959,6 +959,14 @@ trend_backward_agg(t) = max over d∈D of trend_backward_d(t)          // 合成
 
 ### F3 定 tick 与离线补算
 
+> **📌 M2 NOT-RUN 背离登记(2026-10-09 阶段 2 四裁定之③ · 2026-10-10 批次 F 落笔)**:
+> **CatchUp 全族在 M2 为显式 `NOT-RUN` 背离,归 M3/后续** —— 阶段 2/4 **只验在场模拟路径**
+> (`Step` 逐 tick)。`ComputeCatchUp`(`Sim/CatchUp.cs`)现为**排序壳**(`ProgressionEvaluator.cs:29`
+> 同注);本节的类 A 边界表 / 截断重扫 / 性能联合不等式,与 **AC-3 / AC-3b / AC-3c** 三条 AC
+> 同批 `NOT-RUN`。**非静默裁剪** —— 登记处 = 本节 + AC-3/3b/3c 行 + sprint-04 #5 裁定③;
+> **转绿前提** = M3(或后续)实现 CatchUp + 等价性单测(AC-3)+ 计数器/墙钟判据(AC-3b/c)。
+> M2 的 sim 侧验收面只含:在场 `Step` 路径 + 泵第二驱动口(逐边沿回推 tick)。
+
 ```
 t = ⌊GameClock / TICK_SECONDS⌋
 
@@ -1756,9 +1764,9 @@ last_intervention = last of:
 | ---- | ---- | ---- | ---- |
 | **AC-1** | 同一 tick 序列 + 同一注册表数据 + 同一处置序列,在 **ADR-012 三格常驻矩阵**(Linux-x64-Mono · Linux-x64-IL2CPP · Linux-ARM64-IL2CPP)+ **golden-vN** 上跑同一批病人,`SimEvent` 流**逐位相同**(SplitMix64 哈希相等);**F7 回绕语义随矩阵跑**(AC-4 挂 F7)。**不标 Gate(2026-09-16 三轮 · 集群 8,qa REC)**:确定性是结构性判据,不依赖 fixture 数值 | 跨平台 CI(ADR-012 §二) | [I] BLOCKING |
 | **AC-2** | 存档往返(序列化 → 反序列化 → 再哈希)后状态**不变**;存盘路径中**不出现任何 float**(`Fix` 只落内部 `long` 原值);**`Fix` 经自定义编码器序列化**(Unity 内置序列化器**静默归零** —— ADR-006 §五,EditMode 探针守住);**Step 驱动者不缓存可序列化状态**(2026-09-16 三轮 · 集群 5:`[SerializeField]` 缓存 `PatientState` ⇒ `Fix` 静默归零,探针同守);**覆盖须含 `PatientState` 的类型传递闭包(2026-09-16 四轮 REC)**:探针 / 往返断言扫全部**嵌套引用类型的传递闭包**(引用类型的引用类型字段)—— 新加嵌套字段逃出探针 = 静默漏检(同静默归零级失败) | 单测 + CI 守门 grep + EditMode 探针(传递闭包) | [L] BLOCKING |
-| **AC-3** | **`Step` 与 `CatchUp` 用同一求值器,`Step ≡ CatchUp(t, t+1)`(构造保证)**;逐 tick `Step` N 次 vs `CatchUp(0,N)` 在 **`MAX_SCAN_STEPS` 未触发的子区间上逐位相同**;两版差 = **仅截断事件**(记为 `TENTATIVE` + 下一 tick 显式扩域重扫,2026-09-16 三轮 C4) | 单测(等价性 + rescope) | [L] BLOCKING |
-| **AC-3b** | **ADR-005 的性能判据(计数器级)**:离线 30 天按形态分档 —— ① `self_limit` 收尾型(麻疹):**`count(30d) == count(60d)`**(等价迭代数不随时长增长,2026-09-16 三轮修正);② plateau / 急性保持型(心衰/伤寒/痢疾/破伤风):子区间定步长,**扫描步数 ≤ `MAX_SCAN_STEPS` 且截断记账比有上界**;③ 复发型(疟疾):启用 `ε_PRUNE` 后 = 常数;**未剪枝线性为已知事实,不判 fail,须显式标注** | 单测(计数器断言) | [L] BLOCKING · **Gate**(C2) |
-| **AC-3c** | **读档墙钟上限(2026-09-16 三轮新增)**:离线 30 天档在目标硬件上 `CatchUp` 完成 ≤ **可感知无感阈值**(默认 `*待测*`,**标 Gate 转 BLOCKING —— 阈值未定前无可判 fail 阈值**);超限 → 显式记账(51 读数)并可选降级提示,**不许静默卡死**。与 AC-3b 计数器级判据**各自独立(两级不合并 —— 计数器断言 ≠ 墙钟)**。**拆两条(2026-09-16 三轮 · 集群 7/8,CD 裁定)**:「**超限必记账、不静默卡死**」是**结构性 BLOCKING**;阈值数值与目标硬件基线 **Gate**;并与 `CAP / MAX_SCAN_STEPS / FIXED_ITER / scan_step` 同受联合不等式(见 F3) | 集成测试(墙钟) | [I] BLOCKING |
+| **AC-3** | **`Step` 与 `CatchUp` 用同一求值器,`Step ≡ CatchUp(t, t+1)`(构造保证)**;逐 tick `Step` N 次 vs `CatchUp(0,N)` 在 **`MAX_SCAN_STEPS` 未触发的子区间上逐位相同**;两版差 = **仅截断事件**(记为 `TENTATIVE` + 下一 tick 显式扩域重扫,2026-09-16 三轮 C4)。**⚠️ M2 `NOT-RUN` 背离(裁定③ · 2026-10-10 批次 F 登记,归 M3** —— CatchUp 现为排序壳,阶段 2/4 只验在场 `Step` 路径;见 §F3 节首登记) | 单测(等价性 + rescope) | [L] BLOCKING |
+| **AC-3b** | **ADR-005 的性能判据(计数器级)**:离线 30 天按形态分档 —— ① `self_limit` 收尾型(麻疹):**`count(30d) == count(60d)`**(等价迭代数不随时长增长,2026-09-16 三轮修正);② plateau / 急性保持型(心衰/伤寒/痢疾/破伤风):子区间定步长,**扫描步数 ≤ `MAX_SCAN_STEPS` 且截断记账比有上界**;③ 复发型(疟疾):启用 `ε_PRUNE` 后 = 常数;**未剪枝线性为已知事实,不判 fail,须显式标注**。**⚠️ M2 `NOT-RUN` 背离(裁定③ · 2026-10-10 批次 F 登记,归 M3** —— CatchUp 排序壳期计数器无从断言,见 §F3 节首登记) | 单测(计数器断言) | [L] BLOCKING · **Gate**(C2) |
+| **AC-3c** | **读档墙钟上限(2026-09-16 三轮新增)**:离线 30 天档在目标硬件上 `CatchUp` 完成 ≤ **可感知无感阈值**(默认 `*待测*`,**标 Gate 转 BLOCKING —— 阈值未定前无可判 fail 阈值**);超限 → 显式记账(51 读数)并可选降级提示,**不许静默卡死**。与 AC-3b 计数器级判据**各自独立(两级不合并 —— 计数器断言 ≠ 墙钟)**。**拆两条(2026-09-16 三轮 · 集群 7/8,CD 裁定)**:「**超限必记账、不静默卡死**」是**结构性 BLOCKING**;阈值数值与目标硬件基线 **Gate**;并与 `CAP / MAX_SCAN_STEPS / FIXED_ITER / scan_step` 同受联合不等式(见 F3)。**⚠️ M2 `NOT-RUN` 背离(裁定③ · 2026-10-10 批次 F 登记,归 M3** —— 墙钟判据依赖 CatchUp 实现 + 硬件基线,双缺,见 §F3 节首登记) | 集成测试(墙钟) | [I] BLOCKING |
 | **AC-4** | `Fix` 边界值:±max、最小正数、`Q16.16×Q16.16` 的**中间乘法(提升型,非 long 直接乘)**不溢出。**输入域明定**:正/负/零 × 各分档(1、2⁻¹⁶、2¹⁵、2⁻¹⁶ 的倍数)。**中间表示 = 128 位(2026-09-16 三轮 · 集群 5,CD 裁定;四轮 K6 硬化)**:32 位数字四路拆分,(hi,lo) 两 **`ulong`** 带进位 —— **signed `long` 带进位加法 = signed overflow = UB(IL2CPP 下尤甚),hi/lo 全程无符号、只做逐位扩展**(四轮 K6,附 AC-4 域界);交叉项用无符号乘法 + 掩码提取,**禁有符号右移**(ADR-012 F7);AC-4 域界与「交叉项不溢出」挂链。**不选 `BigInteger`(2026-09-16 四轮 REC)**:确定性允许但逐位性未入 golden 矩阵 + 分配 / GC 代价,128 位足够承载 Q32.32×Q32.32 —— 若实测溢出现追加断言,不换类型 | 单测 —— **溢出即测试失败** | [L] BLOCKING |
 | **AC-5** | sim 程序集在 **`"noEngineReferences": true`** 下编译通过(不设此标志的「零引用」不算);**门面与 `VitalsDto` 住【边界程序集】,sim 程序集【零 `float`/`double`】(2026-09-16 三轮 · 集群 5)**:门 B 断言扫 sim 程序集类型签名不出现 float/double;`GetVitals` 是**边界程序集**唯一 float 出口;**只出不进**:sim 内禁读回 DTO 浮点字段;**浮点拒绝列表 = 类型谓词 + 操作码(2026-09-16 四轮 K6 硬化,替换三轮方法名黑名单)**:对 sim 程序集内每个 call/callvirt/ldfld/ldsfld,断言**返回 / 参数 / 字段类型 ∉ {`single`, `double`}**,并按操作码拒 `conv.r4` / `conv.r8` / `conv.r.un` / `ldc.r4` / `ldc.r8` / `BitConverter.Int64BitsToDouble`(类型谓词兜底:新增方法若碰浮点类型即被拦,**不靠方法名枚举**);**引用集白名单断言恰 = BCL**(ADR-017 §二,构建失败级);Roslyn analyzer 属编辑器期新工具面,须另开 ADR 签核,P0 用零依赖 EditMode 反射门 | 编译期 + EditMode 反射 + IL 扫描 + 单测扫 `ToFloat` | [L] BLOCKING |
 | **AC-5b** | **定点 `Exp` 存在且逐位确定(2026-09-16 三轮拆两子句)** —— (a) 同输入同输出、无路径分叉:**BLOCKING**;(b) 与高精度参考比误差 ≤ **误差预算(`*待测*`,尚待标定)**:Gate —— **预算未标定前无可判 fail 阈值,不得以「待定」撒案** | 单测 | [L] BLOCKING(子句 a)· **Gate**(C2)(子句 b) |

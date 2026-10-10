@@ -90,7 +90,7 @@ This epic is complete when:
 | **C2** `World.OccupyCells/FreeCells` 零调用方 ⇒ Overlay 写路径未接线 | 🔴 真缺陷 | `Place`/`Remove` 接 `IWorldOccupancy`;`test_c2_place_writesOccupancy` / `test_c2_remove_freesOccupancy` 钉死 | ✅ **已修** |
 | **N-r1** `moduleCatalog == null` 时静默退化(复现 C1/C2) | 🔴 真缺陷 | 改 **fail-closed**:未注入目录 / 未知 moduleId / 未注入 occupancy 三处**抛**;三条 `test_nr1_*_throwsFailClosed` 钉死 | ✅ **已修(真到位)** |
 | **C8/ID** 注册表 id `int` vs 权威件 `i64` | 🔴 真缺陷 | **本轮修复**(2026-10-03)—— 全链升 `long`,与契约 / codec / `entities.yaml:2068` 口径一致;两条回归用例 + 两次突变测试 | ✅ **已修** |
-| **N-r2** 无生产装配根(非测试代码 `new World(` / `new StructureWriter(` 零引用) | ⚠️ 缺口(低-中) | 实测仍为 **0 引用**;ADR-023 三场景制下 `World.unity` 尚不存在,现在补装配点 = **孤岛接线**(零消费者、其自身正确性无处验证) | ⚠️ **登记为待办(用户裁定 2026-10-03),不阻塞本 epic** |
+| **N-r2** 无生产装配根(非测试代码 `new World(` / `new StructureWriter(` 零引用) | ⚠️ 缺口(低-中) | 实测仍为 **0 引用**;ADR-023 三场景制下 `World.unity` 尚不存在,现在补装配点 = **孤岛接线**(零消费者、其自身正确性无处验证) | ⚠️ **登记为待办(用户裁定 2026-10-03),不阻塞本 epic**。**✅ 2026-10-10 批次 F 回填**:重开条件**已触发** —— Boot 装配轮 2026-10-09 开工(组合根 `CompositionRoot` 已建 · 门④冒烟 10-10 实跑绿);但当日复测 `new World(` / `new StructureWriter(` 生产引用**仍 = 0** ⇒ 装配入口未接,本条**仍开**,状态升级为「重开条件已到 · 待接线」,归接线轮(带集成判据,承原注) |
 
 ### 未闭项登记(不阻塞本 epic 转 Complete)
 
@@ -101,6 +101,8 @@ This epic is complete when:
   **跨平台黄金夹具矩阵未建**,落地后补签,**禁单平台独签**。
 - ⏸️ **`TR-building-004` / `-009` / `-010` 三条 `⚠️ partial`**:归数值轮 / P1a,非本 epic 阻塞项。
 - ⏸️ **story-004 `World.unity` 构建期扫描**(ADR-023 三场景制):场景文件尚不存在,重开条件 = 该场景创建时同批补。
+  **✅ 2026-10-10 批次 F 回填**:`World.unity` 已于 2026-10-09 创建(阶段 1 装配轮)⇒ 重开条件**已触发**;
+  零 gameplay 构建期扫描**尚未建**(同 `active.md` 阶段 1 登记「零 gameplay 构建期扫描(→S2)」)⇒ 仍开,归 S2 批。
 
 ### 文档卫生订正(2026-10-03,零行为影响)
 
@@ -117,9 +119,11 @@ This epic is complete when:
 等待事项均属外部主语 / 外部轮次:
 
 - **N-r2 生产装配根** ⇒ ADR-023 三场景制 / Boot 装配轮开工时同批补(带该接线自身的集成判据)。
+  ✅ **2026-10-10 回填**:Boot 装配轮已开工(10-09)⇒ 条件已到、待接线(引用实测仍 0,见上表 N-r2 行)。
 - **AC-23-09 跨平台签名** ⇒ ADR-012 黄金夹具矩阵落地后补签(禁单平台独签)。
 - **`TR-building-004/-009/-010`** ⇒ 数值轮交付 `R` / `BUILD_TIME` / 目录成本后翻真值;`-010` 归 P1a。
 - **story-004 `World.unity` 构建期扫描** ⇒ 该场景创建时同批补。
+  ✅ **2026-10-10 回填**:`World.unity` 已建(10-09)⇒ 条件已到、扫描待建(归 S2,见上)。
 
 下一件:见 `production/epics/index.md` —— Route A 三 epic(player-controller → world-ecozones → modular-building)
 **全部收口完毕**。

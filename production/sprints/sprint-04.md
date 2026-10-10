@@ -147,9 +147,9 @@ patient-ai ✅ 4/4 → diagnosis-system ✅ 6/6 → case-system ✅ 6/6 → pres
 | 2 | 至少 1 次**人工**文档化 playtest | ⬜ **未做** | M2 退出条件要求**人工** playtest；本轮交付的是自动化测试的文档化 playtest（`playtest-2026-10-08-vertical-slice.md`），**不满足** M2 要求 |
 | 3 | 运行 ADR-023 场景加载 spikes | ✅ **已完成 2026-09-23**(S1/S3/S4 三条全通过,见 `adr-023` §Validation) | 解锁 chunk 激活;**剩余 S2/S6 由 #5/#4 同批补跑**(触发条件已到) |
 | 4 | **阶段 1「装配轮」**:新装配 `Gameplay.Boot` 组合根 + tick driver(`Update`+`unscaledDeltaTime` double 累加器,MaxStepsPerFrame 防死亡螺旋)+ Boot→World 最小 additive 场景(S1 API + 坑 A/B 修法)+ `Initialize` 生产调用点 + `PresenceRegistry` 灌入 + 施治腿生产喂入 | ⬜ Ready(~4.5 天,至 10-15) | 全库第一次真装配;**同批跑 S6 spike**(tick 停机时钟)· E-13 失败路径实测;World 零 gameplay ⇒ 病人/玩家必须运行期 spawn;**永不用 `LoadSceneMode.Single`** |
-| 5 | **阶段 2「链补全轮」**:`CaseOpened` 写者(37/4)· 体征链(`IVitalsQuery` 生产实装 + 事件→体征 apply)· `ResourceHarvested` 写者(17/21a)· 写者存在性 grep 门(新立) | ⬜ Ready(**~3 天估已修正 → 7–12 天**,见右栏;或 10-20 改判) | **2026-10-09 阶段 0 勘察实测**:体征链三断点(apply 层/投影桥/查询面全缺)+ 病种数据面从零建 + 无 sim 主循环 ⇒ 原 ~3 天偏乐观;**体征链禁 Fake**(vertical_slice_test 现断言跑在 Fake 上 = 不能作证据);10-16 检查点大概率触发 ;**2026-10-09 四项开工裁定(用户,均按推荐)**:① 病种曲线数值 = **合成 fixture**(1 病种占位打通全链,验收口径单独登记「fixture 值非最终数值」,数值轮整表替换)· ② 定点 Exp = **手写定点**(整数域级数展开,照 ADR-026 FixPow/FixSqrt 先例,禁 float/libm,与 GDD F1/F2 字面零背离)· ③ F3 CatchUp = **M2 显式登记 NOT-RUN 背离**(归 M3/后续,阶段 2/4 只验在场路径,非静默裁剪)· ④ 急救事件病人归因 = **阶段 2 内修**(HostEmergencyProcessor 两处 Append 传真实 patientId,成本已计入 2-3d) |
+| 5 | **阶段 2「链补全轮」**:`CaseOpened` 写者(37/4)· 体征链(`IVitalsQuery` 生产实装 + 事件→体征 apply)· `ResourceHarvested` 写者(17/21a)· 写者存在性 grep 门(新立) | ◐ **进行中 · A–E 五批已提交推送 `f5879c3`(2026-10-10)**,剩批次 F 收口轮(估 7–12 天口径,见右栏;10-16 检查点) | **2026-10-09 阶段 0 勘察实测**:体征链三断点(apply 层/投影桥/查询面全缺)+ 病种数据面从零建 + 无 sim 主循环 ⇒ 原 ~3 天偏乐观;**体征链禁 Fake**(vertical_slice_test 现断言跑在 Fake 上 = 不能作证据);10-16 检查点大概率触发 ;**2026-10-09 四项开工裁定(用户,均按推荐)**:① 病种曲线数值 = **合成 fixture**(1 病种占位打通全链,验收口径单独登记「fixture 值非最终数值」,数值轮整表替换)· ② 定点 Exp = **手写定点**(整数域级数展开,照 ADR-026 FixPow/FixSqrt 先例,禁 float/libm,与 GDD F1/F2 字面零背离)· ③ F3 CatchUp = **M2 显式登记 NOT-RUN 背离**(归 M3/后续,阶段 2/4 只验在场路径,非静默裁剪)· ④ 急救事件病人归因 = **阶段 2 内修**(HostEmergencyProcessor 两处 Append 传真实 patientId,成本已计入 2-3d) |
 | 6 | **阶段 3「形态件施加轮」**:`SkeuoRuntimeDriver` 两 TODO(DTO 绑定 / Screen 实例化)+ `SignChannelBinder` 挂真词条 + story-023 载体;焦点施加者级联口径同批裁 | ⬜ Ready(~2 天,至 10-22) | 四形态件真通道呈现;不改 021-024 已交付形态与判据 |
-| 7 | **阶段 4「收口轮」**:灰盒登记表审计 → 5 项 Go/No-Go 门 → 人工 playtest(9 节模板,§1/§3/§4/§9 须实质填写)→ M2 Exit 11 条逐条复评 → 7 处登记回填(N-r2 / we+modular story-004 / u1-S2 / u0 a7-5 / AC-8-51 / O-1…O-6 / skeuo 021-024) | ⬜ Ready(~1.5 天,至 10-23) | 报告落 `production/playtests/`;**Logic/Integration 条禁止单以 playtest 报告转绿** |
+| 7 | **阶段 4「收口轮」**:灰盒登记表审计 → 5 项 Go/No-Go 门 → 人工 playtest(9 节模板,§1/§3/§4/§9 须实质填写)→ M2 Exit 逐条复评(**实测 13 条**,非本行原记「11 条」—— 2026-10-08 补的 3 条未计入)→ 7 处登记回填(N-r2 / we+modular story-004 / u1-S2 / u0 a7-5 / AC-8-51 / O-1…O-6 / skeuo 021-024) | ✅ **Complete(2026-10-10)** | 报告落 `production/playtests/playtest-2026-10-10-m2-manual.md`;**Logic/Integration 条禁止单以 playtest 报告转绿** —— 已守:Exit 复评只认 grep/测试实测,playtest 仅覆盖可感知面 |
 
 **Go/No-Go(playtest 前 5 项,全绿才开人工 playtest)**:① 全量 EditMode+PlayMode 绿(0 failed);② b6 门 + Sim 引用集门绿;③ **写者存在性门**(M2 链每 Kind —— DiseaseOnset/CaseOpened/DrugTreatmentApplied/EmergencyTreatmentApplied/ActorCellEntered —— 生产程序集内 `Append` ≥1);④ 组合根冒烟(PlayMode:根对象存在 + Initialize 已调用 + EventStream 非空);⑤ 体征回路断言(生产 `IVitalsQuery`,治疗事件后返回值变化,**路径禁 Fake**)。
 
@@ -295,10 +295,13 @@ patient-ai ✅ 4/4 → diagnosis-system ✅ 6/6 → case-system ✅ 6/6 → pres
 > ⚠️ **三处**不得借绿**(已按纪律切出,不建在假绿上):
 > - **AC-42-C9**(atlas 页数 ≤ `PAGES_MAX`)—— `PAGES_MAX` 未冻结,**归 019-b,Blocked**,**不计入** I-4;
 > - **`story-019`** 现 `Blocked ⛔`,其 019-a 半**待五族冻结件点亮**;
-> - **M2 Exit Criteria 旧读数(2026-10-08 订正)**:原记「七条中五条为空」—— 现状:
->   `interaction` ✅ 闭 · PlayMode 零桩 ✅ 闭(6 passed + 1 NOT-RUN)· playtest ◐ 首份已落(自动化文档化,人工待裁)·
->   端到端链 ⬜(写者缺失)· 形态件 ⬜ **4/4 形态半齐**(① story-021 ✅ 2026-10-08;② story-022 ✅ 同日;③ story-023 ✅ 2026-10-09;④ story-024 ✅ 2026-10-09 —— 但施加点归 9/10 实现轮,非可 playtest 真通道);
->   另 2026-10-08 补三条判据(写者存在性 / 体征变化 / 施治腿)均 ⬜。
+> - **M2 Exit Criteria 读数(2026-10-10 批次 F-6 复评 · 实测 13 条)**:原记「七条中五条为空」已过期,现状:
+>   `interaction` ✅ 闭 · PlayMode 零桩 ✅ 闭(7/7,F-2 禁 Fake 换真)· playtest ✅ **闭**(人工轮 `playtest-2026-10-10-m2-manual.md` + 自动化轮 10-08;口径裁明 = 至少一次人工)·
+>   **写者存在性 ✅ 闭**(原文「9/25/37 写者不存在」是 10-08 旧快照 —— 现测 `PatientSpawner.cs:77`/`CaseOpenWriter.cs:135` 齐)·
+>   **体征变化可测 ✅ 闭**(F-2 真 `IVitalsQuery` + 变异实测恰红 2)· 施治腿 ◐(10/11 写者齐,急救腿运行期未接)·
+>   端到端链 ⬜(**缺口已迁移**:写者存在但**零生产调用方**,`SpawnNext`/`CaseOpenWriter.TryOpen` 全库唯一引用 = 测试 ⇒ 运行期可达 0%,归阶段 3)·
+>   形态件 ◐ **4/4 形态半闭**(①-④ story-021…024 全 Complete;**F-7 回填:施加点实测零施加** —— 本条 `[ ]` 的唯一剩余内容 = 施加点接线,形态半已闭不重开)· 五族切图 ◐(019-b Blocked)。
+>   复评原件 `production/qa/evidence/m2-exit-recheck-2026-10-10.md`。
 
 #### ⚠️ 强制复核结果(③ 的显式义务)—— **甲′ 不成立**
 

@@ -66,7 +66,7 @@ D-1 首两输入可交换(a+b 交换 + 同步 avalanche),第三输入起有序 �
 | **S1** Addressables Additive 加载/卸载 | ✅ **本批执行 → 已实测通过(2026-09-23)** | ADR-023 Accepted 硬前置(S1/S3/S4 三选一不可);参考件载形状未验行为。冷载 116.8 / 暖载 39.6 / 卸载 11.0 ms,卸载干净、零异常 |
 | **S3** `UnloadSceneAsync` 不销毁 `InstantiateAsync` 产物 + bundle refcount | ✅ **本批执行 → 已实测通过(2026-09-23,含 S-4 补强)** | ⑤ 拆序六步存在的全部理由;含 2026-09-21 S-4 补强(bundle refcount 归零)。判据 1/2/3 全部证实;附带发现「场景内亲代实例被自动清理,不得手动 ReleaseInstance」 |
 | **S4** 场景 chunk vs SetActive 成本 | ✅ **本批执行 → 已实测通过(2026-09-23)** | S1/S3/S4 同属 Accepted 硬前置。A/B 比 ≈1285× ⇒ 机制建议「细粒度 chunk 激活走 SetActive」 |
-| **S2** World.unity 零 gameplay 对象扫描 + RC-6 相机/AudioListener 增列 | ⏸ **延后**(触发:首个 World/MainMenu 场景落地) | 现只有 `Boot.unity`,扫描无对象可扫;归「场景落地 + gates 扩员」批(与残留 R-2 同族) |
+| **S2** World.unity 零 gameplay 对象扫描 + RC-6 相机/AudioListener 增列 | ⏸ **延后**(触发:首个 World/MainMenu 场景落地) | 现只有 `Boot.unity`,扫描无对象可扫;归「场景落地 + gates 扩员」批(与残留 R-2 同族)。**✅ 2026-10-10 批次 F 回填**:`World.unity` 已于 2026-10-09 落地(阶段 1,Boot 启动序 additive 加载它,门④冒烟 10-10 实跑绿)⇒ **触发条件已到**;扫描本体未建,原归属不变(归 gates 扩员批) |
 | **S5** Renderer Feature 触发条款 | 💤 **休眠** | 仅当 ADR-013 假设 6 spike **失败**时才需验「UI 兜底不够、须 RF」;假设 6 结果未知前无从谈起 |
 | **S6** 菜单时钟(`Time.unscaledTime` vs tick driver 停机) | ⏸ **延后**(触发:`ITickProvider` 实现落地) | 现无 tick driver,两态行为无从测;归 tick driver 实现批 |
 | **S7** 确定性偏移夹具 | 🟡 **哈希半边已落**(§1.1 S7 测试);**全夹具延后**(触发:ADR-022 逻辑层 + 可走性 C2 数据) | 「无对象落入不可走格」依赖关卡逻辑层,尚不存在;哈希半边 = 现在唯一可判的半边,已测 |

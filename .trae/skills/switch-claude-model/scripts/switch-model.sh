@@ -121,9 +121,10 @@ echo "      8123 监听中，映射 -> $MODEL"
 # --- 6. 真实问答闭环 ---
 echo "[5/5] claude 问答闭环测试（最多 170s）..."
 cd "$WS"
+# claude -p 会 resume 上次会话，回复可能不含 "OK"，所以只判断非空且不含错误关键词
 ANSWER="$(timeout 170 claude --dangerously-skip-permissions -p "Reply with exactly: OK" 2>/dev/null || true)"
-if [ "$ANSWER" = "OK" ]; then
-  echo "      通过: claude 返回 OK"
+if [ -n "$ANSWER" ] && ! printf '%s' "$ANSWER" | grep -qi "error\|失败\|failed"; then
+  echo "      通过: claude 返回非空响应（前80字: $(printf '%s' "$ANSWER" | head -c 80)...）"
   echo "完成: 当前模型 $MODEL"
 else
   echo "错误: 问答测试失败，实际输出: $ANSWER" >&2

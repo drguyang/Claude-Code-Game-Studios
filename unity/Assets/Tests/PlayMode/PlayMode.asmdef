@@ -13,7 +13,8 @@
         "GUID:49b36e3ee94a392fe97bd7fe76bb27fb",
         "GUID:889729f8d83bd367f998fad31848b45b",
         "Gameplay.UI",
-        "Gameplay.Presentation"
+        "Gameplay.Presentation",
+        "Gameplay.Boot"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

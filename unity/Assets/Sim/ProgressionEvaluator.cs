@@ -26,7 +26,8 @@
 //      「恒 0」在**生产路径上**已消除。
 // 保留占位(tripwire,归「M2 可玩级另计」· 阶段 0 口径 —— **不得当成本批缺陷删改**):
 //   · `ComputeNoise` 恒 0 · `ComputeTrend` 恒 0 · `signs[]` 恒空(F2 投影未接线)
-//   · `CatchUp` 不动(排序壳保留;NOT-RUN 背离登记归批次 F)
+//   · `CatchUp` 不动(排序壳保留;**NOT-RUN 背离已登记 2026-10-10 批次 F** ——
+//     GDD `disease-simulation.md` §F3 节首 + AC-3/3b/3c 行,归 M3/后续)
 //
 // ── 为什么存在两个 Evaluate 重载(既有公共面兼容)──────────────────────────
 // 既有签名 `Evaluate(..., IReadOnlyList<SimEvent> events, ...)` 的 `events` 形参

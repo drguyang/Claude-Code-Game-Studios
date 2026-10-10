@@ -109,13 +109,21 @@
 **Exit Criteria**(可机械验证):
 - [x] `interaction-system` 实现(**已闭** —— 7/7 story Complete 2026-10-04;原「关键路径断点」措辞已作废)
 - [ ] `patient-ai` → `diagnosis-system` → `case-system` → `prescription-medication` 链至少端到端可跑
-- [ ] ⚠️ **链的写者存在性前置(2026-10-08 补)** —— 上一条链上的每个 `Kind` 至少有 1 个**生产 `Append` 调用点**
-      实测生产侧 `Append` 仅 3 处(`HostEmergencyProcessor`×2 · `PrescribeFlow`×1),
+- [x] ⚠️ **链的写者存在性前置(2026-10-08 补 · ✅ 2026-10-10 批次 F-6 复评转闭)** —— 上一条链上的每个 `Kind` 至少有 1 个**生产 `Append` 调用点**
+      ~~实测生产侧 `Append` 仅 3 处(`HostEmergencyProcessor`×2 · `PrescribeFlow`×1),
       **9/25/37 的写者不存在** ⇒ epic 全 `Complete` 链仍跑不起来(**epic Complete ≠ 写者存在**;
-      `vertical_slice_test` 病人腿 `Assert.Ignore` 即此缺口的可证伪表现)
-- [ ] ⚠️ **管道终点 = 体征变化可测(2026-10-08 补)** —— 至少 1 条事件写入病史流后,
+      `vertical_slice_test` 病人腿 `Assert.Ignore` 即此缺口的可证伪表现)~~
+      **✅ 2026-10-10 F-6 复评:原读数为 2026-10-08 旧快照,现已满足** ——
+      实测写者:`PatientSpawner.cs:77`(9·DiseaseOnset)· `CaseOpenWriter.cs:135`(37)· 10/11 早已在(HostEmergencyProcessor×2 / PrescribeFlow×1)· 25 敌伤在 Sim 侧。
+      ⚠️ **本条闭 ≠ 下一条端到端可跑闭** —— 缺口已迁移为「**写者零生产调用方**」
+      (`SpawnNext` / `CaseOpenWriter.TryOpen` 全库唯一引用 = 测试)⇒ 运行期链可达性 0%。
+      复评原件 `production/qa/evidence/m2-exit-recheck-2026-10-10.md`;原文不删,留闭环记录。
+- [x] ⚠️ **管道终点 = 体征变化可测(2026-10-08 补 · ✅ 2026-10-10 批次 F-2/F-6 转闭)** —— 至少 1 条事件写入病史流后,
       **`IVitalsQuery` 可观测到体征变化**。依据:Goal 管道终点是「体征变化」(本文件 §三 M2 Goal),
       原判据 8 条**无一条**覆盖该末端 —— 事件流写进去了、体征变没变**无人验**
+      **✅ 2026-10-10 批次 F-2 兑现**:`vertical_slice_test` 禁 Fake 换真 —— 真 `CompositionRoot` 装配 + 真写者 +
+      生产 `IVitalsQuery`,**7/7 绿**,含 `test_vitalsQuery_returnsAfterTreatment`;
+      **变异实测**(`sum += Fix.Zero`)恰红 2 = 判据有牙。原文不删,留闭环记录。
 - [ ] ⚠️ **施治腿纳入 M2 链(2026-10-08 补)** —— 核心假设 `design/gdd/game-concept.md:687` 为「**判断 → 施治**」,
       现 7 系统只有 **11 处方**半边,10 急救(`EmergencyTreatmentApplied`)**不在链内** ⇒ 实际只证
       「诊断 → 处方」半环。**7 系统集须补 10**(急救已 Complete 2026-10-08,系登记遗漏非未实现)
@@ -124,10 +132,14 @@
       结果 **6 passed + 1 skipped(NOT-RUN: 病人腿 25/9 写者未实现)**,`Assert.Pass` 桩 **0 个**;
       证据 `production/qa/evidence/review-phase3-vertical-slice-2026-10-08.md`。
       原记「现 8 个 `Assert.Pass` 桩 / `grep -c TODO` = 14」为**陈旧读数**,已于同日消除)
-- [ ] ≥1 次**文档化** playtest,报告落 `production/playtests/`
-      (◐ 目录与首份报告**已落** 2026-10-08(`playtest-2026-10-08-vertical-slice.md`)—— 但该轮是
-      **自动化测试的文档化**,是否满足本条「文档化 playtest」按口径待用户裁定;
-      若要求**人工**执行则仍未闭)
+- [x] ≥1 次**文档化** playtest,报告落 `production/playtests/`
+      (✅ 2026-10-10 批次 F-5/F-6 转闭 —— 目录两份报告在档:
+      `playtest-2026-10-08-vertical-slice.md`(自动化文档化)+
+      **`playtest-2026-10-10-m2-manual.md`(人工 playtest · 用户 dr_guyang 执行)**
+      ~~但该轮是 **自动化测试的文档化**,是否满足本条「文档化 playtest」按口径待用户裁定;
+      若要求**人工**执行则仍未闭~~
+      **✅ 口径已于 2026-10-10 裁明:至少一次人工执行** —— 依据:该条意图是让真人给出
+      可感知面反馈,自动化文档化不能证明「可玩」。人工轮已于 2026-10-10 满足。原文不删,留闭环记录)
 - [ ] **4 项形态件交付**(① 脉案线格/空行/明度轴 · ② 墨乾湿两态 · ③ 急救零数字+可跳过 ·
       ④ 一条真实状态反馈通道)—— 承 `art-bible §8.11.1`「手感/可读性不得用灰盒验证」
       ⇒ ◐ **2026-10-08 ① 交付 ✅**(story-021:线格 `.ruled` 挂脉案行 + 空行等重声明层 +
@@ -143,6 +155,13 @@
       ⇒ **4 项形态件 4/4 齐**;**但整条仍保持 `[ ]`** —— 形态件是**形态半**,其**施加点**
       (story-024 的运行时挂行 = 9 查体链 + 数据绑定轮;③ 的候选列表载体 = 10 轮)未接,
       **交付 ≠ 可 playtest 的真通道**(同五族条先例,禁借绿;M2 Exit 条判据待接线后复评)
+      ⇒ ✅ **2026-10-10 批次 F-6/F-7 回填(施加点状态已实测锁定)**:逐条查运行期挂点 ——
+      **零个形态件在运行期被施加**:`SkeuoRuntimeDriver` 两 TODO 仍是形态件施加轮未开的空壳
+      (playtest 人工面 0% 覆盖独立互证:编辑器里无任何拟物 UI 呈现)。
+      **回填后的判据口径(留待接线后逐条勾)**:本条 `[ ]` 的**唯一剩余内容 = 施加点接线**,
+      形态半(4/4)**已闭不再重开**;施加点归属 = story-024 → 9 查体链 + 数据绑定轮 ·
+      story-023 → 10 急救轮(sprint-04 行 6「阶段 3 形态件施加轮」·~2 天)。
+      原文不删,留闭环记录。复评原件 `production/qa/evidence/m2-exit-recheck-2026-10-10.md`。
 - [ ] **五族切图与 atlas 布局冻结**(①② 的前置;切图早错 = 全局返工)
       ⇒ ⚠️ **口径订正(2026-10-04 D)**:原文写「纸/墨/铜」三族 —— 实测为**五族**(纸/墨/卷轴/印章/图标),
       「铜」族零实物。**冻结清单须按五族枚举**,否则三族已入库资产漏冻

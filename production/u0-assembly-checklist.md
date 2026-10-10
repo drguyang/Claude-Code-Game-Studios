@@ -407,6 +407,9 @@ U0a ✅ CLOSED → U0-a ✅ CLOSED(§2 · 桌面实测 + 超算复核 · 闭于 
 4. `git rm unity/Assets/Readme.asset{,.meta}`
 5. `MainMenu.unity` / `World.unity` —— **可留到需要时建**(ADR-023 §① 允许增量;
    但 `World.unity` 建时须过 §②「零 gameplay 对象」扫描)
+   **✅ 2026-10-10 批次 F 回填**:`World.unity` 已于 2026-10-09 创建(阶段 1 装配轮)⇒
+   本步后半义务(**§② 零 gameplay 对象扫描**)**触发待过**;扫描未建,归 u1-S2 同族
+   「场景落地 + gates 扩员」批(`u1-spike-checklist.md` S2 行同款回填)。`MainMenu.unity` 仍未建(合法,§① 允许增量)。
 
 **⚠️ 为什么不现在直接删 `SampleScene`**:它是 Build Settings 里**唯一**的场景。
 删了又不建 `Boot.unity` ⇒ 工程失去「能进 Play 模式」状态,而 a5 的绿正是建立在该状态上。

@@ -186,3 +186,8 @@ unity/_tools/
 #     进构建、DA 要裁、美术要改 —— 它们是项目资产,不是参考物。
 # 规格真源仍是 design/assets/specs/*.md;定稿版的生成留痕在 casebook-paper.md §8.10.2。
 assets/design-references/
+
+# Unity 测试产物(每次 batch 跑都会生成,不入库)
+unity/TestResults-*.xml
+unity/TestResults/
+unity/Logs/
