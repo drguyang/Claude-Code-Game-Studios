@@ -1,4 +1,4 @@
-# Session State — 2026-10-10(**当前阶段 = Pre-Production · Sprint 05 ◐ 阶段 3 开工(T1.1 ✅)· Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ 扩行「集成接线+验证」(阶段 0 ✅ · 阶段 1 ✅ · 阶段 1 尾 ✅(已提交 `1621efd`/`6a01d73`)· **阶段 2 ◐ A–E 五批 + 登记债码-1…5/GDD 八项收口 已提交推送 `f5879c3`**(提交前全量 3191/3144/0 红/1 inc/46 跳,两份原件入册;剩批次 F 收口轮 ✅ 已提交 `e38132a`)· 阶段 3 形态件待开)· M2 形态件 4/4 齐(story-021…024)**)
+# Session State — 2026-10-12(**当前阶段 = Pre-Production · Sprint 07 ◐ 收口轮(S1 ✅ · S2 设备级+42接线 ✅ · S3 ✅ · C3 评审+修复 ✅ · C1 收口 · C2 美术待裁 · 第五轮 playtest 待用户)· Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ · M2 形态件 4/4 齐**)
 
 ## Sprint 05 进展(2026-10-10)
 
@@ -1637,9 +1637,9 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 - ⬜ 系统 6 Epic(接收侧:latch/幂等/判距复验/唯一 Append)—— 转绿 AC-4-13 6 半 + AC-4-17 6 消费半
 
 <!-- STATUS -->
-Epic: sprint-04 Phase 3(M2 接线轮)
-Feature: 阶段 2 链补全轮
-Task: A–E 五批 + 登记债收口已提交 f5879c3 → 下一步批次 F 收口轮
+Epic: sprint-07(内容解锁轮)
+Feature: 收口轮
+Task: C3 评审+修复已推送 2ad81ee → C1 头部收口完成 → 剩 C2 美术待裁(用户)+ 第五轮 playtest(用户)
 <!-- /STATUS -->
 
 ---
@@ -2213,3 +2213,14 @@ Task: A–E 五批 + 登记债收口已提交 f5879c3 → 下一步批次 F 收�
   裁定冲突 —— 回滚还是修订规则)。
 - **下一步**:修复清单 8 项(原件 §四,含逐项验证命令)→ 复跑 EditMode/PlayMode →
   第五轮 playtest(用户方便时)→ sprint-07 收口。
+
+## 2026-10-12 — sprint-07 收口轮(C1 头部状态 + C3 结案)
+
+- **C1 头部状态必刷**:active.md 头部已改「Sprint 07 ◐ 收口轮」+ STATUS 块已改
+  (Epic: sprint-07 · Feature: 收口轮 · Task: C3 已闭合 → 剩 C2 美术待裁 + 第五轮 playtest)。
+- **C3 结案**:修复提交 `2ad81ee`(8 项必改全闭合)—— sprint-07.md C3 行已加结案注记
+  (逐项闭合 + 复跑全量证据 EditMode 3255 = 3208/0 · PlayMode 136/136)。
+- **C2 仍待用户裁定**:美术提前提案(§6 甲案 = P1 病人真模型 + P2 施治动作真资产,
+  其余 40 项维持 M4;乙案 = 全面提前 42 项)。裁定后单列 story,不进本 sprint 关键路径。
+- **下一步**:第五轮人工 playtest(用户方便时;此时应有内容:值区有词 · E/F 可操作 ·
+  候选列表可见)→ sprint-07 Complete。当前全量门:EditMode 3255 · PlayMode 136/136。
