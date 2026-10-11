@@ -191,8 +191,3 @@ assets/design-references/
 unity/TestResults-*.xml
 unity/TestResults/
 unity/Logs/
-# Unity batchmode -testResults 相对路径落点(相对 -projectPath,即 unity/ 下)
-unity/UnityLogsTmp/
-# Unity/mono 崩溃转储(batchmode -nographics 偶发残留;崩溃复现分析后即弃,永不提交)
-mono_crash.mem.*.blob
-unity/mono_crash.mem.*.blob

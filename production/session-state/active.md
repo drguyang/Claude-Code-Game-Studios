@@ -2194,3 +2194,22 @@ Task: A–E 五批 + 登记债收口已提交 f5879c3 → 下一步批次 F 收�
   S3 候选列表载体俱在 = 第一个「有内容的真循环」的目视核对面)+ sprint-07 收口。
   注:本轮 EditMode 两处编译红 —— ① static Assemble 传 `this`(CS0026)重构依赖直传;
   ② 测试缺 `using System`(CS0246 InvalidOperationException)—— 均为本轮引入即修。
+
+## 2026-10-12 — sprint-07 C3 双代理评审完成(恰一轮 · CHANGES REQUIRED)
+
+- **原件**:`production/qa/evidence/review-sprint-07-2026-10-12.md`
+  (代码面 lead-programmer + 测试面 qa-lead 并行 · 主会话独立复核 5/5 属实)。
+- **总判定 CHANGES REQUIRED**(两面独立收敛):8 项必改 ——
+  ① H-1 生产 Addressables provider 死代码(BootRoot 未传,player 构建必抛);
+  ② H-2 D-ESC 两绕过(delegate + 同文件双命名空间)+ IL 兜底注释口径错;
+  ③ 值区非空零正向断言(真词表端到端无测);④ S2.1 判据悬空未登记;
+  ⑤ BootRoot 三接线(OnFrame/SetAuthor/MountTo)零测试;
+  ⑥ 急救手动链缺在场前置(被唯一调用方遮住);
+  ⑦ 宿主 null 静默降级 + 逐次 Grant 自证库存(双代理交叉印证);
+  ⑧ sprint-07.md:157 收口行与 §2 ◐ 账目矛盾。
+- **G3/G4/G5 欠账补课**:测试面 APPROVE(处方/急救测试质量高),代码面附 1 中项。
+- **闸门**:8 项修复完成前 sprint-07 不得转 Complete(不借绿)。
+- **待用户裁定**:F-6(.gitignore 三组条目随 12b4947 入库,与「本地改动永不提交」
+  裁定冲突 —— 回滚还是修订规则)。
+- **下一步**:修复清单 8 项(原件 §四,含逐项验证命令)→ 复跑 EditMode/PlayMode →
+  第五轮 playtest(用户方便时)→ sprint-07 收口。

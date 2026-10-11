@@ -135,6 +135,15 @@
 | C2 美术待裁排期 | 「美术待裁」裁定上日程(见 §4 美术提前提案) | 裁定落盘即闭 |
 | C3 评审门回归常态 | 本 sprint 起每 sprint ≥1 轮双代理评审;G3/G4/G5 欠账补课 | 评审原件落 `production/qa/evidence/` |
 
+> ✅ **C3 已开(2026-10-12 · 双代理恰一轮)**:原件 =
+> `production/qa/evidence/review-sprint-07-2026-10-12.md`
+> (代码面 lead-programmer + 测试面 qa-lead 并行 + 主会话独立复核 5/5 属实)。
+> **总判定 CHANGES REQUIRED**(两面独立收敛):8 项必改(H-1 生产 provider 死代码 ·
+> H-2 D-ESC 两绕过 · 值区零正向断言 · S2.1 悬空 · BootRoot 三接线零测 · 急救缺在场前置 ·
+> 宿主 null 静默 + 逐次 Grant · §3 收口行账目失真)。
+> **G3/G4/G5 欠账补课**:测试面 APPROVE,代码面附 1 中项(急救在场前置)。
+> 8 项修复完成前 sprint-07 **不得转 Complete**(不借绿,原件 §四 = 修复清单)。
+
 ---
 
 ## §3 分阶段验收
