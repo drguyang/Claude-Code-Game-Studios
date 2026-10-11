@@ -42,9 +42,14 @@ namespace DaYiJingCheng.Tests.Boot
         [Test]
         public void test_zeroInput_window_emitsNoEmergencyAttempt()
         {
-            // 跑若干 tick 边沿,但不调用 TryManual —— 自动触发分支不得存在
+            // 零输入观察窗:Advance 若干 tick + 显式调退役壳 OnTickEdge(2026-10-12 C3-T5 强化:
+            //   原实现只 Advance 未调任何 OnTickEdge ⇒ 自动触发若被写回 EditMode 面,该测恒绿;
+            //   现显式泵壳的 OnTickEdge ×20 —— 壳内不得再有任何自动触发分支)。
             for (int i = 0; i < 20; i++)
+            {
                 _bag.TickDriver.Advance(0.05d);
+                _bag.EmergencyAttemptDriver.OnTickEdge(_bag.TickDriver.CurrentTick);
+            }
 
             CollectionAssert.DoesNotContain(_bag.Stream.Events.Select(e => e.Kind),
                 EventKind.EmergencyAttempt,
@@ -113,6 +118,21 @@ namespace DaYiJingCheng.Tests.Boot
             Assert.Throws<ArgumentOutOfRangeException>(
                 () => _driver.TryManual(_patient, method: 0, actorId: -1, tick: 7),
                 "actorId 负值 fail-loud");
+        }
+
+        [Test]
+        public void test_outOfPresence_rejectsWithoutEvents()
+        {
+            // C3-M1 负测:不在场病人 ⇒ 零事件 + Applied=false(与处方侧 1c 对称;
+            //   SetUp 的在场病人之外,造一个已发号但未 AddPresent 的病人 id)。
+            int before = _bag.Stream.Count;
+            var ghost = new PatientId(9999);
+
+            var result = _driver.TryManual(ghost, method: 0, actorId: 9001, tick: 8);
+
+            Assert.IsFalse(result.Applied, "不在场 ⇒ 回执 false(不写流)");
+            Assert.AreEqual(before, _bag.Stream.Count,
+                "不在场急救 ⇒ 病史流零新事件(EmergencyAttempt/EmergencyTreatmentApplied 都不发)");
         }
     }
 }

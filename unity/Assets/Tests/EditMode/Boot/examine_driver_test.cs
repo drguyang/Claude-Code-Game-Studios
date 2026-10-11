@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using DaYiJingCheng.EditorTools.Bake;
 using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using DaYiJingCheng.Sim.Contracts;
@@ -25,6 +26,18 @@ namespace DaYiJingCheng.Tests.Boot
     internal sealed class ExamineDriverTest
     {
         private const int SkillCap = 60;
+
+        /// <summary>仓根:由本文件路径回溯(承 sign_table_test 先例;batch 模式
+        /// AppContext.BaseDirectory 指向 Unity 安装目录,不可用)。
+        /// ⚠️ 2026-10-12 实测:CallerFilePath = 源码绝对路径 ⇒ 本文件位于
+        /// `unity/Assets/Tests/EditMode/Boot/`,到仓根恰需 <c>..×5</c>。上一轮用
+        /// Assembly.Location(ScriptAssemblies)+ ×4 算出 <c>仓根-1</c>(少一跳)已红。</summary>
+        private static string RepoRoot => ComputeRepoRoot();
+
+        private static string ComputeRepoRoot([System.Runtime.CompilerServices.CallerFilePath] string thisFile = "")
+            => System.IO.Path.GetFullPath(System.IO.Path.Combine(
+                System.IO.Path.GetDirectoryName(thisFile) ?? ".",
+                "..", "..", "..", "..", ".."));
 
         private CompositionRootServices _bag;
         private ExaminationLedger _ledger;
@@ -70,13 +83,61 @@ namespace DaYiJingCheng.Tests.Boot
         [Test]
         public void test_s12_cookedDisk_roundtrip_matchesBakerRows()
         {
-            // 兜底装载读的 = bake 写的同一份字节(双跑一致性:再解码一次逐行数一致)
-            var again = DiagnosisCookedDisk.LoadSigns();
-            Assert.AreEqual(_bag.ExamineDriver.LexiconRowCount, again.Rows.Count,
-                "兜底装载两次解码行数一致(产物确定性)");
-            Assert.AreEqual(again.Rows.Count, again.Rows.Count);
-            // ConfigVersion 非零(内容哈希派生 —— ADR-014 §五)
-            Assert.AreNotEqual(0u, again.ConfigVersion, "ConfigVersion 非零(源内容哈希派生)");
+            // 兜底装载读的 = bake 写的同一份字节;此处与 **baker 现烘逐字节比对**
+            // (C3-B3 产物漂移门):源 JSON 改了不重烘 ⇒ 库内字节 ≠ baker 现烘输出 ⇒ 红。
+            var baked = DiagnosisSignBaker.BakeFromRepo(RepoRoot);
+            byte[] onDisk = System.IO.File.ReadAllBytes(
+                System.IO.Path.Combine(
+                    DaYiJingCheng.Gameplay.Boot.DiagnosisCookedDisk.CookedDirectory(),
+                    "diagnosis_signs.cooked.bytes"));
+            Assert.AreEqual(baked.Cooked, onDisk,
+                "库内 diagnosis_signs.cooked.bytes 须 = baker 现烘输出(改源不重烘 = 漂移,恰红)");
+            Assert.AreNotEqual(0u, baked.ConfigVersion, "ConfigVersion 非零(源内容哈希派生)");
+        }
+
+        [Test]
+        public void test_s12_readFloor_cooked_matchesBaker()
+        {
+            // read_floor 对称漂移门(C3-B3 补的另一半)
+            var baked = DiagnosisReadFloorBaker.BakeFromRepo(RepoRoot);
+            byte[] onDisk = System.IO.File.ReadAllBytes(
+                System.IO.Path.Combine(
+                    DaYiJingCheng.Gameplay.Boot.DiagnosisCookedDisk.CookedDirectory(),
+                    "diagnosis_read_floor.cooked.bytes"));
+            Assert.AreEqual(baked.Cooked, onDisk,
+                "库内 diagnosis_read_floor.cooked.bytes 须 = baker 现烘输出(漂移恰红)");
+            Assert.AreNotEqual(0u, baked.ConfigVersion, "ConfigVersion 非零");
+        }
+
+        [Test]
+        public void test_s12_examineRealLexicon_revealedRows_nonEmpty()
+        {
+            // C3-B3:头号判据「查体后值区非空」的**真词表端到端正向测** ——
+            // 走组合根的真 34 行词表 + 真门槛 + 真体征(position)。三个真面:
+            //   · 真词表 tier_named ∈ {1,10,20} ⇒ 组合根 queryLevel=0 **读不出任何词**
+            //     (双条件「与」门 named = skill ≥ tier_named;0 < 1)⇒ 断言用
+            //     skill=5(≥1,<10 ⇒ 20 条 tier_named=1 词可读)—— 这就是真实玩家
+            //     熟练度 > 0 时的查体面;
+            //   · fallback 病种 RecoveryTime=100 ⇒ τ<100 期间 position≡0(潜伏抑制)
+            //     ⇒ 推进 tick 越潜伏(τ=120 → position 1.0);
+            //   · 真门槛 floor(skill=5) ≈ 0.88 < 1.0 ⇒ readable ⇒ 收录。
+            // 断言走**求值器**(OnExamine 的同调用面):真词表 + 真门槛 + 真体征
+            // position 1.0 + skill 5 ⇒ SignCount > 0 = 「值区有词」的真链。
+            PatientId patient = _bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 0);
+            _bag.Presence.AddPresent(patient, new WorldPos(0, 0, 0));
+            _bag.VitalsService.OnTickEdge(0);   // τ=0:潜伏期(Accumulate)
+            for (long t = 1; t <= 120; t++)
+                _bag.VitalsService.OnTickEdge(t);   // 推进过潜伏期 → position 1.0(真曲线)
+
+            var realRows = _bag.ExamineDriver.LexiconRows();      // 真 34 行(组合根装载)
+            var realFloor = _bag.ExamineDriver.FloorTable();      // 真门槛定表(同上)
+            var vitals = _bag.VitalsService.GetVitals(patient);   // 真体征(position)
+
+            Assert.Greater(realRows.Count, 0, "真词表非空(删装载 = 恰红)");
+            var set = DaYiJingCheng.Gameplay.Presentation.Diagnosis.DiagnosisExamineEvaluator.Evaluate(
+                in realFloor, realRows, skill: 5, vitals.Position);
+            Assert.Greater(set.SignCount, 0,
+                "查体后值区有词(C3-B3 头号判据的真链:真词表 × 真门槛 × 真体征)");
         }
 
         [Test]

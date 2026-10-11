@@ -72,5 +72,17 @@ namespace DaYiJingCheng.Tests.Boot
                 bag.EmergencyCandidates.CandidateLabels.ToArray(),
                 "标签观测面 = 结构化只读视图(与渲染序一致)");
         }
+
+        [Test]
+        public void test_s3_candidateLabels_readOnly_notMutatable()
+        {
+            // C3-F9 负测:静态默认标签 IReadOnlyList 不可被外部改写;宿主内部数组
+            //   CandidateLabels 返回只读快照(强转 string[] 无效/不可写)。
+            var bag = CompositionRoot.Assemble();
+            string[] snapshot = bag.EmergencyCandidates.CandidateLabels.ToArray();
+            snapshot[0] = "被污染";
+            Assert.AreEqual("止血", bag.EmergencyCandidates.CandidateLabels[0],
+                "外部改写快照不得污染宿主内部状态(测试间隔离)");
+        }
     }
 }

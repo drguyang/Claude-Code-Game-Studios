@@ -132,15 +132,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                 return new PrescribeDriverResult(false);   // 未知药:零事件(不报错 —— 零提示纪律)
 
             // 戥子档序数 → 11 整数档值(唯一量化点;整剂路径恒 1;越界 ⇒ 抛)
-            int doseValue;
-            try
-            {
-                doseValue = _selector.DoseValueOf(intent.DoseOrdinal);
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                throw;   // 落点集合即档位集合,越界不可达(AC-11-18 ①:如实抛出)
-            }
+            // ⚠️ 2026-10-12 C3-F3:删死 try/catch(原 catch 后只 rethrow,零语义)。
+            int doseValue = _selector.DoseValueOf(intent.DoseOrdinal);
 
             DrugProfile profile = MinimalDrugCatalog.DrugProfileFor(intent.ItemKey);
 

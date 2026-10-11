@@ -63,9 +63,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 作者 = 玩家 actorId,由 SetAuthor 设定(BootRoot 生成玩家后调用)
             _judgment = new JudgmentWriter(eventSink, encoder, caseStreamEvents,
                                            initialAuthorId);
+            // ✅ 2026-10-12 C3-M2:依赖 fail-loud —— 原两参接受 null 静默降级
+            //   (缺 ticks ⇒ 全写 tick 0;缺库存 ⇒ 开方恒 false),与全局「装配缺依赖
+            //   = 具名异常」口径对齐(同构造 prescribeDriver 早已 ?? throw)。
             _prescribe = prescribeDriver ?? throw new ArgumentNullException(nameof(prescribeDriver));
-            _portions = portionsStore;
-            _ticks = tickDriver;
+            _portions = portionsStore ?? throw new ArgumentNullException(nameof(portionsStore));
+            _ticks = tickDriver ?? throw new ArgumentNullException(nameof(tickDriver));
         }
 
         /// <summary>设定玩家 actorId(BootRoot 生成玩家后调用;动作前必须已定)。</summary>
@@ -117,9 +120,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_prescribed)
                 return false;   // 接线期限 1(见文件头注:真实选档确认 UI 落地后删除)
 
-            // 库存前置(20 最小面):注入 1 份 —— 接线载体种子,真库存面归 20
-            _portions?.Grant(_authorId, itemKey, 1);
-
+            // ✅ 2026-10-12 C3-M3:库存前置真生效 —— 种子由组合根装配期一次 Grant,
+            //   此处**不再自证**(原逐次 Grant 使 HasPortions 恒真 + 失败无限刷库存)。
             var intent = new PrescribeIntent(_authorId, _boundPatient, itemKey, doseOrdinal);
             bool applied = _prescribe.TryPrescribe(in intent, CurrentTick).Applied;
             if (applied) _prescribed = true;

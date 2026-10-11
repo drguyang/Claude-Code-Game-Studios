@@ -65,8 +65,6 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </summary>
         public void OnFrame()
         {
-            if (_services == null) return;
-
             bool interact = PlayerInputReader.InteractPressed();
             if (interact && !_interactHeld)
                 TryExamine();

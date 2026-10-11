@@ -26,17 +26,20 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// </summary>
     public sealed class EmergencyAttemptDriver
     {
-        private readonly IPresenceQuery _presence;
-
-        /// <param name="presence">在场查询(退役壳仅保留依赖面;不再读它触发事件)。</param>
-        public EmergencyAttemptDriver(IPresenceQuery presence)
+        /// <summary>
+        /// 退役壳(零依赖构造)。
+        /// <para>⚠️ 2026-10-12 C3-F2:删空壳的 <c>IPresenceQuery</c> 依赖 ——
+        /// 赋值零读取且误导(读者以为壳仍做在场判定)。</para>
+        /// </summary>
+        public EmergencyAttemptDriver()
         {
-            _presence = presence ?? throw new ArgumentNullException(nameof(presence));
         }
 
         /// <summary>
         /// tick 边沿钩子(空操作)—— 兼容 BootRoot 的调用面。
         /// <para><b>零输入 ⇒ 零事件</b>(G4.1 判据):本方法不触发任何急救事件。</para>
+        /// <para>⚠️ 2026-10-12 C3-F2:不再持在场查询 —— 退役壳零读它,保留即误导
+        /// (编译告警 + 误读为壳仍做在场判定)。依赖面删除。</para>
         /// </summary>
         /// <param name="tick">逻辑 tick(仅校验非负;不产生副作用)。</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="tick"/> 为负。</exception>

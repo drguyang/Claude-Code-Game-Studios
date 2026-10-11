@@ -76,6 +76,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>已注入的词条行数(0 = 未注入;真表 = 34,S1.2 判据观测面)。</summary>
         public int LexiconRowCount => _rows?.Count ?? 0;
 
+        /// <summary>已注入的词条行集(C3-B3 测试接缝:端到端正向测读真表)。</summary>
+        public System.Collections.Generic.IReadOnlyList<SignLexemeRow> LexiconRows() => _rows;
+
+        /// <summary>已注入的门槛定表(C3-B3 测试接缝,同上)。</summary>
+        public DiagnosisReadFloorTable FloorTable() => _floor;
+
         /// <summary>
         /// 一次查体意图的本地消费:读数 → 求值 → 落分册快照。
         /// </summary>

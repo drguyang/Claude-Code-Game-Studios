@@ -32,8 +32,11 @@ namespace DaYiJingCheng.Gameplay.Boot
     {
         /// <summary>10 的最小动作标签(急救动作小游戏两条主链)。
         /// <para>⚠️ 接线载体注记:真动作表归 21a / 10 烘焙轮;此处喂入是「有内容」,
-        /// 不是「数值真源」(承 S1 勘误同口径:词条已是真词,缺口只在管线)。</para></summary>
-        public static readonly string[] DefaultCandidateLabels = { "止血", "通气" };
+        /// 不是「数值真源」(承 S1 勘误同口径:词条已是真词,缺口只在管线)。
+        /// ⚠️ 2026-10-12 C3-F9:改 <b>IReadOnlyList</b> —— 原 <c>string[]</c> 静态数组
+        /// 元素可被任意调用方改写(测试间污染面:改一处毒害后续所有实例)。</para></summary>
+        public static readonly System.Collections.Generic.IReadOnlyList<string> DefaultCandidateLabels =
+            new[] { "止血", "通气" };
 
         private readonly EmergencyCandidateList _list;
         private readonly string[] _labels;
@@ -41,7 +44,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>创建并实例化候选列表(喂入 10 最小动作标签)。</summary>
         public EmergencyCandidateRuntime()
         {
-            _labels = (string[])DefaultCandidateLabels.Clone();
+            var defaults = DefaultCandidateLabels;
+            _labels = new string[defaults.Count];
+            for (int i = 0; i < _labels.Length; i++) _labels[i] = defaults[i];
             _list = new EmergencyCandidateList();
             _list.Build(_labels);
         }
@@ -51,8 +56,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// Gameplay.UI 类型 —— 消费方(测试装配)无需引 Gameplay.UI)。</summary>
         public UnityEngine.UIElements.VisualElement Root => _list.Root;
 
-        /// <summary>已喂入的候选动作标签(观测面;快照,调用方只读)。</summary>
-        public System.Collections.Generic.IReadOnlyList<string> CandidateLabels => _labels;
+        /// <summary>已喂入的候选动作标签(观测面;C3-F9 返回 <b>ReadOnly 快照</b> ——
+        /// 原直接返回内部数组引用,调用方强转 <c>string[]</c> 即可改宿主内部状态)。</summary>
+        public System.Collections.Generic.IReadOnlyList<string> CandidateLabels =>
+            new System.Collections.ObjectModel.ReadOnlyCollection<string>(_labels);
 
         /// <summary>跳过入口是否已实例化(恒 true —— 可跳过是结构承诺,story-023)。</summary>
         public bool HasSkipEntry => _list.HasSkipEntry;

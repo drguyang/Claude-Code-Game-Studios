@@ -484,16 +484,24 @@ namespace DaYiJingCheng.EditorTools.Gates
         }
 
         /// <summary>逃逸判据的 token 面 —— 仅「类型**声明位**」(class / struct / interface / enum /
-        /// record 名),非任意位置。⚠️ 2026-10-11 修订(S1.2 接缝):原判据 = 文件内任意
+        /// record / delegate 名),非任意位置。⚠️ 2026-10-11 修订(S1.2 接缝):原判据 = 文件内任意
         /// `Diagnosis[A-Z]…` token,把「引用 8 公开 API」的**消费面**(边界装载层
         /// AddressablesDataProvider、Boot 组合根 CompositionRoot / DiagnosisCookedDisk)
         /// 一并判红 —— 与 ADR-014 §五(装载落边界程序集)+ sprint-07 S1.2 裁定(组合根
         /// 装配入真产物)**结构性冲突**。逃逸的真实信号 = 在非前缀命名空间里**定义**了
         /// 8 实现(实现躲出去);引用位经 using / 别名消费 8 公开 API 是合法面,放行。
         /// 实现落点仍有 IL 层 <see cref="CheckDiagnosisIl"/> 的 matchedTypeCount 兜底
-        /// (8 实现真躲出前缀 ⇒ 前缀下 0 命中 ⇒ [D-0] 红,放行不产生假绿面)。</summary>
+        /// (前缀下 0 命中 ⇒ [D-0] 红,放行不产生假绿面)。
+        /// ⚠️ 2026-10-12 C3-B2 修订:替选集补 <b>delegate</b>(C3 评审实测:
+        /// `delegate void DiagnosisFoo(int)` 是货真价实的类型声明,此前可绕过);
+        /// 「前缀命名空间命中即整文件放行」改为逐命名空间块扫描(同文件双命名空间
+        /// 第二段逃逸此前永不被检)。IL 兜底注释已订正(见 <see cref="CheckSourceEscape"/>)。
+        /// ⚠️ delegate 语法须 <c>delegate &lt;返回类型&gt; &lt;名称&gt;(…)</c>,声明名前必有返回类型
+        /// ⇒ 不能与 class 共用 <c>delegate\s+(Diagnosis)</c>(class 是名称紧邻关键字);
+        /// 委托分支用 <c>delegate\s+(?:\w+\s+)+(Diagnosis[A-Z]\w*)</c> 匹配任意返回类型。</summary>
         private static readonly Regex EscapedDeclPattern = new Regex(
-            @"\b(?:class|struct|interface|enum|record)\s+(Diagnosis[A-Z]\w*)");
+            @"\b(?:class|struct|interface|enum|record)\s+(Diagnosis[A-Z]\w*)" +
+            @"|\bdelegate\s+(?:\w+\s+)+(Diagnosis[A-Z]\w*)");
 
         /// <summary>逃逸谓词:非前缀文件**声明**了 8 类型 ⇒ 红(实现躲进根命名空间 = 四层
         /// 扫描同键失配,「字面绿 + 实质违」);仅**引用** 8 公开 API(经 using / 别名)
@@ -503,9 +511,6 @@ namespace DaYiJingCheng.EditorTools.Gates
         {
             var errs = new List<string>();
             var text = AssemblyGates.StripCommentsPreserveStrings(src);
-            if (Regex.IsMatch(text,
-                    @"namespace\s+" + Regex.Escape(DiagnosisModuleNamespacePrefix) + @"\b"))
-                return errs;   // 声明了前缀 ⇒ 归 CheckSourceText 管
             var m = EscapedDeclPattern.Match(text);
             if (!m.Success)
                 return errs;
@@ -513,6 +518,50 @@ namespace DaYiJingCheng.EditorTools.Gates
                      "8 实现类型必须住前缀「" + DiagnosisModuleNamespacePrefix +
                      "」;躲进其他命名空间 = 四层扫描同键失配逃逸" +
                      "(audio Required-1 同型)。引用 8 公开 API 不在此列(S1.2 修订)。");
+            return errs;
+        }
+
+        /// <summary>C3-B2:前缀命中文件的**前缀段之外**的逃逸扫描 —— 剥掉前缀命名空间块
+        /// (大括号配平,只剥第一层块;处理嵌套),剩余文本再走 <see cref="EscapedDeclPattern"/>。
+        /// <para>为何必须剥第一段:前缀文件里自己的 `namespace …Diagnosis { class DiagnosisFoo{} }`
+        /// 是**合法**实现(住前缀),若对全文跑逃逸谓词会把它误红。剥掉前缀块后,
+        /// 剩余文本里的任何 <c>Diagnosis[A-Z]</c> 类型声明 = 第二段命名空间的逃逸。</para>
+        /// <para>实现:找前缀命名空间声明行的 <c>{</c>,从该 <c>{</c> 起按大括号配平剥到闭合
+        /// <c>}</c>;多个前缀段(罕见)循环剥。剥完后的剩余文本(可能为空)过逃逸谓词。
+        /// ⚠️ 非精确解析(C# 大括号在字符串/注释里的边角)—— 逃逸谓词只负责**声明位**
+        /// 粗粒度拦截,精确结构面由 IL 层 <see cref="CheckDiagnosisIl"/> 的 matchedTypeCount
+        /// + 前缀段类型计数承担;本函数是「躲出前缀」的第二道防线,不是解析器。</para></summary>
+        public static List<string> CheckSourceEscapeOutsidePrefix(string fileLabel, string src)
+        {
+            var errs = new List<string>();
+            var text = AssemblyGates.StripCommentsPreserveStrings(src);
+            var prefixRegex = new Regex(
+                @"namespace\s+" + Regex.Escape(DiagnosisModuleNamespacePrefix) + @"\b");
+
+            // 循环剥除所有前缀命名空间块(第一层大括号配平)
+            while (prefixRegex.Match(text) is { Success: true } match)
+            {
+                int open = text.IndexOf('{', match.Index);
+                if (open < 0) break;   // 无块(异常形态)⇒ 交由逐行规则兜
+                int depth = 0;
+                int close = -1;
+                for (int i = open; i < text.Length; i++)
+                {
+                    if (text[i] == '{') depth++;
+                    else if (text[i] == '}')
+                    {
+                        depth--;
+                        if (depth == 0) { close = i; break; }
+                    }
+                }
+                if (close < 0) break;
+                text = text.Remove(match.Index, close - match.Index + 1);
+            }
+
+            var m = EscapedDeclPattern.Match(text);
+            if (!m.Success) return errs;
+            errs.Add($"[D-ESC] {fileLabel} 前缀命名空间段之外声明了「{m.Groups[1].Value}」—— " +
+                     "同文件第二段命名空间的 8 实现逃逸(实现躲出前缀;C3-B2 修订)。");
             return errs;
         }
 
@@ -540,6 +589,16 @@ namespace DaYiJingCheng.EditorTools.Gates
                 }
                 declCount++;
                 errs.AddRange(CheckSourceText(f, src.Replace("\r\n", "\n").Split('\n')));
+                // ⚠️ C3-B2:前缀命中 ≠ 该文件全部安全 —— 同文件可含**第二段**非前缀
+                // 命名空间(`namespace …Diagnosis { … } namespace 其他 { class X {} }`);
+                // CheckSourceText 的逐行规则(Sim/IEventSink/libm/时钟…)只拦**内容**面,
+                // 拦不住「第二段里声明 8 类型」这个**结构**逃逸。故前缀命中文件仍须过
+                // 逃逸谓词 —— 该谓词现在只查声明位,前缀文件里**第一段**自己的
+                // `class DiagnosisFoo`(合法,住前缀)会命中并误红 ⇒ 须把第一段排除。
+                // 实现:逃逸谓词改收「逃逸命名空间段文本」(不含前缀段的全文)太脆 ——
+                // 简化判定 = 前缀命中文件只对「第二段命名空间」跑逃逸扫描:先剥掉前缀
+                // 命名空间块的文本(大括号配平),剩余文本再过 EscapedDeclPattern。
+                errs.AddRange(CheckSourceEscapeOutsidePrefix(f, src));
             }
             if (declCount == 0)
                 errs.Add($"[D-0] 扫描面内 0 个文件声明前缀命名空间" +

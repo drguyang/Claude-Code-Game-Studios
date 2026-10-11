@@ -29,6 +29,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>DataCooked 目录(相对 Assets;与 Editor.Tools.Bake.DataBakeMenu.CookedDirName 同值)。</summary>
         private const string CookedDirName = "DataCooked";
 
+        /// <summary>DataCooked 目录绝对路径(测试比对用 —— 产物漂移门 C3-B3)。</summary>
+        public static string CookedDirectory() => System.IO.Path.Combine(
+            UnityEngine.Application.dataPath, CookedDirName);
+
         /// <summary>词条表产物名(与 AddressablesDataProvider.DiagnosisSignsAddress 同值)。</summary>
         private const string SignsAssetName = "diagnosis_signs.cooked.bytes";
 

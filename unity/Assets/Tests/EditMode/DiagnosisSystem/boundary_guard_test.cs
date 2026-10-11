@@ -495,6 +495,65 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
                 Is.Empty, "引用 8 公开 API(经 using/别名消费)= 合法面放行(S1.2 修订)");
         }
 
+        // ════════════════════ 逃逸谓词 C3-B2 补漏(delegate + 双命名空间)════════════════════
+
+        [Test]
+        public void test_sourceEscape_delegateDecl_red()
+        {
+            // C3-B2 负测①:C3 评审实测 `delegate` 是货真价实的类型声明,但不在
+            // 原声明位替选集 ⇒ 此前可绕过。补进替选集后须红。
+            // ⚠️ 2026-10-12 实测:正则 `\bdelegate\s+` 对 `delegate void` 命中,
+            //   但字段/属性/参数修饰位(如 `public delegate void …` 前的 `public`)
+            //   不影响匹配;真正的问题是 StripCommentsPreserveStrings 后的文本仍含
+            //   词法关键字 ⇒ 应命中。失败 = 断言真红未达成 —— 先查谓词正则。
+            var errs = DiagnosisBoundaryGates.CheckSourceEscape(
+                "esc_delegate.cs", "delegate void DiagnosisFoo(int x);");
+            Assert.That(errs.Any(e => e.Contains("[D-ESC]")), Is.True,
+                "delegate 声明 8 类型 ⇒ 逃逸红(C3-B2 补 delegate 位)");
+        }
+
+        [Test]
+        public void test_sourceEscape_doubleNamespaceSecondSegment_red()
+        {
+            // C3-B2 负测②:同文件前缀命名空间 + 第二段非前缀命名空间,
+            // 第二段的 8 类型声明 = 逃逸(此前「见前缀整文件放行」永不被检)。
+            string src =
+                "namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis { class Legit { } }\n" +
+                "namespace DaYiJingCheng.Gameplay.Boot { class DiagnosisSmuggled { } }";
+            var errs = DiagnosisBoundaryGates.CheckSourceEscapeOutsidePrefix("double.cs", src);
+            Assert.That(errs.Any(e => e.Contains("[D-ESC]")), Is.True,
+                "双命名空间文件第二段的 8 实现声明 ⇒ 逃逸红(C3-B2 逐段判定)");
+        }
+
+        [Test]
+        public void test_sourceEscape_prefixFile_ownDecl_green()
+        {
+            // C3-B2 回归:前缀文件自己声明 `class DiagnosisFoo`(合法,住前缀)
+            // 不得被「前缀段之外」扫描误红 —— 前缀段被剥掉后剩余空 ⇒ 零 errs。
+            string src =
+                "namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis {\n" +
+                "    public class DiagnosisVitalsFacade { }\n" +
+                "}";
+            Assert.That(
+                DiagnosisBoundaryGates.CheckSourceEscapeOutsidePrefix("legit.cs", src),
+                Is.Empty, "前缀段自身的 8 实现声明不误红(剥前缀段后无剩余)");
+        }
+
+        [Test]
+        public void test_sourceEscape_doubleNamespaceWithNested_secondSegment_red()
+        {
+            // C3-B2 边界:前缀段含嵌套块(大括号配平须正确处理),
+            // 剥除后第二段逃逸仍被检出。
+            string src =
+                "namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis {\n" +
+                "    class Legit { void M() { if (true) { int x = 1; } } }\n" +
+                "}\n" +
+                "namespace DaYiJingCheng.Gameplay.Boot { class DiagnosisSmuggled2 { } }";
+            var errs = DiagnosisBoundaryGates.CheckSourceEscapeOutsidePrefix("nested.cs", src);
+            Assert.That(errs.Any(e => e.Contains("[D-ESC]")), Is.True,
+                "前缀段含嵌套块时剥除正确,第二段逃逸仍红");
+        }
+
         // ════════════════════ helpers ════════════════════
 
         private static string ProdDll => ScriptDll(AssemblyGates.PresentationAssemblyName);

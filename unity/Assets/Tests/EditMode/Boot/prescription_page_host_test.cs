@@ -28,6 +28,9 @@ namespace DaYiJingCheng.Tests.Boot
         private void AssembleReady()
         {
             _bag = CompositionRoot.Assemble();
+            // ⚠️ C3-M3:种子 = 装配期一次 Grant 玩家 0;测试 author 9001 须自 Grant
+            //   (生产 = BootRoot 恒 0 消费装配种子;测试 author 可变 ⇒ 夹具自给)。
+            _bag.PortionsStore.Grant(9001, MinimalDrugCatalog.DrugKey, 1);
             _page = _bag.PrescriptionPage;
             _page.SetAuthor(9001);
 
@@ -97,11 +100,29 @@ namespace DaYiJingCheng.Tests.Boot
         }
 
         [Test]
+        public void test_s24_prescribe_outOfStock_rejects()
+        {
+            // C3-M3 宿主级负测:种子只发一次(组合根装配期 Grant 1)⇒ 第二次开方
+            //   **耗尽**库存返回 false(原逐次 Grant 恒自证,此测恒 true 永不可红;
+            //   删种子/改真库存时这条红 = 删除时机信号)。
+            AssembleReady();
+            _bag.TickDriver.Advance(0.05);
+            _bag.VitalsService.OnTickEdge(_bag.TickDriver.CurrentTick);
+
+            Assert.IsTrue(_page.Prescribe(MinimalDrugCatalog.DrugKey, 1),
+                "首次开方消耗种子 1 份(成功)");
+            Assert.IsFalse(_page.Prescribe(MinimalDrugCatalog.DrugKey, 1),
+                "种子 1 份耗尽 ⇒ 第二次 false(接线期限 + 库存前置双重拒绝;非自证库存)");
+        }
+
+        [Test]
         public void test_s23_failLoud_authorNotSet()
         {
             var bag = CompositionRoot.Assemble();
             var page = new PrescriptionPageHost(bag.EventSink, bag.Encoder, bag.Stream.Events,
                 bag.PrescribeDriver, bag.PortionsStore, bag.TickDriver, initialAuthorId: -1);   // 未 SetAuthor
+            // ⚠️ 直构实例 = 刻意不测装配袋内实例(隔离:fail-loud 是宿主自持行为,
+            //    与组合根的 SetAuthor 时机解耦 —— 防误读为「袋内实例也 fail-loud」)。
 
             Assert.Throws<InvalidOperationException>(
                 () => page.WriteJudgment(1, 2),
@@ -117,7 +138,7 @@ namespace DaYiJingCheng.Tests.Boot
             var bag = CompositionRoot.Assemble();
             var page = new PrescriptionPageHost(bag.EventSink, bag.Encoder, bag.Stream.Events,
                 bag.PrescribeDriver, bag.PortionsStore, bag.TickDriver, initialAuthorId: 9001);
-            // 未 BindPatient(对象缺失)
+            // 未 BindPatient(对象缺失);直构实例同上注(隔离,防误读)。
 
             Assert.Throws<InvalidOperationException>(
                 () => page.WriteJudgment(1, 2),

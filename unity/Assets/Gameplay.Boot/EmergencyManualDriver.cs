@@ -44,6 +44,7 @@ namespace DaYiJingCheng.Gameplay.Boot
     public sealed class EmergencyManualDriver
     {
         private readonly HostEmergencyProcessor _processor;
+        private readonly IPresenceQuery _presence;
 
         /// <summary>最小动作表(action 0 = 止血包扎;真实表归 10/21a 烘焙轮)。</summary>
         private static readonly EmergencyActionRow BandageRow = new EmergencyActionRow
@@ -60,20 +61,24 @@ namespace DaYiJingCheng.Gameplay.Boot
         };
 
         /// <param name="processor">主机侧急救处理器(规则十一)。</param>
-        public EmergencyManualDriver(HostEmergencyProcessor processor)
+        /// <param name="presence">在场查询 —— 急救前置:病人须在场
+        /// (C3-M1;与处方侧 <c>PrescribeFlow</c> 1c 对称)。</param>
+        public EmergencyManualDriver(HostEmergencyProcessor processor, IPresenceQuery presence)
         {
             _processor = processor ?? throw new ArgumentNullException(nameof(processor));
+            _presence = presence ?? throw new ArgumentNullException(nameof(presence));
         }
 
         /// <summary>
         /// 一次手动急救:构造判定输入 → <see cref="HostEmergencyProcessor.Process"/>
         /// (→ EmergencyAttempt + EmergencyTreatmentApplied 双事件入病史流)。
         /// </summary>
-        /// <param name="patientId">被施救病人(须在场;Process 内部 fail-loud 拒 None/负值)。</param>
+        /// <param name="patientId">被施救病人(须在场 —— C3-M1 前置;不在场 ⇒
+        /// 返回 <c>Applied = false</c>,零事件)。</param>
         /// <param name="method">结算路径(0 = Manual · 1 = Skip —— 序数承既有测试与 GDD 声明)。</param>
         /// <param name="actorId">施予者(玩家)id。</param>
         /// <param name="tick">当前 tick。</param>
-        /// <returns>回执(Applied = 双事件已入流)。</returns>
+        /// <returns>回执(Applied = 双事件已入流;不在场 = false)。</returns>
         /// <exception cref="ArgumentOutOfRangeException">tick / method / actorId 非法。</exception>
         public EmergencyManualResult TryManual(PatientId patientId, int method, int actorId, long tick)
         {
@@ -85,6 +90,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (actorId < 0)
                 throw new ArgumentOutOfRangeException(nameof(actorId), actorId,
                     "actorId 走 ADR-006 Amendment B 计数器 id 空间,不得为负");
+
+            // C3-M1:在场前置(与处方侧 PrescribeFlow 1c 对称)—— 不在场病人
+            // 不得接收双事件(归因到不存在对象);调用方(InteractionInputDriver)
+            // 只选在场目标,此检查堵「离场/未出现 id 直调」的路径。
+            if (!_presence.IsPresent(patientId))
+                return new EmergencyManualResult(false);
 
             // 判定输入(最小形态:单沿 + 满幅度 ⇒ 稳度门 edges≤1 直通 Applied;判定归主机)
             var attempt = new EmergencyAttemptPayload(

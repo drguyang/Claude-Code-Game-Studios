@@ -137,8 +137,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             // EmergencyAttemptDriver 删除(退役壳零事件);触发权归玩家,
             // 手动入口 = EmergencyManualDriver(BootRoot 生成玩家后调用)。
             var emergencyProcessor = new HostEmergencyProcessor(stream, idAuthority, encoder);
-            var emergencyDriver = new EmergencyAttemptDriver(presence);
-            var emergencyManual = new EmergencyManualDriver(emergencyProcessor);
+            var emergencyDriver = new EmergencyAttemptDriver();
+            var emergencyManual = new EmergencyManualDriver(emergencyProcessor, presence);
 
             // ── 病人最小可见实体(sprint-05 T2.0):给运行期病人生成占位视觉 ──
             // 病因(playtest 2026-10-10 §6):病人在场但**零视觉实体** ⇒ 人工面看不到病人,
@@ -208,13 +208,23 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 本宿主只回答「列表实体存在 + 跳过入口可用」(story-023 边界①)。
             var emergencyCandidates = new EmergencyCandidateRuntime();
 
+            // 方笺页种子库存(20 最小面 · C3-M3):**装配期一次** Grant 玩家 0 ——
+            // 测试 authorId 可任意(测试自 Grant,见 prescription_page_host_test 注);
+            // 生产 BootRoot 第 4 步 SetAuthor(恒 0)消费同一种子。
+            // ⚠️ 移除义务:真 20 库存落地后删(见 sprint-07 §4 C3 修复注)。
+
             // ── 方笺页接线宿主(S2.3/S2.4 · 2026-10-11)──
             // 落笔 → JudgmentWriter.TryRecord(墨龄)· 开方 → PrescribeRequestDriver.TryPrescribe。
             // 玩家 actorId 由 BootRoot 生成玩家后 SetAuthor(BootRoot 启动序第 4 步之后)。
+            // ✅ 2026-10-12 C3-M3:种子**装配期一次**(Grant 1)—— 原宿主内逐次 Grant
+            //   自证库存(HasPortions 恒真)且失败可无限重复致库存增长;现库存前置真生效。
+            portionsStore.Grant(0, MinimalDrugCatalog.DrugKey, 1);   // 种子玩家 0(BootRoot SetAuthor 同步)
             var prescriptionPage = new PrescriptionPageHost(
                 stream, encoder, stream.Events,
                 prescribeDriver, portionsStore, tickDriver,
                 initialAuthorId: -1);
+            // ⚠️ 种子玩家补发(见上方 `portionsStore.Grant(0,…)`):id 0 的种子已在
+            //   装配期发;若未来种子改随 SetAuthor 走,此注为登记点。C3-M3 修复完成。
 
             // ── fail-loud 兜底:S1.2 诊断数据集非空(词表/门槛装载态)──
             // ⚠️ 「空行」在**运行期**是诚实形态(未查 = 空行,禁假数据);但**装配期**空数据集

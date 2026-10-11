@@ -74,6 +74,12 @@
 | 项 | 落点 | 依赖 | 判据(可证伪) |
 |---|---|---|---|
 | S2.1 `InputService` 装载 | `InputSystem_Actions.inputactions` 运行期装载(恰一 asset 实例,InputService 已就绪)+ BootRoot 每帧读 Interact/E/F | — | 启动后 `InputService.Actions` 非 null · 恰一实例断言绿 |
+
+> ⚠️ **S2.1 状态订正(2026-10-12 C3-B4)**:本判据**未交付** —— 实现走 `PlayerInputReader`
+> 直读设备过渡最小面(承 MovementInputReader 先例),`InputSystem_Actions.inputactions`
+> 运行期装载 + `InputService.Actions` 恰一实例断言 **NOT-RUN**(归独立 story:
+> 动作资产 runtime 装载,`PlayerInputReader.cs` 文件头已登记)。S2 批完成注记
+> 只点名 S2.2/S2.5,S2.1 以**本行 NOT-RUN 登记**为准,不得读成已完成。
 | S2.2 近病人 Interact → 查体 | 读 Interact 按下 + 近病人判定(复用在场查询)→ `ExamineDriver.OnExamine`(带真词表/门槛) | S1.2 | 按 E 近病人 ⇒ 值区出现词条(4/5 通道行);变异:删调用 ⇒ 按 E 仍空恰红 |
 | S2.3 落笔 → 墨龄 | 方笺页落笔动作 → `JudgmentWriter.TryRecord`(生产调用点首现) | S2.2 | 落笔后 `InkAgeTicks > 0` + `JudgmentRecorded` 入病例流;变异:删调用 ⇒ 墨龄恒 0 恰红 |
 | S2.4 开方 → 处方 | 方笺选档确认 → `PrescribeRequestDriver.TryPrescribe` | S2.3 | 开方 ⇒ `DrugTreatmentApplied` 入病史流 → 体征变化(有内容的管道终点) |
@@ -153,7 +159,8 @@
   (EditMode 3235 = 3188/0 · PlayMode 133/133);副作用 = D-ESC 判据修订见 §2.1。
 - **S2 ◐ → ✅ 设备级入口批 + 42 接线轮(2026-10-11)**:S2.2(按 E 查体)+ S2.5(按 F 急救双事件)
   已接并全绿(PlayerInputReader + InteractionInputDriver + BootRoot 转发);
-  **S2.3(落笔→墨龄)/ S2.4(开方→处方)由 42 接线轮闭合**(PrescriptionPageHost,见 §2)。
+  **S2.3(落笔→墨龄)/ S2.4(开方→处方)接线宿主就位**(PrescriptionPageHost,见 §2;
+  交互面归 42,玩家入口尚不可达 —— 见 §3 收口注)。
   判据:EditMode 3246 = 3199/0 · PlayMode 136/136。
 - **S3 ✅ 完成(2026-10-11)**:候选列表生产实例化 + 跳过入口可用
   (`EmergencyCandidateRuntime` + 组合根 + BootRoot 挂载;范围注 = 交互面归 10)。
@@ -163,7 +170,10 @@
   落笔(→ 墨龄,S2.3 接线宿主 ✅ · 方笺交互面归 42)◐ · 开方(→ 处方,S2.4 接线宿主 ✅ ·
   选档交互面归 42)◐ · 施治(F 键 → 双事件,S2.5 设备级 ✅)◐ · 纸面反馈(值区/候选列表载体 ✅)→
   **玩家可操作的第一截已立**;完整七环节收口待 42 方笺交互面 + 人工 playtest 目视。
-- **本 sprint 完成**:核心循环七环节**玩家可操作**(输入入口全接)+ 第一次被真实内容驱动
+- **本 sprint 完成**:核心循环**5 环设备级可达**(走近 / 查体 / 施治 / 纸面载体 ✅)+
+  落笔 / 开方 = **接线宿主就位、交互面待 42**(S2.3/S2.4 ◐ · C3-M4 账目订正:
+  原「输入入口全接 / 七环节玩家可操作」与 §2 的 ◐ 自相矛盾 —— 玩家侧尚无任何
+  入口能触发 WriteJudgment / Prescribe,不得读成七环节全可达)+ 第一次被真实内容驱动
 - **判据基线**:EditMode 3185 → ≈3210–3230 · PlayMode 133 → ≈136–140(qa-lead 估)
 
 ## §4 风险与依赖

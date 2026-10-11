@@ -23,6 +23,7 @@
 
 using System;
 using System.Threading.Tasks;
+using DaYiJingCheng.Gameplay.Presentation;
 using DaYiJingCheng.Gameplay.Presentation.Camera;
 using DaYiJingCheng.Gameplay.Presentation.Player;
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
@@ -47,9 +48,6 @@ namespace DaYiJingCheng.Gameplay.Boot
         private CameraRig _cameraRig;
         private SkeuoRuntimeDriver _uiDriver;
         private InteractionInputDriver _interactionDriver;
-
-        /// <summary>玩家 actorId(sprint-05 启动序第 4 步生成时记录;S2 急救施予者)。</summary>
-        private int _actorId = -1;
 
         /// <summary>World 场景的加载句柄(Phase 2 拆序第 4 步 <c>UnloadSceneAsync</c> 所需;
         /// 本版默认 releaseMode = 场景卸载时自动释放,常驻不等于泄漏)。</summary>
@@ -102,7 +100,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             }
 
             // ── 2. 生产装配(fail-loud:任一依赖缺失 = 具名异常,无半装配袋)──
-            _services = CompositionRoot.Assemble();
+            // ⚠️ 2026-10-12 C3-B1:data-core 预载 + 带 provider 装配 —— 原裸
+            //   `Assemble()` 使 S1.2 的 Addressables 生产分支成为死代码。
+            //   现生产恒走乙案(Addressables 装载同一份 cooked);测试/未重建 catalog
+            //   环境 TryPreload 失败 ⇒ 组合根磁盘兜底(同一份字节,真装载)。
+            //   生产构建乙案失败 ⇒ 磁盘兜底路径不存在(DataCooked 不进构建)⇒ 仍 E-13 硬失败。
+            bool preloaded = DataCorePreloader.TryPreload();   // 首次 Step 之前(ADR-014 §五)
+            _services = CompositionRoot.Assemble(
+                registry: null,
+                dataProvider: preloaded ? DataCorePreloader.Provider : null);
 
             // ── 3. World 场景 additive 加载(ADR-023:永不用 LoadSceneMode.Single)──
             // ⚠️ 本版 `LoadSceneAsync` **没有 `autoReleaseHandle` 形参**(U1 spike 坑 A 的
@@ -146,7 +152,6 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 共用同一空间」(IdAuthority 头注 + ADR-006 Amendment B 第二十六批:不新开第二计数器;
             // entities.yaml 的 next_player_id 是**存档头字段位**,不新增第三个 C# 计数器)。
             int actorId = _services.IdAuthority.NextPatientId().Value;
-            _actorId = actorId;
 
             _player.Initialize(
                 SimAuthorityMode.Host,
