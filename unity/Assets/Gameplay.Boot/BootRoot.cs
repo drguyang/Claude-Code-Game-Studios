@@ -46,6 +46,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         private PlayerController _player;
         private CameraRig _cameraRig;
         private SkeuoRuntimeDriver _uiDriver;
+        private InteractionInputDriver _interactionDriver;
+
+        /// <summary>玩家 actorId(sprint-05 启动序第 4 步生成时记录;S2 急救施予者)。</summary>
+        private int _actorId = -1;
 
         /// <summary>World 场景的加载句柄(Phase 2 拆序第 4 步 <c>UnloadSceneAsync</c> 所需;
         /// 本版默认 releaseMode = 场景卸载时自动释放,常驻不等于泄漏)。</summary>
@@ -142,6 +146,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 共用同一空间」(IdAuthority 头注 + ADR-006 Amendment B 第二十六批:不新开第二计数器;
             // entities.yaml 的 next_player_id 是**存档头字段位**,不新增第三个 C# 计数器)。
             int actorId = _services.IdAuthority.NextPatientId().Value;
+            _actorId = actorId;
 
             _player.Initialize(
                 SimAuthorityMode.Host,
@@ -152,6 +157,13 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             // 落到世界原点上方 1 m(CharacterController 需落地;落地表现后续 PlayMode 验)。
             _player.Teleport(new Vector3(0f, 1f, 0f));
+
+            // ── 4.5. 玩家交互输入驱动(sprint-07 S2):E 查体 / F 急救,每帧由 Update 转发 ──
+            var interaction = new InteractionInputDriver(
+                _services,
+                () => _player != null ? _player.transform.position : Vector3.zero,
+                actorId);
+            _interactionDriver = interaction;
 
             // ── 5. 相机机位装配(sprint-05 T1.5 · 2026-10-10 AudioListener 泄漏修复)──
             // ADR-020:相机 = 自建机位,不引入 Cinemachine
@@ -315,6 +327,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 _services.PatientVisualSpawner.OnTickEdge(_tickDriver.CurrentTick);
             }
+
+            // 玩家交互输入(sprint-07 S2):E 查体 / F 急救 —— **视觉实体更新之后**(读的是
+            // 本 tick 的在场集+视觉位置;换热须已本 tick Step),拟物 UI 刷新之前
+            // (查体后本帧即见值区有词)。
+            _interactionDriver?.OnFrame();
 
             // 拟物 UI 值区(sprint-05 T2.1/T2.3):视觉实体**之后**调用 —— UI 读的是
             // **本 tick 已推进完**的体征(Driver.Bind 的源零缓存,每次读都过体征链)。

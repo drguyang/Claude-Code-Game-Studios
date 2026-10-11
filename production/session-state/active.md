@@ -2122,3 +2122,28 @@ Task: A–E 五批 + 登记债收口已提交 f5879c3 → 下一步批次 F 收�
 - **落盘**:`sprint-07.md` §2 S1 行 + §2.1(判定修订)+ §3(S1 ✅)。
 - **下一步**:S2 玩家输入入口(近病人 E → ExamineDriver · 落笔 → JudgmentWriter · 开方 →
   PrescribeRequestDriver · F → EmergencyManualDriver)+ S3 候选列表生产实例化。
+
+## 2026-10-11 — sprint-07 S2 设备级入口批(输入层解锁 · 全量绿)
+
+- **S2.2/S2.5 已接**(接线面注记):
+  - 新 `PlayerInputReader`(E/F 按下沿直读,承 `MovementInputReader` 过渡最小面;
+    键盘 <E>/<F> + 手柄 buttonNorth/buttonWest,零动作资产依赖);
+  - 新 `InteractionInputDriver`(设备级 E → `ExamineDriver.OnExamine` + 切脉案绑定 +
+    病史流零新事件(乙案);F → `EmergencyManualDriver.TryManual` 双事件;按下沿 = 上帧
+    按住位比对,持键不重复触发;定位源 = 病人视觉实体位置(接线占位,归 6 + 13));
+  - `BootRoot` 启动序第 4.5 步装配,Update 在 **PatientVisualSpawner 刷新后 / UI 刷新前**
+    转发(次序:体征已 Step → 视觉随在场集 → 玩家意图 → UI 见词)。
+- **全量绿(证据)**:
+  - EditMode `s7_s2_editmode_final.xml`:**3237 = 3190 passed · 0 failed · 1 inc · 46 skip**
+    (新测 `player_input_reader_test` ×2 全绿:无设备读面无假触发 + 驱动空转零事件零副作用);
+  - PlayMode `s7_s2_playmode_v3.xml`:**136/136 全绿**(新测 `interaction_input_chain_test` ×3:
+    虚拟 E → 查体分册 + 值区绑定 · 虚拟 F → 双事件入流 · 恒按住只查体一次)。
+- **⚠️ 键位注入实证(batch)**:键盘 E/F 位**不上**(`KeyboardState.Press` 对这两键位不生效,
+  与 W 位有效的同套三件套不同)→ 测试回落手柄 buttonNorth/buttonWest 注入
+  (`device_and_presentation_test` 早证浮点/按钮位可靠);探针断言区分「键位不上」与「链断」。
+- **S2.3(落笔→墨龄)/ S2.4(开方→处方)登记缺口**:玩家操作入口在 42 侧(方笺落笔 /
+  戥子选档确认),需 UI 事件 → 装配层接线;**不做设备级自动行使**(自动开方/落笔 =
+  玩家零输入出事件 = 假绿,承「灰盒测不对」根因)⇒ 归下一拍(42 接线轮)。
+- **落盘**:`sprint-07.md` §3 改「S2 ◐ 设备级入口批」+ §2 S2 注记;`InteractionInputDriver`
+  文件头登记缺口。
+- **下一步**:S3 候选列表生产实例化(M2 形态件施加点③闭合)+ S2.3/S2.4 的 42 接线轮。

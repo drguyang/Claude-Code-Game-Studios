@@ -138,5 +138,20 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>当前已 spawn 的视觉实体数(测试接缝 —— 可证伪「病人生成了脸」)。</summary>
         public int VisualCount => _visuals.Count;
+
+        /// <summary>
+        /// 病人视觉实体位置查询(sprint-07 S2.2 接线面 · 只读观测面)—— 占位环位置;
+        /// 未 spawn / 已清 ⇒ false。⚠️ 占位(归 6 世界生态区 + 13 空间侧真格)。
+        /// </summary>
+        public bool TryGetVisualPosition(int patientId, out Vector3 position)
+        {
+            if (_visuals.TryGetValue(patientId, out var go) && go != null)
+            {
+                position = go.transform.position;
+                return true;
+            }
+            position = default;
+            return false;
+        }
     }
 }

@@ -67,6 +67,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>病人是否已查过(「查了没有」的布尔事实 —— 不是「值是多少」)。</summary>
         public bool HasExamined(int patientId) => _snapshots.ContainsKey(patientId);
 
+        /// <summary>该病人最近查体快照的 tick(测试接缝;未查 ⇒ −1)。
+        /// <para>供「按下沿只触发一次」判据:同 tick 覆盖 = 一次,二次覆盖推高。</para></summary>
+        public long GetSnapshotTick(int patientId)
+            => _snapshots.TryGetValue(patientId, out var snap) ? snap.ExaminedTick : -1L;
+
         /// <summary>清空(测试 / 会话级重置)。</summary>
         public void Clear() => _snapshots.Clear();
     }

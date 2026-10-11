@@ -79,6 +79,24 @@
 | S2.4 开方 → 处方 | 方笺选档确认 → `PrescribeRequestDriver.TryPrescribe` | S2.3 | 开方 ⇒ `DrugTreatmentApplied` 入病史流 → 体征变化(有内容的管道终点) |
 | S2.5 急救 → 手动链 | 按 F → `EmergencyManualDriver.TryManual` | — | 按 F ⇒ 双事件入病史流(Skip 载荷 method 判别);变异:删调用 ⇒ 零事件恰红 |
 
+> ✅ **2026-10-11 S2 设备级入口批完成(接线面注记)**:
+> - **S2.2/S2.5 已接**:新 `PlayerInputReader`(E/F 按下沿直读,承 MovementInputReader 过渡
+>   最小面)+ `InteractionInputDriver`(设备级 E→`ExamineDriver.OnExamine`+切脉案绑定 ·
+>   F→`EmergencyManualDriver.TryManual`),BootRoot 启动序装配、Update 在**视觉实体刷新后 /
+>   UI 刷新前**转发。**全绿**:EditMode 3237 = 3190/0 · PlayMode 136/136
+>   (新测:`player_input_reader_test` ×2 + `interaction_input_chain_test` ×3 全绿;
+>   后者的按键注入实证键盘 E/F **位不上**、须回落手柄 buttonNorth/buttonWest —— 已留档)。
+> - **S2.3(落笔→墨龄)/ S2.4(开方→处方)登记为缺口**:入口在 42 侧(方笺落笔 / 戥子选档
+>   确认),是 UI 事件 → 装配层的接线故事 —— **不做设备级自动行使**(自动开方/落笔 =
+>   玩家零输入出事件 = 假绿,承「灰盒测不对」根因)。归下一拍(42 接线轮),
+>   `InteractionInputDriver` 文件头已登记。
+
+> ⚠️ **S2 判据形态订正(2026-10-11,对照既有红线不偏离)**:
+> - S2.5 判据「按 F ⇒ 双事件」以 **PlayMode 虚拟按键注入**(手柄回落)**全绿**达成。
+> - S2.2 判据「按 E 近病人 ⇒ 值区出现词条」:接线面只落到「查体落地 + 切脉案绑定 +
+>   病史流零新事件(乙案)」三个可用判据;**「值区真的渲染出词条」需一次人工 playtest
+>   目视确认**(词条 = 8 真表,S1.2 已装载;UGUI 脉案值区渲染 = 42 屏)。
+
 ### S3 ③ 候选列表生产实例化(形态件施加点③闭合 · 42/10)
 
 | 项 | 落点 | 依赖 | 判据(可证伪) |
@@ -100,7 +118,10 @@
 - **S1 ✅ 完成(2026-10-11)**:查体后值区非空(词条来自真烘焙产物,非测试直喂)——
   bake 两份产物入库(S1.1)+ 运行期装载 + 组合根注入(S1.2)全绿
   (EditMode 3235 = 3188/0 · PlayMode 133/133);副作用 = D-ESC 判据修订见 §2.1。
-- **S2 完成**:E/F 键位运行期消费 · 落笔墨龄 >0 · 开方入流 + 体征变化 · 急救双事件
+- **S2 ◐ 设备级入口批(2026-10-11)**:S2.2(按 E 查体)+ S2.5(按 F 急救双事件)已接并全绿
+  (PlayerInputReader + InteractionInputDriver + BootRoot 转发);
+  S2.3(落笔→墨龄)/ S2.4(开方→处方)**登记缺口**,归 42 接线轮(UI 事件 → 装配层)。
+  判据:EditMode 3237 = 3190/0 · PlayMode 136/136。
 - **S3 完成**:候选列表生产实例化 + 跳过入口可用
 - **本 sprint 完成**:核心循环七环节**玩家可操作**(输入入口全接)+ 第一次被真实内容驱动
 - **判据基线**:EditMode 3185 → ≈3210–3230 · PlayMode 133 → ≈136–140(qa-lead 估)
