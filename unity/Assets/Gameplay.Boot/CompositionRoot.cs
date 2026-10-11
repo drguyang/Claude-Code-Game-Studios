@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using DaYiJingCheng.Gameplay.Presentation;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
@@ -45,9 +46,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <exception cref="InvalidOperationException">防御性,实际不可达(装配环节产出 null 的
         /// fail-loud 兜底断言 —— 上游构造器已抛 / 参数检查先 ANE)。</exception>
         public static CompositionRootServices Assemble(
-            IReadOnlyList<DiseaseRegistryEntry> registry = null)
+            IReadOnlyList<DiseaseRegistryEntry> registry = null,
+            IDataProvider dataProvider = null)
             => AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(),
-                            0UL, registry);
+                            0UL, registry, dataProvider);
 
         /// <summary>
         /// 显式依赖注入装配(读档 / 测试用:由调用方给出发号权威、在场登记簿、blob 池与世界种子)。
@@ -65,19 +67,21 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                        PresenceRegistry presence,
                                                        InMemoryBlobPool blobPool,
                                                        ulong worldSeed,
-                                                       IReadOnlyList<DiseaseRegistryEntry> registry = null)
+                                                       IReadOnlyList<DiseaseRegistryEntry> registry = null,
+                                                       IDataProvider dataProvider = null)
         {
             if (idAuthority == null) throw new ArgumentNullException(nameof(idAuthority));
             if (presence == null) throw new ArgumentNullException(nameof(presence));
             if (blobPool == null) throw new ArgumentNullException(nameof(blobPool));
-            return AssembleCore(idAuthority, presence, blobPool, worldSeed, registry);
+            return AssembleCore(idAuthority, presence, blobPool, worldSeed, registry, dataProvider);
         }
 
         private static CompositionRootServices AssembleCore(IIdAuthority idAuthority,
                                                              PresenceRegistry presence,
                                                              InMemoryBlobPool blobPool,
                                                              ulong worldSeed,
-                                                             IReadOnlyList<DiseaseRegistryEntry> registry)
+                                                             IReadOnlyList<DiseaseRegistryEntry> registry,
+                                                             IDataProvider dataProvider)
         {
             // ── 依赖前置校验(全自动路径同样 fail-loud)──
             if (idAuthority == null)
@@ -153,11 +157,39 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   实现住本装配(ADR-025 §① 案 A 同理由:42 不可反向引用装配层)。
             // ⚠️ G1.4:revealed 真源 = 查体分册快照(乙案派生态);
             //   G2.2:InkAgeTicks = 当前 tick − 最近 Judgment Tick(病例流事件视图)。
-            //   词表装载(烘焙产物)为独立 story;装配期空词表 = 未查恒空行,装载后自动放行。
+            // ⚠️ S1.2(sprint-07):词表 / 门槛定表经 **IDataProvider 从 data-core 装载**
+            //   (ADR-014 §五;乙案走真 Addressables —— 用户 2026-10-11 裁定)。装配入口
+            //   provider 注入 ⇒ 测试可传合成 fixture(禁 Fake 惯例);provider 缺 ⇒ 判据红。
             var examinationLedger = new ExaminationLedger();
             var casebookSource = new CasebookVitalsSource(examinationLedger,
                 stream.Events, tickDriver);
+
+            // 查体求值的**求值输入**(真烘焙产物):词条 34 行 + 门槛 61 档。
+            // ⚠️ 装载策略(2026-10-11 用户裁定「乙案 + EditMode 直读兜底」):
+            //   · dataProvider != null(生产:BootRoot 传 DataCorePreloader.Provider)
+            //     ⇒ 真 Addressables(乙案;组 gitignored 本地登记);
+            //   · dataProvider == null(EditMode / 测试:15+ 既有 Assemble 调用方不传)
+            //     ⇒ DiagnosisCookedDisk 从 Assets/DataCooked 直读**同一份产物** +
+            //     同一个 codec 解码 —— 真产物 / 零 Fake / 零 Addressables。
+            //   ⚠️ 两条路径读同一份 baked 字节 + 同一解码器 ⇒ 无第二真源。
+            DiagnosisSignDataSet signTable;
+            DiagnosisReadFloorDataSet readFloorTable;
+            if (dataProvider != null)
+            {
+                signTable = dataProvider.Load<DiagnosisSignDataSet>();
+                readFloorTable = dataProvider.Load<DiagnosisReadFloorDataSet>();
+            }
+            else
+            {
+                signTable = DiagnosisCookedDisk.LoadSigns();
+                readFloorTable = DiagnosisCookedDisk.LoadReadFloor();
+            }
+            var examineRows = signTable.Rows;
+            var readFloor = readFloorTable.Table;
+
+            // 查体入口驱动:求值输入 = 真烘焙产物(S1.2 装载面)
             var examineDriver = new ExamineDriver(vitals, examinationLedger, queryLevel: 0);
+            examineDriver.SetLexicon(examineRows, in readFloor);
 
             // ── 处方链(G3 · 2026-10-11 用户裁定「最小生产端口实装」)──
             // 21a(换算/药物档案)+ 20(库存面)+ 30(成长)三端口最小实装 + 驱动,
@@ -169,6 +201,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                 presence, skillGrowthPort, doseBase: 65536);            // DOSE_BASE(数值轮注记)
             var prescribeDriver = new PrescribeRequestDriver(stream, encoder,
                 prescribePorts, isHost: true);
+
+            // ── fail-loud 兜底:S1.2 诊断数据集非空(词表/门槛装载态)──
+            // ⚠️ 「空行」在**运行期**是诚实形态(未查 = 空行,禁假数据);但**装配期**空数据集
+            //    = 装载失败被吞 ⇒ fail-loud(与 DiseaseOnset 不在注册表同口径)。
+            if (signTable.Rows == null || signTable.Rows.Count == 0)
+                throw new InvalidOperationException(
+                    "Assemble: DiagnosisSignDataSet 解码出 0 行词条 —— 烘焙产物 / 装载路径异常," +
+                    "拒绝返回半装配服务袋(诊断装载面,ADR-014 §五 / E-13 同口径)");
 
             // ── fail-loud 兜底 ──
             if (stream == null)

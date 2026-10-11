@@ -2078,3 +2078,47 @@ Task: A–E 五批 + 登记债收口已提交 f5879c3 → 下一步批次 F 收�
 - **下一步候选**:玩家输入入口接线(Interact/Emergency 键零消费 → 接 ExamineDriver/JudgmentWriter/
   PrescribeRequestDriver/EmergencyManualDriver)+ ③ 候选列表生产实例化 ⇒ M2 #8 施加点接完;
   或数值轮 / 词表真装载面。sprint-06 主线闭环。
+
+## 2026-10-11 — sprint-07 内容解锁轮开(结构问题诊断 + 改进措施落盘)
+
+- **用户指出**:项目进展有结构问题 —— 一直灰盒测试不对,要纠正;要求从 9-13 至今分析 active.md 判断是否在轨。
+- **全周期在轨分析结论**(9-13 至今 665 commits 重建):**在轨** —— 范围轨零蔓延(M2 判据逐条推进)·
+  质量轨 921→3211 测试单调零红 · 两次大账目失真(10-03 进度混计 / 10-08 59 story 失实)都被如实修复。
+  **真实风险**:① 日历轨不存在(计划表日期从未回刷,名义超前一个月实为失真);
+  ② M4 42 项资产 0/42「美术待裁」= M5 日历唯一阻塞源;③ 账目失真约每 5 天积累一次(周期性)。
+- **灰盒测试的结构问题(三层根因)**:内容层(词表零 display_words / F2 Signs 恒空)· 输入层
+  (Interact/Emergency 键零消费)· 判据层(因 1+2 退化为「零/空/无」断言)⇒ 核心循环从未被
+  **真实内容**驱动过一次。绿得太容易 = 测「系统不崩 + 空态正确」,非「玩法可玩」。
+- **改进措施**:sprint-07 内容解锁轮 —— S1 词表/门槛真装载(Bake + Addressables + 组合根注入,
+  判据 = 查体后值区**有词条**)· S2 玩家输入入口(E/F 接 4 驱动,判据 = 按 E 值区有词 /
+  落笔墨龄>0 / 开方体征变化 / F 双事件)· S3 候选列表生产实例化 · 结构纪律 C1 头部必刷 /
+  C2 美术待裁排期 / C3 评审门回归常态。
+- **美术提前提案(待用户裁)**:甲案 = 仅提前 P1 病人真模型 + P2 施治动作真资产(核心假设
+  「判断→施治好玩」的证伪前提);乙案 = 推翻形态优先全提前(不推荐)。纸面五族 16 张真图
+  已入库被 USS 引用,零成本不重做。
+- **落盘**:`production/sprints/sprint-07.md`。
+
+## 2026-10-11 — sprint-07 S1 完成(词表/门槛真装载 · 全量绿)
+
+- **S1.1 bake**:`diagnosis_signs.cooked.bytes`(34 行)+ `diagnosis_read_floor.cooked.bytes`(61 档)
+  落 `Assets/DataCooked/`,字节确定性烘焙;**入库**(先例 item_database 两产物同款)。
+- **S1.2 装载面三件套**:
+  - `AddressablesDataProvider` 增两数据集装载(`SignTableAddress`/`ReadFloorTableAddress`,
+    `EnsureSigns`/`EnsureReadFloor`,经 using 别名引 8 产数据集)—— **生产装载路径**;
+  - `DiagnosisCookedDisk`(EditMode 兜底,直读**同一份 baked 字节**,零第二真源);
+  - `CompositionRoot.Assemble` dual-path(provider≠null ⇒ Addressables / null ⇒ Disk)+
+    `ExamineDriver.SetLexicon(rows, in floor)` + fail-loud 空词表 throw。
+- **⚠️ 连带修订 D-ESC 逃逸判据**(`DiagnosisBoundaryGates.EscapedDeclPattern`):token 面
+  任意位置 → **类型声明位**。原因:S1.2 按 ADR-014 §五 把装载落**边界程序集**,而原判据把
+  「引用 8 公开 API」的消费面一并判红 ⇒ 装载层/组合根一引 9 产数据集即红(结构冲突)。
+  修订后:非前缀文件**声明** 8 类型 = 逃逸红;**引用/消费** = 合法放行;实现躲出前缀仍有
+  IL 层 `matchedTypeCount==0` ⇒ `[D-0]` 红兜底。全仓扫描零「非前缀声明 8 类型」。
+- **全量绿(证据)**:
+  - EditMode `unity/UnityLogsTmp/s7_s1_editmode_v4.xml`:**3235 = 3188 passed · 0 failed · 1 inc · 46 skip**
+    (前红两门 `test_fullGate_currentTree_zeroErrors` / `test_ac816_productionAssembly_zeroPrngCallSites` 转绿;
+    S1.2 三测全绿);
+  - PlayMode `unity/UnityLogsTmp/s7_s1_playmode.xml`:**133/133 全绿**(exit=0)。
+- **.gitignore 增三刑**(不随提交):`unity/UnityLogsTmp/` · `mono_crash.mem.*.blob`(根+unity/)。
+- **落盘**:`sprint-07.md` §2 S1 行 + §2.1(判定修订)+ §3(S1 ✅)。
+- **下一步**:S2 玩家输入入口(近病人 E → ExamineDriver · 落笔 → JudgmentWriter · 开方 →
+  PrescribeRequestDriver · F → EmergencyManualDriver)+ S3 候选列表生产实例化。

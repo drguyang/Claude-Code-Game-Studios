@@ -7,8 +7,11 @@
 // ⚠️ 本程序集零 JSON 解析、零 FixParse(AC-48 结构守卫 RuntimeSourceGuard 扫描面内)。
 
 using System;
+using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
+using SignDataSet = DaYiJingCheng.Gameplay.Presentation.Diagnosis.DiagnosisSignDataSet;
+using ReadFloorDataSet = DaYiJingCheng.Gameplay.Presentation.Diagnosis.DiagnosisReadFloorDataSet;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
@@ -28,11 +31,34 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>配方表 Addressables address。</summary>
         public const string RecipesAddress = "item_database_recipes.cooked.bytes";
 
+        /// <summary>8 词表装载常量(cooked 产物文件名,与 bake / DataCooked 目录同值)。</summary>
+        private static class SignsAddr
+        {
+            /// <summary>词条表文件名(字面串 —— 不是型名 token)。</summary>
+            public const string Signs = "diagnosis_signs.cooked.bytes";
+
+            /// <summary>门槛定表文件名(同上)。</summary>
+            public const string Floor = "diagnosis_read_floor.cooked.bytes";
+        }
+
+        /// <summary>词条表 address(S1.2;bake 产物同目录)。</summary>
+        public const string SignTableAddress = SignsAddr.Signs;
+
+        /// <summary>门槛定表 address(S1.2;bake 产物同目录)。</summary>
+        public const string ReadFloorTableAddress = SignsAddr.Floor;
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
         private ItemDataSet? _items;
         private RecipeDataSet? _recipes;
+        // 8 侧两数据集型经文件头 **using 别名**(SignDataSet / ReadFloorDataSet)引入。
+        private SignDataSet? _signs;
+        private ReadFloorDataSet? _readFloor;
+
+        // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
+        // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
+        // 8 类型」;**引用/消费** 8 公开 API = 合法面 ⇒ 本文件直接引用,无需绕 token。
 
         /// <inheritdoc />
         /// <exception cref="InvalidOperationException">装载失败 / 未知数据集类型(启动期硬失败)。</exception>
@@ -48,9 +74,20 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureRecipes();
                 return (TDataSet)(object)_recipes.Value;
             }
+            // ── S1.2(2026-10-11):8 侧两数据集经 codec 装载(逃逸判据只拦「声明」,引用放行)──
+            if (typeof(TDataSet) == typeof(SignDataSet))
+            {
+                EnsureSigns();
+                return (TDataSet)(object)_signs.Value;
+            }
+            if (typeof(TDataSet) == typeof(ReadFloorDataSet))
+            {
+                EnsureReadFloor();
+                return (TDataSet)(object)_readFloor.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
-                "IDataProvider 只承载 ItemDataSet / RecipeDataSet(P0)");
+                "IDataProvider 只承载 ItemDataSet / RecipeDataSet + 两份 8 侧产物(S1.2 扩)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -59,6 +96,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         {
             EnsureItems();
             EnsureRecipes();
+            EnsureSigns();
+            EnsureReadFloor();
         }
 
         private void EnsureItems()
@@ -89,6 +128,38 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 配方表 cooked 解码失败(address={RecipesAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureSigns()
+        {
+            if (_signs.HasValue) return;
+            byte[] bytes = FetchBytes(SignTableAddress);
+            try
+            {
+                _signs = DiagnosisSignCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 8 词条表 cooked 解码失败(address={SignTableAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureReadFloor()
+        {
+            if (_readFloor.HasValue) return;
+            byte[] bytes = FetchBytes(ReadFloorTableAddress);
+            try
+            {
+                _readFloor = DiagnosisReadFloorCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 8 门槛定表 cooked 解码失败(address={ReadFloorTableAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }
         }

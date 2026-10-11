@@ -31,6 +31,10 @@
 //   非误报而是设计意图(与 audio 同形;全树现零命中,story-006 若把呈现路由放前缀外,
 //   依红行迁入,勿读作误伤)。另:**构造性绕行已登记非本批缺陷** —— `typeof(Fix)`(ldtoken
 //   只查装配名)与按名反射可绕 IL/源双层 D-FIX,8 侧无动机,列 11 / 005 轮复查项。
+//   ⚠️ **2026-10-11 S1.2 修订见 `EscapedDeclPattern` 注**:逃逸 token 面收窄为「类型声明位」;
+//   数据装载层(AddressablesDataProvider / DataCorePreloader)*引用* 8 产数据集 = 合法消费
+//   (ADR-014 §五 指定装载落边界程序集),装配层(CompositionRoot / DiagnosisCookedDisk)同理,
+//   均不在「呈现路由须住前缀」的范围内 —— 该纪律现只约束**呈现路由**。
 //
 // 分工:本门(Cecil + 源文本)挂菜单(RunMenu)+ 构建前门(BuildGate);字段累积量扫描 /
 //   位宽(double)扫描 / DtoGuard 枚举为**反射面**,落 EditMode 测试(承 audio B3/B4 分工)。
@@ -479,8 +483,21 @@ namespace DaYiJingCheng.EditorTools.Gates
             return errs;
         }
 
-        /// <summary>逃逸谓词:文件含 8 类型 token(`Diagnosis[A-Z]…`)却未声明 8 前缀
-        /// 命名空间 ⇒ 红(代码躲进根命名空间 = 四层扫描同键失配,「字面绿 + 实质违」)。
+        /// <summary>逃逸判据的 token 面 —— 仅「类型**声明位**」(class / struct / interface / enum /
+        /// record 名),非任意位置。⚠️ 2026-10-11 修订(S1.2 接缝):原判据 = 文件内任意
+        /// `Diagnosis[A-Z]…` token,把「引用 8 公开 API」的**消费面**(边界装载层
+        /// AddressablesDataProvider、Boot 组合根 CompositionRoot / DiagnosisCookedDisk)
+        /// 一并判红 —— 与 ADR-014 §五(装载落边界程序集)+ sprint-07 S1.2 裁定(组合根
+        /// 装配入真产物)**结构性冲突**。逃逸的真实信号 = 在非前缀命名空间里**定义**了
+        /// 8 实现(实现躲出去);引用位经 using / 别名消费 8 公开 API 是合法面,放行。
+        /// 实现落点仍有 IL 层 <see cref="CheckDiagnosisIl"/> 的 matchedTypeCount 兜底
+        /// (8 实现真躲出前缀 ⇒ 前缀下 0 命中 ⇒ [D-0] 红,放行不产生假绿面)。</summary>
+        private static readonly Regex EscapedDeclPattern = new Regex(
+            @"\b(?:class|struct|interface|enum|record)\s+(Diagnosis[A-Z]\w*)");
+
+        /// <summary>逃逸谓词:非前缀文件**声明**了 8 类型 ⇒ 红(实现躲进根命名空间 = 四层
+        /// 扫描同键失配,「字面绿 + 实质违」);仅**引用** 8 公开 API(经 using / 别名)
+        /// 放行 —— 消费面合法(S1.2 修订见 <see cref="EscapedDeclPattern"/> 注)。
         /// token 检查在剥注释后的文本上(文档性提及不算)。公开纯函数,测试以合成文本直喂。</summary>
         public static List<string> CheckSourceEscape(string fileLabel, string src)
         {
@@ -489,11 +506,13 @@ namespace DaYiJingCheng.EditorTools.Gates
             if (Regex.IsMatch(text,
                     @"namespace\s+" + Regex.Escape(DiagnosisModuleNamespacePrefix) + @"\b"))
                 return errs;   // 声明了前缀 ⇒ 归 CheckSourceText 管
-            if (!Regex.IsMatch(text, @"\bDiagnosis[A-Z]\w*"))
+            var m = EscapedDeclPattern.Match(text);
+            if (!m.Success)
                 return errs;
-            errs.Add($"[D-ESC] {fileLabel} 含 8 类型 token「Diagnosis[A-Z]…」却未声明前缀" +
-                     $"命名空间「{DiagnosisModuleNamespacePrefix}」—— 代码躲进其他命名空间," +
-                     "四层扫描同键失配 = 逃逸(audio Required-1 同型)。");
+            errs.Add($"[D-ESC] {fileLabel} 在非 8 前缀命名空间声明了「{m.Groups[1].Value}」—— " +
+                     "8 实现类型必须住前缀「" + DiagnosisModuleNamespacePrefix +
+                     "」;躲进其他命名空间 = 四层扫描同键失配逃逸" +
+                     "(audio Required-1 同型)。引用 8 公开 API 不在此列(S1.2 修订)。");
             return errs;
         }
 

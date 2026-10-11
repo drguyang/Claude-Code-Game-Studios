@@ -472,12 +472,12 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
         // ════════════════════ 逃逸谓词(四层同键兜底)════════════════════
 
         [Test]
-        public void test_sourceEscape_tokenWithoutPrefix_red_benignGreen()
+        public void test_sourceEscape_declareWithoutPrefix_red_referenceGreen()
         {
             var red = DiagnosisBoundaryGates.CheckSourceEscape(
-                "esc.cs", "class C { DiagnosisVitalsFacade f; }");
+                "esc.cs", "class DiagnosisSmuggled { }");
             Assert.That(red.Any(e => e.Contains("[D-ESC]")), Is.True,
-                "含 8 类型 token 却不声明前缀 ⇒ 逃逸红");
+                "非 8 前缀文件声明 8 类型 ⇒ 逃逸红(实现躲出去)");
 
             Assert.That(DiagnosisBoundaryGates.CheckSourceEscape(
                 "decl.cs",
@@ -487,7 +487,12 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
                 "cmt.cs", "// DiagnosisFoo 提及仅在注释"), Is.Empty,
                 "注释提及不算(剥注释)");
             Assert.That(DiagnosisBoundaryGates.CheckSourceEscape(
-                "ok.cs", "class L4 { int x; }"), Is.Empty, "无 token 良性文件放行");
+                "ok.cs", "class L4 { int x; }"), Is.Empty, "无 8 类型良性文件放行");
+            Assert.That(DiagnosisBoundaryGates.CheckSourceEscape(
+                "ref.cs",
+                "using D = DaYiJingCheng.Gameplay.Presentation.Diagnosis.DiagnosisVitalsFacade;" +
+                "class L4 { D _d; }"),
+                Is.Empty, "引用 8 公开 API(经 using/别名消费)= 合法面放行(S1.2 修订)");
         }
 
         // ════════════════════ helpers ════════════════════
