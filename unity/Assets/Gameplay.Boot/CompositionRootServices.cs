@@ -65,6 +65,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 接到 <c>ICasebookDtoSource</c>(42 装配的唯一数据入口)。</summary>
         public CasebookVitalsSource CasebookSource { get; }
 
+        /// <summary>tick 驱动(ADR-005 抽象点之一 · 组合根唯一创建 —— 墨龄 / G2.2 同源)。</summary>
+        public SimTickDriver TickDriver { get; }
+
         /// <summary>查体分册(39 侧最小持有者 —— 「查了没有」+ 快照;G1)。</summary>
         public ExaminationLedger ExaminationLedger { get; }
 
@@ -84,7 +87,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          ulong worldSeed, DiseaseVitalsService vitalsService,
                                          CasebookVitalsSource casebookSource,
                                          ExaminationLedger examinationLedger,
-                                         ExamineDriver examineDriver)
+                                         ExamineDriver examineDriver,
+                                         SimTickDriver tickDriver)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -100,6 +104,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             CasebookSource = casebookSource;
             ExaminationLedger = examinationLedger;
             ExamineDriver = examineDriver;
+            TickDriver = tickDriver;
             WorldSeed = worldSeed;
         }
     }

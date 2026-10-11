@@ -46,5 +46,21 @@ namespace DaYiJingCheng.Sim.Contracts
         /// 这两支须经具名重载 <c>PayloadCodec.Encode(in JudgmentXxxPayload, string freehandText)</c>。
         /// </exception>
         PayloadRef Encode<T>(EventKind kind, in T payload) where T : struct;
+
+        /// <summary>
+        /// JudgmentRecorded 的具名编码路径(ADR-029 §① 修正④ 的**接口面**)。
+        /// 该载荷多收 <paramref name="freehandText"/>(ADR-006 G-3 的 blob 变长段,
+        /// 不在 <c>JudgmentRecordedPayload</c> 里)⇒ <see cref="Encode{T}"/> 对其抛
+        /// <see cref="NotSupportedException"/>;写者须经本方法:具名编码 + 入池 + <see cref="PayloadRef"/>。
+        /// <para>P0 零自由文本 ⇒ 传空串;b6 门不扫 Sim.Codec(编码器实现体构造 PayloadRef = 唯一合法处),
+        /// 故写者拿到的已是编码完成的引用,零手搓。</para>
+        /// <para><b>为何接口显式含 Judgment 特例而非通用 string 形参</b>:G-3 禁 sim 读自由文本,
+        /// 通用 string 形参会让任意载荷可携带自由文本(语义泄漏);特例化 = 显式登记例外。</para>
+        /// </summary>
+        /// <param name="payload">JudgmentRecorded 载荷(五字段,不含 freehandText)。</param>
+        /// <param name="freehandText">自由书写文本(P0 空串;G-3 变长 UTF-8 段)。</param>
+        /// <returns>指向池中不可变字节的寻址引用。</returns>
+        PayloadRef EncodeJudgmentRecorded(in JudgmentRecordedPayload payload,
+                                          string freehandText);
     }
 }

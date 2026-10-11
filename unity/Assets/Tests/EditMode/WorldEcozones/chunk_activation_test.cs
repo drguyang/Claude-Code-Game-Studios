@@ -274,6 +274,10 @@ namespace DaYiJingCheng.Tests.WorldEcozones
         {
             public PayloadRef Encode<T>(EventKind kind, in T payload) where T : struct
                 => new PayloadRef(0, 0, 0);
+
+            public PayloadRef EncodeJudgmentRecorded(
+                in JudgmentRecordedPayload payload, string freehandText)
+                => new PayloadRef(0, 0, 0);
         }
     }
 }

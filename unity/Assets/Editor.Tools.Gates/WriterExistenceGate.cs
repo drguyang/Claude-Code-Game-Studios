@@ -77,10 +77,9 @@ namespace DaYiJingCheng.EditorTools.Gates
         //   CaseOpened / ResourceHarvested 两支)+ 24 支豁免。
         private static readonly (string Kind, string Reason)[] ExemptKinds =
         {
-            // ── 37 病例系统(本批只落 CaseOpened;其余四支归 37 实现轮)──
+            // ── 37 病例系统(本批已落 JudgmentRecorded;余三支归 37 实现轮)──
             ("CaseClosed", "37 结案写者未落 —— 处置证据窗口 / 幂等拒收的写入面归 37 实现轮;CaseCloseDecider 现为纯函数(2026-10-10)"),
             ("PatternRecognized", "37 同源检测写者未落 —— PatternDetector 现为纯函数,盐派生 + 冻结三元组写入归 37 实现轮(2026-10-10)"),
-            ("JudgmentRecorded", "37 判断记录写者未落,且 IPayloadEncoder 明确不承载 freehand_text(ADR-029 §① 修正 ④)—— 具名编码通道待 37/编码轮裁定(2026-10-10)"),
             ("JudgmentRevised", "同 JudgmentRecorded:写者未落 + freehand_text 编码通道未裁(ADR-029 §① 修正 ④),归 37 实现轮(2026-10-10)"),
 
             // ── 9 疾病与伤情模拟 ──
@@ -226,12 +225,16 @@ namespace DaYiJingCheng.EditorTools.Gates
         }
 
         /// <summary>
-        /// 扫描面内的**生产写者**集合:源文本(已剥注释)出现 `Encode(EventKind.X` 的 Kind 名。
-        /// </summary>
+        /// 扫描面内的**生产写者**集合:源文本(已剥注释)出现 `Encode(EventKind.X` 的 Kind 名,
+        /// 或 `EncodeJudgmentRecorded(` 的**具名编码器路径**(JudgmentRecorded —— 走
+        /// <c>IPayloadEncoder.EncodeJudgmentRecorded</c>,不经过 `Encode(EventKind.`
+        /// (ADR-029 §① 修正④ freehandText 例外))。</param>
         public static HashSet<string> ScanWrittenKinds(string[] dirs, List<string> errs)
         {
             var written = new HashSet<string>();
             var pattern = new Regex(@"Encode\(\s*EventKind\.(\w+)", RegexOptions.Compiled);
+            // 具名编码器:EncodeJudgmentRecorded( ……(写者走 IPayloadEncoder 的例外路径)
+            var named = new Regex(@"EncodeJudgment(\w+)\(", RegexOptions.Compiled);
             foreach (var dir in dirs)
             {
                 if (!Directory.Exists(dir)) continue;
@@ -246,6 +249,11 @@ namespace DaYiJingCheng.EditorTools.Gates
                     }
                     foreach (Match m in pattern.Matches(code))
                         written.Add(m.Groups[1].Value);
+                    foreach (Match m in named.Matches(code))
+                    {
+                        string kind = "Judgment" + m.Groups[1].Value;   // EncodeJudgmentRecorded → JudgmentRecorded
+                        written.Add(kind);
+                    }
                 }
             }
             return written;

@@ -125,8 +125,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             }
 
             // ── 4. 玩家生成 ──
-            // tick 驱动在此构造(纯 C# 装配件,非异步;每帧由 Update 泵)。
-            _tickDriver = new SimTickDriver();
+            // tick 驱动由组合根创建(ADR-005 抽象点 · G2.2 起墨龄同源;纯 C# 装配件,
+            // 非异步;每帧由 Update 泵)。⚠️ 不再本处 new —— 服务袋是 tick 唯一出处。
+            _tickDriver = _services.TickDriver;
 
             var playerObject = new GameObject("Player");
             _player = playerObject.AddComponent<PlayerController>(); // RequireComponent 自动补 CharacterController

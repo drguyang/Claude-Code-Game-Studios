@@ -48,6 +48,15 @@ namespace DaYiJingCheng.Sim.Codec
             return new PayloadRef(blobId, 0, bytes.Length);
         }
 
+        /// <inheritdoc />
+        public PayloadRef EncodeJudgmentRecorded(in JudgmentRecordedPayload payload,
+                                                 string freehandText)
+        {
+            byte[] bytes = PayloadCodec.Encode(in payload, freehandText ?? string.Empty);
+            int blobId = _blobSink.Store(bytes);
+            return new PayloadRef(blobId, 0, bytes.Length);
+        }
+
         /// <summary>
         /// 按 Kind 分派到 <see cref="PayloadCodec"/> 的具名 <c>Encode</c> 重载。
         /// 镜像 <c>PayloadCodec.DecodeBoxed</c>(ADR-029 §Implementation Guidelines)。

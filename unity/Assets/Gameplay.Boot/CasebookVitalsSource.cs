@@ -23,6 +23,7 @@ using Array_ = System.Array;
 using System.Collections.Generic;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
+using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Gameplay.Boot
@@ -33,12 +34,20 @@ namespace DaYiJingCheng.Gameplay.Boot
     public sealed class CasebookVitalsSource : ICasebookDtoSource
     {
         private readonly ExaminationLedger _ledger;
+        private readonly IReadOnlyList<SimEvent> _caseStream;
+        private readonly ITickProvider _tick;
         private PatientId _patient = PatientId.None;
 
         /// <param name="ledger">查体分册(「查了没有」+ 快照 —— revealed 真源)。</param>
-        public CasebookVitalsSource(ExaminationLedger ledger)
+        /// <param name="caseStreamEvents">病例流事件视图(墨龄 = 最近 Judgment 的 Tick —— G2.2)。</param>
+        /// <param name="tick">tick 源(墨龄的「当前 tick」;AC-42-G6:差值在装配层算,42 零计时器)。</param>
+        public CasebookVitalsSource(ExaminationLedger ledger,
+                                    IReadOnlyList<SimEvent> caseStreamEvents,
+                                    ITickProvider tick)
         {
             _ledger = ledger ?? throw new System.ArgumentNullException(nameof(ledger));
+            _caseStream = caseStreamEvents ?? throw new System.ArgumentNullException(nameof(caseStreamEvents));
+            _tick = tick ?? throw new System.ArgumentNullException(nameof(tick));
         }
 
         /// <summary>当前绑定病人。</summary>
@@ -89,7 +98,27 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <inheritdoc/>
-        /// <remarks>落笔 tick 归 37(判断记录落病例流,ADR-008);37 未接线 ⇒ 0 = 刚落笔。</remarks>
-        public long InkAgeTicks => 0L;
+        /// <remarks>
+        /// **墨龄(G2.2 · 派生态)** = `当前 tick(ITickProvider) − 该病人最近 JudgmentRecorded
+        /// 事件的 Tick`。差值在装配层算(42 零计时器,AC-42-G6)。
+        /// <para>未落笔 ⇒ 0 = 刚落笔(墨龄零 = 湿墨形态)。载荷 freehandText P0 不做,
+        /// 只认事件头 Tick —— <see cref="CaseStreamQuery.LastJudgmentOf"/> 按 case 过滤,
+        /// 此处取该病人最近一条 Judgment(含 Revised,README 按全序最后)。</para>
+        /// </remarks>
+        public long InkAgeTicks
+        {
+            get
+            {
+                CaseId? openCase = CaseStreamQuery.OpenCaseOf(_caseStream, _patient.Value);
+                if (!openCase.HasValue) return 0L;
+
+                SimEvent? last = CaseStreamQuery.LastJudgmentOf(_caseStream, openCase.Value);
+                if (!last.HasValue) return 0L;
+
+                long current = _tick.CurrentTick;
+                long age = current - last.Value.Tick;
+                return age < 0 ? 0L : age;
+            }
+        }
     }
 }

@@ -139,17 +139,21 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 只读在场集 spawn 占位胶囊体;不写流、不持状态(ADR-013 §9 C3)。
             var patientVisuals = new PatientVisualSpawner(presence);
 
-            // ── 42 侧只读数源(T2.1 + G1.4):把拟物 UI 接到唯一浮点出口 ──
+            // ── tick 驱动(ADR-005 抽象点之一 · G2.2)──
+            // tick 源全案唯一 ⇒ 由组合根创建并暴露,BootRoot 从服务袋取(不再自 new);
+            // 墨龄/G2 等都从袋内同一 source 读,保证「当前 tick」唯一口径。
+            var tickDriver = new SimTickDriver();
+
+            // ── 42 侧只读数源(T2.1 + G1.4 + G2.2):把拟物 UI 接到唯一浮点出口 ──
             // 病因(sprint-05 §1):`SkeuoRuntimeDriver` 两处 TODO ⇒ 42 是空壳,
             //   playtest 人工面看不到脉案 / 体征。本桥 = 42 与体征链的**唯一**接点,
             //   实现住本装配(ADR-025 §① 案 A 同理由:42 不可反向引用装配层)。
-            // ⚠️ G1.4(2026-10-11):revealed 真源从「F2 tripwire(恒空)」切换到
-            //   **查体分册快照**(乙案派生态)—— 词表由烘焙产物装载(见下方注释块)。
-            //   词表装载:运行期(Addressables data-core)装载器 + 两阶段烘焙产物
-            //   为独立 story(G1 收口的后半;此处先装配「空词表兜底」= 未查恒空行,
-            //   词表真装载后自动放行 —— 不改变本桥形状)。
+            // ⚠️ G1.4:revealed 真源 = 查体分册快照(乙案派生态);
+            //   G2.2:InkAgeTicks = 当前 tick − 最近 Judgment Tick(病例流事件视图)。
+            //   词表装载(烘焙产物)为独立 story;装配期空词表 = 未查恒空行,装载后自动放行。
             var examinationLedger = new ExaminationLedger();
-            var casebookSource = new CasebookVitalsSource(examinationLedger);
+            var casebookSource = new CasebookVitalsSource(examinationLedger,
+                stream.Events, tickDriver);
             var examineDriver = new ExamineDriver(vitals, examinationLedger, queryLevel: 0);
 
             // ── fail-loud 兜底 ──
@@ -179,11 +183,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: ExaminationLedger 装配产出 null");
             if (examineDriver == null)
                 throw new InvalidOperationException("Assemble: ExamineDriver 装配产出 null");
+            if (tickDriver == null)
+                throw new InvalidOperationException("Assemble: SimTickDriver 装配产出 null");
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder,
                                                presence, spawner, patientDriver, caseDriver,
                                                emergencyDriver, patientVisuals, worldSeed, vitals,
-                                               casebookSource, examinationLedger, examineDriver);
+                                               casebookSource, examinationLedger, examineDriver,
+                                               tickDriver);
         }
 
         /// <summary>
