@@ -65,6 +65,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 接到 <c>ICasebookDtoSource</c>(42 装配的唯一数据入口)。</summary>
         public CasebookVitalsSource CasebookSource { get; }
 
+        /// <summary>查体分册(39 侧最小持有者 —— 「查了没有」+ 快照;G1)。</summary>
+        public ExaminationLedger ExaminationLedger { get; }
+
+        /// <summary>查体入口驱动(G1)—— 玩家对病人查体 ⇒ 8 求值 ⇒ 分册快照。</summary>
+        public ExamineDriver ExamineDriver { get; }
+
         /// <summary>世界种子(存档头量;patient_seed = hash(world_seed, patient_id) 的入参)。</summary>
         public ulong WorldSeed { get; }
 
@@ -76,7 +82,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          EmergencyAttemptDriver emergencyAttemptDriver,
                                          PatientVisualSpawner patientVisualSpawner,
                                          ulong worldSeed, DiseaseVitalsService vitalsService,
-                                         CasebookVitalsSource casebookSource)
+                                         CasebookVitalsSource casebookSource,
+                                         ExaminationLedger examinationLedger,
+                                         ExamineDriver examineDriver)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -90,6 +98,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             PatientVisualSpawner = patientVisualSpawner;
             VitalsService = vitalsService;
             CasebookSource = casebookSource;
+            ExaminationLedger = examinationLedger;
+            ExamineDriver = examineDriver;
             WorldSeed = worldSeed;
         }
     }

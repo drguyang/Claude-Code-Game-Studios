@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
@@ -138,15 +139,20 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 只读在场集 spawn 占位胶囊体;不写流、不持状态(ADR-013 §9 C3)。
             var patientVisuals = new PatientVisualSpawner(presence);
 
-            // ── 42 侧只读数源(T2.1):把拟物 UI 接到唯一浮点出口 ──
+            // ── 42 侧只读数源(T2.1 + G1.4):把拟物 UI 接到唯一浮点出口 ──
             // 病因(sprint-05 §1):`SkeuoRuntimeDriver` 两处 TODO ⇒ 42 是空壳,
             //   playtest 人工面看不到脉案 / 体征。本桥 = 42 与体征链的**唯一**接点,
             //   实现住本装配(ADR-025 §① 案 A 同理由:42 不可反向引用装配层)。
-            var casebookSource = new CasebookVitalsSource(vitals);
+            // ⚠️ G1.4(2026-10-11):revealed 真源从「F2 tripwire(恒空)」切换到
+            //   **查体分册快照**(乙案派生态)—— 词表由烘焙产物装载(见下方注释块)。
+            //   词表装载:运行期(Addressables data-core)装载器 + 两阶段烘焙产物
+            //   为独立 story(G1 收口的后半;此处先装配「空词表兜底」= 未查恒空行,
+            //   词表真装载后自动放行 —— 不改变本桥形状)。
+            var examinationLedger = new ExaminationLedger();
+            var casebookSource = new CasebookVitalsSource(examinationLedger);
+            var examineDriver = new ExamineDriver(vitals, examinationLedger, queryLevel: 0);
 
-            // ── fail-loud 兜底:任一产物为 null = 装配器自身缺陷,立即具名抛出 ──
-            // 2026-10-09(评审代码面 F6):以下 InvalidOperationException 为
-            // **不可达兜底**(上游构造器已抛 / 参数检查先 ANE),不计入覆盖。
+            // ── fail-loud 兜底 ──
             if (stream == null)
                 throw new InvalidOperationException("Assemble: EventStream 装配产出 null");
             if (encoder == null)
@@ -169,11 +175,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: PatientVisualSpawner 装配产出 null");
             if (casebookSource == null)
                 throw new InvalidOperationException("Assemble: CasebookVitalsSource 装配产出 null");
+            if (examinationLedger == null)
+                throw new InvalidOperationException("Assemble: ExaminationLedger 装配产出 null");
+            if (examineDriver == null)
+                throw new InvalidOperationException("Assemble: ExamineDriver 装配产出 null");
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder,
                                                presence, spawner, patientDriver, caseDriver,
                                                emergencyDriver, patientVisuals, worldSeed, vitals,
-                                               casebookSource);
+                                               casebookSource, examinationLedger, examineDriver);
         }
 
         /// <summary>

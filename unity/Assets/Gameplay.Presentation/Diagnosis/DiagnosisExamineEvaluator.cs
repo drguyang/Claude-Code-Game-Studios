@@ -56,7 +56,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis
     /// 查体求值门面(8 侧纯函数)—— 查体完成 ⇒ 逐行按 <see cref="DiagnosisReadFloorEvaluator"/>
     /// 裁决,收录阳性/阴性词条并聚通道掩码 + 精度档。
     /// <para><b>revealed = 派生态</b>(对撞裁决乙案 2026-10-11):本门面**不写流、不记录**,
-    /// 只算「本次查体该看到什么」;「查了没有」+ 快照归 39 分册(<see cref="ExaminationLedger"/>)。</para>
+    /// 只算「本次查体该看到什么」;「查了没有」+ 快照归 39 分册(装配层的
+    /// <c>ExaminationLedger</c>,本装配不引用装配层 —— 由外部注入)。</para>
     /// </summary>
     public static class DiagnosisExamineEvaluator
     {
