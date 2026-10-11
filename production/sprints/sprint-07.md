@@ -90,6 +90,21 @@
 >   确认),是 UI 事件 → 装配层的接线故事 —— **不做设备级自动行使**(自动开方/落笔 =
 >   玩家零输入出事件 = 假绿,承「灰盒测不对」根因)。归下一拍(42 接线轮),
 >   `InteractionInputDriver` 文件头已登记。
+>
+> ✅ **2026-10-11 42 接线轮完成(S2.3/S2.4 落笔/开方接线宿主 · 全绿)**:
+> - 新 `PrescriptionPageHost`(Gameplay.Boot):42 方笺页「语义动作 → 写者」的接线宿主
+>   —— 落笔 → `JudgmentWriter.TryRecord`(JudgmentRecorded 入病例流 → 墨龄)· 开方 →
+>   `PrescribeRequestDriver.TryPrescribe`(DrugTreatmentApplied 入病史流 → 体征链 apply)。
+>   `SetAuthor`(BootRoot 玩家生成后)· `BindPatient`(查体驱动同步,方笺对象 = 当前脉案绑定病人);
+>   fail-loud 未 SetAuthor / 未绑定 ⇒ 抛;开方接线期限 1(不自动重复行使 = 假绿根因,
+>   常驻选档确认 UI 落地后删限)。**依赖直传**(EventSink/Encoder/病例流视图/PrescribeDriver/
+>   PortionsStore/TickDriver)—— CS0026 实测(static Assemble 传 `this`)后重构;
+>   落笔作者 = `JudgmentWriter.SetAuthor` 同步(7.7)。
+> - **全绿**:EditMode 3246 = 3199/0/1inc/46skip · PlayMode 136/136
+>   (新测 `prescription_page_host_test` ×6:装配存在 · 落笔→JudgmentRecorded+墨龄=1 ·
+>   开方→DrugTreatmentApplied · 接线期限 1 · 未 SetAuthor/未绑定 fail-loud)。
+> - **范围注**:本批是**接线面**(「动作 → 写者」);42 侧方笺页的**交互面**(click/焦点/选档
+>   UI)仍归 42,`PrescriptionPageHost` 即其语义动作的接收点。
 
 > ⚠️ **S2 判据形态订正(2026-10-11,对照既有红线不偏离)**:
 > - S2.5 判据「按 F ⇒ 双事件」以 **PlayMode 虚拟按键注入**(手柄回落)**全绿**达成。
@@ -127,18 +142,18 @@
 - **S1 ✅ 完成(2026-10-11)**:查体后值区非空(词条来自真烘焙产物,非测试直喂)——
   bake 两份产物入库(S1.1)+ 运行期装载 + 组合根注入(S1.2)全绿
   (EditMode 3235 = 3188/0 · PlayMode 133/133);副作用 = D-ESC 判据修订见 §2.1。
-- **S2 ◐ 设备级入口批(2026-10-11)**:S2.2(按 E 查体)+ S2.5(按 F 急救双事件)已接并全绿
-  (PlayerInputReader + InteractionInputDriver + BootRoot 转发);
-  S2.3(落笔→墨龄)/ S2.4(开方→处方)**登记缺口**,归 42 接线轮(UI 事件 → 装配层)。
-  判据:EditMode 3237 = 3190/0 · PlayMode 136/136。
+- **S2 ◐ → ✅ 设备级入口批 + 42 接线轮(2026-10-11)**:S2.2(按 E 查体)+ S2.5(按 F 急救双事件)
+  已接并全绿(PlayerInputReader + InteractionInputDriver + BootRoot 转发);
+  **S2.3(落笔→墨龄)/ S2.4(开方→处方)由 42 接线轮闭合**(PrescriptionPageHost,见 §2)。
+  判据:EditMode 3246 = 3199/0 · PlayMode 136/136。
 - **S3 ✅ 完成(2026-10-11)**:候选列表生产实例化 + 跳过入口可用
   (`EmergencyCandidateRuntime` + 组合根 + BootRoot 挂载;范围注 = 交互面归 10)。
   判据:EditMode 3240 = 3193/0 · PlayMode 136/136。
 - **本 sprint 收口判据**:核心循环七环节 —— 走近(玩家位移链)✅ · 查体(E 键 → 真词表
   装载 → 值区有词,S2.2 设备级 ✅ · 值区渲染待人工目视)◐ · 对照(脉案五通道行渲染,42 屏)◐ ·
-  落笔(→ 墨龄,S2.3 归 42 接线轮)◐ · 开方(→ 处方,S2.4 归 42 接线轮)◐ · 施治(F 键 →
-  双事件,S2.5 设备级 ✅)◐ · 纸面反馈(值区/候选列表载体 ✅)→ **玩家可操作的第一截已立**;
-  完整七环节收口待 42 接线轮 + 人工 playtest 目视。
+  落笔(→ 墨龄,S2.3 接线宿主 ✅ · 方笺交互面归 42)◐ · 开方(→ 处方,S2.4 接线宿主 ✅ ·
+  选档交互面归 42)◐ · 施治(F 键 → 双事件,S2.5 设备级 ✅)◐ · 纸面反馈(值区/候选列表载体 ✅)→
+  **玩家可操作的第一截已立**;完整七环节收口待 42 方笺交互面 + 人工 playtest 目视。
 - **本 sprint 完成**:核心循环七环节**玩家可操作**(输入入口全接)+ 第一次被真实内容驱动
 - **判据基线**:EditMode 3185 → ≈3210–3230 · PlayMode 133 → ≈136–140(qa-lead 估)
 

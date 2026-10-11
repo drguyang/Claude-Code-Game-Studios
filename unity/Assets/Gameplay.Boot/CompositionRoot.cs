@@ -208,6 +208,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 本宿主只回答「列表实体存在 + 跳过入口可用」(story-023 边界①)。
             var emergencyCandidates = new EmergencyCandidateRuntime();
 
+            // ── 方笺页接线宿主(S2.3/S2.4 · 2026-10-11)──
+            // 落笔 → JudgmentWriter.TryRecord(墨龄)· 开方 → PrescribeRequestDriver.TryPrescribe。
+            // 玩家 actorId 由 BootRoot 生成玩家后 SetAuthor(BootRoot 启动序第 4 步之后)。
+            var prescriptionPage = new PrescriptionPageHost(
+                stream, encoder, stream.Events,
+                prescribeDriver, portionsStore, tickDriver,
+                initialAuthorId: -1);
+
             // ── fail-loud 兜底:S1.2 诊断数据集非空(词表/门槛装载态)──
             // ⚠️ 「空行」在**运行期**是诚实形态(未查 = 空行,禁假数据);但**装配期**空数据集
             //    = 装载失败被吞 ⇒ fail-loud(与 DiseaseOnset 不在注册表同口径)。
@@ -259,6 +267,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: PrescribeRequestDriver 装配产出 null");
             if (emergencyCandidates == null)
                 throw new InvalidOperationException("Assemble: EmergencyCandidateRuntime 装配产出 null");
+            if (prescriptionPage == null)
+                throw new InvalidOperationException("Assemble: PrescriptionPageHost 装配产出 null");
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder,
                                                presence, spawner, patientDriver, caseDriver,
@@ -266,7 +276,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                worldSeed, vitals,
                                                casebookSource, examinationLedger, examineDriver,
                                                tickDriver, prescribeDriver, prescribePorts,
-                                               portionsStore, emergencyCandidates);
+                                               portionsStore, emergencyCandidates,
+                                               prescriptionPage);
         }
 
         /// <summary>

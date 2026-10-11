@@ -90,6 +90,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 动作判定 / Idle 时序归 10,本宿主只持列表 + 跳过入口。</summary>
         public EmergencyCandidateRuntime EmergencyCandidates { get; }
 
+        /// <summary>方笺页接线宿主(S2.3/S2.4)—— 落笔 → JudgmentWriter · 开方 →
+        /// PrescribeRequestDriver;UI 事件 → 装配层的接线面(BootRoot SetAuthor 后可用)。</summary>
+        public PrescriptionPageHost PrescriptionPage { get; }
+
         /// <summary>世界种子(存档头量;patient_seed = hash(world_seed, patient_id) 的入参)。</summary>
         public ulong WorldSeed { get; }
 
@@ -109,7 +113,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          PrescribeRequestDriver prescribeDriver,
                                          PrescribePorts prescribePorts,
                                          MinimalPortionsStore portionsStore,
-                                         EmergencyCandidateRuntime emergencyCandidates)
+                                         EmergencyCandidateRuntime emergencyCandidates,
+                                         PrescriptionPageHost prescriptionPage)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -131,6 +136,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             PrescribePorts = prescribePorts;
             PortionsStore = portionsStore;
             EmergencyCandidates = emergencyCandidates;
+            PrescriptionPage = prescriptionPage;
             WorldSeed = worldSeed;
         }
     }

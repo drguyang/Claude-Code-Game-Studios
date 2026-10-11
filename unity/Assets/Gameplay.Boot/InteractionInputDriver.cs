@@ -89,6 +89,7 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             _services.ExamineDriver.OnExamine(target, CurrentTick);
             _services.CasebookSource?.ChangePatient(target);
+            _services.PrescriptionPage?.BindPatient(target);   // 方笺页对象同步(S2.3/S2.4)
             LastExaminedPatient = target;
         }
 

@@ -1,0 +1,143 @@
+// sprint-07 S2.3/S2.4 · 方笺页的**接线宿主**(UI 事件 → 装配层 · 2026-10-11)
+//
+// 权威来源:
+//   sprint-07 §2 S2.3(落笔 → JudgmentWriter.TryRecord → 墨龄)/ S2.4(开方 →
+//   PrescribeRequestDriver.TryPrescribe → DrugTreatmentApplied 入病史流)
+//   casebook-39.md(方笺 = 脉案同一本书的一页 —— 不成新模态,不发相机意图,ADR-013 方笺裁定)
+//   ADR-013 §9 C3(42 只渲染不持状态 —— 本宿主 = 装配层把「UI 事件 → 写者」接线的载体)
+//
+// ⚠️ 本宿主住 **Gameplay.Boot**:把 42 侧方笺页的 UI 事件(落笔 / 选档确认)翻译成
+//   装配层写者调用。**不持 sim 态、不造 UI** —— 只登记事件 + 转发(呈现侧装配件,
+//   与 InteractionInputDriver 同纪律)。「玩家操作在方笺页」的交互面(click/焦点)归 42;
+//   本宿主为「该页的语义动作 → 写者」的接线面。
+//
+// ⚠️ 判定**先决**:
+//   · 落笔须有开案(病例流查询);无开案 ⇒ 不写(JudgmentWriteResult.NoOpenCase)。
+//   · 开方须有在场病人 + 库存(20 最小面)。库存 = 接线载体种子(真库存面归 20)。
+//   · 开方次数接线期限 1:此接线面用「**玩家主动行使一次**」证「开方 → DrugTreatmentApplied
+//     入病史流 → 体征变化」的真链;常驻「选档确认 UI」落地后由 42 事件驱动,本限删除
+//     (不自动重复开方 = 玩家零输入刷事件 = 假绿,承「灰盒测不对」根因)。
+
+using System;
+using System.Collections.Generic;
+using DaYiJingCheng.Sim;
+using DaYiJingCheng.Sim.Contracts;
+
+namespace DaYiJingCheng.Gameplay.Boot
+{
+    /// <summary>
+    /// 方笺页接线宿主 —— 把落笔 / 开方的语义动作接进 <see cref="JudgmentWriter"/> /
+    /// <see cref="PrescribeRequestDriver"/>。
+    /// <para>住装配层(呈现侧装配件):不持 sim 态、不造 UI —— 42 方笺页把动作交到这里,
+    /// 本宿主完成「动作 → 写者」接线并返回结果码。</para>
+    /// </summary>
+    public sealed class PrescriptionPageHost
+    {
+        private readonly JudgmentWriter _judgment;
+        private readonly PrescribeRequestDriver _prescribe;
+        private readonly MinimalPortionsStore _portions;
+        private readonly SimTickDriver _ticks;
+        private int _authorId;
+
+        private bool _prescribed;
+        private PatientId _boundPatient = PatientId.None;
+
+        /// <param name="eventSink">事件写入通道(主机唯一 Append;ADR-005)。</param>
+        /// <param name="encoder">载荷编码器(第七抽象点;落笔的 JudgmentRecorded 走具名路径)。</param>
+        /// <param name="caseStreamEvents">病例流事件视图(落笔前置 —— 病人须有开案)。</param>
+        /// <param name="prescribeDriver">处方驱动(开方五步 → DrugTreatmentApplied 入病史流)。</param>
+        /// <param name="portionsStore">库存最小面(开方前置 —— 注入 1 份接线载体种子)。</param>
+        /// <param name="tickDriver">tick 驱动(动作 tick = 当前逻辑 tick)。</param>
+        /// <param name="initialAuthorId">初始玩家 actorId(机制 A id 空间;未定传 -1,
+        /// 动作前须 <see cref="SetAuthor"/> 否则 fail-loud)。</param>
+        public PrescriptionPageHost(IEventSink eventSink, IPayloadEncoder encoder,
+                                    IReadOnlyList<SimEvent> caseStreamEvents,
+                                    PrescribeRequestDriver prescribeDriver,
+                                    MinimalPortionsStore portionsStore,
+                                    SimTickDriver tickDriver,
+                                    int initialAuthorId)
+        {
+            _authorId = initialAuthorId;
+
+            // 落笔写者:37 的 JudgmentRecorded 生产者(assembly 层;freehandText P0 空串)
+            // 作者 = 玩家 actorId,由 SetAuthor 设定(BootRoot 生成玩家后调用)
+            _judgment = new JudgmentWriter(eventSink, encoder, caseStreamEvents,
+                                           initialAuthorId);
+            _prescribe = prescribeDriver ?? throw new ArgumentNullException(nameof(prescribeDriver));
+            _portions = portionsStore;
+            _ticks = tickDriver;
+        }
+
+        /// <summary>设定玩家 actorId(BootRoot 生成玩家后调用;动作前必须已定)。</summary>
+        /// <exception cref="ArgumentOutOfRangeException">authorId 为负(未定态不得接动作)。</exception>
+        public void SetAuthor(int authorId)
+        {
+            if (authorId < 0)
+                throw new ArgumentOutOfRangeException(nameof(authorId), authorId,
+                    "玩家 actorId 不得为负(机制 A 计数器 id 空间;未定态须先 SetAuthor)");
+            _authorId = authorId;
+            _judgment.SetAuthor(authorId);   // 落笔写者作者同步(S2.3 的诚实作者)
+        }
+
+        /// <summary>当前绑定病人(方笺页的会话对象;由 BootRoot 在查体/切页时设置)。</summary>
+        public PatientId BoundPatient
+        {
+            get => _boundPatient;
+            set => _boundPatient = value;
+        }
+
+        /// <summary>绑定病人(查体驱动调用;与 CasebookSource.ChangePatient 同步)。</summary>
+        public void BindPatient(PatientId patient) => _boundPatient = patient;
+
+        /// <summary>落笔一次判断(方笺页语义动作 → 37 写者)。</summary>
+        /// <param name="lexiconId">判断词条 id(u16 值域;case_judgment_lexicon ordinal)。</param>
+        /// <param name="confidence">把握度(u8 档位)。</param>
+        /// <returns>结果码(仅 <see cref="JudgmentWriteResult.Recorded"/> = 真的写入)。</returns>
+        public JudgmentWriteResult WriteJudgment(int lexiconId, byte confidence)
+        {
+            AssertAuthorReady();
+            if (_boundPatient.Value < 0)
+                throw new InvalidOperationException(
+                    "方笺页落笔前须绑定病人(切脉案/查体时设置 BoundPatient)—— 无对象无从落笔");
+            return _judgment.TryRecord(CurrentTick, _boundPatient, lexiconId, confidence);
+        }
+
+        /// <summary>
+        /// 开方一次(方笺页选档确认 → 处方驱动;接线期限 1 次)。
+        /// </summary>
+        /// <param name="itemKey">所开之药(装配层最小表 = salicylic_acid)。</param>
+        /// <param name="doseOrdinal">档序数(戥子落点;整剂路径恒 1)。</param>
+        /// <returns>是否走完处方五步并入病史流。</returns>
+        public bool Prescribe(ItemKey itemKey, int doseOrdinal)
+        {
+            AssertAuthorReady();
+            if (_boundPatient.Value < 0)
+                throw new InvalidOperationException(
+                    "方笺页开方前须绑定病人(无对象无从开方)");
+            if (_prescribed)
+                return false;   // 接线期限 1(见文件头注:真实选档确认 UI 落地后删除)
+
+            // 库存前置(20 最小面):注入 1 份 —— 接线载体种子,真库存面归 20
+            _portions?.Grant(_authorId, itemKey, 1);
+
+            var intent = new PrescribeIntent(_authorId, _boundPatient, itemKey, doseOrdinal);
+            bool applied = _prescribe.TryPrescribe(in intent, CurrentTick).Applied;
+            if (applied) _prescribed = true;
+            return applied;
+        }
+
+        /// <summary>是否已行使过开方(接线期限 1 的观测面)。</summary>
+        public bool Prescribed => _prescribed;
+
+        /// <summary>动作前置:玩家 actorId 已定(fail-loud —— 未 SetAuthor 即动作 = 装配遗漏)。</summary>
+        private void AssertAuthorReady()
+        {
+            if (_authorId < 0)
+                throw new InvalidOperationException(
+                    "PrescriptionPageHost 玩家 actorId 未定 —— 须先 SetAuthor(BootRoot 生成玩家后)," +
+                    "未定态拒绝接动作(作者缺失 = 事件作者无主)");
+        }
+
+        private long CurrentTick => _ticks?.CurrentTick ?? 0L;
+    }
+}

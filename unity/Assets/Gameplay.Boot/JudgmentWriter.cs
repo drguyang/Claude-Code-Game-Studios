@@ -47,7 +47,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly IEventSink _eventSink;
         private readonly IPayloadEncoder _encoder;
         private readonly IReadOnlyList<SimEvent> _caseStream;
-        private readonly int _authorPlayerId;
+        private int _authorPlayerId;
 
         /// <param name="eventSink">事件写入通道(主机唯一 Append;ADR-005)。</param>
         /// <param name="encoder">载荷编码器 —— **JudgmentRecorded 走其具名路径**
@@ -67,6 +67,20 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
+        /// 设定落笔作者(玩家)id —— 装配期初始 -1(未定),玩家生成后由装配层调用;
+        /// 未定作者动作 ⇒ <see cref="InvalidOperationException"/>(fail-loud)。
+        /// </summary>
+        /// <param name="authorPlayerId">机制 A 的 <c>player_id</c>(ADR-006 第二十六批)。</param>
+        /// <exception cref="ArgumentOutOfRangeException">id 为负(未定态不得接动作)。</exception>
+        public void SetAuthor(int authorPlayerId)
+        {
+            if (authorPlayerId < 0)
+                throw new ArgumentOutOfRangeException(nameof(authorPlayerId), authorPlayerId,
+                    "落笔作者 id 不得为负(机制 A 计数器 id 空间;未定态须先 SetAuthor)");
+            _authorPlayerId = authorPlayerId;
+        }
+
+        /// <summary>
         /// 落笔一次判断记录(前置通过则写一条 <see cref="EventKind.JudgmentRecorded"/>)。
         /// </summary>
         /// <param name="tick">落笔完成 tick(玩家在脉案上确认判断的那一 tick;
@@ -80,6 +94,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                                              int lexiconId, byte confidence)
         {
             if (tick < 0) throw new ArgumentOutOfRangeException(nameof(tick), tick, "tick 不得为负");
+            if (_authorPlayerId < 0)
+                throw new InvalidOperationException(
+                    "JudgmentWriter 作者 id 未定 —— 须先 SetAuthor(玩家生成后)," +
+                    "未定态拒绝落笔(作者缺失 = 事件作者无主)");
 
             // 前置:病人须有开案(病例流前缀查询;无开案无从落笔 —— 病例都没开)
             CaseId? openCase = CaseStreamQuery.OpenCaseOf(_caseStream, patient.Value);

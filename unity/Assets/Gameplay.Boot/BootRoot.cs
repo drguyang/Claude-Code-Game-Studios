@@ -165,6 +165,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 actorId);
             _interactionDriver = interaction;
 
+            // ── 4.6. 方笺页接线宿主(S2.3/S2.4):SetAuthor(玩家 actorId 已定)──
+            // 落笔 / 开方的作者 = 玩家;至此 PrescriptionPageHost 可接动作。
+            // ⚠️ 绑定病人由查体驱动(InteractionInputDriver 的 E 查体已切脉案绑定)
+            //    —— 方笺页落笔 / 开方对象 = 当前脉案绑定病人(42 侧会话)。
+            _services.PrescriptionPage?.SetAuthor(actorId);
+
             // ── 5. 相机机位装配(sprint-05 T1.5 · 2026-10-10 AudioListener 泄漏修复)──
             // ADR-020:相机 = 自建机位,不引入 Cinemachine
             // 跟随 = 每帧把相机位置设到玩家位置 + 偏移

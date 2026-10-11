@@ -2168,3 +2168,29 @@ Task: A–E 五批 + 登记债收口已提交 f5879c3 → 下一步批次 F 收�
 - **下一步**:S2.3/S2.4 的 42 接线轮(UI 事件 → 装配层:方笺落笔 / 戥子选档确认)+
   第五轮人工 playtest(此时 S1 词表 + S2 E/F 入口 + S3 候选列表载体俱在 = 第一个
   「有内容的真循环」的目视核对面)。
+
+## 2026-10-11 — sprint-07 42 接线轮完成(S2.3 落笔→墨龄 · S2.4 开方→处方 · 全量绿)
+
+- **S2.3/S2.4 接线宿主**:新 `PrescriptionPageHost`(Gameplay.Boot):
+  - 落笔 → `JudgmentWriter.TryRecord`(JudgmentRecorded 入病例流 → 墨龄 = 当前tick − 最近Judgment);
+  - 开方 → `PrescribeRequestDriver.TryPrescribe`(DrugTreatmentApplied 入病史流 → 体征链 apply);
+  - `SetAuthor`(BootRoot 玩家生成后 · **落笔作者同步**到 JudgmentWriter.SetAuthor —— 7.7 诚实作者);
+  - `BindPatient`(InteractionInputDriver.TryExamine 同步,方笺对象 = 当前脉案绑定病人);
+  - fail-loud:未 SetAuthor / 未 BindPatient 即动作 ⇒ 抛(装配遗漏不静默);
+  - 开方接线期限 1(`_prescribed`,不自动重复行使 = 假绿根因;常驻选档确认 UI 落地后删限);
+  - **依赖直传**(EventSink/Encoder/病例流视图/PrescribeDriver/PortionsStore/TickDriver)
+    —— 初版传服务袋 `new PrescriptionPageHost(this,…)` 在 static Assemble 内 CS0026
+    实测编译红,重构为七依赖直传;组合根装配 + fail-loud + 进服务袋(`PrescriptionPage`)。
+- **全量绿(证据)**:
+  - EditMode `s7_s23_s24_editmode_v2.xml`:**3246 = 3199 passed · 0 failed · 1 inc · 46 skip**
+    (新测 `prescription_page_host_test` ×6 全绿:装配存在 · 落笔→JudgmentRecorded+墨龄=1 ·
+    开方→DrugTreatmentApplied · 开方接线期限 1(第二次 false + 恰 1 条)·
+    未 SetAuthor/未绑定 fail-loud);
+  - PlayMode `s7_s23_s24_playmode.xml`:**136/136 全绿**。
+- **范围注(未假装完成)**:本批 = **接线面**(「动作 → 写者」);42 侧方笺页的**交互面**
+  (click/焦点/选档确认 UI)仍归 42 —— `PrescriptionPageHost` 即其语义动作的接收点。
+- **落盘**:`sprint-07.md` §2 S2.3/S2.4 接线注记 + §3 S2 ◐→✅ + 收口判据七环节现状表更新。
+- **下一步**:第五轮人工 playtest(此时 S1 词表 + S2 E/F 入口 + S2.3/S2.4 接线 +
+  S3 候选列表载体俱在 = 第一个「有内容的真循环」的目视核对面)+ sprint-07 收口。
+  注:本轮 EditMode 两处编译红 —— ① static Assemble 传 `this`(CS0026)重构依赖直传;
+  ② 测试缺 `using System`(CS0246 InvalidOperationException)—— 均为本轮引入即修。
