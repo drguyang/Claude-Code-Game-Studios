@@ -75,6 +75,8 @@ namespace DaYiJingCheng.EditorTools.Gates
         //   · 写者落地的那一批**同批撤条目**(撤表 = 该 Kind 转为被门正面盯住)。
         // 2026-10-10 勘察基线:35 支 author 声明 = 11 支有生产写者(9 支既有 + 本批
         //   CaseOpened / ResourceHarvested 两支)+ 24 支豁免。
+        // 2026-10-11 G3:SkillGrown 写者经装配层 AssemblySkillGrowthPort 落地(撤豁免),
+        //   DrugTreatmentApplied 嫁 PrescribeFlow(现为写者面命中的既有调用点)。
         private static readonly (string Kind, string Reason)[] ExemptKinds =
         {
             // ── 37 病例系统(本批已落 JudgmentRecorded;余三支归 37 实现轮)──
@@ -109,7 +111,6 @@ namespace DaYiJingCheng.EditorTools.Gates
 
             // ── 24 / 30 / 53 ──
             ("CareApplied", "24 医馆与案头写者未落(以入向事件写入)—— 归 24 轮(entities.yaml author 注)(2026-10-10)"),
-            ("SkillGrown", "30 只出载荷(SkillGrownEmitter 明写「不调 Append」)—— Append 由调用方 {8/17/11} 完成,调用面未接;归各调用轮 + 30 装配(2026-10-10)"),
             ("ConsequenceResolved", "53 医疗后果与责任未实现 —— 归 53 轮(P0 未排;entities.yaml author 注)(2026-10-10)"),
         };
 

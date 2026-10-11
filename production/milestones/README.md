@@ -117,6 +117,15 @@
       **唯一悬空 = 11 处方腿**:`PrescribeFlow.Prescribe` 全库**零生产调用方**(无「开方」驱动/输入端)⇒
       启动物理上写不出 `DrugTreatmentApplied`(PlayMode 该事件均为测试直喂)。**这是机制半边
       (玩家交互轮未开),非接线缺口** —— 复评原件 `production/qa/evidence/m2-exit-recheck-2026-10-11.md`。
+      **✅ 2026-10-11 用户裁定(G3 推进策略)**:处方腿缺口由 sprint-06 G3 承接,
+      端口依赖(21a/20/30)改走「**最小生产端口实装**」—— 组合根装配层内联最小 drug 表 +
+      最小库存面(`HasPortions`/`ConsumePortions` 真行为)+ `SkillGrownEmitter` 装配,
+      G3 判据**全判**(非「结构性半边」降级);21a/20 完整实现独立排期,落地后只换端口实现、
+      装配签名零改动。裁定全文见 `production/sprints/sprint-06.md` §2 G3。
+      **✅ 2026-10-11 G5 复评转闭** —— `PrescribeRequestDriver`(CompositionRoot:170)+
+      真 `PrescribePorts`(最小端口实装)⇒ `DrugTreatmentApplied` **运行期可达**;
+      `prescribe_driver_test` 8 测全绿(选档落笔 / ≥2 档 dose 区分 / 无货拒开 / GateHit SkillGrown)。
+      复评原件 `production/qa/evidence/m2-exit-recheck-sprint06-g5-2026-10-11.md`。
 - [x] ⚠️ **链的写者存在性前置(2026-10-08 补 · ✅ 2026-10-10 批次 F-6 复评转闭)** —— 上一条链上的每个 `Kind` 至少有 1 个**生产 `Append` 调用点**
       ~~实测生产侧 `Append` 仅 3 处(`HostEmergencyProcessor`×2 · `PrescribeFlow`×1),
       **9/25/37 的写者不存在** ⇒ epic 全 `Complete` 链仍跑不起来(**epic Complete ≠ 写者存在**;
@@ -139,6 +148,11 @@
       **每 400 tick 自动触发一次急救** ⇒ 病史流含 `EmergencyAttempt` + `EmergencyTreatmentApplied`
       (`emergency_attempt_wiring_test` 断言 + 第三轮 playtest 世界侧确认)。**11 处方腿的机制半
       由 #2 复评承接**(无玩家交互驱动,非接线缺陷)。原文不删,留闭环记录。
+      **✅ 2026-10-11 G5 复评转闭(手动化)**:G4.1 移除自动触发(`EmergencyAttemptDriver` 退役壳,
+      零输入零事件 = 红线守死 —— wiring 测**反向改造**,重新引入自动触发即红);
+      G4.2 `EmergencyManualDriver` 手动入口 ⇒ `EmergencyAttempt` + `EmergencyTreatmentApplied`
+      双事件入病史流(病人归因 + Skip 载荷 method=1 可判别 R-6)。判据 5 测全绿
+      (`emergency_manual_driver_test`)。复评原件 `production/qa/evidence/m2-exit-recheck-sprint06-g5-2026-10-11.md`。
 - [x] PlayMode 集成测试 `unity/Assets/Tests/PlayMode/vertical_slice_test.cs` **零桩方法**
       (**已闭 2026-10-08** —— 7 测重写为真验证(驱动 `PrescribeFlow` / `CaseOpenDecider` 真生产路径 + `IPayloadEncoder`),
       结果 **6 passed + 1 skipped(NOT-RUN: 病人腿 25/9 写者未实现)**,`Assert.Pass` 桩 **0 个**;
@@ -184,6 +198,11 @@
       ④ 的**词条真值源**(9 查体 revealed 集)归 9 未接线 —— `CasebookVitalsSource.RevealedRows`
       恒空集(F2 tripwire)⇒ 脉案值区运行期**空行**(禁假数据,恰是判据)。复评原件
       `production/qa/evidence/m2-exit-recheck-2026-10-11.md`。
+      ⇒ **✅ 2026-10-11 G5 复评(施加点接大半,维持 ◐ 不勾)**:G1–G4 后 ——
+      ② 墨龄上游已接:`JudgmentWriter`(G2 落笔写者)生产装配 + `InkAgeTicks` >0(落笔输入入口未接);
+      ④ 真值源已接半:查体分册快照(G1.4)接 `RevealedRows`(查体输入入口未接);
+      **③ 候选列表仍零生产实例化**(仅测试);玩家输入入口(Interact/Emergency 键位已有零消费)。
+      复评原件 `production/qa/evidence/m2-exit-recheck-sprint06-g5-2026-10-11.md`。
 - [ ] **五族切图与 atlas 布局冻结**(①② 的前置;切图早错 = 全局返工)
       ⇒ ⚠️ **口径订正(2026-10-04 D)**:原文写「纸/墨/铜」三族 —— 实测为**五族**(纸/墨/卷轴/印章/图标),
       「铜」族零实物。**冻结清单须按五族枚举**,否则三族已入库资产漏冻

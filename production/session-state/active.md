@@ -1990,3 +1990,80 @@ Task: A–E 五批 + 登记债收口已提交 f5879c3 → 下一步批次 F 收�
   (判据须写成**逐药求值式** `|potency × [ (H+off)(1−e^{−W/(H+off)}) − H(1−e^{−W/H}) ]| ≥ NOISE_BAND_POTENCY_9`,
   不能拍固定 tick 常量);④ `FocusNavigationBridge` 的兜底路径(把它从测试 BFS 换成桥入口,
   见 run-book §7 的四步义务)。
+
+## 2026-10-11 — sprint-06 G3 推进策略裁定(用户 ·「要补齐21a/20的epic吗」→ 最小生产端口实装)
+
+- **问**:G3(处方驱动)端口依赖 21a/20/30 未就绪(ICT 勘察:21a baked 无 dose_range、
+  cooked 未烘 drug 档、运行期零装载;20 = 纯接口零实现)。「要不要补齐 21a/20 的 epic?」
+- **用户裁定(2026-10-11)**:否 —— 改走「**最小生产端口实装**」(替换 sprint-06 §2 G3 原「结构性半边」降级预案):
+  - 组合根装配层内联 **21a 最小 drug 表**(salicylic_acid, DoseRange(1..5) + potency)⇒ 判据「≥2 档 dose 区分」**全判**
+  - **20 最小库存面**(内存字典持量 + 扣减,HasPortions/ConsumePortions **真行为**)⇒「无货不能开出变异恰红」**全判**
+  - **30 装配**(SkillGrownEmitter 生产路径,成长门正跑)⇒「不选档零事件」**全判**
+  - **完整 21a/20 独立排期**(烘焙装载面 / 库存账本 / 世界流 DropConsumed)**落地后只换端口实现,装配签名零改动**
+- **落盘**:`production/sprints/sprint-06.md`(§2 G3 备注 + §4 风险表同批替换)· `production/milestones/README.md`(M2 #2 处方腿悬空段增补裁定)
+- **实施(G3)**:新 `PrescribeRequestDriver`(住 Gameplay.Boot;消费 `PrescribeStrokeIntent`→
+  `DentchDoseSelector.DoseValueOf`→ 真 `PrescribePorts`→ `PrescribeFlow.Prescribe`→
+  `DrugTreatmentApplied` 入病史流)+ 组合根接线 + 端口实装。b7 写者部分旁路(嫁 PrescribeFlow),
+  b7 红先清再判 >0(真表带 author 比较)。判据 ≥2 档 variant + 不选档零事件 variant(新驱动测)。
+
+## 2026-10-11 — sprint-06 G3 处方驱动 ✅(EditMode 3180/0 · PlayMode 132/132)
+
+- **G3.1 `PrescribeRequestDriver`**(新 · Gameplay.Boot):消费 `PrescribeIntent`(全整数,与 42
+  戥子同域翻译)→ `DentchDoseSelector.DoseValueOf`(档序数→档值唯一量化点)→ 真 `PrescribePorts`
+  → `PrescribeFlow.Prescribe` 五步 → `DrugTreatmentApplied` 入病史流。零自持状态(不缓存 selected 档)。
+- **G3.2 端口生产实装**(新 · Gameplay.Boot/PrescriptionPorts.cs,用户裁定「最小生产端口实装」):
+  21a `MinimalDrugCatalog`(salicylic_acid · DoseRange(1..5)· potency 2^31=1/2)·
+  20 `MinimalPortionsStore`(内存持有量 + HasPortions/ConsumePortions 真行为)·
+  30 `AssemblySkillGrowthPort`(SkillGrownEmitter 载荷经 IPayloadEncoder 编码 + Append 落病史流 = 生产写者)。
+- **组合根接线**:装配 4 新件 + 服务袋 3 新属性(PrescribeDriver / PrescribePorts / PortionsStore)。
+- **b7 门**:豁免表撤 SkillGrown(写者落地同批撤,豁免=红);测试断言 3 处增强
+  (DrugTreatmentApplied 写者面 · SkillGrown 不豁免 · 陈旧豁免探针改点名 CareApplied)。
+- **判据 8 测全绿**:选档落笔入病史流(载荷五字段 + F-11.1 dose_potency 量纲)→ ≥2 档不同 dose(1.0 vs 2.0)
+  → 不选档零事件 → 无货拒开(变异恰红)→ 未知药零事件 → 档越界/tick<0 fail-loud → GateHit SkillGrown 入流。
+- **踩坑**:① 首次编译红 = CompositionRootServices 缺 `using Sim.Prescription`(PrescribePorts 引);
+  ② Potency 量纲(2^31 而非 65536/2 —— F-11.1 分母 DOSE_BASE 归一,Q16.16 语义,注记留档);
+  ③ 早期断言错用 `Stream.Count` 总流数(一次落笔产 2 条:④DrugTreatmentApplied+⑤SkillGrown)⇒ 改按 Kind 计数。
+- **未结(完整 21a/20)**:烘焙装载面(AddressablesDataProvider 新数据集 / DrugProfileCodec)· 库存账本 ·
+  世界流 DropConsumed 消耗写者 —— 独立排期,落地后只换端口实现、装配签名零改动。
+- **下一步**:G4 急救手动化(移除自动触发 + 玩家手动链 + 候选列表生产实例化;红线 = emergency_attempt_wiring_test 必须改造)。
+
+## 2026-10-11 — sprint-06 G4 急救手动化 ✅(EditMode 3185/0 · PlayMode 132/132)
+
+- **G4.1 自动触发移除**:`EmergencyAttemptDriver._triggeredPatients` 自动分支**删除**,
+  驱动退役为占位壳(保留 BootRoot 调用面 + fail-loud,零 Append/零状态)。
+- **G4.2 手动入口**:新 `EmergencyManualDriver`(Gameplay.Boot)—— 玩家意图 →
+  HostEmergencyProcessor.Process → EmergencyAttempt + EmergencyTreatmentApplied 双事件入病史流;
+  method 闭集 {0 Manual,1 Skip} · actorId 由调用方传入 · 最小动作表(止血包扎)。
+- **红线处置(qa-lead 注)**:`emergency_attempt_wiring_test` **反向改造** —— 旧断言
+  「启动即自动两事件」= 假绿;现断言**零输入观察窗 ⇒ 病史流零 EmergencyAttempt**(守死自动触发,
+  重新引入即红)+ 手动入口 ⇒ 双事件(新增第二测)。
+- **组合根**:装配 EmergencyManualDriver + 服务袋暴露;退役壳保留引用面。
+- **判据(新 5 测 EditMode)**:零输入 20 tick 零事件(双 Kind 都不发)· 手动双事件入病史流(病人归因
+  + 流路由 History)· Skip ⇒ method 载荷=1(流上可判别 R-6)· method 越界/负值 fail-loud · tick/actorId 负值 fail-loud。
+- **踩坑**:① 测试首跑 CS0246 = 测试程序集缺 Sim.EmergencyProcedures 引用,且旧写法直接 new
+  HostEmergencyProcessor ⇒ 改从组合根 `_bag.EmergencyManualDriver` 取(生产装配路径);
+  ② PlayMode 改造后 wiring 测新增手动链第二测(等在场 → TryManual 反射 → 双事件断言)。
+- **下一步**:G5 收口(全量 EditMode≈3185/PlayMode 132 + 第四轮人工 playtest + M2 Exit #2/#8 复评)。
+
+## 2026-10-11 — sprint-06 G4 收尾(全绿)
+
+- **EditMode 3185/0/1/46**(G3 8 测 + G4 5 测 = 全量 +13)· **PlayMode 133/133**(wiring 测 1→2 条,
+  零输入窗口 + 手动入口)。两次踩坑:① 测试 CS0246(测试程序集缺 Sim.EmergencyProcedures 引用,
+  且应取组合根 `_bag.EmergencyManualDriver` 而非手 new);② PlayMode `FirstPresentId` 反射
+  `PresentPatientIds` 用 GetProperty ⇒ null(它是接口**方法**),改 GetMethod。
+- **sprint-06 进度**:G1 ✅ · G2 ✅ · G3 ✅ · G4 ✅;剩 **G5 收口**(全量门已绿 · 第四轮人工 playtest ·
+  M2 Exit #2/#8 复评)。
+
+## 2026-10-11 — sprint-06 G5 收口(复评 + 回填;待用户 playtest/提交)
+
+- **复评原件落盘**:`production/qa/evidence/m2-exit-recheck-sprint06-g5-2026-10-11.md`
+  —— #2 处方腿**转闭**(PrescribeRequestDriver 生产装配 + 真端口 + 判据 8 测)·
+  #5 急救**转闭(手动化)**(退役壳 + EmergencyManualDriver + wiring 反向改造红线守死)·
+  #8 **◐ 施加点接大半**(②墨龄上游 JudgmentWriter 已接、④查体分册快照已接;③候选列表
+  零生产实例化 + 玩家输入入口未接)· 全量门 EditMode **3185/0/1/46** · PlayMode **133/133**。
+- **回填**:`milestones/README.md`(#2 转闭加注 + #5 手动化转闭 + #8 接大半加注)·
+  `sprint-06.md` §3 完成句(本 sprint 完成 + 全量门 + 复评原件索引 + 剩余登记)。
+- **剩余(诚实登记,非本案故障)**:① 第四轮人工 playtest(用户操作 —— 需编辑器重开 +
+  人工走查七环节;当前驱动就绪但**输入入口未接** ⇒ playtest 覆盖查体/落笔/开方/施治需
+  先接 Interact/Emergency 键位消费);② 玩家输入入口(键位已有零运行期消费);
+  ③ ③ 候选列表生产实例化。均归下一交互轮。

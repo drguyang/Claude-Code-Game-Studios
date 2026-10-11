@@ -24,6 +24,7 @@ using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.DiseaseSimulation;
 using DaYiJingCheng.Sim.EmergencyProcedures;
+using DaYiJingCheng.Sim.Prescription;
 using DaYiJingCheng.Gameplay.PatientAI;
 
 namespace DaYiJingCheng.Gameplay.Boot
@@ -127,11 +128,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             var caseOpenWriter = new CaseOpenWriter(stream, presence, encoder, stream.Events);
             var caseDriver = new CaseOpenedDriver(caseOpenWriter, presence);
 
-            // ── 急救链处理器 + 驱动(sprint-05 T1.3):把 HostEmergencyProcessor 接进 tick 边沿序列 ──
-            // 原状:HostEmergencyProcessor 零生产调用方 ⇒ 运行期链可达性 0%。
-            // 驱动 = 每 tick 边沿对在场且未触发过急救的病人自动触发一次。
+            // ── 急救链处理器 + 驱动(sprint-05 T1.3 → sprint-06 G4.1 退役)──
+            // G4.1(2026-10-11 用户裁定「急救手动化」):自动触发分支已从
+            // EmergencyAttemptDriver 删除(退役壳零事件);触发权归玩家,
+            // 手动入口 = EmergencyManualDriver(BootRoot 生成玩家后调用)。
             var emergencyProcessor = new HostEmergencyProcessor(stream, idAuthority, encoder);
-            var emergencyDriver = new EmergencyAttemptDriver(emergencyProcessor, presence);
+            var emergencyDriver = new EmergencyAttemptDriver(presence);
+            var emergencyManual = new EmergencyManualDriver(emergencyProcessor);
 
             // ── 病人最小可见实体(sprint-05 T2.0):给运行期病人生成占位视觉 ──
             // 病因(playtest 2026-10-10 §6):病人在场但**零视觉实体** ⇒ 人工面看不到病人,
@@ -156,6 +159,17 @@ namespace DaYiJingCheng.Gameplay.Boot
                 stream.Events, tickDriver);
             var examineDriver = new ExamineDriver(vitals, examinationLedger, queryLevel: 0);
 
+            // ── 处方链(G3 · 2026-10-11 用户裁定「最小生产端口实装」)──
+            // 21a(换算/药物档案)+ 20(库存面)+ 30(成长)三端口最小实装 + 驱动,
+            // 把 PrescribeFlow(11)接进运行期。⚠️ 完整 21a/20 落地后只换端口实现,签名零改动。
+            var drugCatalog = new MinimalDrugCatalog();                 // 21a 最小换算表
+            var portionsStore = new MinimalPortionsStore();            // 20 最小库存面
+            var skillGrowthPort = new AssemblySkillGrowthPort(stream, encoder, prescriptionLevel: 0);
+            var prescribePorts = new PrescribePorts(drugCatalog, portionsStore,
+                presence, skillGrowthPort, doseBase: 65536);            // DOSE_BASE(数值轮注记)
+            var prescribeDriver = new PrescribeRequestDriver(stream, encoder,
+                prescribePorts, isHost: true);
+
             // ── fail-loud 兜底 ──
             if (stream == null)
                 throw new InvalidOperationException("Assemble: EventStream 装配产出 null");
@@ -175,6 +189,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: HostEmergencyProcessor 装配产出 null");
             if (emergencyDriver == null)
                 throw new InvalidOperationException("Assemble: EmergencyAttemptDriver 装配产出 null");
+            if (emergencyManual == null)
+                throw new InvalidOperationException("Assemble: EmergencyManualDriver 装配产出 null");
             if (patientVisuals == null)
                 throw new InvalidOperationException("Assemble: PatientVisualSpawner 装配产出 null");
             if (casebookSource == null)
@@ -185,12 +201,24 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: ExamineDriver 装配产出 null");
             if (tickDriver == null)
                 throw new InvalidOperationException("Assemble: SimTickDriver 装配产出 null");
+            if (drugCatalog == null)
+                throw new InvalidOperationException("Assemble: MinimalDrugCatalog 装配产出 null");
+            if (portionsStore == null)
+                throw new InvalidOperationException("Assemble: MinimalPortionsStore 装配产出 null");
+            if (skillGrowthPort == null)
+                throw new InvalidOperationException("Assemble: AssemblySkillGrowthPort 装配产出 null");
+            if (prescribePorts == null)
+                throw new InvalidOperationException("Assemble: PrescribePorts 装配产出 null");
+            if (prescribeDriver == null)
+                throw new InvalidOperationException("Assemble: PrescribeRequestDriver 装配产出 null");
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder,
                                                presence, spawner, patientDriver, caseDriver,
-                                               emergencyDriver, patientVisuals, worldSeed, vitals,
+                                               emergencyDriver, emergencyManual, patientVisuals,
+                                               worldSeed, vitals,
                                                casebookSource, examinationLedger, examineDriver,
-                                               tickDriver);
+                                               tickDriver, prescribeDriver, prescribePorts,
+                                               portionsStore);
         }
 
         /// <summary>

@@ -66,10 +66,14 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 "本批刚落地的写者不得挂豁免(豁免 = 红)");
             Assert.IsFalse(waived.Contains("ResourceHarvested"),
                 "本批刚落地的写者不得挂豁免(豁免 = 红)");
+            Assert.IsFalse(waived.Contains("SkillGrown"),
+                "SkillGrown 已由 G3 生产装配落地(Gameplay.Boot/Ports 内 Encode 调用点),不得挂豁免(豁免 = 红)");
 
             var written = ScanRealDirs();
             Assert.IsTrue(written.Contains("CaseOpened"), "CaseOpened 生产写者须在扫描面内");
             Assert.IsTrue(written.Contains("ResourceHarvested"), "ResourceHarvested 生产写者须在扫描面内");
+            Assert.IsTrue(written.Contains("DrugTreatmentApplied"),
+                "DrugTreatmentApplied 生产写者须在扫描面内(11 写者 = PrescribeFlow 内 Encode 调用点)");
         }
 
         // ══════════ ③ 行为级负向:工程外探针(照 b6 先例)══════════
@@ -179,8 +183,8 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 Assert.IsNotEmpty(stale,
                     "24 条豁免在探针 registry 全属陈旧,至少报 1 条。实测:\n"
                     + string.Join("\n", errs));
-                Assert.IsTrue(stale.Any(e => e.Contains("SkillGrown")),
-                    "须点名被删 Kind(SkillGrown 为例)");
+                Assert.IsTrue(stale.Any(e => e.Contains("CareApplied")),
+                    "须点名被删 Kind(CareApplied 为例 —— G3 撤 SkillGrown 后表内仍留的豁免条目)");
                 Assert.IsFalse(HasMissingWriterError(errs, "CaseOpened"),
                     "有写者的 CaseOpened 不该报缺写者(该条错误缺席 = 判据没串味)");
             }
@@ -313,7 +317,11 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             var f = typeof(WriterGate).GetField("ExemptKinds",
                 BindingFlags.NonPublic | BindingFlags.Static);
             Assert.IsNotNull(f, "豁免表字段须存在(即使为空也须显式)");
-            return ((string Kind, string Reason)[])f.GetValue(null);
+            var entries = ((string Kind, string Reason)[])f.GetValue(null);
+            // G3(2026-10-11)已撤 SkillGrown 豁免(生产装配落地)—— 表内不得残留,否则「已写者挂豁免」红。
+            Assert.IsFalse(entries.Any(e => e.Kind == "SkillGrown"),
+                "G3 落地后豁免表不得再含 SkillGrown(已写者挂豁免 = 红)");
+            return entries;
         }
 
         private static HashSet<string> WaivedKinds()

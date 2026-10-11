@@ -11,6 +11,7 @@ using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.DiseaseSimulation;
+using DaYiJingCheng.Sim.Prescription;
 using DaYiJingCheng.Gameplay.PatientAI;
 
 namespace DaYiJingCheng.Gameplay.Boot
@@ -49,9 +50,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
         public CaseOpenedDriver CaseOpenedDriver { get; }
 
-        /// <summary>急救链接线驱动(sprint-05 T1.3)—— 对在场且未触发过急救的病人自动触发一次;
-        /// 由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
+        /// <summary>急救驱动(G4.1 退役壳)—— 自动触发已移除,**零事件**;保留引用面防炸。</summary>
         public EmergencyAttemptDriver EmergencyAttemptDriver { get; }
+
+        /// <summary>急救手动入口驱动(G4.2)—— 玩家意图 → HostEmergencyProcessor → 双事件入病史流。</summary>
+        public EmergencyManualDriver EmergencyManualDriver { get; }
 
         /// <summary>病人最小可见实体驱动(sprint-05 T2.0)—— 按在场集 spawn 占位视觉;
         /// 由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
@@ -74,6 +77,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>查体入口驱动(G1)—— 玩家对病人查体 ⇒ 8 求值 ⇒ 分册快照。</summary>
         public ExamineDriver ExamineDriver { get; }
 
+        /// <summary>处方驱动(G3)—— 戥子落笔意图 → PrescribeFlow 五步 → DrugTreatmentApplied 入病史流。</summary>
+        public PrescribeRequestDriver PrescribeDriver { get; }
+
+        /// <summary>处方端口集合(G3.2)—— 21a/20/30 最小端口实装(装配层内联)。</summary>
+        public PrescribePorts PrescribePorts { get; }
+
+        /// <summary>最小库存面(G3.2 · 20)—— 持有量映射 + 扣减的真行为。</summary>
+        public MinimalPortionsStore PortionsStore { get; }
+
         /// <summary>世界种子(存档头量;patient_seed = hash(world_seed, patient_id) 的入参)。</summary>
         public ulong WorldSeed { get; }
 
@@ -83,12 +95,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          PatientAppearedDriver patientAppearedDriver,
                                          CaseOpenedDriver caseOpenedDriver,
                                          EmergencyAttemptDriver emergencyAttemptDriver,
+                                         EmergencyManualDriver emergencyManualDriver,
                                          PatientVisualSpawner patientVisualSpawner,
                                          ulong worldSeed, DiseaseVitalsService vitalsService,
                                          CasebookVitalsSource casebookSource,
                                          ExaminationLedger examinationLedger,
                                          ExamineDriver examineDriver,
-                                         SimTickDriver tickDriver)
+                                         SimTickDriver tickDriver,
+                                         PrescribeRequestDriver prescribeDriver,
+                                         PrescribePorts prescribePorts,
+                                         MinimalPortionsStore portionsStore)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -99,12 +115,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             PatientAppearedDriver = patientAppearedDriver;
             CaseOpenedDriver = caseOpenedDriver;
             EmergencyAttemptDriver = emergencyAttemptDriver;
+            EmergencyManualDriver = emergencyManualDriver;
             PatientVisualSpawner = patientVisualSpawner;
             VitalsService = vitalsService;
             CasebookSource = casebookSource;
             ExaminationLedger = examinationLedger;
             ExamineDriver = examineDriver;
             TickDriver = tickDriver;
+            PrescribeDriver = prescribeDriver;
+            PrescribePorts = prescribePorts;
+            PortionsStore = portionsStore;
             WorldSeed = worldSeed;
         }
     }
