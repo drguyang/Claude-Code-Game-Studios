@@ -1639,7 +1639,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 <!-- STATUS -->
 Epic: sprint-07(内容解锁轮)
 Feature: 收口轮
-Task: C3 评审+修复已推送 2ad81ee → C1 头部收口完成 → 剩 C2 美术待裁(用户)+ 第五轮 playtest(用户)
+Task: C1+C2 收口完成(美术提前裁定 P1+P2 全提前 → story-005/008 单列)→ 剩第五轮 playtest(用户方便时)→ sprint-07 Complete
 <!-- /STATUS -->
 
 ---
@@ -2220,7 +2220,9 @@ Task: C3 评审+修复已推送 2ad81ee → C1 头部收口完成 → 剩 C2 美
   (Epic: sprint-07 · Feature: 收口轮 · Task: C3 已闭合 → 剩 C2 美术待裁 + 第五轮 playtest)。
 - **C3 结案**:修复提交 `2ad81ee`(8 项必改全闭合)—— sprint-07.md C3 行已加结案注记
   (逐项闭合 + 复跑全量证据 EditMode 3255 = 3208/0 · PlayMode 136/136)。
-- **C2 仍待用户裁定**:美术提前提案(§6 甲案 = P1 病人真模型 + P2 施治动作真资产,
-  其余 40 项维持 M4;乙案 = 全面提前 42 项)。裁定后单列 story,不进本 sprint 关键路径。
+- **C2 已裁定(2026-10-12)**:美术提前提案 §6 落盘 —— 用户 AskUserQuestion 取**甲案「P1+P2 全提前」**。
+  P1 病人真模型 → `production/epics/patient-ai/story-005-patient-real-model.md`(G-3 patient-ai 2 项 · 3.0 人日 ·
+  spec = `design/assets/specs/patient.md`)· P2 施治动作真资产 → `production/epics/emergency-procedures/story-008-treatment-action-assets.md`
+  (G-3 emergency 手势 VFX 子集 + batch-03 素材)。两 story Ready ⬜、单列,不进本 sprint 关键路径;其余 40 项维持 M4。
 - **下一步**:第五轮人工 playtest(用户方便时;此时应有内容:值区有词 · E/F 可操作 ·
   候选列表可见)→ sprint-07 Complete。当前全量门:EditMode 3255 · PlayMode 136/136。

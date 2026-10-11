@@ -4,7 +4,7 @@
 > **GDD**: design/gdd/emergency-procedures.md
 > **Architecture Module**: L3 Gameplay + L2 Sim 接缝(判定输入进流,主机权威)
 > **Status**: **Complete ✅ 2026-10-08**(7/7 story 已实现;两轮评审 A1/A2/A6/B4/C4/C5 **已全闭**;✅ **评审原件两份均在库**(首轮 + round2);**转 Complete 的两条真实前置已于 2026-10-08 全部结清** —— ① **实跑 Unity 测试套件**(EditMode 急救模块 **120/116/0 红/4 NOT-RUN** · PlayMode 急救模块 **4/4** · 全量 EditMode **3001/2954/0 红** · 全量 PlayMode **96/96**);② D1/D2/D3 文档状态对齐(逐项核实已对齐)。验证原件 `production/qa/evidence/verification-emergency-procedures-tests-2026-10-08.md`。其余未闭项:载荷 `Seq` 占位(归上行链 45)· AC-10-04b 三格逐位(ADR-012 矩阵未激活,NOT-RUN)—— **均结构性归属其他 epic,不阻塞本 epic**。⚠️ 详见下方 §Epic Status)
-> **Stories**: **7 stories** — see table below
+> **Stories**: **8 stories**(001–007 机制全闭 + **008 资产提前 = Ready ⬜,不改变 Complete 判定**)—— see table below
 
 ## Epic Status(2026-10-03 · **2026-10-08 结清**)
 
@@ -139,6 +139,7 @@ This epic is complete when:
 | 005 | 模态期:跳过/中止/档位意图/输入压制 | Integration | **Complete ✅ 2026-10-02** | ADR-011/013/020 |
 | 006 | 手感、预表现与键鼠回退 | Visual-Feel | **Complete ✅ 2026-10-02** | ADR-011/013/018 |
 | 007 | `EmergencyTreatmentApplied` 载荷的结算链补完 —— 九字段齐备(b6 门查出的手搓点) | Logic | **Complete ✅ 2026-10-03**(17/17) | ADR-029 + ADR-009 Amendment I |
+| 008 | P2 施治动作真资产提前 —— 止血/通气的真接触音 + 手势/节律 VFX | Visual-Feel | **Ready ⬜** —— 2026-10-12 美术提前裁定(用户取甲案 P1+P2 全提前)· sprint-07 §6 · 依赖素材本体产出;批次 = G-3 emergency 手势 VFX 子集 + batch-03 素材 | ADR-018/011 |
 
 ---
 

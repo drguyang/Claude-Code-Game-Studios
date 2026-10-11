@@ -78,3 +78,4 @@ This epic is complete when:
 | 002 | 空间行为 —— 感知格距、HomeRegion 寻医与定点累加器步进 | Logic | **Complete ✅ 2026-10-05**(`6e0d178`) | ADR-016/015/006 |
 | 003 | 呈现投影 —— ViewState 优先级、IPresentPatients 与 cue / Material 通道 | Integration | **Complete ✅ 2026-10-05**(`a1f7a36`) | ADR-016/013/018 |
 | 004 | 重建、联机单跑与写路径归 10 —— 端到端确定性与接缝验收 | Integration | **Complete ✅ 2026-10-07** —— 实现收口 2026-10-05(`0b6f948`)+ 补做评审原件 `review-patient-ai-story-004-2026-10-07.md`(15+12 条修复,复跑绿) | ADR-027/016/012 |
+| 005 | P1 病人真模型提前 —— 灰盒胶囊 → 可识别人形(面色五色阶梯) | Visual-Feel | **Ready ⬜** —— 2026-10-12 美术提前裁定(用户取甲案 P1+P2 全提前)· sprint-07 §6 · 依赖素材本体产出(外部美术 / 用户自产) | ADR-016/009 |

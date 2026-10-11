@@ -59,12 +59,12 @@
 | epic | 项数 | 人日 | 备注 |
 |---|---|---|---|
 | player-controller 主角 | 1 | 4.0 | |
-| patient-ai(病人 + HUD 脉冲 + VFX) | 2 | 3.0 | |
+| patient-ai(病人 + HUD 脉冲 + VFX) | 2 | 3.0 | **⚠️ 2026-10-12 美术提前裁定:病人真模型 2 项提前 → story-005(P1)**,其余维持 M4 |
 | clinic-machine 医馆 | 1 | **6.0** | hero 环境,单件最重 |
 | casebook | 5 | 5.0 | 纸面族 |
 | foraging 四药材 | 4 | 3.0 | |
 | diagnosis-system | 7 | 6.3 | 铜刻度盘 |
-| emergency-procedures | 7 | 7.0 | 手术灯 Hero4K |
+| emergency-procedures | 7 | 7.0 | 手术灯 Hero4K;**⚠️ 2026-10-12 美术提前裁定:施治手势 VFX 子集(VFX#6/7)提前 → story-008(P2)**,手术灯等其余项维持 M4 |
 | inventory-and-items | 2 | 2.5 | |
 | skeuomorphic-ui VFX #1/#2 | 2 | 2.0 | |
 | prescription 戥子 | 1 | 2.0 | 錾刻 |
@@ -73,6 +73,10 @@
 > emergency 的 2 SFX → 流派归 `emergency-procedures` 但**素材在 batch-03**;
 > `skeuomorphic-ui`(3 项)已由 story-019 承接。**排期轮须逐条对 42 全表复核**
 > (即 `milestones/asset-embedding-plan-2026-10-04.md` §六 未核实项 1)。
+>
+> ⚠️ **2026-10-12 美术提前裁定(用户取甲案 P1+P2 全提前)**:两条关键路径真资产**提前至 M4 之前**,
+> 单列 story 进 sprint 序列 —— P1 = patient-ai story-005(病人真模型)· P2 = emergency-procedures
+> story-008(施治手势 VFX 子集 + 止血/CPR 素材,素材本体仍走 batch-03)。**其余 40 项维持 M4 时序不变**。
 
 ---
 
