@@ -140,6 +140,13 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         public IPresentationRoot Screen => _screen;
 
         /// <summary>
+        /// UI 根(UIDocument.rootVisualElement)—— 42 载体挂载面(BootRoot 挂候选列表)。
+        /// <para><c>Awake</c> 后非 null(<see cref="EnsureDocument"/> 已建);
+        /// <c>panel == null</c> = 逻辑树在、不渲染(缺 PanelSettings 是合法的测试形态)。</para>
+        /// </summary>
+        public VisualElement GetUiRoot() => _panel;
+
+        /// <summary>
         /// tick 边沿刷新(由驱动方调用):重读源 → 走 <see cref="CasebookScreen.ApplyData"/>。
         /// <para>只对脉案页生效(其余 Screen 的值区归各自 story / 数据绑定轮)。</para>
         /// </summary>

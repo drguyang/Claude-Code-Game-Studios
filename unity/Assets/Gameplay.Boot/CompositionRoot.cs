@@ -202,6 +202,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             var prescribeDriver = new PrescribeRequestDriver(stream, encoder,
                 prescribePorts, isHost: true);
 
+            // ── 急救候选列表生产实例宿主(S3.1 · 2026-10-11)──
+            // M2 形态件③(候选动作列表)的「运行期有载体」半边:实例化 + 喂 10 最小动作
+            // 标签(止血/通气)。动作判定 / Idle 时序 / 点击行为归 10 + 数据绑定轮 ——
+            // 本宿主只回答「列表实体存在 + 跳过入口可用」(story-023 边界①)。
+            var emergencyCandidates = new EmergencyCandidateRuntime();
+
             // ── fail-loud 兜底:S1.2 诊断数据集非空(词表/门槛装载态)──
             // ⚠️ 「空行」在**运行期**是诚实形态(未查 = 空行,禁假数据);但**装配期**空数据集
             //    = 装载失败被吞 ⇒ fail-loud(与 DiseaseOnset 不在注册表同口径)。
@@ -251,6 +257,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: PrescribePorts 装配产出 null");
             if (prescribeDriver == null)
                 throw new InvalidOperationException("Assemble: PrescribeRequestDriver 装配产出 null");
+            if (emergencyCandidates == null)
+                throw new InvalidOperationException("Assemble: EmergencyCandidateRuntime 装配产出 null");
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder,
                                                presence, spawner, patientDriver, caseDriver,
@@ -258,7 +266,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                worldSeed, vitals,
                                                casebookSource, examinationLedger, examineDriver,
                                                tickDriver, prescribeDriver, prescribePorts,
-                                               portionsStore);
+                                               portionsStore, emergencyCandidates);
         }
 
         /// <summary>

@@ -2147,3 +2147,24 @@ Task: A–E 五批 + 登记债收口已提交 f5879c3 → 下一步批次 F 收�
 - **落盘**:`sprint-07.md` §3 改「S2 ◐ 设备级入口批」+ §2 S2 注记;`InteractionInputDriver`
   文件头登记缺口。
 - **下一步**:S3 候选列表生产实例化(M2 形态件施加点③闭合)+ S2.3/S2.4 的 42 接线轮。
+
+## 2026-10-11 — sprint-07 S3 完成(候选列表生产实例化 · 全量绿)
+
+- **S3.1 载体生产实例化**:新 `EmergencyCandidateRuntime`(Gameplay.Boot):
+  - 实例化 `EmergencyCandidateList` + 喂 10 最小动作标签(止血/通气)+ 跳过入口恒在;
+  - `CompositionRoot.Assemble` 装配 + fail-loud + 进服务袋(`EmergencyCandidates`);
+  - `BootRoot` 第 6.5 步挂载到 UI 根(经 `SkeuoRuntimeDriver.GetUiRoot()`);
+  - **观测面刻意不暴露 Gameplay.UI 类型**(只 `Root` = UnityEngine.UIElements 全名 +
+    结构化只读)—— 测试装配(Sim.Contracts.Tests)无 Gameplay.UI 引用,CS0234/CS0012
+    两轮实测已消除。
+- **范围注(未假装完成)**:动作判定 / Idle 可达时序 / **跳过入口真的能跳过**的交互面
+  归 10 + 数据绑定轮(承 story-023 边界①)⇒ 不上自动跳过(玩家零输入出事件 = 假绿)。
+- **全量绿(证据)**:
+  - EditMode `s7_s3_editmode_v3.xml`:**3240 = 3193 passed · 0 failed · 1 inc · 46 skip**
+    (新测 `emergency_candidate_runtime_test` ×3 全绿:装配即实体 + 挂载进 UI 根 +
+    生产袋来源/身份稳定);
+  - PlayMode `s7_s3_playmode.xml`:**136/136 全绿**。
+- **落盘**:`sprint-07.md` §3 S3 ✅ + §2 S3.1 注记 + 收口判据七环节现状表。
+- **下一步**:S2.3/S2.4 的 42 接线轮(UI 事件 → 装配层:方笺落笔 / 戥子选档确认)+
+  第五轮人工 playtest(此时 S1 词表 + S2 E/F 入口 + S3 候选列表载体俱在 = 第一个
+  「有内容的真循环」的目视核对面)。

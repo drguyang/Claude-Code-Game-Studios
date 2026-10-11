@@ -200,6 +200,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_services.CasebookSource != null)
                 _uiDriver.Source = _services.CasebookSource;
 
+            // ── 6.5. 急救候选列表挂载(S3.1 · 2026-10-11)──
+            // 形态件③「运行期有载体」半边:经组合根的 EmergencyCandidateRuntime 把候选
+            // 列表(止血/通气 + 跳过入口)挂到 UI 根。挂载 = 纯渲染资源(42 C3)。
+            // ⚠️ 42 侧 future 若把候选列表并入某个 Screen,此处只改挂点,载体语义不变。
+            if (_services.EmergencyCandidates != null)
+                _services.EmergencyCandidates.MountTo(_uiDriver.GetUiRoot());
+
             // fail-loud(AudioListener 单挂点 · AC-20-10):>1 即抛。
             // 把「运行期每帧刷 3 万条日志 →  Editor 卡死」的失效模式提前成具名异常。
             AssertSingleAudioListener();

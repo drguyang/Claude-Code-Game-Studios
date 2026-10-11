@@ -86,6 +86,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>最小库存面(G3.2 · 20)—— 持有量映射 + 扣减的真行为。</summary>
         public MinimalPortionsStore PortionsStore { get; }
 
+        /// <summary>急救候选列表生产实例宿主(S3.1)—— 形态件③「运行期有载体」半边;
+        /// 动作判定 / Idle 时序归 10,本宿主只持列表 + 跳过入口。</summary>
+        public EmergencyCandidateRuntime EmergencyCandidates { get; }
+
         /// <summary>世界种子(存档头量;patient_seed = hash(world_seed, patient_id) 的入参)。</summary>
         public ulong WorldSeed { get; }
 
@@ -104,7 +108,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          SimTickDriver tickDriver,
                                          PrescribeRequestDriver prescribeDriver,
                                          PrescribePorts prescribePorts,
-                                         MinimalPortionsStore portionsStore)
+                                         MinimalPortionsStore portionsStore,
+                                         EmergencyCandidateRuntime emergencyCandidates)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -125,6 +130,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             PrescribeDriver = prescribeDriver;
             PrescribePorts = prescribePorts;
             PortionsStore = portionsStore;
+            EmergencyCandidates = emergencyCandidates;
             WorldSeed = worldSeed;
         }
     }
