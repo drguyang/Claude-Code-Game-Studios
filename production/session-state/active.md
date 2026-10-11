@@ -2067,3 +2067,14 @@ Task: A–E 五批 + 登记债收口已提交 f5879c3 → 下一步批次 F 收�
   人工走查七环节;当前驱动就绪但**输入入口未接** ⇒ playtest 覆盖查体/落笔/开方/施治需
   先接 Interact/Emergency 键位消费);② 玩家输入入口(键位已有零运行期消费);
   ③ ③ 候选列表生产实例化。均归下一交互轮。
+
+## 2026-10-11 — sprint-06 第四轮人工 playtest(5A 全绿)+ 提交推送
+
+- **报告**:`production/playtests/playtest-2026-10-11-m2-round4.md`(5A 全绿)
+  - Q1 病人出现=A · Q2 值区空行=A(输入入口未接,诚实面)· Q3 **零急救=A**(G4.1 红线人工半)·
+    Q4 移动/相机=A · Q5 纸面=A
+  - 无本轮新 bug;输入入口/候选列表 = 登记缺口非 bug
+- **提交推送**:`8457d5b`(G3+G4+G5,23 files / +1169 −162;垃圾 blob 未含,commit 尾行按要求)
+- **下一步候选**:玩家输入入口接线(Interact/Emergency 键零消费 → 接 ExamineDriver/JudgmentWriter/
+  PrescribeRequestDriver/EmergencyManualDriver)+ ③ 候选列表生产实例化 ⇒ M2 #8 施加点接完;
+  或数值轮 / 词表真装载面。sprint-06 主线闭环。
