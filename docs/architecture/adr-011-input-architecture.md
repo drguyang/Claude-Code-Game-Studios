@@ -23,6 +23,10 @@ Accepted
 > ③ hash 须含 `bindingId` · ④ 直读通道理由改为**抖动(方差)** · ⑤ 回调 ≠ 轮询 · ⑥ VR 归 P1b。
 > **不推翻三条核心裁决;不加宽 `IEmergencyInput`**(模拟量通道缺口登记为 `OQ-3-5`,系统 10 的前置)。
 > 详见 §Decision 的 **### Amendment A**。
+>
+> **⚠️ 2026-10-12 Amendment C(作用域声明 · sprint-08 S0.1)** —— §二 的 <50 ms 直读纪律
+> **仅约束急救动作**;拟物 UI 焦点导航与 Submit 路径归 ADR-013,**不受 50 ms 方差约束**。
+> 详见 §二 节首 Amendment C 块。
 
 ## Date
 
@@ -143,6 +147,18 @@ dr_guyang(用户 · **2026-09-15 三条裁定,均照准**)· technical-director(
   不直接写模拟域;P0 本地 = `IEventSink` 直接落,联机 = 45(ADR-001 pipe)。
 
 ### 二、急救动作独立直读通道(<50 ms 延迟路径)
+
+> **⚠️ 2026-10-12 Amendment C(作用域声明 · sprint-08 S0.1 · TD 裁定甲案)**
+> **本节的 <50 ms 直读纪律仅约束急救动作**(`EmergencyAttempt` 上行前的手感路径)。
+> 拟物 UI 的**焦点导航与 Submit 路径归 ADR-013**(42 焦点桥 `NavigationMoveEvent` +
+> `NavigationSubmitEvent`),**不受本节 50 ms 方差约束** —— 病名落笔 / 置信度循环 / 折边
+> 等行级 Submit 属 42 焦点导航既有职责,挂焦点桥**不违反本节**。
+> **被否的替代路径(乙案 · 留档)**:Submit 走设备级直读、不穿 42 —— 不可取:Submit 须
+> 路由到当前焦点目标,焦点状态由 42 持有;Boot 直读 Submit 则须读 42 的焦点态,破坏
+> ADR-013 §9 C3 只读边界,引入比方差更严重的架构问题。
+> **动机**:本 ADR §二原文未显式声明「本条仅约束急救动作」,sprint-08 落地病名栏 Submit
+> 时易被误读为「所有输入都须走直读通道」(lead-programmer BLOCKING-1 实测;TD 复核裁定
+> 为字面误读,以本 Amendment 消歧)。**不重开 §一–§三 任何既有裁决。**
 
 - **急救动作小游戏的输入直读 Input System 动作值**(`action.ReadValue<>()`),**不穿过 42 UI 事件栈**。
   > **⚠️ 2026-09-15 Amendment A 修正两处**:

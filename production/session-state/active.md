@@ -1,4 +1,4 @@
-# Session State — 2026-10-12(**当前阶段 = Pre-Production · Sprint 07 ✅ Complete(第五轮 playtest Q1 双半达成 · 残留 = polish/P2/42 登记)· Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ · M2 形态件 4/4 齐**)
+# Session State — 2026-10-12(**当前阶段 = Pre-Production · Sprint 08 🚧 In Progress(方笺交互面轮 · S0 ✅ · S1–S3 + E2E 待做)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
 
 ## Sprint 05 进展(2026-10-10)
 
@@ -1637,9 +1637,9 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 - ⬜ 系统 6 Epic(接收侧:latch/幂等/判距复验/唯一 Append)—— 转绿 AC-4-13 6 半 + AC-4-17 6 消费半
 
 <!-- STATUS -->
-Epic: sprint-08(规划)/ M2 Exit #8 复评
-Feature: 下一拍待选 —— P2 story-008 排期启动(Q2 零反馈立项依据)· 42 方笺交互面 · 词条可读性 polish
-Task: sprint-07 ✅ Complete(第五轮 playtest Q1 双半达成 · 残留登记不阻塞)→ 下一 sprint 规划待用户指令
+Epic: sprint-08(方笺交互面轮)
+Feature: S1 病名栏+病名册 · S2 方笺翻页+戥子开方 · S3 词条 polish · E2E 七环节全链门
+Task: S0 前置窄批 ✅(ADR-011 Amendment C + casebook-39 K=8 回写)→ 下一步 S1 病名册 UI
 <!-- /STATUS -->
 
 ---
@@ -2261,3 +2261,18 @@ Task: sprint-07 ✅ Complete(第五轮 playtest Q1 双半达成 · 残留登记�
   ③ 落笔/开方交互面(42)· ④ S2.1 动作资产 runtime 装载 NOT-RUN。
 - **下一拍(待用户指令)**:M2 Exit #8 复评 / sprint-08 规划 / P2 story-008 排期启动
   (Q2 零反馈已坐实「无真动作感不可判好玩」)。
+
+## 2026-10-12 — sprint-08 开轮(方笺交互面轮)+ S0 前置窄批 ✅
+
+- **规划落盘 `86932cf` + 推送**:四专家评估修订版(producer / lead-programmer / qa-lead /
+  technical-director);规模 6–8 人日;S0 前置 + S1 病名册整面 + S2 方笺翻页/戥子 + S3 polish +
+  E2E 3 条收口门(七环节全链 BLOCKING)。
+- **S0 ✅ 完成(两处文档裁定)**:
+  - **S0.1 ADR-011 Amendment C**(§二节首 + Status 头指针):<50ms 直读纪律**仅约束急救动作**;
+    拟物 UI 焦点导航与 Submit 归 ADR-013,42 挂 `NavigationSubmitEvent` 合法(TD 甲案;
+    乙案 Boot 直读否决留档 —— 破 ADR-013 C3 只读边界)。
+  - **S0.2 casebook-39 K 计数 7→8 回写**(§5.2 / §13×2 / §14 五处):折边入 K
+    (五通道+问诊栏+病名栏+折边);OQ-CB-5 甲「零新焦点位」= 仅置信度,不含折边(erratum)。
+  - 连带注:lead-programmer BLOCKING-2(NavigationDirection 闭集)经 TD 复核**降级为误判**
+    —— `DeliveredIntentTypes` 是构建期清单,非 ADR-025 装配边界。
+- **下一步**:S1 病名栏 + 病名册 UI 整面(DTO 显式携带 `lexicon_id` —— TD 第五风险钉死)。

@@ -30,12 +30,12 @@ sprint-07 后七环节状态:走近 ✅ · 查体 ✅(E 键,人工+自动化双�
 
 ## §2 任务清单
 
-### S0 前置窄批(两处文档裁定 · 先行解锁)
+### S0 前置窄批(两处文档裁定 · 先行解锁)✅ 完成 2026-10-12
 
 | 项 | 落点 | 判据(可证伪) |
 |---|---|---|
-| S0.1 ADR-011 §二 窄 Amendment | `docs/architecture/adr-011-input-architecture.md` 就地增作用域声明:**50ms 直读纪律仅约束急救动作**;拟物 UI 焦点导航与 Submit 路径归 ADR-013,不受方差约束(TD 甲案) | Amendment 落盘;42 挂 `NavigationSubmitEvent` 不再与 ADR-011 §二 字面冲突(甲案取:不穿 42 则须读 42 焦点态,破坏 ADR-013 C3 只读边界 —— 乙案否决留档) |
-| S0.2 UX spec K 计数回写 | `design/ux/casebook-39.md` K 7→8(五通道 + 问诊栏 + 病名栏 + **折边**) | K 计数与焦点序一致;OQ-CB-5 甲「零新焦点位」语义澄清 = 置信度不增第 7 内容元素,**不含折边**(折边 §5.3 已登记为可聚焦装饰) |
+| S0.1 ADR-011 §二 窄 Amendment | ✅ **Amendment C 已落盘**(`adr-011-input-architecture.md` §二节首 + Status 头指针):50ms 直读纪律**仅约束急救动作**;拟物 UI 焦点导航与 Submit 路径归 ADR-013,不受方差约束(TD 甲案;乙案 Boot 直读否决留档) | Amendment 落盘;42 挂 `NavigationSubmitEvent` 不再与 ADR-011 §二 字面冲突 |
+| S0.2 UX spec K 计数回写 | ✅ **已回写**(`casebook-39.md` §5.2 / §13×2 / §14 第 5 条四处):K 7→8(五通道 + 问诊栏 + 病名栏 + **折边**);OQ-CB-5 甲「零新焦点位」语义澄清 = 仅置信度不增焦点位,不含折边 | K 计数与焦点序一致;历史行原文保留 + ⭑ 订正注(不删原文惯例);8/42 侧 F3 算例归其回写轮 |
 
 > **BLOCKING-2 降级注记(lead-programmer 实测 → TD 复核推翻)**:
 > `InputBoundaryGates.DeliveredIntentTypes` 是 `Editor.Tools.Gates` 构建期清单,**非 ADR-025
