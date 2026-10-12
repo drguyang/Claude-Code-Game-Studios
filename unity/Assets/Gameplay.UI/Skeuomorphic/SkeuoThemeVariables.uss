@@ -106,7 +106,9 @@
        UI Toolkit 唯一吃字体的属性 = `-unity-font-definition`(FontAsset 引用),
        且它**不能经 var() 间接承载**(变量只能存颜色/尺寸 token)⇒ 各 USS
        直接 `url(guid:...)` 引字体资产,不在本文件留字体变量。
-       字体资产 = Fonts/NotoSansCJKsc-Regular.otf(guid 08d2bb8cec44437a91f7fe9707f43b2c)。 */
+       字体资产 = Fonts/NotoSansCJKsc-**Bold**.otf(guid b9b707bf05564101912cbf0f946b649f)
+       —— 2026-10-12 第五轮复验:Regular 在纸纹底上笔画过细读不清(用户实测),
+       整体切 Bold;Regular(guid 08d2bb8c…)留库备用。 */
     --skeuo-font-size-xs: 11px;
     --skeuo-font-size-sm: 13px;
     --skeuo-font-size-md: 15px;

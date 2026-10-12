@@ -44,7 +44,7 @@
 
 .paper .ink {
     color: var(--skeuo-ink-fg);
-    -unity-font-definition: url("guid:08d2bb8cec44437a91f7fe9707f43b2c");
+    -unity-font-definition: url("guid:b9b707bf05564101912cbf0f946b649f");
     font-size: var(--skeuo-font-size-md);
 }
 
@@ -79,7 +79,7 @@
     color: var(--skeuo-ink-fg);
     min-height: var(--skeuo-shared-row-height);
     padding-left: var(--skeuo-shared-space-sm);
-    -unity-font-definition: url("guid:08d2bb8cec44437a91f7fe9707f43b2c");
+    -unity-font-definition: url("guid:b9b707bf05564101912cbf0f946b649f");
     font-size: var(--skeuo-font-size-md);
 }
 
@@ -107,12 +107,12 @@
  * 运行时挂行(值区元素创建)归 9 实现轮 / 数据绑定轮 —— **本批零施加点**(承 story-022/023)。 */
 .channel-reading {
     color: var(--skeuo-ink-fg);
-    -unity-font-definition: url("guid:08d2bb8cec44437a91f7fe9707f43b2c");
+    -unity-font-definition: url("guid:b9b707bf05564101912cbf0f946b649f");
     font-size: var(--skeuo-font-size-md);
 }
 
 .channel-reading-negative {
     color: var(--skeuo-ink-faded);
-    -unity-font-definition: url("guid:08d2bb8cec44437a91f7fe9707f43b2c");
+    -unity-font-definition: url("guid:b9b707bf05564101912cbf0f946b649f");
     font-size: var(--skeuo-font-size-md);
 }

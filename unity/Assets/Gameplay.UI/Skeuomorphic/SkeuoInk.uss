@@ -10,7 +10,7 @@
        design/assets/specs/nine-slice-freeze-2026-10-08.md。 */
     background-image: url("guid:5fdd6642437ced664996d9e8d195acac");
     color: var(--skeuo-ink-fg);
-    -unity-font-definition: url("guid:08d2bb8cec44437a91f7fe9707f43b2c");
+    -unity-font-definition: url("guid:b9b707bf05564101912cbf0f946b649f");
     font-size: var(--skeuo-font-size-md);
     /* ⚠️ 2026-10-12:`text-shadow` 非 UI Toolkit 属性(同 font-family 一并删;
        UI Toolkit 无文本阴影面,墨韵由背景图 ink_light 承载)。原值:1px 1px 0 ink-faded。*/
