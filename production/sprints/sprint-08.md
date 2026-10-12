@@ -89,7 +89,7 @@ sprint-07 后七环节状态:走近 ✅ · 查体 ✅(E 键,人工+自动化双�
 | 项 | 落点 | 判据 |
 |---|---|---|
 | C1 头部状态必刷 | active.md 头部 + STATUS 块 + sprint 行状态 | 收口 commit 含 active.md 头部变更(git 可验) |
-| C3 评审门 | 本 sprint ≥1 轮双代理评审 | 评审原件落 `production/qa/evidence/` |
+| ~~C3 评审门~~ **✅ 2026-10-13** | 本 sprint ≥1 轮双代理评审 | 评审原件落 `production/qa/evidence/`。**合判 = C3 通过,零 BLOCKING**:**qa-lead APPROVED**(5 动作全清零:A-1 ⑦环头注过claim 订正 / A-2 三发变异实测 ④⑤⑦ 各恰红 1 / A-3 M2 ③+AC-39-10 复评勾选 / A-4 三处分工登记)+ **lead-programmer CHANGES REQUIRED(3 条 P2/P3,自陈不阻断结案,ADR 符合性 8/8)**:A2 已做(收集方 anchor 亲属限定;生产侧经评估**不加 name** —— 会破守护测 `test_bookContainer_isAnonymous`,假阳风险由收集方收窄,同批两处 + 全量复绿);A1(三处 Submit/三件套重复抽 helper)与 A3(void TearDown 对齐)**登记入 tech-debt / polish 轮**(不阻断收口,判据已写死) |
 
 ---
 
@@ -105,10 +105,10 @@ sprint-07 后七环节状态:走近 ✅ · 查体 ✅(E 键,人工+自动化双�
   ⚠️ **截图 / 几何腿 = 人工走查**(batch 出不了图,实测);自动化腿已跑满,人工腿禁借绿
 - **收口判据**:E2E-3 七环节全链 BLOCKING 绿 ✅ 2026-10-13(PlayMode 161/161 + EditMode 3308 = 3261/0/46/1 零回归)· 第六轮人工 playtest · C1/C3 全绿
 - **M2 Exit #8 复评可勾清单(qa-lead)**:
-  - [ ] ③ EmergencyCandidateList 生产实例化(S1 病名册入口落地后勾)
-  - [x] ② 墨龄上游落笔 tick ✅ **2026-10-13 E2E-3 ⑦ 环**:`InkAgeTicks > 0` 落笔后从 0 起算(ac-42-G6;链内真组合根判定,非合成 fixture)
+  - [x] ③ EmergencyCandidateList 生产实例化 ✅ **2026-10-13 C3 复评勾选**(qa-lead A-3):`new EmergencyCandidateRuntime()` = `CompositionRoot.cs:246` + `BootRoot.cs:229` `MountTo(UiRoot)` —— sprint-05/07 时「零生产实例化(仅测试)」病因已消除(复评核验路径见 evidence 报告 §四)
+  - [x] ② 墨龄上游落笔 tick ✅ **2026-10-13 E2E-3 ⑦ 环**:`InkAgeTicks > 0` 落笔后从 0 起算(ac-42-G6;链内真组合根判定,非合成 fixture;**变异实测**:删 tick 推进 ⇒ ⑦环恰红)
   - [x] ④ RevealedRows 非空 + 病名册条目集 ⊆ 已见过病集 ✅ **2026-10-13 E2E-3 ③④ 环**:查体后 `RevealedRows` = 19 条(探针实测)+ 条目 id = `SeenLexiconIds[0]` 词表反查显式 id(已见集真源 = SkillGrown,ADR-026 ⑥;反幻想二由 `test_lexiconBook_unseenDisease_notPointable` 另立)
-  - [ ] 翻页/折页零事件(AC-39-10:39 的 `IEventSink.Append` 调用数 = 0)—— 判据在 `casebook_page_turn_test` ④(S2.1 已绿);**E2E-3 全链内翻页在 ⑤⑦ 环之间,事件增量恰 = 2 条(开方 + 施治),翻页本身不增**——形式上已复核,正式复评归 qa-lead 轮
+  - [x] 翻页/折页零事件(AC-39-10:39 的 `IEventSink.Append` 调用数 = 0)✅ **2026-10-13 C3 正式复评通过**(qa-lead A-3):判据载体 `casebook_page_turn_test.test_pageTurnAndFold_zeroStreamEvents`(真组合根命令路由,Stream.Count 前后相等,S2.1 已绿);**生产侧 no-op 空体**(`CasebookCommandRouter.SubmitPageTurn`/`SubmitFold`,`:196`/`:201`)⇒ 结构性不可能写流(非「有写路径被测试绕开」);E2E-3 链内 ⑤→⑦ 间事件增量恰 2(开方 + 施治),翻页本身不增
 
 ## §4 风险与依赖
 

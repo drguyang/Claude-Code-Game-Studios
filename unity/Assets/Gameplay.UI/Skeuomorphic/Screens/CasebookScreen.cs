@@ -430,7 +430,14 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
             if (_lexiconBook == null)
             {
-                // 匿名容器(无 name ⇒ 不进 spec 面 name 序)—— 挂在右页病名栏行之后
+                // 匿名容器(无 name ⇒ 不进 spec 面 name 序)—— 挂在右页病名栏行之后。
+                // ⚠️ 2026-10-13 C3 lead-programmer A2 **评估后决定不加 name**:加 name 虽不破
+                //   交叉断言(它扫 UXML 文档 vs BuildUI 构造期树,本容器运行期才建),但会破
+                //   `casebook_lexicon_book_test.test_bookContainer_isAnonymous_notInNamedSequence`
+                //   —— 该守护扫的是**运行期树**且明断 `DoesNotContain(named, "lexicon-book")`。
+                //   假阳收集风险改由**收集方**收窄:E2E / point_identify 两处 EntryRows 由
+                //   全树宽匹配改为「病名栏 anchor 的父容器内的 int userData 子树」
+                //   (判定 = 条目必经 anchor 后邻容器,不依赖容器 naming)。
                 _lexiconBook = new VisualElement();
                 var anchor = _root.Q<VisualElement>("channel-disease-name");
                 anchor?.parent?.Add(_lexiconBook);

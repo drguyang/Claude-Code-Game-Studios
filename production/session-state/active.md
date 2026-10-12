@@ -2498,4 +2498,22 @@ Task: S0 前置窄批 ✅ + S1.0 词表烘焙管线 ✅ + S1.1 病名册 UI 整�
 
 **M2 Exit #8 复评**:② 墨龄 + ④ RevealedRows/条目集 **可勾**(链内真组合根判定,非合成 fixture);③ 仍不勾(候选列表非本链判据);AC-39-10 翻页零事件判据在 `casebook_page_turn_test` ④(S2.1 已绿),链内形式复核 = 翻页在⑤⑦之间事件增量恰 2(开方+施治),正式复评归 qa-lead 轮。
 
-**下一步**:第六轮人工 playtest(含 S3 截图腿 + 几何腿目视)+ C3 双代理评审(原件落 `production/qa/evidence/`)+ 收口。
+**C3 双代理评审(2026-10-13 · 原件落 `production/qa/evidence/`)**:
+- **qa-lead 半边**:判决 **APPROVED**(零 BLOCKING)—— `review-sprint08-e2e3-qa-2026-10-13.md`。
+  动作清单 5 项已全部清零:A-1 ⑦环头注过claim 订正(病名栏回显 = 未实现,归 42 后续轮;
+  测试零断言,非假绿)✅ · A-2 补两发变异实测(变⑤ 删 Grant ⇒ ⑤环红;变⑦ 删 tick 推进
+  ⇒ ⑦环红;连变④ 共**三发**,各恰红 1 后还原复跑绿)✅ · A-3 M2 Exit #8 勾 ③(EmergencyCandidateRuntime
+  已生产实例化 = 组合根 246 + BootRoot 229)与 AC-39-10(生产 no-op 空体,结构性不可能写流)✅ ·
+  A-4 三处分工登记(链内首落 / S1.1 三态循环 / EditMode 路由+末值 AC-37-05)✅ ·
+  A-5 readability 源留后续 qa 轮(禁借绿登记已合规)。
+- **lead-programmer 半边** = **CHANGES REQUIRED(3 条 P2/P3 · 零 BLOCKING · 自陈不阻断结案)**
+  —— `review-sprint08-e2e3-code-2026-10-13.md`:ADR 符合性 8/8、测试零泄漏(带卫兵设备还原
+  + 反射 fail-loud)、2500 tick 零副作用有结构依据、S3 var 纪律三处 + readability 测试守卫。
+  **A2 已做**(收集方 anchor 亲属限定,生产侧加 name 会破 `test_bookContainer_isAnonymous`
+  守护 ⇒ 评估后不改生产,假阳风险由两测试收集方收窄,全量复绿);**A1(三处 helper 重复抽取)
+  + A3(void TearDown 对齐参考测)登记 tech-debt/polish 轮**(判据写死,不阻断收口)。
+- **C3 合判 = 通过(零 BLOCKING,一 APPROVED + 一 CHANGES-不阻断 + 3 动作处置完毕或登记)**。
+
+**M2 Exit #8 复评清单现状**:②③④ + AC-39-10 **四条全勾**(均为链内真组合根判定或生产码核验,非合成 fixture)。
+
+**下一步**:第六轮人工 playtest(含 S3 截图腿 + 几何腿目视)+ lead-programmer 半边报告 + 收口。

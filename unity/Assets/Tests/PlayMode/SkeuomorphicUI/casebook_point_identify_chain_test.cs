@@ -246,10 +246,17 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         // ── helpers ─────────────────────────────────────────────────────────
 
         /// <summary>病名册条目行(匿名容器内,userData 为 int)。</summary>
+        /// <summary>病名册条目行(限「病名栏 anchor 的父容器」子树;userData = 显式 lexicon_id)。</summary>
+        /// <remarks>⚠️ 2026-10-13 C3 lead-programmer A2:原为全树 `userData is int` 宽匹配 ——
+        /// UI 新增别处 int userData 即假阳收集。生产侧病名册容器保持**匿名**(守护测
+        /// `test_bookContainer_isAnonymous_notInNamedSequence` 扫运行期树明断无 name)⇒
+        /// 收集方靠 anchor 亲属限定:条目必经「病名栏行 → 父容器(右栏)」内新建容器。</remarks>
         private static List<VisualElement> EntryRows(VisualElement root)
         {
             var rows = new List<VisualElement>();
-            Walk(root);
+            VisualElement anchor = root.Q<VisualElement>("channel-disease-name");
+            VisualElement scope = anchor?.parent ?? root;   // 右栏子树(条目容器挂在其中)
+            Walk(scope);
             return rows;
 
             void Walk(VisualElement e)

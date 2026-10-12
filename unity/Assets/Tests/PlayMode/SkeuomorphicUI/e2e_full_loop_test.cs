@@ -15,7 +15,12 @@
 //      (dose_potency 载荷;翻页/折页零流事件,AC-39-10);
 //   ⑥ 施治:注入虚拟 F(同 interaction_input_chain_test 三件套 —— 用户裁定)⇒
 //      EmergencyAttempt + EmergencyTreatmentApplied 双事件入病史流;
-//   ⑦ 纸面反馈:落笔后 InkAgeTicks > 0 + 通道行仍渲染词条 + 病名栏回显所指病名。
+//   ⑦ 纸面反馈:落笔后 InkAgeTicks > 0 + 通道行仍渲染词条(翻回脉案页值区存活)。
+//   ⚠️ **2026-10-13 C3 qa-lead 评审订正(A-1)**:本行原稿曾声称「病名栏回显所指病名」,
+//     经核生产 `CasebookScreen.ApplyData` **零回显写入点**(grep `channel-disease-name`
+//     只见 Submit 回调 + 册容器锚点),测试**也未为它编断言** ⇒ 原措辞是**过claim**
+//     (文档声称已完成而实现缺席)。**病名栏回显 = 未实现项,归 42 后续轮** ——
+//     本测⑦ 只断言墨龄 + 值区存活两项(均有真断言兜底)。
 //
 // ⚠️ **判据与输入路径解耦**(sprint-08 §4 预裁):语义动作层走 CasebookScreen 公开方法
 //   + 真 NavigationSubmitEvent 派发(照 casebook_point_identify_chain_test 先例);
@@ -30,6 +35,22 @@
 //
 // ⚠️ **真派发口径(2026-10-12 实测)**:`NavigationSubmitEvent` 目标由
 //   `FocusController.focusedElement` 决定 ⇒ 提交前必须 `Focus()`(引擎真实语义)。
+//
+// ✅ **C3 qa-lead 评审 A-2 兑现(2026-10-13 三发变异全实测,各恰红 1 后还原复跑绿)**:
+//   变④ 删 `screen.BindCommandSink(...)` ⇒ ④环红(0 判断事件);
+//   变⑤ 删 `PortionsStore.Grant(...)`(无货)⇒ ⑤环红(DrugTreatmentApplied = 0)
+//        —— 同时证「库存前置真生效」(S2.3 C3-M3 口径:拒绝权归库存,不归接线层);
+//   变⑦ 删落笔后 `_bag.TickDriver.Advance(0.05d)` ⇒ ⑦环红(InkAgeTicks = 0)。
+//   (纸面定位删除点的做法按 M2 阶段 2 教训不作数 —— 多层门冗余结构上对纸面推演盲目,
+//    故 ⑤⑦ 两发由实测补齐。)
+//
+// ⚠️ **与 S1.1 单测的分工(C3 A-4 登记)**:④ 环本测只判「首落 Recorded + 显式 lexiconId
+//   + 疑似」一笔;**三态循环(疑似→确定→擦除回空)不在本链内复判** —— 全链覆盖归
+//   `casebook_point_identify_chain_test.test_lexiconBook_submitCycle_threeStates`
+//   (真组合根、恰三笔、擦除 lexicon_id = 0,强度高于链内插两次 Submit);
+//   **病例流侧**的路由(Recorded/Revised → 病例流)+ 末值语义(AC-37-05 J(c) = 全序
+//   最后一条判断事件,非差分合成)归 EditMode `case_open_and_judgment_test`。
+//   三处分工互不替代,均已有真断言兜底。
 
 using System.Collections;
 using System.Collections.Generic;
@@ -299,11 +320,17 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             return false;
         }
 
-        /// <summary>病名册条目行(匿名容器内,userData 为 int)。</summary>
+        /// <summary>病名册条目行(限「病名栏 anchor 的父容器」子树;userData = 显式 lexicon_id)。</summary>
+        /// <remarks>⚠️ 2026-10-13 C3 lead-programmer A2:原为全树 `userData is int` 宽匹配 ——
+        /// UI 新增别处 int userData 即假阳收集。生产侧病名册容器保持**匿名**(守护测
+        /// `test_bookContainer_isAnonymous_notInNamedSequence` 扫运行期树明断无 name)⇒
+        /// 收集方靠 anchor 亲属限定:条目必经「病名栏行 → 父容器(右栏)」内新建容器。</remarks>
         private static List<VisualElement> EntryRows(VisualElement root)
         {
             var rows = new List<VisualElement>();
-            Walk(root);
+            VisualElement anchor = root.Q<VisualElement>("channel-disease-name");
+            VisualElement scope = anchor?.parent ?? root;   // 右栏子树(条目容器挂在其中)
+            Walk(scope);
             return rows;
 
             void Walk(VisualElement e)
