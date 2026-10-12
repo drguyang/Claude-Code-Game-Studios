@@ -60,21 +60,36 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             private readonly List<SignLexemeRow> _rows;
             private readonly int _slot;
             private readonly long _inkAge;
+            private readonly List<int> _seenLexiconIds;
 
             public FakeCasebookSource(int signCount,
                                       IReadOnlyList<SignLexemeRow> rows, int slot,
-                                      long inkAgeTicks = 0L)
+                                      long inkAgeTicks = 0L,
+                                      IReadOnlyList<int> seenLexiconIds = null)
             {
                 _signCount = signCount;
                 _rows = rows != null ? new List<SignLexemeRow>(rows) : new List<SignLexemeRow>();
                 _slot = slot;
                 _inkAge = inkAgeTicks;
+                _seenLexiconIds = seenLexiconIds != null
+                    ? new List<int>(seenLexiconIds) : new List<int>();
             }
 
             public int ActiveSignCount => _signCount;
             public IReadOnlyList<SignLexemeRow> RevealedRows => _rows;
             public int PrecisionSlot => _slot;
             public long InkAgeTicks => _inkAge;
+            public IReadOnlyList<int> SeenLexiconIds => _seenLexiconIds;
+
+            /// <summary>待落笔档位(sprint-08 S1.1 件 E2;测试可注入)。</summary>
+            public byte _pendingConfidence;
+            public byte PendingConfidence => _pendingConfidence;
+
+            public string TextOfLexicon(int lexiconId)
+                => _lexiconText != null && _lexiconText.TryGetValue(lexiconId, out var t) ? t : null;
+
+            /// <summary>词条文本表(测试可注入;默认空 ⇒ TextOfLexicon 恒 null)。</summary>
+            public Dictionary<int, string> _lexiconText = new Dictionary<int, string>();
 
             public void SetRows(IReadOnlyList<SignLexemeRow> rows)
             {

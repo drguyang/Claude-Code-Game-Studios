@@ -80,9 +80,12 @@ namespace DaYiJingCheng.EditorTools.Gates
         private static readonly (string Kind, string Reason)[] ExemptKinds =
         {
             // ── 37 病例系统(本批已落 JudgmentRecorded;余三支归 37 实现轮)──
+            // ⚠️ 2026-10-12 撤 `JudgmentRevised` 豁免(sprint-08 S1.1 F0/G):写者经
+            //   JudgmentWriter.TryRevise 落地(三态循环的改判 / 擦除两步),且
+            //   IPayloadEncoder.EncodeJudgmentRevised 具名通道已补 —— 判据①
+            //   「已存在写者的 Kind 仍挂豁免表 = 红」强制撤表。
             ("CaseClosed", "37 结案写者未落 —— 处置证据窗口 / 幂等拒收的写入面归 37 实现轮;CaseCloseDecider 现为纯函数(2026-10-10)"),
             ("PatternRecognized", "37 同源检测写者未落 —— PatternDetector 现为纯函数,盐派生 + 冻结三元组写入归 37 实现轮(2026-10-10)"),
-            ("JudgmentRevised", "同 JudgmentRecorded:写者未落 + freehand_text 编码通道未裁(ADR-029 §① 修正 ④),归 37 实现轮(2026-10-10)"),
 
             // ── 9 疾病与伤情模拟 ──
             ("PlayerDied", "9 致死判据写者未落 —— registry author 自述「Append 调用点 = 0」(entities.yaml PlayerDied 条);归 9 实现轮(2026-10-10)"),

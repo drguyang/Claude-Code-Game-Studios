@@ -278,6 +278,10 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             public PayloadRef EncodeJudgmentRecorded(
                 in JudgmentRecordedPayload payload, string freehandText)
                 => new PayloadRef(0, 0, 0);
+
+            public PayloadRef EncodeJudgmentRevised(
+                in JudgmentRevisedPayload payload, string freehandText)
+                => new PayloadRef(0, 0, 0);
         }
     }
 }

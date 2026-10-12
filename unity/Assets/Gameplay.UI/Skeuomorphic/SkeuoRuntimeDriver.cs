@@ -66,6 +66,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         [SerializeField] private List<StyleSheet> _styleSheets = new List<StyleSheet>();
 
         private ICasebookDtoSource _source;
+        private ICasebookCommandSink _commandSink;
 
         private VisualElement _panel;
         private IPresentationRoot _screen;
@@ -106,6 +107,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             }
 
             // ── T2.1:DTO 绑定(标记接口 IDtoSource 的 42 侧实现) ──
+            // 写通道若先于 Awake 赋值(场景序列化顺序不定),此处补绑一次(幂等)
+            if (_commandSink != null && _screen is CasebookScreen preBound)
+                preBound.BindCommandSink(_commandSink);
+
             if (Source != null)
             {
                 _screen.Bind(Source);
@@ -133,6 +138,24 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                     _screen.Bind(_source);
                     RefreshFromSource();
                 }
+            }
+        }
+
+        /// <summary>
+        /// 屏外注入的**写通道**(sprint-08 S1.1 件 F1 —— 42 UI 事件 → 装配层写者)。
+        /// <para>实现方住装配层(<c>CasebookCommandRouter</c>);42 不反向引用装配层
+        /// (ADR-025 §① 装配方向不可倒),故经此属性注入(与 <see cref="Source"/> 同款)。</para>
+        /// <para>⚠️ 未注入 ⇒ 病名栏 Submit **留空**(不崩、不造动作):与「缺源 = 空行」同纪律
+        /// —— 缺写通道不是错误态,是未接线的诚实形态(测试 / 无命令面装配)。</para>
+        /// </summary>
+        public ICasebookCommandSink CommandSink
+        {
+            get => _commandSink;
+            set
+            {
+                _commandSink = value;
+                if (_screen is CasebookScreen casebook)
+                    casebook.BindCommandSink(_commandSink);
             }
         }
 

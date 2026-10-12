@@ -89,6 +89,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             set => _boundPatient = value;
         }
 
+        /// <summary>本宿主持有的落笔写者(装配层内共享面 —— sprint-08 S1.1 起
+        /// <see cref="CasebookCommandRouter"/> 复用**同一实例**,使 <see cref="SetAuthor"/>
+        /// 的作者同步对两条写路径同时生效:单写者 = 单一作者真源,不新开第二个
+        /// <c>JudgmentWriter</c>(两个实例会各自持 <c>_authorPlayerId</c> = 第二份真相)。</summary>
+        public JudgmentWriter Writer => _judgment;
+
         /// <summary>绑定病人(查体驱动调用;与 CasebookSource.ChangePatient 同步)。</summary>
         public void BindPatient(PatientId patient) => _boundPatient = patient;
 

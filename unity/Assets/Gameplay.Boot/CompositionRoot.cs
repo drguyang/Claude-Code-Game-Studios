@@ -19,10 +19,12 @@
 using System;
 using System.Collections.Generic;
 using DaYiJingCheng.Gameplay.Presentation;
+using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
+using DaYiJingCheng.Sim.Contracts.SkillSystem;
 using DaYiJingCheng.Sim.DiseaseSimulation;
 using DaYiJingCheng.Sim.EmergencyProcedures;
 using DaYiJingCheng.Sim.Prescription;
@@ -161,8 +163,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   (ADR-014 §五;乙案走真 Addressables —— 用户 2026-10-11 裁定)。装配入口
             //   provider 注入 ⇒ 测试可传合成 fixture(禁 Fake 惯例);provider 缺 ⇒ 判据红。
             var examinationLedger = new ExaminationLedger();
-            var casebookSource = new CasebookVitalsSource(examinationLedger,
-                stream.Events, tickDriver);
+            // ⚠️ casebookSource 的构造**后移**到 seenDisease / lexiconBook 之后
+            //   (sprint-08 S1.1 件 E:病名册条目集经 SeenLexiconIds 接入 42 只读源)。
 
             // 查体求值的**求值输入**(真烘焙产物):词条 34 行 + 门槛 61 档。
             // ⚠️ 装载策略(2026-10-11 用户裁定「乙案 + EditMode 直读兜底」):
@@ -196,6 +198,35 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   —— 初始档数值归数值轮,机制面从「恒 0」解冻。
             var examineDriver = new ExamineDriver(vitals, examinationLedger, queryLevel: 1);
             examineDriver.SetLexicon(examineRows, in readFloor);
+
+            // ── 「查体 ⇒ 见过病 D」投影器(sprint-08 S1.1 件 B · 2026-10-12)──
+            // 病名册条目集的数据源:查体完成 ⇒ 写一条 SkillGrown(诊断, 病种 D)落病史流。
+            // ⚠️ NoveltyTracker = 运行期加速缓存(真源在病史流,ADR-026 ⑥);冷却期取默认
+            //   24000 tick(= 20 min @ 20 Hz;数值轮可调,见 NoveltyTracker.CooldownTicks)。
+            // ⚠️ 写路径 = 装配层写者形态(与 AssemblySkillGrowthPort 同构;不走 8 的
+            //   DiagnosisGrowthGate —— 该门需 IEventAuthority 生产实装,归 P1b/52,见类头注)。
+            var noveltyTracker = new NoveltyTracker();
+            var seenDisease = new SeenDiseaseProjector(vitals, noveltyTracker, stream, encoder);
+
+            // ── 病名册条目源(sprint-08 S1.1 件 C/D · 2026-10-12)──
+            // 词表 = S1.0 已烘产物(`case_judgment_lexicon.cooked.bytes`),本批接入装载。
+            // 装载策略同 S1.2(provider != null ⇒ Addressables 乙案;否则 DiagnosisCookedDisk
+            // 磁盘兜底 —— 同一份字节 + 同一 codec,零第二真源)。
+            JudgmentLexiconDataSet lexiconTable;
+            if (dataProvider != null)
+                lexiconTable = dataProvider.Load<JudgmentLexiconDataSet>();
+            else
+                lexiconTable = DiagnosisCookedDisk.LoadJudgmentLexicon();
+            var lexiconBook = new LexiconBookSource(lexiconTable.Rows);
+
+            // ── 42 侧只读源(sprint-08 S1.1 件 E 起:病名册条目集接入)──
+            // 依赖已备齐(ledger / 病例流 / tick / seenDisease / lexiconBook)⇒ 此处构造。
+            // 玩家 actorId 由 BootRoot 生成玩家后 SetViewer(装配期未知 —— 与
+            // PrescriptionPageHost.SetAuthor 同款后置形态)。
+            // ⚠️ 命令路由(casebookCommands)在下方处方链之后才构造(需复用方笺页的
+            //   JudgmentWriter)—— 故此处**暂传 null**,待路由就绪后经 BindCommands 接回。
+            var casebookSource = new CasebookVitalsSource(examinationLedger,
+                stream.Events, tickDriver, seenDisease, lexiconBook);
 
             // ── 处方链(G3 · 2026-10-11 用户裁定「最小生产端口实装」)──
             // 21a(换算/药物档案)+ 20(库存面)+ 30(成长)三端口最小实装 + 驱动,
@@ -231,6 +262,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                 initialAuthorId: -1);
             // ⚠️ 种子玩家补发(见上方 `portionsStore.Grant(0,…)`):id 0 的种子已在
             //   装配期发;若未来种子改随 SetAuthor 走,此注为登记点。C3-M3 修复完成。
+
+            // ── 脉案命令路由(sprint-08 S1.1 件 F2/G · 2026-10-12)──
+            // 42 病名栏 Submit(ICasebookCommandSink)⇒ JudgmentWriter(Recorded / Revised,
+            // OQ-CB-5 甲循环落笔)。⚠️ **复用方笺页的同一 JudgmentWriter 实例**
+            // (prescriptionPage.Writer)—— 作者同步(SetAuthor)只在一处,不新开第二写者。
+            var casebookCommands = new CasebookCommandRouter(
+                prescriptionPage.Writer, () => tickDriver.CurrentTick);
+            // 后置接回:命令路由就绪后把档位面接进 42 只读源(构造序所限,见本源 BindCommands 注)
+            casebookSource.BindCommands(casebookCommands);
 
             // ── fail-loud 兜底:S1.2 诊断数据集非空(词表/门槛装载态)──
             // ⚠️ 「空行」在**运行期**是诚实形态(未查 = 空行,禁假数据);但**装配期**空数据集
@@ -269,6 +309,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: ExaminationLedger 装配产出 null");
             if (examineDriver == null)
                 throw new InvalidOperationException("Assemble: ExamineDriver 装配产出 null");
+            if (seenDisease == null)
+                throw new InvalidOperationException("Assemble: SeenDiseaseProjector 装配产出 null");
+            if (lexiconBook == null)
+                throw new InvalidOperationException("Assemble: LexiconBookSource 装配产出 null");
             if (tickDriver == null)
                 throw new InvalidOperationException("Assemble: SimTickDriver 装配产出 null");
             if (drugCatalog == null)
@@ -285,15 +329,18 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: EmergencyCandidateRuntime 装配产出 null");
             if (prescriptionPage == null)
                 throw new InvalidOperationException("Assemble: PrescriptionPageHost 装配产出 null");
+            if (casebookCommands == null)
+                throw new InvalidOperationException("Assemble: CasebookCommandRouter 装配产出 null");
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder,
                                                presence, spawner, patientDriver, caseDriver,
                                                emergencyDriver, emergencyManual, patientVisuals,
                                                worldSeed, vitals,
                                                casebookSource, examinationLedger, examineDriver,
+                                               seenDisease, lexiconBook,
                                                tickDriver, prescribeDriver, prescribePorts,
                                                portionsStore, emergencyCandidates,
-                                               prescriptionPage);
+                                               prescriptionPage, casebookCommands);
         }
 
         /// <summary>

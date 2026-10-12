@@ -176,6 +176,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    —— 方笺页落笔 / 开方对象 = 当前脉案绑定病人(42 侧会话)。
             _services.PrescriptionPage?.SetAuthor(actorId);
 
+            // ── 4.7. 病名册观看者(sprint-08 S1.1 件 E):SetViewer(玩家 actorId 已定)──
+            // 病名册条目集按人分册(铁律⑤「每人一本」)—— 观看者 = 玩家。
+            // 至此 42 脉案源可读病名册(未设 ⇒ 病名册空,反幻想二)。
+            _services.CasebookSource?.SetViewer(actorId);
+
             // ── 5. 相机机位装配(sprint-05 T1.5 · 2026-10-10 AudioListener 泄漏修复)──
             // ADR-020:相机 = 自建机位,不引入 Cinemachine
             // 跟随 = 每帧把相机位置设到玩家位置 + 偏移
@@ -210,6 +215,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             _uiDriver = FindOrCreateSkeuoUi();
             if (_services.CasebookSource != null)
                 _uiDriver.Source = _services.CasebookSource;
+            // ── 6.1 写通道注入(sprint-08 S1.1 件 F1):病名栏 Submit → 装配层写者 ──
+            // 42 只渲染不持状态(ADR-013 §9 C3)⇒ 病名栏 Submit 经命令面转发给装配层的
+            // CasebookCommandRouter(实现 ICasebookCommandSink)。缺注入 ⇒ Submit 留空(不崩)。
+            if (_services.CasebookCommands != null)
+                _uiDriver.CommandSink = _services.CasebookCommands;
 
             // ── 6.5. 急救候选列表挂载(S3.1 · 2026-10-11)──
             // 形态件③「运行期有载体」半边:经组合根的 EmergencyCandidateRuntime 把候选

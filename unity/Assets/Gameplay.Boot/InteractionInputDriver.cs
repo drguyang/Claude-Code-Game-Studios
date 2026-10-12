@@ -86,6 +86,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (target.Value < 0) return;
 
             _services.ExamineDriver.OnExamine(target, CurrentTick);
+            // sprint-08 S1.1 件 B:查体完成 ⇒ 记「见过病 D」(诊断成长落病史流)。
+            // ⚠️ 次序:OnExamine 先(病人须已建档 + 快照落册),投影器再读 Courses 取病种 D。
+            //   投影器 fail-loud(病人未建档 ⇒ PatientCourseNotFoundException)—— 但 OnExamine
+            //   已先 GetVitals(同款 fail-loud),故此处病人在场性已被前置判据兜住。
+            _services.SeenDisease?.OnExamined(target, CurrentTick, _actorId);
             _services.CasebookSource?.ChangePatient(target);
             _services.PrescriptionPage?.BindPatient(target);   // 方笺页对象同步(S2.3/S2.4)
             LastExaminedPatient = target;

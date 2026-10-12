@@ -58,9 +58,9 @@ sprint-07 后七环节状态:走近 ✅ · 查体 ✅(E 键,人工+自动化双�
 
 | 项 | 落点 | 依赖 | 判据(可证伪) |
 |---|---|---|---|
-| S1.1 病名册 UI 整面 | 42 新面:病名栏 Submit → 翻开病名册(OQ-CB-1 甲案);条目 = **已见过的病名**(派生态,由事件流重建;反幻想二:未见过的病名不可指认);**DTO 条目显式携带 `lexicon_id`**,Submit 用该字段而非显示索引(TD 第五风险 —— 显示序 ≠ lexicon_id 序时隐式映射 = 第二真源失效) | S0 | `test_lexiconBook_unseenDisease_notPointable`:Given 病名未见过;When 翻册;Then 条目集不含该病 |
-| S1.2 指认 → 落笔 | 玩家指认条目(虚拟按键注入,非自动)→ `lexicon_id` 落 `JudgmentRecorded`(病例流)+ `PrescriptionPageHost.WriteJudgment` → 墨龄 > 0 | S1.1 | `test_lexiconBook_pointIdentify_writesJudgmentRecordedWithLexiconId`:Then 病例流新增 JudgmentRecorded,lexiconId = X ordinal + confidence = 疑似 + 墨龄 > 0;**变异删接线 ⇒ 零事件恰红** |
-| S1.3 置信度三态循环 | 同栏重复 Submit = OQ-CB-5 甲案:空 → 疑似 → 确定 → 擦除回空(零新焦点位) | S1.2 | `test_lexiconBook_submitCycle_threeStates`:When 同栏再 Submit ×2;Then confidence 循环 疑似→确定→擦除 |
+| ~~S1.1 病名册 UI 整面~~ **✅ 2026-10-12** | 42 新面:病名栏 Submit → 翻开病名册(OQ-CB-1 甲案);条目 = **已见过的病名**(派生态,由事件流重建;反幻想二:未见过的病名不可指认);**DTO 条目显式携带 `lexicon_id`**,Submit 用该字段而非显示索引(TD 第五风险 —— 显示序 ≠ lexicon_id 序时隐式映射 = 第二真源失效) | S0 | `test_lexiconBook_unseenDisease_notPointable`:Given 病名未见过;When 翻册;Then 条目集不含该病 |
+| ~~S1.2 指认 → 落笔~~ **✅ 2026-10-12** | 玩家指认条目(虚拟按键注入,非自动)→ `lexicon_id` 落 `JudgmentRecorded`(病例流)+ `PrescriptionPageHost.WriteJudgment` → 墨龄 > 0 | S1.1 | `test_lexiconBook_pointIdentify_writesJudgmentRecordedWithLexiconId`:Then 病例流新增 JudgmentRecorded,lexiconId = X ordinal + confidence = 疑似 + 墨龄 > 0;**变异删接线 ⇒ 零事件恰红** |
+| ~~S1.3 置信度三态循环~~ **✅ 2026-10-12** | 同栏重复 Submit = OQ-CB-5 甲案:空 → 疑似 → 确定 → 擦除回空(零新焦点位) | S1.2 | `test_lexiconBook_submitCycle_threeStates`:When 同栏再 Submit ×2;Then confidence 循环 疑似→确定→擦除 |
 
 ### S2 方笺页渲染 + 翻页 + 戥子选档开方(开方环节玩家可达 · 42)
 

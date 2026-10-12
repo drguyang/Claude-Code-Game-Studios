@@ -7,11 +7,13 @@
 // ⚠️ 本程序集零 JSON 解析、零 FixParse(AC-48 结构守卫 RuntimeSourceGuard 扫描面内)。
 
 using System;
+using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 using SignDataSet = DaYiJingCheng.Gameplay.Presentation.Diagnosis.DiagnosisSignDataSet;
 using ReadFloorDataSet = DaYiJingCheng.Gameplay.Presentation.Diagnosis.DiagnosisReadFloorDataSet;
+using LexiconDataSet = DaYiJingCheng.Gameplay.Presentation.Casebook.JudgmentLexiconDataSet;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 
@@ -39,6 +41,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
 
             /// <summary>门槛定表文件名(同上)。</summary>
             public const string Floor = "diagnosis_read_floor.cooked.bytes";
+
+            /// <summary>病名册词表文件名(sprint-08 S1.1 件 D;S1.0 已烘产物)。</summary>
+            public const string Lexicon = "case_judgment_lexicon.cooked.bytes";
         }
 
         /// <summary>词条表 address(S1.2;bake 产物同目录)。</summary>
@@ -46,6 +51,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
 
         /// <summary>门槛定表 address(S1.2;bake 产物同目录)。</summary>
         public const string ReadFloorTableAddress = SignsAddr.Floor;
+
+        /// <summary>病名册词表 address(sprint-08 S1.1 件 D;S1.0 已烘未接)。</summary>
+        public const string JudgmentLexiconAddress = SignsAddr.Lexicon;
 
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
@@ -55,6 +63,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         // 8 侧两数据集型经文件头 **using 别名**(SignDataSet / ReadFloorDataSet)引入。
         private SignDataSet? _signs;
         private ReadFloorDataSet? _readFloor;
+        // 病名册词表(sprint-08 S1.1 件 D):struct(2026-10-12 改)⇒ 可空承载。
+        private LexiconDataSet? _lexicon;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -85,9 +95,15 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureReadFloor();
                 return (TDataSet)(object)_readFloor.Value;
             }
+            // ── S1.1 件 D(2026-10-12):病名册词表经 codec 装载 ──
+            if (typeof(TDataSet) == typeof(LexiconDataSet))
+            {
+                EnsureLexicon();
+                return (TDataSet)(object)_lexicon.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
-                "IDataProvider 只承载 ItemDataSet / RecipeDataSet + 两份 8 侧产物(S1.2 扩)");
+                "IDataProvider 只承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -98,6 +114,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureRecipes();
             EnsureSigns();
             EnsureReadFloor();
+            EnsureLexicon();
         }
 
         private void EnsureItems()
@@ -160,6 +177,22 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 8 门槛定表 cooked 解码失败(address={ReadFloorTableAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureLexicon()
+        {
+            if (_lexicon.HasValue) return;
+            byte[] bytes = FetchBytes(JudgmentLexiconAddress);
+            try
+            {
+                _lexicon = JudgmentLexiconCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 病名册词表 cooked 解码失败(address={JudgmentLexiconAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }
         }

@@ -207,8 +207,14 @@ namespace DaYiJingCheng.Tests.PlayMode
                 "按 E 应查体中最近在场病人(判据①)");
             Assert.IsTrue(_bag.ExaminationLedger.HasExamined(pid),
                 "按 E → 查体分册有该病人快照");
-            Assert.AreEqual(streamCountBefore, _bag.Stream.Count,
-                "查体 = 派生态,病史流零新事件(乙案)");
+            // ⚠️ 2026-10-12 改判(sprint-08 S1.1 件 B):原判据「查体 = 派生态,病史流零新事件」
+            //   **已作废** —— 查体现在**写一条** SkillGrown(诊断技能,objectId = 病种 D)入病史流,
+            //   这是病名册「已见集」的真源(ADR-026 ⑥「不独立快照,从流重构」)。
+            //   新判据 = 恰一条,且类型 = SkillGrown(不多不少 —— 变异敏感)。
+            Assert.AreEqual(streamCountBefore + 1, _bag.Stream.Count,
+                "查体 ⇒ 病史流恰 +1 条(SkillGrown;件 B 改判 —— 旧「零新事件」已作废)");
+            Assert.IsTrue(StreamHas(_bag.Stream, EventKind.SkillGrown),
+                "新增那条 = SkillGrown(诊断成长,病名册已见集真源;ADR-026 ⑥)");
 
             yield return null;
         }

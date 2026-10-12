@@ -4,6 +4,13 @@
 
 Accepted
 
+> **⚠️ 2026-10-12 就地补注(sprint-08 S1.1 · 非裁决,是**登记**)**:§四 Key Interfaces 原稿
+> 的接口**全为入向**(`Bind` / `SetFocusGate`),**无出向面** —— 而病名栏 Submit 必须由 42
+> 自己接焦点桥再转发给装配层(ADR-011 **Amendment C** 2026-10-12 已裁此口径,并否决
+> 「Boot 直读 Submit」)。本批补 §四 的**首个出向契约** `ICasebookCommandSink`
+> (42 UI 事件 → 装配层写者;实现方住装配层,42 经 DTO 回读档位)。**不重开 §一–§九 任何裁决**
+> —— 这是补一个 §四 结构性缺项(写面),不是改判只读纪律(§9 C3 原样)。
+
 > **2026-09-15 起草并转 Accepted。** 三条用户裁定已锁:① **UI Toolkit 为主 + UGUI 补 world-space/XR**
 > (平面拟物 UI 全走 UI Toolkit UXML/USS;世界空间与 VR 急救 UI 走 UGUI world canvas,补 E-16 空白);
 > ② **P0 定两栈接口与元件库契约,VR / world-space 的立体适配推到 P1a**(VR 急救不在 P0 关键路径);
@@ -293,6 +300,23 @@ public interface IFocusNavigationPresenter
     // 用官方桥 NavigationMoveEvent;焦点移动由 UI Toolkit FocusController 自动完成(F2)
     // 不重复实现焦点算法;禁同键双触发(只用官方 Navigate action)
     bool IsFocusActive { get; }
+}
+
+// ── 出向写通道(⚠️ 2026-10-12 补 · sprint-08 S1.1)──────────────────
+// 上文接口**全为入向**(Bind / SetFocusGate —— 装配层 → 42)。
+// 本节补首个**出向**契约:42 的 UI 事件 → 装配层写者。
+// 必要性(ADR-011 **Amendment C** 2026-10-12 已裁):行级 Submit 必须路由到
+//   **当前焦点目标**(焦点态由 42 持有)⇒ Submit 只能由 42 自己接,
+//   再转发给装配层;「Boot 直读 Submit」被否(那会迫使 Boot 读 42 的焦点态,
+//   破坏本 ADR §9 C3 只读边界 —— 比方差更严重的架构问题)。
+// 形态:与只读面 ICasebookDtoSource 镜像 —— 接口住 Gameplay.UI(42 侧契约),
+//   **实现方住装配层**(Gameplay.Boot),经 SkeuoRuntimeDriver 注入
+//   (装配方向不可倒,ADR-025 §①)。42 零状态:档位等游戏状态住实现方,
+//   42 经只读 DTO **回读**(与 InkAgeTicks 同构)。
+public interface ICasebookCommandSink   // 首个实例(39 脉案;其余屏按需另立)
+{
+    void SubmitDiseaseName(int lexiconId);  // 病名栏指认(显式 lexicon_id,非显示索引)
+    void SubmitConfidence();                // 同栏重复 Submit ⇒ 档位循环(OQ-CB-5 甲)
 }
 
 // ── 无障碍钩子(F8,只留接口不实现)──

@@ -57,6 +57,17 @@ namespace DaYiJingCheng.Sim.Codec
             return new PayloadRef(blobId, 0, bytes.Length);
         }
 
+        /// <inheritdoc />
+        /// <remarks>2026-10-12 补(承 ADR-029 §① 修正④ 的对称缺口)—— 见
+        /// <see cref="IPayloadEncoder.EncodeJudgmentRevised"/>。</remarks>
+        public PayloadRef EncodeJudgmentRevised(in JudgmentRevisedPayload payload,
+                                                string freehandText)
+        {
+            byte[] bytes = PayloadCodec.Encode(in payload, freehandText ?? string.Empty);
+            int blobId = _blobSink.Store(bytes);
+            return new PayloadRef(blobId, 0, bytes.Length);
+        }
+
         /// <summary>
         /// 按 Kind 分派到 <see cref="PayloadCodec"/> 的具名 <c>Encode</c> 重载。
         /// 镜像 <c>PayloadCodec.DecodeBoxed</c>(ADR-029 §Implementation Guidelines)。

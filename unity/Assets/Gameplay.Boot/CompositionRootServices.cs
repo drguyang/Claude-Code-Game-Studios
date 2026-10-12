@@ -77,6 +77,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>查体入口驱动(G1)—— 玩家对病人查体 ⇒ 8 求值 ⇒ 分册快照。</summary>
         public ExamineDriver ExamineDriver { get; }
 
+        /// <summary>「查体 ⇒ 见过病 D」投影器(sprint-08 S1.1 件 B)—— 查体后写一条
+        /// <c>SkillGrown</c>(诊断, 病种 D)落病史流;病名册条目集的数据源。</summary>
+        public SeenDiseaseProjector SeenDisease { get; }
+
+        /// <summary>病名册条目源(sprint-08 S1.1 件 C)—— 已见集经词表反查 ⇒ 可指认
+        /// <c>lexicon_id</c> 列表(守密:只出 lexicon_id,不出 disease_id)。</summary>
+        public LexiconBookSource LexiconBook { get; }
+
         /// <summary>处方驱动(G3)—— 戥子落笔意图 → PrescribeFlow 五步 → DrugTreatmentApplied 入病史流。</summary>
         public PrescribeRequestDriver PrescribeDriver { get; }
 
@@ -94,6 +102,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// PrescribeRequestDriver;UI 事件 → 装配层的接线面(BootRoot SetAuthor 后可用)。</summary>
         public PrescriptionPageHost PrescriptionPage { get; }
 
+        /// <summary>脉案命令路由(sprint-08 S1.1 件 F2/G)—— 实现 42 侧
+        /// <c>ICasebookCommandSink</c>:病名栏 Submit ⇒ JudgmentWriter(Recorded / Revised,
+        /// OQ-CB-5 甲循环落笔);档位经 <see cref="CasebookSource"/> 回读给 42。</summary>
+        public CasebookCommandRouter CasebookCommands { get; }
+
         /// <summary>世界种子(存档头量;patient_seed = hash(world_seed, patient_id) 的入参)。</summary>
         public ulong WorldSeed { get; }
 
@@ -109,12 +122,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          CasebookVitalsSource casebookSource,
                                          ExaminationLedger examinationLedger,
                                          ExamineDriver examineDriver,
+                                         SeenDiseaseProjector seenDisease,
+                                         LexiconBookSource lexiconBook,
                                          SimTickDriver tickDriver,
                                          PrescribeRequestDriver prescribeDriver,
                                          PrescribePorts prescribePorts,
                                          MinimalPortionsStore portionsStore,
                                          EmergencyCandidateRuntime emergencyCandidates,
-                                         PrescriptionPageHost prescriptionPage)
+                                         PrescriptionPageHost prescriptionPage,
+                                         CasebookCommandRouter casebookCommands)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -131,12 +147,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             CasebookSource = casebookSource;
             ExaminationLedger = examinationLedger;
             ExamineDriver = examineDriver;
+            SeenDisease = seenDisease;
+            LexiconBook = lexiconBook;
             TickDriver = tickDriver;
             PrescribeDriver = prescribeDriver;
             PrescribePorts = prescribePorts;
             PortionsStore = portionsStore;
             EmergencyCandidates = emergencyCandidates;
             PrescriptionPage = prescriptionPage;
+            CasebookCommands = casebookCommands;
             WorldSeed = worldSeed;
         }
     }

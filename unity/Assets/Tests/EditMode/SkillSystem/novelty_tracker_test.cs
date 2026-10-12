@@ -369,5 +369,65 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
                 tracker.Query(1, 0, 1, 50); // 回退到 50 < 100
             }, "currentTick < lastSeenTick 须抛 ArgumentOutOfRangeException");
         }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // EnumerateSeenObjects(sprint-08 S1.1 —— 病名册条目集数据源)
+        // ═══════════════════════════════════════════════════════════════════
+
+        /// <summary>空字典 → 空数组(未见过任何对象)。</summary>
+        [Test]
+        public void test_enumerate_emptyTracker_returnsEmpty()
+        {
+            var tracker = new NoveltyTracker(NOVELTY_COOLDOWN);
+            Assert.That(tracker.EnumerateSeenObjects(1, 0), Is.Empty,
+                "未见过任何对象 → 空数组");
+        }
+
+        /// <summary>已见对象升序返回(字典遍历序不确定 ⇒ 须显式排序)。</summary>
+        [Test]
+        public void test_enumerate_returnsSeenObjects_sortedAscending()
+        {
+            var tracker = new NoveltyTracker(NOVELTY_COOLDOWN);
+            tracker.Query(1, 0, 5, 100);
+            tracker.Query(1, 0, 2, 100);
+            tracker.Query(1, 0, 9, 100);
+
+            Assert.That(tracker.EnumerateSeenObjects(1, 0), Is.EqualTo(new[] { 2, 5, 9 }),
+                "已见对象升序(确定性序,跨平台稳定)");
+        }
+
+        /// <summary>按 actor 与 skill 隔离 —— 别 actor / 别 skill 的对象不混入。</summary>
+        [Test]
+        public void test_enumerate_isolatedByActorAndSkill()
+        {
+            var tracker = new NoveltyTracker(NOVELTY_COOLDOWN);
+            tracker.Query(1, 0, 7, 100);   // 目标
+            tracker.Query(2, 0, 8, 100);   // 别 actor
+            tracker.Query(1, 4, 9, 100);   // 别 skill
+
+            Assert.That(tracker.EnumerateSeenObjects(1, 0), Is.EqualTo(new[] { 7 }),
+                "只返回 (actor=1, skill=0) 的已见对象");
+        }
+
+        /// <summary>冷却内(Stale)也算「已见」—— 语义 = 见过,非冷却已过。</summary>
+        [Test]
+        public void test_enumerate_staleObject_stillSeen()
+        {
+            var tracker = new NoveltyTracker(NOVELTY_COOLDOWN);
+            tracker.Query(1, 0, 3, 100);          // First
+            tracker.Query(1, 0, 3, 101);          // Stale(冷却内)
+
+            Assert.That(tracker.EnumerateSeenObjects(1, 0), Is.EqualTo(new[] { 3 }),
+                "Stale 条目仍是「已见」");
+        }
+
+        /// <summary>负参 fail-loud。</summary>
+        [Test]
+        public void test_enumerate_negativeArgs_throw()
+        {
+            var tracker = new NoveltyTracker(NOVELTY_COOLDOWN);
+            Assert.Throws<ArgumentOutOfRangeException>(() => tracker.EnumerateSeenObjects(-1, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => tracker.EnumerateSeenObjects(1, -1));
+        }
     }
 }

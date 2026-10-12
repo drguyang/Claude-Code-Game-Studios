@@ -135,6 +135,33 @@ namespace DaYiJingCheng.Sim.Contracts.SkillSystem
             _lastSeenTicks[key] = newTick;
         }
 
+        /// <summary>枚举某 actor 在某 skill 下**已见过**的全部 object_id(升序去重)。
+        /// <para>「已见过」= 字典中有条目(无论 First / Stale / Normal)—— 语义 = 「见过」非「冷却已过」。</para>
+        /// <para>⚠️ 病名册条目集的数据源(sprint-08 S1.1):调用方据此 + 词表 `disease_ids` 反查
+        /// 得可指认的 `lexicon_id` 列表(守密:调用方在装配层,不见 disease_id 出边界)。</para></summary>
+        /// <param name="actorId">玩家/实体 id。</param>
+        /// <param name="skillId">技能 id(诊断 = 0)。</param>
+        /// <returns>已见 object_id 升序数组(空 = 未见过任何)。</returns>
+        public int[] EnumerateSeenObjects(int actorId, int skillId)
+        {
+            if (actorId < 0)
+                throw new ArgumentOutOfRangeException(nameof(actorId),
+                    $"actorId={actorId} 不能为负");
+            if (skillId < 0)
+                throw new ArgumentOutOfRangeException(nameof(skillId),
+                    $"skillId={skillId} 不能为负");
+
+            var seen = new List<int>();
+            foreach (var kv in _lastSeenTicks)
+            {
+                if (kv.Key.ActorId == actorId && kv.Key.SkillId == skillId)
+                    seen.Add(kv.Key.ObjectId);
+            }
+            // 升序确定性序(字典遍历序不确定 —— 跨平台/跨运行须稳定,承 ADR-005 确定性)
+            seen.Sort();
+            return seen.ToArray();
+        }
+
         /// <summary>移除 (actorId, skillId, objectId) 条目(如角色销毁)。</summary>
         public bool Remove(int actorId, int skillId, int objectId)
         {

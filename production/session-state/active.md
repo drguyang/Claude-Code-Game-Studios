@@ -1,4 +1,4 @@
-# Session State — 2026-10-12(**当前阶段 = Pre-Production · Sprint 08 🚧 In Progress(方笺交互面轮 · S0 ✅ · S1.0 ✅ · S1.1–S3 + E2E 待做)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
+# Session State — 2026-10-12(**当前阶段 = Pre-Production · Sprint 08 🚧 In Progress(方笺交互面轮 · S0 ✅ · S1.0 ✅ · **S1.1 ✅** · S1.2/S1.3 判据已随 S1.1 落绿 · S2–S3 + E2E-3 待做)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
 
 ## Sprint 05 进展(2026-10-10)
 
@@ -1639,7 +1639,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 <!-- STATUS -->
 Epic: sprint-08(方笺交互面轮)
 Feature: S1 病名栏+病名册 · S2 方笺翻页+戥子开方 · S3 词条 polish · E2E 七环节全链门
-Task: S0 前置窄批 ✅ + S1.0 词表烘焙管线 ✅ → 下一步 S1.1 病名册 UI 整面
+Task: S0 前置窄批 ✅ + S1.0 词表烘焙管线 ✅ + S1.1 病名册 UI 整面 ✅ → 下一步 S2 方笺翻页 + 戥子选档
 <!-- /STATUS -->
 
 ---
@@ -2307,3 +2307,60 @@ Task: S0 前置窄批 ✅ + S1.0 词表烘焙管线 ✅ → 下一步 S1.1 病�
   代码内联 fallback(`RegistrySchema`),无交叉检查输入,归 `disease_registry.json` 烘焙落地轮。
 - **下一步**:S1.1 病名册 UI 整面(42 侧 `CasebookScreen` 病名栏 Submit → 翻册 → 指认 → 落笔;
   DTO 显式携带 `lexicon_id` —— TD 第五风险钉死)。
+
+## 2026-10-12 — sprint-08 S1.1 病名册 UI 整面 ✅(件 A–H 全落 · 双变异验证)
+
+> **性质**:本会话从「A–E 已落、F/G/H 待做」的工作树断点续起。用户整体批准 A–H 后落盘;
+> 途中**发现三处结构缺口**,经 AskUserQuestion 三项裁定后一并解决(见下)。
+
+- **兑现**:`sprint-08.md` §2 的 S1.1(病名栏 Submit → 翻册 → 指认 → 落笔)+ S1.2/S1.3 判据
+  (指认落 `JudgmentRecorded` / 三态循环)。**玩家路径从「无入口」变为「可达」**:
+  病名栏落焦 + Submit ⇒ 病名册摊开(右页内嵌,**非新 ModalId**)⇒ 条目落焦 + Submit ⇒ 指认
+  ⇒ 病例流新增判断事件 + 墨龄起算。
+- **落点(件 A–H)**:
+  - **A** `NoveltyTracker.EnumerateSeenObjects`(Sim.Contracts)· **B** 新 `SeenDiseaseProjector`
+    (查体 ⇒ `SkillGrown` 落病史流,诊断技能/objectId = 病种)· **C** 新 `LexiconBookSource`
+    (已见集 → 词表反查 → 只出 `lexicon_id`)· **D** 词表 cooked 接入装载 ·
+    **E** `ICasebookDtoSource` 加 `SeenLexiconIds` + `PendingConfidence` + `TextOfLexicon`
+  - **F** `CasebookScreen` 病名册交互面 · **G** 三态循环(空→疑似→确定→擦除)·
+    **H** UXML 零改(容器**运行时建且匿名** ⇒ spec 面 name 序一字未动,交叉断言零回归)
+- **途中发现并解决的三处结构缺口(用户三项裁定)**:
+  1. **F/G 无写路径** —— ADR-013 §四 的接口**全为入向**,42 拿不到装配层写者。
+     裁定 = **甲:Gameplay.UI 新出向契约 `ICasebookCommandSink`**(实现方住装配层,
+     42 经 DTO 回读档位)。**已就地登记 ADR-013 §四 + Status 头补注**(非裁决,是补结构性缺项)。
+  2. **`JudgmentRevised` 无编码通道** —— ADR-029 §① 修正④ 只给 `JudgmentRecorded` 开了
+     freehandText 具名口,改判 / 擦除两步**写不出去**。裁定 = **甲:补对称具名重载**
+     (`IPayloadEncoder.EncodeJudgmentRevised` + `PayloadEncoder` 实装)。**连带**:b7 门
+     (`WriterExistenceGate`)的 `JudgmentRevised` 豁免**须撤**(判据①「已有写者仍挂豁免 = 红」强制)。
+  3. **三态档位归属** —— 裁定 = **甲:住装配层(`CasebookCommandRouter`),42 经 DTO 回读**
+     (与 `InkAgeTicks` / `SeenLexiconIds` 同构 ⇒ 42 零游戏状态字段,AC-42-D3 不破)。
+- **真 bug ×1(验证途中抓出)**:`texture_binding_gate_test` 以 `private void AddChannel(...)`
+  为**结构锚点**;我为取回病名行改签名为 `private VisualElement` ⇒ 门红。**修 = 回退签名**
+  (改用 `rightColumn.Q<...>` 取回行)—— 承「**不得削弱既有门以迁就重构**」。
+- **本库第一处「真派发」接线判据**:2026-10-12 实测确立 —— `NavigationSubmitEvent` 的目标
+  由 `FocusController.focusedElement` 决定,**无焦点时事件被引擎丢弃**(裸 `SendEvent` 探针命中 0;
+  先 `Focus()` 再发 ⇒ 命中 1)。这不是夹具怪癖而是引擎语义(导航提交永远落在当前焦点元素),
+  故「先落焦、再提交」= 玩家真实动作序。**据此把 wiring 测从「断言 handler 已注册」的弱形态
+  升级为「真 panel + 真派发」的强形态**,并加反向守卫测(无焦点被丢弃)。
+- **验证(全绿 · 证据 `unity/UnityLogsTmp/`)**:
+  - EditMode 全量 **3297 = 3250 / 0 / 1inc / 46skip**(与 S1.0 基线同 —— 零回归;
+    46 skip 全为既有的 NOT-RUN/ADVISORY `[Ignore]` 登记件)。证据 `s8_s11_em_full.xml`。
+  - PlayMode 全量 **148/148**(基线 142 ⇒ **+6**:3 wiring + 3 全链)。证据 `s8_s11_pm_final.xml`。
+  - 新增测:EditMode `casebook_command_router_test`(9)· PlayMode `casebook_lexicon_book_test`(9)·
+    PlayMode `casebook_point_identify_chain_test`(3,跨层全链)。
+- **双变异验证(承「禁借绿」)**:
+  - **变异 1 删病名栏接线** ⇒ 恰 **4 红**(2 wiring + 2 全链),语义判据 ①–⑥ **仍绿** ——
+    证「语义对 / 接线缺」两态可分辨。
+  - **变异 2 删条目行接线** ⇒ 恰 **3 红**(1 wiring + 2 全链),病名栏 wiring 测仍绿 ——
+    两处接线**各自可证伪**,无共模遮蔽。
+- **改判一处旧判据**:`interaction_input_chain_test.test_virtualE_readsAnd_triggersExamine` 原断言
+  「查体 = 派生态,病史流零新事件」**已作废** —— 件 B 让查体写**一条** `SkillGrown`
+  (病名册已见集真源,ADR-026 ⑥)。新判据 = 恰 +1 条且类型 = `SkillGrown`。
+- **登记(非阻塞 · 三处)**:
+  1. **`Boot.unity` 无 `EventSystem` + `InputSystemUIInputModule`**(仅 `SpikeAssump6.unity` 有)
+     ⇒ **运行期真实焦点导航不可达**;S1 判据因此走 E2E-3 的解耦形态(语义层 + 真派发接线测)。
+     接线落点归**焦点接线轮**(今日零焦点施加者 ⇒ 冲突不可观测 = 非缺陷,承 `SkeuoRuntimeDriver` 头注)。
+  2. **`NoveltyTracker` 的流重建器不存在** —— S1 计划 §1 称「已见集可从病史流重建」,
+     但**无重建实现**(现仅运行期增量)。归 **7a 读档轮**(ADR-010 / ADR-026 ⑥)。
+  3. ADR-013 §四 写面补注 —— **已就地落盘**(见上)。
+- **下一步**:S2 方笺页渲染 + 翻页 + 戥子选档开方(依赖 S1)。

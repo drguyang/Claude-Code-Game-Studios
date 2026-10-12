@@ -40,6 +40,23 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         private readonly VisualElement _root;
         private readonly SkeuoElementLibrary _library;
 
+        /// <summary>写通道(sprint-08 S1.1 件 F1)—— 病名栏 Submit 转发目标。
+        /// <para>⚠️ 可为 null(未接线 ⇒ Submit 留空,不崩、不造动作)。</para></summary>
+        private ICasebookCommandSink _commandSink;
+
+        /// <summary>病名册是否摊开(**纯呈现态**,零游戏状态 —— 与
+        /// <see cref="ClinicPanelScreen"/> 的 <c>_refreshPending</c> 同格;
+        /// 翻页 / 折页零写入,<c>AC-39-10</c>)。</summary>
+        private bool _bookOpen;
+
+        /// <summary>病名册容器(**匿名**,运行时建于右页内 —— 不进 UXML spec 面 name 序,
+        /// 故交叉断言零回归;见 <see cref="RefreshLexiconBook"/>)。</summary>
+        private VisualElement _lexiconBook;
+
+        /// <summary>最近一次 <see cref="ApplyData"/> 传入的脉案源(病名册条目集的重读面 ——
+        /// 每次摊开 / 刷新都重读它,**不缓存副本**;ADR-013 §9 C3)。</summary>
+        private ICasebookDtoSource _sourceForBook;
+
         /// <summary>创建脉案页。</summary>
         public CasebookScreen(VisualElement root, SkeuoElementLibrary library) : base(root)
         {
@@ -72,6 +89,14 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             // 置信度不落独立焦点控件(OQ-CB-5 K=6:病名焦点内循环 确定/疑似)
             var rightColumn = new VisualElement { name = "right-column" };
             AddChannel(rightColumn, "channel-disease-name", "病名");
+            // 病名栏 Submit ⇒ 摊开病名册(casebook-39 §5.2 / §7「病名栏 Submit」行;
+            // OQ-CB-1 甲:键鼠与手柄**同一册同一路径**)。⚠️ 焦点回调挂在此行 —— 由官方桥
+            // NavigationSubmitEvent 触发(ADR-013 §五;ADR-011 Amendment C 2026-10-12 明确
+            // Submit 属 42 焦点导航职责,不受 §二 50ms 直读约束)。
+            // ⚠️ 经 Q<> 取回行(不改 AddChannel 签名 —— texture_binding_gate_test 以
+            //    `private void AddChannel(...)` 为**结构锚点**,签名一改门即红,禁削弱该门)。
+            rightColumn.Q<VisualElement>("channel-disease-name")
+                .RegisterCallback<NavigationSubmitEvent>(OnDiseaseNameSubmit);
             var confidence = _library.Create(SkeuoElement.Paper);
             confidence.name = "confidence-mark";
             confidence.Add(new Label("?") { name = "confidence-question" });
@@ -111,6 +136,95 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             row.AddToClassList("ruled"); // 线格(M2 形态件① · story-021):字段由线格划出(art-bible §7.7)
             row.Add(new Label(labelText));
             parent.Add(row);
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // 写通道与病名册(sprint-08 S1.1 件 F/G · 2026-10-12)
+        //
+        // 病名栏 Submit 的**两个面**:
+        //   ① 首次 Submit ⇒ **摊开病名册**(右页内嵌,非新模态;casebook-39 §5.2);
+        //   ② 病名册条目行 Submit ⇒ **指认**该条词(`lexicon_id`)⇒ 写通道转发。
+        //
+        // ⚠️ 病名册容器**运行时建**(BuildUI 不建)⇒ UXML spec 面 name 序**一字未改**
+        //   (交叉断言 `casebook_render_test` / `casebook_lexicon_test` 零回归);
+        //   容器与条目行**匿名 / 动态名**,不进 spec 面。
+        // ⚠️ 42 只渲染不持状态(ADR-013 §9 C3):本屏只持**病名册开合**(纯呈现态,
+        //   翻页 / 折页零写入,AC-39-10)与写通道引用;**档位不在此**(住装配层,
+        //   经 DTO 回读 —— 见 ICasebookDtoSource.PendingConfidence)。
+        // ══════════════════════════════════════════════════════════════════════
+
+        /// <summary>注入写通道(42 UI 事件 → 装配层写者;未注入 ⇒ Submit 留空)。</summary>
+        public void BindCommandSink(ICasebookCommandSink sink) => _commandSink = sink;
+
+        /// <summary>病名册是否摊开(纯呈现态观测面)。</summary>
+        public bool IsLexiconBookOpen => _bookOpen;
+
+        /// <summary>病名栏 Submit 处理(焦点桥入口 → 语义方法)。</summary>
+        /// <remarks>⚠️ 生产路径 = 官方桥 <c>NavigationSubmitEvent</c>(ADR-013 §五);
+        /// 判据面 = <see cref="SubmitDiseaseNameBar"/>(语义层直调 —— sprint-08 §4 已裁
+        /// 「判据与输入路径解耦:语义层直调,输入路径另立 wiring 测」)。</remarks>
+        private void OnDiseaseNameSubmit(NavigationSubmitEvent _) => SubmitDiseaseNameBar();
+
+        /// <summary>条目行 Submit 处理(焦点桥入口 → 语义方法)。</summary>
+        private void OnLexiconEntrySubmit(NavigationSubmitEvent evt)
+        {
+            if (evt.target is VisualElement row && row.userData is int lexiconId)
+                PointLexicon(lexiconId);
+        }
+
+        /// <summary>
+        /// 病名栏落笔(**语义动作面** —— 未摊开 ⇒ 摊开病名册;已摊开 ⇒ 循环落笔)。
+        /// </summary>
+        /// <remarks>⚠️ 循环落笔的第 2/3 步(确定 / 擦除)经
+        /// <see cref="ICasebookCommandSink.SubmitConfidence"/> 交给装配层 ——
+        /// 42 **不持档位**(OQ-CB-5 甲;档位 = 事件载荷值 = 游戏状态)。</remarks>
+        public void SubmitDiseaseNameBar()
+        {
+            if (!_bookOpen)
+            {
+                _bookOpen = true;
+                RefreshLexiconBook();
+                return;
+            }
+            _commandSink?.SubmitConfidence();
+        }
+
+        /// <summary>指认一条词(**语义动作面**;条目行 Submit 的转发目标)。</summary>
+        /// <param name="lexiconId">显式 <c>lexicon_id</c>(非册内显示索引 —— TD 第五风险)。</param>
+        public void PointLexicon(int lexiconId) => _commandSink?.SubmitDiseaseName(lexiconId);
+
+        /// <summary>
+        /// 重建病名册条目(从只读 DTO 源**重读** —— 零缓存,ADR-013 §9 C3)。
+        /// <para>条目集 = <see cref="ICasebookDtoSource.SeenLexiconIds"/>(已见过病 ⇒ 词表反查);
+        /// 未见过的病**不在册**(AC-8-43/44 反幻想二)。**零搜索 / 零分类 / 零自动补全 / 零体征线索**。</para>
+        /// <para>条目文本经 <see cref="ICasebookDtoSource.TextOfLexicon"/> 取(42 不持词表)。</para>
+        /// </summary>
+        private void RefreshLexiconBook()
+        {
+            if (_sourceForBook == null) return;
+
+            if (_lexiconBook == null)
+            {
+                // 匿名容器(无 name ⇒ 不进 spec 面 name 序)—— 挂在右页病名栏行之后
+                _lexiconBook = new VisualElement();
+                var anchor = _root.Q<VisualElement>("channel-disease-name");
+                anchor?.parent?.Add(_lexiconBook);
+            }
+            _lexiconBook.Clear();
+
+            IReadOnlyList<int> ids = _sourceForBook.SeenLexiconIds;
+            if (ids == null) return;
+            for (int i = 0; i < ids.Count; i++)
+            {
+                int lexiconId = ids[i];
+                string text = _sourceForBook.TextOfLexicon(lexiconId);
+                var entry = _library.Create(SkeuoElement.Paper);
+                entry.focusable = true;                 // 条目可聚焦(手柄翻册指认)
+                entry.userData = lexiconId;             // 显式 lexicon_id(非显示索引 —— TD 第五风险)
+                entry.Add(new Label(text ?? string.Empty));
+                entry.RegisterCallback<NavigationSubmitEvent>(OnLexiconEntrySubmit);
+                _lexiconBook.Add(entry);
+            }
         }
 
         // ══════════════════════════════════════════════════════════════════════
@@ -169,6 +283,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         {
             if (dtoSource == null)
                 throw new System.ArgumentNullException(nameof(dtoSource));
+
+            _sourceForBook = dtoSource;   // 病名册重读面(零缓存副本,只存引用)
+            if (_bookOpen) RefreshLexiconBook();   // 已摊开 ⇒ 随 tick 边沿刷新条目集
 
             // 门:零体征 ⇒ 全空行(tripwire 语义,DiseaseVitalsService 恒 mask=0/count=0;
             // 一旦 9 侧接线产出真词条,本门自动放行,无需改此处)。

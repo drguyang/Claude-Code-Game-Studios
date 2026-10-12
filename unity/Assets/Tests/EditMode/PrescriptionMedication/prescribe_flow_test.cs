@@ -44,6 +44,10 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
         public PayloadRef EncodeJudgmentRecorded(
             in JudgmentRecordedPayload payload, string freehandText)
             => new PayloadRef(0, 0, 0);
+
+        public PayloadRef EncodeJudgmentRevised(
+            in JudgmentRevisedPayload payload, string freehandText)
+            => new PayloadRef(0, 0, 0);
     }
 
     /// <summary>事件 sink 探针(主机唯一 Append 的落点)。</summary>

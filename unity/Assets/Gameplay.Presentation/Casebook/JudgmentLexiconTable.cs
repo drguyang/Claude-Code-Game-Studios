@@ -37,17 +37,22 @@ namespace DaYiJingCheng.Gameplay.Presentation.Casebook
         }
     }
 
-    /// <summary>词表烘焙产物的运行期数据集(行集 + 头部版本)。</summary>
-    public sealed class JudgmentLexiconDataSet
+    /// <summary>词表烘焙产物的运行期数据集(行集 + 头部版本)。
+    /// <para>⚠️ <b>struct(2026-10-12 S1.1 件 D 改)</b>:原 sealed class 无法经
+    /// <c>IDataProvider.Load&lt;T&gt;() where T : struct</c> 装载(该约束是 ADR-014 §五 的
+    /// 装载面契约,两个 sibling 数据集 <c>DiagnosisSignDataSet</c> / <c>RecipeDataSet</c>
+    /// 皆 struct)⇒ 词表须同形。字段改 public field(object initializer 兼容),
+    /// 语义零变化(只承载行集 + 两版本号)。</para></summary>
+    public struct JudgmentLexiconDataSet
     {
         /// <summary>词条行集(源 JSON 序;append-only ordinal 递增)。</summary>
-        public IReadOnlyList<JudgmentLexemeRow> Rows { get; set; } = Array.Empty<JudgmentLexemeRow>();
+        public IReadOnlyList<JudgmentLexemeRow> Rows;
 
         /// <summary>源数据集内容哈希派生的 ConfigVersion(u32;ADR-014 §五)。</summary>
-        public uint ConfigVersion { get; set; }
+        public uint ConfigVersion;
 
         /// <summary>源 <c>schema_version</c> 回声(u32)。</summary>
-        public uint SchemaVersion { get; set; }
+        public uint SchemaVersion;
     }
 
     /// <summary>词表校验器(AC-37-35 结构半 + ordinal/形状闭集;构建期硬失败)。

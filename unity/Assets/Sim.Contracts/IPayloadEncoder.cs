@@ -62,5 +62,22 @@ namespace DaYiJingCheng.Sim.Contracts
         /// <returns>指向池中不可变字节的寻址引用。</returns>
         PayloadRef EncodeJudgmentRecorded(in JudgmentRecordedPayload payload,
                                           string freehandText);
+
+        /// <summary>
+        /// JudgmentRevised 的具名编码路径(ADR-029 §① 修正④ 的**接口面**,与
+        /// <see cref="EncodeJudgmentRecorded"/> 逐字对称)。
+        /// <para>⚠️ <b>2026-10-12 补(sprint-08 S1.1)</b>:修正④ 原稿只给
+        /// JudgmentRecorded 开了具名口,JudgmentRevised 同属 freehandText 例外却
+        /// **无接口面** ⇒ 三态循环(空→疑似→确定→擦除)的改判 / 擦除两步写不出去。
+        /// <c>PayloadCodec.Encode(in JudgmentRevisedPayload, string)</c> 早已存在
+        /// (<c>PayloadCodec.Case.cs:163</c>),缺的只是本接口的这一行。</para>
+        /// <para>不改 <see cref="Encode{T}"/> 的既有行为:该支仍抛
+        /// <see cref="NotSupportedException"/>(错误串指向本方法)。</para>
+        /// </summary>
+        /// <param name="payload">JudgmentRevised 载荷(五字段,不含 freehandText)。</param>
+        /// <param name="freehandText">自由书写文本(P0 空串;G-3 变长 UTF-8 段)。</param>
+        /// <returns>指向池中不可变字节的寻址引用。</returns>
+        PayloadRef EncodeJudgmentRevised(in JudgmentRevisedPayload payload,
+                                         string freehandText);
     }
 }

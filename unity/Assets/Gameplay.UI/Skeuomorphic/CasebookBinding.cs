@@ -55,5 +55,65 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// 42 侧因此**零计时器 / 零时钟读取**(AC-42-G6 反射面:42 内无计时器字段)。</para>
         /// <para>负值 = 落笔 tick 在未来 = 数据错误(fail-loud 由实现方负责)。</para>
         long InkAgeTicks { get; }
+
+        /// <summary>病名册可指认条目 id 集(升序;病名栏 Submit ⇒ 右页内嵌病名册,§5.2)。
+        /// <para>⚠️ <b>显式 `lexicon_id`(非显示索引)</b> —— TD 第五风险钉死:指认落笔须带
+        /// 真实词表 ordinal(<c>JudgmentRecorded.lexicon_id</c>),呈现层不得用「册内第 n 条」
+        /// 作代理(索引随条目集变化而漂移 ⇒ 落笔写错词)。</para>
+        /// <para><b>守密</b>:只出 `lexicon_id`(装配层经 <c>LexiconBookSource</c> 反查词表
+        /// <c>disease_ids</c> 后**只留 id**)—— <c>disease_id</c> 不进 42(AC-37-15)。</para>
+        /// <para>空 = 未见过任何病 ⇒ 病名册空(反幻想二:没见过就翻不到)。</para>
+        /// <para>⚠️ 42 只读不持:本属性每次重读(零缓存,ADR-013 §9 C3);实现方住装配层。</para>
+        IReadOnlyList<int> SeenLexiconIds { get; }
+
+        /// <summary>取词条文本(病名册条目显示用)。</summary>
+        /// <param name="lexiconId">词条 id(≥ 1;来自 <see cref="SeenLexiconIds"/>)。</param>
+        /// <returns>词条文本;未找到 ⇒ <c>null</c>(42 按「无字」处理,不崩)。</returns>
+        /// <remarks>守密:只回文本,**不回** <c>disease_ids</c>(AC-37-15)。文本解析住装配层
+        /// (<c>LexiconBookSource.TextOf</c>)—— 42 不持有词表。</remarks>
+        string TextOfLexicon(int lexiconId);
+
+        /// <summary>待落笔置信度档(0 = 空 / 1 = 疑似 / 2 = 确定;<c>OQ-CB-5</c> 甲循环落笔)。
+        /// <para>⚠️ <b>42 只读不持</b>(ADR-013 §9 C3):档位住在命令面实现方(装配层),
+        /// 42 每次渲染**回读**本属性 —— 与 <see cref="InkAgeTicks"/> / <see cref="SeenLexiconIds"/>
+        /// 同构(装配层算、42 只读)⇒ 42 内零游戏状态字段(AC-42-D3)。</para>
+        /// <para>值域 = <c>JudgmentState</c>(<c>Empty = 0 / Suspected = 1 / Confirmed = 2</c>);
+        /// 与 <see cref="SeenLexiconIds"/> 的空集语义一致 —— 无绑定病人 / 未落笔 ⇒ 0。</para>
+        /// </summary>
+        byte PendingConfidence { get; }
+    }
+
+    /// <summary>
+    /// 脉案页的**写通道**契约(42 UI 事件 → 装配层写者;<c>ICasebookDtoSource</c> 的镜像)。
+    /// </summary>
+    /// <remarks>
+    /// <para><b>为何需要这条通道</b>:42 是纯渲染层(ADR-013 §9 C3 零写),而病名栏 Submit
+    /// 必须路由到当前焦点目标(焦点态由 42 持有)⇒ Submit **必须由 42 自己接**,
+    /// 再转发给装配层写者(ADR-011 <b>Amendment C</b> 2026-10-12 明确此口径,并否决了
+    /// 「Boot 直读 Submit」的乙案 —— 那会迫使 Boot 读 42 的焦点态,破坏只读边界)。</para>
+    /// <para>⚠️ <b>方向</b>:42 不反向引用装配层(ADR-025 §① 装配方向不可倒)——
+    /// 本接口住 <c>Gameplay.UI</c>,实现方住 <c>Gameplay.Boot</c>,经
+    /// <c>SkeuoRuntimeDriver</c> 注入(与 <see cref="ICasebookDtoSource"/> 同款)。</para>
+    /// <para>⚠️ 本接口是 <c>ADR-013 §四 Key Interfaces</c> 的**首个出向契约**(§四 原有接口
+    /// 全为入向:<c>Bind</c> / <c>SetFocusGate</c>)—— 登记见 sprint-08 S1.1。</para>
+    /// <para><b>守密</b>:只传 <c>lexicon_id</c>(42 结构上不见 <c>disease_id</c>,AC-37-15);
+    /// 语义动作只暴露「指认了哪条词 + 循环到哪一档」,不暴露病人 / 病种。</para>
+    /// </remarks>
+    public interface ICasebookCommandSink
+    {
+        /// <summary>病名栏落笔 / 指认(病名册条目被 Submit)。</summary>
+        /// <param name="lexiconId">被指认的词条 id(<b>显式 lexicon_id,非册内显示索引</b>
+        /// —— TD 第五风险:显示序 ≠ lexicon_id 序时用索引作代理会写错词)。
+        /// <para>调用方 = 42 病名册条目行;值来自 <see cref="ICasebookDtoSource.SeenLexiconIds"/>。</para>
+        /// </param>
+        /// <remarks>实现方(装配层)据当前档位决定写 <c>JudgmentRecorded</c>(首落)
+        /// 还是 <c>JudgmentRevised</c>(改判),并推进档位循环(空 → 疑似 → 确定 → 擦除)。</remarks>
+        void SubmitDiseaseName(int lexiconId);
+
+        /// <summary>病名栏再次落笔(同栏重复 Submit ⇒ 档位循环;<c>OQ-CB-5</c> 甲)。</summary>
+        /// <remarks>语义 = 「同一条已指认的词,再落一笔」—— 空 → 疑似 → 确定 → 擦除回空,
+        /// 恰三态(<c>S-8.3</c>),零第四档。实现方**不产独立流事件**:档位仅作为
+        /// <c>judgment.confidence: u8</c> 随落笔 / 改判事件载荷写入。</remarks>
+        void SubmitConfidence();
     }
 }

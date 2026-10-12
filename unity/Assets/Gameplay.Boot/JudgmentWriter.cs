@@ -11,9 +11,12 @@
 // ⚠️ **编码例外路径(ADR-029 §① 修正 ④)**:JudgmentRecorded / JudgmentRevised 两支
 //   的载荷多收 `freehandText`(ADR-006 G-3 的 blob 变长段),该值**不在 T 里** ⇒
 //   <c>IPayloadEncoder.Encode&lt;T&gt;</c> 对这两支**显式抛 NotSupportedException**;
-//   唯一合法路径 = <c>PayloadCodec.Encode(in payload, string freehandText)</c> 具名重载
-//   + <see cref="IBlobSink.Store"/> 入池 + 本写者构造 <c>PayloadRef</c>。
+//   唯一合法路径 = <c>IPayloadEncoder.EncodeJudgmentRecorded</c> /
+//   <c>EncodeJudgmentRevised</c> 具名重载(编码 + 入池一体,返回 PayloadRef)。
 //   P0 不做自由书写 ⇒ freehandText 传空字符串(空 = 无自由文本;G-3 sim 消费面不持有该值)。
+//   ⚠️ 2026-10-12:`EncodeJudgmentRevised` 接口面原缺(sprint-08 S1.1 F0 补),
+//      <c>TryRevise</c> 即其消费面;原注释「PayloadCodec.Encode + IBlobSink.Store +
+//      本写者构造 PayloadRef」的手搓三步描述已作废(经具名重载,写者零手搓 —— b6 门)。
 //
 // ⚠️ 判据 = 病人有开案(病例流查询,sim 量)→ 写;无开案 ⇒ 具名返回码(不写)。
 //   「落笔」本身是玩家交互(呈现层意图);本写者只消费该意图 + 开案查询,零呈现层持有。
@@ -111,6 +114,50 @@ namespace DaYiJingCheng.Gameplay.Boot
             PayloadRef payloadRef = _encoder.EncodeJudgmentRecorded(in payload, freehandText: string.Empty);
 
             _eventSink.Append(new SimEvent(tick, patient, -1, EventKind.JudgmentRecorded, payloadRef));
+
+            return JudgmentWriteResult.Recorded;
+        }
+
+        /// <summary>
+        /// 改判 / 擦除一次判断(前置通过则写一条 <see cref="EventKind.JudgmentRevised"/>)。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>与 <see cref="TryRecord"/> 的差别只在 Kind</b> —— 载荷形状逐字相同
+        /// (<c>JudgmentRevisedPayload</c>),语义 = **存新值,禁差分**(AC-51-B3 / OQ-51-8;
+        /// <c>case-system.md</c> 规则四):每次改判快照**改写后的完整判断**,不存旧值。</para>
+        /// <para>⚠️ <b>擦除也是本方法</b>(<c>case-system.md:241</c>「空判断合法:
+        /// <c>lexicon_id = 0</c> 且 <c>freehand_text = ""</c> 表示空栏」)—— 擦除**不是删事件**,
+        /// 是写一条 <c>lexicon_id = 0</c> 的新值;「全序最后一条胜」据此回到空态。</para>
+        /// <para>⚠️ <b>2026-10-12 补(sprint-08 S1.1)</b>:本方法即 ADR-029 §① 修正④ 遗留
+        /// 缺口的消费面 —— 修正④ 原稿只给 JudgmentRecorded 开了具名编码口,Revised 无接口面
+        /// ⇒ 三态循环的改判 / 擦除两步写不出去。同批补
+        /// <see cref="IPayloadEncoder.EncodeJudgmentRevised"/> + 撤 b7 门豁免。</para>
+        /// </remarks>
+        /// <param name="tick">改判完成 tick(墨龄基准,同 <see cref="TryRecord"/>)。</param>
+        /// <param name="patient">被判断的病人。</param>
+        /// <param name="lexiconId">判断词条 id(u16 值域;擦除传 <c>0</c>)。</param>
+        /// <param name="confidence">把握度(u8 档位;擦除传 <c>0</c>)。</param>
+        /// <returns>结果码;仅 <see cref="JudgmentWriteResult.Recorded"/> = 写入。</returns>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="tick"/> &lt; 0。</exception>
+        public JudgmentWriteResult TryRevise(long tick, PatientId patient,
+                                             int lexiconId, byte confidence)
+        {
+            if (tick < 0) throw new ArgumentOutOfRangeException(nameof(tick), tick, "tick 不得为负");
+            if (_authorPlayerId < 0)
+                throw new InvalidOperationException(
+                    "JudgmentWriter 作者 id 未定 —— 须先 SetAuthor(玩家生成后)," +
+                    "未定态拒绝改判(作者缺失 = 事件作者无主)");
+
+            // 前置同 TryRecord:病人须有开案(无开案无从改判 —— 病例都没开)
+            CaseId? openCase = CaseStreamQuery.OpenCaseOf(_caseStream, patient.Value);
+            if (!openCase.HasValue)
+                return JudgmentWriteResult.NoOpenCase;
+
+            var payload = new JudgmentRevisedPayload(
+                patient.Value, openCase.Value, _authorPlayerId, lexiconId, confidence);
+            PayloadRef payloadRef = _encoder.EncodeJudgmentRevised(in payload, freehandText: string.Empty);
+
+            _eventSink.Append(new SimEvent(tick, patient, -1, EventKind.JudgmentRevised, payloadRef));
 
             return JudgmentWriteResult.Recorded;
         }

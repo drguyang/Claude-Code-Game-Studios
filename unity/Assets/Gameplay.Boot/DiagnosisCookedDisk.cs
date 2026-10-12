@@ -14,6 +14,7 @@
 
 using System;
 using System.IO;
+using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using UnityEngine;
 
@@ -38,6 +39,9 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>门槛定表产物名(与 AddressablesDataProvider.DiagnosisReadFloorAddress 同值)。</summary>
         private const string ReadFloorAssetName = "diagnosis_read_floor.cooked.bytes";
+
+        /// <summary>病名册词表产物名(sprint-08 S1.1 件 D;与 provider 同值)。</summary>
+        private const string LexiconAssetName = "case_judgment_lexicon.cooked.bytes";
 
         /// <summary>读词条表(34 行;硬失败:文件缺失 / 解码失败都抛)。</summary>
         public static DiagnosisSignDataSet LoadSigns()
@@ -67,6 +71,22 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 throw new InvalidOperationException(
                     $"[E-13][disk] {ReadFloorAssetName} 解码失败(兜底装载路径)—— 启动/装配期硬失败:{ex.Message}",
+                    ex);
+            }
+        }
+
+        /// <summary>读病名册词表(sprint-08 S1.1 件 D;硬失败同上)。</summary>
+        public static JudgmentLexiconDataSet LoadJudgmentLexicon()
+        {
+            byte[] bytes = ReadAll(LexiconAssetName);
+            try
+            {
+                return JudgmentLexiconCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][disk] {LexiconAssetName} 解码失败(兜底装载路径)—— 启动/装配期硬失败:{ex.Message}",
                     ex);
             }
         }
