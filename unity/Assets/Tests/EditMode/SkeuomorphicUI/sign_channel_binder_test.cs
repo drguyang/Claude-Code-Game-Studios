@@ -234,9 +234,17 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             // Assert ③ 阳性/阴性两档墨色可分且各钉死(降档 = :1185 承载形态传达把握不足)
             Assert.IsTrue(Regex.IsMatch(posBlock.Value, @"color:\s*var\(--skeuo-ink-fg\)"),
                 ".channel-reading 阳性须钉 var(--skeuo-ink-fg)(满墨)。");
-            Assert.IsTrue(Regex.IsMatch(negBlock.Value, @"color:\s*var\(--skeuo-ink-faded\)"),
-                ".channel-reading-negative 须钉 var(--skeuo-ink-faded)(墨色降档)—— " +
-                ":1185「把握不足只由承载形态传达,不以文字或标记出现」。");
+            // ⚠️ 2026-10-12(sprint-08 S3)**升格**:原钉 `var(--skeuo-ink-faded)`。
+            //   病因:`ink-faded` 是 `rgba(26,20,16,0.55)`,在纸面上合成后 **3.87:1**,
+            //   低于 `accessibility-requirements.md:87` 与 `casebook-39.md:309` 承诺的
+            //   **≥7:1**(§11 更明文「阴性态用笔形不用低对比」)。⇒ 阴性态改走 42 专用墨
+            //   `--skeuo-ink-negative`(#5a5044,在值区底衬上 **7.48:1** ✓)。
+            //   **不全局改 `ink-faded`** —— 那会波及全部 7 屏的淡墨观感(超 S3 面);
+            //   全局缺口另立 story。本升格是**收紧**(从「任意降档色」到「钉死达标色」),
+            //   非放宽:改回 `ink-faded` / 换任何未达标色 ⇒ 本条恰红。
+            Assert.IsTrue(Regex.IsMatch(negBlock.Value, @"color:\s*var\(--skeuo-ink-negative\)"),
+                ".channel-reading-negative 须钉 var(--skeuo-ink-negative)(≥7:1 阴性墨)—— " +
+                ":1185「把握不足只由承载形态传达,不以文字或标记出现」+ `:309` ≥7:1 承诺。");
             string posColor = Regex.Match(posBlock.Value, @"color:\s*([^;]+);").Groups[1].Value.Trim();
             string negColor = Regex.Match(negBlock.Value, @"color:\s*([^;]+);").Groups[1].Value.Trim();
             Assert.AreNotEqual(posColor, negColor,

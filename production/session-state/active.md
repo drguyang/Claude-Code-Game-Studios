@@ -1,4 +1,4 @@
-# Session State — 2026-10-12(**当前阶段 = Pre-Production · Sprint 08 🚧 In Progress(方笺交互面轮 · S0 ✅ · S1.0 ✅ · **S1.1 ✅** · S1.2/S1.3 ✅ · **S2 ✅** · S3 + E2E-3 待做)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
+# Session State — 2026-10-13(**当前阶段 = Pre-Production · Sprint 08 🚧 In Progress(方笺交互面轮 · S0 ✅ · S1.0 ✅ · **S1.1 ✅** · S1.2/S1.3 ✅ · **S2 ✅** · **S3 ✅** · E2E-3 待做)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
 
 ## Sprint 05 进展(2026-10-10)
 
@@ -2426,3 +2426,45 @@ Task: S0 前置窄批 ✅ + S1.0 词表烘焙管线 ✅ + S1.1 病名册 UI 整�
   ⇒ 改字段名为 `_rxPage`(方笺通用缩写),`name` 属性仍为 `prescription-page`(spec 面不变)。
   ⚠️ **这是门的已知假阳面**(它禁的是「破纸」机制字段),不是我的设计问题;改名 + 就地注记,
   **未改门**(不削弱既有门 —— 承 S1.1「不得削弱既有门以迁就重构」)。
+
+---
+
+## Sprint 08 S3 词条可读性 polish ✅ 完成(2026-10-13)
+
+**用户裁定两问**(先于动工):① §11「≥24px」承诺 = **按承诺兑现**(新增 ≥24px 专用档挂 42 脉案);
+② 「词条格」覆盖 = **题签 + 落字都升**。
+
+**三项结构事实(侦察实测,均非 S3 引入)**:
+- **A. 题签零 class**:`CasebookScreen.AddChannel` 的行头 Label 是裸 `new Label(text)` ⇒ 落
+  **Unity 默认主题 14.0px**(S3 探针实测),既非本屏任何档、也不受主题变量管辖 ⇒
+  `casebook-39.md:308`「通道题签 ≥24px」这半**结构上无法兑现**。落字 `.channel-reading` 实测 15.0px(md)。
+- **B. 阴性态对比违约**:`--skeuo-ink-faded`(rgba 0.55)在纸面合成后 **3.87:1 < 7:1**
+  (`:87` / `casebook-39.md:309` 承诺),且 §11 明文「阴性态用**笔形**不用低对比」—— S3 撞见的既有违约。
+- **C. `.ink` 幽灵类**:`.ink` 在**全 7 个 UXML spec 文件**被引 36 次(脉案 21 次),但**全仓运行期
+  C# 零挂载**(`SkeuoElement.Ink` 仅注册表登记)⇒ spec 面描述的是运行期从不发生的呈现。**独立 story 登记,不在 S3 修**。
+
+**落件(六件全落)**:
+1. `SkeuoThemeVariables.uss` +3 token:`--skeuo-font-size-lexeme: 24px` / `--skeuo-reading-backing: #fbf9f3` /
+   `--skeuo-ink-negative: #5a5044`(实测底衬上 **7.48:1** ✓)。
+2. `SkeuoPaper.uss`:`.channel-reading` / `-negative` 换 lexeme 档 + 加底衬 + 阴性换墨;新增 `.channel-label`。
+3. `CasebookScreen.AddChannel`:行头 Label 挂 `.channel-label`(**签名未改** —— `texture_binding_gate_test` 结构锚)。
+4. 新 `skeuo_readability_test`(EditMode · **6 测**):对比 ≥7:1 ×2 态 / 公式锚定(白黑 128灰)/
+   字号 ≥24 / 三类绑档 / 底衬走 var / 明度轴 Δ。**四变异各恰红 1**(阴性墨未达标 / 字号<24 / 落字解绑 / 删底衬)。
+5. 回写:`casebook-39.md` §11 两行 + §13 新 `[V]` 行 · `accessibility-requirements.md` :85/:87 状态
+   `Not Started → 🟡 部分落地` · sprint-08 S3.1 行 + §3 · 本文件。
+6. `sign_channel_binder_test` 阴性墨断言**升格**(ink-faded → ink-negative;收紧非放宽)。
+
+**门数字**:EditMode **3308 = 3261/0/46/1**(基线 3302 ⇒ +6,零回归)· PlayMode **160/160**。
+(exit 码非 0 = 既有 PlayerController/InputSystem fail-loud 测试刻意打 LogError,与本批无关。)
+
+**诚实边界(禁借绿)**:
+- **截图腿 + 几何腿 = 人工走查**(`casebook-39.md` §13 新 `[V]` 行)。batch 出不了图 ——
+  2026-10-13 实测 `ScreenCapture` 在无渲染宿主抛异常、PNG 零字节(panel 虽建,`Screen.width=640×480` 无有效帧)。
+- **几何腿预期有问题**:`NotoSansCJKsc` lineHeight = **144.8% em** ⇒ 24px 文字盒 ≈34.8px + 上下 padding 32
+  = **≈66.8px > 44px 行下限** ⇒ 行**预期会长高**,§5.2「恒定行高 = 空行与已查行视觉等重」可能受扰,
+  须人工目视裁决(不擅自压值 —— 承「数值用户自己调」)。
+- **「字重微调」无操作空间**:UI Toolkit 只有 `-unity-font-style: bold|italic`、不吃数字权重,
+  字体已全切 Bold(`2c9aae9`)⇒ 此项**不假装做**。
+- **`--skeuo-ink-faded` 全局仍 3.87:1** —— 其他屏淡墨文字仍低于承诺,全局修正归独立 story。
+
+**下一步**:E2E-3 七环节全链门(收口 BLOCKING)+ 第六轮人工 playtest(含 S3 截图腿)+ C1/C3。

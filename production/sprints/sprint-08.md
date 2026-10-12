@@ -74,7 +74,7 @@ sprint-07 后七环节状态:走近 ✅ · 查体 ✅(E 键,人工+自动化双�
 
 | 项 | 落点 | 判据(承 sprint-07 登记) |
 |---|---|---|
-| S3.1 字号 + 底衬 | 词条格字号 md 15→16–17px(**走全局变量 `--skeuo-font-size-*`,不硬编码**)+ 词条格底衬 + 字重微调 | **升半格(承 qa-lead)**:截图 + **明度轴数值判据**(承 story-021 ① minΔ 先例);不破 casebook-39 §11 无障碍下限 |
+| ~~S3.1 字号 + 底衬~~ **✅ 2026-10-13** | **题签 + 落字**(用户裁定 甲「都升」)新增专用档 `--skeuo-font-size-lexeme: 24px`(**走全局变量,不硬编码**)+ 值区底衬 `--skeuo-reading-backing` + **阴性墨 `--skeuo-ink-negative`**(修既有 3.87:1 违约)。⚠️ **判据行原写「md 15→16–17px」经实测证伪**:题签实为**零 class ⇒ 14.0px**(非 md)、落字 15px、且 5 档上限 22px 够不到 §11 的 24px 下限 ⇒ 改走专用档兑现承诺 | EditMode `skeuo_readability_test`(**6 测**:对比 ≥7:1 ×2 态 + 公式锚定 + 字号 ≥24px + 三类绑档 + 底衬走 var + 明度轴 Δ);**四变异各恰红 1**(阴性墨未达标 / 字号<24 / 落字解绑 / 删底衬);`sign_channel_binder_test` 阴性墨断言**升格**(ink-faded→ink-negative)。⚠️ **截图腿 = 人工走查**(batch 出不了图,2026-10-13 实测);**几何腿**(24px 撑行高)亦人工 —— 见 `casebook-39.md` §13 `[V]` 行 |
 
 ### 端到端 PlayMode 门(补「七环节仅人工 ADVISORY」缺口 · qa-lead P1-3)
 
@@ -100,7 +100,9 @@ sprint-07 后七环节状态:走近 ✅ · 查体 ✅(E 键,人工+自动化双�
 - **S1**:玩家按 E 对病名栏 Submit → 病名册翻开 → 指认 → 落笔三态可见(墨龄 > 0 + JudgmentRecorded 入流)
 - **S2** ✅ 2026-10-12:翻页至方笺(页缘 ×2)→ 戥子选档(档位行 = `DoseDetentCount`)→ 确认
   → `DrugTreatmentApplied` 入病史流;翻页 / 折页**零流事件**(`AC-39-10` 可证伪)
-- **S3**:词条文字可读(截图 + 明度轴判据)
+- **S3** ✅ 2026-10-13:题签 / 落字升 `--skeuo-font-size-lexeme`(24px,兑现 `:85` 下限)+
+  值区底衬 + 阴性墨(修既有 3.87:1 违约);`skeuo_readability_test` 6 测绿 + 四变异恰红。
+  ⚠️ **截图 / 几何腿 = 人工走查**(batch 出不了图,实测);自动化腿已跑满,人工腿禁借绿
 - **收口判据**:E2E-3 七环节全链 BLOCKING 绿 + 第六轮人工 playtest + C1/C3 全绿
 - **M2 Exit #8 复评可勾清单(qa-lead)**:
   - [ ] ③ EmergencyCandidateList 生产实例化(S1 病名册入口落地后勾)

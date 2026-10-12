@@ -101,18 +101,51 @@
  * 判据权威 = diagnosis-system 规则五 / V-8.2 / :1178-1186。
  * 四态:未查 = **空行**(复用 `.empty-row`,:329 明文「不是 badge/灰字/占位符」——
  * 本批零新增未查态类)· 已查阳性 = `.channel-reading`(ink-fg 满墨)·
- * 已查阴性/读不出 = `.channel-reading-negative`(**墨色降档 ink-faded**,
+ * 已查阴性/读不出 = `.channel-reading-negative`(**墨色降档**,
  * :1185「把握不足只由承载形态传达,不以文字或标记出现」⇒ 零标注零徽章)。
  * ⚠️ 「体征 → 通道/词」映射归 8(`SignLexemeRow`);本处只画(SignChannelBinder 分发产物)。
- * 运行时挂行(值区元素创建)归 9 实现轮 / 数据绑定轮 —— **本批零施加点**(承 story-022/023)。 */
+ * 运行时挂行(值区元素创建)归 9 实现轮 / 数据绑定轮 —— **本批零施加点**(承 story-022/023)。
+ *
+ * ── sprint-08 S3 可读性 polish(2026-10-12)──
+ * 判据权威 = `accessibility-requirements.md:85`(纸面 UI ≥24px @1080p)+
+ * `casebook-39.md:308/309/311`(最小字号 / 文本对比 ≥7:1 / 「阴性态用笔形不用低对比」)。
+ * 三项改动:
+ *   ① **字号 → `--skeuo-font-size-lexeme`(24px)** —— 原 `md`(15px)低于无障碍下限;
+ *   ② **底衬 `--skeuo-reading-backing`** —— 压住纸纹噪声(纸纹中心实测 L≈0.985 近白,
+ *      主题色 `--skeuo-paper-bg` 在**纹理外框**上,值区实际背景是白心纸纹);
+ *   ③ **阴性墨 → `--skeuo-ink-negative`** —— 原 `ink-faded` 合成后 **3.87:1 < 7:1 承诺**,
+ *      是本屏既有的一处违约(非本批引入);改专用墨后 **7.48:1** ✓。
+ * ⚠️ 底衬是**新增属性**(原块无 `background-color`)⇒ 与「焦点单槽铁律」的关系:
+ *   `.focus-visible` 走 `background-image`(环图),本二类走 `background-color`,
+ *   **属性不重叠** ⇒ 不构成 story-023 边界⑤ 的单槽冲突。
+ * ⚠️ 阳性类**不加**底衬外的第二槽:`ink-wet`/`ink-dry`(运行时叠加类)走
+ *   `background-image`,同样与本处 `background-color` 不重叠。 */
 .channel-reading {
     color: var(--skeuo-ink-fg);
     -unity-font-definition: url("guid:b9b707bf05564101912cbf0f946b649f");
-    font-size: var(--skeuo-font-size-md);
+    font-size: var(--skeuo-font-size-lexeme);
+    background-color: var(--skeuo-reading-backing);
 }
 
 .channel-reading-negative {
-    color: var(--skeuo-ink-faded);
+    color: var(--skeuo-ink-negative);
     -unity-font-definition: url("guid:b9b707bf05564101912cbf0f946b649f");
-    font-size: var(--skeuo-font-size-md);
+    font-size: var(--skeuo-font-size-lexeme);
+    background-color: var(--skeuo-reading-backing);
+}
+
+/* ── 通道题签(行头)· sprint-08 S3(2026-10-12)──
+ * 权威 = `casebook-39.md:308`「**通道题签** / 落字 ≥24px @1080p」的**前半**(后半 = 上面的
+ * `.channel-reading*`)。病因(2026-10-12 S3 探针实测):`CasebookScreen.AddChannel` 建行时
+ * 行头 Label 是裸 `new Label(text)` **零 class** ⇒ 落到 **Unity 默认主题字号(实测 14.0px)**,
+ * 既非本屏任何字号档、也不受主题变量管辖 —— 无障碍承诺对题签这一半**结构上无法兑现**。
+ * 本类即该半的载体:挂 `--skeuo-font-size-lexeme` + 墨色。
+ * ⚠️ 同族登记(S3 侦察,不在本批范围):`.ink` 类在**全部 7 个 UXML spec 文件**里被引用
+ *   36 次(脉案 21 次),但**全仓运行期 C# 代码零挂载**(`SkeuoElement.Ink` 仅注册表登记)
+ *   ⇒ spec 面描述的是一套运行期从不发生的呈现。系统性缺口,归独立 story。
+ * ⚠️ 本类**不进 Registry**(语义样式类,承 `.channel-reading` 同款边界)。 */
+.channel-label {
+    color: var(--skeuo-ink-fg);
+    -unity-font-definition: url("guid:b9b707bf05564101912cbf0f946b649f");
+    font-size: var(--skeuo-font-size-lexeme);
 }

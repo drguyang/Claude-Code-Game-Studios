@@ -218,13 +218,25 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <param name="parent">父容器。</param>
         /// <param name="rowName">行名(测试遍历锚点)。</param>
         /// <param name="labelText">行头标签(通道名,非读数)。</param>
+        /// <remarks>
+        /// <para>⚠️ 行头 Label 挂 <c>.channel-label</c>(sprint-08 S3 · 2026-10-12):
+        /// 原为裸 <c>new Label(text)</c> **零 class** ⇒ 落到 Unity 默认主题字号
+        /// (S3 探针实测 14.0px),既非本屏任何字号档、也不受主题变量管辖 ⇒
+        /// <c>casebook-39.md:308</c>「通道题签 ≥24px @1080p」这半**结构上无法兑现**。
+        /// 挂类后由 <c>--skeuo-font-size-lexeme</c>(24px)管辖。</para>
+        /// <para>⚠️ 本方法签名是 <c>texture_binding_gate_test</c> 的**结构锚点**
+        /// (`private void AddChannel(...)` 正则锚定),签名一字不改;类挂在**行头 Label** 上,
+        /// 不改行本身的 <c>.ruled</c> 挂载(同门另锚 <c>AddToClassList("ruled")</c>)。</para>
+        /// </remarks>
         private void AddChannel(VisualElement parent, string rowName, string labelText)
         {
             var row = _library.Create(SkeuoElement.Paper);
             row.name = rowName;
             row.focusable = true;
             row.AddToClassList("ruled"); // 线格(M2 形态件① · story-021):字段由线格划出(art-bible §7.7)
-            row.Add(new Label(labelText));
+            var header = new Label(labelText);
+            header.AddToClassList("channel-label");   // 题签档(S3:24px 无障碍下限)
+            row.Add(header);
             parent.Add(row);
         }
 

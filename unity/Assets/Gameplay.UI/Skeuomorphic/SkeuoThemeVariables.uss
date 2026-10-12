@@ -45,6 +45,20 @@
     --skeuo-ink-fg-wet: #26241f;
     --skeuo-ink-fg-dry: #191714;
 
+    /* ── 值区底衬 + 阴性墨(sprint-08 S3 · 2026-10-12)──
+       ⚠️ **本二值解决了既有的一处无障碍违约**(非 S3 引入,是 S3 撞见的):
+       `--skeuo-ink-faded`(rgba 0.55)在纸面上合成后仅 **3.87:1**,而
+       `accessibility-requirements.md:87` 与 `casebook-39.md:309` 均承诺墨字 ≥7:1,
+       §11 更明文「阴性态用**笔形**不用低对比」。⇒ 阴性态改走本专用墨(不全局改
+       `ink-faded` —— 那会波及全部 7 屏的淡墨观感,超出 S3 面;全局缺口另立 story)。
+       实测(线性 Rec.709,S3 探针同口径):
+         · `--skeuo-reading-backing` #fbf9f3 上 `--skeuo-ink-negative` #5a5044 = **7.48:1** ✓
+         · 底衬对纸纹中心(border_paper 中心区均值 #fefdfe,L≈0.985)= 1.04 明度差(可辨,不喧宾)
+       底衬**只加在值区格**(.channel-reading*),不改纸面本身 —— 「墨在纸上」的质感保留。
+       ⚠️ 底衬值域归**数值轮**(可调);本条只钉「≥7:1 承诺 + 值与判据同源」的结构。 */
+    --skeuo-reading-backing: #fbf9f3;
+    --skeuo-ink-negative: #5a5044;
+
     /* ── 印章(Seal) ── */
     --skeuo-seal-bg: #8b2500;
     --skeuo-seal-fg: #f5e6d3;
@@ -114,6 +128,16 @@
     --skeuo-font-size-md: 15px;
     --skeuo-font-size-lg: 18px;
     --skeuo-font-size-xl: 22px;
+    /* ── 纸面正文档(sprint-08 S3 · 2026-10-12)──
+       ⚠️ **本档兑现 `accessibility-requirements.md:85` 的「纸面 UI ≥24px @1080p」下限**
+       (该行状态原为 `Not Started`,落点即本主题变量集;`casebook-39.md:308` 同承诺)。
+       病因:原有 5 档上限 `xl = 22px` **物理上够不到 24px** ⇒ 该承诺自订立起全族从未满足。
+       24px 是**无障碍承诺值**(非数值轮提案),故可锚、不归数值轮。
+       ⚠️ **只挂 42 脉案的题签与落字**(casebook-39 §11 的两半),不全局替换 `md` ——
+       其余 6 屏的字号档归各自 polish 轮,不随本档漂移。
+       实测(2026-10-12 S3 探针):题签原 **14.0px**(Unity 默认主题,因代码面行头 Label
+       零 class —— 见 `.channel-label` 注)、落字原 15.0px(`md`)。 */
+    --skeuo-font-size-lexeme: 24px;
 
     /* ── 过渡 ── */
     --skeuo-transition-fast: 120ms;
