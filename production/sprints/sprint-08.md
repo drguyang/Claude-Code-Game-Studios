@@ -103,7 +103,7 @@ sprint-07 后七环节状态:走近 ✅ · 查体 ✅(E 键,人工+自动化双�
 - **S3** ✅ 2026-10-13:题签 / 落字升 `--skeuo-font-size-lexeme`(24px,兑现 `:85` 下限)+
   值区底衬 + 阴性墨(修既有 3.87:1 违约);`skeuo_readability_test` 6 测绿 + 四变异恰红。
   ⚠️ **截图 / 几何腿 = 人工走查**(batch 出不了图,实测);自动化腿已跑满,人工腿禁借绿
-- **收口判据**:E2E-3 七环节全链 BLOCKING 绿 ✅ 2026-10-13(PlayMode 161/161 + EditMode 3308 = 3261/0/46/1 零回归)· 第六轮人工 playtest · C1/C3 全绿
+- **收口判据**:E2E-3 七环节全链 BLOCKING 绿 ✅ 2026-10-13(PlayMode 161/161 + EditMode 3308 = 3261/0/46/1 零回归)· C3 合判通过 ✅ 2026-10-13(零 BLOCKING)· **第六轮人工 playtest = CHANGES REQUIRED**(🔴 × 5:输入路径全断 C2/C3/C4 + 可读性 C1/C5;✅ × 1:几何腿等重成立)⇒ 收口判据**未达**,立在 sprint-09/hotfix(见 `production/playtests/playtest-2026-10-13-m2-round6.md` §6 B-6-1…B-6-4)· C1 全绿
 - **M2 Exit #8 复评可勾清单(qa-lead)**:
   - [x] ③ EmergencyCandidateList 生产实例化 ✅ **2026-10-13 C3 复评勾选**(qa-lead A-3):`new EmergencyCandidateRuntime()` = `CompositionRoot.cs:246` + `BootRoot.cs:229` `MountTo(UiRoot)` —— sprint-05/07 时「零生产实例化(仅测试)」病因已消除(复评核验路径见 evidence 报告 §四)
   - [x] ② 墨龄上游落笔 tick ✅ **2026-10-13 E2E-3 ⑦ 环**:`InkAgeTicks > 0` 落笔后从 0 起算(ac-42-G6;链内真组合根判定,非合成 fixture;**变异实测**:删 tick 推进 ⇒ ⑦环恰红)
