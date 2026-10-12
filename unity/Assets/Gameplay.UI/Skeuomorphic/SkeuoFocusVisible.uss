@@ -63,5 +63,6 @@
     border-right-width: 0;
     border-bottom-width: 0;
     border-left-width: 0;
-    box-shadow: none;
+    /* ⚠️ 2026-10-12:`box-shadow` 非 UI Toolkit 属性(同 font-family 一并删;
+       原 `box-shadow: none` 是 Web CSS 残留 —— UI Toolkit 无阴影面,删即「无阴影」)。*/
 }

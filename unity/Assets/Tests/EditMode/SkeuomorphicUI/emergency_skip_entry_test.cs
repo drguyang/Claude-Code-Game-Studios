@@ -75,12 +75,21 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             Assert.IsFalse(Regex.IsMatch(decl, @"#[0-9a-fA-F]{3,8}\b"),
                 ".skip-entry 块内禁内联 hex(C2 门)。");
             var declProps = PropsOf(decl);
+            // ⚠️ 2026-10-12:原点名 `font-family`(Web CSS 名)是 **UI Toolkit 不识别的属性**
+            //   (运行时抛 Unknown style property ⇒ Editor.log 红错,第五轮 playtest 实测)。
+            //   判据同步改钉 UI Toolkit 唯一合法字体属性 `-unity-font-definition`
+            //   (FontAsset 引用;删/改名/改回 font-family 均红)。
             var required = new[] { "background-color", "color", "min-height",
-                "padding-left", "font-family", "font-size" };
+                "padding-left", "-unity-font-definition", "font-size" };
             foreach (var r in required)
                 Assert.IsTrue(declProps.Contains(r),
                     $".skip-entry 须声明 `{r}`(story AC 点名载体;删/改名即红)。");
-            var valueWhiteList = new HashSet<string>(); // 空 = 全声明须走 var(--skeuo-*);字面值须先入此白名单
+            var valueWhiteList = new HashSet<string>
+            {
+                // -unity-font-definition 吃 FontAsset 引用(url(guid:...)),物理上不能走
+                // var(--skeuo-*)(变量不能承载资产引用)—— 2026-10-12 登记。
+                "-unity-font-definition",
+            };
             var decls = Regex.Matches(decl, @"([\w-]+)\s*:\s*([^;]+);")
                 .Cast<Match>().ToList();
             foreach (var d in decls)

@@ -19,7 +19,7 @@
     border-bottom-right-radius: var(--skeuo-seal-radius);
     border-bottom-left-radius: var(--skeuo-seal-radius);
     color: var(--skeuo-seal-fg);
-    font-family: var(--skeuo-font-family);
+    -unity-font-definition: url("guid:08d2bb8cec44437a91f7fe9707f43b2c");
     font-size: var(--skeuo-font-size-lg);
     padding-top: var(--skeuo-shared-space-sm);
     padding-right: var(--skeuo-shared-space-sm);

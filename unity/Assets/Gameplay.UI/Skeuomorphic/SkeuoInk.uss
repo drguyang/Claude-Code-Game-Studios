@@ -10,9 +10,10 @@
        design/assets/specs/nine-slice-freeze-2026-10-08.md。 */
     background-image: url("guid:5fdd6642437ced664996d9e8d195acac");
     color: var(--skeuo-ink-fg);
-    font-family: var(--skeuo-font-family);
+    -unity-font-definition: url("guid:08d2bb8cec44437a91f7fe9707f43b2c");
     font-size: var(--skeuo-font-size-md);
-    text-shadow: 1px 1px 0 var(--skeuo-ink-faded);
+    /* ⚠️ 2026-10-12:`text-shadow` 非 UI Toolkit 属性(同 font-family 一并删;
+       UI Toolkit 无文本阴影面,墨韵由背景图 ink_light 承载)。原值:1px 1px 0 ink-faded。*/
 }
 
 .ink-faded {
@@ -41,10 +42,13 @@
 
 .ink-title {
     font-size: var(--skeuo-font-size-lg);
-    font-weight: 600;
+    /* ⚠️ 2026-10-12:`font-weight` 非 UI Toolkit 属性(同 font-family 一并改;
+       UI Toolkit 只有 `-unity-font-style`,且只吃 bold/italic 枚举,不吃数字权重)。*/
+    -unity-font-style: bold;
 }
 
 .ink-body {
     font-size: var(--skeuo-font-size-sm);
-    line-height: 1.6;
+    /* ⚠️ 2026-10-12:`line-height` 非 UI Toolkit 属性 —— 删除(UI Toolkit 行高
+       由字号/ascender 自算,无 USS 覆盖面)。原 `line-height: 1.6` 是 Web CSS 残留。*/
 }

@@ -100,8 +100,13 @@
     --skeuo-shared-space-lg: 24px;
     --skeuo-shared-space-xl: 32px;
 
-    /* ── 字体(AC-42-C6 fallback 链) ── */
-    --skeuo-font-family: "NotoSerifCJKsc-Regular", "NotoSerif-Regular", "Microsoft YaHei", "PingFang SC", sans-serif;
+    /* ── 字体(AC-42-C6 · 2026-10-12 修订)──
+       ⚠️ `font-family` 不是 UI Toolkit 的合法属性名(运行时抛
+       "Unknown style property font-family" ⇒ Editor.log 红错刷屏,第五轮 playtest 实测)。
+       UI Toolkit 唯一吃字体的属性 = `-unity-font-definition`(FontAsset 引用),
+       且它**不能经 var() 间接承载**(变量只能存颜色/尺寸 token)⇒ 各 USS
+       直接 `url(guid:...)` 引字体资产,不在本文件留字体变量。
+       字体资产 = Fonts/NotoSansCJKsc-Regular.otf(guid 08d2bb8cec44437a91f7fe9707f43b2c)。 */
     --skeuo-font-size-xs: 11px;
     --skeuo-font-size-sm: 13px;
     --skeuo-font-size-md: 15px;

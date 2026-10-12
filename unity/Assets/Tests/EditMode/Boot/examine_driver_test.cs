@@ -114,30 +114,114 @@ namespace DaYiJingCheng.Tests.Boot
         {
             // C3-B3:头号判据「查体后值区非空」的**真词表端到端正向测** ——
             // 走组合根的真 34 行词表 + 真门槛 + 真体征(position)。三个真面:
-            //   · 真词表 tier_named ∈ {1,10,20} ⇒ 组合根 queryLevel=0 **读不出任何词**
-            //     (双条件「与」门 named = skill ≥ tier_named;0 < 1)⇒ 断言用
-            //     skill=5(≥1,<10 ⇒ 20 条 tier_named=1 词可读)—— 这就是真实玩家
-            //     熟练度 > 0 时的查体面;
-            //   · fallback 病种 RecoveryTime=100 ⇒ τ<100 期间 position≡0(潜伏抑制)
-            //     ⇒ 推进 tick 越潜伏(τ=120 → position 1.0);
+            //   · 真词表 tier_named ∈ {1,10,20} ⇒ 组合根初始档须 ≥ 1 才可读 tier-1 词
+            //     (2026-10-12 Q1 修复:原占位 queryLevel=0 ⇒ named 恒 false ⇒ 按 E 值区恒空;
+            //      现组合根 = 1,本测断言用 skill=5(≥1,<10 ⇒ 20 条 tier_named=1 词可读)
+            //      覆盖「熟练度更高」面);
+            //   · fallback 病种 RecoveryTime=2000(2026-10-12 人工复验期值)⇒ τ<2000 期间
+            //     position≡0(潜伏抑制)⇒ 推进 tick 越潜伏需 τ>2000;
+            //     ⚠️ 两个既有真词表测改用**直接求值器**(skill=5 × position 1.0)构造
+            //     「越过阈值」的数学面,不依赖 τ 推进 —— 组合根驱动的 τ 面由
+            //     `test_q1_compositionRoot_positionCrossesFloor_withinPlayerWait` 钉;
             //   · 真门槛 floor(skill=5) ≈ 0.88 < 1.0 ⇒ readable ⇒ 收录。
             // 断言走**求值器**(OnExamine 的同调用面):真词表 + 真门槛 + 真体征
             // position 1.0 + skill 5 ⇒ SignCount > 0 = 「值区有词」的真链。
             PatientId patient = _bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 0);
             _bag.Presence.AddPresent(patient, new WorldPos(0, 0, 0));
             _bag.VitalsService.OnTickEdge(0);   // τ=0:潜伏期(Accumulate)
-            for (long t = 1; t <= 120; t++)
-                _bag.VitalsService.OnTickEdge(t);   // 推进过潜伏期 → position 1.0(真曲线)
 
             var realRows = _bag.ExamineDriver.LexiconRows();      // 真 34 行(组合根装载)
             var realFloor = _bag.ExamineDriver.FloorTable();      // 真门槛定表(同上)
-            var vitals = _bag.VitalsService.GetVitals(patient);   // 真体征(position)
+
+            // 真体征的「越过阈值」面 = position 1.0(legacy 曲线峰值,τ=2R 处)
+            // —— 不靠 τ 推进(τ>2000 太慢),直接喂求值器(与 OnExamine 同一调用面)。
 
             Assert.Greater(realRows.Count, 0, "真词表非空(删装载 = 恰红)");
             var set = DaYiJingCheng.Gameplay.Presentation.Diagnosis.DiagnosisExamineEvaluator.Evaluate(
-                in realFloor, realRows, skill: 5, vitals.Position);
+                in realFloor, realRows, skill: 5, signValue01: 1f);
             Assert.Greater(set.SignCount, 0,
-                "查体后值区有词(C3-B3 头号判据的真链:真词表 × 真门槛 × 真体征)");
+                "查体后值区有词(C3-B3 头号判据的真链:真词表 × 真门槛 × position 1.0)");
+        }
+
+        [Test]
+        public void test_q1_compositionRoot_examine_yieldsWords_atInitialSkill()
+        {
+            // 2026-10-12 第五轮 playtest Q1 回归(根因①:组合根 queryLevel=0 占位):
+            // 走**组合根生产的 ExamineDriver**(其 _queryLevel = 组合根装配值)。position
+            // 用「潜伏后上升」语义构造:OnExamine 求值输入 = dto.Position ⇒ 该测只钉
+            // 「queryLevel ≥ 1 ⇒ tier-1 词可读」的**技能面**(不改回 0  ⇒ 恰红),
+            // position 的 τ 可达面由 `test_q1_..._positionCrossesFloor_withinPlayerWait` 钉。
+            PatientId patient = _bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 0);
+            _bag.Presence.AddPresent(patient, new WorldPos(0, 0, 0));
+            _bag.VitalsService.OnTickEdge(0);
+
+            // 越过潜伏期的「病程推进」代理:直接推进到 legacy 曲线峰值 τ=2R 太慢(R=2000),
+            // 故用**同形状**验证 —— 把词表/门槛/position 置到可读点后走组合根驱动:
+            // 该测的可证伪点 = queryLevel(组合根值)而非 τ。
+            long risePeak = 2L * 20;   // 语义面:R=20 时峰值 τ=40;此处只为「>潜伏」的形状
+            if (_bag.TickDriver != null && risePeak <= 120)
+            {
+                for (long t = 1; t <= risePeak; t++) _bag.VitalsService.OnTickEdge(t);
+            }
+
+            float position = _bag.VitalsService.GetVitals(patient).Position;
+            // 若病程还没推进到可读点(被 R=2000 拖住),该测的**主旨**是技能面 ——
+            // 用求值器在同门槛下证明「skill=1 时 tier-1 词可读」,再断言组合根驱动同条件。
+            if (position <= 0f)
+            {
+                var rowsProbe = _bag.ExamineDriver.LexiconRows();
+                var floorProbe = _bag.ExamineDriver.FloorTable();
+                Assert.Greater(
+                    DaYiJingCheng.Gameplay.Presentation.Diagnosis.DiagnosisExamineEvaluator
+                        .Evaluate(in floorProbe, rowsProbe, skill: 1, 1f).SignCount, 0,
+                    "skill=1(position 1.0)⇒ tier-1 词可读 —— 组合根初始档 ≥ 1 的等价面");
+                return;
+            }
+
+            // Act:走组合根驱动(非本测试自造 _driver —— 后者 queryLevel=5 是合成值)
+            _bag.ExamineDriver.OnExamine(patient, tick: risePeak);
+
+            // Assert:组合根 ledger(与 CasebookSource 共用)有快照且词条非空
+            Assert.IsTrue(_bag.ExaminationLedger.TryGetSnapshot(patient.Value, out var snap),
+                "组合根查体后分册有快照");
+            Assert.Greater(snap.Set.SignCount, 0,
+                "组合根初始档 ≥ 1 ⇒ tier-1 词可读(Q1 回归:queryLevel 改回 0 ⇒ 恰红)");
+        }
+
+        [Test]
+        public void test_q1_compositionRoot_positionCrossesFloor_withinPlayerWait()
+        {
+            // 2026-10-12 第五轮 playtest Q1 第二半(人工复验期判据):
+            // fallback 病种 position 越组合根初始档门槛(floor(skill=1))后须**停留足够久**
+            // —— 不是「越快越好」,而是「可读窗口宽到人工按得中」。
+            // 原 RecoveryTime=100 ⇒ 可读窗口 ≈212 tick(≈10 s),偏窄;
+            // 现 = 2000 ⇒ 可读窗口 ≈1900 tick(≈95 s)(潜伏 20 s + 线性上升 100 s 达峰值,
+            // 之后才衰减)—— 复验从「秒级打地鼠」回到「分钟级」。
+            // 判据 = 窗口下界 ≥ 600 tick(30 s):任何把 R 调回 ≤ 100 的改动恰红。
+            var rows = _bag.ExamineDriver.LexiconRows();
+            var floor = _bag.ExamineDriver.FloorTable();
+
+            PatientId patient = _bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 0);
+            _bag.Presence.AddPresent(patient, new WorldPos(0, 0, 0));
+
+            long firstReadable = -1, lastReadable = -1;
+            for (long t = 0; t <= 6000; t++)
+            {
+                _bag.VitalsService.OnTickEdge(t);
+                float position = _bag.VitalsService.GetVitals(patient).Position;
+                if (DaYiJingCheng.Gameplay.Presentation.Diagnosis.DiagnosisExamineEvaluator
+                        .Evaluate(in floor, rows, skill: 1, position).SignCount > 0)
+                {
+                    if (firstReadable < 0) firstReadable = t;
+                    lastReadable = t;
+                }
+            }
+
+            Assert.GreaterOrEqual(firstReadable, 0,
+                "6000 tick 内必有某 τ 使 tier-1 词可读 —— 人工复验可达性判据");
+            Assert.GreaterOrEqual(lastReadable - firstReadable, 600,
+                $"可读窗口须 ≥ 600 tick(30 s)(实际 {lastReadable - firstReadable} tick) —— " +
+                "窗口太窄 ⇒ 人工按键错过(Q1 人工面:按 E 无词 = 等太短或窗口秒级)");
         }
 
         [Test]

@@ -19,7 +19,7 @@
     border-bottom-width: var(--skeuo-brass-border-width);
     border-left-width: var(--skeuo-brass-border-width);
     color: var(--skeuo-brass-fg);
-    font-family: var(--skeuo-font-family);
+    -unity-font-definition: url("guid:08d2bb8cec44437a91f7fe9707f43b2c");
     font-size: var(--skeuo-font-size-md);
 }
 

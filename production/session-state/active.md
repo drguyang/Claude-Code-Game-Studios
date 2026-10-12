@@ -1,4 +1,4 @@
-# Session State — 2026-10-12(**当前阶段 = Pre-Production · Sprint 07 ◐ 收口轮(S1 ✅ · S2 设备级+42接线 ✅ · S3 ✅ · C3 评审+修复 ✅ · C1 收口 · C2 美术待裁 · 第五轮 playtest 待用户)· Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ · M2 形态件 4/4 齐**)
+# Session State — 2026-10-12(**当前阶段 = Pre-Production · Sprint 07 ◐ 收口轮(第五轮 playtest 完成 · Q1 queryLevel 已修待人工复验 · C1/C2/C3 全闭)· Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ · M2 形态件 4/4 齐**)
 
 ## Sprint 05 进展(2026-10-10)
 
@@ -1639,7 +1639,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 <!-- STATUS -->
 Epic: sprint-07(内容解锁轮)
 Feature: 收口轮
-Task: C1+C2 收口完成(美术提前裁定 P1+P2 全提前 → story-005/008 单列)→ 剩第五轮 playtest(用户方便时)→ sprint-07 Complete
+Task: 第五轮 playtest 完成 → Q1 queryLevel 占位已修(0→1 + 回归测,全量绿)→ 剩 Q1 人工复验 → sprint-07 Complete
 <!-- /STATUS -->
 
 ---
@@ -2226,3 +2226,23 @@ Task: C1+C2 收口完成(美术提前裁定 P1+P2 全提前 → story-005/008 �
   (G-3 emergency 手势 VFX 子集 + batch-03 素材)。两 story Ready ⬜、单列,不进本 sprint 关键路径;其余 40 项维持 M4。
 - **下一步**:第五轮人工 playtest(用户方便时;此时应有内容:值区有词 · E/F 可操作 ·
   候选列表可见)→ sprint-07 Complete。当前全量门:EditMode 3255 · PlayMode 136/136。
+
+## 2026-10-12 — 第五轮人工 playtest(sprint-07 收口判据 + Q1 修复)
+
+- **报告**:`production/playtests/playtest-2026-10-12-m2-round5.md`(Build `865eb44`)。
+  Q1=🔴(根因已修)· Q2=◐(登记)· Q3–Q7=A。E/F 玩家入口**首次人工实证可用**。
+- **Q1 根因 + 修复**:组合根 `queryLevel: 0` 占位 ⇒ 真词表双条件与门 `named = skill ≥ tier_named`
+  (tier_named ∈ {1,10,20})恒 false ⇒ 按 E 查体后值区**恒空**。修复 = `CompositionRoot.cs`
+  `queryLevel: 0 → 1`(tier-1 词 20 条可读)+ 回归测 `test_q1_compositionRoot_examine_yieldsWords_atInitialSkill`
+  (走组合根生产驱动 + 真词表 + position 1.0 ⇒ SignCount>0;改回 0 恰红)。
+- **复跑全量**:EditMode **3256 = 3209/0/46skip/1inc**(基线 3255 ⇒ +1 零回归)·
+  PlayMode **136/136** · ExamineDriverTest 10/10。证据:`q1_examine_editmode.xml` ·
+  `q1_full_editmode.xml` · `q1_full_playmode.xml`。
+- **Q2 登记(非隐藏)**:按 F 双事件入流(PlayMode 注入已绿)但**零可见反馈** ——
+  P2 story-008(施治真资产)的人工面证据;候选列表交互面归 10 + 42。
+- **数值面登记**(归数值轮):skill=1 门槛 ≈0.975 ⇒ 病人低位期查体仍读不出(F-8.1 曲线语义,
+  非 bug);「初始档该是几」= 30 QueryLevel × 8 门槛曲线联调。
+- **Polish 登记**:USS `font-family` 警告 ×9(UI Toolkit 不识别)· SkeuoRuntimeDriver
+  Awake 时序警告(注入后 setter 重绑,非断链)。
+- **下一步**:Q1 修复后**人工复验**(按 E 值区出词条)→ 通过 ⇒ sprint-07 Complete;
+  P2 story-008 排期启动(Q2 零反馈坐实)。当前全量门:EditMode 3256 · PlayMode 136/136。

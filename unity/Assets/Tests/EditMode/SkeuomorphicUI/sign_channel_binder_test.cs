@@ -210,7 +210,10 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             {
                 string cls = pair.Item1, decl = pair.Item2.Value;
                 var props = PropsOf(decl);
-                foreach (var r in new[] { "color", "font-family", "font-size" })
+                // ⚠️ 2026-10-12:原点名 `font-family`(Web CSS 名)是 UI Toolkit 不识别属性
+                //   (Unknown style property 红错)。改钉 `-unity-font-definition`
+                //   (唯一合法字体属性;删/改名/改回 font-family 均红)。
+                foreach (var r in new[] { "color", "-unity-font-definition", "font-size" })
                     Assert.IsTrue(props.Contains(r),
                         $"{cls} 须声明 `{r}`(story AC 点名载体;删/改名即红)。");
                 var decls = Regex.Matches(decl, @"([\w-]+)\s*:\s*([^;]+);")
@@ -219,6 +222,9 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 foreach (var d in decls)
                 {
                     string prop = d.Groups[1].Value, value = d.Groups[2].Value.Trim();
+                    // 白名单:`-unity-font-definition` 吃 FontAsset 引用(url(guid:...)),
+                    // 物理上不可能走 var(--skeuo-*)(变量不能承载资产引用)—— 2026-10-12 登记。
+                    if (prop == "-unity-font-definition") continue;
                     Assert.IsTrue(value.Contains("var(--skeuo-"),
                         $"{cls} `{prop}: {value}` 须走 var(--skeuo-*) —— " +
                         "具名色 / 裸数字 / 异命名空间 var 均在此失守。");
@@ -237,11 +243,16 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 "阳性/阴性色值须可分(两档同值 = 降档丢失,阴性形态不可读)。");
 
             // Assert ④ 块内零数字 + 零 content(数字/标记形态禁入 —— :1185 不以文字或标记出现)
+            // ⚠️ 2026-10-12:`-unity-font-definition: url("guid:…")` 的 GUID 含数字(hex),
+            //   物理上绕不开 `\d` —— 剥掉该行再扫数字(数字禁的是「徽章/计数」形态,
+            //   不是资产 GUID;该属性已由上方属性集断言钉住)。
             foreach (var pair in new[] { (".channel-reading", posBlock.Value),
                                           (".channel-reading-negative", negBlock.Value) })
             {
-                Assert.IsFalse(Regex.IsMatch(pair.Item2, @"\d"),
-                    $"{pair.Item1} 块内禁数字。");
+                string withoutFontDef = Regex.Replace(pair.Item2,
+                    @"-unity-font-definition\s*:\s*url\([^)]*\);", string.Empty);
+                Assert.IsFalse(Regex.IsMatch(withoutFontDef, @"\d"),
+                    $"{pair.Item1} 块内禁数字(字体资产 GUID 行豁免)。");
                 Assert.IsFalse(Regex.IsMatch(pair.Item2, @"content\s*:"),
                     $"{pair.Item1} 块内禁 content: 属性(标记载体)。");
             }

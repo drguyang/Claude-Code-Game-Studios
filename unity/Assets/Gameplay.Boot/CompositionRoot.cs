@@ -188,7 +188,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             var readFloor = readFloorTable.Table;
 
             // 查体入口驱动:求值输入 = 真烘焙产物(S1.2 装载面)
-            var examineDriver = new ExamineDriver(vitals, examinationLedger, queryLevel: 0);
+            //
+            // ⚠️ queryLevel = 1(2026-10-12 第五轮 playtest 修复):原占位 0 使真词表
+            //   双条件与门 `named = skill ≥ tier_named`(tier_named ∈ {1,10,20})恒 false
+            //   ⇒ 玩家按 E 查体后值区**恒空**(Q1 实测:按 E 零变化)。
+            //   初始档 1 = 20 条 tier_named=1 词可读;后续熟练度成长(30)覆盖本值
+            //   —— 初始档数值归数值轮,机制面从「恒 0」解冻。
+            var examineDriver = new ExamineDriver(vitals, examinationLedger, queryLevel: 1);
             examineDriver.SetLexicon(examineRows, in readFloor);
 
             // ── 处方链(G3 · 2026-10-11 用户裁定「最小生产端口实装」)──
@@ -326,7 +332,20 @@ namespace DaYiJingCheng.Gameplay.Boot
                 Contagion = 0,
                 Lethality = 0,
                 TreatmentDifficulty = 1,
-                RecoveryTime = 100,
+                // ⚠️ 2026-10-12 第五轮 playtest 人工复验期临时值:100 → 2000。
+                //    原 100 tick ≈ 60 s 潜伏(τ<incubation ⇒ position≡0),之后 position
+                //    线性上升、要到 τ≈198 tick(≈120 s)才越过 floor(skill=1)≈0.975
+                //    ⇒ 人工复验「等不起」。
+                //    ⚠️ 为何不是 20:legacy 曲线的 rise/decay 共用**同一个**
+                //    RecoveryTime(riseEnd = halfLife = R)⇒ R=20 时峰值恰在 τ=2R=40,
+                //    之后**每 20 tick 腰斩**(τ=60 → 0.5,τ=80 → 0.25…)⇒ 阈值窗口
+                //    只有 ≈20 tick(≈1 s)宽,人工按键一慢就错过 —— 把复验变成打地鼠。
+                //    R=2000 ⇒ 潜伏 20 s,线性上升 100 s 到峰值,其后才开始衰减
+                //    ⇒ 可读窗口 ≈1900 tick(≈95 s),复验从「秒级」回到「分钟级」。
+                //    **这是接线期可复验性数值,不是玩法数值** —— 真病种表(9 的
+                //    disease registry 烘焙)到位后整表替换,本行随之消失。
+                //    Fallback 语义不受影响:仍 1 病种 / Scale=1 / signs 空(数值归用户轮)。
+                RecoveryTime = 2000,
                 RelapseChance = 0,
                 ComorbidityFactor = 0,
                 SeasonalMod = 0,

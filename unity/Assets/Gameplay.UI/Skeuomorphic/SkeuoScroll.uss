@@ -26,7 +26,7 @@
 
 .scroll .ink {
     color: var(--skeuo-scroll-fg);
-    font-family: var(--skeuo-font-family);
+    -unity-font-definition: url("guid:08d2bb8cec44437a91f7fe9707f43b2c");
     font-size: var(--skeuo-font-size-md);
 }
 
