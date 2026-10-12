@@ -44,6 +44,18 @@ sprint-07 后七环节状态:走近 ✅ · 查体 ✅(E 键,人工+自动化双�
 
 ### S1 病名栏 + 病名册整面(落笔环节玩家可达 · 42/37)
 
+> **S1.0 前置(病名册词表烘焙管线)✅ 完成 2026-10-12** —— 兑现 story-005 的 NOT-RUN 缺口
+> 「AC-37-35 的构建期双射校验半边:ADR-014 阶段 2 校验器未建」。词表源
+> `assets/data/case_judgment_lexicon.json`(3 条:伤寒→病种1,湿温/温毒孤儿)→ 阶段2 绑定
+> (`JudgmentLexiconBinder`,聚合 throw + 未知键拒)→ 校验器(`JudgmentLexiconValidator`:
+> AC-37-35 双射拒 / ordinal append-only / 非空 / u8 上界)→ cooked 产物入库
+> (`case_judgment_lexicon.cooked.bytes`,73 B)+ 运行期读方(`JudgmentLexiconCookedCodec`,
+> E-13 硬失败)。**11 测全绿**;全量 EditMode **3268 = 3221/0/1inc/46skip**(基线 3257 ⇒ +11
+> 零回归)。修的真 bug ×3:① `ComputeRepoRoot` 少退一层(3 测红)② 绑定器空串检查抢先
+> ⇒ 校验器 `lexicon-text` 判据成不可达死代码 ③ `disease_count` u8 静默截断 + 假注释
+> (校验器补上界 + 负夹具测)。证据:`unity/UnityLogsTmp/s8_s10_lexicon_filter4.xml` ·
+> `s8_s10_editmode_full.xml`。**S1.1 UI 面的前置已就绪**(词表可读、可指认)。
+
 | 项 | 落点 | 依赖 | 判据(可证伪) |
 |---|---|---|---|
 | S1.1 病名册 UI 整面 | 42 新面:病名栏 Submit → 翻开病名册(OQ-CB-1 甲案);条目 = **已见过的病名**(派生态,由事件流重建;反幻想二:未见过的病名不可指认);**DTO 条目显式携带 `lexicon_id`**,Submit 用该字段而非显示索引(TD 第五风险 —— 显示序 ≠ lexicon_id 序时隐式映射 = 第二真源失效) | S0 | `test_lexiconBook_unseenDisease_notPointable`:Given 病名未见过;When 翻册;Then 条目集不含该病 |
@@ -84,6 +96,7 @@ sprint-07 后七环节状态:走近 ✅ · 查体 ✅(E 键,人工+自动化双�
 ## §3 分阶段验收
 
 - **S0**:两处文档裁定落盘(ADR-011 Amendment + K 计数回写)
+- **S1.0**(前置):病名册词表烘焙管线贯通(源 → 校验 → cooked → 读方),11 测绿
 - **S1**:玩家按 E 对病名栏 Submit → 病名册翻开 → 指认 → 落笔三态可见(墨龄 > 0 + JudgmentRecorded 入流)
 - **S2**:翻页至方笺 → 戥子选档 → 确认 → DrugTreatmentApplied → 体征变化
 - **S3**:词条文字可读(截图 + 明度轴判据)

@@ -1,4 +1,4 @@
-# Session State — 2026-10-12(**当前阶段 = Pre-Production · Sprint 08 🚧 In Progress(方笺交互面轮 · S0 ✅ · S1–S3 + E2E 待做)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
+# Session State — 2026-10-12(**当前阶段 = Pre-Production · Sprint 08 🚧 In Progress(方笺交互面轮 · S0 ✅ · S1.0 ✅ · S1.1–S3 + E2E 待做)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
 
 ## Sprint 05 进展(2026-10-10)
 
@@ -1639,7 +1639,7 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 <!-- STATUS -->
 Epic: sprint-08(方笺交互面轮)
 Feature: S1 病名栏+病名册 · S2 方笺翻页+戥子开方 · S3 词条 polish · E2E 七环节全链门
-Task: S0 前置窄批 ✅(ADR-011 Amendment C + casebook-39 K=8 回写)→ 下一步 S1 病名册 UI
+Task: S0 前置窄批 ✅ + S1.0 词表烘焙管线 ✅ → 下一步 S1.1 病名册 UI 整面
 <!-- /STATUS -->
 
 ---
@@ -2276,3 +2276,34 @@ Task: S0 前置窄批 ✅(ADR-011 Amendment C + casebook-39 K=8 回写)→ 下�
   - 连带注:lead-programmer BLOCKING-2(NavigationDirection 闭集)经 TD 复核**降级为误判**
     —— `DeliveredIntentTypes` 是构建期清单,非 ADR-025 装配边界。
 - **下一步**:S1 病名栏 + 病名册 UI 整面(DTO 显式携带 `lexicon_id` —— TD 第五风险钉死)。
+
+## 2026-10-12 — sprint-08 S1.0 收口(病名册词表烘焙管线 ✅)
+
+> **性质**:上个会话遗留的**未提交、未记录**产物(工作树断点)。用户裁定「先收口 S1.0」——
+> 承「禁借绿」铁律,未验证产物不往上盖。
+
+- **兑现**:story-005 登记的 NOT-RUN 缺口「**AC-37-35 的构建期双射校验半边:ADR-014
+  阶段 2 校验器未建**」。词表源 `assets/data/case_judgment_lexicon.json`(3 条:伤寒→病种1,
+  湿温/温毒孤儿)→ 阶段2 绑定 + 校验器(双射拒 / ordinal append-only / 非空 / u8 上界)→
+  cooked 产物入库(`case_judgment_lexicon.cooked.bytes`,73 B)+ 运行期读方(E-13 硬失败)。
+- **修的真 bug ×3**(验证途中发现,均本库点名过的失败模式):
+  ① `ComputeRepoRoot` 少退一层(4→5,落 `unity/` 而非仓库根)⇒ 3 条 `BakeFromRepo` 测红;
+  ② 绑定器 `ReadString` 空串检查**抢先**于校验器 ⇒ `lexicon-text` 判据成**不可达死代码**
+     (绑定层只留 JSON 结构检查,域语义归校验器 —— 同 story-006 F-1「消解死代码」);
+  ③ `JudgmentLexiconCookedWriter` 的 `(byte)disease_count` **静默截断**(256→0)+ 假注释
+     「校验器保证 ≤255」(实际无检查 —— 同 story-003 M-2「判据-文本背离」)⇒ 校验器补
+     `MaxDiseaseIdsPerRow=255` 上界 + 256/255 边界测。
+- **验证**:定向测 **11/11 全绿**;全量 EditMode **3268 = 3221/0/1inc/46skip**
+  (基线 3257 ⇒ **+11 零回归**,恰为 S1.0 新增)。证据:`unity/UnityLogsTmp/s8_s10_lexicon_filter4.xml` ·
+  `s8_s10_editmode_full.xml`。
+- **同批清账(用户裁定)**:
+  - **垃圾 blob 停跟踪** —— `git rm --cached mono_crash.mem.{3340453,3344351}.1.blob`
+    (各 10 MB,`f672607` 误入),本地文件保留;仓 HEAD 起不再跟踪(历史仍存,真删须重写历史)。
+  - **`.gitignore` 条目重新入库**(**推翻 F-6 旧裁定**)—— 三组条目(UnityLogsTmp / mono_crash
+    blob ×2)正式入库:`.gitignore` 是仓级共享约定,非「本地忽略项」。用户 2026-10-12 明示翻转。
+- **账目回填**:`sprint-08.md`(§2 S1.0 行 + §3 验收)· `story-005`(AC-37-35 ①② NOT-RUN → 已闭
+  + Completion Notes 订正注 + S1.0 追补段)· 本段。
+- **仍未闭(NOT-RUN,非本 story 故障)**:词表 ↔ 真实病种注册表全量交叉检查 —— 注册表现为
+  代码内联 fallback(`RegistrySchema`),无交叉检查输入,归 `disease_registry.json` 烘焙落地轮。
+- **下一步**:S1.1 病名册 UI 整面(42 侧 `CasebookScreen` 病名栏 Submit → 翻册 → 指认 → 落笔;
+  DTO 显式携带 `lexicon_id` —— TD 第五风险钉死)。

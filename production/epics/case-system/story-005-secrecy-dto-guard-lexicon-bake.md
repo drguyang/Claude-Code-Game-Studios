@@ -38,7 +38,17 @@
   - **生产码排序键枚举半边(NOT-RUN)**:生产码无 `SortKey` 枚举 ⇒ 该半边结构性不可签核
 - [x] AC-37-35:词表烘焙门 —— ①ordinal append-only 基线校验 ②非一一对应(双射)检查落构建期(阶段 2 校验器) ③`lexicon_id(u16)`/`confidence(u8)` 不属 Fix 解析集(fixture 验)
   - **③(已验)**:LexiconId=int(u16 承载)、Confidence=byte(u8 承载),非 Fix
-  - **①②(NOT-RUN)**:ADR-014 阶段 2 校验器未建;夹具已补(`Fixtures/lexicon_bijection_fail.json` + `lexicon_bijection_pass.json`)
+  - **①②✅ 已闭 2026-10-12(sprint-08 S1.0)**:ADR-014 阶段 2 校验器已建 ——
+    `Gameplay.Presentation.Casebook.JudgmentLexiconValidator`(双射候选拒 `[AC-37-35]` /
+    ordinal append-only 严格递增 `[lexicon-order]` / 非空 `[lexicon-text]` / u8 上界
+    `[lexicon-disease-count]`)+ 绑定器 `Editor.Tools.Bake.JudgmentLexiconBinder`(聚合 throw)
+    + 烘焙产物 `unity/Assets/DataCooked/case_judgment_lexicon.cooked.bytes`(73 B)+ 读方
+    `JudgmentLexiconCookedCodec`(E-13 硬失败)。**11 测全绿**(`judgment_lexicon_bake_test.cs`);
+    负夹具覆盖双射候选 / lexicon_id=0 / 非递增 / 重复 / 空 text / 未知键 / 上界。
+    原 `Fixtures/lexicon_bijection_*.json` 保留(本轮独立 JSON 夹具驱动)。
+  - ⚠️ **仍未闭**:词表 ↔ 真实病种注册表的**全量交叉检查** —— 病种注册表现为代码内联
+    fallback(`RegistrySchema`),非数据文件 ⇒ 无交叉检查输入,归 `disease_registry.json`
+    烘焙落地轮(NOT-RUN,非本 story 故障)。
 - [x] AC-37-32:反射扫描 37 全部出站写路径 ⇒ 零数值奖励通道(无 potency/解锁/成长写入;P0 铁律)
   - **类型面(已验)**:37 出站载荷 + 出向 DTO 零奖励字段
   - **写路径扫描半边(NOT-RUN)**:37 逻辑件无 `IEventSink` 字段(纯函数)⇒ 该半边结构性不可签核
@@ -134,6 +144,18 @@
 - quill_tick 的正存在断言半边:呈现判定 DTO 载体未建 ⇒ NOT-RUN
 - AC-37-32 的写路径扫描半边:37 逻辑件无 `IEventSink` 字段(纯函数)⇒ NOT-RUN
 - AC-37-35 的构建期双射校验半边:ADR-014 阶段 2 校验器未建 ⇒ NOT-RUN
+  - ⭑ **2026-10-12 订正(sprint-08 S1.0)**:该半边**已闭** —— 校验器 + 绑定器 + 烘焙产物 +
+    读方四件齐,11 测全绿。详见 AC-37-35 条目 ①② 注与下方「S1.0 追补」。
+
+**S1.0 追补(2026-10-12 · sprint-08 前置)** — 兑现上述 AC-37-35 ①② NOT-RUN:
+- 生产件:`JudgmentLexiconBaker` / `JudgmentLexiconBinder` / `JudgmentLexiconCookedWriter` /
+  `JudgmentLexiconBinderProbe`(Editor.Tools.Bake)+ `JudgmentLexiconTable`(含 Validator)/
+  `JudgmentLexiconCookedCodec`(Gameplay.Presentation.Casebook)
+- 作者态:`assets/data/case_judgment_lexicon.json`;产物:`case_judgment_lexicon.cooked.bytes`
+- 测试:`judgment_lexicon_bake_test.cs`(**11 条**)· 全量 EditMode 3268 = 3221/0/1inc/46skip
+- **三处真 bug 修复**:① 测试 `ComputeRepoRoot` 少退一层 ② 绑定器空串检查抢先致校验器
+  `lexicon-text` 成不可达死代码(绑定层只留类型检查,域语义归校验器)③ `disease_count`
+  u8 静默截断 + 假注释(校验器补 `MaxDiseaseIdsPerRow=255` 上界 + 256/255 边界测)
 
 **跨域上报**:
 - 39/48 DTO 落地前,story-005 的守密半边**结构性不可签核**,只能 NOT-RUN

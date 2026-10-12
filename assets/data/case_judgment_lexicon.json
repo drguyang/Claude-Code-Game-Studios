@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "entries": [
+    { "lexicon_id": 1, "text": "伤寒", "disease_ids": [1] },
+    { "lexicon_id": 2, "text": "湿温", "disease_ids": [] },
+    { "lexicon_id": 3, "text": "温毒", "disease_ids": [] }
+  ]
+}

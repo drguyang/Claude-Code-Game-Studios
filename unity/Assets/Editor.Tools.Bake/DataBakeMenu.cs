@@ -56,6 +56,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>产物文件名(处置轴 + treatable_by 关系;9-DC-1…7 / AC-9-01…20 的烘焙产物)。</summary>
         public const string DiseaseActionAxisCookedAssetName = "disease_action_axis.cooked.bytes";
 
+        /// <summary>产物文件名(病名册词表;37 Judgment / AC-37-35 / sprint-08 S1.0)。</summary>
+        public const string JudgmentLexiconCookedAssetName = "case_judgment_lexicon.cooked.bytes";
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -236,6 +239,38 @@ namespace DaYiJingCheng.EditorTools.Bake
                 foreach (string e in ex.Errors)
                     Debug.LogError("[大医精诚] 烘焙失败:" + e);
                 throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙病名册词表(sprint-08 S1.0):`assets/data/case_judgment_lexicon.json` →
+        /// 校验(**聚合 throw**,含 AC-37-35 词表侧双射候选拒)→ 产物写入 Assets/DataCooked/。
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 case_judgment_lexicon(37 病名册词表)")]
+        public static void BakeJudgmentLexicon()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                JudgmentLexiconBaker.BakeOutput result =
+                    JudgmentLexiconBaker.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, JudgmentLexiconCookedAssetName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{JudgmentLexiconCookedAssetName} = " +
+                    $"{result.Cooked.Length} B, {result.Rows.Count} 行, " +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw;
             }
         }
 
