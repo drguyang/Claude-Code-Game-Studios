@@ -14,9 +14,14 @@
 // ⚠️ 判定**先决**:
 //   · 落笔须有开案(病例流查询);无开案 ⇒ 不写(JudgmentWriteResult.NoOpenCase)。
 //   · 开方须有在场病人 + 库存(20 最小面)。库存 = 接线载体种子(真库存面归 20)。
-//   · 开方次数接线期限 1:此接线面用「**玩家主动行使一次**」证「开方 → DrugTreatmentApplied
-//     入病史流 → 体征变化」的真链;常驻「选档确认 UI」落地后由 42 事件驱动,本限删除
-//     (不自动重复开方 = 玩家零输入刷事件 = 假绿,承「灰盒测不对」根因)。
+//
+// ✅ **2026-10-12 sprint-08 S2(用户裁定 甲):删「接线期限 1」** —— 原 `_prescribed` 单次
+//   闸门是**接线期的脚手架**(S2.4 当时无玩家入口,故用「只许行使一次」证真链、防自动重复)。
+//   常驻选档确认 UI 现已落地(42 方笺页戥子档位行 → `ICasebookCommandSink.SubmitDose`),
+//   开方**由玩家每次落点驱动** ⇒ 闸门的存在反而**遮蔽真规则**:重复开方应由
+//   **库存**拒绝(20 的 `IPortionsStore.HasPortions`),而非由接线层的单次标志拒绝。
+//   ⚠️ **反假绿义务不变**:「玩家零输入 ⇒ 零事件」现由**玩家动作驱动**保证(42 侧无任何
+//   自动重复路径),不再需要宿主层闸门 —— 宿主每调用一次 = 玩家落点一次。
 
 using System;
 using System.Collections.Generic;
@@ -39,7 +44,6 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly SimTickDriver _ticks;
         private int _authorId;
 
-        private bool _prescribed;
         private PatientId _boundPatient = PatientId.None;
 
         /// <param name="eventSink">事件写入通道(主机唯一 Append;ADR-005)。</param>
@@ -112,30 +116,26 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
-        /// 开方一次(方笺页选档确认 → 处方驱动;接线期限 1 次)。
+        /// 开方一次(方笺页选档确认 → 处方驱动)。
+        /// <para>⚠️ **无单次闸门**(2026-10-12 S2 用户裁定 甲,删原接线期限 1)——
+        /// 重复开方的拒绝归**库存**(20 的 <c>IPortionsStore</c>),不归接线层。
+        /// 每调用一次 = 玩家落点一次(42 侧零自动重复路径)。</para>
         /// </summary>
         /// <param name="itemKey">所开之药(装配层最小表 = salicylic_acid)。</param>
         /// <param name="doseOrdinal">档序数(戥子落点;整剂路径恒 1)。</param>
-        /// <returns>是否走完处方五步并入病史流。</returns>
+        /// <returns>是否走完处方五步并入病史流(库存不足 ⇒ false,零事件)。</returns>
         public bool Prescribe(ItemKey itemKey, int doseOrdinal)
         {
             AssertAuthorReady();
             if (_boundPatient.Value < 0)
                 throw new InvalidOperationException(
                     "方笺页开方前须绑定病人(无对象无从开方)");
-            if (_prescribed)
-                return false;   // 接线期限 1(见文件头注:真实选档确认 UI 落地后删除)
 
             // ✅ 2026-10-12 C3-M3:库存前置真生效 —— 种子由组合根装配期一次 Grant,
             //   此处**不再自证**(原逐次 Grant 使 HasPortions 恒真 + 失败无限刷库存)。
             var intent = new PrescribeIntent(_authorId, _boundPatient, itemKey, doseOrdinal);
-            bool applied = _prescribe.TryPrescribe(in intent, CurrentTick).Applied;
-            if (applied) _prescribed = true;
-            return applied;
+            return _prescribe.TryPrescribe(in intent, CurrentTick).Applied;
         }
-
-        /// <summary>是否已行使过开方(接线期限 1 的观测面)。</summary>
-        public bool Prescribed => _prescribed;
 
         /// <summary>动作前置:玩家 actorId 已定(fail-loud —— 未 SetAuthor 即动作 = 装配遗漏)。</summary>
         private void AssertAuthorReady()

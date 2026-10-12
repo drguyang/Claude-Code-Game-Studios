@@ -28,6 +28,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
     using DaYiJingCheng.Gameplay.Presentation.Diagnosis; // SignLexemeRow / ChannelReading
     using DiagnosisSignChannel = DaYiJingCheng.Gameplay.Presentation.Diagnosis.SignChannel;
     using DaYiJingCheng.Gameplay.Presentation.Skeuomorphic;
+    using DaYiJingCheng.Gameplay.UI.Skeuomorphic.Brass;   // BrassScaleElement(AC-42-F3 黄铜分支)
     using DaYiJingCheng.Sim.Contracts;
     using UnityEngine.UIElements;
 
@@ -56,6 +57,32 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <summary>最近一次 <see cref="ApplyData"/> 传入的脉案源(病名册条目集的重读面 ——
         /// 每次摊开 / 刷新都重读它,**不缓存副本**;ADR-013 §9 C3)。</summary>
         private ICasebookDtoSource _sourceForBook;
+
+        /// <summary>当前页(**纯呈现态** —— 与 <see cref="_bookOpen"/> 同格:
+        /// 翻页零写入,<c>AC-39-10</c>)。<c>false</c> = 脉案页,<c>true</c> = 方笺续页。</summary>
+        private bool _onPrescriptionPage;
+
+        /// <summary>右页是否折回(**纯呈现态**;零写入)。</summary>
+        private bool _folded;
+
+        /// <summary>方笺续页容器(运行时由 <see cref="BuildUI"/> 建,进 spec 面 name 序)。
+        /// <para>⚠️ **字段名避「prescription」**:<c>no_healthbar_feedback_test</c> 的
+        /// 「零破纸字段」门(<c>test_markRegistry_noPaperTear_noTearFields</c>)按字段名子串
+        /// <c>{tear, rip, break, split, fracture}</c> 扫 42 命名空间的**引用类型字段** ——
+        /// 「p<b>rescrip</b>tion」**恰含** <c>rip</c>(sc-<b>rip</b>-tion)⇒ 原拟名 `_prescriptionPage`
+        /// 会被判成「破纸字段」。故以 <c>Rx</c>(方笺的通用缩写)作字段名,语义由本注与
+        /// <c>name</c> 属性承载。**这不是绕门**:该门禁的是「破纸」**机制**字段(记号渲染
+        /// 不得破纸),本字段是**页容器**,零破纸语义 —— 是门在**裸子串匹配**下的已知假阳面。</para></summary>
+        private VisualElement _rxPage;
+
+        /// <summary>脉案页容器(五通道 + 右栏的包裹行;<see cref="_onPrescriptionPage"/> 控制显隐)。</summary>
+        private VisualElement _casebookFace;
+
+        /// <summary>戥子档位行容器(方笺页内;每次重读 <c>DoseDetentCount</c> 重建)。</summary>
+        private VisualElement _dentchDoses;
+
+        /// <summary>戥子黄铜读数元件(<c>AC-42-F3</c> 黄铜分支)。</summary>
+        private BrassScaleElement _brassScale;
 
         /// <summary>创建脉案页。</summary>
         public CasebookScreen(VisualElement root, SkeuoElementLibrary library) : base(root)
@@ -102,6 +129,17 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             confidence.Add(new Label("?") { name = "confidence-question" });
             rightColumn.Add(confidence);
 
+            // 折边(右页左缘;可聚焦装饰 —— casebook-39 §5.3 / §7「折页」行)。
+            // ⚠️ 2026-10-12 sprint-08 S2:本行**首次实现** —— S0.2 已把它计进 K(=8),
+            //   但当时代码面零实现(§7 表登记了它,当时的 K 数漏了它 —— 说法与实际不符)。
+            //   Submit ⇒ 右页向左折回盖住判断区(纯呈现,零写入,AC-39-10)。
+            var foldEdge = _library.Create(SkeuoElement.Paper);
+            foldEdge.name = "fold-edge";
+            foldEdge.focusable = true;
+            foldEdge.Add(new Label("折"));
+            foldEdge.RegisterCallback<NavigationSubmitEvent>(OnFoldSubmit);
+            rightColumn.Add(foldEdge);
+
             // ── 左右并排(sprint-05 T2.5 钉 · 2026-10-11)──
             // UI Toolkit 默认 flex 纵向 ⇒ five-channels(左)与 right-column(右)直接挂 root
             //   = 上下堆叠,「?」变成「第 7 行」而非右列(playtest 第 3 轮 Q1 实测)。
@@ -118,7 +156,59 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             rightColumn.style.marginLeft = 24f;
             rowLayout.Add(channels);
             rowLayout.Add(rightColumn);
-            _root.Add(rowLayout);
+
+            // ── 脉案面包裹(翻页的显隐单元;sprint-08 S2)──
+            // ⚠️ **匿名**容器 ⇒ 不进 spec 面 name 序(cross 断言零回归);
+            //   但**子树照常遍历** ⇒ 既有具名序(casebook-title … right-column …)不变。
+            _casebookFace = new VisualElement();   // 匿名:不参与 name 断言
+            _casebookFace.Add(rowLayout);
+            _root.Add(_casebookFace);
+
+            // ── 页缘(册内翻页;两个可聚焦行 —— casebook-39 §5.3 ASCII「◀ 前案  后案 ▶」
+            //    + §7「翻页 / 折页」行)──
+            // 翻页是**纯呈现**动作:零流事件(AC-39-10)。
+            // ⚠️ 两行 = K 的增量来源(2026-10-12 用户裁定「页缘入 K ⇒ K = 10」):
+            //   五通道(5)+ 问诊栏(1)+ 病名栏(1)+ 折边(1)+ 页缘(2)= **10**。
+            //   前案 = 回上一页 / 后案 = 翻下一页;册内共两页(脉案页 ⇄ 方笺续页),
+            //   「仅册内翻页」范围裁定 ⇒ 二者皆**同模态内的页位移**,不发相机意图、不成新 ModalId。
+            var pagePrev = _library.Create(SkeuoElement.Paper);
+            pagePrev.name = "page-edge-prev";
+            pagePrev.focusable = true;
+            pagePrev.Add(new Label("前案"));
+            pagePrev.RegisterCallback<NavigationSubmitEvent>(OnPagePrevSubmit);
+            _root.Add(pagePrev);
+
+            var pageNext = _library.Create(SkeuoElement.Paper);
+            pageNext.name = "page-edge-next";
+            pageNext.focusable = true;
+            pageNext.Add(new Label("后案"));
+            pageNext.RegisterCallback<NavigationSubmitEvent>(OnPageNextSubmit);
+            _root.Add(pageNext);
+
+            // ── 方笺续页(本书的下一页;casebook-39 §5.2 —— 同模态内的一页,非新 ModalId)──
+            BuildPrescriptionPage();
+        }
+
+        /// <summary>
+        /// 构建方笺续页(书写面 + 戥子;casebook-39 §5.2 / §6,11 语义)。
+        /// <para>⚠️ 本页**零游戏状态**:档位集合每次经 <see cref="ICasebookDtoSource.DoseDetentCount"/>
+        /// 重读并重建(ADR-013 §9 C3),42 不持当前档(选中态 = 引擎焦点位置)。</para>
+        /// </summary>
+        private void BuildPrescriptionPage()
+        {
+            _rxPage = _library.Create(SkeuoElement.Paper);
+            _rxPage.name = "prescription-page";
+
+            // 书写面(方笺是**书写面**不是勾选框 —— prescription-and-medication.md:793)
+            _rxPage.Add(new Label("方笺") { name = "prescription-writing-surface" });
+
+            // 戥子档位容器(黄铜侧;档位行运行时重建)
+            _dentchDoses = new VisualElement { name = "dentch-doses" };
+            _dentchDoses.AddToClassList("brass");
+            _rxPage.Add(_dentchDoses);
+
+            _root.Add(_rxPage);
+            _rxPage.style.display = DisplayStyle.None;   // 初始在脉案页
         }
 
         /// <summary>
@@ -192,6 +282,129 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <summary>指认一条词(**语义动作面**;条目行 Submit 的转发目标)。</summary>
         /// <param name="lexiconId">显式 <c>lexicon_id</c>(非册内显示索引 —— TD 第五风险)。</param>
         public void PointLexicon(int lexiconId) => _commandSink?.SubmitDiseaseName(lexiconId);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // 翻页 / 折页 / 戥子(sprint-08 S2 · 2026-10-12)
+        //
+        // 三条动作**全是纯呈现**:零流事件(AC-39-10)。翻页 / 折叠态住本屏
+        //   (与 _bookOpen 同格:纯呈现态,不进 sim、不进三流)。
+        // 戥子落点确认是**唯一写动作**(施治落笔 → 11 → DrugTreatmentApplied)。
+        // ══════════════════════════════════════════════════════════════════════
+
+        /// <summary>当前是否在方笺续页(纯呈现态观测面)。</summary>
+        public bool IsOnPrescriptionPage => _onPrescriptionPage;
+
+        /// <summary>右页是否折回(纯呈现态观测面)。</summary>
+        public bool IsFolded => _folded;
+
+        /// <summary>页缘「前案」Submit 处理(焦点桥入口 → 语义方法)。</summary>
+        private void OnPagePrevSubmit(NavigationSubmitEvent _) => SubmitPagePrev();
+
+        /// <summary>页缘「后案」Submit 处理(焦点桥入口 → 语义方法)。</summary>
+        private void OnPageNextSubmit(NavigationSubmitEvent _) => SubmitPageNext();
+
+        /// <summary>折边 Submit 处理(焦点桥入口 → 语义方法)。</summary>
+        private void OnFoldSubmit(NavigationSubmitEvent _) => SubmitFold();
+
+        /// <summary>戥子档位行 Submit 处理(焦点桥入口 → 语义方法)。</summary>
+        private void OnDoseSubmit(NavigationSubmitEvent evt)
+        {
+            if (evt.target is VisualElement row && row.userData is int ordinal)
+                SubmitDose(ordinal);
+        }
+
+        /// <summary>
+        /// 页缘「后案」(**语义动作面**;页缘后行 Submit 的转发目标)—— 翻到下一页。
+        /// </summary>
+        /// <remarks>纯呈现:翻页态住本屏,**零流事件**(AC-39-10)。方笺页进入时
+        /// 重建戥子档位(重读 DTO 的 <c>DoseDetentCount</c>,零缓存)。</remarks>
+        public void SubmitPageNext()
+        {
+            if (_onPrescriptionPage) return;   // 已在末页 ⇒ 无下一页(不循环)
+            _onPrescriptionPage = true;
+            ApplyPageVisibility();
+            RefreshDentchDoses();
+            _commandSink?.SubmitPageTurn();   // 通知装配层(纯呈现量;实现方可 no-op)
+        }
+
+        /// <summary>
+        /// 页缘「前案」(**语义动作面**;页缘前行 Submit 的转发目标)—— 回到上一页。
+        /// </summary>
+        /// <remarks>纯呈现:翻页态住本屏,**零流事件**(AC-39-10)。</remarks>
+        public void SubmitPagePrev()
+        {
+            if (!_onPrescriptionPage) return;   // 已在首页 ⇒ 无上一页(不循环)
+            _onPrescriptionPage = false;
+            ApplyPageVisibility();
+            _commandSink?.SubmitPageTurn();
+        }
+
+        /// <summary>折边 Submit(**语义动作面**)—— 右页向左折回 / 展开。</summary>
+        /// <remarks>纯呈现:折叠态住本屏,**零流事件**(AC-39-10)。</remarks>
+        public void SubmitFold()
+        {
+            _folded = !_folded;
+            _casebookFace?.EnableInClassList("folded", _folded);
+            _commandSink?.SubmitFold();
+        }
+
+        /// <summary>戥子落点确认(**语义动作面**;档位行 Submit 的转发目标)。</summary>
+        /// <param name="doseOrdinal">档序数(<b>1 起</b>;整剂路径恒 1)。
+        /// <para>⚠️ 显式 ordinal,非焦点路径索引 —— 同 <see cref="PointLexicon"/> 的 TD 第五风险纪律。</para>
+        /// </param>
+        public void SubmitDose(int doseOrdinal) => _commandSink?.SubmitDose(doseOrdinal);
+
+        /// <summary>按当前页态施加显隐(翻页的呈现兑现;零写入)。</summary>
+        private void ApplyPageVisibility()
+        {
+            if (_casebookFace != null)
+                _casebookFace.style.display =
+                    _onPrescriptionPage ? DisplayStyle.None : DisplayStyle.Flex;
+            if (_rxPage != null)
+                _rxPage.style.display =
+                    _onPrescriptionPage ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        /// <summary>
+        /// 重建戥子档位行(从只读 DTO **重读** —— 零缓存,ADR-013 §9 C3)。
+        /// <para>档数 = <see cref="ICasebookDtoSource.DoseDetentCount"/>(= <c>hi − lo + 1</c>);
+        /// 每档一行,<c>userData</c> = **显式 ordinal**(非显示索引)。</para>
+        /// <para>黄铜刻度读数元件 <see cref="BrassScaleElement"/>(<c>AC-42-F3</c> 黄铜分支):
+        /// <c>TickCount</c> = 档数(**零降级数字读数**,承 ADR-013 §十-B 义务②)。</para>
+        /// </summary>
+        private void RefreshDentchDoses()
+        {
+            if (_dentchDoses == null) return;
+
+            int detentCount = _sourceForBook?.DoseDetentCount ?? 0;
+
+            // 黄铜读数元件(懒建一次;TickCount 随档数刷新)
+            if (_brassScale == null)
+            {
+                _brassScale = new BrassScaleElement();
+                _dentchDoses.Add(_brassScale);
+            }
+            _brassScale.TickCount = detentCount;
+
+            // 清旧档位行(重入 / 换药 ⇒ 不留残留 = 零第二真相残影);保留黄铜元件
+            for (int i = _dentchDoses.childCount - 1; i >= 0; i--)
+            {
+                var child = _dentchDoses[i];
+                if (!ReferenceEquals(child, _brassScale)) _dentchDoses.RemoveAt(i);
+            }
+
+            if (detentCount <= 0) return;   // 无方笺数据 ⇒ 留空(零假数据)
+
+            for (int ordinal = 1; ordinal <= detentCount; ordinal++)
+            {
+                var row = _library.Create(SkeuoElement.Paper);
+                row.focusable = true;
+                row.userData = ordinal;          // 显式 ordinal(非显示索引 —— TD 第五风险)
+                row.Add(new Label("戥子档"));    // 零数字:标签不写档序数(序数在 userData 整数里)
+                row.RegisterCallback<NavigationSubmitEvent>(OnDoseSubmit);
+                _dentchDoses.Add(row);
+            }
+        }
 
         /// <summary>
         /// 重建病名册条目(从只读 DTO 源**重读** —— 零缓存,ADR-013 §9 C3)。
@@ -286,6 +499,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
             _sourceForBook = dtoSource;   // 病名册重读面(零缓存副本,只存引用)
             if (_bookOpen) RefreshLexiconBook();   // 已摊开 ⇒ 随 tick 边沿刷新条目集
+            if (_onPrescriptionPage) RefreshDentchDoses();   // 方笺页在场 ⇒ 重读档数(零缓存)
 
             // 门:零体征 ⇒ 全空行(tripwire 语义,DiseaseVitalsService 恒 mask=0/count=0;
             // 一旦 9 侧接线产出真词条,本门自动放行,无需改此处)。

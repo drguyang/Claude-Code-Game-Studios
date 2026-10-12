@@ -90,6 +90,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>戥子档位上限旋钮(值归用户数值轮;GDD 规则十三登记建议值)。</summary>
         public const int MaxDoseDetents = DentchDoseSelector.RegisteredMaxDoseDetents;
 
+        /// <summary>当前戥子**档位数**(= <c>hi − lo + 1</c>;整剂路径 = 1)。
+        /// <para>⚠️ 唯一出处 = 本驱动持有的 <see cref="DentchDoseSelector"/>
+        /// (规则十三唯一量化点)—— 42 侧经 <c>ICasebookDtoSource.DoseDetentCount</c>
+        /// **回读**本值,不自行由 <c>dose_range</c> 再算一遍(第二推导 = 第二真相)。</para>
+        /// <para>⚠️ 42 只读不持(ADR-013 §9 C3):本属性是只读投影,无 setter。</para>
+        /// </summary>
+        public int DoseDetentCount => _selector.TickCount;
+
         /// <param name="eventSink">主机事件写入通道(唯一 Append 落点)。</param>
         /// <param name="encoder">载荷编码器(ADR-029 唯一路径)。</param>
         /// <param name="ports">11 兄弟 epic 接缝(21a/20/30 最小端口实装)。</param>

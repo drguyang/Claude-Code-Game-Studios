@@ -5,7 +5,8 @@
 //   ② 落笔(BindPatient + SetAuthor 后)→ JudgmentRecorded 入病例流 + 墨龄 > 0(S2.3);
 //   ③ 开方(同上)→ DrugTreatmentApplied 入病史流 → 体征链 apply(S2.4 的管道);
 //   ④ fail-loud:未 SetAuthor / 未 BindPatient 即动作 → 抛(装配遗漏不静默);
-//   ⑤ 开方接线期限 1:第二次 Prescribe 返回 false(不自动重复行使 —— 假绿根因)。
+//   ⑤ 重复开方由**库存**拒绝(非接线层单次闸门 —— 2026-10-12 sprint-08 S2 用户裁定 甲
+//      删原「接线期限 1」;见 PrescriptionPageHost 头注)。
 //
 // 全生产路径:真 EventStream + 真 PatientSpawner + 真 CaseOpenWriter + 真组合根
 // (照 ink_age_test 先例;开方前置 = 在场病人已建档 + 开案)。
@@ -84,27 +85,37 @@ namespace DaYiJingCheng.Tests.Boot
                 "DrugTreatmentApplied 入病史流(S2.4 —— 有内容的管道终点)");
         }
 
+        /// <summary>
+        /// 库存充足时**可重复开方**(2026-10-12 S2 裁定 甲:删原「接线期限 1」闸门)。
+        /// <para>⚠️ **本测取代原 <c>test_s24_prescribe_onceOnly_notAutoRepeat</c>** ——
+        /// 原测断「第二次恒 false」,那是**接线期脚手架**的断言(当时无玩家入口,用单次闸门
+        /// 防自动重复刷事件)。常驻选档 UI 落地后,重复开方是**玩家的合法动作**
+        /// (每次落点 = 一次开方)⇒ 拒绝权归**库存**(20),不归接线层。
+        /// 库存充足 ⇒ 两次皆成功、两条事件 —— 这正是「闸门已删」的可证伪面。</para>
+        /// </summary>
         [Test]
-        public void test_s24_prescribe_onceOnly_notAutoRepeat()
+        public void test_s24_prescribe_withStock_repeatable_noWiringGate()
         {
             AssembleReady();
+            _bag.PortionsStore.Grant(9001, MinimalDrugCatalog.DrugKey, 1);   // 补足 2 份
             _bag.TickDriver.Advance(0.05);
             _bag.VitalsService.OnTickEdge(_bag.TickDriver.CurrentTick);
 
             Assert.IsTrue(_page.Prescribe(MinimalDrugCatalog.DrugKey, 1),
                 "首次开方成功");
-            Assert.IsFalse(_page.Prescribe(MinimalDrugCatalog.DrugKey, 1),
-                "接线期限 1:不自动重复开方(玩家零输入刷事件 = 假绿,承「灰盒测不对」根因)");
-            Assert.AreEqual(1, CountOf(EventKind.DrugTreatmentApplied),
-                "DrugTreatmentApplied 恰 1 条(重复行使被拒)");
+            Assert.IsTrue(_page.Prescribe(MinimalDrugCatalog.DrugKey, 1),
+                "库存充足 ⇒ 第二次开方**仍成功**(接线层零单次闸门 —— S2 裁定 甲)");
+            Assert.AreEqual(2, CountOf(EventKind.DrugTreatmentApplied),
+                "两次开方 ⇒ DrugTreatmentApplied 恰 2 条(每落点一条)");
         }
 
         [Test]
         public void test_s24_prescribe_outOfStock_rejects()
         {
-            // C3-M3 宿主级负测:种子只发一次(组合根装配期 Grant 1)⇒ 第二次开方
-            //   **耗尽**库存返回 false(原逐次 Grant 恒自证,此测恒 true 永不可红;
+            // C3-M3 宿主级负测 + S2 裁定 甲:种子只发一次(组合根装配期 Grant 1)
+            //   ⇒ 第二次开方由**库存**拒绝(原逐次 Grant 恒自证,此测恒 true 永不可红;
             //   删种子/改真库存时这条红 = 删除时机信号)。
+            // ⚠️ 本测现是「重复开方被拒」的**唯一**判据(单次闸门已删)⇒ 它是真规则的落点。
             AssembleReady();
             _bag.TickDriver.Advance(0.05);
             _bag.VitalsService.OnTickEdge(_bag.TickDriver.CurrentTick);
@@ -112,7 +123,9 @@ namespace DaYiJingCheng.Tests.Boot
             Assert.IsTrue(_page.Prescribe(MinimalDrugCatalog.DrugKey, 1),
                 "首次开方消耗种子 1 份(成功)");
             Assert.IsFalse(_page.Prescribe(MinimalDrugCatalog.DrugKey, 1),
-                "种子 1 份耗尽 ⇒ 第二次 false(接线期限 + 库存前置双重拒绝;非自证库存)");
+                "种子 1 份耗尽 ⇒ 第二次 false(库存前置拒绝 —— 非接线闸门,非自证库存)");
+            Assert.AreEqual(1, CountOf(EventKind.DrugTreatmentApplied),
+                "被拒那次**零新事件**(拒开 = 零流事件,AC-11-12 零提示)");
         }
 
         [Test]

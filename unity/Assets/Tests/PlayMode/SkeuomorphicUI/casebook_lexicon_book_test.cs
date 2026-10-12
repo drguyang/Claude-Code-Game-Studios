@@ -38,6 +38,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             public readonly List<int> Seen = new List<int>();
             public readonly Dictionary<int, string> Texts = new Dictionary<int, string>();
             public byte Pending;
+            public int DetentCount;   // 方笺页戥子档数(S2)
 
             public int ActiveSignCount => 0;
             public IReadOnlyList<SignLexemeRow> RevealedRows => new List<SignLexemeRow>();
@@ -45,16 +46,23 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             public long InkAgeTicks => 0;
             public IReadOnlyList<int> SeenLexiconIds => Seen;
             public byte PendingConfidence => Pending;
+            public int DoseDetentCount => DetentCount;
             public string TextOfLexicon(int id) => Texts.TryGetValue(id, out var t) ? t : null;
         }
 
         private sealed class FakeSink : ICasebookCommandSink
         {
             public readonly List<int> Points = new List<int>();
+            public readonly List<int> Doses = new List<int>();
             public int ConfidenceCycles;
+            public int PageTurns;
+            public int Folds;
 
             public void SubmitDiseaseName(int lexiconId) => Points.Add(lexiconId);
             public void SubmitConfidence() => ConfidenceCycles++;
+            public void SubmitDose(int doseOrdinal) => Doses.Add(doseOrdinal);
+            public void SubmitPageTurn() => PageTurns++;
+            public void SubmitFold() => Folds++;
         }
 
         /// <summary>逻辑树夹具(无 panel)—— ①–⑥ 的宿主。</summary>

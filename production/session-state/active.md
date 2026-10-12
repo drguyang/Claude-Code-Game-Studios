@@ -1,4 +1,4 @@
-# Session State — 2026-10-12(**当前阶段 = Pre-Production · Sprint 08 🚧 In Progress(方笺交互面轮 · S0 ✅ · S1.0 ✅ · **S1.1 ✅** · S1.2/S1.3 判据已随 S1.1 落绿 · S2–S3 + E2E-3 待做)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
+# Session State — 2026-10-12(**当前阶段 = Pre-Production · Sprint 08 🚧 In Progress(方笺交互面轮 · S0 ✅ · S1.0 ✅ · **S1.1 ✅** · S1.2/S1.3 ✅ · **S2 ✅** · S3 + E2E-3 待做)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
 
 ## Sprint 05 进展(2026-10-10)
 
@@ -2364,3 +2364,65 @@ Task: S0 前置窄批 ✅ + S1.0 词表烘焙管线 ✅ + S1.1 病名册 UI 整�
      但**无重建实现**(现仅运行期增量)。归 **7a 读档轮**(ADR-010 / ADR-026 ⑥)。
   3. ADR-013 §四 写面补注 —— **已就地落盘**(见上)。
 - **下一步**:S2 方笺页渲染 + 翻页 + 戥子选档开方(依赖 S1)。
+
+---
+
+## 2026-10-12 — sprint-08 S2 方笺页 + 翻页 + 戥子选档开方 ✅(开方环节玩家可达)
+
+**用户裁定(四项,全部照准)**:
+1. 翻页范围 = **甲:仅册内翻页**(脉案页 ⇄ 方笺续页;不发相机意图、不成新 `ModalId`)。
+2. 戥子档位读写形态 = **甲:42 传显式 ordinal + DTO 回读档数**(42 零游戏状态,ADR-013 §9 C3)。
+3. `PrescriptionPageHost` 的「期限 1 防重入」= **甲:删期限 1,改真实规则**(拒绝权归**库存**)。
+4. 页缘入 K 焦点计数 = **甲:页缘入 K ⇒ K = 10**(五通道 5 + 问诊栏 1 + 病名栏 1 + 折边 1 + 页缘 ×2)。
+
+**落盘(契约 → 装配 → 屏 → 测试)**:
+- **契约**:`ICasebookDtoSource` + `int DoseDetentCount`;`ICasebookCommandSink` +
+  `SubmitDose(int ordinal)` / `SubmitPageTurn()` / `SubmitFold()`(后者两条 = 纯呈现,零写入)。
+- **装配**:`CasebookCommandRouter` 接 `PrescriptionPageHost`(第三构造参)—— `SubmitDose`
+  ⇒ `Prescribe` ⇒ `PrescribeRequestDriver` ⇒ 11 五步 ⇒ `DrugTreatmentApplied` 入病史流;
+  `SubmitPageTurn` / `SubmitFold` = **no-op**(P0 无分册态段)。`PrescribeRequestDriver.DoseDetentCount`
+  = 档数真源(其戥子选择器 = 规则十三唯一量化点);`CasebookVitalsSource.BindPrescribeDriver` 后置接回。
+- **屏**:`CasebookScreen` 增**折边首次实现**(S0.2 已计进 K 但代码零实现)+ **页缘 ×2(前案/后案)**
+  + 方笺续页(书写面 + 戥子档位行,每行 `userData` = 显式 ordinal)+ `BrassScaleElement.TickCount` = 档数。
+- **`PrescriptionPageHost`**:删 `_prescribed` 单次闸门(用户裁定 3)。
+
+**验证(全绿)**:
+- EditMode 全量 **3302 = 3255 / 0 / 46skip / 1inc**(基线 3297 ⇒ **+5**;46 skip 全为既有登记件)。
+- PlayMode 全量 **160/160**(基线 148 ⇒ **+12**:8 语义 + 4 真派发 wiring)。
+- 新增测:EditMode `casebook_prescribe_chain_test`(5)· PlayMode `casebook_page_turn_test`(12)。
+- 证据:`unity/UnityLogsTmp/s8_s2_em_final.xml` · `s8_s2_pm_final.xml`。
+- **三变异验证(承「禁借绿」)**:
+  ① 删**页缘后案接线** ⇒ PlayMode 恰 **1 红**(`test_wiring_pageEdgeNextEvent_…`),语义判据 ①–⑦ 仍绿;
+  ② 删**档位行接线** ⇒ 恰 **1 红**(`test_wiring_dentchRowEvent_…`),页缘 wiring 仍绿(两处接线各自可证伪);
+  ③ 删**开方接线**(`CasebookCommandRouter` 内 `Prescribe` 调用)⇒ EditMode 恰 **4 红**
+     (全链 3 + 档序数 1),`test_routerWithoutHost_submitDose_failLoud` 仍绿(该测断的是**未接宿主**)。
+- **改判两处旧判据(均为「脚手架 → 真规则」的转正,非削弱)**:
+  ① `prescription_page_host_test.test_s24_prescribe_onceOnly_notAutoRepeat`(断「第二次恒 false」)
+     ⇒ 拆成 `test_s24_prescribe_withStock_repeatable_noWiringGate`(库存足 ⇒ 可重复)+
+     `test_s24_prescribe_outOfStock_rejects`(库存尽 ⇒ 拒,零新事件)。
+  ② `casebook_render_test` 右栏文本白名单 `{病名, ?}` ⇒ `{病名, ?, 折}`(折边是 §5.3 ASCII
+     已画的右页元素;**禁项一条不减**,只是把新增合法词补进白名单 —— 白名单缺合法项 = 假红)。
+- **结构断言同步**:`casebook_lexicon_test` UXML name 序(13 → 19)+ focusable 7 → **10**;
+  `casebook_render_test.ExpectedFocusOrder`(7 → 10)。**K 演进链 6 → 7 → 8 → 10**(置信度恒不在内)。
+
+**测试过程中的一个真发现**:PlayMode `Sim.Contracts.Tests`(EditMode asmdef)**不引用 `Gameplay.UI`**
+⇒ 42 屏相关判据一律住 PlayMode `Gameplay.Tests`。故 S2.1 的 EditMode 版测试删除,
+**语义 + 真派发接线合并进 PlayMode `casebook_page_turn_test`**(照 S1.1 `casebook_lexicon_book_test` 先例)。
+
+**数值发现(非缺陷,登记)**:`PrescribeFlow` ①b 的份数 = **档值 × `portions_per_dose`**
+(乘法住 11)—— 最小表 `portions_per_dose = 1` ⇒ **档 3 需 3 份**。测试种子须按档位给足。
+
+**登记(非阻塞)**:
+- `Boot.unity` 无 `EventSystem` + `InputSystemUIInputModule` ⇒ 运行期真实焦点导航不可达(承 S1.1 登记 1,归焦点接线轮)。
+- `SubmitPageTurn` / `SubmitFold` 现为 **no-op** —— 页码 / 折叠态持久化归**分册态段**(7a),P0 未实现。
+- **下一步**:S3 词条可读性 polish + E2E-3 七环节全链门。
+
+**两处既有门抓出的真问题(验证途中 —— 均为**我的新代码**踩门,已修)**:
+- `test_ac42f3_componentLibrary_noForbiddenItems`(AC-42-F3 词面门)**二次触发** ——
+  `CasebookScreen.cs` 内注释出现禁用词「计数」(我写「K 计数的来源」)⇒ 改「K 的增量来源」。
+  ⚠️ 该门**逐字符扫原文,注释也扫**(承 `DentchDoseSelector` 头注)⇒ 本目录内**文档措辞亦受限**。
+- `test_markRegistry_noPaperTear_noTearFields`(零破纸字段门)触发 —— 我的新字段
+  `_prescriptionPage` 被裸子串匹配判为「破纸字段」:「p**rescrip**tion」**恰含** `rip`。
+  ⇒ 改字段名为 `_rxPage`(方笺通用缩写),`name` 属性仍为 `prescription-page`(spec 面不变)。
+  ⚠️ **这是门的已知假阳面**(它禁的是「破纸」机制字段),不是我的设计问题;改名 + 就地注记,
+  **未改门**(不削弱既有门 —— 承 S1.1「不得削弱既有门以迁就重构」)。

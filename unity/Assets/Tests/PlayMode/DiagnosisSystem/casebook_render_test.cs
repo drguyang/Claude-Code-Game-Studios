@@ -32,7 +32,11 @@ namespace DaYiJingCheng.Tests.PlayMode.DiagnosisSystem
 {
     internal sealed class CasebookRenderTest
     {
-        /// <summary>UI-8.2 焦点序(GDD 2026-10-06 订正面;树序 = 焦点序)。</summary>
+        /// <summary>UI-8.2 焦点序(GDD 2026-10-06 订正面;树序 = 焦点序)。
+        /// <para>⚠️ **K = 10**(2026-10-12 用户裁定「页缘入 K」):五通道(5)+ 问诊栏(1)
+        /// + 病名栏(1)+ 折边(1)+ 页缘 ×2(前案 / 后案)。</para>
+        /// <para>演进:OQ-8-9 问诊栏入 K ⇒ 7;S0.2 折边入 K ⇒ 8;S2 页缘两行入 K ⇒ 10。
+        /// **置信度恒不在内**(OQ-CB-5 甲:档位循环走病名栏,不占焦点位)。</para></summary>
         private static readonly string[] ExpectedFocusOrder =
         {
             "channel-complexion",  // 面色
@@ -41,7 +45,10 @@ namespace DaYiJingCheng.Tests.PlayMode.DiagnosisSystem
             "channel-breathing",   // 呼吸
             "channel-palpation",   // 触感
             "channel-inquiry",     // 问诊栏(OQ-8-9 第 6 行)
-            "channel-disease-name",// 病名(置信度在其中循环,OQ-CB-5 K=6)
+            "channel-disease-name",// 病名(置信度在其中循环,OQ-CB-5)
+            "fold-edge",           // 折边(S0.2 入 K)
+            "page-edge-prev",      // 页缘 · 前案(S2 入 K)
+            "page-edge-next",      // 页缘 · 后案(S2 入 K)
         };
 
         /// <summary>五行(体征区;问诊栏单列,病名归右栏)。</summary>
@@ -146,15 +153,19 @@ namespace DaYiJingCheng.Tests.PlayMode.DiagnosisSystem
             }
             Assert.AreEqual(headers.Length, i, "六行全走查");
 
-            // 右栏文本面 ⊆ {病名, ?}(零裸数字 badge —— 评审 q16,AC-8-39/43)
+            // 右栏文本面 ⊆ {病名, ?, 折}(零裸数字 badge —— 评审 q16,AC-8-39/43)
+            // ⚠️ 2026-10-12 sprint-08 S2:「折」入本集 —— 折边是**右页左缘的已登记元素**
+            //   (casebook-39 §5.3 ASCII〔折边〕+ §7「翻页 / 折页」行),其标签本就在右页。
+            //   本断言**非削弱**:禁项(裸数字 / 负向词)一条不减,只是把新增的**合法**词
+            //   补进白名单(白名单未列合法项 ⇒ 假红;假红与假绿同为判据失效)。
             var rightTexts = root.Q<VisualElement>("right-column")
                 .Query<Label>().ToList().Select(l => l.text ?? "");
             foreach (string text in rightTexts)
             {
                 Assert.IsFalse(text.Any(char.IsDigit),
                     $"右栏零裸数字 badge(AC-8-43)—— 命中「{text}」");
-                Assert.IsTrue(text == "病名" || text.Contains("?"),
-                    $"右栏文本面 ⊆ {{病名, ?}} —— 命中「{text}」");
+                Assert.IsTrue(text == "病名" || text.Contains("?") || text == "折",
+                    $"右栏文本面 ⊆ {{病名, ?, 折}} —— 命中「{text}」");
             }
         }
 

@@ -317,6 +317,10 @@ public interface ICasebookCommandSink   // 首个实例(39 脉案;其余屏按�
 {
     void SubmitDiseaseName(int lexiconId);  // 病名栏指认(显式 lexicon_id,非显示索引)
     void SubmitConfidence();                // 同栏重复 Submit ⇒ 档位循环(OQ-CB-5 甲)
+    // ⚠️ 2026-10-12 sprint-08 S2 追加三员(用户裁定 甲:仅册内翻页 / 42 传显式 ordinal):
+    void SubmitDose(int doseOrdinal);       // 方笺页戥子落点 ⇒ 开方(唯一写动作;写者 = 11)
+    void SubmitPageTurn();                  // 册内翻页(纯呈现,零流事件 AC-39-10)
+    void SubmitFold();                      // 折边(纯呈现,零流事件 AC-39-10)
 }
 
 // ── 无障碍钩子(F8,只留接口不实现)──

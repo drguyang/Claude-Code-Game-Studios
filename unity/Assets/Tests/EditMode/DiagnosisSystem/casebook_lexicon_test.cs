@@ -289,8 +289,11 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
                 "channel-complexion", "channel-voice", "channel-posture",
                 "channel-breathing", "channel-palpation", "channel-inquiry",
                 "right-column", "channel-disease-name", "confidence-mark",
-                "confidence-question",
-            }, named, "UXML 具名元素结构序(UI-8.1 布局 + UI-8.2 焦点序 = 树序)");
+                "confidence-question", "fold-edge",
+                "page-edge-prev", "page-edge-next",
+                "prescription-page", "prescription-writing-surface", "dentch-doses",
+            }, named, "UXML 具名元素结构序(UI-8.1 布局 + UI-8.2 焦点序 = 树序;"
+                      + "sprint-08 S2 追加折边 / 页缘 ×2 / 方笺续页三件)");
 
             // 病名归右栏(铁律③)—— five-channels 子树内无病名、有问诊
             XElement five = doc.Descendants()
@@ -304,11 +307,13 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
             Assert.IsTrue(fiveNames.Contains("channel-inquiry"),
                 "问诊栏在体征区(OQ-8-9 第 6 行)");
 
-            // 焦点行恰 7;confidence-mark 不聚焦(OQ-CB-5 K=6)
+            // 焦点行恰 10;confidence-mark 不聚焦(OQ-CB-5 + 2026-10-12 K 裁定)
+            // K = 五通道(5)+ 问诊栏(1)+ 病名栏(1)+ 折边(1)+ 页缘 ×2 = 10
+            //   (OQ-8-9 使 K 6 → 7;S0.2 折边入 K ⇒ 8;S2 页缘前案/后案入 K ⇒ 10)。
             int focusable = doc.Descendants()
                 .Count(e => (string)e.Attribute("focusable") == "true");
-            Assert.AreEqual(7, focusable,
-                "focusable 行恰 7(面色/语声/姿态/呼吸/触感/问诊/病名)");
+            Assert.AreEqual(10, focusable,
+                "focusable 行恰 10(面色/语声/姿态/呼吸/触感/问诊/病名/折边/前案/后案)");
             XElement conf = doc.Descendants()
                 .First(e => (string)e.Attribute("name") == "confidence-mark");
             Assert.AreNotEqual("true", (string)conf.Attribute("focusable"),

@@ -36,6 +36,19 @@
             <ui:VisualElement name="confidence-mark" class="ink">
                 <ui:Label name="confidence-question" text="?" class="ink" />
             </ui:VisualElement>
+            <ui:VisualElement name="fold-edge" class="paper" focusable="true">
+                <ui:Label text="折" class="ink" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="page-edge-prev" class="paper" focusable="true">
+            <ui:Label text="前案" class="ink" />
+        </ui:VisualElement>
+        <ui:VisualElement name="page-edge-next" class="paper" focusable="true">
+            <ui:Label text="后案" class="ink" />
+        </ui:VisualElement>
+        <ui:VisualElement name="prescription-page" class="paper">
+            <ui:Label name="prescription-writing-surface" text="方笺" class="ink" />
+            <ui:VisualElement name="dentch-doses" class="brass" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

@@ -267,10 +267,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 42 病名栏 Submit(ICasebookCommandSink)⇒ JudgmentWriter(Recorded / Revised,
             // OQ-CB-5 甲循环落笔)。⚠️ **复用方笺页的同一 JudgmentWriter 实例**
             // (prescriptionPage.Writer)—— 作者同步(SetAuthor)只在一处,不新开第二写者。
+            // ⚠️ sprint-08 S2(2026-10-12):第三参 = 方笺页宿主 —— 戥子落点(SubmitDose)
+            //   的开方写路径。与 Writer 同源(宿主即 Writer 的持有者)⇒ 单写者、单作者真源。
             var casebookCommands = new CasebookCommandRouter(
-                prescriptionPage.Writer, () => tickDriver.CurrentTick);
+                prescriptionPage.Writer, () => tickDriver.CurrentTick, prescriptionPage);
             // 后置接回:命令路由就绪后把档位面接进 42 只读源(构造序所限,见本源 BindCommands 注)
             casebookSource.BindCommands(casebookCommands);
+            // 后置接回(2):戥子档数真源 —— 处方驱动(构造序所限,见 BindPrescribeDriver 注)
+            casebookSource.BindPrescribeDriver(prescribeDriver);
 
             // ── fail-loud 兜底:S1.2 诊断数据集非空(词表/门槛装载态)──
             // ⚠️ 「空行」在**运行期**是诚实形态(未查 = 空行,禁假数据);但**装配期**空数据集

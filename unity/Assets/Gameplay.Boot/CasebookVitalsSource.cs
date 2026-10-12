@@ -48,6 +48,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         private CasebookCommandRouter _commands;
         private PatientId _patient = PatientId.None;
 
+        /// <summary>处方驱动(方笺页戥子档数的真源 —— sprint-08 S2)。
+        /// <para>⚠️ 只读其 <see cref="PrescribeRequestDriver.DoseDetentCount"/>
+        /// (42 零游戏状态字段,AC-42-D3)。可为 null(未接方笺面的旧装配面)⇒ 档数恒 0。</para>
+        /// <para>非 readonly:装配序上处方驱动早于本源构造,但既有装配点不传 ⇒ 经
+        /// <see cref="BindPrescribeDriver"/> 后置接回(与 <see cref="_commands"/> 同款)。</para></summary>
+        private PrescribeRequestDriver _prescribeDriver;
+
         /// <summary>当前观看者(玩家)actorId —— 病名册条目集按人分册(铁律⑤「每人一本」)。
         /// <para>装配期未知(玩家 id 由 BootRoot 生成玩家后分配)⇒ 后置 <see cref="SetViewer"/>;
         /// 未设 ⇒ -1,病名册空(未见任何病)。</para></summary>
@@ -95,6 +102,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_patient.Value >= 0) _commands.BindPatient(_patient);
         }
 
+        /// <summary>接回处方驱动(方笺页戥子档数的真源 —— sprint-08 S2)。
+        /// <para>与 <see cref="BindCommands"/> 同款后置形态(构造序所限);接回后
+        /// <see cref="DoseDetentCount"/> 即回读该驱动的戥子档数。</para></summary>
+        /// <param name="prescribeDriver">处方驱动(档数真源)。</param>
+        /// <exception cref="System.ArgumentNullException">prescribeDriver 为 null。</exception>
+        public void BindPrescribeDriver(PrescribeRequestDriver prescribeDriver)
+        {
+            _prescribeDriver = prescribeDriver
+                ?? throw new System.ArgumentNullException(nameof(prescribeDriver));
+        }
+
         /// <summary>设定观看者(玩家)actorId —— 病名册条目集按人分册(铁律⑤)。
         /// <para>BootRoot 生成玩家后调用(装配期 id 未定;与 <c>PrescriptionPageHost.SetAuthor</c>
         /// 同款后置形态)。未设 ⇒ 病名册空。</para></summary>
@@ -136,6 +154,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>未接命令面 ⇒ 0(空)。</para>
         /// </remarks>
         public byte PendingConfidence => _commands?.PendingConfidence ?? 0;
+
+        /// <inheritdoc/>
+        /// <remarks>
+        /// <b>戥子档位数</b>(sprint-08 S2 · 方笺页)—— = <c>hi − lo + 1</c>(整剂路径 = 1)。
+        /// <para>真源 = 处方驱动的 <see cref="PrescribeRequestDriver.DoseDetentCount"/>
+        /// (其内部戥子选择器 = 规则十三唯一量化点)。42 每次渲染**回读**(零缓存,
+        /// ADR-013 §9 C3)—— 与 <see cref="PendingConfidence"/> / <see cref="SeenLexiconIds"/> 同款形态。</para>
+        /// <para>未接处方驱动 ⇒ 0(方笺页戥子留空,不造档位 —— 零假数据)。</para>
+        /// </remarks>
+        public int DoseDetentCount => _prescribeDriver?.DoseDetentCount ?? 0;
 
         /// <inheritdoc/>
         /// <remarks>已查 ⇒ 该次快照词条数;未查 ⇒ 0(空行)。</remarks>

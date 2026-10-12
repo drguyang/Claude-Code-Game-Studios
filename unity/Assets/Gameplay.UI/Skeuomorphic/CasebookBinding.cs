@@ -81,6 +81,16 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// 与 <see cref="SeenLexiconIds"/> 的空集语义一致 —— 无绑定病人 / 未落笔 ⇒ 0。</para>
         /// </summary>
         byte PendingConfidence { get; }
+
+        /// <summary>方笺页戥子的**档位数**(= <c>hi − lo + 1</c>;整剂路径 = 1)。
+        /// <para>语义真源 = 装配层的 <c>DentchDoseSelector</c>(规则十三:档位集合由
+        /// <c>dose_range</c> 生成,<b>不存在第 <c>hi+1</c> 档</b>)—— 42 只读该**档数**,
+        /// 不持档值、不持当前选中档(选中态 = 焦点位置,由引擎焦点环持有)。</para>
+        /// <para>⚠️ <b>42 只读不持</b>(ADR-013 §9 C3):与 <see cref="SeenLexiconIds"/> 同构
+        /// (装配层算、42 每次渲染回读)⇒ 42 内零游戏状态字段(AC-42-D3)。</para>
+        /// <para>0 = 无方笺数据(未装配 / 无药)⇒ 方笺页戥子留空,不造档位(零假数据)。</para>
+        /// </summary>
+        int DoseDetentCount { get; }
     }
 
     /// <summary>
@@ -115,5 +125,37 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// 恰三态(<c>S-8.3</c>),零第四档。实现方**不产独立流事件**:档位仅作为
         /// <c>judgment.confidence: u8</c> 随落笔 / 改判事件载荷写入。</remarks>
         void SubmitConfidence();
+
+        /// <summary>方笺页戥子落点确认 —— 按该档序数开方(施治落笔)。
+        /// <para>承 <c>casebook-39.md</c> §7「施治(方笺落笔)」行:续页书写面 Submit,
+        /// 写者 = <b>11</b>(不是 39),笔本身即目标绑定。</para>
+        /// </summary>
+        /// <param name="doseOrdinal">戥子档序数(<b>1 起</b>;整剂路径恒 1)。
+        /// <para>⚠️ <b>显式序数,非焦点路径索引</b> —— 同 <see cref="SubmitDiseaseName"/>
+        /// 的 TD 第五风险纪律:42 传真实 ordinal,不用「第几个落点」作代理。</para>
+        /// <para>值来自 42 方笺页档位行的 <c>userData</c>(= <c>DentchDetent.Ordinal</c>)。</para>
+        /// </param>
+        /// <remarks>实现方(装配层)转发至 <c>PrescriptionPageHost.Prescribe</c> →
+        /// <c>PrescribeRequestDriver.TryPrescribe</c> → 五步 → <c>DrugTreatmentApplied</c> 入病史流。
+        /// <para>⚠️ 越界序数(档位集合之外)⇒ 实现方 fail-loud(装配 / 接线错误),
+        /// 不静默丢弃 —— 承 <c>AC-11-18</c>「越界输入在 11 不可达」的接线侧守卫。</para>
+        /// </remarks>
+        void SubmitDose(int doseOrdinal);
+
+        /// <summary>册内翻页(页缘行 Submit)—— 脉案页 ⇄ 方笺续页。
+        /// <para>承 <c>casebook-39.md</c> §5.2「翻页序 = 遇见顺序」与 §7「翻页 / 折页」行:
+        /// 翻页是<b>纯呈现</b>动作,<b>零流事件</b>(页码写分册态段,不进三流,<c>AC-39-10</c>)。</para>
+        /// </summary>
+        /// <remarks>⚠️ <b>本动作不写任何流</b> —— 实现方若需持久化页码,走分册态段(7a),
+        /// 不经 <c>IEventSink</c>。P0 无分册态段实现 ⇒ 实现方为 no-op 亦合法(纯呈现量)。</remarks>
+        void SubmitPageTurn();
+
+        /// <summary>折边 Submit —— 右页向左折回盖住判断区 / 展开。
+        /// <para>承 <c>casebook-39.md</c> §5.2「折叠 = 右页可向左折回盖住判断区」
+        /// 与 §7「翻页 / 折页」行:<b>纯呈现</b>,零流事件。</para>
+        /// </summary>
+        /// <remarks>与 <see cref="SubmitPageTurn"/> 同纪律(零写入)。折叠态归 42 的
+        /// <b>纯呈现态</b>(与病名册开合同格),不进 sim。</remarks>
+        void SubmitFold();
     }
 }

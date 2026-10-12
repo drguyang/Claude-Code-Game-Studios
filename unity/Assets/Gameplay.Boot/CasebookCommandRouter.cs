@@ -28,6 +28,14 @@
 //
 // ⚠️ **换词重来**:空态下指认**另一条**词 ⇒ 从空重新起笔(Recorded / 疑似)。
 //   已落笔态下指认另一条词 ⇒ 视为**改判**(Revised),档位回到疑似(新词的第一笔)。
+//
+// ⚠️ **2026-10-12 sprint-08 S2 追加三条**(用户裁定:甲 仅册内翻页 / 甲 42 传显式 ordinal):
+//   · `SubmitDose(ordinal)` —— **唯一写动作**。转发至方笺页宿主的 `Prescribe`
+//     (→ `PrescribeRequestDriver` → 11 五步 → `DrugTreatmentApplied` 入病史流)。
+//     ordinal 是 42 侧档位行的**显式**序数(非焦点路径索引 —— 同 SubmitDiseaseName 纪律)。
+//   · `SubmitPageTurn()` / `SubmitFold()` —— **纯呈现,零写入**(`AC-39-10`)。42 侧
+//     翻页 / 折叠态住屏内;本路由**刻意 no-op**(P0 无分册态段持久化 —— 见接口注)。
+//     保留方法体而非省略:接口对称性 + 未来分册态段落地的唯一挂点。
 
 using System;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;   // JudgmentState(档位值域)
@@ -37,14 +45,22 @@ using DaYiJingCheng.Sim.Contracts;
 namespace DaYiJingCheng.Gameplay.Boot
 {
     /// <summary>
-    /// 脉案命令路由 —— 42 病名栏 Submit 的接收点(OQ-CB-5 甲循环落笔)。
+    /// 脉案命令路由 —— 42 病名栏 / 方笺页 Submit 的接收点(OQ-CB-5 甲循环落笔 + S2 开方)。
     /// <para>实现 <see cref="ICasebookCommandSink"/>,把指认 / 循环落笔折成
-    /// <see cref="JudgmentWriter"/> 的 Recorded / Revised 写调用。</para>
+    /// <see cref="JudgmentWriter"/> 的 Recorded / Revised 写调用,把戥子落点折成
+    /// <see cref="PrescriptionPageHost.Prescribe"/> 的开方调用。</para>
     /// </summary>
     public sealed class CasebookCommandRouter : ICasebookCommandSink
     {
         private readonly JudgmentWriter _judgment;
         private readonly Func<long> _currentTick;
+
+        /// <summary>方笺页宿主(开方写路径)—— 可空。
+        /// <para>⚠️ 与 <see cref="_judgment"/> 同源:后者就是本宿主的
+        /// <see cref="PrescriptionPageHost.Writer"/>(单写者 = 单一作者真源)。
+        /// 未接 ⇒ <see cref="SubmitDose"/> fail-loud(开方动作无落点 = 装配遗漏,
+        /// 不静默吞 —— 与「未绑病人」同口径)。</para></summary>
+        private readonly PrescriptionPageHost _prescriptionPage;
 
         private PatientId _boundPatient = PatientId.None;
         private int _currentLexiconId;
@@ -52,10 +68,13 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <param name="judgment">落笔 / 改判写者(37 的 JudgmentRecorded / Revised 生产者)。</param>
         /// <param name="currentTick">当前逻辑 tick 读数(写事件的 SimEvent.Tick —— 墨龄基准)。</param>
-        public CasebookCommandRouter(JudgmentWriter judgment, Func<long> currentTick)
+        /// <param name="prescriptionPage">方笺页宿主(戥子落点 → 开方;可空,未接 ⇒ SubmitDose fail-loud)。</param>
+        public CasebookCommandRouter(JudgmentWriter judgment, Func<long> currentTick,
+                                     PrescriptionPageHost prescriptionPage = null)
         {
             _judgment = judgment ?? throw new ArgumentNullException(nameof(judgment));
             _currentTick = currentTick ?? throw new ArgumentNullException(nameof(currentTick));
+            _prescriptionPage = prescriptionPage;
         }
 
         /// <summary>当前绑定病人(脉案会话对象;由查体驱动设置,与 CasebookSource.ChangePatient 同步)。</summary>
@@ -144,6 +163,37 @@ namespace DaYiJingCheng.Gameplay.Boot
                         "[CasebookCommandRouter] 档位超出 S-8.3 三态闭集(零第四档)");
             }
         }
+
+        /// <inheritdoc/>
+        /// <remarks>
+        /// 戥子落点确认 ⇒ 开方(施治落笔;写者 = 11,承 casebook-39 §7「施治」行)。
+        /// <para>⚠️ 越界 ordinal **不在本层校验** —— 挡在 42 侧的 `DentchDoseSelector.DoseValueOf`
+        /// (落点集合即档位集合,越界不可达;AC-11-18 ① 零 clamp 路径)。
+        /// 本层只做「有落点可写」的前置检查(宿主未接 ⇒ fail-loud)。</para>
+        /// </remarks>
+        public void SubmitDose(int doseOrdinal)
+        {
+            if (_prescriptionPage == null)
+                throw new InvalidOperationException(
+                    "方笺页戥子落点无接收宿主(CasebookCommandRouter 未接 PrescriptionPageHost)—— " +
+                    "开方动作无落点 = 装配遗漏,不静默吞(与未绑病人同口径)");
+
+            // 开方对象 = 脉案当前绑定病人(单一会话对象的两个面;与 PrescriptionPageHost.BindPatient
+            // 同步 —— 见 CasebookVitalsSource.ChangePatient / InteractionInputDriver)。
+            _prescriptionPage.BindPatient(_boundPatient);
+            _prescriptionPage.Prescribe(MinimalDrugCatalog.DrugKey, doseOrdinal);
+            // ⚠️ 返回值刻意不外传:开方失败(无货 / 未开案)⇒ **零提示纪律**(AC-11-12),
+            //   42 不显示任何拒绝文案;失败由「体征未变」自然可见。
+        }
+
+        /// <inheritdoc/>
+        /// <remarks>纯呈现:翻页态住 42 屏内,**零流事件**(`AC-39-10`)。
+        /// P0 无分册态段 ⇒ 本方法 **no-op**(见接口注:实现方为 no-op 亦合法)。</remarks>
+        public void SubmitPageTurn() { /* 纯呈现:零写入;页码持久化归分册态段(7a),P0 未实现 */ }
+
+        /// <inheritdoc/>
+        /// <remarks>纯呈现:折叠态住 42 屏内,**零流事件**(`AC-39-10`)⇒ no-op。</remarks>
+        public void SubmitFold() { /* 纯呈现:零写入 */ }
 
         private long CurrentTick => _currentTick();
 

@@ -91,6 +91,9 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             /// <summary>词条文本表(测试可注入;默认空 ⇒ TextOfLexicon 恒 null)。</summary>
             public Dictionary<int, string> _lexiconText = new Dictionary<int, string>();
 
+            /// <summary>方笺页戥子档数(sprint-08 S2;默认 0 ⇒ 方笺页戥子留空)。</summary>
+            public int DoseDetentCount { get; set; }
+
             public void SetRows(IReadOnlyList<SignLexemeRow> rows)
             {
                 _rows.Clear();

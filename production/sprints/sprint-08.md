@@ -66,9 +66,9 @@ sprint-07 后七环节状态:走近 ✅ · 查体 ✅(E 键,人工+自动化双�
 
 | 项 | 落点 | 依赖 | 判据(可证伪) |
 |---|---|---|---|
-| S2.1 方笺页渲染 + 翻页 | `CasebookScreen` 增翻页机制(现单页 224 行零翻页);方笺书写面可见 + **戥子实例化**(档位 = hi−lo+1;黄铜侧读数元件,ADR-013 Amendment B ③,禁降级数字角标) | S1 | `test_prescriptionPage_pageTurn_rendersWritingSurface`:Given 开册;When 翻页至方笺;Then 书写面可见 + 戥子档位数正确;**变异删翻页 ⇒ 单页恰红** |
-| S2.2 戥子选档确认 → 开方 | 选档确认 → `PrescribeRequestDriver.TryPrescribe` → `DrugTreatmentApplied` 入病史流 → 体征链 apply | S2.1 | `test_dentchSelectConfirm_prescribesDrugTreatmentApplied`:Then 病史流 DrugTreatmentApplied → 体征 apply;变异删接线 ⇒ 零事件恰红 |
-| S2.3 拒开 + 防重入 | 无货拒开零事件;期限 1 防重入(删限前置 = 常驻选档 UI 已落地) | S2.2 | `test_prescribe_noStock_refuses`(零事件)+ `test_prescribe_withinDeadline_secondCallRejected`(再开方 ⇒ false + 零新事件) |
+| ~~S2.1 方笺页渲染 + 翻页~~ **✅ 2026-10-12** | `CasebookScreen` 增翻页机制(原单页零翻页);方笺书写面可见 + **戥子实例化**(档位 = hi−lo+1;黄铜侧读数元件,ADR-013 Amendment B ③,禁降级数字角标);**折边首次实现**(S0.2 已计进 K 但代码零实现)+ **页缘 ×2(前案/后案)入 K ⇒ K=10** | S1 | EditMode `casebook_page_turn_test`(翻页状态机 + 不环绕 + 折边 + **零流事件 AC-39-10** + 档数/userData/零假数据)+ PlayMode `casebook_page_turn_wiring_test`(真 panel 派发:后案 ⇒ 翻页 / 前案 ⇒ 翻回 / 折边 ⇒ 折叠 / 档位行 ⇒ ordinal);**变异删 `RegisterCallback` ⇒ wiring 恰红** |
+| ~~S2.2 戥子选档确认 → 开方~~ **✅ 2026-10-12** | 选档确认 → `PrescribeRequestDriver.TryPrescribe` → `DrugTreatmentApplied` 入病史流;接线 = `ICasebookCommandSink.SubmitDose` → `CasebookCommandRouter` → `PrescriptionPageHost.Prescribe` | S2.1 | EditMode `casebook_prescribe_chain_test`:戥子落点 ⇒ DrugTreatmentApplied 入病史流;档序数经唯一量化点(档 1 vs 3 ⇒ 不同 dose_potency);**变异删接线 ⇒ 宿主未接时 fail-loud 恰红** |
+| ~~S2.3 拒开 + 防重入~~ **✅ 2026-10-12** | 无货拒开零事件;**删原「接线期限 1」闸门**(用户裁定 甲 —— 拒绝权归**库存**,不归接线层;常驻选档 UI 已落地) | S2.2 | EditMode `casebook_prescribe_chain_test.test_noStock_refuses_zeroEvents`(零事件)+ `test_withStock_repeatable_noWiringDeadline`(库存足 ⇒ 可重复,原闸门已删的可证伪面)+ `prescription_page_host_test.test_s24_prescribe_outOfStock_rejects`(现为「重复开方被拒」的唯一判据) |
 
 ### S3 词条可读性 polish(sprint-07 残留 ① · 42)
 
@@ -98,7 +98,8 @@ sprint-07 后七环节状态:走近 ✅ · 查体 ✅(E 键,人工+自动化双�
 - **S0**:两处文档裁定落盘(ADR-011 Amendment + K 计数回写)
 - **S1.0**(前置):病名册词表烘焙管线贯通(源 → 校验 → cooked → 读方),11 测绿
 - **S1**:玩家按 E 对病名栏 Submit → 病名册翻开 → 指认 → 落笔三态可见(墨龄 > 0 + JudgmentRecorded 入流)
-- **S2**:翻页至方笺 → 戥子选档 → 确认 → DrugTreatmentApplied → 体征变化
+- **S2** ✅ 2026-10-12:翻页至方笺(页缘 ×2)→ 戥子选档(档位行 = `DoseDetentCount`)→ 确认
+  → `DrugTreatmentApplied` 入病史流;翻页 / 折页**零流事件**(`AC-39-10` 可证伪)
 - **S3**:词条文字可读(截图 + 明度轴判据)
 - **收口判据**:E2E-3 七环节全链 BLOCKING 绿 + 第六轮人工 playtest + C1/C3 全绿
 - **M2 Exit #8 复评可勾清单(qa-lead)**:
