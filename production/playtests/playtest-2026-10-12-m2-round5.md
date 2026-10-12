@@ -7,6 +7,14 @@
 > `examine_driver_test` / `emergency_manual_driver_test` / `interaction_input_chain_test`。
 > 模板权威 = `.claude/skills/playtest-report/SKILL.md`(9 节)。
 
+> ✅ **复验结案(2026-10-12 同日两轮修复后 · 用户口述)**:
+> **Q1 人工面通过** —— 按 E 后值区出现**多行词条内容**(词条栏多行线 = reading 格 + 线格渲染,
+> 真词表经组合根驱动落值区的端到端链**人工可感**)。两轮修复(`ccdca6a` queryLevel+RecoveryTime ·
+> `2c9aae9` Bold 字体)均人工生效。**词条文字可读性(纸纹底笔画偏细)** = **登记 polish
+> 后续做**(字号 md 15→16–17px / 词条格底衬 / 字重微调,归 42 呈现轮),不阻塞 sprint-07 收口。
+> **Q2 仍 ◐**(按 F 零可见反馈 —— P2 story-008 立项依据,登记不变)。
+> **⇒ sprint-07 收口判据(Q1 值区有词)人工半 + 自动化半双双达成。**
+
 ## 1. Session Info
 
 - **Date**:2026-10-12

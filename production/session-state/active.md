@@ -1,4 +1,4 @@
-# Session State — 2026-10-12(**当前阶段 = Pre-Production · Sprint 07 ◐ 收口轮(第五轮 playtest 完成 · Q1 queryLevel 已修待人工复验 · C1/C2/C3 全闭)· Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ · M2 形态件 4/4 齐**)
+# Session State — 2026-10-12(**当前阶段 = Pre-Production · Sprint 07 ✅ Complete(第五轮 playtest Q1 双半达成 · 残留 = polish/P2/42 登记)· Sprint 04 Phase 1 ✅ · Phase 2 ✅ · Phase 3 ◐ · M2 形态件 4/4 齐**)
 
 ## Sprint 05 进展(2026-10-10)
 
@@ -1637,9 +1637,9 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 - ⬜ 系统 6 Epic(接收侧:latch/幂等/判距复验/唯一 Append)—— 转绿 AC-4-13 6 半 + AC-4-17 6 消费半
 
 <!-- STATUS -->
-Epic: sprint-07(内容解锁轮)
-Feature: 收口轮
-Task: 第五轮 playtest 完成 → Q1 queryLevel 占位已修(0→1 + 回归测,全量绿)→ 剩 Q1 人工复验 → sprint-07 Complete
+Epic: sprint-08(规划)/ M2 Exit #8 复评
+Feature: 下一拍待选 —— P2 story-008 排期启动(Q2 零反馈立项依据)· 42 方笺交互面 · 词条可读性 polish
+Task: sprint-07 ✅ Complete(第五轮 playtest Q1 双半达成 · 残留登记不阻塞)→ 下一 sprint 规划待用户指令
 <!-- /STATUS -->
 
 ---
@@ -2246,3 +2246,18 @@ Task: 第五轮 playtest 完成 → Q1 queryLevel 占位已修(0→1 + 回归测
   Awake 时序警告(注入后 setter 重绑,非断链)。
 - **下一步**:Q1 修复后**人工复验**(按 E 值区出词条)→ 通过 ⇒ sprint-07 Complete;
   P2 story-008 排期启动(Q2 零反馈坐实)。当前全量门:EditMode 3256 · PlayMode 136/136。
+
+## 2026-10-12 — sprint-07 Complete(第五轮 playtest 复验结案)
+
+- **Q1 人工面通过(用户口述)**:按 E 后值区出现多行词条(词条栏多行线 = reading 格 + 线格
+  渲染,真词表端到端链人工可感)。两轮修复均人工生效:
+  ① `ccdca6a` —— queryLevel 0→1 + RecoveryTime 100→2000(双根因)+ USS 非法属性全清;
+  ② `2c9aae9` —— 字体 Regular→Bold(纸纹底可读性)。
+- **词条文字清晰度**:用户裁定「记下来后面再做」= **polish 登记**(字号 md 15→16–17px /
+  词条格底衬 / 字重微调,归 42 呈现轮),不阻塞 sprint-07 收口。
+- **sprint-07 ✅ Complete**:S1–S3 + C1–C3 全绿 + 第五轮 playtest(Q1 双半达成 ·
+  Q2=◐ P2 立项依据 · Q3–Q7=A)。全量门 EditMode 3257=3210/0 · PlayMode 136/136。
+- **残留登记(不阻塞)**:① 词条可读性 polish(42)· ② F 键零可见反馈(P2 story-008)·
+  ③ 落笔/开方交互面(42)· ④ S2.1 动作资产 runtime 装载 NOT-RUN。
+- **下一拍(待用户指令)**:M2 Exit #8 复评 / sprint-08 规划 / P2 story-008 排期启动
+  (Q2 零反馈已坐实「无真动作感不可判好玩」)。
