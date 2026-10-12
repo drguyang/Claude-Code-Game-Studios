@@ -82,7 +82,7 @@ sprint-07 后七环节状态:走近 ✅ · 查体 ✅(E 键,人工+自动化双�
 |---|---|
 | E2E-1 | `test_e2e_examine_to_judgment_viaVirtualKeys`:E 查体 → 词条 → Submit 指认 → JudgmentRecorded |
 | E2E-2 | `test_e2e_judgment_to_prescribe_viaVirtualKeys`:落笔 → 翻页 → 选档确认 → DrugTreatmentApplied → 体征变 |
-| E2E-3 | `test_e2e_fullLoop_sevenStages`:**七环节全链,收口 BLOCKING 门**(虚拟按键注入 —— `interaction_input_chain_test` 已注入 E/F,Submit 走同一动作映射则可注入;判据与输入路径解耦,语义动作层直调 Host 方法,输入路径另立 wiring 测) |
+| ~~E2E-3~~ **✅ 2026-10-13** | `e2e_full_loop_test.test_e2e_fullLoop_sevenStages`:**七环节全链,收口 BLOCKING 门**。一测到底(用户裁定)+ 每环保留断言:① 走近 `OnPositionSample` 跨格 + `OnTickEdge` ⇒ `ActorCellEntered` 世界流(⚠️ `Teleport` 不打 sample ⇒ 须显式喂样本);② 查体 `ExamineDriver.OnExamine`(ledger 快照)+ `SeenDisease.OnExamined`(SkillGrown);③ 对照 `RevealedRows`=19 条(探针实测)+ 值区 `.channel-reading` 格渲染词条文字(内嵌 Label);④ 落笔 病名栏 Submit → 摊开 → 条目 Submit ⇒ `JudgmentRecorded`(显式 lexiconId + 疑似);⑤ 开方 后案 Submit → 档位行 Submit ⇒ `DrugTreatmentApplied`(恰一条);⑥ 施治 **虚拟 F 注入**(用户裁定;三件套照 `interaction_input_chain_test`)⇒ `EmergencyAttempt` + `EmergencyTreatmentApplied` 双事件;⑦ 纸面反馈 墨龄 > 0 + 翻回脉案值区仍在。末附三流 tick 单调不减全序断言。**变异**:删 `BindCommandSink` ⇒ ④环恰红(0 判断事件),还原后复跑绿。⚠️ **病程前置** `AdvancePastIncubation()` 2500 tick —— 探针实测病种 1 `Incubation` ≈ 2000 tick,@20Hz ≈100 s,`position=0` ⇒ 双条件门 `aboveFloor` 恒 false ⇒ 查体 0 词(既有行为非缺陷,测试须推进越过) |
 
 ### 结构纪律(承 sprint-07)
 
@@ -103,12 +103,12 @@ sprint-07 后七环节状态:走近 ✅ · 查体 ✅(E 键,人工+自动化双�
 - **S3** ✅ 2026-10-13:题签 / 落字升 `--skeuo-font-size-lexeme`(24px,兑现 `:85` 下限)+
   值区底衬 + 阴性墨(修既有 3.87:1 违约);`skeuo_readability_test` 6 测绿 + 四变异恰红。
   ⚠️ **截图 / 几何腿 = 人工走查**(batch 出不了图,实测);自动化腿已跑满,人工腿禁借绿
-- **收口判据**:E2E-3 七环节全链 BLOCKING 绿 + 第六轮人工 playtest + C1/C3 全绿
+- **收口判据**:E2E-3 七环节全链 BLOCKING 绿 ✅ 2026-10-13(PlayMode 161/161 + EditMode 3308 = 3261/0/46/1 零回归)· 第六轮人工 playtest · C1/C3 全绿
 - **M2 Exit #8 复评可勾清单(qa-lead)**:
   - [ ] ③ EmergencyCandidateList 生产实例化(S1 病名册入口落地后勾)
-  - [ ] ② 墨龄上游落笔 tick(G2 已闭,复评运行期挂点)
-  - [ ] ④ RevealedRows 非空 + 病名册条目集 ⊆ 已见过病集
-  - [ ] 翻页/折页零事件(AC-39-10:39 的 `IEventSink.Append` 调用数 = 0)
+  - [x] ② 墨龄上游落笔 tick ✅ **2026-10-13 E2E-3 ⑦ 环**:`InkAgeTicks > 0` 落笔后从 0 起算(ac-42-G6;链内真组合根判定,非合成 fixture)
+  - [x] ④ RevealedRows 非空 + 病名册条目集 ⊆ 已见过病集 ✅ **2026-10-13 E2E-3 ③④ 环**:查体后 `RevealedRows` = 19 条(探针实测)+ 条目 id = `SeenLexiconIds[0]` 词表反查显式 id(已见集真源 = SkillGrown,ADR-026 ⑥;反幻想二由 `test_lexiconBook_unseenDisease_notPointable` 另立)
+  - [ ] 翻页/折页零事件(AC-39-10:39 的 `IEventSink.Append` 调用数 = 0)—— 判据在 `casebook_page_turn_test` ④(S2.1 已绿);**E2E-3 全链内翻页在 ⑤⑦ 环之间,事件增量恰 = 2 条(开方 + 施治),翻页本身不增**——形式上已复核,正式复评归 qa-lead 轮
 
 ## §4 风险与依赖
 

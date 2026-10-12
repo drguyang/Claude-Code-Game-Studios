@@ -1,4 +1,4 @@
-# Session State — 2026-10-13(**当前阶段 = Pre-Production · Sprint 08 🚧 In Progress(方笺交互面轮 · S0 ✅ · S1.0 ✅ · **S1.1 ✅** · S1.2/S1.3 ✅ · **S2 ✅** · **S3 ✅** · E2E-3 待做)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
+# Session State — 2026-10-13(**当前阶段 = Pre-Production · Sprint 08 🚧 In Progress(方笺交互面轮 · S0 ✅ · S1.0 ✅ · **S1.1 ✅** · S1.2/S1.3 ✅ · **S2 ✅** · **S3 ✅** · **E2E-3 ✅**)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
 
 ## Sprint 05 进展(2026-10-10)
 
@@ -2468,3 +2468,34 @@ Task: S0 前置窄批 ✅ + S1.0 词表烘焙管线 ✅ + S1.1 病名册 UI 整�
 - **`--skeuo-ink-faded` 全局仍 3.87:1** —— 其他屏淡墨文字仍低于承诺,全局修正归独立 story。
 
 **下一步**:E2E-3 七环节全链门(收口 BLOCKING)+ 第六轮人工 playtest(含 S3 截图腿)+ C1/C3。
+
+## Sprint 08 E2E-3 七环节全链门 ✅ 完成(2026-10-13 · 收口 BLOCKING)
+
+**用户裁定两问**(先于动工):① 链结构 = **一测到底 + 每环保留断言**;② 施治环输入 = **注入虚拟 F**(同 `interaction_input_chain_test` 三件套)。
+
+**新测 `e2e_full_loop_test.test_e2e_fullLoop_sevenStages`(PlayMode · 单测 484 行)**:
+
+| 环 | 判据(可证伪) |
+|---|---|
+| ① 走近 | `OnPositionSample(2,1,0)` 跨格 + `OnTickEdge` ⇒ `ActorCellEntered` 入世界流(ADR-020 §四 唯一 sim 投影) |
+| ② 查体 | `ExamineDriver.OnExamine`(ledger 快照)+ `SeenDisease.OnExamined`(SkillGrown 入病史流,已见集真源) |
+| ③ 对照 | `RevealedRows` = **19 条**(探针实测)+ `.channel-reading` 值区格渲染词条文字(内嵌 Label) |
+| ④ 落笔 | 病名栏 Submit → 摊开 → 条目 Submit ⇒ `JudgmentRecorded`(lexiconId = 词表反查显式 id + 疑似) |
+| ⑤ 开方 | 后案 Submit → 方笺页 → 档位行 Submit ⇒ `DrugTreatmentApplied`(恰一条) |
+| ⑥ 施治 | 虚拟 F 注入(探针读回 true 区分键位怪癖/链断)⇒ `EmergencyAttempt` + `EmergencyTreatmentApplied` 双事件 |
+| ⑦ 纸面反馈 | `InkAgeTicks > 0` + 翻回脉案值区词条仍在 |
+| 末 | 三流事件 tick 单调不减(全序;乱序入流 = 重放不可复现) |
+
+**门数字**:PlayMode **161/161**(基线 160 ⇒ +1,零回归)· EditMode **3308 = 3261/0/46/1**(基线 3308,零回归)。
+**变异**:删 `BindCommandSink` ⇒ ④环恰红(0 判断事件);还原后复跑绿(diff 校验 IDENTICAL)。
+
+**探针实证的两条实现期事实**(临时探针 `s3_probe_e2e_reveal_test` 用毕已删):
+1. **病种 1 `Incubation` ≈ 2000 tick**(@20 Hz ≈ 100 s)—— `tau < incubation ⇒ Progress ≡ 0`(AC-26)⇒
+   position = 0 ⇒ 双条件门 `aboveFloor` 恒 false ⇒ 查体收 0 词。测试须 `AdvancePastIncubation()`(2500 tick,
+   batch 纯 Step 瞬时)越过。**既有行为非缺陷**,但 E2E 链不推进就断在③环。
+2. **`Teleport` 不打 sample** —— 玩家 `OnTickEdge` 的跨格检测吃 `pending_cell`,须显式 `OnPositionSample`。
+3. **F 急救定位源 = 视觉实体**(`NearestPresentPatient` 读 `PatientVisualSpawner` 位置)⇒ 装配期须起 spawner。
+
+**M2 Exit #8 复评**:② 墨龄 + ④ RevealedRows/条目集 **可勾**(链内真组合根判定,非合成 fixture);③ 仍不勾(候选列表非本链判据);AC-39-10 翻页零事件判据在 `casebook_page_turn_test` ④(S2.1 已绿),链内形式复核 = 翻页在⑤⑦之间事件增量恰 2(开方+施治),正式复评归 qa-lead 轮。
+
+**下一步**:第六轮人工 playtest(含 S3 截图腿 + 几何腿目视)+ C3 双代理评审(原件落 `production/qa/evidence/`)+ 收口。
