@@ -2524,3 +2524,125 @@ Task: S0 前置窄批 ✅ + S1.0 词表烘焙管线 ✅ + S1.1 病名册 UI 整�
 - **✍ B-6-1(收口判据直判)**:输入 wiring story(UI map enable / EventSystem 注册 / 真实设备→NavigationSubmitEvent)+ 根因修 + wiring 自动化测;B-6-2 焦点可见性;B-6-3 可读性(数值归用户);B-6-4 字体渲染。
 
 **下一步**:立在 sprint-09(或 hotfix):B-6-1 输入路径(修复前 sprint-08 不得 Complete —— 收口判据 = 自动化绿 + 人工绿双半,承 sprint-07 G5.2 口径)+ B-6-2/3/4。
+
+## B-6-4 字体糊根因结案 ✅(2026-10-13 · SDF 渲染路径)
+
+**第六轮 playtest C1「24px 落字看不清字体发虚」的根因 = 五层叠因,逐层实证(探针 `sdf_font_render_path_probe_test`)**:
+
+| 层 | 根因 | 修正 |
+|---|---|---|
+| ① | 生成器产 **TMP_FontAsset** | 改产 `UnityEngine.TextCore.Text.FontAsset`(UI Toolkit `FromSDFFont` 只认 TextCore 系;TMP 不继承它 ⇒ 被拒 ⇒ `MissingAssetReference`) |
+| ② | 资产空壳(零字形) | `BakeCharacters`(`TryAddCharacters`)预烤 1717 字 |
+| ③ | Dynamic 字形 ImportAsset 时被 `TMP_PreBuildProcessor` 清空 | 预烤后切 **Static**(`SetStaticAfterBake`) |
+| ④ | 子资产(material/atlas)未持久化 | `AddObjectToAsset` 挂子资产 |
+| ⑤ **决定性** | **USS `-unity-font-definition: url("guid:…")` 对字体恒不解析**(`url(guid:)` 仅对 `background-image` 有效) | 全库 **10 处**改 `resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset")` |
+
+**探针三段实证**(`UnityLogsTmp/sdfprobe8-165222.xml` PASS):
+- ① 资产以 TextCore.Text.FontAsset 加载 = **成功**
+- ② C# `FromSDFFont` ⇒ **NotoSansCJKsc-Bold SDF**(排除「资产被拒」)
+- ③ 真实 USS `.channel-label`(resource)⇒ **NotoSansCJKsc-Bold SDF**(坐实 ⑤;`<default>` 消失)
+
+**守护测同步**:`sign_channel_binder_test:261` 剥字体行正则 `url\([^)]*\)` → `(?:url|resource)\([^)]*\)`(防资产名带数字假红)· `emergency_skip_entry_test` / `SkeuoThemeVariables.uss` 过时注释订正(语法 + 类型 + population mode 三处)。
+**EditMode 全绿**:`DaYiJingCheng.Tests.Unit.SkeuomorphicUI` = **241 passed / 0 failed / 13 skipped**(含 `shell_a` / `sign_channel_binder` 全测 / `emergency_skip_entry` 全测)。
+
+**残留(归用户/后续)**:B-6-4 真机**目视**像素验收(批次探针只证「接线解析到 SDF 资产」,不判「真机画出什么」—— 诚实边界)· B-6-3 可读性对比度(数值归用户)· B-6-1 输入路径(独立 story,与字体正交)。
+
+**未提交**:本轮改动(6 USS + SdfFontAssetTool.cs + 3 测试 + 重生成 SDF 资产 + 2 新探针)待用户裁定后 commit。
+
+## B-6-4 字体糊 —— 第二层(覆盖不全)根治 ✅(2026-10-13)
+
+**用户实测反馈**「脉案 6 行很清晰,但其他的还是很糊」—— 第一轮修复只解决了「字体解析」(USS 语法 + 资产类型),**未解决「哪些文本挂了字体」**。
+
+**根因(探针实测,`sdf_font_coverage_probe_test` 枚举真实脉案屏全部 Label)**:
+运行期 C# 建的文本元素**裸 `new Label(text)` 零类** ⇒ 落 Unity 默认主题字体(中文 fallback = 糊)。实测 13 个 Label:
+- **清晰 7** = 6 通道题签 + 病名(挂 `.channel-label`,有字体定义)
+- **糊 6** = `casebook-title` / `confidence-question`(?) / 折 / 前案 / 后案 / 方笺(**裸 Label**)
+用户说的「6 行」= 6 个通道题签。**设计意图(UXML spec 面每个 label 都写 `class="ink"`)在运行期代码从未落实** —— 正是 `SkeuoPaper.uss:163` 早已登记的系统性缺口(`.ink` 在 7 UXML 被引 36 次,运行期 C# 零挂载)。
+
+**决定性实测**:`[COV-INHERIT] root 内联字体后,清晰 Label 数 = 13 / 13` —— UI Toolkit 的 `-unity-font-definition` **可继承**,祖先设一次覆盖全体。
+
+**修法(用户裁定:根级默认字体)**:
+- `SkeuoRuntimeDriver.EnsureDocument` 给 panel root 挂 `SkeuoRootClass`(="skeuo-root")
+- `SkeuoThemeVariables.uss` 追加 `.skeuo-root { -unity-font-definition: resource("Assets/…SDF.asset"); }`
+- 一处生效,全体后代继承,未来新文本自动覆盖,不可能再漏挂
+- **不动** `.channel-reading*` / `.skip-entry` 的逐元素字体定义(有守护测 `sign_channel_binder_test` / `emergency_skip_entry_test` 锁住;同值冗余,零冲突)
+
+**验证**:
+- 新回归门 `sdf_font_coverage_probe_test`(PlayMode)= **13/13 全解析到 SDF** ✓(用**生产 PanelSettings** 含 UnityDefaultRuntimeTheme,排除主题字体规则压过 `.skeuo-root` 的风险)
+- EditMode `DaYiJingCheng.Tests.Unit.SkeuomorphicUI` = **241 passed / 0 failed / 13 skipped**(零回归)
+
+**待办**:用户真机目视复验(脉案标题 / ? / 折 / 前案 / 后案 / 方笺 是否已清晰)。
+
+## B-6-4 字体 —— 第三轮排查(2026-10-13 · 真机时序实证)
+
+**用户反馈**「还是其他地方糊」⇒ 系统排查全部文本源:
+- 全项目**仅 2 文件**建 UITK 文本:`CasebookScreen`(11 处)+ `EmergencyCandidateList`(2 处),共 14 处,全在 `.skeuo-root` 继承链下
+- 其他 6 屏(Screens/*.cs)**零文本**(只建空 Paper 容器)
+- World.unity 无 UI;无 UGUI / TMP;唯一非 UITK 文本 = `InputDebugView`(IMGUI 开发者调试视图,非玩家可见)
+
+**决定性实证(两个对照探针)**:
+| 探针 | 时序 | 样式表挂载 | 清晰/糊 |
+|---|---|---|---|
+| v1 | 字段后注入 / 手动调 Awake | **0** | 0/13 |
+| **v2** | **真机时序**(inactive GO + 预置字段 + 自然生命周期) | **9** | **13/13 清晰** |
+
+⇒ **生产路径下 13/13 全清晰** —— 第二层修复(根级默认字体)**正确生效**。
+v1 的「全糊 / 0 挂载」是**探针假象**(手动调 Awake 早于 UIDocument 的 panel attach;
+`AttachStyleSheets` 第 190 行 `_panel.panel == null` 时静默 return,探针触发该分支,真机不触发)。
+
+**遗留观察(未修,登记)**:`AttachStyleSheets` 的 `_panel.panel == null` 守卫**依赖时序** ——
+若未来真机某路径下 Awake 早于 panel attach,会**静默跳过挂载且不重试**(无 OnEnable/Start 补挂)。
+当前真机时序 OK(v2 实证),但这是脆弱点,登记为 tech-debt(修法 = 移除该守卫,
+`VisualElement.styleSheets` 在未 attach 时也能添加,attach 后自动生效;或加 OnEnable 补挂)。
+
+**结论**:代码层全对,真机应全清晰。用户「还是糊」的最可能解释 = **编辑器未重编译/重导入**(当前编辑器未运行)。
+**下一步**:用户重开编辑器复验;若仍糊,须提供**截图**以定位「其他地方」具体元素。
+
+## B-6-4 字体 —— 真正根因(第四轮 · 用户真机实证 · 2026-10-13)
+
+**用户真机证据(决定性)**:
+- **清晰** = 脉案 6 行题签(`.channel-label` —— **直接挂在 Label 上**的类)
+- **糊** = `?`/折/前案/后案/方笺(**裸 Label**,零类)+ 脉案 6 行**下面的值区** + **止血等急救候选**(`.skip-entry` **容器**内的**子** Label)
+
+**真正根因(推翻第三轮的「继承」假设)**:
+CSS 级联铁律 —— **元素上的直接声明恒压继承值**(与特异性无关)。Unity 内置默认主题对文本元素有**直接**字体规则 ⇒ 压过从 `.skeuo-root` **继承**下来的 SDF 字体。
+- `.channel-label` 清晰 = 它**直接匹配** Label ⇒ 与主题直接规则**同级竞争**且后加载 ⇒ 胜
+- 其余糊 = 全部**靠继承**(裸 Label / 容器类下的子 Label)⇒ 被主题直接规则压过
+
+**为何 batch 探针假绿**:nographics 环境不加载 `unity-theme://default` ⇒ 继承侥幸生效 ⇒ 探针 v1/v2 全绿,**与真机不符**。⇒ **教训:继承类判据 batch 不可信,须真机目视**。
+
+**修法(已落)**:
+- `SkeuoThemeVariables.uss`:`:root` 外新增 **`.unity-text-element`** 规则(UI Toolkit 给**每个** TextElement/Label/Button/TextField 自动挂的类)**直接匹配**全部文本 ⇒ 不赌继承,直接竞争
+- 该文件是九份 USS 清单**第一位** ⇒ 压过主题默认字体;`.ink`/`.channel-label` 等逐元素类**在其后**加载 ⇒ 同特异性后者胜 ⇒ 专属色/字号**保留**,零冲突
+- **移除** `.skeuo-root` 机制(C# `EnsureDocument` 挂类 + `SkeuoRootClass` 常量)—— 已证伪
+- 保留 `AttachStyleSheets` 的守卫移除 + `OnEnable` 幂等补挂(独立脆弱点修复,仍有效)
+
+**验证**:覆盖门(生产 PanelSettings)= 13/13 全解析到 SDF ✓(但 batch 绿≠真机绿,须目视)。
+**下一步**:用户重开编辑器目视复验脉案值区 + 止血候选是否清晰。
+
+## B-6-4 字体 —— 第二根因 = 字号(第五轮 · 用户实证定稿 · 2026-10-13)
+
+**用户诊断实验(决定性)**:把 `.unity-text-element` 字号临时抬到 **40px** ⇒ 用户实测
+「**字体变大了,不糊**」。⇒ 根因判定 = **字号过小**(SDF 缩采样不足),**非渲染问题**。
+
+**机理**:SDF 资产采样点 = **32px**(`m_PointSize`)。清晰档 `.channel-label` = 28px(近采样点);
+糊的裸 Label 无字号 ⇒ 落 Unity 主题默认 ≈14px(**远小于采样点**)⇒ SDF 缩采样不足 = 糊。
+⇒ **两层根因**:① 字体引用(第四轮:`.unity-text-element` 直接匹配);② **字号**(本轮)。
+
+**定稿(已落)**:
+- `SkeuoThemeVariables.uss`:`:root` 新增 `--skeuo-font-size-default: 28px`(与 `--skeuo-font-size-lexeme`
+  同档 = 已被验证清晰 + 近采样点);删临时诊断变量 `--skeuo-font-size-debug: 40px`
+- `.unity-text-element` 加 `font-size: var(--skeuo-font-size-default)`
+- **覆盖面核对**:运行期裸 Label(`?`/折/前案/后案/方笺/值区子 Label/急救候选子 Label)全落
+  `.unity-text-element` = 28px ✓;`.skip-entry`/`.brass` 挂在**容器**(非 Label)上 ⇒ 子 Label
+  仍落直接规则 28px ✓(同 CSS 铁律反过来帮我们);其余字号类(`.ink`/`.seal-small`/`.implement`/
+  `.mark-*`)**运行期零挂载**(0 个 .cs 引用)⇒ 不影响本屏
+
+**回归门(已加强)**:
+- `sdf_font_coverage_probe_test.cs`:双判据 —— ① 字体解析到 SDF;② **字号 ≥24px**(无障碍下限
+  `SkeuoThemeVariables.uss:165`)。实测 **`fontSize 范围 [28,28]`** —— 脉案屏 13 文本元素字号**恒 28px**
+- EditMode **3270 passed / 0 failed** ✓ · PlayMode **51/51** ✓ · 覆盖门 13/13 SDF ✓ · 挂载 9/9 ✓
+
+**遗留**:⚠️ 其余 6 屏(非脉案)的字号类(若挂 `.ink`=15px 等)仍低于采样点 —— 但**运行期零挂载**
+⇒ 当前无实害;未来若运行期给文本挂 `.ink` 等类,须同批抬其字号(登记为观察项)。
+**下一步**:用户重开编辑器目视复验全部文本(尤其值区 + 止血候选)。

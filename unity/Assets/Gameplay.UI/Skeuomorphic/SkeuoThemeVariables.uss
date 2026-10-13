@@ -186,20 +186,49 @@
          的 min-height(现共享 44 ⇒ 拆出行专属 min-height = 字盒值 41/46),本注即前置。 */
     --skeuo-font-size-lexeme: 28px;
 
+    /* ── 全局默认字号(B-6-4 字体糊根治 · 2026-10-13)──
+       ⚠️ **根因(用户实证)**:SDF 资产采样点 = 32px(`m_PointSize`);Unity 主题默认
+       字号 ≈14px **远低于采样点** ⇒ SDF 缩采样不足 = **糊**。用户实验确证:字号抬到
+       40px 即清晰 ⇒ 根因是**字号过小**,非渲染。
+       取值 **28px** —— 与 `--skeuo-font-size-lexeme` 同值,是**已被验证清晰**的档
+       (题签 `.channel-label` = 28px,用户首轮即认可「6 行清晰」),且接近采样点 32px。
+       供 `.unity-text-element` 兜底用 —— **只兜无自己字号的文本**(运行期裸 Label:
+       `?`/折/前案/后案/方笺/值区子 Label/急救候选子 Label);挂类元素(如 `.channel-label`)
+       自带同值字号,同特异性后加载,零冲突。 */
+    --skeuo-font-size-default: 28px;
+
     /* ── 过渡 ── */
     --skeuo-transition-fast: 120ms;
     --skeuo-transition-normal: 220ms;
     --skeuo-transition-slow: 360ms;
 }
 
-/* ── 根级默认字体(B-6-4 字体糊根治 · 2026-10-13)──
+/* ── 全局默认字体(B-6-4 字体糊根治 · 2026-10-13)──
    病因:运行期 C# 建的裸 `new Label(text)` **零类** ⇒ 落 Unity 默认主题字体
-   (中文 fallback = 糊);只有挂 `.channel-label` 的题签清晰(实测 13 Label: 7/6)。
-   UI Toolkit 的 `-unity-font-definition` **可继承**(探针实测:祖先设一次 ⇒ 13/13 全清晰)。
-   ⇒ 在 panel root(SkeuoRuntimeDriver.EnsureDocument 挂 `.skeuo-root`)设一次,
-   全体后代继承 —— 一处生效,未来新文本自动覆盖,不可能再漏挂(对照 `.ink` 逐元素
-   挂载的系统性缺口,见 SkeuoPaper.uss 同族登记)。
-   ⚠️ 本类**只设字体**(不设 color / font-size)—— 逐元素类仍可覆盖,零冲突。 */
-.skeuo-root {
+   (中文 fallback = 糊)。真机实测(2026-10-13)确证根因**不是「没设字体」,而是
+   「继承被直接规则压过」**:
+     · 清晰 = `.channel-label`(**直接**挂在 Label 上的类);
+     · 糊   = 全部**靠继承**拿字体的元素(`?`/折/前案/后案/方笺 = 裸 Label;
+              「止血」等 = `.skip-entry` 容器内的子 Label)。
+   CSS 级联铁律:**元素上的直接声明恒压继承值**(与特异性无关)。Unity 默认主题
+   对文本元素有**直接**字体规则 ⇒ 压过从祖先继承下来的值。
+   ⇒ 修法:用 `.unity-text-element`(UI Toolkit 给**每个** TextElement/Label/Button/
+   TextField 自动挂的类)**直接匹配**所有文本元素 —— 不赌继承,直接竞争。
+   ⚠️ **加载序**:本文件是九份 USS 清单**第一位**(Boot.unity `_styleSheets`),而
+   `.ink`(SkeuoInk)/`.channel-label`(SkeuoPaper)等**逐元素类在其后**加载 ⇒
+   同特异性下后者胜出 ⇒ 那些类的**专属字体 / 色 / 字号仍照常生效**,零冲突。
+   ⚠️ 主题(`unity-theme://default`,PanelSettings.themeUss)在元素 styleSheets
+   **之前**应用 ⇒ 本规则压过主题默认字体。
+   ⚠️ 本规则设**字体 + 兜底字号**(`--skeuo-font-size-default` = 28px,即第二根因的修法);
+   **不设 color** —— 逐元素类仍可覆盖色与字号(同特异性下后加载者胜)。 */
+.unity-text-element {
     -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
+    /* ⚠️ **字号是糊的第二根因(B-6-4 · 2026-10-13 用户实证定稿)**:
+       SDF 资产采样点 = 32px(`m_PointSize`),清晰档 `.channel-label` = 28px(近采样点);
+       而糊的裸 Label 无字号 ⇒ 落主题默认 ≈14px(**远小于采样点**)⇒ SDF 缩采样不足 = 糊。
+       用户诊断实验:字号抬到 40px ⇒ **字变大且变清晰** ⇒ 根因 = 字号过小(非渲染)。
+       定稿 **28px**(= `--skeuo-font-size-default`,与题签同档、近采样点、已被验证清晰)。
+       ⚠️ 逐元素类(`.ink` / `.channel-label` / `.channel-reading` 等)在本规则**之后**加载 ⇒
+       同特异性下胜出 ⇒ 它们各自的字号仍照常生效,本规则只兜**无字号的裸 Label**。 */
+    font-size: var(--skeuo-font-size-default);
 }

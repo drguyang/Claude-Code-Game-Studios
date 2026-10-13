@@ -1,17 +1,21 @@
 // SDF 字体覆盖回归门(PlayMode · 2026-10-13 · B-6-4)
 //
-// ▍根因(已结案):运行期 C# 建的裸 `new Label(text)` **零类** ⇒ 落 Unity 默认主题
-//   字体(中文 fallback = 糊);只有挂 `.channel-label` 的题签清晰。实测真实脉案屏
-//   13 个 Label:7 清晰(挂类)/ 6 糊(裸)。用户所报「6 行清晰、其他糊」即此。
+// ▍根因(已结案 · 三轮实证 · **两层**):
+//   ① **字体引用层**:运行期 C# 建的裸 `new Label(text)` **零类** ⇒ 无字体 ⇒ 落 Unity
+//      内置默认字体(中文 fallback = 糊)。且「在共同祖先设字体靠继承下传」**真机不生效**
+//      —— CSS 级联铁律:**元素上的直接声明恒压继承值**(与特异性无关),主题对文本元素
+//      有直接字体规则。⇒ 修法:`SkeuoThemeVariables.uss` 用 **`.unity-text-element`**
+//      (UI Toolkit 给每个 TextElement/Label/Button/TextField 自动挂的类)**直接匹配**。
+//   ② **字号层(2026-10-13 用户实证)**:SDF 资产采样点 = 32px(`m_PointSize`);裸 Label
+//      无字号 ⇒ 落主题默认 ≈14px **远小于采样点** ⇒ SDF 缩采样不足 = 糊。用户实验:
+//      抬到 40px ⇒ 字变大且变清晰 ⇒ 根因 = 字号过小(非渲染)。定稿 28px(近采样点、
+//      与 `.channel-label` 同档、已被验证清晰)。
 //
-// ▍修法:UI Toolkit 的 `-unity-font-definition` **可继承** ⇒ 在 panel root 挂
-//   `.skeuo-root`(SkeuoRuntimeDriver.EnsureDocument),该类在 SkeuoThemeVariables.uss
-//   设 SDF 字体,全体后代继承(一处生效,新文本自动覆盖)。
-//
-// ▍本测 = **回归门**(防三类回退):
-//   ① 字体语法回退(url(guid:…) 对字体恒不解析 ⇒ 糊);
-//   ② `.skeuo-root` 规则被删 / 字体资产失联;
-//   ③ 根类未挂(继承链断 ⇒ 裸文本回退默认字体)。
+// ▍本测 = **回归门**(防回退 · 双判据):断言真实脉案屏(含 `.channel-label` + 裸 Label +
+//   动态文本)全部文本元素 ① 解析到 SDF 字体;② 字号 ≥24px(无障碍下限,`SkeuoThemeVariables.uss:165`)。
+//   用**生产 PanelSettings**(带主题),排除主题规则压过的生产风险。
+//   ⚠️ `.unity-text-element` 是**直接匹配**(非继承)⇒ batch 探针可信(继承类判据 batch 不可信,
+//   承 2026-10-13 教训:nographics 不加载主题 ⇒ 继承侥幸生效 ⇒ 假绿)。
 
 using System.Collections;
 using System.Collections.Generic;
@@ -47,8 +51,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             _go = new GameObject("CovProbeHost");
             var doc = _go.AddComponent<UIDocument>();
             // 用**生产 PanelSettings**(带 UnityDefaultRuntimeTheme)—— 排除「主题的
-            // Label 字体规则在级联顺序 / 特异性上压过 .skeuo-root」的生产专属风险。
-            // 主题资产路径 = Boot.unity 的 m_PanelSettings 引用(d96a2bf6…)。
+            // Label 字体规则在级联顺序 / 特异性上压过逐元素规则」的生产专属风险。
             var prodPs = UnityEditor.AssetDatabase.LoadAssetAtPath<PanelSettings>(
                 "Assets/Gameplay.UI/Skeuomorphic/PanelSettings.asset");
             Assert.IsNotNull(prodPs, "生产 PanelSettings 应可加载(前置:资产路径漂移即红)。");
@@ -68,9 +71,6 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
                 root.styleSheets.Add(sheet);
             }
 
-            // 复现生产修法路径:根级默认字体类(承 SkeuoRuntimeDriver.SkeuoRootClass)
-            root.AddToClassList(SkeuoRuntimeDriver.SkeuoRootClass);
-
             var lib = new SkeuoElementLibrary();
             _ = new CasebookScreen(root, lib);
 
@@ -78,24 +78,31 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             yield return null;
 
             int total = 0;
+            float minFs = float.MaxValue, maxFs = 0f;
             var blurry = new List<string>();
             foreach (var el in Dfs(root))
             {
                 if (!(el is Label lbl)) continue;
                 total++;
+                float fs = el.resolvedStyle.fontSize;
+                if (fs < minFs) minFs = fs;
+                if (fs > maxFs) maxFs = fs;
                 string fa = ResolveFontAssetName(el);
-                if (fa == null || !fa.Contains("SDF"))
+                // 双判据:① 字体解析到 SDF(第一根因);② 字号 ≥24px 无障碍下限(第二根因
+                // —— SDF 采样点 32px,字号过小则缩采样不足 = 糊;B-6-4 用户实证)。
+                if (fa == null || !fa.Contains("SDF") || fs < 24f)
                     blurry.Add($"name='{el.name}' class=[{string.Join(",", el.GetClasses())}] " +
-                               $"text='{Trunc(lbl.text)}' font='{fa}'");
+                               $"text='{Trunc(lbl.text)}' font='{fa}' fontSize={fs}");
             }
 
             Assert.Greater(total, 0, "脉案屏应含文本元素(前置:BuildUI 未建文本 = 夹具失效)。");
             Assert.IsEmpty(blurry,
-                $"脉案屏全部文本须解析到 SDF 字体(B-6-4 根治);以下 {blurry.Count}/{total} 个回退默认字体:\n" +
+                $"脉案屏全部文本须解析到 SDF 字体且字号 ≥24px(B-6-4 根治);以下 {blurry.Count}/{total} 个不合格:\n" +
                 string.Join("\n", blurry) +
-                "\n⇒ 检查:① `.skeuo-root` 规则在 SkeuoThemeVariables.uss;② 字体用 resource(\"Assets/…\");" +
-                "③ 根类已挂(SkeuoRuntimeDriver.EnsureDocument)。");
-            Debug.Log($"[COV-GATE] 脉案屏 {total} 个文本元素全部解析到 SDF 字体 ✓");
+                "\n⇒ 检查:① `.unity-text-element` 规则在 SkeuoThemeVariables.uss;② 字体用 resource(\"Assets/…\");" +
+                "③ 该 USS 在挂载清单内;④ 字号变量 `--skeuo-font-size-default` ≥24px。");
+            Debug.Log($"[COV-GATE] 脉案屏 {total} 个文本元素全部解析到 SDF 字体且字号合格 ✓ " +
+                      $"fontSize 范围 [{minFs},{maxFs}]");
         }
 
         [TearDown]

@@ -182,12 +182,18 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// <summary>
         /// 挂载拟物样式表(编辑器清单 ⇒ <c>rootVisualElement.styleSheets</c>)。
         /// <para>零清单 = LogWarning 后继续(逻辑树仍可用 —— 测试面);但**渲染缺全部形态**。</para>
-        /// <para>面板未建(panel == null)时跳过:无面板则样式表无处挂,不是错误态。</para>
+        /// <para>⚠️ **2026-10-13 修脆弱点**:原判据 <c>_panel.panel == null ⇒ return</c> 依赖
+        /// 「<c>Awake</c> 时 panel 已 attach」的时序假设 —— 若 <c>Awake</c> 早于 <c>UIDocument</c>
+        /// 的 panel attach,则**静默跳过挂载且永不重试**(无 OnEnable/Start 补挂)⇒ 九份 USS
+        /// 全不挂 ⇒ 全部文本回退默认字体 = 糊(探针 v1 实证:挂载数 0)。而
+        /// <c>VisualElement.styleSheets</c> 在元素**未 attach 时也能添加**,attach 后自动生效
+        /// ⇒ 该守卫**有害无益**,已移除。本方法**幂等**(<c>Contains</c> 去重),
+        /// 由 <see cref="Awake"/> 与 <see cref="OnEnable"/> 双调 —— 兜底 <c>_panel</c> 就绪较晚的路径。</para>
         /// </summary>
         private void AttachStyleSheets()
         {
-            if (_panel == null || _panel.panel == null)
-                return;   // 无渲染面板(测试环境)—— 逻辑树不需要样式表
+            if (_panel == null)
+                return;   // 无 UI 根(UIDocument 未建)—— 无处可挂,不是错误态
 
             if (_styleSheets == null || _styleSheets.Count == 0)
             {
@@ -203,6 +209,17 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
                 if (!_panel.styleSheets.Contains(sheet))
                     _panel.styleSheets.Add(sheet);
             }
+        }
+
+        /// <summary>
+        /// 补挂兜底(2026-10-13):若 <see cref="Awake"/> 时 <c>_panel</c> 尚未就绪
+        /// (UIDocument 的 root 晚于本组件 Awake 建),此处重试一次 —— 幂等,零副作用。
+        /// </summary>
+        private void OnEnable()
+        {
+            if (_panel == null)
+                EnsureDocument();
+            AttachStyleSheets();
         }
 
         /// <summary>按名实例化 Screen(闭集;零反射)。</summary>
@@ -239,20 +256,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             }
 
             _panel = _uiDocument != null ? _uiDocument.rootVisualElement : null;
-
-            // ── 根级字体默认(2026-10-13 · B-6-4 字体糊根治)──
-            // 运行期 C# 建的裸 `new Label(text)` **零类** ⇒ 落 Unity 默认字体(中文 fallback
-            // = 糊);只有挂 `.channel-label` 的题签清晰(实测 13 Label: 7 清晰 / 6 糊)。
-            // UI Toolkit 的 `-unity-font-definition` **可继承**(探针实测:祖先设一次 ⇒
-            // 13/13 全清晰)⇒ 在 panel root 挂 `.skeuo-root`,该类在 SkeuoThemeVariables.uss
-            // 设 SDF 字体,全体后代继承 —— 一处生效,未来新文本自动覆盖,不可能再漏挂。
-            _panel?.AddToClassList(SkeuoRootClass);
         }
-
-        /// <summary>根级默认字体类(承 <c>SkeuoThemeVariables.uss</c> 的 <c>.skeuo-root</c> 规则)。
-        /// <para>由 <see cref="EnsureDocument"/> 挂在 panel root 上;字体经 UI Toolkit 的
-        /// <c>-unity-font-definition</c> 继承下传,覆盖全部裸文本(2026-10-13 B-6-4)。</para></summary>
-        public const string SkeuoRootClass = "skeuo-root";
 
         /// <summary>初始刷新(绑定当刻即读一次,不留「上一帧的空白」)。</summary>
         private void RefreshFromSource()
