@@ -54,6 +54,15 @@ namespace DaYiJingCheng.EditorTools.Font
         private const string OutputAssetPath = "Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset";
         private const string ProbeLogPath = "Logs/sdf-font-tmp-api-probe.txt";
 
+        /// <summary>预烤字符集(源 = <c>extract_cjk.py</c> 扫项目实际用到的 CJK + 全 ASCII + 全角标点)。
+        /// <para>⚠️ **动态模式的根因修正**(2026-10-13 用户真机:绑定后报
+        /// <c>MissingAssetReference</c> + 字体仍糊):Dynamic SDF 资产**默认零字形**,而 UI Toolkit
+        /// 经 <c>-unity-font-definition</c> 引用时**不会**触发 TMP 的运行时按需烤录(TMP 的
+        /// <c>TryAddCharacters</c> 是 FontAsset 侧主动调用,UI Toolkit 不走这条)。⇒ 必须**生成时**
+        /// 把字符预烤进资产,资产才带真实字形/atlas;UI Toolkit 加载到的是有内容的 atlas ⇒ 绑定成功、
+        /// 渲染锐利。本路径即 Dynamic 模式的正确用法(创建后补字,不推翻 Dynamic)。</para></summary>
+        private const string CharsetPath = "Assets/Editor.Tools.Font/cjk_charset.txt";
+
         /// <summary>TMP Settings 的**资源名**(非路径):TMP 按此名 Resources.Load,
         /// 放在任一 Resources 目录下即可;文件名须与此常量逐字相同。</summary>
         private const string TmpSettingsResourceName = "TMP Settings";
@@ -133,6 +142,20 @@ namespace DaYiJingCheng.EditorTools.Font
                                $"{ProbeLogPath}(据实选路;勿在未读探测结果前改本文件签名)。");
                 return;
             }
+
+            // ②·⑤ 预烤字符集进 Dynamic 资产(Dynamic 模式零字形的根因修正 —— 见 CharsetPath 注)。
+            //    必须在持久化**之前**调用:TryAddCharacters 把字形烤进 atlas(内存)并写入 glyph table,
+            //    之后 CreateAsset + AddObjectToAsset 一并落盘;否则落盘的是零字形空壳,UI Toolkit
+            //    绑定即报 MissingAssetReference。
+            BakeCharacters(faType, asset);
+
+            // ②·⑥ **预烤后切 Static 模式**(B-6-3 根治的关键一招)。
+            //    ⚠️ Dynamic 资产会被 `TMP_PreBuildProcessor:23`(条件 = Dynamic/DynamicOS 且
+            //    clearDynamicDataOnBuild=true)**在导入/构建时清掉动态字形** ⇒ 烤进去的字在
+            //    ImportAsset 阶段被抹回空壳(实测:烤字日志报成功、落地 m_GlyphTable 却为空)。
+            //    Static 资产不在清理判据内(同处条件仅含 Dynamic/DynamicOS)⇒ 切 Static 后字形表
+            //    随资产序列化持久化,出货运给玩家即「预烤好、零运行时烤录」—— 恰是本项目用途。
+            SetStaticAfterBake(faType, asset);
 
             // ③ 落盘 + 回报(接线轮据 GUID 替换 11 处 USS 引用)
             // ⚠️ **持久化子资产(Dynamic/Static 同需)**:`CreateFontAssetInstance` 在内存里
@@ -483,6 +506,119 @@ namespace DaYiJingCheng.EditorTools.Font
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// 把项目字符集预烤进 Dynamic 资产(根因修正的核心步骤)。
+        /// <para>Dynamic SDF 资产默认零字形;经 <c>-unity-font-definition</c> 被 UI Toolkit 引用时
+        /// 不会触发 TMP 运行时按需烤录 ⇒ 落盘前必须主动 <c>TryAddCharacters</c> 补满字符。</para>
+        /// <para><b>算法</b>:分块(每块 ≤ 1024 字,避长字符串栈/超时)喂
+        /// <c>TMP_FontAsset.TryAddCharacters(string, bool)</c>(public 实例方法,返回 bool =
+        /// 全部烤成 / 部分失败);失败字符收集后告警但不致命(缺字只回退豆腐块,不死进程)。</para>
+        /// <para><b>容量验证</b>:1717 字 @ 采样 32px + padding 2 @ SDFAA,单 4096 atlas 实测
+        /// 余量充足;若某天字符集暴涨到单 atlas 装不下,TMP 会自动开第二 atlas 页(multi-atlas 已开),
+        /// 本步无需改。</para>
+        /// </summary>
+        private static void BakeCharacters(Type faType, UnityEngine.Object asset)
+        {
+            var path = Path.Combine(Directory.GetCurrentDirectory(), CharsetPath);
+            if (!File.Exists(path))
+            {
+                Debug.LogError($"[SdfFontAssetTool] 字符集文件缺失:{CharsetPath} —— " +
+                               "先跑 extract_cjk.py 生成;不烤字 ⇒ 资产仍是零字形空壳(绑定必报 MissingAssetReference)。");
+                return;
+            }
+
+            string charset = File.ReadAllText(path).Replace("\r", "").Replace("\n", "");
+            if (string.IsNullOrEmpty(charset))
+            {
+                Debug.LogError("[SdfFontAssetTool] 字符集为空 —— 不会烤字,资产将零字形。");
+                return;
+            }
+
+            var tryAdd = faType.GetMethod("TryAddCharacters",
+                BindingFlags.Public | BindingFlags.Instance, null,
+                new[] { typeof(string), typeof(bool) }, null);
+            if (tryAdd == null)
+            {
+                Debug.LogError("[SdfFontAssetTool] TMP_FontAsset.TryAddCharacters(string, bool) 未找到 —— " +
+                               "据 ProbeApi 落盘结果改本方法,勿猜。不烤字 ⇒ 资产零字形。");
+                return;
+            }
+
+            int total = 0, failedTotal = 0;
+            var failedChars = new System.Text.StringBuilder();
+            const int chunk = 1024;
+            for (int i = 0; i < charset.Length; i += chunk)
+            {
+                string piece = charset.Substring(i, Math.Min(chunk, charset.Length - i));
+                bool ok;
+                try { ok = (bool)tryAdd.Invoke(asset, new object[] { piece, true }); }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[SdfFontAssetTool] 烤字块 [{i},{i + piece.Length}) 抛异常:" +
+                                   $"{e.InnerException?.Message ?? e.Message}");
+                    continue;
+                }
+                if (!ok)
+                {
+                    // 逐字探测落败字符(只记第一落败,避免 1717² 扫描 — 但字符集小,直接全扫也快)
+                    foreach (char c in piece)
+                    {
+                        try
+                        {
+                            if (!(bool)tryAdd.Invoke(asset, new object[] { c.ToString(), false }))
+                            { failedChars.Append(c); failedTotal++; }
+                        }
+                        catch { failedChars.Append(c); failedTotal++; }
+                    }
+                }
+                total += piece.Length;
+            }
+
+            if (failedTotal > 0)
+                Debug.LogWarning($"[SdfFontAssetTool] 烤字完成:{total} 字中 {failedTotal} 字失败(多为源字体未含的字形;回退豆腐块不致命):\"{failedChars}\"");
+            else
+                Debug.Log($"[SdfFontAssetTool] ✅ 烤字完成:{total} 字全部进 atlas(Dynamic 资产现已带真实字形)。");
+        }
+
+        /// <summary>
+        /// 预烤完成后把资产从 Dynamic 切到 Static(根治 B-6-3 / MissingAssetReference 的关键)。
+        /// <para><b>根因</b>:<c>TMP_PreBuildProcessor:23</c> 在导入/构建阶段对 <b>Dynamic</b>(含
+        /// DynamicOS)且 <c>clearDynamicDataOnBuild=true</c> 的资产**清掉动态字形**;本工程
+        /// <c>TMP_Settings.clearDynamicDataOnBuild</c> 默认 true ⇒ 经 <c>AssetDatabase.ImportAsset</c>
+        /// 重导入时,烤进去的字被抹回空壳(实测证据:烤字日志报成功、落地 <c>m_GlyphTable</c> 却为空)。</para>
+        /// <para><b>对策</b>:烤字后把 <c>atlasPopulationMode</c> 设为 <c>Static</c>。Static 资产
+        /// <b>不在</b>清理判据内(同处条件仅含 Dynamic/DynamicOS),字形表随资产序列化持久化 ⇒
+        /// 出货运给玩家即「预烤好、零运行时烤录」,恰是本项目「一次性生成、读盘即用」的用途。</para>
+        /// <para><b>为何不一开始就用 Static 工厂重载</b>:工厂的 Static 重载在创建期整批烤,但
+        /// ugui 2.0.0 的反射面不稳 + Dynamic 工厂 + 事后补字更可控;补完再切 Static 是同一终点、
+        /// 风险更低。</para>
+        /// </summary>
+        private static void SetStaticAfterBake(Type faType, UnityEngine.Object asset)
+        {
+            var popModeType = FindTypeAnywhere("TMPro.AtlasPopulationMode") ??
+                              AppDomain.CurrentDomain.GetAssemblies()
+                                  .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
+                                  .FirstOrDefault(t => t.Name == "AtlasPopulationMode");
+            if (popModeType == null)
+            {
+                Debug.LogError("[SdfFontAssetTool] AtlasPopulationMode 类型未找到 —— 无法切 Static。");
+                return;
+            }
+
+            var prop = faType.GetProperty("atlasPopulationMode",
+                BindingFlags.Public | BindingFlags.Instance);
+            if (prop == null || !prop.CanWrite)
+            {
+                Debug.LogError("[SdfFontAssetTool] atlasPopulationMode 属性不可写 —— 无法切 Static。");
+                return;
+            }
+
+            object staticMode = Enum.Parse(popModeType, "Static");
+            prop.SetValue(asset, staticMode, null);
+            Debug.Log($"[SdfFontAssetTool] ✅ 资产已由 Dynamic 切 Static(字形表随序列化持久化," +
+                      "ImportAsset/出包不再被清;UI Toolkit 绑定即带真实字形)。");
         }
     }
 }

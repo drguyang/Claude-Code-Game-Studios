@@ -37,11 +37,11 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         // ──────────────────────────────────────────────────────────────────────
         // ① 子资产持久化验收(真验收点)
         // ──────────────────────────────────────────────────────────────────────
-        // 背景修正(2026-10-13):首判把「零字形」判成失败是**误判**。
-        // 包源码 `TMP_FontAsset.cs:583-591` 实证 Dynamic 模式**只登记 sourceFontFile**,
-        // 字形靠 `TryAddCharacters`(public 实例方法,`:1281`)运行时按需烤录 —— 空字形表是
-        // Dynamic 的**合法形态**,不是 bug。真 bug 是 `CreateAsset` 漏 `AddObjectToAsset`
-        // ⇒ material/atlas 子资产没持久化(`m_Material: {fileID:0}`)。本判据据此重写。
+        // 背景修正(2026-10-13):首判把「零字形」判成失败是**误判** —— Dynamic 模式默认空字形表是
+        // 合法形态。但**用户真机实测**暴露第二层:经 `-unity-font-definition` 被 UI Toolkit 引用时
+        // **不会**触发按需烤录 ⇒ 零字形资产加载到空 atlas → `MissingAssetReference` → 回退糊字体。
+        // ⇒ 生成器**必须**落盘前 `TryAddCharacters` 预烤项目字符集(BakeCharacters)。本判据升级为
+        // **子资产持久化 + 字形已预烤** 两者皆须达标。
         [Test]
         public void shell_a_generatedAsset_subAssetsPersisted()
         {
@@ -57,18 +57,27 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             bool hasMaterial = HasMaterial(asset);
             int atlasCount = AtlasCount(asset);
             int populationMode = (int)GetProp(asset, "atlasPopulationMode");
+            int glyphCount = GlyphCount(asset);
 
             Debug.Log($"[SHELL-A] {System.IO.Path.GetFileName(path)}: " +
                       $"material={(hasMaterial ? "有" : "无")} atlasTextures={atlasCount} " +
-                      $"populationMode={populationMode}");
+                      $"populationMode={populationMode} glyphCount={glyphCount}");
 
-            // 验收点 = 子资产已持久化(Dynamic 空字形表合法,不判 glyphCount)
+            // 验收点一 = 子资产已持久化(漏挂 ⇒ UI Toolkit 取不到材质,字必糊)
             Assert.IsTrue(hasMaterial,
-                "[SHELL-A] FontAsset.material 应已入库(Generate 须 AddObjectToAsset 挂子资产;" +
-                "漏挂 ⇒ 运行时 UI Toolkit 取不到材质,字必糊)");
+                "[SHELL-A] FontAsset.material 应已入库(Generate 须 AddObjectToAsset 挂子资产)");
             Assert.IsTrue(atlasCount > 0,
-                "[SHELL-A] FontAsset.atlasTextures 应至少 1 张(1×1 占位亦可,Dynamic 按需烤录)");
-            Assert.AreEqual(1, populationMode, "[SHELL-A] populationMode 应为 Dynamic(=1)");
+                "[SHELL-A] FontAsset.atlasTextures 应至少 1 张(预烤字形后必非空)");
+
+            // 验收点二 = 字形已预烤(Dynamic 空壳不再可接受 —— 那正是 MissingAssetReference 根因)
+            // ⚠️ populationMode 终点是 **Static(=0)**,不是 Dynamic(=1):Dynamic 资产在 ImportAsset/出包时
+            // 会被 TMP_PreBuildProcessor 清掉动态字形(见 SdfFontAssetTool.SetStaticAfterBake 注);
+            // 预烤后切 Static,字形表随序列化持久化,UI Toolkit 绑定即带真实字形。故断言"非 Dynamic 空壳"即可。
+            Assert.IsTrue(populationMode == 0 || populationMode == 1,
+                $"[SHELL-A] populationMode 应为 Static(=0,已预烤)或 Dynamic(=1),实测={populationMode}");
+            Assert.IsTrue(glyphCount > 0,
+                $"[SHELL-A] FontAsset 应已预烤字形(glyphCount={glyphCount} > 0)。" +
+                "若为零 = 生成器 BakeCharacters 未跑 / charset 缺失 ⇒ UI Toolkit 绑定必报 MissingAssetReference。");
         }
 
         // ──────────────────────────────────────────────────────────────────────
@@ -143,6 +152,13 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         {
             var at = GetProp(asset, "atlasTextures");
             if (at is Array a) return a.Length;
+            return -1;
+        }
+
+        private static int GlyphCount(object asset)
+        {
+            var gt = GetProp(asset, "glyphTable");
+            if (gt is System.Collections.ICollection c) return c.Count;
             return -1;
         }
     }
