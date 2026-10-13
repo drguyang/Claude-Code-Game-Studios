@@ -239,7 +239,20 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             }
 
             _panel = _uiDocument != null ? _uiDocument.rootVisualElement : null;
+
+            // ── 根级字体默认(2026-10-13 · B-6-4 字体糊根治)──
+            // 运行期 C# 建的裸 `new Label(text)` **零类** ⇒ 落 Unity 默认字体(中文 fallback
+            // = 糊);只有挂 `.channel-label` 的题签清晰(实测 13 Label: 7 清晰 / 6 糊)。
+            // UI Toolkit 的 `-unity-font-definition` **可继承**(探针实测:祖先设一次 ⇒
+            // 13/13 全清晰)⇒ 在 panel root 挂 `.skeuo-root`,该类在 SkeuoThemeVariables.uss
+            // 设 SDF 字体,全体后代继承 —— 一处生效,未来新文本自动覆盖,不可能再漏挂。
+            _panel?.AddToClassList(SkeuoRootClass);
         }
+
+        /// <summary>根级默认字体类(承 <c>SkeuoThemeVariables.uss</c> 的 <c>.skeuo-root</c> 规则)。
+        /// <para>由 <see cref="EnsureDocument"/> 挂在 panel root 上;字体经 UI Toolkit 的
+        /// <c>-unity-font-definition</c> 继承下传,覆盖全部裸文本(2026-10-13 B-6-4)。</para></summary>
+        public const string SkeuoRootClass = "skeuo-root";
 
         /// <summary>初始刷新(绑定当刻即读一次,不留「上一帧的空白」)。</summary>
         private void RefreshFromSource()
