@@ -44,7 +44,7 @@
 
 .paper .ink {
     color: var(--skeuo-ink-fg);
-    -unity-font-definition: url("guid:6bfef9a30546ce4618445ebd7e0be0f5");
+    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
     font-size: var(--skeuo-font-size-md);
 }
 
@@ -79,7 +79,7 @@
     color: var(--skeuo-ink-fg);
     min-height: var(--skeuo-shared-row-height);
     padding-left: var(--skeuo-shared-space-sm);
-    -unity-font-definition: url("guid:6bfef9a30546ce4618445ebd7e0be0f5");
+    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
     font-size: var(--skeuo-font-size-md);
 }
 
@@ -126,7 +126,7 @@
  *   `background-image`,同样与本处 `background-color` 不重叠。 */
 .channel-reading {
     color: var(--skeuo-ink-fg);
-    -unity-font-definition: url("guid:6bfef9a30546ce4618445ebd7e0be0f5");
+    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
     font-size: var(--skeuo-font-size-lexeme);
     background-color: var(--skeuo-reading-backing);
     border-top-width: var(--skeuo-shared-border-width);
@@ -141,7 +141,7 @@
 
 .channel-reading-negative {
     color: var(--skeuo-ink-negative);
-    -unity-font-definition: url("guid:6bfef9a30546ce4618445ebd7e0be0f5");
+    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
     font-size: var(--skeuo-font-size-lexeme);
     background-color: var(--skeuo-reading-backing);
     border-top-width: var(--skeuo-shared-border-width);
@@ -166,6 +166,6 @@
  * ⚠️ 本类**不进 Registry**(语义样式类,承 `.channel-reading` 同款边界)。 */
 .channel-label {
     color: var(--skeuo-ink-fg);
-    -unity-font-definition: url("guid:6bfef9a30546ce4618445ebd7e0be0f5");
+    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
     font-size: var(--skeuo-font-size-lexeme);
 }

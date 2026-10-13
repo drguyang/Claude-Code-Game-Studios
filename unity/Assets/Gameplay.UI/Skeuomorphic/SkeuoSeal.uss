@@ -19,7 +19,7 @@
     border-bottom-right-radius: var(--skeuo-seal-radius);
     border-bottom-left-radius: var(--skeuo-seal-radius);
     color: var(--skeuo-seal-fg);
-    -unity-font-definition: url("guid:6bfef9a30546ce4618445ebd7e0be0f5");
+    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
     font-size: var(--skeuo-font-size-lg);
     padding-top: var(--skeuo-shared-space-sm);
     padding-right: var(--skeuo-shared-space-sm);

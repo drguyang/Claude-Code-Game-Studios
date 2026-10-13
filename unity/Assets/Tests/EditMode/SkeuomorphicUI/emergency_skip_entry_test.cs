@@ -86,8 +86,9 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                     $".skip-entry 须声明 `{r}`(story AC 点名载体;删/改名即红)。");
             var valueWhiteList = new HashSet<string>
             {
-                // -unity-font-definition 吃 FontAsset 引用(url(guid:...)),物理上不能走
-                // var(--skeuo-*)(变量不能承载资产引用)—— 2026-10-12 登记。
+                // -unity-font-definition 吃 FontAsset 引用(resource("Assets/...")),
+                // 物理上不能走 var(--skeuo-*)(变量不能承载资产引用)—— 2026-10-12 登记;
+                // 2026-10-13 语法由 url(guid:...) 订正为 resource(...)。
                 "-unity-font-definition",
             };
             var decls = Regex.Matches(decl, @"([\w-]+)\s*:\s*([^;]+);")
@@ -146,7 +147,8 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             Assert.IsNotEmpty(files, "前置失败:Skeuo 目录零 USS 文件。");
 
             // Act/Assert ①② 全库零数字角标载体(剥注释 —— 否则注释内实测记录「40/39/43/43」误红;
-            //    X/N 正则须排 url(guid) 无斜杠对,实测 guid 内无「数字/数字」形态)
+            //    X/N 正则须排资源引用无斜杠对,实测 guid/路径内无「数字/数字」形态;
+            //    2026-10-13 字体引用由 url(guid:…) 改 resource("Assets/…"),路径同样无 X/N)
             //    ⚠️ 白名单口径(评审登记):未来合法 `X/N` 出现(如 aspect-ratio: 16/9 型)
             //    须**显式白名单(文件:行 + 理由)**逐处放行,禁整体放宽正则
             //    (照 022 阈值「勿直接放宽,先分解」登记法 —— 放宽 = G2 门静默失效)。

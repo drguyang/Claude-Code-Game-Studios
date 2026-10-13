@@ -19,7 +19,7 @@
     border-bottom-width: var(--skeuo-brass-border-width);
     border-left-width: var(--skeuo-brass-border-width);
     color: var(--skeuo-brass-fg);
-    -unity-font-definition: url("guid:6bfef9a30546ce4618445ebd7e0be0f5");
+    -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
     font-size: var(--skeuo-font-size-md);
 }
 

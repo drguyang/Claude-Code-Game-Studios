@@ -1,19 +1,19 @@
-// 空壳 FontAsset 验收探针(EditMode · 2026-10-13)
+// SDF FontAsset 验收探针(EditMode · 2026-10-13)
 //
 // 背景:`Editor.Tools.Font.SdfFontAssetTool` 生成的 `NotoSansCJKsc-Bold SDF.asset`
-// 实测 3.6KB / `m_GlyphTable: []` / `m_Material: {fileID: 0}` ⇒ **空壳**:
-// 有 FaceInfo(PointSize 32 + 家族名对),但零字形、零 atlas、零 material。
-// 接线轮(替换 11 处 USS `-unity-font-definition`)之前必须先回答:
-//   这个空壳**能不能用**?谁负责烤字形?
+// 经四轮修正(空壳 → 预烤字形 → 切 Static → **改 TextCore 类型**)才可用。
 //
-// 三条候选答案,逐条可证伪:
-//   A. UI Toolkit 渲染时按需 populate(动态模式自烤)⇒ 空壳可用,直接接线;
-//   B. 必须 Editor 期先 populate(官方 Creator 的行为)⇒ 空壳不可用,须补烤录步骤;
-//   C. material 缺失使渲染必败 ⇒ 无论 A/B 都要先补 material。
+// ⚠️ **第五层根因(2026-10-13 探针实证,本文件断言的核心)**:UI Toolkit 的
+//   `-unity-font-definition` 经 `FontDefinition.FromSDFFont(UnityEngine.TextCore.Text.FontAsset)`
+//   解析 ⇒ **需要 TextCore 系 FontAsset**;`TMPro.TMP_FontAsset` **不继承**它
+//   ⇒ TMP 资产被 UI Toolkit 拒绝 ⇒ `MissingAssetReference` ⇒ 回退位图字体 ⇒ 糊。
+//   ⇒ 验收第一关 = **资产能以 `UnityEngine.TextCore.Text.FontAsset` 类型加载**(见 shell_a)。
 //
-// ⚠️ 诚实边界:batch 宿主无渲染帧(SPIKE-D 已实测)⇒ 本探针只做**静态/反射**判定
-// (字形表 / material / atlas / population mode + 可用的 populate 方法面),
-// 不判「真机画出什么」;像素腿归人工。
+// 其余验收点(子资产持久化 / 字形预烤 / Static)承接前四轮修正,逐条可证伪。
+//
+// ⚠️ 诚实边界:batch 宿主无渲染帧 ⇒ 本探针只做**静态/反射**判定
+// (类型 / 字形表 / material / atlas / population mode),不判「真机画出什么」;
+// 像素腿归人工 + 截图 >> image-vision。
 
 using System;
 using System.Linq;
@@ -29,10 +29,10 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         private const string FontAssetGuid = "6bfef9a30546ce4618445ebd7e0be0f5";
         private const string SourceOtfGuid = "b9b707bf05564101912cbf0f946b649f";
 
-        private static Assembly Tmp => AppDomain.CurrentDomain.GetAssemblies()
-            .FirstOrDefault(a => a.GetName().Name == "Unity.TextMeshPro");
-
-        private static Type FaType => Tmp?.GetType("TMPro.TMP_FontAsset");
+        private static Type FaType =>
+            AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => { try { return a.GetType("UnityEngine.TextCore.Text.FontAsset"); } catch { return null; } })
+                .FirstOrDefault(t => t != null);
 
         // ──────────────────────────────────────────────────────────────────────
         // ① 子资产持久化验收(真验收点)
@@ -50,9 +50,12 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 $"FontAsset 应存在(GUID {FontAssetGuid})—— 生成器已跑过。");
 
             var type = FaType;
-            Assert.IsNotNull(type, "TMP_FontAsset 类型应可达");
+            Assert.IsNotNull(type, "UnityEngine.TextCore.Text.FontAsset 类型应可达");
             var asset = UnityEditor.AssetDatabase.LoadAssetAtPath(path, type);
-            Assert.IsNotNull(asset, $"应能加载 {path}");
+            Assert.IsNotNull(asset,
+                $"[SHELL-A] 资产应以 **TextCore.Text.FontAsset** 类型加载 —— 实测加载失败({path})。" +
+                "若资产是 TMP_FontAsset 类型 ⇒ UI Toolkit `-unity-font-definition` 拒绝它 ⇒ " +
+                "MissingAssetReference ⇒ 回退位图字体 ⇒ 糊(2026-10-13 根因)。");
 
             bool hasMaterial = HasMaterial(asset);
             int atlasCount = AtlasCount(asset);

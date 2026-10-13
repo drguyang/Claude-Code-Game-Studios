@@ -222,8 +222,9 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 foreach (var d in decls)
                 {
                     string prop = d.Groups[1].Value, value = d.Groups[2].Value.Trim();
-                    // 白名单:`-unity-font-definition` 吃 FontAsset 引用(url(guid:...)),
-                    // 物理上不可能走 var(--skeuo-*)(变量不能承载资产引用)—— 2026-10-12 登记。
+                    // 白名单:`-unity-font-definition` 吃 FontAsset 引用(resource("Assets/...")),
+                    // 物理上不可能走 var(--skeuo-*)(变量不能承载资产引用)—— 2026-10-12 登记;
+                    // 2026-10-13 语法由 url(guid:...) 订正为 resource(...)。
                     if (prop == "-unity-font-definition") continue;
                     Assert.IsTrue(value.Contains("var(--skeuo-"),
                         $"{cls} `{prop}: {value}` 须走 var(--skeuo-*) —— " +
@@ -251,14 +252,17 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 "阳性/阴性色值须可分(两档同值 = 降档丢失,阴性形态不可读)。");
 
             // Assert ④ 块内零数字 + 零 content(数字/标记形态禁入 —— :1185 不以文字或标记出现)
-            // ⚠️ 2026-10-12:`-unity-font-definition: url("guid:…")` 的 GUID 含数字(hex),
+            // ⚠️ 2026-10-12:`-unity-font-definition` 的资产引用可能含数字(hex GUID),
             //   物理上绕不开 `\d` —— 剥掉该行再扫数字(数字禁的是「徽章/计数」形态,
-            //   不是资产 GUID;该属性已由上方属性集断言钉住)。
+            //   不是资产引用;该属性已由上方属性集断言钉住)。
+            // ⚠️ 2026-10-13:语法由 `url("guid:…")` 改 `resource("Assets/…")`
+            //   (url(guid) 对字体**从不解析** ⇒ MissingAssetReference ⇒ 糊;探针实证)。
+            //   剥除正则同步覆盖两种写法 —— 否则豁免失效,资产名带数字即假红。
             foreach (var pair in new[] { (".channel-reading", posBlock.Value),
                                           (".channel-reading-negative", negBlock.Value) })
             {
                 string withoutFontDef = Regex.Replace(pair.Item2,
-                    @"-unity-font-definition\s*:\s*url\([^)]*\);", string.Empty);
+                    @"-unity-font-definition\s*:\s*(?:url|resource)\([^)]*\);", string.Empty);
                 Assert.IsFalse(Regex.IsMatch(withoutFontDef, @"\d"),
                     $"{pair.Item1} 块内禁数字(字体资产 GUID 行豁免)。");
                 Assert.IsFalse(Regex.IsMatch(pair.Item2, @"content\s*:"),

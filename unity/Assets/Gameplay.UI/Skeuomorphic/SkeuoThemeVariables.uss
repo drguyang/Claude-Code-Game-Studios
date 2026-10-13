@@ -140,14 +140,19 @@
     --skeuo-shared-space-lg: 24px;
     --skeuo-shared-space-xl: 32px;
 
-    /* ── 字体(AC-42-C6 · 2026-10-12 修订)──
+    /* ── 字体(AC-42-C6 · 2026-10-12 修订 · 2026-10-13 语法/类型订正)──
        ⚠️ `font-family` 不是 UI Toolkit 的合法属性名(运行时抛
        "Unknown style property font-family" ⇒ Editor.log 红错刷屏,第五轮 playtest 实测)。
        UI Toolkit 唯一吃字体的属性 = `-unity-font-definition`(FontAsset 引用),
        且它**不能经 var() 间接承载**(变量只能存颜色/尺寸 token)⇒ 各 USS
-       直接 `url(guid:...)` 引字体资产,不在本文件留字体变量。
-       字体资产 = Fonts/NotoSansCJKsc-Bold SDF.asset(SDF FontAsset,guid 6bfef9a30546ce4618445ebd7e0be0f5
-       —— 由 Editor.Tools.Font.SdfFontAssetTool 生成,Dynamic 模式,material/atlas 子资产已 AddObjectToAsset 持久化;
+       直接 `resource("Assets/…")` 引字体资产,不在本文件留字体变量。
+       ⚠️ **2026-10-13 探针实证(糊的第二层根因)**:该属性吃 `resource("Assets/…路径")`,
+       **不吃 `url("guid:…")`**(对字体恒不解析 ⇒ MissingAssetReference ⇒ 回退位图字体 ⇒ 糊;
+       `url(guid:)` 仅对 `background-image` 有效)。全库 10 处字体引用已统一改 `resource`。
+       字体资产 = Fonts/NotoSansCJKsc-Bold SDF.asset(**UnityEngine.TextCore.Text.FontAsset**,
+       guid 6bfef9a30546ce4618445ebd7e0be0f5 —— 由 Editor.Tools.Font.SdfFontAssetTool 生成;
+       ⚠️ 类型须 TextCore 系 —— `TMPro.TMP_FontAsset` 不继承它,被 UI Toolkit 拒绝;
+       字形预烤后切 **Static**,material/atlas 子资产已 AddObjectToAsset 持久化;
        源 otf(guid b9b707bf05564101912cbf0f946b649f)保留不删,仅供生成器引用)
        —— 2026-10-12 第五轮复验:Regular 在纸纹底上笔画过细读不清(用户实测),
        整体切 Bold;Regular(guid 08d2bb8c…)留库备用。 */
