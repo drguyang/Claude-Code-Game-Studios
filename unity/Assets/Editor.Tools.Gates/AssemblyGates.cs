@@ -54,13 +54,15 @@ namespace DaYiJingCheng.EditorTools.Gates
         // SkeuomorphicUI.Tests = Story 003 焦点导航边界测试装配(2026-09-28 补登)。
         // Gameplay.Boot = M2 接线轮阶段 1 装配轮 · 组合根案 A(2026-10-09 增员;
         //   ADR-025 §① 同批回写 —— b5 把 Sim.Codec 装配级标红 ⇒ 编码器构造点须独立装配)。
+        // Editor.Tools.Font = sprint-08 S3「字糊」根治件(SDF FontAsset 生成器,2026-10-13 增员;
+        //   ADR-025 §① 同批回写。⚠️ 首跑漏登记被 b3 捕获 = §④ 封闭性门工作正常,留作闭环记录)。
         private static readonly HashSet<string> Manifest = new HashSet<string>
         {
             "Sim", "Sim.Contracts", "Sim.Codec",
             "Gameplay.Boot",
             "Gameplay.Presentation", "Gameplay.UI", "Gameplay.Input",
             "Editor.Tools.Level", "Editor.Tools.Kindgen", "Editor.Tools.Gates",
-            "Editor.Tools.Spike", "Editor.Tools.Bake",
+            "Editor.Tools.Spike", "Editor.Tools.Bake", "Editor.Tools.Font",
             "Sim.Contracts.Tests", "Gameplay.Tests", "SkeuomorphicUI.Tests",
         };
 

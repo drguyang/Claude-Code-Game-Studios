@@ -16,7 +16,7 @@
     border-bottom-width: var(--skeuo-shared-border-width);
     border-left-width: var(--skeuo-shared-border-width);
     color: var(--skeuo-implement-fg);
-    -unity-font-definition: url("guid:b9b707bf05564101912cbf0f946b649f");
+    -unity-font-definition: url("guid:6bfef9a30546ce4618445ebd7e0be0f5");
     font-size: var(--skeuo-font-size-md);
 }
 

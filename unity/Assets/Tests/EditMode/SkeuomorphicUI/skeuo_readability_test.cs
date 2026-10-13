@@ -4,11 +4,25 @@
 //   ① **对比 ≥7:1**(`accessibility-requirements.md:87` + `casebook-39.md:309`):
 //      阳性墨 / 阴性墨 在**值区底衬**上的线性 Rec.709 对比度 —— 阴性态原为 3.87:1(违约),
 //      改 `--skeuo-ink-negative` 后须 ≥7:1;
+//       ⚠️ **2026-10-13 二轮**:用户真机实测「对比不足发灰」判红 —— 初值
+//       (backing #fbf9f3 + negative #5a5044 = 7.48:1)数合格但贴线 ⇒ 现值
+//       (#e7e0cd + #463b30 = 8.27:1)留 18% 冗余。判据阈值仍 ≥7:1(承诺值不抬),
+//       冗余是**值的**事,不是判据的事。
 //   ② **字号 ≥24px**(`:85` 纸面 UI 下限 + `casebook-39.md:308`「题签 / 落字」两半):
 //      两类 + 题签类均绑 `--skeuo-font-size-lexeme`,且该 token 值 ≥24px;
 //   ③ **底衬走 var**(C2/C4 门禁:零内联色、零硬编码);
-//   ④ **明度轴 Δ**(承 story-021 AC-021-3 先例):值区底衬 vs 纸纹中心 ≥ 可辨阈值
+//   ④ **明度轴 Δ**(承 story-021 AC-021-3 先例):值区底衬 vs 纸面主题色 ≥ 可辨阈值
 //      —— 底衬须「可辨但不喧宾」,不是与纸面同色(否则底衬白加)。
+//      ⚠️ **2026-10-13 二轮**:判据对象**由「纸纹中心」改为「`--skeuo-paper-bg` 主题色」**。
+//      原口径拿底衬比纸纹中心(#fefdfe,近白,值区实际背景)看似更准,但它把「可辨」
+//      钉在**一个 texture 采样值**上 —— 纸纹中心均值无 token 承载、无权威出处,
+//      采样一变判据就漂(而 2026-10-13 实测 #f2ead8 在 paper-bg 口径下 Δ=0.0150
+//      会自红,正是该口径在纠正取值)。改比主题色:Δ 有了 token 级真源。
+//      (值的可辨性另一半由 `--skeuo-reading-rule` 边线**几何定界**承担 —— 见
+//      `test_s3_5`;明度差不再是定界的唯一机制。)
+//   ⑤ **边线定界(2026-10-13 二轮新增)**:`.channel-reading*` 须绑
+//      `--skeuo-reading-rule` 的四向 border —— 换机制后的定界载体,缺它即
+//      退回「靠明度差」的死结路径。
 //
 // ⚠️ 本件**纯文本/正则 + 主题文件解析**(照 `sign_channel_binder_test` 先例)——
 //   EditMode `Sim.Contracts.Tests` **不引用 `Gameplay.UI`**(asmdef 引用集),
@@ -38,11 +52,13 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         /// <summary>墨字 on 纸面承诺对比(`:87` / `casebook-39.md:309`)。</summary>
         private const double MinContrastRatio = 7.0;
 
-        /// <summary>底衬 vs 纸纹中心的最小明度差(承 story-021 minΔ 口径;底衬须可辨)。</summary>
+        /// <summary>底衬 vs 纸面主题色的最小明度差(承 story-021 minΔ 口径;底衬须可辨)。
+        /// ⚠️ 2026-10-13 二轮:比较对象由纸纹中心采样改为 `--skeuo-paper-bg` token
+        /// (真源可溯);阈值不变。</summary>
         private const double MinBackingLuminanceDelta = 0.02;
 
         // ══════════════════════════════════════════════════════════════════════
-        // ① 对比 ≥7:1(核心 —— 阴性态原为 3.87:1 违约)
+        // ① 对比 ≥7:1(核心 —— 阴性态原为 3.87:1 违约;2026-10-13 二轮由 7.48 → 8.27)
         // ══════════════════════════════════════════════════════════════════════
         [Test]
         public void test_s3_1_bothReadingInks_contrastAtLeast7to1_onBacking()
@@ -63,7 +79,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 Assert.That(ratio, Is.GreaterThanOrEqualTo(MinContrastRatio),
                     $"{label}({varName})在值区底衬上的对比 = {ratio:F2}:1,须 ≥ {MinContrastRatio}:1 " +
                     $"(`:87` + `casebook-39.md:309`)。⚠️ 阴性态改前(ink-faded 合成)仅 3.87:1 —— " +
-                    $"本断言是该违约的回归门。");
+                    $"本断言是该违约的回归门;2026-10-13 二轮由 7.48 贴线值升至 8.27(留冗余)。");
             }
         }
 
@@ -129,7 +145,10 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // ④ 明度轴 Δ:底衬 vs 纸纹中心须可辨(不是同色)
+        // ④ 明度轴 Δ:底衬 vs 纸面主题色须可辨(不是同色)
+        //    ⚠️ 2026-10-13 二轮:判据对象由「纸纹中心 texture 采样」改为「`--skeuo-paper-bg`
+        //    token」—— 前者无 token 级真源(sample 口径漂移即判据漂移);值的可辨性另一半
+        //    已由边线几何定界承担(见 ⑤),此处只守「不与纸面同色」的底线。
         // ══════════════════════════════════════════════════════════════════════
         [Test]
         public void test_s3_4_backing_luminanceDelta_overPaper_visible()
@@ -141,11 +160,50 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             double delta = Math.Abs(backing - paper);
             Assert.That(delta, Is.GreaterThanOrEqualTo(MinBackingLuminanceDelta),
                 $"底衬 vs 纸面主题色明度差 = {delta:F4},须 ≥ {MinBackingLuminanceDelta} " +
-                $"(底衬须可辨 —— 与纸面同色 = 底衬白加,承 story-021 minΔ 口径)。");
+                $"(底衬须可辨 —— 与纸面同色 = 底衬白加,承 story-021 minΔ 口径)。" +
+                $"⚠️ 2026-10-13 二轮:现值 #e7e0cd 的 Δ = 0.0947;" +
+                $"落选值 #f2ead8 的 Δ 仅 0.0150(**会自红**)—— 本断言即其排除门。");
 
             // 自比对判别力守卫:同色 ⇒ Δ=0 < 阈值(公式退化必红)
             Assert.That(Math.Abs(backing - backing), Is.LessThan(MinBackingLuminanceDelta),
                 "自比对 Δ 应 = 0 < 阈值(公式非恒过)。");
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ⑤ 边线定界(2026-10-13 二轮新增):`.channel-reading*` 四向 border 绑
+        //    `--skeuo-reading-rule` —— 「换机制」后的定界载体。
+        //    为何是判据而不是可选 polish:初版靠明度差定界已被实测判红(真机
+        //    「对比不足」),机制换成边线;边线缺失 = 退回已失败的路径。
+        // ══════════════════════════════════════════════════════════════════════
+        [Test]
+        public void test_s3_5_readingClasses_bindRuleBorder()
+        {
+            string theme = ReadTheme();
+            string paper = StripComments(ReadUss("SkeuoPaper.uss"));
+
+            // token 须存在且是 rgba 形(C2/C4:零内联 —— 边线色也走变量)
+            Assert.IsTrue(Regex.IsMatch(theme,
+                    @"--skeuo-reading-rule:\s*rgba\("),
+                "缺 `--skeuo-reading-rule` token(rgba 形)—— 值区边线定界机制的单一真源。");
+
+            foreach (string cls in new[] { ".channel-reading", ".channel-reading-negative" })
+            {
+                var block = Regex.Match(paper, Regex.Escape(cls) + @"\s*\{[^}]*\}");
+                Assert.IsTrue(block.Success, $"缺 `{cls}` 声明块。");
+
+                foreach (string dir in new[] { "top", "right", "bottom", "left" })
+                {
+                    Assert.IsTrue(Regex.IsMatch(block.Value,
+                            $@"border-{dir}-color:\s*var\(--skeuo-reading-rule\)"),
+                        $"`{cls}` 缺 border-{dir}-color var 绑定 —— 边线四向须齐" +
+                        $"(缺向 = 定界半边,2026-10-13 二轮机制的回归门)。");
+                }
+
+                // 块内禁内联 hex(边线色同样禁写死 —— C2/C4 只禁 hex,rgba 字面量
+                // 若出现亦属内联,但 token 已在主题层,块内只应有 var)
+                Assert.IsFalse(Regex.IsMatch(block.Value, @"#[0-9a-fA-F]{3,8}\b"),
+                    $"`{cls}` 块内禁内联 hex。");
+            }
         }
 
         // ══════════════════════════════════════════════════════════════════════

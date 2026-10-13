@@ -44,7 +44,7 @@
 
 .paper .ink {
     color: var(--skeuo-ink-fg);
-    -unity-font-definition: url("guid:b9b707bf05564101912cbf0f946b649f");
+    -unity-font-definition: url("guid:6bfef9a30546ce4618445ebd7e0be0f5");
     font-size: var(--skeuo-font-size-md);
 }
 
@@ -79,7 +79,7 @@
     color: var(--skeuo-ink-fg);
     min-height: var(--skeuo-shared-row-height);
     padding-left: var(--skeuo-shared-space-sm);
-    -unity-font-definition: url("guid:b9b707bf05564101912cbf0f946b649f");
+    -unity-font-definition: url("guid:6bfef9a30546ce4618445ebd7e0be0f5");
     font-size: var(--skeuo-font-size-md);
 }
 
@@ -106,32 +106,52 @@
  * ⚠️ 「体征 → 通道/词」映射归 8(`SignLexemeRow`);本处只画(SignChannelBinder 分发产物)。
  * 运行时挂行(值区元素创建)归 9 实现轮 / 数据绑定轮 —— **本批零施加点**(承 story-022/023)。
  *
- * ── sprint-08 S3 可读性 polish(2026-10-12)──
+ * ── sprint-08 S3 可读性 polish(2026-10-12)→ **2026-10-13 二轮修定** ──
  * 判据权威 = `accessibility-requirements.md:85`(纸面 UI ≥24px @1080p)+
  * `casebook-39.md:308/309/311`(最小字号 / 文本对比 ≥7:1 / 「阴性态用笔形不用低对比」)。
- * 三项改动:
- *   ① **字号 → `--skeuo-font-size-lexeme`(24px)** —— 原 `md`(15px)低于无障碍下限;
- *   ② **底衬 `--skeuo-reading-backing`** —— 压住纸纹噪声(纸纹中心实测 L≈0.985 近白,
- *      主题色 `--skeuo-paper-bg` 在**纹理外框**上,值区实际背景是白心纸纹);
- *   ③ **阴性墨 → `--skeuo-ink-negative`** —— 原 `ink-faded` 合成后 **3.87:1 < 7:1 承诺**,
- *      是本屏既有的一处违约(非本批引入);改专用墨后 **7.48:1** ✓。
+ * ① 字号 → `--skeuo-font-size-lexeme`(24px)—— 原 `md`(15px)低于无障碍下限;
+ * ② 底衬 + ③ 阴性墨 —— 原 `ink-faded` 合成后 **3.87:1 < 7:1 承诺**,是本屏既有的一处
+ *   违约(非本批引入)。⚠️ **二轮修定(2026-10-13 用户实测「发灰」判红)**:初值
+ *    `backing #fbf9f3` + `negative #5a5044` = 7.48:1 贴线,且「靠明度差定界」有数学死结
+ *    (浅底衬与纸纹不可辨 / 深底衬阴性墨破 7:1)⇒ **换机制**:底衬回纸色系加深
+ *    (#e7e0cd)+ 阴性墨升档(#463b30,8.27:1)+ **边线定界**(`--skeuo-reading-rule`,
+ *    承 story-021 格线美学)。现值实测与落选值记录见主题变量文件同族注。
  * ⚠️ 底衬是**新增属性**(原块无 `background-color`)⇒ 与「焦点单槽铁律」的关系:
  *   `.focus-visible` 走 `background-image`(环图),本二类走 `background-color`,
  *   **属性不重叠** ⇒ 不构成 story-023 边界⑤ 的单槽冲突。
+ * ⚠️ **二轮新增边线与单槽铁律的关系**:边线走 `border-*-width/color`(四个方向属性),
+ *   与 `background-color`(底衬)/ `background-image`(focus 环图 / ink 干湿)**三不重叠**
+ *   ⇒ 仍不构成 story-023 边界⑤ 的单槽冲突。
  * ⚠️ 阳性类**不加**底衬外的第二槽:`ink-wet`/`ink-dry`(运行时叠加类)走
  *   `background-image`,同样与本处 `background-color` 不重叠。 */
 .channel-reading {
     color: var(--skeuo-ink-fg);
-    -unity-font-definition: url("guid:b9b707bf05564101912cbf0f946b649f");
+    -unity-font-definition: url("guid:6bfef9a30546ce4618445ebd7e0be0f5");
     font-size: var(--skeuo-font-size-lexeme);
     background-color: var(--skeuo-reading-backing);
+    border-top-width: var(--skeuo-shared-border-width);
+    border-right-width: var(--skeuo-shared-border-width);
+    border-bottom-width: var(--skeuo-shared-border-width);
+    border-left-width: var(--skeuo-shared-border-width);
+    border-top-color: var(--skeuo-reading-rule);
+    border-right-color: var(--skeuo-reading-rule);
+    border-bottom-color: var(--skeuo-reading-rule);
+    border-left-color: var(--skeuo-reading-rule);
 }
 
 .channel-reading-negative {
     color: var(--skeuo-ink-negative);
-    -unity-font-definition: url("guid:b9b707bf05564101912cbf0f946b649f");
+    -unity-font-definition: url("guid:6bfef9a30546ce4618445ebd7e0be0f5");
     font-size: var(--skeuo-font-size-lexeme);
     background-color: var(--skeuo-reading-backing);
+    border-top-width: var(--skeuo-shared-border-width);
+    border-right-width: var(--skeuo-shared-border-width);
+    border-bottom-width: var(--skeuo-shared-border-width);
+    border-left-width: var(--skeuo-shared-border-width);
+    border-top-color: var(--skeuo-reading-rule);
+    border-right-color: var(--skeuo-reading-rule);
+    border-bottom-color: var(--skeuo-reading-rule);
+    border-left-color: var(--skeuo-reading-rule);
 }
 
 /* ── 通道题签(行头)· sprint-08 S3(2026-10-12)──
@@ -146,6 +166,6 @@
  * ⚠️ 本类**不进 Registry**(语义样式类,承 `.channel-reading` 同款边界)。 */
 .channel-label {
     color: var(--skeuo-ink-fg);
-    -unity-font-definition: url("guid:b9b707bf05564101912cbf0f946b649f");
+    -unity-font-definition: url("guid:6bfef9a30546ce4618445ebd7e0be0f5");
     font-size: var(--skeuo-font-size-lexeme);
 }

@@ -45,19 +45,45 @@
     --skeuo-ink-fg-wet: #26241f;
     --skeuo-ink-fg-dry: #191714;
 
-    /* ── 值区底衬 + 阴性墨(sprint-08 S3 · 2026-10-12)──
+    /* ── 值区底衬 + 阴性墨(sprint-08 S3 · 2026-10-12 初版 → **2026-10-13 二轮修定**)──
        ⚠️ **本二值解决了既有的一处无障碍违约**(非 S3 引入,是 S3 撞见的):
        `--skeuo-ink-faded`(rgba 0.55)在纸面上合成后仅 **3.87:1**,而
        `accessibility-requirements.md:87` 与 `casebook-39.md:309` 均承诺墨字 ≥7:1,
        §11 更明文「阴性态用**笔形**不用低对比」。⇒ 阴性态改走本专用墨(不全局改
        `ink-faded` —— 那会波及全部 7 屏的淡墨观感,超出 S3 面;全局缺口另立 story)。
-       实测(线性 Rec.709,S3 探针同口径):
-         · `--skeuo-reading-backing` #fbf9f3 上 `--skeuo-ink-negative` #5a5044 = **7.48:1** ✓
-         · 底衬对纸纹中心(border_paper 中心区均值 #fefdfe,L≈0.985)= 1.04 明度差(可辨,不喧宾)
-       底衬**只加在值区格**(.channel-reading*),不改纸面本身 —— 「墨在纸上」的质感保留。
-       ⚠️ 底衬值域归**数值轮**(可调);本条只钉「≥7:1 承诺 + 值与判据同源」的结构。 */
-    --skeuo-reading-backing: #fbf9f3;
-    --skeuo-ink-negative: #5a5044;
+
+       **2026-10-13 二轮修定的动因(用户实测判红 · 「对比不足发灰」)**:初值
+       `backing #fbf9f3` + `negative #5a5044` = 7.48:1 —— 数**合格但贴线**,而
+       24px 大字 + Bold 下笔画并显 ⇒ 真机目视「发灰」。且初值有**数学死结**:
+       底衬越浅阳墨越锐但与纸纹越不可辨(1.038:1 肉眼不可辨),底衬加深可辨了
+       阴性墨即跌破 7:1 ⇒ 「靠明度差定界」这条路两头堵,不是调 hex 能解。
+       **换机制:定界从「明度差」移到「边线」**(承 story-021「字段由线格划出,
+       不画成按钮」同源美学),底衬回纸色系内加深一档。
+
+       现值实测(线性 Rec.709,S3 判据同口径;纸纹中心取样 = border_paper 中心区均值 #fefdfe):
+         · `--skeuo-reading-backing` #e7e0cd 上 `--skeuo-ink-negative` #463b30 = **8.27:1** ✓
+           (超 ≥7:1 承诺 **18%** 冗余 —— 冗余是给「真机发灰」留的判红缓冲)
+         · 同底衬上 `--skeuo-ink-fg` #1a1410 = **13.84:1** ✓
+         · 底衬 vs 纸面 `--skeuo-paper-bg` #f4ecd8:Δ = **0.0947**(守 `skeuo_readability_test`
+           `test_s3_4` 的 Δ≥0.02);vs 纸纹中心 #fefdfe:Δ = **0.238**(可辨)
+         · ⚠️ 二轮间的**落选值 #f2ead8 已排除**:它在 `test_s3_4` 的 paper-bg 口径下
+           Δ 仅 **0.0150 < 0.02** —— 会把自己判红,故不取;取 #e7e0cd。
+       ⚠️ **阴性墨上界守卫(语义,非数值轮)**:不得深于 `#3d3228`(在本底衬上 9.46:1)。
+       深过它则阴性/阳性的**墨阶差**消失,五态视觉分层破 —— 阴性态的存在意义是
+       「降档可辨」,不是「变成正墨」。
+       ⚠️ 全三值走**明度轴不漂色相**(色盲安全,承 `--skeuo-ink-fg-wet/dry` 同纪律):
+       #e7e0cd 由 paper-bg 等比加深(r>g>b 暖黄关系不变)。
+       底衬**只加在值区格**(.channel-reading*),不改纸面本身 —— 「墨在纸上」的质感保留。 */
+    --skeuo-reading-backing: #e7e0cd;
+    --skeuo-ink-negative: #463b30;
+    /* 值区格定界边线(2026-10-13 二轮新增)── **几何定界**替代明度差定界
+       (上面「换机制」的另一半)。色系承 `--skeuo-paper-rule` 同源(rgba(43,36,22,·));
+       合成实测:在 paper-bg 上 = #c7c0ad(1.378:1)、在底衬上 = #bdb6a4(1.534:1)
+       —— **淡到不抢字、深到看得见格**,不喧宾。
+       ⚠️ 线宽**不另立 token**:走 `--skeuo-shared-border-width`(1px,已存在,
+       承 `SkeuoImplement.uss` / `.paper` 同款先例)—— 边线要的是「色」的新机制,
+       不是新宽度;另立宽 token 反违 AC-42-C4「零内联尺寸」的收敛方向。 */
+    --skeuo-reading-rule: rgba(43, 36, 22, 0.22);
 
     /* ── 印章(Seal) ── */
     --skeuo-seal-bg: #8b2500;
@@ -120,7 +146,9 @@
        UI Toolkit 唯一吃字体的属性 = `-unity-font-definition`(FontAsset 引用),
        且它**不能经 var() 间接承载**(变量只能存颜色/尺寸 token)⇒ 各 USS
        直接 `url(guid:...)` 引字体资产,不在本文件留字体变量。
-       字体资产 = Fonts/NotoSansCJKsc-**Bold**.otf(guid b9b707bf05564101912cbf0f946b649f)
+       字体资产 = Fonts/NotoSansCJKsc-Bold SDF.asset(SDF FontAsset,guid 6bfef9a30546ce4618445ebd7e0be0f5
+       —— 由 Editor.Tools.Font.SdfFontAssetTool 生成,Dynamic 模式,material/atlas 子资产已 AddObjectToAsset 持久化;
+       源 otf(guid b9b707bf05564101912cbf0f946b649f)保留不删,仅供生成器引用)
        —— 2026-10-12 第五轮复验:Regular 在纸纹底上笔画过细读不清(用户实测),
        整体切 Bold;Regular(guid 08d2bb8c…)留库备用。 */
     --skeuo-font-size-xs: 11px;
@@ -136,8 +164,22 @@
        ⚠️ **只挂 42 脉案的题签与落字**(casebook-39 §11 的两半),不全局替换 `md` ——
        其余 6 屏的字号档归各自 polish 轮,不随本档漂移。
        实测(2026-10-12 S3 探针):题签原 **14.0px**(Unity 默认主题,因代码面行头 Label
-       零 class —— 见 `.channel-label` 注)、落字原 15.0px(`md`)。 */
-    --skeuo-font-size-lexeme: 24px;
+       零 class —— 见 `.channel-label` 注)、落字原 15.0px(`md`)。
+
+       ⭑ **2026-10-13 用户裁定「24px 偏小,再调大」→ 28px**(承 accessibility-requirements.md:85
+       的「≥24px」是**下限**语义:上抬不违约,下才违约):
+       · **占屏实测**:`casebook-39.md:353` 记「24px ⇒ 行高 ≈66.8px」**漏算 `.paper`
+         四向 padding(16×2=32)也作用于行** —— 真实行高 = max(字盒 34.8, min-height 44)
+         + padding 32 + 边框 2 = **78.0px**;GDD 该数就地订正见 :353 复评注。
+       · **28px 不涨行高**:字盒 40.5 < min-height 44 ⇒ 仍被 44 顶着 ⇒ 行高恒 78.0px
+         ⇒ §5.2「空行/已查行等重」**不动自守**(gap 恒 0;32px 起才 2.3px)。
+       · **⚠️ 768p 视口的等效折算(动因)**:`ProjectSettings.asset:45-46` 默认
+         1024×768(`fullscreenMode: 3` Windowed)⇒ 28px@768 仅等效 1080p 下的 21px,
+         **仍低于承诺基准**;调字号只是矮视口的**补偿**,不是回归设计意图(同批已决议
+         走「默认分辨率 → 1920×1080」的正解,见 ProjectSettings 改动注)。
+       · 32px 起等重合口径开始破(gap 2.3px)⇒ 若未来再升档,须同批抬 `.empty-row`
+         的 min-height(现共享 44 ⇒ 拆出行专属 min-height = 字盒值 41/46),本注即前置。 */
+    --skeuo-font-size-lexeme: 28px;
 
     /* ── 过渡 ── */
     --skeuo-transition-fast: 120ms;
