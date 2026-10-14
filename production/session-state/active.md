@@ -1,4 +1,4 @@
-# Session State — 2026-10-13(**当前阶段 = Pre-Production · Sprint 08 🚧 In Progress(方笺交互面轮 · S0 ✅ · S1.0 ✅ · **S1.1 ✅** · S1.2/S1.3 ✅ · **S2 ✅** · **S3 ✅** · **E2E-3 ✅**)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
+# Session State — 2026-10-14(**当前阶段 = Pre-Production · Sprint 08 ✅ Complete(方笺交互面轮 · 收口判定四导演 3 READY / 1 CONCERNS-非阻断)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
 
 ## Sprint 05 进展(2026-10-10)
 
@@ -1637,10 +1637,24 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 - ⬜ 系统 6 Epic(接收侧:latch/幂等/判距复验/唯一 Append)—— 转绿 AC-4-13 6 半 + AC-4-17 6 消费半
 
 <!-- STATUS -->
-Epic: sprint-08(方笺交互面轮)—— playtest 缺陷 B-6-1…B-6-4 全解除
-Feature: 第六轮 playtest 收口(B-6-2 焦点可见性 ✅ 收口)
-Task: B-6-2 收口提交后,sprint-08 转 Complete 归 sprint 收口流程判
+Epic: sprint-08 ✅ Complete(2026-10-14 收口 · 四导演 3 READY / 1 CONCERNS-非阻断)
+Feature: 收口判定 + 登记项入账(sprint-09 首项 = 第七轮全链人工 playtest)
+Task: 开 sprint-09(承 tech-debt 批 + 第七轮全链 playtest 登记项)
 <!-- /STATUS -->
+
+---
+
+## sprint-08 收口判定(2026-10-14 · 四导演面板 · ✅ Complete 落判)
+
+- **Verdict:CONCERNS(非阻断)→ 转 Complete** —— 3 READY(PR / TD / AD)+ 1 CONCERNS(CD);
+  Chain-of-Verification 5 问核过,verdict 不变。自动化面收口复跑:EditMode **3270/0/46/1**
+  (B-6-2 批次后代码零回归,1 inc = 既有 monoOption 环境依赖)+ PlayMode **175/175**。
+- **CD CONCERNS 核心**:逐缺陷 targeted 复验 ≠ 组合走完全链 ⇒ **第七轮全链人工 playtest**
+  登记 **sprint-09 首项**(M2 Exit 前体验层验证门;⑥施治 F 键人工面第六轮就未测)。
+- **登记项**(全部不阻断,详 `production/sprints/sprint-08.md` §6 末):tech-debt 三条
+  (短路键脆弱不变量 / 换药路径丢焦 / FocusOut 投递未实测)、鼠标焦点环语义(UX polish)、
+  数值轮三项(底衬 / 边线 alpha / 28px)。
+- 收口提交:sprint-08 头部 Status 翻 ✅ + §6 末判定记录 + active.md 头部/STATUS 翻面(C1 闭环)。
 
 ---
 
