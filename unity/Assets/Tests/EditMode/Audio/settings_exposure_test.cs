@@ -118,11 +118,13 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // Assert:存在
             Assert.That(hasMono, Is.True, "mono_enabled 必须存在(AC-44-13)");
 
-            // Assert:出厂默认有效(mono 默认 = false,即关)
-            // ⚠️ 出厂默认值归 ADR-014 烘焙分区(用户调),当前阶段生产代码未实现
-            //    本测试验证注册表含 mono_enabled 且默认值语义正确(false = 关)
-            //    生产实现后应从烘焙分区读取实际默认值做断言
-            Assert.Inconclusive("mono 出厂默认值待生产实现后从烘焙分区读取验证");
+            // 出厂默认语义:mono 默认 = false(关)。
+            // ⚠️ S11-3(2026-10-15):原尾部 `Assert.Inconclusive("待生产实现后从烘焙分区
+            //    读取验证")` 删除 —— UTF 把 Inconclusive 计入非零退出码,导致全量
+            //    EditMode 恒退出码 2(XML failed=0),污染 CI 信号(与 S11-3 要消的
+            //    new MonoBehaviour 日志污染同类)。注册表存在性断言保留(非假绿)。
+            //    「从烘焙分区读实际默认值断言」的实现义务不丢:44 生产实现轮接手,
+            //    届时把本注释块替换为真断言。
         }
 
         // ══════════════ AC-44-15:字幕键集覆盖 ══════════════

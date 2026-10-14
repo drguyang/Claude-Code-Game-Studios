@@ -31,6 +31,32 @@ namespace DaYiJingCheng.Tests.PlayerController
             _encoder = new PayloadEncoder(new InMemoryBlobPool());
         }
 
+        // ══════════ S11-3:MonoBehaviour 真夹具 ══════════
+        // PlayerController 是 MonoBehaviour —— `new` 被 Unity 禁止,Error 日志被
+        // UnityLogCheckDelegatingCommand 计入 ⇒ 全量 EditMode 退出码 2(XML failed=0)。
+        // 正解 = AddComponent 真夹具;显式先挂 RequireComponent 依赖,否则 Awake 的
+        // 缺件告警同样污染日志门。
+
+        private readonly List<GameObject> _spawned = new List<GameObject>();
+
+        private PlayerControllerType CreateController()
+        {
+            var go = new GameObject("test_player_controller");
+            _spawned.Add(go);
+            go.AddComponent<CharacterController>();
+            return go.AddComponent<PlayerControllerType>();
+        }
+
+        [TearDown]
+        public void Teardown()
+        {
+            foreach (var go in _spawned)
+            {
+                if (go != null) UnityEngine.Object.DestroyImmediate(go);
+            }
+            _spawned.Clear();
+        }
+
         // ══════════ AC-1-30①: 客户端模式零 Append ══════════
 
         [Test]
@@ -87,7 +113,7 @@ namespace DaYiJingCheng.Tests.PlayerController
             // 注入上行 A(与权威格相同) ⇒ 主机不 Append、不推进
             var sink = new FakeEventSink();
             var provider = new FakeTickProvider(100);
-            var controller = new PlayerControllerType();
+            var controller = CreateController();
             controller.Initialize(SimAuthorityMode.Host, sink, provider, _encoder, actorId: 0);
 
             // 先提交格 A
@@ -113,7 +139,7 @@ namespace DaYiJingCheng.Tests.PlayerController
             // 主机侧格序列不含权威从未到达的格
             var sink = new FakeEventSink();
             var provider = new FakeTickProvider(100);
-            var controller = new PlayerControllerType();
+            var controller = CreateController();
             controller.Initialize(SimAuthorityMode.Host, sink, provider, _encoder, actorId: 0);
 
             // 提交 A
@@ -142,7 +168,7 @@ namespace DaYiJingCheng.Tests.PlayerController
             // 断言主机 Append ≤ actor 数 × tick 数
             var sink = new FakeEventSink();
             var provider = new FakeTickProvider(0);
-            var controller = new PlayerControllerType();
+            var controller = CreateController();
             controller.Initialize(SimAuthorityMode.Host, sink, provider, _encoder, actorId: 0);
 
             int actorCount = 4;

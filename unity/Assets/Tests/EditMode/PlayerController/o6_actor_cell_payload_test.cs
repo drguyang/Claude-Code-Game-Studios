@@ -47,6 +47,32 @@ namespace DaYiJingCheng.Tests.PlayerController
             _provider = new FakeTickProvider(100);
         }
 
+        // ══════════ S11-3:MonoBehaviour 真夹具 ══════════
+        // PlayerController 是 MonoBehaviour —— `new` 被 Unity 禁止,Error 日志被
+        // UnityLogCheckDelegatingCommand 计入 ⇒ 全量 EditMode 退出码 2(XML failed=0)。
+        // 正解 = AddComponent 真夹具;显式先挂 RequireComponent 依赖,否则 Awake 的
+        // 缺件告警同样污染日志门。
+
+        private readonly List<GameObject> _spawned = new List<GameObject>();
+
+        private PlayerControllerType CreateController()
+        {
+            var go = new GameObject("test_player_controller");
+            _spawned.Add(go);
+            go.AddComponent<CharacterController>();
+            return go.AddComponent<PlayerControllerType>();
+        }
+
+        [TearDown]
+        public void Teardown()
+        {
+            foreach (var go in _spawned)
+            {
+                if (go != null) UnityEngine.Object.DestroyImmediate(go);
+            }
+            _spawned.Clear();
+        }
+
         // ══════════ O-6 核心:两 actor 同 tick 同格不坍缩 ══════════
 
         [Test]
@@ -91,8 +117,8 @@ namespace DaYiJingCheng.Tests.PlayerController
             // PlayerController 支(独立实现)须有对偶 —— 否则「只坏 controller 侧」的
             // 形态(如共享 pending / 侧去重)无测试红。
             var stream = new EventStream(new FakeIdAuthority(), new FakePresenceQuery());
-            var c1 = new PlayerControllerType();
-            var c2 = new PlayerControllerType();
+            var c1 = CreateController();
+            var c2 = CreateController();
             c1.Initialize(SimAuthorityMode.Host, stream, _provider, _encoder, actorId: 1);
             c2.Initialize(SimAuthorityMode.Host, stream, _provider, _encoder, actorId: 2);
 
@@ -147,7 +173,7 @@ namespace DaYiJingCheng.Tests.PlayerController
         public void test_o6_playerController_payloadRoundTrip()
         {
             // PlayerController 支(独立于 detector 的第二写者)
-            var controller = new PlayerControllerType();
+            var controller = CreateController();
             controller.Initialize(SimAuthorityMode.Host, _sink, _provider, _encoder, actorId: 42);
 
             controller.OnPositionSample(new Vector3(6.5f, 0f, 6.5f));
@@ -164,7 +190,7 @@ namespace DaYiJingCheng.Tests.PlayerController
         public void test_o6_clientMode_zeroAppend_noEncoderSideEffect()
         {
             // 客户端模式:零 Append(AC-1-30①)—— 编码器注入不得改变该语义
-            var controller = new PlayerControllerType();
+            var controller = CreateController();
             controller.Initialize(SimAuthorityMode.Client, _sink, _provider, _encoder, actorId: 42);
 
             controller.OnPositionSample(new Vector3(1.5f, 0f, 1.5f));
@@ -187,7 +213,7 @@ namespace DaYiJingCheng.Tests.PlayerController
                 () => new CellTransitionDetector(_sink, _provider, _encoder, actorId: -1),
                 "actorId 走 ADR-006 Amendment B 计数器 id 空间,不得为负(detector)");
 
-            var controller = new PlayerControllerType();
+            var controller = CreateController();
             Assert.Throws<ArgumentOutOfRangeException>(
                 () => controller.Initialize(SimAuthorityMode.Host, _sink, _provider, _encoder, actorId: -1),
                 "同上(controller)");
