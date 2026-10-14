@@ -185,7 +185,7 @@
       就此兑现;逐判据实测(focusable/RegisterCallback 命中 · SetVisible 生产链 ·
       通道生产实例化 · 端到端链 · 双套件)见复评原件
       **`production/qa/evidence/m2-exit-recheck-sprint10-169-2026-10-14.md`**。
-      ⚠️ AC-9-10/11(ADVISORY 人工走查)NOT-RUN 欠账在案,归人工走查批,不构成本条判据。
+      ⚠️ AC-9-10/11(ADVISORY 人工走查)NOT-RUN 欠账在案,归人工走查批,不构成本条判据 —— ✅ **2026-10-14 已执行全绿结清**(`production/playtests/playtest-2026-10-14-story009-walkthrough.md`;AC-9-10/11 翻勾,story-009 三处登记)。
       **勾选滞后面(sprint-09 S3 三条)全部结清**;M2 §三 内的 `:252`(五族切图冻结,
       story-020/019 链)为独立推进项(◐ 半闭),不随本翻勾联动。
       ⇒ ◐ **2026-10-08 ① 交付 ✅**(story-021:线格 `.ruled` 挂脉案行 + 空行等重声明层 +

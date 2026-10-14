@@ -46,5 +46,7 @@ F-3 minor(消息笔误)已修;F-2 ADVISORY 登记(稳度门单键不可达,归�
 双套件)⇒ `README:169` 翻 `[x]`,**sprint-09 S3 三条勾选滞后全部结清**
 (M2 §三 内 `:252` 五族切图冻结为独立推进项,不随本翻勾联动)。
 
-**剩余(非本 sprint 阻塞)**:AC-9-10/11 人工走查批(ADVISORY 欠账,需用户操作编辑器);
+**剩余(非本 sprint 阻塞)**:~~AC-9-10/11 人工走查批~~ ✅ **2026-10-14 已执行全绿**
+(`production/playtests/playtest-2026-10-14-story009-walkthrough.md` §9;AC-9-10/11 翻勾 +
+AC-9-08 走查面补证,story-009 三处登记)·
 sprint-09 收尾小件(`review-mode.txt` 未落 · 2 张 2048² 图片重生 · round-7 证据两文件待提交)。

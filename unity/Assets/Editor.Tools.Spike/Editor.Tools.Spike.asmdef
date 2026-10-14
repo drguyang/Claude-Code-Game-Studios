@@ -6,7 +6,12 @@
         "Unity.Addressables.Editor",
         "Unity.ResourceManager",
         "Unity.InputSystem",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "Gameplay.Boot",
+        "Gameplay.Input",
+        "Sim",
+        "Sim.Contracts",
+        "Sim.Codec"
     ],
     "includePlatforms": [
         "Editor"
