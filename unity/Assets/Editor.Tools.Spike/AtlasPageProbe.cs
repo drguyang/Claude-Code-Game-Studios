@@ -183,9 +183,17 @@ namespace DaYiJingCheng.EditorTools.Spike
             if (_readerReported || !_inPlay) return;
 
             _readerFrames++;
+            // 诊断期:每 30 帧打一条进度(卡点可见 —— 是帧数不过还是墙钟不过)
+            if (_readerFrames % 30 == 0)
+            {
+                Debug.Log($"{LogTag} READER_TICK|frames={_readerFrames}|" +
+                          $"elapsed={(EditorApplication.timeSinceStartup - _readerArmedAt):F3}s|" +
+                          $"threshold=60f+0.5s");
+            }
+
             // 真渲染需若干帧才分配页;给足 60 帧 + 0.5s 墙钟(与旧版同口径)
             if (_readerFrames < 60) return;
-            if ((float)EditorApplication.timeSinceStartup - _readerArmedAt < 0.5f) return;
+            if (EditorApplication.timeSinceStartup - _readerArmedAt < 0.5f) return;
 
             _readerReported = true;
             EditorApplication.update -= ReaderTick;
