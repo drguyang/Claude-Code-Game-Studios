@@ -2914,3 +2914,18 @@ B-6-4(字体资产精度 P3)各有独立 story 且未修。B-6-1 只是「修复
 B-6-1 / B-6-3 / B-6-4 三项均已解除。
 
 <!-- QA-PLAN: 2026-10-14 | System: sprint-09 | Plan written: production/qa/qa-plan-sprint-09-2026-10-14.md -->
+
+## story-009 人工走查批收口(2026-10-14 · ✅ 全绿 · 提交 `1cc3196`)
+
+- **判读**:AC-9-10 ✅(主链 A+B 人工真机走通:长按 >3s 不误杀/松开复现/E 查体/焦点落
+  「跳过」/Submit 零异常零提示/零鼠标)· AC-9-11 ✅(腿 D 感知即时)· AC-9-08 走查面 ✅
+  (截图 `20261014_222810_1x.png` SenseNova 判读三项零数值载体)。
+- **自动化腿 A 四红 = 注入夹具环境怪癖**(非产品缺陷):真机实证 + CI
+  `test_longPressWithContinuousFeeding_notAborted` 绿双证据压过;Driver 结果 JSON
+  `passed` 标志与 checks 不一致 = 工具缺陷一次性登记不修。
+- **落盘**:走查脚本 §9 就地回填(判据 ✅/◐ + 留证表 + 缺陷登记)· story-009 三处
+  (AC-9-10/11 翻勾 + AC-9-08 走查面补证)· sprint-10:49 · M2 README:188。
+- **清理**:Story009AutoRun.cs(一次性)与 tools/x11_inject.py(改道废弃)已删;
+  Driver + asmdef 入库。腿 C 未绑人工面 ◐(EditMode 结构面已覆盖,不欠账)。
+- **待用户**:2 张 2048² 图片重生(进行中,用户并行任务)· `review-mode.txt` 未落 ·
+  round-7 证据两文件待提交(sprint-09 收尾小件)。
