@@ -147,6 +147,10 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         {
             var (screen, _, src, sink) = Build();
             src.Seen.Add(7); src.Texts[7] = "伤寒";
+            // ⚠️ 2026-10-14:档位循环**只在已落笔(非空栏)时可达** —— 空栏 Submit 一律摊册
+            // (防每帧异常洪泛杀编辑器)。本测主旨是「已摊开 ⇒ 循环」⇒ 夹具须显式置已落笔档,
+            // 而不是靠 `Pending` 默认值 0 蒙过去(那样测的是「空栏」场景,与本测主旨相反)。
+            src.Pending = 1;                // 已落笔(疑似档)
 
             SubmitDiseaseNameBar(screen);   // 摊开(不计档位)
             SubmitDiseaseNameBar(screen);   // 循环 1
@@ -155,6 +159,50 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             Assert.AreEqual(2, sink.ConfidenceCycles,
                 "已摊开时病名栏 Submit = 档位循环(42 不持档位,交装配层)");
             Assert.AreEqual(0, sink.Points.Count, "档位循环**不**再指认(不写第二笔词)");
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ④b 空栏时病名栏 Submit ⇒ **摊开册子**,不碰档位循环(2026-10-14 卡死回归)
+        //
+        // 病根:旧实现已摊开即直调 `SubmitConfidence()` ⇒ 装配层 `_currentLexiconId <= 0`
+        // fail-loud 抛 InvalidOperationException;而本方法是 ClickEvent / NavigationSubmitEvent
+        // 回调 ⇒ 异常冲进 InputSystemUIInputModule 派发栈**每帧刷** ⇒ Console 管道超载 ⇒
+        // `write EPIPE` ⇒ 编辑器进程被杀(用户实测「准备退出关掉 play 卡死」;
+        // 与 2026-10-10 AudioListener 洪泛 31868 条同一死法)。
+        // 判据:空栏 Submit **不得抛**、**不得调 SubmitConfidence**,而是摊开册子。
+        // ══════════════════════════════════════════════════════════════════════
+        [Test]
+        public void test_emptyBar_submitOpensBook_doesNotCycleConfidence()
+        {
+            var (screen, _, src, sink) = Build();
+            src.Seen.Add(7); src.Texts[7] = "伤寒";
+            src.Pending = 0;                     // 空栏:未指认任何词
+
+            SubmitDiseaseNameBar(screen);        // 首次 ⇒ 摊开
+            Assert.IsTrue(screen.IsLexiconBookOpen, "首次 Submit ⇒ 摊开");
+
+            Assert.DoesNotThrow(() => SubmitDiseaseNameBar(screen),
+                "空栏(已摊开)再 Submit 须**不抛** —— 旧实现会抛 ⇒ 每帧刷 ⇒ EPIPE 杀编辑器");
+            Assert.AreEqual(0, sink.ConfidenceCycles,
+                "空栏 ⇒ 无词可循环 ⇒ 不调 SubmitConfidence(改回旧实现 ⇒ 恰红)");
+            Assert.IsTrue(screen.IsLexiconBookOpen, "空栏 Submit ⇒ 仍保持摊开(让你选词)");
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ④c 已落笔(非空栏)时病名栏 Submit ⇒ 照常循环档位(反向判据:门不得过宽)
+        // ══════════════════════════════════════════════════════════════════════
+        [Test]
+        public void test_filledBar_submitCyclesConfidence()
+        {
+            var (screen, _, src, sink) = Build();
+            src.Seen.Add(7); src.Texts[7] = "伤寒";
+            src.Pending = 1;                     // 已落笔(疑似档)
+
+            SubmitDiseaseNameBar(screen);        // 摊开
+            SubmitDiseaseNameBar(screen);        // 已落笔 ⇒ 循环 1
+
+            Assert.AreEqual(1, sink.ConfidenceCycles,
+                "非空栏 ⇒ 档位循环照常可达(守护门不得把已落笔路径一并挡掉)");
         }
 
         // ══════════════════════════════════════════════════════════════════════

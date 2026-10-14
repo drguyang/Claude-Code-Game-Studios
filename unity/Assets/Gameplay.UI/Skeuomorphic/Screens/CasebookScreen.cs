@@ -18,6 +18,8 @@
 //     cross 断言守护(XDocument 解析 UXML ≡ 代码树序列)—— 改任一面若不同步即红
 //   · 继承 PresentationRoot,实现 IModalState;使用 SkeuoElementLibrary 创建元件
 //   · 42 只渲染永不持状态(ADR-013 §9 C3)—— 本屏零游戏状态字段,数据由调用方喂入
+
+using System;   // Exception / Split(2026-10-14 UI 回调异常洪泛守护门用)
 //   · 「?」显隐登记(评审 S-6):现恒渲染;显/隐与 确定/疑似 文案切换归 39/11 喂值接缝
 //     (story-011/接线轮),本屏不持置信度状态
 
@@ -286,8 +288,54 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// </summary>
         private static void BindSubmitAndClick(VisualElement el, Action submitAction)
         {
-            el.RegisterCallback<NavigationSubmitEvent>(_ => submitAction());
-            el.RegisterCallback<ClickEvent>(_ => submitAction());
+            // ⚠️ 2026-10-14 加「每帧异常洪泛」守护(与 BootRoot.AssertSingleAudioListener 同型):
+            //   Unity 对回调内未捕获异常**只记日志不抛** ⇒ 一个在输入派发栈里每帧复发的异常
+            //   会把 Console 管道刷爆 ⇒ `write EPIPE` ⇒ **编辑器进程被杀**
+            //   (2026-10-10 AudioListener 洪泛 31868 条 / 2026-10-14 病名栏空栏点选,两度实测,
+            //    表现均为「关掉 play 卡死」)。这是**最危险的失效形态**:日志长得像「还在跑」。
+            //   故在此把「每帧重复的日志」升级为**具名异常** —— 一次即停派发、可判、可测。
+            //   ⚠️ 只挡**同异常重复**;单次异常仍照常上抛(不吞任何 fail-loud 契约)。
+            el.RegisterCallback<NavigationSubmitEvent>(_ => Guarded(submitAction));
+            el.RegisterCallback<ClickEvent>(_ => Guarded(submitAction));
+        }
+
+        /// <summary>回调兜底:同异常在窗口帧内复发 ⇒ 升格为具名异常,停止继续刷屏。</summary>
+        private static void Guarded(Action submitAction)
+        {
+            try
+            {
+                submitAction();
+                UiExceptionGuard.Reset();
+            }
+            catch (Exception ex)
+            {
+                if (UiExceptionGuard.IsRepeating(ex))
+                    throw new InvalidOperationException(
+                        "[CasebookScreen] UI 回调在输入派发栈内**每帧重复抛出同一异常** —— " +
+                        "Unity 只记日志不抛 ⇒ Console 管道超载 ⇒ write EPIPE ⇒ 编辑器进程被杀" +
+                        "(实测 2026-10-10 AudioListener / 2026-10-14 病名栏空栏,均表现为「关掉 play 卡死」)。" +
+                        "本门把该静默死法转为可判的具名异常;根因异常见 innerException。", ex);
+                throw;
+            }
+        }
+
+        /// <summary>UI 回调异常重复检测器(按「异常类型 + 首帧栈首行」计;窗口帧内复发即判重复)。</summary>
+        private static class UiExceptionGuard
+        {
+            private const int WindowFrames = 30;
+            private static int _count;
+            private static string _lastKey;
+
+            internal static void Reset() { _count = 0; _lastKey = null; }
+
+            internal static bool IsRepeating(Exception ex)
+            {
+                var st = ex.StackTrace;
+                string key = ex.GetType().FullName + "|" +
+                             (st == null ? "" : st.Split('\n')[0].Trim());
+                if (key != _lastKey) { _lastKey = key; _count = 1; return false; }
+                return ++_count >= WindowFrames;
+            }
         }
 
         /// <summary>病名册是否摊开(纯呈现态观测面)。</summary>
@@ -301,7 +349,18 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// 42 **不持档位**(OQ-CB-5 甲;档位 = 事件载荷值 = 游戏状态)。</remarks>
         public void SubmitDiseaseNameBar()
         {
-            if (!_bookOpen)
+            // ⚠️ 2026-10-14 实测根因修复:空栏(未指认任何词)时点病名栏,旧实现直调
+            // `SubmitConfidence()` ⇒ 装配层 `CurrentLexiconId <= 0` **fail-loud 抛**
+            // InvalidOperationException;而本方法是 `ClickEvent` / `NavigationSubmitEvent`
+            // 的回调 ⇒ 异常冲进 InputSystemUIInputModule 的派发栈、每帧刷 ⇒
+            // Console 管道超载 ⇒ `write EPIPE` ⇒ **编辑器进程被杀**(表现为「关掉 play 卡死」;
+            // 与 2026-10-10 AudioListener 洪泛同一死法,彼时 31868 条)。
+            // 修法:**UI 边界挡掉不可达的调用** —— 空栏 ⇒ 一律摊开病名册让你选词
+            // (册子都还没选词,谈何循环档位)。装配层的 fail-loud 契约**一字不改**
+            // (`casebook_command_router_test` 仍断言 SubmitDiseaseName(0) 抛)。
+            // ⚠️ 42 只读不持状态(ADR-013 §9 C3):「是否已指认」经 DTO 观测面
+            // `PendingConfidence` 回读(0 = 空),不在本屏自持一份。
+            if (!_bookOpen || _sourceForBook == null || _sourceForBook.PendingConfidence == 0)
             {
                 _bookOpen = true;
                 RefreshLexiconBook();
