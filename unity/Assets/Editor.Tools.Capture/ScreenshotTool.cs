@@ -90,7 +90,7 @@ namespace DaYiJingCheng.EditorTools.Capture
                 return;
             }
 
-            string dir = Path.Combine(ProjectRoot(), ShotDir);
+            string dir = Path.Combine(UnityProjectRoot(), ShotDir);
             Directory.CreateDirectory(dir);
 
             string name = $"{DateTime.Now:yyyyMMdd_HHmmss}_{superSize}x.png";
@@ -102,17 +102,26 @@ namespace DaYiJingCheng.EditorTools.Capture
                       "(写盘延后 1–2 帧,稍候即现)");
         }
 
-        /// <summary>工程根(= `unity/` 的父目录;`Application.dataPath` = `<root>/unity/Assets`)。</summary>
-        private static string ProjectRoot()
-            => Directory.GetParent(Application.dataPath)?.Parent?.FullName
+        /// <summary>
+        /// **Unity 工程根**(= `unity/`,即 `Logs/` 所在层)。
+        /// ⚠️ 2026-10-14 首版 bug:`Application.dataPath` = `<repo>/unity/Assets`,
+        /// 取两次 `Parent` 会得到 `<repo>`(**多退一层**)⇒ 截图落到工程外的 `Logs/`。
+        /// 正解 = 只取**一次** `Parent`。
+        /// </summary>
+        private static string UnityProjectRoot()
+            => Directory.GetParent(Application.dataPath)?.FullName
                ?? Application.dataPath;
 
         /// <summary>打开截图目录(方便找刚截的图)。</summary>
         [MenuItem("大医精诚/Capture/打开截图目录")]
         private static void OpenShotDir()
         {
-            string dir = Path.Combine(ProjectRoot(), ShotDir);
+            string dir = Path.Combine(UnityProjectRoot(), ShotDir);
             Directory.CreateDirectory(dir);
+            // ⚠️ 把路径也打到 Console 并复制到剪贴板 —— `RevealInFinder` 在 Linux 下
+            //    起 nautilus,若桌面无响应会阻塞主线程(2026-10-14 实测过一次假死)。
+            Debug.Log($"[ScreenshotTool] 截图目录:{dir}(路径已复制到剪贴板)");
+            EditorGUIUtility.systemCopyBuffer = dir;
             EditorUtility.RevealInFinder(dir);
         }
     }
