@@ -112,7 +112,11 @@ namespace DaYiJingCheng.EditorTools.Spike
             }
 
             // 回读者:真渲染后(约 1s)读页数打 Console
-            go.AddComponent<AtlasPageReader>();
+            // ⚠️ 不用 MonoBehaviour —— 本程序集是 Editor-only(includePlatforms: ["Editor"]),
+            //    挂场景物件的 script behaviour 运行期**不可实例化**(实测:
+            //    "Can't add script behaviour 'AtlasPageReader' because it is an editor script")。
+            //    改走 EditorApplication.update 轮询(纯编辑器侧驱动,零场景组件)。
+            ArmEditorReader();
 
             UnityEditor.SceneManagement.EditorSceneManager.SaveScene(
                 scene, ScenePath);
@@ -121,6 +125,154 @@ namespace DaYiJingCheng.EditorTools.Spike
             Debug.Log($"{LogTag} EDITOR_SAMPLE_READY|scene={ScenePath}|panel={panelPath}|" +
                       $"raised={Raised}|elements={added}|" +
                       $"NEXT=Play 一次,页数将由 AtlasPageReader 打 Console");
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // 编辑器取样回读者(替代已删除的 MonoBehaviour 版)
+        //
+        // 原方案把 Reader 做成 MonoBehaviour 挂场景物件 —— 实测被 Unity 拒:
+        //   "Can't add script behaviour 'AtlasPageReader' because it is an editor script"
+        // 根因:本程序集 Editor-only(includePlatforms:["Editor"]),其 MonoBehaviour
+        //   运行期不可实例化(不是 bug,是 Unity 的 Editor-only 程序集纪律)。
+        // 新方案:EditorApplication.update 轮询(纯编辑器侧,零场景组件)。
+        //   Play 时由它找场景里的 AtlasProbeDoc → 读 UIDocument 面板 → 反射图集页数。
+        // ══════════════════════════════════════════════════════════════════════
+        private static float _readerArmedAt = -1f;
+        private static int _readerFrames;
+        private static bool _readerReported;
+
+        /// <summary>Arm 轮询回读者(由 <see cref="SetupEditorSample"/> 调)。</summary>
+        private static void ArmEditorReader()
+        {
+            _readerArmedAt = (float)EditorApplication.timeSinceStartup;
+            _readerFrames = 0;
+            _readerReported = false;
+            EditorApplication.update -= ReaderTick;
+            EditorApplication.update += ReaderTick;
+            Debug.Log($"{LogTag} READER_ARMED|mode=EditorApplication.update|" +
+                      $"等待 Play 后真渲染…");
+        }
+
+        private static void ReaderTick()
+        {
+            if (_readerReported) return;
+
+            // 只在 Play 模式读(Play 外无渲染 ⇒ 页数无意义)
+            if (!EditorApplication.isPlayingOrWillChangePlaymode && !EditorApplication.isPlaying)
+                return;
+
+            _readerFrames++;
+            if (_readerFrames < 60) return;
+            if ((float)EditorApplication.timeSinceStartup - _readerArmedAt < 0.5f) return;
+
+            _readerReported = true;
+            EditorApplication.update -= ReaderTick;
+            ReportFromScene();
+        }
+
+        /// <summary>在场景里找 AtlasProbeDoc 的 UIDocument,反射链读页数(可证伪:报真字段名)。</summary>
+        private static void ReportFromScene()
+        {
+            try
+            {
+                var doc = UnityEngine.Object.FindObjectOfType<UIDocument>();
+                if (doc == null)
+                {
+                    Debug.Log($"{LogTag} RESULT|status=NO_UIDOCUMENT");
+                    return;
+                }
+
+                object panel = doc.rootVisualElement?.panel;
+                if (panel == null)
+                {
+                    Debug.Log($"{LogTag} RESULT|status=PANEL_NULL|" +
+                              $"panelSettingsNull={doc.panelSettings == null}");
+                    return;
+                }
+
+                object atlas = FindAtlas(panel);
+                if (atlas == null)
+                {
+                    Debug.Log($"{LogTag} RESULT|status=ATLAS_NOT_FOUND|panelType={panel.GetType().FullName}");
+                    return;
+                }
+
+                int pages = CountPages(atlas);
+                Debug.Log($"{LogTag} RESULT|status=OK|atlasType={atlas.GetType().FullName}|" +
+                          $"pageCount={pages}");
+
+                // 关键字段一并打出(尺寸 / 分配器 / excess),供冻结件引用
+                var sb = new System.Text.StringBuilder();
+                foreach (FieldInfo f in atlas.GetType().GetFields(
+                    BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
+                {
+                    string n = f.Name.ToLowerInvariant();
+                    if (!(n.Contains("size") || n.Contains("alloc") || n.Contains("page") ||
+                          n.Contains("excess"))) continue;
+                    try
+                    {
+                        object v = f.GetValue(atlas);
+                        if (v is System.Collections.ICollection c) sb.Append($"{f.Name}=count{c.Count}|");
+                        else sb.Append($"{f.Name}={v}|");
+                    }
+                    catch { /* 读不出的字段跳过,不阻断报告 */ }
+                }
+                Debug.Log($"{LogTag} ATLAS_STATE|{sb}");
+            }
+            catch (Exception e)
+            {
+                Debug.Log($"{LogTag} RESULT|status=EXCEPTION|type={e.GetType().Name}|msg={e.Message}");
+            }
+        }
+
+        /// <summary>面板 → 渲染器 → 动态图集(逐层反射,任一环缺失即报不可达)。</summary>
+        private static object FindAtlas(object panel)
+        {
+            foreach (string fieldName in new[] { "m_Renderer", "renderer", "m_PanelRenderer" })
+            {
+                var f = panel.GetType().GetField(fieldName,
+                    BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+                if (f == null) continue;
+
+                object renderer = f.GetValue(panel);
+                if (renderer == null) continue;
+
+                foreach (string aName in new[] { "m_Atlas", "atlas", "m_DynamicAtlas" })
+                {
+                    var af = renderer.GetType().GetField(aName,
+                        BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+                    if (af == null) continue;
+
+                    object atlas = af.GetValue(renderer);
+                    if (atlas != null) return atlas;
+                }
+
+                Debug.Log($"{LogTag} TRACE|rendererFound={renderer.GetType().FullName}|atlasFieldMissing");
+            }
+            return null;
+        }
+
+        /// <summary>页数(字段名不确定 ⇒ 列出全部候选真名,不猜)。</summary>
+        private static int CountPages(object atlas)
+        {
+            foreach (string pName in new[] { "m_Pages", "pages", "m_AllocatedPages", "m_PagesList" })
+            {
+                var pf = atlas.GetType().GetField(pName,
+                    BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+                if (pf == null) continue;
+
+                if (pf.GetValue(atlas) is System.Collections.ICollection coll)
+                    return coll.Count;
+
+                Debug.Log($"{LogTag} TRACE|pagesField={pName}|notACollection|type={pf.FieldType.Name}");
+            }
+
+            var names = new System.Text.StringBuilder();
+            foreach (FieldInfo f in atlas.GetType().GetFields(
+                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
+                names.Append(f.Name).Append("|");
+            Debug.Log($"{LogTag} TRACE|pagesFieldNotFound|atlasFields={names}");
+            return -1;
         }
 
         /// <summary>Q1 前半:PanelSettings 的图集设置面(静态配置,必可读)。</summary>
