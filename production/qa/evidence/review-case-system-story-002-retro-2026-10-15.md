@@ -186,3 +186,72 @@ story-002 的声明证据 `case_open_and_judgment_test.cs` **可跑、可过、�
 commit `c4e3708` 三条自述:**B1 形式成立、语义脱钩;B2(AC-37-30 入流义务)未在 AC-37-30 的测试内落实(路由断言被挪到 AC-37-05 的测试里,属跨条挪用);B3 与其点名的测试内容不符**。
 
 **合取判定(story-002)**:代码面 4 BLOCKING + 测试面 10 BLOCKING,去重后**核心 4 类** —— ① AC-37-30 入流义务零验证(两面同证);② AC-37-05 判断半边扫错对象(两面同证);③ AC-37-05 处置半边断言全仓缺失(两面同证);④ `LastJudgmentOf` 忽略 `caseId`(测试面独家,且有生产实害链)。**Test Evidence 门不通过。**
+
+---
+
+# 七、勘误(2026-10-15 落盘后复核追加 —— 本段修正上文,不删原判定)
+
+## 七·一 触发
+
+落盘后执行「未完成核查」第 1 条(查 `tests/integration/case-system/` 是否存在集成件)时,
+发现**补评存在系统性盲区**:两名代理均只核了 story §Test Evidence **声明的那个文件**,
+却使用了「**零验证**」「**全仓零命中**」「**无处可依**」等**超出其取证范围**的表述。
+
+实测:case-system 的测试件**远不止各 story 声明的那一个** —— 且有一批**晚于 2026-10-06**
+(sprint-05/06/08,2026-10-10 ~ 10-13)的接线件。按补评口径「**评当下代码**」,它们**必须计入**。
+
+**根因(两方各半,如实登记)**:① 调度方的评审 prompt 只指向声明件,未要求扫全树;
+② 代理在仅核一件的前提下作出全域否定的**越权表述** —— 这是「补评不可追补」之外的**第二种评审失效模式**,
+建议补入 `.claude/docs/review-workflow.md` 的教训段。
+
+## 七·二 声明的证据面 —— 事实更正
+
+`tests/integration/case-system/` **确实不存在**;但 `tests/README.md` 澄清:
+`tests/unit|integration/` 只是**账本约定**,UTF 实际编译的是 `EditMode/` 与 `PlayMode/` 两棵树。
+case-system 的实际测试面(全部,含基线运行证据):
+
+| 件 | 位置 | 规模 | 关键判据 |
+|---|---|---|---|
+| `case_identity_routing_test.cs` | EditMode/CaseSystem | 13 | (001 声明件) |
+| `case_open_and_judgment_test.cs` | EditMode/CaseSystem | 23 | (002 声明件) |
+| **`case_open_writer_test.cs`** | EditMode/CaseSystem | **7** | **真组合根 + 真 EventStream**,`realBag_appendsExactlyOneCaseEvent_roundTrip` 断言「病例流恰增 1 条」+ 载荷池 round-trip + 流前缀查询可见 |
+| **`judgment_writer_test.cs`** | **EditMode/Boot** | **4** | **真装配**,`record_onOpenCase_writesJudgment_caseStream` 断言「落笔 ⇒ 病例流多一条 + 尾事件 Kind = JudgmentRecorded」 |
+| **`casebook_command_router_test.cs`** | **EditMode/Boot** | **8** | 含 `writesJudgmentRecordedSuspected` / `writesJudgmentRevisedConfirmed` |
+| **`ink_age_test.cs`** | **EditMode/Boot** | **4** | 墨龄派生态(与 BLK-8 直接相关,见下) |
+| **`case_opened_wiring_test.cs`** | **PlayMode** | **1** | **真启动序**(BootRoot → CaseOpenedDriver → TryOpen),断言病史流含 `CaseOpened` |
+| `case_close_precondition_test.cs` | EditMode/CaseSystem | 33 | (003 声明件) |
+| `case_pattern_detection_test.cs` | EditMode/CaseSystem | 23 | (004 声明件) |
+| `case_replay_persistence_test.cs` | EditMode/CaseSystem | 10 | 含 `noFold_historicalRowsComplete` / `noFold_openCasePredicate_bothDirections` / 高水位三流并集 |
+| `case_secrecy_discipline_test.cs` | EditMode/CaseSystem | 12 | 含 `ac37_20_noConsequenceOwnership` |
+| `e2e_full_loop_test.cs` | PlayMode/SkeuomorphicUI | 1 | 七环节全链(走近→查体→对照→落笔→开方→施治→纸面) |
+
+**运行基线**:EditMode `story009_editmode.xml`(10-14 20:09,`total=3326 passed=3279 failed=0`);
+**PlayMode `story009_review_playmode.xml`(10-14 20:00,`total=186 passed=186 failed=0`)**。
+
+## 七·三 逐条勘误
+
+### ❌ 被推翻(4 条)
+
+| 原判定 | 勘误 | 推翻证据 |
+|---|---|---|
+| **BLOCKING-1 / BLK-1 / BLK-4**(AC-37-30 入流义务「零验证」) | **推翻** —— AC-37-30 的入流义务**有真载体**,且是**真组合根 + 真流**级 | `CaseOpenWriterTest.test_caseOpened_realBag_appendsExactlyOneCaseEvent_roundTrip`(`_bag.Stream` 恰增 1、断言 `StreamRouting.Of(evt.Kind) == StreamId.Case`、载荷经池 round-trip);PlayMode `CaseOpenedWiringTest.test_caseOpenedDriver_opensCaseAtBoot`(`Assert.IsTrue(hasCaseOpened, "病史流应含 CaseOpened 事件")`,真 BootRoot 启动序) |
+| **BLOCKING-2 / BLK-4**(AC-37-05 判断半边「扫错对象」) | **推翻** —— 判断入流有真载体 | `JudgmentWriterTest.test_record_onOpenCase_writesJudgment_caseStream`(真 `CompositionRoot.Assemble()`,`Assert.AreEqual(before + 1, _bag.Stream.Count)`,尾事件 `Kind == JudgmentRecorded`);`casebook_command_router_test` 8 测覆盖落笔/改写/擦除/越界四条路径 |
+| **BLOCKING-3 / BLK-7**(AC-37-05 处置半边「全仓零命中」) | **推翻** —— 语义载体在 003 的件里 | 「处置发生后 37 跨流可查到」的**实现** = `CaseCloseDecider.HasTreatmentInWindow`(读病史流处置事件);其判据由 `case_close_precondition_test.cs:98/124/210`(真 `EmergencyTreatmentApplied` / `DrugTreatmentApplied` 事件)覆盖。「第二副本」这一**措辞**确实零命中,但那是**词面**零命中,**不是语义零覆盖** |
+| **BLK-6**(AC-37-23「不折叠」零覆盖) | **推翻** | `CaseReplayPersistenceTest.test_case_noFold_historicalRowsComplete` + `test_case_noFold_openCasePredicate_bothDirections`(006 的件,2026-10-08 收口) |
+| **BLK-10**(必交夹具类型错位 ⇒ 「缺失」) | **推翻「缺失」,保留「错位」** —— 集成件**存在**(PlayMode 接线件 + `e2e_full_loop_test`);真问题只是 story §Test Evidence 引的不是它们 | 见 §七·二 表 |
+
+### ✅ 仍成立(净保留)
+
+| 判定 | 为何不受影响 |
+|---|---|
+| **BLK-8 / ADV-1**(`LastJudgmentOf` 的 `caseId` 形参**零引用** + 生产实害链) | 这是**实现层**缺陷,与测试面无关。且新发现的 `ink_age_test.cs` 4 测**全部为单案夹具**(`countsSinceLastJudgment` / `rereadsFromLatestRewrite` / `zero_beforeWrite` / `clampsNonNegative`)⇒ **跨病人混淆仍未被任何件覆盖** ⇒ 实害链(`CompositionRoot.cs:245` 传全局混合流 ⇒ 墨龄取错病人)**成立且更可确证** |
+| **BLK-1 的「声明件内恒真」部分** | `case_open_and_judgment_test.cs:67` 的 `decisionA == decisionB` 因 `CaseOpenDecider.Decide` 不读 `sourceKind` 而恒真 —— 这是**该声明件自身**的断言形态问题,别处的覆盖不改变它 |
+| **BLK-2 / BLK-3 / BLK-5 / BLK-9**(测试自造函数 / 重复断言 / 负断言未按契约构造) | 同属声明件自身的断言形态,不受他件影响 |
+| **ADV-2**(`Decide` 无生产调用者 = 孪生体) | `grep CaseOpenDecider` 排除 Tests 后仍仅注释命中 ⇒ 成立(但注意:真实路径 `CaseOpenWriter` **有**测试,故这是**实现冗余**而非**覆盖缺失**) |
+
+## 七·四 净结论(修正后)
+
+- **代码面 4 BLOCKING** → 保留 **1 类**:BLK-8(`LastJudgmentOf` 死参 + 实害链)。其余三条(AC-37-30 / AC-37-05 两半)系**声明证据与 AC 错配**,非无证据。
+- **测试面 10 BLOCKING** → 保留 **5 条**(BLK-2/3/5/9 声明件断言形态 + BLK-1 的恒真半边);推翻 **5 条**(BLK-1 的「零验证」半边 / BLK-4 / BLK-6 / BLK-7 / BLK-10)。
+- **门结论不变**:story-002 **Test Evidence 门仍不通过** —— 但性质从「AC 无证据」改为「**声明证据与 AC 错配 + 一条真实现缺陷**」。
+- **修复面因此显著收窄**:核心 = ① `LastJudgmentOf` 用 `caseId` 过滤 + 补跨病人夹具;② 声明件断言形态订正;③ 把 `CaseOpenWriterTest` / `JudgmentWriterTest` / PlayMode 接线件**补进 §Test Evidence 的引用面**。

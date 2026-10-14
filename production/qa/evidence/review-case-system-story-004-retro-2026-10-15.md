@@ -203,3 +203,28 @@ pgrep -f Unity; ls unity/Temp/UnityLockfile 2>/dev/null          # 先确认编�
 - **TB-4/CB-1 的写者缺失已由 `WriterExistenceGate.cs:88` 登记为显式债务** —— 若 producer 接受延后,须把该延后**写进 story 的 Out of Scope 并同步改 AC-37-08/09 的证据面**,而不是留在 `Complete` 里;
 - **AC-37-29 的阻塞已解除**(W-1 结案)→ 夹具**今日即可写**,不再有免责理由;
 - 测试面建议元规则(TA-6):**定序类 AC 的夹具必须至少一处 输入序 ≠ 期望序**。
+
+---
+
+# 七、勘误复核(2026-10-15 落盘后追加)
+
+**触发**:story-002/003 勘误(见 `review-case-system-story-002-retro-2026-10-15.md` §七·一)——
+复核发现补评代理存在「只核声明件却作全域否定」的失效模式。本件据此重扫全树以确认判定是否受影响。
+
+**复核结论:本件无勘误。代码面 3 + 测试面 5 共 8 条 BLOCKING 全部保留。**
+
+复核证据(全树 grep,含 `EditMode/`、`PlayMode/`、`tests/`):
+
+```bash
+grep -rln "PatternDetector\|IsFired\|ChainEligible" unity/Assets/Tests/
+# 输出:仅 unity/Assets/Tests/EditMode/CaseSystem/case_pattern_detection_test.cs
+grep -rn "PatternDetector" unity/Assets --include=*.cs | grep -v "/Tests/"
+# 输出:仅 Sim/PatternDetector.cs 自身 + Editor.Tools.Gates/WriterExistenceGate.cs:88 豁免表文本
+```
+
+⇒ 与 story-002/003 的情形**结构性不同**:那两件的 AC 载体**确实存在于他处**(接线件/真装配件),
+而本件的 `PatternDetector` 在**测试面全树只有一处**,在**生产面零调用者** ⇒
+「AC-37-27 定序判别力为零」「发射语义无生产载体」「AC-37-29 零覆盖」等判定**均不受他件影响**。
+
+**另确认**:PlayMode 基线(`story009_review_playmode.xml`,2026-10-14 20:00,`total=186 passed=186 failed=0`)
+中**无任何 `PatternDetector` / `PatternRecognized` 相关件** —— 本 story 无 PlayMode 侧证据面。

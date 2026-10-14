@@ -93,11 +93,13 @@
 
 > ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `review-case-system-001-004-gap-audit-2026-10-15.md` §二:003 判定分级未能确证),按义务第 3 条**补做评审(评当下)**,不追认 `31e3f9b` 的历史判定。
 > **补评原件**:`production/qa/evidence/review-case-system-story-003-retro-2026-10-15.md`
-> **判定**:代码面 **1 BLOCKING** + 测试面 **5 BLOCKING**;去重后核心 5 类 ——
+> **判定(⚠️ 已按 §七 勘误修正 —— 见下)**:代码面 **1 BLOCKING** + 测试面 **4 BLOCKING**(原判 5,§七·一 推翻 B4);核心 4 类 ——
 > ① **`CaseCloseQuery.IsClosed` 按 `Patient` 而非 `case_id` 匹配**(`CaseCloseDecider.cs:135`)⇒ 复诊新案被判「已结」,`IsOpen=True ∧ IsClosed=True` 自相矛盾 ⇒ **复诊案永远无法结案**(代理已用 dotnet 8 行为证伪;当前无生产调用点,属**契约层缺陷**);
 > ② 快照半场零行为覆盖(5 处反射字段存在性检查 ⇒ 借绿);
 > ③ **AC-37-18 夹具不含死亡输入** ⇒ 恒真;
-> ④ 结案副作用序列三件中两件(→8 读数清除 / →53 判断冻结)**零测试**;
+> ~~④ 结案副作用序列三件中两件(→8 读数清除 / →53 判断冻结)**零测试**;~~ ❌ **§七·一 推翻** ——
+> 两件的判据在 **8 自己的件**里(`EditMode/DiagnosisSystem/reading_state_test.cs:395-411`:
+> `OnCaseClosed` 全状态清空 + `FrozenJudgment.Frozen` + `HandoffTo53`),只是不在 37 的证据文件里;
 > ⑤ **`TreatmentKinds` 收录 `InjuryOnset` 无任何权威件授权**(ADR-008 §四 / GDD F-37.2 / registry 三处皆不枚举),语义 = 25 的战斗伤害结算 ⇒「病人挨了打」被计入「已被处置」,正面击穿 GDD `:567`/`:839`。
 > 正面:窗口方向 ✅ **正确**(`:108` 为订正式,未复现 ADR-008 §四 旧式反写);AC-37-21 复诊后门负例是**有效回归哨兵**。
 > **Test Evidence 门:不通过。** 修复归**新一轮**;状态**已裁定(2026-10-15,用户)转 `In Review`**。

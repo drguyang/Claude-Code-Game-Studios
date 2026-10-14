@@ -137,3 +137,30 @@ pgrep -f Unity; ls unity/Temp/UnityLockfile 2>/dev/null
 - **TA-1/2/3/6** 由 qa-tester 补(空集/单元素 / 同 `(Tick,Stream,Patient)` 不同 `Seq` 的排序对 / A3·A5 变异反例);
 - **全部修复归新一轮**(义务:不得声称「原判定如此」);story-001 状态须标注「原件为补评件」;
 - **产品代码无须返工**(代码面无 BLOCKING)。
+
+---
+
+# 六、勘误复核(2026-10-15 落盘后追加)
+
+**触发**:story-002/003 勘误(见 `review-case-system-story-002-retro-2026-10-15.md` §七·一)——
+复核发现补评代理存在「只核声明件却作全域否定」的失效模式。本件据此重扫全树(含 `EditMode/Boot/`、
+`PlayMode/`、`tests/`)以确认本判定是否同样受影响。
+
+**复核结论:本件无勘误,4 条 BLOCKING 全部保留。**
+
+理由:本件的四条判定**全部是 `case_identity_routing_test.cs` 这一声明件自身的断言形态问题**,
+不依赖「别处有无覆盖」:
+
+| 判定 | 为何不受他件影响 |
+|---|---|
+| B-1(AC-37-06 打的是测试内 LINQ,生产载体 `IdAuthority.ReconstructPatientHighWater` 零调用) | 生产载体的调用点在全仓唯一,不因他件存在而改变;且判据**算术上不可证伪**的结论独立成立 |
+| B-2(AC-37-03 A2 **空跑**) | 内层 `foreach` 执行 0 次是**该测试在当下真源上**的实测性质 |
+| B-4(kindgen 载体**借绿**) | 「把 kindgen 删掉,13 条测试照样全绿」是该测试**自身**的性质 —— 已复核全树,无第二处运行 kindgen 的测试 |
+| B-3(测试头 AC 号一号两义) | 测试头 `:5-8` 的自填编号,与别处无关 |
+
+**附带确认**:复核新发现的各件(尤其 `Boot/judgment_writer_test.cs` / `PlayMode/case_opened_wiring_test.cs`)
+均属 story-002/003 的面,**不构成 story-001 任何 AC 的载体** ——
+本 story 的 AC-37-01/02/03/04/05/06 的证据面确实只有声明件一处。
+
+**运行基线补正**:PlayMode `story009_review_playmode.xml`(2026-10-14 20:00,`total=186 passed=186 failed=0`)
+对本 story 无增量证据(其中无 case 身份/路由相关件)。

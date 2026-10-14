@@ -93,11 +93,18 @@
 
 > ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `review-case-system-001-004-gap-audit-2026-10-15.md` §二:002 确证产出过 BLOCKING 级判定),按义务第 3 条**补做评审(评当下)**,不追认 `c4e3708` 的历史判定。
 > **补评原件**:`production/qa/evidence/review-case-system-story-002-retro-2026-10-15.md`
-> **判定**:代码面 **4 BLOCKING** + 测试面 **10 BLOCKING**;去重后核心 4 类 ——
-> ① **AC-37-30 入流义务零验证**(`IEventSink` 全文件仅注释;`decide(A)==decide(B)` 因实现不读 `sourceKind` 而恒真);
-> ② **AC-37-05 判断半边扫错对象**(查生成路由表 ≠ 入流);
-> ③ **AC-37-05 处置半边「无第二副本」全仓零命中**;
-> ④ **`LastJudgmentOf` 的 `caseId` 形参零引用**(且有生产实害链:`CompositionRoot.cs:245` 传全局混合流 ⇒ `CasebookVitalsSource.InkAgeTicks` 会取到别的病人的判断事件)。
+> **判定(⚠️ 已按 §七 勘误修正 —— 见下)**:原判「代码面 4 BLOCKING + 测试面 10 BLOCKING」,
+> **复核后收窄**:① **`LastJudgmentOf` 的 `caseId` 形参零引用**(真实现缺陷;有生产实害链:
+> `CompositionRoot.cs:245` 传全局混合流 ⇒ `CasebookVitalsSource.InkAgeTicks` 会取到别的病人的
+> 判断事件;**新发现的 `Boot/ink_age_test.cs` 4 测全为单案夹具 ⇒ 跨病人混淆仍无覆盖**);
+> ② 声明件 `case_open_and_judgment_test.cs` 自身的**断言形态**问题(`decide(A)==decide(B)` 恒真 /
+> 测试自造 J(c) / 只查路由表 / 重复断言)。
+> ❌ **已推翻**(§七·三):AC-37-30 入流义务、AC-37-05 判断半边、AC-37-05 处置半边、
+> AC-37-23 不折叠 —— **均有真载体**,只是不在本 story 声明的那一个文件里:
+> `CaseSystem/case_open_writer_test.cs`(真组合根+真流)· `Boot/judgment_writer_test.cs` ·
+> `Boot/casebook_command_router_test.cs` · `PlayMode/case_opened_wiring_test.cs`(真启动序)·
+> `CaseSystem/case_replay_persistence_test.cs`(noFold 两测)。
+> ⇒ 真问题是**声明证据与 AC 错配**,**不是「AC 无证据」**。
 > 架构纪律全绿(纯函数 · 门 A · ADR-029 · 零 float);commit `c4e3708` 三条自述 **B1 部分成立 / B2 未兑现 AC 本体 / B3 与其点名的测试内容不符**。
 > **Test Evidence 门:不通过。** 修复归**新一轮**;状态**已裁定(2026-10-15,用户)转 `In Review`**。⚠️ 另:AC-37-05/23 在 GDD 为 `[I]` 集成,而 `tests/integration/case-system/` 目录是否存在集成件**未查证完**,登记待查。
 

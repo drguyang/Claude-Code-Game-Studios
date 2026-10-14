@@ -58,8 +58,8 @@ This epic is complete when:
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
 | 001 | 病例流 Kind 登记与病例身份 | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`e64efad`)判定不成立;补评 4 BLOCKING·测试面) | ADR-008/024/006 |
-| 002 | 立案两路径 · 开案唯一 · 判断记录事件化 | Integration | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`c4e3708`)判定不成立;补评 14 BLOCKING·双面) | ADR-008/009/005 |
-| 003 | 结案前置:处置证据窗口与快照 | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`31e3f9b`)判定不成立;补评 6 BLOCKING·双面) | ADR-008/007 |
+| 002 | 立案两路径 · 开案唯一 · 判断记录事件化 | Integration | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`c4e3708`)判定不成立;补评 + §七 勘误后核心 **1 类**:`LastJudgmentOf` 死参·实害链 + 声明件断言形态) | ADR-008/009/005 |
+| 003 | 结案前置:处置证据窗口与快照 | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`31e3f9b`)判定不成立;补评 + §七 勘误后核心 **4 类**,最重 = `IsClosed` 按 `Patient` 匹配) | ADR-008/007 |
 | 004 | F-37.1 同源检测与 PatternRecognized | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`8a693fd`)判定不成立;补评 8 BLOCKING·双面) | ADR-008/007/012 |
 | 005 | 守密纪律:DTO 守卫 · 词表烘焙 · 零奖励断言 | Integration | **Complete ✅ 2026-10-08** | ADR-013/014/006 |
 | 006 | 重放持久化与跨系统边界义务 | Integration | **Complete ✅ 2026-10-08** | ADR-010/005/008 |

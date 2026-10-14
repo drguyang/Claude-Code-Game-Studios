@@ -3055,3 +3055,31 @@ B-6-1 / B-6-3 / B-6-4 三项均已解除。
 
 **仍未定**:BLOCKING 修复的排期范围(是否并入 sprint-11 剩余容量 ——
 现存 should-have S11-4 处方 DoD 残留 3.5pd / nice-to-have S11-5 53 起首 1.5pd / S11-6 走查 0.75pd)。
+
+## S11-2 后续批 · 勘误轮(2026-10-15 · ✅)
+
+**触发**:执行 §六 登记的「未完成核查」第 1 条(查 `tests/integration/case-system/`),
+连带发现**补评本身有系统性盲区**。
+
+**关键事实**:
+- `tests/integration/case-system/` 确实不存在 —— 但 `tests/README.md` 澄清 `tests/unit|integration/`
+  只是**账本约定**,UTF 实际编译 `EditMode/` + `PlayMode/` 两棵树;
+- case-system 实际测试面远不止各 story 声明的文件:`EditMode/Boot/` 下 `judgment_writer_test.cs`(4)·
+  `ink_age_test.cs`(4)· `casebook_command_router_test.cs`(8);`EditMode/CaseSystem/` 下
+  `case_open_writer_test.cs`(7,真组合根+真流)· `case_replay_persistence_test.cs`(10);
+  `PlayMode/case_opened_wiring_test.cs`(真启动序)· `e2e_full_loop_test.cs`(七环节全链);
+- **PlayMode 基线**:`story009_review_playmode.xml`(10-14 20:00,`total=186 passed=186 failed=0`)。
+
+**勘误结果**:
+- story-002:**推翻 4 条**(AC-37-30 入流 / AC-37-05 判断半边 / AC-37-05 处置半边 / AC-37-23 不折叠
+  —— 均有真载体:真组合根件 + 真启动序件);**保留并加重 1 条**(`LastJudgmentOf` 死参,
+  新发现的 `ink_age_test` 4 测全为单案夹具 ⇒ 跨病人混淆仍无覆盖);
+- story-003:**推翻 1 条**(B4 —— →8 读数清除 / →53 冻结 在 `DiagnosisSystem/reading_state_test.cs:395-411`);
+  保留 4 条;
+- story-001 / story-004:**无勘误**(全树 grep 确认声明件是唯一载体)。
+
+**根因(两方各半)**:① 调度 prompt 只指向声明件;② 代理在仅核一件时作「零验证」「全仓零命中」
+等**越权全域否定**。→ 建议补入 `review-workflow.md`:**评据不得越权**(作全域否定前须给搜索命令与结果)。
+
+**净结论不变**:四件 Test Evidence 门仍不通过,维持 `In Review`;
+但 002/003 的性质改为「**声明证据与 AC 错配**」(修复面 = 补引用 + 订正断言形态,非从零补测试)。

@@ -185,3 +185,49 @@ story-003 的 Test Evidence 门(Logic 类 = BLOCKING)**不通过**。B1/B2/B3/B4
 **合取判定(story-003)**:**代码面 1 BLOCKING(B-1)+ 测试面 5 BLOCKING(B1–B5),去重后核心 5 类** ——
 ① **`IsClosed` 按 `Patient` 匹配**(B-1 ≡ 测试面 B1,两面同证,含 dotnet 8 行为证伪);② 快照半场零行为覆盖(B2);③ AC-37-18 恒真夹具(B3);④ 副作用序列两件零测试(B4);⑤ **`InjuryOnset` 入处置集无规格授权且语义相反**(测试面 B5,独家且最重)。
 **Test Evidence 门不通过。**
+
+---
+
+# 七、勘误(2026-10-15 落盘后复核追加 —— 本段修正上文,不删原判定)
+
+**触发**:同 story-002 勘误(见 `review-case-system-story-002-retro-2026-10-15.md` §七·一)——
+补评代理只核 story §Test Evidence 声明的文件,却使用全域否定表述。复核已扫全树(含 PlayMode)。
+
+## 七·一 被推翻(1 条)
+
+**[测试面 B4「结案副作用序列三件中两件零测试」] → 推翻**
+
+原判定称「`→8` 与 `→53` 在测试文件内**零出现**」并据此判 BLOCKING。
+实测:该两件的判据在 **8 自己的测试件**里,只是不在 37 的证据文件里 ——
+
+`unity/Assets/Tests/EditMode/DiagnosisSystem/reading_state_test.cs`(覆盖清单自陈
+「AC-8-21 三态可分 · AC-8-22 不改口 · AC-8-24 恰四态/恰三态 · **AC-8-25 快照冻结**」)
+的 `test_...`(读取区段 `:395-410`)**逐条断言**:
+
+| 原判定称「零测试」的件 | 实际判据 | 行 |
+|---|---|---|
+| **→8 读数清除** | `Assert.AreEqual(SignReadState.Blank, DiagnosisReadingFsm.OnCaseClosed(s), `「任意读数状态关病例 ⇒ 清除」`,`foreach` 遍历 `Enum.GetValues(typeof(SignReadState))` 全状态 | `:409-411` |
+| **→53 判断冻结** | `Assert.IsTrue(r.FrozenJudgment.Frozen, "② 判断冻结")` + `Assert.AreEqual(JudgmentState.Suspected, r.HandoffTo53, "③ 交 #53 = 冻结时刻的判断状态")` + 竞态断言「冻结后落笔必拒」 | `:395-403` |
+| **37 自身不产生后果事件** | `CaseSecrecyDisciplineTest.test_case_ac37_20_noConsequenceOwnership`(断言 5 个出站载荷零 `consequence`/`treatment_content`/`outcome`/`penalty` 等越权字段) | — |
+
+⚠️ 附带澄清:`→53 medical-consequences` 目前**仅有 GDD**(`design/gdd/medical-consequences.md`),
+**无代码、无测试**(P0 未起首,承 S11-5)。故 `HandoffTo53` 在 8 侧只到「交出冻结状态」为止 ——
+该 AC 的载体在 **8 侧**,**不应由 37 的证据面承担**。
+
+## 七·二 仍成立(保留)
+
+| 判定 | 复核结论 |
+|---|---|
+| **B-1**(`CaseCloseQuery.IsClosed` 按 `Patient` 而非 `case_id` 匹配) | **成立**。实现层缺陷,与测试面无关;代理另用 dotnet 8 逐字复刻循环体行为证伪(`IsOpen=True ∧ IsClosed=True` 自相矛盾)。当前无生产调用点(`WriterExistenceGate.cs:87` 具名豁免自陈「CaseCloseDecider 现为纯函数」)⇒ **契约层缺陷** |
+| **B2**(快照半场零行为覆盖) | **成立**。已复核 003 的全部 `CaseClosed` 相关测试名(`caseClosedPayload_containsCaseId`/`containsDiseaseSet`/`containsPatientId`/`containsTreated`/`caseClosedPayloadHasSnapshot`/`caseClosedGoesToCaseStream`)—— **全为反射字段存在性 + 路由表**,零行为断言。且「快照计算」在生产侧确实不存在(`WriterExistenceGate.cs:87`) |
+| **B3**(AC-37-18 夹具不含死亡输入 ⇒ 恒真) | **成立**。声明件自身性质,他件不影响 |
+| **B5**(`TreatmentKinds` 收录 `InjuryOnset` 无权威授权) | **成立**(且**加重**):复核新发现的 `case_open_writer_test.cs` / `judgment_writer_test.cs` 均为真装配件,而**处置集的定义仍只在 `CaseCloseDecider.cs:72-77`** —— 三处权威件(ADR-008 §四 / GDD F-37.2 / registry)**均不枚举** ⇒ 「期望值唯一真源 = 生产代码自身默认值」的形态不变 |
+| **TA-1/TA-3/TA-4/A1…A6** | **成立**(均为声明件自身性质) |
+| **正面发现**(窗口方向 `:108` 正确 / `:84-110` 复诊后门负例是真哨兵) | **成立不变** |
+
+## 七·三 净结论(修正后)
+
+- 代码面 1 BLOCKING → **保留 1**(B-1);
+- 测试面 5 BLOCKING → **保留 4**(B1/B2/B3/B5),**推翻 1**(B4);
+- **门结论不变**:story-003 **Test Evidence 门仍不通过**(B-1 是最重的一条 —— 真代码缺陷)。
+- **修复面收窄**:B4 划去;B2 的修复须与「结案写者落地」同批(否则快照无载体可测)。

@@ -86,10 +86,10 @@ story 文件的状态登记须反映「原件为补评件」的事实。
 
 | 对象 | 原件路径 | 判定 |
 |---|---|---|
-| story-001 | `review-case-system-story-001-retro-2026-10-15.md` | 代码面 **0 BLOCKING** · 测试面 **4 BLOCKING** |
-| story-002 | `review-case-system-story-002-retro-2026-10-15.md` | 代码面 **4 BLOCKING** · 测试面 **10 BLOCKING** |
-| story-003 | `review-case-system-story-003-retro-2026-10-15.md` | 代码面 **1 BLOCKING** · 测试面 **5 BLOCKING** |
-| story-004 | `review-case-system-story-004-retro-2026-10-15.md` | 代码面 **3 BLOCKING** · 测试面 **5 BLOCKING** |
+| story-001 | `review-case-system-story-001-retro-2026-10-15.md` | 代码面 **0** · 测试面 **4**(§六 复核:无勘误,全保留) |
+| story-002 | `review-case-system-story-002-retro-2026-10-15.md` | 代码面 4 · 测试面 10 → **§七 勘误后核心 1 类**(`LastJudgmentOf` 死参·实害链),另 4 条被推翻 |
+| story-003 | `review-case-system-story-003-retro-2026-10-15.md` | 代码面 **1** · 测试面 5 → **§七 勘误后 4**(B4 被推翻),最重 = `IsClosed` 按 `Patient` 匹配 |
+| story-004 | `review-case-system-story-004-retro-2026-10-15.md` | 代码面 **3** · 测试面 **5**(§七 复核:无勘误,全保留) |
 
 轮次:双代理(unity-specialist 代码面 + qa-lead 测试面),8 份报告全回。
 
@@ -117,3 +117,53 @@ story 文件的状态登记须反映「原件为补评件」的事实。
 
 补评发现的一切 BLOCKING,**其修复归新一轮**;**不得声称「原判定如此」**。
 本核查 + 四份补评件**不构成**对 2026-10-06 那次评审的追认或推翻 —— 它只提供 **2026-10-15 当日的独立判定**。
+
+---
+
+## 七、勘误轮(2026-10-15 落盘后复核)
+
+### 七·一 触发与根因
+
+§六·四 的「未完成核查」第 1 条(查 `tests/integration/case-system/` 是否存在集成件)执行后,
+发现**补评本身存在系统性盲区**:
+
+- `tests/integration/case-system/` **确实不存在** —— 但 `tests/README.md` 澄清:
+  `tests/unit|integration/` 只是**账本约定**,UTF 实际编译的是 `EditMode/` 与 `PlayMode/` 两棵树;
+- 实测 case-system 的测试件**远不止各 story 声明的那一个**:`EditMode/Boot/` 下有
+  `judgment_writer_test.cs` / `ink_age_test.cs` / `casebook_command_router_test.cs` /
+  `casebook_prescribe_chain_test.cs`,`PlayMode/` 下有 `case_opened_wiring_test.cs`(真启动序)与
+  `e2e_full_loop_test.cs`(七环节全链),`EditMode/CaseSystem/` 下另有 `case_open_writer_test.cs`
+  (真组合根 + 真流)与 `case_replay_persistence_test.cs`;
+- 其中一批(尤其 `case_open_writer_test` / `judgment_writer_test` / `case_opened_wiring_test` /
+  `e2e_full_loop_test`)**晚于 2026-10-06**(sprint-05/06/08,10-10 ~ 10-13)。
+  按补评口径「**评当下代码**」,它们**必须计入**。
+
+**根因(两方各半,如实登记)**:
+1. **调度方**:评审 prompt 只指向 story §Test Evidence 声明的那个文件,未要求扫描全部测试树;
+2. **代理**:在仅核一件的前提下作出「**零验证**」「**全仓零命中**」「**无处可依**」等
+   超出其取证范围的全域否定表述 —— 这是「评审不可追补」之外的**第二种评审失效模式**,
+   建议补入 `.claude/docs/review-workflow.md`(见 §七·四)。
+
+### 七·二 影响面
+
+| 原件 | 影响 |
+|---|---|
+| story-002 | **4 条被推翻**(AC-37-30 入流 / AC-37-05 判断半边 / AC-37-05 处置半边 / AC-37-23 不折叠);1 条保留并**加重**(`LastJudgmentOf` 实害链) |
+| story-003 | **1 条被推翻**(B4 副作用序列);4 条保留 |
+| story-001 | 无勘误(四条均为声明件自身断言形态) |
+| story-004 | 无勘误(全树 grep 确认 `PatternDetector` 测试面只一处、生产面零调用者) |
+
+### 七·三 净结论不变
+
+四件的 **Test Evidence 门结论不变(均不通过)**,四件**维持 `In Review`**。
+但 story-002/003 的**判定性质**由「AC 无证据」修正为「**声明证据与 AC 错配**」——
+两者的修复面完全不同:后者主要是**补引用 + 订正声明件断言形态**,不是**从零补测试**。
+
+### 七·四 建议(待用户裁定是否落盘)
+
+1. **`review-workflow.md` 补第二失效模式** —— 在「不可追补」之侧增:
+   「**评据不得越权**」:评审只能对其**实际核过的范围**作判定;
+   作全域否定(「零命中」「全仓无」)前须**给出全树搜索命令与结果**,
+   否则须降级为「在 X 范围内未发现」。
+2. **Story §Test Evidence 应允许多路径** —— 本 epic 的教训是:一个 AC 的载体常横跨
+   声明件 + 后续 sprint 的接线件;单路径声明是错配的结构性来源。
