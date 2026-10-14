@@ -1638,9 +1638,27 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 
 <!-- STATUS -->
 Epic: sprint-09 🚧 In Progress(M2 收口冲刺 · 2026-10-14 开)
-Feature: S1 第七轮全链人工 playtest / S2 PAGES_MAX 实测冻结 / S3 M2 Exit 复评翻 3 勾
-Task: S2 spike 先行为宜(唯一真硬阻塞)→ S1 用户真机连续走查 → S3 按证据翻勾
+Feature: S1 第七轮全链人工 playtest / S2 PAGES_MAX 实测冻结 / S3 M2 Exit 复评翻勾
+Task: S2 ✅ / S3 ✅(翻 2 勾 · :169 维持不勾)→ S1 用户真机连续走查(唯一未动)
 <!-- /STATUS -->
+
+## S3 M2 Exit 复评(2026-10-14 · ✅ 落定 · 翻 2 勾)
+
+- **复评原件**:`production/qa/evidence/m2-exit-recheck-sprint09-2026-10-14.md`
+  (两条独立子代理全仓核 + 本席抽验承重行)。
+- **判定**(与 sprint-09 §1.2 TD 预判不一致 —— 三条里只有两条是勾选滞后):
+  - `:111` 端到端链 → **✅ 翻 `[x]`** —— 真生产调用点 = `PrescriptionPageHost.cs:137`
+    (推翻旧读数「PrescribeFlow.Prescribe 全库零生产调用方」,那是 2026-10-11 旧快照,
+    早于 sprint-08 S2 接线)⇒ `DrugTreatmentApplied` 运行期可达。
+  - `:224` 灰盒登记 → **✅ 翻 `[x]`** —— 登记表 `:236-249` 与 `entity-inventory.md`
+    42 项 VS Critical 逐类对齐,无空白。
+  - `:169` 4 项形态件 → **◐ 维持 `[ ]`** —— ①②④ 施加点确已接;③「可跳过」的
+    **跳过入口零交互绑定**(`EmergencyCandidateList.cs` 无 `focusable`/`RegisterCallback`/`clicked`;
+    `SetVisible` 全仓零生产调用)⇒ 功能半未接,归 10 实现轮(story-023 边界裁定①)。
+- **顺带订正两处陈旧读数**(原文保留 + 加「已过时」标注):
+  `README:196-200`「③ 候选列表零生产实例化」· `:202`「落笔输入入口未接」—— 均已被 sprint-08 推翻。
+- **M2 Exit 剩余未闭 = 1 条**(`:169` 的 ③ 功能半);是否带残余收口 M2 = **用户裁定项**。
+- 提交 `e0cbede`(已推送)。
 
 ---
 
