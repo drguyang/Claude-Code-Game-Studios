@@ -137,6 +137,8 @@
     border-right-color: var(--skeuo-reading-rule);
     border-bottom-color: var(--skeuo-reading-rule);
     border-left-color: var(--skeuo-reading-rule);
+    /* 值区横排(2026-10-14):并列词条的水平间距(否则相邻边框贴边框)。 */
+    margin-right: var(--skeuo-shared-space-sm);
 }
 
 .channel-reading-negative {
@@ -152,6 +154,7 @@
     border-right-color: var(--skeuo-reading-rule);
     border-bottom-color: var(--skeuo-reading-rule);
     border-left-color: var(--skeuo-reading-rule);
+    margin-right: var(--skeuo-shared-space-sm);
 }
 
 /* ── 通道题签(行头)· sprint-08 S3(2026-10-12)──
@@ -168,4 +171,6 @@
     color: var(--skeuo-ink-fg);
     -unity-font-definition: resource("Assets/Gameplay.UI/Skeuomorphic/Fonts/NotoSansCJKsc-Bold SDF.asset");
     font-size: var(--skeuo-font-size-lexeme);
+    /* 值区横排(2026-10-14):题签与右侧首个词条之间的间距。 */
+    margin-right: var(--skeuo-shared-space-md);
 }

@@ -118,10 +118,10 @@ namespace DaYiJingCheng.Tests.Boot
             //     (2026-10-12 Q1 修复:原占位 queryLevel=0 ⇒ named 恒 false ⇒ 按 E 值区恒空;
             //      现组合根 = 1,本测断言用 skill=5(≥1,<10 ⇒ 20 条 tier_named=1 词可读)
             //      覆盖「熟练度更高」面);
-            //   · fallback 病种 RecoveryTime=2000(2026-10-12 人工复验期值)⇒ τ<2000 期间
-            //     position≡0(潜伏抑制)⇒ 推进 tick 越潜伏需 τ>2000;
-            //     ⚠️ 两个既有真词表测改用**直接求值器**(skill=5 × position 1.0)构造
-            //     「越过阈值」的数学面,不依赖 τ 推进 —— 组合根驱动的 τ 面由
+            //   · fallback 病种 2026-10-14 起带真 F1 曲线(潜伏 20 tick / τ=40 达峰 /
+            //     plateau 保持峰值)⇒ τ<20 期间 position≡0(潜伏抑制),τ≥40 后恒 = 1.0;
+            //     ⚠️ 本测仍走**直接求值器**(skill=5 × position 1.0)构造「越过阈值」的数学面,
+            //     不依赖 τ 推进 —— 组合根驱动的 τ 面由
             //     `test_q1_compositionRoot_positionCrossesFloor_withinPlayerWait` 钉;
             //   · 真门槛 floor(skill=5) ≈ 0.88 < 1.0 ⇒ readable ⇒ 收录。
             // 断言走**求值器**(OnExamine 的同调用面):真词表 + 真门槛 + 真体征
@@ -155,18 +155,19 @@ namespace DaYiJingCheng.Tests.Boot
             _bag.Presence.AddPresent(patient, new WorldPos(0, 0, 0));
             _bag.VitalsService.OnTickEdge(0);
 
-            // 越过潜伏期的「病程推进」代理:直接推进到 legacy 曲线峰值 τ=2R 太慢(R=2000),
-            // 故用**同形状**验证 —— 把词表/门槛/position 置到可读点后走组合根驱动:
-            // 该测的可证伪点 = queryLevel(组合根值)而非 τ。
-            long risePeak = 2L * 20;   // 语义面:R=20 时峰值 τ=40;此处只为「>潜伏」的形状
-            if (_bag.TickDriver != null && risePeak <= 120)
+            // ⚠️ 2026-10-14 A 案订正:fallback 病种已配真 F1 曲线(潜伏 20 tick / τ=40 达峰 /
+            // **plateau 保持峰值**),推进到 τ=60 即稳落在 plateau 上(position ≡ 1.0),
+            // 不再有「峰值一过就衰减回不可读」的问题 ⇒ τ 面不再是本测的可疑点,
+            // 可证伪点回到**技能面** = queryLevel(组合根装配值)。
+            long risePeak = 60;
+            if (_bag.TickDriver != null)
             {
                 for (long t = 1; t <= risePeak; t++) _bag.VitalsService.OnTickEdge(t);
             }
 
             float position = _bag.VitalsService.GetVitals(patient).Position;
-            // 若病程还没推进到可读点(被 R=2000 拖住),该测的**主旨**是技能面 ——
-            // 用求值器在同门槛下证明「skill=1 时 tier-1 词可读」,再断言组合根驱动同条件。
+            // 兜底:若 position 仍未达可读点(曲线形态被改回衰减型 ⇒ 本测应红而非静默放行),
+            // 先走求值器等价面证明技能面,再断言组合根驱动同条件。
             if (position <= 0f)
             {
                 var rowsProbe = _bag.ExamineDriver.LexiconRows();
@@ -191,21 +192,25 @@ namespace DaYiJingCheng.Tests.Boot
         [Test]
         public void test_q1_compositionRoot_positionCrossesFloor_withinPlayerWait()
         {
-            // 2026-10-12 第五轮 playtest Q1 第二半(人工复验期判据):
-            // fallback 病种 position 越组合根初始档门槛(floor(skill=1))后须**停留足够久**
-            // —— 不是「越快越好」,而是「可读窗口宽到人工按得中」。
-            // 原 RecoveryTime=100 ⇒ 可读窗口 ≈212 tick(≈10 s),偏窄;
-            // 现 = 2000 ⇒ 可读窗口 ≈1900 tick(≈95 s)(潜伏 20 s + 线性上升 100 s 达峰值,
-            // 之后才衰减)—— 复验从「秒级打地鼠」回到「分钟级」。
-            // 判据 = 窗口下界 ≥ 600 tick(30 s):任何把 R 调回 ≤ 100 的改动恰红。
+            // 2026-10-14 A 案订正(承 CLI 探针实证 + 用户裁定「按 A 做」):
+            // 旧判据「可读窗口 ≥ 600 tick(30 s)」是 legacy 衰减曲线的产物 —— 峰值过后必然衰减,
+            // 只能靠「把窗口拉宽」让人工按得中,而这与「立刻可按」天然互斥(R=20 ⇒ 窗口 ≈1 s;
+            // R=2000 ⇒ 要先等 ≈100 s,两个极端都不可用 —— 探针结论)。
+            // A 案换的是**形态**:plateau(self_limit=false ∧ plateau=true)⇒ 达峰后 position
+            // 恒 = A_peak = 1.0,**永不衰减** ⇒ 判据随之改为两条,直指新形态的可证伪点:
+            //   ① **早可读** —— firstReadable ≤ 60 tick(潜伏 20 + 上升 20,留 20 余量)。
+            //      任何把潜伏/达峰推回 2000 量级的改动恰红(这正是用户「按 E 等很久」的病根);
+            //   ② **永不掉出** —— 一旦可读,直到扫描末端 6000 tick 仍可读(lastReadable = 6000)。
+            //      任何把 plateau 改回 self_limit 衰减型的改动恰红(旧形态窗口有限的病根)。
             var rows = _bag.ExamineDriver.LexiconRows();
             var floor = _bag.ExamineDriver.FloorTable();
 
             PatientId patient = _bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 0);
             _bag.Presence.AddPresent(patient, new WorldPos(0, 0, 0));
 
+            const long ScanEnd = 6000;
             long firstReadable = -1, lastReadable = -1;
-            for (long t = 0; t <= 6000; t++)
+            for (long t = 0; t <= ScanEnd; t++)
             {
                 _bag.VitalsService.OnTickEdge(t);
                 float position = _bag.VitalsService.GetVitals(patient).Position;
@@ -218,10 +223,13 @@ namespace DaYiJingCheng.Tests.Boot
             }
 
             Assert.GreaterOrEqual(firstReadable, 0,
-                "6000 tick 内必有某 τ 使 tier-1 词可读 —— 人工复验可达性判据");
-            Assert.GreaterOrEqual(lastReadable - firstReadable, 600,
-                $"可读窗口须 ≥ 600 tick(30 s)(实际 {lastReadable - firstReadable} tick) —— " +
-                "窗口太窄 ⇒ 人工按键错过(Q1 人工面:按 E 无词 = 等太短或窗口秒级)");
+                $"{ScanEnd} tick 内必有某 τ 使 tier-1 词可读 —— 人工复验可达性判据");
+            Assert.LessOrEqual(firstReadable, 60,
+                $"首次可读须 ≤ 60 tick(3 s)(实际 {firstReadable} tick)—— " +
+                "Play 一打开就该能按 E;潜伏/达峰被推回 2000 量级 ⇒ 恰红(用户「等很久」的病根)");
+            Assert.AreEqual(ScanEnd, lastReadable,
+                $"可读后须**持续**可读到扫描末端 {ScanEnd} tick(实际末次可读 {lastReadable})—— " +
+                "plateau 保持峰值不衰减;改回 self_limit 衰减型 ⇒ 窗口有限 ⇒ 恰红");
         }
 
         [Test]
@@ -260,7 +268,8 @@ namespace DaYiJingCheng.Tests.Boot
         public void test_examine_belowFloor_emptySet_noMask()
         {
             PatientId patient = _bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 0);
-            _bag.VitalsService.OnTickEdge(0);   // 潜伏期(τ=0 < incubation)⇒ position = 0 < 0.5
+            _bag.VitalsService.OnTickEdge(0);   // 潜伏期(τ=0 < Curve.Incubation=20)⇒ position = 0 < 0.5
+                                                // ⚠️ 依赖潜伏 > 0:把 Incubation 改成 0 ⇒ 本测恰红(A 案保留 20)
 
             _driver.OnExamine(patient, tick: 1);
 

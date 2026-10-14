@@ -383,19 +383,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                 Contagion = 0,
                 Lethality = 0,
                 TreatmentDifficulty = 1,
-                // ⚠️ 2026-10-12 第五轮 playtest 人工复验期临时值:100 → 2000。
-                //    原 100 tick ≈ 60 s 潜伏(τ<incubation ⇒ position≡0),之后 position
-                //    线性上升、要到 τ≈198 tick(≈120 s)才越过 floor(skill=1)≈0.975
-                //    ⇒ 人工复验「等不起」。
-                //    ⚠️ 为何不是 20:legacy 曲线的 rise/decay 共用**同一个**
-                //    RecoveryTime(riseEnd = halfLife = R)⇒ R=20 时峰值恰在 τ=2R=40,
-                //    之后**每 20 tick 腰斩**(τ=60 → 0.5,τ=80 → 0.25…)⇒ 阈值窗口
-                //    只有 ≈20 tick(≈1 s)宽,人工按键一慢就错过 —— 把复验变成打地鼠。
-                //    R=2000 ⇒ 潜伏 20 s,线性上升 100 s 到峰值,其后才开始衰减
-                //    ⇒ 可读窗口 ≈1900 tick(≈95 s),复验从「秒级」回到「分钟级」。
-                //    **这是接线期可复验性数值,不是玩法数值** —— 真病种表(9 的
-                //    disease registry 烘焙)到位后整表替换,本行随之消失。
-                //    Fallback 语义不受影响:仍 1 病种 / Scale=1 / signs 空(数值归用户轮)。
+                // ⚠️ 2026-10-14 订正(承 CLI 探针 `e_probe_chain_test` 实证):
+                //    本字段**已不再决定 position 的可读时机** —— Curve != null ⇒ 求值走
+                //    F1 三分支,incubation 取 Curve.Incubation(见 ProgressionEvaluator:143);
+                //    本字段只剩 R1-08(> 0)校验面与 Curve == null 的 legacy 占位条目使用。
+                //    【为什么弃用「调 RecoveryTime」这条老路】legacy 曲线的 rise/decay 共用
+                //    同一个 R(ProgressionEvaluator:240/250)⇒ 调小 R 只是把峰值前移,同时把
+                //    衰减一起变快:R=20 时峰值 τ=40,此后每 20 tick 腰斩(τ=60 → 0.5 …),
+                //    越过 floor(skill=1)≈0.9752 的窗口只剩 ≈1 s;R=2000 则要先等 ≈100 s。
+                //    **两个极端都不可用** —— 形态问题是调 R 调不出来的。
+                //    保留 2000 只为 R1-08 与 legacy 面;真病种表到位后整表替换,本行随之消失。
                 RecoveryTime = 2000,
                 RelapseChance = 0,
                 ComorbidityFactor = 0,
@@ -407,9 +404,39 @@ namespace DaYiJingCheng.Gameplay.Boot
                 ClimateMod = 0,
                 TreatableBy = Array.Empty<TreatableByEntry>(),
                 Handle = "symptomatic_only",
-                Curve = null,            // 既有占位形态:曲线面校验跳过(登记为已知弱点)
+                // ⚠️ 2026-10-14 A 案(用户裁定「按 A 做」):占位 null → **真配一张 plateau 型
+                //    F1 曲线**(此前「曲线面校验跳过」的已知弱点就此闭合)。
+                //    【为什么是 plateau 而不是继续调 RecoveryTime】legacy 曲线的峰值必然衰减,
+                //    ⇒ 「立刻可读」与「可读窗口够宽」天然互斥(见上方 RecoveryTime 注释)。
+                //    plateau(self_limit=false ∧ plateau=true)在 ComputeBaseF1 的 τ ≥ τ_peak 分支
+                //    恒返回 A_peak —— **达峰后不衰减**,position 永远停在 1.0 ≥ floor(skill=1)
+                //    ≈0.9752 ⇒「Play 一打开、过了潜伏就能按 E 且永远按得出词」成为曲线固有属性,
+                //    不再靠人工卡时机。
+                //    【校验面逐条过门】R1-20 互斥(plateau 单真)· R1-21(incubation=20 ≥ 0 ∧
+                //    τ_peak=40 > 20 ∧ τ_rise=5 > 0)· R1-30(riseRatio = 20/5 = 4 ⇒ R_rise ≈ 0.982
+                //    ≫ 1 LSB)· R1-22(仅 !self_limit ∧ !plateau 触发;plateau 型不踩,故
+                //    Lethality=0 合法)· R1-24(A_peak=1 > 0)· R1-23(Scale=1 ≥ A_peak=1)·
+                //    R1-25(self_limit=false ⇒ τ_fall 忽略)· R1-27(BoundaryMode="monotone")·
+                //    R1-28(Sigma=null 不查)。
+                //    【数值性质】**接线期可复验性数值,不是玩法数值** —— 潜伏 20 tick(1 s @20 Hz)
+                //    + 上升 20 tick,τ=40(2 s)达峰;数值归用户轮,真病种表到位后整表替换。
+                Curve = new NaturalProgressCurve
+                {
+                    Incubation = 20,                    // 1 s 潜伏(保 τ=0 仍处潜伏的既有判据)
+                    APeak = Fix.One,                    // 峰值 1.0 ⇒ 越 floor(skill=1)≈0.9752
+                    // ⚠️ 禁 FixParse:它是**编辑期 / 烘焙期**类型(ADR-014 §二:玩家构建
+                    // 零 JSON 解析器、零 FixParse)⇒ 运行期源码出现它 = AC-21a-48 守卫恰红。
+                    // 故时间常数走 raw 域字面量:Q16.16 ⇒ N tick = N × Fix.OneRaw。
+                    TauRise = new Fix(5 * Fix.OneRaw),      // 上升常数 5 tick(陡)
+                    TauPeak = 40,                           // τ=40(2 s)达峰
+                    TauFall = new Fix(600 * Fix.OneRaw),    // plateau 型下忽略(R1-25 不查)
+                    Plateau = true,                     // ★ 达峰后保持峰值,不衰减
+                    SelfLimit = false,                  // 与 Plateau 互斥(R1-20)
+                    Sigma = null,                       // 不覆盖,走全局默认
+                    BoundaryMode = "monotone",
+                },
                 Relapse = null,          // 无复发(合法形态)
-                Scale = Fix.One,         // F2 position = Progress / SCALE 的分母;1 = 恒等
+                Scale = Fix.One,         // F2 position = Progress / SCALE 的分母;1 = 恒等 ⇒ position = 1.0
                 Signs = Array.Empty<SignEntry>(),
             };
             return new[] { entry };

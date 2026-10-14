@@ -127,7 +127,8 @@ namespace DaYiJingCheng.Tests.Boot
 
             // Act:spawn 一个真病人(diseaseId=1 = fallback 注册表内)+ 查体
             PatientId patient = bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 0);
-            bag.VitalsService.OnTickEdge(0);
+            bag.VitalsService.OnTickEdge(0);   // τ=0 < Curve.Incubation=20(潜伏)⇒ position=0;
+                                               // 本测主旨是「未查体 ⇒ 空行」,与 τ 面无关
 
             // 未查体 ⇒ 空行(ActiveSignCount 0 / RevealedRows 空 —— 禁假数据)
             bag.CasebookSource.ChangePatient(patient);

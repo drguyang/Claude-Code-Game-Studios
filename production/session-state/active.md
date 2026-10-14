@@ -2646,3 +2646,123 @@ CSS 级联铁律 —— **元素上的直接声明恒压继承值**(与特异性
 **遗留**:⚠️ 其余 6 屏(非脉案)的字号类(若挂 `.ink`=15px 等)仍低于采样点 —— 但**运行期零挂载**
 ⇒ 当前无实害;未来若运行期给文本挂 `.ink` 等类,须同批抬其字号(登记为观察项)。
 **下一步**:用户重开编辑器目视复验全部文本(尤其值区 + 止血候选)。
+
+## B-6-4 字体糊 —— ✅ 结案(2026-10-13 · 用户真机目视确认)
+
+**用户确认:「确认字体没问题了」** —— 五轮根治全部落地并经真机目视验证通过。
+
+**完整根因链(四层,逐层剥出)**:
+1. **SDF 资产缺字形 / 非 Static** ⇒ MissingAssetReference(7773886)
+2. **字体引用语法**:USS `url("guid:…")` 对字体恒不解析 ⇒ 须 `resource("Assets/…")`(0c3271b)
+3. **继承被直接规则压过**:裸 Label 零类 ⇒ 落主题直接字体规则;`.unity-text-element`
+   **直接匹配**才有效(2d97bbc)
+4. **字号过小(SDF 缩采样)**:采样点 32px,裸 Label 落主题默认 ≈14px ⇒ 缩采样不足 = 糊;
+   定稿 28px(dc4f963)
+
+**已推送**:`706a10d..389589e`(6 提交,含 image-vision 技能)
+**回归门**:EditMode 3270/0 · PlayMode 51/51 · 覆盖门 13/13 SDF · fontSize [28,28] · 挂载 9/9
+
+**教训(已记入测试文件头注)**:batch 探针在**继承类**判据上不可信(nographics 不加载
+`unity-theme://default` ⇒ 继承侥幸生效 ⇒ 假绿);须用**直接匹配**类判据,或真机目视。
+
+---
+
+## B-6-1 输入路径修复 ✅(2026-10-13 · 代码完成,待真机人工复验)
+
+**病因 = 四条正交缺陷叠加**(CLI 勘察实证,非单一根因):
+| # | 缺陷 | 证据 |
+|---|---|---|
+| ① | 启动序**从未装配 `EventSystem` + `InputSystemUIInputModule`**(ADR-013 §F1/F4 P0 义务) | `Boot.unity` 零 EventSystem;UI Toolkit 退回引擎兜底 `DefaultEventSystem` |
+| ② | **零初始选中** | `InputSystemUIInputModule.ProcessNavigation` move(:858)/submit(:876)双门都 gate `currentSelectedGameObject != null` |
+| ③ | **6 处回调全是 `NavigationSubmitEvent`,零 `ClickEvent`**,元素是裸 `VisualElement`(非 Button) | 鼠标点击不触发任何业务 ——「点不动」真正原因 |
+| ④ | `UI/{Point,Click,ScrollWheel,MiddleClick,RightClick}` type = Value/Button,verifier 要求 PassThrough | 指针路径「引擎自己都在警告」 |
+
+**用户四裁定**:① 仅修 B-6-1(B-6-2 焦点可见性延后);② EventSystem **运行期创建**;③ **本轮加鼠标点击**;④ Submit 键**保持 Enter**(Space 绑 Player/Jump,用户按错键)。
+
+**修复落点**:
+- `BootRoot.cs`:新增 `EnsureEventSystem()`(FindOrCreate + reparent 到 boot.transform 防 World 卸载波及 + `actionsAsset = InputSystem.actions` **顺序敏感**:AddComponent 先 OnEnable→AssignDefaultActions 填 8 引用,setter 才能按同名重指向)+ `AssertUiActionsWired()` fail-loud(8 引用任一 null 抛)+ `BootstrapEventSystemSelection()`(转 **`IRuntimePanel`** public 接口取 `selectableGameObject` —— `BaseRuntimePanel` 是 internal 会 CS0122;Update 每帧幂等兜底桥建立时序)。插入启动序 6.7 步(AssertSingleAudioListener 之前)。
+- `CasebookScreen.cs`:新增 `BindSubmitAndClick(el, submitAction)` —— 同一 handler 并列挂 `NavigationSubmitEvent` + `ClickEvent`(P-04 双导航等价;**不引入 `Clickable`** —— 它不处理 NavigationSubmitEvent 会丢键盘路径);6 处转换:病名栏/折边/页缘前后/戥子档行/病名册条目。**闭包陷阱已修**:戥子档行 `for` 循环变量直接捕获 ⇒ 全行共享 loop 变量,循环后 = detentCount+1 ⇒ 每行提交越界档序数(e2e 测实测「档序数 6 越出 [1,5]」红)⇒ 拷贝 `rowOrdinal` 局部变量再闭包。
+- `InputSystem_Actions.inputactions`:5 个指针动作 type → PassThrough;**不影响 Player map**。
+
+**新增 wiring 测**(`ui_input_module_wiring_test.cs`,三门):
+- **A 结构门**(batch 主判据):真启动序后恰 1 EventSystem + 挂官方桥无 StandaloneInputModule + actionsAsset 同一 + 8 引用非 null。⚠️ 夹具**复用** `camera_follow_wiring_test` 泄漏的预摆 Main Camera(全量 run 里它是同 run 后续 BootRoot 测试的 listener 门依赖;再造一台 = listener=2 抛)。
+- **B 选中门**:生产方法 bootstrap 后 `currentSelectedGameObject == panel.selectableGameObject`。
+- **C 鼠标语义门**:直投 `ClickEvent` 到病名栏 ⇒ `IsLexiconBookOpen`。⚠️ **必须 `ev.target = bar`** —— 无参 `GetPooled()` 的 elementTarget 为 null,派发回退面板根(-nographics 下 `GetTopElementUnderPointer` 返 null),气泡方向「目标→祖先」到不了后代 bar;引擎 `ClickDetector.SendClickEvent` 亦先 `set_elementTarget` 再发(IL 实证)。指针端到端(-nographics 依赖 Screen.height)不可行 ⇒ 语义直投,真机命中归人工腿。
+
+**回归门(全绿)**:
+- wiring 测 3/3(`Logs/b61_wiring.xml`)
+- **PlayMode 全量 167/167**(`Logs/b61_playmode2.xml` —— 含 e2e_full_loop / page_turn 闭包修复回归)
+- EditMode **3270 passed / 0 failed** / 46 skip / 1 inc(`Logs/b61_editmode2.xml`,与基线 em-final 一致)
+
+**⚠️ 待真机人工复验(决定性,归用户)**:编辑器 Play ⇒ 走近按 E ⇒ 值区出词 ⇒ ① 鼠标点病名栏 ⇒ 病名册摊开;② 方向键移焦点 + Enter ⇒ 同样摊开。**Space 不是 Submit 键**。真机绿之前 sprint-08 不得 Complete(承 round6:124-126)。
+
+**不在本批**:B-6-2 焊点可见性(`.focus-visible` 全工程零施加点,需独立接线 + 挂起裁项「加载序未钉死」)· `FocusNavigationBridge` 死代码归 P1a · B-6-3 可读性(数值归用户)。
+
+---
+
+## 值区横排修复(2026-10-14 · 布局乙案 · 代码完成,待真机复验)
+
+**用户真机报告**:按 E 值区出词后,前案/后案被「挤在」问诊行与止血(急救候选)之间。
+
+**探针实测根因**(`unity/Logs/layout_probe.log`,临时探针用毕删):通道行默认**竖排**,出词后每词 +59px ⇒ 六行案面 +352px(571→923)⇒ 总自然高 1245 > 面板 1234 ⇒ **UI Toolkit flex 默认 `flexShrink=1`** 把尾部功能行压扁:前案 95.1→64.3 / 后案→66.9 / 急救候选每项 59.1→43.7。
+
+**修法(用户裁定「按乙,不够再加冻结收缩」—— 实测乙单独即够,未动收缩)**:
+- `CasebookScreen.AddChannel`:行改 `flexDirection=Row` + `flexWrap=Wrap` + `alignItems=Center`(题签居左、词条向右并列;判据权威 = diagnosis-system Edge Cases「全部并列显示」+ UI-8.1 ASCII「面色 │ ____」);
+- `SkeuoPaper.uss`:`.channel-reading*` +`margin-right: var(--skeuo-shared-space-sm)`(并列间距)· `.channel-label` +`margin-right: var(--skeuo-shared-space-md)`(题签与首词条间距)。
+
+**修后探针实数**(`Logs/probe2.log`):通道行 95.1→**100.3**(横排,+5.2;竖排时 +59.2)· 前案/后案 **95.1 恒定不缩水** · 急救候选 177.4 恒定 · 总高 ≈1028 < 1234 零溢出。
+
+**新回归门** `casebook_reading_inline_test`(PlayMode,1 测):出词后通道行高 < 空行行高×1.25(竖排回退即红)+ 前案行高 > 空行态×90%(被压即红)。**变异实测**:改回 `FlexDirection.Column` ⇒ 恰红 1;python 还原 diff IDENTICAL。
+
+**回归门(全绿)**:新测 1/1 · **PlayMode 全量 168/168**(基线 167+1 精确对账)· EditMode **3270 passed / 0 failed** / 46 skip / 1 inc(与 b61 基线一致)。日志:`Logs/inline_test.xml` · `Logs/inline_playmode_full.xml` · `Logs/inline_editmode_full.xml`。
+
+**⚠️ 待真机人工复验**:按 E 后前案/后案应保持正常两行(不被挤);多词条通道题签与词条同行并列。真机绿前不收口。
+
+**未提交**(承 B-6-1 段):BootRoot.cs · CasebookScreen.cs(含本轮横排)· inputactions · wiring 测 · 本轮新增 `casebook_reading_inline_test.cs`(+meta)· SkeuoPaper.uss · **本轮 R=20 裁定**:CompositionRoot.cs · e2e_full_loop_test.cs · examine_driver_test.cs —— 待用户指示后 commit。
+
+## 「点开 Play 即可按 E」(2026-10-14 · R=20 已回退 → **A 案 plateau 曲线** · 用户裁定)
+
+**用户报告**:真机要等 ~100 s 才能按 E 看到值区出词;随后用户指出「R 2000→20 **没有实现**,按 E 很久没有任何动静」。
+
+**① 回退(已执行)**:按用户裁定「只回退 R=20 三处」—— `CompositionRoot.cs` / `examine_driver_test.cs` / `e2e_full_loop_test.cs` 恢复 HEAD(B-6-1 输入路径 / 值区横排 / 新测等未提交改动**保留**)。
+
+**② CLI 探针取证(已跑,用毕已删)**:`e_probe_chain_test.cs` 五段链路探针,日志 `Logs/e_probe_run7.log`。
+- **判决:链路全通** —— 词表 34 行 / 门槛 / 体征 / 查体驱动 / 分册快照无一环断。
+- **根因**:fallback 条目 `Curve = null` ⇒ 走 legacy 曲线,其 rise/decay **共用同一个** `RecoveryTime`
+  (`ProgressionEvaluator:240/250`)⇒ `position` 直到 **τ≈2001(≈100 s @20 Hz)** 才越 floor 0.9752197;
+  越过后查体**立即**收 **19 条词**(`SignCount=19` / `RevealedRows=19`)。
+- **不是「路径断」,是「等不起」**;且 R=20 同样不可用(峰值 τ=40,此后每 20 tick 腰斩 ⇒
+  阈值窗口 ≈1 s),**两个极端都不可用 = 形态问题,调 R 调不出来**。
+
+**③ A 案(用户裁定「按A做」· 已落)**:换曲线形态,治本 —— `CreateFallbackRegistry` 真配一张
+**plateau 型 F1 三分支**(`self_limit=false ∧ plateau=true` ⇒ `ComputeBaseF1` 在 τ≥τ_peak 恒返回
+`A_peak`,**达峰后不衰减**),使「立刻可读 ∧ 窗口无限」成为曲线固有属性。
+- 数值:`Incubation=20`(1 s)· `TauRise=5` · `TauPeak=40`(2 s 达峰)· `APeak=1` · `Scale=1`
+  ⇒ plateau 处 `position ≡ 1.0` ≥ `floor(skill=1)=0.9752197`。
+- ⚠️ **禁 `FixParse`**(它是编辑期/烘焙期类型,ADR-014 ⇒ 运行期出现 = `AC-21a-48` 守卫恰红,
+  **首轮已踩**,改走 raw 域 `new Fix(5 * Fix.OneRaw)` 后转绿)。
+- `Lethality=0` **不踩 R1-22**(该门只在 `!self_limit ∧ !plateau` 触发)⇒ plateau 型无需 lethal。
+- 校验逐条过门:R1-20 互斥 · R1-21(20≥0 ∧ 40>20 ∧ 5>0)· R1-30(`riseRatio=20/5=4` ⇒
+  `R_rise≈0.982` ≫ 1 LSB)· R1-23(Scale=1 ≥ A_peak=1)· R1-24 · R1-27(`"monotone"`)· R1-28(null 不查)。
+- `RecoveryTime = 2000` **保留**(仅剩 R1-08 校验面 + Curve==null 的 legacy 占位条目用),
+  旧长注释整块改写为「为何弃用调 R 这条老路」。
+
+**同步改判的测试**:
+- `examine_driver_test.positionCrossesFloor`:旧「可读窗口 ≥ 600 tick」是衰减型产物 ⇒ 改为
+  **① 早可读 `firstReadable ≤ 60 tick`**(潜伏/达峰被推回 2000 量级 ⇒ 恰红 = 用户「等很久」的病根)
+  **② 永不掉出 `lastReadable == 6000`**(改回 self_limit 衰减型 ⇒ 窗口有限 ⇒ 恰红);
+- 同测 `examine_yieldsWords`:`risePeak` 改 60(稳落 plateau),注释订正;
+- `e2e_full_loop_test.AdvancePastIncubation`:2500 → **60 tick**(潜伏 20 + 上升 20 + plateau 余量);
+- `test_examine_belowFloor_emptySet_noMask` / `composition_root_test` 的 τ=0 潜伏断言:补
+  「依赖 `Incubation=20 > 0`」理据(改 0 则恰红),判据不变。
+
+**回归门(全绿)**:`ExamineDriverTest` 过滤 **11/11** · 守卫门(`DataPipelineBakeTest` 含 AC-21a-48)
++ 两 Boot 测 **70/70** · EditMode **3270 passed / 0 failed** / 46 skip / 1 inc(与 b61 基线逐项一致)
+· PlayMode **168/168**。
+日志:`Logs/plateau_examinedriver.xml` · `Logs/plateau_guard.xml` · `Logs/plateau_editmode_full2.xml`
+· `Logs/plateau_playmode_full2.xml`。
+⚠️ 首轮 PlayMode 6 条红 = **临时探针污染场景**(其 SetUp 持裸 `BootRoot`,`AudioListener` 计数漂移;
+全量报 2、隔离报 0)**非曲线之过** —— 探针已删(文件头「用毕删」),复跑 168/168。
+
+**⚠️ 待真机人工复验**:Play 进入后(**过 1 s 潜伏即可**)按 E ⇒ 值区出词且**一直有词**;
+同时复验值区横排(前案/后案不被挤)。真机绿前不收口。

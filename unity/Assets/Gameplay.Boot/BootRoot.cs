@@ -29,9 +29,13 @@ using DaYiJingCheng.Gameplay.Presentation.Player;
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.EventSystems;               // EventSystem(B-6-1:官方 UI 输入桥宿主)
+using UnityEngine.InputSystem;                 // InputSystem.actions(project-wide 动作资产)
+using UnityEngine.InputSystem.UI;              // InputSystemUIInputModule(ADR-013 §F1 官方桥)
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;                 // VisualElement(面板 root 取用)
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
@@ -48,6 +52,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         private CameraRig _cameraRig;
         private SkeuoRuntimeDriver _uiDriver;
         private InteractionInputDriver _interactionDriver;
+
+        /// <summary>官方 UI 输入桥宿主(B-6-1)。<see cref="EnsureEventSystem"/> 建或复用;
+        /// 面板 <c>selectableGameObject</c> 就绪后由 <see cref="BootstrapEventSystemSelection"/> 选中。</summary>
+        private EventSystem _eventSystem;
 
         /// <summary>World 场景的加载句柄(Phase 2 拆序第 4 步 <c>UnloadSceneAsync</c> 所需;
         /// 本版默认 releaseMode = 场景卸载时自动释放,常驻不等于泄漏)。</summary>
@@ -228,6 +236,14 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_services.EmergencyCandidates != null)
                 _services.EmergencyCandidates.MountTo(_uiDriver.GetUiRoot());
 
+            // ── 6.7. 官方 UI 输入桥装配(B-6-1 · 2026-10-13)──
+            // ADR-013 §F1/F4 + ADR-011 §三:UI Toolkit 平面栈的指针/导航事件经**官方桥**
+            // (`EventSystem` + `InputSystemUIInputModule`)—— 此前启动序从未装配它,导致
+            // 脉案交互面(病名栏 Submit / 页缘翻页 / 戥子选档)**鼠标与键盘双路径全断**
+            // (第六轮 playtest B-6-1)。缺 EventSystem 时 UI Toolkit 会退回引擎内置
+            // `DefaultEventSystem`,但 ADR-013 明文要官方桥 ⇒ 本步把它立起来。
+            _eventSystem = EnsureEventSystem();
+
             // fail-loud(AudioListener 单挂点 · AC-20-10):>1 即抛。
             // 把「运行期每帧刷 3 万条日志 →  Editor 卡死」的失效模式提前成具名异常。
             AssertSingleAudioListener();
@@ -254,6 +270,114 @@ namespace DaYiJingCheng.Gameplay.Boot
                 "生产场景应保留预摆;测试环境可忽略本警告。");
             return uiObj.AddComponent<SkeuoRuntimeDriver>();
         }
+
+        /// <summary>
+        /// 取 / 建官方 UI 输入桥(<c>EventSystem</c> + <c>InputSystemUIInputModule</c>)—— B-6-1。
+        /// <para>预摆优先(测试 / 未来场景),缺则运行期自建(承 <see cref="FindOrCreateSkeuoUi"/> 先例)。
+        /// 只挂官方桥,**禁 <c>StandaloneInputModule</c>**(ADR-013 §F4:双输入模块 = 真冲突)。</para>
+        /// <para><b>fail-loud</b>(承 <see cref="AssertSingleAudioListener"/> 口径):动作资产缺失或
+        /// 引用不全即抛 —— **不静默降级为「零 UI 输入」**(那正是 B-6-1 的失效形态)。</para>
+        /// </summary>
+        private EventSystem EnsureEventSystem()
+        {
+            // 含 inactive:预摆件可能被禁用,仍是「唯一合法挂载点」(承 AudioListener 断言的 IncludeInactive 纪律)。
+            var existing = UnityEngine.Object.FindObjectOfType<EventSystem>(includeInactive: true);
+            if (existing != null)
+            {
+                var presetModule = existing.GetComponent<InputSystemUIInputModule>();
+                if (presetModule == null)
+                    throw new InvalidOperationException(
+                        "[BootRoot][B-6-1] 场景内 EventSystem 未挂 InputSystemUIInputModule —— " +
+                        "UI Toolkit 面板将收不到任何指针/导航事件(鼠标键盘全断)。" +
+                        "ADR-013 §F4 禁 StandaloneInputModule 与官方桥并存/替代。");
+                AssertUiActionsWired(presetModule, "预摆");
+                return existing;
+            }
+
+            var go = new GameObject("EventSystem");
+            // ⚠️ 必须归 BootRoot:new GameObject 落**当前活动场景**(启动序第 3 步 additive
+            //    载入 World 后可能成为活动场景)⇒ 不归 Boot 则 Phase 2 卸载 World 会带走它;
+            //    reparent 后随 BootRoot 一同销毁 ⇒ 免测试间泄漏(承 Player 的 MoveGameObjectToScene
+            //    同纪律,此处用 SetParent 更简 —— 跨场景 reparent 自动随父进 Boot 场景)。
+            go.transform.SetParent(transform, worldPositionStays: false);
+
+            var es = go.AddComponent<EventSystem>();
+            var module = go.AddComponent<InputSystemUIInputModule>();
+
+            var actions = InputSystem.actions;
+            if (actions == null)
+                throw new InvalidOperationException(
+                    "[BootRoot][B-6-1] InputSystem.actions 为 null —— 项目级动作资产未注册。" +
+                    "检查 ProjectSettings/EditorBuildSettings.asset 的 com.unity.input.settings.actions" +
+                    "(期望 guid 052faaac586de48259a63d0c4782560b)。UI 输入将不可用。");
+
+            // ⚠️ **顺序敏感**:AddComponent 在 active GO 上会**立即**触发 OnEnable →
+            //    HasNoActions()==true → AssignDefaultActions() 填好 8 个引用;此后本赋值才能经
+            //    UpdateReferenceForNewAsset 按**同名**重指向到项目资产(它只重指向已有引用、
+            //    **不填充空引用**:oldAction==null ⇒ return null)⇒ 若先赋值后 AddComponent(或
+            //    inactive 上建),8 引用全 null = **静默零输入**。故下面必须断言,不得只断 actionsAsset。
+            module.actionsAsset = actions;
+            AssertUiActionsWired(module, "自建");
+            return es;
+        }
+
+        /// <summary>UI 动作引用完整性(fail-loud):8 个引用缺任一 ⇒ UI 输入静默失效。</summary>
+        private static void AssertUiActionsWired(InputSystemUIInputModule module, string origin)
+        {
+            var missing = new System.Collections.Generic.List<string>();
+            if (module.point?.action == null)       missing.Add("Point");
+            if (module.move?.action == null)        missing.Add("Navigate");
+            if (module.submit?.action == null)      missing.Add("Submit");
+            if (module.cancel?.action == null)      missing.Add("Cancel");
+            if (module.leftClick?.action == null)   missing.Add("Click");
+            if (module.middleClick?.action == null) missing.Add("MiddleClick");
+            if (module.rightClick?.action == null)  missing.Add("RightClick");
+            if (module.scrollWheel?.action == null) missing.Add("ScrollWheel");
+
+            if (missing.Count > 0)
+                throw new InvalidOperationException(
+                    $"[BootRoot][B-6-1] {origin} InputSystemUIInputModule 动作引用不齐,缺:{string.Join(", ", missing)}。" +
+                    "InputSystemUIInputModule.actionsAsset setter 只**重指向已有引用**、**不填充空引用**" +
+                    "(UpdateReferenceForNewAsset: oldAction==null ⇒ return null)⇒ 引用为空 = 该动作永不派发。" +
+                    "正确形态:自建时确保 AddComponent 先于 actionsAsset 赋值(OnEnable 的 AssignDefaultActions 打底);" +
+                    "或预摆时在 Inspector 填好 8 引用(照 SpikeAssump6.unity)。");
+        }
+
+        /// <summary>
+        /// 面板 <c>selectableGameObject</c> 就绪后把它选为当前 UI 对象(B-6-1 · 守「零初始选中」死锁)。
+        /// <para><b>为何必需</b>:<c>InputSystemUIInputModule.ProcessNavigation</c> 的 move 与 submit
+        /// **都 gate 于 <c>currentSelectedGameObject != null</c>**,而它只在元素**已获焦点**时由
+        /// <c>PanelEventHandler.OnElementFocus</c> 设 ⇒ 无初始选中 = 键盘导航/提交**永不派发**。
+        /// 面板载体 GO 由 interop bridge **运行期**新建(Boot 时不存在)⇒ <c>firstSelectedGameObject</c>
+        /// 无法预摆,只能在面板出现后 bootstrap 选中。</para>
+        /// <para>⚠️ **不违反 AC-42-C10**(42 不自设初始焦点):本步选的是**面板载体**,
+        /// <c>PanelEventHandler.OnSelect</c> 只做面板级 <c>panel.Focus()</c>(<c>focusedElement</c> 仍为 null),
+        /// 首次 <c>NavigationMoveEvent</c> 才落焦到具体控件。</para>
+        /// <para><b>鼠标路径不依赖本步</b>:指针事件经 <c>PanelRaycaster</c> 直接命中,不经此门
+        /// ⇒ 即便本步未及时执行,鼠标点击仍可用。</para>
+        /// </summary>
+        private void BootstrapEventSystemSelection()
+        {
+            if (_eventSystem == null || _uiDriver == null)
+                return;
+
+            var root = _uiDriver.GetUiRoot();
+            // ⚠️ 必须转 **`IRuntimePanel`**(public):`VisualElement.panel` 声明为 `IPanel`,
+            //    而 `selectableGameObject` 只在 `IRuntimePanel`(public 接口,运行期面板实现它)
+            //    与 `BaseRuntimePanel`(**internal**,够不着)上 —— 用 `BaseRuntimePanel`
+            //    会 CS0122(inaccessible due to its protection level,2026-10-13 实测编译红)。
+            //    面板未 attach(自建空壳 / 未渲染)⇒ 转型失败 ⇒ 跳过。
+            if (!(root?.panel is IRuntimePanel panel))
+                return;
+
+            var selectable = panel.selectableGameObject;
+            if (selectable == null)
+                return;   // bridge 尚未建面板 GO(下一帧 Update 才建)⇒ 下次调用再试
+
+            if (_eventSystem.currentSelectedGameObject != selectable)
+                _eventSystem.SetSelectedGameObject(selectable);
+        }
+
 
         /// <summary>
         /// AudioListener 单挂点断言(ADR-020 §七 / AC-20-10)—— **fail-loud**。
@@ -369,6 +493,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _uiDriver.OnTickEdge();
             }
 
+            // UI 输入桥初始选中(B-6-1):面板 selectableGameObject 由 interop bridge 在
+            // 面板 attach 后的某帧新建 ⇒ 每帧幂等尝试,直到选中成功(成功即 no-op)。
+            // ⚠️ 必须在面板就绪后 —— 故放 Update 而非启动序(启动序时面板 GO 可能未建)。
+            BootstrapEventSystemSelection();
+
             // 相机跟随(sprint-05 T1.5):每帧把相机位置设到玩家位置 + 偏移
             // ADR-020:相机 = 自建机位,不引入 Cinemachine
             if (_cameraRig != null && _player != null)
@@ -410,6 +539,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             _services = null;
             _tickDriver = null;
             _uiDriver = null;
+            // EventSystem 随 BootRoot 一同销毁(reparent 到 transform ⇒ 无需显式 Destroy);
+            // 仅清引用。承 FindOrCreateSkeuoUi 同纪律。
+            _eventSystem = null;
         }
     }
 }

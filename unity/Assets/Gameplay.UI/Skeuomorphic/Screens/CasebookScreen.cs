@@ -122,8 +122,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             // Submit 属 42 焦点导航职责,不受 §二 50ms 直读约束)。
             // ⚠️ 经 Q<> 取回行(不改 AddChannel 签名 —— texture_binding_gate_test 以
             //    `private void AddChannel(...)` 为**结构锚点**,签名一改门即红,禁削弱该门)。
-            rightColumn.Q<VisualElement>("channel-disease-name")
-                .RegisterCallback<NavigationSubmitEvent>(OnDiseaseNameSubmit);
+            // 病名栏双输入路径(键盘 Submit + 鼠标 Click —— B-6-1/P-04 双导航等价)。
+            BindSubmitAndClick(rightColumn.Q<VisualElement>("channel-disease-name"),
+                SubmitDiseaseNameBar);
             var confidence = _library.Create(SkeuoElement.Paper);
             confidence.name = "confidence-mark";
             confidence.Add(new Label("?") { name = "confidence-question" });
@@ -137,7 +138,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             foldEdge.name = "fold-edge";
             foldEdge.focusable = true;
             foldEdge.Add(new Label("折"));
-            foldEdge.RegisterCallback<NavigationSubmitEvent>(OnFoldSubmit);
+            BindSubmitAndClick(foldEdge, SubmitFold);   // 键盘 Submit + 鼠标 Click(P-04 双导航等价)
             rightColumn.Add(foldEdge);
 
             // ── 左右并排(sprint-05 T2.5 钉 · 2026-10-11)──
@@ -175,14 +176,14 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             pagePrev.name = "page-edge-prev";
             pagePrev.focusable = true;
             pagePrev.Add(new Label("前案"));
-            pagePrev.RegisterCallback<NavigationSubmitEvent>(OnPagePrevSubmit);
+            BindSubmitAndClick(pagePrev, SubmitPagePrev);   // 键盘 Submit + 鼠标 Click(P-04)
             _root.Add(pagePrev);
 
             var pageNext = _library.Create(SkeuoElement.Paper);
             pageNext.name = "page-edge-next";
             pageNext.focusable = true;
             pageNext.Add(new Label("后案"));
-            pageNext.RegisterCallback<NavigationSubmitEvent>(OnPageNextSubmit);
+            BindSubmitAndClick(pageNext, SubmitPageNext);   // 键盘 Submit + 鼠标 Click(P-04)
             _root.Add(pageNext);
 
             // ── 方笺续页(本书的下一页;casebook-39 §5.2 —— 同模态内的一页,非新 ModalId)──
@@ -234,6 +235,17 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             row.name = rowName;
             row.focusable = true;
             row.AddToClassList("ruled"); // 线格(M2 形态件① · story-021):字段由线格划出(art-bible §7.7)
+            // ── 值区横排(2026-10-14 用户裁定「按乙」)──
+            // 病因(布局探针实测,`unity/Logs/layout_probe.log`):行原为默认竖排,
+            // 查体后值区词条**竖着堆** ⇒ 每词 +59px,六行案面 +352px ⇒ 总自然高超出
+            // 面板 ⇒ flex 默认 flexShrink=1 把尾部功能行(前案/后案/急救候选)压扁。
+            // 修:行改**横排折行**(题签居左,词条向右并列,超宽换行)——
+            //   判据权威 = diagnosis-system Edge Cases「同一通道多条体征**全部并列显示**」
+            //   + UI-8.1 ASCII「面色 │ ____」题签|值区同行;「具体视觉由 39/42 定」。
+            //   多词条同高并列 ⇒ 行高不再随词条数线性膨胀。
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.flexWrap = Wrap.Wrap;
+            row.style.alignItems = Align.Center;
             var header = new Label(labelText);
             header.AddToClassList("channel-label");   // 题签档(S3:24px 无障碍下限)
             row.Add(header);
@@ -258,21 +270,28 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <summary>注入写通道(42 UI 事件 → 装配层写者;未注入 ⇒ Submit 留空)。</summary>
         public void BindCommandSink(ICasebookCommandSink sink) => _commandSink = sink;
 
+        /// <summary>
+        /// 给可聚焦控件绑**双输入路径**(键盘 <c>NavigationSubmitEvent</c> + 鼠标 <c>ClickEvent</c>)。
+        /// <para><b>病因(2026-10-13 B-6-1)</b>:本屏全部 6 处回调原先**只**注册
+        /// <c>NavigationSubmitEvent</c>(键盘/手柄 Submit),**零</c> <c>ClickEvent</c> ——
+        /// 而元素是裸 <c>VisualElement</c>(非 <c>Button</c>,无内建 <c>Clickable</c>)
+        /// ⇒ 鼠标点击**不触发任何业务**(playtest 第六轮「鼠标点不动」的真正原因,
+        /// 与 EventSystem 装配无关)。</para>
+        /// <para><b>修法(P-04 双导航等价)</b>:同一 handler 并列挂两条路径 ——
+        /// 指针可达与焦点可达等价(<c>interaction-patterns.md</c> P-04)。**不引入
+        /// <c>Clickable</c>**:它只处理 Pointer 序列、**不**处理 <c>NavigationSubmitEvent</c>
+        /// ⇒ 会丢失键盘路径。两条 <c>RegisterCallback</c> 是正确形态。</para>
+        /// <para>⚠️ 语义层不变:两条路径都转发到**同一**语义方法(判据面仍可直调,
+        /// 承 sprint-08 §4「判据与输入路径解耦」)。</para>
+        /// </summary>
+        private static void BindSubmitAndClick(VisualElement el, Action submitAction)
+        {
+            el.RegisterCallback<NavigationSubmitEvent>(_ => submitAction());
+            el.RegisterCallback<ClickEvent>(_ => submitAction());
+        }
+
         /// <summary>病名册是否摊开(纯呈现态观测面)。</summary>
         public bool IsLexiconBookOpen => _bookOpen;
-
-        /// <summary>病名栏 Submit 处理(焦点桥入口 → 语义方法)。</summary>
-        /// <remarks>⚠️ 生产路径 = 官方桥 <c>NavigationSubmitEvent</c>(ADR-013 §五);
-        /// 判据面 = <see cref="SubmitDiseaseNameBar"/>(语义层直调 —— sprint-08 §4 已裁
-        /// 「判据与输入路径解耦:语义层直调,输入路径另立 wiring 测」)。</remarks>
-        private void OnDiseaseNameSubmit(NavigationSubmitEvent _) => SubmitDiseaseNameBar();
-
-        /// <summary>条目行 Submit 处理(焦点桥入口 → 语义方法)。</summary>
-        private void OnLexiconEntrySubmit(NavigationSubmitEvent evt)
-        {
-            if (evt.target is VisualElement row && row.userData is int lexiconId)
-                PointLexicon(lexiconId);
-        }
 
         /// <summary>
         /// 病名栏落笔(**语义动作面** —— 未摊开 ⇒ 摊开病名册;已摊开 ⇒ 循环落笔)。
@@ -308,22 +327,6 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
         /// <summary>右页是否折回(纯呈现态观测面)。</summary>
         public bool IsFolded => _folded;
-
-        /// <summary>页缘「前案」Submit 处理(焦点桥入口 → 语义方法)。</summary>
-        private void OnPagePrevSubmit(NavigationSubmitEvent _) => SubmitPagePrev();
-
-        /// <summary>页缘「后案」Submit 处理(焦点桥入口 → 语义方法)。</summary>
-        private void OnPageNextSubmit(NavigationSubmitEvent _) => SubmitPageNext();
-
-        /// <summary>折边 Submit 处理(焦点桥入口 → 语义方法)。</summary>
-        private void OnFoldSubmit(NavigationSubmitEvent _) => SubmitFold();
-
-        /// <summary>戥子档位行 Submit 处理(焦点桥入口 → 语义方法)。</summary>
-        private void OnDoseSubmit(NavigationSubmitEvent evt)
-        {
-            if (evt.target is VisualElement row && row.userData is int ordinal)
-                SubmitDose(ordinal);
-        }
 
         /// <summary>
         /// 页缘「后案」(**语义动作面**;页缘后行 Submit 的转发目标)—— 翻到下一页。
@@ -409,11 +412,18 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
 
             for (int ordinal = 1; ordinal <= detentCount; ordinal++)
             {
+                // ⚠️ **必须捕获到循环体内局部变量**(2026-10-13 实测红):C# 的 `for` 循环变量
+                //    是**单个共享变量**(与 `foreach` 的逐迭代变量不同)⇒ 若闭包直接捕 `ordinal`,
+                //    全部行的 lambda 共享同一个变量,循环结束后其值 = detentCount + 1
+                //    ⇒ 每行都提交越界档序数(`e2e_full_loop_test` 实测「档序数 6 越出 [1,5]」)。
+                //    每次迭代新建局部变量 ⇒ 每行捕获自己的值(原 `evt.target.userData` 写法
+                //    天然无此问题;改闭包后必须显式补回该语义)。
+                int rowOrdinal = ordinal;
                 var row = _library.Create(SkeuoElement.Paper);
                 row.focusable = true;
-                row.userData = ordinal;          // 显式 ordinal(非显示索引 —— TD 第五风险)
+                row.userData = rowOrdinal;       // 显式 ordinal(非显示索引 —— TD 第五风险)
                 row.Add(new Label("戥子档"));    // 零数字:标签不写档序数(序数在 userData 整数里)
-                row.RegisterCallback<NavigationSubmitEvent>(OnDoseSubmit);
+                BindSubmitAndClick(row, () => SubmitDose(rowOrdinal));   // 键盘 Submit + 鼠标 Click(P-04)
                 _dentchDoses.Add(row);
             }
         }
@@ -454,7 +464,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 entry.focusable = true;                 // 条目可聚焦(手柄翻册指认)
                 entry.userData = lexiconId;             // 显式 lexicon_id(非显示索引 —— TD 第五风险)
                 entry.Add(new Label(text ?? string.Empty));
-                entry.RegisterCallback<NavigationSubmitEvent>(OnLexiconEntrySubmit);
+                BindSubmitAndClick(entry, () => PointLexicon(lexiconId));   // 键盘 Submit + 鼠标 Click(P-04)
                 _lexiconBook.Add(entry);
             }
         }

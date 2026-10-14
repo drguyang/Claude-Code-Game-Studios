@@ -196,3 +196,6 @@ unity/UnityLogsTmp/
 # Unity/mono 崩溃转储(batchmode -nographics 偶发残留;崩溃复现分析后即弃,永不提交)
 mono_crash.mem.*.blob
 unity/mono_crash.mem.*.blob
+
+# === 会话内临时截图(真机/Play 复验走查截图;用完即弃,永不提交) ===
+test_image/

@@ -227,20 +227,22 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
 
         /// <summary>
         /// 推进病程越过潜伏期(③ 环对照前置 —— 判据要求值区有词条)。
-        /// <para>⚠️ 2026-10-13 探针实测:病种 1 的 `Curve.Incubation` ≈ 2000 tick
-        /// (≈ 100 s @ 20 Hz),`tau &lt; incubation ⇒ Progress ≡ 0`(AC-26 潜伏期抑制)⇒
-        /// position = 0 ⇒ 双条件门的 `aboveFloor` 恒 false ⇒ 查体收 0 条词。
-        /// batch 无渲染等待,2500 tick 推进是瞬时的纯 Step。</para>
+        /// <para>⚠️ 2026-10-14 A 案订正:fallback 病种已配真 F1 曲线(潜伏 20 tick / τ=40 达峰 /
+        /// **plateau 保持峰值不衰减**)⇒ 推出「潜伏 + 上升」落到 plateau 上即可,不再需要
+        /// 2000+ tick 的等待(旧值 2500 是 legacy `RecoveryTime = 2000` 时代的产物)。
+        /// 推 60 tick = 潜伏 20 + 上升 20 + plateau 20,留 20 tick 余量 ⇒ position ≡ 1.0
+        /// (plateau 分支恒返回 A_peak ⇒ 多推也不会衰减回 0 —— 这正是 A 案的目的)。
+        /// batch 无渲染等待,60 tick 推进是瞬时的纯 Step。</para>
         /// </summary>
         private void AdvancePastIncubation()
         {
-            for (int i = 0; i < 2500; i++)
+            for (int i = 0; i < 60; i++)
             {
                 _bag.TickDriver.Advance(0.05d);
                 _bag.VitalsService.OnTickEdge(_bag.TickDriver.CurrentTick);
             }
             Assert.Greater(_bag.VitalsService.GetVitals(_patient).Position, 0f,
-                "推进越过潜伏期 ⇒ position > 0(探针实证 2442 tick 处 = 1;2500 留余量)");
+                "推进过潜伏 + 上升 ⇒ position > 0(plateau 型 ⇒ τ=40 后恒 = 1.0;60 留余量)");
         }
 
         /// <summary>玩家 GameObject + 交互输入驱动(施治环 F 注入的语义落点)。</summary>
