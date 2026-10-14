@@ -252,6 +252,8 @@
 1. **结案只有一条路径:玩家在 39 脉案上对某一例执行「结案」。** 系统**永不自动结案**。
 2. **前置条件:「已处置」成立(ADR-008 §四,2026-09-15 用户裁定)。**
    `已处置(c) := 本案在病史流中存在 ≥1 条处置事件,且其 Tick ∈ [CaseOpened.Tick, CloseTick]`
+   **∧ 其 `Kind ∈ treatment_set`**{`EmergencyTreatmentApplied` · `DrugTreatmentApplied` · `CareApplied`}
+   —— **枚举唯一出处 = `adr-008` §四**(🟢 2026-10-15 补立;此前四处皆不枚举,致实现自收 `InjuryOnset`)
    **∧ 玩家在结案页勾选「已处置」**(UI 仪式,不产生独立事件)。
    病人不必痊愈、不必在场、病名可以是**空的**。
    (《他回来了》的收尾就是「他还病着,病名那栏空着」——
@@ -277,7 +279,8 @@
 - **判的是「结案」不是「诊断正确」**(`game-concept.md` 支柱四铁律)。玩家诊断错、
   空着病名,**只要三例都被处置过并关闭,模式即成立**。
 - **「已处置」是结案的前置条件**(ADR-008 §四,2026-09-15 用户裁定):
-  `已处置` = **病史流存在 ≥1 条处置事件**(Tick 落在 `[CaseOpened.Tick, CloseTick]` 窗口内)
+  `已处置` = **病史流存在 ≥1 条处置事件**(Tick 落在 `[CaseOpened.Tick, CloseTick]` 窗口内
+  **∧ `Kind ∈ treatment_set`** —— 枚举唯一出处 = `adr-008` §四,🟢 2026-10-15 补立)
   **∧ 玩家在结案页显式勾选「已处置」**(UI 仪式,不产生独立事件)。
   **不认处置内容对不对** —— 对错仍是 53 的裁量。**不勾不能结案**;无处置事件佐证**不能结案**。
   `treated` 布尔在结案时**快照进 `CaseClosed` 载荷**(ADR-008 §四),重放不跨流查询。
@@ -665,7 +668,10 @@ ThreadKey   := Patient
 SortKey     := ( Patient , CaseOpened 的 (Tick, Seq) )
 已处置(c)   := ∃ treatment event e ∈ 病史流: e.Patient = c.patient_id
                ∧ e.Tick ∈ [c.opened_tick, c.CloseTick]       // ✅ 2026-09-17 方向订正(原写反)
+               ∧ e.Kind ∈ treatment_set                      // 🟢 2026-10-15 补立(见下)
 可结案(c)   := c.state = 开 ∧ 已处置(c) ∧ 玩家已勾选「已处置」(规则八)
+
+treatment_set := { EmergencyTreatmentApplied , DrugTreatmentApplied , CareApplied }   // 权威 = ADR-008 §四
 ```
 
 | 变量 | 范围 | 来源 | 说明 |
@@ -677,6 +683,7 @@ SortKey     := ( Patient , CaseOpened 的 (Tick, Seq) )
 | `CloseTick` | int64 | `CaseClosed` 事件的 `Tick`(同一事实,别名) | ⚠️ 同上;旧稿**变量表无定义**,现补 |
 | `StreamPriority` | enum | ADR-008 §二:病史流 < 病例流 | 跨流排序用,病例内部恒为病例流 |
 | `已处置(c)` | bool | ADR-008 §四 | **处置事件在病史流,窗口 = `[CaseOpened.Tick, CloseTick]`** |
+| `treatment_set` | 集合 | **ADR-008 §四(唯一权威)** | ⚠️ **2026-10-15 补立** —— 本表此前**不枚举**处置 `Kind`,导致实施侧无权威可依(后果见下方订正框)。成员 = `EmergencyTreatmentApplied` / `DrugTreatmentApplied` / `CareApplied`;**排除** `EmergencyAttempt`(判定输入 ≠ 结算)与 `InjuryOnset`(25 的战斗伤害结算) |
 
 > ### 🔴 方向订正(2026-09-17,二轮最高优先级 —— systems-designer B-1)
 >
@@ -699,6 +706,40 @@ SortKey     := ( Patient , CaseOpened 的 (Tick, Seq) )
 > **订正后的一致性检查**:规则六-2 / 规则八 / AC-37-21 / 本表 / ADR-008 §四
 > **五处表述现全部一致**,且复诊后门在**公式层**关闭(不再只靠 AC 兜底)。
 
+> ### 🟢 `treatment_set` 枚举补立(2026-10-15 —— 处置集此前**三方皆不枚举**)
+>
+> **病因**:`已处置(c)` 从 2026-09-15 起就是结案前置,但它依赖的 `treatment event`
+> **在任何权威件里都没有定义域** —— 本 GDD F-37.2 / 规则六 / 规则八、
+> `adr-008` §四、`tr-registry.yaml` **五处全只写 `∃ treatment event e ∈ 病史流`**。
+> **实施侧因此自行其是**:37 实现(`Sim/CaseCloseDecider.cs:72-77`)把
+> **`InjuryOnset` 收进了处置集** —— 而它是 **25 的战斗伤害结算**。
+>
+> **后果(不是理论)**:`InjuryOnset` 一旦入集,**「病人挨了打」即被计入「已被处置」**
+> ⇒ 玩家把病人打到即可满足结案前置 ⇒ **§EC-37-1 `:839` / `:567`「玩家空手连关三例 ⇒ 不可能」
+> 被正面击穿**,支柱四「例例要有交代」的机制底座当场作废。
+> 同集还**正确排除**了 `EmergencyAttempt`(对),却**未收** `CareApplied`(8 的护理)
+> —— **取舍方向与语义完全相反**:收了「伤害」,漏了「照顾」。
+>
+> **权威定义(唯一出处 = `adr-008` §四)**:
+>
+> ```
+> treatment_set := { EmergencyTreatmentApplied , DrugTreatmentApplied , CareApplied }
+> ```
+>
+> | Kind | 写者 | 收录理据 |
+> |---|---|---|
+> | `EmergencyTreatmentApplied` | 10 | 急救动作**已施加**(ADR-009 Amendment I) |
+> | `DrugTreatmentApplied` | 11 | 用药**已施加** |
+> | `CareApplied` | 8 | 护理动作(病史流)——「照顾」是玩家对病人做的**处置**,必须收 |
+>
+> **排除**:`EmergencyAttempt`(判定输入 ≠ 结算;37 实现此处**正确**,保持)·
+> `InjuryOnset`(伤害 ≠ 治疗;收它 = 把「打死」与「治好」等价)。
+>
+> ⚠️ **闭环纪律**:增删成员须**同时**改 `adr-008` §四 + 本处 `:666`/`:679`/规则六 `:254`/规则八 `:280`
+> —— **四处口径必须一致,禁止任一处单独扩集**。37 story-003 Implementation Note #1
+> 本就明令「**不自行扩集**」,当时恰因无权威枚举可依而落空,本条即该缺口的封堵。
+> 修复排期 = **sprint-11 S11-10**。
+>
 > ### ⚠️ `opened_tick` 与 `SimEvent.Tick` 不是两份真相(2026-09-17,unity-specialist 提)
 >
 > 旧稿在 `CaseOpened.Tick` 与 `opened_tick` 之间混用措辞,且**变量表未定义

@@ -4,6 +4,15 @@
 > **GDD**: design/gdd/case-system.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ 病例流(第二逻辑流)+ Presentation(只读 DTO 侧)
 > **Status**: ⚠️ **4/6 In Review**(006/005 合规 Complete)—— 001–004 于 2026-10-06 收口(`e64efad`/`c4e3708`/`31e3f9b`/`8a693fd`),**但当年评审原件缺失**;2026-10-15 QA 核查触发义务第 1/2 条,四件**补做评审(评当下,不追认历史判定)**后 **Test Evidence 门均不通过** ⇒ 用户裁定转 `In Review`。原件:`production/qa/evidence/review-case-system-story-00{1,2,3,4}-retro-2026-10-15.md`;核查件:`review-case-system-001-004-gap-audit-2026-10-15.md`。修复归**新一轮**。
+>
+> 📌 **修复排期(2026-10-15 用户裁定「并入 sprint-11 · 必须项优先」)**:净保留判定 **22 条 → 去重 ≈13 类**,
+> 本 sprint 只取「**真缺陷 / 免责失效 / 设计冲突 / 零成本**」四类 = **S11-7…S11-11**(≈2.85 天);
+> **断言形态整批顺延 sprint-12**,须逐条带状态 + 归属登记(**禁借绿**)。详见 `production/sprints/sprint-11.md`
+> 「Must Have — 补评修复批」节。**四件维持 `In Review` 直至顺延面清空。**
+> ⚠️ **本 epic 的两处裁定已同批落盘**:① **37 写者延后正式登记**(`CaseClosed` / `PatternRecognized` 写者 ——
+> `WriterExistenceGate.cs:87-88` 具名豁免 ⇒ 已写入 story-003/004 的 §Out of Scope 并订正对应证据面);
+> ② **`treatment_set` 枚举补立**(此前 `adr-008` §四 / GDD F-37.2 / 规则六 / 规则八 **四处皆不枚举**处置 Kind,
+> 致实现自收 `InjuryOnset` ⇒ 击穿「空手连关三例不可能」;现权威定义落 `adr-008` §四)。
 > **Stories**: 6 stories — see table below
 
 ## Overview

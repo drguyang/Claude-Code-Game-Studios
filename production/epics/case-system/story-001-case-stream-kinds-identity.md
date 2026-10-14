@@ -95,6 +95,12 @@
 > **补评原件**:`production/qa/evidence/review-case-system-story-001-retro-2026-10-15.md`
 > **判定**:代码面 **无 BLOCKING**(无 ADR/GDD 冲突 · 注册链条严整 · 产品代码无须返工);测试面 **4 BLOCKING** —— AC-37-30/06 断言形态错误(`ReconstructPatientHighWater` 生产载体零调用 · 恒真)· AC-37-03 A2 **空跑** · kindgen 载体**借绿** · 测试头 **AC 号一号两义**(与 GDD 权威编号冲突)。
 > **Test Evidence 门:不通过。** 修复归**新一轮**;状态**已裁定(2026-10-15,用户)转 `In Review`**。
+>
+> 📌 **修复排期(2026-10-15 用户裁定「并入 sprint-11 · 必须项优先」)**:
+> - **本轮取**:B-3(测试头自填 AC 号一号两义,零成本)= **S11-11**;
+> - **顺延 sprint-12**(须带状态+归属,禁借绿):**B-1**(AC-37-06 判据**算术上不可证伪** ⇒ 须**退设计重述**,仅加大输入无效)·
+>   **B-2**(kindgen A2 空跑)· **B-4**(kindgen 载体借绿 —— 「删除 kindgen,13 条测试照样全绿」)。
+>   B-2/B-4 是同一缺口两半,归 kindgen 侧(「CI 跑 `kindgen --check`」为 AC-37-03 的唯一载体)。
 
 ---
 

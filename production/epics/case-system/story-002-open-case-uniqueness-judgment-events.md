@@ -107,6 +107,17 @@
 > ⇒ 真问题是**声明证据与 AC 错配**,**不是「AC 无证据」**。
 > 架构纪律全绿(纯函数 · 门 A · ADR-029 · 零 float);commit `c4e3708` 三条自述 **B1 部分成立 / B2 未兑现 AC 本体 / B3 与其点名的测试内容不符**。
 > **Test Evidence 门:不通过。** 修复归**新一轮**;状态**已裁定(2026-10-15,用户)转 `In Review`**。⚠️ 另:AC-37-05/23 在 GDD 为 `[I]` 集成,而 `tests/integration/case-system/` 目录是否存在集成件**未查证完**,登记待查。
+>
+> ✅ **该「未查证」已于 2026-10-15 结清**(§七 勘误轮):`tests/integration/case-system/` **确实不存在**
+> —— 但该目录是**账本约定**树,非唯一证据面;实际集成件在 `PlayMode/case_opened_wiring_test.cs`
+> (真启动序)与 `EditMode/CaseSystem/case_open_writer_test.cs`(真组合根 + 真流)等处,已计入 §七 推翻面。
+>
+> 📌 **修复排期(2026-10-15 用户裁定「并入 sprint-11 · 必须项优先」)**:
+> - **本轮取**:① `LastJudgmentOf` 以 `caseId` 过滤 + `CompositionRoot.cs:245-246` 改传**该案子集**
+>   + `CasebookVitalsSource.cs:214` 注释对齐 + 补跨病人交错夹具 = **S11-7**;
+> - **顺延 sprint-12**(须带状态+归属):声明件的 5 条**断言形态**(BLK-2 纯常量比较 / BLK-3 测试自造 `J(c)` /
+>   BLK-5 重复断言 / BLK-9 负断言未按 AC 契约构造 / BLK-1 的恒真半边)+ ③ 把
+>   `CaseOpenWriterTest` / `JudgmentWriterTest` / PlayMode 接线件**补进 §Test Evidence 的引用面**(AC→载体映射表)。
 
 ---
 

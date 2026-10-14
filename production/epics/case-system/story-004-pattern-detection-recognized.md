@@ -64,6 +64,26 @@
 - [Story 006]: 53 消费秩序与重放对拍
 - 系统 53:世界变化(延迟/不可归因);playtest:图样可辨识度(TR-case-027,出本 epic)
 
+> ⚠️ **`PatternRecognized` 写者延后 —— 正式登记(2026-10-15 用户裁定)**
+> 写者未落,由 `Editor.Tools.Gates/WriterExistenceGate.cs:88` 登记为**具名豁免债**
+> (原文:「37 同源检测写者未落 —— `PatternDetector` 现为纯函数,盐派生 + 冻结三元组写入归 37 实现轮(2026-10-10)」)。
+> 裁定 = **接受延后并正式登记**,不复述为「已完成」:
+> - **影响面**:补评判定 **CB-1 / TB-4(发射语义无生产载体)** 由此成立 ——
+>   `Evaluate` 返回的是**前缀属性**(`PatternDetector.cs:108/:128`),**不表达「本 tick 新发射几条」**;
+>   「已发过不再发」只由 `IsFired` 守卫,而 `IsFired` **同样零生产调用者**。
+>   ⇒ AC-37-08/09 的「恰发一次 / 第 4 例不重发」在实现里**不由 `PatternDetector` 保证**,
+>   由「调用方先问 `IsFired`」这一**未写、未测**的契约保证。
+> - **证据面订正(AC-37-08 / AC-37-09)**:两条 AC 的**发射语义**半边**不再计入本 story 的已交付面**;
+>   ⚠️ 但 **AC-37-09 的另一半「`MemberSet` 冻结于前 3 例」不受写者缺失影响** ——
+>   它是 `PatternDetector` 自身输出的性质,已排补断言(见下)。
+> - **本 story 自陈与延后的冲突(须如实登记)**:story §Acceptance Criteria / §Test Evidence /
+>   §Out of Scope **原先均未登记该延后**(Out of Scope 只列 003/005/006 与 53),
+>   而 Implementation Note 3(`:51`)明写「先按 `salted_key` 升序**再 Append**」—— 即 story 自认含写入步。
+>   本次登记即消解该悬空。
+> - ⚠️ **不因延后豁免的两项**:① **AC-37-27 定序判别力为零**(TB-1/CB-3,实现侧 `memberSet` 按
+>   `Dictionary` 迭代序 + 夹具期望序 ≡ 插入序)② **AC-37-29 零覆盖**(CB-2/TB-5)—— 二者与写者无关,
+>   其中 ② **已排 S11-9**(sprint-11 补评修复批,W-1 已解除故不再有免责理由)。
+
 ---
 
 ## QA Test Cases

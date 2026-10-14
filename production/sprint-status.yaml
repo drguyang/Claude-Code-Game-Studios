@@ -14,7 +14,7 @@ goal: "判断回路前台化(9 查体 revealed 接线)+ 治理收口(W-1 会签/
 start: "2026-10-14"
 end: ""
 generated: "2026-10-14"
-updated: "2026-10-14"
+updated: "2026-10-15"
 
 stories:
   - id: "S11-1"
@@ -69,5 +69,53 @@ stories:
     status: backlog
     owner: ""
     estimate_days: 0.75
+    blocker: ""
+    completed: ""
+  # ── 补评修复批(case-system 001–004 · 2026-10-15 用户裁定并入 · 「必须项优先」口径)──
+  # 净保留判定 22 条 → 去重 ≈13 类;本批只取「真缺陷 / 免责失效 / 设计冲突 / 零成本」四类。
+  # 断言形态整批顺延 sprint-12(见 sprint-11.md DoD「顺延面显式登记」);四件维持 In Review。
+  - id: "S11-7"
+    name: "story-002 BLK-8 墨龄取错病人(LastJudgmentOf 以 caseId 过滤 + CompositionRoot 传该案子集)"
+    file: "production/sprints/sprint-11.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0.75
+    blocker: ""
+    completed: ""
+  - id: "S11-8"
+    name: "story-003 B-1 复诊案无法结案(IsClosed 改按 CaseId 三元组匹配 + 同批补流层判据)"
+    file: "production/sprints/sprint-11.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0.75
+    blocker: ""
+    completed: ""
+  - id: "S11-9"
+    name: "story-004 CB-2/TB-5 AC-37-29 零覆盖(落地 ChainEligible/ScriptedChain + 夹具;W-1 已解除)"
+    file: "production/sprints/sprint-11.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0.75
+    blocker: ""
+    completed: ""
+  - id: "S11-10"
+    name: "story-003 B5 处置集撤 InjuryOnset + 补 CareApplied + 回填权威(ADR-008 §四 / F-37.2)"
+    file: "production/sprints/sprint-11.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0.5
+    blocker: ""
+    completed: ""
+  - id: "S11-11"
+    name: "story-001 B-3 测试头自填 AC 号改无编号引用(零成本)"
+    file: "production/sprints/sprint-11.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0.1
     blocker: ""
     completed: ""
