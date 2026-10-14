@@ -33,14 +33,47 @@ namespace DaYiJingCheng.EditorTools.Capture
         // 落点:项目根下 Logs/shots/(Logs/ 已被 .gitignore 覆盖 ⇒ 截图永不入库)
         private const string ShotDir = "Logs/shots";
 
-        [MenuItem("大医精诚/Capture/截图 1x %F12")]
+        // ⚠️ Unity MenuItem 快捷键语法:% = Ctrl · # = Shift · & = Alt · **`_` = 无修饰键**。
+        //    2026-10-14 首版误写成 `%F12`(= Ctrl+F12),而文档写「F12」⇒ 用户按纯 F12 无反应。
+        //    现改正:主档 = **纯 F12**(`_F12`),2×/4× 带修饰键避免与主档冲突。
+        [MenuItem("大医精诚/Capture/截图 1x _F12")]
         private static void Shot1x() => Shot(1);
 
-        [MenuItem("大医精诚/Capture/截图 2x(高清) %#F12")]
+        [MenuItem("大医精诚/Capture/截图 2x(高清) %F12")]
         private static void Shot2x() => Shot(2);
 
-        [MenuItem("大医精诚/Capture/截图 4x(超清) %&F12")]
+        [MenuItem("大医精诚/Capture/截图 4x(超清) %#F12")]
         private static void Shot4x() => Shot(4);
+
+        // ── Play 模式兜底:F12 轮询 ────────────────────────────────────────────
+        // ⚠️ MenuItem 快捷键在 **Play 模式 + Game 视图聚焦**时可能被游戏吞掉
+        //    (Game 视图抢键盘焦点)。故加一层 EditorApplication.update 轮询:
+        //    Play 中按 F12 也能截(与菜单项并存,互不干扰)。
+        // ⚠️ 本项目 `activeInputHandler: 1` = **纯新 Input System**(ADR-011)⇒
+        //    旧 `Input.GetKeyDown` 会抛 InvalidOperationException,**必须**走
+        //    `UnityEngine.InputSystem.Keyboard.current`。
+        private static bool _pollHooked;
+        private static bool _f12Held;   // 边沿检测(update 每帧跑,只在按下那一帧触发)
+
+        [InitializeOnLoadMethod]
+        private static void HookPoller()
+        {
+            if (_pollHooked) return;
+            _pollHooked = true;
+            EditorApplication.update -= PollF12;
+            EditorApplication.update += PollF12;
+        }
+
+        private static void PollF12()
+        {
+            if (!Application.isPlaying) { _f12Held = false; return; }
+
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb == null) return;
+            bool down = kb.f12Key.isPressed;
+            if (down && !_f12Held) Shot(1);   // 按下沿
+            _f12Held = down;
+        }
 
         /// <summary>
         /// 截当前 Game 视图。<paramref name="superSize"/> = 倍率(ScreenCapture 语义:

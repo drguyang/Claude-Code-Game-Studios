@@ -1,7 +1,9 @@
 {
     "name": "Editor.Tools.Capture",
     "rootNamespace": "DaYiJingCheng.EditorTools.Capture",
-    "references": [],
+    "references": [
+        "Unity.InputSystem"
+    ],
     "includePlatforms": [
         "Editor"
     ],
