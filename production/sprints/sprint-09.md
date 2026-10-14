@@ -101,6 +101,12 @@ spike 未跑)⇒ 探针须记录实测行为,供 ADR-013 §6.6 假设 6 一并�
 ⚠️ **本轮顺带订正两处陈旧读数**:`README:196-200`(候选列表「零生产实例化」)· `:202`(「落笔输入入口未接」)
 —— 均已被 sprint-08 推翻,原文保留加「已过时」标注。
 ⚠️ **M2 Exit 剩余未闭 = 1 条**(`:169` 的 ③ 功能半)。是否带此残余收口 M2 = 用户裁定项。
+✅ **2026-10-14 同日用户裁定:③ 功能半单独立 story 承接** —— `emergency-procedures/story-009`
+(**Ready ⬜ · 归 sprint-10**)。勘察实测:所谓「10 实现轮」**全库无 epic/story/工量登记**
+(「引用却无登记」失效模式);急救链**运行期可达性 0%**(`EmergencyDirectReadChannel` 零生产实例化 ·
+`InputActionAsset` 零装载点 · `InteractionInputDriver.cs:105` 硬编码 `method: 0` ⇒ 跳过无入口)。
+story-009 范围 = 直读通道装配 + 跳过入口接线 + Idle 门,Estimate **3–5 人日**,
+含一条前置(资产运行期装载,复用系统 3 的 `InputService` 预留接缝)。
 
 ---
 

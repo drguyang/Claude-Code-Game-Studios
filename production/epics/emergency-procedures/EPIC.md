@@ -140,9 +140,45 @@ This epic is complete when:
 | 006 | 手感、预表现与键鼠回退 | Visual-Feel | **Complete ✅ 2026-10-02** | ADR-011/013/018 |
 | 007 | `EmergencyTreatmentApplied` 载荷的结算链补完 —— 九字段齐备(b6 门查出的手搓点) | Logic | **Complete ✅ 2026-10-03**(17/17) | ADR-029 + ADR-009 Amendment I |
 | 008 | P2 施治动作真资产提前 —— 止血/通气的真接触音 + 手势/节律 VFX | Visual-Feel | **Ready ⬜** —— 2026-10-12 美术提前裁定(用户取甲案 P1+P2 全提前)· sprint-07 §6 · 依赖素材本体产出;批次 = G-3 emergency 手势 VFX 子集 + batch-03 素材 | ADR-018/011 |
+| 009 | 急救直读通道运行期装配 + 跳过入口接线(M2 形态件③ 功能半) | Integration | **Ready ⬜** —— 2026-10-14 立 · 同日用户批准转 Ready · 归 **sprint-10** · 兑现「10 实现轮」幽灵待办(见下注) | ADR-011/013/020 |
 
 ---
 
 > ⚠️ **2026-10-03 状态订正(D3-b)**:本表 002–006 原标 `Ready`,
 > 而各 story 件**自身**标 `Complete ✅ 2026-10-02`(双代理评审修复后)。
 > 本表已对齐 story 件 —— **以 story 件为准**(本表为索引,不产生状态)。
+
+---
+
+## ⚠️ 2026-10-14 补注:story-009 与「10 实现轮」幽灵待办
+
+**病因(2026-10-14 sprint-09 S3 复评查出)**:`story-023`(skeuomorphic-ui)边界裁定①
+与 `milestones/README.md:198` 均把「形态件③ 的施加点 / 候选列表载体 / `Idle` 态可达时序」
+判给「**10 实现轮**」—— 但**全库无该轮的 epic / story / 工量登记**。
+它与 ADR-022 关卡工具、`CompoundTriggered` / `ActorCellEntered` 同属
+「**引用却无登记**」失效模式:一处被反复引用的待办,却无任何载体承接。
+
+**实测(2026-10-14 · 本 epic 的运行期接线现状)**:
+
+| 环节 | 生产状态 |
+|---|---|
+| `EmergencyDirectReadChannel`(四态机 · 417 行,story-007 产出) | ❌ 零生产实例化(全仓唯一 `new` 在测试) |
+| `EmergencyAggregator`(244 行,story-006 产出) | ❌ 零生产调用 |
+| `HostEmergencyProcessor` | ✅ 已装配(经 `EmergencyManualDriver`,`CompositionRoot.cs:143`) |
+| `InputActionAsset` 运行期装载 | ❌ 零装载点(`InputService.cs:19` 自陈「装载归后续故事」) |
+| `EmergencyCandidateList` 交互绑定 | ❌ 零(`EmergencyCandidateList.cs:69-114`) |
+| `InteractionInputDriver.cs:105` | ⚠️ 硬编码 `method: 0`(Manual)⇒ **跳过路径无生产入口** |
+
+⇒ **急救链运行期可达性 = 0%**。按 `milestones/README.md:251-255` 口径:
+**「epic Complete ✅」≠「运行期接线」** —— 机制 story 001–007 全闭**不代表**链能跑。
+
+**承接件 = story-009**(2026-10-14 立 · Ready ⬜ · 归 sprint-10),兑现:
+① 直读通道生产装配(含 `InputService` 的 Addressables 装载,系统 3 预留的接缝);
+② 跳过入口接线(`SubmitEmergencySkip` ⇒ `TryManual(method: 1)`);
+③ `Idle`/`Armed` 门驱动候选列表可见性(规则六之甲);
+④ M2 Exit `:169` 形态件③ 的**功能半**。
+
+**本补注不改变 epic 的 `Complete ✅` 判定** —— 该判定依据是「7/7 story 已实现 + 两轮评审已闭」
+(2026-10-08),而**运行期接线**是独立的另一回事(同 `README:251-255` 口径)。
+story-009 是**新增的第八个功能 story**(非补原 7 个的缺),故 epic 状态维持
+**Complete ✅(7/7)**,story 总数由 8 → **9**(含 Ready 的 008 / 009)。

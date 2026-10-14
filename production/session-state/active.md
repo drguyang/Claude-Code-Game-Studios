@@ -1660,6 +1660,24 @@ Task: S2 ✅ / S3 ✅(翻 2 勾 · :169 维持不勾)→ S1 用户真机连续�
 - **M2 Exit 剩余未闭 = 1 条**(`:169` 的 ③ 功能半);是否带残余收口 M2 = **用户裁定项**。
 - 提交 `e0cbede`(已推送)。
 
+## story-009 立件(2026-10-14 · 用户裁定「只做窄片」→ 勘察后升级为「装真状态门」)
+
+- **用户三连裁定**:① 走「只做窄片」路 ② 但窄片须「接真状态门」③ 「先落 story 再开工」
+  → ④「转 Ready 并同步 EPIC.md」。
+- **勘察发现(改变范围的事实)**:「真状态门」需要 10 的核心主体 ——
+  `EmergencyDirectReadChannel`(四态机 417 行)**零生产实例化**、
+  `InputActionAsset` **零运行期装载点**、`InteractionInputDriver.cs:105` 硬编码
+  `method: 0`(Manual)⇒ **跳过路径无生产入口**。急救链**运行期可达性 = 0%**。
+- **另查**:「10 实现轮」**全库无 epic/story/工量登记** = 「引用却无登记」幽灵待办
+  (与 ADR-022 关卡工具同型)。
+- **产出**:`production/epics/emergency-procedures/story-009-direct-read-channel-runtime-wiring.md`
+  (**Ready ⬜** · Estimate 3–5 人日 · 11 AC = 9 BLOCKING + 2 ADVISORY · 归 **sprint-10**)。
+  同批同步:`EPIC.md`(Stories 表 + §2026-10-14 补注)· `epics/index.md`(8→9 stories)·
+  `milestones/README.md:169`(③ 承接件具名)· `sprint-09.md` S3 小节。
+- **头号技术风险**:`InputSystem.onAfterUpdate` 生产聚焦环境时序**未实测**
+  (ADR-011 Engine Risk HIGH;story-007 只在未聚焦 batch 验过)。
+- **未提交**(待用户指令)。
+
 ---
 
 ## sprint-08 收口判定(2026-10-14 · 四导演面板 · ✅ Complete 落判)
