@@ -202,3 +202,8 @@ unity/mono_crash.mem.*.blob
 
 # === 会话内临时截图(真机/Play 复验走查截图;用完即弃,永不提交) ===
 test_image/
+# 截图工具(Editor.Tools.Capture)落点 —— Play 模式留证用,用完即弃。
+# 正常落点 = unity/Logs/shots/(已被上方 `unity/Logs/` 覆盖);
+# 显式再列一条,防「工程根 Logs/」等误落点(2026-10-14 曾误落过一次)。
+Logs/shots/
+**/Logs/shots/
