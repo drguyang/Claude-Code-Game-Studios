@@ -270,3 +270,19 @@ unity/Assets/Gameplay.UI/Skeuomorphic/Textures/
 > 边缘邻域 std 归一化的接缝比、主体区取色、格线落点检查）；**内容语义与风格由用户目视定稿**。
 > `art-bible §7.2` 禁人工描图 —— 全部 16 张零人工编辑。
 
+
+## §九之三 · 1024² 重生轮(2026-10-14 · AC-42-C9 超规结清)
+
+> **触发**:story-019 AC-42-C9 atlas 预算冻结(2026-10-14)判定两图超规(>1024²),
+> 用户裁定「重生 1024²,不抬门槛开豁免」。**本轮把 2026-10-05「2048² 原样入库」的旧裁定作废**
+> (该裁定的顾虑 = 降采样削纤维 std 38%;本轮以频域补偿消解,见 ②)。
+
+| 字段 | ① `ui_icons_sprite` | ② `casebook_paper_base` |
+|---|---|---|
+| **方式** | **t2i 原生重生**(`sensenova-u1.5-fast`,1024×1024,`watermark: false`,prompt = §五.14 原文) | **PIL 频域补偿降采样**(无新 API 调用):偏差场 `d = im − #F6DEBC` 先降后拆(`hi` 纤维 / `lo` 云斑高斯分离)→ `hi` 增益 1.91× 补回 std 7.59 → `tanh` 软滚降消过曝 → 亮度 ×1.008 拉 7:1 margin |
+| **为什么①不用降采样** | v1 降采样版逐位保真(剖面 r=1.0000)但**右下角带 SenseNova 半透明水印**(生成时 `watermark: True` 的既有事实,非本轮引入);用户裁定「水印参数设为 false 重生」⇒ 弃降采样取原生 | — |
+| **定稿版** | v2(2026-10-14) | 1024-comp(2026-10-14) |
+| **实测** | 网格谷 竖 261/511/762 · 横 258/508/761(目标 256/512/768,±6px 重生固有松弛)· 16 格覆盖率 4.6–29.1% · 水印残值 2.04%(旧 16.23%)· 16 图标主题全数在位(SenseNova 判读) | 纤维 std **7.59** · 云斑 1.331(原 1.104)· 裁剪 0.000% · 冷色 0.00% · 接缝 TB/LR 1.50/0.45 · 淡墨 p50 **7.18:1** / 最亮 8.38:1(门 ≥7:1 只管淡墨按 p50,承 2026-10-05 口径) |
+| **入库位** | `Textures/ui_icons_sprite-final.png`(替换,meta/GUID `b34a1e5b` 未动) | `Textures/Casebook/casebook_paper_base-final.png`(替换,meta/GUID `90541d77` 未动) |
+| **迭代版** | `assets/design-references/ui_icons_sprite-1024-v2.png`(定稿同体)+ 弃用的 v1 降采样版 | `assets/design-references/casebook_paper_base-1024.png` |
+| **待办(禁借绿)** | Unity 重导入后五族夹具/atlas 实测门复跑(`atlas_page_count_test` 仍应 2/2)—— **未跑** | 同左;且 USS 引用仍为零(casebook 链 P0 层未出,非本轮义务) |

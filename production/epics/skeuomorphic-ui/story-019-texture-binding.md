@@ -223,7 +223,13 @@ Exit Criteria 第 5 条的形态件 **① 脉案线格/空行/焦点明度轴压
       ② 「真机某屏实际取到几瓦片」batch 下结构性不可测(18 轮取证,见冻结件 §四),留真机实测;
       ③ **F5 量纲须修订**(页数 → 单帧同屏瓦片数),归 42 的 GDD 轮。
       ⚠️ **超规 2 张**(`ui_icons_sprite` / `casebook_paper_base` 2048²)⇒ `/image-gen` 重生 1024²,
-      **不抬门槛开豁免**(承用户 2026-10-14 裁定)。
+      **不抬门槛开豁免**(承用户 2026-10-14 裁定)—— ✅ **同日结清**:两张已替换为 1024²
+      (GUID/meta 未动)—— ① `ui_icons_sprite` = t2i 原生重生(`watermark: false`,16 图标
+      新画作,网格谷 ±6px,覆盖率 4.6–29.1%,水印残值 2.04% vs 旧 16.23%);
+      ② `casebook_paper_base` = PIL 频域补偿降采样(纤维 std 7.59 保持 / 云斑 1.331 /
+      裁剪 0.000% / 冷色 0.00% / 淡墨 p50 **7.18:1** 过 7:1 门)。注:① 的降采样路径
+      (v1 逐位保真)因 SenseNova 水印遗留弃用,取原生重生;2026-10-05「2048 不降」的旧裁定
+      (纤维 std 顾虑)经频域补偿消解,该旧裁定就此作废。留痕:`design/assets/ai-generation-prompts.md` §九之二补录
 - [x] **AC-42-E1(新)** ✅ **019-e Complete 2026-10-05**: 16 张元件贴图的 `.meta` 导入格式须满足九宫格要求 ——
       `spriteMode: 1`(**= `SpriteImportMode.Single`** —— 枚举 `None=0/Single=1/Multiple=2/Polygon=3`,
       实测 Unity 回读 `spriteImportMode == Single`;「Multiple」是**误标**)· `textureType: 8`(Sprite)· `alphaIsTransparency: 1`;
