@@ -108,7 +108,7 @@
 
 **Exit Criteria**(可机械验证):
 - [x] `interaction-system` 实现(**已闭** —— 7/7 story Complete 2026-10-04;原「关键路径断点」措辞已作废)
-- [ ] `patient-ai` → `diagnosis-system` → `case-system` → `prescription-medication` 链至少端到端可跑
+- [x] `patient-ai` → `diagnosis-system` → `case-system` → `prescription-medication` 链至少端到端可跑
       **✅ 2026-10-11 T3.3 复评 ◐ 转「机制侧闭环 · 处方腿机制半」** —— 五写者**全部**有运行期生产调用方:
       `PatientSpawner`←`PatientAppearedDriver:100` · `CaseOpenWriter.TryOpen`←`CaseOpenedDriver:59` ·
       `HostEmergencyProcessor`←`EmergencyAttemptDriver`(BootRoot tick 序列)⇒ 运行期病史流完整
@@ -126,6 +126,15 @@
       真 `PrescribePorts`(最小端口实装)⇒ `DrugTreatmentApplied` **运行期可达**;
       `prescribe_driver_test` 8 测全绿(选档落笔 / ≥2 档 dose 区分 / 无货拒开 / GateHit SkillGrown)。
       复评原件 `production/qa/evidence/m2-exit-recheck-sprint06-g5-2026-10-11.md`。
+      **✅ 2026-10-14 sprint-09 S3 复评 —— 翻 `[x]`(勾选滞后订正)**:G5 已判转闭,惟行首未翻。
+      本轮**独立实测**(非重读旧件)推翻旧读数「`PrescribeFlow.Prescribe` 全库零生产调用方」——
+      真生产调用点 = `PrescriptionPageHost.cs:137`(sprint-08 S2 接线,2026-10-12,晚于旧快照)。
+      完整触发链闭合:`CasebookScreen.SubmitDose:482` → `CasebookCommandRouter:174/184` →
+      `PrescriptionPageHost:127/137` → `PrescribeFlow.cs:339-341` `Append(DrugTreatmentApplied)`。
+      ⚠️ **两处运行期前置约束(诚实登记,不改「可达」判定)**:① 生产库存种子只 1 份
+      (`CompositionRoot.cs:258` 唯一生产 `.Grant(`)⇒ 仅「档 1」首次开方能过;② 须先 E 查体绑定病人。
+      ⚠️ **未确认**:玩家 `actorId == 种子 id(0)` 的次序不变量无显式生产断言,归第七轮 playtest 人工确证。
+      复评原件 `production/qa/evidence/m2-exit-recheck-sprint09-2026-10-14.md`。
 - [x] ⚠️ **链的写者存在性前置(2026-10-08 补 · ✅ 2026-10-10 批次 F-6 复评转闭)** —— 上一条链上的每个 `Kind` 至少有 1 个**生产 `Append` 调用点**
       ~~实测生产侧 `Append` 仅 3 处(`HostEmergencyProcessor`×2 · `PrescribeFlow`×1),
       **9/25/37 的写者不存在** ⇒ epic 全 `Complete` 链仍跑不起来(**epic Complete ≠ 写者存在**;
@@ -203,6 +212,24 @@
       ④ 真值源已接半:查体分册快照(G1.4)接 `RevealedRows`(查体输入入口未接);
       **③ 候选列表仍零生产实例化**(仅测试);玩家输入入口(Interact/Emergency 键位已有零消费)。
       复评原件 `production/qa/evidence/m2-exit-recheck-sprint06-g5-2026-10-11.md`。
+      ⇒ **✅ 2026-10-14 sprint-09 S3 复评(逐条重核,维持 ◐ 不勾 · 但订正两处陈旧读数)**:
+      ①②④ 施加点**确已接**(独立实测):① `.ruled` 经 `CasebookScreen.ApplyData` 每 tick 挂行 ·
+      ② `JudgmentWriter`(`JudgmentWriter.cs:48`)经 `PrescriptionPageHost.cs:68/100` 生产装配,
+      `InkAgeTicks` 挂 `.ink-wet`/`.ink-dry` · ④ `RevealedRows`(`CasebookVitalsSource.cs:187`)
+      + E 键消费链(`PlayerInputReader.cs:35` → `InteractionInputDriver.cs:82-88` →
+      `ExamineDriver.cs:93` → `BootRoot.cs:224-225` → `CasebookScreen.cs:655-660`)完整闭合。
+      **③ 维持不勾 —— 但残余已收窄**:本轮新发现 ③ 的**载体确已生产挂载**
+      (`CompositionRoot.cs:246` + `BootRoot.cs:237`),**真缺口 = 跳过入口零交互绑定**
+      (`EmergencyCandidateList.cs` 无 `focusable`/`RegisterCallback`/`clicked`;`SetVisible` 全仓
+      **零生产调用**)⇒ 即「实例化了但不可交互」,**非**上文 `:196-200` 记的「零生产实例化」。
+      ⚠️ **订正 `:196-200`(已过时)**:「③ 急救候选列表零生产实例化(仅测试)」**已被推翻** ——
+      载体自 2026-10-11 S3.1 起生产挂载于 `BootRoot.cs:237`。
+      ⚠️ **订正 `:202`(已过时)**:「玩家落笔输入入口未接(TryRecord 无生产调用点)」**已被推翻** ——
+      sprint-08 S1.1(2026-10-12)已接:`CasebookScreen.PointLexicon:383` →
+      `CasebookCommandRouter.SubmitDiseaseName:102` → `JudgmentWriter.TryRecord/TryRevise:117-121`。
+      ⇒ **③ 的归属不变且有主**:story-023 边界裁定①(`story-023-...md:29/34`)明写
+      「施加点 / 候选列表载体 / `Idle` 时序归 **10 实现轮 + 数据绑定轮**」。
+      复评原件 `production/qa/evidence/m2-exit-recheck-sprint09-2026-10-14.md`(判决 B)。
 - [ ] **五族切图与 atlas 布局冻结**(①② 的前置;切图早错 = 全局返工)
       ⇒ ⚠️ **口径订正(2026-10-04 D)**:原文写「纸/墨/铜」三族 —— 实测为**五族**(纸/墨/卷轴/印章/图标),
       「铜」族零实物。**冻结清单须按五族枚举**,否则三族已入库资产漏冻
@@ -221,7 +248,12 @@
       ⇒ ✅ **证据(2026-10-08 · story-020 步②)**:`unity/Assets/Gameplay.UI/Skeuomorphic/Textures/Brass/
       focus_brass_2px-final.png`(64×64 RGBA,2px 环 `#B8863B` = art-bible §4.1 权威值,中心透明)
       + `.meta`(`spriteBorder: {2,2,2,2}`)入库;放 `Brass/` 子目录(顶层 16 张计数门不受影响)
-- [ ] 其余资产**显式登记为灰盒**(见下 §三之附「M2 灰盒登记表」),不留「看起来像忘了做」的空白
+- [x] 其余资产**显式登记为灰盒**(见下 §三之附「M2 灰盒登记表」),不留「看起来像忘了做」的空白
+      **✅ 2026-10-14 sprint-09 S3 复评 —— 翻 `[x]`(已做未勾)**:登记表 `:236-249` 逐类齐,
+      与 `design/assets/entity-inventory.md:249-262` 汇总表的 **42 项 VS Critical 逐类对齐**
+      (Characters 2 / Props 6 / Buildings 1 / Items 6 / UI 1 / HUD 8 / SFX 10 / Ambient 1 / VFX 7;
+      Enemies 与 Music Cues 的 VS 列本为 0 ⇒ 正确无行),**无「看起来像忘了做」的空白**。
+      复评原件 `production/qa/evidence/m2-exit-recheck-sprint09-2026-10-14.md`(判决 C)。
 
 **ETA**: TBD
 

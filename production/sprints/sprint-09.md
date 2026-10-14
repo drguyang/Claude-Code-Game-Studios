@@ -87,13 +87,20 @@ spike 未跑)⇒ 探针须记录实测行为,供 ADR-013 §6.6 假设 6 一并�
 
 ### S3 M2 Exit 复评翻 3 勾(按证据,禁借绿)
 
-| 条 | 落点 | 判据(可证伪) |
-|---|---|---|
-| `:111` 端到端链 | `production/qa/evidence/m2-exit-recheck-sprint09-2026-10-1X.md` | `PrescribeRequestDriver`(`CompositionRootServices.cs:89`)+ 真 `PrescribePorts` ⇒ `DrugTreatmentApplied` 运行期可达 |
-| `:169` 4 项形态件 | 同上 | 施加点逐条核:`EmergencyCandidateRuntime`(`CompositionRoot.cs:246`)· `JudgmentWriter` 经 `PrescriptionPageHost` · `RevealedRows`(`CasebookVitalsSource.cs:187`) |
-| `:224` 灰盒登记 | 同上 | 登记表 `:228-250` 逐类齐 |
+> ✅ **2026-10-14 落定** —— 复评原件 `production/qa/evidence/m2-exit-recheck-sprint09-2026-10-14.md`
+> (两条独立子代理全仓核 + 本席抽验承重行)。**判定与 §1.2 的 TD 预判不一致**:
+> 三条里**只有两条是勾选滞后**,`:169` 是**真缺口**(有主,归 10 实现轮)。
+
+| 条 | 落点 | 判据(可证伪) | 判定 |
+|---|---|---|---|
+| `:111` 端到端链 | `production/qa/evidence/m2-exit-recheck-sprint09-2026-10-14.md` | 真生产调用点 = `PrescriptionPageHost.cs:137`(推翻旧读数「零生产调用方」)⇒ `DrugTreatmentApplied` 运行期可达 | **✅ 翻 `[x]`** |
+| `:169` 4 项形态件 | 同上 | ①②④ 施加点确已接;③ **跳过入口零交互绑定**(`SetVisible` 零生产调用)⇒ 功能半未接 | **◐ 维持 `[ ]`** |
+| `:224` 灰盒登记 | 同上 | 登记表 `:236-249` 与 `entity-inventory.md` 42 项 VS Critical 逐类对齐 | **✅ 翻 `[x]`** |
 
 ⚠️ **无复评原件不得翻勾** —— 勾选滞后不是工量,但无据翻勾 = 无据。
+⚠️ **本轮顺带订正两处陈旧读数**:`README:196-200`(候选列表「零生产实例化」)· `:202`(「落笔输入入口未接」)
+—— 均已被 sprint-08 推翻,原文保留加「已过时」标注。
+⚠️ **M2 Exit 剩余未闭 = 1 条**(`:169` 的 ③ 功能半)。是否带此残余收口 M2 = 用户裁定项。
 
 ---
 
