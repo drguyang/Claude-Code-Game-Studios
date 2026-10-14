@@ -75,6 +75,9 @@ unity/.vscode/
 # U1 spike 批临时资产(Setup 菜单生成,Teardown 清理;永不提交,见 production/u1-spike-checklist.md §4)。
 # 同时匹配 .meta。
 unity/Assets/Scenes/Spike*
+# S2 PAGES_MAX spike 临时资产(019-b · 2026-10-14;AtlasPageProbe.SetupEditorSample 生成,
+# 含临时场景 + 抬门槛内存面板副本 + .meta;永不提交)。
+unity/Assets/Scenes/AtlasProbe*
 # Unity Test Framework 首跑自动生成的初始化场景(Assets 根,机器相关;含同级 .meta)。
 unity/Assets/InitTestScene*
 # Addressables 编辑器生成物(Setup 菜单 / 首次初始化自动产出;归 ADR-014 正式批,永不提交 —— 见 u1-spike-checklist.md §4.0 第 5 步)。
