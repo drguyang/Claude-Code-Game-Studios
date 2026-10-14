@@ -124,3 +124,10 @@ story」,不是「链断在语义层」。
 - **结论**:**CHANGES REQUIRED → 立在 sprint-09(或 hotfix)**:B-6-1 输入路径 wiring(收口
   判据直判)+ B-6-2 焦点可见性 + B-6-3 可读性;B-6-1 修复前 sprint-08 不得转 Complete
   (收口判据 = 自动化绿 + 人工绿双半,承 sprint-07 G5.2 同口径)。
+
+- ✅ **2026-10-14 回填:B-6-1 已 Complete** —— 自动化半(`ui_input_module_wiring_test` 三条 +
+  `casebook_lexicon_book_test` 11/11 + EditMode 3270/0/46/1 + PlayMode 170/170)与人工半
+  (用户真机:鼠标点病名栏 / 方向键 + Enter 双路径均有响应;值区横排正常;退出 Play 不卡)
+  **双半达成**。评审原件:`production/qa/evidence/review-b6-1-input-wiring-2026-10-14.md`;
+  提交 `b37653e` + `a8c7744`。⇒ **「B-6-1 修复前 sprint-08 不得转 Complete」这一阻塞已解除**。
+  ⚠️ B-6-2 / B-6-3 / B-6-4 **仍未修**,各归独立 story ⇒ sprint-08 整体**仍不可**转 Complete。
