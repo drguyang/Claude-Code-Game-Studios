@@ -301,5 +301,49 @@ namespace DaYiJingCheng.Tests.Boot
             Assert.IsTrue(_ledger.TryGetSnapshot(patient.Value, out var snap));
             Assert.AreEqual(2, snap.ExaminedTick, "复查覆盖 → tick 更新(AC-8-46 后续精度)");
         }
+
+        // ══════════ S11-1 判据:多病人隔离(QA 计划 Edge cases 补面) ══════════
+        //
+        // CasebookVitalsSource.RevealedRows 按 _patient(当前绑定)取分册快照 ——
+        // 隔离语义 = 查过 A 不为 B 产生词条(快照按 patientId 分册键隔离)。
+        // 本测在 ExamineDriver+Ledger 层钉住「分册按 id 隔离」这半边;
+        // 绑定切换的 42 呈现半边由 CasebookVitalsSource.TryGetSnapshot(_patient) 结构保证
+        // (源码只按 _patient.Value 单键查,无跨键路径),不另建装配级双源测试。
+
+        [Test]
+        public void test_examine_twoPatients_ledgerIsolatedByPatientId()
+        {
+            PatientId a = _bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 0);
+            PatientId b = _bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 0);
+            _bag.VitalsService.OnTickEdge(0);   // 两病人同 tick 同 position(夹具等态)
+
+            // 只查 A
+            _driver.OnExamine(a, tick: 1);
+
+            Assert.IsTrue(_ledger.TryGetSnapshot(a.Value, out _), "A 查过 ⇒ 有快照");
+            Assert.IsFalse(_ledger.TryGetSnapshot(b.Value, out _),
+                "B 未查 ⇒ 无快照(分册按 patientId 隔离 —— 查 A 不为 B 产生词条,禁串册)");
+            Assert.IsFalse(_ledger.HasExamined(b.Value),
+                "HasExamined(B) 亦须 false(两查询口径一致)");
+        }
+
+        [Test]
+        public void test_examine_twoPatients_bothExamined_snapshotsIndependent()
+        {
+            PatientId a = _bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 0);
+            PatientId b = _bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 0);
+            _bag.VitalsService.OnTickEdge(0);
+
+            _driver.OnExamine(a, tick: 1);
+            _driver.OnExamine(b, tick: 2);
+
+            Assert.IsTrue(_ledger.TryGetSnapshot(a.Value, out var sa));
+            Assert.IsTrue(_ledger.TryGetSnapshot(b.Value, out var sb));
+            Assert.AreEqual(1, sa.ExaminedTick, "A 的快照 tick 不被 B 的复查覆盖");
+            Assert.AreEqual(2, sb.ExaminedTick, "B 的快照 tick 独立");
+            // 两病人同夹具态 ⇒ 词条数应一致(隔离 = 互不影响,非内容不同)
+            Assert.AreEqual(sa.Set.SignCount, sb.Set.SignCount,
+                "同态两病人独立快照 ⇒ 词条数一致(复查 B 不得扰动 A 的读数)");
+        }
     }
 }
