@@ -1,4 +1,4 @@
-# Session State — 2026-10-14(**当前阶段 = Pre-Production · Sprint 08 ✅ Complete(方笺交互面轮 · 收口判定四导演 3 READY / 1 CONCERNS-非阻断)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
+# Session State — 2026-10-14(**当前阶段 = Pre-Production · Sprint 09 🚧 In Progress(M2 收口冲刺 · S1 第七轮全链 playtest / S2 PAGES_MAX spike / S3 M2 Exit 复评翻勾)· Sprint 08 ✅ Complete(方笺交互面轮)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
 
 ## Sprint 05 进展(2026-10-10)
 
@@ -1637,9 +1637,9 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 - ⬜ 系统 6 Epic(接收侧:latch/幂等/判距复验/唯一 Append)—— 转绿 AC-4-13 6 半 + AC-4-17 6 消费半
 
 <!-- STATUS -->
-Epic: sprint-08 ✅ Complete(2026-10-14 收口 · 四导演 3 READY / 1 CONCERNS-非阻断)
-Feature: 收口判定 + 登记项入账(sprint-09 首项 = 第七轮全链人工 playtest)
-Task: 开 sprint-09(承 tech-debt 批 + 第七轮全链 playtest 登记项)
+Epic: sprint-09 🚧 In Progress(M2 收口冲刺 · 2026-10-14 开)
+Feature: S1 第七轮全链人工 playtest / S2 PAGES_MAX 实测冻结 / S3 M2 Exit 复评翻 3 勾
+Task: S2 spike 先行为宜(唯一真硬阻塞)→ S1 用户真机连续走查 → S3 按证据翻勾
 <!-- /STATUS -->
 
 ---
@@ -2848,3 +2848,5 @@ B-6-4(字体资产精度 P3)各有独立 story 且未修。B-6-1 只是「修复
 
 ⚠️ **sprint-08 整体仍不可转 Complete** —— **B-6-2**(焦点可见性 P2)open,独立 story。
 B-6-1 / B-6-3 / B-6-4 三项均已解除。
+
+<!-- QA-PLAN: 2026-10-14 | System: sprint-09 | Plan written: production/qa/qa-plan-sprint-09-2026-10-14.md -->

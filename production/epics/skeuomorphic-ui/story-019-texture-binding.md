@@ -288,6 +288,18 @@ Exit Criteria 第 5 条的形态件 **① 脉案线格/空行/焦点明度轴压
 - Then: 页数 ≤ `PAGES_MAX`,超限报冲突并告警
 - Edge cases: 恰在阈值;单族跨页;`PAGES_MAX` 未冻结(须先冻结,不得填占位值)
 
+> **⚠️ 019-b 冻结口径(用户裁定 2026-10-14 · sprint-09 QA 计划回填)** ——
+> 本条由 **spike 实测倒推**冻结:真打包五族 16 张 `*-final.png` ⇒ 实测页数 **N** ⇒
+> `PAGES_MAX = N + 余量`(余量亦由实测定)。**不预置数值** ——
+> `skeuomorphic-ui.md:1150` 明写「由 spike 定(F6),留白」;既有估值(TA 5–7 页 / AD 3 页)
+> **均未做实际打包测算**,且 2026-10-04 J 裁明令**禁填占位值**(占位值 = 第二真源)。
+> **spike 探针约束**:只读不改生产打包路径;`PAGES_MAX` 未冻结前**不得打 atlas**(做完即错),
+> 本条是 `019-b → atlas 打包 → C9 判` 三步链首环。
+> **风险**:spike 若判超页 ⇒ 触发切图重切 = 全局返工(TD 点名)。
+> **引擎面**:UI Toolkit 图集行为 post-cutoff(ADR-013 Knowledge Risk HIGH,§6.6 假设 6
+> spike 未跑)⇒ 探针须记录引擎版本实测行为,供 ADR-013 §6.6 假设 6 一并结清。
+> 详见 `production/qa/qa-plan-sprint-09-2026-10-14.md` §②。
+
 **AC-42-C10**:
 - Given: 屏幕级 UXML/USS(story 011–018 的产物)
 - When: lint 扫描 `url()`
