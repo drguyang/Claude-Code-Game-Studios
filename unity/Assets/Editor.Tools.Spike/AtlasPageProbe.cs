@@ -40,6 +40,17 @@ namespace DaYiJingCheng.EditorTools.Spike
         /// <summary>菜单入口(人工跑)与 batch 入口(”——executeMethod“)共用。</summary>
         [MenuItem("大医精诚/Spike/Probe Atlas Pages (019-b)")]
         public static void Run()
+        {
+            Debug.Log($"{LogTag} === S2 PAGES_MAX spike 起 ===");
+
+            ProbePanelSettings();
+            ProbeDynamicAtlasApi();
+            ProbeTextureInventory();
+            ProbeSubTextureEligibility();   // 第二问:改冻「入图集资格」后的实测面
+            ProbeRaisedThreshold1024();     // 第三问:抬门槛到 1024 后的页数实测
+
+            Debug.Log($"{LogTag} === 终 ===");
+        }
 
         /// <summary>
         /// 编辑器内取样入口(S2 · 用户裁定 2026-10-14「数据最全」路径)。
@@ -110,20 +121,6 @@ namespace DaYiJingCheng.EditorTools.Spike
             Debug.Log($"{LogTag} EDITOR_SAMPLE_READY|scene={ScenePath}|panel={panelPath}|" +
                       $"raised={Raised}|elements={added}|" +
                       $"NEXT=Play 一次,页数将由 AtlasPageReader 打 Console");
-        }
-
-        /// <summary>拆入口(原 Run 主体留给 batch 用;菜单只指向它)。</summary>
-        public static void RunBatch() => Run();
-        {
-            Debug.Log($"{LogTag} === S2 PAGES_MAX spike 起 ===");
-
-            ProbePanelSettings();
-            ProbeDynamicAtlasApi();
-            ProbeTextureInventory();
-            ProbeSubTextureEligibility();   // 第二问:改冻「入图集资格」后的实测面
-            ProbeRaisedThreshold1024();     // 第三问:抬门槛到 1024 后的页数实测
-
-            Debug.Log($"{LogTag} === 终 ===");
         }
 
         /// <summary>Q1 前半:PanelSettings 的图集设置面(静态配置,必可读)。</summary>
