@@ -285,4 +285,4 @@ unity/Assets/Gameplay.UI/Skeuomorphic/Textures/
 | **实测** | 网格谷 竖 261/511/762 · 横 258/508/761(目标 256/512/768,±6px 重生固有松弛)· 16 格覆盖率 4.6–29.1% · 水印残值 2.04%(旧 16.23%)· 16 图标主题全数在位(SenseNova 判读) | 纤维 std **7.59** · 云斑 1.331(原 1.104)· 裁剪 0.000% · 冷色 0.00% · 接缝 TB/LR 1.50/0.45 · 淡墨 p50 **7.18:1** / 最亮 8.38:1(门 ≥7:1 只管淡墨按 p50,承 2026-10-05 口径) |
 | **入库位** | `Textures/ui_icons_sprite-final.png`(替换,meta/GUID `b34a1e5b` 未动) | `Textures/Casebook/casebook_paper_base-final.png`(替换,meta/GUID `90541d77` 未动) |
 | **迭代版** | `assets/design-references/ui_icons_sprite-1024-v2.png`(定稿同体)+ 弃用的 v1 降采样版 | `assets/design-references/casebook_paper_base-1024.png` |
-| **待办(禁借绿)** | Unity 重导入后五族夹具/atlas 实测门复跑(`atlas_page_count_test` 仍应 2/2)—— **未跑** | 同左;且 USS 引用仍为零(casebook 链 P0 层未出,非本轮义务) |
+| **待办(禁借绿)** | ✅ **已复跑(2026-10-14)**:batch 重导入后 `atlas_page_count_test` **2/2 Passed**(`Logs/s09_atlas_reimport2.xml`;首跑 1 红 = 旧断言「合格 16/超规 2」成化石,断言更新 18/0 后绿,`1c03f2f`)。⚠️ 旧断言化石判读:红 = 重生目标达成证据,非资产恶化 | USS 引用仍为零(casebook 链 P0 层未出,非本轮义务) |
