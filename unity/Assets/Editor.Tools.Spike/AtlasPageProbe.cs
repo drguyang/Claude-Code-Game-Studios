@@ -257,9 +257,13 @@ namespace DaYiJingCheng.EditorTools.Spike
         }
 
         /// <summary>面板 → 渲染器 → 动态图集(逐层反射,任一环缺失即报不可达)。</summary>
+        /// <remarks>
+        /// ⚠️ 2026-10-14 实测纠正:RuntimePanel 上无 m_Renderer / renderer,
+        /// 真名是 **panelRenderer**(见 atlas_page_count_test 首轮 TRACE 行)。
+        /// </remarks>
         private static object FindAtlas(object panel)
         {
-            foreach (string fieldName in new[] { "m_Renderer", "renderer", "m_PanelRenderer" })
+            foreach (string fieldName in new[] { "panelRenderer", "m_PanelRenderer", "renderer", "m_Renderer" })
             {
                 var f = panel.GetType().GetField(fieldName,
                     BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
@@ -268,14 +272,26 @@ namespace DaYiJingCheng.EditorTools.Spike
                 object renderer = f.GetValue(panel);
                 if (renderer == null) continue;
 
-                foreach (string aName in new[] { "m_Atlas", "atlas", "m_DynamicAtlas" })
+                // ⚠️ 2026-10-14 实测:图集不在 renderer 直接字段,而在 renderTreeManager
+                //    的 `<atlas>k__BackingField`(见 atlas_page_count_test 实测)。
+                foreach (string aName in new[] { "renderTreeManager", "m_Atlas", "atlas" })
                 {
                     var af = renderer.GetType().GetField(aName,
                         BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
                     if (af == null) continue;
 
-                    object atlas = af.GetValue(renderer);
-                    if (atlas != null) return atlas;
+                    object val = af.GetValue(renderer);
+                    if (val == null) continue;
+
+                    if (aName == "renderTreeManager")
+                    {
+                        var atlasProp = val.GetType().GetProperty("atlas",
+                            BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+                        object at = atlasProp?.GetValue(val);
+                        if (at != null) return at;
+                        continue;
+                    }
+                    return val;
                 }
 
                 Debug.Log($"{LogTag} TRACE|rendererFound={renderer.GetType().FullName}|atlasFieldMissing");

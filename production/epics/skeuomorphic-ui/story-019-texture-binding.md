@@ -1,7 +1,7 @@
 # Story 019: 贴图接入(16 张 `*-final.png` → USS 元件族 · 九宫格 slice 对齐真实切图 · 图集页数实测)
 
 > **Epic**: 拟物 UI 框架
-> **Status**: **部分完成** —— **019-c `Complete ✅`(2026-10-05)** · **019-d `Complete ✅`(2026-10-05)** · **019-e `Complete ✅`(2026-10-05)** · **019-f `Complete ✅`(2026-10-08)** · 019-b `Blocked`(与形态件无关,卡 atlas 页数不卡形态件)
+> **Status**: **部分完成** —— **019-c `Complete ✅`(2026-10-05)** · **019-d `Complete ✅`(2026-10-05)** · **019-e `Complete ✅`(2026-10-05)** · **019-f `Complete ✅`(2026-10-08)** · **019-b `冻结轮落定 ✅`(2026-10-14 · 判据已实测倒推冻结,门待接线)**
 > **Layer**: Foundation
 > **Type**: UI
 > **Estimate**: 待估(依赖五族切图冻结)
@@ -45,7 +45,7 @@
 | **019-e · 导入格式订正** | 16 张 `.meta`:`spriteMode 0→1` · `textureType 0→8` · `alphaIsTransparency 0→1` · **`spriteBorder` 值(留哨兵待美术)** | **零裁定依赖** —— 格式是**机械的**;唯 `spriteBorder` 的**数值**待 019-f 冻结件 | ✅ **Complete 2026-10-05** | ~~哨兵值待 019-f 一次填入(解锁三步 ③)~~ → ✅ **2026-10-08 已闭**(019-f 冻结轮一次填入 4 张) |
 | **019-d · 接图** | C7(接图半)+ **贴图容器类**加 `background-image` + `-unity-slice-*` | ✅ **裁定已闭 + 工程已落(2026-10-05)** —— 注册表增列 `IsTextureContainer` · 四基类接图(落地 5 选择器)· `.ink` 补背景 · 焦点改铜侧 · C4 硬编码 44→0 | ✅ **Complete 2026-10-05** | — |
 | **019-f · C8 冻结件** | 九宫格 slice 值**来自切图冻结件的元数据**(不得手填) | ~~美术~~ → **工程实测口径已闭**(2026-10-08:可复算掩膜法实测,非人工目测、非估计;方法/复算锚见冻结件 §一/§七) | ✅ **Complete 2026-10-08** | 🔑 **M2 形态件 ①② 的咽喉已解**(解锁三步 ① ✅;冻结轮查出 scroll 68→72) |
-| **019-b · 图集预算** | C9 | **spike** —— `PAGES_MAX` 未冻结(非美术) | **Blocked** | ❌ 与形态件无关(卡 atlas 页数,不卡 M2) |
+| **019-b · 图集预算** | C9 | **spike 已跑** —— 实测确证固定 2 页模型,判据改锚「单帧同屏瓦片数 ≤ 32」 | ✅ **冻结轮落定 2026-10-14**(门待接线) | 🔑 冻结件 `design/assets/specs/atlas-budget-freeze-2026-10-14.md` |
 
 > **019-c 的实测依据**:① 7 个屏幕 UXML 全部只引类名,`url(` 命中 **0** ⇒ C10 可立即锁死;
 > ② 16 张图 GUID 均在,可解析 ⇒ C11 可立即实现;③ 注册表实测仅 **4 类**(纸/卷轴/墨/印章 —— 截至 019-c),
@@ -213,10 +213,17 @@ Exit Criteria 第 5 条的形态件 **① 脉案线格/空行/焦点明度轴压
       (顶层每张 `*-final.png` 须有登记行)→ meta 侧 → USS 侧,任一单点改 ⇒ 红(禁第二真源)。
       **证据**:过滤 225/212/0 红 · 变异(border_scroll 72→68)**恰 2 红** ·
       全量 EditMode **3002/2955/0 红** · 全量 PlayMode **98/97/0 红**(详见 §Test Evidence)。
-- [ ] **AC-42-C9(新)** ⛔ **归 019-b · Blocked**: 实测**图集页数 ≤ `PAGES_MAX`**;超限 => 构建期冲突并给出溢出告警
-      (兑现 `TR-skeuoui-011` 第 ② 半;`PAGES_MAX` 值待与图集布局同批冻结)
-      ⇒ ⚠️ **2026-10-04 J:本条现不可判** —— `PAGES_MAX` 未冻结,填占位值 = 第二真源。
-      **须待 ADR-013 §6.6 假设 6 spike 落定后方可勾。禁借绿。**
+- [ ] **AC-42-C9(新)** ✅ **019-b 冻结轮落定 2026-10-14(判据已可判,门待接线)**: 图集预算判据
+      —— 实测确证 Unity 6.3 图集 = **固定 2 页**(Point + Bilinear,无页链),单页瓦片容量
+      `(maxAtlasSize/maxSubTextureSize)² = (4096/1024)² = 16` ⇒ **单帧同屏瓦片硬上限 = 32**。
+      **冻结件**:`design/assets/specs/atlas-budget-freeze-2026-10-14.md`(唯一真源)。
+      **实测门**:`atlas_page_count_test.cs`(batch PlayMode · `Logs/s09_atlas_final.xml` · **2/2 Passed**)。
+      ⇒ ✅ **原 Blocked 解除** —— 判据已由实测倒推冻结(非占位值)。
+      ⚠️ **残留(归实现轮,非本冻结阻塞)**:① 构建期「瓦片取用 ≤ 32」断言**门尚未接线**;
+      ② 「真机某屏实际取到几瓦片」batch 下结构性不可测(18 轮取证,见冻结件 §四),留真机实测;
+      ③ **F5 量纲须修订**(页数 → 单帧同屏瓦片数),归 42 的 GDD 轮。
+      ⚠️ **超规 2 张**(`ui_icons_sprite` / `casebook_paper_base` 2048²)⇒ `/image-gen` 重生 1024²,
+      **不抬门槛开豁免**(承用户 2026-10-14 裁定)。
 - [x] **AC-42-E1(新)** ✅ **019-e Complete 2026-10-05**: 16 张元件贴图的 `.meta` 导入格式须满足九宫格要求 ——
       `spriteMode: 1`(**= `SpriteImportMode.Single`** —— 枚举 `None=0/Single=1/Multiple=2/Polygon=3`,
       实测 Unity 回读 `spriteImportMode == Single`;「Multiple」是**误标**)· `textureType: 8`(Sprite)· `alphaIsTransparency: 1`;
@@ -283,21 +290,22 @@ Exit Criteria 第 5 条的形态件 **① 脉案线格/空行/焦点明度轴压
 - Edge cases: slice 值手填但碰巧正确(须证明来自元数据,非重言);零 slice(不应存在)
 
 **AC-42-C9**:
-- Given: 族级 sprite atlas
-- When: 构建期页数统计
-- Then: 页数 ≤ `PAGES_MAX`,超限报冲突并告警
-- Edge cases: 恰在阈值;单族跨页;`PAGES_MAX` 未冻结(须先冻结,不得填占位值)
+- Given: 运行期图集(`PanelSettings.dynamicAtlasSettings`)+ 元件库贴图清单
+- When: 构建期/装载期瓦片取用统计
+- Then: **单帧同屏瓦片数 ≤ 32**(= 2 页 × 16 瓦片/页),超限报冲突并告警
+- Edge cases: 恰在阈值;单族跨页;门槛 `maxSubTextureSize` 未抬升(默认 64 ⇒ 大量图不入集)
 
-> **⚠️ 019-b 冻结口径(用户裁定 2026-10-14 · sprint-09 QA 计划回填)** ——
-> 本条由 **spike 实测倒推**冻结:真打包五族 16 张 `*-final.png` ⇒ 实测页数 **N** ⇒
-> `PAGES_MAX = N + 余量`(余量亦由实测定)。**不预置数值** ——
-> `skeuomorphic-ui.md:1150` 明写「由 spike 定(F6),留白」;既有估值(TA 5–7 页 / AD 3 页)
-> **均未做实际打包测算**,且 2026-10-04 J 裁明令**禁填占位值**(占位值 = 第二真源)。
-> **spike 探针约束**:只读不改生产打包路径;`PAGES_MAX` 未冻结前**不得打 atlas**(做完即错),
-> 本条是 `019-b → atlas 打包 → C9 判` 三步链首环。
-> **风险**:spike 若判超页 ⇒ 触发切图重切 = 全局返工(TD 点名)。
-> **引擎面**:UI Toolkit 图集行为 post-cutoff(ADR-013 Knowledge Risk HIGH,§6.6 假设 6
-> spike 未跑)⇒ 探针须记录引擎版本实测行为,供 ADR-013 §6.6 假设 6 一并结清。
+> **⚠️ 019-b 冻结口径(用户裁定 2026-10-14 · 冻结轮落定)** ——
+> 本条由 **spike 实测倒推**冻结,**非预置值**:
+> - 实测确证 Unity 6.3 图集 = **固定 2 页**(Point + Bilinear),`DynamicAtlasPage` 无页链;
+> - `maxAtlasSize = 4096` · `maxSubTextureSize = 1024`(用户裁定抬升)⇒ 每页 16 瓦片;
+> - ⇒ **判据改锚**「单帧同屏瓦片数 ≤ 32」,**不是**原措辞的「页数 ≤ PAGES_MAX」
+>   (页数恒 2,原措辞在真模型下不是有意义的门)。
+> - **冻结件**:`design/assets/specs/atlas-budget-freeze-2026-10-14.md`(唯一真源)。
+> - **实测门**:`atlas_page_count_test.cs` · `Logs/s09_atlas_final.xml` · **2/2 Passed**。
+> **引擎面(已结清)**:ADR-013 §6.6 假设 6 的「图集阈值 spike(F6)」**已跑** ——
+> `ui.md` 零图集内容(Knowledge Risk HIGH 实证),故全部结论来自**反射逐层实测**。
+> **残留**:真机实测瓦片取用(batch 结构性不可测,18 轮取证)+ 构建期门接线 + F5 量纲修订。
 > 详见 `production/qa/qa-plan-sprint-09-2026-10-14.md` §②。
 
 **AC-42-C10**:

@@ -63,10 +63,17 @@ sprint-08 的 B-6-1…B-6-4 **各自**双半达成,但**从未在同一次真机
 
 ### S2 `PAGES_MAX` spike(019-b · 唯一真硬阻塞)
 
-| 项 | 落点 | 判据(可证伪) |
-|---|---|---|
-| 实测倒推冻结 | 冻结件落 `design/assets/specs/` | 真打包五族 16 张 `*-final.png` ⇒ 实测页数 **N** ⇒ `PAGES_MAX = N + 余量`(余量亦由实测定)· **非占位值** |
-| 解 Blocked | `story-019-texture-binding.md` AC-42-C9 | `019-b → atlas 打包 → C9 判` 三步链首环打通;**未冻结前不得打 atlas** |
+> ✅ **2026-10-14 落定** —— 实测确证 Unity 6.3 图集 = **固定 2 页**(Point + Bilinear,
+> `DynamicAtlasPage` 无页链);`maxAtlasSize=4096` / `maxSubTextureSize=1024`(用户裁定抬升)
+> ⇒ 每页 16 瓦片 ⇒ **判据改锚「单帧同屏瓦片数 ≤ 32」**。冻结件
+> `design/assets/specs/atlas-budget-freeze-2026-10-14.md` · 实测门 **2/2 Passed**
+> (`Logs/s09_atlas_final.xml`)· 评审原件 `production/qa/evidence/review-s2-pages-max-2026-10-14.md`。
+> ⚠️ **batch 下页数结构性不可测**(需真 GPU 绘制 pass,18 轮取证)⇒ 真机实测瓦片取用留后续轮。
+
+| 项 | 落点 | 判据(可证伪) | 状态 |
+|---|---|---|---|
+| 实测倒推冻结 | `design/assets/specs/atlas-budget-freeze-2026-10-14.md` | 容量模型实测(2 页 / 16 瓦片/页)+ 资格分布(16 合格 / 2 超规)· **非占位值** | ✅ 落定 |
+| 解 Blocked | `story-019-texture-binding.md` AC-42-C9 | 判据已冻结 ⇒ 019-b Blocked 解除;**门接线归实现轮** | ✅ 解除 |
 
 ⚠️ **禁预置数值**:`skeuomorphic-ui.md:1150` 明写「由 spike 定(F6),留白」;既有估值
 (TA 5–7 页 / AD 3 页)均未做实际打包测算;2026-10-04 J 裁明令禁填占位值(占位值 = 第二真源)。
