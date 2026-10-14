@@ -115,8 +115,15 @@ story-009 范围 = 直读通道装配 + 跳过入口接线 + Idle 门,Estimate *
 - **S1**:第七轮报告落盘 + qa-lead 复核(体验层验证门)
 - **S2**:`PAGES_MAX` 由实测冻结(冻结件在盘,非占位值)⇒ `019-b` 解 Blocked
 - **S3**:M2 Exit 复评原件落盘,三条滞后勾按证据翻
-- **收口判据**:三项证据齐 + 全量测试不回退(EditMode 3270/0/46/1 · PlayMode 175/175)
+- **收口判据**:三项证据齐 + 全量测试不回退(EditMode 3270/0/46/1 · PlayMode **177/177**)
   + `/smoke-check sprint` 过
+  - **基线落点(2026-10-14 qa-lead 复核 F-7 订正,原写 PlayMode 175/175 为陈旧计数)**:
+    EditMode `unity/Logs/b62b_editmode_full.xml`(12:55)= 3317 total / 3270 passed / 0 failed /
+    1 inconclusive / 46 skipped ⇒ 「3270/0/46/1」无误;
+    PlayMode `unity/Logs/s09_playmode_full.xml`(17:07:21)= **177/177 passed / 0 failed**。
+    ⚠️ 该基线为 **HEAD 态**(`a0d7e5f`)跑批;当前工作区有 story-009 WIP(其 EditMode 跑批
+    `story009_editmode.xml` = 3326/3277/**2**/1/46,两条红均在新增 9 条内 ⇒ 基线**零回归**,
+    但该 2 红归 sprint-10 的 story-009,**不由本 sprint 收口判据承担**。
 
 ## §4 风险与依赖
 
