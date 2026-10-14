@@ -2957,3 +2957,4 @@ B-6-1 / B-6-3 / B-6-4 三项均已解除。
 - **M2 就此 Complete**(汇总表行已翻 ✅)。
 - **下一阶段**:Phase 2 剩余四系统 = patient-ai → diagnosis-system → case-system →
   prescription-medication(M3 Systems Complete 主线,16/31 epic)。
+<!-- QA-PLAN: 2026-10-14 | System: sprint-11 | Plan written: production/qa/qa-plan-sprint-11-2026-10-14.md -->

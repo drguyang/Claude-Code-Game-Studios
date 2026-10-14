@@ -24,22 +24,22 @@
 
 | ID | Task | Agent/Owner | Est. Days | Dependencies | Acceptance Criteria |
 |----|------|-------------|-----------|--------------|---------------------|
-| S11-1 | **9 查体 revealed 接线 → 8 前台回路**(脉案值区运行期非空;顺手结 O-13-7 `OnExamSessionChanged` 发出侧登记) | unity-specialist + Claude | 2-3 | M2 链已闭(e2e_full_loop 绿) | 脉案值区运行期显示查体产出(`RevealedRows` 非空);`e2e_full_loop` + 五 wiring 测零回退;O-13-7 结案登记 |
-| S11-2 | **W-1 会签裁决**(ScriptedChain 三案链 9+37 二选一;图样可辨识度 × 8 可读性互斥性验证) | game-designer + user | 0.5 | 无(纯决策轮) | 裁决落盘(case-system.md W-1 行 + 决策记录);「不裁不得实现联调」解除;若裁互斥 ⇒ 支柱四 P0 落点重裁 |
-| S11-3 | **EditMode 退出码 2 处置 = 修 8 测**(8 个旧测试 `new MonoBehaviour` ⇒ 真夹具) | Claude | 0.5-1 | 无 | 全量 EditMode **退出码 = 0** 且 XML failed=0 双达标;判决口径在 sprint 文件登记(两信号不再混读) |
+| S11-1 | **9 查体 revealed 接线 → 8 前台回路**(脉案值区运行期非空;顺手结 O-13-7 `OnExamSessionChanged` 发出侧登记) | unity-specialist + Claude | 2-3 | M2 链已闭(e2e_full_loop 绿) | 脉案值区运行期显示查体产出(`RevealedRows` 非空);`e2e_full_loop` + 五 wiring 测零回退;O-13-7 结案登记 脉案值区运行期显示查体产出(`RevealedRows` 非空);`e2e_full_loop` + 五 wiring 测零回退;O-13-7 结案登记 | **QA**:Integration 测 `examine_revealed_wiring_test`(~4-6 测)+ 人工连走(查体→显示→落笔→开方) |
+| S11-2 | **W-1 会签裁决**(ScriptedChain 三案链 9+37 二选一;图样可辨识度 × 8 可读性互斥性验证) | game-designer + user | 0.5 | 无(纯决策轮) | 裁决落盘(case-system.md W-1 行 + 决策记录);「不裁不得实现联调」解除;若裁互斥 ⇒ 支柱四 P0 落点重裁 裁决落盘(case-system.md W-1 行 + 决策记录);「不裁不得实现联调」解除;若裁互斥 ⇒ 支柱四 P0 落点重裁 | **QA**:会签记录(互斥性可证伪结论;user+designer+qa-lead 三签) |
+| S11-3 | **EditMode 退出码 2 处置 = 修 8 测**(8 个旧测试 `new MonoBehaviour` ⇒ 真夹具) | Claude | 0.5-1 | 无 | 全量 EditMode **退出码 = 0** 且 XML failed=0 双达标;判决口径在 sprint 文件登记(两信号不再混读) 全量 EditMode **退出码 = 0** 且 XML failed=0 双达标;判决口径在 sprint 文件登记(两信号不再混读) | **QA**:XML 实证订正 = 7 测/2 文件/8 处 new(host_authority + o6_actor_cell_payload);纯测试面修复,禁动产品代码 |
 
 ### Should Have
 
 | ID | Task | Agent/Owner | Est. Days | Dependencies | Acceptance Criteria |
 |----|------|-------------|-----------|--------------|---------------------|
-| S11-4 | **prescription DoD 残留**(AC-11-22 7a 白名单本体 + DC-2 `action_id` master 登记(OQ-11-2) + DC-6 `NOISE_BAND_9` 复评——9 侧常量 10-07 已立,OQ-11-13 10-06 已裁,前置已解锁) | Claude | 3-4 | S11-3 顺(同仓测试基线) | prescription EPIC §Epic Status 三项逐项闭合或显式结转;若动 7a 须带 case↔7a 折叠语义集成夹具(TD 风险 1 缓解) |
+| S11-4 | **prescription DoD 残留**(AC-11-22 7a 白名单本体 + DC-2 `action_id` master 登记(OQ-11-2) + DC-6 `NOISE_BAND_9` 复评——9 侧常量 10-07 已立,OQ-11-13 10-06 已裁,前置已解锁) | Claude | 3-4 | S11-3 顺(同仓测试基线) | prescription EPIC §Epic Status 三项逐项闭合或显式结转;若动 7a 须带 case↔7a 折叠语义集成夹具(TD 风险 1 缓解) prescription EPIC §Epic Status 三项逐项闭合或显式结转;若动 7a 须带 case↔7a 折叠语义集成夹具(TD 风险 1 缓解) | **QA**:EditMode 断言 ×3(AC-11-22 IL 扫描/DC-2 闭集 fail-loud/DC-6 引用链闭环) |
 
 ### Nice to Have
 
 | ID | Task | Agent/Owner | Est. Days | Dependencies | Acceptance Criteria |
 |----|------|-------------|-----------|--------------|---------------------|
-| S11-5 | **53 medical-consequences 起首 story**(支柱四载体,机械自足 P0 水龙头,纯 C# + SplitMix64,Engine Risk LOW) | Claude | 1-2 | 9+37 已 Complete ✓ | story 立件 + 判据面成型;不强求当轮完成 |
-| S11-6 | **11 人工走查 AC-11-12/13/21**(前置:先修 Story009WalkthroughDriver `passed` 汇总 bug) | user + Claude | 0.5-1 | Driver bug 修复 | 三 AC 走查证据落 playtests/;Driver 汇总判定修复登记 |
+| S11-5 | **53 medical-consequences 起首 story**(支柱四载体,机械自足 P0 水龙头,纯 C# + SplitMix64,Engine Risk LOW) | Claude | 1-2 | 9+37 已 Complete ✓ | story 立件 + 判据面成型;不强求当轮完成 story 立件 + 判据面成型;不强求当轮完成 | **QA**:随立件定测试路径(Logic 级) |
+| S11-6 | **11 人工走查 AC-11-12/13/21**(前置:先修 Story009WalkthroughDriver `passed` 汇总 bug) | user + Claude | 0.5-1 | Driver bug 修复 | 三 AC 走查证据落 playtests/;Driver 汇总判定修复登记 三 AC 走查证据落 playtests/;Driver 汇总判定修复登记 | **QA**:人工走查三签(主创/医学/音频);Driver passed 汇总修后自证 |
 
 ## Carryover from Previous Sprint
 
