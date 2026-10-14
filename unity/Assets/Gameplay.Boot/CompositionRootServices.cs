@@ -56,6 +56,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>急救手动入口驱动(G4.2)—— 玩家意图 → HostEmergencyProcessor → 双事件入病史流。</summary>
         public EmergencyManualDriver EmergencyManualDriver { get; }
 
+        /// <summary>急救直读通道装配驱动(story-009)—— 通道相位搬运 + 聚合上行映射 +
+        /// Idle 门回调源;实现 <c>IArmedState</c>。BootRoot 生成玩家后 Attach。</summary>
+        public EmergencyChannelDriver EmergencyChannel { get; }
+
         /// <summary>病人最小可见实体驱动(sprint-05 T2.0)—— 按在场集 spawn 占位视觉;
         /// 由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
         public PatientVisualSpawner PatientVisualSpawner { get; }
@@ -117,6 +121,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          CaseOpenedDriver caseOpenedDriver,
                                          EmergencyAttemptDriver emergencyAttemptDriver,
                                          EmergencyManualDriver emergencyManualDriver,
+                                         EmergencyChannelDriver emergencyChannel,
                                          PatientVisualSpawner patientVisualSpawner,
                                          ulong worldSeed, DiseaseVitalsService vitalsService,
                                          CasebookVitalsSource casebookSource,
@@ -142,6 +147,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             CaseOpenedDriver = caseOpenedDriver;
             EmergencyAttemptDriver = emergencyAttemptDriver;
             EmergencyManualDriver = emergencyManualDriver;
+            EmergencyChannel = emergencyChannel;
             PatientVisualSpawner = patientVisualSpawner;
             VitalsService = vitalsService;
             CasebookSource = casebookSource;

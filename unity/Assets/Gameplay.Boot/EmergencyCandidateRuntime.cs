@@ -78,5 +78,26 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_list.Root.parent != root)
                 root.Add(_list.Root);
         }
+
+        /// <summary>
+        /// 可见性透传(story-009 · R-9.3 Idle 门的**生产调用点**):Idle 态复现 /
+        /// Armed(或中止后回 Idle)切换由 <c>EmergencyChannelDriver</c> 的 Idle 门回调驱动。
+        /// <para>⚠️ 之前宿主只造不切 ⇒ 列表「有载体但零交互绑定」(story-009 勘察 finding);
+        /// 本透传 + 驱动回调 = 门的两侧接上。初始态 = Build 后可见(display 默认 Flex)。</para>
+        /// </summary>
+        public void SetVisible(bool visible) => _list.SetVisible(visible);
+
+        /// <summary>当前是否可见(观测面)。</summary>
+        public bool IsVisible => _list.IsVisible;
+
+        /// <summary>跳过入口是否可获焦点(AC-9-07 观测面 —— focusable 在 Build 内置位)。</summary>
+        public bool SkipFocusable => _list.SkipFocusable;
+
+        /// <summary>
+        /// 注入跳过 Submit 回调(story-009 · R-9.4):生产 = BootRoot 指向
+        /// <c>CasebookCommandRouter.SubmitEmergencySkip</c>。参数只取
+        /// <see cref="System.Action"/> —— 不跨装配边界暴露 Gameplay.UI 类型(头注纪律)。
+        /// </summary>
+        public void SetSkipCallback(System.Action onSubmit) => _list.SetSkipCallback(onSubmit);
     }
 }

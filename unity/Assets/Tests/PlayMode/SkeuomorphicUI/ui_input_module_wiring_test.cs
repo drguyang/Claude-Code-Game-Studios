@@ -408,6 +408,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             public void SubmitDose(int doseOrdinal) { }
             public void SubmitPageTurn() { }
             public void SubmitFold() { }
+            public void SubmitEmergencySkip() { }   // story-009 接口增员(本测不涉及跳过路径)
         }
     }
 }

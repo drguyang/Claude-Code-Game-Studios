@@ -63,6 +63,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             public void SubmitDose(int doseOrdinal) => Doses.Add(doseOrdinal);
             public void SubmitPageTurn() => PageTurns++;
             public void SubmitFold() => Folds++;
+            public void SubmitEmergencySkip() { }   // story-009 接口增员(本测不涉及跳过路径)
         }
 
         /// <summary>逻辑树夹具(无 panel)—— ①–⑥ 的宿主。</summary>

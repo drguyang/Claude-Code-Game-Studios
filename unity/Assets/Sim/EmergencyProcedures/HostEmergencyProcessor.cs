@@ -104,8 +104,15 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
                 attempt.EdgeTicks,
                 attempt.MagPeak);
 
-            // Judge
-            var result = JudgeEvaluator.Judge(reading, action, ctx);
+            // Judge(⚠️ 2026-10-14 story-009 用户裁定「带最小 Judge 分支」):
+            //   method = Skip(1) ⇒ 判定结果不走时序 / 幅度门 —— 规则六:跳过恒 AppliedWeak
+            //   (取 <see cref="ModalPhaseEvaluator.Skip"/> 的 Result;无障碍开关
+            //   SkipEquivalence 归 49 / P2,P0 机制位恒 OFF ⇒ accessibilityOn: false)。
+            //   ⚠️ 强度**仍走 F-10.4 公式**(ResultMul[AppliedWeak] = 0.5 档),
+            //   不在本处置拍值 —— 本分支只裁「结果」不裁「强度」。
+            var result = attempt.Method == 1
+                ? ModalPhaseEvaluator.Skip(accessibilityOn: false).Result
+                : JudgeEvaluator.Judge(reading, action, ctx);
 
             // ── Append ① EmergencyAttempt(物化;八字段全载)────────────────
             var attemptEvent = new SimEvent(

@@ -19,6 +19,7 @@
 // ⚠️ 单线程:tick 由 BootRoot 泵驱动,本驱动只在玩家意图发生时被调用。
 
 using System;
+using DaYiJingCheng.Gameplay.Input.Intents;   // AggregatedEmergency(3 的聚合交出物,story-009)
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.EmergencyProcedures;
@@ -108,6 +109,58 @@ namespace DaYiJingCheng.Gameplay.Boot
                 actorId: actorId,
                 edgeTicks: new[] { (int)tick });
 
+            return TryAttempt(attempt, patientId, tick);
+        }
+
+        /// <summary>
+        /// 直读通道聚合交出物入口(story-009 · 2026-10-14 用户裁定「F 键 = 按住 = 一次动作」):
+        /// 把 3 的 <see cref="AggregatedEmergency"/> 映射为判域形状并走同一 Process 链。
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ **映射住本装配边界**(R-9.2 / AC-3-A6):<c>AggregatedEmergency</c> 是 3 的交出物,
+        /// <see cref="EmergencyAttemptPayload"/> 是判域形状;method / actorId 是 3 侧不知道的
+        /// 语境,在此补齐(method 恒 0 = Manual —— 直读通道没有跳过语义,跳过走
+        /// <see cref="TryManual"/>(method 1))。**本类不写流** —— 写者恒
+        /// <see cref="HostEmergencyProcessor"/>(ADR-005 主机唯一 Append)。
+        /// </remarks>
+        /// <param name="agg">通道聚合交出物(F-10.5 五字段;零样本不可能 —— 零样本在
+        /// 通道 EndAction 已签约为 null)。</param>
+        /// <param name="actorId">施予者(玩家)id。</param>
+        /// <param name="patientId">被施救病人(须在场 —— 同 <see cref="TryManual"/>)。</param>
+        /// <param name="tick">当前 tick。</param>
+        /// <returns>回执(Applied = 双事件已入流;不在场 = false)。</returns>
+        /// <exception cref="ArgumentOutOfRangeException">tick / actorId 非法。</exception>
+        public EmergencyManualResult TryAggregated(in AggregatedEmergency agg, int actorId,
+                                                    PatientId patientId, long tick)
+        {
+            if (tick < 0)
+                throw new ArgumentOutOfRangeException(nameof(tick), tick, "逻辑 tick 不得为负");
+            if (actorId < 0)
+                throw new ArgumentOutOfRangeException(nameof(actorId), actorId,
+                    "actorId 走 ADR-006 Amendment B 计数器 id 空间,不得为负");
+            if (!_presence.IsPresent(patientId))
+                return new EmergencyManualResult(false);
+
+            // 聚合 → 判域映射。⚠️ 量纲注记(登记数值轮):EdgeTicks 此处是「动作内样本序号」
+            // (通道内单调计数,非逻辑 tick)—— F-10.5 的 hold_ticks = 末沿 − 首沿 在该量纲下
+            // = 首末沿间的采样帧数;与 20 Hz tick 的换算归数值轮裁定(与三乘子同批)。
+            var attempt = new EmergencyAttemptPayload(
+                action: agg.Action,
+                holdTicks: agg.HoldTicks,
+                edges: agg.Edges,
+                magPeak: agg.MagPeak,
+                magLast: agg.MagLast,
+                method: 0,           // 直读通道 = Manual(Skip 只经 TryManual)
+                actorId: actorId,
+                edgeTicks: agg.EdgeTicks);
+
+            return TryAttempt(attempt, patientId, tick);
+        }
+
+        /// <summary>共享结算尾(presence 已由入口检查;ctx / 动作表行在此单源)。</summary>
+        private EmergencyManualResult TryAttempt(EmergencyAttemptPayload attempt,
+                                                  PatientId patientId, long tick)
+        {
             var ctx = new JudgeContext
             {
                 Level = 1,

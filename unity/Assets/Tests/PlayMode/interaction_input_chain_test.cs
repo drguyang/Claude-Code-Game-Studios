@@ -15,6 +15,7 @@
 using System.Collections;
 using System.Linq;
 using DaYiJingCheng.Gameplay.Boot;
+using DaYiJingCheng.Gameplay.Input;
 using DaYiJingCheng.Gameplay.Presentation.Player;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
@@ -224,21 +225,35 @@ namespace DaYiJingCheng.Tests.PlayMode
         {
             AssembleChain();
 
+            // ⚠️ story-009 改判(2026-10-14 用户裁定「按住 = 一次动作」):F 按下沿 =
+            //   直读通道 Arm(**零事件** —— 事件在松开沿聚合上行);本测按住期经
+            //   FeedForTest 喂样本(逻辑层模式,与 story-007 phase spike 同款),松开沿
+            //   再 OnFrame 触发 EndAction ⇒ 双事件。旧「按下沿直发」已作废。
+            int streamCountBeforeF = _bag.Stream.Count;
+
             Press(Key.F);
             if (!PlayerInputReader.EmergencyPressed())
                 PressGamepadButton(GamepadButton.West);
             Assert.IsTrue(PlayerInputReader.EmergencyPressed(),
                 "探针:F/buttonWest 注入后 Emergency 读回 = true(键位注入生效)");
-            _driver.OnFrame();
-            ReleaseAll();
+            _driver.OnFrame();                       // 按下沿:Arm + 锁定目标(零事件)
 
-            Assert.AreEqual(_bag.Presence.PresentPatientIds().First(),
-                            _driver.LastEmergencyPatient.Value,
-                "按 F 应急救最近在场病人(判据②)");
+            Assert.AreEqual(DirectChannelState.Armed, _bag.EmergencyChannel.State,
+                "按下沿 ⇒ 通道 Armed(story-009 按住语义)");
+            _bag.EmergencyChannel.FeedForTest(0.8f, newlyPressed: true);   // 按住期采样
+            _bag.EmergencyChannel.FeedForTest(0.6f, newlyPressed: false);
+
+            ReleaseAll();
+            _driver.OnFrame();                       // 松开沿:EndAction ⇒ 聚合上行
+
             Assert.IsTrue(StreamHas(_bag.Stream, EventKind.EmergencyAttempt),
-                "按 F ⇒ EmergencyAttempt 入病史流(S2.5)");
+                "按住后松开 ⇒ EmergencyAttempt 入病史流(S2.5 · story-009 按住语义)");
             Assert.IsTrue(StreamHas(_bag.Stream, EventKind.EmergencyTreatmentApplied),
-                "按 F ⇒ EmergencyTreatmentApplied 入病史流(S2.5)");
+                "按住后松开 ⇒ EmergencyTreatmentApplied 入病史流(S2.5)");
+            Assert.AreEqual(_driver.LastEmergencyPatient.Value,
+                            _bag.EmergencyChannel.Target.Value,
+                "施救对象 = Arm 时锁定的最近在场病人(判据②)");
+            Assert.Greater(_bag.Stream.Count, streamCountBeforeF, "事件确有新增(前置自证)");
 
             yield return null;
         }

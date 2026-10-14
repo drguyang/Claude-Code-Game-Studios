@@ -157,5 +157,13 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
         /// <remarks>与 <see cref="SubmitPageTurn"/> 同纪律(零写入)。折叠态归 42 的
         /// <b>纯呈现态</b>(与病名册开合同格),不进 sim。</remarks>
         void SubmitFold();
+
+        /// <summary>急救候选列表「跳过」项 Submit(story-009 · 规则六之甲)。
+        /// <para>跳过 = 一次手动急救(method = 1)—— 走 <c>EmergencyManualDriver.TryManual</c> →
+        /// 双事件入病史流,经 F-10.4 得 AppliedWeak 档强度;**不是**旁路 no-op。</para></summary>
+        /// <remarks>实现方目标 = 脉案当前绑定病人(与 <see cref="SubmitDose"/> 同构);
+        /// 未绑定 / 不在场 ⇒ 零事件零提示(AC-11-12 同纪律)。候选项(止血 / 通气)的
+        /// 动作语义归 21a / 10 真动作表轮 —— 本入口只承载跳过。</remarks>
+        void SubmitEmergencySkip();
     }
 }

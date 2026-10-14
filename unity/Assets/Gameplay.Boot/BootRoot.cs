@@ -114,9 +114,22 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   环境 TryPreload 失败 ⇒ 组合根磁盘兜底(同一份字节,真装载)。
             //   生产构建乙案失败 ⇒ 磁盘兜底路径不存在(DataCooked 不进构建)⇒ 仍 E-13 硬失败。
             bool preloaded = DataCorePreloader.TryPreload();   // 首次 Step 之前(ADR-014 §五)
+
+            // ── 2.5 项目级动作资产 fail-loud(story-009 R-9.5 · AC-9-01)──
+            // 通道装载 = InputSystem.actions(原稿 Addressables 路径被实测推翻:该资产是
+            // 项目级设置、git-tracked;Addressables 装载同资产 = 第二实例,违 AC-3-A1)。
+            // 缺失即抛(E-13 同口径),不静默降级为零急救输入 + 零 UI 输入。
+            var inputActions = InputSystem.actions;
+            if (inputActions == null)
+                throw new InvalidOperationException(
+                    "[BootRoot][story-009] InputSystem.actions 为 null —— 项目级动作资产未注册。" +
+                    "检查 ProjectSettings/EditorBuildSettings.asset 的 com.unity.input.settings.actions" +
+                    "(期望 guid 052faaac586de48259a63d0c4782560b)。急救直读通道与 UI 输入将不可用。");
+
             _services = CompositionRoot.Assemble(
                 registry: null,
-                dataProvider: preloaded ? DataCorePreloader.Provider : null);
+                dataProvider: preloaded ? DataCorePreloader.Provider : null,
+                inputActions: inputActions);
 
             // ── 3. World 场景 additive 加载(ADR-023:永不用 LoadSceneMode.Single)──
             // ⚠️ 本版 `LoadSceneAsync` **没有 `autoReleaseHandle` 形参**(U1 spike 坑 A 的
@@ -178,11 +191,21 @@ namespace DaYiJingCheng.Gameplay.Boot
                 actorId);
             _interactionDriver = interaction;
 
+            // ── 4.55. 急救直读通道接线(story-009 · AC-9-01)──
+            // Attach = 挂 onAfterUpdate + Emergency 动作解析 fail-loud(FindAction 落空 ⇒
+            // 通道抛 InvalidOperationException)—— 启动期炸,不带病运行。
+            _services.EmergencyChannel.Attach();
+
             // ── 4.6. 方笺页接线宿主(S2.3/S2.4):SetAuthor(玩家 actorId 已定)──
             // 落笔 / 开方的作者 = 玩家;至此 PrescriptionPageHost 可接动作。
             // ⚠️ 绑定病人由查体驱动(InteractionInputDriver 的 E 查体已切脉案绑定)
             //    —— 方笺页落笔 / 开方对象 = 当前脉案绑定病人(42 侧会话)。
             _services.PrescriptionPage?.SetAuthor(actorId);
+
+            // ── 4.65. 急救跳过入口写路径接线(story-009 · R-9.4)──
+            // 候选列表「跳过」项 Submit → EmergencyManualDriver.TryManual(method 1)。
+            // actorId 由 BootRoot 生成玩家后注入(SetAuthor 同款后置形态 —— 装配期未知)。
+            _services.CasebookCommands?.BindEmergencySkip(_services.EmergencyManualDriver, actorId);
 
             // ── 4.7. 病名册观看者(sprint-08 S1.1 件 E):SetViewer(玩家 actorId 已定)──
             // 病名册条目集按人分册(铁律⑤「每人一本」)—— 观看者 = 玩家。
@@ -235,6 +258,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 42 侧 future 若把候选列表并入某个 Screen,此处只改挂点,载体语义不变。
             if (_services.EmergencyCandidates != null)
                 _services.EmergencyCandidates.MountTo(_uiDriver.GetUiRoot());
+
+            // ── 6.6. 急救候选列表交互接线(story-009 · R-9.4)──
+            // 「跳过」项 Submit(键盘 / 鼠标双路径,42 侧 Guarded 回调)→ 命令路由。
+            // 候选项动作语义归 21a/10 真动作表轮 —— 本 story 只接跳过。
+            if (_services.EmergencyCandidates != null && _services.CasebookCommands != null)
+                _services.EmergencyCandidates.SetSkipCallback(
+                    () => _services.CasebookCommands.SubmitEmergencySkip());
 
             // ── 6.7. 官方 UI 输入桥装配(B-6-1 · 2026-10-13)──
             // ADR-013 §F1/F4 + ADR-011 §三:UI Toolkit 平面栈的指针/导航事件经**官方桥**
@@ -472,6 +502,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.EmergencyAttemptDriver.OnTickEdge(_tickDriver.CurrentTick);
             }
 
+            // 急救直读通道中止判据(story-009 · 规则六之甲):同一 tick 边沿序列内检查
+            // Armed 闲置 —— 按住语义下即「按住超阈值 ⇒ 中止,零事件」(R-9.3)。
+            if (_tickDriver.CurrentTick > tickBefore && _services != null)
+            {
+                _services.EmergencyChannel?.OnTickEdge(_tickDriver.CurrentTick);
+            }
+
             // 病人视觉实体(sprint-05 T2.0):急救驱动**之后**调用 —— 视觉跟着在场集走,
             // 与写者次序解耦(视觉是派生态,不参与事件入流次序)
             if (_tickDriver.CurrentTick > tickBefore
@@ -533,6 +570,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 病人视觉实体清理(sprint-05 T2.0):视觉根节点由 PatientVisualSpawner 自持,
             // 不靠层级继承(Boot 场景常驻,看不见 World 卸载)⇒ 显式调用销毁面。
             _services?.PatientVisualSpawner?.DestroyAll();
+
+            // 急救直读通道卸挂(story-009):onAfterUpdate 是全局静态回调,必须在
+            // BootRoot 销毁时显式 Detach,否则域内悬挂委托引用已弃通道(下次 Play 泄漏)。
+            _services?.EmergencyChannel?.Detach();
 
             _booted = false;
             _player = null;

@@ -474,13 +474,17 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
                 "开方环节:DrugTreatmentApplied 载荷可查(真事件入流)");
 
             // ── ⑥ 施治:注入虚拟 F ⇒ EmergencyAttempt + Treatment 双事件 ──
+            // ⚠️ story-009 按住语义(2026-10-14):按下沿 = Arm(零事件),按住期喂样本,
+            //   松开沿 = EndAction 聚合上行(旧「按下沿直发」已作废)。
             Press(Key.F);
             if (!PlayerInputReader.EmergencyPressed())
                 PressGamepadButton(GamepadButton.West);
             Assert.IsTrue(PlayerInputReader.EmergencyPressed(),
                 "探针:F/buttonWest 注入后 Emergency 读回 = true(键位注入生效 —— 若此条红,键位怪癖非链断)");
-            _inputDriver.OnFrame();
+            _inputDriver.OnFrame();                       // 按下沿:Arm
+            _bag.EmergencyChannel.FeedForTest(0.8f, newlyPressed: true);   // 按住期采样
             ReleaseAll();
+            _inputDriver.OnFrame();                       // 松开沿:EndAction ⇒ 双事件
 
             Assert.IsTrue(StreamHas(_bag.Stream, EventKind.EmergencyAttempt),
                 "施治环节:F 注入 ⇒ EmergencyAttempt 入病史流");

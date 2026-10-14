@@ -1,15 +1,18 @@
 // sprint-07 S2 · 玩家交互输入驱动(E=查体 · F=急救 · 2026-10-11)
 //
 // 权威来源:
-//   sprint-07 §2 S2.2(按 E 近病人 → 查体 → 值区有词 [8 真词表])/ S2.5(按 F → 急救手动链双事件)
+//   sprint-07 §2 S2.2(按 E 近病人 → 查体 → 值区有词 [8 真词表])
+//   story-009(2026-10-14 用户裁定「按住 = 一次动作」):F 按下沿 → 直读通道 Arm;
+//     松开沿 → EndAction 聚合上行(ADR-011 §二 直读通道独立于 42 UI 栈)
 //   ADR-011 §一(action-based 官方路线过渡最小面 —— 同 MovementInputReader 登记:
 //     动作资产 runtime 装载归独立 story,本驱动直读设备按键形状)
 //   ADR-009 §七(意图 → 主机判距 → 效果进流 · 单机本地路径)
 //   ADR-013 §9 C3(呈现侧只渲染不持状态 —— 本驱动只翻拍按键,零 sim 真值)
 //
-// ⚠️ 本驱动 = 呈现侧装配件(住 Gameplay.Boot):把「玩家按键意图」翻译成既有驱动调用
-//   (ExamineDriver.OnExamine / EmergencyManualDriver.TryManual),零 sim 状态。
-//   「按下沿」判据 = 上帧按住位比对(持键不重复触发 —— 查体/急救是「一次交互一次动作」)。
+// ⚠️ 本驱动 = 呈现侧装配件(住 Gameplay.Boot):把「玩家按键意图」翻译成通道预约 /
+//   查体调用(ExamineDriver.OnExamine / EmergencyChannelDriver.Arm / EndAction),零 sim 状态。
+//   「按下沿」判据 = 上帧按住位比对(持键不重复触发 —— 查体是「一次交互一次动作」;
+//   急救 = 按住一次,事件在松开沿聚合上行)。
 //
 // ⚠️ **定位源(接线期) = 病人视觉实体位置**(PatientVisualSpawner.TryGetVisualPosition,
 //   占位环);真实位置归 6 世界生态区 + 13 空间侧。最近者 = 距玩家位置的平方距离最小者
@@ -72,11 +75,35 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             bool emergency = PlayerInputReader.EmergencyPressed();
             if (emergency && !_emergencyHeld)
-                TryEmergency();
+                BeginEmergency();
+            else if (!emergency && _emergencyHeld)
+                EndEmergency();
             _emergencyHeld = emergency;
 
             // 观测位**不清零**:Last* = 「最近一次触发」的观测面(测试读走最近一次,
             // 而非「仅本帧」)。初始 None ⇒ 从未触发恒 None(EditMode 空转判据不依赖清除)。
+        }
+
+        /// <summary>F 按下沿(story-009 · 2026-10-14 用户裁定「按住 = 一次动作」):
+        /// 预约直读通道(Arm)+ 锁定最近在场病人。无在场病人 ⇒ 不预约(Idle 门不动)。
+        /// ⚠️ 本沿**零事件** —— 事件只在松开沿聚合上行(或超阈值中止)。</summary>
+        private void BeginEmergency()
+        {
+            if (_services.EmergencyChannel == null) return;
+            PatientId target = NearestPresentPatient();
+            if (target.Value < 0) return;
+
+            _services.EmergencyChannel.Arm(actionOrdinal: 0, target);   // 0 = 止血包扎(真表归 21a/10)
+            LastEmergencyPatient = target;
+        }
+
+        /// <summary>F 松开沿:EndAction 聚合上行(零样本 / 不在场 ⇒ 零事件,零提示纪律)。
+        /// 已被中止(超阈值)时通道已回 Idle ⇒ 此处幂等 no-op(中止不发,规则六之甲)。</summary>
+        private void EndEmergency()
+        {
+            if (_services.EmergencyChannel == null) return;
+            if (!_services.EmergencyChannel.IsArmed) return;
+            _services.EmergencyChannel.EndAction(_actorId);
         }
 
         private void TryExamine()
@@ -94,16 +121,6 @@ namespace DaYiJingCheng.Gameplay.Boot
             _services.CasebookSource?.ChangePatient(target);
             _services.PrescriptionPage?.BindPatient(target);   // 方笺页对象同步(S2.3/S2.4)
             LastExaminedPatient = target;
-        }
-
-        private void TryEmergency()
-        {
-            if (_services.EmergencyManualDriver == null) return;
-            PatientId target = NearestPresentPatient();
-            if (target.Value < 0) return;
-
-            _services.EmergencyManualDriver.TryManual(target, method: 0, _actorId, CurrentTick);
-            LastEmergencyPatient = target;
         }
 
         /// <summary>最近在场病人(视觉实体位置 × 玩家位置的平方距离最小;接线期定位源

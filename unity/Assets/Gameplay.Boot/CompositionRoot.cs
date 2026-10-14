@@ -29,6 +29,8 @@ using DaYiJingCheng.Sim.DiseaseSimulation;
 using DaYiJingCheng.Sim.EmergencyProcedures;
 using DaYiJingCheng.Sim.Prescription;
 using DaYiJingCheng.Gameplay.PatientAI;
+using DaYiJingCheng.Gameplay.Input;                 // EmergencyDirectReadChannel(story-009 通道装配)
+using UnityEngine.InputSystem;                 // InputActionAsset(story-009 通道装载,可空)
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
@@ -38,20 +40,32 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// </summary>
     public static class CompositionRoot
     {
+        // ── F-10.1 三乘子占位(story-009;值归数值轮 OQ-10-7)──
+        // 形状值与既有测试 fixture 同款:AXIAL_SCALE ≥ MAG_MAX 结构门(F-10.1)、
+        // DZ_MAG = 0 = 死区关闭、满幅 = MUL_ONE(Q16.16)。
+        private const int EmergencyAxialScale = 65536;
+        private const int EmergencyDzMag = 0;
+        private const int EmergencyMagMax = 65536;
+
         /// <summary>
         /// 全自动装配(全新世界:计数器从 0 起、空在场登记簿、内存 blob 池、world_seed = 0)。
         /// </summary>
         /// <param name="registry">病种注册表(体征链 Step 的查表输入;null = 空表 ——
         /// 空表下体征链仍可装配,但任何 <c>DiseaseOnset</c> 都会 fail-loud「病种不在注册表内」,
         /// 属预期而非半装配)。</param>
+        /// <param name="dataProvider">烘焙数据装载面(ADR-014 §五;null = EditMode 磁盘兜底)。</param>
+        /// <param name="inputActions">项目级动作资产(story-009 R-9.5:生产 = BootRoot 传
+        /// <c>InputSystem.actions</c>;null = 逻辑层模式 —— 通道不解析动作,Attach 非法,
+        /// FeedForTest 可用。⚠️ 不得经 Addressables 装载第二实例 = 违 AC-3-A1 单实例纪律)。</param>
         /// <returns>装配完成的服务袋(绝不为 null)。</returns>
         /// <exception cref="InvalidOperationException">防御性,实际不可达(装配环节产出 null 的
         /// fail-loud 兜底断言 —— 上游构造器已抛 / 参数检查先 ANE)。</exception>
         public static CompositionRootServices Assemble(
             IReadOnlyList<DiseaseRegistryEntry> registry = null,
-            IDataProvider dataProvider = null)
+            IDataProvider dataProvider = null,
+            InputActionAsset inputActions = null)
             => AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(),
-                            0UL, registry, dataProvider);
+                            0UL, registry, dataProvider, inputActions);
 
         /// <summary>
         /// 显式依赖注入装配(读档 / 测试用:由调用方给出发号权威、在场登记簿、blob 池与世界种子)。
@@ -70,12 +84,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                        InMemoryBlobPool blobPool,
                                                        ulong worldSeed,
                                                        IReadOnlyList<DiseaseRegistryEntry> registry = null,
-                                                       IDataProvider dataProvider = null)
+                                                       IDataProvider dataProvider = null,
+                                                       InputActionAsset inputActions = null)
         {
             if (idAuthority == null) throw new ArgumentNullException(nameof(idAuthority));
             if (presence == null) throw new ArgumentNullException(nameof(presence));
             if (blobPool == null) throw new ArgumentNullException(nameof(blobPool));
-            return AssembleCore(idAuthority, presence, blobPool, worldSeed, registry, dataProvider);
+            return AssembleCore(idAuthority, presence, blobPool, worldSeed, registry, dataProvider,
+                                inputActions);
         }
 
         private static CompositionRootServices AssembleCore(IIdAuthority idAuthority,
@@ -83,7 +99,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                              InMemoryBlobPool blobPool,
                                                              ulong worldSeed,
                                                              IReadOnlyList<DiseaseRegistryEntry> registry,
-                                                             IDataProvider dataProvider)
+                                                             IDataProvider dataProvider,
+                                                             InputActionAsset inputActions)
         {
             // ── 依赖前置校验(全自动路径同样 fail-loud)──
             if (idAuthority == null)
@@ -245,6 +262,18 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 本宿主只回答「列表实体存在 + 跳过入口可用」(story-023 边界①)。
             var emergencyCandidates = new EmergencyCandidateRuntime();
 
+            // ── 急救直读通道运行期装配(story-009 · 2026-10-14)──
+            // 通道(3 的状态机)经可选 inputActions 构造:生产 = BootRoot 传 InputSystem.actions
+            // (R-9.5 原稿的 Addressables 路径被实测推翻 —— InputSystem.actions 是项目级动作
+            // 资产、git-tracked,且 AC-3-A1 单实例纪律禁止经 Addressables 再装载第二实例);
+            // 测试 / 纯逻辑 = null(逻辑层模式,Attach 非法、FeedForTest 可用)。
+            // Idle 门回调指向候选列表可见性(R-9.3:Idle 复现 / 非 Idle 隐藏)。
+            var emergencyChannel = new EmergencyDirectReadChannel(
+                inputActions, EmergencyAxialScale, EmergencyDzMag, EmergencyMagMax);
+            var emergencyChannelDriver = new EmergencyChannelDriver(
+                emergencyChannel, emergencyManual, () => tickDriver.CurrentTick,
+                onIdleGate: visible => emergencyCandidates.SetVisible(visible));
+
             // 方笺页种子库存(20 最小面 · C3-M3):**装配期一次** Grant 玩家 0 ——
             // 测试 authorId 可任意(测试自 Grant,见 prescription_page_host_test 注);
             // 生产 BootRoot 第 4 步 SetAuthor(恒 0)消费同一种子。
@@ -305,6 +334,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: EmergencyAttemptDriver 装配产出 null");
             if (emergencyManual == null)
                 throw new InvalidOperationException("Assemble: EmergencyManualDriver 装配产出 null");
+            if (emergencyChannel == null)
+                throw new InvalidOperationException("Assemble: EmergencyDirectReadChannel 装配产出 null");
+            if (emergencyChannelDriver == null)
+                throw new InvalidOperationException("Assemble: EmergencyChannelDriver 装配产出 null");
             if (patientVisuals == null)
                 throw new InvalidOperationException("Assemble: PatientVisualSpawner 装配产出 null");
             if (casebookSource == null)
@@ -338,7 +371,8 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder,
                                                presence, spawner, patientDriver, caseDriver,
-                                               emergencyDriver, emergencyManual, patientVisuals,
+                                               emergencyDriver, emergencyManual,
+                                               emergencyChannelDriver, patientVisuals,
                                                worldSeed, vitals,
                                                casebookSource, examinationLedger, examineDriver,
                                                seenDisease, lexiconBook,

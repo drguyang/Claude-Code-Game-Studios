@@ -52,6 +52,12 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
     {
         public const int MUL_ONE = 65536;
 
+        /// <summary>规则六之甲 中止闲置阈值(Armed 内持续无新边沿 ≥ 此值 ⇒ 中止不发)。
+        /// <para>⚠️ 2026-10-14(story-009)从 <see cref="Abort"/> 方法体内提出为公开常量:
+        /// 直读通道的运行期驱动(<c>EmergencyChannelDriver.OnTickEdge</c>)须用**同一**判据
+        /// 检查中止 —— 常量留在方法体内会让驱动侧自填第二真源。合成小值,真值归数值轮。</para></summary>
+        public const int AbortIdleTicks = 50;
+
         /// <summary>
         /// 跳过路径（规则六）。
         /// </summary>
@@ -155,7 +161,7 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         /// </summary>
         public static ModalPhaseResult Abort(int idleTicks)
         {
-            const int ABORT_IDLE_TICKS = 50; // 合成小值（值归数值轮）
+            const int ABORT_IDLE_TICKS = AbortIdleTicks; // 合成小值(真值归数值轮;story-009 提出为公开常量)
 
             if (idleTicks < ABORT_IDLE_TICKS)
             {

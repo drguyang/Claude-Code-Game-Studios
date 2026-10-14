@@ -5,6 +5,7 @@
         "Sim",
         "Sim.Codec",
         "Sim.Contracts",
+        "Gameplay.Input",
         "Gameplay.Presentation",
         "Gameplay.UI",
         "Unity.InputSystem",
