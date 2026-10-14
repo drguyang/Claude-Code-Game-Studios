@@ -1,12 +1,22 @@
 # Story 009: 急救直读通道运行期装配 + 跳过入口接线(M2 形态件③ 功能半)
 
 > **Epic**: 10 急救动作
-> **Status**: **Ready ⬜**(2026-10-14 立 · 同日用户批准转 Ready —— 四项待批项全按建议:① story-009 成立 ② Estimate 3–5 人日 ③ F-10.1 三乘子注入占位(真值归数值轮)④ 新开 sprint-10 承载)
+> **Status**: **In Progress 🔨**(2026-10-14 实现轮 —— 代码 + 测试全落,BatchMode 双套件绿;待人工走查 AC-9-10/11 后收口)
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 3–5 人日(约 24–40h)
 > **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-10-14
+
+> **⚠️ 2026-10-14 实现轮四项用户裁定(开工前裁定,全按建议)**:
+> ① **R-9.5 装载路径 = `InputSystem.actions`**(原稿 Addressables 被实测推翻 —— 见 R-9.5 订正注);
+> ② **F 键 = 按住 = 一次动作**(按下沿 → Arm + 候选列表隐藏;松开沿 → EndAction → 聚合上行;
+>    按住超 `AbortIdleTicks`(50)⇒ tick 边沿中止零事件 —— 规则六之甲);
+> ③ **`EmergencyChannelDriver` 顺带实现 `IArmedState`**(结清 ADR-013 Amendment A 方向①
+>    `ModalGate` 侧零生产实现者的空挂;`ModalGate` 实例自身的生产接线归 4 交互轮);
+> ④ **AC-9-05 带最小 Judge 分支**(`HostEmergencyProcessor.Process` 内 `method==1` ⇒
+>    结果取 `ModalPhaseEvaluator.Skip(false).Result` = AppliedWeak;强度仍走 F-10.4 公式;
+>    同时给 `ModalPhaseEvaluator` 落首个生产调用方 —— 结清其零生产调用面的同型空挂)。
 
 ## Context
 
@@ -50,12 +60,25 @@ Idle ──Arm(actionOrdinal)──▶ Armed ──逐帧 Feed(直读)──▶ 
 **R-9.4 跳过入口接线**(`O-10-1`:10 不拥有 UI 元素,向 42 提规格):
 跳过入口 = 候选列表末项(`EmergencyCandidateList.SkipEntryName`,恒存在);
 其 Submit ⇒ `ICasebookCommandSink.SubmitEmergencySkip()` ⇒ `EmergencyManualDriver.TryManual(target, method: 1, ...)`。
+**2026-10-14 实现注**:① 目标 = `CasebookCommandRouter._boundPatient`(与 `SubmitDose` 同构;
+未绑定 ⇒ **静默零事件**(合法玩家路径 —— 未查体就点跳过,零提示纪律;与 `SubmitDose` 的
+fail-loud 刻意不同);不在场 ⇒ presence 门静默。② 写路径宿主(`EmergencyManualDriver`)
+经 `BindEmergencySkip(manual, actorId)` 后置注入(SetAuthor 同款 —— 装配期 actorId 未知;
+未注入 ⇒ fail-loud 装配遗漏)。③ 顺带勘误:候选 entry 原稿误挂 `.skip-entry` 类(与真跳过
+入口混淆)⇒ 改挂 `.candidate-entry`(宽半承接类,story-023 警示②)。
 
 **R-9.5 输入资产装载**:**复用系统 3 既有的 `InputService`**(`Gameplay.Input/InputService.cs`)——
 它是「全案唯一 `InputActionAsset` 实例的持有者」(AC-3-A1),其类头明写「装载方(后续故事)换成
-Addressables」⇒ **本 story 即该「后续故事」**。装载路径 = Addressables(工程已有
-`Assets/AddressableAssetsData/`);`InputService` 的同一性断言(`GetInstanceID()`)继续守
-「唯一实例」纪律。**不新建 Provider 类**(避免第二装载点,违 AC-3-A1)。
+Addressables」⇒ **本 story 即该「后续故事」**。~~装载路径 = Addressables~~
+**⚠️ 2026-10-14 实现轮就地订正(原稿前提被实测推翻)**:装载路径 = **`InputSystem.actions`**
+(项目级动作资产,`ProjectSettings` 注册、git-tracked,guid `052faaac586de48259a63d0c4782560b`)
+—— ① `Assets/AddressableAssetsData/AssetGroups/` **被 gitignore**(`.gitignore:85`),
+Addressables 登记不可版本化;② 经 Addressables 再装载同一资产 = **第二实例 = 违 AC-3-A1**
+(`InputService.EnsureSameAssetInstance` 以 `GetInstanceID()` 断言);
+③ `InputSystem.actions` 天然是同一实例(BootRoot `EnsureEventSystem` 已在用)。
+`CompositionRoot.Assemble` 增可选参 `inputActions`(生产 = BootRoot 传入并 fail-loud 校验非 null;
+EditMode/测试 = null = 逻辑层模式,Attach 非法、FeedForTest 可用)。`InputService` 不经手
+(它仍在等真正的 Addressables 化需求;本 story 不引入第二装载点)。
 
 ## In Scope
 
@@ -85,15 +108,15 @@ Addressables」⇒ **本 story 即该「后续故事」**。装载路径 = Addre
 
 ## Acceptance Criteria
 
-- [ ] **AC-9-01**[A] BLOCKING:`InputActionAsset` 运行期装载成功 ⇒ `Emergency` 动作可解析(`FindAction("Emergency")` 非 null);资产缺失 ⇒ 启动期 fail-loud(不静默 null)
-- [ ] **AC-9-02**[A] BLOCKING:通道相位 —— `Idle` 态 `State == Idle` 且 `EmergencyActionEnabled == false`;`Arm(n)` 后 `State == Armed` 且 enabled == true;`EndAction()` 后回 `Idle` 且 enabled == false(承 `AC-3-E4`)
-- [ ] **AC-9-03**[A] BLOCKING:直读采样 —— `Armed` 期逐帧 `Feed` ⇒ `SampleCount` 递增;`Idle` 期 `Feed` 被拒(零采样)
-- [ ] **AC-9-04**[A] BLOCKING:**端到端可达** —— `Idle → Arm → Feed×N → EndAction` 走完 ⇒ 病史流出现 `EmergencyAttempt` + `EmergencyTreatmentApplied`(本 story 的核心判据)
-- [ ] **AC-9-05**[A] BLOCKING:**跳过路径** —— 跳过入口 Submit ⇒ 病史流 `EmergencyTreatmentApplied` 且 `method == 1`、`JudgeResult == AppliedWeak`、**零 `SkillGrown`**(承 `AC-10-10`)
-- [ ] **AC-9-06**[A] BLOCKING:**Idle 门** —— 通道 `Armed` ⇒ 候选列表 `IsVisible == false`;回 `Idle` ⇒ `IsVisible == true`(规则六之甲)
-- [ ] **AC-9-07**[A] BLOCKING:**跳过入口焦点可达** —— 跳过入口 `focusable == true` 且在 `Idle` 态可经焦点导航 Submit(承 `AC-10-12` 的键盘半)
-- [ ] **AC-9-08**[I] BLOCKING:**零数字** —— 跳过入口与候选项文本零数字(`AC-023-2` 门回归)
-- [ ] **AC-9-09**[A] BLOCKING:**中止 ≠ 跳过** —— `Armed` 内停手超 `ABORT_IDLE_TICKS` ⇒ `AbortAction` ⇒ **零处置事件、零 `EmergencyAttempt`**(承 `AC-10-18` 回归)
+- [x] **AC-9-01**[A] BLOCKING:`InputActionAsset` 运行期装载成功 ⇒ `Emergency` 动作可解析(`FindAction("Emergency")` 非 null);资产缺失 ⇒ 启动期 fail-loud(不静默 null)—— ✅ BootRoot 启动序 2.5 步 fail-loud(`InputSystem.actions` null ⇒ 抛,guid 校验提示);`Attach` 期 `FindAction` 落空由通道抛(story-007 既有)。**自动化面 = 启动序代码 + `emergency_channel_wiring_test`(逻辑层不依赖);实机 Attach 面归人工走查**
+- [x] **AC-9-02**[A] BLOCKING:通道相位 —— `Idle` 态 `State == Idle` 且 `EmergencyActionEnabled == false`;`Arm(n)` 后 `State == Armed` 且 enabled == true;`EndAction()` 后回 `Idle` 且 enabled == false(承 `AC-3-E4`)—— ✅ `test_armFeedEnd_writesBothEvents_withAggregatedShape`(三态 + enabled 位逐点断言)
+- [x] **AC-9-03**[A] BLOCKING:直读采样 —— `Armed` 期逐帧 `Feed` ⇒ `SampleCount` 递增;`Idle` 期 `Feed` 被拒(零采样)—— ✅ 同上(`SampleCount` 0→2 递增;Idle 拒收 = 通道 story-007 既有判据,`FeedForTest` 非 Armed 恒返当前计数)
+- [x] **AC-9-04**[A] BLOCKING:**端到端可达** —— `Idle → Arm → Feed×N → EndAction` 走完 ⇒ 病史流出现 `EmergencyAttempt` + `EmergencyTreatmentApplied`(本 story 的核心判据)—— ✅ `test_armFeedEnd_writesBothEvents_withAggregatedShape`(载荷形状逐字段 + 归因目标病人);`test_armFeedEnd_fullMagnitude_yieldsAppliedPotency`(强度判别 = 65536)
+- [x] **AC-9-05**[A] BLOCKING:**跳过路径** —— 跳过入口 Submit ⇒ 病史流 `EmergencyTreatmentApplied` 且 `method == 1`、`JudgeResult == AppliedWeak`、**零 `SkillGrown`**(承 `AC-10-10`)—— ✅ `test_ac905_skipMethod_appliedWeakPotency_andZeroGrowth`(Method=1 + DrugPotency=32768 + 零成长不变式 + 非空转守卫);`test_ac905_manualVersusSkip_potencyDiscriminable`(两档判别)。**判定可判形式 = `DrugPotency.Raw==32768` ∧ `Method==1`(JudgeResult 不是流上字段)**
+- [x] **AC-9-06**[A] BLOCKING:**Idle 门** —— 通道 `Armed` ⇒ 候选列表 `IsVisible == false`;回 `Idle` ⇒ `IsVisible == true`(规则六之甲)—— ✅ `test_idleGate_hidesOnArm_restoresOnEnd` / `test_idleGate_restoresOnAbort`(回调直驱;`EmergencyCandidateRuntime.SetVisible` 透传 + `CompositionRoot` onIdleGate 接线)
+- [x] **AC-9-07**[A] BLOCKING:**跳过入口焦点可达** —— 跳过入口 `focusable == true` 且在 `Idle` 态可经焦点导航 Submit(承 `AC-10-12` 的键盘半)—— ✅ `test_ac907_skipEntry_focusable_true`(focusable 断言)+ `test_candidateRuntime_skipCallback_invokedThroughRouter`(回调链闭环:UI Submit → 路由 → 写者双事件)。**焦点导航 Submit 的实机面(官方桥 NavigationMoveEvent 落焦后 NavigationSubmitEvent 派发)归人工走查 AC-9-10**
+- [ ] **AC-9-08**[I] BLOCKING:**零数字** —— 跳过入口与候选项文本零数字(`AC-023-2` 门回归)—— ⬜ **结构性继承**:`EmergencyCandidateList` 零新增数字载体(`Label("跳过")` 纯文字;USS 门 `emergency_skip_entry_test` 全库恰一块判据在 EditMode 套件内持续回归绿)。走查面归人工轮(与 AC-9-10 同批)
+- [x] **AC-9-09**[A] BLOCKING:**中止 ≠ 跳过** —— `Armed` 内停手超 `ABORT_IDLE_TICKS` ⇒ `AbortAction` ⇒ **零处置事件、零 `EmergencyAttempt`**(承 `AC-10-18` 回归)—— ✅ `test_armedIdleBeyondAbortTicks_tickEdgeAborts_zeroEvents`(49 tick 不中止 / 第 50 中止零事件 / 流上零 method=1)+ `test_abortThenRelease_endActionIdempotent`(中止后松开幂等)。判据常量提出为 `ModalPhaseEvaluator.AbortIdleTicks`(公开,驱动侧同源)
 - [ ] **AC-9-10**[L] ADVISORY:纯键盘单机走查全部动作(含跳过)零按键提示即完成 —— **NOT-RUN**(走查证据归人工轮)
 - [ ] **AC-9-11**[L] ADVISORY:`L_input < 50 ms` 实机实测 —— **NOT-RUN**(归 OQ-10-12 原型门后续;原型已判成立 2026-09-29)
 
@@ -120,6 +143,40 @@ Addressables」⇒ **本 story 即该「后续故事」**。装载路径 = Addre
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/PlayMode/EmergencyProcedures/emergency_channel_wiring_test.cs`(端到端可达 + Idle 门)+ `unity/Assets/Tests/EditMode/EmergencyProcedures/emergency_skip_entry_wiring_test.cs`(跳过路径 + 焦点可达)
 **Evidence doc**: `production/qa/evidence/review-story-009-*.md`
+
+## Implementation Notes(2026-10-14 实现轮)
+
+**BatchMode 双套件(2026-10-14 · 6000.3.24f1 batch)**:
+- EditMode:`total=3326 / passed=3279 / failed=0 / skipped=46 / inconclusive=1(既有)`
+  —— 基线 3270 通过 → 3279(**+9**,新 `emergency_skip_entry_wiring_test` 九测,零回归)
+- PlayMode:`total=185 / passed=185 / failed=0`
+  —— 基线 175 → 185(**+8** 新 `emergency_channel_wiring_test` 八测;另 interaction_chain ②
+  与 e2e ⑥ 两测**改判**为按住语义,非回归)。日志:`unity/Logs/story009_{editmode,playmode}.{log,xml}`
+
+**改动面(9 文件 + 3 新)**:
+| 文件 | 变更 |
+|---|---|
+| `Assets/Gameplay.Boot/EmergencyChannelDriver.cs` | **新**:通道相位搬运 + 聚合映射 + Idle 门回调 + `IArmedState` 实现(裁定③) |
+| `Assets/Gameplay.Boot/EmergencyManualDriver.cs` | 增 `TryAggregated`(聚合 → 判域映射,method 恒 0);ctx/row 收进共享尾 `TryAttempt` |
+| `Assets/Gameplay.Boot/CompositionRoot.cs` | 增可选参 `inputActions`(R-9.5 订正)+ 装配通道/驱动 + F-10.1 三乘子占位常量 |
+| `Assets/Gameplay.Boot/CompositionRootServices.cs` | 袋增 `EmergencyChannel` |
+| `Assets/Gameplay.Boot/BootRoot.cs` | 启动序 2.5 fail-loud 资产校验 + 4.55 Attach + 4.65 skip 写路径注入 + 6.6 UI 回调接线 + tick 边沿中止检查 + OnDestroy Detach |
+| `Assets/Gameplay.Boot/InteractionInputDriver.cs` | **F 键改按住语义**(裁定②):按下沿 Arm / 松开沿 EndAction |
+| `Assets/Gameplay.Boot/CasebookCommandRouter.cs` | 实现 `SubmitEmergencySkip`(未绑静默 / 未接 fail-loud)+ `BindEmergencySkip` |
+| `Assets/Gameplay.UI/Skeuomorphic/CasebookBinding.cs` | 接口增 `SubmitEmergencySkip()`(三测试 Fake 同步补员) |
+| `Assets/Gameplay.UI/Skeuomorphic/EmergencyCandidateList.cs` | skip entry `focusable` + Submit/Click 回调 + 洪流守护(CasebookScreen 同款);**勘误**:候选项 `.skip-entry` → `.candidate-entry` |
+| `Assets/Gameplay.Boot/EmergencyCandidateRuntime.cs` | `SetVisible`/`IsVisible`/`SkipFocusable`/`SetSkipCallback` 透传(不暴露 Gameplay.UI 类型) |
+| `Assets/Sim/EmergencyProcedures/HostEmergencyProcessor.cs` | 最小 Judge 分支(裁定④):method==1 ⇒ Skip(false).Result;强度仍走 F-10.4 |
+| `Assets/Sim/EmergencyProcedures/ModalPhaseEvaluator.cs` | `ABORT_IDLE_TICKS` 提出为公开常量 `AbortIdleTicks`(防驱动侧第二真源) |
+| `Assets/Gameplay.Boot/Gameplay.Boot.asmdef` + ADR-025 §① | refs 增 `Gameplay.Input`(窄修订,依据 R-9.2 驱动权落表) |
+
+**登记给后续轮**:
+- **EdgeTicks 量纲**(数值轮):聚合的 `edge_ticks` 现为「动作内样本序号」(通道内单调计数
+  非逻辑 tick);`hold_ticks = 末沿 − 首沿` 在该量纲下 = 采样帧数,与 20 Hz tick 的换算
+  归数值轮裁定(与 F-10.1 三乘子同批)。
+- **`ModalGate` 的 `IArmedState` 消费接线**:生产实现者已就位(driver),4 交互轮接
+  `ModalGate(armedState, modalState)` 实例化。
+- **候选 entry 动作语义**:止血 / 通气两项的点击行为归 21a/10 真动作表轮(本 story 只接跳过)。
 
 ## Engine Notes
 

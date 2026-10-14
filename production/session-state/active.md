@@ -1,4 +1,25 @@
-# Session State — 2026-10-14(**当前阶段 = Pre-Production · Sprint 09 🚧 In Progress(M2 收口冲刺 · S1 第七轮全链 playtest / S2 PAGES_MAX spike / S3 M2 Exit 复评翻勾)· Sprint 08 ✅ Complete(方笺交互面轮)· Sprint 07 ✅ Complete · M2 形态件 4/4 齐**)
+# Session State — 2026-10-14(**当前阶段 = Pre-Production · Sprint 10 🚧 In Progress(story-009 实现轮 —— 代码全落 + 双套件绿,待人工走查收口)· Sprint 09 🚧(S1 第七轮 playtest 待用户执行)· Sprint 08 ✅ · M2 形态件 4/4 齐**)
+
+## Sprint 10 进展(2026-10-14)
+
+- **story-009 实现轮 ✅ 代码全落** —— 急救直读通道运行期装配 + 跳过入口接线:
+  - **四项用户裁定**(开工前,全按建议):① R-9.5 装载 = `InputSystem.actions`
+    (原稿 Addressables 被实测推翻:组 gitignore 不可版本化 + 第二实例违 AC-3-A1);
+    ② F 键 = 按住 = 一次动作(按下沿 Arm / 松开沿 EndAction 聚合上行);
+    ③ `EmergencyChannelDriver` 顺带实现 `IArmedState`(结清 ModalGate 方向①空挂);
+    ④ AC-9-05 带最小 Judge 分支(method==1 ⇒ Skip(false).Result,强度仍走 F-10.4)
+  - 新 `EmergencyChannelDriver`(相位搬运 + 聚合映射 + Idle 门 + IArmedState);
+    `EmergencyManualDriver.TryAggregated`;`HostEmergencyProcessor` method 分支;
+    `ModalPhaseEvaluator.AbortIdleTicks` 提公开常量;42 接口增员 `SubmitEmergencySkip`
+    + 路由 + 候选列表 focusable/回调/洪流守护;ADR-025 §① Boot 行窄修订(+`Gameplay.Input`)
+  - **验证**:EditMode **3279/0**(基线 3270,+9 新测)· PlayMode **185/0**(基线 175,
+    +8 新测;interaction ② / e2e ⑥ 改判按住语义)· 日志 `unity/Logs/story009_*.xml`
+  - AC 勾选:9 BLOCKING 自动化全勾(AC-9-08 结构性继承 + 走查面归人工);AC-9-10/11 NOT-RUN
+  - **剩余收口**:人工走查(AC-9-10 纯键盘走查 / AC-9-11 实机延迟)→ 评审原件
+    (`production/qa/evidence/review-story-009-*.md`)→ M2 Exit `:169` 翻勾复评
+  - **登记数值轮**:聚合 EdgeTicks 量纲(样本序号 vs 逻辑 tick)与三乘子同批裁
+
+---
 
 ## Sprint 05 进展(2026-10-10)
 

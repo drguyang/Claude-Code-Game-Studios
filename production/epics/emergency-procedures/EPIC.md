@@ -172,11 +172,17 @@ This epic is complete when:
 ⇒ **急救链运行期可达性 = 0%**。按 `milestones/README.md:251-255` 口径:
 **「epic Complete ✅」≠「运行期接线」** —— 机制 story 001–007 全闭**不代表**链能跑。
 
-**承接件 = story-009**(2026-10-14 立 · Ready ⬜ · 归 sprint-10),兑现:
-① 直读通道生产装配(含 `InputService` 的 Addressables 装载,系统 3 预留的接缝);
+**承接件 = story-009**(2026-10-14 立 · **In Progress 🔨 实现轮同日落码** · 归 sprint-10),兑现:
+① 直读通道生产装配(装载路径 = **`InputSystem.actions`** —— 原稿 Addressables 被实测推翻,
+  见 story-009 R-9.5 订正注);
 ② 跳过入口接线(`SubmitEmergencySkip` ⇒ `TryManual(method: 1)`);
 ③ `Idle`/`Armed` 门驱动候选列表可见性(规则六之甲);
 ④ M2 Exit `:169` 形态件③ 的**功能半**。
+
+**实现轮落点(2026-10-14)**:通道/驱动/跳过/UI 交互全接线,BatchMode 双套件绿
+(EditMode 3279/0 · PlayMode 185/0,零回归);四项裁定(InputSystem.actions 装载 /
+F 键按住语义 / `EmergencyChannelDriver` 实现 `IArmedState` / 最小 Judge 分支)与
+AC 勾选面见 story-009 Implementation Notes。剩人工走查(AC-9-10/11)后收口。
 
 **本补注不改变 epic 的 `Complete ✅` 判定** —— 该判定依据是「7/7 story 已实现 + 两轮评审已闭」
 (2026-10-08),而**运行期接线**是独立的另一回事(同 `README:251-255` 口径)。
