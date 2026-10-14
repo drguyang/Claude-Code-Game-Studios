@@ -1,0 +1,16 @@
+{
+    "name": "Editor.Tools.Capture",
+    "rootNamespace": "DaYiJingCheng.EditorTools.Capture",
+    "references": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

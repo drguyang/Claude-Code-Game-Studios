@@ -63,6 +63,8 @@ namespace DaYiJingCheng.EditorTools.Gates
             "Gameplay.Presentation", "Gameplay.UI", "Gameplay.Input",
             "Editor.Tools.Level", "Editor.Tools.Kindgen", "Editor.Tools.Gates",
             "Editor.Tools.Spike", "Editor.Tools.Bake", "Editor.Tools.Font",
+            // Editor.Tools.Capture = 截图工具(2026-10-14 增员;ADR-025 §① 同批回写)。
+            "Editor.Tools.Capture",
             "Sim.Contracts.Tests", "Gameplay.Tests", "SkeuomorphicUI.Tests",
         };
 
