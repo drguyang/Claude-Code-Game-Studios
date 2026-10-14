@@ -224,15 +224,16 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             Debug.Log($"[AtlasPageCount] ELIGIBILITY|threshold={RaisedThreshold}|" +
                       $"total={total}|eligible={eligible}|oversized={oversized}|{sb}");
 
-            // 实测口径(首轮实测纠正了手算 —— 手算 17 是错的):
-            // 合格 16 = 五族 15 张 1024²(ui_icons_sprite 是 2048²,不在其列)
+            // 实测口径(2026-10-14 重生轮更新 —— 超规 2 张已重生 1024²,AC-42-C9 残留结清):
+            // 合格 18 = 五族 16 张(含 ui_icons_sprite 1024² 重生版)
+            //          + casebook_paper_base 1024²(频域补偿降采样,纤维 std 7.59 保持)
             //          + brass 64²(用户明裁最小豁免,art-bible §7.4);
-            // 超规 2 = ui_icons_sprite 2048² + casebook_paper_base 2048²。
+            // 超规 0(2026-10-14 之前 = 2:ui_icons_sprite / casebook_paper_base 均 2048²)。
             Assert.AreEqual(18, total, "[夹具红] 18 张应全部可加载");
-            Assert.AreEqual(16, eligible,
-                "[资格红] 合格数 ≠ 16 —— 贴图清单或门槛口径变了,须重核清单");
-            Assert.AreEqual(2, oversized,
-                "[资格红] 超规数 ≠ 2 —— casebook_paper_base / ui_icons_sprite 两张 2048²");
+            Assert.AreEqual(18, eligible,
+                "[资格红] 合格数 ≠ 18 —— 有贴图超 1024² 回归或清单变更,须重核");
+            Assert.AreEqual(0, oversized,
+                "[资格红] 超规数 ≠ 0 —— 有贴图回退到 >1024²(AC-42-C9 门已冻结,不抬门槛)");
         }
 
         // ── 反射链(字段名由 2026-10-14 实测纠正,保留候选名以自愈)─────────────
