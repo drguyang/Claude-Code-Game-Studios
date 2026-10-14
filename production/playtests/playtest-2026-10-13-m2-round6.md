@@ -131,3 +131,11 @@ story」,不是「链断在语义层」。
   **双半达成**。评审原件:`production/qa/evidence/review-b6-1-input-wiring-2026-10-14.md`;
   提交 `b37653e` + `a8c7744`。⇒ **「B-6-1 修复前 sprint-08 不得转 Complete」这一阻塞已解除**。
   ⚠️ B-6-2 / B-6-3 / B-6-4 **仍未修**,各归独立 story ⇒ sprint-08 整体**仍不可**转 Complete。
+
+- ✅ **2026-10-14 回填:B-6-3 已 Complete + B-6-4 判结** —— 自动化半
+  (`skeuo_readability_test` 7/7:双墨 ≥7:1 / 28px 档 / 底衬 Δ=0.0947 + 边线四向)+ 人工半
+  (用户真机复验「值区清晰可辨」,原两条目视红 ①底衬压纹 ②24px 发虚直接判结)双半达成。
+  B-6-4(条件性「若是字体资产渲染问题」)一并查结:是,根因 = SDF 采样点 32px vs 字号
+  ≈14px 失配,「字体糊三连」四提交(`7773886`→`dc4f963`)根治 + 人工实证。评审原件:
+  `production/qa/evidence/review-b6-3-readability-2026-10-14.md`。
+  ⚠️ B-6-2(焦点可见性)**仍未修** ⇒ sprint-08 整体**仍不可**转 Complete。
