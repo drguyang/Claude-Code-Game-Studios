@@ -1,11 +1,22 @@
 // case-system Story 001 测试 —— 病例流 Kind 登记与病例身份
 //
+// ── GDD AC 覆盖(编号 = GDD 权威编号,case-system.md 的 AC 表)──────────────
 // AC-37-01:病例流任意 CaseOpened 的 (Tick,Patient,Seq) 全流唯一;任何被引用的 case_id 等于某条 CaseOpened 三元组
 // AC-37-02:两病人同 tick 各立案 ⇒ 两个 case_id 不同(两人各有 Seq=0,Patient 区分,不撞号)
-// AC-37-03:kindgen 断言批 A1–A5 全过
-// AC-37-04:载荷形状断言 —— CaseOpened/CaseClosed 载荷中无 opened_tick 字段;PatternRecognized 载荷含 salted_key
-// AC-37-05:跨流全序复验 —— (Tick,StreamPriority,Patient,Seq) 排序确定且无平局(哨兵 -1 行可排序不崩)
-// AC-37-06:高水位纯净 —— 含哨兵行的流上 max(patient_id) 重构不受 -1 污染(ADR-007 §四)
+//
+// ── story 自定判据(⚠️ 四条**均无 GDD AC 编号** —— story §AC 里本就无号)──────
+// · kindgen 断言批 A1–A5 全过
+// · 载荷形状断言 —— CaseOpened/CaseClosed 载荷中无 opened_tick 字段;PatternRecognized 载荷含 salted_key
+// · 跨流全序复验 —— (Tick,StreamPriority,Patient,Seq) 排序确定且无平局(哨兵 -1 行可排序不崩)
+// · 高水位纯净 —— 含哨兵行的流上 max(patient_id) 重构不受 -1 污染(ADR-007 §四)
+//
+// ⚠️ 编号纪律(2026-10-15 · sprint-11 S11-11 修复 · 补评件 story-001 §二 B-3):
+//   本头此前把上面四条**自行编号**为 AC-37-03/04/05/06 —— 这四个号在 GDD 里指向**别的需求**
+//   (AC-37-03 = 已结案再结幂等拒收 · AC-37-04 = 未勾「已处置」拒绝 ·
+//    AC-37-05 = 判断记录/处置落病例流 · AC-37-06 = 存档迁移重放逐位一致),
+//   且**已被本目录姊妹测试占用**(case_close_precondition_test / case_open_and_judgment_test /
+//   case_replay_persistence_test)。⇒ 按 AC 号做的覆盖矩阵会**重复计数**。
+//   **无编号 = 这四条的真实状态,勿再补号** —— 方法名与注释同此纪律(全文件)。
 //
 // 权威来源:
 //   ADR-008(病例事件流;五 Kind 落病例流;case_id 三元组;opened_tick 删除;跨流全序;PatientId.None 哨兵)
@@ -124,12 +135,12 @@ namespace DaYiJingCheng.Tests.CaseSystem
         }
 
         // ════════════════════════════════════════════════════════════════════
-        // AC-37-03:kindgen 断言批 A1–A5
+        // [story 判据] kindgen 断言批 A1–A5
         // ════════════════════════════════════════════════════════════════════
 
-        /// <summary>AC-37-03 A1:五 Case Kind 的 stream 全为 case。</summary>
+        /// <summary>[story 判据] kindgen A1:五 Case Kind 的 stream 全为 case。</summary>
         [Test]
-        public void test_ac3703_a1_fiveCaseKinds_routeToCaseStream()
+        public void test_kindgenA1_fiveCaseKinds_routeToCaseStream()
         {
             var caseKinds = new[]
             {
@@ -147,10 +158,10 @@ namespace DaYiJingCheng.Tests.CaseSystem
             }
         }
 
-        /// <summary>AC-37-03 A2:五 Case Kind 的 payload_schema ∈ 整数域(无 float/double)。
+        /// <summary>[story 判据] kindgen A2:五 Case Kind 的 payload_schema ∈ 整数域(无 float/double)。
         /// 本测试从 entities.yaml 反射读取 payload_schema 并扫描 float/double 字样。</summary>
         [Test]
-        public void test_ac3703_a2_casePayloadSchemas_integerDomainOnly()
+        public void test_kindgenA2_casePayloadSchemas_integerDomainOnly()
         {
             var schemas = GetCasePayloadSchemas();
 
@@ -171,9 +182,9 @@ namespace DaYiJingCheng.Tests.CaseSystem
             }
         }
 
-        /// <summary>AC-37-03 A3:Case Kind 名无重复（从 entities.yaml 读取真源验证）。</summary>
+        /// <summary>[story 判据] kindgen A3:Case Kind 名无重复（从 entities.yaml 读取真源验证）。</summary>
         [Test]
-        public void test_ac3703_a3_caseKindNames_unique()
+        public void test_kindgenA3_caseKindNames_unique()
         {
             var names = GetCaseKindNamesFromRegistry();
 
@@ -182,9 +193,9 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 "Case Kind 名无重复(ADR-024 A3)");
         }
 
-        /// <summary>AC-37-03 A4:五 Case Kind 的 author 必填且首整数 = 37。</summary>
+        /// <summary>[story 判据] kindgen A4:五 Case Kind 的 author 必填且首整数 = 37。</summary>
         [Test]
-        public void test_ac3703_a4_caseKindAuthors_all37()
+        public void test_kindgenA4_caseKindAuthors_all37()
         {
             var authors = GetCaseAuthors();
 
@@ -197,11 +208,11 @@ namespace DaYiJingCheng.Tests.CaseSystem
             }
         }
 
-        /// <summary>AC-37-03 A5:registry ↔ EventKind.cs 双向差集归零。
+        /// <summary>[story 判据] kindgen A5:registry ↔ EventKind.cs 双向差集归零。
         /// 正向:registry 中每个 case Kind 在 EventKind 枚举中存在;
         /// 反向:EventKind 中每个 case 流成员在 registry 中存在。</summary>
         [Test]
-        public void test_ac3703_a5_caseKinds_presentInEventKindEnum()
+        public void test_kindgenA5_caseKinds_presentInEventKindEnum()
         {
             var registryNames = GetCaseKindNamesFromRegistry();
 
@@ -237,13 +248,13 @@ namespace DaYiJingCheng.Tests.CaseSystem
         }
 
         // ════════════════════════════════════════════════════════════════════
-        // AC-37-04:载荷形状断言
+        // [story 判据] 载荷形状断言
         // ════════════════════════════════════════════════════════════════════
 
-        /// <summary>AC-37-04:CaseOpenedPayload / CaseClosedPayload 载荷中无 opened_tick 字段
+        /// <summary>[story 判据] 载荷形状断言:CaseOpenedPayload / CaseClosedPayload 载荷中无 opened_tick 字段
         /// (别名纪律 —— tick 只在 SimEvent.Tick 一处)。</summary>
         [Test]
-        public void test_ac3704_payloads_noOpenedTickField()
+        public void test_payloadShape_payloads_noOpenedTickField()
         {
             var openedType = typeof(CaseOpenedPayload);
             var closedType = typeof(CaseClosedPayload);
@@ -259,9 +270,9 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 Is.Not.Null, "SimEvent.Tick 须存在(全案唯一 tick 来源)");
         }
 
-        /// <summary>AC-37-04:PatternRecognizedPayload 载荷含 salted_key(AC-37-14 的载体半边在此建)。</summary>
+        /// <summary>[story 判据] 载荷形状断言:PatternRecognizedPayload 载荷含 salted_key(AC-37-14 的载体半边在此建)。</summary>
         [Test]
-        public void test_ac3704_patternRecognizedPayload_containsSaltedKey()
+        public void test_payloadShape_patternRecognizedPayload_containsSaltedKey()
         {
             var patternType = typeof(PatternRecognizedPayload);
 
@@ -275,13 +286,13 @@ namespace DaYiJingCheng.Tests.CaseSystem
         }
 
         // ════════════════════════════════════════════════════════════════════
-        // AC-37-05:跨流全序复验
+        // [story 判据] 跨流全序复验
         // ════════════════════════════════════════════════════════════════════
 
-        /// <summary>AC-37-05:构造病史/病例交错流,(Tick,StreamPriority,Patient,Seq) 排序确定且无平局
+        /// <summary>[story 判据] 跨流全序复验:构造病史/病例交错流,(Tick,StreamPriority,Patient,Seq) 排序确定且无平局
         /// (哨兵 -1 行可排序不崩)。</summary>
         [Test]
-        public void test_ac3705_crossStreamOrder_deterministicNoTies()
+        public void test_crossStreamOrder_deterministicNoTies()
         {
             var events = new[]
             {
@@ -312,9 +323,9 @@ namespace DaYiJingCheng.Tests.CaseSystem
             Assert.That(sorted[0].Tick, Is.EqualTo(99), "tick 99 最早");
         }
 
-        /// <summary>AC-37-05:StreamPriority 序 = History(0) &lt; Case(1) &lt; World(2)。</summary>
+        /// <summary>[story 判据] 跨流全序复验:StreamPriority 序 = History(0) &lt; Case(1) &lt; World(2)。</summary>
         [Test]
-        public void test_ac3705_streamPriority_orderHistoryCaseWorld()
+        public void test_crossStreamOrder_streamPriority_orderHistoryCaseWorld()
         {
             Assert.That((int)StreamId.History, Is.LessThan((int)StreamId.Case),
                 "History(0) < Case(1)");
@@ -323,12 +334,12 @@ namespace DaYiJingCheng.Tests.CaseSystem
         }
 
         // ════════════════════════════════════════════════════════════════════
-        // AC-37-06:高水位纯净
+        // [story 判据] 高水位纯净
         // ════════════════════════════════════════════════════════════════════
 
-        /// <summary>AC-37-06:含哨兵行的流上 max(patient_id) 重构不受 -1 污染(ADR-007 §四)。</summary>
+        /// <summary>[story 判据] 高水位纯净:含哨兵行的流上 max(patient_id) 重构不受 -1 污染(ADR-007 §四)。</summary>
         [Test]
-        public void test_ac3706_highWaterMark_sentinelMinusOne_noPollution()
+        public void test_highWaterMark_sentinelMinusOne_noPollution()
         {
             var events = new[]
             {

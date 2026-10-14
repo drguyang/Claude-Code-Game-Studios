@@ -89,7 +89,10 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_identity_routing_test.cs` — must exist and pass
-**Status**: [ ] In Review — 测试文件存在且 13/13 绿,但补评判定 **Test Evidence 门不通过**(见下方登记块)
+**Status**: [ ] In Review — 测试文件存在且 13/13 绿,但补评判定 **Test Evidence 门不通过**(见下方登记块)。
+> **2026-10-15 S11-11 后更新**:4 BLOCKING 中 **B-3 已闭合**(全文件去号,含头/注释/方法名共 25 处);
+> **余 3 条顺延 sprint-12** —— B-1(判据不可证伪,须退设计重述)· B-2(kindgen A2 空跑)· B-4(kindgen 借绿)。
+> ⇒ **门仍不通过**,story 维持 `In Review`。
 
 > ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `production/qa/evidence/review-case-system-001-004-gap-audit-2026-10-15.md` §二:001 确证产出过 BLOCKING 级判定),按义务第 3 条**补做评审(评当下)**,不追认 `e64efad` 的历史判定。
 > **补评原件**:`production/qa/evidence/review-case-system-story-001-retro-2026-10-15.md`
@@ -101,6 +104,31 @@
 > - **顺延 sprint-12**(须带状态+归属,禁借绿):**B-1**(AC-37-06 判据**算术上不可证伪** ⇒ 须**退设计重述**,仅加大输入无效)·
 >   **B-2**(kindgen A2 空跑)· **B-4**(kindgen 载体借绿 —— 「删除 kindgen,13 条测试照样全绿」)。
 >   B-2/B-4 是同一缺口两半,归 kindgen 侧(「CI 跑 `kindgen --check`」为 AC-37-03 的唯一载体)。
+
+> 🟢 **B-3 已闭合 —— 2026-10-15 · sprint-11 S11-11**(证据原件:`production/qa/evidence/fix-s11-11-case-system-story-001-b3-2026-10-15.md`)
+>
+> **改动**(`case_identity_routing_test.cs`,**纯测试件,零产品代码**):
+> ① 测试头去号并**分组**(有号者归 GDD / 无号者自成「story 自定判据」一组);
+> ② 文件体 **14 处**注释标去号,改 `[story 判据] <bullet 名>` 前缀;
+> ③ **方法名 10 处**去号(按 bullet 归组,如 `test_ac3703_a1_…` → `test_kindgenA1_…`)。
+> **保留**:`AC-37-01`/`AC-37-02`(与 GDD 一致)与 `AC-37-14`(GDD `:1110`,本文件是其载体半边)。
+>
+> ⚠️ **范围订正(已报用户并获批「全文件去号」)**:retro 只点名**测试头 `:5-8`**,实测误编号
+> **有三层**(头 4 + 体注释 14 + **方法名 10**,共 **25 处**)。**只改头等于没改** ——
+> 按 AC 号的覆盖矩阵会扫**文件任意位置**(含方法名),重复计数照旧。
+>
+> **可证伪判据**(本 AC = 「不再重复计数」,是覆盖声明属性 ⇒ 判据为 grep 而非跑测):
+> 同号前缀下的方法数 —— `test_ac3703` **7 → 2** · `test_ac3704` **4 → 2** ·
+> `test_ac3705` **5 → 3** · `test_ac3706` **1 → 0**。修复前 `test_ac3703` 下 **7 个方法分属两种
+> 互不相干的语义**(本文件 5 个 = kindgen 断言批;close 文件 2 个 = 幂等拒收)⇒ retro 的
+> 「重复计数」逐字成立。**反向**:把任一处号改回,对应行即时回升。
+>
+> **验证**:`13/13 绿 · 退出码 0 · error CS = 0`(**测数 13 → 13,改名未增未减**);
+> 全仓 grep 确认被改名方法**零外部引用**;`git diff --name-only` 仅本测试件。
+>
+> **附带观察(如实登记,非本件缺陷)**:修复后 `test_ac3706` 方法名命中 = 0,因 AC-37-06 的真实主人
+> `case_replay_persistence_test.cs` **不在方法名里编 AC 号** ⇒ 暴露的是**命名惯例覆盖不均**;
+> 修复前那 1 个命中恰是**错的那个**。是否统一惯例归 **sprint-12 断言形态批**。
 
 ---
 

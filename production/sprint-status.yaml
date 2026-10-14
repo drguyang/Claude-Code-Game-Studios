@@ -111,11 +111,11 @@ stories:
     blocker: ""
     completed: "2026-10-15"
   - id: "S11-11"
-    name: "story-001 B-3 测试头自填 AC 号改无编号引用(零成本)"
+    name: "story-001 B-3 全文件去号(头 4 + 体注释 14 + 方法名 10;零成本)"
     file: "production/sprints/sprint-11.md"
     priority: must-have
-    status: ready-for-dev
-    owner: ""
+    status: done
+    owner: "Claude"
     estimate_days: 0.1
     blocker: ""
-    completed: ""
+    completed: "2026-10-15"
