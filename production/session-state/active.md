@@ -2974,3 +2974,20 @@ B-6-1 / B-6-3 / B-6-4 三项均已解除。
 - **连带发现(登记)**:story-005 真模型卡外部美术之外,**13 表现装配轮
   (PatientBehaviorDirector 生产构造 + 行为 Step 驱动挂 BootRoot tick 序)
   也是独立待办**——此前无 story 承载,归 sprint-12 排期面。
+
+## S11-3 收口(2026-10-15 · ✅ · 提交 2d20e71)
+
+- **修复面**:host_authority_test.cs(3 处)+ o6_actor_cell_payload_test.cs(5 处)
+  `new PlayerControllerType()` → `CreateController()` 真夹具
+  (new GameObject + AddComponent<CharacterController> + AddComponent<PlayerController>
+  + [TearDown] DestroyImmediate);显式先挂 RequireComponent 依赖,
+  否则 Awake 缺件告警同样污染 UnityLogCheckDelegatingCommand 日志门。
+- **连带残源实证**:全量退出码 2 的另一半 = settings_exposure_test.cs:126 显式
+  `Assert.Inconclusive`(单独跑该类也退出码 2)—— UTF 把 Inconclusive 计入
+  非零退出码。用户裁「删 Inconclusive 行」:注册表存在性真断言保留(非假绿),
+  「从烘焙分区读默认值」义务注释留档归 44 生产轮。
+- **纯测试面**:3 文件 67+/13-,零产品代码。
+- **终验双信号**:全量 EditMode 3328 total / 3282 passed / **0 failed** /
+  0 Inconclusive,BATCH_EXIT=**0**;定向 14/14 + `new MonoBehaviour`/缺件日志 0。
+- **教训(工程向)**:显式 `Assert.Inconclusive` 占位 = 潜伏的 CI 信号污染源
+  (XML 层看不出来,只有退出码知道);后续登记性占位一律用注释,不用 Inconclusive。

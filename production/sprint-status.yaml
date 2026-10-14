@@ -39,11 +39,11 @@ stories:
     name: "EditMode 退出码 2 处置 = 修 8 测(new MonoBehaviour → 真夹具)"
     file: "production/sprints/sprint-11.md"
     priority: must-have
-    status: ready-for-dev
-    owner: ""
+    status: done
+    owner: "claude"
     estimate_days: 0.75
     blocker: ""
-    completed: ""
+    completed: "2026-10-15"
   - id: "S11-4"
     name: "prescription DoD 残留(AC-11-22 7a 白名单 + DC-2 action_id master + DC-6 复评)"
     file: "production/sprints/sprint-11.md"
