@@ -94,7 +94,7 @@ spike 未跑)⇒ 探针须记录实测行为,供 ADR-013 §6.6 假设 6 一并�
 | 条 | 落点 | 判据(可证伪) | 判定 |
 |---|---|---|---|
 | `:111` 端到端链 | `production/qa/evidence/m2-exit-recheck-sprint09-2026-10-14.md` | 真生产调用点 = `PrescriptionPageHost.cs:137`(推翻旧读数「零生产调用方」)⇒ `DrugTreatmentApplied` 运行期可达 | **✅ 翻 `[x]`** |
-| `:169` 4 项形态件 | 同上 | ①②④ 施加点确已接;③ **跳过入口零交互绑定**(`SetVisible` 零生产调用)⇒ 功能半未接 | **◐ 维持 `[ ]`** |
+| `:169` 4 项形态件 | 同上 | ①②④ 施加点确已接;③ **跳过入口零交互绑定**(`SetVisible` 零生产调用)⇒ 功能半未接 | **◐ 维持 `[ ]`** ⇒ **✅ 2026-10-14 sprint-10 翻 `[x]`**(story-009 落地兑现本判决预设的翻勾判据;复评原件 `production/qa/evidence/m2-exit-recheck-sprint10-169-2026-10-14.md`) |
 | `:224` 灰盒登记 | 同上 | 登记表 `:236-249` 与 `entity-inventory.md` 42 项 VS Critical 逐类对齐 | **✅ 翻 `[x]`** |
 
 ⚠️ **无复评原件不得翻勾** —— 勾选滞后不是工量,但无据翻勾 = 无据。
@@ -118,12 +118,28 @@ story-009 范围 = 直读通道装配 + 跳过入口接线 + Idle 门,Estimate *
 - **收口判据**:三项证据齐 + 全量测试不回退(EditMode 3270/0/46/1 · PlayMode **177/177**)
   + `/smoke-check sprint` 过
   - **基线落点(2026-10-14 qa-lead 复核 F-7 订正,原写 PlayMode 175/175 为陈旧计数)**:
-    EditMode `unity/Logs/b62b_editmode_full.xml`(12:55)= 3317 total / 3270 passed / 0 failed /
-    1 inconclusive / 46 skipped ⇒ 「3270/0/46/1」无误;
-    PlayMode `unity/Logs/s09_playmode_full.xml`(17:07:21)= **177/177 passed / 0 failed**。
-    ⚠️ 该基线为 **HEAD 态**(`a0d7e5f`)跑批;当前工作区有 story-009 WIP(其 EditMode 跑批
-    `story009_editmode.xml` = 3326/3277/**2**/1/46,两条红均在新增 9 条内 ⇒ 基线**零回归**,
-    但该 2 红归 sprint-10 的 story-009,**不由本 sprint 收口判据承担**。
+    PlayMode `unity/Logs/s09_playmode_full.xml`(17:07:21)= **177/177 passed / 0 failed**;
+    EditMode 旧基线 `unity/Logs/b62b_editmode_full.xml`(12:55)= 3317 total / 3270 passed /
+    0 failed / 1 inconclusive / 46 skipped ⇒ 「3270/0/46/1」无误。
+  - **EditMode 现基线(2026-10-14 20:09 重跑 · C-2 收敛)**:`unity/Logs/s09_close_editmode_v2.xml`
+    = **3326 total / 3279 passed / 0 failed / 1 inconclusive / 46 skipped**。
+    **零回归**:对旧基线 3317/3270 ⇒ **+9 用例 / +9 通过 / 0 失败**(story-009 的
+    `emergency_skip_entry_wiring_test` 恰 9 条,`s10_ac905.xml` 9/9 全绿)。
+    三次独立跑批逐字一致(`story009_editmode.xml` 19:20 · `story009_editmode_final.xml` 19:36 ·
+    `s09_close_editmode_v2.xml` 20:09)⇒ 已收敛,非偶然。
+  - ⚠️ **退出码 2 与 XML `failed="0"」的矛盾(已查实,非回归)**:
+    三次跑批**全部**以 `Exiting with code 2 (Failed). One or more tests failed.` 退出,
+    而 XML `failed="0"`。根因 = Unity UTF 的 `UnityLogCheckDelegatingCommand` 把**测试期间
+    出现的 Error 日志**计入失败(**128 处** `CaptureException`),但**不把对应 test-case 标记为
+    Failed** ⇒ XML 的 `failed` 是**用例判决**,退出码是**日志判决**,二者不同源。
+    128 处错误全部来自 **8 个先于 story-009 存在的既有测试**(`font_rendering_path_spike_test`
+    52 · `hash_mismatch_recovery_test` 50 · `overrides_sidecar_test` 23 ·
+    `font_asset_shell_acceptance_test` 14 · `breath_layers_test` 11 · `_actor_cell_payload_test`
+    5 · `host_authority_test` 3 · `validate_all_aggregate_test` 2;最晚提交 10-13 14:52,
+    story-009 为 10-14),错误内容 = `You are trying to create a MonoBehaviour using the
+    'new' keyword`。**story-009 新文件在该日志 0 命中。**
+    ⇒ 「**无 story-009 回归**」成立且已证;但**退出码 2 是既有的仓库级红**,与 story-009 无关,
+    **未因本 sprint 解决** —— 已登记为独立待办(见 §7)。
 
 ## §4 风险与依赖
 
@@ -157,3 +173,13 @@ story-009 范围 = 直读通道装配 + 跳过入口接线 + Idle 门,Estimate *
 - 开工前置已办:QA 计划(本文件前)· `PAGES_MAX` 冻结口径已裁
 - ⚠️ 开工前置**待办**:`production/review-mode.txt` 未落文件(本 sprint 暂按既有默认 lean;
   用户未在本轮裁,落盘时显式登记为待裁项,不擅自定值)
+- ⚠️ **2026-10-14 收口核查查实(新登记 · 与本 sprint 范围无关,不阻断本 sprint 收口)**:
+  **全量 EditMode 三次跑批均以退出码 2 结束,而 XML `failed="0"`。** 根因已查实 =
+  Unity UTF 的 `UnityLogCheckDelegatingCommand` 把测试期间的 Error 日志计入失败(128 处),
+  但不标记 test-case Failed。错误全部来自 **8 个既有测试**(最晚 10-13 14:52,先于 story-009),
+  内容 = `You are trying to create a MonoBehaviour using the 'new' keyword`。
+  ⇒ 这是**仓库级既有红**,非本 sprint 引入、也非 story-009 引入;**未因本 sprint 解决**。
+  ⚠️ **影响**:凡以「退出码 = 0」为门的 CI / 脚本(含 `game-ci/unity-test-runner`)对该状态**会判红**,
+  尽管用例判决是全绿。**登记为独立待办,归后续轮**:要么修那 8 个测试的 `new MonoBehaviour`,
+  要么为 CI 门改用 XML 的 `failed` 计数并说明理由。**不得以「XML 是全绿」为由忽略退出码**,
+  也不得反之以「退出码红」否掉已证的零回归。

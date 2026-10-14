@@ -40,5 +40,11 @@ Addressables 被实测推翻)② F 键 = 按住 = 一次动作 ③ `EmergencyCha
 F-3 minor(消息笔误)已修;F-2 ADVISORY 登记(稳度门单键不可达,归烘焙轮)。
 修复后 **PlayMode 186/186 · EditMode 3279/0** 零回归。**story-009 → Complete ✅**。
 
-**剩余(非本 sprint 阻塞)**:AC-9-10/11 人工走查批(ADVISORY 欠账)→ M2 Exit `:169`
-翻勾复评(功能半已兑现,走查批一起评)。
+**M2 Exit `:169` 翻勾(2026-10-14 同日)**:sprint-09 S3 复评预设的翻勾判据(「story-009 落地」)
+兑现 ⇒ 复评原件 `production/qa/evidence/m2-exit-recheck-sprint10-169-2026-10-14.md`
+(判据 A–E 逐条实测:交互绑定命中 / SetVisible 生产链 / 通道生产实例化 / 端到端链 /
+双套件)⇒ `README:169` 翻 `[x]`,**sprint-09 S3 三条勾选滞后全部结清**
+(M2 §三 内 `:252` 五族切图冻结为独立推进项,不随本翻勾联动)。
+
+**剩余(非本 sprint 阻塞)**:AC-9-10/11 人工走查批(ADVISORY 欠账,需用户操作编辑器);
+sprint-09 收尾小件(`review-mode.txt` 未落 · 2 张 2048² 图片重生 · round-7 证据两文件待提交)。

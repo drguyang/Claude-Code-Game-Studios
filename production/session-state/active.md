@@ -21,6 +21,9 @@
     推进)+ 回归测试(120 tick 持续采样不中止);F-3 笔误已修;F-2 登记(稳度门单键
     不可达,归烘焙轮)。修复后 **PlayMode 186/186 · EditMode 3279/0** 零回归
   - **story-009 → Complete ✅**(AC 9 BLOCKING 全勾;AC-9-10/11 ADVISORY 欠账归人工走查批)
+  - **M2 Exit `:169` 翻 `[x]`(sprint-10 复评)**:story-009 落地兑现 sprint-09 S3 预设的
+    翻勾判据 ⇒ 复评原件 `production/qa/evidence/m2-exit-recheck-sprint10-169-2026-10-14.md`;
+    **sprint-09 S3 三条勾选滞后全部结清**(`:252` 切图冻结为独立推进项)
   - **登记数值轮**:聚合 EdgeTicks 量纲(样本序号 vs 逻辑 tick)与三乘子同批裁
 
 ---
