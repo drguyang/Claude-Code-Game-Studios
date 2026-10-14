@@ -30,11 +30,11 @@ stories:
     name: "W-1 会签裁决(ScriptedChain 三案链 9+37 二选一)"
     file: "production/sprints/sprint-11.md"
     priority: must-have
-    status: ready-for-dev
-    owner: ""
+    status: done
+    owner: "claude+user"
     estimate_days: 0.5
     blocker: ""
-    completed: ""
+    completed: "2026-10-15"
   - id: "S11-3"
     name: "EditMode 退出码 2 处置 = 修 8 测(new MonoBehaviour → 真夹具)"
     file: "production/sprints/sprint-11.md"

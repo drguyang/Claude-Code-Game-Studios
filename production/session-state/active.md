@@ -2991,3 +2991,19 @@ B-6-1 / B-6-3 / B-6-4 三项均已解除。
   0 Inconclusive,BATCH_EXIT=**0**;定向 14/14 + `new MonoBehaviour`/缺件日志 0。
 - **教训(工程向)**:显式 `Assert.Inconclusive` 占位 = 潜伏的 CI 信号污染源
   (XML 层看不出来,只有退出码知道);后续登记性占位一律用注释,不用 Inconclusive。
+
+## S11-2 收口(2026-10-15 · ✅ · 提交 4565dc6)
+
+- **主裁决(用户裁定)**:W-1 裁甲案 —— 三案(ScriptedChain)各挂 `DIS_DYSENTERY`,
+  走 F-37.3「一案进多组」现成机制 ⇒ `disease_set` 非空,`PatternRecognized` 可触发;
+  `AC-37-12` 原样不动;乙案(扩 D 域含 injury)否决留档。
+- **连带会签(用户裁定)**:图样可辨识度 × 8 可读性 = **结构性不互斥**;
+  可证伪判据 =「词族重合 > 噪声重合」;禁改 AC-8-19 迁就 Boss;playtest 验证
+  义务保持登记(Open Questions 行不删)。
+- **落盘五处**:case-system.md(W-1 注块 ✅ 段 + OQ 行)· he-returns.md(§四 表
+  增挂痢疾轻症 + 引言行)· campaign-arc.md(头注 + 落位注 + :82 行内括注)·
+  random-events.md(52 侧边界注)· systems-index.md(二次修订行)。
+- **登记项**:① 先触发歧义(自然痢疾先凑满 3 例)归 37 实现轮澄清;② 内容义务
+  (三案脉案按「痢疾轻症 + 失血主诉」微调)归内容轮;③ 具名角色 → patient_id
+  绑定值仍归实现期(原有,不变)。
+- **「不裁不得实现联调」解除;支柱四 P0 落点维持。**
