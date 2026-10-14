@@ -44,7 +44,16 @@
 
 *Derived from ADR-008 Implementation Guidelines:*
 
-1. `已处置(c) := ∃ e ∈ 病史流: e.Patient=c.patient_id ∧ e.Kind ∈ 处置集 ∧ e.Tick ∈ [CaseOpened.Tick, CloseTick]`;处置集 = 10/11/25 写的 Kind 白名单(`EmergencyTreatmentApplied`/`DrugTreatmentApplied`/`InjuryOnset` 是否算处置 → **以 ADR-008 §四 原文与 53 GDD 为准,实现前核对**,不自行扩集)。
+1. `已处置(c) := ∃ e ∈ 病史流: e.Patient=c.patient_id ∧ e.Kind ∈ 处置集 ∧ e.Tick ∈ [CaseOpened.Tick, CloseTick]`;
+   **处置集(`treatment_set`)现已定权威** —— 本条原写「`InjuryOnset` 是否算处置 → 以 ADR-008 §四 原文与 53 GDD 为准,
+   实现前核对,不自行扩集」,而当时该 ADR **无枚举可依**,遂被实现自行其是(见补评 B5):
+   - **权威 = `adr-008` §四 `:216-249`**(🟢 2026-10-15 补立):
+     `treatment_set := { EmergencyTreatmentApplied(10), DrugTreatmentApplied(11), CareApplied(8) }`;
+   - **明确排除** `EmergencyAttempt`(判定输入 ≠ 结算,ADR-009 Amendment I)与
+     `InjuryOnset`(25 的战斗伤害结算 —— 收它 = 把「打死」与「治好」等价);
+   - **闭环纪律**:增删成员须**同时**改 `adr-008` §四 + `case-system.md` F-37.2 `:666`/`:679` +
+     规则六 `:254` + 规则八 `:280` —— **四处口径一致,禁止任一处单独扩集**。
+   - **实现落点** = `Sim/CaseCloseDecider.cs` 的 `TreatmentKinds`(**已按上述权威对齐**,S11-10)。
 2. `可结案(c) := state=开 ∧ 已处置(c) ∧ 勾选` —— 勾选是意图载荷字段,非事件(仪式语义)。
 3. 幂等判据 = 「该案已有 CaseClosed」前缀检查,非锁非标志位。
 4. `disease_set` 快照口径 = 病程 overlap(结案时算 F-37.3 的 CaseDiseases),存进载荷后流即真相;重放**永不**跨流再查(treated 同理)。
@@ -105,7 +114,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_close_precondition_test.cs` — must exist and pass
-**Status**: [ ] In Review — 测试文件存在且 **35/35 绿**(2026-10-15 S11-8 修复后),但补评判定 **Test Evidence 门不通过**(见下方登记块;门内 4 类中 **① B-1 已修复并完成双向证伪**,余 ②③⑤ 见登记)
+**Status**: [ ] In Review — 测试文件存在且 **39/39 绿**(2026-10-15 S11-8 + S11-10 修复后),但补评判定 **Test Evidence 门不通过**(见下方登记块;门内 4 类中 **① B-1 与 ⑤ B5 已修复并各带反证**,余 ②③ 见登记)
 
 > ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `review-case-system-001-004-gap-audit-2026-10-15.md` §二:003 判定分级未能确证),按义务第 3 条**补做评审(评当下)**,不追认 `31e3f9b` 的历史判定。
 > **补评原件**:`production/qa/evidence/review-case-system-story-003-retro-2026-10-15.md`
@@ -165,6 +174,40 @@
 > A-1(`Set` 为可变 `public static readonly HashSet`)· A-5(副作用序列无判据)未清。
 > ⚠️ **A-1 与 S11-10 同址**:两者都改 `TreatmentKinds` 那几行 ⇒ S11-10 应**顺批**把 `Set` 收为不可写出口
 > (`private` + `Contains`,或暴露 `IReadOnlySet`),否则该确定性地雷会被下一个人原地绕过。
+> ✅ **已随 S11-10 顺批闭合**(见下)。
+
+> 🟢 **2026-10-15 S11-10 修复落盘 —— 承本登记块 ⑤ B5 + ADVISORY A-1**
+> **修复证据原件**:`production/qa/evidence/fix-s11-10-case-system-story-003-b5-2026-10-15.md`
+> **改动**(`unity/Assets/Sim/CaseCloseDecider.cs` · `TreatmentKinds`):
+> ① **撤 `InjuryOnset`**(25 的战斗伤害结算 ⇒ 「病人挨了打」被计入「已被处置」,玩家把病人打到即可
+> 满足结案前置,**正面击穿** `case-system.md:567`/`:839`「玩家空手连关三例 ⇒ **不可能**」);
+> ② **补 `CareApplied`**(8 的护理动作,病史流)—— 权威枚举第 3 员,原实现**漏收**,取舍方向与语义**完全相反**;
+> ③ **顺批 A-1**:原 `public static readonly HashSet<EventKind> Set` ⇒ 改 `private` 真源 + `Contains` 出口 +
+> 新增 `MembersSnapshot()`(**返独立副本**)。原形态 `readonly` 只锁**引用**,内容**全仓可写** ⇒
+> 任一处 `Set.Add(...)` 即**静默扩集**,破坏 ADR-005 的确定性纪律。
+> **权威对齐(闭环纪律四处已核)**:`adr-008` §四 `:229` · `case-system.md` 规则六 `:255` ·
+> 规则八 `:283` · F-37.2 `:671`/`:674`/`:686`/`:709-736` —— **四处口径一致**,代码现已等于该枚举。
+> **测试面**(37 → 39):① 撤 `test_treatmentKinds_containsInjuryOnset` —— 该测**反向断言了缺陷**
+> (`Contains(InjuryOnset) is True`),是 B5 逃过测试面的**直接原因**;② 新增 `containsCareApplied` ·
+> `excludesInjuryOnset` · `excludesEmergencyAttempt`(守住原有的**正确排除**,不回归);
+> ③ **双向穷尽** `equalsAuthorityExactly` —— 期望值**逐字引自 `adr-008` §四**(不引生产默认值,S11-10 AC),
+> 且**恰等**判据正是单向 `Contains` **抓不到**「偷偷多收一员」的那半边;
+> ④ `snapshotIsIsolatedFromSource` —— 污染快照后真源须纹丝不动(A-1 的经验判据)。
+> **证伪链(双信号一致)**:
+> - **修复前**(旧成员表 + 新哨兵):退出码 **2** · `37 测 35/2 红` —— 恰为 `containsCareApplied` 与
+>   `excludesInjuryOnset`(而 `excludesEmergencyAttempt` **通过** ⇒ 原有正确排除未动);
+> - **修复后**:退出码 **0** · `39 测 39/0`;
+> - **回退成员表即转红**:退出码 **2** · `39 测 35/**4 红**`(`Logs/s11_s10_revert.txt`)——
+>   含 `equalsAuthorityExactly` 打印 `实际 = {EmergencyTreatmentApplied, DrugTreatmentApplied, **InjuryOnset**}`;
+> - **全量无回归**:EditMode `total=3334 passed=3288 failed=0 inconclusive=0 skipped=46`(退出码 0;较 S11-8 后
+>   **+5 新增 / −1 移除**(移除的恰是那条反向断言缺陷的旧测),**逐名 diff 零意外消失**)· PlayMode
+>   `186/186/0`(**逐位等于 M2 基线**)。
+> ✅ **B5 结案 · A-1 结案。** 本 story **维持 `In Review`** —— 补评 4 类中余 **② 快照半场**(写者未落,
+> 无载体可测)· **③ AC-37-18 恒真化**(A-4)未清;ADVISORY A-5(副作用序列无判据)亦未清。
+> ⚠️ **登记一处结构缺口**:B5 是 **BLOCKING 级**判定,却**不对应任何 `AC-37-xx`** —— GDD 36 条 AC
+> **无一条枚举处置集**,故该缺陷的守卫**只存在于测试件 + ADR 闭环纪律**里,而不在 AC 面上。
+> 是否需要为「处置集 == 权威枚举」补一条显式 AC(或将其挂到支柱四不变量名下),**归用户裁**;
+> 本轮**不自行加 AC**(AC 面归 GDD)。
 
 ---
 

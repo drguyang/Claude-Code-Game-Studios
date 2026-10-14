@@ -3218,3 +3218,57 @@ EditMode 较 10-14 基线 +4,**逐名 diff 确认零条消失**,增量 = 2 条�
 
 **下一步候选**:S11-7(另一处真实现缺陷,`LastJudgmentOf` 死参 —— 实测**仍为未修态**)· S11-9 · S11-10 · S11-11。
 **S11-8 改动尚未提交** —— 待用户指示。
+
+---
+
+## ✅ 本轮 = S11-10 闭合(story-003 B5 + 顺批 A-1 · 2026-10-15)
+
+**用户指令**:**「提交 S11-8,然后做 S11-10」**(A-1 顺批已含在所选选项描述内)。
+
+**落点**(`unity/Assets/Sim/CaseCloseDecider.cs` · `TreatmentKinds`):
+1. **撤 `InjuryOnset`**(25 战斗伤害结算 ⇒「病人挨了打」被计入「已被处置」⇒ 玩家把病人打到即可满足
+   结案前置,**正面击穿** `case-system.md:567`/`:839`「空手连关三例 ⇒ 不可能」);
+2. **补 `CareApplied`**(8 护理动作,病史流)—— 权威枚举第 3 员,原实现**漏收**,取舍方向与语义**完全相反**;
+3. **顺批 A-1**:`public static readonly HashSet Set` ⇒ `private` 真源 + `Contains` + **`MembersSnapshot()`(返副本)**。
+   ⚠️ **实测无外部写点**(全仓 grep:仅 `CaseCloseDecider.cs:151` 读 + 本夹具)⇒ A-1 是**未被触发的隐患**,
+   **不是已发生的故障** —— 已按此口径登记,**不夸大**。
+
+**权威对齐(ADR 闭环纪律四处,已逐处核)**:
+`adr-008` §四 `:229` · `case-system.md` 规则六 `:255` · 规则八 `:283` · F-37.2 `:671`/`:674`/`:686`/`:709-736`
+—— 四处均写 `{EmergencyTreatmentApplied, DrugTreatmentApplied, CareApplied}` 且均排除 `EmergencyAttempt`/`InjuryOnset`。
+`tr-registry.yaml` 不枚举处置集,**不属**闭环纪律点名的四处。
+⚠️ **权威补立先于本修复**(2026-10-15 同批裁定,`adr-008` §四)⇒ 本修复是**执行**,不是**再裁**。
+
+**测试面**(37 → 39):
+- **撤** `test_treatmentKinds_containsInjuryOnset` —— 该测**反向断言了缺陷**(`Contains(InjuryOnset) is True`),
+  是 B5 逃过测试面的**直接原因**;
+- **新增** `containsCareApplied` / `excludesInjuryOnset` / `excludesEmergencyAttempt`(末者守住原有**正确排除**);
+- **双向穷尽** `equalsAuthorityExactly` —— 期望值**逐字引自 `adr-008` §四**(不引生产默认值,兑现 S11-10 AC);
+  单向 `Contains` **抓不到**「偷偷多收一员」,而 B5 正是**错收**这样逃过去的 ⇒ 本测是**充要**判据;
+- `snapshotIsIsolatedFromSource` —— 污染快照后真源须纹丝不动(A-1 的经验判据)。
+
+**证伪链(双信号一致)**:
+| 状态 | 退出码 | 结果 | 证据 |
+|---|---|---|---|
+| 修复前(旧成员表 + 新哨兵) | **2** | 37 测 35/**2 红**(恰为 `containsCareApplied` + `excludesInjuryOnset`) | `Logs/s11_s10_before.*` |
+| 修复后 | **0** | 39 测 **39/0** | `Logs/s11_s10_after.txt` |
+| **回退成员表**(精确隔离「集合内容」) | **2** | 39 测 35/**4 红** | `Logs/s11_s10_revert.txt` |
+
+⚠️ **反证只回退成员表,不整段回退到 HEAD** —— HEAD 无 `MembersSnapshot()` ⇒ 整段回退会**编译失败**,
+夹具一条不跑,红/绿**失去可比性**。此点已在证据件里明写。
+
+**全量零回归**:EditMode `3334 total / 3288 passed / **0 failed** / 0 inconcl / 46 skipped`(退出码 0;
+较 S11-8 后 **+5 新增 / −1 移除**,移除的恰是那条**反向断言缺陷**的旧测 ⇒ 净 +4)·
+PlayMode `186/186/**0 failed**`(**逐位等于 M2 基线**)。
+
+**记录面**:**新证据原件** `production/qa/evidence/fix-s11-10-case-system-story-003-b5-2026-10-15.md` ·
+story-003 🟢 B5 块 + **Implementation Note #1 权威回填** + `**Status**` 行(39/39 · B-1+B5 闭合)·
+`sprint-11.md` S11-10 转 ✅ · `sprint-status.yaml` S11-10 → `done` · `EPIC.md` 头部 + story-003 行。
+
+**未清**:story-003 维持 `In Review` —— 补评 4 类中余 **② 快照半场**(写者未落,无载体)· **③ AC-37-18 恒真化**(A-4);
+ADVISORY **A-5** 亦未清。
+⚠️ **登记一处结构缺口(归用户裁)**:B5 是 **BLOCKING 级**判定却**不对应任何 `AC-37-xx`** ——
+GDD 36 条 AC **无一条枚举处置集** ⇒ 该缺陷的守卫**只存在于测试件 + ADR 闭环纪律**,**不在 AC 面上**。
+是否补一条显式 AC(或挂到支柱四不变量名下)**归用户**;**本轮不自行加 AC**。
+
+**下一步候选**:S11-7 / S11-9 / S11-11(均未启动)。**S11-10 改动尚未提交** —— 待用户指示。

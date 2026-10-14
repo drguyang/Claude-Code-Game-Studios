@@ -76,20 +76,59 @@ namespace DaYiJingCheng.Sim
     }
 
     /// <summary>
-    /// 处置集白名单(GDD 规则五:10/11/25 写的 Kind)。
+    /// 处置集白名单(`treatment event` —— **权威 = ADR-008 §四 `:216-249`**,🟢 2026-10-15 补立)。
+    ///
+    /// <para><b>定义</b>:
+    /// <c>treatment event := e.Kind ∈ { EmergencyTreatmentApplied, DrugTreatmentApplied, CareApplied }</c></para>
+    ///
+    /// <para><b>闭环纪律</b>(ADR-008 §四):增删成员须**同时**改 <c>adr-008</c> §四 +
+    /// <c>case-system.md</c> 规则六 / 规则八 / F-37.2 —— **四处口径一致,禁止任一处单独扩集**。
+    /// 本类即该枚举的**唯一实现落点**。</para>
+    ///
+    /// <para>⚠️ 此处**刻意不引行号**:2026-10-15 核验发现四处引用的行号已全部漂移
+    /// (旧号 `:666`/`:679`/`:254`/`:280` → 实测 `:671`+`:674`+`:686` / `:255` / `:283`),
+    /// 且 <c>case-system.md</c> 自身的闭环纪律行也自引了同一组旧号。**节名稳定,行号不稳** ——
+    /// 复查请按节名检索。</para>
+    ///
+    /// <para>🔴 <b>2026-10-15 修复(sprint-11 S11-10 · 补评件 story-003 §二 B5)</b>:
+    /// 本类原为 <c>{ EmergencyTreatmentApplied, DrugTreatmentApplied, InjuryOnset }</c> ——
+    /// **错收** 25 的战斗伤害结算(⇒「病人挨了打」被计入「已被处置」,玩家把病人打到即可满足
+    /// 结案前置,**正面击穿** <c>case-system.md</c> 的 F-37.1 边界表与 EC-37-3 两条
+    /// 「玩家空手连关三例 ⇒ **不可能**」),
+    /// 同时**漏收** <c>CareApplied</c>(8 的护理)—— 取舍方向与语义**完全相反**。</para>
     /// </summary>
     public static class TreatmentKinds
     {
-        /// <summary>处置事件 Kind 白名单。</summary>
-        public static readonly HashSet<EventKind> Set = new HashSet<EventKind>
+        /// <summary>处置集**真源**(<c>private</c> —— 见 <see cref="MembersSnapshot"/> 的 A-1 说明)。</summary>
+        private static readonly HashSet<EventKind> Members = new HashSet<EventKind>
         {
-            EventKind.EmergencyTreatmentApplied,  // 10 急救
-            EventKind.DrugTreatmentApplied,       // 11 处方
-            EventKind.InjuryOnset,                // 25 格斗
+            EventKind.EmergencyTreatmentApplied,  // 10 急救**已施加**(ADR-009 Amendment I)
+            EventKind.DrugTreatmentApplied,       // 11 用药**已施加**
+            EventKind.CareApplied,                // 8  护理动作(病史流)
         };
 
         /// <summary>判断某 Kind 是否属于处置集。</summary>
-        public static bool Contains(EventKind kind) => Set.Contains(kind);
+        public static bool Contains(EventKind kind) => Members.Contains(kind);
+
+        /// <summary>处置集成员的**只读快照**(每次调用返回**独立副本**)。
+        ///
+        /// <para>🔴 <b>2026-10-15 修复(sprint-11 S11-10 顺批 · 补评件 ADVISORY A-1)</b>:
+        /// 原实现暴露 <c>public static readonly HashSet&lt;EventKind&gt; Set</c> ——
+        /// <c>readonly</c> 只锁**引用**,集合**内容全仓可写**(任一处
+        /// <c>TreatmentKinds.Set.Add(...)</c> 即**静默扩集**),破坏 ADR-005 的确定性纪律。
+        /// 现改为 <c>private</c> 真源 + 本出口返**拷贝** ⇒ 调用方**改不动**真源。</para>
+        ///
+        /// <para>⚠️ 顺序**非契约**(<c>HashSet</c> 迭代序无保证);需要集合语义的用法一律走 set 比较。
+        /// 本出口的服务对象 = 「**双向穷尽**」断言 —— 单向 <c>Contains</c> **抓不到**「偷偷多收一员」,
+        /// 而 B5 正是这样逃过测试面的。</para>
+        /// </summary>
+        /// <returns>处置集成员的独立副本(改动它不影响真源)。</returns>
+        public static EventKind[] MembersSnapshot()
+        {
+            var copy = new EventKind[Members.Count];
+            Members.CopyTo(copy);
+            return copy;
+        }
     }
 
     /// <summary>

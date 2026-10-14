@@ -285,30 +285,111 @@ namespace DaYiJingCheng.Tests.CaseSystem
 
         // ════════════════════════════════════════════════════════════════════
         // 处置集白名单:TreatmentKinds
+        //
+        // ⚠️ **权威 = ADR-008 §四 `:216-249`**(🟢 2026-10-15 补立)。本处此前**是全案唯一枚举处**
+        //    (GDD F-37.2 / 规则六 / registry 三处皆不枚举)即 story-003 补评 **B5** 所指的
+        //    「实施侧无权威可依 ⇒ 实现自行其是」。
+        //    定义:`treatment event := e.Kind ∈ { EmergencyTreatmentApplied, DrugTreatmentApplied, CareApplied }`
+        //    **闭环纪律**:增删成员须**同时**改 adr-008 §四 + `case-system.md` F-37.2 `:666`/`:679`
+        //    + 规则六 `:254` + 规则八 `:280`,**四处口径一致,禁止任一处单独扩集**。
+        //    本段期望值**逐字引自该枚举**,不以生产代码默认值为真源(S11-10 AC)。
         // ════════════════════════════════════════════════════════════════════
 
-        /// <summary>处置集含 EmergencyTreatmentApplied(10 急救)。</summary>
+        /// <summary>权威处置集 —— **逐字引自 ADR-008 §四 `:229`**(不引自生产代码默认值)。</summary>
+        private static readonly EventKind[] AuthorityTreatmentSet =
+        {
+            EventKind.EmergencyTreatmentApplied,  // 10 急救已施加(ADR-009 Amendment I)
+            EventKind.DrugTreatmentApplied,       // 11 用药已施加
+            EventKind.CareApplied,                // 8  护理动作(病史流)
+        };
+
+        /// <summary>处置集含 EmergencyTreatmentApplied(10 急救**已施加**)。</summary>
         [Test]
         public void test_treatmentKinds_containsEmergencyTreatment()
         {
             Assert.That(TreatmentKinds.Contains(EventKind.EmergencyTreatmentApplied), Is.True,
-                "处置集须含 EmergencyTreatmentApplied(10 急救)");
+                "处置集须含 EmergencyTreatmentApplied(10 急救已施加)");
         }
 
-        /// <summary>处置集含 DrugTreatmentApplied(11 处方)。</summary>
+        /// <summary>处置集含 DrugTreatmentApplied(11 用药**已施加**)。</summary>
         [Test]
         public void test_treatmentKinds_containsDrugTreatment()
         {
             Assert.That(TreatmentKinds.Contains(EventKind.DrugTreatmentApplied), Is.True,
-                "处置集须含 DrugTreatmentApplied(11 处方)");
+                "处置集须含 DrugTreatmentApplied(11 用药已施加)");
         }
 
-        /// <summary>处置集含 InjuryOnset(25 格斗)。</summary>
+        /// <summary>🔴 S11-10 回归哨兵(补评件 story-003 §二 B5):处置集须含 <c>CareApplied</c>(8 护理)。
+        /// 权威枚举第 3 员;修前实现**未收** —— 取舍方向与语义**完全相反**
+        /// (错收战斗伤害,漏收护理)。</summary>
         [Test]
-        public void test_treatmentKinds_containsInjuryOnset()
+        public void test_treatmentKinds_containsCareApplied()
         {
-            Assert.That(TreatmentKinds.Contains(EventKind.InjuryOnset), Is.True,
-                "处置集须含 InjuryOnset(25 格斗)");
+            Assert.That(TreatmentKinds.Contains(EventKind.CareApplied), Is.True,
+                "处置集须含 CareApplied(8 护理)——「照顾」是玩家对病人做的**处置**," +
+                "代价最轻的一档,必须收(ADR-008 §四 :236)");
+        }
+
+        /// <summary>🔴 S11-10 回归哨兵(补评件 story-003 §二 B5):处置集**不得**含 <c>InjuryOnset</c>。
+        /// 它是 **25 的战斗伤害结算** ⇒ 收它 = 「病人挨了打」被计入「已被处置」⇒
+        /// 玩家把病人打到即可满足结案前置,**正面击穿** `case-system.md:567`/`:839`
+        /// 「玩家空手连关三例 ⇒ **不可能**」。</summary>
+        [Test]
+        public void test_treatmentKinds_excludesInjuryOnset()
+        {
+            Assert.That(TreatmentKinds.Contains(EventKind.InjuryOnset), Is.False,
+                "InjuryOnset 是 25 的战斗伤害结算 —— 玩家对病人的**伤害不构成治疗证据**" +
+                "(ADR-008 §四 :241-242:「收它 = 把『打死』与『治好』等价」)");
+        }
+
+        /// <summary>明确排除:<c>EmergencyAttempt</c> 是 10 的**判定输入**而非结算
+        /// (ADR-009 Amendment I 三段式第一步)。「试了」≠「处置了」——
+        /// 修前此点**已正确**,本测守住不回归。</summary>
+        [Test]
+        public void test_treatmentKinds_excludesEmergencyAttempt()
+        {
+            Assert.That(TreatmentKinds.Contains(EventKind.EmergencyAttempt), Is.False,
+                "EmergencyAttempt 是判定输入而非结算 ——「试了」≠「处置了」(ADR-009 Amendment I)");
+        }
+
+        /// <summary>🔴 S11-10 双向穷尽:生产集 **恰等于**权威枚举(不多不少)。
+        /// 单向 <c>Contains</c> 断言**抓不到**「偷偷多收一员」—— 而 B5 正是**错收** `InjuryOnset`
+        /// 这样逃过测试面的(旧测 `test_treatmentKinds_containsInjuryOnset` 反向**断言**了该缺陷)。
+        /// 本测是「处置集 == 权威」的**充要**判据。</summary>
+        [Test]
+        public void test_treatmentKinds_equalsAuthorityExactly()
+        {
+            var actual = new HashSet<EventKind>(TreatmentKinds.MembersSnapshot());
+            var authority = new HashSet<EventKind>(AuthorityTreatmentSet);
+
+            Assert.That(authority.Count, Is.EqualTo(3),
+                "权威枚举恰 3 员(ADR-008 §四 :229 —— 本断言防夹具自身被改宽)");
+            Assert.That(actual.Count, Is.EqualTo(authority.Count),
+                "处置集成员数须等于权威枚举数 —— " +
+                $"实际 = {{{string.Join(", ", actual)}}}");
+            Assert.That(actual.SetEquals(authority), Is.True,
+                "处置集须**恰等于** ADR-008 §四 的权威枚举 —— " +
+                $"实际 = {{{string.Join(", ", actual)}}};" +
+                $"权威 = {{{string.Join(", ", authority)}}}");
+        }
+
+        /// <summary>🔴 A-1(顺批 · S11-10):`MembersSnapshot()` 返**副本** ⇒ 调用方改不动真源。
+        /// 原实现暴露可变 `public static readonly HashSet` ⇒ 任一处 `Set.Add(...)` 即**静默扩集**。</summary>
+        [Test]
+        public void test_treatmentKinds_snapshotIsIsolatedFromSource()
+        {
+            var snapshot = TreatmentKinds.MembersSnapshot();
+            Assert.That(snapshot.Length, Is.EqualTo(3), "快照含 3 员");
+
+            // 试图污染快照 —— 真源须纹丝不动
+            for (int i = 0; i < snapshot.Length; i++)
+                snapshot[i] = EventKind.InjuryOnset;
+
+            Assert.That(TreatmentKinds.Contains(EventKind.InjuryOnset), Is.False,
+                "改动快照**不得**影响真源(副本语义)");
+            Assert.That(new HashSet<EventKind>(TreatmentKinds.MembersSnapshot())
+                        .SetEquals(AuthorityTreatmentSet), Is.True,
+                "真源仍恰等于权威枚举");
         }
 
         /// <summary>处置集不含非处置 Kind(如 CaseOpened)。</summary>

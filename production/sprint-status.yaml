@@ -102,14 +102,14 @@ stories:
     blocker: ""
     completed: ""
   - id: "S11-10"
-    name: "story-003 B5 处置集撤 InjuryOnset + 补 CareApplied + 回填权威(ADR-008 §四 / F-37.2)"
+    name: "story-003 B5 处置集撤 InjuryOnset + 补 CareApplied + 权威对齐 + 顺批 A-1(Set 收为不可写出口)"
     file: "production/sprints/sprint-11.md"
     priority: must-have
-    status: ready-for-dev
-    owner: ""
+    status: done
+    owner: "Claude"
     estimate_days: 0.5
     blocker: ""
-    completed: ""
+    completed: "2026-10-15"
   - id: "S11-11"
     name: "story-001 B-3 测试头自填 AC 号改无编号引用(零成本)"
     file: "production/sprints/sprint-11.md"
