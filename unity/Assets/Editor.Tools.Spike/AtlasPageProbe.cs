@@ -144,29 +144,52 @@ namespace DaYiJingCheng.EditorTools.Spike
         /// <summary>Arm 轮询回读者(由 <see cref="SetupEditorSample"/> 调)。</summary>
         private static void ArmEditorReader()
         {
-            _readerArmedAt = (float)EditorApplication.timeSinceStartup;
             _readerFrames = 0;
             _readerReported = false;
+            _inPlay = false;
+            _readerArmedAt = (float)EditorApplication.timeSinceStartup;
+
+            // 事件驱动(替代原布尔猜判定:isPlayingOrWillChangePlaymode 在退出 Play 时也为
+            // true ⇒ 原写法把 Arm 后到按 Play 之间的空档也当 Play,帧数不累加 ⇒ 永不触发)。
+            EditorApplication.playModeStateChanged -= OnPlayModeChanged;
+            EditorApplication.playModeStateChanged += OnPlayModeChanged;
             EditorApplication.update -= ReaderTick;
             EditorApplication.update += ReaderTick;
-            Debug.Log($"{LogTag} READER_ARMED|mode=EditorApplication.update|" +
-                      $"等待 Play 后真渲染…");
+
+            Debug.Log($"{LogTag} READER_ARMED|mode=playModeStateChanged|" +
+                      $"NEXT=按 Play,进入 Play 后 ≈0.5s 自动报页数");
+        }
+
+        private static bool _inPlay;
+
+        private static void OnPlayModeChanged(PlayModeStateChange state)
+        {
+            // EnteredPlayMode = 真渲染开始前的最后一环;此时重置帧计数
+            if (state == PlayModeStateChange.EnteredPlayMode)
+            {
+                _inPlay = true;
+                _readerFrames = 0;
+                Debug.Log($"{LogTag} READER|EnteredPlayMode|帧计数已重置,开始等待渲染…");
+            }
+            else if (state == PlayModeStateChange.ExitingEditMode ||
+                     state == PlayModeStateChange.EnteredEditMode)
+            {
+                _inPlay = false;
+            }
         }
 
         private static void ReaderTick()
         {
-            if (_readerReported) return;
-
-            // 只在 Play 模式读(Play 外无渲染 ⇒ 页数无意义)
-            if (!EditorApplication.isPlayingOrWillChangePlaymode && !EditorApplication.isPlaying)
-                return;
+            if (_readerReported || !_inPlay) return;
 
             _readerFrames++;
+            // 真渲染需若干帧才分配页;给足 60 帧 + 0.5s 墙钟(与旧版同口径)
             if (_readerFrames < 60) return;
             if ((float)EditorApplication.timeSinceStartup - _readerArmedAt < 0.5f) return;
 
             _readerReported = true;
             EditorApplication.update -= ReaderTick;
+            EditorApplication.playModeStateChanged -= OnPlayModeChanged;
             ReportFromScene();
         }
 
@@ -175,7 +198,7 @@ namespace DaYiJingCheng.EditorTools.Spike
         {
             try
             {
-                var doc = UnityEngine.Object.FindObjectOfType<UIDocument>();
+                var doc = UnityEngine.Object.FindFirstObjectByType<UIDocument>();
                 if (doc == null)
                 {
                     Debug.Log($"{LogTag} RESULT|status=NO_UIDOCUMENT");
