@@ -185,7 +185,7 @@ OnExamSessionChanged(patientId, active : bool)      // 8 诊断 / 10 急救 → 
 > 而「距离近」与「在会诊」**不等价**(玩家可以在病人旁边站着不起手)。
 > 8 / 10 与 13 **同住边界层**(8 的 AC-8-2 已明写 8 消费 `VitalsDto`、不住 sim 程序集),
 > 故这是一次**层内调用**,不越过门 A。
-> **8 / 10 的 GDD 撰写时须回来登记本接口的发出侧**(记 `O-13-7`;⚠️ **2026-09-21 订正**:原注「10 无 GDD」陈旧 —— `emergency-procedures.md` 已成稿 Approved;**但 `O-13-7` 未结**:该件全文零处 `OnExamSessionChanged`,发出侧仍未登记)。
+> ~~**8 / 10 的 GDD 撰写时须回来登记本接口的发出侧**(记 `O-13-7`)~~ ✅ **`O-13-7` 已结(2026-10-15,S11-1)**:① **10 侧** = `emergency-procedures.md` 下游 13 行已登记(施治按住语义的按下/松开沿 ⇒ `OnExamSessionChanged(true/false)`,实现挂点 = `InteractionInputDriver` Begin/EndEmergency);② **8 侧** = `diagnosis-system.md` 下游 13 行已登记(**8 的查体 = 瞬时动作,不产生会话沿** —— `InTreatment` 持续会话语义唯一归 10,8 查体期间复用 10 已置位的姿态,不重复通知)。实现侧:`PatientBehavior.OnExamSessionChanged`(`PatientBehavior.cs:148`)为消费入口,P0 发出点 = 10 施治沿(挂点随施治交互轮接线,登记即为契约)。
 
 #### 四、P0 行为清单(2026-09-15 用户裁定②:最小可玩集)
 
@@ -361,7 +361,7 @@ Terminal(p) := (position ≤ RECOVER_MAX ∧ trend ≤ 0)     # 痊愈,锁存
 | **6 世界与生态区**(ADR-021 §一 · ADR-015 §一) | `POI_DEF`(POI 定义:+ `EcozoneOf(cell)`)—— **派生态烘焙数据** | F-13.2 的 `HomeRegion` / `KnowsClinic` **读定义侧**;13 不读 POI **状态**(状态进世界流,归 6) |
 | **23 模块化建造**(世界流 `StructurePlaced`) | 玩家建造物落成事件(**只读订阅**) | F-13.2 的 `KnowsClinic` 第二析取项(玩家建了医馆 ⇒ 该区「知道医馆」) |
 | **52 随机事件导演** | 病人注入时携带 `spawn_anchor`(F-13.2 的 `HomeRegion` 输入) | ⚠️ **52 目前只在遭遇体路径上有 `spawn_anchor`**(`random-events.md:145`)—— 病人路径未登记(**`O-13-5`**) |
-| **8 诊断 / 10 急救动作** | `OnExamSessionChanged(patientId, active)` —— **边界层内部调用**(规则十二) | 13 **只消费、不推断** `SessionState`;⚠️ 8 / 10 的发出侧须回登记(**`O-13-7`**) |
+| **8 诊断 / 10 急救动作** | `OnExamSessionChanged(patientId, active)` —— **边界层内部调用**(规则十二) | 13 **只消费、不推断** `SessionState`;✅ 发出侧已登记(**`O-13-7` 已结 2026-10-15**:10 = 施治按住沿 / 8 = 瞬时动作不产生沿,见 `:188` 注) |
 | **5 时间与天气** | tick 源 | 行为决策的 tick 边界 |
 
 #### 下游(谁依赖 13)
@@ -371,7 +371,7 @@ Terminal(p) := (position ≤ RECOVER_MAX ∧ trend ≤ 0)     # 痊愈,锁存
 | **37 病例系统**(`case-system.md:230` · `:473`) | **只读视图 `IPresentPatients`**(`PatientId` + `WorldPos` + 粗状态枚举) | ✅ ADR-016 §六 定型;`case-system.md:473` 原「契约暂定」已结清 |
 | **8 诊断**(`diagnosis-system.md:799` · `:1228` · `:1431`) | 病人自身的**表现**(呻吟 / 姿态);**8 只给语义** | ✅ 原文:「13 拥有行为;8 提供体征语义」 |
 | **44 音频**(`adr-018:312-313`) | 咳嗽 / 呻吟 **cue**(表现映射,**不经 sim**) | ✅ ADR-018 §四 |
-| **10 急救动作** | 就诊配合姿态(伸手 / 躺下 / 张口 —— 13 侧登记,见 §Core Rules 四 行为④) | ✅ **已回填**(2026-09-21 订正:原「10 无 GDD」陈旧)—— `emergency-procedures.md:736` / `:748` 已列 13;⚠️ **唯 `OnExamSessionChanged` 发出侧仍缺**(`O-13-7` 未结) |
+| **10 急救动作** | 就诊配合姿态(伸手 / 躺下 / 张口 —— 13 侧登记,见 §Core Rules 四 行为④) | ✅ **已回填**(2026-09-21 订正:原「10 无 GDD」陈旧)—— `emergency-procedures.md:736` / `:748` 已列 13;✅ **发出侧亦已登记(2026-10-15,`O-13-7` 结)**:施治按住语义按下/松开沿,见该件下游 13 行 |
 | **52 随机事件导演**(`adr-016:265-267`) | **间接** —— 52 注入病例 → 37 立案 → 13 供在场实体 | ✅ ADR-016 §八:**52 不直接驱动 13** |
 | **53 医疗后果**(`systems-index.md:327`) | **间接** —— 供在场实体 | ⚠️ **仍单边**(2026-09-21 订正:原「53 无 GDD」陈旧 —— `medical-consequences.md` 已成稿)—— 但其 §Dependencies 上游表列 37 / 9 / 8 / 1 / 11,**未列 13** ⇒ 反向引用义务**未落**,须 53 下轮回填 |
 
@@ -850,7 +850,7 @@ Material(p) = MaterialTable[ signs(p) ]        # 词条 id → 表现材质(声�
 | **6 世界与生态区** | **硬** | ✅ `world-and-ecozones.md` | `POI_DEF` + `EcozoneOf`(F-13.2 的 `KnowsClinic` / `HomeRegion`)**—— 无它则病人不知道有医馆** |
 | **23 模块化建造** | **软** | ✅ `modular-building.md` | 世界流 `StructurePlaced`(F-13.2 第二析取项)+ `EffectiveWalkable`(寻路输入) |
 | **52 随机事件导演** | **硬** | ✅ `random-events.md` | 病人注入(13 不生成病人)+ `spawn_anchor`(⚠️ **`O-13-5`**) |
-| **8 诊断 / 10 急救动作** | **硬** | ✅ / ✅(2026-09-21 订正:原「❌」陈旧) | `OnExamSessionChanged`(规则十二)—— ⚠️ 发出侧登记见 `O-13-7`(未结) |
+| **8 诊断 / 10 急救动作** | **硬** | ✅ / ✅(2026-09-21 订正:原「❌」陈旧) | `OnExamSessionChanged`(规则十二)—— ✅ 发出侧已登记(`O-13-7` 结 2026-10-15,见 `:188`) |
 | **5 时间与天气** | **硬**→**形式上** | ✅ `time-and-weather.md` 已成稿(2026-09-19 订正,原记「无 GDD」陈旧) | tick 源(行为决策的边界)—— ⚠️ **经 ADR-005 `ITickProvider` 直供,不经 5 的任何表**;13 与 5 在 P0 **零直接接口边** |
 | **1 玩家控制器与移动** | **硬** | ✅ `player-controller-and-movement.md`(2026-09-16 落盘) | 「玩家在哪一格」—— `ActorCellEntered`(**经世界流,非直接调用**;承 **ADR-020 §四** + **ADR-009 Amendment G**)。⚠️ 事件率**上界 = tick 频率**(归并算符;**不是**「= 格穿越率」)⇒ 13 的感知是**增量通知**,不是路径采样 |
 

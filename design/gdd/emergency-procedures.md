@@ -762,7 +762,7 @@ Aggregate(reading[整个动作期]) → agg = {
 | **2 摄像机与视角** | **档位意图** `Treatment` / `Explore`(**含跳过路径**)—— 结清 **`O-12` 的 10 侧** | ✅ `camera-and-viewpoint.md:722` |
 | **8 诊断** | 查体动作的**表现形式与耗时**(**`D-8-3`** / `OQ-8-1` 的托底) | ✅ `diagnosis-system.md:1265` · ✅ **8 的动作词表已落盘(2026-09-19,`diagnosis-system.md` S-8.4,路线甲 = 模态分流;急救走 10 直读通道,不经 4)—— 原「8 侧仍缺」的登记失效**(最小行回刷,10 的机制/数值未动) |
 | **11 处方用药** | 同属「处置」词表;载荷形状一致;**`SkillMul` / `ResultMul` / `JudgeResult` 的唯一出处** | ✅ `prescription-and-medication.md`(2026-09-18 成稿)· **C5 已闭合**(F-10.2 现真有定义) |
-| **13 病人 AI** | 就诊配合姿态的**动作定义** | ✅ `patient-ai.md:171` |
+| **13 病人 AI** | 就诊配合姿态的**动作定义** | ✅ `patient-ai.md:171` · ✅ **`OnExamSessionChanged` 发出侧已登记(2026-10-15,S11-1 结 `O-13-7` 的 10 侧半)**:10 的施治动作(F 按住语义,规则二)**按下沿 ⇒ `OnExamSessionChanged(patientId, true)`、松开沿 ⇒ `false`** —— 边界层内部调用(patient-ai 规则十二),13 消费后进 `InTreatment` 配合姿态;实现挂点 = `InteractionInputDriver` 的 Begin/EndEmergency 沿(与 `EmergencyChannelDriver.Arm/EndAction` 同沿同序) |
 | **4 交互系统** | 模态抑制的边界(规则七)+ **`Armed` 只读门**(4 已回填) | ✅ `interaction-system.md:408/:417/:538` —— **10 的「待补」段已划结** |
 | **42 拟物 UI** | **跳过入口 + 候选动作列表的交互规格**(10 提规格,42 实现) | ✅ `skeuomorphic-ui.md` · ⚠️ **新登记 `O-10-1`**(R-4:10 不拥有 UI 元素,而入口是元素) |
 | **44 音频** | 动作音 cue —— **`whitelist_category = PlayerAction`** + `trigger_source` 点名 | ✅ `audio-system.md:452`(白名单**成立**,五类含 `PlayerAction`) |
