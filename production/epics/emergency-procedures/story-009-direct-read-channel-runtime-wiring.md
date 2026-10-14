@@ -1,10 +1,12 @@
 # Story 009: 急救直读通道运行期装配 + 跳过入口接线(M2 形态件③ 功能半)
 
 > **Epic**: 10 急救动作
-> **Status**: **In Progress 🔨**(2026-10-14 实现轮 —— 代码 + 测试全落,BatchMode 双套件绿;待人工走查 AC-9-10/11 后收口)
+> **Status**: **Complete ✅**(2026-10-14 实现轮 + 当日评审收口 —— 评审原件
+> `production/qa/evidence/review-story-009-2026-10-14.md`:1 BLOCKING(中止看门狗)当场修复
+> + 回归测试,双套件零回归;AC-9-10/11 ADVISORY 欠账登记归人工走查轮,不挡收口)
 > **Layer**: Core
 > **Type**: Integration
-> **Estimate**: 3–5 人日(约 24–40h)
+> **Estimate**: 3–5 人日(约 24–40h;实际 1 日内)
 > **Manifest Version**: 2026-10-02
 > **Last Updated**: 2026-10-14
 
@@ -115,7 +117,7 @@ EditMode/测试 = null = 逻辑层模式,Attach 非法、FeedForTest 可用)。`
 - [x] **AC-9-05**[A] BLOCKING:**跳过路径** —— 跳过入口 Submit ⇒ 病史流 `EmergencyTreatmentApplied` 且 `method == 1`、`JudgeResult == AppliedWeak`、**零 `SkillGrown`**(承 `AC-10-10`)—— ✅ `test_ac905_skipMethod_appliedWeakPotency_andZeroGrowth`(Method=1 + DrugPotency=32768 + 零成长不变式 + 非空转守卫);`test_ac905_manualVersusSkip_potencyDiscriminable`(两档判别)。**判定可判形式 = `DrugPotency.Raw==32768` ∧ `Method==1`(JudgeResult 不是流上字段)**
 - [x] **AC-9-06**[A] BLOCKING:**Idle 门** —— 通道 `Armed` ⇒ 候选列表 `IsVisible == false`;回 `Idle` ⇒ `IsVisible == true`(规则六之甲)—— ✅ `test_idleGate_hidesOnArm_restoresOnEnd` / `test_idleGate_restoresOnAbort`(回调直驱;`EmergencyCandidateRuntime.SetVisible` 透传 + `CompositionRoot` onIdleGate 接线)
 - [x] **AC-9-07**[A] BLOCKING:**跳过入口焦点可达** —— 跳过入口 `focusable == true` 且在 `Idle` 态可经焦点导航 Submit(承 `AC-10-12` 的键盘半)—— ✅ `test_ac907_skipEntry_focusable_true`(focusable 断言)+ `test_candidateRuntime_skipCallback_invokedThroughRouter`(回调链闭环:UI Submit → 路由 → 写者双事件)。**焦点导航 Submit 的实机面(官方桥 NavigationMoveEvent 落焦后 NavigationSubmitEvent 派发)归人工走查 AC-9-10**
-- [ ] **AC-9-08**[I] BLOCKING:**零数字** —— 跳过入口与候选项文本零数字(`AC-023-2` 门回归)—— ⬜ **结构性继承**:`EmergencyCandidateList` 零新增数字载体(`Label("跳过")` 纯文字;USS 门 `emergency_skip_entry_test` 全库恰一块判据在 EditMode 套件内持续回归绿)。走查面归人工轮(与 AC-9-10 同批)
+- [x] **AC-9-08**[I] BLOCKING:**零数字** —— 跳过入口与候选项文本零数字(`AC-023-2` 门回归)—— ✅ **2026-10-14 评审原件就勾**:结构面 = `EmergencyCandidateList` 零新增数字载体(`Label("跳过")` 纯文字)+ USS 门(`emergency_skip_entry_test`:`.skip-entry` 声明块全库恰一、块内禁 `content:` / 数字)在评审套件内持续回归绿;走查面归人工轮(与 AC-9-10 同批,`production/qa/evidence/review-story-009-2026-10-14.md`)
 - [x] **AC-9-09**[A] BLOCKING:**中止 ≠ 跳过** —— `Armed` 内停手超 `ABORT_IDLE_TICKS` ⇒ `AbortAction` ⇒ **零处置事件、零 `EmergencyAttempt`**(承 `AC-10-18` 回归)—— ✅ `test_armedIdleBeyondAbortTicks_tickEdgeAborts_zeroEvents`(49 tick 不中止 / 第 50 中止零事件 / 流上零 method=1)+ `test_abortThenRelease_endActionIdempotent`(中止后松开幂等)。判据常量提出为 `ModalPhaseEvaluator.AbortIdleTicks`(公开,驱动侧同源)
 - [ ] **AC-9-10**[L] ADVISORY:纯键盘单机走查全部动作(含跳过)零按键提示即完成 —— **NOT-RUN**(走查证据归人工轮)
 - [ ] **AC-9-11**[L] ADVISORY:`L_input < 50 ms` 实机实测 —— **NOT-RUN**(归 OQ-10-12 原型门后续;原型已判成立 2026-09-29)
@@ -145,6 +147,15 @@ EditMode/测试 = null = 逻辑层模式,Attach 非法、FeedForTest 可用)。`
 **Evidence doc**: `production/qa/evidence/review-story-009-*.md`
 
 ## Implementation Notes(2026-10-14 实现轮)
+
+**⚠️ 评审收口(2026-10-14 当日)**:实现轮评审(`production/qa/evidence/review-story-009-2026-10-14.md`)
+查获 **1 BLOCKING(F-1)**:中止判据 `tick - armedTick >= 50` 与按住语义(裁定②)致命交互 ——
+首 press 沿后恒无新边沿 ⇒ 任何 ≥ 2.5 s 的合法长按被 tick 边沿误杀(零事件)。**修复** =
+判据改**采样活跃度看门狗**(`_lastActiveTick` 随 Feed 推进;`tick - lastActiveTick >= 50`
+才中止);回归测试 `test_longPressWithContinuousFeeding_notAborted`(120 tick 持续采样不中止,
+松开正常上行,对旧实现必红)。修复后 PlayMode **186/186** · EditMode **3279/0** 零回归。
+**F-2(ADVISORY 登记)**:单键按住 ⇒ 聚合恒 `edges=1` ⇒ 稳度门(`edges<=1` 免评)生产
+不可达 —— 裁定②的设计后果,节奏玩法归 21a/10 烘焙轮的多键输入形状。
 
 **BatchMode 双套件(2026-10-14 · 6000.3.24f1 batch)**:
 - EditMode:`total=3326 / passed=3279 / failed=0 / skipped=46 / inconclusive=1(既有)`

@@ -213,7 +213,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_emergencySkip == null)
                 throw new InvalidOperationException(
                     "急救跳过入口无接收宿主(CasebookCommandRouter 未接 EmergencyManualDriver)—— " +
-                    "跳过动作无落点 = 装配遗漏,不静默吞(与未接方笺页同口径);");
+                    "跳过动作无落点 = 装配遗漏,不静默吞(与未接方笺页同口径)。");
 
             if (_boundPatient.Value < 0)
                 return;   // 未绑病人 = 合法玩家路径(未查体就点跳过)⇒ 零事件零提示

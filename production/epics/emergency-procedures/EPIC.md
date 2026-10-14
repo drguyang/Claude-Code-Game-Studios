@@ -182,7 +182,13 @@ This epic is complete when:
 **实现轮落点(2026-10-14)**:通道/驱动/跳过/UI 交互全接线,BatchMode 双套件绿
 (EditMode 3279/0 · PlayMode 185/0,零回归);四项裁定(InputSystem.actions 装载 /
 F 键按住语义 / `EmergencyChannelDriver` 实现 `IArmedState` / 最小 Judge 分支)与
-AC 勾选面见 story-009 Implementation Notes。剩人工走查(AC-9-10/11)后收口。
+AC 勾选面见 story-009 Implementation Notes。
+
+**评审收口(2026-10-14 同日)**:实现轮评审查获 1 BLOCKING(中止判据 × 按住语义致命交互
+—— 合法长按 ≥ 2.5 s 被 tick 边沿误杀)⇒ 判据改采样活跃度看门狗 + 回归测试,修复后
+PlayMode 186/186 · EditMode 3279/0。**story-009 转 Complete ✅**(评审原件
+`production/qa/evidence/review-story-009-2026-10-14.md`);AC-9-10/11 ADVISORY 欠账
+登记归人工走查轮。M2 Exit `:169` 形态件③ 功能半就此兑现 —— 翻勾复评待人工走查批。
 
 **本补注不改变 epic 的 `Complete ✅` 判定** —— 该判定依据是「7/7 story 已实现 + 两轮评审已闭」
 (2026-10-08),而**运行期接线**是独立的另一回事(同 `README:251-255` 口径)。

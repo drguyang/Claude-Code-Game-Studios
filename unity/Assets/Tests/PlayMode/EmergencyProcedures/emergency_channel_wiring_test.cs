@@ -161,6 +161,39 @@ namespace DaYiJingCheng.Tests.PlayMode
         }
 
         [Test]
+        public void test_longPressWithContinuousFeeding_notAborted()
+        {
+            // 评审 F-1 回归(2026-10-14):中止看门狗 = 采样活跃度,非「距 Arm 时长」。
+            // 按住语义下首 press 沿后恒无新边沿 ⇒ 旧判据(tick - armedTick ≥ 50)会把
+            // 任何 ≥ 2.5 s 的合法长按在 tick 边沿误杀(零事件)。正确形态:接线模式
+            // 每 Armed 帧都有 Feed ⇒ lastActiveTick 恒新 ⇒ 长按永不被中止。
+            var pid = _bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 0);
+            _bag.Presence.AddPresent(pid, new WorldPos(0, 0, 0));
+            _bag.VitalsService.OnTickEdge(0);
+            int before = _bag.Stream.Count;
+
+            _driver.Arm(0, pid);   // armedTick = lastActiveTick = 0
+
+            // 120 tick 边沿(> 阈值 50 的 2 倍),每个边沿都伴随采样(接线模式形态)。
+            // ⚠️ 须同步推 TickDriver:生产里 lastActiveTick 与 tick 泵同源推进;
+            //   测试不推则 CurrentTick 恒 0,看门狗读数失真(模拟失真,非产品缺陷)。
+            for (int t = 1; t <= 120; t++)
+            {
+                _bag.TickDriver.Advance(0.05d);
+                _driver.FeedForTest(0.8f, newlyPressed: false);   // 长按中:无新沿,有采样
+                _driver.OnTickEdge(_bag.TickDriver.CurrentTick);
+                Assert.AreEqual(DirectChannelState.Armed, _driver.State,
+                    $"持续采样 ⇒ 第 {t} tick 不中止(评审 F-1:看门狗只拦采样停)");
+            }
+            Assert.AreEqual(before, _bag.Stream.Count, "零事件(动作还在途中)");
+
+            // 松开 ⇒ 正常聚合上行(误杀回归的最终判据:长按真的产出双事件)
+            _driver.FeedForTest(0.8f, newlyPressed: false);
+            Assert.IsTrue(_driver.EndAction(actorId: 9001), "长按后松开 ⇒ 双事件入流");
+            Assert.AreEqual(before + 2, _bag.Stream.Count);
+        }
+
+        [Test]
         public void test_abortThenRelease_endActionIdempotent()
         {
             var pid = _bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 0);

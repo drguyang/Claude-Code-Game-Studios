@@ -1,4 +1,4 @@
-# Session State — 2026-10-14(**当前阶段 = Pre-Production · Sprint 10 🚧 In Progress(story-009 实现轮 —— 代码全落 + 双套件绿,待人工走查收口)· Sprint 09 🚧(S1 第七轮 playtest 待用户执行)· Sprint 08 ✅ · M2 形态件 4/4 齐**)
+# Session State — 2026-10-14(**当前阶段 = Pre-Production · Sprint 10 🚧(story-009 ✅ Complete —— 实现轮 + 评审收口同日落;剩 ADVISORY 人工走查批)· Sprint 09 🚧(S1 第七轮 playtest 待用户执行)· Sprint 08 ✅ · M2 形态件 4/4 齐**)
 
 ## Sprint 10 进展(2026-10-14)
 
@@ -15,8 +15,12 @@
   - **验证**:EditMode **3279/0**(基线 3270,+9 新测)· PlayMode **185/0**(基线 175,
     +8 新测;interaction ② / e2e ⑥ 改判按住语义)· 日志 `unity/Logs/story009_*.xml`
   - AC 勾选:9 BLOCKING 自动化全勾(AC-9-08 结构性继承 + 走查面归人工);AC-9-10/11 NOT-RUN
-  - **剩余收口**:人工走查(AC-9-10 纯键盘走查 / AC-9-11 实机延迟)→ 评审原件
-    (`production/qa/evidence/review-story-009-*.md`)→ M2 Exit `:169` 翻勾复评
+  - **评审收口(同日)**:评审原件 `production/qa/evidence/review-story-009-2026-10-14.md`
+    —— **F-1 BLOCKING** 查获并修复:中止判据 `tick - armedTick` 与按住语义致命交互
+    (合法长按 ≥ 2.5 s 被误杀零事件)⇒ 改**采样活跃度看门狗**(`_lastActiveTick` 随 Feed
+    推进)+ 回归测试(120 tick 持续采样不中止);F-3 笔误已修;F-2 登记(稳度门单键
+    不可达,归烘焙轮)。修复后 **PlayMode 186/186 · EditMode 3279/0** 零回归
+  - **story-009 → Complete ✅**(AC 9 BLOCKING 全勾;AC-9-10/11 ADVISORY 欠账归人工走查批)
   - **登记数值轮**:聚合 EdgeTicks 量纲(样本序号 vs 逻辑 tick)与三乘子同批裁
 
 ---

@@ -8,7 +8,7 @@
 
 | Story | 状态 | 判据 |
 |---|---|---|
-| **story-009**(emergency-procedures) | **In Progress 🔨**(2026-10-14 实现轮) | 11 AC:9 BLOCKING 自动化 + 2 ADVISORY 人工走查 |
+| **story-009**(emergency-procedures) | **Complete ✅**(2026-10-14 实现轮 + 当日评审收口) | 11 AC:9 BLOCKING 全勾 + 2 ADVISORY 欠账登记(归人工走查轮) |
 
 ## 进展
 
@@ -33,4 +33,12 @@ Addressables 被实测推翻)② F 键 = 按住 = 一次动作 ③ `EmergencyCha
 - PlayMode **185/0**(基线 175,+8 新测;interaction_chain ② / e2e ⑥ 改判按住语义,非回归)
 - 日志:`unity/Logs/story009_{editmode,playmode}.{log,xml}`
 
-**剩余**:AC-9-10/11 人工走查(NOT-RUN)→ 评审原件 → 收口(M2 Exit `:169` 翻勾候选)。
+**评审收口(2026-10-14 同日)**:评审原件 `production/qa/evidence/review-story-009-2026-10-14.md`
+—— 查获 **F-1 BLOCKING**(中止判据 × 按住语义致命交互:合法长按 ≥ 2.5 s 被误杀)
+⇒ 判据改**采样活跃度看门狗**(`_lastActiveTick` 随 Feed 推进)+ 回归测试
+(`test_longPressWithContinuousFeeding_notAborted`,120 tick 持续采样不中止);
+F-3 minor(消息笔误)已修;F-2 ADVISORY 登记(稳度门单键不可达,归烘焙轮)。
+修复后 **PlayMode 186/186 · EditMode 3279/0** 零回归。**story-009 → Complete ✅**。
+
+**剩余(非本 sprint 阻塞)**:AC-9-10/11 人工走查批(ADVISORY 欠账)→ M2 Exit `:169`
+翻勾复评(功能半已兑现,走查批一起评)。

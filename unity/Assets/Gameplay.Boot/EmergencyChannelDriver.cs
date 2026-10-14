@@ -16,9 +16,15 @@
 //     (落 EmergencyManualDriver.TryAggregated)+ Idle 门(候选列表可见性回调)。
 //   - **不构造 SimEvent / 不写流** —— 写者恒 EmergencyManualDriver → HostEmergencyProcessor
 //     (ADR-005 主机唯一 Append;本类零 IEventSink 依赖)。
-//   - 中止判据(R-9.3 + 规则六之甲):Armed 起点起 `tick - armedTick >= AbortIdleTicks`
-//     (<see cref="ModalPhaseEvaluator.AbortIdleTicks"/> = 50,合成值,真值归数值轮)⇒
-//     AbortAction 零事件。按住语义下 Armed 期内无新 press 沿 ⇒ 「按住超阈值 = 停手」。
+//   - 中止判据(R-9.3 + 规则六之甲 · ⚠️ 2026-10-14 评审 F-1 修订):**采样活跃度看门狗** ——
+//     Armed 期 `lastActiveTick` 随每次成功 Feed 推进;`tick - lastActiveTick >= AbortIdleTicks`
+//     (<see cref="ModalPhaseEvaluator.AbortIdleTicks"/> = 50,合成值,真值归数值轮)⇒ 中止零事件。
+//     ⚠️ 判据为何不能是「距 Arm 的时长」:按住语义(裁定②)下首 press 沿后**恒无新边沿**,
+//     GDD :313「持续不产生任何 Emergency 边沿」对按住手势结构性失配 —— 原实现会把任何
+//     ≥ 2.5 s 的合法长按在 tick 边沿误杀(零事件),松开沿 EndAction 已回 Idle ⇒ no-op,
+//     玩家按住 3 秒 = 什么都没发生(评审 F-1 实测推演)。活跃度 = Feed 成功(接线模式
+//     onAfterUpdate 每 Armed 帧喂 ⇒ 长按永不被误杀);看门狗只拦「采样真停 ≥ 50 tick」
+//     (设备断连 / 回调死 —— Suspended 入口归 story-008 前的兜底)。
 //     检查点 = tick 边沿(BootRoot 的 tick 边沿序列内 OnTickEdge),不由渲染帧驱动。
 //   - Idle 门(R-9.3):Arm ⇒ 候选列表隐藏(onIdleGate(false));End / Abort ⇒ 复现
 //     (onIdleGate(true))。回调由组合根注入指向 EmergencyCandidateRuntime.SetVisible
@@ -49,8 +55,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>本次 Armed 的目标病人(Arm 时锁定;None = 未预约过)。</summary>
         private PatientId _target = PatientId.None;
 
-        /// <summary>Armed 起点的逻辑 tick(中止判据基准;Idle 态无意义)。</summary>
+        /// <summary>Armed 起点的逻辑 tick(Idle 态无意义;观测面)。</summary>
         private long _armedTick;
+
+        /// <summary>最近一次成功 Feed 的逻辑 tick(中止看门狗基准;评审 F-1 修订 ——
+        /// 按住语义下「边沿活跃」不可用,「采样活跃」才是输入存活的正确代理)。</summary>
+        private long _lastActiveTick;
 
         /// <param name="channel">3 的直读通道(组合根装配;逻辑层 / 接线模式均合法)。</param>
         /// <param name="manual">手动入口驱动(聚合上行与 Skip 共用的 Process 链宿主)。</param>
@@ -101,14 +111,27 @@ namespace DaYiJingCheng.Gameplay.Boot
             _channel.Arm(actionOrdinal);
             _target = target;
             _armedTick = _currentTick();
+            _lastActiveTick = _armedTick;
             _onIdleGate?.Invoke(false);
         }
 
-        /// <summary>逻辑层 / 测试驱动缝:透传通道 Feed(Armed 外拒收语义由通道持有)。</summary>
-        public bool Feed(EmergencyReading reading) => _channel.Feed(reading);
+        /// <summary>逻辑层 / 测试驱动缝:透传通道 Feed(成功 = 采样活跃,推看门狗基准)。</summary>
+        public bool Feed(EmergencyReading reading)
+        {
+            bool accepted = _channel.Feed(reading);
+            if (accepted)
+                _lastActiveTick = _currentTick();
+            return accepted;
+        }
 
-        /// <summary>测试驱动缝:透传通道 FeedForTest(纯逻辑驱动,不依赖输入相位)。</summary>
-        public int FeedForTest(float axis, bool newlyPressed) => _channel.FeedForTest(axis, newlyPressed);
+        /// <summary>测试驱动缝:透传通道 FeedForTest(成功 = 采样活跃,推看门狗基准)。</summary>
+        public int FeedForTest(float axis, bool newlyPressed)
+        {
+            int count = _channel.FeedForTest(axis, newlyPressed);
+            if (_channel.State == DirectChannelState.Armed)
+                _lastActiveTick = _currentTick();
+            return count;
+        }
 
         /// <summary>
         /// 动作结束(松开沿,2026-10-14 用户裁定):聚合 → TryAggregated 上行 → Idle 门复现。
@@ -137,14 +160,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
-        /// tick 边沿中止检查(规则六之甲;由 BootRoot 的 tick 边沿序列驱动,**非渲染帧**)。
-        /// Armed 且距预约起点 ≥ <see cref="ModalPhaseEvaluator.AbortIdleTicks"/> ⇒ 中止。
+        /// tick 边沿中止检查(规则六之甲 · 评审 F-1 修订后的**采样活跃度看门狗**;由
+        /// BootRoot 的 tick 边沿序列驱动,**非渲染帧**)。Armed 且距**最近采样** ≥
+        /// <see cref="ModalPhaseEvaluator.AbortIdleTicks"/> ⇒ 中止(采样停 = 输入存活
+        /// 代理失效;接线模式下每 Armed 帧都有样本 ⇒ 合法长按恒不被误杀)。
         /// </summary>
         public void OnTickEdge(long tick)
         {
             if (_channel.State != DirectChannelState.Armed)
                 return;
-            if (tick - _armedTick >= ModalPhaseEvaluator.AbortIdleTicks)
+            if (tick - _lastActiveTick >= ModalPhaseEvaluator.AbortIdleTicks)
                 AbortAction();
         }
     }
