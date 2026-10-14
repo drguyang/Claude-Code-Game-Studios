@@ -124,6 +124,73 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
             }
 
             Debug.Log($"[SkeuoRuntimeDriver] Screen '{_screenName}' instantiated and bound.");
+
+            // ── B-6-2:焦点可见施加者(story-009 契约的运行期兑现)──
+            // 病因(第六轮 playtest 追问 A「看不到焦点在哪」):焦点环样式与契约 story-009
+            // 已全做完,但「焦点转移 → 施加/移除 .focus-visible」的施加者**从未接线**
+            // (story-009 注记明写「接线留待焦点接线轮」)。引擎 FocusController 一直在
+            // 移动焦点(B-6-1 接通导航后方向键已在移动它),只是没人把焦点态翻译成呈现态。
+            // ⚠️ **甲案(用户裁定 2026-10-14):环走 overlay 子元素,不直接挂类** ——
+            //   ① `.focus-visible` × `.ruled` 的 border-bottom 加载序冲突(story-021 登记
+            //      的「接线前置裁定项」)**结构性消失**(overlay 自带层,不与行类 border 级联,
+            //      加载序裁定项随之注销);
+            //   ② 单槽铁律(`background-image` 整槽替换 ⇒ 带纸纹元素获焦瞬间纸纹被顶掉)
+            //      **结构性消失**(overlay 在上层,行自身纹理不动)。
+            //   ⚠️ 不自实现焦点算法(ADR-013 §五):FocusController 是焦点真源,本施加者
+            //   只把引擎焦点态翻译成呈现态 —— 监听面板根的 FocusIn/FocusOut 冒泡。
+            AttachFocusRingApplier();
+        }
+
+        /// <summary>焦点环施加者(B-6-2 · 甲案 overlay):获焦目标 append 环子元素,失焦移除。</summary>
+        /// <remarks>⚠️ 监听挂**面板根**(冒泡收全树),每个目标自己的 FocusIn/FocusOut
+        /// 不另挂 —— 目标是动态建的(病名册条目 / 戥子档运行期建),逐目标挂会漏。
+        /// ring `pickingMode = Ignore`:环不参与拾取,点环不挡下面的行。</remarks>
+        private void AttachFocusRingApplier()
+        {
+            _panel.RegisterCallback<FocusInEvent>(OnFocusIn);
+            _panel.RegisterCallback<FocusOutEvent>(OnFocusOut);
+        }
+
+        /// <summary>环子元素构造(甲案 overlay):匿名、不拾取、四向负 offset 溢出环厚。</summary>
+        private static VisualElement CreateFocusRing()
+        {
+            var ring = new VisualElement();
+            ring.AddToClassList(FocusVisibleStyle.ClassName);
+            ring.pickingMode = PickingMode.Ignore;
+            ring.focusable = false;
+            return ring;
+        }
+
+        /// <summary>查找目标上已挂的环(失焦移除 / 防重入用)。</summary>
+        private static VisualElement FindFocusRing(VisualElement target)
+        {
+            for (int i = 0; i < target.childCount; i++)
+            {
+                var child = target[i];
+                if (child.ClassListContains(FocusVisibleStyle.ClassName))
+                    return child;
+            }
+            return null;
+        }
+
+        private void OnFocusIn(FocusInEvent evt)
+        {
+            var target = evt.target as VisualElement;
+            if (target == null) return;
+            // 防重入:已挂环不重复 append(同目标 FocusIn 重发)
+            if (FindFocusRing(target) != null) return;
+            target.Add(CreateFocusRing());
+        }
+
+        private void OnFocusOut(FocusOutEvent evt)
+        {
+            // 只摘**本目标的**环;新目标的环由它的 FocusIn 挂(FocusOut 先于下一 FocusIn,
+            // 摘完再挂 = 环随焦点转移,不多不少)。
+            if (evt.target is VisualElement target)
+            {
+                var ring = FindFocusRing(target);
+                ring?.RemoveFromHierarchy();
+            }
         }
 
         /// <summary>屏外注入的只读 DTO 源(42 不反向引用装配层 —— 由场景 / 测试赋值)。</summary>

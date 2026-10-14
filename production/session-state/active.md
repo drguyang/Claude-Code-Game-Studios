@@ -1637,10 +1637,40 @@ LOD 按 d² 三档 · 逻辑格步进(定点累加器 `acc`,Q16.16) · `Moving(p
 - ⬜ 系统 6 Epic(接收侧:latch/幂等/判距复验/唯一 Append)—— 转绿 AC-4-13 6 半 + AC-4-17 6 消费半
 
 <!-- STATUS -->
-Epic: sprint-08(方笺交互面轮)
-Feature: S1 病名栏+病名册 · S2 方笺翻页+戥子开方 · S3 词条 polish · E2E 七环节全链门
-Task: S0 前置窄批 ✅ + S1.0 词表烘焙管线 ✅ + S1.1 病名册 UI 整面 ✅ → 下一步 S2 方笺翻页 + 戥子选档
+Epic: sprint-08(方笺交互面轮)—— playtest 缺陷 B-6-1…B-6-4 全解除
+Feature: 第六轮 playtest 收口(B-6-2 焦点可见性 ✅ 收口)
+Task: B-6-2 收口提交后,sprint-08 转 Complete 归 sprint 收口流程判
 <!-- /STATUS -->
+
+---
+
+## B-6-2 收口(2026-10-14 · 两层根因 · 双半达成 · ✅ Complete)
+
+- **修法**(用户裁定**甲案 overlay**):环走获焦目标内部匿名子元素 ——
+  ① 施加者接线 `SkeuoRuntimeDriver.AttachFocusRingApplier`(面板根 FocusIn/FocusOut 冒泡,
+  防重入不翻倍、失焦零残留;`focus_ring_applier_test` 2/2,新文件);
+  ② USS `.focus-visible` 转 overlay 语义(absolute 四向 0 + 环图 slice;border-width 0 维持,
+  2px 厚度全由环图承担)—— story-021 加载序冲突 + 单槽铁律「纸纹被顶掉」两风险**结构性注销**。
+- **第一轮人工复验红**「环没跟过去」根因:焦点死在**隐藏旧页** —— 戥子行翻页那刻才建,
+  旧页 `display:None` 后 FocusController 在可见树无可焦目标 ⇒ 修 = `SubmitPageNext/Prev`
+  尾调 `FocusFirstOf(新页)`(官方 Focus() 路径,不自实现导航,ADR-013 §五)。
+  判据:⑤b 直调 + ⑤c 事件派发内翻页(真 panel 断言 `focusedElement`)。
+- **第二轮人工复验红**「还是没修好」根因:真机 20 Hz tick → `ApplyData` →
+  `RefreshDentchDoses` **每 tick 全量摘掉重建档位行** ⇒ 翻页落焦的持焦行 50 ms 内被移出
+  层级 ⇒ 引擎**静默丢焦**。测试夹具无 tick 循环 ⇒ 首轮 ⑤b/⑤c 全绿而真机红(差异面)。
+  修 = **幂等短路**(行集只由档数单值决定,档数未变不拆建;**零缓存语义不动** ——
+  DTO 每 tick 仍重读)+ 竞态回归测 ⑤d `test_tickRebuild_focusSurvivesRepeatedApplyData`
+  (翻页落焦 → 连续 10 轮 ApplyData → 焦点仍活)。
+- **变异验证**:撤短路 ⇒ ⑤d 恰红(15 条中唯一红,14 全绿无误伤;`b62_mutation.xml`),
+  恢复复绿 ⇒ 恰红证据闭环。
+- **自动化半**:PlayMode **175/175**(`b62_final.xml`);**人工半**:用户真机复验
+  **「环跟行走」**(方笺页 ↓ 落第一档位行、方向键逐档;翻回脉案页同判)。
+- **评审原件**:`production/qa/evidence/review-b6-2-focus-visibility-2026-10-14.md`。
+
+✅ **sprint-08 的第六轮 playtest 阻塞(B-6-1…B-6-4)四项全部解除** —— 整体转 Complete
+归 sprint 收口流程判。未提交改动:`CasebookScreen.cs`(翻页焦点转移 + 幂等短路 + 观测面)、
+`SkeuoRuntimeDriver.cs`(环施加者)、`SkeuoFocusVisible.uss`(overlay 语义)、
+`casebook_page_turn_test.cs`(⑤b/⑤c/⑤d)、新文件 `focus_ring_applier_test.cs`(+meta)。
 
 ---
 

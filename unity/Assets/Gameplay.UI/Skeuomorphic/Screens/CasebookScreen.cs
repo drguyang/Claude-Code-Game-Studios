@@ -86,6 +86,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <summary>戥子黄铜读数元件(<c>AC-42-F3</c> 黄铜分支)。</summary>
         private BrassScaleElement _brassScale;
 
+        /// <summary>上次建出的档数(幂等短路判据;−1 = 尚未建过)。
+        /// <para>⚠️ B-6-2 修复(2026-10-14):真机 20 Hz tick 每 tick 调 <see cref="ApplyData"/>
+        /// → <see cref="RefreshDentchDoses"/> 全量摘掉重建档位行 ⇒ 翻页落焦的持焦行
+        /// 在下一 tick 被移出层级,引擎**静默丢焦** ⇒ 方向键死在无焦点态。
+        /// 修法 = 行集只由档数单值决定(行内容恒定、userData = 显式 ordinal),
+        /// 档数未变 ⇒ 跳过 DOM 重建 —— **重读 DTO 照旧每 tick(零缓存不动)**,
+        /// 只是不无变化时不再拆持焦元素;不持焦点、不自实现导航(ADR-013 §五)。</para></summary>
+        private int _builtDetentCount = -1;
+
         /// <summary>创建脉案页。</summary>
         public CasebookScreen(VisualElement root, SkeuoElementLibrary library) : base(root)
         {
@@ -387,6 +396,28 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// <summary>右页是否折回(纯呈现态观测面)。</summary>
         public bool IsFolded => _folded;
 
+        /// <summary>方笺页首个可焦后代是否正持焦(测试观测面;B-6-2 翻页焦点落点门用)。</summary>
+        /// <remarks>⚠️ 42 只读不持(ADR-013 §9 C3):焦点真源是引擎 <c>FocusController</c>,
+        /// 本面只查询 —— 逻辑树(无 panel)下引擎不可用时返回 false(不抛,守门退化)。</remarks>
+        public bool FocusedElementOfRxPage()
+        {
+            var first = FirstFocusableOf(_rxPage);
+            return first != null && first.panel != null &&
+                   first.panel.focusController.focusedElement == first;
+        }
+
+        /// <summary>脉案页首个可焦后代是否正持焦(测试观测面;同上对称面)。</summary>
+        public bool FocusedElementOfCasebookFace()
+        {
+            var first = FirstFocusableOf(_casebookFace);
+            return first != null && first.panel != null &&
+                   first.panel.focusController.focusedElement == first;
+        }
+
+        /// <summary>页内树序第一个可焦后代(FocusFirstOf 与两个观测面的共用实现)。</summary>
+        private static VisualElement FirstFocusableOf(VisualElement page)
+            => page?.Query<VisualElement>().Where(e => e.focusable).First();
+
         /// <summary>
         /// 页缘「后案」(**语义动作面**;页缘后行 Submit 的转发目标)—— 翻到下一页。
         /// </summary>
@@ -398,6 +429,7 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             _onPrescriptionPage = true;
             ApplyPageVisibility();
             RefreshDentchDoses();
+            FocusFirstOf(_rxPage);            // ⚠️ B-6-2 人工复验红(2026-10-14):见 FocusFirstOf 注
             _commandSink?.SubmitPageTurn();   // 通知装配层(纯呈现量;实现方可 no-op)
         }
 
@@ -410,7 +442,28 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             if (!_onPrescriptionPage) return;   // 已在首页 ⇒ 无上一页(不循环)
             _onPrescriptionPage = false;
             ApplyPageVisibility();
+            FocusFirstOf(_casebookFace);      // ⚠️ 同上:回首页焦点亦须落进可见页
             _commandSink?.SubmitPageTurn();
+        }
+
+        /// <summary>翻页后把焦点交给**新页**的第一个可焦后代(方向键导航的落点 bootstrap)。</summary>
+        /// <remarks>
+        /// <para>⚠️ **B-6-2 人工复验红(2026-10-14)**:翻到方笺页后按方向键,
+        /// 焦点走不到戥子档行。根因**不是环的 bug** —— 戥子行是翻页那一刻
+        /// <see cref="RefreshDentchDoses"/> 才建的,而此时焦点还停在旧页的页缘元素上;
+        /// UI Toolkit 语义:`display: None` 子树**不参与焦点导航** ⇒ FocusController
+        /// 在可见树里找不到下一个可焦目标,焦点死在隐藏旧页 —— B-6-1 做了**初始**
+        /// 选中,页间**转移**没做。本方法补的就是转移:官方 <c>FocusController</c>
+        /// 路径(<c>elem.Focus()</c>),**不自实现导航算法**(ADR-013 §五)。</para>
+        /// <para>⚠️ 时机:display 已切、新行已建之后调用(本方法由翻页语义兜底尾调);
+        /// 若新页暂无可焦后代(如方笺数据未到、detentCount=0),**留空不强行** ——
+        /// 焦点留原处,方向键恢复后再走(与「零假数据」同纪律)。</para>
+        /// </remarks>
+        private void FocusFirstOf(VisualElement page)
+        {
+            if (page == null) return;
+            // 树序取第一个 focusable 后代(UI Toolkit 无显式 tabIndex 时树序 = 焦点序)
+            FirstFocusableOf(page)?.Focus();
         }
 
         /// <summary>折边 Submit(**语义动作面**)—— 右页向左折回 / 展开。</summary>
@@ -451,6 +504,17 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             if (_dentchDoses == null) return;
 
             int detentCount = _sourceForBook?.DoseDetentCount ?? 0;
+
+            // ── B-6-2 幂等短路(2026-10-14):档数未变 ⇒ 行集必同形,跳过重建 ──
+            // 真机 tick 循环(20 Hz)每 tick 全量摘掉重建 ⇒ 翻页落焦的持焦行 50 ms 后
+            // 被移出层级 ⇒ 引擎静默丢焦(「翻页后方向键走不动」的人工复验红)。
+            // 零缓存语义不动:DTO 每 tick 仍重读;短路只省「无变化的 DOM 拆建」。
+            // 变异面:删本短路 ⇒ 翻页落焦 → tick 重建 → 焦点丢失,回归测恰红
+            // (2026-10-14 实测:撤短路跑 ⑤d 恰红 14/15,本测失败信息即本段)。
+            if (detentCount == _builtDetentCount && _dentchDoses.childCount > 0)
+                return;
+
+            _builtDetentCount = detentCount;
 
             // 黄铜读数元件(懒建一次;TickCount 随档数刷新)
             if (_brassScale == null)

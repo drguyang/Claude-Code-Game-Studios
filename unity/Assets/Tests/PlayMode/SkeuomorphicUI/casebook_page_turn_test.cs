@@ -170,6 +170,9 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
                     $"第 {i + 1} 行 userData = 显式 ordinal({i + 1}),非显示索引");
         }
 
+        // ⑤b 翻页 ⇒ 焦点落进**新页**(B-6-2 人工复验红 · 2026-10-14)——
+        //     **真 panel 判据,住 ⑧ 区**(逻辑树无 panel 持不了焦点状态,Focus() 落空)。
+
         // ══════════════════════════════════════════════════════════════════════
         // ⑥ 档位行 Submit ⇒ 写通道收到显式 ordinal
         // ══════════════════════════════════════════════════════════════════════
@@ -283,6 +286,120 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
 
             Assert.IsTrue(screen.IsOnPrescriptionPage,
                 "落焦「后案」+ 真派发 ⇒ 翻至方笺续页(接线缺失则本测红,而语义判据仍绿)");
+        }
+
+        /// <summary>
+        /// ⑤b:翻页 ⇒ 焦点落进**新页**(B-6-2 人工复验红 · 2026-10-14)。
+        /// <para>⚠️ **真 panel 判据**(逻辑树无 panel 持不了焦点状态,`Focus()` 落空
+        /// —— 首版放逻辑树区即踩此坑:FocusController.focusedElement 恒 null ⇒ 恰红)。
+        /// 病根:戥子行是翻页那一刻才建的,而焦点还停在旧页页缘;UI Toolkit 语义
+        /// `display: None` 子树不参与焦点导航 ⇒ 焦点死在隐藏旧页,方向键走不到戥子行
+        /// —— 焦点环忠实跟随引擎焦点,焦点没动环就不动,人工看到「环没跟过去」。
+        /// 变异面:删 SubmitPageNext/Prev 里的 FocusFirstOf 调用 ⇒ 焦点仍在旧页 ⇒ 本测恰红。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_pageTurn_focusLandsOnNewPage_firstFocusableRow()
+        {
+            SetUpPanel();
+            yield return WaitForRoot(_doc);
+            VisualElement root = _doc.rootVisualElement;
+            Assert.IsNotNull(root.panel, "[夹具红] panel 为 null");
+
+            var screen = new CasebookScreen(root, new SkeuoElementLibrary());
+            screen.BindCommandSink(new FakeSink());
+            screen.ApplyData(new FakeSource { Detents = 5 });
+
+            // 前置:脉案页获焦一行(模拟玩家翻页前的焦点态)
+            var faceFirst = root.Q<VisualElement>("channel-complexion");
+            Assert.IsNotNull(faceFirst, "[夹具红] 脉案页首行未找到");
+            faceFirst.Focus();
+            yield return null;
+            Assert.IsTrue(screen.FocusedElementOfCasebookFace(),
+                "[夹具红] 落焦未生效 —— 真 panel 下 Focus() 须可达");
+
+            screen.SubmitPageNext();   // → 方笺页
+            yield return null;
+
+            // 判据:焦点在新页首个可焦后代(树序第一档位行),不在隐藏旧页
+            Assert.IsTrue(screen.FocusedElementOfRxPage(),
+                "翻页后焦点须落在方笺页首个可焦后代(第一档位行)—— " +
+                "否则方向键死在隐藏旧页(人工复验红:B-6-2 「环没跟过去」的根因)");
+
+            screen.SubmitPagePrev();   // ← 回脉案页
+            yield return null;
+            Assert.IsTrue(screen.FocusedElementOfCasebookFace(),
+                "翻回后焦点须落回脉案页首个可焦后代(同纪律,双向都 bootstrap)");
+        }
+
+        /// <summary>
+        /// ⑤c:【真机等价路径】**事件派发内**翻页 ⇒ 焦点落进新页(2026-10-14 第二轮人工复验红)。
+        /// <para>⚠️ 与 ⑤b 的差异(即首修漏掉的面):⑤b 直调 <c>SubmitPageNext()</c>;
+        /// 真机 = 玩家按 Enter ⇒ <c>NavigationSubmitEvent</c> 派发 ⇒ **handler 内部**
+        /// 执行 display 切换 + 建行 + <c>Focus()</c>。「handler 内落焦」此前零测试覆盖 ——
+        /// 若本测红 = 真机 bug 复现(事件派发中 focus 变更被引擎吞/延),修法须挪出派发期
+        /// (如延迟一帧 / 调度到派发后);若本测绿 = 差异在别处(module / 导航起点),再深挖。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_wiring_pageTurnSubmit_focusLandsOnNewPage()
+        {
+            SetUpPanel();
+            yield return WaitForRoot(_doc);
+            VisualElement root = _doc.rootVisualElement;
+            Assert.IsNotNull(root.panel, "[夹具红] panel 为 null");
+
+            var screen = new CasebookScreen(root, new SkeuoElementLibrary());
+            screen.BindCommandSink(new FakeSink());
+            screen.ApplyData(new FakeSource { Detents = 5 });
+
+            // Act:真机等价 —— 落焦「后案」页缘 + 真派发 submit(翻页在其 handler 内发生)
+            DispatchSubmit(root.Q<VisualElement>("page-edge-next"));
+            yield return null;   // 真机会隔几帧才按方向键;给派发/布局一帧
+
+            Assert.IsTrue(screen.IsOnPrescriptionPage, "[夹具红] 翻页未发生(submit 派发面失效)");
+            Assert.IsTrue(screen.FocusedElementOfRxPage(),
+                "⑤c 红:**事件派发内**翻页 ⇒ 焦点未落进新页 —— 真机路径(Enter 触发翻页)下 " +
+                "handler 内 Focus() 未生效;与 ⑤b(直调)分叉即本判据的存在理由");
+        }
+
+        /// <summary>
+        /// ⑤d:【tick 重建竞态 · 第二轮人工复验红的根因】翻页落焦后**每 tick ApplyData**
+        /// ⇒ 焦点必须仍活(2026-10-14)。
+        /// <para>⚠️ 真机差异面(测试此前测不到的原因):生产里 BootRoot 20 Hz tick 调
+        /// <c>SkeuoRuntimeDriver.OnTickEdge</c> → <c>ApplyData</c> → 方笺页在场时
+        /// <c>RefreshDentchDoses</c> **每 tick 全量摘掉重建档位行** ⇒ 翻页时落焦的第一行
+        /// 在下一个 tick(50 ms 后)被移出层级 ⇒ 引擎**静默丢焦** ⇒ 方向键死在无焦点态。
+        /// 本测手动模拟该 tick 流:翻页 → 落焦 → 连续多轮 ApplyData(同源同档数)→
+        /// 断言焦点仍落在档位行上。修复 = 幂等短路(档数未变不拆建);
+        /// **变异面:删 RefreshDentchDoses 的短路 ⇒ 本测恰红**(焦点在首轮重建即丢)。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator test_tickRebuild_focusSurvivesRepeatedApplyData()
+        {
+            SetUpPanel();
+            yield return WaitForRoot(_doc);
+            VisualElement root = _doc.rootVisualElement;
+            Assert.IsNotNull(root.panel, "[夹具红] panel 为 null");
+
+            var source = new FakeSource { Detents = 5 };
+            var screen = new CasebookScreen(root, new SkeuoElementLibrary());
+            screen.BindCommandSink(new FakeSink());
+            screen.ApplyData(source);
+
+            screen.SubmitPageNext();   // → 方笺页(handler 内建行 + FocusFirstOf)
+            yield return null;
+            Assert.IsTrue(screen.FocusedElementOfRxPage(), "[夹具红] 翻页落焦未生效(⑤b 面)");
+
+            // Act:模拟真机 tick 流 —— 同源同档数连续 ApplyData(重建竞态面)
+            for (int tick = 0; tick < 10; tick++)
+            {
+                screen.ApplyData(source);   // 真机每 tick 都调;源/档数不变
+                yield return null;
+            }
+
+            // 判据:焦点仍在档位行上(未被 tick 重建摘掉)
+            Assert.IsTrue(screen.FocusedElementOfRxPage(),
+                "⑤d 红:每 tick ApplyData 全量重建档位行 ⇒ 持焦行被移出层级、引擎静默丢焦 " +
+                "—— RefreshDentchDoses 须幂等短路(档数未变不拆建;变异:删短路 ⇒ 本测恰红)");
         }
 
         /// <summary>⑧b:页缘「前案」落焦 + 提交 ⇒ 翻回脉案页。</summary>

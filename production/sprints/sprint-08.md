@@ -161,5 +161,19 @@ S3 人工可读性腿 ✅ 2026-10-14 随 B-6-3 收口判绿)。
 查证:是,且根因 = SDF 采样点 32px vs 实际字号 ≈14px 失配(非 atlas 精度上限);根治四提交
 已落 + 用户实证「清晰可辨」⇒ 无需另立 story。
 
-⚠️ **sprint-08 整体仍不得转 Complete** —— B-6-2(焦点可见性 P2)open,独立 story。
-B-6-1 / B-6-3 / B-6-4 三项均已解除。
+**B-6-2 ✅ Complete(2026-10-14 · 两层根因)** —— 收口判据「自动化 + 人工」双半达成:
+- **修法**(用户裁定甲案 overlay):环走获焦目标内部匿名子元素 —— 施加者接线
+  `SkeuoRuntimeDriver.AttachFocusRingApplier`(FocusIn/FocusOut 冒泡,防重入、失焦零残留)
+  + USS `.focus-visible` 转 overlay 语义(story-021 加载序冲突与单槽铁律两风险结构性注销)。
+- **第一轮人工复验红根因**:焦点死在**隐藏旧页**(翻页切 display 后 `FocusController`
+  在可见树找不到可焦目标)⇒ 修 = `SubmitPageNext/Prev` 翻页焦点转移 `FocusFirstOf`。
+- **第二轮人工复验红根因**:真机 20 Hz tick 每 tick `ApplyData` → `RefreshDentchDoses`
+  全量重建档位行 ⇒ 持焦行 50 ms 内被移出层级 ⇒ 引擎**静默丢焦**(测试夹具无 tick 循环
+  ⇒ 首轮自动化全绿而真机红)⇒ 修 = 幂等短路(档数未变不拆建;零缓存语义不动,
+  DTO 每 tick 仍重读)+ 竞态回归测 ⑤d。
+- **自动化半**:PlayMode **175/175**;变异验证:撤短路 ⇒ ⑤d 恰红(14/15 无误伤),恢复复绿。
+- **人工半**:用户真机复验 **「环跟行走」**(方笺页方向键逐档 + 翻回脉案页)。
+- **评审原件**:`production/qa/evidence/review-b6-2-focus-visibility-2026-10-14.md`。
+
+✅ **sprint-08 的第六轮 playtest 阻塞(B-6-1…B-6-4)全部解除** —— 四项双半均达成,
+整体转 Complete 归 sprint 收口流程判。

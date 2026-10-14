@@ -13,26 +13,42 @@
  *    像素」是绑定轮当时设想,评审后已落定为上句口径 —— 见
  *    focus_visual_and_accessibility_test.test_ac021_3_…。)
  *
- * ⚠️ 焦点环 × 线格的单类级联冲突(2026-10-08 story-021 评审登记 · **未接线,今日不可观测**):
- *    `.focus-visible` 与 `SkeuoPaper.uss` 的 `.ruled` / `.empty-row` **都写 `border-bottom-*`**。
- *    同一元素若同时挂两单类(USS 单类特异性相等),胜者由**加载序**决定 —— 而本项目
- *    stylesheet 加载序**未钉死** ⇒ 行获焦时「环 2px 还是格线 1px」是未定义行为。
- *    焦点施加者今日零调用(`FocusVisibleStyle.ClassName` 全库零引用,见下方单槽铁律)
- *    ⇒ 该冲突**今日不可观测**,不构成缺陷,只登记为**接线前置裁定项**:
- *    焦点接上后须二选一 —— (甲) 焦点期改走环子元素(乙案,不碰 border) /
- *    (乙) 行类改写 `border` 外的格线载体(如伪元素)。裁定前**不得**让行同时挂两单类。
+ * ✅ 2026-10-14(B-6-2 接线 · **甲案** · 用户裁定):本类转 **overlay 语义** ——
+ *    施加者(SkeuoRuntimeDriver.AttachFocusRingApplier)在获焦目标内部 append
+ *    环子元素挂本类,不直接给目标加类。story-021 登记的「接线前置裁定项」
+ *    (.focus-visible × .ruled 的 border-bottom 加载序冲突)**就此注销** ——
+ *    overlay 自带层不与行类 border 级联;单槽铁律的「纸纹被顶掉」风险同步消失
+ *    (目标自身 background 不再被整槽替换)。
+ *
+ * ⚠️ 焦点环 × 线格的单类级联冲突(2026-10-08 story-021 评审登记)——
+ *    **2026-10-14 甲案接线后注销**:冲突前提是「同一元素同时挂两单类」,甲案下
+ *    `.focus-visible` 只挂在匿名 overlay 上,与 `.ruled` 永不同元素 ⇒ 冲突不可达。
+ *    此注保留为闭环记录。
  */
 
 .focus-visible {
+    /* ── 2026-10-14 B-6-2 接线(甲案 · 用户裁定):本类转 **overlay 语义** ──
+       施加者(SkeuoRuntimeDriver)不再把本类挂到获焦目标身上,而是在目标**内部
+       append 一个匿名环子元素**挂本类。两件已登记问题**结构性注销**:
+       ① story-021「接线前置裁定项」:.focus-visible × .ruled 的 border-bottom
+          加载序冲突 —— overlay 自带层,不与行类 border 级联,加载序裁定项随之注销;
+       ② 单槽铁律:background-image 整槽替换 ⇒ 带纸纹元素(paper 类)获焦瞬间
+          纸纹被顶掉 —— overlay 在上层,目标自身纹理/底色不动。
+       ── overlay 定位(环要盖住目标全周)──
+       position absolute + 四向 0 = 恰与目标边界重合;环图 slice 2px 画在
+       overlay 自身边缘(环**外沿**贴目标边界)。负 offset(如 -2px)会让环
+       溢出到目标外,与相邻行/边框叠压 —— 不取,环贴边内画。
+       ⚠️ overlay 自身零 border 宽(下方 width:0 维持)—— 2px 厚度全由环图承担。 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     /* ── 黄铜环图接管 2px 形状(C8 门比对冻结件,禁手填)──
        slice = 2 = 冻结件 freeze-v1 `Brass/focus_brass_2px-final.png|2|SkeuoFocusVisible.uss`;
-       环中心透明 ⇒ 元素自身 background-color 纸底透出。
-       ⚠️ 单槽铁律(显式登记,非静默 —— 承冻结件 §六):`background-image` 是**整槽替换**。
-       焦点目标若自身带纸纹(paper/scroll 等容器类),获焦瞬间纸纹被环图顶掉 ——
-       环中心透明救不了**被顶掉的纹理层**。现状:运行期施加者尚不存在
-       (FocusVisibleStyle.ClassName 全库零调用)⇒ 今日零可见风险。
-       铁律:焦点目标只许 background-color 底;未来若须带纹理元素可焦 ⇒
-       改走**环子元素**(overlay child,乙案)重开焦点样式轮,不得静默接受纸纹闪烁。 */
+       环中心透明 ⇒ 目标自身 background-color 纸底透出(overlay 不挡内容)。
+       单槽铁律(保留,语义随甲案收窄):overlay 自身**只许** background-image
+       (环图)—— 不得再叠纸纹/底色;目标自身 background 不受影响。 */
     background-image: url("guid:6d4c0acbd9a141348c34017e96d20ee2");
     -unity-slice-left: 2px;
     -unity-slice-right: 2px;
@@ -52,8 +68,8 @@
     border-bottom-width: 0;
     border-left-width: 0;
     /* 纸面压痕(inset box-shadow)2026-10-08 同批移除:自边缘起 0–1px 会吃掉
-       环的内半 ⇒ 环视觉厚度剩 1px,违 2px 规格。压痕语义若要回,须避让环厚 ⇒
-       归乙案(环子元素时代由外层 shadow 解决)。 */
+       环的内半 ⇒ 环视觉厚度剩 1px,违 2px 规格。甲案下 overlay 时代若要回,
+       由 overlay 自身实现(它已 absolute 覆盖全周),不影响目标。 */
 }
 
 /* 门关时不施加焦点高亮(无焦点 ⇒ 无高亮,不得残留) */
