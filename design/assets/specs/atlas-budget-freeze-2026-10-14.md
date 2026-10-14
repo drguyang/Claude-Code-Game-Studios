@@ -1,13 +1,13 @@
-# 图集预算冻结件(PAGES_MAX · S2 spike · 第一轮)
+# 图集预算冻结件(PAGES_MAX · S2 spike · round-2)
 
-> **冻结轮次**: round-1 · **2026-10-14**
+> **冻结轮次**: round-2 · **2026-10-14**(round-1 同日;round-2 = 两张超规图重生 1024² 入库后的重测重冻,承本件铁律)
 > **对应**: `story-019` 分档 **019-b**(AC-42-C9)· `sprint-09` §2 S2
 > **依据**: `skeuomorphic-ui.md` F5(图集与批次护栏)「`Pages_max` **由 spike 定,留白**」·
 > 2026-10-04 J 裁「**禁填占位值**(占位值 = 第二真源)」·
 > 用户 2026-10-14 三项裁定(决策门 = 只裁 `PAGES_MAX` · 冻结口径 = **实测倒推** ·
 > 语义 = **改冻「入图集资格」**)
 > **实测门**: `unity/Assets/Tests/PlayMode/SkeuomorphicUI/atlas_page_count_test.cs`
-> (batch PlayMode · `Logs/s09_atlas_final.xml` · **2/2 Passed** · 2026-10-14)
+> (batch PlayMode · round-1 `Logs/s09_atlas_final.xml` / round-2 重测 `Logs/s09_atlas_reimport2.xml` · 均 **2/2 Passed** · 2026-10-14)
 >
 > 🔴 **本件是图集预算判据的唯一真源。**
 > 改任何冻结值 = **重开冻结轮**(改本件 → 同批改门 → 复跑)。
@@ -74,15 +74,22 @@ PAGES_MAX 语义冻结为:
 
 ## 三、入图集资格分布(门槛 1024)
 
-实测 `ELIGIBILITY|threshold=1024|total=18|eligible=16|oversized=2`
+> **⚠️ 本节已于 2026-10-14 当日重冻(轮 round-2)** —— 触发 = 冻结件铁律「任何一张图重画/
+> 替换 ⇒ 本轮作废,须重测重冻」:两张超规图同日重生 1024² 入库替换(meta/GUID 未动,
+> 提交 `e891ecd`)。重测 = 三跑 batch(`Logs/s09_atlas_reimport2.xml` · **2/2 Passed**)。
+> round-1 的资格数字保留于下表括注,不删(留重冻依据)。
+
+实测 `ELIGIBILITY|threshold=1024|total=18|eligible=18|oversized=0`
+(round-1:`total=18|eligible=16|oversized=2` —— 超规 2 张已重生结清)
 
 | 状态 | 张数 | 明细 |
 |---|---|---|
-| **合格**(≤1024²) | **16** | 五族 15 张 1024² + `Brass/focus_brass_2px` 64² |
-| **超规**(>1024²) | **2** | `ui_icons_sprite` 2048² · `Casebook/casebook_paper_base` 2048² |
+| **合格**(≤1024²) | **18**(round-1:16) | 五族 16 张(**`ui_icons_sprite` 1024² 重生版**,t2i `watermark:false`,网格谷 ±6px)+ `Casebook/casebook_paper_base` 1024²(频域补偿降采样,纤维 std 7.59 保持)+ `Brass/focus_brass_2px` 64²(用户明裁最小豁免) |
+| **超规**(>1024²) | **0**(round-1:2) | ~~`ui_icons_sprite` 2048² · `Casebook/casebook_paper_base` 2048²~~ **均已重生 1024²**(留痕 `design/assets/ai-generation-prompts.md` §九之三;量化判读:① 覆盖率 4.6–29.1%/水印残值 2.04%;② 纤维 std 7.59/淡墨 p50 7.18:1 过 7:1 门) |
 
 > ⚠️ **首轮实测纠正了手算**:手算「17 合格」是**错的**(误把 `ui_icons_sprite` 算作 1024²
-> 合格)。实测 16 才是真值。**数字以实测为准,禁手算**。
+> 合格)。实测 16 才是真值(round-1)。**数字以实测为准,禁手算** —— round-2 的 18 亦为实测
+> (`test_raisedThreshold1024_eligibilityDistribution` 断言已随更新 16/2→18/0,提交 `1c03f2f`)。
 
 **两张超规图的处置**(承用户 2026-10-14 裁定 + `feedback-images-serve-requirements`):
 > 图片服务于需求,不合规格用 `/image-gen` **重生**为 1024²,
@@ -132,4 +139,4 @@ DISPLAY=:0 /home/gu/Unity/Hub/Editor/6000.3.24f1/Editor/Unity \
 | `story-019` AC-42-C9 | 判据改锚到 `ATLAS_TILES_PER_FRAME_MAX = 32`;019-b **解 Blocked** |
 | `nine-slice-freeze-2026-10-08.md` | 不受影响(切图值与图集预算正交) |
 | `adr-013` §6.6 假设 6 / Verification ④ | **部分结清** —— 「图集阈值 spike(F6)」已跑;余「真机实测瓦片取用」待后续轮 |
-| 2 张 2048² 超规图 | `/image-gen` 重生为 1024²(不抬门槛) |
+| ~~2 张 2048² 超规图~~ | ✅ **已重生 1024² 结清(2026-10-14 当日,round-2 重冻)** —— `e891ecd`;量化判读与留痕见 §三 表 + `ai-generation-prompts.md` §九之三 |

@@ -2946,3 +2946,14 @@ B-6-1 / B-6-3 / B-6-4 三项均已解除。
 - **遗留**:sprint-09 收尾小件三项(review-mode.txt / round-7 证据 / 2 张图片重生)
   **全部结清**;story-009 走查批亦结清。当日链:走查全绿 → review-mode 落 lean →
   图片重生 → atlas 门复验绿 → 五提交全推送(1cc3196/40b210c/a7d1676/e891ecd/1c03f2f/53ebdc0)。
+
+## 🏁 M2 收口(2026-10-14 · Exit Criteria 10/10 全勾)
+
+- **末条 `:253`(五族切图与 atlas 布局冻结)翻勾**:原阻塞「019-b Blocked(PAGES_MAX
+  未冻结)」已陈旧——冻结件 round-2 重冻(超规 2→0)+ 实测门 2/2 + 超规图重生结清,
+  三证据链闭合。复评原件 `production/qa/evidence/m2-exit-recheck-sprint10-253-2026-10-14.md`。
+- **三残留裁「不卡 M2 Exit」转独立待办**:R1 构建期瓦片门接线 · R2 真机瓦片实测 ·
+  R3 GDD F5 量纲修订(禁借绿声明在档,实质化须重开冻结轮)。
+- **M2 就此 Complete**(汇总表行已翻 ✅)。
+- **下一阶段**:Phase 2 剩余四系统 = patient-ai → diagnosis-system → case-system →
+  prescription-medication(M3 Systems Complete 主线,16/31 epic)。
