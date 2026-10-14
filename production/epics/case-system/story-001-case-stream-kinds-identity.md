@@ -1,12 +1,12 @@
 # Story 001: 病例流 Kind 登记与病例身份
 
 > **Epic**: 病例系统
-> **Status**: Complete ✅ 2026-10-06(`e64efad`)
+> **Status**: In Review ⚠️ 2026-10-15 —— 补评门不通过(原 `Complete ✅ 2026-10-06(e64efad)` 判定不成立;原件为补评件)
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 5h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-15
 ## Context
 
 **GDD**: `design/gdd/case-system.md`(F-37.2 身份/全序 · 承重账五 Kind · §规则一 记录≠实体)
@@ -89,7 +89,12 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_identity_routing_test.cs` — must exist and pass
-**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/CaseSystem/case_identity_routing_test.cs`)
+**Status**: [ ] In Review — 测试文件存在且 13/13 绿,但补评判定 **Test Evidence 门不通过**(见下方登记块)
+
+> ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `production/qa/evidence/review-case-system-001-004-gap-audit-2026-10-15.md` §二:001 确证产出过 BLOCKING 级判定),按义务第 3 条**补做评审(评当下)**,不追认 `e64efad` 的历史判定。
+> **补评原件**:`production/qa/evidence/review-case-system-story-001-retro-2026-10-15.md`
+> **判定**:代码面 **无 BLOCKING**(无 ADR/GDD 冲突 · 注册链条严整 · 产品代码无须返工);测试面 **4 BLOCKING** —— AC-37-30/06 断言形态错误(`ReconstructPatientHighWater` 生产载体零调用 · 恒真)· AC-37-03 A2 **空跑** · kindgen 载体**借绿** · 测试头 **AC 号一号两义**(与 GDD 权威编号冲突)。
+> **Test Evidence 门:不通过。** 修复归**新一轮**;状态**已裁定(2026-10-15,用户)转 `In Review`**。
 
 ---
 

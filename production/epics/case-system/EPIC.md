@@ -3,7 +3,7 @@
 > **Layer**: Feature
 > **GDD**: design/gdd/case-system.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ 病例流(第二逻辑流)+ Presentation(只读 DTO 侧)
-> **Status**: ✅ Complete(6/6 story 全部收口 —— 001–004 于 2026-10-06 收口(`e64efad`/`c4e3708`/`31e3f9b`/`8a693fd`);005 于 2026-10-08 收口;006 于 2026-10-08 收口)
+> **Status**: ⚠️ **4/6 In Review**(006/005 合规 Complete)—— 001–004 于 2026-10-06 收口(`e64efad`/`c4e3708`/`31e3f9b`/`8a693fd`),**但当年评审原件缺失**;2026-10-15 QA 核查触发义务第 1/2 条,四件**补做评审(评当下,不追认历史判定)**后 **Test Evidence 门均不通过** ⇒ 用户裁定转 `In Review`。原件:`production/qa/evidence/review-case-system-story-00{1,2,3,4}-retro-2026-10-15.md`;核查件:`review-case-system-001-004-gap-audit-2026-10-15.md`。修复归**新一轮**。
 > **Stories**: 6 stories — see table below
 
 ## Overview
@@ -57,9 +57,9 @@ This epic is complete when:
 
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
-| 001 | 病例流 Kind 登记与病例身份 | Logic | **Complete ✅ 2026-10-06**(`e64efad`) | ADR-008/024/006 |
-| 002 | 立案两路径 · 开案唯一 · 判断记录事件化 | Integration | **Complete ✅ 2026-10-06**(`c4e3708`) | ADR-008/009/005 |
-| 003 | 结案前置:处置证据窗口与快照 | Logic | **Complete ✅ 2026-10-06**(`31e3f9b`) | ADR-008/007 |
-| 004 | F-37.1 同源检测与 PatternRecognized | Logic | **Complete ✅ 2026-10-06**(`8a693fd`) | ADR-008/007/012 |
+| 001 | 病例流 Kind 登记与病例身份 | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`e64efad`)判定不成立;补评 4 BLOCKING·测试面) | ADR-008/024/006 |
+| 002 | 立案两路径 · 开案唯一 · 判断记录事件化 | Integration | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`c4e3708`)判定不成立;补评 14 BLOCKING·双面) | ADR-008/009/005 |
+| 003 | 结案前置:处置证据窗口与快照 | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`31e3f9b`)判定不成立;补评 6 BLOCKING·双面) | ADR-008/007 |
+| 004 | F-37.1 同源检测与 PatternRecognized | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`8a693fd`)判定不成立;补评 8 BLOCKING·双面) | ADR-008/007/012 |
 | 005 | 守密纪律:DTO 守卫 · 词表烘焙 · 零奖励断言 | Integration | **Complete ✅ 2026-10-08** | ADR-013/014/006 |
 | 006 | 重放持久化与跨系统边界义务 | Integration | **Complete ✅ 2026-10-08** | ADR-010/005/008 |

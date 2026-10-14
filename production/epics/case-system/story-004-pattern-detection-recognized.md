@@ -1,12 +1,12 @@
 # Story 004: F-37.1 同源检测与 PatternRecognized(含 F-37.1b 脚本链)
 
 > **Epic**: 病例系统
-> **Status**: Complete ✅ 2026-10-06(`8a693fd`)
+> **Status**: In Review ⚠️ 2026-10-15 —— 补评门不通过(原 `Complete ✅ 2026-10-06(8a693fd)` 判定不成立;原件为补评件)
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: 7h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-15
 ## Context
 
 **GDD**: `design/gdd/case-system.md`(F-37.1 全式 + 两处订正 · F-37.1b ScriptedChain + W-1 注块 · F-37.3 基数 · 规则八 · 承重账定序/悬垂两框)
@@ -92,7 +92,22 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_pattern_detection_test.cs` — must exist and pass(AC-37-29 的 ScriptedChain 联调半边 BLOCKED-BY-W-1 不记绿)
-**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/CaseSystem/case_pattern_detection_test.cs`)
+**Status**: [ ] In Review — 测试文件存在且 23/23 绿,但补评判定 **Test Evidence 门不通过**(见下方登记块)
+
+> ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `review-case-system-001-004-gap-audit-2026-10-15.md` §二:004 判定分级未能确证),按义务第 3 条**补做评审(评当下)**,不追认 `8a693fd` 的历史判定。
+> **补评原件**:`production/qa/evidence/review-case-system-story-004-retro-2026-10-15.md`
+> **判定**:代码面 **3 BLOCKING** + 测试面 **5 BLOCKING**;去重后核心 4 类 ——
+> ① **AC-37-27 定序判别力为零**:实现 `memberSet` 按 `Dictionary` 迭代序拼装(`PatternDetector.cs:104`),而测试夹具的**期望序 ≡ 插入序**(代理逐位复刻 `SplitMix64` + 黄金自校验证得)⇒ **删掉 `:121-126` 的 Sort,断言仍绿**(可捕获性判定 = **不可捕获**);
+> ② **AC-37-09/10 成员身份与冻结内容不可证伪**(只断 `MemberSet.Count`,`:105`/`:126` ⇒ 取「后 3 例」的变异同样绿);
+> ③ **AC-37-29 零覆盖 + `ChainEligible`/`ScriptedChain` 全库 `.cs` 零命中**,而 W-1 已于 2026-10-15 会签结案 ⇒ **免责前提当日失效**,夹具今日即可写;
+> ④ **发射语义无生产载体(借绿)**:`PatternRecognized` 写者未落(`WriterExistenceGate.cs:88` 具名豁免)、`IsFired` 零生产调用者,「不重发」由一份**未写、未测**的调用方契约保证。
+> 正面:阈值 `>=` 边界成对夹住 ✅ · 去重算子 ✅ · **AC-37-34 是全文件唯一「断内容」的真判别用例** ✅ · 盐函数有全案级黄金夹具 ✅。
+> **Test Evidence 门:不通过。** 修复归**新一轮**;状态**已裁定(2026-10-15,用户)转 `In Review`**。
+>
+> 🔓 **BLOCKED-BY-W-1 解除(2026-10-15)**:AC-37-29 的脚本链半边阻塞理由已消失 ——
+> `case-system.md:610-627` 记 W-1 会签结案(裁① = 三案各挂 `DIS_DYSENTERY`,user + game-designer 双签,提交 `4565dc6`);
+> 裁决明写「`AC-37-12` 原样不动(三案从此**不是**纯伤情案)」⇒ `CandidateSeq` 非空的机制路径已定。
+> ⚠️ 但**谓词实现 `ChainEligible` 本身也未落**(story `:40` 自认「先落」的那半边同样零命中),故解除的是**夹具的免责前提**,不是交付本身。
 
 ---
 

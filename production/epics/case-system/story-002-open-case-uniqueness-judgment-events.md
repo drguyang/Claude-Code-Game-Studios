@@ -1,12 +1,12 @@
 # Story 002: 立案两路径 · 开案唯一 · 判断记录事件化
 
 > **Epic**: 病例系统
-> **Status**: Complete ✅ 2026-10-06(`c4e3708`)
+> **Status**: In Review ⚠️ 2026-10-15 —— 补评门不通过(原 `Complete ✅ 2026-10-06(c4e3708)` 判定不成立;原件为补评件)
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-15
 ## Context
 
 **GDD**: `design/gdd/case-system.md`(规则二 立案 A/B 两路径 + 因果订正 + 开案唯一 · 规则三 串接 · 规则四 判断记录/存新值/Judgment 形状 · 药材短缺不立案)
@@ -89,7 +89,17 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_open_and_judgment_test.cs` — must exist and pass(就诊动作 master 未闭合 ⇒ AC-4-15 侧联动维持 NOT-RUN 标注)
-**Status**: [x] Complete — test file exists (`unity/Assets/Tests/EditMode/CaseSystem/case_open_and_judgment_test.cs`)
+**Status**: [ ] In Review — 测试文件存在且 23/23 绿,但补评判定 **Test Evidence 门不通过**(见下方登记块)
+
+> ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `review-case-system-001-004-gap-audit-2026-10-15.md` §二:002 确证产出过 BLOCKING 级判定),按义务第 3 条**补做评审(评当下)**,不追认 `c4e3708` 的历史判定。
+> **补评原件**:`production/qa/evidence/review-case-system-story-002-retro-2026-10-15.md`
+> **判定**:代码面 **4 BLOCKING** + 测试面 **10 BLOCKING**;去重后核心 4 类 ——
+> ① **AC-37-30 入流义务零验证**(`IEventSink` 全文件仅注释;`decide(A)==decide(B)` 因实现不读 `sourceKind` 而恒真);
+> ② **AC-37-05 判断半边扫错对象**(查生成路由表 ≠ 入流);
+> ③ **AC-37-05 处置半边「无第二副本」全仓零命中**;
+> ④ **`LastJudgmentOf` 的 `caseId` 形参零引用**(且有生产实害链:`CompositionRoot.cs:245` 传全局混合流 ⇒ `CasebookVitalsSource.InkAgeTicks` 会取到别的病人的判断事件)。
+> 架构纪律全绿(纯函数 · 门 A · ADR-029 · 零 float);commit `c4e3708` 三条自述 **B1 部分成立 / B2 未兑现 AC 本体 / B3 与其点名的测试内容不符**。
+> **Test Evidence 门:不通过。** 修复归**新一轮**;状态**已裁定(2026-10-15,用户)转 `In Review`**。⚠️ 另:AC-37-05/23 在 GDD 为 `[I]` 集成,而 `tests/integration/case-system/` 目录是否存在集成件**未查证完**,登记待查。
 
 ---
 
