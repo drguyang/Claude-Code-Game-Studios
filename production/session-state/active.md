@@ -2958,3 +2958,19 @@ B-6-1 / B-6-3 / B-6-4 三项均已解除。
 - **下一阶段**:Phase 2 剩余四系统 = patient-ai → diagnosis-system → case-system →
   prescription-medication(M3 Systems Complete 主线,16/31 epic)。
 <!-- QA-PLAN: 2026-10-14 | System: sprint-11 | Plan written: production/qa/qa-plan-sprint-11-2026-10-14.md -->
+
+## S11-1 收口(2026-10-15 · ✅ · 提交 44bb2ee/47e0fc4)
+
+- **实测骤缩(开工前查证)**:查体→值区端到端链已通(第五轮 Q1 人工验证 +
+  queryLevel 修复 + sprint-09 S3 复评逐条实测「④ 已接」)——规划研判依据的
+  「RevealedRows 恒空」是 10-11 旧快照。用户裁定收窄执行。
+- **支1 O-13-7 结案**:10 侧 = 施治按住沿(emergency-procedures.md 下游 13 行)/
+  8 侧 = 瞬时动作不产生会话沿(diagnosis-system.md)/ patient-ai.md 四处登记结案。
+- **支2 发出侧核查**:PatientBehavior.OnExamSessionChanged 消费入口在
+  (:148);PatientBehaviorDirector 全库零生产构造点(仅测试)⇒ 13 行为机
+  未进生产装配 = story-005 表现装配轮范围,非 S11-1 缺口(登记为契约)。
+- **支3 Edge 测试补面**:四条 Edge 三条已有测钉住,补多病人隔离 2 测
+  → ExamineDriverTest **13/13**(batch,退出码 0)。
+- **连带发现(登记)**:story-005 真模型卡外部美术之外,**13 表现装配轮
+  (PatientBehaviorDirector 生产构造 + 行为 Step 驱动挂 BootRoot tick 序)
+  也是独立待办**——此前无 story 承载,归 sprint-12 排期面。

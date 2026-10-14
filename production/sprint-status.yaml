@@ -21,11 +21,11 @@ stories:
     name: "9 查体 revealed 接线 → 8 前台回路(脉案值区运行期非空 + O-13-7 结案)"
     file: "production/sprints/sprint-11.md"
     priority: must-have
-    status: ready-for-dev
-    owner: ""
+    status: done
+    owner: "claude+user"
     estimate_days: 2.5
     blocker: ""
-    completed: ""
+    completed: "2026-10-15"
   - id: "S11-2"
     name: "W-1 会签裁决(ScriptedChain 三案链 9+37 二选一)"
     file: "production/sprints/sprint-11.md"
