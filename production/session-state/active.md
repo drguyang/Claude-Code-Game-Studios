@@ -3083,3 +3083,35 @@ B-6-1 / B-6-3 / B-6-4 三项均已解除。
 
 **净结论不变**:四件 Test Evidence 门仍不通过,维持 `In Review`;
 但 002/003 的性质改为「**声明证据与 AC 错配**」(修复面 = 补引用 + 订正断言形态,非从零补测试)。
+
+---
+
+## 「两条都落」收口(2026-10-15 · 用户指令)
+
+用户裁定落两条流程建议(源自 §七·四):
+1. **`review-workflow.md` 补第二失效模式** —— 义务三条 → **四条**,新增义务 4「**评据不得越权**」;
+2. **Story §Test Evidence 允许多路径** —— `AC → 载体映射` 表(每条 AC 一行、**允许多条**)。
+
+**落点(8 改 + 1 新)**:
+- `docs/review-workflow.md` —— 义务 4 全文(为什么立 · 两条结构性诱因 · 操作口径);
+- `skills/create-stories/SKILL.md` —— §6 story 模板新增 `AC → 载体映射` 表 + 警告块;
+- `skills/story-done/SKILL.md` —— Logic/Integration 检查逻辑改**遍历多条所列路径** + **两树都搜** + 扫全树警告;
+- `skills/test-evidence-review/SKILL.md` §3 —— 先读映射表 + 两树搜索 + 全域否定须贴搜索输出;
+- `skills/qa-plan/SKILL.md` —— Test Summary 表与 `Test file path` 行改实际路径 + 注;
+- `docs/coding-standards.md` §Testing —— 表 Location 改实际路径 + 三条注(多载体 / 两树 / 全域否定);
+- `agents/qa-lead.md` —— 证据表 + 「评据不得越权(你曾在此失手)」警告(直指越权全域否定);
+- **新** `agent-memory/qa-lead/review-scope-discipline.md` + `MEMORY.md` 索引行。
+
+**⚠️ 落盘过程中的自我勘误(重要)**:初稿把这层写成「账本路径 **≠** 编译面,
+须改查 `unity/Assets/Tests/`」—— 这**本身就是一条越权断言**。实测 `tests/`
+并非恒空:`tests/unit/skeuomorphic-ui/` 持有 `focus_gate_and_bridge_test.cs` + **自带 `.asmdef`**,
+是活测试工程;`tests/README.md` 说的是「**工程落地时的合并事项**」(未做)。
+⇒ 全部落点已改为「**两棵树都可能承载活测试,须都查**」,并明写反向警戒:
+「不得反过来说『账本树已作废』—— 那只是把越权换了个方向」。
+`grep` 口径相应改为 `unity/Assets/Tests/ tests/` 两树并扫。
+
+**未动**:`smoke-check` / `regression-suite` / `test-setup` / `templates/test-plan.md` /
+`agents/qa-tester.md` 内的同型路径字面 —— 那些是**新建测试的落点建议**,
+不承担「判证据缺失」的判定职责;待新建测试的真实落点约定定案后一并处理。
+
+**仍待用户裁定**:四件 BLOCKING 的**修复排期**(是否并入 sprint-11 剩余容量)—— 未擅自启动。

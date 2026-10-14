@@ -269,7 +269,26 @@ change meaning. This is what the programmer reads instead of the ADR.]
 - UI: `production/qa/evidence/[story-slug]-evidence.md` or interaction test
 - Config/Data: smoke check pass (`production/qa/smoke-*.md`)
 
+**AC → 载体映射**(每条 AC 一行;**允许多路径** —— 见下注):
+| AC | 载体(可多条) | 层级 |
+|---|---|---|
+| AC-x | `unity/Assets/Tests/EditMode/[System]/[file].cs::test_name` | 单元 |
+| AC-y | `unity/Assets/Tests/PlayMode/[file].cs::test_name` | 集成 |
+
 **Status**: [ ] Not yet created
+
+> ⚠️ **载体允许多条,且必须列全(2026-10-15 立)**:一个 AC 的证据常**横跨多个文件** ——
+> 单测(声明件)+ **接线件**(后续 sprint 补的真装配 / 真启动序 / PlayMode 端到端)。
+> 只列一条 = 后续评审依据该单路径判「无证据」的结构性来源
+> (实例:case-system story-002 的 AC-37-30 载体实际是
+> `CaseSystem/case_open_writer_test.cs` + `PlayMode/case_opened_wiring_test.cs`,
+> 而 story 只声明了 `case_open_and_judgment_test.cs` ⇒ 补评据此误判「零验证」)。
+>
+> **另注**:测试件横跨**两棵树**,写明路径时**以实际落地的那棵为准,另一棵可并列注明** ——
+> `tests/unit|integration/[system]/` 是**账本约定**树(`tests/README.md`),
+> `unity/Assets/Tests/{EditMode,PlayMode}/` 是工程落地后的**主体编译树**(256+ 件)。
+> 两棵树**都可能承载活测试**(账本树非恒空:`tests/unit/skeuomorphic-ui/` 自带 `.asmdef`)。
+> 详见 `.claude/docs/review-workflow.md` 义务 4「评据不得越权」。
 
 ---
 

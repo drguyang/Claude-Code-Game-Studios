@@ -46,11 +46,21 @@ All stories must have appropriate test evidence before they can be marked Done:
 
 | Story Type | Required Evidence | Location | Gate Level |
 |---|---|---|---|
-| **Logic** (formulas, AI, state machines) | Automated unit test — must pass | `tests/unit/[system]/` | BLOCKING |
-| **Integration** (multi-system) | Integration test OR documented playtest | `tests/integration/[system]/` | BLOCKING |
+| **Logic** (formulas, AI, state machines) | Automated unit test — must pass | `unity/Assets/Tests/EditMode/[System]/` | BLOCKING |
+| **Integration** (multi-system) | Integration test OR documented playtest | `unity/Assets/Tests/PlayMode/`(或同树 `EditMode/[System]/` 真装配件) | BLOCKING |
 | **Visual/Feel** (animation, VFX, feel) | Screenshot + lead sign-off | `production/qa/evidence/` | ADVISORY |
 | **UI** (menus, HUD, screens) | Manual walkthrough doc OR interaction test | `production/qa/evidence/` | ADVISORY |
 | **Config/Data** (balance tuning) | Smoke check pass | `production/qa/smoke-[date].md` | ADVISORY |
+
+> ⚠️ **路径写明实际落地的那棵树,且允许一条 AC 多载体(2026-10-15 立)** ——
+> 测试件横跨**两棵树**:`tests/unit|integration/[system]/` 是**账本约定**(见 `tests/README.md`),
+> `unity/Assets/Tests/{EditMode,PlayMode}/` 是工程落地后的**主体编译树**;
+> **两棵都可能承载活测试**(账本树非恒空:`tests/unit/skeuomorphic-ui/` 自带 `.asmdef`)。
+> ⇒ ① 上表 Location 写**实际落地路径**,另一棵可并列注明;
+> ② **一个 AC 的载体允许多条**(story §Test Evidence 的 `AC → 载体映射` 表须列全)——
+> 后续 sprint 补的真装配件 / 真启动序件同样是该 AC 的证据;
+> ③ 判「无证据」前须两树都扫(`grep -rln "<符号>" unity/Assets/Tests/ tests/`)并贴出输出,
+> 否则只能写「在 X 范围内未发现」。详见 `.claude/docs/review-workflow.md` 义务 4「评据不得越权」。
 
 ## Automated Test Rules
 

@@ -58,6 +58,9 @@ For each story, collect:
 
 For each story, find the evidence:
 
+**⚠️ 先读 story 的 `AC → 载体映射` 表(若存在)** —— 该表列出的路径**优先于**下面的路径猜测,
+且**允许多条**(一个 AC 的证据常横跨声明件 + 后续 sprint 的接线件)。
+
 **Logic stories**: Glob `tests/unit/[system]/[story-slug]_test.*`
   - If not found, also try: Grep in `tests/unit/[system]/` for files
     containing the story slug
@@ -70,6 +73,23 @@ For each story, find the evidence:
 **Config/Data stories**: Glob `production/qa/smoke-*.md` (any smoke check report)
 
 Note what was found (path) or not found (gap) for each story.
+
+> ⚠️ **测试件横跨两棵树,须都查(2026-10-15 立)** —— 上面两条 Glob 走的是**账本约定**树
+> (`tests/README.md`);工程落地后的**主体编译树**是
+> `unity/Assets/Tests/{EditMode,PlayMode}/`(256+ 件)。**两棵树都可能承载活测试**
+> (账本树非恒空:`tests/unit/skeuomorphic-ui/` 自带 `.asmdef`)。
+> 账本路径未命中时,须**改查另一棵树**:
+> `Glob unity/Assets/Tests/{EditMode,PlayMode}/**/*{story-slug}*_test.cs`,
+> 并以**被测生产符号**为线索广搜(真装配件 / 真启动序件常不按 story slug 命名):
+> `grep -rln "<符号名>" unity/Assets/Tests/ tests/`。
+> **按单一树判「目录不存在 ⇒ 证据缺失」会系统性误判。**
+>
+> ⚠️ **判「无证据」前须扫全树(2026-10-15 立)** —— 任何「零验证」「全仓零命中」
+> 「无任何测试覆盖」类**全域否定**,报告中须**原样贴出全树搜索命令与输出**;
+> 拿不出 ⇒ 降级为「在 <已核范围> 内未发现」。详见
+> `.claude/docs/review-workflow.md` 义务 4「评据不得越权」。
+> (实例:case-system story-002 的 AC-37-30 原被判「零验证」,真载体是
+> `CaseSystem/case_open_writer_test.cs` + `PlayMode/case_opened_wiring_test.cs`。)
 
 ---
 

@@ -71,11 +71,19 @@ Every story has a type that determines what evidence is required before it can b
 
 | Story Type | Required Evidence | Gate Level |
 |---|---|---|
-| **Logic** (formulas, AI, state machines) | Automated unit test in `tests/unit/[system]/` | BLOCKING |
+| **Logic** (formulas, AI, state machines) | Automated unit test in `unity/Assets/Tests/EditMode/[System]/`(或账本树 `tests/unit/[system]/`) | BLOCKING |
 | **Integration** (multi-system interaction) | Integration test OR documented playtest | BLOCKING |
 | **Visual/Feel** (animation, VFX, feel) | Screenshot + lead sign-off in `production/qa/evidence/` | ADVISORY |
 | **UI** (menus, HUD, screens) | Manual walkthrough doc OR interaction test | ADVISORY |
 | **Config/Data** (balance, data files) | Smoke check pass | ADVISORY |
+
+> ⚠️ **评据不得越权(2026-10-15 立 · 你曾在此失手)** —— 测试件横跨**两棵树**
+> (`tests/unit|integration/[system]/` 账本树 + `unity/Assets/Tests/{EditMode,PlayMode}/` 主体编译树,
+> 两棵都可能有活测试)。**只核一棵树就写「零验证」「全仓零命中」「无任何测试覆盖」= 越权**:
+> 此类**全域否定**必须附**全树搜索命令与输出**(`grep -rln "<符号>" unity/Assets/Tests/ tests/`),
+> 贴不出 ⇒ 降级为「在 <已核范围> 内未发现」。另:**声明件 ≠ 全证据面** ——
+> story 只声明的那个文件之外,后续 sprint 的真装配件 / 真启动序件同样是该 AC 的证据。
+> 详见 `.claude/docs/review-workflow.md` 义务 4 与 agent memory `review-scope-discipline.md`。
 
 **Your role in this system:**
 - Classify story types when creating QA plans (if not already classified in the story file)

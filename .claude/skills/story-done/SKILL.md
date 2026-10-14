@@ -155,18 +155,31 @@ Based on the Story Type extracted in Phase 2, check for required evidence:
 | **Config/Data** | Smoke check pass report in `production/qa/smoke-*.md` | ADVISORY |
 
 **For Logic stories**: first read the story's **Test Evidence** section to extract the
-exact required file path. Use `Glob` to check that exact path. If the exact path is not
-found, also search `tests/unit/[system]/` broadly (the file may have been placed at a
-slightly different location). If no test file is found at either location:
+required file path(s) — **the section may list more than one, and often should**
+(an AC's evidence commonly spans the declared unit test **plus** later wiring /
+PlayMode end-to-end files; see the note below). Use `Glob` to check **every** listed
+path. If a listed path is not found, also search **both test trees** broadly:
+`tests/unit/[system]/` (账本约定树 —— 主体已归并入 `unity/`,但**并非恒空**:
+`tests/unit/skeuomorphic-ui/` 即持有自带 `.asmdef` 的活测试工程) **and**
+`unity/Assets/Tests/EditMode/` (工程落地后的主体编译树,256+ 件)。
+**两棵树都可能承载活测试,任一树未查即不得下「无证据」结论。** Only if **no**
+test file is found at **any** location:
 - Flag as **BLOCKING**: "Logic story has no unit test file. Story requires it at
   `[exact-path-from-Test-Evidence-section]`. Create and run the test before marking
   this story Complete."
 
-**For Integration stories**: read the story's **Test Evidence** section for the exact
-required path. Use `Glob` to check that exact path first, then search
-`tests/integration/[system]/` broadly, then check `production/session-logs/` for a
-playtest record referencing this story.
+**For Integration stories**: read the story's **Test Evidence** section for the
+required path(s) (likewise possibly multiple). Use `Glob` to check every listed path,
+then search `tests/integration/[system]/` **and** `unity/Assets/Tests/PlayMode/`
+broadly, then check `production/session-logs/` for a playtest record referencing
+this story.
 If none found: flag as **BLOCKING** (same rule as Logic).
+
+> ⚠️ **判「无证据」前须扫全树(2026-10-15 立)**:作「无测试文件」判定前,至少跑一次
+> `grep -rln "<被测符号>" unity/Assets/Tests/` 并贴出输出。**不得**仅凭 story 声明的
+> 那一条路径缺失即判 BLOCKING —— case-system story-002 的实例中,声明件缺失的判据
+> 实际由 `EditMode/Boot/judgment_writer_test.cs` 与 `PlayMode/case_opened_wiring_test.cs`
+> 覆盖。详见 `.claude/docs/review-workflow.md` 义务 4「评据不得越权」。
 
 **For Visual/Feel and UI stories**: glob `production/qa/evidence/` for a file
 referencing this story.

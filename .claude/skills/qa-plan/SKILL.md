@@ -127,18 +127,25 @@ Assemble the full QA plan document. Use this structure:
 
 | Story | Type | Automated Test Required | Manual Verification Required |
 |-------|------|------------------------|------------------------------|
-| [story title] | Logic | Unit test — `tests/unit/[system]/` | None |
-| [story title] | Integration | Integration test — `tests/integration/[system]/` | Smoke check |
+| [story title] | Logic | Unit test — `unity/Assets/Tests/EditMode/[System]/` | None |
+| [story title] | Integration | Integration test — `unity/Assets/Tests/PlayMode/` (或 `EditMode/[System]/` 真装配件) | Smoke check |
 | [story title] | Visual/Feel | None (not automatable) | Screenshot + lead sign-off |
 | [story title] | UI | Interaction walkthrough | Manual step-through |
 | [story title] | Config/Data | Data validation test | Spot-check in-game values |
+
+> ⚠️ **路径写明实际落地的那棵树(2026-10-15 立)** —— 测试件横跨**两棵树**:
+> `tests/unit|integration/[system]/` 是**账本约定**(`tests/README.md`),
+> `unity/Assets/Tests/{EditMode,PlayMode}/` 是工程落地后的**主体编译树**;两棵**都可能**有活测试。
+> 表内写实际路径,另一棵可并列注明。同一条 AC 的证据**允许多条路径**
+> (声明件 + 后续 sprint 的接线件 / 真启动序件)。详见 `.claude/docs/review-workflow.md` 义务 4。
 
 ---
 
 ## Automated Tests Required
 
 ### [Story Title] — [Type]
-**Test file path**: `tests/[unit|integration]/[system]/[story-slug]_test.[ext]`
+**Test file path**: `unity/Assets/Tests/[EditMode/[System]|PlayMode]/[file]_test.cs`
+*(账本路径 `tests/[unit|integration]/[system]/` 可并列注明;一个 AC 允许多条载体)*
 **What to test**:
 - [Specific formula or rule from the GDD Formulas section]
 - [Each named state transition or decision branch]
