@@ -84,14 +84,14 @@ stories:
     blocker: ""
     completed: ""
   - id: "S11-8"
-    name: "story-003 B-1 复诊案无法结案(IsClosed 改按 CaseId 三元组匹配 + 同批补流层判据)"
+    name: "story-003 B-1 复诊案无法结案(IsClosed 改流序扫描关联 + IsOpen 同契约 + Decide 判序对调 + 同批补流层判据)"
     file: "production/sprints/sprint-11.md"
     priority: must-have
-    status: ready-for-dev
-    owner: ""
+    status: done
+    owner: "Claude"
     estimate_days: 0.75
     blocker: ""
-    completed: ""
+    completed: "2026-10-15"
   - id: "S11-9"
     name: "story-004 CB-2/TB-5 AC-37-29 零覆盖(落地 ChainEligible/ScriptedChain + 夹具;W-1 已解除)"
     file: "production/sprints/sprint-11.md"

@@ -73,7 +73,9 @@
 > - **保住的部分**:`CaseCloseDecider` 的**前置判定**(`Decide` / `HasTreatmentInWindow` / 窗口方向)
 >   有真判据,且是本 story 的技术核心 —— 该部分**不受写者缺失影响**。
 > - ⚠️ 与之并行的 **B-1(`IsClosed` 按 `Patient` 匹配)** 是**独立的实现缺陷**,**不因延后而豁免** ——
->   已排 **S11-8**(sprint-11 补评修复批)。
+>   ✅ **已由 S11-8 闭合(2026-10-15)**,含「改回旧实现即转红」的 7 条反证(详见下方 🟢 登记块)。
+>   ⚠️ 但**写者缺席**本身**未解**:B-1 修好的是**契约层**,复诊案能否真的结掉仍取决于
+>   写者 story 落地后**消费** `IsClosed` —— 在写者落地前,§Out of Scope 的延后登记**继续有效**。
 
 ---
 
@@ -103,7 +105,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_close_precondition_test.cs` — must exist and pass
-**Status**: [ ] In Review — 测试文件存在且 33/33 绿,但补评判定 **Test Evidence 门不通过**(见下方登记块)
+**Status**: [ ] In Review — 测试文件存在且 **35/35 绿**(2026-10-15 S11-8 修复后),但补评判定 **Test Evidence 门不通过**(见下方登记块;门内 4 类中 **① B-1 已修复并完成双向证伪**,余 ②③⑤ 见登记)
 
 > ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `review-case-system-001-004-gap-audit-2026-10-15.md` §二:003 判定分级未能确证),按义务第 3 条**补做评审(评当下)**,不追认 `31e3f9b` 的历史判定。
 > **补评原件**:`production/qa/evidence/review-case-system-story-003-retro-2026-10-15.md`
@@ -117,6 +119,52 @@
 > ⑤ **`TreatmentKinds` 收录 `InjuryOnset` 无任何权威件授权**(ADR-008 §四 / GDD F-37.2 / registry 三处皆不枚举),语义 = 25 的战斗伤害结算 ⇒「病人挨了打」被计入「已被处置」,正面击穿 GDD `:567`/`:839`。
 > 正面:窗口方向 ✅ **正确**(`:108` 为订正式,未复现 ADR-008 §四 旧式反写);AC-37-21 复诊后门负例是**有效回归哨兵**。
 > **Test Evidence 门:不通过。** 修复归**新一轮**;状态**已裁定(2026-10-15,用户)转 `In Review`**。
+
+> 🟢 **2026-10-15 S11-8 修复落盘 —— 承本登记块 ① B-1**(用户裁定「同批重构 `IsOpen`」)
+> **修复证据原件**:`production/qa/evidence/fix-s11-8-case-system-story-003-b1-2026-10-15.md`
+> —— 含**逐字可复跑**的三段命令、三段输出原文、7 条红测逐条消息。
+> ⚠️ **不可只引日志**:`unity/Logs/` 在 `.gitignore:196`,是易失中间产物 ⇒ 本块下方所引日志路径
+> 是**指针**,权威载体是上述原件。
+> **改动**(`unity/Assets/Sim/CaseCloseDecider.cs`):
+> ① `CaseCloseQuery.IsClosed` 由「按 `Patient` 匹配」改为 **流序扫描关联** —— `current` 随该病人
+> `CaseOpened` 更新,遇该病人 `CaseClosed` 时**仅当 `current == caseId`** 才判已结,随后 `current` 清空;
+> ② `IsOpen` 统一为 `OpenedInStream(c) ∧ ¬IsClosed(c)`,与 `IsClosed` **共用同一输入契约**(消 A-6 —— 两函数
+> 此前对同一形参 `caseEvents` 隐含不同契约,正是 B-1 的土壤);
+> ③ `CaseCloseDecider.Decide` **两判序对调**(`isClosed` 先于 `isOpen`)—— 流派生口径下已结案的 `IsOpen` **恒假**,
+> 旧序会把已结案报成 `RejectNotOpen`(**错因码**),且 `(isOpen=true ∧ isClosed=true)` 在原序下
+> **只可能来自硬编码**(即 A-3 的不可达状态);对调后该组合**真正不可达**,结果面**零变化**(两分支皆为拒绝且不写事件)。
+> **⚠️ 与补评建议的偏离(已如实报告并获批)**:补评 §二 与 `CaseCloseDecider.cs:129` 作者注释**均建议**
+> 「经 `PayloadRef` 解码 `CaseClosedPayload.CaseId` 判等」—— **该路径在 `Sim` 侧结构上不可行**:
+> `PayloadCodec` 住 `Sim.Codec`,而 `Sim` 引用集**恰 = {BCL, `Sim.Contracts`}**(ADR-025 §① / b2 门),
+> `PayloadRef` 只有 `BlobId/Offset/Length`。故改走**流序扫描**(与 `CaseStreamQuery.OpenCaseOf` 同口径)。
+> **代价已登记在实现注释里**:该口径下 `CaseClosed` 的归属是**推断**而非**读取**;与载荷解码
+> **在合法流上等价**,仅在违反「同一病人同时至多一个开案」(GDD 规则二)的**非法流**上分歧 ——
+> 而该流下写者行为本身未定义 ⇒ 分歧面不在契约内。
+> **测试面同批**(`case_close_precondition_test.cs`,33 → 35 测):
+> ① B-1 回归哨兵 `test_isClosed_revisitNewCase_notClosed`(含**反向对照**:首案自身须仍判已结,防「一律 false」假修);
+> ② **端到端组装用例** `test_e2e_revisitClosePath_deriveBothFlagsFromStreams` —— 补补评 **A-3**:
+> 此前全文件**无一条**把**两条流**(病例流 + 病史流)接进 `Decide`,这正是 B-1 在测试面**结构性隐形**的根因;
+> ③ 解除四处**硬编码状态标志**(`isClosed:false` ×3 + `isOpen:true` ×1)改为**由流派生** —— A-3/A-6 的假绿土壤。
+> **证伪链(双信号一致,承 sprint-11 DoD「改回旧实现即转红」)**:
+> - **修复前**(旧实现 + 新哨兵):退出码 **2** · `total=34 passed=33 failed=1` —— 唯一红 = 哨兵(`Expected: False / But was: True`),
+>   即 **B-1 先被现场证伪、后修**;
+> - **修复后**:退出码 **0** · `total=35 passed=35 failed=0`(`unity/Logs/s11_s8_after.txt`);
+> - **改回旧实现**:退出码 **2** · `28/35 passed, failed=7`(`unity/Logs/s11_s8_revert.xml`)—— 红的恰为**两类**:
+>   **B-1 粒度 4 条**(其中 `test_ac3721_edge_revisitWithNewTreatmentInWindow_allows` 由 `CanClose` 退化为
+>   **`RejectAlreadyClosed`** = 「**复诊案结不掉**」这一生产症状的**本体**;另 `test_isClosed_revisitNewCase_notClosed` /
+>   `test_e2e_revisitClosePath_…` / `test_ac3721_revisitBackdoor_…`)+ **判序 3 条**(`test_ac3703_alreadyClosed_…` /
+>   `test_ac3703_edge_sameTick_…` / `test_fullFlow_open_treat_check_close_idempotent`,由 `RejectAlreadyClosed` → `RejectNotOpen`);
+> - **全量无回归**:EditMode `total=3330 passed=3284 failed=0 inconclusive=0 skipped=46`(退出码 0)· PlayMode
+>   `total=186 passed=186 failed=0`(**逐位等于 M2 基线** `story009_review_playmode.xml`)。
+>   较 10-14 EditMode 基线 +4 测,**逐名 diff 确认零条消失**,增量为「2 条本 story 新增 + 2 条**已提交**的
+>   `ExamineDriverTest` 多病人隔离用例(`47e0fc4`)」。
+> **AC-37-03 不整条转判**:其**流层半边**(幂等判据)已由流派生夹具覆盖;而「**不产生新事件**」半边
+> **仍无载体**(写者未落,承 §Out of Scope 延后登记)⇒ 只覆盖到 `Decide` 的返回码,未断言事件数 = 0。
+> ✅ **B-1 结案。** 本 story **维持 `In Review`** —— ② 快照半场(写者未落)· ③ AC-37-18 恒真化(A-4)· ⑤
+> `TreatmentKinds` 收 `InjuryOnset`(**已排 S11-10**;枚举权威已于 2026-10-15 落 `adr-008` §四)+ ADVISORY
+> A-1(`Set` 为可变 `public static readonly HashSet`)· A-5(副作用序列无判据)未清。
+> ⚠️ **A-1 与 S11-10 同址**:两者都改 `TreatmentKinds` 那几行 ⇒ S11-10 应**顺批**把 `Set` 收为不可写出口
+> (`private` + `Contains`,或暴露 `IReadOnlySet`),否则该确定性地雷会被下一个人原地绕过。
 
 ---
 

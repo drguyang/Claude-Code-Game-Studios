@@ -98,13 +98,30 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 MakeEvent(t1, new PatientId(1), 0, EventKind.EmergencyTreatmentApplied),
             };
 
+            // 病例流 —— 🔴 2026-10-15(S11-8):补上真流派生入参,不再硬编码 isClosed:false。
+            // 复诊 = **新的一例**(GDD 规则六-4),故复诊案的「已结」须查**它自己**,不是首案的。
+            var patient = new PatientId(1);
+            var caseEvents = new[]
+            {
+                MakeEvent(t1, patient, 0, EventKind.CaseOpened),  // 首诊立案
+                MakeEvent(t2, patient, 1, EventKind.CaseClosed),  // 首诊结案
+                MakeEvent(t3, patient, 2, EventKind.CaseOpened),  // 复诊立案(新的一例)
+            };
+            var revisitCaseId = MakeCaseId(t3, 1, 2);
+
             // 复诊窗口 = [t3, now]
             var hasTreatment = CaseCloseQuery.HasTreatmentInWindow(historyEvents, 1, t3, now);
             Assert.That(hasTreatment, Is.False,
                 "首诊处置@t₁ 不在复诊窗口 [t₃, now] 内(复诊后门正向封堵)");
 
+            var isOpen = CaseCloseQuery.IsOpen(caseEvents, revisitCaseId);
+            var isClosed = CaseCloseQuery.IsClosed(caseEvents, revisitCaseId);
+            Assert.That(isOpen, Is.True, "复诊案开着");
+            Assert.That(isClosed, Is.False,
+                "复诊案**未结** —— 首案的 CaseClosed 不得外溢到复诊案(否则理由码退化为 RejectAlreadyClosed)");
+
             var decision = CaseCloseDecider.Decide(
-                isOpen: true, isClosed: false, hasTreatmentInWindow: hasTreatment, isChecked: true);
+                isOpen: isOpen, isClosed: isClosed, hasTreatmentInWindow: hasTreatment, isChecked: true);
             Assert.That(decision, Is.EqualTo(CaseCloseDecision.RejectNoTreatment),
                 "复诊无新处置 ⇒ 拒绝(复诊后门关闭)");
         }
@@ -125,42 +142,93 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 MakeEvent(t4, new PatientId(1), 1, EventKind.DrugTreatmentApplied),
             };
 
+            // 病例流 —— 🔴 2026-10-15(S11-8):本用例是 **B-1 在真实场景下的显影点**。
+            // 修前 IsClosed 按 Patient 匹配 ⇒ 复诊案的 isClosed 被首案的 CaseClosed 带成 true,
+            // 本用例的 CanClose 会退化为 RejectAlreadyClosed ⇒ **复诊案永远结不掉**。
+            var patient = new PatientId(1);
+            var caseEvents = new[]
+            {
+                MakeEvent(t1, patient, 0, EventKind.CaseOpened),
+                MakeEvent(t2, patient, 1, EventKind.CaseClosed),
+                MakeEvent(t3, patient, 2, EventKind.CaseOpened),
+            };
+            var revisitCaseId = MakeCaseId(t3, 1, 2);
+
             var hasTreatment = CaseCloseQuery.HasTreatmentInWindow(historyEvents, 1, t3, now);
             Assert.That(hasTreatment, Is.True,
                 "复诊窗口 [t₃, now] 内有新处置@t₄ ⇒ 放行");
 
             var decision = CaseCloseDecider.Decide(
-                isOpen: true, isClosed: false, hasTreatmentInWindow: hasTreatment, isChecked: true);
+                isOpen: CaseCloseQuery.IsOpen(caseEvents, revisitCaseId),
+                isClosed: CaseCloseQuery.IsClosed(caseEvents, revisitCaseId),
+                hasTreatmentInWindow: hasTreatment, isChecked: true);
             Assert.That(decision, Is.EqualTo(CaseCloseDecision.CanClose),
-                "复诊窗口内有新处置 ⇒ 可结案");
+                "复诊窗口内有新处置 ⇒ 可结案(首案的 CaseClosed 不得外溢)");
         }
 
         // ════════════════════════════════════════════════════════════════════
         // AC-37-03:同一 case_id 第二条 CaseClosed 幂等拒收
         // ════════════════════════════════════════════════════════════════════
 
-        /// <summary>AC-37-03:案件已结 → 幂等拒收(第二条 CaseClosed 不产生新事件)。</summary>
+        /// <summary>AC-37-03:案件已结 → 幂等拒收(第二条 CaseClosed 不产生新事件)。
+        /// 🔴 2026-10-15(S11-8 · 补评件 A-6/A3):原版硬编码 `isOpen: true, isClosed: true`
+        /// —— 该组合在流派生口径下**不可能出现**(isOpen = 开过 ∧ ¬isClosed ⇒ 已结时 isOpen 必假),
+        /// 即「测的是不可达状态」。现两入参均由**真流**派生,测的才是生产路径。</summary>
         [Test]
         public void test_ac3703_alreadyClosed_idempotentReject()
         {
+            var patient = new PatientId(1);
+            var caseId = MakeCaseId(100, 1, 0);
+
+            // 已结案的流:立案@100 → 结案@200
+            var caseEvents = new[]
+            {
+                MakeEvent(100, patient, 0, EventKind.CaseOpened),
+                MakeEvent(200, patient, 1, EventKind.CaseClosed),
+            };
+
+            var isOpen = CaseCloseQuery.IsOpen(caseEvents, caseId);
+            var isClosed = CaseCloseQuery.IsClosed(caseEvents, caseId);
+            Assert.That(isClosed, Is.True, "该案确已结");
+            Assert.That(isOpen, Is.False, "已结案不再处于「开」态(流派生口径的必然结果)");
+
             var decision = CaseCloseDecider.Decide(
-                isOpen: true, isClosed: true, hasTreatmentInWindow: true, isChecked: true);
+                isOpen: isOpen, isClosed: isClosed, hasTreatmentInWindow: true, isChecked: true);
             Assert.That(decision, Is.EqualTo(CaseCloseDecision.RejectAlreadyClosed),
                 "案件已结须幂等拒收(AC-37-03)");
         }
 
-        /// <summary>AC-37-03 Edge:同 tick 双意图 → 恰一条 CaseClosed(幂等)。</summary>
+        /// <summary>AC-37-03 Edge:同 tick 双意图 → 恰一条 CaseClosed(幂等)。
+        /// 🔴 2026-10-15(S11-8):第二次意图的两入参亦改为**由同一流派生**(原版又一次硬编码
+        /// `isOpen: true, isClosed: true` = 不可达状态)。</summary>
         [Test]
         public void test_ac3703_edge_sameTick_doubleIntent_idempotent()
         {
-            // 第一次结案
+            const long openTick = 100;
+            const long closeTick = 200; // 同 tick 双意图
+            var patient = new PatientId(1);
+            var caseId = MakeCaseId(openTick, 1, 0);
+
+            var caseEvents = new List<SimEvent>
+            {
+                MakeEvent(openTick, patient, 0, EventKind.CaseOpened),
+            };
+
+            // 第一次结案意图(流上尚无 CaseClosed)
             var first = CaseCloseDecider.Decide(
-                isOpen: true, isClosed: false, hasTreatmentInWindow: true, isChecked: true);
+                isOpen: CaseCloseQuery.IsOpen(caseEvents, caseId),
+                isClosed: CaseCloseQuery.IsClosed(caseEvents, caseId),
+                hasTreatmentInWindow: true, isChecked: true);
             Assert.That(first, Is.EqualTo(CaseCloseDecision.CanClose));
 
-            // 第二次结案(同 tick)
+            // 第一次意图落盘
+            caseEvents.Add(MakeEvent(closeTick, patient, 1, EventKind.CaseClosed));
+
+            // 第二次结案意图(同 tick):两入参由**同一流派生**
             var second = CaseCloseDecider.Decide(
-                isOpen: true, isClosed: true, hasTreatmentInWindow: true, isChecked: true);
+                isOpen: CaseCloseQuery.IsOpen(caseEvents, caseId),
+                isClosed: CaseCloseQuery.IsClosed(caseEvents, caseId),
+                hasTreatmentInWindow: true, isChecked: true);
             Assert.That(second, Is.EqualTo(CaseCloseDecision.RejectAlreadyClosed),
                 "同 tick 双意图 ⇒ 第二条幂等拒收");
         }
@@ -319,7 +387,9 @@ namespace DaYiJingCheng.Tests.CaseSystem
             Assert.That(isOpen, Is.True, "案件开着(无 CaseClosed)");
 
             var decision = CaseCloseDecider.Decide(
-                isOpen: isOpen, isClosed: false, hasTreatmentInWindow: true, isChecked: true);
+                isOpen: isOpen,
+                isClosed: CaseCloseQuery.IsClosed(caseEvents, caseId), // 2026-10-15(S11-8):流派生取代硬编码
+                hasTreatmentInWindow: true, isChecked: true);
             Assert.That(decision, Is.EqualTo(CaseCloseDecision.CanClose),
                 "病人死亡但案未结 ⇒ 可正常结案(AC-37-18)");
         }
@@ -442,6 +512,30 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 "复诊新案开着");
         }
 
+        /// <summary>🔴 B-1 回归哨兵(补评件 story-003 §二 B-1 · sprint-11 S11-8):
+        /// 复诊新案不得因**首案**的 CaseClosed 被判「已结」。</summary>
+        [Test]
+        public void test_isClosed_revisitNewCase_notClosed()
+        {
+            // 流:[首诊立案@100] → [首诊结案@200] → [复诊立案@300]
+            // 复诊是**新的一例**(GDD 规则六-4 / EC-37-1:case_id 三元组不同 ⇒ 幂等判据不适用)。
+            var caseEvents = new[]
+            {
+                MakeEvent(100, new PatientId(1), 0, EventKind.CaseOpened),
+                MakeEvent(200, new PatientId(1), 1, EventKind.CaseClosed),
+                MakeEvent(300, new PatientId(1), 2, EventKind.CaseOpened),
+            };
+
+            Assert.That(CaseCloseQuery.IsClosed(caseEvents, MakeCaseId(300, 1, 2)), Is.False,
+                "复诊新案(300,1,2)不得因首案的 CaseClosed(200,1,1) 被判为已结 —— " +
+                "否则 Decide 走 RejectAlreadyClosed,复诊案永远无法结案" +
+                "(GDD :250-256 幂等定义 = **同一** case_id;EC-37-1 复诊 = 新病例)");
+
+            // 反向对照:同一流上首案本身**确实**已结 —— 防掉进「一律返回 false」的假修。
+            Assert.That(CaseCloseQuery.IsClosed(caseEvents, MakeCaseId(100, 1, 0)), Is.True,
+                "首案(100,1,0)确已被 CaseClosed(200,1,1) 结掉");
+        }
+
         // ════════════════════════════════════════════════════════════════════
         // 综合:完整结案流程
         // ════════════════════════════════════════════════════════════════════
@@ -480,11 +574,12 @@ namespace DaYiJingCheng.Tests.CaseSystem
             // 4. 写入 CaseClosed
             caseEvents.Add(MakeEvent(t3, patient, 1, EventKind.CaseClosed));
 
-            // 5. 幂等拒收
+            // 5. 幂等拒收(2026-10-15 S11-8:两入参均流派生 —— 原版 isOpen 硬编码为 true)
+            var isOpenAfter = CaseCloseQuery.IsOpen(caseEvents, caseId);
             var isClosedAfter = CaseCloseQuery.IsClosed(caseEvents, caseId);
             Assert.That(isClosedAfter, Is.True, "已结");
             var secondDecision = CaseCloseDecider.Decide(
-                isOpen: true, isClosed: isClosedAfter, hasTreatmentInWindow: true, isChecked: true);
+                isOpen: isOpenAfter, isClosed: isClosedAfter, hasTreatmentInWindow: true, isChecked: true);
             Assert.That(secondDecision, Is.EqualTo(CaseCloseDecision.RejectAlreadyClosed),
                 "第二条 CaseClosed 幂等拒收");
         }
@@ -537,6 +632,99 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 isOpen: true, isClosed: false, hasTreatmentInWindow: hasTreatment, isChecked: true);
             Assert.That(decision, Is.EqualTo(CaseCloseDecision.RejectNoTreatment),
                 "处置在立案之前 ⇒ 拒绝");
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // 端到端组装:病例流 + 病史流 → CaseCloseQuery → CaseCloseDecider.Decide
+        //
+        // 🔴 2026-10-15(S11-8 · 补评件 ADVISORY A3):本文件此前**无一条**把两条流
+        //    组装进 Decide 的用例 —— 每条 Decide 用例都自带 bool 入参,于是 B-1
+        //    (IsClosed 按 Patient 匹配)在测试面**结构性隐形**。以下用例全程不出现
+        //    硬编码状态标志,是 B-1 的端到端回归守卫。
+        // ════════════════════════════════════════════════════════════════════
+
+        /// <summary>端到端:首诊「开→治→结」,复诊「开→(窗口内无处置)拒→补治→结→幂等拒」。
+        /// 每一步的两个 bool 入参均由**两条流**派生。</summary>
+        [Test]
+        public void test_e2e_revisitClosePath_deriveBothFlagsFromStreams()
+        {
+            var patient = new PatientId(1);
+            var historyEvents = new List<SimEvent>();   // 病史流(处置证据)
+            var caseEvents = new List<SimEvent>();      // 病例流(开 / 结)
+
+            // ── 首诊:立案 @100 ─────────────────────────────────────────────
+            caseEvents.Add(MakeEvent(100, patient, 0, EventKind.CaseOpened));
+            var firstCase = MakeCaseId(100, 1, 0);
+            Assert.That(CaseCloseQuery.IsOpen(caseEvents, firstCase), Is.True, "首诊案开着");
+
+            // ── 首诊:处置 @150 → 结案尝试 @200 ───────────────────────────
+            historyEvents.Add(MakeEvent(150, patient, 0, EventKind.EmergencyTreatmentApplied));
+            const long firstCloseTick = 200;
+            var firstHasTreatment = CaseCloseQuery.HasTreatmentInWindow(historyEvents, 1, 100, firstCloseTick);
+            Assert.That(firstHasTreatment, Is.True, "首诊窗口 [100,200] 内有处置@150");
+
+            Assert.That(
+                CaseCloseDecider.Decide(
+                    CaseCloseQuery.IsOpen(caseEvents, firstCase),
+                    CaseCloseQuery.IsClosed(caseEvents, firstCase),
+                    firstHasTreatment, isChecked: true),
+                Is.EqualTo(CaseCloseDecision.CanClose), "首诊可结案");
+
+            caseEvents.Add(MakeEvent(firstCloseTick, patient, 1, EventKind.CaseClosed));
+            Assert.That(CaseCloseQuery.IsClosed(caseEvents, firstCase), Is.True, "首诊案已结");
+            Assert.That(CaseCloseQuery.IsOpen(caseEvents, firstCase), Is.False, "首诊案不再开着");
+
+            // ── 复诊:立案 @300(**新的一例** —— EC-37-1)──────────────────
+            caseEvents.Add(MakeEvent(300, patient, 2, EventKind.CaseOpened));
+            var revisitCase = MakeCaseId(300, 1, 2);
+            Assert.That(CaseCloseQuery.IsOpen(caseEvents, revisitCase), Is.True, "复诊新案开着");
+
+            // 🔴 B-1 核心断言:首案的 CaseClosed(@200)不得外溢到复诊案
+            Assert.That(CaseCloseQuery.IsClosed(caseEvents, revisitCase), Is.False,
+                "复诊案**未结** —— 修前按 Patient 匹配 ⇒ 首案 CaseClosed 外溢 ⇒ 此处为 true");
+            // 反向对照:首案自身仍为已结(防「一律返回 false」的假修)
+            Assert.That(CaseCloseQuery.IsClosed(caseEvents, firstCase), Is.True,
+                "首案自身仍为已结(反向对照)");
+
+            // ── 复诊:结案尝试 @400,但窗口内无处置 ────────────────────────
+            const long now = 400;
+            var revisitHasTreatment = CaseCloseQuery.HasTreatmentInWindow(historyEvents, 1, 300, now);
+            Assert.That(revisitHasTreatment, Is.False, "首诊处置@150 不在复诊窗口 [300,400] 内");
+
+            Assert.That(
+                CaseCloseDecider.Decide(
+                    CaseCloseQuery.IsOpen(caseEvents, revisitCase),
+                    CaseCloseQuery.IsClosed(caseEvents, revisitCase),
+                    revisitHasTreatment, isChecked: true),
+                Is.EqualTo(CaseCloseDecision.RejectNoTreatment),
+                "复诊无新处置 ⇒ 拒绝(**理由码**须是 RejectNoTreatment,不得被 B-1 顶替成 RejectAlreadyClosed)");
+
+            // ── 复诊:补处置 @350 → 可结案 ─────────────────────────────────
+            historyEvents.Add(MakeEvent(350, patient, 1, EventKind.DrugTreatmentApplied));
+            revisitHasTreatment = CaseCloseQuery.HasTreatmentInWindow(historyEvents, 1, 300, now);
+            Assert.That(revisitHasTreatment, Is.True, "复诊窗口内有新处置@350");
+
+            Assert.That(
+                CaseCloseDecider.Decide(
+                    CaseCloseQuery.IsOpen(caseEvents, revisitCase),
+                    CaseCloseQuery.IsClosed(caseEvents, revisitCase),
+                    revisitHasTreatment, isChecked: true),
+                Is.EqualTo(CaseCloseDecision.CanClose),
+                "🔴 复诊可结案 —— B-1 未修时此处恒为 RejectAlreadyClosed,复诊案**永远结不掉**");
+
+            // ── 复诊结案 @400 ─────────────────────────────────────────────
+            caseEvents.Add(MakeEvent(now, patient, 3, EventKind.CaseClosed));
+            Assert.That(CaseCloseQuery.IsClosed(caseEvents, revisitCase), Is.True, "复诊案已结");
+            Assert.That(CaseCloseQuery.IsOpen(caseEvents, revisitCase), Is.False, "复诊案不再开着");
+
+            // ── 幂等:复诊案的第二条结案意图 ───────────────────────────────
+            Assert.That(
+                CaseCloseDecider.Decide(
+                    CaseCloseQuery.IsOpen(caseEvents, revisitCase),
+                    CaseCloseQuery.IsClosed(caseEvents, revisitCase),
+                    revisitHasTreatment, isChecked: true),
+                Is.EqualTo(CaseCloseDecision.RejectAlreadyClosed),
+                "复诊案的第二条 CaseClosed 幂等拒收(AC-37-03)");
         }
     }
 }

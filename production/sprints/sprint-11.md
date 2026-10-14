@@ -47,10 +47,25 @@
 | ID | Task | Agent/Owner | Est. Days | Dependencies | Acceptance Criteria |
 |----|------|-------------|-----------|--------------|---------------------|
 | S11-7 | **story-002 BLK-8:墨龄取错病人(真实现缺陷)** —— `CaseStreamQuery.LastJudgmentOf` 以 `caseId` 过滤(现 `caseId` 形参**零引用**,自承「P0 简化:调用方负责传入该案事件子集」)+ `CompositionRoot.cs:245-246` 改传**该案子集**(现传 `stream.Events` = 全局混合流)+ `CasebookVitalsSource.cs:214` 注释「按 case 过滤」与实现对齐 | Claude | 0.75 | 无 | 新增**跨病人交错夹具**(2 病人各一案交错)可证伪:改回全局流即转红;`EditMode/Boot/ink_age_test.cs` 现 4 测**全为单案夹具**,须补跨案一测;`InkAgeTicks` 不再取到他病人判断事件 |
-| S11-8 | **story-003 B-1:复诊案永远无法结案(真实现缺陷)** —— `CaseCloseQuery.IsClosed` 改按 `CaseId` **三元组**精确匹配(经 `PayloadRef` 解码 `CaseClosedPayload.CaseId` 判等;现 `CaseCloseDecider.cs:135` = `e.Patient.Value == caseId.Patient`,粒度从 `case_id` 退化为 `Patient`)+ **统一 `IsOpen`/`IsClosed` 输入契约**为「该案子集」 | Claude | 0.75 | 无 | 流 `[Opened(100,1,0), Closed(200,1,1), Opened(300,1,2)]` 上 `IsClosed(newCaseId) == false`(现返回 true ⇒ `RejectAlreadyClosed`);**同批**补流层判据(否则同盲区复发);`case_close_precondition_test.cs:133` 硬编码 `isClosed:false` 的假绿解除 |
+| S11-8 | ✅ **DONE 2026-10-15** —— **story-003 B-1:复诊案永远无法结案(真实现缺陷)** —— `CaseCloseQuery.IsClosed` 改按 `CaseId` **三元组**精确匹配(原 `CaseCloseDecider.cs:135` = `e.Patient.Value == caseId.Patient`,粒度从 `case_id` 退化为 `Patient`)+ **统一 `IsOpen`/`IsClosed` 输入契约**。⚠️ **本条两处计划口径已就地改判**(见下方订正框):判等路径不用 `PayloadRef` 解码,契约取「整条全序流」而非「该案子集」 | Claude | 0.75 | 无 | 流 `[Opened(100,1,0), Closed(200,1,1), Opened(300,1,2)]` 上 `IsClosed(newCaseId) == false`(**已交付**:35/35 绿;改回旧实现 ⇒ 退出码 2 · 28/35 · **7 红**,含复诊案由 `CanClose` 退化为 `RejectAlreadyClosed` 的现象本体);**同批补流层判据**(已交付:端到端组装用例 —— 此前全文件无一条把两条流接进 `Decide`);`case_close_precondition_test.cs:133` 硬编码 `isClosed:false` 的假绿解除(已交付:含 `:146`/`:162`/`:510`,共 4 处) |
 | S11-9 | **story-004 CB-2/TB-5:AC-37-29 零覆盖,且免责前提当日失效** —— 落地 `ChainEligible` / `ScriptedChain`(全库 `.cs` **零命中**,连 story `:40` 自认「先落」的那半边也没落);**W-1 已于 2026-10-15 结案**(三案各挂 `DIS_DYSENTERY`,会签记录 `case-system.md:610-627`)⇒ 夹具今日即可写 | Claude | 0.75 | 无(W-1 已解除) | 二符号从零命中转为**有实现 + 有测试**;夹具覆盖「脚本链名额**不被随机病例消耗**」+「**一次性**」两条语义 |
 | S11-10 | **story-003 B5:处置集收录 `InjuryOnset`(设计冲突)** —— **撤 `InjuryOnset`**(「病人挨了打」被计入「已被处置」⇒ 玩家把病人打到即可满足结案前置,正面击穿「空手连关三例不可能」)· **补 `CareApplied`**(8 的护理动作,病史流,同集现**未收**,取舍方向与语义相反)· 处置集枚举**回填权威**:`adr-008` §四 + `case-system.md` F-37.2 `:666`/`:679` + 规则六 `:254`(三处现**均只写 `∃ treatment event e ∈ 病史流`**,不枚举) | Claude | 0.5 | 无 | 测试期望值**不再以生产代码默认值为唯一真源**(期望值须引自权威枚举);`EmergencyAttempt` 的**正确排除**保持不变(ADR-009 Amendment I:判定输入 ≠ 结算) |
 | S11-11 | **story-001 B-3:测试头 AC 号一号两义(零成本)** —— `case_identity_routing_test.cs:5-8` 自填 `AC-37-03/04/05/06`,与 GDD 权威编号(`case-system.md:1036-1051`)**指向完全不同的需求**,且三条已被姊妹测试占用并声称覆盖;story 文件里那 4 条 bullet **本就无编号**,测试头是自行编号 | Claude | 0.1 | 无 | 改无编号引用;任何按 AC 号的覆盖矩阵不再**重复计数** |
+
+> ⚠️ **S11-8 计划口径就地订正(2026-10-15 执行期 · 两处,均已报用户并获批)**
+> **① 「经 `PayloadRef` 解码 `CaseClosedPayload.CaseId` 判等」= 结构上不可行。** 该建议同时出现在
+> 补评件 §二 与本 story 实现注释 `CaseCloseDecider.cs:129`(作者自承「实际生产代码应通过 PayloadRef 解码」),
+> 但 `PayloadCodec` 住 **`Sim.Codec`**,而 `CaseCloseDecider` 住 **`Sim`** —— `Sim` 引用集**恰 =
+> {BCL, `Sim.Contracts`}**(ADR-025 §① / b2 门),`PayloadRef` 只有 `BlobId/Offset/Length`,**物理上够不着**。
+> ⇒ 改走 **流序扫描关联**(与既有正确范式 `CaseStreamQuery.OpenCaseOf` 同口径)。
+> **代价已登记在实现注释**:该口径下 `CaseClosed` 的归属是**推断**而非**读取**;与载荷解码**在合法流上等价**,
+> 仅在违反「同一病人同时至多一个开案」(GDD 规则二)的**非法流**上分歧 —— 该流下写者行为本身未定义。
+> **② 契约取「整条全序流」,不取「该案子集」。** 原计划写「统一为『该案子集』」;但两函数**签名都收整条
+> `caseEvents`**,而 `Sim` 侧**没有**「按 case_id 切片」的合法手段(同 ① 的引用集约束)——写者/调用方
+> 也无从构造该子集。⇒ 统一口径改取**「入参 = 病例流全序前缀」**,由同一扫描派生两值,结构上不可再分叉。
+> **两处订正均属「计划写了一个做不到的形状」,非范围缩减**;story-003 的 🟢 登记块有完整记录。
+> 📄 **修复证据原件** = `production/qa/evidence/fix-s11-8-case-system-story-003-b1-2026-10-15.md`
+> (自洽可复核;因 `unity/Logs/` 被 gitignore,日志不可充当交付证据)。
 
 **本批不取(整批顺延 sprint-12,须在四件 story 内显式登记)**:
 story-001 B-1(AC-37-06 判据**算术上不可证伪**,须退设计重述)· B-2(kindgen A2 空跑)· B-4(kindgen 借绿);

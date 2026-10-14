@@ -35,20 +35,32 @@ namespace DaYiJingCheng.Sim
         /// <summary>
         /// 结案决策:给定案件状态、病史流处置证据、玩家勾选,返回决策结果。
         /// </summary>
-        /// <param name="isOpen">案件是否开着。</param>
-        /// <param name="isClosed">案件是否已结。</param>
+        /// <param name="isOpen">案件是否开着(**流派生**:开过 ∧ ¬已结)。</param>
+        /// <param name="isClosed">案件是否已结(**流派生**)。</param>
         /// <param name="hasTreatmentInWindow">窗口内是否有处置事件。</param>
         /// <param name="isChecked">玩家是否勾选「已处置」。</param>
         /// <returns>决策结果。</returns>
         public static CaseCloseDecision Decide(bool isOpen, bool isClosed, bool hasTreatmentInWindow, bool isChecked)
         {
+            // 🔴 2026-10-15 修复(sprint-11 S11-8 · 补评件 story-003 · AC-37-03 面):两判序**已对调**。
+            //
+            // 契约:两 bool 由**同一流**派生(见 CaseCloseQuery)⇒ isOpen = 开过 ∧ ¬isClosed。
+            //   (false, true)  = 开过且已结 —— 🔴 修前此组合是**正常生产路径**(结案后玩家再点),
+            //                    而旧序 `!isOpen` 在前 ⇒ 已结案被报成「未开」(错因码)。
+            //   (false, false) = 从未开过。
+            //   (true,  true)  = **不可能**(isOpen 已蕴含 ¬isClosed)⇒ 无需处理、不再可达。
+            // 「已结」比「未开」更具体(已结蕴含曾开)⇒ 具体者先判。
+            //
+            // ⚠️ 结果面零变化:两分支都是**拒绝且不产生事件**(GDD 规则六-4 的唯一要求);
+            //    改动只在**理由码**。既有全部调用点行为不变(唯一受影响的组合恰是上表 (false,true))。
+
+            // 案件已结 → 幂等拒收(AC-37-03)
+            if (isClosed)
+                return CaseCloseDecision.RejectAlreadyClosed;
+
             // 案件未开 → 拒绝
             if (!isOpen)
                 return CaseCloseDecision.RejectNotOpen;
-
-            // 案件已结 → 幂等拒收
-            if (isClosed)
-                return CaseCloseDecision.RejectAlreadyClosed;
 
             // 未勾选 → 拒绝
             if (!isChecked)
@@ -113,56 +125,85 @@ namespace DaYiJingCheng.Sim
         }
 
         /// <summary>
-        /// 案件是否已结(流前缀纯函数:该案已有 CaseClosed)。
+        /// 案件是否已结(流前缀纯函数)。
+        ///
+        /// <para><b>关联口径 = 流序扫描</b>(与 <see cref="CaseStreamQuery.OpenCaseOf"/> 同口径):
+        /// 病例流是**全序**的(ADR-008 §一),故「某条 <c>CaseClosed</c> 属于哪个案件」由
+        /// **其前最近一条该病人的 <c>CaseOpened</c>** 确定 —— 与「全序前缀纯函数」的纪律一致。</para>
+        ///
+        /// <para>⚠️ <b>为何不解码载荷</b>:<c>CaseClosedPayload.CaseId</c> 是权威关联字段,
+        /// 但 <c>PayloadCodec</c> 住 <c>Sim.Codec</c>,而本类住 <c>Sim</c> —— 引用集恰 =
+        /// {BCL, <c>Sim.Contracts</c>}(ADR-025 §① / b2 门),<c>PayloadRef</c> 仅
+        /// <c>BlobId/Offset/Length</c>,**物理上够不着**(同 <c>PoiStateMachine</c> 的处置:
+        /// 解码归调用方)。故本处取流序关联。</para>
+        ///
+        /// <para>⚠️ <b>等价性前置</b>:本口径在**合法流**上与载荷解码等价;二者只在违反
+        /// 「同一病人同时至多一个开案」(GDD 规则二)的非法流上分歧 ——
+        /// 而该流下写者行为本身未定义 ⇒ 分歧面不在契约内。</para>
+        ///
+        /// <para>🔴 <b>2026-10-15 修复(sprint-11 S11-8 · 补评件 story-003 §二 B-1)</b>:
+        /// 原实现 `if (e.Patient.Value == caseId.Patient) return true;` 把「该病人**曾有过**任何
+        /// <c>CaseClosed</c>」当作「**本** case_id 已结」⇒ 复诊新案被判已结,
+        /// <c>Decide</c> 走 `RejectAlreadyClosed` ⇒ **复诊案永远无法结案**
+        /// (GDD `:250-256` 幂等定义 = **同一** case_id;EC-37-1 复诊 = 新病例)。</para>
         /// </summary>
-        /// <param name="caseEvents">病例流事件列表。</param>
+        /// <param name="caseEvents">病例流事件列表(已按全序 <c>(Tick, Patient, Seq)</c> 排列)。</param>
         /// <param name="caseId">案件 case_id。</param>
         /// <returns>是否已结。</returns>
         public static bool IsClosed(IReadOnlyList<SimEvent> caseEvents, CaseId caseId)
         {
+            bool hasCurrent = false;
+            var current = default(CaseId);
+
             foreach (var e in caseEvents)
             {
-                if (e.Kind != EventKind.CaseClosed)
+                if (e.Patient.Value != caseId.Patient)
                     continue;
-                // CaseClosed 载荷含 case_id —— 通过载荷匹配
-                // P0 简化:调用方负责传入该案的事件子集,或事件列表只含该案的 CaseClosed
-                // 实际生产代码应通过 PayloadRef 解码 case_id 匹配
-                // ⚠️ CaseClosed 的 Tick 是结案 tick,不是 case_id 的 Tick
-                // case_id 三元组 = CaseOpened 的 (Tick, Patient, Seq)
-                // CaseClosed 引用 case_id 但自身 Tick 不同(结案 tick)
-                // 同一病人同时至多一个开案(story-002 不变量)
-                // 故匹配 Patient 即可
-                if (e.Patient.Value == caseId.Patient)
-                    return true;
+
+                if (e.Kind == EventKind.CaseOpened)
+                {
+                    current = new CaseId(e.Tick, e.Patient.Value, e.Seq);
+                    hasCurrent = true;
+                }
+                else if (e.Kind == EventKind.CaseClosed)
+                {
+                    // 本条 CaseClosed 归属 current(流序关联);结案后该病人回到「无开案」
+                    if (hasCurrent && current.Equals(caseId))
+                        return true;
+                    hasCurrent = false;
+                }
             }
             return false;
         }
 
         /// <summary>
-        /// 案件是否开着(有 CaseOpened 且无其后 CaseClosed)。
+        /// 案件是否开着 := 该案**开过** ∧ **未结**(GDD 规则六-4:结案不可撤销、不重开)。
+        ///
+        /// <para>与 <see cref="IsClosed"/> **共用同一契约与同一前置**(入参 = 病例流全序前缀)。
+        /// 🔴 2026-10-15 修复(S11-8 · 补评件 ADVISORY A-6):两函数此前对**同一形参**
+        /// <c>caseEvents</c> 隐含**不同**输入契约 —— 一个的注释要求「该案子集」、另一个按整表三元组查找,
+        /// 是 B-1 的土壤;现统一为「整条全序流」,并由同一扫描派生,结构上不可再分叉。</para>
         /// </summary>
-        /// <param name="caseEvents">病例流事件列表。</param>
+        /// <param name="caseEvents">病例流事件列表(已按全序 <c>(Tick, Patient, Seq)</c> 排列)。</param>
         /// <param name="caseId">案件 case_id。</param>
         /// <returns>是否开着。</returns>
         public static bool IsOpen(IReadOnlyList<SimEvent> caseEvents, CaseId caseId)
         {
-            bool opened = false;
+            return OpenedInStream(caseEvents, caseId) && !IsClosed(caseEvents, caseId);
+        }
+
+        /// <summary>该案是否在流中**开过**(精确三元组匹配 <c>CaseOpened</c>)。
+        /// 守卫「从未开过的 caseId」不得被 <see cref="IsOpen"/> 判为真。</summary>
+        private static bool OpenedInStream(IReadOnlyList<SimEvent> caseEvents, CaseId caseId)
+        {
             foreach (var e in caseEvents)
             {
-                if (e.Kind == EventKind.CaseOpened &&
-                    e.Tick == caseId.Tick && e.Patient.Value == caseId.Patient && e.Seq == caseId.Seq)
-                {
-                    opened = true;
-                }
-                else if (e.Kind == EventKind.CaseClosed &&
-                         e.Patient.Value == caseId.Patient)
-                {
-                    // CaseClosed 的 Tick 是结案 tick,不是 case_id 的 Tick
-                    // 同一病人同时至多一个开案(story-002 不变量)
-                    opened = false;
-                }
+                if (e.Kind != EventKind.CaseOpened)
+                    continue;
+                if (e.Tick == caseId.Tick && e.Patient.Value == caseId.Patient && e.Seq == caseId.Seq)
+                    return true;
             }
-            return opened;
+            return false;
         }
 
         /// <summary>
