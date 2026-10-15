@@ -43,6 +43,32 @@ See `.claude/docs/director-gates.md` for the full check pattern.
 
 4. **Check the risk register** at `production/risk-register/`.
 
+5. **Re-scan each target epic's *current* state (2026-10-15 — HARD prerequisite).**
+   For every epic that will contribute a story to this sprint, re-read **both**:
+   - the epic's `EPIC.md` **§Epic Status** section — what is *actually* still open, and
+   - each target story file's **`Status:`** line.
+
+   **Do not write a task description from a stale snapshot.** Verify each proposed
+   task's premise against the files **as they are now**:
+   - a task phrased "implement X" may in fact be "**back-fill the registration for X**"
+     (the implementation landed in a later commit than the plan assumed);
+   - a task phrased "create the story" may in fact be "**implement the story**"
+     (it was created in an earlier sprint and is already `Ready`).
+
+   **Why this is a hard step (observed — twice inside one sprint)**: sprint-11's
+   Should-Have (S11-4) and Nice-to-Have (S11-5) were **both** written against stale
+   premises. S11-4 was estimated at 3.5–4 days for work that had **already shipped
+   on 2026-10-07** and needed only a registration back-fill; S11-5 was described as
+   "create the story" when all four stories had existed since **2026-09-28** and the
+   real work was implementation. Both are recorded in
+   `production/qa/evidence/s11-5-medcons-story-001-aggregation-2026-10-15.md` §2.1.
+
+   ⚠️ **This is deliberately NOT a hook.** Deciding whether a premise is stale means
+   reading prose and comparing it against the tree — a mechanical check cannot judge
+   that, so a hook here would be a **false gate**. It stays a skill-level step,
+   performed by judgement, and it is a prerequisite (not a nice-to-have): if it is
+   skipped, the estimate and the acceptance criteria are both wrong from the start.
+
 ---
 
 ## Phase 2: Generate Output

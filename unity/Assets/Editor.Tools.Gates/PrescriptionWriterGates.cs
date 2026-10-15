@@ -1,8 +1,10 @@
 // AC-11-22 / AC-11-10 / AC-10-06b 的 IL 与 metadata 执行点 —— 11 的写者独占 · 算法独占 · 载荷成对。
 //
 // 权威来源:
-//   design/gdd/prescription-and-medication.md  AC-11-22 [B]「写者独占」
-//     —— `DrugTreatmentApplied` 构造点仅在 11 程序集(IL/metadata 扫描唯一 `newobj` 站点集 ⊆ 11)
+//   design/gdd/prescription-and-medication.md  AC-11-22 [A] BLOCKING「写者独占」
+//     —— **写入路径**构造点在 11 程序集(IL/metadata 扫描 `newobj` / `call .ctor` 站点集 ⊆ 11)
+//     ✅ **2026-10-15 TD 裁「收窄」已落盘** —— 解码重建点**具名豁免**(见 `DecoderCtorSites`),
+//        门内为**有账的豁免**而非静默放行;裁定记录 `production/qa/evidence/td-ruling-ac11-22-narrowing-2026-10-15.md`
 //   design/gdd/prescription-and-medication.md  AC-11-10 [B]「算法独占」
 //     —— 11 不定义 `SkillMul` / `ResultMul` / `JudgeResult`
 //   design/gdd/emergency-procedures.md         AC-10-06b(11/10 载荷定义交叉校验)
@@ -108,15 +110,19 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <para>⚠️ **2026-10-06 结构侧评审 M-2 的修复**:此前把 `PayloadCodec` 塞进
         /// `ProductionCtorSites` 是**门单方面放宽 AC 原文** —— AC-11-22 / TR-prescription-018
         /// 逐字为「构造点**仅存在于 11 的程序集**」,**没有任何 read/write 区分**,
-        /// 而解码路径确实在 11 之外构造该 struct(`PayloadCodec.History.cs:295`)。
+        /// 而解码路径确实在 11 之外构造该 struct(`PayloadCodec.History.cs:332`)。
         /// 把它登记为「生产白名单」等于用注释改写 AC。</para>
         /// <para>现改为**三类分离登记**:① 写者(`ProductionCtorSites`,AC-11-22 正题);
         /// ② 解码重建(本表,<b>与 AC 文本的背离在此显式记账</b>,并要求 AC 修订);
         /// ③ 测试夹具(`.Tests` 装配,自动单列)。判据仍是「构造点 ⊆ ①∪②∪③」,
         /// 但 ② 是**有账的背离**,不是静默豁免。</para>
-        /// <para>⚠️ **AC 修订义务(未闭,禁借绿)**:AC-11-22 / TR-prescription-018 的原文须
-        /// 由 producer / TD 裁定是否收窄为「待写入载荷的构造」;在修订落盘前,
-        /// 本表是**已知的判据-文本背离**,`RunAll` 会把它作为 WARN 级摘要报出。</para>
+        /// <para>✅ **2026-10-15 —— AC 修订义务已闭合(TD 裁「收窄」)**:AC-11-22 与
+        /// TR-prescription-018 的文本**已就地订正**为「**写入路径**构造点仅存在于 11 的程序集」,
+        /// 并把本表**具名**为唯一豁免点。故上文「没有任何 read/write 区分」一句
+        /// **描述的是修订前的原文**;现文本**已有**该区分。</para>
+        /// <para>⚠️ **本表仍不得清空**:清空即红 —— 下界会发现白名单条目零命中
+        /// (解码路径**必然**构造该 struct:载荷是 `readonly struct` + 唯一 ctor)。
+        /// 「删掉豁免让门变绿」不成立,只会把**真实存在**的构造点变成**未登记的违规**。</para>
         /// </summary>
         public static readonly (string Assembly, string Type)[] DecoderCtorSites =
         {
@@ -857,16 +863,19 @@ namespace DaYiJingCheng.EditorTools.Gates
             if (dMethods == 0) errs.Add("[PrescriptionWriterGates] 病名面方法数为 0 —— 门未真正执行。");
             if (compared == 0) errs.Add("[PrescriptionWriterGates] 载荷比较字段数为 0 —— 门未真正执行。");
 
-            // ⑤ **判据-文本背离的显式记账**(结构侧评审 M-2)——
-            //    解码路径在 11 之外构造该载荷,而 AC-11-22 / TR-prescription-018 的字面是
-            //    「构造点**仅存在于 11 的程序集**」。本门以 `DecoderCtorSites` 放行它,
-            //    但**不静默**:摘要里带 ⚠️,构建日志可见。
-            //    ⚠️ 这**不是** WARN 级放行 —— 若 AC 修订后要求收紧,须把该表清空
-            //    (清空即红:下界会发现白名单条目零命中)。
-            summary.Add($"[AC-11-22] ⚠️ 判据-文本背离:解码重建点 {DecoderCtorSites.Length} 处" +
+            // ⑤ **具名豁免的显式记账**(结构侧评审 M-2;2026-10-15 TD 裁「收窄」后口径更新)——
+            //    解码路径在 11 之外构造该载荷。AC-11-22 / TR-prescription-018 的文本
+            //    **已于 2026-10-15 就地订正**为「**写入路径**构造点仅存在于 11 的程序集」,
+            //    本表即该订正所**具名**的唯一豁免点(裁定记录:
+            //    production/qa/evidence/td-ruling-ac11-22-narrowing-2026-10-15.md)。
+            //    **不再报「背离」** —— 判据与文本现已一致;但**仍不静默**:摘要保留豁免点清单,
+            //    构建日志可见,便于「豁免悄悄增员」时被发现(条目数即面)。
+            //    ⚠️ 本表**不得清空**:清空即红 —— 下界会发现白名单条目零命中
+            //    (载荷是 `readonly struct` + 唯一 ctor ⇒ 解码路径**必然**构造它)。
+            summary.Add($"[AC-11-22] 解码重建豁免点(已具名 · 2026-10-15 裁):{DecoderCtorSites.Length} 处" +
                         $"({string.Join(", ", DecoderCtorSites.Select(d => d.Assembly + "/" + d.Type.Split('.').Last()))})" +
-                        " 在 11 之外构造该载荷 —— AC-11-22 / TR-prescription-018 原文为「仅存在于 11」," +
-                        "收窄裁定未落盘(归 producer / TD)。");
+                        " 在 11 之外构造该载荷 —— 属 AC-11-22「**写入路径**构造点 ⊆ 11」下的具名豁免," +
+                        "与订正后文本一致(裁定记录 td-ruling-ac11-22-narrowing-2026-10-15.md)。");
 
             return errs;
         }

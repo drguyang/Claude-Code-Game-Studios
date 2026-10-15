@@ -6,7 +6,7 @@
 > **Type**: Integration
 > **Estimate**: 8h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-10-06
+> **Last Updated**: 2026-10-15
 
 ## Context
 
@@ -33,7 +33,7 @@
 
 - [x] **AC-11-01**[A] BLOCKING:零病名双判据 —— ① 反射断言 11 的公开签名(输入/输出类型)不含 `DiagnosisResult`/病种 id/`tier_named`;② **行为断言**:体征相同、病种不同的两病人,同药同剂 ⇒ 产出的 `DrugTreatmentApplied` 载荷**逐字段相等**(8↔11 零数据流的端到端证明,承支柱一守门;对偶 = diagnosis story 001 的 AC-8-4)
 - [x] **AC-11-03**[A] BLOCKING:载荷七项齐备 —— `polarity`/`drug_potency`/`half_life`/`处置_id`/`施予者`/`tick`/`Seq`(与 10 的 AC-10-06 **同项数**;`Seq` 主机填充),缺任一项写入期被拒(联动 9 的 AC-28 写入期拒收)
-- [x] **AC-11-22**[A] BLOCKING:**写者独占** —— `DrugTreatmentApplied` 构造点仅在 11 程序集(IL/metadata 扫描唯一 `newobj` 站点集 ⊆ 11;与 AC-11-10 算法独占并列);7a 序列化白名单两支齐(本 Kind + 10 的 `EmergencyTreatmentApplied`,TR-prescription-018)
+- [x] **AC-11-22**[A] BLOCKING:**写者独占** —— `DrugTreatmentApplied` **写入路径**构造点仅在 11 程序集(IL/metadata 扫描 `newobj` / `call .ctor` 站点集 ⊆ 11;与 AC-11-10 算法独占并列);7a 序列化白名单两支齐(本 Kind + 10 的 `EmergencyTreatmentApplied`,TR-prescription-018)。✅ **2026-10-15 本行保持勾选**:TD 已裁「**收窄**」—— 原文「反射 / 引用集断言」与「构造点仅存在于 11」经查为**文本缺陷**(反射看不见 `newobj`,引用集只到程序集粒度;载荷为 `readonly struct` + 唯一 ctor ⇒ 解码器必然调用它,原字面对**任何合法实现恒假**),**非实现缺陷** ⇒ 代码无误、无借绿。详见 `EPIC.md` §Epic Status 与裁定记录 `production/qa/evidence/td-ruling-ac11-22-narrowing-2026-10-15.md`
 - [x] **AC-11-10**[A] BLOCKING:算法独占 —— 11 不定义 `SkillMul`/`ResultMul`/`JudgeResult`(程序集引用集断言 + 双路径对拍测试:同 agg 形状下 11 恒 Applied 路径与 10 的 Judge 路径**不共享代码**,仅共享「恒 1.0 名义值」的口径声明)
 - [x] **AC-10-06b 成对**[A]:11/10 载荷定义构建期交叉校验 —— 字段名/类型/序数完全一致,除 `method`/`cause`(仅 10);漂移 ⇒ 构建失败(载荷漂移会静默进 9 的和式)
 - [x] **恒 Applied 无分支**[L]:任何输入(含零技艺玩家、极小剂量)⇒ 不产生 `AppliedWeak`/`Missed` 概念;不存在手部门槛代码路径(10 vs 11 对照表)
@@ -66,6 +66,8 @@
 - **双判据**: ① 反射:11 公开面类型集 ∌ 诊断类型;② 两病人夹具载荷逐字节等(AC-11-01)。
 - **缺字段拒收**: 七项任一置缺 ⇒ Append 被拒(AC-11-03 联动写入期校验)。
 - **独占扫描**: 全工程 IL 扫构造点 ⇒ 集合 ⊆ 11;影子程序集注入一次构造 ⇒ 红(AC-11-22)。
+  ⚠️ **2026-10-15 口径更新**:「集合 ⊆ 11」现读作「**写入路径**构造点 ⊆ 11」;解码重建点具名豁免于 `DecoderCtorSites`(与订正后 AC 文本一致)。
+  ⚠️ **本例后半仍 NOT-RUN**:「影子程序集注入一次构造 ⇒ 红」需动态生成程序集,未见载体。
 - **漂移红**: 把 10 的字段序对调 ⇒ 交叉校验 throw;复原绿(AC-10-06b 成对)。
 - **无手成分支**: 极小/零技艺夹具 ⇒ 仍恰一条事件,无弱档(恒 Applied)。
 - **客户端零写**: fake 客户端上下文跑 Prescribe 意图 ⇒ Append 计数 0(上行计数 1)。
@@ -100,16 +102,23 @@
   新增单元级判据 `test_drugEvent_isBannedName_expandsAccessorPrefixes`
 - **M-1 全闭(两侧独立重合)**:门补接 `BuildGate.OnPreprocessBuild`(此前只接菜单,
   AC-10-06b 的「构建失败」无执行体)+ `CheckSimReferenceFace` 补阳性对照
-- **M-2 全闭(显式记账式)**:`Sim.Codec/PayloadCodec` 从 `ProductionCtorSites` **移出**,
-  新立 `DecoderCtorSites` 分离登记 + `RunAll` 摘要报「⚠️ 判据-文本背离」——
-  **AC-11-22 / TR-prescription-018 的收窄裁定归 producer / TD,本件不改 AC 文本**
+- **M-2 全闭(显式记账式 → 2026-10-15 转「已裁收窄」)**:`Sim.Codec/PayloadCodec` 从 `ProductionCtorSites` **移出**,
+  新立 `DecoderCtorSites` 分离登记 + `RunAll` 摘要报出豁免点 ——
+  ~~**AC-11-22 / TR-prescription-018 的收窄裁定归 producer / TD,本件不改 AC 文本**~~
+  ✅ **2026-10-15 TD 已裁「收窄」并落盘**:AC 文本 ⇒「**写入路径**构造点仅存在于 11 的程序集」;
+  `DecoderCtorSites` 由「有账的背离」升为**具名豁免**;`RunAll` 摘要由「判据-文本背离」改称「解码重建豁免点」
+  (判据与文本现已一致,**仍不静默** —— 条目数即面,豁免悄悄增员可被发现)
 - **M-3 全闭**:`DiseaseNameForbidden` 补 GDD 逐字点名的 `DiagnosisResult`
 - **MINOR**:m-2(卡陈旧)本刷 · m-4 由 B-1 一并覆盖 · m-1/m-3 如实保留;
   **NIT**:NIT-2 补空集守卫 · 其余如实保留
-- **未闭项按原口径 NOT-RUN,禁借绿**(影子装配注入半边 / AC 文本收窄 / tag 序判据 /
+- **未闭项按原口径 NOT-RUN,禁借绿**(影子装配注入半边 / ~~AC 文本收窄~~ / tag 序判据 /
   AC-11-15 矩阵与跨进程 / AC-11-10 对拍降级 / ~~7a 白名单本体~~ —
   ✅ **已闭 2026-10-15(S11-4)**:判据落于 `drug_event_test.cs` 的
   `test_ac1122_serializationWhitelist_containsBothNamedKinds` +
   `..._coversEntireEventKindClosedSet`(白名单 = `EventKind` 35 支闭集 ∩
   `PayloadCodec` / `PayloadEncoder` 分派表;**载体识别,AC 文本一字未动**)。
-  ⚠️ 本项划闭**不动**同行的「**AC 文本收窄**」—— 后者是**半边甲**(见上 M-2 行),归 producer / TD)
+  ✅ **「AC 文本收窄」(半边甲)同日由 TD 裁定并落盘** —— AC 文本 · `tr-registry.yaml:TR-prescription-018` ·
+  `traceability-index.md` · 门注 **四件同批订正**;裁定记录 `production/qa/evidence/td-ruling-ac11-22-narrowing-2026-10-15.md`。
+  ⇒ 本节先前的「本项划闭**不动**同行的『AC 文本收窄』」一句**已随裁定失效**(原文保留供追溯)。
+  ⚠️ **仍未闭**:影子装配注入半边(**文本与实现均已一致,此处剩下的是判据本体未跑**)· tag 序判据 ·
+  AC-11-15 矩阵与跨进程 · AC-11-10 对拍降级)

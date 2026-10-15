@@ -60,6 +60,11 @@
 **Test file path**: `unity/Assets/Tests/EditMode/`(随现有 prescription 测试族扩展,如 `prescription_action_id_test.cs`)
 **What to test**:
 - **AC-11-22**(7a 白名单本体):登记处方载荷字段的 7a 白名单条目;IL 扫描断言(`PrescriptionFloatScan` 模式复刻)证明无白名单外字段
+  > ⚠️ **2026-10-15 就地订正(原文保留,不抹除历史读数 —— 承 `e67b33b` / `b1f32ca` 先例)** —— 本行**两半皆不成立**:
+  > ① **「登记…白名单条目」**:7a **从未有过**独立的「白名单**表**」产物(`ADR-010` / `persistence-service.md` 全文无此物)⇒ 白名单在实现里的**真实载体** = `EventKind` 35 支闭集 ∩ `PayloadCodec` / `PayloadEncoder` 分派表(**载体识别**,S11-4);
+  > ② **「无白名单外字段」**:此为**字段级**命题,而 AC-11-22 要的是 **Kind 级**(「两个 Kind 均在白名单内」)⇒ **两者不是同一命题**(第二半是**另一件事**的判据)。
+  > 判据实际落于 `drug_event_test.cs` 的 `test_ac1122_serializationWhitelist_containsBothNamedKinds` + `..._coversEntireEventKindClosedSet`。
+  > **注:`加注 ≠ 改判据`** —— 本行的判据面已由上述两条测**超集覆盖**(原文未要求的那条亦被钉死),故订正不改变 S11-4 的判定结论。
 - **DC-2 / OQ-11-2**(`action_id` 闭集):`action_id` 读入后校验(现「任何 int 放行」,EPIC.md:122)—— 闭集外 `fail-loud`
 - **DC-6 / `NOISE_BAND_9`**:9 侧常量已立(10-07),复评引用链闭环登记(代码可能已在,判据 = EPIC §Epic Status 行可勾)
 

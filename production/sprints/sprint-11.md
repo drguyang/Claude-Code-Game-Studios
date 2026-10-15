@@ -134,8 +134,30 @@ story-004 的其余 7 条(TB-1 定序判别力 / TB-2 成员冻结 / TB-3 真空
 > 恰红两条新测且失败消息**精确点名**被移除的 Kind ⇒ 判别力确认(非假绿夹具)。还原经 `grep` + `git status` 三重复核。
 > **⑥ 零回归**:全量 EditMode **`3346 / 3300 / 0`**(较 S11-9 后 **+2 passed**,恰本轮新增)· `error CS` = 0 · 无 asmdef 改动。
 > **⑦ 真残余(未消解,禁借绿)**:DC-6 对当前数据集**零求值**(`salicylic_acid.dose_range = null`)·
-> BL-7(21a `drug_potency` 域未声明)· AC-11-22 半边甲(文本背离,归 producer/TD)·
+> BL-7(21a `drug_potency` 域未声明)· ~~AC-11-22 半边甲(文本背离,归 producer/TD)~~ ⇒ **见下 ⑧** ·
 > **EPIC 仍 `5/5 Complete` 但 DoD 未达**(本件不改变该状态)。
+
+> **✅ S11-4 尾巴 B 结项框(2026-10-15 同日续办)** —— 裁定记录:`production/qa/evidence/td-ruling-ac11-22-narrowing-2026-10-15.md`
+> **① 上半(producer / TD 裁半边甲)—— 已闭,零代码**。TD 裁 **(甲) 收窄 AC 文本**;
+> 核心理由 = 载荷 `DrugTreatmentAppliedPayload` 是 `readonly struct` + **唯一 ctor** ⇒ **任何解码器都必须调用它**
+> ⇒ AC 原文「构造点仅存在于 11」对**任何合法实现恒假** —— 属**「判据对合法输入类误判」**(与 BL-7 同族),**不是实现缺陷**。
+> **四件同批订正**:GDD `AC-11-22` 表行 + 规则三 BL-4 注 · `tr-registry.yaml:TR-prescription-018` ·
+> `traceability-index.md` · 门 `PrescriptionWriterGates.cs`(文件头 / `DecoderCtorSites` 注 / `RunAll` §⑤ 摘要)。
+> **口径三改**:① 「反射 / 引用集断言」⇒「**IL / metadata 扫描**」(反射看不见 `newobj`,引用集只到程序集粒度);
+> ② 「构造点」⇒「**写入路径**构造点」;③ 解码豁免**具名**为 `Sim.Codec.PayloadCodec`。
+> **producer 复核(同轮)**:⚙ **排期纠正** —— 半边甲实为 **≈0.25 天登记活**,**不是** S11-4 那种 3.5–4 天量级;
+> ⚙ **`Manifest Version` 不触发**(实测 `control-manifest.md` 对「构造点」零命中,`TR-018` 的 `adr: null`)⇒ 207 份 story 不受影响;
+> ⚙ **story 状态不回退**(TD 裁甲 ⇒ 代码没错、文本错 ⇒ `story-003` 维持 `Complete`,`:36` 的 `[x]` **不算借绿**)。
+> **② EPIC 状态表述已修正**:`EPIC.md:6` 补入「**story 层 5/5 Complete 与 epic DoD 未达是两件事**」口径
+> (同 `emergency-procedures/EPIC.md` §未闭项登记先例),消同文件自相矛盾。
+> **③ 计划件就地加注**:`qa-plan-sprint-11:62` 按先例(`e67b33b` / `b1f32ca`)**原文保留 + 加订正注**,
+> 指明其**两半皆不成立**(①「白名单表」不存在;②「无白名单外**字段**」是**字段级**,与 AC 的 **Kind 级**非同一命题)。
+> **④ 过程面观察已沉淀**(两条,均**不做 hook** —— 机械 hook 判不可靠 = 假门):
+> ⑦-a `/sprint-plan` skill Phase 1 增硬前置(纳入 sprint 的 epic 须**重读实况**,不得沿用旧快照);
+> ⑦-b `review-workflow.md` 增**义务 5**(回刷收口判据:改完对同一关键词**全仓 grep**,逐条判「动 / 不动」并落纸)。
+> **⑤ 仍未闭(结构性归属外部件,非本 epic 可闭)**:DC-6 零求值(21a 内容轮)· BL-7(21a)·
+> 影子装配注入半边 · tag 序判据 · AC-11-15 三格矩阵(ADR-012)· AC-11-16 正式对拍(BLOCKED-BY-45)· AC-11-12/13/21 人工走查(S11-6)。
+> **epic DoD 第 2 / 第 4 条仍不绿**,且**不因本轮改变**。
 
 ### Nice to Have
 

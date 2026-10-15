@@ -4,6 +4,8 @@
 > **GDD**: design/gdd/prescription-and-medication.md
 > **Architecture Module**: L3 Gameplay + L2 Sim 接缝(11 = `DrugTreatmentApplied` 唯一写者)
 > **Status**: **Complete ✅ 2026-10-06**(5/5 story 已收口;filtered **155/155** · 全量 EditMode **2916/2869/0红**;评审原件五份齐备)· ⚠️ **未闭项按登记 NOT-RUN / BLOCKED-BY,禁借绿 —— 详见下方 §Epic Status**
+>
+> ⚠️ **状态口径(2026-10-15 补 —— 消同文件自相矛盾)**:**「story 层 5/5 Complete」** 与 **「epic DoD 未达」**(§Epic Status 明写)是**两件事**,不得读成冲突。未闭项**均结构性归属其他 epic / 外部件**(ADR-012 三格矩阵 · emergency-procedures 载荷双向绿 · 21a 内容轮 · 人工走查 / 医学从业 / 音频 lead 签核),**本 epic 无单方可闭项** ⇒ **不阻塞 story 收口**,但**阻塞 epic DoD 第 2 / 第 4 条**。同口径先例 = `emergency-procedures/EPIC.md` §未闭项登记(「均**结构性归属其他 epic**,**不阻塞本 epic**」)。
 > **Stories**: 5 stories — see table below
 
 ## Overview
@@ -67,7 +69,7 @@ NOT-RUN / BLOCKED-BY 登记,**禁借绿**。
 | TR-prescription-015 | 同输入跨平台重放处置事件逐位相同(输入集刻意不含技能等级) | ADR-012 ✅ |
 | TR-prescription-016 | polarity 判定真源归 9(本 GDD 裁定,11 = 镜像) | ADR-024 ✅ |
 | TR-prescription-017 | 熟练度 P0 出口 = 省料+解锁;省料唯一出处 = 21a EFF;30 只拥「等级→EFF」映射 | ADR-026 ✅(O-11→30 BL-6 前置) |
-| TR-prescription-018 | 写者独占:`DrugTreatmentApplied` 构造点仅在 11 程序集;7a 序列化白名单两支齐 | ADR-024/010 ✅ |
+| TR-prescription-018 | 写者独占:`DrugTreatmentApplied` **写入路径**构造点仅在 11 程序集(解码重建**具名豁免** `Sim.Codec.PayloadCodec`;⚠️ **2026-10-15 TD 裁「收窄」**);7a 序列化白名单两支齐 | ADR-024/010 ✅ |
 | TR-prescription-019 | 可感知地板量纲一致(与 9 的噪声同量纲方可比较) | ADR-005 ✅(O-11→9 BL-2 前置) |
 
 ## Definition of Done
@@ -85,7 +87,7 @@ This epic is complete when:
 |---|-------|------|--------|-----|
 | 001 | 处方表与本草词表:双表 polarity 硬门 | Config-Data | ✅ Complete 2026-10-06(DC-2 / DC-6 NOT-RUN) | ADR-014/024/005 |
 | 002 | F-11.1 剂量舍入与 F-11.2 F5 求值点 | Logic | ✅ Complete 2026-10-06(评审原件已补:2026-10-06 补做轮;AC-11-11④ / AC-11-19 断言本体 / TR-007 21a 半边 NOT-RUN) | ADR-006/005/012 |
-| 003 | DrugTreatmentApplied 构造、零病名与写者独占 | Integration | ✅ Complete 2026-10-06(评审原件 + 双代理一轮修复;~~7a 白名单~~ ✅ **已闭 2026-10-15**(S11-4 落判据);AC-11-15 矩阵 / 影子装配半边 / tag 序 NOT-RUN) | ADR-009/024/013 |
+| 003 | DrugTreatmentApplied 构造、零病名与写者独占 | Integration | ✅ Complete 2026-10-06(评审原件 + 双代理一轮修复;~~7a 白名单~~ ✅ **已闭 2026-10-15**(S11-4 落判据);~~AC-11-22 文本背离~~ ✅ **已闭 2026-10-15**(TD 裁「收窄」,AC/registry/index/门注四处同批订正);AC-11-15 矩阵 / 影子装配半边 / tag 序 NOT-RUN) | ADR-009/024/013 |
 | 004 | Prescribe 流程:库存、扣减与成长门 | Integration | ✅ Complete 2026-10-06(AC-11-16 正式对拍 / 换算表真源 / 非主机半边 NOT-RUN) | ADR-009/026/010 |
 | 005 | 戥子输入与方笺呈现 | UI | ✅ Complete 2026-10-06(结构半边;走查半边 NOT-RUN) | ADR-011/013 |
 
@@ -110,7 +112,7 @@ This epic is complete when:
 | story-002 | AC-11-11④ 宽度分支 · AC-11-19 **断言本体** · TR-prescription-007 的 21a 半边 | BL-7 / BL-2 / BL-1(均 O-11→21a) |
 | story-002/003 | AC-11-15 三格矩阵 + 跨进程半边 | ADR-012 矩阵未激活 |
 | story-003 | 影子装配注入半边 · `CheckPayloadPairing` 不覆盖 codec tag 序 · ~~AC-11-22 的 7a 白名单本体~~ ✅ **已闭 2026-10-15**(S11-4 落判据:白名单 = `EventKind` 35 支闭集 ∩ codec 分派表) | 需动态生成程序集 · 归 ADR-014 阶段 2 ~~· BLOCKED-BY-7a~~ |
-| story-003 | **AC-11-22 / TR-prescription-018 与实现的文本背离**(解码点在 11 之外构造载荷) | 门已**显式记账**;收窄裁定**归 producer / TD**,本 epic 不自行改 AC 文本 |
+| story-003 | ~~**AC-11-22 / TR-prescription-018 与实现的文本背离**(解码点在 11 之外构造载荷)~~ ✅ **已闭 2026-10-15**(TD 裁「**收窄**」并落盘:AC 文本 · `tr-registry.yaml` · `traceability-index.md` · 门注 **四件同批订正**;解码豁免**具名**为 `Sim.Codec.PayloadCodec`) | ~~门已显式记账;收窄裁定归 producer / TD~~ ⇒ **裁定记录** `production/qa/evidence/td-ruling-ac11-22-narrowing-2026-10-15.md` |
 | story-004 | AC-11-16 正式对拍 · 换算表真源 `D-21-29` · 非主机传输半边 | OQ-11-13(`K_difficulty` 无主)· OQ-11-10 · BLOCKED-BY-45 |
 | story-005 | **走查半边 AC-11-12 / AC-11-13 / AC-11-21 全 NOT-RUN**(须人工执行 + 主创 / 医学从业 / 音频 lead 签核)· 手柄面 | 走查文档与截图未产出 · ADR-013 假设 6(UI Toolkit 手柄焦点导航) |
 
@@ -137,5 +139,8 @@ This epic is complete when:
 > (`NOISE_BAND_POTENCY_9`,`entities.yaml:1484`)⇒ 两条判据本体 **RUN**;
 > 另 **AC-11-22 的 7a 白名单半边**由 S11-4 落判据(白名单 = `EventKind` 闭集 ∩ codec 分派表,
 > 载体识别 —— AC 文本一字未动;原「7a 存档白名单**表**未落地」的读法已订正)。
+> ✅ **2026-10-15 同日追加**:AC-11-22 的**另一半边(半边甲 · 文本背离)**已由 **TD 裁「收窄」**并落盘 ——
+> AC 文本 · `tr-registry.yaml:TR-prescription-018` · `traceability-index.md` · 门注**四件同批订正**(收窄 + 具名豁免)。
 > ⚠️ **仍未闭**(禁借绿):**DC-6 对当前数据集零求值**(`salicylic_acid` 的 `dose_range = null`,已由覆盖率记账逐字声明)·
 > BL-7(21a `drug_potency` 域未声明)· 两条已知测试弱点(M1 反守卫用干净夹具 / M4 正向判别力过窄,已登记不静默)。
+> ~~AC-11-22 半边甲(文本背离)~~ ✅ **已闭 2026-10-15**(TD 裁「收窄」· 见上 §Epic Status 表行与订正框)。

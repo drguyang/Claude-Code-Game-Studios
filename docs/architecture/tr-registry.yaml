@@ -3460,11 +3460,11 @@
   - id: TR-prescription-018
     system: prescription-and-medication
     gdd: design/gdd/prescription-and-medication.md
-    requirement: "具名 Kind 的写者独占：SimEvent.Kind.DrugTreatmentApplied 的构造点仅存在于 11 的程序集;7a 的序列化器两个 Kind(11 的 + 10 的 EmergencyTreatmentApplied)均在白名单内"
+    requirement: "具名 Kind 的写者独占：SimEvent.Kind.DrugTreatmentApplied 的构造点仅存在于 11 的程序集;7a 的序列化器两个 Kind(11 的 + 10 的 EmergencyTreatmentApplied)均在白名单内。⚠️ **2026-10-15 评审订正(TD 裁「收窄」,详见 note)**:①「构造点」收窄为**写入路径构造点**(解码重建**具名豁免** `Sim.Codec.PayloadCodec`);②「反射 / 引用集断言」保真订正为「**IL / metadata 扫描**」—— 反射与引用集均无法表达「构造点集合 ⊆ 11」"
     domain: Core
     adr: null
     status: partial
-    note: "**AC-11-22(BLOCKING,2026-09-19 二轮 BL-4 新立)** —— 反射 / 引用集断言(**非 grep**,承 `AC-20-03` 口径)。⚠️ **本条补的是一处从未被断言的缺口**:首轮只断「算法独占」(`AC-11-10`,⇒ `TR-prescription-013`),**从未断言「写者独占」**。作者侧「未注册 Kind 构建期失败」的**全局防线**仍缺(10 的 systems-index 行记「五个人独立踩同一块石头」),归下一次 `/architecture-review`,不在本条内解决 ⇒ partial(单点断言在,全局防线缺)。"
+    note: "**AC-11-22(BLOCKING,2026-09-19 二轮 BL-4 新立)** —— 反射 / 引用集断言(**非 grep**,承 `AC-20-03` 口径)。⚠️ **本条补的是一处从未被断言的缺口**:首轮只断「算法独占」(`AC-11-10`,⇒ `TR-prescription-013`),**从未断言「写者独占」**。作者侧「未注册 Kind 构建期失败」的**全局防线**仍缺(10 的 systems-index 行记「五个人独立踩同一块石头」),归下一次 `/architecture-review`,不在本条内解决 ⇒ partial(单点断言在,全局防线缺)。⚠️ **2026-10-15 两处更新(均不改 status,理由见 ②)**:① **AC-11-22 已由 TD 裁「收窄」并落盘**(`requirement` 字段已就地订正)—— 载体 = **IL / metadata 扫描**(反射做不到),范围 = **写入路径**构造点,解码豁免具名 `DaYiJingCheng.Sim.Codec.PayloadCodec`(门内 `DecoderCtorSites` 分离登记 + `RunAll` 摘要报警,**非静默**);裁定记录 = `production/qa/evidence/td-ruling-ac11-22-narrowing-2026-10-15.md`。② **本条的 partial 归因「全局防线仍缺」疑已陈旧,但本轮不据以改判** —— ADR-024 ⑤ 的 kindgen 通道**已实测存在**(`tools/kindgen/kindgen.py` + 生成物 `unity/Assets/Sim/StreamRouting.g.cs`),其是否已**接线**到「未注册 Kind ⇒ 构建期拒绝」**本轮未核** ⇒ 诚实登记为**待核**(既不借绿、也不借红)。"
 
   - id: TR-prescription-019
     system: prescription-and-medication
