@@ -1,12 +1,12 @@
 # Story 002: F-53.1 确定性结算(Outcome 枚举)
 
 > **Epic**: 医疗后果与责任
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 5h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-16
 
 ## Context
 
@@ -126,17 +126,114 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/MedConsequences/medcons_outcome_judge_test.cs` + `tests/golden/medcons/*`(ADR-012 夹具族,IL2CPP 格 NOT-RUN 标注) — must exist and pass
-**Status**: [x] Created & passing(2026-10-15,S12-9)
+**Status**: [x] Created & passing(2026-10-15,S12-9;2026-10-16 返工 + 重评两轮复核)
 
-- **23 条全绿**;回归 `3444 / 3398 / 0 / 46`(基线 3421/3375/0/46 ⇒ +23/+23 零回归;`unity/Logs/s12-9-final.xml`)。
+- **S12-9 首轮**:23 条全绿;回归 `3444 / 3398 / 0 / 46`(基线 3421/3375/0/46 ⇒ +23/+23 零回归;`unity/Logs/s12-9-final.xml`)。
 - **golden 真源**:`tests/golden/medcons/golden_v1_reference.py`(独立 python,**与 C# 零共享代码**)+ `golden-v1.txt`;
   A05 与既有 case-salt golden 交叉验证逐位一致;N01 signed-shift 负夹具钉死。
 - **S12-9-AC-b 证据**:夹具先于实现,初跑 24 × CS0246(`unity/Logs/s12-9-red.log`)。
 - **IL2CPP 三格(AC-53-02/15)**:**NOT-RUN 如实登记**(本机 Mono;挂 ADR-012 矩阵,CI 执行;禁借绿)。
-- **AC-53-03 载体**:`MedConsFloatGate.cs`(注释剥离 token 扫描,接 `AssemblyGates.RunAll`)。
+- **AC-53-03 载体**:`MedConsFloatGate.cs`(注释剥离 token 扫描 + 浮点字面量三形态正则,接 `AssemblyGates.RunAll`)。
 - **证据原件**:`production/qa/evidence/impl-s12-9-medcons-outcome-judge-2026-10-15.md`(迭代 8 轮全红如实)。
 - **键域裁定**:3×3×2 = 18 行 + default(用户 AskUserQuestion 2026-10-15);U 档列默认 1 档;
   退化路径 = 显式中点 1/2(raw 32768,非静默 0,夹具钉死)。
+
+### 返工轮(2026-10-16 · `/code-review` 裁定 CHANGES REQUIRED)
+
+**原件**:`production/qa/evidence/review-medcons-story-002-2026-10-15.md`
+(3 BLOCKING R-1/R-2/R-3 + 10 WARNING/MINOR A–J,含 原判定 → 修复落点 → 验证命令)
+
+**回归**:`3462 / 3416 / 0 / 46`(`unity/Logs/s12-9-rework10.xml`,两批证伪轮突变全部还原后的复跑)——
+较 S12-9 首轮 **+18/+18,零回归**。18 条新探针 = 11 条返工探针 + 7 条重评探针。
+
+**S12-4 假绿夹具强制证伪轮(R-2 的结案件)** —— 每条探针「停用 X ⇒ 该夹具转红」的实证:
+
+| # | 夹具 | 对应 | 停用 X | 实证 |
+|---|---|---|---|---|
+| F1 | `test_bake_cookedHeader_schemaVersionEchoesBound` | R-1 | 头 offset 8 改回硬写 0 | ✅ RED |
+| F2 | `test_bake_cookedBytes_deterministic_sameSourceTwice` | A | 排序比较器退回单键 | ✅ RED*(注入非确定项;见下注) |
+| F3 | `test_rowKey_noCollision_acrossBands` | A | 行键乘子退回逐行量 `uBand+1` | ✅ RED |
+| F4 | `test_table_uBandDiscriminates_whenBandCountGtOne` | B | `Evaluate` 传硬编码 0 | ✅ RED |
+| F5 | `test_table_miss_fallsBackToDefault_notLifeAxis` | C | 删显式 default 回落 | ✅ RED |
+| F6 | `test_bandOf_bandCountBeyondRawDomain_doesNotDivideByZero` | G | 删 `span == 0` 守护 | ✅ RED |
+| F7 | `test_oq539_interleavedPatients_doNotContaminateRun` | D | 退回单游标 run | ✅ RED |
+| F8 | `test_ac5301_outcomeAxisNarrowing_tableRejectsLifeAxisRows` | T-2 | 删表构造器结局轴拒收 | ✅ RED |
+| F9 | `test_bake_uBandMissingKey_hardFails` | E | `u_band` 退回可选 | ✅ RED |
+| F10 | `test_bake_schemaVersionMismatch_hardFails` | R-4 | 删 schema_version 期望值比对 | ✅ RED |
+| F11 | `test_gate_floatLiteralPatterns_catchLiterals_notDocReferences` | R-3 | 门字面量判据停用 | ✅ RED |
+
+**纪律**:每条「改生产码 ⇒ 跑 ⇒ 判红 ⇒ 还原 ⇒ 跑 ⇒ 判绿」七步在**同一次 bash 调用内**完成
+(每条独立 `trap RETURN` 还原 + 全局快照 `EXIT` 还原作第二保险;跑完
+`grep -rn FZMARK unity/Assets/` = 零残留)。完整输出:`unity/Logs/s12-4-falsify.txt`
+(单次 filtered EditMode 运行 ≈ 31 s,11 条合计 ≈ 6 min)。
+
+**⚠️ 两处如实记录**(详见原件 §四):
+1. **F2 对「非稳定排序」子缺陷无判别力** —— A 修复后行键已互异,任何正确比较排序都定序。
+   首轮按字面「退回单键比较器」突变 ⇒ GREEN(未证伪);补跑「向载荷注入非确定项」⇒ RED。
+   ⇒ 该夹具守的是 ADR-014 §二**普遍确定性**,「非稳定排序」的判别力由 F3 承担。
+   *纪律价值:照抄「停用 X」字面描述就断言通过 = 假绿;必须真的跑。*
+2. **F3 首轮 NORUN** —— 突变串漏了原版行尾配对 `)` ⇒ CS1026 ⇒ 无 XML。修正后重跑 RED。
+   登记为返工期工具错误,与判据无关。
+
+### 重评轮(2026-10-16 · `/code-review` 第二轮)
+
+**原件**:`production/qa/evidence/review-medcons-story-002-rework-2026-10-16.md`
+(引擎 `unity-specialist` + 测试 `qa-tester` 并行重评)
+
+**裁定**:**APPROVED WITH SUGGESTIONS** —— 首轮 14 项判据**全部结清**(J 在首轮只做一半,
+本轮补齐);重评新发现 9 条引擎缺陷 + 3 条 QA 补强 + 1 条 BandOf uRaw 域,**全部已修并证伪**。
+
+**重评补强的 7 条新探针**(第二批证伪轮,`unity/Logs/s12-4-falsify2.txt`,7/7 RED):
+
+| # | 夹具 | 修什么 |
+|---|---|---|
+| F12 | `test_bake_missingWholeRow_coverageValidationFires` | 校验① 覆盖分支**首次真正被执行**(原负例走错分支被 `errors.Count==0` 短路) |
+| F13 | `test_careLaneOf_matchedTrue_yieldsAppliedMatched` | C 轴 `matched=true` 分支**零正例载体** |
+| F14 | `test_bandOf_uRawBeyondDomain_doesNotReturnNegativeBand` | `BandOf` uRaw 超域 ⇒ unchecked 窄化回绕出**负档序数** |
+| F15a | `test_oq539_nullAndEmptyStream_returnsFalse` | 空态分支无载体 |
+| F15b | `test_oq539_arrivalOrderPermutation_invariantResult` | 全序键排序分支从未被打乱 |
+| F16 | `test_table_uBandOutOfRange_fallsBackToDefault_notAliasToNextCombo` | **N-3**:越界 uBand 静默别名到相邻 (P,C,D) 行 |
+| F17 | `test_table_uBandCountZero_rejected_notSilentRowCollapse` | **N-4**:`uBandCount=0` 时全表键坍缩、字典静默丢 17 行 |
+
+**两批合计 18 条证伪探针,全部 RED。**
+
+**⚠️ 两处「夹具本身判别力不足」被实证发现并加固**(均登记,未留恒真式):
+1. **F2** 对「非稳定排序」子缺陷无判别力(键互异后任何正确排序都定序)—— 判别力由 F3 承担;
+2. **F15b** 首版两组夹具在「排序后 / 到达序」下结论相同 ⇒ 删排序也照样绿 ——
+   已改为 `J` 的 tick 夹在中间,使两种序给出**相反**结论。
+
+**重评另修的生产缺陷**:`TryLookup` uBand 域守护(N-3)· `Table` 构造器 `uBandCount ≥ 1`(N-4)·
+default 行 `u_band` kind 检查(N-5)· 浮点正则补数字分隔符 `1_000f`(N-6)·
+`RunAll`/`ParseRows` 拆方法(N-2)· 删 `literalText` 死局部(N-1)· 测试改显式 `ReadU32Le`(N-8)·
+订正「词法层拒绝」注释(N-9)。
+
+**重评登记的剩余 Minor(不阻塞)**:golden `C01_degraded_uraw` 孤儿行 · 5 组合仅测试内镜像兜底 ·
+AC-53-03 `FixParse` 半句无载体 · 门构建期注册层检不出「注册被删」 · `Materialize` 碰撞分支无直驱 ·
+`Judge.Evaluate(null)` 无测试 · 共享静态池无 teardown · EditMode 真实文件 I/O。
+完整 9 条见原件 §五。
+
+### 返工轮登记的三处 AC 缺口(如实登记,不以测试自造断言顶替)
+
+1. **AC-53-08 缺「引用」半边**:原文「代码面无 37 verdict 读取路径(**引用** + 反射双断言)」——
+   反射半边在 `test_ac5308` 有载体;**编译期 / 门级的「引用」半边无载体**。
+   ⇒ 登记为**跨 story 载体**,002 内不造断言顶替。
+2. **「误诊自愈 ⇒ 不产出回响事件」后半句**:回响事件发出归 **story-003**(`EmitTick` /
+   `ConsequenceResolved` 写流),002 内无载体。同上登记。
+3. **AC-53-08 的 D 输入接线仅为类型面**:`IDiseaseProjection` / `treatable_by` 命中位的
+   **端到端装载归装配轮 / story-003**;002 的 `CareLaneOf(…, bool matched)` 只钉「命中位
+   由调用方给出、53 不判」的**形状**。测试中的 stub 命中位是形状夹具,**不是**已验证的接线。
+
+### 返工轮登记的两处形状留槽(非缺口,归后续轮)
+
+- **U 判别力载体 = `band_count > 1`**:现网 `u_band_count = 1` ⇒ `UBand` 恒 0,
+  U 档对 Outcome 无判别力。这是**数值轮**的决定(键域裁定「U 档列默认 1 档,常量留槽」);
+  B 返工已把 `UBand` 接进查表,`test_table_uBandDiscriminates_whenBandCountGtOne`
+  以双档表证明档位**可**判别。⇒ 判据已就绪,等数值轮扩档。
+- **R-3 残余缺口(不借绿)**:`MedConsFloatGate` 的浮点判据是**源级**(注释剥离 + 字符串剥离
+  + 三形态正则),看不见 IL 层的 `conv.r4` / `conv.r8`(常量折叠 / 算术产生的非字面量浮点)。
+  本仓更强先例 = `EcozoneIntegerGates`(AC-6-22,Mono.Cecil IL 级)。
+  **升级触发条件**:53 数值轮引入任何可能产生浮点的算术时,按该先例扩列。
+  53 当前零浮点算术(U = Q16.16 raw long 整数比较)⇒ 源级已覆盖其全部数值路径。
 
 ---
 
@@ -148,5 +245,35 @@
 ---
 
 ## Completion Notes
+**Completed**: 2026-10-16
+**Criteria**: 9/9 passing(无 deferred;「误诊自愈 ⇒ 不回响」后半句归 story-003,已登记)
+**Deviations**:
+- ADVISORY —— Story 写于 manifest `2026-10-02`,现行 `2026-10-15`;14 项判据已按现行 manifest 逐条重核通过。
+- 登记项(非 deviation)—— TR-medcons-007 `partial` 已在 Requirement 行登记(零可变态 ✅ /
+  零订阅者归拉模式重放面)。
+- 留槽常量 —— `DegradedURaw = 32768` / `TrialRunThreshold = 3` /
+  `ConfidenceConfirmedFloor = 2`,按卡面 Note 6「数值冻结」登记,golden 夹具钉形。
 
-*(empty — fill at story completion via `/story-done`)*
+**Test Evidence**(Logic):`unity/Assets/Tests/EditMode/MedConsequences/medcons_outcome_judge_test.cs`
+—— **41 条 `[Test]`,终轮 41/41 Passed**;账本树 `tests/golden/medcons/*`(Python 独立参照,
+与 C# 零共享代码)。终轮回归 `3462 / 3416 / 0 / 46`
+(`unity/Logs/s12-9-rework10.xml`),较 S12-9 首轮 **+18/+18,零回归**。
+
+**Falsifiability Gate(S12-4 · BLOCKING 级)**:**PASS** —— 两批共 **18 条证伪探针,18/18 RED**
+(`unity/Logs/s12-4-falsify.txt` 11 条 + `unity/Logs/s12-4-falsify2.txt` 7 条),
+跑完 `FZMARK`/`FZ2MARK` 零残留。两处「夹具本身判别力不足」被实证抓出并加固
+(F2 对非稳定排序无判别力 ⇒ 判别力由 F3 承担;F15b 首版两种序结论相同 ⇒ 改为相反结论)。
+
+**Code Review**:Complete —— 两轮 `/code-review`
+- 首轮:`production/qa/evidence/review-medcons-story-002-2026-10-15.md`
+  —— 裁定 **CHANGES REQUIRED**(3 BLOCKING R-1/R-2/R-3 + 10 WARNING/MINOR A–J),全部结清。
+- 重评:`production/qa/evidence/review-medcons-story-002-rework-2026-10-16.md`
+  —— 裁定 **APPROVED WITH SUGGESTIONS**;14 项判据全部结清(**J 首轮只兑现一半,重评补齐**),
+  新发现 9 条引擎缺陷 + 3 条 QA 补强全部已修并证伪。
+
+**IL2CPP 三格(AC-53-02/15)**:**NOT-RUN 如实登记** —— 本机 Mono;挂 ADR-012 矩阵,CI 执行;禁借绿。
+
+**剩余 Minor(不阻塞,见重评件 §五 共 9 条)**:golden `C01_degraded_uraw` 孤儿行 ·
+5 组合仅测试内镜像兜底 · AC-53-03 `FixParse` 半句无载体 · 门构建期注册层检不出「注册被删」·
+`Materialize` 碰撞分支无直驱 · `Judge.Evaluate(null)` 无测试 · 共享静态池无 teardown ·
+EditMode 真实文件 I/O · N-7 verbatim/插值字符串不在源级判据面内。

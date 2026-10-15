@@ -27,6 +27,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using DaYiJingCheng.EditorTools.Bake;
+using DaYiJingCheng.EditorTools.Gates;
 using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
@@ -440,12 +441,12 @@ namespace DaYiJingCheng.Tests.MedConsequences
             {
                 EvD(10, 5, 0), EvD(20, 5, 1), EvJ(30, 5, 2), EvD(40, 5, 3),
             };
-            Assert.IsFalse(TrialHistoryPredicate.HasTrialHistory(stream, Decoder),
+            Assert.IsFalse(TrialHistoryPredicate.HasTrialHistory(stream),
                 "(D,D,J,D):支持性判断打断 run ⇒ 两段均 < 阈值 ⇒ 无试药史");
 
             // (D, D, D) 连续 3 条 ≥ 阈值 3 ⇒ 有试药史。
             var stream2 = new List<SimEvent> { EvD(10, 5, 0), EvD(20, 5, 1), EvD(30, 5, 2) };
-            Assert.IsTrue(TrialHistoryPredicate.HasTrialHistory(stream2, Decoder),
+            Assert.IsTrue(TrialHistoryPredicate.HasTrialHistory(stream2),
                 "(D,D,D):连续 run = 阈值 3 ⇒ 有试药史");
         }
 
@@ -467,17 +468,17 @@ namespace DaYiJingCheng.Tests.MedConsequences
             Assert.IsTrue(TrialHistoryPredicate.HasTrialHistory(new List<SimEvent>
             {
                 EvD(10, 5, 0), EvD(20, 5, 1), EvD(30, 5, 2),
-            }, Decoder), "恰 3 条(= 阈值)⇒ 算");
+            }), "恰 3 条(= 阈值)⇒ 算");
 
             Assert.IsFalse(TrialHistoryPredicate.HasTrialHistory(new List<SimEvent>
             {
                 EvD(10, 5, 0), EvD(20, 5, 1),
-            }, Decoder), "2 条(< 阈值)⇒ 不算");
+            }), "2 条(< 阈值)⇒ 不算");
 
             Assert.IsFalse(TrialHistoryPredicate.HasTrialHistory(new List<SimEvent>
             {
                 EvD(10, 5, 0), EvD(20, 6, 1), EvD(30, 7, 2),   // 不同病人
-            }, Decoder), "跨病人序列不算 run(OQ-53-9:同一 patient)");
+            }), "跨病人序列不算 run(OQ-53-9:同一 patient)");
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -570,7 +571,9 @@ namespace DaYiJingCheng.Tests.MedConsequences
         [Test]
         public void test_bake_floatLiteral_hardFails()
         {
-            // ③ 零浮点校验负例:U 档列写成小数字面量 ⇒ 硬失败(词法层拒绝)。
+            // ③ 零浮点校验负例:U 档列写成小数字面量 ⇒ 硬失败。
+            // ⚠️ N-9(2026-10-16):原注释写「词法层拒绝」为误 —— JsonStage1Lexer **接受**
+            // 浮点 token(JsonNodeKind.Float),拒收发生在阶段 2 ReadUBand(类型非 Integer)。
             string json = MinimalTableJson().Replace("\"u_band\": 0", "\"u_band\": 0.5");
             Assert.Throws<BakeValidationException>(
                 () => OutcomeTable53.BindForTest(json), "浮点字面量 ⇒ 硬失败(ADR-006 边界)");
@@ -623,7 +626,13 @@ namespace DaYiJingCheng.Tests.MedConsequences
                 .Where(t => t.Namespace == "DaYiJingCheng.Sim.Consequences").ToList();
             Assert.Greater(types.Count, 0, "Consequences 命名空间非空(被测面存在)");
 
-            var forbidden = new[] { "Reputation", "Trust", "Favor", "Score", "Points", "Credit" };
+            // H(2026-10-15 返工):token 集**读门侧单一真源** —— 原实现自带字面量
+            // { Reputation, Trust, Favor, Score, Points, Credit },与 MedConsFloatGate 的
+            // { Reputation, Trust, Favor, Renown, Standing, Prestige } + { ScoreAccum,
+            // ScorePool, CreditScore } **互不为超集** ⇒ 同一 AC 两套判据,可各绿而语义分叉。
+            var forbidden = MedConsFloatGate.ReputationTokens
+                .Concat(MedConsFloatGate.ScoreTokens).ToArray();
+            Assert.Greater(forbidden.Length, 0, "门侧 token 集非空(单一真源可读)");
             foreach (var t in types)
             {
                 Assert.IsTrue(!forbidden.Any(tok => t.Name.IndexOf(tok, StringComparison.OrdinalIgnoreCase) >= 0),
@@ -638,6 +647,605 @@ namespace DaYiJingCheng.Tests.MedConsequences
             Assert.IsTrue(refs.All(r => r.StartsWith("System") || r.StartsWith("netstandard") ||
                                         r == "mscorlib" || r == "Mono" || r == "Sim.Contracts"),
                 "Sim 引用集零 31 侧程序集(声誉系统未实现;出现任何非 BCL/Contracts 引用即红)");
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // S12-4 假绿夹具强制证伪轮 —— 2026-10-15 返工新增 10 条可证伪探针
+        // 每条对应 review-medcons-story-002-2026-10-15.md §四 反证表的一行;
+        // 「停用 X ⇒ 本夹具须转红」的实证见该文件(改与跑同一次 Bash 调用,trap 纪律)。
+        // ⚠️ 无该实证 ⇒ 该条**未证伪**,不得据此声称 Gate 通过。
+        // ════════════════════════════════════════════════════════════════════
+
+        /// <summary>仓根(与 <see cref="LoadTable"/> 同源)。</summary>
+        private static string RepoRoot()
+            => Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+
+        /// <summary>FNV-1a u32(测试内自足 —— 不用 UnityEngine.Hash128,承 ADR-010 纪律)。</summary>
+        private static uint Fnv1a(byte[] bytes)
+        {
+            uint h = 2166136261;
+            foreach (byte b in bytes) { h ^= b; h *= 16777619; }
+            return h;
+        }
+
+        /// <summary>显式 little-endian u32 读(N-8:与写方 WriteU32Le / CookedCodec.ReadU32Le
+        /// 同形 —— ADR-014「字节序固定、不随平台」,不用平台序相关的 BitConverter)。</summary>
+        private static uint ReadU32Le(byte[] buffer, int offset)
+            => (uint)(buffer[offset]
+                      | (buffer[offset + 1] << 8)
+                      | (buffer[offset + 2] << 16)
+                      | (buffer[offset + 3] << 24));
+
+        /// <summary>三轴全枚举(18 组合遍历用)。</summary>
+        private static readonly Outcome53.JudgmentLane[] AllP =
+            { Outcome53.JudgmentLane.Empty, Outcome53.JudgmentLane.Suspected,
+              Outcome53.JudgmentLane.Confirmed };
+        private static readonly Outcome53.CareLane[] AllC =
+            { Outcome53.CareLane.None, Outcome53.CareLane.AppliedUnmatched,
+              Outcome53.CareLane.AppliedMatched };
+        private static readonly Outcome53.RecoveryLane[] AllD =
+            { Outcome53.RecoveryLane.Recovered, Outcome53.RecoveryLane.NotRecovered };
+
+        // ── F1 / R-1:cooked 头 offset 8 回声 schemaVersion(非 0),载荷首字段不再是它 ──
+
+        [Test]
+        public void test_bake_cookedHeader_schemaVersionEchoesBound()
+        {
+            var output = OutcomeTable53.BakeFromRepo(RepoRoot());
+
+            // 魔数读常量(原硬写 'D','Y','J','C' —— CookedFormat.Magic 已存在,双真源)。
+            string magic = CookedFormat.Magic;
+            Assert.AreEqual(4, magic.Length, "前置:CookedFormat.Magic 恰 4 字符");
+            for (int i = 0; i < 4; i++)
+                Assert.AreEqual((byte)magic[i], output.Cooked[i], $"魔数字节 {i}");
+
+            // R-1 ①:头 offset 8 = CookedFormat.SchemaVersion(旧实现硬写 0 ⇒ 本断言红)。
+            uint headerSchema = ReadU32Le(output.Cooked, 8);
+            Assert.AreEqual(CookedFormat.SchemaVersion, headerSchema,
+                "头 offset 8 须为 schemaVersion 槽(旧实现硬写 0;读方 CookedCodec.OpenChecked " +
+                "正与此常量比对,不符 ⇒ 启动期 InvalidDataException)");
+
+            // R-1 ②:载荷首字段 = u_band_count(schema_version 已删)。
+            uint payloadFirst = ReadU32Le(output.Cooked, CookedFormat.HeaderSize);
+            Assert.AreEqual((uint)output.Bound.UBandCount, payloadFirst,
+                "载荷首字段 = u_band_count");
+
+            // R-1 ③(2026-10-16 重评返工):**载荷长度**按公式推导后比对 ——
+            // 这才是「载荷首字段已删」的**可判别**判据。原断言只比值:现网
+            // schema_version == u_band_count == 1 ⇒ 旧布局(载荷首字段仍是 schema_version)
+            // 下同样绿,「第二真源已消」这半句无任何夹具钉住。
+            // 布局 = u_band_count(i32) + default_outcome(i32) + row_count(i32)
+            //        + row_count × { key(i32), outcome(i32) }。
+            int expectedPayload = 4 + 4 + 4 + output.Bound.Rows.Count * 8;
+            Assert.AreEqual(expectedPayload, output.Cooked.Length - CookedFormat.HeaderSize,
+                "载荷长度 = 12 + 行数×8(schema_version 的 4 字节已删;旧布局会多 4 ⇒ 本断言红)");
+
+            // R-1 ④:头 offset 4 = formatVersion、12 = configVersion、16 = payloadLength。
+            Assert.AreEqual(CookedFormat.FormatVersion, ReadU32Le(output.Cooked, 4));
+            Assert.AreEqual(output.ConfigVersion, ReadU32Le(output.Cooked, 12));
+            Assert.AreEqual((uint)expectedPayload, ReadU32Le(output.Cooked, 16),
+                "payloadLength 槽 = 推导载荷长(头 20 + 载荷 = 总长)");
+        }
+
+        // ── F12 / 校验① 覆盖分支首次真正被执行 ────────────────────────────
+
+        [Test]
+        public void test_bake_missingWholeRow_coverageValidationFires()
+        {
+            // 2026-10-16 重评返工:原 `test_bake_missingCombination_hardFails` 把 key 改名
+            // ⇒ 在**行解析层**就报「key 非法」⇒ errors.Count > 0 ⇒
+            // `ValidateCoverage` 被 `if (uBandCount > 0 && errors.Count == 0)` 整体短路
+            // (OutcomeTableBinder.cs)⇒ **校验① 的本体从未被执行过**。
+            // 正确负例 = **整行删除**(行级零错误)⇒ 首次进入覆盖分支。
+            // ⚠️ MinimalTableJson 的行串**不带尾逗号**(逗号由 string.Join 插入)——
+            // 返工期首轮带 ", " 匹配不上;次轮只删行串留下 `,,` 致词法失败。
+            // 正确做法 = 连同**前导逗号**一起删(该行非首行,前导逗号必存在)。
+            string json = MinimalTableJson();
+            json = json.Replace(",{\"key\": \"confirmed|applied_matched|recovered\", " +
+                                "\"u_band\": 0, \"outcome\": \"no_echo\"}", "");
+            Assert.IsFalse(json.Contains("confirmed|applied_matched|recovered"),
+                "前置:该组合行已整行删除");
+            Assert.IsFalse(json.Contains(",,"), "前置:无双逗号(JSON 仍合法)");
+
+            var ex = Assert.Throws<BakeValidationException>(
+                () => OutcomeTable53.BindForTest(json),
+                "整行删除 ⇒ 组合空洞 ⇒ 覆盖校验硬失败(校验① 本体)");
+            Assert.IsTrue(ex.Errors.Any(e => e.Contains("覆盖") && e.Contains("缺组合行")),
+                "错误消息须点名覆盖校验 + 缺失组合:" + string.Join("; ", ex.Errors));
+            Assert.IsTrue(ex.Errors.Any(e => e.Contains("confirmed|applied_matched|recovered")),
+                "错误消息须点名缺失的具体组合");
+        }
+
+        // ── F13 / C 轴命中位正例(AppliedMatched 链零载体)──────────────────
+
+        [Test]
+        public void test_careLaneOf_matchedTrue_yieldsAppliedMatched()
+        {
+            // 2026-10-16 重评返工:`CareLaneOf(cares, matched: true) → AppliedMatched`
+            // 在全文件从未被断言过 —— 唯一 StubProjection 构造点用默认
+            // `treatableByMatched: false` ⇒ 「处置命中 ⇒ 回响轴」这条链在 002 内
+            // 无端到端载体(与已登记的 D 轴缺口同族但更窄,漏登在 C 轴)。
+            var cares = new List<CareRow53>
+            {
+                new CareRow53(10L, 5, 0L, EventKind.CareApplied, actionId: 1, polarity: 0),
+            };
+            var judgments = new List<JudgmentRow53>
+            {
+                new JudgmentRow53(10L, 5, 0L, lexiconId: 7, confidence: 2),
+            };
+
+            Assert.AreEqual(Outcome53.CareLane.AppliedMatched,
+                Outcome53.CareLaneOf(cares, matched: true),
+                "有处置 + 命中位 true ⇒ AppliedMatched(命中位真源 = 9 注册表,53 不判)");
+            Assert.AreEqual(Outcome53.CareLane.AppliedUnmatched,
+                Outcome53.CareLaneOf(cares, matched: false),
+                "有处置 + 命中位 false ⇒ AppliedUnmatched(反向对照)");
+            Assert.AreEqual(Outcome53.CareLane.None,
+                Outcome53.CareLaneOf(new List<CareRow53>(), matched: true),
+                "零处置 ⇒ None(命中位不影响 —— 无处置即无处置)");
+            Assert.AreEqual(Outcome53.CareLane.None,
+                Outcome53.CareLaneOf(null, matched: true),
+                "null 处置集 ⇒ None(空态防御)");
+
+            // 端到端:真 CareApplied 载荷 + 桩给命中位 ⇒ C 轴 = AppliedMatched。
+            // (经 ConsequenceInputAggregator.Aggregate 真解码,不手搓 Inputs53。)
+            var table = LoadTable();
+            var matched = new StubProjection(recovered: true, treatableByMatched: true);
+            var stream = new List<SimEvent>
+            {
+                EvC(10, 5, 0),                                              // 真 CareApplied
+                EvJ(20, 5, 1, lexiconId: 7, confidence: 2),                 // 真 JudgmentRecorded
+                new SimEvent(30, new PatientId(5), 2, EventKind.CaseClosed, default(PayloadRef)),
+            };
+            var aggregated = Aggregate(stream, matched);
+            Assert.AreEqual(1, aggregated.Count, "恰一组(一个 CaseClosed)");
+            Assert.Greater(aggregated[0].CareRecords.Count, 0,
+                "C 路确有条目(否则 C 轴恒 None,本条无判别力)");
+
+            var lanes = ProjectLanes(aggregated[0], matched);
+            Assert.AreEqual(Outcome53.CareLane.AppliedMatched, lanes.c,
+                "ProjectLanes 经桩命中位 ⇒ C 轴 = AppliedMatched(端到端)");
+            Assert.IsTrue(Enum.IsDefined(typeof(Outcome53.Outcome),
+                Outcome53.Judge.Evaluate(
+                    new Outcome53.JudgeInputs(lanes.p, lanes.c, lanes.d, false, 0, 0UL), table)),
+                "该链可求值且 ∈ 闭集");
+        }
+
+        /// <summary>真载荷 `CareApplied`(C 路消费;与 medcons_aggregation_test 同款)。</summary>
+        private static SimEvent EvC(long tick, int patient, long seq, int actionId = 1, int phase = 0)
+        {
+            var payload = new CareAppliedPayload(tick, actionId, caregiver: 1, phase);
+            return new SimEvent(tick, new PatientId(patient), seq, EventKind.CareApplied,
+                                Encoder.Encode(EventKind.CareApplied, payload));
+        }
+
+        // ── F16 / N-3:TryLookup 的 uBand 域守护(越界档位静默别名)────────────
+
+        [Test]
+        public void test_table_uBandOutOfRange_fallsBackToDefault_notAliasToNextCombo()
+        {
+            // N-3(2026-10-16 重评返工):越界 uBand 会使 key 越出本 (p,c,d) 段、落入
+            // **下一个组合的段内**(bandCount=1, uBand=1 ⇒ key = pcd+1,恰为下一组合的合法键)
+            // ⇒ 静默返回**另一组合**的 Outcome。全案反复登记的「静默失败」失效模式。
+            const int bandCount = 1;
+            var rows = new Dictionary<int, Outcome53.Outcome>();
+            foreach (var p in AllP)
+                foreach (var c in AllC)
+                    foreach (var d in AllD)
+                        rows[Outcome53.RowKeyOf(p, c, d, 0, bandCount)] =
+                            (p, c, d) == (Outcome53.JudgmentLane.Empty,
+                                          Outcome53.CareLane.None,
+                                          Outcome53.RecoveryLane.Recovered)
+                                ? Outcome53.Outcome.Residual
+                                : Outcome53.Outcome.Recurrence;
+            var table = Outcome53.CreateTable(rows, bandCount, true, Outcome53.Outcome.NoEcho);
+
+            // 越界档位 ⇒ 未命中 + 回落 default 行,**不是**相邻组合的 Recurrence。
+            bool hit = table.TryLookup(
+                Outcome53.JudgmentLane.Empty, Outcome53.CareLane.None,
+                Outcome53.RecoveryLane.Recovered, uBand: 1, out var aliased);
+            Assert.IsFalse(hit, "uBand=1 ≥ bandCount=1 ⇒ 未命中");
+            Assert.AreEqual(Outcome53.Outcome.NoEcho, aliased,
+                "越界档位 ⇒ 回落 default 行;若别名到下一组合会得 Recurrence(N-3 的失效形态)");
+
+            // 负档位同样拒收。
+            Assert.IsFalse(table.TryLookup(
+                Outcome53.JudgmentLane.Empty, Outcome53.CareLane.None,
+                Outcome53.RecoveryLane.Recovered, uBand: -1, out var negative),
+                "uBand = -1 ⇒ 未命中");
+            Assert.AreEqual(Outcome53.Outcome.NoEcho, negative, "负档位 ⇒ 回落 default 行");
+
+            // 经 Judge 同口径(inputs.UBand 直穿)。
+            var judge = new Outcome53.JudgeInputs(
+                Outcome53.JudgmentLane.Empty, Outcome53.CareLane.None,
+                Outcome53.RecoveryLane.Recovered, false, uBand: 1, uRaw: 0UL);
+            Assert.AreEqual(Outcome53.Outcome.NoEcho, Outcome53.Judge.Evaluate(judge, table),
+                "Judge 对越界 UBand 回落 default 行,不吐相邻组合的 Outcome");
+
+            // 域内不受影响(证明守护没有把合法档位也拒掉)。
+            Assert.IsTrue(table.TryLookup(
+                Outcome53.JudgmentLane.Empty, Outcome53.CareLane.None,
+                Outcome53.RecoveryLane.Recovered, uBand: 0, out var inRange),
+                "uBand = 0(< bandCount=1)⇒ 命中");
+            Assert.AreEqual(Outcome53.Outcome.Residual, inRange, "域内档位正常查表");
+        }
+
+        // ── F17 / N-4:Table 构造器拒收 uBandCount < 1 ──────────────────────
+
+        [Test]
+        public void test_table_uBandCountZero_rejected_notSilentRowCollapse()
+        {
+            // N-4(2026-10-16 重评返工):uBandCount = 0 ⇒ EncodeRowKey 乘子 0
+            // ⇒ 全部 18 行 key 坍缩为 uBand(通常全 0)⇒ Dictionary 构造即静默丢 17 行。
+            var rows = new Dictionary<int, Outcome53.Outcome>
+            {
+                { Outcome53.RowKeyOf(Outcome53.JudgmentLane.Empty, Outcome53.CareLane.None,
+                                     Outcome53.RecoveryLane.Recovered, 0, 1),
+                  Outcome53.Outcome.Residual },
+                { Outcome53.RowKeyOf(Outcome53.JudgmentLane.Suspected, Outcome53.CareLane.None,
+                                     Outcome53.RecoveryLane.Recovered, 0, 1),
+                  Outcome53.Outcome.Recurrence },
+            };
+            Assert.Throws<System.ArgumentException>(
+                () => Outcome53.CreateTable(rows, uBandCount: 0, true, Outcome53.Outcome.NoEcho),
+                "uBandCount = 0 ⇒ 构造拒收(否则行键全坍缩,字典静默丢行)");
+            Assert.Throws<System.ArgumentException>(
+                () => Outcome53.CreateTable(rows, uBandCount: -3, true, Outcome53.Outcome.NoEcho),
+                "uBandCount < 0 ⇒ 构造拒收");
+
+            // 合法值不受影响。
+            Assert.DoesNotThrow(
+                () => Outcome53.CreateTable(rows, uBandCount: 1, true, Outcome53.Outcome.NoEcho),
+                "uBandCount = 1 ⇒ 放行");
+        }
+
+        [Test]
+        public void test_bandOf_uRawBeyondDomain_doesNotReturnNegativeBand()
+        {
+            // 2026-10-16 重评返工:`(int)(uRaw / span)` 是 unchecked 窄化 —— uRaw 超域时
+            // 低 32 位可为负,而 `-1 >= bandCount` 为假 ⇒ 返回**负档序数**。
+            // 与 F6 同属「构面不可达仍须自守」(URaw 生产路径已 >>48 掩到 16 位)。
+            foreach (int bandCount in new[] { 2, 100, 40000, 65536 })
+            {
+                int band = Outcome53.BandOf(ulong.MaxValue, bandCount);
+                Assert.GreaterOrEqual(band, 0,
+                    $"BandOf(ulong.MaxValue, {bandCount}) = {band} —— 负档序数(窄化回绕)");
+                Assert.Less(band, bandCount,
+                    $"BandOf(ulong.MaxValue, {bandCount}) = {band} —— 档序数须 < bandCount");
+                Assert.AreEqual(0, Outcome53.BandOf(65536UL, bandCount),
+                    "uRaw = 65536(恰超域 1)⇒ 退化单档 0");
+            }
+            // 域内不受影响(证明守护没有把合法输入也吞成 0)。
+            Assert.AreEqual(1, Outcome53.BandOf(65535UL, 2),
+                "uRaw = 65535(域内上界), bandCount=2 ⇒ 末档 1(span=32768, 65535/32768=1)");
+            Assert.AreEqual(0, Outcome53.BandOf(32767UL, 2),
+                "uRaw = 32767, bandCount=2 ⇒ 档 0(均分切点下侧)");
+            Assert.AreEqual(1, Outcome53.BandOf(32768UL, 2),
+                "uRaw = 32768, bandCount=2 ⇒ 档 1(均分切点上侧)");
+        }
+
+        // ── F15 / HasTrialHistory 空态 + 置换不变 ─────────────────────────
+
+        [Test]
+        public void test_oq539_nullAndEmptyStream_returnsFalse()
+        {
+            // 2026-10-16 重评返工:空态分支无载体(原测试只断言常量值并注释「空流语义」,
+            // 却从未以空流调用)。
+            Assert.IsFalse(TrialHistoryPredicate.HasTrialHistory(null), "null 流 ⇒ false");
+            Assert.IsFalse(TrialHistoryPredicate.HasTrialHistory(new List<SimEvent>()),
+                "空流 ⇒ false");
+        }
+
+        [Test]
+        public void test_oq539_arrivalOrderPermutation_invariantResult()
+        {
+            // 2026-10-16 重评返工:实现自陈「任意到达序,先按全序键排序」,但所有夹具的
+            // tick/seq 均已升序 ⇒ 排序分支从未被打乱过。本条故意打乱到达序。
+            //
+            // ⚠️ 判别性要求:夹具必须让「排序后」与「到达序」给出**不同**结论,
+            //   否则删掉排序也照样绿(返工期首版即如此 —— 两组夹具两种序都 false/true)。
+            //   下面这组:J 的 tick 大于前两条 D 而**小于**第四条 D。
+            //   · 排序后:D,D,J,D ⇒ run=2 被打断,尾段 1 ⇒ **false**
+            //   · 到达序:J,D,D,D ⇒ J 先到(无 run 可断),随后三条连跑 ⇒ **true**
+            var ascending = new List<SimEvent>
+            {
+                EvD(10, 5, 0), EvD(20, 5, 1), EvJ(30, 5, 2), EvD(40, 5, 3),
+            };
+            var shuffled = new List<SimEvent>
+            {
+                EvJ(30, 5, 2), EvD(10, 5, 0), EvD(20, 5, 1), EvD(40, 5, 3),
+            };
+
+            Assert.IsFalse(TrialHistoryPredicate.HasTrialHistory(ascending),
+                "排序序 ⇒ J 打断 run ⇒ false(参照值)");
+            Assert.IsFalse(TrialHistoryPredicate.HasTrialHistory(shuffled),
+                "打乱到达序 ⇒ 仍按全序键排序 ⇒ 同为 false(置换不变;若排序被删,此处会得 true)");
+
+            // 反向:达到阈值的序列打乱后仍为真。
+            var runAsc = new List<SimEvent> { EvD(10, 5, 0), EvD(20, 5, 1), EvD(30, 5, 2) };
+            var runShuf = new List<SimEvent> { EvD(30, 5, 2), EvD(10, 5, 0), EvD(20, 5, 1) };
+            Assert.IsTrue(TrialHistoryPredicate.HasTrialHistory(runAsc), "升序 ⇒ 真");
+            Assert.IsTrue(TrialHistoryPredicate.HasTrialHistory(runShuf), "打乱 ⇒ 仍真");
+        }
+
+        // ── F2 / A:同源两次烘焙逐字节一致(ADR-014 §二)─────────────────────
+
+        [Test]
+        public void test_bake_cookedBytes_deterministic_sameSourceTwice()
+        {
+            var a = OutcomeTable53.BakeFromRepo(RepoRoot());
+            var b = OutcomeTable53.BakeFromRepo(RepoRoot());
+
+            Assert.AreEqual(a.Cooked.Length, b.Cooked.Length, "两次烘焙长度一致");
+            Assert.AreEqual(Fnv1a(a.Cooked), Fnv1a(b.Cooked),
+                "同源两次烘焙逐字节一致(ADR-014 §二;FNV-1a 汇总,失败时下钻逐字节)");
+            Assert.AreEqual(a.ConfigVersion, b.ConfigVersion, "ConfigVersion 亦确定");
+        }
+
+        // ── F3 / A:行键在 bandCount ∈ {1..8} 下全单射(乘子 = 逐表量)──────────
+
+        [Test]
+        public void test_rowKey_noCollision_acrossBands()
+        {
+            foreach (int bandCount in new[] { 1, 2, 3, 4, 5, 7, 8 })
+            {
+                var keys = new HashSet<int>();
+                foreach (var p in AllP)
+                    foreach (var c in AllC)
+                        foreach (var d in AllD)
+                            for (int band = 0; band < bandCount; band++)
+                            {
+                                int key = Outcome53.RowKeyOf(p, c, d, band, bandCount);
+                                Assert.IsTrue(keys.Add(key),
+                                    $"键碰撞:({p},{c},{d},band={band}) @ bandCount={bandCount} → {key}" +
+                                    " —— 乘子须为逐表量 bandCount(旧式逐行量 uBand+1 会碰撞)");
+                            }
+                Assert.AreEqual(18 * bandCount, keys.Count,
+                    $"bandCount={bandCount} ⇒ 恰 18×{bandCount} 个互异键(无丢行)");
+            }
+        }
+
+        // ── F4 / B:bandCount > 1 时 U 档参与判别(inputs.UBand 不再是死字段)────
+
+        [Test]
+        public void test_table_uBandDiscriminates_whenBandCountGtOne()
+        {
+            const int bandCount = 2;
+            var rows = new Dictionary<int, Outcome53.Outcome>();
+            foreach (var p in AllP)
+                foreach (var c in AllC)
+                    foreach (var d in AllD)
+                    {
+                        // 同 (P,C,D) 两档给**不同**回响轴值 ⇒ 档位必须可判别。
+                        rows[Outcome53.RowKeyOf(p, c, d, 0, bandCount)] = Outcome53.Outcome.Residual;
+                        rows[Outcome53.RowKeyOf(p, c, d, 1, bandCount)] = Outcome53.Outcome.Recurrence;
+                    }
+            var table = Outcome53.CreateTable(rows, bandCount, true, Outcome53.Outcome.NoEcho);
+
+            var band0 = new Outcome53.JudgeInputs(
+                Outcome53.JudgmentLane.Confirmed, Outcome53.CareLane.AppliedMatched,
+                Outcome53.RecoveryLane.Recovered, false, 0, 0UL);
+            var band1 = new Outcome53.JudgeInputs(
+                Outcome53.JudgmentLane.Confirmed, Outcome53.CareLane.AppliedMatched,
+                Outcome53.RecoveryLane.Recovered, false, 1, 0UL);
+
+            Assert.AreEqual(Outcome53.Outcome.Residual, Outcome53.Judge.Evaluate(band0, table));
+            Assert.AreEqual(Outcome53.Outcome.Recurrence, Outcome53.Judge.Evaluate(band1, table),
+                "U 档进入查表(B 返工:旧实现 inputs.UBand 从未被消费,band_count>1 时 U 无判别力)");
+
+            // 表内 36 行(18 组合 × 2 档)—— 键单射的另一面。
+            Assert.AreEqual(36, table.RowCount, "bandCount=2 ⇒ 36 行(碰撞会丢行 ⇒ 行数不等)");
+        }
+
+        // ── F5 / C:未命中回落 default 行,**不**是 default(枚举) = PatientLives ──
+
+        [Test]
+        public void test_table_miss_fallsBackToDefault_notLifeAxis()
+        {
+            var table = Outcome53.CreateTable(
+                new Dictionary<int, Outcome53.Outcome>(), 1, true, Outcome53.Outcome.NoEcho);
+
+            bool hit = table.TryLookup(
+                Outcome53.JudgmentLane.Confirmed, Outcome53.CareLane.AppliedMatched,
+                Outcome53.RecoveryLane.Recovered, 0, out var outcome);
+
+            Assert.IsFalse(hit, "空表 ⇒ 未命中");
+            Assert.AreEqual(Outcome53.Outcome.NoEcho, outcome,
+                "未命中 ⇒ 回落 **default 行**(C 返工:Dictionary.TryGetValue 未命中会把 out 覆写为 " +
+                "default(Outcome) = PatientLives(0) —— 结局轴,枚举注释自陈「表内永不出现」)");
+            Assert.AreNotEqual(Outcome53.Outcome.PatientLives, outcome);
+
+            // 经 Judge 同口径(默认兜底路径)。
+            var inputs = new Outcome53.JudgeInputs(
+                Outcome53.JudgmentLane.Confirmed, Outcome53.CareLane.AppliedMatched,
+                Outcome53.RecoveryLane.Recovered, false, 0, 0UL);
+            Assert.AreEqual(Outcome53.Outcome.NoEcho, Outcome53.Judge.Evaluate(inputs, table),
+                "Judge 对空表亦回落 default 行,不吐结局轴");
+        }
+
+        // ── F6 / G:BandOf 在超 raw 域档数下不除零 ─────────────────────────
+
+        [Test]
+        public void test_bandOf_bandCountBeyondRawDomain_doesNotDivideByZero()
+        {
+            // 构面上不可达(Binder 已拒 > 65536),但 BandOf 是 Sim 侧纯函数、须自守:
+            // 65536L / bandCount == 0 ⇒ uRaw / span 除零。
+            Assert.DoesNotThrow(() => Outcome53.BandOf(12345UL, 65537),
+                "bandCount = 65537(raw 域外)⇒ 不抛 DivideByZeroException");
+            Assert.DoesNotThrow(() => Outcome53.BandOf(12345UL, int.MaxValue),
+                "bandCount = int.MaxValue ⇒ 不抛");
+            Assert.AreEqual(0, Outcome53.BandOf(12345UL, 65537),
+                "超域档数 ⇒ 退化单档(与 bandCount ≤ 1 同口径;G 返工)");
+
+            // 正常域不退化(证明守护没有把合法输入也吞成 0)。
+            Assert.AreEqual(0, Outcome53.BandOf(0UL, 2), "bandCount=2,raw=0 ⇒ 档 0");
+            Assert.AreEqual(1, Outcome53.BandOf(40000UL, 2), "bandCount=2,raw=40000 ⇒ 档 1(均分 32768)");
+            Assert.AreEqual(0, Outcome53.BandOf(32767UL, 2), "bandCount=2,raw=32767 ⇒ 档 0(边界)");
+            Assert.AreEqual(1, Outcome53.BandOf(32768UL, 2), "bandCount=2,raw=32768 ⇒ 档 1(边界)");
+        }
+
+        // ── F7 / D:他人事件不污染本病人的 run ────────────────────────────
+
+        [Test]
+        public void test_oq539_interleavedPatients_doNotContaminateRun()
+        {
+            // 证伪器:旧实现(单游标 run/runPatient)在 B 病人的 Drug 处 run=1,
+            // A 病人在跑的 run 被**静默丢弃** ⇒ 整条流恒 false。
+            // 新实现(逐病人 Dictionary)A 的 run 达 3 ⇒ true。
+            var interleaved = new List<SimEvent>
+            {
+                EvD(10, 5, 0), EvD(20, 5, 1), EvD(30, 6, 0), EvD(40, 5, 2),
+            };
+            Assert.IsTrue(TrialHistoryPredicate.HasTrialHistory(interleaved),
+                "A 的连续 run 不被 B 的病人事件打断(D 返工:GDD 规则三「同一 patient 的连续序列」)");
+
+            // 反向:他人的 Judgment 也不打断本病人的 run。
+            var foreignBreak = new List<SimEvent>
+            {
+                EvD(10, 5, 0), EvD(20, 5, 1), EvJ(30, 6, 0), EvD(40, 5, 2),
+            };
+            Assert.IsTrue(TrialHistoryPredicate.HasTrialHistory(foreignBreak),
+                "他人(病人 6)的 Judgment 不打断病人 5 的 run");
+
+            // 负例:两病人各 2 条 —— 谁都没到阈值。
+            var twoShort = new List<SimEvent>
+            {
+                EvD(10, 5, 0), EvD(20, 6, 0), EvD(30, 5, 1), EvD(40, 6, 1),
+            };
+            Assert.IsFalse(TrialHistoryPredicate.HasTrialHistory(twoShort),
+                "两病人各 2 条(< 阈值 3)⇒ 无试药史");
+
+            // 负例:本病人自己的 Judgment 仍打断自己的 run(打断语义未被放宽)。
+            var selfBreak = new List<SimEvent>
+            {
+                EvD(10, 5, 0), EvD(20, 5, 1), EvJ(30, 5, 2), EvD(40, 5, 3),
+            };
+            Assert.IsFalse(TrialHistoryPredicate.HasTrialHistory(selfBreak),
+                "本病人的 Judgment 仍打断本病人的 run(OQ-53-9 逐字)");
+        }
+
+        // ── F8 / T-2 + I:表构造器拒收结局轴行值(F-53.2 定义域收窄的 Sim 侧纵深)──
+
+        [Test]
+        public void test_ac5301_outcomeAxisNarrowing_tableRejectsLifeAxisRows()
+        {
+            // 行值 ∈ 结局轴 ⇒ ArgumentException(Binder 校验 ② 已拦,此处防「绕过 Bake 直构表」)。
+            var lifeRow = new Dictionary<int, Outcome53.Outcome>
+            {
+                { Outcome53.RowKeyOf(Outcome53.JudgmentLane.Empty, Outcome53.CareLane.None,
+                                     Outcome53.RecoveryLane.Recovered, 0, 1),
+                  Outcome53.Outcome.PatientLives },
+            };
+            Assert.Throws<System.ArgumentException>(
+                () => Outcome53.CreateTable(lifeRow, 1, true, Outcome53.Outcome.NoEcho),
+                "行值 = PatientLives ⇒ 表构造拒收(结局轴由 9 结算,53 只读)");
+
+            // default 行 ∈ 结局轴 ⇒ 同样拒收。
+            Assert.Throws<System.ArgumentException>(
+                () => Outcome53.CreateTable(new Dictionary<int, Outcome53.Outcome>(), 1, true,
+                                            Outcome53.Outcome.PatientLoses),
+                "default 行 = PatientLoses ⇒ 表构造拒收");
+
+            // 合法行值不受影响(回响轴三值 + NoEcho 全放行)。
+            Assert.DoesNotThrow(() => Outcome53.CreateTable(new Dictionary<int, Outcome53.Outcome>
+            {
+                { 0, Outcome53.Outcome.Residual }, { 1, Outcome53.Outcome.Recurrence },
+                { 2, Outcome53.Outcome.TrialHistory }, { 3, Outcome53.Outcome.NoEcho },
+            }, 1, true, Outcome53.Outcome.NoEcho), "回响轴三值 + NoEcho 全合法");
+        }
+
+        // ── F9 / E:u_band 缺键 ⇒ 聚合 BakeValidationException(**不是** NRE)────
+
+        [Test]
+        public void test_bake_uBandMissingKey_hardFails()
+        {
+            // E 返工:原实现 `bandNode = default`(JsonNode 是 class ⇒ null)⇒ ReadUBand 内
+            // node.Kind **NRE**,而非聚合 BakeValidationException。
+            string json = MinimalTableJson().Replace("\"u_band\": 0, ", "");
+            // ⚠️ 前置断言须匹配 `"u_band":` 而非裸 `u_band` —— 根键 `"u_band_count"`
+            // 本身含子串 u_band,裸匹配恒真(返工期首轮实测踩过,已修)。
+            Assert.IsFalse(json.Contains("u_band\":"), "前置:JSON 已无 u_band 键");
+
+            var ex = Assert.Throws<BakeValidationException>(
+                () => OutcomeTable53.BindForTest(json),
+                "u_band 缺键 ⇒ 聚合烘焙异常(本绑定器一贯口径:拼写错误会静默丢字段 ⇒ 硬失败)");
+            Assert.IsTrue(ex.Errors.Any(e => e.Contains("u_band") && e.Contains("必填")),
+                "错误消息点名 u_band 必填:" + string.Join("; ", ex.Errors));
+        }
+
+        // ── F10 / R-4:schema_version 与期望值不符 ⇒ 硬失败 ─────────────────
+
+        [Test]
+        public void test_bake_schemaVersionMismatch_hardFails()
+        {
+            // R-4 返工:原实现只做域检查、**从不与期望值比对** —— 读方 CookedCodec.OpenChecked
+            // 正是 `schemaVersion != CookedFormat.SchemaVersion ⇒ InvalidDataException`。
+            // 构建期不拦 ⇒ 错误表一路烘到运行期才炸。
+            string json = MinimalTableJson().Replace("\"schema_version\": 1",
+                                                     "\"schema_version\": 99");
+            var ex = Assert.Throws<BakeValidationException>(
+                () => OutcomeTable53.BindForTest(json),
+                "schema_version ≠ CookedFormat.SchemaVersion ⇒ 构建期硬失败");
+            Assert.IsTrue(ex.Errors.Any(e => e.Contains("schema_version") && e.Contains("期望")),
+                "错误消息点名期望值:" + string.Join("; ", ex.Errors));
+
+            // 相符 ⇒ 放行(现网配置即此路径)。
+            Assert.DoesNotThrow(() => OutcomeTable53.BindForTest(MinimalTableJson()),
+                "schema_version = CookedFormat.SchemaVersion ⇒ 放行");
+        }
+
+        // ── F11 / R-3:门的浮点**字面量**判据(正例命中 + 负例不误报)──────────
+
+        [Test]
+        public void test_gate_floatLiteralPatterns_catchLiterals_notDocReferences()
+        {
+            // R-3:AC-53-03 原文判「零浮点**字面量**」;原门只扫标识符 token
+            // (float/double/...)⇒ `1.5` / `0.5f` / `3e10` 一个都抓不到。
+            var mustHit = new[]
+            {
+                "double x = 1.5;",
+                "var y = .5f;",
+                "var z = 3e10;",
+                "var w = 2m;",
+                "var v = 1.5E-4;",
+                "var u = 12.0d;",
+                "float f = 0.5f;",     // 由标识符 token 与字面量双面各捉一次
+                "var a = 5F;",
+                // N-6(2026-10-16 重评返工):C# 7.0+ 数字分隔符形 —— 原 `\d+` 漏这两种。
+                "var sep1 = 1_000f;",
+                "var sep2 = 1_000.5;",
+                "var sep3 = 1_0.5e2;",
+            };
+            foreach (string code in mustHit)
+                Assert.Greater(MedConsFloatGate.FindFloatLiterals(code).Count, 0,
+                    $"须命中浮点字面量:{code}");
+
+            // 负例:文档引用 / 字符串内容 / 标识符 / 十六进制 / 版本号 / 无后缀整数。
+            var mustNotHit = new[]
+            {
+                "string s = \"F-53.2\";",              // 本门自己的文档引用(返工期实测误报点)
+                "var v = \"1.5\";",
+                "int band1f = 0;",                      // 标识符内含 f
+                "uint h = 0xAd;",
+                "ulong m = 0xFFFFFFFFFFFFFFFFUL;",
+                "var q = 1min;",                        // m 后接单词字符 ⇒ 非字面量
+                "int k = 5;",
+                "var t = 65536L / bandCount;",          // 53 现行 BandOf 形态
+            };
+            foreach (string code in mustNotHit)
+                Assert.AreEqual(0, MedConsFloatGate.FindFloatLiterals(code).Count,
+                    $"不得误报:{code}");
+
+            // 现行 53 三个源文件:零命中(反证本门的加强没有把现行代码判红)。
+            // ⚠️ ConsequencesDirRelative 相对**工程根** `unity/`(门侧 RunAll(".") 同口径),
+            //   而 Application.dataPath 已是 `unity/Assets` ⇒ 须上跳一级。
+            string dir = Path.GetFullPath(Path.Combine(
+                Application.dataPath, "..", MedConsFloatGate.ConsequencesDirRelative));
+            var scanned = Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories);
+            Assert.Greater(scanned.Length, 0, "扫描面非空(Assets/Sim/Consequences)");
+            foreach (string f in scanned)
+                Assert.AreEqual(0, MedConsFloatGate.FindFloatLiterals(File.ReadAllText(f)).Count,
+                    $"现行源零浮点字面量:{Path.GetFileName(f)}");
         }
     }
 }

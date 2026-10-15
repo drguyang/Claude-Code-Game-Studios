@@ -88,7 +88,17 @@ namespace DaYiJingCheng.EditorTools.Bake
             var rows = new Dictionary<int, Outcome53.Outcome>();
             foreach (var kv in bound.Rows)
             {
-                int key = Outcome53.RowKeyOf(kv.Key.P, kv.Key.C, kv.Key.D, kv.Key.UBand);
+                // A:乘子 = **逐表量** bound.UBandCount(旧实现用逐行量 uBand+1 ⇒ 键碰撞)。
+                int key = Outcome53.RowKeyOf(kv.Key.P, kv.Key.C, kv.Key.D,
+                                             kv.Key.UBand, bound.UBandCount);
+                // A:键碰撞**显式硬失败** —— 旧实现 `rows[key] = kv.Value` 静默覆写,
+                // 是键式缺陷的第二个静默面(碰撞行无声消失,行数仍对得上)。
+                if (rows.ContainsKey(key))
+                    throw new BakeValidationException(new List<string>
+                    {
+                        $"判定表物化键碰撞:({kv.Key.P},{kv.Key.C},{kv.Key.D},band={kv.Key.UBand})"
+                        + $" → key={key} 已存在 —— 键域单射被破(RowKeyOf 乘子须为逐表量 bandCount)"
+                    });
                 rows[key] = kv.Value;
             }
             return Outcome53.CreateTable(rows, bound.UBandCount, true, bound.DefaultOutcome);

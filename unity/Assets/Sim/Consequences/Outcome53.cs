@@ -18,6 +18,11 @@
 //
 // ⚠️ 零浮点(AC-53-03):全文件无 float/double 字面量;U 以 Q16.16 raw long 承载,
 //   档切分走整数比较(ADR-006 边界;FixParse 不入本件 —— 表值是枚举非数值)。
+//
+// ⚠️ 2026-10-15 返工轮(`/code-review` 裁定 CHANGES REQUIRED · 原件
+//   production/qa/evidence/review-medcons-story-002-2026-10-15.md):A 行键乘子改逐表量
+//   bandCount · B UBand 进查表 · C 未命中显式回落 default(不再吐 PatientLives)·
+//   G BandOf 除零守护 · T-2 表构造器拒收结局轴行值。
 
 using System;
 using System.Collections.Generic;
@@ -169,6 +174,15 @@ namespace DaYiJingCheng.Sim.Consequences
             if (bandCount <= 1) return 0;
             // 均分切分:raw ∈ [0, 65535] → band ∈ [0, bandCount-1](整数除法,零浮点)。
             ulong span = (ulong)(65536L / bandCount);
+            // G(2026-10-15 返工):bandCount > 65536 ⇒ 均分不可表示 ⇒ span == 0。
+            // 构面上不可达(Binder 已拒 > 65536),但本件是 Sim 侧纯函数、须自守:
+            // 除零会抛 DivideByZeroException,而退化单档 = 与 bandCount ≤ 1 同口径。
+            if (span == 0) return 0;
+            // B(2026-10-16 重评返工):uRaw 域守护 —— raw 域 = [0, 65535](哈希高 16 位)。
+            // `(int)(uRaw / span)` 是 unchecked 窄化:uRaw 超域时低 32 位可为负
+            // (实测 BandOf(ulong.MaxValue, 65536) ⇒ (int)(2^64-1) == -1),而
+            // `-1 >= bandCount` 为假 ⇒ **返回负档序数**。与 G 同理据:纯函数须自守。
+            if (uRaw > 65535UL) return 0;
             int band = (int)(uRaw / span);
             return band >= bandCount ? bandCount - 1 : band;   // 尾桶并入末档
         }
@@ -195,30 +209,94 @@ namespace DaYiJingCheng.Sim.Consequences
             private readonly Outcome _defaultOutcome;
 
             /// <summary>构造表(公开供跨程序集 Bake 物化;运行期生产装载 = IDataProvider,归装配轮)。</summary>
+            /// <remarks>
+            /// <para>⚠️ <b>结局轴行值拒收</b>(2026-10-15 返工 · T-2):行值或 default 行
+            /// 若 ∈ {PatientLives, PatientLoses} ⇒ <see cref="ArgumentException"/>。
+            /// Binder 侧已在构建期拒绝(校验 ②),此处是 Sim 侧纵深防御 ——
+            /// 防「绕过 Bake 直构表」的路径把结局轴带进 53 的出口面。</para>
+            /// </remarks>
             public Table(Dictionary<int, Outcome> rows, int uBandCount,
                          bool hasDefault, Outcome defaultOutcome)
             {
+                // N-4(2026-10-16 重评返工):uBandCount ≥ 1。= 0 ⇒ EncodeRowKey 乘子 0
+                // ⇒ 全部 18 行 key 坍缩为 uBand(通常全 0)⇒ Dictionary 构造即静默丢 17 行。
+                // 与 T-2 同口径:Sim 侧纵深防御,不依赖调用方(Binder)先校验。
+                if (uBandCount < 1)
+                    throw new ArgumentException(
+                        $"uBandCount = {uBandCount} 非法 —— 须 ≥ 1(= 0 时行键乘子为 0," +
+                        "全部组合行键坍缩,字典构造即静默丢行)");
+                RejectLifeAxisRowValue(defaultOutcome, "default 行");
+                if (rows != null)
+                    foreach (var kv in rows)
+                        RejectLifeAxisRowValue(kv.Value, $"行键 {kv.Key}");
                 _rows = rows; _uBandCount = uBandCount;
                 _hasDefault = hasDefault; _defaultOutcome = defaultOutcome;
             }
 
-            /// <summary>查表(键 = 三轴混合序数;未命中 ⇒ default 行,运行期不可达 ——
-            /// 构建期已保证 18 组合全覆盖)。</summary>
-            public bool TryLookup(JudgmentLane p, CareLane c, RecoveryLane d, out Outcome outcome)
+            /// <summary>结局轴两员 = 9 结算、53 只读 —— 表内出现即拒(纵深防御,T-2)。</summary>
+            private static void RejectLifeAxisRowValue(Outcome value, string where)
             {
-                outcome = _defaultOutcome;
-                return _rows.TryGetValue(RowKey(p, c, d, 0), out outcome) ||
-                       _rows.TryGetValue(RowKey(p, c, d, 1), out outcome);
+                if (value == Outcome.PatientLives || value == Outcome.PatientLoses)
+                    throw new ArgumentException(
+                        $"判定表{where}值「{value}」= 结局轴成员 —— 结局轴由 9 病程结算、" +
+                        "53 只读,不进判定表(F-53.2 定义域收窄同构;Binder 校验 ② 应已拦截," +
+                        "此处为 Sim 侧纵深防御)");
             }
 
-            /// <summary>按 (P,C,D,U档) 编行键(整数混合;与 Binder 同式)。</summary>
-            internal static int RowKey(JudgmentLane p, CareLane c, RecoveryLane d, int uBand)
-                => ((((int)p * 3 + (int)c) * 2 + (int)d) * Math.Max(1, uBand + 1) + uBand);
+            /// <summary>查表(键 = 三轴混合序数;未命中 ⇒ default 行,运行期不可达 ——
+            /// 构建期已保证 18 组合全覆盖)。</summary>
+            /// <param name="uBand">U 档序数(由 <see cref="JudgeInputs.UBand"/> 带入;
+            /// band_count=1 时恒 0)。</param>
+            public bool TryLookup(JudgmentLane p, CareLane c, RecoveryLane d, int uBand,
+                                  out Outcome outcome)
+            {
+                // N-3(2026-10-16 重评返工):uBand 域守护。越界档位会使 key 越出本
+                // (p,c,d) 段、**落入下一个组合的段内**(bandCount=1, uBand=1 ⇒ key = pcd+1,
+                // 恰为下一组合的合法键)⇒ 静默返回**另一组合**的 Outcome,无任何报错。
+                // 这正是全案反复登记的「静默失败」失效模式,且是 B 返工新引入的暴露面
+                // (返工前硬编码 0/1 反而有界)。story-003 是第一个真实喂 uBand 的调用点。
+                if (uBand < 0 || uBand >= _uBandCount)
+                {
+                    outcome = _defaultOutcome;
+                    return false;
+                }
+                // C(2026-10-15 返工):显式 default 回落**置于查表之前** ——
+                // Dictionary.TryGetValue 未命中时会覆写 out 形参为 default(Outcome) =
+                // PatientLives(0)(结局轴,枚举注释自陈「表内永不出现」)。
+                outcome = _defaultOutcome;
+                if (_rows.TryGetValue(RowKey(p, c, d, uBand), out var hit))
+                {
+                    outcome = hit;
+                    return true;
+                }
+                return false;
+            }
+
+            /// <summary>按 (P,C,D,U档) 编行键(整数混合;乘子 = **逐表量** bandCount)。</summary>
+            /// <remarks>
+            /// <para>⚠️ A(2026-10-15 返工):乘子原为**逐行量** <c>uBand+1</c>,
+            /// band_count &gt; 1 时键空间不足 ⇒ 碰撞(实测 bandCount=2 ⇒ 9 个碰撞键 /
+            /// 卷入 18 行;bandCount=3 ⇒ 15 键 / 33 行)。改为逐表量
+            /// <c>bandCount</c> ⇒ <c>key = ((P*3+C)*2+D) × bandCount + uBand</c>,
+            /// 单射(每 (p,c,d) 段内 uBand 占满 [0, bandCount))。</para>
+            /// <para><b>对 bandCount=1 向后兼容</b>:uBand 恒 0 ⇒ 键 = pcd,与旧式一致
+            /// ⇒ 现网配置字节不变。</para>
+            /// </remarks>
+            private int RowKey(JudgmentLane p, CareLane c, RecoveryLane d, int uBand)
+                => EncodeRowKey(p, c, d, uBand, _uBandCount);
+
+            /// <summary>行键编码单一公式(Bake 侧落盘 / 运行期查表同源 —— 零漂移)。</summary>
+            internal static int EncodeRowKey(JudgmentLane p, CareLane c, RecoveryLane d,
+                                             int uBand, int bandCount)
+                => (((int)p * 3 + (int)c) * 2 + (int)d) * bandCount + uBand;
         }
 
         /// <summary>行键编码(Bake 侧落盘 / 运行期查表同式 —— 单一出处;public 供跨程序集 Bake)。</summary>
-        public static int RowKeyOf(JudgmentLane p, CareLane c, RecoveryLane d, int uBand)
-            => Table.RowKey(p, c, d, uBand);
+        /// <param name="bandCount">逐表量 U 档数(<see cref="Table.UBandCount"/>)——
+        /// **不是**逐行量;乘它才保证 (P,C,D,U档) 单射(2026-10-15 返工 A)。</param>
+        public static int RowKeyOf(JudgmentLane p, CareLane c, RecoveryLane d,
+                                   int uBand, int bandCount)
+            => Table.EncodeRowKey(p, c, d, uBand, bandCount);
 
         /// <summary>表物化入口(Bake 侧 / 测试装配用;运行期生产装载 = IDataProvider 读 cooked,归装配轮)。</summary>
         public static Table CreateTable(
@@ -249,9 +327,12 @@ namespace DaYiJingCheng.Sim.Consequences
                 if (inputs.HasTrialHistory)
                     return Outcome.TrialHistory;             // OQ-53-9:物质痕迹覆盖表行
 
-                if (table.TryLookup(inputs.P, inputs.C, inputs.D, out var outcome))
-                    return outcome;
-                return table.DefaultOutcome;                 // 构建期保证不可达;防御兜底
+                // B(2026-10-15 返工):U 档进入查表 —— 原实现传硬编码 0/1、
+                // inputs.UBand 从未被消费(死字段 ⇒ band_count>1 时 U 无判别力)。
+                return table.TryLookup(inputs.P, inputs.C, inputs.D, inputs.UBand,
+                                       out var outcome)
+                    ? outcome
+                    : table.DefaultOutcome;                 // 构建期保证不可达;防御兜底
             }
         }
     }

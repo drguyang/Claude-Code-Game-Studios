@@ -15,6 +15,11 @@
 //
 // ⚠️ 表值语义:行值 = Outcome 枚举名(字符串),非数值 —— 数值轮改表值不改形状;
 //   U 档列 u_band ∈ [0, u_band_count);P0 默认 1 档 ⇒ 全行 u_band=0。
+//
+// ⚠️ 2026-10-15 返工轮(`/code-review` 裁定 CHANGES REQUIRED · 原件
+//   production/qa/evidence/review-medcons-story-002-2026-10-15.md):
+//   E u_band 改必填(缺键原走 NRE 而非聚合异常)· G u_band_count 补上界 65536 ·
+//   J Bind 拆 ParseRows / ValidateCoverage · R-4 schema_version 比对期望值(原只做域检查)。
 
 using System;
 using System.Collections.Generic;
@@ -100,7 +105,25 @@ namespace DaYiJingCheng.EditorTools.Bake
                 throw new BakeValidationException(errors);
             }
 
-            // ── 行解析(key 解析失败 = 硬失败 —— 行键缺失无法参与覆盖校验,不能聚合续跑)──
+            // J(2026-10-15 返工):行解析拆出 —— 本体只余编排(原 ≈110 行超 40 行标准)。
+            var parsed = ParseRows(rowsNode, uBandCount, errors);
+
+            ValidateCoverage(parsed.Rows, uBandCount, parsed.HasDefault, errors);
+
+            if (errors.Count > 0) throw new BakeValidationException(errors);
+
+            return new BindResult(parsed.Rows, uBandCount, parsed.DefaultOutcome, schemaVersion);
+        }
+
+        /// <summary>行集解析(J 拆分):key / u_band / outcome 逐行读,重复组合拒收。</summary>
+        /// <param name="rowsNode">源 JSON 的 rows 数组(调用方已校验为 Array)。</param>
+        /// <param name="uBandCount">u_band_count(0 = 读取已失败 ⇒ u_band 域检查短路)。</param>
+        private static (Dictionary<(Outcome53.JudgmentLane P, Outcome53.CareLane C,
+                                    Outcome53.RecoveryLane D, int UBand),
+                                   Outcome53.Outcome> Rows,
+                        bool HasDefault, Outcome53.Outcome DefaultOutcome)
+            ParseRows(JsonNode rowsNode, int uBandCount, List<string> errors)
+        {
             var rows = new Dictionary<(Outcome53.JudgmentLane, Outcome53.CareLane,
                 Outcome53.RecoveryLane, int), Outcome53.Outcome>();
             bool hasDefault = false;
@@ -124,41 +147,80 @@ namespace DaYiJingCheng.EditorTools.Bake
                 }
                 string key = keyNode.Str;
 
-                // default 行(key = "default")
+                // 2026-10-16 重评返工:循环体按行型拆为两路(ParseRows 原 69 行超 40 行标准)。
                 if (key == "default")
-                {
-                    if (!ReadOutcome(row, i, errors, out defaultOutcome)) continue;
-                    if (hasDefault) errors.Add($"rows[{i}]:default 行重复");
-                    hasDefault = true;
-                    continue;
-                }
-
-                // 组合行:key = "P|C|D"
-                string[] parts = key.Split('|');
-                if (parts.Length != 3
-                    || !TryParseLane(PLanes, parts[0], out var p)
-                    || !TryParseLane(CLanes, parts[1], out var c)
-                    || !TryParseLane(DLanes, parts[2], out var d))
-                {
-                    errors.Add($"rows[{i}] key「{key}」非法 —— 须为 P|C|D 组合键" +
-                               "(轴取值见键域闭集;拼写错误会静默丢组合 ⇒ 硬失败)");
-                    continue;
-                }
-
-                if (!row.TryGet("u_band", out JsonNode bandNode)) bandNode = default;
-                int uBand = ReadUBand(row, i, bandNode, uBandCount, errors);
-                if (uBand < 0) continue;
-
-                if (!ReadOutcome(row, i, errors, out var outcome)) continue;
-                var laneKey = ((Outcome53.JudgmentLane)p, (Outcome53.CareLane)c,
-                               (Outcome53.RecoveryLane)d, uBand);
-                if (rows.ContainsKey(laneKey))
-                    errors.Add($"rows[{i}]:组合 ({p},{c},{d},u_band={uBand}) 重复");
+                    ParseDefaultRow(row, i, ref hasDefault, ref defaultOutcome, errors);
                 else
-                    rows[laneKey] = outcome;
+                    ParseCombinationRow(row, i, key, uBandCount, rows, errors);
             }
 
-            // ── 校验 ①:全覆盖(18 组合 × 每档无空洞;空洞处须有 default 行兜底)──
+            return (rows, hasDefault, defaultOutcome);
+        }
+
+        /// <summary>default 行(key = "default";显式兜底必备 —— 校验 ① 的洞缺底)。</summary>
+        private static void ParseDefaultRow(JsonNode row, int i, ref bool hasDefault,
+                                            ref Outcome53.Outcome defaultOutcome,
+                                            List<string> errors)
+        {
+            if (!ReadOutcome(row, i, errors, out defaultOutcome)) return;
+            // N-5(2026-10-16 重评返工):default 行不读 u_band(它不参与档位),但**存在性
+            // kind 检查**仍要做 —— RowKeys 白名单含 u_band ⇒ {"key":"default","u_band":"abc"}
+            // 原本无声通过。与 E「拼写错误会静默丢字段 ⇒ 硬失败」一贯口径对齐。
+            if (row.TryGet("u_band", out JsonNode bandNode)
+                && bandNode.Kind != JsonNodeKind.Integer)
+                errors.Add($"rows[{i}] default 行的 u_band 须为整数" +
+                           $"(实得 {bandNode.Kind}={bandNode.RawText})—— default 行不参与档位," +
+                           "但拼写错误不得静默通过");
+            if (hasDefault) errors.Add($"rows[{i}]:default 行重复");
+            hasDefault = true;
+        }
+
+        /// <summary>组合行(key = "P|C|D" + u_band + outcome;重复组合拒收)。</summary>
+        private static void ParseCombinationRow(
+            JsonNode row, int i, string key, int uBandCount,
+            Dictionary<(Outcome53.JudgmentLane, Outcome53.CareLane,
+                       Outcome53.RecoveryLane, int), Outcome53.Outcome> rows,
+            List<string> errors)
+        {
+            string[] parts = key.Split('|');
+            if (parts.Length != 3
+                || !TryParseLane(PLanes, parts[0], out var p)
+                || !TryParseLane(CLanes, parts[1], out var c)
+                || !TryParseLane(DLanes, parts[2], out var d))
+            {
+                errors.Add($"rows[{i}] key「{key}」非法 —— 须为 P|C|D 组合键" +
+                           "(轴取值见键域闭集;拼写错误会静默丢组合 ⇒ 硬失败)");
+                return;
+            }
+
+            // E(2026-10-15 返工):u_band **必填**。原实现缺键时 `bandNode = default`
+            // —— JsonNode 是 class ⇒ null ⇒ ReadUBand 内 node.Kind **NRE**,
+            // 而非聚合 BakeValidationException(本绑定器其余字段均短路先挡)。
+            if (!row.TryGet("u_band", out JsonNode bandNode))
+            {
+                errors.Add($"rows[{i}] 缺 u_band(必填 —— 拼写错误会静默丢字段 ⇒ 硬失败;" +
+                           "P0 默认 1 档 ⇒ 全行 u_band=0)");
+                return;
+            }
+            int uBand = ReadUBand(i, bandNode, uBandCount, errors);
+            if (uBand < 0) return;
+
+            if (!ReadOutcome(row, i, errors, out var outcome)) return;
+            var laneKey = ((Outcome53.JudgmentLane)p, (Outcome53.CareLane)c,
+                           (Outcome53.RecoveryLane)d, uBand);
+            if (rows.ContainsKey(laneKey))
+                errors.Add($"rows[{i}]:组合 ({p},{c},{d},u_band={uBand}) 重复");
+            else
+                rows[laneKey] = outcome;
+        }
+
+        /// <summary>校验 ①:全覆盖(18 组合 × 每档无空洞;空洞处须有 default 行兜底)(J 拆分)。</summary>
+        private static void ValidateCoverage(
+            Dictionary<(Outcome53.JudgmentLane P, Outcome53.CareLane C,
+                       Outcome53.RecoveryLane D, int UBand), Outcome53.Outcome> rows,
+            int uBandCount, bool hasDefault, List<string> errors)
+        {
+
             if (uBandCount > 0 && errors.Count == 0)
             {
                 var missing = new List<string>();
@@ -183,10 +245,6 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             if (!hasDefault)
                 errors.Add("53_outcome_table.json 缺 default 行(显式兜底必备)");
-
-            if (errors.Count > 0) throw new BakeValidationException(errors);
-
-            return new BindResult(rows, uBandCount, defaultOutcome, schemaVersion);
         }
 
         // ── 行值读取(严格类型:非字符串 / 闭集外 = 记错)────────────────────
@@ -219,7 +277,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         }
 
         /// <summary>U 档读取(校验 ③ 的周边:非整数 / 负 / 超档 ⇒ 记错;Float token 结构性拒绝)。</summary>
-        private static int ReadUBand(JsonNode row, int i, JsonNode node, int uBandCount, List<string> errors)
+        /// <param name="i">行号(错误信息定位)。</param>
+        /// <param name="node">u_band 节点(调用方已保证非 null —— E 返工改必填)。</param>
+        private static int ReadUBand(int i, JsonNode node, int uBandCount, List<string> errors)
         {
             if (node.Kind != JsonNodeKind.Integer)
             {
@@ -236,7 +296,10 @@ namespace DaYiJingCheng.EditorTools.Bake
             return (int)node.Int;
         }
 
-        /// <summary>u_band_count 读取(≥1;P0 默认 1)。</summary>
+        /// <summary>u_band_count 上界(≤ 65536:raw 域 16 位,BandOf 均分要求)。</summary>
+        private const int MaxUBandCount = 65536;
+
+        /// <summary>u_band_count 读取(≥1 且 ≤ <see cref="MaxUBandCount"/>;P0 默认 1)。</summary>
         private static int ReadUBandCount(JsonNode root, List<string> errors)
         {
             if (!root.TryGet("u_band_count", out JsonNode n))
@@ -244,9 +307,13 @@ namespace DaYiJingCheng.EditorTools.Bake
                 errors.Add("53_outcome_table.json 缺 u_band_count");
                 return 0;
             }
-            if (n.Kind != JsonNodeKind.Integer || n.Int < 1)
+            // G(2026-10-15 返工):补上界。原实现只校验 `n.Int < 1` ——
+            // bandCount > 65536 ⇒ BandOf 的 65536L / bandCount == 0 ⇒ DivideByZeroException。
+            if (n.Kind != JsonNodeKind.Integer || n.Int < 1 || n.Int > MaxUBandCount)
             {
-                errors.Add($"u_band_count 须为 ≥1 整数(实得 {n.Kind}={n.RawText})");
+                errors.Add($"u_band_count 须为 [1, {MaxUBandCount}] 整数" +
+                           $"(实得 {n.Kind}={n.RawText};上界 = U raw 域 16 位," +
+                           "超界则 BandOf 均分不可表示)");
                 return 0;
             }
             return (int)n.Int;
@@ -264,7 +331,18 @@ namespace DaYiJingCheng.EditorTools.Bake
                 errors.Add($"schema_version 须为 u32 域整数(实得 {n.Kind}={n.RawText})");
                 return 0;
             }
-            return (uint)n.Int;
+            uint v = (uint)n.Int;
+            // R-4(2026-10-15 返工):与期望值比对。原实现只做域检查、**从不比对** ——
+            // 形同虚设:读方 CookedCodec.OpenChecked 正是 `schemaVersion !=
+            // CookedFormat.SchemaVersion ⇒ InvalidDataException`(启动期硬失败)。
+            // 构建期不拦 ⇒ 错误表一路烘到运行期才炸。
+            if (v != CookedFormat.SchemaVersion)
+            {
+                errors.Add($"schema_version={v} ≠ 期望 {CookedFormat.SchemaVersion}" +
+                           "(CookedFormat.SchemaVersion —— 源表 schema 与运行时头契约不一致 ⇒ 硬失败)");
+                return 0;
+            }
+            return v;
         }
 
         /// <summary>轴取值解析(闭集外 ⇒ false;由调用方记错)。</summary>

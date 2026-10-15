@@ -4,14 +4,25 @@
 //          · OutcomeTableBinder.BindResult(行集来源)
 //
 // ⚠️ 载荷布局(全部 little-endian;固定字段顺序 · 零字典迭代 · 零本地时间):
-//    schema_version : u32
 //    u_band_count   : i32
 //    default_outcome: i32(枚举序数;∈ 回响轴三值 ∪ NoEcho —— 构建期已校验)
 //    row_count      : i32(= 18 × u_band_count;default 行不落行集)
-//    row_count × { key: i32(P*3+C)*2+D 混合 × (u_band+1) + u_band, outcome: i32 }
+//    row_count × { key: i32(P*3+C)*2+D 混合 × u_band_count + u_band, outcome: i32 }
+//
+// ⚠️ schema_version **只住头槽**(offset 8,单一出处)。
+//   2026-10-15 返工(R-1):原实现头槽硬写 0、真值编进**载荷首字段** ——
+//   ① 违 CookedFormat 头契约(九个姊妹写方全写 schemaVersion,53 是唯一写 0 的);
+//   ② 同一真值两处存 = 第二真源,而读方 CookedCodec.OpenChecked 只读头槽
+//      (schemaVersion != CookedFormat.SchemaVersion ⇒ InvalidDataException,启动期硬失败)。
+//   现已删载荷首字段,头槽写 bound.SchemaVersion。
 //
 // ⚠️ 行键以 Outcome53.RowKeyOf 同式编码(与运行期查表零漂移);枚举序数落盘
 //   (非名字字符串 —— 字节流确定性;名字 ↔ 序数映射由枚举定义钉死)。
+//
+// ⚠️ 行序 = **全序比较器**(键 → P → C → D → UBand 逐级破平)。
+//   2026-10-15 返工(A):原实现用 List.Sort(不稳定)按单键排 —— 键相同时次序取决于
+//   实现内部 ⇒ 同源两次烘焙字节可能不一致(违 ADR-014 §二)。全序比较器使确定性
+//   **不依赖** Sort 的稳定性实现。
 
 using System.IO;
 using System.Text;
@@ -29,7 +40,6 @@ namespace DaYiJingCheng.EditorTools.Bake
             using (var payload = new MemoryStream())
             using (var w = new BinaryWriter(payload, Encoding.UTF8))
             {
-                w.Write(bound.SchemaVersion);
                 w.Write(bound.UBandCount);
                 w.Write((int)bound.DefaultOutcome);
 
@@ -39,29 +49,35 @@ namespace DaYiJingCheng.EditorTools.Bake
                 foreach (var kv in bound.Rows)
                     rowList.Add((kv.Key.P, kv.Key.C, kv.Key.D, kv.Key.UBand, kv.Value));
 
-                // 固定序:行键升序(字典序无涉 —— 同源两次烘焙逐位一致的关键)。
-                rowList.Sort((a, b) => Outcome53.RowKeyOf(a.P, a.C, a.D, a.UBand)
-                                           .CompareTo(Outcome53.RowKeyOf(b.P, b.C, b.D, b.UBand)));
+                // 固定序:全序比较器(键 → P → C → D → UBand;字典序无涉)。
+                // bandCount 从 bound 闭包捕获(**逐表量** —— 不是逐行量 uBand+1)。
+                int bandCount = bound.UBandCount;
+                rowList.Sort((a, b) =>
+                {
+                    int cmp = Outcome53.RowKeyOf(a.P, a.C, a.D, a.UBand, bandCount)
+                        .CompareTo(Outcome53.RowKeyOf(b.P, b.C, b.D, b.UBand, bandCount));
+                    if (cmp != 0) return cmp;
+                    cmp = a.P.CompareTo(b.P);   if (cmp != 0) return cmp;
+                    cmp = a.C.CompareTo(b.C);   if (cmp != 0) return cmp;
+                    cmp = a.D.CompareTo(b.D);   if (cmp != 0) return cmp;
+                    return a.UBand.CompareTo(b.UBand);
+                });
 
                 w.Write(rowList.Count);
                 for (int i = 0; i < rowList.Count; i++)
                 {
-                    w.Write(Outcome53.RowKeyOf(rowList[i].P, rowList[i].C, rowList[i].D, rowList[i].UBand));
+                    w.Write(Outcome53.RowKeyOf(rowList[i].P, rowList[i].C, rowList[i].D,
+                                               rowList[i].UBand, bandCount));
                     w.Write((int)rowList[i].Outcome);
                 }
 
                 w.Flush();
-                return FinishHeader(payload.ToArray(), configVersion);
+                return FinishHeader(payload.ToArray(), bound.SchemaVersion, configVersion);
             }
         }
 
-        /// <summary>头(magic + formatVersion + schemaVersion + configVersion + payloadLength)+ 载荷。
-        /// <para>⚠️ 53 判定表**无独立 schema_version 字段**:BindResult.SchemaVersion 来自源 JSON
-        /// 的 schema_version 键 —— 但 BindResult 是 struct,本写入器只收 configVersion;
-        /// schemaVersion 已编在行集校验面,落盘口径 = 头部 schema 槽位放 0 + 载荷首字段承载。
-        /// (承 ReadFloor 布局:头 4–8 槽 formatVersion、8–12 schemaVersion —— 本件 schemaVersion
-        /// 从 bound 带入,签名保持同形。)</para></summary>
-        private static byte[] FinishHeader(byte[] payload, uint configVersion)
+        /// <summary>头(magic + formatVersion + schemaVersion + configVersion + payloadLength)+ 载荷。</summary>
+        private static byte[] FinishHeader(byte[] payload, uint schemaVersion, uint configVersion)
         {
             var output = new byte[CookedFormat.HeaderSize + payload.Length];
             output[0] = (byte)'D';
@@ -69,7 +85,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             output[2] = (byte)'J';
             output[3] = (byte)'C';
             WriteU32Le(output, 4, CookedFormat.FormatVersion);
-            WriteU32Le(output, 8, 0);              // schema 槽:表自身无独立 schema(源 JSON 已校验)
+            WriteU32Le(output, 8, schemaVersion);   // R-1:头槽承载(非 0,非载荷首字段)
             WriteU32Le(output, 12, configVersion);
             WriteU32Le(output, 16, (uint)payload.Length);
             System.Buffer.BlockCopy(payload, 0, output, CookedFormat.HeaderSize, payload.Length);
