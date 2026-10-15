@@ -1,7 +1,7 @@
 # Story 004: F-37.1 同源检测与 PatternRecognized(含 F-37.1b 脚本链)
 
 > **Epic**: 病例系统
-> **Status**: In Review ⚠️ 2026-10-15 —— 补评门不通过(原 `Complete ✅ 2026-10-06(8a693fd)` 判定不成立;原件为补评件)
+> **Status**: In Review ⚠️ 2026-10-15 —— 补评门不通过(原 `Complete ✅ 2026-10-06(8a693fd)` 判定不成立;原件为补评件)。**CB-2/TB-5 已于 2026-10-15 S11-9 闭合**;余 6 条顺延 sprint-12
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: 7h
@@ -37,7 +37,7 @@
 - [ ] AC-37-22/34:A、B、A 三例同 D ⇒ FirstPerPatient 只留 A₁ ⇒ 长度 2 不触发;补 C 例后触发且 MemberSet = {A₁,B₁,C₁}(旧式反例回归哨兵)
 - [ ] AC-37-27:同 CaseClosed 令 D₁/D₂ 同时达标 ⇒ 两条 PatternRecognized 按 salted_key 整数升序(Seq 0,1);换插入序重跑逐位同
 - [ ] AC-37-14:载荷正向合取 —— **含** salted_key、**不含**裸 disease_id/病种名(结构在 story-001,语义计算在此)
-- [ ] AC-37-29(非 ScriptedChain 半边,⚠️ 联调半边 BLOCKED-BY-W-1):随机自然病例不消耗脚本链名额的谓词实现先落(`ChainEligible` 判定域),「指定三例触发 + 永不重发」的夹具待 9+37 会签后补
+- [x] AC-37-29:脚本三案链 —— 链外同 D 病例**不消耗名额** + **一次性**。⚠️ 原「非 ScriptedChain 半边先落 / 联调半边 BLOCKED-BY-W-1」的形状**已作废**:W-1 会签 2026-10-15 结案 ⇒ 免责前提消失 ⇒ **全条兑现**(**S11-9 交付 2026-10-15**;`ChainEligible` / `ScriptedChain` 从全库零命中转为有实现 + 有测试)
 - [ ] 无时间窗口下界:三例任意跨度结案可触发(性质 2 夹具)
 
 ---
@@ -82,7 +82,7 @@
 >   本次登记即消解该悬空。
 > - ⚠️ **不因延后豁免的两项**:① **AC-37-27 定序判别力为零**(TB-1/CB-3,实现侧 `memberSet` 按
 >   `Dictionary` 迭代序 + 夹具期望序 ≡ 插入序)② **AC-37-29 零覆盖**(CB-2/TB-5)—— 二者与写者无关,
->   其中 ② **已排 S11-9**(sprint-11 补评修复批,W-1 已解除故不再有免责理由)。
+>   其中 ② **已于 2026-10-15 S11-9 闭合**(见下方 🟢 块);① 仍归 sprint-12。
 
 ---
 
@@ -111,8 +111,9 @@
 ## Test Evidence
 
 **Story Type**: Logic
-**Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_pattern_detection_test.cs` — must exist and pass(AC-37-29 的 ScriptedChain 联调半边 BLOCKED-BY-W-1 不记绿)
-**Status**: [ ] In Review — 测试文件存在且 23/23 绿,但补评判定 **Test Evidence 门不通过**(见下方登记块)
+**Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_pattern_detection_test.cs` — must exist and pass
+（⚠️ 原附加语「AC-37-29 的 ScriptedChain 联调半边 BLOCKED-BY-W-1 不记绿」**已于 2026-10-15 失效** —— W-1 会签结案 + S11-9 已交付,该免责前提不再存在;就地订正见下）
+**Status**: [ ] In Review — 测试文件存在且 **30/30 绿**(2026-10-15 S11-9 后;原 23/23),但补评判定 **Test Evidence 门不通过**(见下方登记块)
 
 > ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `review-case-system-001-004-gap-audit-2026-10-15.md` §二:004 判定分级未能确证),按义务第 3 条**补做评审(评当下)**,不追认 `8a693fd` 的历史判定。
 > **补评原件**:`production/qa/evidence/review-case-system-story-004-retro-2026-10-15.md`
@@ -128,6 +129,63 @@
 > `case-system.md:610-627` 记 W-1 会签结案(裁① = 三案各挂 `DIS_DYSENTERY`,user + game-designer 双签,提交 `4565dc6`);
 > 裁决明写「`AC-37-12` 原样不动(三案从此**不是**纯伤情案)」⇒ `CandidateSeq` 非空的机制路径已定。
 > ⚠️ 但**谓词实现 `ChainEligible` 本身也未落**(story `:40` 自认「先落」的那半边同样零命中),故解除的是**夹具的免责前提**,不是交付本身。
+
+> 🟢 **CB-2 / TB-5 已闭合 —— 2026-10-15 · sprint-11 S11-9**(证据原件:`production/qa/evidence/fix-s11-9-case-system-story-004-cb2-tb5-2026-10-15.md`)
+>
+> **交付**:`ScriptedChain` / `ChainEligible` 从**全库 `.cs` 零命中**转为**有实现 + 有测试**
+> (GDD F-37.1b 逐字定义兑现;测数 **23 → 30**,新增 7 条夹具)。
+>
+> **改动**:
+> ① **`ScriptedChain`(纯机制载体,不含任何具体 `patient_id`)** —— GDD F-37.1b 逐字
+>   「具名角色 → 数字 `patient_id` 的绑定**仍属内容值**……**本 GDD 只登记机制与判定域,不落数值**」
+>   ⇒ P0 无该数据 ⇒ 值由调用方 / ADR-014 烘焙**注入**。**这不是范围裁剪,是 GDD 的明文归属划分。**
+> ② **`ChainEligible.IsEligible` / `TryChainOf`** —— 逐字兑现 `ChainEligible(D) := 病例 c 满足 c.Patient ∈ ScriptedChain(D)`。
+> ③ **`Evaluate` 定义域收窄(逐 D 二选一)** —— 命中链的病种:`CandidateSeq(D)` 只留链成员
+>   (链外病例**既不计数也不占名额**);未命中链的病种:维持 F-37.1 原算式。
+>   GDD 逐字「成员判定域 = 显式指定,不是『全局首次三例』(旧算法的行为保留给**非脚本**的同源检测)」。
+>   抽出 `ComputeCandidateSeq` / `SortBySaltedKey` 使新增入口共用**单一定序源**;原 4 参重载转发 `null` ⇒ 现行为逐位不变。
+> ④ **`NextEmissions` + `PatternEmission`(发射决策层)** —— 见下方「两层语义」条。
+>
+> **⚠️ 一处语义厘清(须如实登记,非判定推翻)**:补评件 TB-4/CB-1 记「发射语义无生产载体」——
+> 该观察**成立**,但指向应收正为「**缺一层**」,不是「`Evaluate` 有问题」:
+> - `Evaluate` 返回**前缀属性**(达标后第 4/5/6 例仍 `Fired=true`)。**这本身不是缺陷** ——
+>   AC-37-07/08 测的就是这一层,现有 `test_ac3709` 断言「第 4 例仍触发」**是对的**。
+> - 缺的是「**本 tick 真正应发射几条**」(AC-37-09/29 的「不重发」属该层)⇒ 由 `NextEmissions` 补上。
+> - 新增夹具 `test_ac3729_firesOnce_neverRefires` **末段保留对照断言**(`Evaluate` 仍返 `true`)
+>   把两层边界**钉死**,防后人把两者重新合并。
+>
+> **⚠️ 写者仍未落 —— 不得误读**:`NextEmissions` **不触 `IEventSink` / 不 `Append` / 不发号 `Seq`**,
+> 只到「该做什么」。写者按 **2026-10-15 用户裁定「接受延后并正式登记」** 仍缺(具名豁免 `WriterExistenceGate.cs:88`)。
+> **本件不得被引为「写者已落」。** 同理 **CB-3 未触及**(`MemberSet` 仍扁平、`Dictionary` 迭代序仍非契约 ⇒ 归 sprint-12);
+> `NextEmissions` 自带逐 D 归属是**本件所需**,不是对 CB-3 的修复。
+>
+> **两处用户裁定(2026-10-15)**:① 「一次性」的载体 = **新增纯函数决策入口** ——
+> 若让夹具自己写 `if (!IsFired(...))`,那**正是 TB-4 所斥的「未写、未测的调用方契约」的复制** ⇒ 判据不可证伪;
+> ② 链内**声明序不消费** —— GDD 同句「触发仍走 F-37.1 的**同一算式**……**不需要第二套公式**」,
+> 而该算式按全序键定序 ⇒ 「有序」只作内容语义(叙事先后 甲→乙→丙),以夹具钉死。
+> ⚠️ 该张力(GDD `ScriptedChain(D) := …【有序】…` vs「同一算式」)**未在 GDD 就地加注**(改设计件未授权)。
+>
+> **可证伪判据(证伪三步 · 双信号一致)**:
+> | 状态 | PatternDetectionTest(30 测) |
+> |---|---|
+> | **反证① 停用定义域收窄** | 退出码 0 · XML **`failed=3`** — `chainQuota` / `chainComplete` / `chainAndNaturalCoexist` |
+> | **反证② 停用「一次性」门** | 退出码 0 · XML **`failed=1`** — `firesOnce_neverRefires` |
+> | **修复后** | 退出码 **0** · **30/30** |
+>
+> **零回归**:EditMode **`3344 / 3298 / 0 failed`**(较 S11-7 后 **+7**,恰为本轮新增;S11-7 后为 3337)·
+> PlayMode **`186 / 186 / 0`**(**逐位等于 M2 基线**)· **无 asmdef 改动**(门 A / b2 门 / ADR-025 §① / ADR-029 全成立)。
+>
+> **⚠️ 证伪轮抓出本件自身的一条假绿夹具(已修正,故在此登记)**:夹具
+> `test_ac3729_chainAndNaturalCoexist_perDisease` **首版**里 D=0 的**链外病例数 = 0**
+> ⇒ 收窄与否结果相同 ⇒ **对「收窄」这一变异毫无判别力**(首轮反证①只红 2 条才暴露)。
+> 已补入链外病例 20/21/22 修正,反证①**恰红 3 条**。**它若不经证伪轮,会以「绿」留下却什么都没测** ——
+> 与补评件 **TA-6** 元规则同型。
+>
+> **未清**:① 写者仍缺(承裁定,见上);② CB-3 归 sprint-12;
+> ③ 本 story 余 **6 条**顺延 sprint-12(TB-1 定序判别力 / TB-2 成员冻结 / TB-3 真空夹具 / CB-1 实现侧 / TA-6 元规则);
+> ④ **GDD 两处待裁**:F-37.1b「有序」张力加注 · `:738`/`:718` 行号漂移(S11-10 登记);
+> ⑤ **脚本链内容数据仍不存在**(`patient_id` 绑定归内容轮 + ADR-014 烘焙 —— 本条**不是缺口**,防「`ScriptedChain` 已落 = 三案链可跑」的误读);
+> ⑥ GDD F-37.1b 注块的「先触发歧义」仍写「归 37 实现轮」—— 本件的逐 D 二选一**已消除其一半**(有链的 D 不再走自然检测),与 GDD 给出的裁法一致;注块是否更新**待裁**(改 GDD 未授权)。
 
 ---
 

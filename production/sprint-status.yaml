@@ -96,11 +96,11 @@ stories:
     name: "story-004 CB-2/TB-5 AC-37-29 零覆盖(落地 ChainEligible/ScriptedChain + 夹具;W-1 已解除)"
     file: "production/sprints/sprint-11.md"
     priority: must-have
-    status: ready-for-dev
-    owner: ""
+    status: done
+    owner: "Claude"
     estimate_days: 0.75
     blocker: ""
-    completed: ""
+    completed: "2026-10-15"
   - id: "S11-10"
     name: "story-003 B5 处置集撤 InjuryOnset + 补 CareApplied + 权威对齐 + 顺批 A-1(Set 收为不可写出口)"
     file: "production/sprints/sprint-11.md"

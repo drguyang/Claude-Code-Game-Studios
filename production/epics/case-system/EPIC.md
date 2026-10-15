@@ -15,9 +15,11 @@
 > 致实现自收 `InjuryOnset` ⇒ 击穿「空手连关三例不可能」;现权威定义落 `adr-008` §四)——
 > ✅ **代码侧已于 2026-10-15 S11-10 对齐**(`TreatmentKinds` = `{Emergency, Drug, CareApplied}`,
 > 含 `MembersSnapshot()` 双向穷尽判据 + 顺批 A-1;四处口径已核一致)。
-> ✅ **排期面**:**S11-7 / S11-8 / S11-10 / S11-11 均已于 2026-10-15 闭合**(各带证据原件,
-> 见 `production/qa/evidence/fix-s11-7-*.md` / `fix-s11-8-*.md` / `fix-s11-10-*.md` / `fix-s11-11-*.md`);
-> **S11-9 未启动**。⚠️ **三件真实现缺陷(B-1 / B5 / BLK-8)已全部闭合**。
+> ✅ **排期面**:**S11-7 / S11-8 / S11-9 / S11-10 / S11-11 均已于 2026-10-15 闭合**(各带证据原件,
+> 见 `production/qa/evidence/fix-s11-{7,8,9,10,11}-*.md`)—— **补评修复批五项全部清空**。
+> ⚠️ **三件真实现缺陷(B-1 / B5 / BLK-8)已全部闭合**;**S11-9 的两处边界(防误读)**:
+> `PatternRecognized` **写者仍未落**(承 2026-10-15 裁定「接受延后并正式登记」)·
+> **CB-3 未触及**(`MemberSet` 仍扁平 ⇒ 归 sprint-12)⇒ **四件仍维持 `In Review`**。
 > **Stories**: 6 stories — see table below
 
 ## Overview
@@ -63,7 +65,9 @@
 This epic is complete when:
 - All stories are implemented, reviewed, and closed via `/story-done`
 - AC-37-01…36 中可自动化条目全部有通过测试;负存在断言按「闭集点名 + 载体是否已建」纪律执行,载体缺失记 **NOT-RUN** 禁空集绿
-- `ScriptedChain(D)` 联调(**W-1**)在 9+37 会签结案前**不出测不关闭**(GDD 明写「不裁不得实现」)
+- ✅ `ScriptedChain(D)` 的 **W-1 前置已结案(2026-10-15 会签)**;机制层已由 **S11-9** 交付(含夹具 7 条)。
+  ⚠️ 与 9 的**真联调**(真实 `patient_id`)仍待**内容数据** —— `patient_id` 绑定归**内容轮 + ADR-014 烘焙**,
+  GDD F-37.1b 明写「本 GDD 只登记机制与判定域,**不落数值**」⇒ **该数据不存在不是缺口,是归属划分**。
 - [V] 走查条目(AC-37-16/17/19)由 39/42 epic 的走查批承接并留档,本 epic 登记移交
 - 数值(PATTERN_THRESHOLD 维持 3 / 立案半径 / 就诊触发条件)归用户数值轮;D-37-B 行为学前提已转 9/7a 登记
 
@@ -74,6 +78,6 @@ This epic is complete when:
 | 001 | 病例流 Kind 登记与病例身份 | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`e64efad`)判定不成立;补评 4 BLOCKING·测试面 —— **③ B-3 AC 号一号两义 ✅ S11-11 闭合**(全文件去号 25 处);余 **3 条**顺延:判据不可证伪(B-1,须退设计)· kindgen A2 空跑(B-2)· kindgen 借绿(B-4)) | ADR-008/024/006 |
 | 002 | 立案两路径 · 开案唯一 · 判断记录事件化 | Integration | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`c4e3708`)判定不成立;补评 + §七 勘误后核心 **1 类** —— **`LastJudgmentOf` 死参·实害链「墨龄取错病人」✅ S11-7 闭合**(归属改流序关联;回退旧实现 ⇒ 2+1 红,端到端复现实害);余 **声明件 5 条断言形态** + BLK-9/BLK-10 顺延 sprint-12) | ADR-008/009/005 |
 | 003 | 结案前置:处置证据窗口与快照 | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`31e3f9b`)判定不成立;补评 + §七 勘误后核心 **4 类** —— **① `IsClosed` 按 `Patient` 匹配 ✅ S11-8 闭合** · **⑤ `TreatmentKinds` 错收 `InjuryOnset`漏收 `CareApplied` ✅ S11-10 闭合(+A-1 顺批)**,各带「改回旧实现即转红」反证;余 **2 类**未清:快照半场(写者未落,无载体)· AC-37-18 恒真化) | ADR-008/007 |
-| 004 | F-37.1 同源检测与 PatternRecognized | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`8a693fd`)判定不成立;补评 8 BLOCKING·双面) | ADR-008/007/012 |
+| 004 | F-37.1 同源检测与 PatternRecognized | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`8a693fd`)判定不成立;补评 8 BLOCKING·双面 —— **CB-2/TB-5 AC-37-29 零覆盖 ✅ S11-9 闭合**(`ChainEligible`/`ScriptedChain` 从全库零命中转为有实现 + 有测试,测数 23 → 30);余 **6 条**顺延:TB-1 定序判别力 · TB-2 成员冻结 · TB-3 真空夹具 · CB-1/CB-3 实现侧 · TA-6 元规则) | ADR-008/007/012 |
 | 005 | 守密纪律:DTO 守卫 · 词表烘焙 · 零奖励断言 | Integration | **Complete ✅ 2026-10-08** | ADR-013/014/006 |
 | 006 | 重放持久化与跨系统边界义务 | Integration | **Complete ✅ 2026-10-08** | ADR-010/005/008 |

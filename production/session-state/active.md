@@ -3436,3 +3436,91 @@ story-002 🟢 BLK-8 块 + Test Evidence `Status` 行(23/23 → **25/25**)· `sp
 
 **下一步候选**:**S11-9**(story-004 CB-2/TB-5,落地 `ChainEligible`/`ScriptedChain` ——
 sprint-11 补评修复批的**最后一项**)。**S11-7 改动尚未提交** —— 待用户指示。
+
+---
+
+## S11-9 完成(2026-10-15)—— story-004 CB-2/TB-5
+
+**任务**:`ChainEligible` / `ScriptedChain` 全库 `.cs` **零命中** → **有实现 + 有测试**;
+夹具覆盖「脚本链名额**不被随机病例消耗**」+「**一次性**」。W-1 已于 2026-10-15 会签结案(免责前提消失)。
+**这是 sprint-11 补评修复批(S11-7…S11-11)的第五项 = 最后一项。**
+
+### 交付(生产代码 + 测试,两文件)
+
+**`unity/Assets/Sim/PatternDetector.cs`**(+277 / −24):
+
+- **`ScriptedChain{ int DiseaseOrdinal; IReadOnlyList<int> MemberPatientIds; }`** —— **纯机制载体,
+  不含任何具体 `patient_id`**:GDD F-37.1b 逐字「具名角色 → 数字 `patient_id` 的绑定**仍属内容值**……
+  **本 GDD 只登记机制与判定域,不落数值**」⇒ P0 无该数据 ⇒ 由调用方 / ADR-014 烘焙**注入**。
+- **`ChainEligible.IsEligible` / `TryChainOf`** —— 逐字兑现 `ChainEligible(D) := c.Patient ∈ ScriptedChain(D)`。
+- **`Evaluate` 逐 D 二选一定义域收窄** —— 命中链的病种:`CandidateSeq(D)` 只留链成员
+  (链外病例**既不计数也不占名额**);未命中链:维持 F-37.1 原算式。
+  抽出 `ComputeCandidateSeq` / `SortBySaltedKey`(**单一定序源**);原 4 参重载转发 `null` ⇒ 现行为逐位不变。
+- **`NextEmissions` + `PatternEmission`(发射决策层)** —— `ComputeCandidateSeq` → 达标 D → `SortBySaltedKey`
+  → 逐个过 `IsFired` 门 → 切该 D 成员。**不触 `IEventSink` / 不 `Append` / 不发号 `Seq`。**
+
+**`case_pattern_detection_test.cs`**:**23 → 30 测**(+7 夹具)。文件头补 AC-37-29 行。
+
+### 两项用户裁定(2026-10-15,本件执行)
+
+- **①「一次性」的载体 = 新增纯函数决策入口** —— 若让夹具自己写 `if (!IsFired(...))`,那**正是 TB-4
+  所斥的「未写、未测的调用方契约」的复制** ⇒ 测试自造契约、判据不可证伪。
+- **② 链内声明序不消费** —— GDD 同句「触发仍走 F-37.1 的**同一算式**……**不需要第二套公式**」,
+  而该算式按全序键 `(Tick,Patient,Seq)` 定序 ⇒ 「有序」只作内容语义(叙事先后 甲→乙→丙),夹具钉死。
+  ⚠️ **该 GDD 内部张力未就地加注**(改设计件未授权)。
+
+### 证伪三步(双信号一致)
+
+| 状态 | PatternDetectionTest(30 测) |
+|---|---|
+| **反证① 停用定义域收窄** | XML **`failed=3`** — `chainQuota` / `chainComplete` / `chainAndNaturalCoexist` |
+| **反证② 停用「一次性」门** | XML **`failed=1`** — `firesOnce_neverRefires` |
+| **修复后** | 退出码 **0** · **30/30** · `error CS = 0` |
+
+**零回归**:EditMode **`3344 / 3298 / 0`**(较 S11-7 后 **+7**,恰为本轮新增;S11-7 后为 3337)·
+PlayMode **`186 / 186 / 0`**(**逐位等于 M2 基线**)· **无 asmdef 改动**(门 A / b2 / ADR-025 §① / ADR-029 全成立)。
+
+### ⚠️ 本轮两个「须如实登记」的点
+
+**① 证伪轮抓出本件自身的一条假绿夹具(已修正)** —— `test_ac3729_chainAndNaturalCoexist_perDisease`
+**首版**里 D=0 的**链外病例数 = 0** ⇒ 收窄与否结果相同 ⇒ **对「收窄」变异毫无判别力**
+(首轮反证①只红 2 条才暴露)。已补入链外病例 20/21/22 修正,反证①恰红 3 条。
+**它若不经证伪轮,会以「绿」留下却什么都没测** —— 与补评件 **TA-6** 元规则同型。
+
+**② 一处语义厘清(非判定推翻)** —— TB-4/CB-1 记「发射语义无生产载体」,**观察成立但指向须收正**:
+`Evaluate` 的**前缀属性语义本身没错**(AC-37-07/08 测的就是它;现有 `test_ac3709` 断言「第 4 例仍触发」**是对的**),
+缺的是**发射决策层** ⇒ 准确表述是「**缺一层**」,不是「`Evaluate` 有问题」。
+新夹具末段保留对照断言(`Evaluate` 仍返 `true`)把两层边界**钉死**。
+
+### 记录面
+
+**新证据原件** `production/qa/evidence/fix-s11-9-case-system-story-004-cb2-tb5-2026-10-15.md` ·
+story-004(**`:4` Status · `:40` AC-37-29 转 ✅ · Test Evidence `23/23`→`30/30` + 就地订正已失效的
+「BLOCKED-BY-W-1 不记绿」· 🟢 闭合块 · 🔓 块与 `:85` 同步**)· `sprint-11.md` S11-9 转 ✅ + 语义厘清订正框 ·
+`sprint-status.yaml` S11-9 → `done` · `EPIC.md`(头部「补评修复批**五项全部清空**」+ story-004 行 + DoD 条)·
+本文(active.md)。**GDD 未动**(用户裁定,两处待裁登记见下)。
+
+### 未清
+
+- **写者仍未落** —— `Append` + 发号 `Seq` 缺(承 2026-10-15 用户裁定「接受延后并正式登记」,
+  `WriterExistenceGate.cs:88` 具名豁免)。**本件不得被引为「写者已落」**。
+- **CB-3 未触及** —— `PatternDetectionResult.MemberSet` 仍扁平、`Dictionary` 迭代序仍非契约 ⇒ 归 sprint-12。
+  `NextEmissions` 自带逐 D 归属是**本件所需**,不是对 CB-3 的修复。
+- **story-004 余 6 条顺延 sprint-12**:TB-1 定序判别力 · TB-2 成员冻结 · TB-3 真空夹具 ·
+  CB-1 实现侧 · CB-3 · TA-6 元规则。**四件 story 维持 `In Review`。**
+- **GDD 两处待裁(本件未动)**:① F-37.1b「有序」张力加注;② `case-system.md:738`/`:718` 行号漂移(S11-10 登记)。
+- **脚本链内容数据仍不存在** —— `patient_id` 绑定归内容轮 + ADR-014 烘焙(GDD 明文的归属划分,
+  **不是缺口**;但须防「`ScriptedChain` 已落 = 三案链可跑」的误读)。
+- **GDD F-37.1b 注块的「先触发歧义」** —— 本件的逐 D 二选一**已消除其一半**(有链的 D 不再走自然检测,
+  与 GDD 给出的裁法一致);注块仍写「归 37 实现轮」,**是否更新待裁**(改 GDD 未授权)。
+
+### 下一步候选
+
+**sprint-11 补评修复批五项(S11-7…S11-11)已全部清空。** 余:
+**S11-4**(should-have, 3.5 天,prescription DoD 残留:AC-11-22 7a 白名单 + DC-2 `action_id` master + DC-6 复评)·
+**S11-5**(nice-to-have, 1.5 天,53 medical-consequences 起首 story)·
+**S11-6**(nice,已裁定顺延吸收)。
+
+**⚠️ S11-9 改动尚未提交** —— 待用户指示(工作区 8 项:`unity/Assets/Sim/PatternDetector.cs` ·
+`unity/Assets/Tests/EditMode/CaseSystem/case_pattern_detection_test.cs` · 证据件(新增) · story-004 ·
+sprint-11.md · sprint-status.yaml · EPIC.md · 本文(active.md —— 实测**被 git 跟踪**,非 gitignored))。
