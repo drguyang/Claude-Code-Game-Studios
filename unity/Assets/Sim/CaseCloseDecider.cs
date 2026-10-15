@@ -156,7 +156,11 @@ namespace DaYiJingCheng.Sim
                     continue;
                 if (!TreatmentKinds.Contains(e.Kind))
                     continue;
-                if (e.Tick < openedTick || e.Tick > closeTick)
+                // ⚠️ 窗口判据**复用** IsInWindow,不内联重写(2026-10-15 ADVISORY 清理轮 · 003 §6.3)。
+                // 原稿此处内联 `e.Tick < openedTick || e.Tick > closeTick` = 同一闭区间的**第二份**实现
+                // ⇒ 两处可各自漂移;且 IsInWindow 当时**生产零调用点**(只有测试在打)。
+                // 现 IsInWindow 是窗口语义的**唯一出处**,本方法只是它的流扫描壳。
+                if (!IsInWindow(e.Tick, openedTick, closeTick))
                     continue;
                 return true;
             }

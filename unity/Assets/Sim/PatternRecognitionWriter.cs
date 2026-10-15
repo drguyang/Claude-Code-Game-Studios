@@ -120,9 +120,13 @@ namespace DaYiJingCheng.Sim
             _diseaseExtractor = diseaseExtractor ?? throw new ArgumentNullException(nameof(diseaseExtractor));
             _saltedKeyExtractor = saltedKeyExtractor ?? throw new ArgumentNullException(nameof(saltedKeyExtractor));
 
-            if (patternThreshold < 1)
+            // ⚠️ 下界 = 2 而非 1(2026-10-15 ADVISORY 清理轮 · TA-8)。
+            // 真源 = GDD `case-system.md:1004` 的旋钮安全范围「≥ 2(**< 2 构建期拒绝**)」
+            //   + `:869` 调低侧理由「2 = 两例即同源,太廉价,归纳退化成猜测」。
+            // 旧稿只拒 `< 1`(即 0 / 负) ⇒ 阈值 1 可通过构造器,与 GDD 护栏不符(漏配)。
+            if (patternThreshold < 2)
                 throw new ArgumentOutOfRangeException(nameof(patternThreshold), patternThreshold,
-                    "阈值须 ≥ 1(≤ 0 会对空候选集也判达标,anchor_case 不存在)");
+                    "阈值须 ≥ 2(GDD 旋钮安全范围;阈值 1 = 单例即同源,归纳退化成猜测,且 anchor_case 无「跨过阈值的那一例」语义)");
 
             _worldSeed = worldSeed;
             _patternThreshold = patternThreshold;

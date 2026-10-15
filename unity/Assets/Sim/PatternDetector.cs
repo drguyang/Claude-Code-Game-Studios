@@ -373,16 +373,37 @@ namespace DaYiJingCheng.Sim
         }
 
         /// <summary>
-        /// 病种定序(单一定序源):salted_key 整数升序(AC-37-27 / ADR-008 §五)。
+        /// 病种定序(单一定序源):<paramref name="keyOf"/> 派生键**升序**;键相等时以
+        /// **ordinal 升序**为次级键(AC-37-27 / ADR-008 §五)。
         /// </summary>
-        private static void SortBySaltedKey(List<int> diseases, long worldSeed)
+        /// <remarks>
+        /// <para><b>⚠️ 次级键的由来(2026-10-15 ADVISORY 清理轮)</b> —— <c>List.Sort</c> 是
+        /// **不稳定排序** ⇒ 64 位键碰撞时次序**未定义**,与 AC-37-27 后半句「换一个插入序重跑,
+        /// 事件流**逐位相同**」有理论张力。补次级键后比较器构成**全序**,排序结果与
+        /// <c>List.Sort</c> 的实现细节无关。</para>
+        /// <para><b>⚠️ 为什么形参是委托而不是 <c>long worldSeed</c>(可捕获性要求)</b> ——
+        /// 键空间 2⁶⁴ 使**真实碰撞在 P0 不可构造** ⇒ 若内部硬取 <c>SplitMix64.HashTagged</c>,
+        /// 次级键**永远没有可证伪夹具**(改回无次级键,测试照样全绿)。取注入形后,测试可喂
+        /// **人为碰撞键**(如 <c>d =&gt; (ulong)(d % 2)</c>)**端到端**打这条 tie-break。
+        /// 生产调用点见 <see cref="Evaluate"/> / <see cref="NextEmissions"/>。</para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">任一形参为 null。</exception>
+        public static void SortBySaltedKey(List<int> diseases, Func<int, ulong> keyOf)
         {
+            if (diseases == null) throw new ArgumentNullException(nameof(diseases));
+            if (keyOf == null) throw new ArgumentNullException(nameof(keyOf));
+
             diseases.Sort((a, b) =>
             {
-                ulong saltedA = SplitMix64.HashTagged(worldSeed, "case-salt", a);
-                ulong saltedB = SplitMix64.HashTagged(worldSeed, "case-salt", b);
-                return saltedA.CompareTo(saltedB);
+                int cmp = keyOf(a).CompareTo(keyOf(b));
+                return cmp != 0 ? cmp : a.CompareTo(b);   // 次级键:ordinal 升序
             });
+        }
+
+        /// <summary>生产用便捷形:键 = <c>SplitMix64.HashTagged(worldSeed, "case-salt", D)</c>(ADR-008 §五 盐契约)。</summary>
+        private static void SortBySaltedKey(List<int> diseases, long worldSeed)
+        {
+            SortBySaltedKey(diseases, d => SplitMix64.HashTagged(worldSeed, "case-salt", d));
         }
 
         /// <summary>

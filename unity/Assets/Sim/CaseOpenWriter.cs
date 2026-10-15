@@ -114,18 +114,40 @@ namespace DaYiJingCheng.Sim
         {
             if (tick < 0) throw new ArgumentOutOfRangeException(nameof(tick), tick, "tick 不得为负");
 
-            // ── 前置 ① 病人存在(GDD 规则二:药材短缺无病人 ⇒ 不立案)──
-            // 哨兵 / 负 id 一并在此拒:PatientId.None 写进病例流会污染 case_id 三元组
-            // 与 max(patient_id) 高水位(ADR-007 §四),属输入非法,零写入具名返回。
+            // ── 前置 ① 输入合法性:哨兵 / 负 id ──
+            // PatientId.None 写进病例流会污染 case_id 三元组与 max(patient_id) 高水位
+            // (ADR-007 §四),属**输入非法**(不是「该不该开」),故在决策层之前独立拒。
             if (patient.IsNone)
                 return CaseOpenWriteResult.NoPatient;
 
-            if (!_presence.IsPresent(patient))
-                return CaseOpenWriteResult.PatientAbsent;
+            // ── 前置 ② ③ 交决策纯函数裁决(GDD 规则二 / AC-37-26)──
+            // ⚠️ 2026-10-15 ADVISORY 清理轮(ADV-2)—— 原稿在此**内联重写**了
+            // CaseOpenDecider.Decide 的判序 ⇒ Decide 成为**无生产调用者的孪生体**
+            // (与结案侧不对称:CaseCloseWriter:148 真调 CaseCloseDecider.Decide)。
+            // 现改为**只搬布尔、不复制判序** —— 判序真源唯一(与 ADR-008 §四闭环纪律同形)。
+            // 行为等价已逐分支核对:!hasPatient ⇒ NoCase ⇒ PatientAbsent(原 `!IsPresent` 分支);
+            //   hasPatient ∧ hasOpenCase ⇒ ReturnExisting ⇒ ReturnedExisting;否则 OpenNew ⇒ 落写入。
+            bool hasPatient = _presence.IsPresent(patient);
+            bool hasOpenCase = hasPatient && CaseStreamQuery.HasOpenCase(_streamEvents, patient.Value);
 
-            // ── 前置 ② 同一病人同时至多一个开案(GDD 规则二 2026-09-17 / AC-37-26)──
-            if (CaseStreamQuery.HasOpenCase(_streamEvents, patient.Value))
-                return CaseOpenWriteResult.ReturnedExisting;
+            // sourceKind **不参与决策**(Decide 的 docstring 已声明「只作记录,不改变决策」);
+            // 本类不区分来源(两条路径入流义务完全相同 —— ADR-009 §二),故传 B 仅为满足签名。
+            // ⚠️ 若未来 sourceKind 参与决策,须先给本类加形参,不得在此写死。
+            switch (CaseOpenDecider.Decide(hasOpenCase, hasPatient, CaseOpenSource.B))
+            {
+                case CaseOpenDecision.OpenNew:
+                    break; // 前置全过 ⇒ 落写入
+
+                case CaseOpenDecision.ReturnExisting:
+                    return CaseOpenWriteResult.ReturnedExisting;
+                case CaseOpenDecision.NoCase:
+                    return CaseOpenWriteResult.PatientAbsent;
+
+                default:
+                    // decider 的决策集是闭集;新增成员而未同步本 switch 属编程错误,fail-loud。
+                    throw new InvalidOperationException(
+                        "CaseOpenDecider 返回了未映射的决策 —— 新增决策枚举须同步本 switch");
+            }
 
             // ── 载荷:registry payload_schema 两字段(case_id 不落字段)──
             var payload = new CaseOpenedPayload(patient.Value, diseaseSnapshot);
