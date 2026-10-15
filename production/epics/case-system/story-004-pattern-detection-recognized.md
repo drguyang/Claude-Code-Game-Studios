@@ -116,8 +116,9 @@
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_pattern_detection_test.cs` — must exist and pass
 （⚠️ 原附加语「AC-37-29 的 ScriptedChain 联调半边 BLOCKED-BY-W-1 不记绿」**已于 2026-10-15 失效** —— W-1 会签结案 + S11-9 已交付,该免责前提不再存在;就地订正见下）
-**Status**: [x] Complete — 测试文件存在且 **34/34 绿**(2026-10-15 断言形态批后;S11-9 后曾记 30,再前 23)。**Test Evidence 门:通过**(补评不通过 → 修复 → 复评通过,见下方登记块)。
-> ⚠️ **本行原记「30/30」是陈旧值**(2026-10-15 postfix 评审核出 —— 同 story `:195` 已写「30 → 34」,**同一文件内自相矛盾**),已就地订正为 34。
+**Status**: [x] Complete — 测试文件存在且 **36/36 绿**(2026-10-15 ADVISORY 清理批后;断言形态批 34;S11-9 后曾记 30,再前 23)。**Test Evidence 门:通过**(补评不通过 → 修复 → 复评通过,见下方登记块)。
+> ⚠️ **本行原记「30/30」是陈旧值**(2026-10-15 postfix 评审核出 —— 同 story `:195` 已写「30 → 34」,**同一文件内自相矛盾**),已就地订正为 34;2026-10-15 **ADVISORY 清理批再 +2 → 36**(新增 `test_ac3734_sameTickFourthCase_membersAreFirstThreeInFullOrder` + `test_sortBySaltedKey_keyCollision_ordinalTieBreak`)。
+> ⚠️ **下文各批登记块里的「30 测」/「30 → 34」/「34 测不变」是各批当时的快照,非现值** —— 现值以本行为准(同理,`case_pattern_detection_test.cs` 内各注释的行号是快照不是指针)。
 
 > ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `review-case-system-001-004-gap-audit-2026-10-15.md` §二:004 判定分级未能确证),按义务第 3 条**补做评审(评当下)**,不追认 `8a693fd` 的历史判定。
 > **补评原件**:`production/qa/evidence/review-case-system-story-004-retro-2026-10-15.md`
@@ -259,6 +260,43 @@
 >
 > **本轮门验证(断言形态批后)**:EditMode `3386/3340/0/46` · PlayMode `186/186/0`
 > (双平台退出码 0)。本 story 的测试件在断言形态批**未增删**(34 测不变)。
+
+> 🟢 **ADVISORY 全清 —— 2026-10-15 · sprint-11 S11-17**
+> (证据原件:`production/qa/evidence/fix-s11-17-case-system-advisories-2026-10-15.md`)
+>
+> **门判定:通过。** 复评登记的 5 条 ADVISORY(TA-1/2/5/7/8)+ 复评新发现的 2 条
+> (元规则清单措辞 · 同 tick 批量 `anchor_case` 语义)**逐条处置**。**测试数 34 → 36**。
+>
+> | ID | 缺陷 | 处置 | 可捕获的变异 |
+> |---|---|---|---|
+> | **TA-1** | AC-37-11 夹具与 AC-37-08 **逐字重复**,且断言是其**真子集** ⇒ 零新增判别力 | 重写为**两腿**:① **接口面**(`Evaluate` 两重载形参表无病名 / 文本入口)② **行为面**(流内塞空 / 错名判断噪声,三例同 D 仍**恰触发一次**且成员集**逐位**) | 加 `string diseaseName` 形参 / 判断噪声被计入候选 ⇒ **红** |
+> | **TA-2** | `IsFired` 三例把 `salted_key` 塞进 `SimEvent.Seq` 作**自造载体** | 改**真载体**:`MakePatternRecognized` 经 `PayloadEncoder` 编码 + `SaltedKeyOfReal` 经 `PayloadCodec` 解码;`Emit` 的盐提取器同批换真载体 | 载荷编解码错位 / `IsFired` 比较恒真 ⇒ **红** |
+> | **TA-5** | AC-37-14 负断言按**字段名**判,防不住「换名携带」 | 改**闭集相等**(字段名集**恰等于**白名单 5 元) | 加任一字段(含 `DiseaseOrdinal` / `RawId` 等换名)⇒ **红** |
+> | **TA-7** | AC-37-34「第 4 例**同 tick**」边界未覆盖 | 新增 `test_ac3734_sameTickFourthCase_membersAreFirstThreeInFullOrder`(同 tick 四例,插入序**逆**全序) | 成员取后 3 例 / 删 `candidates.Sort` ⇒ **红** |
+> | **TA-8** | 阈值「≥ 2」Guardrail **未强制**(ctor 只拒 `< 1`) | `PatternRecognitionWriter.cs` 改 `< 2`(真源 = GDD `case-system.md:1004` 旋钮安全范围);测试补**阈值 1** 一格 | 守卫改回 `< 1` ⇒ **红** |
+> | 元规则清单措辞 | `test_ac3709` 被列在「满足『输入序 ≠ 期望序』」组,而其夹具**输入序 == 期望序** | 文件头拆为**两组**(满足该纪律 / **满足另一条轴**),`test_ac3709` 移入后者 | 结构性 |
+> | 同 tick 批量 `anchor_case` | 写者 9 测**均逐 tick 递增** ⇒「同 tick 跨阈值」语义未被直接证伪 | 由 TA-7 的新增夹具覆盖**检测器侧**该维;**写者侧**仍无同 tick 批量夹具 ⇒ **如实登记为残余**(低置信、非阻塞) | — |
+>
+> **⚠️ 次级键裁定更新(推翻本 story 上方「已回退」记录 —— 同一项,非两处)**
+>
+> 上方 `⚠️ 一处越权改动已回退` 段记:上一批自行加的 ordinal 次级键因三条被用户裁定**回退** ——
+> **① 引据失实 · ② 无夹具可证伪 · ③ 超出清单**。本轮 **2026-10-15 用户明确裁定「加次级键」**:
+>
+> - **② 已消解(硬)** —— `SortBySaltedKey` 改**可注入键形** `(List<int>, Func<int, ulong> keyOf)`,
+>   测试可喂**人为碰撞键**(`d => (ulong)(d % 2)`)⇒ 次级键**有了可证伪夹具**
+>   (`test_sortBySaltedKey_keyCollision_ordinalTieBreak`:删次级键 ⇒ 等键组保持插入序(**降序**)⇒ **必红**)。
+>   生产侧保留 `(List<int>, long worldSeed)` 私有重载 ⇒ 两个调用点**逐字未改**。
+> - **① 仍未消解,如实登记** —— GDD `:828-830` **仍无** ordinal 次级键的明文要求(本轮**未改 GDD**;
+>   改设计件需单独授权)。故本改动的定性是「**确定性加固,非 GDD 明文兑现**」:它在 **2⁶⁴ 键碰撞**
+>   这一 **P0 不可构造**的场景下才可观测 ⇒ **不改变任何可达行为**(「回退前后双平台测数逐字不变」
+>   已由上批实证,与本批「+2 全来自新增测」互相印证)。
+> - **③** 本轮不再适用(ADVISORY 清理是用户裁定的独立批次,该改动**在清单内**)。
+>
+> ⇒ **不得**把本改动引为「GDD F-37.1 逐字要求 ordinal 次级键」—— **该引据仍失实**。
+>
+> **门验证**:EditMode **`3388/3342/0/46`** · PlayMode **`186/186/0`**(双平台退出码 0 · `error CS` **0**)。
+> **零回归**:较断言形态批基线 `3386/3340/0/46` **+2**,恰为本批**新增 2 测**、**零删除**;
+> PlayMode **逐位不变**。无 asmdef 改动(门 A / b2 门 / ADR-025 §① / ADR-029 全成立)。
 
 ---
 

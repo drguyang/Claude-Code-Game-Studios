@@ -188,7 +188,8 @@
 > | `EditMode/Boot/ink_age_test.cs` | **5** | **AC-37-05 存新值**(派生态)· BLK-8 实害链 | `test_inkAge_crossPatient_usesOwnJudgmentNotOtherPatients`(跨病人判别) |
 > | `EditMode/CaseSystem/case_replay_persistence_test.cs` | 10 | **AC-37-23 事件面**(不折叠) | `test_case_noFold_historicalRowsComplete` / `test_case_ac37_06_caseStreamEvents_roundTripBytesEqual` |
 > | `EditMode/CaseSystem/case_close_precondition_test.cs` | 39 | **AC-37-05 处置半边**(处置后 37 跨流可查到) | **真跨流**:`test_windowBoundary_multipleTreatmentsInWindow_hasTreatment`(`:274`)· `test_ac3721_edge_revisitWithNewTreatmentInWindow_allows`(`:131`)—— 喂**真** `EmergencyTreatmentApplied` / `DrugTreatmentApplied` 事件 + `CaseCloseQuery.HasTreatmentInWindow`。⚠️ **本行初稿曾「点偏」**(2026-10-15 postfix 评审核出并订正):原点名 `test_ac3721_checkedButNoTreatmentInWindow_rejects` 实为**决策层只喂布尔**形态(恰是补评批评的形态),`windowBoundary` 系列**实测 5 测**(非 4)且其中**仅 1** 真跨流 |
-> | `EditMode/CaseSystem/case_close_writer_test.cs` | 12 | AC-37-05 处置半边的**写侧** | 结案前置窗口 + `treated` 快照 |
+> | `EditMode/CaseSystem/case_close_writer_test.cs` | **13** | AC-37-05 处置半边的**写侧** | 结案前置窗口 + `treated` 快照(⚠️ `treated` 断言已于 2026-10-15 删除 —— 结构性恒真,见该件 `:109` 注) |
+> | **`EditMode/CaseSystem/case_open_and_judgment_test.cs` 的 `test_judgmentShape_threeFields_exists`** | — | **AC-37-05 判断半边 / S-8.3 的「`freehand_text` 零判定消费」面** | ⚠️ **代理级、无引用扫描**(2026-10-15 **ADV-1 就地补登**,承下段 ⚠️)—— 该测做的是**字段缺席代理**(断言两个 payload struct **无** `FreehandText` 字段),**不是** AC 字面要求的「**引用扫描**」(全仓搜 `FreehandText` 的**消费点**)。两者差别:字段缺席只证「sim 侧**结构上够不着**」,**不证**「呈现侧**无**判定消费」。⚠️ **真引用扫描的结构性不可做**:`freehand_text` 住 blob 变长段(ADR-006 G-3),sim 层无接口面 ⇒ 本半边 **NOT-RUN**,**不得**写成「已覆盖」 |
 > | `PlayMode/SkeuomorphicUI/e2e_full_loop_test.cs` | 1 | 本 story 所属的 **[I] 全链** | `test_e2e_fullLoop_sevenStages` |
 > | `EditMode/CaseSystem/case_open_and_judgment_test.cs`(本件) | 25 | AC-37-26 决策层 · AC-37-30 决策层 · 药材短缺零写入 · AC-37-05 存新值 · S-8.3 · Judgment 形状 · AC-37-23 路由面 | 见上表 |
 >

@@ -167,3 +167,16 @@ stories:
     estimate_days: 0.5
     blocker: ""
     completed: "2026-10-15"
+  # ── 批 6:ADVISORY 全清(用户「剩下的 ADVISORY 也一并清了」+ 两项裁定)──
+  #   范围 = 四件评审原件登记的全部 ADVISORY(非 BLOCKING —— 后者已由 S11-12…S11-16 闭合)。
+  #   ⚠️ 仍开放(如实,禁借绿):① 001 的 CI 从未在真 runner 跑过(离线做不到);
+  #     ② 写者侧「同 tick 批量跨阈值」夹具仍缺;③ 002 ADV-4 判定为「无处置」。
+  - id: "S11-17"
+    name: "case-system ADVISORY 全清 —— 产品代码 4 处(次级键可注入键形 / 阈值 ≥2 / IsInWindow 复用 / TryOpen 走 Decide)+ 测试 4 件(TA-1/2/5/7 + ADV-5 + 删恒真断言)+ kindgen 变异探针常驻执行体 + CI job + GDD 处置集不变量补登"
+    file: "production/qa/evidence/fix-s11-17-case-system-advisories-2026-10-15.md"
+    priority: must-have
+    status: done
+    owner: "Claude"
+    estimate_days: 1.0
+    blocker: ""
+    completed: "2026-10-15"
