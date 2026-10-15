@@ -3923,3 +3923,493 @@ S11-1 实际走**换轨载体**:EditMode `Boot/examine_driver_test.cs`(13 测)+ 
 
 **行号漂移是活的** —— 我插入 GDD 三处注后,AC-37-06 从 `:1092` 漂到 `:1116`(24 行),
 当场让我 grep 拿到错内容。已在新注里写明「上列行号是**快照不是指针**」。
+
+---
+
+<!-- QA-PLAN: 2026-10-15 | System: sprint-12 | Plan written: production/qa/qa-plan-sprint-12-2026-10-15.md -->
+
+## Sprint 12 规划 + QA Plan(2026-10-15)
+
+**已落盘**:`production/sprints/sprint-12.md`(10 件)· `production/sprint-status.yaml`(覆盖 S11)· `production/retrospectives/retro-sprint-11-2026-10-15.md`(项目首份回顾)· `production/qa/qa-plan-sprint-12-2026-10-15.md`
+
+**规划期重扫抓到两处计划偏离(Phase 1 硬前置的两次兑现)**:
+
+1. **S12-7 销项** —— 原承接 story-001:107 顺延登记「AC-37-06 须退设计重述」,实测**设计侧已由 `GDD:1121`(2026-10-15 收窄裁定四步)裁毕**;代码亦已改打生产载体(`case_identity_routing_test.cs:261/298`,含全哨兵流专项)。⇒ 无事可做者是「重述」,真残余 = 文书回填 ⇒ 立 **S12-7'**,user 裁定轮需求消失。
+2. **S12-0 新立(伪基线)** —— 用户提「editmode 基线数据好像不对」,核实为**时序伪基线**:`smoke-2026-10-15.md` 落于 `ff21027` **10:59**(DoD 收尾),如实记当刻 `3366/3320/0/46`;批 6 在 `a5ef7c5` **13:50** 才推到 `3388/3342/0/46`。失守处 = smoke/signoff 件**不记「截至时刻」**。传播面 = 5 个文件(smoke / qa-signoff-sprint-11 / medcons story-001 / fix-s11-13 / fix-s11-14)。处置 = 用户裁定「五处补订正注,不改原行」(改数 = 伪造当时记录)+ 模板加三字段建闸。
+
+**其他订正**:S12-5 拆 5a/5b(002–004 已清面可先翻 · 001 待 S12-7')。
+
+**M3 实测 21/31**(README:49 仍写 16/31 陈旧);`save-slot-ui`(7b)无 EPIC.md,只有 README + 1 story。
+
+**下一步**:S12-0 起手(批 1)。
+
+---
+
+## S12-2 收口(2026-10-15)
+
+**结论**:原判定(`active.md:3851`「`:406` 汇总 bug 实测仍在」)**未记录现象**;本件先构三假设(A 空腿假绿 /
+B 前缀碰撞 / C JSON 不自洽)**全部未命中**,再写夹具 ⇒ **第一跑即抓出真 bug**。
+
+**真 bug**:`"🔴 x".StartsWith("✅")` 在 Mono 下返回 **true** ⇒ 一条失败断言让整腿判「全绿」。
+诊断实测:`DIAG before: checks=1 passed=False | after: checks=1 passed=True | checks[0]=🔴 x`(`Logs/s12-2-diag.xml`)。
+字节级已核两 emoji 均合法 UTF-8 ⇒ 非编码问题,是 **culture-sensitive 比较**对非 BMP 前缀失效。
+
+**修复**:`LegResult` 增 `OkCount`/`FailCount`,`Check` 逐条累计,`Finish` 只读整数 ⇒ 真值完全不经过字符串。
+空腿 fail-loud 闸一并落入(`All` 原对空集恒真,当前不可达但可达即红)。
+`Check` 内原有 `if (!ok) r.passed = false;` 保留(逐条求真≠收腿求真,同向加固)。
+
+**装配接线**:`Editor.Tools.Spike/AssemblyInfo.cs`(IVT,先例 `Sim.Codec/AssemblyInfo.cs`)+
+`EditMode.asmdef` 增引用。Editor-only,**不涉门 A、不进构建**。
+
+**判据(三元组 = S12-0 规则第一次适用 · 07:54 UTC · `a5ef7c5`)**:
+| 面 | 值 |
+|---|---|
+| fixture | `6/6/0` 退出码 **0** |
+| 全量 EditMode | `3394/3348/0/46` 退出码 **0** |
+| 全量 PlayMode | `186/186/0` 退出码 **0** |
+| 零回归核算 | 基线 `3388/3342/0/46` → **+6/+6**,恰本 fixture 新增,零删除零失败 |
+| 反证 | 判据改回 `All(StartsWith("✅"))` ⇒ 退出码 **2** · `6/3/3`;已即时还原(diff IDENTICAL) |
+
+**证据原件**:`production/qa/evidence/fix-s12-2-story009-driver-passed-summary-2026-10-15.md`
+
+**元教训(本次第三次被同一类坑咬)**:
+① 原判定只给行号不给现象 ⇒ 我先构造可证伪假设而不是照改,假设计三选一都可能错过真相;
+② **"我认为的根因"在写进注释后仍可能是错的** —— 我先写了"emoji 前缀比较失效",又差点把
+  `StartsWith(Ordinal)` 当修好(它有同款隐患),最后才彻底改为不经字符串;
+③ 反证动作与还原之间必须**同一命令原子完成** —— 中途分类器超时,幸好在 python 回退前拦下,
+  否则磁盘会留着带 bug 的代码直到下一次跑测。已按此写成本件纪律。
+
+---
+
+## S12-3 + S12-4 收口(2026-10-15 · 同族建闸合批,承 CAPACITY-MODEL §五)
+
+**同批理由**:两件都是「建闸」,形状同(把自律升为机械检查),边际成本最低 —— 承 sprint-11 经验②。
+
+### S12-3 —— control-manifest 新增两条跨层约束(全局)
+- **之七 · 处方前置检查**:凡处方涉 `Sim` 侧引用集可达性,写入前先验「够不够得着」;
+  **已登记案例 3 条**(S11-7 + S11-8×2,同族根因不得第四次);判据 = 再现该形状须贴反证。
+- **之八 · 判据不得用文化敏感字符串比较**:判定谓词禁默认 culture-sensitive 比较,
+  非 ASCII/emoji 前缀必须显式 `Ordinal`,**更强形态 = 真值走结构化整数**。
+  源 = S12-2 实测 bug(`"🔴…".StartsWith("✅")` 在 Mono 下返 true)。
+- `Manifest Version` 2026-10-02 → **2026-10-15**(docs/CLAUDE.md 要求 date-stamped;
+  `/story-readiness` 会比对)。**已显式声明:增量仅此两节,前六条一字未改**,防误读为全manifest重新解读。
+
+### S12-4 —— /story-done DoD 新增强制证伪轮
+- 新增 **Falsifiability Gate** 节:五种命中形态(定序 / 共存互斥 / 定义域收窄 / 一次性幂等 / 阈值边界)强制反证。
+- **三处接线(防它变成散文)**:① Phase 3 独立节 ② Phase 6 报告模板的 Gate 结果字段
+  ③ **Verdict 定义纳入**(Gate BLOCKING ⇒ 不得转 Complete,原句「即 sum > 0 也无效」是笔误,实为「哪怕全 AC 通过也无效」—— 已在同段以 ⚠️ 澄清)。
+- 回填 S11-9 假绿案例(`chainAndNaturalCoexist` 首版链外病例数=0 ⇒ 对变异无判别力)。
+- **还原纪律写入 SKILL**:反证改动必须「改→跑→还原」同命令原子完成 —— 源自 S12-2 执行时分类器超时险些留 bug 代码在盘上的真实险情。
+
+## S12-5a 收口(2026-10-15)
+
+**任务**:case-system EPIC 口径刷新(002/003/004 三件可翻)。
+
+### 做了什么
+- `production/epics/case-system/EPIC.md`:
+  - Stories 表 002/003/004 三行 → `Complete ✅ 2026-10-15 (S12-5a 口径刷新)`,各带闭合批次与残余登记;
+  - 头部 Status → `⚠️ 5/6 Complete(仅 001 待 S12-5b · 2026-10-15 S12-5a 口径刷新)`;
+  - **三处旧「四件维持 In Review」结论就地加订正注(原句不删)**,同 S12-0 纪律:
+    ① 头部行 8(历史事实,非当前状态)② 行 19 排期段末句 ③ 行 30 排期面段末句。
+- 核验:story-002 / 003 / 004 的 `Status:` 均 = `Complete ✅ 2026-10-15`,与 EPIC 判定一致(EPIC 另带聚合注记)。
+
+### 关键裁定记录
+- **001 不代翻**:B-1(AC-37-06)设计侧重述已由 `GDD:1121` 裁毕(2026-10-15),
+  残余 = 文书回填 ⇒ 归 S12-7' / S12-5b。S12-5a 若代翻即踩「违反依赖链」。
+- **「四件维持 In Review」为何被推翻**:当日后续 S11-12…S11-17 六批(断言形态 + ADVISORY 清理)
+  把顺延面整批就地闭合,用户裁定「在 sprint-11 完成这些,不带入下个 sprint」⇒ 起草该结论时它成立,
+  当日即失效。**教训:同日内起草的顺延结论,须在收口时逐条复核**。
+
+### 产物
+- `production/sprint-status.yaml`:S12-5a → `done` / `completed: 2026-10-15`
+- `production/sprints/sprint-12.md`:任务表 S12-5a 行补完成记录;DoD 加两条勾选态
+  (S12-5a ✅ / S12-5b + S12-6 + S12-7' ⬜)
+
+## S12-6 收口(2026-10-15)
+
+**任务**:case-system 写者侧「同 tick 批量跨阈值」夹具(AC-37-29 写者侧)。
+
+### 缺口来源(具名,非自述)
+`fix-s11-17-case-system-advisories-2026-10-15.md` §六②-5 + §170 残余表:
+写者 9 测**全部逐 tick 递增** ⇒ 同 tick 批量这一维在写者侧**零覆盖**;
+检测器侧由 TA-7(`test_ac3734_sameTickFourthCase_…`,S11-9 交付)覆盖。两者是**分层**关系。
+
+### 做了什么
+- `unity/Assets/Tests/EditMode/CaseSystem/pattern_recognition_writer_test.cs` **+7 条**(36 → 43):
+  ① 同 tick 5 例 ⇒ 恰 1 条 + anchor = 全序第 3 例 ② 同 tick 重复调用幂等 ③ 同 tick 后续病例不重发
+  ④ 同 tick 恰达阈边界(1 例不发射 / 3 例发射)⑤ 同 tick 异构两 D 各一条 ⑥ 链外不占名额
+  ⑦ 阈值 2 放行(守卫上沿)。
+- **判别力设计**:插入序刻意**逆全序**(测 1 插 `[3,5,1,4,2]` vs 全序 `[1..5]`);
+  链外病例 `patient_id` 取**更小值**(1/2 < 10/11/12)⇒ 收窄失效即抢名额。
+- **铺流例外(已写入文件头)**:同 tick 各测**不经 `SpawnPatients`**,直接用 `PatientId` 字面量 ——
+  `SpawnNext` 按 `NextPatientId()` 单调发号 ⇒ **无法产出逆全序的插入序**(判别力会归零)。
+
+### 判据(可证伪)
+- 全量 EditMode `3394/3348/0/46` → **`3401/3355/0/46`**(**+7/+7 零回归零失败**)。
+- **产品码改动 = 零**(`git status --porcelain unity/Assets/Sim/` 无输出)。
+
+### 证伪轮(S12-4 新规适用 · 三处独立反证,均成立)
+| 变异 | 结果 | 转红(含本件新增 ✱) |
+|---|---|---|
+| 停 `NextEmissions` 的 `IsFired` 一次性门 | `EXIT=2` · `3401/3349/6` | `…_moreCases_noResend` ✱ · `…_repeatCall_firesOnce` ✱ + 4 既有 |
+| 停 `ComputeCandidateSeq` 的 `candidates.Sort` | `EXIT=2` · `3401/3351/4` | `…_writesExactlyOne` ✱ + 3 既有 |
+| 阈值守卫 `<2` → `<3` | `EXIT=2` · `3401/3354/1` | `…_thresholdTwo_allowed` ✱ |
+
+三次「改→跑→还原」**同一命令内原子完成**(`trap ... EXIT` 兜底),均 `RESTORED_IDENTICAL` + `REVERT_PROBE` 全仓零残留。
+⚠️ 第 3 次探针执行时被后台化,期间盘上文件处于变异态 —— 已由 Monitor 等到还原落定后核验(`< 2` 已回、残留 0)。
+
+### 产物
+- 原件:`production/qa/evidence/fix-s12-6-writer-same-tick-batch-2026-10-15.md`(基线三元组:2026-10-15 09:58 UTC · S12-6 全量门 · `a5ef7c5`)
+- `story-004` §六②-5 残余 **销项回刷**(含「生产触发点仍未接线」的防误读注)
+- `sprint-12.md` S12-6 行补完成记录;`sprint-status.yaml` S12-6 → `done`
+
+### 未闭合
+- `PatternRecognized` **生产触发点仍未接线**(意图源 = 结案/触发尚不存在),承 `PatternRecognitionWriter.cs:41` 既有登记,归 37 接线轮。**本件不改变该状态**。
+
+## S12-7' 收口(2026-10-15)
+
+**任务**:AC-37-06 口径回填 + `BLOCKED-BY-7a/45` 登记(原 S12-7 销项后的真残余)。
+
+### 性质:**纯文书回填,零代码改动**
+(`git diff --stat` 只命中 `production/epics/case-system/` 三件)
+
+### 四条验收条件逐项
+| # | 条件 | 落点 |
+|---|---|---|
+| ① | `story-001:107` 顺延行订正 | 加 🔴 订正注(**原句不删**)—— B-1/B-2/B-4 三项**当日即在 sprint-11 就地闭合**,该顺延行已过期 |
+| ② | 显式登记 `BLOCKED-BY-7a/45` | 入 `story-001` §Test Evidence —— 此前只在 B-1(a) 块作**转述**出现,story 自己的证据段无显式登记 |
+| ③ | 核实三态用例在册 | 已核:`test_highWaterMark_sentinelMinusOne_noPollution`(① 真 id 累加 ② 全哨兵流 ③ 溢出硬失败) |
+| ④ | 不重述设计 | GDD `:1121` 四步裁定已在册;**重述 = 推翻已 Accepted 的收窄裁定 = 范围外破坏** |
+
+### 关键判断
+- **「重述设计」这一半无事可做** —— 它是 S12-7 被销项的原因(S12-7 销项框已记)。S12-7' 是**真残余**(文书)。
+- **不代翻 001** —— S12-7' 只把「翻转条件已满足」写进 EPIC 指针;**口径刷新归 S12-5b**。
+- **行号纪律**:③ 的用例引用改**方法名**为主(初稿写 `:280-313`,实测为 `:273-311` —— 测试件行号是快照非指针,承 story-004 同款纪律)。
+
+### 产物
+- `story-001-case-stream-kinds-identity.md`:① 顺延行订正注 ② `BLOCKED-BY-7a/45` 登记块
+- `EPIC.md`:S12-7' 结清指针 + 「001 翻转条件已满足,归 S12-5b」
+- `sprint-12.md` / `sprint-status.yaml`:S12-7' → `done`;DoD 勾选
+
+### 解锁
+**S12-5b 前置已满足**(唯一 blocker = S12-7' 结论)。
+
+## S12-5b 收口(2026-10-15)· case-system EPIC 口径刷新(001)
+
+**性质**:纯文书(EPIC 口径),零代码改动。
+
+### 做了什么
+- **头部 Status**:`⚠️ 5/6 Complete(仅 001 待 S12-5b)` → **`✅ 6/6 Complete(2026-10-15 · S12-5b 口径刷新收口)`**
+- **Stories 表 001 行** → `Complete ✅ 2026-10-15(S12-5b 口径刷新)`,补四类 BLOCKING 各自的闭合批次
+  (B-1 两半 / B-2 · B-4 S11-12 / B-3 S11-11)+ 残余 `BLOCKED-BY-7a/45` 如实保留。
+- **四处历史 `In Review` 句全部加订正注(原句不删)**,并声明「EPIC 内所有 `In Review` 字样自此全为历史陈述」。
+
+### ⚠️ 顺带抓到的两处**活口径错误**(不只是历史句,是当前会误导的陈述)
+| # | 位置 | 错误 | 实况 |
+|---|---|---|---|
+| 1 | EPIC :43 | 「CB-3 未触及(`MemberSet` 仍扁平 ⇒ 归 sprint-12)」 | **CB-3 已由 S11-15 闭合** —— 扁平 `PatternDetectionResult.MemberSet` 与其按 `Dictionary` 迭代序拼装的循环**已删除** |
+| 2 | EPIC 表 004 行 | 「S12-6 补写者侧夹具(**进行中**)」 | **S12-6 已完成**(+7 条,36 → 43) |
+
+⇒ 这两处**不在 S12-5b 的验收条件里**(它是「001 口径刷新」),但同属「EPIC 口径与实况不一致」,顺手订正。
+
+### 逐字核验(验收条件)
+```
+头部:      ✅ 6/6 Complete
+表内四行:  001/002/003/004 均 **Complete ✅ 2026-10-15**
+story 文件: 001/002/003/004 的 Status: 行均 `Complete ✅ 2026-10-15`
+```
+**四处逐字一致** ✅
+
+### 里程碑影响(实测,非 README 自述)
+`for d in production/epics/*/` 实测:30 个有 `EPIC.md` 的 epic 中 **22 个 Complete**(+1 个无 EPIC.md 的壳 = 31)
+⇒ **M3 = 22/31**(与 sprint-12 附带发现的预期一致)。
+⚠️ `production/milestones/README.md:49` / `:369` 仍写 **16/31** —— **陈旧,已登记为附带发现**,
+**不在 S12-5b 验收面内**,待用户裁定是否本轮更新。
+
+### 产物
+- `EPIC.md`(头部 / 表 / 五处订正注)
+- `sprint-12.md` / `sprint-status.yaml`:S12-5b → `done`;**All Must Have 全部完成**
+
+## S12-8 收口(2026-10-15)· case-system 001 B-2/B-4 kindgen 复验
+
+**性质**:复验(评当下),**不追认** S11-12 的判定。**零代码改动**。
+
+### 判决:**未发现假绿 ⇒ 不立件**
+
+| # | S11-12 的判据 | 复验方法 | 结论 |
+|---|---|---|---|
+| ① | B-2 A2 严格形「非空跑」 | 复跑 + **对真实产品文件施变异** | ✅ 真判 |
+| ② | B-4 载体唯一化(CI job 真跑) | 读 job 定义 + 本地等价复跑 | ✅ 真判 |
+| ③ | `605961b` 变异探针 | 复跑 + **对探针自身证伪** | ✅ 真判 |
+| ④ | 测试面停复刻 | grep + `[Test]` 计数 | ✅ 已清零(9 条) |
+
+### 三条独立证伪(全部按预期转红,原子还原零残留)
+1. **真实产品文件变异** —— `CasePayloads.cs` 的 `CaseOpenedPayload.PatientId: int → float` ⇒ `kindgen.py --check` **EXIT=1**。
+   ⚠️ **这是探针未覆盖的一面**:`mutation_probe.py` 的变异施加在**内存副本**(monkeypatch `parse_payload_structs`),
+   证的是「断言函数对给定 struct 表会报告」,**不证**「从真实 `.cs` 解析出的 struct 表会被抓」。本件补做。
+2. **探针基线零报告** —— 未变异时 A2 报告 0 条 ⇒ `main()` 的 `if rep:` 判据**非恒真**(否则探针空跑)。
+3. **探针逃逸路径可达** —— 中和 `a2_payload_types`(提前 return)⇒ 探针报 **捕获 1 · 逃逸 6 · EXIT=1**
+   ⇒ `escaped` 分支非死代码,判决力可证伪。
+
+### 一条口径结案
+**S11-12 §七「不确定项 Q」**(A1 是否应删)= **保留**。
+理由:A1 打的是**生成物** `StreamRouting.Of`(生产码),与 B-4 点名的「复刻其扫描」**不同型**;
+且删它**无覆盖损失**(五 Kind 路由在 5 个 writer 测试里均有等价断言)。
+
+### 两条未闭项(如实登记,不因复验消解,亦不阻塞)
+- **CI 从未在真 GitHub runner 跑过** —— 「失败即红」是设计判据非已观测行为(`tests.yml:4` 自陈 Unity job 已移除)。归 devops / 首次 push。
+- **`guard-assertions` job 仍是占位**(`:27` TODO + `:29` `exit 0`)—— 不属 S12-8 面内,但同工作流内唯一假绿源。归守卫实现轮。
+
+### 产物
+- 原件:`production/qa/evidence/reverify-s12-8-kindgen-2026-10-15.md`
+- `sprint-12.md` S12-8 行补完成记录;`sprint-status.yaml` S12-8 → `done`
+- **顺带**:S12-0…S12-4 此前已做完但 status.yaml 未回刷,**本批一并补齐**(现 10/12 done)
+
+### 遗留
+- **S12-9**(53 story-002 judge 实现,Should Have,规模 L)—— 唯一未动的 Should Have
+- **S12-10**(11 人工走查 + 三签)—— 前置 S12-2 已满足,须真人,agent 不可代劳
+- 附带发现:`production/milestones/README.md` 的 `16/31` 陈旧(实测 **22/31**),待用户裁定
+
+---
+
+## 里程碑 README 更新(2026-10-15 · 用户指令「更新里程碑」)
+
+### 触发
+`production/milestones/README.md` 的 M3 计数为 **2026-10-03 快照**(`16/31` / `207 story / 136 Complete`),
+滞后 12 天。**不是改一个数** —— 全表逐量脚本实测重测。
+
+### 实测值(三元组:截至 2026-10-15 · 批次 sprint-12 收口 · commit `a5ef7c5`)
+| 量 | 旧记(10-03) | **实测(10-15)** | 差 |
+|---|---|---|---|
+| epic 全 Complete | 16/31 | **22/31** | +6 |
+| story 总数 | 207 | **220** | +13 |
+| story Complete | 136 | **172** | +36 |
+| story Ready | 71 | **46** | −25 |
+| story In Review | 0 | **1** | +1 |
+| story Pending | 0 | **1** | +1 |
+
+- EditMode 基线 **`3401/3355/0/0/46`**(`unity/Logs/s12-6-final.xml`)· PlayMode **`186/186/0`**(`s12-2-full-pm.xml`)
+- 分母 31 = `ls -d production/epics/*/ | wc -l`;`save-slot-ui` **无 `EPIC.md`** ⇒ 计非 Complete(如实,非遗漏)
+- In Review 那 1 条 = `medical-consequences/story-001`(= S12-9 待办对象);Pending 那 1 条 = `world-ecozones/story-005`
+
+### ⚠️ 本轮自查纠正的一处自身错误
+初稿写 `case-system` 是「22 个 Complete 中**本轮唯一翻绿户**」。经 `git log --since=2026-10-03` +
+逐 epic 完成日扫描,实为 **6 户**在 10-03 之后翻绿:
+`patient-ai`(10-05)· `prescription-medication`(10-06)· `disease-simulation`(10-07)·
+`diagnosis-system`(10-08)· `emergency-procedures`(10-08)· `case-system`(10-15)。
+⇒ 已订正为:**`case-system` 是本轮唯一翻绿户,其余 5 户是旧快照滞后所致,不得记到 sprint-12 账上**。
+
+### 编辑落点
+- `Last Updated` 2026-10-03 → **2026-10-15**
+- M3 行 `16/31` → **`22/31` epic 全 Complete(2026-10-15 实测)**
+- M3 Exit Criteria 两行计数刷新;零 S1/S2 bug 条加括注(**`production/qa/bugs/` 仅 `README.md`,
+  零 bug 文件 ⇒ 形式上满足,含义是「无登记」非「已修复」**)
+- 新增 **`📊 2026-10-15 实测复核`** 块(diff 表 + 口径说明 + 修正后的 +6 构成)
+- §附 计数与基线 全表重测(**逐行标来源** + 三元组);旧 `2204/2163/0/40/1` **原文不删** + 「已过时」指针
+- 修掉 §附 末行一个**游离反引号**(不成对)
+- ⚠️ **只订正计数,不改判定** —— `Sim` 引用集门 / b2 / b6 的「未勾」是真实状态(尚无单一「全绿」实测记录),
+  非陈旧标记;已在 README 明写。
+
+### 遗留(未动,如实)
+- **S12-9**(53 story-002 judge 实现,Should Have,规模 L)—— 唯一未动的 Should Have,待用户指令
+- **S12-10**(11 人工走查 + 三签)—— 须真人,agent 不可代劳
+
+---
+
+## S12-9 依赖面勘察 → 退回单独立项 + 立 S12-11(2026-10-15)
+
+### 判决
+**四入向 P / C / D / U 全部「需补」或「不存在」(4/4 ≥ 2)⇒ 触发卡面自带的收缩判据**
+(`story-002:112`「若需补/不存在 ≥ 2 路 ⇒ 退回单独立项,不硬吃」)⇒ **S12-9 退回**。
+**用户裁定**:① S12-9 退回单独立项;② 立读侧解码 ADR = **甲案**(`IPayloadDecoder`)。
+
+### 根因(一条结构性缺口,非四笔独立欠账)
+`unity/Assets/Sim/Sim.asmdef:4` 的 `"references": [ "Sim.Contracts" ]` ⇒ `Sim` 引用集恰 = {BCL, Sim.Contracts};
+而 **`PayloadCodec` 住 `Sim.Codec`** ⇒ `Sim` **物理上够不着任何载荷内容**(`PayloadRef` 只有 BlobId/Offset/Length)。
+而 `Judge` 按定义就要读 P/C 的**内容**(GDD `:263`)。
+**= ADR-029 的对称缺口**:写侧立了 `IPayloadEncoder`,**读侧全库零抽象点**(grep = 0 命中)。
+
+### 三次同型绕行(均为「绕开」非「解决」)
+`CaseCloseDecider.cs:177-181` · `ConsequenceInputAggregator.cs:11-13` · `PatternDetector.cs:182,197`(委托形)。
+⇒ 跨系统结构缺口,不止 53 一家 —— S12-11 的 ADR 应按**通用缝**处理。
+
+### 四条独立于根因的缺口(一并登记)
+1. D 侧 `treatable_by` 门**自身结构性缺位** —— `ProgressionEvaluator.cs:336-338` 自陈恒 null(归 9 装载轮)
+2. `assets/data/53_outcome_table.json` **不存在**
+3. 53 **零装配层**(全仓除定义件+测试外零引用)
+4. AC-53-03 零浮点门无载体 · `tests/golden/medcons/*` 不存在
+
+### 待裁口径(与退回无关,一并登记)
+处置记录 Kind 闭集**四处不一致**:GDD 规则五 `:165` 只列 `CareApplied` vs 卡面 Note 4 提 10/11 两支。
+归 **53 的 GDD 轮**。
+
+### 产物
+- 原件:`production/qa/evidence/recon-s12-9-medcons-outcome-judge-2026-10-15.md`(八节 + 七条可复核判据)
+- `sprint-12.md`:S12-9 退回框 + 行内销项 + **新立 S12-11 行** + Risk 行兑现登记 + 附带发现
+- `sprint-status.yaml`:S12-9 → `blocked`(表内合法值;**`returned` 不在六值映射表内,已纠正**);新增 S12-11 → `ready-for-dev`
+- ⚠️ **本件是勘察不是评审** —— 未跑测试、未改生产码,不产生「已绿」声称
+
+### 遗留
+- **S12-11**(读侧解码 ADR,甲案)—— **待用户裁定 ADR 正文后落盘**;这是 S12-9 唯一的结构性前置
+- **S12-10**(11 人工走查 + 三签)—— 须真人,agent 不可代劳
+
+---
+
+## S12-11 读侧解码 ADR 落盘(2026-10-15)
+
+### 产物
+`docs/architecture/adr-031-payload-decoder-abstraction.md` —— **Accepted**(用户两轮裁定,§Decision 五项全确认)。
+
+### 五项裁决
+| # | 内容 | 来源 |
+|---|---|---|
+| ① | **第八个 P0 抽象点 `IPayloadDecoder`**(住 `Sim.Contracts`,实现 `PayloadDecoder` 住 `Sim.Codec`) | 用户裁 |
+| ② | 形状 = **抛形** `T Decode<T>(EventKind, in PayloadRef) where T : struct` —— 与字节级 `Decode<T>`/`Encode<T>` 对称,与 `TryGetPayload` 刻意分家(后者 bool 只承载「查无」,损坏本就走抛 ⇒ 本接口把「未驻留」也显式化 ⇒ 两种失败类型可分) | 用户裁 |
+| ③ | **池依赖在实现构造函数**,不在接口签名 —— 逐字承 ADR-029 §② 模式 | 用户确认 |
+| ④ | **接口不含 freehand 路径**(写侧两个具名重载,读侧没有;不对称是设计) | 用户确认 |
+| ⑤ | **b5 门补两项** `IPayloadEncoder` + `IPayloadDecoder` | 用户确认 |
+
+### 关键结构结论(③ 的收益)
+`IBlobPool` **一字不改、不搬家**;`Sim.Contracts.asmdef` 的 `references` 仍 `[]`;
+`Sim.asmdef` 的 `references` 仍 `["Sim.Contracts"]` ⇒ **零新增程序集边**,门 A / b2 / ADR-025 §① 三重约束全保留。
+
+### ⚠️ 起草期新发现(ADR-029 漏项)
+`AssemblyGates.cs:381-385` 的 `AudioForbiddenContractTypes` 八项(**六个抽象点 + SimEvent + VitalsDto**)
+**不含 `IPayloadEncoder`** ⇒ **实测 44 今天可合法引用编码器**。已入 §⑤。
+**归属分开记账**:补 `IPayloadEncoder` 属 ADR-029 面,补 `IPayloadDecoder` 属本件。
+
+### 起草期两处自查修正
+1. payload struct 数初稿写 **34**(照抄 ADR-029 当年值),实测现为 **35**(`grep -c "name: SimEvent.Kind\."` = 35,与 `Encode` 重载数一致;ADR-030 追加 `DiseaseOnset` 后 +1)⇒ 三处已改。
+2. 漏了模板必需的 `### Architecture` 节(`docs/CLAUDE.md` 列明)⇒ 已补(程序集归属图 + 运行时数据流图)。
+
+### §Migration Plan 与 ADR-029 的差异
+ADR-029 只登记 ADR-005 的**五处**计数订正,**实测该批次未扫干净**(全库仍散落「五个/六个」)。
+ADR-031 **一次列全**,分 A/B/C 三组(A 现行态断言 → 改 · B ADR-029 未扫残留 · C 历史陈述 → 加注不改写),
+并明写「**本清单不声称已复核**」—— 承 `control-manifest.md:40-46` 二分先例。
+**⚠️ 承 ADR-029 先例:本件只写裁决,计数订正归实现轮,本轮不动 `architecture.md:816` 等处的「七个」。**
+
+### 登记落点
+- `.claude/docs/technical-preferences.md`:ADR-031 日志条目 + 日志状态 `001–030` → `001–031` + 补 ADR-028/029/030/031 非 Required 面的说明
+- `sprint-12.md`:S12-11 行完成记录
+- `sprint-status.yaml`:S12-11 → `done`(13 条全合法状态,YAML 可解析)
+
+### ⚠️ 禁借绿
+**§Validation V-1…V-10 全部未勾** —— 实现未落。Accepted 表示**方向已裁**,不表示任何判据已通过。
+
+### 遗留
+- **S12-9**(53 story-002 judge 实现)—— `blocked`,待 ADR-031 的实现轮(契约支 + 接线支)落地
+- **S12-10**(11 人工走查 + 三签)—— 须真人,agent 不可代劳
+- **ADR-031 实现轮** —— 须另立 story(契约支:`IPayloadDecoder` + `PayloadDecoder`;接线支:b5 门 + 三处绕行逐处登记)
+
+---
+
+## ADR-031 实现轮落盘(S12-12 · 2026-10-15)
+
+### 产物
+- **契约支**:`unity/Assets/Sim.Contracts/IPayloadDecoder.cs` + `unity/Assets/Sim.Codec/PayloadDecoder.cs`
+  (+ 三个 `.meta`);测试 `unity/Assets/Tests/EditMode/PersistenceService/payload_decoder_test.cs`(**20 条**)
+- **接线支**:`AssemblyGates.cs` b5 门 8 → **10 项** + 错误串「六抽象点」→「八抽象点」
+- **计数订正**:全库 A 组 25 处改 · B 组 3 改 + 4 注 · C 组历史件 6 注 + 现行件 9 注
+- **ADR-031 就地订正**:§Summary / §Validation / §Migration Plan 的「三处绕行」→ 实测 **11 处**
+- **证据原件**:`production/qa/evidence/impl-adr031-payload-decoder-2026-10-15.md`
+- **sprint**:`sprint-12.md` 新增 S12-12 行 · `sprint-status.yaml` S12-12 → done(14 条全合法)
+
+### ⚠️ 本批最重要的两条「探针/清单自身失效」发现
+1. **探针 1 首跑假绿** —— 根因 = 编辑与 Unity 运行**分属两次 Bash 调用**,
+   `trap ... EXIT` 在编辑那次退出时即还原 ⇒ Unity 跑的是**原文件**,自然全绿。
+   **教训:改与跑必须同一次调用**(后续探针 2/3 与探针 1 重做均遵守,全部正确转红)。
+2. **ADR-031 的 V-10 清单本身有错** —— ① `AssemblyGates.cs:720` 被记为「错误串」,
+   实为普通 doc 注释(真错误串在 `:729`);② 清单漏列 `production/session-logs/`(自动审计日志)。
+   ⇒ 印证 ADR 自陈「**本清单不声称已复核**」的必要性。
+
+### ⚠️ V-8 口径订正(实为最大发现)
+ADR-031 原稿称既有绕行「**三处**」,实测 **11 处**:
+- **退 6**:CaseCloseDecider · ConsequenceInputAggregator · PatternDetector ·
+  CaseOpenDecider · PatternRecognitionWriter · ResourceHarvestWriter
+- **暂不退 5**:CaseOpenWriter · CaseCloseWriter · PoiStateMachine · DiseaseCourse · DiseaseCourseBook
+- 另有 `StructureKinds.cs` / `EmergencyAttemptAggregator.cs` 两处**仅注释引用**,非绕行
+**本件只保证退路存在,不执行接线**(退的执行归各归属系统实现轮)。
+
+### 回归
+`3421 / 3375 / 0 failed / 46 skipped`(EXIT=0,`s12-11-impl-final.xml`,`HEAD=a5ef7c5`)
+**对照基线** `3401/3355`(`s12-6-final.xml`,18:05)⇒ **+20 / +20,零回归**。
+
+### 遗留
+- **S12-9**(53 story-002 Judge)—— 结构前置已解,**可重开**
+- **接线支的「退」执行** —— 6 处归 37 / 17 / 53 各自实现轮
+- **ADR-010 §三 义务 16** —— 本件只登记落点,不落表
+- **S12-10**(11 人工走查 + 三签)—— 须真人
+
+---
+
+## 2026-10-15 晚 · ADR-031 接线轮:V-8 六处「退」执行完毕(用户裁定「6 处全做,含改 Inputs53」)
+
+### 执行面(产品 7 + 连带 6 + 测试 8,~21 文件)
+
+- **退 ①③④⑥⑦⑨**:CaseCloseDecider(IsClosed/IsOpen 解码 CaseId)· PatternDetector(解码
+  DiseaseSet,委托面退役)· CaseOpenDecider(LastJudgmentOf 解码 CaseId)·
+  PatternRecognitionWriter(ctor 10→8)· ResourceHarvestWriter(gather_seq 自算)
+- **退 ②**:ConsequenceInputAggregator + **Inputs53 形状改**(P/C 两路 → 解码行
+  `JudgmentRow53` / `CareRow53`;字段名/数量不变,AC-53-05 原样绿;三种异构处置载荷
+  CareRowOf 归一;Judge 真值源 LexiconId/Confidence/ActionId/Polarity 直读)
+- 连带:CompositionRoot/Services(decoder 装配)· CaseCloseWriter · CasebookVitalsSource
+- 测试:precondition(12 真载荷 + 41 调用)· open_and_judgment(10 真载荷,具名重载)·
+  pattern_detection(104 MakeClosed + 8 提取器退役)· resource_harvest(自算断言)·
+  medcons(内容级指纹)等 8 文件
+
+### 门保持
+
+门 A / b2(Sim 引用集不变)· b6(零 new PayloadRef()· AC-53-05(五路闭集)全绿。
+
+### 回归
+
+`3421 / 3375 / 0 / 46`(`s12-wiring-final.xml`,20:39,EXIT=0)—— 与基线逐位一致,零回归。
+迭代:编译红 1 次(using 缺)· 测试红 1 轮 15 条(Judgment 须具名重载,夹具改)→ 全绿。
+
+### 文书
+
+- 证据原件 §九 增补:`production/qa/evidence/impl-adr031-payload-decoder-2026-10-15.md`
+- ADR-031 V-8 表后注记:「同日接线轮」执行状态
+
+### 未结
+
+- **S12-9 重开与否** —— 结构前置已全解(Judge 可直读解码行),待用户裁
+- 53 GDD 轮张力(处置 Kind 闭集 / 窗口下界)—— 不消解,归 53 GDD 轮
+
+---
+
+## S12-9 重开(story-002 Judge)· 2026-10-15 晚
+
+### 用户裁定(AskUserQuestion)
+- 键域 = **3×3×2 = 18 组合 + default 行**(P=判断三态 / C=处置三态(命中位经投影)/ D=痊愈二态)
+- U 形状 = **表带档列、band_count 常量默认 1**;退化路径 = 显式中点 1/2(raw 32768)非静默 0
+- 「如果还错,需要去引擎参考文档查询一下」(本轮错误均为纯 C# 语言面,引擎参考无 tuple 内容;已按 C# 规则处理)
+
+### 依赖面重估(S12-9-AC-a)
+P/C/U 三路已可用(接线轮产物);D 有接口占位(9 侧装载面归 9 轮)⇒ 收缩判据不触发,可继续。
+
+### 已落盘
+- golden 真源:`tests/golden/medcons/golden_v1_reference.py` + `golden-v1.txt`(32 数据行;
+  **A05 = 9104567A4D5A819C 与 C# 既有 case-salt golden 逐位一致** —— 独立参考实现交叉验证通过;
+  N01 负夹具 = signed-shift 漂移变体)
+- 夹具先红(S12-9-AC-b):`medcons_outcome_judge_test.cs` 初版跑出 **24 条 CS0246**(全指向待实现符号)
+- 实现:`Outcome53.cs`(枚举 6 员 + 键域三轴 + JudgeInputs + Judge 纯函数 + U 派生)·
+  `TrialHistoryPredicate.cs`(run 计数 + Judgment 打断,阈值 3 留槽)·
+  `OutcomeTableBinder/Baker(OutcomeTable53)/CookedWriter` 三件套 + 菜单项 ·
+  `assets/data/53_outcome_table.json`(18+1 行,符号值已与 golden 规则逐格对齐)·
+  `MedConsFloatGate.cs`(AC-53-03 零浮点 + AC-53-12 零 31 token,接入 RunAll)
+- 迭代记录:绿轮 1-4 编译红(CS0050/51/52 可访问性 · CS0103 Bind 改名漏改 · CookedFormat using ·
+  JsonNodeKind.Missing 不存在 · tuple 键转换 · long/ulong 字面量 · CS0826 数组最佳类型)→ 逐一修复;
+  JSON 两行与符号规则不一致已对齐(empty|matched|recovered → residual;confirmed|matched|not_recovered → no_echo)
+
+### 进行中
+- **绿轮 5 batch 后台跑**(s12-9-green5);Monitor 挂着
+- 待办:全绿 → AC-53-02 Mono 逐位 → 证据原件 → sprint 登记;IL2CPP 三格 NOT-RUN 登记(S12-9-AC-c)
+
+### S12-9 完成(2026-10-15 晚)
+
+- **终轮全绿:`3444 / 3398 / 0 / 46`**(基线 3421/3375/0/46 ⇒ +23/+23,零回归;`unity/Logs/s12-9-final.xml`)
+- 23 条新测试(MedconsOutcomeJudgeTest)全 Passed —— 逐条核对过
+- 迭代 8 轮(red + green1-6 + final)全红如实;证据原件:`production/qa/evidence/impl-s12-9-medcons-outcome-judge-2026-10-15.md`
+- story-002 卡面 Test Evidence 已回刷([x] Created & passing);sprint-status / 面向用户的 AC 勾选待用户裁
+- IL2CPP 三格 NOT-RUN 登记(S12-9-AC-c);登记项:装配轮装载 / 数值轮行值 / 9 轮 treatable_by 装载面

@@ -132,6 +132,32 @@ Parse runner output and extract:
 - Names of any failing tests (up to 10; if more, note the count)
 - Any crash or error output from the runner itself
 
+**⚠️ Baseline provenance (BLOCKING · 2026-10-15 S12-0 立)** — every test count
+in the Phase 5 report MUST carry a three-field triple, or the report silently
+becomes a false baseline for later sprints:
+
+- **截至时刻** — wall-clock time the run happened (`date -u +%Y-%m-%dT%H:%M`)
+- **批次** — which execution batch produced it (e.g. `sprint-11 批 4`) when
+  mid-sprint batches exist
+- **commit** — the git commit the working tree was at (`git rev-parse --short HEAD`)
+
+Never write a bare count with only「逐位一致」attached. **Why**: in sprint-11,
+`production/qa/smoke-2026-10-15.md` recorded `3366/3320/0/46` at 10:59 (truthful
+for that moment); batch 6 then landed at 13:50 pushing the real final value to
+`3388/3342/0/46`. Because the file carried no timestamp, the morning record
+silently degraded into a **pseudo-baseline**, inherited by four downstream
+documents. A truthful number without provenance is a future false baseline.
+
+If the counts are quoted from a prior report rather than freshly run, say so
+explicitly (`引用自 <file> @ <timestamp>`) — never re-stamp a quoted count as
+this run's own.
+
+**同规则适用于本 skill 之外的 QA 判读件**:`production/qa/evidence/qa-signoff-*.md`
+(S12-0 起同样强制三元组;首例 = `qa-signoff-sprint-11-2026-10-15.md`)、
+`fix-*` / `review-*` / `eval-*.md` 里任何被下游引用的测试数值。
+**凡本 skill 在 QA 签核前发现签核件裸数(或正引用一个已知伪基线),须在报告
+「Missing Test Evidence」节点名** —— 签核件自身也是证据件,不是例外。
+
 ---
 
 ## Phase 3: Check Test Coverage
@@ -280,12 +306,21 @@ Assemble the full smoke check report:
 **QA Plan**: [path, or "Not found — run /qa-plan first"]
 **Argument**: [sprint | quick | blank]
 
+**基线溯源三元组(强制 · S12-0)**:截至时刻 `[YYYY-MM-DD HH:MM, 时区]` · 批次 `[sprint-N 批 M / 全量]` · commit `[short sha]`
+
+> 若数值引自旧件而非本轮实跑,在此改写 `引用自 <file> @ <其截至时刻>` 并**去除**上方实跑字段。
+
 ---
 
 ### Automated Tests
 
 **Status**: [PASS ([N] tests, [N] passing) | FAIL ([N] failures) |
 NOT RUN ([reason])]
+
+| 套件 | 退出码 | XML | 对照基线(同带三元组) |
+|---|---|---|---|
+| EditMode | [0/1/2] | `total=N passed=N failed=N inconclusive=N skipped=N` | `[基线]` @ `[时刻]` · `[批次]` · `[commit]` |
+| PlayMode | [0/1/2] | `total=N passed=N failed=N inconclusive=N skipped=N` | `[基线]` @ `[时刻]` · `[批次]` · `[commit]` |
 
 [If FAIL, list failing tests:]
 - `[test name]` — [brief failure description from runner output]

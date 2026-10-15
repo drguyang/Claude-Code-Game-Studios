@@ -249,7 +249,7 @@ namespace DaYiJingCheng.Tests.PlayerController
             // (与 LocomotionEvaluator 同组「1 自有类型」),不构成 AC-1-27 要拒的游戏状态。
             typeof(LocomotionConfig),
 
-            // 只读接口引用(六抽象点 + ADR-029 第七抽象点 + 相机只读基)
+            // 只读接口引用(六抽象点 + ADR-029 第七抽象点 + ADR-031 第八抽象点 + 相机只读基)
             typeof(IEventSink), typeof(ITickProvider), typeof(IEventAuthority),
             typeof(IIdAuthority), typeof(IVitalsQuery), typeof(IPresenceQuery),
             typeof(IDataProvider), typeof(ICameraRig), typeof(YawBasis),

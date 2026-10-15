@@ -142,6 +142,44 @@ For each acceptance criterion in the story:
 4. For any ADVISORY untested criteria, add to the Completion Notes in Phase 7:
    `"Untested criteria: [AC-N list]. Recommend adding tests in a follow-up story."`
 
+### Falsifiability Gate — 假绿夹具强制证伪轮(S12-4 · 2026-10-15 立)
+
+> **为什么立这条**:sprint-11 的 S11-9 在证伪轮**抓出自己的一条假绿夹具** ——
+> `test_ac3729_chainAndNaturalCoexist_perDisease` 首版里「链外病例数 = 0」⇒
+> 收窄与否结果相同 ⇒ **对变异毫无判别力**;首轮反证只红 2 条(期望 3)才暴露。
+> **它若不经证伪轮,会以「绿」留下却什么都没测。**
+> 源:`production/sprints/sprint-11.md:101-103` · 回办件 `production/qa/evidence/fix-s11-9-*.md`。
+
+**适用范围(命中任一即强制)**:本 story 新增/改写的测试中,凡属下列形态 ——
+① **定序类**(断言 A 先于 B)② **共存/互斥类**(断言两者同时成立或不可兼得)
+③ **定义域收窄类**(断言某输入被排除/被纳入)④ **一次性/幂等类**(断言只发生一次)
+⑤ **阈值边界类**(断言 `< N` / `≥ N` 的守卫)
+
+**执行动作(对着测试文件做,不是对着散文做)**:对每个命中项,挑出**一条**主要断言,
+**把生产码的对应守卫/判据临时停用或改坏**,重跑该 fixture:
+
+- 断言**必须转红** ⇒ 该夹具有判别力,记「反证:停用 X ⇒ 该项红」。
+- 断言**仍绿** ⇒ 该夹具**假绿**,本条即 BLOCKING;须先修夹具(通常是输入构造让
+  变异前后结果相同),再回到本门。
+
+**还原纪律**:反证用的改动**必须与跑测在同一个命令内完成**(改 → 跑 → 还原),
+不得让带 bug 的产品码留在盘上跨命令;还原后 `diff` 校验并贴出。
+
+**登记位置**:story 的 `## Test Evidence` 须逐项列出
+`反证:停用 <守卫> ⇒ <测试名> 红`;缺该项 = 本条门不通过。
+
+**判据模板**(照此填写,不得只写「已验证」):
+
+```
+| 命中形态 | 主要断言 | 反证:停用什么 ⇒ 哪条转红 |
+|---|---|---|
+| 定义域收窄 | chainQuota | 停用定义域收窄 ⇒ chainQuota / chainComplete / chainAndNaturalCoexist 3 条红 |
+```
+
+**参照先例(可直接照做)**:S11-7 / S11-8 / S11-9 / S11-10 / S12-2 五件均带
+「改回旧实现即转红」反证(S12-2 反证 6 测 3 红);`production/qa/evidence/fix-s12-2-*.md` §四
+含完整反证流程(含「同命令原子还原」纪律的由来)。
+
 ### Test Evidence Requirement
 
 Based on the Story Type extracted in Phase 2, check for required evidence:
@@ -337,6 +375,11 @@ Before updating any files, present the full report:
 **Required evidence**: [unit test file | integration test or playtest | screenshot + sign-off | walkthrough doc | smoke check pass]
 **Evidence found**: [YES — `[path]` | NO — BLOCKING | NO — ADVISORY]
 
+### Falsifiability Gate(S12-4 · 2026-10-15 立)
+**命中形态**:[定序 / 共存互斥 / 定义域收窄 / 一次性幂等 / 阈值边界 —— 无则写「未命中」]
+**反证记录**:[逐项列出「停用 <守卫> ⇒ <测试名> 红」;未命中形态写 N/A]
+**Gate 结果**:[PASS —— 每条命中项均已反证转红 | **BLOCKING** —— 存在未反证项或反证未转红(假绿)]
+
 ### Deviations
 [NONE] OR:
 - BLOCKING: [description] — [GDD/ADR reference]
@@ -350,9 +393,13 @@ Before updating any files, present the full report:
 ```
 
 **Verdict definitions:**
-- **COMPLETE**: all criteria pass, no blocking deviations
-- **COMPLETE WITH NOTES**: all criteria pass, advisory deviations documented
-- **BLOCKED**: failing criteria or blocking deviations must be resolved first
+- **COMPLETE**: all criteria pass, no blocking deviations, **且 Falsifiability Gate = PASS**(或未命中形态)
+- **COMPLETE WITH NOTES**: all criteria pass, advisory deviations documented,**Falsifiability Gate = PASS**
+- **BLOCKED**: failing criteria或 blocking deviations未解决;**或 Falsifiability Gate = BLOCKING**(存在假绿夹具 / 未反证项)
+
+> ⚠️ **Falsifiability Gate 是 BLOCKING 级**,不是 advisory —— S11-9 的教训正是
+> 「假绿夹具会以绿的形式留下却什么都没测」。Gate 不通过 ⇒ 不得转 `Complete`,
+> **哪怕全部 AC 已通过也无效**。
 
 If the verdict is **BLOCKED**: do not proceed to Phase 7. List what must be
 fixed. Offer to help fix the blocking items.

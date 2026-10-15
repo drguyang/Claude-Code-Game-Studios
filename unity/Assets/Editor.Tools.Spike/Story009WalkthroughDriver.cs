@@ -50,6 +50,12 @@ namespace DaYiJingCheng.EditorTools.Spike
             public string name;
             public bool passed;
             public List<string> checks = new List<string>();
+
+            // ⚠️ S12-2(2026-10-15):判定真源 —— 逐条整数累计,**不经字符串前缀**
+            //(原实现用 `checks.All(c => c.StartsWith("✅"))`,实测在 Mono 下会把
+            // `"🔴 …"` 误判为通过;根因见 Finish 注释)。
+            public int OkCount;
+            public int FailCount;
         }
 
         private static Keyboard _keyboard;
@@ -398,13 +404,44 @@ namespace DaYiJingCheng.EditorTools.Spike
             {
                 r.checks.Add($"{(ok ? "✅" : "🔴")} {what}");
                 Debug.Log($"{LogTag} {(ok ? "✅" : "🔴")} [{r.leg}] {what}");
+                if (ok) r.OkCount++; else r.FailCount++;
                 if (!ok) r.passed = false;
             }
 
+            /// <summary>
+            /// 收腿:重算 <see cref="LegResult.passed"/> 并登记结果。
+            /// </summary>
+            /// <remarks>
+            /// ⚠️ **S12-2(2026-10-15)加 fail-loud 闸 —— 原 <c>All</c> 语义对空集恒真:
+            /// 若某腿一条断言都没跑(结构改动后 early-exit 移到 <c>Check</c> 之前),
+            /// 空 <c>checks</c> 会让 <c>All</c> 返 <c>true</c> ⇒ 该腿被记「全绿」而它什么都没测。
+            /// 该路径在当前文件内**不可达**(每个 <c>Finish</c> 前 ≥1 条 <c>Check</c>,
+            /// 含 <c>:185</c>/<c>:269</c> 两条 early-exit),故本闸**不是在修一个已知 bug**,
+            /// 是把「空腿假绿」从『当前碰巧不可达』变成『一旦可达立即报红』。
+            /// ⚠️ 同时**保留** <see cref="Check"/> 内已有的 <c>if (!ok) r.passed = false;</c> ——
+            /// 那是**逐条**求真,本方法是**收腿**求真,两侧冗余是同向加固,不得互删。
+            /// </remarks>
             private static void Finish(LegResult r)
             {
-                r.passed = r.checks.All(c => c.StartsWith("✅"));
-                Debug.Log($"{LogTag} ===== 腿 {r.leg} 结束:{(r.passed ? "全绿" : "有红")} =====");
+                // ⚠️ S12-2(2026-10-15)—— 本方法曾有一个真 bug,**由 S12-2 夹具实测抓出**:
+                //   原判据 `r.checks.All(c => c.StartsWith("✅"))`(无 StringComparison 重载)。
+                //   **实测(`s12-2-diag`)**:一条 `"🔴 …"` 失败断言下,该表达式返回 **true**
+                //   ⇒ 该腿被判「全绿」。根因 = 默认 culture-sensitive 比较在 Mono 下对
+                //   非 BMP emoji 前缀处理不可靠;**不是笔误,是可复现的运行期行为**。
+                // ⇒ 修复:真值**完全不经字符串**。`Check` 逐条累计 `OkCount`/`FailCount`,
+                //   本方法只读这两个整数;`checks` 串仅作人读展示(Console/JSON)。
+                // ⚠️ 空腿(`OkCount + FailCount == 0`)= 一步都没跑 ⇒ 显式补红并判 false。
+                int ok = r.OkCount, bad = r.FailCount;
+                if (ok + bad == 0)
+                {
+                    r.checks.Add("🔴 本腿零断言执行(空腿)——结构缺陷,非通过");
+                    r.passed = false;
+                }
+                else
+                {
+                    r.passed = bad == 0;
+                }
+                Debug.Log($"{LogTag} ===== 腿 {r.leg} 结束:{(r.passed ? "全绿" : "有红")}(ok={ok} bad={bad}) =====");
                 _results.Add(r);
             }
 

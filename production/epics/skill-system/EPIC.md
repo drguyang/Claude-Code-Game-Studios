@@ -15,7 +15,7 @@
 | ADR | Decision Summary | Engine Risk |
 |-----|-----------------|-------------|
 | ADR-026: 技能成长的定点化与持久化契约 | FixPow 唯一整数幂实现(指数 ∈ {整数, 整数+1/2},FixSqrt = 整数牛顿,禁 libm/float);CombatPower 定点求值 + Fix 传入 25;SkillGrown 落病史流不独立快照;折叠豁免扩一类 Kind(结清 OQ-7a-9);义务 14 入 ADR-010 §三 | LOW |
-| ADR-005: 确定性模拟与状态同步模型 | 全部模拟数学在整数定点域;病史事件流是唯一真源;主机唯一执行 Step / CatchUp;五个 P0 抽象点 | HIGH |
+| ADR-005: 确定性模拟与状态同步模型 | 全部模拟数学在整数定点域;病史事件流是唯一真源;主机唯一执行 Step / CatchUp;八个 P0 抽象点(ADR-031 后) | HIGH |
 | ADR-006: 定点域边界数据契约 | FixParse 为外部数据→Fix 唯一入口(拒浮点字面量);单一舍入 ROUND_HALF_AWAY_FROM_ZERO;Fix 不可经 Unity 内置序列化器 | MEDIUM |
 | ADR-009: 世界状态事件化边界 | 三流全序与域归属表;SkillGrown 属病史流(第二十七批具名入 entities.yaml,V-2 条目 33→34) | MEDIUM |
 | ADR-010: 7a 持久化与存档格式 | 全二进制 codec;义务汇总表 §三单一出处(义务行 14 = 技能成长持久化);病史流序列化与折叠 | MEDIUM |

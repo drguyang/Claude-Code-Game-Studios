@@ -2,7 +2,7 @@
 
 **Project**: 《大医精诚:破晓之剂》
 **Target**: Production
-**Last Updated**: 2026-10-03
+**Last Updated**: 2026-10-15
 
 ---
 
@@ -46,7 +46,7 @@
 |---|--------|--------|--------|------|
 | **M1** | Pre-Production Complete | 架构与生产档齐备,可以开工 | 硬件选型 / spike | 7/9(**未闭 2**:性能预算 · ADR-023 spike) |
 | **M2** | Vertical Slice(**美术待裁**) | **核心循环跑通** —— 机制闭环优先 | 代码 | ✅ **Complete(2026-10-14,Exit 10/10 全勾;Phase 2 = 2/7 系统,余四系统归 M3 推进)** |
-| **M3** | Systems Complete | **31 系统机制齐** —— P0 的每一件都在跑 | 代码 + 集成 | 16/31 epic 全 Complete |
+| **M3** | Systems Complete | **31 系统机制齐** —— P0 的每一件都在跑 | 代码 + 集成 | **22/31** epic 全 Complete(2026-10-15 实测) |
 | **M4** | Content Complete | **42 VS Critical 资产 + 数值冻结** —— 能看了 | 美术 + 数值轮 | 0/42(灰盒豁免中) |
 | **M5** | MVP / Release Candidate | 上述合流,可交外部试玩 | 全部 | 未开始 |
 
@@ -339,6 +339,8 @@
 - [x] Sprint 1 plan defined in `production/sprints/sprint-01.md` — committed 1d14107
 - [x] CI EditMode baseline green (921 passed, 0 failed) — 2026-09-29 desktop verified
       (⚠️ 2026-10-03 实测现行基线 = **2204 total / 2163 passed / 0 failed / 40 skipped / 1 inconclusive**)
+      —— ⚠️ **该值是 2026-10-03 快照,已过时**;现基线见文末「附:计数与基线(2026-10-15 实测)」。
+      本行**原文不删**(它是 M1 当年勾选时的真跑,改数 = 伪造当时记录)
 - [x] `UNITY_LICENSE` secret configured — 改用服务账号授权（`UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`），CI workflow 已生成（`.github/workflows/unity-tests.yml`）
 - [x] OQ-1-12 (接地模型) decision recorded — `player-controller-and-movement.md`
 - [x] OQ-10-12 (两动作原型) decision recorded — `emergency-procedures.md` · ✅ **OQ-10-6(枚举归属归系统 10)2026-10-02 同批裁,落 `production/decisions/oq-10-6-oq-10-12-adjudication.md`**
@@ -366,10 +368,40 @@ patient-ai ⬜ · diagnosis-system ⬜ · case-system ⬜ · prescription-medica
 **Goal**: P0 的 **31 个系统机制全部落地** —— 每一件都在跑,能用灰盒资产走完全部路径。
 
 **Exit Criteria**:
-- [ ] 31 个 P0 epic 全部 `Complete`(⚠️ 现 **16/31**)
-- [ ] 全部 P0 story `Complete`(⚠️ 现 207 story / 136 Complete / 71 Ready)
+- [ ] 31 个 P0 epic 全部 `Complete`(⚠️ 现 **22/31**)
+- [ ] 全部 P0 story `Complete`(⚠️ 现 **220 story / 172 Complete / 46 Ready / 1 In Review / 1 Pending**)
 - [ ] `Sim` 引用集门 / b2 / b6 全绿(承 ADR-025 §① / ADR-029 §③)
-- [ ] 零 S1/S2 未关闭 bug
+- [ ] 零 S1/S2 未关闭 bug(⚠️ 实测 `production/qa/bugs/` 仅有 `README.md`,**零 bug 文件** ⇒ 本项**形式上已满足**,
+      但须注意其含义是「无登记」而非「已修复」—— bug 追踪机制 2026-10-02 建立后尚无实际录入)
+
+> ### 📊 **2026-10-15 实测复核(三元组:截至 2026-10-15 · 批次 sprint-12 收口 · commit `a5ef7c5`)**
+>
+> 本节原记 `16/31` 与 `207 story / 136 Complete / 71 Ready` 均为 **2026-10-03 快照**,
+> 滞后 12 天。本轮以脚本逐目录实测(非重读旧件),订正如下:
+>
+> | 量 | 旧记(2026-10-03) | **实测(2026-10-15)** | 差 |
+> |---|---|---|---|
+> | epic 全 Complete | 16 / 31 | **22 / 31** | +6 |
+> | story 总数 | 207 | **220** | +13 |
+> | story Complete | 136 | **172** | +36 |
+> | story Ready | 71 | **46** | −25 |
+> | story In Review | 0 | **1** | +1 |
+> | story Pending | 0 | **1** | +1 |
+>
+> **口径说明(防误读)**:
+> - **分母 31** = `production/epics/` 下的 **31 个目录**(含 `save-slot-ui`,其**无 `EPIC.md`**,
+>   故按「非 Complete」计 —— 这是**如实计数**,不是遗漏)。
+> - **In Review 那 1 条** = `medical-consequences/story-001`(sprint-12 的 S12-9 待办对象)。
+> - **Pending 那 1 条** = `world-ecozones/story-005`(桌面走查 + 工具 CI,非代码面)。
+> - **+6 的构成**(逐户实测,非推断):2026-10-03 之后翻绿 **6 户** ——
+>   `patient-ai`(10-05)· `prescription-medication`(10-06)· `disease-simulation`(10-07)·
+>   `diagnosis-system`(10-08)· `emergency-procedures`(10-08)· `case-system`(10-15)。
+>   ⚠️ **`case-system` 是本轮(10-15)唯一翻绿户**;其余 5 户在 10-05…10-08 已翻,
+>   是**旧快照滞后**所致,非本轮成果 —— **不得记到 sprint-12 账上**。
+>
+> ⚠️ **本节其余两条 Exit Criteria 的「未勾」是真实状态,非陈旧标记** ——
+> `Sim` 引用集门 / b2 / b6 的门定义散在 ADR-025/029 与 `Editor.Tools.Gates`,**尚无单一「全绿」实测记录**;
+> 零 S1/S2 一条见上方括注。**本轮只订正计数,不改判定。**
 
 **ETA**: TBD
 
@@ -471,13 +503,23 @@ patient-ai ⬜ · diagnosis-system ⬜ · case-system ⬜ · prescription-medica
 
 ---
 
-## 附:计数与基线(2026-10-03 实测)
+## 附:计数与基线(**2026-10-15 实测** · 三元组:截至 2026-10-15 · 批次 sprint-12 收口 · commit `a5ef7c5`)
 
-| 量 | 值 | 来源 |
+> ⚠️ **本表 2026-10-15 全表重测**(原为 2026-10-03 快照,滞后 12 天)。
+> 行内**逐量标注来源**;凡跨文件引用的量**贴实测命令或文件路径**,使本表自洽可复核(承 S12-0 伪基线教训)。
+
+| 量 | 值 | 来源(可复核) |
 |---|---|---|
-| P0 系统 | 31 | `systems-index.md:180` |
-| epic 全 Complete | 16 / 31 | 各 epic 目录 story 件首行实测 |
-| story | 207 total · 136 Complete · 71 Ready · 0 In Progress | 同上 |
-| EditMode 基线 | 2204 total · 2163 passed · **0 failed** · 40 skipped · 1 inconclusive | `production/qa/evidence/modular-building/editmode-rerun-2026-10-03.md` |
-| VS Critical 资产 | 42(全 spec 化) | `design/assets/entity-inventory.md` |
-| P0 工期基线 | 6-9 个月(不得重算) | `systems-index.md:190` 用户裁定 2026-09-14 |
+| P0 系统 | 31 | `design/gdd/systems-index.md:180`;`ls -d production/epics/*/ \| wc -l` = **31**(目录数与 GDD 数**一致**) |
+| epic 全 Complete | **22 / 31** | `production/epics/*/EPIC.md` 的 `> **Status**:` 行逐件实测(30 个有 `EPIC.md`;`save-slot-ui` **无** ⇒ 计非 Complete) |
+| story | **220 total · 172 Complete · 46 Ready · 1 In Review · 1 Pending** | `production/epics/*/story-*.md` 的 `> **Status**:` 行逐件实测 |
+| EditMode 基线 | **3401 total · 3355 passed · 0 failed · 0 inconclusive · 46 skipped** | `unity/Logs/s12-6-final.xml`(2026-10-15 S12-6 终轮;`s12-6-editmode.xml` 首轮**逐位一致**) |
+| PlayMode 基线 | **186 total · 186 passed · 0 failed** | `unity/Logs/s12-2-full-pm.xml`(2026-10-15 S12-2) |
+| VS Critical 资产 | 42(全 spec 化) | `design/assets/entity-inventory.md`(**未重测** —— M4 面,本轮不触) |
+| P0 工期基线 | 6-9 个月(**不得重算**) | `systems-index.md:190` 用户裁定 2026-09-14 |
+
+> **⚠️ 两条基线的时点差(如实登记,防伪基线)**:EditMode `3401/3355` 取自 **S12-6 终轮**;
+> 若其后有新增测试件落地,该值即**滞后** —— 引用时须连带三元组,不得裸引(承 S12-0 建闸)。
+>
+> **⚠️ 本表原记 EditMode `2204 / 2163 / 0 / 40 / 1`(2026-10-03)** —— 该值是**当时**的真跑,
+> 原文不删留证;现值见上。两值差 **+1197 total / +1192 passed**,系 12 天内的正常增量,非订正。

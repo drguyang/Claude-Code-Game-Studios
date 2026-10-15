@@ -9,174 +9,157 @@
 #   done           ↔  Complete
 #   blocked        ↔  Blocked
 
-sprint: 11
-goal: "判断回路前台化(9 查体 revealed 接线)+ 治理收口(W-1 会签/退出码 2/处方 DoD 残留)"
-start: "2026-10-14"
+sprint: 12
+goal: "治理债结清:人工走查前置 Driver bug / case-system 顺延面 / EPIC 口径刷新 / 建闸两条 + 产能模型重建"
+start: "2026-10-16"
 end: ""
-generated: "2026-10-14"
+generated: "2026-10-15"
 updated: "2026-10-15"
 
 stories:
-  - id: "S11-1"
-    name: "9 查体 revealed 接线 → 8 前台回路(脉案值区运行期非空 + O-13-7 结案)"
-    file: "production/sprints/sprint-11.md"
-    priority: must-have
-    status: done
-    owner: "claude+user"
-    estimate_days: 2.5
-    blocker: ""
-    completed: "2026-10-15"
-  - id: "S11-2"
-    name: "W-1 会签裁决(ScriptedChain 三案链 9+37 二选一)"
-    file: "production/sprints/sprint-11.md"
-    priority: must-have
-    status: done
-    owner: "claude+user"
-    estimate_days: 0.5
-    blocker: ""
-    completed: "2026-10-15"
-  - id: "S11-3"
-    name: "EditMode 退出码 2 处置 = 修 8 测(new MonoBehaviour → 真夹具)"
-    file: "production/sprints/sprint-11.md"
+  # ── Must Have ──
+  - id: "S12-0"
+    name: "伪基线订正(5 文件 3366/3320 → 真终值 3388/3342 补注,不改原行)+ smoke/signoff 模板加「截至时刻+批次+commit」三字段"
+    file: "production/sprints/sprint-12.md"
     priority: must-have
     status: done
     owner: "claude"
-    estimate_days: 0.75
+    estimate_days: 0
     blocker: ""
     completed: "2026-10-15"
-  - id: "S11-4"
-    name: "prescription DoD 残留(AC-11-22 7a 白名单 + DC-2 action_id master + DC-6 复评)"
-    file: "production/sprints/sprint-11.md"
+
+  - id: "S12-1"
+    name: "产能模型重建(CAPACITY-MODEL.md;废止旧 8 天口径;回填 sprint-09/10 逐件数据)"
+    file: "production/sprints/sprint-12.md"
+    priority: must-have
+    status: done
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: "2026-10-15"
+
+  - id: "S12-2"
+    name: "修 Story009WalkthroughDriver 的 passed 汇总 bug(S11-6 前置;零产品码变更)"
+    file: "production/sprints/sprint-12.md"
+    priority: must-have
+    status: done
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: "2026-10-15"
+
+  - id: "S12-3"
+    name: "处方前置检查入 control-manifest(Sim 引用集可达性;回填三次违规律例)"
+    file: "production/sprints/sprint-12.md"
+    priority: must-have
+    status: done
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: "2026-10-15"
+
+  - id: "S12-4"
+    name: "假绿夹具强制证伪轮入 /story-done DoD(定序/共存类 AC 必须附「回退即转红」)"
+    file: "production/sprints/sprint-12.md"
+    priority: must-have
+    status: done
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: "2026-10-15"
+
+  - id: "S12-5a"
+    name: "case-system EPIC 口径刷新(002/003/004 —— 三件顺延面已清,可翻)"
+    file: "production/sprints/sprint-12.md"
+    priority: must-have
+    status: done
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: "2026-10-15"
+
+  - id: "S12-5b"
+    name: "case-system EPIC 口径刷新(001 —— 视 S12-7 结论:重述为可证伪 ⇒ 翻;转人工走查 ⇒ 记 NOT-RUN)"
+    file: "production/sprints/sprint-12.md"
+    priority: must-have
+    status: done
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: "2026-10-15"
+
+  - id: "S12-6"
+    name: "case-system 写者侧「同 tick 批量跨阈值」夹具(只发一条 PatternRecognized + 反证)"
+    file: "production/sprints/sprint-12.md"
+    priority: must-have
+    status: done
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: "2026-10-15"
+
+  - id: "S12-7'"
+    name: "AC-37-06 口径回填 + BLOCKED-BY-7a/45 登记(原 S12-7 销项 —— 设计侧已由 GDD:1121 裁毕,残余为文书)"
+    file: "production/sprints/sprint-12.md"
+    priority: must-have
+    status: done
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: "2026-10-15"
+
+  # ── Should Have ──
+  - id: "S12-8"
+    name: "case-system 001 B-2/B-4 kindgen 复验(S11-12 已闭合;复核判据是否真判,发现假绿即立件)"
+    file: "production/sprints/sprint-12.md"
     priority: should-have
     status: done
-    owner: "Claude"
-    estimate_days: 3.5
+    owner: "claude"
+    estimate_days: 0
     blocker: ""
     completed: "2026-10-15"
-  - id: "S11-5"
-    name: "53 medical-consequences 起首 story(支柱四载体)"
-    file: "production/sprints/sprint-11.md"
-    priority: nice-to-have
+
+  - id: "S12-9"
+    name: "53 story-002 Outcome judge 实现(2026-10-15 重开并完成:接线轮解 P/C 前置后依赖面重估 3/4 可用 ⇒ 收缩判据不触发)"
+    file: "production/epics/medical-consequences/story-002-deterministic-outcome-judge.md"
+    priority: should-have
     status: done
-    owner: "Claude"
-    estimate_days: 1.5
+    owner: "claude"
+    estimate_days: 0
     blocker: ""
     completed: "2026-10-15"
-  - id: "S11-6"
-    name: "11 人工走查 AC-11-12/13/21(前置:修 Driver passed 汇总 bug)"
-    file: "production/sprints/sprint-11.md"
+    # 重开依据(用户指令「S12-9 重开,继续做 story-002 Judge」):依赖面重估 P/C/U 三路可用
+    # (接线轮产物),D 有接口占位 ⇒ 收缩判据(≥2 路需补)不再触发。键域 3×3×2 + U 档列
+    # 默认 1 档 = 用户 AskUserQuestion 裁定。终轮 3444/3398/0/46(+23 零回归);
+    # IL2CPP 三格 NOT-RUN(挂 ADR-012 矩阵)。原件 impl-s12-9-medcons-outcome-judge-2026-10-15.md。
+
+  - id: "S12-11"
+    name: "读侧解码 ADR:新增 IPayloadDecoder(甲案;承接 S12-9 退回)"
+    file: "docs/architecture/adr-031-payload-decoder-abstraction.md"
+    priority: should-have
+    status: done
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: "2026-10-15"
+
+  - id: "S12-12"
+    name: "ADR-031 实现轮(契约支 IPayloadDecoder + 接线支 b5 门 + V-8 逐处登记 + V-10 计数订正)"
+    file: "production/qa/evidence/impl-adr031-payload-decoder-2026-10-15.md"
+    priority: should-have
+    status: done
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: "2026-10-15"
+
+  # ── Nice to Have(人不可代劳)──
+  - id: "S12-10"
+    name: "S11-6 结转:11 人工走查 AC-11-12/13/21 + 三签(主创/医学从业/音频 lead)"
+    file: "production/sprints/sprint-12.md"
     priority: nice-to-have
-    status: backlog            # 非「未排」—— 已由用户裁定顺延,见 blocker(2026-10-15)
-    owner: "user + Claude"
-    estimate_days: 0.75
-    blocker: "顺延 sprint-12(用户裁定「必须项优先」· sprint-11.md:27)—— 需真人走查 + 主创 / 医学从业 / 音频 lead 三签,agent 不可代劳;前置 = 修 Story009WalkthroughDriver 的 passed 汇总 bug"
+    status: backlog
+    owner: "user + 三签"
+    estimate_days: 0
+    blocker: "前置 S12-2(Driver passed 汇总 bug);agent 不可代劳"
     completed: ""
-  # ── 补评修复批(case-system 001–004 · 2026-10-15 用户裁定并入)──
-  # ⚠️ 2026-10-15 范围变更(用户裁定「在 sprint-11 完成这些,不带入下个 sprint」):
-  #    原「断言形态整批顺延 sprint-12」**已被推翻** ⇒ A 组 14 + B 组 6 **共 20 条就地全闭**。
-  #    S11-12…S11-16 为就地闭合的执行批(见 sprint-11.md §批 1–5)。
-  #    **四件 story 已于 2026-10-15 由「复评(当下状态)」判定后转 `Complete`** ——
-  #    001 经复评(不通过,残余 1)→ 修复 → 第三次窄审(通过);002/003/004 复评直接通过。
-  - id: "S11-7"
-    name: "story-002 BLK-8 墨龄取错病人(LastJudgmentOf 归属改流序关联;调用点无须改动)"
-    file: "production/sprints/sprint-11.md"
-    priority: must-have
-    status: done
-    owner: "Claude"
-    estimate_days: 0.75
-    blocker: ""
-    completed: "2026-10-15"
-  - id: "S11-8"
-    name: "story-003 B-1 复诊案无法结案(IsClosed 改流序扫描关联 + IsOpen 同契约 + Decide 判序对调 + 同批补流层判据)"
-    file: "production/sprints/sprint-11.md"
-    priority: must-have
-    status: done
-    owner: "Claude"
-    estimate_days: 0.75
-    blocker: ""
-    completed: "2026-10-15"
-  - id: "S11-9"
-    name: "story-004 CB-2/TB-5 AC-37-29 零覆盖(落地 ChainEligible/ScriptedChain + 夹具;W-1 已解除)"
-    file: "production/sprints/sprint-11.md"
-    priority: must-have
-    status: done
-    owner: "Claude"
-    estimate_days: 0.75
-    blocker: ""
-    completed: "2026-10-15"
-  - id: "S11-10"
-    name: "story-003 B5 处置集撤 InjuryOnset + 补 CareApplied + 权威对齐 + 顺批 A-1(Set 收为不可写出口)"
-    file: "production/sprints/sprint-11.md"
-    priority: must-have
-    status: done
-    owner: "Claude"
-    estimate_days: 0.5
-    blocker: ""
-    completed: "2026-10-15"
-  - id: "S11-11"
-    name: "story-001 B-3 全文件去号(头 4 + 体注释 14 + 方法名 10;零成本)"
-    file: "production/sprints/sprint-11.md"
-    priority: must-have
-    status: done
-    owner: "Claude"
-    estimate_days: 0.1
-    blocker: ""
-    completed: "2026-10-15"
-  - id: "S11-12"
-    name: "story-001 B-2/B-4 —— kindgen A2 严格形(扫载荷 struct 字段类型白名单)+ CI job kindgen-assertions 为唯一载体 + 测试内复刻删除(13→9)"
-    file: "production/qa/evidence/fix-s11-12-case-system-story-001-b2-b4-2026-10-15.md"
-    priority: must-have
-    status: done
-    owner: "Claude"
-    estimate_days: 0.5
-    blocker: ""
-    completed: "2026-10-15"
-  - id: "S11-13"
-    name: "写者落地 —— CaseCloseWriter + PatternRecognitionWriter(21 测)+ 撤 WriterExistenceGate 两条豁免(与写者同批,不可拆)"
-    file: "production/qa/evidence/fix-s11-13-case-system-writers-2026-10-15.md"
-    priority: must-have
-    status: done
-    owner: "Claude"
-    estimate_days: 1.0
-    blocker: ""
-    completed: "2026-10-15"
-  - id: "S11-14"
-    name: "story-002 六条断言形态(BLK-1/2/3/5/9/10)—— 期望值由流派生 + 改调生产函数 + 真装配负断言 + AC→载体映射表"
-    file: "production/qa/evidence/fix-s11-14-case-system-story-002-assertions-2026-10-15.md"
-    priority: must-have
-    status: done
-    owner: "Claude"
-    estimate_days: 0.5
-    blocker: ""
-    completed: "2026-10-15"
-  - id: "S11-15"
-    name: "story-004 五条(TB-1/2/3 + CB-3 产品代码 + TA-6 元规则)+ story-003 ②B2/③B3/A-5"
-    file: "production/qa/evidence/fix-s11-15-case-system-story-004-003-assertions-2026-10-15.md"
-    priority: must-have
-    status: done
-    owner: "Claude"
-    estimate_days: 1.0
-    blocker: ""
-    completed: "2026-10-15"
-  - id: "S11-16"
-    name: "postfix 复评残余闭合 —— story-001 B-1 测试半边(改打生产载体)+ story-003 AC-37-18 另两条恒真测试(删,真覆盖迁写者层);四件 story 转 Complete"
-    file: "production/qa/evidence/fix-s11-16-case-system-postfix-residuals-2026-10-15.md"
-    priority: must-have
-    status: done
-    owner: "Claude"
-    estimate_days: 0.5
-    blocker: ""
-    completed: "2026-10-15"
-  # ── 批 6:ADVISORY 全清(用户「剩下的 ADVISORY 也一并清了」+ 两项裁定)──
-  #   范围 = 四件评审原件登记的全部 ADVISORY(非 BLOCKING —— 后者已由 S11-12…S11-16 闭合)。
-  #   ⚠️ 仍开放(如实,禁借绿):① 001 的 CI 从未在真 runner 跑过(离线做不到);
-  #     ② 写者侧「同 tick 批量跨阈值」夹具仍缺;③ 002 ADV-4 判定为「无处置」。
-  - id: "S11-17"
-    name: "case-system ADVISORY 全清 —— 产品代码 4 处(次级键可注入键形 / 阈值 ≥2 / IsInWindow 复用 / TryOpen 走 Decide)+ 测试 4 件(TA-1/2/5/7 + ADV-5 + 删恒真断言)+ kindgen 变异探针常驻执行体 + CI job + GDD 处置集不变量补登"
-    file: "production/qa/evidence/fix-s11-17-case-system-advisories-2026-10-15.md"
-    priority: must-have
-    status: done
-    owner: "Claude"
-    estimate_days: 1.0
-    blocker: ""
-    completed: "2026-10-15"

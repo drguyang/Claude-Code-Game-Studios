@@ -4,7 +4,7 @@
 //   GDD design/gdd/diagnosis-system.md 边界铁律④(`EmitGrowth` 只在主机执一次;调用点
 //     须被 `IIdAuthority` 门控)· 出向表「30 技能与熟练度」行(8 是调用方,`K_difficulty`
 //     作入参推入;**8 不写流**,事件由主机编码 + Append)
-//   ADR-005(主机唯一执行 Step / CatchUp;六个 P0 抽象点)· ADR-007 §一(主机唯一 Append)
+//   ADR-005(主机唯一执行 Step / CatchUp;八个 P0 抽象点)· ADR-007 §一(主机唯一 Append)
 //   TR-diag-005(`EmitGrowth` 仅主机侧由 `IIdAuthority` 门控 —— partial;调用语义归 story 005)
 //   Sim.Contracts `SkillGrownEmitter`(契约侧唯一对外入口 —— **返回载荷、不 Append**,
 //     编码 / 构造 SimEvent / Append 三步全归调用方(主机))

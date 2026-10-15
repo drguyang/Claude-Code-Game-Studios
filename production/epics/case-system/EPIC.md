@@ -3,12 +3,33 @@
 > **Layer**: Feature
 > **GDD**: design/gdd/case-system.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ 病例流(第二逻辑流)+ Presentation(只读 DTO 侧)
-> **Status**: ⚠️ **4/6 In Review**(006/005 合规 Complete)—— 001–004 于 2026-10-06 收口(`e64efad`/`c4e3708`/`31e3f9b`/`8a693fd`),**但当年评审原件缺失**;2026-10-15 QA 核查触发义务第 1/2 条,四件**补做评审(评当下,不追认历史判定)**后 **Test Evidence 门均不通过** ⇒ 用户裁定转 `In Review`。原件:`production/qa/evidence/review-case-system-story-00{1,2,3,4}-retro-2026-10-15.md`;核查件:`review-case-system-001-004-gap-audit-2026-10-15.md`。修复归**新一轮**。
+> **Status**: ✅ **6/6 Complete(2026-10-15 · S12-5b 口径刷新收口)** ——
+> **2026-10-06 收口的 001–004(`e64efad`/`c4e3708`/`31e3f9b`/`8a693fd`)当年评审原件缺失**;2026-10-15 QA 核查
+> 触发义务第 1/2 条,四件**补做评审(评当下,不追认历史判定)**后 Test Evidence 门均不通过 ⇒ 用户裁定转 `In Review`。
+> ⚠️ 本行是**当日 2026-10-15 的历史事实**,非当前状态 —— **四件均已于当日就地翻转**(`Complete ✅`;
+> 002/003/004 见文末 S12-5a 订正注,**001 见 S12-5b 口径刷新**)。
+> 原件:`production/qa/evidence/review-case-system-story-00{1,2,3,4}-retro-2026-10-15.md`;
+> 核查件:`review-case-system-001-004-gap-audit-2026-10-15.md`。
+> **2026-10-15 当日闭合(修复归新一轮 → 就地清)**:
+> 002(S11-7 + S11-14) · 003(S11-8 + S11-10 + S11-15 + S11-16) · 004(S11-9 + S11-15 + S11-17) ⇒ **三件转 `Complete`(S12-5a)**。
+> ⚠️ **001 未随本批翻转** —— 其 B-1(AC-37-06)的**设计侧重述已由 `GDD:1121` 裁毕**,
+> 残余为文书回填 ⇒ 归 **S12-7'**(S12-5a 不代翻)。
+> ✅ **S12-7' 已于 2026-10-15 结清**(文书回填,零代码改动):① `story-001:107` 顺延行加订正注
+> (原句不删);② 未测半边 **`BLOCKED-BY-7a/45`** 已在 story-001 §Test Evidence 显式登记(禁借绿);
+> ③ 生产载体 `ReconstructPatientHighWater` 三态用例已在册;④ **不重述设计**(GDD 已裁,重述 = 范围外破坏)。
+> ✅ **001 已于 2026-10-15 转 `Complete`(S12-5b 口径刷新)** —— 其 `Status:` 行逐字为
+> `Complete ✅ 2026-10-15 —— 补评门不通过 → sprint-11 就地修复 → **复评 + 窄审双通过**`,
+> 与 EPIC 表逐字一致。⚠️ **残余如实保留**(翻绿**不等于**残余消失):AC-37-06 的**未测半边仍 `BLOCKED-BY-7a/45`**
+> (承 §Test Evidence 登记,禁借绿);`BLOCKED-BY` 是**前置缺失**,非本 epic 的交付缺口。
 >
 > 📌 **修复排期(2026-10-15 用户裁定「并入 sprint-11 · 必须项优先」)**:净保留判定 **22 条 → 去重 ≈13 类**,
 > 本 sprint 只取「**真缺陷 / 免责失效 / 设计冲突 / 零成本**」四类 = **S11-7…S11-11**(≈2.85 天);
 > **断言形态整批顺延 sprint-12**,须逐条带状态 + 归属登记(**禁借绿**)。详见 `production/sprints/sprint-11.md`
 > 「Must Have — 补评修复批」节。**四件维持 `In Review` 直至顺延面清空。**
+> 🔴 **本句已失效(2026-10-15 S12-5a 订正)**:顺延面**当日即被清空**(S11-12…S11-17 六批,
+> 用户裁定「在 sprint-11 完成这些,不带入下个 sprint」)⇒ 002/003/004 三件已转 `Complete`;
+> 现唯 **001** 待 S12-7'(非「四件」)。详细订正记录见下方「✅ 排期面」段末的 S12-5a 注。
+> ✅ **后续**:S12-7' + S12-5b 已于同日结清 ⇒ **四件全部 `Complete`**(见头部 Status 与 Stories 表)。
 > ⚠️ **本 epic 的两处裁定已同批落盘**:① **37 写者延后正式登记**(`CaseClosed` / `PatternRecognized` 写者 ——
 > `WriterExistenceGate.cs:87-88` 具名豁免 ⇒ 已写入 story-003/004 的 §Out of Scope 并订正对应证据面);
 > ② **`treatment_set` 枚举补立**(此前 `adr-008` §四 / GDD F-37.2 / 规则六 / 规则八 **四处皆不枚举**处置 Kind,
@@ -20,6 +41,17 @@
 > ⚠️ **三件真实现缺陷(B-1 / B5 / BLK-8)已全部闭合**;**S11-9 的两处边界(防误读)**:
 > `PatternRecognized` **写者仍未落**(承 2026-10-15 裁定「接受延后并正式登记」)·
 > **CB-3 未触及**(`MemberSet` 仍扁平 ⇒ 归 sprint-12)⇒ **四件仍维持 `In Review`**。
+> 🔴 **本行两处均已过期(S12-5b 订正)**:① **CB-3 已由 S11-15 闭合**(扁平 `PatternDetectionResult.MemberSet`
+> 与其按 `Dictionary` 迭代序拼装的循环**已删除**;逐 D 归属自此只有 `PatternEmission.MemberSet` 一条路径 ——
+> 见 story-004 的 TB-1/2/3 + CB-3 闭合块);② 「四件仍维持 `In Review`」见下方 S12-5a 注 + S12-5b 订正。
+>
+> 🔴 **S12-5a 订正(2026-10-15 · 口径刷新)**:上段末句「四件仍维持 `In Review`」**已被当日后续推翻** ——
+> S11-12…S11-17 六批把断言形态与 ADVISORY 整批就地闭合(用户裁定「在 sprint-11 完成这些,不带入下个 sprint」),
+> 原文不删留证。**当前口径以本行与下方 Stories 表为准**:002 / 003 / 004 = `Complete ✅`;**001 仍 `In Review`**(待 S12-7')。
+> ✅ **本句亦已过期(S12-5b 订正)**:S12-7' 结清后 001 已转 `Complete` ⇒ **当前口径 = 四件全部 `Complete ✅`**,
+> 见头部 Status(`6/6`)与 Stories 表。**EPIC 内所有 `In Review` 字样自此全为历史陈述,无活口径。**
+> 同日起草的 `production/sprints/sprint-11.md:27-28`「断言形态整批顺延 sprint-12」句**同批被推翻**,
+> 该处订正记录见 `sprint-11.md:299`。
 > **Stories**: 6 stories — see table below
 
 ## Overview
@@ -75,9 +107,9 @@ This epic is complete when:
 
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
-| 001 | 病例流 Kind 登记与病例身份 | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`e64efad`)判定不成立;补评 4 BLOCKING·测试面 —— **③ B-3 AC 号一号两义 ✅ S11-11 闭合**(全文件去号 25 处);余 **3 条**顺延:判据不可证伪(B-1,须退设计)· kindgen A2 空跑(B-2)· kindgen 借绿(B-4)) | ADR-008/024/006 |
-| 002 | 立案两路径 · 开案唯一 · 判断记录事件化 | Integration | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`c4e3708`)判定不成立;补评 + §七 勘误后核心 **1 类** —— **`LastJudgmentOf` 死参·实害链「墨龄取错病人」✅ S11-7 闭合**(归属改流序关联;回退旧实现 ⇒ 2+1 红,端到端复现实害);余 **声明件 5 条断言形态** + BLK-9/BLK-10 顺延 sprint-12) | ADR-008/009/005 |
-| 003 | 结案前置:处置证据窗口与快照 | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`31e3f9b`)判定不成立;补评 + §七 勘误后核心 **4 类** —— **① `IsClosed` 按 `Patient` 匹配 ✅ S11-8 闭合** · **⑤ `TreatmentKinds` 错收 `InjuryOnset`漏收 `CareApplied` ✅ S11-10 闭合(+A-1 顺批)**,各带「改回旧实现即转红」反证;余 **2 类**未清:快照半场(写者未落,无载体)· AC-37-18 恒真化) | ADR-008/007 |
-| 004 | F-37.1 同源检测与 PatternRecognized | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`8a693fd`)判定不成立;补评 8 BLOCKING·双面 —— **CB-2/TB-5 AC-37-29 零覆盖 ✅ S11-9 闭合**(`ChainEligible`/`ScriptedChain` 从全库零命中转为有实现 + 有测试,测数 23 → 30);余 **6 条**顺延:TB-1 定序判别力 · TB-2 成员冻结 · TB-3 真空夹具 · CB-1/CB-3 实现侧 · TA-6 元规则) | ADR-008/007/012 |
+| 001 | 病例流 Kind 登记与病例身份 | Logic | **Complete ✅ 2026-10-15**(S12-5b 口径刷新) —— 原 `Complete 2026-10-06`(`e64efad`)判定不成立;补评 4 BLOCKING·测试面**全闭**:**③ B-3 AC 号一号两义 ✅ S11-11**(全文件去号 25 处)· **① B-1 判据不可证伪 ✅ 两半**(设计侧收窄裁定 `GDD:1121` + 测试侧改打生产载体)· **② B-2 kindgen A2 空跑 ✅ S11-12** · **④ B-4 kindgen 借绿 ✅ S11-12**(4 条复刻测试随载体唯一化删除,13 → 9)。⚠️ **残余**:AC-37-06 **未测半边 `BLOCKED-BY-7a/45`**(前置缺失,非本 epic 缺口;禁借绿) | ADR-008/024/006 |
+| 002 | 立案两路径 · 开案唯一 · 判断记录事件化 | Integration | **Complete ✅ 2026-10-15**(S12-5a 口径刷新) —— 原 `Complete 2026-10-06`(`c4e3708`)判定不成立;补评 + 勘误后核心 **1 类** = **`LastJudgmentOf` 死参·实害链「墨龄取错病人」✅ S11-7 闭合**(流序关联;回退 ⇒ 2+1 红);**5 条断言形态 ✅ S11-14 闭合**(BLK-1/2/3/5/9/10 六条,期望值由流派生 + 改调生产函数 + 真装配负断言);逐件详见 story §Out of Scope 的**两条「部分闭合」**(BLK-5 `freehand_text=''` 半边 —— 字段住 blob 变长段,超出 `PayloadCodec.TryGetPayload` 接口面,本轮验了可验两半) | ADR-008/009/005 |
+| 003 | 结案前置:处置证据窗口与快照 | Logic | **Complete ✅ 2026-10-15**(S12-5a 口径刷新) —— 原判定不成立;核心 **4 类** 全闭:**① `IsClosed` 按 `Patient` 匹配 ✅ S11-8** · **⑤ `TreatmentKinds` 错收 `InjuryOnset`/漏收 `CareApplied` ✅ S11-10**(+A-1)· **AC-37-18 恒真夹具 ✅ S11-16**(删恒真,真覆盖迁写者层)· **B2/B3/A-5 ✅ S11-15**。⚠️ **快照半场**仍无载体(写者未落,承 story §Out of Scope 延后登记 = 有效,非门阻塞);37→8 `CloseCase` 跨系统因果链 P0 无载体(已登记为**残余**) | ADR-008/007 |
+| 004 | F-37.1 同源检测与 PatternRecognized | Logic | **Complete ✅ 2026-10-15**(S12-5a 口径刷新) —— 原判定不成立;补评 8 BLOCKING·双面:**CB-2/TB-5 AC-37-29 零覆盖 ✅ S11-9**(`ChainEligible`/`ScriptedChain` 从零命中 → 有实现 + 30 测)· **TB-1/2/3 + CB-3 产品码 + TA-6 ✅ S11-15** · **TA-1/2/5/7 + ADV-5 ✅ S11-17**。⚠️ **写者仍未落**(`PatternRecognitionWriter` 有实现但**未接线生产触发点**,承裁定登记)——**✅ S12-6 已补写者侧夹具**(+7 条同 tick 批量,36 → 43);**CB-1 实现侧**归 story §Out of Scope 登记 | ADR-008/007/012 |
 | 005 | 守密纪律:DTO 守卫 · 词表烘焙 · 零奖励断言 | Integration | **Complete ✅ 2026-10-08** | ADR-013/014/006 |
 | 006 | 重放持久化与跨系统边界义务 | Integration | **Complete ✅ 2026-10-08** | ADR-010/005/008 |

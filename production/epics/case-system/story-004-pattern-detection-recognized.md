@@ -106,8 +106,32 @@
 - **AC-3(同 tick 多 D 定序)**: 共病双达标
   - Given: 一个 CaseClosed 的 disease_set = {D₁,D₂} 且两者同 tick 达标
   - When: Append
-  - Then: 两条按 salted_key 升序,Seq=0,1;打乱 disease_set 构造序重跑 → 流逐位同
+  - Then: 两条按 salted_key 升序,Seq=0,1;打乱 disease_set 构造序 重跑 → 流逐位同
   - Edge cases: salted_key 相等不可能(逐 D 哈希碰撞 → 以 ordinal 次级定序,登记测试观察)
+
+---
+
+**[Sprint 12 增量(S12-6,2026-10-15 · qa-plan-sprint-12)]** —— 补齐 AC-37-29 的**写者侧**:
+上列 AC-1/AC-2 覆盖检测器侧判定;下列补 `PatternRecognitionWriter` 发射面(两者都绿才闭合 AC-37-29)。
+
+- **S12-6-AC-a(同 tick 一次性批量跨阈)**: 发射数恒 1
+  - Given: 同一 tick,N 例同 D 结案,N > PATTERN_THRESHOLD(含恰 threshold / threshold+1 / 远大于三档)
+  - When: 写者 Append
+  - Then: `PatternRecognized` **恰一条**(判据真源 = GDD AC-37-29 `:1143`「恰好触发一次」)
+  - Falsifiability:删「一次性」门 ⇒ 发射数 1 → N ⇒ 红(承 S11-8 反证范式)
+- **S12-6-AC-b(不重发)**: 同 tick 后续病例零发射
+  - Given: 已触发后,同 tick 再结案更多同 D 病例
+  - Then: 零新发射(AC-37-29「再让更大的同 D 病例结案 ⇒ 永不重发」)
+- **S12-6-AC-c(链外不占名额)**: 脚本三案链指定三例时,链外同 D 病例不消耗名额
+  - Given: ScriptedChain(D) 已显式指定三 patient_id,另有两个同 D 随机病例先结案
+  - Then: MemberSet = 指定的那三例(随机病例不占名额)
+  - Edge cases: 链外病例数 > 指定数仍不抢发
+- **S12-6-AC-d(阈值守卫边界值 2)**: `patternThreshold` 边界两格
+  - Given: `= 2` 与 `= 1` 各一
+  - Then: `= 2` 放行,`= 1` 抛 `ArgumentOutOfRangeException`(`PatternRecognitionWriter.cs:127-128` 已建 `< 2` 闸)
+  - Edge cases: 教训承 S11-17 —— 阈值守卫差一格即假绿,故边界值必须两格都测
+- **分层边界(防重复劳动)**: 上列 AC-1/2 + S12-6-a/b/c 分别属**检测器侧 / 写者侧**,不得互相顶替;
+  TA-7 已覆盖检测器侧(S11-9 交付),本批不重造。
 
 ---
 
@@ -276,6 +300,14 @@
 > | **TA-8** | 阈值「≥ 2」Guardrail **未强制**(ctor 只拒 `< 1`) | `PatternRecognitionWriter.cs` 改 `< 2`(真源 = GDD `case-system.md:1004` 旋钮安全范围);测试补**阈值 1** 一格 | 守卫改回 `< 1` ⇒ **红** |
 > | 元规则清单措辞 | `test_ac3709` 被列在「满足『输入序 ≠ 期望序』」组,而其夹具**输入序 == 期望序** | 文件头拆为**两组**(满足该纪律 / **满足另一条轴**),`test_ac3709` 移入后者 | 结构性 |
 > | 同 tick 批量 `anchor_case` | 写者 9 测**均逐 tick 递增** ⇒「同 tick 跨阈值」语义未被直接证伪 | 由 TA-7 的新增夹具覆盖**检测器侧**该维;**写者侧**仍无同 tick 批量夹具 ⇒ **如实登记为残余**(低置信、非阻塞) | — |
+>
+> 🟢 **该残余已销项 —— 2026-10-15 · sprint-12 S12-6**(证据原件:`production/qa/evidence/fix-s12-6-writer-same-tick-batch-2026-10-15.md`)
+>
+> **交付**:写者侧补 **7 条**同 tick 夹具(测数 **36 → 43**,全量 EditMode `3394/3348/0/46` → `3401/3355/0/46`,**+7/+7 零回归**)。
+> **判别力**:插入序刻意逆全序(测 1 插入 `[3,5,1,4,2]` vs 全序 `[1..5]`);链外病例 `patient_id` 取更小值 ⇒ 收窄失效即抢名额。
+> **证伪轮(S12-4 新规)三处独立反证,均成立**:① 停 `IsFired` 一次性门 ⇒ 6 红(含本件 2 条)② 停 `candidates.Sort` ⇒ 4 红(含本件 1 条)③ 守卫 `<2`→`<3` ⇒ 1 红(本件)。三次「改→跑→还原」均字节相同、探针零残留。
+> **产品码改动 = 零**。**AC-37-29 证据面自此两层齐备**(检测器侧 TA-7 + 写者侧本件)。
+> ⚠️ **生产触发点仍未接线**(意图源尚不存在),承 `PatternRecognitionWriter.cs:41` 既有登记,归 37 接线轮 —— **本销项不改变该状态**。
 >
 > **⚠️ 次级键裁定更新(推翻本 story 上方「已回退」记录 —— 同一项,非两处)**
 >
