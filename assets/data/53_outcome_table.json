@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "u_band_count": 1,
+  "rows": [
+    {"key": "empty|none|recovered",              "u_band": 0, "outcome": "no_echo"},
+    {"key": "empty|none|not_recovered",          "u_band": 0, "outcome": "residual"},
+    {"key": "empty|applied_unmatched|recovered", "u_band": 0, "outcome": "no_echo"},
+    {"key": "empty|applied_unmatched|not_recovered", "u_band": 0, "outcome": "residual"},
+    {"key": "empty|applied_matched|recovered",   "u_band": 0, "outcome": "residual"},
+    {"key": "empty|applied_matched|not_recovered", "u_band": 0, "outcome": "residual"},
+    {"key": "suspected|none|recovered",          "u_band": 0, "outcome": "no_echo"},
+    {"key": "suspected|none|not_recovered",      "u_band": 0, "outcome": "residual"},
+    {"key": "suspected|applied_unmatched|recovered", "u_band": 0, "outcome": "no_echo"},
+    {"key": "suspected|applied_unmatched|not_recovered", "u_band": 0, "outcome": "residual"},
+    {"key": "suspected|applied_matched|recovered", "u_band": 0, "outcome": "residual"},
+    {"key": "suspected|applied_matched|not_recovered", "u_band": 0, "outcome": "residual"},
+    {"key": "confirmed|none|recovered",          "u_band": 0, "outcome": "no_echo"},
+    {"key": "confirmed|none|not_recovered",      "u_band": 0, "outcome": "recurrence"},
+    {"key": "confirmed|applied_unmatched|recovered", "u_band": 0, "outcome": "no_echo"},
+    {"key": "confirmed|applied_unmatched|not_recovered", "u_band": 0, "outcome": "recurrence"},
+    {"key": "confirmed|applied_matched|recovered", "u_band": 0, "outcome": "no_echo"},
+    {"key": "confirmed|applied_matched|not_recovered", "u_band": 0, "outcome": "no_echo"},
+    {"key": "default",                           "u_band": 0, "outcome": "residual"}
+  ]
+}

@@ -118,6 +118,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 的 Kind ∈ 已写者集 ∪ 具名豁免表。接进本路径(菜单 / reload / 构建前门三处
             // 共用 RunAll)—— 承「零调用方的门形同虚设」口径。
             errs.AddRange(WriterExistenceGate.RunAll());
+            // 53 静态面门(S12-9 · story-002,2026-10-15):AC-53-03 零浮点 +
+            // AC-53-12 零 31 符号 —— 扫 `Assets/Sim/Consequences/*.cs`(MedConsFloatGate)。
+            errs.AddRange(MedConsFloatGate.RunAll("."));
             return errs;
         }
 
@@ -375,13 +378,22 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <summary>① 类型级黑名单 —— 契约内的 sim 权限 / 上游查询类型。
         /// ⚠️ IEventSink / IEventAuthority / SimEvent / VitalsDto 等现住 **Sim.Contracts**
         /// (b1b 落位;契约对 44 是合法依赖)⇒ 装配黑名单兜不住它们,须按**类型名**补足:
-        /// 抽象点 = 写通道 / 掷骰 / tick / 发号 / 体征查询 / 传送,对 44 全是「订阅 sim 真值」
-        /// 旁路(ADR-018 §一禁;VitalsDto = 2026-09-18 幽灵入口删除,AC-B3「不含 VitalsDto 族」;
-        /// control-manifest Forbidden「44 引用 Sim/Sim.Codec 类型(含 IEventSink)」同此意图)。</summary>
+        /// 抽象点 = 写通道 / 掷骰 / tick / 发号 / 体征查询 / 传送 / **载荷编码 / 载荷解码**,
+        /// 对 44 全是「订阅 sim 真值」旁路(ADR-018 §一禁;VitalsDto = 2026-09-18 幽灵入口删除,
+        /// AC-B3「不含 VitalsDto 族」;control-manifest Forbidden
+        /// 「44 引用 Sim/Sim.Codec 类型(含 IEventSink)」同此意图)。
+        /// <para>⚠️ <b>2026-10-15 补两项(ADR-031 §⑤)</b>:本数组原为 8 项(六个抽象点 + SimEvent +
+        /// VitalsDto),**漏了 ADR-029 的 `IPayloadEncoder`** ⇒ 实测 44 当时可合法引用编码器。
+        /// 本批补齐 —— 补 `IPayloadEncoder` 属 **ADR-029 的漏项**(它 2026-10-02 就该补),
+        /// 补 `IPayloadDecoder` 属 **ADR-031**;二者同批落盘但**出处不同**,不合并记账。
+        /// 现 = **八个抽象点** + SimEvent + VitalsDto = 10 项。</para></summary>
         public static readonly string[] AudioForbiddenContractTypes =
         {
             "IEventSink", "IEventAuthority", "ITickProvider", "IIdAuthority",
             "IVitalsQuery", "ITeleportCommandSink", "SimEvent", "VitalsDto",
+            // ── 2026-10-15 补(ADR-031 §⑤)──────────────────────────────
+            "IPayloadEncoder",   // ← ADR-029 的漏项(第八抽象点的写侧)
+            "IPayloadDecoder",   // ← ADR-031 §①(第八抽象点的读侧)
         };
 
         /// <summary>②③ 引用黑名单 —— **无条件红,不受基线豁免**。
@@ -717,7 +729,7 @@ namespace DaYiJingCheng.EditorTools.Gates
                        "零 TypeRef/MemberRef 解析到 Sim/Sim.Codec(AC-44-B1 ①,ADR-018 §一)。";
             if (AudioForbiddenContractTypes.Contains(refName) && IsSimFamilyNamespace(refNamespace))
                 return $"[b5①] {fromType} 引用契约内 sim 权限类型「{refNamespace}.{refName}」—— " +
-                       "六抽象点/SimEvent/VitalsDto 禁入 44(AC-44-B1 ①「含 IEventSink/IEventAuthority/SimEvent」," +
+                       "八抽象点/SimEvent/VitalsDto 禁入 44(AC-44-B1 ①「含 IEventSink/IEventAuthority/SimEvent」," +
                        "ADR-018 §一;契约合法但对 44 是订阅 sim 真值的旁路)。";
             return null;
         }

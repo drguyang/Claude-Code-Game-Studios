@@ -1,0 +1,43 @@
+# golden-v1 —— medcons(53)确定性黄金夹具(S12-9 · story-002 · ADR-012 双级)
+#
+# 产出:独立 Python 参考实现 golden_v1_reference.py(本目录;与 C# 实现零共享代码)
+#       按 GDD F-53.1 + SplitMix64 D-1 乙案 + story-002 键域裁定手写。2026-10-15。
+#       复现 = python3 golden_v1_reference.py(确定性输出)。
+# 刷新 = 全体平台同时重签 + 旧版保留回归对比(禁单平台独签,ADR-012 §三)。
+#
+# 值域语义:哈希行 = u64 十六进制;U 行 = Q16.16 raw 十进制;判定行 = Outcome 枚举名。
+
+A01_casesalt_seed0_key0 06797743A9C8B075
+A01_uraw 1657
+A02_casesalt_seed1234_key7 EFB7E15F9B87C61B
+N01_signedshift_variant_sameInputsAsA02 C18F424A29E8F9B0
+A02_uraw 61367
+A03_casesalt_seed-5_key-1 63AC0EA92E58768F
+A03_uraw 25516
+A04_casesalt_seed9223372036854775807_key9223372036854775807 AA6B68A4B2839056
+A04_uraw 43627
+A05_casesalt_seed43981_key3 9104567A4D5A819C
+A05_uraw 37124
+C01_degraded_uraw 32768
+
+B01_outcome no_echo
+B02_outcome residual
+B03_outcome residual
+B04_outcome no_echo
+B05_outcome recurrence
+B06_outcome residual
+B07_outcome no_echo
+B08_outcome recurrence
+B09_outcome no_echo
+B10_outcome no_echo
+B11_outcome residual
+B12_outcome trial_history
+B13_outcome trial_history
+B14_outcome trial_history
+B15_outcome recurrence
+B16_outcome no_echo
+B17_outcome residual
+B18_outcome no_echo
+B19_outcome no_echo
+B20_outcome no_echo
+

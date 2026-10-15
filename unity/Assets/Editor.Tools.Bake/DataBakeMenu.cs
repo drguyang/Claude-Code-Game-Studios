@@ -59,6 +59,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>产物文件名(病名册词表;37 Judgment / AC-37-35 / sprint-08 S1.0)。</summary>
         public const string JudgmentLexiconCookedAssetName = "case_judgment_lexicon.cooked.bytes";
 
+        /// <summary>产物文件名(53 判定表;F-53.1 / story-002 的烘焙产物)。</summary>
+        public const string OutcomeTableCookedAssetName = "53_outcome_table.cooked.bytes";
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -349,6 +352,40 @@ namespace DaYiJingCheng.EditorTools.Bake
                 Debug.Log(
                     $"[大医精诚] 烘焙完成:{DiseaseActionAxisCookedAssetName} = {result.Cooked.Length} B, " +
                     $"{result.Actions.Count} 处置 + {result.TreatableBy.Count} 关系, " +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 53 判定表(story-002 · S12-9):仓库 <c>assets/data/53_outcome_table.json</c> →
+        /// 校验(**聚合 throw**:覆盖 / 闭集 / 零浮点 / 极性列零 四条)→ 产物写入 Assets/DataCooked/。
+        /// <para>⚠️ 本菜单是 <see cref="OutcomeTableBinder"/> 的**唯一调用点链路**
+        /// (菜单 → BakeFromRepo → Bind → 四条校验)—— 卡面 Note 2 的「构建期硬失败」由此兑现。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 53_outcome_table(53 判定表)")]
+        public static void BakeOutcomeTable()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                OutcomeTable53.BakeOutput result = OutcomeTable53.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, OutcomeTableCookedAssetName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{OutcomeTableCookedAssetName} = {result.Cooked.Length} B, " +
+                    $"{result.Bound.Rows.Count} 行, U 档数 = {result.Bound.UBandCount}, " +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }

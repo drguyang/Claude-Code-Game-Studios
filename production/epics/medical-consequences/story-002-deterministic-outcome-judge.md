@@ -103,11 +103,40 @@
 
 ---
 
+**[Sprint 12 增量(S12-9,2026-10-15 · qa-plan-sprint-12)]** —— 补实现路线判据(上列 AC-1…6 为规格面,下列为「先勘察再动手」的依赖面 + 收缩判据):
+
+- **S12-9-AC-a(依赖面勘察先行)**: 动手前先读,再裁
+  - Given: `Inputs53` 入向闭集(story-001 已实现:`Inputs53` 五路闭集 + 全序聚合 + 20 条测)
+  - When: 读 P(判断记录投影)/ C(处置记录投影)/ D(9 病程投影 @Tick)/ U(SplitMix64)四入向的**既有可复用面**
+  - Then: 逐入向标注「已可用 / 需补 / 不存在」三类
+  - **收缩判据**:若「需补 / 不存在」≥ 2 路 ⇒ **退回单独立项**,不在 S12-9 硬吃(承 sprint-12 Risk「链深即退」)
+- **S12-9-AC-b(首个不变量夹具先于实现)**: 承 `.claude/docs/coding-standards.md`「Write tests first」
+  - Given: AC-53-01 闭集反射断言(最小面)
+  - When: 实现 `Judge` **之前**
+  - Then: 夹具先红(无 `Judge` 符号 ⇒ 编译红或断言红),再实现转绿
+  - Edge cases: 不得先写实现再造判据(那正是 S12-4 新规要治的「假绿夹具」同型)
+- **S12-9-AC-c(跨平台格 NOT-RUN 登记)**: IL2CPP 三格归 CI
+  - Given: AC-53-02/15 黄金夹具族
+  - Then: 本机跑 Mono 侧 + 负夹具;**IL2CPP 格如实登记 NOT-RUN(禁借绿)**,挂 ADR-012 矩阵
+  - Edge cases: 本机【超算】仅可跑 Mono —— 不得因本机绿就声称「跨平台逐位一致已验证」
+
+---
+
 ## Test Evidence
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/MedConsequences/medcons_outcome_judge_test.cs` + `tests/golden/medcons/*`(ADR-012 夹具族,IL2CPP 格 NOT-RUN 标注) — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Created & passing(2026-10-15,S12-9)
+
+- **23 条全绿**;回归 `3444 / 3398 / 0 / 46`(基线 3421/3375/0/46 ⇒ +23/+23 零回归;`unity/Logs/s12-9-final.xml`)。
+- **golden 真源**:`tests/golden/medcons/golden_v1_reference.py`(独立 python,**与 C# 零共享代码**)+ `golden-v1.txt`;
+  A05 与既有 case-salt golden 交叉验证逐位一致;N01 signed-shift 负夹具钉死。
+- **S12-9-AC-b 证据**:夹具先于实现,初跑 24 × CS0246(`unity/Logs/s12-9-red.log`)。
+- **IL2CPP 三格(AC-53-02/15)**:**NOT-RUN 如实登记**(本机 Mono;挂 ADR-012 矩阵,CI 执行;禁借绿)。
+- **AC-53-03 载体**:`MedConsFloatGate.cs`(注释剥离 token 扫描,接 `AssemblyGates.RunAll`)。
+- **证据原件**:`production/qa/evidence/impl-s12-9-medcons-outcome-judge-2026-10-15.md`(迭代 8 轮全红如实)。
+- **键域裁定**:3×3×2 = 18 行 + default(用户 AskUserQuestion 2026-10-15);U 档列默认 1 档;
+  退化路径 = 显式中点 1/2(raw 32768,非静默 0,夹具钉死)。
 
 ---
 
