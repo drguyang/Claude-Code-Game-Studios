@@ -107,4 +107,9 @@
 - **MINOR**:m-2(卡陈旧)本刷 · m-4 由 B-1 一并覆盖 · m-1/m-3 如实保留;
   **NIT**:NIT-2 补空集守卫 · 其余如实保留
 - **未闭项按原口径 NOT-RUN,禁借绿**(影子装配注入半边 / AC 文本收窄 / tag 序判据 /
-  AC-11-15 矩阵与跨进程 / AC-11-10 对拍降级 / 7a 白名单本体)
+  AC-11-15 矩阵与跨进程 / AC-11-10 对拍降级 / ~~7a 白名单本体~~ —
+  ✅ **已闭 2026-10-15(S11-4)**:判据落于 `drug_event_test.cs` 的
+  `test_ac1122_serializationWhitelist_containsBothNamedKinds` +
+  `..._coversEntireEventKindClosedSet`(白名单 = `EventKind` 35 支闭集 ∩
+  `PayloadCodec` / `PayloadEncoder` 分派表;**载体识别,AC 文本一字未动**)。
+  ⚠️ 本项划闭**不动**同行的「**AC 文本收窄**」—— 后者是**半边甲**(见上 M-2 行),归 producer / TD)

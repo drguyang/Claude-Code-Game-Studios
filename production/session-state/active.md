@@ -3614,3 +3614,125 @@ GDD `:760-766` · `EPIC.md`(`:99-101` / `:105` / `:116` / `:131`)· story-001(`:
 ### 下一步候选
 
 **S11-5**(nice-to-have, 1.5 天,53 medical-consequences 起首 story)· **S11-6**(nice,已裁定顺延吸收)。
+
+---
+
+# S11-5 —— 53 medical-consequences Story 001(入向闭集与跨流聚合)
+
+**状态**:✅ **实现完成**(2026-10-15)· story-001 `Ready` → **`In Review`**
+**证据原件**:`production/qa/evidence/s11-5-medcons-story-001-aggregation-2026-10-15.md`(七节)
+
+### 前提被推翻(本 sprint 第二次)
+
+任务书写「**story 立件** + 判据面成型」—— 而 **4 个 story 件早在 2026-09-28 立好**(全 `Ready`),
+缺席的是**实现**(`WriterExistenceGate.cs:117` 具名「53 未实现」)。⇒ 本件是**真活**。
+⚠️ **过程面**:本 sprint should-have(S11-4)与 nice-to-have(S11-5)**两项前提均过时**,
+描述均写于 10-14,产物形成于 10-03/10-07/09-28 ⇒ **sprint 计划时未回扫 epic 现状**(归 sprint-11 回顾)。
+
+### 交付(2 个新文件,两个新目录均 53 首件)
+
+- `unity/Assets/Sim/Consequences/ConsequenceInputAggregator.cs` —— `IDiseaseProjection`(只读边界)·
+  `DiseaseProjectionSnapshot`(占位)· **`Inputs53`**(恰五路)· `Aggregate`(全序排序 → 逐结案病例投影)
+- `unity/Assets/Tests/EditMode/MedConsequences/medcons_aggregation_test.cs` —— **20 条测**
+
+**核心设计**:**零载荷解码**(门 A 够不着 `Sim.Codec` ⇒ 只操作 `SimEvent` 头部)·
+**置换不变由结构保证**(复制 → 全排序 → 后处理;比较体复用 `EventOrder.Compare` 禁减法)·
+**P = 最后一笔**(有序扫描 + 覆盖式) · **闭集外零渗入**。
+
+### 判据(双信号口径)
+
+| 步骤 | 退出码 | XML | 判决 |
+|---|---|---|---|
+| filtered EditMode | **0** | `20/20 passed` | ✅ 20 条全执行 |
+| **反证 ①**(停用 `ordered.Sort`) | **2** | `18 passed / **2 failed**` | ✅ 恰红**两条排序专向探针** |
+| 还原 ① | — | 残留 0 · 调用完好 · `diff` identical · md5 同 | ✅ |
+| **反证 ②**(注入第六路 `SixthLaneProbe`) | **2** | `19 passed / **1 failed**` | ✅ 恰红一条并**逐字点名** |
+| 还原 ② | — | 残留 0 · `diff` identical · md5 同 | ✅ |
+| 全量 EditMode | **0** | `3366 / 3320 / 0 / 46` | ✅ **零回归**(基线 `3346/3300/0`,**+20 恰本轮新增**) |
+
+`error CS` = 0 · **无 asmdef 改动**(`Sim` 引用集仍恰 = `["Sim.Contracts"]`)。
+
+### 五处偏离批准草案(均以卡面 / AC 为准)
+
+| # | 草案 | 落地 | 依据 |
+|---|---|---|---|
+| 1 | `PerCaseInputs` | **`Inputs53`** | 卡面 **AC-1 逐字**点名;§Implementation Notes 1 是**异名** ⇒「AC 是判据」 |
+| 2 | `MedicalConsequences/consequence_input_aggregation_test.cs` | `**MedConsequences**/medcons_aggregation_test.cs` | 卡面 §Test Evidence **点名**该路径 |
+| 3 | 第五路 `IDiseaseProjection` | `DiseaseProjectionSnapshot` | 接口引用逐组重复装同一对象**无语义** |
+| 4 | (未定) | `Assembly.GetReferencedAssemblies()` | 禁文件系统依赖;查**实际**引用集更严 |
+| 5 | (未定) | 扫面 = `DaYiJingCheng.Sim.Consequences` 命名空间 | **53 无独立程序集**;**刻意不扫全 `Sim`**(会把 9/25/37 纳入 53 判据 = 越权) |
+
+### 两处张力**未**裁定(承批准口径,归 53 的 GDD 轮)
+
+① **处置 Kind 集** —— 卡面 Note 4 提 10/11 两支,而 GDD 规则五 `:165` **只列** `CareApplied`
+⇒ 取 `careKinds` **显式参数**,测试**只**钉「参数被尊重」(窄/宽/null ⇒ 三结果)。
+② **处置窗口下界** —— 取 `[CaseOpened, Close]` 须加第六路,与 AC-1「恰五路」**冲突**
+⇒ 取 `Tick ≤ 结案 tick`(无下界),测试钉**当下口径**并注明待裁。
+
+### 记录面
+
+本件(新建 7 节)· `sprint-11.md` S11-5 行转 ✅ + 订正框 · `sprint-status.yaml` S11-5 → `done` ·
+story-001 件(`Ready` → `In Review` + §Test Evidence 实现记录 + 异名/张力就地登记) · 本文。
+
+### 未清
+
+- **story-001 的 6 条 AC 复选框未勾** —— 判据全绿但**关闭归 `/story-done`**。
+- **`WriterExistenceGate.cs:117` 未动** —— 本件**不产出** `ConsequenceResolved`(归 story-003)。
+- **story 件内的异名**(`Inputs53` / `PerCaseInputs`)—— 只登记不复名;
+  若 GDD 轮要统一,须**同时改卡面 AC 与实现**。
+- **story-002 / 003 未开工** —— P/C 的**内容**、Judge 求值、后果产出均未实现。
+- **S11-5 改动尚未提交** —— 待用户指示(S11-4 主体已于 `8401e6a` 提交)。
+
+### 下一步候选
+
+**S11-6**(nice,已裁定顺延吸收)· 提交 S11-5 · sprint-11 收尾/回顾。
+
+---
+
+# S11-4 二轮回刷(2026-10-15)
+
+**触发**:S11-4(`8401e6a`)提交后复核发现 —— **回刷只做到「段」没做到「表 / 件」**:
+`EPIC.md:102`/`:138` 声明「7a 白名单半边已落判据」,而同文件 `:88`/`:112` 与 `story-003:110`
+**仍写它未闭**。⇒ **同文件内自相矛盾**(与 S11-4 §2.3 诊断的病灶**同型** —— 修掉四处,又留三处)。
+
+### 改动(3 处,纯登记回刷 · **零裁定 · 零代码**)
+
+| # | 位置 | 改后 |
+|---|---|---|
+| 1 | `EPIC.md:88` | `~~7a 白名单~~ ✅ **已闭 2026-10-15**(S11-4 落判据)` |
+| 2 | `EPIC.md:112` | `~~AC-11-22 的 7a 白名单本体~~ ✅ **已闭**` + `~~· BLOCKED-BY-7a~~` |
+| 3 | `story-003:110` | `~~7a 白名单本体~~ ✅ **已闭**` + 就地声明「**不动**同行『AC 文本收窄』(半边甲,归 producer/TD)」 |
+
+第 3 处**顺带消除** story-003 件内自相矛盾(`:36` 的 `[x] AC-11-22` vs `:110` 列为未闭)。
+
+### 两处如实登记
+
+- **第四处口径分歧(域外,未动)**:`qa-plan-sprint-11-2026-10-14.md:62` 把该 AC 读作
+  「**登记处方载荷字段的 7a 白名单条目**」(= 真有一张表),与 S11-4 的**载体识别**
+  (= `EventKind` 闭集 ∩ codec 分派表,**无独立表**)**冲突** —— 正是 S11-4 §5.4 预告的
+  「另一种读法」实例。写于计划期,属 producer/TD 裁定面 ⇒ 未动,留作复议输入。
+- **半边甲性质纠正**:`story-003:103-105`(S11-4 §5.3 **未引到**的行)显示实现侧**早已处理** ——
+  门把 `Sim.Codec/PayloadCodec` 从 `ProductionCtorSites` **移出**、新立 `DecoderCtorSites`
+  分离登记 + `RunAll` 摘要报警。⇒ 准确性质 = **「已显式记账、待裁收窄」**,**不是**「未处理的背离」;
+  真剩余仍只有 **AC 文本收窄的裁定**(归 producer/TD)。
+
+### 影响面:**零**
+
+零代码改动 ⇒ **不跑 Unity、无回归面**(S11-4 §四的证伪三步仍为 `8401e6a` 时的有效记录)·
+不改任何判据 / 数值 / AC 文本 · epic DoD 状态不变。
+
+### 过程面观察(同一失效模式**第二次现身**)
+
+**只改声明段而不改表 / 件 ⇒ 生产新的同文件矛盾**(S11-4 修掉四处,又留下三处)。
+⇒ 建议收口判据:回刷后对**同一关键词做全仓 grep**,逐条判「动 / 不动」并落纸
+(本次证据原件 §8.2 那张表即该做法)。
+
+### 记录面
+
+S11-4 证据原件追加「§八 二轮回刷」(8.1 改动 · 8.2 扫描面 · 8.3 第四处分歧 · 8.4 半边甲纠正 ·
+8.5 零影响面 · 8.6 过程面)· 本文。
+
+### 下一步候选
+
+**S11-4 尾巴 B**(跑 producer/TD 裁半边甲 + 半边②读法)· **S11-6** ·
+提交 S11-5 + S11-4 二轮回刷 · sprint-11 收尾 / 回顾。

@@ -85,7 +85,7 @@ This epic is complete when:
 |---|-------|------|--------|-----|
 | 001 | 处方表与本草词表:双表 polarity 硬门 | Config-Data | ✅ Complete 2026-10-06(DC-2 / DC-6 NOT-RUN) | ADR-014/024/005 |
 | 002 | F-11.1 剂量舍入与 F-11.2 F5 求值点 | Logic | ✅ Complete 2026-10-06(评审原件已补:2026-10-06 补做轮;AC-11-11④ / AC-11-19 断言本体 / TR-007 21a 半边 NOT-RUN) | ADR-006/005/012 |
-| 003 | DrugTreatmentApplied 构造、零病名与写者独占 | Integration | ✅ Complete 2026-10-06(评审原件 + 双代理一轮修复;AC-11-15 矩阵 / 影子装配半边 / tag 序 / 7a 白名单 NOT-RUN) | ADR-009/024/013 |
+| 003 | DrugTreatmentApplied 构造、零病名与写者独占 | Integration | ✅ Complete 2026-10-06(评审原件 + 双代理一轮修复;~~7a 白名单~~ ✅ **已闭 2026-10-15**(S11-4 落判据);AC-11-15 矩阵 / 影子装配半边 / tag 序 NOT-RUN) | ADR-009/024/013 |
 | 004 | Prescribe 流程:库存、扣减与成长门 | Integration | ✅ Complete 2026-10-06(AC-11-16 正式对拍 / 换算表真源 / 非主机半边 NOT-RUN) | ADR-009/026/010 |
 | 005 | 戥子输入与方笺呈现 | UI | ✅ Complete 2026-10-06(结构半边;走查半边 NOT-RUN) | ADR-011/013 |
 
@@ -109,7 +109,7 @@ This epic is complete when:
 | story-001 | ~~DC-2(`action_id` 闭集)~~ ✅ **已闭 2026-10-07**(master = `disease_action_axis.json`,`2a7764f`)· ~~DC-6(`NOISE_BAND_9` 无主)~~ ✅ **已闭 2026-10-07**(9 侧立 `NOISE_BAND_POTENCY_9` ⇒ 判据 RUN) | ~~OQ-11-2 · BL-2~~ ⇒ **残余** = DC-6 对当前数据集**零求值** + BL-7(21a `drug_potency` 域未声明) |
 | story-002 | AC-11-11④ 宽度分支 · AC-11-19 **断言本体** · TR-prescription-007 的 21a 半边 | BL-7 / BL-2 / BL-1(均 O-11→21a) |
 | story-002/003 | AC-11-15 三格矩阵 + 跨进程半边 | ADR-012 矩阵未激活 |
-| story-003 | 影子装配注入半边 · `CheckPayloadPairing` 不覆盖 codec tag 序 · AC-11-22 的 7a 白名单本体 | 需动态生成程序集 · 归 ADR-014 阶段 2 · BLOCKED-BY-7a |
+| story-003 | 影子装配注入半边 · `CheckPayloadPairing` 不覆盖 codec tag 序 · ~~AC-11-22 的 7a 白名单本体~~ ✅ **已闭 2026-10-15**(S11-4 落判据:白名单 = `EventKind` 35 支闭集 ∩ codec 分派表) | 需动态生成程序集 · 归 ADR-014 阶段 2 ~~· BLOCKED-BY-7a~~ |
 | story-003 | **AC-11-22 / TR-prescription-018 与实现的文本背离**(解码点在 11 之外构造载荷) | 门已**显式记账**;收窄裁定**归 producer / TD**,本 epic 不自行改 AC 文本 |
 | story-004 | AC-11-16 正式对拍 · 换算表真源 `D-21-29` · 非主机传输半边 | OQ-11-13(`K_difficulty` 无主)· OQ-11-10 · BLOCKED-BY-45 |
 | story-005 | **走查半边 AC-11-12 / AC-11-13 / AC-11-21 全 NOT-RUN**(须人工执行 + 主创 / 医学从业 / 音频 lead 签核)· 手柄面 | 走查文档与截图未产出 · ADR-013 假设 6(UI Toolkit 手柄焦点导航) |
