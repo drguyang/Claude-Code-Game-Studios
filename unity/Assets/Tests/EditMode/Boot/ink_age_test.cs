@@ -1,10 +1,12 @@
 // sprint-06 G2.2 · 墨龄派生态(EditMode 判据 · 2026-10-11)
 //
 // 判据(可证伪):
-//   ① 落笔后 InkAgeTicks = 当前 tick − 最近 Judgment 事件 Tick(>0,随 tick 推进递增);
+//   ① 落笔后 InkAgeTicks = 当前 tick − **该病人开案**最近一条判断事件 Tick(>0,随 tick 推进递增);
 //   ② 未落笔 ⇒ 0(刚落笔形态,湿墨);
 //   ③ 复查改写(JudgmentRevised)⇒ 从**最新一条**重算(GDD J(c) 存新值最后一条胜);
-//   ④ 病例流事件视图 = EventStream.Events(组合根注入同一实例)。
+//   ④ 病例流事件视图 = EventStream.Events(组合根注入同一实例);
+//   ⑤ 🔴 跨病人 —— 病人 B 的判断更晚落笔,**不得**拉低病人 A 的墨龄
+//      (2026-10-15 S11-7 补 · story-002 BLK-8 实害链终点;旧实现下本测必红)。
 //
 // 纯逻辑 EditMode:真 EventStream + 真 CaseOpenWriter + 真 JudgmentWriter +
 // 真 SimTickDriver —— 全生产路径。照 JudgmentWriter 测试先例。
@@ -84,6 +86,39 @@ namespace DaYiJingCheng.Tests.Boot
             _writer.TryRecord(tick: 10, _patient, lexiconId: 7, confidence: 2);
             Assert.AreEqual(0L, _source.InkAgeTicks,
                 "落笔 tick > 当前 ⇒ 差值钳 0(时间反演防御,AC-27 同族)");
+        }
+
+        /// <summary>🔴 S11-7 判别夹具(story-002 BLK-8 **实害链终点**):跨病人 ——
+        /// 病人 B 的判断**更晚**落笔,病人 A 的墨龄**不得**被它拉低。
+        /// <para>修复前 <c>LastJudgmentOf</c> 的 <c>caseId</c> 死参 ⇒ 取「整条病例流最后一条
+        /// 判断事件」= 病人 B 的(tick=4)⇒ 病人 A 的墨龄算成 1(而非 2)。
+        /// 本测走**全生产路径**(CompositionRoot 装配),与 SetUp 同源。</para></summary>
+        [Test]
+        public void test_inkAge_crossPatient_usesOwnJudgmentNotOtherPatients()
+        {
+            // 病人 A(SetUp 已建档 / 在场 / 开案)在 tick=3 落笔
+            AdvanceTicks(3);                        // current → 3
+            Assert.AreEqual(JudgmentWriteResult.Recorded,
+                _writer.TryRecord(tick: 3, _patient, lexiconId: 7, confidence: 2));
+
+            // 病人 B:建档 + 在场 + 开案,并在**更晚**的 tick=4 落笔
+            PatientId other = _bag.PatientSpawner.SpawnNext(diseaseId: 1, tick: 3);
+            _bag.Presence.AddPresent(other, new WorldPos(1, 0, 0));
+            var caseWriter = new CaseOpenWriter(_bag.EventSink, _bag.Presence, _bag.Encoder,
+                                                _bag.Stream.Events);
+            Assert.AreEqual(CaseOpenWriteResult.Opened, caseWriter.TryOpen(3, other, default),
+                "病人 B 须开案成功(落笔前置)");
+            Assert.AreEqual(JudgmentWriteResult.Recorded,
+                _writer.TryRecord(tick: 4, other, lexiconId: 9, confidence: 3));
+
+            AdvanceTicks(2);                        // current → 5
+
+            _source.ChangePatient(_patient);
+            Assert.AreEqual(2L, _source.InkAgeTicks,
+                "病人 A:5 − 3 = 2;旧实现取全流末条(病人 B 的 tick=4)⇒ 1 —— 墨龄取错病人");
+
+            _source.ChangePatient(other);
+            Assert.AreEqual(1L, _source.InkAgeTicks, "病人 B:5 − 4 = 1(反向对照,防「一律返 0」)");
         }
 
         private void AdvanceTicks(int steps)

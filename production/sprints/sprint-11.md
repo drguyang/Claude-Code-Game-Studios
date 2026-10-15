@@ -46,7 +46,7 @@
 
 | ID | Task | Agent/Owner | Est. Days | Dependencies | Acceptance Criteria |
 |----|------|-------------|-----------|--------------|---------------------|
-| S11-7 | **story-002 BLK-8:墨龄取错病人(真实现缺陷)** —— `CaseStreamQuery.LastJudgmentOf` 以 `caseId` 过滤(现 `caseId` 形参**零引用**,自承「P0 简化:调用方负责传入该案事件子集」)+ `CompositionRoot.cs:245-246` 改传**该案子集**(现传 `stream.Events` = 全局混合流)+ `CasebookVitalsSource.cs:214` 注释「按 case 过滤」与实现对齐 | Claude | 0.75 | 无 | 新增**跨病人交错夹具**(2 病人各一案交错)可证伪:改回全局流即转红;`EditMode/Boot/ink_age_test.cs` 现 4 测**全为单案夹具**,须补跨案一测;`InkAgeTicks` 不再取到他病人判断事件 |
+| S11-7 | ✅ **DONE 2026-10-15** —— **story-002 BLK-8:墨龄取错病人(真实现缺陷)** —— `CaseStreamQuery.LastJudgmentOf` 的 `caseId` 形参**零引用**(只取「传入列表末条判断事件」);生产唯一调用方传 `EventStream.Events` = **全部混合流** ⇒ `InkAgeTicks` 取到**别的病人**的判断事件。⚠️ **性质厘清**:不是「调用方传错」,是**接口本身失守** —— 旧契约「调用方传该案子集」**构造不出来**(`Sim` 够不着 `Sim.Codec`,ADR-025 §①)。⚠️ **处方订正**见下方订正框:`CompositionRoot` **无须改动** | Claude | 0.75 | 无 | 已交付:归属判据改**流序关联**(与既有正确范式 `OpenCaseOf` 同构);**新增 3 条判别夹具**(跨病人交错 / **同病人复诊** / 端到端墨龄)+ 改写 3 条旧夹具(原夹具**不含 `CaseOpened`** = 「已切片」形状,正是逃过测试面的直接原因);**回退旧实现即转红**:25 测 23/**2 红** + 5 测 4/**1 红**,失败消息逐字命中实害描述(「墨龄取错病人」);修复后 25/25 · 5/5;零回归 EditMode `3337/3291/0` · PlayMode `186/186/0` |
 | S11-8 | ✅ **DONE 2026-10-15** —— **story-003 B-1:复诊案永远无法结案(真实现缺陷)** —— `CaseCloseQuery.IsClosed` 改按 `CaseId` **三元组**精确匹配(原 `CaseCloseDecider.cs:135` = `e.Patient.Value == caseId.Patient`,粒度从 `case_id` 退化为 `Patient`)+ **统一 `IsOpen`/`IsClosed` 输入契约**。⚠️ **本条两处计划口径已就地改判**(见下方订正框):判等路径不用 `PayloadRef` 解码,契约取「整条全序流」而非「该案子集」 | Claude | 0.75 | 无 | 流 `[Opened(100,1,0), Closed(200,1,1), Opened(300,1,2)]` 上 `IsClosed(newCaseId) == false`(**已交付**:35/35 绿;改回旧实现 ⇒ 退出码 2 · 28/35 · **7 红**,含复诊案由 `CanClose` 退化为 `RejectAlreadyClosed` 的现象本体);**同批补流层判据**(已交付:端到端组装用例 —— 此前全文件无一条把两条流接进 `Decide`);`case_close_precondition_test.cs:133` 硬编码 `isClosed:false` 的假绿解除(已交付:含 `:146`/`:162`/`:510`,共 4 处) |
 | S11-9 | **story-004 CB-2/TB-5:AC-37-29 零覆盖,且免责前提当日失效** —— 落地 `ChainEligible` / `ScriptedChain`(全库 `.cs` **零命中**,连 story `:40` 自认「先落」的那半边也没落);**W-1 已于 2026-10-15 结案**(三案各挂 `DIS_DYSENTERY`,会签记录 `case-system.md:610-627`)⇒ 夹具今日即可写 | Claude | 0.75 | 无(W-1 已解除) | 二符号从零命中转为**有实现 + 有测试**;夹具覆盖「脚本链名额**不被随机病例消耗**」+「**一次性**」两条语义 |
 | S11-10 | ✅ **DONE 2026-10-15** —— **story-003 B5:处置集收录 `InjuryOnset`(设计冲突)** —— **撤 `InjuryOnset`**(「病人挨了打」被计入「已被处置」⇒ 玩家把病人打到即可满足结案前置,正面击穿「空手连关三例不可能」)· **补 `CareApplied`**(8 的护理动作,病史流,原**未收**,取舍方向与语义相反)· 处置集枚举**回填权威**:`adr-008` §四(**已于 2026-10-15 先行补立**)+ `case-system.md` F-37.2 `:671`/`:674`/`:686` + 规则六 `:255` + 规则八 `:283`(**闭环四处已核一致**) · **顺批 ADVISORY A-1**:`Set` 收为 `private` 真源 + `Contains` + `MembersSnapshot()`(返副本) | Claude | 0.5 | 无 | 已交付:39/39 绿;**回退成员表即转红**(退出码 2 · 39 测 **4 红**,含 `equalsAuthorityExactly` 打印出两个集合);**双向穷尽**判据 = 期望值**逐字引自 `adr-008` §四**(不引生产默认值);`EmergencyAttempt` 的**正确排除**保持(ADR-009 Amendment I) |
@@ -76,6 +76,18 @@
 > ⚠️ 另有一处**计划文档自身的引用偏差**:S11-11 行原写 GDD 权威编号在 `case-system.md:1036-1051`
 > —— 实测该区间是**「信息边界」节**,AC 表在 **`:1075-1092`**。已就地订正,登记于此备查。
 > 📄 **修复证据原件** = `production/qa/evidence/fix-s11-11-case-system-story-001-b3-2026-10-15.md`。
+
+> ⚠️ **S11-7 计划口径就地订正(2026-10-15 执行期 · 已报用户)**
+> S11-7 行原写「`CompositionRoot.cs:245-246` **改传该案子集**(现传 `stream.Events` = 全局混合流)」
+> —— **该处方基于错误前提**。实测:① 传整条流**本就是正确用法**,错在**被调用方**没用 `caseId`;
+> ② 「该案子集」**构造不出来** —— `SimEvent.Payload` 是 `PayloadRef`,解码归 `Sim.Codec`,
+> 而 `Sim` 引用集恰 = {BCL, `Sim.Contracts`}(ADR-025 §① / b2 门)⇒ 装配层要切片只能**自己解码载荷**,
+> 即把 37 的查询语义复制进装配层 = **更差的架构**。
+> ⇒ **修复落在 `LastJudgmentOf` 内部,调用点(含 `CompositionRoot`)一字未改**;
+> 传全局流**从此成为正确行为**。**属「计划了一个做不到、也不需要做的形状」,非范围缩减。**
+> ⚠️ **同族纪律(本 sprint 第二次)**:S11-8 的两处订正也是「计划写了一个**做不到的形状**」——
+> 根因同一条 = **`Sim` 侧的引用集约束**(够不着 `Sim.Codec`)在校验处方时未被前置检查。
+> 📄 **修复证据原件** = `production/qa/evidence/fix-s11-7-case-system-story-002-blk8-2026-10-15.md`。
 
 **本批不取(整批顺延 sprint-12,须在四件 story 内显式登记)**:
 story-001 B-1(AC-37-06 判据**算术上不可证伪**,须退设计重述)· B-2(kindgen A2 空跑)· B-4(kindgen 借绿);

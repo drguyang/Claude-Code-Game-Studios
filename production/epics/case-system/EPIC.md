@@ -15,8 +15,9 @@
 > 致实现自收 `InjuryOnset` ⇒ 击穿「空手连关三例不可能」;现权威定义落 `adr-008` §四)——
 > ✅ **代码侧已于 2026-10-15 S11-10 对齐**(`TreatmentKinds` = `{Emergency, Drug, CareApplied}`,
 > 含 `MembersSnapshot()` 双向穷尽判据 + 顺批 A-1;四处口径已核一致)。
-> ✅ **排期面**:**S11-8 / S11-10 / S11-11 均已于 2026-10-15 闭合**(各带证据原件,
-> 见 `production/qa/evidence/fix-s11-8-*.md` / `fix-s11-10-*.md` / `fix-s11-11-*.md`);S11-7 / S11-9 未启动。
+> ✅ **排期面**:**S11-7 / S11-8 / S11-10 / S11-11 均已于 2026-10-15 闭合**(各带证据原件,
+> 见 `production/qa/evidence/fix-s11-7-*.md` / `fix-s11-8-*.md` / `fix-s11-10-*.md` / `fix-s11-11-*.md`);
+> **S11-9 未启动**。⚠️ **三件真实现缺陷(B-1 / B5 / BLK-8)已全部闭合**。
 > **Stories**: 6 stories — see table below
 
 ## Overview
@@ -71,7 +72,7 @@ This epic is complete when:
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
 | 001 | 病例流 Kind 登记与病例身份 | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`e64efad`)判定不成立;补评 4 BLOCKING·测试面 —— **③ B-3 AC 号一号两义 ✅ S11-11 闭合**(全文件去号 25 处);余 **3 条**顺延:判据不可证伪(B-1,须退设计)· kindgen A2 空跑(B-2)· kindgen 借绿(B-4)) | ADR-008/024/006 |
-| 002 | 立案两路径 · 开案唯一 · 判断记录事件化 | Integration | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`c4e3708`)判定不成立;补评 + §七 勘误后核心 **1 类**:`LastJudgmentOf` 死参·实害链 + 声明件断言形态) | ADR-008/009/005 |
+| 002 | 立案两路径 · 开案唯一 · 判断记录事件化 | Integration | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`c4e3708`)判定不成立;补评 + §七 勘误后核心 **1 类** —— **`LastJudgmentOf` 死参·实害链「墨龄取错病人」✅ S11-7 闭合**(归属改流序关联;回退旧实现 ⇒ 2+1 红,端到端复现实害);余 **声明件 5 条断言形态** + BLK-9/BLK-10 顺延 sprint-12) | ADR-008/009/005 |
 | 003 | 结案前置:处置证据窗口与快照 | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`31e3f9b`)判定不成立;补评 + §七 勘误后核心 **4 类** —— **① `IsClosed` 按 `Patient` 匹配 ✅ S11-8 闭合** · **⑤ `TreatmentKinds` 错收 `InjuryOnset`漏收 `CareApplied` ✅ S11-10 闭合(+A-1 顺批)**,各带「改回旧实现即转红」反证;余 **2 类**未清:快照半场(写者未落,无载体)· AC-37-18 恒真化) | ADR-008/007 |
 | 004 | F-37.1 同源检测与 PatternRecognized | Logic | **In Review ⚠️ 2026-10-15**(原 `Complete 2026-10-06`(`8a693fd`)判定不成立;补评 8 BLOCKING·双面) | ADR-008/007/012 |
 | 005 | 守密纪律:DTO 守卫 · 词表烘焙 · 零奖励断言 | Integration | **Complete ✅ 2026-10-08** | ADR-013/014/006 |

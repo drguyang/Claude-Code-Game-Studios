@@ -89,7 +89,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_open_and_judgment_test.cs` — must exist and pass(就诊动作 master 未闭合 ⇒ AC-4-15 侧联动维持 NOT-RUN 标注)
-**Status**: [ ] In Review — 测试文件存在且 23/23 绿,但补评判定 **Test Evidence 门不通过**(见下方登记块)
+**Status**: [ ] In Review — 测试文件存在且 **25/25 绿**(2026-10-15 S11-7 后;原 23/23),但补评判定 **Test Evidence 门不通过**(见下方登记块)
 
 > ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `review-case-system-001-004-gap-audit-2026-10-15.md` §二:002 确证产出过 BLOCKING 级判定),按义务第 3 条**补做评审(评当下)**,不追认 `c4e3708` 的历史判定。
 > **补评原件**:`production/qa/evidence/review-case-system-story-002-retro-2026-10-15.md`
@@ -118,6 +118,44 @@
 > - **顺延 sprint-12**(须带状态+归属):声明件的 5 条**断言形态**(BLK-2 纯常量比较 / BLK-3 测试自造 `J(c)` /
 >   BLK-5 重复断言 / BLK-9 负断言未按 AC 契约构造 / BLK-1 的恒真半边)+ ③ 把
 >   `CaseOpenWriterTest` / `JudgmentWriterTest` / PlayMode 接线件**补进 §Test Evidence 的引用面**(AC→载体映射表)。
+
+> 🟢 **BLK-8 已闭合 —— 2026-10-15 · sprint-11 S11-7**(证据原件:`production/qa/evidence/fix-s11-7-case-system-story-002-blk8-2026-10-15.md`)
+>
+> **缺陷的准确性质(修复中厘清)**:不是「调用方传错」,而是**接口本身失守** —— 旧契约要求
+> 「调用方传入该案事件子集」,但该契约**在生产路径上不可能被满足**:唯一调用方传
+> `EventStream.Events`(全部混合流),且**没有任何一层能合法切片**(`SimEvent.Payload` 是
+> `PayloadRef`,解码归 `Sim.Codec`,而 `Sim` 引用集恰 = {BCL, `Sim.Contracts`} —— ADR-025 §①)
+> ⇒ 契约把责任推给了一个**做不到的调用方**。**与 S11-8 同一结构约束**。
+>
+> **改动**:
+> ① `LastJudgmentOf` 归属判据 = **流序关联**(跟踪该病人 `CaseOpened` 三元组确定「当下开案」,
+>   至 `CaseClosed` 前为止)—— **与既有正确范式 `OpenCaseOf` 同构**;
+> ② `CasebookVitalsSource.cs:211`/`:214` 注释对齐(原「该病人最近一条」正是缺陷的自我描述);
+> ③ 测试:**改写 3 条旧夹具**(原夹具**不含 `CaseOpened`** = 「调用方已切片」形状,
+>   正是 caseId 死参逃过测试面的直接原因;与 S11-10 那条反向断言的旧测同型)+ **新增 3 条判别夹具**。
+>
+> ⚠️ **计划口径订正(已报用户)**:计划写「`CompositionRoot.cs:245-246` **改传该案子集**」——
+> **实测该处方基于错误前提**:传整条流本就是正确用法,且「该案子集」构造不出来
+> (切片只能靠装配层自己解码 ⇒ 把 37 的查询语义复制到装配层,是更差的架构)。
+> ⇒ **修复落在被调用方内部,调用点一字未改**。**属「计划了一个做不到、也不需要做的形状」,非范围缩减。**
+>
+> **可证伪判据(证伪链双信号一致)**:
+> | 状态 | CaseOpenAndJudgmentTest | InkAgeTest |
+> |---|---|---|
+> | **回退旧实现** | 退出码 **2** · 25 测 23/**2 红** | 退出码 **2** · 5 测 4/**1 红** |
+> | **修复后** | 退出码 **0** · **25/25** | 退出码 **0** · **5/5** |
+>
+> 三条红讯的失败消息**逐字命中** BLK-8 的实害描述,其中 `test_inkAge_crossPatient_*`
+> 打印「病人 A:5 − 3 = 2;旧实现取全流末条(病人 B 的 tick=4)⇒ 1 —— **墨龄取错病人**」
+> —— 这是**端到端**复现实害链的判据(走 `CompositionRoot` 全生产装配)。
+> **新增夹具不可互相替代**:跨病人夹具与同病人复诊夹具的 `Patient` 相同与否不同,
+> 只有后者能抓「按 Patient 匹配」与「按 case_id 匹配」的分界。
+>
+> **零回归**:EditMode `3337/3291/0 failed`(较 S11-11 后 **+3**,恰为本轮新增);
+> PlayMode `186/186/0`(**逐位等于 M2 基线**)。引用集一字未动(无 asmdef 改动)。
+>
+> **未清**:仍余 5 条**断言形态**(含 `test_ac3705_storeNewValue_judgmentIsLastEvent` 仍自造
+> `J(c)` 不调生产函数 —— 与本件同一缺口的两半)+ BLK-9 / BLK-10,顺延 sprint-12。
 
 ---
 

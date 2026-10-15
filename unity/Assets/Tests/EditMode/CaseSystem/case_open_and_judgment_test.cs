@@ -435,9 +435,16 @@ namespace DaYiJingCheng.Tests.CaseSystem
 
         // ════════════════════════════════════════════════════════════════════
         // 存新值:LastJudgmentOf —— 生产代码 CaseStreamQuery
+        //
+        // ⚠️ 2026-10-15 S11-7 修复附注(story-002 §二 BLK-8):
+        //   下列三条夹具**原本不含 CaseOpened** —— 它们编码的是旧契约
+        //   「调用方传入该案事件子集」。但该契约在生产路径上**不可能被满足**
+        //   (唯一调用方传 EventStream.Events = 全部混合流)⇒ 正是这三条让
+        //   「caseId 死参」逃过测试面(同 S11-10 那条反向断言缺陷的旧测)。
+        //   现按新契约(传整条流)重写,并补两条**跨案判别**夹具 —— 旧实现下必红。
         // ════════════════════════════════════════════════════════════════════
 
-        /// <summary>LastJudgmentOf:无判断记录返回 null。</summary>
+        /// <summary>LastJudgmentOf:该案无判断记录返回 null。</summary>
         [Test]
         public void test_lastJudgmentOf_noJudgment_returnsNull()
         {
@@ -447,23 +454,24 @@ namespace DaYiJingCheng.Tests.CaseSystem
             };
 
             var result = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0));
-            Assert.That(result.HasValue, Is.False, "无判断记录须返回 null");
+            Assert.That(result.HasValue, Is.False, "该案无判断记录须返回 null");
         }
 
-        /// <summary>LastJudgmentOf:有判断记录返回末条。</summary>
+        /// <summary>LastJudgmentOf:该案有判断记录返回末条。</summary>
         [Test]
         public void test_lastJudgmentOf_hasJudgment_returnsLast()
         {
             var events = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.JudgmentRecorded),
-                MakeEvent(150, new PatientId(1), 1, EventKind.JudgmentRevised),
-                MakeEvent(200, new PatientId(1), 2, EventKind.JudgmentRevised),
+                MakeEvent(100, new PatientId(1), 0, EventKind.CaseOpened),
+                MakeEvent(100, new PatientId(1), 1, EventKind.JudgmentRecorded),
+                MakeEvent(150, new PatientId(1), 2, EventKind.JudgmentRevised),
+                MakeEvent(200, new PatientId(1), 3, EventKind.JudgmentRevised),
             };
 
             var result = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0));
             Assert.That(result.HasValue, Is.True, "有判断记录须返回末条");
-            Assert.That(result.Value.Seq, Is.EqualTo(2), "末条 Seq=2");
+            Assert.That(result.Value.Seq, Is.EqualTo(3), "末条 Seq=3");
             Assert.That(result.Value.Tick, Is.EqualTo(200), "末条 tick=200");
         }
 
@@ -473,12 +481,63 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             var events = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.JudgmentRecorded),
+                MakeEvent(100, new PatientId(1), 0, EventKind.CaseOpened),
+                MakeEvent(100, new PatientId(1), 1, EventKind.JudgmentRecorded),
             };
 
             var result = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0));
             Assert.That(result.HasValue, Is.True, "单条判断记录须返回该条");
-            Assert.That(result.Value.Seq, Is.EqualTo(0));
+            Assert.That(result.Value.Seq, Is.EqualTo(1));
+        }
+
+        /// <summary>🔴 S11-7 判别夹具:跨病人交错 —— 病人 2 的判断**全流更晚**,
+        /// 但**不得**被算进病人 1 的案。
+        /// <para>旧实现(取传入列表末条判断)在此**必错** —— 会返回病人 2 的 tick=140。
+        /// 这正是 BLK-8 的实害:墨龄取错病人。</para></summary>
+        [Test]
+        public void test_lastJudgmentOf_crossPatientInterleaved_ignoresOtherPatientsJudgments()
+        {
+            var events = new[]
+            {
+                MakeEvent(100, new PatientId(1), 0, EventKind.CaseOpened),
+                MakeEvent(100, new PatientId(2), 0, EventKind.CaseOpened),
+                MakeEvent(110, new PatientId(1), 1, EventKind.JudgmentRecorded),
+                MakeEvent(120, new PatientId(2), 1, EventKind.JudgmentRecorded),
+                MakeEvent(130, new PatientId(1), 2, EventKind.JudgmentRevised),
+                MakeEvent(140, new PatientId(2), 2, EventKind.JudgmentRevised),  // 全流末条 —— 病人 2 的
+            };
+
+            var result = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0));
+
+            Assert.That(result.HasValue, Is.True, "病人 1 本案有两笔判断,须返回其末条");
+            Assert.That(result.Value.Patient.Value, Is.EqualTo(1), "须是病人 1 的事件");
+            Assert.That(result.Value.Tick, Is.EqualTo(130),
+                "病人 1 末条 tick=130;旧实现返回 140(病人 2 的)⇒ 墨龄取错病人");
+        }
+
+        /// <summary>🔴 S11-7 判别夹具:同一病人**复诊** —— 第二案的判断不得污染第一案。
+        /// <para>这是「按 Patient 匹配」与「按 case_id 匹配」的分界:两者 Patient **相同**,
+        /// 只有 CaseOpened 三元组不同。故本测**不能被跨病人夹具替代**。</para></summary>
+        [Test]
+        public void test_lastJudgmentOf_samePatientSecondCase_ignoresFirstCaseJudgments()
+        {
+            var events = new[]
+            {
+                MakeEvent(100, new PatientId(1), 0, EventKind.CaseOpened),   // 案 A
+                MakeEvent(110, new PatientId(1), 1, EventKind.JudgmentRecorded),
+                MakeEvent(200, new PatientId(1), 2, EventKind.CaseClosed),   // 案 A 结
+                MakeEvent(300, new PatientId(1), 3, EventKind.CaseOpened),   // 案 B(复诊)
+                MakeEvent(310, new PatientId(1), 4, EventKind.JudgmentRecorded),
+            };
+
+            var caseA = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0));
+            var caseB = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(300, 1, 3));
+
+            Assert.That(caseA.HasValue, Is.True, "案 A 有判断记录");
+            Assert.That(caseA.Value.Tick, Is.EqualTo(110),
+                "案 A 只认 [100,200) 窗内的判断;旧实现返回 310(案 B 的)");
+            Assert.That(caseB.HasValue, Is.True, "案 B 有判断记录");
+            Assert.That(caseB.Value.Tick, Is.EqualTo(310), "案 B 只认 300 之后的判断");
         }
     }
 }

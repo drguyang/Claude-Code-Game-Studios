@@ -208,11 +208,17 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <inheritdoc/>
         /// <remarks>
-        /// **墨龄(G2.2 · 派生态)** = `当前 tick(ITickProvider) − 该病人最近 JudgmentRecorded
-        /// 事件的 Tick`。差值在装配层算(42 零计时器,AC-42-G6)。
+        /// **墨龄(G2.2 · 派生态)** = `当前 tick(ITickProvider) − **该病人开案**最近一条判断
+        /// 事件的 Tick`(= GDD 规则四① 的 `J(c)`,c = <see cref="CaseStreamQuery.OpenCaseOf"/>
+        /// 给出的开案)。差值在装配层算(42 零计时器,AC-42-G6)。
         /// <para>未落笔 ⇒ 0 = 刚落笔(墨龄零 = 湿墨形态)。载荷 freehandText P0 不做,
-        /// 只认事件头 Tick —— <see cref="CaseStreamQuery.LastJudgmentOf"/> 按 case 过滤,
-        /// 此处取该病人最近一条 Judgment(含 Revised,README 按全序最后)。</para>
+        /// 只认事件头 Tick。</para>
+        /// <para>⚠️ <b>2026-10-15 修复(sprint-11 S11-7 · story-002 BLK-8)</b>:本处传入的是
+        /// **整条病例流**(<c>EventStream.Events</c>,全部病人混合)。修复前
+        /// <see cref="CaseStreamQuery.LastJudgmentOf"/> 的 <c>caseId</c> 形参零引用
+        /// ⇒ 实际取的是**该流最后一条判断事件**,**可能是别的病人的** ⇒ 墨龄取错病人。
+        /// 现已由该函数**自按 case 过滤**(流序关联)⇒ **传整条流即正确**,
+        /// 此处**无须也不应**预切片(承 ADR-025 §①:`Sim` 侧无按 case_id 切片的合法手段)。</para>
         /// </remarks>
         public long InkAgeTicks
         {

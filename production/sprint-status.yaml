@@ -75,14 +75,14 @@ stories:
   # 净保留判定 22 条 → 去重 ≈13 类;本批只取「真缺陷 / 免责失效 / 设计冲突 / 零成本」四类。
   # 断言形态整批顺延 sprint-12(见 sprint-11.md DoD「顺延面显式登记」);四件维持 In Review。
   - id: "S11-7"
-    name: "story-002 BLK-8 墨龄取错病人(LastJudgmentOf 以 caseId 过滤 + CompositionRoot 传该案子集)"
+    name: "story-002 BLK-8 墨龄取错病人(LastJudgmentOf 归属改流序关联;调用点无须改动)"
     file: "production/sprints/sprint-11.md"
     priority: must-have
-    status: ready-for-dev
-    owner: ""
+    status: done
+    owner: "Claude"
     estimate_days: 0.75
     blocker: ""
-    completed: ""
+    completed: "2026-10-15"
   - id: "S11-8"
     name: "story-003 B-1 复诊案无法结案(IsClosed 改流序扫描关联 + IsOpen 同契约 + Decide 判序对调 + 同批补流层判据)"
     file: "production/sprints/sprint-11.md"
