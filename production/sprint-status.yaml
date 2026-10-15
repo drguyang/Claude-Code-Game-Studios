@@ -66,10 +66,10 @@ stories:
     name: "11 人工走查 AC-11-12/13/21(前置:修 Driver passed 汇总 bug)"
     file: "production/sprints/sprint-11.md"
     priority: nice-to-have
-    status: backlog
-    owner: ""
+    status: backlog            # 非「未排」—— 已由用户裁定顺延,见 blocker(2026-10-15)
+    owner: "user + Claude"
     estimate_days: 0.75
-    blocker: ""
+    blocker: "顺延 sprint-12(用户裁定「必须项优先」· sprint-11.md:27)—— 需真人走查 + 主创 / 医学从业 / 音频 lead 三签,agent 不可代劳;前置 = 修 Story009WalkthroughDriver 的 passed 汇总 bug"
     completed: ""
   # ── 补评修复批(case-system 001–004 · 2026-10-15 用户裁定并入 · 「必须项优先」口径)──
   # 净保留判定 22 条 → 去重 ≈13 类;本批只取「真缺陷 / 免责失效 / 设计冲突 / 零成本」四类。

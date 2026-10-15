@@ -33,9 +33,9 @@
 
 | ID | Task | Agent/Owner | Est. Days | Dependencies | Acceptance Criteria |
 |----|------|-------------|-----------|--------------|---------------------|
-| S11-1 | **9 查体 revealed 接线 → 8 前台回路**(脉案值区运行期非空;顺手结 O-13-7 `OnExamSessionChanged` 发出侧登记) | unity-specialist + Claude | 2-3 | M2 链已闭(e2e_full_loop 绿) | 脉案值区运行期显示查体产出(`RevealedRows` 非空);`e2e_full_loop` + 五 wiring 测零回退;O-13-7 结案登记 脉案值区运行期显示查体产出(`RevealedRows` 非空);`e2e_full_loop` + 五 wiring 测零回退;O-13-7 结案登记 | **QA**:Integration 测 `examine_revealed_wiring_test`(~4-6 测)+ 人工连走(查体→显示→落笔→开方) |
-| S11-2 | **W-1 会签裁决**(ScriptedChain 三案链 9+37 二选一;图样可辨识度 × 8 可读性互斥性验证) | game-designer + user | 0.5 | 无(纯决策轮) | 裁决落盘(case-system.md W-1 行 + 决策记录);「不裁不得实现联调」解除;若裁互斥 ⇒ 支柱四 P0 落点重裁 裁决落盘(case-system.md W-1 行 + 决策记录);「不裁不得实现联调」解除;若裁互斥 ⇒ 支柱四 P0 落点重裁 | **QA**:会签记录(互斥性可证伪结论;user+designer+qa-lead 三签) |
-| S11-3 | **EditMode 退出码 2 处置 = 修 8 测**(8 个旧测试 `new MonoBehaviour` ⇒ 真夹具) | Claude | 0.5-1 | 无 | 全量 EditMode **退出码 = 0** 且 XML failed=0 双达标;判决口径在 sprint 文件登记(两信号不再混读) 全量 EditMode **退出码 = 0** 且 XML failed=0 双达标;判决口径在 sprint 文件登记(两信号不再混读) | **QA**:XML 实证订正 = 7 测/2 文件/8 处 new(host_authority + o6_actor_cell_payload);纯测试面修复,禁动产品代码 |
+| S11-1 ✅ **DONE 2026-10-15** | **9 查体 revealed 接线 → 8 前台回路**(脉案值区运行期非空;顺手结 O-13-7 `OnExamSessionChanged` 发出侧登记) | unity-specialist + Claude | 2-3 | M2 链已闭(e2e_full_loop 绿) | 脉案值区运行期显示查体产出(`RevealedRows` 非空);`e2e_full_loop` + 五 wiring 测零回退;O-13-7 结案登记 脉案值区运行期显示查体产出(`RevealedRows` 非空);`e2e_full_loop` + 五 wiring 测零回退;O-13-7 结案登记 | **QA**:Integration 测 `examine_revealed_wiring_test`(~4-6 测)+ 人工连走(查体→显示→落笔→开方) |
+| S11-2 ✅ **DONE 2026-10-15** | **W-1 会签裁决**(ScriptedChain 三案链 9+37 二选一;图样可辨识度 × 8 可读性互斥性验证) | game-designer + user | 0.5 | 无(纯决策轮) | 裁决落盘(case-system.md W-1 行 + 决策记录);「不裁不得实现联调」解除;若裁互斥 ⇒ 支柱四 P0 落点重裁 裁决落盘(case-system.md W-1 行 + 决策记录);「不裁不得实现联调」解除;若裁互斥 ⇒ 支柱四 P0 落点重裁 | **QA**:会签记录(互斥性可证伪结论;user+designer+qa-lead 三签) |
+| S11-3 ✅ **DONE 2026-10-15** | **EditMode 退出码 2 处置 = 修 8 测**(8 个旧测试 `new MonoBehaviour` ⇒ 真夹具) | Claude | 0.5-1 | 无 | 全量 EditMode **退出码 = 0** 且 XML failed=0 双达标;判决口径在 sprint 文件登记(两信号不再混读) 全量 EditMode **退出码 = 0** 且 XML failed=0 双达标;判决口径在 sprint 文件登记(两信号不再混读) | **QA**:XML 实证订正 = 7 测/2 文件/8 处 new(host_authority + o6_actor_cell_payload);纯测试面修复,禁动产品代码 |
 
 ### Must Have — 补评修复批(case-system 001–004 · 2026-10-15 用户裁定并入)
 
@@ -223,26 +223,78 @@ story-004 的其余 7 条(TB-1 定序判别力 / TB-2 成员冻结 / TB-3 真空
 
 ## Definition of Done for this Sprint
 
-- [ ] All Must Have tasks completed
-- [ ] All tasks pass acceptance criteria
-- [ ] QA plan exists (`production/qa/qa-plan-sprint-11.md`)——**开工前必落**
-- [ ] All Logic/Integration stories have passing unit/integration tests
-- [ ] Smoke check passed (`/smoke-check sprint`)
-- [ ] QA sign-off report: APPROVED or APPROVED WITH CONDITIONS (`/team-qa sprint`)
-- [ ] No S1 or S2 bugs in delivered features
-- [ ] Design documents updated for any deviations
-- [ ] Code reviewed and merged
-- [ ] **M2 链零回退**(sprint-11 特有):e2e_full_loop + vertical_slice + 五 wiring 测全绿——四系统正压在已闭 M2 Exit 链上,破链 = 重开 M2
-- [ ] **NOT-RUN 显式结转**(sprint-11 特有):未闭 AC(AC-11-12/13/21 · case W-1 后续 · story-005 等)逐项带状态+归属,禁借绿
-- [ ] **退出码口径结清**(sprint-11 特有):EditMode 判决以「退出码 + XML failed」双信号一致为准,S11-3 后两信号不得再混读
-- [ ] **补评修复批五项闭合并带判据**(sprint-11 特有):S11-7…S11-11 各自的 AC 须有**可证伪断言**——
+- [x] All Must Have tasks completed
+- [ ] All tasks pass acceptance criteria —— ⚠️ **条件**(签核件 §五 #2):S11-1 自动面 COVERED(**换轨载体**),
+  **人工连走半 `NOT RUN`**(C2);S11-6 已按用户裁定顺延并登记
+- [x] QA plan exists (`production/qa/qa-plan-sprint-11.md`)——**开工前必落**
+- [x] All Logic/Integration stories have passing unit/integration tests
+- [ ] Smoke check passed (`/smoke-check sprint`)—— ⚠️ **条件**(签核件 §五 #5):
+  `smoke-2026-10-15.md` 已落,Verdict = **PASS WITH WARNINGS(仅自动面)**;
+  人工 Batch 1–3 **全 `NOT RUN`** ⇒ **不构成「冒烟通过」**
+- [x] QA sign-off report: APPROVED or APPROVED WITH CONDITIONS (`/team-qa sprint`)
+  —— ✅ `production/qa/evidence/qa-signoff-sprint-11-2026-10-15.md` = **APPROVED WITH CONDITIONS**
+- [x] No S1 or S2 bugs in delivered features(范围内 —— 见签核件 §三末「依据范围声明」)
+- [ ] Design documents updated for any deviations —— ⚠️ **基本**(签核件 §五 #8):已落 W-1 ·
+  `adr-008` §四 · AC-11-22 四件同批 · EPIC 状态口径;**未落** S11-1 换轨与前提过时登记
+  (⇒ C7,本轮已在**台账**补登;⚠️ 是否足以闭本行**不自转绿**,归下一轮复核)
+- [x] Code reviewed and merged
+- [x] **M2 链零回退**(sprint-11 特有):e2e_full_loop + vertical_slice + 五 wiring 测全绿——四系统正压在已闭 M2 Exit 链上,破链 = 重开 M2
+- [ ] **NOT-RUN 显式结转**(sprint-11 特有)—— ⚠️ **部分**(签核件 §五 #11):多数已逐项登记;
+  **S11-1 人工半 / S11-6 顺延**的载体登记不闭合(F2/F5)⇒ 承 C4(✅ 本轮已落)/ C7(✅ 本轮已补)
+- [x] **退出码口径结清**(sprint-11 特有):EditMode 判决以「退出码 + XML failed」双信号一致为准,S11-3 后两信号不得再混读
+- [x] **补评修复批五项闭合并带判据**(sprint-11 特有):S11-7…S11-11 各自的 AC 须有**可证伪断言**——
   「改完即算」不成立;S11-7/S11-8 的修复须给出**改回旧实现即转红**的反证
-- [ ] **写者延后正式登记**(sprint-11 特有 · 用户裁定 2026-10-15):story-003 / story-004 的 §Out of Scope
+- [x] **写者延后正式登记**(sprint-11 特有 · 用户裁定 2026-10-15):story-003 / story-004 的 §Out of Scope
   增列「37 结案写者 / `PatternRecognized` 写者延后」并**同步订正 AC-37-08/09 的证据面** ——
   现 story 自认含 `Append` 步却无写者(`WriterExistenceGate.cs:87-88` 具名豁免),
   是 `Complete` 里的**悬空**,不是可静默的欠账
-- [ ] **顺延面显式登记**(sprint-11 特有):001 的 B-1/B-2/B-4 · 002 的 5 条断言形态 · 003 的 B2/B3 ·
+- [x] **顺延面显式登记**(sprint-11 特有):001 的 B-1/B-2/B-4 · 002 的 5 条断言形态 · 003 的 B2/B3 ·
   004 的其余 7 条 —— 整批**带状态 + 归属**结转 sprint-12;四件 **维持 `In Review`**,**禁借绿**
+
+### DoD 终局(2026-10-15 · 依 `qa-signoff-sprint-11-2026-10-15.md` §五)
+
+> **11 ✅ · 4 ⚠️ 条件(DoD 2 / 5 / 8 / 11)· 0 ❌** ⇒ **sprint-11 = 条件性通过**
+> (`APPROVED WITH CONDITIONS`)。
+>
+> ⚠️ **与签核件 §五尾「✅ 10」的差 = 该处计数笔误** —— 其**表内**实为 **11 条 ✅ + 4 条 ⚠️ = 15**。
+> 本清单按**表内逐条判定**打勾,已在该分母上登记。
+>
+> **4 条条件全部是「需真人 / 需外部件」,无一为开发方未尽** —— 这正是本 sprint 判
+> `WITH CONDITIONS` 而非 `NOT APPROVED` 的理由(签核件 §六)。
+>
+> **C4 已闭**:S11-6 的顺延已于 2026-10-15 落 `sprint-status.yaml`(`blocker` 写明「用户裁定
+> 『必须项优先』· 本文 `:27`」+ owner 补齐)。⚠️ 签核件把 C4 记为「仅登记于 sprint 文件」,
+> 是**读到了改前的版本**;现该条件**已闭**。
+> **C7 已补登**:S11-1 的三处登记欠账就地补登,见下框。
+> ⚠️ **本轮不自转绿** —— 补登的是**台账登记面**;DoD 8 / 11 的 ⚠️ 仍按签核当时保留,
+> 是否足以闭合该两条归**下一轮复核**裁。**「补登」≠「判定改写」**(承 `review-workflow.md` 义务 5)。
+
+### ⚠️ S11-1 的三处登记欠账(2026-10-15 补登 · 承签核件 F1 / F2 / C7)
+
+> 由 sprint-11 QA 签核发现,如实补登。**不改变** S11-1 的 AC 覆盖判定。
+>
+> **① 计划点名的载体不存在(换轨)** —— QA 计划 `qa-plan-sprint-11-2026-10-14.md:17` 点名
+> `unity/Assets/Tests/PlayMode/Boot/examine_revealed_wiring_test.cs`;**该文件与目录均不存在**。
+> 实际走的是**换轨载体**:EditMode `Boot/examine_driver_test.cs`(13 测)
+> + PlayMode `SkeuomorphicUI/e2e_full_loop_test.cs`(真 `CompositionRoot.Assemble()`,
+> `:428` 断言 `RevealedRows.Count > 0`)。⇒ 自动面**有覆盖**,但**计划路径零命中**须留痕。
+>
+> **取证(可复核 · 承 `review-workflow.md` 义务 4「全域否定须给命令与结果」)**:
+> ```bash
+> grep -rln "examine_revealed_wiring\|ExamineRevealedWiring" unity/Assets/Tests/ tests/
+> # ⇒ 零命中(退出码 1);两棵树均已扫
+> ls unity/Assets/Tests/PlayMode/Boot/
+> # ⇒ No such file or directory —— 该目录不存在
+> ```
+>
+> **② 无独立证据原件** —— `production/qa/evidence/` 下**无** S11-1/2/3 的专属原件
+> (S11-4 / S11-5 有),三行亦无完成订正框。本轮已补三行 `✅ DONE 2026-10-15` 标记。
+>
+> **③ 任务书前提过时 —— 本 sprint 的第三次同型失效** —— S11-1 本 sprint 的实际交付**仅 2 测 + 1 登记**;
+> 底层 revealed 接线早在 **sprint-06**(`e9af520`)已完成。这与 **S11-4**(判「DoD 残留需实现」,实为**登记回刷**)·
+> **S11-5**(判「story 立件」,实为**实现**)是**同一种失效**:**sprint 计划时未回扫 epic 现状**。
+> ⇒ 该失效模式已于本轮沉淀为 **`/sprint-plan` skill Phase 1 第 5 步(硬前置)**;
+> 本行是该失效的**第三个实例**的登记(前两例见 `s11-5-…-2026-10-15.md` §2.1)。
 
 ## 三专家研判归档
 

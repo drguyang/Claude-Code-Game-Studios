@@ -3796,3 +3796,64 @@ S11-4 证据原件追加「§八 二轮回刷」(8.1 改动 · 8.2 扫描面 · 
 `TR-prescription-018` 维持 `partial` —— 其**第二条**理由(「作者侧『未注册 Kind 构建期失败』的
 全局防线仍缺」)**疑已陈旧但本轮未核**:kindgen 通道**已实测存在**(`tools/kindgen/kindgen.py` +
 `Sim/StreamRouting.g.cs`),是否**接线**到构建期拒绝**未核** ⇒ 登记**待核**(既不借绿也不借红),归下一次 `/architecture-review`。
+
+---
+
+## Sprint 11 收尾(2026-10-15 · DoD 终局 + 台账回刷)
+
+### 状态
+
+**sprint-11 = `APPROVED WITH CONDITIONS`(条件性通过)** —— QA 签核件
+`production/qa/evidence/qa-signoff-sprint-11-2026-10-15.md`(qa-lead 产)。
+**DoD 15 条:11 ✅ · 4 ⚠️ 条件(2 / 5 / 8 / 11)· 0 ❌**。
+
+⚠️ 签核件 `:182` 自写「✅ **10**」系**计数笔误** —— 其**表内**实为 **11 条 ✅ + 4 条 ⚠️ = 15**
+(✅ 逐条 = 1,3,4,6,7,9,10,12,13,14,15)。打勾按**表内**办,已在 `sprint-11.md` 注明。
+
+**4 条条件全部是「需真人 / 需外部件」,无一为开发方未尽** —— 这正是判 `WITH CONDITIONS`
+而非 `NOT APPROVED` 的理由(签核件 §六)。
+
+### 本轮落盘(未提交)
+
+| 文件 | 内容 |
+|---|---|
+| `production/sprints/sprint-11.md` | ① `:36/37/38` 补三行 `✅ DONE 2026-10-15`;② **DoD 15 条打勾(11 ✅ / 4 ⚠️)** + DoD 终局框;③ **S11-1 三处登记欠账补登框(承 C7,含全树取证命令)** |
+| `production/sprint-status.yaml` | S11-6 顺延登记(`status: backlog` + `blocker` 写明用户裁定「必须项优先」· 本文 `:27`)+ owner 补齐 |
+| `production/qa/smoke-2026-10-15.md`(新) | Verdict = **PASS WITH WARNINGS(仅自动面)**;人工 Batch 1–3 **全 `NOT RUN`**;明文**不得**引作 hand-off 凭据 |
+| `production/qa/evidence/qa-signoff-sprint-11-2026-10-15.md`(新) | qa-lead 签核件;问题 F1–F9 + 条件 C1–C9 |
+
+### M2 链验证(后台跑,已完成)
+
+| 平台 | 退出码 | XML | 基线对照 |
+|---|---|---|---|
+| EditMode | **0** | `total=3366 passed=3320 failed=0 inconclusive=0 skipped=46` | S11-5 后 —— **逐位一致** |
+| PlayMode | **0** | `total=186 passed=186 failed=0` | M2 基线 —— **逐位一致** |
+| `error CS` | — | **0 / 0** | — |
+
+⇒ **M2 链零回退**,不触发「重开 M2」。
+
+### C7 补登的取证(可复核 · 承 review-workflow 义务 4)
+
+```bash
+grep -rln "examine_revealed_wiring\|ExamineRevealedWiring" unity/Assets/Tests/ tests/  # 零命中(退出码 1)
+ls unity/Assets/Tests/PlayMode/Boot/                                                    # 目录不存在
+sed -n '17p' production/qa/qa-plan-sprint-11-2026-10-14.md                              # 确点名该路径
+```
+
+S11-1 实际走**换轨载体**:EditMode `Boot/examine_driver_test.cs`(13 测)+ PlayMode
+`SkeuomorphicUI/e2e_full_loop_test.cs`(`:428` 断言 `RevealedRows.Count > 0`)。
+⚠️ 补登**不等于**判定改写 —— DoD 8 / 11 的 ⚠️ 本轮**不自转绿**,归下一轮复核。
+
+### 未闭 / 结转 sprint-12
+
+- **S11-6 顺延** —— 需真人走查 + 主创 / 医学从业 / 音频 lead **三签**,agent 不可代劳;
+  前置 = 修 `unity/Assets/Editor.Tools.Spike/Story009WalkthroughDriver.cs:406` 的
+  `r.passed = r.checks.All(c => c.StartsWith("✅"))` 汇总 bug(**实测仍在**)。
+- **case-system 001–004** 断言形态批(≈15 条)整批顺延;**四件维持 `In Review`,禁借绿**。
+- `prescription` epic:`AC-11-12/13/21`(人工走查)· `AC-11-15`(三格矩阵,ADR-012 未激活)·
+  `AC-11-16`(BLOCKED-BY-45)。
+- `TR-prescription-018` 维持 `partial` —— 理由②(kindgen 是否**接线**)登记**待核**。
+
+### 未提交累积
+
+**本地 13 个提交未 push**(`d7d2b4a` + 之前 12 个)+ 上述 4 文件未提交。
