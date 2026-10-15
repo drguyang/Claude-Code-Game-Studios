@@ -1,7 +1,9 @@
 # Story 001: 病例流 Kind 登记与病例身份
 
 > **Epic**: 病例系统
-> **Status**: In Review ⚠️ 2026-10-15 —— 补评门不通过(原 `Complete ✅ 2026-10-06(e64efad)` 判定不成立;原件为补评件)
+> **Status**: Complete ✅ 2026-10-15 —— 补评门不通过 → sprint-11 就地修复 → **复评 + 窄审双通过**
+> (原件三件:`review-…-001-retro` · `review-…-001-postfix` · `review-…-001-b1-postfix`;4 条 BLOCKING 全闭)
+> ⚠️ **原 `Complete ✅ 2026-10-06(e64efad)` 判定确不成立**(补评件已证),本状态是**修复后重新评**的结果,**非追认**
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 5h
@@ -89,14 +91,15 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_identity_routing_test.cs` — must exist and pass
-**Status**: [ ] In Review — 测试文件存在且 13/13 绿,但补评判定 **Test Evidence 门不通过**(见下方登记块)。
-> **2026-10-15 S11-11 后更新**:4 BLOCKING 中 **B-3 已闭合**(全文件去号,含头/注释/方法名共 25 处);
-> **余 3 条顺延 sprint-12** —— B-1(判据不可证伪,须退设计重述)· B-2(kindgen A2 空跑)· B-4(kindgen 借绿)。
-> ⇒ **门仍不通过**,story 维持 `In Review`。
+**Status**: [x] Complete — 测试文件存在且 **9 测全绿**(2026-10-15 断言形态批后;原记 13,其中 4 条 kindgen 复刻已随 B-4 载体唯一化删除)。**Test Evidence 门:通过**(补评不通过 → 修复 → 复评 + 窄审双通过,见下方登记块)。
+> **2026-10-15 更新(两轮)**:S11-11 闭合 **B-3**(全文件去号,含头/注释/方法名共 25 处);
+> 断言形态批闭合 **B-2**(kindgen A2 空跑)· **B-4**(kindgen 载体借绿)· **B-1 测试半边**(高水位测试改打生产载体)。
+> ⇒ 4 条 BLOCKING **全部已闭**;门判定见下方 **postfix 复评**。
+> ⚠️ **本行原记「13/13 绿」是陈旧值**(postfix 评审核出)—— B-4 删除 4 条测试后实为 9,本行已就地订正。
 
 > ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `production/qa/evidence/review-case-system-001-004-gap-audit-2026-10-15.md` §二:001 确证产出过 BLOCKING 级判定),按义务第 3 条**补做评审(评当下)**,不追认 `e64efad` 的历史判定。
 > **补评原件**:`production/qa/evidence/review-case-system-story-001-retro-2026-10-15.md`
-> **判定**:代码面 **无 BLOCKING**(无 ADR/GDD 冲突 · 注册链条严整 · 产品代码无须返工);测试面 **4 BLOCKING** —— AC-37-30/06 断言形态错误(`ReconstructPatientHighWater` 生产载体零调用 · 恒真)· AC-37-03 A2 **空跑** · kindgen 载体**借绿** · 测试头 **AC 号一号两义**(与 GDD 权威编号冲突)。
+> **判定**:代码面 **无 BLOCKING**(无 ADR/GDD 冲突 · 注册链条严整 · 产品代码无须返工);测试面 **4 BLOCKING** —— **story 自定判据**(高水位纯净 —— ⚠️ **无 GDD AC 号**,见文件头「编号纪律」;本行初稿误记为「AC-37-30/06」,2026-10-15 postfix 评审核出并就地订正)断言形态错误(`ReconstructPatientHighWater` 生产载体**零调用** · 自造 `Where().Select().Max()` **恒真**)· AC-37-03 A2 **空跑** · kindgen 载体**借绿** · 测试头 **AC 号一号两义**(与 GDD 权威编号冲突)。
 > **Test Evidence 门:不通过。** 修复归**新一轮**;状态**已裁定(2026-10-15,用户)转 `In Review`**。
 >
 > 📌 **修复排期(2026-10-15 用户裁定「并入 sprint-11 · 必须项优先」)**:
@@ -129,6 +132,103 @@
 > **附带观察(如实登记,非本件缺陷)**:修复后 `test_ac3706` 方法名命中 = 0,因 AC-37-06 的真实主人
 > `case_replay_persistence_test.cs` **不在方法名里编 AC 号** ⇒ 暴露的是**命名惯例覆盖不均**;
 > 修复前那 1 个命中恰是**错的那个**。是否统一惯例归 **sprint-12 断言形态批**。
+
+> 🟢 **B-1 / B-2 / B-4 已闭合 —— 2026-10-15 · sprint-11 断言形态批就地闭合**
+> (证据原件:`production/qa/evidence/fix-s11-12-case-system-story-001-b2-b4-2026-10-15.md`)
+>
+> **B-2(kindgen A2 空跑)** —— 根因两层:① 断言体挂在内层
+> `for m in re.finditer(r"[Ff]loat|[Dd]ouble", ps)`,而 `ps` 是 registry **散文**。
+> 实测 35 支 Kind 全库命中仅 4 次,**4/4 全落「无 / 禁」否定语境被豁免**,case 流命中 **0**
+> ⇒ **内层循环体执行 0 次,结构上不可证伪**。
+> **修复**:A2 改**严格形** —— 扫 `Sim.Contracts` 全树的载荷 struct **字段类型**白名单
+> (8 种整数宽度 + bool),原散文扫描降级为 `A2b`;并加**非空跑守卫**(扫得 0 个字段 = FAIL)。
+> **实测**:`python3 tools/kindgen/kindgen.py --check` →
+> `A1–A5 全过 · A2 严格形:39 个载荷 struct / 158 个字段类型受判(非空跑)`,**EXIT=0**;
+> 断言体**结构性**(`stats['fields']` 在扫描循环体内累加,非打印硬编码 —— 已独立复核)。
+> **变异矩阵 7 种**(int→float / bool→string / 未登记 struct 内含 double / 未登记类型 /
+> 改 struct 名 / 抽空字段 / registry 散文注入非否定 float)**全部 EXIT=1**。
+> ⚠️ 该矩阵为**沙箱一次性验证,未固化为 CI 步骤**;CI 亦**未在真 GitHub runner 上跑过**。
+>
+> **B-4(测试从不运行 kindgen)** —— `.github/workflows/tests.yml` 新增 job **`kindgen-assertions`**:
+> 跑 `--check`(非零即红)+ 重生成后 `git diff --quiet` 产物一致性校验。
+> **载体唯一化(本轮回刷)**:`case_identity_routing_test.cs` 内**手搓 `entities.yaml` 解析器**
+> (4 个私有静态方法)与其唯一的 4 条消费者测试(A2–A5 的**测试内复刻**)**已删除**
+> ⇒ **AC-37-03 的载体仅剩 CI**。**测试数 13 → 9**
+> (`git diff --stat` = 11 insertions / 191 deletions;被删方法全仓零悬空引用 —— 已复核)。
+> **保留** `test_kindgenA1_fiveCaseKinds_routeToCaseStream`(`:152`):它打的是**生成物**
+> `StreamRouting.Of(...)`(生产码),**不是** kindgen 扫描的复刻 —— CI 的「重生成 + diff」
+> 只证明产物**忠于生成器**,证明不了**路由正确** ⇒ 两者**互补而非重复**。
+>
+> **B-1(AC-37-06 判据算术上不可证伪)** —— **两半**:
+> **(a) 设计侧**(S11-12 已做,按用户授权**收窄 GDD 文本**):`case-system.md` AC-37-06 行内加注
+> (原文一字保留)—— 真实前置 = 7a + 45,**当前不可测**;本轮可测半边 =
+> `ReconstructPatientHighWater` 从事件流重构高水位;未测半边登记 `BLOCKED-BY-7a/45`。
+> **(b) 测试侧**(2026-10-15 断言形态批**补做**,postfix 评审核出 (a) 只做了半边):
+> `case_identity_routing_test.cs` 的 `test_highWaterMark_sentinelMinusOne_noPollution`
+> **原稿逐字是**测试内自造 `events.Where(...).Select(...).Max()` —— 生产
+> `ReconstructPatientHighWater` 在 story-001 面内**零调用**(真实调用点原只在 21a 的
+> `id_authority.cs`)。**已改写为打生产载体**。
+> ⚠️ **判别力如实计数(2026-10-15 第三次窄审订正)** —— 本稿 **只有 ① 与 ③ 两处**可被
+> **单行**变异打红,**不是三处**(本行初稿误记「三处可证伪断言」,已被窄审实测推翻):
+> ① 真 id 累加(删 `id+1 > candidate` 累加 ⇒ 红;哨兵序已前置 ⇒ 把 `id<0 continue` 改 `break`
+> 也 ⇒ 红)③ 溢出硬失败(删 `OverflowException` ⇒ 红;⚠️ 隐性前提 = 算术非受检,实测成立)。
+> **② 全哨兵不回退是结构性保留、无单行捕获面** —— 「只升不降」的真正来源是 `candidate` 的初值
+> `= _nextPatient` 与 `if (id+1 > candidate)` 的**取 max 形式**,**不是**末尾
+> `if (candidate > _nextPatient)` 那道守卫(它**行为冗余**)。⇒ 同删 `id<0 continue` 与该守卫,
+> `candidate` 仍 ≥ 初值,**② 仍绿**(窄审矩阵 M4 实测)。只有整函数重写才会红。
+> ⚠️ **另一处不可证伪面**:「哨兵不污染 max」**单独**在算术上不可证伪(`-1` 是下界)。
+> 以上均逐字写进测试 docstring,**不冒充判别力**。
+>
+> ⚠️ **一处「自述 ≠ 代码」须记(本件自身)**:GDD `:1121` ② 写「已由 story-001 的测试载体承接」,
+> 而该句**写出时测试尚未改** —— 是**先写声明、后补代码**。postfix 复评据此判「GDD 承接声明与代码不符」。
+> **本批补上代码后该句才成立**。此处留痕,不作「一直成立」的追溯粉饰。
+>
+> ⚠️ **同型号复刻在他处存在,本件未动(登记为系统性观察)**:
+> `unity/Assets/Tests/EditMode/Combat/combat_actions_schema_test.cs:121`
+> `test_kindgen_registeredKinds` 是同型「测试内反射复查 registry 登记面」,对象是 Combat 3 支 Kind、归系统 25。
+>
+> ⚠️ **上一条「归 sprint-12 断言形态批」的惯例统一**:该批已**就地闭合**,不复存在 ⇒ 该观察项**悬空**,
+> 归**命名惯例**的独立轮次(非本 story 的阻塞项)。
+>
+> **门验证**:EditMode `3387/3341/0/46` · PlayMode `186/186/0`(双平台退出码 0,`error CS` = 0)。
+
+> 🔵 **postfix 复评 —— 2026-10-15 · 本轮第二次新评审(评当下状态)**
+> (报告原件:`production/qa/evidence/review-case-system-story-001-postfix-2026-10-15.md`)
+>
+> **门判定:不通过**(B-2 / B-3 / B-4 **已闭且经独立实证**;**B-1 只闭一半** —— 残余唯一 =
+> 高水位那条测试仍自造 `Max()`)。**该残余已于本批补上**(见上方 B-1(b) 块)⇒ 四条 BLOCKING **全部闭合**。
+>
+> **B-1 测试半边的收口实证**(本批新增):
+> | 状态 | `test_highWaterMark_sentinelMinusOne_noPollution` |
+> |---|---|
+> | 改前(自造 `Max()`) | 生产函数**零调用** ⇒ 断言在**任何**实现下为真 |
+> | 改后(打生产载体) | **两处**单行可捕获(① 累加 / ③ 溢出);② 结构性、无单行捕获面 |
+> ⚠️ 上表初稿写「三处可证伪断言;复合删两守卫 ⇒ 红」—— **经窄审实测为误**,已订正(见 B-1(b) 块)。
+>
+> 🔵 **第三次窄口径评审 —— 2026-10-15**(报告原件:
+> `production/qa/evidence/review-case-system-story-001-b1-postfix-2026-10-15.md`)
+> **门判定:通过**(判定边界 = **只覆盖「B-1 测试半边已闭」**;B-2/B-3/B-4 前轮已 CLOSED,该件不复核)。
+> 复核方式:三处调用点逐行核对 + `/tmp` 副本上的**变异矩阵**(算术转录复算)+ 独立证明
+> 「删 `id<0 continue` 是**行为等价**的」(由 `candidate ≥ 0` 恒成立推出)。
+>
+> ⚠️ **窄审抓到本件一处「自述 ≠ 代码」并已订正(方向朝上 = 虚报判别力)**:见上表与 B-1(b) 块。
+> 这正是本 story 一路在修的同一病灶 —— **在修它的时候又犯了一次**。留痕不删。
+>
+> ⚠️ **窄审登记的效力边界(如实)**:变异矩阵是**算术转录复算**(证明判据算术,**不**证明
+> Unity 编译产物行为);XML **不含源码哈希** ⇒ **不能**证明该次运行确已重新编译本文件;
+> 全部套件 `asserts="0"`(UTF 已知现象)⇒ 只能据 `result="Passed"` 判绿。
+>
+> ⚠️ **复评登记的另两项未闭(如实,均非门阻塞)**:
+> ① **CI job 从未在真 runner 跑过**(修复件已自陈,复评复核属实)—— 「失败即红」是**设计判据**,
+> 非**已观测行为**;② **变异矩阵无常驻执行体**(A2 判别力由复评**独立重做其中 2 个变异**背书,
+> 但「持续受检」无载体)。两者均**不得**读成「已持续守护」。
+>
+> ⚠️ **复评留的标准问题(本件不裁)**:「CI job(纯 python)能否算 story 的 Test Evidence 载体」——
+> 该判据是补评件自己开的处方,复评按处方判其成立,但**标准本身归用户 / 流程裁**。
+>
+> **本轮门验证(断言形态批后)**:EditMode `3386/3340/0/46` · PlayMode `186/186/0`
+> (双平台退出码 0,`error CS` = 0)。⚠️ 较 S11-12 后 `3387/3341` **−1** —— 构成见 story-003 块
+> (删 2 条恒真 + 增 1 条真装配;本文件的改写为 1 换 1,计数不变)。
 
 ---
 

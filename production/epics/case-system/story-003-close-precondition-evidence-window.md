@@ -1,7 +1,11 @@
 # Story 003: 结案前置 —— 处置证据窗口与快照(复诊后门关闭)
 
 > **Epic**: 病例系统
-> **Status**: In Review ⚠️ 2026-10-15 —— 补评门不通过(原 `Complete ✅ 2026-10-06(31e3f9b)` 判定不成立;原件为补评件)
+> **Status**: Complete ✅ 2026-10-15 —— 补评门不通过 → sprint-11 就地修复 → **复评通过**
+> (原件:`review-…-003-retro` + `review-…-003-postfix`;② 快照半场 · ⑤ B5 · A-5 全闭)
+> ⚠️ **原 `Complete ✅ 2026-10-06(31e3f9b)` 判定确不成立**(补评件已证),本状态是**修复后重新评**的结果,**非追认**
+> ⚠️ **AC-37-18 = 部分闭合,如实登记**:死亡半边 ✅(判别性)· 空病种集半边 ✅(真装配写者测)·
+> **「病名」半边 = NOT-RUN**(UI / 词表概念,37 Sim 层**结构性不可表达**)。详见 §Test Evidence
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: 5h
@@ -114,7 +118,7 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_close_precondition_test.cs` — must exist and pass
-**Status**: [ ] In Review — 测试文件存在且 **39/39 绿**(2026-10-15 S11-8 + S11-10 修复后),但补评判定 **Test Evidence 门不通过**(见下方登记块;门内 4 类中 **① B-1 与 ⑤ B5 已修复并各带反证**,余 ②③ 见登记)
+**Status**: [x] Complete — 测试文件存在且 **37 测全绿**(2026-10-15 断言形态批后;原记 39 —— 两条**恒真**测试已删,真覆盖迁写者层,见 §Test Evidence)。**Test Evidence 门:通过**(补评不通过 → 修复 → 复评通过;⚠️ AC-37-18 的「病名」半边 = **NOT-RUN**,如实登记)
 
 > ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `review-case-system-001-004-gap-audit-2026-10-15.md` §二:003 判定分级未能确证),按义务第 3 条**补做评审(评当下)**,不追认 `31e3f9b` 的历史判定。
 > **补评原件**:`production/qa/evidence/review-case-system-story-003-retro-2026-10-15.md`
@@ -208,6 +212,81 @@
 > **无一条枚举处置集**,故该缺陷的守卫**只存在于测试件 + ADR 闭环纪律**里,而不在 AC 面上。
 > 是否需要为「处置集 == 权威枚举」补一条显式 AC(或将其挂到支柱四不变量名下),**归用户裁**;
 > 本轮**不自行加 AC**(AC 面归 GDD)。
+
+> 🟢 **② 快照半场 / ③ AC-37-18(**部分**) / A-5 闭合 —— 2026-10-15 · sprint-11 断言形态批**
+> (证据原件:`production/qa/evidence/fix-s11-15-case-system-story-004-003-assertions-2026-10-15.md`)
+> ⇒ 补评 4 类中 **① B-1 · ② 快照半场 · ⑤ B5 已清**;**③ AC-37-18 = PARTIALLY-CLOSED**(见下订正);
+> ADVISORY A-5 亦结案。
+>
+> ⚠️ **2026-10-15 postfix 复评订正 —— ③ 收窄为 PARTIALLY-CLOSED(本行初稿「全部已清」过宽)**:
+> 评审核出同 AC 的**另两条测试仍恒真** —— `test_ac3718_emptyDiseaseName_canClose`(`:493-501`)与
+> `test_ac3718_pureInjuryCase_emptyDiseaseSet_canClose`(`:504-515`)**只调 `CaseCloseDecider.Decide`
+> 传字面量**,与 happy path **逐字相同**;「病名为空」根本不在夹具里,`emptyDiseaseSet` **从未进入
+> `Decide`**(其形参无 `disease_set`)。⇒ 两条**可捕获性判定 = 不可捕获**。
+> **处置**:两条**已删除**;「空病种集」真覆盖**迁至** `case_close_writer_test.cs`
+> (`test_ac3718_pureInjuryCase_emptyDiseaseSet_closesWithEmptySnapshot` —— 真装配,把空集喂进生产
+> `TryClose` + 载荷快照回读逐位为空);「病名」半边 = **UI / 词表概念**,37 Sim 层**结构性不可表达**
+> ⇒ 如实登记 **NOT-RUN**,**不冒充覆盖**。文件末注块逐字留痕。
+>
+> **② 快照半场「零行为覆盖 / 生产侧无快照计算」** —— 用户裁定「**解冻写者**」后由
+> `unity/Assets/Sim/CaseCloseWriter.cs` 闭合:
+> ① **`treated`** = 本类**自算**的窗口证据(`CaseCloseWriter.cs:169` —— 「非调用方转述」,
+> 即交付的不是「调用方说已处置」而是**由本类按 `[caseId.Tick, tick]` 闭区间重算**);
+> ② **`disease_set`** = 结案时刻的病种快照(由**调用方**给出,与 `CaseOpenWriter.disease_snapshot`
+> **同一已登记口径** —— 「Sim 侧够不着者由调用方给出」)。
+> ⇒ 原「5 处反射字段存在性检查 = 借绿」的缺口有了**生产侧载体**,载体 =
+> `EditMode/CaseSystem/case_close_writer_test.cs`(12 测)。
+>
+> **③ AC-37-18「夹具不含死亡输入 ⇒ 恒真」** —— 用户裁定「**裁『不进流』+ 改判据**」,本批就地闭合:
+> - **GDD**(`case-system.md` AC-37-18 行内加注,原文一字保留):病人死亡**不进事件流**
+>   ⇒ 37 对它**结构性不可见**,原「死亡输入」**不可表达**(该事件不存在)⇒
+>   本 AC 的可测内容收窄为 **37 无任何自动结案路径**(结案唯一出口 = 玩家显式动作,§规则六)。
+> - **夹具判别化**(`case_close_precondition_test.cs:459`):流内由「只造一条 `CaseOpened`」
+>   改为**塞满各式非 `CaseClosed` 事件**(`DrugTreatmentApplied` / `EmergencyTreatmentApplied` /
+>   `CareApplied` / `InjuryOnset` / `JudgmentRecorded`)+ 断言「案件仍开着」——
+>   若日后有人加入任何「某事件到达即自动结案」的路径,该断言转红。
+> - **可捕获性已实证(变异探针,非推断)**:向 `CaseCloseDecider.IsClosed` 注入
+>   `|| e.Kind == EventKind.CareApplied`(「治疗即自动结案」—— 正是本 AC 要防的缺陷类)
+>   ⇒ `total=1 passed=0 failed=1`,**退出码 2**,被抓住;探针后已**原子还原**
+>   (`git diff` 对该文件为空)。
+>
+> **A-5「结案副作用序列在 37 侧无判据」** —— 补评 §七·一 已推翻同面的 B4;A-5 是**同一命题的另一半**,
+> 逐项复核(全部亲自打开文件确认)结论一致 —— 三件的判据**均在**,只是不在 37 的证据文件里:
+> ① **→8 读数清除**:`EditMode/DiagnosisSystem/reading_state_test.cs:409-411`
+> (`OnCaseClosed` 对 `SignReadState` **全状态遍历** ⇒ `Blank`);
+> ② **→53 判断冻结**:同文件 `:396` `FrozenJudgment.Frozen` + `:399` `HandoffTo53` +
+> `:404-406` 竞态断言「冻结后落笔必拒」;
+> ③ **「37 自身不产生后果事件」**:`EditMode/CaseSystem/case_secrecy_discipline_test.cs:240-273`
+> `test_case_ac37_20_noConsequenceOwnership`(对 5 个 37 出站载荷逐个反射扫越权语义 + 空集绿守卫)。
+> ⇒ 三者**均为他件的判据**,**不由 37 的证据面承担** ⇒ **A-5 结案,不补测试**(避免与 8 的件重复)。
+>
+> ⚠️ **残余(非 A-5,如实登记)**:**37 的结案 → 8 的 `CloseCase` 的跨系统因果链在 P0 无载体** ——
+> 该接线尚未存在(与已登记的写者 / 接线延后同源)⇒ 8 侧判据是**纯函数层**判据,
+> **不是**「结案真的触发了清除」的端到端判据。
+>
+> ⚠️ **上一条留白「是否为处置集补显式 AC」仍归用户裁** —— 本批**未自行加 AC**(AC 面归 GDD)。
+>
+> **门验证**:EditMode `3387/3341/0/46` · PlayMode `186/186/0`(双平台退出码 0)。
+
+> 🔵 **postfix 复评 —— 2026-10-15 · 本轮第二次新评审(评当下状态)**
+> (报告原件:`production/qa/evidence/review-case-system-story-003-postfix-2026-10-15.md`)
+>
+> **门判定:通过。** 复评**新抓一条 ADVISORY** 并就地处置(见上订正块):
+> AC-37-18 的另两条测试**仍恒真** ⇒ ③ 由「全部已清」**收窄为 PARTIALLY-CLOSED**。
+> 复评同时给出正解 = **NOT-RUN 登记**(病名是 UI 概念,37 Sim 层结构性不可表达),
+> 与本批处置一致(空病种集半边迁写者层、病名半边 NOT-RUN)。
+>
+> ⚠️ **复评另登记的两项残余(如实,均非门阻塞)**:
+> ① **`case_close_writer_test.cs:110` 的 `decoded.Treated is True` 判别力为零** ——
+> B2 的**真载体是代码 `:171`**(本类自算窗口证据),**不是**该断言(恒真);该断言不构成证据,
+> 未动(属断言形态面,已登记);
+> ② **`IsInWindow` 零调用点**(生产 / 测试皆无)—— 悬垂成员,归后续清理轮;
+> ③ **`EmergencyAttempt` 的排除无显式 AC 守卫** —— 同「处置集无显式 AC」的登记形态,
+> **归用户裁**(本批未自行加 AC)。
+>
+> **本轮门验证(断言形态批后)**:EditMode `3386/3340/0/46` · PlayMode `186/186/0`
+> (双平台退出码 0)。⚠️ 较上格 **−1** 的构成 = 本 story 删 2 条恒真
+> (`case_close_precondition_test.cs`)+ 增 1 条真装配(`case_close_writer_test.cs`)。
 
 ---
 

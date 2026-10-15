@@ -1,7 +1,10 @@
 # Story 004: F-37.1 同源检测与 PatternRecognized(含 F-37.1b 脚本链)
 
 > **Epic**: 病例系统
-> **Status**: In Review ⚠️ 2026-10-15 —— 补评门不通过(原 `Complete ✅ 2026-10-06(8a693fd)` 判定不成立;原件为补评件)。**CB-2/TB-5 已于 2026-10-15 S11-9 闭合**;余 6 条顺延 sprint-12
+> **Status**: Complete ✅ 2026-10-15 —— 补评门不通过 → sprint-11 就地修复 → **复评通过**
+> (原件:`review-…-004-retro` + `review-…-004-postfix`;核心 4 类 + 4 条附加,去重后 **7 条 BLOCKING 全 CLOSED**)
+> ⚠️ **原 `Complete ✅ 2026-10-06(8a693fd)` 判定确不成立**(补评件已证),本状态是**修复后重新评**的结果,**非追认**
+> ⚠️ **5 条 ADVISORY 未动**(TA-1/2/5/7/8),均**非门阻塞**,已逐条登记;另 **1 项待裁**见 §Test Evidence
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: 7h
@@ -113,7 +116,8 @@
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_pattern_detection_test.cs` — must exist and pass
 （⚠️ 原附加语「AC-37-29 的 ScriptedChain 联调半边 BLOCKED-BY-W-1 不记绿」**已于 2026-10-15 失效** —— W-1 会签结案 + S11-9 已交付,该免责前提不再存在;就地订正见下）
-**Status**: [ ] In Review — 测试文件存在且 **30/30 绿**(2026-10-15 S11-9 后;原 23/23),但补评判定 **Test Evidence 门不通过**(见下方登记块)
+**Status**: [x] Complete — 测试文件存在且 **34/34 绿**(2026-10-15 断言形态批后;S11-9 后曾记 30,再前 23)。**Test Evidence 门:通过**(补评不通过 → 修复 → 复评通过,见下方登记块)。
+> ⚠️ **本行原记「30/30」是陈旧值**(2026-10-15 postfix 评审核出 —— 同 story `:195` 已写「30 → 34」,**同一文件内自相矛盾**),已就地订正为 34。
 
 > ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `review-case-system-001-004-gap-audit-2026-10-15.md` §二:004 判定分级未能确证),按义务第 3 条**补做评审(评当下)**,不追认 `8a693fd` 的历史判定。
 > **补评原件**:`production/qa/evidence/review-case-system-story-004-retro-2026-10-15.md`
@@ -186,6 +190,75 @@
 > ④ **GDD 两处待裁**:F-37.1b「有序」张力加注 · `:738`/`:718` 行号漂移(S11-10 登记);
 > ⑤ **脚本链内容数据仍不存在**(`patient_id` 绑定归内容轮 + ADR-014 烘焙 —— 本条**不是缺口**,防「`ScriptedChain` 已落 = 三案链可跑」的误读);
 > ⑥ GDD F-37.1b 注块的「先触发歧义」仍写「归 37 实现轮」—— 本件的逐 D 二选一**已消除其一半**(有链的 D 不再走自然检测),与 GDD 给出的裁法一致;注块是否更新**待裁**(改 GDD 未授权)。
+
+> 🟢 **TB-1 / TB-2 / TB-3 / CB-3 / TA-6 + CB-1/TB-4 + ⑥ 全部闭合 —— 2026-10-15 · sprint-11 就地闭合**
+> (证据原件:`production/qa/evidence/fix-s11-15-case-system-story-004-003-assertions-2026-10-15.md`)
+>
+> **改动面**:`unity/Assets/Sim/PatternDetector.cs`(**产品代码** —— 仅 CB-3 一处)+
+> `unity/Assets/Tests/EditMode/CaseSystem/case_pattern_detection_test.cs`。
+> **测试数 30 → 34**(+4 新增 · 0 删除 · 4 条重命名)。
+> 重命名 4 条:`test_ac3709_fourthCase_noRefire` → `..._membersFrozenAtFirstThree` ·
+> `test_ac3710_sameTickThreeCases_firesOnce` → `..._shuffledStreamOrder_membersInFullOrder` ·
+> `test_ac3712_pureInjuryCase_notCounted` → `..._pureInjuryCases_neverCounted` ·
+> `test_ac3727_sameTickMultipleDiseases_saltedKeyOrder` → `..._saltedKeyOrderNotInsertionOrder`。
+> (S11-9 证据件点名的 5 个名字 `chainQuota` / `chainComplete` / `firesOnce_neverRefires` /
+> `chainAndNaturalCoexist` / `declarationOrder` **全部未变**。)
+>
+> | ID | 缺陷 | 修复形态 | 变异探针(实测) |
+> |---|---|---|---|
+> | **TB-1** AC-37-27 定序判别力 | 夹具**期望序 ≡ 插入序** ⇒ 删掉排序断言仍绿 | 三处改用**插入序 ≠ 期望序**的夹具(如 `D ∈ {1,2}` 令提取器返 `[2,1]`)+ 所引 AC 前后句各一测 | M1 停用 `SortBySaltedKey` ⇒ **红** ✅ · M6 改按 ordinal 排 ⇒ **红** ✅ |
+> | **TB-2** AC-37-09/10 成员身份与冻结 | 只断 `MemberSet.Count` ⇒「前 3」与「后 3」不可分 | 一律改断**逐位内容 + 次序**;AC-37-09 用逐 tick 递增令前 3 ≠ 后 3;AC-37-10 用**同 tick** 令流内序 ≠ 全序 | M2 成员取后 N 例 ⇒ **红** ✅ · M3 删 `candidates.Sort` ⇒ **红** ✅ · M5 删一次性门 ⇒ **红** ✅ |
+> | **TB-3** AC-37-12 真空夹具 | 只有 2 例(< 阈值)⇒ `Fired==false` 由**数据不足**蕴含,与「伤情案是否进计数」无因果 | 改**恰达阈值数**的 3 例纯伤情案 + 「2 真病例 + 3 伤情案」混合夹具 | M4 空 `disease_set` 也计入 D0 ⇒ **红** ✅ |
+> | **CB-3** 扁平 `memberSet` | 按 `Dictionary` 迭代序拼装(**违 AC-37-27**)+ 结构扁平 | **删除** `PatternDetectionResult.MemberSet` 字段与其拼装循环 —— 消费者调查确认**全仓零生产消费者**(生产侧唯一调用点 `PatternRecognitionWriter` 只读 `.Fired`);逐 D 归属从此**只有** `PatternEmission.MemberSet` 一条路径 | 产品改动,由全量测覆盖 |
+> | **TA-6** 元规则 | 全文件「输入序 == 期望序」⇒ 定序类断言**系统性**丧失判别力 | 文件头写入**元规则**(定序类夹具须至少一处「输入序 ≠ 期望序」;判别力判据固定为「删掉对应实现 ⇒ 该测试转红」)+ 逐用例清单(满足 / 不适用的理由) | 结构性 |
+> | **CB-1 / TB-4** 发射语义无生产载体 | `PatternRecognized` 写者未落 · `IsFired` 零生产调用者 | 用户裁定「**解冻写者**」⇒ `Sim/PatternRecognitionWriter.cs` 落地(9 测) | 见批 1 |
+> | **⑥** F-37.1b 注块「先触发歧义」悬垂 | GDD 注块仍写「归 37 实现轮」 | **GDD 就地订正** —— 该裁法**确已实现**(`PatternDetector.ComputeCandidateSeq` 3b 步:命中链的病种候选只留链成员),注块更新为「已闭合、不再悬垂」 | 见 GDD |
+>
+> **变异探针口径(如实)**:6 个变异体(M1–M6)以 **dotnet 行为探针**复刻夹具并**直接调生产**
+> `PatternDetector`,与基线逐行 diff —— **6/6 全部至少翻红一条断言**。
+> ⚠️ 探针是**独立复刻 + 直接调生产**,**不是** UTF 执行;「34/34 绿」由本轮全量测确认。
+> ⚠️ **额外补的一处(超出字面清单,同族同病)**:新增
+> `test_ac3727_saltedOrderIsNotOrdinalOrder`(夹具 `D ∈ {0,1,5}`,期望序 `[5,0,1]` ≠ ordinal 序 `[0,1,5]`)
+> —— 原 TB-1 修法只能证「有排序 vs 无排序」,**不能**证「排序**键**是 `salted_key` 而非 `ordinal`」。
+>
+> ⚠️ **CB-3 的历史登记就地订正**:`PatternDetector.cs` 原注释写「CB-3 **未触及**,归 sprint-12」——
+> **已订正为「已修」**(文件 Header `:18-20` / `:37` 与 `:275` 注释同批更新)。
+>
+> ⚠️ **一处越权改动已回退(如实登记)**:本批执行轮曾自行把 `SortBySaltedKey` 由**偏序改全序**
+> (主键 `salted_key`,相等时以 **ordinal 次级定序**),自陈引 GDD F-37.1 **逐字要求**。
+> **引据经复核不成立**(GDD `:828-830` 只写「按 `salted_key` 的整数升序依次写入」,全文无 ordinal 次级键),
+> 且该改动**无夹具可证伪**、**超出本批 20 条清单** ⇒ 按用户裁定 2026-10-15 **回退**
+> (`PatternDetector.cs` 该函数与 HEAD **逐字一致**)。**回退前后双平台测数逐字不变**
+> ⇒ 实证该改动在全部夹具上**行为不可观测**。
+>
+> ⚠️ **一个未处理的相邻 ADVISORY,如实登记(不冒充已决)**:`SortBySaltedKey` 用 `List.Sort`
+> (**不稳定**排序),主键相等(64 位哈希碰撞,概率极低但非零)时次序**未定义** ⇒ 理论上与
+> AC-37-27 后半句「换一个插入序重跑,事件流逐位相同」有张力。**是否需要次级键是设计决策**,
+> 须用户 / ADR 裁 —— 本轮**不自行加**。归**待裁项**。
+>
+> **门验证**:EditMode `3387/3341/0/46` · PlayMode `186/186/0`(双平台退出码 0)。
+
+> 🔵 **postfix 复评 —— 2026-10-15 · 本轮第二次新评审(评当下状态)**
+> (报告原件:`production/qa/evidence/review-case-system-story-004-postfix-2026-10-15.md`)
+>
+> **门判定:通过。** 补评核心 4 类 + 4 条附加(**去重后 7 条 BLOCKING**)复评**全部 CLOSED**,
+> 且多条经**独立实证** —— 复评以 python **逐位复刻 `SplitMix64.HashTagged`** 并用
+> `golden_hash_v1_test.cs` 的黄金向量(`h(0xABCD,"case-salt",3)==0x9104567A4D5A819C`)自校通过,
+> 独立算出 `salted(1) < salted(2)`,与夹具前提自检**逐位一致** ⇒ 「插入序 ≠ 期望序」成立。
+> **回退洁净性**亦经复评核实:`SortBySaltedKey` 与 `HEAD` **逐字一致**,全仓 grep 失实引据 **零残留**。
+>
+> ⚠️ **复评登记的 5 条 ADVISORY(未动,均非门阻塞)**:`TA-1`(AC-37-11 夹具与 AC-37-08 逐字重复)·
+> `TA-2`(`IsFired` 三用例把 `salted_key` 塞进 `SimEvent.Seq` 自造载体 —— ⚠️ 新增写者测试已用**真载体**
+> **部分覆盖**)· `TA-5`(AC-37-14 负断言按**字段名**判)· `TA-7`(同 tick 边界 —— 已由新增
+> `sameTickFourCases` **部分缓解**)· `TA-8`(**阈值「2/3 两档」缺失**;复评实测写者 ctor 只校验 `≥1`,
+> Guardrail 的「≥2」**未强制**)。
+>
+> ⚠️ **复评新发现的一处待裁(已登记)**:`SortBySaltedKey` 用 `List.Sort`(**不稳定**),
+> 64 位哈希碰撞时次序未定义 —— 与 AC-37-27 后半句有理论张力(**是否需次级键 = 设计决策**,归用户 / ADR)。
+> 与本块上方同源登记,**同一项**,非两处。
+>
+> **本轮门验证(断言形态批后)**:EditMode `3386/3340/0/46` · PlayMode `186/186/0`
+> (双平台退出码 0)。本 story 的测试件在断言形态批**未增删**(34 测不变)。
 
 ---
 

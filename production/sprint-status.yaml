@@ -71,9 +71,12 @@ stories:
     estimate_days: 0.75
     blocker: "顺延 sprint-12(用户裁定「必须项优先」· sprint-11.md:27)—— 需真人走查 + 主创 / 医学从业 / 音频 lead 三签,agent 不可代劳;前置 = 修 Story009WalkthroughDriver 的 passed 汇总 bug"
     completed: ""
-  # ── 补评修复批(case-system 001–004 · 2026-10-15 用户裁定并入 · 「必须项优先」口径)──
-  # 净保留判定 22 条 → 去重 ≈13 类;本批只取「真缺陷 / 免责失效 / 设计冲突 / 零成本」四类。
-  # 断言形态整批顺延 sprint-12(见 sprint-11.md DoD「顺延面显式登记」);四件维持 In Review。
+  # ── 补评修复批(case-system 001–004 · 2026-10-15 用户裁定并入)──
+  # ⚠️ 2026-10-15 范围变更(用户裁定「在 sprint-11 完成这些,不带入下个 sprint」):
+  #    原「断言形态整批顺延 sprint-12」**已被推翻** ⇒ A 组 14 + B 组 6 **共 20 条就地全闭**。
+  #    S11-12…S11-16 为就地闭合的执行批(见 sprint-11.md §批 1–5)。
+  #    **四件 story 已于 2026-10-15 由「复评(当下状态)」判定后转 `Complete`** ——
+  #    001 经复评(不通过,残余 1)→ 修复 → 第三次窄审(通过);002/003/004 复评直接通过。
   - id: "S11-7"
     name: "story-002 BLK-8 墨龄取错病人(LastJudgmentOf 归属改流序关联;调用点无须改动)"
     file: "production/sprints/sprint-11.md"
@@ -117,5 +120,50 @@ stories:
     status: done
     owner: "Claude"
     estimate_days: 0.1
+    blocker: ""
+    completed: "2026-10-15"
+  - id: "S11-12"
+    name: "story-001 B-2/B-4 —— kindgen A2 严格形(扫载荷 struct 字段类型白名单)+ CI job kindgen-assertions 为唯一载体 + 测试内复刻删除(13→9)"
+    file: "production/qa/evidence/fix-s11-12-case-system-story-001-b2-b4-2026-10-15.md"
+    priority: must-have
+    status: done
+    owner: "Claude"
+    estimate_days: 0.5
+    blocker: ""
+    completed: "2026-10-15"
+  - id: "S11-13"
+    name: "写者落地 —— CaseCloseWriter + PatternRecognitionWriter(21 测)+ 撤 WriterExistenceGate 两条豁免(与写者同批,不可拆)"
+    file: "production/qa/evidence/fix-s11-13-case-system-writers-2026-10-15.md"
+    priority: must-have
+    status: done
+    owner: "Claude"
+    estimate_days: 1.0
+    blocker: ""
+    completed: "2026-10-15"
+  - id: "S11-14"
+    name: "story-002 六条断言形态(BLK-1/2/3/5/9/10)—— 期望值由流派生 + 改调生产函数 + 真装配负断言 + AC→载体映射表"
+    file: "production/qa/evidence/fix-s11-14-case-system-story-002-assertions-2026-10-15.md"
+    priority: must-have
+    status: done
+    owner: "Claude"
+    estimate_days: 0.5
+    blocker: ""
+    completed: "2026-10-15"
+  - id: "S11-15"
+    name: "story-004 五条(TB-1/2/3 + CB-3 产品代码 + TA-6 元规则)+ story-003 ②B2/③B3/A-5"
+    file: "production/qa/evidence/fix-s11-15-case-system-story-004-003-assertions-2026-10-15.md"
+    priority: must-have
+    status: done
+    owner: "Claude"
+    estimate_days: 1.0
+    blocker: ""
+    completed: "2026-10-15"
+  - id: "S11-16"
+    name: "postfix 复评残余闭合 —— story-001 B-1 测试半边(改打生产载体)+ story-003 AC-37-18 另两条恒真测试(删,真覆盖迁写者层);四件 story 转 Complete"
+    file: "production/qa/evidence/fix-s11-16-case-system-postfix-residuals-2026-10-15.md"
+    priority: must-have
+    status: done
+    owner: "Claude"
+    estimate_days: 0.5
     blocker: ""
     completed: "2026-10-15"

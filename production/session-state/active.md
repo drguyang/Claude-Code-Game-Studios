@@ -3857,3 +3857,69 @@ S11-1 实际走**换轨载体**:EditMode `Boot/examine_driver_test.cs`(13 测)+ 
 ### 未提交累积
 
 **本地 13 个提交未 push**(`d7d2b4a` + 之前 12 个)+ 上述 4 文件未提交。
+
+---
+
+## Sprint 11 范围变更 · case-system 断言形态批就地闭合(2026-10-15 · 进行中)
+
+### 用户裁定(本轮)
+
+**「在 sprint-11 完成这些,不带入下个 sprint」** ⇒ **推翻**「顺延 sprint-12」。
+四项子裁定:① **解冻两个写者**;② **授权收窄 GDD**(AC-37-06);③ **裁「病人死亡不进事件流」**+改 AC-37-18 判据;
+④ **授权改 GDD 两处**(F-37.1b 加注 + 行号漂移订正)。
+
+### 分母钉死 = 20 条(既有台账三个数字互不一致:DoD 17 / 风险表 ≈15 / story-004 自写 6)
+
+**A 组 14 条**(可在 sprint-11 内闭合)·
+**B 组 6 条**(原卡裁定,现全解冻)。
+完整清单落 `production/sprints/sprint-11.md` 的「2026-10-15 范围变更」段。
+
+### 已完成
+
+| 项 | 落点 | 状态 |
+|---|---|---|
+| GDD F-37.1b「有序」加注 | `design/gdd/case-system.md` | ✅ |
+| GDD `:738` 行号 → 节名引用 | 同上 | ✅ |
+| GDD `:718` 双错订正(节号 EC-37-1→**EC-37-3** + 行号) | 同上 | ✅ |
+| GDD AC-37-06 收窄(现 `:1116`) | 同上 | ✅ |
+| `sprint-11.md` 范围变更段 | `production/sprints/sprint-11.md` | ✅ |
+| **`Sim/CaseCloseWriter.cs`**(181 行)+ 测试(273 行) | 新 | ✅ 落盘 |
+| **`Sim/PatternRecognitionWriter.cs`**(199 行)+ 测试(296 行) | 新 | ✅ 落盘 |
+| **撤两条豁免** | `Editor.Tools.Gates/WriterExistenceGate.cs:87-88` | ✅ |
+
+**验收**(我做的,非 agent 自述):`new PatientId(int)` 存在且 public(`PatientId.cs:15`)·
+`CaseCloseQuery.HasTreatmentInWindow/IsClosed/IsOpen` 三个都在(`CaseCloseDecider.cs:150/192/229`)·
+两文件**零代码违例**(`UnityEngine`/`new PayloadRef(` 命中全在注释)。
+
+**载荷语义已复核定论**(以落地实现为权威,非 ADR 措辞推断):
+- **`anchor_case` = `MemberSet[末位]`**(`PatternDetector.cs:271-277`:`members` 按 `candidates` 全序取前 threshold 例、**未排序** ⇒ 末位 = 跨阈值那一例 = ADR-008 §三「触发识别的那一例」)
+- **`member_set` 的病种分量 = `{D}`**(registry `entities.yaml:1955`「冻结三元组 = anchor_case + disease_set + 版本」的三个字段;F-37.1 逐 D 一条)
+
+### EditMode 首跑(写者 + 撤表后)
+
+- **编译零错误** · `total=3387 passed=3334 failed=7` · 退出码 2
+- **7 条红全部是测试夹具违反 `EventStream.Append` 的 BCD-码-3 不变量**(「流必须按 Tick 非降」),
+  **非实现缺陷** —— 异常在铺流阶段抛出,未跑到断言:
+  `CaseCloseWriterTest` 1 条(处置 tick 3 回退于已入流 tick 5)·
+  `PatternRecognitionWriterTest` 6 条(事件 tick 0 回退于已入流 tick 1)
+- **已 resume 两个 agent 各自修夹具**(明令:不得为变绿删场景;TB-1 的「输入序 ≠ 期望序」对策必须保住)
+
+### 在跑 / 待办
+
+- 🚧 agent:修 CaseCloseWriter 夹具 · 修 PatternRecognition 夹具 · kindgen B-2/B-4 · **002 六条断言形态**
+- ⬜ 批 2 剩余:**004 四条**(TB-1/TB-2/TB-3 + CB-3 + TA-6)与 **003 A-5**
+- ⬜ 批 4:登记回刷(四件 story 状态)+ PlayMode 全量 + 提交
+
+### 关键判断(须记住)
+
+**写者的「生产触发点接线」做不了,也不该做** —— 三条硬理由:① 结案是玩家显式动作(「系统永不自动结案」),
+「结案页宿主」意图源**尚不存在**;② 两个解码 delegate 的真实现要落 `Sim.Codec`(跨装配面);
+③ `EventStream` **无订阅机制**,而 `PatternRecognized` 要求「CaseClosed 入流后同 tick 触发」。
+⇒ **但写者类 + 测试足以闭合 B1/B2** —— 先例 `CaseOpenWriter` 自己也没接线(其文件头明写「生产触发点尚未接线」)
+而已被本门接受为「有写者」。生产触发点归装配轮。
+
+**CB-3 已被部分处理** —— `PatternDetector.cs:271` 注释明写「不从 `PatternDetectionResult.MemberSet` 取 ——
+该结构扁平,见 CB-3」,即 `NextEmissions` 就是为修它而立的新路径(S11-9)。旧 `Detect` 的扁平 `MemberSet` 是残留半边。
+
+**行号漂移是活的** —— 我插入 GDD 三处注后,AC-37-06 从 `:1092` 漂到 `:1116`(24 行),
+当场让我 grep 拿到错内容。已在新注里写明「上列行号是**快照不是指针**」。

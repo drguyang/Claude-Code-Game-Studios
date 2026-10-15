@@ -1,7 +1,10 @@
 # Story 002: 立案两路径 · 开案唯一 · 判断记录事件化
 
 > **Epic**: 病例系统
-> **Status**: In Review ⚠️ 2026-10-15 —— 补评门不通过(原 `Complete ✅ 2026-10-06(c4e3708)` 判定不成立;原件为补评件)
+> **Status**: Complete ✅ 2026-10-15 —— 补评门不通过 → sprint-11 就地修复 → **复评通过**
+> (原件:`review-…-002-retro` + `review-…-002-postfix`;BLK-1/2/3/5/9/10 全闭)
+> ⚠️ **原 `Complete ✅ 2026-10-06(c4e3708)` 判定确不成立**(补评件已证),本状态是**修复后重新评**的结果,**非追认**
+> ⚠️ **两条部分闭合如实登记**(BLK-5 的 `freehand_text` 半边 · BLK-10 的「无第二副本」措辞半边),见 §Test Evidence
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: 6h
@@ -89,7 +92,7 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/CaseSystem/case_open_and_judgment_test.cs` — must exist and pass(就诊动作 master 未闭合 ⇒ AC-4-15 侧联动维持 NOT-RUN 标注)
-**Status**: [ ] In Review — 测试文件存在且 **25/25 绿**(2026-10-15 S11-7 后;原 23/23),但补评判定 **Test Evidence 门不通过**(见下方登记块)
+**Status**: [x] Complete — 测试文件存在且 **25/25 绿**(2026-10-15 S11-7 后;原 23/23)。**Test Evidence 门:通过**(补评不通过 → 修复 → 复评通过,见下方登记块)
 
 > ⚠️ **2026-10-15 补评件登记(S11-2 后续批 · QA 核查)** —— 原评审原件缺失(承 `review-case-system-001-004-gap-audit-2026-10-15.md` §二:002 确证产出过 BLOCKING 级判定),按义务第 3 条**补做评审(评当下)**,不追认 `c4e3708` 的历史判定。
 > **补评原件**:`production/qa/evidence/review-case-system-story-002-retro-2026-10-15.md`
@@ -156,6 +159,74 @@
 >
 > **未清**:仍余 5 条**断言形态**(含 `test_ac3705_storeNewValue_judgmentIsLastEvent` 仍自造
 > `J(c)` 不调生产函数 —— 与本件同一缺口的两半)+ BLK-9 / BLK-10,顺延 sprint-12。
+
+> 🟢 **六条断言形态已闭合 —— 2026-10-15 · sprint-11 就地闭合**
+> (证据原件:`production/qa/evidence/fix-s11-14-case-system-story-002-assertions-2026-10-15.md`)
+>
+> **改动面**:`unity/Assets/Tests/EditMode/CaseSystem/case_open_and_judgment_test.cs` **单文件**
+> (`git diff --stat` = 207 insertions / 59 deletions;已独立复核)。`[Test]` 计数 **25 → 25**
+> —— **只改断言形态,未增删用例**。
+>
+> | ID | 缺陷 | 修复形态 | 可捕获的变异 |
+> |---|---|---|---|
+> | **BLK-1** 恒真半边 | `decide(A)==decide(B)` 因 `Decide` 不读 `sourceKind` 而**构造上恒真** | **删除**该断言(被邻两条逻辑蕴含,零独立判别力);保留两条分路径断言 | 任一 `sourceKind` 分支 ⇒ 前两条之一转红 |
+> | **BLK-2** 纯常量比较 | 同 tick `caseIdA != caseIdB` 由**测试字面量**构造 ⇒ 恒真 | 期望值**由流派生**:造两条同 tick `CaseOpened` 入流,经**生产** `CaseStreamQuery.OpenCaseOf` 取 id | `OpenCaseOf` 丢 `Patient` 维度 / `CaseId.Equals` 忽略 `Patient` ⇒ 红 |
+> | **BLK-3** 自造 `J(c)` | 两处 `.Where().OrderBy().Last()` **自造**,不调生产 `LastJudgmentOf` | 两处均改调**生产**函数,期望 tick / Seq 由流派生 | `LastJudgmentOf` 改「首条胜」/ 恒 `null` ⇒ 红 |
+> | **BLK-5** 重复断言 + S-8.3 未验 | 与 `:158` 测同一事实;S-8.3 一字未验 | **去重**(保留覆盖面更宽的一条);本测**改成 S-8.3 的实证** —— 真装配 + 真 `JudgmentWriter`,验「擦除 = 写一条空判断」 | `TryRevise` 拒收 `lexiconId<=0` / 不 Append / 载荷写错 ⇒ 红 |
+> | **BLK-9** 负断言未按 AC 契约构造 | 只喂布尔,**无点名 fixture、无流断言** | **点名 fixture**(`MedicineShortageFixture = PatientId.None`)+ 真装配 + **零 `CaseOpened`** 流断言(含扫描闭集说明) | 删 `TryOpen` 的 `IsNone` 守卫 / 两分支全删 ⇒ **旧稿都不会红** |
+> | **BLK-10** 证据面错配 | AC-37-05 / 23 是 `[I]`,却指 EditMode 单测 | **登记面订正** —— 见下方映射表 | —(登记类,非断言类) |
+>
+> **AC → 真实载体映射表(承补评 §七 推翻面;BLK-10 的登记半边)**
+>
+> | 载体 | 规模 | 承载本 story 的 AC | 关键点名判据 |
+> |---|---|---|---|
+> | `EditMode/CaseSystem/case_open_writer_test.cs` | 7 | **AC-37-30**(流级)· AC-37-26 · 药材短缺负断言半边 | `test_caseOpened_realBag_appendsExactlyOneCaseEvent_roundTrip`(真组合根 + 真流:病例流**恰增 1 条** + 池 round-trip + `OpenCaseOf` 派生 case_id) |
+> | `PlayMode/case_opened_wiring_test.cs` | 1 | **AC-37-30**(真启动序) | `test_caseOpenedDriver_opensCaseAtBoot`(BootRoot → CaseOpenedDriver → `TryOpen`) |
+> | `EditMode/Boot/judgment_writer_test.cs` | 4 | **AC-37-05 判断半边** · 存新值(载荷侧) | `test_record_onOpenCase_writesJudgment_caseStream` / `test_record_payload_roundtripsFiveFields_caseIdIsOpenCase` |
+> | `EditMode/Boot/casebook_command_router_test.cs` | **9** | **AC-37-05 判断半边**(落笔 / 改判 / 擦除三路径)· **S-8.3** | `test_thirdSubmit_erasesViaEmptyJudgment`(擦除 = 写 `lexicon_id 0`,**非删事件**) |
+> | `EditMode/CaseSystem/judgment_lexicon_bake_test.cs` | 11 | S-8.3 的「空栏哨兵」侧 · AC-37-35 词表侧 | `lexicon_id = 0` **拒收**(0 是保留的空栏哨兵) |
+> | `EditMode/Boot/ink_age_test.cs` | **5** | **AC-37-05 存新值**(派生态)· BLK-8 实害链 | `test_inkAge_crossPatient_usesOwnJudgmentNotOtherPatients`(跨病人判别) |
+> | `EditMode/CaseSystem/case_replay_persistence_test.cs` | 10 | **AC-37-23 事件面**(不折叠) | `test_case_noFold_historicalRowsComplete` / `test_case_ac37_06_caseStreamEvents_roundTripBytesEqual` |
+> | `EditMode/CaseSystem/case_close_precondition_test.cs` | 39 | **AC-37-05 处置半边**(处置后 37 跨流可查到) | **真跨流**:`test_windowBoundary_multipleTreatmentsInWindow_hasTreatment`(`:274`)· `test_ac3721_edge_revisitWithNewTreatmentInWindow_allows`(`:131`)—— 喂**真** `EmergencyTreatmentApplied` / `DrugTreatmentApplied` 事件 + `CaseCloseQuery.HasTreatmentInWindow`。⚠️ **本行初稿曾「点偏」**(2026-10-15 postfix 评审核出并订正):原点名 `test_ac3721_checkedButNoTreatmentInWindow_rejects` 实为**决策层只喂布尔**形态(恰是补评批评的形态),`windowBoundary` 系列**实测 5 测**(非 4)且其中**仅 1** 真跨流 |
+> | `EditMode/CaseSystem/case_close_writer_test.cs` | 12 | AC-37-05 处置半边的**写侧** | 结案前置窗口 + `treated` 快照 |
+> | `PlayMode/SkeuomorphicUI/e2e_full_loop_test.cs` | 1 | 本 story 所属的 **[I] 全链** | `test_e2e_fullLoop_sevenStages` |
+> | `EditMode/CaseSystem/case_open_and_judgment_test.cs`(本件) | 25 | AC-37-26 决策层 · AC-37-30 决策层 · 药材短缺零写入 · AC-37-05 存新值 · S-8.3 · Judgment 形状 · AC-37-23 路由面 | 见上表 |
+>
+> ⚠️ **两条「部分闭合」如实登记(禁借绿)**:
+> ① **BLK-5 的 `freehand_text = ''` 半边** —— 该字段**不在** `JudgmentRecordedPayload` /
+> `JudgmentRevisedPayload` 里(ADR-006 Amendment A 的自由文本例外,住 blob 变长段)⇒ 要在 sim 层验
+> 须解 blob 段,超出 `PayloadCodec.TryGetPayload` 的接口面。本轮验了**可验的两半**
+> (`lexicon_id = 0` + 擦除事件真的入流)。
+> ② **BLK-10 的「无第二副本」半边(措辞面)** —— `grep "第二副本" unity/Assets/` **0 命中**
+> (⚠️ 2026-10-15 订正:原写「全仓 0 命中」已过时 —— 全仓现 **19** 命中,**全部**为登记 / 评审文本自引,
+> 测试树仍 0;实质结论不变,措辞回刷)。语义载体是
+> `CaseCloseQuery.HasTreatmentInWindow`(入参即**病史流**,37 不自建副本)⇒
+> **语义结构性满足,无点名断言**。**不得**写成「已覆盖」。
+> ⚠️ **同批补登(postfix 评审核出)**:story AC #6 字面要求「**引用扫描**」`freehand_text` 零消费,
+> 而声明件 `:427-438` 只做**字段缺席代理** —— 补评定其为 **ADVISORY**(非门阻塞),
+> 但初版映射表对此缺口**只字未提**(仅写「Judgment 形状」),读者可能误读为全覆盖。**就地补登**。
+>
+> ⚠️ **补评件的测数有误(以本件实测为准)**:`casebook_command_router_test` 记 8 实为 **9** ·
+> `ink_age_test` 记 4 实为 **5**(S11-7 后各 +1)。
+> ⚠️ **本文件性质已变** —— 由「纯数据层」变为「纯数据层 + **两条真装配段**」(BLK-9 + S-8.3),
+> 代价是**触 codec(仅载荷回读)** ⇒ 原「不触 codec」的自我描述已同批改写。登记此处以免再落入
+> BLK-10 的「证据面错配」形态(**这次是反向:原件变强了,登记须跟上**)。
+>
+> **门验证**:EditMode `3387/3341/0/46` · PlayMode `186/186/0`(双平台退出码 0)。
+
+> 🔵 **postfix 复评 —— 2026-10-15 · 本轮第二次新评审(评当下状态)**
+> (报告原件:`production/qa/evidence/review-case-system-story-002-postfix-2026-10-15.md`)
+>
+> **门判定:通过。** 复评点名 8 条判据**逐条 grep 核实为真**;并以「XML 时间戳 vs 文件 mtime」
+> 证明其审的是**当下工作树**(非陈旧产物)。
+>
+> ⚠️ **复评就地订正了本件自己的一处错**(已落,见上映射表行):我写的 AC→载体映射表**本身「点偏」**
+> —— 点名 `test_ac3721_checkedButNoTreatmentInWindow_rejects`,而它是**决策层只喂布尔**的形态
+> (**恰是补评批评的那种形态**)。⇒ 即「修 BLK-10(证据面错配)的那张表,自己犯了同一类错」。
+> 已独立复核(实测 `windowBoundary` 系列 **5 测**、其中**仅 1** 真跨流)并改指 `:274` / `:131` 两条。
+>
+> **本轮门验证(断言形态批后)**:EditMode `3386/3340/0/46` · PlayMode `186/186/0`
+> (双平台退出码 0)。本文件在断言形态批**未被改动**(25 测不变)⇒ 计数变化不来自本件。
 
 ---
 
