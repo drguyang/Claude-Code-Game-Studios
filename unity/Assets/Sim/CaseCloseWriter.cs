@@ -83,6 +83,7 @@ namespace DaYiJingCheng.Sim
     {
         private readonly IEventSink _eventSink;
         private readonly IPayloadEncoder _encoder;
+        private readonly IPayloadDecoder _decoder;
         private readonly IReadOnlyList<SimEvent> _streamEvents;
 
         /// <summary>
@@ -91,6 +92,8 @@ namespace DaYiJingCheng.Sim
         /// <param name="eventSink">事件写入通道(主机唯一;生产 = 真 <c>EventStream</c>)。</param>
         /// <param name="encoder">载荷编码器(ADR-029 §③ —— 唯一合法编码路径,
         /// 本类内不得出现 <c>new PayloadRef(</c>,由 b6 门强制)。</param>
+        /// <param name="decoder">载荷解码器(ADR-031 §① 第八抽象点)——
+        /// <see cref="CaseCloseQuery.IsClosed"/> 已改为载荷解码口径(接线轮 2026-10-15),须传入。</param>
         /// <param name="streamEvents">
         /// 事件流的**只读视图**(生产 = <c>bag.Stream.Events</c>)—— 本类需要两条流的前缀:
         /// 病例流(判 <c>IsOpen</c> / <c>IsClosed</c>)与病史流(判窗口内处置证据)。
@@ -99,10 +102,12 @@ namespace DaYiJingCheng.Sim
         /// </param>
         /// <exception cref="ArgumentNullException">任一依赖为 null。</exception>
         public CaseCloseWriter(IEventSink eventSink, IPayloadEncoder encoder,
+                               IPayloadDecoder decoder,
                                IReadOnlyList<SimEvent> streamEvents)
         {
             _eventSink = eventSink ?? throw new ArgumentNullException(nameof(eventSink));
             _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
+            _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
             _streamEvents = streamEvents ?? throw new ArgumentNullException(nameof(streamEvents));
         }
 
@@ -140,8 +145,8 @@ namespace DaYiJingCheng.Sim
             // ── 前置(四条):全部经流前缀谓词求值,交 CaseCloseDecider **同一判序**裁决 ──
             // 已结 / 未开的先后与 decider 内一致(具体者先判:「已结」蕴含「曾开」);
             // 本类不复制判序,只搬运布尔 —— 判序真源唯一(ADR-008 §四闭环纪律)。
-            bool isClosed = CaseCloseQuery.IsClosed(_streamEvents, caseId);
-            bool isOpen = CaseCloseQuery.IsOpen(_streamEvents, caseId);
+            bool isClosed = CaseCloseQuery.IsClosed(_streamEvents, caseId, _decoder);
+            bool isOpen = CaseCloseQuery.IsOpen(_streamEvents, caseId, _decoder);
             bool hasTreatmentInWindow = CaseCloseQuery.HasTreatmentInWindow(
                 _streamEvents, caseId.Patient, caseId.Tick, tick);
 

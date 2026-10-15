@@ -491,7 +491,7 @@
 | TR-disease-005 | `patient_seed = hash(world_seed, patient_id)`,禁 `Random.Range` | ADR-005 | ✅ |
 | TR-disease-006 | 单调逻辑 tick 驱动(`ITickProvider`)| ADR-005 | ✅ |
 | TR-disease-007 | 病史事件流为唯一真源 | ADR-005 | ✅ |
-| TR-disease-008 | P0 预留抽象点(五接口 + `SimEvent` 值类型) | ADR-005 + 007 | ✅ 复查轮重裁:现为六个 |
+| TR-disease-008 | P0 预留抽象点(五接口 + `SimEvent` 值类型) | ADR-005 + 007 + 029 + 031 | ✅ 复查轮重裁:六个;⚠️ **2026-10-15 ADR-031 后为八个**(七接口 + `SimEvent` 值类型) |
 | TR-disease-009 | 主机唯一执行 `Step` / `CatchUp` | ADR-005 | ✅ |
 | TR-disease-010 | 终态折叠(AC-36 `plateau`/`relapse` 豁免)| ADR-005 | ✅ |
 | TR-disease-011 | `patient_id` 跨权威稳定(Amendment B)| ADR-006 | ✅ |

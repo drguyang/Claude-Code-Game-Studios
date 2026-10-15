@@ -113,10 +113,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException(
                     "Assemble: blobPool 缺失 —— 组合根拒绝返回半装配服务袋");
 
-            // ── 载荷面:池(写面 IBlobSink)→ 编码器(第七抽象点)──
-            // 池与编码器一体接线(ADR-029 乙案):Sim 侧只见 IPayloadEncoder,
-            // 构造点只在本装配可见 Sim.Codec —— 案 A 的全部意义。
+            // ── 载荷面:池(写面 IBlobSink)→ 编码器(第七抽象点)/ 解码器(第八抽象点)──
+            // 池与编解码器一体接线(ADR-029 乙案 / ADR-031 §③):Sim 侧只见 IPayloadEncoder /
+            // IPayloadDecoder,构造点只在本装配可见 Sim.Codec —— 案 A 的全部意义。
+            // 编解码共用同一池(同池读写,无第二真源;ADR-031 §②「池依赖在实现的构造函数」)。
             IPayloadEncoder encoder = new PayloadEncoder(blobPool);
+            IPayloadDecoder decoder = new PayloadDecoder(blobPool);
 
             // ── 事件流:Kind → StreamId 纯函数路由 + Seq 发号 + AC-15 有界性 ──
             EventStream stream = new EventStream(idAuthority, presence);
@@ -243,7 +245,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 命令路由(casebookCommands)在下方处方链之后才构造(需复用方笺页的
             //   JudgmentWriter)—— 故此处**暂传 null**,待路由就绪后经 BindCommands 接回。
             var casebookSource = new CasebookVitalsSource(examinationLedger,
-                stream.Events, tickDriver, seenDisease, lexiconBook);
+                stream.Events, decoder, tickDriver, seenDisease, lexiconBook);
 
             // ── 处方链(G3 · 2026-10-11 用户裁定「最小生产端口实装」)──
             // 21a(换算/药物档案)+ 20(库存面)+ 30(成长)三端口最小实装 + 驱动,
@@ -318,6 +320,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: EventStream 装配产出 null");
             if (encoder == null)
                 throw new InvalidOperationException("Assemble: PayloadEncoder 装配产出 null");
+            if (decoder == null)
+                throw new InvalidOperationException("Assemble: PayloadDecoder 装配产出 null");
             if (spawner == null)
                 throw new InvalidOperationException("Assemble: PatientSpawner 装配产出 null");
             if (vitals == null)
@@ -369,7 +373,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (casebookCommands == null)
                 throw new InvalidOperationException("Assemble: CasebookCommandRouter 装配产出 null");
 
-            return new CompositionRootServices(stream, idAuthority, blobPool, encoder,
+            return new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,
                                                presence, spawner, patientDriver, caseDriver,
                                                emergencyDriver, emergencyManual,
                                                emergencyChannelDriver, patientVisuals,

@@ -43,7 +43,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             _bag = CompositionRoot.Assemble();
             _openWriter = new CaseOpenWriter(_bag.EventSink, _bag.Presence, _bag.Encoder, _bag.Stream.Events);
-            _closeWriter = new CaseCloseWriter(_bag.EventSink, _bag.Encoder, _bag.Stream.Events);
+            _closeWriter = new CaseCloseWriter(_bag.EventSink, _bag.Encoder, _bag.Decoder, _bag.Stream.Events);
             // 病人:9 创建 + 组合层灌在场(「病人存在」前置的真源)
             _patient = _bag.PatientSpawner.SpawnNext(diseaseId: 0, tick: SpawnTick);
             _bag.Presence.AddPresent(_patient, new WorldPos(0, 0, 0));
@@ -303,11 +303,11 @@ namespace DaYiJingCheng.Tests.CaseSystem
         public void test_caseCloseWriter_nullDependency_throws()
         {
             Assert.Throws<ArgumentNullException>(
-                () => new CaseCloseWriter(null, _bag.Encoder, _bag.Stream.Events));
+                () => new CaseCloseWriter(null, _bag.Encoder, _bag.Decoder, _bag.Stream.Events));
             Assert.Throws<ArgumentNullException>(
-                () => new CaseCloseWriter(_bag.EventSink, null, _bag.Stream.Events));
+                () => new CaseCloseWriter(_bag.EventSink, null, _bag.Decoder, _bag.Stream.Events));
             Assert.Throws<ArgumentNullException>(
-                () => new CaseCloseWriter(_bag.EventSink, _bag.Encoder, null));
+                () => new CaseCloseWriter(_bag.EventSink, _bag.Encoder, null, _bag.Stream.Events));
         }
     }
 }

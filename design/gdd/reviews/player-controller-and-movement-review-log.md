@@ -1,5 +1,8 @@
 # 玩家控制器与移动 (Player Controller & Movement, #1) — Review Log
 
+> ⚠️ **2026-10-15 补注(ADR-031)**:正文「六个 P0 抽象点」= **评审当时(2026-09)口径**;
+> 现行 **八个**。历史评审记录不改写。
+
 ## Review — 2026-09-16 — Verdict: NEEDS REVISION(首轮 `/design-review`)
 
 Scope signal: **L**(单系统,但与 3 份 ADR 的 Amendment 耦合 · 6 条根因触达 4 份 registry 面)

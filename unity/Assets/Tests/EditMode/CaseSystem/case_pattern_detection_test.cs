@@ -17,12 +17,10 @@
 //
 // ⚠️ 本测试为纯数据层:不触引擎 API,不触持久化。
 //    被测对象 = Sim 的 PatternDetector(生产代码)。
-//    ⚠️ **codec 例外(TA-2,2026-10-15 ADVISORY 清理轮)**:`IsFired` 三例的 `salted_key`
-//       载体原为 `(ulong)e.Seq`(**自造载体** —— 把盐塞进 Seq 字段,`Seq` 语义是发号);
-//       现改**真载体** `PatternRecognizedPayload.SaltedKey` 经 `PayloadEncoder` / `PayloadCodec`
-//       真装配 ⇒ 本文件**触 codec**(仅此三例)。理由:`IsFired` 的形参是
-//       `Func<SimEvent, ulong>`(「Sim 侧够不着者由调用方给出」先例),若调用方喂自造载体,
-//       测的就不是生产形状。真解码 delegate 的落点 = `Sim.Codec`(跨装配面,见写者文件头)。
+//    ⚠️ **codec 触达(TA-2,2026-10-15;同日接线轮扩面)**:全部 `CaseClosed` 夹具经
+//       `MakeClosed` 走**真编码器**(`PatternDetector.Evaluate` 已改解码口径读
+//       `CaseClosedPayload.DiseaseSet`,承 ADR-031 V-8 ③「退」;原 `Func<SimEvent,int[]>`
+//       病种提取器委托面退役,「Sim 侧够不着者由调用方给出」前提在 ADR-031 后不成立)。
 //
 // ══════════════════════════════════════════════════════════════════════════════
 // ⚠️⚠️ 元规则(TA-6,2026-10-15 补评后立)—— **定序类 AC 的夹具必须至少一处「输入序 ≠ 期望序」**
@@ -99,6 +97,22 @@ namespace DaYiJingCheng.Tests.CaseSystem
         }
 
         /// <summary>
+        /// 【真载体】造一条带**真载荷**的 <see cref="EventKind.CaseClosed"/>
+        /// (<c>DiseaseSet</c> 位掩码由 ordinal 集合构出)—— 2026-10-15 接线轮(承 ADR-031
+        /// V-8 ③「退」):<c>Evaluate</c> 已改解码口径读 <c>CaseClosedPayload.DiseaseSet</c>,
+        /// <c>default(PayloadRef)</c> 解码必抛 ⇒ 本文件全部 CaseClosed 须经真编码。
+        /// </summary>
+        private SimEvent MakeClosed(long tick, PatientId patient, long seq, params int[] diseaseOrdinals)
+        {
+            ulong bits = 0;
+            foreach (int d in diseaseOrdinals) bits |= 1UL << d;
+            var payload = new CaseClosedPayload(
+                patient.Value, new CaseId(tick, patient.Value, seq), new DiseaseIdSet(bits), treated: true);
+            return new SimEvent(tick, patient, seq, EventKind.CaseClosed,
+                                _bag.Encoder.Encode(EventKind.CaseClosed, payload));
+        }
+
+        /// <summary>
         /// 【真载体】构造一条带**真载荷**的 <see cref="EventKind.PatternRecognized"/> 事件
         /// (经 <see cref="IPayloadEncoder"/> 编码,字节真进池)—— TA-2 修复点。
         /// </summary>
@@ -115,44 +129,18 @@ namespace DaYiJingCheng.Tests.CaseSystem
         }
 
         /// <summary>
-        /// 【真载体】salted_key 提取器 —— 经 <see cref="PayloadCodec"/> 从**真载荷**解码
-        /// (生产形状;真实现落 `Sim.Codec`,由装配侧给出 —— 「Sim 侧够不着者由调用方给出」先例)。
-        /// </summary>
-        private ulong SaltedKeyOfReal(SimEvent e)
-        {
-            PayloadCodec.TryGetPayload<PatternRecognizedPayload>(e, _bag.BlobPool, out var decoded);
-            return decoded.SaltedKey;
-        }
-
-        /// <summary>病种提取:所有事件归同一病种 ordinal 0。</summary>
-        private static int[] ExtractDisease(SimEvent e) => new[] { 0 };
-
-        /// <summary>病种提取:纯伤情案 —— 空病种集。</summary>
-        private static int[] ExtractEmptyDisease(SimEvent e) => new int[0];
-
-        /// <summary>
-        /// 病种提取:共病 —— 同时归 ordinal 1 和 2。
-        /// <para>⚠️ 数组序刻意写成 `[2,1]`(= `disease_set` 的**集合迭代序**的一种排列;
-        /// 集合无「序」语义)⇒ 令 AC-37-13 的插入序 `[2,1]` ≠ 期望序 `[1,2]`,使该测**顺带**
-        /// 也钉住定序(承文件头元规则 TA-6)。若把此序改回 `[1,2]`,该测对「有无排序」即失去判别力。</para>
-        /// </summary>
-        private static int[] ExtractComorbidDisease(SimEvent e) => new[] { 2, 1 };
-
-        /// <summary>
         /// 发射决策层快捷入口:调用生产纯函数 <see cref="PatternDetector.NextEmissions"/>
-        /// (含«一次性»门 + 逐 D 成员归属),阈值与盐提取器取本文件固定值。
-        /// <para>成员集的**唯一**断言载体 —— 达标判定层的扁平 `MemberSet` 已删(补评 CB-3)。</para>
+        /// (含«一次性»门 + 逐 D 成员归属),阈值取本文件固定值。
+        /// <para>⚠️ 2026-10-15 接线轮(承 ADR-031 V-8 ③/⑦「退」):委托面已消失 ——
+        /// 解码归 <see cref="PatternDetector"/>(读真载荷的 <c>DiseaseSet</c> / <c>SaltedKey</c>),
+        /// 本夹具只传解码器(真装配的同一池)。</para>
         /// </summary>
         private IReadOnlyList<PatternEmission> Emit(
             IReadOnlyList<SimEvent> caseEvents,
-            Func<SimEvent, int[]> diseaseExtractor,
             IReadOnlyList<ScriptedChain> scriptedChains = null)
         {
-            // ⚠️ 盐提取器取**真载体**(TA-2)。本文件的 Emit 夹具流内**没有** PatternRecognized 事件
-            //    ⇒ 该委托在「一次性」门处**从不被调用**(循环体零迭代)⇒ 换载体不改变任何既有断言;
-            //    换的理由是**形状正确性**:喂自造载体的夹具一旦被复用进「已发射」场景即静默失真。
             return PatternDetector.NextEmissions(
-                caseEvents, WorldSeed, Threshold, diseaseExtractor, SaltedKeyOfReal, scriptedChains);
+                caseEvents, WorldSeed, Threshold, _bag.Decoder, scriptedChains);
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -165,11 +153,11 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
-                MakeEvent(200, new PatientId(2), 0, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(1), 0, 0),
+                MakeClosed(200, new PatientId(2), 0, 0),
             };
 
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.Fired, Is.False, "长度 < 阈值不触发");
         }
 
@@ -179,12 +167,12 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
-                MakeEvent(200, new PatientId(2), 0, EventKind.CaseClosed),
-                MakeEvent(300, new PatientId(3), 0, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(1), 0, 0),
+                MakeClosed(200, new PatientId(2), 0, 0),
+                MakeClosed(300, new PatientId(3), 0, 0),
             };
 
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.Fired, Is.True, "恰达标触发");
             Assert.That(result.FiredDiseases, Is.EqualTo(new[] { 0 }), "触发一次(恰一个病种)");
         }
@@ -203,14 +191,14 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             var caseEvents = new List<SimEvent>
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
-                MakeEvent(200, new PatientId(2), 0, EventKind.CaseClosed),
-                MakeEvent(300, new PatientId(3), 0, EventKind.CaseClosed),
-                MakeEvent(400, new PatientId(4), 0, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(1), 0, 0),
+                MakeClosed(200, new PatientId(2), 0, 0),
+                MakeClosed(300, new PatientId(3), 0, 0),
+                MakeClosed(400, new PatientId(4), 0, 0),
             };
 
             // ① 发射决策层:成员 = **触发时刻的前 3 例**(逐位内容 + 次序)
-            var emissions = Emit(caseEvents, ExtractDisease);
+            var emissions = Emit(caseEvents);
             Assert.That(emissions.Count, Is.EqualTo(1), "恰一条发射(单 D 单事件)");
             Assert.That(emissions[0].MemberSet, Is.EqualTo(new[]
             {
@@ -225,11 +213,11 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 caseEvents.Add(MakePatternRecognized(400, 0, emission.SaltedKey));
 
             // ③ 一次性门:流中已有该 salted_key ⇒ 第 4 例不重发
-            var again = Emit(caseEvents, ExtractDisease);
+            var again = Emit(caseEvents);
             Assert.That(again.Count, Is.EqualTo(0), "第 4 例不重发(一次性,不可重现)");
 
             // ④ 对照:达标判定层不随一次性门变化(钉死两层边界)
-            var prefix = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var prefix = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(prefix.Fired, Is.True, "对照:Evaluate 是前缀属性(达标即恒真)");
         }
 
@@ -249,16 +237,16 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(3), 0, EventKind.CaseClosed), // 先发 = 全序第 3
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed), // 次发 = 全序第 1
-                MakeEvent(100, new PatientId(2), 0, EventKind.CaseClosed), // 末发 = 全序第 2
+                MakeClosed(100, new PatientId(3), 0, 0), // 先发 = 全序第 3
+                MakeClosed(100, new PatientId(1), 0, 0), // 次发 = 全序第 1
+                MakeClosed(100, new PatientId(2), 0, 0), // 末发 = 全序第 2
             };
 
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.Fired, Is.True, "同 tick 三例触发");
             Assert.That(result.FiredDiseases, Is.EqualTo(new[] { 0 }), "触发一次(恰一个病种)");
 
-            var emissions = Emit(caseEvents, ExtractDisease);
+            var emissions = Emit(caseEvents);
             Assert.That(emissions.Count, Is.EqualTo(1), "恰一条发射");
             Assert.That(emissions[0].MemberSet, Is.EqualTo(new[]
             {
@@ -277,13 +265,13 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(4), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(2), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(3), 0, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(4), 0, 0),
+                MakeClosed(100, new PatientId(2), 0, 0),
+                MakeClosed(100, new PatientId(1), 0, 0),
+                MakeClosed(100, new PatientId(3), 0, 0),
             };
 
-            var emissions = Emit(caseEvents, ExtractDisease);
+            var emissions = Emit(caseEvents);
             Assert.That(emissions.Count, Is.EqualTo(1), "恰一条发射(同 tick 多例仍单 D 单事件)");
             Assert.That(emissions[0].MemberSet, Is.EqualTo(new[]
             {
@@ -308,9 +296,12 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             // ── 腿 ① 接口面:Evaluate 的形参表**无任何**承载病名 / 文本的入口 ──
             // 变异 = 加一个 `string diseaseName` 形参 ⇒ 必红。
+            // ⚠️ 2026-10-15 接线轮:`diseaseExtractor` 委托面退役,现形参 = `decoder`
+            //    (ADR-031 §① —— 解码器只承载载荷寻址,不承载任何病名 / 文本入口,
+            //    本 AC 的负命题「不读诊断」不受影响)。
             var allowed = new HashSet<string>
             {
-                "caseEvents", "worldSeed", "patternThreshold", "diseaseExtractor", "scriptedChains",
+                "caseEvents", "worldSeed", "patternThreshold", "decoder", "scriptedChains",
             };
             var overloads = typeof(PatternDetector)
                 .GetMethods(BindingFlags.Public | BindingFlags.Static)
@@ -335,19 +326,19 @@ namespace DaYiJingCheng.Tests.CaseSystem
             var caseEvents = new[]
             {
                 MakeEvent(50,  new PatientId(1), 0, EventKind.JudgmentRecorded), // 空名(lexicon_id = 0)
-                MakeEvent(100, new PatientId(1), 1, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(1), 1, 0),
                 MakeEvent(150, new PatientId(2), 0, EventKind.JudgmentRevised),  // 错名
-                MakeEvent(200, new PatientId(2), 1, EventKind.CaseClosed),
+                MakeClosed(200, new PatientId(2), 1, 0),
                 MakeEvent(250, new PatientId(3), 0, EventKind.JudgmentRecorded), // 空名
-                MakeEvent(300, new PatientId(3), 1, EventKind.CaseClosed),
+                MakeClosed(300, new PatientId(3), 1, 0),
             };
 
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.Fired, Is.True, "病名空 / 错照样触发");
             Assert.That(result.FiredDiseases, Is.EqualTo(new[] { 0 }), "恰一个病种达标");
 
             // 成员集**逐位** = 三条 CaseClosed(噪声事件一个都不占名额)
-            var emissions = Emit(caseEvents, ExtractDisease);
+            var emissions = Emit(caseEvents);
             Assert.That(emissions.Count, Is.EqualTo(1), "恰发一次");
             Assert.That(emissions[0].MemberSet.Select(c => (c.Tick, c.Patient, c.Seq)),
                 Is.EqualTo(new[] { (100L, 1, 1L), (200L, 2, 1L), (300L, 3, 1L) }),
@@ -369,14 +360,14 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
-                MakeEvent(200, new PatientId(2), 0, EventKind.CaseClosed),
-                MakeEvent(300, new PatientId(3), 0, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(1), 0),
+                MakeClosed(200, new PatientId(2), 0),
+                MakeClosed(300, new PatientId(3), 0),
             };
 
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractEmptyDisease);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.Fired, Is.False, "3 例纯伤情案(恰达阈值数)仍不触发");
-            Assert.That(Emit(caseEvents, ExtractEmptyDisease), Is.Empty, "零发射");
+            Assert.That(Emit(caseEvents), Is.Empty, "零发射");
         }
 
         /// <summary>
@@ -388,31 +379,27 @@ namespace DaYiJingCheng.Tests.CaseSystem
         [Test]
         public void test_ac3712_mixedInjuryAndReal_injuryCasesDoNotFillQuota()
         {
-            // patient ≥ 100 ⇒ 纯伤情(disease_set 空);patient < 100 ⇒ 真病例(D=0)
-            int[] ExtractInjuryOrReal(SimEvent e) =>
-                e.Patient.Value >= 100 ? new int[0] : new[] { 0 };
-
             var caseEvents = new List<SimEvent>
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),    // 真病例 ①
-                MakeEvent(110, new PatientId(101), 0, EventKind.CaseClosed),  // 纯伤情
-                MakeEvent(120, new PatientId(102), 0, EventKind.CaseClosed),  // 纯伤情
-                MakeEvent(130, new PatientId(2), 0, EventKind.CaseClosed),    // 真病例 ②
-                MakeEvent(140, new PatientId(103), 0, EventKind.CaseClosed),  // 纯伤情
+                MakeClosed(100, new PatientId(1), 0, 0),    // 真病例 ①
+                MakeClosed(110, new PatientId(101), 0),  // 纯伤情
+                MakeClosed(120, new PatientId(102), 0),  // 纯伤情
+                MakeClosed(130, new PatientId(2), 0, 0),    // 真病例 ②
+                MakeClosed(140, new PatientId(103), 0),  // 纯伤情
             };
 
-            var twoReal = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractInjuryOrReal);
+            var twoReal = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(twoReal.Fired, Is.False,
                 "真病例仅 2 例(3 例伤情案不补名额)⇒ 不触发");
 
             // 正向对照:补第 3 真病例 ⇒ 恰触发
-            caseEvents.Add(MakeEvent(150, new PatientId(3), 0, EventKind.CaseClosed));
+            caseEvents.Add(MakeClosed(150, new PatientId(3), 0, 0));
 
-            var threeReal = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractInjuryOrReal);
+            var threeReal = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(threeReal.Fired, Is.True, "第 3 真病例到位 ⇒ 触发");
             Assert.That(threeReal.FiredDiseases, Is.EqualTo(new[] { 0 }), "恰一个病种");
 
-            var emissions = Emit(caseEvents, ExtractInjuryOrReal);
+            var emissions = Emit(caseEvents);
             Assert.That(emissions.Count, Is.EqualTo(1), "恰一条发射");
             Assert.That(emissions[0].MemberSet, Is.EqualTo(new[]
             {
@@ -427,15 +414,17 @@ namespace DaYiJingCheng.Tests.CaseSystem
             // 共病一案 = disease_set 含两个病种,各计一次
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
-                MakeEvent(200, new PatientId(2), 0, EventKind.CaseClosed),
-                MakeEvent(300, new PatientId(3), 0, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(1), 0, 1, 2),
+                MakeClosed(200, new PatientId(2), 0, 1, 2),
+                MakeClosed(300, new PatientId(3), 0, 1, 2),
             };
 
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractComorbidDisease);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.Fired, Is.True, "共病一案进两组");
             Assert.That(result.FiredDiseases, Is.EqualTo(new[] { 1, 2 }),
-                "两个病种都触发,且按 salted 升序 [1,2] —— 提取器的集合迭代序是 [2,1](见 ExtractComorbidDisease)");
+                "两个病种都触发,且按 salted 升序 [1,2] —— 共病一案(位集 {1,2})进两组各计一次;\n" +
+                "⚠️ 2026-10-15 接线轮订正:载荷 = 位掩码(无序集合),「提取器迭代序 [2,1]」的判别面随委托退役消失,\n" +
+                "本测现钉的是「共病进两组 + salted 定序」;DiseaseOrdinalsOf 的展开序恒为 bit 升序");
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -448,12 +437,12 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed), // A₁
-                MakeEvent(200, new PatientId(2), 0, EventKind.CaseClosed), // B₁
-                MakeEvent(300, new PatientId(1), 1, EventKind.CaseClosed), // A₂(复诊)
+                MakeClosed(100, new PatientId(1), 0, 0), // A₁
+                MakeClosed(200, new PatientId(2), 0, 0), // B₁
+                MakeClosed(300, new PatientId(1), 1, 0), // A₂(复诊)
             };
 
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.Fired, Is.False, "A、B、A 三例 ⇒ FirstPerPatient 只留 A₁ ⇒ 长度 2 不触发");
         }
 
@@ -463,19 +452,19 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed), // A₁
-                MakeEvent(200, new PatientId(2), 0, EventKind.CaseClosed), // B₁
-                MakeEvent(300, new PatientId(1), 1, EventKind.CaseClosed), // A₂(复诊)
-                MakeEvent(400, new PatientId(3), 0, EventKind.CaseClosed), // C₁
+                MakeClosed(100, new PatientId(1), 0, 0), // A₁
+                MakeClosed(200, new PatientId(2), 0, 0), // B₁
+                MakeClosed(300, new PatientId(1), 1, 0), // A₂(复诊)
+                MakeClosed(400, new PatientId(3), 0, 0), // C₁
             };
 
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.Fired, Is.True, "补 C 例后触发");
 
             // ⚠️ 判别力来自 **FirstPerPatient 去重**:无去重 ⇒ 成员 = {A₁,B₁,A₂},与下面逐位期望不同
             // （⚠️ 本夹具逐 tick 递增 ⇒ 全序 ≡ 流内序,「排序有无」在此**不可捕获** ——
             //   次序判别力由同 tick 夹具承担,见文件头元规则。本测只钉去重,不宣称钉次序。）
-            var emissions = Emit(caseEvents, ExtractDisease);
+            var emissions = Emit(caseEvents);
             Assert.That(emissions.Count, Is.EqualTo(1), "恰一条发射");
             Assert.That(emissions[0].MemberSet, Is.EqualTo(new[]
             {
@@ -501,16 +490,16 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(4), 0, EventKind.CaseClosed), // 插入序逆全序
-                MakeEvent(100, new PatientId(3), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(2), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(4), 0, 0), // 插入序逆全序
+                MakeClosed(100, new PatientId(3), 0, 0),
+                MakeClosed(100, new PatientId(2), 0, 0),
+                MakeClosed(100, new PatientId(1), 0, 0),
             };
 
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.Fired, Is.True, "同 tick 四例互异病人 ⇒ 达标");
 
-            var emissions = Emit(caseEvents, ExtractDisease);
+            var emissions = Emit(caseEvents);
             Assert.That(emissions.Count, Is.EqualTo(1), "恰一条发射");
             Assert.That(emissions[0].MemberSet, Is.EqualTo(new[]
             {
@@ -545,23 +534,20 @@ namespace DaYiJingCheng.Tests.CaseSystem
 
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed), // 先入 ⇒ D=2
-                MakeEvent(100, new PatientId(2), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(3), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(4), 0, EventKind.CaseClosed), // 后入 ⇒ D=1
-                MakeEvent(100, new PatientId(5), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(6), 0, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(1), 0, 2), // 先入 ⇒ D=2
+                MakeClosed(100, new PatientId(2), 0, 2),
+                MakeClosed(100, new PatientId(3), 0, 2),
+                MakeClosed(100, new PatientId(4), 0, 1), // 后入 ⇒ D=1
+                MakeClosed(100, new PatientId(5), 0, 1),
+                MakeClosed(100, new PatientId(6), 0, 1),
             };
 
-            // 病人 1-3 → 病种 2,病人 4-6 → 病种 1
-            int[] ExtractByPatientGroup(SimEvent e) => e.Patient.Value <= 3 ? new[] { 2 } : new[] { 1 };
-
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractByPatientGroup);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.Fired, Is.True, "同 tick 多 D 触发");
             Assert.That(result.FiredDiseases, Is.EqualTo(new[] { 1, 2 }),
                 "FiredDiseases 恰 [1,2](salted 升序)—— 删/停排序即得插入序 [2,1] ⇒ 红");
 
-            var emissions = Emit(caseEvents, ExtractByPatientGroup);
+            var emissions = Emit(caseEvents);
             Assert.That(emissions.Select(x => x.DiseaseOrdinal), Is.EqualTo(new[] { 1, 2 }),
                 "发射序 = salted 升序(写者按此序 Append ⇒ AC-37-27 的 Seq=0,1 由此得)");
         }
@@ -578,28 +564,26 @@ namespace DaYiJingCheng.Tests.CaseSystem
             // 流 A:先入 D=1(病人 1–3),后入 D=2(病人 4–6)
             var streamA = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(2), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(3), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(4), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(5), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(6), 0, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(1), 0, 1),
+                MakeClosed(100, new PatientId(2), 0, 1),
+                MakeClosed(100, new PatientId(3), 0, 1),
+                MakeClosed(100, new PatientId(4), 0, 2),
+                MakeClosed(100, new PatientId(5), 0, 2),
+                MakeClosed(100, new PatientId(6), 0, 2),
             };
             // 流 B:同一病例集,病种首次出现序相反(D=2 先入)
             var streamB = new[]
             {
-                MakeEvent(100, new PatientId(4), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(5), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(6), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(2), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(3), 0, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(4), 0, 2),
+                MakeClosed(100, new PatientId(5), 0, 2),
+                MakeClosed(100, new PatientId(6), 0, 2),
+                MakeClosed(100, new PatientId(1), 0, 1),
+                MakeClosed(100, new PatientId(2), 0, 1),
+                MakeClosed(100, new PatientId(3), 0, 1),
             };
 
-            int[] ExtractByGroup(SimEvent e) => e.Patient.Value <= 3 ? new[] { 1 } : new[] { 2 };
-
-            var a = PatternDetector.Evaluate(streamA, WorldSeed, Threshold, ExtractByGroup);
-            var b = PatternDetector.Evaluate(streamB, WorldSeed, Threshold, ExtractByGroup);
+            var a = PatternDetector.Evaluate(streamA, WorldSeed, Threshold, _bag.Decoder);
+            var b = PatternDetector.Evaluate(streamB, WorldSeed, Threshold, _bag.Decoder);
 
             Assert.That(a.FiredDiseases, Is.EqualTo(new[] { 1, 2 }), "流 A:插入序 = 期望序");
             Assert.That(b.FiredDiseases, Is.EqualTo(new[] { 1, 2 }),
@@ -607,8 +591,8 @@ namespace DaYiJingCheng.Tests.CaseSystem
             Assert.That(a.FiredDiseases, Is.EqualTo(b.FiredDiseases),
                 "换插入序重跑 ⇒ 事件流逐位相同(不依赖 disease_set 迭代序)");
 
-            Assert.That(Emit(streamA, ExtractByGroup).Select(x => x.DiseaseOrdinal),
-                Is.EqualTo(Emit(streamB, ExtractByGroup).Select(x => x.DiseaseOrdinal)),
+            Assert.That(Emit(streamA).Select(x => x.DiseaseOrdinal),
+                Is.EqualTo(Emit(streamB).Select(x => x.DiseaseOrdinal)),
                 "发射序亦逐位相同(salted 升序 = 唯一定序源)");
         }
 
@@ -632,28 +616,22 @@ namespace DaYiJingCheng.Tests.CaseSystem
             // 九例同 tick:病人 1-3 → D=0,4-6 → D=1,7-9 → D=5(插入序 = ordinal 序 = [0,1,5])
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(2), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(3), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(4), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(5), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(6), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(7), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(8), 0, EventKind.CaseClosed),
-                MakeEvent(100, new PatientId(9), 0, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(1), 0, 0),
+                MakeClosed(100, new PatientId(2), 0, 0),
+                MakeClosed(100, new PatientId(3), 0, 0),
+                MakeClosed(100, new PatientId(4), 0, 1),
+                MakeClosed(100, new PatientId(5), 0, 1),
+                MakeClosed(100, new PatientId(6), 0, 1),
+                MakeClosed(100, new PatientId(7), 0, 5),
+                MakeClosed(100, new PatientId(8), 0, 5),
+                MakeClosed(100, new PatientId(9), 0, 5),
             };
 
-            int[] ExtractThreeGroups(SimEvent e)
-            {
-                int p = e.Patient.Value;
-                return p <= 3 ? new[] { 0 } : (p <= 6 ? new[] { 1 } : new[] { 5 });
-            }
-
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractThreeGroups);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.FiredDiseases, Is.EqualTo(new[] { 5, 0, 1 }),
                 "期望序 = salted 升序 [5,0,1](不是 ordinal 序 [0,1,5],也不是插入序)");
 
-            Assert.That(Emit(caseEvents, ExtractThreeGroups).Select(x => x.DiseaseOrdinal),
+            Assert.That(Emit(caseEvents).Select(x => x.DiseaseOrdinal),
                 Is.EqualTo(new[] { 5, 0, 1 }), "发射序同源(单一定序源)");
         }
 
@@ -765,16 +743,16 @@ namespace DaYiJingCheng.Tests.CaseSystem
             // 1. 三例结案
             var caseEvents = new List<SimEvent>
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
-                MakeEvent(200, new PatientId(2), 0, EventKind.CaseClosed),
-                MakeEvent(300, new PatientId(3), 0, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(1), 0, 0),
+                MakeClosed(200, new PatientId(2), 0, 0),
+                MakeClosed(300, new PatientId(3), 0, 0),
             };
 
-            var result1 = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var result1 = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result1.Fired, Is.True, "三例触发");
             Assert.That(result1.FiredDiseases, Is.EqualTo(new[] { 0 }), "FiredDiseases = {0}");
 
-            var emit1 = Emit(caseEvents, ExtractDisease);
+            var emit1 = Emit(caseEvents);
             Assert.That(emit1.Count, Is.EqualTo(1), "恰一条发射");
             Assert.That(emit1[0].MemberSet, Is.EqualTo(new[]
             {
@@ -784,13 +762,13 @@ namespace DaYiJingCheng.Tests.CaseSystem
             // 2. 第 4 例结案 + 承生产契约「发射即 Append」
             foreach (var emission in emit1)
                 caseEvents.Add(MakePatternRecognized(300, 0, emission.SaltedKey));
-            caseEvents.Add(MakeEvent(400, new PatientId(4), 0, EventKind.CaseClosed));
+            caseEvents.Add(MakeClosed(400, new PatientId(4), 0, 0));
 
-            var result2 = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var result2 = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result2.Fired, Is.True, "第 4 例仍触发(达标判定层的前缀属性)");
 
             // 3. 发射决策层:第 4 例不重发(「成员集冻结于前 3 例」的逐位断言见 AC-37-09 用例)
-            var emit2 = Emit(caseEvents, ExtractDisease);
+            var emit2 = Emit(caseEvents);
             Assert.That(emit2, Is.Empty, "第 4 例不重发(一次性)");
         }
 
@@ -800,12 +778,12 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed), // A₁
-                MakeEvent(200, new PatientId(2), 0, EventKind.CaseClosed), // B₁
-                MakeEvent(300, new PatientId(1), 1, EventKind.CaseClosed), // A₂(复诊)
+                MakeClosed(100, new PatientId(1), 0, 0), // A₁
+                MakeClosed(200, new PatientId(2), 0, 0), // B₁
+                MakeClosed(300, new PatientId(1), 1, 0), // A₂(复诊)
             };
 
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.Fired, Is.False, "复诊污染不触发");
         }
 
@@ -815,12 +793,12 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
-                MakeEvent(5000, new PatientId(2), 0, EventKind.CaseClosed),
-                MakeEvent(9999, new PatientId(3), 0, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(1), 0, 0),
+                MakeClosed(5000, new PatientId(2), 0, 0),
+                MakeClosed(9999, new PatientId(3), 0, 0),
             };
 
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.Fired, Is.True, "无时间窗口下界,任意跨度可触发");
         }
 
@@ -831,7 +809,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
         /// <summary>IsFired:存在同 salted_key 的 PatternRecognized ⇒ true。
         /// <para>⚠️ <b>TA-2(2026-10-15 ADVISORY 清理轮)</b> —— 原稿把盐塞进 <c>SimEvent.Seq</c>
         /// 作**自造载体**(<c>ExtractSaltedKeyFromSeq</c>),测的不是生产形状;现改**真载荷**
-        /// (<see cref="MakePatternRecognized"/> 编码 + <see cref="SaltedKeyOfReal"/> 解码)。
+        /// (<see cref="MakePatternRecognized"/> 编码 + 解码器直读真载荷)。
         /// 原稿另有一个**未被使用**的 <c>caseEvents</c> 局部变量(死代码),一并删。</para>
         /// <para><b>可捕获的变异</b>:<c>IsFired</c> 的比较改成恒真 / 去掉 Kind 过滤 ⇒ 红;
         /// 载荷编解码错位 ⇒ 解出的 SaltedKey 不等 ⇒ 红。</para></summary>
@@ -841,7 +819,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
             ulong saltedKey = PatternDetector.ComputeSaltedKey(WorldSeed, 1);
             var stream = new[] { MakePatternRecognized(100, 0, saltedKey) };
 
-            bool result = PatternDetector.IsFired(stream, 1, WorldSeed, SaltedKeyOfReal);
+            bool result = PatternDetector.IsFired(stream, 1, WorldSeed, _bag.Decoder);
             Assert.That(result, Is.True, "存在同 salted_key 的 PatternRecognized(真载荷经 codec 解码)");
         }
 
@@ -853,10 +831,10 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
+                MakeClosed(100, new PatientId(1), 0, 0),
             };
 
-            bool result = PatternDetector.IsFired(caseEvents, 1, WorldSeed, SaltedKeyOfReal);
+            bool result = PatternDetector.IsFired(caseEvents, 1, WorldSeed, _bag.Decoder);
             Assert.That(result, Is.False, "不存在对应 PatternRecognized 事件");
         }
 
@@ -867,7 +845,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
             ulong wrongKey = PatternDetector.ComputeSaltedKey(WorldSeed, 999);
             var stream = new[] { MakePatternRecognized(100, 0, wrongKey) };
 
-            bool result = PatternDetector.IsFired(stream, 1, WorldSeed, SaltedKeyOfReal);
+            bool result = PatternDetector.IsFired(stream, 1, WorldSeed, _bag.Decoder);
             Assert.That(result, Is.False, "salted_key 不匹配");
         }
 
@@ -886,7 +864,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 MakeEvent(300, new PatientId(3), 0, EventKind.JudgmentRecorded),
             };
 
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.Fired, Is.False, "非 CaseClosed 事件不参与计数");
         }
 
@@ -899,7 +877,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
         public void test_emptyEvents_noTrigger()
         {
             var caseEvents = new SimEvent[0];
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(result.Fired, Is.False, "空事件列表不触发");
         }
 
@@ -917,16 +895,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
         // ⚠️ 原此处有 `MakePatternRecognized(long, int)` + `ExtractSaltedKeyFromSeq`
         //    —— 两者构成**自造载体**(把 salted_key 塞进 `SimEvent.Seq`,`Seq` 的语义是发号)。
         //    2026-10-15 TA-2 清理:已全部改**真载体**(`MakePatternRecognized(long, long, ulong)`
-        //    经 `PayloadEncoder` 编码 + `SaltedKeyOfReal` 经 `PayloadCodec` 解码),两件一并删除。
-
-        /// <summary>
-        /// 病种提取(逐 D 二选一夹具专用):病人 1/2/3 → D=1(**无链**);其余 → D=0(**有链**)。
-        /// ⚠️ D=0 的病人须**同时含链成员与链外病例** —— 否则收窄与否结果相同,夹具无判别力。
-        /// </summary>
-        private static int[] ExtractChainVsNatural(SimEvent e)
-        {
-            return new[] { (e.Patient.Value <= 3) ? 1 : 0 };
-        }
+        //    经 `PayloadEncoder` 编码 + 解码器直读真载荷),两件一并删除。
 
         /// <summary>ChainEligible:链成员 ⇒ 合格(GDD F-37.1b 逐字定义)。</summary>
         [Test]
@@ -956,20 +925,20 @@ namespace DaYiJingCheng.Tests.CaseSystem
             // 链成员仅 1 例(甲 = 10);另有 4 例同 D 的**链外**病例已结案
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),  // 链外
-                MakeEvent(110, new PatientId(2), 0, EventKind.CaseClosed),  // 链外
-                MakeEvent(120, new PatientId(10), 0, EventKind.CaseClosed), // 链成员 甲
-                MakeEvent(130, new PatientId(3), 0, EventKind.CaseClosed),  // 链外
-                MakeEvent(140, new PatientId(4), 0, EventKind.CaseClosed),  // 链外
+                MakeClosed(100, new PatientId(1), 0, 0),  // 链外
+                MakeClosed(110, new PatientId(2), 0, 0),  // 链外
+                MakeClosed(120, new PatientId(10), 0, 0), // 链成员 甲
+                MakeClosed(130, new PatientId(3), 0, 0),  // 链外
+                MakeClosed(140, new PatientId(4), 0, 0),  // 链外
             };
 
             // 无脚本链:5 例同 D ⇒ 达标
-            var natural = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            var natural = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder);
             Assert.That(natural.Fired, Is.True,
                 "对照:同一流按自然检测(无链)确实达标");
 
             // 有脚本链:候选收窄到链成员 ⇒ 仅 1 例 ⇒ 不达标
-            var chained = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease, chains);
+            var chained = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder, chains);
             Assert.That(chained.Fired, Is.False,
                 "链外同 D 病例不消耗脚本链名额 —— 链成员仅 1 例,不达标");
         }
@@ -985,20 +954,20 @@ namespace DaYiJingCheng.Tests.CaseSystem
 
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),  // 链外,先结
-                MakeEvent(110, new PatientId(2), 0, EventKind.CaseClosed),  // 链外,先结
-                MakeEvent(120, new PatientId(10), 0, EventKind.CaseClosed), // 甲
-                MakeEvent(130, new PatientId(11), 0, EventKind.CaseClosed), // 乙
-                MakeEvent(140, new PatientId(12), 0, EventKind.CaseClosed), // 丙
+                MakeClosed(100, new PatientId(1), 0, 0),  // 链外,先结
+                MakeClosed(110, new PatientId(2), 0, 0),  // 链外,先结
+                MakeClosed(120, new PatientId(10), 0, 0), // 甲
+                MakeClosed(130, new PatientId(11), 0, 0), // 乙
+                MakeClosed(140, new PatientId(12), 0, 0), // 丙
             };
 
-            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease, chains);
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder, chains);
 
             Assert.That(result.Fired, Is.True, "指定三例全结 ⇒ 触发");
             Assert.That(result.FiredDiseases, Is.EqualTo(new[] { 0 }), "恰一个病种");
 
             // ⚠️ 判别力在**定义域收窄**(链外病例不进候选),不在次序(逐 tick 递增 ⇒ 全序 ≡ 流内序)
-            var emissions = Emit(caseEvents, ExtractDisease, chains);
+            var emissions = Emit(caseEvents, chains);
             Assert.That(emissions.Count, Is.EqualTo(1), "恰一条发射");
             Assert.That(emissions[0].MemberSet, Is.EqualTo(new[]
             {
@@ -1021,14 +990,14 @@ namespace DaYiJingCheng.Tests.CaseSystem
 
             var caseEvents = new List<SimEvent>
             {
-                MakeEvent(120, new PatientId(10), 0, EventKind.CaseClosed),
-                MakeEvent(130, new PatientId(11), 0, EventKind.CaseClosed),
-                MakeEvent(140, new PatientId(12), 0, EventKind.CaseClosed),
+                MakeClosed(120, new PatientId(10), 0, 0),
+                MakeClosed(130, new PatientId(11), 0, 0),
+                MakeClosed(140, new PatientId(12), 0, 0),
             };
 
             // 1. 首次:达标且流中无该 salted_key ⇒ 恰一条,逐 D 成员归属
             var first = PatternDetector.NextEmissions(
-                caseEvents, WorldSeed, Threshold, ExtractDisease, SaltedKeyOfReal, chains);
+                caseEvents, WorldSeed, Threshold, _bag.Decoder, chains);
             Assert.That(first.Count, Is.EqualTo(1), "首次恰发一条");
             Assert.That(first[0].DiseaseOrdinal, Is.EqualTo(0), "D = 0");
             Assert.That(first[0].SaltedKey, Is.EqualTo(PatternDetector.ComputeSaltedKey(WorldSeed, 0)),
@@ -1043,14 +1012,14 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 caseEvents.Add(MakePatternRecognized(150, 0, emission.SaltedKey));
 
             // 3. 再让更多的同 D 病例结案 ⇒ 永不重发
-            caseEvents.Add(MakeEvent(160, new PatientId(20), 0, EventKind.CaseClosed));
+            caseEvents.Add(MakeClosed(160, new PatientId(20), 0, 0));
 
             var second = PatternDetector.NextEmissions(
-                caseEvents, WorldSeed, Threshold, ExtractDisease, SaltedKeyOfReal, chains);
+                caseEvents, WorldSeed, Threshold, _bag.Decoder, chains);
             Assert.That(second.Count, Is.EqualTo(0), "永不重发(一次性,不可重现)");
 
             // 4. 对照:Evaluate 仍在达标判定层返 true(两层的边界)
-            var still = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease, chains);
+            var still = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder, chains);
             Assert.That(still.Fired, Is.True,
                 "对照:Evaluate 是达标判定层,「不重发」归 NextEmissions");
         }
@@ -1063,22 +1032,22 @@ namespace DaYiJingCheng.Tests.CaseSystem
         {
             var caseEvents = new[]
             {
-                MakeEvent(120, new PatientId(10), 0, EventKind.CaseClosed),
-                MakeEvent(130, new PatientId(11), 0, EventKind.CaseClosed),
-                MakeEvent(140, new PatientId(12), 0, EventKind.CaseClosed),
+                MakeClosed(120, new PatientId(10), 0, 0),
+                MakeClosed(130, new PatientId(11), 0, 0),
+                MakeClosed(140, new PatientId(12), 0, 0),
             };
 
-            var ascending = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease,
+            var ascending = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder,
                 new[] { MakeChain(0, 10, 11, 12) });
-            var shuffled = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease,
+            var shuffled = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, _bag.Decoder,
                 new[] { MakeChain(0, 12, 10, 11) });
 
             Assert.That(ascending.Fired, Is.True, "声明序 [10,11,12] 触发");
             Assert.That(shuffled.Fired, Is.True, "声明序 [12,10,11] 同样触发");
 
             // 成员集(含**次序**)必须与链的声明序无关 —— 断「逐位相同」,不是「等价」
-            var emitAscending = Emit(caseEvents, ExtractDisease, new[] { MakeChain(0, 10, 11, 12) });
-            var emitShuffled = Emit(caseEvents, ExtractDisease, new[] { MakeChain(0, 12, 10, 11) });
+            var emitAscending = Emit(caseEvents, new[] { MakeChain(0, 10, 11, 12) });
+            var emitShuffled = Emit(caseEvents, new[] { MakeChain(0, 12, 10, 11) });
 
             Assert.That(emitShuffled.Count, Is.EqualTo(emitAscending.Count), "发射条数相同");
             Assert.That(emitShuffled[0].MemberSet, Is.EqualTo(emitAscending[0].MemberSet),
@@ -1101,22 +1070,22 @@ namespace DaYiJingCheng.Tests.CaseSystem
 
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),  // D=1,无链
-                MakeEvent(110, new PatientId(2), 0, EventKind.CaseClosed),  // D=1,无链
-                MakeEvent(120, new PatientId(3), 0, EventKind.CaseClosed),  // D=1,无链
-                MakeEvent(130, new PatientId(10), 0, EventKind.CaseClosed), // D=0,链成员(仅 1 例)
-                MakeEvent(140, new PatientId(20), 0, EventKind.CaseClosed), // D=0,链外
-                MakeEvent(150, new PatientId(21), 0, EventKind.CaseClosed), // D=0,链外
-                MakeEvent(160, new PatientId(22), 0, EventKind.CaseClosed), // D=0,链外
+                MakeClosed(100, new PatientId(1), 0, 1),  // D=1,无链
+                MakeClosed(110, new PatientId(2), 0, 1),  // D=1,无链
+                MakeClosed(120, new PatientId(3), 0, 1),  // D=1,无链
+                MakeClosed(130, new PatientId(10), 0, 0), // D=0,链成员(仅 1 例)
+                MakeClosed(140, new PatientId(20), 0, 0), // D=0,链外
+                MakeClosed(150, new PatientId(21), 0, 0), // D=0,链外
+                MakeClosed(160, new PatientId(22), 0, 0), // D=0,链外
             };
 
             var result = PatternDetector.Evaluate(
-                caseEvents, WorldSeed, Threshold, ExtractChainVsNatural, chains);
+                caseEvents, WorldSeed, Threshold, _bag.Decoder, chains);
 
             Assert.That(result.FiredDiseases, Is.EqualTo(new[] { 1 }),
                 "只有无链的 D=1 达标;有链的 D=0 收窄后仅 1 例(链外 3 例既不计数也不占名额)");
 
-            var emissions = Emit(caseEvents, ExtractChainVsNatural, chains);
+            var emissions = Emit(caseEvents, chains);
             Assert.That(emissions.Count, Is.EqualTo(1), "恰一条发射(仅 D=1)");
             Assert.That(emissions[0].DiseaseOrdinal, Is.EqualTo(1), "发射的是无链的 D=1");
             Assert.That(emissions[0].MemberSet, Is.EqualTo(new[]

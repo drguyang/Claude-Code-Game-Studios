@@ -1,5 +1,9 @@
 # Architecture Review Report — 2026-09-15
 
+> ⚠️ **2026-10-15 补注(ADR-031)**:本报告正文中的「五个抽象点」= **当时(2026-09-15)口径**。
+> 经 ADR-007(第六)/ ADR-029(第七 `IPayloadEncoder`)/ ADR-031(第八 `IPayloadDecoder`),**现行八个**。
+> 正文为历史快照,**不改写**(承 `adr-006` C-9 加注先例)。
+
 > **Mode**: `/architecture-review`(full)
 > **Engine**: Unity 6.3 LTS (URP) · C# · PC (Steam) 优先 · 1–4 人联机 P0 起架构预留
 > **GDDs Reviewed**: 7 主体 GDD(`case-system` · `diagnosis-system` · `disease-simulation` ·

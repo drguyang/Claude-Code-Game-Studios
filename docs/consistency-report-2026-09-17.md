@@ -1,5 +1,8 @@
 ## Consistency Check Report
 Date: 2026-09-17
+
+> ⚠️ **2026-10-15 补注(ADR-031)**:正文「七个抽象点」= **2026-09-17 口径**;
+> ADR-031 追加第八个 `IPayloadDecoder` ⇒ **现行八个**。历史快照不改写。
 Registry entries checked: 0 entities, 0 items, 19 formulas, 73 constants
 Scope: since-last-review(7a persistence-service 修订后)
 GDDs scanned: 18(全 design/gdd/*.md)

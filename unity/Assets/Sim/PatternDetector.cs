@@ -179,13 +179,13 @@ namespace DaYiJingCheng.Sim
         /// <param name="caseEvents">病例流事件列表(已按全序排列)。</param>
         /// <param name="worldSeed">WorldSeed(存档头)。</param>
         /// <param name="patternThreshold">阈值(P0 = 3)。</param>
-        /// <param name="diseaseExtractor">从事件提取病种 ordinal 数组的委托(生产 = 解码 CaseClosedPayload.DiseaseSet)。</param>
+        /// <param name="decoder">载荷解码器(ADR-031 §① 第八抽象点;读 <c>CaseClosedPayload.DiseaseSet</c>)。</param>
         /// <returns>检测结果。</returns>
         public static PatternDetectionResult Evaluate(
             IReadOnlyList<SimEvent> caseEvents, long worldSeed, int patternThreshold,
-            Func<SimEvent, int[]> diseaseExtractor)
+            IPayloadDecoder decoder)
         {
-            return Evaluate(caseEvents, worldSeed, patternThreshold, diseaseExtractor, null);
+            return Evaluate(caseEvents, worldSeed, patternThreshold, decoder, null);
         }
 
         /// <summary>
@@ -194,7 +194,7 @@ namespace DaYiJingCheng.Sim
         /// <param name="caseEvents">病例流事件列表(已按全序排列)。</param>
         /// <param name="worldSeed">WorldSeed(存档头)。</param>
         /// <param name="patternThreshold">阈值(P0 = 3)。</param>
-        /// <param name="diseaseExtractor">从事件提取病种 ordinal 数组的委托(生产 = 解码 CaseClosedPayload.DiseaseSet)。</param>
+        /// <param name="decoder">载荷解码器(ADR-031 §① 第八抽象点;读 <c>CaseClosedPayload.DiseaseSet</c>)。</param>
         /// <param name="scriptedChains">
         /// 脚本三案链集(GDD F-37.1b)。`null` / 空 = 无脚本链 ⇒ 全部病种走自然检测。
         /// 命中链的病种,其 `CandidateSeq` 定义域收窄到链成员(逐 D 二选一,非全局模式)。
@@ -202,10 +202,10 @@ namespace DaYiJingCheng.Sim
         /// <returns>检测结果(达标判定层 —— 见文件头两层语义说明)。</returns>
         public static PatternDetectionResult Evaluate(
             IReadOnlyList<SimEvent> caseEvents, long worldSeed, int patternThreshold,
-            Func<SimEvent, int[]> diseaseExtractor,
+            IPayloadDecoder decoder,
             IReadOnlyList<ScriptedChain> scriptedChains)
         {
-            var candidateSeq = ComputeCandidateSeq(caseEvents, diseaseExtractor, scriptedChains);
+            var candidateSeq = ComputeCandidateSeq(caseEvents, decoder, scriptedChains);
 
             // 4. 检查触发:长度 >= 阈值
             //
@@ -242,17 +242,16 @@ namespace DaYiJingCheng.Sim
         /// <param name="caseEvents">病例流事件列表(已按全序排列)。</param>
         /// <param name="worldSeed">WorldSeed(存档头)。</param>
         /// <param name="patternThreshold">阈值(P0 = 3)。</param>
-        /// <param name="diseaseExtractor">从 CaseClosed 提取病种 ordinal 数组的委托。</param>
-        /// <param name="saltedKeyExtractor">从 `PatternRecognized` 提取 salted_key 的委托(载荷解码归 `Sim.Codec`)。</param>
+        /// <param name="decoder">载荷解码器(ADR-031 §① 第八抽象点;读 <c>CaseClosedPayload.DiseaseSet</c>
+        /// 与 <c>PatternRecognizedPayload.SaltedKey</c>)。</param>
         /// <param name="scriptedChains">脚本三案链集(可空)。</param>
         /// <returns>本 tick 应发射的列表(空 = 无事可做)。</returns>
         public static IReadOnlyList<PatternEmission> NextEmissions(
             IReadOnlyList<SimEvent> caseEvents, long worldSeed, int patternThreshold,
-            Func<SimEvent, int[]> diseaseExtractor,
-            Func<SimEvent, ulong> saltedKeyExtractor,
+            IPayloadDecoder decoder,
             IReadOnlyList<ScriptedChain> scriptedChains)
         {
-            var candidateSeq = ComputeCandidateSeq(caseEvents, diseaseExtractor, scriptedChains);
+            var candidateSeq = ComputeCandidateSeq(caseEvents, decoder, scriptedChains);
 
             // 达标集(顺序统一走 SortBySaltedKey 单一定序源)
             var firedDiseases = new List<int>();
@@ -269,7 +268,7 @@ namespace DaYiJingCheng.Sim
                 int disease = firedDiseases[d];
 
                 // 「一次性」门(GDD F-37.1b)
-                if (IsFired(caseEvents, disease, worldSeed, saltedKeyExtractor))
+                if (IsFired(caseEvents, disease, worldSeed, decoder))
                     continue;
 
                 // 逐 D 切成员(唯一路径 —— PatternDetectionResult 的扁平 MemberSet 已于 2026-10-15 删除,见 CB-3)
@@ -296,9 +295,11 @@ namespace DaYiJingCheng.Sim
         /// </remarks>
         private static Dictionary<int, List<SimEvent>> ComputeCandidateSeq(
             IReadOnlyList<SimEvent> caseEvents,
-            Func<SimEvent, int[]> diseaseExtractor,
+            IPayloadDecoder decoder,
             IReadOnlyList<ScriptedChain> scriptedChains)
         {
+            if (decoder == null) throw new ArgumentNullException(nameof(decoder));
+
             // 1. 收集所有 CaseClosed 事件
             var closedEvents = new List<SimEvent>();
             foreach (var e in caseEvents)
@@ -311,7 +312,7 @@ namespace DaYiJingCheng.Sim
             var firstPerPatient = new Dictionary<int, List<SimEvent>>();
             foreach (var e in closedEvents)
             {
-                foreach (int diseaseOrdinal in diseaseExtractor(e))
+                foreach (int diseaseOrdinal in DiseaseOrdinalsOf(e, decoder))
                 {
                     if (!firstPerPatient.TryGetValue(diseaseOrdinal, out var list))
                     {
@@ -435,21 +436,48 @@ namespace DaYiJingCheng.Sim
         /// <param name="caseEvents">病例流事件列表。</param>
         /// <param name="diseaseOrdinal">病种 ordinal。</param>
         /// <param name="worldSeed">WorldSeed。</param>
-        /// <param name="saltedKeyExtractor">从 PatternRecognized 事件提取 salted_key 的委托。</param>
+        /// <param name="decoder">载荷解码器(ADR-031 §①;读 <c>PatternRecognizedPayload.SaltedKey</c>)。</param>
         /// <returns>是否已触发。</returns>
         public static bool IsFired(
             IReadOnlyList<SimEvent> caseEvents, int diseaseOrdinal, long worldSeed,
-            Func<SimEvent, ulong> saltedKeyExtractor)
+            IPayloadDecoder decoder)
         {
+            if (decoder == null) throw new ArgumentNullException(nameof(decoder));
+
             ulong saltedKey = ComputeSaltedKey(worldSeed, diseaseOrdinal);
             foreach (var e in caseEvents)
             {
                 if (e.Kind != EventKind.PatternRecognized)
                     continue;
-                if (saltedKeyExtractor(e) == saltedKey)
+                var payload = decoder.Decode<PatternRecognizedPayload>(
+                    EventKind.PatternRecognized, e.Payload);
+                if (payload.SaltedKey == saltedKey)
                     return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// 展开 <c>CaseClosedPayload.DiseaseSet</c>(位掩码)为 ordinal 数组。
+        ///
+        /// <para>2026-10-15 接线轮(承 ADR-031 V-8 ③「退」):本方法**取代**原调用方注入的
+        /// <c>Func&lt;SimEvent, int[]&gt; diseaseExtractor</c> —— 委托面消失,解码归本层。</para>
+        ///
+        /// <para><b>定序</b>:按位升序(<c>bit 0..63</c>)⇒ ordinal 升序,与
+        /// <c>DiseaseIdSet.Bits</c> 的位序一一对应;不含集合迭代序(AC-37-27 定序纪律)。</para>
+        /// </summary>
+        private static List<int> DiseaseOrdinalsOf(SimEvent e, IPayloadDecoder decoder)
+        {
+            var payload = decoder.Decode<CaseClosedPayload>(EventKind.CaseClosed, e.Payload);
+            ulong bits = payload.DiseaseSet.Bits;
+
+            var ordinals = new List<int>();
+            for (int bit = 0; bit < 64; bit++)
+            {
+                if ((bits & (1UL << bit)) != 0UL)
+                    ordinals.Add(bit);
+            }
+            return ordinals;
         }
     }
 }

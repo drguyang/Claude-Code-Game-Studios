@@ -75,7 +75,7 @@ ADR-005 / 007 / 008 / 009 / 010 **五份 Accepted ADR 已把联机约束层层�
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | **ADR-005**(Accepted —— 主机唯一 Step / CatchUp · 客户端持流副本 · 五个抽象点)· **ADR-007**(Accepted —— `IEventAuthority` 第六抽象点 · 掷骰权天然唯一)· **ADR-008**(Accepted —— 病例流 · 两流传输遵循全序键)· **ADR-009**(Accepted —— 世界流 · 表现态位置同步 · 拾取意图)· **ADR-010**(Accepted —— 三流序列化 · 存档非网络通道 · authority-agnostic)—— 五者均须 Accepted |
+| **Depends On** | **ADR-005**(Accepted —— 主机唯一 Step / CatchUp · 客户端持流副本 · 五个抽象点;⚠️ 2026-10-15 ADR-031 后为八个)· **ADR-007**(Accepted —— `IEventAuthority` 第六抽象点 · 掷骰权天然唯一)· **ADR-008**(Accepted —— 病例流 · 两流传输遵循全序键)· **ADR-009**(Accepted —— 世界流 · 表现态位置同步 · 拾取意图)· **ADR-010**(Accepted —— 三流序列化 · 存档非网络通道 · authority-agnostic)—— 五者均须 Accepted |
 | **Enables** | **系统 45 网络层的实现**(P1b)· P0 的「架构预留」预埋(pipe 抽象生效)· `TR-concept-002`(partial → covered)· **44 音频的远端声源锚点**(§一之二,2026-09-18 补)|
 | **Blocks** | **45 网络层实现**;凡依赖 45 的联机 AC(P1b);`TR-randomevents-026`(联机语义)|
 | **Ordering Note** | 本 ADR 是 **R-3 的落点**(R-3 = 联机选型)。**P0 只需 pipe 抽象在接口层生效,不阻塞任何 P0 实现**。**不阻塞** 21a / 52 / 9 / 37 的既有实现。库 swap 评审是 P1b 前的一次性动作 |
@@ -445,11 +445,11 @@ swap 评审在 P1b 前强制完成,用当时最新版本 + 实测数据定库。
 **本项目尚无 45 的实现,故无迁移 —— 本 ADR 是「第一次就做对」。(同 ADR-005 / ADR-010)**
 
 1. **P0**:写 `IReplayPipe` + `ReorderBuffer`(纯 C# 逻辑,零依赖)。
-2. **P0**:七个抽象点(P0 全实现为本地占位)+ 三流全序键单测。
+2. **P0**:八个抽象点(P0 全实现为本地占位)+ 三流全序键单测。
 3. **P1b 前**:库 swap 评审(§八 验收标准),选 NGO 或 Fusion。
 4. **P1b**:把 `IReplayPipe` 接到所选库的可靠消息通道;客户端流副本 + 快照落地。
 
-**Rollback plan**:若最终不做联机,pipe 抽象仍是七个抽象点的自然延伸(P0 本地占位不变),
+**Rollback plan**:若最终不做联机,pipe 抽象仍是八个抽象点的自然延伸(P0 本地占位不变),
 **无多余成本**。若做联机,pipe 抽象 + 三流全序键已进接口层,**不可回退**(改接口 = 重写七抽象点)。
 库选型本身可回退(P1b swap 评审可改选)。
 
@@ -485,7 +485,7 @@ swap 评审在 P1b 前强制完成,用当时最新版本 + 实测数据定库。
 ## Related
 
 - **ADR-005 确定性模拟与状态同步模型**(Accepted)—— 主机唯一 Step / CatchUp · 客户端流副本 ·
-  五个抽象点。本 ADR 的 pipe 抽象是这些的传输落点
+  五个抽象点(⚠️ 2026-10-15 ADR-031 后为八个)。本 ADR 的 pipe 抽象是这些的传输落点
 - **ADR-006 定点域边界数据契约**(Accepted)—— 事件流禁 float;pipe 传输沿用(传输层零 float)
 - **ADR-007 事件权威与掷骰状态**(Accepted)—— `IEventAuthority` 第六抽象点;掷骰权天然唯一
 - **ADR-008 病例事件流**(Accepted)—— 三流全序键;两流传输遵循 `(Tick, StreamPriority, Patient, Seq)`

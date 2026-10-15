@@ -30,6 +30,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using DaYiJingCheng.Sim;
+using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Consequences;
 using DaYiJingCheng.Sim.Contracts;
 using NUnit.Framework;
@@ -44,10 +45,56 @@ namespace DaYiJingCheng.Tests.MedConsequences
         // 夹具:事件构造 / 指纹 / 确定性置换
         // ════════════════════════════════════════════════════════════════════
 
-        /// <summary>header 层事件构造(本 story 不测载荷编码 ⇒ PayloadRef 用零值)。</summary>
+        // ══ 2026-10-15 接线轮(承 ADR-031 V-8 ②「退」)══
+        // Aggregate 已改解码口径 ⇒ 被解码消费的 Kind(JudgmentRecorded / CareApplied /
+        // EmergencyTreatmentApplied / DrugTreatmentApplied)须**真编码** ——
+        // default(PayloadRef) 解码必抛。其余 Kind(哨兵 / 干扰 / 结案)仍零值。
+        private static readonly InMemoryBlobPool SharedPool = new InMemoryBlobPool();
+        private static readonly PayloadEncoder Encoder = new PayloadEncoder(SharedPool);
+        private static readonly PayloadDecoder Decoder = new PayloadDecoder(SharedPool);
+
+        /// <summary>header 层事件构造(**零载荷** —— 仅用于不被解码消费的 Kind)。</summary>
         private static SimEvent Ev(long tick, int patient, long seq, EventKind kind)
         {
             return new SimEvent(tick, new PatientId(patient), seq, kind, default(PayloadRef));
+        }
+
+        /// <summary>真载荷 `JudgmentRecorded`(P 路消费;lexicon/confidence 按夹具语义给值)。</summary>
+        private static SimEvent EvJ(long tick, int patient, long seq, int lexiconId = 1, byte confidence = 2)
+        {
+            var payload = new JudgmentRecordedPayload(
+                patient, new CaseId(0, patient, 0), authorPlayerId: 1, lexiconId, confidence);
+            // ⚠️ Judgment 走具名重载(通用 Encode<T> 拒收 —— freehandText 变长段)
+            return new SimEvent(tick, new PatientId(patient), seq, EventKind.JudgmentRecorded,
+                                Encoder.EncodeJudgmentRecorded(payload, string.Empty));
+        }
+
+        /// <summary>真载荷 `CareApplied`(C 路消费)。</summary>
+        private static SimEvent EvC(long tick, int patient, long seq, int actionId = 1, int phase = 0)
+        {
+            var payload = new CareAppliedPayload(tick, actionId, caregiver: 1, phase);
+            return new SimEvent(tick, new PatientId(patient), seq, EventKind.CareApplied,
+                                Encoder.Encode(EventKind.CareApplied, payload));
+        }
+
+        /// <summary>真载荷 `EmergencyTreatmentApplied`(C 路消费,宽 careKinds 集)。</summary>
+        private static SimEvent EvE(long tick, int patient, long seq, int treatmentId = 1)
+        {
+            var payload = new EmergencyTreatmentAppliedPayload(
+                tick, treatmentId, actorId: 1, polarity: 1,
+                new Fix(0), halfLife: 100, method: 0, cause: 0, seq: 0);
+            return new SimEvent(tick, new PatientId(patient), seq, EventKind.EmergencyTreatmentApplied,
+                                Encoder.Encode(EventKind.EmergencyTreatmentApplied, payload));
+        }
+
+        /// <summary>真载荷 `DrugTreatmentApplied`(C 路消费,宽 careKinds 集)。</summary>
+        private static SimEvent EvD(long tick, int patient, long seq, int treatmentId = 1)
+        {
+            var payload = new DrugTreatmentAppliedPayload(
+                tick, treatmentId, actorId: 1, polarity: -1,
+                new Fix(0), halfLife: 100, seq: 0);
+            return new SimEvent(tick, new PatientId(patient), seq, EventKind.DrugTreatmentApplied,
+                                Encoder.Encode(EventKind.DrugTreatmentApplied, payload));
         }
 
         /// <summary>世界级哨兵事件(Patient = -1,承 ADR-007 §四)。</summary>
@@ -63,11 +110,13 @@ namespace DaYiJingCheng.Tests.MedConsequences
         private static IReadOnlyList<Inputs53> Aggregate(
             IReadOnlyList<SimEvent> stream, IDiseaseProjection projection = null)
         {
-            return ConsequenceInputAggregator.Aggregate(stream, projection, CareKindsPerGddRule5);
+            return ConsequenceInputAggregator.Aggregate(stream, Decoder, projection, CareKindsPerGddRule5);
         }
 
         /// <summary>
         /// 聚合结果指纹 —— 逐位可比。**每一路都展开**:漏一路则置换不变测会假绿。
+        /// ⚠️ 2026-10-15 接线轮:P/C 路已改解码行 ⇒ 指纹含**载荷内容**
+        /// (LexiconId/Confidence、ActionId/Polarity)—— 比旧头级指纹更强(载荷置换也红)。
         /// </summary>
         private static string Fingerprint(IReadOnlyList<Inputs53> groups)
         {
@@ -78,8 +127,8 @@ namespace DaYiJingCheng.Tests.MedConsequences
                 Inputs53 g = groups[i];
                 sb.Append("\n [").Append(i).Append("] close=").Append(E(g.CaseClosed));
                 sb.Append(" sentinels="); AppendList(sb, g.PatternRecognized);
-                sb.Append(" P="); AppendList(sb, g.JudgmentRecords);
-                sb.Append(" C="); AppendList(sb, g.CareRecords);
+                sb.Append(" P="); AppendJudgments(sb, g.JudgmentRecords);
+                sb.Append(" C="); AppendCares(sb, g.CareRecords);
                 sb.Append(" D=").Append(g.DiseaseProjection.Tick);
             }
             return sb.ToString();
@@ -96,6 +145,32 @@ namespace DaYiJingCheng.Tests.MedConsequences
                 {
                     if (i > 0) sb.Append(',');
                     sb.Append(E(list[i]));
+                }
+            sb.Append(']');
+        }
+
+        private static void AppendJudgments(StringBuilder sb, IReadOnlyList<JudgmentRow53> list)
+        {
+            sb.Append('[');
+            if (list != null)
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (i > 0) sb.Append(',');
+                    var r = list[i];
+                    sb.Append($"({r.Tick},{r.PatientId},{r.Seq},lex={r.LexiconId},conf={r.Confidence})");
+                }
+            sb.Append(']');
+        }
+
+        private static void AppendCares(StringBuilder sb, IReadOnlyList<CareRow53> list)
+        {
+            sb.Append('[');
+            if (list != null)
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (i > 0) sb.Append(',');
+                    var r = list[i];
+                    sb.Append($"({r.Tick},{r.PatientId},{r.Seq},{r.Kind},act={r.ActionId},pol={r.Polarity})");
                 }
             sb.Append(']');
         }
@@ -155,25 +230,25 @@ namespace DaYiJingCheng.Tests.MedConsequences
 
             // ── 病人 1(结案 tick=100)──
             s.Add(Ev(10, 1, 0, EventKind.CaseOpened));
-            s.Add(Ev(20, 1, 0, EventKind.CareApplied));
-            s.Add(Ev(30, 1, 0, EventKind.JudgmentRecorded));
-            s.Add(Ev(40, 1, 0, EventKind.CareApplied));
+            s.Add(EvC(20, 1, 0));
+            s.Add(EvJ(30, 1, 0, lexiconId: 1));
+            s.Add(EvC(40, 1, 0, actionId: 2));
             s.Add(Ev(50, 1, 0, EventKind.JudgmentRevised));       // 改写史 —— **不在闭集**,须被忽略
-            s.Add(Ev(60, 1, 0, EventKind.JudgmentRecorded));      // 最后一笔 ⇒ P 应取这条
-            s.Add(Ev(70, 1, 0, EventKind.CareApplied));
+            s.Add(EvJ(60, 1, 0, lexiconId: 3));                   // 最后一笔 ⇒ P 应取这条
+            s.Add(EvC(70, 1, 0));
             s.Add(Ev(100, 1, 0, EventKind.CaseClosed));
 
             // ── 病人 2(结案 tick=120;**结案后**仍有事件 ⇒ 不得进窗口)──
             s.Add(Ev(10, 2, 1, EventKind.CaseOpened));
-            s.Add(Ev(80, 2, 0, EventKind.CareApplied));
-            s.Add(Ev(90, 2, 0, EventKind.JudgmentRecorded));
+            s.Add(EvC(80, 2, 0));
+            s.Add(EvJ(90, 2, 0, lexiconId: 2));
             s.Add(Ev(120, 2, 0, EventKind.CaseClosed));
-            s.Add(Ev(130, 2, 0, EventKind.CareApplied));          // 结案之后 ⇒ 出窗
-            s.Add(Ev(140, 2, 0, EventKind.JudgmentRecorded));     // 结案之后 ⇒ 出窗(不得覆盖 P)
+            s.Add(EvC(130, 2, 0));                                // 结案之后 ⇒ 出窗
+            s.Add(EvJ(140, 2, 0, lexiconId: 9));                  // 结案之后 ⇒ 出窗(不得覆盖 P)
 
             // ── 病人 3(结案 tick=120,**与病人 2 同 tick** —— 全序键靠 Patient 分离)──
             s.Add(Ev(15, 3, 0, EventKind.CaseOpened));
-            s.Add(Ev(25, 3, 0, EventKind.JudgmentRecorded));
+            s.Add(EvJ(25, 3, 0, lexiconId: 4));
             s.Add(Ev(120, 3, 0, EventKind.CaseClosed));
 
             // ── 世界级哨兵(Patient = -1)──
@@ -258,9 +333,9 @@ namespace DaYiJingCheng.Tests.MedConsequences
         {
             var multi = new List<SimEvent>
             {
-                Ev(50, 7, 2, EventKind.CareApplied),
-                Ev(50, 7, 0, EventKind.CareApplied),
-                Ev(50, 7, 1, EventKind.CareApplied),
+                EvC(50, 7, 2),
+                EvC(50, 7, 0),
+                EvC(50, 7, 1),
                 Ev(50, 7, 3, EventKind.CaseClosed),
             };
 
@@ -282,7 +357,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
         {
             var stream = new List<SimEvent>
             {
-                Ev(30, 3, 0, EventKind.JudgmentRecorded),
+                EvJ(30, 3, 0),
                 Sentinel(30, 0, EventKind.PatternRecognized),
                 Ev(30, 3, 1, EventKind.CaseClosed),
             };
@@ -295,7 +370,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
             //    (第二路 vs 第三路),故「谁先」无法从输出直接读出 —— 本测改为
             //    **直接对全序键取证**:它是 AC-53-04 的**定序前提**(键错 ⇒ 聚合必错)。
             SimEvent sentinel = Sentinel(30, 0, EventKind.PatternRecognized);
-            SimEvent patientEv = Ev(30, 3, 0, EventKind.JudgmentRecorded);
+            SimEvent patientEv = EvJ(30, 3, 0);
             Assert.That(EventOrder.Compare(in sentinel, in patientEv), Is.LessThan(0),
                 "哨兵 (Patient=-1) 须排在同 tick 病人事件之前(AC-53-04 前向悬垂的定序前提)");
         }
@@ -309,7 +384,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
         {
             var stream = new List<SimEvent>
             {
-                Ev(30, 3, 0, EventKind.JudgmentRecorded),
+                EvJ(30, 3, 0),
                 Sentinel(30, 0, EventKind.PatternRecognized),
                 Ev(30, 3, 1, EventKind.CaseClosed),
             };
@@ -317,7 +392,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
             IReadOnlyList<Inputs53> groups = Aggregate(stream);
             Assert.That(groups[0].JudgmentRecords.Count, Is.EqualTo(1),
                 "病人 3 的 P 路恰 1 条(哨兵 Patient=-1 ≠ 3,不得并入)");
-            Assert.That(groups[0].JudgmentRecords[0].Patient.Value, Is.EqualTo(3));
+            Assert.That(groups[0].JudgmentRecords[0].PatientId, Is.EqualTo(3));
             Assert.That(groups[0].PatternRecognized.Count, Is.EqualTo(1),
                 "哨兵须落在**第二路**(世界级加速器),不在 P 路");
             Assert.That(groups[0].PatternRecognized[0].Patient.Value,
@@ -506,7 +581,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
             var stream = new List<SimEvent>
             {
                 Ev(10, 5, 0, EventKind.CaseOpened),
-                Ev(20, 5, 0, EventKind.CareApplied),
+                EvC(20, 5, 0),
                 Ev(100, 5, 0, EventKind.CaseClosed),
             };
 
@@ -523,8 +598,8 @@ namespace DaYiJingCheng.Tests.MedConsequences
         {
             var stream = new List<SimEvent>
             {
-                Ev(10, 5, 0, EventKind.CareApplied),
-                Ev(20, 5, 0, EventKind.JudgmentRecorded),
+                EvC(10, 5, 0),
+                EvJ(20, 5, 0),
             };
 
             var proj = new StubProjection();
@@ -561,9 +636,11 @@ namespace DaYiJingCheng.Tests.MedConsequences
                 "P 路恰 1 条(**最后一笔**,非全部)");
             Assert.That(p1.JudgmentRecords[0].Tick, Is.EqualTo(60L),
                 "P 须取结案前**最后一笔** JudgmentRecorded(tick=60),不是 30");
-            Assert.That(p1.JudgmentRecords.Select(x => x.Kind).Distinct().ToArray(),
-                Is.EqualTo(new[] { EventKind.JudgmentRecorded }),
-                "改写史 `JudgmentRevised` **不在闭集**(GDD 规则五)—— 不得混入 P");
+            // ⚠️ 2026-10-15 接线轮:P 路已改解码行(无 Kind 字段)⇒ 闭集判别改**内容级**:
+            // 夹具的改写史 @50(若被误计入 P)会顶掉 tick=60 那笔 ⇒ 上面 Tick 断言红;
+            // 且本行钉载荷内容真进了行(lexiconId=3 来自 @60 那笔真载荷)。
+            Assert.That(p1.JudgmentRecords[0].LexiconId, Is.EqualTo(3),
+                "P 行携带**载荷内容**(lexicon_id=3,@60 那笔)—— JudgmentRevised 若混入,内容必漂移");
         }
 
         /// <summary>
@@ -589,7 +666,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
         {
             var stream = new List<SimEvent>
             {
-                Ev(50, 9, 0, EventKind.CareApplied),    // 同 tick,seq 0 ⇒ 在结案之前
+                EvC(50, 9, 0),    // 同 tick,seq 0 ⇒ 在结案之前
                 Ev(50, 9, 1, EventKind.CaseClosed),     // seq 1 ⇒ 结案
             };
 
@@ -607,21 +684,21 @@ namespace DaYiJingCheng.Tests.MedConsequences
         {
             var stream = new List<SimEvent>
             {
-                Ev(10, 4, 0, EventKind.CareApplied),
-                Ev(20, 4, 0, EventKind.EmergencyTreatmentApplied),
-                Ev(30, 4, 0, EventKind.DrugTreatmentApplied),
+                EvC(10, 4, 0),
+                EvE(20, 4, 0, treatmentId: 5),                       // 窄集下不解码;宽集下须真载荷
+                EvD(30, 4, 0, treatmentId: 6),                       // 宽集下须真载荷(CareRowOf 分派)
                 Ev(100, 4, 0, EventKind.CaseClosed),
             };
 
             // ① GDD 规则五 `:165` 逐字集 —— 只 `CareApplied`
             IReadOnlyList<Inputs53> narrow =
-                ConsequenceInputAggregator.Aggregate(stream, null, CareKindsPerGddRule5);
+                ConsequenceInputAggregator.Aggregate(stream, Decoder, null, CareKindsPerGddRule5);
             Assert.That(narrow[0].CareRecords.Select(x => x.Kind).ToArray(),
                 Is.EqualTo(new[] { EventKind.CareApplied }),
                 "传入 GDD 规则五的窄集 ⇒ C 路只收 CareApplied");
 
             // ② 卡面 Note 4 提及的更宽集 —— 聚合器须如实响应(不硬编码任何一种)
-            IReadOnlyList<Inputs53> wide = ConsequenceInputAggregator.Aggregate(stream, null,
+            IReadOnlyList<Inputs53> wide = ConsequenceInputAggregator.Aggregate(stream, Decoder, null,
                 new[] { EventKind.CareApplied, EventKind.EmergencyTreatmentApplied,
                         EventKind.DrugTreatmentApplied });
             Assert.That(wide[0].CareRecords.Count, Is.EqualTo(3),
@@ -629,7 +706,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
 
             // ③ null 集 ⇒ 零处置(退化,不抛)
             IReadOnlyList<Inputs53> none =
-                ConsequenceInputAggregator.Aggregate(stream, null, null);
+                ConsequenceInputAggregator.Aggregate(stream, Decoder, null, null);
             Assert.That(none[0].CareRecords, Is.Empty, "null careKinds ⇒ 零处置,不抛");
         }
 
@@ -659,7 +736,7 @@ namespace DaYiJingCheng.Tests.MedConsequences
             {
                 var seen = new List<EventKind>();
                 seen.AddRange(g.PatternRecognized.Select(x => x.Kind));
-                seen.AddRange(g.JudgmentRecords.Select(x => x.Kind));
+                seen.Add(EventKind.JudgmentRecorded);   // P 路解码行:聚合器只收该 Kind(闭集由构造保证)
                 seen.AddRange(g.CareRecords.Select(x => x.Kind));
 
                 foreach (EventKind k in seen)

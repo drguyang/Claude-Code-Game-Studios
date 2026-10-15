@@ -104,10 +104,15 @@ namespace DaYiJingCheng.Sim
         /// 计算 J(c) = 病例流中**该案**最后一条判断事件的 judgment(GDD 规则四①)。
         /// 存新值:全序最后一条胜,非差分合成。
         ///
-        /// <para><b>归属判据 = 流序关联</b>(与 <see cref="OpenCaseOf"/> 同范式):逐条扫描,
-        /// 以该病人的 <c>CaseOpened</c> 三元组确定「当下开案」,其后至 <c>CaseClosed</c> 之前的
-        /// 判断事件即归属该案。**<paramref name="caseId"/> 是本案的唯一判据** ——
+        /// <para><b>归属判据 = 载荷解码</b>(2026-10-15 接线轮 · 承 ADR-031 V-8 ⑥「退」):
+        /// 逐条扫描判断事件,以其**载荷自带的 <c>CaseId</c>** 精确比对入参
+        /// (<c>JudgmentRecordedPayload.CaseId</c> / <c>JudgmentRevisedPayload.CaseId</c>);
+        /// 全序最后一条匹配者即 <c>J(c)</c>。**<paramref name="caseId"/> 是本案的唯一判据** ——
         /// 传**整条病例流**即可,不需要调用方预先切片。</para>
+        ///
+        /// <para><b>退掉了什么</b>:原实现以「<c>CaseOpened</c> 三元组 + <c>CaseClosed</c> 关闭」
+        /// 的**流序关联**推断归属,与载荷解码**只在合法流上等价**;解码把「合法流」这个前提
+        /// **消掉** —— 判断事件属于哪一案,是它自己的字段,不是推断。</para>
         ///
         /// <para>🔴 <b>2026-10-15 修复(sprint-11 S11-7 · 补评件 story-002 §二 BLK-8)</b>:
         /// 原实现的 <c>caseId</c> 形参**体内零引用** —— 只取「传入列表里最后一条判断事件」,
@@ -115,50 +120,33 @@ namespace DaYiJingCheng.Sim
         /// (<c>CompositionRoot</c> → <c>CasebookVitalsSource.InkAgeTicks</c>)传的是
         /// <c>EventStream.Events</c> = **全部混合流** ⇒ 墨龄**取到别的病人的判断事件**。
         /// 该契约在生产路径上**不可能被满足**(见下条),故**不是「调用方传错」而是接口本身失守**。</para>
-        ///
-        /// <para>⚠️ <b>为何不读载荷里的 <c>CaseId</c></b>:<c>JudgmentRecordedPayload.CaseId</c> 确实
-        /// 存在,但 <c>SimEvent.Payload</c> 是 <see cref="PayloadRef"/>(BlobId/Offset/Length),
-        /// **解码归 <c>Sim.Codec</c>** —— 本类住 <c>Sim</c>,引用集**恰 = {BCL, Sim.Contracts}**
-        /// (ADR-025 §① / b2 门),**物理上够不着**。故走流序关联(承 S11-8 同款口径)。</para>
-        ///
-        /// <para><b>代价(与 S11-8 同款,如实登记)</b>:该口径下判断事件对案件的归属是**推断**而非
-        /// **读取**;与载荷解码**在合法流上等价**,仅在违反「同一病人同时至多一个开案」
-        /// (GDD 规则二)的**非法流**上分歧 —— 该流下写者行为本身未定义。</para>
         /// </summary>
         /// <param name="events">病例流事件列表(已按全序排列)。**传整条流**,本函数自按
         /// <paramref name="caseId"/> 过滤。</param>
         /// <param name="caseId">案件 case_id。</param>
+        /// <param name="decoder">载荷解码器(ADR-031 §① 第八抽象点;读判断载荷的 <c>CaseId</c>)。</param>
         /// <returns>该案最后一条判断事件;该案无判断记录返回 null。</returns>
-        public static SimEvent? LastJudgmentOf(IReadOnlyList<SimEvent> events, CaseId caseId)
+        public static SimEvent? LastJudgmentOf(IReadOnlyList<SimEvent> events, CaseId caseId,
+                                               IPayloadDecoder decoder)
         {
+            if (decoder == null) throw new ArgumentNullException(nameof(decoder));
+
             SimEvent? last = null;
-            bool inCase = false;
 
             foreach (var e in events)
             {
-                // 只看该病人的事件(Patient 已是三元组的一维)
-                if (e.Patient.Value != caseId.Patient)
-                    continue;
-
-                if (e.Kind == EventKind.CaseOpened)
+                if (e.Kind == EventKind.JudgmentRecorded)
                 {
-                    // 案件身份 = CaseOpened 的三元组(Patient 已匹配 ⇒ 比 Tick/Seq 即可)
-                    inCase = e.Tick == caseId.Tick && e.Seq == caseId.Seq;
-                    continue;
+                    if (decoder.Decode<JudgmentRecordedPayload>(EventKind.JudgmentRecorded, e.Payload)
+                              .CaseId.Equals(caseId))
+                        last = e;
                 }
-
-                if (e.Kind == EventKind.CaseClosed)
+                else if (e.Kind == EventKind.JudgmentRevised)
                 {
-                    // 结案即离开本案 —— 其后的判断不再属于 caseId
-                    inCase = false;
-                    continue;
+                    if (decoder.Decode<JudgmentRevisedPayload>(EventKind.JudgmentRevised, e.Payload)
+                              .CaseId.Equals(caseId))
+                        last = e;
                 }
-
-                if (!inCase)
-                    continue;
-
-                if (e.Kind == EventKind.JudgmentRecorded || e.Kind == EventKind.JudgmentRevised)
-                    last = e;
             }
 
             return last;

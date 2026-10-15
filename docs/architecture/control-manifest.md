@@ -1,8 +1,13 @@
 # Control Manifest
 
 > **Engine**: Unity 6.3 LTS
-> **Last Updated**: 2026-10-02
-> **Manifest Version**: 2026-10-02
+> **Last Updated**: 2026-10-15
+> **Manifest Version**: 2026-10-15
+> ⚠️ **2026-10-15 增量升级(非重新生成)**:新增 **Cross-Cutting Constraints 之七(处方前置检查)**
+> 与 **之八(判据不得用文化敏感字符串比较)**,均出自 sprint-12 的 S12-3「建闸」批
+> (源:S11-7/S11-8 同族根因三次 + S12-2 实测 Mono emoji 前缀误判)。
+> 前六条与其余各节**一字未改**;`/story-readiness` 比对版本时,2026-10-02 → 2026-10-15 的
+> 差异**仅此两节**,不构成其他规则的重新解读。
 > **ADRs Covered**: ADR-001, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 015,
 > 016, 017, 018, 019, 020, 021, 022, 023, 024, 025, 026, 027, 028, 029, 030
 > —— **全部 27 份 Accepted ADR**(⚠️ 2026-10-02 订正:原写「全部 22 份」,**计数陈旧**;2026-10-09 追加 ADR-030 `DiseaseOnset` Kind 归属 ⇒ 26 → **27**。本 manifest 只覆盖架构规则面,故未逐份列 002–004 —— 那三份已被 015/017 兑现结案)
@@ -14,6 +19,10 @@ to this field to detect stories written against stale rules. Always matches
 `Last Updated` — they are the same date, serving different consumers.
 
 ### 2026-10-02 版本升格的传播范围(先读,防误读)
+
+> ⚠️ **2026-10-15 补注(ADR-031)**:下示 `六个 → 七个` 为 **2026-10-02 那一刻**的升格;
+> ADR-031 已再升 **七 → 八**(新增 `IPayloadDecoder`)⇒ **现行规则见 §Required 行(八个)**。
+> 此 before/after 块为历史快照,不改写。
 
 **本版唯一实质规则改动** = `Foundation → Required` 的 P0 抽象点计数
 **六个 → 七个**(新增 `IPayloadEncoder`;ADR-029 §①):
@@ -98,7 +107,7 @@ rule, see the referenced ADR.
 - `Seq` 由**主机在 `Append` 时分配**,同一 `(Tick, Patient)` 内自 0 单调递增;`Seq` 随事件持久化;`Payload` 是值 struct、无引用字段 — ADR-006 Amendment A
 - 跨流全序键 = `(Tick, StreamPriority, Patient, Seq)`;**单流内** = `(Tick, Patient, Seq)`;**`Patient` 项不可省略**(同 tick 两位病人各有 `Seq=0` ⇒ 缺它即平局) — ADR-008 §二 · ADR-006 Amendment C
 - `StreamPriority`:病史 0 < 病例 1 < 世界 2;**`Seq` 不分流**,三流共享同一发放器与同一 `(Tick, Patient)` 计数域 — ADR-009 §三
-- 七个 P0 抽象点必须预留:`ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery` / `IEventAuthority` + `SimEvent` + `IPayloadEncoder` — ADR-005 §Key Interfaces · ADR-007 §一 · **ADR-029 §①**
+- 八个 P0 抽象点必须预留:`ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery` / `IEventAuthority` + `SimEvent` + `IPayloadEncoder` + `IPayloadDecoder` — ADR-005 §Key Interfaces · ADR-007 §一 · **ADR-029 §①** · **ADR-031 §①**
 - `IEventAuthority` **不与 `IEventSink` 合并**(写入通道语义 ≠ 掷骰权语义);P0 = 本地占位,`IsAuthority` 恒 `true` — ADR-007 §一
 - `Roll` 必须是**纯函数**:入参即其全部输入,**不读任何运行时对象**;`Win` 由**调用方**从 `ITickProvider` 取,不在 `Roll` 内取 — ADR-007 §Implementation Guidelines 2/3
 - **掷骰的每个输入必须可从事件流重构**(或为外生常数);五个 Kind:`EventRolled` / `EventArrived` / `ThreatDeferred` / `ThreatDeferralCleared` / `HistoryFlagChanged` — ADR-007 §三
@@ -521,6 +530,61 @@ Newtonsoft Json(**仅作词法器**,ADR-014 裁定 ③)。
 **执法体的统一形态(全案元规则)**:约束一律落成**构建期断言**,不落成散文。
 源:`architecture-review-2026-09-20.md` §11 结论 4 —— 该报告发现 RC-3 与 RC-5
 是**同一形状的错误**:把「我希望编译器挡的」写成「编译器挡的」。
+
+---
+
+### Cross-Cutting Constraints 之七 · 处方前置检查(S12-3 · 2026-10-15 立)
+
+**规则**:凡**处方**(评审结论 / 修复方案 / story 的 Acceptance Criteria 措辞)
+涉及 **`Sim` 侧引用集**(`恰 = {BCL, Sim.Contracts}`,ADR-025 §①)的**可达性**时,
+**写入前必须先验「够不够得着」**;不得假设跨程序集的符号可见。
+
+**为什么单立一条**:同族根因在 **sprint-11 连撞三次**(S11-7 一处 + S11-8 两处),
+三次全写成「计划了一个做不到的形状」 —— 实测根因同一条:`Sim` 够不着 `Sim.Codec`
+(故 `SimEvent.Payload` 是 `PayloadRef` 只有 `BlobId/Offset/Length`,解码物理上不在 `Sim` 侧)。
+sprint-11 文件自己记了「同族纪律(本 sprint 第二次)」,**第三次仍在犯** ⇒ 说明**没有机制在拦**。
+源:`production/sprints/sprint-11.md` §S11-7 / S11-8 订正框 ·
+`production/retrospectives/retro-sprint-11-2026-10-15.md` §做得差。
+
+**检查三步(处方落笔前)**:
+1. 该处方涉及的符号住在哪个程序集?(列 ADR-025 六装配:`Sim` / `Sim.Contracts` /
+   `Sim.Codec` / `Gameplay.Presentation` / `Gameplay.UI` / `Editor.Tools` 族)
+2. 调用方程序集的引用集**恰好**是什么?能不能看见第 1 步的符号?
+3. 若不能 —— 处方**必须改写形状**(如 `Sim` 侧改走流序扫描关联,范式 =
+   `CaseStreamQuery.OpenCaseOf`),**不得**留在处方里等实现期爆炸。
+
+**已登记案例(同族根因不得第四次)**:
+
+| 案例 | 原处方(做不到) | 正解 | 出处 |
+|---|---|---|---|
+| S11-7 | 「`CompositionRoot` 改传**该案子集**」 | 子集**构造不出来**(装配层切片须自解载荷 = 把 37 查询语义复制进装配层);修复落 `LastJudgmentOf` 内部,**调用点一字未改**,传全局流从此是正确行为 | `fix-s11-7-*.md` |
+| S11-8 ① | 「经 `PayloadRef` 解码 `CaseClosedPayload.CaseId` 判等」 | `PayloadCodec` 住 `Sim.Codec`,`CaseCloseDecider` 住 `Sim` ⇒ 物理上够不着;改走**流序扫描关联**(与 `OpenCaseOf` 同构) | `fix-s11-8-*.md` |
+| S11-8 ② | 「统一 `IsOpen`/`IsClosed` 输入契约为『该案子集』」 | 同上 ⇒ 改取「**病例流全序前缀**」,由同一扫描派生两值 | `fix-s11-8-*.md` |
+
+**判据**:下次任何处方若再现「`Sim` 直接读载荷字段 / 装配层切片」形状 ⇒
+按**第四次**处理:须先贴出上述三案例之一的反证,否则不予落笔。
+**执法体**:本规则由 `/code-review` 与 `/story-readiness` 在**读处方时**机械检查
+(非散文自律);S12-4 的 DoD 新条为其在 story 收口侧的对应闸。
+
+---
+
+### Cross-Cutting Constraints 之八 · 判据不得用文化敏感字符串比较(S12-3 · 2026-10-15 立)
+
+**规则**:承载**判定语义**的谓词,**禁用**默认(culture-sensitive)字符串比较;
+凡 `StartsWith` / `EndsWith` / `Equals` / `IndexOf` 作用于**非 ASCII 前缀 / emoji /
+用户可见文本**时,**必须显式 `StringComparison.Ordinal`**;
+**更强形态**:判定真源走**结构化整数/布尔**,字符串仅作人读展示。
+
+**为什么单立一条**:S12-2 实测抓到的真 bug ——
+`Story009WalkthroughDriver.cs` 原判据 `r.checks.All(c => c.StartsWith("✅"))`
+在 Mono 下把一条 **`"🔴 …"` 失败断言判成通过**(⇒ 整腿「全绿」假绿)。
+字节级已核两个 emoji 均合法 UTF-8(`E2 9C 85` / `F0 9F 94 B4`)⇒
+**非编码问题,是 culture-sensitive 比较对非 BMP 前缀失效**。
+源:`production/qa/evidence/fix-s12-2-story009-driver-passed-summary-2026-10-15.md` §二。
+
+**执法体**:① 该处已改为 `OkCount`/`FailCount` 整数累计(真值不经过字符串);
+② 新写判定谓词时,若形状像「按前缀/标记字符判真假」⇒ 一律先想结构化替代;
+③ 已有字符串判据点由后续评审按本条复核(**本条不回溯宣称全仓已查** —— 未查即未查)。
 
 ---
 

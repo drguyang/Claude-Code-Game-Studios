@@ -23,9 +23,10 @@
 //     写者未落(豁免表登记)。三者同 tick 连发的**编排**归 17 的装配轮(登记项)。
 //   - **instance_id 不在本件铸造**:规则三明定铸造点 = DropSpawned;本件收下已铸 id
 //     (形参 <c>ItemInstanceId</c>,类型本身即「机制 A 发号」的记号)。
-//   - **gather_seq 由调用方给出**:它的计源 = 本 Kind 的节点计数(foraging F-17-1),
-//     而「数世界流」需解码(PayloadCodec 住 Sim.Codec,门 A 下本类够不着)—— 与
-//     `PoiStateMachine` 读侧「由调用方喂已解码字段」的甲案同构。
+//   - **gather_seq 由本类自算**(2026-10-15 接线轮 · 承 ADR-031 V-8 ⑨「退」):它的计源 =
+//     本 Kind 的节点计数(foraging F-17-1);原稿自陈「数世界流需解码,门 A 下本类够不着」——
+//     该前提在 ADR-031 后不成立(`IPayloadDecoder` 住 Sim.Contracts)⇒ 现持解码器自算,
+//     不再由调用方喂入。
 //   - **库存满载 / 动作被打断 ⇒ 采集失败零事件**:那是 20 的容量预算与 17 动作层的
 //     前置,本件无从复核(登记项);本件只做**入参合法性** fail-loud。
 //
@@ -33,6 +34,7 @@
 //    编排、库存满载前置、QualityCap 截断的调用面均归 17/20 的装配轮。
 
 using System;
+using System.Collections.Generic;
 using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Sim.World
@@ -51,6 +53,8 @@ namespace DaYiJingCheng.Sim.World
     {
         private readonly IEventSink _eventSink;
         private readonly IPayloadEncoder _encoder;
+        private readonly IPayloadDecoder _decoder;
+        private readonly IReadOnlyList<SimEvent> _streamEvents;
 
         /// <summary>
         /// 构造采集事实写者。
@@ -58,11 +62,19 @@ namespace DaYiJingCheng.Sim.World
         /// <param name="eventSink">事件写入通道(主机唯一;生产 = 真 <c>EventStream</c>)。</param>
         /// <param name="encoder">载荷编码器(ADR-029 §③ —— 唯一合法编码路径,
         /// 本类内不得出现 <c>new PayloadRef(</c>,由 b6 门强制)。</param>
+        /// <param name="decoder">载荷解码器(ADR-031 §① 第八抽象点)—— 用于自算 <c>gather_seq</c>
+        /// (数本 Kind 该节点已发条数,读 <c>ResourceHarvestedPayload.NodeId</c>)。</param>
+        /// <param name="streamEvents">事件流的**只读视图**(生产 = <c>bag.Stream.Events</c>)——
+        /// <c>gather_seq</c> 计源(F-17-1)。本类只看 <c>ResourceHarvested</c> 一类,其余 Kind 天然忽略。</param>
         /// <exception cref="ArgumentNullException">任一依赖为 null。</exception>
-        public ResourceHarvestWriter(IEventSink eventSink, IPayloadEncoder encoder)
+        public ResourceHarvestWriter(IEventSink eventSink, IPayloadEncoder encoder,
+                                     IPayloadDecoder decoder,
+                                     IReadOnlyList<SimEvent> streamEvents)
         {
             _eventSink = eventSink ?? throw new ArgumentNullException(nameof(eventSink));
             _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
+            _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
+            _streamEvents = streamEvents ?? throw new ArgumentNullException(nameof(streamEvents));
         }
 
         /// <summary>
@@ -73,18 +85,23 @@ namespace DaYiJingCheng.Sim.World
         /// 已铸造的实例 id(规则三:铸造点 = <c>DropSpawned</c>,本件只引用同一 id)。
         /// </param>
         /// <param name="nodeId">逻辑层节点稳定标识(ADR-015 / OQ-4-11 —— **非**格坐标)。</param>
-        /// <param name="gatherSeq">该节点已发出的 <c>ResourceHarvested</c> 计数(F-17-1;调用方求值)。</param>
         /// <param name="qty">本次采量(GDD: <c>qty ≥ 1</c>)。</param>
         /// <param name="outQuality">品级档,已过 <c>QualityCap</c> 截断(GDD: <c>∈ [1, MAX_QUALITY]</c>;
         /// 上界为数据驱动,本件只校验下界)。</param>
+        /// <returns>本条事件的 <c>gather_seq</c>(= 该节点**此前**已发条数,0 起 —— F-17-1)。</returns>
         /// <exception cref="ArgumentOutOfRangeException">
         /// 任一入参出界(<paramref name="tick"/> &lt; 0 / <paramref name="instanceId"/> &lt; 0 /
-        /// <paramref name="nodeId"/> &lt; 0 / <paramref name="gatherSeq"/> &lt; 0 /
-        /// <paramref name="qty"/> &lt; 1 / <paramref name="outQuality"/> &lt; 1)
+        /// <paramref name="nodeId"/> &lt; 0 / <paramref name="qty"/> &lt; 1 / <paramref name="outQuality"/> &lt; 1)
         /// —— 入参非法 = 编程错误,fail-loud;「采集失败」不是本异常的语义(失败 = 调用方不调本方法)。
         /// </exception>
-        public void Record(long tick, ItemInstanceId instanceId, int nodeId,
-                           int gatherSeq, int qty, int outQuality)
+        /// <remarks>
+        /// <para><b><c>gather_seq</c> 由本类自算</b>(2026-10-15 接线轮 · 承 ADR-031 V-8 ⑨「退」):
+        /// 原实现把它作为入参由调用方喂入,自陈「数世界流需解码,门 A 下本类够不着」——
+        /// 该前提在 ADR-031 后**不成立**(<c>IPayloadDecoder</c> 住 <c>Sim.Contracts</c>)。
+        /// 现本类持解码器,按 <c>NodeId</c> 数流自算,消掉「调用方求值」这个绕行面。</para>
+        /// </remarks>
+        public int Record(long tick, ItemInstanceId instanceId, int nodeId,
+                          int qty, int outQuality)
         {
             if (tick < 0)
                 throw new ArgumentOutOfRangeException(nameof(tick), tick, "tick 不得为负");
@@ -94,14 +111,14 @@ namespace DaYiJingCheng.Sim.World
             if (nodeId < 0)
                 throw new ArgumentOutOfRangeException(nameof(nodeId), nodeId,
                     "node_id 须为逻辑层稳定标识(OQ-4-11)");
-            if (gatherSeq < 0)
-                throw new ArgumentOutOfRangeException(nameof(gatherSeq), gatherSeq,
-                    "gather_seq 为该节点已发计数,不得为负(F-17-1)");
             if (qty < 1)
                 throw new ArgumentOutOfRangeException(nameof(qty), qty, "GDD foraging: qty ≥ 1");
             if (outQuality < 1)
                 throw new ArgumentOutOfRangeException(nameof(outQuality), outQuality,
                     "GDD foraging: out_quality ∈ [1, MAX_QUALITY]");
+
+            // gather_seq 自算:F-17-1「该节点已发计数」= 流中同 node_id 的 ResourceHarvested 条数。
+            int gatherSeq = CountHarvestsOfNode(nodeId);
 
             // 载荷:registry payload_schema 五字段全整数;raw_quality **刻意不落流**
             // (可由 SplitMix64(WorldSeed, "gather", node_id, gather_seq) 三项重算 —— 存它 = 第二真源)。
@@ -113,6 +130,25 @@ namespace DaYiJingCheng.Sim.World
             // Seq = -1 未发号哨兵(O-1),由发号器给出。
             _eventSink.Append(new SimEvent(
                 tick, PatientId.None, -1, EventKind.ResourceHarvested, payloadRef));
+
+            return gatherSeq;
+        }
+
+        /// <summary>数流中该 <paramref name="nodeId"/> 已发的 <c>ResourceHarvested</c> 条数(F-17-1)。</summary>
+        private int CountHarvestsOfNode(int nodeId)
+        {
+            int count = 0;
+            for (int i = 0; i < _streamEvents.Count; i++)
+            {
+                var e = _streamEvents[i];
+                if (e.Kind != EventKind.ResourceHarvested)
+                    continue;
+                var payload = _decoder.Decode<ResourceHarvestedPayload>(
+                    EventKind.ResourceHarvested, e.Payload);
+                if (payload.NodeId == nodeId)
+                    count++;
+            }
+            return count;
         }
     }
 }

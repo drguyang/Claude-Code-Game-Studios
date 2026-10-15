@@ -14,7 +14,7 @@
 
 | ADR | Decision Summary | Engine Risk |
 |-----|-----------------|-------------|
-| ADR-005: 确定性模拟与状态同步模型 | 全部模拟数学在整数定点域;病史事件流是唯一真源;主机唯一执行 Step / CatchUp;五个 P0 抽象点 | HIGH |
+| ADR-005: 确定性模拟与状态同步模型 | 全部模拟数学在整数定点域;病史事件流是唯一真源;主机唯一执行 Step / CatchUp;八个 P0 抽象点(ADR-031 后) | HIGH |
 | ADR-006: 定点域边界数据契约 | FixParse 为外部数据→Fix 唯一入口(拒浮点字面量);存档与事件流禁 float;单一舍入 ROUND_HALF_AWAY_FROM_ZERO;守恒律整数域求值 | MEDIUM |
 | ADR-008: 病例事件流(第二条逻辑流) | 跨流全序键 (Tick, StreamPriority, Patient, Seq);处置事件为证;盐 = WorldSeed 派生;病例流不物理折叠 | HIGH |
 | ADR-009: 世界状态事件化边界 | 三问判据 · 三态分类;新增第三条逻辑流「世界流」;拾取 = 意图事件 + 当下判距 + 宽容半径;世界流不折叠 | MEDIUM |

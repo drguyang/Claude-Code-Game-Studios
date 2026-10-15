@@ -42,8 +42,35 @@ namespace DaYiJingCheng.Tests.CaseSystem
     public sealed class CaseOpenAndJudgmentTest
     {
         // ════════════════════════════════════════════════════════════════════
-        // 辅助:构造 SimEvent(header 层,PayloadRef 用零值 —— 本故事不测载荷编码)
+        // 辅助:构造 SimEvent(header 层)
+        // ⚠️ 2026-10-15 接线轮(承 ADR-031 V-8 ④/⑥「退」):LastJudgmentOf 已改载荷
+        //    解码口径(读 JudgmentRecorded/RevisedPayload.CaseId)⇒ 每条判断事件须经真
+        //    编码器造载荷(CaseId 三元组与测试意图的归属一致)。default(PayloadRef) 解码必抛。
         // ════════════════════════════════════════════════════════════════════
+
+        private static readonly InMemoryBlobPool SharedPool = new InMemoryBlobPool();
+        private static readonly PayloadEncoder Encoder = new PayloadEncoder(SharedPool);
+        private static readonly PayloadDecoder Decoder = new PayloadDecoder(SharedPool);
+
+        /// <summary>造一条**真载荷**的 JudgmentRecorded。</summary>
+        private static SimEvent MakeRecorded(long tick, PatientId patient, long seq, CaseId caseId)
+        {
+            var payload = new JudgmentRecordedPayload(caseId.Patient, caseId, authorPlayerId: 1,
+                                                      lexiconId: 1, confidence: 2);
+            // ⚠️ Judgment 两 Kind 走**具名重载**(通用 Encode<T> 拒收 —— freehandText
+            //    变长段,ADR-006 G-3;P0 写 string.Empty)
+            return new SimEvent(tick, patient, seq, EventKind.JudgmentRecorded,
+                                Encoder.EncodeJudgmentRecorded(payload, string.Empty));
+        }
+
+        /// <summary>造一条**真载荷**的 JudgmentRevised。</summary>
+        private static SimEvent MakeRevised(long tick, PatientId patient, long seq, CaseId caseId)
+        {
+            var payload = new JudgmentRevisedPayload(caseId.Patient, caseId, authorPlayerId: 1,
+                                                     lexiconId: 1, confidence: 2);
+            return new SimEvent(tick, patient, seq, EventKind.JudgmentRevised,
+                                Encoder.EncodeJudgmentRevised(payload, string.Empty));
+        }
 
         private static SimEvent MakeEvent(long tick, PatientId patient, long seq, EventKind kind)
         {
@@ -267,9 +294,9 @@ namespace DaYiJingCheng.Tests.CaseSystem
             var events = new[]
             {
                 MakeEvent(tick, patient, 0, EventKind.CaseOpened),
-                MakeEvent(tick + 10, patient, 1, EventKind.JudgmentRecorded),
-                MakeEvent(tick + 50, patient, 2, EventKind.JudgmentRevised),
-                MakeEvent(tick + 100, patient, 3, EventKind.JudgmentRevised),
+                MakeRecorded(tick + 10, patient, 1, MakeCaseId(tick, 1, 0)),
+                MakeRevised(tick + 50, patient, 2, MakeCaseId(tick, 1, 0)),
+                MakeRevised(tick + 100, patient, 3, MakeCaseId(tick, 1, 0)),
             };
 
             // case_id 由**生产查询**从流派生(ADR-008 §二:case_id = CaseOpened 的三元组)
@@ -277,7 +304,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
             Assert.That(caseId.HasValue, Is.True, "前置:该病人有开案");
 
             // J(c) —— 调**生产函数**,不自造
-            var lastJudgment = CaseStreamQuery.LastJudgmentOf(events, caseId.Value);
+            var lastJudgment = CaseStreamQuery.LastJudgmentOf(events, caseId.Value, Decoder);
 
             Assert.That(lastJudgment.HasValue, Is.True, "该案有判断记录 ⇒ 须返回末条");
             Assert.That(lastJudgment.Value.Kind, Is.EqualTo(EventKind.JudgmentRevised),
@@ -344,7 +371,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
             // Assert ④:存新值 —— J(c) = 全序末条 ⇒ 取到擦除那条(回到空态,而非「无判断」)
             var openCase = CaseStreamQuery.OpenCaseOf(bag.Stream.Events, patient.Value);
             Assert.That(openCase.HasValue, Is.True, "该案仍开着");
-            var j = CaseStreamQuery.LastJudgmentOf(bag.Stream.Events, openCase.Value);
+            var j = CaseStreamQuery.LastJudgmentOf(bag.Stream.Events, openCase.Value, bag.Decoder);
             Assert.That(j.HasValue, Is.True, "空判断**是**判断事件(不是「无判断」)");
             Assert.That(j.Value.Tick, Is.EqualTo(3), "J(c) = 擦除那条(全序末条胜 ⇒ 回到空态)");
         }
@@ -365,9 +392,9 @@ namespace DaYiJingCheng.Tests.CaseSystem
             //    而 `OrderBy` 对**已排序输入**是**恒等映射** ⇒ 该断言对「有无排序」零判别力。
             var events = new[]
             {
-                MakeEvent(tick + 100, patient, 2, EventKind.JudgmentRevised),
-                MakeEvent(tick, patient, 0, EventKind.JudgmentRecorded),
-                MakeEvent(tick + 50, patient, 1, EventKind.JudgmentRevised),
+                MakeRevised(tick + 100, patient, 2, MakeCaseId(tick, 1, 0)),
+                MakeRecorded(tick, patient, 0, MakeCaseId(tick, 1, 0)),
+                MakeRevised(tick + 50, patient, 1, MakeCaseId(tick, 1, 0)),
             };
 
             // 全部落病例流
@@ -461,13 +488,13 @@ namespace DaYiJingCheng.Tests.CaseSystem
             var caseOpened = MakeEvent(tick, patient, 0, EventKind.CaseOpened);
 
             // 2. 落笔
-            var recorded = MakeEvent(tick + 10, patient, 1, EventKind.JudgmentRecorded);
+            var recorded = MakeRecorded(tick + 10, patient, 1, MakeCaseId(tick, 1, 0));
 
             // 3. 改写
-            var revised1 = MakeEvent(tick + 60, patient, 2, EventKind.JudgmentRevised);
+            var revised1 = MakeRevised(tick + 60, patient, 2, MakeCaseId(tick, 1, 0));
 
             // 4. 再改写
-            var revised2 = MakeEvent(tick + 110, patient, 3, EventKind.JudgmentRevised);
+            var revised2 = MakeRevised(tick + 110, patient, 3, MakeCaseId(tick, 1, 0));
 
             var allEvents = new[] { caseOpened, recorded, revised1, revised2 };
 
@@ -481,7 +508,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
             // 存新值 = 末条 —— 调**生产函数**,不自造(见 summary 的 BLK-3 订正)
             var caseId = CaseStreamQuery.OpenCaseOf(allEvents, patient.Value);
             Assert.That(caseId.HasValue, Is.True, "前置:该病人有开案");
-            var lastJudgment = CaseStreamQuery.LastJudgmentOf(allEvents, caseId.Value);
+            var lastJudgment = CaseStreamQuery.LastJudgmentOf(allEvents, caseId.Value, Decoder);
 
             Assert.That(lastJudgment.HasValue, Is.True, "该案有判断记录 ⇒ 须返回末条");
             Assert.That(lastJudgment.Value.Seq, Is.EqualTo(3), "存新值取末条(Seq=3)");
@@ -604,7 +631,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 MakeEvent(100, new PatientId(1), 0, EventKind.CaseOpened),
             };
 
-            var result = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0));
+            var result = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0), Decoder);
             Assert.That(result.HasValue, Is.False, "该案无判断记录须返回 null");
         }
 
@@ -615,12 +642,12 @@ namespace DaYiJingCheng.Tests.CaseSystem
             var events = new[]
             {
                 MakeEvent(100, new PatientId(1), 0, EventKind.CaseOpened),
-                MakeEvent(100, new PatientId(1), 1, EventKind.JudgmentRecorded),
-                MakeEvent(150, new PatientId(1), 2, EventKind.JudgmentRevised),
-                MakeEvent(200, new PatientId(1), 3, EventKind.JudgmentRevised),
+                MakeRecorded(100, new PatientId(1), 1, MakeCaseId(100, 1, 0)),
+                MakeRevised(150, new PatientId(1), 2, MakeCaseId(100, 1, 0)),
+                MakeRevised(200, new PatientId(1), 3, MakeCaseId(100, 1, 0)),
             };
 
-            var result = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0));
+            var result = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0), Decoder);
             Assert.That(result.HasValue, Is.True, "有判断记录须返回末条");
             Assert.That(result.Value.Seq, Is.EqualTo(3), "末条 Seq=3");
             Assert.That(result.Value.Tick, Is.EqualTo(200), "末条 tick=200");
@@ -633,10 +660,10 @@ namespace DaYiJingCheng.Tests.CaseSystem
             var events = new[]
             {
                 MakeEvent(100, new PatientId(1), 0, EventKind.CaseOpened),
-                MakeEvent(100, new PatientId(1), 1, EventKind.JudgmentRecorded),
+                MakeRecorded(100, new PatientId(1), 1, MakeCaseId(100, 1, 0)),
             };
 
-            var result = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0));
+            var result = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0), Decoder);
             Assert.That(result.HasValue, Is.True, "单条判断记录须返回该条");
             Assert.That(result.Value.Seq, Is.EqualTo(1));
         }
@@ -652,13 +679,13 @@ namespace DaYiJingCheng.Tests.CaseSystem
             {
                 MakeEvent(100, new PatientId(1), 0, EventKind.CaseOpened),
                 MakeEvent(100, new PatientId(2), 0, EventKind.CaseOpened),
-                MakeEvent(110, new PatientId(1), 1, EventKind.JudgmentRecorded),
-                MakeEvent(120, new PatientId(2), 1, EventKind.JudgmentRecorded),
-                MakeEvent(130, new PatientId(1), 2, EventKind.JudgmentRevised),
-                MakeEvent(140, new PatientId(2), 2, EventKind.JudgmentRevised),  // 全流末条 —— 病人 2 的
+                MakeRecorded(110, new PatientId(1), 1, MakeCaseId(100, 1, 0)),
+                MakeRecorded(120, new PatientId(2), 1, MakeCaseId(100, 2, 0)),
+                MakeRevised(130, new PatientId(1), 2, MakeCaseId(100, 1, 0)),
+                MakeRevised(140, new PatientId(2), 2, MakeCaseId(100, 2, 0)),  // 全流末条 —— 病人 2 的
             };
 
-            var result = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0));
+            var result = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0), Decoder);
 
             Assert.That(result.HasValue, Is.True, "病人 1 本案有两笔判断,须返回其末条");
             Assert.That(result.Value.Patient.Value, Is.EqualTo(1), "须是病人 1 的事件");
@@ -675,14 +702,14 @@ namespace DaYiJingCheng.Tests.CaseSystem
             var events = new[]
             {
                 MakeEvent(100, new PatientId(1), 0, EventKind.CaseOpened),   // 案 A
-                MakeEvent(110, new PatientId(1), 1, EventKind.JudgmentRecorded),
+                MakeRecorded(110, new PatientId(1), 1, MakeCaseId(100, 1, 0)),
                 MakeEvent(200, new PatientId(1), 2, EventKind.CaseClosed),   // 案 A 结
                 MakeEvent(300, new PatientId(1), 3, EventKind.CaseOpened),   // 案 B(复诊)
-                MakeEvent(310, new PatientId(1), 4, EventKind.JudgmentRecorded),
+                MakeRecorded(310, new PatientId(1), 4, MakeCaseId(300, 1, 3)),
             };
 
-            var caseA = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0));
-            var caseB = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(300, 1, 3));
+            var caseA = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(100, 1, 0), Decoder);
+            var caseB = CaseStreamQuery.LastJudgmentOf(events, MakeCaseId(300, 1, 3), Decoder);
 
             Assert.That(caseA.HasValue, Is.True, "案 A 有判断记录");
             Assert.That(caseA.Value.Tick, Is.EqualTo(110),

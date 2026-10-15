@@ -163,7 +163,7 @@
 - [ADR-005 ✅ Accepted 2026-09-13]**确定性模拟与状态同步模型** ——
   `docs/architecture/adr-005-deterministic-sim.md`。
   **全部模拟数学在整数定点域**(int64 / Q16.16)· **病史事件流是唯一真源** ·
-  **主机唯一执行 Step / CatchUp** · P0 必须预留五个抽象点
+  **主机唯一执行 Step / CatchUp** · P0 必须预留**八个**抽象点(ADR-031 后;原「五个」= 历史)
   (`ITickProvider` / `IEventSink` / `IIdAuthority` / `IVitalsQuery` / `SimEvent`)。
   **必须在写 9 / 7a / 25 的代码之前 Accepted** —— 它定义数据形状,事后改 = 重写每个病种。
   Engine Knowledge Risk **HIGH**(IL2CPP 逐位性需实测),但本裁决**不依赖该实测**
@@ -738,7 +738,63 @@
   9 的写者实现 · 47 的 `causes[]` 落地 · 垂直切片测试订正 —— 均归各自实现轮。
   Engine Knowledge Risk **LOW**(纯 `Kind` 登记与所有权裁决,零引擎 API)。
 
-> **本日志状态**:全部 ADR(001–**030**)均有日志条目。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
+- [ADR-031 ✅ Accepted 2026-10-15]**载荷解码抽象点(`IPayloadDecoder`)** ——
+  `docs/architecture/adr-031-payload-decoder-abstraction.md`。**补 ADR-029 的读侧对称缺口**
+  (写侧 `IPayloadEncoder` 2026-10-02 已立,读侧**全库零抽象点**)。**由 S12-9(53 story-002
+  `Outcome = Judge(P,C,D,U)`)的依赖面勘察提出** —— 勘察实测四入向 **4/4「需补 / 不存在」**,
+  触发该 story 卡面自带的收缩判据(`story-002:112`)⇒ **S12-9 退回单独立项**。
+  **根因是一条结构性缺口,非四笔独立欠账**:`Sim.asmdef:4` 的引用集恰 = `{BCL, Sim.Contracts}`
+  (ADR-025 §① / b2 门),而 `PayloadCodec` 住 `Sim.Codec` ⇒ **`Sim` 物理上够不着任何载荷内容**
+  (`PayloadRef` 只有 `BlobId/Offset/Length`,不含字节);而 `Judge` 按定义就要读 P/C 的**内容**
+  (GDD `:263` 真值源登记)。**实测三次同型绕行,无一处是「解决」**:
+  `CaseCloseDecider.cs:177-181`(流序关联)· `ConsequenceInputAggregator.cs:11-13`(头部-only)·
+  `PatternDetector.cs:182,197`(调用方委托)—— 三处均自陈「**解码归调用方**」。
+  **用户 2026-10-15 两轮裁定(五项全确认)**:① **新增第八个 P0 抽象点 `IPayloadDecoder`**
+  (住 `Sim.Contracts`,实现 `PayloadDecoder` 住 `Sim.Codec`);② **形状 = 抛形**
+  `T Decode<T>(EventKind kind, in PayloadRef payloadRef) where T : struct` ——
+  与字节级 `Decode<T>` / `Encode<T>` 对称,与既有 `TryGetPayload`(**bool 形,只承载「查无」,
+  损坏本就走抛**)刻意分家,使「未驻留」与「损坏」在类型上可分;③ **池依赖在实现的构造函数,
+  不在接口签名** —— 逐字承 ADR-029 §② 模式(`PayloadEncoder(IBlobSink)` 同理)
+  ⇒ **`IBlobPool` 一字不改、不搬家,零新增程序集边**,门 A / b2 / ADR-025 §① 三重约束全部保留;
+  ④ **刻意不含 freehand 路径** —— 写侧有两个 Judgment 具名重载,读侧**没有**,**不对称是设计**
+  (ADR-006 G-3 禁 sim 读自由文本 ⇒ 接口面不含 = **编译期不可表达**,不靠纪律守);
+  ⑤ **b5 门补两项** —— `AssemblyGates.cs:381-385` 的 `AudioForbiddenContractTypes`
+  八项(**六个抽象点 + `SimEvent` + `VitalsDto`**)**不含 `IPayloadEncoder`** ⇒
+  **实测 44 今天可合法引用编码器**;补至十项并订正错误串「六抽象点」→「八抽象点」。
+  ⚠️ **⑤ 的两项出处不同**:补 `IPayloadEncoder` 属 **ADR-029 的漏项**(它 2026-10-02 就该补),
+  补 `IPayloadDecoder` 属本件 —— 同批落盘但**不合并记账**。
+  **驳回四案**:Alt 1 放开 `Sim → Sim.Codec` 边(击穿门 A,与 ADR-029 Alt 1 同因)·
+  **Alt 2 装配层解码 + DTO 入 `Sim`(乙案,用户裁定否决** —— `Judge` 是纯函数,喂 DTO 会把
+  「解码 + 求值」拆两段,须重对齐 `AC-53-02` 逐位一致口径;且每多一个消费者就多一份装配层解码,
+  正是 ADR-029 要消灭的「手搓」的**读侧翻版**)· Alt 3 搬 `IBlobPool` 进 `Sim.Contracts`
+  (开第二条旁路,ADR-029 §② 已裁过同型)· Alt 4 提升既有 `TryGetPayload` 为接口
+  (收整个 `SimEvent` 过宽 + bool 混两层 + 改它 = 改所有既有调用点)· Alt 5 维持现状
+  (三次绕行各自引入新的等价性前提,举证负担逐点累积)。
+  **§Migration Plan 与 ADR-029 的关键差异**:ADR-029 只登记了 ADR-005 的**五处**计数订正,
+  其余留作独立批次 —— **实测该批次未扫干净**(全库仍散落「五个 / 六个」:
+  `adr-006:75/:524` · `adr-001:78/:321/:488` · `technical-preferences:166` ·
+  `item-database/EPIC.md:17` · `IPresenceQuery.cs:4` …)⇒ 本件**一次列全**,按
+  `control-manifest.md:40-46` 的二分处置(A 组现行态断言 → 改 / B 组 ADR-029 未扫残留 /
+  C 组历史陈述 → **加注不改写**),并明写「**本清单不声称已复核**」。
+  **起草期两处自查修正**:payload struct 数初稿写 34(照抄 ADR-029),实测现为 **35**
+  (`grep -c "name: SimEvent.Kind\."` = 35,与 `Encode` 重载数一致)⇒ 已改;
+  漏掉模板必需的 `### Architecture` 节 ⇒ 已补。
+  **⚠️ 实现面全未落** —— §Validation **V-1…V-10 全部未勾,禁借绿**;
+  Accepted 表示**方向已裁**,不表示任何判据已通过。Engine Knowledge Risk **LOW**
+  (纯 C# 接口契约与程序集边界,零 post-cutoff API;`Sim.Contracts` 的 `noEngineReferences` 不变)。
+  **✅ 2026-10-15 实现轮落盘(S12-12)** —— §Validation **V-1…V-10 全部勾选**;
+  契约支(`Sim.Contracts/IPayloadDecoder.cs` + `Sim.Codec/PayloadDecoder.cs`)+ 接线支
+  (b5 门 8 → **10 项** + 错误串订正)+ V-10 计数订正(A 组 **25 处**改 · B 组 3 改 + 4 注 ·
+  C 组历史件 6 注 + 现行件 9 注)。**S12-4 证伪轮 3/3 全红**(定义域收窄 / 共存互斥 / 抛形退化)。
+  回归 `3421/3375/0/46`(基线 `3401/3355` ⇒ **+20/+20,零回归**)。
+  证据原件 = `production/qa/evidence/impl-adr031-payload-decoder-2026-10-15.md`。
+  **⚠️ 实现轮两处重大发现**:
+  ① **V-8 实测 11 处绕行**(原稿只写**三处** —— 抽样非普查):退 6 / 暂不退 5;ADR 已就地订正 + 逐处裁定。
+  ② **V-10 清单本身有错**:`AssemblyGates.cs:720` 被记为「错误串」实为普通 doc 注释(真串在 `:729`);
+  清单漏列 `production/session-logs/`(自动审计日志,不属订正面)⇒ 印证「**本清单不声称已复核**」之必要。
+  **⚠️ 接线支只保证退路存在,「退」的执行归各归属系统实现轮**(37 / 17 / 53)。
+
+> **本日志状态**:全部 ADR(001–**031**)均有日志条目。**ADR-004 已于 2026-09-15 由 ADR-017 兑现结案**;
 > ADR-008 / 009 / 010 / 011 的条目已于同日补录。**架构复核 R-1…R-15 全部结清(ADR-020 为末项)**。
 > **ADR-021 由三方复核(奇遇扩张裁定)的洞 H2 提出,非架构复核 R 系列** —— R 系列无残留缺口;
 > 洞 H1 / H3 的 ADR 由用户裁定**推迟 P1a**(本轮仅登记所有权,见 `systems-index.md` §11)。
@@ -751,6 +807,9 @@
 > Accepted;文件号按落盘时序)。
 > **§Required ADRs 全部兑现完毕(#1–#5 五条全 Accepted)** —— TD 条件 **C1–C4 四条全部结案**,
 > Pre-Production 开工门的技术侧**无阻塞项**。
+> **ADR-028 / 029 / 030 / 031 均非 §Required ADRs 面内** —— ADR-028(audio 小裁批)·
+> ADR-029(载荷编码)· ADR-030(`DiseaseOnset` Kind)· **ADR-031(载荷解码,由 S12-9 勘察提出)**
+> 各自由具体缺口驱动,**不占 Required 序号**。
 
 ## Engine Specialists
 

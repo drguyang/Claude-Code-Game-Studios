@@ -76,11 +76,10 @@ namespace DaYiJingCheng.Sim
     {
         private readonly IEventSink _eventSink;
         private readonly IPayloadEncoder _encoder;
+        private readonly IPayloadDecoder _decoder;
         private readonly IReadOnlyList<SimEvent> _streamEvents;
         private readonly long _worldSeed;
         private readonly int _patternThreshold;
-        private readonly Func<SimEvent, int[]> _diseaseExtractor;
-        private readonly Func<SimEvent, ulong> _saltedKeyExtractor;
         private readonly IReadOnlyList<ScriptedChain> _scriptedChains;
         private readonly int _version;
 
@@ -99,26 +98,23 @@ namespace DaYiJingCheng.Sim
         /// 由调用方给出(见类头登记项)。</param>
         /// <param name="patternThreshold">同源阈值(GDD F-37.1,P0 = 3);须 ≥ 1
         /// (≤ 0 会让检测器对空候选集也«达标»,锚点不存在 ⇒ 编程错误,fail-loud)。</param>
-        /// <param name="diseaseExtractor">从 <c>CaseClosed</c> 提取病种 ordinal 数组的委托
-        /// (生产 = 解码 <c>CaseClosedPayload.DiseaseSet</c>;由调用方给出 —— 解码归 <c>Sim.Codec</c>)。</param>
-        /// <param name="saltedKeyExtractor">从 <c>PatternRecognized</c> 提取 salted_key 的委托
-        /// («一次性»门需要;由调用方给出 —— 解码归 <c>Sim.Codec</c>)。</param>
+        /// <param name="decoder">载荷解码器(ADR-031 §① 第八抽象点)—— 取代原两个注入委托
+        /// (<c>diseaseExtractor</c> / <c>saltedKeyExtractor</c>):解码归本层,委托面消失
+        /// (2026-10-15 接线轮 · 承 ADR-031 V-8 ⑦「退」)。</param>
         /// <param name="scriptedChains">脚本三案链集(GDD F-37.1b);<c>null</c> / 空 = 全走自然检测。</param>
         /// <param name="version">ordinal 映射表版本(append-only 内容值,ADR-014 烘焙);由调用方给出。</param>
-        /// <exception cref="ArgumentNullException">eventSink / encoder / streamEvents /
-        /// diseaseExtractor / saltedKeyExtractor 任一为 null。</exception>
+        /// <exception cref="ArgumentNullException">eventSink / encoder / decoder / streamEvents 任一为 null。</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="patternThreshold"/> &lt; 1。</exception>
         public PatternRecognitionWriter(
-            IEventSink eventSink, IPayloadEncoder encoder, IReadOnlyList<SimEvent> streamEvents,
+            IEventSink eventSink, IPayloadEncoder encoder, IPayloadDecoder decoder,
+            IReadOnlyList<SimEvent> streamEvents,
             long worldSeed, int patternThreshold,
-            Func<SimEvent, int[]> diseaseExtractor, Func<SimEvent, ulong> saltedKeyExtractor,
             IReadOnlyList<ScriptedChain> scriptedChains, int version)
         {
             _eventSink = eventSink ?? throw new ArgumentNullException(nameof(eventSink));
             _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
+            _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
             _streamEvents = streamEvents ?? throw new ArgumentNullException(nameof(streamEvents));
-            _diseaseExtractor = diseaseExtractor ?? throw new ArgumentNullException(nameof(diseaseExtractor));
-            _saltedKeyExtractor = saltedKeyExtractor ?? throw new ArgumentNullException(nameof(saltedKeyExtractor));
 
             // ⚠️ 下界 = 2 而非 1(2026-10-15 ADVISORY 清理轮 · TA-8)。
             // 真源 = GDD `case-system.md:1004` 的旋钮安全范围「≥ 2(**< 2 构建期拒绝**)」
@@ -157,7 +153,7 @@ namespace DaYiJingCheng.Sim
             // 「该不该发、发哪几条」—— 复用纯函数(含«一次性»门 + salted_key 升序)。
             var emissions = PatternDetector.NextEmissions(
                 _streamEvents, _worldSeed, _patternThreshold,
-                _diseaseExtractor, _saltedKeyExtractor, _scriptedChains);
+                _decoder, _scriptedChains);
 
             if (emissions.Count == 0)
             {
@@ -166,7 +162,7 @@ namespace DaYiJingCheng.Sim
                 // 故 Fired ∧ 无新发射 ⇒ 全部已发过(fires-once);否则 ⇒ 尚未达标。
                 bool anyAtThreshold = PatternDetector.Evaluate(
                     _streamEvents, _worldSeed, _patternThreshold,
-                    _diseaseExtractor, _scriptedChains).Fired;
+                    _decoder, _scriptedChains).Fired;
 
                 return anyAtThreshold
                     ? PatternRecognitionWriteResult.AlreadyRecognized

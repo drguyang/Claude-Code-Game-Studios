@@ -170,19 +170,14 @@ namespace DaYiJingCheng.Sim
         /// <summary>
         /// 案件是否已结(流前缀纯函数)。
         ///
-        /// <para><b>关联口径 = 流序扫描</b>(与 <see cref="CaseStreamQuery.OpenCaseOf"/> 同口径):
-        /// 病例流是**全序**的(ADR-008 §一),故「某条 <c>CaseClosed</c> 属于哪个案件」由
-        /// **其前最近一条该病人的 <c>CaseOpened</c>** 确定 —— 与「全序前缀纯函数」的纪律一致。</para>
+        /// <para><b>关联口径 = 载荷解码</b>(2026-10-15 接线轮 · 承 ADR-031 V-8 ①「退」):
+        /// <c>CaseClosedPayload.CaseId</c> 是**权威关联字段** —— 本条 <c>CaseClosed</c> 属于哪个
+        /// 案件,由它**自己的载荷**说出,不由流序推断。逐条扫描:任一 <c>CaseClosed</c> 的载荷
+        /// <c>CaseId</c> 精确等于入参 ⇒ 已结。</para>
         ///
-        /// <para>⚠️ <b>为何不解码载荷</b>:<c>CaseClosedPayload.CaseId</c> 是权威关联字段,
-        /// 但 <c>PayloadCodec</c> 住 <c>Sim.Codec</c>,而本类住 <c>Sim</c> —— 引用集恰 =
-        /// {BCL, <c>Sim.Contracts</c>}(ADR-025 §① / b2 门),<c>PayloadRef</c> 仅
-        /// <c>BlobId/Offset/Length</c>,**物理上够不着**(同 <c>PoiStateMachine</c> 的处置:
-        /// 解码归调用方)。故本处取流序关联。</para>
-        ///
-        /// <para>⚠️ <b>等价性前置</b>:本口径在**合法流**上与载荷解码等价;二者只在违反
-        /// 「同一病人同时至多一个开案」(GDD 规则二)的非法流上分歧 ——
-        /// 而该流下写者行为本身未定义 ⇒ 分歧面不在契约内。</para>
+        /// <para><b>退掉了什么</b>:原实现取「其前最近一条该病人的 <c>CaseOpened</c>」的**流序关联**,
+        /// 与载荷解码**只在合法流上等价**,并自陈「等价性前提由本处举证」;解码把该前提**消掉**
+        /// (违反「同一病人同时至多一个开案」的非法流上,流序关联会误判,解码不会)。</para>
         ///
         /// <para>🔴 <b>2026-10-15 修复(sprint-11 S11-8 · 补评件 story-003 §二 B-1)</b>:
         /// 原实现 `if (e.Patient.Value == caseId.Patient) return true;` 把「该病人**曾有过**任何
@@ -192,29 +187,21 @@ namespace DaYiJingCheng.Sim
         /// </summary>
         /// <param name="caseEvents">病例流事件列表(已按全序 <c>(Tick, Patient, Seq)</c> 排列)。</param>
         /// <param name="caseId">案件 case_id。</param>
+        /// <param name="decoder">载荷解码器(ADR-031 §① 第八抽象点;读 <c>CaseClosedPayload.CaseId</c>)。</param>
         /// <returns>是否已结。</returns>
-        public static bool IsClosed(IReadOnlyList<SimEvent> caseEvents, CaseId caseId)
+        public static bool IsClosed(IReadOnlyList<SimEvent> caseEvents, CaseId caseId,
+                                    IPayloadDecoder decoder)
         {
-            bool hasCurrent = false;
-            var current = default(CaseId);
+            if (decoder == null) throw new ArgumentNullException(nameof(decoder));
 
             foreach (var e in caseEvents)
             {
-                if (e.Patient.Value != caseId.Patient)
+                if (e.Kind != EventKind.CaseClosed)
                     continue;
 
-                if (e.Kind == EventKind.CaseOpened)
-                {
-                    current = new CaseId(e.Tick, e.Patient.Value, e.Seq);
-                    hasCurrent = true;
-                }
-                else if (e.Kind == EventKind.CaseClosed)
-                {
-                    // 本条 CaseClosed 归属 current(流序关联);结案后该病人回到「无开案」
-                    if (hasCurrent && current.Equals(caseId))
-                        return true;
-                    hasCurrent = false;
-                }
+                var payload = decoder.Decode<CaseClosedPayload>(EventKind.CaseClosed, e.Payload);
+                if (payload.CaseId.Equals(caseId))
+                    return true;
             }
             return false;
         }
@@ -229,10 +216,12 @@ namespace DaYiJingCheng.Sim
         /// </summary>
         /// <param name="caseEvents">病例流事件列表(已按全序 <c>(Tick, Patient, Seq)</c> 排列)。</param>
         /// <param name="caseId">案件 case_id。</param>
+        /// <param name="decoder">载荷解码器(转交 <see cref="IsClosed"/>)。</param>
         /// <returns>是否开着。</returns>
-        public static bool IsOpen(IReadOnlyList<SimEvent> caseEvents, CaseId caseId)
+        public static bool IsOpen(IReadOnlyList<SimEvent> caseEvents, CaseId caseId,
+                                  IPayloadDecoder decoder)
         {
-            return OpenedInStream(caseEvents, caseId) && !IsClosed(caseEvents, caseId);
+            return OpenedInStream(caseEvents, caseId) && !IsClosed(caseEvents, caseId, decoder);
         }
 
         /// <summary>该案是否在流中**开过**(精确三元组匹配 <c>CaseOpened</c>)。

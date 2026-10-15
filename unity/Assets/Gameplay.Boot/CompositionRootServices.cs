@@ -36,6 +36,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>载荷编码器(第七抽象点 ADR-029;编码 + 入池一体)。</summary>
         public IPayloadEncoder Encoder { get; }
 
+        /// <summary>载荷解码器(第八抽象点 ADR-031;读侧对称件 —— 池寻址 + 抛形解码)。
+        /// <para>与 <see cref="Encoder"/> 共用同一 <see cref="BlobPool"/>(同池读写,无第二真源)。</para></summary>
+        public IPayloadDecoder Decoder { get; }
+
         /// <summary>在场登记簿(= <see cref="IPresenceQuery"/> 的生产实装,EventStream 的 AC-15 依赖)。</summary>
         public PresenceRegistry Presence { get; }
 
@@ -116,6 +120,7 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         internal CompositionRootServices(EventStream stream, IIdAuthority idAuthority,
                                          InMemoryBlobPool blobPool, IPayloadEncoder encoder,
+                                         IPayloadDecoder decoder,
                                          PresenceRegistry presence, PatientSpawner patientSpawner,
                                          PatientAppearedDriver patientAppearedDriver,
                                          CaseOpenedDriver caseOpenedDriver,
@@ -141,6 +146,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             IdAuthority = idAuthority;
             BlobPool = blobPool;
             Encoder = encoder;
+            Decoder = decoder;
             Presence = presence;
             PatientSpawner = patientSpawner;
             PatientAppearedDriver = patientAppearedDriver;

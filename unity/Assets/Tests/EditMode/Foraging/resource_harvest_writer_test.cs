@@ -4,8 +4,10 @@
 //   ① 真装配袋调用写者 ⇒ **世界流恰增 1 条**(采集事实那一跳;身份两条归 20,不在本件),
 //      Kind / 流别 / 载荷五字段 round-trip / Patient = None / Seq 发号逐项断言;
 //   ② 不污染高水位:写入前后 `GetNextPatientId()` 不变(ADR-007 §四,PatientId.None 哨兵);
-//   ③ 同节点连采:gather_seq 递增、同 tick 双条不被去重吞(O-4 条件键);
-//   ④ 入参非法 fail-loud(tick / instance_id / node_id / gather_seq / qty / out_quality)。
+//   ③ 同节点连采:gather_seq **由写者自算**递增(2026-10-15 接线轮,承 ADR-031 V-8 ⑨「退」
+//      —— 原「调用方喂入」绕行面已消)、同 tick 双条不被去重吞(O-4 条件键);
+//   ④ 入参非法 fail-loud(tick / instance_id / node_id / qty / out_quality;
+//      gather_seq 已非入参,其自算恒 ≥ 0 无需守卫)。
 //
 // 权威:design/gdd/foraging.md 规则二(Amendment K)· 规则三(铸造点 = DropSpawned)·
 //      规则四(out_quality 须落流)· F-17-1(gather_seq 计源)
@@ -34,7 +36,8 @@ namespace DaYiJingCheng.Tests.Foraging
         public void Setup()
         {
             _bag = CompositionRoot.Assemble();
-            _writer = new ResourceHarvestWriter(_bag.EventSink, _bag.Encoder);
+            _writer = new ResourceHarvestWriter(_bag.EventSink, _bag.Encoder,
+                                                _bag.Decoder, _bag.Stream.Events);
         }
 
         private int WorldStreamCount()
@@ -48,14 +51,15 @@ namespace DaYiJingCheng.Tests.Foraging
             const long tick = 7;
             var instance = new ItemInstanceId(42);   // 铸造点 = DropSpawned(规则三);本件只引用
             const int nodeId = 3;                    // ADR-015 逻辑层稳定标识(非格坐标)
-            const int gatherSeq = 0;
             const int qty = 2;
             const int outQuality = 3;                // 已过 QualityCap 截断(规则四)
 
             int beforeAll = _bag.Stream.Count;
             int beforeWorld = WorldStreamCount();
 
-            _writer.Record(tick, instance, nodeId, gatherSeq, qty, outQuality);
+            // 空流首采 ⇒ 自算 gather_seq = 0(F-17-1:该节点已发计数)
+            int gatherSeq = _writer.Record(tick, instance, nodeId, qty, outQuality);
+            Assert.AreEqual(0, gatherSeq, "空流首采 ⇒ 写者自算 gather_seq = 0(返回值)");
 
             // ── 恰增 1 条(采集事实那一跳;DropSpawned / DropClaimed 归 20,本件零涉)──
             Assert.AreEqual(beforeAll + 1, _bag.Stream.Count, "真流总事件数恰增 1");
@@ -89,8 +93,8 @@ namespace DaYiJingCheng.Tests.Foraging
             var patient = _bag.PatientSpawner.SpawnNext(diseaseId: 0, tick: 0);
             var before = _bag.Stream.GetNextPatientId();
 
-            _writer.Record(7, new ItemInstanceId(1), 0, 0, 1, 1);
-            _writer.Record(8, new ItemInstanceId(2), 0, 1, 1, 1);
+            _writer.Record(7, new ItemInstanceId(1), 0, 1, 1);
+            _writer.Record(8, new ItemInstanceId(2), 0, 1, 1);
 
             var after = _bag.Stream.GetNextPatientId();
             Assert.AreEqual(before, after,
@@ -103,9 +107,12 @@ namespace DaYiJingCheng.Tests.Foraging
         [Test]
         public void test_resourceHarvested_sameNodeSequential_gatherSeqAdvances_bothKept()
         {
-            // 同一 tick 两条(模拟同 tick 连发的多株采集):O-4 条件键须靠载荷身份区分
-            _writer.Record(7, new ItemInstanceId(10), 5, 0, 1, 1);
-            _writer.Record(7, new ItemInstanceId(11), 5, 1, 1, 2);
+            // 同一 tick 两条(模拟同 tick 连发的多株采集):O-4 条件键须靠载荷身份区分;
+            // gather_seq 由写者自算(数流中同 NodeId 的条数)⇒ 返回值断言即 F-17-1 语义
+            int seq0 = _writer.Record(7, new ItemInstanceId(10), 5, 1, 1);
+            int seq1 = _writer.Record(7, new ItemInstanceId(11), 5, 1, 2);
+            Assert.AreEqual(0, seq0, "F-17-1:首采 gather_seq = 0(写者自算)");
+            Assert.AreEqual(1, seq1, "F-17-1:次采 gather_seq = 1(写者自算 —— ADR-031 V-8 ⑨ 退)");
 
             var events = _bag.Stream.Events
                 .Where(e => e.Kind == EventKind.ResourceHarvested).ToList();
@@ -134,17 +141,15 @@ namespace DaYiJingCheng.Tests.Foraging
             var ok = new ItemInstanceId(1);
 
             Assert.Throws<ArgumentOutOfRangeException>(
-                () => _writer.Record(-1, ok, 0, 0, 1, 1), "tick < 0");
+                () => _writer.Record(-1, ok, 0, 1, 1), "tick < 0");
             Assert.Throws<ArgumentOutOfRangeException>(
-                () => _writer.Record(1, new ItemInstanceId(-1), 0, 0, 1, 1), "instance_id < 0");
+                () => _writer.Record(1, new ItemInstanceId(-1), 0, 1, 1), "instance_id < 0");
             Assert.Throws<ArgumentOutOfRangeException>(
-                () => _writer.Record(1, ok, -1, 0, 1, 1), "node_id < 0");
+                () => _writer.Record(1, ok, -1, 1, 1), "node_id < 0");
             Assert.Throws<ArgumentOutOfRangeException>(
-                () => _writer.Record(1, ok, 0, -1, 1, 1), "gather_seq < 0");
+                () => _writer.Record(1, ok, 0, 0, 1), "qty ≥ 1(GDD foraging)");
             Assert.Throws<ArgumentOutOfRangeException>(
-                () => _writer.Record(1, ok, 0, 0, 0, 1), "qty ≥ 1(GDD foraging)");
-            Assert.Throws<ArgumentOutOfRangeException>(
-                () => _writer.Record(1, ok, 0, 0, 1, 0), "out_quality ≥ 1(GDD foraging)");
+                () => _writer.Record(1, ok, 0, 1, 0), "out_quality ≥ 1(GDD foraging)");
 
             Assert.AreEqual(0, _bag.Stream.Count, "非法入参不得写出半条事件");
         }
@@ -153,9 +158,13 @@ namespace DaYiJingCheng.Tests.Foraging
         public void test_resourceHarvestWriter_nullDependency_throws()
         {
             Assert.Throws<ArgumentNullException>(
-                () => new ResourceHarvestWriter(null, _bag.Encoder));
+                () => new ResourceHarvestWriter(null, _bag.Encoder, _bag.Decoder, _bag.Stream.Events));
             Assert.Throws<ArgumentNullException>(
-                () => new ResourceHarvestWriter(_bag.EventSink, null));
+                () => new ResourceHarvestWriter(_bag.EventSink, null, _bag.Decoder, _bag.Stream.Events));
+            Assert.Throws<ArgumentNullException>(
+                () => new ResourceHarvestWriter(_bag.EventSink, _bag.Encoder, null, _bag.Stream.Events));
+            Assert.Throws<ArgumentNullException>(
+                () => new ResourceHarvestWriter(_bag.EventSink, _bag.Encoder, _bag.Decoder, null));
         }
     }
 }

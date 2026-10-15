@@ -8,10 +8,16 @@
 // 本件 = 53 的**输入聚合器**,住 `Sim`(门 A)。**不触 `IEventSink` / 不发号 `Seq`** ——
 // 只产出「每结案病例一组输入」,不产出任何事件(Judge 求值归 story-002)。
 //
-// ⚠️ **零载荷解码(门 A 的结构性后果)**:`Sim` 的引用集恰 = {BCL, `Sim.Contracts`}
-//    ⇒ 够不着 `Sim.Codec` ⇒ **本件只操作 `SimEvent` 头部**(Tick / Patient / Seq / Kind),
-//    **从不读 `Payload` 内容**。P / C 的**内容**(病名 / 置信度 / 处置适切性)归 story-002。
-//    这与卡面「本 story 只出聚合后的输入组」一致,**不是范围裁剪**。
+// ✅ **P / C 内容已解码并承载内容行**(2026-10-15 接线轮 · 承 ADR-031 V-8 ②「退」,用户裁定
+//    「6 处全做,含改 Inputs53」):原稿自陈「`Sim` 够不着 `Sim.Codec` ⇒ 只操作事件头」——
+//    该前提在 ADR-031 后**不成立**(`IPayloadDecoder` 住 `Sim.Contracts`)。现本件持解码器,
+//    把 P / C 的**内容**(载荷字段)解出来放进 `Inputs53`:P 路承载 `JudgmentRecordedPayload`
+//    的 `LexiconId` / `Confidence`(Judge 真值源「病名 / 置信度」),C 路承载处置的
+//    `ActionId` / `Polarity`(「哪些处置动作发生」)。**字段名与数量不变**(五路闭集 =
+//    AC-53-05 反射断言面),只换**元素类型**:`SimEvent` → 解码行 struct(全整数域)。
+//    ② 路(PatternRecognized)保持 `SimEvent` —— ADR-031 ② 的裁定面只点名 P/C;
+//    其 `salted_key` 由 story-002 `Judge` 经解码器直读(Decoder 可传)。
+//    D 侧仍走 9 的只读边界(病程投影,非事件载荷)。
 //
 // ⚠️ **两处张力如实登记(本件不自行裁定,归 53 的 GDD 轮)**:
 //    ① **处置记录的 Kind 集** —— GDD 规则五 `:165` 的闭集**只列** `CareApplied`,
@@ -53,6 +59,74 @@ namespace DaYiJingCheng.Sim.Consequences
         public DiseaseProjectionSnapshot(long tick) { Tick = tick; }
     }
 
+    /// <summary>P 路**解码行** —— `JudgmentRecorded` 载荷内容 + 事件头排序键。
+    /// <para>⚠️ 2026-10-15 接线轮(承 ADR-031 V-8 ②「退」):P 路元素从 `SimEvent` 改为本行
+    /// —— Judge 真值源(GDD 规则五 `:165`「P = 判断记录(病名 / 置信度)」)由
+    /// `JudgmentRecordedPayload.LexiconId` / `.Confidence` 承载;`Tick` / `PatientId` / `Seq`
+    /// 取**事件头**(全序键真源),载荷无这三者(JudgmentRecordedPayload 只有 CaseId)。
+    /// 全整数域(ADR-024 A2)。</para></summary>
+    public readonly struct JudgmentRow53
+    {
+        /// <summary>事件头 Tick(全序键第一分量)。</summary>
+        public readonly long Tick;
+
+        /// <summary>事件头 Patient(全序键第三分量)。</summary>
+        public readonly int PatientId;
+
+        /// <summary>事件头 Seq(全序键第四分量)。</summary>
+        public readonly long Seq;
+
+        /// <summary>载荷 `lexicon_id`(病名册 ordinal;0 = 空 —— Judge 的 P 真值)。</summary>
+        public readonly int LexiconId;
+
+        /// <summary>载荷 `confidence`(落笔档位;Judge 的 P 真值)。</summary>
+        public readonly byte Confidence;
+
+        /// <summary>构造解码行。</summary>
+        public JudgmentRow53(long tick, int patientId, long seq, int lexiconId, byte confidence)
+        {
+            Tick = tick; PatientId = patientId; Seq = seq;
+            LexiconId = lexiconId; Confidence = confidence;
+        }
+    }
+
+    /// <summary>C 路**解码行** —— 处置载荷内容 + 事件头排序键。
+    /// <para>⚠️ 2026-10-15 接线轮(承 ADR-031 V-8 ②「退」):C 路元素从 `SimEvent` 改为本行。
+    /// 三种处置 Kind **异构载荷**在此归一:`ActionId` = `CareAppliedPayload.ActionId`
+    /// 或 `Emergency/DrugTreatmentAppliedPayload.TreatmentId`;`Polarity` = 急救 / 用药的
+    /// `polarity`(`CareApplied` 无极性 ⇒ 恒 0)。`Kind` 保留(`EventKind` = 整数枚举)——
+    /// 异构归一的**判别键**(Judge 的 C 真值「哪些处置动作发生」须知道是哪类处置)。
+    /// 全整数域(ADR-024 A2;`Fix DrugPotency` 刻意**不承载** —— 数值面归数值轮)。</para></summary>
+    public readonly struct CareRow53
+    {
+        /// <summary>事件头 Tick(全序键第一分量)。</summary>
+        public readonly long Tick;
+
+        /// <summary>事件头 Patient(全序键第三分量)。</summary>
+        public readonly int PatientId;
+
+        /// <summary>事件头 Seq(全序键第四分量)。</summary>
+        public readonly long Seq;
+
+        /// <summary>处置 Kind(CareApplied / EmergencyTreatmentApplied / DrugTreatmentApplied
+        /// —— 由 `careKinds` 参数决定,见文件头张力 ①)。</summary>
+        public readonly EventKind Kind;
+
+        /// <summary>载荷动作标识:`CareApplied.ActionId` 或 `*.TreatmentId`(归一)。</summary>
+        public readonly int ActionId;
+
+        /// <summary>载荷极性(急救 / 用药;`CareApplied` 恒 0 —— 无极性维度)。</summary>
+        public readonly int Polarity;
+
+        /// <summary>构造解码行。</summary>
+        public CareRow53(long tick, int patientId, long seq, EventKind kind,
+                         int actionId, int polarity)
+        {
+            Tick = tick; PatientId = patientId; Seq = seq;
+            Kind = kind; ActionId = actionId; Polarity = polarity;
+        }
+    }
+
     /// <summary>
     /// 53 的入向闭集 —— **每结案病例一组**,恰五路(GDD 规则五 `:165`)。
     /// <para>⚠️ **字段数 = 5 本身是本 story 的 AC**:第六路存在 ⇒ `AC-53-05` 的反射断言红。
@@ -72,13 +146,15 @@ namespace DaYiJingCheng.Sim.Consequences
         public readonly IReadOnlyList<SimEvent> PatternRecognized;
 
         /// <summary>③ `P` 投影@结案 —— 该病人 `Tick ≤ 结案 tick` 的**最后一笔** `JudgmentRecorded`
-        /// (长度 0 或 1)。<para>空 = 「结案无判断」,是**合法输入** —— 交 story-002 判 missed,
-        /// 不是错误。</para></summary>
-        public readonly IReadOnlyList<SimEvent> JudgmentRecords;
+        /// (长度 0 或 1;**解码行** —— 载荷 `LexiconId` / `Confidence` 已解出,见
+        /// <see cref="JudgmentRow53"/>)。<para>空 = 「结案无判断」,是**合法输入** ——
+        /// 交 story-002 判 missed,不是错误。</para></summary>
+        public readonly IReadOnlyList<JudgmentRow53> JudgmentRecords;
 
-        /// <summary>④ `C` 投影@结案 —— 该病人 `Tick ≤ 结案 tick` 的全部处置事件
-        /// (Kind 集由 `careKinds` 参数决定 —— 见文件头张力 ①)。</summary>
-        public readonly IReadOnlyList<SimEvent> CareRecords;
+        /// <summary>④ `C` 投影@结案 —— 该病人 `Tick ≤ 结案 tick` 的全部处置
+        /// (**解码行** —— 载荷 `ActionId` / `Polarity` 已解出,见 <see cref="CareRow53"/>;
+        /// Kind 集由 `careKinds` 参数决定 —— 见文件头张力 ①)。</summary>
+        public readonly IReadOnlyList<CareRow53> CareRecords;
 
         /// <summary>⑤ `D` —— 9 的病程投影快照(经只读边界;窗口口径见文件头张力 ②)。</summary>
         public readonly DiseaseProjectionSnapshot DiseaseProjection;
@@ -91,8 +167,8 @@ namespace DaYiJingCheng.Sim.Consequences
         /// <param name="diseaseProjection">D 快照。</param>
         public Inputs53(SimEvent caseClosed,
                              IReadOnlyList<SimEvent> patternRecognized,
-                             IReadOnlyList<SimEvent> judgmentRecords,
-                             IReadOnlyList<SimEvent> careRecords,
+                             IReadOnlyList<JudgmentRow53> judgmentRecords,
+                             IReadOnlyList<CareRow53> careRecords,
                              DiseaseProjectionSnapshot diseaseProjection)
         {
             CaseClosed = caseClosed;
@@ -116,14 +192,18 @@ namespace DaYiJingCheng.Sim.Consequences
         /// 输入的任何置换都归约到同一有序序列。</para>
         /// </summary>
         /// <param name="stream">事件流快照(**任意到达序** —— 本函数自行排序)。</param>
+        /// <param name="decoder">载荷解码器(ADR-031 §① 第八抽象点)—— P/C 路载荷内容的
+        /// 唯一读取路径(2026-10-15 接线轮,V-8 ②「退」)。</param>
         /// <param name="diseaseProjection">9 的病程投影边界(可为 <c>null</c> ⇒ 第五路为 <c>default</c>)。</param>
         /// <param name="careKinds">算作「处置记录」的 Kind 集(见文件头张力 ①)。</param>
         /// <returns>按结案事件的全序排序的输入组;空流 ⇒ 空。</returns>
         public static IReadOnlyList<Inputs53> Aggregate(
             IReadOnlyList<SimEvent> stream,
+            IPayloadDecoder decoder,
             IDiseaseProjection diseaseProjection,
             IReadOnlyList<EventKind> careKinds)
         {
+            if (decoder == null) throw new ArgumentNullException(nameof(decoder));
             if (stream == null || stream.Count == 0) return Array.Empty<Inputs53>();
 
             // ── ① 复制 + 全序排序 ────────────────────────────────────────────
@@ -157,8 +237,8 @@ namespace DaYiJingCheng.Sim.Consequences
                 SimEvent close = ordered[i];
                 if (close.Kind != EventKind.CaseClosed) continue;
 
-                List<SimEvent> judgments = null;   // 覆盖式:只留**最后一笔**
-                List<SimEvent> cares = null;
+                List<JudgmentRow53> judgments = null;   // 覆盖式:只留**最后一笔**
+                List<CareRow53> cares = null;
 
                 for (int j = 0; j < ordered.Count; j++)
                 {
@@ -172,14 +252,19 @@ namespace DaYiJingCheng.Sim.Consequences
                     {
                         // 「P 投影@结案 = 该病例最后一笔判断记录」(卡面 §Implementation
                         // Notes 1)—— 有序扫描 ⇒ 逐条覆盖即得最后一笔。
-                        if (judgments == null) judgments = new List<SimEvent>(1);
+                        // ⚠️ 2026-10-15 接线轮:解码归本层(V-8 ②「退」),不再由调用方自解。
+                        var jp = decoder.Decode<JudgmentRecordedPayload>(
+                            EventKind.JudgmentRecorded, e.Payload);
+                        var row = new JudgmentRow53(
+                            e.Tick, e.Patient.Value, e.Seq, jp.LexiconId, jp.Confidence);
+                        if (judgments == null) judgments = new List<JudgmentRow53>(1);
                         else judgments.Clear();
-                        judgments.Add(e);
+                        judgments.Add(row);
                     }
                     else if (IsCareKind(e.Kind, careKinds))
                     {
-                        if (cares == null) cares = new List<SimEvent>();
-                        cares.Add(e);
+                        cares = cares ?? new List<CareRow53>();
+                        cares.Add(CareRowOf(e, decoder));
                     }
                 }
 
@@ -190,12 +275,47 @@ namespace DaYiJingCheng.Sim.Consequences
                 result.Add(new Inputs53(
                     close,
                     patterns,
-                    judgments ?? (IReadOnlyList<SimEvent>)Array.Empty<SimEvent>(),
-                    cares ?? (IReadOnlyList<SimEvent>)Array.Empty<SimEvent>(),
+                    judgments ?? (IReadOnlyList<JudgmentRow53>)Array.Empty<JudgmentRow53>(),
+                    cares ?? (IReadOnlyList<CareRow53>)Array.Empty<CareRow53>(),
                     d));
             }
 
             return result;
+        }
+
+        /// <summary>处置事件 → 解码行(三种异构载荷归一:ActionId = ActionId|TreatmentId;
+        /// Polarity = 急救/用药极性,CareApplied 恒 0)。</summary>
+        private static CareRow53 CareRowOf(SimEvent e, IPayloadDecoder decoder)
+        {
+            long tick = e.Tick;
+            int patient = e.Patient.Value;
+            long seq = e.Seq;
+
+            switch (e.Kind)
+            {
+                case EventKind.CareApplied:
+                {
+                    var p = decoder.Decode<CareAppliedPayload>(EventKind.CareApplied, e.Payload);
+                    return new CareRow53(tick, patient, seq, e.Kind, p.ActionId, polarity: 0);
+                }
+                case EventKind.EmergencyTreatmentApplied:
+                {
+                    var p = decoder.Decode<EmergencyTreatmentAppliedPayload>(
+                        EventKind.EmergencyTreatmentApplied, e.Payload);
+                    return new CareRow53(tick, patient, seq, e.Kind, p.TreatmentId, p.Polarity);
+                }
+                case EventKind.DrugTreatmentApplied:
+                {
+                    var p = decoder.Decode<DrugTreatmentAppliedPayload>(
+                        EventKind.DrugTreatmentApplied, e.Payload);
+                    return new CareRow53(tick, patient, seq, e.Kind, p.TreatmentId, p.Polarity);
+                }
+                default:
+                    // careKinds 白名单外的 Kind 不会走到此(fail-loud,不静默);
+                    // 新处置 Kind 入集须同步本分派(ADR-024 registry 单一真源)。
+                    throw new InvalidOperationException(
+                        $"careKinds 收入了未实现载荷分派的处置 Kind:{e.Kind}");
+            }
         }
 
         /// <summary>该 Kind 是否算「处置记录」(见文件头张力 ①)。</summary>

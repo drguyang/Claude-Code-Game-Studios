@@ -35,6 +35,7 @@ namespace DaYiJingCheng.Gameplay.Boot
     {
         private readonly ExaminationLedger _ledger;
         private readonly IReadOnlyList<SimEvent> _caseStream;
+        private readonly IPayloadDecoder _decoder;
         private readonly ITickProvider _tick;
         private readonly SeenDiseaseProjector _seenDisease;
         private readonly LexiconBookSource _lexiconBook;
@@ -62,11 +63,14 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <param name="ledger">查体分册(「查了没有」+ 快照 —— revealed 真源)。</param>
         /// <param name="caseStreamEvents">病例流事件视图(墨龄 = 最近 Judgment 的 Tick —— G2.2)。</param>
+        /// <param name="decoder">载荷解码器(ADR-031 §① 第八抽象点)——
+        /// <see cref="CaseStreamQuery.LastJudgmentOf"/> 已改为载荷解码口径(接线轮 2026-10-15),须传入。</param>
         /// <param name="tick">tick 源(墨龄的「当前 tick」;AC-42-G6:差值在装配层算,42 零计时器)。</param>
         /// <param name="seenDisease">已见病投影器(sprint-08 S1.1 件 B;病名册条目集的数据源)。</param>
         /// <param name="lexiconBook">病名册条目源(sprint-08 S1.1 件 C;已见集经词表反查 ⇒ lexicon_id)。</param>
         public CasebookVitalsSource(ExaminationLedger ledger,
                                     IReadOnlyList<SimEvent> caseStreamEvents,
+                                    IPayloadDecoder decoder,
                                     ITickProvider tick,
                                     SeenDiseaseProjector seenDisease,
                                     LexiconBookSource lexiconBook,
@@ -74,6 +78,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         {
             _ledger = ledger ?? throw new System.ArgumentNullException(nameof(ledger));
             _caseStream = caseStreamEvents ?? throw new System.ArgumentNullException(nameof(caseStreamEvents));
+            _decoder = decoder ?? throw new System.ArgumentNullException(nameof(decoder));
             _tick = tick ?? throw new System.ArgumentNullException(nameof(tick));
             _seenDisease = seenDisease ?? throw new System.ArgumentNullException(nameof(seenDisease));
             _lexiconBook = lexiconBook ?? throw new System.ArgumentNullException(nameof(lexiconBook));
@@ -227,7 +232,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 CaseId? openCase = CaseStreamQuery.OpenCaseOf(_caseStream, _patient.Value);
                 if (!openCase.HasValue) return 0L;
 
-                SimEvent? last = CaseStreamQuery.LastJudgmentOf(_caseStream, openCase.Value);
+                SimEvent? last = CaseStreamQuery.LastJudgmentOf(_caseStream, openCase.Value, _decoder);
                 if (!last.HasValue) return 0L;
 
                 long current = _tick.CurrentTick;
