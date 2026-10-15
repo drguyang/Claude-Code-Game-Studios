@@ -9,157 +9,112 @@
 #   done           ↔  Complete
 #   blocked        ↔  Blocked
 
-sprint: 12
-goal: "治理债结清:人工走查前置 Driver bug / case-system 顺延面 / EPIC 口径刷新 / 建闸两条 + 产能模型重建"
-start: "2026-10-16"
+sprint: 13
+goal: "53 结算链贯通(story-003 回响写世界流)+ 收口纪律固化(story-001 收口 / EPIC 口径 / 结账表分已落已证)"
+start: ""
 end: ""
-generated: "2026-10-15"
-updated: "2026-10-15"
+generated: "2026-10-16"
+updated: "2026-10-16"
 
 stories:
   # ── Must Have ──
-  - id: "S12-0"
-    name: "伪基线订正(5 文件 3366/3320 → 真终值 3388/3342 补注,不改原行)+ smoke/signoff 模板加「截至时刻+批次+commit」三字段"
-    file: "production/sprints/sprint-12.md"
+  - id: "S13-1"
+    name: "story-001 收口 + medical-consequences/EPIC.md 口径 reconcile(全仓唯一未收口的 In Review 件)"
+    file: "production/epics/medical-consequences/story-001-input-closure-and-stream-aggregation.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: "2026-10-15"
+    completed: ""
+    # 判据:EPIC.md stories 表四行状态与四个 story 文件 Status: 行逐字一致(改任一行即红)。
+    # 勘察实测:story-001 现 In Review(Test Evidence 已 passing、Completion Notes 空);
+    #          story-002 已于 2026-10-16 翻 Complete,而 EPIC.md 仍写 Ready ⇒ 口径 stale。
 
-  - id: "S12-1"
-    name: "产能模型重建(CAPACITY-MODEL.md;废止旧 8 天口径;回填 sprint-09/10 逐件数据)"
-    file: "production/sprints/sprint-12.md"
+  - id: "S13-2"
+    name: "story-003 实现:F-53.2 延迟发出 + ConsequenceResolved 世界流写入"
+    file: "production/epics/medical-consequences/story-003-delayed-emit-and-world-stream.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: "2026-10-15"
+    completed: ""
+    # 依赖:S13-1(story-001 收口)· story-002 ✅ Complete · registry ConsequenceResolved 已直登。
+    # ⚠️ P1 判据(承 ADR-031 重评轮 N-3):story-003 是 53 链第一个**真实喂 uBand** 的调用点 ——
+    #   装配层若用与 cooked 表不同的 bandCount 源算档,越界档位会**静默别名到相邻 (P,C,D) 行**。
+    #   Sim 侧守护已落地(F16 证伪),本条防装配层双源 ⇒ AC ③ 域守护回归必交。
+    # ⚠️ 不得硬编码 bandCount(数值轮一扩档即踩别名失效模式)。
 
-  - id: "S12-2"
-    name: "修 Story009WalkthroughDriver 的 passed 汇总 bug(S11-6 前置;零产品码变更)"
-    file: "production/sprints/sprint-12.md"
+  - id: "S13-3"
+    name: "结账表 ✅ 纪律固化:/code-review 结账表分「已落 / 已证」两列 + 已证须附可复算判据"
+    file: ".claude/skills/code-review/SKILL.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: "2026-10-15"
-
-  - id: "S12-3"
-    name: "处方前置检查入 control-manifest(Sim 引用集可达性;回填三次违规律例)"
-    file: "production/sprints/sprint-12.md"
-    priority: must-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-15"
-
-  - id: "S12-4"
-    name: "假绿夹具强制证伪轮入 /story-done DoD(定序/共存类 AC 必须附「回退即转红」)"
-    file: "production/sprints/sprint-12.md"
-    priority: must-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-15"
-
-  - id: "S12-5a"
-    name: "case-system EPIC 口径刷新(002/003/004 —— 三件顺延面已清,可翻)"
-    file: "production/sprints/sprint-12.md"
-    priority: must-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-15"
-
-  - id: "S12-5b"
-    name: "case-system EPIC 口径刷新(001 —— 视 S12-7 结论:重述为可证伪 ⇒ 翻;转人工走查 ⇒ 记 NOT-RUN)"
-    file: "production/sprints/sprint-12.md"
-    priority: must-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-15"
-
-  - id: "S12-6"
-    name: "case-system 写者侧「同 tick 批量跨阈值」夹具(只发一条 PatternRecognized + 反证)"
-    file: "production/sprints/sprint-12.md"
-    priority: must-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-15"
-
-  - id: "S12-7'"
-    name: "AC-37-06 口径回填 + BLOCKED-BY-7a/45 登记(原 S12-7 销项 —— 设计侧已由 GDD:1121 裁毕,残余为文书)"
-    file: "production/sprints/sprint-12.md"
-    priority: must-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-15"
+    completed: ""
+    # 复盘行动项 1(High)。病因:sprint-12 的 J 项首轮只拆一半就被标 ✅;
+    #   我本人在评审过程里亦两处过早标记。把「我做了动作」当成「我做对了并被证明」。
+    # 判据:对 story-002 重跑新模板 ⇒ J 项进「已落」列而**不**进「已证」列。
 
   # ── Should Have ──
-  - id: "S12-8"
-    name: "case-system 001 B-2/B-4 kindgen 复验(S11-12 已闭合;复核判据是否真判,发现假绿即立件)"
-    file: "production/sprints/sprint-12.md"
+  - id: "S13-4"
+    name: "asmdef 引用面判读固化:references 须解析 GUID → 装配名再判存在性"
+    file: ".claude/docs/technical-preferences.md"
     priority: should-have
-    status: done
+    status: backlog
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: "2026-10-15"
+    completed: ""
+    # 复盘行动项 2(High)。病因:判 H 项只读 asmdef 名称列表、漏看 GUID 形引用
+    #   ⇒ 按名补一条 Editor.Tools.Gates 触发 Assembly has duplicate references 编译红。
 
-  - id: "S12-9"
-    name: "53 story-002 Outcome judge 实现(2026-10-15 重开并完成:接线轮解 P/C 前置后依赖面重估 3/4 可用 ⇒ 收缩判据不触发)"
-    file: "production/epics/medical-consequences/story-002-deterministic-outcome-judge.md"
+  - id: "S13-5"
+    name: "新测试自检前置固化为可复用脚本(括号配平 / JSON 合法性 / 断言自相矛盾)"
+    file: "tools/"
     priority: should-have
-    status: done
+    status: backlog
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: "2026-10-15"
-    # 重开依据(用户指令「S12-9 重开,继续做 story-002 Judge」):依赖面重估 P/C/U 三路可用
-    # (接线轮产物),D 有接口占位 ⇒ 收缩判据(≥2 路需补)不再触发。键域 3×3×2 + U 档列
-    # 默认 1 档 = 用户 AskUserQuestion 裁定。终轮 3444/3398/0/46(+23 零回归);
-    # IL2CPP 三格 NOT-RUN(挂 ADR-012 矩阵)。原件 impl-s12-9-medcons-outcome-judge-2026-10-15.md。
+    completed: ""
+    # 复盘行动项 4。返工期已散落建成 python 预检(多次 Bash 调用内),
+    #   需收成单一脚本 + 「何时必跑」说明。判据:对 medcons_outcome_judge_test.cs
+    #   跑出与返工期一致的结论。
 
-  - id: "S12-11"
-    name: "读侧解码 ADR:新增 IPayloadDecoder(甲案;承接 S12-9 退回)"
-    file: "docs/architecture/adr-031-payload-decoder-abstraction.md"
+  - id: "S13-6"
+    name: "重评专家 prompt 拆小 / 预声明「先出报告再补查」"
+    file: ".claude/skills/code-review/SKILL.md"
     priority: should-have
-    status: done
+    status: backlog
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: "2026-10-15"
+    completed: ""
+    # 复盘行动项 3。病因:sprint-12 重评轮两位专家(unity-specialist / qa-tester)
+    #   分别撞 20 / 10 轮上限未出报告,需 SendMessage 续跑才交付。
 
-  - id: "S12-12"
-    name: "ADR-031 实现轮(契约支 IPayloadDecoder + 接线支 b5 门 + V-8 逐处登记 + V-10 计数订正)"
-    file: "production/qa/evidence/impl-adr031-payload-decoder-2026-10-15.md"
-    priority: should-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-15"
-
-  # ── Nice to Have(人不可代劳)──
-  - id: "S12-10"
-    name: "S11-6 结转:11 人工走查 AC-11-12/13/21 + 三签(主创/医学从业/音频 lead)"
+  # ── Nice to Have ──
+  - id: "S13-7"
+    name: "S12-10 结转:11 人工走查 AC-11-12/13/21 + 三签(主创/医学从业/音频 lead)"
     file: "production/sprints/sprint-12.md"
     priority: nice-to-have
     status: backlog
-    owner: "user + 三签"
+    owner: "user"
     estimate_days: 0
-    blocker: "前置 S12-2(Driver passed 汇总 bug);agent 不可代劳"
+    blocker: ""
+    completed: ""
+    # agent 不可代劳。前置 S12-2 已 done ⇒ 现在就能启动,不占 sprint 治理容量。
+
+  - id: "S13-8"
+    name: "9 条 Minor 入 docs/tech-debt-register.md + 重评件 §五 收口"
+    file: "docs/tech-debt-register.md"
+    priority: nice-to-have
+    status: backlog
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
     completed: ""

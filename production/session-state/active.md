@@ -4413,3 +4413,133 @@ P/C/U 三路已可用(接线轮产物);D 有接口占位(9 侧装载面归 9 轮
 - 迭代 8 轮(red + green1-6 + final)全红如实;证据原件:`production/qa/evidence/impl-s12-9-medcons-outcome-judge-2026-10-15.md`
 - story-002 卡面 Test Evidence 已回刷([x] Created & passing);sprint-status / 面向用户的 AC 勾选待用户裁
 - IL2CPP 三格 NOT-RUN 登记(S12-9-AC-c);登记项:装配轮装载 / 数值轮行值 / 9 轮 treatable_by 装载面
+
+---
+
+## S12-9 返工轮(story-002 · 2026-10-16)
+
+**触发**:`/code-review` 裁定 **CHANGES REQUIRED** —— 3 BLOCKING(R-1/R-2/R-3)+ 10 WARNING/MINOR(A–J)。
+**用户裁定**:① 先修 BLOCKING 再翻;② WARNING 族一并纳入返工件。
+
+**原件**:`production/qa/evidence/review-medcons-story-002-2026-10-15.md`
+(原判定 → 修复落点 → 验证命令;结账表 14 项全 ✅)
+
+**改动 9 文件**(+1 新证据件):
+- `Sim/Consequences/Outcome53.cs` —— A 行键乘子改逐表量 bandCount · B UBand 进查表 ·
+  C 未命中显式回落 default(不再吐 PatientLives)· G BandOf 除零守护 · T-2 表构造器拒收结局轴
+- `Sim/Consequences/TrialHistoryPredicate.cs` —— D 逐病人 run 字典 + 删未用 decoder 形参
+- `Editor.Tools.Bake/OutcomeTableCookedWriter.cs` —— **R-1** 头 offset 8 写 schemaVersion +
+  删载荷首字段(收敛单一出处)· A 全序比较器
+- `Editor.Tools.Bake/OutcomeTableBinder.cs` —— E u_band 必填 · G u_band_count 上界 65536 ·
+  J 拆 ParseRows/ValidateCoverage · R-4 schema_version 比对期望值
+- `Editor.Tools.Bake/OutcomeTable53.cs` —— A Materialize 传 bandCount + 键碰撞硬失败
+- `Editor.Tools.Gates/MedConsFloatGate.cs` —— F 递归扫描 · **R-3** 浮点**字面量**三形态正则
+  (源级残余缺口已登记,指向 EcozoneIntegerGates Cecil 先例)· H token 单一真源 + `\b…\b` IgnoreCase
+- `Tests/.../medcons_outcome_judge_test.cs` —— D 五处去参 · H 改读门数组 · **11 条新探针**
+- `story-002-*.md` —— Test Evidence 回填(反证表 / 3 处 AC 缺口登记 / 2 处形状留槽)
+
+**S12-4 证伪轮(R-2 结案件)**:11 条探针**全部 RED(证伪成功)**。
+`unity/Logs/s12-4-falsify.txt`。两处如实记录:
+① F2 对「非稳定排序」子缺陷**无判别力**(键互异后任何正确排序都定序)—— 判别力由 F3 承担,
+   F2 须用「注入非确定项」证伪;② F3 首轮 NORUN = 突变串漏配对 `)`。
+
+**回归**:`3455 / 3409 / 0 / 46`(基线 3444/3398/0/46 ⇒ **+11/+11,零回归**;
+`unity/Logs/s12-9-rework5.xml`)。迭代 5 轮(rework1–5)全如实:2 轮编译红 + 2 轮测试自身缺陷。
+
+**返工期两处自身错误**(已登记于原件 §八):
+X-1 asmdef「GUID 形引用」漏看 ⇒ 按名补一条触发 duplicate references 编译红;
+X-2 换乘子时丢配对 `)` ⇒ CS1026。
+
+**下一步**:重评 → `/story-done` 翻 Complete → sprint-12 收口
+(`/sprint-status` 兑现产能模型判据 · 补 end 日期 · DoD · `/retrospective sprint-12` ·
+`/sprint-plan` 开 sprint-13 结转 S12-10)。
+
+## S12-9 重评轮(story-002 · 2026-10-16)
+
+**触发**:返工后用户裁定「先重评再翻 Complete」。专家并行重评
+(`unity-specialist` 引擎面 + `qa-tester` 测试面)。
+
+**裁定**:**APPROVED WITH SUGGESTIONS** —— 首轮 14 项判据**全部结清**
+(**J 在首轮只兑现一半**:拆出的 `ParseRows` 仍 69 行,本轮补齐)。
+
+**重评新发现并已修的缺陷**:
+- **N-3(WARNING,最重要)**:`Table.TryLookup` 不校验 `uBand` 域 ⇒ 越界档位使 key 越出本
+  (p,c,d) 段、**落入下一个组合的段内** ⇒ 静默返回**另一组合**的 Outcome。
+  全案反复登记的「静默失败」失效模式,且是 B 返工**新引入**的暴露面(返工前硬编码 0/1 反而有界)。
+  story-003 是第一个真实喂 uBand 的调用点 ⇒ P1。
+- **N-4**:`Table` 构造器不校验 `uBandCount ≥ 1`(= 0 时全表键坍缩,字典静默丢 17 行)
+- N-1 `literalText` 死局部 · N-2 `RunAll` 49 行 / `ParseRows` 69 行 · N-5 default 行 `u_band` kind ·
+  N-6 浮点正则漏数字分隔符 `1_000f` · N-7 verbatim/插值字符串(登记不修)· N-8 `BitConverter` →
+  `ReadU32Le` · N-9 订正「词法层拒绝」注释
+- **QA 三条补强(全落地)**:① 校验① 覆盖分支**从未被执行**(原负例被 `errors.Count==0` 短路)⇒
+  改整行删除;② C 轴 `matched=true` 分支**零正例载体**;③ **F1 子断言② 在现网数据下不可判别**
+  (`schema_version == u_band_count == 1` ⇒ 旧布局下同样绿)⇒ 改推导载荷长度断言
+
+**第二批证伪轮**:F12–F17 共 7 条,**7/7 RED**(`unity/Logs/s12-4-falsify2.txt`)。
+两批合计 **18 条证伪探针全部 RED**。
+
+**两处「夹具本身判别力不足」被实证发现并加固**(均登记,未留恒真式):
+- **F2** 对「非稳定排序」子缺陷无判别力(键互异后任何正确排序都定序)⇒ 判别力由 F3 承担
+- **F15b** 首版两组夹具在「排序后/到达序」下结论相同 ⇒ 删排序也照样绿 ⇒
+  已改为 `J` 的 tick 夹在中间,使两种序给出**相反**结论
+*教训:证伪夹具本身也须可证伪;「停用 X」的字面描述不能照抄。*
+
+**终轮回归**:`3462 / 3416 / 0 / 46`(`unity/Logs/s12-9-rework10.xml`,
+两批证伪轮突变全部还原后复跑)—— 较首轮 **+18/+18,零回归**。
+迭代记录:rework7 两红(新测试自身缺陷)· rework8 一红(删行留双逗号致 JSON 非法)· rework9/10 全绿。
+
+**证据件**:
+- 首轮:`production/qa/evidence/review-medcons-story-002-2026-10-15.md`
+- 重评:`production/qa/evidence/review-medcons-story-002-rework-2026-10-16.md`(含 §五 9 条剩余 Minor)
+
+**下一步**:`/story-done` 翻 Complete → sprint-12 收口
+(`/sprint-status` 兑现产能模型判据 · 补 end 日期 · DoD · `/retrospective sprint-12` ·
+`/sprint-plan` 开 sprint-13 结转 S12-10)。
+
+## Session Extract — /story-done 2026-10-16
+- Verdict: **COMPLETE WITH NOTES**
+- Story: `production/epics/medical-consequences/story-002-deterministic-outcome-judge.md` —
+  Story 002:F-53.1 确定性结算(Outcome 枚举)
+- Criteria: 9/9 passing(无 deferred;UNTESTED = 0)
+- Falsifiability Gate(S12-4 BLOCKING 级):**PASS** —— 两批 18 条证伪探针,18/18 RED
+- Test Evidence:Logic —— 41 条 `[Test]` 全 Passed;终轮 `3462 / 3416 / 0 / 46`(+18/+18 零回归)
+- Code Review:Complete(两轮,首轮 CHANGES REQUIRED → 重评 APPROVED WITH SUGGESTIONS;两份原件俱在)
+- Deviations:ADVISORY ×1(manifest 2026-10-02 vs 现行 2026-10-15)+ 3 项登记项
+- Tech debt logged:None(剩余 9 条 Minor 登记在重评件 §五,未入 tech-debt-register)
+- Next recommended:**sprint-12 收口** —— `/sprint-status` 兑现产能模型判据 ·
+  补 `end` 日期(`start: "2026-10-16"` 但 10 件实际完成于 2026-10-15,git 有证)·
+  sprint-12 DoD 勾选 · `/retrospective sprint-12` ·
+  `/sprint-plan` 开 sprint-13(结转 S12-10:11 人工走查 AC-11-12/13/21 + 三签)
+
+## Session Extract — /retrospective sprint-12(2026-10-16)
+- Verdict: **COMPLETE** —— 复盘已落 `production/retrospectives/retro-sprint-12-2026-10-16.md`
+- Metrics:10/11 件(91%)· 26 条评审发现全修 · **3 处假绿/判别力不足被抓** · 2 处返工自犯错误
+- 产能:10 件 / 1 执行日 = **10 件/日**,高于 sprint-11 基线(8 件/日)**25%**;复杂度 S×4 + M×5(无 L)
+- 上轮行动项:**5/5 Done**
+- Tech debt: TODO 15 / FIXME 0 / HACK 0 —— 与 sprint-11 相同,**Stable**
+- 结转:S12-10(人工走查 + 三签,agent 不可代劳)⇒ sprint-13 首选
+- 下轮 5 条行动项(High×2 / Med×3):
+  ① 结账表的 ✅ 不得早于事实(须附可复算判据;分「已落 / 已证」两列)
+  ② asmdef 引用面判读须解析 GUID 到装配名
+  ③ 重评专家 prompt 拆小 / 预声明「先出报告再补查」
+  ④ 新测试自检前置固化为可复用脚本
+  ⑤ reconcile `medical-consequences/EPIC.md` + 9 条 Minor 入 tech-debt-register
+- 最重要的一条:**结账表的 ✅ 必须晚于可复算的判据** —— 本轮 J 项与我自己两处过早标记同源
+
+## Session Extract — /sprint-plan new(sprint-13 · 2026-10-16)
+- **sprint-12 已收口**:DoD 8/8 · `end: "2026-10-16"` · 产能判据兑现 · 复盘落盘
+- **sprint-13 已规划**:`production/sprints/sprint-13.md` + `production/sprint-status.yaml`
+- **目标**:53 结算链贯通(story-003 回响写世界流)+ 收口纪律固化
+- **Must 3 件**:S13-1 story-001 收口 + EPIC reconcile(S)· S13-2 story-003 实现(M)·
+  S13-3 结账表分「已落/已证」两列(S)
+- **Should 3 件**:S13-4 asmdef GUID 判读 · S13-5 新测试自检脚本化 · S13-6 重评 prompt 拆小
+- **Nice 2 件**:S13-7 S12-10 人工三签(user)· S13-8 9 条 Minor 入 tech-debt-register
+- **Phase 1-5 勘察关键发现**:全仓 51 个非 Complete story 中**仅 1 个 `In Review`**
+  (`medical-consequences/story-001`)⇒ 治理债面就这一户 + EPIC 口径,无其他隐性欠账
+- **P1 风险已登记**:story-003 是 53 链第一个真实喂 `uBand` 的调用点,装配层双源会踩 N-3 别名失效
+- **QA 计划**:用户裁定「先跑 /qa-plan 再动手」⇒ **下一步 `/qa-plan sprint`**
+
+### 下一步(按序)
+1. `/qa-plan sprint` —— 用户已裁定先跑(定义每 story 的测试要求)
+2. `/story-readiness production/epics/medical-consequences/story-001-...md`(S13-1 起手)
+3. S13-1 → S13-3 → S13-2(Must 序;S13-2 依赖 S13-1)

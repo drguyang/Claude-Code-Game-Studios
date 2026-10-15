@@ -116,8 +116,41 @@ Assess burndown by comparing completion percentage to time consumed percentage:
 - **At Risk**: completion % is 10-25 points behind time consumed %
 - **Behind**: completion % is more than 25 points behind time consumed %
 
-If dates are unavailable, skip the burndown assessment and report "On Track /
-At Risk / Behind: unknown — sprint dates not found."
+If dates are unavailable **and** the sprint does not declare "不设结束日期",
+skip the burndown assessment and report "On Track / At Risk / Behind: unknown —
+sprint dates not found."
+
+### 4b. 产能模型评估(sprint 无日期或声明「不设结束日期」时)
+
+> **本节的判据**:`production/CAPACITY-MODEL.md` 是 sprint-12 `S12-1` 建立的新度量口径
+> (`/sprint-status` 引用它 = 该模型的存在性证明;不引用即模型失败)。**不要**把它读成
+> 「又一份文档」—— 它是本 skill 在无日期场景下的**替代度量源**。
+
+For a sprint with no usable end date (dates missing, or the plan declares
+「不设结束日期」), **read `production/CAPACITY-MODEL.md`** and replace the burndown
+verdict with a capacity verdict built from its three knobs:
+
+- **复杂度 C** — each story's `estimate_days: 0` in `sprint-status.yaml` is a
+  **legacy field, not a duration** (sprint-12 起废止旧「solo 人日」口径). Read
+  complexity from the story's `Est` column in the sprint plan (S / M / L), not
+  from `estimate_days`.
+- **并发上限 P** — 同时在跑 ≤ 3 件. Count stories that were `in-progress`
+  simultaneously; > 3 is a process flag, not a schedule slip.
+- **判别力门槛 D** — 每件须有可证伪判据(「回退即转红」)才计入 done.
+  A `done` story whose tests were never falsified does **not** count as complete.
+
+Then report, in place of the burndown line:
+
+```markdown
+### 产能(无结束日期 —— 依 production/CAPACITY-MODEL.md)
+- 复杂度分布: S×[n] / M×[n] / L×[n]
+- 判别力门槛 D: [n] 件有「回退即转红」记录 / [m] 件未证伪(不计完成)
+- 基线对照: sprint-11 实测 16 件 / 2 执行日(治理债类);本 sprint = [n] 件 / [d] 执行日
+- 结论: [与基线一致 / 高于基线 / 低于基线 —— 说明差异来源]
+```
+
+**不要**对「不设结束日期」的 sprint 输出 "unknown" —— 那是把**口径缺省**错报成
+**信息缺省**;产能模型正是为填这个空而建立。
 
 ---
 
@@ -149,6 +182,8 @@ Keep the output concise. The story status table is mandatory — do not truncate
 ### Burndown: [On Track / At Risk / Behind]
 [1-2 sentences. If behind: which Must Haves are at risk. If on track: confirm
 and note any Should Haves the team could pull.]
+*(Sprint 无可用结束日期时,本段整体替换为 §4b 的「产能」段 —— 依
+`production/CAPACITY-MODEL.md`,而不是输出 unknown。)*
 
 ### Must-Haves at Risk
 [List any Must Have stories that are BLOCKED or NOT STARTED with less than

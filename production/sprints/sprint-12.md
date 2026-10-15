@@ -145,18 +145,33 @@
 
 ## Definition of Done for this Sprint
 
-- [ ] All Must Have tasks completed(S12-0 + S12-1…S12-4 + S12-5a/5b + S12-6 + S12-7')
+- [x] All Must Have tasks completed(S12-0 + S12-1…S12-4 + S12-5a/5b + S12-6 + S12-7')
   - ✅ **S12-5a 完成 2026-10-15**(002/003/004 翻绿;001 不代翻,归 S12-5b)
   - ✅ **S12-6 完成 2026-10-15**(写者侧同 tick 批量夹具 +7,三处反证成立)
   - ✅ **S12-7' 完成 2026-10-15**(纯文书回填;`BLOCKED-BY-7a/45` 已登记 ⇒ **S12-5b 已解锁**)
   - ✅ **S12-5b 完成 2026-10-15**(EPIC 口径刷新 ⇒ **case-system 6/6 Complete**)—— **All Must Have 全部完成**
-- [ ] 各任务按衍生验收标准通过,**每条附可证伪判据** —— 不用「绿了」代替
-- [ ] **产能模型落盘且在 sprint-12 收尾时被 `/sprint-status` 引用过**(行动项 1 的判据,不是写份文档)
-- [ ] control-manifest 新增「处方前置检查」硬规则 + 三次违规回填
-- [ ] `/story-done` DoD 新增强制证伪轮条款 + S11-9 案例回填
-- [ ] Design documents updated for any deviations
-- [ ] Code reviewed and merged
-- [ ] **`end` 日期在收口时补记**(治 sprint-11 反面)
+- [x] 各任务按衍生验收标准通过,**每条附可证伪判据** —— 不用「绿了」代替
+      **2026-10-16 收口核账**(10 件 done / 0 件未证伪):
+      测试型「回退即转红」6 件 —— S12-2 · S12-4 · S12-6 · S12-9(**18/18 RED**)·
+      S12-11(3/3 全红)· S12-12;
+      断言型(可逐条核、无测试面)3 件 —— S12-0(五处补注)· S12-1(见下条)· S12-3(三次违规回填)。
+- [x] **产能模型落盘且在 sprint-12 收尾时被 `/sprint-status` 引用过**(行动项 1 的判据,不是写份文档)
+      ✅ **2026-10-16 已兑现**:`/sprint-status 12` 输出含「### 产能(无结束日期 —— 依
+      `production/CAPACITY-MODEL.md`)」段,三旋钮(复杂度 C / 并发上限 P / 判别力门槛 D)逐项给出。
+      ⇒ 行动项 1 的判据成立,`CAPACITY-MODEL.md` **不是一份没人引的文档**。
+- [x] control-manifest 新增「处方前置检查」硬规则 + 三次违规回填
+      ✅ `docs/architecture/control-manifest.md:536` §Cross-Cutting Constraints 之七(S12-3 立)
+- [x] `/story-done` DoD 新增强制证伪轮条款 + S11-9 案例回填
+      ✅ `.claude/skills/story-done/SKILL.md:145` §Falsifiability Gate(S12-4 立,
+      含 S11-9 假绿案例具名 + 「Gate 不通过 ⇒ 不得转 Complete」BLOCKING 措辞)
+- [x] Design documents updated for any deviations
+      ✅ `design/` 零改动(返工未改 GDD 语义)⇒ 无 GDD deviation 需记录;
+      偏离全部落在 story-002 §返工轮登记(3 处 AC 缺口 + 2 处形状留槽 + 9 条 Minor)
+- [x] Code reviewed and merged
+      ✅ story-002 两轮 `/code-review`(首轮 CHANGES REQUIRED → 重评 APPROVED WITH SUGGESTIONS),
+      两份原件俱在。⚠️ **未 commit** —— 依「No commits without user instruction」待用户指令。
+- [x] **`end` 日期在收口时补记**(治 sprint-11 反面)
+      ✅ `end: "2026-10-16"`(见下 §收口记)
 
 ## 附带发现(规划期实测,非本 sprint 范围但须登记)
 
@@ -170,3 +185,21 @@
   `PatternDetector:182,197` 的「解码归调用方」委托形),**均以绕开收场**。
   ⇒ 这是一条**跨系统**的结构性缺口,不止 53 一家;S12-11 立的 ADR 应把它作为**通用缝**处理,
   而非 53 专用补丁。
+
+---
+
+## 收口记(2026-10-16)
+
+- **`end` 日期 = 2026-10-16**(依「做完即收,收口时补记结束日」裁定)。
+- **⚠️ `start` 口径矛盾(登记,不静默改)**:计划写「2026-10-16 起」,但 git 实证
+  **10 件提交全部落在 2026-10-15**(`git log --since=2026-10-14` 全量 10-15)——
+  计划声明日**晚于**实际首执行日 1 天。收口时**只补 `end`、不改写 `start` 原文**,
+  矛盾如实留档;sprint-13 规划时须先裁「计划日 vs 执行日」的取数口径。
+- **产能结论**:10 件 / 1 执行日 = **10 件/日**,高于 sprint-11 基线(16 件 / 2 执行日
+  = 8 件/日)**25%**。差异来源 = 件均复杂度低(S×4 + M×5,无 L)+ agent 并行实到 2 路
+  + 治理债类判别力判据较轻(断言型占 3/10)。
+- **结转 sprint-13**:S12-10(11 人工走查 AC-11-12/13/21 + 三签;agent 不可代劳,
+  需 user + 主创 / 医学从业 / 音频 lead)。
+- **附带待办(收口时发现,未排)**:`production/epics/medical-consequences/EPIC.md`
+  `Status: Ready` + stories 表 001/002/003/004 **四行全 `Ready`**,而 story-002 本次已翻
+  `Complete`(story-001 早前亦已收)⇒ EPIC 口径 stale,须 reconcile。
