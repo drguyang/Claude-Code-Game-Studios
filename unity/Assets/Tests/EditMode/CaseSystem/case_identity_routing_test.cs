@@ -5,7 +5,7 @@
 // AC-37-02:两病人同 tick 各立案 ⇒ 两个 case_id 不同(两人各有 Seq=0,Patient 区分,不撞号)
 //
 // ── story 自定判据(⚠️ 四条**均无 GDD AC 编号** —— story §AC 里本就无号)──────
-// · kindgen 断言批 A1–A5 全过
+// · kindgen 断言批 A1–A5 全过 —— ⚠️ 载体 = CI(见下方「载体纪律」;本文件仅留 A1 生成物断言)
 // · 载荷形状断言 —— CaseOpened/CaseClosed 载荷中无 opened_tick 字段;PatternRecognized 载荷含 salted_key
 // · 跨流全序复验 —— (Tick,StreamPriority,Patient,Seq) 排序确定且无平局(哨兵 -1 行可排序不崩)
 // · 高水位纯净 —— 含哨兵行的流上 max(patient_id) 重构不受 -1 污染(ADR-007 §四)
@@ -17,6 +17,15 @@
 //   且**已被本目录姊妹测试占用**(case_close_precondition_test / case_open_and_judgment_test /
 //   case_replay_persistence_test)。⇒ 按 AC 号做的覆盖矩阵会**重复计数**。
 //   **无编号 = 这四条的真实状态,勿再补号** —— 方法名与注释同此纪律(全文件)。
+//
+// ⚠️ 载体纪律(2026-10-15 · sprint-12 S11-12 修复 · 补评件 story-001 §二 B-4):
+//   「kindgen 断言批 A1–A5」的**唯一载体 = CI job `kindgen-assertions`**
+//   (`.github/workflows/tests.yml`:`kindgen.py --check` 断言 + 重生成产物 `git diff` 一致性)。
+//   本文件**不再复刻 kindgen 的扫描** —— 旧辅助段(手搓 entities.yaml 解析器)连同 A2/A3/A4/A5
+//   四条断言已删:测试内重做 = 与 kindgen 互为「第二载体」(载体不唯一),且旧 A2 实测**空跑**
+//   (扫 registry 散文,内层 `foreach` 命中 0 次 ⇒ 结构上不可证伪)。
+//   **仅留 A1 一条**在测试内(`test_kindgenA1_*`):它打的是**生成物** `StreamRouting.Of`
+//   (属生产码真断言 —— 补评件 §三 正面核实项),**不是**扫描复刻。
 //
 // 权威来源:
 //   ADR-008(病例事件流;五 Kind 落病例流;case_id 三元组;opened_tick 删除;跨流全序;PatientId.None 哨兵)
@@ -135,7 +144,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
         }
 
         // ════════════════════════════════════════════════════════════════════
-        // [story 判据] kindgen 断言批 A1–A5
+        // [story 判据] kindgen A1 —— 生成物路由(A2–A5 载体 = CI;见文件头「载体纪律」)
         // ════════════════════════════════════════════════════════════════════
 
         /// <summary>[story 判据] kindgen A1:五 Case Kind 的 stream 全为 case。</summary>
@@ -156,95 +165,6 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 Assert.That(StreamRouting.Of(kind), Is.EqualTo(StreamId.Case),
                     $"{kind} 须路由到病例流(ADR-008 §一)");
             }
-        }
-
-        /// <summary>[story 判据] kindgen A2:五 Case Kind 的 payload_schema ∈ 整数域(无 float/double)。
-        /// 本测试从 entities.yaml 反射读取 payload_schema 并扫描 float/double 字样。</summary>
-        [Test]
-        public void test_kindgenA2_casePayloadSchemas_integerDomainOnly()
-        {
-            var schemas = GetCasePayloadSchemas();
-
-            Assert.That(schemas.Count, Is.EqualTo(5), "五 Case Kind 须有 payload_schema");
-
-            foreach (var (kind, schema) in schemas)
-            {
-                // 扫描 float/double 字样(否定语境豁免:前 4 字内含 无/禁/非/零/不)
-                foreach (System.Text.RegularExpressions.Match match in
-                    System.Text.RegularExpressions.Regex.Matches(schema, @"[Ff]loat|[Dd]ouble"))
-                {
-                    string ctx = schema.Substring(Math.Max(0, match.Index - 4),
-                        Math.Min(4, match.Index));
-                    bool negation = System.Text.RegularExpressions.Regex.IsMatch(ctx, "[无禁非零不]");
-                    Assert.That(negation, Is.True,
-                        $"{kind} 的 payload_schema 出现非否定语境的 float/double —— {schema}");
-                }
-            }
-        }
-
-        /// <summary>[story 判据] kindgen A3:Case Kind 名无重复（从 entities.yaml 读取真源验证）。</summary>
-        [Test]
-        public void test_kindgenA3_caseKindNames_unique()
-        {
-            var names = GetCaseKindNamesFromRegistry();
-
-            Assert.That(names.Count, Is.EqualTo(5), "registry 须有 5 个 case 流 Kind");
-            Assert.That(names.Distinct().Count(), Is.EqualTo(names.Count),
-                "Case Kind 名无重复(ADR-024 A3)");
-        }
-
-        /// <summary>[story 判据] kindgen A4:五 Case Kind 的 author 必填且首整数 = 37。</summary>
-        [Test]
-        public void test_kindgenA4_caseKindAuthors_all37()
-        {
-            var authors = GetCaseAuthors();
-
-            Assert.That(authors.Count, Is.EqualTo(5), "五 Case Kind 须有 author");
-
-            foreach (var (kind, author) in authors)
-            {
-                Assert.That(author, Does.StartWith("37"),
-                    $"{kind} 的 author 须以 37 开头(37 病例系统)");
-            }
-        }
-
-        /// <summary>[story 判据] kindgen A5:registry ↔ EventKind.cs 双向差集归零。
-        /// 正向:registry 中每个 case Kind 在 EventKind 枚举中存在;
-        /// 反向:EventKind 中每个 case 流成员在 registry 中存在。</summary>
-        [Test]
-        public void test_kindgenA5_caseKinds_presentInEventKindEnum()
-        {
-            var registryNames = GetCaseKindNamesFromRegistry();
-
-            // 正向:registry → EventKind 枚举
-            var eventKindType = typeof(EventKind);
-            foreach (var name in registryNames)
-            {
-                Assert.That(eventKindType.GetField(name, BindingFlags.Public | BindingFlags.Static),
-                    Is.Not.Null, $"{name} 须在 EventKind 枚举中存在(ADR-024 A5)");
-            }
-
-            // 反向:EventKind 枚举 → registry（双向差集归零）
-            var enumCaseKindNames = new List<string>();
-            foreach (var field in eventKindType.GetFields(BindingFlags.Public | BindingFlags.Static))
-            {
-                if (field.Name.StartsWith("Case") || field.Name.StartsWith("PatternRecognized") ||
-                    field.Name.StartsWith("Judgment"))
-                {
-                    enumCaseKindNames.Add(field.Name);
-                }
-            }
-
-            var registrySet = new HashSet<string>(registryNames);
-            var enumSet = new HashSet<string>(enumCaseKindNames);
-
-            var registryOnly = registrySet.Except(enumSet).ToList();
-            var enumOnly = enumSet.Except(registrySet).ToList();
-
-            Assert.That(registryOnly, Is.Empty,
-                $"registry 有但 EventKind 枚举无: {string.Join(", ", registryOnly)}");
-            Assert.That(enumOnly, Is.Empty,
-                $"EventKind 枚举有但 registry 无: {string.Join(", ", enumOnly)}");
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -337,132 +257,57 @@ namespace DaYiJingCheng.Tests.CaseSystem
         // [story 判据] 高水位纯净
         // ════════════════════════════════════════════════════════════════════
 
-        /// <summary>[story 判据] 高水位纯净:含哨兵行的流上 max(patient_id) 重构不受 -1 污染(ADR-007 §四)。</summary>
+        /// <summary>[story 判据] 高水位纯净:含哨兵行的流上高水位重构不受 -1 污染(ADR-007 §四)。
+        /// <para>打的是<b>生产</b> <see cref="IdAuthority.ReconstructPatientHighWater"/>(非测试内自造 max)。</para>
+        /// <para>⚠️ <b>2026-10-15 判据诚实性订正(B-1 测试半边)</b> —— 原稿
+        /// <c>events.Where(...).Select(...).Max()</c> 是<b>测试自造</b>的算式,生产函数<b>零调用</b>;
+        /// 且「哨兵不污染 max」<b>单独在算术上不可证伪</b>(<c>-1</c> 是下界,含它与否 max 相同)。</para>
+        /// <para>⚠️ <b>判别力如实计数(2026-10-15 第三次窄审订正)</b> —— 本稿 <b>只有 ① 与 ③ 两处</b>
+        /// 可被<b>单行</b>变异打红,<b>不是三处</b>(初稿误记「三处」,已订正)。
+        /// <b>② 是结构性保留、无单行捕获面</b>:「只升不降」的真正来源是 <c>candidate</c> 的初值
+        /// <c>= _nextPatient</c> 与 <c>if (id + 1 &gt; candidate)</c> 的取 max 形式,
+        /// <b>不是</b>末尾 <c>if (candidate &gt; _nextPatient)</c> 那道守卫(它<b>行为冗余</b>)。
+        /// ⇒ 同删 <c>id &lt; 0 continue</c> 与该守卫,<c>candidate</c> 仍 ≥ 初值,<b>② 仍绿</b>。
+        /// 只有整函数重写(如初值改 0 <b>且</b> 去末尾守卫)才会红 —— 那已非「单行变异」。</para></summary>
         [Test]
         public void test_highWaterMark_sentinelMinusOne_noPollution()
         {
             var events = new[]
             {
                 MakeEvent(100, new PatientId(1), 0, EventKind.CaseOpened),
-                MakeEvent(100, new PatientId(5), 0, EventKind.CaseOpened),
+                // ⚠️ 哨兵置于**最大值之前**:令「截断扫描」类 bug 可被 ① 捕获 ——
+                //    把 `id < 0 continue` 改成 `break`(真实缺陷类),此处 ⇒ candidate 停在 2 ⇒ 红;
+                //    若哨兵排在末尾(初稿序),该变异**不会红**(scan 已取到 max)。
                 MakeEvent(100, PatientId.None, 0, EventKind.PatternRecognized), // 哨兵 -1
+                MakeEvent(100, new PatientId(5), 0, EventKind.CaseOpened),
                 MakeEvent(100, new PatientId(3), 0, EventKind.CaseOpened),
             };
 
-            // max(patient_id) 重构:扫三流并集内全部 patient id
-            var maxPatientId = events
-                .Where(e => !e.Patient.IsNone)
-                .Select(e => e.Patient.Value)
-                .Max();
+            // ── ① 真 id 累加:max(真 id)=5 ⇒ next = 6(走生产函数)──
+            // 单行可捕获:删 `if (id + 1 > candidate) candidate = id + 1;` ⇒ next 停在 0 ⇒ 红;
+            //             把 `id < 0 continue` 改 `break`(哨兵序已前置)⇒ candidate 停在 2 ⇒ 红
+            var authority = new IdAuthority();
+            authority.ReconstructPatientHighWater(events.Select(e => e.Patient.Value));
+            Assert.That(authority.NextPatientId().Value, Is.EqualTo(6),
+                "重构取 max(真 id)+1 = 6(哨兵 -1 在流内,由生产函数自行忽略)");
 
-            Assert.That(maxPatientId, Is.EqualTo(5),
-                "max(patient_id) 须忽略哨兵 -1(ADR-007 §四)");
+            // ── ② 只升不降 + 全哨兵不回退(⚠️ 结构性,无单行捕获面 —— 见 docstring)──
+            var monotone = new IdAuthority();
+            monotone.NextPatientId(); // 0
+            monotone.NextPatientId(); // 1 ⇒ _nextPatient = 2
+            monotone.ReconstructPatientHighWater(new[] { -1, -1 }); // 全哨兵流
+            Assert.That(monotone.NextPatientId().Value, Is.EqualTo(2),
+                "全哨兵流不得把高水位拉回 0(否则重发 patient_id 0 = 身份重号)");
 
-            // 哨兵 -1 不得被当作合法 id
-            var sentinel = events[2].Patient;
-            Assert.That(sentinel.IsNone, Is.True);
-            Assert.That(sentinel.Value, Is.EqualTo(-1));
+            // ── ③ 号空间耗尽硬失败(不静默回绕)──
+            // 单行可捕获:删 OverflowException ⇒ 红
+            // ⚠️ 隐性前提:算术须**非受检**。实测全仓无 `CheckForOverflowUnderflow` /
+            //    无 `.rsp` / 无 `Directory.Build.props` ⇒ 当下成立;
+            //    一旦开启受检算术,`int.MaxValue + 1` 自身抛 ⇒ 本断言**静默失效**(如实登记)。
+            Assert.Throws<OverflowException>(
+                () => new IdAuthority().ReconstructPatientHighWater(new[] { int.MaxValue }),
+                "高水位耗尽须显式硬失败(ADR-006 机制 A)");
         }
 
-        // ════════════════════════════════════════════════════════════════════
-        // 辅助:从 entities.yaml 读取五 Case Kind 的 payload_schema / author
-        // ════════════════════════════════════════════════════════════════════
-
-        /// <summary>从 entities.yaml 读取所有 stream: case 的 Kind 名。</summary>
-        private static List<string> GetCaseKindNamesFromRegistry()
-        {
-            var result = new List<string>();
-            var yamlPath = FindRepoPath("design/registry/entities.yaml");
-            var lines = System.IO.File.ReadAllLines(yamlPath);
-
-            string currentKind = null;
-            foreach (var line in lines)
-            {
-                var trimmed = line.Trim();
-                if (trimmed.StartsWith("- name: SimEvent.Kind."))
-                {
-                    currentKind = trimmed.Substring("- name: SimEvent.Kind.".Length).Trim();
-                }
-                else if (currentKind != null && trimmed.StartsWith("stream:"))
-                {
-                    var stream = trimmed.Substring("stream:".Length).Trim();
-                    if (stream == "case")
-                        result.Add(currentKind);
-                    currentKind = null;
-                }
-            }
-            return result;
-        }
-
-        private static List<(string Kind, string Schema)> GetCasePayloadSchemas()
-        {
-            var result = new List<(string, string)>();
-            var yamlPath = FindRepoPath("design/registry/entities.yaml");
-            var lines = System.IO.File.ReadAllLines(yamlPath);
-
-            string currentKind = null;
-            foreach (var line in lines)
-            {
-                var trimmed = line.Trim();
-                if (trimmed.StartsWith("- name: SimEvent.Kind."))
-                {
-                    currentKind = trimmed.Substring("- name: SimEvent.Kind.".Length).Trim();
-                }
-                else if (currentKind != null && trimmed.StartsWith("payload_schema:"))
-                {
-                    var schema = trimmed.Substring("payload_schema:".Length).Trim().Trim('"');
-                    if (currentKind.StartsWith("Case") || currentKind.StartsWith("PatternRecognized") ||
-                        currentKind.StartsWith("Judgment"))
-                    {
-                        result.Add((currentKind, schema));
-                        currentKind = null;
-                    }
-                }
-            }
-            return result;
-        }
-
-        private static List<(string Kind, string Author)> GetCaseAuthors()
-        {
-            var result = new List<(string, string)>();
-            var yamlPath = FindRepoPath("design/registry/entities.yaml");
-            var lines = System.IO.File.ReadAllLines(yamlPath);
-
-            string currentKind = null;
-            foreach (var line in lines)
-            {
-                var trimmed = line.Trim();
-                if (trimmed.StartsWith("- name: SimEvent.Kind."))
-                {
-                    currentKind = trimmed.Substring("- name: SimEvent.Kind.".Length).Trim();
-                }
-                else if (currentKind != null && trimmed.StartsWith("author:"))
-                {
-                    var author = trimmed.Substring("author:".Length).Length > 0
-                        ? trimmed.Substring("author:".Length).Trim().Trim('"')
-                        : "";
-                    if (currentKind.StartsWith("Case") || currentKind.StartsWith("PatternRecognized") ||
-                        currentKind.StartsWith("Judgment"))
-                    {
-                        result.Add((currentKind, author));
-                        currentKind = null;
-                    }
-                }
-            }
-            return result;
-        }
-
-        private static string FindRepoPath(string relativePath)
-        {
-            // EditMode 测试的 AppDomain.BaseDirectory 不在仓库根;
-            // 用 Application.dataPath(unity/Assets)向上两级到仓库根。
-            var assetsDir = UnityEngine.Application.dataPath; // .../unity/Assets
-            var unityDir = System.IO.Path.GetDirectoryName(assetsDir); // .../unity
-            var repoRoot = System.IO.Path.GetDirectoryName(unityDir); // 仓库根
-            var candidate = System.IO.Path.Combine(repoRoot, relativePath);
-            if (System.IO.File.Exists(candidate))
-                return candidate;
-            throw new System.IO.FileNotFoundException($"找不到 {relativePath} (尝试: {candidate})");
-        }
     }
 }

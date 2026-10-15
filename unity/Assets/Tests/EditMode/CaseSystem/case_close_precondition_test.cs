@@ -5,7 +5,9 @@
 // AC-37-03:同一 case_id 第二条 CaseClosed 幂等拒收
 // 窗口边界:闭区间 [CaseOpened.Tick, CloseTick]
 // CaseClosed 载荷 = {disease_set(集合,可空), treated} 快照
-// AC-37-18:病人死亡但案未结 ⇒ 病例仍「开」、可正常结案;病名为空可结案
+// AC-37-18:病人死亡但案未结 ⇒ 病例仍「开」、可正常结案(判别半边 = 塞满非 CaseClosed 事件)
+//           ⚠️ 「空病种集」半边 2026-10-15 迁往 case_close_writer_test.cs(决策层不可表达);
+//              「病名」半边 = UI/词表概念,37 Sim 层 NOT-RUN —— 详见文件末注块
 // 结案副作用序列:读数清除信号(→8)+ 判断冻结(→53)+ CaseClosed 入病例流
 //
 // 权威来源:
@@ -454,51 +456,66 @@ namespace DaYiJingCheng.Tests.CaseSystem
         // AC-37-18:病人死亡但案未结 ⇒ 病例仍「开」、可正常结案
         // ════════════════════════════════════════════════════════════════════
 
-        /// <summary>AC-37-18:案件开着(无 CaseClosed)→ 可结案(病人死亡不影响)。</summary>
+        /// <summary>AC-37-18:案件开着(无 <c>CaseClosed</c>)⇒ 仍为「开」,且**只有 <c>CaseClosed</c> 能结案**。
+        /// <para>⚠️ <b>2026-10-15 判据收窄</b>(用户裁定「裁『不进流』+ 改判据」):病人死亡
+        /// <b>不进事件流</b> ⇒ 37 对它 <b>结构性不可见</b>,原「死亡输入」<b>不可表达</b>
+        /// (该事件不存在)⇒ 本 AC 的可测内容 = <b>37 无任何自动结案路径</b>
+        /// (结案唯一出口 = 玩家显式动作,GDD 规则六)。</para>
+        /// <para><b>判别半边</b>:流里塞满各式<b>非 <c>CaseClosed</c></b> 事件
+        /// (治疗 / 处置 / 伤情 / 判断),案件仍须为「开」—— 若日后有人加入任何
+        /// 「某事件到达即自动结案」的路径,本断言转红。这正是原夹具
+        /// (只造一条 <c>CaseOpened</c>)所缺的判别力。</para></summary>
         [Test]
         public void test_ac3718_caseOpen_canClose()
         {
             var caseEvents = new[]
             {
                 MakeEvent(100, new PatientId(1), 0, EventKind.CaseOpened),
+                MakeEvent(110, new PatientId(1), 1, EventKind.DrugTreatmentApplied),
+                MakeEvent(120, new PatientId(1), 2, EventKind.EmergencyTreatmentApplied),
+                MakeEvent(130, new PatientId(1), 3, EventKind.CareApplied),
+                MakeEvent(140, new PatientId(1), 4, EventKind.InjuryOnset),
+                MakeEvent(150, new PatientId(1), 5, EventKind.JudgmentRecorded),
             };
             var caseId = MakeCaseId(100, 1, 0);
 
             var isOpen = CaseCloseQuery.IsOpen(caseEvents, caseId);
-            Assert.That(isOpen, Is.True, "案件开着(无 CaseClosed)");
+            Assert.That(isOpen, Is.True,
+                "非 CaseClosed 事件(治疗 / 处置 / 伤情 / 判断)不得结案 ⇒ 案件仍开着(AC-37-18 判别半边)");
 
             var decision = CaseCloseDecider.Decide(
                 isOpen: isOpen,
                 isClosed: CaseCloseQuery.IsClosed(caseEvents, caseId), // 2026-10-15(S11-8):流派生取代硬编码
                 hasTreatmentInWindow: true, isChecked: true);
             Assert.That(decision, Is.EqualTo(CaseCloseDecision.CanClose),
-                "病人死亡但案未结 ⇒ 可正常结案(AC-37-18)");
+                "病例未结 + 已处置 + 已勾选 ⇒ 可结案(结案唯一出口 = 玩家显式动作,非自动)");
         }
 
-        /// <summary>AC-37-18:病名为空可结案(空是合法终态)。</summary>
-        [Test]
-        public void test_ac3718_emptyDiseaseName_canClose()
-        {
-            // 病名为空 = disease_set 可空,不影响结案
-            var decision = CaseCloseDecider.Decide(
-                isOpen: true, isClosed: false, hasTreatmentInWindow: true, isChecked: true);
-            Assert.That(decision, Is.EqualTo(CaseCloseDecision.CanClose),
-                "病名为空可结案(空是合法终态)");
-        }
+        // ════════════════════════════════════════════════════════════════════
+        // AC-37-18「空病种集」半边 —— **不在本文件**(2026-10-15 订正)
+        // ════════════════════════════════════════════════════════════════════
+        //
+        // 原稿在此有两条测试(`test_ac3718_emptyDiseaseName_canClose` /
+        // `test_ac3718_pureInjuryCase_emptyDiseaseSet_canClose`),经 postfix 评审核出
+        // **两条均恒真**,已**删除**:
+        //
+        //   ① 两条都只调 `CaseCloseDecider.Decide(isOpen:true, isClosed:false,
+        //      hasTreatmentInWindow:true, isChecked:true)` —— 与 happy path **逐字相同**;
+        //      `Decide` 的形参里**根本没有 disease_set**,该维度在决策层**结构性不可表达**
+        //      ⇒ 两条断言在**任何**实现下都为真(可捕获性判定 = 不可捕获)。
+        //   ② `emptyDiseaseSet` 构造后**从未传给任何东西**(只自断 `.Bits == 0UL`)。
+        //   ③ 「病名」是**词表 / UI 概念**(37 的 Sim 层无病名,只有 `disease_set` 位集)
+        //      ⇒ 该半边的**语义载体不在本层** —— 如实登记 **NOT-RUN**,不冒充覆盖。
+        //
+        // **真覆盖落点**(空 disease_set 走**生产结案路径** + 载荷快照回读逐位为空):
+        //   `case_close_writer_test.cs` → `test_ac3718_pureInjuryCase_emptyDiseaseSet_closesWithEmptySnapshot`
+        //   —— 该处有真装配(真流 + 真写者 + 真 blob 池),能真正把空集喂进 `TryClose`。
+        //   ⚠️ 本文件自陈「纯数据层,不触 codec」,故**不在此**引入写者装配(否则该声明成假)。
+        //
+        // 本文件保留的 AC-37-18 半边 = 上方 `test_ac3718_caseOpen_canClose`
+        // (判别半边:塞满非 `CaseClosed` 事件 ⇒ 案件仍须为「开」)。
 
-        /// <summary>AC-37-18:纯伤情案(无病种)→ disease_set 空集,结案合法。</summary>
-        [Test]
-        public void test_ac3718_pureInjuryCase_emptyDiseaseSet_canClose()
-        {
-            // 纯伤情案 = disease_set 空集
-            var emptyDiseaseSet = new DiseaseIdSet(0);
-            Assert.That(emptyDiseaseSet.Bits, Is.EqualTo(0UL), "纯伤情案 disease_set 空集");
-
-            var decision = CaseCloseDecider.Decide(
-                isOpen: true, isClosed: false, hasTreatmentInWindow: true, isChecked: true);
-            Assert.That(decision, Is.EqualTo(CaseCloseDecision.CanClose),
-                "纯伤情案(空 disease_set)结案合法");
-        }
+        // ════════════════════════════════════════════════════════════════════
 
         // ════════════════════════════════════════════════════════════════════
         // 结案副作用序列:CaseClosed 入病例流
