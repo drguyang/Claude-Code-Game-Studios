@@ -1,7 +1,8 @@
 // 权威来源:11-DC 的 DC-2(action_id 闭集 = 处置 id 注册表全值)· DC-6(相邻档药效差 ≥ NOISE_BAND_9)
 //          · GDD design/gdd/prescription-and-medication.md §11-DC 表 + §Data Contracts 注
 //          · OQ-11-2(✅ 已裁 2026-10-06:映射归 11,不移入 21a)
-//          · BL-2(O-11→9,`NOISE_BAND_9` 未立)· BL-7(O-11→21a,`drug_potency` 域未声明)
+//          · BL-2 ✅ **已闭**(2026-10-07:9 侧立 `NOISE_BAND_POTENCY_9` —— 见下方 `:168` 口径)
+//          · BL-7(O-11→21a,`drug_potency` 域未声明)
 //
 // ⚠️⚠️ **本件是真源注册表,不是影子** —— 两条判据的**真源已落地**(2026-10-07 重开 9):
 //    DC-2 的真源 = 9 的处置轴(`disease_action_axis.json` → `DiseaseActionAxisBaker` 烘焙产物);

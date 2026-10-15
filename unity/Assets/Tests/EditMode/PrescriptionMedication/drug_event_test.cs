@@ -21,9 +21,15 @@
 //    + 阳性对照),**不是**阶段 2 烘焙器里的执行点。执行体归 ADR-014 阶段 2 / 载体
 //    复用 disease story 003(卡 §Implementation Notes 4 逐字如此)。本文件只证
 //    「判据可跑且能打出漂移」,**不证**「烘焙器会在漂移时 throw」。
-// 4. **AC-11-22 的 7a 序列化白名单本体** —— 本文件证 **codec 两支齐**(`Encode` / `Decode`
-//    在 `PayloadCodec.History.cs` 各有具名实现 + `PayloadEncoder` 分派表有该 case),
-//    但 7a 持久化的**存档白名单表**(ADR-010 侧)未落地 ⇒ 那半边 BLOCKED-BY-7a。
+// 4. **AC-11-22 的 7a 序列化白名单半边** —— ✅ **2026-10-15 S11-4 已落判据**(原记 BLOCKED-BY-7a)。
+//    **载体识别(非 AC 文本收窄 —— AC 一字未动)**:AC 原文为「**7a 的序列化器**两个 Kind
+//    均在**白名单**内」⇒ 序列化器的白名单 = `EventKind` 35 支闭集 ∩ `PayloadCodec.DecodeBoxed`
+//    / `PayloadEncoder.EncodeBoxed` 的分派表(两者 `default` 逐字抛「不在 35 支闭集内」)。
+//    ⚠️ 7a **从未有过**独立的「存档白名单**表**」—— `ADR-010` 与 `persistence-service.md`
+//    全文皆无此产物;原 NOT-RUN 把它读成一张数据表,故判为未落地。
+//    ⚠️ 现有 `codecHasBothBranchesForThisKind` **只覆盖 `DrugTreatmentApplied` 一支** ——
+//    AC 要的是**两个** Kind;本半边的真缺口即此处,由下方两条
+//    `test_ac1122_serializationWhitelist_*` 补上。
 // 5. **AC-11-10 的「双路径对拍」子句** —— 卡 §AC 写「11 恒 Applied 路径与 10 的 Judge 路径
 //    **不共享代码**」。本文件证 **11 侧零该三符号**(真 IL 扫描),**不证**「对拍」——
 //    对拍需要两条路径都产载荷并逐位比较,而 10 的路径产出的是 **9 项载荷**(含 method/cause),
@@ -598,6 +604,61 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             Assert.DoesNotThrow(() => encoder.Encode(EventKind.DrugTreatmentApplied, p),
                 "PayloadEncoder 分派表须含本 Kind(ADR-029 §① 完备性)");
             Assert.Greater(sink.Stored.Count, 0, "编码须真入池");
+        }
+
+        [Test]
+        public void test_ac1122_serializationWhitelist_containsBothNamedKinds()
+        {
+            // AC-11-22 半边②逐字兑现:「7a 的序列化器**两个 Kind 均在白名单内**」。
+            // 判据 = **正向可往返** —— 不在分派表内的 Kind 落 `DecodeBoxed` 的 default
+            //   (`PayloadCodec.cs:88-89`,抛「不在 35 支闭集内」)⇒「能往返」⇔「在表内」。
+            // ① DrugTreatmentApplied(11 写);② EmergencyTreatmentApplied(10 写 ——
+            //   AC 同句「两者不互相构造」的另一半,**现有 `codecHasBothBranchesForThisKind`
+            //   只覆盖了 ①** —— 那正是本半边的真缺口)。
+            var drug = new DrugTreatmentAppliedPayload(210L, 5, 999, 1, new Fix(49152L), 60L, 78L);
+            byte[] drugBytes = PayloadCodec.Encode(drug);
+            var drugBack = PayloadCodec.Decode<DrugTreatmentAppliedPayload>(
+                EventKind.DrugTreatmentApplied, drugBytes);
+            Assert.AreEqual(drug.Tick, drugBack.Tick, "① Drug 支:在白名单内(正向往返无损)");
+
+            // halfLife 取非 0 —— `EmergencyTreatmentAppliedPayload` 类注明「half_life 恒 0
+            // 会触发 9 的 Decay 除零 ⇒ AC-28 写入期拒收」,故夹具不得用 0。
+            var emg = new EmergencyTreatmentAppliedPayload(
+                211L, 6, 998, 0, new Fix(32768L), 120L, 0, 0, 1L);
+            byte[] emgBytes = PayloadCodec.Encode(emg);
+            var emgBack = PayloadCodec.Decode<EmergencyTreatmentAppliedPayload>(
+                EventKind.EmergencyTreatmentApplied, emgBytes);
+            Assert.AreEqual(emg.Tick, emgBack.Tick, "② Emergency 支:在白名单内(正向往返无损)");
+            Assert.AreEqual(emg.Method, emgBack.Method, "② 独有字段 method 往返");
+            Assert.AreEqual(emg.Cause, emgBack.Cause, "② 独有字段 cause 往返");
+        }
+
+        [Test]
+        public void test_ac1122_serializationWhitelist_coversEntireEventKindClosedSet()
+        {
+            // 「白名单 = codec 分派闭集」的**完整性**半边(钉死 S11-4 用户裁定的语义)。
+            // ⚠️ 本条的严格度**超出** AC-11-22 原文(原文只点名两个 Kind)—— 其价值在
+            //   「枚举加了成员而 `PayloadCodec.cs:53-87` 的手写 `case` 漏接」这一真风险;
+            //   `EncodeBoxed` 侧的 default 同型(`PayloadEncoder.cs:137-138`)。
+            // 探针 = 任一 T 的 `Decode<T>`:落 default ⇒ 消息含特征串「不在 35 支闭集内」;
+            //   已登记成员的解析失败消息是各解码器自己的文本,不含该串。
+            // 可捕获性:删任一行 `case` ⇒ 立刻红。
+            var closure = (EventKind[])Enum.GetValues(typeof(EventKind));
+            Assert.AreEqual(35, closure.Length,
+                "闭集支数(ADR-024 §① 真源 = entities.yaml 的 35 支;变更哨兵 —— " +
+                "若本次变更**有意**增删 Kind,须先改 registry 再重跑 kindgen)");
+
+            var unlisted = new List<string>();
+            foreach (EventKind k in closure)
+            {
+                try { PayloadCodec.Decode<InjuryOnsetPayload>(k, ReadOnlySpan<byte>.Empty); }
+                catch (Exception ex)
+                {
+                    if (ex.Message.Contains("不在 35 支闭集内")) unlisted.Add(k.ToString());
+                }
+            }
+            CollectionAssert.IsEmpty(unlisted,
+                "以下 Kind 落在 codec 分派表 default —— 白名单闭集不完整:" + string.Join(",", unlisted));
         }
 
         [Test]

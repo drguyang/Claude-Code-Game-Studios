@@ -23,7 +23,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: DC-1…DC-7 逐条构建期校验(throw 级);`item_key ⊂ ItemDef` 闭集(DC-1);`polarity ∈ {causal, symptomatic}`(DC-3);词表每药恰一条(DC-5);`0 < DOSE_BASE ≤ 65536×hi`(DC-7)
 - Forbidden: 运行期读 JSON 文本;`JsonConvert.DeserializeObject<T>`;Fix 字段写数字字面量;`action_id`/`polarity` 手填进 21a(临床语义不住物品目录)
-- Guardrail: **DC-2 半定悬置显式登记** —— `action_id` 闭集 = 处置注册表全值,取决于 `OQ-11-2`(归属已裁归 11,枚举定值待数值/内容轮)⇒ 该子句 NOT-RUN,禁借绿;**DC-6 依赖 9 侧 `NOISE_BAND_9` 常量**(BL-2,O-11→9)⇒ NOT-RUN
+- Guardrail: **DC-2** —— `action_id` 闭集 = 处置注册表全值;**master 落点已定**(`assets/data/disease_action_axis.json`,2026-10-07)⇒ 阻塞解除,仅「枚举定值」随数值/内容轮;**DC-6** —— ✅ **BL-2 已闭**(2026-10-07,9 侧立 `NOISE_BAND_POTENCY_9` = 药效幅值域 100 raw)⇒ 判据 **RUN**;⚠️ 残余 = 当前数据集**零求值**(`salicylic_acid.dose_range = null`)
 
 ---
 
@@ -37,8 +37,8 @@
 - [ ] **DC-1**[A]:处方表 `item_key` ⊂ `item-database` 的 `ItemDef` 闭集(外键闭合,构建期)
 - [ ] **DC-3**[A]:`polarity ∈ {causal, symptomatic}` 二值闭合(枚举序数,无第三值/无空)
 - [ ] **DC-7**[A]:`0 < DOSE_BASE ≤ 65536 × hi`(量纲健全;`DOSE_BASE` 值归数值轮,不等式形状即判)
-- [ ] **DC-2**[A] **NOT-RUN(BLOCKED-BY-OQ-11-2 枚举定值)**:校验机制 + 负夹具以影子枚举证明可跑;证据文件头显式写 NOT-RUN
-- [ ] **DC-6**[A] **NOT-RUN(BLOCKED-BY-O-11→9 `NOISE_BAND_9` 未立,BL-2)**:可感知地板的构建期机制化(联动 story 002 的 AC-11-19)
+- [ ] **DC-2**[A] ✅ **RUN**(2026-10-07 真源落地;master = `disease_action_axis.json`):校验机制 + 负夹具已落(`PrescriptionActionIdRegistry`),真源期**硬失败**;⚠️ 「枚举定值」仍随数值/内容轮 —— **不再是阻塞**
+- [ ] **DC-6**[A] ✅ **RUN**(2026-10-07,BL-2 已闭:9 侧立 `NOISE_BAND_POTENCY_9`):可感知地板的构建期机制化(联动 story 002 的 AC-11-19);⚠️ **残余 = 当前数据集零求值**(`salicylic_acid.dose_range = null`,覆盖率记账已逐字声明)
 - [ ] **呈现零病种 id**[A]:`materia_lexicon.cooked` 与处方表进呈现层的字段集经 `PresentationDtoGuard` 递归 ⇒ 无 `disease_id`/indications 病种键外露(功效词 = 烘焙期转出的字符串,病种 id 止步于构建期)
 - [ ] **烘焙确定性**[A]:同源集双跑字节相等;中文功效词 UTF-8 稳定序
 

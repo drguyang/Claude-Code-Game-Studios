@@ -3516,11 +3516,101 @@ story-004(**`:4` Status · `:40` AC-37-29 转 ✅ · Test Evidence `23/23`→`30
 
 ### 下一步候选
 
-**sprint-11 补评修复批五项(S11-7…S11-11)已全部清空。** 余:
-**S11-4**(should-have, 3.5 天,prescription DoD 残留:AC-11-22 7a 白名单 + DC-2 `action_id` master + DC-6 复评)·
+**S11-4 已完成(见下)**;**S11-9 已提交(`1df7b83`)**;**补评修复批五项(S11-7…S11-11)全部清空**。余:
 **S11-5**(nice-to-have, 1.5 天,53 medical-consequences 起首 story)·
 **S11-6**(nice,已裁定顺延吸收)。
 
-**⚠️ S11-9 改动尚未提交** —— 待用户指示(工作区 8 项:`unity/Assets/Sim/PatternDetector.cs` ·
-`unity/Assets/Tests/EditMode/CaseSystem/case_pattern_detection_test.cs` · 证据件(新增) · story-004 ·
-sprint-11.md · sprint-status.yaml · EPIC.md · 本文(active.md —— 实测**被 git 跟踪**,非 gitignored))。
+---
+
+## S11-4 —— prescription DoD 残留三项(✅ 完成 2026-10-15)
+
+**证据原件**:`production/qa/evidence/fix-s11-4-prescription-dod-residuals-2026-10-15.md`
+
+### 任务书前提被推翻(如实登记)
+
+S11-4 标 3.5–4 天、措辞「**DoD 残留**」暗示需实现。**勘察证明 DC-2 / DC-6 的实现侧早在
+2026-10-07(`2a7764f`)已闭环**,残留**仅**在登记散文。四处**同文件内自相矛盾**可观测:
+
+| 文件 | 位置 A(修复前) | 位置 B |
+|---|---|---|
+| `EPIC.md` | `:105`「DC-6 `NOISE_BAND_9` 无主」 | `:128`「判据可跑」 |
+| `PrescriptionActionIdRegistry.cs` | `:4`「BL-2 …… 未立」 | `:168`「已立 ⇒ 判据 RUN」 |
+| `dose_potency_test.cs` | `:9`「9 侧不存在」 | `entities.yaml:1484` 有登记 |
+| GDD `prescription-and-medication.md` | `:763`「常量缺席」 | `:783`「9 侧已立此常量」 |
+
+**实际工作量远低于估算。**
+
+### 三项判决
+
+| 项 | 实现侧 | 判决 |
+|---|---|---|
+| **DC-2** `action_id` master | ✅ `disease_action_axis.json`(`2a7764f`)· `TR-disease-023` | **登记回刷后闭合** |
+| **DC-6** `NOISE_BAND_9` | ✅ `NOISE_BAND_POTENCY_9`(`entities.yaml:1484`)+ fail-loud 门 | **登记回刷后闭合**(带真残余) |
+| **AC-11-22 半边②**(7a 白名单) | ⚠️ 原判「7a 白名单**表**未落地」= **载体识别错位** | **落判据后闭合** |
+
+### 两项用户裁定(2026-10-15)
+
+① **回刷范围 = 全批含 GDD** —— 批准改 GDD `:760-766` 两条注(①DC-2 已登记 · ②DC-6 常量已立 ⇒ RUN,
+**保留「当前数据集零求值」如实登记**)+ 4 处散文;③ BL-7 仍开原样保留。
+② **AC-11-22 半边② = 落判据(白名单 = codec 分派闭集)** —— AC 文本一字未动。
+
+### AC-11-22 半边② 是「载体识别」不是「AC 收窄」
+
+AC 原文:「**7a 的序列化器**两个 Kind 均在**白名单**内」。而 7a **从未有过**独立的「白名单**表**」
+(`ADR-010` / `persistence-service.md` 全文无)—— 序列化器的白名单在实现里**天然是**
+`EventKind` 35 支闭集 ∩ `PayloadCodec.DecodeBoxed` / `PayloadEncoder.EncodeBoxed` 分派表
+(两者 `default` 逐字抛「不在 35 支闭集内」)。
+**真缺口在别处**:现有 `test_drugEvent_codecHasBothBranchesForThisKind` **只覆盖 `DrugTreatmentApplied` 一支**,
+AC 要的是**两个** Kind ⇒ 由新增两测补上。
+⇒ **不越** `EPIC.md:109` 的「本 epic 不自行改 AC 文本」边界。**该读法待 producer/TD 复议。**
+
+### 证伪三步(双信号一致)
+
+| 状态 | PrescriptionMedication(176 测) |
+|---|---|
+| **基线** | 退出码 **0** · XML `passed=176 failed=0`(两条新测确认已执行) |
+| **反证**(停用 `PayloadCodec.cs:59` 的 `EmergencyTreatmentApplied` case) | 退出码 **2** · XML **`failed=2`** —— 恰红两条新测,消息**精确点名**被移除的 Kind |
+| **还原** | `grep` 残留 0 · case 完好 1 · **`git status` 中 `PayloadCodec.cs` 空**(三重复核) |
+| **全量 EditMode** | 退出码 **0** · **`3346 / 3300 / 0`**(较 S11-9 后 **+2 passed**,恰本轮新增)· `error CS` = 0 |
+
+反证失败消息:
+```
+FAILED: test_ac1122_serializationWhitelist_containsBothNamedKinds
+   msg: System.IO.InvalidDataException : 未知 EventKind=6 —— 不在 35 支闭集内
+FAILED: test_ac1122_serializationWhitelist_coversEntireEventKindClosedSet
+   msg: 以下 Kind 落在 codec 分派表 default —— 白名单闭集不完整:EmergencyTreatmentApplied
+```
+⇒ **判别力确认,非假绿夹具**(承 S11-9 的假绿夹具教训)。
+
+### ⚠️ 本件未动 7a —— S11-4 的附加条件不触发
+
+S11-4 AC 逐字:「**若动 7a 须带 case↔7a 折叠语义集成夹具(TD 风险 1 缓解)**」。
+判据落点在 `Sim.Codec`(codec 分派表),**不触及 7a 存档层**(`SaveCodec` / 折叠谓词 / 高水位重构)
+⇒ 该条件**不触发**,本件**不带**该集成夹具。**不得**把本件读成「TD 风险 1 已缓解」(sprint §Risks 该行仍在)。
+
+### 三处真残余(未消解,禁借绿)
+
+1. **DC-6 对当前数据集零求值** —— `salicylic_acid.dose_range = null` ⇒ 无相邻档可判。
+   覆盖率记账已逐字声明「零求值」。**判据可执行但无数据可判**,不得读成「11 的表已合规」。
+2. **BL-7** —— 21a `drug_potency` 域未声明;GDD `:760` ③ 原样保留。
+3. **AC-11-22 半边甲(文本背离)** —— `PayloadCodec.History.cs:332` 在 `Sim.Codec` 构造载荷,
+   与 AC 原文「构造点仅存在于 11 的程序集」背离;`EPIC.md:109` 明文**归 producer/TD**。
+   **本件维持其显式记账现状**(门的三类分离登记不动)。
+
+### 记录面
+
+**新证据原件**(上述)· `drug_event_test.cs`(NOT-RUN 第 4 条改写 + 新增 2 测)·
+`PrescriptionActionIdRegistry.cs:4` · `dose_potency_test.cs:9/:164/:169/:194` ·
+GDD `:760-766` · `EPIC.md`(`:99-101` / `:105` / `:116` / `:131`)· story-001(`:26` / `:40` / `:41`)·
+`sprint-11.md` S11-4 转 ✅ + 订正框 · `sprint-status.yaml` S11-4 → `done` · 本文。
+
+### 未清
+
+- **EPIC 仍 `5/5 Complete` 但 DoD 未达** —— 本件不改变该状态(DoD 第 2 条仍受 story-002/003/004/005 制约)。
+- **story-001 的 AC 复选框未打勾** —— 本件只回刷判词(`NOT-RUN` → `RUN`),AC 关闭归 `/story-done`。
+- **本件对半边②的读法待 producer/TD 复议** —— 若另裁「白名单 = 独立数据表」,判据须重做。
+- **S11-4 改动尚未提交** —— 待用户指示。
+
+### 下一步候选
+
+**S11-5**(nice-to-have, 1.5 天,53 medical-consequences 起首 story)· **S11-6**(nice,已裁定顺延吸收)。

@@ -48,11 +48,11 @@ stories:
     name: "prescription DoD 残留(AC-11-22 7a 白名单 + DC-2 action_id master + DC-6 复评)"
     file: "production/sprints/sprint-11.md"
     priority: should-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "Claude"
     estimate_days: 3.5
     blocker: ""
-    completed: ""
+    completed: "2026-10-15"
   - id: "S11-5"
     name: "53 medical-consequences 起首 story(支柱四载体)"
     file: "production/sprints/sprint-11.md"

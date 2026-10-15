@@ -6,8 +6,9 @@
 // NOT-RUN 声明(禁借绿;补做评审 2026-10-06 后重列):
 // - AC-11-11④ int64 分支:21a 未声明 drug_potency 域(BL-7),无条件走 128 位路径;
 //   **且**「禁 Int128 / BigInteger」原为无判据 ⇒ 已补扫描路(见 PrescriptionFloatScan)
-// - AC-11-19:NOISE_BAND_9 在 9 侧不存在(BL-2)⇒ 比较器骨架 + 差值序列导出器**已交付**,
-//   正式断言仍 NOT-RUN(门槛无主;本件不含任何门槛字面量)
+// - AC-11-19:✅ **BL-2 已闭**(2026-10-07,9 侧立 `NOISE_BAND_POTENCY_9` = 药效幅值域 100 raw)
+//   ⇒ 正式判据 **RUN**,执行体 = 烘焙期 DC-6 门(`prescription_tables_test.cs` 的 `test_dc6_*` 族);
+//   本文件的比较器骨架**保留为单元判据**(测谓词本身,不重复 AC-11-19 本体)
 // - AC-11-15:三格矩阵(ADR-012 未实跑)
 // - TR-prescription-007:21a 半边
 // - AC-11-09:派生器 + 契约已落(PrescriptionDerivedBaker + BindResult.SingleDoseMaxRaw);
@@ -161,12 +162,12 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             }
         }
 
-        // ── AC-11-19:可感知地板比较器骨架(BL-2 ⇒ 判据 NOT-RUN,机器可跑)────────
+        // ── AC-11-19:可感知地板比较器**单元**骨架(BL-2 已闭 ⇒ 本体判据 RUN,归 DC-6 门)──
 
         [Test]
         public void test_floor_differenceSequence_isMonotoneAndPositive()
         {
-            // 机器半边:差值序列导出器对合成表可运行(判据开关 gated-off —— 门槛无主)。
+            // 机器半边:差值序列导出器对合成表可运行(本测只用**合成**门槛,不读真源地板)。
             // 单调增的 F-11.1 ⇒ 相邻档差恒 > 0。
             var range = new DoseRange(1, 5);
             long[] deltas = PerceptibleFloorComparator.DifferenceSequence(
@@ -190,8 +191,9 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
         [Test]
         public void test_floor_comparator_detectsViolation()
         {
-            // 谓词骨架对合成门槛可判 —— 证「机器可用」,**不**证 AC-11-19 本身
-            //(门槛 NOISE_BAND_9 在 9 侧不存在,BL-2 ⇒ 正式对拍 NOT-RUN,禁借绿)。
+            // 谓词骨架对合成门槛可判 —— 证「机器可用」,**不**证 AC-11-19 本身。
+            // ⚠️ 本体判据(逐药相邻档 vs **真源**地板)执行体 = 烘焙期 DC-6 门
+            //   (`prescription_tables_test.cs` 的 `test_dc6_*` 族);BL-2 已于 2026-10-07 闭合。
             long[] deltas = { 100L, 200L, 300L };
             Assert.IsTrue(PerceptibleFloorComparator.SatisfiesFloor(deltas, 100L));
             Assert.IsFalse(PerceptibleFloorComparator.SatisfiesFloor(deltas, 101L),

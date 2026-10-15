@@ -116,7 +116,26 @@ story-004 的其余 7 条(TB-1 定序判别力 / TB-2 成员冻结 / TB-3 真空
 
 | ID | Task | Agent/Owner | Est. Days | Dependencies | Acceptance Criteria |
 |----|------|-------------|-----------|--------------|---------------------|
-| S11-4 | **prescription DoD 残留**(AC-11-22 7a 白名单本体 + DC-2 `action_id` master 登记(OQ-11-2) + DC-6 `NOISE_BAND_9` 复评——9 侧常量 10-07 已立,OQ-11-13 10-06 已裁,前置已解锁) | Claude | 3-4 | S11-3 顺(同仓测试基线) | prescription EPIC §Epic Status 三项逐项闭合或显式结转;若动 7a 须带 case↔7a 折叠语义集成夹具(TD 风险 1 缓解) prescription EPIC §Epic Status 三项逐项闭合或显式结转;若动 7a 须带 case↔7a 折叠语义集成夹具(TD 风险 1 缓解) | **QA**:EditMode 断言 ×3(AC-11-22 IL 扫描/DC-2 闭集 fail-loud/DC-6 引用链闭环) |
+| S11-4 ✅ **DONE 2026-10-15** | **prescription DoD 残留**(AC-11-22 7a 白名单本体 + DC-2 `action_id` master 登记(OQ-11-2) + DC-6 `NOISE_BAND_9` 复评——9 侧常量 10-07 已立,OQ-11-13 10-06 已裁,前置已解锁) | Claude | 3-4 | S11-3 顺(同仓测试基线) | prescription EPIC §Epic Status 三项逐项闭合或显式结转;若动 7a 须带 case↔7a 折叠语义集成夹具(TD 风险 1 缓解) prescription EPIC §Epic Status 三项逐项闭合或显式结转;若动 7a 须带 case↔7a 折叠语义集成夹具(TD 风险 1 缓解) | **QA**:EditMode 断言 ×3(AC-11-22 IL 扫描/DC-2 闭集 fail-loud/DC-6 引用链闭环) |
+
+> **✅ S11-4 完成订正框(2026-10-15)** —— 证据原件:`production/qa/evidence/fix-s11-4-prescription-dod-residuals-2026-10-15.md`
+> **① 任务书前提被推翻(如实登记)**:S11-4 标 3.5–4 天、措辞为「**DoD 残留**」暗示需实现。
+> 勘察证明 **DC-2 / DC-6 的实现侧早在 2026-10-07(`2a7764f`)已闭环**,残留**仅**在登记散文 ——
+> 四处**同文件内自相矛盾**可观测(`EPIC.md:105` vs `:128` · `PrescriptionActionIdRegistry.cs:4` vs `:168` ·
+> `dose_potency_test.cs:9` vs `entities.yaml:1484` · GDD `:763` vs `:783`)。**实际工作量远低于估算。**
+> **② 三项判决**:DC-2 → **登记回刷后闭合** · DC-6 → **登记回刷后闭合**(带真残余)· AC-11-22 半边② → **落判据后闭合**。
+> **③ AC-11-22 半边② 是「载体识别」不是「AC 收窄」**:AC 原文写「**7a 的序列化器**两个 Kind 均在**白名单**内」,
+> 而 7a **从未有过**独立的「白名单**表**」(`ADR-010` / `persistence-service.md` 全文无) ——
+> 序列化器的白名单在实现里**天然是** `EventKind` 35 支闭集 ∩ `PayloadCodec`/`PayloadEncoder` 分派表。
+> **AC 文本一字未动**,故**不越** `EPIC.md:109` 的「本 epic 不自行改 AC 文本」边界。**该读法待 producer/TD 复议。**
+> **④ ⚠️ 本件未动 7a** ⇒ S11-4 AC 的「若动 7a 须带 case↔7a 折叠集成夹具(TD 风险 1 缓解)」**不触发**;
+> **不得**把本件读成「TD 风险 1 已缓解」(见 sprint §Risks 该行)。
+> **⑤ 可证伪**:反证(停用 `PayloadCodec.cs:59` 的 `EmergencyTreatmentApplied` case)⇒ 退出码 **2** · XML **`failed=2`**,
+> 恰红两条新测且失败消息**精确点名**被移除的 Kind ⇒ 判别力确认(非假绿夹具)。还原经 `grep` + `git status` 三重复核。
+> **⑥ 零回归**:全量 EditMode **`3346 / 3300 / 0`**(较 S11-9 后 **+2 passed**,恰本轮新增)· `error CS` = 0 · 无 asmdef 改动。
+> **⑦ 真残余(未消解,禁借绿)**:DC-6 对当前数据集**零求值**(`salicylic_acid.dose_range = null`)·
+> BL-7(21a `drug_potency` 域未声明)· AC-11-22 半边甲(文本背离,归 producer/TD)·
+> **EPIC 仍 `5/5 Complete` 但 DoD 未达**(本件不改变该状态)。
 
 ### Nice to Have
 

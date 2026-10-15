@@ -98,11 +98,15 @@ This epic is complete when:
 >
 > ⚠️ **但 epic 未达 DoD** —— DoD 第 2 条「AC-11-01…22 全部 verified」与第 4 条
 > 「与 emergency-procedures 载荷交叉校验**双向**绿」**均未满足**(后者对面 epic 仍 `In Review`)。
+> ✅ **2026-10-15 登记回刷(S11-4)**:下表 story-001 的两项(DC-2 / DC-6)**实现侧早在 2026-10-07 已闭环**
+> —— 此前**登记未回刷**,非「未实现」;另 **AC-11-22 的 7a 白名单半边**已由 S11-4 落判据
+> (白名单 = `EventKind` 35 支闭集 ∩ `PayloadCodec` / `PayloadEncoder` 分派表)。
+> 详见下表订正行与 §2026-10-07 增量段末。
 > 下列项**按原口径 NOT-RUN / BLOCKED-BY,禁借绿**,等待前置件回写:
 
 | 归属 | 未闭项 | 阻塞源 |
 |---|---|---|
-| story-001 | DC-2(`action_id` 闭集)· DC-6(`NOISE_BAND_9` 无主) | OQ-11-2 · BL-2(O-11→9) |
+| story-001 | ~~DC-2(`action_id` 闭集)~~ ✅ **已闭 2026-10-07**(master = `disease_action_axis.json`,`2a7764f`)· ~~DC-6(`NOISE_BAND_9` 无主)~~ ✅ **已闭 2026-10-07**(9 侧立 `NOISE_BAND_POTENCY_9` ⇒ 判据 RUN) | ~~OQ-11-2 · BL-2~~ ⇒ **残余** = DC-6 对当前数据集**零求值** + BL-7(21a `drug_potency` 域未声明) |
 | story-002 | AC-11-11④ 宽度分支 · AC-11-19 **断言本体** · TR-prescription-007 的 21a 半边 | BL-7 / BL-2 / BL-1(均 O-11→21a) |
 | story-002/003 | AC-11-15 三格矩阵 + 跨进程半边 | ADR-012 矩阵未激活 |
 | story-003 | 影子装配注入半边 · `CheckPayloadPairing` 不覆盖 codec tag 序 · AC-11-22 的 7a 白名单本体 | 需动态生成程序集 · 归 ADR-014 阶段 2 · BLOCKED-BY-7a |
@@ -113,7 +117,7 @@ This epic is complete when:
 > ⚠️ **AC-11-10 的口径降级**(非静默):「双路径对拍」降为 AC-10-06b 逐位字段比较
 > —— 两条路径载荷形状不同,已在 story-002/003 文件头登记。
 
-### 2026-10-07 增量:DC-2 / DC-6 **校验机制**落地(判据本体仍 NOT-RUN)
+### 2026-10-07 增量:DC-2 / DC-6 **校验机制**落地(判据本体已于同日随真源落地转 RUN —— 2026-10-15 登记回刷)
 
 > 承 story-001 卡面授权「校验机制 + 负夹具以影子枚举证明可跑」,本轮把两条**从未有执行体**的
 > 构建期判据建成可跑的机器。**判据本体维持 `NOT-RUN`**(真源仍缺席,见下表)——
@@ -128,6 +132,10 @@ This epic is complete when:
 > - 测试:filtered **174/174/0** · 全量 EditMode **2935/2888/0 红**。
 >   **5 条新守卫经突变验证有抓错力**(注入改坏点 ⇒ 实测红 ⇒ 还原)。
 >
-> ⚠️ **仍未闭**(禁借绿):DC-2 处置 id master 未登记 · DC-6 `NOISE_BAND_9` 未立(BL-2)·
-> **DC-6 对当前数据集零求值**(`salicylic_acid` 的 `dose_range = null`,已由覆盖率记账逐字声明)·
-> 两条已知测试弱点(M1 反守卫用干净夹具 / M4 正向判别力过窄,已登记不静默)。
+> ✅ **2026-10-15 登记回刷(S11-4)**:上列前两项**已由真源落地消解** ——
+> DC-2 的 master **已登记**(`disease_action_axis.json`,`2a7764f`)· DC-6 的常量**已具名**
+> (`NOISE_BAND_POTENCY_9`,`entities.yaml:1484`)⇒ 两条判据本体 **RUN**;
+> 另 **AC-11-22 的 7a 白名单半边**由 S11-4 落判据(白名单 = `EventKind` 闭集 ∩ codec 分派表,
+> 载体识别 —— AC 文本一字未动;原「7a 存档白名单**表**未落地」的读法已订正)。
+> ⚠️ **仍未闭**(禁借绿):**DC-6 对当前数据集零求值**(`salicylic_acid` 的 `dose_range = null`,已由覆盖率记账逐字声明)·
+> BL-7(21a `drug_potency` 域未声明)· 两条已知测试弱点(M1 反守卫用干净夹具 / M4 正向判别力过窄,已登记不静默)。
