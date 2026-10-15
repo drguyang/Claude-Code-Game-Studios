@@ -1,12 +1,12 @@
 # Story 001: 入向闭集与跨流聚合
 
 > **Epic**: 医疗后果与责任
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 3h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-15
 
 ## Context
 
@@ -93,7 +93,28 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/MedConsequences/medcons_aggregation_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Actual evidence**: ✅ 同上路径 —— **20 条测,全 Passed**(2026-10-15 · S11-5)
+**Status**: [x] Created and passing
+
+> **✅ 实现记录(2026-10-15 · S11-5)** —— 实现件 = `unity/Assets/Sim/Consequences/ConsequenceInputAggregator.cs`
+> (门 A 内零引擎 API;`Sim` 引用集仍恰 = `["Sim.Contracts"]`,**无 asmdef 改动**)。
+> 判据:filtered EditMode `20/20` · 全量零回归 `3366/3320/0/46`(较 S11-4 后 **+20**,恰本轮新增)·
+> **反证 ×2**(① 停用 `ordered.Sort` ⇒ 恰红 2 条**排序专向**探针;② 注入第六路字段 ⇒ 恰红 1 条并**逐字点名**)。
+> 证据原件:`production/qa/evidence/s11-5-medcons-story-001-aggregation-2026-10-15.md`。
+>
+> ⚠️ **命名口径(本卡内异名,就地登记,原文不追改)**:本卡 **AC 第一条逐字**写「`Inputs53` 结构恰含五路」,
+> 而 **§Implementation Notes 1 同一物写作 `PerCaseInputs`** —— 两者是同一结构的**异名**。
+> 实现**取 AC 名** `Inputs53`(**AC 是判据**),**不复名**(避免第二真源)。
+>
+> ⚠️ **两处张力未在本 story 裁定(如实登记,归 53 的 GDD 轮)**:① **处置 Kind 集** ——
+> §Implementation Notes 4 提 10/11 两支(`EmergencyAttempt` / `DrugTreatmentApplied`),
+> 而 GDD 规则五 `:165` 只列 `CareApplied` ⇒ 实现取 `careKinds` **显式参数**,由装配层决定;
+> ② **处置窗口下界** —— 取 `[CaseOpened, Close]` 窗口须加第六路,与 AC-1「恰五路」**直接冲突**
+> ⇒ 实现取 `Tick ≤ 结案 tick`(无下界)。
+>
+> ⚠️ **6 条 AC 复选框未勾** —— 判据已全绿(每条均有专测),但**关闭归 `/story-done`**(承 S11-4 口径)。
+> ⚠️ **本件不产出 `ConsequenceResolved`** —— 本 story 只做**聚合器(输入侧)**;
+> `WriterExistenceGate.cs:117` 的「53 未实现」注记**不应因本件改动**(产出归 story-003)。
 
 ---
 

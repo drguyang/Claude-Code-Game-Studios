@@ -57,11 +57,11 @@ stories:
     name: "53 medical-consequences 起首 story(支柱四载体)"
     file: "production/sprints/sprint-11.md"
     priority: nice-to-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "Claude"
     estimate_days: 1.5
     blocker: ""
-    completed: ""
+    completed: "2026-10-15"
   - id: "S11-6"
     name: "11 人工走查 AC-11-12/13/21(前置:修 Driver passed 汇总 bug)"
     file: "production/sprints/sprint-11.md"

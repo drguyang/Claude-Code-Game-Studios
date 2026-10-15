@@ -141,8 +141,38 @@ story-004 的其余 7 条(TB-1 定序判别力 / TB-2 成员冻结 / TB-3 真空
 
 | ID | Task | Agent/Owner | Est. Days | Dependencies | Acceptance Criteria |
 |----|------|-------------|-----------|--------------|---------------------|
-| S11-5 | **53 medical-consequences 起首 story**(支柱四载体,机械自足 P0 水龙头,纯 C# + SplitMix64,Engine Risk LOW) | Claude | 1-2 | 9+37 已 Complete ✓ | story 立件 + 判据面成型;不强求当轮完成 story 立件 + 判据面成型;不强求当轮完成 | **QA**:随立件定测试路径(Logic 级) |
+| S11-5 ✅ **DONE 2026-10-15** | **53 medical-consequences 起首 story**(支柱四载体,机械自足 P0 水龙头,纯 C# + SplitMix64,Engine Risk LOW) | Claude | 1-2 | 9+37 已 Complete ✓ | story-001 入向闭集与跨流聚合**已实现**(`Inputs53` 五路闭集 + 全序聚合 + 20 条测);story 状态转 In Review | **QA**:EditMode 20 条(6 条 AC 全覆盖)· 反证 ×2 · 零回归 `3366/3320/0` |
 | S11-6 | **11 人工走查 AC-11-12/13/21**(前置:先修 Story009WalkthroughDriver `passed` 汇总 bug) | user + Claude | 0.5-1 | Driver bug 修复 | 三 AC 走查证据落 playtests/;Driver 汇总判定修复登记 三 AC 走查证据落 playtests/;Driver 汇总判定修复登记 | **QA**:人工走查三签(主创/医学/音频);Driver passed 汇总修后自证 |
+
+> **✅ S11-5 完成订正框(2026-10-15)** —— 证据原件:`production/qa/evidence/s11-5-medcons-story-001-aggregation-2026-10-15.md`
+> **① 任务书前提被推翻(同 S11-4 的同类失效,如实登记)**:S11-5 逐字写「**story 立件** + 判据面成型」,
+> 而 4 个 story 件**早在 2026-09-28 由 `/create-stories` 立好**(全 `Ready`,`:6` 逐字 `Status: Ready`)——
+> **立件从未缺席,缺席的是实现**:`WriterExistenceGate.cs:117` 具名登记「53 医疗后果与责任**未实现**」。
+> ⇒ 本轮是**真活**(需实现,不是立件),工作量与 3h 估算同量级。
+> ⚠️ **过程面观察**:本 sprint 的 should-have(S11-4)与 nice-to-have(S11-5)**两项任务书前提均已过时**,
+> 两项描述均写于 2026-10-14,而相关产物形成于 10-03 / 10-07 / 09-28 ⇒ **sprint 计划时未回扫 epic 现状**。
+> **② 交付**:`Sim/Consequences/ConsequenceInputAggregator.cs`(生产件 · 门 A 内零引擎 API)+
+> `Tests/EditMode/MedConsequences/medcons_aggregation_test.cs`(20 条测)—— **两个新目录,均为本 story 首件**。
+> **③ 五处偏离批准草案(均以卡面/AC 为准,如实登记)**:结构名 `PerCaseInputs` → **`Inputs53`**
+> (卡面 AC-1 **逐字**点名 `Inputs53`,而 §Implementation Notes 1 同一物写作 `PerCaseInputs` ——
+> **同文件内异名**,按「AC 是判据」取 AC 名) · 测试路径改从卡面 §Test Evidence 点名值 ·
+> 第五路类型 `IDiseaseProjection` → `DiseaseProjectionSnapshot`(接口引用逐组重复无语义) ·
+> AC-5 改用 `Assembly.GetReferencedAssemblies()` 元数据(不读文件系统,且查**实际**引用集更严) ·
+> 黑名单扫描面 = `DaYiJingCheng.Sim.Consequences` 命名空间(**53 无独立程序集**;
+> **刻意不扫全 `Sim`** —— 会把 9/25/37 的字段纳入 53 判据 = 越权)。
+> **④ 两处张力不自行裁定(承批准口径)**:① 处置 Kind 集 ⇒ `careKinds` **显式参数**,
+> 测试**只**钉「参数被尊重」(窄集/宽集/null 三输入 ⇒ 三结果),**不**钉该集该是什么;
+> ② 处置窗口下界 ⇒ 取 `Tick ≤ 结案 tick`(无下界),测试钉**当下口径**并注明待裁。**两者归 53 的 GDD 轮。**
+> **⑤ 可证伪(反证 ×2,双信号口径)**:① 停用 `ordered.Sort` ⇒ 退出码 **2** · `failed=2`,
+> 恰红**两条排序专向探针**(置换不变 + 同 tick Seq 定序),消息逐字指向排序语义;
+> ② 注入第六路字段 ⇒ 退出码 **2** · `failed=1`,恰红五路闭集测且消息**逐字点名** `SixthLaneProbe`。
+> 两次还原经 `grep` 残留 0 + 关键符号完好 + `diff` identical + md5 与备份一致 **四重复核**。
+> **⑥ 零回归**:全量 EditMode **`3366 / 3320 / 0 / 46`**(较 S11-4 后 **+20 passed**,恰本轮新增)·
+> `error CS` = 0 · **无 asmdef 改动**(门 A / b2 门 / ADR-025 §① 全成立)。
+> **⑦ 真残余(未消解,禁借绿)**:story-001 件 6 条 AC 复选框**未勾**(归 `/story-done`)·
+> `WriterExistenceGate.cs:117` 的「53 未实现」**不应因本件改动** —— 本 story 只做**聚合器**(输入侧),
+> **不产出** `ConsequenceResolved`(归 story-003)· P/C 的**内容**(病名/置信度/处置适切性)归 story-002,
+> 本件**零载荷解码**(门 A 够不着 `Sim.Codec`)· 张力 ①② 归 53 的 GDD 轮。
 
 ## Carryover from Previous Sprint
 
