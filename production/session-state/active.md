@@ -4543,3 +4543,5 @@ X-2 换乘子时丢配对 `)` ⇒ CS1026。
 1. `/qa-plan sprint` —— 用户已裁定先跑(定义每 story 的测试要求)
 2. `/story-readiness production/epics/medical-consequences/story-001-...md`(S13-1 起手)
 3. S13-1 → S13-3 → S13-2(Must 序;S13-2 依赖 S13-1)
+
+<!-- QA-PLAN: 2026-10-16 | System: sprint-13 (53 医疗后果与责任) | Plan written: production/qa/qa-plan-sprint-13-2026-10-16.md -->
