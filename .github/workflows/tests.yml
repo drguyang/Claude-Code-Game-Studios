@@ -27,3 +27,37 @@ jobs:
           echo "TODO(实现轮):调用 tests/golden 的哈希比对入口。"
           echo "守卫未实现前此步须保持未接入 —— 接入即红是设计意图(禁假绿)。"
           exit 0   # ⚠️ 占位通过;守卫未实现前不记绿
+
+  # 2026-10-15 立:kindgen(= AC-37-03 的唯一载体)。
+  # 背景:补评原件 production/qa/evidence/review-case-system-story-001-retro-2026-10-15.md
+  #   §二 B-4 —— 「测试从不运行 kindgen;把 kindgen 删掉,13 条测试照样全绿」;
+  #   生成物自述(StreamRouting.g.cs 头注「产物存在即断言已过」)**不是证据**。
+  #   ⇒ 断言执行权移到这里:本 job 失败即 CI 红,AC-37-03 无第二载体。
+  # 独立成 job(不并入 guard-assertions):后者是占位 TODO,本 job 是**真跑的绿**。
+  # 纯 Python + PyYAML,零 Unity 依赖 —— 与工作流既有取向一致。
+  kindgen-assertions:
+    name: "Kind registry assertions (kindgen A1–A5)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: python3 -m pip install --quiet "PyYAML==6.0.3"   # 与本地验证版本一致(实测 kindgen 通过)
+
+      - name: kindgen assertions (A1–A5, --check 不写文件)
+        run: python3 tools/kindgen/kindgen.py --check
+
+      - name: Generated artifact matches registry (重生成后再生成一致性)
+        run: |
+          python3 tools/kindgen/kindgen.py
+          if ! git diff --quiet -- unity/Assets/Sim/StreamRouting.g.cs; then
+            echo "::error::StreamRouting.g.cs 与 registry 脱钩 —— 重跑 kindgen 并提交产物"
+            git diff -- unity/Assets/Sim/StreamRouting.g.cs
+            exit 1
+          fi
+          echo "StreamRouting.g.cs 与 registry 一致(逐字节)"
+

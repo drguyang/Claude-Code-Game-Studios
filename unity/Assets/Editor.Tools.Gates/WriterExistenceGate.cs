@@ -84,8 +84,15 @@ namespace DaYiJingCheng.EditorTools.Gates
             //   JudgmentWriter.TryRevise 落地(三态循环的改判 / 擦除两步),且
             //   IPayloadEncoder.EncodeJudgmentRevised 具名通道已补 —— 判据①
             //   「已存在写者的 Kind 仍挂豁免表 = 红」强制撤表。
-            ("CaseClosed", "37 结案写者未落 —— 处置证据窗口 / 幂等拒收的写入面归 37 实现轮;CaseCloseDecider 现为纯函数(2026-10-10)"),
-            ("PatternRecognized", "37 同源检测写者未落 —— PatternDetector 现为纯函数,盐派生 + 冻结三元组写入归 37 实现轮(2026-10-10)"),
+            // ⚠️ 2026-10-15 撤 `CaseClosed` / `PatternRecognized` 两条豁免(sprint-11
+            //   case-system 断言形态批就地闭合 · 用户裁定「解冻写者」):写者已落 ——
+            //     · CaseClosed       → `Sim/CaseCloseWriter.cs`(结案写者)
+            //     · PatternRecognized → `Sim/PatternRecognitionWriter.cs`(同源检测写者)
+            //   判据①「已存在写者的 Kind 仍挂豁免表 = 红」强制同批撤表。
+            //   ⚠️ **本类与两个写者必须同批提交** —— 任一半边单独提交皆红:
+            //   先撤表后写码 ⇒ 判据「写者缺失」红;先写码后撤表 ⇒ 判据① 红。
+            //   (生产触发点接线归 37/4/8 的交互装配轮 —— 与 `CaseOpenWriter` 同格,
+            //    `CaseOpenWriter` 亦未接线而已被本门接受为「有写者」。)
 
             // ── 9 疾病与伤情模拟 ──
             ("PlayerDied", "9 致死判据写者未落 —— registry author 自述「Append 调用点 = 0」(entities.yaml PlayerDied 条);归 9 实现轮(2026-10-10)"),

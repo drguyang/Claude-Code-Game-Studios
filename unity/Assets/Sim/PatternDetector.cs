@@ -15,9 +15,15 @@
 //                     `PatternRecognized` 已发出 ⇒ 永不重发),返回**本 tick 真正应发射**者。
 //                     AC-37-09/29 的「第 4 例不重发 / 永不重发」属本层。
 //   ⇒ 「不重发」若写在调用方 = 未写未测的契约(Story 004 补评 CB-1/TB-4);本层即其载体。
-//   ⚠️ 写者(`Append` + 发号 `Seq`)**仍未落** —— 见 Story 004 §Out of Scope 的正式登记
-//      (2026-10-15 用户裁定「接受延后」;`WriterExistenceGate.cs:88` 具名豁免)。
-//      本文件只到「该做什么」,不含任何 `IEventSink` 调用。
+//   · CB-3(2026-10-15 修):达标判定层的**扁平 MemberSet 已删** —— 它既按 Dictionary 迭代序
+//     拼装(违 AC-37-27),又无逐 D 归属(违 registry 逐事件 member_set)。成员集现**只有**
+//     NextEmissions 的逐 D 路径(PatternEmission.MemberSet)。
+//   ⚠️ 写者(`Append` + 发号 `Seq`)**不在本文件** —— 本文件只到「该做什么」,不含任何
+//      `IEventSink` 调用。写者已落 `Sim/PatternRecognitionWriter.cs`(2026-10-15,与同批
+//      撤 `WriterExistenceGate` 的 `PatternRecognized` 具名豁免一并;**生产触发点接线**
+//      仍归 37 实现轮的装配面,与本文件无关)。
+//      (历史注:Story 004 补评 CB-1/TB-4 曾记「发射语义无生产载体」—— 该缺口由
+//       `NextEmissions`(S11-9)+ `PatternRecognitionWriter`(2026-10-15)两件合起来闭合。)
 
 using System;
 using System.Collections.Generic;
@@ -26,25 +32,29 @@ using DaYiJingCheng.Sim.Contracts;
 namespace DaYiJingCheng.Sim
 {
     /// <summary>同源检测结果(达标判定层)。</summary>
+    /// <remarks>
+    /// <para><b>只承载「哪些 D 达标」,不承载成员集</b> —— 曾经存在的扁平
+    /// <c>IReadOnlyList&lt;CaseId&gt; MemberSet</c> 已**删除**(Story 004 补评 CB-3,2026-10-15),两处原因:
+    /// ① 它由 `foreach (var kvp in candidateSeq)` 的 **`Dictionary` 迭代序**拼装
+    ///    ⇒ 违 AC-37-27「禁集合迭代序」(该序在 C# 里不保证跨平台一致);
+    /// ② 它是**扁平**结构,多 D 同时达标时无病种归属,而 registry
+    ///    `SimEvent.Kind.PatternRecognized.payload_schema` 要求 `member_set` **逐事件**携带。</para>
+    /// <para><b>需要成员集的调用方一律走 <see cref="PatternDetector.NextEmissions"/></b> ——
+    /// 它返回<b>逐 D</b> 的 <see cref="PatternEmission.MemberSet"/>(按全序键 (Tick, Patient, Seq)
+    /// 定序、与 `Dictionary` 迭代序无关)。删除前的消费者调查:全仓仅测试件引用该字段,
+    /// 生产侧唯一调用点(<c>PatternRecognitionWriter</c>)只读 <see cref="Fired"/>。</para>
+    /// </remarks>
     public readonly struct PatternDetectionResult
     {
         /// <summary>是否触发。</summary>
         public readonly bool Fired;
         /// <summary>触发的病种 ordinal 列表(按 salted_key 升序)。</summary>
         public readonly IReadOnlyList<int> FiredDiseases;
-        /// <summary>
-        /// 成员集(每病种前 PATTERN_THRESHOLD 例的 case_id)。
-        /// <para>⚠️ **扁平结构,无病种归属** —— 多 D 同时达标时无法按 D 切分。此形状的收口
-        /// 见 Story 004 补评 CB-3(归 sprint-12);需要逐 D 归属的调用方用
-        /// <see cref="PatternDetector.NextEmissions"/>。</para>
-        /// </summary>
-        public readonly IReadOnlyList<CaseId> MemberSet;
 
-        public PatternDetectionResult(bool fired, IReadOnlyList<int> firedDiseases, IReadOnlyList<CaseId> memberSet)
+        public PatternDetectionResult(bool fired, IReadOnlyList<int> firedDiseases)
         {
             Fired = fired;
             FiredDiseases = firedDiseases;
-            MemberSet = memberSet;
         }
     }
 
@@ -198,28 +208,22 @@ namespace DaYiJingCheng.Sim
             var candidateSeq = ComputeCandidateSeq(caseEvents, diseaseExtractor, scriptedChains);
 
             // 4. 检查触发:长度 >= 阈值
+            //
+            // ⚠️ 本循环**只产出 FiredDiseases** —— 成员集不在此产出(CB-3:此处曾按
+            //    `candidateSeq` 的 `Dictionary` 迭代序拼一个扁平 memberSet,两次违 AC-37-27;
+            //    成员集现只经 NextEmissions 的逐 D 路径)。产出顺序不构成契约:紧随其后的
+            //    SortBySaltedKey 才是唯一定序源。
             var firedDiseases = new List<int>();
-            var memberSet = new List<CaseId>();
             foreach (var kvp in candidateSeq)
             {
-                var disease = kvp.Key;
-                var candidates = kvp.Value;
-                if (candidates.Count >= patternThreshold)
-                {
-                    firedDiseases.Add(disease);
-                    // MemberSet = 前 PATTERN_THRESHOLD 例
-                    for (int i = 0; i < patternThreshold && i < candidates.Count; i++)
-                    {
-                        var e = candidates[i];
-                        memberSet.Add(new CaseId(e.Tick, e.Patient.Value, e.Seq));
-                    }
-                }
+                if (kvp.Value.Count >= patternThreshold)
+                    firedDiseases.Add(kvp.Key);
             }
 
             // 5. 按 salted_key 升序排序
             SortBySaltedKey(firedDiseases, worldSeed);
 
-            return new PatternDetectionResult(firedDiseases.Count > 0, firedDiseases, memberSet);
+            return new PatternDetectionResult(firedDiseases.Count > 0, firedDiseases);
         }
 
         /// <summary>
@@ -268,7 +272,7 @@ namespace DaYiJingCheng.Sim
                 if (IsFired(caseEvents, disease, worldSeed, saltedKeyExtractor))
                     continue;
 
-                // 逐 D 切成员(不从 PatternDetectionResult.MemberSet 取 —— 该结构扁平,见 CB-3)
+                // 逐 D 切成员(唯一路径 —— PatternDetectionResult 的扁平 MemberSet 已于 2026-10-15 删除,见 CB-3)
                 var candidates = candidateSeq[disease];
                 var members = new List<CaseId>(patternThreshold);
                 for (int i = 0; i < patternThreshold && i < candidates.Count; i++)
