@@ -66,6 +66,13 @@
 - **零载荷解码(门 A 的结构性后果)**:`Sim` 引用集恰 = `{BCL, Sim.Contracts}` ⇒ 够不着 `Sim.Codec`
   ⇒ 只操作 `SimEvent` **头部**(Tick/Patient/Seq/Kind),**从不读 `Payload`**。
   P/C 的**内容**归 story-002。**这不是范围裁剪**,是门 A 使然。
+  > ⚠️ **订正注(2026-10-16 · `/story-done` story-001 · ADVISORY-2)**:上句是 **S11-5 时点真值,原文不删**;
+  > 2026-10-15 **接线轮**(承 **ADR-031 §V-8 ②「退」**,用户裁定「6 处全做,含改 `Inputs53`」)后该前提
+  > **已不成立** —— `IPayloadDecoder` 住 `Sim.Contracts`(ADR-031 §① 第八抽象点)⇒ 聚合器现经**注入的
+  > 解码器**解出 P/C 的**载荷内容**(`JudgmentRow53.LexiconId/Confidence` · `CareRow53.ActionId/Polarity`)。
+  > **门 A / b2 约束不变**(`Sim` 引用集仍恰 = `{BCL, Sim.Contracts}`,解码经契约抽象点、**不引用 `Sim.Codec`**)
+  > —— 变的只是「读不读载荷」的事实,不是「经哪扇门读」的边界。同步订正见 story-001 卡面
+  > Completion Notes 与本件配套测试 `medcons_aggregation_test.cs:544` 断言消息。
 - **置换不变由结构保证**:「先复制 → 全排序 → 后处理」⇒ 输入的任意置换归约到同一有序序列。
   比较体复用 `EventOrder.Compare`(**禁减法**,防 int64 溢出 —— 卡面 §Implementation Notes 2)。
 - **P = 最后一笔**:有序扫描 + 逐条覆盖 ⇒ 自然得「结案前最后一笔 `JudgmentRecorded`」。

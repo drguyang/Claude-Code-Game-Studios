@@ -14,7 +14,7 @@ goal: "53 结算链贯通(story-003 回响写世界流)+ 收口纪律固化(stor
 start: ""
 end: ""
 generated: "2026-10-16"
-updated: "2026-10-16"
+updated: "2026-10-16"   # S13-1 done(story-001 收口 + EPIC 口径 reconcile)
 
 stories:
   # ── Must Have ──
@@ -22,14 +22,19 @@ stories:
     name: "story-001 收口 + medical-consequences/EPIC.md 口径 reconcile(全仓唯一未收口的 In Review 件)"
     file: "production/epics/medical-consequences/story-001-input-closure-and-stream-aggregation.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: ""
+    completed: "2026-10-16"
     # 判据:EPIC.md stories 表四行状态与四个 story 文件 Status: 行逐字一致(改任一行即红)。
     # 勘察实测:story-001 现 In Review(Test Evidence 已 passing、Completion Notes 空);
     #          story-002 已于 2026-10-16 翻 Complete,而 EPIC.md 仍写 Ready ⇒ 口径 stale。
+    # ✅ 2026-10-16 收口(/story-done · COMPLETE WITH NOTES):story 翻 Complete;EPIC.md 001/002 行
+    #    按真值刷新(003/004 维持 Ready)⇒ 四行与四个卡头逐字一致;epic 卡头承库约定二元制保持
+    #    Ready + 进度注(2/4)。证伪轮补账:S12-4 五形态自此全数反证(②A/④C/⑤B 本轮补跑,全转红)。
+    #    ADVISORY-2 已订正:接线轮(ADR-031 V-8 ②「退」)后 s11-5 原件 §3.1 与测试 :544 断言消息
+    #    「53 不读载荷内容」滞后 ⇒ 加注/改措辞,**断言逻辑一字未动**。
 
   - id: "S13-2"
     name: "story-003 实现:F-53.2 延迟发出 + ConsequenceResolved 世界流写入"

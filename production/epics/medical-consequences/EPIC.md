@@ -3,7 +3,9 @@
 > **Layer**: Core(sim 侧结算 · 门 A 程序集 `Sim`)+ Presentation(回响呈现,经 42/44/13)
 > **GDD**: design/gdd/medical-consequences.md(GDD 状态:Draft,待结案模式收口 —— 机制已冻结部分可拆 story,承重未裁项逐条标注)
 > **Architecture Module**: L2 Sim(单例后果结算纯函数)+ 世界流写入者(`ConsequenceResolved`)
-> **Status**: Ready
+> **Status**: Ready(2026-10-16 进度注:**2/4 story 已收口** —— 001 于 2026-10-16 `/story-done`
+> S13-1 · 002 于 2026-10-16 翻 Complete(返工 + 重评两轮,commit `85f5469`);003/004 未完 ⇒ epic 未收口。
+> 承库约定 epic 级 `Status:` 二元制(Ready 未收口 / Complete 全收口),进度以本注 + Stories 表体现)
 > **Stories**: 4 stories created(2026-09-28 `/create-stories`)
 
 ## Overview
@@ -71,7 +73,7 @@ This epic is complete when:
 
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
-| 001 | 入向闭集与跨流聚合 | Logic | Ready | ADR-008 + ADR-005 |
-| 002 | F-53.1 确定性结算(Outcome 枚举) | Logic | Ready | ADR-007 + ADR-012 |
+| 001 | 入向闭集与跨流聚合 | Logic | **Complete ✅ 2026-10-16**(S13-1 `/story-done`;实现 S11-5 2026-10-15 · 接线轮 ADR-031 V-8 ② 2026-10-15 · 证伪五形态全数转红) | ADR-008 + ADR-005 |
+| 002 | F-53.1 确定性结算(Outcome 枚举) | Logic | **Complete ✅ 2026-10-16**(实现 S12-9 `b9f400a` · 返工 + 重评两轮 `85f5469`;18 条证伪探针全红) | ADR-007 + ADR-012 |
 | 003 | F-53.2 延迟发出与 ConsequenceResolved 世界流 | Logic | Ready | ADR-009 + ADR-024 |
 | 004 | 回响呈现世界内与三案链集成走查 | Integration | Ready | ADR-013 + ADR-018 + ADR-016 |

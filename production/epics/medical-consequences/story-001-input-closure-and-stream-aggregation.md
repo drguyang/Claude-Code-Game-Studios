@@ -1,12 +1,12 @@
 # Story 001: 入向闭集与跨流聚合
 
 > **Epic**: 医疗后果与责任
-> **Status**: In Review
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 3h
-> **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-10-15
+> **Manifest Version**: 2026-10-15
+> **Last Updated**: 2026-10-16
 
 ## Context
 
@@ -31,12 +31,15 @@
 
 *From GDD `design/gdd/medical-consequences.md`, scoped to this story:*
 
-- [ ] `Inputs53` 结构恰含五路(CaseClosed / PatternRecognized / JudgmentRecorded / CareApplied / 病程投影),类型级闭集;第六路存在 = AC-53-05 反射断言红
-- [ ] **AC-53-04 置换不变**:同一批事件任意打乱到达序 ⇒ 聚合结果逐位一致(承接 AC-37-28 口径);排序键全序、无并列残留
-- [ ] 哨兵先行用例:同 tick 的 `PatternRecognized(Patient=-1)` 正确排在病人事件前,且其语义(模式识别加速)在聚合后可被 Story 002 读出;不判为「未结案」
-- [ ] **AC-53-05**:53 全部可序列化/内部类型反射扫描,无改写/修订计数类字段(零改写计数 = 承 AC-37-20)
-- [ ] 病程投影经只读 DTO 边界(无 9 内部类型 import;asmdef 引用集 = BCL + 契约件)
-- [ ] 空输入 / 单事件 / 纯哨兵流 ⇒ 聚合退化为空结果,不崩(边界夹具)
+- [x] `Inputs53` 结构恰含五路(CaseClosed / PatternRecognized / JudgmentRecorded / CareApplied / 病程投影),类型级闭集;第六路存在 = AC-53-05 反射断言红
+- [x] **AC-53-04 置换不变**:同一批事件任意打乱到达序 ⇒ 聚合结果逐位一致(承接 AC-37-28 口径);排序键全序、无并列残留
+- [x] 哨兵先行用例:同 tick 的 `PatternRecognized(Patient=-1)` 正确排在病人事件前,且其语义(模式识别加速)在聚合后可被 Story 002 读出;不判为「未结案」
+- [x] **AC-53-05**:53 全部可序列化/内部类型反射扫描,无改写/修订计数类字段(零改写计数 = 承 AC-37-20)
+- [x] 病程投影经只读 DTO 边界(无 9 内部类型 import;asmdef 引用集 = BCL + 契约件)
+- [x] 空输入 / 单事件 / 纯哨兵流 ⇒ 聚合退化为空结果,不崩(边界夹具)
+
+> ✅ **6 条 AC 于 2026-10-16 经 `/story-done` 逐条核账后勾选**(每条均有具名专测,映射见 §Test Evidence;
+> 承 S11-4 口径「打勾归 /story-done」,本行为关闭记录)。
 
 ---
 
@@ -119,8 +122,25 @@
 > ⇒ 实现取 `Tick ≤ 结案 tick`(无下界)。
 >
 > ⚠️ **6 条 AC 复选框未勾** —— 判据已全绿(每条均有专测),但**关闭归 `/story-done`**(承 S11-4 口径)。
+> ✅ **已于 2026-10-16 由 `/story-done` 逐条核账后勾选**(见 §Acceptance Criteria 关闭记录)。
 > ⚠️ **本件不产出 `ConsequenceResolved`** —— 本 story 只做**聚合器(输入侧)**;
 > `WriterExistenceGate.cs:117` 的「53 未实现」注记**不应因本件改动**(产出归 story-003)。
+
+> **证伪轮补账(S12-4 · 2026-10-16 `/story-done` · 五类形态自此全数反证)** ——
+> S11-5 原件 §四 已反证 ①定序 / ③定义域收窄;本轮对实现件(接线轮 ADR-031 V-8 ② 后形态,
+> md5 `a702ee32bba07c6a4f6b00b258dcdcf5`)补跑 ②④⑤ 三类,**改 → 跑 → 还原同一次调用内完成,
+> 三跑三还原 md5 一致、残留 0**:
+>
+> | 命中形态 | 反证:停用什么 ⇒ 哪条转红 | 轮次 |
+> |---|---|---|
+> | ① 定序 | 停用 `ordered.Sort(EventOrder.Compare)` ⇒ `permutationInvariance` + `sameTick…Seq` 2 红 | S11-5 |
+> | ② 共存/互斥(跨病人隔离) | 停用 `e.Patient != close.Patient continue` ⇒ `careProjection_excludesAfterClose` + `keepsOnlyLastJudgment` 2 红 | **本轮 A**(ec=2) |
+> | ③ 定义域收窄 | 注入 `Inputs53.SixthLaneProbe` ⇒ `hasExactlyFiveLanes` 1 红(逐字点名) | S11-5 |
+> | ④ 一次性/覆盖 | 停用 P「最后一笔」覆盖(`else judgments.Clear()`)⇒ `keepsOnlyLastJudgmentBeforeClose` 1 红 | **本轮 C**(ec=2) |
+> | ⑤ 阈值边界 | 窗边界 `>` 改 `>=` ⇒ `sameTick…Seq` + `sentinelNotFolded` + `includesEventsAtExactlyCloseTick` 3 红 | **本轮 B**(ec=2) |
+>
+> 基线:filtered `MedConsequences` **61/61 绿**(aggregation 20 + judge 41,ec=0)。
+> 每轮均含「旧实现下该夹具会怎样」栏:s11-5 原件 §四「反证失败的消息」段(消息精确指向变异点,非泛红)。
 
 ---
 
@@ -132,5 +152,40 @@
 ---
 
 ## Completion Notes
+**Completed**: 2026-10-16
+**Criteria**: 6/6 passing(无 deferred;AC↔测映射见 §Test Evidence,0 UNTESTED)
+**Verdict**: **COMPLETE WITH NOTES**(S12-4 Falsifiability Gate = **PASS** —— 五类命中形态全数反证转红)
+**Test Evidence**: Logic —— `unity/Assets/Tests/EditMode/MedConsequences/medcons_aggregation_test.cs`
+(20 条全 Passed;filtered 61/61;全量零回归基线承 sprint-12 终轮 `3462 / 3416 / 0 / 46`,commit `85f5469`)
+**Code Review**: Complete(S11-5 实现报告原件 + 2026-10-16 `/story-done` 证伪补账;
+lean 模式下经用户裁定「已有实现证据,视为已评审」)
 
-*(empty — fill at story completion via `/story-done`)*
+**Deviations(均为 advisory,已处理)**:
+- **ADVISORY-1(Manifest 版本)**:卡面原嵌 `2026-10-02` vs 现值 `2026-10-15`。
+  核实 `control-manifest.md` **无 53 专节**(grep `53` / `ConsequenceResolved` / `医疗后果` 仅命中行号巧合)
+  ⇒ 期间变更**不含影响本 story 的 Required/Forbidden 条目** ⇒ 已 bump `Manifest Version: 2026-10-15`,**判据未改**。
+- **ADVISORY-2(措辞滞后于实现)✅ 已订正**:2026-10-15 接线轮(承 **ADR-031 §V-8 ②「退」**、用户裁定
+  「6 处全做,含改 `Inputs53`」)已把 P / C 路元素从 `SimEvent` 改为**解码行** `JudgmentRow53` / `CareRow53`
+  (经 `Sim.Contracts` 的 `IPayloadDecoder` 解出载荷内容)⇒ 两处**同期文本未同步**:
+  ① `s11-5-medcons-story-001-aggregation-2026-10-15.md` §3.1「零载荷解码」—— 已加订正注(**原文不删**,
+     其为 S11-5 时点真值);
+  ② `medcons_aggregation_test.cs:544` 断言**消息**「53 不读载荷内容(P/C 的内容归 story-002)」—— 已改为
+     「**不经 `Sim.Codec` 读载荷**(解码经 `Sim.Contracts` 的 `IPayloadDecoder` 抽象点,ADR-031 §①)」;
+     ⚠️ **断言逻辑一字未动**(判据仍是 `Sim` 引用集不含 `Sim.*` 除 `Sim.Contracts`),仅措辞与现实现口径对齐。
+  **性质 = 自述滞后,非实现错误**:测试**通过**(引用集约束仍成立),误导的只是注释文本。
+
+**两处张力(本 story 不裁定,具名登记归 53 的 GDD 轮)**:
+① **处置 Kind 集** —— 实现取 `careKinds` **显式参数**(§Impl Note 4 提 10/11 两支 vs GDD 规则五 `:165` 只列
+`CareApplied`),测试只钉「参数被尊重」(窄/宽/null 三态),**不**钉该集内容;
+② **处置窗口下界** —— 实现取 `Tick ≤ 结案 tick`(**无下界**),因取下界须加第六路 `CaseOpened`,
+与 AC-1「恰五路」直接冲突。
+
+**命名口径(就地登记,原文不追改)**:AC-1 逐字 `Inputs53` vs §Impl Note 1 `PerCaseInputs` = 同一结构异名;
+实现**取 AC 名**(AC 是判据),不复名(避免第二真源)。
+
+**扫描面载体(承 `review-workflow` 义务 4)**:AC-53-05 反射扫描面 =
+`DaYiJingCheng.Sim.Consequences` **命名空间**(53 无独立 asmdef);**刻意不扫全 `Sim`**
+—— 那会把 9 / 25 / 37 的类型纳入 53 判据 = 越权。
+
+**边界登记**:`WriterExistenceGate.cs:124`(原 `:117`)的 `ConsequenceResolved`「53 未实现」待办
+**本件不动**(本 story 只出聚合器输入侧,不产事件);其解除归 **story-003**(S13-2)。

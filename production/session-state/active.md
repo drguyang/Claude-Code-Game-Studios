@@ -4545,3 +4545,15 @@ X-2 换乘子时丢配对 `)` ⇒ CS1026。
 3. S13-1 → S13-3 → S13-2(Must 序;S13-2 依赖 S13-1)
 
 <!-- QA-PLAN: 2026-10-16 | System: sprint-13 (53 医疗后果与责任) | Plan written: production/qa/qa-plan-sprint-13-2026-10-16.md -->
+
+## Session Extract — /story-done 2026-10-16
+- Verdict: **COMPLETE WITH NOTES**(S12-4 Falsifiability Gate = **PASS**,五类命中形态全数反证转红)
+- Story: `production/epics/medical-consequences/story-001-input-closure-and-stream-aggregation.md` — 入向闭集与跨流聚合(S13-1 收口)
+- 证伪补账:S11-5 只反证 ①定序/③定义域;本轮补 ②跨病人隔离(停用 `Patient!=close.Patient` ⇒ 2 红)
+  ④P最后一笔覆盖(停用 Clear ⇒ 1 红)⑤窗边界(> 改 >= ⇒ 3 红);filtered 基线 61/61;三跑三还原 md5 一致
+- ADVISORY-1:Manifest 2026-10-02→2026-10-15 bump(manifest 无 53 专节,判据不变)
+- ADVISORY-2 ✅订正:接线轮(ADR-031 V-8 ②「退」)后 P/C 已解载荷,两处陈旧措辞已改
+  (s11-5 原件 §3.1 加注 + 测试 :544 断言消息改措辞,**断言逻辑不动**)
+- EPIC 口径:001→Complete · 002→Complete(承 85f5469)· 003/004 维持 Ready;epic 卡头**二元制保持 Ready + 进度注**(不造 In Progress)
+- Tech debt logged: None(deviations 均 advisory 已处理;9 条 story-002 Minor 归 S13-8 另件)
+- Next recommended: S13-3 结账表纪律(评审前)· S13-2 story-003 实现(4h);/code-review 待 story-003

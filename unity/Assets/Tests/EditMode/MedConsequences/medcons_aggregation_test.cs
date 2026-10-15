@@ -541,8 +541,10 @@ namespace DaYiJingCheng.Tests.MedConsequences
                 "门 A:53 住 `Sim` ⇒ 零引擎程序集引用(D = 只读 DTO,不得读 9 的私有态)");
             Assert.That(refs.Where(r => r.StartsWith("Sim.") && r != "Sim.Contracts").ToArray(),
                 Is.Empty,
-                "53 不得引用 `Sim.Codec` 等其它 Sim 族程序集 —— 53 **不读载荷内容**" +
-                "(P/C 的内容归 story-002);实际:" + string.Join(",", refs));
+                "53 不得引用 `Sim.Codec` 等其它 Sim 族程序集 —— 门 A 边界:载荷解码" +
+                "**经 `Sim.Contracts` 的 `IPayloadDecoder` 抽象点**(ADR-031 §①),不经 `Sim.Codec`" +
+                "(2026-10-15 接线轮订正:原「不读载荷内容」措辞已随 V-8 ②「退」失效," +
+                "但**引用集判据不变**);实际:" + string.Join(",", refs));
         }
 
         // ════════════════════════════════════════════════════════════════════
