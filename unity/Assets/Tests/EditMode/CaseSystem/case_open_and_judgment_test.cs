@@ -361,11 +361,13 @@ namespace DaYiJingCheng.Tests.CaseSystem
             var patient = new PatientId(1);
 
             // 落笔 + 两次改写 = 三条事件
+            // ⚠️ **插入序刻意打乱**([2,0,1])(2026-10-15 ADV-5)—— 原稿按 0/1/2 插入,
+            //    而 `OrderBy` 对**已排序输入**是**恒等映射** ⇒ 该断言对「有无排序」零判别力。
             var events = new[]
             {
+                MakeEvent(tick + 100, patient, 2, EventKind.JudgmentRevised),
                 MakeEvent(tick, patient, 0, EventKind.JudgmentRecorded),
                 MakeEvent(tick + 50, patient, 1, EventKind.JudgmentRevised),
-                MakeEvent(tick + 100, patient, 2, EventKind.JudgmentRevised),
             };
 
             // 全部落病例流
@@ -375,9 +377,10 @@ namespace DaYiJingCheng.Tests.CaseSystem
                     "改写史每条都须落病例流(AC-37-23)");
             }
 
-            // 三条事件按全序排列
+            // 三条事件按全序排列:输入序 [2,0,1] ⇒ 期望序 [0,1,2](非恒等)
+            // 变异 = 去掉 OrderBy(直接按流内序取)⇒ sorted[0].Seq == 2 ⇒ 红
             var sorted = events.OrderBy(e => EventOrder.KeyOf(e)).ToList();
-            Assert.That(sorted[0].Seq, Is.EqualTo(0));
+            Assert.That(sorted[0].Seq, Is.EqualTo(0), "全序首条 = Seq 0(输入序首条是 Seq 2)");
             Assert.That(sorted[1].Seq, Is.EqualTo(1));
             Assert.That(sorted[2].Seq, Is.EqualTo(2));
         }

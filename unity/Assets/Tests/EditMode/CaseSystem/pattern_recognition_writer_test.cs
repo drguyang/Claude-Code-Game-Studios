@@ -307,15 +307,26 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 DiseaseOrdinalsOf, null, null, Version));
         }
 
+        /// <summary>阈值下界护栏:0 / -1 / **1** 一律拒(GDD 旋钮安全范围 ≥ 2)。
+        /// <para>⚠️ <b>2026-10-15 TA-8(ADVISORY 清理轮)</b> —— 原稿只测 0 / -1,而构造器当时
+        /// 也只校验 <c>&lt; 1</c> ⇒ **阈值 1 可通过**,与 GDD `case-system.md:1004`
+        /// 「安全范围 ≥ 2(**&lt; 2 构建期拒绝**)」不符(护栏漏配)。现构造器改 <c>&lt; 2</c>,
+        /// 本测补 <b>1</b> 这一格。</para>
+        /// <para><b>可捕获的变异</b>:构造器守卫改回 <c>&lt; 1</c> ⇒ 第三条断言红。</para>
+        /// </summary>
         [Test]
-        public void test_patternRecognitionWriter_nonPositiveThreshold_throws()
+        public void test_patternRecognitionWriter_thresholdBelowTwo_throws()
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => new PatternRecognitionWriter(
                 _bag.EventSink, _bag.Encoder, _bag.Stream.Events, WorldSeed, 0,
-                DiseaseOrdinalsOf, SaltedKeyOf, null, Version));
+                DiseaseOrdinalsOf, SaltedKeyOf, null, Version), "阈值 0 须拒");
             Assert.Throws<ArgumentOutOfRangeException>(() => new PatternRecognitionWriter(
                 _bag.EventSink, _bag.Encoder, _bag.Stream.Events, WorldSeed, -1,
-                DiseaseOrdinalsOf, SaltedKeyOf, null, Version));
+                DiseaseOrdinalsOf, SaltedKeyOf, null, Version), "阈值 -1 须拒");
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PatternRecognitionWriter(
+                _bag.EventSink, _bag.Encoder, _bag.Stream.Events, WorldSeed, 1,
+                DiseaseOrdinalsOf, SaltedKeyOf, null, Version),
+                "阈值 1 须拒 —— GDD 旋钮安全范围 ≥ 2(原构造器只拒 < 1,漏配)");
         }
     }
 }

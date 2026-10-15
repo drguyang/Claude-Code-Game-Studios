@@ -15,8 +15,14 @@
 //   ADR-008 §五(盐契约:逐 D 派生)
 //   ADR-007 §二(WorldSeed 存档头)
 //
-// ⚠️ 本测试为纯数据层:不触引擎 API,不触 codec,不触持久化。
+// ⚠️ 本测试为纯数据层:不触引擎 API,不触持久化。
 //    被测对象 = Sim 的 PatternDetector(生产代码)。
+//    ⚠️ **codec 例外(TA-2,2026-10-15 ADVISORY 清理轮)**:`IsFired` 三例的 `salted_key`
+//       载体原为 `(ulong)e.Seq`(**自造载体** —— 把盐塞进 Seq 字段,`Seq` 语义是发号);
+//       现改**真载体** `PatternRecognizedPayload.SaltedKey` 经 `PayloadEncoder` / `PayloadCodec`
+//       真装配 ⇒ 本文件**触 codec**(仅此三例)。理由:`IsFired` 的形参是
+//       `Func<SimEvent, ulong>`(「Sim 侧够不着者由调用方给出」先例),若调用方喂自造载体,
+//       测的就不是生产形状。真解码 delegate 的落点 = `Sim.Codec`(跨装配面,见写者文件头)。
 //
 // ══════════════════════════════════════════════════════════════════════════════
 // ⚠️⚠️ 元规则(TA-6,2026-10-15 补评后立)—— **定序类 AC 的夹具必须至少一处「输入序 ≠ 期望序」**
@@ -31,26 +37,37 @@
 //                                                        变异 = 改成按 ordinal 排序 ⇒ 必红
 //                                                        (D=1/2 夹具**抓不到**该变异 —— 二者同序)
 //     · test_ac3727_permutedInsertionOrder_identicalSequence —— 两流插入序相反,序列须**逐位相同**
+//     · test_sortBySaltedKey_keyCollision_ordinalTieBreak —— 注入**碰撞键函数**(d => d%2)
+//                                                        变异 = 删次级键 ⇒ 等键组保持插入序(降序)⇒ 必红
 //     · test_ac3713_comorbidCase_countedInBothGroups   —— 提取器集合迭代序 [2,1] ≠ 期望序 [1,2]
 //     · test_ac3710_sameTickThreeCases_shuffledStreamOrder_membersInFullOrder
 //                                                     —— 流内序 (3,1,2) ≠ 全序 (1,2,3)
 //                                                        变异 = 删 ComputeCandidateSeq 的 candidates.Sort ⇒ 必红
 //     · test_ac3710_sameTickFourCases_memberFreezeDropsFourth —— 流内序 (4,2,1,3) ≠ 全序前 3
-//     · test_ac3709_..._membersFrozenAtFirstThree      —— 「前 3」{1,2,3} ≠ 「后 3」{2,3,4}
+//     · test_ac3734_sameTickFourthCase_membersAreFirstThreeInFullOrder
+//                                                     —— 插入序 (4,3,2,1) ≠ 全序 (1,2,3,4) 的**前 3**
 //                                                        变异 = 取 candidates[count-threshold..] ⇒ 必红
 //     · test_ac3712_mixedInjuryAndReal_injuryCasesDoNotFillQuota —— 伤情案数(3)恰等于阈值
 //                                                        变异 = 空 disease_set 也计入某组 ⇒ 必红
 //
+//   ⚠️ **满足另一条轴的用例(刻意不列于上表 —— 措辞订正,2026-10-15 · 004 评审 §六②-3)**:
+//     · test_ac3709_..._membersFrozenAtFirstThree —— 其夹具**输入序 == 期望序**(逐 tick 递增),
+//       严格说它满足的是**另一条轴**「前 3 vs 后 3」(变异 = 取 candidates[count-threshold..] ⇒ 红),
+//       **不是**「输入序 ≠ 期望序」。初稿把它列在上表 = 清单首句与所列项不完全对齐,已订正。
+//     · test_ac3722 / test_ac3734_addC / test_ac3729_* —— 判别力在**去重(FirstPerPatient)/
+//       定义域收窄**,非次序。
+//
 //   ⚠️ 逐 tick 严格递增的夹具**结构上不可能**满足该纪律(全序键含 `Tick` ⇒ 全序 ≡ 流内序)——
-//      AC-37-34 / AC-37-29 属此类:其判别力在**去重(FirstPerPatient)/ 定义域收窄**这一维
-//      (见各测注释),**不宣称钉住次序**。若要钉次序,须把夹具换成**同 tick**组。
+//      若要钉次序,须把夹具换成**同 tick**组(`test_ac3734_sameTickFourthCase…` 即该形态)。
 // ══════════════════════════════════════════════════════════════════════════════
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.Sim;
+using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using NUnit.Framework;
 
@@ -63,6 +80,15 @@ namespace DaYiJingCheng.Tests.CaseSystem
         private const long WorldSeed = 12345;
         private const int Threshold = 3;
 
+        /// <summary>真装配(TA-2)—— 仅 `IsFired` 三例与 <see cref="Emit"/> 的盐提取器需要它。</summary>
+        private CompositionRootServices _bag;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _bag = CompositionRoot.Assemble();
+        }
+
         // ════════════════════════════════════════════════════════════════════
         // 辅助
         // ════════════════════════════════════════════════════════════════════
@@ -70,6 +96,32 @@ namespace DaYiJingCheng.Tests.CaseSystem
         private static SimEvent MakeEvent(long tick, PatientId patient, long seq, EventKind kind)
         {
             return new SimEvent(tick, patient, seq, kind, default(PayloadRef));
+        }
+
+        /// <summary>
+        /// 【真载体】构造一条带**真载荷**的 <see cref="EventKind.PatternRecognized"/> 事件
+        /// (经 <see cref="IPayloadEncoder"/> 编码,字节真进池)—— TA-2 修复点。
+        /// </summary>
+        private SimEvent MakePatternRecognized(long tick, long seq, ulong saltedKey)
+        {
+            var payload = new PatternRecognizedPayload(
+                patientId: PatientId.None.Value,
+                anchorCase: new CaseId(100, 1, 0),
+                saltedKey: saltedKey,
+                memberDiseaseSet: new DiseaseIdSet(1UL),
+                version: 1);
+            var payloadRef = _bag.Encoder.Encode(EventKind.PatternRecognized, payload);
+            return new SimEvent(tick, PatientId.None, seq, EventKind.PatternRecognized, payloadRef);
+        }
+
+        /// <summary>
+        /// 【真载体】salted_key 提取器 —— 经 <see cref="PayloadCodec"/> 从**真载荷**解码
+        /// (生产形状;真实现落 `Sim.Codec`,由装配侧给出 —— 「Sim 侧够不着者由调用方给出」先例)。
+        /// </summary>
+        private ulong SaltedKeyOfReal(SimEvent e)
+        {
+            PayloadCodec.TryGetPayload<PatternRecognizedPayload>(e, _bag.BlobPool, out var decoded);
+            return decoded.SaltedKey;
         }
 
         /// <summary>病种提取:所有事件归同一病种 ordinal 0。</summary>
@@ -91,13 +143,16 @@ namespace DaYiJingCheng.Tests.CaseSystem
         /// (含«一次性»门 + 逐 D 成员归属),阈值与盐提取器取本文件固定值。
         /// <para>成员集的**唯一**断言载体 —— 达标判定层的扁平 `MemberSet` 已删(补评 CB-3)。</para>
         /// </summary>
-        private static IReadOnlyList<PatternEmission> Emit(
+        private IReadOnlyList<PatternEmission> Emit(
             IReadOnlyList<SimEvent> caseEvents,
             Func<SimEvent, int[]> diseaseExtractor,
             IReadOnlyList<ScriptedChain> scriptedChains = null)
         {
+            // ⚠️ 盐提取器取**真载体**(TA-2)。本文件的 Emit 夹具流内**没有** PatternRecognized 事件
+            //    ⇒ 该委托在「一次性」门处**从不被调用**(循环体零迭代)⇒ 换载体不改变任何既有断言;
+            //    换的理由是**形状正确性**:喂自造载体的夹具一旦被复用进「已发射」场景即静默失真。
             return PatternDetector.NextEmissions(
-                caseEvents, WorldSeed, Threshold, diseaseExtractor, ExtractSaltedKeyFromSeq, scriptedChains);
+                caseEvents, WorldSeed, Threshold, diseaseExtractor, SaltedKeyOfReal, scriptedChains);
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -167,7 +222,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
             //    sprint-11 落地(S11-13)。本测仍以夹具模拟同一契约,是为**隔离单测**
             //    (只测检测器,不拖装配);**真装配**载体 = `pattern_recognition_writer_test.cs`(9 测)。
             foreach (var emission in emissions)
-                caseEvents.Add(MakePatternRecognized(400, emission.DiseaseOrdinal));
+                caseEvents.Add(MakePatternRecognized(400, 0, emission.SaltedKey));
 
             // ③ 一次性门:流中已有该 salted_key ⇒ 第 4 例不重发
             var again = Emit(caseEvents, ExtractDisease);
@@ -240,23 +295,63 @@ namespace DaYiJingCheng.Tests.CaseSystem
         // AC-37-11:三互异病人、两空名一错名 ⇒ 照样触发
         // ════════════════════════════════════════════════════════════════════
 
-        /// <summary>AC-37-11:病名栏空/错不影响触发(公式不看病名)。</summary>
+        /// <summary>
+        /// AC-37-11:三个**互异** `patient_id` 的同 D 病例,**病名栏空 / 错**不影响触发(不读诊断)。
+        /// <para>⚠️ <b>2026-10-15 判别力重写(TA-1)</b> —— 原稿夹具与 AC-37-08 **逐字相同**
+        /// (同三例 `CaseClosed` + 同一次 `Evaluate`),断言 `Fired is True` 又是 AC-37-08 断言
+        /// (`Fired is True` ∧ `FiredDiseases == [0]`)的**真子集** ⇒ **零新增判别力**;
+        /// 且原注释自陈「用同一病种 ordinal 0 模拟病名不同」—— 恰恰**没模拟到「病名」这一维**。</para>
+        /// <para>本 AC 的可证伪内容 = 「公式**不读**诊断」这条**负命题**,拆两腿:</para>
+        /// </summary>
         [Test]
         public void test_ac3711_emptyOrWrongName_stillFires()
         {
-            // 病名栏空/错 = disease_set 可能不同,但公式只看 state 与 disease_set
-            // 用不同病种 ordinal 模拟病名差异(空名→ordinal 0,错名→ordinal 99)
+            // ── 腿 ① 接口面:Evaluate 的形参表**无任何**承载病名 / 文本的入口 ──
+            // 变异 = 加一个 `string diseaseName` 形参 ⇒ 必红。
+            var allowed = new HashSet<string>
+            {
+                "caseEvents", "worldSeed", "patternThreshold", "diseaseExtractor", "scriptedChains",
+            };
+            var overloads = typeof(PatternDetector)
+                .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name == nameof(PatternDetector.Evaluate))
+                .ToList();
+            Assert.That(overloads.Count, Is.EqualTo(2), "Evaluate 恰两个重载(本断言钉住扫描面非空)");
+            foreach (var m in overloads)
+            {
+                var ps = m.GetParameters();
+                Assert.That(ps.Any(p => p.ParameterType == typeof(string)), Is.False,
+                    $"{m}: Evaluate 不得有 string 形参 —— 病名 / 诊断文本入口即违 AC-37-11");
+                foreach (var p in ps)
+                {
+                    Assert.That(allowed.Contains(p.Name), Is.True,
+                        $"{m}: 形参 `{p.Name}` 不在允许集内 —— 新增承载诊断内容的入口须重新评审本 AC");
+                }
+            }
+
+            // ── 腿 ② 行为面:流内塞**空判断 / 错名判断**噪声,三例同 D 仍恰触发一次 ──
+            // 噪声刻意排在各自 CaseClosed **之前**(更早 tick)⇒ 若实现误把判断事件也计入
+            // 候选,「每病人全序最早例」会取到噪声 ⇒ 成员集断言必红。
             var caseEvents = new[]
             {
-                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
-                MakeEvent(200, new PatientId(2), 0, EventKind.CaseClosed),
-                MakeEvent(300, new PatientId(3), 0, EventKind.CaseClosed),
+                MakeEvent(50,  new PatientId(1), 0, EventKind.JudgmentRecorded), // 空名(lexicon_id = 0)
+                MakeEvent(100, new PatientId(1), 1, EventKind.CaseClosed),
+                MakeEvent(150, new PatientId(2), 0, EventKind.JudgmentRevised),  // 错名
+                MakeEvent(200, new PatientId(2), 1, EventKind.CaseClosed),
+                MakeEvent(250, new PatientId(3), 0, EventKind.JudgmentRecorded), // 空名
+                MakeEvent(300, new PatientId(3), 1, EventKind.CaseClosed),
             };
 
-            // 三个事件分别归不同病种,但都达阈值(各 3 例)
-            // 这里用同一病种 ordinal 0 模拟「病名不同但公式不读」
             var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
-            Assert.That(result.Fired, Is.True, "病名空/错照样触发");
+            Assert.That(result.Fired, Is.True, "病名空 / 错照样触发");
+            Assert.That(result.FiredDiseases, Is.EqualTo(new[] { 0 }), "恰一个病种达标");
+
+            // 成员集**逐位** = 三条 CaseClosed(噪声事件一个都不占名额)
+            var emissions = Emit(caseEvents, ExtractDisease);
+            Assert.That(emissions.Count, Is.EqualTo(1), "恰发一次");
+            Assert.That(emissions[0].MemberSet.Select(c => (c.Tick, c.Patient, c.Seq)),
+                Is.EqualTo(new[] { (100L, 1, 1L), (200L, 2, 1L), (300L, 3, 1L) }),
+                "成员集 = 三条 CaseClosed;若判断噪声被计入候选,此处必红");
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -388,6 +483,41 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 new CaseId(200, 2, 0),   // B₁
                 new CaseId(400, 3, 0),   // C₁（A₂ = (300,1,1) 被 FirstPerPatient 丢弃）
             }), "成员集 = {A₁,B₁,C₁}(而非未去重的 {A₁,B₁,A₂})");
+        }
+
+        /// <summary>
+        /// AC-37-34 边界(**同 tick** 第 4 例,TA-7):同 tick 四例互异病人 ⇒ 触发,
+        /// 成员 = 全序前 3(病人 1/2/3),**第 4 例(病人 4)被丢弃**。
+        /// <para>⚠️ 本测补 TA-7 点名的缺口 —— 既有 AC-37-34 夹具**逐 tick 递增**,
+        /// 「同 tick 批量跨阈值」这一维**从未被直接证伪过**。</para>
+        /// <para>插入序刻意写成 **4/3/2/1(逆全序)** ⇒ 本测**顺带**也钉住同 tick 定序
+        /// (承文件头元规则「输入序 ≠ 期望序」):若实现依赖 `Dictionary` 迭代序而非
+        /// `candidates.Sort`,成员顺序不保证为 {1,2,3} ⇒ 红。</para>
+        /// <para><b>可捕获的变异</b>:成员取 `candidates[count-threshold..]`(后 3 例)⇒ 期望 {1,2,3}
+        /// 而实得 {2,3,4} ⇒ 红;删 `candidates.Sort` ⇒ 次序不保证 ⇒ 红。</para>
+        /// </summary>
+        [Test]
+        public void test_ac3734_sameTickFourthCase_membersAreFirstThreeInFullOrder()
+        {
+            var caseEvents = new[]
+            {
+                MakeEvent(100, new PatientId(4), 0, EventKind.CaseClosed), // 插入序逆全序
+                MakeEvent(100, new PatientId(3), 0, EventKind.CaseClosed),
+                MakeEvent(100, new PatientId(2), 0, EventKind.CaseClosed),
+                MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
+            };
+
+            var result = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
+            Assert.That(result.Fired, Is.True, "同 tick 四例互异病人 ⇒ 达标");
+
+            var emissions = Emit(caseEvents, ExtractDisease);
+            Assert.That(emissions.Count, Is.EqualTo(1), "恰一条发射");
+            Assert.That(emissions[0].MemberSet, Is.EqualTo(new[]
+            {
+                new CaseId(100, 1, 0),
+                new CaseId(100, 2, 0),
+                new CaseId(100, 3, 0),
+            }), "成员 = 全序前 3(病人 1/2/3);第 4 例(病人 4)被丢弃 —— 取后 3 例即红");
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -527,6 +657,32 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 Is.EqualTo(new[] { 5, 0, 1 }), "发射序同源(单一定序源)");
         }
 
+        /// <summary>
+        /// AC-37-27 后半句的**极端边界**:键**相等**时次序仍确定(次级键 = ordinal 升序)。
+        /// <para>⚠️ <b>2026-10-15 立(ADVISORY 清理轮)</b> —— `List.Sort` 是**不稳定排序**
+        /// ⇒ 无次级键时,键相等的元素次序**未定义**(取决于实现),与「换一个插入序重跑,
+        /// 事件流**逐位相同**」有理论张力。</para>
+        /// <para>⚠️ <b>为什么必须走注入形(可捕获性)</b> —— 真哈希键空间 2⁶⁴,真实碰撞在 P0
+        /// **不可构造** ⇒ 若 <see cref="PatternDetector.SortBySaltedKey(List{int}, Func{int, ulong})"/>
+        /// 内部硬取 `SplitMix64`,这条 tie-break **永远没有可证伪夹具**(删掉次级键,测试照样全绿)。
+        /// 本测喂**人为碰撞键** `d =&gt; (ulong)(d % 2)`,端到端走真实 `List.Sort` 路径。</para>
+        /// <para><b>可捕获的变异</b>:`return cmp != 0 ? cmp : a.CompareTo(b);` 改回 `return cmp;`
+        /// ⇒ 等键组保持**插入序**(本夹具每组刻意**降序**插入)⇒ 期望 {2,4,6,1,3,5} 而实得
+        /// {6,4,2,5,3,1} ⇒ 必红。(⚠️ 该结论依赖 `List.Sort` 对小数组走**稳定**的插入排序;
+        /// 若未来 .NET 改算法,本测仍**必绿**(带次级键的结果与算法无关),只是「无次级键」时
+        /// 未必红 —— 判别力方向是安全的,不会假红。)</para>
+        /// </summary>
+        [Test]
+        public void test_sortBySaltedKey_keyCollision_ordinalTieBreak()
+        {
+            // 键 = d % 2 ⇒ {6,4,2} 同键(键 0)、{5,3,1} 同键(键 1);两组**各自降序**插入
+            var diseases = new List<int> { 6, 5, 4, 3, 2, 1 };
+            PatternDetector.SortBySaltedKey(diseases, d => (ulong)(d % 2));
+
+            Assert.That(diseases, Is.EqualTo(new[] { 2, 4, 6, 1, 3, 5 }),
+                "键升序 + 同键组内 ordinal 升序(次级键)—— 无次级键时等键组保持插入序(降序)⇒ 本断言红");
+        }
+
         // ════════════════════════════════════════════════════════════════════
         // AC-37-14:载荷含 salted_key,不含裸 disease_id
         // ════════════════════════════════════════════════════════════════════
@@ -541,15 +697,30 @@ namespace DaYiJingCheng.Tests.CaseSystem
             Assert.That(field.FieldType, Is.EqualTo(typeof(ulong)), "SaltedKey 类型须为 ulong");
         }
 
-        /// <summary>AC-37-14:PatternRecognizedPayload 不含裸 disease_id。</summary>
+        /// <summary>AC-37-14(负半边):载荷字段集**恰等于**白名单 —— 任何新增字段即红。
+        /// <para>⚠️ <b>2026-10-15 重写(TA-5)</b> —— 原稿按**字段名**判缺失
+        /// (<c>GetField("DiseaseId")</c> / <c>GetField("DiseaseName")</c>):把裸病种换个名字
+        /// (如 <c>DiseaseOrdinal</c> / <c>RawId</c> / <c>Ord</c>)携带即**完全绕过**该断言。
+        /// 改为**闭集相等**后,「换名携带」与「新增任何字段」一律必红。</para>
+        /// <para>⚠️ 白名单变更须同步本表 —— 这是**刻意**的:载荷面加字段是契约变更,
+        /// 本就该过评审(与 AC-37-15 的递归闭集扫描同取向)。</para>
+        /// <para><b>可捕获的变异</b>:给 struct 加任一字段(含换名的裸病种)⇒ 红;
+        /// 改任一字段名 ⇒ 红。</para></summary>
         [Test]
         public void test_ac3714_patternRecognizedPayload_noDiseaseId()
         {
-            var patternType = typeof(PatternRecognizedPayload);
-            Assert.That(patternType.GetField("DiseaseId", BindingFlags.Public | BindingFlags.Instance),
-                Is.Null, "PatternRecognizedPayload 不得含裸 DiseaseId");
-            Assert.That(patternType.GetField("DiseaseName", BindingFlags.Public | BindingFlags.Instance),
-                Is.Null, "PatternRecognizedPayload 不得含 DiseaseName");
+            var expected = new HashSet<string>
+            {
+                "PatientId", "AnchorCase", "SaltedKey", "MemberDiseaseSet", "Version",
+            };
+            var actual = typeof(PatternRecognizedPayload)
+                .GetFields(BindingFlags.Public | BindingFlags.Instance)
+                .Select(f => f.Name)
+                .ToHashSet();
+
+            Assert.That(actual, Is.EquivalentTo(expected),
+                "PatternRecognizedPayload 字段集须**恰等于**白名单 —— 新增字段(含换名携带裸病种)即红;"
+                + "白名单变更须同步本表并过评审");
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -612,7 +783,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
 
             // 2. 第 4 例结案 + 承生产契约「发射即 Append」
             foreach (var emission in emit1)
-                caseEvents.Add(MakePatternRecognized(300, emission.DiseaseOrdinal));
+                caseEvents.Add(MakePatternRecognized(300, 0, emission.SaltedKey));
             caseEvents.Add(MakeEvent(400, new PatientId(4), 0, EventKind.CaseClosed));
 
             var result2 = PatternDetector.Evaluate(caseEvents, WorldSeed, Threshold, ExtractDisease);
@@ -657,27 +828,26 @@ namespace DaYiJingCheng.Tests.CaseSystem
         // IsFired 方法测试
         // ════════════════════════════════════════════════════════════════════
 
-        /// <summary>IsFired:存在对应 PatternRecognized 事件时返回 true。</summary>
+        /// <summary>IsFired:存在同 salted_key 的 PatternRecognized ⇒ true。
+        /// <para>⚠️ <b>TA-2(2026-10-15 ADVISORY 清理轮)</b> —— 原稿把盐塞进 <c>SimEvent.Seq</c>
+        /// 作**自造载体**(<c>ExtractSaltedKeyFromSeq</c>),测的不是生产形状;现改**真载荷**
+        /// (<see cref="MakePatternRecognized"/> 编码 + <see cref="SaltedKeyOfReal"/> 解码)。
+        /// 原稿另有一个**未被使用**的 <c>caseEvents</c> 局部变量(死代码),一并删。</para>
+        /// <para><b>可捕获的变异</b>:<c>IsFired</c> 的比较改成恒真 / 去掉 Kind 过滤 ⇒ 红;
+        /// 载荷编解码错位 ⇒ 解出的 SaltedKey 不等 ⇒ 红。</para></summary>
         [Test]
         public void test_isFired_existingPatternRecognized_returnsTrue()
         {
             ulong saltedKey = PatternDetector.ComputeSaltedKey(WorldSeed, 1);
-            var caseEvents = new[]
-            {
-                MakeEvent(100, PatientId.None, 0, EventKind.PatternRecognized),
-            };
+            var stream = new[] { MakePatternRecognized(100, 0, saltedKey) };
 
-            // 用 saltedKey 作为 Seq 的占位(测试用)
-            var eventsWithKey = new[]
-            {
-                new SimEvent(100, PatientId.None, (long)saltedKey, EventKind.PatternRecognized, default(PayloadRef)),
-            };
-
-            bool result = PatternDetector.IsFired(eventsWithKey, 1, WorldSeed, e => (ulong)e.Seq);
-            Assert.That(result, Is.True, "存在对应 PatternRecognized 事件");
+            bool result = PatternDetector.IsFired(stream, 1, WorldSeed, SaltedKeyOfReal);
+            Assert.That(result, Is.True, "存在同 salted_key 的 PatternRecognized(真载荷经 codec 解码)");
         }
 
-        /// <summary>IsFired:不存在对应 PatternRecognized 事件时返回 false。</summary>
+        /// <summary>IsFired:流内无 PatternRecognized ⇒ false。
+        /// <para><b>可捕获的变异</b>:去掉 <c>e.Kind != PatternRecognized</c> 过滤 ⇒ 红
+        /// (此时 CaseClosed 也会被喂进提取器)。</para></summary>
         [Test]
         public void test_isFired_noPatternRecognized_returnsFalse()
         {
@@ -686,21 +856,18 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 MakeEvent(100, new PatientId(1), 0, EventKind.CaseClosed),
             };
 
-            bool result = PatternDetector.IsFired(caseEvents, 1, WorldSeed, e => (ulong)e.Seq);
+            bool result = PatternDetector.IsFired(caseEvents, 1, WorldSeed, SaltedKeyOfReal);
             Assert.That(result, Is.False, "不存在对应 PatternRecognized 事件");
         }
 
-        /// <summary>IsFired:salted_key 不匹配时返回 false。</summary>
+        /// <summary>IsFired:salted_key 不匹配 ⇒ false(真载荷,盐值刻意取别的 D)。</summary>
         [Test]
         public void test_isFired_wrongSaltedKey_returnsFalse()
         {
             ulong wrongKey = PatternDetector.ComputeSaltedKey(WorldSeed, 999);
-            var caseEvents = new[]
-            {
-                new SimEvent(100, PatientId.None, (long)wrongKey, EventKind.PatternRecognized, default(PayloadRef)),
-            };
+            var stream = new[] { MakePatternRecognized(100, 0, wrongKey) };
 
-            bool result = PatternDetector.IsFired(caseEvents, 1, WorldSeed, e => (ulong)e.Seq);
+            bool result = PatternDetector.IsFired(stream, 1, WorldSeed, SaltedKeyOfReal);
             Assert.That(result, Is.False, "salted_key 不匹配");
         }
 
@@ -747,17 +914,10 @@ namespace DaYiJingCheng.Tests.CaseSystem
             return new ScriptedChain(diseaseOrdinal, memberPatientIds);
         }
 
-        /// <summary>PatternRecognized 占位事件:salted_key 塞进 Seq(测试专用解码口径)。</summary>
-        private static SimEvent MakePatternRecognized(long tick, int diseaseOrdinal)
-        {
-            return new SimEvent(
-                tick, PatientId.None,
-                (long)PatternDetector.ComputeSaltedKey(WorldSeed, diseaseOrdinal),
-                EventKind.PatternRecognized, default(PayloadRef));
-        }
-
-        /// <summary>配合 <see cref="MakePatternRecognized"/> 的 salted_key 提取。</summary>
-        private static ulong ExtractSaltedKeyFromSeq(SimEvent e) => (ulong)e.Seq;
+        // ⚠️ 原此处有 `MakePatternRecognized(long, int)` + `ExtractSaltedKeyFromSeq`
+        //    —— 两者构成**自造载体**(把 salted_key 塞进 `SimEvent.Seq`,`Seq` 的语义是发号)。
+        //    2026-10-15 TA-2 清理:已全部改**真载体**(`MakePatternRecognized(long, long, ulong)`
+        //    经 `PayloadEncoder` 编码 + `SaltedKeyOfReal` 经 `PayloadCodec` 解码),两件一并删除。
 
         /// <summary>
         /// 病种提取(逐 D 二选一夹具专用):病人 1/2/3 → D=1(**无链**);其余 → D=0(**有链**)。
@@ -868,7 +1028,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
 
             // 1. 首次:达标且流中无该 salted_key ⇒ 恰一条,逐 D 成员归属
             var first = PatternDetector.NextEmissions(
-                caseEvents, WorldSeed, Threshold, ExtractDisease, ExtractSaltedKeyFromSeq, chains);
+                caseEvents, WorldSeed, Threshold, ExtractDisease, SaltedKeyOfReal, chains);
             Assert.That(first.Count, Is.EqualTo(1), "首次恰发一条");
             Assert.That(first[0].DiseaseOrdinal, Is.EqualTo(0), "D = 0");
             Assert.That(first[0].SaltedKey, Is.EqualTo(PatternDetector.ComputeSaltedKey(WorldSeed, 0)),
@@ -878,15 +1038,15 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 new CaseId(120, 10, 0), new CaseId(130, 11, 0), new CaseId(140, 12, 0),
             }), "成员逐 D 归属(非扁平)");
 
-            // 2. 承生产契约:发射即 Append
+            // 2. 承生产契约:发射即 Append(**真载荷** —— 发射的 salted_key 原样写进载荷)
             foreach (var emission in first)
-                caseEvents.Add(MakePatternRecognized(150, emission.DiseaseOrdinal));
+                caseEvents.Add(MakePatternRecognized(150, 0, emission.SaltedKey));
 
             // 3. 再让更多的同 D 病例结案 ⇒ 永不重发
             caseEvents.Add(MakeEvent(160, new PatientId(20), 0, EventKind.CaseClosed));
 
             var second = PatternDetector.NextEmissions(
-                caseEvents, WorldSeed, Threshold, ExtractDisease, ExtractSaltedKeyFromSeq, chains);
+                caseEvents, WorldSeed, Threshold, ExtractDisease, SaltedKeyOfReal, chains);
             Assert.That(second.Count, Is.EqualTo(0), "永不重发(一次性,不可重现)");
 
             // 4. 对照:Evaluate 仍在达标判定层返 true(两层的边界)

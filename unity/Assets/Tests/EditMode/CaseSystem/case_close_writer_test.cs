@@ -107,7 +107,15 @@ namespace DaYiJingCheng.Tests.CaseSystem
             Assert.AreEqual(_patient.Value, decoded.PatientId, "payload.patient_id");
             Assert.AreEqual(caseId, decoded.CaseId, "payload.case_id = 被结案件的精确三元组");
             Assert.AreEqual(snapshot, decoded.DiseaseSet, "payload.disease_set = 结案快照(调用方给定)");
-            Assert.IsTrue(decoded.Treated, "payload.treated = 写者按真流自算的窗口证据(非调用方转述)");
+
+            // ⚠️ **原此处有 `Assert.IsTrue(decoded.Treated, …)`,已删(2026-10-15 · 003 评审 §6.2)**
+            //    —— 该断言**结构性恒真**,判别力为零:`CaseCloseWriter.cs` 自陈「走到写入分支
+            //    `hasTreatmentInWindow` 恒 true」(无窗口内处置 ⇒ `Decide` 返 `RejectNoTreatment`
+            //    ⇒ 根本走不到写)。⇒ 它**无法区分**「写者自算」与「硬编码 `true`」,
+            //    而硬编码 `true` 在此路径上**行为等价** ⇒ 无缺陷可捕。
+            //    `treated` 字段的真实信息量为 0(写入路径上恒真),它是给下游读者(7a/53)的
+            //    **快照字段**,不是判据。窗口逻辑的判别力载体 = `case_close_precondition_test.cs`
+            //    (含「窗口外处置 ⇒ 拒结案」的负例)。
         }
 
         // ══════════ ①b AC-37-18 空病种集(纯伤情案)真装配 ══════════
