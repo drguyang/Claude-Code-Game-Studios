@@ -4557,3 +4557,15 @@ X-2 换乘子时丢配对 `)` ⇒ CS1026。
 - EPIC 口径:001→Complete · 002→Complete(承 85f5469)· 003/004 维持 Ready;epic 卡头**二元制保持 Ready + 进度注**(不造 In Progress)
 - Tech debt logged: None(deviations 均 advisory 已处理;9 条 story-002 Minor 归 S13-8 另件)
 - Next recommended: S13-3 结账表纪律(评审前)· S13-2 story-003 实现(4h);/code-review 待 story-003
+
+## Session Extract — S13-3 结账表纪律固化(2026-10-16)
+- Verdict: **done**。`code-review/SKILL.md` 增 **§Phase 8b Close-Out Table Standard**:
+  Landed(已落)/ Proven(已证)双列 + Proven-by 必填(测试名+行号 / 反证记录 / 可重跑命令;
+  **动作描述=不合格**)+ 两列皆✅才算结清 + 向前生效(不追改已结案原件)。
+- 判据兑现(实测当下码,非快照):ParseRows 38 / ParseDefaultRow 15 / ParseCombinationRow 36 /
+  ValidateCoverage 30 ⇒ 重评轮已把拆分补完(立判据时「仍 69 行」前提过时),
+  但**无夹具钉 ≤40 界** ⇒ story-002 J 项 = Landed✅ / Proven✗ ⇒ 判据成立且更纯
+  (「改对了但没被证明」正是模板要拦的形态)。
+- 单源核:grep 全库「结账表」仅命中本 SKILL.md(review-workflow / story-done 零提及)⇒ 无第二真源。
+- 生效面:自下次评审起一律双列。story-003(S13-2)的评审轮 = 新模板首次实战 + S13-6 prompt 拆小的判据现场。
+- Next: **S13-2 story-003 实现**(M/4h;依赖 S13-1 ✅ + story-002 ✅ + registry 直登 ✅ 全满足)

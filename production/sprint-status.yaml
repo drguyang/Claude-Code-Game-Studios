@@ -55,14 +55,19 @@ stories:
     name: "结账表 ✅ 纪律固化:/code-review 结账表分「已落 / 已证」两列 + 已证须附可复算判据"
     file: ".claude/skills/code-review/SKILL.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: ""
+    completed: "2026-10-16"
     # 复盘行动项 1(High)。病因:sprint-12 的 J 项首轮只拆一半就被标 ✅;
     #   我本人在评审过程里亦两处过早标记。把「我做了动作」当成「我做对了并被证明」。
     # 判据:对 story-002 重跑新模板 ⇒ J 项进「已落」列而**不**进「已证」列。
+    # ✅ 2026-10-16 落地:SKILL 增 §Phase 8b(Landed/Proven 双列 + Proven-by 必填:测试名+行号 /
+    #   反证记录 / 可重跑命令;动作描述=不合格;两列皆✅才算结清;向前生效不追改旧原件)。
+    #   判据演示(实测当下码):ParseRows 38 / ParseDefaultRow 15 / ParseCombinationRow 36 /
+    #   ValidateCoverage 30 —— 重评轮已把拆分补完(立判据时「ParseRows 仍 69 行」的前提已过时),
+    #   但无任何夹具钉 ≤40 界 ⇒ J = Landed✅ / Proven✗ —— 判据以「改对了但无判据不得标已证」兑现。
 
   # ── Should Have ──
   - id: "S13-4"

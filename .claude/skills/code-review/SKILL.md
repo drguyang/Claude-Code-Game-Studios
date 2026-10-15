@@ -167,6 +167,42 @@ This skill is read-only — no files are written.
 
 ---
 
+## Phase 8b: Close-Out Table Standard(修复轮结账表 —— 已落 / 已证 分列)
+
+> **立规缘由(sprint-12 复盘行动项 1,High)**:`review-*.md` 原件的 §六「修复轮结账」表
+> 历来单列「状态」,把**两件事混填** —— ①「代码改了」(动作)与 ②「改对了且被夹具钉住」(证明)。
+> 实例:story-002 评审原件 J 项(`Bind` ≈110 行超 40 行标准)被标 `✅ 已落 / 结案证据:
+> ParseRows/ValidateCoverage 拆分` —— 拆分动作**只兑现一半**(`ParseRows` 仍 69 行,
+> ≤40 界无任何夹具钉),「已落」被当成了「已证」。**把「我做了动作」当成「我做对了并被证明」。**
+
+评审产出 BLOCKING / WARNING / MINOR 后,**修复轮**须在
+`production/qa/evidence/review-<subject>-<date>.md` 的结账表中逐条结清,每行**必须**
+把完成度拆成两个正交列:
+
+```
+| ID | Landed(已落) | Proven(已证) | File(s) | Proven-by(可复算判据) |
+|---|---|---|---|---|
+| R-1 | ✅ | ✅ | …Writer.cs:64 | §四 F1 RED:停用头槽写入 ⇒ test_ac53_cookedHeaderSchemaSlot 红 |
+| J   | ✅ | ✗  | …Binder.cs:210 | 拆分已落,但 ParseRows 仍 69 行 —— ≤40 界无夹具 ⇒ 不得标已证 |
+```
+
+- **Landed(已落)** = 改动在盘上。仅陈述事实,**不主张任何正确性**。
+- **Proven(已证)** = 改对了**且被可复算判据钉住**。末列必填三选一:
+  ① 测试名 + `file:line` ② 反证记录「停用 X ⇒ <测试名> 红」(S12-4 形态)
+  ③ 第三方可重跑的命令(含预期输出)。
+  ⚠️ 在 Proven / Proven-by 列写**动作描述**(「拆了方法 / 改了措辞 / 已重构 / 见下行清单」)
+  = **不合格** —— 那是把 Landed 伪装成证明。
+- 一行**两列皆 ✅ 才算结清**。`Landed=✅ / Proven=✗` 是合法的诚实状态
+  (部分修 / standards 类无界检查项),**须暴露而非隐藏**。
+- **本轮未运行其判据 ⇒ 不得标 Proven ✅**(禁借绿同族)。
+- 本节只定**表格式**;产生「已证」证据的**机制**归 S12-4 Falsifiability
+  (`/story-done` 门),两者配合:证伪轮产生反证 ⇒ 反证记录抄入 Proven-by 列。
+
+**向前生效**:本规不追改已结案的评审原件(改历史 = 销毁当时记录);
+旧原件单列「状态」的形态作为历史保留,新评审起一律双列。
+
+---
+
 ## Phase 9: Next Steps
 
 Use `AskUserQuestion`:
