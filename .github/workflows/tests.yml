@@ -61,3 +61,27 @@ jobs:
           fi
           echo "StreamRouting.g.cs 与 registry 一致(逐字节)"
 
+  # 2026-10-15 立:kindgen 变异探针(= A2 / A2b **判别力**的常驻执行体)。
+  # 背景:fix-s11-12 §四 的 7 变异矩阵当时是 /tmp 沙箱**一次性**实测;
+  #   补评原件 review-case-system-story-001-postfix §六-5 如实登记:
+  #     「【变异矩阵无常驻执行体】§四 的 7 变异是沙箱一次性实测,**未固化为 CI 步骤**」
+  #   ⇒ 其证据力 = 一次性实测,非持续判据。本 job 把该矩阵固化为持续判据:
+  #   任一变异**未被捕获**(断言逃逸)= 判别力缺口 ⇒ CI 红。
+  # 与 kindgen-assertions 的分工:那个 job 证「断言**跑得过**」,本 job 证「断言**抓得住**」。
+  # 零文件写入(变异施加在内存副本上)+ 零 Unity 依赖 —— 与工作流既有取向一致。
+  kindgen-mutation-probe:
+    name: "Kind registry mutation probe (A2/A2b 判别力)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: python3 -m pip install --quiet "PyYAML==6.0.3"
+
+      - name: Mutation probe (7 变异,全部须被捕获)
+        run: python3 tools/kindgen/mutation_probe.py
+
