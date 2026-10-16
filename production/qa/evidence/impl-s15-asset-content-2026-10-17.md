@@ -392,7 +392,10 @@ grep loadType    : loadType: 2
 | **移出工程** | `/home/gu/文档/nm/nm2/素材原始/*.mp3` ×5 | 原始 MP3(SHA-256 已核) |
 
 **未改动**:`assets/data/audio_events.json` · `audio.asset` · `data-core.asset` ·
-全部 `.wav.meta`(由 Unity 导入器持有,`loadType: 0`)· 任何 `.cs`。
+`vo_*` ×2 与 `sfx_breath_*` ×2 共 **4 个** `.wav.meta`(保持 `loadType: 0`)· 任何 `.cs`。
+> ⚠️ **订正(2026-10-17 `/code-review` 核出)**:原句写「**全部** `.wav.meta`(…`loadType: 0`)」——
+> **与 §3.6 自相矛盾**:`music_encounter_layer_loop.wav.meta` 的 `loadType` 已由 `0` 改 **`2`**(§3.6.2)。
+> 该句是笔误,已就地改为「4 个 `.wav.meta`」。真值:`music_*` = `2`(Streaming),其余 4 个 = `0`(DecompressOnLoad)。
 
 ---
 

@@ -145,7 +145,7 @@ vo_patient_cough_damp_m1.wav
 - 构建期断言测试(扩展 story 010 的门测试,补真素材用例)
 
 **Status**: ✅ RUN —— 2026-10-17(`unity/Logs/s15-final.xml`:`total="395" passed="395" failed="0"`)
-**Test File**: `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`(**53 测**)
+**Test File**: `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`(**52 测**)
 · 账本并列:`tests/integration/audio_system/README.md`
 
 > ⚠️ **本 story 的 AC-44-D6b/D6c 是「机制已在、真素材未验」的补证** ——
@@ -167,10 +167,19 @@ vo_patient_cough_damp_m1.wav
 **Completed**: 2026-10-17
 **Criteria**: **4/4 passing**(AC-44-D6b / D6c / D15 / D16 全勾,无 DEFERRED)
 **Deviations**: 6 条 ADVISORY(见下,**均不阻塞**)
-**Test Evidence**: Integration —— `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`(53 测)
+**Test Evidence**: Integration —— `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`(52 测)
 · 账本 `tests/integration/audio_system/README.md`
 · 证据原件 `production/qa/evidence/impl-s15-asset-content-2026-10-17.md`
-**Code Review**: **待跑** —— 用户 2026-10-17 裁定「收尾前会跑」;lean 模式不自动 spawn LP-CODE-REVIEW
+**Code Review**: **✅ 已跑 2026-10-17** —— 判定 **APPROVED WITH SUGGESTIONS**(无 BLOCKING ·
+无 ARCHITECTURAL VIOLATION · 无 ADR DRIFT)。三位专家并行(`unity-specialist` 15 调用 ·
+`unity-addressables-specialist` 10 · `qa-tester` 8,均在 Phase 7b 预算内交付)⇒ 产出
+**7 WARNING + 4 无载体子句 + 1 条 CI 必红测试**;两处文档硬错(D-1 计数 53→52 · D-2 证据 §5
+自相矛盾)已就地修复。**报告原件 = `production/qa/evidence/review-s15-code-2026-10-17.md`**
+(含 Phase 8b 双列结账表:结清 2/14,余 12 条如实留作未结)。
+> ⚠️ **原件义务说明**:该义务依 `.claude/docs/coding-standards.md` 只在**产出 BLOCKING** 时强制;
+> 本评审无 BLOCKING ⇒ 不强制,用户 2026-10-17 裁定**仍落原件**(见 §收口裁定)。
+> **7 WARNING 的后续归属**(未裁定,登记待议):W-2/W-3 → story-010 加固轮;
+> W-4/W-5/W-7 → 并入 `TD-audio-01` 面;W-1/W-6 → 已由 GDD §OQ-44-2 附覆盖,不改。
 
 ### Falsifiability Gate(S12-4)= **PASS**
 
