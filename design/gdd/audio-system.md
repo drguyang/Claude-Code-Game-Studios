@@ -258,6 +258,13 @@ PatientId Source(可为 None), bool Looped }`。无 `disease_id`;无 float。
 **44 不拥有**:素材语义选择(上游)· 音频素材本体(`assets/audio/` 归 44 拥有,走 Addressables 流式)·
 语音通话(不做,ADR-018 §五)· VR 音频(**P1b**,ADR-018 §七;层级订正见下注)。
 
+> **⚠️ 路径补注(2026-10-16 · S14-6)**:上行的 `assets/audio/` 是**逻辑路径**;
+> **物理根 = `unity/Assets/Audio/`**(Unity 工程根为 `unity/`,Addressables 与 `AudioClip` 都
+> **无法寻址**仓根 `assets/` 下的文件)。与 `assets/data/*.json` → `unity/Assets/DataCooked/*.cooked.bytes`
+> 同型(作者态 → 工程内),差别在音频**不经变换**(wav 本体即出货资产)。
+> 承 ADR-015 修订 ADR-009 §四 先例:**原文保留,加注订正**。
+> 执行体 = `AudioAssetExistence.AssetRootRelative`(单一出处);本节 `:695` / `:1092` 同款补注。
+
 **双向性核对**:上面每个上游系统的 GDD / ADR 都已显式声明其 44 侧接口
 (见 §Dependencies 的引用)—— **除两处外可回溯**:
 ① **42 拟物 UI 已成稿**(`skeuomorphic-ui.md`,2026-09-16;ADR-013 覆盖,44 侧登记为「42 的呈现事件 → UICue」,42 侧回执见 `AC-42-F2` 的 cue 白名单);
@@ -693,6 +700,9 @@ bucket       = (u < BUCKET_LOW) ? 弱 : (u < BUCKET_HIGH) ? 中 : 强
 5. **听诊精度 = 本机玩家自己的技能档**(2026-09-18 裁定 D-A;`SetTier(TierSource.Local)`);脉案亦各自分叉。
 6. **44 不拥有素材语义选择权**(上游解析 → 44 只收 cue id)。
 7. **素材本体 = `assets/audio/`**(Addressables 流式),与 `data-core` 数据烘焙组区分(ADR-018 §五 补注)。
+   > **⚠️ 路径补注(2026-10-16 · S14-6)**:`assets/audio/` = **逻辑路径**;**物理根 = `unity/Assets/Audio/`**
+   > (见 `:258` 补注)。组名 = `audio`(`AudioAssetGroupGates.AudioGroupName`),与 `data-core` 分家
+   > 由 `AudioAssetGroupGates.ValidateSettings` 执行(AC-44-D5)。
 8. **VR 音频推 P1b**;P0 不做 VR 音频。
    > **⚠️ 层级订正(2026-09-15,`/consistency-check` 发现)** —— 本条原写 **P1a**,
    > 沿用了 ADR-018 §七 的口径。但 VR **功能**的档位权威是 `game-concept.md:723`
@@ -1090,6 +1100,9 @@ rank_key(source) = ( priority_class ASC,          // 上面四条的类序:自�
 
 - **AC-44-D4** `[A]`:音频事件表走 **ADR-014 烘焙管线**;玩家构建**零 JSON 解析器**。
 - **AC-44-D5** `[A]`:素材本体 = `assets/audio/`(Addressables 流式),与 `data-core` 组区分。
+  > **⚠️ 路径补注(2026-10-16 · S14-6)**:`assets/audio/` = **逻辑路径**;**物理根 = `unity/Assets/Audio/`**。
+  > 判据 = **组区分**(素材 ∈ 非 `data-core` 组 ∧ `data-core` 零 `Assets/Audio/` 条目),
+  > **不是**「组叫什么名字」;执行体 = `AudioAssetGroupGates.ValidateEntries`(纯谓词)+ `ValidateSettings`(真设置)。
 - **AC-44-D6** `[A]`:素材缺失 = **编辑期烘焙门拒绝**(构建失败,不是运行期静默降级)。
 - **AC-44-D9** `[A]`(2026-09-18 新增):**GIVEN** 事件表 schema,**WHEN** 烘焙,**THEN**
   每行含 `whitelist_category` + `trigger_source` + `schema_version`(§Event Table Schema)。

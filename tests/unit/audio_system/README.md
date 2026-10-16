@@ -170,7 +170,7 @@
 > 2. **bucket(u) 边界含端点方向**(F-44.6:419):`test_bucket_boundaryLow_exactInclusion` / `test_bucket_boundaryHigh_exactInclusion` 验证 BUCKET_LOW/HIGH 本身落中/强桶。
 > 3. **五项调制 Forbidden**:`test_forbiddenModulations_zeroAppearance` 扫描 VoiceVariantLib.cs 源文件,验证音高/气声/语速/断句/共鸣零出现。
 
-## Story 007(联机分叉与远端派生 · 静态半 —— AC-44-07 / AC-44-D1 / AC-44-D7 / AC-44-D10 / EndLoop 兜底)
+## Story 007(联机分叉与远端派生 · 静态半 —— AC-44-07 / AC-44-D1(含锚点纪律)/ AC-44-D7 / EndLoop 兜底)
 
 故事头登记的证据路径为
 `tests/unit/audio_system/net_derivation_test.cs`,但该路径在仓库根、**Unity 不编译**
@@ -186,12 +186,25 @@
 | 被测全序键 | `unity/Assets/Sim.Contracts/EventOrderKey.cs`(`EventOrderKey`) |
 | 被测哈希 | `unity/Assets/Sim.Contracts/SplitMix64.cs`(`SplitMix64`) |
 | 被测生产 44 类型 | `unity/Assets/Gameplay.Presentation/Audio/`(全命名空间,IL 扫描) |
-| 被测 GDD | `design/gdd/audio-system.md`(AC-44-07 / AC-44-D1 / AC-44-D7 / AC-44-D10) |
+| 被测派生面(具名) | `unity/Assets/Gameplay.Presentation/Audio/CueEmitDeriver.cs`(`CueEmitInput` / `CueEmitDeriver` —— D1 门收窄后的**唯一**扫描面) |
+| 被测锚点面 | `unity/Assets/Gameplay.Presentation/Audio/AnchorGate.cs`(`GateDecision` / `AnchorGate` / `IsStale`) |
+| 被测兜底面 | `unity/Assets/Gameplay.Presentation/Audio/EndLoopWatchdog.cs`(`LoopProgress` / `ShouldSelfTerminate` / `IsStagnant`) |
+| 被测 sink 实现 | `unity/Assets/Gameplay.Presentation/Audio/CueRenderSink.cs`(`ICueRenderTarget` / `CueRenderSink` / `NullRenderTarget`) |
+| 被测 GDD | `design/gdd/audio-system.md`(AC-44-07 / AC-44-D1 / AC-44-D7 —— 锚点纪律归 D1,无独立编号) |
 | 运行方式 | `unity test unity --mode EditMode --filter NetDerivationTest` |
 
 > 读法纪律:本 story 为**静态半** —— 三腿(IL 扫描 / 重排差分 / 负向夹具)在 P0 可跑;
 > **4 人双实例对拍 = BLOCKED-BY-45**(P1b),不在本断言面。
 > `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
+>
+> **⚠️ 2026-10-16 S14-2 实现轮 —— 自造 Fake 全数删除**。补评(评审原件
+> `production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md` §2.1)判定
+> 19 测中 🔴 假 10:被测对象(`CueEmitDeriver` / `CueRenderSink` / `AnchorGate` /
+> `EndLoopWatchdog`)**不存在**,测试以自造 `DeriveCueHash` / `NetSimEvent` /
+> `FakeAnchorGate` / `FakeEndLoopWatchdog` / `TierRecordingSink` 顶替。
+> S14-2 落地 4 个生产类,测试改调生产面 ⇒ **19 → 34 测**。
+> 实现证据:`production/qa/evidence/impl-s14-2-audio-cue-deriver-2026-10-16.md`
+> (含证伪轮 7 例全红 + 零残留核验 + 回归终值 `3538/3492/0/46`)。
 
 ## AC → 测试函数映射
 
@@ -202,7 +215,9 @@
 | **AC-44-D1 来源纪律**(IPositionalChannel 单实现) | `test_positionalChannel_singleConsumerImplementation` | BLOCKING |
 | **AC-44-D1 契约面**(WorldPosLatest 携带 ServerTick) | `test_worldPosLatest_carriesServerTick` | BLOCKING |
 | **AC-44-D1 + D-44 消费纪律**(派生面零 IPositionalChannel 引用) | `test_derivationSurfaceTypes_zeroPositionalChannelRefs` | BLOCKING |
+| **AC-44-D1 反空转守卫**(具名派生面缺席 ⇒ 红) | `test_derivationSurfaceScan_absentNamedType_isRed` | BLOCKING |
 | **AC-44-D1 负向**(fixture 含通道引用 ⇒ 红) | `test_derivationSurfaceScan_fixtureWithChannelRef_flagged` | BLOCKING |
+| **AC-44-D1 锚点门只读**(无回写面) | `test_anchorGate_noWriteBackSurface` | BLOCKING |
 | **AC-44-D7 ② 时钟面**(派生面 IL 禁 RNG/帧/墙钟) | `test_derivationSurfaceTypes_ilBody_noClockOrRandomRefs` | BLOCKING |
 | **AC-44-D7 ② 负向**(fixture 含 UnityEngine.Random ⇒ 红) | `test_derivationScan_ilBodyFixtureRandom_flagged` | BLOCKING |
 | **AC-44-D7 ③ 载荷面**(AudioCueDto 全字段整数域) | `test_audioCueDto_allFieldsIntegerDomain` | BLOCKING |
@@ -211,17 +226,33 @@
 | **AC-44-D7 重排差分核心**(同流乱序到达哈希一致) | `test_reorderInvariance_arrivalOrderPreservesCueHash` | BLOCKING |
 | **重排差分载荷面自证**(Intensity 进哈希) | `test_reorderInvariance_intensityFeedsHash` | BLOCKING |
 | **重排差分事件集自证**(事件数进哈希) | `test_reorderInvariance_eventCountFeedsHash` | BLOCKING |
-| **AC-44-D10 锚点缺席**(一次性丢弃/循环挂起) | `test_anchorAbsent_oneShotDropped_loopCuePending` | BLOCKING |
-| **AC-44-D10 锚点到达**(挂起补发) | `test_anchorArrived_pendingLoopReleased` | BLOCKING |
-| **AC-44-D10 陈旧检查**(ServerTick 陈旧拒读) | `test_anchorStale_refused` | BLOCKING |
+| **AC-44-D7 ③ 全字段自证**(Source/Looped 进哈希) | `test_reorderInvariance_allPayloadFieldsFeedHash` | BLOCKING |
+| **AC-44-D7 两段式装配**(派生面 `Cell` 恒 default) | `test_derive_cellIsDefaultInjectionPending` | BLOCKING |
+| **派生面 null 输入**(抛 `ArgumentNullException`) | `test_derive_nullInput_throws` | BLOCKING |
+| **AC-44-D1 锚点缺席**(一次性丢弃/循环挂起) | `test_anchorAbsent_oneShotDropped_loopCuePending` | BLOCKING |
+| **AC-44-D1 锚点到达**(挂起补发) | `test_anchorArrived_pendingLoopReleased` | BLOCKING |
+| **AC-44-D1 陈旧检查**(ServerTick 陈旧拒读) | `test_anchorStale_refused` | BLOCKING |
+| **AC-44-D1 陈旧 ≠ 缺席**(陈旧锚点仍算在位) | `test_staleAnchor_stillCountsAsPresent` | BLOCKING |
+| **AC-44-D1 同源重复挂起**(以最后一次为准) | `test_anchorAbsent_duplicatePending_lastWins` | BLOCKING |
 | **EndLoop 自评兜底**(纯函数判停 + 有界阈值) | `test_endLoop_selfAssessPredicate_pureAndBounded` | BLOCKING |
 | **EndLoop 有界性**(阈值为正常数) | `test_endLoop_selfAssessThreshold_isPositiveBoundedConstant` | BLOCKING |
+| **EndLoop 阈值边界**(0 / 等值不判) | `test_endLoop_thresholdBoundary_zeroAndEqual` | BLOCKING |
+| **EndLoop 时间倒流**(不判停,防误杀) | `test_endLoop_timeGoingBackward_notTerminated` | BLOCKING |
+| **EndLoop 无进度快照**(不判停) | `test_endLoop_noProgressSnapshot_notTerminated` | BLOCKING |
+| **句柄唯一性**(同源重复 BeginLoop 以最后为准) | `test_beginLoop_duplicateSource_lastWins` | BLOCKING |
+| **句柄过期**(过期 EndLoop 忽略) | `test_endLoop_expiredHandle_ignored` | BLOCKING |
+| **句柄往返**(Begin → End 释放) | `test_beginEndLoop_roundTrip` | BLOCKING |
+| **sink 转发**(Emit → 渲染目标) | `test_emit_forwardsToTarget` | BLOCKING |
+| **sink 构造守卫**(null target 抛异常) | `test_cueRenderSink_nullTarget_throws` | BLOCKING |
 
-> **测试数**:`net_derivation_test` = **19**。
-> ⚠️ 三条易错点的落地证据:
+> **测试数**:`net_derivation_test` = **34**(S14-2 由 19 扩至 34;自造 Fake 全数删除)。
+> **证伪轮 7 例全红**(停用生产码守卫 ⇒ 断言转红),详见
+> `production/qa/evidence/impl-s14-2-audio-cue-deriver-2026-10-16.md` §3。
+> ⚠️ 四条易错点的落地证据:
 > 1. **IL 扫描用 token 解析**(不是字节 Contains):`MethodBodyReferences` 用 `Module.ResolveMethod` 解析 IL 里的 call/callvirt/newobj token,字符串字面量(ldstr)指向 #Blob 堆不在字节数组里。
-> 2. **重排差分哈希用 SplitMix64 链式折叠**:事件 → `EventOrderKey` 全序 → cue 记录 → `SplitMix64.Fold` 逐条折叠,哈希输入含 Intensity(载荷面自证)。
+> 2. **重排差分哈希用 SplitMix64 链式折叠**:事件 → `EventOrderKey` 全序 → cue 记录 → `SplitMix64.Fold` 逐条折叠,哈希输入含**全字段**(`Cue`/`Intensity`/`Source`/`Looped`)。**被测物 = 生产 `CueEmitDeriver`**(S14-2 前是测试自写 `DeriveCueHash` —— 那正是补评判 🔴 的最重一条)。
 > 3. **负向夹具住测试命名空间**:`ChannelRefFixture` / `RandomBodyFixture` 在 `DaYiJingCheng.Tests.Unit.Audio` 下,不入 44 生产扫描键(同 Story 001 `assembly_boundary_test` 分工)。
+> 4. **D1 门 = 具名派生面 + 反空转守卫**(S14-2):扫描面收窄为 `{CueEmitDeriver, CueEmitInput}`;具名类型缺席 ⇒ 直接 RED。原「扫整个 44 装配」在 `AnchorGate`(位置面,必须持 `IPositionalChannel`)落地后必红 —— 而若不落 `AnchorGate`,零违例对空集平凡成立(「空转真扫」)。
 
 ## Story 008(空间化与世界语境呼吸 —— AC-44-D2 / D3 / D8 / 16 / 优先级公式)
 
@@ -236,13 +267,18 @@
 | 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Audio/spatialization_test.cs` |
 | 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
 | 被测契约 | `unity/Assets/Sim.Contracts/PresentationDtos.cs`(`AudioCueDto.Cell:Int3` / `IPositionalChannel`) |
-| 被测生产 44 类型 | `unity/Assets/Gameplay.Presentation/Audio/`(禁反推 Cecil 扫描 + IEventSink 扫描) |
+| 被测生产 44 类型 | `unity/Assets/Gameplay.Presentation/Audio/` 下 **`LatticeToWorld`** · **`CellJitter`** · **`RankKeyComputer`** · **`AudioSourcePool`** · **`OcclusionDriver`** · **`SpatializationDirector`**(S14-1 落地;禁反推 Cecil 扫描 + IEventSink 扫描打 `AudioSourcePool` 等真类型) |
 | 被测事件表 | `assets/data/audio_events.json`(worldBreath 行接线断言) |
 | 被测哈希 | `unity/Assets/Sim.Contracts/SplitMix64.cs`(`SplitMix64.Hash`) |
 | 运行方式 | `unity test unity --mode EditMode --filter SpatializationTest` |
 
-> 读法纪律:本 story 生产代码(LatticeToWorld/cell_jitter/rank_key/AudioSource 池)尚未实现,
-> 测试用自持谓词面(FakeSourcePool/FakeOcclusionDriver/RankKeyComputer/CellJitter/FakeLattice)。
+> ⚠️ **S14-1(2026-10-16)重写记录**:上句「生产代码尚未实现 / 用自持谓词面」**已作废** ——
+> 六类生产类已落地(`LatticeToWorld` / `CellJitter` / `RankKeyComputer` / `AudioSourcePool` /
+> `OcclusionDriver` / `SpatializationDirector`),`FakeSourcePool` / `FakeOcclusionDriver` /
+> `FakeLattice` **全部删除**。原 `FakeSourcePool` 内部**零 `AudioSource`**,而 AC-44-D8 ② 的
+> 判据逐字是「N 条独立 `AudioSource`」⇒ 断言在被测对象不存在时仍为绿(假绿根因)。
+> **仍保留的自持谓词仅一处**:duck 深度(`ApplyDuck` 的 dB→线性换算)—— duck **执行体归
+> Story 006**,本 story 只出序(见 `:408` / `:566` 就地点注),非漏改。
 > `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
 
 ## AC → 测试函数映射
@@ -271,13 +307,17 @@
 | **F-44.4 cell_jitter 确定性** | `test_cellJitter_deterministicAndDistinguishesSameCell` | BLOCKING |
 
 > **测试数**:`spatialization_test` = **20**(原 21,删除 1 个恒真 `test_cellJitter_doesNotWriteBack`)。
+> **S14-1 证据原件**:`production/qa/evidence/impl-s14-1-spatialization-2026-10-16.md`。
+> **证伪轮(S14-1 · 8 例全红)**:停用生产码守卫 ⇒ 断言转红,逐例记于原件 §3。
+> ⚠️ **例 ⑤ 首轮 0 红 = 弱判别面(已修)**:`distance` 键断言**无判别力**(假绿夹具),
+> 用实测 jitter 值重构后转红 —— 该轮由证伪轮抓出撰写者自己的假绿夹具。
 > ⚠️ 四条易错点的落地证据:
 > 1. **禁反推用 Cecil 扫描器**:`test_latticeToWorld_noFloatToWorldPosMethod` 调 `CheckAudioAssemblyIl` 扫生产类型签名,无 float→WorldPos 方法。
 > 2. **RankKeyComputer 输入哈希缓存**:同输入跳过重算(防增益抖动),输入变化(声源生灭)才重算。
 > 3. **duck 用 dB→线性幅度**:`ApplyDuck(linearVolume, depthDb)` = `linearVolume * 10^(depthDb/20)`,验证 duck 后音量 > 0。
 > 4. **负例构造用 JSON Replace**:missing_red 用 Replace cue 名,wrongBus_red 用 Replace bus 值,构造真正违例数据。
 
-## Story 009(声源生命周期与贴耳交接 —— EndLoop 自评兜底 / 贴耳交接契约 / 重复过期句柄 / 咳嗽不停呼吸)
+## Story 009(声源生命周期与贴耳交接 —— AC-009-1 自评兜底 / AC-009-2 贴耳交接 / AC-009-3 重复过期句柄 / AC-009-4 咳嗽不停呼吸)
 
 故事头登记的证据路径为
 `tests/unit/audio_system/loop_lifecycle_test.cs`,但该路径在仓库根、**Unity 不编译**
@@ -290,38 +330,68 @@
 | 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Audio/loop_lifecycle_test.cs` |
 | 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
 | 被测契约 | `unity/Assets/Sim.Contracts/PresentationDtos.cs`(`IAudioCueSink` / `AudioCueHandle` / `TierSource`) |
-| 被测生产 44 类型 | `unity/Assets/Gameplay.Presentation/Audio/`(Cecil 时钟 token 扫描) |
+| 被测兜底谓词 | `unity/Assets/Gameplay.Presentation/Audio/EndLoopWatchdog.cs`(**S14-2 交付**) |
+| 被测兜底执行器 | `unity/Assets/Gameplay.Presentation/Audio/LoopSelfTerminationDriver.cs`(**S14-3 交付**) |
+| 被测交接状态机 | `unity/Assets/Gameplay.Presentation/Audio/HandoverMux.cs`(**S14-3 交付**) |
+| 被测句柄面 | `unity/Assets/Gameplay.Presentation/Audio/CueRenderSink.cs`(**S14-2 交付**) |
 | 被测咳嗽通道 | `unity/Assets/Gameplay.Presentation/Audio/CoughChannel.cs`(`Dispatch` 只调 Emit) |
 | 运行方式 | `unity test unity --mode EditMode --filter LoopLifecycleTest` |
 
-> 读法纪律:本 story 生产代码(EndLoop 兜底/交接状态机/句柄管理)尚未实现,
-> 测试用自持谓词面(FakeLoopWatchdog/FakeHandoverFsm/FakeHandleManager)。
-> `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
+> 读法纪律:`repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
+>
+> **⚠️ 2026-10-16 S14-3 实现轮 —— 自造 Fake 全数删除**。补评(评审原件
+> `production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md` §2.3)判定
+> 12 测中 🔴 假 9:被测对象(`EndLoopWatchdog` / `HandoverMux` / 句柄管理器)**不存在**,
+> 测试以自造 `FakeLoopWatchdog` / `FakeHandoverFsm` / `FakeHandleManager` 顶替。
+> S14-3 落地 `HandoverMux` + `LoopSelfTerminationDriver`;兜底谓词与句柄生命周期
+> **已由 S14-2 交付**(`EndLoopWatchdog` / `CueRenderSink`)⇒ 本文件改指那两个生产类,
+> **不重复造类**。测试 12 → **16**。
+> 实现证据:`production/qa/evidence/impl-s14-3-loop-handover-2026-10-16.md`
+> (含证伪轮 **9 例全红** + 零残留核验 + 回归终值 `3542/3496/0/46`)。
+>
+> **⚠️ 证伪轮抓到本轮**我自己写的**假绿夹具**(BLOCKING · 已修)**:例 ② 停用
+> `_sink.EndLoop(rec.Handle)` 后 **红 0 条** —— 三条兜底测试只断言驱动器**内部计数器**,
+> 驱动器可以「停止跟踪」却从不调 sink 而照样全绿。同一弱点在交接测试
+> (`WorldHandleReleased` / `StethoscopeHandleReleased` 是**自述标志**而非副作用观测)。
+> 修法:五条测试改断言 `RecordingRenderTarget.Stopped` 含句柄 id。修复后例 ② **0 红 → 3 红**,
+> 新增例 ④b ⇒ 1 红。**S11-9 / S13-9 同型假绿第三次现身。**
+>
+> **⚠️ 判据边界口径(与旧 Fake 的实质差异)**:旧 `FakeLoopWatchdog` 用
+> `stagnantFor >= _maxTicks`;生产 `EndLoopWatchdog` 用**严格 `>`**(「等值不判,
+> 边界归下一 tick」)。本文件按**生产口径**断言 —— 这正是「换真」的意义:
+> 旧 Fake 编码了一个**不同的**契约。
 
 ## AC → 测试函数映射
 
 | AC | 测试函数(`LoopLifecycleTest` 内) | 性质 |
 |---|---|---|
-| **EndLoop 兜底:流停更后有界停** | `test_endLoopWatchdog_staleStream_stopsWithinBound` | BLOCKING |
-| **EndLoop 兜底:流恢复不重复停** | `test_endLoopWatchdog_resumeNoDoubleStop` | BLOCKING |
-| **EndLoop 兜底:有界常量 0 当轮必停** | `test_endLoopWatchdog_zeroBoundStopsImmediately` | BLOCKING |
-| **EndLoop 兜底:时钟源 = sim tick** | `test_endLoopWatchdog_noWallClockRefs` | BLOCKING |
-| **EndLoop 契约形状:本地句柄** | `test_endLoop_contractShape_localHandleOnly` | BLOCKING |
-| **贴耳交接:进入世界层压出** | `test_handover_enterStethoscope_worldFadesOut` | BLOCKING |
-| **贴耳交接:退出镜像** | `test_handover_exitStethoscope_worldFadesIn` | BLOCKING |
-| **贴耳交接:幂等重入** | `test_handover_idempotentReentry` | BLOCKING |
-| **贴耳交接:听诊中世界 cue 不重启** | `test_handover_worldCueArrives_noRestart` | BLOCKING |
-| **贴耳交接:硬切拒绝** | `test_handover_hardCut_rejected` | BLOCKING |
-| **重复句柄:同源重复以最后为准** | `test_duplicateBeginLoop_lastWins` | BLOCKING |
-| **过期句柄:过期 EndLoop 忽略** | `test_expiredEndLoop_ignored` | BLOCKING |
-| **咳嗽不停呼吸(联合断言)** | 注释引用 Story 004 `breath_layers_test.test_coughNeverEndsBreathLoop_zeroEndLoopCalls` | — |
+| **AC-009-1 流停更后有界停** | `test_endLoopWatchdog_staleStream_stopsWithinBound` | BLOCKING |
+| **AC-009-1 流恢复不重复停**(含严格 `>` 边界) | `test_endLoopWatchdog_resumeNoDoubleStop` | BLOCKING |
+| **AC-009-1 有界常量 0 当轮必停** | `test_endLoopWatchdog_zeroBoundStopsImmediately` | BLOCKING |
+| **AC-009-1 从未收到快照不判停** | `test_endLoopWatchdog_noSnapshotEver_notTerminated` | BLOCKING |
+| **AC-009-1 正常收尾自评不介入** | `test_endLoopWatchdog_normalEndLoop_noSelfTermination` | BLOCKING |
+| **AC-009-1 时钟源 = sim tick** | `test_endLoopWatchdog_noWallClockRefs` | BLOCKING |
+| **AC-009-1 契约形状:本地句柄** | `test_endLoop_contractShape_localHandleOnly` | BLOCKING |
+| **AC-009-2 进入:世界层压出 + 句柄释放** | `test_handover_enterStethoscope_worldFadesOut` | BLOCKING |
+| **AC-009-2 窗中:交叉淡化在开区间** | `test_handover_midWindow_crossfadeStrictlyBetween` | BLOCKING |
+| **AC-009-2 退出镜像** | `test_handover_exitStethoscope_worldFadesIn` | BLOCKING |
+| **AC-009-2 幂等重入** | `test_handover_idempotentReentry` | BLOCKING |
+| **AC-009-2 听诊中世界 cue 不重启** | `test_handover_worldCueArrives_noRestart` | BLOCKING |
+| **AC-009-2 硬切拒绝**(0 与 <0) | `test_handover_hardCut_rejected` | BLOCKING |
+| **AC-009-2 null sink 守卫** | `test_handover_nullSink_throws` | BLOCKING |
+| **AC-009-3 同源重复以最后为准** | `test_duplicateBeginLoop_lastWins` | BLOCKING |
+| **AC-009-3 过期 EndLoop 忽略** | `test_expiredEndLoop_ignored` | BLOCKING |
+| **AC-009-4 咳嗽不停呼吸(联合断言)** | 注释引用 Story 004 `breath_layers_test.test_coughNeverEndsBreathLoop_zeroEndLoopCalls` | — |
 
-> **测试数**:`loop_lifecycle_test` = **12**(原 13,删除 1 个与 Story 004 重复的咳嗽测试)。
+> **测试数**:`loop_lifecycle_test` = **16**(S14-3 由 12 扩至 16;自造 Fake 全数删除)。
+> **证伪轮 8 例全红**(停用生产码守卫 ⇒ 断言转红),详见
+> `production/qa/evidence/impl-s14-3-loop-handover-2026-10-16.md` §3。
 > ⚠️ 四条易错点的落地证据:
 > 1. **EndLoop 兜底用 Cecil 扫描器**:`test_endLoopWatchdog_noWallClockRefs` 调 `AssemblyGates.CheckAudioClockTokens` 扫生产类型方法体 IL,禁 DateTime/Time 引用。
-> 2. **FakeHandoverFsm 用相对计数**:`_handoverElapsed++` 达到 `_handoverTicks` 时激活听诊层,不用绝对 tick 差(避免魔数)。
-> 3. **咳嗽测试不重复**:Story 009 AC 明确把「咳嗽不停呼吸」列为验收标准,但 Story 004 已有同名同逻辑测试,本 story 不重复实现,改为注释引用。
+> 2. **交接用绝对 tick 相位**:`HandoverMux` 以 `_phaseStartTick` + 当前 tick 求 `t = elapsed / handoverTicks`(纯函数,无累加状态 —— 与旧 Fake 的 `_handoverElapsed++` 不同,后者对时间倒流无定义)。
+> 3. **咳嗽测试不重复**:Story 009 AC 明确把「咳嗽不停呼吸」列为验收标准,但 Story 004 已有同名同逻辑测试(且调真生产类),本 story 不重复实现,改为注释引用。
 > 4. **GDD 补登记 LOOP_EVAL_MAX_TICKS**:QA 评审发现 AC 引用的「登记常量」在 GDD §Tuning Knobs 中不存在,已补登记(安全范围 ≥ 1 tick)。
+> 5. **判据单一出处**:`LoopSelfTerminationDriver` **不复制**停滞比较,一律调 `EndLoopWatchdog.ShouldSelfTerminate`(承 ADR-024 §⑥:同一条判据两处实现 = 两处分叉)。
 
 ## Story 010(素材管线与事件表烘焙门 —— AC-44-D4 / D5 / D6 / 听诊窗预载)
 
@@ -377,36 +447,97 @@
 |---|---|
 | 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Audio/settings_exposure_test.cs` |
 | 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
-| 被测契约 | `unity/Assets/Gameplay.Presentation/Audio/MixerRegistry.cs`(`BusVolumeParameters` 7 路) |
+| 被测注册表(名字半边) | `unity/Assets/Gameplay.Presentation/Audio/MixerRegistry.cs`(`SettingsVisibleParameters` 8 员) |
+| 被测注册表(值半边 / 烘焙) | `assets/data/audio_settings_registry.json` + `Editor.Tools.Bake/AudioSettingsRegistryBinder.cs` |
+| 被测 store / 归零 / sidecar | `Gameplay.Presentation/Settings/`(`AudioSettingsStore` · `ISettingsStore` · `AudioSettingsSidecar` · `VolumeUnitMapping` · `SettingsValue`) |
+| 被测门(字幕键集) | `unity/Assets/Editor.Tools.Gates/AudioEventTableGates.cs`(`ValidateSubtitles` / `IsSubtitleCue`) |
 | 被测 GDD | `design/gdd/audio-system.md`(AC-44-12/13/15/19) |
-| 运行方式 | `unity test unity --mode EditMode --filter SettingsExposureTest` |
+| 运行方式 | `unity test unity --mode EditMode --filter SettingsExposure` |
 
-> 读法纪律:本 story 生产代码(设置 store/归零机制/注册表)尚未实现,
-> 测试用自持谓词面(FakeSettingsStore/FakeResetMechanism)。
+> **⚠️ 2026-10-16 S14-5 实现轮 —— 自造替身全数删除**。补评(评审原件
+> `production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md` §2.5)判定本 story
+> 11 测中 🟢 真 1 · 🟡 半真 3 · 🔴 假 7 —— 根因 = **被测对象不存在**,测试用
+> `SettingsVisibleRegistry`(本地字面量数组)/ `FakeSettingsStore` / `FakeResetMechanism` /
+> `HasSubtitleForCue`(复刻生产判据)顶替 ⇒ 断言在对象缺席时仍绿。
+> S14-5 改打**生产件**:注册表 = `MixerRegistry.SettingsVisibleParameters`(名字)+
+> 烘焙 JSON(值);store / 归零 = `AudioSettingsStore` + 真 `AudioSettingsSidecar`
+> (落 `Path.GetTempPath()` 唯一子目录);字幕键集 = `AudioEventTableGates.ValidateSubtitles`
+> (族判定 `IsSubtitleCue`,**测试不再自写判据**);注册表对账 = `AudioSettingsRegistryBinder`
+> (名字 / 值双向对账,构建期)。
+> 实现证据:`production/qa/evidence/impl-s14-5-settings-exposure-2026-10-16.md`
+> (含证伪轮 12 例 + **证伪轮当场抓到的一处生产实现缺陷** + **第二轮抓到的两处夹具判别力缺陷** + 回归终值)。
+>
+> ⚠️ **AC-44-13 的「出厂默认 ∈ 烘焙分区」断言已恢复** —— 此前被修复轮 B2 删空
+> (只留注释块,注释还自称「非假绿」),现由 `test_monoOption_factoryDefault_fromBakedPartition`
+> + `test_busVolumeFactoryDefaults_matchBakedPartition` 两条真断言承接。
+>
+> ⚠️ **AC-44-15 [A] 的「含 48 口述」半边 = NOT-RUN(缺口登记,不借绿)** ——
+> 48 的 4 支教学口述(`assets/data/48_tutorial_content.json` 的 `narration[].cueId` =
+> `teach_observe_01` / `teach_judge_01` / `teach_close_01` / `teach_archive_01`)
+> 既不在事件表、前缀也不匹配已登记的 `Voice_` / `Narration_` ⇒ 生产门**看不见它们**,
+> 「表键集 ⊇ 语声 cue 集(含 48 口述)」的字面在本门下**恒真**。
+> `test_tutorialNarrationCues_registeredAsGap_notVisibleToGate` 是**缺口哨兵**
+> (钉住缺口当前存在;48 侧契约落地后它会转红 ⇒ 须随之改判,不得当回归修掉)。
+> 用户裁定(2026-10-16):如实登记 NOT-RUN + 缺口,**不代 48 立契约、不扩前缀、不登种子**。
+>
+> ⚠️ **mono 的运行期载体未定(缺口登记)** —— 实测 `.mixer` 的 `m_ExposedParameters`
+> 恰 12 员(7 `bus_volume_*` + 5 `tier_*`,由 `MixerTopologyGates` 断言),**不含
+> `mono_enabled`** ⇒ 注册表第 8 行只承载「成员身份 ∈ 闭集」,其 mixer 侧映射
+> (AudioSettings 单例 / mixer effect / 声像折叠)是**尚未裁定的资产拓扑问题**。
+> 见 `MixerRegistry.MonoParameter` 文件注 + 实现证据 §NOT-RUN。
+>
 > `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
 
 ## AC → 测试函数映射
 
 | AC | 测试函数(`SettingsExposureTest` 内) | 性质 |
 |---|---|---|
-| **注册表 AC①:7 路 ∈ 注册表** | `test_settingsRegistry_busVolumes_subsetOfRegistry` | BLOCKING |
-| **注册表 AC①:mono ∈ 注册表** | `test_settingsRegistry_monoEnabled_inRegistry` | BLOCKING |
-| **注册表 AC① 负向:未登记参数** | `test_settingsRegistry_unregisteredParam_rejected` | BLOCKING |
+| **注册表 AC①:7 路 ∈ 闭枚举** | `test_settingsRegistry_busVolumes_subsetOfRegistry` | BLOCKING |
+| **注册表 AC①:mono ∈ 闭枚举** | `test_settingsRegistry_monoEnabled_inRegistry` | BLOCKING |
 | **注册表 AC①:恰 8 条** | `test_settingsRegistry_exactly8Entries` | BLOCKING |
-| **AC-44-13 mono 选项** | `test_monoOption_existsWithValidDefault`(`Assert.Inconclusive`:出厂默认待生产实现) | BLOCKING |
-| **AC-44-15 字幕键集正例** | `test_subtitleKeySet_coveredByEventTable`(per-cue 验证) | BLOCKING |
-| **AC-44-15 字幕键集负例** | `test_subtitleKeySet_missingSubtitle_rejected` | BLOCKING |
+| **注册表 AC① 负向:未登记参数** | `test_settingsRegistry_unregisteredParam_rejected`(`TryGetRow` false + `Set` 抛) | BLOCKING |
+| **烘焙注册表:真种子过门** | `test_bakedRegistry_realSeed_bindsWithZeroErrors` | BLOCKING |
+| **烘焙注册表:名字对账负向 ×2** | `test_bakedRegistry_missingParam_rejected` · `test_bakedRegistry_extraParam_rejected` | BLOCKING |
+| **烘焙注册表:值对账负向** | `test_bakedRegistry_defaultMismatchWithFallback_rejected` | BLOCKING |
+| **烘焙注册表:域检查负向 ×3** | `test_bakedRegistry_defaultOutOfRange_rejected` · `test_bakedRegistry_unknownType_rejected` · `test_bakedRegistry_boolRowWithRange_rejected` | BLOCKING |
+| **烘焙注册表:字段级守卫 ×2** | `test_bakedRegistry_unknownRowKey_rejected` · `test_bakedRegistry_missingFactoryDefault_rejected` | BLOCKING |
+| **AC-44-13 mono 出厂默认 ∈ 烘焙分区** | `test_monoOption_factoryDefault_fromBakedPartition`(**断言已恢复**) | BLOCKING |
+| **AC-44-13 混音器侧 = 烘焙同一真源** | `test_busVolumeFactoryDefaults_matchBakedPartition`(含单位换算判别力自证) | BLOCKING |
+| **单位换算(玩家线性 ↔ mixer dB)** | `test_volumeUnitMapping_neutralAndFloor` · `test_volumeUnitMapping_linearValue_notPassedThroughAsDb` | BLOCKING |
+| **AC-44-15 [A] 字幕键集正例** | `test_subtitleKeySet_realSeed_passesProductionGate`(打生产门) | BLOCKING |
+| **AC-44-15 [A] 字幕键集负例** | `test_subtitleKeySet_missingSubtitle_rejected`(仓库夹具 + 生产门) | BLOCKING |
+| **AC-44-15 [A] 48 口述半边** | `test_tutorialNarrationCues_registeredAsGap_notVisibleToGate`(**缺口哨兵 · NOT-RUN**) | — |
 | **AC-44-19 归零三步** | `test_resetMechanism_threeStepsReachFactory` | BLOCKING |
 | **AC-44-19 重启持久化** | `test_resetMechanism_persistsAfterRestart` | BLOCKING |
-| **AC-44-19 负向:跳过 sidecar** | `test_resetMechanism_skipSidecar_rejected` | BLOCKING |
+| **AC-44-19 负向:跳过第三步** | `test_resetMechanism_skipSidecar_rejected`(演示「坏值被 sidecar 推回」) | BLOCKING |
+| **AC-44-19 负向:第二步不可执行** | `test_resetMechanism_missingPushSink_fails` | BLOCKING |
+| **AC-44-19 负向:第三步写失败** | `test_resetMechanism_sidecarWriteFailure_fails` | BLOCKING |
+| **AC-44-19 推 mixer 单位** | `test_resetMechanism_pushSinkReceivesDbValues` | BLOCKING |
+| **sidecar 读序:签名失配** | `test_sidecar_signatureMismatch_backsUpAndKeepsDefaults` | BLOCKING |
+| **sidecar 读序:半截载荷** | `test_sidecar_truncatedPayload_rejected`(**当场抓到生产缺陷**,见下) | BLOCKING |
+| **sidecar 签名语义:不含出厂默认** | `test_sidecar_signature_excludesFactoryDefaults` | — |
+| **sidecar 签名语义:对参数集敏感** | `test_sidecar_signature_isSensitiveToParamSet`(**证伪轮例 ① 补的真缺口**) | BLOCKING |
 | **AC-44-12 文档判据** | `test_a11yDocumentation_threeItemsPresent` | BLOCKING |
 
-> **测试数**:`settings_exposure_test` = **11**(10 passed + 1 inconclusive)。
-> ⚠️ 四条易错点的落地证据:
-> 1. **注册表 7 路验证**:`test_settingsRegistry_busVolumes_subsetOfRegistry` 验证 `MixerRegistry.BusVolumeParameters.Count() == 7`(OQ-SS-3=甲:数据层恒 7 路)。
-> 2. **字幕 per-cue 验证**:`test_subtitleKeySet_coveredByEventTable` 用 `HasSubtitleForCue` 检查该 cue 行内 500 字符内是否有 subtitle_text(非全局搜索)。
-> 3. **归零契约面形状**:3 个 reset 测试验证归零三步语义(写默认 → 推 mixer → 落 sidecar)+ sidecar 持久化契约面形状,生产实现后应替换为调用真实接口。
-> 4. **mono 出厂默认 inconclusive**:出厂默认值归 ADR-014 烘焙分区(用户调),当前阶段生产代码未实现,用 `Assert.Inconclusive` 明确标记待验证。
+> **测试数**:`settings_exposure_test` = **31**(S14-5 由 11 扩至 30;证伪轮例 ① 补签名敏感性测 ⇒ 31;
+> 自造替身全数删除)。
+>
+> ⚠️ **证伪轮当场抓到一处生产实现缺陷(如实登记)** ——
+> `test_sidecar_truncatedPayload_rejected` 首跑**转红**,报「失配后维持出厂默认 Expected True But was False」。
+> **根因**:`AudioSettingsStore.LoadFromSidecar` 原式**先 `Clear` 再逐键写入**,键集完整性检查
+> 放在写完之后 ⇒ 半截载荷已写进去的部分**不回滚**,store 停在「一半旧值一半默认」的中间态。
+> **修法**:改**先校验后落值**(候选表上校验通过才整体换入,原子)。
+> **这是本 sprint 内第三次由证伪轮抓到撰写者自己的缺陷**(S14-3 假绿夹具 · S14-4 锚定缺陷)。
+>
+> ⚠️ **证伪轮第二轮又抓到两处夹具判别力缺陷(如实登记)** ——
+> **① 签名测对派生本体零判别力**:`test_sidecar_signatureMismatch_*` 用**字面量** `"deadbeef"`
+> 作错签名 ⇒ 把 `ComputeRegistrySignature` 改成「恒返常量」**结论不变**,该测照绿。
+> 全库**从无**「签名对参数集敏感」的断言 —— 而这正是签名存在的唯一理由。
+> **修法**:补 `test_sidecar_signature_isSensitiveToParamSet`(缺员 / 多员双向)。
+> **② 名字对账测打到了隔壁分支**:`test_bakedRegistry_missingParam_rejected` 的断言
+> `AnyError(errors, "mono_enabled")` 被**值对账**的报文(`运行期回退行「mono_enabled」…不存在`)
+> 满足 ⇒ 停用名字对账的缺员半边后**仍绿**。
+> **修法**:`AnyError` 增两段式重载,断言钉在「同一条报文须同时含 `名字对账` + `mono_enabled`」。
 
 ## Story 012(乐层护栏与性能/VR 切面 —— AC-44-18 / E2 / E1 / AC-44-11)
 
@@ -425,33 +556,64 @@
 | 被测 GDD | `design/gdd/audio-system.md`(AC-44-18/E2/E1/11 + §Tuning Knobs) |
 | 运行方式 | `unity test unity --mode EditMode --filter MusicGuardrailsTest` |
 
-> 读法纪律:本 story 生产代码(乐层护栏/DSP 预算探针/VR 切面)尚未实现,
-> 测试用自持谓词面(MusicXfadeGuard/DspBudgetGuard)。
+> 读法纪律:**S14-4 已落生产件** —— 原「测试用自持谓词面(MusicXfadeGuard/DspBudgetGuard)」
+> 已删除,改打 `AudioEventTableGates.ValidateXfade` / `AudioBudgetProbe` / `AudioMeasurementPoints`。
 > `repoRoot()` = `[CallerFilePath]` 上溯 **5 层**。
 
 ## AC → 测试函数映射
 
 | AC | 测试函数(`MusicGuardrailsTest` 内) | 性质 |
 |---|---|---|
-| **AC-44-18:xfade_ms 下界** | `test_musicXfade_belowMin_rejected` | BLOCKING |
-| **AC-44-18:xfade_ms 边界** | `test_musicXfade_atMin_accepted` | BLOCKING |
-| **AC-44-18:xfade_ms 上界** | `test_musicXfade_aboveMin_accepted` | BLOCKING |
-| **AC-44-18:trigger_source** | `test_musicLayer_triggerSource_isEncounterMusicLayer` | BLOCKING |
-| **AC-44-18 ②:G1-G3 护栏** | `test_musicLayer_g1g3Guardrails_registered` | BLOCKING |
-| **AC-44-18:MUSIC_XFADE_MIN_MS 登记** | `test_musicXfadeMinMs_registeredInTuning` | BLOCKING |
-| **AC-44-E2:P95 正例** | `test_dspBudget_p95WithinBudget` | BLOCKING |
+| **AC-44-18①:xfade_ms 下界**(生产门) | `test_musicXfade_belowMin_rejected` | BLOCKING |
+| **AC-44-18①:xfade_ms 边界**(含端点) | `test_musicXfade_atMin_accepted` | BLOCKING |
+| **AC-44-18①:xfade_ms 上界**(读**真种子**) | `test_musicXfade_aboveMin_accepted` | BLOCKING |
+| **AC-44-18①:下界只对乐层行**(定义域收窄) | `test_nonMusicRow_belowMin_notRejected` | BLOCKING |
+| **AC-44-18①:诊断携带真常量值** | `test_musicXfade_belowMin_diagnosticCarriesTuningValue` | BLOCKING |
+| **AC-44-18②:trigger_source** | `test_musicLayer_triggerSource_isEncounterMusicLayer` | BLOCKING |
+| **AC-44-18②:G1-G3 护栏**(锚定表行) | `test_musicLayer_g1g3Guardrails_registered` | BLOCKING |
+| **AC-44-18②:锚定判据自证**(反向句不得过) | `test_guardrailAnchor_rejectsBareMention` | BLOCKING |
+| **AC-44-18③:owner=44 + 25 侧跨文件引用** | `test_musicXfadeMinMs_ownerIs44_withCrossFileReference` | BLOCKING |
+| **AC-44-E2:P95 正例**(生产谓词) | `test_dspBudget_p95WithinBudget` | BLOCKING |
 | **AC-44-E2:P95 负例** | `test_dspBudget_p95Exceeds_rejected` | BLOCKING |
-| **AC-44-E2:测量点注册表** | `test_dspBudget_measurementRegistry_noEmit` | BLOCKING |
-| **AC-44-E1:P0 无 VR 音频** | `test_vrAudio_p0Build_noVrAudioRefs` | BLOCKING |
+| **AC-44-E2:P95 边界**(`≤` 含端点) | `test_dspBudget_atBudget_accepted` | BLOCKING |
+| **AC-44-E2:样本不足哨兵不得冒充通过** | `test_dspBudget_noSamples_notWithinBudget` | BLOCKING |
+| **AC-44-E2:分位算法**(最近秩法) | `test_dspBudget_percentile_nearestRank` | BLOCKING |
+| **AC-44-E2:测量点不含 Emit** | `test_dspBudget_measurementRegistry_noEmit` | BLOCKING |
+| **AC-44-E2:反空转守卫(空集 ⇒ 红)** | `test_measurementRegistry_emptySet_isRed` | BLOCKING |
+| **AC-44-E2:null 与空集可区分** | `test_measurementRegistry_null_isRed` | BLOCKING |
+| **AC-44-E2:Emit 混入 ⇒ 红** | `test_measurementRegistry_emitInjected_isRed` | BLOCKING |
+| **AC-44-E1:P0 无 VR 音频**(三面 + 引用集) | `test_vrAudio_p0Build_noVrAudioRefs` | BLOCKING |
+| **AC-44-E1:扫描面自证**(负向夹具) | `test_vrAudio_scanSurface_catchesVrMembers` | BLOCKING |
 | **AC-44-E1:P1b 切面登记** | `test_vrAudio_p1bFacet_registered` | BLOCKING |
 | **AC-44-11:BLOCKED-BY-P1b** | `test_vrListen_ac4411_blockedByP1b` | BLOCKING |
 
-> **测试数**:`music_guardrails_test` = **12**。
-> ⚠️ 四条易错点的落地证据:
-> 1. **乐层护栏用自持谓词**:`MusicXfadeGuard.IsXfadeValid(xfadeMs, min)` = `xfadeMs >= min`(构建期数值比较)。
-> 2. **G1-G3 护栏登记**:`test_musicLayer_g1g3Guardrails_registered` 验证 ADR-018 §六含 G1/G2/G3 三条护栏文本。
-> 3. **AC-44-11 禁借绿**:GDD AC-44-11 行补 `状态 = BLOCKED-BY-P1b` 标记,测试改查 `Contains("BLOCKED-BY-P1b")`。
-> 4. **GDD 补登记 AUDIO_BUDGET_MS**:AC-44-E2 DSP 预算登记旋钮入 §Tuning Knobs(安全范围 ≤ 帧预算 15% 类)。
+> **测试数**:`music_guardrails_test` = **22**(S14-4 由 12 扩至 22;两个自造谓词类全数删除)。
+>
+> **⚠️ 2026-10-16 S14-4 实现轮 —— 自造谓词全数删除**。补评(评审原件
+> `production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md` §2.6)判定
+> 12 测中 🔴 假 5 / 🟡 半真 6:xfade 三条打的是**测试自写两行谓词** `MusicXfadeGuard`
+> + 硬编码 `2000`/`1999`(而真种子 `xfade_ms = 4000` —— **测试从不读真种子**);
+> dspBudget 两条同理。S14-4 改打生产件:
+> `AudioEventTableGates.ValidateXfade`(**构建期真门**,原唯一具名空位)·
+> `AudioTuning.MusicXfadeMinMs` / `.AudioBudgetMs` · `AudioBudgetProbe` · `AudioMeasurementPoints`。
+> 实现证据:`production/qa/evidence/impl-s14-4-music-guardrails-2026-10-16.md`
+> (含证伪轮 **11 例全红** + **真种子端到端** + 回归终值 `3552/3506/0/46`)。
+>
+> **⚠️ 证伪轮暴露两处缺陷(如实登记)**:
+> ① 例 ⑩ 首轮 **0 红** = E1 扩展的三个面在当前 44 代码下零命中 ⇒ **弱判别面**;
+> 修法 = 抽 `ScanVrViolations` + 负向夹具 `VrLeakFixture` 自证测 ⇒ ⑩b 转红。
+> ② 🔴 **判据自证测当场抓到撰写者自己的锚定缺陷** —— `HasGuardrailRow` 首版
+> `Contains("| **G1 …**")` 会放过 `| 说明 | **G1…** |`(中间列);修法 = 锚**真行首**。
+> **本 sprint 内第二次由证伪轮抓到撰写者自己的缺陷**(S14-3 为假绿夹具)。
+>
+> ⚠️ **四条易错点的落地证据(2026-10-16 更新)**:
+> 1. **乐层护栏打生产门**:`AudioEventTableGates.ValidateXfade`(下界 = `AudioTuning.MusicXfadeMinMs`
+>    **单一出处**,门不另抄 —— ADR-024 §⑥);真种子端到端 = 改种子至 1999 ⇒ 两条转红。
+> 2. **G1-G3 护栏登记**:锚定**表格行首列**(裸 `Contains("G1")` 会被反向句蒙混 —— 原判 🟡 根因);
+>    锚定判据由 `test_guardrailAnchor_rejectsBareMention` 自证。
+> 3. **AC-44-11 禁借绿**:GDD AC-44-11 行 `状态 = BLOCKED-BY-P1b`,测试查 `Contains("BLOCKED-BY-P1b")`。
+> 4. **测量点注册表**:`AudioMeasurementPoints`(44 侧闭集 + 反空转守卫);
+>    ⚠️ **归属诚实声明** —— `AC-10-08` 是**系统 10** 的 AC,10 侧真注册表落地时本类应**改读它**。
 
 ## Story 013(主通道听测验收 —— AC-44-17 [L] 双盲 forced-choice)
 

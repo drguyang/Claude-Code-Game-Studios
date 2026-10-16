@@ -151,6 +151,10 @@ dr_guyang(用户 · **2026-09-15 一项核心裁定:44 与 42 同构的呈现层
 - 单 `AudioListener`(`audio.md:256-266` Single Listener Rule)—— **仅约束空间化参考点**,
   **不约束总线数**(2026-09-18 订正;原写「每设备一条混音总线」为误读)。
 - 素材 = `assets/audio/`(不进 ADR-014 的 `data-core` 数据烘焙? — §五 定)。
+  > **⚠️ 路径补注(2026-10-16 · S14-6)**:`assets/audio/` 是**逻辑路径**;**物理根 = `unity/Assets/Audio/`**
+  > (Unity 工程根为 `unity/`,Addressables 与 `AudioClip` 都无法寻址仓根 `assets/` 下的文件)。
+  > 承 ADR-015 修订 ADR-009 §四 先例:**原文保留,加注订正**。
+  > 执行体 = `AudioAssetExistence.AssetRootRelative`;GDD `:258` / `:695` / `:1092` 三处同款补注。
 - 帧预算 16.6 ms 平面 / 11.1 ms VR(VR 硬性 90 fps);急救输入延迟 < 50 ms。
 
 ### Requirements

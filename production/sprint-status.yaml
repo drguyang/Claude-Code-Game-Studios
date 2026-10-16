@@ -22,84 +22,111 @@ stories:
     name: "008 生产实现:声源池 + 空间化原语(LatticeToWorld / cell_jitter / rank_key / 遮挡驱动器)"
     file: "production/epics/audio-system/story-008-spatialization-world-breath.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: ""
-    # 根件 —— S14-2/3 均依赖它。20 测由自造 Fake 换真生产类。
+    completed: "2026-10-16"
+    # 根件 —— S14-2/3 均依赖它。20 测由自造 Fake 换真生产类(commit a2c6bd6)。
     # 判据:FakeSourcePool 内部须有真 AudioSource(AC-44-D8 ② 逐字「N 条独立 AudioSource」);
-    #      证伪轮:停用池 ⇒ ≥3 测红;AC-44-16 的 bus ∈ Ambience 构建失败真门半边落地。
+    #      证伪轮:停用池 ⇒ ≥3 测红(实得 8 例全红);AC-44-16 的 bus ∈ Ambience 真门半边落地。
+    # ✅ S14-7 补做(2026-10-16):证伪轮 8 例全红(原 commit 自述轮未持久化 ⇒ 补做,不追认);
+    #    原件 production/qa/evidence/impl-s14-1-spatialization-2026-10-16.md + 账本 README story-008 段已更新;
+    #    测试数订正 20 → 28。
 
   - id: "S14-2"
     name: "007 生产实现:cue 发射派生器 + IAudioCueSink 生产实现 + 锚点门 + EndLoop 看门狗"
     file: "production/epics/audio-system/story-007-net-divergence-remote-derivation.md"
     priority: must-have
-    status: backlog
+    status: done
     owner: "claude"
     estimate_days: 0
-    blocker: "S14-1(008 是根)"
-    completed: ""
-    # ⚠️ 重排差分哈希的被测物须是派生器本体(非测试自写 DeriveCueHash)。
-    # ⚠️ 含 AudioCueDto/IAudioCueSink token ⇒ 须声明 44 前缀命名空间(b5 门)。
-    # ⚠️ Sim/ 内 new PayloadRef( 零(ADR-029)。
+    blocker: ""
+    completed: "2026-10-16"
+    # 4 新生产类(CueEmitDeriver / AnchorGate / EndLoopWatchdog / CueRenderSink)+ D1 门收窄。
+    # 19 测 → 34 测,自造 Fake 全数删除。证伪轮 7 例全红。回归 3538/3492/0/46(+15,零回归)。
+    # 原件:production/qa/evidence/impl-s14-2-audio-cue-deriver-2026-10-16.md
+    # ✅ S14-7 复评结案(2026-10-16):story 转 Complete —— 证伪轮全红 + 证据原件落盘 + EPIC 6 行 reconcile。
 
   - id: "S14-3"
-    name: "009 生产实现:EndLoop 自评看门狗 + HandoverMux 交接 FSM + 句柄生命周期管理器"
+    name: "009 生产实现:HandoverMux 交接 FSM + LoopSelfTerminationDriver(自评执行器)"
     file: "production/epics/audio-system/story-009-source-lifecycle-handover.md"
     priority: must-have
-    status: backlog
+    status: done
     owner: "claude"
     estimate_days: 0
     blocker: "S14-1(008 是根)"
-    completed: ""
-    # ⚠️ 顺手补 AC 编号(该 story 4 条 AC 现无 AC-44-xx 编号,用中文描述名 —— 独立瑕疵)。
-    # 常量 LOOP_EVAL_MAX_TICKS / HANDOVER_MS 落 AudioTuning;时钟源 = ITickProvider(禁墙钟)。
+    completed: "2026-10-16"
+    # ⚠️ 交付面经用户裁定收敛:三类中两类已由 S14-2 交付(EndLoopWatchdog / CueRenderSink)
+    #    ⇒ 本件只落 HandoverMux + LoopSelfTerminationDriver,兜底谓词与句柄面改指 S14-2 生产类。
+    # 2 新生产类 + AudioTuning.HandoverTicks = 10 + 白名单 += HandoverPhase。
+    # 12 测 → 16 测,自造 Fake 全数删除。证伪轮 9 例全红(含修夹具后 ② 由 0 红 → 3 红)。
+    # 回归 3542/3496/0/46(+4,零回归)。原件:production/qa/evidence/impl-s14-3-loop-handover-2026-10-16.md
+    # AC 编号补齐:4 条 AC 补 story 局部 AC-009-1…4;幽灵 ID AC-44-D10 就地订正(用户裁定)。
+    # ✅ S14-7 复评结案(2026-10-16):story 转 Complete —— 证伪轮全红 + 证据原件落盘 + EPIC 6 行 reconcile。
 
   # ── Should Have(Wave 3 · 三件相互独立)──
   - id: "S14-4"
     name: "012 生产实现:xfade_ms ≥ MUSIC_XFADE_MIN_MS 下界门 + 常量"
     file: "production/epics/audio-system/story-012-music-guardrails-perf-vr.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: ""
-    # 唯一具名空位 = AudioEventTableGates.ValidateXfade(XML doc 已写「不做…归 Story 012」)。
-    # 判据:改种子 xfade_ms 至 1999 ⇒ 构建期红。DSP 预算探针归 evidence 文档。
+    completed: "2026-10-16"
+    # 唯一具名空位 = AudioEventTableGates.ValidateXfade(XML doc 已写「不做…归 Story 012」)
+    # ⇒ 已补下界比较,下界 = AudioTuning.MusicXfadeMinMs(2000,单一出处,门不另抄)。
+    # 2 新生产类(AudioMeasurementPoints / AudioBudgetProbe)+ AudioTuning 两常量。
+    # 12 测 → 22 测,两个自造谓词类全数删除。证伪轮 11 例全红 + 真种子端到端(1999 ⇒ 2 条红)。
+    # 回归 3552/3506/0/46(+10,零回归)。原件:production/qa/evidence/impl-s14-4-music-guardrails-2026-10-16.md
+    # ⚠️ 证伪轮两次抓到撰写者自己的缺陷(弱判别面 / 锚定不严)⇒ 均补自证测后转红。
+    # ✅ S14-7 复评结案(2026-10-16):story 转 Complete —— 证伪轮全红 + 证据原件落盘 + EPIC 6 行 reconcile。
 
   - id: "S14-5"
     name: "011 生产实现:settings_visible 注册表 + ISettingsStore + 归零机制 + sidecar"
     file: "production/epics/audio-system/story-011-settings-exposure-reset.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: ""
+    completed: "2026-10-16"
     # ISettingsStore 落 Gameplay.Presentation(禁 Sim,GDD :1204)。
     # 恢复 AC-44-13 被删空的「出厂默认 ∈ 烘焙分区」断言。sidecar 先例 = Gameplay.Input/BindingsStore.cs。
+    # 交付:7 新(数据 1 + 生产 6 + 构建期 2)+ 3 改;测试 11 → 31;证伪轮 12 例全红(17 条断言)。
+    # 回归 3572/3526/0/46(基线 3552/3506 ⇒ +20/+20,零回归)。
+    # ✅ S14-7 复评结案(2026-10-16):story 转 Complete —— 证伪轮全红 + 证据原件落盘 + EPIC 6 行 reconcile。
+    # ⚠️ 证伪轮抓到三处缺陷:生产实现 1(原子载入)+ 夹具判别力 2(签名敏感性 / 分支钉定)。
+    # ⚠️ 证据原件 = production/qa/evidence/impl-s14-5-settings-exposure-2026-10-16.md。
 
   - id: "S14-6"
     name: "010 生产实现:事件表 Baker/Binder/CookedWriter + Addressables 音频组 + 听诊预载门"
     file: "production/epics/audio-system/story-010-asset-pipeline-bake-gates.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: ""
-    # 清除测试写仓库 assets/audio/ 的副作用(pipeline_gate_test.cs:213-227 违 test-standards)。
+    completed: "2026-10-16"
+    # 交付:新 11(烘焙 5 + 门 1 + 生产 5)+ 改 8 + 5 占位 wav;测试 11 → 52。
+    # 四个自造替身(FakePreloadGate/GroupSeparabilityPredicate/ExtractFieldName/内联 File.Exists)
+    # + 文件系统写入副作用整段删除;遗留空目录 assets/audio/ 已 rmdir。
+    # 证伪轮 11 例全红(改→跑→还原同命令内 + SHA-256 逐字节校验);
+    # ⚠️ C4(D5(b) 漏网条目判据)首轮 0 红 = 弱判别面(BLOCKING)⇒ 夹具形态修正后复跑转红。
+    # 回归 3613/3568/0/45(基线 3572/3526/0/46;逐 fullname diff = 差异恰为旧 11 测 → 新 52 测,零结果变化)。
+    # ⚠️ 证伪轮首次抓到「夹具判别力」缺陷:负向夹具的期望集成员未合法登记 ⇒ 断言被 (a) 半边的误报满足。
+    # ✅ S14-7 复评结案(2026-10-16):story 转 Complete —— 证伪轮全红 + 证据原件落盘 + EPIC 6 行 reconcile。
+    # ⚠️ 证据原件 = production/qa/evidence/impl-s14-6-asset-pipeline-2026-10-16.md。
 
   # ── Nice to Have ──
   - id: "S14-7"
     name: "6 条复评 + 转 Complete + 44 EPIC 6 行 reconcile"
     file: "production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md"
     priority: nice-to-have
-    status: backlog
+    status: done
     owner: "claude"
     estimate_days: 0
     blocker: "S14-1..6"
-    completed: ""
+    completed: "2026-10-16"
     # ⚠️ 判据须是变异测试(停用生产码 ⇒ 断言转红),非「测试名 + 行号」(retro-13 行动项 2)。

@@ -46,6 +46,11 @@ reconcile 归 S14-7(避免 epic 表与 story 头在实现期反复不同步)。
 | **S14-5** | **011 生产实现**:`settings_visible` 注册表 + `ISettingsStore` + 归零机制 + sidecar | story-011 | Claude | **M** | 无 | ① 11 测换真 ② `assets/` 下须有 `settings_visible`(现全库 `assets/` 零命中)③ `ISettingsStore` 落 `Gameplay.Presentation`(**禁 `Sim`**,GDD :1204「sim 无关」)④ **恢复 AC-44-13 被删空的「出厂默认 ∈ 烘焙分区」断言** ⑤ sidecar 承 3 规则四模式(先例 `Gameplay.Input/BindingsStore.cs`) |
 | **S14-6** | **010 生产实现**:事件表 Baker/Binder/CookedWriter + Addressables 音频组 + 听诊预载门 | story-010 | Claude | **M** | 无 | ① `Editor.Tools.Bake/` 须有 audio 文件(现**零**)② 素材存在性谓词入 ADR-014 阶段 2 ③ 组区分门读 `AddressableAssetSettings`(现全库零门读它)④ **清除测试写仓库 `assets/audio/` 的副作用**(`pipeline_gate_test.cs:213-227` 违 `test-standards.md`「Unit tests must not depend on filesystem」) |
 
+> **⚠️ 实现期问句加注(2026-10-16 · S14-6 收尾)** —— 上表 **S14-4** 的 AC ④ 原文写「构建期真门:改种子 `xfade_ms` 至 1999 ⇒ 红」,**该句是实现期问句(设想),不是判据**。
+> 实际落地 = `AudioEventTableGates.ValidateXfade` 的**常量下界比较**,下界 = `AudioTuning.MusicXfadeMinMs`(2000,**单一出处,门不另抄**);判据面 = 「`xfade_ms < 2000` ⇒ 门报错」,同效且更强
+> (常量下界门对**任意**越界输入生效,不依赖某一次改种子的样例)。原文保留不改写,加注订正
+> (承 ADR-015 修订 ADR-009 先例)。
+
 ### Nice to Have
 
 | ID | Task | Story | Owner | Est | Dependencies | Acceptance Criteria |

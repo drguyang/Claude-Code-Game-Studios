@@ -74,6 +74,53 @@
 
 ---
 
+## 2026-10-16 · 44 音频素材内容需求(sprint-14 S14-6 收尾登记)
+
+**出处**:`production/qa/evidence/impl-s14-6-asset-pipeline-2026-10-16.md` §5 如实登记 ·
+`story-015-audio-asset-binding.md` 卡面 · `design/gdd/audio-system.md:1099-1106`(组八)· `:639-646`(Edge 素材段)。
+**背景**:S14-6 落地的 **5 个 `.wav` 是占位静音**(2044 B = 44 B RIFF/WAVE 头 +
+2000 B 全零 PCM;单声道 44100 Hz / 16 bit / 1000 样本 ≈ **22.7 ms 全零**)。
+**只保证「文件存在」这一条判据成立** —— 机制侧(门 / 烘焙管线 / Addressables 组 / 接线)已通并经证伪轮,
+**素材本体这一侧仍为零**。下列为**内容批须交付的东西**,不是「补个文件」。
+
+**为何单独立册而不并入 story-015**:story-015 的四条 AC(`D6b/D6c/D15/D16`)是
+**「机制已在、真素材未验」的接入与检验**面,其 `Out of Scope` 逐字排除素材创作。
+内容需求(音色 / 时长 / 变体量 / 编码格式)**无任何 AC 载体**,故落本册。
+
+### 一、内容需求(逐族判据)
+
+| 族 | 文件 | 判据(声学形状) | 出处 |
+|---|---|---|---|
+| **Voice** | `vo_patient_cough_damp_{m1,f1}.wav` | **阻尼咳嗽**(闷、短、无混响尾)—— 非清脆干咳 | GDD §规则五 · AC-44-05 |
+| **Stethoscope** | `sfx_breath_base_loop_small.wav` | **基础气流循环**:通带中心 / 宽度 / 噪声底由 `tier_map` 驱动(档 0:700±500 Hz · −34 dB)⇒ 素材本体须**中性可滤波**(禁自带音高 / 禁自带环境),否则滤波档失效 | AC-44-01 BLOCKING |
+| **Stethoscope** | `sfx_breath_adventitious_fine.wav` | **细湿啰音**(fine crackles)—— ⚠️ **禁连续水声**(`AC-44-08` 医学受众第一个出戏点);须可循环 | AC-44-08 |
+| **Ambience** | `sfx_breath_base_loop_small.wav`(复用) | 同上;世界语境呼吸另有 `min/max_distance` + `occlusion_lowpass` 空间化 | ADR-028 · AC-44-16 |
+| **Music** | `music_encounter_layer_loop.wav` | 遭遇紧张乐层 —— **G1–G3 约束,不独立播放**;须**无缝循环**(`loop: true`);`xfade_ms ≥ 2000` | AC-44-18 · `AudioTuning.MusicXfadeMinMs` |
+
+### 二、系统级要求(跨族)
+
+| # | 要求 | 出处 / 判据 |
+|---|---|---|
+| 内容-01 | **Import Settings 定稿** —— 现为 Unity 默认值**未 pin**。按 `docs/engine-reference/unity/modules/audio.md`:小片段 → `DecompressOnLoad` · 中片段 → `CompressedInMemory`(推荐) · 大片段(music)→ `Streaming`。⚠️ **`music_*` 现为默认 `DecompressOnLoad`,按尺寸规则应为 Streaming = 已错**。呼吸 / 语声族的档位**取决于最终片段长度**(= `OQ-44-2` 素材量未裁),故本项**不能预先定稿**,须与素材量同批裁 | `audio.md:213-222` · `story-010` AC-44-D15 |
+| 内容-02 | **变体库量**(男/女 × 强/中/弱 × 句尾;每组合 **≥2**)—— 现 `m1`/`f1` 各 1 个 ⇒ **`AC-44-03 [L]` 听测不可能跑**。同时约束 F-44.3 的**回退规则**:烘焙门要求 (CueId × Tier × 桶) 全组合非空,任一轴向空缺 = 构建失败 ⇒ 变体量**不足即构建失败** | `OQ-44-2` · `story-006` AC-44-03 / 回退规则 |
+| 内容-03 | **素材族完整性** —— 现事件表 **5 行**;`design/assets/entity-inventory.md` 登记音频 **32 项**(SFX 20 · Ambient 4 · Music Cues 8,其中 **VS Critical 11**);GDD `:804-830` 另列 **8 个补充族**(`sfx_pulse_*` 把脉 · `sfx_footstep_{材质}` 矩阵 · `sfx_process_*` 炮制 · `sfx_enemy_*` · `sfx_animal_*` · `sfx_breath_player_*` 玩家自身 · `amb_weather_*` 天气轴 · `amb_biome_*` 昼夜轴 · `reverb_preset_*`) | `entity-inventory.md:77-100,193-231` · GDD `:804-830` |
+| 内容-04 | **命名真源** —— 录素材时 `cue_id` / 文件名以 `assets/data/audio_events.json` 为**唯一真源**;`design/assets/specs/audio-material-manifest.md` 已加真源声明 + 逐行对账(18 行中 3 命中 / 1 拆分 / 14 未登记)。⚠️ **该分叉无门会报**(`AC-44-D6` 只查文件在不在,**不查 cue 名**) | manifest 真源声明(2026-10-16 立) |
+
+### 三、触发条件(何时须还)
+
+| 触发 | 须做的 |
+|---|---|
+| **任一条 cue 从「占位」转「真素材」** | 先过 `story-015` 的 `AC-44-D6b/D6c/D15/D16`(真素材烘焙 · 删除即硬失败 · 组归属 · 双向差集) |
+| **`OQ-44-2` 素材量裁定后** | 本表 内容-01 与 内容-02 **同批定稿**(Import Settings 档位依赖片段长度;变体量依赖回退规则) |
+| **变体素材落地后** | `story-006` `AC-44-03 [L]` 听测可跑;**`story-013`(主通道听测验收)** 与 **`story-016`(残余声源覆盖)** 随之解锁 |
+| **任何音频类 AC 的 `[L]` 半边** | ⚠️ 在素材接入前**均不可判** —— 含 `AC-44-09`(无提示音铁律,BLOCKING)、`AC-11-21`(处方侧)。见同册 **TD-prescription-04** |
+
+> **登记理由**:S14-6 的证据原件 §5 第 1/2 行**只登记了「NOT-RUN + 解除条件 = 素材定稿」**,
+> 已含本册一半内容;本册补的是**「素材定稿」本身要交付什么**(逐族声学判据 + 4 条系统级要求),
+> 以及**「§5 未登记内容需求」这个缺口本身**。
+
+---
+
 ## 登记格式(后续沿用)
 
 ```

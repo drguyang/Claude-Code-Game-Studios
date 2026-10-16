@@ -4662,3 +4662,243 @@ X-2 换乘子时丢配对 `)` ⇒ CS1026。
 - **Next**:① 实现另立 sprint(44 运行期音频链接通,≈15 生产类,按 §4 依赖序:008 根 → 007/009 → 010/011/012);
   ② 或 S13-7 三签回收(真人);③ 或 sprint-13 收口(smoke-check → team-qa → retro)
 - ⚠️ 未 commit(无用户指令)
+
+## Session Extract — S14-2 实现轮 2026-10-16(story-007 生产实现)
+- **交付**:4 新生产类(`CueEmitDeriver` / `AnchorGate` / `EndLoopWatchdog` / `CueRenderSink`)
+  + `AudioTuning.LoopEvalMaxTicks = 40` + D1 门收窄(具名派生面 + 反空转守卫)
+  + 白名单增列 4 项(用户裁定批准)+ 测试 19 → **34**(自造 Fake 全数删除)
+- **用户裁定 4 项**(AskUserQuestion):① 交付粒度 = 一次全做 ② D1 扫描面 = 收窄 + 反空转守卫
+  ③ 白名单 = 批准增列 4 项 ④ `cell_jitter` 读法 = 确认(jitter 渲染散布 / `distance` 独立 rank 输入)
+- **证伪轮 7 例全红**(停用生产码守卫 ⇒ 断言转红),每例「改→跑→还原」同命令内完成
+  · 例 ② 预测 2 红实得 **1 红**、例 ④ 预测 2 红实得 **3 红** —— **两处预测失准已如实登记**(不修饰)
+  · 零残留已核(`grep` 零命中 + 4 文件与 `/tmp/fzsrc-*.cs` 逐字节 diff 一致)
+- **回归终值** `3538/3492/0/46`(基线 S14-1 `3523/3477` ⇒ **+15/+15,零回归**)
+  · `NetDerivationTest` 34/34 · `AssemblyBoundaryTest` 24/24
+- **落账三处**:story-007 §Completion Notes §S14-2 ·
+  `production/qa/evidence/impl-s14-2-audio-cue-deriver-2026-10-16.md` ·
+  `tests/unit/audio_system/README.md`(story-007 段 19→34)· `sprint-status.yaml`(S14-1/S14-2 done)
+- **NOT-RUN 如实登记**:4 人对拍 = BLOCKED-BY-45(P1b)· IL2CPP 三格 NOT-RUN(挂 ADR-012)
+- **发现**:S14-1(commit `a2c6bd6`)**未落** evidence 原件、未更新账本 story-008 段
+  (仍写「测试用自持谓词面(FakeSourcePool/...)」,而 S14-1 已删 Fake)⇒ 登记归 S14-7 复评批
+- **Next**:S14-3(009 生产实现:EndLoop 看门狗 + HandoverMux + 句柄生命周期)
+- ⚠️ **未 commit**(无用户指令)
+
+## Session Extract — S14-3 实现轮 2026-10-16(story-009 生产实现)
+- **用户裁定 2 项**(AskUserQuestion):① **交付面收敛** —— 三类中两类已由 S14-2 交付
+  (`EndLoopWatchdog` / `CueRenderSink`)⇒ 只落 `HandoverMux` + `LoopSelfTerminationDriver`,
+  兜底谓词与句柄面**改指 S14-2 生产类、不重复造**(避同型两处维护,ADR-024 §六);
+  ② **AC 编号** = 补 story 局部 `AC-009-1…4` + 就地订正幽灵 ID `AC-44-D10`(不改 GDD)
+- **交付**:2 新生产类(`HandoverMux` 234 行 · `LoopSelfTerminationDriver` 144 行)
+  + `AudioTuning.HandoverTicks = 10` + 白名单 += `HandoverPhase`
+  + 测试 12 → **16**(`FakeLoopWatchdog` / `FakeHandoverFsm` / `FakeHandleManager` 全数删除)
+- **⚠️ 证伪轮抓到我自己写的假绿夹具(BLOCKING · 已修)** —— 例 ② 停用
+  `_sink.EndLoop(rec.Handle)` 后 **红 0 条**:三条兜底测试只断言驱动器**内部计数器**,
+  驱动器可「停止跟踪」却从不调 sink 而照样全绿。同一弱点在交接测试
+  (`WorldHandleReleased` 是**自述标志**非副作用观测)。修法:五条测试改断言
+  `RecordingRenderTarget.Stopped` 含句柄 id ⇒ 例 ② **0 红 → 3 红**,新增例 ④b ⇒ 1 红。
+  **S11-9 / S13-9 同型假绿第三次现身**。
+- **证伪轮 9 例全红**(① selftick 3 红 · ② execute 3 红 · ③ unregister 1 · ④ worldrelease 1 ·
+  ④b stethrelease 1 · ⑤ hardcut 1 · ⑥ priority 1 · ⑦ idempotent 1 · ⑧ crossfade 1),
+  每例「改→跑→还原」同命令内完成;零残留已核(9 例备份 `cmp -s` 全 IDENTICAL)
+- **回归终值** `3542/3496/0/46`(基线 S14-2 `3538/3492` ⇒ **+4/+4,零回归**)
+  · `Audio` 过滤套件 324/323/0
+- **落账四处**:story-009 §Completion Notes §S14-3 ·
+  `production/qa/evidence/impl-s14-3-loop-handover-2026-10-16.md`(新)·
+  `tests/unit/audio_system/README.md`(story-009 段 12→16 + 假绿登记)· `sprint-status.yaml`(S14-3 done)
+- **幽灵 ID 订正**:`AC-44-D10` 在 GDD 零定义(`grep -c` = 0;`AC-44-D` 止于 D9)⇒
+  story-007 + 账本(5 处)+ qa-plan(1 处)改为 `AC-44-D1 锚点纪律(GDD 无编号)`。
+  **评审原件不改写**(历史判定记录,事后改写 = 伪造评审)
+- **NOT-RUN 如实登记**:听测半边(需素材 story-015/016 + 真人听审)· IL2CPP 三格(挂 ADR-012)
+- **Next**:S14-4(012 生产实现:xfade_ms ≥ MUSIC_XFADE_MIN_MS 下界门 + 常量)
+- ⚠️ **未 commit**(无用户指令)
+
+## Session Extract — S14-4 实现轮 2026-10-16(story-012 生产实现)
+- **用户裁定 3 项**(AskUserQuestion):① `MUSIC_XFADE_MIN_MS` 种子值 = **2000 ms**;
+  ② AC-44-E2 后半「测量点注册表」= **44 侧生产闭集 + 反空转守卫**;
+  ③ 三条 🟡 半真(E1 扫描面 / G1–G3 锚点 / AC-44-18③ 跨文件)= **本轮一并强化**
+- **交付**:2 新生产类(`AudioMeasurementPoints` / `AudioBudgetProbe`)
+  + `AudioTuning.MusicXfadeMinMs = 2000` / `.AudioBudgetMs = 2.5`
+  + **构建期真门** `AudioEventTableGates.ValidateXfade` 补下界比较(兑现原 XML doc 逐字写的「不做」空位)
+  + 测试 12 → **22**,两个自造谓词类(`MusicXfadeGuard` / `DspBudgetGuard`)全数删除
+- **关键设计**:下界常量**单一出处** = `AudioTuning.MusicXfadeMinMs`,门**引用**它禁另抄
+  (先例 = MixerTopologyGates 引 MixerRegistry;纪律 = ADR-024 §⑥)。零装配变更(asmdef 已引用)。
+- **证伪轮 11 例全红**(门下界 2 红 · 定义域 2 · 收窄 1 · 诊断值 1 · 预算 2 · 分位 1 ·
+  空集 1 · null 1 · Emit 1 · VR 字段面 1 · 锚定 1)
+  + **真种子端到端**:改 `audio_events.json` 的 `xfade_ms` → 1999 ⇒ **2 条转红**
+  (含 `test_realSeedAudioEvents_zeroErrors` = 真表过全门)⇒ 计划判据 ③ 兑现
+- **⚠️ 证伪轮两次抓到撰写者自己的缺陷(如实登记)**:
+  · 例 ⑩ 首轮 **0 红** = E1 扩展三面在 44 代码下零命中 ⇒ **弱判别面**;修法 = 抽
+    `ScanVrViolations` + 负向夹具 `VrLeakFixture` 自证测 ⇒ ⑩b 转红
+  · 🔴 **判据自证测当场转红** —— `HasGuardrailRow` 首版 `Contains("| **G1 …**")` 会放过
+    `| 说明 | **G1…** |`(中间列);修法 = 锚**真行首** ⇒ 22 测全绿
+  · **本 sprint 内第二次由证伪轮抓到撰写者自己的缺陷**(S14-3 为假绿夹具)
+- **回归终值** `3552/3506/0/46`(基线 S14-3 `3542/3496` ⇒ **+10/+10,零回归**)
+  · `Audio` 过滤套件 334/333/0/1 skipped
+- **落账四处**:story-012 §Completion Notes §S14-4 + 头部落地标记 ·
+  `production/qa/evidence/impl-s14-4-music-guardrails-2026-10-16.md`(新)·
+  `tests/unit/audio_system/README.md`(story-012 段 12→22 + 两处缺陷登记)· `sprint-status.yaml`(S14-4 done)
+- **归属诚实声明**:`AudioMeasurementPoints` 承载的是 44 侧可静态核对的那一半;
+  `AC-10-08` 是**系统 10** 的 AC,10 侧真注册表落地时本类**应改读它**(已落文件头)
+- **NOT-RUN 如实登记**:AC-44-E2 实测半边(60 s 窗 P95,须真 GPU + 真音频回调)·
+  AC-44-E1 P1b 切面 · AC-44-11 VR 听测(BLOCKED-BY-P1b)· IL2CPP 三格
+- **Next**:S14-5(011 生产实现:`settings_visible` 注册表 + `ISettingsStore` + 归零机制 + sidecar)
+- ⚠️ **未 commit**(无用户指令)
+
+---
+
+## Session Extract — S14-5 完成(2026-10-16)
+
+**S14-5 · story-011(设置暴露面与归零机制)· Should Have · 生产实现轮**
+
+- **交付面 = 7 新 + 3 改**:数据 1(`assets/data/audio_settings_registry.json`,8 行闭枚举)·
+  生产 6(`Gameplay.Presentation/Settings/` 下 `SettingsValue` / `AudioSettingsRegistry` /
+  `AudioSettingsSidecar` / `VolumeUnitMapping` / `AudioSettingsStore` / `ISettingsStore`)·
+  构建期 2(`Editor.Tools.Bake/AudioSettingsRegistryBinder` + `...Bake`)·
+  改 `MixerRegistry`(扩 `MonoParameter` + `SettingsVisibleParameters`)·
+  改 `PlayerBusVolumeInitializer`(FactoryDefaults 改读烘焙)·
+  改测试(**11 → 31 测**,四处自造替身全删)
+- **用户裁定四项**:① 注册表 = 独立注册文件 + `MixerRegistry` 扩名(不动事件表三层白名单)·
+  ② AC-44-15 [A] 的 48 口述半边 = 如实 NOT-RUN + 缺口哨兵 ·
+  ③ `ISettingsStore`/归零机制全落生产(`Gameplay.Presentation/Settings/`,**禁 `Sim`**)·
+  ④ AC-44-13 出厂默认真源 = 烘焙数据,原 C# 常量降回退
+- **关键设计**:名字半边(`MixerRegistry.SettingsVisibleParameters`,编译期)vs
+  值半边(作者态 JSON,烘焙期)· binder **双向对账**(名字 + 值,任一侧漂移 ⇒ 构建失败)·
+  载荷**刻意不用 JSON**(玩家构建零解析器)· 签名**不含出厂默认**(改默认 ≠ 改结构)
+- **证伪轮 12 例全红**(合计 **17 条断言**;⑪ mono 一例红 5 条)
+- **⚠️ 证伪轮抓到三处缺陷(如实登记)**:
+  · **生产实现缺陷**(第一轮之前由新测抓到)—— `LoadFromSidecar` 先 `Clear` 再写 ⇒
+    半截载荷不回滚;修 = 先校验后落值(原子)
+  · **夹具判别力 ①(第一轮 0 红)** —— 签名测用**字面量**错签名 ⇒ 派生改常量仍绿;
+    全库从无「签名对参数集敏感」断言。修 = 补 `isSensitiveToParamSet`
+  · **夹具判别力 ⑦(第一轮 0 红)** —— 名字对账测被**值对账**报文满足 ⇒ 停用后仍绿。
+    修 = `AnyError` 两段式重载,断言钉同条报文含 `名字对账` + `mono_enabled`
+  · **这是本 sprint 第四次**由证伪轮抓到撰写者缺陷,且**第一次连夹具本身**被抓出弱判别面
+- **回归终值** `3572 / 3526 / 0 / 46`(基线 S14-4 `3552/3506` ⇒ **+20/+20,零回归**)
+  · `SettingsExposure` 过滤套件 31/31/0/0
+- **落账五处**:story-011 §Completion Notes §S14-5 + 头部落地标记 ·
+  `production/qa/evidence/impl-s14-5-settings-exposure-2026-10-16.md`(新)·
+  `tests/unit/audio_system/README.md`(story-011 段 11→31 + 三处缺陷登记)·
+  `sprint-status.yaml`(S14-5 done)· 本文件
+- **NOT-RUN 如实登记**:AC-44-15 [A] 48 口述半边(缺口)· mono 运行期载体(资产拓扑未裁)·
+  AC-44-15 [L] 字幕听测 · AC-44-12 [L] 人工走查 · 归零钮控件形态(归 42)·
+  Provider 注入(归 S14-6)· IL2CPP 三格
+- **Next**:**S14-6**(010 生产实现:事件表 Baker/Binder/CookedWriter + Addressables 音频组 +
+  听诊预载门;含清除测试写仓库 `assets/audio/` 的副作用)
+- ⚠️ **未 commit**(无用户指令)
+
+---
+
+## Session Extract — S14-6 完成(2026-10-16)
+
+**S14-6 · story-010(素材管线与事件表烘焙门)· Should Have · 生产实现轮**
+
+- **交付面 = 新 11 + 改 8 + 素材 5**:
+  烘焙 5(`Editor.Tools.Bake/` 下 `AudioEventTableBinder` / `AudioEventTableCookedWriter` /
+  `AudioEventTableBake` / `AudioAssetExistence` / `AudioSettingsRegistryCookedWriter`)·
+  门 1(`Editor.Tools.Gates/AudioAssetGroupGates`)·
+  生产 5(`Gameplay.Presentation/Audio/StethoscopePreloadGate` · `AudioEventDataSet` ·
+  `AudioEventCookedCodec` · `Settings/AudioSettingsDataSet` · `Settings/AudioSettingsRegistryCookedCodec`)·
+  改 `AudioSettingsRegistryBake` / `DataBakeMenu` / `Editor.Tools.Gates.asmdef` /
+  `AddressablesDataProvider` / `BootRoot` + 文档三处 ·
+  素材 5 个占位静音 wav(`unity/Assets/Audio/`)·
+  改测试(**11 → 52 测**,四个自造替身 + 文件系统写入副作用全删)
+- **用户裁定四项**:① D6 门**强制**(非可选参数)+ 落 5 个占位 wav ⇒ 正向半边由**真种子**证明 ·
+  ② 素材根 = `unity/Assets/Audio/`,GDD/ADR 的 `assets/audio/` 就地**加补注**为逻辑路径 ·
+  ③ 听诊预载门 = 真谓词 + `loadState` 查询缝,真 `AudioClip.loadState` 的 PlayMode 半边 NOT-RUN ·
+  ④ 含**最小接线**(cooked 读取面 + `AudioSettingsRegistry.Provider` 注入)
+- **关键设计**:`Materialize` 走**真往返**(直构会让「写方/读方布局不一致」从判据面消失 ——
+  本件构造期**正是**该断言抓到读方漏读载荷首字段 `schema_version`,修复后 10 条红转绿)·
+  跨侧等值断言(cue ordinal 同时被两处声明)· 三层白名单**引用**不另抄(ADR-024 §⑥)·
+  b5 逃逸面守持(`AddressablesDataProvider` 不含四 token)
+- **证伪轮 11 例全红**(C1=4 · C2=56 · C3=1 · C4=1 · C5=5 · C6=12 · C7=10 · C8=1 · C9=1 ·
+  C10=12 · C11=6);9 个被改文件 SHA-256 **逐项还原一致**
+- **⚠️ 证伪轮抓到缺陷(如实登记)**:
+  · **C4 弱判别面(BLOCKING)** —— 首轮 **0 红**:`test_d5_pure_strayAudioEntryInDataCore_rejected`
+    的期望集成员**未合法登记** ⇒ 断言被 **(a) 半边的误报**满足,与 (b) 是否生效无关。
+    修 = 夹具形态(期望集成员合法登记在 `audio` 组,漏网条目换 `orphan.wav`)+ **报文钉定**
+    (`Does.Contain("orphan.wav")` / `Does.Not.Contain("sfx_breath_base_loop_small")`)⇒ 复跑 1 红
+  · **本 sprint 第五次**由证伪轮抓到撰写者缺陷,**第二次**抓到「夹具判别力」本身
+    (S14-5 第 ⑦ 例是第一次)。同型教训:负向夹具只写「非空 / 抛了」不钉「是谁报的」,
+    就会被同一函数内**别的**分支满足 ⇒ 后续一律**钉报文内容**
+- **回归终值** `3613 / 3568 / 0 / 45`(基线 S14-5 `3572/3526/0/46` ⇒ **+41/+42**)
+  · 逐 `fullname` diff:仅 S14-5 有 11 条(旧音频测名)· 仅 S14-6 有 52 条(新测名)·
+    **结果变化 0 条**;跳过 46 → 45 = 旧 `test_addressables_audioGroupSeparateFromDataCore`(Skipped)
+    被 `test_d5_realSettings_audioAssetsSeparateFromDataCore`(Passed)取代(**P4 转真绿**)
+  · `DaYiJingCheng.Tests.Unit.Audio` 过滤套件 **395/395/0/0**
+- **落账五处**:story-010 §Completion Notes §S14-6 + 头部落地标记 + `Out of Scope` 就地改注 ·
+  `production/qa/evidence/impl-s14-6-asset-pipeline-2026-10-16.md`(新)·
+  `tests/integration/audio_system/README.md`(story-010 段)·
+  `sprint-status.yaml`(S14-6 done)· 本文件
+- **⚠️ 计数订正**:`grep -c "\[Test\]"` = 53 是**假数**(第 53 个命中在 `pipeline_gate_test.cs:60`
+  的注释里);XML 实测用例 = **52**。五处账本已由 53 订正为 52
+- **NOT-RUN 如实登记**:真 `AudioClip.loadState` 的 PlayMode 半边(缺口哨兵钉住,
+  素材定稿后**须随之改判**)· 素材 Import Settings 定稿(内容批 `OQ-44-2`)·
+  IL2CPP 三格(本机仅 Mono)· `AddressableAssetsData/` 机器前置 ·
+  两份阶段 2 抽取器的已登记重复(刻意不动,归 story-002 轮)
+- **Next**:**S14-7**(6 条复评 → `Complete` + 44 EPIC 6 行 reconcile;
+  另须处置 **S14-1 的账本缺口** —— commit `a2c6bd6` 未落 `production/qa/evidence/` 原件、
+  未更新账本 README story-008 段)
+- ⚠️ **未 commit**(无用户指令)
+
+---
+
+## Session Extract — S14-6 收尾两项订正(2026-10-16)
+
+> 由用户「素材要求怎么样?」一问牵出的两项**已裁定**订正(AskUserQuestion ×2,均取推荐)。
+
+**① 占位 wav 规格描述订正(5 处 · 事实订正,不动判据)**
+- 原写「**44 字节**最小合法 RIFF/WAVE + **0 采样**」;实测 = **2044 B = 44 B 头 + 2000 B 全零 PCM**
+  (单声道 44100 Hz / 16 bit / **1000 样本 ≈ 22.7 ms 静音**)。
+- 落点:`story-010` ×2(`§Out of Scope` 注 + §S14-6 交付面)· 证据原件 §1/§2 ·
+  `tests/integration/audio_system/README.md`。**资产本身无问题,只是账本描述错。**
+
+**② `design/assets/specs/audio-material-manifest.md` 加 `cue_id` 真源声明**
+- 病灶:该规格件(2026-09-30 草案)的 18 个 `cue_id`(小写下划线式)与事件表真源
+  (`assets/data/audio_events.json`,PascalCase 式)**零重合**,而**无任何门会报**
+  —— `AC-44-D6` 存在性门只查文件在不在,**不查 cue 名** ⇒ 内容批照草案录素材会全绿但录错名。
+- 处置:**零新门**。加真源声明(「`cue_id` 唯一真源 = 事件表;本表只承载素材族 / 变体量 / 调参」)
+  + 表增「事件表真源 cue_id」列逐行对账。
+- **对账结果**:18 行中 **3 行命中**(#2 `phys_breath_rale`→`BreathLayer_Adventitious_Fine` ·
+  #3 `phys_cough`→`Voice_Cough_Damp` · #17 `music_encounter_tense`→`Music_Encounter_Layer`)·
+  **1 行 1→2 拆分**(#1 `phys_breath_base` → 事件表**拆两条**:`BreathLayer_Base_Calm`(bus
+  Stethoscope)+ `WorldBreath_Baseline`(bus Ambience,带 min/max_distance + occlusion_lowpass);
+  照草案录会**让听诊窗缺基础气流**,撞 `AC-44-01` BLOCKING)· **14 行事件表未登记**(表当前仅 5 行)。
+- **另一处分叉**:草案 #3 bus 写 SFX,真源是 **Voice**(且 `subtitle_text` 挂在该行 ——
+  `AC-44-15 [A]` 字幕半边)。以事件表为准。
+
+**未动(留档)**:GDD `:489-497` 的 schema 形状示例用 `BreathLayer_Urgent` ——
+它是**示意 cue**(该节自陈「只定 schema 的形状,不定数值」),命名约定与真源一致,不属分叉。
+
+⚠️ **仍未 commit**(无用户指令)。
+
+## Session Extract — S14-7 完成 · sprint-14 收口(2026-10-16)
+
+**S14-7 = 6 条复评批 → 全数转 `Complete`。** 三条判据逐条兑现:
+
+1. **证伪轮全红 + 复评原件落盘** —— 六份证据原件齐 `production/qa/evidence/impl-s14-{1..6}-*.md`
+   (134/165/203/134/186/181 行)。
+   - **S14-1 的证伪轮 = 补做**:commit `a2c6bd6` 自述「8 条全红」但**从未持久化**
+     (无脚本 / 无结果 XML / 无原件)⇒ 2026-10-16 重跑,8 例全红(15 条断言),SHA-256 逐字节还原一致。
+     **如实登记「本件为补做,评的是当下代码,不追认原判定」**;测试数订正 **20 → 28**。
+     ⚠️ sprint 具名判据「停用池 ⇒ ≥3 测红」实测 = **恰 3 红,裕度 0**(登记为薄弱裕度)。
+2. **EPIC 表 6 行与 story 头逐字一致** —— 测试数 007=34 · 008=28 · 009=16 · 010=52 · 011=31 · 012=22;
+   回归数各用**自己那一次**的终值(007=3538/3492 · 008=3523/3477 · 009=3542/3496 ·
+   010=3613/3568/0/45 · 011=3572/3526 · 012=3552/3506)。⚠️ 首轮 stale 数已标注作废。
+3. **判据 = 变异测试**(非「测试名 + 行号」)—— 六份原件各含逐例「停用 X ⇒ 断言转红」表。
+
+**本轮同时补齐的账本**:
+- 六条 story 的 **AC 勾选**:007 0/3→3/3 · 008 0/5→5/5 · 009 0/4→4/4 · 011 0/5→5/5 · 012 0/4→3/4
+  (012 唯一未勾 = `AC-44-11`,显式 BLOCKED-by-VR-P1b,**禁借绿保留**);每条附「**S14-x 落**」生产类落点。
+- story-008 **补 `## Completion Notes §S14-1` 整节**(六条里唯一缺的)。
+- 007/009/010/011 的 `## Test Evidence` 行首轮数字加历史标注 + 补实现证据链。
+- EPIC 头部 Status 由「In Review」收口为 `Complete ✅ 2026-10-16`,沿革保留不改写。
+- `production/sprint-status.yaml`:S14-7 `backlog → done`;六条「仍 In Review」注释全数收口。
+
+**sprint-14 状态**:七条全 `done`(S14-1…S14-7)。EPIC 音频系统 = 001–014 全 `Complete`;
+**015 / 016 = Ready ⬜**(**content 批**:真实 wav 内容落地 / 余 7 项源音覆盖 —— 非本轮)。
+
+**素材内容需求已立册**:`docs/tech-debt-register.md` §「2026-10-16 · 44 音频素材内容需求」
+(逐族声学判据 + 系统级要求 4 条 + 触发条件表);5 个占位静音 wav 落 `unity/Assets/Audio/`。
+
+⚠️ **仍未 commit**(无用户指令)。changeset 覆盖 S14-1…S14-6 全部产物 + S14-7 复评批,体量大,
+**commit 前建议按 story 分批**。
