@@ -14,7 +14,7 @@ goal: "44 运行期音频链接通 —— 6 条 In Review story(007-012)补生�
 start: ""
 end: ""
 generated: "2026-10-16"
-updated: "2026-10-16"   # 规划轮:S13-9 撤回 6 条为 In Review ⇒ sprint-14 承接其实现
+updated: "2026-10-17"   # S14-8(story-015 音频资产接入)收口 —— 计划外追加(content 批前置件)
 
 stories:
   # ── Must Have(关键路径 · Wave 1+2)──
@@ -130,3 +130,22 @@ stories:
     blocker: "S14-1..6"
     completed: "2026-10-16"
     # ⚠️ 判据须是变异测试(停用生产码 ⇒ 断言转红),非「测试名 + 行号」(retro-13 行动项 2)。
+
+  # ── 计划外追加(2026-10-17)──
+  - id: "S14-8"
+    name: "015 音频资产接入:5 个被引 .wav 真内容落地 + 存在性门真素材复验 + 缺失⇒构建期硬失败"
+    file: "production/epics/audio-system/story-015-audio-asset-binding.md"
+    priority: should-have
+    status: done
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: "2026-10-17"
+    # 本件原登记为「content 批 · Ready ⬜,非 sprint-14 面内」;2026-10-17 提前兑现(4/4 AC 全勾)。
+    # 交付:5 个占位静音(2044 B)替换为真内容 wav + music_* Load Type pin(loadType 0 → 2);
+    #       烘焙/门代码**零改动**(本件只喂真素材 + 复验负向半 —— 承 Out of Scope)。
+    # 判据:证伪轮三例(真删 .wav ⇒ 15 红 / 去重 ⇒ 1 红 / inDataCore ⇒ 1 红);
+    #       回归 unity/Logs/s15-final.xml = total 395 / passed 395 / failed 0。
+    # ⚠️ 证伪轮一触发 Unity 资产维护,静默改写 audio.asset(5 → 4 条);已跑生产菜单项 EnsureAudioGroup 修复。
+    # ⚠️ 6 条 ADVISORY 见 story §Completion Notes(含「组半不可从全新 clone 复现」—— 建议登记 tech-debt)。
+    # ⚠️ 代码评审 = 待跑(用户裁定「收尾前会跑」)。

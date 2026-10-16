@@ -1,12 +1,12 @@
 # Story 015: 音频资产接入(5 个被引 `.wav` 落地 · 存在性门真实检验 · 缺失⇒构建期硬失败)
 
 > **Epic**: 音频系统
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation(实现落素材产出 + 门检验)
 > **Type**: Integration
 > **Estimate**: 待估(依赖素材本体产出)
 > **Manifest Version**: 2026-10-03
-> **Last Updated**: 2026-10-03
+> **Last Updated**: 2026-10-17
 
 ## Context
 
@@ -140,11 +140,13 @@ vo_patient_cough_damp_m1.wav
 
 **Story Type**: Integration
 **Required evidence**:
-- `production/qa/evidence/audio-binding-evidence.md`(含**真实烘焙日志** —— 证明门在真素材上跑过)
+- `production/qa/evidence/impl-s15-asset-content-2026-10-17.md`(含**真实烘焙日志** —— 证明门在真素材上跑过)
+  ⚠️ **路径订正(2026-10-17 收口)**:原写 `audio-binding-evidence.md`,该文件**从未创建**;实际落盘为上式。
 - 构建期断言测试(扩展 story 010 的门测试,补真素材用例)
 
-**Status**: [ ] NOT-RUN
-**Test File**: TBD(待实现)
+**Status**: ✅ RUN —— 2026-10-17(`unity/Logs/s15-final.xml`:`total="395" passed="395" failed="0"`)
+**Test File**: `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`(**53 测**)
+· 账本并列:`tests/integration/audio_system/README.md`
 
 > ⚠️ **本 story 的 AC-44-D6b/D6c 是「机制已在、真素材未验」的补证** ——
 > story 010 的门测试全绿**不蕴含**「真素材通过」(它跑的是夹具)。
@@ -162,5 +164,45 @@ vo_patient_cough_damp_m1.wav
 
 ## Completion Notes
 
-(未开工 —— 本件为 2026-10-03 补立,填「素材本体接入」这个 story 010 **机制已建但真素材未验**的面。
-同型先例 = `skeuomorphic-ui/story-019 贴图接入`。)
+**Completed**: 2026-10-17
+**Criteria**: **4/4 passing**(AC-44-D6b / D6c / D15 / D16 全勾,无 DEFERRED)
+**Deviations**: 6 条 ADVISORY(见下,**均不阻塞**)
+**Test Evidence**: Integration —— `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`(53 测)
+· 账本 `tests/integration/audio_system/README.md`
+· 证据原件 `production/qa/evidence/impl-s15-asset-content-2026-10-17.md`
+**Code Review**: **待跑** —— 用户 2026-10-17 裁定「收尾前会跑」;lean 模式不自动 spawn LP-CODE-REVIEW
+
+### Falsifiability Gate(S12-4)= **PASS**
+
+| 命中形态 | 主要断言 | 反证:停用什么 ⇒ 哪条转红 |
+|---|---|---|
+| 定义域收窄 | 素材存在性 | 真删被引 `.wav`(表不动)⇒ **15 条红**,根因 `[D6·素材存在性]` |
+| 定义域收窄 | 缺失集去重 | 停用 `AudioAssetExistence.Missing` 的 `seen.Add` ⇒ `test_d6_missing_isOrderPreservingAndDeduped` 红 |
+| 共存/互斥 | 组不相交 | 停用 `AudioAssetGroupGates.ValidateEntries` 的 `inDataCore` 分支 ⇒ `test_d5_pure_audioAssetInDataCoreGroup_rejected` 红 |
+
+### ADVISORY 登记(6 条)
+
+1. **Manifest 陈旧** —— story `2026-10-03` vs `control-manifest.md` `2026-10-15`(收口时未回填版本号)。
+2. **证据路径订正** —— 原声明 `audio-binding-evidence.md` 从未创建;真件 = `impl-s15-asset-content-2026-10-17.md`(已就地订正)。
+3. **`## Test Evidence` 段曾陈旧** —— 原写 `Status: [ ] NOT-RUN` / `Test File: TBD(待实现)`;已就地订正为实测值。
+4. **AC-44-D15「Load Type pin」半无自动化载体** —— 证据 = `.meta` 一行 diff + Unity 批导入回写实测;
+   story 自己的 QA 边界用例写「Import Load Type 未 pin(**须报**)」—— **该「报」无实现**。
+5. **AC-44-D16「孤儿」半无载体** —— 生产码零孤儿谓词(`Implementation Note 4` 设计即「报告不硬失败」)。
+6. **AC-44-D15 的组半不可从全新 clone 复现** ⚠️ —— `unity/Assets/AddressableAssetsData/`
+   被 `.gitignore:85` **整目录忽略**,`audio` 组与其 5 条目只存在于机器本地;
+   新检出后须**手跑** `DataBakeMenu.EnsureAudioGroup` 才成立。
+   同族先例 = `TD-medcons-09`(测试依赖 `Application.dataPath`,CI 布局变化即红)。
+   **建议登记 tech-debt**(收口时用户选「只记 Notes」,故未落册)。
+
+### 收口裁定(2026-10-17 用户)
+
+- **评审报告原件义务 = 窄读** —— 依 `review-workflow.md` 原文「无原件的**被评审对象**不得转 Complete」,
+  义务范围 = 被评审对象;story-015 **从未被评审过**(一直 `Ready`,从未从 `Complete` 撤回)⇒ **不在义务面内**。
+  epic 级义务已由 007–012 各自的 S14-7 复评件结清。
+  (story-done 触发文字较宽 —— 「本 story **或其所归属的 epic**」—— 用户裁定取窄读。)
+- **代码评审** = 待跑(见上)。
+
+### 沿革
+
+本件为 2026-10-03 补立,填「素材本体接入」这个 story 010 **机制已建但真素材未验**的面。
+同型先例 = `skeuomorphic-ui/story-019 贴图接入`。
