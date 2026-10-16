@@ -192,7 +192,8 @@ vo_patient_cough_damp_m1.wav
    被 `.gitignore:85` **整目录忽略**,`audio` 组与其 5 条目只存在于机器本地;
    新检出后须**手跑** `DataBakeMenu.EnsureAudioGroup` 才成立。
    同族先例 = `TD-medcons-09`(测试依赖 `Application.dataPath`,CI 布局变化即红)。
-   **建议登记 tech-debt**(收口时用户选「只记 Notes」,故未落册)。
+   ✅ **2026-10-17 已落册** = `docs/tech-debt-register.md` **`TD-audio-01`**
+   (触发条件 = CI runner 落地时,与 `TD-medcons-09` 同族;**高优先**)。
 
 ### 收口裁定(2026-10-17 用户)
 

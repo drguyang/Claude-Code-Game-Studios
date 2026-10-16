@@ -121,6 +121,28 @@
 
 ---
 
+## 2026-10-17 · 44 音频 story-015 收口 ADVISORY(sprint-14 S14-8)
+
+**出处**:`production/epics/audio-system/story-015-audio-asset-binding.md` §Completion Notes
+ADVISORY ⑥(2026-10-17 收口轮新发现)· `production/qa/evidence/impl-s15-asset-content-2026-10-17.md` §3.5.4。
+**性质**:story-015 的 6 条 ADVISORY 中**唯一具外部触发点**的一条,其余 5 条为过程记录(已就地订正或设计使然),
+不入册。**本册只收 ⑥。**
+
+| # | 债 | 出处 | 触发条件(何时须还) |
+|---|---|---|---|
+| TD-audio-01 | **AC-44-D15 的「组分离」半不可从全新 clone 复现** —— `unity/Assets/AddressableAssetsData/` 被 `.gitignore:85` **整目录忽略**,`audio` Addressables 组及其 5 个 `.wav` 条目**只存在于机器本地**。⇒ 新检出后 `test_d5_realSettings_audioAssetsSeparateFromDataCore` 的**正向半边结构上不成立**(组不存在),须**手跑**菜单项 `大医精诚/数据管线/确保 audio Addressables 组`(`DataBakeMenu.EnsureAudioGroup`,幂等)才恢复。⚠️ **与 AC-44-D15 已判定的「✅ 落」不矛盾** —— 该判定在**本机**为真;本债记的是**跨机器可复现性**,非判定有误 | story-015 §Completion Notes ⑥;`impl-s15-asset-content-2026-10-17.md` §3.5.4(同处登记了 `.gitignore` 造成的**证伪轮泄漏盲区**:校验集漏 `audio.asset` ⇒「零残留」自述当时为假,已修) | **CI runner 落地时**(ADR-012 跨平台确定性矩阵)—— 与 **`TD-medcons-09`** 同族(测试依赖机器本地状态 / `Application.dataPath`,CI 检出布局变化即红)。**高优先** |
+
+> **为何单列而不并入 TD-medcons-09**:两者**同族不同因** —— medcons-09 是「测试读真实文件系统 + 路径解析依赖检出布局」;
+> 本债是「**被断言的对象本身不在版本控制里**」(Addressables 组数据是机器本地产物,`.gitignore:85`)。
+> 前者的出路是改测试的路径解析;后者的出路是**给组创建提供 CI 可跑的确定性入口**(当前只有编辑器菜单项,无人值守环境跑不了)。
+>
+> **建议修复方向**(未裁定,登记待议):① 把 `AddressableAssetsData/` 的**组定义**纳入版本控制(仅忽略 cache / 二进制产物),
+> 或 ② 提供 CLI / CI 可调的组创建入口(同 `TD-medcons-11` 的 B-W2 —— 「表无 CLI / CI 烘焙入口」同型缺口),
+> 或 ③ 在 CI 脚本里显式跑 `EnsureAudioGroup` 作为前置步骤并断言其幂等。
+> ⚠️ ① 与 ADR-023 ②「零 gameplay 对象」/ ADR-025 装配清单无冲突,但须先核 Addressables 6.2+ 的目录契约(Knowledge Risk MEDIUM)。
+
+---
+
 ## 登记格式(后续沿用)
 
 ```
