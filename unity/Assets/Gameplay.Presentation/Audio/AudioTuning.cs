@@ -50,5 +50,27 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// (硬切违 GDD :562「禁『啪』一声切换」)。</para></summary>
         public const int HandoverTicks = 10;
 
+        /// <summary>`MUSIC_XFADE_MIN_MS`(战斗乐层切换淡变**下限**,G1 护栏的数值载体)——
+        /// **种子值 2000 ms**。
+        /// <para>GDD §Tuning Knobs :778 安全范围 = **「≥ 数秒级(待调)」**;调太高 = 遭遇切换糊,
+        /// 调太低 = 硬切违 G1(音乐例外的成立前提即此下界足够长,故调太低会使第 5 类例外
+        /// **不成立**)。种子 2000 ms 落在「数秒级」内,且**留 2× 余量**给种子乐层行
+        /// (`assets/data/audio_events.json` 的 `Music_Encounter_Layer.xfade_ms = 4000`)
+        /// —— 门不会误红。</para>
+        /// <para>⚠️ **owner = 44 本表**(AC-44-18③;25 侧同名引用,`combat-and-weapon-lines.md:1729`
+        /// G1 行)。**本常量是下界的单一出处** —— `AudioEventTableGates.ValidateXfade`
+        /// **引用**它,禁在门内另抄一份(两处执行 = 两处分叉,承 ADR-024 §⑥)。</para>
+        /// <para>⚠️ **不是自由旋钮**:`xfade_ms < 本值` 会被构建期门**拒收**(AC-44-18①
+        /// 「构建期数值比较,超界 = 失败」)。</para></summary>
+        public const int MusicXfadeMinMs = 2000;
+
+        /// <summary>`AUDIO_BUDGET_MS`(DSP 预算探针 P95 上限,60 s 采样窗)——
+        /// **种子值 2.5 ms**(≈ 平面帧预算 16.6 ms 的 15%)。
+        /// <para>GDD §Tuning Knobs :759 安全范围 = **「≤ 帧预算 15% 类(16.6 / 11.1 ms 为参考上界)」**;
+        /// 调太高 = 音频超预算不被发现,调太低 = 探针过严(正常抖动即红)。</para>
+        /// <para>⚠️ **不是运行期门** —— 本常量是**测量基线**,判据由
+        /// <see cref="AudioBudgetProbe"/> 的纯谓词承载,实测 P95 归 evidence 文档
+        /// (60 s 窗采样须真 GPU / 真音频回调,EditMode 无 DSP 图,不可在此断言)。</para></summary>
+        public const double AudioBudgetMs = 2.5;
     }
 }

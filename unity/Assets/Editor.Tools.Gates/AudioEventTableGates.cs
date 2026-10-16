@@ -29,7 +29,10 @@
 // ⚠️ 范围锁(Out of Scope,勿在本文件实现):
 //    · 素材 `assets[]` ↔ 文件存在谓词(D6)与 Addressables 组门(D5)= Story 010 ——
 //      **本门不查 assets[] 存在性(NOT-RUN,归 Story 010 D6)**,种子 / README 已同文标注
-//    · `xfade_ms ≥ MUSIC_XFADE_MIN_MS` 数值断言(AC-44-18)= Story 012(本门只管存在性 / 类型)
+//    · ✅ 2026-10-16 已实现 —— `xfade_ms ≥ MUSIC_XFADE_MIN_MS` 数值断言(AC-44-18①)
+//      = Story 012,见 `ValidateXfade`(S14-4)。下界**单一出处** =
+//      `Gameplay.Presentation.Audio.AudioTuning.MusicXfadeMinMs`(门**引用**它,禁另抄数值
+//      —— 两处执行 = 两处分叉,承 ADR-024 §⑥;先例 = MixerTopologyGates 引 MixerRegistry)。
 //    · ✅ 2026-10-16 已实现 —— 世界语境呼吸行的 `bus` / min-max_distance / occlusion 断言
 //      (AC-44-16)= Story 008,见 `ValidateWorldBreathRow`(S14-1)。行**缺失**不在此报 ——
 //      已由 `ValidateRequiredCues` 覆盖,重复报账会让空表夹具的错误计数翻倍。
@@ -52,6 +55,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using DaYiJingCheng.Gameplay.Presentation.Audio;
 
 namespace DaYiJingCheng.EditorTools.Gates
 {
@@ -1025,11 +1029,18 @@ namespace DaYiJingCheng.EditorTools.Gates
             return errors;
         }
 
-        // ══════════ xfade_ms 存在性 / 类型(数值断言归 Story 012)══════════
+        // ══════════ xfade_ms 存在性 / 类型 / 数值下界 ══════════
 
-        /// <summary><c>xfade_ms</c>:**乐层行(<c>whitelist_category = MusicLayer</c>)必有且为正整数**;
-        /// 其他行可选,但若在场必须是整数字面量。<para>
-        /// **不做** <c>≥ MUSIC_XFADE_MIN_MS</c> 的数值断言(AC-44-18,Story 012)。</para></summary>
+        /// <summary><c>xfade_ms</c>:**乐层行(<c>whitelist_category = MusicLayer</c>)必有且为正整数**,
+        /// 且**乐层行的值 ≥ `MUSIC_XFADE_MIN_MS`**;其他行可选,但若在场必须是整数字面量。
+        /// <para>✅ **2026-10-16 S14-4 兑现**(用户裁定):本函数原 XML doc 逐字写「**不做**
+        /// <c>≥ MUSIC_XFADE_MIN_MS</c> 的数值断言(AC-44-18,Story 012)」,是本文件**唯一具名空位**
+        /// —— 下界比较一行都没有。现补上,下界取
+        /// <see cref="AudioTuning.MusicXfadeMinMs"/>(**单一出处**,门内不另抄数值)。</para>
+        /// <para>⚠️ **只对乐层行判下界** —— <c>xfade_ms</c> 对其他行是**可选**字段(存在性 / 类型
+        /// 已由前两半覆盖);把下界套到非乐层行会给可选字段强加 G1 护栏,超出 AC-44-18 面。</para>
+        /// <para>⚠️ **AC-44-18① 逐字**「构建期数值比较,超界 = 失败」—— 本函数是**构建期**门
+        /// (经 <see cref="Validate"/> 聚合 → Story 010 烘焙管线 throw),不是运行期检查。</para></summary>
         /// <param name="rows">cue 行;null = <c>rows</c> 字段缺失(NOT-RUN)。</param>
         public static IReadOnlyList<string> ValidateXfade(IReadOnlyList<AudioEventTableRow> rows)
         {
@@ -1052,7 +1063,7 @@ namespace DaYiJingCheng.EditorTools.Gates
                     {
                         errors.Add(
                             $"{label} 乐层行缺 xfade_ms —— 交叉淡化 / 乐层切换时长必填" +
-                            "(AC-44-09 · 存在性;数值下界归 Story 012 AC-44-18)");
+                            "(AC-44-09 · 存在性;数值下界见 AC-44-18)");
                     }
 
                     continue;
@@ -1060,12 +1071,22 @@ namespace DaYiJingCheng.EditorTools.Gates
 
                 if (!int.TryParse(row.XfadeRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int xfade))
                 {
-                    errors.Add($"{label} xfade_ms = {row.XfadeRaw} 非整数 int —— 类型校验(数值断言归 Story 012)");
+                    errors.Add($"{label} xfade_ms = {row.XfadeRaw} 非整数 int —— 类型校验");
                     continue;
                 }
 
                 if (music && xfade <= 0)
-                    errors.Add($"{label} 乐层行 xfade_ms = {xfade} ≤ 0 —— 须为正 int(存在性 / 类型;下界归 Story 012)");
+                    errors.Add($"{label} 乐层行 xfade_ms = {xfade} ≤ 0 —— 须为正 int(存在性 / 类型)");
+
+                // AC-44-18①(G1 护栏的数值载体):乐层行 xfade_ms ≥ MUSIC_XFADE_MIN_MS。
+                // 下界**单一出处** = AudioTuning.MusicXfadeMinMs(门不另抄 —— ADR-024 §⑥)。
+                if (music && xfade > 0 && xfade < AudioTuning.MusicXfadeMinMs)
+                {
+                    errors.Add(
+                        $"{label} 乐层行 xfade_ms = {xfade} < MUSIC_XFADE_MIN_MS = " +
+                        $"{AudioTuning.MusicXfadeMinMs} —— 构建期数值比较超界(AC-44-18① / G1 " +
+                        "禁帧对齐:淡变下界不足则切换有「边界拍」,第 5 类例外不成立)");
+                }
             }
 
             return errors;
