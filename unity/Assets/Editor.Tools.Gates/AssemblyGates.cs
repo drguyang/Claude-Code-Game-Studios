@@ -616,8 +616,33 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <summary>D1 位置通道引用扫描:44 派生面类型**零** IPositionalChannel 引用
         /// (AC-44-D1:44 不自建位置通道,位置读路径归 Story 008 空间化)。
         /// 与 CheckAudioClockTokens 同构:Mono.Cecil 遍历方法体指令 + BCL 反射扫签名。
-        /// ⚠️ 扫描面 = 编译产物(IL 层),与 b5 同纪律。</summary>
+        /// ⚠️ 扫描面 = 编译产物(IL 层),与 b5 同纪律。
+        /// <para>⚠️ <b>2026-10-16 S14-2 收窄(用户裁定)</b>:原签名扫**整个 44 前缀命名空间**,
+        /// 与 AC-44-D1 正面相撞 —— AC 要求 44 **复用 `IPositionalChannel` 读锚点**(位置面),
+        /// 只禁**派生面**引用它。全命名空间扫会把合法的位置面消费点一并判红。
+        /// ⇒ 本重载保留为**全命名空间**语义(历史调用点),新代码用
+        /// <see cref="CheckAudioDerivationSurfaceRefs"/> 的**具名派生面**版。</para></summary>
         public static List<string> CheckAudioPositionalChannelRefs(string dllPath, string nsPrefix)
+            => CheckAudioPositionalChannelRefs(dllPath, nsPrefix, null);
+
+        /// <summary>D1 位置通道引用扫描(**具名派生面**版 —— 2026-10-16 S14-2 收窄)。
+        /// <para>扫描面 = <paramref name="surfaceTypeNames"/> 点名的 44 类型(派生面);
+        /// 其余 44 类型(位置面 / 渲染面)不受本判据约束 —— 它们**合法**消费
+        /// `IPositionalChannel`(AC-44-D1:「复用 `IPositionalChannel`」)。</para>
+        /// <para>⚠️ <b>反空转守卫</b>:具名面里**一个类型都没扫到** ⇒ 红。这是评审原件 §1.3
+        /// 「空转真扫」的正面修补 —— 真门 + 非空命名空间 + 被断言类不存在,会让「零违例」
+        /// 成为**对空集的平凡成立**(补评前本判据正是如此:派生面类不存在,绿得毫无意义)。</para></summary>
+        /// <param name="dllPath">编译产物路径。</param>
+        /// <param name="nsPrefix">44 命名空间前缀(具名类型须在此前缀之下)。</param>
+        /// <param name="surfaceTypeNames">具名派生面类型名(null ⇒ 退化为全命名空间扫描)。</param>
+        public static List<string> CheckAudioDerivationSurfaceRefs(string dllPath, string nsPrefix,
+                                                                   IReadOnlyList<string> surfaceTypeNames)
+            => CheckAudioPositionalChannelRefs(dllPath, nsPrefix, surfaceTypeNames);
+
+        /// <summary>D1 位置通道引用扫描的实现体(<paramref name="surfaceTypeNames"/> 为 null
+        /// ⇒ 全命名空间;非 null ⇒ 具名面 + 反空转守卫)。</summary>
+        private static List<string> CheckAudioPositionalChannelRefs(
+            string dllPath, string nsPrefix, IReadOnlyList<string> surfaceTypeNames)
         {
             var errs = new List<string>();
             if (!File.Exists(dllPath))
@@ -625,6 +650,11 @@ namespace DaYiJingCheng.EditorTools.Gates
                 errs.Add($"[D1] 编译产物缺失「{dllPath}」—— 扫描面不存在,拒以空集冒充绿。");
                 return errs;
             }
+
+            var named = surfaceTypeNames != null
+                ? new HashSet<string>(surfaceTypeNames, StringComparer.Ordinal)
+                : null;
+            var namedSeen = named != null ? new HashSet<string>(StringComparer.Ordinal) : null;
 
             const string token = "IPositionalChannel";
             using (var asm = AssemblyDefinition.ReadAssembly(dllPath, new ReaderParameters
@@ -638,6 +668,11 @@ namespace DaYiJingCheng.EditorTools.Gates
                 {
                     if (type.Name == "<Module>") continue;
                     if (!IsInNamespacePrefix(EffectiveNamespace(type), nsPrefix)) continue;
+                    if (named != null)
+                    {
+                        if (!named.Contains(type.Name)) continue;
+                        namedSeen.Add(type.Name);
+                    }
                     var from = $"{selfName}::{type.FullName}";
 
                     // 字段/方法签名面
@@ -663,6 +698,19 @@ namespace DaYiJingCheng.EditorTools.Gates
                             }
                         }
                     }
+                }
+            }
+
+            // ⚠️ 反空转守卫(2026-10-16 S14-2):具名面里一个类型都没扫到 ⇒ 红。
+            // 「零违例」若来自**空集**,与「判据通过」不可区分(评审原件 §1.3 的病灶)。
+            if (namedSeen != null)
+            {
+                foreach (string want in named)
+                {
+                    if (namedSeen.Contains(want)) continue;
+                    errs.Add($"[D1] 具名派生面类型「{want}」在「{dllPath}」的 44 命名空间下未找到 —— " +
+                             "扫描面为空,「零违例」是对空集的平凡成立(反空转守卫;" +
+                             "评审原件 §1.3「空转真扫」)。");
                 }
             }
             return errs;
