@@ -1,12 +1,22 @@
 # Story 011: 设置暴露面与归零机制
 
 > **Epic**: 音频系统
-> **Status**: Complete
+> **Status**: In Review
 > **Layer**: Foundation(系统分类;实现落表现层 + 边界层 store)
 > **Type**: Config/Data
 > **Estimate**: 4h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-16
+
+> **⚠️ 2026-10-16 假绿复核 —— Status 由 `Complete` 撤回为 `In Review`**
+> sprint-13 S13-9 补评判定:本 story 的 AC 语义层**未被验证** —— `settings_visible` 注册表
+> (`assets/` 下**零命中**)/ 设置 store / 归零机制**不存在**,测试以自造 Fake + 本地数组顶替
+> ⇒ 断言在「被测对象不存在」时仍为绿(**BLOCKING 级**)。
+> 实测:11 测中 🟢 真 1 · 🟡 半真 3 · 🔴 假 7。
+> ⚠️ **AC-44-13 的「出厂默认 ∈ 烘焙分区」半边已被删空**(修复轮 B2 删断言留注释,注释还自称「非假绿」),
+> 而 story 的 `Criteria` 仍记「4/4 passing」。
+> **评审原件**:`production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md`(§2.5 逐条表)。
+> 实现另立 sprint;本 story 维持 `In Review` 直至生产类落地并经证伪轮复评。
 
 ## Context
 

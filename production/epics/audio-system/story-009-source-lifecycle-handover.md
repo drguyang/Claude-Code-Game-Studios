@@ -1,12 +1,22 @@
 # Story 009: 声源生命周期与贴耳交接
 
 > **Epic**: 音频系统
-> **Status**: Complete
+> **Status**: In Review
 > **Layer**: Foundation(系统分类;实现落表现层 L5)
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-16
+
+> **⚠️ 2026-10-16 假绿复核 —— Status 由 `Complete` 撤回为 `In Review`**
+> sprint-13 S13-9 补评判定:本 story 的 AC 语义层**未被验证** —— 声称的生产实现类
+> (EndLoop 自评看门狗 / `HandoverMux` 交接 FSM / 句柄生命周期管理器)**不存在**,
+> 测试以自造 Fake 顶替 ⇒ 断言在「被测对象不存在」时仍为绿(**BLOCKING 级**)。
+> 实测:12 测中 🟢 真 1 · 🟡 半真 2 · 🔴 假 9。
+> ⚠️ **另有一处独立瑕疵**:本 story 的 4 条 AC **无 `AC-44-xx` 编号**(用中文描述名),
+> ⇒ 任何按编号做的 traceability / 账本 / 门检对本 story 全数落空。
+> **评审原件**:`production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md`(§2.3 逐条表)。
+> 实现另立 sprint;本 story 维持 `In Review` 直至生产类落地并经证伪轮复评。
 
 ## Context
 

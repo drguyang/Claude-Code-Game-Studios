@@ -1,12 +1,21 @@
 # Story 007: 联机分叉与远端派生(静态半)
 
 > **Epic**: 音频系统
-> **Status**: Complete
+> **Status**: In Review
 > **Layer**: Foundation(系统分类;实现落表现层 L5)
 > **Type**: Integration
 > **Estimate**: 5h(运行面 P1b 另计)
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-16
+
+> **⚠️ 2026-10-16 假绿复核 —— Status 由 `Complete` 撤回为 `In Review`**
+> sprint-13 S13-9 补评判定:本 story 的 AC 语义层**未被验证** —— 声称的生产实现类
+> (cue 发射派生器 / `IAudioCueSink` 生产实现 / 锚点门 / EndLoop 看门狗)**不存在**,
+> 测试以自造 Fake / 自写谓词顶替 ⇒ 断言在「被测对象不存在」时仍为绿(**BLOCKING 级**)。
+> 实测:19 测中 🟢 真 4 · 🟡 半真 5 · 🔴 假 10;AC-44-D7 的**核心判据**(重排差分哈希)
+> 被测物是测试自己写的折叠函数。
+> **评审原件**:`production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md`(§2.1 逐条表)。
+> 实现另立 sprint;本 story 维持 `In Review` 直至生产类落地并经证伪轮复评。
 
 ## Context
 

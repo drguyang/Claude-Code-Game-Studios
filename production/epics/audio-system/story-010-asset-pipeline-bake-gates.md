@@ -1,12 +1,21 @@
 # Story 010: 素材管线与事件表烘焙门
 
 > **Epic**: 音频系统
-> **Status**: Complete
+> **Status**: In Review
 > **Layer**: Foundation(系统分类;实现落编辑期工具链)
 > **Type**: Integration
 > **Estimate**: 4h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-16
+
+> **⚠️ 2026-10-16 假绿复核 —— Status 由 `Complete` 撤回为 `In Review`**
+> sprint-13 S13-9 补评判定:本 story 的 AC 语义层**未被验证** —— 音频事件表烘焙管线
+> (`Editor.Tools.Bake/` **实测零 audio 文件**)/ Addressables 音频组 / 听诊预载门**不存在**,
+> 测试以自造夹具顶替 ⇒ 断言在「被测对象不存在」时仍为绿(**BLOCKING 级**)。
+> 实测:11 测中 🟢 真 0 · 🟡 半真 4 · 🔴 假 7。
+> ⚠️ **本 story 的修复轮(B1/B2/B4)把「恒真断言」换成了「自包含夹具恒真」** —— 同为假绿。
+> **评审原件**:`production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md`(§2.4 逐条表)。
+> 实现另立 sprint;本 story 维持 `In Review` 直至生产类落地并经证伪轮复评。
 
 ## Context
 
