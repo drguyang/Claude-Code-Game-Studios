@@ -1,12 +1,12 @@
 # Story 016: 音频资产接入(余 7 项源音覆盖 · R-2 归属表 9 项逐项对账)
 
 > **Epic**: 音频系统
-> **Status**: Ready ⬜(依赖素材本体产出)
+> **Status**: Blocked 🔴(BLOCKED-BY:**素材产出批次** —— R-2 九项中余 **7 项**的 `.wav` 未交付)
 > **Layer**: Foundation(实现落素材产出 + 门检验)
 > **Type**: Integration
 > **Estimate**: 待估(依赖素材本体产出)
 > **Manifest Version**: 2026-10-04
-> **Last Updated**: 2026-10-04
+> **Last Updated**: 2026-10-17
 
 ## Context
 
@@ -85,8 +85,9 @@
 3. **Addressables**:全部落 `assets/audio/` 的 Addressables 资产组(承 ADR-018 §五);
    **不进 `data-core` 组**(素材与数据分组,ADR-014 §五)。
 4. **门**:扩展 story-010 已有的构建期扫描 —— 增 E1/E3/E4 三条断言。
-5. **诚实性**:本 story **不产出素材** —— 它是**需求闭合件**。素材产出归素材批次(批次归口见 R-2 表
-   「素材批次」栏)。
+5. **素材前置(本 story 的 BLOCKED-BY)**:E2 / E3 / E4 三条 **结构上依赖素材产出批次** ——
+   R-2 九项中余 7 项的 `.wav` 须实际交付。素材未落地时,**补齐 E1 条目的那一刻烘焙门即 `throw`**
+   (门要求被引文件存在)⇒ **本 story 在素材接入前不可收口**。素材批次归口见 R-2 表「素材批次」栏。
 
 ---
 
@@ -130,8 +131,9 @@
 ## Dependencies
 
 **前置**:
-- `assets/audio/` 目录建立(现为空)
-- 素材产出批次(本 story 只写需求与门,不产素材)
+- 🔴 **素材产出批次** —— R-2 九项中**余 7 项**的 `.wav` 实际交付(**本 story 的唯一硬前置**)
+- ⚠️ `assets/audio/` 目录 —— ✅ **已建立**(`unity/Assets/Audio/`;物理根由 ADR-018 §五 补注订正,
+  逻辑路径 `assets/audio/` 保留为称谓)
 - `audio_events.json` 的 `amb_*` 前缀规范(若无,须先定)
 
 **下游**:
