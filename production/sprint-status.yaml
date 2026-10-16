@@ -9,174 +9,97 @@
 #   done           ↔  Complete
 #   blocked        ↔  Blocked
 
-sprint: 13
-goal: "53 结算链贯通(story-003 回响写世界流)+ 收口纪律固化(story-001 收口 / EPIC 口径 / 结账表分已落已证)"
+sprint: 14
+goal: "44 运行期音频链接通 —— 6 条 In Review story(007-012)补生产实现,AC 语义层首次被生产代码保证"
 start: ""
 end: ""
 generated: "2026-10-16"
-updated: "2026-10-16"   # S13-1..6/8 全 done;S13-7 agent 半边已交(走查包 + 债册),执行/三签待真人 · S13-9 评审定案(44 侧 6 条假绿转 In Review)· 全量 3515/3469/0/46(+7/+7 零回归)
+updated: "2026-10-16"   # 规划轮:S13-9 撤回 6 条为 In Review ⇒ sprint-14 承接其实现
 
 stories:
-  # ── Must Have ──
-  - id: "S13-1"
-    name: "story-001 收口 + medical-consequences/EPIC.md 口径 reconcile(全仓唯一未收口的 In Review 件)"
-    file: "production/epics/medical-consequences/story-001-input-closure-and-stream-aggregation.md"
+  # ── Must Have(关键路径 · Wave 1+2)──
+  - id: "S14-1"
+    name: "008 生产实现:声源池 + 空间化原语(LatticeToWorld / cell_jitter / rank_key / 遮挡驱动器)"
+    file: "production/epics/audio-system/story-008-spatialization-world-breath.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-16"
-    # 判据:EPIC.md stories 表四行状态与四个 story 文件 Status: 行逐字一致(改任一行即红)。
-    # 勘察实测:story-001 现 In Review(Test Evidence 已 passing、Completion Notes 空);
-    #          story-002 已于 2026-10-16 翻 Complete,而 EPIC.md 仍写 Ready ⇒ 口径 stale。
-    # ✅ 2026-10-16 收口(/story-done · COMPLETE WITH NOTES):story 翻 Complete;EPIC.md 001/002 行
-    #    按真值刷新(003/004 维持 Ready)⇒ 四行与四个卡头逐字一致;epic 卡头承库约定二元制保持
-    #    Ready + 进度注(2/4)。证伪轮补账:S12-4 五形态自此全数反证(②A/④C/⑤B 本轮补跑,全转红)。
-    #    ADVISORY-2 已订正:接线轮(ADR-031 V-8 ②「退」)后 s11-5 原件 §3.1 与测试 :544 断言消息
-    #    「53 不读载荷内容」滞后 ⇒ 加注/改措辞,**断言逻辑一字未动**。
-
-  - id: "S13-2"
-    name: "story-003 实现:F-53.2 延迟发出 + ConsequenceResolved 世界流写入"
-    file: "production/epics/medical-consequences/story-003-delayed-emit-and-world-stream.md"
-    priority: must-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-16"
-    # 依赖:S13-1(story-001 收口)✅ 2026-10-16 · story-002 ✅ Complete · registry ConsequenceResolved 已直登。
-    # ⚠️ P1 判据(承 ADR-031 重评轮 N-3):story-003 是 53 链第一个**真实喂 uBand** 的调用点 ——
-    #   装配层若用与 cooked 表不同的 bandCount 源算档,越界档位会**静默别名到相邻 (P,C,D) 行**。
-    #   Sim 侧守护已落地(F16 证伪),本条防装配层双源 ⇒ AC ③ 域守护回归必交。
-    # ⚠️ 不得硬编码 bandCount(数值轮一扩档即踩别名失效模式)。
-
-  - id: "S13-3"
-    name: "结账表 ✅ 纪律固化:/code-review 结账表分「已落 / 已证」两列 + 已证须附可复算判据"
-    file: ".claude/skills/code-review/SKILL.md"
-    priority: must-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-16"
-    # 复盘行动项 1(High)。病因:sprint-12 的 J 项首轮只拆一半就被标 ✅;
-    #   我本人在评审过程里亦两处过早标记。把「我做了动作」当成「我做对了并被证明」。
-    # 判据:对 story-002 重跑新模板 ⇒ J 项进「已落」列而**不**进「已证」列。
-    # ✅ 2026-10-16 落地:SKILL 增 §Phase 8b(Landed/Proven 双列 + Proven-by 必填:测试名+行号 /
-    #   反证记录 / 可重跑命令;动作描述=不合格;两列皆✅才算结清;向前生效不追改旧原件)。
-    #   判据演示(实测当下码):ParseRows 38 / ParseDefaultRow 15 / ParseCombinationRow 36 /
-    #   ValidateCoverage 30 —— 重评轮已把拆分补完(立判据时「ParseRows 仍 69 行」的前提已过时),
-    #   但无任何夹具钉 ≤40 界 ⇒ J = Landed✅ / Proven✗ —— 判据以「改对了但无判据不得标已证」兑现。
-
-  # ── Should Have ──
-  - id: "S13-4"
-    name: "asmdef 引用面判读固化:references 须解析 GUID → 装配名再判存在性"
-    file: "unity/Assets/Editor.Tools.Gates/AssemblyGates.cs"
-    priority: should-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-16"
-    # 复盘行动项 2(High)。病因:判 H 项只读 asmdef 名称列表、漏看 GUID 形引用
-    #   ⇒ 按名补一条 Editor.Tools.Gates 触发 Assembly has duplicate references 编译红。
-    # ✅ 2026-10-16 落地:FindDuplicateResolvedReferences(GUID→名解析后判重)+
-    #   CheckReferenceDuplicates([b3-refdup],接入 RunAll);夹具 assembly_gate_refdup_test.cs 7/7 绿。
-    #   证伪轮:停用判据 ⇒ 2 条转红(名形+GUID 形 / 同名形),md5 还原 OK。
-
-  - id: "S13-5"
-    name: "新测试自检前置固化为可复用脚本(括号配平 / JSON 合法性 / 断言自相矛盾)"
-    file: "tools/test-precheck/precheck.py"
-    priority: should-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-16"
-    # 复盘行动项 4。返工期已散落建成 python 预检(多次 Bash 调用内),
-    #   需收成单一脚本 + 「何时必跑」说明。判据:对 medcons_outcome_judge_test.cs
-    #   跑出与返工期一致的结论。
-    # ✅ 2026-10-16 落地:tools/test-precheck/{precheck.py,README.md}。判据兑现 ——
-    #   medcons_outcome_judge_test.cs 跑出 [Test]=41 / 括号配平 168·938 / JSON 合法,FAIL 0。
-    #   证伪轮三类全红(括号失配 / JSON 词法 / 断言自相矛盾)+ 零误报(全目录批扫 OK)。
-    #   ⚠️ 首版 [3] 误报 4 条假红,已收紧(只认明确措辞 + 单语句截断)。
-
-  - id: "S13-6"
-    name: "重评专家 prompt 拆小 / 预声明「先出报告再补查」"
-    file: ".claude/skills/code-review/SKILL.md"
-    priority: should-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-16"
-    # 复盘行动项 3。病因:sprint-12 重评轮两位专家(unity-specialist / qa-tester)
-    #   分别撞 20 / 10 轮上限未出报告,需 SendMessage 续跑才交付。
-    # ✅ 2026-10-16 落地:SKILL 增 §Phase 7b —— ①首轮「先出报告再补查」预声明模板 +
-    #   ②重评轮拆「原判据核账 / 新缺陷+硬约束」两 agent(并行)。
-    #   ⚠️ 卡面判据(下次重评两位专家均在轮次上限内交付)**前瞻性,当下不可自证** —— 禁借绿,如实登记。
-
-  # ── Nice to Have ──
-  - id: "S13-7"
-    name: "S12-10 结转:11 人工走查 AC-11-12/13/21 + 三签(主创/医学从业/音频 lead)"
-    file: "production/playtests/playtest-2026-10-16-s11-ac11-12-13-21-walkthrough.md"
-    priority: nice-to-have
-    status: backlog
-    owner: "user"
     estimate_days: 0
     blocker: ""
     completed: ""
-    # agent 不可代劳。前置 S12-2 已 done ⇒ 现在就能启动,不占 sprint 治理容量。
-    # ◐ 2026-10-16 agent 侧半边已交付(执行 + 三签仍待真人):
-    #   · 走查包落盘 production/playtests/playtest-2026-10-16-s11-ac11-12-13-21-walkthrough.md
-    #     (10 节,承 story-009 先例;含步骤 + 可证伪判据 + 三签表 + 回填口径)
-    #   · 证据目录已建 production/qa/evidence/prescription-medication/(带 README)
-    #   · 前置勘察确认 4 条缺口 ⇒ docs/tech-debt-register.md §「11 处方用药走查缺口」
-    #     (TD-prescription-01 根因 = 42 侧戥子形态元件从未实现;AC-11-13/AC-11-12 形态半必红)
-    #   · 三签稿已出 production/qa/evidence/prescription-medication/story-005-ac11-12-13-21-signoff.md
-    #     (§0–§6;每栏 = 处置问,非只签名;医学从业栏单列临床用药安全面)
-    #   · 跨 epic 事实登记已落(用户 2026-10-16 批准跨域写入,只登记事实、处置待签核):
-    #     42 EPIC §范围边界声明 二(戥子义务已认领、24 story 无一条交付)
-    #     44 EPIC §范围边界声明 三(运行期音频链未接通 ⇒ 全案音频 AC 听测半边不可判)
-    #   ⚠️ status 维持 backlog —— 卡面判据 =「真人走查 + 三签落盘」,该半 agent 不可代劳。
-    #      走查目的 = 由真人证实缺口,非取证「通过」。
+    # 根件 —— S14-2/3 均依赖它。20 测由自造 Fake 换真生产类。
+    # 判据:FakeSourcePool 内部须有真 AudioSource(AC-44-D8 ② 逐字「N 条独立 AudioSource」);
+    #      证伪轮:停用池 ⇒ ≥3 测红;AC-44-16 的 bus ∈ Ambience 构建失败真门半边落地。
 
-  - id: "S13-8"
-    name: "9 条 Minor 入 docs/tech-debt-register.md + 重评件 §五 收口"
-    file: "docs/tech-debt-register.md"
-    priority: nice-to-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-16"
-    # ✅ 2026-10-16 落地:docs/tech-debt-register.md 建册 ——
-    #   TD-medcons-01…09(story-002 重评 §五 9 条)+ TD-medcons-10…13(story-003 B-W1..W4)
-    #   + TD-medcons-14/15(W-5 / W-4);重评件 §五 加收口回指(原文不删)。
-    #   ⚠️ 卡面写「9 条」,实登 15 条(story-003 评审 6 条同批并入)—— 超出部分如实登记,不冒称。
-
-  - id: "S13-9"
-    name: "44 音频 epic 6 条假绿 story 评审定案 + 转 In Review"
-    file: "production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md"
+  - id: "S14-2"
+    name: "007 生产实现:cue 发射派生器 + IAudioCueSink 生产实现 + 锚点门 + EndLoop 看门狗"
+    file: "production/epics/audio-system/story-007-net-divergence-remote-derivation.md"
     priority: must-have
-    status: done
+    status: backlog
+    owner: "claude"
+    estimate_days: 0
+    blocker: "S14-1(008 是根)"
+    completed: ""
+    # ⚠️ 重排差分哈希的被测物须是派生器本体(非测试自写 DeriveCueHash)。
+    # ⚠️ 含 AudioCueDto/IAudioCueSink token ⇒ 须声明 44 前缀命名空间(b5 门)。
+    # ⚠️ Sim/ 内 new PayloadRef( 零(ADR-029)。
+
+  - id: "S14-3"
+    name: "009 生产实现:EndLoop 自评看门狗 + HandoverMux 交接 FSM + 句柄生命周期管理器"
+    file: "production/epics/audio-system/story-009-source-lifecycle-handover.md"
+    priority: must-have
+    status: backlog
+    owner: "claude"
+    estimate_days: 0
+    blocker: "S14-1(008 是根)"
+    completed: ""
+    # ⚠️ 顺手补 AC 编号(该 story 4 条 AC 现无 AC-44-xx 编号,用中文描述名 —— 独立瑕疵)。
+    # 常量 LOOP_EVAL_MAX_TICKS / HANDOVER_MS 落 AudioTuning;时钟源 = ITickProvider(禁墙钟)。
+
+  # ── Should Have(Wave 3 · 三件相互独立)──
+  - id: "S14-4"
+    name: "012 生产实现:xfade_ms ≥ MUSIC_XFADE_MIN_MS 下界门 + 常量"
+    file: "production/epics/audio-system/story-012-music-guardrails-perf-vr.md"
+    priority: should-have
+    status: backlog
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: "2026-10-16"
-    # 触发:S13-7 11 处方用药人工听测发现「全案运行期音频链未接通」⇒ 上溯深查发现第二层。
-    # 病灶:44 epic 的 007/008/009/010/011/012 六条已标 Complete 的 story 实为**假绿** ——
-    #   声称的生产实现类不存在,测试以自造 Fake / 自写谓词顶替 ⇒ AC 语义层零验证。
-    #   与 case-system 001-004 同型(本项目第二次,规模更大)⇒ 系统性。
-    # ✅ 2026-10-16 落地:
-    #   · 评审原件落盘 production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md
-    #     (§0 判定摘要 · §1 单一根因 4 条可复算事实 · §2 逐 story 6 张 AC→测试→真假表 ·
-    #      §3 三处「修完仍假绿」返工记录 · §4 须实现生产类清单 · §5 九条可证伪命令 · §6 处置)
-    #   · 6 条 story Status: Complete → **In Review**(各加评审原件指针 + 撤回理由)
-    #   · 判定 = 6/6 REQUEST_CHANGES(BLOCKING);85 测中仅 7 条断言真生产物,零条断言 44 实现类
-    #   · 独立复核:using 挂空 / 11 类型生产树零命中 / 账本逐行 BLOCKING / 6 条自陈 /
-    #     b5 零命中护栏 = WARN / xfade 具名空位 —— 均本会话复跑核实,未仅凭勘察员自述
-    #   ⚠️ 实现(≈15 生产类 + 烘焙管线 + Addressables 组 + 设置 store)**另立 sprint**(用户裁定)
-    #   ⚠️ EPIC.md 6 行状态**未改** —— reconcile 留到实现轮收口(避免 epic 表与 story 头短暂不一致)
-    #   ⚠️ 本件**不声称已复核** 001-006 / 013 / 014(抽样判低危,非普查)
+    completed: ""
+    # 唯一具名空位 = AudioEventTableGates.ValidateXfade(XML doc 已写「不做…归 Story 012」)。
+    # 判据:改种子 xfade_ms 至 1999 ⇒ 构建期红。DSP 预算探针归 evidence 文档。
+
+  - id: "S14-5"
+    name: "011 生产实现:settings_visible 注册表 + ISettingsStore + 归零机制 + sidecar"
+    file: "production/epics/audio-system/story-011-settings-exposure-reset.md"
+    priority: should-have
+    status: backlog
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: ""
+    # ISettingsStore 落 Gameplay.Presentation(禁 Sim,GDD :1204)。
+    # 恢复 AC-44-13 被删空的「出厂默认 ∈ 烘焙分区」断言。sidecar 先例 = Gameplay.Input/BindingsStore.cs。
+
+  - id: "S14-6"
+    name: "010 生产实现:事件表 Baker/Binder/CookedWriter + Addressables 音频组 + 听诊预载门"
+    file: "production/epics/audio-system/story-010-asset-pipeline-bake-gates.md"
+    priority: should-have
+    status: backlog
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: ""
+    # 清除测试写仓库 assets/audio/ 的副作用(pipeline_gate_test.cs:213-227 违 test-standards)。
+
+  # ── Nice to Have ──
+  - id: "S14-7"
+    name: "6 条复评 + 转 Complete + 44 EPIC 6 行 reconcile"
+    file: "production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md"
+    priority: nice-to-have
+    status: backlog
+    owner: "claude"
+    estimate_days: 0
+    blocker: "S14-1..6"
+    completed: ""
+    # ⚠️ 判据须是变异测试(停用生产码 ⇒ 断言转红),非「测试名 + 行号」(retro-13 行动项 2)。
