@@ -88,6 +88,19 @@
 **Status**: [x] Done 2026-10-06(结构半边)—— 真身 `unity/Assets/Tests/PlayMode/PrescriptionMedication/dentch_input_test.cs`(**49 测**,commit `1e19106`);评审原件 `production/qa/evidence/review-prescription-story-005-2026-10-06.md`
 ⚠️ **走查半边仍 `NOT-RUN`(禁借绿)**:AC-11-13 / AC-11-12 / AC-11-21 走查子项**可判 ≠ 已判**,须实现轮人工执行 + 签核(主创 / 主创+医学从业 / 音频 lead),走查文档与截图 `production/qa/evidence/prescription-medication/story-005-*.md` **未产出**;AC-11-18 ② 与手柄面分别 BLOCKED-BY-42 元件落地 / 桌面调试集中轮 + 假设 6 spike
 
+> **✅ 2026-10-16 sprint-13 S13-7:走查包已落盘(执行 + 三签仍待真人)** ——
+> 走查脚本 `production/playtests/playtest-2026-10-16-s11-ac11-12-13-21-walkthrough.md`
+> (10 节,承 story-009 先例);证据落点目录 `production/qa/evidence/prescription-medication/`
+> **已建**(带 README,承本条 `:59` 的「首批建目录」义务)。
+> ⚠️ **agent 侧前置勘察已确认 4 条缺口**(非「预计通过」)——
+> **42 侧戥子形态元件从未实现**(GDD 与 `skeuomorphic-ui.md:1617` 均登记「戥杆倾角 / 药包鼓胀」,
+> 但 42 epic 无任何 story 交付它;实际落地的 `BrassScaleElement` 仅 `int TickCount` + 黄铜色条)
+> ⇒ **AC-11-13 与 AC-11-12 的「拟物载体可读」半结构上必红**(正是 AC-11-13 `ELSE` 分支所指缺口);
+> AC-11-21 因处方音效链整体缺失只能记**结构性静默**。
+> **登记**:`docs/tech-debt-register.md` §「2026-10-16 · 11 处方用药走查缺口」
+> (`TD-prescription-01` 根因 … `-04`)。走查目的 = **由真人目视证实该缺口**并触发还债,
+> **不是**取证「通过」;三签应为「**已走查 + 缺口**」而非「判据通过」。
+
 ---
 
 ## Dependencies
