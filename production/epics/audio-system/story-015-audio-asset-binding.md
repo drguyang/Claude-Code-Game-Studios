@@ -203,6 +203,10 @@ vo_patient_cough_damp_m1.wav
    同族先例 = `TD-medcons-09`(测试依赖 `Application.dataPath`,CI 布局变化即红)。
    ✅ **2026-10-17 已落册** = `docs/tech-debt-register.md` **`TD-audio-01`**
    (触发条件 = CI runner 落地时,与 `TD-medcons-09` 同族;**高优先**)。
+   > ⚠️ **2026-10-17 就地订正(上句已过期,原文保留)**:`.gitignore` 已**收窄** ——
+   > 组定义入库(`TD-audio-01a` 修复),`.meta` / `audio.asset` / schema 全部随 clone 到达
+   > ⇒ 「新检出后须手跑菜单才成立」**不再成立**。仍被忽略的只有逐平台
+   > `*/addressables_content_state.bin`。**真·全新 clone 复测未跑**(见 `TD-audio-01c`)。
 
 ### 收口裁定(2026-10-17 用户)
 

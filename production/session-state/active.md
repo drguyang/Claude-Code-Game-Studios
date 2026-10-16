@@ -4902,3 +4902,126 @@ X-2 换乘子时丢配对 `)` ⇒ CS1026。
 
 ⚠️ **仍未 commit**(无用户指令)。changeset 覆盖 S14-1…S14-6 全部产物 + S14-7 复评批,体量大,
 **commit 前建议按 story 分批**。
+
+---
+
+## Session Extract — story-015 收口评审三笔裁定(2026-10-17)
+
+⚠️ **上一条「仍未 commit」已过期**(那是 S14-1…S14-7 批的注记,该批早已入库并推送)。
+本条为 story-015 收口评审批的现行状态。
+
+### 已落盘并推送(2 commit,`origin/main..HEAD` = 0)
+
+| commit | 内容 |
+|---|---|
+| `0dcbbbf` | **笔 1** —— `.gitignore` 收窄 + 41 个 Addressables 组定义入库 |
+| `8ad9c9f` | **笔 2+3** —— story-017 立件 + `TD-audio-01` 五路拆分 + CI 实测订正 |
+
+### 笔 1(`TD-audio-01a`,已修)
+
+`.gitignore` 整目录忽略 `AddressableAssetsData/` 的**理由已过期**(它是 U1 spike 的
+Teardown 指令,其交接已于 S14-6 兑现但规则未同步)⇒ 收窄为
+`*//addressables_content_state.bin`(+ `.meta`)。收窄前实测**四道安全闸全过**
+(GUID 命中已提交 `.meta` / profile 全 token 式 / 零绝对路径 / `.meta` 齐备)。
+⚠️ 顶层 `AddressableAssetsData.meta` 是**兄弟文件**,`git add <目录>/` 覆盖不到。
+
+### 笔 2(三路归属)
+
+- **① 新立 `story-017-audio-gate-hardening.md`(Ready ⬜)** —— W-2 / W-3;
+  AC-44-D5b(大小写)/ D5c(`ValidateEntries` ≤40 行 / CC<10,现 45 / 15)/ D5d(重构等值)。
+  ⚠️ **`Out of Scope` 钉死**:只碰结构,不碰组归属语义(W-4 另路)—— 二者同住一个方法。
+  ⚠️ **AC-44-D5c 是标准类无界检查项**,无天然夹具 ⇒ 构造不出就记 `Landed=✅/Proven=✗`。
+- **② 并入 `TD-audio-01`** —— W-4 / W-5 / W-7 ⇒ 拆为 **01a–01e**(a ✅ 已修 ·
+  c ✅ 已实测 · b/d/e ✗ 待修)
+- **③ 不改** —— W-1 / W-6(GDD §OQ-44-2 附节已覆盖)
+
+### 笔 3(「尝试全跑」9 项 → 4 消解 / 3 已判 / 2 仍悬)
+
+**两次真实 Unity batch 实跑**:
+
+1. **全新 clone 态 `EnsureAudioGroup`** ⇒ **静默失败**:
+   `Logs/s17-freshclone-20261017-051600.log:531` 打 `LogError` 后 `return`,
+   **Unity 退出码 = 0** ⇒ 新立 **`TD-audio-01e`**(CI 前置步会假绿)。
+   还原经三重独立复核为成功(脚本自带 SHA 校验有自指缺陷,已在原件登记)。
+2. **`BuildPlayerContent`** ⇒ 5 bundle,`audio_assets_all_*.bundle` = 275,584 B /
+   Lz4HC / 含 `.resource` 节点 / 无外置 stream ⇒ **`loadType:2` 在 Addressables 下
+   = 按需解码,非按需下载**。
+
+⚠️ **CI 实测订正(评审原件 §5.3)**:原文「CI 红**可能收窄**」→ 实测**当前根本不跑**
+(`tests.yml` Unity job 2026-09-29 已移除 · `guard-assertions` 是 `exit 0` 占位 ·
+`unity-tests.yml` secret 门控恒跳过 · IL2CPP 仍 TODO)⇒ `TD-audio-01` 触发是
+「**待发**」不是「已红」,§3.5 的「CI 红」是结构推断非活体实测。**只调低结论强度,不动原判定**。
+
+**仍悬 2 项(禁借绿)**:#3 精确流切分(UnityFS `blocksInfo` LZ4 解压失败 code 16,
+三种目标尺寸皆败;不作猜测)· #7 Windows 8.3 短名(Linux 不可测)。
+
+### 当前状态
+
+- **story-015 = `Complete` ✅**(4/4 AC · 代码评审 APPROVED WITH SUGGESTIONS)
+- **story-017 = `Ready` ⬜**(不依赖素材,可即刻开工)
+- **story-016 = `Blocked` 🔴**(BLOCKED-BY 素材产出批次,余 7 项 `.wav`)
+- **epic 44 尚未收口** —— 待素材接入、016 收口后再行收口(用户 2026-10-17 裁定)
+- 回归基线:`unity/Logs/s15-final.xml` = `total 395 / passed 395 / failed 0`
+
+### 下一步(未开工,待用户指令)
+
+`story-017` 实现(`/dev-story` → `/code-review` → `/story-done`)。
+
+---
+
+## Session Extract — TD-audio-01b/01d/01e 处置(2026-10-17)
+
+**用户指令**:「两条新债 … 01b/01d 是评审已有但未修的。现在修」+ 三项 AskUserQuestion 裁定。
+
+### ⚠️ 勘察先行发现:一条债的前提被另一条债的修复改变
+
+`01a`(收窄 `.gitignore`)把 `AddressableAssetsData/` 的**组定义入库** ⇒ 全新检出**带**组定义
+⇒ 「`Settings == null`」的含义由「没初始化过」变为「**入库文件被删/损坏**」。
+**01c 的原模拟方式(移走目录)因此不再等价于全新检出** ⇒ 原实测结论不可再引用。
+
+### 三项裁定
+
+| 债 | 裁定 |
+|---|---|
+| **01b** | **硬失败 + 指引恢复,不自举**(`GetSettings(create:true)` 会建只含默认组的 settings ⇒ 与入库定义**分叉** = 假绿) |
+| **01d** | **维持 GDD 口径 + 订正 TD,不改代码** |
+| **01e** | **同文件两处都修** |
+
+### 代码改动(仅 `DataBakeMenu.cs`)
+
+- 拆出 `EnsureAudioGroupCore(settings, audioDirRel)` 可注入实现体
+  (**刻意不重载同名** —— 会让 `test_wiring_bakeMenuEntriesExist` 的按名反射抛 `AmbiguousMatchException`)
+- `settings == null` / 零素材 **两条分支改 `throw`**,且**先验后改**(任何写入之前判定)
+- 四处「永不提交」文案订正(01a 造成的事实性错误)
+
+### 01d 证伪(实测)
+
+`BuildPlayerContent` 产物:`defaultlocalgroup_scenes_all_*.bundle` / `audio_assets_all_*.bundle` /
+`data-core_assets_all_*.bundle` ⇒ **每组各自成 bundle**,`Default Local Group` **不是主包**
+⇒ 原判定「素材仍被打进主包」**不成立**。且 GDD `audio-system.md:1104-1105` 明文
+「判据 = 组区分 …**不是**「组叫什么名字」」⇒ W-4 的修法与 GDD 冲突。
+
+### 验证
+
+- **过滤集**:`unity/Logs/s18-fix-filtered.xml` = **54/54/0**(原 52)
+- **全量**:`unity/Logs/s18-final.xml` = **3615/3570/0/45**
+  基线 `s14-6-final.xml` = **3613/3568/0/45** ⇒ **+2/+2/0/0,零回归**
+- **证伪轮**:`/tmp/s18-falsify.sh` —— F1/F2 **各红 1 条**(精确判别);两次还原
+  SHA-256 = `084c74e7…c3e3` **逐字节一致**
+
+### ⚠️ 顺带发现
+
+`story-015` 与 `TD-audio-01c` 引的「回归 395/395/0」是 **audio 命名空间过滤集**,非全量
+(证据原件 `:112` 自己声明了口径,引用时漏了范围)。**不改变判定**,但会误导;已在 story-015 加注。
+
+### 仍悬(禁借绿)
+
+- **01c 真·全新 clone 复测未跑**(须 `git clone` + 全量导入);仅静态引用链已核实
+- **W-5② `CreateGroup` schema 不复现** —— 仍 ✗ 未修,须先裁「哪些 schema 值算定稿」
+- **`EnsureDataCoreGroup` 同款两静默分支** —— 未修(裁定范围不含),已 doc 注记
+
+### 证据原件
+
+`production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md`
+
+⚠️ **仍未 commit**(无用户指令)。

@@ -135,10 +135,10 @@ ADVISORY ⑥(2026-10-17 收口轮新发现)· `production/qa/evidence/impl-s15-a
 | # | 面 | 债 | 状态 / 出处 |
 |---|---|---|---|
 | **TD-audio-01a** | **跨机复现** | `unity/Assets/AddressableAssetsData/` 原被 `.gitignore:85` **整目录忽略** ⇒ `audio` 组及其 5 条目只存在于机器本地,新检出后 `test_d5_realSettings_audioAssetsSeparateFromDataCore` 正向半边**结构上不成立** | ✅ **2026-10-17 已修** —— `.gitignore` **收窄**为只忽略逐平台 `*/addressables_content_state.bin`;**组定义入库**(39 文件 + 顶层 `.meta`,共 41)。收窄依据:组定义 GUID 逐一命中**已提交**的 `.wav.meta` · profile 变量全为 token 式相对值 · 全树零绝对路径 · `.meta` 齐备。**修复方向 ① 被采纳**(原三选一) |
-| **TD-audio-01b** | **自举** | `EnsureAudioGroup` 幂等 ✓ 但**不完备** —— `settings == null` 只 `LogError` 就 return ⇒ 须**先手点** Addressables Groups 窗口,**不能自举**;且 `CreateGroup` 只给默认 schema,今日若调过 Bundle Mode / 压缩,重跑**不复现** | ✗ **未修**(评审 **W-5**)。`DataBakeMenu.cs:583-589` 早退 · `:595-598` schema。全库**零** `GetSettings(create:true)` 先例 |
-| **TD-audio-01c** | **路径未验** | `CreateGroup` + schema 的「**全新 clone 首跑**」路径 —— 原为**读码推断** | ✅ **2026-10-17 已实测**(评审 **W-7** 由推断转实测)。**跑法**:移走 `AddressableAssetsData/`(模拟全新 clone)⇒ Unity batch `-executeMethod …DataBakeMenu.EnsureAudioGroup` ⇒ 日志落 `unity/Logs/s17-freshclone-20261017-051600.log`。**结果**:命中 `settings == null` 早退,输出 `[大医精诚] Addressables 设置不存在 —— 先经 Window > … > Groups 创建一次设置(一次性)`;编译零 `error CS`;**还原经独立复核逐字节一致**。⚠️ **并证实一条新危害**:Unity **退出码 = 0** ⇒ 该失败在进程层**静默**(见下方 01e) |
-| **TD-audio-01d** | **判据弱于 AC** | `ValidateEntries` (a) 半只断言「登记在**某个非 `data-core`** 组」,**不断言**「登记在 `audio` 组」⇒ `.wav` 落在 `Default Local Group` 亦**判过**,素材仍被打进主包,破 AC-44-D5 意图 | ✗ **未修**(评审 **W-4**)。`AudioAssetGroupGates.cs:85-105`;文件头 `:23-26` 自陈是刻意取舍 |
-| **TD-audio-01e** | **静默失败**(01c 实测**新发现**) | `EnsureAudioGroup` 在 `settings == null` 时**只 `LogError` 并 return**,**不让进程失败** ⇒ 若按「残余修复方向 ③」把它当 CI 前置步骤,**CI 会报绿而组实际缺失** = **假绿**(本项目最忌的失效模式)。同类面:任何以 `-executeMethod` 调它的无人值守路径 | ✗ **未修**(2026-10-17 实测新增,出处 = `s17-freshclone-20261017-051600.log` 退出码 0)。`DataBakeMenu.cs:583-589` |
+| **TD-audio-01b** | **自举**(⚠️ 前提已被 01a 改变) | ~~`settings == null` 只 `LogError` 就 return ⇒ 须先手点 Addressables Groups 窗口,**不能自举**~~ —— **01a 落地后该前提失效**:组定义入库,「设置缺失」的含义由「没初始化过」变为「**入库文件被删/损坏**」 | ✅ **2026-10-17 已修**(用户裁定:**硬失败 + 指引恢复,不自举**)。`DataBakeMenu.EnsureAudioGroupCore` 分支 ① 改为 `throw`,报文指向 `git checkout -- unity/Assets/AddressableAssetsData`。⚠️ **原「自举」方向被裁为不采纳** —— `GetSettings(create:true)` 会建一份只含默认组、与入库定义**分叉**的 settings = **假绿**(看着绿,组是错的)。**残余**:W-5② `CreateGroup` 只给默认 schema —— **仍未修**,见下方 |
+| **TD-audio-01c** | **路径未验**(⚠️ 原判据已失效) | `CreateGroup` + schema 的「**全新 clone 首跑**」路径 —— 原为**读码推断** | ⚠️ **2026-10-17 状态订正:原实测结论不可再引用**。原跑法「移走 `AddressableAssetsData/`」模拟的是 **01a 之前**的状态;01a 后组定义入库,真·全新检出**带**组定义 ⇒ 该模拟不再成立。**静态核实(已做)**:`DefaultObject.asset` 的 `m_AddressableAssetSettingsGuid = 2c864c592004e1c729cd6c8ed9da4089` = `AddressableAssetSettings.asset.meta` 的 guid ⇒ **引用链完整**。**真·全新 clone 复测未跑**(须 `git clone` + 全量导入)⇒ 如实**登记为未验**,不借绿 |
+| **TD-audio-01d** | **判据弱于 AC** | ~~`ValidateEntries` (a) 半不断言「登记在 `audio` 组」⇒ `.wav` 落在 `Default Local Group` 亦**判过**,**素材仍被打进主包**,破 AC-44-D5 意图~~ | ✅ **2026-10-17 结案 —— 原判定的危害陈述证伪**(用户裁定:维持 GDD 口径,**不改代码**)。**证伪证据(实测)**:`BuildPlayerContent` 产物 = `defaultlocalgroup_scenes_all_*.bundle` / `audio_assets_all_*.bundle` / `data-core_assets_all_*.bundle` —— **每组各自成 bundle** ⇒ 不存在「被打进主包」。**且判据语义另有明文**:GDD `design/gdd/audio-system.md:1104-1105`「判据 = **组区分** …**不是**「组叫什么名字」」。**残余(如实登记,不隐藏)**:`.wav` 落在 `Default Local Group` 时本门**判过** —— 此为 GDD 明文裁定的范围,**不是缺陷** |
+| **TD-audio-01e** | **静默失败**(01c 实测**新发现**) | `EnsureAudioGroup` 在 `settings == null` 时**只 `LogError` 并 return**,`moved == 0` 时只 `LogWarning` 并 return —— **两处都不让进程失败** ⇒ 以 `-executeMethod` 作 CI 前置步时**报绿而组实际缺失** = **假绿**(本项目最忌的失效模式) | ✅ **2026-10-17 已修**(用户裁定:**同文件两处都修**)。`EnsureAudioGroupCore` **两条**分支均改 `throw`;并**先验后改** —— 两条都在任何写入之前判定 ⇒ 失败时设置零改动(夹具可安全注入真设置)。**证伪轮 2/2 全红且各只红 1 条**:停用分支 ① ⇒ `test_d5_menu_settingsMissing_throwsHard` 红;停用分支 ② ⇒ `test_d5_menu_noAssets_throwsHard` 红。⚠️ **`EnsureDataCoreGroup` 的同款两分支未修**(用户裁定 01e 范围限于 `EnsureAudioGroup`)—— 已在其 doc 就地注记 |
 
 **触发条件(全部四个面共用)**:**CI 的 Unity 测试 job 真正启用时**(ADR-012 跨平台确定性矩阵)—— 与 **`TD-medcons-09`** 同族。
 > ⚠️ **2026-10-17 实测订正:该触发条件「尚未落地」** —— CI workflow **已存在**但 Unity job 是 **no-op**:
@@ -149,10 +149,14 @@ ADVISORY ⑥(2026-10-17 收口轮新发现)· `production/qa/evidence/impl-s15-a
 > **为何单列而不并入 TD-medcons-09**:两者**同族不同因** —— medcons-09 是「测试读真实文件系统 + 路径解析依赖检出布局」;
 > 本债是「**被断言的对象本身不在版本控制里**」。前者的出路是改测试的路径解析;后者的出路是给组创建提供确定性基线(01a ✅)+ 可自举入口(01b)。
 >
-> **残余修复方向**(01b/01c/01e,未裁定,登记待议):② 提供 CLI / CI 可调的组创建入口(同 `TD-medcons-11` 的 B-W2 同型缺口)·
-> ③ 在 CI 脚本里显式跑 `EnsureAudioGroup` 作为前置步骤并断言其幂等 ——
-> ⚠️ **②③ 单独均不够,且各有前置**:②③ 都须**先补 `GetSettings(create:true)` 自举**(全新 clone 无 `Settings`,01b);
-> ③ 还须**先把静默失败改为硬失败**(01e —— 今日它退出码 0,CI 会假绿)。
+> **残余修复方向(2026-10-17 三笔裁定后重写)**:
+> - **W-5② `CreateGroup` schema 不复现** —— **仍 ✗ 未修**。`CreateGroup` 只给默认 schema;
+>   今日若手调过 Bundle Mode / 压缩,重跑不复现。**须先裁「哪些 schema 值算定稿」** ——
+>   现入库的 `audio_BundledAssetGroupSchema` 有 `m_UseDefaultSchemaSettings: 0`(即**已脱离**默认),
+>   故「重建 = 入库值」不能靠默认值白拿。
+> - **01c 真·全新 clone 复测** —— 须 `git clone` + 全量导入(慢);静态引用链已核实完整。
+> - **`EnsureDataCoreGroup` 同款静默失败** —— 用户裁定 01e 范围不含它,留待后续。
+> ⚠️ 原「②③ 都须**先补 `GetSettings(create:true)` 自举**」**已作废** —— 01b 裁定为**不自举**(见上)。
 > ⚠️ ① 与 ADR-023 ②「零 gameplay 对象」/ ADR-025 装配清单无冲突(已实测);Addressables 6.2+ 目录契约的 Knowledge Risk MEDIUM 随 01a 落地**降为已观测形态**(组定义确为可移植 YAML)。
 >
 > **同批实测附带发现(非本债面内,登记不隐藏)**:`Editor.Tools.Kindgen.asmdef` 与 `Editor.Tools.Level.asmdef`
