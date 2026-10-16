@@ -104,7 +104,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             foreach (var s in rxSummary) Debug.Log("[PrescriptionWriterGates] " + s);
             foreach (var e in errs) Debug.LogError(e);
             Debug.Log(errs.Count == 0
-                ? "[AssemblyGates] b2/b3/b4/b5 + 3 意图边界门 + 8 边界门 + 11 写者门 全过"
+                ? "[AssemblyGates] b2/b3/b3-refdup/b4/b5 + 3 意图边界门 + 8 边界门 + 11 写者门 全过"
                 : $"[AssemblyGates] {errs.Count} 条失败(见红行)");
         }
 
@@ -112,6 +112,7 @@ namespace DaYiJingCheng.EditorTools.Gates
         {
             var errs = new List<string>();
             CheckManifestClosure(errs);      // b3
+            CheckReferenceDuplicates(errs);  // b3-refdup(复盘行动项 2 · sprint-13 S13-4)
             CheckGateA(errs);                // b2
             CheckPayloadRefCallsites(errs);  // b6(ADR-029 §③)
             // b7 写者存在性门(M2 阶段 2 · 批次 D,2026-10-10):registry 每支 author 声明
@@ -917,6 +918,44 @@ namespace DaYiJingCheng.EditorTools.Gates
                 result.Add(token);
             }
             return result;
+        }
+
+        // ═══ 引用面**解析后重名**检测(复盘行动项 2 · sprint-13 S13-4)═══════
+        // 病根(sprint-12 X-1 实测 1 轮返工):侦察只读 `references` 的**名称列表** ⇒
+        //   看不到 GUID 形引用已覆盖某装配,于是「按名补一条」= 同一装配被声明两次 ⇒
+        //   Unity 报 `Assembly has duplicate references` **编译红**。
+        //   **名称列表不是完整事实** —— 须先 GUID → 装配名解析,再判重。
+        // 本判定 = 该纪律的可复用载体(纯读文件;GUID 解析经 AssetDatabase,故住 Editor 侧)。
+        /// <summary>asmdef 引用面**解析后重名**:先 GUID → 装配名解析,再判同一装配是否被声明多次。
+        /// <para>返回:重名装配名 → 出现次数(仅含 &gt;1 者;Ordinal 序)。空列表 = 无重名。</para>
+        /// <para>⚠️ 与 <see cref="ReadDeclaredReferences"/> 同源 —— 后者已做 GUID → 名解析,
+        /// 本函数在其**结果**上判重;故「名形 + GUID 形指向同一装配」会被如实计为 2 次。</para></summary>
+        public static List<(string Assembly, int Count)> FindDuplicateResolvedReferences(string asmdefPath)
+        {
+            var names = ReadDeclaredReferences(asmdefPath);
+            var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var n in names)
+                counts[n] = counts.TryGetValue(n, out var c) ? c + 1 : 1;
+            return counts.Where(kv => kv.Value > 1)
+                         .OrderBy(kv => kv.Key, StringComparer.Ordinal)
+                         .Select(kv => (kv.Key, kv.Value))
+                         .ToList();
+        }
+
+        /// <summary>扫描 <c>Assets/</c> 全树 asmdef 的解析后重名([b3-refdup];接入 RunAll)。
+        /// <para>⚠️ 判据是**双向**的:漏报(名形重复溜过)与误报(把一次声明判成两次)都算失败 ——
+        /// 故负夹具须同时钉「真重复转红」与「单次声明不转红」(见 assembly_gate_refdup_test)。</para></summary>
+        private static void CheckReferenceDuplicates(List<string> errs)
+        {
+            foreach (var f in Directory.GetFiles("Assets", "*.asmdef", SearchOption.AllDirectories))
+            {
+                foreach (var (asm, cnt) in FindDuplicateResolvedReferences(f))
+                    errs.Add($"[b3-refdup] 「{f}」引用「{asm}」重复 {cnt} 次" +
+                             "(解析 GUID → 装配名**之后**判)—— Unity 报 " +
+                             "`Assembly has duplicate references` 编译红;移除冗余声明" +
+                             "(典型成因:按名补一条**已被 GUID 形覆盖**的引用 —— " +
+                             "sprint-12 X-1)。");
+            }
         }
 
         // ── ①b 源文本层(b4 同格:不引 Roslyn,文本级)───────────────────────
