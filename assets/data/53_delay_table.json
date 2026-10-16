@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "rows": [
+    {"outcome": "residual",      "delay_ticks": 600},
+    {"outcome": "recurrence",    "delay_ticks": 1200},
+    {"outcome": "trial_history", "delay_ticks": 2400}
+  ]
+}

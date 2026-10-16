@@ -121,7 +121,16 @@ namespace DaYiJingCheng.EditorTools.Gates
 
             // ── 24 / 30 / 53 ──
             ("CareApplied", "24 医馆与案头写者未落(以入向事件写入)—— 归 24 轮(entities.yaml author 注)(2026-10-10)"),
-            ("ConsequenceResolved", "53 医疗后果与责任未实现 —— 归 53 轮(P0 未排;entities.yaml author 注)(2026-10-10)"),
+            // ⚠️ 2026-10-16 撤 `ConsequenceResolved` 豁免(story-003 延迟发出落地,用户裁定 AC-7):
+            //   写者已落 —— `Sim/Consequences/ConsequenceEmitter.cs`
+            //   (`Encode(EventKind.ConsequenceResolved, …)` = 门判据扫得到的生产写入点)。
+            //   判据①「已存在写者的 Kind 仍挂豁免表 = 红」**强制同批撤表**;
+            //   ⚠️ **本类与该写者必须同批提交**(同 CaseClosed / PatternRecognized 的既有纪律,
+            //   :87-95)—— 先撤表后写码 ⇒ 「写者缺失」红;先写码后撤表 ⇒ 判据① 红。
+            //   正向存在性断言的载体 = `Tests/EditMode/MedConsequences/medcons_delayed_emit_test.cs`
+            //   (AC-7:防「删了条目但没人写」—— 存在性判据是**双向**的)。
+            //   ⚠️ 基线随之 24 → **23 条豁免**(writer_existence_gate_test 只断 IsNotEmpty,
+            //  不断条数 ⇒ 无需同批改该测试)。
         };
 
         // ══════════════════════════════════════════════════════════════════

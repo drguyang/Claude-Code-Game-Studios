@@ -1,11 +1,11 @@
 # Story 003: F-53.2 延迟发出与 ConsequenceResolved 世界流
 
 > **Epic**: 医疗后果与责任
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 4h
-> **Manifest Version**: 2026-10-02
+> **Manifest Version**: 2026-10-15
 > **Last Updated**: 2026-10-16
 
 ## Context
@@ -137,7 +137,25 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/MedConsequences/medcons_delayed_emit_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing — **46 测试函数 / 107 用例全绿**(过滤 `MedConsequences`);
+全量 EditMode **3508 / 3462 passed / 0 failed / 46 skipped**(基线 3493/3447/0/46 ⇒ **+15/+15 零回归**)
+**账本路径**: `tests/unit/medcons/` 未落地 —— 主体编译树 `unity/Assets/Tests/EditMode/MedConsequences/` 承载
+(两树均已扫:`grep -rln "ConsequenceEmitter" unity/Assets/Tests/ tests/` 唯命中上列件)
+
+### 证伪轮反证登记(S12-4 BLOCKING · 改→跑→还原同一次 Bash 调用 · md5 还原校验)
+
+| 命中形态 | 停用 / 改坏的守卫 | 反证:转红的测试 |
+|---|---|---|
+| ① 定序 | 停用 `due.Sort` | `test_ac4_pendingAppendsInAscendingEmitTickOrder`(1 红) |
+| ② 共存 / 互斥 | `queueIndex < already` → `already > 0`(合并) | `test_edge_twoClosesWithinDelayWindow_eachEmits_notMerged`(修夹具后 1 红;**修前 0 红 = 本轮抓到并修复的假绿**) |
+| ③ 定义域收窄 | 域外 key 静默跳过 | `test_ac2_bake_lifeAxisAsKey_hardFails_schemaError`(1 红) |
+| ④ 一次性 / 幂等 | `already = 0`(读内存失忆) | `replay` / `saveInsideWindow` / `reopen` / `twoCloses` / `alreadyEmitted`(5 红) |
+| ⑤ 阈值边界 | `emitTick > nowTick` → `>=` | 含 `test_ac5306_windowBoundary_emitAtNowIncluded_beforeNowExcluded` 共 10 红 |
+| AC-6 负夹具 | 停用 N-3 `uBand` 域守护 | `test_ac6_bandCount…divergentSourceGoesRed` + `test_table_uBandOutOfRange…`(2 红) |
+| AC-7 门双向 | 豁免条目回填 | `test_ac7_writerExistenceGate_*`(2 红) |
+
+**结论**:五类命中形态 + AC-6 + AC-7 **全数反证转红**;零 `FALSIFY` 残留(`grep -rn "FALSIFY" unity/Assets/` 空)。
+**评审原件**: `production/qa/evidence/review-medcons-story-003-2026-10-16.md`(含原判定 → 修复落点 → 验证命令 + §六 已落/已证双列结账表)。
 
 ---
 
@@ -150,4 +168,18 @@
 
 ## Completion Notes
 
-*(empty — fill at story completion via `/story-done`)*
+**Completed**: 2026-10-16
+**Criteria**: 8/9 passing + 1 PARTIAL(AC-7 / OQ-53-8 形状门 —— 见 W-4)
+**Deviations**:
+- **W-4(AC-5 partial)**:只兑现枚举域部分(结局轴 `PatientLives`/`PatientLoses` 与 `NoEcho` 作 key ⇒
+  `TryDelayTicks` false ⇒ schema 错 / 静默跳过);**「代价表永不致死形状门」归 GDD/数值轮** —— 如实登记,**不借绿**。
+- **W-5(具名跨域缺口)**:`ConsequenceResolved` 带真 `patient_id` ⇒ 进 `EventStream` AC-15 CAP 分支
+  (`!IsPresent && PresentCount >= 24` ⇒ throw);**照发不 catch**;doc comment seam 已登记,跨域裁定归 9/7a 轮。
+- **生产装配 helper 落测试件**:`Gameplay.Boot` 未授权本 story 改动 ⇒ 装配层 per-case Outcome 现算 helper
+  暂住 `medcons_delayed_emit_test.cs`(D-1 A 案);接线归后续装配轮。
+- **具名待办 ×4**:B-W1(共享词法器重复 JSON property 缺口,影响全部 10+ binder)· B-W2(无 CLI/CI 烘焙入口)·
+  B-W3(ordinal 改名面)· B-W4(cooked 无镜像读方,装载归装配轮)。
+**Test Evidence**: Logic — `unity/Assets/Tests/EditMode/MedConsequences/medcons_delayed_emit_test.cs`(46 测试函数 / 107 用例全绿)
+**Code Review**: Complete —— `/code-review`(S13-6 拆小 prompt 实战,3 并行有界 agent);
+原件 `production/qa/evidence/review-medcons-story-003-2026-10-16.md`(BLOCKING S-B1/S-B2/T-B1 + WARNING + MINOR 全表 + §六 已落/已证双列)
+**Falsifiability Gate**: PASS —— 五类形态全命中且全数反证转红(另抓出并修复 1 条假绿夹具)

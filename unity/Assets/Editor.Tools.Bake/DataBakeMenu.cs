@@ -62,6 +62,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>产物文件名(53 判定表;F-53.1 / story-002 的烘焙产物)。</summary>
         public const string OutcomeTableCookedAssetName = "53_outcome_table.cooked.bytes";
 
+        /// <summary>产物文件名(53 延迟表;F-53.2 / story-003 的烘焙产物)。</summary>
+        public const string DelayTableCookedAssetName = "53_delay_table.cooked.bytes";
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -386,6 +389,41 @@ namespace DaYiJingCheng.EditorTools.Bake
                 Debug.Log(
                     $"[大医精诚] 烘焙完成:{OutcomeTableCookedAssetName} = {result.Cooked.Length} B, " +
                     $"{result.Bound.Rows.Count} 行, U 档数 = {result.Bound.UBandCount}, " +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 53 延迟表(story-003 · S13-2):仓库 <c>assets/data/53_delay_table.json</c> →
+        /// 校验(**聚合 throw**:定义域白名单单机制 / ≤0 拒收 / 缺行拒收 / 重复行拒收)→ 产物写入 Assets/DataCooked/。
+        /// <para>⚠️ 本菜单是 <see cref="DelayTableBinder"/> 的**唯一调用点链路**
+        /// (菜单 → BakeFromRepo → Bind → 三条构建期拒收)—— 卡面 AC-2 的「构建期硬失败」由此兑现
+        /// (与 BakeOutcomeTable 同型先例;绕过本链路 = binder 永不执行 = 校验形同虚设)。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 53_delay_table(53 延迟表)")]
+        public static void BakeDelayTable()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                DelayTable53Bake.BakeOutput result = DelayTable53Bake.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, DelayTableCookedAssetName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{DelayTableCookedAssetName} = {result.Cooked.Length} B, " +
+                    $"{result.Bound.Rows.Count} 行(定义域 = 回响轴三值), " +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }
