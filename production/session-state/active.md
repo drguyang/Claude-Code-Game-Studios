@@ -4569,3 +4569,96 @@ X-2 换乘子时丢配对 `)` ⇒ CS1026。
 - 单源核:grep 全库「结账表」仅命中本 SKILL.md(review-workflow / story-done 零提及)⇒ 无第二真源。
 - 生效面:自下次评审起一律双列。story-003(S13-2)的评审轮 = 新模板首次实战 + S13-6 prompt 拆小的判据现场。
 - Next: **S13-2 story-003 实现**(M/4h;依赖 S13-1 ✅ + story-002 ✅ + registry 直登 ✅ 全满足)
+
+## Session Extract — S13-2 story-003 实现派发(2026-10-16 · dev-story Phase 4)
+- **实现 agent(gameplay-programmer)首轮撞 20 轮上限零落盘**(S13-6 病灶第 2 例:第 1 例 =
+  sprint-12 重评专家 20/10 轮)。续跑令其「先盘点再交报告」⇒ 交回**带 file:line 出处的完整施工图**
+  (载荷/路由/registry 三就位;写者先例 PoiStateMachine:110-146;EventStream 两硬不变量
+  **BCD-码-3 非降序** :109-115 / **CAP 分支** :77-84;烘焙三件套先例;测试基建惯用法)。
+- **orchestrator 直接裁定(形状类,ADR 已锁)**:D-1=**A 案**(装配层每 tick 现算 per-case Outcome 喂入,
+  发射器零自调);D-3=**计数差幂等**(合格数[EmitTick≤now] − 流中该病人已有行数;`(EmitTick,Patient)` 键
+  会吞同刻双结案 ⇒ 破 GDD :323 不合并);D-6=Sim 侧 `DelayTable53.cs` + Bake 侧
+  `DelayTable53Bake/Binder/CookedWriter`(消同名双型);D-7 JSON 放行,**定义域白名单单机制**
+  (只收 residual/recurrence/trial_history 三 key,其余含 no_echo/结局轴 = schema 错,不另设分支);
+  D-2=NoEcho 合法不发射;D-4=反射断言口径「实例字段全 IsInitOnly + 无 static 可变」;D-5=SimEvent.Tick=EmitTick。
+- **用户裁定两项(越权面,AskUserQuestion)**:① **W-5 = 照发 + 具名登记跨域缺口**(Patient 保持真
+  patient_id,registry :2160 不动;不 catch CAP throw;doc comment seam + 待 9/7a 裁;夹具配
+  IPresenceQuery 桩);② **W-4 = AC-5 只兑现枚举域部分**(NoEcho/结局轴 ⇒ TryDelayTicks false ⇒ 静默
+  跳过;Binder 拒结局轴 key;**不建代价表**;「永不致死形状门」归 GDD/数值轮待办,如实登记不借绿)。
+- **orchestrator 代查 agent 两处未核**(只读,已落):**门测试 = `Tests/EditMode/Sim/writer_existence_gate_test.cs`**
+  (删 WriterExistenceGate.cs:124 条目须与该测试同批);**零装载面改动**(先例:53_outcome_table.cooked
+  不进 Addressables/预载清单/git,仅 DataBakeMenu 菜单 + BindForTest —— DelayTable 完全同构,
+  Gameplay.Boot/Presentation 一碰不碰);.cs.meta 不手写(batch 自动生成,主会话入库)。
+- 写序(轮次告急保 ①②④⑤⑥ 弃 ③⑦):①53_delay_table.json ②Sim DelayTable53 ③Bake 三件套
+  ④ConsequenceEmitter(计差+升序 Append+host gate+Seq=-1)⑤WriterExistenceGate 删条目 ⑥medcons_delayed_emit_test.cs
+  (AC-1..7+证伪五形态+NoEcho+AC-6 负夹具+门正向断言+零 case_id/salted_key 递归扫描)⑦DataBakeMenu 菜单项。
+- ⚠️ **batch 时序纪律**:等 agent 写完再跑编译快照(实现落盘中途跑 = 快照≠终码 = 假绿);跑前 pgrep+Lockfile 复核。
+- Next: 收 agent 报告 ⇒ 核交付面/门 A ⇒ batch EditMode(MedConsequences filter,基线 61/61 之上)⇒ 门全绿
+  ⇒ Phase 6 汇总 ⇒ /code-review(**S13-6 拆小 prompt 实战**,评审原件落 evidence)⇒ /story-done。
+
+## Session Extract — /story-done 2026-10-16
+- Verdict: COMPLETE WITH NOTES
+- Story: production/epics/medical-consequences/story-003-delayed-emit-and-world-stream.md — F-53.2 延迟发出与 ConsequenceResolved 世界流
+- Tech debt logged: 4 具名待办(B-W1 共享词法器 / B-W2 无 CLI 烘焙入口 / B-W3 ordinal 改名面 / B-W4 cooked 无镜像读方)+ W-4(AC-5 partial)· W-5(CAP 跨域缺口)
+- 验证: 过滤 MedConsequences 107/107 绿;全量 EditMode 3508/3462/0/46(基线 3493/3447/0/46 ⇒ +15/+15 零回归);证伪轮五形态全红;零 FALSIFY 残留
+- Next recommended: sprint-13 剩余 S13-4 / S13-5 / S13-6 / S13-7 / S13-8(见 sprint-status.yaml)
+
+## Session Extract — sprint-13 治理件收口 2026-10-16
+- Verdict: sprint-13 除 S13-7(需真人三签)外全部 done
+- S13-4 asmdef 引用面判读固化:AssemblyGates.FindDuplicateResolvedReferences + [b3-refdup] 门 + 7 测试(全绿;证伪 ⇒ 2 红)
+- S13-5 测试自检脚本:tools/test-precheck/{precheck.py,README.md}(判据兑现;三类证伪全红;首版误报已收紧)
+- S13-6 重评 prompt 拆小:code-review SKILL §Phase 7b(⚠️ 判据前瞻性,不可自证)
+- S13-8 债册:docs/tech-debt-register.md(TD-medcons-01..15)+ 重评件 §五 回指
+- 全量 EditMode 3515/3469/0/46(基线 3508/3462 ⇒ +7/+7 零回归)
+- 证据原件:production/qa/evidence/sprint-13-governance-s13-4-5-6-8-2026-10-16.md
+- Next: S13-7 待用户(真人三签)· 或 sprint 收口(smoke-check → team-qa → retro)
+- ⚠️ 未 commit(无用户指令)
+
+## Session Extract — S13-7 agent 侧收口 2026-10-16
+- S13-7 走查包 + 证据目录 + 债册 6 条 + 三签稿 全部落盘(真人执行 + 三签仍待)
+- 本环节:跨 epic 事实登记(用户 2026-10-16 批准跨域写入)
+  · 42 EPIC §范围边界声明 二 —— 戥子形态元件义务已登记、42 已认领,但 24 条 story 无一条交付
+  · 44 EPIC §范围边界声明 三 —— 运行期音频链未接通 ⇒ 全案音频 AC 听测半边不可判
+  · 两处均「只登记事实 + 明写处置待签核」,不预设签署人结论
+- 核实依据:grep 全库零运行期 IAudioCueSink 实现(唯三实现类皆测试夹具)/ Boot.unity AudioSource=0
+  / assets/audio 空 / audio_events.json 5 行零处方条目 / 42 story 全文 grep 戥子零命中
+- 同步:sprint-status.yaml S13-7 注释 · 签核件 §5 · 证据目录 README
+- Next: 三签回收(真人)⇒ 按签核件 §5 回填;或 sprint 收口(smoke-check → team-qa → retro)
+- ⚠️ 未 commit(无用户指令)
+
+## Session Extract — 44 侧假绿发现 2026-10-16(S13-7 衍生)
+- 触发:走查发现「全案运行期音频链未接通」⇒ 深查 ⇒ 发现更严重的第二层
+- **🔴 重大发现:44 epic 6 条已标 Complete 的 story 为假绿**
+  · 🔴 高危 007/008/009:测试 100% 跑在自造 Fake 上,生产类 grep 零命中
+  · 🟡 中 010/011/012:核心判据是自持谓词/自造 store,保留真数据/文档断言
+  · 🟢 低 001-006/013/014:真引生产类(Fake 只是注入缝替身)
+- 已独立复核(非仅凭勘察员自述):
+  · 6 个测试文件 using 挂空(import 44 生产命名空间却零引用)
+  · SourcePool/LatticeToWorld/LoopWatchdog/HandoverFsm/HandleManager 等生产树=0、测试树=0
+  · RankKeyComputer/CellJitter/MusicXfadeGuard/DspBudgetGuard 生产树=0、测试树=1(测试自造)
+- 病灶定性:6 条 Completion Notes 均**自陈**「生产代码尚未实现,用自持谓词面」并判为
+  ADVISORY「TDD 正确形态」⇒ **不是隐瞒,是「已披露却仍判 Complete + 测试仍计 BLOCKING」**
+  与记忆 [[project_case_system_001_004_in_review]] 同型(AC 语义层由测试自造断言顶替)
+- 用户 2026-10-16 裁定:**6 条全开评审 + 实现(彻底)**;后续细化裁定:**先评审定案,实现另立 sprint**
+- 42 侧不受影响(干净缺失);戥子形态路线已定 = A 纯 USS 形态(rotate + 尺寸,零新图)
+
+## Session Extract — S13-9 评审定案 2026-10-16(44 侧 6 条假绿)
+- 两条逐条 AC 清单已回收(007/008/009 一组 · 010/011/012 一组),**关键事实本会话独立复跑核实**
+- **评审原件已落盘**:`production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md`
+  (§0 判定摘要 · §1 单一根因 4 条可复算事实 · §2 逐 story 6 张表 · §3 三处「修完仍假绿」·
+   §4 须实现生产类清单 · §5 九条可证伪命令 · §6 处置)
+- **判定:6/6 REQUEST_CHANGES(BLOCKING)**
+  · 合计 85 测 = 🔴 假 54 · 🟡 半真 24 · 🟢 真 7(**零条断言 44 生产树实现类**)
+  · 007:10/5/4 · 008:16/4/0(最重)· 009:9/2/1 · 010:7/4/0 · 011:7/3/1 · 012:5/6/1
+- **已落盘改动**:6 条 story `Status: Complete → In Review`(各加指针 + 撤回理由,Last Updated 2026-10-16)
+  · `production/sprint-status.yaml` 增 S13-9 条目(done)+ 更新注释
+- **未改**:`production/epics/audio-system/EPIC.md` 6 行状态(reconcile 留实现轮收口,避免表与头不一致)
+- **三条最重发现**(写入原件):
+  · 「空转真扫」新型假绿(007/008/009 共 5 处):真门 + 非空面 + 被断言类不存在 ⇒ 绕 b5 零命中护栏
+    (实测 `AssemblyGates.cs:1109-1114` 该护栏走 `warnings.Add` = WARN 非 FAIL)
+  · §3 三处「修完仍假绿」:010 恒真→自包含夹具恒真;011 硬编码→删断言留注释;012 先改 GDD 再断言 GDD
+    ⇒ **推论:修复轮验收判据须是「断言随生产码变异而变」(证伪轮),不是「断言仍绿」**
+  · story-009 的 4 条 AC **无 `AC-44-xx` 编号** ⇒ 按编号的账本/门检对它全数落空(独立瑕疵)
+- **Next**:① 实现另立 sprint(44 运行期音频链接通,≈15 生产类,按 §4 依赖序:008 根 → 007/009 → 010/011/012);
+  ② 或 S13-7 三签回收(真人);③ 或 sprint-13 收口(smoke-check → team-qa → retro)
+- ⚠️ 未 commit(无用户指令)

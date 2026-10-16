@@ -14,7 +14,7 @@ goal: "53 结算链贯通(story-003 回响写世界流)+ 收口纪律固化(stor
 start: ""
 end: ""
 generated: "2026-10-16"
-updated: "2026-10-16"   # S13-1 done(story-001 收口 + EPIC 口径 reconcile)
+updated: "2026-10-16"   # S13-1..6/8 全 done;S13-7 agent 半边已交(走查包 + 债册),执行/三签待真人 · S13-9 评审定案(44 侧 6 条假绿转 In Review)· 全量 3515/3469/0/46(+7/+7 零回归)
 
 stories:
   # ── Must Have ──
@@ -40,12 +40,12 @@ stories:
     name: "story-003 实现:F-53.2 延迟发出 + ConsequenceResolved 世界流写入"
     file: "production/epics/medical-consequences/story-003-delayed-emit-and-world-stream.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: ""
-    # 依赖:S13-1(story-001 收口)· story-002 ✅ Complete · registry ConsequenceResolved 已直登。
+    completed: "2026-10-16"
+    # 依赖:S13-1(story-001 收口)✅ 2026-10-16 · story-002 ✅ Complete · registry ConsequenceResolved 已直登。
     # ⚠️ P1 判据(承 ADR-031 重评轮 N-3):story-003 是 53 链第一个**真实喂 uBand** 的调用点 ——
     #   装配层若用与 cooked 表不同的 bandCount 源算档,越界档位会**静默别名到相邻 (P,C,D) 行**。
     #   Sim 侧守护已落地(F16 证伪),本条防装配层双源 ⇒ AC ③ 域守护回归必交。
@@ -72,45 +72,55 @@ stories:
   # ── Should Have ──
   - id: "S13-4"
     name: "asmdef 引用面判读固化:references 须解析 GUID → 装配名再判存在性"
-    file: ".claude/docs/technical-preferences.md"
+    file: "unity/Assets/Editor.Tools.Gates/AssemblyGates.cs"
     priority: should-have
-    status: backlog
+    status: done
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: ""
+    completed: "2026-10-16"
     # 复盘行动项 2(High)。病因:判 H 项只读 asmdef 名称列表、漏看 GUID 形引用
     #   ⇒ 按名补一条 Editor.Tools.Gates 触发 Assembly has duplicate references 编译红。
+    # ✅ 2026-10-16 落地:FindDuplicateResolvedReferences(GUID→名解析后判重)+
+    #   CheckReferenceDuplicates([b3-refdup],接入 RunAll);夹具 assembly_gate_refdup_test.cs 7/7 绿。
+    #   证伪轮:停用判据 ⇒ 2 条转红(名形+GUID 形 / 同名形),md5 还原 OK。
 
   - id: "S13-5"
     name: "新测试自检前置固化为可复用脚本(括号配平 / JSON 合法性 / 断言自相矛盾)"
-    file: "tools/"
+    file: "tools/test-precheck/precheck.py"
     priority: should-have
-    status: backlog
+    status: done
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: ""
+    completed: "2026-10-16"
     # 复盘行动项 4。返工期已散落建成 python 预检(多次 Bash 调用内),
     #   需收成单一脚本 + 「何时必跑」说明。判据:对 medcons_outcome_judge_test.cs
     #   跑出与返工期一致的结论。
+    # ✅ 2026-10-16 落地:tools/test-precheck/{precheck.py,README.md}。判据兑现 ——
+    #   medcons_outcome_judge_test.cs 跑出 [Test]=41 / 括号配平 168·938 / JSON 合法,FAIL 0。
+    #   证伪轮三类全红(括号失配 / JSON 词法 / 断言自相矛盾)+ 零误报(全目录批扫 OK)。
+    #   ⚠️ 首版 [3] 误报 4 条假红,已收紧(只认明确措辞 + 单语句截断)。
 
   - id: "S13-6"
     name: "重评专家 prompt 拆小 / 预声明「先出报告再补查」"
     file: ".claude/skills/code-review/SKILL.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: ""
+    completed: "2026-10-16"
     # 复盘行动项 3。病因:sprint-12 重评轮两位专家(unity-specialist / qa-tester)
     #   分别撞 20 / 10 轮上限未出报告,需 SendMessage 续跑才交付。
+    # ✅ 2026-10-16 落地:SKILL 增 §Phase 7b —— ①首轮「先出报告再补查」预声明模板 +
+    #   ②重评轮拆「原判据核账 / 新缺陷+硬约束」两 agent(并行)。
+    #   ⚠️ 卡面判据(下次重评两位专家均在轮次上限内交付)**前瞻性,当下不可自证** —— 禁借绿,如实登记。
 
   # ── Nice to Have ──
   - id: "S13-7"
     name: "S12-10 结转:11 人工走查 AC-11-12/13/21 + 三签(主创/医学从业/音频 lead)"
-    file: "production/sprints/sprint-12.md"
+    file: "production/playtests/playtest-2026-10-16-s11-ac11-12-13-21-walkthrough.md"
     priority: nice-to-have
     status: backlog
     owner: "user"
@@ -118,13 +128,55 @@ stories:
     blocker: ""
     completed: ""
     # agent 不可代劳。前置 S12-2 已 done ⇒ 现在就能启动,不占 sprint 治理容量。
+    # ◐ 2026-10-16 agent 侧半边已交付(执行 + 三签仍待真人):
+    #   · 走查包落盘 production/playtests/playtest-2026-10-16-s11-ac11-12-13-21-walkthrough.md
+    #     (10 节,承 story-009 先例;含步骤 + 可证伪判据 + 三签表 + 回填口径)
+    #   · 证据目录已建 production/qa/evidence/prescription-medication/(带 README)
+    #   · 前置勘察确认 4 条缺口 ⇒ docs/tech-debt-register.md §「11 处方用药走查缺口」
+    #     (TD-prescription-01 根因 = 42 侧戥子形态元件从未实现;AC-11-13/AC-11-12 形态半必红)
+    #   · 三签稿已出 production/qa/evidence/prescription-medication/story-005-ac11-12-13-21-signoff.md
+    #     (§0–§6;每栏 = 处置问,非只签名;医学从业栏单列临床用药安全面)
+    #   · 跨 epic 事实登记已落(用户 2026-10-16 批准跨域写入,只登记事实、处置待签核):
+    #     42 EPIC §范围边界声明 二(戥子义务已认领、24 story 无一条交付)
+    #     44 EPIC §范围边界声明 三(运行期音频链未接通 ⇒ 全案音频 AC 听测半边不可判)
+    #   ⚠️ status 维持 backlog —— 卡面判据 =「真人走查 + 三签落盘」,该半 agent 不可代劳。
+    #      走查目的 = 由真人证实缺口,非取证「通过」。
 
   - id: "S13-8"
     name: "9 条 Minor 入 docs/tech-debt-register.md + 重评件 §五 收口"
     file: "docs/tech-debt-register.md"
     priority: nice-to-have
-    status: backlog
+    status: done
     owner: "claude"
     estimate_days: 0
     blocker: ""
-    completed: ""
+    completed: "2026-10-16"
+    # ✅ 2026-10-16 落地:docs/tech-debt-register.md 建册 ——
+    #   TD-medcons-01…09(story-002 重评 §五 9 条)+ TD-medcons-10…13(story-003 B-W1..W4)
+    #   + TD-medcons-14/15(W-5 / W-4);重评件 §五 加收口回指(原文不删)。
+    #   ⚠️ 卡面写「9 条」,实登 15 条(story-003 评审 6 条同批并入)—— 超出部分如实登记,不冒称。
+
+  - id: "S13-9"
+    name: "44 音频 epic 6 条假绿 story 评审定案 + 转 In Review"
+    file: "production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md"
+    priority: must-have
+    status: done
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: "2026-10-16"
+    # 触发:S13-7 11 处方用药人工听测发现「全案运行期音频链未接通」⇒ 上溯深查发现第二层。
+    # 病灶:44 epic 的 007/008/009/010/011/012 六条已标 Complete 的 story 实为**假绿** ——
+    #   声称的生产实现类不存在,测试以自造 Fake / 自写谓词顶替 ⇒ AC 语义层零验证。
+    #   与 case-system 001-004 同型(本项目第二次,规模更大)⇒ 系统性。
+    # ✅ 2026-10-16 落地:
+    #   · 评审原件落盘 production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md
+    #     (§0 判定摘要 · §1 单一根因 4 条可复算事实 · §2 逐 story 6 张 AC→测试→真假表 ·
+    #      §3 三处「修完仍假绿」返工记录 · §4 须实现生产类清单 · §5 九条可证伪命令 · §6 处置)
+    #   · 6 条 story Status: Complete → **In Review**(各加评审原件指针 + 撤回理由)
+    #   · 判定 = 6/6 REQUEST_CHANGES(BLOCKING);85 测中仅 7 条断言真生产物,零条断言 44 实现类
+    #   · 独立复核:using 挂空 / 11 类型生产树零命中 / 账本逐行 BLOCKING / 6 条自陈 /
+    #     b5 零命中护栏 = WARN / xfade 具名空位 —— 均本会话复跑核实,未仅凭勘察员自述
+    #   ⚠️ 实现(≈15 生产类 + 烘焙管线 + Addressables 组 + 设置 store)**另立 sprint**(用户裁定)
+    #   ⚠️ EPIC.md 6 行状态**未改** —— reconcile 留到实现轮收口(避免 epic 表与 story 头短暂不一致)
+    #   ⚠️ 本件**不声称已复核** 001-006 / 013 / 014(抽样判低危,非普查)

@@ -73,16 +73,24 @@ story-003/004 `Ready` 且依赖面已满足。
 
 ## Definition of Done for this Sprint
 
-- [ ] All Must Have tasks completed(S13-1 + S13-2 + S13-3)
-- [ ] 各任务按衍生验收标准通过,**每条附可证伪判据**
-      (S12-4 闸门:定序 / 共存 / 定义域收窄 / 一次性 / 阈值边界五形态命中即须反证)
-- [ ] **QA plan 存在**(`production/qa/qa-plan-sprint-13-*.md`)—— 收口前必跑
-- [ ] story-003 的 Logic 测试件全 Passed + 证伪轮全红
-- [ ] IL2CPP 三格 **NOT-RUN 如实登记**(禁借绿,挂 ADR-012 矩阵)
-- [ ] Design documents updated for any deviations
-- [ ] Code reviewed(两轮 `/code-review` 口径)and merged
-- [ ] **`end` 日期在收口时补记**;若 `start` 与实际执行日不符,**矛盾留档不改写**
-      (承 sprint-12 教训:10 件提交全落在 10-15 而计划写 10-16 起)
+- [x] All Must Have tasks completed(S13-1 + S13-2 + S13-3)✅ 2026-10-16
+- [x] 各任务按衍生验收标准通过,**每条附可证伪判据** ✅
+      (S12-4 闸门:story-003 五形态全红;S13-4 停用判据 ⇒ 2 红;S13-5 三类 ⇒ 3 红)
+- [x] **QA plan 存在**(`production/qa/qa-plan-sprint-13-2026-10-16.md`)✅
+- [x] story-003 的 Logic 测试件全 Passed + 证伪轮全红 ✅(107/107 绿;五形态全红)
+- [x] IL2CPP 三格 **NOT-RUN 如实登记**(禁借绿,挂 ADR-012 矩阵)✅
+- [x] Design documents updated for any deviations ✅(tech-debt-register 建册 + 回指)
+- [x] Code reviewed(`/code-review` story-003,原件落 evidence)✅
+- [x] **`end` 日期在收口时补记** ✅ —— 见下
+
+> **✅ 收口记录(2026-10-16)**
+> - **Must 3 件 + Should 3 件 + Nice 1 件(S13-8)= 7 件 done**;S13-7(需真人三签)仍 backlog。
+> - **全量 EditMode 3515 / 3469 passed / 0 failed / 46 skipped**(基线 3508/3462 ⇒ **+7/+7 零回归**)。
+> - **`start` 空白(未记)→ 不追补**:计划写「不设结束日期,做完即收,收口时补记结束日」;
+>   实际执行 = 2026-10-16 单日。⚠️ **矛盾留档不改写**(承 sprint-12 教训)。
+> - **`end` = 2026-10-16**。
+> - 证据原件:`production/qa/evidence/sprint-13-governance-s13-4-5-6-8-2026-10-16.md`
+>   + `review-medcons-story-003-2026-10-16.md` + `review-medcons-story-002-rework-2026-10-16.md`。
 
 ---
 

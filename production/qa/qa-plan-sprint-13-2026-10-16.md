@@ -47,11 +47,14 @@
 | S13-1 story-001 入向闭集与跨流聚合 | Logic | **已有** `unity/Assets/Tests/EditMode/MedConsequences/medcons_aggregation_test.cs`(实测 20 条,2026-10-15 全 Passed)—— 本件不新建,仅收口复核 | `/story-done` 对照 + 反证记录核对 |
 | S13-2 story-003 延迟发出与世界流 | Logic(实质混合 **Logic+Integration**) | **新建** `unity/Assets/Tests/EditMode/MedConsequences/medcons_delayed_emit_test.cs`;集成面允许同树真装配件并列载体 | 烘焙逐位一致重跑 + 门全绿 |
 | S13-3 结账表分「已落/已证」 | 治理 | — | 对 story-002 重跑新模板,J 项进「已落」不进「已证」 |
-| S13-4 asmdef GUID 判读 | 治理 | 判定器可脚本化(建议并入 S13-5 脚本) | 注入 duplicate-by-name 引用 ⇒ 报红 |
-| S13-5 测试自检脚本化 | 治理 | 脚本本体即产物 | 对 `medcons_outcome_judge_test.cs` 跑出与返工期一致结论 |
-| S13-6 重评 prompt 拆小 | 治理 | — | 下一次重评两专家均在轮次上限内交付 |
-| S13-7 11 人工走查 + 三签 | UI/人工 | — | 真人走查 AC-11-12/13/21 + 主创/医学/音频三签 |
-| S13-8 9 条 Minor 入册 | 治理 | — | 登记册逐条有出处(重评件 §五 条目号) |
+| S13-4 asmdef GUID 判读 | 治理 | **已落** `unity/Assets/Tests/EditMode/Sim/assembly_gate_refdup_test.cs`(7 条) | ✅ 注入 duplicate-by-name 引用 ⇒ 报红(证伪:停判据 ⇒ 2 红) |
+| S13-5 测试自检脚本化 | 治理 | **已落** `tools/test-precheck/precheck.py`(脚本本体即产物) | ✅ 对 `medcons_outcome_judge_test.cs` 跑出 `[Test]=41 / FAIL 0`,与返工期一致 |
+| S13-6 重评 prompt 拆小 | 治理 | — | ⚠️ **前瞻性,不可自证** —— 待下次重评实测(禁借绿) |
+| S13-7 11 人工走查 + 三签 | UI/人工 | — | 真人走查 AC-11-12/13/21 + 主创/医学/音频三签(仍 backlog) |
+| S13-8 9 条 Minor 入册 | 治理 | **已落** `docs/tech-debt-register.md` | ✅ 逐条有出处(实登 15 条,含 story-003 评审 6 条) |
+
+> **✅ 2026-10-16 收口**:S13-1..6 + S13-8 = 7 件 done;S13-7 需真人。
+> 证据原件:`production/qa/evidence/sprint-13-governance-s13-4-5-6-8-2026-10-16.md`。
 
 > ⚠️ **路径写明实际落地的那棵树(2026-10-15 立)** —— 测试件横跨两棵树:`tests/unit|integration/[system]/`
 > 是账本约定,`unity/Assets/Tests/{EditMode,PlayMode}/` 是主体编译树;**两棵都可能有活测试**。
