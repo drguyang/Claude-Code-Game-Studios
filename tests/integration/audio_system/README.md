@@ -109,3 +109,59 @@
 - 若生成后 YAML 层仍红:`MixerTopologyGates` 的字段口径(`m_ValueMap target` / `m_Sends` 条目)
   是**登记过的对齐点** —— 以生成产物为黄金样例回改提取函数(夹具与判据语义不变),
   生成器 batch 日志已自带 `[YAML对齐]` 判词。
+
+---
+
+## Story 010(素材管线与事件表烘焙门 —— AC-44-D4 / D5 / D6 / 听诊窗预载)—— 落点说明
+
+故事头登记的证据路径为
+`tests/integration/audio_system/pipeline_gate_test.cs`,但该路径在仓库根,
+**Unity 不编译 `unity/Assets/` 之外的代码** ⇒ 真身(实际编译、实际运行的测试)=
+
+**`unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`**(类 `PipelineGateTest`)
+
+> ⚠️ **S14-6(2026-10-16)重写记录**:原 11 测的**四个自造替身全部删除**
+> (`FakePreloadGate` / `GroupSeparabilityPredicate` / `ExtractFieldName` / 内联 `File.Exists`),
+> 且删除了原 `:212-228` 的**文件系统写入副作用**(`Directory.CreateDirectory(repoRoot/assets/audio)`
+> + `File.WriteAllText` + `File.Delete`)—— 那个副作用是 `assets/audio/` 目录存在的**唯一**原因。
+> 现 **52 测**,全部打真生产对象;夹具自身「零文件写入」由 `test_discipline_noFilesystemWrites` 自证。
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 烘焙管线(D4/D6) | `unity/Assets/Editor.Tools.Bake/AudioEventTableBinder.cs` · `AudioEventTableCookedWriter.cs` · `AudioEventTableBake.cs` · `AudioAssetExistence.cs` · `AudioSettingsRegistryCookedWriter.cs` · `AudioSettingsRegistryBake.cs` |
+| 组区分门(D5) | `unity/Assets/Editor.Tools.Gates/AudioAssetGroupGates.cs`(纯谓词 `ValidateEntries` + 真设置 `ValidateSettings`) |
+| 预载门 | `unity/Assets/Gameplay.Presentation/Audio/StethoscopePreloadGate.cs` |
+| 运行期载体 + codec | `unity/Assets/Gameplay.Presentation/Audio/AudioEventDataSet.cs` · `AudioEventCookedCodec.cs` · `Settings/AudioSettingsDataSet.cs` · `Settings/AudioSettingsRegistryCookedCodec.cs` |
+| 接线 | `unity/Assets/Gameplay.Presentation/AddressablesDataProvider.cs`(两条 audio 支路)· `unity/Assets/Gameplay.Boot/BootRoot.cs`(`ApplyAudioSettingsProvider`)· `unity/Assets/Editor.Tools.Bake/DataBakeMenu.cs`(三菜单项) |
+| 素材本体(占位) | `unity/Assets/Audio/*.wav`(5 个;2044 B = 44 B RIFF/WAVE 头 + 2000 B 全零 PCM(单声道 44100 Hz / 16 bit / 1000 样本 ≈ 22.7 ms 静音)) |
+| 运行方式 | `unity test unity --mode EditMode --filter DaYiJingCheng.Tests.Unit.Audio` |
+| **机器前置** | `AddressableAssetsData/` 是 gitignored 机器生成物 ⇒ 首次须跑菜单「确保 data-core / audio Addressables 组」;**设置缺席 = 断言报错,不跳过** |
+
+## AC → 测试函数映射(`PipelineGateTest` 内)
+
+| AC | 测试函数 | 性质 |
+|---|---|---|
+| **AC-44-D4** 装配零 Newtonsoft | `test_d4_presentationAssembly_noNewtonsoftRef`(含 `GetReferencedAssemblies()` 扫描键非空守卫)· `test_d4_noJsonReaderRefs_inProductionAudioTypes` · `test_d4_noFixParseRefs_inProductionAudioTypes` | BLOCKING |
+| **AC-44-D4** 运行期只解字节 | `test_d4_runtimeCodec_decodesBakedBytesOnly` · `test_d4_settingsCodec_decodesBakedBytesOnly` | BLOCKING |
+| **AC-44-D4** 头/载荷分叉守卫 | `test_d4_runtimeCodec_payloadSchemaDivergedFromHeader_rejected` · `test_d4_settingsCodec_payloadSchemaDivergedFromHeader_rejected`(断言**钉报文**) | — |
+| **AC-44-D5** 真设置(正向) | `test_d5_realSettings_audioAssetsSeparateFromDataCore` · `test_d5_audioAssetsOnDisk_nonEmpty`(扫描键非空守卫) | BLOCKING |
+| **AC-44-D5** 纯谓词(负向) | `test_d5_pure_audioAssetInDataCoreGroup_rejected` · `test_d5_pure_audioAssetUnregistered_rejected` · `test_d5_pure_strayAudioEntryInDataCore_rejected` · `test_d5_pure_cleanEntries_pass`(对照面)· `test_d5_pure_nullEntries_rejected` · `test_d5_audioGroupName_isNotDataCore` | BLOCKING |
+| **AC-44-D6** 真种子(正向) | `test_d6_realSeed_bakesWithNoMissingAsset` | BLOCKING |
+| **AC-44-D6** 负向 + 谓词 | `test_d6_missingAsset_rejectedWithAggregateThrow` · `test_d6_missingAssetError_namesFileAndCue` · `test_d6_nullAssetRoot_isHardFailure` · `test_d6_existencePredicate_existingAndMissing` · `test_d6_missing_isOrderPreservingAndDeduped` · `test_d6_nullAssetList_yieldsNoMissing` | BLOCKING |
+| **听诊窗预载** | `test_preload_notLoaded_blocks` · `test_preload_allLoaded_allows` · `test_preload_partialLoaded_blocks` · `test_preload_failedState_blocks` · `test_preload_emptyCueSet_isHardFailure` · `test_preload_nullQuery_isHardFailure` · `test_preload_fromTable_derivesStethoscopeFamily` · `test_preload_stethoscopeBusName_matchesMixerRegistry` · `test_preload_handoverMux_{gateBlocks,gateAllows,noGate}` | BLOCKING |
+| **听诊窗预载 · NOT-RUN** | `test_preload_realAudioClipLoadState_pendingPlayModeHalf`(缺口哨兵:**素材定稿后须转红并随之改判**,不得当回归修掉) | NOT-RUN |
+| **烘焙确定性 / 往返 / 头契约** | `test_bake_sameSeedTwice_bitIdentical` · `test_bake_settings_sameSeedTwice_bitIdentical` · `test_bake_rowOrderIsCueOrdinal` · `test_bake_rowOutOfRange_throws` · `test_bake_headerContract_{audioAndSettings,rejectsBrokenHeaders}` · `test_bake_materialize_crossSideMatches` · `test_bake_settings_payloadIndependentOfSourceRowOrder` · `test_bake_settings_fixtureFromFallbackPassesGate` | BLOCKING |
+| **接线** | `test_wiring_providerInjection_overridesFallback` · `test_wiring_providerAbsentOrEmpty_usesFallback` · `test_wiring_bakedRows_matchFallbackValues` · `test_wiring_addresses_singleSourceOfTruth` · `test_wiring_bakeMenuEntriesExist` | — |
+| **接线 · BootRoot 真身** | `test_bootroot_injection_whenPreloaded_rowsComeFromProvider`(供给 1 行合成集 ⇒ 「注入了没」可判)· `test_bootroot_noInjection_whenNotPreloaded_rowsStayFallback` · `test_bootroot_noInjection_whenProviderNull_rowsStayFallback` | BLOCKING |
+| **夹具纪律自证** | `test_discipline_noFilesystemWrites`(扫本文件源码,注释剥离) | — |
+
+> **证伪轮(2026-10-16 · BLOCKING)**:11 例逐条「改 → 跑 → 还原(同命令内)+ SHA-256 逐字节校验」,
+> 全部**转红**。逐例记录见 `production/qa/evidence/impl-s14-6-asset-pipeline-2026-10-16.md` §3。
+> ⚠️ **C4(D5(b) 漏网条目判据)首轮 0 红 = 弱判别面(BLOCKING)**:`test_d5_pure_strayAudioEntryInDataCore_rejected`
+> 的期望集成员**未合法登记** ⇒ 断言被 (a) 半边的误报满足,与 (b) 是否生效无关。
+> 修 = 夹具形态(期望集成员合法登记在 `audio` 组)+ **报文钉定**(`Does.Contain("orphan.wav")` /
+> `Does.Not.Contain("sfx_breath_base_loop_small")`)⇒ 复跑 1 红。
+> **教训**:负向夹具只写「非空 / 抛了」不钉「是谁报的」,就会被同一函数内**别的**分支满足
+> (S14-5 第 ⑦ 例同型,本 sprint 第二次)。

@@ -7,8 +7,10 @@
 // ⚠️ 本程序集零 JSON 解析、零 FixParse(AC-48 结构守卫 RuntimeSourceGuard 扫描面内)。
 
 using System;
+using DaYiJingCheng.Gameplay.Presentation.Audio;
 using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
+using DaYiJingCheng.Gameplay.Presentation.Settings;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 using SignDataSet = DaYiJingCheng.Gameplay.Presentation.Diagnosis.DiagnosisSignDataSet;
@@ -55,6 +57,14 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>病名册词表 address(sprint-08 S1.1 件 D;S1.0 已烘未接)。</summary>
         public const string JudgmentLexiconAddress = SignsAddr.Lexicon;
 
+        /// <summary>音频事件表 address(S14-6;AC-44-D4 —— 表走 ADR-014 烘焙管线,运行期零 JSON 解析器)。
+        /// <para>⚠️ 单一出处 = <see cref="AudioEventDataSet.CookedFileName"/>(菜单写盘名与 address 共用同一常量)。</para></summary>
+        public const string AudioEventsAddress = AudioEventDataSet.CookedFileName;
+
+        /// <summary>设置暴露面注册表 address(S14-6;story-011 §登记项 —— 运行期装载面归本件)。
+        /// <para>⚠️ 单一出处 = <see cref="AudioSettingsDataSet.CookedFileName"/>。</para></summary>
+        public const string AudioSettingsAddress = AudioSettingsDataSet.CookedFileName;
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -65,6 +75,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private ReadFloorDataSet? _readFloor;
         // 病名册词表(sprint-08 S1.1 件 D):struct(2026-10-12 改)⇒ 可空承载。
         private LexiconDataSet? _lexicon;
+        // 音频侧两数据集(S14-6):struct ⇒ 可空承载。
+        private AudioEventDataSet? _audioEvents;
+        private AudioSettingsDataSet? _audioSettings;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -101,9 +114,21 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureLexicon();
                 return (TDataSet)(object)_lexicon.Value;
             }
+            // ── S14-6(2026-10-16):44 侧两数据集经 codec 装载 ──
+            if (typeof(TDataSet) == typeof(AudioEventDataSet))
+            {
+                EnsureAudioEvents();
+                return (TDataSet)(object)_audioEvents.Value;
+            }
+            if (typeof(TDataSet) == typeof(AudioSettingsDataSet))
+            {
+                EnsureAudioSettings();
+                return (TDataSet)(object)_audioSettings.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
-                "IDataProvider 只承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)");
+                "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
+                " + 两份 44 侧产物(S14-6:AudioEventDataSet / AudioSettingsDataSet)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -115,6 +140,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureSigns();
             EnsureReadFloor();
             EnsureLexicon();
+            EnsureAudioEvents();
+            EnsureAudioSettings();
         }
 
         private void EnsureItems()
@@ -193,6 +220,38 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 病名册词表 cooked 解码失败(address={JudgmentLexiconAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureAudioEvents()
+        {
+            if (_audioEvents.HasValue) return;
+            byte[] bytes = FetchBytes(AudioEventsAddress);
+            try
+            {
+                _audioEvents = AudioEventCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 音频事件表 cooked 解码失败(address={AudioEventsAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureAudioSettings()
+        {
+            if (_audioSettings.HasValue) return;
+            byte[] bytes = FetchBytes(AudioSettingsAddress);
+            try
+            {
+                _audioSettings = AudioSettingsRegistryCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 设置注册表 cooked 解码失败(address={AudioSettingsAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }
         }

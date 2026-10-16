@@ -18,6 +18,7 @@ using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Gameplay.Presentation;
+using DaYiJingCheng.EditorTools.Gates;   // AudioAssetGroupGates(S14-6:audio 组名 / 素材目录常量单一出处)
 using Stopwatch = System.Diagnostics.Stopwatch; // 别名引入,避免 System.Diagnostics.Debug 与 UnityEngine.Debug 歧义
 
 namespace DaYiJingCheng.EditorTools.Bake
@@ -436,6 +437,76 @@ namespace DaYiJingCheng.EditorTools.Bake
         }
 
         /// <summary>
+        /// 烘焙 44 音频事件表(阶段 1 词法 → 阶段 2 白名单/域门 → **D6 素材存在性门** → deterministic 编码)
+        /// → 产物写入 Assets/DataCooked/(**入 data-core 组**,与素材组 `audio` 分家 —— AC-44-D5)。
+        /// <para>⚠️ 本菜单是 <see cref="AudioEventTableBinder"/> 的**唯一调用点链路**
+        /// (菜单 → BakeFromRepo → Bind → 三道门)。绕过本链路 = 门永不执行。</para>
+        /// <para>⚠️ D6 的素材根 = <c>unity/Assets/Audio/</c>(<see cref="AudioAssetExistence.ResolveRoot"/>)
+        /// —— 素材缺失即本菜单**硬失败**(不是警告)。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 audio_events(44 事件表)")]
+        public static void BakeAudioEvents()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                AudioEventTableBake.BakeOutput result = AudioEventTableBake.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, AudioEventTableBake.CookedFileName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{AudioEventTableBake.CookedFileName} = {result.Cooked.Length} B, " +
+                    $"{result.Bound.Table.Rows.Count} 行(行序 = cue ordinal), " +
+                    $"素材根 = {result.AssetRoot},ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单;" +
+                    $"素材本身入「确保 audio Addressables 组」)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 44 设置暴露面注册表(阶段 1 词法 → 阶段 2 名字/值双向对账 + 域检查 → deterministic 编码)
+        /// → 产物写入 Assets/DataCooked/(入 data-core 组)。
+        /// <para>⚠️ 本菜单是 <see cref="AudioSettingsRegistryBinder"/> 的**唯一调用点链路**;
+        /// 消费者 = `AudioSettingsRegistry.Provider`(由 `BootRoot` 注入)。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 audio_settings_registry(44 设置注册表)")]
+        public static void BakeAudioSettingsRegistry()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                AudioSettingsRegistryBake.BakeOutput result = AudioSettingsRegistryBake.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, AudioSettingsRegistryBake.CookedFileName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{AudioSettingsRegistryBake.CookedFileName} = {result.Cooked.Length} B, " +
+                    $"{result.Bound.Rows.Count} 行(名字/值双向对账过),ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
         /// 确保 Addressables 存在单一 <c>data-core</c> 组,并把 DataCooked 下两个产物移入、打上 data-core 标签。
         /// <para>⚠️ 本操作会改动本地 <c>Assets/AddressableAssetsData/</c> —— 机器生成物,
         /// <b>永不提交</b>(每台机器桌面首次执行即可)。</para>
@@ -491,6 +562,72 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             Debug.Log(
                 $"[大医精诚] {DataCoreGroup} 组就绪:{moved} 个条目已入组并打标签。" +
+                "(AddressableAssetsData 为机器生成物,永不提交)");
+            EditorUtility.SetDirty(settings);
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// 确保 Addressables 存在 <c>audio</c> 素材组,并把 <c>Assets/Audio/</c> 下的音频素材移入、打上 audio 标签。
+        /// <para>⚠️ <b>为什么必须与 <c>data-core</c> 分家</b>(AC-44-D5):素材是**流式**资源
+        /// (按需加载 / 可卸载),数据烘焙产物是**启动期全量预载**的小体量二进制。混组 ⇒
+        /// 流式素材被打进数据包(内存与加载时序双失);组区分由
+        /// <c>AudioAssetGroupGates.ValidateSettings()</c> 构建期断言。</para>
+        /// <para>⚠️ 本操作会改动本地 <c>Assets/AddressableAssetsData/</c> —— 机器生成物,
+        /// <b>永不提交</b>(每台机器桌面首次执行即可;与 <see cref="EnsureDataCoreGroup"/> 同款前置)。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/确保 audio Addressables 组")]
+        public static void EnsureAudioGroup()
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings == null)
+            {
+                Debug.LogError(
+                    "[大医精诚] Addressables 设置不存在 —— 先经 Window > Asset Management > Addressables > Groups " +
+                    "创建一次设置(一次性);之后本菜单负责组与条目。");
+                return;
+            }
+
+            string groupName = AudioAssetGroupGates.AudioGroupName;
+            AddressableAssetGroup group = settings.FindGroup(groupName);
+            if (group == null)
+            {
+                group = settings.CreateGroup(
+                    groupName, false, false, false,
+                    null,
+                    typeof(AddressableAssetGroupSchema), typeof(BundledAssetGroupSchema));
+            }
+
+            if (!settings.GetLabels().Contains(groupName))
+                settings.AddLabel(groupName, postEvent: true);
+
+            // 素材根 = unity/Assets/Audio/(工程内)—— 与 AudioAssetExistence.ResolveRoot 同一出处
+            string audioDirRel = $"Assets/{AudioAssetGroupGates.AudioAssetDirName}";
+            string[] guids = AssetDatabase.FindAssets("t:AudioClip", new[] { audioDirRel });
+            int moved = 0;
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (!path.EndsWith(AudioAssetGroupGates.AudioAssetExtension, StringComparison.Ordinal))
+                    continue;
+
+                AddressableAssetEntry entry = settings.CreateOrMoveEntry(guid, group, readOnly: false, postEvent: true);
+                entry.SetAddress(Path.GetFileName(path));   // address = bare 文件名(与 assets[] 同形,零映射)
+                entry.SetLabel(groupName, true, force: true, settings);
+                moved++;
+            }
+
+            if (moved == 0)
+            {
+                Debug.LogWarning(
+                    $"[大医精诚] {audioDirRel} 下无 {AudioAssetGroupGates.AudioAssetExtension} 素材 —— " +
+                    "先放入素材再执行本菜单(AC-44-D6 的素材存在性门也依赖它们)。");
+                return;
+            }
+
+            Debug.Log(
+                $"[大医精诚] {groupName} 组就绪:{moved} 个素材已入组并打标签" +
+                $"(与 {DataCoreGroup} 分家 —— AC-44-D5)。" +
                 "(AddressableAssetsData 为机器生成物,永不提交)");
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssets();

@@ -68,6 +68,26 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // 输出行:纯函数域(排序键的载体),不持有游戏状态、不进 sim、不经三流。
             // 同 `VoiceBucket` / `VoiceVariantLib` 先例 —— 违的是 B3 字面而非 ADR-018 §一 本意。
             typeof(RankSource), typeof(RankedSource),
+            // **2026-10-16 Story 007 增列(用户裁定:批准增列 4 项)** —— 派生面的输入行
+            // (`CueEmitInput`)与判别结果枚举(`GateDecision`):纯函数域,不持状态、不进 sim、
+            // 不经三流。同 `RankSource` / `VoiceBucket` 先例(违 B3 字面而非 ADR-018 §一 本意)。
+            typeof(CueEmitInput), typeof(GateDecision), typeof(LoopProgress),
+            // **2026-10-16 Story 009 增列** —— 交接状态机的相位枚举(`HandoverMux.Phase`
+            // 的返回类型):纯函数域的状态标签,不持状态、不进 sim、不经三流。
+            // 同 `GateDecision` 先例(违 B3 字面而非 ADR-018 §一 本意)。
+            typeof(HandoverPhase),
+            // **2026-10-16 Story 010 增列** —— 烘焙产物的运行期**只读**载体与其行类型
+            // (`AudioEventDataSet` / `AudioEventRow`):不持可变状态、不进 sim、不经三流、
+            // 不回写;由 `AudioEventCookedCodec` 从 cooked 字节解出,装载归
+            // `AddressablesDataProvider`(L4 数据装载的既有合法面)。
+            // 同 `VoiceVariantTable` / `RankedSource` 先例(违 B3 字面而非 ADR-018 §一 本意)。
+            typeof(AudioEventDataSet), typeof(AudioEventRow),
+            // **2026-10-16 Story 010 增列** —— 听诊窗预载门与其载入态闭集 / 查询缝:
+            // **纯谓词**(只回答「能不能进听诊」),不改变任何声音状态、不持游戏状态、
+            // 不进 sim(ADR-018 §一「44 只渲染」)。查询缝是注入式依赖
+            // (承 `PlayerBusVolumeInitializer.MixerResolver` 同款模式)。
+            typeof(StethoscopePreloadGate), typeof(StethoscopePreloadGate.ClipLoadState),
+            typeof(StethoscopePreloadGate.LoadStateQuery),
         };
 
         // 44 实现的**项目接口**允许面(AC-44-B3 ①:原字面 = 「只有 IAudioCueSink」)。
@@ -79,6 +99,9 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         private static readonly Type[] EntryInterfaceAllowlist =
         {
             typeof(IBreathLayerTransport), typeof(IMixerParameterSink),
+            // **2026-10-16 Story 007 增列** —— 44 自用的渲染动作注入缝(测试注入记录型假件;
+            // 生产实现归素材接入轮)。与上两项同性质:不对外提供、不持游戏状态。
+            typeof(ICueRenderTarget),
         };
 
         // 2026-09-26 修:产物路径单一出处 = 门的 ScriptAssemblyPath(原测试自拼 Path.Combine

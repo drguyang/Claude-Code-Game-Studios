@@ -5,7 +5,9 @@
         "Sim.Contracts",
         "Sim",
         "Gameplay.Presentation",
-        "Gameplay.UI"
+        "Gameplay.UI",
+        "Unity.Addressables",
+        "Unity.Addressables.Editor"
     ],
     "includePlatforms": [ "Editor" ],
     "excludePlatforms": [],

@@ -26,7 +26,9 @@ using System.Threading.Tasks;
 using DaYiJingCheng.Gameplay.Presentation;
 using DaYiJingCheng.Gameplay.Presentation.Camera;
 using DaYiJingCheng.Gameplay.Presentation.Player;
+using DaYiJingCheng.Gameplay.Presentation.Settings;   // AudioSettingsRegistry(S14-6 注入缝)
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
+using DaYiJingCheng.Sim.Contracts;                    // IDataProvider(ApplyAudioSettingsProvider 形参)
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;               // EventSystem(B-6-1:官方 UI 输入桥宿主)
@@ -114,6 +116,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   环境 TryPreload 失败 ⇒ 组合根磁盘兜底(同一份字节,真装载)。
             //   生产构建乙案失败 ⇒ 磁盘兜底路径不存在(DataCooked 不进构建)⇒ 仍 E-13 硬失败。
             bool preloaded = DataCorePreloader.TryPreload();   // 首次 Step 之前(ADR-014 §五)
+
+            // ── 2.4 44 侧设置注册表注入缝(S14-6 · story-010 · 兑清 story-011 §登记项)──
+            // story-011 的 `AudioSettingsRegistry` 立了 `Provider` 缝并逐字登记
+            // 「运行期装载面归 story-010 的 Addressables 接线轮」。本处即该轮:
+            // 预载成功 ⇒ 烘焙分区(AC-44-13 真源)成为 `Rows` 的供给;
+            // 预载失败 ⇒ **不注入**,`Rows` 走 `FallbackRows`(与烘焙分区同值,
+            // 由 AudioSettingsRegistryBinder 的构建期双向值对账钉住)。
+            // ⚠️ 这里**刻意不抛**:设置值不是 sim 真值(端本地设备偏好,OQ-SS-5=甲),
+            //    「回退集」是设计内的降级面,不是静默失败 —— 与 E-13 对**数据产物**的
+            //    硬失败口径不冲突(那条管的是「产物不可读」,此处是「未装配」)。
+            ApplyAudioSettingsProvider(preloaded, DataCorePreloader.Provider);
 
             // ── 2.5 项目级动作资产 fail-loud(story-009 R-9.5 · AC-9-01)──
             // 通道装载 = InputSystem.actions(原稿 Addressables 路径被实测推翻:该资产是
@@ -421,6 +434,26 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </summary>
         /// <exception cref="InvalidOperationException">场景内 AudioListener ≠ 1 个。
         /// 含 0 个(无听音点)与 ≥2 个(多挂点)—— 两者都是配置错误。</exception>
+        /// <summary>装配 44 侧设置注册表的运行期供给(S14-6 · 兑清 story-011 §登记项)。
+        /// <para>预载成功 ⇒ 烘焙分区(AC-44-13 真源)成为 <see cref="AudioSettingsRegistry.Rows"/> 的供给;
+        /// 预载失败 / provider 为 null ⇒ <b>不注入</b>,`Rows` 走 `FallbackRows`(与烘焙分区同值,
+        /// 由 `AudioSettingsRegistryBinder` 的构建期双向值对账钉住)。</para>
+        /// <para><b>为何是静态可直驱的方法而不是内联在 <see cref="Start"/> 里</b>:内联后本接线
+        /// 只能经完整启动序(Addressables catalog + 场景)才可达 ⇒ EditMode 无从断言,
+        /// 「接线是否存在」退化为不可证伪的口头承诺 —— 正是本 sprint 要根治的假绿形态。
+        /// 抽成静态后由 <c>pipeline_gate_test.test_bootroot_*</c> 直驱。</para>
+        /// <para>⚠️ 这里**刻意不抛**:设置值不是 sim 真值(端本地设备偏好,OQ-SS-5=甲),
+        /// 「回退集」是设计内的降级面,不是静默失败 —— 与 E-13 对**数据产物**的硬失败口径不冲突
+        /// (那条管「产物不可读」,此处是「未装配」)。</para></summary>
+        /// <param name="preloaded">data-core 预载是否成功。</param>
+        /// <param name="provider">预载成功时的 provider(null ⇒ 不注入)。</param>
+        public static void ApplyAudioSettingsProvider(bool preloaded, IDataProvider provider)
+        {
+            if (!preloaded || provider == null) return;
+            AudioSettingsRegistry.Provider =
+                () => provider.Load<AudioSettingsDataSet>().Rows;
+        }
+
         private static void AssertSingleAudioListener()
         {
             // ⚠️ 必须用 `FindObjectsInactive`(含 inactive),**不是** `FindObjectsOfType`(只查 active):
