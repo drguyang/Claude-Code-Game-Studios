@@ -30,7 +30,9 @@
 //    · 素材 `assets[]` ↔ 文件存在谓词(D6)与 Addressables 组门(D5)= Story 010 ——
 //      **本门不查 assets[] 存在性(NOT-RUN,归 Story 010 D6)**,种子 / README 已同文标注
 //    · `xfade_ms ≥ MUSIC_XFADE_MIN_MS` 数值断言(AC-44-18)= Story 012(本门只管存在性 / 类型)
-//    · 世界语境呼吸行的 `bus` / min-max_distance / occlusion 断言(AC-44-16)= Story 008
+//    · ✅ 2026-10-16 已实现 —— 世界语境呼吸行的 `bus` / min-max_distance / occlusion 断言
+//      (AC-44-16)= Story 008,见 `ValidateWorldBreathRow`(S14-1)。行**缺失**不在此报 ——
+//      已由 `ValidateRequiredCues` 覆盖,重复报账会让空表夹具的错误计数翻倍。
 //    · 语声 cue **全集**与上游扇出双投递([L] 半)= Story 011(本门只承接键集覆盖 [A] 半)
 //    · 烘焙菜单 / 音频 Baker = Story 010 —— 但**键集白名单的单一出处 = 本文件**
 //      (`TopLevelKeys` / `RowKeys` / `TierMapColumns` 三层,ADR-014 §三 未知键硬失败);
@@ -197,7 +199,22 @@ namespace DaYiJingCheng.EditorTools.Gates
             "Voice_Cough_Damp",            // 语声族(GDD F-44.3 示例 cue id :361)
             "BreathLayer_Base_Calm",       // 呼吸两层 —— 基础气流层(规则四)
             "BreathLayer_Adventitious_Fine", // 呼吸两层 —— 附加音层(细湿啰音)
-            "WorldBreath_Baseline",        // 世界语境呼吸(F-44.7 主通道,AC-44-16 的载体行)
+            WorldBreathCue,                // 世界语境呼吸(F-44.7 主通道,AC-44-16 的载体行)
+        };
+
+        /// <summary>世界语境呼吸的 cue 名(AC-44-16 的载体行;= <see cref="RequiredCues"/> 第 4 员,
+        /// 单一出处同此常量 —— 改一处须改两处,故二者刻意并列)。</summary>
+        public const string WorldBreathCue = "WorldBreath_Baseline";
+
+        /// <summary>世界语境呼吸行的**唯一合法 bus**(AC-44-16:世界语境子通道,不得复用
+        /// Stethoscope / SFX;GDD F-44.7 主通道)。</summary>
+        public const string WorldBreathBus = "Ambience";
+
+        /// <summary>世界语境呼吸行**必须**携带的空间化参数键(AC-44-16「含 min/max_distance
+        /// 与 occlusion 参数」的字面;F-44.4 空间化 + AC-44-D8 遮挡的参源)。</summary>
+        public static readonly IReadOnlyList<string> WorldBreathParamKeys = new[]
+        {
+            "min_distance", "max_distance", "occlusion_lowpass",
         };
 
         /// <summary>需 <c>subtitle_text</c> 的 cue **族前缀**(AC-44-15 [A] 半 · GDD :502「语声 / 教学口述 cue」):
@@ -254,6 +271,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             errors.AddRange(ValidatePairing(table.Rows));
             errors.AddRange(ValidateRowSchemaVersions(table.Rows, table.SchemaVersionRaw));
             errors.AddRange(ValidateRequiredCues(table.Rows));
+            errors.AddRange(ValidateWorldBreathRow(table.Rows));
             errors.AddRange(ValidateAdventitiousLayerPresence(table.Rows));
             errors.AddRange(ValidateTierParamsFilters(table.Rows));
             errors.AddRange(ValidateCueUniqueness(table.Rows));
@@ -712,6 +730,61 @@ namespace DaYiJingCheng.EditorTools.Gates
                     errors.Add(
                         $"[AC-44-09 · 规则7] 缺必需 cue 行「{required}」—— 语声 / 呼吸 / 世界语境族最小集 " +
                         "(构建期常量 RequiredCues;第三负向)");
+                }
+            }
+
+            return errors;
+        }
+
+        // ══════════ 世界语境呼吸行接线(AC-44-16 · Story 008 · 2026-10-16 S14-1)══════════
+
+        /// <summary>世界语境呼吸行的 `bus` 与空间化参数断言(**AC-44-16 的「构建失败」半边**)。
+        /// <para>AC-44-16 逐字:「事件表存在世界语境呼吸行(`bus` ∈ Ambience 世界语境子通道,
+        /// 含 min/max_distance 与 occlusion 参数);行缺失 / bus 不符 = 构建失败
+        /// (**堵 AC-D8 预设式条件空真通过** —— 主通道接线断言)」。</para>
+        /// <para>⚠️ **行缺失刻意不在此报**(`continue`)—— 它已由 <see cref="ValidateRequiredCues"/>
+        /// 覆盖(`WorldBreath_Baseline` ∈ <see cref="RequiredCues"/>)。两处都报会让空表 /
+        /// 删行夹具的错误计数翻倍,撞坏既有 9 处 `errors.Count == 1` 断言。AC 的「行缺失 = 构建失败」
+        /// 由那条兑现,本条的职责是**行存在时的内容**。</para>
+        /// <para>⚠️ 判据用 `PresentKeys`(**行内实际出现过的键**)而非解析后的值 —— 本表只做
+        /// 词法 + 绑定,`min_distance` 等值未解析为数值;**键在不在**才是 AC 的「含」字面。</para></summary>
+        /// <param name="rows">cue 行;null = <c>rows</c> 字段缺失(NOT-RUN 守卫)。</param>
+        public static IReadOnlyList<string> ValidateWorldBreathRow(IReadOnlyList<AudioEventTableRow> rows)
+        {
+            if (rows == null)
+                return new[] { "[NOT-RUN 守卫 · 规则3] rows 字段缺失 —— 世界语境呼吸行断言(AC-44-16)不可执行" };
+
+            var errors = new List<string>();
+            foreach (AudioEventTableRow row in rows)
+            {
+                if (row == null || row.Cue != WorldBreathCue) continue;
+
+                if (!string.Equals(row.Bus, WorldBreathBus, StringComparison.Ordinal))
+                {
+                    errors.Add(
+                        $"[AC-44-16] 世界语境呼吸行「{WorldBreathCue}」的 bus = " +
+                        $"{(row.Bus == null ? "(缺失)" : $"「{row.Bus}」")} —— 必须 = 「{WorldBreathBus}」" +
+                        "(世界语境子通道;不得复用 Stethoscope / SFX)");
+                }
+
+                if (row.PresentKeys == null)
+                {
+                    errors.Add(
+                        $"[NOT-RUN 守卫 · AC-44-16] 行「{WorldBreathCue}」的 PresentKeys 缺失 —— " +
+                        "空间化参数键的存在性不可判定,不得静默通过");
+                    continue;
+                }
+
+                var present = new HashSet<string>(row.PresentKeys, StringComparer.Ordinal);
+                foreach (string key in WorldBreathParamKeys)
+                {
+                    if (!present.Contains(key))
+                    {
+                        errors.Add(
+                            $"[AC-44-16] 世界语境呼吸行「{WorldBreathCue}」缺空间化参数键「{key}」" +
+                            $"—— 该行须含 {{{string.Join(", ", WorldBreathParamKeys)}}}" +
+                            "(否则 F-44.4 空间化 / AC-44-D8 遮挡无参可依)");
+                    }
                 }
             }
 

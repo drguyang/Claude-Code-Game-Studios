@@ -64,6 +64,10 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // Story 006 增列:语声变体库的公开类型(纯函数域,见 VoiceVariantLib.cs 头注)。
             typeof(VoiceBucket), typeof(VoiceVariantLib), typeof(VoiceVariantLib.VoiceVariantTable),
             typeof(VoiceVariantLib.VoiceVariantRow),
+            // **2026-10-16 Story 008 增列(用户裁定 A 案:扩允许面)** —— `rank_key` 的输入 /
+            // 输出行:纯函数域(排序键的载体),不持有游戏状态、不进 sim、不经三流。
+            // 同 `VoiceBucket` / `VoiceVariantLib` 先例 —— 违的是 B3 字面而非 ADR-018 §一 本意。
+            typeof(RankSource), typeof(RankedSource),
         };
 
         // 44 实现的**项目接口**允许面(AC-44-B3 ①:原字面 = 「只有 IAudioCueSink」)。
