@@ -1,8 +1,10 @@
 // 权威来源:ADR-014 §五(Addressables 单一 data-core 组 + 首次 Step 前预载)· ADR-023(构建期断言纪律)
 //          · Story 008(编辑器菜单:烘焙 + 确保 data-core 组)
 //
-// ⚠️ AddressableAssetsData/ 是机器生成物 —— **永不提交**(本菜单改它只在本机生效;
-//    组结构由桌面首次执行菜单时生成,进 .gitignore 纪律,不手改、不入库)。
+// ⚠️ AddressableAssetsData/ 的**组定义已随仓库入库**(2026-10-17 · TD-audio-01a 收窄 .gitignore)。
+//    仍被忽略的只有逐平台的 `*/addressables_content_state.bin`(真·机器本地产物)。
+//    ⇒ 本菜单只负责**条目**;设置缺失 = 入库文件被删/损坏,恢复靠 git checkout,不靠重建。
+//    (原文「永不提交」写于组定义入库之前,已失效 —— 保留此行作为口径沿革记录。)
 // ⚠️ Addressables 6.2+ / UnityEditor.AddressableAssets API 为 post-cutoff —— 桌面首跑须实测
 //    (ADR-014 Engine Knowledge Risk MEDIUM;本文件只在编辑器菜单触发,不进玩家构建)。
 
@@ -508,8 +510,11 @@ namespace DaYiJingCheng.EditorTools.Bake
 
         /// <summary>
         /// 确保 Addressables 存在单一 <c>data-core</c> 组,并把 DataCooked 下两个产物移入、打上 data-core 标签。
-        /// <para>⚠️ 本操作会改动本地 <c>Assets/AddressableAssetsData/</c> —— 机器生成物,
-        /// <b>永不提交</b>(每台机器桌面首次执行即可)。</para>
+        /// <para>⚠️ <b>组定义已随仓库入库</b>(2026-10-17 · `TD-audio-01a`)—— 本菜单只负责条目。
+        /// (原文「机器生成物,永不提交」写于入库之前,已失效 —— 保留为口径沿革记录。)</para>
+        /// <para>⚠️ 本函数的**两个静默返回分支**(`settings == null` / `moved == 0`)与
+        /// <see cref="EnsureAudioGroup"/> 同款,但**尚未加固**(用户 2026-10-17 裁定 01e 范围
+        /// 限于 <c>EnsureAudioGroup</c>)—— 以 <c>-executeMethod</c> 作 CI 前置步时同样会假绿。</para>
         /// </summary>
         [MenuItem("大医精诚/数据管线/确保 data-core Addressables 组")]
         public static void EnsureDataCoreGroup()
@@ -561,8 +566,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
 
             Debug.Log(
-                $"[大医精诚] {DataCoreGroup} 组就绪:{moved} 个条目已入组并打标签。" +
-                "(AddressableAssetsData 为机器生成物,永不提交)");
+                $"[大医精诚] {DataCoreGroup} 组就绪:{moved} 个条目已入组并打标签。");
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssets();
         }
@@ -573,21 +577,59 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// (按需加载 / 可卸载),数据烘焙产物是**启动期全量预载**的小体量二进制。混组 ⇒
         /// 流式素材被打进数据包(内存与加载时序双失);组区分由
         /// <c>AudioAssetGroupGates.ValidateSettings()</c> 构建期断言。</para>
-        /// <para>⚠️ 本操作会改动本地 <c>Assets/AddressableAssetsData/</c> —— 机器生成物,
-        /// <b>永不提交</b>(每台机器桌面首次执行即可;与 <see cref="EnsureDataCoreGroup"/> 同款前置)。</para>
+        /// <para>⚠️ <b>组定义已随仓库入库</b>(2026-10-17 · `TD-audio-01a` 收窄 `.gitignore`)——
+        /// 本菜单只负责**条目**。设置缺失 = 入库文件被删/损坏 ⇒ <b>硬失败并指向
+        /// <c>git checkout</c> 恢复,不静默重建</b>(重建的 settings 只含默认组,与入库定义
+        /// **分叉** —— 那是假绿:看着绿,组是错的)。</para>
         /// </summary>
         [MenuItem("大医精诚/数据管线/确保 audio Addressables 组")]
         public static void EnsureAudioGroup()
         {
-            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            EnsureAudioGroupCore(
+                AddressableAssetSettingsDefaultObject.Settings,
+                $"Assets/{AudioAssetGroupGates.AudioAssetDirName}");
+        }
+
+        /// <summary>
+        /// <see cref="EnsureAudioGroup()"/> 的**可注入实现体** —— 设置对象与素材目录为形参,
+        /// 使两条硬失败分支可被夹具命中(承 <c>AudioAssetGroupGates.ValidateEntries</c> 的
+        /// 「纯谓词 + 调用方 throw」两半分离形态)。
+        /// <para>⚠️ <b>先验后改</b>:两条硬失败都在**任何写入之前**判定 ⇒ 失败时设置零改动,
+        /// 夹具可安全注入而不污染工程的 Addressables 状态。</para>
+        /// <para>⚠️ <b>刻意不叫 <c>EnsureAudioGroup</c></b> —— 与菜单方法重名会让
+        /// `test_wiring_bakeMenuEntriesExist` 的 `GetMethod(name, Public|Static)` 抛
+        /// `AmbiguousMatchException`(该测按名反射查菜单项存在性)。</para>
+        /// </summary>
+        /// <param name="settings">Addressables 设置(注入 <c>null</c> ⇒ 命中分支 ①)。</param>
+        /// <param name="audioDirRel">素材目录(工程相对路径;指向空目录 ⇒ 命中分支 ②)。</param>
+        /// <exception cref="InvalidOperationException">设置缺失,或素材目录下零素材。</exception>
+        public static void EnsureAudioGroupCore(AddressableAssetSettings settings, string audioDirRel)
+        {
+            // ① 设置缺失 —— 硬失败(TD-audio-01b/01e,2026-10-17)
+            //    组定义已入库 ⇒ 缺失 = 入库文件被删/损坏;恢复靠 git,不靠本菜单重建。
             if (settings == null)
+                throw new InvalidOperationException(
+                    "[大医精诚] Addressables 设置缺失 —— 组定义已随仓库入库" +
+                    "(unity/Assets/AddressableAssetsData/)。" +
+                    "跑 `git checkout -- unity/Assets/AddressableAssetsData` 恢复;" +
+                    "⚠️ 不要手建设置:新建的只含默认组,与入库定义分叉。");
+
+            // ② 素材缺失 —— 硬失败(TD-audio-01e ②,2026-10-17)。先验后改:此处尚未写入任何东西。
+            var guids = new List<string>();
+            foreach (string guid in AssetDatabase.FindAssets("t:AudioClip", new[] { audioDirRel }))
             {
-                Debug.LogError(
-                    "[大医精诚] Addressables 设置不存在 —— 先经 Window > Asset Management > Addressables > Groups " +
-                    "创建一次设置(一次性);之后本菜单负责组与条目。");
-                return;
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (path.EndsWith(AudioAssetGroupGates.AudioAssetExtension, StringComparison.Ordinal))
+                    guids.Add(guid);
             }
 
+            if (guids.Count == 0)
+                throw new InvalidOperationException(
+                    $"[大医精诚] {audioDirRel} 下无 {AudioAssetGroupGates.AudioAssetExtension} 素材 —— " +
+                    "组会是空的。先放入素材再执行本菜单" +
+                    "(AC-44-D6 的素材存在性门也依赖它们)。");
+
+            // ③ 建组 / 打标签 / 登记条目(此后才写)
             string groupName = AudioAssetGroupGates.AudioGroupName;
             AddressableAssetGroup group = settings.FindGroup(groupName);
             if (group == null)
@@ -601,34 +643,20 @@ namespace DaYiJingCheng.EditorTools.Bake
             if (!settings.GetLabels().Contains(groupName))
                 settings.AddLabel(groupName, postEvent: true);
 
-            // 素材根 = unity/Assets/Audio/(工程内)—— 与 AudioAssetExistence.ResolveRoot 同一出处
-            string audioDirRel = $"Assets/{AudioAssetGroupGates.AudioAssetDirName}";
-            string[] guids = AssetDatabase.FindAssets("t:AudioClip", new[] { audioDirRel });
             int moved = 0;
             foreach (string guid in guids)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (!path.EndsWith(AudioAssetGroupGates.AudioAssetExtension, StringComparison.Ordinal))
-                    continue;
-
                 AddressableAssetEntry entry = settings.CreateOrMoveEntry(guid, group, readOnly: false, postEvent: true);
                 entry.SetAddress(Path.GetFileName(path));   // address = bare 文件名(与 assets[] 同形,零映射)
                 entry.SetLabel(groupName, true, force: true, settings);
                 moved++;
             }
 
-            if (moved == 0)
-            {
-                Debug.LogWarning(
-                    $"[大医精诚] {audioDirRel} 下无 {AudioAssetGroupGates.AudioAssetExtension} 素材 —— " +
-                    "先放入素材再执行本菜单(AC-44-D6 的素材存在性门也依赖它们)。");
-                return;
-            }
-
             Debug.Log(
                 $"[大医精诚] {groupName} 组就绪:{moved} 个素材已入组并打标签" +
-                $"(与 {DataCoreGroup} 分家 —— AC-44-D5)。" +
-                "(AddressableAssetsData 为机器生成物,永不提交)");
+                $"(与 {DataCoreGroup} 分家 —— AC-44-D5)。");
+
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssets();
         }

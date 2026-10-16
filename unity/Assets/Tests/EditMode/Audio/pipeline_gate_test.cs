@@ -35,6 +35,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using NUnit.Framework;
+using UnityEditor.AddressableAssets;          // AddressableAssetSettingsDefaultObject(TD-audio-01e② 夹具注入真设置)
+using UnityEditor.AddressableAssets.Settings; // AddressableAssetSettings(同上)
 using DaYiJingCheng.EditorTools.Bake;
 using DaYiJingCheng.EditorTools.Gates;
 using DaYiJingCheng.Gameplay.Boot;          // BootRoot.ApplyAudioSettingsProvider(接线真身)
@@ -347,6 +349,48 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(AudioAssetGroupGates.AudioGroupName,
                 Is.Not.EqualTo(AudioAssetGroupGates.DataCoreGroupName),
                 "素材组名与数据组名必须互异(AC-44-D5 的菜单侧前提)");
+        }
+
+        // ══════════════ TD-audio-01b / 01e:菜单硬失败 ══════════════
+        // 病根(2026-10-17 实测,`s17-freshclone-20261017-051600.log`):菜单项在
+        // `settings == null` 时只 `Debug.LogError` 就 `return` ⇒ **Unity 退出码 = 0**
+        // ⇒ 以 `-executeMethod` 作 CI 前置步的无人值守路径会**报绿而组实际缺失** = 假绿。
+        // 夹具经可注入重载 `EnsureAudioGroupCore(settings, dir)` 命中两条分支。
+
+        /// <summary>TD-audio-01b + 01e①:设置缺失 ⇒ **硬失败**(不是 `LogError` + `return`)。
+        /// <para>笔 1 之后组定义已入库 ⇒ 「设置缺失」的含义由「没初始化过」变为
+        /// 「入库文件被删/损坏」,恢复动作是 <c>git checkout</c> —— 报文须指向它。</para></summary>
+        [Test]
+        public void test_d5_menu_settingsMissing_throwsHard()
+        {
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => DataBakeMenu.EnsureAudioGroupCore(null, "Assets/Audio"),
+                "设置缺失必须**抛异常**(LogError + return 会让进程退出码保持 0 = 假绿)");
+
+            Assert.That(ex.Message, Does.Contain("git checkout"),
+                "报文须指向恢复动作 —— 组定义已入库,缺设置 = 入库文件被删/损坏");
+            Assert.That(ex.Message, Does.Not.Contain("Window > Asset Management"),
+                "不得再引导用户手建设置 —— 新建的只含默认组,与入库定义分叉");
+        }
+
+        /// <summary>TD-audio-01e②:素材目录零素材 ⇒ **硬失败**(原为 `LogWarning` + `return`,
+        /// 同款进程级静默)。
+        /// <para>⚠️ 本测注入**真设置** —— 承「先验后改」,该分支在任何写入之前判定
+        /// ⇒ 失败时设置零改动,不污染工程 Addressables 状态。若日后有人把校验挪到写入之后,
+        /// 本测会开始改动工程状态(届时须重新设计夹具)。</para></summary>
+        [Test]
+        public void test_d5_menu_noAssets_throwsHard()
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            Assert.That(settings, Is.Not.Null,
+                "本机 Addressables 设置缺失 —— 正向半边 test_d5_realSettings_… 也会红(机器前置)");
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => DataBakeMenu.EnsureAudioGroupCore(settings, "Assets/__no_such_audio_dir__"),
+                "空素材目录必须**抛异常**(LogWarning + return 同样让退出码保持 0)");
+
+            Assert.That(ex.Message, Does.Contain("__no_such_audio_dir__"),
+                "报文须点名出错的目录,否则无法定位");
         }
 
         // ══════════════ AC-44-D6:素材存在性门 ══════════════
