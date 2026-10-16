@@ -100,6 +100,14 @@ D-1 首两输入可交换(a+b 交换 + 同步 avalanche),第三输入起有序 �
 5. 菜单 **`大医精诚/Spike/Teardown U1 Spikes`** 清临时资产
    (AddressableAssetsData/ **保留、不要提交**,归 ADR-014 正式批;结果文件保留)
 
+> ⚠️ **2026-10-17 订正(本条下半句已过期,原文保留)** —— 「AddressableAssetsData/ 不要提交,归 ADR-014 正式批」
+> 是 **U1 spike 当轮**的 Teardown 指令。**该交接已于 S14-6 兑现**(ADR-014 正式批落地 `data-core` / `audio`
+> 组定义),但 `.gitignore` 未同步 ⇒ 整目录忽略退化为**过度捕获**,致全新 clone 上音频组缺失、
+> `test_d5_realSettings_audioAssetsSeparateFromDataCore` 必红(债 **`TD-audio-01`**)。
+> **现口径**:`.gitignore` 已**收窄** —— 只忽略逐平台 `*/addressables_content_state.bin`(真机器本地产物),
+> **组定义本身入库**。本步的「清临时资产」语义不变(它清的是 spike 场景 / prefab,由
+> `unity/Assets/Scenes/AtlasProbe*` 等规则单独覆盖),只是**不再包含** AddressableAssetsData。
+
 测试是**执行装置不是黄金断言**:绿 = 装置跑通;存活方向/毫秒数/bundle 计数**不作 Assert**,
 任一方向都是 spike 发现,写进结果文件供 §6 回填(详见测试文件头注)。
 

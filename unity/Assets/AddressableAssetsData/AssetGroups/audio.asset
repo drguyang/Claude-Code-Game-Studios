@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: audio
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: audio
+  m_GUID: a040334d14f376a10a0311eaee84d5dc
+  m_SerializeEntries:
+  - m_GUID: 01309da0bfdf14748b7b252f77123a74
+    m_Address: sfx_breath_base_loop_small.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 01b60a58a70f64dcd9778caaa635e34f
+    m_Address: vo_patient_cough_damp_f1.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 61e50427405bf78898d40e16c17e3476
+    m_Address: vo_patient_cough_damp_m1.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 623ab166a9af1024f8c9241a9848061b
+    m_Address: sfx_breath_adventitious_fine.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 92fe3cc741bc6621b961413401eb2c50
+    m_Address: music_encounter_layer_loop.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 2c864c592004e1c729cd6c8ed9da4089, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 1ce5813955a59a4c886bdb3174999a85, type: 2}
+    - {fileID: 11400000, guid: 8c41a081ca8cfeeb9b6ccac93a682f0c, type: 2}

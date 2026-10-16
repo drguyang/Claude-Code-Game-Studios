@@ -80,10 +80,20 @@ unity/Assets/Scenes/Spike*
 unity/Assets/Scenes/AtlasProbe*
 # Unity Test Framework 首跑自动生成的初始化场景(Assets 根,机器相关;含同级 .meta)。
 unity/Assets/InitTestScene*
-# Addressables 编辑器生成物(Setup 菜单 / 首次初始化自动产出;归 ADR-014 正式批,永不提交 —— 见 u1-spike-checklist.md §4.0 第 5 步)。
-# 含 addressables_content_state.bin 等机器相关产物;目录级忽略连同 .meta(含同级目录 meta)。
-unity/Assets/AddressableAssetsData/
-unity/Assets/AddressableAssetsData.meta
+# Addressables:只忽略**机器本地产物**(逐平台内容状态),组定义本身是作者态,**须入库**。
+#
+# ⚠️ 2026-10-17 收窄(原为整目录忽略)—— 依据与实测见下:
+# · 原规则承 U1 spike 的 Teardown 指令「AddressableAssetsData/ 保留、不要提交,归 ADR-014 正式批」
+#   (u1-spike-checklist.md §4.0 第 5 步)。**该交接已于 S14-6 兑现**(data-core / audio 组定义落地),
+#   但 .gitignore 未同步 ⇒ 整目录忽略退化为**过度捕获**,致全新 clone 上音频组缺失、
+#   `test_d5_realSettings_audioAssetsSeparateFromDataCore` 必红(债 `TD-audio-01`)。
+# · 收窄实测(2026-10-17):组定义 GUID 逐一命中**已提交**的 `.wav.meta` · profile 变量全为
+#   token 式相对值(`[UnityEditor.EditorUserBuildSettings.activeBuildTarget]` 等)·
+#   全树零绝对路径 · `.meta` 齐备 ⇒ 除下方逐平台内容状态外**无机器本地产物**。
+# · U1 spike 若重跑,其临时场景/prefab 由上方 `unity/Assets/Scenes/AtlasProbe*` 等规则单独覆盖,
+#   不受本条收窄影响。
+unity/Assets/AddressableAssetsData/*/addressables_content_state.bin
+unity/Assets/AddressableAssetsData/*/addressables_content_state.bin.meta
 *.suo
 *.tmp
 *.user
