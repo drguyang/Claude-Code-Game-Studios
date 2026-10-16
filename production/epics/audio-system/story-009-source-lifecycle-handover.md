@@ -1,7 +1,7 @@
 # Story 009: 声源生命周期与贴耳交接
 
 > **Epic**: 音频系统
-> **Status**: In Review
+> **Status**: Complete ✅ 2026-10-16(S14-7 复评结案 —— 假绿撤回 → S14-3 生产实现 + 证伪轮全红 → 本节复评转正)
 > **Layer**: Foundation(系统分类;实现落表现层 L5)
 > **Type**: Logic
 > **Estimate**: 4h
@@ -17,6 +17,13 @@
 > ⇒ 任何按编号做的 traceability / 账本 / 门检对本 story 全数落空。
 > **评审原件**:`production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md`(§2.3 逐条表)。
 > 实现另立 sprint;本 story 维持 `In Review` 直至生产类落地并经证伪轮复评。
+>
+> **✅ 2026-10-16 S14-3 实现轮落盘 —— 生产类已落地 + 证伪轮 8/8 全红**(本 story 仍 `In Review`:
+> 转 `Complete` 归 **S14-7** 的 6 条复评批,承 `sprint-14.md` DoD)。**范围经用户裁定收敛**:
+> 三类中的**两类已由 S14-2 交付**(`EndLoopWatchdog` / `CueRenderSink`)⇒ 本件只落
+> `HandoverMux` + `LoopSelfTerminationDriver`,兜底谓词与句柄面**改指 S14-2 的生产类、不重复造**。
+> 落地内容见下方 `## Completion Notes §S14-3` 与
+> `production/qa/evidence/impl-s14-3-loop-handover-2026-10-16.md`。
 
 ## Context
 
@@ -40,10 +47,19 @@
 
 *From GDD `design/gdd/audio-system.md`, scoped to this story(§Edge Cases 为 AC 源)*:
 
-- [ ] **EndLoop 自评兜底**(AC 源:Edge Cases「EndLoop 永不到达」条 + ADR-001 裁决二 Validation):流停更/快照停「循环中」时,44 在**有界时间**(≤ 登记常量 `LOOP_EVAL_MAX_TICKS`)内自行结束循环;`AudioCueDto.EndLoop` 不出现在任何网络序列化路径;负向:注入永不到达的收尾场景 ⇒ 循环必须在有界内停。
-- [ ] **贴耳交接契约**(AC 源:Edge Cases 交接条):进入听诊 ⇒ 世界层在 `HANDOVER_MS` 窗内压出、听诊层同窗淡入,**两层并存 ≤ 交接窗,禁同刻双呼吸稳态**;退出反向;世界层停止由 44 对自有句柄执行(ADR-028)。
-- [ ] **重复/过期句柄**(Edge Cases):同源重复 `BeginLoop` ⇒ 以最后一次为准释放旧句柄(防双呼吸层);过期 `EndLoop` 忽略不产生播放错误。
-- [ ] **咳嗽不停呼吸**(Edge Cases 医学条):咳嗽 cue 不调用呼吸循环的 `EndLoop`(与 Story 004 AC-44-08 联合断言)。
+- [x] **AC-009-1 · EndLoop 自评兜底**(AC 源:Edge Cases「EndLoop 永不到达」条 + ADR-001 裁决二 Validation):流停更/快照停「循环中」时,44 在**有界时间**(≤ 登记常量 `LOOP_EVAL_MAX_TICKS`)内自行结束循环;`AudioCueDto.EndLoop` 不出现在任何网络序列化路径;负向:注入永不到达的收尾场景 ⇒ 循环必须在有界内停。— **S14-3 落**:判据 = **S14-2 已交付**的 `EndLoopWatchdog.ShouldSelfTerminate`(不重写);执行面 = `LoopSelfTerminationDriver`(`AudioTuning.LoopEvalMaxTicks = 40`)。证伪 ①②③(停用 ShouldSelfTerminate ⇒ **3 红** · 停用 `_sink.EndLoop` 执行 ⇒ 同 3 条 · 停用注销体 ⇒ 1 红)。
+- [x] **AC-009-2 · 贴耳交接契约**(AC 源:Edge Cases 交接条 / GDD F-44.7 :459):进入听诊 ⇒ 世界层在 `HANDOVER_MS` 窗内压出、听诊层同窗淡入,**两层并存 ≤ 交接窗,禁同刻双呼吸稳态**;退出反向;世界层停止由 44 对自有句柄执行(ADR-028)。— **S14-3 落**:`HandoverMux`(`HandoverPhase` 四相 · 两过渡窗 · 窗内线性交叉 · 窗满对**自有句柄** `EndLoop`;`HandoverTicks = 10`)。证伪 ④(停用 `_sink.EndLoop(_worldHandle)` ⇒ `test_enterStethoscope_worldFadesOut` 红)· ④b(停用听诊侧释放 ⇒ `test_exitStethoscope_worldFadesIn` 红)· ⑤(硬切拒绝守卫停用 ⇒ `test_hardCut_rejected` 红)· ⑥(听诊优先守卫移除 ⇒ `test_worldCueArrives_noRestart` 红)· ⑦(幂等重入守卫移除 ⇒ `test_idempotentReentry` 红)· ⑧(交叉淡化公式恒 1 ⇒ `test_midWindow_crossfadeStrictlyBetween` 红)。
+- [x] **AC-009-3 · 重复/过期句柄**(Edge Cases):同源重复 `BeginLoop` ⇒ 以最后一次为准释放旧句柄(防双呼吸层);过期 `EndLoop` 忽略不产生播放错误。— **S14-3 落**:测试改指 **S14-2 已交付**的 `CueRenderSink`(**不重复造** —— ADR-024 §六);`FakeHandleManager` 已删。证伪 ③(停用 `EndLoop` 注销体 `_active.Remove` ⇒ `test_normalEndLoop_noSelfTermination` 红)。
+- [x] **AC-009-4 · 咳嗽不停呼吸**(Edge Cases 医学条):咳嗽 cue 不调用呼吸循环的 `EndLoop`(与 Story 004 AC-44-08 联合断言)。— **S14-3 落**:`LoopSelfTerminationDriver` 的注销体 + 循环登记面(仅呼吸族循环入册);`test_normalEndLoop_noSelfTermination` 与 ③ 同条覆盖。
+
+> **⚠️ 2026-10-16 AC 编号补齐(S14-3 · 用户裁定)** —— 原 4 条 AC **无编号**(用中文描述名),
+> 评审原件 §2.3 判为独立瑕疵:「任何按 `AC-44-xx` 编号做的 traceability / 账本 / 门检对 009
+> 全数落空」。现补 **story 局部编号 `AC-009-1…4`**。
+> **为何不用 `AC-44-D10…`**:① GDD `design/gdd/audio-system.md` 的 `AC-44-D` 系列止于 **D9**,
+> 无 D10+;② **`AC-44-D10` 本身是幽灵 ID** —— story-007 与账本曾用它指「锚点纪律」,
+> 而 **GDD 零定义**(实测 `grep -c "AC-44-D10" design/gdd/audio-system.md` = 0),
+> 已于同日就地订正(见 story-007 §Completion Notes 与账本)。
+> **先例**:全库既有 `AC-020-N` / `AC-021-N` / `AC-023-N` 等 story 局部编号同型。
 
 ---
 
@@ -82,7 +98,7 @@
 **Required evidence**:
 - `tests/unit/audio_system/loop_lifecycle_test.cs` — must exist and pass
 
-**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Audio/loop_lifecycle_test.cs`(12 测);账本互链 `tests/unit/audio_system/README.md`
+**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Audio/loop_lifecycle_test.cs`(**16 测**;S14-3 由 12 扩至 16,自造 Fake 全数换生产类);账本互链 `tests/unit/audio_system/README.md`
 
 ---
 
@@ -92,6 +108,10 @@
 - Unlocks: Story 011(注册表消费面)· 013(交接后主通道稳定态才可听测)
 
 ## Completion Notes
+
+> ⚠️ **本节的判定已于 2026-10-16 被 S13-9 补评推翻**
+> (`review-audio-epic-fake-green-2026-10-16.md` §2.2/§2.3/§2.6:12 测中 🟢 真 0 · 🟡 半真 3 · 🔴 假 9)。
+> 原文**保留不改写**(历史陈述),现行状态见下方 **§S14-3**。
 **Completed**: 2026-09-28
 **Criteria**: 4/4 passing(EndLoop 自评兜底 · 贴耳交接契约 · 重复过期句柄 · 咳嗽不停呼吸;无 deferred,0 UNTESTED)
 **Deviations**(均 ADVISORY):
@@ -115,7 +135,113 @@
 - `test_duplicateBeginLoop_lastWins` 语义与 AC 字面偏差(覆盖 ≠ 释放)。
 - `test_handover_hardCut_rejected` 负例不完整(只测 ==0,缺 <0)。
 
-**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Audio/loop_lifecycle_test.cs`(**12 测全过**);全量 EditMode **1129/1134 Passed · 5 红(既有 InputSystem 测试,非本次引入)**(`unity/Logs/s009-full.xml`)
+**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Audio/loop_lifecycle_test.cs`(**16 测全过**;S14-3 由 12 扩至 16,自造 Fake 全数换生产类)—— ⚠️ 下行「12 测全过 / 1129/1134」是 **2026-09-28 首轮**(假绿轮)的陈述,现行回归见 `## Completion Notes §S14-3`。
+**实现证据**: `production/qa/evidence/impl-s14-3-loop-handover-2026-10-16.md`
 **Code Review**: Complete —— 双评审并行 + B1/B2/BLOCKING-1/2/3 修复 + 复验;review mode = lean。
 **ADR Compliance**: ADR-001 §一之三 裁决二(EndLoop 兜底 = 呈现侧义务,零网络依赖)· ADR-028 ⑤(声源池生命周期 = cue 驱动,44 本地持有)· ADR-018 §二(IAudioCueSink 契约)。COMPLIANT。
 **Tech Debt**: 未立文件;上述 NICE 6 项已分处登记(本 notes · story Known Risks · 账本)。
+
+---
+
+## Completion Notes §S14-3(2026-10-16 · 生产实现轮)
+
+> **本节的判据 = 变异测试**(停用生产码守卫 ⇒ 断言转红),**不是**「测试名 + 行号」——
+> 承 `sprint-14.md` Risks 第 3 条与 retro-13 行动项 2。
+
+### 范围收敛(用户裁定 2026-10-16)
+
+sprint-14 原计划三类:`EndLoop 自评看门狗` / `HandoverMux 交接 FSM` / `句柄生命周期管理器`。
+**勘察实测(sprint-plan Phase 1 硬前置)**:
+
+| 原计划 | 实测状态 | 处置 |
+|---|---|---|
+| EndLoop 自评看门狗 | **谓词已由 S14-2 交付**(`EndLoopWatchdog`);**执行器缺** | 补 `LoopSelfTerminationDriver`(不重写谓词) |
+| 句柄生命周期管理器 | **已由 S14-2 交付**(`CueRenderSink`,含 2 测) | 测试改指生产类,**不重复造** |
+| `HandoverMux` 交接 FSM | 全库零命中 | **本件唯一新件** |
+
+⇒ 交付 = **2 个新生产类**,而非 3 个 —— 避免与 S14-2 重复造类(同型两处维护违 ADR-024 §六)。
+
+### 交付面(2 新 + 2 改)
+
+| 类别 | 文件 | 内容 |
+|---|---|---|
+| 新(生产) | `unity/Assets/Gameplay.Presentation/Audio/HandoverMux.cs` | **AC-009-2 的被测物** —— `HandoverPhase` 四相枚举 · 两态 + 两过渡窗 · 窗内线性交叉(以 sim tick 计)· 窗满对**自有句柄**执行 `EndLoop`(ADR-028 ⑤)· 幂等重入 · 听诊优先 · 硬切构造期拒绝 |
+| 新(生产) | `unity/Assets/Gameplay.Presentation/Audio/LoopSelfTerminationDriver.cs` | **AC-009-1 的执行面** —— 登记活跃循环 + 收上游快照 + 每 tick 调 `EndLoopWatchdog.ShouldSelfTerminate` 判停 ⇒ 自行 `EndLoop`(**判据不复制**) |
+| 改(生产) | `unity/Assets/Gameplay.Presentation/Audio/AudioTuning.cs` | `HandoverTicks = 10`(500 ms;GDD :777 安全范围 ≥ 50 ms) |
+| 改(白名单) | `unity/Assets/Tests/EditMode/Audio/assembly_boundary_test.cs` | `EntryAllowlist` += `HandoverPhase` |
+| 改(测试) | `unity/Assets/Tests/EditMode/Audio/loop_lifecycle_test.cs` | 12 → **16 测**;`FakeLoopWatchdog` / `FakeHandoverFsm` / `FakeHandleManager` 全数删除 |
+
+### 修复的病灶(评审原件 §2.3 逐条)
+
+| 原假绿 | 判定 | S14-3 处置 |
+|---|---|---|
+| 兜底 3 测打自造 `FakeLoopWatchdog` | 🔴 | 改打生产 `EndLoopWatchdog`(判据)+ `LoopSelfTerminationDriver`(执行) |
+| 交接 5 测打自造 `FakeHandoverFsm` | 🔴 | 改打生产 `HandoverMux` |
+| 句柄 2 测打自造 `FakeHandleManager` | 🔴 | 改打生产 `CueRenderSink`(**S14-2 已交付**) |
+| `test_endLoopWatchdog_noWallClockRefs` 扫真门但被测类不存在 | 🟡 空转真扫 | 生产类落地 ⇒ 扫描面非空(同 S14-2 的 D1 收窄处置) |
+| 4 条 AC 无 `AC-44-xx` 编号 | 独立瑕疵 | **补 `AC-009-1…4`**(用户裁定;不用 `AC-44-D10` —— 见下) |
+
+### ⚠️ 幽灵 ID 订正(同批 · 用户裁定)
+
+实测 **`AC-44-D10` 是幽灵 ID**:story-007 与账本曾用它指「锚点纪律」,
+而 **GDD `design/gdd/audio-system.md` 零定义**(`grep -c "AC-44-D10"` = **0**;
+`AC-44-D` 系列止于 **D9**)。同一处「引用却无登记」失效模式,波及两条 story。
+
+**订正**(就地,2026-10-16):
+- story-007 §Criteria:「AC-44-D10 锚点纪律」→「AC-44-D1 锚点纪律(GDD 无编号)」
+- 账本 `tests/unit/audio_system/README.md` story-007 段:5 处 `AC-44-D10` → `AC-44-D1`
+- `production/qa/qa-plan-sprint-14-2026-10-16.md` 1 处
+- ⚠️ **评审原件 `review-audio-epic-fake-green-2026-10-16.md` 不改写** —— 它是历史判定记录,
+  事后改写 = 伪造评审(承 `.claude/docs/review-workflow.md` §不可追补)。
+
+### 证伪轮 —— 9 例全红(停用生产码守卫 ⇒ 断言转红)
+
+> 纪律:每例**改 → 跑 → 还原**在**同一命令内**完成(`/tmp/fz143.py`,clean-backup 先行、
+> `finally` 还原、还原后逐字节校验)。**零残留**已核(9 例备份与生产码 `cmp -s` 全 IDENTICAL)。
+
+| 例 | 停用的守卫 | 转红断言 | 红数 |
+|---|---|---|---|
+| ① selftick | `ShouldSelfTerminate(...)` → `false` | `staleStream_stopsWithinBound` · `resumeNoDoubleStop` · `zeroBoundStopsImmediately` | 3 |
+| ② execute | `_sink.EndLoop(rec.Handle)` 停用 | 同 ① 三条(**修夹具后**) | 3 |
+| ③ unregister | `EndLoop` 注销体清空 | `normalEndLoop_noSelfTermination` | 1 |
+| ④ worldrelease | 窗满释放世界层句柄 | `enterStethoscope_worldFadesOut` | 1 |
+| ④b stethrelease | 窗满释放听诊层句柄 | `exitStethoscope_worldFadesIn` | 1 |
+| ⑤ hardcut | `handoverTicks <= 0` 拒绝 → `false` | `hardCut_rejected` | 1 |
+| ⑥ priority | 听诊优先守卫 → 无 | `worldCueArrives_noRestart` | 1 |
+| ⑦ idempotent | 幂等重入守卫 → 无 | `idempotentReentry` | 1 |
+| ⑧ crossfade | 交叉淡化公式 → 恒 1 | `midWindow_crossfadeStrictlyBetween` | 1 |
+
+> **原始输出**见 `production/qa/evidence/impl-s14-3-loop-handover-2026-10-16.md` §3(逐例红数 + 红名)。
+
+#### ⚠️ 证伪轮抓到**我自己写的假绿夹具**(BLOCKING 级 · 已修)
+
+例 ② 首轮 **红 0 条** —— 停用 `_sink.EndLoop(rec.Handle)`(驱动器**实际执行**停止的唯一一行)
+后,三条兜底测试**仍全绿**。根因:它们只断言驱动器**内部计数器**(`ActiveLoopCount` /
+`SelfTerminatedCount`);驱动器可以「停止跟踪」却从不调 sink,计数器照样正确。
+
+同一弱点在交接测试:`WorldHandleReleased` / `StethoscopeHandleReleased` 是 `HandoverMux`
+的**自述标志**,不是副作用观测。
+
+**修复**:五条测试改为断言 `RecordingRenderTarget.Stopped` 含句柄 id(可观测副作用)。
+修复后例 ② **0 红 → 3 红**;新增例 ④b(专测听诊层释放)⇒ **1 红**。
+**这是 S11-9 / S13-9 同型假绿在本轮的第三次现身** —— 判 BLOCKING,已就地修复并登记。
+
+### 回归终值
+
+**`3542 / 3496 / 0 / 46`**(`unity/Logs/s14-3-final.xml`,2026-10-16,EXIT=0)—— 基线 S14-2 =
+`3538 / 3492 / 0 / 46` ⇒ **+4 / +4 / 0 / 46 不变,零回归**(`loop_lifecycle_test` 12 → 16 测)。
+`Audio` 过滤套件 = **324 / 323 / 0**。验证命令见 evidence 文档 §4。
+
+### 门保持
+
+b5(2 新文件全在 44 命名空间内)· b3(`HandoverPhase` 经用户裁定增列)·
+b4(字段类型全落白名单)· **零墙钟**(`CheckAudioClockTokens` 扫 `HandoverMux` /
+`LoopSelfTerminationDriver` 方法体)· ADR-029 §③(`Sim/` 内 `new PayloadRef(` 真代码零命中)。
+
+### NOT-RUN 如实登记(禁借绿)
+
+- **AC-009-2 的听测半边**(交接窗 500 ms 是否「听觉上不拖沓」)—— **NOT-RUN**:
+  听测需素材本体(story-015/016,`Ready`)+ 真人听审。
+- **IL2CPP 三格**(ADR-012 矩阵)—— **NOT-RUN**:本机仅 Mono,CI 真 runner 未配。
+- **S14-2 已登记的 4 人对拍** —— 本件不涉(无联机面)。
+

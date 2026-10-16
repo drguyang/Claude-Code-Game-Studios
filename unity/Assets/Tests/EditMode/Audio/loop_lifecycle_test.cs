@@ -1,5 +1,5 @@
 // 权威来源:production/epics/audio-system/story-009-source-lifecycle-handover.md
-//   (EndLoop 自评兜底 / 贴耳交接契约 / 重复过期句柄 / 咳嗽不停呼吸)
+//   (AC-009-1 EndLoop 自评兜底 / AC-009-2 贴耳交接契约 / AC-009-3 重复过期句柄 / AC-009-4 咳嗽不停呼吸)
 //   · EndLoop 兜底 = 呈现侧义务(ADR-001 §一之三 裁决二):从最新快照 Progress 自求值,
 //     零网络依赖;时钟源 = sim tick(禁墙钟);有界时间 ≤ LOOP_EVAL_MAX_TICKS
 //   · 贴耳交接 = 玩家自因;HANDOVER_MS 窗内交叉淡化;禁同刻双呼吸稳态超窗
@@ -15,6 +15,19 @@
 // ⚠️ 测试纪律:arrange/act/assert · 无随机(确定性来源只有显式计数字段)·
 //    无时间依赖(System.DateTime / Time 被 Cecil 扫描器判红)· 夹具读取前置 File.Exists。
 // ⚠️ 与 Story 008 分工:本文件**不重复**空间化谓词面;只落句柄生命周期 + 交接 + 咳嗽不停呼吸。
+//
+// ⚠️ **2026-10-16 S14-3 实现轮 —— 自造 Fake 全数删除**。补评(评审原件
+//    `production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md` §2.3)判定
+//    12 测中 🔴 假 9:被测对象(`EndLoopWatchdog` / `HandoverMux` / 句柄管理器)**不存在**,
+//    测试以自造 `FakeLoopWatchdog` / `FakeHandoverFsm` / `FakeHandleManager` 顶替。
+//    S14-3 落地 `HandoverMux`(交接 FSM)+ `LoopSelfTerminationDriver`(自评执行器);
+//    兜底谓词与句柄生命周期**已由 S14-2 交付**(`EndLoopWatchdog` / `CueRenderSink`),
+//    本文件改指那两个生产类,不重复造。
+//
+// ⚠️ **判据边界口径(与旧 Fake 的实质差异)**:旧 `FakeLoopWatchdog` 用
+//    `stagnantFor >= _maxTicks`;生产 `EndLoopWatchdog` 用**严格 `>`**
+//    (「等值不判,边界归下一 tick」)。本文件按生产口径断言 —— 这正是「换真」的意义:
+//    旧 Fake 编码了一个**不同的**契约。
 
 using System;
 using System.Collections.Generic;
@@ -33,71 +46,146 @@ namespace DaYiJingCheng.Tests.Unit.Audio
     {
         private const string Prefix = AssemblyGates.AudioModuleNamespacePrefix;
 
-        // ══════════════ EndLoop 自评兜底(ADR-001 §一之三 裁决二)══════════════
+        /// <summary>交接窗种子(测试用显式值,不读 `AudioTuning.HandoverTicks` ——
+        /// 边界值测试须能注入,避免与种子值耦合)。</summary>
+        private const long HandoverTicks = 10;
 
-        /// <summary>EndLoop 自评兜底:流停更/快照停「循环中」时,44 在有界时间内自行结束循环。
-        /// 测试侧自持 Watchdog 谓词面(纯函数,零引擎依赖)。
-        /// 时钟源 = sim tick(禁墙钟);有界时间 ≤ LOOP_EVAL_MAX_TICKS。</summary>
+        /// <summary>停滞阈值种子(同上:显式注入)。</summary>
+        private const int MaxStagnantTicks = 100;
+
+        // ══════════════ AC-009-1 EndLoop 自评兜底(ADR-001 §一之三 裁决二)══════════════
+
+        /// <summary>AC-009-1:流停更 / 快照停「循环中」时,44 在**有界时间**内自行结束循环。
+        /// <para>被测物 = 生产 `LoopSelfTerminationDriver`(执行)+ 生产 `EndLoopWatchdog`(判据)。</para>
+        /// <para>⚠️ **断言必须落到 sink 侧**(`target.Stopped`)—— 只断驱动器内部计数器
+        /// (`ActiveLoopCount` / `SelfTerminatedCount`)时,「停用实际 `_sink.EndLoop` 调用」
+        /// 仍全绿(证伪例 ② 红 0 条实测)。内部计数器是**驱动器的自述**,sink 收到 `StopLoop`
+        /// 才是**可观测的副作用**。</para></summary>
         [Test]
         public void test_endLoopWatchdog_staleStream_stopsWithinBound()
         {
             // Arrange:循环 cue,快照停「循环中」,流停更
-            var watchdog = new FakeLoopWatchdog(maxTicks: 100);
-            watchdog.BeginLoop(cueId: 42, snapshotProgress: 100, snapshotTick: 60);
+            var target = new RecordingRenderTarget();
+            var sink = new CueRenderSink(target);
+            var driver = new LoopSelfTerminationDriver(sink, MaxStagnantTicks);
+            AudioCueHandle h = sink.BeginLoop(BreathCue(source: 1));
+            driver.BeginLoop(h, cueId: 42);
+            driver.UpdateSnapshot(cueId: 42, progress: 100, serverTick: 60);
 
-            // Act:推进 tick 至上限
-            for (long tick = 61; tick <= 160; tick++)
-                watchdog.Tick(tick);
+            // Act:推进 tick 至上限之后
+            int stopped = 0;
+            for (long tick = 61; tick <= 200 && stopped == 0; tick++)
+                stopped = driver.Tick(tick);
 
-            // Assert:循环已停(句柄释放)
-            Assert.That(watchdog.IsLoopActive, Is.False,
-                "流停更后,循环必须在有界时间内自行结束(≤ LOOP_EVAL_MAX_TICKS)");
-            Assert.That(watchdog.StopTick, Is.GreaterThan(0), "必须有停止 tick 记录");
-            Assert.That(watchdog.StopTick, Is.LessThanOrEqualTo(60 + 100),
-                "停止 tick 必须 ≤ 快照 tick + LOOP_EVAL_MAX_TICKS(有界)");
+            // Assert:循环已停 —— **观测 sink 实际收到的 StopLoop**(不是驱动器的自述)
+            Assert.That(stopped, Is.EqualTo(1), "流停更后循环必须在有界时间内自行结束");
+            Assert.That(driver.ActiveLoopCount, Is.EqualTo(0), "停后不再跟踪");
+            Assert.That(driver.SelfTerminatedCount, Is.EqualTo(1));
+            Assert.That(target.Stopped, Has.Count.EqualTo(1),
+                "44 必须对**自有句柄**实际执行 EndLoop(ADR-028 ⑤)—— 只看内部计数器会漏掉「不执行」");
+            Assert.That(target.Stopped[0], Is.EqualTo(h.Id), "停的是那个句柄");
         }
 
-        /// <summary>EndLoop 自评兜底:流恢复更新后不得重复停(幂等)。</summary>
+        /// <summary>AC-009-1:流恢复更新后不得重复停(幂等)。
+        /// <para>⚠️ 生产口径 = **严格 `>`**:停滞 `== maxStagnantTicks` **不判停**;
+        /// 恢复快照后停滞归零,不误杀。</para></summary>
         [Test]
         public void test_endLoopWatchdog_resumeNoDoubleStop()
         {
             // Arrange
-            var watchdog = new FakeLoopWatchdog(maxTicks: 100);
-            watchdog.BeginLoop(cueId: 42, snapshotProgress: 100, snapshotTick: 60);
+            var target = new RecordingRenderTarget();
+            var sink = new CueRenderSink(target);
+            var driver = new LoopSelfTerminationDriver(sink, MaxStagnantTicks);
+            AudioCueHandle h = sink.BeginLoop(BreathCue(source: 1));
+            driver.BeginLoop(h, cueId: 42);
+            driver.UpdateSnapshot(cueId: 42, progress: 100, serverTick: 60);
 
-            // Act:先停
-            for (long tick = 61; tick <= 160; tick++) watchdog.Tick(tick);
-            Assert.That(watchdog.IsLoopActive, Is.False, "前置:循环已停");
-            long stopTick1 = watchdog.StopTick;
-            int stopCount1 = watchdog.StopCount;
+            // Act:推进到阈值边界(停滞 == 阈值 ⇒ 生产口径不判停)
+            for (long tick = 61; tick <= 60 + MaxStagnantTicks; tick++) driver.Tick(tick);
+            Assert.That(driver.ActiveLoopCount, Is.EqualTo(1),
+                "停滞 == 阈值不判停(严格 > 口径;边界归下一 tick)");
+            Assert.That(target.Stopped, Is.Empty, "边界未越 ⇒ sink 未收到 StopLoop");
 
-            // 流恢复更新后继续推进
-            watchdog.UpdateSnapshot(progress: 200, tick: 161);
-            for (long tick = 162; tick <= 300; tick++) watchdog.Tick(tick);
+            // 再推 1 tick ⇒ 越过阈值,停
+            int stopped = driver.Tick(60 + MaxStagnantTicks + 1);
+            Assert.That(stopped, Is.EqualTo(1), "越过阈值 ⇒ 停");
+            int stoppedAtSink = target.Stopped.Count;
 
-            // Assert:不重复停(幂等)
-            Assert.That(watchdog.StopCount, Is.EqualTo(stopCount1),
+            // 流恢复更新后继续推进 ⇒ 不重复停
+            driver.UpdateSnapshot(cueId: 42, progress: 200, serverTick: 400);
+            for (long tick = 402; tick <= 600; tick++) driver.Tick(tick);
+
+            // Assert:不重复停(幂等)—— **观测 sink 侧**
+            Assert.That(driver.SelfTerminatedCount, Is.EqualTo(stoppedAtSink),
                 "流恢复后不得重复停(幂等)");
+            Assert.That(target.Stopped, Has.Count.EqualTo(stoppedAtSink),
+                "sink 侧亦不得重复收到 StopLoop");
         }
 
-        /// <summary>EndLoop 自评兜底:有界常量取 0 ⇒ 当轮必停(下界自证)。</summary>
+        /// <summary>AC-009-1:有界常量取 0 ⇒ **当轮必停**(下界自证)。
+        /// <para>⚠️ 生产口径 = 严格 `>`:阈值 0 时,停滞 1 tick > 0 ⇒ 停。</para></summary>
         [Test]
         public void test_endLoopWatchdog_zeroBoundStopsImmediately()
         {
             // Arrange:maxTicks = 0(下界)
-            var watchdog = new FakeLoopWatchdog(maxTicks: 0);
-            watchdog.BeginLoop(cueId: 42, snapshotProgress: 100, snapshotTick: 60);
+            var target = new RecordingRenderTarget();
+            var sink = new CueRenderSink(target);
+            var driver = new LoopSelfTerminationDriver(sink, maxStagnantTicks: 0);
+            AudioCueHandle h = sink.BeginLoop(BreathCue(source: 1));
+            driver.BeginLoop(h, cueId: 42);
+            driver.UpdateSnapshot(cueId: 42, progress: 100, serverTick: 60);
 
-            // Act:推进 1 tick
-            watchdog.Tick(61);
+            // Act:推进 1 tick(停滞 = 1 > 0)
+            int stopped = driver.Tick(61);
 
-            // Assert:当轮必停
-            Assert.That(watchdog.IsLoopActive, Is.False,
-                "有界常量 = 0 时当轮必停(下界自证)");
-            Assert.That(watchdog.StopTick, Is.EqualTo(61), "停止 tick = 当前 tick");
+            // Assert:当轮必停 —— **观测 sink 侧**
+            Assert.That(stopped, Is.EqualTo(1), "有界常量 = 0 时当轮必停(下界自证)");
+            Assert.That(driver.ActiveLoopCount, Is.EqualTo(0));
+            Assert.That(target.Stopped, Has.Count.EqualTo(1),
+                "44 必须实际执行 EndLoop(ADR-028 ⑤)");
+            Assert.That(target.Stopped[0], Is.EqualTo(h.Id));
         }
 
-        /// <summary>EndLoop 自评兜底:时钟源 = sim tick(禁墙钟)。
+        /// <summary>AC-009-1:从未收到快照 ⇒ 不判停(与「无 `Progress` 快照 ⇒ 不判」同口径)。
+        /// <para>补评前无此测 —— 新增,守「快照是自评的**必要**输入」。</para></summary>
+        [Test]
+        public void test_endLoopWatchdog_noSnapshotEver_notTerminated()
+        {
+            // Arrange:登记句柄但从不推快照
+            var sink = new CueRenderSink(new RecordingRenderTarget());
+            var driver = new LoopSelfTerminationDriver(sink, MaxStagnantTicks);
+            AudioCueHandle h = sink.BeginLoop(BreathCue(source: 1));
+            driver.BeginLoop(h, cueId: 42);
+
+            // Act:推进远超阈值
+            for (long tick = 1; tick <= 10_000; tick++) driver.Tick(tick);
+
+            // Assert:不判停(无从判)
+            Assert.That(driver.ActiveLoopCount, Is.EqualTo(1),
+                "从未收到快照 ⇒ 无从判停(快照是自评的必要输入)");
+        }
+
+        /// <summary>AC-009-1:上游正常 `EndLoop` ⇒ 退出跟踪,自评不重复停。</summary>
+        [Test]
+        public void test_endLoopWatchdog_normalEndLoop_noSelfTermination()
+        {
+            // Arrange
+            var sink = new CueRenderSink(new RecordingRenderTarget());
+            var driver = new LoopSelfTerminationDriver(sink, MaxStagnantTicks);
+            AudioCueHandle h = sink.BeginLoop(BreathCue(source: 1));
+            driver.BeginLoop(h, cueId: 42);
+            driver.UpdateSnapshot(cueId: 42, progress: 100, serverTick: 60);
+
+            // Act:上游正常收尾
+            driver.EndLoop(h);
+            for (long tick = 61; tick <= 400; tick++) driver.Tick(tick);
+
+            // Assert:自评未介入
+            Assert.That(driver.SelfTerminatedCount, Is.EqualTo(0),
+                "上游正常 EndLoop ⇒ 自评兜底不应介入(兜底只处理『收尾信号没来』)");
+        }
+
+        /// <summary>AC-009-1:时钟源 = sim tick(禁墙钟)。
         /// 用 Cecil 扫描器验证 44 生产类型方法体 IL 不含 DateTime/Time 引用
         /// (与 Story 007 D7 时钟面同纪律,复用 AssemblyGates.CheckAudioClockTokens)。</summary>
         [Test]
@@ -117,7 +205,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 string.Join("\n", errs));
         }
 
-        /// <summary>EndLoop 契约形状:EndLoop 存在,参数为本地句柄 AudioCueHandle(非网络类型)。
+        /// <summary>AC-009-1 契约形状:EndLoop 存在,参数为本地句柄 AudioCueHandle(非网络类型)。
         /// ⚠️ 本测试只验证契约形状(EndLoop 不住网络序列化路径的**契约面**);
         ///     「AudioCueDto 不进任何网络通道」的裁决(ADR-001 §一之二)由 45 网络层实现期验证。</summary>
         [Test]
@@ -138,281 +226,222 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "EndLoop 参数 = AudioCueHandle(本地句柄,非网络类型)");
         }
 
-        // ══════════════ 贴耳交接契约 ══════════════
+        // ══════════════ AC-009-2 贴耳交接契约 ══════════════
 
-        /// <summary>贴耳交接:进入听诊 ⇒ 世界层在 HANDOVER_MS 窗内压出、听诊层同窗淡入。
-        /// 两层并存 ≤ 交接窗,禁同刻双呼吸稳态。测试侧自持 HandoverFSM 谓词面。</summary>
+        /// <summary>AC-009-2:进入听诊 ⇒ 世界层在交接窗内压出、听诊层同窗淡入。
+        /// 两层并存 ≤ 交接窗,禁同刻双呼吸稳态。
+        /// <para>被测物 = 生产 `HandoverMux`(补评前是自造 `FakeHandoverFsm`)。</para></summary>
         [Test]
         public void test_handover_enterStethoscope_worldFadesOut()
         {
             // Arrange:世界层循环中
-            var fsm = new FakeHandoverFsm(handoverTicks: 10);
-            fsm.EnterWorldLayer(cueId: 10, worldProgress: 50);
-            Assert.That(fsm.WorldActive, Is.True, "前置:世界层活跃");
+            var target = new RecordingRenderTarget();
+            var sink = new CueRenderSink(target);
+            var mux = new HandoverMux(sink, HandoverTicks);
+            mux.EnterWorldLayer(BreathCue(source: 1), currentTick: 0);
+            Assert.That(mux.Phase, Is.EqualTo(HandoverPhase.WorldOnly), "前置:世界层活跃");
+            Assert.That(mux.WorldVolume, Is.EqualTo(1.0).Within(1e-9));
+            int worldHandleId = target.Started[0];
 
-            // Act:触发进入听诊
-            fsm.EnterStethoscope();
+            // Act:触发进入听诊,推进满窗
+            mux.EnterStethoscope(BreathCue(source: 2), currentTick: 0);
+            for (long tick = 1; tick <= HandoverTicks; tick++) mux.Tick(tick);
 
-            // Assert:交接窗内,世界层压出
-            for (long tick = 1; tick <= 10; tick++) fsm.Tick(tick);
-            Assert.That(fsm.WorldActive, Is.False,
-                "HANDOVER_MS 窗内世界层必须压出(禁同刻双呼吸稳态)");
-            Assert.That(fsm.StethoscopeActive, Is.True, "听诊层淡入");
+            // Assert:窗满 ⇒ 世界层压出、听诊层淡入
+            Assert.That(mux.Phase, Is.EqualTo(HandoverPhase.StethoscopeOnly));
+            Assert.That(mux.WorldVolume, Is.EqualTo(0.0).Within(1e-9),
+                "窗满后世界层音量归零(禁同刻双呼吸稳态)");
+            Assert.That(mux.StethoscopeVolume, Is.EqualTo(1.0).Within(1e-9), "听诊层淡入");
+            Assert.That(mux.WorldHandleReleased, Is.True,
+                "AC-009-2 逐字:世界层停止由 44 对自有句柄执行(ADR-028 ⑤)");
+            // ⚠️ **观测 sink 侧** —— `WorldHandleReleased` 是 mux 的**自述**,
+            //    停用实际 `_sink.EndLoop` 调用时它仍为 true(证伪例 ④ 只靠标志即转红,
+            //    但标志与「真调 sink」是两件事)。sink 收到 StopLoop 才是副作用。
+            Assert.That(target.Stopped, Does.Contain(worldHandleId),
+                "世界层句柄必须**真的**被 44 停止(不是只翻了个标志)");
         }
 
-        /// <summary>贴耳交接:退出听诊 ⇒ 世界层淡入、听诊层压出(镜像)。</summary>
+        /// <summary>AC-009-2:窗**中途**两层并存但**不同刻稳态** —— 交叉淡化在开区间内。</summary>
+        [Test]
+        public void test_handover_midWindow_crossfadeStrictlyBetween()
+        {
+            // Arrange
+            var sink = new CueRenderSink(new RecordingRenderTarget());
+            var mux = new HandoverMux(sink, HandoverTicks);
+            mux.EnterWorldLayer(BreathCue(source: 1), currentTick: 0);
+            mux.EnterStethoscope(BreathCue(source: 2), currentTick: 0);
+
+            // Act:推进到窗中点
+            mux.Tick(HandoverTicks / 2);
+
+            // Assert:两层都在 (0,1) 开区间内(交叉中,非双稳态)
+            Assert.That(mux.WorldVolume, Is.GreaterThan(0.0).And.LessThan(1.0));
+            Assert.That(mux.StethoscopeVolume, Is.GreaterThan(0.0).And.LessThan(1.0));
+            Assert.That(mux.WorldVolume + mux.StethoscopeVolume, Is.EqualTo(1.0).Within(1e-9),
+                "交叉淡化:两层音量之和恒为 1(等功率线性交叉)");
+        }
+
+        /// <summary>AC-009-2:退出听诊 ⇒ 世界层淡入、听诊层压出(镜像)。</summary>
         [Test]
         public void test_handover_exitStethoscope_worldFadesIn()
         {
-            // Arrange:听诊层活跃
-            var fsm = new FakeHandoverFsm(handoverTicks: 10);
-            fsm.EnterWorldLayer(cueId: 10, worldProgress: 50);
-            fsm.EnterStethoscope();
-            for (long tick = 1; tick <= 10; tick++) fsm.Tick(tick);
-            Assert.That(fsm.StethoscopeActive, Is.True, "前置:听诊层活跃");
+            // Arrange:先完成进入
+            var target = new RecordingRenderTarget();
+            var sink = new CueRenderSink(target);
+            var mux = new HandoverMux(sink, HandoverTicks);
+            mux.EnterWorldLayer(BreathCue(source: 1), currentTick: 0);
+            mux.EnterStethoscope(BreathCue(source: 2), currentTick: 0);
+            for (long tick = 1; tick <= HandoverTicks; tick++) mux.Tick(tick);
+            Assert.That(mux.Phase, Is.EqualTo(HandoverPhase.StethoscopeOnly), "前置:听诊层活跃");
+            int stethoscopeHandleId = target.Started[1];   // [0] = 世界层,[1] = 听诊层
 
             // Act:退出听诊
-            fsm.ExitStethoscope();
-            for (long tick = 11; tick <= 20; tick++) fsm.Tick(tick);
+            mux.ExitStethoscope(currentTick: HandoverTicks);
+            for (long tick = HandoverTicks + 1; tick <= HandoverTicks * 2; tick++) mux.Tick(tick);
 
             // Assert:镜像
-            Assert.That(fsm.WorldActive, Is.True, "世界层淡入");
-            Assert.That(fsm.StethoscopeActive, Is.False, "听诊层压出");
+            Assert.That(mux.Phase, Is.EqualTo(HandoverPhase.WorldOnly));
+            Assert.That(mux.WorldVolume, Is.EqualTo(1.0).Within(1e-9), "世界层淡入");
+            Assert.That(mux.StethoscopeVolume, Is.EqualTo(0.0).Within(1e-9), "听诊层压出");
+            Assert.That(mux.StethoscopeHandleReleased, Is.True, "听诊层句柄由 44 自行释放");
+            // ⚠️ **观测 sink 侧**(同 `enterStethoscope_worldFadesOut`):
+            //    `StethoscopeHandleReleased` 是自述;`target.Stopped` 才是副作用。
+            Assert.That(target.Stopped, Does.Contain(stethoscopeHandleId),
+                "听诊层句柄必须**真的**被 44 停止(不是只翻了个标志)");
         }
 
-        /// <summary>贴耳交接:窗内重复触发进入(幂等)。</summary>
+        /// <summary>AC-009-2:窗内重复触发进入(幂等)。</summary>
         [Test]
         public void test_handover_idempotentReentry()
         {
             // Arrange
-            var fsm = new FakeHandoverFsm(handoverTicks: 10);
-            fsm.EnterWorldLayer(cueId: 10, worldProgress: 50);
+            var sink = new CueRenderSink(new RecordingRenderTarget());
+            var mux = new HandoverMux(sink, HandoverTicks);
+            mux.EnterWorldLayer(BreathCue(source: 1), currentTick: 0);
 
             // Act:连续两次进入
-            fsm.EnterStethoscope();
-            fsm.EnterStethoscope();  // 幂等
-            for (long tick = 1; tick <= 10; tick++) fsm.Tick(tick);
+            mux.EnterStethoscope(BreathCue(source: 2), currentTick: 0);
+            mux.EnterStethoscope(BreathCue(source: 3), currentTick: 3);   // 幂等
+            for (long tick = 1; tick <= HandoverTicks; tick++) mux.Tick(tick);
 
             // Assert:只交接一次
-            Assert.That(fsm.HandoverCount, Is.EqualTo(1), "窗内重复触发进入必须幂等");
-            Assert.That(fsm.WorldActive, Is.False);
-            Assert.That(fsm.StethoscopeActive, Is.True);
+            Assert.That(mux.HandoverCount, Is.EqualTo(1), "窗内重复触发进入必须幂等");
+            Assert.That(mux.Phase, Is.EqualTo(HandoverPhase.StethoscopeOnly));
         }
 
-        /// <summary>贴耳交接:听诊中世界 cue 新到 ⇒ 不重启世界层(听诊优先)。</summary>
+        /// <summary>AC-009-2:听诊中世界 cue 新到 ⇒ 不重启世界层(听诊优先)。</summary>
         [Test]
         public void test_handover_worldCueArrives_noRestart()
         {
             // Arrange:听诊层活跃
-            var fsm = new FakeHandoverFsm(handoverTicks: 10);
-            fsm.EnterWorldLayer(cueId: 10, worldProgress: 50);
-            fsm.EnterStethoscope();
-            for (long tick = 1; tick <= 10; tick++) fsm.Tick(tick);
-            Assert.That(fsm.StethoscopeActive, Is.True, "前置:听诊层活跃");
+            var sink = new CueRenderSink(new RecordingRenderTarget());
+            var mux = new HandoverMux(sink, HandoverTicks);
+            mux.EnterWorldLayer(BreathCue(source: 1), currentTick: 0);
+            mux.EnterStethoscope(BreathCue(source: 2), currentTick: 0);
+            for (long tick = 1; tick <= HandoverTicks; tick++) mux.Tick(tick);
+            Assert.That(mux.Phase, Is.EqualTo(HandoverPhase.StethoscopeOnly), "前置:听诊层活跃");
 
             // Act:世界 cue 新到
-            fsm.OnWorldCueArrived(cueId: 11);
+            mux.EnterWorldLayer(BreathCue(source: 9), currentTick: HandoverTicks + 1);
 
             // Assert:不重启世界层(听诊优先)
-            Assert.That(fsm.WorldActive, Is.False,
+            Assert.That(mux.Phase, Is.EqualTo(HandoverPhase.StethoscopeOnly),
                 "听诊中世界 cue 新到 ⇒ 不重启世界层(听诊优先)");
+            Assert.That(mux.WorldVolume, Is.EqualTo(0.0).Within(1e-9), "世界层仍压出");
         }
 
-        /// <summary>贴耳交接:禁硬切(ramp=0 ⇒ 红)。</summary>
+        /// <summary>AC-009-2:禁硬切(handoverTicks ≤ 0 ⇒ 构造期拒绝)。</summary>
         [Test]
         public void test_handover_hardCut_rejected()
         {
-            // Arrange + Act + Assert:handoverTicks = 0(硬切)构造时必须拒绝
-            Assert.Throws<ArgumentException>(() => new FakeHandoverFsm(handoverTicks: 0),
+            // Arrange + Act + Assert:硬切构造必须拒绝
+            var sink = new CueRenderSink(new RecordingRenderTarget());
+            Assert.Throws<ArgumentException>(() => new HandoverMux(sink, handoverTicks: 0),
                 "硬切(handoverTicks=0)必须拒绝(ramp 下界同 50ms 族)");
+            Assert.Throws<ArgumentException>(() => new HandoverMux(sink, handoverTicks: -5),
+                "负窗必须拒绝(旧 Fake 只测 ==0,本测补齐 <0 —— 见 story Known Risks)");
         }
 
-        // ══════════════ 重复/过期句柄 ══════════════
+        /// <summary>AC-009-2:null sink ⇒ 构造期抛异常(注入缝守卫)。</summary>
+        [Test]
+        public void test_handover_nullSink_throws()
+        {
+            Assert.Throws<ArgumentNullException>(() => new HandoverMux(null, HandoverTicks));
+        }
 
-        /// <summary>重复/过期句柄:同源重复 BeginLoop ⇒ 以最后一次为准释放旧句柄(防双呼吸层)。</summary>
+        // ══════════════ AC-009-3 重复/过期句柄 ══════════════
+
+        /// <summary>AC-009-3:同源重复 BeginLoop ⇒ 以最后一次为准释放旧句柄(防双呼吸层)。
+        /// <para>被测物 = 生产 `CueRenderSink`(S14-2 交付;补评前是自造 `FakeHandleManager`)。</para></summary>
         [Test]
         public void test_duplicateBeginLoop_lastWins()
         {
             // Arrange
-            var manager = new FakeHandleManager();
+            var target = new RecordingRenderTarget();
+            var sink = new CueRenderSink(target);
 
-            // Act:同 cue 两次 BeginLoop
-            manager.BeginLoop(cueId: 10);
-            manager.BeginLoop(cueId: 10);  // 重复
-            manager.EndLoop(cueId: 10);
+            // Act:同源两次 BeginLoop
+            AudioCueHandle first = sink.BeginLoop(BreathCue(source: 7));
+            AudioCueHandle second = sink.BeginLoop(BreathCue(source: 7));   // 同源重复
 
-            // Assert:只存活最后一次句柄
-            Assert.That(manager.ActiveHandleCount, Is.EqualTo(0),
-                "重复 BeginLoop 以最后一次为准,EndLoop 后无存活句柄");
-            Assert.That(manager.ReleasedHandles.Count, Is.EqualTo(1),
-                "只释放最后一次句柄(旧句柄已被覆盖)");
+            // Assert:只存活最后一次句柄(旧句柄已释放)
+            Assert.That(sink.ActiveLoopCount, Is.EqualTo(1), "同源重复 ⇒ 只存活一个句柄");
+            Assert.That(target.Stopped, Has.Count.EqualTo(1), "旧句柄被释放(防双呼吸层)");
+            Assert.That(target.Stopped[0], Is.EqualTo(first.Id));
+            Assert.That(second.Id, Is.Not.EqualTo(first.Id), "新句柄是新 id");
+
+            // 收尾
+            sink.EndLoop(second);
+            Assert.That(sink.ActiveLoopCount, Is.EqualTo(0));
         }
 
-        /// <summary>重复/过期句柄:过期 EndLoop 忽略不产生播放错误。</summary>
+        /// <summary>AC-009-3:过期 EndLoop 忽略不产生播放错误。</summary>
         [Test]
         public void test_expiredEndLoop_ignored()
         {
             // Arrange
-            var manager = new FakeHandleManager();
-            manager.BeginLoop(cueId: 10);
-            manager.ReleaseAll();  // 先释放
+            var target = new RecordingRenderTarget();
+            var sink = new CueRenderSink(target);
+            AudioCueHandle h = sink.BeginLoop(BreathCue(source: 7));
+            sink.EndLoop(h);   // 正常释放
 
-            // Act:过期 EndLoop
-            Assert.DoesNotThrow(() => manager.EndLoop(cueId: 10),
+            // Act + Assert:过期 EndLoop 不抛
+            Assert.DoesNotThrow(() => sink.EndLoop(h),
                 "过期 EndLoop 必须忽略(不产生播放错误)");
+            Assert.DoesNotThrow(() => sink.EndLoop(new AudioCueHandle(9999)),
+                "从未存在的句柄同样忽略");
+            Assert.That(target.Stopped, Has.Count.EqualTo(1), "过期句柄不产生额外 Stop");
         }
 
-        // ══════════════ 咳嗽不停呼吸(AC-44-08 联合断言)══════════════
+        // ══════════════ AC-009-4 咳嗽不停呼吸(AC-44-08 联合断言)══════════════
 
         // ⚠️ 主判据归 Story 004 `breath_layers_test.test_coughNeverEndsBreathLoop_zeroEndLoopCalls`
-        //    (同名同逻辑,已存在)。本 story AC 明确把「咳嗽不停呼吸」列为验收标准,
-        //    但为避免重复测试浪费维护成本,不在此重复实现 —— 联合断言 = Story 004 判据。
+        //    (同名同逻辑,已存在,且调**真生产类** `CoughChannel.Dispatch` —— 评审原件 §2.3 判 🟡)。
+        //    本 story AC 明确把「咳嗽不停呼吸」列为验收标准,但为避免重复测试浪费维护成本,
+        //    不在此重复实现 —— 联合断言 = Story 004 判据。
+        // ⚠️ 本 story 侧**可增补**的结构面:咳嗽通道**结构上无 EndLoop 路径**(见
+        //    `CoughChannel.cs` 文件头「结构上无 EndLoop 路径」)—— 已由 Story 004 的
+        //    `test_coughNeverEndsBreathLoop_zeroEndLoopCalls` 覆盖,不重复。
 
-        // ══════════════ 测试替身与夹具 ══════════════
+        // ══════════════ 测试夹具(负向 / 记录型;住测试命名空间)══════════════
 
-        /// <summary>FakeLoopWatchdog:EndLoop 自评兜底谓词面(测试自持,纯函数)。
-        /// 语义 = ADR-001 §一之三 裁决二:从最新快照 Progress 自求值,零网络依赖,时钟源 = sim tick。</summary>
-        private sealed class FakeLoopWatchdog
+        /// <summary>记录型渲染目标:`CueRenderSink` 的注入 seam(`ICueRenderTarget`)。
+        /// <para>⚠️ 这是**记录型假件**,不是被测对象 —— 被测对象是 `CueRenderSink` 的
+        /// **契约语义**(句柄唯一性 / 过期忽略),它由本类的调用记录**观测**。</para></summary>
+        private sealed class RecordingRenderTarget : ICueRenderTarget
         {
-            private readonly long _maxTicks;
-            private bool _loopActive;
-            private long _snapshotTick;
-            private long _snapshotProgress;
-            private long _currentTick;
+            public readonly List<int> Started = new List<int>();
+            public readonly List<int> Stopped = new List<int>();
+            public int OneShotCount { get; private set; }
 
-            public FakeLoopWatchdog(long maxTicks) => _maxTicks = maxTicks;
+            public void PlayOneShot(in AudioCueDto cue) => OneShotCount++;
 
-            public bool IsLoopActive => _loopActive;
-            public long StopTick { get; private set; }
-            public int StopCount { get; private set; }
+            public void StartLoop(in AudioCueDto cue, int handleId) => Started.Add(handleId);
 
-            public void BeginLoop(int cueId, long snapshotProgress, long snapshotTick)
-            {
-                _loopActive = true;
-                _snapshotProgress = snapshotProgress;
-                _snapshotTick = snapshotTick;
-            }
-
-            public void UpdateSnapshot(long progress, long tick)
-            {
-                _snapshotProgress = progress;
-                _snapshotTick = tick;
-            }
-
-            public void Tick(long currentTick)
-            {
-                _currentTick = currentTick;
-                if (!_loopActive) return;
-                long stagnantFor = currentTick - _snapshotTick;
-                if (stagnantFor >= _maxTicks)
-                {
-                    _loopActive = false;
-                    StopTick = currentTick;
-                    StopCount++;
-                }
-            }
+            public void StopLoop(int handleId) => Stopped.Add(handleId);
         }
 
-        /// <summary>FakeHandoverFsm:贴耳交接状态机谓词面(测试自持,纯函数)。
-        /// 语义 = GDD F-44.7 交接契约:两态(世界/听诊)+ 窗内交叉淡化;玩家自因入口。</summary>
-        private sealed class FakeHandoverFsm
-        {
-            private readonly long _handoverTicks;
-            private bool _worldActive;
-            private bool _stethoscopeActive;
-            private long _handoverElapsed;
-
-            public FakeHandoverFsm(long handoverTicks)
-            {
-                if (handoverTicks < 0)
-                    throw new ArgumentException("handoverTicks 必须 ≥ 0");
-                if (handoverTicks == 0)
-                    throw new ArgumentException("硬切(handoverTicks=0)禁止(ramp 下界同 50ms 族)");
-                _handoverTicks = handoverTicks;
-            }
-
-            public bool WorldActive => _worldActive;
-            public bool StethoscopeActive => _stethoscopeActive;
-            public int HandoverCount { get; private set; }
-
-            public void EnterWorldLayer(int cueId, long worldProgress)
-            {
-                _worldActive = true;
-                _stethoscopeActive = false;
-            }
-
-            public void EnterStethoscope()
-            {
-                if (!_worldActive) return;  // 世界层未活跃 ⇒ 不交接
-                if (_stethoscopeActive) return;  // 幂等
-                _handoverElapsed = 0;
-                HandoverCount++;
-                // 进入听诊 ⇒ 世界层立即开始压出(窗内交叉淡化开始)
-                _worldActive = false;
-            }
-
-            public void ExitStethoscope()
-            {
-                if (!_stethoscopeActive) return;
-                _stethoscopeActive = false;
-                _worldActive = true;
-                // 退出后彻底清除交接状态(Tick 不再干预世界层)
-                HandoverCount = 0;
-                _handoverElapsed = 0;
-            }
-
-            public void OnWorldCueArrived(int cueId)
-            {
-                // 听诊中世界 cue 新到 ⇒ 不重启世界层(听诊优先)
-                if (_stethoscopeActive) return;
-                _worldActive = true;
-            }
-
-            public void Tick(long tick)
-            {
-                if (HandoverCount == 0) return;
-                // 进入听诊时世界层立即开始压出(不等窗满)
-                _worldActive = false;
-                _handoverElapsed++;
-                if (_handoverElapsed >= _handoverTicks)
-                {
-                    _stethoscopeActive = true;
-                }
-            }
-        }
-
-        /// <summary>FakeHandleManager:句柄生命周期谓词面(测试自持,纯函数)。
-        /// 语义 = ADR-028 ⑤:同源重复 BeginLoop 以最后一次为准;过期 EndLoop 忽略。</summary>
-        private sealed class FakeHandleManager
-        {
-            private readonly Dictionary<int, int> _activeHandles = new Dictionary<int, int>();
-            private int _nextId = 1;
-
-            public int ActiveHandleCount => _activeHandles.Count;
-            public List<int> ReleasedHandles { get; } = new List<int>();
-
-            public AudioCueHandle BeginLoop(int cueId)
-            {
-                // 同源重复 BeginLoop ⇒ 以最后一次为准(覆盖旧句柄,不计入 ReleasedHandles)
-                int id = _nextId++;
-                _activeHandles[cueId] = id;
-                return new AudioCueHandle(id);
-            }
-
-            public void EndLoop(int cueId)
-            {
-                if (!_activeHandles.TryGetValue(cueId, out var id)) return;  // 过期 EndLoop 忽略
-                _activeHandles.Remove(cueId);
-                ReleasedHandles.Add(id);
-            }
-
-            public void ReleaseAll()
-            {
-                foreach (var kv in _activeHandles)
-                    ReleasedHandles.Add(kv.Value);
-                _activeHandles.Clear();
-            }
-        }
-
+        private static AudioCueDto BreathCue(int source, bool looped = true)
+            => new AudioCueDto(cue: 42, intensity: 128, cell: default, source: source, looped: looped);
     }
 }

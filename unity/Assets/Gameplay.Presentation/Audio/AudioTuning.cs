@@ -30,5 +30,25 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <para>相位换算**只准经 <see cref="InspirePhaseMapping"/>"**(编码防线 ①):
         /// 本常量是注入给映射函数的入参,业务代码**不得**自己拿它做乘法。</para></summary>
         public const double InspireFraction = 1.0 / 3.0;
+
+        /// <summary>`LOOP_EVAL_MAX_TICKS`(循环快照停滞多久 ⇒ 自评判停)—— **种子值 40 tick = 2 s**
+        /// (20 Hz ⇒ 50 ms/tick)。
+        /// <para>⚠️ **不是自由旋钮,是架构义务的量化**(ADR-001 §一之三 裁决二):该义务要求
+        /// 「呈现侧循环终止**必须**自评兜底,不得依赖任何网络保证」,且「二者至少其一,**不得留空**」
+        /// —— 本常量就是「不得留空」的 P0 兑现。取 0 / 负值 = 每轮必停(自证下界);
+        /// 取过大 = 断线后呼吸层长时间不消失(违「不得出现呼吸层永不停止」的**反面**,
+        /// 即停得太晚)。
+        /// <para>数值归用户(§Tuning Knobs);本类只保证「有正有界值 + 单一出处」。</para></summary>
+        public const int LoopEvalMaxTicks = 40;
+
+        /// <summary>`HANDOVER_MS`(贴耳交接窗 —— 世界层压出 / 听诊层淡入的交叉时长)——
+        /// **种子值 10 tick = 500 ms**(20 Hz ⇒ 50 ms/tick)。
+        /// <para>GDD §Tuning Knobs :777 安全范围 = **≥ ramp 下界 50 ms**(即 ≥ 1 tick);
+        /// 调太高 = 交接拖沓 / 呼吸断档感,调太低 = 近似硬切(爆音 / 双呼吸)。
+        /// 本值取 10 tick 是**听觉上可辨但不拖沓**的种子(用户调)。</para>
+        /// <para>⚠️ **不是自由旋钮**:`≤ 0` 会被 <see cref="HandoverMux"/> 构造期**结构性拒绝**
+        /// (硬切违 GDD :562「禁『啪』一声切换」)。</para></summary>
+        public const int HandoverTicks = 10;
+
     }
 }
