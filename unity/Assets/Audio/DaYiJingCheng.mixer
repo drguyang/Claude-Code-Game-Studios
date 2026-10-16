@@ -497,7 +497,36 @@ AudioMixerController:
     name: tier_contact_noise_floor_db
   - guid: bb8d873763b30e378ae4711ab0891c4e
     name: tier_signal_db
-  m_AudioMixerGroupViews: []
+  m_AudioMixerGroupViews:
+  - guids:
+    - 933841f3348f298e3845a9d9bef3969d
+    - 9dcfe27fc112a8c98b13e8c4c7cffddc
+    - 87cf08082e1cfaad1af149dcccd06bbd
+    - ea807b75c788855078d695ebaf6ce767
+    - 44b636871e687402bb9358f7007951e7
+    - 0f7827396b82d1e2cbb2dd25a40031e2
+    - c244a217df491c036ae4720455fe6379
+    - 36c2220ba124d6d2ea3d5b4e0364b817
+    - 3679d5a9bcb404db2a9c6ff0e715d4e2
+    - 1f6cbc5eca5cdcd54b9c0a7545a4ca20
+    - 64a6bfbb274d6aaf38973bb830b09749
+    - c1a9bac8983c6fd1a84e046a450c987e
+    - 3f32afe1f56f94fed8f4ddc96b6aebe2
+    - 714d422ba78cd2cb68d212f1ec8a42cb
+    - bd29b226fdcf90f0a98b1e6848590b25
+    - 683c34acefd620b2eb99604cbdeab787
+    - 97b2a168f0c8884738a5c19e3200b4f4
+    - c1d6a0f379ea0ad599bc8f477dec603c
+    - 5fe1d8c489c2958fa914f0c2b33c3199
+    - d5ea240470fdbbbe5b9955aff339e75d
+    - 9595142e79dc4f6acbeb6d76011db1b9
+    - c12dc7d31045044bd9fee466512cc09f
+    - dd157c45a1b95a12795a611d364f409e
+    - 97324889b2b3995b5a98677cb8835616
+    - ced1cc2936ab32091896c4968e638254
+    - 3fe146ffa8ba6c70cbcaa89bc87c87be
+    - 02e35c9f2896027cba7e211f4ab47add
+    name: View
   m_CurrentViewIndex: 0
   m_TargetSnapshot: {fileID: 24500006}
 --- !u!243 &24300002
