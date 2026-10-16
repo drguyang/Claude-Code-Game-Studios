@@ -42,6 +42,27 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             "bus_volume_uicue",
         };
 
+        /// <summary><c>mono_enabled</c>(AC-44-13 的 mono 选项;注册表第 8 行)。
+        /// <para>⚠️ **它不是 mixer exposed 参数** —— 实测 <c>.mixer</c> 的 <c>m_ExposedParameters</c>
+        /// 恰 12 员(7 <c>bus_volume_*</c> + 5 <c>tier_*</c>,由 <c>MixerTopologyGates</c> 断言),
+        /// **不含**本名。mono 的运行期载体(AudioSettings 单例 / mixer effect / 声像折叠)是
+        /// **尚未裁定的资产拓扑问题**(同 <see cref="TierFilterParameters"/> 的阻塞登记形态)。
+        /// ⇒ 本常量只承载**注册表成员身份**(AC-44-13「提供 mono 选项」的字面),其 mixer 侧映射
+        /// 登记为缺口,见 `production/qa/evidence/impl-s14-5-*.md` §NOT-RUN。</para></summary>
+        public const string MonoParameter = "mono_enabled";
+
+        /// <summary><c>settings_visible</c> 闭枚举的**名字半边**(8 员 = 7 总线音量含 Master + mono)。
+        /// <para>**单一出处** —— GDD :896-909 那张表是语义源,本常量集是其代码形;
+        /// <c>AudioSettingsRegistry</c>(值半边 = 烘焙分区)与
+        /// <c>MixerTopologyGates</c> 的对账面都**引用**本属性,禁另抄(ADR-024 §⑥)。
+        /// 玩家面**只有这 8 项**;tier 滤波 / 噪声底等 = **脚本面**,不在本集(注册表 AC②)。</para></summary>
+        public static readonly IReadOnlyList<string> SettingsVisibleParameters = new[]
+        {
+            "bus_volume_master", "bus_volume_music", "bus_volume_ambience",
+            "bus_volume_voice", "bus_volume_sfx", "bus_volume_stethoscope",
+            "bus_volume_uicue", "mono_enabled",
+        };
+
         /// <summary>玩家音量组前缀(滑块直写;快照**永不捕获**,交集必须 = ∅)。</summary>
         public const string PlayerVolumeGroupPrefix = "bus_volume_";
 

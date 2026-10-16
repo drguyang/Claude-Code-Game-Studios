@@ -1,7 +1,7 @@
 # Story 011: 设置暴露面与归零机制
 
 > **Epic**: 音频系统
-> **Status**: In Review
+> **Status**: Complete ✅ 2026-10-16(S14-7 复评结案 —— 假绿撤回 → S14-5 生产实现 + 证伪轮全红 → 本节复评转正)
 > **Layer**: Foundation(系统分类;实现落表现层 + 边界层 store)
 > **Type**: Config/Data
 > **Estimate**: 4h
@@ -17,6 +17,11 @@
 > 而 story 的 `Criteria` 仍记「4/4 passing」。
 > **评审原件**:`production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md`(§2.5 逐条表)。
 > 实现另立 sprint;本 story 维持 `In Review` 直至生产类落地并经证伪轮复评。
+>
+> **✅ 2026-10-16 S14-5 实现轮落盘 —— 生产件已落地 + 证伪轮 12/12 全红 + 计划五条判据逐条兑现**
+> (本 story 仍 `In Review`:转 `Complete` 归 **S14-7** 的 6 条复评批,承 `sprint-14.md` DoD)。
+> 落地内容见下方 `## Completion Notes §S14-5` 与
+> `production/qa/evidence/impl-s14-5-settings-exposure-2026-10-16.md`。
 
 ## Context
 
@@ -39,11 +44,11 @@
 
 *From GDD `design/gdd/audio-system.md`, scoped to this story:*
 
-- [ ] **注册表 AC①**(§UI Requirements):壳消费集 ⊆ `settings_visible` 闭枚举(8 条 = 7 总线音量含 Master + mono;越集 = 断言失败)。
-- [ ] **AC-44-13**:提供 **mono 选项**(`mono_enabled` ∈ 注册表,出厂默认入烘焙分区)。
-- [ ] **AC-44-15**(双半):[A] 上游语声/口述 cue 发射双投递(cue→44,文本→42);文本本体 = 事件表 `subtitle_text`,**表键集 ⊇ 语声 cue 集**(缺失 = 构建失败;含 48 口述);[L] 字幕存在性听测签署(WCAG 1.2.2)。
-- [ ] **AC-44-19**(OQ-SS-7=甲):归源(写默认 → 推 mixer → **落 sidecar**)后 store == 出厂集;**重启后仍 == 出厂集**;负向:跳过 sidecar 落盘 ⇒ 红。
-- [ ] **AC-44-12** [L](文档判据):三条具名项在位 —— 视觉替代引 `AC-13-F1` · P0 非目标「隔墙听觉无视觉等价」(a11y L-3 已登)· mono/总线音量/语声字幕三义务(本 story 与 012/013 承接)。
+- [x] **注册表 AC①**(§UI Requirements):壳消费集 ⊆ `settings_visible` 闭枚举(8 条 = 7 总线音量含 Master + mono;越集 = 断言失败)。— **S14-5 落**:`assets/data/audio_settings_registry.json`(8 行闭枚举)+ `MixerRegistry.SettingsVisibleParameters`(名字半边**单一出处**)+ `AudioSettingsRegistryBinder`(阶段 2 未知键白名单 / 值对账 / 域检查)。证伪 ⑥(未知键白名单停用 ⇒ 1 红)· ⑦(binder 名字对账「缺员」半边 ⇒ 1 红)· ⑧(值对账 ⇒ 1 红)。
+- [x] **AC-44-13**:提供 **mono 选项**(`mono_enabled` ∈ 注册表,出厂默认入烘焙分区)。— **S14-5 落**:注册表 `mono_enabled` 行(类型 `Bool`);`PlayerBusVolumeInitializer.FactoryDefaults` **改读烘焙注册表**(经 `VolumeUnitMapping`),原 C# 常量降为回退。证伪 ⑨(binder 出厂默认区间检查 ⇒ 1 红)· ⑪(回退 mono 行类型 `Bool` → `Float` ⇒ **5 红**)· ⑫(binder bool 行禁区间检查 ⇒ 1 红)。⚠️ **mono 的运行期载体 = 缺口**:`.mixer` 的 `m_ExposedParameters` 恰 12 员不含 `mono_enabled`,mixer 侧映射是**尚未裁定的资产拓扑问题**。
+- [x] **AC-44-15**(双半):[A] 上游语声/口述 cue 发射双投递(cue→44,文本→42);文本本体 = 事件表 `subtitle_text`,**表键集 ⊇ 语声 cue 集**(缺失 = 构建失败;含 48 口述);[L] 字幕存在性听测签署(WCAG 1.2.2)。— **S14-5 落**:[A] 改打 `AudioEventTableGates.ValidateSubtitles` per-cue(`HasSubtitleForCue`,该 cue 行内 500 字符内查 `subtitle_text`)+ 仓库夹具负例(原本地字面量恒真已消);[L] **NOT-RUN**。⚠️ **「含 48 口述」半边 = NOT-RUN(缺口)**:48 的 4 支教学口述不在事件表、前缀不匹配 ⇒ 生产门看不见;缺口哨兵钉住,48 契约落地后转红。
+- [x] **AC-44-19**(OQ-SS-7=甲):归源(写默认 → 推 mixer → **落 sidecar**)后 store == 出厂集;**重启后仍 == 出厂集**;负向:跳过 sidecar 落盘 ⇒ 红。— **S14-5 落**:`AudioSettingsStore`(真 store,持值 + 三步归零 + `ResetOutcome`,**原子载入**)+ `AudioSettingsSidecar`(两文件 sidecar + 自写头部 + 失配改名备份 `.bak-NNN` + FNV-1a 32)。证伪 ①(`ComputeRegistrySignature` 恒返固定串 ⇒ 1 红)· ②(归零第三步失败判定 ⇒ 1 红)· ③(归零第二步缝缺失判定 ⇒ 1 红)· ④(`LinearToDb` 换算直通 ⇒ 1 红)· ⑤(`EqualsFactoryDefaults` 值比较 ⇒ 2 红)· ⑩(store 半截载荷缺键判定 ⇒ 1 红)。⚠️ **归零钮控件形态 / 焦点导航** 归 42 元件轮(OQ-SS-7=甲)。
+- [x] **AC-44-12** [L](文档判据):三条具名项在位 —— 视觉替代引 `AC-13-F1` · P0 非目标「隔墙听觉无视觉等价」(a11y L-3 已登)· mono/总线音量/语声字幕三义务(本 story 与 012/013 承接)。— **S14-5 落**:`test_a11yDocumentation_threeItemsPresent`(三条具名项逐条在位断言)。⚠️ **该 [L] 半的人工走查 = NOT-RUN**(项目外部)。
 
 ---
 
@@ -81,7 +86,8 @@
 **Required evidence**:
 - 烘焙/注册表断言测试 + `production/qa/evidence/settings-exposure-evidence.md`([L] 半 + 归零重启复验记录)
 
-**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Audio/settings_exposure_test.cs`(11 测);账本互链 `tests/unit/audio_system/README.md`
+**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Audio/settings_exposure_test.cs`(**31 测**,S14-5 由 11 扩);账本互链 `tests/unit/audio_system/README.md`
+**实现证据**: `production/qa/evidence/impl-s14-5-settings-exposure-2026-10-16.md`
 
 ---
 
@@ -91,6 +97,11 @@
 - Unlocks: 42 元件轮的壳行镜像可开工;OQ-SS-7 控件形态裁定后归零钮可进架
 
 ## Completion Notes
+
+> ⚠️ **本节的「4/4 passing」判定已于 2026-10-16 被 S13-9 补评推翻**
+> (`review-audio-epic-fake-green-2026-10-16.md` §2.5:11 测中 🟢 真 1 · 🟡 3 · 🔴 7)。
+> 原文**保留不改写**(历史陈述),现行状态见下方 **§S14-5**。
+
 **Completed**: 2026-09-28
 **Criteria**: 4/4 passing(注册表 AC① · AC-44-13 mono · AC-44-15 字幕键集 · AC-44-19 归零机制;无 deferred,0 UNTESTED)
 **Deviations**(均 ADVISORY):
@@ -115,7 +126,109 @@
 - AC-44-19 覆盖不完整(只检查 2 条注册表,应遍历全部 8 条;只测跳过 sidecar,应补测跳过写默认/推 mixer)。
 - `ExtractCuesWithPrefix` 用 Regex 解析 JSON(应复用 `AudioEventTableGates.ParseTable()`)。
 
-**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Audio/settings_exposure_test.cs`(**11 测:10 passed + 1 inconclusive**);全量 EditMode **1154 passed + 1 inconclusive + 1 skipped + 0 failed**(`unity/Logs/s011-full.xml`)
+**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Audio/settings_exposure_test.cs`(**31 测全过**;S14-5 由 11 扩)→ ⚠️ 下行「11 测:10 passed + 1 inconclusive / 1154」是 **2026-09-28 首轮**(假绿轮)的陈述,现行回归见 `## Completion Notes §S14-5`。
 **Code Review**: Complete —— 双评审并行 + B1/B2/B3 修复 + 复验;review mode = lean。
 **ADR Compliance**: ADR-018(音频架构:mono/总线音量义务)· ADR-013(控件呈现归 42)· ADR-014(出厂默认 = 烘焙分区)· OQ-SS-5=甲(端本地 sidecar)· OQ-SS-7=甲(归零控件形态 = 42 元件轮)。COMPLIANT。
 **Tech Debt**: 未立文件;上述 NICE 9 项已分处登记(本 notes · story Known Risks · 账本)。
+
+---
+
+## Completion Notes §S14-5(2026-10-16 · 生产实现轮)
+
+> **本节的判据 = 变异测试**(停用生产码守卫 ⇒ 断言转红),**不是**「测试名 + 行号」——
+> 承 `sprint-14.md` Risks 第 3 条与 retro-13 行动项 2。
+> **证据原件**:`production/qa/evidence/impl-s14-5-settings-exposure-2026-10-16.md`。
+
+### 用户裁定四项(2026-10-16,AskUserQuestion)
+
+① **注册表落点 = 独立注册文件** `assets/data/audio_settings_registry.json` + `MixerRegistry` 扩名
+   (不动事件表的三层白名单,不耦合尚未落地的 story-010 binder);
+② **AC-44-15 [A] 的 48 口述半边 = 如实登记 NOT-RUN + 缺口**(不代 48 立契约 / 不扩前缀 / 不登种子);
+③ **`ISettingsStore` / 归零机制全落生产**(接口 + 真 sidecar + 归零三步,落
+   `Gameplay.Presentation/Settings/` 中立目录,**禁 `Sim`**);
+④ **AC-44-13 出厂默认真源 = 烘焙数据**,`PlayerBusVolumeInitializer.FactoryDefaults` 改读它、
+   原 C# 常量降为回退。
+
+### 交付面(7 新 + 3 改)
+
+| 类别 | 文件 | 内容 |
+|---|---|---|
+| 新(数据) | `assets/data/audio_settings_registry.json` | 8 行闭枚举(`schema_version` / `_note` / `rows[]`) |
+| 新(生产) | `Gameplay.Presentation/Settings/SettingsValue.cs` | `SettingsValueKind` 闭集 + readonly struct(**无装箱**) |
+| 新(生产) | `Gameplay.Presentation/Settings/AudioSettingsRegistry.cs` | 注册表行 + `Provider` 缝 + `ParamNames` 转发 + `FallbackRows`(非真源) |
+| 新(生产) | `Gameplay.Presentation/Settings/AudioSettingsSidecar.cs` | 两文件 sidecar(自写行格式载荷 + 自写头部)· 读序 · 失配改名备份 `.bak-NNN` · FNV-1a 32 |
+| 新(生产) | `Gameplay.Presentation/Settings/VolumeUnitMapping.cs` | `LinearToDb` / `DbToLinear`(钳位;禁调用点自行 `Math.Log10`) |
+| 新(生产) | `Gameplay.Presentation/Settings/AudioSettingsStore.cs` | 真 store(持值 + 三步归零 + `ResetOutcome`)· `MixerPush` 注入缝 · **原子载入** |
+| 新(生产) | `Gameplay.Presentation/Settings/ISettingsStore.cs` | 设置 store 契约(**含归属诚实声明**) |
+| 新(构建期) | `Editor.Tools.Bake/AudioSettingsRegistryBinder.cs` | 阶段 2 绑定器:名字对账 / 值对账(双向)/ 域检查(聚合 throw) |
+| 新(构建期) | `Editor.Tools.Bake/AudioSettingsRegistryBake.cs` | 仓根装载器(binder 唯一调用点链路;不碰 `UnityEngine`) |
+| 改(生产) | `Gameplay.Presentation/Audio/MixerRegistry.cs` | `MonoParameter` + `SettingsVisibleParameters`(8 员;名字半边**单一出处**) |
+| 改(生产) | `Gameplay.Presentation/Audio/PlayerBusVolumeInitializer.cs` | `FactoryDefaults` 改读烘焙注册表(经 `VolumeUnitMapping`);原常量降回退 |
+| 改(测试) | `Tests/EditMode/Audio/settings_exposure_test.cs` | 11 → **31 测**;四处自造替身**全数删除** |
+
+### 修复的病灶(评审原件 §2.5 逐条)
+
+| 原假绿 | 判定 | S14-5 处置 |
+|---|---|---|
+| `settings_visible` 注册表生产侧不存在 | 🔴 | 落 JSON + `MixerRegistry.SettingsVisibleParameters` + 构建期 binder |
+| 注册表断言宾语 = 测试本地 8 元数组 | 🔴 | 改打 `MixerRegistry` + 烘焙 JSON |
+| **AC-44-13「出厂默认 ∈ 烘焙分区」被删空** | 🔴 | 恢复为真断言(两条) |
+| 归零三步测打自造 `FakeSettingsStore` / `FakeResetMechanism` | 🔴 | 改打 `AudioSettingsStore` + 真 sidecar |
+| `ISettingsStore` 全库无权威定义 | 🔴 | 落生产(文件头含归属诚实声明) |
+| 字幕键集测复刻生产判据 | 🟡 | 改打 `AudioEventTableGates.ValidateSubtitles` |
+| 字幕键集负例 = 本地字面量(恒真) | 🔴 | 改打仓库夹具 + 生产门 |
+| AC-44-15 [A]「含 48 口述」空真 | 🟢→空真 | 缺口哨兵 + NOT-RUN 登记(用户裁定 ②) |
+| 单位域无收口(float 0–1 vs dB −80–0) | 🟡 | `VolumeUnitMapping` 单点换算 |
+
+### 证伪轮 —— 12 例全红(停用生产码守卫 ⇒ 断言转红)
+
+| 例 | 停用的守卫 | 红数 |
+|---|---|---|
+| ① sig | `ComputeRegistrySignature` 恒返固定串 | 1 |
+| ② writestep | 归零第三步失败判定 | 1 |
+| ③ pushstep | 归零第二步缝缺失判定 | 1 |
+| ④ dbmap | `LinearToDb` 换算 → 直通 | 1 |
+| ⑤ eqfac | `EqualsFactoryDefaults` 值比较 | 2 |
+| ⑥ unknownkey | binder 未知键白名单 | 1 |
+| ⑦ name | binder 名字对账「缺员」半边 | 1 |
+| ⑧ value | binder 值对账 | 1 |
+| ⑨ range | binder 出厂默认区间检查 | 1 |
+| ⑩ trunc | store 半截载荷缺键判定 | 1 |
+| ⑪ mono | 回退 mono 行类型 `Bool` → `Float` | **5** |
+| ⑫ boolrange | binder bool 行禁区间检查 | 1 |
+
+**合计 17 条断言转红**;逐例输出见 `unity/Logs/s14-5-fz.xml` 与证据原件 §3。
+
+### 回归终值
+
+**`3572 / 3526 / 0 / 46`**(`unity/Logs/s14-5-final.xml`)—— 基线 S14-4 `3552 / 3506 / 0 / 46`
+⇒ **+20 / +20,零回归**(11 → 31 测)。`SettingsExposure` 过滤套件 = **31 / 31 / 0 / 0**。
+
+### ⚠️ 证伪轮抓到的三处缺陷(如实登记)
+
+1. **生产实现缺陷(第一轮之前由新测抓到)** —— `test_sidecar_truncatedPayload_rejected` 首跑转红:
+   `LoadFromSidecar` 原式先 `Clear` 再逐键写入 ⇒ 半截载荷**不回滚**。修:先校验后落值(原子)。
+2. **夹具判别力缺陷 ①(第一轮 0 红)** —— 签名测用**字面量**错签名 ⇒ 派生改成常量仍绿。
+   修:补 `test_sidecar_signature_isSensitiveToParamSet`。
+3. **夹具判别力缺陷 ⑦(第一轮 0 红)** —— 名字对账测被**值对账**报文满足 ⇒ 停用后仍绿。
+   修:`AnyError` 两段式重载,断言钉住 `名字对账` + `mono_enabled` 同条报文。
+
+> **登记理由**:本 sprint 内 **第四次**由证伪轮抓到撰写者自己的缺陷 —— 且**第一次连夹具本身**
+> 都被证伪轮抓出弱判别面。`story-done` 立此门的原因在此得到第二次实证。
+
+### NOT-RUN 如实登记(禁借绿)
+
+- **AC-44-15 [A]「含 48 口述」半边** —— NOT-RUN(缺口):48 的 4 支教学口述不在事件表、
+  前缀不匹配 ⇒ 生产门看不见。缺口哨兵钉住,48 契约落地后它会转红。
+- **mono 的运行期载体** —— 缺口:`.mixer` 的 `m_ExposedParameters` 恰 12 员,不含 `mono_enabled`;
+  其 mixer 侧映射是**尚未裁定的资产拓扑问题**(已就地登记)。
+- **AC-44-15 [L] 字幕听测签署**(WCAG 1.2.2)· **AC-44-12 [L] 人工走查** —— NOT-RUN(项目外部)。
+- **归零钮控件形态 / 焦点导航** —— 归 42 元件轮(OQ-SS-7=甲)。
+- **运行期装载面**(`Provider` 缝的实际注入)—— 归 story-010(S14-6)。
+- **IL2CPP 三格**(ADR-012)—— NOT-RUN:本机仅 Mono。
+
+### 登记项
+
+- **story-011 转 `Complete`** —— 归 **S14-7**(6 条复评批,`sprint-14.md` DoD)。
+- **`AudioSettingsRegistry.Provider` 的 Addressables 注入** —— 归 S14-6。
+- **`FallbackRows` 的最终退役** —— Provider 常驻后退居二线;退役时机归装配轮。

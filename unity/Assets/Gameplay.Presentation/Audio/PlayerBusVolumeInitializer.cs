@@ -12,11 +12,16 @@
 //    mixer 获取走 **③ 路(用户裁定)**:`MixerResolver` 缝由 Story 010 Addressables 装载面注入;
 //    未注入 = 静默让位(不硬找 Resources —— story 禁拷资产进 Resources;不挂场景 MonoBehaviour)。
 //    「存在调用点」由 mixer_asset_generator_test 反射断言。
-// ⚠️ 默认值(dB)**由调用方供给**(游戏数值不硬编码);P0 出厂 = `FactoryDefaults`(0 dB 种子,
-//    Story 011 设置 store 接管前的回退)。
+// ⚠️ 默认值(dB)**由调用方供给**(游戏数值不硬编码);P0 出厂 = `FactoryDefaults`
+//    —— ⚠️ **S14-5(story-011)起,`FactoryDefaults` 改读烘焙注册表**(AC-44-13「出厂默认入
+//    烘焙分区」),本类**不再自持任何数值常量**。旧形态 = 代码内 7×0f dB 常量(用户裁定
+//    「原 C# 常量降为回退」)⇒ 该常量的等价物现住
+//    `AudioSettingsRegistry.FallbackRows`(线性 1.0 = 0 dB 中性),由构建期 binder 与作者态
+//    JSON **双向对账**(两处不一致 = 构建失败)⇒ 回退不可能静默漂移。
 
 using System;
 using System.Collections.Generic;
+using DaYiJingCheng.Gameplay.Presentation.Settings;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -26,18 +31,28 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
     /// <c>SetFloat</c> 一次,把玩家参数从快照控制中摘除(两级组纪律的运行期半边)。</summary>
     public static class PlayerBusVolumeInitializer
     {
-        /// <summary>P0 出厂默认集(**种子值 0 dB = 中性,用户自己调**;Story 011 设置 store
-        /// 接管后,本集仅作「store 不可用」的回退)。键 = 注册表 7 员,值由本常量集中供给 ——
-        /// 初始化器逻辑内**零硬编码数值**。</summary>
+        /// <summary>P0 出厂默认集(**种子值 = 0 dB 中性,用户自己调**;Story 011 设置 store
+        /// 接管后,本集仅作「store 不可用」的回退)。
+        /// <para>⚠️ **真源 = 烘焙注册表**(AC-44-13):本属性从
+        /// <see cref="AudioSettingsRegistry.FactoryVolumeDefaults"/> 取**线性**默认值,
+        /// 经 <see cref="VolumeUnitMapping.LinearToDb"/> 换算成 dB —— 单位换算的单一出处在
+        /// <see cref="VolumeUnitMapping"/>,本类**不得**自行 <c>Math.Log10</c>。
+        /// 注册表不可用 ⇒ <see cref="AudioSettingsRegistry.FallbackRows"/>(与作者态 JSON 同值,
+        /// 由构建期 binder 对账)。本类**零硬编码数值**。</para></summary>
         public static readonly IReadOnlyList<KeyValuePair<string, float>> FactoryDefaults =
             BuildFactoryDefaults();
 
         private static IReadOnlyList<KeyValuePair<string, float>> BuildFactoryDefaults()
         {
-            var defaults = new List<KeyValuePair<string, float>>(
-                MixerRegistry.BusVolumeParameters.Count);
-            foreach (string parameter in MixerRegistry.BusVolumeParameters)
-                defaults.Add(new KeyValuePair<string, float>(parameter, 0f));
+            IReadOnlyList<KeyValuePair<string, double>> linearDefaults =
+                AudioSettingsRegistry.FactoryVolumeDefaults();
+            var defaults = new List<KeyValuePair<string, float>>(linearDefaults.Count);
+            for (int i = 0; i < linearDefaults.Count; i++)
+            {
+                defaults.Add(new KeyValuePair<string, float>(
+                    linearDefaults[i].Key,
+                    (float)VolumeUnitMapping.LinearToDb(linearDefaults[i].Value)));
+            }
             return defaults;
         }
 
