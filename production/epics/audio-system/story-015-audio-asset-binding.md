@@ -59,14 +59,26 @@ vo_patient_cough_damp_m1.wav
 
 *承 story 010 的 AC-44-D6;补「真素材检验」半边。*
 
-- [ ] **AC-44-D6b(新)**: `assets/data/audio_events.json` 引用的**全部 `.wav`** 在 `assets/audio/` 内**真实存在**;
+- [x] **AC-44-D6b(新)**: `assets/data/audio_events.json` 引用的**全部 `.wav`** 在 `assets/audio/` 内**真实存在**;
       存在性门须对**真素材**跑过一次(非仅夹具)—— 证据 = 一次真实烘焙 + 门通过的日志
-- [ ] **AC-44-D6c(新)**: 删除任一被引 `.wav` ⇒ **构建期硬失败**(`throw`,非 `Debug.Assert`,
+      ✅ **2026-10-17 落** —— 5 个真实内容 wav 落 `unity/Assets/Audio/`(替换 S14-6 占位静音);
+      `test_d6_realSeed_bakesWithNoMissingAsset` 打真种子 + 真根,**绿**;全量回归 `395/395/0`
+- [x] **AC-44-D6c(新)**: 删除任一被引 `.wav` ⇒ **构建期硬失败**(`throw`,非 `Debug.Assert`,
       非运行期 fallback 播空 cue)—— 这是 AC-44-D6 负向半的**真素材复验**,story 010 只验了夹具
-- [ ] **AC-44-D15(新)**: 5 个被引 `.wav` 全部落地 `assets/audio/`,且列入 Addressables
+      ✅ **2026-10-17 落** —— **证伪轮**:真删 `vo_patient_cough_damp_m1.wav`(表不动)⇒
+      `PipelineGateTest` **15 红/37 绿**,根因全为 `[D6·素材存在性]` 硬失败;还原 SHA-256 逐字节一致
+- [x] **AC-44-D15(新)**: 5 个被引 `.wav` 全部落地 `assets/audio/`,且列入 Addressables
       素材组(与 `data-core` 组区分,承 AC-44-D5);Import Load Type 按 `audio.md` 建议 pin
-- [ ] **AC-44-D16(新)**: `audio_events.json` ↔ `assets/audio/` 的**双向差集归零** ——
+      ✅ **2026-10-17 落** —— ① 组分离:`audio` 组 5 条,`data-core` 含 `Assets/Audio` 条目 **0**;
+      ② **Load Type 已 pin**(承 `OQ-44-2` 结案):`music_*` = `Streaming`(`loadType: 2`,
+      Unity 导入回写实测稳定),其余 4 个 = `DecompressOnLoad`(`0`,现值即正确);
+      判据可复算 = GDD §OQ-44-2 附
+- [x] **AC-44-D16(新)**: `audio_events.json` ↔ `assets/audio/` 的**双向差集归零** ——
       既无「被引但不存在」,也无「存在但未被引」(孤儿素材)
+      ✅ **2026-10-17 落** —— 实测:表引用 5 / 盘上 5 / 缺项 **0** / 孤儿 **0**
+
+> **证据原件**:`production/qa/evidence/impl-s15-asset-content-2026-10-17.md`
+> (§2 实测判据 · §3/§3.5 三轮证伪 · §3.6 Load Type 定档 · §4 欠账)
 
 ---
 

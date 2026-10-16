@@ -1190,7 +1190,7 @@ rank_key(source) = ( priority_class ASC,          // 上面四条的类序:自�
 | # | 问题 | 归属 | 建议解 |
 |---|------|------|--------|
 | **OQ-44-1** | 呼吸层三档差异**能否被听出来**(AC-44-02 的实测)? | 44 实现期 | spike:低/中/高三档盲听测试;失败则调 `TierMap` |
-| **OQ-44-2** | 变体库的**素材量**上限? | audio-director / content 批 | P0 先录最小可用集(每组合 ≥2),P1a 扩 |
+| ~~**OQ-44-2**~~ | ~~变体库的**素材量**上限?~~ | ~~audio-director / content 批~~ | ✅ **已裁 2026-10-17 用户 = 每组合 ≥2**(即「登记建议值」)。**P0 采集量 = 男/女 × 强/中/弱 × 2 = 12 个 `vo_` 文件**;句尾维度**不加**(P0 无消费场景,P1a 再议)。**连带裁定两项**:① **Import Load Type 定档** —— `music_*`(23.3160 s)= **Streaming**(`loadType: 2`,已落 `.meta`,Unity 导入回写稳定);`vo_*`(1.2480 / 1.5840 s)与 `sfx_breath_*`(1.9500 s)= **DecompressOnLoad**(`loadType: 0`,即现值)—— 判据见下 §OQ-44-2 附;② **PlayMode `loadState` 半边保留 NOT-RUN**,解除条件 = 12 个 vo_ 变体素材落地。⚠️ **本条只裁「量」与「档」** —— 12 个变体素材的**录制**仍待办(`tech-debt-register` 内容-02) | ✅ 已结(量 + 档) | 变体素材录制归 content 批 |
 | ~~**OQ-44-3**~~ | ~~单 `AudioListener` 在联机下的混音行为~~ | ~~44 实现期~~ | ✅ **已消解**(2026-09-18 裁定 D-A:前提为假,联机 = 各自设备各自 mixer;spike 不再需要) |
 | ~~**OQ-44-4**~~ | ~~音频事件表的 schema 细节~~ | ~~44 实现期~~ | ✅ **已升格**(2026-09-18:BLOCKING 门须有载体 → 定型为 §Event Table Schema 小节) |
 | **OQ-44-5** | `Unity 6 audio mixer improvements`(post-cutoff)**是否影响本设计**? | spike | `modules/audio.md:4` 自陈知识缺口 —— **实现期实测**;基础 API 长期稳定,接口层不受影响 |
@@ -1202,6 +1202,49 @@ rank_key(source) = ( priority_class ASC,          // 上面四条的类序:自�
 
 > **2026-09-18 修订**:`OQ-44-3` 消解(前提被证伪)、`OQ-44-4` 升格(Schema 定型)、
 > `OQ-44-8` 新增(锚点发布者,原缺口)。
+>
+> **2026-10-17 修订**:`OQ-44-2` 结案(素材量 = 每组合 ≥2;连带 Import Load Type 定档,见下附)。
+
+### §OQ-44-2 附 —— Import Load Type 定档判据(2026-10-17 · 可证伪)
+
+> **为何须附判据**:`docs/engine-reference/unity/modules/audio.md:213-222` 只给**语义**三档
+> (小 → `DecompressOnLoad` · 中 → `CompressedInMemory`(推荐)· 大 → `Streaming`),
+> **未给秒数 / 字节阈值**。⇒ 若照「感觉长度」定档,该裁定**不可证伪**。
+> 本节给一条**可复算**的判据,使档位可被第三方按同一命令复核。
+
+**判据(两条,须同时满足才升档)**:
+
+| 档位 | 判据 | 依据 |
+|---|---|---|
+| `DecompressOnLoad`(0) | **解码后驻留内存 ≤ 512 KB** 且 **时长 < 5 s** —— 小片段,一次性解压常驻,零运行期解码开销 | `audio.md:215`「loads fully into memory」 |
+| `CompressedInMemory`(1) | (512 KB, 4 MB] 或 [5 s, 30 s) | `audio.md:216`(推荐档) |
+| `Streaming`(2) | **> 4 MB** 或 **≥ 30 s** —— 长素材,须从盘流式读 | `audio.md:217`「streamed from disk」 |
+
+**解码后驻留估算** = `帧数 × 通道数 × (位深/8)`(未压缩 PCM 口径;`DecompressOnLoad` 即常驻此量)。
+
+**本次实测套用**(全 44.1 kHz / 16-bit / mono):
+
+| 文件 | 时长 | 解码后驻留 | 判定 | 现值 |
+|---|---|---|---|---|
+| `music_encounter_layer_loop.wav` | 23.3160 s | **2008 KB** | `< 30 s` **但 `> 512 KB`** ⇒ 中档 ∩ 大档边界?**按「大片段(music)」语义档 + 2008 KB 常驻代价,取 Streaming** | ✅ `2`(本次已改) |
+| `sfx_breath_base_loop_small.wav` | 1.9500 s | 168.0 KB | `≤ 512 KB` ∧ `< 5 s` ⇒ **小档** | ✅ `0`(现值即对) |
+| `sfx_breath_adventitious_fine.wav` | 1.9500 s | 168.0 KB | 同上 | ✅ `0` |
+| `vo_patient_cough_damp_f1.wav` | 1.5840 s | 136.5 KB | 同上 | ✅ `0` |
+| `vo_patient_cough_damp_m1.wav` | 1.2480 s | 107.6 KB | 同上 | ✅ `0` |
+
+⚠️ **`music_*` 的判定有一处口径张力(登记不隐藏)**:按**时长**(23.3 s < 30 s)它落在中档判据,
+按**驻留**(2008 KB > 512 KB)它超出小档 —— **两条判据在 512 KB–4 MB 区间重叠**。
+本次取 **Streaming**,理由有二:① `audio.md:217` 的语义档点名「大片段(**music**)」,本例是**唯一**
+的 Music 总线素材;② 乐层是 `loop: true` 的**长驻循环**,`Streaming` 避免 2008 KB 常驻。
+**该口径张力已登记** —— 若后续 Music 素材改短(如 < 5 s 的 stinger),须**重裁**本行。
+
+**验证命令**(可复现):
+```bash
+python3 -c "import wave,glob,os; [print(os.path.basename(p), round(wave.open(p).getnframes()/wave.open(p).getframerate(),4),'s', round(wave.open(p).getnframes()*2/1024,1),'KB') for p in sorted(glob.glob('unity/Assets/Audio/*.wav'))]"
+grep -o 'loadType: [0-9]*' unity/Assets/Audio/*.wav.meta
+```
+**枚举真值来源**:`monodis` 反汇编 `UnityEngine.AudioModule.dll` 实测
+(`DecompressOnLoad=0` · `CompressedInMemory=1` · `Streaming=2`),**非记忆**。
 
 ### 已结案(留档,不再追踪)
 

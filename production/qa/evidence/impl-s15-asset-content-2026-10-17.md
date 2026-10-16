@@ -182,7 +182,13 @@ restored (wav)   : 4b8e91447b7c4f1034077b350d07b87732beeb229f18e915410b47c48e6db
 restored (meta)  : c9a8b74e1ea7c27b1b49f0199c5861b15a4c5d75f892fe5f8ebc1599f4e55595   ✅
 wav count back to: 5
 ```
-**工作树复核**:`git status --porcelain unity/Assets/Audio/` = 仅 5 个预期 `M`,**零证伪残留**。
+**工作树复核**:`git status --porcelain unity/Assets/Audio/` = 仅 5 个预期 `M`。
+
+> ⚠️ **2026-10-17 更正:本句原写「零证伪残留」—— 该声称当时不成立。**
+> 本次校验集只含 `.wav` + `.wav.meta`,**漏了 `unity/Assets/AddressableAssetsData/AssetGroups/audio.asset`** ——
+> 真删资产触发 Unity 的 Addressables 自动维护,该组由 5 条变 **4 条**。
+> 该目录在 `.gitignore:85` 被**整目录忽略** ⇒ `git status` **不提示**。
+> **实际泄漏与修复全过程见 §3.5.4**。此处原文保留不改写,加本声明(承 ADR-015 修订 ADR-009 §四 先例)。
 
 **结果 XML**:`unity/Logs/s15-fz.xml`(70193 B)· **日志**:`unity/Logs/s15-fz.log`
 (Unity 退出码 `2`为 batch 模式退出码,**不作判据** —— 判据是 XML 的 `failed` 计数)
@@ -201,38 +207,132 @@ wav count back to: 5
 | **②** | `Missing` 的**保序去重** | `AudioAssetExistence.cs:70-75` | 删去 `if (!seen.Add(name)) continue;` 一行(去重失效,保序保留) |
 | **③** | `ValidateEntries` 的 **`data-core` 不相交判据** | `AudioAssetGroupGates.cs` (a) 半边 | `if (inDataCore)` → `if (false && inDataCore)`(判据停用,消息保留) |
 
-### §3.5.2 反证结果 —— **3 红 / 49 绿**(`failed="3"`)
+### §3.5.2 反证结果 —— **2 红 / 50 绿**(重做后 · 干净组状态)
+
+> ⚠️ **本节为**首轮判读错误后的**重做件** —— 首轮曾误报 3 红(其中 1 条归因错误)。
+> 错误根因与修正过程见 **§3.5.4**。
 
 ```
-total="52" passed="49" failed="3" inconclusive="0" skipped="0"   (result="Failed(Child)")
+total="52" passed="50" failed="2" inconclusive="0" skipped="0"   (result="Failed(Child)")
 ```
 
 | 变异 | 转红夹具 | 实测失败消息(关键片段) |
 |---|---|---|
 | **②** | `test_d6_missing_isOrderPreservingAndDeduped` | `Expected is String[2], actual is List<String> with 3 elements … Extra: "b.wav"` ⇒ **重复项未被去除,精准命中去重语义** |
 | **③** | `test_d5_pure_audioAssetInDataCoreGroup_rejected` | `Expected: String containing "data-core" \| But was: "[D5] 音频素材「…」未登记进任何 Addressables 组…"` ⇒ 报的是**另一条**消息,(a) 半边确被停用 |
-| **③**(连带) | `test_d5_realSettings_audioAssetsSeparateFromDataCore` | 真设置读取路径**同样**依赖 (a) 半边 ⇒ 一并转红 |
 
-### §3.5.3 判读
+**应绿仍绿的两条(逐条说明,不是假绿)**:
 
-**① 两处守卫的判别力均已证实。** 断言**必须**转红且**确实**转红 ⇒ 非假绿。
+| 夹具 | 变异 ③ 下 | 说明 |
+|---|---|---|
+| `test_d5_pure_strayAudioEntryInDataCore_rejected` | 🟢 绿 | `ValidateEntries` 的 (a)/(b) 是**互为冗余的两条独立判据**(源码注释自陈);停 (a) 后 **(b) 仍生效** ⇒ 该测由 (b) 满足。⇒ **反向印证**「互为冗余」属实 |
+| `test_d5_realSettings_audioAssetsSeparateFromDataCore` | 🟢 绿 | 首轮它**红**,是**环境污染**非变异 —— 见 §3.5.4(A)(B) |
 
-**② 一处「应红未红」的澄清(登记不隐藏)。**
-变异 ③ 下 `test_d5_pure_strayAudioEntryInDataCore_rejected` **保持绿** ——
-**这是正确的,不是假绿**:`ValidateEntries` 的 (a) 与 (b) 是**互为冗余的两条独立判据**
-(源码注释自陈),我停用的是 (a),**(b) 仍生效** ⇒ 该测的判据面由 (b) 满足。
-⇒ 本现象**反向印证**了「互为冗余」的自陈属实。
+**结果 XML**:`unity/Logs/s15-fz3.xml` · **日志**:`unity/Logs/s15-fz3.log`
 
-**③ 还原纪律 ✅**(同 §3.4 口径):改 / 跑 / 还原**在同一 Bash 调用内**完成。
+### §3.5.3 还原纪律 ✅(源码 **+ 组数据** 双校验)
+
+改 / 跑 / 还原**在同一 Bash 调用内**完成。
 ```
-orig d6 sha : 6778975af35467b0a33d001537006c491f4b0fd741a9d0a47294c1d5aa031abe
-orig d5 sha : b854b4cfa7a1f92daa087fa454ad91873c2dd30ed4bda632d2ad657826435e7c
-restored d6 : 6778975af35467b0a33d001537006c491f4b0fd741a9d0a47294c1d5aa031abe   ✅
-restored d5 : b854b4cfa7a1f92daa087fa454ad91873c2dd30ed4bda632d2ad657826435e7c   ✅
+orig     d5 src sha : b854b4cfa7a1f92daa087fa454ad91873c2dd30ed4bda632d2ad657826435e7c
+orig  audio.asset   : 2f380c6b0704df4c21a6084cae8af497069c021657d5a56a58899de94a74d3dc (5 条)
+restored d5 src     : b854b4cfa7a1f92daa087fa454ad91873c2dd30ed4bda632d2ad657826435e7c   ✅
+restored audio.asset: 2f380c6b0704df4c21a6084cae8af497069c021657d5a56a58899de94a74d3dc (5 条)   ✅
 ```
-**工作树复核**:两文件 `git diff` 为空,**零证伪残留**。
+⚠️ **本次校验集含 `audio.asset`** —— 首轮漏检该项,见 §3.5.4(C)。
 
-**结果 XML**:`unity/Logs/s15-fz2.xml` · **日志**:`unity/Logs/s15-fz2.log`
+### §3.5.4 ⚠️ 首轮判读错误 + 证伪手法缺陷(登记不隐藏)
+
+**这是本件最重要的一处自我更正。**
+
+**(A) 首轮误报:3 红 → 实为 2 红。**
+首轮(`s15-fz2.xml`)报 3 红,含 `test_d5_realSettings_audioAssetsSeparateFromDataCore`。
+我将其归因为「变异 ③ 的连带」—— **该归因错误**:
+我停用的是 `inDataCore` 分支,而该测试当时报的是 **`owner == null`** 分支
+(**那条分支我根本没改**)⇒ 它的红**不可能**由该变异造成。
+
+**(B) 真正的红源:证伪轮一(§3.3)的副作用泄漏。**
+证伪轮一真删 `vo_patient_cough_damp_m1.wav` 后启动 Unity,
+**Addressables 检测到资产不存在,自动把该条目从组里移除** ——
+`audio.asset` 由 5 条变 **4 条**(文件时间戳 `10月17 01:34` = 证伪轮一执行时刻)。
+我随后 `cp` 还原了 `.wav` 与 `.wav.meta`,**但 `audio.asset` 已被 Unity 改写**。
+
+**(C) 为何当时未发现:「零残留」的校验集不完整。**
+§3.4 声称的「零证伪残留」只校验了 `.wav` + `.wav.meta` 的 SHA-256。
+`unity/Assets/AddressableAssetsData/` 在 `.gitignore:85` 被**整目录忽略**
+⇒ `git status` **不会**提示它变了。**两重盲区叠加 ⇒ 泄漏不可见。**
+
+**(D) 泄漏的实际影响(已修复 + 已验证)。**
+
+| 项 | 影响 |
+|---|---|
+| fz2 的判读 | ❌ **被污染** ⇒ 已重做(§3.5.2) |
+| 证伪轮一(§3.3)的结论 | ✅ **未污染** —— 其 15 红中**无一条** `test_d5_*` ⇒「D6 存在性门硬失败」的判读**仍然成立** |
+| 修复 | 跑**生产菜单项** `DataBakeMenu.EnsureAudioGroup`(幂等补齐)⇒ `[大医精诚] audio 组就绪:5 个素材已入组并打标签` |
+| 修复后回归 | ✅ **`395/395/0`**(`unity/Logs/s15-final.xml`) |
+
+**(E) 手法教训(须用于后续证伪轮)。**
+⚠️ **「真删工程内资产」这一变异手法会触发 Unity 的资产维护,污染机器本地产物**
+(`AddressableAssetsData` 等)。⇒ 后续此类证伪:
+① **校验集须包含**被引擎间接改写的产物;
+② 或改用**不触碰真实资产**的变异(如注入假根 —— 既有夹具已是此形,`test_d6_missingAsset_*` 即如此)。
+⚠️ **本条不改变 AC-44-D6c 的结论**(硬失败语义已由 15 红证实),**只更正过程记录**。
+
+---
+
+## §3.6 AC-44-D15 Load Type 定档 —— `OQ-44-2` 结案的兑现(2026-10-17)
+
+### §3.6.1 枚举真值(反汇编实测,非记忆)
+
+```bash
+monodis --output=/tmp/audio_il.txt \
+  /home/gu/Unity/Hub/Editor/6000.3.24f1/Editor/Data/Managed/UnityEngine/UnityEngine.AudioModule.dll
+```
+实测输出:
+```
+.class public auto ansi sealed AudioClipLoadType
+  .field public static literal valuetype UnityEngine.AudioClipLoadType DecompressOnLoad   = int32(0x00000000)
+  .field public static literal valuetype UnityEngine.AudioClipLoadType CompressedInMemory = int32(0x00000001)
+  .field public static literal valuetype UnityEngine.AudioClipLoadType Streaming          = int32(0x00000002)
+```
+
+### §3.6.2 改动(单一 diff 行)
+
+```
+unity/Assets/Audio/music_encounter_layer_loop.wav.meta
+8c8
+<     loadType: 0
+---
+>     loadType: 2
+```
+⚠️ **过程中我一度越权改了 `compressionFormat`(1 → 0),已立即回退** ——
+裁定只授权改 Load Type。最终 diff **仅一行**,已核。
+其余 4 个 `.meta` **一字未动**(`vo_*` ×2 · `sfx_breath_*` ×2 保持 `loadType: 0`)。
+
+### §3.6.3 判据(GDD §OQ-44-2 附的落地)
+
+`audio.md:213-222` 只给语义三档、**无秒数阈值** ⇒ 自建可复算判据:
+**驻留 = `帧数 × 声道 × 位深/8`**;`≤ 512 KB ∧ 时长 < 5 s` ⇒ `DecompressOnLoad`。
+
+| 文件 | 时长 | 驻留 | 判定 | `.meta` |
+|---|---|---|---|---|
+| `music_encounter_layer_loop.wav` | 23.3160 s | **2008.3 KB** | Streaming(语义档点名 music + loop 长驻) | **2** ✅ |
+| `sfx_breath_base_loop_small.wav` | 1.9500 s | 168.0 KB | DecompressOnLoad | 0 ✅ |
+| `sfx_breath_adventitious_fine.wav` | 1.9500 s | 168.0 KB | DecompressOnLoad | 0 ✅ |
+| `vo_patient_cough_damp_f1.wav` | 1.5840 s | 136.5 KB | DecompressOnLoad | 0 ✅ |
+| `vo_patient_cough_damp_m1.wav` | 1.2480 s | 107.6 KB | DecompressOnLoad | 0 ✅ |
+
+### §3.6.4 Unity 是否接受该 `.meta`(覆盖风险实测)
+
+`File.Exists` 式的「改了就算」**不算验证** —— `.meta` 由导入器持有,手改可能被回写覆盖。
+实跑一次 batch 导入验证:
+```
+导入前 .meta sha : 9f982f2764520da1796bbdc0766db8ef873dbb806fe24e5ba9395b8c92dc0755
+导入后 .meta sha : 9f982f2764520da1796bbdc0766db8ef873dbb806fe24e5ba9395b8c92dc0755   ✅ 未变
+grep loadType    : loadType: 2
+```
+⇒ **设置被引擎接受,未被覆盖**。
+**日志**:`unity/Logs/s15-import.log`
 
 ---
 
@@ -240,9 +340,9 @@ restored d5 : b854b4cfa7a1f92daa087fa454ad91873c2dd30ed4bda632d2ad657826435e7c  
 
 | # | 项 | 状态 | 说明 |
 |---|---|---|---|
-| **①** | **Import Load Type 未 pin** | ⚠️ **KNOWN-GAP**(本件**刻意未修**) | 5 个 `.wav.meta` 全部 `loadType: 0`(= `DecompressOnLoad`,Unity 默认)。按 `docs/engine-reference/unity/modules/audio.md:213-222`,**`music_encounter_layer_loop.wav`(23.3 s)应为 `Streaming`** ⇒ `docs/tech-debt-register.md:104`(内容-01)已自陈「**已错**」。呼吸 / 语声族档位**取决于最终片段长度**(`OQ-44-2` 素材量未裁)⇒ **不能预先定稿**。**未在本件覆盖 `.meta`** —— 覆盖 Unity 导入器状态会产生机器本地漂移,且档位迟早要随素材量重裁 |
+| **①** | **Import Load Type pin** | ✅ **已定档(2026-10-17)** | 承 `OQ-44-2` 结案。`music_encounter_layer_loop.wav` `.meta` 由 `loadType: 0` 改 **`2`(Streaming)**(diff 仅此一行);其余 4 个保持 `0`(`DecompressOnLoad`,现值即正确档)。**判据可复算** = GDD `audio-system.md` §OQ-44-2 附(驻留 ≤ 512 KB ∧ 时长 < 5 s ⇒ 小档)。**Unity 导入回写实测**:batch 导入后 `.meta` SHA-256 不变 ⇒ **设置被引擎接受,未被覆盖**。⚠️ 残留口径张力:`music_*` 按时长(23.3 s)属中档判据、按驻留(2008 KB)超出小档 ⇒ 已在附节登记「Music 素材改短须重裁」 |
 | **②** | **`AudioAssetExistence.Missing` 的保序去重语义未反证** | ✅ **已反证(2026-10-17)** | 见 §3.5 —— 停用 `seen.Add` 去重 ⇒ `test_d6_missing_isOrderPreservingAndDeduped` **转红** |
-| **③** | **`AudioAssetGroupGates.ValidateEntries` 的 `data-core` 不相交判据未反证** | ✅ **已反证(2026-10-17)** | 见 §3.5 —— 停用 `inDataCore` 判据 ⇒ `test_d5_pure_audioAssetInDataCoreGroup_rejected` + `test_d5_realSettings_audioAssetsSeparateFromDataCore` **转红** |
+| **③** | **`AudioAssetGroupGates.ValidateEntries` 的 `data-core` 不相交判据未反证** | ✅ **已反证(2026-10-17)** | 见 §3.5 —— 停用 `inDataCore` 判据 ⇒ `test_d5_pure_audioAssetInDataCoreGroup_rejected` **转红**(首轮误报的连带红已更正,见 §3.5.4) |
 | **④** | **四项听测** | ✅ **已跑(2026-10-17 用户签核)** | 见 §4.1 —— 四项均由**用户**试听判定;本题**不自行**判定音频内容 |
 | **⑤** | **真 `AudioClip.loadState` 的 PlayMode 半边** | ❌ **NOT-RUN(承 S14-6 裁定 ③)** | 缺口哨兵 `test_preload_realAudioClipLoadState_pendingPlayModeHalf` 已钉;**素材落地后须重新裁定**,不得当回归修掉 |
 | **⑥** | **IL2CPP 三格矩阵**(ADR-012) | ❌ **NOT-RUN** | 本机仅 Mono |
@@ -343,12 +443,13 @@ cp -f "$V" /tmp/bak.wav && cp -f "$V.meta" /tmp/bak.wav.meta \
 | **AC-44-D15 组分离** | ✅ **成立** |
 | **AC-44-D6b 真实存在** | ✅ **成立** |
 | **AC-44-D6c 硬失败 + 判别力** | ✅ **成立**(真素材复验,反证 15 红,还原逐字节校验) |
-| **未反证守卫 ②③ 补反证** | ✅ **两处均转红**(§3.5,反证 3 红) |
-| **AC-44-D15 Load Type pin** | 🔴 **未做**(§4 ①,归内容批 `OQ-44-2`) |
+| **未反证守卫 ②③ 补反证** | ✅ **两处均转红**(§3.5,反证 **2 红**;首轮误报 3 红已更正 §3.5.4) |
+| **证伪轮副作用泄漏** | ⚠️ **已发生 + 已修复 + 已登记**(§3.5.4)—— `audio.asset` 曾 5→4 条,已由 `EnsureAudioGroup` 补齐并回归验证 |
+| **AC-44-D15 Load Type pin** | ✅ **已完成**(§4 ①,2026-10-17 承 `OQ-44-2`) |
 | **四项听测** | ✅ **用户签核无问题**(§4.1) |
 | **全量回归** | ✅ **395/395/0**(`PipelineGateTest` 52/52) |
-| **story-015 状态** | ⬜ **仍 `Ready`** —— **不得**转 `Complete`(AC-44-D15 子句未满足) |
+| **story-015 状态** | ⬜ **仍 `Ready`** —— 四条 AC 判据已**全部落地**;转 `Complete` 须经 `/story-done` 流程 |
 
 **未反证守卫:0 处**(§4 ②③ 已于 2026-10-17 补反证转红)。
-**未跑项 3 类**:§4 ①(Load Type pin)· ⑤(PlayMode `loadState` 半边)· ⑥(IL2CPP 三格)。
+**未跑项 2 类**:§4 ⑤(PlayMode `loadState` 半边,解除条件 = 12 个 vo_ 变体落地)· ⑥(IL2CPP 三格)。
 **本件不声称已复核全部 AC 的可判性。**
