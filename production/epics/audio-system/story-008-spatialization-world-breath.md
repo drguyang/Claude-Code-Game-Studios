@@ -1,7 +1,7 @@
 # Story 008: 空间化与世界语境呼吸
 
 > **Epic**: 音频系统
-> **Status**: In Review
+> **Status**: Complete ✅ 2026-10-16(S14-7 复评结案 —— 假绿撤回 → S14-1 生产实现 + 证伪轮全红 → 本节复评转正)
 > **Layer**: Foundation(系统分类;实现落表现层 L5)
 > **Type**: Integration
 > **Estimate**: 5h
@@ -39,11 +39,11 @@
 
 *From GDD `design/gdd/audio-system.md`, scoped to this story:*
 
-- [ ] **AC-44-D2**:`AudioCueDto.Cell`(整数格)→ 表现层换算 float;**禁从 float 反推逻辑格**(反射断言:无返回 `WorldPos` 且参数含 float/Vector3 的方法)。
-- [ ] **AC-44-D3**:音频空间化不写 sim、不回写三流(与 B1 IL 扫描合并断言,防双账)。
-- [ ] **AC-44-D8**:① 遮挡输入(= 44 表现层 raycast 结果)为真 ⇒ 逐源 `AudioLowPassFilter` 施加低通且 cutoff > 0(**穿门 ≠ 静音**);② 同 cell N 病人 = **N 条独立 `AudioSource`**(实例数断言 = N,不合并);增益序由 `rank_key`(class → distance → cell_jitter → CueId)确定性给出。
-- [ ] **AC-44-16**:事件表存在世界语境呼吸行(`bus` ∈ Ambience 世界语境子通道,含 min/max_distance 与 occlusion 参数);行缺失 / bus 不符 = 构建失败(**堵 AC-D8 预设式条件空真通过** —— 主通道接线断言)。
-- [ ] **优先级公式**(§Visual/Audio 多声源混合规则):`rank_key` 实现 + 「赢」= 抢占序与 `DUCK_DEPTH_DB` 深度(只压不丢)+ 重算只在声源生灭时(防抖动)+ `bus ≠ 优先级类别`(世界呼吸走 Ambience 但属生理声类)。
+- [x] **AC-44-D2**:`AudioCueDto.Cell`(整数格)→ 表现层换算 float;**禁从 float 反推逻辑格**(反射断言:无返回 `WorldPos` 且参数含 float/Vector3 的方法)。— **S14-1 落**:`LatticeToWorld.ToWorld`(整数格 → float **唯一单向入口**,格边长走参入);`test_latticeToWorld_nonPositiveSize_rejected`(证伪例 F7:停用比例校验 ⇒ 该测红)。
+- [x] **AC-44-D3**:音频空间化不写 sim、不回写三流(与 B1 IL 扫描合并断言,防双账)。— **S14-1 落**:六类生产类全在 `Gameplay.Presentation`(b4 字段白名单断言)+ `CellJitter` 只叠渲染坐标、永不回写;b3/b4 门(`assembly_boundary_test`)覆盖。
+- [x] **AC-44-D8**:① 遮挡输入(= 44 表现层 raycast 结果)为真 ⇒ 逐源 `AudioLowPassFilter` 施加低通且 cutoff > 0(**穿门 ≠ 静音**);② 同 cell N 病人 = **N 条独立 `AudioSource`**(实例数断言 = N,不合并);增益序由 `rank_key`(class → distance → cell_jitter → CueId)确定性给出。— **S14-1 落**:① `OcclusionDriver`;② `AudioSourcePool`(真 `AudioSource`;**`FakeSourcePool` 已删**);序由 `RankKeyComputer`。证伪:F1(停用 actorId 独立键 ⇒ **3 红**,含 `test_sourcePool_sameCell_nSourcesNotMerged`)· F2(cutoff≤0 判据取反 ⇒ 3 红)· F3(`Invalidate` 置空 ⇒ 2 红)· F5(distance 键移除 ⇒ 1 红)· F6(池 root 归属停用 ⇒ 1 红)。
+- [x] **AC-44-16**:事件表存在世界语境呼吸行(`bus` ∈ Ambience 世界语境子通道,含 min/max_distance 与 occlusion 参数);行缺失 / bus 不符 = 构建失败(**堵 AC-D8 预设式条件空真通过** —— 主通道接线断言)。— **S14-1 落**:`AudioEventTableGates.ValidateWorldBreathRow`(bus 断言 + 三参数键存在性);证伪 F4(停用 bus 比对 ⇒ `test_eventTable_worldBreathRow_wrongBus_red` 红)· F8(停用参数键存在性 ⇒ `test_eventTable_worldBreathRow_missingParam_red` 红)。
+- [x] **优先级公式**(§Visual/Audio 多声源混合规则):`rank_key` 实现 + 「赢」= 抢占序与 `DUCK_DEPTH_DB` 深度(只压不丢)+ 重算只在声源生灭时(防抖动)+ `bus ≠ 优先级类别`(世界呼吸走 Ambience 但属生理声类)。— **S14-1 落**:`RankKeyComputer`(四键全序 `priority_class → distance → cell_jitter → CueId` + 显式 `Invalidate`,重算只在声源生灭);`test_rankKey_distanceDominatesCellJitter`(证伪 F5:停用 distance 键 ⇒ 红)· `test_rankKey_invalidateForcesRecalc`(证伪 F3:停用 `Invalidate` ⇒ 红)。⚠️ **`DUCK_DEPTH_DB` 的「只压不丢」深度半边 = 缺口**(本类只出抢占序,不持深度值 —— 深度归数值轮 / 混音装配)。
 
 ---
 
@@ -82,7 +82,7 @@
 **Required evidence**:
 - `tests/unit/audio_system/spatialization_test.cs` — must exist and pass
 
-**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Audio/spatialization_test.cs`(20 测);账本互链 `tests/unit/audio_system/README.md`
+**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Audio/spatialization_test.cs`(**28 测**;S14-1 由 20 扩);账本互链 `tests/unit/audio_system/README.md`
 
 ---
 
@@ -114,7 +114,68 @@
 - 缺 AudioSource 组件 pin 断言(spatialBlend/rolloff/dopplerLevel)。
 - 事件表测试未验证 `occlusion_lowpass` 值 > 0 / `loop: true`。
 
-**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Audio/spatialization_test.cs`(**20 测全过**);全量 EditMode **1122/1122 Passed · 0 红 · 0 跳过**(`unity/Logs/s008-full.xml`)
+**Test Evidence**: 真身 `unity/Assets/Tests/EditMode/Audio/spatialization_test.cs`(**28 测全过**;S14-1 由 20 扩)—— ⚠️ 上行「20 测全过 / 1122/1122」是 **2026-09-28 首轮**(假绿轮)的陈述,现行回归见 `## Completion Notes §S14-1`。
 **Code Review**: Complete —— 双评审并行 + B1-B4 修复 + 复验;review mode = lean。
 **ADR Compliance**: ADR-028(声源池归属:44 拥有池/零场景预摆/位置只读/生命周期 cue 驱动)· ADR-015 §三(整数格)· ADR-018 §二(禁反推)· ADR-001 §一之二(IPositionalChannel 只读)。COMPLIANT。
 **Tech Debt**: 未立文件;上述 NICE 5 项已分处登记(本 notes · story Known Risks · 账本)。
+
+---
+
+## Completion Notes §S14-1(2026-10-16 · 生产实现轮)
+
+> **本节的判据 = 变异测试**(停用生产码守卫 ⇒ 断言转红),**不是**「测试名 + 行号」——
+> 承 `sprint-14.md` Risks 第 3 条与 retro-13 行动项 2。
+> **证据原件**:`production/qa/evidence/impl-s14-1-spatialization-2026-10-16.md`。
+
+### 病灶(评审原件 §2.2 —— 本批最重:20 测中 🟢 真 0 · 🟡 半真 4 · 🔴 假 16)
+
+| 原假绿 | 判定 | S14-1 处置 |
+|---|---|---|
+| 声称的生产类(`LatticeToWorld` / cell_jitter / rank_key / 声源池 / 遮挡驱动器)**不存在** | 🔴 | 六类真生产类落 `Gameplay.Presentation/Audio/` |
+| `FakeSourcePool` 内部**零 `AudioSource`**(而 AC-44-D8 ② 判据逐字是「N 条独立 `AudioSource`」) | 🔴 | `AudioSourcePool` 持真 `AudioSource`;`FakeSourcePool` **删除** |
+| 测试自持谓词面(`FakeOcclusionDriver` / `FakeLattice` / 自写 `RankKeyComputer`) | 🔴 | 全部删除;断言宾语换真生产类 |
+| AC-44-16 的「bus ∈ Ambience = 构建失败」真门半边**缺失**(`grep Ambience` 零命中) | 🔴 | `AudioEventTableGates.ValidateWorldBreathRow`(bus 断言 + 三参数键存在性) |
+| `LatticeToWorld` 格边长若在 44 自造常量 = 第二真源(违 ADR-024 §⑥) | 🟡 | 格边长**走参入**;`LATTICE_SIZE` 归系统 6;非正 ⇒ 抛 |
+| b3 入口门:`Int3` 出现在 44 公开签名 + 非 AC 要求的 `ILowPassTarget` 接口 | 🟡 | 三轴 `int` 承载(照 `PatientCueEmit.Emit` 先例);`ILowPassTarget` **整个删除** |
+
+### 交付面(6 新生产 + 1 改门 + 2 改测试)
+
+`LatticeToWorld` · `CellJitter` · `RankKeyComputer` · `AudioSourcePool` · `OcclusionDriver` ·
+`SpatializationDirector` · `AudioEventTableGates.ValidateWorldBreathRow` ·
+`spatialization_test.cs`(Fake 全删,**20 → 28 测**)· `assembly_boundary_test.cs`(b3 白名单)。
+
+### 证伪轮 —— 8 例(**补做**,2026-10-16;原 commit `a2c6bd6` 自述的证伪轮**未持久化**)
+
+> ⚠️ **本件为补做,评的是当下代码,不追认原 commit message 的自我判定**
+> (承 `.claude/docs/coding-standards.md` §Review Evidence Standards「commit message 摘要不构成原件」)。
+
+| 例 | 停用的守卫 | 转红断言 | 红数 |
+|---|---|---|---|
+| F1 | 池 actorId 独立键(全并入 key 0) | `sourcePool_sameCell_nSourcesNotMerged` · `sourcePool_release_reusable` · `spatializationDirector_endToEnd` | **3** |
+| F2 | `OcclusionDriver` cutoff≤0 拒绝判据取反 | `occlusionDriver_zeroCutoff_rejected` · `occlusionDriver_occluded_lowpassPositive` · `spatializationDirector_endToEnd` | **3** |
+| F3 | `RankKeyComputer.Invalidate()` 置空 | `rankKey_invalidateForcesRecalc` · `spatializationDirector_endToEnd` | **2** |
+| F4 | AC-44-16 bus 判据停用 | `eventTable_worldBreathRow_wrongBus_red` | 1 |
+| F5 | `rank_key` distance 键移除 | `rankKey_distanceDominatesCellJitter` | 1 |
+| F6 | 池 root 不持有子源 | `sourcePool_sourcesParentedUnderPoolRoot` | 1 |
+| F7 | `LatticeToWorld` 比例校验停用 | `latticeToWorld_nonPositiveSize_rejected` | 1 |
+| F8 | AC-44-16 参数键存在性断言停用 | `eventTable_worldBreathRow_missingParam_red` | 1 |
+
+**合计 15 条断言转红**;逐例「改 → 跑 → 还原」在同一命令内完成,SHA-256 逐字节还原一致。
+脚本 `/tmp/fz_s141.py` · 结果 `unity/Logs/s14-1-fz.xml`。
+
+⚠️ **sprint-14 具名判据核对**:AC ③ 逐字要求「停用池 ⇒ **≥3** 测红」→ 实测 F1 = **3 红,
+恰好达线,裕度 = 0**(登记为薄弱裕度)。
+
+### 回归终值
+
+**`3523 / 3477 / 0 / 46`**(`unity/Logs/s14-1-full.xml`)—— 基线 S14-0 `3515 / 3469 / 0 / 46`
+⇒ **+8 / +8,零回归**(20 → 28 测)。
+
+### NOT-RUN 如实登记(禁借绿)
+
+- **`AudioSource` 组件三件套 pin**(`spatialBlend` / Logarithmic rolloff + min/max / `dopplerLevel = 0`)—— NOT-RUN:归装配轮。
+- **真实遮挡 raycast** —— NOT-RUN:本类**只消费**判定结果(bool),raycast 需物理场景。
+- **真 `AudioClip` / `AudioSource` 的运行期可听性** —— NOT-RUN:素材未定稿(内容批 `OQ-44-2`)。
+- **`d = 0` / 听者同格边界例** —— 缺口(公式零除式 ⇒ 无 NaN 路径,但边界例未钉)。
+- **事件表 `occlusion_lowpass` 值 > 0 / `loop: true` 的值域断言** —— 缺口:门只断**键存在性**。
+- **IL2CPP 三格**(ADR-012)—— NOT-RUN:本机仅 Mono。
