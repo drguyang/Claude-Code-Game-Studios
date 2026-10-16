@@ -3,7 +3,7 @@
 > **Layer**: Foundation
 > **GDD**: design/gdd/audio-system.md
 > **Architecture Module**: L5 Presentation(PRES)+ L3 契约程序集(`Sim.Contracts`: `AudioCueDto` / `IAudioCueSink`)
-> **Status**: **001–015 全 `Complete`** · **016 = Blocked 🔴**(BLOCKED-BY:**素材产出批次**)· **⚠️ 本 epic 尚未收口**
+> **Status**: **001–015 全 `Complete`** · **016 = Blocked 🔴**(BLOCKED-BY:**素材产出批次**)· **017 = Ready ⬜**(门加固 —— **不依赖素材**,可即刻开工)· **⚠️ 本 epic 尚未收口**
 > (015 = 5 个被引 `.wav` 的真实内容落地 —— ✅ **2026-10-17 已落**;016 = 余 7 项源音覆盖 —— 🔴 **阻塞于素材**)
 > **收口口径(2026-10-17 用户裁定)**:**待素材接入、016 收口后,再行收口本 epic** —— 在此之前
 > 不得以「001–015 全 Complete」推定为 epic 已闭。
@@ -97,7 +97,7 @@
 > `production/qa/evidence/prescription-medication/story-005-ac11-12-13-21-signoff.md`)。
 > **本条不声称已复核其余音频 AC 的可判性** —— 只覆盖走查实测命中的「链路未通」这一事实。
 >
-> **Stories**: 16 created(13 on 2026-09-26 `/create-stories` + **014 on 2026-09-27 用户裁定**:tier 滤波载体缺口独立成 story + **015 on 2026-10-03** 素材本体缺口 + **016 on 2026-10-04** R-2 归属闭合缺口)
+> **Stories**: 17 created(13 on 2026-09-26 `/create-stories` + **014 on 2026-09-27 用户裁定**:tier 滤波载体缺口独立成 story + **015 on 2026-10-03** 素材本体缺口 + **016 on 2026-10-04** R-2 归属闭合缺口 + **017 on 2026-10-17 用户裁定**:story-015 代码评审 W-2/W-3 加固件)
 
 ## Stories
 
@@ -119,6 +119,7 @@
 | 014 | tier 滤波载体与 mixer 暴露参数 | Integration | **Complete ✅ 2026-09-27**(5/5 · 11 测 · 审查 7 修复验 872/872) | ADR-018 §四 需求③ |
 | 015 | 音频资产接入(5 个被引 `.wav` 落地 · 存在性门真素材复验 · 缺失⇒构建期硬失败) | Integration | **Complete ✅ 2026-10-17**(4/4 · **52 测** · 证伪 3 例全红 · 回归 395/395/0 · **代码评审 APPROVED WITH SUGGESTIONS** · 6 条 ADVISORY 见 story §Completion Notes) | ADR-018 §五(+014) |
 | 016 | 音频资产接入(余 **7** 项源音覆盖 · R-2 归属表 9 项逐项对账 · 双向差集归零) | Integration | **Blocked 🔴**(BLOCKED-BY:**素材产出批次** —— 余 7 项 `.wav` 未交付;承下方 §范围边界声明 **二**) | ADR-018 §五(+014) |
+| 017 | 音频门加固(组判据收紧 · 跨平台大小写 · `ValidateEntries` 拆分) | Integration | **Ready ⬜**(2026-10-17 新立 · 不依赖素材 · 输入 = story-015 代码评审 W-2/W-3) | ADR-018 §五(+014/022) |
 
 ## Overview
 

@@ -157,20 +157,56 @@
 
 ---
 
-## §五 未及核查项(禁借绿 —— 未跑即写未跑)
+## §五 未及核查项 —— 2026-10-17「尝试全跑」轮后重写
 
-**三位专家自陈**:
-1. 未跑任何构建/测试 —— 全新 clone 转红、`CreateGroup` 路径均**读码推断,未实跑**(两位专家各自声明)
-2. 未核 `audio.asset` 实际 schema 字段 ⇒ 无法确认今日组是否等同 `CreateGroup` 默认(决定 W-5② 是否实际成立)
-3. 未核 bundle 内 Streaming clip 实际布局(`.resS` 是否随 bundle / 可流式)—— 需真 `BuildPlayerContent` + 运行时观测
-4. 未核 44 运行期如何持句柄(W-6 陷阱②严重度取决于 44 加载实现,本 story 面外)
-5. 未核 `preloadAudioData: 0` 在 music Streaming 下的实际后果(属 §4⑤ NOT-RUN)
-6. 未核 `compressionFormat: 1`(Vorbis)+ `quality: 1` 是否合意(audio-director 域)
-7. Windows `*.wav` 的 8.3 pattern 匹配行为未实测(本机 Linux);W-2 只对**大小写敏感**半边给出确定结论
-8. `test_discipline_noFilesystemWrites` 的正文未读 ⇒ 无法判定它是否真能拦住写副作用
-9. `.github/workflows/` 未读 ⇒ 若 CI 只跑子集,3.5 的「CI 红」实际面可能收窄
+> **用户裁定:笔 3 = 尝试全跑。** 本轮对全部 9 项逐条尝试,结果**三分**:已消解 / 已判 / 仍悬。
+> ⚠️ **「已判」≠「已证」** —— 判的是**事实**,证的是**债已还**;本节只报事实。
 
-**主线已消解 1 项**:QA 专家的「`BakeFromRepo` 是否间接依赖 Addressables」—— 已实读源码确认**不触**(见 3.5)。
+### 5.1 已消解(4 项 —— 核查后不再是缺口)
+
+| # | 原「未及核查」 | 消解结论 |
+|---|---|---|
+| **8** | `test_discipline_noFilesystemWrites` 正文未读 | **是真守卫,非空壳** —— 它读**自身源文件**、去注释后扫描写调用令牌,并用**令牌拼接构造**避免自命中(`:901` 自陈)。`pipeline_gate_test.cs:895-905` |
+| **9** | `.github/workflows/` 未读 | **已读两份** —— 见 5.3「CI 实测订正」,结论比预期更重 |
+| **QA 专家项** | `BakeFromRepo` 是否间接依赖 Addressables | **不触** —— 实读 `AudioEventTableBake.cs:57-69`,只 `File.ReadAllText` + `Bake(json, ResolveRoot(repoRoot))` |
+| **#1 前半** | 「未跑任何构建/测试」 | **已跑两次真 Unity batch**(见 5.2),编译**零 `error CS`** |
+
+### 5.2 已判(3 项 —— 实跑/实读得事实)
+
+| # | 项 | 判定 | 证据 |
+|---|---|---|---|
+| **#1 / W-7** | `CreateGroup` 全新 clone 路径 | ✅ **实测坐实**:移走 `AddressableAssetsData/` ⇒ `EnsureAudioGroup` 命中 `settings == null` 早退,输出 `[大医精诚] Addressables 设置不存在 …`;**Unity 退出码 = 0** ⇒ **静默失败** | `unity/Logs/s17-freshclone-20261017-051600.log:531`。还原经**独立复核**逐字节一致(无 `AM` 条目;41 = 40 staged + 1 gitignored `content_state.bin`) |
+| **#2** | `audio.asset` schema vs `CreateGroup` 默认 | **今日等同** ⇒ **W-5② 当前不成立**(潜在风险仍在) | 组恰挂 `CreateGroup` 请求的两种 schema(`AudioGroupGates` 对照 `DataBakeMenu.cs:598`);`audio_BundledAssetGroupSchema.asset`:`m_Compression:1`(LZ4)· `m_BundleMode:0`(Pack Together)· `m_IncludeInBuild:1` —— **全为默认值** |
+| **#3** | bundle 内 Streaming 布局 | ⚠️ **部分判**(见 5.4):构建**跑通**、5 clip 全在一 bundle、含 `.resource` 流;**精确流切分未判** | `unity/Logs/s17-bundle-20261017-051719.log`;`buildlayout_2026.10.17.05.17.36.json`(`audio_assets_all_*.bundle`:`FileSize=275584` · `AssetCount=5` · `Compression=Lz4HC`) |
+| **#4** | 44 运行期持句柄 | ✅ **无装载路径** ⇒ **W-6②(Streaming 断流)今日不可观测** | `AudioSourcePool.cs:164` 有 `AddComponent<AudioSource>()`(ADR-028 ② 兑现),但 `Gameplay.Presentation/Audio/` 全树**零** `AudioClip` / `AsyncOperationHandle` / `LoadAssetAsync`;`CueRenderSink` 只是注入缝接口(「生产实现归素材接入轮」) |
+| **#5** | `preloadAudioData: 0` 后果 | ✅ **一致,非缺陷** | 5 个 `.wav.meta` **全部** `preloadAudioData: 0`(含 music Streaming)—— 与 Streaming 强制关预载一致 |
+
+### 5.3 CI 实测订正(原 #9,结论比预期重)
+
+**原表述**「`.github/workflows/` 未读 ⇒ 若 CI 只跑子集,3.5 的『CI 红』实际面可能收窄」——
+**实测:不是「可能收窄」,是「当前根本不跑」**:
+
+| workflow | 实测状态 |
+|---|---|
+| `tests.yml` | Unity job **已于 2026-09-29 移除**(注释自陈「UNITY_LICENSE 不配置」);`guard-assertions` job 是 `exit 0` **占位**(注释自陈「守卫未实现前此步须保持未接入」);仅 kindgen A1–A5 + 变异探针是真跑 |
+| `unity-tests.yml` | EditMode / PlayMode job 由 `secrets.UNITY_CLIENT_ID` **门控**,未配置即 `exit 0` **跳过**;IL2CPP job 是 `TODO` 占位 |
+
+⇒ **`TD-audio-01` 的触发条件(「CI runner 落地时」)尚未真正落地** —— 处于「**待发**」而非「已红」。
+⇒ §3.5 的「CI 红」是**结构推演**(新 clone 上必红),**非当下 CI 实测**;两者不可混读。
+
+### 5.4 仍悬(2 项 —— 如实登记,禁借绿)
+
+| # | 项 | 为何仍悬 |
+|---|---|---|
+| **#3 精确流切分** | bundle 内「序列化对象数据」vs「`.resource` 流」的**逐字节切分**未判 | 已实测的**可判部分**:① 构建跑通,5 clip 全入 `audio_assets_all_*.bundle`(`AssetCount=5`);② bundle 内**存在 `.resource` 节点名**(Unity 流式资源流标记);③ **无**独立 `.resource`/`.resS` 文件落在 bundle 旁。**不可判部分**:`audio_assets_all_*.bundle` 的 blocksInfo **解压失败**(UnityFS **v8** + `flags=0x243`,本地 lz4 报 `LZ4BlockError: 16`),⇒ 无法逐块读流尺寸。**结论(有界)**:275,584 B ≪ 2,650,520 B 源 PCM ⇒ payload 必为**压缩态**(与 `compressionFormat:1` Vorbis 一致),且**随 bundle 出货**。⇒ **`loadType:2` 在 Addressables 下给的是「按需解码」,不是「按需下载」** —— 这一点是实跑得出的,不是推断 |
+| **#6** | `compressionFormat:1`(Vorbis)+ `quality:1` 是否合意 | **不是可跑项** —— 属 **audio-director 判断域**,非测试。实测值 = 5 clip 全 Vorbis / q=1;**是否合意归内容批(`OQ-44-2`)**。本件只登记观测值 |
+| **#7** | Windows `*.wav` 的 8.3 pattern 匹配 | **本机 Linux,结构上不可测**。W-2 只对**大小写敏感**半边给出确定结论;Windows 侧的 8.3 短名匹配行为**未验** ⇒ 修复方案(W-2 → `Path.GetExtension` 过滤)**须在 Windows 上复验** |
+
+### 5.5 顺带发现(非本件面内,登记不隐藏)
+
+1. **两个空 Tooling asmdef** —— `Editor.Tools.Kindgen.asmdef` 与 `Editor.Tools.Level.asmdef` **无脚本关联**,Unity 每次编译输出 `LogWarning`。无害但噪声(Kindgen 实现为 Python,承 ADR-024 §⑤;Level 尚无 C#)。已登记入 `TD-audio-01` 附注。
+2. **epic §范围边界声明 三 部分过期** —— 该声明(2026-10-16)称「全案**零** `IAudioCueSink` 运行期实现」;实测 `AudioSourcePool` **已落**(ADR-028 ② 兑现)。其核心结论(「听测半边不可判」)**仍成立** —— 因为**素材装载面仍未接**(无 `AudioClip` 装载路径)。
+3. **`EnsureAudioGroup` 的静默失败**已升为独立债 **`TD-audio-01e`**(见 `docs/tech-debt-register.md`)—— 它使「修复方向 ③」在 CI 中**必然假绿**。
 
 ---
 
@@ -192,6 +228,22 @@
 | GAPS ×4 | ✗ | ✗ | 见 3.3 | 未补测 —— 已由 story §Completion Notes ADVISORY ④⑤ 覆盖登记 |
 
 **结清数:2/14**(仅 D-1 / D-2 —— 两处文档硬错)。其余 12 条**如实留作未结**,不借绿。
+
+### 6b 归属裁定(2026-10-17 用户 · 三路)
+
+> ⚠️ **归属 ≠ 结清**。本表记「哪条债由谁还」,**不改变**上表任何 `Landed / Proven` 的 ✗。
+
+| 路 | 条目 | 归属件 | 载体 |
+|---|---|---|---|
+| **①** | **W-2** · **W-3** | **新立 `story-017-audio-gate-hardening`**(2026-10-17 立,`Ready ⬜` —— **不依赖素材**) | `production/epics/audio-system/story-017-audio-gate-hardening.md`(AC-44-D5b/D5c/D5d) |
+| **②** | **W-4** · **W-5** · **W-7** | **并入 `TD-audio-01`** | `docs/tech-debt-register.md` §TD-audio-01 **01b / 01c / 01d** 三行 |
+| **③** | **W-1** · **W-6** | **不改** —— GDD §OQ-44-2 附节已覆盖(「Music 素材若改短须重裁」) | 本表原行 + GDD 附节 |
+
+**同批另裁(笔 1)**:`TD-audio-01` 的**跨机复现面(01a)**已修 —— `.gitignore` 收窄,组定义入库(41 文件)。
+⇒ `TD-audio-01` 自此**四面分列**(01a ✅ 已修 · 01b/01c/01d ✗ 未修),禁混记。
+
+> ⚠️ **W-4 与 W-3 同处 `ValidateEntries`** —— 裁定把它们分到**两件**工作流(①story-017 / ②TD-audio-01)。
+> story-017 的 `## Out of Scope` 已逐字声明**只动结构与行数(W-3),不动组归属判据语义(W-4)**,防两流互踩。
 
 ---
 
@@ -237,10 +289,13 @@ cat unity/Assets/Editor.Tools.Bake/Editor.Tools.Bake.asmdef | grep -A2 includePl
   ② **CI 可复现性** —— `test_d5_realSettings_audioAssetsSeparateFromDataCore` 全新检出必红(已登记 `TD-audio-01`)。
 - **两处文档硬错已就地修复**(D-1 计数 53→52 三处 · D-2 证据 §5 自相矛盾),并在 §四 记录可复算判据。
 
-**建议的后续动作**(未裁定,登记待议):
-1. W-2 / W-3 → 归 **story-010** 的加固轮(`Path.GetExtension` 过滤 + `ValidateEntries` 拆分)
-2. W-4 / W-5 / W-7 → 并入 **`TD-audio-01`** 的修复面(组布局作者态化 + `CreateGroup` 路径实跑)
-3. W-1 / W-6 → 已由 GDD §OQ-44-2 附的「Music 改短须重裁」覆盖,**不改**
+**后续动作 —— 2026-10-17 用户已裁定(见 §6b)**:
+1. W-2 / W-3 → **新立 `story-017-audio-gate-hardening`**(`Ready ⬜`,不依赖素材)
+2. W-4 / W-5 / W-7 → **并入 `TD-audio-01`**(现为 01b / 01c / 01d 三行)
+3. W-1 / W-6 → **不改** —— GDD §OQ-44-2 附节已覆盖
+
+**同批另裁**:`TD-audio-01a`(跨机复现)已修 —— `.gitignore` 收窄、组定义入库;
+`TD-audio-01e`(静默失败)由本件 §五 5.2 实测**新立**。
 
 ---
 

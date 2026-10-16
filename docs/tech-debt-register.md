@@ -129,18 +129,35 @@ ADVISORY ⑥(2026-10-17 收口轮新发现)· `production/qa/evidence/impl-s15-a
 **性质**:story-015 的 6 条 ADVISORY 中**唯一具外部触发点**的一条,其余 5 条为过程记录(已就地订正或设计使然),
 不入册。**本册只收 ⑥。**
 
-| # | 债 | 出处 | 触发条件(何时须还) |
+> **⚠️ 2026-10-17 三笔裁定后重写**(用户裁定:笔 1 = 收窄 `.gitignore`;笔 2 = 评审 7 WARNING 分三路归属)。
+> 本债自此**分两个面**,已修面与未修面**分列,禁混记**。
+
+| # | 面 | 债 | 状态 / 出处 |
 |---|---|---|---|
-| TD-audio-01 | **AC-44-D15 的「组分离」半不可从全新 clone 复现** —— `unity/Assets/AddressableAssetsData/` 被 `.gitignore:85` **整目录忽略**,`audio` Addressables 组及其 5 个 `.wav` 条目**只存在于机器本地**。⇒ 新检出后 `test_d5_realSettings_audioAssetsSeparateFromDataCore` 的**正向半边结构上不成立**(组不存在),须**手跑**菜单项 `大医精诚/数据管线/确保 audio Addressables 组`(`DataBakeMenu.EnsureAudioGroup`,幂等)才恢复。⚠️ **与 AC-44-D15 已判定的「✅ 落」不矛盾** —— 该判定在**本机**为真;本债记的是**跨机器可复现性**,非判定有误 | story-015 §Completion Notes ⑥;`impl-s15-asset-content-2026-10-17.md` §3.5.4(同处登记了 `.gitignore` 造成的**证伪轮泄漏盲区**:校验集漏 `audio.asset` ⇒「零残留」自述当时为假,已修) | **CI runner 落地时**(ADR-012 跨平台确定性矩阵)—— 与 **`TD-medcons-09`** 同族(测试依赖机器本地状态 / `Application.dataPath`,CI 检出布局变化即红)。**高优先** |
+| **TD-audio-01a** | **跨机复现** | `unity/Assets/AddressableAssetsData/` 原被 `.gitignore:85` **整目录忽略** ⇒ `audio` 组及其 5 条目只存在于机器本地,新检出后 `test_d5_realSettings_audioAssetsSeparateFromDataCore` 正向半边**结构上不成立** | ✅ **2026-10-17 已修** —— `.gitignore` **收窄**为只忽略逐平台 `*/addressables_content_state.bin`;**组定义入库**(39 文件 + 顶层 `.meta`,共 41)。收窄依据:组定义 GUID 逐一命中**已提交**的 `.wav.meta` · profile 变量全为 token 式相对值 · 全树零绝对路径 · `.meta` 齐备。**修复方向 ① 被采纳**(原三选一) |
+| **TD-audio-01b** | **自举** | `EnsureAudioGroup` 幂等 ✓ 但**不完备** —— `settings == null` 只 `LogError` 就 return ⇒ 须**先手点** Addressables Groups 窗口,**不能自举**;且 `CreateGroup` 只给默认 schema,今日若调过 Bundle Mode / 压缩,重跑**不复现** | ✗ **未修**(评审 **W-5**)。`DataBakeMenu.cs:583-589` 早退 · `:595-598` schema。全库**零** `GetSettings(create:true)` 先例 |
+| **TD-audio-01c** | **路径未验** | `CreateGroup` + schema 的「**全新 clone 首跑**」路径 —— 原为**读码推断** | ✅ **2026-10-17 已实测**(评审 **W-7** 由推断转实测)。**跑法**:移走 `AddressableAssetsData/`(模拟全新 clone)⇒ Unity batch `-executeMethod …DataBakeMenu.EnsureAudioGroup` ⇒ 日志落 `unity/Logs/s17-freshclone-20261017-051600.log`。**结果**:命中 `settings == null` 早退,输出 `[大医精诚] Addressables 设置不存在 —— 先经 Window > … > Groups 创建一次设置(一次性)`;编译零 `error CS`;**还原经独立复核逐字节一致**。⚠️ **并证实一条新危害**:Unity **退出码 = 0** ⇒ 该失败在进程层**静默**(见下方 01e) |
+| **TD-audio-01d** | **判据弱于 AC** | `ValidateEntries` (a) 半只断言「登记在**某个非 `data-core`** 组」,**不断言**「登记在 `audio` 组」⇒ `.wav` 落在 `Default Local Group` 亦**判过**,素材仍被打进主包,破 AC-44-D5 意图 | ✗ **未修**(评审 **W-4**)。`AudioAssetGroupGates.cs:85-105`;文件头 `:23-26` 自陈是刻意取舍 |
+| **TD-audio-01e** | **静默失败**(01c 实测**新发现**) | `EnsureAudioGroup` 在 `settings == null` 时**只 `LogError` 并 return**,**不让进程失败** ⇒ 若按「残余修复方向 ③」把它当 CI 前置步骤,**CI 会报绿而组实际缺失** = **假绿**(本项目最忌的失效模式)。同类面:任何以 `-executeMethod` 调它的无人值守路径 | ✗ **未修**(2026-10-17 实测新增,出处 = `s17-freshclone-20261017-051600.log` 退出码 0)。`DataBakeMenu.cs:583-589` |
+
+**触发条件(全部四个面共用)**:**CI 的 Unity 测试 job 真正启用时**(ADR-012 跨平台确定性矩阵)—— 与 **`TD-medcons-09`** 同族。
+> ⚠️ **2026-10-17 实测订正:该触发条件「尚未落地」** —— CI workflow **已存在**但 Unity job 是 **no-op**:
+> `tests.yml` 的 Unity job 已于 **2026-09-29 移除**(无 license),`guard-assertions` 是 `exit 0` 占位;
+> `unity-tests.yml` 的 EditMode/PlayMode 由 secret 门控(**未配 `UNITY_CLIENT_ID` 即跳过**),IL2CPP job 是占位。
+> ⇒ 本债处于「**待发**」而非「已红」。**优先级维持「高」**,但还债窗口在 Unity job 恢复之时。
 
 > **为何单列而不并入 TD-medcons-09**:两者**同族不同因** —— medcons-09 是「测试读真实文件系统 + 路径解析依赖检出布局」;
-> 本债是「**被断言的对象本身不在版本控制里**」(Addressables 组数据是机器本地产物,`.gitignore:85`)。
-> 前者的出路是改测试的路径解析;后者的出路是**给组创建提供 CI 可跑的确定性入口**(当前只有编辑器菜单项,无人值守环境跑不了)。
+> 本债是「**被断言的对象本身不在版本控制里**」。前者的出路是改测试的路径解析;后者的出路是给组创建提供确定性基线(01a ✅)+ 可自举入口(01b)。
 >
-> **建议修复方向**(未裁定,登记待议):① 把 `AddressableAssetsData/` 的**组定义**纳入版本控制(仅忽略 cache / 二进制产物),
-> 或 ② 提供 CLI / CI 可调的组创建入口(同 `TD-medcons-11` 的 B-W2 —— 「表无 CLI / CI 烘焙入口」同型缺口),
-> 或 ③ 在 CI 脚本里显式跑 `EnsureAudioGroup` 作为前置步骤并断言其幂等。
-> ⚠️ ① 与 ADR-023 ②「零 gameplay 对象」/ ADR-025 装配清单无冲突,但须先核 Addressables 6.2+ 的目录契约(Knowledge Risk MEDIUM)。
+> **残余修复方向**(01b/01c/01e,未裁定,登记待议):② 提供 CLI / CI 可调的组创建入口(同 `TD-medcons-11` 的 B-W2 同型缺口)·
+> ③ 在 CI 脚本里显式跑 `EnsureAudioGroup` 作为前置步骤并断言其幂等 ——
+> ⚠️ **②③ 单独均不够,且各有前置**:②③ 都须**先补 `GetSettings(create:true)` 自举**(全新 clone 无 `Settings`,01b);
+> ③ 还须**先把静默失败改为硬失败**(01e —— 今日它退出码 0,CI 会假绿)。
+> ⚠️ ① 与 ADR-023 ②「零 gameplay 对象」/ ADR-025 装配清单无冲突(已实测);Addressables 6.2+ 目录契约的 Knowledge Risk MEDIUM 随 01a 落地**降为已观测形态**(组定义确为可移植 YAML)。
+>
+> **同批实测附带发现(非本债面内,登记不隐藏)**:`Editor.Tools.Kindgen.asmdef` 与 `Editor.Tools.Level.asmdef`
+> 两个 Tooling 程序集**无任何脚本关联**,Unity 每次编译输出 `LogWarning`(Kindgen 实现为 Python,承 ADR-024 §⑤;
+> Level 工具尚无 C#)。**无害但噪声** —— 若将来 Tooling 程序集增多,建议评估是否保留空 asmdef。
 
 ---
 
