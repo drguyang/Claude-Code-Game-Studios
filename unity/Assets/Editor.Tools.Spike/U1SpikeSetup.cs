@@ -35,6 +35,7 @@ using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using Debug = UnityEngine.Debug;
+using DaYiJingCheng.EditorTools.Bake;   // DataBakeMenu.EnsureAssetDatabasePlayMode(Teardown 复原 Play Mode 的判据单一出处)
 
 namespace DaYiJingCheng.EditorTools.Spike
 {
@@ -316,6 +317,29 @@ namespace DaYiJingCheng.EditorTools.Spike
             }
             finally
             {
+                // ⚠️ **Teardown 必须复原 Play Mode**(2026-10-17 补 · `TD-audio-01f` 根因①):
+                //    `ConfigurePlayMode` 把 Play Mode Script 切到 Existing Build,而该设置**不住**
+                //    入库的 `AddressableAssetSettings.asset` —— 它住
+                //    `ProjectConfigData.ActivePlayModeIndex` → `Library/AddressablesConfig.dat`
+                //    (**机器本地 · gitignored**)⇒ 不复原就**跨会话**留在漂移态:PlayMode 解析的是
+                //    预建 catalog,组条目一变即 `InvalidKeyException`,启动序整条挂掉
+                //    (2026-09-24 第四跑 / 2026-10-17 补口轮两次同症状)。
+                //    ⚠️ 放 `finally` 而非 `try` 末尾:**异常路径同样须复原** —— 那恰恰是漂移最可能
+                //       被留下的路径(Setup 跑到一半炸,人不会再点 Teardown)。
+                //    ⚠️ 复用 `DataBakeMenu.EnsureAssetDatabasePlayMode`(**判据单一出处**),
+                //       **不另写一份**「哪个 builder 是 Use Asset Database」—— 该判据已有夹具
+                //       (`test_playModeScript_predicate_nullOrMiss_returnsMinusOne`)。
+                //    ⚠️ 残余风险(不隐藏):**Setup 跑了但 Teardown 从没跑**的机器仍会漂移 ⇒
+                //       兜底 = 菜单「Play Mode 归位」+ 机器前置门 `test_playModeScript_isAssetDatabase`。
+                try
+                {
+                    DataBakeMenu.EnsureAssetDatabasePlayMode(AddressableAssetSettingsDefaultObject.Settings);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[U1] Teardown 复原 Play Mode 失败 —— " +
+                                     $"手动跑菜单「大医精诚/数据管线/Play Mode 归位(Use Asset Database)」:{e.Message}");
+                }
                 EditorUtility.ClearProgressBar();
             }
         }
@@ -440,7 +464,12 @@ namespace DaYiJingCheng.EditorTools.Spike
         }
 
         /// <summary>Play Mode 切到 Existing Build(bundle 层才存在,S3 判据 2/3 的前提)。
-        /// builder 名单逐条打进 Console;找不到 Existing 字样则保持原样并给出手动指引。</summary>
+        /// builder 名单逐条打进 Console;找不到 Existing 字样则保持原样并给出手动指引。
+        /// <para>⚠️ <b>本方法会把机器留在漂移态,复原归 <see cref="Teardown"/></b>
+        /// (2026-10-17 补:`TD-audio-01f` 根因①)—— Play Mode Script 住
+        /// <c>Library/AddressablesConfig.dat</c>(机器本地 · gitignored),
+        /// <b>Setup 跑了却从不跑 Teardown 的机器</b>会一直停在 Existing Build ⇒
+        /// PlayMode 启动序整条红(<c>No Location found for Key=…</c>)。</para></summary>
         static void ConfigurePlayMode(AddressableAssetSettings settings)
         {
             // ⚠️ DataBuilders 的声明类型是 List<ScriptableObject>(2.10.3 实读),

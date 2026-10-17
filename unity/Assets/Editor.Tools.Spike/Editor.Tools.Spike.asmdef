@@ -2,6 +2,7 @@
     "name": "Editor.Tools.Spike",
     "rootNamespace": "DaYiJingCheng.EditorTools.Spike",
     "references": [
+        "Editor.Tools.Bake",
         "Unity.Addressables",
         "Unity.Addressables.Editor",
         "Unity.ResourceManager",

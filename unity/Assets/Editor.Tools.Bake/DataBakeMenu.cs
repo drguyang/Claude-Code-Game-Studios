@@ -509,64 +509,124 @@ namespace DaYiJingCheng.EditorTools.Bake
         }
 
         /// <summary>
+        /// 构建 Addressables 内容(<c>BuildPlayerContent</c>)—— **改过组条目之后必须跑**。
+        /// <para>⚠️ <b>为什么需要这个菜单</b>(2026-10-17 实测):PlayMode 下 Addressables 解析的是
+        /// <c>unity/Library/com.unity.addressables/aa/&lt;platform&gt;/catalog.bin</c> 这份**预建 catalog**。
+        /// 新增条目(如 <c>audio_events.cooked.bytes</c>)后若不重建,该 address **查不到 Location** ——
+        /// 实测症状 = `InvalidKeyException: No Location found for Key=…` ⇒ 启动序
+        /// (<c>AddressablesDataProvider.Preload()</c>)整条挂掉,9 条 PlayMode 启动序测试全红。</para>
+        /// <para>⚠️ 本菜单此前**不存在** —— 全库唯一调用 <c>BuildPlayerContent</c> 的是
+        /// <c>U1SpikeSetup</c>(它顺带切 Play Mode 到 Existing Build,是另一个坑)。
+        /// 本菜单只做构建,不动任何设置。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/构建 Addressables 内容(BuildPlayerContent)")]
+        public static void BuildAddressablesContent()
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings == null)
+                throw new InvalidOperationException(
+                    "[大医精诚] Addressables 设置缺失 —— 组定义已随仓库入库" +
+                    "(unity/Assets/AddressableAssetsData/)。" +
+                    "跑 `git checkout -- unity/Assets/AddressableAssetsData` 恢复。");
+
+            // 签名 = `static void BuildPlayerContent(out AddressablesPlayerBuildResult)`
+            // (2.10.3 实读;先例 U1SpikeSetup.cs:242)—— 成败只能读 `result.Error`。
+            // 用 `var` 免引 UnityEditor.AddressableAssets.Build 命名空间(与先例一致)。
+            AddressableAssetSettings.BuildPlayerContent(out var result);
+            if (!string.IsNullOrEmpty(result?.Error))
+                throw new InvalidOperationException(
+                    "[大医精诚] BuildPlayerContent 失败:" + result.Error);
+
+            Debug.Log(
+                "[大医精诚] Addressables 内容已构建 —— catalog 现含全部组条目。" +
+                "⚠️ 本产物落 unity/Library/(gitignored,机器本地)⇒ 新检出后须重跑本菜单。");
+        }
+
+        /// <summary>
         /// 确保 Addressables 存在单一 <c>data-core</c> 组,并把 DataCooked 下两个产物移入、打上 data-core 标签。
         /// <para>⚠️ <b>组定义已随仓库入库</b>(2026-10-17 · `TD-audio-01a`)—— 本菜单只负责条目。
         /// (原文「机器生成物,永不提交」写于入库之前,已失效 —— 保留为口径沿革记录。)</para>
-        /// <para>⚠️ 本函数的**两个静默返回分支**(`settings == null` / `moved == 0`)与
-        /// <see cref="EnsureAudioGroup"/> 同款,但**尚未加固**(用户 2026-10-17 裁定 01e 范围
-        /// 限于 <c>EnsureAudioGroup</c>)—— 以 <c>-executeMethod</c> 作 CI 前置步时同样会假绿。</para>
+        /// <para>⚠️ <b>三处硬失败</b>(2026-10-17 加固;此前为静默 <c>LogError</c>/<c>LogWarning</c> + <c>return</c>,
+        /// 以 <c>-executeMethod</c> 作 CI 前置步时**报绿而组实际缺失** = 假绿)。见
+        /// <see cref="EnsureDataCoreGroupCore"/>。</para>
         /// </summary>
         [MenuItem("大医精诚/数据管线/确保 data-core Addressables 组")]
         public static void EnsureDataCoreGroup()
         {
-            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            EnsureDataCoreGroupCore(
+                AddressableAssetSettingsDefaultObject.Settings,
+                $"Assets/{CookedDirName}",
+                DataCoreGroup);
+        }
+
+        /// <summary>
+        /// <see cref="EnsureDataCoreGroup()"/> 的**可注入实现体** —— 设置对象与产物目录为形参,
+        /// 使三条硬失败分支可被夹具命中(与 <see cref="EnsureAudioGroupCore"/> 同款两半分离形态)。
+        /// <para>⚠️ <b>先验后改</b>:三条硬失败都在**任何写入之前**判定 ⇒ 失败时设置零改动。
+        /// (原实现在 <c>moved == 0</c> 时**已先建组、先打标签**才 <c>LogWarning</c> ——
+        /// 现已把「扫描 .cooked.bytes」提到写入之前。)</para>
+        /// <para>⚠️ <b>刻意不叫 <c>EnsureDataCoreGroup</c></b> —— 与菜单方法重名会让
+        /// `test_wiring_bakeMenuEntriesExist` 的按名反射抛 `AmbiguousMatchException`。</para>
+        /// <para>⚠️ <b>不建组</b>(W-5②,2026-10-17):与 <see cref="EnsureAudioGroupCore"/> 同因 ——
+        /// 组定义已入库,<c>CreateGroup</c> 的默认 schema 与入库的
+        /// <c>data-core_BundledAssetGroupSchema</c>(<c>m_UseDefaultSchemaSettings: 0</c>)分叉。</para>
+        /// </summary>
+        /// <param name="settings">Addressables 设置(注入 <c>null</c> ⇒ 命中分支 ①)。</param>
+        /// <param name="cookedDirRel">产物目录(工程相对路径;指向空目录 ⇒ 命中分支 ②)。</param>
+        /// <param name="groupName">组名(注入一个不存在的名字 ⇒ 命中分支 ③)。</param>
+        /// <exception cref="InvalidOperationException">设置缺失 / 产物目录下零 *.cooked.bytes / 组缺失。</exception>
+        public static void EnsureDataCoreGroupCore(
+            AddressableAssetSettings settings, string cookedDirRel, string groupName)
+        {
+            // ① 设置缺失 —— 硬失败(2026-10-17)。组定义已入库 ⇒ 缺失 = 入库文件被删/损坏。
             if (settings == null)
+                throw new InvalidOperationException(
+                    "[大医精诚] Addressables 设置缺失 —— 组定义已随仓库入库" +
+                    "(unity/Assets/AddressableAssetsData/)。" +
+                    "跑 `git checkout -- unity/Assets/AddressableAssetsData` 恢复;" +
+                    "⚠️ 不要手建设置:新建的只含默认组,与入库定义分叉。");
+
+            // ② 产物缺失 —— 硬失败(2026-10-17)。先验后改:此处尚未写入任何东西。
+            var guids = new List<string>();
+            foreach (string guid in AssetDatabase.FindAssets("t:TextAsset", new[] { cookedDirRel }))
             {
-                Debug.LogError(
-                    "[大医精诚] Addressables 设置不存在 —— 先经 Window > Asset Management > Addressables > Groups " +
-                    "创建一次设置(一次性);之后本菜单负责组与条目。");
-                return;
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (Path.GetFileName(path).EndsWith(".cooked.bytes", StringComparison.Ordinal))
+                    guids.Add(guid);
             }
 
-            AddressableAssetGroup group = settings.FindGroup(DataCoreGroup);
+            if (guids.Count == 0)
+                throw new InvalidOperationException(
+                    $"[大医精诚] {cookedDirRel} 下无 *.cooked.bytes —— " +
+                    "组会是空的。先跑「烘焙 item-database」等烘焙菜单再执行本菜单" +
+                    "(ADR-014 §五 的启动期预载依赖这些条目)。");
+
+            // ③ 组缺失 —— 硬失败(2026-10-17)。与分支 ① 同构,恢复靠 git,不靠 CreateGroup。
+            AddressableAssetGroup group = settings.FindGroup(groupName);
             if (group == null)
-            {
-                // 签名承 Addressables 2.10 官方文档:第 5 参 = schemasToCopy(List,可 null),
-                // 其后 params Type[] = 要新建的 schema 类型。
-                group = settings.CreateGroup(
-                    DataCoreGroup, false, false, false,
-                    null,
-                    typeof(AddressableAssetGroupSchema), typeof(BundledAssetGroupSchema));
-            }
+                throw new InvalidOperationException(
+                    $"[大医精诚] {groupName} 组缺失 —— 组定义已随仓库入库" +
+                    "(unity/Assets/AddressableAssetsData/AssetGroups/)。" +
+                    "跑 `git checkout -- unity/Assets/AddressableAssetsData` 恢复;" +
+                    $"⚠️ 不要手建 {groupName} 组:CreateGroup 只给 Addressables 默认 schema," +
+                    "与入库定义分叉。");
 
-            if (!settings.GetLabels().Contains(DataCoreGroup))
-                settings.AddLabel(DataCoreGroup, postEvent: true);
+            // ④ 打标签 / 登记条目(此后才写)
+            if (!settings.GetLabels().Contains(groupName))
+                settings.AddLabel(groupName, postEvent: true);
 
-            string cookedDirRel = $"Assets/{CookedDirName}";
-            string[] guids = AssetDatabase.FindAssets("t:TextAsset", new[] { cookedDirRel });
             int moved = 0;
             foreach (string guid in guids)
             {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                string fileName = Path.GetFileName(path);
-                if (!fileName.EndsWith(".cooked.bytes", StringComparison.Ordinal))
-                    continue;
-
+                string fileName = Path.GetFileName(AssetDatabase.GUIDToAssetPath(guid));
                 AddressableAssetEntry entry = settings.CreateOrMoveEntry(guid, group, readOnly: false, postEvent: true);
                 entry.SetAddress(fileName);
-                entry.SetLabel(DataCoreGroup, true, force: true, settings);
+                entry.SetLabel(groupName, true, force: true, settings);
                 moved++;
             }
 
-            if (moved == 0)
-            {
-                Debug.LogWarning(
-                    $"[大医精诚] {cookedDirRel} 下无 *.cooked.bytes —— 先跑「烘焙 item-database」再执行本菜单。");
-                return;
-            }
-
             Debug.Log(
-                $"[大医精诚] {DataCoreGroup} 组就绪:{moved} 个条目已入组并打标签。");
+                $"[大医精诚] {groupName} 组就绪:{moved} 个条目已入组并打标签。");
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssets();
         }
@@ -587,23 +647,29 @@ namespace DaYiJingCheng.EditorTools.Bake
         {
             EnsureAudioGroupCore(
                 AddressableAssetSettingsDefaultObject.Settings,
-                $"Assets/{AudioAssetGroupGates.AudioAssetDirName}");
+                $"Assets/{AudioAssetGroupGates.AudioAssetDirName}",
+                AudioAssetGroupGates.AudioGroupName);
         }
 
         /// <summary>
         /// <see cref="EnsureAudioGroup()"/> 的**可注入实现体** —— 设置对象与素材目录为形参,
         /// 使两条硬失败分支可被夹具命中(承 <c>AudioAssetGroupGates.ValidateEntries</c> 的
         /// 「纯谓词 + 调用方 throw」两半分离形态)。
-        /// <para>⚠️ <b>先验后改</b>:两条硬失败都在**任何写入之前**判定 ⇒ 失败时设置零改动,
+        /// <para>⚠️ <b>先验后改</b>:三条硬失败都在**任何写入之前**判定 ⇒ 失败时设置零改动,
         /// 夹具可安全注入而不污染工程的 Addressables 状态。</para>
         /// <para>⚠️ <b>刻意不叫 <c>EnsureAudioGroup</c></b> —— 与菜单方法重名会让
         /// `test_wiring_bakeMenuEntriesExist` 的 `GetMethod(name, Public|Static)` 抛
         /// `AmbiguousMatchException`(该测按名反射查菜单项存在性)。</para>
+        /// <para>⚠️ <b>不建组</b>(W-5②,2026-10-17):组定义已入库 ⇒ 组缺失 = 入库文件被删/损坏,
+        /// 恢复靠 <c>git checkout</c>。原 <c>CreateGroup</c> 分支已删 —— 它建出的 schema 是
+        /// Addressables 默认值,与入库的 <c>m_UseDefaultSchemaSettings: 0</c> 态**分叉**。</para>
         /// </summary>
         /// <param name="settings">Addressables 设置(注入 <c>null</c> ⇒ 命中分支 ①)。</param>
         /// <param name="audioDirRel">素材目录(工程相对路径;指向空目录 ⇒ 命中分支 ②)。</param>
-        /// <exception cref="InvalidOperationException">设置缺失,或素材目录下零素材。</exception>
-        public static void EnsureAudioGroupCore(AddressableAssetSettings settings, string audioDirRel)
+        /// <param name="groupName">组名(注入一个不存在的名字 ⇒ 命中分支 ③)。</param>
+        /// <exception cref="InvalidOperationException">设置缺失 / 素材目录下零素材 / 组缺失(分支 ③)。</exception>
+        public static void EnsureAudioGroupCore(
+            AddressableAssetSettings settings, string audioDirRel, string groupName)
         {
             // ① 设置缺失 —— 硬失败(TD-audio-01b/01e,2026-10-17)
             //    组定义已入库 ⇒ 缺失 = 入库文件被删/损坏;恢复靠 git,不靠本菜单重建。
@@ -629,17 +695,21 @@ namespace DaYiJingCheng.EditorTools.Bake
                     "组会是空的。先放入素材再执行本菜单" +
                     "(AC-44-D6 的素材存在性门也依赖它们)。");
 
-            // ③ 建组 / 打标签 / 登记条目(此后才写)
-            string groupName = AudioAssetGroupGates.AudioGroupName;
+            // ③ 组缺失 —— 硬失败(TD-audio-01 W-5②,2026-10-17)。先验后改:此处尚未写入任何东西。
+            //    组定义已入库 ⇒ 「组缺失」= 入库文件被删/损坏,与分支 ① 完全同构,恢复靠 git。
+            //    ⚠️ 不建组:CreateGroup(schemasToCopy: null) 给的是 **Addressables 默认字段值**,
+            //    而入库的 audio_BundledAssetGroupSchema 是 m_UseDefaultSchemaSettings: 0 的**脱离默认**态
+            //    ⇒ 新建的 schema 与入库定义**分叉**(看着绿,组是错的)。
             AddressableAssetGroup group = settings.FindGroup(groupName);
             if (group == null)
-            {
-                group = settings.CreateGroup(
-                    groupName, false, false, false,
-                    null,
-                    typeof(AddressableAssetGroupSchema), typeof(BundledAssetGroupSchema));
-            }
+                throw new InvalidOperationException(
+                    $"[大医精诚] {groupName} 组缺失 —— 组定义已随仓库入库" +
+                    "(unity/Assets/AddressableAssetsData/AssetGroups/)。" +
+                    "跑 `git checkout -- unity/Assets/AddressableAssetsData` 恢复;" +
+                    $"⚠️ 不要手建 {groupName} 组:CreateGroup 只给 Addressables 默认 schema," +
+                    "与入库定义分叉。");
 
+            // ④ 打标签 / 登记条目(此后才写)
             if (!settings.GetLabels().Contains(groupName))
                 settings.AddLabel(groupName, postEvent: true);
 
@@ -698,7 +768,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
 
             // ── ⓪ Play Mode 归位(须在任何 Addressables 调用之前)──
-            EnsureAssetDatabasePlayMode();
+            EnsureAssetDatabasePlayMode(AddressableAssetSettingsDefaultObject.Settings);
 
             // ── ① 反向:反射直呼 FetchBytes(从未存在的 key)—— 生产同款失败路径,零状态变更 ──
             MethodInfo fetchBytes = typeof(AddressablesDataProvider).GetMethod(
@@ -758,41 +828,84 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
         }
 
-        /// <summary>Play Mode 归位到 Use Asset Database。
-        /// <para>U1 spike 的 <c>ConfigurePlayMode</c> 切走后 Teardown 不复原;Existing Build 下
-        /// 已建 bundle 路径失效会打死正向复验(2026-09-24 第四跑:
-        /// <c>Invalid path … data-core_assets_all_*.bundle</c>)。</para>
+        /// <summary>纯谓词半边:在 DataBuilders 名单里找「Use Asset Database」builder 的索引;
+        /// 名单为空 / 无匹配 ⇒ 返回 <c>-1</c>。
         /// <para>⚠️ DataBuilders 声明类型是 List&lt;ScriptableObject&gt;(2.10.3 实读),
-        /// <c>Name</c> 是 IDataBuilder 成员 ⇒ 必须走 <c>GetDataBuilder(i)</c>(承 U1SpikeSetup 同款警告)。</para></summary>
-        private static void EnsureAssetDatabasePlayMode()
+        /// <c>Name</c> 是 IDataBuilder 成员 ⇒ 必须走 <c>GetDataBuilder(i)</c>(承 U1SpikeSetup 同款警告)。</para>
+        /// <para><b>为何单独拆出</b>:夹具可注入 builder 名单直断谓词,不必经真设置
+        /// (两半分离 —— 承 <c>AudioAssetGroupGates.ValidateEntries</c> 先例)。</para></summary>
+        public static int FindAssetDatabaseBuilderIndex(AddressableAssetSettings settings)
         {
-            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
-            if (settings == null) return;
-
-            int current = settings.ActivePlayModeDataBuilderIndex;
+            if (settings == null) return -1;
             int count = settings.DataBuilders.Count;
             for (int i = 0; i < count; i++)
             {
                 string name = settings.GetDataBuilder(i)?.Name ?? "<null>";
-                if (name.IndexOf("Asset Database", StringComparison.OrdinalIgnoreCase) < 0) continue;
+                if (name.IndexOf("Asset Database", StringComparison.OrdinalIgnoreCase) >= 0) return i;
+            }
+            return -1;
+        }
 
-                if (i == current)
-                {
-                    Debug.Log("[E-13 自检] ⓪ Play Mode 已是 Use Asset Database。");
-                    return;
-                }
+        /// <summary>Play Mode 归位到 Use Asset Database。<b>返回是否真的发生了改动</b>。</summary>
+        /// <remarks>⚠️ <b>为什么这件事必须显式做(2026-10-17 · TD-audio-01f 根因)</b>:
+        /// Play Mode Script **不在**入库的 <c>AddressableAssetSettings.asset</c> 里 ——
+        /// 它住 <c>ProjectConfigData.ActivePlayModeIndex</c>,落
+        /// <c>unity/Library/AddressablesConfig.dat</c>(**机器本地、gitignored**,
+        /// 包源码 <c>ProjectConfigData.cs:390</c>)。默认值 = <c>0</c>(Use Asset Database)
+        /// ⇒ **全新检出本来就没有这个问题**;坏的是**被改过的那台机器**。
+        /// <para>改它的两处:① U1 spike 的 <c>ConfigurePlayMode</c>(切到 Existing Build);
+        /// ② 本菜单。⚠️ <b>① 已于 2026-10-17 补上复原</b> —— <c>U1SpikeSetup.Teardown</c>
+        /// 的 <c>finally</c> 现在委派到本方法(判据单一出处);但
+        /// <b>「Setup 跑了却从不跑 Teardown」的机器仍会漂移</b> ⇒ 兜底仍是本菜单 +
+        /// 机器前置门 <c>test_playModeScript_isAssetDatabase</c>。留在 Existing Build 时 PlayMode 解析的是
+        /// <c>Library/com.unity.addressables/aa/&lt;platform&gt;/catalog.bin</c> 这份**预建 catalog**,
+        /// 组条目一变就陈旧 ⇒ <c>InvalidKeyException: No Location found for Key=…</c>,
+        /// 启动序整条挂掉(2026-09-24 第四跑 / 2026-10-17 补口轮两次同症状)。</para>
+        /// <para><b>先验后改</b>:找不到目标 builder 或已在目标 ⇒ 零写入直接返回 <c>false</c>。</para>
+        /// </remarks>
+        /// <param name="settings">Addressables 设置(调用方给出,便于夹具注入)。</param>
+        public static bool EnsureAssetDatabasePlayMode(AddressableAssetSettings settings)
+        {
+            if (settings == null) return false;
 
-                string currentName = settings.GetDataBuilder(current)?.Name ?? "<null>";
-                settings.ActivePlayModeDataBuilderIndex = i;
-                EditorUtility.SetDirty(settings);
-                AssetDatabase.SaveAssets();
-                Debug.Log(
-                    $"[E-13 自检] ⓪ Play Mode → Use Asset Database(DataBuilder[{i}]「{name}」;原「{currentName}」)" +
-                    "—— U1 spike 遗留 Use Existing Build 且已建 bundle 路径失效,归位后再跑反向/正向。");
-                return;
+            int target = FindAssetDatabaseBuilderIndex(settings);
+            if (target < 0)
+            {
+                Debug.LogWarning(
+                    "[大医精诚] 未找到名含「Asset Database」的 DataBuilder —— Play Mode 未改。" +
+                    "手动:Window > Asset Management > Addressables > Groups → Play Mode Script。");
+                return false;
             }
 
-            Debug.LogWarning("[E-13 自检] ⓪ 未找到名含「Asset Database」的 DataBuilder —— Play Mode 未改。");
+            int current = settings.ActivePlayModeDataBuilderIndex;
+            if (target == current) return false;
+
+            string currentName = settings.GetDataBuilder(current)?.Name ?? "<null>";
+            settings.ActivePlayModeDataBuilderIndex = target;
+            EditorUtility.SetDirty(settings);
+            AssetDatabase.SaveAssets();
+            Debug.Log(
+                $"[大医精诚] Play Mode → Use Asset Database(DataBuilder[{target}]" +
+                $"「{settings.GetDataBuilder(target)?.Name}」;原「{currentName}」)。" +
+                "—— 该设置住 Library/AddressablesConfig.dat(机器本地),不入库。");
+            return true;
+        }
+
+        /// <summary>菜单:<b>Play Mode 归位(Use Asset Database)</b> —— 修 <c>TD-audio-01f</c> 的机器侧漂移。
+        /// <para>症状:PlayMode 启动序整条红,报文 <c>No Location found for Key=…</c>。
+        /// 跑本菜单即可,<b>不必</b>重建 Addressables 内容(那是另一件事,见同目录菜单)。</para></summary>
+        [MenuItem("大医精诚/数据管线/Play Mode 归位(Use Asset Database)")]
+        public static void ResetPlayModeToAssetDatabase()
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings == null)
+                throw new InvalidOperationException(
+                    "[大医精诚] Addressables 设置缺失 —— 组定义已随仓库入库" +
+                    "(unity/Assets/AddressableAssetsData/)。" +
+                    "跑 `git checkout -- unity/Assets/AddressableAssetsData` 恢复。");
+
+            if (!EnsureAssetDatabasePlayMode(settings))
+                Debug.Log("[大医精诚] Play Mode 已是 Use Asset Database —— 零改动。");
         }
 
         /// <summary>

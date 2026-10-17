@@ -35,6 +35,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using NUnit.Framework;
+using UnityEditor;                            // EditorUtility / AssetDatabase(夹具失败路径的标签清理)
+using UnityEngine;                            // AudioDataLoadState(AudioClipLoadStateAdapter 适配面)
 using UnityEditor.AddressableAssets;          // AddressableAssetSettingsDefaultObject(TD-audio-01e② 夹具注入真设置)
 using UnityEditor.AddressableAssets.Settings; // AddressableAssetSettings(同上)
 using DaYiJingCheng.EditorTools.Bake;
@@ -351,6 +353,221 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "素材组名与数据组名必须互异(AC-44-D5 的菜单侧前提)");
         }
 
+        // ══════════════ story-017 门加固(W-2 / W-3)══════════════
+        //   AC-44-D5b 扩展名过滤跨平台一致 · AC-44-D5c 判据方法 ≤40 行 / CC<10
+        //   · AC-44-D5d 错误集逐字不变(纯重构)
+
+        /// <summary>AC-44-D5b:音频素材扩展名判定**跨平台大小写一致**。
+        /// <para>病根(W-2):`Directory.GetFiles(dir, "*.wav")` 的 pattern **在 Linux 上区分大小写**
+        /// (独立 net8.0 探针实测:含 `lower.wav` / `UPPER.WAV` / `Mixed.Wav` 的目录**只返回 `lower.wav`**)
+        /// ⇒ CI 平台正是 Linux(ADR-012),素材批交付 `.WAV` 时门**静默少报**。</para>
+        /// <para>判据真源 = `AudioAssetGroupGates.IsAudioAssetName`(**单一出处**);
+        /// `AudioImportSettingsGate.IsWavName` 已改为**委派**到它 ⇒ 本测末尾同时钉住两侧不脱钩。</para>
+        /// <para>⚠️ 本测**只覆盖谓词**;「调用点真的用了谓词」由下一条
+        /// (`test_d5b_audioAssetsOnDisk_filtersViaPredicateNotGlob`)补 —— 两者合起来才封住 W-2。</para></summary>
+        [Test]
+        public void test_d5b_audioAssetName_extensionCaseInsensitive()
+        {
+            // ── 正向:三形态 + 带目录路径 ──
+            Assert.That(AudioAssetGroupGates.IsAudioAssetName("lower.wav"), Is.True, "全小写须识别");
+            Assert.That(AudioAssetGroupGates.IsAudioAssetName("UPPER.WAV"), Is.True,
+                "全大写须识别 —— Linux 下 `GetFiles(\"*.wav\")` 会漏掉它(W-2 病根)");
+            Assert.That(AudioAssetGroupGates.IsAudioAssetName("Mixed.Wav"), Is.True, "混写须识别");
+            Assert.That(AudioAssetGroupGates.IsAudioAssetName("Assets/Audio/vo_x.WAV"), Is.True,
+                "带目录路径须识别");
+
+            // ── 负向 ──
+            Assert.That(AudioAssetGroupGates.IsAudioAssetName("note.txt"), Is.False);
+            Assert.That(AudioAssetGroupGates.IsAudioAssetName("noext"), Is.False);
+            Assert.That(AudioAssetGroupGates.IsAudioAssetName("x.wav.bak"), Is.False, "伪后缀不得命中");
+            Assert.That(AudioAssetGroupGates.IsAudioAssetName(""), Is.False);
+            Assert.That(AudioAssetGroupGates.IsAudioAssetName(null), Is.False);
+
+            // ── 委派不脱钩:两处判据对同一探针必须同结论 ──
+            foreach (string probe in new[] { "a.wav", "A.WAV", "b.txt", "", "c.Wav", null })
+                Assert.That(AudioImportSettingsGate.IsWavName(probe),
+                    Is.EqualTo(AudioAssetGroupGates.IsAudioAssetName(probe)),
+                    $"两处扩展名判据分叉(「单一出处」名存实亡):{probe ?? "(null)"}");
+        }
+
+        /// <summary>AC-44-D5b(**映射结果半边**,QA 用例逐字):磁盘路径集 → 工程路径集,
+        /// `.wav` / `.WAV` / `.Wav` **三形态均须返回**,非 wav / 伪后缀 / 编辑器临时文件须剔除。
+        /// <para>⚠️ 为什么是**纯函数**而不是往盘上造副本:副本会同时进 D5 的期望集与 D6 的
+        /// 存在性判据(假红),且违夹具「零文件写入」纪律。抽纯函数后夹具可注入路径直断 ——
+        /// 这才是 QA 用例「两者均被返回」的**直接**证据(而非「谓词对 + 调用点用了谓词」的复合论证)。</para>
+        /// <para>排序按 `Ordinal`:大写字母码位小于小写(`'M'`=77 < `'U'`=85 < `'l'`=108)⇒
+        /// 期望次序 = `Mixed.Wav` / `UPPER.WAV` / `lower.wav`。本断言**同时钉住顺序**。</para></summary>
+        [Test]
+        public void test_d5b_filterAudioNames_threeCaseFormsAllKept()
+        {
+            IReadOnlyList<string> got = AudioAssetGroupGates.FilterAudioNames(new List<string>
+            {
+                "/root/Audio/lower.wav",       // 全小写
+                "/root/Audio/UPPER.WAV",       // 全大写 —— Linux 下 glob 会漏掉它(W-2 病根)
+                "/root/Audio/Mixed.Wav",       // 混写
+                "/root/Audio/note.txt",        // 非 wav
+                "/root/Audio/noext",           // 无扩展名
+                "/root/Audio/x.wav.bak",       // 伪后缀
+                "/root/Audio/.hidden.wav",     // 编辑器临时文件(须剔除)
+            });
+
+            Assert.That(got, Is.EqualTo(new[]
+            {
+                "Assets/Audio/Mixed.Wav",
+                "Assets/Audio/UPPER.WAV",
+                "Assets/Audio/lower.wav",
+            }), "三形态均须返回且按 Ordinal 排序;非 wav / 伪后缀 / 临时文件须剔除");
+
+            Assert.That(AudioAssetGroupGates.FilterAudioNames(null), Is.Empty,
+                "null 入参 ⇒ 空集(不得 NRE)");
+            Assert.That(AudioAssetGroupGates.FilterAudioNames(new List<string>()), Is.Empty);
+        }
+
+        /// <summary>AC-44-D5b(**调用点半边**):`AudioAssetsOnDisk` 必须把枚举结果交给纯函数,
+        /// 且该纯函数必须用判据真源 `IsAudioAssetName` —— 不得回到
+        /// `GetFiles(dir, "*" + AudioAssetExtension)` 形态,也不得自己另写一份扩展名比较。
+        /// <para>⚠️ 为什么单立一条:谓词本身正确**不蕴含**调用点用它 —— 把枚举改回 glob,
+        /// 上两条断言仍**全绿**(素材目录恰好只有小写 `.wav`)⇒ 它们对「调用点回退」零判别力。
+        /// 本测是那两条的**判别面补丁**(证伪轮 F6 反证)。</para>
+        /// <para>扫描面 = 生产件源码文本(**注释已剥离**)—— 文件头注**逐字记载**了被禁的写法,
+        /// 不剥离则扫描命中自己的说明文字 ⇒ 恒红、零判别力(同 `test_discipline_noFilesystemWrites`)。</para></summary>
+        [Test]
+        public void test_d5b_audioAssetsOnDisk_filtersViaPredicateNotGlob()
+        {
+            string src = StripComments(File.ReadAllText(GatesSourcePath()));
+
+            // ① 真环境半边:枚举结果须交给纯函数
+            string reader = ExtractMethodText(src, "public static IReadOnlyList<string> AudioAssetsOnDisk(");
+            Assert.That(reader, Does.Contain("FilterAudioNames("),
+                "枚举必须经 FilterAudioNames 过滤(W-2 修法)");
+
+            // ② 映射半边:须用判据真源,不得另写一份扩展名比较(「禁另抄」)
+            string mapper = ExtractMethodText(src, "public static IReadOnlyList<string> FilterAudioNames(");
+            Assert.That(mapper, Does.Contain("IsAudioAssetName("),
+                "映射必须经 IsAudioAssetName(单一出处),不得另写扩展名比较");
+
+            // ③ 全文不得再出现 glob 形态
+            // ⚠️ 令牌**拼接构造**:整字面量会让本断言自身命中(注释虽已剥离,仍保持与
+            //    `test_discipline_noFilesystemWrites` 同款纪律),且避免将来误伤本文件。
+            Assert.That(src, Does.Not.Contain("\"*\"" + " + AudioAssetExtension"),
+                "全文不得再出现 glob 形态 —— W-2 病根是 pattern 区分大小写,"
+                + "⛔ 改成 \"*.WAV\" 只是把分叉挪到另一边");
+        }
+
+        /// <summary>AC-44-D5c:`ValidateEntries` 须 ≤ 40 **物理行**(签名行 → 闭括号行,含注释与空行)
+        /// 且圈复杂度 &lt; 10 —— 由拆分(编排 + 两个私有判据半)兑现。
+        /// <para>⚠️ **度量口径 = 物理行,不是「非空非括号行」**(W-3 原稿实测 45 行 = 物理行)。
+        /// 用错口径:原实现只有 ~22 个非空非括号行 ⇒ **原实现也通过** ⇒ 夹具零判别力(假绿)。
+        /// 本测的阈值 40 正是按物理行口径能区分「拆分前 45 / 拆分后 10」而设。</para>
+        /// <para>⚠️ 本测自带**计数器自校准**:计数器若写坏成「恒小」,两个断言都会蒙混过关 ⇒
+        /// 校准断言是计数器本身的判别面(证伪轮 F8 反证)。</para></summary>
+        [Test]
+        public void test_d5c_validateEntries_withinLineAndComplexityBudget()
+        {
+            // ── 自校准:计数器对已知片段必须给出确定值(否则「恒小」= 假绿)──
+            const string probe = "{ if (a) { for (int i = 0; i < 1; i++) { } } else if (b && c) { } }";
+            Assert.That(CountDecisionPoints(probe), Is.EqualTo(4),
+                "决策点计数器自校准失败(期望 if + for + if + && = 4)—— 计数器坏了则本测无判别力");
+
+            string src = StripComments(File.ReadAllText(GatesSourcePath()));
+            string body = ExtractMethodText(src, "public static IReadOnlyList<string> ValidateEntries(");
+
+            int lines = body.Split('\n').Length;
+            Assert.That(lines, Is.LessThanOrEqualTo(40),
+                $"ValidateEntries 须 ≤ 40 物理行(W-3:拆分前 45 行),实得 {lines} 行 —— "
+                + "两个判据半须留在私有方法里,编排方法不得内联判据");
+
+            int cc = 1 + CountDecisionPoints(body);
+            Assert.That(cc, Is.LessThan(10),
+                $"ValidateEntries 圈复杂度须 < 10(W-3:拆分前 15),实得 {cc} —— 编排方法不得内联判据");
+
+            // ── QA 用例的 Edge case 逐字:「拆分后主方法只剩编排;**私有方法各自 ≤ 40 行**」──
+            //    ⚠️ 只在主方法上钉行数会被「把判据挪进一个 60 行的私有方法」绕过 —— 阈值要
+            //    落在**每一段**上,否则拆分只是把超标搬了家。
+            foreach (string sig in new[]
+                     {
+                         "private static void CheckExpectedAssetsAreGrouped(",
+                         "private static void CheckDataCoreHasNoAudioEntries(",
+                     })
+            {
+                int halfLines = ExtractMethodText(src, sig).Split('\n').Length;
+                Assert.That(halfLines, Is.LessThanOrEqualTo(40),
+                    $"{sig} 亦须 ≤ 40 物理行,实得 {halfLines} 行 —— "
+                    + "否则「拆分」只是把超标搬到了私有方法里");
+            }
+        }
+
+        /// <summary>AC-44-D5d:拆分**不得改变判定语义** —— 同一输入下错误集**逐字相同**。
+        /// <para>做法 = **黄金串表**:每例断言**完整错误列表**(条数 + 逐字文本 + 顺序),
+        /// 而不是「非空」。仅断非空接不住三种回归:① 报文改了字 ② 多报/漏报一条
+        /// ③ 两半次序颠倒 —— 而这三种正是「顺手重构」的典型副作用。</para>
+        /// <para>⚠️ 本表的期望串**逐字复制**生产件里的报文字面量。生产件改文案 ⇒ 本表须同步;
+        /// 不同步 = 红。这正是「纯重构」的可证伪形态,不是脆性(改文案本就该同步账本)。</para></summary>
+        [Test]
+        public void test_d5d_errorSetIsByteIdentical()
+        {
+            const string A = "Assets/Audio/a.wav";
+            const string B = "Assets/Audio/b.wav";
+            const string C = "Assets/Audio/c.wav";
+
+            // 期望报文构造器(逐字对齐生产件;改任一处 ⇒ 本表红)
+            static string InDataCore(string asset) =>
+                "[D5] 音频素材「" + asset + "」登记在 `data-core` 组 —— " +
+                "AC-44-D5:素材与 `data-core` 数据烘焙组**必须区分**(混组 = 流式素材被打进数据包)";
+            static string Unregistered(string asset) =>
+                "[D5] 音频素材「" + asset + "」未登记进任何 Addressables 组 —— " +
+                "AC-44-D5:素材须走 Addressables 流式(未登记 = 打进主包 / 不可寻址)。" +
+                "跑菜单「确保 audio Addressables 组」";
+            static string StrayInDataCore(string asset) =>
+                "[D5] `data-core` 组含音频目录条目「" + asset + "」—— " +
+                "AC-44-D5:组区分(该文件不在期望集内,仍是混组)";
+
+            // ① null 条目集 ⇒ 恰一条(空集冒充绿守卫)
+            Assert.That(AudioAssetGroupGates.ValidateEntries(null, new List<string> { A }),
+                Is.EqualTo(new[] { "[D5] 条目集为 null —— 空集冒充绿" }),
+                "① null 条目集须恰一条");
+
+            // ② 期望素材登记进 data-core ⇒ 恰一条 (a) 判据报文
+            Assert.That(
+                AudioAssetGroupGates.ValidateEntries(
+                    new List<AudioGroupEntry> { new AudioGroupEntry("data-core", A) },
+                    new List<string> { A }),
+                Is.EqualTo(new[] { InDataCore(A) }), "② 混组须恰一条");
+
+            // ③ 期望素材未登记 ⇒ 恰一条 (a) 判据报文
+            Assert.That(
+                AudioAssetGroupGates.ValidateEntries(
+                    new List<AudioGroupEntry> { new AudioGroupEntry("data-core", "Assets/DataCooked/x.bytes") },
+                    new List<string> { A }),
+                Is.EqualTo(new[] { Unregistered(A) }), "③ 未登记须恰一条");
+
+            // ④ 两半**同时**触发 ⇒ (a) 的两条在前、(b) 的一条在后(拆分不得颠倒次序)
+            var mixed = new List<AudioGroupEntry>
+            {
+                new AudioGroupEntry("data-core", A),   // (a) 命中:混组
+                new AudioGroupEntry("data-core", C),   // (b) 命中:在 Audio 下但不在期望集
+            };
+            Assert.That(AudioAssetGroupGates.ValidateEntries(mixed, new List<string> { A, B }),
+                Is.EqualTo(new[] { InDataCore(A), Unregistered(B), StrayInDataCore(C) }),
+                "④ (a) 半的报文须先于 (b) 半 —— 次序是判据语义的一部分");
+
+            // ⑤ 干净条目集 ⇒ 空
+            Assert.That(
+                AudioAssetGroupGates.ValidateEntries(
+                    new List<AudioGroupEntry> { new AudioGroupEntry("audio", A) },
+                    new List<string> { A }),
+                Is.Empty, "⑤ 干净条目集须零错误");
+
+            // ⑥ 期望集为 null ⇒ (a) 半整段跳过;(b) 半仍在(其 `expectedAudioAssets != null` 守卫
+            //    不成立 ⇒ 不 continue ⇒ 报)。**行为原样钉住**(纯重构 = 语义不动,不是语义变好)。
+            Assert.That(
+                AudioAssetGroupGates.ValidateEntries(
+                    new List<AudioGroupEntry> { new AudioGroupEntry("data-core", A) }, null),
+                Is.EqualTo(new[] { StrayInDataCore(A) }),
+                "⑥ 期望集为 null 时的行为须与拆分前一致");
+        }
+
+
         // ══════════════ TD-audio-01b / 01e:菜单硬失败 ══════════════
         // 病根(2026-10-17 实测,`s17-freshclone-20261017-051600.log`):菜单项在
         // `settings == null` 时只 `Debug.LogError` 就 `return` ⇒ **Unity 退出码 = 0**
@@ -364,7 +581,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         public void test_d5_menu_settingsMissing_throwsHard()
         {
             var ex = Assert.Throws<InvalidOperationException>(
-                () => DataBakeMenu.EnsureAudioGroupCore(null, "Assets/Audio"),
+                () => DataBakeMenu.EnsureAudioGroupCore(null, "Assets/Audio", "audio"),
                 "设置缺失必须**抛异常**(LogError + return 会让进程退出码保持 0 = 假绿)");
 
             Assert.That(ex.Message, Does.Contain("git checkout"),
@@ -386,11 +603,118 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "本机 Addressables 设置缺失 —— 正向半边 test_d5_realSettings_… 也会红(机器前置)");
 
             var ex = Assert.Throws<InvalidOperationException>(
-                () => DataBakeMenu.EnsureAudioGroupCore(settings, "Assets/__no_such_audio_dir__"),
+                () => DataBakeMenu.EnsureAudioGroupCore(settings, "Assets/__no_such_audio_dir__", "audio"),
                 "空素材目录必须**抛异常**(LogWarning + return 同样让退出码保持 0)");
 
             Assert.That(ex.Message, Does.Contain("__no_such_audio_dir__"),
                 "报文须点名出错的目录,否则无法定位");
+        }
+
+        /// <summary>跑一段注入**假组名**的菜单代码:断言其**抛异常**,并保证**不留痕** —— 无论成败。</summary>
+        /// <remarks>⚠️ <b>为什么需要它(2026-10-17 证伪轮实测,不是预防性设计)</b>:变异 M1/M3 停用
+        /// 「组缺失 ⇒ throw」后,生产码**落入分支 ④**,先 <c>settings.AddLabel(假组名)</c> 再
+        /// <c>AssetDatabase.SaveAssets()</c> ⇒ **入库的 `AddressableAssetSettings.asset` 被写入两个假标签**
+        /// (实测 `git diff` 命中 `audio__no_such_group__` / `data-core__no_such_group__`)。
+        /// 即:**守卫一破,失败的测试会污染已提交的资产**。`.claude/rules/test-standards.md` 要求
+        /// 「Integration tests must clean up after themselves」⇒ 本包装器即该清理,
+        /// 并把「无残留」判据从「只查**组**」扩到「**查组 + 查标签**」。</remarks>
+        private static InvalidOperationException AssertThrowsAndLeaveNoTrace(
+            AddressableAssetSettings settings, string fakeGroupName, TestDelegate code, string why)
+        {
+            InvalidOperationException ex = null;
+            try
+            {
+                ex = Assert.Throws<InvalidOperationException>(code, why);
+            }
+            finally
+            {
+                // ⚠️ 清理必须落 finally —— **失败路径**才是会留下标签的那一条。
+                if (settings.GetLabels().Contains(fakeGroupName))
+                {
+                    settings.RemoveLabel(fakeGroupName);
+                    EditorUtility.SetDirty(settings);
+                    AssetDatabase.SaveAssets();
+                }
+            }
+
+            Assert.That(settings.FindGroup(fakeGroupName), Is.Null,
+                "抛异常后不得留下任何新建的组(先验后改:失败时零改动)");
+            Assert.That(settings.GetLabels(), Does.Not.Contain(fakeGroupName),
+                "抛异常后不得留下标签 —— 守卫一破,生产码会先 AddLabel 再 SaveAssets");
+            return ex;
+        }
+
+        /// <summary>TD-audio-01 W-5②(2026-10-17):**组缺失 ⇒ 硬失败**,不得 `CreateGroup` 重建。
+        /// <para>组定义已随仓库入库(01a)⇒ 组缺失 = 入库文件被删/损坏,恢复靠 `git checkout`。
+        /// 原 `CreateGroup(schemasToCopy: null)` 建出的 schema 是 Addressables **默认字段值**,
+        /// 而入库的 <c>audio_BundledAssetGroupSchema</c> 是 <c>m_UseDefaultSchemaSettings: 0</c>
+        /// 的脱离默认态 ⇒ 重建 = 与入库定义**分叉**(看着绿,组是错的)。</para>
+        /// <para>注入一个不存在的组名命中分支 ③(注入真设置 —— 承「先验后改」,失败时零改动)。</para></summary>
+        [Test]
+        public void test_d5_menu_groupMissing_throwsHard()
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            Assert.That(settings, Is.Not.Null, "本机 Addressables 设置缺失(机器前置)");
+
+            const string absent = "audio__no_such_group__";
+            Assert.That(settings.FindGroup(absent), Is.Null, "本测要求该组名确不存在");
+
+            InvalidOperationException ex = AssertThrowsAndLeaveNoTrace(
+                settings, absent,
+                () => DataBakeMenu.EnsureAudioGroupCore(settings, "Assets/Audio", absent),
+                "组缺失必须**抛异常**,不得静默 CreateGroup(重建 schema 与入库定义分叉)");
+
+            Assert.That(ex.Message, Does.Contain("git checkout"),
+                "报文须指向恢复动作 —— 组定义已入库");
+        }
+
+        /// <summary>TD-audio-01 W-5② 的 <c>data-core</c> 侧 + 两静默分支加固(2026-10-17)。
+        /// <para>`EnsureDataCoreGroup` 原与 `EnsureAudioGroup` 同款三处静默返回,现已同批加固
+        /// (用户裁定 01e 的窄范围已扩)。三支逐条钉住。</para></summary>
+        [Test]
+        public void test_dcore_menu_settingsMissing_throwsHard()
+        {
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => DataBakeMenu.EnsureDataCoreGroupCore(null, "Assets/DataCooked", "data-core"),
+                "设置缺失必须抛异常(与 audio 侧同款进程级静默)");
+
+            Assert.That(ex.Message, Does.Contain("git checkout"));
+        }
+
+        /// <summary><c>data-core</c> 侧:产物目录零 <c>*.cooked.bytes</c> ⇒ 硬失败。
+        /// <para>⚠️ 原实现在此处**已先建组、先打标签**才 `LogWarning` —— 现已把扫描提到写入之前
+        /// (先验后改)。本测注入真设置,故该性质可被观测:抛异常后组与标签零改动。</para></summary>
+        [Test]
+        public void test_dcore_menu_noCooked_throwsHard()
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            Assert.That(settings, Is.Not.Null, "本机 Addressables 设置缺失(机器前置)");
+
+            const string emptyDir = "Assets/__no_such_cooked_dir__";
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => DataBakeMenu.EnsureDataCoreGroupCore(settings, emptyDir, "data-core"),
+                "空产物目录必须抛异常");
+
+            Assert.That(ex.Message, Does.Contain(emptyDir), "报文须点名出错的目录");
+        }
+
+        /// <summary><c>data-core</c> 侧:组缺失 ⇒ 硬失败,不得 <c>CreateGroup</c>(同 W-5②)。</summary>
+        [Test]
+        public void test_dcore_menu_groupMissing_throwsHard()
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            Assert.That(settings, Is.Not.Null, "本机 Addressables 设置缺失(机器前置)");
+
+            const string absent = "data-core__no_such_group__";
+            Assert.That(settings.FindGroup(absent), Is.Null, "本测要求该组名确不存在");
+
+            InvalidOperationException ex = AssertThrowsAndLeaveNoTrace(
+                settings, absent,
+                () => DataBakeMenu.EnsureDataCoreGroupCore(
+                    settings, $"Assets/{DataBakeMenu.CookedDirName}", absent),
+                "组缺失必须抛异常,不得静默 CreateGroup");
+
+            Assert.That(ex.Message, Does.Contain("git checkout"));
         }
 
         // ══════════════ AC-44-D6:素材存在性门 ══════════════
@@ -405,8 +729,14 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             AudioEventTableBake.BakeOutput output = AudioEventTableBake.BakeFromRepo(RepoRoot());
 
             Assert.That(output.Cooked, Is.Not.Null.And.Not.Empty);
-            Assert.That(output.Bound.Table.Rows.Count, Is.EqualTo(5),
-                "真种子 rows[] 5 行(改动种子须同改本断言)");
+            // ⚠️ 2026-10-17:原断言 5 行 —— 被**内容批**打破(34 个真素材接入后种子扩到 15 行)。
+            //    该断言的**判别力在「烘焙不 throw」**,不在「行数恰为 5」;行数钉死会让每次
+            //    合法扩表都变红(测的是「没改过数据」,不是「门能过」)⇒ 改为下界守卫:
+            //    至少覆盖内容批已交付的行数,且行数 == 表模型行数(自洽)。
+            Assert.That(output.Bound.Table.Rows.Count, Is.GreaterThanOrEqualTo(15),
+                "真种子至少 15 行(内容批 2026-10-17 落地后的下界;扩表须同改本下界)");
+            Assert.That(output.Bound.Table.Rows.Count,
+                Is.EqualTo(ReadSeedRowCount()), "烘焙行数须与源 JSON rows[] 行数一致");
         }
 
         /// <summary>AC-44-D6 负向:把真种子里一个素材名换成不存在的名字 ⇒ **聚合 throw**。</summary>
@@ -431,7 +761,15 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         public void test_d6_missingAssetError_namesFileAndCue()
         {
             string json = ReadSeedJson("audio_events.json");
-            string broken = json.Replace("vo_patient_cough_damp_m1.wav", "__gone__.wav");
+            // ⚠️ 2026-10-17:原用 `vo_patient_cough_damp_m1.wav` —— 该名已按命名裁定**退役并删文件**,
+            //    种子里不再出现 ⇒ Replace 空转 ⇒ 烘焙照常成功 ⇒ 本测假红(实测)。
+            //    改为**先取自种子实际引用的第一个素材名**(断言前提非空),再替换。
+            string present = FirstAssetNameInSeed(json);
+            Assert.That(present, Is.Not.Null.And.Not.Empty,
+                "负向夹具前提:种子必须至少引用一个素材名(否则替换空转 = 假绿)");
+            Assert.That(json, Does.Contain(present));
+            string broken = json.Replace(present, "__gone__.wav");
+            Assert.That(broken, Is.Not.EqualTo(json), "负向夹具必须真的改动了源文本");
 
             var ex = Assert.Throws<BakeValidationException>(
                 () => AudioEventTableBake.BakeFromJson(broken, AudioAssetExistence.ResolveRoot(RepoRoot())));
@@ -576,10 +914,12 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             StethoscopePreloadGate gate =
                 GateFromRealSeed(_ => StethoscopePreloadGate.ClipLoadState.Loaded);
 
-            Assert.That(gate.RequiredCues, Is.EqualTo(new[]
-            {
-                "BreathLayer_Base_Calm", "BreathLayer_Adventitious_Fine",
-            }), "听诊族 = 表里 bus == Stethoscope 的行,按 ordinal 序");
+            // ⚠️ 2026-10-17:内容批为 `Pulse_Contact` / `Steth_Contact` 也选了 Stethoscope 总线
+            //    (承 GDD `:810`「把脉与听诊同层」)⇒ 听诊族由 2 条扩到 4 条。
+            //    本测的判别力在「**只取** bus == Stethoscope 的行」,**不在「恰好 2 条」** ⇒
+            //    改为与「从真种子独立推出的期望集」逐项比,条数不钉死。
+            Assert.That(gate.RequiredCues, Is.EquivalentTo(ExpectedStethoscopeCues()),
+                "听诊族 = 表里 bus == Stethoscope 的行,按 ordinal 序(期望集从真种子独立推出)");
         }
 
         /// <summary>听诊窗预载:总线名与 `MixerRegistry.BusNames` 一致(两处字面量不得分叉)。</summary>
@@ -638,26 +978,56 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(mux.PreloadGate, Is.Null);
         }
 
-        /// <summary>听诊窗预载 —— **真 `AudioClip.loadState` 的 PlayMode 半边 = NOT-RUN**。
-        /// <para>⚠️ 缺口哨兵(禁借绿):素材本体虽已落占位文件(2026-10-16 用户裁定 ①),
-        /// 但**真 `AudioClip` 的 `loadState` 过渡**需要 PlayMode + 真导入 + 真 `LoadAudioData()`,
-        /// 本 EditMode 夹具结构上跑不到。素材 Import Settings 定稿归 content 批(OQ-44-2);
-        /// 该半边落地后本哨兵**转红** ⇒ 须随之补做真 PlayMode 断言,**不得当回归修掉**。</para></summary>
+        /// <summary>听诊窗预载 —— 真 `AudioClip.loadState` 的**适配器契约**(2026-10-17 补口)。
+        /// <para>⚠️ <b>本测前身是「NOT-RUN 缺口哨兵」</b>(<c>test_preload_realAudioClipLoadState_pendingPlayModeHalf</c>),
+        /// 它自陈的未覆盖面 = 「Unity 侧 loadState 枚举与 ClipLoadState 的适配器」。
+        /// 该件已于 2026-10-17 落地(<see cref="AudioClipLoadStateAdapter"/>)⇒ 哨兵按自身口径
+        /// **转成真断言**(不是被当回归修掉)。</para>
+        /// <para>本测覆盖**纯映射**;真 clip 的 `Unloaded→Loaded` 过渡由 PlayMode 件承载
+        /// (<c>unity/Assets/Tests/PlayMode/Audio/stethoscope_preload_loadstate_test.cs</c>)。</para></summary>
         [Test]
-        public void test_preload_realAudioClipLoadState_pendingPlayModeHalf()
+        public void test_preload_adapter_mapsAllFourUnityLoadStates()
         {
-            string assetRoot = AudioAssetExistence.ResolveRoot(RepoRoot());
-            bool anyClipOnDisk = AudioAssetGroupGates.AudioAssetsOnDisk().Count > 0;
+            Assert.That(AudioClipLoadStateAdapter.Map(AudioDataLoadState.Unloaded),
+                Is.EqualTo(StethoscopePreloadGate.ClipLoadState.Unloaded));
+            Assert.That(AudioClipLoadStateAdapter.Map(AudioDataLoadState.Loading),
+                Is.EqualTo(StethoscopePreloadGate.ClipLoadState.Loading));
+            Assert.That(AudioClipLoadStateAdapter.Map(AudioDataLoadState.Loaded),
+                Is.EqualTo(StethoscopePreloadGate.ClipLoadState.Loaded));
+            Assert.That(AudioClipLoadStateAdapter.Map(AudioDataLoadState.Failed),
+                Is.EqualTo(StethoscopePreloadGate.ClipLoadState.Failed));
+        }
 
-            Assert.That(anyClipOnDisk, Is.True,
-                "占位素材已落(2026-10-16 裁定 ①)⇒ 本哨兵的前提成立。若素材消失,先修 D6 正向半边");
-            Assert.That(assetRoot, Is.Not.Null.And.Not.Empty);
+        /// <summary>适配器:**没有 clip ≠ 已载**(null ⇒ Failed ⇒ 门阻断)。
+        /// <para>若映射成 <c>Loaded</c>,「素材没接上」会被读成「就绪」⇒ 进听诊听静音 ⇒
+        /// 把静音误当「病人没啰音」。</para></summary>
+        [Test]
+        public void test_preload_adapter_nullClip_isFailedNotLoaded()
+        {
+            Assert.That(AudioClipLoadStateAdapter.StateOf(null),
+                Is.EqualTo(StethoscopePreloadGate.ClipLoadState.Failed),
+                "null clip 必须是 Failed —— 放行会把静音误当「病人没啰音」");
+        }
 
-            Assert.Pass(
-                "NOT-RUN(如实登记):真 AudioClip.loadState 的过渡(Unloaded→Loading→Loaded/Failed)" +
-                "需要 PlayMode + 真导入 + 真 LoadAudioData(),EditMode 结构上不可达。" +
-                "已覆盖:查询缝的双向语义(Unloaded/Loading/Loaded/Failed 四态)+ 族集派生 + 接线。" +
-                "未覆盖:Unity 侧 loadState 枚举与 ClipLoadState 的适配器(归装配轮 + content 批)。");
+        /// <summary>适配器:解析器为 null ⇒ 构造期硬失败(与 <see cref="StethoscopePreloadGate"/>
+        /// 的 null 查询缝同款)。</summary>
+        [Test]
+        public void test_preload_adapter_nullResolver_isHardFailure()
+        {
+            Assert.Throws<ArgumentNullException>(() => AudioClipLoadStateAdapter.Query(null));
+        }
+
+        /// <summary>适配器接上**真门**:查不到 clip 的 cue ⇒ 门阻断(端到端方向一致)。</summary>
+        [Test]
+        public void test_preload_adapter_unresolvableCue_blocksGate()
+        {
+            StethoscopePreloadGate gate = StethoscopePreloadGate.FromTable(
+                AudioEventTableBake.Materialize(AudioEventTableBake.BakeFromRepo(RepoRoot())),
+                AudioClipLoadStateAdapter.Query(_ => null));
+
+            Assert.That(gate.IsReady(), Is.False,
+                "解析不到 clip ⇒ 全族 Failed ⇒ 门必须阻断");
+            Assert.That(gate.PendingCues(), Is.Not.Empty);
         }
 
         // ══════════════ 烘焙确定性 / 往返 / 头契约 ══════════════
@@ -929,6 +1299,196 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(AudioSettingsRegistry.Rows.Count, Is.EqualTo(fallbackCount));
         }
 
+        // ══════════════ Play Mode Script 门(TD-audio-01f 的机器侧漂移)══════════════
+
+        /// <summary>Play Mode Script 必须指向「Use Asset Database」。
+        /// <para>⚠️ <b>这是机器前置断言,不是纯逻辑断言</b> —— 被测对象是
+        /// <c>ProjectConfigData.ActivePlayModeIndex</c>,它住
+        /// <c>unity/Library/AddressablesConfig.dat</c>(**机器本地、gitignored**),
+        /// <b>不在</b>入库的 <c>AddressableAssetSettings.asset</c> 里
+        /// (包源码 <c>ProjectConfigData.cs:390</c>)。</para>
+        /// <para><b>为什么值得一条测试</b>:留在「Use Existing Build」时,PlayMode 解析的是
+        /// <c>Library/com.unity.addressables/aa/&lt;platform&gt;/catalog.bin</c> 这份预建 catalog;
+        /// 组条目一变就陈旧 ⇒ <c>InvalidKeyException: No Location found for Key=…</c>,
+        /// 启动序整条挂掉。**2026-09-24 与 2026-10-17 两次同症状**,两次都花了排查成本
+        /// (第二次被误诊成「新检出须重建 catalog」)。本测把该漂移变成**一条具名红**。</para>
+        /// <para><b>如果你是有意切到 Existing Build 做 bundle 观测</b>:本测会红,这是设计。
+        /// 观测完跑菜单「大医精诚/数据管线/Play Mode 归位(Use Asset Database)」即可。</para></summary>
+        [Test]
+        public void test_playModeScript_isAssetDatabase()
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            Assert.That(settings, Is.Not.Null, "本机 Addressables 设置缺失(机器前置)");
+
+            int expected = DataBakeMenu.FindAssetDatabaseBuilderIndex(settings);
+            Assert.That(expected, Is.GreaterThanOrEqualTo(0),
+                "DataBuilders 名单里找不到名含「Asset Database」的 builder —— 名单被改过?");
+
+            int active = settings.ActivePlayModeDataBuilderIndex;
+            string activeName = settings.GetDataBuilder(active)?.Name ?? "<null>";
+
+            Assert.That(active, Is.EqualTo(expected),
+                $"Play Mode Script 现为「{activeName}」(DataBuilder[{active}]),应为「Use Asset Database」。\n" +
+                "后果:PlayMode 去解析 Library 下的**预建 catalog**,组条目一变就陈旧 ⇒\n" +
+                "      InvalidKeyException: No Location found for Key=… ⇒ 启动序整条红。\n" +
+                "修:菜单「大医精诚/数据管线/Play Mode 归位(Use Asset Database)」。\n" +
+                "⚠️ 该设置住 unity/Library/AddressablesConfig.dat(机器本地、gitignored)" +
+                "⇒ 不入库、**不可** git checkout 恢复。");
+        }
+
+        /// <summary>谓词负向半边:null 设置 / 无匹配名 ⇒ <c>-1</c>(不得抛,不得返回 0 冒充命中)。</summary>
+        [Test]
+        public void test_playModeScript_predicate_nullOrMiss_returnsMinusOne()
+        {
+            Assert.That(DataBakeMenu.FindAssetDatabaseBuilderIndex(null), Is.EqualTo(-1),
+                "null 设置必须回 -1 —— 回 0 会让调用方把「没找到」当成「就是第 0 个」");
+        }
+
+        // ══════════════ Import Load Type 门(OQ-44-2 连带裁定 · GDD §OQ-44-2 附)══════════════
+
+        /// <summary>GDD §OQ-44-2 附 的实测表逐行复算(判据 = 该表,非记忆)。
+        /// <para>⚠️ 本测**硬编码**时长 / 驻留 —— 属 `.claude/rules/test-standards.md` 的
+        /// 「boundary value tests where the exact number IS the point」豁免:
+        /// 这里断言的**就是** GDD 表格本身,换成常量文件反而看不出「门与 GDD 是否一致」。</para></summary>
+        [Test]
+        public void test_importSettings_requiredLoadType_matchesGddTable()
+        {
+            // 行 = GDD §OQ-44-2 附「本次实测套用」表(5 行)
+            Assert.That(AudioImportSettingsGate.RequiredLoadType(
+                "music_encounter_layer_loop.wav", 23.3160, 2056512L), Is.EqualTo(2), "music_* → Streaming");
+            Assert.That(AudioImportSettingsGate.RequiredLoadType(
+                "sfx_breath_base_loop_small.wav", 1.9500, 171990L), Is.EqualTo(0), "呼吸底层 → DecompressOnLoad");
+            Assert.That(AudioImportSettingsGate.RequiredLoadType(
+                "sfx_breath_adventitious_fine.wav", 1.9500, 171990L), Is.EqualTo(0), "附加音 → DecompressOnLoad");
+            Assert.That(AudioImportSettingsGate.RequiredLoadType(
+                "vo_patient_cough_damp_f1.wav", 1.5840, 139734L), Is.EqualTo(0), "语声 f1 → DecompressOnLoad");
+            Assert.That(AudioImportSettingsGate.RequiredLoadType(
+                "vo_patient_cough_damp_m1.wav", 1.2480, 110124L), Is.EqualTo(0), "语声 m1 → DecompressOnLoad");
+        }
+
+        /// <summary>阈值边界(命中形态 = <b>阈值边界类</b>,S12-4 强制证伪)。
+        /// <para>判据 = GDD §附 表:「≤ 512 KB <b>且</b> &lt; 5 s」小档 ·「&gt; 4 MB <b>或</b> ≥ 30 s」大档。
+        /// 两条都是**同时/或**结构 ⇒ 边界两侧各取一点,钉住「且 / 或」不被改成「或 / 且」。</para></summary>
+        [Test]
+        public void test_importSettings_boundaries_areInclusiveExclusiveAsSpecified()
+        {
+            const long kb512 = AudioImportSettingsGate.SmallResidentBytes;   // 512 * 1024
+            const long mb4 = AudioImportSettingsGate.LargeResidentBytes;     // 4 * 1024 * 1024
+
+            // ── 小档:「≤ 512 KB」含等号 ·「< 5 s」不含等号 ⇒ 两条都须成立 ──
+            Assert.That(AudioImportSettingsGate.RequiredLoadType("x.wav", 4.999, kb512), Is.EqualTo(0),
+                "512 KB 整 + 4.999 s ⇒ 小档(≤ 是闭区间)");
+            Assert.That(AudioImportSettingsGate.RequiredLoadType("x.wav", 4.999, kb512 + 1), Is.EqualTo(1),
+                "512 KB + 1 字节 ⇒ 跌出小档 ⇒ 中档");
+            Assert.That(AudioImportSettingsGate.RequiredLoadType("x.wav", 5.0, 1024), Is.EqualTo(1),
+                "恰 5.0 s ⇒ 跌出小档(< 是开区间)⇒ 中档");
+            Assert.That(AudioImportSettingsGate.RequiredLoadType("x.wav", 0.0, 0), Is.EqualTo(0),
+                "零时长零字节 ⇒ 小档(下界不退化成别的档)");
+
+            // ── 大档:「> 4 MB」不含等号 ·「≥ 30 s」含等号 ⇒ 任一成立即升 ──
+            Assert.That(AudioImportSettingsGate.RequiredLoadType("x.wav", 1.0, mb4), Is.EqualTo(1),
+                "恰 4 MB ⇒ 不升档(> 是开区间)");
+            Assert.That(AudioImportSettingsGate.RequiredLoadType("x.wav", 1.0, mb4 + 1), Is.EqualTo(2),
+                "4 MB + 1 字节 ⇒ 大档");
+            Assert.That(AudioImportSettingsGate.RequiredLoadType("x.wav", 30.0, 1024), Is.EqualTo(2),
+                "恰 30 s ⇒ 大档(≥ 是闭区间)—— 与「恰 5.0 s」开闭相反,是本测的主要判别点");
+            Assert.That(AudioImportSettingsGate.RequiredLoadType("x.wav", 29.999, 1024), Is.EqualTo(1),
+                "29.999 s ⇒ 中档");
+        }
+
+        /// <summary>`music_*` 的**语义档覆盖**优先于数值判据(GDD §附 登记的「口径张力」)。
+        /// <para>⚠️ 这是 §附 里唯一一处**判据重叠**的裁定(23.3 s / 2008 KB 按数值落中档,
+        /// 按语义取 Streaming)。本测把它钉死 ⇒ 若有人「顺手」把阈值改成
+        /// 「> 512 KB 即 Streaming」,本测**仍会绿**(覆盖规则未动),但
+        /// <see cref="test_importSettings_boundaries_areInclusiveExclusiveAsSpecified"/> 会红 ——
+        /// 两条互补,合起来才锁住口径。</para></summary>
+        [Test]
+        public void test_importSettings_musicPrefix_overridesNumericTier()
+        {
+            // 完全落在小档的数值 ⇒ 数值判据会说 0,语义档必须说 2
+            Assert.That(AudioImportSettingsGate.RequiredLoadType("music_x.wav", 1.0, 1024), Is.EqualTo(2),
+                "music_* 无视数值判据,恒 Streaming(§附:audio.md:217 语义档 + loop 长驻)");
+
+            // 仅前缀区分:同数值、不同前缀 ⇒ 不同档
+            Assert.That(AudioImportSettingsGate.RequiredLoadType("sfx_x.wav", 1.0, 1024), Is.EqualTo(0),
+                "同数值非 music_* ⇒ 走数值判据(小档)—— 证明差异来自前缀,不是数值");
+
+            // 前缀须**从头**匹配,不得中缀命中
+            Assert.That(AudioImportSettingsGate.RequiredLoadType("vo_music_x.wav", 1.0, 1024), Is.EqualTo(0),
+                "「music_」出现在中缀不算 —— 必须是 StartsWith,不是 Contains");
+        }
+
+        /// <summary><b>真环境扫描</b>:素材根下 5 个 wav 的 `.meta` 现值须等于应然档位。
+        /// <para>本测即 GDD §附「验证命令」的可执行版 —— 后续 12 个 `vo_` 变体落地时**自动纳入**,零改门。</para></summary>
+        [Test]
+        public void test_importSettings_realMetas_matchRequiredTier()
+        {
+            string root = AudioImportSettingsGate.ResolveRoot(RepoRoot());
+            Assert.That(Directory.Exists(root), Is.True, $"素材根不存在:{root}(机器前置)");
+
+            string[] wavs = Directory.GetFiles(root, "*.wav", SearchOption.TopDirectoryOnly);
+            Assert.That(wavs.Length, Is.GreaterThanOrEqualTo(5),
+                $"素材根下应至少有 S14-6 落的 5 个 wav,实测 {wavs.Length} 个 —— 素材被删?");
+
+            IReadOnlyList<string> violations = AudioImportSettingsGate.Validate(root);
+            Assert.That(violations, Is.Empty,
+                "Import Load Type 与 GDD §OQ-44-2 附 判据不符:\n  " + string.Join("\n  ", violations));
+        }
+
+        /// <summary>负向半边:wav 头不可读 / meta 缺失 ⇒ **报违例**,不得静默跳过。
+        /// <para>⚠️ 与 `AudioAssetExistence.Missing` 同款纪律 —— 「读不到 ⇒ 跳过」正是
+        /// story-010 原稿 `Assert.Ignore` 假绿的翻版。本测用**不存在**的路径触发,
+        /// 零文件系统写入(承本夹具的 I-读-不-写 纪律)。</para></summary>
+        [Test]
+        public void test_importSettings_unreadableInput_isViolationNotSilentSkip()
+        {
+            string bogus = Path.Combine(Path.GetTempPath(), "__dyjc_no_such_dir__", "nope.wav");
+
+            Assert.That(AudioImportSettingsGate.TryReadWaveInfo(
+                bogus, out double dur, out long dec, out string err), Is.False,
+                "不存在的 wav 必须回 false");
+            Assert.That(err, Is.Not.Null.And.Not.Empty, "失败必须带原因,不得静默");
+            Assert.That(dur, Is.EqualTo(0.0), "失败时时长归零");
+            Assert.That(dec, Is.EqualTo(0L), "失败时驻留归零");
+
+            Assert.That(AudioImportSettingsGate.TryReadLoadType(
+                bogus + ".meta", out int lt, out string mErr), Is.False, "不存在的 meta 必须回 false");
+            Assert.That(lt, Is.EqualTo(-1), "失败时档位归 -1(不得回 0 冒充 DecompressOnLoad)");
+            Assert.That(mErr, Is.Not.Null.And.Not.Empty);
+
+            // 根不存在 ⇒ Validate 回**一条**违例,不是空列表(空列表 = 合规)
+            IReadOnlyList<string> v = AudioImportSettingsGate.Validate(
+                Path.Combine(Path.GetTempPath(), "__dyjc_no_such_dir__"));
+            Assert.That(v.Count, Is.EqualTo(1), "根不存在须报 1 条违例");
+            Assert.That(v[0], Does.Contain("根不存在"));
+        }
+
+        /// <summary>wav 扩展名判定**跨平台大小写一致**(承 story-017 W-2 同型缺陷)。
+        /// <para>⚠️ 立此测的实测依据:2026-10-17 探针(net8.0 · Linux)证明
+        /// `Directory.GetFiles(dir, "*.wav")` **区分大小写** —— 目录含
+        /// `lower.wav` / `UPPER.WAV` / `Mixed.Wav` 时**只返回 `lower.wav`**,另两个静默漏扫。
+        /// 而 CI 平台正是 Linux(ADR-012)⇒ 素材批若交付 `.WAV`,门会**少报违例**。</para>
+        /// <para>夹具形态 = **纯谓词直断**,不碰文件系统(承本文件「零文件写入」纪律)。</para></summary>
+        [Test]
+        public void test_importSettings_wavExtension_isCaseInsensitiveAcrossPlatforms()
+        {
+            // 三形态均须被识别(判别力:停用 OrdinalIgnoreCase ⇒ 后两条转红)
+            Assert.That(AudioImportSettingsGate.IsWavName("lower.wav"), Is.True, "全小写须识别");
+            Assert.That(AudioImportSettingsGate.IsWavName("UPPER.WAV"), Is.True,
+                "全大写须识别 —— Linux 下 GetFiles(\"*.wav\") 会漏掉它");
+            Assert.That(AudioImportSettingsGate.IsWavName("Mixed.Wav"), Is.True, "混写须识别");
+
+            // 路径形态(带目录)也须成立 —— Validate 收到的是 GetFiles 回的完整路径
+            Assert.That(AudioImportSettingsGate.IsWavName("/a/b/c/vo_x.WAV"), Is.True, "带目录路径须识别");
+
+            // 反面:非 wav / 空 / 无扩展名 / 伪后缀 一律 false(否则会把 .wav.bak 也扫进来)
+            Assert.That(AudioImportSettingsGate.IsWavName("note.txt"), Is.False);
+            Assert.That(AudioImportSettingsGate.IsWavName("noext"), Is.False);
+            Assert.That(AudioImportSettingsGate.IsWavName("x.wav.bak"), Is.False, "伪后缀不得命中");
+            Assert.That(AudioImportSettingsGate.IsWavName(""), Is.False);
+            Assert.That(AudioImportSettingsGate.IsWavName(null), Is.False);
+        }
+
         // ══════════════ 夹具纪律自证 ══════════════
 
         /// <summary>本夹具**零文件写入**(S14-6 删除的副作用段的结构性守卫)。
@@ -1007,9 +1567,167 @@ namespace DaYiJingCheng.Tests.Unit.Audio
 
         // ══════════════ 测试替身与工具方法 ══════════════
 
+        /// <summary>组区分门生产件源路径(story-017 的源码扫描面)。</summary>
+        private static string GatesSourcePath()
+            => Path.Combine(RepoRoot(), "unity", "Assets", "Editor.Tools.Gates", "AudioAssetGroupGates.cs");
+
+        /// <summary>从源码文本里切出某方法的**整物理行区间**(签名所在行首 → 闭括号所在行尾)。
+        /// <para>⚠️ **刻意按物理行切**(含注释 / 空行 / 花括号),因为 AC-44-D5c 的 40 行口径
+        /// 就是物理行 —— 换口径会让夹具对原实现也放行(假绿)。</para>
+        /// <para>⚠️ 括号配平**逐字符**做,故调用方须先 <see cref="StripComments"/>:
+        /// 注释里的 `{` / `}` 会让配平跑偏。字符串字面量里的花括号本判据面内不出现。</para></summary>
+        private static string ExtractMethodText(string src, string signatureFragment)
+        {
+            int sig = src.IndexOf(signatureFragment, StringComparison.Ordinal);
+            Assert.That(sig, Is.GreaterThanOrEqualTo(0),
+                $"源内未找到「{signatureFragment}」—— 夹具过期(方法被改名 / 搬家),不是判别力缺口");
+
+            int lineStart = src.LastIndexOf('\n', sig) + 1;
+            int open = src.IndexOf('{', sig);
+            Assert.That(open, Is.GreaterThanOrEqualTo(0), "签名后无方法体 `{`");
+
+            int depth = 0, close = -1;
+            for (int i = open; i < src.Length; i++)
+            {
+                if (src[i] == '{') depth++;
+                else if (src[i] == '}' && --depth == 0) { close = i; break; }
+            }
+            Assert.That(close, Is.GreaterThan(open), "方法体未闭合");
+
+            int lineEnd = src.IndexOf('\n', close);
+            if (lineEnd < 0) lineEnd = src.Length;
+            return src.Substring(lineStart, lineEnd - lineStart);
+        }
+
+        /// <summary>数方法体里的**决策点**(if / for / foreach / while / case / catch / `&amp;&amp;` / `||`)。
+        /// <para>⚠️ 三元 `?` **刻意不计** —— 与 `?.` / `??` / 可空类型 `?` 在不做词法分析的前提下
+        /// 无法区分,硬计会引入假阳性。本判据面内不出现三元(若将来出现,本计数器须一并升级)。</para>
+        /// <para>调用方按 `1 + CountDecisionPoints(body)` 得圈复杂度。</para></summary>
+        private static int CountDecisionPoints(string body)
+        {
+            if (string.IsNullOrEmpty(body)) return 0;
+
+            int n = 0;
+            foreach (string word in new[] { "if", "for", "foreach", "while", "case", "catch" })
+                n += CountWholeWord(body, word);
+            n += CountLiteral(body, "&&");
+            n += CountLiteral(body, "||");
+            return n;
+        }
+
+        /// <summary>按**词界**计数(前后须非标识符字符)——
+        /// `foreach` 不误计 `for`,`notify` 不误计 `if`。</summary>
+        private static int CountWholeWord(string src, string word)
+        {
+            int n = 0, i = 0;
+            while ((i = src.IndexOf(word, i, StringComparison.Ordinal)) >= 0)
+            {
+                int end = i + word.Length;
+                bool leftOk = i == 0 || !IsIdentChar(src[i - 1]);
+                bool rightOk = end >= src.Length || !IsIdentChar(src[end]);
+                if (leftOk && rightOk) n++;
+                i = end;
+            }
+            return n;
+        }
+
+        /// <summary>按整串计数(用于 `&amp;&amp;` / `||` 这类非词法记号)。</summary>
+        private static int CountLiteral(string src, string token)
+        {
+            int n = 0, i = 0;
+            while ((i = src.IndexOf(token, i, StringComparison.Ordinal)) >= 0) { n++; i += token.Length; }
+            return n;
+        }
+
+        private static bool IsIdentChar(char c) => char.IsLetterOrDigit(c) || c == '_';
+
         /// <summary>读仓库作者态种子(只读)。</summary>
         private static string ReadSeedJson(string fileName)
             => File.ReadAllText(Path.Combine(RepoRoot(), "assets", "data", fileName));
+
+        /// <summary>真种子的 `rows[]` 行数(独立于烘焙模型 —— 用于「烘焙行数 == 源行数」的自洽断言)。</summary>
+        private static int ReadSeedRowCount()
+        {
+            string json = ReadSeedJson("audio_events.json");
+            var m = System.Text.RegularExpressions.Regex.Match(json, "\"rows\"\\s*:\\s*\\[");
+            Assert.That(m.Success, "真种子必须有 rows[] 数组");
+            // 行对象以 "{"cue"" 起头 —— 与 AudioEventTableGates.RowKeys 的必填首键一致。
+            return System.Text.RegularExpressions.Regex.Matches(json, "\"cue\"\\s*:").Count;
+        }
+
+        /// <summary>真种子里**第一个**被引用的素材名(`assets[]` 首项)。负向夹具据此构造「真名 → 假名」。</summary>
+        private static string FirstAssetNameInSeed(string json)
+        {
+            var m = System.Text.RegularExpressions.Regex.Match(json, "\"assets\"\\s*:\\s*\\[\\s*\"([^\"]+\\.wav)\""); 
+            return m.Success ? m.Groups[1].Value : null;
+        }
+
+        /// <summary>听诊族期望集 —— 从真种子**独立**推出(`bus == Stethoscope` 的行,按 ordinal 序)。
+        /// <para>刻意不复用 `StethoscopePreloadGate` 的解析:夹具要与被测量**不同源**,否则恒真。</para></summary>
+        private static string[] ExpectedStethoscopeCues()
+        {
+            // ⚠️ 2026-10-17 三次修正 —— 为什么不用正则切块:
+            //    ① `[^{}]*"cue"` 在 `assets[]`(嵌套数组)前就断;
+            //    ② `[^{}]*` 又会命中 `tier_map` 的内层对象 / 附加音层的嵌套对象
+            //      (实测:`BreathLayer_Adventitious_Fine` 的 `adventitious_policy.{trigger_phase,jitter}`
+            //       块在行之后出现,正则块把「行 cue」与「子块 bus」配了对 —— 漏行)。
+            //    正解 = **顶层花括号扫描**:只在 depth 返回 0 时切出一个完整对象,
+            //    再在完整对象里取 `"cue"` 与 `"bus"` —— 不依赖键序、不依赖嵌套形态。
+            var cues = new List<string>();
+            foreach (string obj in TopLevelObjectsInRows(ReadSeedJson("audio_events.json")))
+            {
+                var bus = System.Text.RegularExpressions.Regex.Match(obj, "\"bus\"\\s*:\\s*\"(Stethoscope)\"");
+                var cue = System.Text.RegularExpressions.Regex.Match(obj, "\"cue\"\\s*:\\s*\"([^\"]+)\"");
+                if (bus.Success && cue.Success) cues.Add(cue.Groups[1].Value);
+            }
+            Assert.That(cues, Is.Not.Empty, "真种子必须至少有一行 bus == Stethoscope(否则本断言空转)");
+            // 行序 = 表内 ordinal,但预载门可能对族内重排(基础层优先)
+            // ⇒ 夹具只钉**集合**(哪些 cue ∈ 听诊族),序的归属在门的实现里,不在本 AC 面内。
+            return cues.ToArray();
+        }
+
+        /// <summary>`rows[]` 下的**顶层**对象文本(花括号深度扫描;嵌套对象不单独返回)。</summary>
+        private static List<string> TopLevelObjectsInRows(string json)
+        {
+            int start = json.IndexOf("\"rows\"", System.StringComparison.Ordinal);
+            Assert.That(start, Is.GreaterThan(0), "真种子必须有 rows[]");
+            int open = json.IndexOf('[', start);
+            Assert.That(open, Is.GreaterThan(0), "rows 后必须有数组");
+
+            var objects = new List<string>();
+            int depth = 0, objStart = -1;
+            for (int i = open + 1; i < json.Length; i++)
+            {
+                char c = json[i];
+                if (c == '"')
+                {
+                    // 跳过字符串字面量(含转义)
+                    for (i++; i < json.Length; i++)
+                    {
+                        if (json[i] == '\\') { i++; continue; }
+                        if (json[i] == '"') break;
+                    }
+                    continue;
+                }
+                if (c == '{')
+                {
+                    if (depth == 0) objStart = i;
+                    depth++;
+                }
+                else if (c == '}')
+                {
+                    depth--;
+                    if (depth == 0 && objStart >= 0)
+                    {
+                        objects.Add(json.Substring(objStart, i - objStart + 1));
+                        objStart = -1;
+                    }
+                }
+                else if (c == ']' && depth == 0) break;
+            }
+            Assert.That(objects, Is.Not.Empty, "rows[] 必须至少有一个行对象");
+            return objects;
+        }
 
         /// <summary>从 `AudioSettingsRegistry.FallbackRows` 生成注册表 JSON(不另抄数值 —— 单一出处)。
         /// <para>⚠️ 生成物必须能过 `AudioSettingsRegistryBinder` 的名字 / 值双向对账,
