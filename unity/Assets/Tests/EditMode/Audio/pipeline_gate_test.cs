@@ -1352,8 +1352,8 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         /// 的 <c>finally</c> 抽出 —— 抽出前该动作无任何夹具面)。</para>
         /// <para><b>判别力</b>:把 <c>RestorePlayModeCore</c> 改成空体 ⇒ 本测<b>必红</b>
         /// (夹具先把索引切到 Existing Build,空体不会把它拉回)。</para>
-        /// <para>⚠️ <b>本测不证明「Teardown 调用了它」</b> —— 接线半边仍无执行判据(见
-        /// <c>test_u1teardown_restorePlayMode_isWiredIntoTeardown</c>)。</para>
+        /// <para>接线由 <c>test_u1teardown_runs_restoreOnSettingsFromDeps</c> 以**执行判据**覆盖
+        /// (2026-10-17 第二版:finally 段已抽成依赖注入,不再靠源码扫描)。</para>
         /// <para>⚠️ <b>会短暂改动本机的真实 Play Mode 设置</b>(<c>Library/AddressablesConfig.dat</c>,
         /// 机器本地)。<c>finally</c> 无条件写回原值;写回失败会 <c>Assert.Inconclusive</c>,
         /// 不静默留痕 —— 静默留痕正是 <c>TD-audio-01f</c> 本身。</para>
@@ -1419,75 +1419,70 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "设置缺失时 Teardown 的复原步骤必须静默返回 —— 抛异常会盖掉 Teardown 主路径的日志");
         }
 
-        /// <summary>接线:<c>Teardown</c> 的 <c>finally</c> 确实调用了 <c>RestorePlayModeCore</c>。</summary>
+        /// <summary>接线(执行判据):<c>Teardown</c> 的 <c>finally</c> 段**真的会调复原**。</summary>
         /// <remarks>
-        /// ⚠️ <b>这是弱判据(源码扫描),不是执行判据</b> —— 如实登记,不升格为「已证」。
-        /// 它只抓「有人删掉这行调用」这一类回归;抓不住「调用位置从 finally 挪走」「抛出被吞」。
-        /// 补法归 PlayMode 手跑或将来把 Teardown 改为可脚本驱动的形式。
-        /// <para>本测断言的是<b>词法存在性</b>(源码里含该调用),不是行为等价 ——
-        /// 因此即便本测绿,<c>接线</c>半边仍标 <c>Proven = 弱</c>。</para>
+        /// <para><b>2026-10-17 第二版</b>:首版读源码找调用 —— 词法判据,抓不住「调用挪出 finally」
+        /// 「异常被吞」。用户裁定「现在就修」后,<c>Teardown</c> 的 finally 抽成依赖注入的
+        /// <c>U1SpikeSetup.RunTeardownFinally(deps)</c>,本测**执行真 finally 逻辑**并断言
+        /// 复原被调用、且拿到的是 <c>GetSettings()</c> 的返回值(接线形状)。</para>
+        /// <para>⚠️ 仍未覆盖:<c>Teardown</c> 方法体里那一行「调用 <c>RunTeardownFinally(RealTeardownDeps())</c>」
+        /// 本身 —— 那是菜单入口,只能由 PlayMode 手跑或对 <c>[MenuItem]</c> 做反射驱动。
+        /// 但该行若被删,<c>finally</c> 会**编译不过**或整个 Teardown 失效,风险面已大幅收窄。</para>
         /// </remarks>
         [Test]
-        public void test_u1teardown_restorePlayMode_isWiredIntoTeardown()
+        public void test_u1teardown_runs_restoreOnSettingsFromDeps()
         {
-            string path = Path.Combine(RepoRoot(), "unity/Assets/Editor.Tools.Spike/U1SpikeSetup.cs");
-            Assert.That(File.Exists(path), Is.True, $"源文件不存在:{path}");
-            string src = File.ReadAllText(path);
+            var settings = AddressableAssetSettingsDefaultObject.Settings;
+            Assert.That(settings, Is.Not.Null, "本机 Addressables 设置缺失(机器前置)");
 
-            int teardown = src.IndexOf("static void Teardown()", StringComparison.Ordinal);
-            Assert.That(teardown, Is.GreaterThanOrEqualTo(0), "找不到 Teardown 方法定义 —— 源码结构变了?");
-
-            int finallyIdx = src.IndexOf("finally", teardown, StringComparison.Ordinal);
-            Assert.That(finallyIdx, Is.GreaterThanOrEqualTo(0),
-                "Teardown 内找不到 finally —— 复原已不在异常路径上?");
-
-            // ⚠️ 扫描窗必须止于 Teardown 的方法体边界 —— 不能一路扫到文件尾:
-            //    本文件的**文档注释**与方法**定义**里都出现 `RestorePlayModeCore`,
-            //    首版 `src.Substring(finallyIdx)` 因此对「删掉调用」的变异**照样命中** ⇒ 假绿
-            //    (2026-10-17 证伪轮实测:删调用后本测仍绿,已就地修)。
-            //    边界 = finally 之后第一个「与 finally 行同缩进的闭合花括号」所在行。
-            string finallyLine = LineContaining(src, finallyIdx);
-            int indent = IndentOf(finallyLine);
-            int windowEnd = EndOfBlockAfter(src, finallyIdx, indent);
-            Assert.That(windowEnd, Is.GreaterThan(finallyIdx), "无法确定 Teardown 的方法体边界");
-
-            string window = src.Substring(finallyIdx, windowEnd - finallyIdx);
-            int call = window.IndexOf("RestorePlayModeCore(", StringComparison.Ordinal);
-            Assert.That(call, Is.GreaterThanOrEqualTo(0),
-                "Teardown 的 finally 段里找不到 RestorePlayModeCore 调用 ——\n" +
-                "Play Mode 复原接线被删了?后果见 TD-audio-01f 残留②。\n" +
-                $"扫描窗 = [{finallyIdx}, {windowEnd}),长度 {windowEnd - finallyIdx} 字符。");
-        }
-
-        private static string LineContaining(string src, int idx)
-        {
-            int start = src.LastIndexOf('\n', Math.Max(0, idx - 1)) + 1;
-            int end = src.IndexOf('\n', idx);
-            return end < 0 ? src.Substring(start) : src.Substring(start, end - start);
-        }
-
-        private static int IndentOf(string line)
-        {
-            int i = 0;
-            while (i < line.Length && (line[i] == ' ' || line[i] == '\t')) i++;
-            return i;
-        }
-
-        /// <summary>从 <paramref name="from"/> 之后找第一个「行首缩进 ≤ <paramref name="indent"/> 且含 '}'」的行尾。</summary>
-        private static int EndOfBlockAfter(string src, int from, int indent)
-        {
-            int pos = src.IndexOf('\n', from);
-            while (pos >= 0 && pos < src.Length - 1)
+            AddressableAssetSettings gotSettings = null;
+            bool cleared = false;
+            var deps = new DaYiJingCheng.EditorTools.Spike.U1SpikeSetup.TeardownDeps
             {
-                int lineStart = pos + 1;
-                string line = LineContaining(src, lineStart);
-                if (line.TrimStart().StartsWith("}", StringComparison.Ordinal) && IndentOf(line) <= indent)
-                {
-                    return lineStart;
-                }
-                pos = src.IndexOf('\n', lineStart);
-            }
-            return -1;
+                GetSettings = () => settings,
+                Restore = s => gotSettings = s,
+                ClearProgress = () => cleared = true,
+                Warn = msg => Assert.Fail($"不该走告警路径:{msg}"),
+            };
+
+            DaYiJingCheng.EditorTools.Spike.U1SpikeSetup.RunTeardownFinally(deps);
+
+            Assert.That(gotSettings, Is.SameAs(settings),
+                "finally 段未把 GetSettings() 的结果交给复原动作 —— 接线形状断了");
+            Assert.That(cleared, Is.True, "finally 段未清进度条");
+        }
+
+        /// <summary>异常路径:<b>复原自身抛出</b> ⇒ 走告警、**不向上抛**、且进度条仍被清。</summary>
+        /// <remarks>
+        /// 这一条是 <c>finally</c> 里真正难对的地方:复原失败不能盖掉 Teardown 主路径的日志,
+        /// 也不能让进度条留在屏幕上。首版源码扫描**完全测不到**这类行为。
+        /// </remarks>
+        [Test]
+        public void test_u1teardown_restoreThrows_warnsButStillClearsAndDoesNotRethrow()
+        {
+            bool cleared = false;
+            string warned = null;
+            var deps = new DaYiJingCheng.EditorTools.Spike.U1SpikeSetup.TeardownDeps
+            {
+                GetSettings = () => null,
+                Restore = _ => throw new InvalidOperationException("模拟复原失败"),
+                ClearProgress = () => cleared = true,
+                Warn = m => warned = m,
+            };
+
+            Assert.DoesNotThrow(() => DaYiJingCheng.EditorTools.Spike.U1SpikeSetup.RunTeardownFinally(deps),
+                "复原失败不应向上抛 —— 会盖掉 Teardown 主路径日志");
+            Assert.That(warned, Does.Contain("模拟复原失败"), "失败原因未进告警报文");
+            Assert.That(warned, Does.Contain("Play Mode 归位"), "告警未给出补救菜单(用户无路可走)");
+            Assert.That(cleared, Is.True, "复原失败后进度条仍未清 —— 会留在屏幕上");
+        }
+
+        /// <summary>null 依赖集 ⇒ 立刻抛(不得静默空转)。</summary>
+        [Test]
+        public void test_u1teardown_nullDeps_throws()
+        {
+            Assert.Throws<ArgumentNullException>(
+                () => DaYiJingCheng.EditorTools.Spike.U1SpikeSetup.RunTeardownFinally(null));
         }
 
         // ══════════════ R-2 归属闭合(Story 016 · AC-44-E1/E3/E4 · 三处结合)══════════════

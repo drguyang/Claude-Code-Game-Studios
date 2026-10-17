@@ -317,38 +317,73 @@ namespace DaYiJingCheng.EditorTools.Spike
             }
             finally
             {
-                // ⚠️ **Teardown 必须复原 Play Mode**(2026-10-17 补 · `TD-audio-01f` 根因①):
-                //    `ConfigurePlayMode` 把 Play Mode Script 切到 Existing Build,而该设置**不住**
-                //    入库的 `AddressableAssetSettings.asset` —— 它住
-                //    `ProjectConfigData.ActivePlayModeIndex` → `Library/AddressablesConfig.dat`
-                //    (**机器本地 · gitignored**)⇒ 不复原就**跨会话**留在漂移态:PlayMode 解析的是
-                //    预建 catalog,组条目一变即 `InvalidKeyException`,启动序整条挂掉
-                //    (2026-09-24 第四跑 / 2026-10-17 补口轮两次同症状)。
-                //    ⚠️ 放 `finally` 而非 `try` 末尾:**异常路径同样须复原** —— 那恰恰是漂移最可能
-                //       被留下的路径(Setup 跑到一半炸,人不会再点 Teardown)。
-                //    ⚠️ 复用 `DataBakeMenu.EnsureAssetDatabasePlayMode`(**判据单一出处**),
-                //       **不另写一份**「哪个 builder 是 Use Asset Database」—— 该判据已有夹具
-                //       (`test_playModeScript_predicate_nullOrMiss_returnsMinusOne`)。
-                //    ⚠️ 残余风险(不隐藏):**Setup 跑了但 Teardown 从没跑**的机器仍会漂移 ⇒
-                //       兜底 = 菜单「Play Mode 归位」+ 机器前置门 `test_playModeScript_isAssetDatabase`。
-                //    ⚠️ 复原动作走 `RestorePlayModeCore`(纯可注入半)而非直接调 —— 那是**夹具入口**:
-                //       `Teardown` 是编辑器生命周期回调,EditMode 下不触发(2026-10-17 登记 `Proven ✗`
-                //       的唯一原因);抽出可注入半后 `test_u1teardown_restorePlayMode_*` 能直接驱动它。
-                //       接线半边仍无执行判据,见该夹具头注的如实登记。
-                try
-                {
-                    RestorePlayModeCore(AddressableAssetSettingsDefaultObject.Settings);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogWarning($"[U1] Teardown 复原 Play Mode 失败 —— " +
-                                     $"手动跑菜单「大医精诚/数据管线/Play Mode 归位(Use Asset Database)」:{e.Message}");
-                }
-                EditorUtility.ClearProgressBar();
+                RunTeardownFinally(RealTeardownDeps());
             }
         }
 
         // ────────────────────────── helpers ──────────────────────────
+
+        /// <summary>Teardown <c>finally</c> 段的**外部依赖**(全部可注入 ⇒ 该段可被 EditMode 夹具执行)。</summary>
+        /// <remarks>
+        /// <para><b>为什么(2026-10-17 · 第二版)</b>:首版只抽了 <c>RestorePlayModeCore</c>,接线半边靠
+        /// 源码扫描守 —— 那是**词法判据**,抓不住「调用挪出 <c>finally</c>」「异常被吞」。
+        /// 用户 2026-10-17 裁定「现在就修」⇒ 改成把 <b>整段 finally 的依赖</b>收进本结构,
+        /// 夹具注入 fake 后**直接驱动真 <c>finally</c> 逻辑**,取得执行判据。</para>
+        /// </remarks>
+        internal sealed class TeardownDeps
+        {
+            /// <summary>取 Addressables 设置(真环境 = <c>AddressableAssetSettingsDefaultObject.Settings</c>)。</summary>
+            public Func<AddressableAssetSettings> GetSettings;
+
+            /// <summary>复原动作(真环境 = <see cref="RestorePlayModeCore"/>,仅供诊断输出)。</summary>
+            public Action<AddressableAssetSettings> Restore;
+
+            /// <summary>清进度条。</summary>
+            public Action ClearProgress;
+
+            /// <summary>复原失败的告警出口(真环境 = <c>Debug.LogWarning</c>)。</summary>
+            public Action<string> Warn;
+        }
+
+        /// <summary>真环境的依赖集(菜单 <c>Teardown</c> 用)。</summary>
+        internal static TeardownDeps RealTeardownDeps() => new TeardownDeps
+        {
+            GetSettings = () => AddressableAssetSettingsDefaultObject.Settings,
+            Restore = RestorePlayModeCore,
+            ClearProgress = EditorUtility.ClearProgressBar,
+            Warn = s => Debug.LogWarning(s),
+        };
+
+        /// <summary>Teardown <c>finally</c> 段本体 —— <b>纯依赖注入</b>,夹具直驱。</summary>
+        /// <remarks>
+        /// <para>⚠️ **复原必须跑,且必须在异常路径上跑**(2026-10-17 补 · <c>TD-audio-01f</c> 根因①):
+        /// <c>ConfigurePlayMode</c> 把 Play Mode Script 切到 Existing Build,而该设置**不住**
+        /// 入库的 <c>AddressableAssetSettings.asset</c> —— 它住
+        /// <c>ProjectConfigData.ActivePlayModeIndex</c> → <c>Library/AddressablesConfig.dat</c>
+        /// (**机器本地 · gitignored**)⇒ 不复原就**跨会话**留在漂移态:PlayMode 解析的是
+        /// 预建 catalog,组条目一变即 <c>InvalidKeyException</c>,启动序整条挂掉。</para>
+        /// <para>⚠️ **复原自身失败不得抛出** —— 它被 <c>Warn</c> 吞掉后仍须清进度条
+        /// (夹具 <c>test_u1teardown_runs_restoreEvenWhenItThrows</c> 钉死这一条)。</para>
+        /// <para>判据单一出处:<c>DataBakeMenu.FindAssetDatabaseBuilderIndex</c>;本段只做委派。</para>
+        /// </remarks>
+        /// <param name="deps">依赖集(null 元素或 null 本体 ⇒ 直接抛 <see cref="ArgumentNullException"/>)。</param>
+        internal static void RunTeardownFinally(TeardownDeps deps)
+        {
+            if (deps == null) throw new ArgumentNullException(nameof(deps));
+            try
+            {
+                deps.Restore(deps.GetSettings());
+            }
+            catch (Exception e)
+            {
+                deps.Warn($"[U1] Teardown 复原 Play Mode 失败 —— " +
+                          $"手动跑菜单「大医精诚/数据管线/Play Mode 归位(Use Asset Database)」:{e.Message}");
+            }
+            finally
+            {
+                deps.ClearProgress();
+            }
+        }
 
         /// <summary>Teardown 的 Play Mode 复原动作 —— <b>可注入纯半</b>,供 EditMode 夹具直接驱动。</summary>
         /// <remarks>
@@ -356,9 +391,9 @@ namespace DaYiJingCheng.EditorTools.Spike
         /// EditMode 下不触发 ⇒ 复原动作**没有任何夹具面**(当时只能登记 <c>Landed ✅ / Proven ✗</c>)。
         /// 抽出本方法后,夹具可以「切到 Existing Build → 调本方法 → 断言已是 Asset Database」,
         /// 取得**动作正确性**的判别力。</para>
-        /// <para>⚠️ <b>仍然没证的</b>:「<c>Teardown</c> 真的调用了本方法」—— 那是**接线**半边,
-        /// 只能靠源码扫描或 PlayMode 手跑。修完本方法后,该项至多到
-        /// <c>Landed ✅ / Proven ✅(核心半)+ 接线半 源码扫描(弱判据)</c>,<b>不得</b>声称为整个 Teardown 已证。</para>
+        /// <para>⚠️ <b>接线半边(2026-10-17 第二版已升级)</b>:首版此处写的是「只能靠源码扫描」。
+        /// 现在 <c>Teardown</c> 的 <c>finally</c> 段已抽成依赖注入的
+        /// <see cref="RunTeardownFinally"/>,夹具**执行真 finally 逻辑**,不再依赖词法判据。</para>
         /// <para>判据单一出处:<c>DataBakeMenu.FindAssetDatabaseBuilderIndex</c>;本方法只做委派,
         /// <b>不另写一份</b>「哪个 builder 是 Use Asset Database」。</para>
         /// </remarks>

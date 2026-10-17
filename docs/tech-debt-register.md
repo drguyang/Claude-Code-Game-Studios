@@ -310,13 +310,25 @@ F4 不可读 meta 静默归零)**各自恰如预期转红**,还原 SHA-256 通�
 |---|---|---|---|
 | 复原动作本身 | ✅ | ✅ | `test_u1teardown_restorePlayMode_corePullsDriftedStateBack`;反证 F1(空体)⇒ **恰红 1 条** |
 | null 稳健性 | ✅ | ✅ | `test_u1teardown_restorePlayMode_nullSettings_doesNotThrow` |
-| **接线**(`Teardown` 真的调用它) | ✅ | **弱(词法)** | `test_u1teardown_restorePlayMode_isWiredIntoTeardown`;反证 F2(删调用)⇒ 红 |
+| **接线**(finally 段真的调复原) | ✅ | ✅ **执行判据** | 见下「第二版」 |
 
-⚠️ **不掩盖的两点**:
-① 接线半边是**源码扫描**,抓不住「调用挪出 `finally`」「异常被吞」;
-② **F2 首版是假绿** —— 首版扫描窗一路扫到文件尾,而本文件的文档注释与方法**定义**里也出现
-`RestorePlayModeCore`,删掉调用照样命中。已把扫描窗收窄到 `Teardown` 方法体边界,
-重跑 F2 才红。**这条假绿若不经证伪轮会以绿留下**。
+**第二版(2026-10-17 同日,用户裁定「现在就修」)** —— 首版接线半边靠**源码扫描**,是词法判据,
+抓不住「调用挪出 `finally`」「异常被吞」。已把 `Teardown` 的 **`finally` 段整体抽成依赖注入的**
+`U1SpikeSetup.RunTeardownFinally(TeardownDeps)`(`GetSettings` / `Restore` / `ClearProgress` / `Warn`
+四项可注入),夹具**执行真 finally 逻辑**:
+
+| 测 | 断言 | 反证(各恰红对应条) |
+|---|---|---|
+| `runs_restoreOnSettingsFromDeps` | 复原被调用,且拿到 `GetSettings()` 的返回值 | G1 删调用 / G2 传 `null` |
+| `restoreThrows_warnsButStillClearsAndDoesNotRethrow` | 复原抛 ⇒ 告警含原因与补救菜单、**不向上抛**、进度条仍清 | G3 / G4 |
+| `nullDeps_throws` | null 依赖集立即抛,不静默空转 | G5 |
+
+**仍未覆盖(如实登记)**:`Teardown` 方法体里「调用 `RunTeardownFinally(RealTeardownDeps())`」这一行
+本身 —— 那是 `[MenuItem]` 入口,只能 PlayMode 手跑或反射驱动。但它若被删,`finally` 段即整体失效
+且无替代调用,风险面已从「词法不可测」收窄到「入口一行」。
+
+⚠️ **历史记录(不删)**:首版 `isWiredIntoTeardown` 的**首跑是假绿** —— 扫描窗一路扫到文件尾,
+而文档注释与方法定义里也有同名符号,删掉调用照样命中。该测已于第二版**整体删除**,由上面三条执行判据取代。
 
 **残余(不变)**:「Setup 跑了但 Teardown 从没跑」的机器仍会漂移 ⇒ 兜底 = 菜单
 「Play Mode 归位」+ 机器前置门 `test_playModeScript_isAssetDatabase`。
