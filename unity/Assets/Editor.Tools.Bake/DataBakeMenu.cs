@@ -864,7 +864,19 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <para><b>先验后改</b>:找不到目标 builder 或已在目标 ⇒ 零写入直接返回 <c>false</c>。</para>
         /// </remarks>
         /// <param name="settings">Addressables 设置(调用方给出,便于夹具注入)。</param>
-        public static bool EnsureAssetDatabasePlayMode(AddressableAssetSettings settings)
+        public static bool EnsureAssetDatabasePlayMode(AddressableAssetSettings settings) =>
+            EnsureAssetDatabasePlayMode(settings, writeIndex: null);
+
+        /// <summary>同 <see cref="EnsureAssetDatabasePlayMode(AddressableAssetSettings)"/>,
+        /// 但索引写入走可注入的 <paramref name="writeIndex"/>(夹具面:只在进程内改、不落盘)。
+        /// <para>⚠️ <b>为何要这个重载(2026-10-17)</b>:<c>settings.ActivePlayModeDataBuilderIndex</c>
+        /// 的 setter 内联 <c>ProjectConfigData.SaveData()</c> ⇒ 真实路径必然写
+        /// <c>Library/AddressablesConfig.dat</c>。夹具若走真实路径,「本机已漂移」时会把漂移**固化**回盘;
+        /// 哪怕盘值不变,文件也被重写。抽一个<b>写入缝</b>后,夹具断言的是<b>判据逻辑本身</b>
+        /// (找到目标 / 先验后改 / 改到目标),落盘与否则由注入者决定。</para>
+        /// <para>null ⇒ 真实路径(<see cref="EnsureAssetDatabasePlayMode(AddressableAssetSettings)"/> 的默认)。</para>
+        /// </remarks>
+        internal static bool EnsureAssetDatabasePlayMode(AddressableAssetSettings settings, Action<int> writeIndex)
         {
             if (settings == null) return false;
 
@@ -881,7 +893,10 @@ namespace DaYiJingCheng.EditorTools.Bake
             if (target == current) return false;
 
             string currentName = settings.GetDataBuilder(current)?.Name ?? "<null>";
-            settings.ActivePlayModeDataBuilderIndex = target;
+            if (writeIndex != null)
+                writeIndex(target);
+            else
+                settings.ActivePlayModeDataBuilderIndex = target;
             EditorUtility.SetDirty(settings);
             AssetDatabase.SaveAssets();
             Debug.Log(

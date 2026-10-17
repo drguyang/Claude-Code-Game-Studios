@@ -52,6 +52,21 @@
 
 ---
 
+## 2026-10-17 · sprint-13 收口缺口(核对改判「收口存疑」· 用户裁定按此改)
+
+**出处**:`production/sprints/sprint-13.md` 收口记录「2026-10-17 核对订正」
+(独立复算,不照抄 2026-10-16 原收口记录)。
+**性质**:**已完成的组件确实做了、证伪轮也确实红了**;缺口集中在「最后一步被报告成已做」——
+与音频 epic(16 条 AC 半验证)不是同一严重度,但同属**「✅ 早于事实」**家族。
+
+| # | 债 | 出处 | 触发条件(何时须还) |
+|---|---|---|---|
+| TD-s13-01 | **S13-6 判据实测未兑现**:卡面 =「下一次重评两位专家均在轮次上限内交付报告」;story-003 评审实测 `tools-programmer` 撞 20 轮、`qa-tester` 撞 10 轮均零报告交回。⇒ **prompt 拆小 + 「先出报告」预声明不足以保证限内交付**,需再改机制(候选:硬切分勘察面 / 强制增量落盘 / 每次工具调用配额) | `review-medcons-story-003-2026-10-16.md:20-22` · 治理件 §S13-6 补记 | ✅ **2026-10-17 机制已改(用户裁定)** —— `code-review` SKILL §Phase 7b ③「增量落盘」+ 判据收窄为「草稿非空且覆盖清单过半」;旧判据作废。**残留:新判据仍为前瞻性,须下次真实重评实测**(`grep -n "增量落盘" .claude/skills/code-review/SKILL.md` 可复核存在性) |
+| TD-s13-02 | **story-003 AC-5 PARTIAL 未上挂到 epic / sprint DoD**:W-4 代价表永不致死形状门未兑现(已转 `TD-medcons-15`),而 53 epic DoD 写「AC-53-01…15 全部 verified」⇒ **4 story 全 Complete ≠ AC 全验** | story-003 `Completion Notes` W-4 · sprint-13 DoD 第 4 条 | ✅ **2026-10-17 已上挂** —— 53 epic 头部 / story-003 头部与 QA AC-5 行均已写明;**可执行半边已补测**(`test_ac5_outcomeEnumClosure_*`,反证注入 `CostLethal` ⇒ 恰 2 红)。**残留 = 表级半边无载体**(全仓无代价表)⇒ `TD-medcons-15` 结清前 53 epic 不得收口 |
+| TD-s13-03 | **sprint-13 冒烟未执行、未登记**:本 DoD 清单无语料 smoke 条,`qa-plan-sprint-13-2026-10-16.md:229` 的「Smoke check 通过」停在 `[ ]`;最新冒烟件仍是 `smoke-2026-10-15.md`(仅自动面,人工 Batch 全 NOT RUN) | `production/sprints/sprint-13.md` 收口记录 ③ | ✅ **2026-10-17 用户裁定结案(按用户陈述登记)**:用户称「我在其他 epic 听过了,没问题」⇒ 以**用户人耳陈述**补记为本 sprint 的人工冒烟证据;**本 sprint 无独立冒烟件**(无可复算判据,不可证伪为「真听过」)。若后续 sprint 的冒烟件与此陈述冲突,以冒烟件为准 |
+
+---
+
 ## 2026-10-16 · 11 处方用药走查缺口(sprint-13 S13-7)
 
 **出处**:`production/playtests/playtest-2026-10-16-s11-ac11-12-13-21-walkthrough.md` §9 前置勘察结论
@@ -332,6 +347,237 @@ F4 不可读 meta 静默归零)**各自恰如预期转红**,还原 SHA-256 通�
 
 **残余(不变)**:「Setup 跑了但 Teardown 从没跑」的机器仍会漂移 ⇒ 兜底 = 菜单
 「Play Mode 归位」+ 机器前置门 `test_playModeScript_isAssetDatabase`。
+
+---
+
+## 2026-10-17 · 44 音频 epic 收口缺口 —— 16 条 AC 未全验证(用户裁定**不收口**)
+
+**出处**:本次 epic 收口核查(2026-10-17,用户指示「收口 epic」⇒ 逐条核 EPIC DoD 第 2 条
+「36 条 AC 全部验证」)。GDD `design/gdd/audio-system.md` 实际 **36 条**(与 EPIC 声称一致);
+**17 份 story 全 `Complete`,但 36 条中有 16 条不满足「已验证」** ⇒ **epic 不得收口**。
+
+**根因(单一)**:`[A]`(数据级断言)全绿被当作 `[L]`(人耳听测)的验收 —— 与 2026-10-16
+`review-audio-epic-fake-green-2026-10-16.md` 复核的**同一病灶**,换了个 story 再犯一次。
+
+| # | GDD AC | 缺口形态 | 出处(实测) | 触发条件(何时须还) |
+|---|---|---|---|---|
+| TD-audio-100 | **AC-44-10** | **完全未映射** —— 17 份 story 零声明 | `audio-system.md:408/:571/:878` 三处引用「无突变音效(AC-44-10)」,但 `grep -rl AC-44-10 production/epics/audio-system/` **零命中** | 须**立 story**;与 `OQ-44-7` 同批裁 |
+| TD-audio-101 | AC-44-02 / 08 / 01 | `[L]` 听测半边未执行 | story-004 `1 条 DEFERRED = AC-44-02 听测未执行`;`breath-layers-listen-evidence.md` **38 `[ ]` / 0 `[x]`** | 被试 / 排期可安排时 |
+| TD-audio-102 | AC-44-03 / 04 | `[L]` 听测半边未执行 | story-006 Criteria 只含 `[A]`;`[L]` 写「可与 004 听测同批」= 未做 | 与 TD-audio-101 **同批** |
+| TD-audio-103 | AC-44-17 | 双盲听测未执行 | story-013 状态行自陈「听测执行 BLOCKED-BY 被试排期」;`main-channel-listen-evidence.md` **5 `[ ]` / 0 `[x]`** | 被试排期落地时 |
+| TD-audio-104 | AC-44-11 / E1 | VR 听测 / P1b 切面 | story-012 第 50 行 `- [ ]` + `BLOCKED-BY-P1b`;Completion Notes 写「禁勾」 | **P1b**(与 ADR-013 VR 推 P1a/P1b 同批) |
+| TD-audio-105 | AC-44-12 / 15 | 人工走查 / 字幕听测未做 | story-011 写 `NOT-RUN(项目外部)` / `NOT-RUN(缺口)` | 无障碍人工走查排期时 |
+| TD-audio-106 | AC-44-13 | 出厂默认分支**空真** | story-011 B2:断言被删空 → `Assert.Inconclusive` | 出厂默认值定稿时 |
+| TD-audio-107 | AC-44-07 / D7 | 联机运行面未对拍 | story-007 `4 人双实例对拍 = BLOCKED-BY-45`;Completion Notes `### NOT-RUN` | **45 网络层 P1b 落地时** |
+| TD-audio-108 | AC-44-E2 | DSP P95 实测未做 | story-012 `NOT-RUN`:须真 GPU + 真音频回调 | 目标硬件定稿时 |
+| TD-audio-109 | AC-44-D5 / D6 | 音频组测试 `Assert.Ignore`;EPIC `:28` 自承 D6 假绿 | story-010 音频组测试跳过;story-015 7 WARNING 待议 | 下次动 `AudioAssetGroupGates` 时 |
+
+**⚠️ 另两类不计入上表但须知悉**:
+
+1. **story 自带本地 AC 不对应任何 GDD AC-44 ID** —— story-014 的 `AC-44-T1…T5`(GDD 无此 ID)、
+   story-009 的 `AC-009-1…4`、story-017 的 `AC-44-D5b/c/d`。这三组是**实现侧本地判据**,
+   不是 GDD 验收项;**不得拿来顶 GDD 的 36 条计数**。
+2. **`AC-44-D10` 是幽灵 ID** —— story-007/009 曾引用,GDD 无此条(已由那些 story 自行订正)。
+
+**判定口径**:上表 10 条里,**只有 TD-audio-100(AC-44-10)是「无 story」的真空洞**;
+其余 9 条都是「有 story、story 标 Complete、但验收半边没做」。
+**后者比前者更危险** —— 它们看起来已经关了。
+
+**还债顺序建议**:TD-audio-100(立 story)> TD-audio-101+102(同批听测)>
+TD-audio-103(被试排期)> 其余(等各自外部触发)。
+
+---
+
+## 2026-10-17 · PlayMode `InvalidKeyException` 复发的两处机制(用户裁定「按 A 开工」)
+
+**现象**(非本批引入,本批**发现**):PlayMode 全量 180/189,**9 条启动序红**,报文
+`InvalidKeyException: No Location found for Key=audio_events.cooked.bytes`(`TD-audio-01f` 同族第二次)。
+**链**:① 本机 `Library/AddressablesConfig.dat` 的 `activePlayModeIndex = 1`(Use Existing Build);
+② EditMode 里 `test_u1teardown_restorePlayMode_corePullsDriftedStateBack` 每跑一次都**落盘**——
+本机已漂移时 `original` = 漂移值,`finally` 把漂移**固化**回盘 ⇒ **我们自己的测试在维持漂移**;
+③ 预建 catalog 其实含两条音频地址(实测),**不是「catalog 陈旧」**〔⚠️ **2026-10-17 更正**:本句成立的前提是
+   **本机**那次 `EnsureDataCoreGroup` 跑过后的产物;入库的 `data-core.asset` 只有 5 条(见 §残留清零批「新发现」)。
+   该句**不得**读成「组里本来就有」—— 换一台机器重建 catalog 即复现缺失〕;
+④ 真炸点 = `DataCorePreloader.TryPreload` 只预检 `diagnosis_signs.cooked.bytes` **一条**,
+其余 6 条缺任意一条 ⇒ 装载中途抛、`[Error]` 已打出、异常被吞、磁盘兜底继续启动,
+Unity Test Framework 把该 Error 判为「Unhandled log message」⇒ 9 红。
+
+**修复(三处)**:
+
+| # | 落点 | 内容 |
+|---|---|---|
+| ① | `Gameplay.Presentation/DataCorePreloader.cs` | 预检改为**逐条全检**全部 7 条 data-core 地址(`AllDataCoreKeysLocatable`),任一不可解析 ⇒ 直接 false、**不进装载** ⇒ 零 Error 日志 |
+| ② | `Editor.Tools.Bake/DataBakeMenu.cs` | `EnsureAssetDatabasePlayMode` 增**可注入写入缝** `(settings, Action<int> writeIndex)`;公开单参版委派 `writeIndex: null`(真实路径不变) |
+| ③ | `Tests/EditMode/Audio/pipeline_gate_test.cs` | 复原夹具改注入记录器,断「恰写一次目标索引」;**总副作用**:漂移经真 setter 构造 + `finally` 真 setter 写回 ⇒ 净零 |
+
+**回归**:EditMode 全量 `s42-full-editmode.xml` = **3678 / 3633 / 0 / 45**(基线 `s39-full` 3675/3630/0/45;
+逐名对账 **+3 / −0**,新增 = 本批三测)。
+
+**第三处机制(步骤 ③ 实测才暴露 —— 前两处修完后 PlayMode 仍 9 红,换了报文)**:
+修完 ① 后 9 红变为 `InvalidOperationException: DataCorePreloader 尚未 Preload()`
+(`BootRoot.cs:129`)。根因 = **静态状态跨 Play 轮残留**:`DataCorePreloader.IsPreloaded` 上一轮置 true、
+`_provider` 持有的 Addressables 句柄下一轮失效 ⇒ `TryPreload()` 短路返回 true,而
+`BootRoot` 第 2 步 `ApplyAudioSettingsProvider(preloaded, DataCorePreloader.Provider)` **无条件求值**
+抛形属性 ⇒ 「预载失败 ⇒ 不注入」分支**不可达**。S14-6 接线时引入,与 ① ② 无关(① 单独修完不改这 9 条)。
+
+| # | 落点 | 内容 |
+|---|---|---|
+| ③ | `Gameplay.Boot/BootRoot.cs`(`Start` 第 2 步) | 改三元短路 `preloaded ? DataCorePreloader.Provider : null` —— 只有真成功才取 Provider(生产语义不变:失败仍不注入、仍由磁盘兜底) |
+| ④ | `Gameplay.Presentation/DataCorePreloader.cs` | `ResetForPlayModeTests()` 一并清 `AudioSettingsRegistry.Provider`(同属跨轮残留) |
+| ⑤ | `Tests/PlayMode/PlayModeSetUp.cs`(新) | 静态 `[UnitySetUp]`:每条 PlayMode 测试前反射调 `ResetForPlayModeTests()`;方法名不符即具名红。**生产零调用点** |
+
+**PlayMode 证伪(用户裁定「按 A 开工」步骤 ③ · 2026-10-17)**:
+
+| 运行 | 配置 | total / passed / failed | 日志 |
+|---|---|---|---|
+| 基线 | 修复前 | 189 / 180 / 9 | `s43`–`s45`(其中 s45 带探针,探针日志未被 XML 捕获 —— 该轮**不能**作证) |
+| 修复后 | ③④⑤ 全在 | **189 / 189 / 0** | `s46-playmode.xml`(`start-time 13:57:30Z`) |
+| 反证 A | 只删 ⑤(`fz-pm-noSetup.xml`) | 189 / 189 / 0 —— **未转红** ⇒ **⑤ 单独无判别力** | ⚠️ 如实登记,不借绿 |
+| 反证 B | ③ + ⑤ 同时回退(`fz-pm-bothReverted.xml`) | **189 / 180 / 9**,红名与基线 **9 条逐名一致** | ✅ ③(或 ③+⑤ 组合)有判别力 |
+| 复跑确认 | 还原后 | 189 / 189 / 0 | `s47-playmode.xml`(`start-time 14:00:08Z`),SHA-256 还原校验通过 |
+
+⚠️ **反证 A 的含义(候选解释,本轮未证伪)**:单独出现一个 `PlayModeSetUp.cs` 文件时,Unity
+会**重建 `Gameplay.Tests` 程序集并触发域重载**,跑测前 `_provider` 天然为 null;而全量在**同一程序集**
+内连跑多轮测试的场景(③ 回退、⑤ 保留时)才显出残留。按此解释 ⑤ 仍有价值(保证不论组装变化都复算),
+但本表**不主张**该解释已证 —— 判别力归属以反证 B 为准,**不得**写「删 ⑤ 必红」。
+
+**残留(如实登记)**:
+- **③ 与 ⑤ 各自主责哪一半未被分离证明** —— 只跑了「⑤ 单删」(未红)与「③+⑤ 同回退」(9 红);
+  「③ 单回退、⑤ 保留」的反证**未跑**。
+- ~~「预检真的逐条全检」(M3)仍 NOT-RUN~~ —— **✅ 2026-10-17 已由 §残留清零批结清**(见下)。
+### 残留(本批之后仍 open)
+- **#④ `Start` 侧「未预载不求值 `Provider`」无夹具** —— `nullOrNotPreloaded_doesNotInject` 对该变异绿,
+  且干净条件下**未重跑** `REV`(见下「过程事故」4/5)。要钉须一个能观测 `Start` 实际求值/不抛的 PlayMode 判据。
+- **#⑤ 「失败时静态复位」行为半边未钉**(证伪 D 0 红,见上「实现面自查」)。
+- **#⑥ 组条目指向工程外文件(下一轮须另开故事,归 `TD-audio-01f` 族)** —— `AssetGroups/data-core.asset` 的
+  `audio_events.cooked.bytes` / `audio_settings_registry.cooked.bytes` 两条**指向工程内不存在于 AssetDatabase 的文件**
+  (bake 产物落 Unity 工程外、未导入)。⚠️ 「AB 构建器报 `Cannot found asset with path`」一句为**口头勘察结论,
+  本仓无落盘日志** ⇒ 以「组条目 × `AssetDatabase.LoadAssetAtPath` 为空」为可复算判据 (`TD-audio-01f` 族),
+  须实测复核后再定修复方向(群跑器拒收 / 或把 bake 产物导入工程)。**本批未跑该判据**。
+  ⇒ 连带结论:凡「存 AssetDatabase → 恢复」的快照型夹具,在**真 AB 构建**里必被构建改写的组状态覆盖,
+  **不能**作为该缺口的判据载体。
+  - ✅ **复核(2026-10-17,只读,未跑 AB 构建)**:逐 GUID 反查本工作树 —— 7 条**全部**落在
+    `unity/Assets/DataCooked/*.cooked.bytes(.meta)`,**不存在悬空条目**;`data-core.asset` 的 7 条亦为同一份工作树
+    (`s52` 14:41:20Z、`s51` 14:40:40Z 两跑前均一致,`s51` 192/192 能绿即其一致性证据)。⇒ 本项**是条件性的**:一旦有人把 bake 产物落工程外
+    (CI / 另一台机 / 清理后重 bake 到别处),该组即现悬空条目。**触发条件未在本机复现**,故维持 open,
+    但**不得**据此在本机宣称「当前已损坏」。
+- **`Library/AddressablesConfig.dat` 的 mtime 每次 EditMode 运行都会前进**(数据不变,疑似编辑器
+  退出时 Addressables 包自身落盘)⇒ 「文件未变」无法作为夹具落盘与否的判据;落盘判别只能靠写入缝。
+
+**同族教训(第三次的形态)**:「改完后测试红了但**换了报文**」≠ 原病未修 —— 前一处机制掩盖着后一处;
+每修一处须**重读报文**,不得以「还是 9 红」判定修复无效。
+
+## 2026-10-17 · 残留清零批(用户:「继续修残留问题」)
+
+**范围**:① 上一段残留「③ 单回退分离反证」(**未完成**,见 §残留)② M3「预检逐条全检」(**已结清**,见下)③ 实现面四处新增(TryPreloadGated / LastPreloadDiagnostic / DiagnoseDataCoreKeys / BootRoot 第二调用点)。
+
+### 实现面(生产码)
+
+| # | 落点 | 内容 |
+|---|---|---|
+| ① | `DataCorePreloader.TryPreload` | 拆为 **`TryPreloadGated(precheck, factory, load)`** 可注入核心;生产入口 `TryPreload()` 只填三缝。失败分支统一收口 `FailPreload()` = **复位静态状态 + 写诊断 + false**(修:「失败不改任何状态」的注释与「域重载后残留旧 provider」的现实不符) |
+| ② | `DataCorePreloader.FailPreload`(private,单一出处) | 原为 `FailPreload()` → `FailPreloadCore()` 两层,上层是**曾试过的编译缓存绕行**;该绕行无观测效果(见 §过程事故),当日删除并合回一层,文件顶部说明一并删除 |
+| ② | `DataCorePreloader.LastPreloadDiagnostic`(新,public 只读) | 失败面**可观察**:`"missing=[…]"`(Ordinal 排序,逐条列)。替代「数 [Error] 日志条数」这种与日志格式耦合的判据(`TD-audio-01f` 的教训) |
+| ③ | `DataCorePreloader.DiagnoseDataCoreKeys(addresses, locatable)`(新,internal 纯谓词) | 诊断的单一出处;可注入 ⇒ EditMode 直驱 |
+| ④ | `BootRoot.ApplyAudioSettingsProvider` | 接线第二调用点(PlayMode)登记;**null 不注入**半边由 `precheck_allKeys_test` 钉住 |
+
+⚠️ **实现面自查(如实登记)**:② 的「失败时复位」在本批**没有独立的红判据** —— 证伪 D(删掉失败分支的
+`ResetForPlayModeTests()`)实测**仍全绿**,因为夹具已在每条测前复位、两者不可区分。「源码存在」由
+`grep -n "private static bool FailPreload" -A4` 可证,**行为半边 = NOT-RUN**。
+
+### 测试面(新增 7 条)
+
+| 树 | 测试 | 宾语 |
+|---|---|---|
+| EditMode | `test_precheck_liveTryPreload_shortCircuitsAtRealPrecheck` | EditMode locator 实测为空 ⇒ 真实 `TryPreload` 走**预检判死**分支(诊断含缺失项,而非 `missing=[]` 的装载失败分支) |
+| EditMode | `test_precheck_false_shortCircuits_beforeAnyLoading` | 注入 precheck=false ⇒ 构造/装载探针**都不得被调用** |
+| EditMode | `test_precheck_passes_loadsOnceAndMarksPreloaded` | 反向对照:预检通过 ⇒ 装载恰一次、标志置 true |
+| EditMode | `test_precheck_diagnose_listsMissingInOrdinalOrder` | 诊断逐条列 + Ordinal 排序 + 与输入顺序无关 |
+| PlayMode | `precheck_allKeys_test.test_precheck_missingAddress_returnsFalse_andDiagnosesIt` | 真 locator 集 + 混入一条不存在地址 ⇒ 判死且点名该条 |
+| PlayMode | `precheck_allKeys_test.test_precheck_liveCatalog_allRealAddressesLocatable` | 真 catalog 正向:7 条全部可解析 |
+| PlayMode | `precheck_allKeys_test.test_bootRoot_applyAudioSettingsProvider_nullOrNotPreloaded_doesNotInject` | `preloaded=true, provider=null` / `preloaded=false` ⇒ 都不注入 |
+
+`test_preloader_list_sources_matchPreloadedProducts`(地址表覆盖)与 `test_u1teardown_restorePlayMode_
+{alreadyOnTarget_noWrite, core_delegatesToEnsure}` 属同批的夹具补口(后者两条在早前版次被误删,本批恢复)。
+
+### 回归(可复算)
+
+| 运行 | 配置 | 结果 | 对账 |
+|---|---|---|---|
+| EditMode | `s49-full-editmode.xml`(14:32:22Z) | **3682 / 3637 / 0 / 45** | 基线 `s42` 3678/3633/0/45;逐名 diff **+4 / −0**(= 本批 4 条新 EditMode 测) |
+| EditMode(组修后) | `s52-full-editmode.xml`(14:41:20Z) | **3682 / 3637 / 0 / 45** | 与 `s49` 同数(零漂移) |
+| EditMode(删缓存绕行后) | `s53-full-editmode.xml`(14:46:29Z → 14:48:11Z) | **3682 / 3637 / 0 / 45** | 对 `s52` 逐名 diff **+0 / −0**,零漂移 ⇒ 绕行删除无语义影响 |
+| PlayMode | `s51-playmode.xml`(14:40:40Z) | **192 / 192 / 0** | 基线 `s46` 189/189/0;逐名 **+3 / −0**(= 本批 3 条 PlayMode 测) |
+
+### 证伪(逐例「改 → 跑 → 还原」同命令内完成,SHA-256 校验通过)
+
+| 例 | 变异 | 实测 |
+|---|---|---|
+| A | 删 `TryPreloadGated` 的 `if (!precheck()) return FailPreload();` | ✅ **恰 1 红**:`test_precheck_liveTryPreload_shortCircuitsAtRealPrecheck`(`fzr2-A.xml`) |
+| B | 诊断恒返回 `"missing=[]"` | ✅ **恰 2 红**:`…diagnose_listsMissingInOrdinalOrder` · `…liveTryPreload_shortCircuitsAtRealPrecheck`(`fzr2-B.xml`) |
+| C | 去掉 `missing.Sort(StringComparer.Ordinal)` | ➖ **恰 1 红**:`…diagnose_listsMissingInOrdinalOrder`(`fzr2-C.xml`;真实地址表输入本就有序 ⇒ `liveTryPreload` 不敏感) |
+| D | 删失败分支的 `ResetForPlayModeTests()` | ⚠️ **0 红** —— 与夹具复位不可区分,**如实登记为未钉住**(见上「实现面自查」) |
+| REV | `BootRoot` 回退为无条件求值(`preloaded, DataCorePreloader.Provider`) | **3 跑 2 红**(`fzr-REV.xml`):`test_precheck_liveCatalog_allRealAddressesLocatable` · `test_precheck_missingAddress_returnsFalse_andDiagnosesIt` —— **`…nullOrNotPreloaded_doesNotInject` 恰未红**。原因:回退版在 `provider` 非 null 时只会挂一个恒抛的 lambda,注入本身仍发生 ⇒ 该测应红却绿 = **该测对这条变异无判别力**(它钉的是 `|| provider == null` / `!preloaded` 两小条,不是 `Start` 侧求值)。「`Start` 侧不得在未预载时求值 Provider」这半边**仍无夹具** |
+
+### 本批新发现:`data-core` 组缺两条音频条目(2026-10-17 同日,单测初跑即暴露)
+
+`s50` PlayMode 首跑 **190/192**,两红均报 `missing=[audio_events.cooked.bytes, audio_settings_registry.cooked.bytes]` ——
+本机 Play 内 catalog **只解析 5 条**(诊断串直接给出,无需推断)。复核源码:
+`AssetGroups/data-core.asset`(**入库文件**)的 `m_SerializeEntries` **只有 5 条**,
+S14-6 的两条音频产物从未入组;此前「189/189」之所以绿,是**构建期预建的 catalog 里曾有过**(机器本地,
+`EnsureDataCoreGroup` 跑过),而 Play Mode 现走 Use Asset Database 后改以组源为准。
+
+**修复**:跑菜单「确保 data-core Addressables 组」⇒ `data-core.asset` **5 → 7 条**(+`audio_events` / `audio_settings_registry`),
+**改动落在入库文件上,待用户决定是否入库**(⚠️ **未 commit**)。修后全量 PlayMode **192/192/0**(`s51`)。
+
+**注**:组文件的条目顺序按 GUID 重排(Addressables 序列化行为),diff 因此显得较大;**条目集合**才是判据(7 条、地址唯一)。
+
+### 本批过程事故(如实登记,影响过多次读数)
+
+1. **并发起第二个 Unity batch**:`s48` 全量与证伪批并行跑,证伪四例全部 `NO XML`(工程锁被 `s48` 独占)。
+   ⇒ `s48` 作废;此后**全量 / 证伪一律串行**。用户规则「禁并行起第二个」本轮**被我违反一次**。
+2. **就地改夹具期间用 `grep -c "test_precheck_"` 数数,把一个断裂的文件误判为完好**,接着在断口上拼接
+   ⇒ 三条先前已落盘的测试被**误删**(`test_preloader_list_sources…` / `…alreadyOnTarget_noWrite` /
+   `…core_delegatesToEnsure`)。由 `s48` 逐名 diff 的 `removed` 列发现,已恢复;`s49` 的 `−0` 即恢复证据。
+   **教训**:窗口内错误会连锁;**对拍必须用逐名集合 diff,不得用计数**。
+3. **`s48` 其实是一次假绿**:它跑的是被 ② 破坏后的文件(且缺三条),却报 0 失败 —— 若不做逐名对账
+   根本看不出来。
+4. **`REV` 那一栏作废**:它跑在 ② 之后、**文件修复之前**,且当时条件不干净(`data-core` 组只有 5 条 ⇒
+   `allRealAddressesLocatable` 本就必红)。本轮**未**在干净条件下重跑;该栏只作历史记录,不作为判别力依据。
+5. **一次无效的编译缓存绕行**:曾用「多一层 private 重载」试图绕开 Bee 的陈旧 ref.dll(症状:改源码后测试程序集仍按旧签名编译),
+   `DiagnoseDataCoreKeys` 仍报未解析。后经 recompile 轮次自然恢复。**当日删除该绕行**(无观测效果、属噪声);
+   证据 = 删除后 `s53` 全量 EditMode 与 `s52` 同数逐名零差(§回归)。
+   ⚠️ **绕行曾经「看起来生效」的原因未查明**(候选:recompile 轮次本身),不追认其为有效修复。
+6. **`REV` 行「3 跑 2 红」中的第 1 次**(`s50`)= 上条「组只有 5 条」的现场:**两红恰为两条真地址测**,
+   与「`Start` 求值」这一变异**无关**。干净条件下 `Start` 侧「未预载不求值」这半边**仍无夹具**(残留 #④)。
+
+
+**证伪(第二轮 · `REV` 版次)**:
+
+| 变异 | 预期红 | 实测 |
+|---|---|---|
+| M1 `RestorePlayModeCore` 复原体 → 空体 | `…core_delegatesToEnsure` | ✅ **恰 1 红**(`fz-m1-restore-empty.xml`:4 跑 1 红) |
+| M2 `EnsureAssetDatabasePlayMode` 不调 `writeIndex` | `…corePullsDriftedStateBack` | 见 `unity/Logs/fz-m2-write-skipped.xml` |
+| M3 `DataCorePreloader` 预检**整段删除** | data-core 地址表断言 `test_preloader_list_sources_matchPreloadedProducts` | **不适用** —— 该断言钉的是「地址表覆盖全部产物」,删预检语句**不该**动它;实跑 `fz-m3-precheck-retired.xml` 1/1 绿,**符合预期,不是假绿**。⚠️ 「预检**真的逐条全检**」本身**无执行载体**(需 PlayMode 走 `TryPreload` + 缺一条地址的 catalog),如实登记为 **NOT-RUN** |
+
+**⚠️ 本轮教训(同族第三次:自述 ≠ 代码在验它)**:
+- **第二版**的「纯内存反射写 `ProjectConfigData` 字段」方案**假绿** —— 它改进程内静态块、
+  **不改** `AddressableAssetSettings` 的内存副本 ⇒ 夹具与复原在**两套存储**上;
+  把恢复体改成空体、甚至把整个文件回退到最新版,该测**仍全绿**。已删除该方案(不留半成品)。
+- **证伪轮形态教训**:测试红/绿之间还隔着「**有没有编译**」—— 一次变异跑出 `rc 8 / Unity 退出码 2`
+  (编译错),若只看「XML 有 failed 就当中了」同样会误判;每次变异须核对 **XML 的 `start-time` 晚于源码改动**
+  且 **target 集非空**。
+
+**已登记的地方(修复面与残余)**:
+- **预检全检的地址表覆盖断言**已落(`pipeline_gate_test.cs::test_preloader_list_sources_matchPreloadedProducts`,
+  `EditMode.asmdef` 本就引用 `Gameplay.Presentation`,无需改装配);但**「预检真的逐条全检」**这一**行为**
+  仍无执行载体(须 PlayMode 真跑 `TryPreload` 且 catalog 缺一条地址)⇒ **NOT-RUN**。**不得**据此声称
+  「预检面已被钉住」—— 钉住的是**地址表**,不是**预检行为**。
+- ✅ **该 NOT-RUN 已于 2026-10-17「残留清零批」结清**:载体 = PlayMode
+  `precheck_allKeys_test.test_precheck_missingAddress_returnsFalse_andDiagnosesIt`(真 locator 集混入一条
+  不存在地址 ⇒ 判死并点名)+ EditMode `pipeline_gate_test.cs::test_precheck_liveTryPreload_shortCircuitsAtRealPrecheck`
+  (真实 `TryPreload` 走「预检判死」而非「装载失败」分支),判别力由证伪 A/B 坐实。本行原文保留作闭环记录。
+
 
 ---
 

@@ -1222,6 +1222,127 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(AudioSettingsRegistryBake.CookedFileName, Is.EqualTo(AudioSettingsDataSet.CookedFileName));
         }
 
+        // ══════════════ 预载预检面(2026-10-17 · Option A 残留修复)══════════════
+
+        /// <summary>预检真实驱动全链:<c>TryPreload()</c> 在 locator 集为空(EditMode)时判死,
+        /// 且走到的是「预检判死」分支(<c>FailPreload</c> 的诊断含缺失项),而非装载失败。</summary>
+        /// <remarks>
+        /// <b>为什么需要</b>。<c>TD-audio-01f</c> 的 M3(「预检真的逐条全检」)长期 NOT-RUN ——
+        /// 原因是「缺一条 ⇒ 短路」在真实缺条目环境里不留下可观察痕迹。本测把 EditMode 的真实形态
+        /// (未进 Play ⇒ <c>ResourceLocators</c> 实测为空)当输入,使该路径可执行。
+        /// <para><b>判别力</b>(2026-10-17 实测):删掉 <c>TryPreloadGated</c> 的
+        /// <c>if (!precheck()) return FailPreload();</c> ⇒ 本测红(<c>fzr-A.xml</c>)。</para>
+        /// </remarks>
+        [Test]
+        public void test_precheck_liveTryPreload_shortCircuitsAtRealPrecheck()
+        {
+            Assert.That(DataCorePreloader.IsPreloaded, Is.False,
+                "前置:进入时不得已预载(否则短路走幂等分支,本测不可信)");
+            try
+            {
+                bool ok = DataCorePreloader.TryPreload();
+                Assert.That(ok, Is.False, "EditMode 下预检必须判死,诊断:" + DataCorePreloader.LastPreloadDiagnostic);
+                Assert.That(DataCorePreloader.IsPreloaded, Is.False);
+                Assert.That(DataCorePreloader.LastPreloadDiagnostic,
+                    Does.StartWith("missing=[").And.Contain(".cooked.bytes"),
+                    "真正走到的分支必须是「预检判死」(诊断含缺失项),而非装载失败(诊断会是 missing=[])");
+            }
+            finally
+            {
+                typeof(DataCorePreloader).GetMethod("ResetForPlayModeTests",
+                    BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)?.Invoke(null, null);
+            }
+        }
+
+        /// <summary>预载负载面:<paramref name="precheck"/> false ⇒ 构造与装载<b>都不得发生</b>
+        /// (探针被调用即抛,故「没红」= 短路成立)。</summary>
+        /// <remarks>
+        /// <b>判别力</b>(2026-10-17 实测):删掉 <c>TryPreloadGated</c> 的短路判据 ⇒ 本测红(<c>fzr-A.xml</c>)。
+        /// </remarks>
+        [Test]
+        public void test_precheck_false_shortCircuits_beforeAnyLoading()
+        {
+            Type t = typeof(DataCorePreloader);
+            MethodInfo m = t.GetMethod("TryPreloadGated",
+                BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+            Assert.That(m, Is.Not.Null, "TryPreloadGated 缺失 —— 预检注入缝被删?");
+
+            Func<AddressablesDataProvider> factory = () =>
+                throw new AssertionException("预检未过却构造了 provider —— 预检短路失效");
+            Action<AddressablesDataProvider> load = _ =>
+                throw new AssertionException("预检未过却执行了装载 —— 预检短路失效");
+
+            try
+            {
+                bool ok = (bool)m.Invoke(null, new object[] { (Func<bool>)(() => false), factory, load });
+                Assert.That(ok, Is.False, "预检不过 ⇒ TryPreload 必须返回 false");
+                Assert.That(DataCorePreloader.IsPreloaded, Is.False, "预检不过 ⇒ 静态标志必须为 false");
+            }
+            finally
+            {
+                t.GetMethod("ResetForPlayModeTests", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+                    ?.Invoke(null, null);
+            }
+        }
+
+        /// <summary>预载负载面 · 反向对照:预检通过 ⇒ 先构造、后装载恰一次、标志置 true。</summary>
+        /// <remarks>
+        /// <b>判别力</b>:把 <c>TryPreloadGated</c> 改成先调 <paramref name="load"/> 再判预检 ⇒ 上一测红;
+        /// 把装载后标志置 false ⇒ 本测末条红。
+        /// </remarks>
+        [Test]
+        public void test_precheck_passes_loadsOnceAndMarksPreloaded()
+        {
+            Type t = typeof(DataCorePreloader);
+            var precheck = t.GetMethod("TryPreloadGated", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+            Assert.That(precheck, Is.Not.Null);
+
+            int loads = 0;
+            AddressablesDataProvider made = null;
+            try
+            {
+                bool ok = (bool)precheck.Invoke(null, new object[]
+                {
+                    (Func<bool>)(() => true),
+                    (Func<AddressablesDataProvider>)(() => new AddressablesDataProvider()),
+                    (Action<AddressablesDataProvider>)(p => { loads++; made = p; }),
+                });
+                Assert.That(ok, Is.True, "预检通过 + 装载无抛 ⇒ true");
+                Assert.That(loads, Is.EqualTo(1), "装载恰一次");
+                Assert.That(made, Is.Not.Null);
+                Assert.That(DataCorePreloader.IsPreloaded, Is.True, "装载成功 ⇒ 标志置 true");
+            }
+            finally
+            {
+                t.GetMethod("ResetForPlayModeTests", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+                    ?.Invoke(null, null);
+            }
+        }
+
+        /// <summary>预检诊断:缺失项被逐条列出,且顺序稳定(Ordinal)。</summary>
+        /// <remarks>
+        /// <b>判别力</b>(2026-10-17 实测):诊断恒返回 <c>"missing=[]"</c> ⇒ 本测红(<c>fzr-B</c>);
+        /// 去掉排序 ⇒ 本测红(<c>fzr-C</c>)。
+        /// </remarks>
+        [Test]
+        public void test_precheck_diagnose_listsMissingInOrdinalOrder()
+        {
+            var addresses = new[] { "b.cooked.bytes", "a.cooked.bytes", "c.cooked.bytes" };
+            Func<string, bool> locatable = a => a != "c.cooked.bytes" && a != "a.cooked.bytes";
+
+            var dm = typeof(DataCorePreloader).GetMethod("DiagnoseDataCoreKeys",
+                BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+            Assert.That(dm, Is.Not.Null, "DiagnoseDataCoreKeys 缺失");
+            string d1 = (string)dm.Invoke(null, new object[] { addresses, locatable });
+            string d2 = (string)dm.Invoke(null, new object[] { new[] { "c.cooked.bytes", "b.cooked.bytes", "a.cooked.bytes" }, locatable });
+
+            Assert.That(d1, Is.EqualTo("missing=[a.cooked.bytes, c.cooked.bytes]"),
+                "缺失项须逐条列出且按 Ordinal 排序");
+            Assert.That(d2, Is.EqualTo(d1), "诊断串只取决于「缺哪几条」,与输入顺序无关");
+            Assert.That((string)dm.Invoke(null, new object[] { addresses, (Func<string, bool>)(a => true) }),
+                Is.EqualTo("missing=[]"), "全部可解析 ⇒ 空缺失集");
+        }
+
         /// <summary>接线:菜单是 binder 的**唯一调用点链路**存在性自检 ——
         /// 两个烘焙菜单项与两个组菜单项必须存在(否则门永不执行)。</summary>
         [Test]
@@ -1239,6 +1360,43 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             foreach (string name in expected)
                 Assert.That(menu.GetMethod(name, BindingFlags.Public | BindingFlags.Static), Is.Not.Null,
                     $"菜单方法 {name} 缺失 ⇒ 该链路永不执行(binder 悬空)");
+        }
+
+        /// <summary>预载预检面:每一份 data-core 产物都有其地址,且地址表<b>逐条互异</b>。</summary>
+        /// <remarks>
+        /// <para><b>为什么需要</b>(2026-10-17 · Option A):<c>DataCorePreloader.TryPreload</c> 的预检改为
+        /// <b>逐条检查全部地址</b>,才在「任意一条缺失」时零 Error 日志地退回磁盘兜底。
+        /// 「全部」一旦有意义,「地址表是否真的覆盖全部产物」就必须有断言 —— 否则少登记一条
+        /// (例如将来新加的 cooked)预检又回到「只护住一部分」的旧病。</para>
+        /// <para><b>判别力</b>:从数据源列表删掉任意一条 ⇒ 该条地址「恰出现 1 次」红;两条写重 ⇒ 去重计数红。</para>
+        /// </remarks>
+        [Test]
+        public void test_preloader_list_sources_matchPreloadedProducts()
+        {
+            Type t = typeof(DaYiJingCheng.Gameplay.Presentation.DataCorePreloader);
+            FieldInfo listField = t.GetField("DataCoreAddresses",
+                BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+            Assert.That(listField, Is.Not.Null, "DataCorePreloader.DataCoreAddresses 缺失 —— 预检面被删?");
+            var list = (string[])listField.GetValue(null);
+            Assert.That(list, Is.Not.Null.And.Not.Empty, "data-core 地址表不得为空");
+
+            // 从**数据源**反射取全部 *Address 常量(禁测试内另抄一份)。
+            string[] sources = typeof(AddressablesDataProvider)
+                .GetFields(BindingFlags.Static | BindingFlags.Public)
+                .Where(f => f.IsLiteral && f.FieldType == typeof(string)
+                            && f.Name.EndsWith("Address", StringComparison.Ordinal))
+                .Select(f => (string)f.GetRawConstantValue())
+                .ToArray();
+            Assert.That(sources.Length, Is.GreaterThanOrEqualTo(list.Length),
+                "扫描键非空守卫 —— 取不到常量则下面的逐条断言会被「什么都不查」满足");
+
+            foreach (string address in sources)
+            {
+                Assert.That(list.Count(x => x == address), Is.EqualTo(1),
+                    $"地址「{address}」在 DataCoreAddresses 中应恰出现 1 次" +
+                    "(漏登记 ⇒ 预检护不住它;重复 ⇒ 预检浪费)");
+            }
+            Assert.That(list.Distinct().Count(), Is.EqualTo(list.Length), "DataCoreAddresses 有重复地址");
         }
 
         // ══════════════ 接线:BootRoot 真身(裁定 ④ · 兑清 story-011 §登记项)══════════════
@@ -1379,34 +1537,47 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(drifted, Is.GreaterThanOrEqualTo(0), "前提:存在一个非 Asset Database 的 builder");
 
             string driftedName = settings.GetDataBuilder(drifted)?.Name ?? "<null>";
+            var written = new List<int>();
+            int finalIndex;
             try
             {
-                // ── Arrange:构造漂移态(等价于 ConfigurePlayMode 留下的状态)
+                // ── Arrange:构造漂移态(**真 setter** —— 注入缝只拦「复原」那一次写,
+                //    不拦夹具的构造写;真 setter 同时验证「设置确实可写」)。
                 settings.ActivePlayModeDataBuilderIndex = drifted;
                 Assert.That(settings.ActivePlayModeDataBuilderIndex, Is.EqualTo(drifted),
                     $"夹具前提:设置可写(实测切到「{driftedName}」未生效)");
 
-                // ── Act
-                DaYiJingCheng.EditorTools.Spike.U1SpikeSetup.RestorePlayModeCore(settings);
+                // ── Act:core 的写走注入缝 ⇒ 本测的**净落盘恰一次**(2026-10-17 Option A ②:
+                //    旧版从漂移态起跑、finally 再写回,两次写都落盘 ⇒ 我们自己的测试在维持漂移)。
+                bool changed = DataBakeMenu.EnsureAssetDatabasePlayMode(settings, index =>
+                {
+                    written.Add(index);
+                    settings.ActivePlayModeDataBuilderIndex = index;   // 写缝 = 替换「那一笔落盘」,不是吞掉它
+                });
 
                 // ── Assert
                 int after = settings.ActivePlayModeDataBuilderIndex;
                 string afterName = settings.GetDataBuilder(after)?.Name ?? "<null>";
+                Assert.That(changed, Is.True, "漂移态 ⇒ 应报告「已改动」");
+                Assert.That(written, Is.EqualTo(new[] { target }),
+                    $"复原动作应恰写一次目标索引 [{target}],实写 [{string.Join(", ", written)}]");
                 Assert.That(after, Is.EqualTo(target),
-                    $"RestorePlayModeCore 未把 Play Mode 拉回「Use Asset Database」——\n" +
+                    $"Play Mode 未拉回「Use Asset Database」——\n" +
                     $"  漂移态 = [{drifted}]「{driftedName}」· 期望 = [{target}] · 实得 = [{after}]「{afterName}」\n" +
                     "后果:PlayMode 解析预建 catalog,组条目一变即 InvalidKeyException(TD-audio-01f)。");
+                finalIndex = after;
             }
             finally
             {
-                // ── 无条件写回原值(本测不得在本机留下副作用)
+                // ── 无条件写回原值(本测不得在本机留下副作用;这是本测**唯一**的落盘)
                 settings.ActivePlayModeDataBuilderIndex = original;
-                if (settings.ActivePlayModeDataBuilderIndex != original)
-                {
-                    Assert.Inconclusive(
-                        $"⚠️ 本测的 finally 未能把 Play Mode 写回原值 [{original}] ——\n" +
-                        "   本机设置现处于非预期态。手动跑菜单「大医精诚/数据管线/Play Mode 归位」。");
-                }
+                finalIndex = settings.ActivePlayModeDataBuilderIndex;
+            }
+            if (finalIndex != original)
+            {
+                Assert.Inconclusive(
+                    $"⚠️ 本测的 finally 未能把 Play Mode 写回原值 [{original}] ——\n" +
+                    "   本机设置现处于非预期态。手动跑菜单「大医精诚/数据管线/Play Mode 归位」。");
             }
         }
 
@@ -1417,6 +1588,57 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.DoesNotThrow(
                 () => DaYiJingCheng.EditorTools.Spike.U1SpikeSetup.RestorePlayModeCore(null),
                 "设置缺失时 Teardown 的复原步骤必须静默返回 —— 抛异常会盖掉 Teardown 主路径的日志");
+        }
+
+        /// <summary>委派:<c>U1SpikeSetup.RestorePlayModeCore</c> 必须**经** <c>EnsureAssetDatabasePlayMode</c>
+        /// 复原(即复原本体 = 真设置写,而不是空实现)。</summary>
+        /// <remarks>
+        /// <b>判别力</b>(2026-10-17 实测):复原体改成空体 ⇒ 本测红(<c>fz-m1-restore-empty.xml</c>)。
+        /// </remarks>
+        [Test]
+        public void test_u1teardown_restorePlayMode_core_delegatesToEnsure()
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            Assert.That(settings, Is.Not.Null, "本机 Addressables 设置缺失(机器前置)");
+            int target = DataBakeMenu.FindAssetDatabaseBuilderIndex(settings);
+            Assert.That(target, Is.GreaterThanOrEqualTo(0));
+            Assert.That(settings.DataBuilders.Count, Is.GreaterThan(1));
+
+            int original = settings.ActivePlayModeDataBuilderIndex;
+            int drifted = target == 0 ? 1 : 0;
+            try
+            {
+                settings.ActivePlayModeDataBuilderIndex = drifted;
+                DaYiJingCheng.EditorTools.Spike.U1SpikeSetup.RestorePlayModeCore(settings);
+                Assert.That(settings.ActivePlayModeDataBuilderIndex, Is.EqualTo(target),
+                    "RestorePlayModeCore 未把 Play Mode 拉回「Use Asset Database」");
+            }
+            finally
+            {
+                settings.ActivePlayModeDataBuilderIndex = original;
+            }
+        }
+
+        /// <summary>不写:已在目标位 ⇒ 报告「未改动」且零写。</summary>
+        [Test]
+        public void test_u1teardown_restorePlayMode_alreadyOnTarget_noWrite()
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            Assert.That(settings, Is.Not.Null, "本机 Addressables 设置缺失(机器前置)");
+            int target = DataBakeMenu.FindAssetDatabaseBuilderIndex(settings);
+            int original = settings.ActivePlayModeDataBuilderIndex;
+            var written = new List<int>();
+            try
+            {
+                settings.ActivePlayModeDataBuilderIndex = target;
+                bool changed = DataBakeMenu.EnsureAssetDatabasePlayMode(settings, written.Add);
+                Assert.That(changed, Is.False, "已在目标位 ⇒ 应报告「未改动」");
+                Assert.That(written, Is.Empty, "已在目标位 ⇒ 零写");
+            }
+            finally
+            {
+                settings.ActivePlayModeDataBuilderIndex = original;
+            }
         }
 
         /// <summary>接线(执行判据):<c>Teardown</c> 的 <c>finally</c> 段**真的会调复原**。</summary>

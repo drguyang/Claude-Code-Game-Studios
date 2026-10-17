@@ -345,6 +345,17 @@ namespace DaYiJingCheng.EditorTools.Spike
             public Action<string> Warn;
         }
 
+        /// <summary>True 时 <see cref="RestorePlayModeCore"/> 只在进程内改值,<b>不写盘</b>。
+        /// <para>⚠️ <b>为什么需要(2026-10-17 · 测试污染根因)</b>:贴片测试
+        /// <c>test_u1teardown_restorePlayMode_corePullsDriftedStateBack</c> 为取得判别力,必须先
+        /// 把本机 Play Mode 切到漂移态、再让复原动作把它拉回。原实现走
+        /// <c>settings.ActivePlayModeDataBuilderIndex</c> setter ⇒ <c>ProjectConfigData.SaveData()</c>
+        /// 落盘到 <c>Library/AddressablesConfig.dat</c>。若测试跑到它时本机**已处于漂移态**
+        /// (<c>original</c> = Existing Build),finally 会把漂移值**写回盘上并固化** ——
+        /// EditMode 全量仍然全绿,下一次 PlayMode 却整条红(「✅ 早于事实」同族)。
+        /// 本开关令夹具的漂移构造不落盘,<c>finally</c> 亦不落盘;真实调用方(菜单 / Teardown)
+        /// 保持默认值 <c>false</c>,行为不变。</para></summary>
+
         /// <summary>真环境的依赖集(菜单 <c>Teardown</c> 用)。</summary>
         internal static TeardownDeps RealTeardownDeps() => new TeardownDeps
         {

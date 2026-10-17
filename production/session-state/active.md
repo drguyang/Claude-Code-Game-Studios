@@ -5560,3 +5560,59 @@ M1 乐层分支(恰红 2) · M3 流式 null(恰红 1) · M4 素材落盘(恰红 
 无状态词、字幕无结论句式、15/15 真播。
 
 **收口**:story-016 **Complete(5/5)**;EPIC 头部同步为「001–016 全 Complete · 017 Ready · 尚未收口」。
+
+## 九、sprint-13 核对 → 改判「收口存疑」(2026-10-17 · 用户裁定「按这个改」)
+
+**核账方法**:独立复算,不照抄 2026-10-16 原收口记录。逐项实测:
+
+| 项 | 实测 | 判 |
+|---|---|---|
+| 回归 | `s13-full.xml` 3515/3469/0/46 · `s003-final-full.xml` 3508/3462/0/46;逐 fullname 差集 **+7 / −0**,新增 7 全为 `AssemblyGateRefDupTest.*` | ✅ Δ = 新增数 |
+| S13-1 | 四 story `Status:` = Complete/Complete/Complete/Ready,与 EPIC 四行逐字一致 | ✅ |
+| S13-4 | `AssemblyGates.cs:981/996`,接入 `RunAll:115`;`s13-4-refdup.xml` 7/7 | ✅ |
+| S13-5 | 当场重跑 precheck ⇒ `[Test]=41 · FAIL 0 · WARN 0`,退出码 0 | ✅ |
+| S13-8 | `TD-medcons-01…09` 逐条带 rework §五 出处;§五 已加收口回指 | ✅ |
+| **S13-6** | story-003 评审实测 `tools-programmer` 撞 20 轮 / `qa-tester` 撞 10 轮**均零报告**交回 | ❌ **判据为红** |
+| **story-003 AC** | 卡面 8/9 passing + **AC-5 PARTIAL**(W-4 → `TD-medcons-15`) | ⚠️ 未上挂 |
+| **Smoke** | 两份 DoD 都无 smoke 执行记录;最新仍是 `smoke-2026-10-15.md`(仅自动面) | ⚠️ 未登记 |
+
+**改动四处**:
+1. `production/sprints/sprint-13.md` —— DoD 第 2 条勾撤回(S13-6 实测未兑现);AC-5 PARTIAL / smoke 补挂;
+   收口记录追加「2026-10-17 核对订正」三条(原文不删)。
+2. `production/qa/evidence/sprint-13-governance-…md` —— §S13-6 补「首次实战实测 = 红」,不追认原判定。
+3. `docs/tech-debt-register.md` —— 新增 `TD-s13-01/02/03` 三条。
+4. `production/epics/medical-consequences/EPIC.md` —— 头部加收口前置(4 story 全 Complete ≠ AC 全验);
+   `audio-system/EPIC.md` 加同型索引一行。
+
+**结论**:组件已做且证伪轮真红;**缺口 = 最后一步被报告成已做**(S13-6 / AC-5 / smoke)。与音频 epic 非同级。
+
+## 十、存疑部分修复(2026-10-17 · 用户裁定「修存疑的部分」)
+
+| 存疑项 | 修法 | 证据 |
+|---|---|---|
+| **S-B1** 负夹具本缺(story-003 评审原判定点名) | 补 `medcons_delayed_emit_test.cs::test_sb1_truncatedEligible_headRowDropped_silentlyWithholdsRest`(含对照组 + doc 前置的可执行出处) | 证伪:删 `Emit` 的 S-B1 前置条件块 ⇒ **108 中恰 1 红**(目标测);SHA-256 还原一致 |
+| **AC-5** 可执行半边无载体 | 补 `medcons_outcome_judge_test.cs::test_ac5_outcomeEnumClosure_hasNoLethalMember_costPathCantExpressDeath`(闭集恰 6 成员 + 零致死语义,两层判据) | 证伪:注入 `CostLethal` ⇒ **恰 2 红**(目标测 + `test_ac5301_outcome_isClosedEnum_*`);SHA-256 还原一致 |
+| **TD-s13-01**(S13-6 机制) | `code-review` SKILL §Phase 7b 增 ③ **增量落盘**;判据收窄为「草稿在轮次耗尽前非空且覆盖清单过半」,旧判据作废 | 存在性:`grep -n "增量落盘" .claude/skills/code-review/SKILL.md`;⚠️ **有效性仍前瞻性,不可自证** |
+| **TD-s13-03**(smoke) | 用户裁定按陈述登记:「我在其他 epic 听过了,没问题」 | ⚠️ **无独立冒烟件**;不可证伪为「真听过」,册内已注明 |
+| **TD-s13-02**(AC-5 上挂) | 53 epic 头部 / story-003 头部 + QA AC-5 行 / qa-plan S13-6 与 smoke 行 | 残留 = 表级半边无载体(`TD-medcons-15`) |
+
+**⚠️ PlayMode 全量 180/189** —— 9 红全因 `Addressables.InvalidKeyException: Key=audio_events.cooked.bytes`
+(S14-6 把音频表接入 `AddressablesDataProvider`,但该键不在 Addressables 组内)。**与 sprint-13 无关,与 S14-6 有关**;
+已登记待处理,**不得当作本批引入的回归**。
+
+> ✅ **2026-10-17 已解** —— PlayMode 全量 **189 / 189 / 0**(`Logs/s46-playmode.xml`,复跑 `s47` 同)。
+> 三层机制:① Play Mode 脚本漂移(已归位 0)· ② `TryPreload` 单键预检(改逐条全检)· ③ 静态状态跨 Play 轮残留
+> (`BootRoot` 三元短路 + `ResetForPlayModeTests` + `Tests/PlayMode/PlayModeSetUp.cs`)。
+> 反证:A) 只删 ⑤ ⇒ **仍全绿**(⑤ 单独无判别力,如实登记;候选解释 = 程序集重建触发重载,未证);B) ③+⑤ 回退 ⇒ **恰 9 红、逐名与基线一致**。
+> 详情见 `docs/tech-debt-register.md` 2026-10-17 段。
+>
+> **残留清零(用户「继续修残留问题」· 同日)** —— `TryPreload` 拆 `TryPreloadGated(precheck, factory, load)`;
+> 失败收口 `FailPreload` = 复位 + 写 `LastPreloadDiagnostic`(`"missing=[…]"`)+ false;新 7 测
+> (EditMode 4 + PlayMode 3)。回归:**EditMode 3682/3637/0/45**(`s52`,对 `s42` 逐名 +4/−0)·
+> **PlayMode 192/192/0**(`s51`,对 `s46` +3/−0)。证伪:A/B/C 均转红(`fzr2-*.xml`);D(删失败复位)**0 红 = 未钉住**;
+> 发现 `data-core.asset` 入库文件缺两条音频条目 ⇒ 跑菜单补齐 **5 → 7 条**(入库文件改动,**未 commit**)。
+> **仍 open(同日登记,见 `tech-debt-register.md` §2026-10-17 残留清零批「残留」)**:
+> #④ `Start` 侧「未预载不求值 `Provider`」无夹具(REV 干净条件下**未重跑**)· #⑤ 「失败时静态复位」行为半边未钉(D 0 红)·
+> #⑥ 组条目悬空**为条件性风险**:本工作树 7 条 GUID 全部可解析(只读复核),触发条件未在本机复现 ⇒ **不得**宣称当前已损坏。
+> 待用户裁:`data-core.asset` 的 5 → 7 是否入库。
+> **删缓存绕行后复算**:`s53` 全量 EditMode **3682/3637/0/45**(14:46:29Z → 14:48:11Z),对 `s52` 逐名 **+0/−0**。

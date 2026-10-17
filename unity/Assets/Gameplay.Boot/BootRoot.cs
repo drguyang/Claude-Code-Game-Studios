@@ -126,7 +126,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⚠️ 这里**刻意不抛**:设置值不是 sim 真值(端本地设备偏好,OQ-SS-5=甲),
             //    「回退集」是设计内的降级面,不是静默失败 —— 与 E-13 对**数据产物**的
             //    硬失败口径不冲突(那条管的是「产物不可读」,此处是「未装配」)。
-            ApplyAudioSettingsProvider(preloaded, DataCorePreloader.Provider);
+            // ⚠️ 2026-10-17 修复:`DataCorePreloader.Provider` 是**抛形**属性(null 即抛),
+            //    不能无条件求值再靠形参判 null —— 预载失败时求值本身就抛,「不注入」分支不可达
+            //    (PlayMode 9 红实测:静态 `IsPreloaded` 跨 Play 轮残留 ⇒ TryPreload 短路返回 true
+            //    而 `_provider` 已随上一轮失效)。改三元短路:只有真成功才取 Provider,
+            //    且取到的 null 仍由 `ApplyAudioSettingsProvider` 的形参检查兜住。
+            ApplyAudioSettingsProvider(preloaded, preloaded ? DataCorePreloader.Provider : null);
 
             // ── 2.5 项目级动作资产 fail-loud(story-009 R-9.5 · AC-9-01)──
             // 通道装载 = InputSystem.actions(原稿 Addressables 路径被实测推翻:该资产是
@@ -442,6 +447,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 只能经完整启动序(Addressables catalog + 场景)才可达 ⇒ EditMode 无从断言,
         /// 「接线是否存在」退化为不可证伪的口头承诺 —— 正是本 sprint 要根治的假绿形态。
         /// 抽成静态后由 <c>pipeline_gate_test.test_bootroot_*</c> 直驱。</para>
+        /// <para>⚠️ <b>第二个直接调用点(2026-10-17)</b>:<c>Tests/PlayMode/precheck_allKeys_test.cs</c>
+        /// 用它验证「<paramref name="preloaded"/> = true 但 <paramref name="provider"/> = null ⇒ 不注入」——
+        /// 这是把 <c>Start</c> 里抛形属性求值摘出接线后、钉住「null 仍不注入」这一半的唯一载体。</para>
         /// <para>⚠️ 这里**刻意不抛**:设置值不是 sim 真值(端本地设备偏好,OQ-SS-5=甲),
         /// 「回退集」是设计内的降级面,不是静默失败 —— 与 E-13 对**数据产物**的硬失败口径不冲突
         /// (那条管「产物不可读」,此处是「未装配」)。</para></summary>
