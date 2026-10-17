@@ -50,6 +50,21 @@
 | TD-medcons-14 | **W-5**:`ConsequenceResolved` 带真 `patient_id` ⇒ 进 `EventStream` AC-15 CAP 分支(`!IsPresent && PresentCount >= 24` ⇒ throw);当前**照发不 catch**,doc comment seam 已登记 | story-003 Completion Notes W-5 | 9 / 7a 轮裁定「离屏后果」语义时 |
 | TD-medcons-15 | **W-4**:AC-5 / OQ-53-8「禁忌 / 过量代价表**永不致死**形状门」只兑现枚举域部分(结局轴 / NoEcho 作 key ⇒ schema 错);**代价表本身未建** | story-003 Completion Notes W-4 | GDD / 数值轮启动代价表时 |
 
+
+## 2026-10-17 · medcons story-003 复核(S13-6 新判据实测轮)
+
+**出处**:`production/qa/evidence/review-medcons-s003-recheck-2026-10-17.md`
+(A 侧原判据核账 + B 侧新缺陷/硬约束,两 agent 并行;编排方逐条复核了 B 侧 5 条断言,**1 条误报已剔除**)。
+**性质**:本轮同时是 **S13-6 收窄后判据的首次真实实测**(结果 PASS,n=1;B 侧撞 10 轮但草稿 4/4 有结论)。
+
+| # | 债 | 出处 | 触发条件 |
+|---|---|---|---|
+| **TD-medcons-16** | **T-B1 的旧假绿夹具未删**:`medcons_delayed_emit_test.cs:468` `test_ac2_bake_cookedBytes_deterministic_sameSourceTwice` 对行序回归零判别力;新夹具 `:485` 已立且 doc 自称「替换」,但**删除动作未落** ⇒ 计数仍含一条假绿 | 复核件 §二 T-B1 | 下一轮动 `medcons_delayed_emit_test.cs` 时同批删 |
+| **TD-medcons-17** | **`ConsequenceEmitter.BuildDueRows` 51 行**(185-235)超 ≤40 标准;≤40 无门 ⇒ 无夹具 | 复核件 §三 方法长度 | 54 / 代码规范闸落地时 |
+| **TD-medcons-18** | **三处 S3 新缺陷(静态可判,未构造反例)**:① D-1 `stream` 与 `_eventSink` 非同一条流时 S-B2 预检静默失效(构造器无一致性断言);② D-2 部分成功后抛异常不回填 `emittedCount`,「不得 catch 重试」在类型面不可表达;③ D-3 同一 CaseClosed 以**不同 outcome** 重喂不去重(去重键含 outcome)⇒ 可发两条后果,违 GDD `:323` | 复核件 §三 新缺陷 | 装配轮(53 接线)之前 —— D-1 尤其须在装配层定契约 |
+| **TD-medcons-19** | **两条自包含夹具判别力弱**:`test_sb1_truncatedEligible_*`(断言前提违例的后果,对生产码分支零判别力)· `test_ac6_bandCountSingleSource*`(`BuildEligible` 是测试侧 helper,生产装配面未被约束) | 复核件 §三 | 数值轮(U 档扩档)启动时一并补真装配面判据 |
+| **TD-s13-01 补记** | **S13-6 收窄后判据首次实测 = PASS**:A 草稿 11 行 / 3 项全结论;B 草稿 45 行 / 4 项全结论(撞 10 轮零报告,但草稿在盘上)。⚠️ **有效性仍待更多样本(n=1)**,且 B 侧「零报告」说明 agent 自我监控未修好 —— 修好的是「交付物不丢」 | 复核件 §一 | 下一次真实重评续记 |
+
 ---
 
 ## 2026-10-17 · sprint-13 收口缺口(核对改判「收口存疑」· 用户裁定按此改)
@@ -63,7 +78,8 @@
 |---|---|---|---|
 | TD-s13-01 | **S13-6 判据实测未兑现**:卡面 =「下一次重评两位专家均在轮次上限内交付报告」;story-003 评审实测 `tools-programmer` 撞 20 轮、`qa-tester` 撞 10 轮均零报告交回。⇒ **prompt 拆小 + 「先出报告」预声明不足以保证限内交付**,需再改机制(候选:硬切分勘察面 / 强制增量落盘 / 每次工具调用配额) | `review-medcons-story-003-2026-10-16.md:20-22` · 治理件 §S13-6 补记 | ✅ **2026-10-17 机制已改(用户裁定)** —— `code-review` SKILL §Phase 7b ③「增量落盘」+ 判据收窄为「草稿非空且覆盖清单过半」;旧判据作废。**残留:新判据仍为前瞻性,须下次真实重评实测**(`grep -n "增量落盘" .claude/skills/code-review/SKILL.md` 可复核存在性) |
 | TD-s13-02 | **story-003 AC-5 PARTIAL 未上挂到 epic / sprint DoD**:W-4 代价表永不致死形状门未兑现(已转 `TD-medcons-15`),而 53 epic DoD 写「AC-53-01…15 全部 verified」⇒ **4 story 全 Complete ≠ AC 全验** | story-003 `Completion Notes` W-4 · sprint-13 DoD 第 4 条 | ✅ **2026-10-17 已上挂** —— 53 epic 头部 / story-003 头部与 QA AC-5 行均已写明;**可执行半边已补测**(`test_ac5_outcomeEnumClosure_*`,反证注入 `CostLethal` ⇒ 恰 2 红)。**残留 = 表级半边无载体**(全仓无代价表)⇒ `TD-medcons-15` 结清前 53 epic 不得收口 |
-| TD-s13-03 | **sprint-13 冒烟未执行、未登记**:本 DoD 清单无语料 smoke 条,`qa-plan-sprint-13-2026-10-16.md:229` 的「Smoke check 通过」停在 `[ ]`;最新冒烟件仍是 `smoke-2026-10-15.md`(仅自动面,人工 Batch 全 NOT RUN) | `production/sprints/sprint-13.md` 收口记录 ③ | ✅ **2026-10-17 用户裁定结案(按用户陈述登记)**:用户称「我在其他 epic 听过了,没问题」⇒ 以**用户人耳陈述**补记为本 sprint 的人工冒烟证据;**本 sprint 无独立冒烟件**(无可复算判据,不可证伪为「真听过」)。若后续 sprint 的冒烟件与此陈述冲突,以冒烟件为准 |
+| TD-s13-03 | **sprint-13 冒烟未执行、未登记**:本 DoD 清单无语料 smoke 条,`qa-plan-sprint-13-2026-10-16.md:229` 的「Smoke check 通过」停在 `[ ]`;最新冒烟件仍是 `smoke-2026-10-15.md`(仅自动面,人工 Batch 全 NOT RUN) | `production/sprints/sprint-13.md` 收口记录 ③ | ✅ **2026-10-17 用户裁定结案(按用户陈述登记)**:用户称「我在其他 epic 听过了,没问题」⇒ 以**用户人耳陈述**补记为本 sprint 的人工冒烟证据;**本 sprint 无独立冒烟件**(无可复算判据,不可证伪为「真听过」)。若后续 sprint 的冒烟件与此陈述冲突,以冒烟件为准。<br>⚠️ **2026-10-17 复核补记**:本行的依据 = 「本 DoD 清单与 qa-plan 第 229 行均无执行记录」。第 229 行**已复核成立**;**DoD 清单本身未找到**(`sprint-13.md` 的 DoD 节无冒烟条目)⇒ 「清单中漏列」一说**不成立**,以本行为准 |
+| TD-s13-04 | **S13-7 三签未完成(本 sprint 的收口前置)**:2026-10-17 曾裁定「不签、按缺口登记收口」,同日用户更正为「**S13-7 重新修复完成**」——三签是 AC-11-12 / AC-11-13 / AC-11-21 三条 BLOCKING `[L]` 的分母,**不得转债降级**(否则等于把未验判据移走、让分母变小)。agent 侧走查包 / 截图 / 像素比对 / 三条结论已齐,**只差真人签署** | 签核件 §7(已撤回)→ §8 · `sprint-13.md` 收口记录 | ✅ **2026-10-17 已结清** —— 三签齐(dr_guyang 兼任,签核件 §9),§5 义务 1–5 已全部回填;S13-7 → done |
 
 ---
 
@@ -76,16 +92,29 @@
 
 | # | 债 | 出处 | 触发条件(何时须还) |
 |---|---|---|---|
-| TD-prescription-01 | **42 侧戥子形态元件缺失**(根因)—— GDD §Game Feel(`prescription-and-medication.md:868`)与 `skeuomorphic-ui.md:1617` 均登记「戥子档位读数元件 = 42 元件库黄铜侧(戥杆倾角 / 药包鼓胀)」;但 42 epic(18 story + 019–024)**无任何一条 story 交付该形态元件**。实际落地的 `BrassScaleElement` 仅 `int TickCount`(总档数)+ 黄铜色条,档位行 = N 个**同形** `Paper` + 同标签「戥子档」⇒ 相邻档**视觉完全相同**。**义务被登记、被「认领」,但形态从未实现** | 走查包 §9 根因;`CasebookScreen.cs:93`(「行内容恒定」自陈) | **真人走查确认后**——新立 42 侧 story 交付形态元件,或裁定 P0 接受无形态读数(须改 GDD,另开裁定) |
+| TD-prescription-01 | **42 侧戥子形态元件缺失**(根因)—— GDD §Game Feel(`prescription-and-medication.md:868`)与 `skeuomorphic-ui.md:1617` 均登记「戥子档位读数元件 = 42 元件库黄铜侧(戥杆倾角 / 药包鼓胀)」;但 42 epic(18 story + 019–024)**无任何一条 story 交付该形态元件**。实际落地的 `BrassScaleElement` 仅 `int TickCount`(总档数)+ 黄铜色条,档位行 = N 个**同形** `Paper` + 同标签「戥子档」⇒ 相邻档**视觉完全相同**。**义务被登记、被「认领」,但形态从未实现**。**2026-10-17 走查已证实**(逐像素比对:除焦点框外行内容逐像素相同) | 走查包 §9 根因;`CasebookScreen.cs:93`(「行内容恒定」自陈) | **✅ 2026-10-17 主创已签裁定:须补** —— **新立 42 侧 story 交付形态元件**(戥杆倾角 / 药包鼓胀);P0「接受无形态」否决 |
 | TD-prescription-02 | **AC-11-13 结构上必红**(TD-prescription-01 的直接后果)—— 色盲模拟 + 静音下「仅凭形态分辨相邻两档」无形态可辨 ⇒ 落其 `ELSE` 分支「记为 42 元件库缺口」 | 走查包 §3/§9;`prescription-and-medication.md:978` | 同 TD-prescription-01(同一根因,两 AC 共同触发) |
 | TD-prescription-03 | **AC-11-12 的「拟物载体可读」半必红**(零数字半 ✅)—— 同 TD-prescription-01 根因;`BrassScaleElement.TickCount` 是**总档数**(与当前档无关)⇒ 拟物载体**不可读当前档** | 走查包 §2/§9;`prescription-and-medication.md:977` | 同 TD-prescription-01 |
-| TD-prescription-04 | **全案音频链未接通 ⇒ AC-11-21 不可判** —— 人工实测进 Play 后场景**完全无任何声音**。根因:全案**零 `IAudioCueSink` 实现**(仅接口定义)· `Boot.unity` **零 `AudioSource`**(仅 1 个 `AudioListener`)· `assets/audio/` **空目录** · 44 epic 的 **story-015/016 仍 `Ready`**(音频资产接入两条未做)· `audio_events.json` 仅 5 条(零处方条目)。⚠️ **证伪原预判「结构性静默」** —— 真相是整条链没通,「无音」不能归因于「设计成静默」 | 走查包 §11.7;44 EPIC §范围边界声明(2026-10-03) | **44 story-015 / 016 素材接入后**须重走 AC-11-21。⚠️ **影响超出 11**:全案任何音频类 AC 的听测半边(含 `AC-44-09`)在素材接入前**均不可判**,建议 44 侧一并登记 |
-| TD-prescription-05 | **色盲模拟前置不可执行** —— UI 面板 `m_RenderMode: 0`(ScreenSpaceOverlay)⇒ 走相机后处理的色盲模拟**盖不到 UI**;Unity 6 URP `Rendering Debugger` 无 colorblind 栏。⇒ AC-11-13 的「色盲模拟下」前置**结构上无法满足** | 走查包 §11.4;`PanelSettings.asset:18` · `rendering.md:230` | **真人走查实测确认后** —— 若需真色盲模拟,须改 UI 渲染模式(ScreenSpaceCamera)或另立无障碍模拟通道(归 49 无障碍 / ADR-013 修订) |
+| TD-prescription-04 | **全案音频链未接通 ⇒ AC-11-21 不可判** —— 人工实测进 Play 后场景**完全无任何声音**。根因:全案**零 `IAudioCueSink` 实现**(仅接口定义)· `Boot.unity` **零 `AudioSource`**(仅 1 个 `AudioListener`)· `assets/audio/` **空目录** · 44 epic 的 **story-015/016 仍 `Ready`**(音频资产接入两条未做)· `audio_events.json` 仅 5 条(零处方条目)。⚠️ **证伪原预判「结构性静默」** —— 真相是整条链没通,「无音」不能归因于「设计成静默」 | 走查包 §11.7;44 EPIC §范围边界声明(2026-10-03) | **44 story-015 / 016 素材接入后**须重走 AC-11-21。⚠️ **影响超出 11**:全案任何音频类 AC 的听测半边(含 `AC-44-09`)在素材接入前**均不可判**,建议 44 侧一并登记。<br>⚠️ **2026-10-17 复核(只读实测,本批未重走 AC-11-21)**:本条原列的**四条根因里两条已过期** —— ① `IAudioCueSink` 已有真实现 `Gameplay.Presentation/Audio/CueRenderSink.cs:56`(原「零实现」不成立);② `audio_events.json` 已 15 行(原「5 行零处方条目」不成立;**处方条目是否存在未逐条核**)。仍成立的:③ `Boot.unity` 零 `AudioSource`、且全仓未查见 `new CueRenderSink(` 的**运行期**装配点;④ 素材已落地(story-015/016),原「素材未接入」表述不再成立。⇒ **触发条件未满足**(须在真机上重走),但读者不得再引用本行「零实现 / 5 行」作为现状 |
+| TD-prescription-05 | **色盲模拟前置不可执行** —— UI 面板 `m_RenderMode: 0`(ScreenSpaceOverlay)⇒ 走相机后处理的色盲模拟**盖不到 UI**;Unity 6 URP `Rendering Debugger` 无 colorblind 栏。⇒ AC-11-13 的「色盲模拟下」前置**结构上无法满足** | 走查包 §11.4;`PanelSettings.asset:18` · `rendering.md:230` | **✅ 2026-10-17 主创已签裁定:另立无障碍模拟通道** —— 归 49 无障碍 / ADR-013 修订;**不在 sprint-13 内**,未排期 |
 | TD-prescription-06 | **病人占位胶囊**(非 11 范围,附带发现)—— 方笺页截图中 `rgb(255,0,255)` 品红占 13.89%(x 165..592, y 264..391),遮挡画面右半 ⇒ 影响方笺页视觉完整性 | 走查包 §11.5;截图 `unity/Logs/shots/20261016_111446_1x.png` | 13 病人 AI / 美术资产轮交付真病人模型时 |
 
 **共同性质**:6 条**均不阻塞 story-005 转 Complete**(走查为 ADVISORY 级,且缺口本身即 AC-11-13 `ELSE` 分支的设计预期),
 但**须留痕**。**TD-prescription-01 是根因**(02/03 是其直接后果),还债须先处置它;
 **TD-prescription-05 / 06 是走查执行期新发现**(非前置勘察所得)。
+
+---
+
+## 2026-10-17 · 44 侧正式立案:音频接入链缺口(音频 lead 签署同意)
+
+**出处**:`production/qa/evidence/audio-asset-gaps-2026-10-17.md` ·
+签核件 `story-005-ac11-12-13-21-signoff.md` §3 问 3(音频 lead 2026-10-17 指定:**同意立案**)。
+**前提事实**:素材**不缺** —— 37 个 wav 全部在位、全部有真实波形;缺的是**运行期装配**。
+
+| # | 债 | 证据 | 触发条件 |
+|---|---|---|---|
+| **TD-audio-023** | **音频链零运行期装配(6 处)**:A-1 `CueRenderSink` 零生产构造点 · A-2 `ICueRenderTarget` 只有 `NullRenderTarget` · A-3 `PatientCueEmit` / `CoughChannel` / `CueEmitDeriver` 零调用 · A-4 `AudioSourcePool` 零生产构造点 · A-5 `PlayerBusVolumeInitializer` 零构造点 · A-6 37 个 wav 的 `.meta` **零 `m_audioMixerGroup`**(全走 Master 直通) | `audio-asset-gaps-2026-10-17.md` §2.2 | **用户裁定「我来补齐接入」** ⇒ 接入轮;接入后须**重走 AC-11-21 与 AC-44-09 听测半边** |
+| **TD-audio-024** | **处方音效须在接入轮专门验证不在白名单内**(签核件 §3 问 4) | 同上 §3 | 并入 TD-audio-023 的接入轮 |
 
 ---
 
