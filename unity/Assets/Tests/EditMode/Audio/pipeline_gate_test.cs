@@ -1344,6 +1344,153 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "null 设置必须回 -1 —— 回 0 会让调用方把「没找到」当成「就是第 0 个」");
         }
 
+        // ══════════════ U1 Spike Teardown 的 Play Mode 复原动作(TD-audio-01f 残留② · 2026-10-17)══════════════
+
+        /// <summary>Teardown 的复原动作<b>本身</b>在漂移态下确实把它拉回「Use Asset Database」。</summary>
+        /// <remarks>
+        /// <para><b>被测对象</b>:<c>U1SpikeSetup.RestorePlayModeCore</c>(2026-10-17 从 <c>Teardown</c>
+        /// 的 <c>finally</c> 抽出 —— 抽出前该动作无任何夹具面)。</para>
+        /// <para><b>判别力</b>:把 <c>RestorePlayModeCore</c> 改成空体 ⇒ 本测<b>必红</b>
+        /// (夹具先把索引切到 Existing Build,空体不会把它拉回)。</para>
+        /// <para>⚠️ <b>本测不证明「Teardown 调用了它」</b> —— 接线半边仍无执行判据(见
+        /// <c>test_u1teardown_restorePlayMode_isWiredIntoTeardown</c>)。</para>
+        /// <para>⚠️ <b>会短暂改动本机的真实 Play Mode 设置</b>(<c>Library/AddressablesConfig.dat</c>,
+        /// 机器本地)。<c>finally</c> 无条件写回原值;写回失败会 <c>Assert.Inconclusive</c>,
+        /// 不静默留痕 —— 静默留痕正是 <c>TD-audio-01f</c> 本身。</para>
+        /// </remarks>
+        [Test]
+        public void test_u1teardown_restorePlayMode_corePullsDriftedStateBack()
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            Assert.That(settings, Is.Not.Null, "本机 Addressables 设置缺失(机器前置)");
+
+            int target = DataBakeMenu.FindAssetDatabaseBuilderIndex(settings);
+            Assert.That(target, Is.GreaterThanOrEqualTo(0),
+                "DataBuilders 名单里找不到名含「Asset Database」的 builder —— 名单被改过?");
+            Assert.That(settings.DataBuilders.Count, Is.GreaterThan(1),
+                "前提:DataBuilders 至少两个,否则无法构造漂移态(全库只有一个 builder 时本测无意义)");
+
+            int original = settings.ActivePlayModeDataBuilderIndex;
+            int drifted = -1;
+            for (int i = 0; i < settings.DataBuilders.Count; i++)
+            {
+                if (i != target) { drifted = i; break; }
+            }
+            Assert.That(drifted, Is.GreaterThanOrEqualTo(0), "前提:存在一个非 Asset Database 的 builder");
+
+            string driftedName = settings.GetDataBuilder(drifted)?.Name ?? "<null>";
+            try
+            {
+                // ── Arrange:构造漂移态(等价于 ConfigurePlayMode 留下的状态)
+                settings.ActivePlayModeDataBuilderIndex = drifted;
+                Assert.That(settings.ActivePlayModeDataBuilderIndex, Is.EqualTo(drifted),
+                    $"夹具前提:设置可写(实测切到「{driftedName}」未生效)");
+
+                // ── Act
+                DaYiJingCheng.EditorTools.Spike.U1SpikeSetup.RestorePlayModeCore(settings);
+
+                // ── Assert
+                int after = settings.ActivePlayModeDataBuilderIndex;
+                string afterName = settings.GetDataBuilder(after)?.Name ?? "<null>";
+                Assert.That(after, Is.EqualTo(target),
+                    $"RestorePlayModeCore 未把 Play Mode 拉回「Use Asset Database」——\n" +
+                    $"  漂移态 = [{drifted}]「{driftedName}」· 期望 = [{target}] · 实得 = [{after}]「{afterName}」\n" +
+                    "后果:PlayMode 解析预建 catalog,组条目一变即 InvalidKeyException(TD-audio-01f)。");
+            }
+            finally
+            {
+                // ── 无条件写回原值(本测不得在本机留下副作用)
+                settings.ActivePlayModeDataBuilderIndex = original;
+                if (settings.ActivePlayModeDataBuilderIndex != original)
+                {
+                    Assert.Inconclusive(
+                        $"⚠️ 本测的 finally 未能把 Play Mode 写回原值 [{original}] ——\n" +
+                        "   本机设置现处于非预期态。手动跑菜单「大医精诚/数据管线/Play Mode 归位」。");
+                }
+            }
+        }
+
+        /// <summary>null 设置 ⇒ 不抛(<c>Teardown</c> 的 <c>finally</c> 不得因设置缺失而炸)。</summary>
+        [Test]
+        public void test_u1teardown_restorePlayMode_nullSettings_doesNotThrow()
+        {
+            Assert.DoesNotThrow(
+                () => DaYiJingCheng.EditorTools.Spike.U1SpikeSetup.RestorePlayModeCore(null),
+                "设置缺失时 Teardown 的复原步骤必须静默返回 —— 抛异常会盖掉 Teardown 主路径的日志");
+        }
+
+        /// <summary>接线:<c>Teardown</c> 的 <c>finally</c> 确实调用了 <c>RestorePlayModeCore</c>。</summary>
+        /// <remarks>
+        /// ⚠️ <b>这是弱判据(源码扫描),不是执行判据</b> —— 如实登记,不升格为「已证」。
+        /// 它只抓「有人删掉这行调用」这一类回归;抓不住「调用位置从 finally 挪走」「抛出被吞」。
+        /// 补法归 PlayMode 手跑或将来把 Teardown 改为可脚本驱动的形式。
+        /// <para>本测断言的是<b>词法存在性</b>(源码里含该调用),不是行为等价 ——
+        /// 因此即便本测绿,<c>接线</c>半边仍标 <c>Proven = 弱</c>。</para>
+        /// </remarks>
+        [Test]
+        public void test_u1teardown_restorePlayMode_isWiredIntoTeardown()
+        {
+            string path = Path.Combine(RepoRoot(), "unity/Assets/Editor.Tools.Spike/U1SpikeSetup.cs");
+            Assert.That(File.Exists(path), Is.True, $"源文件不存在:{path}");
+            string src = File.ReadAllText(path);
+
+            int teardown = src.IndexOf("static void Teardown()", StringComparison.Ordinal);
+            Assert.That(teardown, Is.GreaterThanOrEqualTo(0), "找不到 Teardown 方法定义 —— 源码结构变了?");
+
+            int finallyIdx = src.IndexOf("finally", teardown, StringComparison.Ordinal);
+            Assert.That(finallyIdx, Is.GreaterThanOrEqualTo(0),
+                "Teardown 内找不到 finally —— 复原已不在异常路径上?");
+
+            // ⚠️ 扫描窗必须止于 Teardown 的方法体边界 —— 不能一路扫到文件尾:
+            //    本文件的**文档注释**与方法**定义**里都出现 `RestorePlayModeCore`,
+            //    首版 `src.Substring(finallyIdx)` 因此对「删掉调用」的变异**照样命中** ⇒ 假绿
+            //    (2026-10-17 证伪轮实测:删调用后本测仍绿,已就地修)。
+            //    边界 = finally 之后第一个「与 finally 行同缩进的闭合花括号」所在行。
+            string finallyLine = LineContaining(src, finallyIdx);
+            int indent = IndentOf(finallyLine);
+            int windowEnd = EndOfBlockAfter(src, finallyIdx, indent);
+            Assert.That(windowEnd, Is.GreaterThan(finallyIdx), "无法确定 Teardown 的方法体边界");
+
+            string window = src.Substring(finallyIdx, windowEnd - finallyIdx);
+            int call = window.IndexOf("RestorePlayModeCore(", StringComparison.Ordinal);
+            Assert.That(call, Is.GreaterThanOrEqualTo(0),
+                "Teardown 的 finally 段里找不到 RestorePlayModeCore 调用 ——\n" +
+                "Play Mode 复原接线被删了?后果见 TD-audio-01f 残留②。\n" +
+                $"扫描窗 = [{finallyIdx}, {windowEnd}),长度 {windowEnd - finallyIdx} 字符。");
+        }
+
+        private static string LineContaining(string src, int idx)
+        {
+            int start = src.LastIndexOf('\n', Math.Max(0, idx - 1)) + 1;
+            int end = src.IndexOf('\n', idx);
+            return end < 0 ? src.Substring(start) : src.Substring(start, end - start);
+        }
+
+        private static int IndentOf(string line)
+        {
+            int i = 0;
+            while (i < line.Length && (line[i] == ' ' || line[i] == '\t')) i++;
+            return i;
+        }
+
+        /// <summary>从 <paramref name="from"/> 之后找第一个「行首缩进 ≤ <paramref name="indent"/> 且含 '}'」的行尾。</summary>
+        private static int EndOfBlockAfter(string src, int from, int indent)
+        {
+            int pos = src.IndexOf('\n', from);
+            while (pos >= 0 && pos < src.Length - 1)
+            {
+                int lineStart = pos + 1;
+                string line = LineContaining(src, lineStart);
+                if (line.TrimStart().StartsWith("}", StringComparison.Ordinal) && IndentOf(line) <= indent)
+                {
+                    return lineStart;
+                }
+                pos = src.IndexOf('\n', lineStart);
+            }
+            return -1;
+        }
+
+
         // ══════════════ Import Load Type 门(OQ-44-2 连带裁定 · GDD §OQ-44-2 附)══════════════
 
         /// <summary>GDD §OQ-44-2 附 的实测表逐行复算(判据 = 该表,非记忆)。

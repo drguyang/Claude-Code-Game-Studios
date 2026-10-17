@@ -331,9 +331,13 @@ namespace DaYiJingCheng.EditorTools.Spike
                 //       (`test_playModeScript_predicate_nullOrMiss_returnsMinusOne`)。
                 //    ⚠️ 残余风险(不隐藏):**Setup 跑了但 Teardown 从没跑**的机器仍会漂移 ⇒
                 //       兜底 = 菜单「Play Mode 归位」+ 机器前置门 `test_playModeScript_isAssetDatabase`。
+                //    ⚠️ 复原动作走 `RestorePlayModeCore`(纯可注入半)而非直接调 —— 那是**夹具入口**:
+                //       `Teardown` 是编辑器生命周期回调,EditMode 下不触发(2026-10-17 登记 `Proven ✗`
+                //       的唯一原因);抽出可注入半后 `test_u1teardown_restorePlayMode_*` 能直接驱动它。
+                //       接线半边仍无执行判据,见该夹具头注的如实登记。
                 try
                 {
-                    DataBakeMenu.EnsureAssetDatabasePlayMode(AddressableAssetSettingsDefaultObject.Settings);
+                    RestorePlayModeCore(AddressableAssetSettingsDefaultObject.Settings);
                 }
                 catch (Exception e)
                 {
@@ -345,6 +349,25 @@ namespace DaYiJingCheng.EditorTools.Spike
         }
 
         // ────────────────────────── helpers ──────────────────────────
+
+        /// <summary>Teardown 的 Play Mode 复原动作 —— <b>可注入纯半</b>,供 EditMode 夹具直接驱动。</summary>
+        /// <remarks>
+        /// <para><b>为什么单独抽出来(2026-10-17)</b>:<c>Teardown</c> 是 <c>[MenuItem]</c> 编辑器回调,
+        /// EditMode 下不触发 ⇒ 复原动作**没有任何夹具面**(当时只能登记 <c>Landed ✅ / Proven ✗</c>)。
+        /// 抽出本方法后,夹具可以「切到 Existing Build → 调本方法 → 断言已是 Asset Database」,
+        /// 取得**动作正确性**的判别力。</para>
+        /// <para>⚠️ <b>仍然没证的</b>:「<c>Teardown</c> 真的调用了本方法」—— 那是**接线**半边,
+        /// 只能靠源码扫描或 PlayMode 手跑。修完本方法后,该项至多到
+        /// <c>Landed ✅ / Proven ✅(核心半)+ 接线半 源码扫描(弱判据)</c>,<b>不得</b>声称为整个 Teardown 已证。</para>
+        /// <para>判据单一出处:<c>DataBakeMenu.FindAssetDatabaseBuilderIndex</c>;本方法只做委派,
+        /// <b>不另写一份</b>「哪个 builder 是 Use Asset Database」。</para>
+        /// </remarks>
+        /// <param name="settings">目标设置;null 时静默返回(由委派方判定,<b>本方法不抛</b>)。</param>
+        internal static void RestorePlayModeCore(AddressableAssetSettings settings)
+        {
+            if (settings == null) return;
+            DataBakeMenu.EnsureAssetDatabasePlayMode(settings);
+        }
 
         static bool WriteTextAsset(string path, string content)
         {
