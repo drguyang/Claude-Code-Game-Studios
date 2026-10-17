@@ -21,14 +21,68 @@ MonoBehaviour:
     m_SerializedLabels:
     - audio
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 01b60a58a70f64dcd9778caaa635e34f
-    m_Address: vo_patient_cough_damp_f1.wav
+  - m_GUID: 16cb3f23ad3f6a2a5ac09a3c32669f51
+    m_Address: ui_page_turn_fwd_01.wav
     m_ReadOnly: 0
     m_SerializedLabels:
     - audio
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 61e50427405bf78898d40e16c17e3476
-    m_Address: vo_patient_cough_damp_m1.wav
+  - m_GUID: 17308f23964c6e6aea5f7ce578cc2e0c
+    m_Address: ui_page_turn_back_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 29ff3dc214c7093cfabc75022dab9519
+    m_Address: sfx_cabinet_drawer_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2f34a479298d93c9395e5126b163c6d4
+    m_Address: vo_patient_cough_damp_m3_1.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2f37dca0b6a858fcc81d84f3b9ca280c
+    m_Address: sfx_pulse_contact_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 390ff4673c0c361ddb4022b34d43ab3c
+    m_Address: sfx_world_throat_clear_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 408e5c2296ae7f26bab576cffd1e4b0a
+    m_Address: sfx_cabinet_handle_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 424cc6968ffdf54a9840526ed20d0924
+    m_Address: vo_patient_cough_damp_m1_2.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4a5a9fa16e80e4a04a4a033821fd25e4
+    m_Address: sfx_world_crying_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4b9f0f8a01e617171ad33f16da2e9dc8
+    m_Address: vo_patient_cough_damp_f2_1.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 508bc3da96ba540798c1936b8c9a481b
+    m_Address: sfx_footstep_dirt_01.wav
     m_ReadOnly: 0
     m_SerializedLabels:
     - audio
@@ -39,8 +93,146 @@ MonoBehaviour:
     m_SerializedLabels:
     - audio
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 66ee0bc982bad825db4a39f85bcf357e
+    m_Address: sfx_footstep_stone_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 799bcf8825d135ad6b441a71734715b3
+    m_Address: vo_patient_cough_damp_m3_2.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7edfb8cf5bdd063c8af34c1d1f7ca09a
+    m_Address: sfx_prop_place_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8212dea402ab4826182c66c72be4b285
+    m_Address: vo_patient_cough_damp_f3_2.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 85f887acc0b22d507a4cafe28f944fc3
+    m_Address: sfx_world_vendor_cry_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 92fe3cc741bc6621b961413401eb2c50
     m_Address: music_encounter_layer_loop.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 940c64ab8fccbef248528a4acc78eba7
+    m_Address: vo_patient_cough_damp_f1_1.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9f781599d05a223e9882135e2b1d34d3
+    m_Address: sfx_world_dog_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a544676f06adb87809f4ee266e420ece
+    m_Address: vo_patient_cough_damp_f1_2.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a9501b1a515148248ba6b3b30bff80ee
+    m_Address: sfx_steth_contact_back_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b39e5b3c87133f29abc27b743819adbf
+    m_Address: vo_patient_cough_damp_m2_2.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bd79bc3ac5c60395eaa40d1a3381f52e
+    m_Address: vo_patient_cough_damp_f2_2.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c6d61b72419afed6192d567a4146f86b
+    m_Address: sfx_world_birds_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ca7f8382b6534ceda9d3bd2b234a6319
+    m_Address: sfx_world_door_bell_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: cee35dd1683ed57c9b04ff4e5524b7ef
+    m_Address: vo_patient_cough_damp_f3_1.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d63d039f1c13374a29ea2dad9a69c8e4
+    m_Address: sfx_footstep_humus_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dcfdbeeca54063afe86467870f9d437b
+    m_Address: sfx_world_bell_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e3aacb7c16322f5ad87f8754d25742ce
+    m_Address: sfx_steth_contact_chest_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: eaf88513d7d489c0286d3734b1930696
+    m_Address: sfx_footstep_snow_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ee426bd53623f36179338b22d322ea0c
+    m_Address: amb_clinic_room_loop.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ef0cceb79102efc3d8f96c679711a947
+    m_Address: vo_patient_cough_damp_m1_1.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f24ac5e72e9acc18ca3609ae8fd53aec
+    m_Address: sfx_world_gong_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fb172dd42e7c827128e81e9dbac343d1
+    m_Address: vo_patient_cough_damp_m2_1.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fd5e5455c25d221b7ad46c8dad78e5c0
+    m_Address: sfx_world_horse_01.wav
     m_ReadOnly: 0
     m_SerializedLabels:
     - audio
