@@ -205,3 +205,4 @@
 | A(锁) | `AudioEventTableGates.RequiredRequirements` | 改数据件即便同步改文档,仍红 |
 | C(值) | `assets/data/audio_requirements.json` | 唯一机器可读输入 |
 | B(出处) | `AudioRequirementsBake.ValidateManifestAgrees` → manifest | 文档滞后也红 |
+**Code Review**: 未走 `/code-review`(E5 证据为签字走查记录,代码面已由 12 例证伪轮覆盖)
