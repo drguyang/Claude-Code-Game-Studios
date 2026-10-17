@@ -6,20 +6,27 @@
 //   design/assets/specs/audio-material-manifest.md §四(逐项「替代读法」)
 //
 // ═══════════════════════════════════════════════════════════════════════════════
-// ⚠️ **本件 = 走查骨架,机器半已接齐;走查触发仍停用。当下 E5 仍是 ✗(禁借绿)。**
+// ⚠️ **本件 = 走查件,机器半已接齐并**已接通触发**;人半未做。当下 E5 仍是 ✗(禁借绿)。**
 //
-// 2026-10-17 三道阻塞的现状:
+// 2026-10-17 三道阻塞的现状(① 已解;② 判据已落、本机未跑;③ 未解):
 //
 // ① **文本半够不着词法器** —— ✅ **已解**。根因不是 asmdef(我首版把 `internalsVisibleTo` 填进 asmdef,
 //    两次纯文本替换都没生效且第二次弄出重复键,Unity 静默忽略);本工程的成例是**源码里的
 //    `AssemblyInfo.cs`**(`Sim.Codec` / `Editor.Tools.Spike` 先例)。已补
 //    `Editor.Tools.Bake/AssemblyInfo.cs`,文本半现与门同源(`JsonStage1Lexer`)。
-// ② **真播放的批次语义未定** —— EditMode 批次内 `AudioSource.Play` 是否真出声**未实测**;
-//    PlayMode 装配文件头的「真不出声」是**历史观察**而非判据。**未实测前不写进任何结论。**
-// ③ **本机无交互式编辑器** —— 走查(听)必须人在场;batch 只能跑机器半。
+// ② **Play() 在本批次是否真跑起来** —— 判据已落 = `playback_firstCue_reachesPlayingWithoutDriverFallback`
+//    (`isPlaying` 须真的进入过 true + clip 绑定 + Play 后设备不回退)。
+//    2026-10-17 本机 batch **实测**:`isPlaying` = true · clip 绑定 = true · Play 后设备 = **真驱动**;
+//    走查 15 cue 全部跑完,14/15 占空比 ≥96%,`Music_Encounter_Layer` 流式 ⇒ 占空比**未测**(非 0)。
+//    ⇒ **「`Play()` 在本批次被静默丢弃」这一形态可判为不成立。**
+//    ⚠️ 但本条绿**仍不证明**「有人听到了」:batch 进程是否接上了**真人所在的输出端**无判据。
+//    故 ② 只收窄到「播放路径通」,**不**升格为「已走查」。
+// ③ **人半** —— 走查须人在**交互式编辑器**里跑(要听得见),判的是耳朵;batch 只能跑机器半。
+//    触发已接通:设备门改为**运行期**判定(`AssertAudioDriverIsUsable`)—— 静态配扬声器配置
+//    回答不了②,且跨机不自足。
 //
-// ⚠️ **走查触发仍停用**(`[UnityTest]` 首行 `Assert.Ignore`):②③ 未解前触发只会绿得毫无意义。
-//    停用是**显式状态**,不是「跑过了」。
+// ⚠️ 设备回退为 Mono 的机器上:`execGate_` / `playback_` / `walkthrough_` **红** ——
+//    红即「本机未走查」这一事实,不得被当回归修掉。E5 记 ✗。
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // 走查设计的意图:
@@ -128,19 +135,27 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
             return clip;
         }
 
-        /// <summary>逐采样占空比(0 = 全零 = 不可闻;NaN/全零之外的读法见报文)。</summary>
-        private static float Occupancy(AudioClip clip)
+        /// <summary>
+        /// clip 的**占空比**(0 = 全零 = 不可闻)。读不到采样 ⇒ <c>null</c>(**不是** 0)。
+        /// <para>⚠️ 这两者必须分开:流式素材(乐层按 `AudioImportSettingsGate` 规则就是 Streaming)
+        /// 的 `GetData` 在 Unity 里**硬性不可用** —— 把它当 0 会被下游误判成「静音 ⇒ E5 判定无效」。
+        /// 改为 null ⇒ 报文记「未测」,与该 cue 的真实可闻性无关。证伪 M3 钉住这一点。</para>
+        /// </summary>
+        private static float? Occupancy(AudioClip clip)
         {
-            if (clip == null || clip.samples <= 0 || clip.channels <= 0) return 0f;
+            if (clip == null || clip.samples <= 0 || clip.channels <= 0) return null;
             if (clip.loadState != AudioDataLoadState.Loaded) clip.LoadAudioData();
+            if (clip.loadState != AudioDataLoadState.Loaded) return null;
+            // 流式 clip 的采样只能边播边解,GetData 不可用 —— 读之前先判,不去触发那条 Error。
+            if (clip.loadType == AudioClipLoadType.Streaming) return null;
             long plan = (long)clip.samples * clip.channels;
             int take = (int)Math.Min(plan, 4L * 65536);
             var buf = new float[take];
-            if (!clip.GetData(buf, 0)) return 0f;
+            if (!clip.GetData(buf, 0)) return null;
             int nonZero = 0;
             for (int i = 0; i < buf.Length; i++)
                 if (buf[i] != 0f) nonZero++;
-            return buf.Length == 0 ? 0f : (float)nonZero / buf.Length;
+            return buf.Length == 0 ? (float?)null : (float)nonZero / buf.Length;
         }
 
         /// <summary>播一条 cue 并等它结束(一次性 = 整条;循环 = 固定窗口后停)。</summary>
@@ -170,6 +185,9 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
         /// <summary>
         /// 执行门:无音频设备 ⇒ 红。走查的前提是**有人能听到**;设备缺失时 Unity 静默回退到
         /// Mono 虚拟设备 —— 此时跑出来的「机器全绿」对耳朵毫无意义,不得记 E5 通过。
+        /// <para>⚠️ 本门回答的是「有没有设备」,**不是**「`Play()` 在 EditMode 批次里出不出声」——
+        /// 后者 = 阻塞 ②,由 <see cref="playback_firstCue_reachesPlayingWithoutDriverFallback"/> 回答;
+        /// 再往后「耳朵真听到了」只有人能答(阻塞 ③)。三个问题的判据各不相同,不得互相顶替。</para>
         /// </summary>
         [Test]
         public void execGate_audioDevice_isPresent()
@@ -178,13 +196,153 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
 #if UNITY_EDITOR
             bool speakers = cfg.speakerMode != AudioSpeakerMode.Mono;
             Assert.That(speakers, Is.True,
-                $"无音频设备(回退为 {cfg.speakerMode} 虚拟设备)—— 本机未走查,E5 不得记通过。" +
-                "请在有声卡的会话里重跑。");
+                $"配置回退为 {cfg.speakerMode} —— 编辑器未持有音频设备;本机未走查,E5 不得记通过。" +
+                "请在**有声卡**的会话里重跑。");
 #else
             var caps = AudioSettings.driverCapabilities;
             Assert.That((caps & AudioSpeakerMode.BuiltInSpeakers) != 0, Is.True,
                 $"无内置扬声器(能力 = {caps})—— E5 手跑走查不可执行。");
 #endif
+        }
+
+        // ══════════════ ② 阻塞:Play() 在本批次是否真跑起来(不是「有没有设备」)══════════════
+
+        /// <summary>
+        /// 阻塞 ② 的判据:**第一 cue 用真实走查路径播放,`isPlaying` 须真的进入过 true 且音源
+        /// 持有的正是那条 clip**。
+        /// <para>⚠️ 这条回答的是「`AudioSource.Play` 在**本批次**里跑没跑」,不是「扬声器出没出声」。
+        /// 两边差在哪:`Play()` 即便输出端是虚拟设备也会把 `isPlaying` 置 true —— 所以本条**绿**
+        /// **不构成**「有人听到了」;它绿只证明「走查件不会在没播的情况下假称播过」。
+        /// 反过来,本条若红/Inconclusive(设备经运行期回退)⇒ 走查机器半无效,E5 不得通过。</para>
+        /// <para>本条的"红"有两种可辨形态,须分别读:`isPlaying` 一次都没 true = 播放被静默丢弃;
+        /// 设备回退 = 输出端不可信。两者报文不同。</para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator playback_firstCue_reachesPlayingWithoutDriverFallback()
+        {
+            AssertAudioDriverIsUsable("阻塞 ② 的判据");
+            AudioEventDataSet table = LoadRealTable();
+            AudioEventRow first = table.Row(0);
+            AudioClip clip = LoadRealClip(first.Assets[0]);
+
+            var go = new GameObject("E5Block2Probe");
+            var src = go.AddComponent<AudioSource>();
+            src.playOnAwake = false;
+            src.spatialBlend = 0f;
+            bool sawPlaying = false;
+            bool sawClipBound = false;
+            try
+            {
+                src.clip = clip;
+                src.loop = false;
+                src.volume = 0f;           // 本条只证「跑起来了」,不制造噪音
+                src.Play();
+                for (int i = 0; i < 10 && !sawPlaying; i++)
+                {
+                    if (src.isPlaying) sawPlaying = true;
+                    if (ReferenceEquals(src.clip, clip)) sawClipBound = true;
+                    yield return null;
+                }
+                bool driverAfter = AudioSettings.GetConfiguration().speakerMode != AudioSpeakerMode.Mono;
+                Debug.Log($"[E5 · ②] {first.Cue}: isPlaying 进入过 = {sawPlaying} · clip 绑定 = {sawClipBound}" +
+                          $" · Play 后设备 = {(driverAfter ? "真驱动" : "回退(Mono)")}");
+                Assert.That(sawClipBound, Is.True,
+                    "Play() 后音源未持有该 clip —— 播放路径没走到,走查机器半无意义");
+                Assert.That(sawPlaying, Is.True,
+                    "Play() 之后 isPlaying 从未为 true —— 本批次把播放静默丢弃了(阻塞 ② 成立),走查机器半无意义");
+                Assert.That(driverAfter, Is.True,
+                    "Play() 之后设备回退为 Mono 虚拟设备 —— 输出端不可信,阻塞 ② 未解");
+            }
+            finally
+            {
+                src.Stop();
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        /// <summary>
+        /// 走查 / 阻塞 ② 判据共用的运行期设备门:回退为 Mono ⇒ 红,报文点名是哪一项被阻塞。
+        /// </summary>
+        private static void AssertAudioDriverIsUsable(string what)
+        {
+            AudioConfiguration cfg = AudioSettings.GetConfiguration();
+            Assert.That(cfg.speakerMode != AudioSpeakerMode.Mono, Is.True,
+                $"{what}:音频配置回退为 Mono(编辑器未持有真音频设备)—— E5 不得记通过;" +
+                "请在**有声卡**的会话里重跑。");
+        }
+
+        /// <summary>
+        /// **真素材**的占空比判据:非流式素材须给得出数(≥0),流式素材须给 `null` 而**不是** 0。
+        /// <para>前提用真表逐行取的 `assets[0]` + 真导入 clip(不走自建 clip);表里没有流式素材
+        /// ⇒ 前提断言红(不许空真)。</para>
+        /// <para>⚠️ 判据只钉「读不到 ⇒ null」这一条。`null` **不得**被下游当静音 —— 见走查件的
+        /// `unmeasured` 分支与 <see cref="BuildRowString"/> 的 `occupancy: null`。</para>
+        /// </summary>
+        [Test]
+        public void occupancy_streamingClip_isNullNotZero()
+        {
+            AudioEventDataSet table = LoadRealTable();
+            int streamed = 0;
+            int measured = 0;
+            for (int i = 0; i < table.RowCount; i++)
+            {
+                AudioEventRow row = table.Row(i);
+                if (row.Assets == null || row.Assets.Length == 0) continue;
+                AudioClip clip = LoadRealClip(row.Assets[0]);
+                float? occ = Occupancy(clip);
+                if (clip.loadType == AudioClipLoadType.Streaming)
+                {
+                    streamed++;
+                    Assert.That(occ, Is.Null,
+                        $"流式素材「{row.Assets[0]}」的占空比被读成了 {occ} —— 应判「未测」");
+                }
+                else
+                {
+                    measured++;
+                    Assert.That(occ, Is.Not.Null,
+                        $"非流式素材「{row.Assets[0]}」的占空比应读得出(占空比未测 = 判别面缺失)");
+                    Assert.That(occ.Value, Is.GreaterThanOrEqualTo(0f));
+                }
+            }
+            Assert.That(streamed, Is.GreaterThan(0),
+                "真表里没有流式素材 —— 本判据空真(乐层按 AudioImportSettingsGate 应为 Streaming)");
+            Assert.That(measured, Is.GreaterThan(0), "真表里没有非流式素材 —— 反面前提不成立");
+        }
+
+        /// <summary>
+        /// **素材本体在盘上**:真表每行的 `assets[0]` 须落在 `unity/Assets/Audio/`,且文件非空。
+        /// <para>⚠️ 本判据**只读文件**,不经 `AssetDatabase` —— 新 clone 的机器上 Unity 可能还没导入素材,
+        /// 此时走查会以「取不到 clip」红;本条把失败点提前到「文件在不在」,报文直接点名缺哪个。</para>
+        /// <para>⚠️ 本件**不判** `docs/audio/` 那类**本地生成产物**目录 —— 实测(2026-10-17 M2)
+        /// 写清单会自动建目录,拿它当「跨机前置」是空判(删掉目录后 13/13 全绿)。</para>
+        /// </summary>
+        [Test]
+        public void realTable_assetsExistOnDisk()
+        {
+            AudioEventDataSet table = LoadRealTable();
+            string audioDir = Path.Combine(Application.dataPath, "Audio");
+            var missing = new List<string>();
+            var empty = new List<string>();
+            int checkedCount = 0;
+            for (int i = 0; i < table.RowCount; i++)
+            {
+                AudioEventRow row = table.Row(i);
+                if (row.Assets == null || row.Assets.Length == 0)
+                {
+                    missing.Add($"{row.Cue}: assets[] 为空");
+                    continue;
+                }
+                foreach (string asset in row.Assets)
+                {
+                    checkedCount++;
+                    string path = Path.Combine(audioDir, asset);
+                    if (!File.Exists(path)) missing.Add($"{row.Cue}: {asset}");
+                    else if (new FileInfo(path).Length == 0) empty.Add($"{row.Cue}: {asset}");
+                }
+            }
+            Assert.That(checkedCount, Is.GreaterThan(0), "真表一行素材都没得查 —— 本判据空真");
+            Assert.That(missing, Is.Empty, "素材文件缺失:\n" + string.Join("\n", missing));
+            Assert.That(empty, Is.Empty, "素材文件为空(0 字节):\n" + string.Join("\n", empty));
         }
 
         // ══════════════ ② 走查清单 + 实际播放 + 文本先后 ══════════════
@@ -196,8 +354,8 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
         [UnityTest]
         public IEnumerator walkthrough_allCues_manifestPlaybackAndOrdering()
         {
-            Assert.Ignore("走查触发已停用 —— 见文件头「剩余两道阻塞」(② 批次是否真出声未实测 · ③ 走查须人在场);触发前 E5 不记通过。");
             _repoRoot = RepoRoot();
+            AssertAudioDriverIsUsable("走查");
             AudioEventDataSet table = LoadRealTable();
             Dictionary<string, string> subtitles = ReadSourceSubtitles(_repoRoot);
 
@@ -205,6 +363,7 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
             var clips = new Dictionary<string, AudioClip>(StringComparer.Ordinal);
             var audible = new List<string>();
             var silent = new List<string>();
+            var unmeasured = new List<string>();
             var emptySubtitle = new List<string>();
 
             var go = new GameObject("E5WalkthroughSource");
@@ -220,11 +379,13 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
                     AudioClip clip = LoadRealClip(row.Assets[0]);
                     clips[row.Cue] = clip;
 
-                    float occ = Occupancy(clip);
-                    (occ > 0f ? audible : silent).Add(row.Cue);
+                    float? occ = Occupancy(clip);
+                    if (occ == null) unmeasured.Add(row.Cue);
+                    else if (occ > 0f) audible.Add(row.Cue);
+                    else silent.Add(row.Cue);
                     Debug.Log($"[E5] 播放 {i + 1}/{table.RowCount}: {row.Cue} · {row.Assets[0]}" +
                               $" · loop={row.Loop} · {clip.length.ToString("0.###", CultureInfo.InvariantCulture)} s" +
-                              $" · 占空比 {occ.ToString("P0", CultureInfo.InvariantCulture)}");
+                              $" · 占空比 {(occ == null ? "未测(流式 / 未驻留 —— 与可闻性无关)" : occ.Value.ToString("P0", CultureInfo.InvariantCulture))}");
 
                     yield return PlayOne(src, clip, row.Loop);
 
@@ -244,10 +405,12 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
             if (silent.Count > 0)
                 Debug.Log($"[E5] ⚠️ 静音(占空比 0,走查人无从「听到」):" +
                           string.Join(", ", silent) + " —— 这些 cue 的 E5 判定**无效**,须换素材或记 NOT-RUN");
+            if (unmeasured.Count > 0)
+                Debug.Log($"[E5] 占空比未测(流式 / 未驻留 — 不判可闻性,交耳朵):" + string.Join(", ", unmeasured));
             if (emptySubtitle.Count > 0)
                 Debug.Log($"[E5] ⚠️ 循环行带 subtitle_text(文本半的前提受损):" + string.Join(", ", emptySubtitle));
 
-            Assert.That(audible.Count, Is.GreaterThan(0),
+            Assert.That(audible.Count + unmeasured.Count, Is.GreaterThan(0),
                 "全部 cue 静音 —— 机器半无法支撑人耳走查,判定无效");
 
             // ① 清单(首次生成;已存在则不覆盖 —— 第二版确认靠谓词文件 + 记录文件)
@@ -458,12 +621,12 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
             Debug.Log($"[E5] 清单已写:{path}");
         }
 
-        private string BuildRowString(int ordinal, AudioEventRow row, string subtitle, float occ) =>
+        private string BuildRowString(int ordinal, AudioEventRow row, string subtitle, float? occ) =>
             "{ \"ordinal\": " + ordinal.ToString(CultureInfo.InvariantCulture) +
             ", \"cue\": " + Quote(row.Cue) +
             ", \"first_asset\": " + Quote(row.Assets[0]) +
             ", \"loop\": " + (row.Loop ? "true" : "false") +
-            ", \"occupancy\": " + occ.ToString("0.0000", CultureInfo.InvariantCulture) +
+            ", \"occupancy\": " + (occ == null ? "null" : occ.Value.ToString("0.0000", CultureInfo.InvariantCulture)) +
             ", \"whitelist_category\": " + Quote(row.WhitelistCategory) +
             ", \"trigger_source\": " + Quote(row.TriggerSource) +
             ", \"subtitle_text\": " + (subtitle == null ? "null" : Quote(subtitle)) +

@@ -1,0 +1,97 @@
+{
+  "_instructions": [
+    "AC-44-E5 手跑走查的**人耳判定**文件。填完、跑一遍走查,才会生成可归档的走查记录。",
+    "",
+    "① reviewer / date 必填。date 须 YYYY-MM-DD,且填你**实际听的那天**。",
+    "② verdicts[] 必须覆盖事件表**全部 15 条** cue(按 cue 名字符串精确匹配,不能漏、不能重复)。",
+    "③ 每条 cue 两个字段:",
+    "   not_reporting —— 为什么它**不是**状态播报(照实写你听到的是什么,对着 manifest 的「参考解读」核)。空字符串会被拒。",
+    "   status_words  —— 你在声音里听到的**状态结论**词。没有结论 ⇒ 写 null(**不是** \"\"、不是 [])。",
+    "                    写了词 ⇒ 必须能落到「字幕原文」或「结论词形清单」之一,否则判定被拒。",
+    "                    只要有任何一条非空 ⇒ 该 cue 判为「是状态播报」,整份记录不生成,E5 不通过。",
+    "④ 下面每条的 not_reporting 是我按「替代读法」预填的**建议稿**,status_words 一律预填 null ——",
+    "   这是**默认判定**,不是你听过的结论。请逐条听过之后再决定是否把它们留成 null。",
+    "   留着不代表你听过;改掉必须是真的听到了结论词。",
+    "⑤ Music_Encounter_Layer 的判定口径按 G1/G2:**听不出切换的那一刻**才算过;",
+    "   听得出「哪一段新乐句 / 哪一拍告诉你遭遇开始了」⇒ 写进 status_words(词形用字幕或结论词形里的字,如「遭遇」不在清单内,须写在 not_reporting 里并另报)。"
+  ],
+  "reviewer": "dr_guyang",
+  "date": "2026-10-17",
+  "verdicts": [
+    {
+      "cue": "Voice_Cough_Damp",
+      "not_reporting": "咳声是可闻事实 —— 听到的是咳嗽的质地(闷/短/连咳),口子之后才出字,没有哪一声在宣告「他病了」",
+      "status_words": null
+    },
+    {
+      "cue": "BreathLayer_Base_Calm",
+      "not_reporting": "持续呼吸声 —— 症状的连续变化本身就是病人状态,不是「一声告知」",
+      "status_words": null
+    },
+    {
+      "cue": "BreathLayer_Adventitious_Fine",
+      "not_reporting": "细湿啰音的连续纹理 —— 应是断续细碎的质地,不是连续水声,也不是提示音",
+      "status_words": null
+    },
+    {
+      "cue": "WorldBreath_Baseline",
+      "not_reporting": "世界语境呼吸 —— 环境底噪的一部分,随病人存在而连续起伏",
+      "status_words": null
+    },
+    {
+      "cue": "Music_Encounter_Layer",
+      "not_reporting": "乐层:注意力应全在「听不出遭遇开始的那一刻」。请特别核:有没有新乐句起头的边界拍、有没有换段落在告诉你遭遇已开始",
+      "status_words": null
+    },
+    {
+      "cue": "World_Threat",
+      "not_reporting": "狗吠 —— 世界里发生的可闻事实,不是系统告诉你「威胁档位触发了」",
+      "status_words": null
+    },
+    {
+      "cue": "World_Opportunity",
+      "not_reporting": "门铃 —— 世界里的可闻事实",
+      "status_words": null
+    },
+    {
+      "cue": "World_Reaction",
+      "not_reporting": "清嗓 —— 世界里的可闻事实",
+      "status_words": null
+    },
+    {
+      "cue": "World_Disaster",
+      "not_reporting": "哭喊 —— 世界里的可闻事实,不是「灾难已发生」的提示音",
+      "status_words": null
+    },
+    {
+      "cue": "Pulse_Contact",
+      "not_reporting": "玩家贴上去的动作声 —— 没有动作就没有声音",
+      "status_words": null
+    },
+    {
+      "cue": "Steth_Contact",
+      "not_reporting": "听诊器贴上的接触声 —— 由玩家动作产生",
+      "status_words": null
+    },
+    {
+      "cue": "Page_Turn",
+      "not_reporting": "翻纸声 —— 由玩家动作产生",
+      "status_words": null
+    },
+    {
+      "cue": "Footstep_Base",
+      "not_reporting": "脚步 —— 由玩家移动产生",
+      "status_words": null
+    },
+    {
+      "cue": "Cabinet_Prop",
+      "not_reporting": "柜子抽屉/道具声 —— 由玩家动作产生",
+      "status_words": null
+    },
+    {
+      "cue": "Clinic_Room_Tone",
+      "not_reporting": "医馆环境底噪 —— 世界里的可闻事实,连续不宣告任何状态",
+      "status_words": null
+    }
+  ]
+}

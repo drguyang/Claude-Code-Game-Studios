@@ -249,9 +249,47 @@ Unity 静默忽略非法 asmdef ⇒ 双重失败,与 Unity 版本行为无关。
 **证伪 M1**:停用乐层分支 ⇒ 恰红 2 条(`reason_musicLayerCategory_*` / `realTable_musicLayerCue_*`);
 反向条按设计不红(它断的是「**不**落乐层」)。18 / 15 / 2。
 
+### 10.6c 继续处理阻塞 ②③(2026-10-17 第三轮)
+
+**走查触发已接通**(`Assert.Ignore` 摘除)。本机 batch 实测结果:
+
+| 项 | 实测 |
+|---|---|
+| 阻塞 **②** 判据 `playback_firstCue_reachesPlayingWithoutDriverFallback` | **绿** —— `isPlaying` 进入过 true · clip 绑定 true · Play 后设备 = **真驱动** |
+| 走查 `walkthrough_allCues_manifestPlaybackAndOrdering` | **绿** —— 15/15 播完,14/15 占空比 ≥96%,耗时 16.5 s(日志 19 行 `[E5]`) |
+| 清单 | 已写 `docs/audio/statereport-walkthrough-manifest-2026-10-17.json`(15 行,含逐项 `reason` 归属) |
+| 走查记录 | **未生成** —— 无声谓词文件 ⇒ 记录不产出,E5 仍待耳朵判定 |
+
+**② 的结论口径(不得越读)**:「`Play()` 在本批次被静默丢弃」这一形态**可判为不成立**;
+但**不**等于「有人听到了」—— batch 进程是否接上了真人所在的输出端,无判据。
+② **只收窄到「播放路径通」**,不升格为「已走查」。
+
+**③ 维持未解**:走查(听)须人在**交互式编辑器**里做;乐层 `Music_Encounter_Layer` 的 G2 盲测同样须人跑。
+记录文件须走查人签字 —— **未签字 = E5 未通过**。
+
+**本轮新增三个判据(全部证伪过)**:
+
+| ID | 判据 | 证伪 |
+|---|---|---|
+| ② | `playback_firstCue_*` | 判据本体;回退/未播两种红形态分别报不同报文 |
+| M3 | `occupancy_streamingClip_isNullNotZero`(流式 ⇒ null,非 0) | 改成 `return 0f` ⇒ **恰红该条** 12 / 11 / 1 |
+| M4 | `realTable_assetsExistOnDisk`(真表素材落盘) | 把一条素材名换掉 ⇒ **恰红该条** 12 / 11 / 1 |
+
+**⚠️ 两处自查纠正(如实登记)**:
+
+1. **首轮走查在第 5 条 `Music_Encounter_Layer` 处崩**:流式素材的 `GetData` 在 Unity 里硬性不可用,
+   原 `Occupancy` 把读失败当 **0** ⇒ 乐层会被误判「静音 ⇒ E5 判定无效」。改为 `null`(未测)。
+2. **一条被撤掉的判据**:曾加 `walkthroughOutputDirectory_existsForAnyClone`(要求 `docs/audio/` 随仓库存在)。
+   **M2 证伪 ⇒ 13/13 全绿 —— 空判**:写清单时 `WriteOnce` 会自动建目录,拿本地生成产物当跨机前置是错的前提。
+   已整条撤除,并删除配套的 `docs/audio/.gitkeep`;**改为** `realTable_assetsExistOnDisk`(只读文件,前提真实)。
+3. **本轮中段一次误删并已复原**:撤撤该判据时切片边界算错,连带删掉了走查 `[UnityTest]`
+   与 `BuildRowString` 等成员,导致随后两组「全绿」实际**没跑走查**(耗时 0.27 s vs 16.5 s)。
+   经 `git show HEAD:` 原样取回并逐条断言重打补丁;复跑 **21/21,16.5 s,19 行 `[E5]`**,
+   清单与首跑**逐字节一致**。中间那两组绿**不作为证据**。
+
 **仍未结(不在本条裁决面内)**:
-- 阻塞 **②**:EditMode 批次的出声语义**未实测**;
-- 阻塞 **③**:走查须人在交互式编辑器里跑,本机 batch 只能跑机器半 —— **乐层的 G2 盲测也须人跑**。
+- 阻塞 **③**(人耳走查 + 乐层 G2 盲测)未做;
+- 走查记录未生成;E5 **仍 ✗**。
 
 ### 10.7 证伪轮实测(S12-4 —— 含首轮假绿)
 
@@ -283,7 +321,28 @@ unity test unity --mode EditMode --output unity/Logs/s33-full.xml
 
 unity test unity --mode EditMode --output unity/Logs/s34-full.xml   # + 乐层裁定
 # → total 3670 · passed 3624 · failed 0 · inconclusive 0 · skipped 46(exit 0)
+
+unity test unity --mode EditMode --output unity/Logs/s36-full.xml   # + 阻塞 ② 判据 / 触发接通
+# → total 3673 · passed 3628 · failed 0 · inconclusive 0 · skipped 45(exit 0)
 ```
+
+### 10.9 E5 结案(2026-10-17 · 人耳走查完成并签字)
+
+| 件 | 状态 |
+|---|---|
+| 谓词文件 `docs/audio/statereport-walkthrough-predicates.json` | `reviewer = dr_guyang` · 15 条 `status_words` **全 `null`**(逐条经选项确认「不是播报」) |
+| 走查记录 `docs/audio/statereport-walkthrough-2026-10-17.md` | 15/15「✅ 不是状态播报」· 乐层判「听不出切换那一刻」· 签字 **`[x] 通过`** |
+| 截图/录音 | **无** —— 本件的判据是**签字记录**,不是视觉产物;音频本身不可自动化(承 `.claude/docs/coding-standards.md` §What NOT to Automate) |
+
+**签字归属**:`[x]` 由用户本人在 2026-10-17 明确指示勾选。机器半**只**生成表格,不代判、不代签。
+**证伪边界**:记录无法被证伪为「真听过」—— 它是**人的陈述**。本件只保证:
+① 15 条逐条有判定;② 无状态词形;③ 字幕无结论句式(文本半机器判);④ 机器半 15/15 真播过。
+
+**回归**:`s37-full.xml` = **3673 / 3628 / 0 / 45**(exit 0),对 `s36-full.xml` 新增 **0** / 删除 **0**。
+
+**s36 对账**:vs `s34-full.xml`(3670)→ **新增 3 / 删除 0**,`3673 − 3670 = 3` 成立。
+新增 = `playback_firstCue_*` · `occupancy_streamingClip_isNullNotZero` · `realTable_assetsExistOnDisk`。
+**skipped 46 → 45**:走查触发由 `Assert.Ignore` 改为真实执行,不再计 skip。
 
 **对账(逐 fullname)**:`s33-full.xml` vs `s32-full.xml`(3660)→ **新增 7 / 删除 0**,
 `3667 − 3660 = 7` 成立。新增全部 = `StateReportWalkthroughProbe` 的接线半边

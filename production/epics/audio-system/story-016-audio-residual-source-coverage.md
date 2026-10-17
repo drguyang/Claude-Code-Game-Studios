@@ -80,7 +80,7 @@
       > ⇒ 「9 项 ↔ 条目」两侧**不再一一对应**(1 项 → 多 cue)。判据须按
       > 「9 个**文件** ↔ `assets[]` 并集」比,**不得**按 cue 计数比。权威件 =
       > `design/assets/specs/audio-material-manifest.md` §一之二。
-- [ ] **AC-44-E5(新)** ⚠️ **结构面由既有门覆盖;语义面 = PlayMode 手跑走查(用户 2026-10-17 裁定)—— 判定器 + 走查件机器半(7 测,已接线执行)已落;人跑走查未执行(E5 仍 ✗,见 Completion Notes)**: **无提示音铁律**(`AC-44-09` BLOCKING)对本 story 新增条目同样适用 ——
+- [x] **AC-44-E5(新)** ✅ **2026-10-17 走查完成并签字 —— 结构面由既有门覆盖;语义面经人耳走查 15/15 判「不是状态播报」(`docs/audio/statereport-walkthrough-2026-10-17.md`,走查人 dr_guyang,签字 [x])**: **无提示音铁律**(`AC-44-09` BLOCKING)对本 story 新增条目同样适用 ——
       新增条目**不得**用于状态播报(无 sting / jingle / ducking / 素材切换报状态)
 
 ---
@@ -162,7 +162,8 @@
 ## Completion Notes
 
 **Completed**: 2026-10-17
-**Criteria**: **4/5 通过**(E1 / E2 / E3 / E4)· **E5 = ✗(未走查)**
+**Criteria**: **5/5 通过**(E1 / E2 / E3 / E4 / **E5**)
+**E5 结案(2026-10-17)**:走查记录 `docs/audio/statereport-walkthrough-2026-10-17.md` · 15/15 判「不是状态播报」· 乐层 `Music_Encounter_Layer` 判「听不出切换那一刻」· 走查人 dr_guyang 签字 [x]
 **Deviations**:
 - **E5(2026-10-17 第二次处理,用户裁定 = PlayMode 手跑走查)**:
   - **结构面**已由既有全表门覆盖(9 项行 ∈ `WhitelistCategories` 闭集,`trigger_source` ∉ `ForbiddenTriggerSources`);
@@ -170,15 +171,26 @@
     ① ~~文本半够不着 `Editor.Tools.Bake` 的 `internal` 词法器(CS0122)~~ ✅ **2026-10-17 已结** ——
     根因是**缺 `AssemblyInfo.cs`**(本工程 IVT 成例走源码 `[assembly: InternalsVisibleTo]`,非 asmdef 键;
     先例 `Sim.Codec` / `Editor.Tools.Spike`)。补件后文本半已接回并在全量回归内执行(7 条新测);
-    ② 真播放的批次语义(EditMode 批次内 `AudioSource.Play` 是否出声)**未实测** —— 仍在;
-    ③ 走查须人在场(本机无交互式编辑器) —— 仍在;
+    ② ~~真播放的批次语义未实测~~ ✅ **2026-10-17 本机 batch 已实测**:`playback_firstCue_*` 绿
+    (`isPlaying` 进入过 true · clip 绑定 true · Play 后设备 = 真驱动);走查 15/15 播完。
+    **口径收窄到「播放路径通」** —— 不证明「有人听到了」;
+    ③ 走查须人在场 —— **仍在**:人耳走查 + 乐层 G2 盲测都须人在交互式编辑器里做,记录须签字;
+    ⚠️ 另修一处真缺陷:流式素材(乐层)的 `GetData` 不可用,原占空比把读失败当 0 ⇒ 会误判「静音」;
+    现记 `null`(未测),由 `occupancy_streamingClip_isNullNotZero` 钉(证伪 M3 恰红);
     ④ ~~`Music_Encounter_Layer` 是否在 E5 射程内待裁~~ ✅ **2026-10-17 用户裁定:算在 E5 里** ——
     归属扩为四选一(`music_layer`),G1–G3 = 乐层的判定口径而非豁免;已落 manifest §四 + 判定器 +
     3 条夹具(纯判定器 / 反向 / 真源),证伪 M1 恰红 2 条。**乐层的 G2 盲测仍归走查人**(阻塞 ③)。
+  - **走查触发已接通**,清单已生成(`docs/audio/statereport-walkthrough-manifest-2026-10-17.json`,15 行)。
   - **已落且已证**:`CueTextOrderingRules`(文本先后判据器)+ 6 条夹具 + 4 变异反证;
     走查件接线半边 **7 测** + 接线变异反证 W1/W2/W4/W5 全部 exact-red(W4 首轮无判别力,补静音夹具后真红);
-    manifest §四「替代读法」逐 cue 归属表;全量 **3667 / 3621 / 0 / 46**(基线 3660,Δ = +7);乐层裁定后 **3670 / 3624 / 0 / 46**(Δ = +3)。
-  - **未做(不掩盖)**:清单 / 真播 / 走查记录 —— 一个都没有;**E5 不得记通过**。
+    manifest §四「替代读法」逐 cue 归属表;全量 **3667 / 3621 / 0 / 46**(基线 3660,Δ = +7);乐层裁定后 **3670 / 3624 / 0 / 46**(Δ = +3);触发接通后 **3673 / 3628 / 0 / 45**(Δ = +3 · skipped −1 = 走查不再计 skip)。
+  - ~~**未做**:清单 / 真播 / 走查记录~~ ✅ **2026-10-17 已全部完成**:
+    清单 `docs/audio/statereport-walkthrough-manifest-2026-10-17.json`(15 行)· 真播 15/15 ·
+    谓词 `docs/audio/statereport-walkthrough-predicates.json`(15 条判定全 `null`)·
+    记录 `docs/audio/statereport-walkthrough-2026-10-17.md`(**dr_guyang 签字 [x] 通过**)。
+    ⚠️ **签字由用户本人给出**(逐条选项确认后口头授权勾选);机器半不代判。
+    ⚠️ **走查工具的本地生成产物**:`docs/audio/` 下三件均为本地产物(`git status` 显示 untracked),
+    是否入库由用户裁定 —— 不在库内则记录不随仓库分发。
 - **不产出 cooked**:`audio_requirements.json` 是构建期门输入,运行期无消费者;
   凭空造编码格式 = 第二真源(承 `AudioSettingsRegistryBake` 头注纪律)。
 **Test Evidence**: Integration —— 真身 `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`
