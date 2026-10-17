@@ -1,0 +1,146 @@
+{
+  "name": "音频门证伪轮 —— OQ-44-2 Import Load Type 门 + TD-audio-01f Play Mode 门 + story-017 组区分门(W-2/W-3)",
+  "mode": "EditMode",
+  "filter": "PipelineGateTest",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/AddressableAssetsData",
+    "unity/Assets/Audio"
+  ],
+  "_note": [
+    "判据 = 每个变异**恰如预期**转红,且跑完后受保护路径零 diff。",
+    "「恰如预期」用 exactRed 打开 —— 多红说明变异打到了预期之外的断言,判别面不清。",
+    "行号 + 原文双重锚定:生产码一动,本 spec 以退出码 2(夹具过期)报错,而不是静默失准。",
+    "⚠️ 本 spec 自 2026-10-17(story-017)起**覆盖两个 story 的门** —— 文件名保留(三处文档引用它),覆盖面见 mutations[]._why。",
+    "⚠️ F5/F6/F7/F8/F9/F10 的锚点在 story-017 第二轮(映射半边抽纯函数 FilterAudioNames)后已重锚。"
+  ],
+  "mutations": [
+    {
+      "name": "F1-musicPrefix",
+      "file": "unity/Assets/Editor.Tools.Bake/AudioImportSettingsGate.cs",
+      "line": 75,
+      "expect": "                fileName.StartsWith(MusicPrefix, StringComparison.Ordinal))",
+      "replace": "                false) // FALSIFY-F1:停用 music_ 语义档覆盖",
+      "expectRed": [
+        "test_importSettings_requiredLoadType_matchesGddTable",
+        "test_importSettings_musicPrefix_overridesNumericTier",
+        "test_importSettings_realMetas_matchRequiredTier"
+      ],
+      "exactRed": true,
+      "_why": "music_ 覆盖是 GDD §附 唯一一处判据重叠的裁定;停用它 ⇒ music 由 2 变 1,三条同时红(纯谓词表 / 语义档 / 真素材扫描)。"
+    },
+    {
+      "name": "F2-smallTierInclusive",
+      "file": "unity/Assets/Editor.Tools.Bake/AudioImportSettingsGate.cs",
+      "line": 83,
+      "expect": "            if (decodedBytes <= SmallResidentBytes && durationSeconds < ShortSeconds)",
+      "replace": "            if (decodedBytes < SmallResidentBytes && durationSeconds < ShortSeconds) // FALSIFY-F2:<= 改 <",
+      "expectRed": [
+        "test_importSettings_boundaries_areInclusiveExclusiveAsSpecified"
+      ],
+      "exactRed": true,
+      "_why": "命中形态 = 阈值边界类。GDD §附 定「≤ 512 KB」闭区间;改开后 ⇒ 「512 KB 整」那一条落中档,恰一条红。"
+    },
+    {
+      "name": "F3-playModePredicateMinusOne",
+      "file": "unity/Assets/Editor.Tools.Bake/DataBakeMenu.cs",
+      "line": 839,
+      "expect": "            if (settings == null) return -1;",
+      "replace": "            if (settings == null) return 0; // FALSIFY-F3:null 时回 0 冒充命中",
+      "expectRed": [
+        "test_playModeScript_predicate_nullOrMiss_returnsMinusOne"
+      ],
+      "exactRed": true,
+      "_why": "null 回 0 会让调用方把「没找到」当成「就是第 0 个」—— 第 0 个恰是 FastMode,于是漂移被静默掩盖。"
+    },
+    {
+      "name": "F4-unreadableMetaSilentZero",
+      "file": "unity/Assets/Editor.Tools.Bake/AudioImportSettingsGate.cs",
+      "line": 221,
+      "expect": "            loadType = -1;",
+      "replace": "            loadType = 0; // FALSIFY-F4:失败时回 0 冒充 DecompressOnLoad",
+      "expectRed": [
+        "test_importSettings_unreadableInput_isViolationNotSilentSkip"
+      ],
+      "exactRed": true,
+      "_why": "「读不到 ⇒ 回一个合法值」正是 story-010 原稿 Assert.Ignore 假绿的翻版;须红。"
+    },
+    {
+      "name": "F5-wavExtCaseSensitive",
+      "file": "unity/Assets/Editor.Tools.Gates/AudioAssetGroupGates.cs",
+      "line": 89,
+      "expect": "                                 StringComparison.OrdinalIgnoreCase);",
+      "replace": "                                 StringComparison.Ordinal);",
+      "expectRed": [
+        "test_d5b_audioAssetName_extensionCaseInsensitive",
+        "test_d5b_filterAudioNames_threeCaseFormsAllKept",
+        "test_importSettings_wavExtension_isCaseInsensitiveAcrossPlatforms"
+      ],
+      "exactRed": true,
+      "_why": "定义域收窄类。⚠️ story-017 后**判据只有一条实现**(AudioAssetGroupGates.IsAudioAssetName),AudioImportSettingsGate.IsWavName 改为委派 ⇒ 停用 OrdinalIgnoreCase 时**三条夹具同时红**(谓词侧 / 映射结果侧 / 委派侧)—— 这正是「单一出处」的可观测形态:改一处,三处账本同时翻。本变异 2026-10-17 由旧锚点(AudioImportSettingsGate.cs:258,已随委派化消失)迁到新真源。"
+    },
+    {
+      "name": "F6-audioAssetsOnDiskBackToGlob",
+      "file": "unity/Assets/Editor.Tools.Gates/AudioAssetGroupGates.cs",
+      "line": 275,
+      "expect": "            return FilterAudioNames(Directory.GetFiles(dir, \"*\"));",
+      "replace": "            return FilterAudioNames(Directory.GetFiles(dir, \"*\" + AudioAssetExtension)); // FALSIFY-F6:回到 glob",
+      "expectRed": [
+        "test_d5b_audioAssetsOnDisk_filtersViaPredicateNotGlob"
+      ],
+      "exactRed": true,
+      "_why": "**调用点**半边:纯函数留着、谓词也还在,只把枚举换回 glob ⇒ 前两条(谓词侧 / 映射结果侧)仍全绿,因为素材目录恰好只有小写 .wav。只有「源码扫描」那条能看见它 —— 这就是它存在的理由。"
+    },
+    {
+      "name": "F7-validateEntriesLineBudget",
+      "file": "unity/Assets/Editor.Tools.Gates/AudioAssetGroupGates.cs",
+      "line": 138,
+      "expect": "            CheckExpectedAssetsAreGrouped(entries, expectedAudioAssets, errors);",
+      "replace": "            CheckExpectedAssetsAreGrouped(entries, expectedAudioAssets, errors);\n            // FALSIFY-F7 行数敏感度填充 01(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 02(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 03(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 04(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 05(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 06(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 07(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 08(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 09(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 10(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 11(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 12(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 13(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 14(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 15(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 16(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 17(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 18(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 19(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 20(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 21(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 22(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 23(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 24(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 25(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 26(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 27(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 28(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 29(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 30(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 31(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 32(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 33(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 34(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 35(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 36(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 37(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 38(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 39(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 40(空语句注释,语义零影响)\n            // FALSIFY-F7 行数敏感度填充 41(空语句注释,语义零影响)",
+      "expectRed": [
+        "test_d5c_validateEntries_withinLineAndComplexityBudget"
+      ],
+      "exactRed": true,
+      "_why": "阈值边界类(≤ 40 物理行)。⚠️ **本变异证明的是「行数守卫对方法长度敏感」**,不是「拆分被撤销」的等价物 —— 等价物要内联两个判据半(30+ 行)才越界,而填充同样能把度量推过阈值。语义零影响(纯注释行),故 exactRed 只红 D5c 一条。"
+    },
+    {
+      "name": "F8-validateEntriesComplexityBudget",
+      "file": "unity/Assets/Editor.Tools.Gates/AudioAssetGroupGates.cs",
+      "line": 139,
+      "expect": "            CheckDataCoreHasNoAudioEntries(entries, expectedAudioAssets, errors);",
+      "replace": "            CheckDataCoreHasNoAudioEntries(entries, expectedAudioAssets, errors);\n            if (entries != null && expectedAudioAssets != null && entries.Count >= 0 && expectedAudioAssets.Count >= 0 && errors.Count == 0 && entries.Count == entries.Count && expectedAudioAssets.Count == expectedAudioAssets.Count && errors.Count == errors.Count && entries != null) { }",
+      "expectRed": [
+        "test_d5c_validateEntries_withinLineAndComplexityBudget"
+      ],
+      "exactRed": true,
+      "_why": "阈值边界类(CC < 10)。追加一条**语义恒真、方法体为空**的语句,只推高圈复杂度(if + 8×&& = 9 决策点 ⇒ CC 11),原调用保留 ⇒ D5d 的黄金串表不受影响。⚠️ 与 F7 红**同一条测试**(D5c 内多条断言)—— 驱动只看测试名,故两者 expectRed 相同;区分点在测试内部的哪条断言先红。"
+    },
+    {
+      "name": "F9-errorMessageTextDrift",
+      "file": "unity/Assets/Editor.Tools.Gates/AudioAssetGroupGates.cs",
+      "line": 136,
+      "expect": "            if (entries == null) { errors.Add(\"[D5] 条目集为 null —— 空集冒充绿\"); return errors; }",
+      "replace": "            if (entries == null) { errors.Add(\"[D5] 条目集为 null —— 空集冒充绿2\"); return errors; }",
+      "expectRed": [
+        "test_d5d_errorSetIsByteIdentical"
+      ],
+      "exactRed": true,
+      "_why": "AC-44-D5d「错误集逐字不变」的判别面:只动一个字符 ⇒ 其余所有「非空 / 含关键字」断言照旧全绿(它们接不住文案漂移),只有黄金串表能看见。"
+    },
+    {
+      "name": "F10-mapperSkipsPredicate",
+      "file": "unity/Assets/Editor.Tools.Gates/AudioAssetGroupGates.cs",
+      "line": 110,
+      "expect": "                if (IsAudioAssetName(filePaths[i])) kept.Add(filePaths[i]);",
+      "replace": "                kept.Add(filePaths[i]); // FALSIFY-F10:映射不再过谓词",
+      "expectRed": [
+        "test_d5_audioAssetsOnDisk_nonEmpty",
+        "test_d5_realSettings_audioAssetsSeparateFromDataCore",
+        "test_d5b_audioAssetsOnDisk_filtersViaPredicateNotGlob",
+        "test_d5b_filterAudioNames_threeCaseFormsAllKept"
+      ],
+      "exactRed": true,
+      "_why": "「禁另抄 / 单一出处」的可观测形态:谓词留着但**没人调用** ⇒ 非 wav 全被放进结果集。四条红各有独立理由 —— 纯映射(非 wav 混入)/ 源码扫描(② 谓词未被调用)/ 真环境扫描(`Assets/Audio/` 下的 .mixer / .meta 被当素材)/ **真设置正向半边**(`ValidateSettings` 以 `AudioAssetsOnDisk()` 为期望集 ⇒ 未过滤的非 wav 全被判「未登记进任何 Addressables 组」)。⚠️ **首轮预测只写了 3 条,第 4 条是实测多出来的** —— 复核后确认它是**同一根因的直接后果**(不是打到无关断言):过滤一撤,期望集本身被污染,正向半边必然报。预测不全已如实登记,不是把判别面往夹具上凑。"
+    }
+  ]
+}

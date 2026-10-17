@@ -189,6 +189,10 @@ unity/_tools/
 # by GitHub secret scanning within minutes and the account is revoked.
 # Get a key at https://console.sensecore.cn  →  read it into this file.
 .claude/sensenova.json
+# StepFun audio API key (TTS / 音效 / 音乐 / 音色复刻 / ASR)。与上一条同理:
+# 仓库是 PUBLIC,提交即被扫描。key 由 tools/audio/stepfun_audio.py 读取,
+# 该工具每次运行都会断言本文件未被 git 跟踪。
+.claude/stepfun.json
 
 # === AI 参考图:仅迭代版本不入库,定稿版入库 ===
 # 2026-09-29 裁定参考图全部不入库;2026-09-30 用户改判,理由是运行期要真用这些贴图。
@@ -199,6 +203,17 @@ unity/_tools/
 #     进构建、DA 要裁、美术要改 —— 它们是项目资产,不是参考物。
 # 规格真源仍是 design/assets/specs/*.md;定稿版的生成留痕在 casebook-paper.md §8.10.2。
 assets/design-references/
+
+# === AI 音频暂存区:仅迭代版本不入库,搬入 unity/Assets/Audio/ 的定稿才入库 ===
+# 2026-10-17 立。口径与上一段同型,分的是「哪一批」而不是「要不要」:
+#   · assets/audio-staging/<cue>/ 是反映「先暂存,听后搬入」的**中间态** ——
+#     API 原始返回(raw.wav)、后处理产物(<冻结名>.post.wav)、旁证 sidecar(.json)。
+#     这些是过程物,不是资产;试听由人直接听 .post.wav。
+#   · 定稿件在 unity/Assets/Audio/ 下,连同 .meta **必须入库**(既有 5 个真件即如此)。
+# 若整目录入库,会同时制造两个假象:① 未试听的草稿被读成「已定稿音频」;
+# ② 同一素材的多个迭代版本并列,版本权威不清(与 design-references 同一理由)。
+# ⚠️ 搬入后**不要**用 `git add -f` 绕过本规则 —— 定稿件的位置是 unity/Assets/Audio/。
+assets/audio-staging/
 
 # Unity 测试产物(每次 batch 跑都会生成,不入库)
 unity/TestResults-*.xml
