@@ -215,13 +215,19 @@ vo_patient_cough_damp_m3_2.wav   vo_patient_cough_damp_f3_2.wav
 > **为什么单列一节**:E5 要求「新增条目不得用于状态播报」。白名单断言(AC-44-09)管的是
 > **时机与分类**(`whitelist_category` × `trigger_source`),管不到「这条声音**听起来**是不是在宣告状态」。
 > 后者只有**耳朵**能判 —— 但「耳听对不对」需要一个可以逐条核对的**参考解读**,否则走查变成印象打分。
-> 本节即该参考解读的**权威出处**;走查件(`CueTextOrderingRules.Reason`)把每条 cue 归入下述三选一。
+> 本节即该参考解读的**权威出处**;走查件(`CueTextOrderingRules.Reason`)把每条 cue 归入下述**四选一**。
 
 | 归属 | 含义(GDD `:66-78` 规则二) | 走查时要核的**替代读法** |
 |---|---|---|
 | `physiology` | 持续生理声 —— 症状的**连续**变化**本身**就是病人状态,不是「宣告」状态变化 | 听到的应是**质地**(呼吸的湿/干/停顿、咳嗽的闷/短),不是「一声告知你他病了」的提示音 |
 | `player_action` | 玩家自身动作 / 玩家主动的检查动作 —— 声音**由玩家动作产生** | 每一声都应能指回**玩家刚做的动作**(落笔 / 贴听诊器 / 翻纸 / 放药罐 / 迈步);没有动作就没有声音 |
 | `world_ambience` | 玩家可感知的世界声 —— 环境与事件的**可闻事实**(狗吠、马蹄、锣、鸟惊飞、哭喊、钟) | 听到的是**世界里发生了什么**,不是「系统告诉你某档位触发了」;同一事实不得被**换素材/换音量**来报进度 |
+| `music_layer` | **乐层**(白名单第 5 类)—— 音乐可随遭遇态变化,但**不得成为状态播报**;其成立前提 = ADR-018 §六 **G1–G3 三护栏** | 听到的应是**连续织体里质地的渐变**(紧张度缓缓上/下),不是「一段新乐句 / 一个边界拍**告诉你**遭遇开始或结束了」。判定采用 G1/G2 口径:**听不出切换的那一刻**(G1 禁帧对齐 + 淡变下界 `MUSIC_XFADE_MIN_MS`;G2 去标注盲测 —— 能指出「哪一帧开始」即违规回炉) |
+
+> **2026-10-17 用户裁定**:`Music_Encounter_Layer` **算在 E5 射程内** —— ADR-018 §六 的 G1–G3
+> **不取代** E5 判定,而是 E5 在乐层上的**判定口径**(护栏是必要条件,不是豁免)。
+> 此前该格记「待裁」,现按本裁定落 `music_layer` 归属;三选一随之扩为四选一。
+
 
 **逐 cue 归属(事件表 15 行全列;`whitelist_category` 取自事件表真源)**:
 
@@ -231,7 +237,7 @@ vo_patient_cough_damp_m3_2.wav   vo_patient_cough_damp_f3_2.wav
 | `BreathLayer_Base_Calm` | ContinuousPhysiology | `physiology` |
 | `BreathLayer_Adventitious_Fine` | ContinuousPhysiology | `physiology` |
 | `WorldBreath_Baseline` | ContinuousPhysiology | `physiology`(世界语境呼吸,承 ADR-028) |
-| `Music_Encounter_Layer` | MusicLayer | **待裁** —— 乐层有 ADR-018 §六 的 G1–G3 护栏,但「护栏是否**取代** E5 判定」未经任何权威件裁定;走查前须先裁(不得由本表自定) |
+| `Music_Encounter_Layer` | MusicLayer | `music_layer`(2026-10-17 用户裁定:**算在 E5 射程内**;G1–G3 是乐层的判定口径,不是豁免) |
 | `World_Threat` | WorldPerceptible | `world_ambience` |
 | `World_Opportunity` | WorldPerceptible | `world_ambience` |
 | `World_Reaction` | WorldPerceptible | `world_ambience` |

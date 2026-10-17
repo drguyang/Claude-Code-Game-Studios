@@ -335,6 +335,27 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
         }
 
         /// <summary>
+        /// 真事件表里的乐层 cue 须被归入 `music_layer`(2026-10-17 用户裁定:算在 E5 射程内)——
+        /// 逐条拿**真源**的 `whitelist_category` 过判定器,而不是拿一个自造林类别名。
+        /// </summary>
+        [Test]
+        public void realTable_musicLayerCue_isJudgedUnderE5()
+        {
+            AudioEventDataSet table = LoadRealTable();
+            var musicCues = new List<string>();
+            for (int i = 0; i < table.RowCount; i++)
+            {
+                AudioEventRow row = table.Row(i);
+                if (!string.Equals(row.WhitelistCategory, "MusicLayer", StringComparison.Ordinal)) continue;
+                musicCues.Add(row.Cue);
+                Assert.That(CueTextOrderingRules.Reason(row.Cue, row.WhitelistCategory, null),
+                    Does.StartWith("music_layer:"), $"真源乐层 cue「{row.Cue}」未落在 music_layer 归属");
+            }
+            Assert.That(musicCues, Is.Not.Empty,
+                "真事件表里一条 MusicLayer 都没有 —— 本判据空真(前提不成立,须先确认数据)");
+        }
+
+        /// <summary>
         /// 谓词重跑的**全部拒绝分支**逐条可触发(输入用 JSON 文本夹具,**不落盘** —— 承
         /// `test_discipline_noFilesystemWrites` 的纪律,本文件零文件系统写)。
         /// <para>覆盖:词法坏 / 缺 verdicts / 缺 cue 判定 / 缺 reviewer / date 格式坏 /
@@ -456,7 +477,7 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
             sb.Append("  \"schema_version\": ").Append(SchemaVersion.ToString(CultureInfo.InvariantCulture)).Append(",\n");
             sb.Append("  \"_note\": ").Append(Quote(
                 "AC-44-E5 手跑走查清单 —— 由 StateReportWalkthroughProbe 播放**全部**事件表 cue 生成。" +
-                "reason 前缀 = 归属三选一(physiology / player_action / world_ambience);" +
+                "reason 前缀 = 归属四选一(physiology / player_action / world_ambience / music_layer);" +
                 "走查据此**逐条**对照 design/gdd/audio-system.md:66-78 黑名单四禁判定,再在谓词文件里落结果。" +
                 "本文件不承载任何判定 —— 判定只存在于谓词文件 + 记录文件。")).Append(",\n");
             sb.Append("  \"event_table_schema_version\": ")

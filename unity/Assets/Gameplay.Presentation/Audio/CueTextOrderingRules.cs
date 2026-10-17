@@ -38,9 +38,11 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         };
 
         /// <summary>
-        /// 该 cue **凭什么**不是状态播报(GDD :66-78 规则二白名单的归属三选一 + 替代读法锚点)。
-        /// <para>⚠️ 这是**归属三选一**,不是音频判定 —— 走查人据此把「行为反馈 / 状态播报」
+        /// 该 cue **凭什么**不是状态播报(GDD :66-78 规则二白名单的归属四选一 + 替代读法锚点)。
+        /// <para>⚠️ 这是**归属四选一**,不是音频判定 —— 走查人据此把「行为反馈 / 状态播报」
         /// 之争落到无分歧的读法上;读法本身错 = 走查人须在记录里反驳,机器半不替人判。</para>
+        /// <para>⚠️ 乐层(`music_layer`)2026-10-17 经用户裁定**算在 E5 射程内**(此前「待裁」)——
+        /// ADR-018 §六 G1–G3 是乐层的判定口径,**不是豁免**。</para>
         /// </summary>
         /// <param name="cue">cue 名。</param>
         /// <param name="category">事件表 <c>whitelist_category</c>。</param>
@@ -48,6 +50,11 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         public static string Reason(string cue, string category, string subtitle)
         {
             string basis = $"{cue}: whitelist_category = 「{category}」∈ 白名单;替代读法 = 有(manifest §四)";
+
+            if (string.Equals(category, "MusicLayer", StringComparison.Ordinal))
+                return "music_layer:" + basis +
+                       ";乐层算在 E5 射程内(G1–G3 是判定口径非豁免)—— 听不出切换的那一刻才算过," +
+                       "听得出「哪一段新乐句 / 哪一拍告诉你遭遇开始了」即违规(按 G2 去标注盲测口径回炉)";
 
             bool physiological = cue.StartsWith("BreathLayer_", StringComparison.Ordinal) ||
                                  cue == "Voice_Cough_Damp" ||

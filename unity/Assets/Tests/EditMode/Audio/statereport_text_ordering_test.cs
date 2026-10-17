@@ -72,5 +72,28 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
             Assert.That(CueTextOrderingRules.ContainsConclusion("马蹄声由远及近"), Is.False);
             Assert.That(CueTextOrderingRules.ContainsConclusion("鸟群惊飞"), Is.False);
         }
+
+        /// <summary>
+        /// 乐层归属 = `music_layer`(2026-10-17 用户裁定:**算在 E5 射程内**,G1–G3 是判定口径非豁免)。
+        /// ⚠️ 区分力来自**类别**而非 cue 名:换一个任意 cue 名 + `MusicLayer` 仍须得 `music_layer`,
+        /// 且同样的 cue 名换成非乐类别必须落到别的归属 —— 否则「按类别分」这条守卫删了也不红。
+        /// </summary>
+        [Test]
+        public void reason_musicLayerCategory_isJudgedUnderE5()
+        {
+            string reason = CueTextOrderingRules.Reason("Some_Future_Layer", "MusicLayer", null);
+            Assert.That(reason, Does.StartWith("music_layer:"));
+            Assert.That(reason, Does.Contain("算在 E5 射程内"));
+            Assert.That(reason, Does.Contain("听不出切换的那一刻才算过"),
+                "乐层的判定口径须逐字可核(G1/G2),不能只给一个分类名");
+        }
+
+        /// <summary>反向:同名 cue 换掉乐类别 ⇒ 不得再被判为 `music_layer`(守卫是类别驱动的)。</summary>
+        [Test]
+        public void reason_nonMusicCategory_isNotMusicLayer()
+        {
+            Assert.That(CueTextOrderingRules.Reason("Some_Future_Layer", "WorldPerceptible", null),
+                Does.Not.StartWith("music_layer:"));
+        }
     }
 }

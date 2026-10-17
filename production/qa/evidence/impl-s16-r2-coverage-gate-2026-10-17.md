@@ -234,12 +234,24 @@ Unity 静默忽略非法 asmdef ⇒ 双重失败,与 Unity 版本行为无关。
 | **静音 cue 的判定无效** | `replayPredicates_silentAsset_rejectsVerdictAsInvalid` | ✅ 执行 |
 | **清单 / 真播 / 记录产出** | `walkthrough_allCues_manifestPlaybackAndOrdering` | ❌ 仍 `Assert.Ignore`(阻塞 ②③) |
 
-### 10.6b 待用户裁决(仍在)
+### 10.6b 用户裁定:乐层算在 E5 射程内(2026-10-17)
 
+用户裁定:「`Music_Encounter_Layer` 算在 E5 里」⇒ 此前 manifest §四 的「待裁」**已结**。
+口径落定:**G1–G3 不取代 E5 判定,而是 E5 在乐层上的判定口径**(护栏 = 必要条件,非豁免)。
+
+| 件 | 变更 |
+|---|---|
+| manifest §四 | 归属由**三选一**扩为**四选一**,新增 `music_layer` 行(判定 = 听不出切换的那一刻才算过;G2 口径);逐 cue 表该行由「待裁」改为 `music_layer` |
+| `CueTextOrderingRules.Reason` | 新增**按 `whitelist_category == "MusicLayer"` 分派**的首个分支(类别驱动,非 cue 名驱动) |
+| 走查件清单 `_note` | 「三选一」→「四选一」 |
+| 测试 | +3:`reason_musicLayerCategory_isJudgedUnderE5`(纯判定器)· `reason_nonMusicCategory_isNotMusicLayer`(**反向**:同名 cue 换类别须不落乐层)· `realTable_musicLayerCue_isJudgedUnderE5`(真源逐 cue + 非空前提断言) |
+
+**证伪 M1**:停用乐层分支 ⇒ 恰红 2 条(`reason_musicLayerCategory_*` / `realTable_musicLayerCue_*`);
+反向条按设计不红(它断的是「**不**落乐层」)。18 / 15 / 2。
+
+**仍未结(不在本条裁决面内)**:
 - 阻塞 **②**:EditMode 批次的出声语义**未实测**;
-- 阻塞 **③**:走查须人在交互式编辑器里跑,本机 batch 只能跑机器半;
-- `Music_Encounter_Layer` 是否在 E5 射程内 —— manifest §四 该格现为「**待裁**」
-  (ADR-018 §六 G1–G3 护栏是否**取代** E5 判定,无权威件可依)。
+- 阻塞 **③**:走查须人在交互式编辑器里跑,本机 batch 只能跑机器半 —— **乐层的 G2 盲测也须人跑**。
 
 ### 10.7 证伪轮实测(S12-4 —— 含首轮假绿)
 
@@ -268,6 +280,9 @@ Unity 静默忽略非法 asmdef ⇒ 双重失败,与 Unity 版本行为无关。
 ```bash
 unity test unity --mode EditMode --output unity/Logs/s33-full.xml
 # → total 3667 · passed 3621 · failed 0 · inconclusive 0 · skipped 46(exit 0)
+
+unity test unity --mode EditMode --output unity/Logs/s34-full.xml   # + 乐层裁定
+# → total 3670 · passed 3624 · failed 0 · inconclusive 0 · skipped 46(exit 0)
 ```
 
 **对账(逐 fullname)**:`s33-full.xml` vs `s32-full.xml`(3660)→ **新增 7 / 删除 0**,
