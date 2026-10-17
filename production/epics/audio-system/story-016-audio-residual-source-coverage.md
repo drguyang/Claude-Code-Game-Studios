@@ -1,7 +1,7 @@
 # Story 016: 音频资产接入(余 7 项源音覆盖 · R-2 归属表 9 项逐项对账)
 
 > **Epic**: 音频系统
-> **Status**: Blocked 🔴(BLOCKED-BY:**素材产出批次** —— R-2 九项中余 **7 项**的 `.wav` 未交付)
+> **Status**: Complete ✅(2026-10-17 —— 见 `## Completion Notes`;原 `Blocked` 的立项前提已过期)
 > **Layer**: Foundation(实现落素材产出 + 门检验)
 > **Type**: Integration
 > **Estimate**: 待估(依赖素材本体产出)
@@ -21,6 +21,11 @@
 **Engine Notes**: 同 story-015 —— 本 story 不引入新 API 面,它把已有机制喂真素材。
 
 ### ⚠️ 本 story 的存在理由(实测,2026-10-04)
+
+> **⚠️ 2026-10-17 订正:以下整节的立项前提已过期,保留作历史。** 实测显示事件表的 **15 行**已覆盖
+> R-2 全部 9 项(`Pulse_Contact` / `Steth_Contact` / `BreathLayer_*` / `Voice_Cough_Damp` /
+> `Page_Turn` / `Footstep_Base` / `Cabinet_Prop` / `World_*`(4)/ `Clinic_Room_Tone`),
+> 内容批已交付 37 个 `.wav`。**「7 项无承接件」不再成立**;本 story 的剩余工作 = **写门**(见 Completion Notes)。
 
 **R-2 归属表裁给 `audio-system` 的是 9 项**(`r2-asset-ownership-ruling-2026-10-03.md` §`audio-system`(9 项)),
 而 **`story-015` 的实际覆盖只有 4 项**(它以 `assets/data/audio_events.json` 里**已被引用的 5 个 `.wav` 文件名**
@@ -60,22 +65,22 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC-44-E1(新)**: R-2 归属表 `audio-system` 的 **9 项**在 `assets/data/audio_events.json` 内
+- [x] **AC-44-E1(新)**: R-2 归属表 `audio-system` 的 **9 项**在 `assets/data/audio_events.json` 内
       **逐项有对应条目**(诊脉接触音 / 听诊器接触音 / 呼吸两层 / 语声 / 纸面 / 脚步 / 药柜 / 世界声 / 馆内环境音);
       缺任一项 ⇒ **构建期硬失败**(非告警 —— 归属已裁而条目缺失 = 归属表落不了地)
-- [ ] **AC-44-E2(新)**: 上述 9 项引用的**全部 `.wav`** 在 `assets/audio/` 内真实存在;
+- [x] **AC-44-E2(新)**: 上述 9 项引用的**全部 `.wav`** 在 `assets/audio/` 内真实存在;
       **门须跑真素材,不得只跑夹具**(承 story-010 的教训:其 11 测用夹具 ⇒ 缺口不可见)
       > ✅ **2026-10-17 前置已解除**:37 个 `.wav` 已落 `unity/Assets/Audio/`
       > (39 − 2 退役),事件表 15 行烘焙通过(`ConfigVersion = 0x1E7C708D`)。
       > 本 story 的 BLOCKED-BY 只剩 E1/E3/E4 的**门代码**与判据施工。
-- [ ] **AC-44-E3(新)**: 删除任一被引 `.wav` ⇒ **构建期硬失败**(`throw` 非 `Debug.Assert`,同 story-015 AC-44-D6c)
-- [ ] **AC-44-E4(新)**: 双向集合差归零 —— R-2 的 9 项 ↔ `audio_events.json` 条目 ↔ `assets/audio/*.wav` **三者互相覆盖**
+- [x] **AC-44-E3(新)**: 删除任一被引 `.wav` ⇒ **构建期硬失败**(`throw` 非 `Debug.Assert`,同 story-015 AC-44-D6c)
+- [x] **AC-44-E4(新)**: 双向集合差归零 —— R-2 的 9 项 ↔ `audio_events.json` 条目 ↔ `assets/audio/*.wav` **三者互相覆盖**
       > ⚠️ **2026-10-17 口径订正(实测)**:R-2 的世界声**已由用户裁定拆成 4 条 cue**
       > (`World_Threat` / `World_Opportunity` / `World_Reaction` / `World_Disaster`,共 9 个文件)
       > ⇒ 「9 项 ↔ 条目」两侧**不再一一对应**(1 项 → 多 cue)。判据须按
       > 「9 个**文件** ↔ `assets[]` 并集」比,**不得**按 cue 计数比。权威件 =
       > `design/assets/specs/audio-material-manifest.md` §一之二。
-- [ ] **AC-44-E5(新)**: **无提示音铁律**(`AC-44-09` BLOCKING)对本 story 新增条目同样适用 ——
+- [ ] **AC-44-E5(新)** ⚠️ **结构面由既有门覆盖,语义面未独立建门**(见 Completion Notes): **无提示音铁律**(`AC-44-09` BLOCKING)对本 story 新增条目同样适用 ——
       新增条目**不得**用于状态播报(无 sting / jingle / ducking / 素材切换报状态)
 
 ---
@@ -151,3 +156,28 @@
 **关联**:
 - story-015(同型但不同段:已引用 vs 未建需求)
 - `r2-asset-ownership-ruling-2026-10-03.md`(归属真源)
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-10-17
+**Criteria**: **4/5 通过**(E1 / E2 / E3 / E4)· **E5 部分**(见下)
+**Deviations**:
+- **E5 未独立建门**(如实登记):9 项行落在 `WhitelistCategories` 闭集内、`trigger_source` ∉
+  `ForbiddenTriggerSources`,**结构面已由既有全表门覆盖**;但「某条 cue 是否实质在报状态」
+  **写不出自动夹据** ⇒ **不声称已证**。
+- **不产出 cooked**:`audio_requirements.json` 是构建期门输入,运行期无消费者;
+  凭空造编码格式 = 第二真源(承 `AudioSettingsRegistryBake` 头注纪律)。
+**Test Evidence**: Integration —— 真身 `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`
+(74 → **89** 测)· 过滤 **89/89/0/0** · 全量 **3650 / 3605 / 0 / 45**(基线 3635,**Δ = +15 = 新增测数**)
+**Falsifiability Gate**: ✅ **PASS** —— 5 变异,**F1 首轮假绿已修**(补 2 条入口测试),其余 4 条 `exact-red`
+**证据原件**: `production/qa/evidence/impl-s16-r2-coverage-gate-2026-10-17.md`
+
+### 三处结合的口径(用户 2026-10-17 裁定)
+
+| 处 | 落点 | 职责 |
+|---|---|---|
+| A(锁) | `AudioEventTableGates.RequiredRequirements` | 改数据件即便同步改文档,仍红 |
+| C(值) | `assets/data/audio_requirements.json` | 唯一机器可读输入 |
+| B(出处) | `AudioRequirementsBake.ValidateManifestAgrees` → manifest | 文档滞后也红 |
