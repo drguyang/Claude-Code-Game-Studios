@@ -1490,6 +1490,194 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             return -1;
         }
 
+        // ══════════════ R-2 归属闭合(Story 016 · AC-44-E1/E3/E4 · 三处结合)══════════════
+
+        /// <summary>A 锁:**经总门入口**驱动 —— C 改名且 <b>事件表也是改后的名</b> ⇒ 总门必须点名 A 锁。</summary>
+        /// <remarks>
+        /// ⚠️ 本条与 <see cref="test_e1_dataTableCueRenamed_lockedByConstant"/> 的差别是**关键**:
+        /// 那条只调内层 <c>ValidateRequirementTableMatches</c>,测不到「总门是否真的接上这把锁」。
+        /// 2026-10-17 证伪轮实测:停用总门里的 A 锁,全套 87 条**一条不红** ⇒ 那条是假绿面。
+        /// 本条把 cue 在**数据件与事件表两侧同时改名**,使下层覆盖检查全部通过,
+        /// **唯一**能报错的就是 A 锁 ⇒ 判别力归 A 锁。
+        /// </remarks>
+        [Test]
+        public void test_e1_gateEntry_pointNamesALockWhenOnlyLockCanCatch()
+        {
+            AudioRequirementsData data = AudioRequirementsBake.BindFromJson(
+                ReadSeedJson(AudioRequirementsBake.SourceFileName)
+                    .Replace("\"cue\": \"Clinic_Room_Tone\"", "\"cue\": \"Clinic_Room_ToneV2\""));
+
+            // 事件表侧同步改成 V2 ⇒ E1 覆盖检查通过,只剩 A 锁可报
+            AudioEventTable full = AudioEventTableBake.BakeFromRepo(RepoRoot()).Bound.Table;
+            var rows = full.Rows.Select(r => new AudioEventTableRow
+            {
+                Cue = r.Cue == "Clinic_Room_Tone" ? "Clinic_Room_ToneV2" : r.Cue,
+                Assets = r.Assets,
+            }).ToList();
+
+            var errors = AudioRequirementsBake.ValidateAtAssetRoot(
+                data, rows, AudioAssetExistence.ResolveRoot(RepoRoot()));
+
+            Assert.That(errors, Has.Some.Contains("A 锁").And.Some.Contains("Clinic_Room_ToneV2"),
+                "总门未接上 A 锁(C 与事件表同步改名,唯一能报的只有 A 锁):\n" + string.Join("\n", errors));
+        }
+
+        /// <summary>A 锁:数据件多出的未登记项 —— **经总门入口**同样必须被点名。</summary>
+        [Test]
+        public void test_e1_gateEntry_pointRejectsExtraRequirement()
+        {
+            string json = ReadSeedJson(AudioRequirementsBake.SourceFileName);
+            int at = json.IndexOf("\"world_cue_split\"", StringComparison.Ordinal);
+            Assert.That(at, Is.GreaterThan(0), "夹具前提:数据件含 world_cue_split");
+            int reqEnd = json.LastIndexOf(']', at - 1);   // ⚠️ at 指向键名引号 ⇒ 从 at-1 往回找
+            string injected = json.Insert(reqEnd,
+                ",\n    {\"id\": \"SFX-99\", \"name\": \"未登记项\", \"cue\": \"Pulse_Contact\", \"files\": [\"sfx_pulse_contact_01.wav\"]}");
+            AudioRequirementsData data = AudioRequirementsBake.BindFromJson(injected);
+
+            AudioEventTable full = AudioEventTableBake.BakeFromRepo(RepoRoot()).Bound.Table;
+            var errors = AudioRequirementsBake.ValidateAtAssetRoot(
+                data, full.Rows, AudioAssetExistence.ResolveRoot(RepoRoot()));
+
+            Assert.That(errors, Has.Some.Contains("SFX-99"),
+                "总门未拦下多出的需求项:\n" + string.Join("\n", errors));
+        }
+
+        /// <summary>正向:真数据件 + 真事件表 + 真素材库 ⇒ 零错误(E1 / E4 全绿)。</summary>
+        [Test]
+        public void test_e1_realRequirements_gatePassesWithNoError()
+        {
+            AudioRequirementsData data = AudioRequirementsBake.BindFromRepo(RepoRoot());
+            AudioEventTable table = AudioEventTableBake.BakeFromRepo(RepoRoot()).Bound.Table;
+
+            var errors = AudioRequirementsBake.ValidateAtAssetRoot(
+                data, table.Rows, AudioAssetExistence.ResolveRoot(RepoRoot()));
+
+            Assert.That(errors, Is.Empty,
+                "R-2 归属门在真种子上报错:\n" + string.Join("\n", errors));
+        }
+
+        /// <summary>A 锁:C 改了而 A 没改 ⇒ 具名差集红(即使 C 与 B 同步改了)。</summary>
+        [Test]
+        public void test_e1_dataTableCueRenamed_lockedByConstant()
+        {
+            AudioRequirementsData data = AudioRequirementsBake.BindFromJson(
+                ReadSeedJson(AudioRequirementsBake.SourceFileName)
+                    .Replace("\"cue\": \"Clinic_Room_Tone\"", "\"cue\": \"Clinic_Room_ToneV2\""));
+
+            var errors = AudioEventTableGates.ValidateRequirementTableMatches(data);
+            Assert.That(errors, Has.Some.Contains("AMB-1").And.Some.Contains("Clinic_Room_ToneV2"),
+                "A 锁未拦下「数据件改名而常量未改」:\n" + string.Join("\n", errors));
+        }
+
+        /// <summary>E1:删掉事件表里的一项 cue ⇒ 该 R-2 项报「不在事件表内」。</summary>
+        [Test]
+        public void test_e1_eventTableMissingCue_reportsThatRequirement()
+        {
+            AudioRequirementsData data = AudioRequirementsBake.BindFromRepo(RepoRoot());
+            AudioEventTable full = AudioEventTableBake.BakeFromRepo(RepoRoot()).Bound.Table;
+            var rows = full.Rows.Where(r => r.Cue != "Pulse_Contact").ToList();
+            Assert.That(rows.Count, Is.EqualTo(full.Rows.Count - 1), "夹具前提:确实删掉了一行");
+
+            var errors = AudioEventTableGates.ValidateEventTableCoverage(data, rows);
+            Assert.That(errors, Has.Some.Contains("SFX-1").And.Some.Contains("Pulse_Contact"),
+                "删 cue 后 E1 未点名该 R-2 项:\n" + string.Join("\n", errors));
+        }
+
+        /// <summary>E1:世界声 4 档位 cue 少一条 ⇒ 红(9 项拆 4 cue 的归属缺一)。</summary>
+        [Test]
+        public void test_e1_worldSoundCueMissing_reportsSplitGap()
+        {
+            AudioRequirementsData data = AudioRequirementsBake.BindFromRepo(RepoRoot());
+            AudioEventTable full = AudioEventTableBake.BakeFromRepo(RepoRoot()).Bound.Table;
+            var rows = full.Rows.Where(r => r.Cue != "World_Disaster").ToList();
+
+            var errors = AudioEventTableGates.ValidateEventTableCoverage(data, rows);
+            Assert.That(errors, Has.Some.Contains("World_Disaster"),
+                "世界声缺一档未报:\n" + string.Join("\n", errors));
+        }
+
+        /// <summary>E4:素材库多出一个无归属文件 ⇒ 红(有素材无归属)。</summary>
+        [Test]
+        public void test_e4_libraryExtraUnregisteredFile_rejected()
+        {
+            AudioRequirementsData data = AudioRequirementsBake.BindFromRepo(RepoRoot());
+            var files = new List<string>(
+                AudioRequirementsBake.ListWavFiles(AudioAssetExistence.ResolveRoot(RepoRoot())));
+            files.Add("sfx_mystery_01.wav");
+
+            var errors = AudioEventTableGates.ValidateLibraryCoverage(data, files);
+            Assert.That(errors, Has.Some.Contains("sfx_mystery_01.wav"),
+                "无归属素材未报:\n" + string.Join("\n", errors));
+        }
+
+        /// <summary>E4:需求文件不在库里 ⇒ 红(归属已裁而文件缺失)。</summary>
+        [Test]
+        public void test_e4_requiredFileAbsent_rejected()
+        {
+            AudioRequirementsData data = AudioRequirementsBake.BindFromRepo(RepoRoot());
+            var files = new List<string>(
+                AudioRequirementsBake.ListWavFiles(AudioAssetExistence.ResolveRoot(RepoRoot())));
+            files.Remove("amb_clinic_room_loop.wav");
+
+            var errors = AudioEventTableGates.ValidateLibraryCoverage(data, files);
+            Assert.That(errors, Has.Some.Contains("amb_clinic_room_loop.wav"),
+                "需求文件缺失未报:\n" + string.Join("\n", errors));
+        }
+
+        /// <summary>E3:删掉一个被引 <c>.wav</c> ⇒ <b>构建期 throw</b>(不是告警、不是判过)。</summary>
+        /// <remarks>
+        /// ⚠️ 本测**不碰文件系统**(<c>test_discipline_noFilesystemWrites</c> 钉死这一条)——
+        /// 它把素材根指向一个**不存在的路径**,效果等价于「库是空的」,断言
+        /// <see cref="BakeValidationException"/> 且报文点名该文件。不 <c>CreateDirectory</c>,
+        /// 也就没有 <c>finally</c> 清理;「真删盘上文件」那半边由 story-010 的 D6 夹具覆盖。
+        /// </remarks>
+        [Test]
+        public void test_e3_missingRequiredFile_throwsAtBakeTime()
+        {
+            string emptyRoot = Path.Combine(Path.GetTempPath(), "e3-absent-root-" + Guid.NewGuid().ToString("N"));
+
+            var ex = Assert.Throws<BakeValidationException>(
+                () => AudioEventTableBake.BakeFromJson(ReadSeedJson("audio_events.json"), emptyRoot));
+            Assert.That(ex.Message, Does.Contain("sfx_pulse_contact_01.wav"),
+                "E3 抛了但未点名缺失文件:\n" + ex.Message);
+        }
+
+        /// <summary>B 支:真权威件 ↔ 常量 逐项对账 = 零错误(出处与代码一致)。</summary>
+        [Test]
+        public void test_e1_manifestAgreesWithConstants_realDoc()
+        {
+            var errors = AudioRequirementsBake.ValidateManifestAgrees(RepoRoot());
+            Assert.That(errors, Is.Empty,
+                "权威件与代码常量不一致:\n" + string.Join("\n", errors));
+        }
+
+        /// <summary>B 支:权威件删掉一个冻结文件名 ⇒ 红(文档滞后 / 代码超前都会被拦)。</summary>
+        [Test]
+        public void test_e1_manifestMissingFile_rejected()
+        {
+            string path = Path.Combine(RepoRoot(), AudioRequirementsBake.ManifestRelative);
+            string text = File.ReadAllText(path);
+            const string needle = "amb_clinic_room_loop.wav";
+            Assert.That(text, Does.Contain(needle), "夹具前提:权威件含该冻结文件");
+            int first = text.IndexOf(needle, StringComparison.Ordinal);
+            string mutated = text.Remove(first, needle.Length).Insert(first, "amb_clinic_room_loopX.wav");
+
+            var errors = AudioRequirementsBake.ValidateManifestText(mutated);
+            Assert.That(errors, Has.Some.Contains(needle),
+                "权威件缺文件未报:\n" + string.Join("\n", errors));
+        }
+
+        /// <summary>B 支:花括号复合写法的展开(权威件用 <c>{a,b}</c> 记脚步材质)。</summary>
+        [Test]
+        public void test_e1_expandBraces_expandsSingleLevel()
+        {
+            var got = AudioRequirementsBake.ExpandBraces("sfx_footstep_{stone,dirt,humus,snow}_01.wav");
+            Assert.That(got, Is.EqualTo(new[]
+            {
+                "sfx_footstep_stone_01.wav", "sfx_footstep_dirt_01.wav",
+                "sfx_footstep_humus_01.wav", "sfx_footstep_snow_01.wav",
+            }), "花括号展开结果不符");
+        }
 
         // ══════════════ Import Load Type 门(OQ-44-2 连带裁定 · GDD §OQ-44-2 附)══════════════
 

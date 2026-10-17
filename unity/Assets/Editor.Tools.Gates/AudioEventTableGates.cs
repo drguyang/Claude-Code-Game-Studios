@@ -55,6 +55,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using DaYiJingCheng.Gameplay.Presentation.Audio;
 
 namespace DaYiJingCheng.EditorTools.Gates
@@ -740,7 +741,205 @@ namespace DaYiJingCheng.EditorTools.Gates
             return errors;
         }
 
-        // ══════════ 世界语境呼吸行接线(AC-44-16 · Story 008 · 2026-10-16 S14-1)══════════
+        // ══════════ R-2 归属闭合(Story 016 · AC-44-E1/E4 · 2026-10-17)══════════
+
+        /// <summary>R-2 归属表裁给 audio-system 的 <b>9 项</b> —— 每项的**冻结 cue 名**与**冻结文件名**。
+        /// <para><b>三处结合的口径(2026-10-17 用户裁定)</b>:
+        /// ① 本常量 = **A(锁)**:归属变更即便同步改了数据件与 Markdown,
+        /// <see cref="ValidateRequirementTableMatches"/> 的具名差集仍红 ⇒ 必过代码审;
+        /// ② <c>assets/data/audio_requirements.json</c> = **C(值)**:门读它的值,
+        /// 不把上方字面量当数据(二者不一致 = 构建失败);
+        /// ③ <c>design/assets/specs/audio-material-manifest.md</c> = **B(出处)**:
+        /// 由 <see cref="ValidateManifestAgrees"/> 逐项对账,清单改了文档没改 = 构建失败。</para>
+        /// <para>⚠️ 世界声(SFX-10)是**1 项 9 文件 4 cue** —— 本表 <c>Files</c> 并存 9 个文件,
+        /// <c>Cue</c> 取其一(档位拆分归数据件的 <c>world_cue_split</c>,本常量不承载档位)。</para></summary>
+        public static readonly IReadOnlyList<AssetRequirement> RequiredRequirements = new[]
+        {
+            new AssetRequirement("SFX-1",  "诊脉接触音",      "Pulse_Contact",
+                new[] { "sfx_pulse_contact_01.wav" }),
+            new AssetRequirement("SFX-2",  "听诊器接触音",    "Steth_Contact",
+                new[] { "sfx_steth_contact_chest_01.wav", "sfx_steth_contact_back_01.wav" }),
+            new AssetRequirement("SFX-3",  "病人呼吸两层",    "BreathLayer_Base_Calm",
+                new[] { "sfx_breath_base_loop_small.wav", "sfx_breath_adventitious_fine.wav" }),
+            new AssetRequirement("SFX-6",  "病人语声",        "Voice_Cough_Damp",
+                new[]
+                {
+                    "vo_patient_cough_damp_m1_1.wav", "vo_patient_cough_damp_m1_2.wav",
+                    "vo_patient_cough_damp_m2_1.wav", "vo_patient_cough_damp_m2_2.wav",
+                    "vo_patient_cough_damp_m3_1.wav", "vo_patient_cough_damp_m3_2.wav",
+                    "vo_patient_cough_damp_f1_1.wav", "vo_patient_cough_damp_f1_2.wav",
+                    "vo_patient_cough_damp_f2_1.wav", "vo_patient_cough_damp_f2_2.wav",
+                    "vo_patient_cough_damp_f3_1.wav", "vo_patient_cough_damp_f3_2.wav",
+                }),
+            new AssetRequirement("SFX-7",  "纸面物理声",      "Page_Turn",
+                new[] { "ui_page_turn_fwd_01.wav", "ui_page_turn_back_01.wav" }),
+            new AssetRequirement("SFX-8",  "脚步声",          "Footstep_Base",
+                new[]
+                {
+                    "sfx_footstep_stone_01.wav", "sfx_footstep_dirt_01.wav",
+                    "sfx_footstep_humus_01.wav", "sfx_footstep_snow_01.wav",
+                }),
+            new AssetRequirement("SFX-9",  "药柜/器物声",     "Cabinet_Prop",
+                new[] { "sfx_cabinet_drawer_01.wav", "sfx_cabinet_handle_01.wav", "sfx_prop_place_01.wav" }),
+            new AssetRequirement("SFX-10", "世界声(9 项拆 4 cue)", "World_Threat",
+                new[]
+                {
+                    "sfx_world_dog_01.wav", "sfx_world_horse_01.wav", "sfx_world_gong_01.wav",
+                    "sfx_world_birds_01.wav", "sfx_world_door_bell_01.wav", "sfx_world_vendor_cry_01.wav",
+                    "sfx_world_throat_clear_01.wav", "sfx_world_crying_01.wav", "sfx_world_bell_01.wav",
+                }),
+            new AssetRequirement("AMB-1",  "医馆室内环境音",  "Clinic_Room_Tone",
+                new[] { "amb_clinic_room_loop.wav" }),
+        };
+
+        /// <summary>R-2 的 9 项 id(具名清单 —— 差集与顺序断言都基于它)。</summary>
+        public static readonly IReadOnlyList<string> RequiredRequirementIds = new[]
+        {
+            "SFX-1", "SFX-2", "SFX-3", "SFX-6", "SFX-7", "SFX-8", "SFX-9", "SFX-10", "AMB-1",
+        };
+
+        /// <summary>世界声的 4 cue(档位拆分;AC-44-E4 的「按 9 个文件比、不按 cue 数比」)。</summary>
+        public static readonly IReadOnlyList<string> WorldSoundCues = new[]
+        {
+            "World_Threat", "World_Opportunity", "World_Reaction", "World_Disaster",
+        };
+
+        /// <summary>AC-44-E1/E4 的门本体 —— 输入 = 数据件 + 事件表行;A/C 具名差集 + 事件表覆盖 + 库文件覆盖。</summary>
+        /// <param name="data">数据件 <c>assets/data/audio_requirements.json</c>;null = 文件缺失(NOT-RUN 守卫)。</param>
+        /// <param name="rows">事件表 cue 行;null = <c>rows</c> 字段缺失(NOT-RUN 守卫)。</param>
+        /// <param name="libraryFiles">素材库内的全部文件名(裸名;null = 目录缺失 ⇒ NOT-RUN 守卫)。</param>
+        public static IReadOnlyList<string> ValidateRequirements(
+            AudioRequirementsData data, IReadOnlyList<AudioEventTableRow> rows,
+            IReadOnlyList<string> libraryFiles)
+        {
+            var errors = new List<string>();
+            if (data == null)
+                errors.Add("[NOT-RUN 守卫 · E1] audio_requirements.json 缺失或未绑定 —— R-2 归属闭合不可执行");
+            if (rows == null)
+                errors.Add("[NOT-RUN 守卫 · E1] 事件表 rows 缺失 —— R-2 归属闭合不可执行");
+            if (libraryFiles == null)
+                errors.Add("[NOT-RUN 守卫 · E4] 素材库清单缺失 —— 双向差集不可执行");
+            if (errors.Count > 0) return errors;
+
+            errors.AddRange(ValidateRequirementTableMatches(data));
+            if (errors.Count > 0) return errors;   // 数据件与常量不一致时,下游差集只会产出噪声
+
+            errors.AddRange(ValidateEventTableCoverage(data, rows));
+            errors.AddRange(ValidateLibraryCoverage(data, libraryFiles));
+            return errors;
+        }
+
+        /// <summary>A 锁:数据件的 9 项 id / cue 名 / 文件集须与 <see cref="RequiredRequirements"/> 逐项相同。</summary>
+        /// <param name="data">数据件绑定结果(null ⇒ 一条 NOT-RUN)。</param>
+        public static IReadOnlyList<string> ValidateRequirementTableMatches(AudioRequirementsData data)
+        {
+            if (data?.Requirements == null)
+                return new[] { "[NOT-RUN 守卫 · E1] 数据件 Requirements 为 null" };
+
+            var errors = new List<string>();
+            var byId = new Dictionary<string, AudioRequirementRow>(StringComparer.Ordinal);
+            foreach (AudioRequirementRow r in data.Requirements)
+            {
+                if (r == null || string.IsNullOrEmpty(r.Id)) { errors.Add("[E1] 数据件存在 id 为空的需求行"); continue; }
+                if (!byId.TryAdd(r.Id, r)) errors.Add($"[E1] 数据件需求 id 重复:「{r.Id}」");
+            }
+
+            foreach (string id in RequiredRequirementIds)
+            {
+                if (!byId.TryGetValue(id, out AudioRequirementRow row))
+                {
+                    errors.Add($"[E1 · A 锁] 数据件缺 R-2 项「{id}」—— 归属清单变更须同步改常量 RequiredRequirements");
+                    continue;
+                }
+                AssetRequirement want = RequiredRequirements.First(w => w.Id == id);
+                if (!string.Equals(row.Cue, want.Cue, StringComparison.Ordinal))
+                    errors.Add($"[E1 · A 锁] 「{id}」cue 名不符:数据件「{row.Cue}」≠ 常量「{want.Cue}」");
+
+                var got = new HashSet<string>(row.Files ?? Array.Empty<string>(), StringComparer.Ordinal);
+                var expect = new HashSet<string>(want.Files, StringComparer.Ordinal);
+                foreach (string missing in expect.Except(got).OrderBy(x => x, StringComparer.Ordinal))
+                    errors.Add($"[E1 · A 锁] 「{id}」数据件缺冻结文件「{missing}」");
+                foreach (string extra in got.Except(expect).OrderBy(x => x, StringComparer.Ordinal))
+                    errors.Add($"[E1 · A 锁] 「{id}」数据件多出未冻结文件「{extra}」");
+            }
+
+            foreach (string extraId in byId.Keys.Except(RequiredRequirementIds, StringComparer.Ordinal)
+                         .OrderBy(x => x, StringComparer.Ordinal))
+                errors.Add($"[E1 · A 锁] 数据件多出未登记项「{extraId}」—— 新增项须先入常量与权威件");
+            return errors;
+        }
+
+        /// <summary>E1:9 项各自 cue 在事件表内存在;世界声的 4 cue 全部存在;文件 ∪ ⊆ 事件表 assets ∪。</summary>
+        /// <param name="data">数据件(调用方已过 A 锁)。</param>
+        /// <param name="rows">事件表 cue 行。</param>
+        public static IReadOnlyList<string> ValidateEventTableCoverage(
+            AudioRequirementsData data, IReadOnlyList<AudioEventTableRow> rows)
+        {
+            var errors = new List<string>();
+            var cues = new HashSet<string>(StringComparer.Ordinal);
+            var files = new HashSet<string>(StringComparer.Ordinal);
+            foreach (AudioEventTableRow row in rows)
+            {
+                if (row == null) continue;
+                if (!string.IsNullOrEmpty(row.Cue)) cues.Add(row.Cue);
+                if (row.Assets == null) continue;
+                foreach (string a in row.Assets)
+                    if (!string.IsNullOrEmpty(a)) files.Add(a);
+            }
+
+            foreach (AssetRequirement req in RequiredRequirements)
+            {
+                if (!cues.Contains(req.Cue))
+                    errors.Add($"[E1] R-2 项「{req.Id} {req.Name}」的 cue「{req.Cue}」不在事件表内");
+            }
+            if (WorldSoundCues.Any(c => !cues.Contains(c)))
+            {
+                foreach (string c in WorldSoundCues.Where(c => !cues.Contains(c)))
+                    errors.Add($"[E1] 世界声档位 cue「{c}」不在事件表内(9 项拆 4 cue 的归属缺一)");
+            }
+
+            foreach (AssetRequirement req in RequiredRequirements)
+            {
+                foreach (string f in req.Files)
+                {
+                    if (!files.Contains(f))
+                        errors.Add($"[E4] 文件「{f}」({req.Id})不从属任何事件表行 —— 有需求无条目");
+                }
+            }
+            return errors;
+        }
+
+        /// <summary>E4:9 项文件 ∪ ⊆ 素材库;库内除登记豁免外不得有无归属文件。</summary>
+        /// <param name="data">数据件(调用方已过 A 锁)。</param>
+        /// <param name="libraryFiles">素材库内全部文件名。</param>
+        public static IReadOnlyList<string> ValidateLibraryCoverage(
+            AudioRequirementsData data, IReadOnlyList<string> libraryFiles)
+        {
+            var errors = new List<string>();
+            var required = new HashSet<string>(
+                RequiredRequirements.SelectMany(r => r.Files), StringComparer.Ordinal);
+            var onDisk = new HashSet<string>(libraryFiles, StringComparer.Ordinal);
+
+            foreach (string f in required.Except(onDisk).OrderBy(x => x, StringComparer.Ordinal))
+                errors.Add($"[E4] 需求文件「{f}」不在素材库 —— 归属已裁而文件缺失");
+
+            var exempt = new HashSet<string>(LibraryUnregisteredExempt, StringComparer.Ordinal);
+            foreach (string f in onDisk.Except(required).Except(exempt).OrderBy(x => x, StringComparer.Ordinal))
+                errors.Add($"[E4] 素材库内「{f}」不属 R-2 任一项且未豁免 —— 有素材无归属");
+            return errors;
+        }
+
+        /// <summary>素材库内**不属 R-2** 但合法存在的文件(逐项具名 —— 加一项须改代码,同 A 锁纪律)。</summary>
+        /// <remarks>
+        /// ⚠️ 目前只有 <c>music_encounter_layer_loop.wav</c>(<c>Music_Encounter_Layer</c> 行,
+        /// R-2 归属表未列音乐层 —— 它是 GDD 规则七的必需 cue,不属 R-2 九项)。
+        /// </remarks>
+        public static readonly IReadOnlyList<string> LibraryUnregisteredExempt = new[]
+        {
+            "music_encounter_layer_loop.wav",
+        };
+
+
 
         /// <summary>世界语境呼吸行的 `bus` 与空间化参数断言(**AC-44-16 的「构建失败」半边**)。
         /// <para>AC-44-16 逐字:「事件表存在世界语境呼吸行(`bus` ∈ Ambience 世界语境子通道,
@@ -1197,5 +1396,59 @@ namespace DaYiJingCheng.EditorTools.Gates
 
         /// <summary>恒等文化的 double 格式化(诊断文本跨机器稳定;CI 日志不随区域变逗号小数点)。</summary>
         private static string Fmt(double value) => value.ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>R-2 归属表的一项(**代码侧具名常量** —— A 锁;Story 016)。</summary>
+    public sealed class AssetRequirement
+    {
+        /// <summary>R-2 项 id(<c>SFX-1</c> … <c>AMB-1</c>)。</summary>
+        public readonly string Id;
+
+        /// <summary>R-2 项名(诊断用)。</summary>
+        public readonly string Name;
+
+        /// <summary>冻结 cue 名(须在事件表内存在)。</summary>
+        public readonly string Cue;
+
+        /// <summary>冻结文件名集合(须 ∈ 事件表 assets ∪ 且 ∈ 素材库)。</summary>
+        public readonly IReadOnlyList<string> Files;
+
+        /// <summary>构造一项。</summary>
+        public AssetRequirement(string id, string name, string cue, IReadOnlyList<string> files)
+        {
+            Id = id; Name = name; Cue = cue; Files = files ?? Array.Empty<string>();
+        }
+    }
+
+    /// <summary>数据件 <c>assets/data/audio_requirements.json</c> 的一行(C —— 值)。</summary>
+    public sealed class AudioRequirementRow
+    {
+        /// <summary>R-2 项 id。</summary>
+        public string Id;
+
+        /// <summary>R-2 项名。</summary>
+        public string Name;
+
+        /// <summary>冻结 cue 名。</summary>
+        public string Cue;
+
+        /// <summary>冻结文件名集合。</summary>
+        public IReadOnlyList<string> Files;
+    }
+
+    /// <summary>数据件的绑定结果(C —— 值;A 锁的比对对象)。</summary>
+    public sealed class AudioRequirementsData
+    {
+        /// <summary>顶层 <c>schema_version</c> 原文。</summary>
+        public string SchemaVersionRaw;
+
+        /// <summary>需求行(null = 字段缺失)。</summary>
+        public IReadOnlyList<AudioRequirementRow> Requirements;
+
+        /// <summary>世界声 9 文件拆 4 cue 的档位归属(cue → 文件);null = 字段缺失。</summary>
+        public IReadOnlyDictionary<string, IReadOnlyList<string>> WorldCueSplit;
+
+        /// <summary>顶层实际出现过的全部键(未知键白名单输入)。</summary>
+        public IReadOnlyList<string> PresentKeys;
     }
 }

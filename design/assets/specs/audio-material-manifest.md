@@ -115,6 +115,9 @@
 | 世界声 | `Ambience`(且只覆盖「狗吠」1 项) | **`SFX`** + **5 项** | GDD `:800` 分层 + `entity-inventory.md` #10 五项(狗吠/马蹄/锣声/钟声/鸟群) |
 
 > ⚠️ **药柜/器物声在草案清单内无对应行(漏项)** —— 本表补一行(`Cabinet_Prop`,bus `SFX`)。
+>
+> ⚠️ **语声(SFX #6)与呼吸(SFX #3)不属本节「余 7 项」**(二者由 story-015 交付),其冻结取值见
+> **§二** 与 **§三** 的「机读索引行」表 —— story-016 的 B 支对账同样覆盖它们。
 
 ### 一之二、世界声的 **9 项**归属(2026-10-17 第二轮裁定 · 用户裁 = **9** · **拆 4 条 cue**)
 
@@ -143,10 +146,11 @@
 > ⚠️ **`entity-inventory.md` #10 的 5 项与 52 的 9 项缺口** —— 本表以 52 为准;
 > `entity-inventory.md` 未就地改注(归其所有者)。
 
-### 二、12 个 `vo_` 变体 —— 冻结命名(**退役现 `m1` / `f1`**)
+### 二、12 个 `vo_` 变体 —— 冻结命名(**story-015 的旧命名已退役**)
 
 **裁定**:12 个**全为阻尼咳嗽**,**挂既有 `Voice_Cough_Damp`**(`assets[]` **2 → 12**);
-命名统一重排为**三段式**;**现 `vo_patient_cough_damp_m1.wav` / `_f1.wav` 退役**。
+命名统一重排为**三段式**;story-015 交付的 `vo_patient_cough_damp_m1` / `vo_patient_cough_damp_f1`
+(无严重度后缀的旧命名)**已退役**。
 
 ```
 vo_patient_cough_damp_m1_1.wav   vo_patient_cough_damp_f1_1.wav
@@ -156,6 +160,17 @@ vo_patient_cough_damp_m2_2.wav   vo_patient_cough_damp_f2_2.wav
 vo_patient_cough_damp_m3_1.wav   vo_patient_cough_damp_f3_1.wav
 vo_patient_cough_damp_m3_2.wav   vo_patient_cough_damp_f3_2.wav
 ```
+
+**机读索引行(2026-10-17 补 · story-016 三处结合的 B 支)`**:
+
+| 项 | **cue id(冻结)** | **冻结文件名** |
+|---|---|---|
+| [SFX #6] 病人语声(原 story-015 的 2 个) | `Voice_Cough_Damp` | `vo_patient_cough_damp_{m,f}1_{1,2}.wav` |
+| [SFX #6] 病人语声(本批新增的 8 个) | `Voice_Cough_Damp` | `vo_patient_cough_damp_{m,f}{2,3}_{1,2}.wav` |
+
+> ⚠️ **本节不在 §一 的「余 7 项」表内**(语声归 story-015,**已交付**),故单独在此补机读行 ——
+> 否则 `AudioRequirementsBake.ValidateManifestText` 的「常量 ↔ 权威件」对账会判 SFX-6 缺出处。
+> `sfx_breath_*` 同理在 §三 有逐字文件名,不必重复。
 
 | 段 | 取值 | 语义 |
 |---|---|---|
@@ -177,6 +192,16 @@ vo_patient_cough_damp_m3_2.wav   vo_patient_cough_damp_f3_2.wav
 > 若复用,须先定它们属哪一档 —— **默认不复用**(录制 12 个全新)。
 
 ### 三、其余 5 个既有素材的真内容
+
+> **机读索引行(2026-10-17 补 · story-016 三处结合的 B 支)**:呼吸两层归 **story-015**、不在 §一 的
+> 「余 7 项」表内;下面这张表是它们的**冻结取值**,由 `AudioRequirementsBake.ValidateManifestText` 对账。
+> ⚠️ 呼吸的 cue 名以**事件表真源**为准(`BreathLayer_Base_Calm` + `BreathLayer_Adventitious_Fine`),
+> 草案清单把它们并成一行 `phys_breath_base` 的口径已在 §「素材清单草案」下方登记为两处结构性分叉。
+
+| 项 | **cue id(冻结)** | **冻结文件名** |
+|---|---|---|
+| [SFX #3] 病人呼吸两层 | `BreathLayer_Base_Calm` | `sfx_breath_base_loop_small.wav` |
+| [SFX #3] 病人呼吸两层 | `BreathLayer_Adventitious_Fine` | `sfx_breath_adventitious_fine.wav` |
 
 `sfx_breath_base_loop_small` · `sfx_breath_adventitious_fine` · `music_encounter_layer_loop`
 (及上述 2 个 `vo_`)的**声学判据**见 `docs/tech-debt-register.md` §「44 音频素材内容需求」逐族表。

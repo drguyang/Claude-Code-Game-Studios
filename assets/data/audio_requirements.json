@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "_note": "Story 016 · R-2 归属表裁给 audio-system 的 9 项需求的机器可读形。权威件 = design/assets/specs/audio-material-manifest.md §一(冻结命名)/ §一之二(世界声 9 项拆 4 cue)+ r2-asset-ownership-ruling-2026-10-03.md。**单一真源声明**:本表是 E1/E4 门的唯一数据输入;Markdown 权威件经 AudioRequirementsBake 的交叉对账被逐项比对,二者不一致 = 构建失败(2026-10-17 用户裁定「红,三处都要改」)。第三处 = AudioEventTableGates.RequiredRequirementFiles 具名常量 —— 改本表即便同步改了 Markdown,常量按名差集仍红 ⇒ 归属变更必过代码审。⚠️ 本表只承载**需求**(应有什么),不承载**素材内容**(声音本体归内容批)。",
+  "requirements": [
+    {
+      "id": "SFX-1",
+      "name": "诊脉接触音",
+      "cue": "Pulse_Contact",
+      "files": ["sfx_pulse_contact_01.wav"]
+    },
+    {
+      "id": "SFX-2",
+      "name": "听诊器接触音",
+      "cue": "Steth_Contact",
+      "files": ["sfx_steth_contact_chest_01.wav", "sfx_steth_contact_back_01.wav"]
+    },
+    {
+      "id": "SFX-3",
+      "name": "病人呼吸两层",
+      "cue": "BreathLayer_Base_Calm",
+      "files": ["sfx_breath_base_loop_small.wav", "sfx_breath_adventitious_fine.wav"]
+    },
+    {
+      "id": "SFX-6",
+      "name": "病人语声",
+      "cue": "Voice_Cough_Damp",
+      "files": [
+        "vo_patient_cough_damp_m1_1.wav", "vo_patient_cough_damp_m1_2.wav",
+        "vo_patient_cough_damp_m2_1.wav", "vo_patient_cough_damp_m2_2.wav",
+        "vo_patient_cough_damp_m3_1.wav", "vo_patient_cough_damp_m3_2.wav",
+        "vo_patient_cough_damp_f1_1.wav", "vo_patient_cough_damp_f1_2.wav",
+        "vo_patient_cough_damp_f2_1.wav", "vo_patient_cough_damp_f2_2.wav",
+        "vo_patient_cough_damp_f3_1.wav", "vo_patient_cough_damp_f3_2.wav"
+      ]
+    },
+    {
+      "id": "SFX-7",
+      "name": "纸面物理声",
+      "cue": "Page_Turn",
+      "files": ["ui_page_turn_fwd_01.wav", "ui_page_turn_back_01.wav"]
+    },
+    {
+      "id": "SFX-8",
+      "name": "脚步声",
+      "cue": "Footstep_Base",
+      "files": [
+        "sfx_footstep_stone_01.wav", "sfx_footstep_dirt_01.wav",
+        "sfx_footstep_humus_01.wav", "sfx_footstep_snow_01.wav"
+      ]
+    },
+    {
+      "id": "SFX-9",
+      "name": "药柜/器物声",
+      "cue": "Cabinet_Prop",
+      "files": ["sfx_cabinet_drawer_01.wav", "sfx_cabinet_handle_01.wav", "sfx_prop_place_01.wav"]
+    },
+    {
+      "id": "SFX-10",
+      "name": "世界声(9 项拆 4 cue)",
+      "cue": "World_Threat",
+      "files": [
+        "sfx_world_dog_01.wav", "sfx_world_horse_01.wav",
+        "sfx_world_gong_01.wav", "sfx_world_birds_01.wav",
+        "sfx_world_door_bell_01.wav", "sfx_world_vendor_cry_01.wav",
+        "sfx_world_throat_clear_01.wav", "sfx_world_crying_01.wav", "sfx_world_bell_01.wav"
+      ]
+    },
+    {
+      "id": "AMB-1",
+      "name": "医馆室内环境音",
+      "cue": "Clinic_Room_Tone",
+      "files": ["amb_clinic_room_loop.wav"]
+    }
+  ],
+  "world_cue_split": {
+    "_note": "世界声 9 文件拆 4 cue 的档位归属(audio-material-manifest.md §一之二)。E1 判定某文件「有归属」时按本表汇总 cue 集合;E4 的文件↔素材比对恒按 requirements[].files 的并集,不看 cue 数。",
+    "World_Threat": ["sfx_world_dog_01.wav", "sfx_world_horse_01.wav", "sfx_world_gong_01.wav", "sfx_world_birds_01.wav"],
+    "World_Opportunity": ["sfx_world_door_bell_01.wav", "sfx_world_vendor_cry_01.wav"],
+    "World_Reaction": ["sfx_world_throat_clear_01.wav"],
+    "World_Disaster": ["sfx_world_crying_01.wav", "sfx_world_bell_01.wav"]
+  }
+}
