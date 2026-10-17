@@ -80,7 +80,7 @@
       > ⇒ 「9 项 ↔ 条目」两侧**不再一一对应**(1 项 → 多 cue)。判据须按
       > 「9 个**文件** ↔ `assets[]` 并集」比,**不得**按 cue 计数比。权威件 =
       > `design/assets/specs/audio-material-manifest.md` §一之二。
-- [ ] **AC-44-E5(新)** ⚠️ **结构面由既有门覆盖,语义面未独立建门**(见 Completion Notes): **无提示音铁律**(`AC-44-09` BLOCKING)对本 story 新增条目同样适用 ——
+- [ ] **AC-44-E5(新)** ⚠️ **结构面由既有门覆盖;语义面 = PlayMode 手跑走查(用户 2026-10-17 裁定)—— 判定器 + 走查件机器半(7 测,已接线执行)已落;人跑走查未执行(E5 仍 ✗,见 Completion Notes)**: **无提示音铁律**(`AC-44-09` BLOCKING)对本 story 新增条目同样适用 ——
       新增条目**不得**用于状态播报(无 sting / jingle / ducking / 素材切换报状态)
 
 ---
@@ -162,11 +162,21 @@
 ## Completion Notes
 
 **Completed**: 2026-10-17
-**Criteria**: **4/5 通过**(E1 / E2 / E3 / E4)· **E5 部分**(见下)
+**Criteria**: **4/5 通过**(E1 / E2 / E3 / E4)· **E5 = ✗(未走查)**
 **Deviations**:
-- **E5 未独立建门**(如实登记):9 项行落在 `WhitelistCategories` 闭集内、`trigger_source` ∉
-  `ForbiddenTriggerSources`,**结构面已由既有全表门覆盖**;但「某条 cue 是否实质在报状态」
-  **写不出自动夹据** ⇒ **不声称已证**。
+- **E5(2026-10-17 第二次处理,用户裁定 = PlayMode 手跑走查)**:
+  - **结构面**已由既有全表门覆盖(9 项行 ∈ `WhitelistCategories` 闭集,`trigger_source` ∉ `ForbiddenTriggerSources`);
+  - **语义面**本轮落了**判定器 + 走查件(机器半已接线)**,但**走查未执行** —— 阻塞如实登记:
+    ① ~~文本半够不着 `Editor.Tools.Bake` 的 `internal` 词法器(CS0122)~~ ✅ **2026-10-17 已结** ——
+    根因是**缺 `AssemblyInfo.cs`**(本工程 IVT 成例走源码 `[assembly: InternalsVisibleTo]`,非 asmdef 键;
+    先例 `Sim.Codec` / `Editor.Tools.Spike`)。补件后文本半已接回并在全量回归内执行(7 条新测);
+    ② 真播放的批次语义(EditMode 批次内 `AudioSource.Play` 是否出声)**未实测** —— 仍在;
+    ③ 走查须人在场(本机无交互式编辑器) —— 仍在;
+    ④ `Music_Encounter_Layer` 是否在 E5 射程内 **待裁**(manifest §四 该格为「待裁」)。
+  - **已落且已证**:`CueTextOrderingRules`(文本先后判据器)+ 6 条夹具 + 4 变异反证;
+    走查件接线半边 **7 测** + 接线变异反证 W1/W2/W4/W5 全部 exact-red(W4 首轮无判别力,补静音夹具后真红);
+    manifest §四「替代读法」逐 cue 归属表;全量 **3667 / 3621 / 0 / 46**(基线 3660,Δ = +7)。
+  - **未做(不掩盖)**:清单 / 真播 / 走查记录 —— 一个都没有;**E5 不得记通过**。
 - **不产出 cooked**:`audio_requirements.json` 是构建期门输入,运行期无消费者;
   凭空造编码格式 = 第二真源(承 `AudioSettingsRegistryBake` 头注纪律)。
 **Test Evidence**: Integration —— 真身 `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`

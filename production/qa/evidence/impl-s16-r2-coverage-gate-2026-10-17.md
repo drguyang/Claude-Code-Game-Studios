@@ -138,7 +138,7 @@ unity test unity --mode EditMode --output unity/Logs/s28-full.xml
 | **E2** 9 项 `.wav` 真实存在 | ✅ | ✅ | `test_e1_realRequirements_gatePassesWithNoError`(跑**真素材**,非夹具) |
 | **E3** 删被引 wav ⇒ 构建期 `throw` | ✅ | ✅ | `test_e3_missingRequiredFile_throwsAtBakeTime`(断言 `BakeValidationException` 且点名文件) |
 | **E4** 双向集合差归零 | ✅ | ✅ | `test_e1_realRequirements_*` + 反证 F3 / F4 |
-| **E5** 无提示音铁律 | ⚠️ **未独立建门** | ✗ | **见下** |
+| **E5** 无提示音铁律 | ⚠️ **判定器已落;走查未执行** | ✗ | **见下 + §十** |
 
 ### ⚠️ E5 —— 如实登记,不标已证
 
@@ -151,6 +151,8 @@ E5 要求「新增 9 项条目不得用于状态播报」。**本轮未为它新
 ⇒ **结构面已闭合**,但「语义面(某条 cue 是否实质在报状态)」**写不出自动夹据**。
 本件**不声称 E5 已被独立证明**,只声称其**结构面**由既有门覆盖。
 
+> **2026-10-17 第二次处理(用户裁定 = PlayMode 手跑走查)**:见 §十。结论不变 —— **E5 仍 ✗**。
+
 ---
 
 ## 八、NOT-RUN / 未做(不掩盖)
@@ -159,7 +161,7 @@ E5 要求「新增 9 项条目不得用于状态播报」。**本轮未为它新
 |---|---|
 | **cooked 产物** | `audio_requirements.json` **刻意不产出 `*.cooked`** —— 它是**构建期门**的输入,运行期无消费者。**凭空造一个没有消费者的编码格式 = 第二真源**(承 `AudioSettingsRegistryBake` 头注的同一条纪律) |
 | **PlayMode 全量** | 本件未跑;最近一次全量 `189/189/0/0`(2026-10-17 重建 catalog 后) |
-| **E5 语义面** | 见 §七 |
+| **E5 语义面 · 走查执行** | 见 §七 + §十 —— 判定器已落,走查未跑 |
 
 ---
 
@@ -174,3 +176,106 @@ E5 要求「新增 9 项条目不得用于状态播报」。**本轮未为它新
 | `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs` | 改:74 → **89** 测 |
 | `design/assets/specs/audio-material-manifest.md` | 改:补两张机读索引行表 + 一处退役句改写 |
 | `docs/tech-debt-register.md` | 改:`TD-audio-01f` 残留② 结清登记 |
+
+---
+
+## 十、E5 第二次处理:PlayMode 手跑走查(2026-10-17,用户裁定)
+
+### 10.1 用户裁定
+
+三选一(声明式自洽门 / 只加布尔字段 / PlayMode 手跑走查)⇒ **PlayMode 手跑走查**。
+
+### 10.2 已落(全部在盘上)
+
+| 件 | 性质 | 状态 |
+|---|---|---|
+| `unity/Assets/Gameplay.Presentation/Audio/CueTextOrderingRules.cs` | **判定器**(文本先后 + 归属三选一 `Reason`),纯 C#,零 Unity 依赖 | 落 |
+| `unity/Assets/Tests/EditMode/Audio/statereport_text_ordering_test.cs` | 判定器 6 条夹具 | **6/6 绿** |
+| `unity/Assets/Tests/EditMode/Audio/statereport_walkthrough_probe.cs` | 走查骨架(清单 / 真播 / 文本先后 / 谓词重跑 / 记录 + 设备执行门) | **走查触发已停用**(`Assert.Ignore`) |
+| `design/assets/specs/audio-material-manifest.md` §四 | 「替代读法」权威件 + 15 cue 逐项归属表 + 文本先后判据 | 落 |
+
+### 10.3 证伪轮(S12-4)
+
+见 §10.5。
+
+### 10.4 装配阻塞(如实登记 —— 这是 E5 仍 ✗ 的原因)
+
+| # | 阻塞 | 实测证据 |
+|---|---|---|
+| ① | 走查的文本半须与门同源读 `subtitle_text`;词法器 `JsonStage1Lexer` 是 `Editor.Tools.Bake` 的 `internal` + 仅编辑器装配 | PlayMode 装配(`Gameplay.Tests`)与 EditMode 装配(`Sim.Contracts.Tests`)均 **CS0122**;暂加 `internalsVisibleTo` 后**仍 CS0122**(两次实测)⇒ 已撤回该改动 |
+| ② | 真播放的批次语义未定 | EditMode 批次内 `AudioSource.Play` 是否出声**未实测**;`StethoscopePreloadLoadStateTest` 文件头自陈 PlayMode 批次内「真不出声」但未给环境 |
+| ③ | 走查须人在场 | 本机无交互式编辑器;batch 只能跑机器半 |
+
+**不得以「骨架已落」充当「走查已做」**(同 commit message ≠ 结局)。
+
+### 10.5 走查骨架的诚实边界
+
+- 本件**不证明**「播放出来的声音不是在报状态」—— 那是耳朵的判定;机器半是**必要条件**,不是充分条件。
+- 走查记录 `docs/audio/statereport-walkthrough-<date>.md` **尚未生成**(零走查)。
+
+### 10.6 装配阻塞 ① 的根因与结清(2026-10-17 追加)
+
+**根因(用户要求「先查清为什么没生效」)**:本工程的 IVT 成例**不是** asmdef 的
+`internalsVisibleTo` 键,而是**源码 `AssemblyInfo.cs` 上的 `[assembly: InternalsVisibleTo]`**
+(先例:`Sim.Codec/AssemblyInfo.cs`、`Editor.Tools.Spike/AssemblyInfo.cs`;承 ADR-025 §①)。
+`Editor.Tools.Bake` **从未有过 `AssemblyInfo.cs`** ⇒ 无论测试侧怎么写都够不着其 `internal`。
+另:本轮先前对 asmdef 的两次文本替换还**制造了重复键**(`versionDefines` / `noEngineReferences` 各出现两次),
+Unity 静默忽略非法 asmdef ⇒ 双重失败,与 Unity 版本行为无关。
+
+**落法**:新增 `unity/Assets/Editor.Tools.Bake/AssemblyInfo.cs`(1 行 IVT + 缘由注);
+`Editor.Tools.Bake.asmdef` 已**逐字节还原为 HEAD**。装配阻塞 ① **结清**。
+
+**随即接回的文本半**(用户指示「接着把走查件的文本半接回来」)—— 走查件新增:
+
+| 半边 | 判据 | 走查触发停用时是否被执行 |
+|---|---|---|
+| **真源字幕读入** | `textHalf_realSource_readsSubtitlesAndPassesOrdering`(读真 `audio_events.json`,逐 cue 取 `subtitle_text` 过判定器) | ✅ 执行 |
+| **谓词重跑**(3 个坏输入用例 + 2 个正反用例) | `replayPredicates_*` | ✅ 执行 |
+| **静音 cue 的判定无效** | `replayPredicates_silentAsset_rejectsVerdictAsInvalid` | ✅ 执行 |
+| **清单 / 真播 / 记录产出** | `walkthrough_allCues_manifestPlaybackAndOrdering` | ❌ 仍 `Assert.Ignore`(阻塞 ②③) |
+
+### 10.6b 待用户裁决(仍在)
+
+- 阻塞 **②**:EditMode 批次的出声语义**未实测**;
+- 阻塞 **③**:走查须人在交互式编辑器里跑,本机 batch 只能跑机器半;
+- `Music_Encounter_Layer` 是否在 E5 射程内 —— manifest §四 该格现为「**待裁**」
+  (ADR-018 §六 G1–G3 护栏是否**取代** E5 判定,无权威件可依)。
+
+### 10.7 证伪轮实测(S12-4 —— 含首轮假绿)
+
+驱动 `/tmp/fz-e5.py`:改 → 跑 → 还原在同一命令内,`finally` 做 SHA-256 逐字节校验。
+
+| ID | 变异 | 首轮结果 | 处理 |
+|---|---|---|---|
+| **E5-1** | 停用「首词须陈述式」(`!IsStatementHead` → `false && …`) | **8 / 7 / 0 —— 零红 ⇒ 🔴 假绿** | 夹具输入改为「肺热已退…咳」(结论句 + **无**结论词形)⇒ 复跑 **8 / 6 / 1**,恰红 `textOrdering_conclusionHead_isRejected` ✅ |
+| E5-2 | 停用结论词形扫描 | 恰红 1:`textOrdering_conclusionAnywhere_includingMidword_isRejected` | ✅ |
+| E5-3 | 停用循环行豁免 | 恰红 1:`textOrdering_loopRowWithSubtitle_isExempt` | ✅ |
+| E5-4 | 取消走查停用(`if (false) Assert.Ignore`) | 红 1:`walkthrough_allCues_manifestPlaybackAndOrdering`(骨架执行到 NOT-RUN 断言 ⇒ 红,符合预期) | ✅ |
+
+**E5-1 首轮假绿值得记**:首版夹具用「确诊:肺热…咳」——「确诊」同时命中结论词形,
+**结论词形扫描兜住了首词守卫**,把首词守卫删掉也照样有 problem。修法不是放宽,是让输入**只有首词守卫能抓**。
+
+| **W1** | 文本半的源字幕读入被架空(读入后不参与判定) | **14 / 12 / 1** —— 恰红 `textHalf_realSource_readsSubtitlesAndPassesOrdering` | ✅ |
+| **W2** | 谓词层词法失败不报 | **14 / 12 / 1** —— 恰红 `replayPredicates_rejectsMalformedInput_case("{ not json","词法失败")` | ✅ |
+| **W4** | 停用「静音 cue 的判定无效」 | 首轮 **14 / 13 / 0** —— **零红 ⇒ 🔴 无判别力**(静音分支当时无夹具) | 补夹具 `replayPredicates_silentAsset_rejectsVerdictAsInvalid` ⇒ 复跑 **15 / 13 / 1**,恰红该条 ✅ |
+| **W5** | 复跑 E5-1 的首词守卫变异 | **14 / 12 / 1** —— 仍恰红 `textOrdering_conclusionHead_isRejected`(夹具修复未回退) | ✅ |
+
+**W4 与 E5-1 同型**:守卫在**生产码里**、断言在**别处** —— 只证「跑过」不证「被守卫钉住」。
+两轮都是先红出假绿、再补输入才真红。
+
+### 10.8 回归
+
+```bash
+unity test unity --mode EditMode --output unity/Logs/s33-full.xml
+# → total 3667 · passed 3621 · failed 0 · inconclusive 0 · skipped 46(exit 0)
+```
+
+**对账(逐 fullname)**:`s33-full.xml` vs `s32-full.xml`(3660)→ **新增 7 / 删除 0**,
+`3667 − 3660 = 7` 成立。新增全部 = `StateReportWalkthroughProbe` 的接线半边
+(源字幕 1 · 词法坏输入 3 · 谓词正/反 2 · 静音 1)。
+
+> ⚠️ **XML 计数口径**:`s33` 的 `<test-case>` 元素为 **3896**、`s32` 为 **3889**,
+> 比 `testcasecount`(3667 / 3660)各多 **229** —— 差值是 NUnit 对 `[UnityTest]` / `IEnumerator`
+> 用例在 XML 里的**额外节点表示**,两边**差值恒定**(229)⇒ 逐 fullname 差集口径不受影响。
+> 差额本身未追根(不在本件判据面内),如实登记。
+

@@ -210,6 +210,50 @@ vo_patient_cough_damp_m3_2.wav   vo_patient_cough_damp_f3_2.wav
 
 ---
 
+## 四、AC-44-E5 手跑走查的**替代读法**(2026-10-17 · story-016)
+
+> **为什么单列一节**:E5 要求「新增条目不得用于状态播报」。白名单断言(AC-44-09)管的是
+> **时机与分类**(`whitelist_category` × `trigger_source`),管不到「这条声音**听起来**是不是在宣告状态」。
+> 后者只有**耳朵**能判 —— 但「耳听对不对」需要一个可以逐条核对的**参考解读**,否则走查变成印象打分。
+> 本节即该参考解读的**权威出处**;走查件(`CueTextOrderingRules.Reason`)把每条 cue 归入下述三选一。
+
+| 归属 | 含义(GDD `:66-78` 规则二) | 走查时要核的**替代读法** |
+|---|---|---|
+| `physiology` | 持续生理声 —— 症状的**连续**变化**本身**就是病人状态,不是「宣告」状态变化 | 听到的应是**质地**(呼吸的湿/干/停顿、咳嗽的闷/短),不是「一声告知你他病了」的提示音 |
+| `player_action` | 玩家自身动作 / 玩家主动的检查动作 —— 声音**由玩家动作产生** | 每一声都应能指回**玩家刚做的动作**(落笔 / 贴听诊器 / 翻纸 / 放药罐 / 迈步);没有动作就没有声音 |
+| `world_ambience` | 玩家可感知的世界声 —— 环境与事件的**可闻事实**(狗吠、马蹄、锣、鸟惊飞、哭喊、钟) | 听到的是**世界里发生了什么**,不是「系统告诉你某档位触发了」;同一事实不得被**换素材/换音量**来报进度 |
+
+**逐 cue 归属(事件表 15 行全列;`whitelist_category` 取自事件表真源)**:
+
+| cue | `whitelist_category` | 归属 |
+|---|---|---|
+| `Voice_Cough_Damp` | ContinuousPhysiology | `physiology` |
+| `BreathLayer_Base_Calm` | ContinuousPhysiology | `physiology` |
+| `BreathLayer_Adventitious_Fine` | ContinuousPhysiology | `physiology` |
+| `WorldBreath_Baseline` | ContinuousPhysiology | `physiology`(世界语境呼吸,承 ADR-028) |
+| `Music_Encounter_Layer` | MusicLayer | **待裁** —— 乐层有 ADR-018 §六 的 G1–G3 护栏,但「护栏是否**取代** E5 判定」未经任何权威件裁定;走查前须先裁(不得由本表自定) |
+| `World_Threat` | WorldPerceptible | `world_ambience` |
+| `World_Opportunity` | WorldPerceptible | `world_ambience` |
+| `World_Reaction` | WorldPerceptible | `world_ambience` |
+| `World_Disaster` | WorldPerceptible | `world_ambience` |
+| `Pulse_Contact` | PlayerExamAction | `player_action` |
+| `Steth_Contact` | PlayerExamAction | `player_action` |
+| `Page_Turn` | PlayerExamAction | `player_action` |
+| `Footstep_Base` | PlayerAction | `player_action` |
+| `Cabinet_Prop` | PlayerAction | `player_action` |
+| `Clinic_Room_Tone` | WorldPerceptible | `world_ambience` |
+
+**语声的文本先后(黑名单第 4 条的可判形态)**:语声 cue 的字幕(`subtitle_text`)须以**陈述式**起头
+(「咳…」「喘…」「喊…」),不得以结论句式起头、不得含状态结论词形
+(清单 = `CueTextOrderingRules.StatusConclusionPatterns`)。文字先于声音陈述结论 = 音频在给
+玩家**已经能读出的结论**加提示音。
+
+> ⚠️ **本节证明不了什么**:它给出的是**参考解读**,不是「声音遵了此读法」的证明。
+> 「听到了什么」由走查记录(`docs/audio/statereport-walkthrough-<date>.md`)里走查人的逐条判定承载;
+> 该表**未签字 = E5 未通过**。
+
+---
+
 ## Tuning Knobs（数值归用户）
 
 以下参数在 `assets/data/audio_events.json` 的对应 cue 条目中可调：
