@@ -206,7 +206,10 @@ vo_patient_cough_damp_m1.wav
    > ⚠️ **2026-10-17 就地订正(上句已过期,原文保留)**:`.gitignore` 已**收窄** ——
    > 组定义入库(`TD-audio-01a` 修复),`.meta` / `audio.asset` / schema 全部随 clone 到达
    > ⇒ 「新检出后须手跑菜单才成立」**不再成立**。仍被忽略的只有逐平台
-   > `*/addressables_content_state.bin`。**真·全新 clone 复测未跑**(见 `TD-audio-01c`)。
+   > `*/addressables_content_state.bin`。
+   > ✅ **真·全新 clone 复测已跑(2026-10-17)** —— 真 `git clone`(无 `Library/`)上
+   > `PipelineGateTest` = **54/54/0**,决定性的一条 `test_d5_realSettings_audioAssetsSeparateFromDataCore`
+   > **Passed** ⇒ 组分离在真检出上成立。原件见 `impl-td-audio-01-fix-2026-10-17.md` §6.4。
 
 ### 收口裁定(2026-10-17 用户)
 

@@ -32,7 +32,7 @@
 | 7 | 听诊预载 3 测打自造 `FakePreloadGate` | 🔴 | `StethoscopePreloadGate`(真生产谓词,注入式 `LoadStateQuery`,**空集 = 构造期硬失败**)+ `HandoverMux` 接线 | 反证 C5 + `test_preload_*` 11 条 |
 | 8 | 「一次性 cue 迟发 ≤ 登记常量」= **两个硬编码 int 互比**(`maxDelayMs=100` / `actualDelayMs=50`) | 🔴 | **该测删除**(恒真)。其判据面现由 `StethoscopePreloadGate` 的「全族就绪才放行」承担 —— GDD `:640` 的「不得在听诊中因加载迟发」针对的是听诊**期间**任何一条迟到 | `test_preload_partialLoaded_blocks` |
 | 9 | `pipeline_gate_test.cs:213-227` **写仓库 `assets/audio/`**(违 `test-standards.md`「Unit tests must not depend on external state (filesystem)」) | 🔴 | 副作用整段删除;新增 `test_discipline_noFilesystemWrites`(扫本文件源码,注释剥离)作为**结构性守卫**;遗留空目录 `assets/audio/` 已 `rmdir` | 反证:该测自身 + `test_discipline_*` |
-| 10 | 真 `AudioClip.loadState` 的 PlayMode 半边 | 🟡 悬空 | 承裁定 ③:**如实登记 NOT-RUN** + 缺口哨兵 `test_preload_realAudioClipLoadState_pendingPlayModeHalf`(素材定稿后它转红 ⇒ 须随之改判) | 该条为哨兵,不签绿 |
+| 10 | 真 `AudioClip.loadState` 的 PlayMode 半边 | ~~🟡 悬空~~ ⇒ ✅ **2026-10-17 已跑** | 承裁定 ③:**如实登记 NOT-RUN** + 缺口哨兵 `test_preload_realAudioClipLoadState_pendingPlayModeHalf`(素材定稿后它转红 ⇒ 须随之改判) | ~~该条为哨兵,不签绿~~ ⇒ **哨兵已按自身口径转真断言**(适配器 + PlayMode 件 3/3 绿),见 §5 下方 2026-10-17 订正 |
 
 ---
 
@@ -157,6 +157,28 @@ expected = [ "Assets/Audio/sfx_breath_base_loop_small.wav" ]
 | 3 | IL2CPP 三格(ADR-012 矩阵) | **NOT-RUN** | 本机仅 Mono;CI 矩阵 |
 | 4 | `AddressableAssetsData/` 是 gitignored 机器生成物 | 机器前置 | 每台机器首次须跑「确保 data-core / audio Addressables 组」菜单(与既有 `data-core` 同款) |
 | 5 | `Editor.Tools.Bake/AudioEventTableBinder` 与 `event_table_gate_test.cs` 的手写 JSON 扫描器是**两份阶段 2 抽取器** | 已登记的重复 | **刻意不动**:后者承载 story-002 的截断夹具语义(`__truncated__` 哨兵);归 story-002 轮 |
+
+> ⚠️ **2026-10-17 订正**(本表为 **2026-10-16 快照**,原文不删 —— 承「历史陈述加注不改写」)。
+> 三条已变,其中 **#3 的原措辞经实测为假**:
+>
+> - **#1 真 `AudioClip.loadState` 的 PlayMode 半边** ⇒ **✅ 已跑**(S14-6 补口)。落
+>   `Gameplay.Presentation/Audio/AudioClipLoadStateAdapter.cs` +
+>   `unity/Assets/Tests/PlayMode/Audio/stethoscope_preload_loadstate_test.cs`(**3/3 绿**:
+>   真 clip `UnloadAudioData()`/`LoadAudioData()` 过渡 + 门 阻断→放行)。**原缺口哨兵
+>   `test_preload_realAudioClipLoadState_pendingPlayModeHalf` 已按其自身口径转成真断言**,
+>   不是被当回归修掉。证据:`production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md`。
+> - **#3 IL2CPP 三格** ⇒ 原文「**本机仅 Mono**」**为假**(本机装有 IL2CPP 模块)。逐格实测:
+>   **Linux-x64-Mono ✅ + Linux-x64-IL2CPP ✅(2026-09-24,19/19 逐位相同)**;
+>   **Mono player 第三上下文 ✅(2026-09-25,15/15)**;**ARM64 腿 ❌**(本机无该模块;ADR-012 §二
+>   要求原生 ARM64 runner,qemu 否决);**CI 常驻矩阵 job ❌ 未建**(`il2cpp-determinism` = TODO 占位)。
+>   ⇒ 矩阵**整体**仍 NOT-RUN,但**不是**「本机只有 Mono」。
+>   证据:`production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`。
+> - **#4 `AddressableAssetsData/` 是 gitignored 机器生成物** ⇒ **✅ 已收窄(TD-audio-01a)**:
+>   组定义已随仓库入库;「每台机器首次须跑建组菜单」的前提**不再成立** —— 组缺失 = 入库文件被删/损坏,
+>   恢复靠 `git checkout`(菜单已改**硬失败**,见 TD-audio-01 W-5②)。**残留**:PlayMode 解析的
+>   **预建 catalog** 仍是机器本地产物(`unity/Library/com.unity.addressables/…`,gitignored)⇒
+>   改过组条目后须跑「大医精诚/数据管线/**构建 Addressables 内容**」菜单(该菜单 **2026-10-17 新立**;
+>   此前全库唯一调用 `BuildPlayerContent` 的是 `U1SpikeSetup`)。
 
 ---
 

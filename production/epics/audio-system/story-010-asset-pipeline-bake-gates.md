@@ -6,7 +6,31 @@
 > **Type**: Integration
 > **Estimate**: 4h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-10-16
+> **Last Updated**: 2026-10-17
+
+> **✅ 2026-10-17 悬项收口轮(TD-audio-01 补口第二轮)—— 三处落地,一处提交用户裁**
+> 用户「现在修,有悬就不要停直到解决」的四项逐条处置:
+> ① **`01f` Play Mode 门**(`DataBakeMenu.EnsureAssetDatabasePlayMode` 升 public + 纯谓词
+>    `FindAssetDatabaseBuilderIndex` + 新菜单「Play Mode 归位」+ 机器前置门
+>    `test_playModeScript_isAssetDatabase`)。⚠️ **§10.4 的原残留诊断是错的** ——
+>    入库的 `m_ActivePlayerDataBuilderIndex: 2` 是 **Build** 脚本(正确);真正的旋钮是
+>    **Play Mode 脚本**,住 `Library/AddressablesConfig.dat`(**机器本地 · 默认值即正确**)。
+> ② **素材 Import Settings 门**(`AudioImportSettingsGate.cs` **新**)—— 把 GDD §OQ-44-2 附 的
+>    **人肉复核**升为**可跑的门**;5 个 `.meta` 本就合规,新增的是**判据可执行** + 12 个 `vo_`
+>    变体落地时**自动纳入**。
+> ③ **通用防线**(`tools/falsify/` **新**:驱动 + spec + README)—— 取代原「一次性
+>    `git diff --quiet`」建议,含 ①改→跑→还原同进程 ②SHA-256 校验 ③受保护路径指纹未变 三条纪律。
+> ④ **IL2CPP ARM64 腿** —— 探针实测 **46 个 BuildTarget 零个 arm**,`StandaloneLinux64` 是
+>    唯一受支持的 Linux 目标 ⇒ **该格在本 pinned 工具链上不可达**(ADR-012 §二:156 原句为假)。
+>    **✅ 用户裁定 = 维持三格原样,登记为「长期未达」**(三条裁剪候选均未被采纳;ADR-012
+>    §一 裁决一字不改,该复选框**长期未勾且不得静默移除**)—— 见 ADR-012 §Validation §ARM64 探针裁定。
+> **夹具 61 → 69 测**(7 条门 + **自查再 +1**,见下);证伪轮 **5 变异全红**(`FALSIFY_EXIT=0`)。
+> ⚠️ **同轮自查抓到本门自带的一处缺陷**(已修 + 已反证):`AudioImportSettingsGate.Validate` 原用
+> `Directory.GetFiles(dir, "*.wav")` —— **该 pattern 在 Linux 上区分大小写**(实测只返回 `lower.wav`,
+> 漏掉 `UPPER.WAV`/`Mixed.Wav`)⇒ 素材批若交付 `.WAV` 会**少报违例**。修 = 纯谓词 `IsWavName` +
+> 枚举 `"*"` 过滤。**与 story-017 的 W-2 同型不同处**(`AudioAssetGroupGates.cs:197` 归 story-017),
+> **两处不合并记账**。
+> 证据原件:`production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md` §十二 / §十三 / §十四。
 
 > **⚠️ 2026-10-16 假绿复核 —— Status 由 `Complete` 撤回为 `In Review`**
 > sprint-13 S13-9 补评判定:本 story 的 AC 语义层**未被验证** —— 音频事件表烘焙管线
@@ -53,7 +77,7 @@
 - [x] **AC-44-D4**:音频事件表走 ADR-014 烘焙管线;玩家构建**零 JSON 解析器**(构建产物扫描:无 Newtonsoft/解析器符号进 player 程序集)。— **S14-6 落**:`Gameplay.Presentation` 装配引用集断言(含扫描键非空守卫)+ 44 类型签名扫描 + 运行期 codec 只解字节。
 - [x] **AC-44-D5**:素材本体 = `assets/audio/`(Addressables 流式),与 `data-core` 组区分(组条目扫描断言;`Editor.Tools.Gates` 读 `AddressableAssetSettings`)。— **S14-6 落**:`AudioAssetGroupGates.ValidateSettings`(真设置,本机 `audio` 组已建)+ `ValidateEntries`(纯谓词负向)。
 - [x] **AC-44-D6**:素材缺失 = **编辑期烘焙门拒绝**(事件表 `assets[]` ↔ 文件存在谓词,入 ADR-014 阶段 2 谓词集;负向:删一个 wav ⇒ 构建失败,不是运行期降级)。— **S14-6 落**:`AudioAssetExistence`(门强制,`assetRoot` 必填)+ `AudioEventTableBinder.Bind` 路径必经。
-- [x] **听诊窗预载**(Edge Cases 素材段):进入 `StethoscopeFocus` 前听诊族 cue `loadState == Loaded`(PlayMode 断言,未就绪不进听诊);一次性 cue 迟发 ≤ 登记常量(「极小迟发」量化)。— **S14-6 落**:`StethoscopePreloadGate`(纯谓词,注入式 `LoadStateQuery`);⚠️ **真 `AudioClip.loadState` 的 PlayMode 半边 = NOT-RUN**(缺口哨兵 `test_preload_realAudioClipLoadState_pendingPlayModeHalf` 钉住)。
+- [x] **听诊窗预载**(Edge Cases 素材段):进入 `StethoscopeFocus` 前听诊族 cue `loadState == Loaded`(PlayMode 断言,未就绪不进听诊);一次性 cue 迟发 ≤ 登记常量(「极小迟发」量化)。— **S14-6 落**:`StethoscopePreloadGate`(纯谓词,注入式 `LoadStateQuery`);**S14-6 补口(2026-10-17)**:真 `AudioClip.loadState` 的 PlayMode 半边**已跑** —— `AudioClipLoadStateAdapter` + `unity/Assets/Tests/PlayMode/Audio/stethoscope_preload_loadstate_test.cs`(**3/3 绿**:真 clip `Unloaded→Loaded` 过渡 + 门翻面);原缺口哨兵已按其自身口径**转成真断言**(不是被当回归修掉)。
 
 ---
 
@@ -97,10 +121,13 @@
 **Required evidence**:
 - `tests/integration/audio_system/pipeline_gate_test.cs` — must exist and pass
 
-**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`(**52 测**,S14-6 由 11 扩);账本互链 `tests/integration/audio_system/README.md`
-**实现证据**: `production/qa/evidence/impl-s14-6-asset-pipeline-2026-10-16.md`
-**⚠️ NOT-RUN(如实登记,禁借绿)**: 真 `AudioClip.loadState` 的 PlayMode 半边(素材本体未定稿)·
-素材 Import Settings 定稿(归内容批 `OQ-44-2`)· IL2CPP 三格(本机仅 Mono,ADR-012 矩阵)
+**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`(**69 测**,S14-6 由 11 扩至 52 → 补口轮 61 → 悬项收口轮 2026-10-17 再扩至 68 → **自查 +1 ⇒ 69**);账本互链 `tests/integration/audio_system/README.md`
+**实现证据**: `production/qa/evidence/impl-s14-6-asset-pipeline-2026-10-16.md` · 补口 `production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md`
+**⚠️ NOT-RUN(如实登记,禁借绿)**: 素材 Import Settings 定稿(归内容批 `OQ-44-2`)·
+IL2CPP 三格(ADR-012 矩阵**整体**未建;逐格状态见下「NOT-RUN 如实登记」)
+**✅ 2026-10-17 补口**: 真 `AudioClip.loadState` 的 PlayMode 半边**已跑** ——
+`AudioClipLoadStateAdapter` 落盘 + `unity/Assets/Tests/PlayMode/Audio/stethoscope_preload_loadstate_test.cs`
+**3/3 绿**(真 clip `Unloaded→Loaded` 过渡 + 门翻面),原缺口哨兵已按其自身口径转真断言
 
 ---
 
@@ -249,20 +276,53 @@
 
 ### NOT-RUN 如实登记(禁借绿)
 
-- **真 `AudioClip.loadState` 的 PlayMode 半边** —— NOT-RUN(素材本体未定稿);缺口哨兵
-  `test_preload_realAudioClipLoadState_pendingPlayModeHalf` 钉住,**素材定稿后它转红 ⇒ 须随之改判,
-  不得当回归修掉**。
+- ~~**真 `AudioClip.loadState` 的 PlayMode 半边** —— NOT-RUN~~ **✅ 2026-10-17 已跑(S14-6 补口)**:
+  原缺口哨兵 `test_preload_realAudioClipLoadState_pendingPlayModeHalf` 已按**自身口径**转成真断言
+  (`AudioClipLoadStateAdapter` + PlayMode `stethoscope_preload_loadstate_test.cs` **3/3 绿**:
+  真 clip `UnloadAudioData()`/`LoadAudioData()` 过渡 + 门 阻断→放行),**不是被当回归修掉**。
 - **素材 Import Settings 定稿**(呼吸/语声族 `DecompressOnLoad` 等)—— 归内容批(`OQ-44-2`)。
-- **IL2CPP 三格**(ADR-012 矩阵)—— NOT-RUN:本机仅 Mono。
-- **`AddressableAssetsData/` 是 gitignored 机器生成物** —— 每台机器首次须跑
-  「确保 data-core / audio Addressables 组」菜单(与既有 `data-core` 同款)。
+  **⚠️ 2026-10-17 口径细分**(勿混读):**判据**已升为可跑的门(`AudioImportSettingsGate`,
+  5 个 `.meta` 实测本就合规);**仍归内容批的**是**真实素材内容**(占位 wav → 真素材)与
+  该批可能带来的**重新定档**。⇒ 「门已落」**不等于**「内容已定稿」。
+- **IL2CPP 三格**(ADR-012 矩阵)—— **矩阵整体 NOT-RUN**(CI 常驻 job 未跑 + ARM64 腿不可达)。
+  ⚠️ **2026-10-17 逐格订正**:原文「本机仅 Mono」**为假** —— 本机装有 IL2CPP 模块,且
+  **Linux-x64 的 Mono 与 IL2CPP 两格已于 2026-09-24 实测逐位相同(19/19)**,2026-09-25 补
+  Mono player 第三上下文(15/15)。
+  ⚠️ **2026-10-17 二次订正(探针实测,把「未跑」升级为「不可达」)**:`BuildTargetProbeCli` 实测
+  **46 个 BuildTarget 含「arm」的 = 零**;`IsBuildTargetSupported(Standalone, …)` 下
+  **只有 `StandaloneLinux64`(x64)受支持** ⇒ **ARM64 腿不是「本机没装模块」,是本 pinned
+  工具链上「目标不存在」**,且**不取决于 runner 架构**(原生 ARM64 runner 上同样无目标可构建)。
+  ⇒ ADR-012 §二:156「Linux-ARM64 是受支持目标」**为假**,已就地订正;
+  **F2 spike 前置不成立**;**三条裁剪候选已提交用户,裁定 = 维持三格原样、登记为长期未达**
+  (不降级 / 不换面 / 不改挂 —— 见 ADR-012 §Validation §ARM64 探针裁定)。
+  探针原件 + 可复跑命令:`production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md` §十三。
+  另有 **Windows-x64 / Apple Silicon**(ADR-012 §二:发版前必跑,不进常驻)。
+  两格证据:`production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`。
+- ~~**`AddressableAssetsData/` 是 gitignored 机器生成物**~~ **✅ 2026-10-17 已收窄(TD-audio-01a)**:
+  `.gitignore` 现只忽略逐平台的 `*/addressables_content_state.bin`,**组定义已随仓库入库** ⇒
+  「每台机器首次须跑建组菜单」的前提**不再成立**;组缺失 = 入库文件被删/损坏,恢复靠
+  `git checkout -- unity/Assets/AddressableAssetsData`(菜单已改硬失败,见 TD-audio-01 W-5②)。
+  **残留**:PlayMode 解析的**预建 catalog** 仍是机器本地产物(`unity/Library/com.unity.addressables/…`,
+  gitignored)⇒ 改过组条目后须跑「大医精诚/数据管线/构建 Addressables 内容」菜单,否则
+  `AddressablesDataProvider.Preload()` 抛 `InvalidKeyException`(2026-10-17 实测,见证据原件)。
 - **两份阶段 2 抽取器的已登记重复**(`AudioEventTableBinder` vs `event_table_gate_test.cs` 的
   手写 JSON 扫描器)—— **刻意不动**:后者承载 story-002 的截断夹具语义(`__truncated__` 哨兵);
   归 story-002 轮。
 
 ### 登记项
 
-- **story-010 转 `Complete`** —— 归 **S14-7**(6 条复评批,`sprint-14.md` DoD)。
+- ~~**story-010 转 `Complete`** —— 归 **S14-7**(6 条复评批,`sprint-14.md` DoD)。~~ ⇒ **✅ 已结**
+  (2026-10-16 S14-7 复评转正;Status = `Complete`)。**2026-10-17 补口轮为 `TD-audio-01` 收口,
+  不重开本 story 的 AC 面。**
 - **`Out of Scope` 第二行已就地改注** —— 占位 wav 归本件,真实内容 + Import Settings 仍归内容批。
+- **⚠️ 新增登记(2026-10-17)**:
+  - **ARM64 腿** —— **已裁定:维持三格原样,登记为「长期未达」**(ADR-012 §Validation);
+    **该复选框长期未勾且不得静默移除**;解锁条件 = 引擎升级后出现受支持的 ARM64 目标。
+  - **CI 常驻矩阵 job** —— `il2cpp-determinism` 已由 TODO 占位改真 job,**但从未跑过**
+    (仓库无 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET` ⇒ 走 skip 分支)⇒ **常驻性未兑现**。
+  - **`U1SpikeSetup` 的 Teardown 复原** —— 未改(它是把本机 Play Mode 切到 Existing Build 的元凶;
+    改它须先裁「U1 spike 是否保留」)。
+  - **`tools/falsify` 的路径≠语义边界** —— 守卫路径之外的污染看不见,新证伪轮仍须逐例人判
+    「该守卫能写到哪」(§10.6 教训:失败路径写的是**标签**,不是组)。
 - **素材批交付接口** —— 5 个占位 wav 替换为真实素材时,只需保持 `rows[].assets[]` 的 bare 名不变
   (D6 门与 Import Settings 的接口即此一条)。

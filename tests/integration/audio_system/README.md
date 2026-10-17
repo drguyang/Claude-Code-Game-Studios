@@ -125,6 +125,38 @@
 > 且删除了原 `:212-228` 的**文件系统写入副作用**(`Directory.CreateDirectory(repoRoot/assets/audio)`
 > + `File.WriteAllText` + `File.Delete`)—— 那个副作用是 `assets/audio/` 目录存在的**唯一**原因。
 > 现 **52 测**,全部打真生产对象;夹具自身「零文件写入」由 `test_discipline_noFilesystemWrites` 自证。
+>
+> ⚠️ **S14-6 补口(2026-10-17)再扩记录**:52 → **61 测**。新增 **4 条菜单硬失败夹具**
+> (`test_d5_menu_groupMissing_throwsHard` · `test_dcore_menu_{settingsMissing,noCooked,groupMissing}_throwsHard`)
+> + **4 条适配器夹具**(`test_preload_adapter_{mapsAllFourUnityLoadStates,nullClip_isFailedNotLoaded,
+> nullResolver_isHardFailure,unresolvableCue_blocksGate}`);**并删掉 1 条缺口哨兵** ——
+> `test_preload_realAudioClipLoadState_pendingPlayModeHalf` **已按其自身口径转成真断言**
+> (适配器已落 + PlayMode 半边已跑),**不是被当回归修掉**。
+> 证据:`production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md` §十。
+>
+> ⚠️ **悬项收口轮(2026-10-17 第二轮)再扩记录**:61 → **68 测**。新增 **7 条**,分两组:
+> **Play Mode 门 2 条**(`test_playModeScript_isAssetDatabase` —— 真设置断言;
+> `test_playModeScript_predicate_nullOrMiss_returnsMinusOne` —— 纯谓词定义域)
+> + **Import Load Type 门 5 条**(`test_importSettings_requiredLoadType_matchesGddTable` ·
+> `test_importSettings_boundaries_areInclusiveExclusiveAsSpecified` ·
+> `test_importSettings_musicPrefix_overridesNumericTier` ·
+> `test_importSettings_realMetas_matchRequiredTier` ·
+> `test_importSettings_unreadableInput_isViolationNotSilentSkip`)。
+> 被测生产件 = `AudioImportSettingsGate.cs`(**新**,判据源 GDD §OQ-44-2 附 `:1208-1247`)
+> + `DataBakeMenu.EnsureAssetDatabasePlayMode`(**由 private 升 public**,并拆出纯谓词
+> `FindAssetDatabaseBuilderIndex`)。
+> 证据:`production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md` §十二 / §十四。
+>
+> ⚠️ **同轮自查再 +1 ⇒ 69 测**(2026-10-17):复核本轮自己新落的生产件时发现
+> `AudioImportSettingsGate.Validate` 用了 `Directory.GetFiles(dir, "*.wav")` —— 而该 pattern
+> **在 Linux 上区分大小写**(独立 net8.0 探针实测:目录含 `lower.wav`/`UPPER.WAV`/`Mixed.Wav` 时
+> **只返回 `lower.wav`**)。CI 平台正是 Linux(ADR-012)⇒ 素材批若交付 `.WAV`,门会**少报违例**。
+> **修** = 纯谓词 `IsWavName`(`OrdinalIgnoreCase`)+ `Validate` 枚举 `"*"` 再过滤;
+> **夹具** = `test_importSettings_wavExtension_isCaseInsensitiveAcrossPlatforms`(**不碰文件系统**);
+> **反证** = spec 新增 **F5**(定义域收窄类 ⇒ 反证强制)⇒ 恰转红。
+> ⚠️ **与 story-017 的 W-2 是同一缺陷的两处** —— `AudioAssetGroupGates.cs:197` 同型,
+> 归 **story-017**(`AC-44-D5b`);本处是本门自带的,**两处不合并记账**。
+> 证据:同上 §12.5。
 
 | 内容 | 路径 |
 |---|---|
@@ -137,7 +169,9 @@
 | 接线 | `unity/Assets/Gameplay.Presentation/AddressablesDataProvider.cs`(两条 audio 支路)· `unity/Assets/Gameplay.Boot/BootRoot.cs`(`ApplyAudioSettingsProvider`)· `unity/Assets/Editor.Tools.Bake/DataBakeMenu.cs`(三菜单项) |
 | 素材本体(占位) | `unity/Assets/Audio/*.wav`(5 个;2044 B = 44 B RIFF/WAVE 头 + 2000 B 全零 PCM(单声道 44100 Hz / 16 bit / 1000 样本 ≈ 22.7 ms 静音)) |
 | 运行方式 | `unity test unity --mode EditMode --filter DaYiJingCheng.Tests.Unit.Audio` |
-| **机器前置** | `AddressableAssetsData/` 是 gitignored 机器生成物 ⇒ 首次须跑菜单「确保 data-core / audio Addressables 组」;**设置缺席 = 断言报错,不跳过** |
+| **机器前置** | ⚠️ **2026-10-17 订正**:`AddressableAssetsData/` 的**组定义已随仓库入库**(TD-audio-01a 收窄 `.gitignore`)⇒「首次须建组」的前提**不再成立**;**设置缺席 = 断言报错,不跳过**(组缺失 = 入库文件被删/损坏,恢复靠 `git checkout`) |
+| **机器前置 · 预建 catalog** | ⚠️ **2026-10-17 新发现(TD-audio-01f)**:PlayMode 解析的是 `unity/Library/com.unity.addressables/aa/<platform>/catalog.bin`(**gitignored · 机器本地**)⇒ **改过组条目后须跑菜单「构建 Addressables 内容(BuildPlayerContent)」**,否则 `AddressablesDataProvider.Preload()` 抛 `InvalidKeyException`,**9 条 PlayMode 启动序测试全红** |
+| **PlayMode 件(真 `loadState`)** | `unity/Assets/Tests/PlayMode/Audio/stethoscope_preload_loadstate_test.cs`(**3 测**,类 `StethoscopePreloadLoadStateTest`)—— 真导入 clip 的 `Unloaded→Loaded` 过渡 + 门翻面 |
 
 ## AC → 测试函数映射(`PipelineGateTest` 内)
 
@@ -151,17 +185,117 @@
 | **AC-44-D6** 真种子(正向) | `test_d6_realSeed_bakesWithNoMissingAsset` | BLOCKING |
 | **AC-44-D6** 负向 + 谓词 | `test_d6_missingAsset_rejectedWithAggregateThrow` · `test_d6_missingAssetError_namesFileAndCue` · `test_d6_nullAssetRoot_isHardFailure` · `test_d6_existencePredicate_existingAndMissing` · `test_d6_missing_isOrderPreservingAndDeduped` · `test_d6_nullAssetList_yieldsNoMissing` | BLOCKING |
 | **听诊窗预载** | `test_preload_notLoaded_blocks` · `test_preload_allLoaded_allows` · `test_preload_partialLoaded_blocks` · `test_preload_failedState_blocks` · `test_preload_emptyCueSet_isHardFailure` · `test_preload_nullQuery_isHardFailure` · `test_preload_fromTable_derivesStethoscopeFamily` · `test_preload_stethoscopeBusName_matchesMixerRegistry` · `test_preload_handoverMux_{gateBlocks,gateAllows,noGate}` | BLOCKING |
-| **听诊窗预载 · NOT-RUN** | `test_preload_realAudioClipLoadState_pendingPlayModeHalf`(缺口哨兵:**素材定稿后须转红并随之改判**,不得当回归修掉) | NOT-RUN |
+| **听诊窗预载 · 适配器** | `test_preload_adapter_mapsAllFourUnityLoadStates` · `test_preload_adapter_nullClip_isFailedNotLoaded`(null clip **≠ 已载**)· `test_preload_adapter_nullResolver_isHardFailure` · `test_preload_adapter_unresolvableCue_blocksGate` | BLOCKING |
+| **菜单硬失败(W-5② + 01e 扩面)** | `test_d5_menu_groupMissing_throwsHard` · `test_dcore_menu_{settingsMissing,noCooked,groupMissing}_throwsHard`(均**先验后改**:抛后设置零改动) | BLOCKING |
+| ~~**听诊窗预载 · NOT-RUN**~~ | ~~`test_preload_realAudioClipLoadState_pendingPlayModeHalf`~~ ⇒ **✅ 2026-10-17 已按其自身口径转真断言**;真 clip 半边归 `unity/Assets/Tests/PlayMode/Audio/stethoscope_preload_loadstate_test.cs` | ✅ **已跑** |
 | **烘焙确定性 / 往返 / 头契约** | `test_bake_sameSeedTwice_bitIdentical` · `test_bake_settings_sameSeedTwice_bitIdentical` · `test_bake_rowOrderIsCueOrdinal` · `test_bake_rowOutOfRange_throws` · `test_bake_headerContract_{audioAndSettings,rejectsBrokenHeaders}` · `test_bake_materialize_crossSideMatches` · `test_bake_settings_payloadIndependentOfSourceRowOrder` · `test_bake_settings_fixtureFromFallbackPassesGate` | BLOCKING |
 | **接线** | `test_wiring_providerInjection_overridesFallback` · `test_wiring_providerAbsentOrEmpty_usesFallback` · `test_wiring_bakedRows_matchFallbackValues` · `test_wiring_addresses_singleSourceOfTruth` · `test_wiring_bakeMenuEntriesExist` | — |
 | **接线 · BootRoot 真身** | `test_bootroot_injection_whenPreloaded_rowsComeFromProvider`(供给 1 行合成集 ⇒ 「注入了没」可判)· `test_bootroot_noInjection_whenNotPreloaded_rowsStayFallback` · `test_bootroot_noInjection_whenProviderNull_rowsStayFallback` | BLOCKING |
 | **夹具纪律自证** | `test_discipline_noFilesystemWrites`(扫本文件源码,注释剥离) | — |
+| **机器前置 · Play Mode 门**(TD-audio-01f) | `test_playModeScript_isAssetDatabase`(真设置:`ActivePlayModeDataBuilderIndex` **须等于**谓词求得的索引)· `test_playModeScript_predicate_nullOrMiss_returnsMinusOne`(纯谓词定义域:null 设置 / 名单无匹配 ⇒ **`-1`**,非 `0`) | BLOCKING |
+| **素材 Import Load Type 门**(OQ-44-2) | `test_importSettings_requiredLoadType_matchesGddTable`(GDD §附 5 行逐行,**边界值豁免**)· `test_importSettings_boundaries_areInclusiveExclusiveAsSpecified`(512 KB / 5 s **闭**、4 MB / 30 s **开**)· `test_importSettings_musicPrefix_overridesNumericTier`(前缀**优先于**数值档;`StartsWith` 非 `Contains`)· `test_importSettings_realMetas_matchRequiredTier`(**真环境扫描** 5 个 wav × `.meta`)· `test_importSettings_unreadableInput_isViolationNotSilentSkip`(**负面**:不可读 ⇒ **报违例**,不静默跳过) · `test_importSettings_wavExtension_isCaseInsensitiveAcrossPlatforms`(**跨平台大小写**:三形态须识别 / 伪后缀须拒;反证 F5) | BLOCKING |
 
 > **证伪轮(2026-10-16 · BLOCKING)**:11 例逐条「改 → 跑 → 还原(同命令内)+ SHA-256 逐字节校验」,
 > 全部**转红**。逐例记录见 `production/qa/evidence/impl-s14-6-asset-pipeline-2026-10-16.md` §3。
+>
+> **证伪轮(2026-10-17 补口 · BLOCKING)**:6 处变异(M1–M6)一次施加 ⇒ EditMode
+> `total=61 passed=51 failed=10` —— **10 条红全部可归因**(M1×1 / M2×1 / M3×1 / M4×2 / M6×5),
+> **零意外红**;其余 51 条照绿。PlayMode 半边(M6):`3 跑 2 红 1 绿`,**不依赖门的适配器断言正确保持绿**
+> ⇒ 红是**定向**的。三件源码还原后 `SHA-256 逐字节校验通过`。逐例见
+> `production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md` §10.3。
 > ⚠️ **C4(D5(b) 漏网条目判据)首轮 0 红 = 弱判别面(BLOCKING)**:`test_d5_pure_strayAudioEntryInDataCore_rejected`
 > 的期望集成员**未合法登记** ⇒ 断言被 (a) 半边的误报满足,与 (b) 是否生效无关。
 > 修 = 夹具形态(期望集成员合法登记在 `audio` 组)+ **报文钉定**(`Does.Contain("orphan.wav")` /
 > `Does.Not.Contain("sfx_breath_base_loop_small")`)⇒ 复跑 1 红。
+>
+> **证伪轮(2026-10-17 悬项收口轮 · BLOCKING · 已**固化为可复用驱动**)**:
+> 由 `tools/falsify/unity_falsify.py` 驱动(**取代**此前的 `/tmp` 一次性 shell),
+> 4 个变异**全部 `exactRed: true`**(红集须**恰好**等于预期)、**逐个施加逐个还原不叠变异**:
+>
+> | 变异 | 停用什么 | 恰转红 |
+> |---|---|---|
+> | F1-musicPrefix | `RequiredLoadType` 的 `music_` 前缀覆盖 | 3 条(`…musicPrefix_overridesNumericTier` / `…realMetas_matchRequiredTier` / `…matchesGddTable`) |
+> | F2-smallTierInclusive | 小档闭区间 `<=` → `<` | 1 条(`…boundaries_areInclusiveExclusiveAsSpecified`) |
+> | F3-playModePredicateMinusOne | `FindAssetDatabaseBuilderIndex` 的 `-1` → `0` | 1 条(`…predicate_nullOrMiss_returnsMinusOne`) |
+> | F4-unreadableMetaSilentZero | 不可读 meta ⇒ 静默归零 | 1 条(`…unreadableInput_isViolationNotSilentSkip`) |
+>
+> `FALSIFY_EXIT=0`;还原后 **SHA-256 逐字节校验通过**;受保护路径
+> (`unity/Assets/AddressableAssetsData` + `unity/Assets/Audio`)**指纹未变**。
+> 逐例见 `production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md` §12.3。
+> ⚠️ **驱动边界(不隐藏)**:它守的是**路径**不是**语义** —— 污染写到守卫路径**之外**即看不见;
+> 且只保证**被检出**,不保证**不被写入**(防写入仍需夹具侧 `AssertThrowsAndLeaveNoTrace`)。
 > **教训**:负向夹具只写「非空 / 抛了」不钉「是谁报的」,就会被同一函数内**别的**分支满足
 > (S14-5 第 ⑦ 例同型,本 sprint 第二次)。
+
+---
+
+## Story 017(音频门加固 —— AC-44-D5b / D5c / D5d)—— 落点说明
+
+故事头登记的证据路径 = `tests/integration/audio_system/pipeline_gate_test.cs`(账本约定),
+**真身与 story-010 同一文件**:`unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`(类 `PipelineGateTest`)。
+本 story **不新立测试文件**,只在既有文件内**追加** —— 既有测**零删改**。
+
+> ⚠️ **S17(2026-10-17)计数演进记录** —— **两个口径别混**:
+> ① **源码**(HEAD `d21e43a` `pipeline_gate_test.cs`)= 落盘前 **52** 测(D5/D6 = **17**:D5 10 · D6 7),
+>    落盘后 **74** 测(D5/D6 = **23**);
+> ② **XML**(`s19d-full-final.xml` → `s22-full.xml`)= `PipelineGateTest` **69 → 74**,逐 fullname
+>    **+5 / −0**(`d5b` ×3 · `d5c` ×1 · `d5d` ×1)⇒ 全量 `3630 → 3635` 的 `+5` 对账成立。
+> 源码侧多出的 5 条(`d5b` ×3 + `d5c` + `d5_menu_groupMissing_throwsHard`)**早已在源码里但未被 `s19d` 采集**。
+> 新增 6 条(源码口径):
+> `test_d5b_audioAssetName_extensionCaseInsensitive` ·
+> `test_d5b_filterAudioNames_threeCaseFormsAllKept` ·
+> `test_d5b_audioAssetsOnDisk_filtersViaPredicateNotGlob` ·
+> `test_d5c_validateEntries_withinLineAndComplexityBudget` ·
+> `test_d5d_errorSetIsByteIdentical` · `test_d5_menu_groupMissing_throwsHard`。
+> 被测生产件 = `Editor.Tools.Gates/AudioAssetGroupGates.cs`(**改**:新谓词 `IsAudioAssetName` +
+> 新映射纯函数 `FilterAudioNames` + `ValidateEntries` 拆三 + `AudioAssetsOnDisk` 简化)
+> + `Editor.Tools.Bake/AudioImportSettingsGate.cs`(**改**:`IsWavName` 改委派,单一出处)。
+> 证据:`production/qa/evidence/impl-s17-gate-hardening-2026-10-17.md`。
+
+| 内容 | 路径 |
+|---|---|
+| 编译中的测试源(真身) | `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`(类 `PipelineGateTest`) |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(name = `Sim.Contracts.Tests`) |
+| 被测门(组区分 / W-2 / W-3) | `unity/Assets/Editor.Tools.Gates/AudioAssetGroupGates.cs`(`IsAudioAssetName` · `FilterAudioNames` · `ValidateEntries` + 两私有半 · `AudioAssetsOnDisk`) |
+| 被测门(导入档,委派方) | `unity/Assets/Editor.Tools.Bake/AudioImportSettingsGate.cs`(`IsWavName` ⇒ **委派**到 `Gates`) |
+| 运行方式 | `unity test unity --mode EditMode --filter PipelineGateTest` |
+
+### AC → 测试函数映射(`PipelineGateTest` 内,本 story 新增部分)
+
+| AC | 测试函数 | 性质 |
+|---|---|---|
+| **AC-44-D5b**(扩展名过滤跨平台一致) | `test_d5b_audioAssetName_extensionCaseInsensitive`(纯谓词:三形态识别 + 伪后缀拒 + **委派非漂移**循环)· `test_d5b_filterAudioNames_threeCaseFormsAllKept`(**映射结果**直断三形态全留 —— QA 用例的字面要求)· `test_d5b_audioAssetsOnDisk_filtersViaPredicateNotGlob`(**源码扫描**:枚举用 `"*"` + 走纯函数,**禁** `"*" + AudioAssetExtension` glob) | BLOCKING |
+| **AC-44-D5c**(≤40 行 / CC<10) | `test_d5c_validateEntries_withinLineAndComplexityBudget`(**自校准**计数:先量被拆方法自身,再断主方法 ≤40 行 ∧ CC<10 ∧ **两个私有半各自 ≤40 行**) | BLOCKING |
+| **AC-44-D5d**(错误集逐字不变) | `test_d5d_errorSetIsByteIdentical`(**黄金串表**:6 例,钉**条数 + 逐字文本 + 顺序**,含「两半同时触发 ⇒ (a) 在前、(b) 在后」的次序断言) | BLOCKING |
+
+> **为什么 D5b 要三条而不是一条**:首版只钉了**谓词**与**调用点源码**,对「映射结果」只有
+> **复合论证**(谓词对 ∧ 调用点用了谓词)—— **不是** QA 用例字面要求的「两者**均被返回**」。
+> 补法**不是**往盘上造 `.WAV` 副本:副本会同时进 D5 期望集与 D6 存在性判据(**假红**),
+> 且违夹具「零文件写入」纪律(`test_discipline_noFilesystemWrites` 自证)⇒
+> 把映射半边抽为**纯函数** `FilterAudioNames`,夹具注入路径直断。
+
+### 证伪轮(S17 · BLOCKING · 10 变异,全部 `exactRed: true`)
+
+| 变异 | 停用什么 | 期望红 | 实红 |
+|---|---|---|---|
+| F1 | `music_` 语义档覆盖 | 3 | **3** |
+| F2 | 小档闭区间 `<=` → `<` | 1 | **1** |
+| F3 | `FindAssetDatabaseBuilderIndex` 的 `-1` → `0` | 1 | **1** |
+| F4 | 不可读 `.meta` 静默归零 | 1 | **1** |
+| **F5** | `IsAudioAssetName` 的 `OrdinalIgnoreCase`(**W-2 修复点**) | 3 | **3** |
+| **F6** | `AudioAssetsOnDisk` 枚举回退 glob(**W-2 调用点**) | 1 | **1** |
+| **F7** | `ValidateEntries` 行数预算(**W-3**) | 1 | **1** |
+| **F8** | `ValidateEntries` 圈复杂度预算(**W-3**) | 1 | **1** |
+| **F9** | 错误报文文案漂移(**AC-44-D5d**) | 1 | **1** |
+| **F10** | 映射半边跳过谓词(**单一出处**) | 4 | **4** |
+
+`FALSIFY_EXIT = 0`;还原后 **SHA-256 逐字节校验通过**;受保护路径
+(`unity/Assets/AddressableAssetsData` + `unity/Assets/Audio`)**指纹未变**。逐例见
+`production/qa/evidence/impl-s17-gate-hardening-2026-10-17.md` §三。
+
+> **F5 红 3 条 = 「单一出处」的可观测形态**:判据只有一条实现(`Gates.IsAudioAssetName`),
+> `Bake.IsWavName` 委派 ⇒ 停用 `OrdinalIgnoreCase`,**谓词侧 / 映射侧 / 委派侧同时翻**。
+> ⚠️ 该变异的锚点**本轮迁移过**(旧锚 `AudioImportSettingsGate.cs:258` 已随委派化消失);
+> 锚点不搬 ⇒ 改的是死代码 ⇒ **静默 0 红**。
+> **F6 是 F5 的补集**:只把**枚举**换回 glob,前三条仍全绿(素材目录恰好只有小写 `.wav`),
+> **只有源码扫描那条看得见** —— 这就是它存在的理由。

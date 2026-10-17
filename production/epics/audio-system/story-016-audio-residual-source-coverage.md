@@ -65,8 +65,16 @@
       缺任一项 ⇒ **构建期硬失败**(非告警 —— 归属已裁而条目缺失 = 归属表落不了地)
 - [ ] **AC-44-E2(新)**: 上述 9 项引用的**全部 `.wav`** 在 `assets/audio/` 内真实存在;
       **门须跑真素材,不得只跑夹具**(承 story-010 的教训:其 11 测用夹具 ⇒ 缺口不可见)
+      > ✅ **2026-10-17 前置已解除**:37 个 `.wav` 已落 `unity/Assets/Audio/`
+      > (39 − 2 退役),事件表 15 行烘焙通过(`ConfigVersion = 0x1E7C708D`)。
+      > 本 story 的 BLOCKED-BY 只剩 E1/E3/E4 的**门代码**与判据施工。
 - [ ] **AC-44-E3(新)**: 删除任一被引 `.wav` ⇒ **构建期硬失败**(`throw` 非 `Debug.Assert`,同 story-015 AC-44-D6c)
 - [ ] **AC-44-E4(新)**: 双向集合差归零 —— R-2 的 9 项 ↔ `audio_events.json` 条目 ↔ `assets/audio/*.wav` **三者互相覆盖**
+      > ⚠️ **2026-10-17 口径订正(实测)**:R-2 的世界声**已由用户裁定拆成 4 条 cue**
+      > (`World_Threat` / `World_Opportunity` / `World_Reaction` / `World_Disaster`,共 9 个文件)
+      > ⇒ 「9 项 ↔ 条目」两侧**不再一一对应**(1 项 → 多 cue)。判据须按
+      > 「9 个**文件** ↔ `assets[]` 并集」比,**不得**按 cue 计数比。权威件 =
+      > `design/assets/specs/audio-material-manifest.md` §一之二。
 - [ ] **AC-44-E5(新)**: **无提示音铁律**(`AC-44-09` BLOCKING)对本 story 新增条目同样适用 ——
       新增条目**不得**用于状态播报(无 sting / jingle / ducking / 素材切换报状态)
 

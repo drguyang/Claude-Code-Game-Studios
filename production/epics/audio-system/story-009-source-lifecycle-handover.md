@@ -242,6 +242,11 @@ b4(字段类型全落白名单)· **零墙钟**(`CheckAudioClockTokens` 扫 `Han
 
 - **AC-009-2 的听测半边**(交接窗 500 ms 是否「听觉上不拖沓」)—— **NOT-RUN**:
   听测需素材本体(story-015/016,`Ready`)+ 真人听审。
-- **IL2CPP 三格**(ADR-012 矩阵)—— **NOT-RUN**:本机仅 Mono,CI 真 runner 未配。
+- **IL2CPP 三格**(ADR-012 矩阵)—— **矩阵整体 NOT-RUN**(CI 常驻 job 未建 + ARM64 腿未跑)。
+  ⚠️ **2026-10-17 逐格订正**:原文「本机仅 Mono」**为假** —— 本机装有 IL2CPP 模块,且
+  **Linux-x64 的 Mono 与 IL2CPP 两格已于 2026-09-24 实测逐位相同(19/19)**,2026-09-25 补
+  Mono player 第三上下文(15/15);真正未跑的只有 **ARM64 腿**(本机无该模块;ADR-012 §二 要求
+  原生 ARM64 runner,qemu 否决)与 **Windows-x64 / Apple Silicon**(发版前必跑)。
+  证据:`production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`。
 - **S14-2 已登记的 4 人对拍** —— 本件不涉(无联机面)。
 

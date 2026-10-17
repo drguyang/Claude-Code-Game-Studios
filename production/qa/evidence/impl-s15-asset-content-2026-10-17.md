@@ -344,8 +344,8 @@ grep loadType    : loadType: 2
 | **②** | **`AudioAssetExistence.Missing` 的保序去重语义未反证** | ✅ **已反证(2026-10-17)** | 见 §3.5 —— 停用 `seen.Add` 去重 ⇒ `test_d6_missing_isOrderPreservingAndDeduped` **转红** |
 | **③** | **`AudioAssetGroupGates.ValidateEntries` 的 `data-core` 不相交判据未反证** | ✅ **已反证(2026-10-17)** | 见 §3.5 —— 停用 `inDataCore` 判据 ⇒ `test_d5_pure_audioAssetInDataCoreGroup_rejected` **转红**(首轮误报的连带红已更正,见 §3.5.4) |
 | **④** | **四项听测** | ✅ **已跑(2026-10-17 用户签核)** | 见 §4.1 —— 四项均由**用户**试听判定;本题**不自行**判定音频内容 |
-| **⑤** | **真 `AudioClip.loadState` 的 PlayMode 半边** | ❌ **NOT-RUN(承 S14-6 裁定 ③)** | 缺口哨兵 `test_preload_realAudioClipLoadState_pendingPlayModeHalf` 已钉;**素材落地后须重新裁定**,不得当回归修掉 |
-| **⑥** | **IL2CPP 三格矩阵**(ADR-012) | ❌ **NOT-RUN** | 本机仅 Mono |
+| **⑤** | **真 `AudioClip.loadState` 的 PlayMode 半边** | ✅ **已跑(2026-10-17 补口)** | 原写「NOT-RUN(承 S14-6 裁定 ③)+ 缺口哨兵已钉」—— **该哨兵已按其自身口径转成真断言**(不是被当回归修掉)。落 `Gameplay.Presentation/Audio/AudioClipLoadStateAdapter.cs` + `unity/Assets/Tests/PlayMode/Audio/stethoscope_preload_loadstate_test.cs`(**3/3 绿**:真导入 clip 的 `UnloadAudioData()`/`LoadAudioData()` 过渡 + 门 阻断→放行)。证据:`production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md` §十 |
+| **⑥** | **IL2CPP 三格矩阵**(ADR-012) | ❌ **矩阵整体 NOT-RUN** —— ⚠️ **原文「本机仅 Mono」为假** | 逐格实测:**Linux-x64 Mono ✅ + Linux-x64 IL2CPP ✅(2026-09-24,19/19 逐位相同)**;Mono player 第三上下文 ✅(2026-09-25,15/15);**ARM64 ❌**(本机无该模块;ADR-012 §二 要求原生 ARM64 runner,qemu 否决);**CI 常驻 job ❌ 未建**。证据:`production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md` |
 | **⑦** | **素材源规格上限(登记不隐藏)** | ⚠️ **已知内容损失** | ④ 源为**中湿罗音**(22050 Hz / 32 kbps)经**用户医学裁定认定为细湿啰音** —— 听感上更靠近 medium;升采样至 44.1 kHz **不恢复 >11 kHz 内容**。①②⑥ 同样自 24 kHz 升采样 |
 | **⑧** | **`assets/audio/` → `unity/Assets/Audio/` 路径订正** | ✅ 已落(S14-6) | GDD `:258` / `:695` / `:1092` + ADR-018 §五 `:153` 已就地加注(承 ADR-015 修订 ADR-009 先例) |
 

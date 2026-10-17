@@ -14,7 +14,7 @@ goal: "44 运行期音频链接通 —— 6 条 In Review story(007-012)补生�
 start: ""
 end: ""
 generated: "2026-10-16"
-updated: "2026-10-17"   # S14-8(story-015 音频资产接入)收口 —— 计划外追加(content 批前置件)
+updated: "2026-10-17"   # S14-9(story-017 音频门加固)收口 —— 计划外追加(story-015 评审 W-2/W-3 派生件)
 
 stories:
   # ── Must Have(关键路径 · Wave 1+2)──
@@ -149,3 +149,22 @@ stories:
     # ⚠️ 证伪轮一触发 Unity 资产维护,静默改写 audio.asset(5 → 4 条);已跑生产菜单项 EnsureAudioGroup 修复。
     # ⚠️ 6 条 ADVISORY 见 story §Completion Notes(含「组半不可从全新 clone 复现」—— 建议登记 tech-debt)。
     # ⚠️ 代码评审 = 待跑(用户裁定「收尾前会跑」)。
+
+  - id: "S14-9"
+    name: "017 音频门加固:跨平台大小写(W-2) + ValidateEntries 拆分(W-3)"
+    file: "production/epics/audio-system/story-017-audio-gate-hardening.md"
+    priority: should-have
+    status: done
+    owner: "claude"
+    estimate_days: 0
+    blocker: ""
+    completed: "2026-10-17"
+    # 立件依据 = story-015 收口轮 /code-review 产出的 W-2 / W-3(落在 story-010 既有门代码上)。
+    # W-2 修法 = 判据收单一出处(Gates.IsAudioAssetName 纯谓词 + FilterAudioNames 纯映射),
+    #           Bake.IsWavName 改委派;禁「改成 *.WAV」(只是把分叉挪到另一边)。
+    # W-3 修法 = ValidateEntries 退化为编排 + 两个判据半拆为私有方法(语义零变更)。
+    # 判据:证伪轮 10 变异全部 exactRed:true(FALSIFY_EXIT=0,SHA-256 还原校验通过,
+    #       受保护路径指纹未变);过滤 74/74;全量 3635/3590/0/45 vs 基线 3630/3585/0/45
+    #       ⇒ Δtotal = +5 = 新增测数,零回归。
+    # 同批不同账(用户裁定 #11 · 归 TD-audio-01f):U1SpikeSetup.Teardown 加 Play Mode 复原委派
+    #       —— Landed ✅ / Proven ✗(生命周期回调,EditMode 不触发,未造判据;不得标已证)。

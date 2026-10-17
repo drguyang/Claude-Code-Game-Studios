@@ -5025,3 +5025,508 @@ Teardown 指令,其交接已于 S14-6 兑现但规则未同步)⇒ 收窄为
 `production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md`
 
 ⚠️ **仍未 commit**(无用户指令)。
+
+---
+
+## Session Extract — `01c` 真·全新 clone 复测(2026-10-17)
+
+**用户指令**:「跑 01c 的真·全新 clone 复测」。
+
+### 跑法
+
+`git clone . /tmp/s18-freshclone-run-<HHMMSS>/repo`(**仓外一次性目录,无 `rm -rf`**)。
+克隆态核实:无 `Library/` · 无 `AddressableAssetsData/Linux/addressables_content_state.bin`
+· 三份组定义齐备 · 引用链 `2c864c592004e1c729cd6c8ed9da4089` 两侧一致。
+
+### 测量一:门(决定性)
+
+`unity test <clone>/unity --mode EditMode --filter PipelineGateTest` ⇒ **54/54/0**(1m17s),
+其中 **`test_d5_realSettings_audioAssetsSeparateFromDataCore` = Passed**
+⇒ `AddressableAssetSettingsDefaultObject.Settings` 在**真·全新检出**上解析成功
+⇒ 评审原件 §3.3 的「全新检出必红」**已被 `01a` 消除**。
+
+### 测量二:菜单项进程级端到端(`unity build --execute-method`)
+
+| 场景 | 退出码 | 判定行 |
+|---|---|---|
+| 完好克隆 | **0** | `[大医精诚] audio 组就绪:5 个素材已入组并打标签(与 data-core 分家 —— AC-44-D5)。` |
+| 移走 `AddressableAssetsData/` | **6** | `InvalidOperationException` 含 `git checkout -- unity/Assets/AddressableAssetsData` 指引 |
+
+⇒ **`01e` 的进程级静默确已闭合**:同输入下**旧行为退出码 = 0**(`s17-freshclone-20261017-051600.log`),**现为 6**。
+
+### 落账
+
+- `production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md` —— 新增 **§6.4**;§七 首条划改、
+  §八 增 `# 6)` 复现命令、§九 `01c` 行 `⚠️ 未验` → **✅ 已复测**
+- `docs/tech-debt-register.md` —— `01c` / `01e` 两行已订正
+- `production/epics/audio-system/story-015-audio-asset-binding.md` —— ADVISORY 6 的
+  「真·全新 clone 复测未跑」已就地改为实测结果
+
+### 仍悬(禁借绿,未变)
+
+- **W-5② `CreateGroup` schema 不复现** —— 仍 ✗ 未修,须先裁「哪些 schema 值算定稿」
+- **`EnsureDataCoreGroup` 同款两静默分支** —— 未修(裁定范围不含),已 doc 注记
+- **PlayMode `loadState` 半边 · IL2CPP 三格矩阵** —— NOT-RUN
+
+⚠️ **仍未 commit**(本轮无用户指令)。
+
+---
+
+## Session Extract — 补口轮「现在修」三悬项 + 两项新发现(2026-10-17)
+
+**用户指令**:「W-5② / `EnsureDataCoreGroup` 两静默分支 / PlayMode loadState 半边 · IL2CPP 三格矩阵. **现在修**」
+
+### 一、三项「仍悬」的处置(全部落地)
+
+| 项 | 处置 | 判据 |
+|---|---|---|
+| **W-5② `CreateGroup` schema 不复现** | ✅ **修(甲案)** —— 删掉重建路径,组缺失改**硬失败** + `git checkout` 指引 | `test_d5_menu_groupMissing_throwsHard` / `test_dcore_menu_groupMissing_throwsHard` |
+| **`EnsureDataCoreGroup` 同款两静默分支** | ✅ **修** —— 拆 `EnsureDataCoreGroupCore` 可注入实现体,三处硬失败;零产物扫描**提到写入之前** | `test_dcore_menu_{settingsMissing,noCooked,groupMissing}_throwsHard` |
+| **真 `AudioClip.loadState` 的 PlayMode 半边** | ✅ **跑** —— 落 `AudioClipLoadStateAdapter` + PlayMode 件 | `StethoscopePreloadLoadStateTest` **3/3 绿** |
+
+**⚠️ W-5② 的前置消解(重要)**:原写「须先裁**哪些 schema 值算定稿**」。**甲案不建组** ⇒
+「默认值 vs 入库值差多少」**不再是本菜单需要知道的量** ⇒ 该前置**随之消解**,**无需用户裁定**。
+
+### 二、两项补口轮新发现
+
+- **`01f` —— PlayMode 启动序被「陈旧的预建 catalog」击穿**(严重)。全量 PlayMode 一度
+  `189 / 180 / **9 红**`,9 条全是启动序 / Addressables 测试。根因两段:
+  ① 入库设置 `m_ActivePlayerDataBuilderIndex: 2`(= `BuildScriptPackedMode`)⇒ PlayMode 解析
+  `unity/Library/com.unity.addressables/aa/Linux/catalog.bin`(**gitignored · 机器本地**);
+  ② **两条 audio 产物此前根本不存在**(不在盘上 · 不在 git · 无构建钩子产出),而
+  `AddressablesDataProvider.Preload() → EnsureAudioEvents()` 与 `BootRoot` 的 `Provider` 注入**都指向它们**。
+  **潜伏期**:炸点自 **2026-10-16 `8d852fe`**(S14-6 把 `EnsureAudioEvents()` 加进 `Preload()`)起,
+  而 **PlayMode 自 2026-10-15 起没跑过全量** ⇒ **不是本轮引入,是本轮发现**。
+  **处置**:新立菜单「大医精诚/数据管线/**构建 Addressables 内容(BuildPlayerContent)**」
+  (此前全库唯一调用者 = `U1SpikeSetup`,且它顺带把 Play Mode 切到 Existing Build)⇒ 重建 catalog
+  ⇒ 全量 PlayMode **189 / 189 / 0 / 0**。
+  **残留(未修)**:`m_ActivePlayerDataBuilderIndex: 2` **仍在入库设置里** —— 直接改 YAML 会被 Unity
+  batch 存盘**回滚**(实测:改 `2 → 0` 后跑一次即被写回 `2`)。⇒ **每次新检出 / 改过组条目后须重跑该菜单**。
+  **出路未裁**:改走 `BuildScriptFastMode`(AssetDatabase 直读,免预建产物)或并入 CI 前置步。
+- **§八 复现命令的 `--execute-method` 写短了**:`DataBakeMenu.…` **跑不通**
+  (`executeMethod class 'DataBakeMenu' could not be found.` + exit 1),须写**全命名空间**
+  (`DaYiJingCheng.EditorTools.Bake.DataBakeMenu.…`)。已就地补全并加警示。
+  **§6.4 的判定不受影响** —— 那次 clone 实测用的**就是全 FQN**(`s17-freshclone-20261017-051600.log:23-24`
+  + `:538` 有栈帧),只是写进 §八 时被缩写。
+
+### 三、证伪轮(BLOCKING · 改 → 跑 → 还原 同一命令内 + SHA-256)
+
+**EditMode**:6 处变异(M1–M6)一次施加 ⇒ `total=61 passed=51 failed=10` ——
+**10 条红全部可归因**(M1×1 / M2×1 / M3×1 / M4×2 / M6×5),**零意外红**;其余 51 条照绿。
+**PlayMode**(M6):`3 跑 · 2 红 · 1 绿` —— **不依赖门的适配器断言正确保持绿** ⇒ 红是**定向**的,不是整片塌。
+**还原**:`DataBakeMenu.cs` / `AudioClipLoadStateAdapter.cs` / `StethoscopePreloadGate.cs` 三件
+`SHA-256 逐字节校验通过`。
+
+### 四、IL2CPP 三格登记订正(⚠️ 原措辞**为假**)
+
+原写「**IL2CPP 三格矩阵 = NOT-RUN(本机仅 Mono)**」—— **「本机仅 Mono」是假的**。
+本机装有 IL2CPP 模块,且矩阵两格**早已在桌面跑过**:
+**Linux-x64-Mono ✅ + Linux-x64-IL2CPP ✅(2026-09-24,19/19 逐位相同)**;
+**Mono player 第三上下文 ✅(2026-09-25,15/15)**;**F7 反汇编无 FMA ✅(2026-09-25)**。
+**真正未跑的**:ARM64 腿(本机无该模块;ADR-012 §二 要求**原生 ARM64 runner**,qemu 否决)·
+Windows-x64 / Apple Silicon(发版前必跑)· **CI 常驻矩阵 job**(`il2cpp-determinism` = TODO 占位)。
+**订正落点**:ADR-012 §Validation · `docs/tech-debt-register.md` · **6 份 audio story**
+(story-007 / 008 / 009 / 010 / 011 / 012)的「NOT-RUN 如实登记」段 · 两份证据原件。
+
+### 五、回归(零回归)
+
+| 面 | 本次 | 基线 | 增量 |
+|---|---|---|---|
+| EditMode 全量 | **3622 / 3577 / 0 / 45** | 3615 / 3570 / 0 / 45(`s18-final.xml`) | +7 / +7 / 0 / 0 |
+| EditMode 过滤(`PipelineGateTest`) | **61 / 61 / 0** | 54 / 54 / 0(`s18-fix-filtered.xml`) | +7 |
+| PlayMode 全量 | **189 / 189 / 0 / 0** | 186 / 186 / 0 / 0(`s11-b6-playmode.xml`) | +3 / +3 / 0 / 0 |
+
+### 落账
+
+- `production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md` —— 新增 **§十**(补口轮)+ **§十一**(IL2CPP 订正);
+  §七 四条「仍悬」全部划改;§八 补全 FQN
+- `docs/tech-debt-register.md` —— `01b` / `01e` 残余划改;新增 **`TD-audio-01f`**;「残余修复方向」三项划改
+- `production/epics/audio-system/story-010-…md` —— 头部 + AC-44 听诊窗行 + §NOT-RUN 登记(4 条)
+- `production/epics/audio-system/story-00{7,8,9,11,12}-…md` —— IL2CPP 样板句同批订正
+- `docs/architecture/adr-012-cross-platform-determinism-ci-gate.md` §Validation —— 逐格订正
+- `production/qa/evidence/impl-s14-6-…md` · `impl-s15-asset-content-2026-10-17.md` —— **加注**订正(原文不删)
+- `tests/integration/audio_system/README.md` —— 52 → **61 测** + 两处机器前置订正
+- `unity/Assets/Editor.Tools.Bake/DataBakeMenu.cs` —— 新增菜单「构建 Addressables 内容(BuildPlayerContent)」
+
+### 六、⚠️ 证伪轮**自身的副作用**:失败路径污染了已提交资产(新发现 · 已修)
+
+**现象** —— 首轮证伪在**源码还原之后**,`git status` 仍留一处计划外改动:
+`unity/Assets/AddressableAssetsData/AddressableAssetSettings.asset` 多了两个假标签
+`audio__no_such_group__` / `data-core__no_such_group__`。
+
+**根因** —— M1/M3 停用「组缺失 ⇒ `throw`」后,生产码**落入分支 ④**,而该分支
+**先 `settings.AddLabel(groupName)` 再碰 `group`**,方法末尾又有 `SetDirty + SaveAssets()`
+⇒ **守卫一破,失败的测试就把假标签写进了入库设置**。
+首轮夹具的「无残留」断言只查**组**(组确实没建 —— **建的是标签**),故未拦住。
+
+**⚠️ 同型第二次** —— `production/sprint-status.yaml:149` 已登记 S14-8 一次
+(「证伪轮一触发 Unity 资产维护,静默改写 `audio.asset`(5 → 4 条)」)。
+
+**处置**:
+① 还原 —— `git checkout -- …/AddressableAssetSettings.asset`(实测 diff **仅此两行**);
+② 加固 —— 新增夹具包装器 **`AssertThrowsAndLeaveNoTrace`**(`try/finally` 清标签 +
+**「查组 + 查标签」双断言**),两处 group-missing 夹具改用它;
+③ 复跑判据 —— M1+M3 ⇒ **恰 2 条红**(判别力不变)+ 该文件 **git diff 为空** + 还原 SHA-256 通过。
+
+**落账**:证据原件 **§10.6 / §10.7** · `docs/tech-debt-register.md` 新增
+「**证伪轮副作用:失败路径污染入库资产**」条(方法论级债,含**未修**残留两项:
+S14-8 的 `audio.asset` 侧无防线 · 无通用防线,附建议脚本判据)。
+
+### 仍悬(禁借绿,未变)
+
+- ~~**`01f` 的残留** —— `m_ActivePlayerDataBuilderIndex: 2` 仍在入库设置 ⇒ 新检出须重跑「构建 Addressables 内容」。**出路未裁**~~
+  ⇒ **✅ 已结(见下 §悬项收口轮);且该诊断本身是错的**
+- ~~**IL2CPP ARM64 腿 · CI 常驻矩阵 job** —— 未建(挂 ADR-012;归 CI 轮)~~
+  ⇒ **⚠️ 部分结**:CI job **已建**(从未跑过,无 secret);**ARM64 腿探针实测「不可达」,出路须用户裁**
+- ~~**素材 Import Settings 定稿** —— 归内容批(`OQ-44-2`)~~
+  ⇒ **✅ 判据已升为可跑的门**;**真实素材内容**仍归内容批(勿混读)
+
+⚠️ **仍未 commit**(本轮无用户指令)。
+
+---
+
+## Session Extract — 悬项收口轮「现在修,有悬就不要停直到解决」(2026-10-17)
+
+**轮次口径**:上一轮留四项仍悬。本轮**逐项收口**,不留「归某轮」的悬置 ——
+**唯一例外 = ARM64 出路**(对已 Accepted 裁决的裁剪,**须用户裁**,不得单方面进行)。
+
+### 一、`01f` 残留 —— 且 **原残留诊断本身是错的**(重要订正)
+
+**原诊断(§10.4,错误)**:`m_ActivePlayerDataBuilderIndex: 2` 仍在入库设置 ⇒ 新检出须重跑构建菜单。
+
+**实测真相**:
+
+| 事实 | 实测 |
+|---|---|
+| 入库的 `m_ActivePlayerDataBuilderIndex: 2` | **Build 脚本** = `BuildScriptPackedMode` —— **正确值**,不该改 |
+| Play Mode 脚本住哪 | **不在** `AddressableAssetSettings.asset`;**住 `ProjectConfigData.ActivePlayModeIndex`**,落 **`unity/Library/AddressablesConfig.dat`**(**机器本地 · gitignored · 不入库**;包源码 `ProjectConfigData.cs:390`) |
+| 默认值 | **`0` = Use Asset Database** ⇒ **全新检出在结构上就没这个问题** |
+| 本机为何坏 | 实测值 = **`1`**(Use Existing Build);元凶 = `U1SpikeSetup.ConfigurePlayMode()`(`Editor.Tools.Spike/U1SpikeSetup.cs:444`,**刻意不复原**) |
+
+**修复三件**:① `EnsureAssetDatabasePlayMode` **private → public** + 拆纯谓词
+`FindAssetDatabaseBuilderIndex`(**先验后改**:找不到/已在目标 ⇒ 零写入);
+② 新菜单「大医精诚/数据管线/**Play Mode 归位(Use Asset Database)**」;
+③ **机器前置门** `test_playModeScript_isAssetDatabase`(漂移 ⇒ **一条具名红**,不再 9 条神秘红)。
+
+**实证**:菜单实跑日志 `Play Mode → Use Asset Database(DataBuilder[0]「Use Asset Database (fastest)」;
+原「**Use Existing Build (requires built groups)**」)` —— 「原」串同时钉住「本机值确是 1」与「修复生效」。
+
+### 二、素材 Import Settings —— 从**人肉复核**升为**可跑的门**
+
+**前提澄清**:5 个 `.meta` **本就合规**(实测 `music_*=2`,其余 `=0`)。缺的是**判据可执行** ——
+GDD §OQ-44-2 附 给的是 `grep -o 'loadType: [0-9]*'` 式人肉复核,漂移时**没有东西转红**。
+
+**新件** `unity/Assets/Editor.Tools.Bake/AudioImportSettingsGate.cs`:
+纯谓词 `RequiredLoadType`(零 I/O,夹具可注入)+ 真环境 `TryReadWaveInfo`(**从 wav 自己的头**算
+时长/驻留)+ `TryReadLoadType` + `Validate`。
+判据顺序承重:① `music_` 具名前缀 ⇒ Streaming;② > 4 MB 或 ≥ 30 s ⇒ Streaming;
+③ ≤ 512 KB **且** < 5 s ⇒ DecompressOnLoad;④ 其余 ⇒ CompressedInMemory。
+**前瞻收益**:后续 **12 个 `vo_` 变体**落地时**自动纳入**,零改门。
+
+**⚠️ 本件自身踩的 bug(如实登记)**:首跑 5 个文件**全报「data 块缺失」**(文件明明是合法 RIFF)。
+**根因 = `BinaryReader` 自带读前缓冲** ⇒ `FileStream.Position` ≠ 逻辑读位 ⇒ chunk 偏移全错位。
+**修** = 读进 `byte[]` 手工走索引(⛔ 也不用 `BinaryReader` + `MemoryStream`)。
+⇒ **该失败本身是对门纪律的确认**:它**报违例**而非**静默跳过**;写成「读不到就跳过」就会以全绿留下。
+
+### 三、通用防线 —— 落成**可复用驱动**(非一次性 shell)
+
+`tools/falsify/`(**新**:`unity_falsify.py` + `specs/` + `README.md`)。三条纪律**固化为代码**:
+① 改→跑→还原**同进程** `try/finally`;② 还原后 **SHA-256 逐字节校验**;③ 跑测后**受保护路径指纹未变**。
+
+⚠️ **一处刻意的设计修正(首版教训)**:首版要求「起跑必须干净」⇒ 干跑**退出码 2**。
+**那是错的** —— 开发中的仓本就常带未提交的正当改动(本例 `data-core.asset` 是 S14-6 的既有改动)
+⇒ 该判据让驱动在**绝大多数真实场景**下不可用。**正确判据 = 前后指纹相同**(不得**新增**痕迹)。
+
+**退出码**:`0` 全符合预期 / `1` 逃逸或红得比预期多 / `2` **夹具过期** / **`3` 还原或守卫失败(最严重)**。
+**与 `kindgen/mutation_probe.py` 分工**:内存变异(CI 常驻,零风险)vs **工作树**变异(桌面轮,需 Unity license,
+故需三条纪律)。**互补不替代。**
+
+### 四、证伪轮结果(`FALSIFY_EXIT=0`)
+
+4 个变异 **全部 `exactRed: true`**、**逐个施加逐个还原不叠变异**:
+
+| 变异 | 停用什么 | 恰转红 |
+|---|---|---|
+| F1-musicPrefix | `music_` 前缀覆盖 | 3 条 |
+| F2-smallTierInclusive | 小档 `<=` → `<` | 1 条 |
+| F3-playModePredicateMinusOne | `-1` → `0` | 1 条 |
+| F4-unreadableMetaSilentZero | 不可读 meta 静默归零 | 1 条 |
+
+还原后 SHA-256 通过 + 受保护路径**指纹未变**。
+
+### 五、ARM64 腿 —— 探针实测「不可达」;**用户裁定「维持三格原样,登记为长期未达」**
+
+`BuildTargetProbeCli`(新,只读,恒以 0 退出)实测:**46 个 BuildTarget 含「arm」= 零**;
+`IsBuildTargetSupported` 下**只有 `StandaloneLinux64`(x64)受支持**;`PlaybackEngines/` 仅
+`linux64_player_*`。交叉旁证:Unity Hub 模块目录(2020/2021/2022 LTS)**无任何 ARM64 模块**。
+
+⇒ ADR-012 §二:156「**Linux-ARM64 是受支持目标**」**为假**(已就地订正,原文保留作沿革);
+**F2 spike 前置不成立,且不取决于 runner 架构**;矩阵第三格 **在本 pinned 工具链上不可达**。
+三条裁剪候选(换 ARM64 面 / 矩阵降两格 / 改挂 Apple Silicon)**完整提交用户**后,
+**✅ 用户裁定 = 维持三格原样,登记为长期未达**(三候选均未采纳)。
+
+⇒ **ADR-012 §一「三格全免费常驻矩阵」一字不改**;**同时如实登记后果**:该格**长期不可达**;
+「三格全绿」复选框**结构上不可达成**(未勾语义 = 「长期未达」,**非**「待跑」);
+**后续 `/gate-check` 都会带这一条未达项 —— 刻意保留的可见性,不得静默移除或降级为 advisory**。
+解锁条件 = 引擎升级后重跑 §十三 探针,出现受支持 ARM64 目标则自然解锁。
+
+**CI job**:`il2cpp-determinism` 由 TODO 占位**改真 job**(容器 + `-runTests -testPlatform StandaloneLinux64`),
+**但从未跑过**(仓库无 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET` ⇒ skip,且 skip 时**响亮告警**
+「本 job **未跑**,不得记为绿」)⇒ **常驻性仍未兑现**。
+
+### 六、回归
+
+| 运行 | 范围 | 结果 | 含新测? |
+|---|---|---|---|
+| `s18-4-final.xml` | 全量 | `3622 / 3577 / 0 / 45` | ❌ |
+| `s19b-filtered.xml` | 过滤集 | `68 / 68 / 0 / 0` | ✅ 7 |
+| `s19-full-final.xml` | 全量 | `3629 / 3584 / 0 / 45` | ✅ 7 |
+| `s19c-filtered.xml` | 过滤集 | `69 / 69 / 0 / 0` | ✅ 8 |
+| **`s19d-full-final.xml`** | **全量** | **`3630 / 3585 / 0 / 45`** | ✅ **8** |
+
+**累计 +8 / +8 恰等于本轮新增测数**(7 + §12.5 自查 1);基线 S14-5 `3572/3526/0/46` ⇒ **零回归**。
+⚠️ **如实登记的时序缺口(已当场补跑)**:`3622` 那行**早于**新测 ——
+若不补跑,它会以「含新测的全量」的姿态留下来 = **借绿**。
+**判据 = `failed=0` 且 `total - 前次 = 新增测数`**(只看 `failed=0` 会被「新测根本没被收集」蒙混)。
+⚠️ **一次改测就重跑一次全量** —— 本轮跑了**两次**全量,不是沿用上一次的数字。
+
+### 六之二、⚠️ 自查抓到的新缺陷:本门自带的大小写漏扫(§12.5)
+
+回答「还有悬的吗」时逐一复核**本轮自己新落的生产件**,发现 `AudioImportSettingsGate.Validate`
+用了 `Directory.GetFiles(dir, "*.wav")` —— 而 story-017 的 **W-2** 正为**同一条 pattern** 立件。
+
+**独立 net8.0 探针实测(Linux)**:目录含 `lower.wav`/`UPPER.WAV`/`Mixed.Wav` 时,
+`GetFiles("*.wav")` **只返回 `lower.wav`** ⇒ **该 pattern 在 Linux 上区分大小写**。
+CI 平台正是 Linux(ADR-012)⇒ 素材批若交付 `.WAV`,本门会**少报违例**。
+
+**修**:纯谓词 `IsWavName`(`OrdinalIgnoreCase`)+ `Validate` 枚举 `"*"` 再过滤(⛔ 不得改成 `"*.WAV"`)。
+**夹具**:`test_importSettings_wavExtension_isCaseInsensitiveAcrossPlatforms`(**纯谓词直断,不碰文件系统**)。
+**反证**:spec 新增 **F5**(定义域收窄类 ⇒ 反证强制)⇒ **恰转红**。证伪轮 **5/5 恰如预期,`FALSIFY_EXIT=0`**。
+
+⚠️ **与 story-017 W-2 是同一缺陷的两处** —— `AudioAssetGroupGates.cs:197` 归 story-017(`AC-44-D5b`);
+**两处不合并记账**(不同文件、不同 story)。
+⚠️ **顺带印证 §12.3 的边界**:`tools/falsify` 的指纹守卫**看不见**这个缺陷 ——
+它是**语义**缺陷(漏扫),不是**路径**污染。⇒ 守卫与自查是**两件事**,不可互替。
+
+### 六之三、⚠️ 文档硬错:EPIC.md「14 个 story 已完成」
+
+`production/epics/audio-system/EPIC.md:191` 原写「**Epic 全部 14 个 story 已完成**」,
+与头部「001–015 全 `Complete` · 016 `Blocked` · 017 `Ready` · **尚未收口**」**直接矛盾** ——
+那是 **2026-09-28** 的历史陈述(当时 14 条),未随 015/016/017 立项更新。**已就地订正并指向现行口径。**
+
+### 七、落账
+
+`production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md` **§十二 / §十三 / §十四**(新)·
+`docs/tech-debt-register.md`(01f 行二次订正 + 「证伪轮副作用」条三项全落)·
+`docs/architecture/adr-012-…md`(§Validation §ARM64 探针裁定 + §二:156 订正)·
+`production/epics/audio-system/story-010-…md`(头部新块 + NOT-RUN 两处订正 + 登记项)·
+`tests/integration/audio_system/README.md`(61 → 68 + 新增两组 AC 行 + 证伪轮记录)·
+`.github/workflows/unity-tests.yml`(`il2cpp-determinism` TODO → 真 job)·
+`tools/falsify/`(新)· `unity/Assets/Editor.Tools.Bake/AudioImportSettingsGate.cs`(新)·
+`unity/Assets/Editor.Tools.Bake/Cli/BuildTargetProbeCli.cs`(新)·
+`unity/Assets/Editor.Tools.Bake/DataBakeMenu.cs`(改)· `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`(改)
+
+### 仍悬(禁借绿 —— 本轮收口后剩下的)
+
+**A. 本轮引入/遗留的**
+
+- **`tools/falsify` 的路径 ≠ 语义边界** —— 守卫路径之外的污染看不见;且只保证**被检出**,
+  不保证**不被写入**。新证伪轮仍须逐例人判「该守卫能写到哪」。
+  ⚠️ **§12.5 的大小写漏扫正是这条的实例** —— 那是**语义**缺陷,指纹守卫看不见。
+- **`S14-8` 的 `audio.asset` 侧** —— 由通用防线**覆盖检出**,但**无专用包装器**(防写入)。
+
+**B. audio epic 内的既存悬项**
+
+- **story-016 = `Blocked` 🔴** —— R-2 九项中**余 7 项 `.wav` 未交付**(素材产出批次)。
+  ⚠️ 上游报告记 4 项,**实测 7 项**(漏数接触音两项 + 环境音)。
+- ~~**story-017 = `Ready`,未实现**~~ ⇒ ✅ **2026-10-17 已实现并转 `Complete`**(见末节 Session Extract)。
+  W-2(跨平台大小写)+ W-3(`ValidateEntries` 拆分)两条均已落,判据齐(证伪轮 10 变异全 `exactRed`)。
+- **epic 未收口** —— 用户裁定:待素材接入、016 收口后再收口。
+- **全案音频 AC 的「听测半边」不可判** —— 链未通前「无音」是**偶然**不是设计保证;
+  story-013 听测登记「待执行」,`AC-44-09` / `AC-11-21` 同型。**判 ✅ 等于声称「设计正确地实现了静默」。**
+- **素材 Import Settings 的「内容批」半边** —— 门已落;**真实素材内容 + 可能重定档**仍归 content 批(`OQ-44-2`)。
+- **story-010 的两份阶段 2 抽取器重复** —— 归 story-002 轮(后者承载 `__truncated__` 哨兵语义)。
+
+**C. 相关但归别处**
+
+- **ARM64 腿** —— **已裁:维持三格原样,登记为「长期未达」**。ADR-012 该框**长期未勾且不得静默移除**;
+  解锁条件 = 引擎升级后出现受支持的 ARM64 目标。**这不是「待办」,是已裁的长期状态。**
+- **CI 常驻矩阵** —— job 已建但**从未跑过**(无 secret)⇒ **常驻性未兑现**。
+  ⚠️ 与上一条**不同因**:这条是「缺凭据」,那条是「目标不存在」—— 勿合并读。
+- **Windows-x64 / Apple Silicon** —— ADR-012 §二:发版前必跑,不进常驻。
+- ~~**`U1SpikeSetup` 的 Teardown 复原**~~ ⇒ ✅ **2026-10-17 已补**(用户裁定 #11)。
+  ⚠️ 但 **`Landed ✅ / Proven ✗`** —— 生命周期回调,EditMode 不触发,未造判据,**不得标已证**。
+  残余风险面**已收窄但未消除**:「Setup 跑了、Teardown 没跑」的机器仍漂移(如编辑器崩溃/强杀)。
+
+⚠️ **仍未 commit**(本轮无用户指令)。
+
+---
+
+## Session Extract — 悬项收口轮(2026-10-17 · 第三轮)
+
+**本轮的起点**:用户裁定「**现在修,有悬就不要停直到解决**」⇒ 把 audio 工作流所有悬项逐条收口;
+11 项裁定中 3 项为**动作项**,本轮把它们做完。
+
+### 动作项三件的落点
+
+| # | 裁定 | 落点 | 判据 |
+|---|---|---|---|
+| **4** | **story-017 整件开工** | `Editor.Tools.Gates/AudioAssetGroupGates.cs`(谓词 + 映射纯函数 + `ValidateEntries` 拆三)· `Editor.Tools.Bake/AudioImportSettingsGate.cs`(`IsWavName` 委派)· `pipeline_gate_test.cs`(+5 测) | 过滤 **74/74**;全量 **3635/3590/0/45**(基线 3630/3585/0/45,Δ=+5);证伪轮 **10 变异全 `exactRed`**,exit 0 |
+| **11** | **`U1SpikeSetup` 补 Teardown 复原** | `Editor.Tools.Spike.asmdef`(+`Editor.Tools.Bake`)· `U1SpikeSetup.cs`(`finally` 委派 `EnsureAssetDatabasePlayMode`)· `DataBakeMenu.cs`(文档注)· ADR-025 §① 注记 | ⚠️ **无判据** ⇒ `Landed ✅ / Proven ✗`(如实登记) |
+| **3/#7** | **素材需求清单 → 用户准备后收口** | ✅ **已收口** —— 三问全裁,清单冻结(7 cue / 18 文件 + 12 个 `vo_` 命名) | 落 `audio-material-manifest.md` §冻结 + `tech-debt-register` §R-2 冻结清单 |
+
+### 本轮改动文件
+
+`unity/Assets/Editor.Tools.Gates/AudioAssetGroupGates.cs`(改)·
+`unity/Assets/Editor.Tools.Bake/AudioImportSettingsGate.cs`(改)·
+`unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`(+5 测 ⇒ 74)·
+`tools/falsify/specs/audio-import-settings-and-playmode.json`(5 → **10** 变异;F5 重锚)·
+`unity/Assets/Editor.Tools.Spike/Editor.Tools.Spike.asmdef`(改)·
+`unity/Assets/Editor.Tools.Spike/U1SpikeSetup.cs`(改)·
+`unity/Assets/Editor.Tools.Bake/DataBakeMenu.cs`(文档注)·
+`docs/architecture/adr-025-contract-assembly-manifest.md`(§① 窄修订注记)·
+`tests/integration/audio_system/README.md`(Story 017 段)·
+`production/qa/evidence/impl-s17-gate-hardening-2026-10-17.md`(**新**,§三/§四 已填)·
+`production/epics/audio-system/story-017-audio-gate-hardening.md`(Status → Complete + 陈旧计数订正)·
+`production/sprint-status.yaml`(S14-9 追加)
+
+### 本轮**发现**并如实登记的四件(禁借绿)
+
+1. **F10 首轮预测少 1 条**(预测 3,实测 4)—— 复核确认第 4 条是**同一根因的直接后果**
+   (期望集被污染 ⇒ 正向半边必然报),**不是**打到无关断言 ⇒ `expectRed` 按实测订正,
+   **预测不全这件事本身已登记在证据原件 §三 ③**。
+2. **story-017 卡面陈旧计数两处**(「52 测」/「14 条 D5/D6 测」)—— 实测 **69** / **18**,
+   已就地订正并附复算命令。
+3. **点文件策略不对称**(`FilterAudioNames` 剔 `.` 开头 · `AudioImportSettingsGate.Validate` 不剔)
+   —— **发现但刻意未改**,两门语义选择,不在 AC-44-D5b 面内。
+4. **F7 的证明力边界** —— 它证的是「行数守卫对方法长度敏感」,**不是**「撤销拆分」的等价物;
+   等价反证(内联两个判据半)**未做** ⇒ 已在卡面与证据原件两处写明。
+
+### 仍悬(本轮收口后)
+
+**A. ~~待用户裁(阻塞 #3/#7 收口)~~** ⇒ ✅ **2026-10-17 三问已裁并冻结**
+
+| 问 | 裁定 |
+|---|---|
+| 12 个 `vo_` 挂哪条 cue | **全为阻尼咳嗽 ⇒ 挂既有 `Voice_Cough_Damp`**(`assets[]` 2 → 12);命名 `vo_patient_cough_damp_{m\|f}{1\|2\|3}_{1\|2}.wav`(**1 = 强 · 2 = 中 · 3 = 弱**);**现 `m1`/`f1` 退役** |
+| R-2 余 7 项的 cue 名 / 文件名 | **我拟一套,拟完即冻结** ⇒ 已拟 **7 条 cue / 18 个文件** |
+| 4 处 bus 冲突 | **按 GDD `:798-810` 分层表**(草案清单 3 处改写) |
+| R-2 覆盖范围 | **`entity-inventory.md` 全集**(世界声 5 项 · 药柜/器物 3 项) |
+| 脚步材质集 | **3 材质 + 雪档**(石板/泥地/腐殖土/snow)= 4 |
+
+**权威件**:`design/assets/specs/audio-material-manifest.md` §「冻结命名与 bus 裁定」·
+`docs/tech-debt-register.md` §「R-2 冻结清单」。
+**⚠️ 顺序约束(内容批必读)**:7 项在事件表内**零条目** ⇒ **先录素材 → 我再补 `rows[]` → 重烘焙**;
+反过来 = 门当场 `throw`。12 个 `vo_` 同理:**12 文件 + `assets[]` 更新须同批落地**。
+
+**B. 未变(本轮未动)**
+
+- **story-016 = `Blocked` 🔴** —— 余 **7 项 `.wav`** 未交付(素材产出批次)。
+- **epic 未收口** —— 用户裁定:待素材接入、016 收口后再收口。
+- **全案音频 AC 的「听测半边」不可判** —— 链未通前「无音」是**偶然**;判 ✅ 等于声称
+  「设计正确地实现了静默」。**#6 听测复验批次**须等 12 个 `vo_` 素材到货才能建。
+- **story-010 的两份阶段 2 抽取器重复** —— 归 story-002 轮。
+- **ARM64 / CI 常驻矩阵 / Win+Apple Silicon** —— 三条**不同因**,勿合并读(见上 C 节)。
+
+---
+
+## Session Extract — 素材接入轮(2026-10-17 · story-017 收口后第四轮)
+
+**用户指令链**:跑「确保 audio Addressables 组」→ 「b,删掉那两个退役 wav」→
+「把 b 那笔登进 tech-debt-register」→ 「脚步改成 PlayerAction,18 改 17」→
+「把 142 行那处也一起订了」→ 「按你的建议修改,没有选项不要停」。
+
+### 一、交付面(全部实测)
+
+| 项 | 结果 |
+|---|---|
+| audio Addressables 组 | **37 条**(39 − 2 退役)· `deleted=2` · 与 `data-core` 父集合零重叠(AC-44-D5) |
+| `unity/Assets/Audio/` | **37 wav**(原 39,删 `vo_patient_cough_damp_{m1,f1}.wav` + `.meta`) |
+| `audio_events` 烘焙 | **15 行 · 3241 B · `ConfigVersion = 0x1E7C708D`** · exit 0 · 零 `BakeValidationException` |
+| `Footstep_Base` | `WorldPerceptible` → **`PlayerAction`**(`whitelist_category` + `trigger_source` 同改 —— 两字段在其余 14 行恒同值,拆开填会造出唯一不一致行) |
+
+### 二、计数订正(三处,均留变更记录不抹原错)
+
+| 位置 | 原值 | 现值 | 说明 |
+|---|---|---|---|
+| story-017 `:67` | 18(D5 11) | **17(D5 10 · D6 7)** | 18 疑把本轮新增 `test_d5_menu_groupMissing_throwsHard` 计入「既有」 |
+| story-017 `:142` | 69 测 · 演进 52→61→68→69 | **52**(HEAD `d21e43a` 实测) | 原值 52 本是对的;上一版改 69 是混了「落盘前/落盘后」两个时点 |
+| `impl-s17-gate-hardening-2026-10-17.md:229` | 69 测 · 18 条 | **52 测 · 17 条** | 同上 |
+
+**提交历史实测三点**:`22581ca` = 11 · `8d852fe`(S14-6)= 52 · `d21e43a`(= HEAD)= 52。
+「61 / 68」在提交历史中**不存在**(本件未查证其来源,**不作断言**)。
+
+### 三、`data-core.asset` 静默改写 —— 已拆账并结
+
+- **二次精算**:新增实为 **2 条**(`audio_events` / `audio_settings_registry` 的 `.cooked.bytes`),
+  不是初稿说的「三条」—— `case_judgment_lexicon` 在 HEAD 已存在,diff 里出现是**重排**所致。
+- **处置**:以 HEAD 条目顺序为骨架 + 取当前版条目块 ⇒ 生成版与 HEAD **逐字节相同**
+  ⇒ `data-core.asset` **恢复 HEAD 原样**,`git status` 不再出现该文件。
+- 根因:Unity 维护补的两条本来就是 S14-6 产物、本就该入组 ⇒ 差额 = 0。
+- `audio.asset` 复核:差分恰 **+196 / −4**,删的 4 行 = 两个退役 `.wav` 条目,**同一来源**。
+- 登记已更新:`docs/tech-debt-register.md` §「Unity 资产维护静默改写 `data-core.asset`」
+  —— 现象/来源归因/处置/未来触发条件 全部落定,**本债已结**。
+
+### 四、仍悬(本轮未动)
+
+- **story-016 = `Blocked`** —— 余 **7 项 `.wav`** 未交付。
+- **epic 未收口** —— 待素材接入、016 收口后再收口(用户裁定未变)。
+- **`U1SpikeSetup` Teardown 复原** —— `Landed ✅ / Proven ✗`(无夹具面)。
+- **`18` → 17 的两处数字定了,但「61/68」的来源仍未查明**(已标不作断言)。
+- **全案音频 AC 听测半边** —— 用户已听 **34 个资产全部符合**;ASR / 工具链只能测结构,不能签音色。
+
+⚠️ **仍未 commit**(本轮无提交指令)。**batch 已退出,无 lockfile,可开编辑器。**
+
+### 五、计数口径定案(追加 · 三次核对)
+
+排查发现「18 / 69」这两个数**不是编的,是另一种口径**:
+
+| 口径 | `s19d-full-final.xml` 采集时 | HEAD `d21e43a` 源码 | `s22-full.xml` |
+|---|---|---|---|
+| 全量 EditMode `test-run total` | 3630 | — | **3635** |
+| `PipelineGateTest` 用例 | **69** | **52** | **74** |
+| 其中 D5/D6 面 | **18** | **17** | **23** |
+
+- **源码口径**:`22581ca` 11 → `8d852fe` 52 → `d21e43a` 52(三个点)。
+- **XML 采集口径**:`s18-2` 61 → `s19-full-final` 68 → `s19d` 69 → `s22` 74。
+- **原卡面的「52 → 61 → 68 → 69」= 把两种口径缝成一条曲线** —— 这才是真正的错,已就地订正。
+- **逐 fullname 差集**:`s22` vs `s19d` = **新增 5 / 删除 0**(`d5b` ×3 · `d5c` ×1 · `d5d` ×1)
+  ⇒ **全量 `3635 − 3630 = 5` 对账成立,原 §四 的「零回归」结论恢复有效**。
+- **`d5_menu_groupMissing_throwsHard`** 是 TD-audio-01 补口轮落的,不在本轮 5 条内。
+
+已同步四处:`story-017 :67` · `story-017 :142` · 证据原件 §四 + §五 第 4 行 · `tests/integration/audio_system/README.md`。
+
+⚠️ **我曾两次给出相反的订正**(先「+5 不成立」后「+5 成立」),原因都是拿源码数对 XML 数。
+**这条口径陷阱已写进证据原件**,后续对账只认同一采集方式的两份 XML。
+
+### 六、story-016 / 014 前置复查
+
+- **story-016**(余 7 项源音覆盖):其 BLOCKED-BY「素材产出批次」**前置已解除** ——
+  37 个 wav 已落 `unity/Assets/Audio/`、事件表 15 行烘焙通过。
+  但其 Status **仍为 `Blocked`**(本件未改)—— 剩余工作是 E1/E3/E4 的**门代码与判据**,
+  须由 story-016 自己的实现轮推进。
+- **事件表路径注记**:story-016 的 AC 文本写 `assets/audio/`,物理根实为 `unity/Assets/Audio/`
+  (其 `:135` 已自注「逻辑路径保留为称谓」)—— 不改历史,只在执行时按物理根走。
+- **世界声 4 条 cue**:story-016 的 AC-44-E4(「9 项 ↔ 条目」)按 1:1 读会落空,
+  已在 AC 下就地加注「按 **9 个文件** ↔ `assets[]` 并集比」。
+
+### 七、内容批接入后的回归红 → 修复 → 复绿(2026-10-17)
+
+**首跑 `s23-full.xml` = 3635 / 3587 / 3 failed / 45** —— 三条全在 `PipelineGateTest`,
+根因都是**测试写死了内容批之前的事件表形状**:
+
+| 测试 | 红因 | 修法 |
+|---|---|---|
+| `d6_realSeed_bakesWithNoMissingAsset` | 断言「恰好 5 行」,表已 15 行 | 下界 ≥15 + 「烘焙行数 == 源 rows 行数」 |
+| `d6_missingAssetError_namesFileAndCue` | 拿已退役删除的文件名 `Replace` ⇒ 空转 | 从真种子取第一个素材名 + 前提非空断言 |
+| `preload_fromTable_derivesStethoscopeFamily` | 听诊族硬编码 2 条,实为 4 条 | 从真种子**独立**推期望集,按集合比 |
+
+⚠️ **`ExpectedStethoscopeCues` 前两版正则切行都漏行**(`[^{}]` 在 `assets[]` 前断 / 命中嵌套 policy 块)
+⇒ 最终改**顶层花括号深度扫描**。
+
+**复跑(`s23f` / `s23g`)**:
+- 过滤 **74 / 74 / 0 / 0** · 全量 **3635 / 3590 / 0 / 45**,均 exit 0
+- 与 `s22-full.xml` 逐 fullname 差集 = **新增 0 / 删除 0**(只改测试实现,不改用例集合)
+- 跑测**未**改写 `AddressableAssetsData`(`data-core.asset` 仍未出现在 `git status`)
+
+**原判定的全绿不追认** —— 已在证据原件 §四 与 story-017 状态行两处写明。

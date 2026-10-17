@@ -178,4 +178,9 @@
 - **真 `AudioClip` / `AudioSource` 的运行期可听性** —— NOT-RUN:素材未定稿(内容批 `OQ-44-2`)。
 - **`d = 0` / 听者同格边界例** —— 缺口(公式零除式 ⇒ 无 NaN 路径,但边界例未钉)。
 - **事件表 `occlusion_lowpass` 值 > 0 / `loop: true` 的值域断言** —— 缺口:门只断**键存在性**。
-- **IL2CPP 三格**(ADR-012)—— NOT-RUN:本机仅 Mono。
+- **IL2CPP 三格**(ADR-012 矩阵)—— **矩阵整体 NOT-RUN**(CI 常驻 job 未建 + ARM64 腿未跑)。
+  ⚠️ **2026-10-17 逐格订正**:原文「本机仅 Mono」**为假** —— 本机装有 IL2CPP 模块,且
+  **Linux-x64 的 Mono 与 IL2CPP 两格已于 2026-09-24 实测逐位相同(19/19)**,2026-09-25 补
+  Mono player 第三上下文(15/15);真正未跑的只有 **ARM64 腿**(本机无该模块;ADR-012 §二 要求
+  原生 ARM64 runner,qemu 否决)与 **Windows-x64 / Apple Silicon**(发版前必跑)。
+  证据:`production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`。

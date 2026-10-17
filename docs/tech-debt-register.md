@@ -102,7 +102,7 @@
 | # | 要求 | 出处 / 判据 |
 |---|---|---|
 | 内容-01 | **Import Settings 定稿** —— ✅ **已定档 2026-10-17(承 `OQ-44-2` 结案)**。`music_encounter_layer_loop.wav` = **Streaming**(`loadType: 2`,已落 `.meta`,Unity 导入回写实测稳定);其余 4 个(`vo_*` ×2 · `sfx_breath_*` ×2)= **DecompressOnLoad**(`loadType: 0`,即现值)。判据 = `audio-system.md` §OQ-44-2 附(可复算:驻留 ≤ 512 KB ∧ 时长 < 5 s ⇒ 小档)。⚠️ **残留**:`music_*` 的判定有口径张力(23.3 s 在时长上属中档、2008 KB 驻留在小档之外)⇒ 已在附节登记,**Music 素材若改短须重裁** | `audio.md:213-222` · `story-010` AC-44-D15 · GDD §OQ-44-2 附 |
-| 内容-02 | **变体库量** —— ✅ **已裁 2026-10-17 用户 = 每组合 ≥2**(`OQ-44-2`)。**P0 采集量 = 男/女 × 强/中/弱 × 2 = 12 个 `vo_` 文件**;句尾维度**不加**(P0 无消费场景,P1a 再议)。⚠️ **裁定只定「量」,12 个文件尚未录制** ⇒ **`AC-44-03 [L]` 听测仍不可跑**。同时约束 F-44.3 的**回退规则**:烘焙门要求 (CueId × Tier × 桶) 全组合非空,任一轴向空缺 = 构建失败 ⇒ 变体量**不足即构建失败** | `OQ-44-2` · `story-006` AC-44-03 / 回退规则 |
+| 内容-02 | **变体库量 + 命名 + 挂接** —— ✅ **量已裁 2026-10-17 用户 = 每组合 ≥2**(`OQ-44-2`)。**P0 采集量 = 男/女 × 强/中/弱 × 2 = 12 个 `vo_` 文件**;句尾维度**不加**(P0 无消费场景,P1a 再议)。✅ **命名与挂接已同批冻结(2026-10-17 第三轮裁定)**:12 个**全为阻尼咳嗽** ⇒ **挂既有 `Voice_Cough_Damp`**(`assets[]` **2 → 12**);命名 = `vo_patient_cough_damp_{m\|f}{1\|2\|3}_{1\|2}.wav`(**1 = 强 · 2 = 中 · 3 = 弱**);**现 `m1` / `f1` 退役**。冻结件 = `design/assets/specs/audio-material-manifest.md` §「冻结命名与 bus 裁定」。⚠️ **裁定只定「量 / 命名 / 挂接」,12 个文件尚未录制** ⇒ **`AC-44-03 [L]` 听测仍不可跑**。**两条落地约束**:① **12 文件 + `assets[]` 更新须同批落地** —— 烘焙门要求每个被引 `.wav` 都存在,分批 = 当场 `throw`;② 现 `m1`/`f1` 的真内容是否复用,归 content 批自决(**默认不复用**)。 | `OQ-44-2` · `story-006` AC-44-03 / 回退规则 · manifest §冻结 |
 | 内容-03 | **素材族完整性** —— 现事件表 **5 行**;`design/assets/entity-inventory.md` 登记音频 **32 项**(SFX 20 · Ambient 4 · Music Cues 8,其中 **VS Critical 11**);GDD `:804-830` 另列 **8 个补充族**(`sfx_pulse_*` 把脉 · `sfx_footstep_{材质}` 矩阵 · `sfx_process_*` 炮制 · `sfx_enemy_*` · `sfx_animal_*` · `sfx_breath_player_*` 玩家自身 · `amb_weather_*` 天气轴 · `amb_biome_*` 昼夜轴 · `reverb_preset_*`) | `entity-inventory.md:77-100,193-231` · GDD `:804-830` |
 | 内容-04 | **命名真源** —— 录素材时 `cue_id` / 文件名以 `assets/data/audio_events.json` 为**唯一真源**;`design/assets/specs/audio-material-manifest.md` 已加真源声明 + 逐行对账(18 行中 3 命中 / 1 拆分 / 14 未登记)。⚠️ **该分叉无门会报**(`AC-44-D6` 只查文件在不在,**不查 cue 名**) | manifest 真源声明(2026-10-16 立) |
 
@@ -113,12 +113,40 @@
 | **任一条 cue 从「占位」转「真素材」** | 先过 `story-015` 的 `AC-44-D6b/D6c/D15/D16`(真素材烘焙 · 删除即硬失败 · 组归属 · 双向差集)—— ✅ **5 条已全过**(2026-10-17,证据原件 `impl-s15-asset-content-2026-10-17.md`) |
 | ~~**`OQ-44-2` 素材量裁定后**~~ | ✅ **已结 2026-10-17** —— 本表 内容-01 与 内容-02 **已同批定稿**(档位判据 = GDD §OQ-44-2 附;变体量 = 每组合 ≥2 / 12 个文件)。**残余**:12 个变体文件的**录制**仍待办 ⇒ 下一行「变体素材落地后」未解锁 |
 | **变体素材落地后**(12 个 `vo_` 文件录制完成) | `story-006` `AC-44-03 [L]` 听测可跑;**`story-013`(主通道听测验收)** 与 **`story-016`(残余声源覆盖)** 随之解锁 |
-| 🔴 **R-2 余 7 项 `.wav` 交付后**(诊脉接触音 / 听诊器接触音 / 纸面 / 脚步 / 药柜 / 世界声 / 馆内环境音) | **`story-016` 解锁** —— 其 `Status` 已于 2026-10-17 由 `Ready` 改 **`Blocked`**(E2/E3/E4 结构上依赖素材)⇒ 收口 016 ⇒ **随后收口 44 epic**(用户 2026-10-17 裁定:**素材接入后方可收口 epic**;在此之前不得以「001–015 全 `Complete`」推定 epic 已闭) |
+| 🔴 **R-2 余 7 项 `.wav` 交付后**(诊脉接触音 / 听诊器接触音 / 纸面 / 脚步 / 药柜 / 世界声 / 馆内环境音) | ✅ **命名与 bus 已于 2026-10-17 第三轮冻结**(**18 个文件**,逐项见下「R-2 冻结清单」;权威件 = `design/assets/specs/audio-material-manifest.md` §「冻结命名与 bus 裁定」)。**录制完成后** ⇒ **`story-016` 解锁** —— 其 `Status` 已于 2026-10-17 由 `Ready` 改 **`Blocked`**(E2/E3/E4 结构上依赖素材)⇒ 收口 016 ⇒ **随后收口 44 epic**(用户 2026-10-17 裁定:**素材接入后方可收口 epic**;在此之前不得以「001–015 全 `Complete`」推定 epic 已闭) |
 | **任何音频类 AC 的 `[L]` 半边** | ⚠️ 在素材接入前**均不可判** —— 含 `AC-44-09`(无提示音铁律,BLOCKING)、`AC-11-21`(处方侧)。见同册 **TD-prescription-04** |
 
 > **登记理由**:S14-6 的证据原件 §5 第 1/2 行**只登记了「NOT-RUN + 解除条件 = 素材定稿」**,
 > 已含本册一半内容;本册补的是**「素材定稿」本身要交付什么**(逐族声学判据 + 4 条系统级要求),
 > 以及**「§5 未登记内容需求」这个缺口本身**。
+
+### R-2 冻结清单(2026-10-17 第三轮裁定 · **18 个文件** · 内容批照此录制)
+
+**裁定原则**:① **bus 以 GDD `:798-810` 分层表为准**(未批准的草案清单有 3 处与 GDD 明文冲突);
+② 覆盖范围 = **`entity-inventory.md` 全集**;③ 脚步材质 = **3 材质 + 雪档**。
+**权威件** = `design/assets/specs/audio-material-manifest.md` §「冻结命名与 bus 裁定」。
+
+| R-2 项 | **cue id(冻结)** | bus | loop | category / trigger | **文件(冻结)** | 量 |
+|---|---|---|---|---|---|---|
+| [SFX #1] 诊脉接触音 | `Pulse_Contact` | **Stethoscope** | ✗ | PlayerExamAction | `sfx_pulse_contact_01.wav` | 1 |
+| [SFX #2] 听诊器接触音 | `Steth_Contact` | Stethoscope | ✗ | PlayerExamAction | `sfx_steth_contact_{chest,back}_01.wav` | 2 |
+| [SFX #7] 纸面物理声 | `Page_Turn` | UICue | ✗ | PlayerExamAction | `ui_page_turn_{fwd,back}_01.wav` | 2 |
+| [SFX #8] 脚步声 | `Footstep_Base` | **SFX** | ✗ | WorldPerceptible | `sfx_footstep_{stone,dirt,humus,snow}_01.wav` | 4 |
+| [SFX #9] 药柜/器物声 | `Cabinet_Prop` | SFX | ✗ | PlayerAction | `sfx_cabinet_{drawer,handle}_01.wav` · `sfx_prop_place_01.wav` | 3 |
+| [SFX #10] 世界声 | `World_Sfx_Base` | **SFX** | ✗ | WorldPerceptible | `sfx_world_{dog,horse,gong,bell,birds}_01.wav` | 5 |
+| [SFX #10] 世界声 · **预告线索补 4 项** | `World_Sfx_Base`(同一 cue,`assets[]` 共 **9**) | **SFX** | ✗ | WorldPerceptible | `sfx_world_{door_bell,vendor_cry,throat_clear,crying}_01.wav` | 4 |
+
+> ⚠️ **2026-10-17 第二轮裁定:上两行世界声已改为拆 4 条 cue** ——
+> `World_Threat`(狗/马/锣/鸟) · `World_Opportunity`(门铃/货郎) ·
+> `World_Reaction`(清嗓子) · `World_Disaster`(哭喊/钟声)。**9 个文件不变**。
+> 依据 = 9 项并入一条 cue 时事件表无「档位」字段 ⇒ 运行期无法按档选音。
+> 权威件 = `design/assets/specs/audio-material-manifest.md` §一之二。
+| [Ambient #1] 医馆室内环境音 | `Clinic_Room_Tone` | Ambience | ✓ | WorldPerceptible | `amb_clinic_room_loop.wav` | 1 |
+
+> ⚠️ **顺序约束**:这 7 项目前在 `assets/data/audio_events.json` 内**零条目**。
+> 正确顺序 = **先录素材 → 我补 `rows[]` 条目 → 重烘焙**。
+> **反过来(先补条目)会让烘焙门当场 `throw`** —— 门要求被引文件存在。
+> 这也正是 story-016 的 `AC-44-E2` 与 `AC-44-E3` 的判据面。
 
 ---
 
@@ -135,12 +163,13 @@ ADVISORY ⑥(2026-10-17 收口轮新发现)· `production/qa/evidence/impl-s15-a
 | # | 面 | 债 | 状态 / 出处 |
 |---|---|---|---|
 | **TD-audio-01a** | **跨机复现** | `unity/Assets/AddressableAssetsData/` 原被 `.gitignore:85` **整目录忽略** ⇒ `audio` 组及其 5 条目只存在于机器本地,新检出后 `test_d5_realSettings_audioAssetsSeparateFromDataCore` 正向半边**结构上不成立** | ✅ **2026-10-17 已修** —— `.gitignore` **收窄**为只忽略逐平台 `*/addressables_content_state.bin`;**组定义入库**(39 文件 + 顶层 `.meta`,共 41)。收窄依据:组定义 GUID 逐一命中**已提交**的 `.wav.meta` · profile 变量全为 token 式相对值 · 全树零绝对路径 · `.meta` 齐备。**修复方向 ① 被采纳**(原三选一) |
-| **TD-audio-01b** | **自举**(⚠️ 前提已被 01a 改变) | ~~`settings == null` 只 `LogError` 就 return ⇒ 须先手点 Addressables Groups 窗口,**不能自举**~~ —— **01a 落地后该前提失效**:组定义入库,「设置缺失」的含义由「没初始化过」变为「**入库文件被删/损坏**」 | ✅ **2026-10-17 已修**(用户裁定:**硬失败 + 指引恢复,不自举**)。`DataBakeMenu.EnsureAudioGroupCore` 分支 ① 改为 `throw`,报文指向 `git checkout -- unity/Assets/AddressableAssetsData`。⚠️ **原「自举」方向被裁为不采纳** —— `GetSettings(create:true)` 会建一份只含默认组、与入库定义**分叉**的 settings = **假绿**(看着绿,组是错的)。**残余**:W-5② `CreateGroup` 只给默认 schema —— **仍未修**,见下方 |
-| **TD-audio-01c** | **路径未验**(⚠️ 原判据已失效) | `CreateGroup` + schema 的「**全新 clone 首跑**」路径 —— 原为**读码推断** | ⚠️ **2026-10-17 状态订正:原实测结论不可再引用**。原跑法「移走 `AddressableAssetsData/`」模拟的是 **01a 之前**的状态;01a 后组定义入库,真·全新检出**带**组定义 ⇒ 该模拟不再成立。**静态核实(已做)**:`DefaultObject.asset` 的 `m_AddressableAssetSettingsGuid = 2c864c592004e1c729cd6c8ed9da4089` = `AddressableAssetSettings.asset.meta` 的 guid ⇒ **引用链完整**。**真·全新 clone 复测未跑**(须 `git clone` + 全量导入)⇒ 如实**登记为未验**,不借绿 |
+| **TD-audio-01b** | **自举**(⚠️ 前提已被 01a 改变) | ~~`settings == null` 只 `LogError` 就 return ⇒ 须先手点 Addressables Groups 窗口,**不能自举**~~ —— **01a 落地后该前提失效**:组定义入库,「设置缺失」的含义由「没初始化过」变为「**入库文件被删/损坏**」 | ✅ **2026-10-17 已修**(用户裁定:**硬失败 + 指引恢复,不自举**)。`DataBakeMenu.EnsureAudioGroupCore` 分支 ① 改为 `throw`,报文指向 `git checkout -- unity/Assets/AddressableAssetsData`。⚠️ **原「自举」方向被裁为不采纳** —— `GetSettings(create:true)` 会建一份只含默认组、与入库定义**分叉**的 settings = **假绿**(看着绿,组是错的)。**残余**:~~W-5② `CreateGroup` 只给默认 schema —— 仍未修~~ **✅ 2026-10-17 已修**(见下「残余修复方向」) |
+| **TD-audio-01c** | **路径未验**(⚠️ 原判据已失效 · ✅ 真复测已补) | `CreateGroup` + schema 的「**全新 clone 首跑**」路径 —— 原为**读码推断** | ✅ **2026-10-17 真·全新 clone 复测已跑**(用户裁定)。`git clone` 到全新空目录(实测:无 `Library/` · 无 `Linux/content_state.bin` · 组定义齐备)⇒ `unity test … --filter PipelineGateTest` = **54/54/0**,决定性的一条 `test_d5_realSettings_audioAssetsSeparateFromDataCore` **Passed** ⇒ **`Settings` 在真检出上解析成功**。⚠️ **原模拟方式已作废**(「移走目录」模拟的是 01a **之前**的状态);⚠️ **且 `CreateGroup` 分支在全新检出上不再被走到** —— 组已随仓库到达 ⇒ 01c 的**原始关切**(CreateGroup + schema 首跑)**因 01a 而结构性消解**。**残余**:schema 定稿问题另立(见下 W-5②) |
 | **TD-audio-01d** | **判据弱于 AC** | ~~`ValidateEntries` (a) 半不断言「登记在 `audio` 组」⇒ `.wav` 落在 `Default Local Group` 亦**判过**,**素材仍被打进主包**,破 AC-44-D5 意图~~ | ✅ **2026-10-17 结案 —— 原判定的危害陈述证伪**(用户裁定:维持 GDD 口径,**不改代码**)。**证伪证据(实测)**:`BuildPlayerContent` 产物 = `defaultlocalgroup_scenes_all_*.bundle` / `audio_assets_all_*.bundle` / `data-core_assets_all_*.bundle` —— **每组各自成 bundle** ⇒ 不存在「被打进主包」。**且判据语义另有明文**:GDD `design/gdd/audio-system.md:1104-1105`「判据 = **组区分** …**不是**「组叫什么名字」」。**残余(如实登记,不隐藏)**:`.wav` 落在 `Default Local Group` 时本门**判过** —— 此为 GDD 明文裁定的范围,**不是缺陷** |
-| **TD-audio-01e** | **静默失败**(01c 实测**新发现**) | `EnsureAudioGroup` 在 `settings == null` 时**只 `LogError` 并 return**,`moved == 0` 时只 `LogWarning` 并 return —— **两处都不让进程失败** ⇒ 以 `-executeMethod` 作 CI 前置步时**报绿而组实际缺失** = **假绿**(本项目最忌的失效模式) | ✅ **2026-10-17 已修**(用户裁定:**同文件两处都修**)。`EnsureAudioGroupCore` **两条**分支均改 `throw`;并**先验后改** —— 两条都在任何写入之前判定 ⇒ 失败时设置零改动(夹具可安全注入真设置)。**证伪轮 2/2 全红且各只红 1 条**:停用分支 ① ⇒ `test_d5_menu_settingsMissing_throwsHard` 红;停用分支 ② ⇒ `test_d5_menu_noAssets_throwsHard` 红。⚠️ **`EnsureDataCoreGroup` 的同款两分支未修**(用户裁定 01e 范围限于 `EnsureAudioGroup`)—— 已在其 doc 就地注记 |
+| **TD-audio-01e** | **静默失败**(01c 实测**新发现**) | `EnsureAudioGroup` 在 `settings == null` 时**只 `LogError` 并 return**,`moved == 0` 时只 `LogWarning` 并 return —— **两处都不让进程失败** ⇒ 以 `-executeMethod` 作 CI 前置步时**报绿而组实际缺失** = **假绿**(本项目最忌的失效模式) | ✅ **2026-10-17 已修**(用户裁定:**同文件两处都修**)。`EnsureAudioGroupCore` **两条**分支均改 `throw`;并**先验后改** —— 两条都在任何写入之前判定 ⇒ 失败时设置零改动(夹具可安全注入真设置)。**证伪轮 2/2 全红且各只红 1 条**:停用分支 ① ⇒ `test_d5_menu_settingsMissing_throwsHard` 红;停用分支 ② ⇒ `test_d5_menu_noAssets_throwsHard` 红。**且进程级端到端实测**(真·全新 clone,`unity build --execute-method`):**完好 ⇒ `EXIT=0`** + `audio 组就绪:5 个素材已入组并打标签`;**移走设置 ⇒ `EXIT=6`** + `InvalidOperationException` 含 `git checkout` 指引 —— **同样输入下旧行为的退出码是 `0`**(`s17-freshclone-20261017-051600.log`)⇒ **静默已闭**。⚠️ ~~**`EnsureDataCoreGroup` 的同款两分支未修**(用户裁定 01e 范围限于 `EnsureAudioGroup`)~~ ⇒ **✅ 2026-10-17 已一并修**(补口轮 —— 01e 的窄范围已扩)。拆出可注入的 `EnsureDataCoreGroupCore(settings, cookedDirRel, groupName)`,**三处硬失败**(设置缺失 / 产物目录零 `*.cooked.bytes` / 组缺失);且零产物扫描**提到任何写入之前**(先验后改 —— 原实现是「先建组、先打标签才 `LogWarning`」)。**判据**:`test_dcore_menu_{settingsMissing,noCooked,groupMissing}_throwsHard`;**证伪轮 3/3 全红**(停用 `guids.Count == 0` ⇒ `noCooked` 红;停用 `group == null` ⇒ `groupMissing` 红) |
+| **TD-audio-01f** | **跨机复现**(2026-10-17 **新发现** · S14-6 补口) | 入库的 `AddressableAssetSettings.asset` 带 `m_ActivePlayerDataBuilderIndex: 2`(= `BuildScriptPackedMode`)⇒ **PlayMode 下 Addressables 从预建 catalog 解析**(`unity/Library/com.unity.addressables/aa/<platform>/catalog.bin`,**gitignored · 机器本地**)。实测后果:新增组条目(`audio_events.cooked.bytes` / `audio_settings_registry.cooked.bytes`)后未重建 ⇒ `AddressablesDataProvider.Preload() → EnsureAudioEvents() → FetchBytes()` 抛 `InvalidKeyException: No Location found for Key=…` ⇒ **9 条 PlayMode 启动序测试全红**。⚠️ **潜伏期**:该炸点自 **2026-10-16 `8d852fe`**(S14-6 把 `EnsureAudioEvents()` 加进 `Preload()`)起就在,而 **PlayMode 自 2026-10-15 起没跑过全量**(`s11-b6-playmode.xml` = 186/186/0 是最后一次)⇒ 不是本轮引入的,是本轮**发现**的 | ✅ **2026-10-17 已解**(重建 catalog ⇒ 全量 PlayMode **189/189/0/0**,基线 186/186/0/0,零回归)。**新增菜单**「大医精诚/数据管线/**构建 Addressables 内容(BuildPlayerContent)**」。**⚠️ 2026-10-17 同日二次订正 —— 原「残留」的诊断是错的**:**根因不是 `m_ActivePlayerDataBuilderIndex`(那是 Build 脚本,入库值 `2` = `BuildScriptPackedMode`,**正确**),而是 **Play Mode 脚本** —— 它住 `ProjectConfigData.ActivePlayModeIndex`,落 **`unity/Library/AddressablesConfig.dat`**(**机器本地 · gitignored · 不入库**,包源码 `ProjectConfigData.cs:390`)。**默认值 0 = Use Asset Database ⇒ 全新检出本来就没有这个问题**;坏的是**被改过的那台机器** —— 实测本机值为 `1`(Use Existing Build),元凶 = `U1SpikeSetup.ConfigurePlayMode`(`Editor.Tools.Spike/U1SpikeSetup.cs:444`,**刻意不复原**)。**已修**:① `EnsureAssetDatabasePlayMode()` 由 `private` 升为**可注入 public**(纯谓词 `FindAssetDatabaseBuilderIndex` + 真环境半)并挂菜单「**Play Mode 归位(Use Asset Database)**」—— 本机已跑,日志实证 `原「Use Existing Build (requires built groups)」`;② 新增**机器前置门** `test_playModeScript_isAssetDatabase`(漂移 ⇒ **一条具名红**,不再表现为 9 条神秘红)。**残留(未修,如实登记)**:① 该设置**不可入库、不可 `git checkout` 恢复** —— 只能靠菜单/门;**新机器默认值恰好是对的**,故风险面仅限「跑过 U1 spike 的机器」;② `U1SpikeSetup` 本身**仍未**在 Teardown 复原该设置(本轮只在 `DataBakeMenu` 侧加了修复入口,未改 spike —— 它是历史 spike,改它需先裁「spike 是否保留」) |
 
-**触发条件(全部四个面共用)**:**CI 的 Unity 测试 job 真正启用时**(ADR-012 跨平台确定性矩阵)—— 与 **`TD-medcons-09`** 同族。
+**触发条件(全部五个面共用)**:**CI 的 Unity 测试 job 真正启用时**(ADR-012 跨平台确定性矩阵)—— 与 **`TD-medcons-09`** 同族。
 > ⚠️ **2026-10-17 实测订正:该触发条件「尚未落地」** —— CI workflow **已存在**但 Unity job 是 **no-op**:
 > `tests.yml` 的 Unity job 已于 **2026-09-29 移除**(无 license),`guard-assertions` 是 `exit 0` 占位;
 > `unity-tests.yml` 的 EditMode/PlayMode 由 secret 门控(**未配 `UNITY_CLIENT_ID` 即跳过**),IL2CPP job 是占位。
@@ -149,19 +178,120 @@ ADVISORY ⑥(2026-10-17 收口轮新发现)· `production/qa/evidence/impl-s15-a
 > **为何单列而不并入 TD-medcons-09**:两者**同族不同因** —— medcons-09 是「测试读真实文件系统 + 路径解析依赖检出布局」;
 > 本债是「**被断言的对象本身不在版本控制里**」。前者的出路是改测试的路径解析;后者的出路是给组创建提供确定性基线(01a ✅)+ 可自举入口(01b)。
 >
-> **残余修复方向(2026-10-17 三笔裁定后重写)**:
-> - **W-5② `CreateGroup` schema 不复现** —— **仍 ✗ 未修**。`CreateGroup` 只给默认 schema;
->   今日若手调过 Bundle Mode / 压缩,重跑不复现。**须先裁「哪些 schema 值算定稿」** ——
->   现入库的 `audio_BundledAssetGroupSchema` 有 `m_UseDefaultSchemaSettings: 0`(即**已脱离**默认),
->   故「重建 = 入库值」不能靠默认值白拿。
-> - **01c 真·全新 clone 复测** —— 须 `git clone` + 全量导入(慢);静态引用链已核实完整。
-> - **`EnsureDataCoreGroup` 同款静默失败** —— 用户裁定 01e 范围不含它,留待后续。
+> **残余修复方向(2026-10-17 三笔裁定后重写;同日补口轮再订正 —— 三项均已落)**
+> - ~~**W-5② `CreateGroup` schema 不复现** —— **仍 ✗ 未修**~~ ⇒ **✅ 已修(甲案:删掉重建,改硬失败)**。
+>   原前置「**须先裁「哪些 schema 值算定稿」**」**随之消解** —— 既然**不建组**,默认值与入库值的差异
+>   **不再是本菜单需要知道的量**。`EnsureAudioGroupCore` / `EnsureDataCoreGroupCore` 的 `CreateGroup`
+>   分支已删,组缺失 ⇒ `throw` + `git checkout -- unity/Assets/AddressableAssetsData` 指引。
+>   **判据**:`test_d5_menu_groupMissing_throwsHard` / `test_dcore_menu_groupMissing_throwsHard`
+>   (**先验后改**:抛异常后 `settings.FindGroup(absent)` 仍为 `null`)。
+> - ~~**01c 真·全新 clone 复测** —— 须 `git clone` + 全量导入(慢)~~ ⇒ **✅ 已跑**,见 `01c` 行。
+> - ~~**`EnsureDataCoreGroup` 同款静默失败** —— 留待后续~~ ⇒ **✅ 已一并修**,见 `01e` 行。
+> - ~~**`01f` 的残留** ⇒ **未修**(`m_ActivePlayerDataBuilderIndex: 2` 仍在入库设置;新检出后须重跑
+>   「构建 Addressables 内容」菜单)。**出路未裁**。~~ ⇒ **✅ 已修,且原诊断本身是错的** ——
+>   入库的 `m_ActivePlayerDataBuilderIndex: 2` 是 **Build 脚本**(`BuildScriptPackedMode`),**正确**;
+>   真正的旋钮是 **Play Mode 脚本**,住 `Library/AddressablesConfig.dat`(**机器本地、不入库、默认值即正确**)。
+>   详见 `01f` 行与 §「证伪轮副作用」条。
 > ⚠️ 原「②③ 都须**先补 `GetSettings(create:true)` 自举**」**已作废** —— 01b 裁定为**不自举**(见上)。
 > ⚠️ ① 与 ADR-023 ②「零 gameplay 对象」/ ADR-025 装配清单无冲突(已实测);Addressables 6.2+ 目录契约的 Knowledge Risk MEDIUM 随 01a 落地**降为已观测形态**(组定义确为可移植 YAML)。
 >
 > **同批实测附带发现(非本债面内,登记不隐藏)**:`Editor.Tools.Kindgen.asmdef` 与 `Editor.Tools.Level.asmdef`
 > 两个 Tooling 程序集**无任何脚本关联**,Unity 每次编译输出 `LogWarning`(Kindgen 实现为 Python,承 ADR-024 §⑤;
 > Level 工具尚无 C#)。**无害但噪声** —— 若将来 Tooling 程序集增多,建议评估是否保留空 asmdef。
+
+---
+
+## 2026-10-17 · 证伪轮副作用:失败路径污染入库资产(44 音频补口轮)
+
+**出处**:`production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md` §10.6 / §10.7 ·
+同型**第一次**见 `production/sprint-status.yaml:149`。
+**性质**:**方法论级**债 —— 不是某一条代码的 bug,而是「**变异测试会执行生产码的写入路径**」这一固有风险
+在 Unity 资产上的具体化。**已发生两次**:
+
+| # | 时间 / 出处 | 对象 | 现象 | 处置 |
+|---|---|---|---|---|
+| 1 | 2026-10-17 · S14-8 | `unity/Assets/Audio/audio.asset` | 证伪轮触发 Unity 资产维护,**静默改写**(5 → 4 条) | 跑生产菜单项 `EnsureAudioGroup` 修复 |
+| 2 | 2026-10-17 · 补口轮 | `AddressableAssetsData/AddressableAssetSettings.asset` | 变异 M1/M3 停用「组缺失 ⇒ throw」⇒ 生产码**落入分支 ④**,先 `AddLabel(假组名)` 再 `SaveAssets()` ⇒ **两个假标签入库** | `git checkout` 还原 + **夹具加固**(`AssertThrowsAndLeaveNoTrace`:try/finally 清理 + 「查组 + 查标签」双断言) |
+
+**处置(2026-10-17 当日,三项全落)**:
+
+- ~~**无通用防线**~~ ⇒ **✅ 已落,并升格为可复用驱动** —— `tools/falsify/unity_falsify.py`
+  (含 `README.md` + `specs/`)。原「建议(未裁)」的 `git diff --quiet …` 一次性判据被
+  **更强的形态**取代:**受保护路径的「前后指纹相同」断言**(`guards_fingerprint()`
+  = `git status --short` + `git diff` 合并文本),默认守卫
+  `unity/Assets/AddressableAssetsData` + `unity/Assets/Audio`。
+  **为何不用「起跑必须干净」**(首版实测教训):开发中的仓本就常带未提交的正当改动
+  (本例 `data-core.asset` 是 S14-6 的既有改动)⇒ 要求起跑干净会让驱动在**绝大多数真实场景**
+  下直接退出码 2 —— 那不是严谨,是**不可用**。正确判据 = **证伪轮不得新增任何痕迹**。
+  三条纪律已固化为代码(非留在人的记忆里):① 改→跑→还原同进程 `try/finally`;
+  ② 还原后 **SHA-256 逐字节校验**;③ 跑测后**受保护路径指纹未变**。
+  **退出码**:0 全符合预期 / 1 逃逸或红得比预期多 / 2 夹具过期 / **3 还原或守卫失败(最严重)**。
+- ~~**第一次的对象没有防线**~~ ⇒ **✅ 同一条通用防线已覆盖** —— `S14-8` 的污染对象
+  (`unity/Assets/Audio/audio.asset`)正落在默认守卫路径内 ⇒ 再发生即**退出码 3 拦下**,
+  不必为它单写包装器。⚠️ 但仍**如实登记**:本驱动只保证「**被检出**」,
+  **不保证「不被写入」** —— 防写入仍需夹具侧包装器(`AssertThrowsAndLeaveNoTrace`),
+  两者是**检出 vs 预防**的分工,不可互相替代。
+- **判据口径(未修,方法论)**:「无残留」不能只查**对象本身**(组/条目),须查**该方法能写到的每一处**
+  (本例 = **标签表**)。**本驱动不改变这条** —— 它守的是**路径**不是**语义**:
+  若污染写到守卫路径之外,指纹判据看不见。⇒ 新证伪轮**仍须逐例人判**「该守卫能写到哪」。
+
+**同轮落地判据(证伪轮自证)**:
+`python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/audio-import-settings-and-playmode.json`
+⇒ `FALSIFY_EXIT=0`;4 个变异(F1 前缀覆盖 / F2 小档闭区间 / F3 PlayMode 谓词 `-1` /
+F4 不可读 meta 静默归零)**各自恰如预期转红**,还原 SHA-256 通过,指纹未变。
+
+**触发条件**:任何以「**停用生产守卫**」为手段的证伪轮(即 S12-4 形态的每一次)。
+
+---
+
+## 2026-10-17 · Unity 资产维护静默改写 `data-core.asset`(44 音频 story-017 收口轮)
+
+**出处**:story-017 收口轮实跑「确保 audio Addressables 组」
+(`unity/Logs/build-StandaloneLinux64-1792219838345.log`)·
+同型**第三次**见上节「证伪轮副作用」表(第 1 条为图形资产,第 2 条为设置文件,本条为**组数据**)。
+
+**现象(实测,`git diff` 原文)**:`EnsureAudioGroup` 的 batch 启动时,
+`unity/Assets/AddressableAssetsData/AssetGroups/data-core.asset` 被改写 **+18 / −6 行**:
+
+- **补入两条 `*.cooked.bytes` 条目** —— `audio_events.cooked.bytes`、
+  `audio_settings_registry.cooked.bytes`
+  (这两条是 S14-6 的产物,本就该入组,**GUID 无变化**);
+  `case_judgment_lexicon.cooked.bytes` 在 HEAD 里**已存在** —— 它出现在 diff 里是**顺序重排**所致,
+  **不是新增**(实测:HEAD 5 条 → 现 7 条,差集恰为上两条);
+- **重排既有条目顺序**(序列化顺序,内容语义不变)。
+
+*(**二次精算,2026-10-17** —— 本节初稿写「三条」,把重排显示成「删除 + 新增」的
+`case_judgment_lexicon` 误计为新增;按条目差集复算,新增实为 **2** 条。)*
+*另:初稿还曾把它描述成「ADR-030 的 `DiseaseOnset`」—— 亦误。`data-core` 里的都是
+**cooked 产物条目**(`*.cooked.bytes`),与 `DiseaseOnset` 这个 `SimEvent.Kind` **无关**。*
+
+**来源归因(排除本菜单代码路径)**:
+`DataBakeMenu.EnsureAudioGroupCore`(`DataBakeMenu.cs:671-726`)对 `data-core` **零写入** ——
+其三条硬失败**先于任何写入**判定,日志无告警;且条目内容与 `EnsureAudioGroup` 的产物
+(`audio.asset` 条数变化)完全不相干。⇒ 来源 = **Unity 资产维护**(batch 启动时的隐式 `SaveAssets`)。
+
+**处置(2026-10-17 · 用户裁定「按你的建议修改」)** —— **本条债已结**:
+
+- 已按「S14-6 既有改动」与「本次 Unity 维护改动」**二分拆账**
+  (做法:以 HEAD 的条目顺序为骨架 + 取当前版本各条目块,生成「S14 序」版;
+  该版与 HEAD **逐字节相同** —— 因为 Unity 维护补的两条 `audio_*.cooked.bytes`
+  本来就是 S14-6 的产物、`data-core` 组条目本就该有它们 ⇒ 差额 = 零);
+- `data-core.asset` 已**恢复为 HEAD 原样**,`git status` 中**不再出现本文件**;
+- ⇒ 「提交时须人工拆账」这条触发条件**已满足并消除**;
+- 同时复核 `audio.asset`:差分恰为 **+196 / −4**,删的 4 行 = 两个退役 `.wav` 条目
+  (`vo_patient_cough_damp_{m1,f1}.wav`),**同一来源**(退役裁定 + `EnsureAudioGroup` 重跑),
+  不构成混账。
+
+**仍保留的观察(不作为本债)**:Unity 资产维护**会把两版都合法的条目重排顺序** ——
+这种改写**无语义**,但会让 diff 看起来像「删了又加」。**判据 = 比条目差集,不比 diff 行数**。
+
+**既有防线为何未拦**:`tools/falsify/unity_falsify.py` 的守卫在**证伪轮**内生效;
+本次是**生产菜单项实跑**,不经过该驱动 ⇒ 指纹判据未参与。这是**防线范围**问题,
+不是防线失效(该驱动不覆盖非证伪轮的单次菜单执行)。
+
+**触发条件(本债已结,以下为未来项)**:若将来再次出现「非证伪轮的单次菜单执行改写
+`AddressableAssetsData`」,须评估是否把菜单执行也纳入 `unity_falsify.py` 的守卫面
+(**须另裁,不在本件**)。
 
 ---
 
