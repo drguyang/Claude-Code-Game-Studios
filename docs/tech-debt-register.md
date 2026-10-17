@@ -295,6 +295,34 @@ F4 不可读 meta 静默归零)**各自恰如预期转红**,还原 SHA-256 通�
 
 ---
 
+## 2026-10-17 · `TD-audio-01f` 残留② 结清 —— `U1SpikeSetup.Teardown` 复原的判据补口
+
+**原状态**:`Landed ✅ / Proven ✗` —— 理由是「`Teardown` 是编辑器生命周期回调,EditMode 下不触发,
+无夹具面」(登记的补法 = 源码扫描或 PlayMode 手跑)。
+
+**本轮做法(用户 2026-10-17 裁定「按这个顺序做」)**:把复原动作抽成**可注入纯半**
+`U1SpikeSetup.RestorePlayModeCore(settings)`,`Teardown` 的 `finally` 改为委派它
+(判据仍单一出处 = `DataBakeMenu.AssetDatabaseBuilderIndex`)。
+
+**结账(双列)**:
+
+| 半边 | Landed | Proven | Proven-by |
+|---|---|---|---|
+| 复原动作本身 | ✅ | ✅ | `test_u1teardown_restorePlayMode_corePullsDriftedStateBack`;反证 F1(空体)⇒ **恰红 1 条** |
+| null 稳健性 | ✅ | ✅ | `test_u1teardown_restorePlayMode_nullSettings_doesNotThrow` |
+| **接线**(`Teardown` 真的调用它) | ✅ | **弱(词法)** | `test_u1teardown_restorePlayMode_isWiredIntoTeardown`;反证 F2(删调用)⇒ 红 |
+
+⚠️ **不掩盖的两点**:
+① 接线半边是**源码扫描**,抓不住「调用挪出 `finally`」「异常被吞」;
+② **F2 首版是假绿** —— 首版扫描窗一路扫到文件尾,而本文件的文档注释与方法**定义**里也出现
+`RestorePlayModeCore`,删掉调用照样命中。已把扫描窗收窄到 `Teardown` 方法体边界,
+重跑 F2 才红。**这条假绿若不经证伪轮会以绿留下**。
+
+**残余(不变)**:「Setup 跑了但 Teardown 从没跑」的机器仍会漂移 ⇒ 兜底 = 菜单
+「Play Mode 归位」+ 机器前置门 `test_playModeScript_isAssetDatabase`。
+
+---
+
 ## 登记格式(后续沿用)
 
 ```
