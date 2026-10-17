@@ -86,15 +86,88 @@ jobs:
           name: playmode-test-results
           path: test-results/playmode.xml
 
-  # ADR-012: IL2CPP 对拍需要 unity-builder 出 player + 独立 job
-  # 当前未实现，占位
+  # ══════════════════════════════════════════════════════════════════════════
+  # ADR-012 §二 矩阵 · IL2CPP 格(Linux-x64-IL2CPP)—— 2026-10-17 由 TODO 占位改为**真 job**
+  #
+  # ⚠️ 与上两个 job 的**结构差异**(ADR-012 §二「矩阵实现(F1/F2 修正)」):
+  #   `unity-test-runner@v4` 只在 **Editor 进程**跑 UTF,**恒为 Mono,不产 IL2CPP**。
+  #   IL2CPP 对拍 = 切后端 → **出 StandaloneLinux64 player** → 跑 player。
+  #   本 job 用 `unityci/editor` 容器内的 `unity-editor` 直接走 UTF 的
+  #   `-runTests -testPlatform StandaloneLinux64`(该形态**构建并运行** player,一步完成)——
+  #   与桌面已跑通的命令逐字同形(证据 `ac-29-il2cpp-crosscheck-2026-09-24.md` 表内 IL2CPP 腿)。
+  #
+  # ⚠️ **当前状态:本 job 从未跑过**(禁借绿,如实登记):
+  #   · 仓库**未配置** `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET` ⇒ 登录步走 skip 分支
+  #     (与上两个 job 同款;`tests.yml:3-4` 记有「Unity 测试 job 已移除」的沿革)。
+  #   · 未实测项(须 spike,登记不隐藏):
+  #       ① 镜像 tag `unityci/editor:ubuntu-6000.3.24f1-linux-il2cpp-3` 是否已发布
+  #          (game-ci 对**新版本**的镜像有滞后;若未发布须改用 `unity-builder@v4` 出 player
+  #           + artifact 传 player 的**两步**形态,见 ADR-012 §二 原文)。
+  #       ② `unity-editor` 在容器内的 `-runTests` 是否需额外的 license 挂载参数。
+  #   · **等价的两腿已在桌面跑通**:Linux-x64-Mono ✅ + Linux-x64-IL2CPP ✅(2026-09-24,
+  #     19/19 逐位相同)。本 job 要补的是**常驻性**,不是判据本身。
+  #   · **Linux-ARM64 格不在本 job 面内** —— 2026-10-17 探针实测本 pinned 工具链
+  #     **无任何 arm 构建目标**(46 个 `BuildTarget` 中零个含 arm;唯一受支持的 Linux 目标是
+  #     `StandaloneLinux64`)。该格须**用户重新裁定**,见 `adr-012` §Validation。
+  # ══════════════════════════════════════════════════════════════════════════
   il2cpp-determinism:
-    name: "IL2CPP Determinism Check (Linux-x64-IL2CPP)"
+    name: "IL2CPP Determinism (Linux-x64-IL2CPP player)"
     runs-on: ubuntu-latest
+    container:
+      image: unityci/editor:ubuntu-6000.3.24f1-linux-il2cpp-3
     steps:
       - uses: actions/checkout@v4
-      - name: TODO - IL2CPP determinism check
+
+      - name: Unity CI Login
+        env:
+          UNITY_CLIENT_ID: ${{ secrets.UNITY_CLIENT_ID }}
+          UNITY_CLIENT_SECRET: ${{ secrets.UNITY_CLIENT_SECRET }}
         run: |
-          echo "TODO(实现轮): unity-builder 出 player → 独立 job 跑 IL2CPP 对拍"
-          echo "需要: UNITY_CLIENT_ID / UNITY_CLIENT_SECRET + unity-builder 配置"
-          exit 0
+          if [ -z "$UNITY_CLIENT_ID" ] || [ -z "$UNITY_CLIENT_SECRET" ]; then
+            echo "⚠️ UNITY_CLIENT_ID / UNITY_CLIENT_SECRET 未配置 —— 本 job **未跑**。"
+            echo "   不得记为绿(ADR-012 §Validation 的「CI 常驻矩阵」项维持未勾)。"
+            exit 0
+          fi
+          unity-editor -batchmode -nographics -quit \
+            -username "$UNITY_CLIENT_ID" -password "$UNITY_CLIENT_SECRET" \
+            -logFile /dev/stdout || true
+
+      - name: 切脚本后端 → IL2CPP(承 AC-29 先例的 Ac29Il2CppSwitch)
+        if: env.UNITY_CLIENT_ID != ''
+        run: |
+          unity-editor -batchmode -nographics -quit -projectPath unity \
+            -executeMethod DaYiJingCheng.EditorTools.Spike.Ac29Il2CppSwitch.SetIl2cpp \
+            -logFile /dev/stdout
+
+      - name: IL2CPP player 对拍(构建 + 运行,一步)
+        if: env.UNITY_CLIENT_ID != ''
+        run: |
+          unity-editor -batchmode -nographics -projectPath unity \
+            -runTests -testPlatform StandaloneLinux64 \
+            -testFilter DeterminismGoldenCrossplatform \
+            -testResults "$PWD/il2cpp-results.xml" \
+            -logFile /dev/stdout
+
+      - name: 对拍金标准(19 条逐位)
+        if: env.UNITY_CLIENT_ID != ''
+        run: |
+          # 金标准脚本按仓库纪律入库(tests/golden/**);player 侧哈希由上一打印到日志/文件。
+          # ⚠️ 比对入口的具体形态随「player 输出落到哪」而定 —— 未实测,故本步**不假装已定**:
+          #    若 player 未产出可比对文件,本步**必须失败**(禁假绿),而不是 echo 一句通过。
+          if [ ! -f il2cpp-hashes.txt ]; then
+            echo "::error::player 未产出 il2cpp-hashes.txt —— 对拍无法进行。"
+            echo "修:在 DeterminismGoldenCrossplatform 夹具里补落盘(AC29_OUT 环境变量),"
+            echo "   或改为读取 il2cpp-results.xml 内的已知值断言(AC-29 已含 F7 已知值断言)。"
+            exit 1
+          fi
+          python3 tests/golden/medcons/golden_v1_reference.py --check il2cpp-hashes.txt
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: il2cpp-determinism-results
+          path: |
+            il2cpp-results.xml
+            il2cpp-hashes.txt
+          if-no-files-found: warn

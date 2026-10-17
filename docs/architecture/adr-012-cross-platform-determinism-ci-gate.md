@@ -153,7 +153,13 @@ IL2CPP 编译旗标逐目标登记。ADR-005/006/009/010 的逐位判据自此�
   正解是 `unityci/editor:ubuntu-*-linux-il2cpp-*` **Docker 镜像变体**(toolchain 已烘入)(F1)。
 - **ARM64 格 = 交叉构建 + 原生 runner 只跑 player**(F2):Unity 不提供 Linux-ARM64 原生 Editor
   (x86-64 only),ARM64 runner 上跑不起 Editor。路径:x86-64 runner 交叉构建 ARM64 IL2CPP
-  player(Linux-ARM64 是受支持目标)→ artifact 传到**原生 ARM64 runner** → **只跑 player**(不需 Editor)。
+  player(~~Linux-ARM64 是受支持目标~~)→ artifact 传到**原生 ARM64 runner** → **只跑 player**(不需 Editor)。
+  > ⚠️ **2026-10-17 就地订正:上句划掉的部分为假。** 本 pinned 工具链(Unity 6000.3.24f1)
+  > 的 46 个 `BuildTarget` 里**没有任何 arm 目标**,唯一受支持的 Linux 目标是 `StandaloneLinux64`(x64);
+  > Unity Hub 的 Linux 模块目录亦无 ARM64 项。⇒ **F2 的前置判据不成立,且不取决于 runner 架构。**
+  > **本格已不可达**;**✅ 2026-10-17 用户裁定 = 维持三格原样,登记为「长期未达」**
+  > (三条裁剪候选均未采纳 —— 见 §Validation 的 **§ARM64 探针裁定**)。
+  > 实测证据 + 三条可选出路见 §Validation 的 **§ARM64 探针裁定**。
 - **qemu 路径否决**(F2):ARM64 IL2CPP 在 qemu-user 下走 softfloat,**不可信为逐位判据**,
   仅可作冒烟,不作黄金对拍。
 - **工具链沿用 `coding-standards.md`**:`game-ci/unity-test-runner@v4`(Mono 格)+
@@ -328,7 +334,7 @@ public interface IPerTargetIl2CppArgs : IPreprocessBuildWithReport
 | Risk | Probability | Impact | Mitigation |
 | --- | --- | --- | --- |
 | **int64 回绕在 IL2CPP 各 `-O` 级下漂移**(C# 定义性回绕 vs C++ 有符号溢出 UB)| 中 | **高** | **已消除(2026-09-21 承 RC-4)**:内部表示改 `ulong` / `unchecked`,两侧同为定义性回绕 ⇒ UB 结构性不存在;残余风险降为「其余逐位待实测项」,由黄金矩阵照跑覆盖 |
-| **ARM64 交叉构建链路不可用**(Unity 无 Linux-ARM64 原生 Editor)| 中 | **高** | x86-64 交叉构建 → 原生 ARM64 runner 只跑 player(F2);qemu 否决,备选 = ARM64 格降级为发版前验证 |
+| **ARM64 交叉构建链路不可用**(Unity 无 Linux-ARM64 原生 Editor)| ~~中~~ **已发生** | **高** | ~~x86-64 交叉构建 → 原生 ARM64 runner 只跑 player(F2);qemu 否决,备选 = ARM64 格降级为发版前验证~~ ⚠️ **2026-10-17 实测:该风险已实现,且比预期更彻底 —— 不是「链路不可用」而是「构建目标不存在」;用户裁定维持三格原样、登记为长期未达(不降级)。见 §Validation §ARM64 探针裁定** |
 | **game-ci 工具链与 6.3 不匹配**(Docker 镜像 / builder 版本)| 中 | 中 | `unityci/editor:ubuntu-*-linux-il2cpp-*` + spike 锁定镜像 tag;CI 配置早建早验证(F1) |
 | **`SetAdditionalIl2CppArgs --compiler-flags=` 语义不符预期** | 中 | 中 | `il2cpp` rsp/日志反查 + 反汇编验无 FMA(F3);语义实测后锁进登记表 |
 | **夹具静默漂移**(刷新流于形式)| 低 | **高** | 版本化 manifest + 变更日志 + 全体平台重签 + 旧版保留;任何平台独签被 CI 拒绝 |
@@ -359,9 +365,14 @@ public interface IPerTargetIl2CppArgs : IPreprocessBuildWithReport
 5. **旗标登记表 + 刷新协议落地**。
 6. **TR 状态推进**(§Validation Criteria 尾部)。
 
-**Rollback plan**:若 ARM64 交叉构建链路不可行(F2 spike FAIL),ARM64 格降级为**发版前验证**
-(与 Windows / Apple Silicon 同类),常驻矩阵退回两格(Linux-x64-Mono + IL2CPP)—— 判据本身
-(双级黄金哈希)不变,只减覆盖面,不改变裁决。
+**Rollback plan**:~~若 ARM64 交叉构建链路不可行(F2 spike FAIL),ARM64 格降级为**发版前验证**
+(与 Windows / Apple Silicon 同类),常驻矩阵退回两格(Linux-x64-Mono + IL2CPP)~~ ——
+判据本身(双级黄金哈希)不变,只减覆盖面,不改变裁决。
+
+> ⚠️ **2026-10-17 该 rollback 未被采纳(用户裁定)**:F2 确实 FAIL(且失败原因是**目标不存在**,
+> 比「链路不可行」更彻底),但用户裁定 **维持三格原样,登记为长期未达** ——
+> **不执行本 rollback 的「降级为发版前验证 / 矩阵退回两格」**,故 §一 裁决一字不改。
+> 本条原文保留作沿革;现行口径见 §Validation 的 **§ARM64 探针裁定**。
 
 ## Validation Criteria
 
@@ -372,9 +383,89 @@ public interface IPerTargetIl2CppArgs : IPreprocessBuildWithReport
       FixMul 25+溢出 3 / S7 哈希半边。黄金期望值由独立 Python 参考实现算出,与 C# 实现零共享代码。
       ⚠️ **只勾 EditMode 这条**:「三格全绿」项(下一行)仍需 CI 矩阵 Mono / IL2CPP-x64 / IL2CPP-ARM64
       —— 未跑,不借绿。
+      **✅ 2026-10-17 逐格订正**(原句「三格…未跑」**过粗**,且一度被下游转述成「本机仅 Mono」——
+      **那是假的**。本机装有 IL2CPP 模块,矩阵的两格早已在桌面跑过):
+      - **Linux-x64-Mono 腿** = ✅ **2026-09-24**(编辑器 PlayMode,3/3)
+      - **Linux-x64-IL2CPP 腿** = ✅ **2026-09-24**(StandaloneLinux64 player,3/3;与独立 Python
+        金标准 + Mono 三方 **19/19 逐位相同**)
+      - **Mono player 第三上下文** = ✅ **2026-09-25**(player 套件 15/15;四方逐位相同)
+      - **F7 反汇编验无 FMA** = ✅ **2026-09-25**(`Fix.MulRaw` / `SplitMix64.Avalanche`
+        各 0 FMA、0 FP/SIMD)
+      - **Linux-ARM64-IL2CPP 腿** = ❌ **NOT-RUN**,且 **2026-10-17 探针实测证明:在本 pinned
+        工具链上「跑不了」不是环境问题,是目标不存在** —— 见下方 §ARM64 探针裁定。
+        ⚠️ **2026-10-17 用户裁定:维持三格原样,本格登记为「长期未达」**
+        (不降格 / 不换面 / 不改挂)⇒ 该未达项**长期保留且不得静默移除**。
+      - **Windows-x64 / Apple Silicon** = ❌ NOT-RUN(§二:发版前必跑,不进常驻)
+      - **CI 常驻矩阵 job** = ⚠️ **2026-10-17:IL2CPP 格由 TODO 占位改为真 job**
+        (`.github/workflows/unity-tests.yml` 的 `il2cpp-determinism`:容器 `unityci/editor:…-linux-il2cpp-3`
+        + `-runTests -testPlatform StandaloneLinux64`,与桌面已跑通命令同形)。
+        **但本 job 从未跑过** —— 仓库未配置 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET` ⇒ 走 skip 分支。
+        ⇒ **常驻性仍未兑现**,本条**维持未勾**。
+
+      **⚠️ 2026-10-17 §ARM64 探针裁定(把「未跑」升级为「不可达 + 依据」)**
+
+      此前 §二「矩阵实现(F1/F2 修正)」:156 写「**Linux-ARM64 是受支持目标**」,并把 F2 spike 记为
+      「**未跑**」。2026-10-17 用 `BuildTargetProbeCli` 探针(CLI 可达、可复跑)实测,该句**为假**:
+
+      ```
+      Unity 6000.3.24f1 · LinuxEditor · x86-64
+      ── ① BuildTarget 枚举共 46 项 ──
+        含「arm」的目标:(无)                     ← 46 个目标里**一个 arm 都没有**
+        含「linux」的目标:EmbeddedLinux, LinuxHeadlessSimulation,
+                          StandaloneLinux, StandaloneLinux64, StandaloneLinuxUniversal
+      ── ② IsBuildTargetSupported ──
+        EmbeddedLinux           = ❌ 不受支持
+        LinuxHeadlessSimulation = ❌ 不受支持
+        StandaloneLinux         = ❌ 不受支持
+        StandaloneLinux64       = ✅ 受支持        ← 唯一受支持的 Linux 目标 = **x64**
+        StandaloneLinuxUniversal= ❌ 不受支持
+      ── ③ PlaybackEngines ──
+        LinuxStandaloneSupport └ il2cpp · mono
+                               └ linux64_player_{development,nondevelopment}_{il2cpp,mono}
+      ```
+
+      **交叉旁证**:Unity Hub 模块目录(`releases-linux.json`,2020/2021/2022 LTS 三版)
+      的 Linux 模块**只有** `linux-il2cpp`(x64)与 `linux-server`,**无任何 ARM64 模块**。
+
+      ⇒ **裁定**:
+      1. **F2 spike 不成立** —— 它的前置判据是「x86-64 runner 能交叉构建 ARM64 IL2CPP player」,
+         而**构建目标本身不存在** ⇒ 该结论**不取决于 runner 是 x64 还是原生 ARM64**
+         (原生 ARM64 runner 上也一样:没有目标可构建)。
+         **§二:156「Linux-ARM64 是受支持目标」就地订正为假**(原文保留作沿革)。
+      2. **矩阵的第三格(`Linux-ARM64-IL2CPP`)在本 pinned 工具链上不可达。**
+      3. 探针本身**入库为常驻件**:`unity/Assets/Editor.Tools.Bake/Cli/BuildTargetProbeCli.cs`,
+         命令见 `production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md` §十三。
+         引擎升级后重跑同一命令即可复核(承本 ADR §Risks「引擎升级时须重跑矩阵」)。
+
+      **✅ 2026-10-17 用户裁定(三项候选已提交,照准「维持三格原样」)**
+
+      三条候选曾被完整提交用户(① 换别的 ARM64 面 / ② 矩阵降为两格 / ③ 跨 ISA 判据改挂
+      发版前的 Apple Silicon 格 —— **三者都是对已 Accepted 裁决的裁剪,故不得单方面进行**,
+      承 ADR-017「触发后须另开 ADR,不得以修订直接改判」同款纪律)。
+      **用户裁定 = ③ 之外的第四条路:维持三格原样,登记为长期未达。**
+
+      ⇒ **本 ADR 的 §一「三格全免费常驻矩阵」裁决一字不改** —— 不降格、不换面、不改挂。
+      ⇒ **同时如实登记其后果**(不隐藏):
+      - 第三格在本 pinned 工具链上**长期不可达**(工具链支持前不会变化);
+      - 因此 **§Validation 的「单元级黄金哈希三格全绿」复选框在本工具链上结构上不可达成**
+        —— 它**不会被勾**,且这不是「尚未跑」,而是「跑不了」;
+      - **后续每次 `/gate-check` 都会带这一条未达项** —— 这是**刻意保留的可见性**,
+        不是遗漏;不得因「长期红」而将其静默移除或降级为 advisory。
+      - **复核条件**:引擎升级后重跑 §十三 的探针命令;若届时出现受支持的 ARM64 目标,
+        该格**自然解锁**,本条登记随之作废。
+
+      ⇒ 下一行复选框**维持未勾**,且**其未勾的语义自此明确为「长期未达」而非「待跑」**。
+
+      ⇒ 下一行复选框**维持未勾**:判据是**矩阵**(三格齐 + 常驻 + 版本化刷新协议),**不是**「跑过两格」。
+      证据原件:`production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`
+      + 本轮探针(同上 §十三)。
 - [ ] **单元级黄金哈希三格全绿**:Fix 四则 / 负值右移 / 负值除法向零截断 / 定点 Exp / SplitMix64 /
       CDF walk / 编码器往返 / `ROUND_HALF_AWAY_FROM_ZERO` 负值 —— Mono / IL2CPP-x64 /
       IL2CPP-ARM64 逐位相同
+      ⚠️ **2026-10-17 状态**:Mono ✅ / IL2CPP-x64 ✅(见上)· **ARM64 ❌(实测不可达 ——
+      见上 §ARM64 探针裁定;用户裁定**维持三格原样**,本格登记为「长期未达」)**
+      · **CI 常驻 ❌(job 已建但从未跑过)** ⇒ 本条**不得勾**,且 ARM64 半边**在本工具链上结构上不可达**
+      (其未勾语义 = 「长期未达」,非「待跑」;须待工具链出现受支持 ARM64 目标方能解锁)。
 - [ ] **集成级黄金字节三格全绿**:同一存档(ADR-010 格式)三格产出逐位相同字节流
 - [ ] **下钻路径可用**:注入一个人为字节错位,能从集成级首异字节下钻到单元级具体算子
 - [ ] **刷新协议演示**:公式变更 → golden-v2 新目录 + 变更日志 + 三格重签;单平台独签被 CI 拒绝
