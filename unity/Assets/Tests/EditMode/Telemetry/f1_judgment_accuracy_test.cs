@@ -14,6 +14,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DaYiJingCheng.Telemetry;
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.Unit.Telemetry
@@ -21,39 +22,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
     [TestFixture]
     internal sealed class F1JudgmentAccuracyTest
     {
-        // ══════════════ F1 公式(测试自持谓词面,零生产依赖)══════════════
-
-        /// <summary>F1 公式谓词面(测试自持,纯函数)。
-        /// 语义 = GDD Formulas F1:F1a = 判对数/Scorable;F1b = 改写数/Scorable;二者正交。</summary>
-        private static class F1Formula
-        {
-            /// <summary>一次判断记录(测试自持夹具)。</summary>
-            public sealed class JudgmentRecord
-            {
-                public int CaseId;
-                public ISet<string> Truth;      // D(c)
-                public ISet<string> Judged;     // J(c) = 全序最后一条
-                public bool HasRevision;        // ∃ JudgmentRevised
-            }
-
-            /// <summary>计算 F1a(判断准确率)与 F1b(改写率)。
-            /// 返回 (F1a_num, F1a_den, F1b_num, F1b_den);分母 0 ⇒ (0,0) + 标记。</summary>
-            public static (int f1aNum, int f1aDen, int f1bNum, int f1bDen, bool denominatorZero)
-                Compute(IReadOnlyList<JudgmentRecord> records)
-            {
-                int scorable = records.Count;
-                if (scorable == 0)
-                    return (0, 0, 0, 0, true);   // 分母 0 ⇒ 不可定义
-
-                int correct = records.Count(r => SetEquals(r.Judged, r.Truth));
-                int revised = records.Count(r => r.HasRevision);
-                return (correct, scorable, revised, scorable, false);
-            }
-
-            /// <summary>集合相等(含 ∅ == ∅ 判对)。</summary>
-            public static bool SetEquals(ISet<string> a, ISet<string> b)
-                => a.SetEquals(b);
-        }
+        // ⚠️ S19 修复(TD-epic-01):原「测试自持谓词面」已删除 ——
+        //    谓词面上移为生产类 `DaYiJingCheng.Telemetry.JudgmentMetrics`
+        //    (ADR-019 §一;那 12 个自持面在普查里被判为「AC 语义层无生产主语」)。
+        //    本文件现在**只做夹具 + 断言**,不再自带公式。
 
         // ══════════════ AC-51-B1:F1a 四例夹具 ══════════════
 
@@ -63,16 +35,17 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f1a_fourCases_numerator2()
         {
             // Arrange
-            var records = new List<F1Formula.JudgmentRecord>
+            var records = new List<JudgmentRecord>
             {
-                new F1Formula.JudgmentRecord { CaseId = 1, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "X" }, HasRevision = false },  // ① 判对
-                new F1Formula.JudgmentRecord { CaseId = 2, Truth = new HashSet<string>(), Judged = new HashSet<string>(), HasRevision = false },               // ② ∅==∅ 判对
-                new F1Formula.JudgmentRecord { CaseId = 3, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string>(), HasRevision = false },           // ③ 未落笔
-                new F1Formula.JudgmentRecord { CaseId = 4, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "Y" }, HasRevision = false },      // ④ 判错
+                new JudgmentRecord(1, new HashSet<string> { "X" }, new HashSet<string> { "X" }, false),  // ① 判对
+                new JudgmentRecord(2, new HashSet<string>(), new HashSet<string>(), false),               // ② ∅==∅ 判对
+                new JudgmentRecord(3, new HashSet<string> { "X" }, new HashSet<string>(), false),           // ③ 未落笔
+                new JudgmentRecord(4, new HashSet<string> { "X" }, new HashSet<string> { "Y" }, false),      // ④ 判错
             };
 
             // Act
-            var (f1aNum, f1aDen, _, _, denominatorZero) = F1Formula.Compute(records);
+            var r = JudgmentMetrics.Compute(records);
+            int f1aNum = r.F1aNum, f1aDen = r.F1aDen; bool denominatorZero = r.DenominatorZero;
 
             // Assert
             Assert.That(f1aDen, Is.EqualTo(4), "分母 = 4(四例均 ∃ CaseClosed)");
@@ -80,7 +53,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             Assert.That(denominatorZero, Is.False, "分母 > 0 时不报分母 0");
             // 显式断言 ∅ == ∅ 判对(案例 ② 计入分子)
             var emptySet = new HashSet<string>();
-            Assert.That(F1Formula.SetEquals(emptySet, emptySet), Is.True, "∅ == ∅ 必须判对");
+            Assert.That(JudgmentMetrics.SetEquals(emptySet, emptySet), Is.True, "∅ == ∅ 必须判对");
         }
 
         // ══════════════ AC-51-B2:F1a ⊥ F1b(改写不进准确率)══════════════
@@ -91,15 +64,17 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f1a_f1b_orthogonal()
         {
             // Arrange
-            var records = new List<F1Formula.JudgmentRecord>
+            var records = new List<JudgmentRecord>
             {
-                new F1Formula.JudgmentRecord { CaseId = 1, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "X" }, HasRevision = true },   // ① 判对+改写
-                new F1Formula.JudgmentRecord { CaseId = 2, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "X" }, HasRevision = false },  // ② 判对无改写
-                new F1Formula.JudgmentRecord { CaseId = 3, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "Y" }, HasRevision = true },   // ③ 判错+改写
+                new JudgmentRecord(1, new HashSet<string> { "X" }, new HashSet<string> { "X" }, true),   // ① 判对+改写
+                new JudgmentRecord(2, new HashSet<string> { "X" }, new HashSet<string> { "X" }, false),  // ② 判对无改写
+                new JudgmentRecord(3, new HashSet<string> { "X" }, new HashSet<string> { "Y" }, true),   // ③ 判错+改写
             };
 
             // Act
-            var (f1aNum, f1aDen, f1bNum, f1bDen, denominatorZero) = F1Formula.Compute(records);
+            var r = JudgmentMetrics.Compute(records);
+            int f1aNum = r.F1aNum, f1aDen = r.F1aDen, f1bNum = r.F1bNum, f1bDen = r.F1bDen;
+            bool denominatorZero = r.DenominatorZero;
 
             // Assert:F1a = 2/3(①②判对),F1b = 2/3(①③改写)
             Assert.That(f1aNum, Is.EqualTo(2), "F1a 分子 = 2(①②判对;③判错不计)");
@@ -109,11 +84,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             Assert.That(f1bDen, Is.EqualTo(3), "F1b 分母 = 3");
 
             // Assert:移除全部改写后 F1a 不变(改写不进准确率)
-            var noRevision = records.Select(r => new F1Formula.JudgmentRecord
-            {
-                CaseId = r.CaseId, Truth = r.Truth, Judged = r.Judged, HasRevision = false
-            }).ToList();
-            var (f1aNum2, f1aDen2, f1bNum2, _, _) = F1Formula.Compute(noRevision);
+            var noRevision = records.Select(r => new JudgmentRecord(
+                r.CaseId, r.Truth, r.Judged, false)).ToList();
+            var r2 = JudgmentMetrics.Compute(noRevision);
+            int f1aNum2 = r2.F1aNum, f1aDen2 = r2.F1aDen, f1bNum2 = r2.F1bNum;
             Assert.That(f1aNum2, Is.EqualTo(f1aNum), "移除改写后 F1a 不变(正交性)");
             Assert.That(f1aDen2, Is.EqualTo(f1aDen), "移除改写后 F1a 分母不变");
             Assert.That(f1bNum2, Is.EqualTo(0), "移除改写后 F1b 分子 = 0(改写不进 F1b 分母)");
@@ -155,10 +129,12 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f1_denominatorZero_reports00()
         {
             // Arrange:空 Scorable
-            var records = new List<F1Formula.JudgmentRecord>();
+            var records = new List<JudgmentRecord>();
 
             // Act
-            var (f1aNum, f1aDen, f1bNum, f1bDen, denominatorZero) = F1Formula.Compute(records);
+            var r = JudgmentMetrics.Compute(records);
+            int f1aNum = r.F1aNum, f1aDen = r.F1aDen, f1bNum = r.F1bNum, f1bDen = r.F1bDen;
+            bool denominatorZero = r.DenominatorZero;
 
             // Assert
             Assert.That(denominatorZero, Is.True, "分母 0 必须显式标记");
@@ -179,13 +155,14 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f1_denominatorNonZero_not00()
         {
             // Arrange:一例判对
-            var records = new List<F1Formula.JudgmentRecord>
+            var records = new List<JudgmentRecord>
             {
-                new F1Formula.JudgmentRecord { CaseId = 1, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "X" }, HasRevision = false },
+                new JudgmentRecord(1, new HashSet<string> { "X" }, new HashSet<string> { "X" }, false),
             };
 
             // Act
-            var (f1aNum, f1aDen, _, _, denominatorZero) = F1Formula.Compute(records);
+            var r = JudgmentMetrics.Compute(records);
+            int f1aNum = r.F1aNum, f1aDen = r.F1aDen; bool denominatorZero = r.DenominatorZero;
 
             // Assert
             Assert.That(denominatorZero, Is.False, "分母 > 0 时不报 (0,0)");

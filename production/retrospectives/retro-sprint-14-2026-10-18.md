@@ -207,7 +207,7 @@
 | # | Action | Owner | Priority | Deadline |
 |---|---|---|---|---|
 | 1 | **重标定 `CAPACITY-MODEL.md` 的产能旋钮** —— 「件/日」已不可跨 sprint 比(本 sprint 3.7 vs 基线 8–10,原因是件变大不是产能降);建议改为「件 + 复杂度分布 + 追加率」三元,并把「计划外追加率」列为常规记录项(本 sprint = 57%,四个 sprint 最高) | Claude | **High** | sprint-16 规划前 |
-| 2 | **兑现 retro-13 行动项 3+4(合并为一次跨 epic 假绿普查)** —— 范围 = 44 epic 的 001–006/013/014 **加** 至少一个其他已 Complete epic;判据 = 逐条 AC 找「语义层的生产宾语」,零宾语 = 假绿。已有 3 个同型样本(case-system 001–004 · 44 epic 6 条 · story-025 R-1),**必须判断是否系统性** | Claude | **High** | sprint-16 |
+| 2 | ~~**兑现 retro-13 行动项 3+4(合并为一次跨 epic 假绿普查)**~~ ✅ **2026-10-18 已兑现** —— `production/qa/evidence/review-cross-epic-fake-green-2026-10-18.md`(31 epic · 158 篇 Complete)。**判定:系统性但集中度极高**,并发现**第五形态「扫不到被测装配」**(症状是跳过不是绿,比假绿更隐蔽)。⇒ 已立 **`TD-epic-01…05`** 五条债(债册同节),其中 telemetry 全 epic 须用户裁 | Claude | **High** | **sprint-16 还 TD-epic-01…05** |
 | 3 | **给「已证」补覆盖面判据** —— S3-a 证明「证伪轮次够 ≠ 分支覆盖够」;建议在 `/code-review` §Phase 8b 加一列「**分支覆盖**:该 AC 的每个判定分支是否各有一例反证」 | Claude | Med | sprint-16 起手 |
 | 4 | **「测试/工具不得写仓库」立机械门** —— 本类已三发(S14-6 副作用 · S15-5 的 `WriteOnce` 日期副本 · 更早的 `Directory.CreateDirectory`);规则存在于 `test-standards.md` 但无门。候选:grep 生产测试树里的 `File.WriteAllText` / `Directory.CreateDirectory` 并配白名单 | Claude | Med | sprint-16 |
 | 5 | **`TD-player-01` 归口** —— 它已连续两次在全量里露头(S14 首跑 + S15-5),每次都被记为「已知间歇,不抵扣计数」;**「不抵扣」不能无限期用下去**;要么修(`AC-1-33` ③ 语义层),要么立正式 flaky registry 条目 | Claude(系统 1 侧) | Med | sprint-16 |

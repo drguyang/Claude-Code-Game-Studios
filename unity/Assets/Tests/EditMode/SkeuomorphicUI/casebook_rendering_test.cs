@@ -271,7 +271,11 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         /// R5 修复:添加注释指向替代证据路径。
         /// ⚠️ 本 story 要求 UI 走查,当前阶段 42 未实现,UI 测试无法运行。</summary>
         [Test]
-        [Ignore("42 未实现 - 待 UI 走查;替代证据路径 = production/qa/evidence/casebook-39-walkthrough.md")]
+        [Ignore("42 未实现 - 待人工UI 走查;替代证据**尚未产出**(TD-epic-03:原指向的 production/qa/evidence/casebook-39-walkthrough.md 不存在)")]
+        // ⚠️ S19 订正(TD-epic-03):原 Ignore 理由写「替代证据路径 = <某个 .md>」,
+        //    而**那个路径不存在**(production/qa/evidence/ 下 8 个声明的走查件一个都没有)
+        //    ⇒「拿不存在的证据当出口」。本批只改口为「证据尚未产出」——
+        //    不停在一个不存在的东西上;**不**顺带声称已走查。
         public void test_ac42f1_gamepadWalkthrough_noKeyHintOverlay()
         {
             // 实现后补充:

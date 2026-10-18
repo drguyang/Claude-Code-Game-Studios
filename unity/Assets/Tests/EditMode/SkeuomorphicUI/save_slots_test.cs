@@ -226,7 +226,11 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         /// B4 说明:[Ignore] 测试无替代验证路径(注释提到的文档不是自动化测试)。
         /// R3 说明:实现后移除 [Ignore], 转换为 PlayMode 测试或截图对比测试。</summary>
         [Test]
-        [Ignore("42 未实现 - 待 UI 走查;替代证据路径 = production/qa/evidence/save-slots-walkthrough.md")]
+        [Ignore("42 未实现 - 待人工UI 走查;替代证据**尚未产出**(TD-epic-03:原指向的 production/qa/evidence/save-slots-walkthrough.md 不存在)")]
+        // ⚠️ S19 订正(TD-epic-03):原 Ignore 理由写「替代证据路径 = <某个 .md>」,
+        //    而**那个路径不存在**(production/qa/evidence/ 下 8 个声明的走查件一个都没有)
+        //    ⇒「拿不存在的证据当出口」。本批只改口为「证据尚未产出」——
+        //    不停在一个不存在的东西上;**不**顺带声称已走查。
         public void test_ac42f1_gamepadWalkthrough_noKeyHintOverlay()
         {
             // 实现后补充:

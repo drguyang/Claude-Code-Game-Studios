@@ -811,6 +811,43 @@ S14-6 的两条音频产物从未入组;此前「189/189」之所以绿,是**构
 
 ---
 
+## 2026-10-18 · 跨 epic 假绿普查(review-cross-epic-fake-green-2026-10-18)
+
+**出处**:`production/qa/evidence/review-cross-epic-fake-green-2026-10-18.md`。
+**触发**:retro-14 行动项 2(= retro-13 行动项 3+4 合并)—— 该判定**已欠两个 sprint**,
+而同型样本在普查前已累积 3 个(case-system 001–004 · 44 epic 6 条 · `AC-1-33` ③)。本件即还它。
+
+**判定:是系统性的,但集中度极高。** 31 个 epic · 158 篇 `Complete` story 中,命中 30 条 AC 层问题 +
+52 处跳过断言(第五形态,单形态面积最大)。**四个新 epic 命中**(telemetry-analytics · enemy-ai · combat-weapons ·
+skeuomorphic-ui / camera-viewpoint)—— 即病灶**不局限于已处理的三个 epic**。
+⚠️ **反例同时成立**(证明并非全坏):item-database / input-system / persistence-service 的测试有真实生产消费方与
+可证伪断言(`save_service_test.cs:43-55` 翻转校验和字节后断言 `IsFalse`)⇒ **不得**推出「所有 Complete 都假绿」。
+
+| # | 债项 | 判定 | 证据 |
+|---|---|---|---|
+| 1 | **TD-epic-01** telemetry-analytics **整个 epic** | 🟡 **2026-10-19 部分偿还(第一片)—— epic 级缺口仍在,不得读成已修好** | 10/10 story `Complete`,而 **51 程序集在 `unity/Assets/` 下零文件**(普查实测);7 个测试文件自陈「测试自持谓词面,零生产依赖」。<br>✅ **已还(本批)**:新建边界层装配 **`Telemetry`**(`noEngineReferences: true` + 引用仅 `Sim.Contracts` —— ADR-019 §三「51 住边界层、不进 sim」的**编译期**表达)并把 F1 谓词面上移为生产类 `DaYiJingCheng.Telemetry.JudgmentMetrics`(AC-51-B1…B4:整数 (num,den) 对 / 分母 0 报 (0,0)+标记不抛 / ∅==∅ 判对 / F1a⊥F1b)。**测试已改为打生产类**(删自持副本)。登记落 **ADR-025 §① 表 + `AssemblyGates.cs:59` b3 manifest**(门当场拦下未登记装配 ⇒ 红两条,补登记后转绿 —— **门在履行职责**)。<br>**判别力(对生产码变异,非删断言)**:M1 分母 0 改抛 · M2 空集判错 · M3 改写计入准确率 ⇒ **三条全转红且各命中对应 AC**。<br>**回归**:`3797/3758/0/39`(`unity/Logs/s19-epic01-full.xml`)—— failed 归零;passed vs 改前 `3797/3756/0/39` = **+2**。<br>🔴 **仍未还(epic 级,如实)**:① **事件流 → `JudgmentRecord` 的还原器**(把 `SimEvent` 流折成记录)未写;② **调试视图**未写;③ **本地导出**未写;④ 另 6 个 story 的谓词面(f2–f7 / pure_function / blank_and_degraded / out_of_bounds)**仍在测试里**;⑤ `ITelemetrySource` / `ITelemetrySink` 仍未实现(4 条 Ignore 挂着)。⇒ **10 条 story 的 `Complete` 状态本批不动**(只还了 story-002 的谓词面一条),其余九条的账面与实现的背离仍在。
+| 2 | **TD-epic-02** 三条 `Assert.Pass` 借绿 | ✅ **2026-10-18 已修(S16)** | `EnemyAI/deterministic_pathing_test.cs:108` · `EnemyAI/encounter_lifecycle_test.cs:177` · `combat/combat_onset_dose_seq_test.cs:98` —— 均以 `Assert.Pass("需集成测试验证")` 结句,而卡面 AC `- [ ]` **未勾**且 `Status: Complete`(enemy-ai story-004/005 · combat story-006)。<br>**逐条处置(三条形态各异,不可一刀切)**:① **combat AC-25-1-08** ⇒ **改写为真断言**:生产宾语 `CatchUp.ComputeCatchUp` 在场且是纯函数 ⇒ 构造含窗口外事件的输入,主判据 = 「闭窗口内 5 条、窗外 2 条被剔除」+ 逐条字段比对;**证伪 = 对生产码变异**(M1 过滤恒真 · M2 下界改开区间)**均转红**。② **enemy-ai AC-27-34** ⇒ **删掉方法开头的 `Assert.Pass`**:断言其实写在它**后面**(`EnemySignalDto` 无 UnityEngine 字段),`Assert.Pass` 让它们**全成死代码** —— 这是借绿最隐蔽的形态(不是没写,是**写了不执行**)。③ **enemy-ai AC-27-20** ⇒ **不能改绿,只能诚实 Ignore**:实测 `EnemyPathing` 公开面只有 `ComputeOctileHeuristic`/`FindPath`/`StepAccumulator`/`ValidateAccumulator`,**无 Replan、无 path_cursor**(游标属病人 AI 的 `LogicalStepper`)⇒ 宾语在生产侧不存在 = 真缺口 ⇒ 改 `Assert.Ignore("NOT-RUN: 无生产宾语…")`,卡面 AC 保持未勾。<br>⚠️ **方法论教训(本批最贵的一条)**:我前两轮证伪**删的是断言自己** ⇒ 删掉当然不红 ⇒ 连判四条「无判别力」,**全错**。**判别力的判据是「改坏生产码 ⇒ 断言转红」,不是「删断言 ⇒ 变绿」**(后者是 trivially true)。修正后 M1/M2 均如预期转红。<br>**回归**:全量 EditMode `3797/3751/0/46` vs S15-7 基线 `3797/3751/1/45` ⇒ total/passed **不变**(零回归),`failed 1→0` = `TD-player-01` 间歇红本次未发作,`skipped +1` = ③ 新增的诚实 Ignore。日志 `unity/Logs/s16-epic02-full.xml`。 |
+| 3 | **TD-epic-03** skeuomorphic-ui 52 处跳过 | 🟡 **2026-10-19 重判:原诊断错,已订正** | ~~14 文件里 13 个无 `using Gameplay.UI` + `autoReferenced:false` ⇒ `AppDomain` 扫不到 ⇒ 误判「无类型」~~<br>🔴 **实测推翻(原诊断错,留档)**:跑 `SkeuomorphicUI` 全 fixture = **27 fixtures / 264 Passed / 13 Skipped / 0 Failed**。SetUp 护桩 `Assert.That(_uiTypes, Is.Not.Empty)` **从未红** ⇒ `Gameplay.UI` **确已加载、类型确能扫到**(`SkeuoComponentRegistry.cs:18` · `ModalId.cs:9` · `FocusOrder.cs:18` · `PaperCloseupScreen.cs:20` 等均在)⇒ **「扫不到装配」不成立**,那批 `Assert.Inconclusive` 分支是**死路径**(条件永不满足)。<br>✅ **真实问题(比原判轻,但更要紧)**:13 条 skip **全是 `[Ignore]` 属性**,理由「42 未实现 - 待 UI 走查 / 帧探针」,且**每条都声明了替代证据路径** —— 而那 **8 个路径全部不存在**(`production/qa/evidence/` 下无 `*-walkthrough.md` / `*-evidence.md`;skeuomorphic-ui 子目录只有两张 dentch 截图)。⇒ 形态 = **「拿不存在的证据当出口」**:测试停了,却没停在一个真实存在的东西上。<br>✅ **修法(比原判「批量补 using」正确)**:① 13 条 `[Ignore]` 理由改口为「替代证据**尚未产出**」;② 卡面 AC 保持未勾;③ 走查件本身归 UI 走查轮(需真人)。**类型/装配侧无代码要改**。<br>✅ **2026-10-19 已修(S19)**:11 处 `[Ignore]` 理由已改口为「替代证据**尚未产出**」并就地注明原指向路径不存在(7 个测试文件;每处附 S19 订正注释)。**验证**:`SkeuomorphicUI` 全 fixture **27 fixtures / 264 Passed / 13 Skipped / 0 Failed**,与修改前**逐项一致**(零破坏);全仓 `grep "替代证据路径 = "` 在**断言面**已清零(残留仅为我写的订正注释文字)。**全量回归** `3797/3751/0/46`(`unity/Logs/s19-epic03-full.xml`)vs S16 批 `3797/3751/0/46` ⇒ **四项全同,零回归**。⚠️ **未做(归 UI 走查轮,需真人)**:8 个走查件本身仍未产出 —— 本批只修「停在不存在的东西上」这个形态,**不**代走查、**不**声称已走查。⚠️ **元教训(本批最贵)**:「Inconclusive 的理由是假的」这个判断是**从 grep 读散文得出的**,没跑一次测试;**而它的反面(装配扫不到)同样没跑就信了**。两个方向都错,根因同一个 —— **未实测**。 |
+| 4 | **TD-epic-04** disease-simulation `Signs` 恒空 | 🟡 Medium | `Sim/ProgressionEvaluator.cs:91/:145/:169-170` `NoSigns` 恒空(`:28` 自陈「F2 投影未接线」);唯一生产消费方 `DiseaseVitalsService.cs:167-175` 恒返 `signCount: 0`;两测试文件对 `Signs` **零命中** ⇒ AC-20 / AC-13 子句**零断言覆盖** |
+| 5 | **TD-epic-05** camera-viewpoint / emergency / interaction 跳过 | 🟡 Medium | `Assert.Ignore("NOT-RUN: 真 Physics.SphereCast 未接线")` 等,理由正当但卡面仍 `Complete` ⇒ **状态字段失真** |
+
+**⚠️ 第五形态比原四种更危险(本件最重要的方法学发现)**:前四种的症状是「**绿**」,证伪轮有机会打红;
+第五种的症状是「**跳过**」—— 连红的机会都没有,且它让**本可转绿的判据以 ADVISORY 身份长期存活**:
+`9307ae5`(story-001)先建 Registry → `b581e12`(story-007)后写测试却说「未创建」,
+story-007 `Last Updated: 2026-09-29` 至今未刷新。**检测手法(便宜、可机械跑)**:
+扫 `Assert.Inconclusive|Ignore|Pass` 的**理由**,对理由声称「无 X 类型 / X 不存在」的,
+`grep` 该符号 —— **符号在场 ⇒ 该跳过是误报**。
+
+**未核查(禁借绿)**:未跑任何 Unity 测试(全判据来自静态 grep)· 8 个 epic 未逐 AC 跑 B 类 grep ·
+A 类(自造 Fake)只深挖 telemetry · `tests/unit|integration/` 账本树未扫 · 回归数字未核。
+
+**触发条件(何时须还)**:① telemetry epic 立项(整体降级或补实现,须用户裁 —— 补实现工作量未知);
+② 三条 `Assert.Pass` 按 `review-workflow.md` 补做评审(评当下,落新原件,不追认);
+③ skeuomorphic-ui 的扫面修复(补 `using` / 改按装配名直取 —— 机械改动,可批量);
+④ `Signs` 恒空:补断言或卡面降级登记。
+
+---
+
 ## 登记格式(后续沿用)
 
 ```

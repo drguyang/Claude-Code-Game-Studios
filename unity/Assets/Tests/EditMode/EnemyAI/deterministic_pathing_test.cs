@@ -101,11 +101,18 @@ namespace DaYiJingCheng.Tests.EnemyAI
         }
 
         // AC-27-20: 重算保光标
+        // ⚠️ S16 修复(TD-epic-02):原实现 `Assert.Pass("需集成测试验证")` = 借绿(卡面 AC 未勾却 Complete)。
+        //    **但本测不能改成绿**:实测 `EnemyPathing`(敌人寻路唯一生产类,`Sim/EnemyPathing.cs`)
+        //    公开面只有 `ComputeOctileHeuristic` / `FindPath` / `StepAccumulator` / `ValidateAccumulator`
+        //    —— **无 Replan、无 path_cursor**(`PathCursor` 属病人 AI 的 `LogicalStepper`,不是敌人侧)。
+        //    ⇒ AC-27-20 的宾语**在生产侧不存在**,这是真缺口,不是测试欠写。
+        //    ⇒ 正解 = 显式 Ignore(CI 显示 skipped 而非 passed)+ 卡面 AC 保持未勾,**禁借绿**。
         [Test]
         public void test_replanningPreservesCursor()
         {
-            // 简化版：验证重算逻辑存在
-            Assert.Pass("重算保光标需集成测试验证");
+            Assert.Ignore("NOT-RUN: AC-27-20 无生产宾语 —— `EnemyPathing` 无 Replan / path_cursor API" +
+                          "(敌人侧寻路只到 FindPath;游标在病人 AI 的 LogicalStepper)。" +
+                          "还债 = 敌人侧重算落地后补真实断言;在那之前本条**不得**记绿。");
         }
 
         // AC-27-21: A* 假阳性防护

@@ -6150,3 +6150,91 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
   `sprint-status.yaml` S15-7 blocker 改为「E5 人半待走查人真听 + 改写 15 条」;`impl-s15-7-*` 新增 §六·五 + §七 实数。
 - **仍未裁/未做**:E5 人半(需你本人听);S15-1 的 10-c;S15-6 听测批;S15-7 的 `assets/audio/` 路径订正(归 `OQ-44-2` 同族)。
 - **未提交**(S15-7 + S15-8 + 本裁定批均在工作区)。
+
+## Session Extract — 跨 epic 假绿普查(retro-14 行动项 2 / retro-13 行动项 3+4)· 2026-10-18
+
+- **兑现**:欠两个 sprint 的判定已做 —— `production/qa/evidence/review-cross-epic-fake-green-2026-10-18.md`
+  (31 epic · 158 篇 Complete,排除已处理的 audio-system / case-system)。只读勘察 + 编排方逐条自验,**未跑任何 Unity 测试**。
+- **判定:是系统性的,但集中度极高。** 命中 30 条 AC 层 + 52 处跳过断言,新命中 4 个 epic
+  (telemetry-analytics · enemy-ai · combat-weapons · skeuomorphic-ui / camera-viewpoint)⇒ 病灶不局限于已处理的三个。
+  ⚠️ **反例同时成立**:item-database / input-system / persistence 有真实消费方与可证伪断言 ⇒ **不得**推出「所有 Complete 都假绿」。
+- **⚠️ 本件最重要的方法学发现 = 第五形态「扫不到被测装配」**(子代理原判「诚实跳过」被编排方实测推翻,已就地留档):
+  `Assert.Inconclusive("42 命名空间无 X 类型")` 的理由是**假的** —— `SkeuoComponentRegistry.cs:18` · `ModalId.cs:9` ·
+  `FocusOrder.cs:18` · `PaperCloseupScreen.cs:20` 等 8+ 个类型**实际在场**。真病因:受影响 14 文件里 **13 个无 `using Gameplay.UI`**,
+  而 `Gameplay.UI.asmdef:10` = `"autoReferenced": false` ⇒ EditMode 下 `AppDomain` 只返回**已加载**装配 ⇒ `SelectMany(GetTypes())` 扫不到。
+  **比前四种更危险**:前四种症状是「绿」,证伪轮有机会打红;第五种症状是「**跳过**」—— 连红的机会都没有,
+  且让本可转绿的判据以 ADVISORY 身份存活(`9307ae5` 建 Registry → `b581e12` 写测试却说「未创建」,story-007 自 09-29 未刷新)。
+  **检测手法(可机械复用)**:扫跳过断言的**理由**,对声称「无 X」的 grep 该符号 —— **符号在场 ⇒ 该跳过是误报**。
+- **五条债已立**(债册 §「跨 epic 假绿普查」):`TD-epic-01` telemetry 全 epic(🔴 10/10 Complete vs 51 程序集零文件,
+  **与已处理三 epic 不同型** —— 那是零散 AC 层,这是整个 epic,须用户裁整体降级还是补实现)·
+  `TD-epic-02` 三条 `Assert.Pass` 借绿(enemy-ai ×2 + combat ×1,卡面 AC 未勾却 Complete)·
+  `TD-epic-03` skeuomorphic-ui 扫面修复(🔴 可机械批量)· `TD-epic-04` disease-sim `Signs` 恒空零断言 ·
+  `TD-epic-05` camera/emergency/interaction 状态字段失真。
+- **记忆已写**:`project_cross_epic_fake_green_audit.md`(第五形态 + 检测手法 + 写扫面测试必须按装配名直取)。
+- **未核查(禁借绿)**:未跑任何 Unity 测试 · 8 个 epic 未逐 AC 跑 B 类 grep · A 类 Fake 仅抽样 ·
+  `tests/unit|integration/` 账本树未扫 · 回归数字未核。
+- **待用户裁**:`TD-epic-01`(telemetry epic 整体降级 vs 补实现)—— 补实现工作量未知,是唯一需要你定方向的。
+- **未提交**(本批普查 + 债册 + retro 订正)。
+
+## Session Extract — S16 修复 TD-epic-02(三条 Assert.Pass 借绿)· 2026-10-18/19
+
+- **背景**:跨 epic 假绿普查(retro-14 行动项 2)立 `TD-epic-01…05` 五条债;本批修 **TD-epic-02**(三条 `Assert.Pass` 借绿)。
+- **三条形态各异,不可一刀切**:
+  ① **combat AC-25-1-08** ⇒ **改写为真断言**(生产宾语 `CatchUp.ComputeCatchUp` 在场):输入含窗口外事件(tick 50/999),
+     主判据 = 闭窗口 `[100,300]` 内 5 条 + 窗外 2 条被剔除,辅以窗口内逐条字段比对。
+  ② **enemy-ai AC-27-34** ⇒ **删掉方法开头的 `Assert.Pass`**:真断言本就写在它**后面**
+     (`EnemySignalDto` 字段不得引用 `UnityEngine`),`Assert.Pass` 让它们**全成死代码** —— **借绿最隐蔽的形态:不是没写,是写了不执行**。
+  ③ **enemy-ai AC-27-20** ⇒ **不能改绿,只能诚实 Ignore**:`EnemyPathing` 公开面无 Replan / path_cursor
+     (`PathCursor` 属病人 AI 的 `LogicalStepper`)⇒ 宾语在生产侧不存在 = 真缺口。
+- ⚠️ **本批最贵的教训(方法论)**:我前两轮证伪**删的是断言自己** ⇒ 删掉当然不红 ⇒ 连判四条「无判别力」,**全错**。
+  **判别力的判据是「改坏生产码 ⇒ 断言转红」,不是「删断言 ⇒ 变绿」**(后者 trivially true)。
+  修正后对**生产码**变异:M1(过滤恒真)· M2(下界 `>=` 改 `>`)⇒ **均转红**,判据坐实。
+- ⚠️ **过程事故(第二次同类)**:证伪脚本被 kill 时文件**停在变异态**(F4 删了输入的两条窗口外事件),
+  下一条命令的测试因此红。已还原并复跑 7/7 绿。⇒ 纪律须升级:**还原做进 `finally` + 每例跑完立即还原**,
+  不接受「脚本自然跑完才还原」(S15-7 已有一次读数污染,这是同型第二次)。
+- **回归**:全量 EditMode `3797/3751/0/46`(`unity/Logs/s16-epic02-full.xml`)vs S15-7 基线 `3797/3751/1/45`
+  ⇒ total/passed **不变(零回归)**;`failed 1→0` = `TD-player-01` 间歇红本次未发作;**skipped +1** = ③ 新增的诚实 Ignore。
+- **账面**:债册 `TD-epic-02` 记 ✅ 已修(三条逐条处置 + 方法论教训);combat story-006 的 AC-25-1-08 **已勾**(附证伪);
+  enemy-ai story-004 的 AC-27-20 **保持未勾** + 登记无宾语;story-005 追加追补注(已写那部分恢复执行,另两条仍无判据故未勾)。
+- **顺带**:S15-7 治的内容哈希 probe 每次全量跑都会再生成两份内容相同的文件(与在库 10-17 件同 md5)⇒ 已删;
+  这是治法的**预期行为**(同内容复用路径),但「哈希名与日期名并存同内容」需在 E5 人半重做时一并归一。
+- **未修(余四条)**:`TD-epic-01`(telemetry 全 epic,**待用户裁** 整体降级 vs 补实现)· `TD-epic-03`(skeuomorphic-ui 扫面,可机械批量)·
+  `TD-epic-04`(Signs 恒空)· `TD-epic-05`(状态字段失真)。
+- **未提交**。
+
+## Session Extract — S19 修 TD-epic-03(skeuomorphic-ui 跳过)· 2026-10-19
+
+- ⚠️ **本批最大的事: Diagnosis 被实测推翻,原判是错的**。普查(及其后我的判断)说 13/14 文件「扫不到 Gameplay.UI 装配」
+  (`autoReferenced:false` + 无 `using`)⇒ `Assert.Inconclusive` 误报「无类型」。**实测跑一次全 fixture:27 fixtures / 264 Passed / 13 Skipped / 0 Failed**,
+  SetUp 护桩 `Assert.That(_uiTypes, Is.Not.Empty)` **从未红** ⇒ 装配**确已加载、类型确能扫到**。
+  ⇒ **「扫不到装配」不成立;那批 Inconclusive 是死路径**(条件永不满足)。**类型/装配侧无代码要改。**
+- ✅ **真实问题(比原判轻,但更要紧)**:13 条 skip **全是 `[Ignore]` 属性**,理由「42 未实现 - 待 UI 走查 / 帧探针」,
+  **且每条都声明了替代证据路径** —— 而那 **8 个路径全部不存在**(`production/qa/evidence/` 下无 `*-walkthrough.md` / `*-evidence.md`;
+  skeuomorphic-ui 子目录只有两张 dentch 截图)。⇒ 形态 = **「拿不存在的证据当出口」**:测试停了,却没停在一个真实存在的东西上。
+- **修法**:11 处 `[Ignore]` 理由改口为「替代证据**尚未产出**」+ 就地注明原路径不存在(7 个测试文件,各附 S19 订正注释)。
+  **不**代走查、**不**声称已走查;**卡面 AC 保持未勾**;8 个走查件归 UI 走查轮(需真人)。
+- **验证**:改后 fixture 逐项一致(27/264/13/0)—— **零破坏**;全量 `3797/3751/0/46` vs S16 批**四项全同**。
+- ⚠️ **元教训(本批最贵,值一次记忆)**:原诊断的两个方向**都没实测就信了** ——
+  ① 先信「Inconclusive 的理由是假的(类型在场)」(这个对),② 随即推「理由是假 ⇒ 因为扫不到装配」(这个错)。
+  **从 grep 读散文推出的因果链,缺一环实测就整条错。** 判「测试为什么跳过」只能跑一次看它真的跳在哪。
+- **未提交**。余债:`TD-epic-01`(telemetry,**待用户裁**)· `TD-epic-04`(Signs 恒空)· `TD-epic-05`(状态字段失真)。
+
+## Session Extract — S19 修 TD-epic-01(51 遥测生产主语)· 2026-10-19
+
+- **范围裁定**:用户令「修 TD-epic-01」⇒ 按 ADR-019 §五 的 **P0 最小切面**补实现,不整体降级。
+  **本批只还第一片**(F1 谓词面的生产主语),**未**伪造「epic 已修好」。
+- **做了什么**:① 新建边界层装配 `Telemetry`(`noEngineReferences: true` + 引用仅 `Sim.Contracts`
+  —— ADR-019 §三「51 住边界层、不进 sim」的编译期表达);② 把 F1 谓词面从测试上移为生产类
+  `DaYiJingCheng.Telemetry.JudgmentMetrics`(AC-51-B1…B4:整数 (num,den) / 分母 0 报 (0,0)+标记不抛 / ∅==∅ 判对 / F1a⊥F1b);
+  ③ F1 测试删自持副本、改打生产类;④ 登记 **ADR-025 §① 表 + `AssemblyGates.cs:59` b3 manifest**。
+- ⚠️ **门当场拦下我(正履职,非回归)**:新增装配未登记 ⇒ `AssemblyGateRunAllTest` 与 `PayloadDecoderTest` 两条红,
+  报文逐字「[b3] 未登记 asmdef「Telemetry」—— 清单封闭性 = 构建失败(ADR-025 §④)」。补两处登记后转绿。
+  ⇒ **教训**:新装配要同时改**文档(ADR-025)**与**门代码(AssemblyGates.cs)**,只改文档门仍红。
+- **判别力(对生产码变异,记住 S16 教训)**:M1 分母 0 改抛 · M2 空集判错 · M3 改写计入准确率
+  ⇒ **三条全转红且各精确命中对应 AC**。
+- **回归**:`3797/3758/0/39`(`unity/Logs/s19-epic01-full.xml`)vs 改前 `3797/3756/0/39` ⇒ passed **+2**,failed 归零。
+- 🔴 **仍未还(epic 级,如实登记,不得读成已修好)**:① 事件流 → `JudgmentRecord` 的**还原器**未写;
+  ② 调试视图未写;③ 本地导出未写;④ 另 6 个 story 的谓词面(f2–f7 / pure_function / blank_and_degraded / out_of_bounds)**仍在测试里**;
+  ⑤ `ITelemetrySource` / `ITelemetrySink` 未实现(4 条 Ignore 挂着)。
+  ⇒ **10 条 story 的 `Complete` 本批不动**,只还了 story-002 的谓词面一条。
+- **未提交**。

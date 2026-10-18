@@ -169,13 +169,12 @@ namespace DaYiJingCheng.Tests.EnemyAI
         }
 
         // AC-27-34: 开发者调试视图隔离
+        // ⚠️ S16 修复(TD-epic-02):原实现在方法**开头**就是 `Assert.Pass("需集成测试验证")`
+        //    ⇒ 下面那些真断言**全是死代码**(NUnit 的 Assert.Pass 立即结句)。
+        //    这是借绿的最隐蔽形态:不是没写断言,是**写了但永不执行**。
         [Test]
         public void test_debugView_isolation()
         {
-            // 验证调试视图不引用 42 运行时类型
-            // 简化版：验证逻辑存在
-            Assert.Pass("调试视图隔离需集成测试验证");
-
             // EnemyDebugView 不存在于生产代码中 —— 验证 EnemySignalDto 不引用 Unity 类型
             var dtoType = typeof(EnemySignalDto);
             foreach (var field in dtoType.GetFields())

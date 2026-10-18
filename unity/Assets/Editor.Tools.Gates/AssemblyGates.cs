@@ -61,6 +61,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             "Sim", "Sim.Contracts", "Sim.Codec",
             "Gameplay.Boot",
             "Gameplay.Presentation", "Gameplay.UI", "Gameplay.Input",
+            // Telemetry = 51 遥测边界层(2026-10-19 TD-epic-01 还债件;ADR-019 §三「住边界层」的编译期表达)。
+            // noEngineReferences: true + 只读消费者 ⇒ 与 Sim.Contracts 同款门槛,不进 b2 的引擎扫描面。
+            "Telemetry",
             "Editor.Tools.Level", "Editor.Tools.Kindgen", "Editor.Tools.Gates",
             "Editor.Tools.Spike", "Editor.Tools.Bake", "Editor.Tools.Font",
             // Editor.Tools.Capture = 截图工具(2026-10-14 增员;ADR-025 §① 同批回写)。
