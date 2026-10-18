@@ -14,7 +14,7 @@ goal: "44 运行期音频链接通 —— 6 条 In Review story(007-012)补生�
 start: ""
 end: ""
 generated: "2026-10-16"
-updated: "2026-10-17"   # S14-9(story-017 音频门加固)收口 —— 计划外追加(story-015 评审 W-2/W-3 派生件)
+updated: "2026-10-18"   # S14-11(story-025)实现轮 + 评审轮 + 修复轮 + 截图轮 + S13-7 走查重跑批五批落盘 ⇒ **done/Complete**(TD-prescription-01/-02/-03 结案;AC-025-6 维持不勾归 TD-prescription-07)
 
 stories:
   # ── Must Have(关键路径 · Wave 1+2)──
@@ -168,3 +168,83 @@ stories:
     #       ⇒ Δtotal = +5 = 新增测数,零回归。
     # 同批不同账(用户裁定 #11 · 归 TD-audio-01f):U1SpikeSetup.Teardown 加 Play Mode 复原委派
     #       —— Landed ✅ / Proven ✗(生命周期回调,EditMode 不触发,未造判据;不得标已证)。
+
+  - id: "S14-10"
+    name: "018 音频运行期装配:6 处缺口 A-1…A-6 + 新发现 A-7(混音器未入 Addressables 组)"
+    file: "production/epics/audio-system/story-018-runtime-audio-assembly.md"
+    priority: must-have
+    status: in-progress
+    owner: "claude"
+    estimate_days: 1.5
+    blocker: ""
+    completed: ""
+    # 立件依据 = 2026-10-17 勘察件 audio-asset-gaps-2026-10-17.md §2.2(A-1…A-6)+ 本轮新发现 A-7。
+    # 用户指令:「新立故事,然后接音频6处」;裁定「两件都立(戥子 + 音频装配)」。
+    # A-6 口径改判:走运行期 source.outputAudioMixerGroup(engine-ref audio.md:96),不改 38 个 .meta。
+    # 2026-10-18 实现轮:代码与自动化判据全部落地并自证 —— A-1…A-7 全有生产落点 · 32 测 ·
+    #   证伪 14/14 转红(FALSIFY_EXIT=0)· 回归 EditMode 3709/3664/0/45(+27=新增数)·
+    #   PlayMode 197/197/0/0(+5=新增数)· 证据 impl-s18-runtime-audio-assembly-2026-10-18.md。
+    #   ⚠️ 仍留 in-progress 的唯一原因 = 实机听测 AC「至少一条 cue 可闻」不可自动判定,
+    #   用户 2026-10-18 裁定「你实机听测后再签」。听测件 audio-wiring-listening-2026-10-18.md(NOT-RUN)。
+    #   ⚠️ 不得据「代码落地 + 全绿」推定本 story 已闭。
+    # 交付后须重走 AC-11-21(不可判 → 可判)与 AC-44-09 听测半边。
+
+  # ── 计划外追加(2026-10-18 · 用户裁定)──
+  - id: "S14-11"
+    name: "025 戥子剂量读取形态元素:逐档形态载体 + USS 主题变量 + 行构建改造"
+    file: "production/epics/skeuomorphic-ui/story-025-dentch-dose-form-element.md"
+    priority: should-have
+    status: done
+    owner: "claude"
+    estimate_days: 1
+    blocker: ""
+    completed: "2026-10-18"
+    # 立件依据 = TD-prescription-01(2026-10-17 走查实测:除焦点框外行内容逐像素相同;
+    #   主创签署「须补」· 临床风险 P0)。原登记为「skeuomorphic-ui epic 内 · Ready ⬜,非 sprint-14 面内」;
+    #   2026-10-18 用户指令「接着做 story-025 戥子」⇒ 提前兑现并登记为本 sprint 计划外追加。
+    # 交付:改 4(SkeuoThemeVariables.uss / SkeuoBrass.uss / BrassScaleElement.cs / CasebookScreen.cs)
+    #   + 新 1(dentch_dose_form_test.cs,23 测);零新贴图 · 零新色 · 零剂量语义改动 · 零焦点链改动。
+    # 判据:过滤 23/23 绿 · 证伪轮 15/15 RED-OK(改→跑→还原同命令内 + SHA-256 还原校验通过)
+    #   · 回归 EditMode 3732/3687/0/45(基线 3709/3664/0/45 ⇒ +23 = 新增数,零回归)
+    #   · PlayMode 197/197/0/0(基线同值 ⇒ +0 = +0)。
+    # ⚠️ 首轮 F1 = 假绿(两条守卫抛同型异常 ⇒ 断类型零判别力);已改断 ParamName 后复跑转红。
+    # ⚠️ 首轮回归抓到 1 条本件引入的红:DetentStripClass 的 `strip` 含 `rip` ⇒ 撞 NoHealthbarFeedbackTest
+    #   破纸词表;已改 `band`。该命名避让事实已入 .claude/docs/coding-standards.md。
+    # ⚠️ 仍留 in-progress 的原因:~~N 档截图 NOT-RUN~~ ✅ 截图轮已跑并判绿(见下方截图轮注)
+    #   + AC-11-12 形态半 / AC-11-13 转绿须 S13-7 走查重跑(本件不得自判)——**现为唯一余项**。
+    #   ⚠️ 不得据「代码落地 + 全绿」推定本 story 已闭。
+    # ⚠️ 证据原件 = production/qa/evidence/impl-s25-dentch-dose-form-2026-10-18.md。
+    # ── 2026-10-18 评审轮(/code-review · 三专家并行)──
+    # 裁定 CHANGES REQUIRED,唯一 BLOCKING = R-1;原件 production/qa/evidence/review-story-025-2026-10-18.md。
+    # R-1:AC-025-6 引用的「ink/brass/implement 三枚举材质分支分类器」全库不存在(实测 grep 零命中;
+    #   SkeuoElement.cs:4-10 是四员 {Paper,Scroll,Ink,Seal})⇒ 夹具以自造 ClassListContains("brass")
+    #   顶替 AC 语义层 ——「AC 语义层被自测断言顶替」第 4 次实例。用户裁定「重锚 AC-025-6 + 落债」:
+    #   AC-025-6 撤勾(② 未落地),缺口转 TD-prescription-07(42 epic 独立 story,本件不修)。
+    # 修复 8 项(R-2 flex-shrink · R-3 注释登记 · R-5 白名单死码 · R-6 层归属行区间判定 ·
+    #   R-7 收窄到 prescription-page 子树 · R-8 Manifest 措辞就地改注 · R-9 Add · R-10 负向门对齐 content: 面);
+    #   留白 1 项:R-4(TickCount write-only)→ TD-prescription-08。
+    # 夹具已改 ⇒ 证伪轮扩至 17 例(原 15 + F16 钉 R-5 + F17 钉 R-6),判别力须重证。
+    # 修复轮判据(全部实跑):过滤 23/23 绿 · 证伪轮 RED-OK 17/17(F16/F17 双双转红)+ SHA-256 还原通过 ·
+    #   EditMode 3732/3687/0/45 · PlayMode 197/197/0/0(与实现轮逐位同值 ⇒ +0 = +0;修复轮未新增 [Test])。
+    # ⚠️ R-2 / R-7 两列结账为 Landed ✅ / Proven ✗(无夹具可钉其主张),刻意留白,见原件 §四。
+    # R-8(Manifest 措辞矛盾)✅ 已就地改注(用户裁定「就地改注」)—— 结账表 Landed/Proven 双 ✅。
+    # ── 2026-10-18 截图轮(编辑器 Play · F12 · 1x · 两轮迭代)──
+    # 首图判红:评审原件 §五 未及核查项 #5 实测命中 —— .brass-detent 底色 = 描边 = 所在板底色
+    #   (#8C5A2B 三色全同)⇒ 档块溶进铜条,5 行逐像素相同。23 测测不到此类(断的是 USS 文本/resolved style)。
+    # 修复(用户裁甲案,1 行):SkeuoBrass.uss `.brass-detent` 底色 → var(--skeuo-brass-bg) #B8863B;
+    #   零新增色 · 落焦块仍零颜色声明(AC-025-1② 不破坏)。
+    # 复图判绿:每行恰一个金档块且位置阶梯(行k=第k档,x 18/22/26/30/34)· 全画面零数字 ·
+    #   vision 独立通道交叉确认。证据 production/qa/evidence/skeuomorphic-ui/dentch-form-2026-10-18.png
+    #   (+ …-before-fix.png 判红首图存档)。
+    # 判据:过滤 23/23 绿(s25-ussfix-editmode-filtered.xml)· EditMode 全量 3732/3686/1/45
+    #   (total 与基线逐位同值 +0=+0;唯一红=MovementFeedTest 已知间歇红 TD-player-01 下游,
+    #   失败信息与实现轮首轮同型、单跑 5/5 绿 ⇒ 非本件引入、不得读成已修)· PlayMode 197/197/0/0 逐位同值。
+    # ⚠️ 截图轮发现非 R-1…R-10 任何一条,记入 story §截图轮记录 + impl 原件 §十。
+    # ── 2026-10-18 走查重跑批(S13-7 重跑 · 真人目视 · 双签)── 唯一余项已达成:
+    # 腿 A3(AC-11-12 载体可读半)= ✅ 可读 · 腿 B2(AC-11-13 仅凭形态分辨)= ✅ 可辨(ELSE 不触发)·
+    #   低密度读数观感限制(截图轮如实登记)用户裁「够用,不增强」⇒ 不触发 44 增强债。
+    # 签核 = 主创 + 医学从业双签(solo 同签);报告 production/playtests/playtest-2026-10-18-s13-7-rerun-dentch-form.md ·
+    #   签核件 story-005-ac11-12-13-21-signoff.md §6。
+    # 债结转:TD-prescription-01/-02/-03 ✅ 结案;04(腿 C,归 S14-10)/ 05(49 通道,豁免≠满足)/ 06 维持 open。
+    # ✅ **S14-11 done** —— story-025 转 Complete(AC-025-1…5 ✅;AC-025-6 维持不勾,分类器归 TD-prescription-07,
+    #   系用户裁定重锚,不阻塞结案)。待 commit(无指令)。

@@ -92,9 +92,9 @@
 
 | # | 债 | 出处 | 触发条件(何时须还) |
 |---|---|---|---|
-| TD-prescription-01 | **42 侧戥子形态元件缺失**(根因)—— GDD §Game Feel(`prescription-and-medication.md:868`)与 `skeuomorphic-ui.md:1617` 均登记「戥子档位读数元件 = 42 元件库黄铜侧(戥杆倾角 / 药包鼓胀)」;但 42 epic(18 story + 019–024)**无任何一条 story 交付该形态元件**。实际落地的 `BrassScaleElement` 仅 `int TickCount`(总档数)+ 黄铜色条,档位行 = N 个**同形** `Paper` + 同标签「戥子档」⇒ 相邻档**视觉完全相同**。**义务被登记、被「认领」,但形态从未实现**。**2026-10-17 走查已证实**(逐像素比对:除焦点框外行内容逐像素相同) | 走查包 §9 根因;`CasebookScreen.cs:93`(「行内容恒定」自陈) | **✅ 2026-10-17 主创已签裁定:须补** —— **新立 42 侧 story 交付形态元件**(戥杆倾角 / 药包鼓胀);P0「接受无形态」否决 |
-| TD-prescription-02 | **AC-11-13 结构上必红**(TD-prescription-01 的直接后果)—— 色盲模拟 + 静音下「仅凭形态分辨相邻两档」无形态可辨 ⇒ 落其 `ELSE` 分支「记为 42 元件库缺口」 | 走查包 §3/§9;`prescription-and-medication.md:978` | 同 TD-prescription-01(同一根因,两 AC 共同触发) |
-| TD-prescription-03 | **AC-11-12 的「拟物载体可读」半必红**(零数字半 ✅)—— 同 TD-prescription-01 根因;`BrassScaleElement.TickCount` 是**总档数**(与当前档无关)⇒ 拟物载体**不可读当前档** | 走查包 §2/§9;`prescription-and-medication.md:977` | 同 TD-prescription-01 |
+| TD-prescription-01 | **42 侧戥子形态元件缺失**(根因)—— GDD §Game Feel(`prescription-and-medication.md:868`)与 `skeuomorphic-ui.md:1617` 均登记「戥子档位读数元件 = 42 元件库黄铜侧(戥杆倾角 / 药包鼓胀)」;但 42 epic(18 story + 019–024)**无任何一条 story 交付该形态元件**。实际落地的 `BrassScaleElement` 仅 `int TickCount`(总档数)+ 黄铜色条,档位行 = N 个**同形** `Paper` + 同标签「戥子档」⇒ 相邻档**视觉完全相同**。**义务被登记、被「认领」,但形态从未实现**。**2026-10-17 走查已证实**(逐像素比对:除焦点框外行内容逐像素相同) | 走查包 §9 根因;`CasebookScreen.cs:93`(「行内容恒定」自陈) | **✅ 2026-10-17 主创已签裁定:须补** —— **新立 42 侧 story 交付形态元件**(戥杆倾角 / 药包鼓胀);P0「接受无形态」否决。**→ 已立件:`story-025-dentch-dose-form-element.md`**;**✅ 2026-10-18 实现轮已交付(代码侧)** —— `BrassScaleElement.SetDetents(count, focusedOrdinal)` + `.brass-detent` / `.brass-detent--focused` 逐档形态类 + `CasebookScreen.RefreshDentchDoses()` 每行携带**该行自己的**形态;23 测全绿 · 证伪 15/15 恰红 · 两棵树新增测上零回归(`+23 = +23` / `+0 = +0`)。证据原件 `production/qa/evidence/impl-s25-dentch-dose-form-2026-10-18.md`。**2026-10-18 截图轮**:首图判红(§五 未及核查项 #5 命中 —— 档块底色 = 描边 = 板色三色全同,渲染层零对比度)⇒ 甲案修复(`.brass-detent` 底色 → `--skeuo-brass-bg`)⇒ 复图判绿(金档块位置逐行阶梯,证据 `production/qa/evidence/skeuomorphic-ui/dentch-form-2026-10-18.png` + 判红首图存档)。~~**⚠️ 本条仍未结案** —— 结案前置 = ① `/code-review` ② N 档截图 ③ `S13-7` 走查重跑~~ ⇒ **✅ 2026-10-18 结案:前置 ①②③ 全部达成** —— ① 评审轮 CHANGES REQUIRED 已修(R-1 重锚 + 落债)② 截图轮两轮迭代判绿 ③ **走查重跑:真人目视 A3「✅ 可读」/ B2「✅ 可辨」,主创 + 医学从业双签,低密度读数裁定「够用,不增强」**。报告 `production/playtests/playtest-2026-10-18-s13-7-rerun-dentch-form.md` · 签核件 `story-005-ac11-12-13-21-signoff.md` §6 · `AC-11-12` / `AC-11-13` 自此转 ✅ |
+| TD-prescription-02 | ~~**AC-11-13 结构上必红**~~ ⇒ **✅ 2026-10-18 结案(随根因 TD-01)** —— 原判定「色盲模拟 + 静音下仅凭形态分辨相邻两档无形态可辨 ⇒ 落 `ELSE` 分支」的**前提(42 侧无形态元件)已被推翻**:story-025 交付逐档形态 + 截图轮甲案修复 ⇒ 走查重跑 **B2 真人目视 ✅ 可辨,`ELSE` 分支不触发**(双签:主创 + 医学从业)。⚠️ 色盲模拟前置按「本载体零颜色读数通道 ⇒ 形态与颜色无关」口径**豁免走**(有判据:`test_ac025_1_focusedForm_carriesNoColorDeclaration` + `AC-025-5` 双向钉,非口头豁免);**前置本身仍不可执行 ⇒ `TD-prescription-05` 不随本条结案** | 走查包 §3/§9(2026-10-16 历史判定,照读);**重跑报告** `production/playtests/playtest-2026-10-18-s13-7-rerun-dentch-form.md` §3;`prescription-and-medication.md:978` | ~~同 TD-prescription-01~~ **已还** |
+| TD-prescription-03 | ~~**AC-11-12 的「拟物载体可读」半必红**~~ ⇒ **✅ 2026-10-18 结案(随根因 TD-01)** —— 原根因「`BrassScaleElement.TickCount` 是总档数(与当前档无关)⇒ 载体不可读当前档」已被逐档形态兑现:复图每行恰一个金档块且位置阶梯(行 k = 第 k 档)⇒ **走查 A3 真人目视 ✅ 可读**,主创**二分签转两半均 ✅ ⇒ 整体 ✅**。⚠️ 观感限制「低密度读数(常态档近乎不可见,仅落焦档金芯露出)」在裁定前已如实登记,用户裁「**够用,不增强**」⇒ 不触发 44 调参增强债 | 走查包 §2/§9(历史判定);重跑报告 §2;`prescription-and-medication.md:977` | ~~同 TD-prescription-01~~ **已还** |
 | TD-prescription-04 | **全案音频链未接通 ⇒ AC-11-21 不可判** —— 人工实测进 Play 后场景**完全无任何声音**。根因:全案**零 `IAudioCueSink` 实现**(仅接口定义)· `Boot.unity` **零 `AudioSource`**(仅 1 个 `AudioListener`)· `assets/audio/` **空目录** · 44 epic 的 **story-015/016 仍 `Ready`**(音频资产接入两条未做)· `audio_events.json` 仅 5 条(零处方条目)。⚠️ **证伪原预判「结构性静默」** —— 真相是整条链没通,「无音」不能归因于「设计成静默」 | 走查包 §11.7;44 EPIC §范围边界声明(2026-10-03) | **44 story-015 / 016 素材接入后**须重走 AC-11-21。⚠️ **影响超出 11**:全案任何音频类 AC 的听测半边(含 `AC-44-09`)在素材接入前**均不可判**,建议 44 侧一并登记。<br>⚠️ **2026-10-17 复核(只读实测,本批未重走 AC-11-21)**:本条原列的**四条根因里两条已过期** —— ① `IAudioCueSink` 已有真实现 `Gameplay.Presentation/Audio/CueRenderSink.cs:56`(原「零实现」不成立);② `audio_events.json` 已 15 行(原「5 行零处方条目」不成立;**处方条目是否存在未逐条核**)。仍成立的:③ `Boot.unity` 零 `AudioSource`、且全仓未查见 `new CueRenderSink(` 的**运行期**装配点;④ 素材已落地(story-015/016),原「素材未接入」表述不再成立。⇒ **触发条件未满足**(须在真机上重走),但读者不得再引用本行「零实现 / 5 行」作为现状 |
 | TD-prescription-05 | **色盲模拟前置不可执行** —— UI 面板 `m_RenderMode: 0`(ScreenSpaceOverlay)⇒ 走相机后处理的色盲模拟**盖不到 UI**;Unity 6 URP `Rendering Debugger` 无 colorblind 栏。⇒ AC-11-13 的「色盲模拟下」前置**结构上无法满足** | 走查包 §11.4;`PanelSettings.asset:18` · `rendering.md:230` | **✅ 2026-10-17 主创已签裁定:另立无障碍模拟通道** —— 归 49 无障碍 / ADR-013 修订;**不在 sprint-13 内**,未排期 |
 | TD-prescription-06 | **病人占位胶囊**(非 11 范围,附带发现)—— 方笺页截图中 `rgb(255,0,255)` 品红占 13.89%(x 165..592, y 264..391),遮挡画面右半 ⇒ 影响方笺页视觉完整性 | 走查包 §11.5;截图 `unity/Logs/shots/20261016_111446_1x.png` | 13 病人 AI / 美术资产轮交付真病人模型时 |
@@ -102,6 +102,9 @@
 **共同性质**:6 条**均不阻塞 story-005 转 Complete**(走查为 ADVISORY 级,且缺口本身即 AC-11-13 `ELSE` 分支的设计预期),
 但**须留痕**。**TD-prescription-01 是根因**(02/03 是其直接后果),还债须先处置它;
 **TD-prescription-05 / 06 是走查执行期新发现**(非前置勘察所得)。
+> **✅ 2026-10-18 根因链结案**:`01 / 02 / 03` 三条随 story-025 交付 + 截图轮修复 + 走查重跑**全部还债**
+> (重跑报告 `production/playtests/playtest-2026-10-18-s13-7-rerun-dentch-form.md`);
+> **仍 open 的只剩 `04`(听测半边归 S14-10)/ `05`(49 无障碍通道,未排期)/ `06`(美术资产轮)**。
 
 ---
 
@@ -113,8 +116,46 @@
 
 | # | 债 | 证据 | 触发条件 |
 |---|---|---|---|
-| **TD-audio-023** | **音频链零运行期装配(6 处)**:A-1 `CueRenderSink` 零生产构造点 · A-2 `ICueRenderTarget` 只有 `NullRenderTarget` · A-3 `PatientCueEmit` / `CoughChannel` / `CueEmitDeriver` 零调用 · A-4 `AudioSourcePool` 零生产构造点 · A-5 `PlayerBusVolumeInitializer` 零构造点 · A-6 37 个 wav 的 `.meta` **零 `m_audioMixerGroup`**(全走 Master 直通) | `audio-asset-gaps-2026-10-17.md` §2.2 | **用户裁定「我来补齐接入」** ⇒ 接入轮;接入后须**重走 AC-11-21 与 AC-44-09 听测半边** |
-| **TD-audio-024** | **处方音效须在接入轮专门验证不在白名单内**(签核件 §3 问 4) | 同上 §3 | 并入 TD-audio-023 的接入轮 |
+| **TD-audio-023** | **音频链零运行期装配(6 处)**:A-1 `CueRenderSink` 零生产构造点 · A-2 `ICueRenderTarget` 只有 `NullRenderTarget` · A-3 `PatientCueEmit` / `CoughChannel` / `CueEmitDeriver` 零调用 · A-4 `AudioSourcePool` 零生产构造点 · A-5 `PlayerBusVolumeInitializer` 零构造点 · A-6 37 个 wav 的 `.meta` **零 `m_audioMixerGroup`**(全走 Master 直通) | `audio-asset-gaps-2026-10-17.md` §2.2 | **用户裁定「我来补齐接入」** ⇒ 接入轮。**→ 已立件:`story-018-runtime-audio-assembly.md`(Ready,2026-10-17)**;接入后须**重走 AC-11-21 与 AC-44-09 听测半边** |
+| **TD-audio-024** | **处方音效须在接入轮专门验证不在白名单内**(签核件 §3 问 4) | 同上 §3 | 并入 TD-audio-023 的接入轮(**story-018 AC-018-7**) |
+
+> ✅ **2026-10-18 结清(代码侧)** —— story-018 实现轮落盘:A-1…A-6 **加立卡轮新发现 A-7**
+> (mixer 未入 Addressables 组)共 **7 处全部有生产落点**;证伪轮 **14/14 转红**;
+> 回归 EditMode `3709/3664/0/45` · PlayMode `197/197/0/0`(新增测上零回归)。
+> 证据原件 `production/qa/evidence/impl-s18-runtime-audio-assembly-2026-10-18.md`。
+> **TD-audio-024 由 AC-018-7 的 3 条断言兑现**(处方 cue 类别 ∈ 允许集 · 全表零禁止 trigger_source ·
+> 处方 cue 非 loop)。
+> ⚠️ **story-018 仍留 `In Progress`** —— 其「实机听测」AC **不可自动判定**,用户 2026-10-18 裁定
+> 「你实机听测后再签」。**接入后须重走 `AC-11-21` 与 `AC-44-09` 听测半边**这一条**仍未执行**。
+> 听测件:`production/qa/evidence/audio-wiring-listening-2026-10-18.md`(**NOT-RUN**)。
+
+---
+
+## 2026-10-18 · story-018 实现轮新立案(3 条)
+
+**出处**:`production/qa/evidence/impl-s18-runtime-audio-assembly-2026-10-18.md` §五 / §六 ·
+story-018 `## 实现轮记录`。**三条均非 story-018 引入**,是它跑动时暴露/顺带发现的既有缺口。
+
+| # | 债 | 出处 | 触发条件(何时须还) |
+|---|---|---|---|
+| **TD-audio-025** | **9 侧 `ComputeTrend` 恒 0,13 的痊愈锁存被**整条停用**。** `Sim/ProgressionEvaluator.cs:439` 的 `ComputeTrend` 返回 `Fix.Zero`(该文件头自陈「保留占位(tripwire,归 M2 可玩级)· **不得当成本批缺陷删改**」)。而 `BehaviorMap.EvaluateTerminal` 的痊愈判据 `position ≤ RecoverMax ∧ trend ≤ 0` 在 trend 恒 0 时**恒真** ⇒ 每个新出现的病人(position ≈ 0)首拍即被锁存「痊愈」⇒ `BreathShouldLive` 恒 false ⇒ **呼吸层永不启动、一次性 cue 永不发射**。**2026-10-18 用户裁定「本轮就修」**,已加 `BehaviorMap.TrendWired = false` 门(停用 ≠ 误判:「已痊愈」是终局,误判不可逆)。 | 实机取证(修复前 `tick=2` 起 `term=True emit=False breath=None`);`impl-s18-*` §五 | **9 侧实现 F2 中心差分 `(Progress(t+W/2) − Progress(t−W/2))/W` + `TREND_EPS` 死区(归 M2 可玩级 / 数值轮)** —— 届时把 `TrendWired` 改 `true`,并复跑 13 全套:两侧 NOT-RUN 哨兵(`behavior_map_test.cs::test_ac13b1_terminalLatch_recoversDoNotResurrect` · `audio_wiring_test.cs::test_ac018_6_patientCueDriver_runsOnRealTickPump`)**会转红,须改回真断言,禁删哨兵** |
+| **TD-audio-026** | **`CompositionRoot.Assemble()` 无条件构造 `AudioSourcePool`(含 GameObject 根)⇒ EditMode 测试泄漏。** `CompositionRoot.cs:321` 的 `new AudioSourcePool(busResolver: audio?.Buses)` 即便 `audio == null` 也执行,而该构造函数会建 GameObject 根(`AudioSourcePool.cs:65`,`hideFlags = DontSave`);`CompositionRootServices` **无 `IDisposable`**、既有 Boot 测试**无 TearDown**(全库 30 处 `Assemble()` 调用)⇒ 每次装配遗留一个池根节点。**生产侧不受影响**(`BootRoot.OnDestroy` 已调 `AudioPool.Dispose()`)。「无音频也建池」在 AC-018-4 单池不变量下**可辩护**(池是 ADR-028 ① 唯一所有者的承载物;「装了没装」的判据是 `AudioRenderAssembled`),但泄漏属实。 | `impl-s18-*` §六 ②;`CompositionRoot.cs:321`;`AudioSourcePool.cs:65` | **是否改惰性构造须用户裁**(设计取舍,非缺陷);若判泄漏可接受,则只须在测试侧补 TearDown / 或给装配袋加 `IDisposable` |
+| **TD-player-01** | **`AC-1-33` ③ 语义层未被验证 —— 测试断言的是它自己的夹具。** GDD 要求 `minMoveDistance` P0 = 0,理由逐字为「非零会吞掉亚阈值位移 ⇒ 手感粘滞 + 与 F-1-1a 的逐帧预算不一致」(`tr-registry.yaml:1618`)。实测:该值只在 `LocomotionEvaluator.cs:34` **声明**;**全库零处**把它写进 `CharacterController` ⇒ 控制器取 Unity 默认 **0.001**;而 `locomotion_chain_test.cs:200::test_ac133_minMoveDistanceIsZero` 读的是 **`LocomotionConfig.LoadDefault().MinMoveDistance`(夹具字段)**,**全库零测**断言控制器真值。**下游症状已实测**:`MovementFeedTest.test_move_afterFreeFall_horizontalDisplacementBoundedByConfig` 间歇红 —— `dt = 0.0099` ⇒ `expectedDx = 0.00098 < 0.001` ⇒ 位移被引擎吞掉 ⇒ `dx` 恰为 `0.0`(GDD 预言的失败模式**如期出现**)。 | `impl-s18-*` §六 ①;`tr-registry.yaml:1618`;`locomotion_chain_test.cs:200`;`unity/Logs/s18-full-editmode.xml` | **系统 1 的实现轮** —— 须把 `LocomotionConfig` 的 `MinMoveDistance` / `SkinWidth` / `Radius` / `Height` / `Center` / `EnableOverlapRecovery` 逐项**写进 `CharacterController`**,并把 `test_ac133_*` 的断言对象从**夹具**改为**控制器真值**。⚠️ **不在 story-018 边界内** |
+
+---
+
+## 2026-10-18 · story-025 评审轮新立案(2 条)
+
+**出处**:`production/qa/evidence/review-story-025-2026-10-18.md` §二 R-1 / §三 R-4。
+**性质**:两条**均非 story-025 引入** —— ① 是 story-025 的 `AC-025-6` 引用了一个**从未存在**的分类器
+(与 `TD-prescription-01` 同族:义务被登记、被「认领」,但实现从未存在);
+② 是 `BrassScaleElement` 的既有字段在新用法下被暴露为死状态。
+**编号承 `TD-prescription-*` 族** —— 该族 `01` 即「42 侧戥子形态元件缺失」,本条为同族后继。
+
+| # | 债 | 出处 | 触发条件(何时须还) |
+|---|---|---|---|
+| **TD-prescription-07** | **`AC-42-F3` 的「分支半边」分类器未实现** —— `AC-025-6` 逐字要求「材质分支断言(`ink` / `brass` / `implement` **三枚举**)判定为 `brass`」,而**该分类器全库不存在**:① `grep -rn "classify\|BranchOf\|ResolveBranch\|MaterialOf\|MaterialBranch" unity/Assets/` **零命中**;② `SkeuoElement.cs:4-10` 是**四员** `{Paper, Scroll, Ink, Seal}` —— **无 `brass`、无 `implement`**;③ `grep implement` 仅命中主题变量前缀 `--skeuo-implement-*` 与 `implementors`;④ GDD 侧载体 `Tests/EditMode/SkeuomorphicUI/world_billboard_test.cs:87` 仍是**占位符**逐字 `实现后补充:验证黄铜侧刻度条合法性`。⇒ story-025 的夹具以**自造的** `ClassListContains("brass")` 顶替了 AC 的宾语(「AC 语义层被测试自造断言顶替」的**第 4 次**实例;前三次见 case-system 001–004 补评轮与 44 音频 epic 六条假绿)。**2026-10-18 用户裁定:重锚 AC-025-6 + 落债**(本件**不修**分类器) | `review-story-025-2026-10-18.md` §二;`SkeuoElement.cs:4-10`;`world_billboard_test.cs:87` | **42 epic 独立 story** —— 立三枚举分类器 + 把 `world_billboard_test.cs:87` 的占位符改为真断言。⚠️ 届时 story-025 的 `test_ac025_6_formCarrier_staysInBrassBranch_notInk` 须**改打真分类器**(现为类名断言,禁当已满足) |
+| **TD-prescription-08** | **`BrassScaleElement.TickCount` write-only 死状态** —— 该自动属性(`BrassScaleElement.cs:51`)**生产侧零读**:唯一疑似消费者 `PrescribeRequestDriver.cs:99` 读的是 **`DentchDoseSelector.TickCount`**(同名的**另一个**属性,非本元件);本元件的 `TickCount` 仅**测试**读(`dentch_input_test.cs:69/609/612/614`)。⚠️ **易混读**:两名同名不同物,不得据 selector 侧有消费者推断本元件侧也有。**2026-10-18 用户裁定:落债**(不在 story-025 修复范围) | `review-story-025-2026-10-18.md` §三 R-4;`BrassScaleElement.cs:51`;`PrescribeRequestDriver.cs:99` | **42 epic 清理轮** —— 删字段,或接上真消费者(若「总档数」确需在元件上可见) |
 
 ---
 
