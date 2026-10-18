@@ -168,6 +168,29 @@
 
 ---
 
+## 2026-10-18 · story-018 **补评批**新立案(6 条:TD-audio-028…033)
+
+**出处**:`production/qa/evidence/review-story-018-2026-10-18.md`(首轮 `/code-review`,三代理并行,
+转 Complete 后追补)· `impl-s18-*` §十一。
+**性质**:六条**均非 story-018 引入**,也**均不在其 7 条 AC 的宾语面内** —— 是「装配诚实」之后
+被评审暴露的「**链路未闭环**」。⇒ **不阻断 story-018 的 `Complete`**,但**不得**读成「音频链路已完整」。
+**共同判据**:六条债在还债时都须附**证伪例**(承 retro-13 行动项 2),其中 N-1 的 S3-a 补例已写入债行。
+
+| # | 债 | 出处 | 触发条件(何时须还) |
+|---|---|---|---|
+| **TD-audio-028** | **空间化链整体未接入生产 —— ADR-028 的位置 / 遮挡 / 排名语义今日无承载。** 实测:① `AudioSourceRenderTarget.cs:77-82` 直调 `_pool.Spawn(actorId, cellX, cellY, cellZ, …)` **不写 `transform.position`**、**不 pin spatial 三件套**(`AudioSourcePool.CreateSource` 注释逐字「换算 / pin 归装配层」`:210-211`,而无人 pin);② 换算 / 遮挡 / 排名的唯一宿主 **`SpatializationDirector` 生产零构造**(全仓 `new SpatializationDirector(` 唯一命中 = 该类自例注释 `:23`);③ `AudioAssemblySeams.LatticeSize`(`AudioAssemblySeams.cs:42`,默认 `1f`)= **死字段,零读取方**。⇒ **运行期声音实际是默认 2D、从原点发**,`AudioCueDto.Cell` 对一次性 cue 是惰性数据。⚠️ **与听测「可闻」不矛盾**(2D 也可闻),听测只证「有音 + 走对总线」,**不证**空间化。`cue.Cell` 的正确性亦**零断言**(新公开 API `PresenceRegistry.TryGetCell` 在 `Assets/Tests/` 零引用,生产调用方仅 `PatientCueDriver.cs:119`)。 | `review-story-018-*` §三 N-1;`AudioSourceRenderTarget.cs:71-97`;`SpatializationDirector.cs:23/:95-101`;`AudioAssemblySeams.cs:42` | **44 收口轮 / TD-audio-101…102 听测批同族** —— 装配层接 `SpatializationDirector`(或 RenderTarget 内置 `LatticeToWorld` 换算 + pin 三件套)。⚠️ **还债时须一并补 S3-a 的证伪负例**:评审实测 story-018 的 14 例证伪**无一针对 AC-018-4「自建第二池 ⇒ 转红」分支**(`spatializationDirector_sharedPool_keepsSingleRoot` `runtime_assembly_test.cs:416` 只测**共享池**重载,默认自建构造路径零测 ⇒ 第二池失效形态实际不可见)。 |
+| **TD-audio-029** | **一次性 cue 的池条目永不归还(ADR-028 ⑤ 生命周期「只起不收」)。** `AudioSourceRenderTarget.PlayOneShot`(`:71-82`)`Spawn` + `Play()` 后**无 Stop / Release 对偶**,而池的 `_free` 复用栈**仅在 `Release` 时回流**(`AudioSourcePool.cs:163-167`)⇒ ① `_free` 恒空(每次 one-shot 都走 `CreateSource` 新建);② `ActiveCount` 把**已播完静音**的源计入(「在响声源数」语义失真)。⚠️ **规模有界(≤ `PATIENT_APPEARANCE_CAP` 24 + 玩家)⇒ 不是泄漏**,判为「生命周期未实现完」而非资源泄漏。 | `review-story-018-*` §三 N-2;`AudioSourceRenderTarget.cs:71-82`;`AudioSourcePool.cs:163-167` | **下一次触及池 / RenderTarget 时**(素材批或 44 收口轮):one-shot 走 `AudioSource.timeSamples`/`clip.length` 的到期回收,或改用 `PlayOneShot(clip)`(Unity 原生,不占池条目)二选一;⚠️ 择一后**须有夹具断言**「播完 ⇒ `ActiveCount` 回落」并附证伪(停用回收 ⇒ 该断言红) |
+| **TD-audio-030** | **语声变体混合(`AC-44-02` / `TR-diag-022`)运行期未兑现 —— 且 `tr-registry` 的 `covered` 会被误读成「已接」。** 实测:`AudioClipLibrary.cs:84` 对多素材行**恒取 `row.Assets[0]`**(头注逐字自陈「这不是随机挑一条 —— 是确定性的第 0 条」,即**装载面**,非选择器);`VoiceVariantLib`(含分桶 / `SelectVariant` / 烘焙门 `ValidateVoiceVariantLib`)**生产零调用**(grep 全仓仅命中其自件与注释)。⇒ 12 个 `vo_` 变体的**选择语义**今日无运行期承载。⚠️ **账面矛盾须防**:`docs/architecture/tr-registry.yaml:1338-1344` `TR-diag-022 status: covered` —— 该 covered 兑现的是**素材/库面**(变体行存在 + 分桶边界解耦 + 烘焙门),**不含运行期选择器**;读者**不得**据它推定 AC-44-02 已落地。 | `review-story-018-*` §三 N-4;`AudioClipLibrary.cs:80-84`;`VoiceVariantLib.cs:41/:230`;`tr-registry.yaml:1338-1344` | **13 语义侧接线轮**(与 `TD-audio-033` 同一处驱动:谁决定用哪个变体归 13 的 F-13.2 语义)或 **`TD-audio-102` 的 `AC-44-03` 素材批**(12 个 `vo_` 变体录制落地时同批)—— 届时 `AudioClipLibrary` 由「取 `Assets[0]`」改为「按 `(CueId × Tier × 桶)` 经 `VoiceVariantLib.SelectVariant`」,并给 `TR-diag-022` 补**运行期半边**判据 |
+| **TD-audio-031** | **静态装配缝生产赋值后无回收(条件性)+ `BuildAudioSeams` 异常路径泄漏预载资产。** ① `BootRoot.cs:541` 赋 `PlayerBusVolumeInitializer.MixerResolver`、`:479` 赋 `AudioSettingsRegistry.Provider`(两者皆 public static),而 `OnDestroy`(`:709-738`)只 dispose `PatientVisualSpawner` / `EmergencyChannel` / `PatientCueDriver` / `AudioPool` / `clipLibrary` **五件,不置 null 两缝** ⇒ 跨 Play 轮悬垂指向已 `Addressables.Release` 的对象。⚠️ **编排方实测细化(故判条件性,非必现缺陷)**:`EditorSettings.asset:27-28` `m_EnterPlayModeOptionsEnabled: 1` + `m_EnterPlayModeOptions: 0` ⇒ **完整域重载**,静态每 Play 复位 ⇒ 今天靠域重载 + Unity `==null` 重载**巧合**兜底;若该设置被关(域重载关闭是常见加速手段),即刻咬人。对照:测试侧**自己复位**(`runtime_assembly_test.cs:440/:469`)。② `BuildAudioSeams`(`BootRoot.cs:520-546`)在 `clips.Preload()` **成功之后**若 `new AudioBusResolver(mixer)` 抛(缺组)或 `ApplyDefaults` errors 抛 ⇒ 已装载的 ≤15 个 clip **无 `Dispose()`**(N 个 Addressables 句柄悬挂)。 | `review-story-018-*` §三 N-5/N-6;`BootRoot.cs:479/:541/:520-546/:709-738`;`EditorSettings.asset:27-28`;对照 `runtime_assembly_test.cs:440/:469` | **下一次触及 `BootRoot` 生命周期时**(44 收口轮 / ADR-023 场景拆序实现轮皆可,后者本就要审 `OnDestroy` 的对称性):`OnDestroy` 增两行置 null + `BuildAudioSeams` 在两条抛路径前 `clipLibrary.Dispose()`。⚠️ **加固须附反证**(承 Phase 8b:动作 ≠ 已证)——夹具断言「拆 Boot 后 `MixerResolver == null`」,停用那两行 ⇒ 转红 |
+| **TD-audio-032** | **44 侧四项低-微卫生问题(合并立案,逐项各有落点)。** ① **调参常量入生产**:`CueIntervals.Default` / `BehaviorBands.Default` 以代码常量进生产(`CompositionRoot.cs` 构造 `PatientCueDriver` 时 `intervals: null` ⇒ 落 `Default`),未走 ADR-014 cooked 数据表 ⇒ 与 `.claude/docs/coding-standards.md`「gameplay 值不硬编码 / data-driven」相抵(可辩护面 = P0 无表行,`ai_patient.json` 不存在,见 `impl-s18-*` §七 行 5)。② **`(int)tick` 截断**:`PatientCueDriver.cs:132/:143/:165` 把 long `tick`(ADR-005 抽象点)截成 int 做簿记 ⇒ > 2³¹ tick(≈3.8 年@20 Hz)后 entry/lastEmit 回绕;同函数签名收 long、簿记用 int = 口径不一。③ **方法超 40 行且无夹具钉界**:`OnTickEdge` ≈57 行(`:109-168`)· `BuildAudioSeams` ≈47 行(`:504-550`)。④ **簿记清扫面不完整 + 每边沿分配**:`PruneAbsent`(`:174-176`)只跟 `_breathHandles` 的键清三本簿记 ⇒ 无呼吸句柄但发过咳的病人其 `_entryTick` / `_lastEmitTick` 行永不清(会话内单调增长,界内缓慢);另每 tick 边沿 `new List<int>`(GC 微噪声);⚠️ **同族第三处(编排方对码复核补)**:`PresenceRegistry.cs:52-57`
+`PresentPatientIds() => _present.ToArray()` ⇒ **每调用一次复制一个数组**(tick 泵每拍调它)。
+⚠️ B 侧草稿原判「`PresentPatientIds()` 复用登记簿数组、未见新数组分配」(`C-5.3`)**有误**,本行为更正后的口径。
+⑤ **测试面缺守卫**:`busName_sourceIsEventTableColumn_notCodeCopy`(`runtime_assembly_test.cs:306`)**无 `RowCount > 0` 前置** ⇒ 空表恒真风险(同件 `:729` 与 `audio_wiring_test.cs:245` 皆有守卫,独此条缺)。 | `review-story-018-*` §三 N-7…N-10 · §四 S4;`CompositionRoot.cs`;`PatientCueDriver.cs:109-176`;`runtime_assembly_test.cs:306` | **下一次触及对应件时**(各自单列,不捆绑成一个动作):① 随 `TD-audio-101/102` 的 13 数据轮(表行落地即接 ADR-014);② 改簿记为 long(一行 × 三处,附「tick = int.MaxValue+1」夹具)· ③ 抽 `StepOnePatient`,**并给 ≤40 行界补夹具**(承 `review-*.md` Phase 8b 的 J 项教训:拆分动作只兑现一半 = 未证)· ④ 随 `TD-audio-029` 同批改 `PruneAbsent`(三本簿记统一按「在场集」清 + 复用 buffer)· ⑤ 加 `RowCount > 0` 守卫(一行) |
+| **TD-audio-033** | **`knowsClinic: false` 硬编码入生产驱动 —— 装配层发明了行为输入。** `PatientCueDriver.cs:125` 逐字 `_behavior.Step(id, knowsClinic: false)`。① F-13.2 的真值源(病人是否知道医馆 = story-002 的 `HomeRegion` 语义)**未作注入缝** ⇒ `BehaviorMap.cs:80/:83` 两个分支皆需真值 ⇒ **全部病人永不进 `Seeking`**(寻诊行为在音频侧永不被驱动);② 装配层与视觉侧**各持一份行为输入**(`CompositionRoot` 新建私有 `PatientBehaviorDirector` 实例 vs `PatientCueDriver._behavior`)⇒ 同一病人**两份行为态可分叉**。⚠️ `impl-s18-*` §七 行 6 只登记了「无 `KnowsClinic(p)` 生产实现,归 13」的**半边**,本条补的是「**装配层因此自行发明了常量**」的下半边。 | `review-story-018-*` §三 N-3;`PatientCueDriver.cs:125`;`BehaviorMap.cs:80/:83`;`impl-s18-*` §七 行 6 | **13 语义/数据轮** —— 落 `IKnowsClinicQuery`(或复用 `IPatientView`)注入缝,由 13 的 `HomeRegion` 派生;行为态**单一所有者**(视觉与音频共用一个 director 实例或共读一个查询)。**归属 13,不在 44 边界内**(承 ADR-027 的 13 只读消费者口径 —— 查询是读,不违反只读) |
+
+
+---
+
 ## 2026-10-18 · story-018 实现轮新立案(3 条)
 
 **出处**:`production/qa/evidence/impl-s18-runtime-audio-assembly-2026-10-18.md` §五 / §六 ·
@@ -176,7 +199,7 @@ story-018 `## 实现轮记录`。**三条均非 story-018 引入**,是它跑动�
 | # | 债 | 出处 | 触发条件(何时须还) |
 |---|---|---|---|
 | **TD-audio-025** | **9 侧 `ComputeTrend` 恒 0,13 的痊愈锁存被**整条停用**。** `Sim/ProgressionEvaluator.cs:439` 的 `ComputeTrend` 返回 `Fix.Zero`(该文件头自陈「保留占位(tripwire,归 M2 可玩级)· **不得当成本批缺陷删改**」)。而 `BehaviorMap.EvaluateTerminal` 的痊愈判据 `position ≤ RecoverMax ∧ trend ≤ 0` 在 trend 恒 0 时**恒真** ⇒ 每个新出现的病人(position ≈ 0)首拍即被锁存「痊愈」⇒ `BreathShouldLive` 恒 false ⇒ **呼吸层永不启动、一次性 cue 永不发射**。**2026-10-18 用户裁定「本轮就修」**,已加 `BehaviorMap.TrendWired = false` 门(停用 ≠ 误判:「已痊愈」是终局,误判不可逆)。 | 实机取证(修复前 `tick=2` 起 `term=True emit=False breath=None`);`impl-s18-*` §五 | **9 侧实现 F2 中心差分 `(Progress(t+W/2) − Progress(t−W/2))/W` + `TREND_EPS` 死区(归 M2 可玩级 / 数值轮)** —— 届时把 `TrendWired` 改 `true`,并复跑 13 全套:两侧 NOT-RUN 哨兵(`behavior_map_test.cs::test_ac13b1_terminalLatch_recoversDoNotResurrect` · `audio_wiring_test.cs::test_ac018_6_patientCueDriver_runsOnRealTickPump`)**会转红,须改回真断言,禁删哨兵** |
-| **TD-audio-026** | **`CompositionRoot.Assemble()` 无条件构造 `AudioSourcePool`(含 GameObject 根)⇒ EditMode 测试泄漏。** `CompositionRoot.cs:321` 的 `new AudioSourcePool(busResolver: audio?.Buses)` 即便 `audio == null` 也执行,而该构造函数会建 GameObject 根(`AudioSourcePool.cs:65`,`hideFlags = DontSave`);`CompositionRootServices` **无 `IDisposable`**、既有 Boot 测试**无 TearDown**(全库 30 处 `Assemble()` 调用)⇒ 每次装配遗留一个池根节点。**生产侧不受影响**(`BootRoot.OnDestroy` 已调 `AudioPool.Dispose()`)。「无音频也建池」在 AC-018-4 单池不变量下**可辩护**(池是 ADR-028 ① 唯一所有者的承载物;「装了没装」的判据是 `AudioRenderAssembled`),但泄漏属实。 | `impl-s18-*` §六 ②;`CompositionRoot.cs:321`;`AudioSourcePool.cs:65` | **是否改惰性构造须用户裁**(设计取舍,非缺陷);若判泄漏可接受,则只须在测试侧补 TearDown / 或给装配袋加 `IDisposable` |
+| **TD-audio-026** | **`CompositionRoot.Assemble()` 无条件构造 `AudioSourcePool`(含 GameObject 根)⇒ EditMode 测试泄漏。** `CompositionRoot.cs:321` 的 `new AudioSourcePool(busResolver: audio?.Buses)` 即便 `audio == null` 也执行,而该构造函数会建 GameObject 根(`AudioSourcePool.cs:65`,`hideFlags = DontSave`);`CompositionRootServices` **无 `IDisposable`**、既有 Boot 测试**无 TearDown**(全库 30 处 `Assemble()` 调用)⇒ 每次装配遗留一个池根节点。**生产侧不受影响**(`BootRoot.OnDestroy` 已调 `AudioPool.Dispose()`)。「无音频也建池」在 AC-018-4 单池不变量下**可辩护**(池是 ADR-028 ① 唯一所有者的承载物;「装了没装」的判据是 `AudioRenderAssembled`),但泄漏属实。<br>⚠️ **2026-10-18 补评批加注(该泄漏的**下游症状已实测** = 评审 S3-b)**:`test_ac018_4_assemble_createsExactlyOnePoolRoot`(`runtime_assembly_test.cs:400`)断言「池根恰一个」,而本夹具 `TearDown`(`:85`)**只清自己跑过的池** ⇒ 该测的绿**依赖别的夹具也做了池根清理** = **执行序敏感**(假红风险,承本行 30 处 `Assemble()` 无 TearDown 的根因)。⇒ **还本债时须连带把该测改为自隔离**(夹具前断言基线为 0),否则「单池不变量」的判据在他夹具变更时会静默转红。 | `impl-s18-*` §六 ②;`CompositionRoot.cs:321`;`AudioSourcePool.cs:65` | **是否改惰性构造须用户裁**(设计取舍,非缺陷);若判泄漏可接受,则只须在测试侧补 TearDown / 或给装配袋加 `IDisposable` |
 | **TD-player-01** | **`AC-1-33` ③ 语义层未被验证 —— 测试断言的是它自己的夹具。** GDD 要求 `minMoveDistance` P0 = 0,理由逐字为「非零会吞掉亚阈值位移 ⇒ 手感粘滞 + 与 F-1-1a 的逐帧预算不一致」(`tr-registry.yaml:1618`)。实测:该值只在 `LocomotionEvaluator.cs:34` **声明**;**全库零处**把它写进 `CharacterController` ⇒ 控制器取 Unity 默认 **0.001**;而 `locomotion_chain_test.cs:200::test_ac133_minMoveDistanceIsZero` 读的是 **`LocomotionConfig.LoadDefault().MinMoveDistance`(夹具字段)**,**全库零测**断言控制器真值。**下游症状已实测**:`MovementFeedTest.test_move_afterFreeFall_horizontalDisplacementBoundedByConfig` 间歇红 —— `dt = 0.0099` ⇒ `expectedDx = 0.00098 < 0.001` ⇒ 位移被引擎吞掉 ⇒ `dx` 恰为 `0.0`(GDD 预言的失败模式**如期出现**)。 | `impl-s18-*` §六 ①;`tr-registry.yaml:1618`;`locomotion_chain_test.cs:200`;`unity/Logs/s18-full-editmode.xml` | **系统 1 的实现轮** —— 须把 `LocomotionConfig` 的 `MinMoveDistance` / `SkinWidth` / `Radius` / `Height` / `Center` / `EnableOverlapRecovery` 逐项**写进 `CharacterController`**,并把 `test_ac133_*` 的断言对象从**夹具**改为**控制器真值**。⚠️ **不在 story-018 边界内** |
 
 ---
@@ -468,16 +491,16 @@ F4 不可读 meta 静默归零)**各自恰如预期转红**,还原 SHA-256 通�
 
 | # | GDD AC | 缺口形态 | 出处(实测) | 触发条件(何时须还) |
 |---|---|---|---|---|
-| TD-audio-100 | **AC-44-10** | **完全未映射** —— 17 份 story 零声明 | `audio-system.md:408/:571/:878` 三处引用「无突变音效(AC-44-10)」,但 `grep -rl AC-44-10 production/epics/audio-system/` **零命中** | 须**立 story**;与 `OQ-44-7` 同批裁 |
-| TD-audio-101 | AC-44-02 / 08 / 01 | `[L]` 听测半边未执行 | story-004 `1 条 DEFERRED = AC-44-02 听测未执行`;`breath-layers-listen-evidence.md` **38 `[ ]` / 0 `[x]`** | 被试 / 排期可安排时 |
+| TD-audio-100 | **AC-44-10** | ~~完全未映射~~ ⇒ **🟡 2026-10-18 立卡(未结案)** —— `production/epics/audio-system/story-019-ac44-10-no-spike-sfx.md`(用户裁定「一卡两面 + 尾音走增益衰减 + 10-c 挂 story 内」)· `Status: Ready`,实现轮未开工 | `audio-system.md:408/:571/:878` 三处引用「无突变音效(AC-44-10)」,原 `grep -rl AC-44-10 production/epics/audio-system/` 零命中(该 grep 现命中 story-019 新卡) | ~~须立 story~~ ⇒ **story 已立**;还债 = story-019 的 10-a/10-b 实现 + **10-c 用户实听**(未跑不得 Complete) |
+| TD-audio-101 | AC-44-02 / 08 / 01 | `[L]` 听测半边未执行 | story-004 `1 条 DEFERRED = AC-44-02 听测未执行`;`breath-layers-listen-evidence.md` **38 `[ ]` / 0 `[x]`** | 被试 / 排期可安排时<br>⚠️ **2026-10-18 补评牵出的前置(新增,非解除)**:同批 **`TD-audio-030`** 实测 `AC-44-02`「变体库混合」**运行期未兑现**(`VoiceVariantLib` 生产零调用)⇒ 本条听测批若早于 030 执行,听的是**恒取 `Assets[0]`** 的形态,测不到变体混合本身。⚠️ 且 `tr-registry.yaml:1344` `TR-diag-022 status: covered` **不得**被读成 02 已落 |
 | TD-audio-102 | AC-44-03 / 04 | `[L]` 听测半边未执行 | story-006 Criteria 只含 `[A]`;`[L]` 写「可与 004 听测同批」= 未做 | 与 TD-audio-101 **同批** |
-| TD-audio-103 | AC-44-17 | 双盲听测未执行 | story-013 状态行自陈「听测执行 BLOCKED-BY 被试排期」;`main-channel-listen-evidence.md` **5 `[ ]` / 0 `[x]`** | 被试排期落地时 |
+| TD-audio-103 | AC-44-17 | 双盲听测未执行 | story-013 状态行自陈「听测执行 BLOCKED-BY 被试排期」;`main-channel-listen-evidence.md` **5 `[ ]` / 0 `[x]`** | 被试排期落地时(**须 ≥2 人**,项目外部,不可催) |
 | TD-audio-104 | AC-44-11 / E1 | VR 听测 / P1b 切面 | story-012 第 50 行 `- [ ]` + `BLOCKED-BY-P1b`;Completion Notes 写「禁勾」 | **P1b**(与 ADR-013 VR 推 P1a/P1b 同批) |
 | TD-audio-105 | AC-44-12 / 15 | 人工走查 / 字幕听测未做 | story-011 写 `NOT-RUN(项目外部)` / `NOT-RUN(缺口)` | 无障碍人工走查排期时 |
-| TD-audio-106 | AC-44-13 | 出厂默认分支**空真** | story-011 B2:断言被删空 → `Assert.Inconclusive` | 出厂默认值定稿时 |
+| TD-audio-106 | AC-44-13 | ~~出厂默认分支**空真**~~ ⇒ **✅ 2026-10-18 结案**(推 epic 前的逐条对码复测所得 —— 该债行内容**早在 S14-5 已被清偿,债行未刷**,与本册「账面滞后」失效模式同型第二例) | **原判定**:story-011 B2 把断言删空 → `Assert.Inconclusive`。**实测现状**:断言已恢复且有生产宾语 —— `settings_exposure_test.cs:316 test_monoOption_factoryDefault_fromBakedPartition`(存在 + 类型 `Bool` + 出厂默认来自**烘焙分区**)+ `:292 test_bakedRegistry_missingFactoryDefault_rejected`(补「字段整个不写」绕过面,`:290` 注释逐字自陈)。生产侧 = `PlayerBusVolumeInitializer.FactoryDefaults` 改读烘焙注册表,原 C# 常量降为回退。<br>**复跑取证(2026-10-18 本批,batch)**:`unity test unity --mode EditMode --filter "…SettingsExposureTest"` ⇒ **31 / 31 通过**(`unity/Logs/epic44-recheck-td106.xml`,⚠️ 过滤器用**命名空间限定名** —— 短式会 `total=0` 空跑) | ~~出厂默认值定稿时~~ ⇒ **已兑现**。<br>⚠️ **结案范围收窄(禁溢出)**:本条结的是「**断言被删空 = 空真**」这一种失败形态;**AC-44-13 自身仍留一处已登记缺口** —— story-011 `:48` 逐字「⚠️ **mono 的运行期载体 = 缺口**:`.mixer` 的 `m_ExposedParameters` 恰 12 员**不含 `mono_enabled`**,mixer 侧映射是尚未裁定的资产拓扑问题」⇒ 该缺口**不随本条结案**,归混音器资产拓扑批(`OQ-44-2` 同族,与 `TD-audio-027` 同一触发面) |
 | TD-audio-107 | AC-44-07 / D7 | 联机运行面未对拍 | story-007 `4 人双实例对拍 = BLOCKED-BY-45`;Completion Notes `### NOT-RUN` | **45 网络层 P1b 落地时** |
 | TD-audio-108 | AC-44-E2 | DSP P95 实测未做 | story-012 `NOT-RUN`:须真 GPU + 真音频回调 | 目标硬件定稿时 |
-| TD-audio-109 | AC-44-D5 / D6 | 音频组测试 `Assert.Ignore`;EPIC `:28` 自承 D6 假绿 | story-010 音频组测试跳过;story-015 7 WARNING 待议 | 下次动 `AudioAssetGroupGates` 时 |
+| TD-audio-109 | AC-44-D5 / D6 | ~~音频组测试 `Assert.Ignore`;EPIC `:28` 自承 D6 假绿~~ ⇒ **🟡 2026-10-18 半边结案**(第一半 ✅,第二半待用户裁) | **第一半(假绿 → 已闭,本批复跑取证)**:全仓 grep `Assert.Ignore` / `Assert.Inconclusive` 在 44 侧**仅剩一处**且是正当副作用守卫(`pipeline_gate_test.cs:1578` —— `finally` 未把 Play Mode 写回原值才触发,**非**判据跳过);`test_d5_*` / `test_d6_*` 现打**真生产件** `AudioAssetGroupGates.ValidateSettings()`(读真 `AddressableAssetSettings`)+ `AudioAssetExistence`(D6 谓词单一出处,门强制、`assetRoot` 必填)+ 非空守卫(`:248-257` 逐字「无 .wav ⇒ D5(a) 与 D6 正向同时空洞为真 = 假绿」)。⇒ **复跑**:`--filter "DaYiJingCheng.Tests.Unit.Audio.PipelineGateTest"` ⇒ **98 / 98 通过**(`unity/Logs/epic44-recheck-td109.xml`)· D6 正向半边由真种子证明。<br>**第二半(仍开)**:story-015 评审的 **7 WARNING 待议** —— `story-015:181` 逐字「**未裁定,登记待议**」:W-2/W-3 → story-010 加固轮 · W-4/W-5/W-7 → 并入 `TD-audio-01` 面 · W-1/W-6 → GDD `OQ-44-2` 已覆盖不改;且 `review-s15-code-2026-10-17.md` 双列结账表自陈「结清 **2/14**,余 12 条如实留作未结」 | 下次动 `AudioAssetGroupGates` 时 ⇒ **第一半已闭**;**第二半的出路 = 用户裁 7 WARNING 的归属**(W-2/W-3 归 story-010 加固轮要不要开工 / W-4/5/7 是否真并入 `TD-audio-01`),**不是**再跑测试 |
 
 **⚠️ 另两类不计入上表但须知悉**:
 
@@ -490,7 +513,22 @@ F4 不可读 meta 静默归零)**各自恰如预期转红**,还原 SHA-256 通�
 其余 9 条都是「有 story、story 标 Complete、但验收半边没做」。
 **后者比前者更危险** —— 它们看起来已经关了。
 
-**还债顺序建议**:TD-audio-100(立 story)> TD-audio-101+102(同批听测)>
+> **🔁 2026-10-18 复测刷账(推 epic 44 前的逐条对码批,原口径保留不删)**:
+> ① **TD-audio-106 ✅ 结案** —— 「断言被删空」形态早在 **S14-5** 已被清偿(恢复断言 + 复跑
+> `SettingsExposureTest` **31/31**),债行从未刷 ⇒ 本册「账面滞后」失效模式**第二例**
+> (第一例即本条自身曾被记为 open)。**AC-44-13 的 mono 运行期载体缺口不随本条结案**(见该行收窄注)。
+> ② **TD-audio-109 第一半 ✅**(D5/D6 打真件,`PipelineGateTest` **98/98** 留痕;`Assert.Ignore`
+> 仅剩一处正当副作用守卫)**第二半 🔴 待用户裁**(story-015 的 7 WARNING 归属)。
+> ③ **TD-audio-100 由「真空洞」转为「有卡在途」** —— story-019 已立(`Ready`,未开工),
+> 原句作为 10-17 判定口径**保留不删**;它的真空洞属性自此作废。
+> ④ 新增牵联注:**TD-audio-101** 的听测批若早于 **`TD-audio-030`**(变体混合未兑现)执行,
+> 听的是恒取 `Assets[0]` 形态 ⇒ 排期时须注意先后。
+> ⇒ **本组现况:1 结案(106)· 1 半边结案(109)· 1 有卡在途(100)· 7 仍 open 且多为外部触发**
+> (101/102 听测排期 · 103 被试 ≥2 人 · 104 P1b · 105 无障碍走查 · 107 45 层 · 108 目标硬件)。
+> **44 epic 仍 ⛔ 不得收口**(判据不变:「36 条 AC 全部验证」的残余面未清)。
+
+**还债顺序建议**:~~TD-audio-100(立 story)~~ ⇒ **100 已立卡(story-019),下一步 = 其实现轮** >
+TD-audio-101+102(同批听测;**宜在 TD-audio-030 之后**,否则测不到变体混合)>
 TD-audio-103(被试排期)> 其余(等各自外部触发)。
 
 ---

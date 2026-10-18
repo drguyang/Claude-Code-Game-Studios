@@ -328,6 +328,9 @@ E5 走查经 probe 逐条真播,当时**运行期装配还不存在**)。⇒ `AC
 E5 走查在前)。
 另:工作树存在两份**逐字节相同**的 10-18 副本(`statereport-walkthrough-2026-10-18.md` + manifest,
 时间戳晚于 10-17 原件),内容与已声明签字的 10-17 版无差 ⇒ 本批未采用、未改动,处置归用户。
+> **✅ 2026-10-18 处置已落**:用户裁定删除 —— 删前逐字节复核(与 10-17 入库原件 diff 为空),
+> 两文件已删除,工作树 `docs/audio/` 无 10-18 残留。该矛盾本体(E5 签字行与 story-016 卡面自述相抵)
+> **不因删除而消解**,仍归 story-016 的 reconcile 轮。
 
 **未跑 `/code-review`(如实登记)**:本 story 转 Complete 的依据 = **AC 全达成 + 证伪轮 14/14**;
 用户本批裁定不含评审。若后续补评审,须落 `review-*.md` 原件,且**不追认**本次结案
@@ -372,3 +375,76 @@ E5 走查在前)。
 「快照捕获已验证」。若要把资产恢复原状,出路是 `git revert`/手删那两行并**重跑上表两条命令**,
 **不是**把它当噪声静默丢弃。
 
+
+---
+
+## §十一 2026-10-18 补评轮(首轮 `/code-review` 落账 · **零代码改动**)
+
+> **性质**:本 story 已于同日听测批转 `Complete`;本节记的是**转 Complete 之后追补**的首轮评审。
+> 原件 `production/qa/evidence/review-story-018-2026-10-18.md`(三代理并行:A unity-specialist /
+> B lead-programmer / C qa-tester;Phase 7b ③ 增量落盘,三草稿均非空)。
+
+### ① 评审确认的本件自述(不复算,采原件)
+
+- **A-1…A-7 七缺口按卡面确实全闭**;**未发现「自造断言顶替 AC 语义层」型假绿** ——
+  C 侧逐条实证可观测标志全部由**被观测对象**派生:`AudioRenderAssembled` ←
+  `renderTarget is AudioSourceRenderTarget`(`CompositionRoot.cs:440`,F4 修法在码)·
+  `LastDrivenTick` ← `PatientCueDriver.cs:101/:113` 自写 · `ActiveCount` ← 池 `_entries[].Active` ·
+  `BusVolumeErrors` ← `BootRoot.cs:534` `ApplyDefaults` 真实返回值。
+- 硬约束 HC-1…HC-8 全 PASS(b5 逃逸段 / 门 A / ADR-028 ①②③⑤ / 无提示音铁律 / 命名避让 /
+  Unity 6.3 API 面 / TD-audio-026 与 -027 现状与债册逐字一致)。HC-3 的 **④ 为部分** → 派生 N-1。
+- ⚠️ **未跑任何测试**(3709/197 与 §十 的 21/21、5/5 均采本件自述,评审侧未复算)—— 禁读成评审重跑。
+
+### ② 一条 BLOCKING(B-1,账面)及其修复
+
+**AC-018-6 的 Out-of-Scope 提示逐字要求「在 `## Test Evidence` 如实登记哪条链仍无上游驱动」,
+而实现轮从未落该登记。** 实测(三位 + 编排方独立对码,复核属实):
+
+| 点名的类 | 生产侧现状 |
+|---|---|
+| `BreathLayerDriver` | `new BreathLayerDriver(` 全仓**唯一命中** = `Tests/EditMode/Audio/breath_layers_test.cs:897` |
+| `CueEmitDeriver` | 生产侧**仅注释引用**,零调用点 |
+| 呼吸 loop 实际承载 | 本 story 自建的 `PatientCueDriver`(`:212` `BeginLoop` · `:161` 真调 `PatientCueEmit.Emit`) |
+| `vo_` 语声变体族 | **零解析、零发射方**(`CompositionRoot.cs:342-344` 只解析咳嗽 + 呼吸基础两条 ordinal) |
+
+⇒ **修复 = 该登记已补落**到 story 卡面 `## Test Evidence`(新增小节「⚠️ 哪条链仍无上游驱动」)。
+⚠️ 结论文本须写成「**有声成立,但走的是新写的驱动,不是卡面点名的那两个类**」——
+不得读成「链路闭环」。
+
+### ③ 同批落地的另两处账面修复
+
+- **证伪表补 F2 行**:卡面表头称 `14/14`,**表体仅 13 行**(缺
+  `AudioSourcePool.ApplyBus` 删 `outputAudioMixerGroup` 赋值 ⇒ `ac018_2_spawnWithBus_…`)。
+  该例**本件 §三 `:93` 一直有**(当时实跑转红)⇒ 属**卡面誊写漏行**,非证据缺失;
+  补行后表体 14 行与表头对齐。
+- **AC-018-2 ③ 订正注**:卡面 `:69` 写「旧签名保留并默认 `"SFX"`」,实作转调
+  `bus: null`(`AudioSourcePool.cs:99-100`;null = 不挂组落 Master 直通,`<remarks>` 有逐字声明)。
+  向后兼容目的达成,属**卡面口径差**;该 null 默认行为**零测覆盖**,记 S4。
+
+### ④ 新缺陷十条 → 六条新债(本批**不改代码**,story 已 Complete)
+
+| 债 | 内容 | 关键实测 |
+|---|---|---|
+| **TD-audio-028** | **空间化链整体未接入生产** | `AudioSourceRenderTarget.cs:77-82` 不写 position、不 pin 三件套(`CreateSource` 注释「pin 归装配层」`:210` 无人 pin);`SpatializationDirector` **生产零构造**(全仓唯一命中 = 其自例注释 `:23`);`LatticeSize` 死字段。与听测「可闻」**不矛盾**(2D 也可闻),但 ADR-028 的位置/遮挡语义**今日无承载** |
+| **TD-audio-029** | **one-shot 池条目永不归还** | `PlayOneShot` 无 Stop/Release 对偶 ⇒ `_free` 恒空、`ActiveCount` 含静音源失真;规模有界(≤CAP 24)**非泄漏**,但 ADR-028 ⑤「cue 驱动生命周期」对 one-shot **只起不收** |
+| **TD-audio-030** | **语声变体混合运行期未兑现** | `AudioClipLibrary.cs:84` 恒 `Assets[0]`;`VoiceVariantLib` 生产零调用。⚠️ **账面矛盾**:`tr-registry.yaml` **`TR-diag-022 status: covered`** 而运行期选择器不存在 ⇒ 债行明写「covered 只主张素材/库面」 |
+| **TD-audio-031** | 静态缝未回收 + 异常路径泄漏 | `BootRoot.cs:541` `MixerResolver` / `:479` `AudioSettingsRegistry.Provider` 赋值后 `OnDestroy`(`:709-738` 处置五对象)**不置 null**(测试侧 `runtime_assembly_test.cs:440/:469` 自复位成对照);`BuildAudioSeams` `:520-546` `Preload()` 成功后抛 ⇒ 已载 clip 无 Dispose。⚠️ **细化**:`EditorSettings.asset:27-28` 域重载**开着** ⇒ 静态每 Play 复位,**失效形态是条件性**(仅该设置被关时咬人)⇒ 加固项而非缺陷 |
+| **TD-audio-032** | 常量/截断/行长/簿记清扫(合并四条低-微) | `CueIntervals.Default` / `BehaviorBands.Default` 代码常量入生产(未走 ADR-014)· `(int)tick` 截断 `:132/:143/:165` · `OnTickEdge` ≈57 行(`:109-168`)+ `BuildAudioSeams` ≈47 行超 40 限且**无夹具钉界** · `PruneAbsent` `:174-176` 只跟 `_breathHandles` 键清三本簿记 + 每边沿 `new List<int>` |
+| **TD-audio-033** | `knowsClinic: false` 硬编码入生产驱动 | `PatientCueDriver.cs:125`;F-13.2 真值源(13 的 HomeRegion)未作注入缝 ⇒ 病人永不进 `Seeking`,且与视觉侧私有 `PatientBehaviorDirector` 各持输入**可分叉**(归 13 语义/数据轮) |
+
+另:评审 S3-b 的症状(`test_ac018_4_assemble_createsExactlyOnePoolRoot` 的绿**依赖他夹具清池根**)
+已就地加注到 **TD-audio-026** 行(根因即该债的 30 处 `Assemble()` 无 TearDown)。
+
+### ⑤ 未及核查项(禁借绿)
+
+评审侧未跑测试 · `runtime_assembly_test.cs` 27 测**未逐条读完**(C 抽查非普查)·
+`CueRenderSink` 既有代码未逐行读 · `audio.asset` GUID 逐项比对未做 ·
+`.mixer` diff 采 TD-audio-027 原文未独立开文件复核。
+
+**复算命令(评审修复轮的 Landed 判据)**
+
+```bash
+grep -n "无上游驱动" production/epics/audio-system/story-018-runtime-audio-assembly.md   # 非空 = R-B1 已落
+grep -c "^| " production/epics/audio-system/story-018-runtime-audio-assembly.md          # 证伪表体行数
+grep -n "TD-audio-03[0-3]" docs/tech-debt-register.md                                     # 六债在案(028/029 同查)
+```

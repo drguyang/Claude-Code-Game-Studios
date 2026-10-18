@@ -68,6 +68,10 @@ ADR-013 §9 C3(44 只渲染)· ADR-014 §五(Addressables 预载)· ADR-025 §�
       `MixerRegistry.BusNames`(不另抄字面量);② 未知 bus ⇒ fail-loud(不静默落 Master);
       ③ 池 API 增 `Spawn(..., string busName)` 或等价,旧签名保留并默认 `"SFX"`(向后兼容既有测试)。
       *判别力*:把 `outputAudioMixerGroup` 赋值删掉 ⇒ 「bus 归属」断言转红。
+      > **🔁 2026-10-18 评审批订正注(补评 S3-c)**:③ 的「默认 `"SFX"`」**未照字面实现** ——
+      > 实作旧签名重载转调 `Spawn(..., bus: null)`(`AudioSourcePool.cs:99-100`),
+      > null 语义 = **不挂组(落 Master 直通)**,在 `<remarks>` 有逐字声明;非功能缺陷,属卡面口径差。
+      > 向后兼容目的达成(既有测试零改动编译通过);该 null 默认行为**零测覆盖**,随评审原件 S4 登记。
 
 ### 步② 组合根装配(关 A-1 / A-4)
 
@@ -158,6 +162,26 @@ ADR-013 §9 C3(44 只渲染)· ADR-014 §五(Addressables 预载)· ADR-025 §�
 - **证据原件**:`production/qa/evidence/impl-s18-runtime-audio-assembly-2026-10-18.md`
   (交付面 → AC 载体 → 证伪轮 → 回归对账 → NOT-RUN 登记,逐条可复算)
 - **实机听测记录**:`production/qa/evidence/audio-wiring-listening-2026-10-18.md`(**✅ 2026-10-18 已执行并签核** —— 执行前的 NOT-RUN 原文保留在其 §一–§五,现状读 §〇/§六/§七)
+- **首轮评审原件**:`production/qa/evidence/review-story-018-2026-10-18.md`(2026-10-18 **补评** —— 本 story 转 Complete **之后**追补,评的是 commit `60580ad` 时点代码,**不追认**原结案判定;详见 Completion Notes「Code Review」行)
+
+### ⚠️ 哪条链仍无上游驱动(AC-018-6 的 Out-of-Scope 提示逐字要求的登记,2026-10-18 评审批补落 —— 原实现轮漏登 = 评审 BLOCKING B-1)
+
+卡面 AC-018-6 ② 点名的 `BreathLayerDriver` / `CueEmitDeriver` **运行期仍零生产构造/调用方**:
+
+- `new BreathLayerDriver(` 全仓唯一命中 = `Tests/EditMode/Audio/breath_layers_test.cs:897`(测试侧);
+- `CueEmitDeriver` 生产侧**仅注释引用**,零调用点;
+- 呼吸 loop 实际由**本 story 自建的 `PatientCueDriver`** 达成(`PatientCueDriver.cs:212` `_sink.BeginLoop`,
+  `:161` 真调 `PatientCueEmit.Emit`)⇒ **「有声」成立,但走的是新写的驱动,不是卡面点名的那两个类**。
+- **语声半边无载体**:`CompositionRoot.cs:342-344` 只解析 `CoughCueName` + `BreathBaseCueName`
+  两条 ordinal,`vo_` 语声变体族**零解析、零发射方**;
+  `AudioClipLibrary.cs:84` 对多素材行**恒取 `Assets[0]`**(确定性第 0 条,非变体选择),
+  `VoiceVariantLib` 生产零调用 ⇒ `AC-44-02`「变体库混合」在装配后**仍空转**。
+
+⇒ 以上均为**本 story 的 AC 未主张**的面(故不阻断结案),现逐条立债:**`TD-audio-028`**(空间化链未接)/
+**`TD-audio-029`**(one-shot 不归还)/ **`TD-audio-030`**(变体混合未兑现)/
+**`TD-audio-031`**(静态缝未回收 + 异常路径泄漏)/ **`TD-audio-032`**(常量/截断/行长/簿记清扫)/
+**`TD-audio-033`**(`knowsClinic` 硬编码)。⚠️ **禁把本节的「有声」读成「链路闭环」**,亦**禁**据
+`tr-registry.yaml` 的 `TR-diag-022 status: covered` 推定变体选择器已接(该 covered 是对**素材/库面**的主张)。
 
 ### 证伪轮(S12-4 · BLOCKING 门)—— `FALSIFY_EXIT=0`,14/14 转红
 
@@ -166,6 +190,7 @@ ADR-013 §9 C3(44 只渲染)· ADR-014 §五(Addressables 预载)· ADR-025 §�
 | 定义域收窄 | `AudioClipLibrary.BusOf` 恒 null | `test_ac018_2_busName_sourceIsEventTableColumn_notCodeCopy` |
 | 阈值边界 | `ApplyBus` 未装配 fail-loud 分支 | `test_ac018_2_spawnWithBus_withoutResolver_throws` |
 | 一次性幂等 | `PlayOneShot` 变空实现 | `test_ac018_1_playOneShot_spawnsActiveSourceInPool`(+ `clipMiss` 同红) |
+| 定义域收窄 | `AudioSourcePool.ApplyBus` 删 `outputAudioMixerGroup` 赋值 | `test_ac018_2_spawnWithBus_assignsMixerGroupFromRegistry`(impl 例号 **F2**,本表原漏此行;与首行是 bus 链上**两个不同变异** —— 首行断「bus 名来源不是代码抄写」,本行断「赋值这件事本身发生」) |
 | 共存互斥 | 组合根渲染目标恒走 `NullRenderTarget` | `test_ac018_3_assemble_withSeams_rendersAndExposesDriver` |
 | 共存互斥 | `BuildAudioSeams` 混音器缺失 fail-loud | `test_ac018_5_mixerUnresolved_failsLoudWithReadableDiagnostics` |
 | 定义域收窄 | 删 `ApplyDefaults` 调用 **且** 移除 `BusVolumeErrors` | `test_ac018_5_realMixer_assignsResolverAndAppliesFactoryDefaults` |
@@ -205,7 +230,16 @@ ADR-013 §9 C3(44 只渲染)· ADR-014 §五(Addressables 预载)· ADR-025 §�
 
 ## 评审轮记录
 
-*待实现轮填写。*
+**2026-10-18 · 首轮 `/code-review`(转 Complete 后追补)** —— 三代理并行(A unity-specialist /
+B lead-programmer / C qa-tester),原件 `production/qa/evidence/review-story-018-2026-10-18.md`。
+- **Verdict**:CHANGES REQUIRED → 修复后 **APPROVED WITH DEBTS(TD-audio-028…033)**。
+- **BLOCKING 1 项(B-1,账面)**:本区上方 Test Evidence 的「哪条链仍无上游驱动」登记**从未落**
+  (卡面 AC-018-6 逐字要求)⇒ **本批已补落**;证伪表补 F2 行(13→14 与表头对齐);
+  AC-018-2 ③「默认 `"SFX"`」订正注(实作 `bus: null`)。
+- **代码面**:七缺口 A-1…A-7 确认全闭、未发现假绿(可观测标志全部由被观测对象派生)、
+  HC-1…HC-8 全 PASS;新缺陷 N-1…N-10 逐条对码复核属实 ⇒ **六条新债立案**,本批**零代码改动**
+  (已 Complete 的 story 不因补评重开;N-6 两行加固是否顺手做待用户裁)。
+- ⚠️ **补评性质**:本评审评的是 `60580ad` 时点代码,**不追认**原结案判定,也**不撤销** `Complete`。
 
 ## 实现轮记录(2026-10-18)
 
@@ -282,11 +316,13 @@ ADR-013 §9 C3(44 只渲染)· ADR-014 §五(Addressables 预载)· ADR-025 §�
 (27 测)+ `unity/Assets/Tests/PlayMode/audio_wiring_test.cs`(5 测);证据原件
 `impl-s18-runtime-audio-assembly-2026-10-18.md`(证伪 14/14 转红)+ 人耳件
 `audio-wiring-listening-2026-10-18.md`(已签核)。
-**Code Review**: **未跑 `/code-review`** —— 用户 2026-10-18 裁定「签核 + story-018 转 Complete + 全套回填」,
-未含评审;**承 `TD-audio-100…109` 已把 44 侧评审/听测缺口显式登记**,
-本 story 的实现轮自检 = 证伪轮(S12-4 BLOCKING 门)而非评审门。
-⚠️ **如实留痕**:本 story 转 Complete 的依据 = **AC 全部达成**,不 = 「已代码评审」;
-若后续要补评审,须按 `Review Evidence Standards` 落 `review-*.md` 原件,且**不追认**本次结案。
+**Code Review**: ~~**未跑 `/code-review`**~~ ⇒ **🔁 2026-10-18 同日补评落原件** ——
+用户裁定「补跑 code review」⇒ `review-story-018-2026-10-18.md`(三代理并行,Verdict =
+APPROVED WITH DEBTS;修复轮结账表 Phase 8b 双列见其 §五)。⚠️ **如实留痕(两条都不删)**:
+① 结案**当时**的依据 = **AC 全部达成 + 证伪轮 14/14**,不 = 「已代码评审」——
+结案先于评审是本仓的真实时序,补评**不追认**原结案判定(承 `review-workflow.md`「评审不可事后追补」,
+本件评的是补评时点即 `60580ad` 的代码);② 结案时「未含评审」的原裁定原文保留于
+听测签核轮记录与 impl §九,不改写。
 **Deviations**: ① 立卡时列 6 处缺口,实做 **7 处**(A-7 为勘察新发现,已在卡面登记);
 ② 上游修复 `BehaviorMap.TrendWired` 门(用户「本轮就修」授权)超出原卡面边界,已立 `TD-audio-025`;
 ③ 听测件 §四 的一处预判被实机推翻,已就地加订正注(见上)。

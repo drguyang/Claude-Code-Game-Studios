@@ -5889,9 +5889,10 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
 - **结案边界(禁溢出)**:**44 epic 仍 ⛔ 不得收口** —— `TD-audio-100…109` 逐条未动;
   `TD-audio-025` / `-026` / `TD-player-01` / `TD-prescription-05/06` 仍 open;
   **未跑 `/code-review`**(用户裁定不含评审,如实留痕)。
-- **工作树待处置**:两份逐字节相同的未跟踪 `docs/audio/statereport-walkthrough-2026-10-18.md` +
-  `-manifest-2026-10-18.json`(本批未采用未改动,处置归用户)·
-  `unity/Assets/Audio/DaYiJingCheng.mixer` 出现一处 **Default 快照捕获 Master 原始电平 = 0 dB**
+- **工作树重复件处置 ✅ 已落**:两份逐字节相同的未跟踪 `docs/audio/statereport-walkthrough-2026-10-18.md` +
+  `-manifest-2026-10-18.json` —— 用户裁定**删除**(删前 diff 复核与 10-17 入库原件相同),已删,
+  `docs/audio/` 无 10-18 残留。⚠️ E5 账面矛盾本体**不因删除消解**,仍归 story-016 reconcile 轮。
+  `unity/Assets/Audio/DaYiJingCheng.mixer` 的一处 **Default 快照捕获 Master 原始电平 = 0 dB**
   (听测期编辑器副作用,键 `4b26ff…` = `:551` Master 的 `m_Volume` 哈希;值 = 出厂默认 ⇒ 当前运行期等价)
   ⇒ **提交前已复跑核验**:`--filter "MixerTopology"` EditMode **21/21** +
   `--filter "DaYiJingCheng.Tests.PlayMode.AudioWiringTest"` PlayMode **5/5**
@@ -5900,3 +5901,37 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
   「2026-10-18 · 听测签核批新立案」· `impl-s18-*` §十)。
   ⚠️ 首跑 PlayMode 用了短式过滤器 ⇒ `total=0` **空跑**,非证据;过滤器须写命名空间限定名。
 - **下一步**:分两笔提交(实现件一笔、账面回填一笔)。
+
+## Session Extract — story-018 补评轮 + 推 epic 44 对码复测(2026-10-18)
+
+**触发**:用户裁定「补跑 code review,然后推 44 epic」+「按建议来,一卡两面,尾音走增益衰减,10-c 挂 story 内」。
+
+### A. `/code-review` story-018(转 Complete 后追补,三代理并行)
+- **原件**:`production/qa/evidence/review-story-018-2026-10-18.md`(三草稿 16/39/19 行全非空 → 合并 → 删)。
+- **Verdict**:CHANGES REQUIRED → 修复后 **APPROVED WITH DEBTS(TD-audio-028…033)**。
+- **确认**:A-1…A-7 七缺口全闭 · **无假绿**(可观测标志全由被观测对象派生)· HC-1…HC-8 全 PASS。
+- **BLOCKING 1 项 B-1(账面)**:卡面 AC-018-6 逐字要求的「哪条链仍无上游驱动」登记**从未落**
+  ⇒ 本批补落 `## Test Evidence`(BreathLayerDriver/CueEmitDeriver 运行期零构造;语声变体族零载体)。
+- **同批两处账面修复**:证伪表补 F2 行(13→14 与表头 14/14 对齐)· AC-018-2③「默认 SFX」订正注(实作 `bus: null`)。
+- **新缺陷 N-1…N-10** 逐条对码复核属实 ⇒ 六条新债立案(028 空间化链未接 / 029 one-shot 不归还 /
+  030 变体混合未兑现 / 031 静态缝未回收+异常泄漏 / 032 常量+截断+行长+簿记 / 033 knowsClinic 硬编码)。
+- **本批零代码改动**(story 已 Complete,补评不重开 AC)。
+
+### B. 推 epic 44:TD-audio-100…109 逐条对码复测(账面滞后失效模式再现两例)
+- **TD-audio-106 ✅ 结案** —— 「断言被删空」早在 S14-5 已清偿;本批复跑 `SettingsExposureTest` **31/31**
+  (`unity/Logs/epic44-recheck-td106.xml`)。⚠️ AC-44-13 的 mono 运行期载体缺口**不随本条结案**。
+- **TD-audio-109 半边结案** —— D5/D6 打真件,`PipelineGateTest` **98/98**(`epic44-recheck-td109.xml`);
+  第二半(story-015 的 7 WARNING 归属)**待用户裁**。
+- **TD-audio-100** 由「真空洞」→「有卡在途」(story-019 `Ready`,未开工)。
+- ⚠️ **过滤器一律命名空间限定名**(短式 `total=0` 空跑教训,承 §十)。
+
+### C. 落盘件(本批,均未提交)
+`story-018-*`(Test Evidence 加 B-1 登记 + 评审原件行 / F2 行 / S3-c 订正注 / 评审轮记录 / Completion Notes 改「补评」)·
+`impl-s18-*` §十一 · `docs/tech-debt-register.md`(补评批六债新节 + 026 加 S3-b 注 + 100…109 刷账)·
+新卡 `story-019-ac44-10-no-spike-sfx.md` · 新件 `review-story-018-2026-10-18.md`。
+
+### D. 下一步(待用户)
+1. **是否顺手做 N-6(TD-audio-031)两行加固**(做 = 新证伪;不做 = 债内已含判据)。
+2. **commit 本批账面改动**(story-019 新卡用户已裁定落盘)。
+3. **story-019 进实现轮**(10-a/10-b;10-c 待 spike 出参数后用户实听)。
+4. 101/102 听测批**宜排在 TD-audio-030 之后**(否则测不到变体混合)。
