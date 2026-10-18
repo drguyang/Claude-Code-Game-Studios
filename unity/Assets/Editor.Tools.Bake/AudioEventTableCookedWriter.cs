@@ -95,6 +95,10 @@ namespace DaYiJingCheng.EditorTools.Bake
                 WriteString(w, row.Policy.TriggerPhaseRaw);
                 WriteString(w, row.Policy.JitterRaw);
             }
+
+            // story-020 重裁 ①:变体轴声明(null = 非变体行)。**追加在末尾** ——
+            // 既有字段偏移不变;读方 AudioEventCookedCodec.ReadRow 须同改。
+            WriteString(w, row?.VariantAxisRaw);
         }
 
         // ══════════════ tier_map(定型序 = TierMapKeys × TierMapColumns)══════════════

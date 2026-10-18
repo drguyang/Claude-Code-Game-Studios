@@ -116,6 +116,14 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <summary>本行**实际出现过的全部键**(含未知键)—— 未知键白名单判定的输入;
         /// null = 抽取侧未提供(NOT-RUN 守卫)。</summary>
         public IReadOnlyList<string> PresentKeys;
+
+        /// <summary><c>variant_axis</c> 原文(<c>null</c> = 字段缺失 ⇒ **不是变体行**);
+        /// 合法值见 <see cref="AudioEventTableGates.VariantAxes"/>。</summary>
+        /// <remarks>story-020 重裁 ①(2026-10-18):事件表 <c>assets[]</c> 的语义**按行而异** ——
+        /// <c>Voice_Cough_Damp</c> 的 12 条是同一句话的性别×档×变体,而 <c>World_Threat</c> 的 4 条是
+        /// **四种不同的世界声**(狗/马/锣/鸟,GDD :72)。没有本字段时运行期无法区分,只能一律当变体选 ⇒
+        /// 「患者听到马而不是狗」。本字段把「这一行的 assets 是变体集」从**默认假设**改为**显式声明**。</remarks>
+        public string VariantAxisRaw;
     }
 
     /// <summary>音频事件表(顶层)—— <c>assets/data/audio_events.json</c> 的绑定前结构。</summary>
@@ -194,7 +202,23 @@ namespace DaYiJingCheng.EditorTools.Gates
             "xfade_ms", "subtitle_text",
             // 世界语境呼吸行参数(AC-44-16 的载体字段;断言归 Story 008,键在此预登记防假红)
             "min_distance", "max_distance", "occlusion_lowpass",
+            // story-020 重裁 ①(2026-10-18):assets[] 的变体轴**显式声明**。
+            // 缺省 = 不是变体行 ⇒ 运行期取 assets[0];声明了就按该轴选变体。
+            "variant_axis",
         };
+
+        /// <summary><c>variant_axis</c> 闭集(唯一出处;新增轴先改本常量)。
+        /// <para><b>P0 只登记一个轴</b>:<c>voice_gender_intensity</c> = 语声变体库
+        /// (GDD F-44.3 `{ gender(M/F/不拘), 桶→句尾变体集 }`;素材名 <c>{m,f}{1,2,3}_{1,2}</c>
+        /// 即该轴的实际排布)。其余多素材行的 <c>assets[]</c> **不是变体**(世界声是不同事件、
+        /// 脚步是地表材质、听诊是部位、翻页是方向)—— 它们**不得**声明本字段。</para>
+        /// <para>⚠️ 扩集须同步 <see cref="ValidateVoiceVariantLib"/> 的槽形约束:该轴下
+        /// 「素材数须整除三桶」由 <see cref="ValidateVariantAxis"/> 断言(堵死 story-020 首版
+        /// 「4 条行末槽截余成死变体 / 2 条行强桶塌回弱桶」的形态)。</para></summary>
+        public const string VariantAxisVoiceGenderIntensity = "voice_gender_intensity";
+
+        /// <summary><c>variant_axis</c> 的合法值闭集。</summary>
+        public static readonly IReadOnlyList<string> VariantAxes = new[] { VariantAxisVoiceGenderIntensity };
 
         /// <summary>构建期**必需 cue 清单**(规则 7 · GDD :541-543)—— 语声族 / 呼吸基础层 /
         /// 呼吸附加层 / 世界语境呼吸四支最小集;命名与 <c>assets/data/audio_events.json</c> 种子行一致。
@@ -284,8 +308,73 @@ namespace DaYiJingCheng.EditorTools.Gates
             errors.AddRange(ValidateXfade(table.Rows));
             errors.AddRange(ValidateSubtitles(table.Rows));
             errors.AddRange(ValidateNoTransitionOneShotCues(table.Rows));   // AC-44-10(story-019)
+            errors.AddRange(ValidateVariantAxis(table.Rows));               // story-020 重裁 ①
             return errors;
         }
+
+        // ══════════ variant_axis:assets[] 的变体声明(story-020 重裁 ①,2026-10-18)══════════
+
+        /// <summary>变体轴声明的**形状门**:声明合法值闭集 + 素材数**整除三桶** + 轴与 cue 族一致。
+        /// <para><b>为什么必须整除三桶</b>:<see cref="ValidateVariantAxis"/> 把一条变体行的全部素材
+        /// 切成 N×3 的方格(GDD F-44.3 的 `{ 性别, 桶→变体集 }` 是二维轴)。素材数不整除 3 ⇒
+        /// 末槽截余 ⇒ <b>死变体</b>(story-020 首版 `World_Threat` 4 条的索引 3 永不可达);
+        /// 素材数 &lt; 3 ⇒ 某桶为空 ⇒ 选中空桶时 `SelectVariant` 回 −1、槽被钳回 0 ⇒
+        /// <b>强强度听到最弱素材</b>(2 条行的形态)。两者都是静默错音,故一律构建期拒收。</para>
+        /// <para>⚠️ 本门**只管声明为变体的行**。未声明的多素材行(世界声 / 脚步 / 听诊 / 翻页)
+        /// 不在此门面内 —— 它们本就不是变体,运行期取 <c>assets[0]</c>,见
+        /// <c>AudioClipLibrary.Resolve</c>。</para></summary>
+        /// <param name="rows">行集(null ⇒ NOT-RUN 守卫:门不可执行必须可区分)。</param>
+        /// <returns>错误列表(空 = 通过)。</returns>
+        public static IReadOnlyList<string> ValidateVariantAxis(IReadOnlyList<AudioEventTableRow> rows)
+        {
+            var errors = new List<string>();
+            if (rows == null)
+            {
+                errors.Add("[NOT-RUN 守卫 · variant_axis] 行集缺失(null)—— 变体轴声明门未执行,不得静默通过");
+                return errors;
+            }
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                AudioEventTableRow row = rows[i];
+                if (row == null || row.VariantAxisRaw == null) continue;   // 未声明 = 不是变体行
+
+                string cue = row.Cue ?? $"<第 {i} 行>";
+
+                if (!Contains(VariantAxes, row.VariantAxisRaw))
+                {
+                    errors.Add($"`{cue}` 的 variant_axis=\"{row.VariantAxisRaw}\" 不在合法闭集 " +
+                               $"[{string.Join(", ", VariantAxes)}] 内 —— 新增轴须先改 " +
+                               "AudioEventTableGates.VariantAxes(拼写错 = 变体选择静默退回 assets[0])");
+                    continue;
+                }
+
+                // P0 唯一轴:语声变体库。族约束堵「把世界声标成语声变体」的误声明。
+                if (!row.Cue.StartsWith(SubtitleCuePrefixes[0], StringComparison.Ordinal))
+                {
+                    errors.Add($"`{cue}` 声明 variant_axis=\"{row.VariantAxisRaw}\",但该轴只适用于 " +
+                               $"`{SubtitleCuePrefixes[0]}*` 族 —— 其余 cue 的 assets[] 语义不是变体" +
+                               "(世界声 = 不同事件 / 脚步 = 地表 / 听诊 = 部位 / 翻页 = 方向),不得声明");
+                    continue;
+                }
+
+                int n = row.Assets?.Count ?? 0;
+                if (n <= 0)
+                {
+                    errors.Add($"`{cue}` 声明了 variant_axis 但 assets[] 为空 —— 变体轴无处落地");
+                    continue;
+                }
+                if (n % VariantCubeTiers != 0)
+                {
+                    errors.Add($"`{cue}` 的 assets[]={n} 条,不能被三桶整除(余 {n % VariantCubeTiers})" +
+                               " —— 末槽截余会产生永不可达的死变体;请补足或改层数(素材数 = 层数 × 3)");
+                }
+            }
+            return errors;
+        }
+
+        /// <summary>变体轴的三桶数(GDD F-44.3:弱 / 中 / 强)。素材数须为其整数倍。</summary>
+        public const int VariantCubeTiers = 3;
 
         // ══════════ 三层白名单:未知键 = 构建失败(ADR-014 §三)══════════
 

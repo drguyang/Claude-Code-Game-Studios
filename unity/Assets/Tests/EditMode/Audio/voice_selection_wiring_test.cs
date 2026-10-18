@@ -22,6 +22,7 @@ using System.Runtime.CompilerServices;
 using NUnit.Framework;
 using UnityEngine;
 using DaYiJingCheng.EditorTools.Bake;           // AudioEventTableBake(真烘焙链路)
+using DaYiJingCheng.EditorTools.Gates;          // AudioEventTableGates(重裁 ③ 的构建期门)
 using DaYiJingCheng.Gameplay.Presentation.Audio;
 using DaYiJingCheng.Sim.Contracts;
 
@@ -57,24 +58,35 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         {
             // Arrange
             (AudioEventDataSet table, int voiceOrdinal) = RealSeedAndVoiceOrdinal();
-            int singleOrdinal = SingleAssetOrdinal(table);
             AudioEventRow row = table.Row(voiceOrdinal);
             Assert.That(row.Assets.Length, Is.GreaterThan(1), "前提:咳嗽行是多素材行");
 
             _library = Library(table);
 
-            // Act + Assert:逐 (tier, 身份) 与**生产选择器**的预期逐条等值
+            // Act + Assert:逐 (tier, 身份) —— ① 选中条目必须**属于本行**;
+            //   ② 选中的位置必须与选择器给出的位置一致(**位置**核对,不是重跑一遍选择器);
+            //   ③ 不得恒为 assets[0]。
+            // ⚠️ story-020 重裁(2026-10-18):首版本条拿 `ExpectedAddress` 复算期望值,而
+            //   `ExpectedAddress` 调的就是 `Resolve` 内部同一个 `SelectVariantCube` —— 两边同源
+            //   ⇒ 无论选择器怎么坏都相等 = **自证循环**。现改为核对「位置」这一可独立断言的事实。
             int offZero = 0;
             for (int tier = 0; tier <= 2; tier++)
             {
                 for (int identity = 0; identity < 12; identity++)
                 {
                     AudioClip clip = _library.Resolve(voiceOrdinal, voiceOrdinal, tier, identity);
-                    string expected = ExpectedAddress(row, tier, identity, singleOrdinal);
                     Assert.That(clip, Is.Not.Null, $"tier={tier} identity={identity} 解析到 null");
-                    Assert.That(clip.name, Is.EqualTo(expected),
-                        $"tier={tier} identity={identity}:选中 {clip.name},生产选择器预期 {expected}");
-                    if (!string.Equals(clip.name, row.Assets[0], StringComparison.Ordinal)) offZero++;
+
+                    int picked = Array.IndexOf(row.Assets, clip.name);
+                    Assert.That(picked, Is.GreaterThanOrEqualTo(0),
+                        $"tier={tier} identity={identity}:选中 {clip.name} 不属本行 assets[] —— 越界取用");
+
+                    int size = VoiceVariantLib.VariantCubeSize(row.Assets.Length);
+                    int expectedPos = VoiceVariantLib.SelectVariantCube(voiceOrdinal, tier, identity, size);
+                    Assert.That(picked, Is.EqualTo(expectedPos),
+                        $"tier={tier} identity={identity}:选中位置 {picked},选择器位置 {expectedPos}");
+
+                    if (picked != 0) offZero++;
                 }
             }
             Assert.That(offZero, Is.GreaterThan(0),
@@ -96,16 +108,17 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(resolve, Is.Not.Null,
                 "AudioClipLibrary.Resolve(int,int,int,int) 不存在 —— 选择入口缺失(AC-020-1)");
 
-            // Assert ②:生产 44 二进制（Gameplay.Presentation 里的 44 类型）对 SelectVariant / SelectSlot 有真调用
+            // Assert ②:生产 44 二进制（Gameplay.Presentation 里的 44 类型）对变体选择函数有真调用
+            // (story-020 重裁 ③:选择入口改为 VoiceVariantLib.SelectVariantCube —— 见 §重裁)
             Assembly prod = typeof(AudioClipLibrary).Assembly;
             var callers = prod.GetTypes()
                 .SelectMany(t => t.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Public |
                                               BindingFlags.NonPublic | BindingFlags.Instance |
                                               BindingFlags.Static))
-                .Where(m => ContainsCall(m, "SelectVariant") || ContainsCall(m, "SelectSlot"))
+                .Where(m => ContainsCall(m, "SelectVariantCube"))
                 .ToList();
             Assert.That(callers, Is.Not.Empty,
-                "生产代码对 VoiceVariantLib 的选择函数零调用——「测试单边绿」的假象(AC-020-1 判据宾语 = 生产类)");
+                "生产代码对 VoiceVariantLib.SelectVariantCube 零调用——「测试单边绿」的假象(AC-020-1 判据宾语 = 生产类)");
         }
 
         /// <summary>单素材行不受影响;越界 / 未装载仍返回 null(选择面不吞错)。</summary>
@@ -278,6 +291,138 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(target.ClipMissCount, Is.EqualTo(0), "生产路径不得 miss");
         }
 
+        // ═══════════ story-020 重裁(2026-10-18)══════════
+        //
+        // 三条 BLOCKING 的重裁①②③,各配一条夹具。前两条钉**语义**(谁该变、谁不该变),
+        // 第三条钉**结构**(任何合法形状下都不许有死变体 / 空桶)。
+
+        /// <summary>重裁 ①:未声明 <c>variant_axis</c> 的多素材行,**任意身份恒取 assets[0]**。
+        /// <para>判别力:把 <c>Resolve</c> 的 <c>!row.IsVariantRow</c> 守卫删掉 ⇒ 本条红
+        /// (患者会被分到马 / 锣 / 鸟,翻页会往后翻,雪地会响石头)。</para></summary>
+        [Test]
+        public void test_ac020_1_nonVariantRow_alwaysTakesAssetsZero_everyIdentity()
+        {
+            // Arrange:真种子表里**所有**多素材且未声明变体轴的行(世界声 / 脚步 / 听诊 / 翻页 / 柜具)
+            (AudioEventDataSet table, int _) = RealSeedAndVoiceOrdinal();
+            _library = Library(table);
+
+            var checkedCues = new List<string>();
+            for (int ordinal = 0; ordinal < table.RowCount; ordinal++)
+            {
+                AudioEventRow row = table.Row(ordinal);
+                if (row.Assets == null || row.Assets.Length <= 1 || row.IsVariantRow) continue;
+                checkedCues.Add(row.Cue);
+
+                for (int identity = 0; identity < 16; identity++)
+                {
+                    string picked = _library.Resolve(ordinal, ordinal, 0, identity).name;
+                    Assert.That(picked, Is.EqualTo(row.Assets[0]),
+                        $"`{row.Cue}` 未声明 variant_axis(其 assets[] 是不同素材,不是变体), " +
+                        $"身份 {identity} 却选到了 {picked} —— 应恒取 assets[0]={row.Assets[0]}");
+                }
+            }
+
+            // 空集不得冒充绿:真种子今日有 7 行此类,少于 3 行说明表结构变了,须复核本条是否仍在测东西。
+            Assert.That(checkedCues.Count, Is.GreaterThanOrEqualTo(3),
+                "真种子内未声明变体轴的多素材行不足 3 条 —— 本条失去判别面,须复核");
+        }
+
+        /// <summary>重裁 ① 的配对半边:声明了 <c>variant_axis</c> 的行**必须**真的在变(防「一律 assets[0]」的假修)。
+        /// <para>判别力:把变体行也短路成 <c>assets[0]</c> ⇒ 本条红。</para></summary>
+        [Test]
+        public void test_ac020_1_variantRow_actuallyVaries_byIdentity()
+        {
+            (AudioEventDataSet table, int _) = RealSeedAndVoiceOrdinal();
+            _library = Library(table);
+
+            int variantRows = 0;
+            for (int ordinal = 0; ordinal < table.RowCount; ordinal++)
+            {
+                AudioEventRow row = table.Row(ordinal);
+                if (!row.IsVariantRow) continue;
+                variantRows++;
+
+                var distinct = new HashSet<string>(StringComparer.Ordinal);
+                for (int identity = 0; identity < 32; identity++)
+                    distinct.Add(_library.Resolve(ordinal, ordinal, 0, identity).name);
+                Assert.That(distinct.Count, Is.GreaterThan(1),
+                    $"`{row.Cue}` 声明了 variant_axis,32 名患者却听到同一条 —— 变体选择没接上");
+            }
+            Assert.That(variantRows, Is.GreaterThanOrEqualTo(1),
+                "真种子内零条变体行 —— 本条失去判别面");
+        }
+
+        /// <summary>重裁 ③:对**任意**三的倍数,三桶恒等宽、逐格可达(无死变体 / 无空桶)。
+        /// <para>首版的 `BucketBand` 截余形态让 4 条行第 4 条永不可达、2 条行强桶坍回弱桶。
+        /// 判别力:把 <see cref="VoiceVariantLib.VariantCubeSize"/> 改回 <c>max(1, n/3)</c> ⇒ 本条红。</para></summary>
+        [Test]
+        public void test_ac020_3_variantCube_everySlotReachable_noDeadVariant_noEmptyBucket()
+        {
+            foreach (int n in new[] { 3, 6, 12, 24 })
+            {
+                int size = VoiceVariantLib.VariantCubeSize(n);
+                Assert.That(size, Is.EqualTo(n / 3), $"n={n}:每桶宽度应为 {n / 3}");
+
+                var reached = new HashSet<int>();
+                for (int identity = 0; identity < 4096; identity++)
+                {
+                    int v = VoiceVariantLib.SelectVariantCube(cue: 0, tier: 0, identity: identity, size: size);
+                    Assert.That(v, Is.InRange(0, n - 1), $"n={n}:选出越界位置 {v}");
+                    reached.Add(v);
+                }
+                Assert.That(reached.Count, Is.EqualTo(n),
+                    $"n={n}:仅 {reached.Count}/{n} 个变体可达 —— 存在死变体(重裁 ③)");
+
+                // 空桶检测:每个桶都必须被选中过(强桶坍回弱桶会让某桶零命中)
+                var buckets = new HashSet<int>();
+                for (int identity = 0; identity < 4096; identity++)
+                    buckets.Add(VoiceVariantLib.SelectVariantCube(0, 0, identity, size) / size);
+                Assert.That(buckets.Count, Is.EqualTo(3), $"n={n}:只有 {buckets.Count} 个桶被选中(存在空桶)");
+            }
+
+            // 非法形状 ⇒ 显式 −1(不猜、不截余)
+            Assert.That(VoiceVariantLib.VariantCubeSize(4), Is.EqualTo(-1), "4 条不整除三桶 ⇒ 拒选,不得截余");
+            Assert.That(VoiceVariantLib.VariantCubeSize(0), Is.EqualTo(-1));
+            Assert.That(VoiceVariantLib.SelectVariantCube(0, 0, 7, -1), Is.EqualTo(-1));
+        }
+
+        /// <summary>重裁 ③ 的构建期半边:声明了变体轴但素材数不整除三桶 ⇒ 门拒收。</summary>
+        [Test]
+        public void test_ac020_3_gate_rejectsVariantAxisWithNonCubeAssetCount()
+        {
+            var bad = new AudioEventTableRow
+            {
+                Cue = "Voice_Cough_Damp",
+                VariantAxisRaw = AudioEventTableGates.VariantAxisVoiceGenderIntensity,
+                Assets = new[] { "a.wav", "b.wav", "c.wav", "d.wav" },   // 4 条:末桶截余 ⇒ 死变体
+                PresentKeys = new List<string> { "cue", "assets", "variant_axis" },
+            };
+            var errors = AudioEventTableGates.ValidateVariantAxis(new[] { bad });
+            Assert.That(errors, Is.Not.Empty, "4 条素材声明变体轴必须被拒 —— 否则末槽截余产生死变体");
+            Assert.That(string.Join("\n", errors), Does.Contain("整除"));
+
+            // 合法形状 ⇒ 零错误
+            var good = new AudioEventTableRow
+            {
+                Cue = "Voice_Cough_Damp",
+                VariantAxisRaw = AudioEventTableGates.VariantAxisVoiceGenderIntensity,
+                Assets = new[] { "a.wav", "b.wav", "c.wav" },
+                PresentKeys = new List<string> { "cue", "assets", "variant_axis" },
+            };
+            Assert.That(AudioEventTableGates.ValidateVariantAxis(new[] { good }), Is.Empty);
+
+            // 非语声族不得声明该轴(世界声的 assets[] 不是变体)
+            var wrongFamily = new AudioEventTableRow
+            {
+                Cue = "World_Threat",
+                VariantAxisRaw = AudioEventTableGates.VariantAxisVoiceGenderIntensity,
+                Assets = new[] { "dog.wav", "horse.wav", "gong.wav" },
+                PresentKeys = new List<string> { "cue", "assets", "variant_axis" },
+            };
+            Assert.That(AudioEventTableGates.ValidateVariantAxis(new[] { wrongFamily }), Is.Not.Empty,
+                "世界声行声明语声变体轴必须被拒(狗/马/锣 不是同一句话的变体)");
+        }
+
         /// <summary>真种子 → 运行期表,并给出咳嗽行 ordinal(**从表里按名解析**,不内联序号)。</summary>
         private static (AudioEventDataSet table, int voiceOrdinal) RealSeedAndVoiceOrdinal()
         {
@@ -304,29 +449,6 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 $"装载行数 {library.LoadedCount} ≠ 表 {table.RowCount} 行(共装 {added} 条素材)");
             Assert.That(library.MissingCues, Is.Empty, "真种子素材缺失 —— 前提不成立");
             return library;
-        }
-
-        /// <summary>
-        /// 预期值 = <b>直接调用生产选择器</b>(与 `AudioClipLibrary.Resolve` 内部同一调用链)复算:
-        /// 槽 = SelectVariant(单行变体表投影)，位置 = SelectSlot(槽, N, identity)。
-        /// ⚠️ 这是**生产类之间的交叉核对**(装载面 ↔ 选择库),不是测试自造的选择器 ——
-        /// 没有第二套本文件自写的哈希 / 槽宽算法。
-        /// </summary>
-        private static string ExpectedAddress(AudioEventRow row, int tier, int identity, int envOrdinal)
-        {
-            int n = row.Assets.Length;
-            int band = VoiceVariantLib.BucketBand(n);
-            var weak = Enumerable.Range(0, band).ToArray();
-            var medium = Enumerable.Range(band, band).ToArray();
-            var strong = Enumerable.Range(2 * band, n - 2 * band).ToArray();
-            var variantRow = new VoiceVariantLib.VoiceVariantRow(envOrdinal, 0, weak, medium, strong);
-            var variantTable = new VoiceVariantLib.VoiceVariantTable(new[] { variantRow });
-
-            VoiceBucket bucket = VoiceVariantLib.ComputeBucket(
-                (byte)VoiceVariantLib.IdentityScalar(identity, 256));
-            int start = VoiceVariantLib.SelectVariant(variantTable, envOrdinal, tier, bucket);
-            int slot = VoiceVariantLib.SelectSlot(start, n, identity);
-            return row.Assets[slot];
         }
 
         /// <summary>取一个**单素材**行的 ordinal —— 供「单素材不受影响」判据(真种子里的呼吸 / 世界行)。</summary>

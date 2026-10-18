@@ -66,8 +66,17 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <summary><c>adventitious_policy.trigger_phase</c> 原文(null = 缺失)。</summary>
         public readonly string PolicyTriggerPhaseRaw;
 
-        /// <summary><c>adventitious_policy.jitter</c> 原文(null = 缺失)。</summary>
+        /// <summary>附加音层 <c>adventitious_policy.jitter</c> 原文(null = 缺失)。</summary>
         public readonly string PolicyJitterRaw;
+
+        /// <summary><c>variant_axis</c>(null = **不是变体行**,<c>assets[]</c> 是并列素材而非变体集)。
+        /// <para>story-020 重裁 ①(2026-10-18):只有声明了本字段的行才走变体选择;未声明的行
+        /// 运行期恒取 <c>assets[0]</c>。合法值见 <c>AudioEventTableGates.VariantAxes</c>,
+        /// 构建期由 <c>ValidateVariantAxis</c> 钉住。</para></summary>
+        public readonly string VariantAxis;
+
+        /// <summary>本行是否为**变体行**(<c>variant_axis</c> 已声明)。</summary>
+        public bool IsVariantRow => VariantAxis != null;
 
         /// <summary>构造一行(读方唯一调用点)。</summary>
         public AudioEventRow(
@@ -75,13 +84,15 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             string whitelistCategory, string triggerSource, string clockRef,
             string subtitleText, string xfadeRaw, string[] assets,
             IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> tierParams,
-            bool hasPolicy, string policyTriggerPhaseRaw, string policyJitterRaw)
+            bool hasPolicy, string policyTriggerPhaseRaw, string policyJitterRaw,
+            string variantAxis = null)
         {
             Cue = cue; SchemaVersion = schemaVersion; Loop = loop; Bus = bus;
             WhitelistCategory = whitelistCategory; TriggerSource = triggerSource; ClockRef = clockRef;
             SubtitleText = subtitleText; XfadeRaw = xfadeRaw; Assets = assets;
             TierParams = tierParams; HasPolicy = hasPolicy;
             PolicyTriggerPhaseRaw = policyTriggerPhaseRaw; PolicyJitterRaw = policyJitterRaw;
+            VariantAxis = variantAxis;
         }
     }
 

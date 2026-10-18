@@ -75,9 +75,13 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             string policyTrigger = hasPolicy ? ReadString(b, ref pos) : null;
             string policyJitter = hasPolicy ? ReadString(b, ref pos) : null;
 
+            // story-020 重裁 ①:变体轴声明(null = 非变体行;写方同序追加)。
+            string variantAxis = ReadString(b, ref pos);
+
             return new AudioEventRow(
                 cue, schemaVersion, loop, bus, whitelistCategory, triggerSource, clockRef,
-                subtitleText, xfadeRaw, assets, tierParams, hasPolicy, policyTrigger, policyJitter);
+                subtitleText, xfadeRaw, assets, tierParams, hasPolicy, policyTrigger, policyJitter,
+                variantAxis);
         }
 
         /// <summary>tier_map:定型序(TierMapKeys × TierMapColumns)—— 写方按序写,读方按序读。</summary>

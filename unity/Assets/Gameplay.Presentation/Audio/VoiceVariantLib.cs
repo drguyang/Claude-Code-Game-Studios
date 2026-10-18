@@ -275,6 +275,51 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             unchecked { return start + IdentityScalar(identity ^ (start * 40503), end - start); }
         }
 
+        // ══════════ story-020 重裁 ③:变体立方体(2026-10-18)══════════
+        //
+        // 首版 SelectSlot 的槽宽恒按 BucketBand(total) 算,而投影把末槽截余全塞进强桶 ——
+        // 两处对「强槽多宽」定义不一致,实测后果(真种子表静态实算):
+        //   · 4 条行 ⇒ 投影 1/1/2,可达 0/1/2 ⇒ 索引 3 是**死变体**;
+        //   · 2 条行 ⇒ 投影 1/1/0,强桶为空 ⇒ SelectVariant 回 −1 ⇒ 槽钳回 0 ⇒ **强听到最弱**。
+        // 本段改为**立方体**:素材数 n 必须整除 3(构建期 ValidateVariantAxis 已拦),
+        // 于是 size = n/3 且每桶恰 size 格 ⇒ 无截余、无空桶、三桶恒等宽。
+
+        /// <summary>变体立方体的层内宽度(每桶变体数 = <c>total / 3</c>)。
+        /// <para>调用方须先保证 <c>total</c> 整除 3(构建期门),否则本函数返回 −1 —— 运行期
+        /// 不猜、不截余,让「不该出现的形状」显式暴露而非静默产生死变体。</para></summary>
+        /// <param name="total">变体行素材数。</param>
+        /// <returns>每桶变体数;不整除三桶 ⇒ −1(拒选)。</returns>
+        public static int VariantCubeSize(int total)
+            => total <= 0 || total % 3 != 0 ? -1 : total / 3;
+
+        /// <summary>三维立方体选择:<c>(桶 × 层内变体)</c> 由身份决定,<c>Tier</c> 不参与(承 F-44.3
+        /// 「Tier 参与回退不参与库轴」)。
+        /// <para><b>输出</b> = <c>桶序 × size + 层内位置</c>,即素材位置。与首版的区别:**三个桶恒等宽**,
+        /// 不会出现某个桶为空或某个索引永不可达。</para>
+        /// <para><b>桶</b> = 强度档(弱/中/强),P0 输入取患者身份 —— ⚠️ GDD F-44.3 原定
+        /// 「强度来自 <c>AudioCueDto.Intensity</c>」,该输入轴在语声 cue 上未接线(story-020 重裁 ②:
+        /// 记 `TD-audio-034`,归 13 的强度接线轮);接线后只换本函数的桶输入,选择形状不变。</para>
+        /// <para><b>确定性</b>:纯整数哈希,无墙钟 / 无 <c>UnityEngine.Random</c> / 无静态可变态。</para></summary>
+        /// <param name="cue">cue ordinal(混进哈希,避免不同 cue 的患者序列完全同构)。</param>
+        /// <param name="tier">精度档(≥ 0;不参与立方体轴)。</param>
+        /// <param name="identity">患者身份(确定性输入)。</param>
+        /// <param name="size">每桶变体数(<see cref="VariantCubeSize"/>)。</param>
+        /// <returns>素材位置 ∈ <c>[0, size × 3)</c>;入参非法 ⇒ −1。</returns>
+        public static int SelectVariantCube(int cue, int tier, int identity, int size)
+        {
+            if (size <= 0) return -1;
+            // 身份 → [0,3) 定桶;同身份再混 cue 与层内上一维 ⇒ 层内位置。
+            // ⚠️ 全程 uint 域(unchecked 回绕 = 定义性行为;禁有符号右移,承 ADR-005 Amendment G / ADR-012 F7)
+            unchecked
+            {
+                uint seed = (uint)identity ^ ((uint)cue * 2654435761u);
+                int bucket = IdentityScalar((int)seed, 3);
+                uint seed2 = seed ^ 40503u ^ ((uint)(bucket + 1) * 2246822519u);
+                int within = IdentityScalar((int)seed2, size);
+                return bucket * size + within;
+            }
+        }
+
         // ══════════ 烘焙门:逐 (CueId × Tier × 桶) 全组合非空 ══════════
 
         /// <summary>校验变体库:逐 (CueId × Tier × 桶) 全组合非空,任一轴向空缺 = 构建失败。

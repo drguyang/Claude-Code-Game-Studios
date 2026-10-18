@@ -7,10 +7,10 @@
 //   「渲染翻译」(`AudioSourceRenderTarget`)与「总线解析」(`AudioBusResolver`)分开,
 //   使后两者在 EditMode 用假件直驱(不需要 catalog)。
 //
-// ⚠️ **变体选择(story-020)** —— 一行多素材时**全部**装,取哪条由
-//   `VoiceVariantLib.SelectVariant`(CueId × Tier × 桶)+ `VoiceVariantLib.SelectSlot`(患者身份)决定,
-//   变体索引 i ↔ `assets[i]`(见 `Resolve(int,int,int,int)` 的 remarks)。本类仍是装载面:
-//   选择语义零落在本类(自造的只有「行 → 单行变体库」的投影形状)。
+// ⚠️ **变体选择(story-020,2026-10-18 重裁)** —— 一行多素材时**全部**装,但**只有声明了
+//   `variant_axis` 的行才是变体行**,取哪条由 `VoiceVariantLib.SelectVariantCube`(三维立方体)决定;
+//   未声明的行恒取 `assets[0]`(它们的 assets[] 是**不同素材**,不是同一声音的变体)。
+//   变体索引 i ↔ `assets[i]`(见 `Resolve(int,int,int,int)` 的 remarks)。本类仍是装载面。
 //
 // ⚠️ **address = bare 文件名**(与 `assets/data/audio_events.json` 的 `assets[]` 同形)——
 //   `DataBakeMenu.EnsureAudioGroupCore` 逐条 `SetAddress(Path.GetFileName(path))`,
@@ -142,20 +142,20 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
 
         /// <inheritdoc/>
         /// <remarks><b>语义(story-020 起)</b>:等价于 <c>Resolve(cue, cue, 0, 0)</c> ——
-        /// 身份维取 0 的确定性选择。**单素材行**恒为该条;**多素材行**不保证是 <c>assets[0]</c>。
+        /// 身份维取 0 的确定性选择。**单素材行**恒为该条;**变体行**不保证是 <c>assets[0]</c>;
+        /// **未声明变体轴的多元素材行**恒为 <c>assets[0]</c>。
         /// 生产路径按条目的声源实体选变体,见 <see cref="ResolveCue(in AudioCueDto,int)"/>。</remarks>
         public AudioClip Resolve(int cue)
             => Resolve(cue, cue, 0, 0);
 
-        /// <summary>cue × Tier × 桶 × 患者身份 → clip(story-020 · AC-44-02 运行期半边)。
-        /// <para><b>选择键</b> = <c>(CueId × Tier × 桶 × 患者身份)</c> —— 前三维经
-        /// <see cref="VoiceVariantLib.SelectVariant"/> 落定**选取槽**(桶序 弱&gt;中&gt;强 &gt; 其它),
-        /// 身份维落定槽内**变体位置**(<see cref="VoiceVariantLib.SelectSlot(int,int,int)"/>,
-        /// 纯整数确定性映射,无墙钟 / 无 <c>UnityEngine.Random</c>)。</para>
+        /// <summary>cue × Tier × 患者身份 → clip(story-020 · AC-44-02 运行期半边)。
+        /// <para><b>只有 <c>variant_axis</c> 已声明的行才走选择器</b>(story-020 重裁 ①):
+        /// 变体行按三维立方体 <c>(桶 × 层内变体)</c> 选(<see cref="VoiceVariantLib.SelectVariantCube"/>,
+        /// 纯整数确定性映射,无墙钟 / 无 <c>UnityEngine.Random</c>);<b>未声明的行恒取 <c>assets[0]</c></b>
+        /// —— 世界声 / 脚步 / 听诊 / 翻页的 <c>assets[]</c> 是不同素材,按身份挑一条会播错东西。</para>
         /// <para>⚠️ <b>变体索引 → 素材位置</b>:事件表 <c>assets[]</c> 无索引列 ⇒
         /// 变体索引 i ↔ <c>assets[i]</c>(作者序即变体轴序;重排 = 换声音,构建期门管)。</para>
-        /// <para>⚠️ 单素材行:选择器照走,值 = 表行序(与 <c>AudioCueDto.Cue</c> 同值)。
-        /// 带槽 / 越界 cue / 未装载 ⇒ null(非静默:调用方计 miss)。</para></summary>
+        /// <para>⚠️ 单素材行 / 越界 cue / 未装载 ⇒ null 或该条(非静默:调用方计 miss)。</para></summary>
         /// <param name="cue">cue ordinal(<c>AudioCueDto.Cue</c>;条目的循环 / 一次性身份)。</param>
         /// <param name="tableCueId">该 cue 在变体库里的 CueId(生产 = <paramref name="cue"/>;
         /// 单测可分家以复现「表里无行」路径)。</param>
@@ -168,13 +168,18 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
 
             AudioEventRow row = _table.Row(cue);
             AudioClip first = FirstLoaded(loaded);
-            if (loaded.Length <= 1 || row.Assets == null || row.Assets.Length <= 1) return first;
 
-            // 多素材行:走真选择器(AC-020-1 判据宾语 = 生产类,禁测试自造)。
-            VoiceVariantLib.VoiceVariantTable variantTable = VariantTableOf(cue, tableCueId, row);
-            int bucket = VoiceVariantLib.SelectVariant(variantTable, tableCueId, tier,
-                                                       VoiceBucketOf(identity));
-            int variant = VoiceVariantLib.SelectSlot(bucket, loaded.Length, identity);
+            // ⚠️ story-020 重裁 ①(2026-10-18):**只有声明了 variant_axis 的行才是变体行**。
+            // 未声明的多素材行(世界声 / 脚步 / 听诊 / 翻页 / 柜具)—— 它们的 assets[] 是
+            // **不同的素材**,不是同一声音的变体:狗吠与锣声不是换了个说法,石头与雪不是。
+            // 对它们做「按身份哈希挑一条」= 患者听到马而不是狗、翻页往后翻、雪地上响石头脚步。
+            // ⇒ 恒取 assets[0](= 本类改造前的行为),语义轴的选择归上游(52 的 cue 解析 / 1 的地表)。
+            if (row.Assets == null || row.Assets.Length <= 1 || !row.IsVariantRow) return first;
+
+            // 变体行:三维立方体 (性别层 × 三桶 × 层内变体)。构建期 ValidateVariantAxis 已保证
+            // 素材数整除三桶 ⇒ 每个格子非空 ⇒ **无死变体、无空桶坍陷**(重裁 ③)。
+            int size = VoiceVariantLib.VariantCubeSize(loaded.Length);
+            int variant = VoiceVariantLib.SelectVariantCube(cue, tier, identity, size);
 
             AudioClip clip = variant >= 0 && variant < loaded.Length ? loaded[variant] : null;
             return clip ?? first;
@@ -188,33 +193,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             => Resolve(cueDto.Cue, cueDto.Cue, tier,
                        cueDto.Source >= 0 ? cueDto.Source : cueDto.Cue);
 
-        // ══════════ 变体选择辅助(story-020)══════════
-
-        /// <summary>把事件表一行的 <c>assets[]</c> 投影成**单行**变体库:三桶 ⇒ 三个选取槽
-        /// (<see cref="VoiceVariantLib.BucketBand"/> 起步槽宽,末槽截余),槽内变体索引 = 素材位置。
-        /// <para>⚠️ 投影只塑形,不选 —— 选中哪条全由 <see cref="VoiceVariantLib.SelectVariant"/> /
-        /// <see cref="VoiceVariantLib.SelectSlot(int,int,int)"/> 决定。</para></summary>
-        private static VoiceVariantLib.VoiceVariantTable VariantTableOf(int cue, int tableCueId,
-                                                                       in AudioEventRow row)
-        {
-            int count = row.Assets.Length;
-            int band = VoiceVariantLib.BucketBand(count);
-            var weak = new int[band];
-            var medium = new int[band];
-            int strongCount = count - 2 * band;
-            var strong = new int[strongCount];
-            for (int i = 0; i < band; i++) { weak[i] = i; medium[i] = band + i; }
-            for (int i = 0; i < strongCount; i++) strong[i] = 2 * band + i;
-
-            var variantRow = new VoiceVariantLib.VoiceVariantRow(tableCueId, gender: 0, weak, medium, strong);
-            return new VoiceVariantLib.VoiceVariantTable(new[] { variantRow });
-        }
-
-        /// <summary>强度桶 —— 输入取患者身份(AC-020-2:桶的派生输入来自身份,确定性)。
-        /// 身份 → 0–255 全域复用 <see cref="VoiceVariantLib.IdentityScalar(int,int)"/> 的整数哈希
-        /// (⚠️ 不用 <c>SelectSlot</c>:它被槽宽限死,只能覆盖弱桶 ⇒ 三桶不可达)。</summary>
-        private static VoiceBucket VoiceBucketOf(int identity)
-            => VoiceVariantLib.ComputeBucket((byte)VoiceVariantLib.IdentityScalar(identity, 256));
+        // ══════════ 变体选择辅助(story-020 重裁,2026-10-18)══════════
 
         private static AudioClip FirstLoaded(AudioClip[] loaded)
         {
