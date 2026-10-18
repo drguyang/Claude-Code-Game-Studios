@@ -40,7 +40,11 @@ ADR-018 §一(44 只触发)
 ## Tasks
 
 - [x] **AC-021-1**[A]: `PatientCueDriver` 的 `knowsClinic` 改为**注入**(构造参数),
-  生产装配由 `CompositionRoot` 从真值源喂入;**全仓不得再出现 `knowsClinic: false` 字面量**。
+  生产装配由 `CompositionRoot` 从真值源喂入;**生产树(`Tests/` 之外)不得再出现 `knowsClinic: false` 字面量**
+  ⚠️ **2026-10-18 刷账(S15-7)口径收窄**:原文写「**全仓**」不成立 —— 测试树仍有一处
+  `Tests/EditMode/PatientAI/behavior_map_test.cs:61`(`Map(0.60f, BehaviorState.Idle, knowsClinic: false)`),
+  它是「不知道医馆」分支的**夹具必需**,不是漏网;源码门(`knowsclinic_seam_test.cs:245`,扫描 `Tests/` 之外的
+  生产树、scan >300 件、先剥注释)的口径本就是**生产树**。判定不变,只是把范围说准。
   **证伪判据**:把注入改回 `false` ⇒ 本条红(判据 = 反射/源码谓词须是**生产件可测**的,
   不得只 grep 测试文件 —— 承假绿复核病根)。
 - [x] **AC-021-2**[A]: `knowsClinic = true` 时病人**可进 `Seeking`** —— 断言宾语 = 真

@@ -6073,3 +6073,80 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
   sprint-status S15-5 → `review`(不记 done:`BuildAudioSeams` 仍 >40 行 · PlayMode 半边未跑)。
 - **原件**:`production/qa/evidence/impl-s15-5-audio-hygiene-2026-10-18.md`。
 - **待用户**:是否提交本批(S15-2 / S15-3 / S15-4 / S15-5 均待提交);听测批(`TD-audio-101/102`)未跑。
+
+## Session Extract — S15-7(债册刷账批 · 零代码改动)· 2026-10-18
+
+- **方法**:派只读勘察 agent 对 10 个编号命题逐条 grep + 行号实测 ⇒ **逐条自验**每条 `file:line` ⇒ 只改**声明**,
+  代码侧一律不动(符合 S15-7 的 Config/Data 性质)。实测结论:**8 项需刷账 + 1 批复核通过;没有一处是「代码没做而账上记了做完」的假绿**
+  —— 不一致全部是「声明错 / 代码对」或「声明半真」。
+- **8 项刷账**:① **TD-audio-103 阻塞源改口** —— 12 个 `vo_*.wav` 12/12 在场,素材**不是**阻塞,真阻塞 = **被试 ≥2 人**(不解除,只订归因);
+  ② **story-016 `AC-44-E5` reconcile**(本批正题)见下;③ **TD-audio-030** 结案注 API 名订正 = `SelectVariantCube`(非 `SelectVariant`/`SelectSlot`,后两者生产零调用);
+  ④ **TD-audio-032 ③** 刷 `BuildAudioSeams` 行号(`:513-559`,方法体 **45 行**仍 >40 ⇒ 该半边**仍 open**);
+  ⑤ **TD-audio-032 ④**「零分配」订正为「零**分配**、每拍 O(N) 拷贝仍在」;⑥ **TD-audio-031** 四处行号全刷(`:488/:542/:513-559/:725-757`)+ 明写两半未修;
+  ⑦ **TD-audio-033**「全仓」三处收窄为「**生产树**」(测试树 `behavior_map_test.cs:61` 是夹具必需);⑧ `assets/audio/` 路径**未改**(登记待订正,归 `OQ-44-2` 同族)。
+- **E5 reconcile 结论**:**内容真实、签核空** —— predicates 15 条 verdicts(`dr_guyang` / 2026-10-17 / 全 `status_words: null`)
+  + 记录表 15 行判定列齐;但签字表是 `[ ] 通过`,其自注逐字「**未勾选 = E5 未通过**」⇒ 按**该文件自订判据**,
+  **`AC-44-E5` 暂回退为「内容齐 / 签核缺」**。**不代签、不追认、不改 story-016 的 `Status: Complete`**;
+  回退范围**仅 E5 这一个签核格**,不波及 E1–E4(构建期门)。
+- **顺带订正一处上游误记**:`impl-s18-*:330-332` 写「10-18 两份副本**已删除**」—— 实测**未删**,与 10-17 原件**逐字节相同**
+  (md5 `1ad6ba93…` / `152ea3b0…`),且已随 S15-5(`910aa79`)**入库**;成因 = probe 按当天日期命名 + `WriteOnce` 当天不覆盖
+  ⇒ 跨天重跑**必然**产出同内容副本。副本去留**交回用户裁**。
+- **连带订正(不改判定)**:`SelectVariantCube` 第三形参在生产 = `AudioCueDto.Source` ⇒ **患者身份轴已接**、
+  **`Intensity` 桶轴未接**(归 `TD-audio-034` ①,不扩张 030 结案面)。
+- **复核通过项(声明与代码一致)**:TD-audio-028 四项结案判据逐条成立 · 029 四 API + Pump + tick 边沿调用在场 ·
+  032 ②全 long / ③ 各段 9/24/23/12 行 + 自校准 / ④ 快照三处失效 + `TrackedPatientCount` ·
+  035 三项代偿常量仍在 · `TD-audio-034/035` 已登记且 **036–039 零命中**(无游离债号)。
+- **无回归可报**:本批零代码改动 ⇒ **不跑测试**,不声称任何测试数(最近一次 = S15-5 的 `3794/3748/1/45`)。
+- **账面**:债册新增 §「2026-10-18 · S15-7 债册刷账批」专节;story-016 卡面三处加 reconcile 注;`story-021:43` 与 `sprint-15:46` 口径收窄;
+  sprint-status S15-7 → `review`(**不记 done**:E5 补勾 + 副本去留两件待用户裁)。
+- **原件**:`production/qa/evidence/impl-s15-7-debt-ledger-reconcile-2026-10-18.md`。
+- **待用户裁两件**:① E5 签核格补勾(或明确裁定「内容即判据」);② `docs/audio/` 下 10-18 两份副本去留。
+
+## Session Extract — S15-8(/retrospective sprint-14)· 2026-10-18
+
+- **产出**:`production/retrospectives/retro-sprint-14-2026-10-18.md`(兑现 sprint-14 收口时登记的「列为下一步」)。
+- **口径实测(三项)**:sprint-14 计划 7 件 **7/7** + 计划外追加 4 件 = **11 done**;
+  strict 提交 **47**(`git rev-list --count 21b13fa..d49efee~1`)· 区间 `21b13fa..910aa79` = 56(多 9 = `d49efee` 规划件 + S15 八条);
+  TODO 计数 **15 → 14**(递归 grep,`1130186` 与 HEAD 同口径,**retro-13 的 15 可复现**;唯一条消解 = `music_guardrails_test.cs:193` 在 S14-4 变真门)。
+- **retro-13 四项行动项核查:2/4 兑现** —— ① 行动项 1(链接通)✅但被证成**两层**(第二层装配由计划外 S14-10 兑现);
+  ② 行动项 2(证伪轮门)✅**全面落地**(`/code-review` §Phase 8b 双列 + `/story-done` §Falsifiability Gate 均在场,story-018 证伪 14/14);
+  ③ 行动项 3(44 epic 001–006/013–014 假绿普查)❌ 未做(评审原件 `:17`/`:504` 自陈只覆盖 007–012);
+  ④ 行动项 4(跨 epic 假绿抽查)❌ 未做 —— **同型样本已累积 3 个**(case-system 001–004 · 44 epic 6 条 · story-025 R-1)却仍未判断是否系统性。
+- **本 retro 最重两条判断**:① **本 sprint 抓出的问题多于修完的** —— 收口新立 7 条债,其中 6 条是「代码在、语义层没接」,TODO 计数对它们**完全失明**;
+  ② **「链接通」与「语义对」被当成一个里程碑,实际是两层** ⇒ 下个 epic 同类件的 Goal 须显式含「语义层每个输入有生产宾语」。
+- **五次行动项(全部归 sprint-16)**:1 重标定 `CAPACITY-MODEL` 产能旋钮(件/日已不可比:本 sprint 3.7 vs 基线 8–10,因件变大非产能降;追加率 57% 应列为常规指标)·
+  2 **合并兑现 retro-13 行动项 3+4 = 跨 epic 假绿普查** ·
+  3 给「已证」补**分支覆盖**判据(S3-a 证明「证伪轮次够 ≠ 分支覆盖够」)·
+  4 给「测试/工具不得写仓库」立机械门(已三发:S14-6 副作用 · S15-5 的 `WriteOnce` 日期副本 · 更早的 `Directory.CreateDirectory`)·
+  5 `TD-player-01` 归口(已两次露头,「不抵扣计数」不能无限期用)。
+- ⚠️ **起草时两次计数口径误读,已就地留档**(不删):① 用非递归 pathspec 数 TODO 得 12,误判「retro-13 的 15 无法复现」并写错订正段 —— 递归复核后**删除该错误结论**,确认 15 可复现;
+  ② 提交数先用区间 56 当 strict,又 `log|wc -l` 数出 50 误改一轮 —— 终局以 `rev-list --count` = **47/56** 为准。
+  ⇒ 教训(同型第三次):**计数类判据必须固定口径 + 实测端点,`log|wc -l` 与减法在三段区间上都会错**。
+- **账面**:`sprint-14.md:160` 的「retro 未写」行已划改并附三条核心结论;`sprint-status.yaml` S15-8 → `review`(不记 done:5 条行动项归 sprint-16)。
+- **未提交**。S15-1(10-c 听测)· S15-6(听测批)待用户;S15-7 的两件用户裁(E5 补勾 / 副本去留)仍待。
+
+## Session Extract — S15-7 裁定落地(E5 = A · 副本 = A + C 治法)· 2026-10-18
+
+- **用户裁定**:「E5 选 A,副本选 A,顺手做 C 的治法」—— 两项均已落,并**附证伪轮**。
+- **① E5 = A(维持未通过,不补勾)**:签核格 `[ ] 通过` 与文件自订判据「未勾选 = E5 未通过」**一致** ⇒ E5 就是 ✗。
+  **本批新测出人半更弱一层**:谓词 15 条 `not_reporting` **与 probe 预填建议稿逐字相同**(`_instructions` ④ 自陈
+  「这是默认判定,不是你听过的结论」),而 `ReplayPredicatesFromText` 对它**只校验非空** ⇒
+  `status_words: null` 证不了「人听过」;记录表 15 行判定列的 ✅ 是**机器从 null 推出的**。
+  ⇒ **出路**:走查人真听一遍 → 把 15 条 `not_reporting` 改写成自己的话 → `status_words` 保持 null → 重跑 probe 生成新记录。
+  **不代签、不追认、不改判据口径**(C 案已否:改规则迁就证据)。
+- **② 副本 = A(删)+ C(治法)**:两份 10-18 副本已 `git rm`;**根因已治** —— 失效形态实测两处:
+  manifest「按当天日期命名 + `WriteOnce` 当天不覆盖」⇒ 跨天重跑**必然**产副本;record 是**无条件** `File.WriteAllText`
+  ⇒ 同天二次重跑**静默改写已签核记录**(比副本更重)。治法:文件名「日期」→「**内容哈希**」、判据「当天已存在」→「**内容相同**」、
+  **异内容一律拒写**(`Debug.LogError` + 不覆盖)。
+- **判据 3 条**(`StateReportWalkthroughProbe` **16/16 绿**,`unity/Logs/s157-e5-probe.xml`):`fileName_isContentAddressed_notDateAddressed` ·
+  `contentHash_isDeterministic_andHex16` · `writeOnce_sameContent_isNotRewritten_differentContent_isRefused`。
+  **证伪 G1–G3 全转红**(文件名回日期戳 / `WriteOnce` 回无条件覆盖 / 哈希改常数),还原 SHA `5501eb6c…` 一致。
+- ⚠️ **治法侧两次红灯都如实登记**:① 判据**首轮就红** —— 首版只靠「内容哈希命名」保证异内容换路径,`WriteOnce` 本身**仍会覆盖**;
+  是断言打红后才补拒写分支 ⇒ **命名纪律 ≠ 断言兜底**。② 第二轮撞 UTF Unhandled log(`Debug.LogError` 被当失败日志)⇒ `LogAssert.Expect` 声明为设计内告警。
+- **全量 EditMode `3797 / 3751 / 1 / 45`**(`unity/Logs/s157-full-editmode.xml`)vs S15-5 基线 `3794/3748/1/45` ⇒ **+3 = 新增夹具数**,唯一红 = `TD-player-01` 已知间歇。
+- ⚠️ **一次读数污染(同型第三次)**:证伪脚本末次运行停在 **G3 变异态**,其 `test-results.xml` 被我直接 cp 成 fixture 日志 ⇒ 首份记 16/14/2;
+  发现后重跑基线覆盖为 16/16/0。教训:**证伪轮产物不得直接当基线日志**(过程态 ≠ 结果态)。
+- **账面**:债册 S15-7 专节补裁定 + 103 行副本处置;`story-016` 两处 reconcile 注补裁定与新事实;`sprint-15.md` S15-7 卡面补账;
+  `sprint-status.yaml` S15-7 blocker 改为「E5 人半待走查人真听 + 改写 15 条」;`impl-s15-7-*` 新增 §六·五 + §七 实数。
+- **仍未裁/未做**:E5 人半(需你本人听);S15-1 的 10-c;S15-6 听测批;S15-7 的 `assets/audio/` 路径订正(归 `OQ-44-2` 同族)。
+- **未提交**(S15-7 + S15-8 + 本裁定批均在工作区)。

@@ -164,6 +164,24 @@
 **Completed**: 2026-10-17
 **Criteria**: **5/5 通过**(E1 / E2 / E3 / E4 / **E5**)
 **E5 结案(2026-10-17)**:走查记录 `docs/audio/statereport-walkthrough-2026-10-17.md` · 15/15 判「不是状态播报」· 乐层 `Music_Encounter_Layer` 判「听不出切换那一刻」· 走查人 dr_guyang 签字 [x]
+
+> **🔴 2026-10-18 reconcile(S15-7 债册刷账批)**:上列三处「签字 [x]」**与签核载体相抵** ——
+> 入库原件 `docs/audio/statereport-walkthrough-2026-10-17.md:32` 的签字表实为 **`[ ] 通过`**,其 `:34` 自带判据注逐字「**未勾选 = E5 未通过**」(commit `443a413` 的 message 亦写「签字」而内容仍是 `[ ]`)。
+> ⇒ **机器半 + 判定内容真实存在**(`statereport-walkthrough-predicates.json` = 15 条 verdicts,`reviewer: dr_guyang` / `date: 2026-10-17`,全部 `status_words: null`;记录表 15 行判定列全为「✅ 不是状态播报」),
+> **但按该文件自订的判据(「未勾选 = E5 未通过」),`AC-44-E5` 不得判通过** —— 本批**不代签、不追认、不追改 10-17 的 `Status: Complete` 裁定**。
+> ⇒ `AC-44-E5` 的 ✅ **暂回退为「内容齐 / 签核缺」**,出路 = 用户补勾签核格(或明确裁定「内容即判据」)。
+> **✅ 2026-10-18 用户裁定 = A(维持未通过),已落账**:E5 **不补勾** —— 补勾只能让账面变绿,
+> 而「`not_reporting` 与预填稿逐字相同」这一事实**不因签字改变**。且本批实测出**人半比「缺一个勾」更弱一层**:
+> probe 的 `_instructions` ④ 自陈「这是**默认判定**,不是你听过的结论」,而 `ReplayPredicatesFromText`
+> 对 `not_reporting` **只校验非空** ⇒ `status_words: null` 既可能是「听完确实没有」也可能是「没人填」;
+> 记录表 15 行判定列的「✅ 不是状态播报」是机器从 null 推出的,**不是人写的**。
+> **出路(裁定 A 的兑现形态)**:走查人真听一遍 → 把 15 条 `not_reporting` **改写成自己的话** →
+> `status_words` 保持 null → 重跑 probe 生成新记录 ⇒ 人半才有「人听过」的物证。**现有判据就够,不立新机制。**
+> ⚠️ **同批治法(用户裁定「副本选 A + 顺手做 C」)**:两份 10-18 副本已删,且 probe 的清单 / 记录文件名
+> 从「当天日期」改为「**内容哈希**」、`WriteOnce` 从「当天已存在」改为「**内容相同**」+ **异内容拒写**
+> ⇒ 「跨天重跑必然产副本」与「同天二次重跑静默改写已签核记录」两个失效形态同时拆掉;
+> 判据 3 条(`StateReportWalkthroughProbe` 16/16 绿),证伪 **G1–G3 全转红**,全量 `3797/3751/1/45` = 基线 +3。
+> 回退范围**仅 E5 这一个签核格**,不波及 E1–E4(构建期门,与签核无关)。详见 `docs/tech-debt-register.md` §「S15-7 债册刷账批」。
 **Deviations**:
 - **E5(2026-10-17 第二次处理,用户裁定 = PlayMode 手跑走查)**:
   - **结构面**已由既有全表门覆盖(9 项行 ∈ `WhitelistCategories` 闭集,`trigger_source` ∉ `ForbiddenTriggerSources`);
@@ -188,9 +206,30 @@
     清单 `docs/audio/statereport-walkthrough-manifest-2026-10-17.json`(15 行)· 真播 15/15 ·
     谓词 `docs/audio/statereport-walkthrough-predicates.json`(15 条判定全 `null`)·
     记录 `docs/audio/statereport-walkthrough-2026-10-17.md`(**dr_guyang 签字 [x] 通过**)。
+
+> **🔴 2026-10-18 reconcile(S15-7 债册刷账批)**:上列三处「签字 [x]」**与签核载体相抵** ——
+> 入库原件 `docs/audio/statereport-walkthrough-2026-10-17.md:32` 的签字表实为 **`[ ] 通过`**,其 `:34` 自带判据注逐字「**未勾选 = E5 未通过**」(commit `443a413` 的 message 亦写「签字」而内容仍是 `[ ]`)。
+> ⇒ **机器半 + 判定内容真实存在**(`statereport-walkthrough-predicates.json` = 15 条 verdicts,`reviewer: dr_guyang` / `date: 2026-10-17`,全部 `status_words: null`;记录表 15 行判定列全为「✅ 不是状态播报」),
+> **但按该文件自订的判据(「未勾选 = E5 未通过」),`AC-44-E5` 不得判通过** —— 本批**不代签、不追认、不追改 10-17 的 `Status: Complete` 裁定**。
+> ⇒ `AC-44-E5` 的 ✅ **暂回退为「内容齐 / 签核缺」**,出路 = 用户补勾签核格(或明确裁定「内容即判据」)。
+> **✅ 2026-10-18 用户裁定 = A(维持未通过),已落账**:E5 **不补勾** —— 补勾只能让账面变绿,
+> 而「`not_reporting` 与预填稿逐字相同」这一事实**不因签字改变**。且本批实测出**人半比「缺一个勾」更弱一层**:
+> probe 的 `_instructions` ④ 自陈「这是**默认判定**,不是你听过的结论」,而 `ReplayPredicatesFromText`
+> 对 `not_reporting` **只校验非空** ⇒ `status_words: null` 既可能是「听完确实没有」也可能是「没人填」;
+> 记录表 15 行判定列的「✅ 不是状态播报」是机器从 null 推出的,**不是人写的**。
+> **出路(裁定 A 的兑现形态)**:走查人真听一遍 → 把 15 条 `not_reporting` **改写成自己的话** →
+> `status_words` 保持 null → 重跑 probe 生成新记录 ⇒ 人半才有「人听过」的物证。**现有判据就够,不立新机制。**
+> ⚠️ **同批治法(用户裁定「副本选 A + 顺手做 C」)**:两份 10-18 副本已删,且 probe 的清单 / 记录文件名
+> 从「当天日期」改为「**内容哈希**」、`WriteOnce` 从「当天已存在」改为「**内容相同**」+ **异内容拒写**
+> ⇒ 「跨天重跑必然产副本」与「同天二次重跑静默改写已签核记录」两个失效形态同时拆掉;
+> 判据 3 条(`StateReportWalkthroughProbe` 16/16 绿),证伪 **G1–G3 全转红**,全量 `3797/3751/1/45` = 基线 +3。
+> 回退范围**仅 E5 这一个签核格**,不波及 E1–E4(构建期门,与签核无关)。详见 `docs/tech-debt-register.md` §「S15-7 债册刷账批」。
     ⚠️ **签字由用户本人给出**(逐条选项确认后口头授权勾选);机器半不代判。
     ⚠️ **走查工具的本地生成产物**:`docs/audio/` 下三件均为本地产物(`git status` 显示 untracked),
     是否入库由用户裁定 —— 不在库内则记录不随仓库分发。
+    ⚠️ **2026-10-18 reconcile(S15-7)**:本句**已过期** —— 三件自 commit `443a413` 起**已在库**;且 10-18 又生成了两份**逐字节相同**的副本(`statereport-walkthrough-2026-10-18.md` + 同名 manifest,md5 `1ad6ba93…` / `152ea3b0…`),
+    由 probe 的 `RecordFileName()` 按当天日期命名 + `WriteOnce` 不覆盖**必然产生**;两副本已随 S15-5(`910aa79`)入库。
+    ⚠️ **同批订正一处上游账面**:`impl-s18-runtime-audio-assembly-2026-10-18.md:330-332` 写「用户裁定删除 10-18 副本,**已删除**」—— 实测**未删除**。
 - **不产出 cooked**:`audio_requirements.json` 是构建期门输入,运行期无消费者;
   凭空造编码格式 = 第二真源(承 `AudioSettingsRegistryBake` 头注纪律)。
 **Test Evidence**: Integration —— 真身 `unity/Assets/Tests/EditMode/Audio/pipeline_gate_test.cs`

@@ -99,18 +99,27 @@ stories:
     name: "债册刷账批(TD-audio-103 阻塞源改口 + story-016 reconcile + 本 sprint 结案注)"
     file: "docs/tech-debt-register.md"
     priority: nice-to-have
-    status: backlog
+    status: review
     owner: "claude"
     estimate_days: 0          # 复杂度 = S
-    blocker: ""
-    completed: ""
+    blocker: "E5 人半仍待走查人真听 + 改写 15 条 not_reporting(裁定 A 的出路,不可代劳)"
+    completed: "2026-10-18"
+    # 零代码改动;8 项刷账逐条先只读对码(见 impl-s15-7-* §三/§四)。
+    # ✅ 用户裁定两项已落:E5 = A(维持未通过,出路 = 真听后改写 15 条 not_reporting)·
+    #   副本 = A(删)+ C(治法:内容哈希命名 + 内容判等 + 异内容拒写;夹具 3 条、证伪 G1–G3 全红)。
+    # status 记 review 而非 done:E5 人半仍缺(不可代劳)· 031 两半 · 032 ① · BuildAudioSeams ·
+    #   101/102/103 听测均仍 open。全量 3797/3751/1/45 = 基线 +3。
 
   - id: "S15-8"
     name: "/retrospective sprint-14"
-    file: "production/retrospectives/retro-sprint-14-2026-10-18.md"   # 目标件(尚未写)
+    file: "production/retrospectives/retro-sprint-14-2026-10-18.md"   # ✅ 已落盘
     priority: nice-to-have
-    status: backlog
+    status: review
     owner: "claude"
     estimate_days: 0          # 复杂度 = S
-    blocker: ""
-    completed: ""
+    blocker: "retro-13 行动项 3+4(跨 epic 假绿普查)未兑现 ⇒ 已立为 sprint-16 行动项"
+    completed: "2026-10-18"
+    # retro 已写:sprint-14 计划 7/7 + 追加 4 件 = 11 done;strict 提交 47(区间 56)。
+    # 核心:retro-13 行动项 2/4 兑现(证伪轮门全面落地),3+4 未做(同型样本已 3 个);
+    # 件/日基线(3.7 vs 8–10)因件变大不可跨 sprint 比 ⇒ 需重标定 CAPACITY-MODEL。
+    # status 记 review 而非 done:5 条行动项归 sprint-16,本件只完成「写 retro」本身。
