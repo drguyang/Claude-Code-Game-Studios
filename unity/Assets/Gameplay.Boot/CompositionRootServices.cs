@@ -139,6 +139,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 等同一泵);本类只提供引用,**不自行推进 tick**。</para></summary>
         public PatientCueDriver PatientCueDriver { get; }
 
+        /// <summary>病人 cue 驱动内部消费的**同一个** 13 行为导演实例(story-021 起的可观测面)。
+        /// <para>⚠️ 暴露它**不是**把行为态合并成单一所有者 —— `TD-audio-033` ②(视觉侧另持一份)
+        /// 仍 open。此处只为让「装配层究竟喂了 `KnowsClinic` 什么」成为**可判定的**:
+        /// 驱动 `PatientCueDriver` 后读 <c>BehaviorDirector.For(id).Current</c> 即可。</para></summary>
+        public PatientBehaviorDirector BehaviorDirector { get; }
+
         internal CompositionRootServices(EventStream stream, IIdAuthority idAuthority,
                                          InMemoryBlobPool blobPool, IPayloadEncoder encoder,
                                          IPayloadDecoder decoder,
@@ -165,7 +171,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          IAudioCueSink audioSink,
                                          AudioSourcePool audioPool,
                                          bool audioRenderAssembled,
-                                         PatientCueDriver patientCueDriver)
+                                         PatientCueDriver patientCueDriver,
+                                         PatientBehaviorDirector behaviorDirector)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -198,6 +205,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             AudioPool = audioPool;
             AudioRenderAssembled = audioRenderAssembled;
             PatientCueDriver = patientCueDriver;
+            BehaviorDirector = behaviorDirector;
         }
     }
 }

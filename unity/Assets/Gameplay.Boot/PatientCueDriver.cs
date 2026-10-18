@@ -54,6 +54,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly int? _coughCue;
         private readonly int? _breathCue;
         private readonly Func<PatientId, bool> _hasCourse;
+        // story-021:`KnowsClinic(p)` 的**注入缝**(F-13.2 真值源 = 13 的 HomeRegion 语义)。
+        // ⚠️ 装配层**不得发明**「知不知道医馆」—— 此前本类逐字写 `knowsClinic: false`,
+        //    等于把 F-13.2 的一个判定轴焊死在装配层(所有病人永不进 Seeking)。
+        private readonly Func<PatientId, bool> _knowsClinic;
 
         // 每病人的发射 / 呼吸层簿记(呈现层事实,不落盘)。
         private readonly Dictionary<int, int> _lastEmitTick = new Dictionary<int, int>();
@@ -73,6 +77,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ 必须是装配期从事件表解析出的真 ordinal,不得写 `(int)CueKind.Cough`
         /// (见文件头注)。</para></param>
         /// <param name="breathCue">呼吸层 cue 的**事件表 ordinal**(null ⇒ 不起呼吸层循环)。</param>
+        /// <param name="knowsClinic">`KnowsClinic(p)` 的注入缝(story-021)。**必填** ——
+        /// 传 null 即 <see cref="ArgumentNullException"/>,**不提供「静默 false」的默认值**:
+        /// 静默默认正是本缝要消灭的形态(装配层发明行为输入)。生产 = 13 的
+        /// `ClinicKnowledge.KnowsClinic(spawnAnchor(p))`;测试可传恒真 / 恒假。</param>
         /// <param name="hasCourse">「该病人已被 9 建档」的探测面(null ⇒ 视为恒真)。
         /// <para>⚠️ <b>为什么需要</b>:在场登记先于建档 —— `PatientAppearedDriver` 在 tick T 把病人
         /// 写进 <see cref="PresenceRegistry"/> 并写一条 `DiseaseOnset`,而该事件要等 **T+1** 的
@@ -83,6 +91,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         public PatientCueDriver(IAudioCueSink sink, IVitalsQuery vitals, PresenceRegistry presence,
                                 PatientBehaviorDirector behavior, CueIntervals? intervals = null,
                                 int? coughCue = null, int? breathCue = null,
+                                Func<PatientId, bool> knowsClinic = null,
                                 Func<PatientId, bool> hasCourse = null)
         {
             _sink = sink ?? throw new ArgumentNullException(nameof(sink));
@@ -93,6 +102,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             _coughCue = coughCue;
             _breathCue = breathCue;
             _hasCourse = hasCourse;
+            _knowsClinic = knowsClinic ?? throw new ArgumentNullException(nameof(knowsClinic),
+                "knowsClinic 注入缝必填(story-021)—— F-13.2 的真值源归 13 的 HomeRegion 语义," +
+                "装配层不得写死 false / true(AC-021-1)。生产见 CompositionRoot 的接线。");
 
             // 构造期硬校验(与 PatientBehaviorDirector 的破表即抛同口径)。
             List<string> errs = CueIntervals.Validate(_intervals);
@@ -111,6 +123,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 会被上游条件(如终局锁存)压成 0,单看它们无法区分「没接上」与「接上了但没到该发的时候」。
         /// 生产价值:诊断 / 开发者视图读它即可判定装配是否成立。</para></summary>
         public long LastDrivenTick { get; private set; } = -1;
+
+        /// <summary>装配层**实际注入**的 `KnowsClinic(p)` 判定(可观测面;story-021)。
+        /// <para>⚠️ 存在的理由与 <see cref="LastDrivenTick"/> 同族:装配正确性必须**可判定**,
+        /// 不能靠读源码猜。装配层若把注入缝换成写死常量,本方法立刻可观测到 —— 而不必等到
+        /// 某个病人的体征恰好落进寻诊带才发现(那要一整套体征链夹具)。
+        /// 本方法只**转发**注入的委托,不参与任何决策(决策仍在 `OnTickEdge` 内)。</para></summary>
+        /// <param name="patientId">病人。</param>
+        public bool KnowsClinicOf(PatientId patientId) => _knowsClinic(patientId);
 
         /// <summary>呼吸层当前存活的句柄数。</summary>
         public int ActiveBreathCount => _breathHandles.Count;
@@ -167,7 +187,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 if (_hasCourse != null && !_hasCourse(id)) continue;
 
                 // ① 13 的行为态(读一次 IVitalsQuery —— 唯一取数入口)。
-                _behavior.Step(id, knowsClinic: false);
+                _behavior.Step(id, _knowsClinic(id));
                 PatientBehavior behavior = _behavior.For(id);
                 VitalsDto v = _vitals.GetVitals(id);
 

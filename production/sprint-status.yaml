@@ -51,11 +51,11 @@ stories:
     name: "TD-audio-033 knowsClinic 注入缝(装配层不再发明行为输入)"
     file: "production/epics/audio-system/story-021-knowsclinic-injection-seam.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "claude"
     estimate_days: 0          # 复杂度 = M
     blocker: ""
-    completed: ""
+    completed: "2026-10-18"
     # 只结 ①(knowsClinic 硬编码);② 两份行为态分叉明确留 open(归视觉侧/装配层收敛轮)。
 
   # ── Should Have(相互独立,可顺延)──

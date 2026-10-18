@@ -6003,3 +6003,28 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
 - **⚠️ 未证**:AC-44-02 人耳听测(TD-audio-102)· 真 Addressables 装 12 条变体的 PlayMode 夹具 · `assets[]` 重排无专门门 · IL2CPP 三格。
 - **原件**:`production/qa/evidence/impl-s20-voice-variant-selection-2026-10-18.md`。
 - **待用户**:① `/code-review` 后再收口;② 是否提交本批。
+
+### J. S15-3 · story-021(`knowsClinic` 注入缝 · TD-audio-033 ①)—— 实现轮 2026-10-18
+- **改**:`PatientCueDriver.cs`(构造参数 `knowsClinic` **必填**,null ⇒ 具名 ANE —— 所选口径 = **显式 fail-loud**;
+  新可观测面 `KnowsClinicOf(id)`)、`CompositionRoot.cs`(真值链接线 + 可选形参 `ClinicKnowledge`;
+  `behaviorDirector` 提成局部变量)、`CompositionRootServices.cs`(`BehaviorDirector` 可观测)、
+  `ClinicKnowledge.cs`(新增 `RegistryClinicKnowledgeSource`)、
+  **新** `Gameplay.Boot/ClinicKnowledgeDirectory.cs`(F-13.2 三段 + `HomeRegion` 首见缓存)。
+- **测**:新 `knowsclinic_seam_test.cs` **8 测**;证伪 **F1–F6 全转红**。
+  ⚠️ 首轮 F1/F3 **不红**——主测根本没驱动组合根装配件(自己另 new 了一个驱动);加可观测面后转红。
+  F5 首版与 F1 无观测差(行注释被源码门剥掉),改为「只塞文本违例」后转红。两处均如实登记。
+- **全量 EditMode `3765 / 3719 / 1 / 45`**(`unity/Logs/s21-full-editmode.xml`)vs S20 基线 `3757/3712/0/45`
+  ⇒ total **+8** = 新增 8 条;`passed +7 + 1 红 = +8`。唯一红 = `MovementFeedTest` 已知间歇红(`TD-player-01`,单跑 5/5 绿)。
+- **账面**:`TD-audio-033` ① 结案注 + ② 留 open · story-021 勾 4/4 + Completion Notes · sprint-status S15-3 → `review`。
+- **⚠️ 未证 / 留 open**:真值源今日**恒假**(生态区 / POI / 建造三个装载面未接 ⇒ 组合根自建空表);
+  锚点取在场登记簿逻辑格而非 `spawn_anchor(p)`(`O-13-5`);② 两份行为态分叉;AC-13 `[L]` 走查;IL2CPP 三格。
+- **评审**(2026-10-18 两路并行):**BLOCKING 0 · WARNING 8 · INFO 4**。修 2 条并各加反证:
+  W-1(空表测宾语改组合根产物,反证 F8)· W-2(源码门扩到全部生产树 `scanned>300`,反证 F7)。
+  W-3(`StripComments`)**已落未证**(无夹具)—— 如实登记。
+- **原件**:`production/qa/evidence/impl-s21-knowsclinic-seam-2026-10-18.md`(实现)+
+  `review-s21-knowsclinic-seam-2026-10-18.md`(评审)。
+- **顺带事实订正**:生产侧 `new PatientBehaviorDirector(` 唯一在组合根,`PatientSpatialDirector` 生产零构造点
+  ⇒ `TD-audio-033` ② 是**前瞻性**债项,今天在生产里不成立;已写回债行。
+- **终轮全量 `3765 / 3720 / 0 / 45`**(`unity/Logs/s21-full-editmode.xml`)。
+- **已收口**:story-021 `Status: Complete` · sprint-status S15-3 → `done`。
+- **待用户**:是否提交本批(S15-2 / S15-3 两件均待提交/收口)。

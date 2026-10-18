@@ -535,7 +535,9 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             return new PatientCueDriver(
                 sink, vitals, presence, new PatientBehaviorDirector(vitals, BehaviorBands.Default),
                 intervals: CueIntervals.Default,
-                coughCue: coughCue, breathCue: breathCue, hasCourse: hasCourse);
+                coughCue: coughCue, breathCue: breathCue,
+                knowsClinic: KnowsClinicForTest,       // story-021:缝必填(AC-021-1)
+                hasCourse: hasCourse);
         }
 
         private static PresenceRegistry PresenceWith(int patientId)
@@ -674,7 +676,8 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.Throws<ArgumentException>(() => new PatientCueDriver(
                 new CountingSink(), new FakeVitals(0.5f), PresenceWith(7),
                 new PatientBehaviorDirector(new FakeVitals(0.5f), BehaviorBands.Default),
-                intervals: broken, coughCue: 0, breathCue: 1));
+                intervals: broken, coughCue: 0, breathCue: 1,
+                knowsClinic: KnowsClinicForTest));
         }
 
         [Test]
@@ -805,7 +808,13 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             => new PatientCueDriver(
                 sink, vitals, presence, new PatientBehaviorDirector(vitals, BehaviorBands.Default),
                 intervals: CueIntervals.Default,
-                coughCue: coughCue, breathCue: breathCue);
+                coughCue: coughCue, breathCue: breathCue,
+                knowsClinic: KnowsClinicForTest);
+
+        /// <summary>story-021 起的**必填**注入缝:本夹具只测 cue 调度 / 尾音,
+        /// `KnowsClinic` 取恒假(病人停在 Idle —— 与 story-021 前硬编码 `false` 的行为等价,
+        /// 不影响本夹具的任何判据)。缝本身的判别力归 `knowsclinic_seam_test`。</summary>
+        private static bool KnowsClinicForTest(DaYiJingCheng.Sim.Contracts.PatientId _) => false;
 
         /// <summary>推进 [from, to) 的 tick 边沿,每拍按给定脚本改体征。</summary>
         private static void RunTicks(PatientCueDriver driver, ScriptedVitals vitals, int from, int to,
