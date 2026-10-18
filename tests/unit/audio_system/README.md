@@ -693,3 +693,38 @@
 > **测试数**:门 `event_table_gate_test` 本件 **+6**(34 → 69 全套件)·
 > 运行期 `runtime_assembly_test` **+9**(27 → 36)。
 > ⚠️ 证伪记录(F1–F9)与两处假绿(FG-1 / FG-2)见证据原件 §三。
+
+---
+
+## Story 020(语声变体选择接进运行期 —— AC-44-02 运行期半边)
+
+> 权威:`production/epics/audio-system/story-020-voice-variant-selection-wired.md` ·
+> 证据原件 `production/qa/evidence/impl-s20-voice-variant-selection-2026-10-18.md`
+> 来源债:`TD-audio-030`(`AudioClipLibrary` 恒取 `Assets[0]`;`VoiceVariantLib` 生产零调用)
+
+**载体**
+
+| 面 | 实际落地树 | 说明 |
+|---|---|---|
+| 选择面 | `unity/Assets/Tests/EditMode/Audio/voice_selection_wiring_test.cs`(新) | 真 `AudioClipLibrary` + 真 `VoiceVariantLib` + **真种子** `assets/data/audio_events.json`(经 `AudioEventTableBake` 真烘焙)。唯一替身 = 生产代码自己声明的装载缝 `Preload(loader:)`(EditMode 无 catalog) |
+| 纯函数面 | `unity/Assets/Tests/EditMode/Audio/voice_variants_test.cs`(既有 21 测) | `BucketBand` / `IdentityScalar` / `SelectSlot` 加入后**语义未变**(`SelectVariant` 仍返槽起点) |
+
+## AC → 测试函数映射
+
+| AC | 测试函数 | 性质 |
+|---|---|---|
+| **AC-020-1** | `VoiceSelectionWiringTest.test_ac020_1_multiAssetCue_usesRealSelector_notAssetsZero` | [A] 逐 (tier × 身份) 与生产选择器复算等值 |
+| | `test_ac020_1_selectorBinding_pinnedOnProductionClass` | [A] 反射钉入口 + **生产程序集 IL** 扫 `SelectVariant`/`SelectSlot` 真调用 |
+| | `test_ac020_1_singleAssetAndInvalidInputs_behaveUnchanged` | [A] 单素材行不变 / 越界 ⇒ null / 空表 ⇒ -1 |
+| **AC-020-2** | `test_ac020_2_sameIdentity_isDeterministic` | [A] 确定性 |
+| | `test_ac020_2_distinctPatients_doNotAlwaysShareVariant` | [A] 分布(每 tier ≥ 2 条) |
+| | `test_ac020_2_distribution_coversSlot` | [A] 分布覆盖 |
+| | `test_ac020_2_identityScalar_spreadsAcrossRange` | [A] 哈希不塌缩 + 三桶可达 |
+| | `test_ac020_2_cueSource_reachesSelector_notJustCueOrdinal` | [A] 生产接线:`AudioCueDto.Source` 真进选择键(真池 + 真渲染目标) |
+| **AC-020-3** | `test_ac020_3_allTwelveVoVariants_reachable` | [A] 12 条逐条可达(清单取自真表行) |
+| **AC-020-4** | `docs/tech-debt-register.md` `TD-audio-030` · `docs/architecture/tr-registry.yaml` `TR-diag-022` note | 账面 |
+
+> **测试数**:`voice_selection_wiring_test` **9**(新)。
+> 全量 EditMode `3757 / 3712 / 0 / 45`(基线 S19 `3748 / 3703 / 0 / 45` ⇒ **+9 = 新增 9 条**)。
+> ⚠️ 证伪 F1–F8 全转红;一处失败尝试(F8-a 对调解析缝优先级 ⇒ 不红)与未证项(人耳听测 /
+> 真 Addressables 12 条装载 / `assets[]` 重排无门)见证据原件 §三 / §五。

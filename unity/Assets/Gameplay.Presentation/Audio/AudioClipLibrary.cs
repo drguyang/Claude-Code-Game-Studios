@@ -7,6 +7,11 @@
 //   「渲染翻译」(`AudioSourceRenderTarget`)与「总线解析」(`AudioBusResolver`)分开,
 //   使后两者在 EditMode 用假件直驱(不需要 catalog)。
 //
+// ⚠️ **变体选择(story-020)** —— 一行多素材时**全部**装,取哪条由
+//   `VoiceVariantLib.SelectVariant`(CueId × Tier × 桶)+ `VoiceVariantLib.SelectSlot`(患者身份)决定,
+//   变体索引 i ↔ `assets[i]`(见 `Resolve(int,int,int,int)` 的 remarks)。本类仍是装载面:
+//   选择语义零落在本类(自造的只有「行 → 单行变体库」的投影形状)。
+//
 // ⚠️ **address = bare 文件名**(与 `assets/data/audio_events.json` 的 `assets[]` 同形)——
 //   `DataBakeMenu.EnsureAudioGroupCore` 逐条 `SetAddress(Path.GetFileName(path))`,
 //   零映射代码(承 story-010 的裁定 ②)。
@@ -35,8 +40,13 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
     public sealed class AudioClipLibrary : IDisposable
     {
         private readonly AudioEventDataSet _table;
-        private readonly Dictionary<int, AudioClip> _clips = new Dictionary<int, AudioClip>();
+        // 行序 → 该行**全部**已装变体(位置 = 变体索引;缺的素材留 null)。
+        private readonly Dictionary<int, AudioClip[]> _clips = new Dictionary<int, AudioClip[]>();
         private readonly List<UnityEngine.Object> _handles = new List<UnityEngine.Object>();
+        // 经注入装载缝装进来的 clip 的 `Addressables.Release` 包装(
+        // ⚠️ Addressables.Release 收到它不认识的对象会打 [Error] ⇒ 测试判 Unhandled log;
+        // 注入缝装载的对象本就不归 Addressables 管,释放只在缝内 `internalRelease` 里回调)。
+        private readonly List<Action> _loaderReleases = new List<Action>();
         private readonly HashSet<int> _missing = new HashSet<int>();
         private bool _disposed;
 
@@ -52,16 +62,28 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
                     "构建期 D6/D9 门本应拦下)。", nameof(table));
         }
 
-        /// <summary>已装载的 clip 数。</summary>
+        /// <summary>已装载的**行**数(每行至少一条素材装成才计;行内多素材只算一行)。</summary>
         public int LoadedCount => _clips.Count;
 
         /// <summary>装载失败的 cue ordinal 集合(可观测;非空 = 装配错或素材缺失)。</summary>
         public IReadOnlyCollection<int> MissingCues => _missing;
 
-        /// <summary>逐行装载 clip(**首拍前**调用;幂等)。</summary>
-        /// <param name="onError">单条失败回调(可选;null = 只计数)。</param>
+        /// <summary>逐行装载 clip(**首拍前**调用;幂等)。
+        /// <para>⚠️ **行内全部** <c>assets[]</c> 都装(story-020):变体选择在
+        /// <see cref="Resolve(int,int,int,int)"/> 里经 <see cref="VoiceVariantLib.SelectVariant"/>
+        /// 按 (CueId × Tier × 桶 × 患者身份) 落定;本类仍是**装载面**,只负责「把可选的那些都装进来」。</para></summary>
+        /// <param name="onError">单条失败回调(可选;null = 只计数)。一行内部分素材失败时
+        /// 该行只要**至少一条**装载成功即不算缺(仍计数,便于观测)。</param>
+        /// <param name="loader">地址 → clip 的装载缝(可选;null = 生产路径
+        /// <see cref="LoadClip"/> → Addressables)。EditMode 无 catalog ⇒ 测选择面时注入假件,
+        /// 使 <c>clip.name</c> 可断言「选中了哪条变体」。<b>经该缝装来的 clip 归缝方所有</b>:
+        /// 本类在 <see cref="Dispose"/> 时调 <paramref name="internalRelease"/> 而非
+        /// <c>Addressables.Release</c>。</param>
+        /// <param name="internalRelease">释放缝方 clip 的回调(可选;null = 交由缝方自行释放)。</param>
         /// <returns>本次新装载成功的条数。</returns>
-        public int Preload(Action<int, string, string> onError = null)
+        public int Preload(Action<int, string, string> onError = null,
+                           Func<string, AudioClip> loader = null,
+                           Action<AudioClip> internalRelease = null)
         {
             ThrowIfDisposed();
             int added = 0;
@@ -78,28 +100,128 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
                     continue;
                 }
 
-                // 一行多素材(咳嗽 12 变体 / 世界事件 4 变体)—— P0 取**首条**:
-                // 变体选择(VoiceVariantLib / SelectVariant)归 13 的语义侧,本类是装载面。
-                // ⚠️ 这不是「随机挑一条」—— 是**确定性的第 0 条**,可重建。
-                string address = row.Assets[0];
-                AudioClip clip = LoadClip(address, out string error);
-                if (clip == null)
+                // 一行多素材(咳嗽 12 变体 / 世界事件 4 变体)—— 逐条装,**位置顺序即变体索引**
+                // (variant index i ↔ assets[i];与 `VoiceVariantLib` 的整数索引同形,ADR-014)。
+                // 缺的素材留 null 位置:选择器落到它时 `Resolve` 回退到行内首个已装变体
+                // (素材存在性已由构建期 D6 门拦下,运行期 miss = 装配错,记数可观测)。
+                var loaded = new AudioClip[row.Assets.Length];
+                for (int v = 0; v < row.Assets.Length; v++)
+                {
+                    AudioClip clip;
+                    string error;
+                    if (loader != null)
+                    {
+                        clip = loader(row.Assets[v]);
+                        error = $"装载缝返回 null(address={row.Assets[v]})";
+                    }
+                    else
+                    {
+                        clip = LoadClip(row.Assets[v], out error);
+                    }
+                    if (clip == null)
+                    {
+                        onError?.Invoke(ordinal, row.Cue, error);
+                        continue;
+                    }
+                    loaded[v] = clip;
+                    if (loader == null) _handles.Add(clip);
+                    else if (internalRelease != null) _loaderReleases.Add(() => internalRelease(clip));
+                    added++;
+                }
+
+                if (FirstLoaded(loaded) == null)
                 {
                     _missing.Add(ordinal);
-                    onError?.Invoke(ordinal, row.Cue, error);
                     continue;
                 }
 
-                _clips[ordinal] = clip;
-                _handles.Add(clip);
-                added++;
+                _clips[ordinal] = loaded;
             }
             return added;
         }
 
         /// <inheritdoc/>
+        /// <remarks><b>语义(story-020 起)</b>:等价于 <c>Resolve(cue, cue, 0, 0)</c> ——
+        /// 身份维取 0 的确定性选择。**单素材行**恒为该条;**多素材行**不保证是 <c>assets[0]</c>。
+        /// 生产路径按条目的声源实体选变体,见 <see cref="ResolveCue(in AudioCueDto,int)"/>。</remarks>
         public AudioClip Resolve(int cue)
-            => _clips.TryGetValue(cue, out AudioClip clip) ? clip : null;
+            => Resolve(cue, cue, 0, 0);
+
+        /// <summary>cue × Tier × 桶 × 患者身份 → clip(story-020 · AC-44-02 运行期半边)。
+        /// <para><b>选择键</b> = <c>(CueId × Tier × 桶 × 患者身份)</c> —— 前三维经
+        /// <see cref="VoiceVariantLib.SelectVariant"/> 落定**选取槽**(桶序 弱&gt;中&gt;强 &gt; 其它),
+        /// 身份维落定槽内**变体位置**(<see cref="VoiceVariantLib.SelectSlot(int,int,int)"/>,
+        /// 纯整数确定性映射,无墙钟 / 无 <c>UnityEngine.Random</c>)。</para>
+        /// <para>⚠️ <b>变体索引 → 素材位置</b>:事件表 <c>assets[]</c> 无索引列 ⇒
+        /// 变体索引 i ↔ <c>assets[i]</c>(作者序即变体轴序;重排 = 换声音,构建期门管)。</para>
+        /// <para>⚠️ 单素材行:选择器照走,值 = 表行序(与 <c>AudioCueDto.Cue</c> 同值)。
+        /// 带槽 / 越界 cue / 未装载 ⇒ null(非静默:调用方计 miss)。</para></summary>
+        /// <param name="cue">cue ordinal(<c>AudioCueDto.Cue</c>;条目的循环 / 一次性身份)。</param>
+        /// <param name="tableCueId">该 cue 在变体库里的 CueId(生产 = <paramref name="cue"/>;
+        /// 单测可分家以复现「表里无行」路径)。</param>
+        /// <param name="tier">精度档(0–2;设备级,本机恒 0)。</param>
+        /// <param name="identity">患者身份(确定性输入;环境音取 cue 自身)。</param>
+        public AudioClip Resolve(int cue, int tableCueId, int tier, int identity)
+        {
+            if (cue < 0 || cue >= _table.RowCount) return null;
+            if (!_clips.TryGetValue(cue, out AudioClip[] loaded)) return null;
+
+            AudioEventRow row = _table.Row(cue);
+            AudioClip first = FirstLoaded(loaded);
+            if (loaded.Length <= 1 || row.Assets == null || row.Assets.Length <= 1) return first;
+
+            // 多素材行:走真选择器(AC-020-1 判据宾语 = 生产类,禁测试自造)。
+            VoiceVariantLib.VoiceVariantTable variantTable = VariantTableOf(cue, tableCueId, row);
+            int bucket = VoiceVariantLib.SelectVariant(variantTable, tableCueId, tier,
+                                                       VoiceBucketOf(identity));
+            int variant = VoiceVariantLib.SelectSlot(bucket, loaded.Length, identity);
+
+            AudioClip clip = variant >= 0 && variant < loaded.Length ? loaded[variant] : null;
+            return clip ?? first;
+        }
+
+        /// <summary>条目的 clip 解析(<see cref="AudioSourceRenderTarget"/> 的说明路径):
+        /// 身份取条目声源实体(环境音 <c>Source == -1</c> 取 cue 自身),Tier 取本机档 0。</summary>
+        /// <param name="cueDto">上游条目(唯一下行入口 <c>IAudioCueSink</c> 的同一形状)。</param>
+        /// <param name="tier">本机精度档(0–2)。</param>
+        public AudioClip ResolveCue(in AudioCueDto cueDto, int tier = 0)
+            => Resolve(cueDto.Cue, cueDto.Cue, tier,
+                       cueDto.Source >= 0 ? cueDto.Source : cueDto.Cue);
+
+        // ══════════ 变体选择辅助(story-020)══════════
+
+        /// <summary>把事件表一行的 <c>assets[]</c> 投影成**单行**变体库:三桶 ⇒ 三个选取槽
+        /// (<see cref="VoiceVariantLib.BucketBand"/> 起步槽宽,末槽截余),槽内变体索引 = 素材位置。
+        /// <para>⚠️ 投影只塑形,不选 —— 选中哪条全由 <see cref="VoiceVariantLib.SelectVariant"/> /
+        /// <see cref="VoiceVariantLib.SelectSlot(int,int,int)"/> 决定。</para></summary>
+        private static VoiceVariantLib.VoiceVariantTable VariantTableOf(int cue, int tableCueId,
+                                                                       in AudioEventRow row)
+        {
+            int count = row.Assets.Length;
+            int band = VoiceVariantLib.BucketBand(count);
+            var weak = new int[band];
+            var medium = new int[band];
+            int strongCount = count - 2 * band;
+            var strong = new int[strongCount];
+            for (int i = 0; i < band; i++) { weak[i] = i; medium[i] = band + i; }
+            for (int i = 0; i < strongCount; i++) strong[i] = 2 * band + i;
+
+            var variantRow = new VoiceVariantLib.VoiceVariantRow(tableCueId, gender: 0, weak, medium, strong);
+            return new VoiceVariantLib.VoiceVariantTable(new[] { variantRow });
+        }
+
+        /// <summary>强度桶 —— 输入取患者身份(AC-020-2:桶的派生输入来自身份,确定性)。
+        /// 身份 → 0–255 全域复用 <see cref="VoiceVariantLib.IdentityScalar(int,int)"/> 的整数哈希
+        /// (⚠️ 不用 <c>SelectSlot</c>:它被槽宽限死,只能覆盖弱桶 ⇒ 三桶不可达)。</summary>
+        private static VoiceBucket VoiceBucketOf(int identity)
+            => VoiceVariantLib.ComputeBucket((byte)VoiceVariantLib.IdentityScalar(identity, 256));
+
+        private static AudioClip FirstLoaded(AudioClip[] loaded)
+        {
+            for (int i = 0; i < loaded.Length; i++)
+                if (loaded[i] != null) return loaded[i];
+            return null;
+        }
 
         /// <summary>cue ordinal → 事件表 `bus` 列(null / 空串 ⇒ null;未知 ordinal ⇒ null)。</summary>
         /// <param name="cue">语义 cue id。</param>
@@ -196,6 +318,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
                 if (asset != null) Addressables.Release(asset);
             }
             _handles.Clear();
+            for (int i = 0; i < _loaderReleases.Count; i++) _loaderReleases[i]();
+            _loaderReleases.Clear();
             _clips.Clear();
             _missing.Clear();
         }

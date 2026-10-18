@@ -321,8 +321,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             var audioPool = new AudioSourcePool(busResolver: audio?.Buses);
             ICueRenderTarget renderTarget = audio != null && audio.HasAny
                 ? (ICueRenderTarget)new AudioSourceRenderTarget(audioPool,
+                                                                // story-020:按整条 cue 解析 —— 变体选择键含
+                                                                // 患者身份(cue.Source),只给 ordinal 分不开病人。
                                                                 cue => audio.Clips != null
-                                                                        ? audio.Clips.Resolve(cue) : null,
+                                                                        ? audio.Clips.ResolveCue(cue) : null,
                                                                 cue => audio.Clips != null
                                                                         ? audio.Clips.BusOf(cue) : null)
                 : new NullRenderTarget();

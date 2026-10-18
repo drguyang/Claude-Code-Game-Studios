@@ -39,6 +39,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
     {
         private readonly AudioSourcePool _pool;
         private readonly Func<int, AudioClip> _clipOf;
+        // story-020:按**整条 cue**(含声源实体 / 强度)解析 —— 变体选择要用到 Source 作患者身份。
+        private readonly Func<AudioCueDto, AudioClip> _cueClipOf;
         private readonly Func<int, string> _busForCue;
 
         // 循环句柄 id → 已占用的 actorId。循环 cue 的 actor = 句柄 id 的**负偏移**
@@ -64,13 +66,32 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             _busForCue = busForCue;
         }
 
+        /// <summary>按**整条 cue** 解析 clip 的构造(story-020 —— 生产路径用这条)。
+        /// <para>为什么需要整条:变体选择键含**患者身份**(<c>AudioCueDto.Source</c>),
+        /// 只给 ordinal 无法区分「同一 cue 的两个病人」。见
+        /// <c>AudioClipLibrary.ResolveCue</c>。</para></summary>
+        /// <param name="pool">声源池(非 null)。</param>
+        /// <param name="cueClipOf">cue → clip 的解析缝(null ⇒ 恒 miss,可观测)。</param>
+        /// <param name="busForCue">cue ordinal → bus 名。</param>
+        public AudioSourceRenderTarget(AudioSourcePool pool, Func<AudioCueDto, AudioClip> cueClipOf,
+                                       Func<int, string> busForCue = null)
+        {
+            _pool = pool ?? throw new ArgumentNullException(nameof(pool));
+            _cueClipOf = cueClipOf;
+            _busForCue = busForCue;
+        }
+
+        private AudioClip ClipOf(in AudioCueDto cue)
+            => _cueClipOf != null ? _cueClipOf(cue)
+             : _clipOf != null ? _clipOf(cue.Cue) : null;
+
         /// <summary>当前在响的循环数。</summary>
         public int ActiveLoopCount => _loopActors.Count;
 
         /// <inheritdoc/>
         public void PlayOneShot(in AudioCueDto cue)
         {
-            AudioClip clip = _clipOf != null ? _clipOf(cue.Cue) : null;
+            AudioClip clip = ClipOf(cue);
             if (clip == null) { ClipMissCount++; return; }
 
             // 一次性 cue 的 actor 键 = 声源实体 id(病人 / 玩家);同实体复播复用同一源。
@@ -84,7 +105,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <inheritdoc/>
         public void StartLoop(in AudioCueDto cue, int handleId)
         {
-            AudioClip clip = _clipOf != null ? _clipOf(cue.Cue) : null;
+            AudioClip clip = ClipOf(cue);
             if (clip == null) { ClipMissCount++; return; }
 
             int actor = LoopActorOf(handleId);

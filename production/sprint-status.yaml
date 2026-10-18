@@ -38,10 +38,10 @@ stories:
     name: "TD-audio-030 语声变体混合接线(AudioClipLibrary 由恒取 Assets[0] → VoiceVariantLib.SelectVariant)"
     file: "production/epics/audio-system/story-020-voice-variant-selection-wired.md"
     priority: must-have
-    status: ready-for-dev
+    status: in-progress
     owner: "claude"
     estimate_days: 0          # 复杂度 = L
-    blocker: ""
+    blocker: "实现已落(9 测绿 · F1–F8 全转红 · 全量 3757/3712/0/45 = +9);待 /code-review 与收口"
     completed: ""
     # 🔁 2026-10-18 前提订正:12 个 vo_ 变体已在场(旧说法「未录制」过时)⇒ 阻塞只剩选择器。
     # ⚠️ 回归面较宽(改 S14-6 烘焙产物读取面)⇒ 全量 EditMode/PlayMode 对账,等式判据。

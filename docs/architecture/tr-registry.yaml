@@ -1343,7 +1343,7 @@
     adr: docs/architecture/adr-018-audio-architecture.md
     status: covered
     revised: "2026-09-15"
-    note: "ADR-018 §四:AC-44-03 —— 素材形态 = 变体库(男/女 × 强/中/弱 × 数种句尾),按 (病种语义, 精度档, 强度) 选变体并交叉淡化;**禁**对已录语声做五项独立调制;AC-44-04 交叉淡化无爆音 / 相位抵消"
+    note: "ADR-018 §四:AC-44-03 —— 素材形态 = 变体库(男/女 × 强/中/弱 × 数种句尾),按 (病种语义, 精度档, 强度) 选变体并交叉淡化;**禁**对已录语声做五项独立调制;AC-44-04 交叉淡化无爆音 / 相位抵消 ⚠️ **运行期半边(story-020 · 2026-10-18 接线)**:选择器已接进生产 —— `AudioClipLibrary.Resolve(cue, tableCueId, tier, identity)` 经 `VoiceVariantLib.SelectVariant`(CueId × Tier × 桶)+ `SelectSlot`(患者身份)选变体,`ResolveCue(in AudioCueDto)` 取 `Source` 作身份;证伪判据 = 停用选择器 ⇒ `VoiceSelectionWiringTest` 7 例转红。**仍未证**:人耳听测(`TD-audio-102`,AC-44-03 的 [L] 半边)"
 
   - id: TR-diag-023
     system: diagnosis-system

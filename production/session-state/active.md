@@ -5990,3 +5990,16 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
   实现停在**分段重复尾音**(每 1.5 s 重开一段)—— 听测判据 3 专门判「是否一阵一阵」。
 - **原件**:`production/qa/evidence/impl-s19-ac44-10-breath-tail-2026-10-18.md`;TD-audio-100 / OQ-44-7 已刷「代码半边 / 未结案」。
 - **待用户**:① 实机听测签核;② 是否提交本批。
+
+### I. S15-2 · story-020(语声变体选择接线 · TD-audio-030)—— 实现轮 2026-10-18
+- **改**:`AudioClipLibrary.cs`(逐条装行内全部 `assets[]`;新增 `Resolve(cue, tableCueId, tier, identity)` 与
+  `ResolveCue(in AudioCueDto)`;`Preload` 增 `loader` / `internalRelease` 两个可选缝)、
+  `VoiceVariantLib.cs`(`BucketBand` / `IdentityScalar` / `SelectSlot`,纯整数零随机)、
+  `AudioSourceRenderTarget.cs`(整条 cue 解析缝,既有 `Func<int,AudioClip>` 保留)、`CompositionRoot.cs`(改走整条 cue)。
+- **测**:新 `voice_selection_wiring_test.cs` **9 测**;证伪 **F1–F8 全转红**;一处失败尝试(F8-a 对调优先级 ⇒ 不红)已记录。
+- **全量 EditMode `3757 / 3712 / 0 / 45`**(`unity/Logs/s20-full-editmode.xml`)vs S19 基线 `3748/3703` ⇒ **+9 = 新增 9 条**,等式严丝合缝。
+  音频全域 `492/492` 零回归。
+- **账面**:`TD-audio-030` 结案注(明写人耳半边未证)· `TR-diag-022` note 补运行期半边判据 · story-020 勾 4/4 + Completion Notes · 账本 README Story 020 段。
+- **⚠️ 未证**:AC-44-02 人耳听测(TD-audio-102)· 真 Addressables 装 12 条变体的 PlayMode 夹具 · `assets[]` 重排无专门门 · IL2CPP 三格。
+- **原件**:`production/qa/evidence/impl-s20-voice-variant-selection-2026-10-18.md`。
+- **待用户**:① `/code-review` 后再收口;② 是否提交本批。

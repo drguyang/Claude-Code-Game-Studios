@@ -12,6 +12,9 @@
 //
 // ⚠️ 分析域与渲染域分离:本文件只交付**分析/选择面**(SelectVariant / bucket / gain_scale /
 //    density_mult);F-44.6 gain_scale 的渲染乘子归 Story 006 的渲染侧,不得越界实现。
+// ⚠️ 2026-10-18 story-020:本库**已接进运行期** —— `AudioClipLibrary.Resolve` 逐条经
+//    SelectVariant(CueId × Tier × 桶)+ SelectSlot(患者身份)选变体(此前恒取 assets[0])。
+//    `SelectVariant` 返回的是**槽起点**(桶内首条);槽内位置由 SelectSlot 按身份落定。
 // ⚠️ 五项调制 Forbidden:音高/气声/语速/断句/共鸣,一个都不能出现在运行时路径;
 //    变体差异只来自录制内容(AC-44-03)。
 // ⚠️ Tier 不参与库轴(F-44.3:364):变体库按 CueId 分行,不含 Tier;
@@ -189,7 +192,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <param name="cueId">cue id(音频事件表 ordinal)。</param>
         /// <param name="tier">精度档(0–2;设备级)。</param>
         /// <param name="bucket">分桶(弱/中/强)。</param>
-        /// <returns>变体索引(指向 GUID 字符串表);缺组合 ⇒ 回退最近可用档的变体索引。</returns>
+        /// <returns>该桶的**槽起点**(桶内首条变体索引;槽宽见 <see cref="BucketBand"/>)。身份维的槽内
+        /// 位置由 <see cref="SelectSlot"/> 落定。缺组合 ⇒ 回退最近可用档的槽起点。</returns>
         public static int SelectVariant(in VoiceVariantTable table, int cueId, int tier, VoiceBucket bucket)
         {
             VoiceVariantRow? row = table.GetRow(cueId);
@@ -212,6 +216,63 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             // 这是确定性的:同输入恒选同变体(AC-44-03)。
             // 取第一个变体(确定性选择,不依赖 tier)。
             return variants[0];
+        }
+
+        // ══════════ story-020:三桶选取槽 + 槽内确定性位置 ══════════
+
+        /// <summary>三桶在一条变体行里的**槽宽**(= 每桶变体数上限)。
+        /// <para>形 = <c>max(1, total / 3)</c>;末桶截余(12 ⇒ 4/4/4;4 ⇒ 1/1/2)。
+        /// 与 <see cref="SelectVariant"/> 的「取桶内首条」配合:桶起点 = <c>桶序 × 槽宽</c>。</para>
+        /// <para>⚠️ 这是**形状**而非数值调参:它只决定「一行素材如何铺进三桶」,
+        /// 不改变分桶阈值(<see cref="BucketLow"/> / <see cref="BucketHigh"/> 归用户)。</para></summary>
+        /// <param name="total">该行变体总数(≤ 0 ⇒ 0)。</param>
+        public static int BucketBand(int total)
+            => total <= 0 ? 0 : Math.Max(1, total / 3);
+
+        /// <summary>身份 → <c>[0, range)</c> 的确定性整数(story-020 · 身份维的**唯一**哈希出处)。
+        /// <para>纯整数(乘 + xorshift 混合 + 取模),**无墙钟 / 无 <c>UnityEngine.Random</c> /
+        /// 无静态可变态** ⇒ 同输入恒同输出(可重放)。身份维的两种用法都走它:
+        /// 桶输入(<paramref name="range"/> = 256 ⇒ byte 全域)与槽内位置(<paramref name="range"/> = 槽宽)。</para>
+        /// <para>⚠️ <b>为什么身份必须进键</b>:只按 (CueId × Tier × 桶) 选,同一 Tier 下**所有**患者
+        /// 会听到同一条咳嗽 —— 变体库形同虚设。身份维让「不同病人不同声音」,且不引入随机源
+        /// (承 ADR-016 §一 三源不变量的呈现侧同型口径)。</para>
+        /// <para><b>API 来源</b>:(a) 纯 BCL 整数运算;(b) 推断 —— EditMode 可用(无引擎依赖)。</para></summary>
+        /// <param name="identity">患者身份(整数;环境音可传 cue id)。</param>
+        /// <param name="range">上界(≤ 0 ⇒ 0)。</param>
+        /// <returns><c>[0, range)</c> 内的确定性值。</returns>
+        public static int IdentityScalar(int identity, int range)
+        {
+            if (range <= 0) return 0;
+            unchecked
+            {
+                uint h = (uint)identity * 2654435761u;
+                h ^= h >> 15;
+                h *= 2246822519u;
+                h ^= h >> 13;
+                h *= 3266489917u;
+                h ^= h >> 16;
+                return (int)(h % (uint)range);
+            }
+        }
+
+        /// <summary>槽内**确定性位置**(story-020 · AC-020-2 的身份维)。
+        /// <para>输入 = (槽起点, 该行变体总数, 患者身份);输出 ∈ <c>[start, min(total, start + 槽宽))</c>。
+        /// 位置由 <see cref="IdentityScalar"/> 的整数哈希落定 —— 身份与槽起点双混,同输入恒同输出。</para>
+        /// <para><b>API 来源</b>:(a) 纯 BCL 整数运算;(b) 推断 —— EditMode 可用(无引擎依赖)。</para></summary>
+        /// <param name="start">槽起点(<see cref="SelectVariant"/> 的返回值;越界 ⇒ 钳到行内)。</param>
+        /// <param name="total">该行变体总数(≤ 0 ⇒ -1)。</param>
+        /// <param name="identity">患者身份(整数;环境音可传 cue id)。</param>
+        /// <returns>变体位置;无可用槽 ⇒ -1。</returns>
+        public static int SelectSlot(int start, int total, int identity)
+        {
+            if (total <= 0) return -1;
+            if (start < 0) start = 0;
+            if (start >= total) return total - 1;
+
+            int end = Math.Min(total, start + BucketBand(total));
+            if (end <= start) return start;
+
+            unchecked { return start + IdentityScalar(identity ^ (start * 40503), end - start); }
         }
 
         // ══════════ 烘焙门:逐 (CueId × Tier × 桶) 全组合非空 ══════════

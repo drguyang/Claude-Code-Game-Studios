@@ -1,7 +1,7 @@
 # Story 020: 语声变体选择接进运行期(AC-44-02「变体库混合」的运行期半边)
 
 > **Epic**: 音频系统
-> **Status**: Ready
+> **Status**: In Progress(实现轮 2026-10-18 已落,待评审/收口)
 > **Layer**: Foundation(44 呈现层的选择语义;不改 sim、不进三流)
 > **Type**: Integration
 > **Estimate**: 1 人日
@@ -40,18 +40,18 @@
 
 ## Tasks
 
-- [ ] **AC-020-1**[A]: `AudioClipLibrary` 多素材行的取用路径由「恒取 `Assets[0]`」改为
+- [x] **AC-020-1**[A]: `AudioClipLibrary` 多素材行的取用路径由「恒取 `Assets[0]`」改为
   **经 `VoiceVariantLib.SelectVariant` 的选择器**;判据宾语 = **真生产类**,
   **禁测试内联自造选择器**(承假绿复核病根)。
   **证伪判据**:把取用回退为恒第 0 条 ⇒ 本断言转红。
-- [ ] **AC-020-2**[A]: 选择键 = `(CueId × Tier × 桶)`,桶的派生输入**来自患者身份**且**确定性**
+- [x] **AC-020-2**[A]: 选择键 = `(CueId × Tier × 桶)`,桶的派生输入**来自患者身份**且**确定性**
   (同输入两次调用 ⇒ 同变体;不同患者在同一 Tier 下**不得**恒同一条 —— 给出分布判据,
   禁「随机」措辞)。
   **证伪判据**:把身份维度从键里删掉 ⇒ 分布断言红。
-- [ ] **AC-020-3**[A]: 12 个 `vo_` 变体**全部可达**(逐个可被选中至少一次)——
+- [x] **AC-020-3**[A]: 12 个 `vo_` 变体**全部可达**(逐个可被选中至少一次)——
   断言宾语 = 真种子事件表 + 真 `VoiceVariantLib`,**禁夹具内联清单**。
   **证伪判据**:让选择器只覆盖前 6 条 ⇒ 本条红。
-- [ ] **AC-020-4**(账面): `TD-audio-030` 结案注(原判定 → 修复落点 → 验证命令);
+- [x] **AC-020-4**(账面): `TD-audio-030` 结案注(原判定 → 修复落点 → 验证命令);
   `TR-diag-022` 补**运行期半边**判据引用。
   ⚠️ **本卡不重算 epic 44 的「16 条未全验证」计数**(承 2026-10-18 听测批同口径)。
 
@@ -77,3 +77,29 @@
 - AC-020-1…3 全 [A] 绿 + 证伪转红记录齐;
 - `TD-audio-030` 结案注落账,`TR-diag-022` 运行期半边判据登记;
 - ⚠️ **44 epic 仍不得收口**(本卡只动 `TD-audio-030` 一条)。
+
+---
+
+## Completion Notes(实现轮 2026-10-18)
+
+**交付**:`AudioClipLibrary` 逐条装行内全部 `assets[]` + `Resolve(cue, tableCueId, tier, identity)`
+经真 `VoiceVariantLib.SelectVariant` / `SelectSlot` 选变体;`ResolveCue(in AudioCueDto)` 取 `Source`
+作身份;`AudioSourceRenderTarget` 增整条 cue 解析缝(既有 `Func<int, AudioClip>` 保留,62 处调用零改动);
+组合根改走该路径。`VoiceVariantLib` 新增 `BucketBand` / `IdentityScalar` / `SelectSlot`(纯整数,零随机源)。
+
+**测试**:`unity/Assets/Tests/EditMode/Audio/voice_selection_wiring_test.cs` **9 测**(新)。
+断言宾语 = 真 `AudioClipLibrary` + 真 `VoiceVariantLib` + 真种子事件表;唯一替身 = 生产代码自己声明的
+装载缝(`Preload(loader:)`)。**无测试内联选择器**。
+
+**证伪**:F1–F8 八例全转红;一处失败尝试(F8-a 对调解析缝优先级 ⇒ 不红)已如实记录 ——
+真正承重的是 `ResolveCue` 的身份来源(F7)。
+
+**回归**:全量 EditMode `3757 / 3712 / 0 / 45`(`unity/Logs/s20-full-editmode.xml`),
+对 S19 基线 `3748 / 3703 / 0 / 45` ⇒ **+9 = 新增 9 条**,等式严丝合缝。音频全域 `492/492` 零回归。
+
+**账面**:`TD-audio-030` 已结案(含「人耳半边未证」的残留声明);`TR-diag-022` note 已补运行期半边判据。
+**未重算** epic 44 的「16 条未全验证」计数(承本卡边界)。
+
+**⚠️ 未证(不借绿)**:AC-44-02 的**人耳听测**(`TD-audio-102`);真 Addressables 装载 12 条变体的
+PlayMode 夹具(现存 PlayMode 测只断言行数);`assets[]` 重排无专门构建期门;IL2CPP 三格。
+原件:`production/qa/evidence/impl-s20-voice-variant-selection-2026-10-18.md`。
