@@ -323,15 +323,34 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    **契约语义(句柄 / 档位)仍成立**,只是没有声音 —— 与装配前的行为一致。
             //    生产路径(BootRoot)传真缝 ⇒ 真播放 + 真总线(A-6)。
             var audioPool = new AudioSourcePool(busResolver: audio?.Buses);
-            ICueRenderTarget renderTarget = audio != null && audio.HasAny
-                ? (ICueRenderTarget)new AudioSourceRenderTarget(audioPool,
-                                                                // story-020:按整条 cue 解析 —— 变体选择键含
-                                                                // 患者身份(cue.Source),只给 ordinal 分不开病人。
-                                                                cue => audio.Clips != null
-                                                                        ? audio.Clips.ResolveCue(cue) : null,
-                                                                cue => audio.Clips != null
-                                                                        ? audio.Clips.BusOf(cue) : null)
-                : new NullRenderTarget();
+
+            // ── 空间化链接线(S15-4 · TD-audio-028 · 用户裁定四项)──────────────
+            // 导演**共享**上面那个池(AC-018-4 单池不变量 / ADR-028 ① —— **禁**走自建池重载)。
+            // ⚠️ 格边长 = `AudioAssemblySeams.LatticeSize`(**此前零读取方的死字段**,本轮起成为唯一入参);
+            //    它今天的 1f 是 **P0 占位**,正式值归系统 6(`LatticeToWorld` 头注明令 44 不自造)。
+            // ⚠️ 遮挡输入**本轮恒 false**(用户裁定):真 raycast 未实现,登记 `TD-audio-028` 残留。
+            float latticeSize = audio?.LatticeSize > 0f
+                ? audio.LatticeSize : AudioTuning.LatticeSizePlaceholder;
+            SpatializationDirector spatialDirector = null;
+            ICueRenderTarget renderTarget;
+            if (audio != null && audio.HasAny)
+            {
+                spatialDirector = new SpatializationDirector(latticeSize, audioPool);
+                var sources = new AudioSourceRenderTarget(audioPool, spatialDirector, latticeSize,
+                                                          // story-020:按整条 cue 解析 —— 变体选择键含
+                                                          // 患者身份(cue.Source),只给 ordinal 分不开病人。
+                                                          cue => audio.Clips != null
+                                                                  ? audio.Clips.ResolveCue(cue) : null,
+                                                          cue => audio.Clips != null
+                                                                  ? audio.Clips.BusOf(cue) : null,
+                                                          // 遮挡:用户 2026-10-18 裁定「本轮恒 false,登记缺口」
+                                                          occludedFor: () => false);
+                renderTarget = sources;
+            }
+            else
+            {
+                renderTarget = new NullRenderTarget();
+            }
             var audioSink = new CueRenderSink(renderTarget);
             audioSink.SetTier(TierSource.Local);      // 裁定 D-A:恒本机档
 
@@ -459,7 +478,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                tickDriver, prescribeDriver, prescribePorts,
                                                portionsStore, emergencyCandidates,
                                                prescriptionPage, casebookCommands,
-                                               audioSink, audioPool,
+                                               audioSink, audioPool, spatialDirector,
+                                               renderTarget as AudioSourceRenderTarget,
                                                // ⚠️ **单一出处**:标志由**已构造出的那个对象**派生,
                                                // 不重算一遍 `audio != null && audio.HasAny` ——
                                                // 重算 = 同一判断的第二份拷贝,两者可分叉(证伪轮 F4 实测:

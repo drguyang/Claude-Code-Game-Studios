@@ -1,42 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
-<test-run id="2" testcasecount="1" result="Passed" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.0747534">
-  <test-suite type="TestSuite" id="1000" name="unity" fullname="unity" runstate="Runnable" testcasecount="823" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.074753" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+<test-run id="2" testcasecount="5" result="Passed" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-18 11:04:07Z" end-time="2026-10-18 11:04:08Z" duration="0.2337546">
+  <test-suite type="TestSuite" id="1000" name="unity" fullname="unity" runstate="Runnable" testcasecount="3781" result="Passed" start-time="2026-10-18 11:04:07Z" end-time="2026-10-18 11:04:08Z" duration="0.233755" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
     <properties>
       <property name="platform" value="EditMode" />
     </properties>
-    <test-suite type="Assembly" id="1865" name="Sim.Contracts.Tests.dll" fullname="/home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity/Library/ScriptAssemblies/Sim.Contracts.Tests.dll" runstate="Runnable" testcasecount="822" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.062090" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <test-suite type="Assembly" id="4732" name="Sim.Contracts.Tests.dll" fullname="/home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity/Library/ScriptAssemblies/Sim.Contracts.Tests.dll" runstate="Runnable" testcasecount="3503" result="Passed" start-time="2026-10-18 11:04:07Z" end-time="2026-10-18 11:04:08Z" duration="0.204019" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
       <properties>
-        <property name="_PID" value="3799870" />
+        <property name="_PID" value="714337" />
         <property name="_APPDOMAIN" value="Unity Child Domain" />
         <property name="platform" value="EditMode" />
         <property name="EditorOnly" value="True" />
       </properties>
-      <test-suite type="TestSuite" id="1866" name="DaYiJingCheng" fullname="DaYiJingCheng" runstate="Runnable" testcasecount="822" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.056858" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <test-suite type="TestSuite" id="4733" name="DaYiJingCheng" fullname="DaYiJingCheng" runstate="Runnable" testcasecount="3503" result="Passed" start-time="2026-10-18 11:04:08Z" end-time="2026-10-18 11:04:08Z" duration="0.183643" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
         <properties />
-        <test-suite type="TestSuite" id="1867" name="Tests" fullname="DaYiJingCheng.Tests" runstate="Runnable" testcasecount="822" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.051861" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <test-suite type="TestSuite" id="4734" name="Tests" fullname="DaYiJingCheng.Tests" runstate="Runnable" testcasecount="3503" result="Passed" start-time="2026-10-18 11:04:08Z" end-time="2026-10-18 11:04:08Z" duration="0.163491" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
           <properties />
-          <test-suite type="TestSuite" id="1868" name="Unit" fullname="DaYiJingCheng.Tests.Unit" runstate="Runnable" testcasecount="822" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.046961" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <test-suite type="TestSuite" id="4754" name="Boot" fullname="DaYiJingCheng.Tests.Boot" runstate="Runnable" testcasecount="102" result="Passed" start-time="2026-10-18 11:04:08Z" end-time="2026-10-18 11:04:08Z" duration="0.128349" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
             <properties />
-            <test-suite type="TestSuite" id="1872" name="Audio" fullname="DaYiJingCheng.Tests.Unit.Audio" runstate="Runnable" testcasecount="153" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.039881" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <test-suite type="TestFixture" id="2968" name="MovementFeedTest" fullname="DaYiJingCheng.Tests.Boot.MovementFeedTest" classname="DaYiJingCheng.Tests.Boot.MovementFeedTest" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-10-18 11:04:08Z" end-time="2026-10-18 11:04:08Z" duration="0.125413" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
               <properties />
-              <test-suite type="TestFixture" id="1732" name="BreathLayersTest" fullname="DaYiJingCheng.Tests.Unit.Audio.BreathLayersTest" classname="DaYiJingCheng.Tests.Unit.Audio.BreathLayersTest" runstate="Runnable" testcasecount="38" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.037603" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
-                <properties />
-                <test-case id="1748" name="test_experiment1_getFloatAlone_discriminatesHaVsHb" fullname="DaYiJingCheng.Tests.Unit.Audio.BreathLayersTest.test_experiment1_getFloatAlone_discriminatesHaVsHb" methodname="test_experiment1_getFloatAlone_discriminatesHaVsHb" classname="DaYiJingCheng.Tests.Unit.Audio.BreathLayersTest" runstate="Runnable" seed="621391776" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.021143" asserts="0">
-                  <properties>
-                    <property name="retryIteration" value="0" />
-                    <property name="repeatIteration" value="0" />
-                  </properties>
-                  <output><![CDATA[[实验1·GetFloat] bus_volume_master ⇒ got=True value=0
-[实验1·GetFloat] bus_volume_music ⇒ got=True value=0
-[实验1·GetFloat] bus_volume_ambience ⇒ got=True value=0
-[实验1·GetFloat] bus_volume_voice ⇒ got=True value=0
-[实验1·GetFloat] bus_volume_sfx ⇒ got=True value=0
-[实验1·GetFloat] bus_volume_stethoscope ⇒ got=True value=0
-[实验1·GetFloat] bus_volume_uicue ⇒ got=True value=0
-Saving results to: /home/gu/.config/unity3d/DefaultCompany/unity/TestResults.xml
+              <test-case id="2973" name="test_move_afterFreeFall_horizontalDisplacementBoundedByConfig" fullname="DaYiJingCheng.Tests.Boot.MovementFeedTest.test_move_afterFreeFall_horizontalDisplacementBoundedByConfig" methodname="test_move_afterFreeFall_horizontalDisplacementBoundedByConfig" classname="DaYiJingCheng.Tests.Boot.MovementFeedTest" runstate="Runnable" seed="2068376203" result="Passed" start-time="2026-10-18 11:04:08Z" end-time="2026-10-18 11:04:08Z" duration="0.094532" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2969" name="test_processMovementFrame_crossesCell_emitsExactlyOneActorCellEntered" fullname="DaYiJingCheng.Tests.Boot.MovementFeedTest.test_processMovementFrame_crossesCell_emitsExactlyOneActorCellEntered" methodname="test_processMovementFrame_crossesCell_emitsExactlyOneActorCellEntered" classname="DaYiJingCheng.Tests.Boot.MovementFeedTest" runstate="Runnable" seed="1028695352" result="Passed" start-time="2026-10-18 11:04:08Z" end-time="2026-10-18 11:04:08Z" duration="0.002738" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2971" name="test_processMovementFrame_diagonalAxis_normalizedAndSingleEvent" fullname="DaYiJingCheng.Tests.Boot.MovementFeedTest.test_processMovementFrame_diagonalAxis_normalizedAndSingleEvent" methodname="test_processMovementFrame_diagonalAxis_normalizedAndSingleEvent" classname="DaYiJingCheng.Tests.Boot.MovementFeedTest" runstate="Runnable" seed="701118562" result="Passed" start-time="2026-10-18 11:04:08Z" end-time="2026-10-18 11:04:08Z" duration="0.001221" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2970" name="test_processMovementFrame_stayingInCell_emitsNoNewEvent" fullname="DaYiJingCheng.Tests.Boot.MovementFeedTest.test_processMovementFrame_stayingInCell_emitsNoNewEvent" methodname="test_processMovementFrame_stayingInCell_emitsNoNewEvent" classname="DaYiJingCheng.Tests.Boot.MovementFeedTest" runstate="Runnable" seed="1521200093" result="Passed" start-time="2026-10-18 11:04:08Z" end-time="2026-10-18 11:04:08Z" duration="0.001046" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="2972" name="test_toMoveInput_andReader_axisAlwaysWithinUnitBound" fullname="DaYiJingCheng.Tests.Boot.MovementFeedTest.test_toMoveInput_andReader_axisAlwaysWithinUnitBound" methodname="test_toMoveInput_andReader_axisAlwaysWithinUnitBound" classname="DaYiJingCheng.Tests.Boot.MovementFeedTest" runstate="Runnable" seed="749084483" result="Passed" start-time="2026-10-18 11:04:08Z" end-time="2026-10-18 11:04:08Z" duration="0.010639" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output><![CDATA[Saving results to: /home/gu/.config/unity3d/DefaultCompany/unity/TestResults.xml
 ]]></output>
-                </test-case>
-              </test-suite>
+              </test-case>
             </test-suite>
           </test-suite>
         </test-suite>

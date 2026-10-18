@@ -6028,3 +6028,27 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
 - **终轮全量 `3765 / 3720 / 0 / 45`**(`unity/Logs/s21-full-editmode.xml`)。
 - **已收口**:story-021 `Status: Complete` · sprint-status S15-3 → `done`。
 - **待用户**:是否提交本批(S15-2 / S15-3 两件均待提交/收口)。
+
+## Session Extract — S15-4(TD-audio-028 空间化链接入生产)· 2026-10-18
+
+- **用户裁定四项**(AskUserQuestion,全取推荐):`latticeSize` 保留 `1f` + 显式登记缺口 ·
+  遮挡本轮恒 `false` + 登记缺口 · 听者锚点 = **主相机**(承 ADR-020 §七)·
+  `priority_class` / `min/max_distance` 用**代码常量 + 登记债**(不扩事件表 schema)。
+- **生产改动**:`AudioTuning`(五个空间化种子常量)· `AudioSourcePool.CreateSource` pin 三件套 ·
+  `AudioSourceRenderTarget`(新构造 / `Place` / `SetListenerPosition` / `SpatializedCount` / `LatticeSize`)·
+  `CompositionRoot`(导演共享池 + 死字段 `LatticeSize` 转为唯一入参)·
+  `CompositionRootServices`(`Spatialization` / `RenderTarget` 两属性)·
+  `BootRoot`(启动序 5.1 注入主相机为听者)。
+- **实现轮另修一处真 bug**(原债行未记载):`StartLoop` 池键 = `LoopActorOf(handleId)`(负偏移)
+  ≠ `cue.Source`,原 `Place(source, in cue)` 把位置写到**另一条源**上 ⇒ 真正在响的循环源留在原点。
+  改 `Place(in cue, int actorId)` 显式收池键;反证 F3 转红。
+- **测**:新 `spatialization_wiring_test.cs` **11 测**;证伪 **F1–F12 全转红**(零假绿)。
+  含 **S3-a 负例**(自建池 ⇒ 池根 2)—— 该负例是 `TD-audio-028` 行内逐字要求的。
+- **全量 EditMode `3781 / 3735 / 1 / 45`**(`unity/Logs/s154-full-editmode.xml`)vs S15-3 基线
+  `3770/3724/0/45` ⇒ total **+11** = 新增 11 条;`passed +11`;唯一红 = `MovementFeedTest`
+  已知间歇(`TD-player-01`,单跑 5/5 绿,**不用于抵扣计数**)。
+- **账面**:`TD-audio-028` 结案注(四项判据 + 残留指向新债)· **新立 `TD-audio-035`**
+  (latticeSize 正式值 / 真 raycast / `AudioEventRow` 未承载三列)· sprint-status S15-4 → `review`
+  (不记 done:听感半边 NOT-RUN)。
+- **原件**:`production/qa/evidence/impl-s15-4-spatialization-wiring-2026-10-18.md`。
+- **待用户**:是否提交本批(S15-2 / S15-3 / S15-4 三件均待提交);听测批(`TD-audio-101/102`)未跑。

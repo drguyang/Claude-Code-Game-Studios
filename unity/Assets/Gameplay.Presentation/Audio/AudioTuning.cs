@@ -91,5 +91,39 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <see cref="AudioBudgetProbe"/> 的纯谓词承载,实测 P95 归 evidence 文档
         /// (60 s 窗采样须真 GPU / 真音频回调,EditMode 无 DSP 图,不可在此断言)。</para></summary>
         public const double AudioBudgetMs = 2.5;
+
+        // ── 空间化种子值(S15-4 · TD-audio-028)──────────────────────────────
+        // ⚠️ **这三个量的「正式家」不在 44**,它们是**代偿常量**:
+        //    · LatticeSize 归**系统 6**(`LatticeToWorld` 文件头明令「44 不得自造比例」;
+        //      6 侧 `LATTICE_SIZE` 至今无值)⇒ 1f 是 P0 占位,**与 `PlayerController.GetCell()`
+        //      的 `RoundToInt(world)` 隐含的「1 世界单位 = 1 格」对齐**,不是 6 的裁定值;
+        //    · Min/MaxDistance 归**事件表**(行级 `min_distance` / `max_distance` 列已在表里、
+        //      已有构建期键存在性门),但 `AudioEventDataSet.AudioEventRow` **未承载**这两列
+        //      ⇒ 本类的是**兜底**,表列一旦接入就以表为准;
+        //    · PriorityClass 归 **GDD rank_key 公式**(`:848` 的类序),事件表无此列。
+        //    ⚠️ **全部登记为债**,数值归用户(数值轮)。见 `TD-audio-028` 与 `TD-audio-035`。
+
+        /// <summary>格边长(米)的 **P0 占位** —— 与 `PlayerController.GetCell()` 的
+        /// `RoundToInt(world)` 同一约定。⚠️ 正式值归系统 6(见上注)。</summary>
+        public const float LatticeSizePlaceholder = 1f;
+
+        /// <summary>空间化声源的**最近距离**(米)—— `min_distance` 表列的兜底种子值。</summary>
+        public const float SpatialMinDistance = 1f;
+
+        /// <summary>空间化声源的**最远距离**(米)—— `max_distance` 表列的兜底种子值
+        /// (取 `WorldBreath_Baseline` 行的现值,便于对账)。</summary>
+        public const float SpatialMaxDistance = 12f;
+
+        // `rank_key` 的 `priority_class`(GDD :848 类序:自身/检查 &lt; 世界≈生理 &lt; 氛围)。
+        // 数值越小越优先;**类别 ≠ 总线**(同一类可走不同 bus,GDD :861 逐字)。
+
+        /// <summary>优先级类别:**玩家自身动作 / 主动检查声**(GDD 类序 0,最高)。</summary>
+        public const int PriorityClassSelf = 0;
+
+        /// <summary>优先级类别:**世界线索 ≈ 持续生理声**(两者同为信息通道,由距离分高下)。</summary>
+        public const int PriorityClassWorldOrPhysiology = 1;
+
+        /// <summary>优先级类别:**环境 / 氛围**(底噪,永远最低)。</summary>
+        public const int PriorityClassAmbience = 2;
     }
 }

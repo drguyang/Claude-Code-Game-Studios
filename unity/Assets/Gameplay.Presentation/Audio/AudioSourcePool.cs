@@ -207,8 +207,25 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         {
             var go = new GameObject("AudioSource");
             go.transform.SetParent(_root.transform, worldPositionStays: false);
-            // 三件套 pin 归装配层(空间化参数是资产 / 调参面);池只保证「有源可用」。
-            return go.AddComponent<AudioSource>();
+            var source = go.AddComponent<AudioSource>();
+
+            // ── 空间化三件套 pin(S15-4 · story-008「装配轮」兑现 · TD-audio-028)──
+            // ⚠️ **为什么 pin 在池里而不是装配层**:池是 `AudioSource` 的**唯一创建点**
+            //    (`grep AddComponent<AudioSource>` 全仓仅此处),pin 放在创建点 ⇒ 不存在
+            //    「某条源漏 pin」的形态;而装配层若逐条 pin,新增一个播放路径就漏一次。
+            //    (story-008 §NOT-RUN 原文「三件套 pin 归装配轮」—— 本池就是装配轮落点。)
+            // ① `spatialBlend = 1`:**全 3D**。Unity 默认 0 = 纯 2D ⇒ 全部声音从听者正上方发,
+            //    `transform.position` 写了也不起作用(这正是修此前「声音从原点发」的根因之一)。
+            // ② Logarithmic rolloff:**听感的等比分贝每距离翻倍**,与 GDD「近的听得清、远的听不清」
+            //    (物理事实,不构成播报)同向;Linear 会让远处骤停,倒像一个门限。
+            // ③ `dopplerLevel = 0`:**关多普勒** —— 本项目玩家移动速度下多普勒只会把
+            //    在响的呼吸层拉出可听辨的音高变化,那是「声音在动」的伪事件(违 AC-44-10 同源纪律)。
+            source.spatialBlend = 1f;
+            source.rolloffMode = AudioRolloffMode.Logarithmic;
+            source.dopplerLevel = 0f;
+            source.minDistance = AudioTuning.SpatialMinDistance;
+            source.maxDistance = AudioTuning.SpatialMaxDistance;
+            return source;
         }
 
         private void ThrowIfDisposed()

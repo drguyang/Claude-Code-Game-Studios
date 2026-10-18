@@ -134,6 +134,19 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>启动期日志 / 测试的可观测面 —— 「装了没装」不得靠猜(承 story-018 头注)。</para></summary>
         public bool AudioRenderAssembled { get; }
 
+        /// <summary>世界语境空间化的装配入口(S15-4 · TD-audio-028)。
+        /// <para>⚠️ 与 <see cref="AudioPool"/> **共享同一池**(AC-018-4 单池不变量)。
+        /// null ⇔ 渲染面未装配(<see cref="AudioRenderAssembled"/> = false)。</para>
+        /// <para>可观测面:位置是否真被写看 <c>(renderTarget as AudioSourceRenderTarget).SpatializedCount</c>;
+        /// 排名 / 寿命看本属性的 <c>ActiveCount</c> / <c>Order</c>。</para></summary>
+        public SpatializationDirector Spatialization { get; }
+
+        /// <summary>44 的渲染目标(听者锚点注入缝在它身上 —— <see cref="Gameplay.Presentation.Audio.AudioSourceRenderTarget.SetListenerPosition"/>)。
+        /// <para>⚠️ 与 <see cref="AudioRenderAssembled"/> **同一真源**:后者就是由它
+        /// `is AudioSourceRenderTarget` 派生的 ⇒ 两处不可能分叉。</para>
+        /// <para>null ⇔ 渲染面未装配(null sink)。</para></summary>
+        public AudioSourceRenderTarget RenderTarget { get; }
+
         /// <summary>病人 cue 驱动(story-018 · AC-018-6 的**调用方**)—— tick 边沿 → 13 调度 → 44 发射。
         /// <para>⚠️ 由 <see cref="BootRoot"/> 的 tick 边沿序列驱动(与 <see cref="PatientAppearedDriver"/>
         /// 等同一泵);本类只提供引用,**不自行推进 tick**。</para></summary>
@@ -170,6 +183,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          CasebookCommandRouter casebookCommands,
                                          IAudioCueSink audioSink,
                                          AudioSourcePool audioPool,
+                                         SpatializationDirector spatialization,
+                                         AudioSourceRenderTarget renderTarget,
                                          bool audioRenderAssembled,
                                          PatientCueDriver patientCueDriver,
                                          PatientBehaviorDirector behaviorDirector)
@@ -203,6 +218,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             WorldSeed = worldSeed;
             AudioSink = audioSink;
             AudioPool = audioPool;
+            Spatialization = spatialization;
+            RenderTarget = renderTarget;
             AudioRenderAssembled = audioRenderAssembled;
             PatientCueDriver = patientCueDriver;
             BehaviorDirector = behaviorDirector;

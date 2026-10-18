@@ -63,11 +63,14 @@ stories:
     name: "TD-audio-028 空间化链接入生产(含 S3-a 自建第二池负例)"
     file: "docs/tech-debt-register.md"     # 债行直接驱动,无独立 story 文件
     priority: should-have
-    status: backlog
+    status: review
     owner: "claude"
     estimate_days: 0          # 复杂度 = M
     blocker: ""
-    completed: ""
+    completed: "2026-10-18"
+    # 实现已落(夹具 11/11 绿 · 证伪 F1–F12 全红 · 全量 3781/3735/1/45 = 基线 +11)。
+    # status 记 review 而非 done:听感半边(距离衰减 / 遮挡音色)NOT-RUN,归 TD-audio-101/102。
+    # 残留三项另立 TD-audio-035(latticeSize 正式值 / 真 raycast / 表列承载)。
 
   - id: "S15-5"
     name: "TD-audio-029 + 032 合并卫生批(one-shot 归还 / (int)tick / RowCount 守卫 / buffer 复用)"

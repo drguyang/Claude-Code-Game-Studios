@@ -270,6 +270,15 @@ namespace DaYiJingCheng.Gameplay.Boot
             cameraObj.AddComponent<UnityEngine.Camera>();
             _cameraRig.SetModeForTest(CameraMode.Explore);
 
+            // ── 5.1. 空间化听者锚点(S15-4 · TD-audio-028)────────────────────
+            // 听者 = **主相机**(ADR-020 §七:`AudioListener` 的单挂点就是它)——
+            // 用相机位置算距离,与 Unity 自身的距离衰减是**同一个参考点**;
+            // 若改用玩家格,第三人称越肩视角下衰减中心会与耳朵错开。
+            // ⚠️ 必须在**相机装好之后**注入(组合根建渲染目标时相机还不存在)。
+            // ⚠️ 读的是**每帧实时**位置(委托),不是快照 —— 玩家移动时距离必须跟着变。
+            if (_services.RenderTarget != null)
+                _services.RenderTarget.SetListenerPosition(_cameraRig.Camera.transform);
+
             // ── 6. 拟物 UI 运行时装配(sprint-05 T2.1 / T2.2)──
             // ADR-023 §①:UI 载体由运行期生成。**例外(prefab 空壳)**:Boot.unity 预摆的
             //    `SkeuoUI`(Transform + UIDocument + SkeuoRuntimeDriver)只持**渲染资源**
@@ -723,6 +732,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 44 装配缝释放(story-018):池根节点 + clip / mixer 的 Addressables 句柄。
             // ⚠️ 池根是**非 Boot 场景**内容(ADR-028 ② 零场景预摆:池根由 `new GameObject` 建,
             //    不挂 BootRoot 层级)⇒ 不靠层级继承销毁,必须显式 Dispose。
+            // ⚠️ **不调 `Spatialization?.Dispose()`** —— 导演与渲染目标**共享**同一个池
+            //    (AC-018-4 单池不变量),池的所有者是本装配袋;导演只借用。
+            //    若两处都 Dispose,第二个是空操作(池幂等)但语义上会造成「谁拥有池」的二义。
             _services?.AudioPool?.Dispose();
             if (_audioSeams?.Clips is AudioClipLibrary clipLibrary) clipLibrary.Dispose();
             _audioSeams = null;
