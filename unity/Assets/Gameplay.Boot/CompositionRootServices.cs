@@ -13,6 +13,7 @@ using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.DiseaseSimulation;
 using DaYiJingCheng.Sim.Prescription;
 using DaYiJingCheng.Gameplay.PatientAI;
+using DaYiJingCheng.Gameplay.Presentation.Audio;
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
@@ -118,6 +119,26 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>世界种子(存档头量;patient_seed = hash(world_seed, patient_id) 的入参)。</summary>
         public ulong WorldSeed { get; }
 
+        /// <summary>44 的 cue 界面(story-018 · A-1 的生产构造点)。
+        /// <para>⚠️ 本属性非 null **恒成立** —— 装配缝未接时它是 `CueRenderSink(NullRenderTarget)`,
+        /// 契约语义(句柄 / 档位)仍完整,只是没有声音。<b>是否有声</b>看
+        /// <see cref="AudioRenderAssembled"/>,不看本属性是否为 null。</para></summary>
+        public IAudioCueSink AudioSink { get; }
+
+        /// <summary>44 的世界语境声源池(story-018 · A-4 的生产构造点)。
+        /// <para>⚠️ **单池不变量**(AC-018-4):全案只有这一个池;
+        /// `SpatializationDirector` 若被构造**必须**走 `(latticeSize, pool)` 重载共享它。</para></summary>
+        public AudioSourcePool AudioPool { get; }
+
+        /// <summary>渲染面是否真装配(`false` ⇒ <see cref="AudioSink"/> 走 `NullRenderTarget`)。
+        /// <para>启动期日志 / 测试的可观测面 —— 「装了没装」不得靠猜(承 story-018 头注)。</para></summary>
+        public bool AudioRenderAssembled { get; }
+
+        /// <summary>病人 cue 驱动(story-018 · AC-018-6 的**调用方**)—— tick 边沿 → 13 调度 → 44 发射。
+        /// <para>⚠️ 由 <see cref="BootRoot"/> 的 tick 边沿序列驱动(与 <see cref="PatientAppearedDriver"/>
+        /// 等同一泵);本类只提供引用,**不自行推进 tick**。</para></summary>
+        public PatientCueDriver PatientCueDriver { get; }
+
         internal CompositionRootServices(EventStream stream, IIdAuthority idAuthority,
                                          InMemoryBlobPool blobPool, IPayloadEncoder encoder,
                                          IPayloadDecoder decoder,
@@ -140,7 +161,11 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          MinimalPortionsStore portionsStore,
                                          EmergencyCandidateRuntime emergencyCandidates,
                                          PrescriptionPageHost prescriptionPage,
-                                         CasebookCommandRouter casebookCommands)
+                                         CasebookCommandRouter casebookCommands,
+                                         IAudioCueSink audioSink,
+                                         AudioSourcePool audioPool,
+                                         bool audioRenderAssembled,
+                                         PatientCueDriver patientCueDriver)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -169,6 +194,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             PrescriptionPage = prescriptionPage;
             CasebookCommands = casebookCommands;
             WorldSeed = worldSeed;
+            AudioSink = audioSink;
+            AudioPool = audioPool;
+            AudioRenderAssembled = audioRenderAssembled;
+            PatientCueDriver = patientCueDriver;
         }
     }
 }

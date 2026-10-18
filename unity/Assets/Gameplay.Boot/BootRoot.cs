@@ -24,6 +24,7 @@
 using System;
 using System.Threading.Tasks;
 using DaYiJingCheng.Gameplay.Presentation;
+using DaYiJingCheng.Gameplay.Presentation.Audio;      // 44 运行期音频链(story-018 装配面)
 using DaYiJingCheng.Gameplay.Presentation.Camera;
 using DaYiJingCheng.Gameplay.Presentation.Player;
 using DaYiJingCheng.Gameplay.Presentation.Settings;   // AudioSettingsRegistry(S14-6 注入缝)
@@ -31,6 +32,7 @@ using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
 using DaYiJingCheng.Sim.Contracts;                    // IDataProvider(ApplyAudioSettingsProvider 形参)
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.Audio;                              // AudioMixer(story-018 装载缝形参)
 using UnityEngine.EventSystems;               // EventSystem(B-6-1:官方 UI 输入桥宿主)
 using UnityEngine.InputSystem;                 // InputSystem.actions(project-wide 动作资产)
 using UnityEngine.InputSystem.UI;              // InputSystemUIInputModule(ADR-013 §F1 官方桥)
@@ -64,6 +66,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         private AsyncOperationHandle<SceneInstance> _worldLoadHandle;
 
         private bool _booted;
+
+        /// <summary>44 侧装配缝(story-018)—— <see cref="BuildAudioSeams"/> 的产物。
+        /// <para>本类只**持有引用**用于卸载期释放(<see cref="AudioClipLibrary.Dispose"/>);
+        /// cue 语义 / 状态一律不在此(ADR-013 §9 C3 · ADR-018 §一)。</para></summary>
+        private AudioAssemblySeams _audioSeams;
 
         /// <summary>
         /// 只缓存引用 / 初始化字段 —— **零异步、零装配**(装配严格在 <see cref="Start"/> 启动序第 2 步)。
@@ -133,6 +140,16 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    且取到的 null 仍由 `ApplyAudioSettingsProvider` 的形参检查兜住。
             ApplyAudioSettingsProvider(preloaded, preloaded ? DataCorePreloader.Provider : null);
 
+            // ── 2.6 44 运行期音频链装配(story-018 · A-1…A-7 的启动序半边)──
+            // 解析混音器 → 赋值 `MixerResolver` → 应用 `FactoryDefaults`;同时建 clip 库 +
+            // 总线解析器,交给组合根把「池 → 渲染目标 → sink」接起来(A-1/A-2/A-4)。
+            // ⚠️ `PlayerBusVolumeInitializer.Bootstrap()` 是 `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]`
+            //    —— 它在**场景加载前**就跑过一遍,那时 `MixerResolver` 尚未赋值 ⇒ 静默 return。
+            //    故 `BuildAudioSeams` 内赋值后**显式**调 `ApplyDefaults`(不指望自动入口二次触发)。
+            // ⚠️ 预载失败(provider == null)⇒ 缝不接:`Assemble` 走 `NullRenderTarget` 链,
+            //    `AudioRenderAssembled = false` 可观测 —— 不是静默失败。
+            _audioSeams = BuildAudioSeams(preloaded ? DataCorePreloader.Provider : null);
+
             // ── 2.5 项目级动作资产 fail-loud(story-009 R-9.5 · AC-9-01)──
             // 通道装载 = InputSystem.actions(原稿 Addressables 路径被实测推翻:该资产是
             // 项目级设置、git-tracked;Addressables 装载同资产 = 第二实例,违 AC-3-A1)。
@@ -147,7 +164,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             _services = CompositionRoot.Assemble(
                 registry: null,
                 dataProvider: preloaded ? DataCorePreloader.Provider : null,
-                inputActions: inputActions);
+                inputActions: inputActions,
+                audio: _audioSeams);
 
             // ── 3. World 场景 additive 加载(ADR-023:永不用 LoadSceneMode.Single)──
             // ⚠️ 本版 `LoadSceneAsync` **没有 `autoReleaseHandle` 形参**(U1 spike 坑 A 的
@@ -462,6 +480,75 @@ namespace DaYiJingCheng.Gameplay.Boot
                 () => provider.Load<AudioSettingsDataSet>().Rows;
         }
 
+        /// <summary>装配 44 运行期音频链的启动序半边(story-018 · A-1/A-2/A-4/A-5/A-7)。
+        /// <para>职责五件:① 从 provider 取音频事件表;② 建 <see cref="AudioClipLibrary"/> 并
+        /// 逐行预载 clip(A-2);③ 解析混音器 —— **解析不到即 fail-loud**(A-7);④ 建
+        /// <see cref="AudioBusResolver"/>(A-6 的运行期半边);⑤ 赋值
+        /// <see cref="PlayerBusVolumeInitializer.MixerResolver"/> 并**显式**应用
+        /// <c>FactoryDefaults</c>(A-5)。</para>
+        /// <para><b>为何是静态可直驱的方法而不是内联在 <see cref="Start"/> 里</b>:承
+        /// <see cref="ApplyAudioSettingsProvider"/> 同款理由 —— 内联后本接线只能经完整启动序
+        /// (Addressables catalog + 场景)才可达 ⇒ EditMode 无从断言,「接线是否存在」退化为
+        /// 不可证伪的口头承诺。抽成静态后由 <c>runtime_assembly_test</c> 直驱(注入
+        /// <paramref name="mixerLoader"/> 假件即可覆盖 fail-loud 分支,零 catalog 依赖)。</para>
+        /// <para><b>为何 <paramref name="provider"/> 为 null 是「返回 null」而非抛</b>:
+        /// 预载失败 = 本机未重建 catalog / 测试环境 ⇒ 组合根走 <c>NullRenderTarget</c> 链,
+        /// <c>AudioRenderAssembled = false</c> **可观测**(AC-018-3 ②「不静默」)。而
+        /// **混音器**解析失败不是环境问题、是 A-7 未补(组未登记)⇒ 那一处必须抛。</para></summary>
+        /// <param name="provider">data-core provider(null ⇒ 缝不接,返回 null)。</param>
+        /// <param name="mixerLoader">混音器装载缝(null ⇒ 走生产路径
+        /// <see cref="AudioClipLibrary.LoadMixer"/>)。测试注入假件以覆盖 fail-loud 分支。</param>
+        /// <returns>装配缝(provider 为 null 时返回 null)。</returns>
+        /// <exception cref="InvalidOperationException">混音器解析不到(A-7)· 玩家音量默认集
+        /// 键覆盖校验失败(A-5)。两者都是装配错,不是环境降级面。</exception>
+        public static AudioAssemblySeams BuildAudioSeams(IDataProvider provider,
+                                                         Func<AudioMixer> mixerLoader = null)
+        {
+            if (provider == null) return null;   // 缝不接:NullRenderTarget 链,可观测
+
+            AudioEventDataSet table = provider.Load<AudioEventDataSet>();
+            var clips = new AudioClipLibrary(table);
+
+            // ③ 混音器解析(A-7)—— **先于 clip 预载**:fail-loud 分支不该先走一遍 catalog。
+            AudioMixer mixer = mixerLoader != null ? mixerLoader() : clips.LoadMixer();
+            if (mixer == null)
+            {
+                throw new InvalidOperationException(
+                    "[BootRoot][story-018][A-7] 混音器解析不到(address = " +
+                    AudioClipLibrary.AudioMixerAddress + ")—— Addressables 组未登记或 catalog 未重建。" +
+                    "修法:跑菜单「大医精诚/数据管线/确保 audio Addressables 组」再「构建 Addressables 内容」。" +
+                    "⚠️ 不得静默跳过:混音器缺失 ⇒ 七总线拓扑与音量滑块全失效(A-5/A-6)。");
+            }
+
+            // ② clip 预载(A-2)—— 逐行按事件表 assets[] 的 bare 名装载。
+            // ⚠️ 缺条目**不抛**(承 AudioClipLibrary 头注:素材存在性已由构建期 D6 门拦下,
+            //    运行期 miss = 装配错,记数可观测);是否真齐由 PlayMode 断言 MissingCues 为空。
+            clips.Preload();
+
+            // ④ 总线解析器(A-6 运行期半边):七总线名 → AudioMixerGroup。
+            var buses = new AudioBusResolver(mixer);
+
+            // ⑤ 玩家总线音量(A-5)。⚠️ Bootstrap 已在本场景加载前跑过(那时 resolver 还是 null)
+            //    ⇒ 此处赋值后必须**显式** ApplyDefaults,不能等自动入口。
+            PlayerBusVolumeInitializer.MixerResolver = () => mixer;
+            var errors = PlayerBusVolumeInitializer.ApplyDefaults(
+                mixer, PlayerBusVolumeInitializer.FactoryDefaults);
+            if (errors.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    "[BootRoot][story-018][A-5] 玩家总线音量初始化失败(半初始化已回退,零 SetFloat):\n" +
+                    string.Join("\n", errors));
+            }
+
+            return new AudioAssemblySeams
+            {
+                Clips = clips,
+                Buses = buses,
+                BusVolumeErrors = errors,
+                Table = table,
+            };
+        }
+
         private static void AssertSingleAudioListener()
         {
             // ⚠️ 必须用 `FindObjectsInactive`(含 inactive),**不是** `FindObjectsOfType`(只查 active):
@@ -558,6 +645,19 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.PatientVisualSpawner.OnTickEdge(_tickDriver.CurrentTick);
             }
 
+            // 病人 cue 驱动(story-018 · AC-018-6):在场集 → 13 调度 → 44 发射。
+            // 次序 = 视觉实体**之后**、玩家交互输入**之前**:两者都读本 tick 的在场集,
+            // 但 cue 还要读体征 —— `StepVitals` 已在 `PumpFrame` 的边沿序列里跑完
+            // (故新出现的病人在**本拍**已建档,`hasCourse` 门不会误跳)。
+            // ⚠️ `PruneAbsent` 先于 `OnTickEdge`:离场病人的呼吸层句柄须先收,
+            //    否则句柄残留在驱动内、`ActiveBreathCount` 永远不归零。
+            if (_tickDriver.CurrentTick > tickBefore
+                && _services != null && _services.PatientCueDriver != null)
+            {
+                _services.PatientCueDriver.PruneAbsent(_tickDriver.CurrentTick);
+                _services.PatientCueDriver.OnTickEdge(_tickDriver.CurrentTick);
+            }
+
             // 玩家交互输入(sprint-07 S2):E 查体 / F 急救 —— **视觉实体更新之后**(读的是
             // 本 tick 的在场集+视觉位置;换热须已本 tick Step),拟物 UI 刷新之前
             // (查体后本帧即见值区有词)。
@@ -615,6 +715,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 急救直读通道卸挂(story-009):onAfterUpdate 是全局静态回调,必须在
             // BootRoot 销毁时显式 Detach,否则域内悬挂委托引用已弃通道(下次 Play 泄漏)。
             _services?.EmergencyChannel?.Detach();
+
+            // 病人 cue 驱动收尾(story-018 · ADR-018 §一「句柄由唯一持有者负责收尾」)——
+            // 本驱动即呼吸层句柄的持有者;不显式 EndLoop ⇒ 句柄跨 Play 轮残留。
+            _services?.PatientCueDriver?.StopAll();
+
+            // 44 装配缝释放(story-018):池根节点 + clip / mixer 的 Addressables 句柄。
+            // ⚠️ 池根是**非 Boot 场景**内容(ADR-028 ② 零场景预摆:池根由 `new GameObject` 建,
+            //    不挂 BootRoot 层级)⇒ 不靠层级继承销毁,必须显式 Dispose。
+            _services?.AudioPool?.Dispose();
+            if (_audioSeams?.Clips is AudioClipLibrary clipLibrary) clipLibrary.Dispose();
+            _audioSeams = null;
 
             _booted = false;
             _player = null;

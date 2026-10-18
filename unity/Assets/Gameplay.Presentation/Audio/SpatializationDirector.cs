@@ -36,9 +36,23 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <param name="latticeSize">格边长(米)—— 归系统 6(见 <see cref="LatticeToWorld"/> 文件头注)。</param>
         /// <param name="rootParent">池 root 的父节点;null = 场景根(生产装配用 null,ADR-028 ②)。</param>
         public SpatializationDirector(float latticeSize, Transform rootParent = null)
+            : this(latticeSize, new AudioSourcePool(rootParent))
         {
+        }
+
+        /// <summary>用**既有池**建装配入口(story-018 · AC-018-4 单池不变量)。
+        /// <para>⚠️ 装配轮**必须**走本重载:池的唯一所有者是 44(ADR-028 ①),
+        /// 而组合根已建了一个池给 <see cref="AudioSourceRenderTarget"/> 用 ——
+        /// 再让本类自建第二个 ⇒ 运行期两个 `"AudioSourcePool"` 根,
+        /// 「同一实体两条源 / 两套空间化」的静默分裂。</para></summary>
+        /// <param name="latticeSize">格边长(米)。</param>
+        /// <param name="pool">共享池(非 null)。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="pool"/> 为 null。</exception>
+        public SpatializationDirector(float latticeSize, AudioSourcePool pool)
+        {
+            if (pool == null) throw new ArgumentNullException(nameof(pool));
             _latticeSize = latticeSize;
-            _pool = new AudioSourcePool(rootParent);
+            _pool = pool;
         }
 
         /// <summary>当前在响声源数。</summary>

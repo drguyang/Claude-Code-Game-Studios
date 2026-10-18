@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using DaYiJingCheng.Gameplay.Presentation;
+using DaYiJingCheng.Gameplay.Presentation.Audio;
 using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using DaYiJingCheng.Sim;
@@ -47,6 +48,12 @@ namespace DaYiJingCheng.Gameplay.Boot
         private const int EmergencyDzMag = 0;
         private const int EmergencyMagMax = 65536;
 
+        // ── story-018 · A-3 接线:GDD 点名的两个 cue 名(单一出处 = AudioEventDataSet)──
+        // ⚠️ 这里**只引用常量,不另抄字面量**(ADR-024 §⑥):名字的存在性由构建期门
+        //    `AudioEventTableGates.RequiredCues` 断言;运行期解析不到 ⇒ ordinal = null ⇒ 不发 cue。
+        private const string CoughCueName = AudioEventDataSet.CoughCueName;
+        private const string BreathCueName = AudioEventDataSet.BreathBaseCueName;
+
         /// <summary>
         /// 全自动装配(全新世界:计数器从 0 起、空在场登记簿、内存 blob 池、world_seed = 0)。
         /// </summary>
@@ -63,9 +70,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         public static CompositionRootServices Assemble(
             IReadOnlyList<DiseaseRegistryEntry> registry = null,
             IDataProvider dataProvider = null,
-            InputActionAsset inputActions = null)
+            InputActionAsset inputActions = null,
+            AudioAssemblySeams audio = null)
             => AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(),
-                            0UL, registry, dataProvider, inputActions);
+                            0UL, registry, dataProvider, inputActions, audio);
 
         /// <summary>
         /// 显式依赖注入装配(读档 / 测试用:由调用方给出发号权威、在场登记簿、blob 池与世界种子)。
@@ -85,13 +93,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                        ulong worldSeed,
                                                        IReadOnlyList<DiseaseRegistryEntry> registry = null,
                                                        IDataProvider dataProvider = null,
-                                                       InputActionAsset inputActions = null)
+                                                       InputActionAsset inputActions = null,
+                                                       AudioAssemblySeams audio = null)
         {
             if (idAuthority == null) throw new ArgumentNullException(nameof(idAuthority));
             if (presence == null) throw new ArgumentNullException(nameof(presence));
             if (blobPool == null) throw new ArgumentNullException(nameof(blobPool));
             return AssembleCore(idAuthority, presence, blobPool, worldSeed, registry, dataProvider,
-                                inputActions);
+                                inputActions, audio);
         }
 
         private static CompositionRootServices AssembleCore(IIdAuthority idAuthority,
@@ -100,7 +109,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                              ulong worldSeed,
                                                              IReadOnlyList<DiseaseRegistryEntry> registry,
                                                              IDataProvider dataProvider,
-                                                             InputActionAsset inputActions)
+                                                             InputActionAsset inputActions,
+                                                             AudioAssemblySeams audio)
         {
             // ── 依赖前置校验(全自动路径同样 fail-loud)──
             if (idAuthority == null)
@@ -302,6 +312,38 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   的开方写路径。与 Writer 同源(宿主即 Writer 的持有者)⇒ 单写者、单作者真源。
             var casebookCommands = new CasebookCommandRouter(
                 prescriptionPage.Writer, () => tickDriver.CurrentTick, prescriptionPage);
+
+            // ── 音频链装配(story-018 · A-1/A-4)─────────────────────────────
+            // 池 → 渲染目标 → sink(ADR-028 ①「池唯一所有者 = 44」;单池,不建第二个)。
+            // ⚠️ 缝为 null(62 处既有 EditMode 调用)⇒ sink 走 NullRenderTarget:
+            //    **契约语义(句柄 / 档位)仍成立**,只是没有声音 —— 与装配前的行为一致。
+            //    生产路径(BootRoot)传真缝 ⇒ 真播放 + 真总线(A-6)。
+            var audioPool = new AudioSourcePool(busResolver: audio?.Buses);
+            ICueRenderTarget renderTarget = audio != null && audio.HasAny
+                ? (ICueRenderTarget)new AudioSourceRenderTarget(audioPool,
+                                                                cue => audio.Clips != null
+                                                                        ? audio.Clips.Resolve(cue) : null,
+                                                                cue => audio.Clips != null
+                                                                        ? audio.Clips.BusOf(cue) : null)
+                : new NullRenderTarget();
+            var audioSink = new CueRenderSink(renderTarget);
+            audioSink.SetTier(TierSource.Local);      // 裁定 D-A:恒本机档
+
+            // ── 病人 cue 驱动(story-018 · AC-018-6 / A-3 的调用方)──────────────
+            // 13 的 `PatientCueSchedule.Decide` 与 `PatientCueEmit.Emit` 此前**双双零调用方**
+            // (A-3)—— 本驱动即那个调用方:每 tick 边沿对每个在场病人跑一次调度,按结果
+            // 起停呼吸层循环 / 发射一次性 cue。
+            // ⚠️ cue ordinal **从事件表按名解析**,不写 `(int)CueKind`(见 PatientCueDriver 头注:
+            //    后者今日恰好是 0,是**巧合不是契约**)。
+            // ⚠️ 缝未接(62 处既有 EditMode 调用)⇒ 两个 ordinal 均为 null ⇒ 驱动仍装配
+            //    (调度逻辑可测),但不发任何声音 —— 与 AudioRenderAssembled 同一诚实口径。
+            var patientCueDriver = new PatientCueDriver(
+                audioSink, vitals, presence, new PatientBehaviorDirector(vitals, BehaviorBands.Default),
+                coughCue: audio != null && audio.TryResolveCue(CoughCueName, out int coughOrdinal)
+                    ? coughOrdinal : (int?)null,
+                breathCue: audio != null && audio.TryResolveCue(BreathCueName, out int breathOrdinal)
+                    ? breathOrdinal : (int?)null,
+                hasCourse: p => vitals.Courses.TryGet(p, out _));
             // 后置接回:命令路由就绪后把档位面接进 42 只读源(构造序所限,见本源 BindCommands 注)
             casebookSource.BindCommands(casebookCommands);
             // 后置接回(2):戥子档数真源 —— 处方驱动(构造序所限,见 BindPrescribeDriver 注)
@@ -372,6 +414,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: PrescriptionPageHost 装配产出 null");
             if (casebookCommands == null)
                 throw new InvalidOperationException("Assemble: CasebookCommandRouter 装配产出 null");
+            if (audioSink == null)
+                throw new InvalidOperationException("Assemble: CueRenderSink 装配产出 null");
+            if (audioPool == null)
+                throw new InvalidOperationException("Assemble: AudioSourcePool 装配产出 null");
+            if (patientCueDriver == null)
+                throw new InvalidOperationException("Assemble: PatientCueDriver 装配产出 null");
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,
                                                presence, spawner, patientDriver, caseDriver,
@@ -382,7 +430,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                seenDisease, lexiconBook,
                                                tickDriver, prescribeDriver, prescribePorts,
                                                portionsStore, emergencyCandidates,
-                                               prescriptionPage, casebookCommands);
+                                               prescriptionPage, casebookCommands,
+                                               audioSink, audioPool,
+                                               // ⚠️ **单一出处**:标志由**已构造出的那个对象**派生,
+                                               // 不重算一遍 `audio != null && audio.HasAny` ——
+                                               // 重算 = 同一判断的第二份拷贝,两者可分叉(证伪轮 F4 实测:
+                                               // 把上面的三元逼成 `NullRenderTarget` 而此处仍重算 ⇒ 标志照旧 true
+                                               // ⇒ `test_ac018_3_assemble_withSeams_...` **不转红** = 假绿)。
+                                               renderTarget is AudioSourceRenderTarget,
+                                               patientCueDriver);
         }
 
         /// <summary>

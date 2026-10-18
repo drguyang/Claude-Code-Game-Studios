@@ -96,6 +96,15 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <summary>「无此 cue」哨兵(与 <c>PatientId.None = -1</c> 同款:负数不占用任何合法序号)。</summary>
         public const int NoOrdinal = -1;
 
+        /// <summary>病人一次性语声 cue 的**名字**(story-018 · A-3 接线:按名解析 ordinal)。
+        /// <para>⚠️ 名字的**存在性**由构建期门 <c>AudioEventTableGates.RequiredCues</c> 断言
+        /// (该门逐字含此名);本常量只是运行期解析入口的入参,**不是**第二份白名单 ——
+        /// 表里没有该名时 <see cref="TryGetOrdinal"/> 返回 false,调用方据此不发 cue(可观测)。</para></summary>
+        public const string CoughCueName = "Voice_Cough_Damp";
+
+        /// <summary>病人呼吸层基础循环 cue 的**名字**(同上;构建期门同款断言)。</summary>
+        public const string BreathBaseCueName = "BreathLayer_Base_Calm";
+
         private readonly AudioEventRow[] _rows;
         private readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> _tierMap;
 

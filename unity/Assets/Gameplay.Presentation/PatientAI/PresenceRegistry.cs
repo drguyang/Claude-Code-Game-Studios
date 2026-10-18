@@ -75,6 +75,15 @@ namespace DaYiJingCheng.Gameplay.PatientAI
             PresentChanged?.Invoke(id.Value);
         }
 
+        /// <summary>取病人当前锚点格(不在场 ⇒ false)。
+        /// <para>story-018(A-3 接线)新增:cue 发射需要病人的**逻辑格**(`AudioCueDto.Cell`),
+        /// 而此前登记簿只暴露「是否在场」—— 没有格,44 无法空间化。</para>
+        /// <para>⚠️ 只读,不改任何状态;返回的是**格**(整数),不是表现态位置(ADR-016 §三)。</para></summary>
+        /// <param name="id">病人。</param>
+        /// <param name="cell">锚点格(不在场 ⇒ default)。</param>
+        public bool TryGetCell(PatientId id, out WorldPos cell)
+            => _cellOf.TryGetValue(id.Value, out cell);
+
         /// <summary>病人跨格(组合层在 ActorCellEntered 等时机调用)。</summary>
         public void MovePresent(PatientId id, WorldPos toCell)
         {

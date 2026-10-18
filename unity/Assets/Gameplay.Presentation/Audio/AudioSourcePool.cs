@@ -38,11 +38,17 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         private readonly Stack<AudioSource> _free = new Stack<AudioSource>();
         private bool _disposed;
 
+        // ── A-6(story-018):总线路由(运行期 `outputAudioMixerGroup`,见 AudioBusResolver 头注)──
+        // null = 未装配混音器 ⇒ 源落 Master 直通(与装配前行为一致;由 AudioBusResolver 的
+        // 构造期全量校验保证「装配了就一定全可解析」)。
+        private readonly AudioBusResolver _busResolver;
+
         private sealed class Entry
         {
             public AudioSource Source;
             public int CellX, CellY, CellZ;
             public int CueId;
+            public string Bus;
             public bool Active;
         }
 
@@ -50,8 +56,12 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <param name="rootParent">root 的父节点;null = 场景根。
         /// ⚠️ 传非 null 会让池成为**场景内容**的一部分 —— 生产装配**不得**传场景对象
         /// (ADR-028 ②);该参只供测试隔离用。</param>
-        public AudioSourcePool(Transform rootParent = null)
+        /// <param name="busResolver">总线解析器(A-6;null = 未装配混音器,源落 Master 直通)。
+        /// <para>⚠️ 传 null 是**装配前**的合法态,不是降级 —— 一旦装配就必然全量可解析
+        /// (见 <see cref="AudioBusResolver"/> 构造期校验)。</para></param>
+        public AudioSourcePool(Transform rootParent = null, AudioBusResolver busResolver = null)
         {
+            _busResolver = busResolver;
             _root = new GameObject(RootName);
             // DontSave:池是运行期产物,不进场景序列化、不被保存 —— 与 ADR-028 ②「零场景预摆」同向。
             // ⚠️ 刻意**不**加 HideInHierarchy —— 池在调试期须可在层级里查到;
@@ -87,6 +97,21 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// 池不参与状态语义,故拆轴;换算归 <see cref="SpatializationDirector"/>。
         /// 世界坐标写入 <c>transform</c> 由装配层经 <see cref="LatticeToWorld"/> 完成。</remarks>
         public AudioSource Spawn(int actorId, int cellX, int cellY, int cellZ, int cueId)
+            => Spawn(actorId, cellX, cellY, cellZ, cueId, bus: null);
+
+        /// <summary>为 <paramref name="actorId"/> 取一条声源,并按 <paramref name="bus"/> 挂混音组(A-6)。
+        /// <para>⚠️ <b>bus 归属在「建源」时决定</b>(承本 story 边界裁定 3):同一条池内源被不同 bus
+        /// 的 cue 复用时,**重挂**而非重建 —— 池的复用语义(不销毁)不变。</para>
+        /// <para>⚠️ <paramref name="bus"/> = null ⇒ 不挂组(落 Master 直通);**非 null 且未装配
+        /// 解析器 / 名字不在注册集 ⇒ 抛**(禁静默落 Master,见 <see cref="AudioBusResolver"/>)。</para></summary>
+        /// <param name="actorId">声源实体 id。</param>
+        /// <param name="cellX">锚点格 X。</param>
+        /// <param name="cellY">锚点格 Y。</param>
+        /// <param name="cellZ">锚点格 Z。</param>
+        /// <param name="cueId">语义 cue id(池只记录,播放归装配层)。</param>
+        /// <param name="bus">事件表 `bus` 列(`MixerRegistry.BusNames` 之一;null = 不挂组)。</param>
+        /// <exception cref="ArgumentException"><paramref name="bus"/> 非 null 但解析不到组。</exception>
+        public AudioSource Spawn(int actorId, int cellX, int cellY, int cellZ, int cueId, string bus)
         {
             ThrowIfDisposed();
 
@@ -101,10 +126,32 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
 
             entry.CellX = cellX; entry.CellY = cellY; entry.CellZ = cellZ;
             entry.CueId = cueId;
+            entry.Bus = bus;
             entry.Active = true;
             entry.Source.gameObject.SetActive(true);
+            ApplyBus(entry.Source, bus);
             return entry.Source;
         }
+
+        /// <summary>把源挂到 <paramref name="bus"/> 对应的混音组(A-6)。
+        /// <para>⚠️ 这是**唯一**写 `outputAudioMixerGroup` 的地方 —— 全库零第二处
+        /// (该属性的语义见 `docs/engine-reference/unity/modules/audio.md:96`)。</para></summary>
+        private void ApplyBus(AudioSource source, string bus)
+        {
+            if (bus == null) return;                       // 不挂组(装配前 / 非总线 cue)
+            if (_busResolver == null)
+            {
+                throw new InvalidOperationException(
+                    $"[A-6] 池未装配混音器(构造时 busResolver = null),但 Spawn 指定了 bus「{bus}」——" +
+                    "装配期错误:要么不传 bus,要么先装配 AudioBusResolver(禁静默落 Master)。");
+            }
+            source.outputAudioMixerGroup = _busResolver.GroupFor(bus);
+        }
+
+        /// <summary>取 <paramref name="actorId"/> 当前声源的 bus 归属(未生 / 已释放 ⇒ null)。
+        /// <para>测试与调试读 —— 「cue 挂到了哪条总线」的可观测面(A-6 判据)。</para></summary>
+        public string BusForActor(int actorId)
+            => _entries.TryGetValue(actorId, out Entry e) && e.Active ? e.Bus : null;
 
         /// <summary>归还 <paramref name="actorId"/> 的声源(池内复用,不销毁)。
         /// 未生过的 id = 空操作(幂等)。</summary>

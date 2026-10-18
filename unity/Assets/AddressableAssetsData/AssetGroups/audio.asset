@@ -237,6 +237,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - audio
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e67961ebdd8caeda2848309e5d3608e9
+    m_Address: DaYiJingCheng.mixer
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 2c864c592004e1c729cd6c8ed9da4089, type: 2}
   m_SchemaSet:
