@@ -56,6 +56,10 @@
 
 ## §三 证伪轮(逐条「停用什么 ⇒ 哪条红」)
 
+> ⚠️ **F3–F7 的「实测」列评的是修复前的实现**;其中 **F3 / F4 / F7 所依赖的
+> `test_ac019_4_pauseLifespan_isBoundedByTailRamp` 判据已在 2026-10-18 修复轮改写** ——
+> 那几条反证须按现行夹具重跑才成立。**修复轮的现行反证见 §七**(F1–F4),以 §七 为准。
+
 > 纪律:每例**改 → 跑 → 还原在同一命令内**(`/tmp/fz.py` 形态);还原后 **SHA-256 逐字节校验**
 > (`restored sha ok`)。种子注入例用独立原子脚本(同款 finally + SHA 校验)。
 
@@ -121,3 +125,71 @@
 本件**不消**这 1 条差额,理由:可复算的判据(逐名 diff)缺基线原件;凭夹具计数把它算平,
 正是「借绿的两种数字形态」禁止的形态。**处置**:挂到下次有原件对照的全量轮(建议 sprint-15 收口轮):
 以「同基线 + 逐名 diff」一次结清本件 `+16` 与夹具计数 `+15` 的差 1。
+
+---
+
+## §七 修复轮:尾音「只衰减一次」(2026-10-18 · 用户裁定「修实现——尾音只衰减一次,不重开」)
+
+### 缺陷(实测坐实的结构性必然,原 §五 只登记为「风险」)
+
+| 环节 | 事实 |
+|---|---|
+| 13 的决策 | `PatientCueSchedule.Decide` 在**终局锁存期每拍**返回 `BreathAction.End`(`!BreathShouldLive(terminal) ∧ breathAlive`) |
+| 驱动的旧写法 | `End` 分支 `if (!_tailStartTick.ContainsKey) _tailStartTick[id] = tick`;`AdvanceBreathTail` 到期 `Remove` |
+| 合成后果 | 到期删 → 下一拍 `End` 重加 → **每 `BreathTailRampMs`(1.5 s)满幅重来一次** ⇒ 一阵一阵 |
+
+原实现注释写「若衰减中覆写,时钟永不推进」—— 那只防了「覆写」,**没防「删除后重加」**;
+文件头与听测协议原 §二 把后者写成了「风险」,实为**必然**。本次修复即消除它。
+
+### 修复(两表互补不变量:`_tailStartTick` = 正在衰减;`_tailDone` = 已封口,**不删**)
+
+| # | 落点 | 改动 |
+|---|---|---|
+| 1 | `PatientCueDriver` 字段 | 新增 `_tailDone: Dictionary<int, byte>`(封口后的底值增益) |
+| 2 | `ApplyBreath` 的 `End` | 开新段条件 = `!_tailStartTick.ContainsKey && !_tailDone.ContainsKey` |
+| 3 | `AdvanceBreathTail` | 到期时**同时** `_tailStartTick.Remove` **与** `_tailDone[id] = cue.Intensity`(封口) |
+| 4 | `PruneAbsent` / `StopAll` | 同批清 `_tailDone`(停止 ⇒ 清;**再出现 = 新一生**) |
+| 5 | 观测面 | 新增 `IsBreathTailDone(int)`;`PausedBreathCount` 语义收窄为「**正在**衰减的人数」 |
+| 6 | 测试 | `test_ac019_4_pauseLifespan_isBoundedByTailRamp` 的 Assert ③ 由「到期后重开新段、elapsed 归零」改为「到期后簿记恒缺失」;新增 `test_ac019_6_breathTail_decaysOnce_neverRestarts_whileTerminalPersists` |
+
+**「不再写增益」的依据**:封口增益恰为终点值(`BreathTailRamp.ValueAt(1.0, floor, RAMP, RAMP) = floor`),
+⇒ 「此后不写」与「每拍重写同值」在 sink 侧等价;省掉的是每拍一条 DTO,不是听感。
+⚠️ **听感未证** —— 归 `AC-019-6`(仍 NOT-RUN)。
+
+### 证伪轮(修复轮现行,以本节为准)
+
+> 纪律同 §三:`/tmp/fzrun.py`,改 → 跑 → 还原同一命令内,还原后 SHA-256 校验(`restored sha ok`)。
+> 过滤器 = `DaYiJingCheng.Tests.Unit.Audio.RuntimeAssemblyTest`(37 测)。
+
+| # | 停用的守卫 | 实测 |
+|---|---|---|
+| **F1** | `End` 分支去掉 `&& !_tailDone.ContainsKey`(退回修复前形态) | **红 ×2** ✅ `pauseLifespan_isBoundedByTailRamp` · `breathTail_decaysOnce_neverRestarts` |
+| **F2** | `PruneAbsent` 去掉 `_tailDone.Remove(patientId)` | **红 ×1** ✅ `breathTail_decaysOnce_neverRestarts`(「再出现后尾音未重开」) |
+| **F3** | `AdvanceBreathTail` 去掉 `_tailDone[patientId] = cue.Intensity` | **红 ×2** ✅ 同 F1 两条 |
+| **F4** | `StopAll` 去掉 `_tailDone.Clear()` | **首轮不红** ⇒ 夹具缺观测面(假绿);补 `stopAll_clearsTailBookkeeping` 的封口前置 + `IsBreathTailDone` 断言后**红 ×1** ✅ |
+
+**F4 的假绿如实登记**:`test_ac019_4_stopAll_clearsTailBookkeeping` 原只在尾音**开始前** `StopAll`,
+`_tailDone` 恒空 ⇒ 清不清无差。修法 = 先跑满一段尾音到封口,再 `StopAll`。
+
+**未覆盖**:`AdvanceBreathTail` 到期一拍写封口值**恰为底值**这一点,F1–F4 均不直接钉
+(它由 `pauseLifespan` 的形态断言与 `breathTail_decaysOnce` 的段末底值断言覆盖,但未做单点反证)。
+
+### 回归
+
+全量 EditMode 见 §八。
+
+---
+
+## §八 回归(修复轮)
+
+| 项 | 值 | 文件 |
+|---|---|---|
+| 基线(S20 重裁终轮) | `3769 / 3724 / 0 / 45` | `unity/Logs/s20-reselect-full-editmode.xml` |
+| **修复轮全量** | **`3770 / 3724 / 1 / 45`**,exit 8 | `unity/Logs/s19-tailonce-full-editmode.xml` |
+| 唯一红 | `test_move_afterFreeFall_horizontalDisplacementBoundedByConfig`(`MovementFeedTest`) | 已知间歇红 `TD-player-01`;**单跑 5/5 绿**(本轮实测) |
+| 等式判据 | `total 3770 − 3769 = +1` = 新增 `test_ac019_6_breathTail_decaysOnce_neverRestarts_whileTerminalPersists` 1 条 | ✅ 严丝合缝 |
+| `pauseLifespan` | 判据改写,**未增减条数** | ⇒ 不进入 `total` 差 |
+| `stopAll` | 只加断言,**未增减条数** | 同上 |
+
+**⚠️ 不借绿**:`passed 3724 − 3724 = 0` 与 `+1 新测` 的差 = **唯一那条已知间歇红**(本轮全量里它红了)。
+⇒ **不能**写「passed 也 +1」;等式只在 `total` 维成立,`passed` 维的差已由间歇红解释且单跑转绿。

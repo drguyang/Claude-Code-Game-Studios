@@ -65,7 +65,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly Dictionary<int, AudioCueHandle> _breathHandles = new Dictionary<int, AudioCueHandle>();
 
         // 停顿态簿记(story-019):终局锁存但仍在场 ⇒ loop 存续 + 尾音衰减。
+        //   _tailStartTick = **正在衰减**的段起点(到期即删 ⇒ 这个字典的 Count 就是「正在衰减的人数」)。
+        //   _tailDone      = **已衰减完**的病人的封口增益(**不删** —— 每拍重写同值)。
+        // ⚠️ **两表缺一不可**:13 的 `Decide` 在终局锁存期间**每一拍**都给 `End`(`patient-ai`
+        //    `PatientCueSchedule.Decide`,终局 ⇒ `breathAlive ? End : None`)。若只有 `_tailStartTick`,
+        //    到期删除后的下一拍 `End` 会**重开新段** ⇒ 尾音每 `BreathTailRampMs` 从满幅重来一次
+        //    = **一阵一阵**(2026-10-18 实测坐实为结构性必然,非「风险」;用户裁定修实现)。
+        //    两表合起来满足「**只衰减一次**」:**每病人至多一个段**(互斥不变量)。
         private readonly Dictionary<int, long> _tailStartTick = new Dictionary<int, long>();
+        private readonly Dictionary<int, byte> _tailDone = new Dictionary<int, byte>();
 
         /// <summary>构造。</summary>
         /// <param name="sink">44 的 cue 界面(非 null;ADR-018 §一「只入不出」)。</param>
@@ -139,6 +147,8 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ 与 <see cref="ActiveBreathCount"/> 的分界 = 「停顿 vs 停止」的**机器面**:
         /// 停顿的 loop **存活**(`ActiveBreathCount` 含它),停止的 loop 已 <c>EndLoop</c>(两者都不含它)。
         /// 尾音衰减到位后本值归零,**loop 仍然存活**(病人还在,只是气流尾已经听不见)。
+        /// ⇒ **尾音到位 ≠ 首拍:** 停顿态在首拍即入表,衰减走完后才归零(本值从 1 降到 0 需要
+        /// <c>BreathTailRampMs</c> 那么久)。归零后**不再重开**(尾音只衰减一次)。
         /// 听测面归 AC-019-6。</para></summary>
         public int PausedBreathCount => _tailStartTick.Count;
 
@@ -162,6 +172,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (elapsedSeconds < 0.0) elapsedSeconds = 0.0;
             return true;
         }
+
+        /// <summary>取某病人是否**已走完**尾音衰减(尾音只衰减一次 ⇒ 终局锁存期一旦完成即恒 true)。
+        /// <para>此时尾音已封口在底值增益上,loop 仍存续(停顿 ≠ 停止),本驱动**不再写增益**。</para></summary>
+        /// <param name="patientId">病人 id。</param>
+        /// <returns>该病人尾音已衰减完(且尚未离场 / 未 <see cref="StopAll"/>)。</returns>
+        public bool IsBreathTailDone(int patientId) => _tailDone.ContainsKey(patientId);
 
         /// <summary>单个逻辑 tick 的秒长(ADR-005 裁定 20 Hz ⇒ `TICK_SECONDS = 0.05`)。
         /// <para>⚠️ **不新增第二个真源**:该值取自已裁定的 tick 频率常数;若将来改频,
@@ -256,6 +272,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _entryTick.Remove(patientId);
                 _lastEmitTick.Remove(patientId);
                 _tailStartTick.Remove(patientId);   // 停止 ⇒ 尾音簿记一并清除(不残留衰减进度)
+                _tailDone.Remove(patientId);        // 同理:封口态也不得跨「停止」存活(再出现 = 新病人)
             }
         }
 
@@ -270,6 +287,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             _entryTick.Clear();
             _lastEmitTick.Clear();
             _tailStartTick.Clear();
+            _tailDone.Clear();
             for (int i = 0; i < handles.Count; i++)
                 _sink.EndLoop(handles[i]);
         }
@@ -297,8 +315,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     //    (loop 存续 + 尾音衰减);离场 ⇒ `PruneAbsent` 的 `EndLoop`(完全无声,
                     //    不补播尾音 —— GDD:571-573「停止 = 完全无声」)。
                     if (!_breathHandles.ContainsKey(patientId)) break;
-                    // ⚠️ 只在 ⑤ 判「到位」时清表 ⇒ 每一拍都会走到这里 ⇒ 若衰减中覆写,时钟永不推进。
-                    if (!_tailStartTick.ContainsKey(patientId))
+                    // ⚠️ **尾音只衰减一次**(用户 2026-10-18 裁定):13 在终局锁存期**每一拍**都给 `End`,
+                    //    故这里必须同时挡住「衰减中」与「已衰减完」两种 —— 只在两者都没有时开新段。
+                    //    否则到期删除后的下一拍就会重开满幅新段 ⇒ 一阵一阵(见字段区注释)。
+                    if (!_tailStartTick.ContainsKey(patientId) && !_tailDone.ContainsKey(patientId))
                         _tailStartTick[patientId] = tick;
                     break;
 
@@ -319,13 +339,21 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (elapsedSeconds < 0.0) elapsedSeconds = 0.0;
 
             // 到位:只封口(终点增益)并停表(`PausedBreathCount` 归零),但 loop 仍存续(停顿 ≠ 停止)。
+            // ⚠️ 停表后病人进 `_tailDone`(**尾音只衰减一次**)⇒ 13 后续每拍的 `End` 不再重开新段。
+            //    封口增益恰为终点值(带恒等式 `BreathTailRamp.ValueAt(1.0, floor, RAMP, RAMP) = floor`),
+            //    故此后的「不再写」与「每拍重写同值」在 sink 侧等价 —— 只是不再每拍刷一次 DTO。
             int tailTicks = (int)Math.Round(AudioTuning.BreathTailRampSeconds / TickSeconds);
             bool finished = tick - tailStart >= tailTicks;   // 整数域比较,无末位误差
 
-            _sink.Emit(MakeBreathCue(patientId, id, gainOnly: true, position, cell, elapsedSeconds));
-            BreathGainUpdateCount++;   // ← 本段每拍一个增益步(计数 = 段内步数,段间不累)
+            AudioCueDto cue = MakeBreathCue(patientId, id, gainOnly: true, position, cell, elapsedSeconds);
+            _sink.Emit(cue);
+            BreathGainUpdateCount++;   // ← 本段每拍一个增益步(= 段内步数;全生只一段 ⇒ = 尾音步数)
 
-            if (finished) _tailStartTick.Remove(patientId);   // 停表(loop 仍存续,直至停止形态)
+            if (finished)
+            {
+                _tailStartTick.Remove(patientId);        // 停表(loop 仍存续,直至停止形态)
+                _tailDone[patientId] = cue.Intensity;    // 封口:此后不再重开、不再写
+            }
         }
 
         /// <summary>呼吸层 cue 的唯一构造点(稳态 / 尾音共用;区别只有 <paramref name="gainOnly"/>)。</summary>

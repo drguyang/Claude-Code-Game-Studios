@@ -138,8 +138,32 @@
 **回归**:EditMode 全量 `3748 / 3703 / 0 / 45`(`unity/Logs/s19-full-editmode.xml`)。
 ⚠️ 与基线 `3732 / 3687 / 0 / 45` 的差 `+16` 中,**夹具逐名计数为 +15,差 1 挂【待核】**(基线全量 XML 未落件,逐名 diff 不可执行)。
 
-**听测执行须用户做**:按 `s19-breath-transition-listening-2026-10-18.md` §三 六项勾选 + 四值记录;
-**判据 3(尾音是否「一阵一阵」)须专门判** —— 本实现的停顿期尾音按 `BreathTailRampMs` 分段重复。
+**听测执行须用户做**:按 `s19-breath-transition-listening-2026-10-18.md` §三 六项勾选 + 四值记录。
+~~**判据 3(尾音是否「一阵一阵」)须专门判** —— 本实现的停顿期尾音按 `BreathTailRampMs` 分段重复。~~
+⇒ ✅ **2026-10-18 已修**(见下节「尾音只衰减一次」修复轮)。
+
+### 修复轮 2026-10-18:尾音「只衰减一次」(用户裁定「修实现——尾音只衰减一次,不重开」)
+
+**缺陷**:13 在终局锁存期**每拍**给 `BreathAction.End`,驱动到期 `Remove` 后下一拍 `End` 重开 ⇒
+尾音每 1.5 s 满幅重来 = **一阵一阵**,是结构性必然(原卡只把它写成「听测须专门判」的风险)。
+
+**修复**:驱动新增封口态 `_tailDone`(不删,每生一份),`End` 分支开新段的条件加上
+`&& !_tailDone.ContainsKey`;`PruneAbsent` / `StopAll` 同批清封口态(停止 ⇒ 清,再出现 = 新一生)。
+观测面新增 `IsBreathTailDone(int)`;`PausedBreathCount` 收窄为「**正在**衰减的人数」。
+
+**同批复核**(原 §五 预登记的义务):`test_ac019_4_pauseLifespan_isBoundedByTailRamp` 的
+Assert ③ 由「到期后重开新段、elapsed 归零」改写为「**到期后簿记恒缺失**」—— 旧断言正是缺陷形态的固化。
+
+**测试**:新增 `test_ac019_6_breathTail_decaysOnce_neverRestarts_whileTerminalPersists`
+(含前置断言「13 每拍 `End`」,钉住本修复的前提);`test_ac019_4_stopAll_clearsTailBookkeeping` 补封口前置。
+**证伪 F1–F4 全转红**(F4 首轮**不红** = 夹具缺观测面,补断言后才红 —— 已如实登记)。
+
+**回归**:全量 `3770 / 3724 / 1 / 45`,对 S20 基线 `3769` ⇒ `total +1` = 新增 1 条;
+唯一红 = `MovementFeedTest` 已知间歇红(`TD-player-01`,单跑 5/5 绿)。
+原件:`production/qa/evidence/impl-s19-ac44-10-breath-tail-2026-10-18.md` §七 / §八。
+
+**⚠️ 仍未证**:`AC-019-6` 人耳听测(**NOT-RUN**,判据 3 现测的是「一段连续衰减是否自然」,
+不再是对已知缺陷的确认);封口值恰为底值无单点反证(见 §七「未覆盖」);IL2CPP 三格。
 
 ### ⚠️ 同批听测的串扰源:`docs/audio/statereport-walkthrough-2026-10-18.md` 是**预填稿回放**,不是听测结果
 

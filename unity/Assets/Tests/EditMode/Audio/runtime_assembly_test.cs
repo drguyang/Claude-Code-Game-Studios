@@ -995,17 +995,100 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(driver.ActiveBreathCount, Is.EqualTo(1), "尾音期间 loop 仍存续(停顿 ≠ 停止)");
             Assert.That(driver.EmitCount, Is.Zero, "停顿期不得出一声性 cue");
 
-            // Assert ③ 13 仍判终局 ⇒ 下一拍重开新段,elapsed 从 0 起算(段间不累加)
-            Assert.That(has[due + 1], Is.True, "停表后应重开新段(13 仍判终局)");
-            Assert.That(elapsed[due + 1], Is.EqualTo(0.0).Within(1e-12),
-                $"重开段 elapsed = {elapsed[due + 1]} —— 尾音跨段累加未清零");
-            Assert.That(elapsed[due + 2], Is.EqualTo(PatientCueDriver.TickSeconds).Within(1e-12),
-                $"重开段第二拍 elapsed = {elapsed[due + 2]} —— 段内计时未从 0 起算");
+            // Assert ③ **尾音只衰减一次**(用户 2026-10-18 裁定,取代旧「到期后重开新段」语义):
+            //   13 在终局锁存期每拍都给 `End`,实现须挡住重开 —— 到期后簿记恒缺失。
+            //   ⚠️ 旧断言在此处要求 `has[due+1] = true` 且 elapsed 从 0 起算 —— 那正是「一阵一阵」的
+            //      形态在测试侧的固化。实测坐实后删除;反向判据(停用挡重开的守卫 ⇒ 本条红)见证伪轮。
+            Assert.That(driver.IsBreathTailDone(17), Is.True, "到期后未标记「尾音已完成」");
+            for (int tick = due + 1; tick <= probeEnd; tick++)
+                Assert.That(has[tick], Is.False,
+                    $"第 {tick} 拍簿记又出现 —— 尾音重开了新段(一阵一阵);尾音只应衰减一次");
+            Assert.That(driver.PausedBreathCount, Is.Zero, "到期后停顿簿记须恒零(不重开)");
+            Assert.That(driver.EmitCount, Is.Zero, "尾音全程不得出一声性 cue");
 
-            // Assert ④ 每拍至多一次增益写入(段间重开不额外计步)
-            for (int tick = 2; tick <= probeEnd; tick++)
-                Assert.That(gains[tick] - gains[tick - 1], Is.InRange(0, 1),
-                    $"第 {tick} 拍增益写入步数 = {gains[tick] - gains[tick - 1]}");
+            // Assert ④ 全生**只有一段**:增益写入步数 = 段内步数,到期后不再增长(段间不累计)
+            Assert.That(gains[due] - gains[due - 1], Is.EqualTo(1), "到期拍应写最后一次增益(封口值)");
+            Assert.That(gains[probeEnd], Is.EqualTo(gains[due]),
+                $"到期后又写了 {gains[probeEnd] - gains[due]} 次增益 —— 尾音重复写(重开段)");
+        }
+
+        [Test]
+        public void test_ac019_6_breathTail_decaysOnce_neverRestarts_whileTerminalPersists()
+        {
+            // 回归测(2026-10-18「尾音只衰减一次」修复):病人在终局锁存态持续在场时,
+            // 尾音**全生只衰减一遍**;衰减完 = 停在底值,不再从满幅重来。
+            // ⚠️ 前置断言(本测的判别力来源):13 在终局锁存期**每拍**都给 `End`。
+            //    若 13 改了这条语义,前置会红 —— 那时「挡重开」的守卫成了空转,须重裁本测。
+            var sink = new TailSink();
+            PresenceRegistry presence = PresenceWith(patientId: 19);
+            var vitals = new ScriptedVitals(0.5f);
+            var behavior = new PatientBehaviorDirector(vitals, BehaviorBands.Default);
+            PatientCueDriver driver = new PatientCueDriver(
+                sink, vitals, presence, behavior,
+                intervals: CueIntervals.Default,
+                coughCue: null, breathCue: 1,
+                knowsClinic: KnowsClinicForTest);
+            RunTicks(driver, vitals, 0, 5, _ => 0.5f);
+            Assert.That(driver.ActiveBreathCount, Is.EqualTo(1), "前置:呼吸 loop 已起");
+
+            // 前置:13 的决策表在终局锁存期确实每拍 `End`
+            RunTicks(driver, vitals, 5, 40, _ => BehaviorBands.Default.DeathBandMin);
+            PatientBehavior b = behavior.For(new PatientId(19));
+            CueDispatch d1 = PatientCueSchedule.Decide(
+                b.Current, b.Terminal, 40, -1, new PatientId(19),
+                b.Tier, vitals.Position, CueIntervals.Default, breathAlive: true, CueKind.Cough, 0);
+            CueDispatch d2 = PatientCueSchedule.Decide(
+                b.Current, b.Terminal, 41, -1, new PatientId(19),
+                b.Tier, vitals.Position, CueIntervals.Default, breathAlive: true, CueKind.Cough, 0);
+            Assert.That(b.Terminal.Latched, Is.True, "前置:13 已终局锁存");
+            Assert.That(d1.Breath, Is.EqualTo(BreathAction.End), "前置:第 40 拍 13 判 End");
+            Assert.That(d2.Breath, Is.EqualTo(BreathAction.End), "前置:第 41 拍 13 仍判 End(每拍重复)");
+
+            // 跑足 3 倍尾音时长 —— 若实现会重开段,这里必然出现多段
+            int ticksPerTail = (int)Math.Ceiling(AudioTuning.BreathTailRampSeconds / PatientCueDriver.TickSeconds);
+            int emitsAtTailEnd = sink.Intensities.Count;
+            int gainsAtTailEnd = driver.BreathGainUpdateCount;
+            RunTicks(driver, vitals, 40, 40 + 3 * ticksPerTail, _ => BehaviorBands.Default.DeathBandMin);
+
+            Assert.That(driver.BreathGainUpdateCount - gainsAtTailEnd, Is.Zero,
+                $"尾音到期后又写了 {driver.BreathGainUpdateCount - gainsAtTailEnd} 次增益 —— 尾音重开了");
+            Assert.That(driver.PausedBreathCount, Is.Zero, "尾音到期后停顿簿记须恒零");
+            Assert.That(driver.IsBreathTailDone(19), Is.True);
+            Assert.That(driver.ActiveBreathCount, Is.EqualTo(1), "尾音完 ≠ 停止:loop 仍存续");
+            Assert.That(sink.EndLoopCount, Is.Zero, "尾音完 ≠ 停止:不得 EndLoop");
+            Assert.That(driver.EmitCount, Is.Zero, "停顿期不得出一声性 cue");
+
+            // 形态:尾音段**单调不升**,末值 = 底值(一段,不是一个周期函数)
+            var seg = sink.Intensities.GetRange(emitsAtTailEnd - ticksPerTail, ticksPerTail);
+            for (int i = 1; i < seg.Count; i++)
+                Assert.That(seg[i], Is.LessThanOrEqualTo(seg[i - 1]),
+                    $"尾音第 {i} 步回升 —— 段内出现重开(一阵一阵)");
+            double floor = BreathTailRamp.DbToLinear(AudioTuning.BreathTailGainFloorDb) * 255.0;
+            Assert.That(seg[seg.Count - 1], Is.InRange((int)floor - 1, (int)floor + 1),
+                "尾音封口值 ≠ 底值");
+
+            // 停止(离场)⇒ 清簿记;之后同 id 再出现走全新一生(只衰减一次是「每生一次」,不是「全局一次」)
+            int endTick = 40 + 3 * ticksPerTail;
+            presence.RemovePresent(new PatientId(19));
+            driver.PruneAbsent(endTick);
+            Assert.That(driver.IsBreathTailDone(19), Is.False, "停止后封口态不得残留");
+            Assert.That(sink.EndLoopCount, Is.EqualTo(1), "停止 = EndLoop");
+
+            // 「再出现」:同 id 重新入场 ⇒ 必须能起新 loop + 开新尾音段(封口态若随「停止」存活,
+            //   这里 guard 会挡住重开 ⇒ 无增益写入;见证伪轮 F2)。
+            // ⚠️ 14 拍不足以跳出 13 的滞回带 —— 等 `ResetForLoad` 清掉该病人的陈旧行为态(= 读档语义),
+            //    再验证「新一生」;这同时钉住「封口态的清理与 13 的派生态清理同口径」。
+            int emitsAfterStop = sink.Intensities.Count;
+            presence.AddPresent(new PatientId(19), new WorldPos(1, 0, 2));
+            behavior.ResetForLoad();
+            RunTicks(driver, vitals, endTick + 1, endTick + 6, _ => 0.5f);
+            Assert.That(driver.ActiveBreathCount, Is.EqualTo(1), "再出现后未起新 loop");
+            RunTicks(driver, vitals, endTick + 6, endTick + 10, _ => BehaviorBands.Default.DeathBandMin);
+            Assert.That(driver.BreathGainUpdateCount - gainsAtTailEnd, Is.GreaterThan(0),
+                "再出现后零增益写入 —— 尾音段没开");
+            Assert.That(sink.Intensities.Count, Is.GreaterThan(emitsAfterStop),
+                "再出现后尾音未重开 —— 封口态跨「停止」存活了");
+            Assert.That(driver.PausedBreathCount, Is.GreaterThan(0), "再出现后的尾音段须入簿记");
         }
 
         [Test]
@@ -1040,11 +1123,17 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             PatientCueDriver driver = MakeScriptedDriver(sink, presence, vitals, 15, coughCue: null, breathCue: 1);
             RunTicks(driver, vitals, 0, 5, _ => 0.5f);
 
+            // 前置:先走出一个**已封口**的尾音(否则 `_tailDone` 为空,「清没清」无从判 —— 见证伪轮 F4)
+            int ticksPerTail = (int)Math.Ceiling(AudioTuning.BreathTailRampSeconds / PatientCueDriver.TickSeconds);
+            RunTicks(driver, vitals, 5, 5 + ticksPerTail + 1, _ => BehaviorBands.Default.DeathBandMin);
+            Assert.That(driver.IsBreathTailDone(15), Is.True, "前置:尾音已封口");
+
             driver.StopAll();
 
             Assert.That(sink.EndLoopCount, Is.EqualTo(sink.BeginLoopCount));
             Assert.That(driver.ActiveBreathCount, Is.Zero);
             Assert.That(driver.PausedBreathCount, Is.Zero);
+            Assert.That(driver.IsBreathTailDone(15), Is.False, "StopAll 后封口态须清(读档 = 新一生)");
         }
 
         [Test]
