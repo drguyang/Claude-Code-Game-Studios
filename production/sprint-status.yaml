@@ -14,7 +14,12 @@ goal: "44 运行期音频链接通 —— 6 条 In Review story(007-012)补生�
 start: ""
 end: ""
 generated: "2026-10-16"
-updated: "2026-10-18"   # S14-11(story-025)实现轮 + 评审轮 + 修复轮 + 截图轮 + S13-7 走查重跑批五批落盘 ⇒ **done/Complete**(TD-prescription-01/-02/-03 结案;AC-025-6 维持不勾归 TD-prescription-07)
+updated: "2026-10-18"   # 六批落盘:① S14-11(story-025)实现轮 ② 评审轮 ③ 修复轮 ④ 截图轮 ⑤ S13-7 走查重跑批
+                       # ⇒ S14-11 **done/Complete**(TD-prescription-01/-02/-03 结案;AC-025-6 维持不勾归 TD-prescription-07)
+                       # ⑥ **S14-10 实机听测批**(story-018 唯一余项达成)⇒ S14-10 **done/Complete**
+                       #   —— A-6 人耳判据坐实 + `AC-11-21`/`AC-44-09` 听测半边同批 ✅
+                       #   ⇒ `TD-audio-023` / `-024` / `TD-prescription-04` **结案**;
+                       #   ⚠️ **44 epic 仍不得收口**(TD-audio-100…109 逐条未动)
 
 stories:
   # ── Must Have(关键路径 · Wave 1+2)──
@@ -173,11 +178,11 @@ stories:
     name: "018 音频运行期装配:6 处缺口 A-1…A-6 + 新发现 A-7(混音器未入 Addressables 组)"
     file: "production/epics/audio-system/story-018-runtime-audio-assembly.md"
     priority: must-have
-    status: in-progress
+    status: done
     owner: "claude"
     estimate_days: 1.5
     blocker: ""
-    completed: ""
+    completed: "2026-10-18"
     # 立件依据 = 2026-10-17 勘察件 audio-asset-gaps-2026-10-17.md §2.2(A-1…A-6)+ 本轮新发现 A-7。
     # 用户指令:「新立故事,然后接音频6处」;裁定「两件都立(戥子 + 音频装配)」。
     # A-6 口径改判:走运行期 source.outputAudioMixerGroup(engine-ref audio.md:96),不改 38 个 .meta。
@@ -188,6 +193,37 @@ stories:
     #   用户 2026-10-18 裁定「你实机听测后再签」。听测件 audio-wiring-listening-2026-10-18.md(NOT-RUN)。
     #   ⚠️ 不得据「代码落地 + 全绿」推定本 story 已闭。
     # 交付后须重走 AC-11-21(不可判 → 可判)与 AC-44-09 听测半边。
+    # ── 2026-10-18 听测批(唯一余项达成 ⇒ done/Complete)──
+    # 用户实机听测并签核(听测件 §〇 结果 / §三 勾满 / §六 双栏签 / §七 结案联动):
+    #   ① Voice_Cough_Damp **可闻** · 总线 **Voice** · **拉/推 Voice 滑块音量随之变化**
+    #      ⇒ A-6 总线路由的**人耳判据**成立(自动化只证 outputAudioMixerGroup 被赋值,证不了生效)。
+    #   ② **零状态播报**(Page_Turn / Cabinet_Prop)⇒ **AC-11-21 ⚫→✅** 与 **AC-44-09 听测半边 ✅**
+    #      同批改签(GDD :986 逐字「与 AC-44-09 联合」= 同一条判据、同一次听测,**非**溢出)。
+    #      ⚠️ **AC-44-09 的 ✅ 归属 = 「E5 + 本批」合取,本批不独力结清** —— 10-17 的 E5 走查
+    #      (docs/audio/statereport-walkthrough-2026-10-17.md,story-016 AC-44-E5)已按**全 15 cue**
+    #      逐条人耳判定(probe 真播形态);本批补的是**游戏内场景**形态。E5 的签核载体与 story-016
+    #      卡面 :83 自述相抵(落盘件 [ ] 通过 + 自注「未勾选 = E5 未通过」)⇒ **归 story-016 的
+    #      reconcile 轮处置,本批只登记不顺手改**。详听测件 §七「与 E5 的关系」· impl 原件 §九附。
+    #   ③ ⚠️ **实听覆盖面**:当前事件表**无给药/疗效 cue 条目**(本次逐条核清,闭合 10-17 遗留的
+    #      「处方条目是否存在未逐条核」)⇒ 「给药 jingle」子面**当时无物可听**;判据成立靠
+    #      **全表构建期白名单门**(AC-018-7,新增播报类 cue 当场拒收)+ **11 侧零独立 AudioCue**。
+    #      ⇒ 该 ✅ 记「现表处方/交互 cue 实听零播报 + 全表门已证」,**不记**「已实听过给药音效」。
+    #   ④ **呼吸层实机可闻 ⇒ 听测件 §四 的预判被推翻**(口径错在拿 PlayMode 合成场景 存活呼吸层=0
+    #      外推真实会话;与 BehaviorMap.TrendWired=false 不矛盾)。**TD-audio-025 处置不变、仍 open**。
+    #   ⑤ 协议第 4 项「无爆音/意外噪声」用户未给单项结论 ⇒ 登记**未判**,不勾不借(非本 AC 判据项)。
+    # 结案:TD-audio-023 / -024 / TD-prescription-04 ✅;**story-018 转 Complete**。
+    # 🔴 新立 **TD-audio-027**(听测在编辑器 Mixer 窗口牵出 .mixer 副作用:Default 快照新增捕获
+    #    Master 原始电平 = 0 dB;值 = 出厂默认 ⇒ 运行期等价,但**暴露 AC② 门对「快照捕获 Master
+    #    原始电平」判绿通过** —— 该电平不在 exposed 参数名集内)。提交前复跑核验:
+    #    `--filter "MixerTopology"` EditMode **21/21** · `--filter
+    #    "DaYiJingCheng.Tests.PlayMode.AudioWiringTest"` PlayMode **5/5**
+    #    (Logs/s18-listening-mixer-editmode.xml · s18-listening-playmode2.xml)。
+    #    ⚠️ 首跑用短式过滤器 ⇒ total=0 **空跑非证据**;须写命名空间限定名。详 impl-s18-* §十。
+    # ⚠️ **未跑 /code-review**(用户裁定不含评审)—— 结案依据 = AC 全达成 + 证伪 14/14,如实留痕;
+    #    后续补评审须落 review-*.md 原件且**不追认**本次结案。
+    # ⚠️ **44 epic 仍不得收口** —— TD-audio-100…109 逐条未动(本批只动 AC-44-09 听测半边 + 链路接通)。
+    #    其余 [L] 半边(AC-44-02/03/04/10/11/12/13/15/17 + 联机对拍 + DSP P95 + 组测试)不受本批解锁;
+    #    AC-44-03 的阻塞仍是 12 个 vo_ 变体**未录制**。
 
   # ── 计划外追加(2026-10-18 · 用户裁定)──
   - id: "S14-11"
@@ -248,3 +284,6 @@ stories:
     # 债结转:TD-prescription-01/-02/-03 ✅ 结案;04(腿 C,归 S14-10)/ 05(49 通道,豁免≠满足)/ 06 维持 open。
     # ✅ **S14-11 done** —— story-025 转 Complete(AC-025-1…5 ✅;AC-025-6 维持不勾,分类器归 TD-prescription-07,
     #   系用户裁定重锚,不阻塞结案)。待 commit(无指令)。
+    # 🔁 同批注(2026-10-18 听测批):上行「04 维持 open」**已被同日 S14-10 听测批取代** ——
+    #   `TD-prescription-04` ✅ 结案(AC-11-21 ⚫→✅)。本件 S14-11 的判定与结论**不受影响**,
+    #   其 ✅ 仍来自走查目视,与 11-21 的听测 ✅ 是**两次独立执行**。

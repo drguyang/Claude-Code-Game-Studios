@@ -5637,3 +5637,266 @@ M1 乐层分支(恰红 2) · M3 流式 null(恰红 1) · M4 素材落盘(恰红 
 - 新立案:`TD-audio-023`(音频链零运行期装配 6 处)· `TD-audio-024`(处方音效白名单验证)。
   勘察件:`production/qa/evidence/audio-asset-gaps-2026-10-17.md`(素材 0 缺;缺的是装配)。
 - ⚠️ **戥子元件 story 尚未新立**(`TD-prescription-01` 处置已裁,执行待批)。
+
+## Session Extract — 两件新 story 立卡 2026-10-17
+- **story-025(42 侧戥子形态元件)** — `production/epics/skeuomorphic-ui/story-025-dentch-dose-form-element.md`,Status=Ready
+  · 6 条 AC(AC-025-1…6)· `TD-prescription-01` 执行件 · 边界裁定五条
+- **story-018(44 侧音频运行期装配)** — `production/epics/audio-system/story-018-runtime-audio-assembly.md`,Status=Ready
+  · 7 条 AC(AC-018-1…7)· `TD-audio-023` + `TD-audio-024` 执行件
+  · ⚠️ **新发现 A-7**:`DaYiJingCheng.mixer` 不在任何 Addressables 组 ⇒ `MixerResolver` 解析不到
+  · ⚠️ **A-6 口径改判**:走运行期 `source.outputAudioMixerGroup`,不改 38 个 `.meta`
+- 同批回刷:skeuomorphic-ui/EPIC.md(Counts 24→25)· audio-system/EPIC.md(+018 行 + 覆盖面说明)·
+  sprint-status.yaml(+S14-10)· tech-debt-register(TD-prescription-01 / TD-audio-023·024 挂 story 指针)
+- 下一步:实现 story-018(用户指令「然后接音频6处」)
+
+## Session Extract — story-018 音频运行期装配 实现轮 2026-10-18
+- **story-018 状态 = `In Progress`(代码落地,等实机听测签核)** —— 用户裁定「你实机听测后再签」。
+- **交付**:7 处缺口 A-1…A-6 + 新发现 A-7 **全有生产落点**。
+  新建生产件 5(`AudioSourceRenderTarget` / `AudioBusResolver` / `AudioClipLibrary` /
+  `AudioAssemblySeams` / `PatientCueDriver`)+ 改生产件 6 + 新建测试件 2(EditMode 27 测 / PlayMode 5 测)。
+- **证伪轮 14/14 转红(`FALSIFY_EXIT=0`)** —— F1–F11 + P1/P3/P4。
+  ⚠️ **首轮 F4 假绿已修**:`AudioRenderAssembled` 标志原在别处**重算**构造条件(同一判断的第二份拷贝)
+  ⇒ 变异不转红;改由**已构造出的对象**派生(`renderTarget is AudioSourceRenderTarget`)后复跑转红。
+  **教训:可观测标志必须从被观测对象派生,不得复述构造条件。**
+- **回归对账(等式判据)**:
+  EditMode 基线 `s53` 3682/3637/0/45 ⇒ 本轮 `s18-full-editmode-2` **3709/3664/0/45**(`+27 = 新增测数`)。
+  PlayMode 基线 `s51` 192/192/0/0 ⇒ 本轮 `s18-full-playmode` **197/197/0/0**(`+5 = 新增测数`)。
+  ⚠️ **口径**:准确表述是「两棵树在本轮全部新增测上零回归」,不得写成无限定的「零回归」。
+  EditMode **首跑**另有 1 条既有间歇红(`MovementFeedTest.test_move_afterFreeFall_...`):
+  隔离复跑 5/5 绿、全量复跑零红 ⇒ 环境相关;**根因 = `AC-1-33` ③ 未落地的下游症状**(见 `TD-player-01`)。
+- **上游修复(用户「本轮就修」授权)**:13 的痊愈锁存停用 —— `BehaviorMap.TrendWired = false`。
+  病根:9 侧 `Sim/ProgressionEvaluator.cs:439 ComputeTrend` **恒返回 `Fix.Zero`**(已登记 tripwire,
+  归 M2 可玩级),而痊愈判据 `position ≤ RecoverMax ∧ trend ≤ 0` 在 trend 恒 0 时**恒真**
+  ⇒ **每个新病人首拍即被锁存「痊愈」** ⇒ 呼吸层永不启动、一次性 cue 永不发射
+  (修复前实机:`tick=2` 起 `term=True emit=False breath=None`)。取「停用」非「误判」(痊愈是终局,不可逆)。
+  两侧 NOT-RUN 哨兵已下(接线后转红,禁删);反证 F11 坐实哨兵有判别力。新债 `TD-audio-025`。
+  修复后实测:`末驱动 tick=40 · 一次性发射=1 · 存活呼吸层=0 · 在场=1`。
+- **本轮新立案 3 条**:
+  `TD-audio-025`(ComputeTrend 恒 0 / 痊愈锁存停用)· `TD-audio-026`(`Assemble()` 无条件建池致 EditMode 泄漏)·
+  **`TD-player-01`(`AC-1-33` ③ `minMoveDistance` P0=0 语义层未被验证 —— 测试断言夹具字段而非控制器真值,
+  全库零处写进 `CharacterController`;GDD 逐字预言的下游症状已实测出现)**。
+- **落盘件**:`production/qa/evidence/impl-s18-runtime-audio-assembly-2026-10-18.md`(证据原件)·
+  `production/qa/evidence/audio-wiring-listening-2026-10-18.md`(**NOT-RUN**)· story-018 ·
+  audio-system/EPIC.md · `docs/tech-debt-register.md` · `production/sprint-status.yaml` · 本文件。
+- **下一步**:① 用户实机听测(待听:`cue#0` / `Voice_Cough_Damp` / 总线 `Voice`;判据含「推 `Voice` 滑块音量随之变」)
+  ⇒ 签核后 story-018 转 `Complete`;② story-025(42 戥子形态元件)仍 `Ready`,实现未开工。
+- ⚠️ **未 commit**(无用户指令)。
+
+---
+
+## Session Extract — story-025 戥子剂量读取形态元素 实现轮 2026-10-18
+
+- **Story**:`production/epics/skeuomorphic-ui/story-025-dentch-dose-form-element.md` —— **Status: In Progress**
+  (代码与自动化判据全部落地并自证;两条 NOT-RUN 未闭 ⇒ 未转 Complete)
+- **交付(5 文件)**:
+  `SkeuoThemeVariables.uss`(黄铜层 +7 个 `--skeuo-brass-detent-*` 变量)·
+  `SkeuoBrass.uss`(+.brass-detent-band / .brass-detent / .brass-detent--focused;
+  **附带** `.brass-scale` 的 `height` → `min-height`)·
+  `Brass/BrassScaleElement.cs`(+`SetDetents(count, focusedOrdinal)` / `DetentCount` / `FocusedDetentOrdinal`)·
+  `Screens/CasebookScreen.cs`(`RefreshDentchDoses()` 每行由 `Label("戥子档")` 改为该行自己的形态)·
+  `Tests/EditMode/SkeuomorphicUI/dentch_dose_form_test.cs`(**新建,23 测**)
+- **形态 = 几何可分,颜色不变** —— 落焦块**零颜色声明** ⇒ AC-025-1 ②「非颜色」在 USS 文本层可判真。
+  **未用 `style.rotate`**(承 story §Engine Notes 优先口径)。
+- **过滤**:23/23 绿。
+- **证伪轮**:`RED-OK 15/15`(脚本 `/tmp/fz-s25.py`;改→跑→还原同命令内 + SHA-256 还原校验通过)。
+  ⚠️ **首轮 F1 = 假绿**:`test_ac025_1_setDetents_countNotPositive_throws` 原只断异常类型,
+  撤掉「档数 ≤ 0」守卫后仍被**档序守卫**抛出同型异常 ⇒ 被掩蔽。改断 `ParamName == "count"` 后复跑 RED-OK。
+  **教训**:两条守卫抛同型异常时,「断类型」的夹具对其中一条**零判别力**。
+- **回归(等式判据)**:EditMode `3732/3687/0/45` vs 基线 `3709/3664/0/45` ⇒ `+23 = +23` ✅ ·
+  PlayMode `197/197/0/0` vs 基线同值 ⇒ `+0 = +0` ✅。
+  口径:**「两棵树在本轮全部新增测上零回归」**,非无限定的「零回归」。
+- **首轮回归抓到 1 条本件引入的红(已修)**:`NoHealthbarFeedbackTest.test_markRegistry_noPaperTear_noTearFields` ——
+  破纸词表 `{tear, rip, break, split, fracture}` 扫的是**成员名**(限引用类型),
+  `DetentStripClass` / `_detentStrip` 的 `strip` 含 **`rip`** ⇒ 误判。**已改 `band`**。
+  ⚠️ **该命名避让事实此前全库无登记**,建议入 `.claude/docs/coding-standards.md`。
+  (另一条红 `MovementFeedTest...` = 已知间歇红,`TD-player-01` 下游症状,非本件引入。)
+- **NOT-RUN(禁借绿)**:① N 档截图 —— **batch 出不了图是结构性事实**
+  (`ScreenshotTool.cs` 头注两次实测;须编辑器 Play 按 F12);② `AC-11-12` 形态半 / `AC-11-13` 转绿 ——
+  须 `S13-7` 走查重跑,本件不得自判。
+- **证据原件**:`production/qa/evidence/impl-s25-dentch-dose-form-2026-10-18.md`
+- **落盘件**:story-025 · skeuomorphic-ui/EPIC.md(行 025 + Counts)·
+  `docs/tech-debt-register.md`(`TD-prescription-01` 加 2026-10-18 实现轮注,**仍未结案**)· 本文件。
+  ⚠️ **`production/sprint-status.yaml` 未改** —— story-025 不在 sprint-14 面内,是否登记为「计划外追加」待用户裁。
+- **下一步**:`/code-review` → `/story-done`;截图 + `S13-7` 走查重跑归收口轮。
+- ⚠️ **未 commit**(无用户指令)。
+
+---
+
+## Session Extract — story-025 评审轮 + 修复轮(2026-10-18)
+
+**承接**:上文实现轮(23 测落地)→ 用户三问裁定 → `/code-review` → 修复轮。
+
+### 用户裁定(2026-10-18,两轮 AskUserQuestion)
+
+1. 下一步 = **跑 `/code-review`**;`sprint-status.yaml` = **登记为 S14-11(计划外追加)**;
+   `rip` 命名避让事实 = **入 `.claude/docs/coding-standards.md`**(已落,新立「Naming — 机械门避让表」节)。
+2. 评审产出 BLOCKING ⇒ **落原件**;**R-1 处置 = 重锚 AC-025-6 + 落债**;
+   **修复范围**(多选)= **R-2 flex-shrink · R-3 注释登记 · R-5 白名单死码 · 其余 MINOR 四项**(= R-6 / R-7 / R-9 / R-10)。
+
+### 评审裁定:**CHANGES REQUIRED**(唯一 BLOCKING = R-1)
+
+- **原件**:`production/qa/evidence/review-story-025-2026-10-18.md`(三专家并行,Phase 8b 双列结账)。
+- **R-1(BLOCKING)**:`AC-025-6` 引用的「`ink`/`brass`/`implement` **三枚举**材质分支分类器」**全库不存在**
+  (实测 `grep classify|BranchOf|MaterialOf` 零命中;`SkeuoElement.cs:4-10` 是**四员** `{Paper,Scroll,Ink,Seal}`;
+  GDD 侧载体 `world_billboard_test.cs:87` 仍是占位符)⇒ 夹具以自造 `ClassListContains("brass")` **顶替 AC 语义层**
+  ——「AC 语义层被测试自造断言顶替」的**第 4 次**实例。
+- **处置**:AC-025-6 **撤勾** + 重锚为两条(① 类名级已实现 ✅ / ② 分类器缺口 ⛔)+ 落债 **`TD-prescription-07`**。
+- **R-4**(`TickCount` write-only)→ **`TD-prescription-08`**;**R-8**(Manifest「绑定点唯一」措辞与 AC-025-4 矛盾,
+  `git blame` = `c125742a` 2026-10-12 **既有债**)→ **本件未自行改注,待用户裁定**。
+
+### 修复轮落地(7 项,用户选定范围)
+
+`SkeuoBrass.uss`(R-2 `flex-shrink: 0` · R-3 双观感注释)· `BrassScaleElement.cs`(R-9 `hierarchy.Add` → `Add`)·
+`dentch_dose_form_test.cs`(R-5 白名单改 `BackingFieldName()` + 非空守卫 · R-6 `LayerRange`/`AssertDeclaredInLayer` 行区间判定 ·
+R-7 收窄到 `prescription-page` 子树 · R-10 负向门主断言对齐 AC 的 `content:` 数字面)。
+⚠️ **夹具一改 ⇒ 判别力须重证** ⇒ 证伪轮 **15 → 17 例**(新增 **F16** 钉 R-5 · **F17** 钉 R-6)。
+
+### 判据
+
+| 判据 | 状态 |
+|---|---|
+| 过滤测 `--filter dentch_dose_form_test` | ✅ 23/23 绿(修复后复跑) |
+| 证伪轮 `/tmp/fz-s25-r1.py`(17 例) | ✅ **`RED-OK 17/17`** · SHA-256 还原校验全部通过 · F16/F17 双双转红 |
+| 两棵树全量 EditMode / PlayMode | ✅ **`3732/3687/0/45`** · **`197/197/0/0`** —— 与实现轮逐位同值 ⇒ `+0 = +0`(修复轮未新增 `[Test]`);本轮零红,`MovementFeedTest` 间歇红未复现(**不得读成已修**) |
+
+### 落盘件(本轮)
+
+story-025(AC-025-6 重锚 · AC 勾选表 · Test Evidence 17 例 · 新 `## 评审轮记录`)·
+`production/qa/evidence/review-story-025-2026-10-18.md`(**新建,原件**)·
+`docs/tech-debt-register.md`(新节 + `TD-prescription-07` / `08`)·
+`impl-s25-dentch-dose-form-2026-10-18.md`(§九 评审修复轮附录,订正过时引用)·
+`skeuomorphic-ui/EPIC.md`(行 025)· `production/sprint-status.yaml`(S14-11 评审轮注)· 本文件。
+三份专家草稿 `tmp-review-s25-*.md` **已合并入原件并删除**。
+
+### 未闭(禁借绿)
+
+- **R-1 只解决「不实声称」,分类器仍未实现**(`TD-prescription-07`);
+- **R-4 未修**(→ `TD-prescription-08`);**R-8 ✅ 已就地改注**(用户 2026-10-18 裁定「就地改注」——
+  story-025 该行限定为「selector → element 绑定点唯一」+ 声明「行 → 形态」另一条轴;新文本零命中 AC-42-F3 词门);
+- **截图 NOT-RUN**(batch 结构性不可得,须编辑器 Play 按 F12)· **`S13-7` 走查重跑未执行**;
+- **三专家均未运行 Unity** ⇒ 几何 / Yoga 结论为静态推导(engine-reference 对 `flex-shrink`/`min-height`/`overflow`/`Clear()`/`ClassListContains` **零覆盖**)。
+
+### 下一步
+
+回归对账填毕 ✅ · R-8 已就地改注 ✅ ⇒ 余下:截图(编辑器 Play 按 F12)+ `S13-7` 走查重跑 → `/story-done`。
+⚠️ **未 commit**(无用户指令)。
+
+---
+
+## Session Extract — story-025 截图轮(2026-10-18 · 编辑器 Play · F12 · 1x)
+
+**当前任务**:story-025(S14-11)截图判读 + 判绿 + 落账 —— **完成**;余项仅 `S13-7` 走查重跑。
+
+### 实测链(双通道交叉)
+
+1. **首图判红** `unity/Logs/shots/20261018_090548_1x.png`(/image-vision + PIL 逐像素一致):
+   5 行逐像素相同,仅焦点高亮差异 ⇒ 评审原件 §五 **未及核查项 #5 实测命中**。
+   根因(机械定位):`.brass-detent` 底色 = 描边 = `.brass-scale` 板色,**三色全同 `#8C5A2B`**
+   ⇒ 档块溶进铜条。23 测测不到此类(断 USS 文本 / resolved style,非可见性)。
+2. **修复(用户裁甲案,1 行)**:`SkeuoBrass.uss` `.brass-detent` 底色 → `var(--skeuo-brass-bg)`
+   (`#B8863B`,art-bible §4.1,`:root` 可继承);零新增色 · 落焦块仍零颜色声明(AC-025-1② 不破坏)。
+3. **复图判绿** `unity/Logs/shots/20261018_092936_1x.png`:每行恰一个金档块且位置阶梯
+   (x 18/22/26/30/34 = 行 k 第 k 档)· 旧图同扫描零金簇(唯一变量 = 那行 USS)· 全画面零数字。
+   ⚠️ 观感限制如实登记:常态档仅约 2px,**每行实际只落焦档金芯露出**(低密度读数)——
+   够不够归走查人眼;增强属 44 调参、数值归用户,不在本件。
+
+### 判据
+
+| 判据 | 状态 |
+|---|---|
+| 过滤测 `dentch_dose_form_test` | ✅ 23/23 绿(`unity/Logs/s25-ussfix-editmode-filtered.xml`,USS 改后复跑) |
+| 两棵树全量 | ✅ 已跑:EditMode **3732/3686/1/45**(total 与基线逐位同值 `+0=+0`;唯一红 = `MovementFeedTest` 已知间歇红 `TD-player-01` 下游,失败信息同实现轮首轮同型,**单跑 5/5 绿**⇒ 非本件引入、不得读成已修)· PlayMode **197/197/0/0** 逐位同值(原件 §10.5)。⚠️ 操作教训:EditMode+PlayMode 两 batch **勿串一条命令**(第二条 exit 2 起不来,拆开即成) |
+| 证伪轮 17 例 | 未重跑(本轮只改 USS 值引用,夹具零改动;F16/F17 判别力记录仍有效) |
+
+### 落盘件(本轮)
+
+`SkeuoBrass.uss`(1 行 + 注释)· 证据图 ×2(`production/qa/evidence/skeuomorphic-ui/dentch-form-2026-10-18.png`
++ `-before-fix.png`)· `impl-s25-…md` §六 更新 + **新 §十 截图轮** · story-025(Test Evidence 视觉证据改判 +
+**新 §截图轮记录** + 「仍未 Complete」清单改)· `sprint-status.yaml` S14-11 截图轮注 ·
+`tech-debt-register.md` TD-prescription-01 行(前置①②达成,余项③)· 本文件。
+
+### 未闭(禁借绿)
+
+- **`S13-7` 走查重跑**(唯一余项;须含人眼裁定「低密度读数」够不够);
+- 全量回归数字**已回填**(story §截图轮记录判据表 + 本表 + 原件 §10.5 + sprint-status);`MovementFeedTest` 间歇红**未修**(仍归 `TD-player-01`);
+- R-1 分类器未实现(`TD-prescription-07`)· R-4 未修(`TD-prescription-08`)—— 均刻意留债。
+
+### 下一步
+
+走查重跑(`AC-11-12` 二分签 + `AC-11-13` 双签,须真人)⇒ `/story-done`。
+⚠️ **未 commit**(无用户指令)。
+
+---
+
+## Session Extract — story-025 走查重跑批 + 收口(2026-10-18)
+
+**当前任务**:S13-7 走查重跑回填 ⇒ story-025 **转 Complete** —— **完成;全链闭合**。
+
+### 走查裁定(真人,AskUserQuestion 四问)
+
+- **腿 A3**(`AC-11-12` 拟物载体可读半)= **✅ 可读**;**腿 B2**(`AC-11-13` 仅凭形态分辨)= **✅ 可辨**(`ELSE` 不触发);
+- 观感限制(低密度读数,截图轮如实登记)= 用户裁「**够用,不增强**」⇒ 不触发 44 增强债;
+- 签核 = **主创 + 医学从业双签**(solo 同签)。**AC-11-21 / 腿 C 本批不重走**(归 S14-10,⚫ 维持不可判)。
+
+### 改判后果(债结转)
+
+`TD-prescription-01`(根因)/ `-02` / `-03` **✅ 结案**;维持 open:`-04`(听测,S14-10)·
+`-05`(49 通道,豁免≠满足)· `-06`(美术轮)· `-07`(三枚举分类器)· `-08`(`TickCount` write-only)。
+`AC-11-12` / `AC-11-13` 转 ✅(判定权在走查,报告为证)。
+
+### 落盘件(本轮)
+
+**新建** `production/playtests/playtest-2026-10-18-s13-7-rerun-dentch-form.md`(9 节,含 §8 证伪性)·
+原批 10-16 走查包(头部**改判指针注**,历史 🔴 不就地改写)· 签核件 `story-005-…-signoff.md` **§6 重跑改签**·
+story-005 卡面 `AC-11-12`/`AC-11-13` 两行改判 + Test Evidence `:90` 过期行订正注 ·
+`tech-debt-register.md`(01/02/03 划线结案 + 共同性质结转注)·
+story-025(**Status: Complete** + Completion Notes + 走查重跑记录移至截图轮后)·
+impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14-11 → **done/2026-10-18**,updated 行改写)·
+`skeuomorphic-ui/EPIC.md`(行 025 → Complete;Counts **24 Complete + 1 ◐**)。
+
+### 未闭(禁借绿)
+
+- ⚠️ **未 commit**(无用户指令)—— 本轮全部改动待用户处置;
+- **S14-10**(story-018 音频装配)仍留「实机听测后签」;`AC-11-21` 重走依赖其完成;
+- `TD-prescription-05/06/07/08` 各自触发条件不变。
+
+### 下一步
+
+用户裁定 commit(可选:`/story-done` 流程复跑对账,或直接提交)。
+
+---
+
+## Session Extract — /story-done(S14-10 听测签核批)2026-10-18
+
+- **对象**:`production/epics/audio-system/story-018-runtime-audio-assembly.md`(S14-10)
+  —— 唯一余项「实机听测 AC」由**用户实机执行并签核** ⇒ **story-018 转 `Complete`** · S14-10 → `done`。
+- **四腿判定**(记录件 `production/qa/evidence/audio-wiring-listening-2026-10-18.md` §〇):
+  ① `Voice_Cough_Damp` **可闻** · 总线 **`Voice`** · **`Voice` 滑块生效** ⇒ A-6 人耳判据首次坐实;
+  ② **零状态播报** ⇒ `AC-11-21` ⚫→✅ + `AC-44-09` 听测半边 ✅(GDD `:986` 联合判据,非溢出);
+  ③ **呼吸层可闻 ⇒ 记录件 §四 预判被推翻**(口径错在拿 PlayMode 合成场景 `存活呼吸层=0`
+  外推真实会话)—— `TD-audio-025` 处置**不变、仍 open**;
+  ④ 协议第 4 项「无爆音」= **未判**,不勾不借。
+- **覆盖面钉住**:当前事件表**无给药/疗效 cue 条目** ⇒ 实听对象 = `Page_Turn` / `Cabinet_Prop`;
+  判据成立靠**全表构建期白名单门**(`AC-018-7`)+ **11 侧零独立 `AudioCue`**。
+- **`AC-44-09` 归属收窄(本批自查)**:其 ✅ = **10-17 E5 走查(全 15 cue probe 真播)+ 本批
+  (游戏内场景形态)合取**,本批**不独力结清**;顺带登记 story-016 `:83` 自述与走查件签字行
+  (`[ ] 通过` + 自注「未勾选 = E5 未通过」)的**账面矛盾**,处置归 story-016 的 reconcile 轮。
+- **落盘件(本批)**:听测件(§〇/§三/§四订正注/§五/§六签/§七 + 与 E5 的关系)·
+  `impl-s18-*`(§七/§八刷注 + §九 + §九附)· story-018(Complete + 听测签核轮记录 + Completion Notes)·
+  签核件 §7 · story-005 卡面 · 两个 EPIC · `docs/tech-debt-register.md`
+  (`TD-prescription-04` / `TD-audio-023` / `-024` 结案 + 44 内容需求册 §三 触发行订正)·
+  `sprint-status.yaml`(S14-10 done)· sprint-13 / sprint-14 · retro-13 · playtest-2026-10-18。
+- **结案边界(禁溢出)**:**44 epic 仍 ⛔ 不得收口** —— `TD-audio-100…109` 逐条未动;
+  `TD-audio-025` / `-026` / `TD-player-01` / `TD-prescription-05/06` 仍 open;
+  **未跑 `/code-review`**(用户裁定不含评审,如实留痕)。
+- **工作树待处置**:两份逐字节相同的未跟踪 `docs/audio/statereport-walkthrough-2026-10-18.md` +
+  `-manifest-2026-10-18.json`(本批未采用未改动,处置归用户)·
+  `unity/Assets/Audio/DaYiJingCheng.mixer` 出现一处 **Default 快照捕获 Master 原始电平 = 0 dB**
+  (听测期编辑器副作用,键 `4b26ff…` = `:551` Master 的 `m_Volume` 哈希;值 = 出厂默认 ⇒ 当前运行期等价)
+  ⇒ **提交前已复跑核验**:`--filter "MixerTopology"` EditMode **21/21** +
+  `--filter "DaYiJingCheng.Tests.PlayMode.AudioWiringTest"` PlayMode **5/5**
+  (`unity/Logs/s18-listening-mixer-editmode.xml` / `s18-listening-playmode2.xml`)
+  ⇒ 顺带暴露 **AC② 门不覆盖「快照捕获 Master 原始电平」** ⇒ **新立 `TD-audio-027`**(债册
+  「2026-10-18 · 听测签核批新立案」· `impl-s18-*` §十)。
+  ⚠️ 首跑 PlayMode 用了短式过滤器 ⇒ `total=0` **空跑**,非证据;过滤器须写命名空间限定名。
+- **下一步**:分两笔提交(实现件一笔、账面回填一笔)。
