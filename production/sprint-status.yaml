@@ -26,10 +26,10 @@ stories:
     name: "story-019 实现:AC-44-10 无突变音效映射(10-a 门 / 10-b 断言 / 10-c 用户听测)"
     file: "production/epics/audio-system/story-019-ac44-10-no-spike-sfx.md"
     priority: must-have
-    status: ready-for-dev
+    status: in-progress        # 10-a/10-b 已落 + 证伪 F1–F9 转红;10-c 听测 NOT-RUN(BLOCKING)
     owner: "claude"
     estimate_days: 0          # 不估天 —— 依 production/CAPACITY-MODEL.md,复杂度 = L
-    blocker: ""
+    blocker: "AC-019-6 人工听测未执行(用户实机)— 协议件 production/qa/evidence/s19-breath-transition-listening-2026-10-18.md"
     completed: ""
     # 三面一卡。10-c(BLOCKING 用户实听)未跑 ⇒ 本件不得 Complete。
     # 判据:证伪轮逐条转红;尾音衰减序列单调无拐点;一次性 cue 计数从被观测链路派生。

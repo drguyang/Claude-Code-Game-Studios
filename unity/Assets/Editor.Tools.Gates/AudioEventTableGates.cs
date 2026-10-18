@@ -283,6 +283,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             errors.AddRange(ValidateLoopClock(table.Rows));
             errors.AddRange(ValidateXfade(table.Rows));
             errors.AddRange(ValidateSubtitles(table.Rows));
+            errors.AddRange(ValidateNoTransitionOneShotCues(table.Rows));   // AC-44-10(story-019)
             return errors;
         }
 
@@ -694,6 +695,69 @@ namespace DaYiJingCheng.EditorTools.Gates
             }
 
             return errors;
+        }
+
+        // ══════════ AC-44-10:过渡只走连续路径,不映射成离散 cue(story-019)══════════
+
+        /// <summary>**过渡语义族名**(呼吸层各态:急 / 浅 / 慢 / 停顿 / 停止 / 昏迷 / 终局)——
+        /// 出现在<b>非循环</b> cue 的名字里 = 该行把「状态过渡」做成了**一次性音效**。
+        /// <para>⚠️ 这是**判据的题面词汇**,不是白名单(白名单在 <see cref="WhitelistCategories"/>)。</para></summary>
+        public static readonly IReadOnlyList<string> TransitionSemanticTokens = new[]
+        {
+            "WheezeFast", "WheezeSlow", "Pant", "Pause", "Stopped", "Coma", "Death", "Terminal",
+        };
+
+        /// <summary>AC-44-10:事件表**零**「阈值跨越 / 转危 / 停顿 / 停止」一次性 cue。
+        /// <para><b>与 AC-44-09 的分工</b>(story-019 边界裁定 2,不得合并载体):AC-44-09 = 「触发源 ∈
+        /// 白名单」(cue **存在性**纪律);本条 = 「阈值跨越不得映射成任何离散 cue」(过渡**连续性**纪律)——
+        /// 一条合法的 <c>PlayerAction</c> 一次性 cue 过得了 09,若它名为 <c>Voice_Death_Chime</c> 或以
+        /// <c>PlayerAction</c> 申报「转危」时机,仍**不得**通过本条。</para>
+        /// <para>判据 ①:过渡语义族的名字只能落在**循环行**(状态 → loop 参数变化路径);
+        /// 判据 ②:非循环行不得以「阈值 / 结果」类时机申报。</para>
+        /// <para>⚠️ 判据引用 <see cref="ForbiddenTriggerSources"/> / <see cref="LegalTriggerSources"/>,
+        /// 不另抄字面量(ADR-024 §⑥)。</para></summary>
+        /// <param name="rows">cue 行;null = <c>rows</c> 字段缺失(NOT-RUN)。</param>
+        public static IReadOnlyList<string> ValidateNoTransitionOneShotCues(IReadOnlyList<AudioEventTableRow> rows)
+        {
+            if (rows == null)
+                return new[] { "[NOT-RUN 守卫 · 规则3] rows 字段缺失 —— AC-44-10(过渡无一次性 cue)不可执行" };
+
+            var errors = new List<string>();
+            for (int i = 0; i < rows.Count; i++)
+            {
+                AudioEventTableRow row = rows[i];
+                if (row == null || string.IsNullOrEmpty(row.Cue))
+                    continue;                                   // 缺 cue 名由规则 7 / 9 报,不在此重复
+                string label = RowLabel(row, i);
+
+                // ① 过渡语义族的名字只准落在循环行
+                if (!row.Loop && ContainsToken(row.Cue, TransitionSemanticTokens))
+                {
+                    errors.Add(
+                        $"{label} 是**非循环** cue 且名字带过渡语义 —— AC-44-10:" +
+                        "呼吸过渡(急 / 浅 / 停顿 / 停止)只许走既有 loop 的参数变化路径," +
+                        "不得做成一次性音效(阈值跨越禁映射成离散 cue)");
+                }
+
+                // ② 非循环行不得以「阈值 / 结果」类时机申报(申报非检测,见 GDD :515-525 降调注)
+                if (!row.Loop && !string.IsNullOrEmpty(row.TriggerSource)
+                    && Contains(ForbiddenTriggerSources, row.TriggerSource))
+                {
+                    errors.Add(
+                        $"{label} 非循环 cue 的 trigger_source = 「{row.TriggerSource}」申报阈值 / 结果时机 —— " +
+                        $"AC-44-10:一次性 cue 只许由事件性时机触发(合法集 {{{string.Join(", ", LegalTriggerSources)}}})");
+                }
+            }
+
+            return errors;
+        }
+
+        /// <summary>cue 名的**语义族命中**(大小写不敏感子串;名里含族名即命中)。</summary>
+        private static bool ContainsToken(string cue, IReadOnlyList<string> tokens)
+        {
+            for (int i = 0; i < tokens.Count; i++)
+                if (cue.IndexOf(tokens[i], StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            return false;
         }
 
         // ══════════ 规则 7:空表 / 必需 cue 缺失 ══════════

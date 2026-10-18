@@ -34,6 +34,15 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// <summary>病人 cue 的运行期驱动(A-3):tick 边沿 → 13 调度 → 44 发射。
     /// <para>⚠️ 本类是**装配层**(`Gameplay.Boot`),不是 13 也不是 44 —— 它把两者的接口接起来,
     /// 自己不产生任何 cue 语义。</para>
+    /// <para>⚠️ **停顿 vs 停止的音频分界**(story-019 · AC-019-4 / OQ-44-7):
+    /// 13 只给三种呼吸动作(`Begin` / `None` / `End`),**`End` 本身不区分两态**
+    /// (它只表达「终局锁存,呼吸层不该再响」;痊愈与死亡锁存位相同,13 刻意不报告是哪一种)。
+    /// 故本驱动把分界补在**在场性**上:loop 仍活 + 病人**仍在场** ⇒「停顿」—— loop <b>存续</b>
+    /// 并进入 <see cref="BreathTailRamp"/> 的增益衰减(极轻气流尾);病人**离场**(或被
+    /// <see cref="StopAll"/> 收尾)⇒「停止」—— loop <c>EndLoop</c>,<b>完全无声</b>,不播任何尾音。
+    /// 时刻表 = 停顿起拍 tick + <see cref="AudioTuning.BreathTailRampSeconds"/>(按 20 Hz —— ADR-005
+    /// 裁定值 —— 换成整数 tick 数;不读墙钟)。分界依据 = 13 的终局锁存(`End` 只在锁存后出现)+
+    /// 在场登记簿,装配层**不自造**终局判据。</para>
     /// </summary>
     public sealed class PatientCueDriver
     {
@@ -50,6 +59,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly Dictionary<int, int> _lastEmitTick = new Dictionary<int, int>();
         private readonly Dictionary<int, int> _entryTick = new Dictionary<int, int>();
         private readonly Dictionary<int, AudioCueHandle> _breathHandles = new Dictionary<int, AudioCueHandle>();
+
+        // 停顿态簿记(story-019):终局锁存但仍在场 ⇒ loop 存续 + 尾音衰减。
+        private readonly Dictionary<int, long> _tailStartTick = new Dictionary<int, long>();
 
         /// <summary>构造。</summary>
         /// <param name="sink">44 的 cue 界面(非 null;ADR-018 §一「只入不出」)。</param>
@@ -103,6 +115,39 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>呼吸层当前存活的句柄数。</summary>
         public int ActiveBreathCount => _breathHandles.Count;
 
+        /// <summary>当前**正在衰减**的停顿态病人数(终局锁存 + 病人仍在场 + loop 存续 + 尾音未到位)。
+        /// <para>⚠️ 与 <see cref="ActiveBreathCount"/> 的分界 = 「停顿 vs 停止」的**机器面**:
+        /// 停顿的 loop **存活**(`ActiveBreathCount` 含它),停止的 loop 已 <c>EndLoop</c>(两者都不含它)。
+        /// 尾音衰减到位后本值归零,**loop 仍然存活**(病人还在,只是气流尾已经听不见)。
+        /// 听测面归 AC-019-6。</para></summary>
+        public int PausedBreathCount => _tailStartTick.Count;
+
+        /// <summary>本驱动送达 sink 的**尾音增益更新次数**(观测面)。
+        /// <para>⚠️ 只计**停顿态**的增益写入 —— 稳态(未锁存)行走的是既有的 `<see cref="AudioCueDto"/>`
+        /// 定时发射路径,不经本计数。呼吸过渡期该值应随 tick 增长(连续),**不应**与一次性 cue
+        /// 计数同节奏(AC-019-3 的判别补充面)。</para></summary>
+        public int BreathGainUpdateCount { get; private set; }
+
+        /// <summary>取某病人的尾音进度(秒;不在停顿态 ⇒ false)。
+        /// <para>入参 <paramref name="tick"/> 由调用方给(禁读墙钟 —— 本驱动不持时钟)。</para></summary>
+        /// <param name="patientId">病人 id。</param>
+        /// <param name="tick">当前逻辑 tick。</param>
+        /// <param name="elapsedSeconds">出参:已衰减时长(秒)。</param>
+        /// <returns>该病人当前处于停顿态 ⇒ true。</returns>
+        public bool TryGetBreathTail(int patientId, long tick, out double elapsedSeconds)
+        {
+            elapsedSeconds = 0.0;
+            if (!_tailStartTick.TryGetValue(patientId, out long start)) return false;
+            elapsedSeconds = (tick - start) * TickSeconds;
+            if (elapsedSeconds < 0.0) elapsedSeconds = 0.0;
+            return true;
+        }
+
+        /// <summary>单个逻辑 tick 的秒长(ADR-005 裁定 20 Hz ⇒ `TICK_SECONDS = 0.05`)。
+        /// <para>⚠️ **不新增第二个真源**:该值取自已裁定的 tick 频率常数;若将来改频,
+        /// 两处须同批改(登记在 story-019 §实现轮记录)。</para></summary>
+        public const double TickSeconds = 0.05;
+
         /// <summary>tick 边沿驱动 —— 对每个在场病人跑一次调度。</summary>
         /// <param name="tick">本边沿自己的逻辑 tick(由帧泵回推,非末 tick)。</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="tick"/> 为负。</exception>
@@ -147,9 +192,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                     entryTick: entry);
 
                 // ④ 呼吸层生命周期(句柄归本类,ADR-018 §一)。
-                ApplyBreath(patientId, dispatch.Breath, v.Position, cell);
+                ApplyBreath(patientId, id, dispatch.Breath, v.Position, cell, tick);
 
-                // ⑤ 一次性 cue(经 13 → 44 的唯一发射桥)。
+                // ⑤ 停顿态:loop 存续期间,每拍推进一次增益衰减(AC-019-5)。
+                //    ⚠️ **零一次性 cue**(dispatch.EmitOneShot 在终局时恒 false,判决归 13),
+                //    本步只写增益 —— 这是「无突变音效」在运行期的形态。
+                if (_tailStartTick.TryGetValue(patientId, out long tailStart))
+                    AdvanceBreathTail(patientId, id, v.Position, cell, tick, tailStart);
+
+                // ⑥ 一次性 cue(经 13 → 44 的唯一发射桥)。
                 // ⚠️ `coughCue` 为 null ⇒ 不发射(装配期未解析到事件表 / 测试只测调度)。
                 //    静默跳过而非抛:发射面缺一条 cue 不该炸掉整帧(见 AudioClipLibrary 同口径)。
                 //    ⚠️ 但 `_lastEmitTick` **仍推进** —— 否则调度器每 tick 都判 due,
@@ -169,6 +220,8 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>在场集收缩后清理簿记(离场 / 死亡病人的句柄不得残留)。</summary>
         /// <param name="tick">当前 tick(仅用于日志语义,不参与判定)。</param>
+        /// <remarks>⚠️ 本方法即**「停止」形态的落点**:停顿态病人离场 ⇒ <c>EndLoop</c> +
+        /// 尾音簿记清除,**不补播任何尾音**(GDD:571-573「停止 = 完全无声」)。</remarks>
         public void PruneAbsent(long tick)
         {
             var stale = new List<int>();
@@ -182,20 +235,27 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _breathHandles.Remove(patientId);
                 _entryTick.Remove(patientId);
                 _lastEmitTick.Remove(patientId);
+                _tailStartTick.Remove(patientId);   // 停止 ⇒ 尾音簿记一并清除(不残留衰减进度)
             }
         }
 
         /// <summary>全部呼吸层收尾(场景卸载 / 读档前)。</summary>
         public void StopAll()
         {
-            foreach (KeyValuePair<int, AudioCueHandle> kv in _breathHandles)
-                _sink.EndLoop(kv.Value);
+            // ⚠️ 不就地遍历 `_breathHandles` —— `_sink.EndLoop` 是外部回调,若它同步反调本类
+            //    (生产 sink 会),就地遍历即「集合已修改」异常。先快照句柄,再清册,最后逐个收尾
+            //    (与 `PruneAbsent` 的「先摘册后收尾」同序)。
+            var handles = new List<AudioCueHandle>(_breathHandles.Values);
             _breathHandles.Clear();
             _entryTick.Clear();
             _lastEmitTick.Clear();
+            _tailStartTick.Clear();
+            for (int i = 0; i < handles.Count; i++)
+                _sink.EndLoop(handles[i]);
         }
 
-        private void ApplyBreath(int patientId, BreathAction action, float position, in WorldPos cell)
+        private void ApplyBreath(int patientId, PatientId id, BreathAction action, float position,
+                                 in WorldPos cell, long tick)
         {
             switch (action)
             {
@@ -203,23 +263,69 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // ⚠️ `breathCue` 为 null ⇒ 不起循环(装配期未解析到 `BreathLayer_Base_Calm`)。
                     //    绝不用咳嗽 ordinal 顶替 —— 那会让呼吸层播成咳嗽(素材语义错)。
                     if (!_breathCue.HasValue) break;
-                    var cue = new AudioCueDto(
-                        cue: _breathCue.Value,
-                        intensity: PatientCue.Intensity(position),
-                        cell: new Int3(cell.X, cell.Y, cell.Z),
-                        source: patientId,
-                        looped: true);
+                    AudioCueDto cue = MakeBreathCue(patientId, id, gainOnly: false, position, cell);
                     _breathHandles[patientId] = _sink.BeginLoop(cue);
                     break;
 
                 case BreathAction.End:
-                    if (_breathHandles.TryGetValue(patientId, out AudioCueHandle handle))
-                    {
-                        _sink.EndLoop(handle);
-                        _breathHandles.Remove(patientId);
-                    }
+                    // ⚠️ **停顿 vs 停止的分界就在这一格**。13 的 `End` 只表达「呼吸层不该再响」
+                    //    (终局锁存),它**不区分**「病人还在(停顿)」与「病人已走(停止)」——
+                    //    后者由 `PruneAbsent` 收尾。而 13 的判据本身把「痊愈」与「死亡」合并
+                    //    (`BreathShouldLive` 只看锁存位,AC-13-D3「不向玩家报告是哪一种」)⇒
+                    //    **不能**按锁存位二分为「痊愈 = 停 / 死亡 = 停顿」(两者锁存位相同)。
+                    //    故本驱动的分界取**在场性**:loop 仍活 + 病人仍在场 ⇒ 转入停顿
+                    //    (loop 存续 + 尾音衰减);离场 ⇒ `PruneAbsent` 的 `EndLoop`(完全无声,
+                    //    不补播尾音 —— GDD:571-573「停止 = 完全无声」)。
+                    if (!_breathHandles.ContainsKey(patientId)) break;
+                    // ⚠️ 只在 ⑤ 判「到位」时清表 ⇒ 每一拍都会走到这里 ⇒ 若衰减中覆写,时钟永不推进。
+                    if (!_tailStartTick.ContainsKey(patientId))
+                        _tailStartTick[patientId] = tick;
+                    break;
+
+                case BreathAction.None:
+                    // 稳态维持:13 判呼吸层应活 + 已活 ⇒ 无动作。
+                    // ⚠️ 尾音簿记若还挂着(未走完衰减),继续停表推进,由 ⑤ 推进 —— 本分支不碰它。
                     break;
             }
+        }
+
+        /// <summary>推进尾音衰减一步(AC-019-5):把本拍的增益写进 sink,并**不**发一次性 cue。</summary>
+        private void AdvanceBreathTail(int patientId, PatientId id, float position,
+                                       in WorldPos cell, long tick, long tailStart)
+        {
+            // ⚠️ 到位判定 = **整数 tick 数**(`tailTicks`),不按浮点秒比较 ——
+            //    1.5 / 0.05 的末位误差会让停表差一拍。浮点秒只用于**取增益值**(并被钳制)。
+            double elapsedSeconds = Math.Min((tick - tailStart) * TickSeconds, AudioTuning.BreathTailRampSeconds);
+            if (elapsedSeconds < 0.0) elapsedSeconds = 0.0;
+
+            // 到位:只封口(终点增益)并停表(`PausedBreathCount` 归零),但 loop 仍存续(停顿 ≠ 停止)。
+            int tailTicks = (int)Math.Round(AudioTuning.BreathTailRampSeconds / TickSeconds);
+            bool finished = tick - tailStart >= tailTicks;   // 整数域比较,无末位误差
+
+            _sink.Emit(MakeBreathCue(patientId, id, gainOnly: true, position, cell, elapsedSeconds));
+            BreathGainUpdateCount++;   // ← 本段每拍一个增益步(计数 = 段内步数,段间不累)
+
+            if (finished) _tailStartTick.Remove(patientId);   // 停表(loop 仍存续,直至停止形态)
+        }
+
+        /// <summary>呼吸层 cue 的唯一构造点(稳态 / 尾音共用;区别只有 <paramref name="gainOnly"/>)。</summary>
+        private AudioCueDto MakeBreathCue(int patientId, PatientId id, bool gainOnly,
+                                          float position, in WorldPos cell, double elapsedSeconds = 0.0)
+        {
+            byte intensity = PatientCue.Intensity(position);
+            if (gainOnly)
+            {
+                double gain = BreathTailRamp.ValueAt(1.0, BreathTailRamp.DbToLinear(AudioTuning.BreathTailGainFloorDb),
+                                                     elapsedSeconds, AudioTuning.BreathTailRampSeconds);
+                intensity = (byte)Math.Round(gain * 255.0);
+            }
+
+            return new AudioCueDto(
+                cue: _breathCue.Value,
+                intensity: intensity,
+                cell: new Int3(cell.X, cell.Y, cell.Z),
+                source: patientId,
+                looped: true);
         }
     }
 }

@@ -5977,3 +5977,16 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
   **Nice**:S15-7 债册刷账 · S15-8 retro-14。
 - **QA plan 已写**(Phase 5 选 A 后即跑);PR-SPRINT 跳过(Lean)。
 - **待用户**:① 上述四件是否提交;② 是否开 S15-1(`/dev-story story-019`)。
+
+### H. S15-1 · story-019(AC-44-10 + OQ-44-7 尾音)—— 实现轮 2026-10-18(**10-c 未跑 ⇒ 卡留 In Progress**)
+- **改**:`Editor.Tools.Gates/AudioEventTableGates.cs`(`TransitionSemanticTokens` + `ValidateNoTransitionOneShotCues` 两臂,接入 `Validate`)、
+  `Gameplay.Boot/PatientCueDriver.cs`(`End` → 开尾音段而非 `EndLoop`;`AdvanceBreathTail` 到期停表;`Pause`/`Stop` 分界 = 在场性)、
+  新 `Gameplay.Presentation/Audio/BreathTailRamp.cs`、`AudioTuning.cs`(`BreathTailRampMs=1500` / `BreathTailGainFloorDb=-36`,数值归用户)。
+- **测**:`event_table_gate_test.cs` +6(34→69 全套件)、`runtime_assembly_test.cs` +9(27→36)、
+  `assembly_boundary_test.cs` 白名单 +`BreathTailRamp.State`(首跑全量唯一红即此门,已增列)。
+- **证伪 F1–F9 全转红**;证伪轮抓出**两处假绿**并已修(FG-1 强度判据混尾音增益+前段恒值;FG-2 `coughCue:null` 使零一次性 cue 恒真)。
+- **全量 EditMode `3748/3703/0/45`**(`unity/Logs/s19-full-editmode.xml`)vs 基线 `3732/3687/0/45` ⇒ 差 **+16**,夹具逐名 **+15**,**差 1 挂【待核】**(基线无 XML 件)。
+- **⚠️ 未结**:`AC-019-6` 听测 NOT-RUN(`production/qa/evidence/s19-breath-transition-listening-2026-10-18.md`);
+  实现停在**分段重复尾音**(每 1.5 s 重开一段)—— 听测判据 3 专门判「是否一阵一阵」。
+- **原件**:`production/qa/evidence/impl-s19-ac44-10-breath-tail-2026-10-18.md`;TD-audio-100 / OQ-44-7 已刷「代码半边 / 未结案」。
+- **待用户**:① 实机听测签核;② 是否提交本批。

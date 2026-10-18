@@ -64,6 +64,25 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// 「构建期数值比较,超界 = 失败」)。</para></summary>
         public const int MusicXfadeMinMs = 2000;
 
+        /// <summary>`breath_tail_ramp_ms`(呼吸尾音 = 基础气流层增益衰减的**总时长**)——
+        /// **种子值 1500 ms**(音色上的「一阵尾巴」量级)。
+        /// <para>GDD :571-573「停顿(昏迷)= 有**极轻微的背景气流尾**」—— 该尾音的时长载体即本常量;
+        /// 调太短 = 听不出尾音(停顿与停止不可辨);调太长 = 病人「早就不喘了还在响」(干扰听诊)。</para>
+        /// <para>⚠️ **数值归用户**(数值轮);本 const 只保证「有正有界 + 单一出处」。
+        /// ⚠️ **与 <see cref="RampSeconds"/> 是两个量** —— 后者是交叉淡化 / 滤波的**下界**
+        /// (AC-44-04 的判据),本值是**尾音总长**(AC-44-10 / OQ-44-7 的判据),不得互用。</para></summary>
+        public const double BreathTailRampMs = 1500.0;
+
+        /// <summary>`breath_tail_gain_floor_db`(呼吸尾音的**增益终值**)—— **种子值 −36 dB**。
+        /// <para>GDD :571-573「**极轻微**的背景气流尾」—— 「极轻微」的量化即本值:−36 dB ≈ 线性 0.016,
+        /// 远低于呼吸层稳态,任何合理的试听音量下都是「若有若无」。
+        /// 调太高 = 尾音变成可见的音效(= 变相报状态,违 AC-44-10);调太低 = 与「完全无声」不可辨。</para>
+        /// <para>⚠️ **数值归用户**(数值轮);衰减到本值后**停表**,不再推(防 -∞ 与 0 volume 的歧义)。</para></summary>
+        public const double BreathTailGainFloorDb = -36.0;
+
+        /// <summary><see cref="BreathTailRampMs"/> 的秒形态(尾音衰减的唯一时长输入)。</summary>
+        public const double BreathTailRampSeconds = BreathTailRampMs / 1000.0;
+
         /// <summary>`AUDIO_BUDGET_MS`(DSP 预算探针 P95 上限,60 s 采样窗)——
         /// **种子值 2.5 ms**(≈ 平面帧预算 16.6 ms 的 15%)。
         /// <para>GDD §Tuning Knobs :759 安全范围 = **「≤ 帧预算 15% 类(16.6 / 11.1 ms 为参考上界)」**;

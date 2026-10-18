@@ -754,5 +754,360 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 Assert.That(byName[cue].Loop, Is.False,
                     $"处方 cue「{cue}」被标为 loop —— 一次性动作音不得起循环");
         }
+
+        // ══════════════════════════════════════════════════════════════════
+        // AC-019-3…5 —— story-019 面 10-b:无突变音效 + 停顿/停止可分 + 尾音衰减
+        // 判别力:每条注明「停用什么 ⇒ 哪条红」(证伪记录登记在 impl-s19-*.md)。
+        // ⚠️ 走**真** PatientCueDriver + 真 PatientCueSchedule + 真 BreathTailRamp;
+        //    注入的假件仅 `IVitalsQuery`(9 的取数面,可编程轨迹)与 `IAudioCueSink`(观测量壳)。
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>可编程体征轨迹假件 —— **只**在取数面替换 9 的查询(生产缝已声明)。
+        /// <para>⚠️ 轨迹是**题面**(被测数据),不是谓词:行为判定仍全归 13 的真 `BehaviorMap`。</para></summary>
+        private sealed class ScriptedVitals : IVitalsQuery
+        {
+            public float Position;
+            public float Trend;
+            public ScriptedVitals(float position, float trend = 0f) { Position = position; Trend = trend; }
+            public VitalsDto GetVitals(PatientId p) => new VitalsDto(Position, Trend, 0, 0);
+        }
+
+        /// <summary>增益消息观测壳 —— 记下每次 `Emit` 的 Intensity(尾音 = 只写增益,不发音效)。</summary>
+        private sealed class TailSink : IAudioCueSink
+        {
+            public readonly List<int> Intensities = new List<int>();
+
+            /// <summary>全部 <c>Emit</c> 的原始 DTO(判「停顿期只写增益、不出声」用)。</summary>
+            public readonly List<AudioCueDto> Emitted = new List<AudioCueDto>();
+            public int BeginLoopCount;
+            public int EndLoopCount;
+            public int LastLoopCue = AudioEventDataSet.NoOrdinal;
+
+            public void Emit(in AudioCueDto cue)
+            {
+                Intensities.Add(cue.Intensity);
+                Emitted.Add(cue);
+            }
+            public AudioCueHandle BeginLoop(in AudioCueDto cue)
+            {
+                BeginLoopCount++;
+                LastLoopCue = cue.Cue;
+                return new AudioCueHandle(1000 + BeginLoopCount);
+            }
+            public void EndLoop(AudioCueHandle handle) => EndLoopCount++;
+            public void SetTier(TierSource source) { }
+        }
+
+        /// <summary>造「在场 + 可编程体征」的驱动器。</summary>
+        private static PatientCueDriver MakeScriptedDriver(IAudioCueSink sink, PresenceRegistry presence,
+                                                           ScriptedVitals vitals, int patientId,
+                                                           int? coughCue, int? breathCue)
+            => new PatientCueDriver(
+                sink, vitals, presence, new PatientBehaviorDirector(vitals, BehaviorBands.Default),
+                intervals: CueIntervals.Default,
+                coughCue: coughCue, breathCue: breathCue);
+
+        /// <summary>推进 [from, to) 的 tick 边沿,每拍按给定脚本改体征。</summary>
+        private static void RunTicks(PatientCueDriver driver, ScriptedVitals vitals, int from, int to,
+                                     Func<int, float> positionAt)
+        {
+            for (int tick = from; tick < to; tick++)
+            {
+                vitals.Position = positionAt(tick);
+                driver.OnTickEdge(tick);
+            }
+        }
+
+        [Test]
+        public void test_ac019_3_oneShotIntensity_followsVitals_neverFixedVolume()
+        {
+            // 判据(本 story 的「无突变音效」面):一次性 cue 的强度 = 该拍体征的**连续函数**
+            //   (position × 255),不得被换成与体征脱钩的固定值(= 提示音形态)。
+            //   ⚠️ 一次性 cue 的**调度**仍归 13 —— 平稳档定期发咳嗽是 13 的既有裁决,不在本测判面。
+            var sink = new TailSink();
+            PresenceRegistry presence = PresenceWith(patientId: 9);
+            var vitals = new ScriptedVitals(0.2f);
+            PatientCueDriver driver = MakeScriptedDriver(sink, presence, vitals, 9, coughCue: 0, breathCue: 1);
+
+            var expected = new List<int>();
+            // 全程缓升(**含前 200 拍**):若前段恒值,「固定音强」变异在该段上与真值不可分 ⇒ 夹具漏判
+            //   (2026-10-18 证伪轮实测:首版前 200 拍固定 0.2,把 Intensity 改成常量后本测仍绿)。
+            for (int tick = 0; tick < 400; tick++)
+            {
+                float p = 0.2f + tick * 0.001f;
+                vitals.Position = p;
+                driver.OnTickEdge(tick);
+                expected.Add(PatientCue.Intensity(p));
+            }
+
+            Assert.That(driver.ActiveBreathCount, Is.EqualTo(1), "前置:呼吸 loop 已起,否则本测是空跑");
+            Assert.That(sink.BeginLoopCount, Is.EqualTo(1));
+            // 只看**一次性** cue(尾音增益同走 Emit —— 混进集合会掩盖「固定音强」变异)
+            var oneShot = new List<int>();
+            foreach (AudioCueDto c in sink.Emitted)
+                if (!c.Looped) oneShot.Add(c.Intensity);
+            Assert.That(oneShot.Count, Is.EqualTo(driver.EmitCount));
+            Assert.That(oneShot.Count, Is.GreaterThan(0),
+                "前置:过渡期确有一次性 cue 发生 —— 否则『强度连续』无从判别(假绿)");
+            for (int i = 0; i < oneShot.Count; i++)
+                Assert.That(expected, Does.Contain(oneShot[i]),
+                    $"第 {i} 条一次性 cue 强度 = {oneShot[i]},不在任意拍体征派生值集合内 —— " +
+                    "出现与体征脱钩的固定音强(突变音效形态,AC-019-3 / AC-44-10)");
+        }
+
+        /// <summary>AC-019-3 主判据:平稳 → 急促 → 停顿的轨迹上,**过渡本身零新增一次性 cue**
+        /// (13 的既有咳嗽调度照旧;新增的只有呼吸 loop 的参数连续变化)。</summary>
+        [Test]
+        public void test_ac019_3_transitionToPause_addsNoNewOneShotCue()
+        {
+            // Arrange
+            var sink = new TailSink();
+            PresenceRegistry presence = PresenceWith(patientId: 21);
+            var vitals = new ScriptedVitals(0.5f);
+            PatientCueDriver driver = MakeScriptedDriver(sink, presence, vitals, 21, coughCue: 0, breathCue: 1);
+
+            // Act:平稳 200 拍 → 急促 40 拍(缓升,仍活着)→ 终局 40 拍
+            RunTicks(driver, vitals, 0, 200, _ => 0.5f);
+            int afterSteady = driver.EmitCount;
+            Assert.That(afterSteady, Is.GreaterThan(0),
+                "前置:平稳期确有既有一次性 cue —— 否则『过渡不新增』无从判别(假绿)");
+
+            RunTicks(driver, vitals, 200, 240, t => 0.5f + (t - 200) * 0.005f);
+            int afterRapid = driver.EmitCount;
+            RunTicks(driver, vitals, 240, 280, _ => BehaviorBands.Default.DeathBandMin);
+            int afterTerminal = driver.EmitCount;
+
+            // Assert ①:急促段新增的 cue 仍走 13 的既有调度(不设上界,只要求它没被「过渡」另开一路)
+            Assert.That(afterRapid - afterSteady, Is.GreaterThanOrEqualTo(0));
+            // Assert ②:进入终局(停顿)后**零新增** —— 阈值跨越没有被映射成离散音效
+            Assert.That(afterTerminal, Is.EqualTo(afterRapid),
+                $"终局之后又发了 {afterTerminal - afterRapid} 条一次性 cue —— 阈值跨越被映射成离散音效(AC-44-10)");
+            // Assert ③:呼吸 loop 全程存续(过渡只改参数,不换声源)
+            Assert.That(driver.ActiveBreathCount, Is.EqualTo(1));
+            Assert.That(sink.BeginLoopCount, Is.EqualTo(1), "过渡不得重起 loop(重起 = 可听辨的『换了个声音』)");
+        }
+
+        [Test]
+        public void test_ac019_4_pauseKeepsBreathAndStopEndsIt()
+        {
+            // Arrange:平稳 → 转危(急促)→ 停顿(死亡侧终局锁存)→ 停止(离场)
+            var sink = new TailSink();
+            PresenceRegistry presence = PresenceWith(patientId: 11);
+            var vitals = new ScriptedVitals(0.5f);
+            // ⚠️ `coughCue` 必须非 null —— 否则「停顿期零一次性 cue」恒真(2026-10-18 证伪轮实测假绿)。
+            PatientCueDriver driver = MakeScriptedDriver(sink, presence, vitals, 11, coughCue: 0, breathCue: 1);
+
+            // 平稳期跑足 200 拍(10 s):13 的既有咳嗽调度在其中至少发过一次 ⇒ 「过渡零新增」有判别力
+            RunTicks(driver, vitals, 0, 200, _ => 0.5f);
+            Assert.That(driver.ActiveBreathCount, Is.EqualTo(1), "前置:呼吸 loop 已起");
+            Assert.That(driver.EmitCount, Is.GreaterThan(0),
+                "前置:平稳期 13 的既有调度确实发过一次性 cue —— 否则『过渡不新增 cue』无从判别");
+
+            int emitsBeforePause = sink.Intensities.Count;
+            int oneShotsBeforeTerminal = driver.EmitCount;
+            RunTicks(driver, vitals, 200, 230, _ => BehaviorBands.Default.DeathBandMin);
+
+            // AC-019-3 主判据:进入终局(过渡)之后**零新增**一次性 cue
+            Assert.That(driver.EmitCount, Is.EqualTo(oneShotsBeforeTerminal),
+                "过渡(平稳 → 终局)之后又发了一次性 cue —— 阈值跨越被映射成离散音效(AC-44-10)");
+
+            Assert.That(driver.ActiveBreathCount, Is.EqualTo(1),
+                "停顿(昏迷/终局在场)不得停呼吸 loop —— 停了就与『停止』不可分");
+            Assert.That(sink.EndLoopCount, Is.Zero);
+            Assert.That(driver.PausedBreathCount, Is.EqualTo(1), "应进入停顿态簿记");
+            Assert.That(sink.Intensities.Count, Is.GreaterThan(emitsBeforePause),
+                "停顿期必须有增益衰减写入 —— 否则玩家听不到『极轻气流尾』");
+            Assert.That(driver.EmitCount, Is.EqualTo(oneShotsBeforeTerminal),
+                "停顿期不得出一声性 cue(无临终一声)");
+
+            // 停顿期的写入必须是**尾音增益**(从满幅收敛到 -36 dB 底),不是「又咳了一声」的即时强度:
+            //   ⇒ 形态判据 = 相对首步的比值 ≈ (floor)^(k/n),与体征即时强度(position×255)差异可达数量级。
+            int pauseEmits = sink.Intensities.Count - emitsBeforePause;
+            Assert.That(pauseEmits, Is.GreaterThanOrEqualTo(3), "停顿期写入太少 ⇒ 曲线无从判别");
+            double floor = BreathTailRamp.DbToLinear(AudioTuning.BreathTailGainFloorDb) * 255.0;
+            Assert.That(sink.Intensities[sink.Intensities.Count - 1], Is.LessThan((int)(255 * 0.75)),
+                "停顿段末尾强度仍在满幅附近 —— 未走尾音衰减");
+            Assert.That(sink.Intensities[sink.Intensities.Count - 1], Is.GreaterThanOrEqualTo((int)floor - 1),
+                "停顿段强度低于尾音底值 —— 不是 BreathTailRamp.TargetVolume 给的曲线");
+
+            int emitsBeforeStop = sink.Intensities.Count;
+            presence.RemovePresent(new PatientId(11));
+            driver.PruneAbsent(230);
+
+            Assert.That(sink.EndLoopCount, Is.EqualTo(1), "停止 = EndLoop");
+            Assert.That(driver.ActiveBreathCount, Is.Zero);
+            Assert.That(driver.PausedBreathCount, Is.Zero, "停止后不得残留尾音簿记");
+            Assert.That(sink.Intensities.Count, Is.EqualTo(emitsBeforeStop),
+                "停止后不得再有增益写入 —— GDD:571-573「停止 = 完全无声」");
+        }
+
+        [Test]
+        public void test_ac019_4_pauseLifespan_isBoundedByTailRamp()
+        {
+            // 停顿态的**寿命**须由 AudioTuning 的尾音时长定;尾音到位后 loop 仍存续。
+            //   ⚠️ 必须先平稳一拍把 loop 立起来 —— 若首拍就终局,13 给 `None`(不 Begin),无 loop 可谈停顿。
+            var sink = new TailSink();
+            PresenceRegistry presence = PresenceWith(patientId: 17);
+            var vitals = new ScriptedVitals(0.5f);
+            PatientCueDriver driver = MakeScriptedDriver(sink, presence, vitals, 17, coughCue: null, breathCue: 1);
+            RunTicks(driver, vitals, 0, 1, _ => 0.5f);
+            Assert.That(driver.ActiveBreathCount, Is.EqualTo(1), "前置:呼吸 loop 已起");
+
+            int ticksPerTail = (int)Math.Ceiling(AudioTuning.BreathTailRampSeconds / PatientCueDriver.TickSeconds);
+
+            // ⚠️ `TryGetBreathTail` 读的是**当下簿记**,不是历史 ⇒ 必须在推进过程中逐拍采样,
+            //    否则事后回查只会拿到最后一段的起点(本节首版即因此把判据读成 0)。
+            int probeEnd = ticksPerTail + 4;
+            var has = new bool[probeEnd + 1];
+            var elapsed = new double[probeEnd + 1];
+            var gains = new int[probeEnd + 1];
+            for (int tick = 1; tick <= probeEnd; tick++)
+            {
+                vitals.Position = BehaviorBands.Default.DeathBandMin;
+                driver.OnTickEdge(tick);
+                has[tick] = driver.TryGetBreathTail(17, tick, out double e);
+                elapsed[tick] = e;
+                gains[tick] = driver.BreathGainUpdateCount;
+            }
+
+            // 段起点由首个终局拍的 elapsed 反推(不硬编码相位)
+            Assert.That(has[1], Is.True, "终局拍未开停顿段 —— 停顿态根本不存在");
+            int segStart = 1 - (int)Math.Round(elapsed[1] / PatientCueDriver.TickSeconds);
+            int due = segStart + ticksPerTail;
+
+            // Assert ① 段内推进:到期前一拍已接近尾音时长(不是停在 0,也不是超过)
+            Assert.That(has[due - 1], Is.True, "到期前一拍簿记缺失");
+            Assert.That(elapsed[due - 1], Is.GreaterThan(AudioTuning.BreathTailRampSeconds * 0.9),
+                $"到期前一拍推进 {elapsed[due - 1]}s,未接近尾音时长 {AudioTuning.BreathTailRampSeconds}s");
+            Assert.That(elapsed[due - 1], Is.LessThanOrEqualTo(AudioTuning.BreathTailRampSeconds + 1e-12));
+
+            // Assert ② 到期拍停表(停表 ≠ 停止):簿记清空,loop 仍存续
+            Assert.That(has[due], Is.False, "到期拍簿记未清 —— 尾音永不停表");
+            Assert.That(driver.ActiveBreathCount, Is.EqualTo(1), "尾音期间 loop 仍存续(停顿 ≠ 停止)");
+            Assert.That(driver.EmitCount, Is.Zero, "停顿期不得出一声性 cue");
+
+            // Assert ③ 13 仍判终局 ⇒ 下一拍重开新段,elapsed 从 0 起算(段间不累加)
+            Assert.That(has[due + 1], Is.True, "停表后应重开新段(13 仍判终局)");
+            Assert.That(elapsed[due + 1], Is.EqualTo(0.0).Within(1e-12),
+                $"重开段 elapsed = {elapsed[due + 1]} —— 尾音跨段累加未清零");
+            Assert.That(elapsed[due + 2], Is.EqualTo(PatientCueDriver.TickSeconds).Within(1e-12),
+                $"重开段第二拍 elapsed = {elapsed[due + 2]} —— 段内计时未从 0 起算");
+
+            // Assert ④ 每拍至多一次增益写入(段间重开不额外计步)
+            for (int tick = 2; tick <= probeEnd; tick++)
+                Assert.That(gains[tick] - gains[tick - 1], Is.InRange(0, 1),
+                    $"第 {tick} 拍增益写入步数 = {gains[tick] - gains[tick - 1]}");
+        }
+
+        [Test]
+        public void test_ac019_4_stop_leavesNoTail_andEndsLoop()
+        {
+            var sink = new TailSink();
+            PresenceRegistry presence = PresenceWith(patientId: 13);
+            var vitals = new ScriptedVitals(0.5f);
+            PatientCueDriver driver = MakeScriptedDriver(sink, presence, vitals, 13, coughCue: null, breathCue: 1);
+
+            RunTicks(driver, vitals, 0, 5, _ => 0.5f);
+            Assert.That(driver.ActiveBreathCount, Is.EqualTo(1), "前置:呼吸 loop 已起");
+            int emitsBefore = sink.Intensities.Count;
+
+            presence.RemovePresent(new PatientId(13));
+            driver.PruneAbsent(5);
+            driver.OnTickEdge(6);
+
+            Assert.That(sink.EndLoopCount, Is.EqualTo(1), "停止 = EndLoop,且只一次");
+            Assert.That(driver.ActiveBreathCount, Is.Zero);
+            Assert.That(driver.PausedBreathCount, Is.Zero, "停止后不得残留尾音簿记");
+            Assert.That(sink.Intensities.Count, Is.EqualTo(emitsBefore),
+                "停止后不得再有增益写入 —— 死亡不播尾音(GDD:571-573「停止 = 完全无声」)");
+        }
+
+        [Test]
+        public void test_ac019_4_stopAll_clearsTailBookkeeping()
+        {
+            var sink = new TailSink();
+            PresenceRegistry presence = PresenceWith(patientId: 15);
+            var vitals = new ScriptedVitals(0.5f);
+            PatientCueDriver driver = MakeScriptedDriver(sink, presence, vitals, 15, coughCue: null, breathCue: 1);
+            RunTicks(driver, vitals, 0, 5, _ => 0.5f);
+
+            driver.StopAll();
+
+            Assert.That(sink.EndLoopCount, Is.EqualTo(sink.BeginLoopCount));
+            Assert.That(driver.ActiveBreathCount, Is.Zero);
+            Assert.That(driver.PausedBreathCount, Is.Zero);
+        }
+
+        [Test]
+        public void test_ac019_5_tailRamp_isMonotone_andMultiplicativelyUniform()
+        {
+            BreathTailRamp.State s = BreathTailRamp.Begin(fromVolume: 1.0);
+            const double dt = 0.05;
+            var values = new List<double>();
+            while (s.Active && values.Count < 1000) values.Add(BreathTailRamp.Step(ref s, dt));
+
+            Assert.That(values.Count, Is.GreaterThan(2), "尾音步数过少 ⇒ 断言不可判");
+            for (int i = 1; i < values.Count; i++)
+                Assert.That(values[i], Is.LessThanOrEqualTo(values[i - 1] + 1e-15),
+                    $"尾音增益在第 {i} 步回升 —— 衰减序列必须单调");
+
+            double ratio = values[1] / values[0];
+            for (int i = 2; i < values.Count; i++)
+                Assert.That(values[i] / values[i - 1], Is.EqualTo(ratio).Within(1e-9),
+                    $"第 {i} 步倍率与首步不一致 —— 出现拐点(可听辨的『换了个声音』= 变相报状态)");
+
+            Assert.That(values[values.Count - 1],
+                Is.EqualTo(BreathTailRamp.DbToLinear(AudioTuning.BreathTailGainFloorDb)).Within(1e-12));
+        }
+
+        [Test]
+        public void test_ac019_5_degenerateInputs_neverProduceBurst()
+        {
+            BreathTailRamp.State zero = BreathTailRamp.Begin(0.0);
+            BreathTailRamp.State zeroTime = BreathTailRamp.Begin(1.0, durationSeconds: 0.0, floorDb: -36.0);
+            BreathTailRamp.State nan = BreathTailRamp.Begin(double.NaN);
+
+            Assert.That(zero.Active, Is.False);
+            Assert.That(zeroTime.Active, Is.False);
+            Assert.That(nan.Active, Is.False);
+        }
+
+        /// <summary>AC-019-5「零新 clip」:过渡路径**不引入任何新素材名** ——
+        /// 三行呼吸 cue(基础层 / 附加层 / 世界语境)的 <c>assets[]</c> 各恰 1 条,且全表别的行
+        /// 不引用它们(过渡 = 既有 loop 的增益衰减,**没有**「停顿专用 wav」「死亡专用 wav」)。
+        /// <para>素材文件本体存在性归 D6 素材门;本条只钉「没有新 clip」这一半边。</para></summary>
+        [Test]
+        public void test_ac019_5_breathRows_introduceNoNewClipName()
+        {
+            // Arrange
+            IReadOnlyList<AudioEventTableRow> rows =
+                AudioEventTableBake.BakeFromRepo(RepoRoot()).Bound.Table.Rows;
+            Assert.That(rows.Count, Is.GreaterThan(0), "空表夹具 ⇒ 断言恒真(禁借绿)");
+            var byName = new Dictionary<string, AudioEventTableRow>(StringComparer.Ordinal);
+            for (int i = 0; i < rows.Count; i++) byName[rows[i].Cue] = rows[i];
+
+            string[] breathCues = { "BreathLayer_Base_Calm", "BreathLayer_Adventitious_Fine", "WorldBreath_Baseline" };
+            var breathAssets = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            // Act + Assert ①:每行恰 1 条素材(多一条 = 该行可用素材切换「报」过渡 = 变相提示音)
+            foreach (string cue in breathCues)
+            {
+                Assert.That(byName.ContainsKey(cue), Is.True, $"呼吸 cue「{cue}」不在表内");
+                IReadOnlyList<string> assets = byName[cue].Assets;
+                Assert.That(assets, Is.Not.Null, $"呼吸 cue「{cue}」缺 assets 字段");
+                Assert.That(assets.Count, Is.EqualTo(1),
+                    $"呼吸 cue「{cue}」素材数 {assets.Count} ≠ 1 —— 多素材 = 可由素材切换报状态(AC-44-10)");
+                breathAssets[cue] = assets[0];
+            }
+
+            // Assert ②:呼吸素材名不再出现在任何**非呼吸**行上(过渡没有自己的 wav)
+            foreach (AudioEventTableRow row in rows)
+            {
+                if (Array.IndexOf(breathCues, row.Cue) >= 0 || row.Assets == null) continue;
+                foreach (string asset in breathAssets.Values)
+                    Assert.That(row.Assets, Does.Not.Contain(asset),
+                        $"非呼吸行「{row.Cue}」复用了呼吸素材「{asset}」");
+            }
+        }
     }
 }

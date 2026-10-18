@@ -1,7 +1,7 @@
 # Story 019: AC-44-10「无突变音效」映射 + OQ-44-7 呼吸尾音 spike(一卡两面)
 
 > **Epic**: 音频系统
-> **Status**: Ready
+> **Status**: In Progress(10-a / 10-b 已落;10-c 听测 NOT-RUN ⇒ 不得 Complete)
 > **Layer**: Foundation(不新增音频语义;兑现既有判据的载体)
 > **Type**: Integration
 > **Estimate**: 1 人日(三面载体,量小;10-c 除外 —— 挂 story 内待 spike)
@@ -116,3 +116,27 @@
 - 10-a/10-b 全 [A] 绿 + 证伪转红记录齐;10-c [L] **执行并签核**;
 - `TD-audio-100` 结案注落账;`OQ-44-7` 有结论(含失败退路的处置);
 - ⚠️ 44 epic **仍不得收口**(101/102/103/104/105/107/108 及素材录制在途)—— 本卡只动 `TD-audio-100` 一条。
+
+## Completion Notes(实现轮 2026-10-18 —— **未完成**)
+
+**Status 口径**:`In Progress`。10-a / 10-b 已落盘且证伪转红齐;`AC-019-6`(听测)为 **NOT-RUN**
+(BLOCKING)⇒ 本卡**不得**转 `Complete`(用户裁定 ③)。
+
+| AC | 状态 | 载体 / 说明 |
+|---|---|---|
+| AC-019-1 | ✅ | `AudioEventTableGates.ValidateNoTransitionOneShotCues`(两臂)+ 6 测;证伪 F1 / F2 / F8 转红 |
+| AC-019-2 | ✅ | `test_ac0192_realSeed_breathRows_keepExistingTriggerSource` |
+| AC-019-3 | ✅ | `test_ac019_3_transitionToPause_addsNoNewOneShotCue` · `test_ac019_3_oneShotIntensity_followsVitals_neverFixedVolume`;证伪 F5 / F7 |
+| AC-019-4 | ✅ | 停顿 = loop 存活 + 尾音;停止 = `EndLoop` 零尾音;证伪 F3 / F4 |
+| AC-019-5 | ✅ | `BreathTailRamp`(指数、倍率恒等)+ `AudioTuning.BreathTailRampMs/GainFloorDb`;证伪 F6 / F9 |
+| AC-019-6 | ⛔ **NOT-RUN** | `production/qa/evidence/s19-breath-transition-listening-2026-10-18.md`(协议 + 待填表) |
+| AC-019-7 | 🟡 部分 | `TD-audio-100` 已刷「代码半边已落,听测未跑 ⇒ 不结案」;`OQ-44-7` 已刷 spike 代码结论 |
+
+**证伪轮**:F1–F9 逐条转红(明细见 `production/qa/evidence/impl-s19-ac44-10-breath-tail-2026-10-18.md` §三);
+**两处假绿在证伪轮被抓出并已修**(FG-1 强度判据混入尾音增益 + 前段恒值;FG-2 `coughCue: null` 使「零一次性 cue」恒真)。
+
+**回归**:EditMode 全量 `3748 / 3703 / 0 / 45`(`unity/Logs/s19-full-editmode.xml`)。
+⚠️ 与基线 `3732 / 3687 / 0 / 45` 的差 `+16` 中,**夹具逐名计数为 +15,差 1 挂【待核】**(基线全量 XML 未落件,逐名 diff 不可执行)。
+
+**听测执行须用户做**:按 `s19-breath-transition-listening-2026-10-18.md` §三 六项勾选 + 四值记录;
+**判据 3(尾音是否「一阵一阵」)须专门判** —— 本实现的停顿期尾音按 `BreathTailRampMs` 分段重复。

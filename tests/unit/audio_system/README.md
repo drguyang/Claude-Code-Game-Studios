@@ -652,3 +652,44 @@
 > ⚠️ 关键区分:AC-44-17 是 [L] 人工听测,不能伪装成自动化 PASS。
 > EditMode 测试覆盖文档判据(AC 存在且挂点正确 + 证据文档登记),不是听测本身。
 > 听测协议(双盲 forced-choice / n ≥ 6 / 三对 ≥ 8 次 / 判对率 ≥ 75%)登记在证据文档中。
+
+---
+
+## Story 019(AC-44-10 无突变音效 + OQ-44-7 呼吸尾音 —— 构建期门 / 运行期断言 / 听测)
+
+> 权威:`production/epics/audio-system/story-019-ac44-10-no-spike-sfx.md` ·
+> 证据原件 `production/qa/evidence/impl-s19-ac44-10-breath-tail-2026-10-18.md`
+
+**载体(两棵树并列,一个 AC 可多载体)**
+
+| 面 | 实际落地树 | 说明 |
+|---|---|---|
+| 10-a 构建期门 | `unity/Assets/Tests/EditMode/Audio/event_table_gate_test.cs` | 打**真门** `AudioEventTableGates.ValidateNoTransitionOneShotCues` + 真种子正向 |
+| 10-b 运行期 | `unity/Assets/Tests/EditMode/Audio/runtime_assembly_test.cs` | 真 `PatientCueDriver` / `PatientCueSchedule` / `BreathTailRamp`,假件仅 `IVitalsQuery`(题面)与 `IAudioCueSink`(观测壳) |
+| 10-c 听测 | `production/qa/evidence/s19-breath-transition-listening-2026-10-18.md` | **NOT-RUN(BLOCKING)** —— 人工,不可自动化 |
+
+## AC → 测试函数映射
+
+| AC | 测试函数 | 性质 |
+|---|---|---|
+| **AC-019-1** | `EventTableGateTest.test_ac0191_fakeDeathDingOneShot_reportsRed_andNamesCue` | [A] 证伪判据(点名该 cue) |
+| | `test_ac0191_oneShotWithThresholdTrigger_reportsRed` | [A] 第二臂(3 个禁止触发源逐值) |
+| | `test_ac0191_transitionNameOnLoopRow_accepted` | [A] 边界(循环行放行) |
+| | `test_ac0191_transitionNameWithLoopFieldAbsent_reportsRed` | [A] 缺 `loop` 字段 = 一次性(story 逐字场景) |
+| | `test_ac0191_rowsMissing_reportsNotRunGuard` | [A] NOT-RUN 守卫 |
+| | `test_ac0191_realSeed_zeroTransitionErrors` | [A] 真种子正向 |
+| **AC-019-2** | `test_ac0192_realSeed_breathRows_keepExistingTriggerSource` | [A] 呼吸三行零新增触发源 |
+| **AC-019-3** | `RuntimeAssemblyTest.test_ac019_3_transitionToPause_addsNoNewOneShotCue` | [A] 平稳→急促→停顿,过渡零新增一次性 cue |
+| | `test_ac019_3_oneShotIntensity_followsVitals_neverFixedVolume` | [A] 一次性 cue 强度 = 体征连续函数 |
+| **AC-019-4** | `test_ac019_4_pauseKeepsBreathAndStopEndsIt` | [A] 停顿 loop 存活 / 停止 `EndLoop` 且零尾音 |
+| | `test_ac019_4_pauseLifespan_isBoundedByTailRamp` | [A] 尾音寿命有界 + 段间清零 |
+| | `test_ac019_4_stop_leavesNoTail_andEndsLoop` · `test_ac019_4_stopAll_clearsTailBookkeeping` | [A] 停止路径 |
+| **AC-019-5** | `test_ac019_5_tailRamp_isMonotone_andMultiplicativelyUniform` | [A] 无拐点(倍率恒等) |
+| | `test_ac019_5_degenerateInputs_neverProduceBurst` | [A] 退化输入无爆音 |
+| | `test_ac019_5_breathRows_introduceNoNewClipName` | [A] 零新 clip(真种子) |
+| **AC-019-6** | `s19-breath-transition-listening-2026-10-18.md` | [L] **NOT-RUN** |
+| **AC-019-7** | `docs/tech-debt-register.md` `TD-audio-100` · `design/gdd/audio-system.md` `OQ-44-7` | 账面(部分落,待 10-c) |
+
+> **测试数**:门 `event_table_gate_test` 本件 **+6**(34 → 69 全套件)·
+> 运行期 `runtime_assembly_test` **+9**(27 → 36)。
+> ⚠️ 证伪记录(F1–F9)与两处假绿(FG-1 / FG-2)见证据原件 §三。

@@ -108,9 +108,12 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             IReadOnlyList<string> errors = AudioEventTableGates.Validate(table);
 
             // Assert
-            Assert.That(errors.Count, Is.EqualTo(1), string.Join("\n", errors));
-            Assert.That(errors[0], Does.Contain("VitalsCrossed"));
-            Assert.That(errors[0], Does.Contain("禁止集"));
+            // ⚠️ 2026-10-18(story-019):计数 1 → 2。该夹具的 ui_page_turn 是**非循环**行,
+            //    AC-44-10 门(ValidateNoTransitionOneShotCues 第二臂)**同样**命中 —— 两条规则对
+            //    同一违禁独立成立,不是重复报错。故改为:两条各一,且规则 2 那条必须仍在。
+            Assert.That(errors.Count, Is.EqualTo(2), string.Join("\n", errors));
+            Assert.That(AnyError(errors, "禁止集"), Is.True, string.Join("\n", errors));
+            Assert.That(AnyError(errors, "AC-44-10"), Is.True, string.Join("\n", errors));
         }
 
         // ══════════════ AC-44-09 三重负向 ③a:空表 ══════════════
@@ -1173,6 +1176,205 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         // ══════════════ 夹具 / 种子读取与手写 JSON 抽取 ══════════════
 
         /// <summary>读负向 / 正例夹具(tests/unit/audio_system/fixtures/;前置 File.Exists,缺失即红)。</summary>
+        // ══════════════ story-019 · AC-019-1(过渡无一次性 cue 门)/ AC-019-2(零新 trigger_source)══════════════
+        // 权威:production/epics/audio-system/story-019-ac44-10-no-spike-sfx.md(面 10-a)
+        //   GDD design/gdd/audio-system.md:408-411(Output Range:呼吸层**连续**变化,无突变音效)
+        //   ADR-018 §六(无提示音铁律:终局**不被播报**,只**消失**)
+        //
+        // ⚠️ 本段**逐条直调** `ValidateNoTransitionOneShotCues`(而非总门),理由同规则 8 / 9 两条先例:
+        //   走总门时注入行会连带触发其他规则(规则 2 合法集、规则 7 必需集……),
+        //   「错了几条」的断言就分不清红是谁的。
+
+        /// <summary>AC-019-1 证伪:注入一条假「转危叮」一次性 cue ⇒ 门红,且报文**点名该 cue**
+        /// (story 逐字判据:注入一条假「转危叮」cue ⇒ 构建期红,且报文点名该 cue)。</summary>
+        [Test]
+        public void test_ac0191_fakeDeathDingOneShot_reportsRed_andNamesCue()
+        {
+            // Arrange:合法表 + 一条非循环、名字带过渡语义的植入行
+            AudioEventTable table = ParseTable(readFixture("valid_minimal_table.json"));
+            var fake = new AudioEventTableRow
+            {
+                Cue = "Voice_转危叮_Death",
+                SchemaVersionRaw = "1",
+                WhitelistCategory = "ContinuousPhysiology",
+                TriggerSource = "PlayerAction",
+                Bus = "Voice",
+                Loop = false,
+                Assets = new List<string>(),
+                PresentKeys = new List<string> { "cue" },
+            };
+            table.Rows = new List<AudioEventTableRow>(table.Rows) { fake };
+
+            // Act
+            IReadOnlyList<string> errors = AudioEventTableGates.ValidateNoTransitionOneShotCues(table.Rows);
+
+            // Assert
+            Assert.That(errors.Count, Is.EqualTo(1), string.Join("\n", errors));
+            Assert.That(errors[0], Does.Contain("Voice_转危叮_Death"), "报文必须点名违规 cue");
+            Assert.That(errors[0], Does.Contain("AC-44-10"), string.Join("\n", errors));
+        }
+
+        /// <summary>AC-019-1 第二臂:非循环行以**阈值类时机**申报(名字干净)⇒ 同样红
+        /// (「申报非检测」—— 换个名绕不过门)。</summary>
+        [Test]
+        public void test_ac0191_oneShotWithThresholdTrigger_reportsRed()
+        {
+            // Arrange:名字与过渡语义无关(不带族名),只改 trigger_source —— 逐值注入同一非循环行
+            string path = Path.Combine(repoRoot(), "assets", "data", "audio_events.json");
+            AudioEventTable table = ParseTable(File.ReadAllText(path));
+            AudioEventTableRow row = Row(table, "Page_Turn");
+            Assert.That(row.Loop, Is.False, "前置:该行须为非循环行");
+            foreach (string trigger in AudioEventTableGates.ForbiddenTriggerSources)
+            {
+                row.TriggerSource = trigger;
+
+                // Act
+                IReadOnlyList<string> errors = AudioEventTableGates.ValidateNoTransitionOneShotCues(table.Rows);
+
+                // Assert
+                Assert.That(errors.Count, Is.EqualTo(1), $"{trigger}:" + string.Join("\n", errors));
+                Assert.That(errors[0], Does.Contain("Page_Turn"), string.Join("\n", errors));
+                Assert.That(errors[0], Does.Contain("AC-44-10"), string.Join("\n", errors));
+            }
+        }
+
+        /// <summary>AC-019-1 边界:过渡语义名落在**循环**行 ⇒ 放行(呼吸层新档位只许做成 loop ——
+        /// 门拒的是「做成一次性」,不是「叫这个名字」)。</summary>
+        [Test]
+        public void test_ac0191_transitionNameOnLoopRow_accepted()
+        {
+            // Arrange
+            AudioEventTable table = ParseTable(readFixture("valid_minimal_table.json"));
+            AudioEventTableRow src = Row(table, "BreathLayer_Base_Calm");
+            var looped = new AudioEventTableRow
+            {
+                Cue = "BreathLayer_WheezeFast",
+                SchemaVersionRaw = src.SchemaVersionRaw,
+                WhitelistCategory = src.WhitelistCategory,
+                TriggerSource = src.TriggerSource,
+                Bus = src.Bus,
+                Loop = true,
+                Assets = new List<string>(src.Assets),
+                PresentKeys = new List<string>(src.PresentKeys),
+            };
+            table.Rows = new List<AudioEventTableRow>(table.Rows) { looped };
+
+            // Act
+            IReadOnlyList<string> errors = AudioEventTableGates.ValidateNoTransitionOneShotCues(table.Rows);
+
+            // Assert
+            Assert.That(errors, Is.Empty, string.Join("\n", errors));
+        }
+
+        /// <summary>AC-019-1 守卫:rows 缺失 ⇒ NOT-RUN(不静默放行)。</summary>
+        [Test]
+        public void test_ac0191_rowsMissing_reportsNotRunGuard()
+        {
+            IReadOnlyList<string> errors = AudioEventTableGates.ValidateNoTransitionOneShotCues(null);
+
+            Assert.That(errors.Count, Is.EqualTo(1), string.Join("\n", errors));
+            Assert.That(errors[0], Does.Contain("NOT-RUN"), string.Join("\n", errors));
+        }
+
+        /// <summary>AC-019-1 真种子正向:真表在过渡门上零错误(判别力由上面三条负向 / 边界夹具证明)。</summary>
+        [Test]
+        public void test_ac0191_realSeed_zeroTransitionErrors()
+        {
+            // Arrange
+            string path = Path.Combine(repoRoot(), "assets", "data", "audio_events.json");
+            AudioEventTable table = ParseTable(File.ReadAllText(path));
+
+            // Act
+            IReadOnlyList<string> errors = AudioEventTableGates.ValidateNoTransitionOneShotCues(table.Rows);
+
+            // Assert
+            Assert.That(errors, Is.Empty,
+                "assets/data/audio_events.json 在 AC-44-10 门上必须全绿:\n" + string.Join("\n", errors));
+        }
+
+        /// <summary>AC-019-2:呼吸行(呼吸基础层 / 附加层 / 世界语境呼吸)的 <c>trigger_source</c>
+        /// **全部**为既有值 <c>ContinuousPhysiology</c> —— 过渡无一次性 cue ⇒ 零新增触发源。
+        /// <para>⚠️ 与上一条互补:上一条验「没有违规」,本条验「**为什么**没有」—— 呼吸行仍在
+        /// 连续生理源上,而非被改挂到某个新源头。</para></summary>
+        [Test]
+        public void test_ac0192_realSeed_breathRows_keepExistingTriggerSource()
+        {
+            // Arrange
+            string path = Path.Combine(repoRoot(), "assets", "data", "audio_events.json");
+            AudioEventTable table = ParseTable(File.ReadAllText(path));
+            string[] breathCues = { "BreathLayer_Base_Calm", "BreathLayer_Adventitious_Fine", "WorldBreath_Baseline" };
+            var seen = new List<string>();
+
+            // Act
+            foreach (string cue in breathCues)
+            {
+                AudioEventTableRow row = Row(table, cue);
+                seen.Add(row.TriggerSource);
+                Assert.That(row.Loop, Is.True, $"{cue} 必须为循环行(呼吸层只许 loop)");
+            }
+
+            // Assert
+            Assert.That(seen, Is.All.EqualTo("ContinuousPhysiology"), string.Join("\n", seen));
+            Assert.That(ContainsString(AudioEventTableGates.LegalTriggerSources, "ContinuousPhysiology"),
+                Is.True, "ContinuousPhysiology 必须是既有合法源(不是本条新增)");
+        }
+
+        private static bool ContainsString(IReadOnlyList<string> list, string value)
+        {
+            for (int i = 0; i < list.Count; i++)
+                if (list[i] == value) return true;
+            return false;
+        }
+
+        /// <summary>AC-019-1 第三臂(缺 <c>loop</c> 字段):<c>loop</c> 缺省 = 一次性 ⇒ 一条「转危叮」行
+        /// **只改 cue 名**就足以被拒 —— 这是 story 逐字场景(注入一条假「转危叮」cue)的最小字面形态。</summary>
+        [Test]
+        public void test_ac0191_transitionNameWithLoopFieldAbsent_reportsRed()
+        {
+            // Arrange:名字干净的行原样照抄、仅换 cue 名 ⇒ 总门其余规则全绿,红只可能来自 AC-44-10
+            string json = readFixtureWithAppendedRow("valid_minimal_table.json",
+                "{ \"schema_version\": 1, \"cue\": \"Voice_CareApplied_Death\", " +
+                "\"assets\": [\"vo_patient_cough_damp_f1.wav\"], \"bus\": \"Voice\", " +
+                "\"whitelist_category\": \"PlayerAction\", \"trigger_source\": \"PlayerAction\", " +
+                "\"subtitle_text\": \"…\" }");
+            AudioEventTable table = ParseTable(json);
+            Assert.That(rowOf(table, "Voice_CareApplied_Death").Loop, Is.False, "夹具自证:loop 字段缺省 = 一次性");
+
+            // Act
+            IReadOnlyList<string> errors = AudioEventTableGates.Validate(table);
+
+            // Assert
+            Assert.That(errors.Count, Is.EqualTo(1), string.Join("\n", errors));
+            Assert.That(errors[0], Does.Contain("Voice_CareApplied_Death"), string.Join("\n", errors));
+            Assert.That(errors[0], Does.Contain("AC-44-10"), string.Join("\n", errors));
+        }
+
+        /// <summary>取行(不入断言链 —— 仅供夹具自证,缺行时由后续断言以空引用暴露)。</summary>
+        private static AudioEventTableRow rowOf(AudioEventTable table, string cue)
+        {
+            foreach (AudioEventTableRow row in table.Rows)
+                if (row.Cue == cue) return row;
+            return null;
+        }
+
+        /// <summary>夹具 + 追加一段行原文(**文本层注入**,不经 <see cref="ParseTable"/>)。
+        /// <para>⚠️ 为什么走文本:行对象一旦带齐 <c>loop</c> 字段,就**必须**是合法行(耦合),
+        /// 而「一条 cue 被默认当成一次性音效」恰恰是缺 <c>loop</c> 的形态 —— 结构层构造不出它。</para></summary>
+        private static string readFixtureWithAppendedRow(string fileName, string rowJson)
+        {
+            string json = readFixture(fileName).TrimEnd();
+            int rowsAt = json.IndexOf("\"rows\"", StringComparison.Ordinal);
+            Assert.That(rowsAt, Is.GreaterThan(0), "夹具自证:缺 rows 段");
+            int head = json.IndexOf('[', rowsAt);
+            int tail = json.LastIndexOf(']');
+            Assert.That(head, Is.GreaterThan(0), "夹具自证:rows 非数组");
+            Assert.That(tail, Is.GreaterThan(head), "夹具自证:rows 数组未闭合");
+
+            string body = json.Substring(head + 1, tail - head - 1);
+            bool empty = body.Trim().Length == 0;
+            return json.Substring(0, head + 1) + body + (empty ? "" : ",") + rowJson + json.Substring(tail);
+        }
+
         private static string readFixture(string fileName)
         {
             string path = Path.Combine(repoRoot(), "tests", "unit", "audio_system", "fixtures", fileName);
