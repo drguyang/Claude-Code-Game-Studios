@@ -5961,3 +5961,19 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
   **AC-44-13 mono 载体缺口(不随 106 结案)**· -027 · story-016 reconcile(E5 签字矛盾)·
   收口前重跑 36 条逐条核查(「16 条计数」切片后仍不重算,核查时统算)。
 - **待用户**:本四处是否提交(建议一笔 `docs(audio): epic-44 DoD 切片修订…`)。
+
+<!-- QA-PLAN: 2026-10-18 | System: sprint-15(44 音频 P0 收口面) | Plan written: production/qa/qa-plan-sprint-15-2026-10-18.md -->
+
+### G. sprint-15 规划轮(2026-10-18 · `/sprint-plan new` · 用户裁定「按建议来」)✅ 已落未提交
+- **产出四件**:`production/sprints/sprint-15.md` · `production/sprint-status.yaml`(重写为 sprint-15;
+  sprint-14 全文归档 `production/sprint-status-sprint14-archive.yaml`)· story-020 / story-021 两张新卡(`Ready`)·
+  `production/qa/qa-plan-sprint-15-2026-10-18.md`。
+- **Phase 1 重扫核出两处陈旧前提(技能硬前置的正向命中)**:
+  ① **TD-audio-030** 旧写「12 个 `vo_` 变体未录制」⇒ **实测已全部落地**(`unity/Assets/Audio/`,事件表 12 条已列)⇒ 阻塞**只剩选择器**;
+  ② **TD-audio-101/102** 旧阻塞「素材未接入」⇒ **18 个文件 10-17 已落地** ⇒ 听测今天可排;
+  ③ 顺带:TD-audio-103 的阻塞源**须改口**为「被试 ≥2 人」(素材已不是理由)⇒ 挂 S15-7 刷账。
+- **Must**:S15-1 story-019(AC-44-10,含 10-c 用户实听)· S15-2 story-020(变体混合)· S15-3 story-021(knowsClinic 注入缝)。
+  **Should**:S15-4(028 空间化)· S15-5(029+032)· S15-6(101+102 听测,S15-2 之后)。
+  **Nice**:S15-7 债册刷账 · S15-8 retro-14。
+- **QA plan 已写**(Phase 5 选 A 后即跑);PR-SPRINT 跳过(Lean)。
+- **待用户**:① 上述四件是否提交;② 是否开 S15-1(`/dev-story story-019`)。
