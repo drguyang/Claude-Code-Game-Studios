@@ -140,3 +140,32 @@
 
 **听测执行须用户做**:按 `s19-breath-transition-listening-2026-10-18.md` §三 六项勾选 + 四值记录;
 **判据 3(尾音是否「一阵一阵」)须专门判** —— 本实现的停顿期尾音按 `BreathTailRampMs` 分段重复。
+
+### ⚠️ 同批听测的串扰源:`docs/audio/statereport-walkthrough-2026-10-18.md` 是**预填稿回放**,不是听测结果
+
+**2026-10-18 实测登记**(编排方查证,`statereport_walkthrough_probe.cs:749`):
+
+跑全量 EditMode 时,`StateReportWalkthroughProbe.walkthrough_allCues_manifestPlaybackAndOrdering`
+会**自动写盘** `docs/audio/statereport-walkthrough-{今日}.md` + `-manifest-{今日}.json`。
+该记录**看起来像已完成的手跑走查**,实际不是:
+
+| 事实 | 证据 |
+|---|---|
+| 记录正文的标题日期**取自谓词文件**,不是运行日 | `probe.cs:749` `md.Append("…手跑走查记录(").Append(date).Append(")")`;`date` 读自 `docs/audio/statereport-walkthrough-predicates.json` 的 `"date": "2026-10-17"` |
+| 文件名日期才是运行日 | `probe.cs:605` `TodayStamp() => DateTime.Now.ToString("yyyy-MM-dd")` ⇒ 今日生成 `-2026-10-18.md`,**标题却写 2026-10-17** |
+| 15 条 verdicts **全部是预填建议稿** | 谓词文件 `_instructions` ④ 逐字:「`not_reporting` 是我按『替代读法』预填的**建议稿**,`status_words` 一律预填 `null` —— 这是**默认判定**,不是你听过的结论……**留着不代表你听过**」 |
+| 探针**不校验**「是否真听过」 | 它只校验格式合法 + 无状态词,预填稿必然通过 |
+
+**⇒ 后果与纪律**:
+1. **不得**把 `docs/audio/statereport-walkthrough-2026-10-18.md` 读成「E5 走查已过」——
+   它是机器回放预填稿的产物,人耳判定为零。
+   ⚠️ **但也不要反过来说 E5 没过**:E5 已在 **2026-10-17** 由 `dr_guyang` 逐条听过 15 条并签字
+   (`docs/audio/statereport-walkthrough-2026-10-17.md`,story-016 `AC-44-E5` ✅)。
+   **10-18 这份是重跑产生的冗余副本**,不是第二次走查,也不推翻 10-17 的结论。
+2. **本次提交时该文件与 `test-results.xml` 一并留在工作区不提交**(用户 2026-10-18 裁定),
+   等人工听测做完再随听测结果一起入库。
+3. **做 `AC-019-6` 听测前须先改** `predicates.json` 的 `"date"` 为**实际听的那天**
+   (文件 `_instructions` ① 逐字要求);否则生成记录的标题会一直顶着旧日期。
+4. **两条听测是两件事,别混**:`AC-019-6` 判的是**呼吸尾音**(本卡,判据 3 = 尾音「一阵一阵」);
+   `AC-44-E5` 判的是**无提示音铁律**(story-016,15 条 cue 是否在报状态)。同一次实机听测可一并做,
+   但**判定表各填各的**。
