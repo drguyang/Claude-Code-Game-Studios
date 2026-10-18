@@ -6052,3 +6052,24 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
   (不记 done:听感半边 NOT-RUN)。
 - **原件**:`production/qa/evidence/impl-s15-4-spatialization-wiring-2026-10-18.md`。
 - **待用户**:是否提交本批(S15-2 / S15-3 / S15-4 三件均待提交);听测批(`TD-audio-101/102`)未跑。
+
+## Session Extract — S15-5(TD-audio-029 + 032 合并卫生批)· 2026-10-18
+
+- **029(一次性 cue 归还)**:`AudioSourcePool` 新增 `EnqueueOneShot` / `MarkFinished` / `ReclaimExpired` /
+  `PendingOneShotActors`;`AudioSourceRenderTarget.PlayOneShot` = Spawn → Place → Play → 排队(删 `Replay` / 时长学习 /
+  render target 的 `clock` 形参)。新 `Gameplay.Boot/OneShotReclaimPump.cs`:每 tick 边沿 回收 → 观测(`isPlaying`)→ 回收。
+  **池不读素材时长**:「播完」只来自观测(显式 `MarkFinished` / 探针面 / 帧泵)。
+- **实现期抓到两处静默缺陷**:① Unity `probe == null` 对「未绑」与「已销毁」**同为真** ⇒ 未绑探针的源会被当播完;
+  修法 = `ReferenceEquals` 区分「绑过」。② 「排队 → 同帧回收」会掐刚开播的源 ⇒ 「刚排队」单次跳过(`JustQueued`)。
+- **032**:② tick 形参 / 簿记 → `long`;③ `OnTickEdge` 拆 `StepOnePatient` / `DecideFor` / `EmitOneShotIfDue`
+  (`PruneAbsent` 拆 `PruneIfAbsent`/`PruneOneAbsent`)+ 源码物理行 ≤40 夹具(带计数器自校准);④ `PresentPatientIds`
+  成员变动快照 + `PruneAbsent` 五表并集 + 新可观测面 `TrackedPatientCount`;⑤ `RowCount > 0` 前置。
+- **测**:新 `s15_5_hygiene_test.cs` **13 测**;证伪 **F1–F10 全红**(F3/F6/F9 首版是弱判别面,已修夹具后重证);
+  F6 的「Decide 内截断」反证**未转红已被拒**,判据改由簿记侧 F6 承担;F10 判别力收窄为**防御纵深**(库构造已 fail-loud)。
+- **全量 EditMode `3794 / 3748 / 1 / 45`**(`unity/Logs/s155-full-editmode.xml`)vs S15-4 基线 `3781/3735/1/45`
+  ⇒ total **+13** = 新增 13 条;唯一红 = `MovementFeedTest` 已知间歇(**不抵扣计数**)。
+  ⚠️ 首轮全量时我曾把 `Skipped` 也读成红(47),已按 XML `failed` 字段纠正,原件 §四是纠正后数字。
+- **账面**:`TD-audio-029` 结案(残留 `isPlaying` 时序 NOT-RUN)· `TD-audio-032` ②③④⑤ 结、① 仍 open;
+  sprint-status S15-5 → `review`(不记 done:`BuildAudioSeams` 仍 >40 行 · PlayMode 半边未跑)。
+- **原件**:`production/qa/evidence/impl-s15-5-audio-hygiene-2026-10-18.md`。
+- **待用户**:是否提交本批(S15-2 / S15-3 / S15-4 / S15-5 均待提交);听测批(`TD-audio-101/102`)未跑。

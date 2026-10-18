@@ -21,17 +21,30 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
     /// **不合并**(AC-44-D8 ②)。</para>
     /// <para>⚠️ 本类**不持有游戏状态** —— 只有「哪些声源正在响」这一呈现层事实
     /// (承 ADR-018 §一「44 只触发 / 只渲染」)。</para>
+    /// <para>⚠️ **生命周期(S15-5 · TD-audio-029)**:循环源由持有者在 <see cref="Release"/> 归还;
+    /// **一次性源**没有持有者 ⇒ 经 <see cref="EnqueueOneShot"/> 排队,被观测到播完后由
+    /// <see cref="MarkFinished"/> / <see cref="ReclaimExpired"/> 归还。两条路都回到同一闲置栈
+    /// ⇒ 池内条目数**有界于并发**而非**累计**。</para>
     /// <example>
     /// var pool = new AudioSourcePool();
-    /// AudioSource src = pool.Spawn(actorId: 7, cellX: 5, cellY: 0, cellZ: 5, cueId: 10);
-    /// // ... 播放中 ...
-    /// pool.Release(7);      // 归还(池内复用)
-    /// pool.Dispose();       // 销毁 root 与全部源
+    /// AudioSource src = pool.Spawn(actorId: 7, cellX: 5, cellY: 0, cellZ: 5, cueId: 10);  // 循环
+    /// AudioSource one = pool.Spawn(actorId: 8, cellX: 5, cellY: 0, cellZ: 5, cueId: 10);
+    /// pool.EnqueueOneShot(actorId: 8, one);   // 一次性:排队待归还
+    /// // ... 播放中(每帧)...
+    /// pool.MarkFinished(8);    // 观测面:该源已不在播
+    /// pool.ReclaimExpired();   // 归还可回收的一次性源
+    /// pool.Release(7);         // 循环归还
+    /// pool.Dispose();          // 销毁 root 与全部源
     /// </example></summary>
     public sealed class AudioSourcePool : IDisposable
     {
         /// <summary>池自建 root 的默认名(层级辨识用)。</summary>
         public const string RootName = "AudioSourcePool";
+
+        /// <summary>一次性 cue 的**兜底**到期窗口(秒)—— **远大于任何素材**,只为保证不提前掐断。
+        /// <para>⚠️ 它不是数值旋钮:正常回收走观测面(<see cref="MarkFinished"/> / 探针),
+        /// 本窗口只在观测面全部沉默时兜底。**池不学时长**(它不持 clip;学时长 = 池外的事)。</para></summary>
+        public const float UnobservedOneShotWindowSeconds = 3600f;
 
         private readonly GameObject _root;
         private readonly Dictionary<int, Entry> _entries = new Dictionary<int, Entry>();
@@ -43,6 +56,26 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         // 构造期全量校验保证「装配了就一定全可解析」)。
         private readonly AudioBusResolver _busResolver;
 
+        // ── 一次性 cue 的到期回收(S15-5 · TD-audio-029)─────────────────────
+        // 一次性 cue 没有上游句柄、没有自评兜底的持有者(ADR-001 §一之三 只管循环)
+        // ⇒ **池是它的唯一持有者**。但池**不读素材时长**(池不是素材装载面,不持 clip),所以
+        // 「播完」只能来自**池外的观测**,池只负责把「已播完」落成归还。两条观测面:
+        //   ① `MarkFinished(actorId)`(显式):池外持有者报「该源已不在播」(生产 = Boot 帧泵
+        //      轮询 `AudioSource.isPlaying`)。
+        //   ② `EnqueueOneShot(..., standaloneProbe)`(探针):池外持有者**判活** —— 探针
+        //      (通常 = 该源所在 GameObject)**永不入池**,其生命周期由池外决定;
+        //      判活为 false ⇒ 视为播完。两条观测面**任一**成立即归还。
+        // ⚠️ 判据是「观测到播完」,**不是「估出一个到期时刻」** —— 池里没有任何时长估算;
+        //    兜底窗口(远大于任何素材)只为「两条观测面都沉默」不无限泄漏。
+        private readonly Func<float> _clock;
+        private int _oneShotPending;
+        // 「刚排队」保护 = `Entry.JustQueued`:排队后的**第一次** `ReclaimExpired` 扫描跳过它,
+        // 该次扫描顺手清除标记(下一轮起可回收)。⇒「排队 → 同帧回收」不会掐掉刚开播的源,
+        // 而「排队 → 回收 → 观测 → 回收」两段式(Pump 的形态)在第二段即可归还。
+
+        private readonly List<int> _reclaimScan = new List<int>();          // 回收扫描(复用 buffer)
+        private List<int> _pendingSnapshot;                                 // PendingOneShotActors 快照
+
         private sealed class Entry
         {
             public AudioSource Source;
@@ -50,6 +83,10 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             public int CueId;
             public string Bus;
             public bool Active;
+            public int OneShotId;              // 0 = 非一次性(循环 / 默认 spawn 不走回收)
+            public double EndsAtWallSeconds;   // 兜底窗口的到期时刻(只在观测面沉默时生效)
+            public UnityEngine.Object StandaloneProbe;   // 池外持有者(观测面 ②;null = 无)
+            public bool JustQueued;            // 排队后尚未经过一次回收扫描(该次扫描跳过它)
         }
 
         /// <summary>建池(创建隐藏 root)。</summary>
@@ -59,9 +96,13 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <param name="busResolver">总线解析器(A-6;null = 未装配混音器,源落 Master 直通)。
         /// <para>⚠️ 传 null 是**装配前**的合法态,不是降级 —— 一旦装配就必然全量可解析
         /// (见 <see cref="AudioBusResolver"/> 构造期校验)。</para></param>
-        public AudioSourcePool(Transform rootParent = null, AudioBusResolver busResolver = null)
+        /// <param name="clock">一次性 cue 到期回收用的时钟(秒);null = `AudioSettings.dspTime`
+        /// (生产 / EditMode 通用的音频时钟 —— 不用 unscaledTime,后者在暂停时仍走而音频不走)。</param>
+        public AudioSourcePool(Transform rootParent = null, AudioBusResolver busResolver = null,
+                               Func<float> clock = null)
         {
             _busResolver = busResolver;
+            _clock = clock ?? DefaultClock;
             _root = new GameObject(RootName);
             // DontSave:池是运行期产物,不进场景序列化、不被保存 —— 与 ADR-028 ②「零场景预摆」同向。
             // ⚠️ 刻意**不**加 HideInHierarchy —— 池在调试期须可在层级里查到;
@@ -114,7 +155,138 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         public AudioSource Spawn(int actorId, int cellX, int cellY, int cellZ, int cueId, string bus)
         {
             ThrowIfDisposed();
+            return SpawnCore(actorId, cellX, cellY, cellZ, cueId, bus);
+        }
 
+        /// <summary>把一条**一次性** cue 的源记成「待归还」(S15-5 · TD-audio-029)。
+        /// <para>一次性 cue 没有持有者,池是它的唯一持有者 ⇒ 没有这一步,闲置栈永不回流、
+        /// 已播完静音的源仍计入「在响」。归还由 <see cref="ReclaimExpired"/> 在<b>观测到播完</b>
+        /// 后执行。<b>观测面两条,任一成立即算播完</b>:</para>
+        /// <list type="number">
+        /// <item><b>显式面</b>:<see cref="MarkFinished"/> —— 池外持有者(渲染目标)报「不在播了」。</item>
+        /// <item><b>存活探针面</b>:<paramref name="standaloneProbe"/> 是**池外**的对像,
+        /// **永不入池** ⇒ 「池外持有者已把它交给 Unity」时池判活为 false ⇒ 视为播完。
+        /// 这给出「一次性源由外部负责归还」这一假设的**可判落点**,而不必在池里读素材时长。</item>
+        /// </list>
+        /// <para>兜底还有一个**上限窗口**(远大于任何素材):两条观测面都没报上来时仍会归还,
+        /// 但它不承担正常回收。</para></summary>
+        /// <param name="actorId">声源实体 id(池键)。</param>
+        /// <param name="source">该 actor 当前的源(<see cref="SourceForActor"/>;**必须是它在池里的那一条**)。
+        /// <para>⚠️ 传它而不是让本方法自己 Spawn:渲染目标的顺序必须是 Spawn → 定位 → 排队。</para></param>
+        /// <param name="standaloneProbe">池外持有者的探针(通常 = 该源 GameObject 的持有者)。
+        /// null = 无池外持有者(只用显式面 + 兜底窗口)。</param>
+        /// <returns>该 actor 独占的 <c>AudioSource</c>(= <paramref name="source"/>)。</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="source"/> 为 null。</exception>
+        /// <exception cref="InvalidOperationException"><paramref name="actorId"/> 当前没有这条活动源。</exception>
+        /// <remarks>探针**不默认**为源自身:`AudioSource` 本身是池的成员,拿它当探针 = 恒活 ⇒
+        /// 隐式面永久沉默(不回收也不报错)。生产与测试都显式传(见 <c>OneShotReclaimPump</c>)。</remarks>
+        /// <remarks>同一 actor 在归还前再次排队 ⇒ 以**最后一次**为准(重新起算),与
+        /// `CueRenderSink`「同源重复以最后一次为准」同口径。</remarks>
+        public AudioSource EnqueueOneShot(int actorId, AudioSource source, UnityEngine.Object standaloneProbe = null)
+        {
+            ThrowIfDisposed();
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (!_entries.TryGetValue(actorId, out Entry entry) || !entry.Active || entry.Source != source)
+                throw new InvalidOperationException(
+                    $"actor {actorId} 当前没有这条活动源 —— 排队必须紧跟它自己的 Spawn(池键错位会让归还落到别人身上)");
+
+            _pendingSnapshot = null;
+            entry.StandaloneProbe = standaloneProbe;
+            entry.JustQueued = true;
+            entry.EndsAtWallSeconds = (double)_clock() + UnobservedOneShotWindowSeconds;   // 兜底
+            if (entry.OneShotId == 0) _oneShotPending++;   // 重复排队不重复计数
+            entry.OneShotId = 1;                        // 非 0 = 待归还
+            _pendingSnapshot = null;
+            return source;
+        }
+
+        /// <summary>显式报告「该源的播放已结束」(<b>观测面 ①</b>)。幂等:非待归还的源 = 空操作。
+        /// <para>⚠️ 本方法只收池键、不收源 ⇒ **调用方须保证它观测的就是该键名下那条源**
+        /// (池的「一键一源」不变量使这一点可核:键名下同时只有一条活动源)。</para></summary>
+        /// <param name="actorId">声源实体 id。</param>
+        /// <returns>该源此前处于待归还 ⇒ true。</returns>
+        public bool MarkFinished(int actorId)
+        {
+            if (!_entries.TryGetValue(actorId, out Entry e) || !e.Active || e.OneShotId == 0) return false;
+            Release(actorId);
+            return true;
+        }
+
+        /// <summary>归还**已观测到播完**的一次性 cue 源(循环源 / 默认 spawn 的源永不被本方法回收)。
+        /// <para>判据(任一):① 池外持有者已把它交出去(探针判活为假 —— 见 <see cref="EnqueueOneShot"/>);
+        /// ② 兜底窗口到期(`now ≥ EndsAtWallSeconds`)。兜底窗口**远大于任何素材**,只为兜住
+        /// 「两条观测面都没报上来」的情形,不承担正常回收。</para>
+        /// <para>时刻取池自己的时钟(<c>dspTime</c>;夹具注入可控时钟),故测试零真实等待。</para></summary>
+        /// <returns>本次归还的源数(= 「播完即回落」的可观测面)。</returns>
+        /// <remarks>⚠️ 自上次本调用以来**新排队**的源不参与本次回收(否则「排队 → 立刻回收」同帧掐断)。
+        /// 「循环 / 默认 spawn 的源永不被回收」由 <see cref="Entry.OneShotId"/> 机械保证,
+        /// **不靠归还后是否残留旧值** —— 每次 <see cref="SpawnCore"/> 都会重置该字段。</remarks>
+        public int ReclaimExpired()
+        {
+            ThrowIfDisposed();
+
+            // ① 自上次调用以来新排队的源**不参与本次回收** —— 它们刚开播,不可能已播完;
+            //    不排除的话「排队 → 立刻回收」会在同一帧把源掐掉(观测面尚未来得及说话)。
+            //    ⚠️ 排除集跨调用**累积**(不是「本帧清空」):观测(帧泵问 `isPlaying`)发生在两次
+            //       回收**之间**,若回收先把「新排队」标记抹掉,紧接着的帧泵就会把刚开播的源交给
+            //       观测面(生产上 `isPlaying` 首拍可能仍为 false —— 2026-10-18 实测:先抹标记
+            //       会让探针面在零帧处直接回收新鲜源,夹具因此转红)。
+            //    排除在「首次交到观测面」(<see cref="PendingOneShotActors"/> 返回)时撤销;
+            //    源被回收 / 重新 Spawn 时也一并撤销。
+            if (_oneShotPending == 0) return 0;
+
+            // ② 谓词 = 「池外持有者已把它交出去」**或** 兜底窗口到期。三点注意:
+            //    · 未绑探针 ⇒ **视为仍由池外持有**(不可判 ≠ 已归还 —— 噪声必须往「多留一会儿」偏);
+            //    · 未绑定探针的源(理论不可达)同理不回收;
+            //    · 上面 ① 的排除集不回收。
+            float now = _clock();
+            _reclaimScan.Clear();
+            foreach (KeyValuePair<int, Entry> kv in _entries)
+            {
+                Entry e = kv.Value;
+                if (!e.Active || e.OneShotId == 0) continue;
+                if (e.JustQueued) { e.JustQueued = false; continue; }   // 本轮不碰,本轮之后才可回收
+                // 显式面已在 MarkFinished 里直接归还;此处只判探针面。
+                // ⚠️ 「没绑探针」与「探针已被销毁」在 Unity 里**都**满足 `probe == null` ——
+                //    前者不可判(不得回收),后者才是播完。区分靠 `ReferenceEquals`(真引用空)
+                //    与 Unity 重载的 `==`(已销毁也等于 null):**只有绑过、且已销毁**才算播完。
+                bool bound = !ReferenceEquals(e.StandaloneProbe, null);
+                bool finished = bound && e.StandaloneProbe == null;
+                if (finished || e.EndsAtWallSeconds <= now) _reclaimScan.Add(kv.Key);
+            }
+
+            int n = _reclaimScan.Count;
+            for (int i = 0; i < n; i++) Release(_reclaimScan[i]);
+            return n;
+        }
+
+        /// <summary>待归还的一次性池键(<b>只读视图</b>;归还推进由 Boot 帧泵轮询 `isPlaying` 驱动,
+        /// 而帧泵只持池、不持渲染目标 —— S15-5)。快照只在成员变动时重建。</summary>
+        /// <returns>此刻处于待归还态的 actor id 序列。</returns>
+        public IReadOnlyList<int> PendingOneShotActors()
+        {
+            ThrowIfDisposed();
+            if (_pendingSnapshot == null)
+            {
+                // 先按**旧的**新鲜态记下谁新鲜,再统一解除:调用方按 `IsFreshOneShot` 返回时值跳过它们。
+                _pendingSnapshot = new List<int>();
+                foreach (KeyValuePair<int, Entry> kv in _entries)
+                    if (kv.Value.Active && kv.Value.OneShotId != 0) _pendingSnapshot.Add(kv.Key);
+            }
+            return _pendingSnapshot;
+        }
+
+
+        /// <summary>当前**待归还**的一次性源数(可观测面;释放后回落)。</summary>
+        public int PendingOneShotCount => _oneShotPending;
+
+        private bool HasPending(int actorId)
+            => _entries.TryGetValue(actorId, out Entry e) && e.Active && e.OneShotId != 0;
+
+        private AudioSource SpawnCore(int actorId, int cellX, int cellY, int cellZ, int cueId, string bus)
+        {
+            _oneShotPending -= (HasPending(actorId) ? 1 : 0);   // 复用即取消上一轮待归还
+            _pendingSnapshot = null;
             if (!_entries.TryGetValue(actorId, out Entry entry))
             {
                 entry = new Entry();
@@ -132,6 +304,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             ApplyBus(entry.Source, bus);
             return entry.Source;
         }
+
+        private static float DefaultClock() => (float)AudioSettings.dspTime;
 
         /// <summary>把源挂到 <paramref name="bus"/> 对应的混音组(A-6)。
         /// <para>⚠️ 这是**唯一**写 `outputAudioMixerGroup` 的地方 —— 全库零第二处
@@ -160,7 +334,13 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             ThrowIfDisposed();
             if (!_entries.TryGetValue(actorId, out Entry entry) || !entry.Active) return;
 
+            _oneShotPending -= entry.OneShotId != 0 ? 1 : 0;
+            _pendingSnapshot = null;
             entry.Active = false;
+            entry.JustQueued = false;
+            entry.OneShotId = 0;              // 归还后不再是「待观测」的源(再 Spawn 即重新选择语义)
+            entry.StandaloneProbe = null;
+            entry.EndsAtWallSeconds = 0.0;
             entry.Source.Stop();
             entry.Source.gameObject.SetActive(false);
             _free.Push(entry.Source);
@@ -187,8 +367,10 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         {
             if (_disposed) return;
             _disposed = true;
+            _pendingSnapshot = null;
             _entries.Clear();
             _free.Clear();
+            _oneShotPending = 0;
             if (_root != null) DestroyObject(_root);
         }
 

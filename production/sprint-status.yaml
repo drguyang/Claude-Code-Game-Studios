@@ -76,12 +76,13 @@ stories:
     name: "TD-audio-029 + 032 合并卫生批(one-shot 归还 / (int)tick / RowCount 守卫 / buffer 复用)"
     file: "docs/tech-debt-register.md"
     priority: should-have
-    status: backlog
+    status: review
     owner: "claude"
     estimate_days: 0          # 复杂度 = M
     blocker: ""
-    completed: ""
-    # ⚠️ 拆方法须同补 ≤40 行界夹具(Phase 8b J 项教训)。
+    completed: "2026-10-18"
+    # 实现已落(夹具 13/13 · 证伪全红 · 全量 3794/3748/1/45 = 基线 +13)。
+    # status 记 review:032 ③ 的 BuildAudioSeams 仍 >40 行 · isPlaying 时序 PlayMode NOT-RUN。
 
   - id: "S15-6"
     name: "TD-audio-101 + 102 同批听测([L] · 呼吸两层 / 语声变体 / SNR)"

@@ -307,6 +307,9 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         {
             // Arrange:真烘焙表 → 真 clip 库(库的 BusOf 读**事件表 bus 列**)
             AudioEventDataSet table = BakedTable();
+            // ⚠️ S15-5(TD-audio-032 ⑤):空表前置 —— 表若烘成 0 行,下面的循环恒不执行 ⇒ 本测恒绿。
+            Assert.That(table.RowCount, Is.GreaterThan(0),
+                "烘焙表 0 行 ⇒ 逐行对拍循环恒空 ⇒ 本测零判别力(空表不是「没有分叉」,是没测)");
             var library = new AudioClipLibrary(table);
             try
             {

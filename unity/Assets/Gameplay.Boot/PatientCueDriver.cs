@@ -60,8 +60,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly Func<PatientId, bool> _knowsClinic;
 
         // 每病人的发射 / 呼吸层簿记(呈现层事实,不落盘)。
-        private readonly Dictionary<int, int> _lastEmitTick = new Dictionary<int, int>();
-        private readonly Dictionary<int, int> _entryTick = new Dictionary<int, int>();
+        // ⚠️ `long`(S15-5 · TD-audio-032 ②):逻辑 tick 是单调 `long`;在这里截成 `int`
+        //    会在约 2^31 拍后回绕,回绕的后果不是「差一拍」而是**一次性 cue 静默停发**
+        //    (`tick >= firstDue` 恒假)。
+        private readonly Dictionary<int, long> _lastEmitTick = new Dictionary<int, long>();
+        private readonly Dictionary<int, long> _entryTick = new Dictionary<int, long>();
         private readonly Dictionary<int, AudioCueHandle> _breathHandles = new Dictionary<int, AudioCueHandle>();
 
         // 停顿态簿记(story-019):终局锁存但仍在场 ⇒ loop 存续 + 尾音衰减。
@@ -140,6 +143,24 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="patientId">病人。</param>
         public bool KnowsClinicOf(PatientId patientId) => _knowsClinic(patientId);
 
+        /// <summary>仍在簿记里的病人数(五本表的键并集大小)。
+        /// <para>⚠️ 存在的理由(S15-5 · TD-audio-032 ④):「离场后簿记是否残留」此前**不可观测** ——
+        /// 三本表是私有字典,残留只表现为「会话内单调增长」。本属性把该判据做成可读面;
+        /// 稳态应等于在场病人数(`PruneAbsent` 每边沿跑一次)。</para></summary>
+        public int TrackedPatientCount
+        {
+            get
+            {
+                var keys = new HashSet<int>();
+                foreach (int k in _breathHandles.Keys) keys.Add(k);
+                foreach (int k in _entryTick.Keys) keys.Add(k);
+                foreach (int k in _lastEmitTick.Keys) keys.Add(k);
+                foreach (int k in _tailStartTick.Keys) keys.Add(k);
+                foreach (int k in _tailDone.Keys) keys.Add(k);
+                return keys.Count;
+            }
+        }
+
         /// <summary>呼吸层当前存活的句柄数。</summary>
         public int ActiveBreathCount => _breathHandles.Count;
 
@@ -184,7 +205,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 两处须同批改(登记在 story-019 §实现轮记录)。</para></summary>
         public const double TickSeconds = 0.05;
 
-        /// <summary>tick 边沿驱动 —— 对每个在场病人跑一次调度。</summary>
+        // 簿记清扫的复用 buffer(S15-5 · TD-audio-032 ④:禁每 tick / 每边沿分配)。
+        private readonly List<int> _staleScratch = new List<int>();
+        private readonly HashSet<int> _presentScratch = new HashSet<int>();
+
+        /// <summary>tick 边沿驱动 —— 对每个在场病人跑一次调度。
+        /// <para>⚠️ <b>只做编排</b>(S15-5 · TD-audio-032 ③):取数 / 簿记 / 调度 / 发射各拆成
+        /// 私有方法,每个方法体都 ≤ 40 物理行 —— 由 `s15_5_hygiene_test` 按**源码物理行**钉界。</para></summary>
         /// <param name="tick">本边沿自己的逻辑 tick(由帧泵回推,非末 tick)。</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="tick"/> 为负。</exception>
         public void OnTickEdge(long tick)
@@ -192,88 +219,140 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (tick < 0) throw new ArgumentOutOfRangeException(nameof(tick), tick, "逻辑 tick 不得为负");
 
             LastDrivenTick = tick;
-
-            // 在场集快照(登记簿的 PresentPatientIds 已返回数组,遍历安全)。
+            // 在场集快照(登记簿快照只在成员变动时重建 ⇒ 稳态零分配,TD-audio-032 ④)。
             foreach (int patientId in _presence.PresentPatientIds())
+                StepOnePatient(patientId, tick);
+        }
+
+        /// <summary>单病人一拍:取数 → 簿记 → 13 调度 → 呼吸层 / 尾音 / 一次性 cue。</summary>
+        /// <param name="patientId">病人 id(登记簿键)。</param>
+        /// <param name="tick">本边沿的逻辑 tick。</param>
+        private void StepOnePatient(int patientId, long tick)
+        {
+            var id = new PatientId(patientId);
+            if (!_presence.TryGetCell(id, out WorldPos cell)) return;   // 刚离场 ⇒ 跳过
+            // 已登记在场但**尚未建档**(DiseaseOnset 要下一拍才被应用)⇒ 跳过本拍。
+            // ⚠️ 不是「静默失败」:下一拍就自然进入(见构造参数 hasCourse 的说明)。
+            if (_hasCourse != null && !_hasCourse(id)) return;
+
+            // ① 13 的行为态 —— 读一次 IVitalsQuery(唯一取数入口);behavior 是 13 持有的引用,只读。
+            _behavior.Step(id, _knowsClinic(id));
+            PatientBehavior behavior = _behavior.For(id);
+            VitalsDto v = _vitals.GetVitals(id);
+
+            CueDispatch dispatch = DecideFor(patientId, id, behavior, v, tick);
+            ApplyBreath(patientId, id, dispatch.Breath, v.Position, cell, tick);
+
+            // ⑤ 停顿态:loop 存续期间,每拍推进一次增益衰减(AC-019-5)。
+            //    ⚠️ **零一次性 cue**(dispatch.EmitOneShot 在终局时恒 false,判决归 13),
+            //    本步只写增益 —— 这是「无突变音效」在运行期的形态。
+            if (_tailStartTick.TryGetValue(patientId, out long tailStart))
+                AdvanceBreathTail(patientId, id, v.Position, cell, tick, tailStart);
+
+            EmitOneShotIfDue(patientId, dispatch, v.Position, cell, tick);
+        }
+
+        /// <summary>13 的调度决策(纯函数;本类不改它的输入)+ 本类簿记的入场 / 上次发射 tick。</summary>
+        private CueDispatch DecideFor(int patientId, PatientId id, in PatientBehavior behavior,
+                                      in VitalsDto v, long tick)
+        {
+            // ② 入场 tick 的纪元(首拍相位相对入场时刻,F-13.5 ③)。
+            if (!_entryTick.TryGetValue(patientId, out long entry))
             {
-                var id = new PatientId(patientId);
-                if (!_presence.TryGetCell(id, out WorldPos cell)) continue;   // 刚离场 ⇒ 跳过
-                // 已登记在场但**尚未建档**(DiseaseOnset 要下一拍才被应用)⇒ 跳过本拍。
-                // ⚠️ 不是「静默失败」:下一拍就自然进入(见构造参数 hasCourse 的说明)。
-                if (_hasCourse != null && !_hasCourse(id)) continue;
-
-                // ① 13 的行为态(读一次 IVitalsQuery —— 唯一取数入口)。
-                _behavior.Step(id, _knowsClinic(id));
-                PatientBehavior behavior = _behavior.For(id);
-                VitalsDto v = _vitals.GetVitals(id);
-
-                // ② 入场 tick 的纪元(首拍相位相对入场时刻,F-13.5 ③)。
-                if (!_entryTick.TryGetValue(patientId, out int entry))
-                {
-                    entry = (int)tick;
-                    _entryTick[patientId] = entry;
-                }
-                if (!_lastEmitTick.TryGetValue(patientId, out int lastEmit))
-                {
-                    lastEmit = -1;
-                    _lastEmitTick[patientId] = lastEmit;
-                }
-
-                // ③ 13 的调度决策(纯函数;本类不改它的输入)。
-                CueDispatch dispatch = PatientCueSchedule.Decide(
-                    behavior.Current, behavior.Terminal, (int)tick, lastEmit, id,
-                    behavior.Tier, v.Position, _intervals,
-                    breathAlive: _breathHandles.ContainsKey(patientId),
-                    kind: CueKind.Cough,             // P0 固定咳嗽(见文件头注)
-                    entryTick: entry);
-
-                // ④ 呼吸层生命周期(句柄归本类,ADR-018 §一)。
-                ApplyBreath(patientId, id, dispatch.Breath, v.Position, cell, tick);
-
-                // ⑤ 停顿态:loop 存续期间,每拍推进一次增益衰减(AC-019-5)。
-                //    ⚠️ **零一次性 cue**(dispatch.EmitOneShot 在终局时恒 false,判决归 13),
-                //    本步只写增益 —— 这是「无突变音效」在运行期的形态。
-                if (_tailStartTick.TryGetValue(patientId, out long tailStart))
-                    AdvanceBreathTail(patientId, id, v.Position, cell, tick, tailStart);
-
-                // ⑥ 一次性 cue(经 13 → 44 的唯一发射桥)。
-                // ⚠️ `coughCue` 为 null ⇒ 不发射(装配期未解析到事件表 / 测试只测调度)。
-                //    静默跳过而非抛:发射面缺一条 cue 不该炸掉整帧(见 AudioClipLibrary 同口径)。
-                //    ⚠️ 但 `_lastEmitTick` **仍推进** —— 否则调度器每 tick 都判 due,
-                //    一旦装配补齐就会瞬间补发一整批(相位语义被打乱)。
-                if (dispatch.EmitOneShot)
-                {
-                    if (_coughCue.HasValue)
-                    {
-                        PatientCueEmit.Emit(_sink, patientId, _coughCue.Value, v.Position,
-                                            cell.X, cell.Y, cell.Z, looped: false);
-                        EmitCount++;
-                    }
-                    _lastEmitTick[patientId] = (int)tick;
-                }
+                entry = tick;
+                _entryTick[patientId] = entry;
             }
+            if (!_lastEmitTick.TryGetValue(patientId, out long lastEmit))
+            {
+                lastEmit = -1;
+                _lastEmitTick[patientId] = lastEmit;
+            }
+
+            // ③ 13 的调度决策。
+            return PatientCueSchedule.Decide(
+                behavior.Current, behavior.Terminal, tick, lastEmit, id,
+                behavior.Tier, v.Position, _intervals,
+                breathAlive: _breathHandles.ContainsKey(patientId),
+                kind: CueKind.Cough,             // P0 固定咳嗽(见文件头注)
+                entryTick: entry);
+        }
+
+        /// <summary>一次性 cue(经 13 → 44 的唯一发射桥)。
+        /// <para>⚠️ `coughCue` 为 null ⇒ 不发射(装配期未解析到事件表 / 测试只测调度)。
+        /// 静默跳过而非抛:发射面缺一条 cue 不该炸掉整帧(见 AudioClipLibrary 同口径)。
+        /// ⚠️ 但 `_lastEmitTick` **仍推进** —— 否则调度器每 tick 都判 due,
+        /// 一旦装配补齐就会瞬间补发一整批(相位语义被打乱)。</para></summary>
+        private void EmitOneShotIfDue(int patientId, in CueDispatch dispatch, float position,
+                                      in WorldPos cell, long tick)
+        {
+            if (!dispatch.EmitOneShot) return;
+            if (_coughCue.HasValue)
+            {
+                PatientCueEmit.Emit(_sink, patientId, _coughCue.Value, position,
+                                    cell.X, cell.Y, cell.Z, looped: false);
+                EmitCount++;
+            }
+            _lastEmitTick[patientId] = tick;
         }
 
         /// <summary>在场集收缩后清理簿记(离场 / 死亡病人的句柄不得残留)。</summary>
         /// <param name="tick">当前 tick(仅用于日志语义,不参与判定)。</param>
         /// <remarks>⚠️ 本方法即**「停止」形态的落点**:停顿态病人离场 ⇒ <c>EndLoop</c> +
-        /// 尾音簿记清除,**不补播任何尾音**(GDD:571-573「停止 = 完全无声」)。</remarks>
+        /// 尾音簿记清除,**不补播任何尾音**(GDD:571-573「停止 = 完全无声」)。
+        /// <para>⚠️ S15-5(TD-audio-032 ④):簿记键 = **五本表的并集**且由在场集**白名单**过滤 ——
+        /// 此前只跟呼吸句柄走,没有呼吸句柄但发过咳的病人其行永不清(会话内单调增长)。</para></remarks>
         public void PruneAbsent(long tick)
         {
-            var stale = new List<int>();
-            foreach (KeyValuePair<int, AudioCueHandle> kv in _breathHandles)
-                if (!_presence.IsPresent(new PatientId(kv.Key))) stale.Add(kv.Key);
+            _staleScratch.Clear();
+            _presentScratch.Clear();
+            foreach (int patientId in _presence.PresentPatientIds()) _presentScratch.Add(patientId);
 
-            for (int i = 0; i < stale.Count; i++)
+            PruneIfAbsent(_breathHandles.Keys);
+            PruneIfAbsent(_entryTick.Keys);
+            PruneIfAbsent(_lastEmitTick.Keys);
+            PruneIfAbsent(_tailStartTick.Keys);
+            PruneIfAbsent(_tailDone.Keys);
+        }
+
+        /// <summary>清理 <paramref name="keys"/> 中**已不在场**的全部行(下发即增即清,不跨表)。</summary>
+        private void PruneIfAbsent(Dictionary<int, AudioCueHandle>.KeyCollection keys)
+        {
+            _staleScratch.Clear();
+            foreach (int patientId in keys)
+                if (!_presentScratch.Contains(patientId)) _staleScratch.Add(patientId);
+            for (int i = 0; i < _staleScratch.Count; i++) PruneOneAbsent(_staleScratch[i]);
+        }
+
+        /// <inheritdoc cref="PruneIfAbsent(Dictionary{int, AudioCueHandle}.KeyCollection)"/>
+        private void PruneIfAbsent(Dictionary<int, long>.KeyCollection keys)
+        {
+            _staleScratch.Clear();
+            foreach (int patientId in keys)
+                if (!_presentScratch.Contains(patientId)) _staleScratch.Add(patientId);
+            for (int i = 0; i < _staleScratch.Count; i++) PruneOneAbsent(_staleScratch[i]);
+        }
+
+        /// <inheritdoc cref="PruneIfAbsent(Dictionary{int, AudioCueHandle}.KeyCollection)"/>
+        private void PruneIfAbsent(Dictionary<int, byte>.KeyCollection keys)
+        {
+            _staleScratch.Clear();
+            foreach (int patientId in keys)
+                if (!_presentScratch.Contains(patientId)) _staleScratch.Add(patientId);
+            for (int i = 0; i < _staleScratch.Count; i++) PruneOneAbsent(_staleScratch[i]);
+        }
+
+        /// <summary>清理单个离场病人的**全部**簿记(先摘册后收尾,与 <see cref="StopAll"/> 同序)。</summary>
+        private void PruneOneAbsent(int patientId)
+        {
+            if (_breathHandles.TryGetValue(patientId, out AudioCueHandle handle))
             {
-                int patientId = stale[i];
-                _sink.EndLoop(_breathHandles[patientId]);
+                _sink.EndLoop(handle);
                 _breathHandles.Remove(patientId);
-                _entryTick.Remove(patientId);
-                _lastEmitTick.Remove(patientId);
-                _tailStartTick.Remove(patientId);   // 停止 ⇒ 尾音簿记一并清除(不残留衰减进度)
-                _tailDone.Remove(patientId);        // 同理:封口态也不得跨「停止」存活(再出现 = 新病人)
             }
+            _entryTick.Remove(patientId);
+            _lastEmitTick.Remove(patientId);
+            _tailStartTick.Remove(patientId);   // 停止 ⇒ 尾音簿记一并清除(不残留衰减进度)
+            _tailDone.Remove(patientId);        // 同理:封口态也不得跨「停止」存活(再出现 = 新病人)
         }
 
         /// <summary>全部呼吸层收尾(场景卸载 / 读档前)。</summary>

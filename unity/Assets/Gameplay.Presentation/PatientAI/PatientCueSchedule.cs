@@ -87,8 +87,10 @@ namespace DaYiJingCheng.Gameplay.PatientAI
         /// 那仍是播报(AC-13-D3)。</para></summary>
         /// <param name="behavior">行为态。</param>
         /// <param name="terminal">终局锁存位(**唯一死亡判据**;`TerminalFlag.None` = 未锁存)。</param>
-        /// <param name="tick">当前 tick(F-13.5 的调度输入)。</param>
-        /// <param name="lastEmitTick">上次发射 tick(`-1` = 从未)。</param>
+        /// <param name="tick">当前 tick(F-13.5 的调度输入)。**`long`** —— 逻辑 tick 是自世界诞生起的
+        /// 单调量,`int` 在约 2^31 拍(20 Hz ⇒ 3.4 年连续运行)后回绕,回绕会让 `tick >= firstDue`
+        /// 由真变假 ⇒ 全部病人的一次性 cue **静默停发**(S15-5 · TD-audio-032 ②)。</param>
+        /// <param name="lastEmitTick">上次发射 tick(`-1` = 从未;同为 `long`,理由同上)。</param>
         /// <param name="id">病人 id(相位派生)。</param>
         /// <param name="tier">症状档(F-13.5 分段常函数)。</param>
         /// <param name="position">`VitalsDto.Position`(**不夹取**;强度在产物侧夹)。</param>
@@ -98,10 +100,10 @@ namespace DaYiJingCheng.Gameplay.PatientAI
         /// <param name="entryTick">本病人**进入在场**的 tick(调用方给)—— 首拍相位的纪元。
         /// <para>⚠️ **相位是相对入场时刻的偏移,不是绝对 tick**(F-13.5 ③)。</para></param>
         public static CueDispatch Decide(
-            BehaviorState behavior, in TerminalFlag terminal, int tick, int lastEmitTick,
+            BehaviorState behavior, in TerminalFlag terminal, long tick, long lastEmitTick,
             PatientId id, SymptomTier tier, float position,
             in CueIntervals intervals, bool breathAlive, CueKind kind,
-            int entryTick)
+            long entryTick)
         {
             bool shouldLive = BreathShouldLive(terminal);
             BreathAction breath = shouldLive
@@ -125,7 +127,7 @@ namespace DaYiJingCheng.Gameplay.PatientAI
             // 存在的唯一理由被架空)。若写 `tick + phase`,相位随 `tick` 线性漂移 ——
             // 首拍被推到永远够不着的将来(饿死)。**唯一同时满足「入场后 interval 内必到」
             // 与「同档异 id 首拍错开」的形式 = `entryTick + phase`。**
-            int firstDue = (lastEmitTick < 0) ? entryTick + phase : lastEmitTick + interval;
+            long firstDue = (lastEmitTick < 0) ? entryTick + phase : lastEmitTick + interval;
             bool due = tick >= firstDue;
 
             return new CueDispatch(

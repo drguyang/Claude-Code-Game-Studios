@@ -143,6 +143,14 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <summary>当前在响的循环数。</summary>
         public int ActiveLoopCount => _loopActors.Count;
 
+        /// <summary>一次性 cue 的归还推进(S15-5 · TD-audio-029)。**由帧泵每帧调用**(BootRoot)。
+        /// <para>本类只做**执行**:让池归还已判完的源(探针面 / 兜底窗口 / 帧泵的 <see cref="AudioSourcePool.MarkFinished"/>)。
+        /// 「谁观测播完」住 <see cref="Gameplay.Boot.OneShotReclaimPump"/> —— 它只依赖池,
+        /// 故此缝在无渲染目标(`NullRenderTarget` 链)时同样可跑。</para>
+        /// <para>可被反复调用:零分配、无状态。</para></summary>
+        /// <returns>本帧归还的源数。</returns>
+        public int Pump() => _pool.ReclaimExpired();
+
         /// <inheritdoc/>
         public void PlayOneShot(in AudioCueDto cue)
         {
@@ -150,12 +158,15 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             if (clip == null) { ClipMissCount++; return; }
 
             // 一次性 cue 的 actor 键 = 声源实体 id(病人 / 玩家);同实体复播复用同一源。
+            // ⚠️ **播完即归还**(TD-audio-029):排队后由 Pump + 池外观测归还 ——
+            //    没有这一步,池的闲置栈永不回流,每次 one-shot 都新建源。
             AudioSource source = _pool.Spawn(cue.Source, cue.Cell.X, cue.Cell.Y, cue.Cell.Z,
                                              cue.Cue, BusOf(cue.Cue));
             Place(in cue, cue.Source);
             source.clip = clip;
             source.loop = false;
             source.Play();
+            _pool.EnqueueOneShot(cue.Source, source);
         }
 
         /// <inheritdoc/>

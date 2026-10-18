@@ -654,6 +654,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.PatientVisualSpawner.OnTickEdge(_tickDriver.CurrentTick);
             }
 
+            // 一次性 cue 的归还泵(S15-5 · TD-audio-029):问 `isPlaying`,播完即把源还回池。
+            // ⚠️ **挂在 tick 边沿上**(20 Hz),不是每帧 —— 与本文件其余驱动同一节奏,
+            //    每帧一次会多出 2 倍的无收益遍历(素材最短也有数百毫秒)。
+            //    挂在 `PatientCueDriver` **之前**:本拍新发的一次性 cue 不会在本拍被观测(它刚开播)。
+            if (_tickDriver.CurrentTick > tickBefore && _services != null && _services.AudioPool != null)
+                OneShotReclaimPump.Pump(_services.AudioPool);
+
             // 病人 cue 驱动(story-018 · AC-018-6):在场集 → 13 调度 → 44 发射。
             // 次序 = 视觉实体**之后**、玩家交互输入**之前**:两者都读本 tick 的在场集,
             // 但 cue 还要读体征 —— `StepVitals` 已在 `PumpFrame` 的边沿序列里跑完
