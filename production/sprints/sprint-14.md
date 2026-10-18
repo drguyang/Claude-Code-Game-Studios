@@ -1,6 +1,12 @@
 # Sprint 14 — 44 运行期音频链接通
 
 **周期**:不设结束日期(承 sprint-12/13 口径)—— **做完即收,收口时补记结束日**
+**状态(2026-10-18 收口)**:✅ **已收口(end = 2026-10-18)** —— 11/11 件 done(7 计划 + 4 计划外追加:
+S14-8/9 提前兑现 · S14-10 装配补装+听测 · S14-11 戥子);DoD 8 条逐条处置见下。
+⚠️ **merge 归用户自行执行**(2026-10-18 裁定「merge 我自己来」)—— 本文件所在分支
+`fix/playmode-datacore-precheck` 领先 main,收口账面两笔 = `d389276`(story-018 补评批)
++ `bc80cfb`(story-019 立卡)。⚠️ **sprint-14 收口 ≠ epic 44 收口** —— 后者仍 ⛔
+(`TD-audio-101…108` 未清,详见 `audio-system/EPIC.md` 头部 2026-10-18 刷账注)。
 **规划依据**:`production/retrospectives/retro-sprint-13-2026-10-16.md`(行动项 1–4)
 + `production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md` §4(须实现生产类清单 · 依赖序)
 **前置勘察(Phase 1 硬前置)**:已重扫 44 epic 全部 16 条 story 的 `Status:` ——
@@ -105,15 +111,55 @@ reconcile 归 S14-7(避免 epic 表与 story 头在实现期反复不同步)。
 
 ## Definition of Done for this Sprint
 
-- [ ] All Must Have tasks completed(S14-1 + S14-2 + S14-3)
-- [ ] 各任务按衍生验收标准通过,**每条附可证伪判据**
+- [x] All Must Have tasks completed(S14-1 + S14-2 + S14-3)✅ 2026-10-16(yaml 三条 done)
+- [x] 各任务按衍生验收标准通过,**每条附可证伪判据**
       (**变异测试**:停用生产码守卫 ⇒ 该断言转红;retro-13 行动项 2)
-- [ ] **QA plan 存在**(`production/qa/qa-plan-sprint-14-*.md`)—— 收口前必跑
-- [ ] 6 条 story 由 `In Review` 转 `Complete`(经证伪轮复评)
-- [ ] IL2CPP 三格 **NOT-RUN 如实登记**(禁借绿,挂 ADR-012 矩阵)
-- [ ] Design documents updated for any deviations
-- [ ] Code reviewed(`/code-review`)and merged
-- [ ] **`end` 日期在收口时补记**;若 `start` 与实际执行日不符,**矛盾留档不改写**
+      ⇒ ✅ **判据形态本身已兑现**:S14-1…6 各带证伪轮(007–012 复评批)+ story-018 证伪 14/14
+      (F1…F11/P1/P3/P4 全转红,`impl-s18-*` §三)· story-025 证伪(`review-story-025-*` R 族)。
+      ⚠️ **如实保留一条反面**:story-018 补评审出「AC-018-4 判别力声称无证伪支撑」(S3-a,14 例无一打
+      「自建第二池」分支)⇒ 已挂 **`TD-audio-028`** 还债时补负例 —— 本条因此记「已兑现 + 一处已知欠例」,
+      **不记全净**。
+- [x] **QA plan 存在**(`production/qa/qa-plan-sprint-14-*.md`)—— 收口前必跑
+      ⇒ ✅ 件在盘:`production/qa/qa-plan-sprint-14-2026-10-16.md`(221 行)。
+      ⚠️ **其 Smoke 判据「进 Play 能听见声音」的兑现形态 = 用户 2026-10-18 实机听测**(人耳陈述,
+      四值记录齐:可闻 / `Voice` 总线 / 滑块生效)—— **无独立 `/smoke-check sprint` 自动冒烟件**;
+      按 sprint-13 同款口径登记(「以用户人耳陈述补记为人工冒烟证据,无可复算判据」,承 `TD-s13-03` 先例)。
+      ⚠️ 该 plan §Playtest:「本 sprint 全部 Logic / Integration / Config 类,**不需真人 playtest**」⇒ 无此项欠账。
+- [x] 6 条 story 由 `In Review` 转 `Complete`(经证伪轮复评)✅ 2026-10-16(S14-7 复评批)
+- [x] IL2CPP 三格 **NOT-RUN 如实登记**(禁借绿,挂 ADR-012 矩阵)✅ —— 本文件 §External Factors
+      逐字登记 NOT-RUN(本机仅 Mono,`UNITY_LICENSE` 未配真 runner);**未跑 ⇒ 不得标绿**
+- [x] Design documents updated for any deviations ✅(债册 / GDD 补注 / EPIC / ADR 侧散见各批;
+      story-018 三处口径差均**就地加订正注不删原文** —— S3-c「默认 SFX」· 听测件 §四 预判被实机推翻注 ·
+      AC-44-09 归属合取收窄)
+- [x] Code reviewed(`/code-review`)and merged
+      ⇒ **reviewed ✅**(2026-10-18 批)· **merged ❌ 归用户自行执行**(本仓「merge 我自己来」裁定)。
+      覆盖面如实记:007–012 已由 S14-7 复评批(= 该批的评审形态)+ story-015/025 各有原件 +
+      **story-018 由本日补评落原件**;⚠️ **story-016 未走 `/code-review`**(其卡面自述:E5 证据 =
+      签字走查记录,代码面由 12 例证伪轮覆盖)⇒ **本条按「已评审(story-016 为已登记的豁免形态)」计**,
+      不掩盖该例外。
+- [x] **`end` 日期在收口时补记** ⇒ **`end` = 2026-10-18**;若 `start` 与实际执行日不符,**矛盾留档不改写**
+      ⇒ ⚠️ **`start` 空白(规划时未记)→ 不追补**(承 sprint-13 同口径);实际执行跨 **2026-10-16 → 2026-10-18** 三日。
+
+> **✅ 收口记录(2026-10-18)**
+> - **11 件 done**:计划 7 件(S14-1…7,均 2026-10-16/17)+ **计划外追加 4 件**(S14-8 story-015 与
+>   S14-9 story-017 = 2026-10-17 提前兑现素材批 · S14-10 story-018 = 2026-10-18 装配补装 + 实机听测 ·
+>   S14-11 story-025 = 2026-10-18 戥子逐档形态,原属 skeuomorphic-ui epic 非本 sprint 面内)。
+>   ⚠️ **Sprint Goal 只主张 6 条 `In Review` story 转 `Complete`** —— 追加 4 件属「做完即收」的顺势扩面,
+>   非 scope creep(44 epic 界内 + 用户逐件指令)。
+> - **Sprint Goal 达成**:6 条 story 由「契约 + 门 + 测试就绪、生产实现不存在」推到
+>   「运行期链路真实可播,AC 语义层第一次被生产代码保证」⇒ ✅(S14-1…6 落地 + S14-7 复评转 Complete)。
+> - **回归对账(等式判据,非照抄总数)**:EditMode `3682 → 3709 = +27`(story-018 新增测数)·
+>   PlayMode `192 → 197 = +5` ⇒ **两棵树新增测上零回归**(`impl-s18-*` §回归对账)。
+>   ⚠️ 首跑的 1 条既有间歇红 = **`TD-player-01`**(`AC-1-33` ③ 语义层未验证)的下游症状,**非本 sprint 引入**。
+> - **收口账面两笔提交**:`d389276`(story-018 补评 + `TD-audio-028…033` 立案 + `TD-audio-106/-109` 刷账)
+>   · `bc80cfb`(story-019 立卡兑 `TD-audio-100`)。
+> - **merge**:**未做,归用户**(分支 `fix/playmode-datacore-precheck` 领先 main)。
+> - **⚠️ 本 sprint 收口不代表 epic 44 收口**:epic 44 维持 **⛔**(16 条未全验证 AC 的残余面 ——
+>   `TD-audio-101/102` 听测排期 · `103` 被试 ≥2 人 · `104` P1b · `105` 无障碍走查 · `107` 45 层 ·
+>   `108` 目标硬件;**另本批新立 `TD-audio-028…033` 六条链路未闭环**)。
+> - **收口时仍未做的一件(如实,不留白)**:**`/retrospective sprint-14` 未写**(前三个 sprint 均有复盘,
+>   且 sprint-14 规划依据 = retro-13 的行动项 ⇒ 行动项兑现核查该由 retro-14 做)。
+>   非 DoD 条目 ⇒ **不阻断收口**,列为下一步。
 
 > **Scope check**:本 sprint 全部 7 件**均在 44 epic 已有 story 的界内**(007–012),
 > **不新增 epic 范围** —— 是「把已登记但未实现的东西做出来」,非 scope creep。

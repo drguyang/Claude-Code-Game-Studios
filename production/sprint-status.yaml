@@ -11,8 +11,11 @@
 
 sprint: 14
 goal: "44 运行期音频链接通 —— 6 条 In Review story(007-012)补生产实现,AC 语义层首次被生产代码保证"
-start: ""
-end: ""
+start: ""    # 规划时未记 ⇒ 不追补(承 sprint-13 同口径,矛盾留档)
+end: "2026-10-18"   # ✅ **sprint-14 收口**(2026-10-18)—— 11/11 件 done;DoD 8 条逐条处置见
+                    #   `production/sprints/sprint-14.md` §收口记录。⚠️ **merge 归用户自行执行**
+                    #   (本分支领先 main,账面两笔 d389276 + bc80cfb)。
+                    # ⚠️ **sprint-14 收口 ≠ epic 44 收口** —— epic 44 维持 ⛔。
 generated: "2026-10-16"
 updated: "2026-10-18"   # 六批落盘:① S14-11(story-025)实现轮 ② 评审轮 ③ 修复轮 ④ 截图轮 ⑤ S13-7 走查重跑批
                        # ⇒ S14-11 **done/Complete**(TD-prescription-01/-02/-03 结案;AC-025-6 维持不勾归 TD-prescription-07)
@@ -20,6 +23,13 @@ updated: "2026-10-18"   # 六批落盘:① S14-11(story-025)实现轮 ② 评审
                        #   —— A-6 人耳判据坐实 + `AC-11-21`/`AC-44-09` 听测半边同批 ✅
                        #   ⇒ `TD-audio-023` / `-024` / `TD-prescription-04` **结案**;
                        #   ⚠️ **44 epic 仍不得收口**(TD-audio-100…109 逐条未动)
+                       # ⑦ **2026-10-18 补评 + 推 epic 复测批**(用户裁定「补跑 code review,然后推 44 epic」):
+                       #   story-018 补评落原件(APPROVED WITH DEBTS)⇒ 新立 `TD-audio-028…033`;
+                       #   `TD-audio-100…109` 逐条对码复测 ⇒ **106 ✅ 结案** · **109 第一半 ✅**(第二半 =
+                       #   story-015 七 WARNING 归属**待用户裁**)· **100 由真空洞 → story-019 已立卡**;
+                       #   ⇒ 本行「逐条未动」的表述自此过时(现状见债册 100…109 行刷账注 + EPIC 头部注)。
+                       # ⑧ **2026-10-18 sprint-14 收口批**:DoD 8 条逐条落勾 + 收口记录块 + end 补记;
+                       #   ⚠️ **`/retrospective sprint-14` 仍未写**(非 DoD 条目,列为下一步)。
 
 stories:
   # ── Must Have(关键路径 · Wave 1+2)──
