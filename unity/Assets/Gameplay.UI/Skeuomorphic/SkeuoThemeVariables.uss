@@ -105,6 +105,19 @@
     --skeuo-brass-scale-color: #8C5A2B;     /* 蚀刻刻度条底色 —— 与 border 解耦(评审 M4:
                                                描边语义 ≠ 实心蚀刻面语义,同值不同义,防调边连带改刻度) */
 
+    /* ── 黄铜逐档形态(Brass detent)— AC-025-1 戥子档位读数 ──
+       档位读数 = 形态,非数字文本(AC-025-5 零数字铁律)。
+       常态档与落焦档的**可分性全部由几何承载**(宽/高/上边距/边框宽),
+       落焦档**不声明任何颜色** ⇒ 颜色承常态,「非颜色」在 USS 文本层可判真。 */
+    --skeuo-brass-detent-width: 6px;            /* 常态档形态:窄 */
+    --skeuo-brass-detent-height: 12px;          /* 常态档形态:矮 */
+    --skeuo-brass-detent-gap: 3px;              /* 档间留白 */
+    --skeuo-brass-detent-border-width: 1px;     /* 常态档描边 */
+    --skeuo-brass-detent-focused-width: 10px;   /* 落焦档形态:宽(几何可分①) */
+    --skeuo-brass-detent-focused-height: 20px;  /* 落焦档形态:高(几何可分②) */
+    --skeuo-brass-detent-focused-lift: -8px;    /* 落焦档抬起 —— 戥杆倾角语义(几何可分③) */
+    --skeuo-brass-detent-focused-border-width: 2px; /* 落焦档描边(几何可分④) */
+
     /* ── 器具档(Implement)— 木/皮/铜 第三材质档(OQ-IC-4)── */
     --skeuo-implement-bg: #6B4423;
     --skeuo-implement-fg: #E8DCC4;
