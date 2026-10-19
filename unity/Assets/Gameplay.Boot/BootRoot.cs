@@ -770,6 +770,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             // (查体后本帧即见值区有词)。
             _interactionDriver?.OnFrame();
 
+            // 听诊精度档位(B 轮 2026-10-20):**按帧**推 ramp(档变才 SetTargets;未接 table ⇒ null)。
+            // ⚠️ 不挂 tick 边沿 —— ramp 是逐帧平滑(GDD F-44.1 注 ≥ 50 ms),tick 边沿 20 Hz 会跳。
+            _services?.AudioTierDriver?.Tick(UnityEngine.Time.deltaTime);
+
             // 拟物 UI 值区(sprint-05 T2.1/T2.3):视觉实体**之后**调用 —— UI 读的是
             // **本 tick 已推进完**的体征(Driver.Bind 的源零缓存,每次读都过体征链)。
             // 次序不可反:若在体征 Step 前刷新,同一 tick 里 UI 显示的是上一 tick 的读数。

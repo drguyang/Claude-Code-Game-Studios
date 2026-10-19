@@ -253,7 +253,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   ⇒ 玩家按 E 查体后值区**恒空**(Q1 实测:按 E 零变化)。
             //   初始档 1 = 20 条 tier_named=1 词可读;后续熟练度成长(30)覆盖本值
             //   —— 初始档数值归数值轮,机制面从「恒 0」解冻。
-            var examineDriver = new ExamineDriver(vitals, examinationLedger, queryLevel: 1);
+            // ⚠️ 本值同时是听诊档位的**唯一出处**(B 轮 2026-10-20):音频档位 = `TierIndex(本值)`,
+            //    下面 audio 段的 `AudioTierDriver` **引用本变量**,不得另写字面量 1(两处 = 两处分叉)。
+            int queryLevel = 1;
+            var examineDriver = new ExamineDriver(vitals, examinationLedger, queryLevel: queryLevel);
             examineDriver.SetLexicon(examineRows, in readFloor);
 
             // ── 「查体 ⇒ 见过病 D」投影器(sprint-08 S1.1 件 B · 2026-10-12)──
@@ -377,6 +380,24 @@ namespace DaYiJingCheng.Gameplay.Boot
             }
             var audioSink = new CueRenderSink(renderTarget);
             audioSink.SetTier(TierSource.Local);      // 裁定 D-A:恒本机档
+
+            // ── 听诊精度档位驱动(B 轮 2026-10-20 · 补 T-1 接线空白)────────────
+            // `TierFilterDriver` / `AudioMixerParameterSink` 此前**生产零构造** ⇒ `tier_map`
+            // 五列的运行期承载为零。本段:档位来源 = 诊断等级(与 `ExamineDriver` **同一** queryLevel)
+            // ⇒ `TierIndex` ⇒ `min(·,2)`(4→3 待裁,见 AudioTierMapping 注;登记 TD-audio-035)。
+            // ⚠️ 档变才 `SetTargets`(每帧调会重置 ramp);mixer 句柄 null ⇒ fail-loud 一次并禁用。
+            // ⚠️ tick 边沿链**不调**本驱动:它按帧推进 ramp,由 BootRoot 帧泵调 `Tick(Time.deltaTime)`。
+            AudioTierDriver audioTierDriver = null;
+            AudioEventDataSet? tierTable = audio?.Table;
+            if (tierTable.HasValue && tierTable.Value.TierMap != null)
+            {
+                var tierFilter = new TierFilterDriver(
+                    new AudioMixerParameterSink(PlayerBusVolumeInitializer.MixerResolver()));
+                audioTierDriver = new AudioTierDriver(
+                    () => DiagnosisReadFloorEvaluator.TierIndex(queryLevel),
+                    tierTable.Value.TierMap, new TierFilterSinkAdapter(tierFilter));
+                audioTierDriver.BindMixer(PlayerBusVolumeInitializer.MixerResolver != null);
+            }
 
             // ── 病人 cue 驱动(story-018 · AC-018-6 / A-3 的调用方)──────────────
             // 13 的 `PatientCueSchedule.Decide` 与 `PatientCueEmit.Emit` 此前**双双零调用方**
@@ -512,7 +533,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                // ⇒ `test_ac018_3_assemble_withSeams_...` **不转红** = 假绿)。
                                                renderTarget is AudioSourceRenderTarget,
                                                patientCueDriver, behaviorDirector,
-                                               telemetryKnobs);
+                                               audioTierDriver, telemetryKnobs);
         }
 
         /// <summary>

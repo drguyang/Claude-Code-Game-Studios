@@ -98,7 +98,7 @@ stories:
     status: backlog
     owner: "用户(实听)+ claude(备协议)"
     estimate_days: 0          # 复杂度 = M
-    blocker: "依赖 S15-2 —— 否则听的是恒取 Assets[0] 的形态"
+    blocker: "实听未执行(三份协议件 [x] 全 0)。原『依赖 S15-2』已过时 —— S15-2 2026-10-18 done。真阻塞 = ① `breath-layers-listen-evidence.md` 38 [ ](101)② `voice-variant-listen-evidence-2026-10-20.md` 27 [ ](102)③ 102 的 B-1..B-4:桶轴取身份哈希非 Intensity(`VoiceVariantLib.cs:295-302`,归 TD-audio-034 ①)/ 语声均 one-shot 无交叉淡化对象 / 语声不经 TierFilterDriver / 相位抵消适用性待裁 —— 其中 B-2/B-3/B-4 须先由 44 裁定『AC-44-04 交叉淡化是否约束语声』；④ 102 须 ≥2 名被试(与 TD-audio-103 同源,项目外部)。2026-10-20 由 qa-lead QA 策略轮刷新"
     completed: ""
 
   # ── Nice to Have ──

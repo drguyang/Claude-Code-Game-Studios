@@ -23,6 +23,18 @@ using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Gameplay.Presentation.Audio
 {
+    /// <summary>循环增益的**可选读面**(尾音 W-1 · 2026-10-20;44 内部缝,不挂 <c>IAudioCueSink</c>)。
+    /// <para>用途:尾音起点取「既有 loop 的增益」而非写死 1.0 或自算稳态值 —— `End` 拍先于本拍
+    /// 增益读数,只有 sink 才知道 loop 现在实际是多大。驱动按接口探测(ADR-018 §二 四方法不变)。</para></summary>
+    public interface IAudioCueSinkLoopGainRead
+    {
+        /// <summary>声源最近一次循环增益读数(0..255 DTO 域)。</summary>
+        /// <param name="source">声源 id。</param>
+        /// <param name="intensity">出口。</param>
+        /// <returns>有在响循环 ⇒ true。</returns>
+        bool TryGetLoopGain(int source, out int intensity);
+    }
+
     /// <summary>cue 渲染动作的**最小面**(44 自用的注入 seam;生产实现归素材接入轮)。
     /// <para>⚠️ 本接口是 44 **自用**的注入缝,不对外提供、不持游戏状态(与
     /// <c>IMixerParameterSink</c> / <c>IBreathLayerTransport</c> 同性质)⇒ 登记进 44 的
@@ -41,6 +53,16 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <summary>停一条循环 cue。</summary>
         /// <param name="handleId">44 分配的句柄 id。</param>
         void StopLoop(int handleId);
+
+        /// <summary>改一条**在响**循环 cue 的渲染增益(尾音 W-1 接线 · 2026-10-20)。
+        /// <para>⚠️ 这是 <see cref="IAudioCueSink"/> 缺的「循环增益」入口在 44 内部的落点:
+        /// 上游<b>不</b>新增契约面(ADR-018 §二 四方法形状不变),尾音仍由
+        /// <c>PatientCueDriver</c> 的既有 <c>looped: true</c> 增益 cue 送达,由
+        /// <see cref="CueRenderSink"/> 按 <c>Source</c> 路由到在响循环。</para></summary>
+        /// <param name="handleId">44 分配的句柄 id。</param>
+        /// <param name="gain">线性增益(0..1)。</param>
+        /// <returns>写入成功 ⇒ true(句柄未知 ⇒ false)。</returns>
+        bool SetLoopGain(int handleId, float gain);
     }
 
     /// <summary><c>IAudioCueSink</c> 的**生产实现**(AC-44-07 静态半)。
@@ -53,7 +75,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
     /// AudioCueHandle h = sink.BeginLoop(breathCue);
     /// sink.EndLoop(h);
     /// </example></summary>
-    public sealed class CueRenderSink : IAudioCueSink
+    public sealed class CueRenderSink : IAudioCueSink, IAudioCueSinkLoopGainRead
     {
         private readonly ICueRenderTarget _target;
 
@@ -61,6 +83,9 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         // (GDD Edge Cases「同源重复循环」)。
         private readonly Dictionary<int, AudioCueHandle> _loops = new Dictionary<int, AudioCueHandle>();
         private int _nextHandleId = 1;
+
+        // 声源 → 最近一次循环增益读数(0..255 DTO 域)—— 尾音起点(W-1)的读面。
+        private readonly Dictionary<int, int> _lastLoopGain = new Dictionary<int, int>();
 
         /// <summary>构造生产 sink。</summary>
         /// <param name="target">渲染动作接收面(null ⇒ <see cref="ArgumentNullException"/>)。</param>
@@ -78,8 +103,61 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <summary>`SetTier` 被调用的次数(「恰好一次」的观测面)。</summary>
         public int SetTierCallCount { get; private set; }
 
+        /// <summary>`SetLoopGain` 实际写到渲染面的次数(尾音接线轮的可观测面 W-1)。</summary>
+        public int LoopGainWriteCount { get; private set; }
+
+        /// <summary>声源最近一次循环增益读数(0..255;<paramref name="source"/> 无在响循环 ⇒ false)。
+        /// <para>⚠️ 尾音 W-1(2026-10-20 二轮自查):驱动的 `End` 拍**先于**本拍增益读数 ⇒ 尾音起点
+        /// 只能从这里取「既有 loop 的增益」,不能从驱动自算的稳态值取(两者在体征同拍变化时分叉)。</para></summary>
+        /// <param name="source">声源 id(<c>AudioCueDto.Source</c>)。</param>
+        /// <param name="intensity">出口:0..255 DTO 域。</param>
+        /// <returns>该声源有在响循环 ⇒ true。</returns>
+        public bool TryGetLoopGain(int source, out int intensity)
+        {
+            if (_loops.ContainsKey(source) && _lastLoopGain.TryGetValue(source, out intensity))
+                return true;
+            intensity = 0;
+            return false;
+        }
+
         /// <inheritdoc/>
-        public void Emit(in AudioCueDto cue) => _target.PlayOneShot(cue);
+        /// <remarks>⚠️ 尾音 W-1(2026-10-20):`looped: true` 的 cue **不再**按一次性播放 ——
+        /// 它是「该声源的循环增益读数」,由 <see cref="SetLoopGain"/> 适用到在响句柄;
+        /// 无在响循环(如尾音之前的稳态拍)⇒ 无操作。`looped: false` 的语义不变。</remarks>
+        public void Emit(in AudioCueDto cue)
+        {
+            if (cue.Looped)
+            {
+                if (_loops.TryGetValue(cue.Source, out AudioCueHandle loop))
+                {
+                    SetLoopGain(loop, cue.Intensity / 255f);
+                    _lastLoopGain[cue.Source] = cue.Intensity;   // 尾音起点 = 既有 loop 读写面
+                }
+                return;
+            }
+            _target.PlayOneShot(cue);
+        }
+
+        /// <inheritdoc/>
+        public bool SetLoopGain(AudioCueHandle handle, float gain)
+        {
+            int key = KeyOf(handle);
+            if (key < 0) return false;                     // 过期 / 已释放 ⇒ 不写(与 EndLoop 同口径)
+            if (float.IsNaN(gain) || float.IsInfinity(gain)) return false;
+            if (gain < 0f) gain = 0f;
+            else if (gain > 1f) gain = 1f;
+            if (!_target.SetLoopGain(handle.Id, gain)) return false;
+            LoopGainWriteCount++;
+            return true;
+        }
+
+        /// <summary>句柄 id → `_loops` 的声源键(不在表 ⇒ -1)。与 <see cref="EndLoop"/> 同一判据。</summary>
+        private int KeyOf(AudioCueHandle handle)
+        {
+            foreach (KeyValuePair<int, AudioCueHandle> kv in _loops)
+                if (kv.Value.Id == handle.Id) return kv.Key;
+            return -1;
+        }
 
         /// <inheritdoc/>
         public AudioCueHandle BeginLoop(in AudioCueDto cue)
@@ -95,6 +173,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
 
             var handle = new AudioCueHandle(_nextHandleId++);
             _loops[source] = handle;
+            _lastLoopGain[source] = cue.Intensity;
             _target.StartLoop(cue, handle.Id);
             return handle;
         }
@@ -103,13 +182,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         public void EndLoop(AudioCueHandle handle)
         {
             // 过期句柄 ⇒ 忽略(不产生播放错误):句柄必须仍在本表内,且键值对应。
-            int key = -1;
-            foreach (KeyValuePair<int, AudioCueHandle> kv in _loops)
-            {
-                if (kv.Value.Id != handle.Id) continue;
-                key = kv.Key;
-                break;
-            }
+            int key = KeyOf(handle);
             if (key < 0) return;   // 过期 / 已释放 ⇒ 静默忽略
 
             _loops.Remove(key);
@@ -137,5 +210,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
 
         /// <inheritdoc/>
         public void StopLoop(int handleId) { }
+
+        /// <inheritdoc/>
+        public bool SetLoopGain(int handleId, float gain) => false;
     }
 }

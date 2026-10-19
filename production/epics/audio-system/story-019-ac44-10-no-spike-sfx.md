@@ -207,3 +207,7 @@ Assert ③ 由「到期后重开新段、elapsed 归零」改写为「**到期�
 - W-2(8-bit 量化)· W-3(新测 `coughCue: null` 使 `EmitCount==0` 恒真)· W-4(注释自相矛盾) 登记未修。
 
 ⚠️ **本件不解除 `AC-019-6` NOT-RUN 的 BLOCKING**,`Status` 维持 `In Progress`。
+
+> **W-1 已修(2026-10-20)** —— 尾音改走既有 loop 增益(`CueRenderSink.SetLoopGain`,起点取 44 读面
+> `IAudioCueSinkLoopGainRead`),`BreathTailRamp.ValueAt` 重回生产路径;证据
+> `production/qa/evidence/impl-b-audio-tier-wiring-2026-10-20.md`。**Status 不动**。

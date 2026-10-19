@@ -439,6 +439,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             public void StartLoop(in AudioCueDto cue, int handleId) => Started.Add(handleId);
 
             public void StopLoop(int handleId) => Stopped.Add(handleId);
+            public bool SetLoopGain(int handleId, float gain) => false;
         }
 
         private static AudioCueDto BreathCue(int source, bool looped = true)

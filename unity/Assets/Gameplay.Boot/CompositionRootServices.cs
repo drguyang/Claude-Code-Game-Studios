@@ -167,6 +167,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 驱动 `PatientCueDriver` 后读 <c>BehaviorDirector.For(id).Current</c> 即可。</para></summary>
         public PatientBehaviorDirector BehaviorDirector { get; }
 
+        /// <summary>听诊精度档位驱动(B 轮 2026-10-20)—— 44 侧 `tier_map` 的运行期承载。
+        /// <para>null ⇔ 事件表缝未接(`audio.Table` 为空)· 由 `BootRoot` 帧泵每帧调 `Tick(Time.deltaTime)`。</para></summary>
+        public AudioTierDriver AudioTierDriver { get; }
+
         internal CompositionRootServices(EventStream stream, IIdAuthority idAuthority,
                                          InMemoryBlobPool blobPool, IPayloadEncoder encoder,
                                          IPayloadDecoder decoder,
@@ -198,6 +202,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          bool audioRenderAssembled,
                                          PatientCueDriver patientCueDriver,
                                          PatientBehaviorDirector behaviorDirector,
+                                         AudioTierDriver audioTierDriver = null,
                                          TelemetryAnalyticsTuning? telemetryKnobs = null)
         {
             Stream = stream;
@@ -234,6 +239,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             AudioRenderAssembled = audioRenderAssembled;
             PatientCueDriver = patientCueDriver;
             BehaviorDirector = behaviorDirector;
+            AudioTierDriver = audioTierDriver;
 
             // 51 遥测接线(TD-epic-01):decoder 在 Sim.Codec、51 的装配引不到 ⇒ 在本装配层包成委托。
             // ⚠️ stream / decoder / registry 均已是本 ctor 的形参 ⇒ 不加新装配边、不改 Assemble 签名。

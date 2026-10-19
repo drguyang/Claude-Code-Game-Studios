@@ -106,6 +106,13 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // **2026-10-16 Story 007 增列** —— 44 自用的渲染动作注入缝(测试注入记录型假件;
             // 生产实现归素材接入轮)。与上两项同性质:不对外提供、不持游戏状态。
             typeof(ICueRenderTarget),
+            // **2026-10-20 B 轮增列** —— `TierFilterSinkAdapter` 包 `TierFilterDriver` 的注入缝
+            // (与 `IMixerParameterSink` 同性质:44 自用、不对外、不持状态)。理由 = 门文原意
+            // 「测试注入假件」:不加则驱动的 `SetTargets` 次数只能经真 mixer 观测(EM 下 SetFloat 不生效)。
+            typeof(ITierTargetSink),
+            // **2026-10-20 B 轮增列** —— `CueRenderSink` 的可选读面(尾音起点取既有 loop 增益;
+            // 不挂 `IAudioCueSink`)。同性质:44 自用、不对外提供、不持游戏状态。
+            typeof(IAudioCueSinkLoopGainRead),
         };
 
         // 2026-09-26 修:产物路径单一出处 = 门的 ScriptAssemblyPath(原测试自拼 Path.Combine

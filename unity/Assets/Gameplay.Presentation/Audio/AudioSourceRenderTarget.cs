@@ -236,6 +236,23 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// 之前必须先补表列(登记 `TD-audio-035`)。</para></summary>
         private static int PriorityClassOf(int cue) => AudioTuning.PriorityClassWorldOrPhysiology;
 
+        /// <summary>改循环 cue 的渲染增益(尾音 W-1 接线 · 2026-10-20)。
+        /// <para>等价物 = 该循环 <c>AudioSource.volume</c>(线性 0..1);未知 / 已停句柄 ⇒ 返回 false
+        /// (不抛 —— 与 <see cref="StopLoop"/> 的「过期句柄空操作」同口径)。
+        /// 它是 <see cref="ICueRenderTarget.SetLoopGain"/> 的实现,不是第二入口:
+        /// 上游只能经 <see cref="CueRenderSink.SetLoopGain"/> 到达。</para></summary>
+        /// <param name="handleId">44 分配的循环句柄 id。</param>
+        /// <param name="gain">线性增益(非有限 / ≤0 / ≥1 者在 sink 侧已被拒)。</param>
+        /// <returns>该句柄在响时写入 ⇒ true。</returns>
+        public bool SetLoopGain(int handleId, float gain)
+        {
+            if (!_loopActors.TryGetValue(handleId, out int actor)) return false;
+            AudioSource source = _pool.SourceForActor(actor);
+            if (source == null) return false;
+            source.volume = gain;
+            return true;
+        }
+
         /// <inheritdoc/>
         public void StopLoop(int handleId)
         {

@@ -1,3 +1,4 @@
+// ⚠️ **W-1 已修(2026-10-20)** —— 见 `production/qa/evidence/impl-b-audio-tier-wiring-2026-10-20.md` §尾音。
 // 权威来源:production/epics/audio-system/story-019-ac44-10-no-spike-sfx.md(面 10-b · AC-019-4/5)
 // GDD design/gdd/audio-system.md:408-411(Output Range:呼吸层**连续**变化,无突变音效 AC-44-10)·
 //   :571-573(急促 → 停顿连续变慢变浅;**停顿 = 极轻背景气流尾,停止 = 完全无声**)· :878(负面声明)

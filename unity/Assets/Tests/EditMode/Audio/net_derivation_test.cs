@@ -755,6 +755,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             public void PlayOneShot(in AudioCueDto cue) { OneShotCount++; LastOneShot = cue; }
             public void StartLoop(in AudioCueDto cue, int handleId) => StartedIds.Add(handleId);
             public void StopLoop(int handleId) => StoppedIds.Add(handleId);
+            public bool SetLoopGain(int handleId, float gain) => false;
         }
 
         // ══════════════ 负例夹具(住测试命名空间,不入 44 生产扫描键)══════════════

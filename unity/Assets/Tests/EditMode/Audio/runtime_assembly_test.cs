@@ -1026,13 +1026,23 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             PresenceRegistry presence = PresenceWith(patientId: 19);
             var vitals = new ScriptedVitals(0.5f);
             var behavior = new PatientBehaviorDirector(vitals, BehaviorBands.Default);
+            // ⚠️ **`coughCue` 必须是真 ordinal,不得为 null**(W-3 2026-10-20):null ⇒ 13 的一次性
+            //    发射在构造上就被掐掉 ⇒ 下方 `EmitCount == 0` **恒真**,对「停顿期不出咳嗽」毫无判别力。
+            //    取 0(= 事件表首行)只为让发射路径可达;判据关心的是「有没有」,不关心是哪条。
             PatientCueDriver driver = new PatientCueDriver(
                 sink, vitals, presence, behavior,
                 intervals: CueIntervals.Default,
-                coughCue: null, breathCue: 1,
+                coughCue: 0, breathCue: 1,
                 knowsClinic: KnowsClinicForTest);
             RunTicks(driver, vitals, 0, 5, _ => 0.5f);
             Assert.That(driver.ActiveBreathCount, Is.EqualTo(1), "前置:呼吸 loop 已起");
+
+            // 前置(W-3):一次性发射路径**确实可达** —— 平稳期必须先咳嗽过。
+            // 没有这条前置,下面「停顿期 EmitCount == 0」在发射路径坏掉时也会绿。
+            int emitsBeforeTerminal = driver.EmitCount;
+            RunTicks(driver, vitals, 5, 40, _ => 0.5f);
+            Assert.That(driver.EmitCount, Is.GreaterThan(emitsBeforeTerminal),
+                "前置:平稳期从未发射一次性 cue ⇒ 本夹具测不到「停顿期不出咳嗽」");
 
             // 前置:13 的决策表在终局锁存期确实每拍 `End`
             RunTicks(driver, vitals, 5, 40, _ => BehaviorBands.Default.DeathBandMin);
@@ -1049,7 +1059,10 @@ namespace DaYiJingCheng.Tests.Unit.Audio
 
             // 跑足 3 倍尾音时长 —— 若实现会重开段,这里必然出现多段
             int ticksPerTail = (int)Math.Ceiling(AudioTuning.BreathTailRampSeconds / PatientCueDriver.TickSeconds);
+            // ⚠️ W-3(2026-10-20):`coughCue: 0` 而非 null —— null 下 `EmitCount` 恒 0,
+            //    本断言无判别力。记下尾音段起点的一次性 cue 计数,尾音段内**不得增长**。
             int emitsAtTailEnd = sink.Intensities.Count;
+            int coughsAtTailEnd = driver.EmitCount;
             int gainsAtTailEnd = driver.BreathGainUpdateCount;
             RunTicks(driver, vitals, 40, 40 + 3 * ticksPerTail, _ => BehaviorBands.Default.DeathBandMin);
 
@@ -1059,7 +1072,10 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(driver.IsBreathTailDone(19), Is.True);
             Assert.That(driver.ActiveBreathCount, Is.EqualTo(1), "尾音完 ≠ 停止:loop 仍存续");
             Assert.That(sink.EndLoopCount, Is.Zero, "尾音完 ≠ 停止:不得 EndLoop");
-            Assert.That(driver.EmitCount, Is.Zero, "停顿期不得出一声性 cue");
+            // W-3 判据:尾音段(第 40 拍起)内一次性 cue 计数**不得增长**。
+            // 判别力由上方平稳期前置保证(平稳期 EmitCount > 0 ⇒ 发射路径可达 ⇒ 计数会动)。
+            Assert.That(driver.EmitCount, Is.EqualTo(coughsAtTailEnd),
+                $"尾音段出了 {driver.EmitCount - coughsAtTailEnd} 条一次性 cue —— 停顿期不得出声");
 
             // 形态:尾音段**单调不升**,末值 = 底值(一段,不是一个周期函数)
             var seg = sink.Intensities.GetRange(emitsAtTailEnd - ticksPerTail, ticksPerTail);

@@ -31,6 +31,7 @@ using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
+
     /// <summary>病人 cue 的运行期驱动(A-3):tick 边沿 → 13 调度 → 44 发射。
     /// <para>⚠️ 本类是**装配层**(`Gameplay.Boot`),不是 13 也不是 44 —— 它把两者的接口接起来,
     /// 自己不产生任何 cue 语义。</para>
@@ -76,7 +77,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         //    = **一阵一阵**(2026-10-18 实测坐实为结构性必然,非「风险」;用户裁定修实现)。
         //    两表合起来满足「**只衰减一次**」:**每病人至多一个段**(互斥不变量)。
         private readonly Dictionary<int, long> _tailStartTick = new Dictionary<int, long>();
-        private readonly Dictionary<int, byte> _tailDone = new Dictionary<int, byte>();
+        //   ⚠️ 封口值 = 线性增益 **double**(W-2 2026-10-20 接线轮):此前 `byte`(8-bit 量化,
+        //      −36 dB 底值 ⇒ 4/255);现与 `BreathTailRamp` 的线性 volume 域同域。
+        //   `_tailDone` 按值不进三流,封口值亦不进任何 sink —— 见 `IsBreathTailDone`。
+        private readonly Dictionary<int, double> _tailDone = new Dictionary<int, double>();
 
         /// <summary>构造。</summary>
         /// <param name="sink">44 的 cue 界面(非 null;ADR-018 §一「只入不出」)。</param>
@@ -333,7 +337,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <inheritdoc cref="PruneIfAbsent(Dictionary{int, AudioCueHandle}.KeyCollection)"/>
-        private void PruneIfAbsent(Dictionary<int, byte>.KeyCollection keys)
+        private void PruneIfAbsent(Dictionary<int, double>.KeyCollection keys)
         {
             _staleScratch.Clear();
             foreach (int patientId in keys)
@@ -380,7 +384,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                     // ⚠️ `breathCue` 为 null ⇒ 不起循环(装配期未解析到 `BreathLayer_Base_Calm`)。
                     //    绝不用咳嗽 ordinal 顶替 —— 那会让呼吸层播成咳嗽(素材语义错)。
                     if (!_breathCue.HasValue) break;
-                    AudioCueDto cue = MakeBreathCue(patientId, id, gainOnly: false, position, cell);
+                    AudioCueDto cue = MakeBreathCue(patientId, position, cell, PatientCue.Intensity(position));
                     _breathHandles[patientId] = _sink.BeginLoop(cue);
                     break;
 
@@ -424,29 +428,51 @@ namespace DaYiJingCheng.Gameplay.Boot
             int tailTicks = (int)Math.Round(AudioTuning.BreathTailRampSeconds / TickSeconds);
             bool finished = tick - tailStart >= tailTicks;   // 整数域比较,无末位误差
 
-            AudioCueDto cue = MakeBreathCue(patientId, id, gainOnly: true, position, cell, elapsedSeconds);
-            _sink.Emit(cue);
+            double gain = TailGain(patientId, position, elapsedSeconds);
+            AudioCueDto cue = MakeBreathCue(patientId, position, cell, GainByte(gain));
+            _sink.Emit(cue);           // looped: true ⇒ 44 按 Source 路由到在响循环的增益(W-1)
             BreathGainUpdateCount++;   // ← 本段每拍一个增益步(= 段内步数;全生只一段 ⇒ = 尾音步数)
 
             if (finished)
             {
                 _tailStartTick.Remove(patientId);        // 停表(loop 仍存续,直至停止形态)
-                _tailDone[patientId] = cue.Intensity;    // 封口:此后不再重开、不再写
+                _tailDone[patientId] = gain;             // 封口(全精度 double):此后不再重开、不再写
             }
         }
 
-        /// <summary>呼吸层 cue 的唯一构造点(稳态 / 尾音共用;区别只有 <paramref name="gainOnly"/>)。</summary>
-        private AudioCueDto MakeBreathCue(int patientId, PatientId id, bool gainOnly,
-                                          float position, in WorldPos cell, double elapsedSeconds = 0.0)
+        /// <summary>尾音本拍增益(线性 volume;`BreathTailRamp` = 曲线唯一出处)。
+        /// <para>⚠️ **起点 = loop 实际增益**(W-1 第二处 2026-10-20):不是写死的 1.0 ——
+        /// 稳态 loop 的强度是 <see cref="PatientCue.Intensity"/> / 255;起点若为 1.0,停顿首拍
+        /// 增益**向上跳**,那是可听辨的「换了个声音」拐点,违 GDD :571-573。</para></summary>
+        private double TailGain(int patientId, float position, double elapsedSeconds)
         {
-            byte intensity = PatientCue.Intensity(position);
-            if (gainOnly)
-            {
-                double gain = BreathTailRamp.ValueAt(1.0, BreathTailRamp.DbToLinear(AudioTuning.BreathTailGainFloorDb),
-                                                     elapsedSeconds, AudioTuning.BreathTailRampSeconds);
-                intensity = (byte)Math.Round(gain * 255.0);
-            }
+            const double Full = 255.0;
+            double floor = BreathTailRamp.DbToLinear(AudioTuning.BreathTailGainFloorDb);
+            // 起点优先级:① 44 侧既有 loop 的**实际增益读数**(sink 读面,最忠实);② 无读面(测试替身)
+            // ⇒ 本拍体征折算;③ 尚无读数(首拍早于任何读数)⇒ 本拍体征折算。**不写死 1.0**。
+            double loopGain = _sink is IAudioCueSinkLoopGainRead read
+                              && read.TryGetLoopGain(patientId, out int known) && known > 0
+                ? known / Full
+                : PatientCue.Intensity(position) / Full;
+            double start = loopGain <= floor ? floor          // 稳态已低于底值 ⇒ 无衰减(setter 退化分支)
+                : loopGain >= 1.0 ? 1.0 : loopGain;           // `PatientCue.Intensity` 上界 255 ⇒ 钳到 1
+            return BreathTailRamp.ValueAt(start, floor, elapsedSeconds, AudioTuning.BreathTailRampSeconds);
+        }
 
+        /// <summary>线性增益 → <c>AudioCueDto.Intensity</c>(0..255)的**唯一**换算(W-1 接线轮)。
+        /// <para>⚠️ 8-bit 空间本就在 DTO 契约里(<c>Intensity: byte</c>,ADR-018 §二;本轮**不改契约**)
+        /// ⇒ 量化代价只在**每拍写入**上;封口簿记不再经它(W-2 修法:存 double)。
+        /// −36 dB 底值映射为 4/255(≈ −36.1 dB,误差 &lt; 0.6 dB)。</para></summary>
+        private static byte GainByte(double gain)
+        {
+            if (double.IsNaN(gain) || gain <= 0.0) return 0;
+            if (gain >= 1.0) return 255;
+            return (byte)Math.Round(gain * 255.0);
+        }
+
+        /// <summary>呼吸层 cue 的**唯一**构造点(稳态 / 尾音共用;强度由调用方给)。</summary>
+        private AudioCueDto MakeBreathCue(int patientId, float position, in WorldPos cell, byte intensity)
+        {
             return new AudioCueDto(
                 cue: _breathCue.Value,
                 intensity: intensity,
