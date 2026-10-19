@@ -1,0 +1,163 @@
+# 语声变体 / 交叉淡化人耳听测证据(AC-44-03 / AC-44-04 [L])
+
+> ⚠️ **本文件为骨架,听测未执行;签署前不得记为已通过。**
+> 状态:`[ ]` = 未执行 / 未签署;`BLOCKED` = **今日构建跑不出来**,不挂空勾选行,须先清前置。
+> 任何条目在实测完成并签署前**不得**被引用为通过证据(story / 账本 / traceability 侧的 AC 行
+> 保持 NOT-RUN 或 open)。
+
+**Story**: `production/epics/audio-system/story-006-voice-variants-intensity-bucket.md`
+**GDD**: `design/gdd/audio-system.md` AC-44-03(:1039–1041)· AC-44-04(:1043–1044)·
+F-44.3 语声变体选择(:362)· F-44.6 Intensity → 声学量(:416 起)· 约束注(:319 ramp ≥ 50 ms)
+**债册**: `docs/tech-debt-register.md` `TD-audio-102`(本件即其协议载具)
+**建件日期**: 2026-10-20(TD-audio-102 协议骨架;**执行日期待排期**)
+
+> **与 `breath-layers-listen-evidence.md` 的关系**:该件只覆盖 AC-44-02 / 08,不含 03 / 04;
+> sprint-15 S15-6 曾把本两条算进它的 38 项,实际漏了(S15-6 卡面口径缺陷,不在本件裁决面)。
+> 本件是 03 / 04 的**唯一** `[L]` 载具。
+
+---
+
+## 〇、协议只写 `[A]` 证不了的部分(分工声明)
+
+`[A]` 面已在 `unity/Assets/Tests/EditMode/Audio/voice_variants_test.cs` 落地,**本协议不重复**:
+
+| `[A]` 已证 | 测试 | 本协议**不再测**的内容 |
+|---|---|---|
+| 同输入恒选同变体(确定性) | `test_selectVariant_sameInput_sameOutput`(`:34`) | 选择器确定性与否 |
+| 不同桶选不同变体 | `test_selectVariant_differentBuckets_differentVariants`(`:49`) | 索引映射正确性 |
+| Tier 不参与库轴 | `test_selectVariant_tierNotInAxis`(`:66`) | 库结构 |
+| 五项调制 API 在 `VoiceVariantLib.cs` 零出现 | `test_forbiddenModulations_zeroAppearance`(`:378`) | —— 见下「另注」 |
+| ramp 到位墙钟 ≥ `AudioTuning.RampSeconds`(0.05 s)+ 10 ms 负向转红 | `:118` / `:161`(`AudioTuning.cs:26` `RampSeconds = 0.05f`) | 参数是否 ≥ 50 ms |
+| F-44.6 分桶单调 / 边界 / 线性映射 | `:189`–`:262` | 数学 |
+
+**本协议只测 `[A]` 到不了的那一层**:
+1. 听起来的**实际声音是哪一个**变体、是否**可辨**、是否**像人说话而不是变声器**(人耳);
+2. 实际播放路径上**有没有爆音 / 相位抵消**(自动面只证 ramp **时长**参数,不证**听感**)。
+
+**另注(`[A]` 覆盖范围的局限,不属本件修复项)**:`test_forbiddenModulations_zeroAppearance` 扫描面
+**只含** `pitch` / `Pitch` / `playbackSpeed` / `PlaybackSpeed` / `breathiness` / `Breathiness`
+(`voice_variants_test.cs:388`),而 GDD 五项 = 音高 / **气声** / **语速** / **断句** / **共鸣**;
+「断句」「共鸣」无对应扫描词。2026-10-20 实测 `Gameplay.Presentation/Audio/` 与 `Gameplay.Boot/`
+内 `playbackSpeed` 零出现 ⇒ 今日无违规路径,但这属**观测事实**,不升格为 `[A]` 判据。
+
+---
+
+## 一、前置:今日可听性与阻塞项(2026-10-20 实测)
+
+### 1.1 已在场的部分(可听)
+
+| 项 | 证据 |
+|---|---|
+| 唯一的语声变体行 = `Voice_Cough_Damp`,12 变体 = 性别 2 × 桶 3 × 层内 2 | `assets/data/audio_events.json:50-72`(`variant_axis: voice_gender_intensity`) |
+| 全表**仅此一行**声明 `variant_axis`;其余多素材行非变体行 | `audio_events.json` grep `variant_axis` 唯一命中 `:52`;判定见 `AudioClipLibrary.cs:176-180`(`row.IsVariantRow`) |
+| 运行期选择器已接线(三维立方体) | `AudioClipLibrary.cs:182` → `VoiceVariantLib.SelectVariantCube` |
+| 病人咳嗽有真实触发源(→ 可从 Editor Play 听到 `Voice_Cough_Damp`) | `PatientCueDriver.cs:276`(`CueKind.Cough` 固定)、`:291-295`(`PatientCueEmit.Emit`)· 装配 `CompositionRoot.cs:410-414`(`coughCue` 由表解析) |
+| 播放路径为真实 `AudioSource.Play` / 全 3D / 关闭多普勒 | `AudioSourceRenderTarget.cs:155-169`;`AudioSourcePool.cs:411/:413` |
+
+### 1.2 阻塞项(→ 受影响检查项标 `BLOCKED`)
+
+| # | 阻塞 | 实测依据 | 缺什么(解除条件) |
+|---|---|---|---|
+| **B-1** | **变体的「桶」轴不由强度决定** —— 生产输入是**患者身份哈希**,不是 `AudioCueDto.Intensity` | `VoiceVariantLib.cs:295-302` 文档自陈「该输入轴在语声 cue 上未接线(story-020 重裁 ②:记 `TD-audio-034`…)」;`AudioClipLibrary.cs:182` 实参 = `(cue, tier, identity, size)` | **`TD-audio-034` ①** 接线:桶 ← F-44.6 `bucket(u)` ← `AudioCueDto.Intensity`。在此之前,同一 `Intensity` 扫全 0–255 **不保证**换桶 ⇒ 「强度可辨」不可测 |
+| **B-2** | **无交叉淡化代码路径** —— `Voice_Cough_Damp` 是**一次性**咳嗽(`loop: false`,`audio_events.json:65`),每次一个 clip 播完即止;变体选择只在**每次发射时**挑一条,**不存在「同一源从变体 A 过渡到变体 B」的播放** | `PatientCueDriver.cs:276`/`:291`(one-shot);`AudioSourceRenderTarget.cs:167` `source.loop = false`;`VoiceVariantLib` 的 `gain_scale` / `density_mult`(F-44.6)在 `AudioClipLibrary` / `AudioSourceRenderTarget` 生产路径**零调用**(2026-10-20 grep) | **一句成品语声内的变体交错淡化的实现载体** —— 需要 44 侧给出「同一 cue 连续两句时是否 xfade、在哪里 xfade」的落点,或另行裁定「AC-44-04 的交叉淡化只约束呼吸层/滤波,不约束语声」。否则本节对应检查项**无对象可测** |
+| **B-3** | **语声 cue 不经滤波,「滤波变化」在半上无观测对象** | `PatientCueDriver.cs` 与 `CompositionRoot.cs` 对 `TierFilterDriver`(`TierFilterDriver.cs:48`)构造/调用**零命中**(2026-10-20 grep) | 语声 bus 是否应受 Tier 滤波 —— 若 GDD 本就只约束呼吸/听诊路径,应**回到 44 补一句口径**,而非在本件挂空行(协议不替设计裁决) |
+| **B-4** | **「交叉淡化无相位抵消」在半上有适用性待定** | 咳嗽是一次性短句;两句连续咳嗽之间的交叠是否会发生、由谁调度,今日代码未规定 | 同 B-2 的同一裁定;裁定前该项标 `BLOCKED` |
+| **B-5** | **被试** —— 人耳听测需 ≥ 2 名被试(同 `TD-audio-103` 口径) | 排期 | 被试到位 |
+
+> ⚠️ **不因 B-1 阻断「变体库可辨」的弱版检查**:B-1 只冻结**强度轴**;不同患者的桶分布仍存在,
+> 故 `AC-44-03 [L]` 的主判据(「听起来像人说话、不是变声器」「变体之间有自然差异」)
+> **今日可听**,只有「**同一场景内随病情加重语声随之加重**」这一**强度轴**子项标 `BLOCKED`。
+
+---
+
+## 二、AC-44-03 [L]:变体库听感 + 禁「变声器」感
+
+> GDD 原文(:1039–1041):素材形态 = 变体库(男/女 × 强/中/弱 × 数种句尾),运行时按
+> (`CueId`, 精度档, 强度)选变体并交叉淡化;**禁**对已录语声做五项独立调制(音高 / 气声 / 语速 / 断句 / 共鸣)。
+
+**GIVEN** 同一位病人在同一场景内多次咳嗽(同一身���,多次采样)
+**WHEN** 人耳盲听,同屏 3 名以上病人各咳多次
+**THEN**
+
+- [ ] 同一病人多次咳嗽的声音**前后一致**(同一身份 ⇒ 同一变体位,`VoiceVariantLib.cs:266` 之外 —
+      **以 `SelectVariantCube` 为准**,见 `AudioClipLibrary.cs:182`);若同一病人同一句尾出现**明显不同**的音色 ⇒ 失败
+- [ ] 不同病人间咳嗽**有可感知差异**(不同变体,而非全屏一条声音)—— 判据:3 名病人中**能两两区分**的 ≥ 2 对
+- [ ] **无变声器感**:受试者明确陈述「像真人咳嗽」;若出现音高被抬高/压低、语速被拉快拉慢、
+      呼吸感被后期加入等**机械感** ⇒ 判失败(回 44 查 B-1 与 `[A]` 的调用面)
+- [ ] 男性的咳嗽听不出女性声线、女性听不出男性声线(性别层不串,**素材表声明**,`F-44.3:364`)
+
+### 听测记录表(全部 `[ ]` = 未执行)
+
+| 状态 | 受试者 | 场景 | 同病人一致性 | 跨病人可辨对数 | 变声器感(无/有+描述) | 性别层不串 | 备注 |
+|------|--------|------|--------------|------------------|------------------------|-----------|------|
+| [ ] | | | | /6 | | | |
+| [ ] | | | | /6 | | | |
+
+### 强度轴子项(今日 `BLOCKED`)
+
+| 状态 | 检查项 | 阻塞原因 | 依据 |
+|------|--------|----------|------|
+| **BLOCKED** | 同一病人 `Intensity` 由低到高扫 0→255 时,桶(弱/中/强)与 `gain_scale` 随之变化、可听辨 | **B-1**:桶输入今日是身份哈希,非 `Intensity` | `VoiceVariantLib.cs:295-302` · `TD-audio-034` ① |
+
+### 汇总判定
+
+- [ ] 上表主判据 2 名被试全通过(B-5 解除后)
+- [ ] 强度轴子项在 B-1 解除后另行执行并回填
+- [ ] **AC-44-03 [L] 通过**(仅当上面全部勾选 + 底部签署完成;**强度轴未测时只能记 PARTIAL**)
+
+---
+
+## 三、AC-44-04 [L]:无爆音 / 无相位抵消
+
+> GDD 原文(:1043–1044):交叉淡化**无爆音(spike)、无相位抵消**;
+> **滤波 / 噪声底变化 ramp ≥ 50 ms**(2026-09-18 补齐硬下界)。
+
+**`[A]` 已证**:ramp 时长参数 ≥ 50 ms(负向 10 ms 转红)。
+**`[L]` 只能测**:在实际播放路径上**听**不到「啪」声、听不到抵消造成的**忽大忽小 / 空洞感**。
+
+**GIVEN** 场景内多名病人交替咳嗽(每次 one-shot,变体随身份不同)
+**WHEN** 人耳听测(建议同时录屏 + 录音采样,波形留证)
+**THEN**
+
+| 状态 | 检查项 | 依据 / 阻塞 |
+|------|--------|-------------|
+| [ ] | 连续多次咳嗽之间**无「啪」声 / 爆音(spike)** | 一次性 cue 路径可测(`AudioSourceRenderTarget.cs:155-169`);波形留证见下 |
+| [ ] | 无「忽大忽小 / 空洞」式相位抵消感 | ⚠️ **部分 BLOCKED(B-4)**:今日咳嗽互不交叠,相位抵消在一次性短句上**无适用对象**;仅当多病人同时咳嗽时若出现抵消才记 |
+| **BLOCKED** | **变体交叉淡化过程**中无 spike / 相位抵消 | **B-2**:今日无「同一源变体 A→B 过渡」的播放路径;对象不存在 |
+| **BLOCKED** | 滤波 / 噪声底变化(语声路径)ramp 无「啪」声 | **B-3**:语声 cue 不经 `TierFilterDriver`;该路径今日无对象。若设计确认本项只约束呼吸/听诊,应撤回此条而非挂行 |
+
+### 听测记录表(全部 `[ ]` = 未执行)
+
+| 状态 | 受试者 | 试次 | spike(无/有) | 相位抵消感(无/有) | 波形/录音位置 | 备注 |
+|------|--------|------|---------------|--------------------|---------------|------|
+| [ ] | | | | | | |
+
+### 汇总判定
+
+- [ ] 非阻塞检查项全通过
+- [ ] B-2 / B-3 / B-4 解除后补测对应项
+- [ ] **AC-44-04 [L] 通过**(仅当上面全部勾选 + 底部签署完成;有 BLOCKED 时只能记 PARTIAL)
+
+---
+
+## 四、签署表
+
+| 角色 | 姓名 | 日期 | 签署 |
+|------|------|------|------|
+| 听测执行者 | | | [ ] Approved |
+| 声音设计复核(变声器感 / 性别层) | | | [ ] Approved |
+| QA | | | [ ] Approved |
+| 技术负责人(lead-programmer) | | | [ ] Approved |
+
+> 全部 `[ ]` 签署完成且第二、三节判定勾齐前,本文件**不构成任何 AC 的通过证据**。
+> ⚠️ **B-1 / B-2 / B-3 / B-4 未解除前,本文件最多只能支撑 PARTIAL**。
+
+---
+
+## 五、未及核查项(如实登记)
+
+- [ ] 未做实际 Play 试听(本件为协议,不替用户听);`coughCue` 在今日 `CompositionRoot` 装配下是否非 null、
+  病人是否会被驱动到咳嗽,仅据代码链路(`CompositionRoot.cs:410-414` → `PatientCueDriver.cs:276`)推断,**未跑**。
+- [ ] 未核 `Voice_Cough_Damp` 十二个 `vo_*` 素材的实际时长/响度一致性(素材 QC 不属本协议)。
+- [ ] 未核 `Voice_Cough_Damp` 的 `subtitle_text`(AC-44-15)与本件无关。
+- [ ] 未核事件表的 `whitelist_category` 与 `trigger_source` 与 AC-44-09 的交叉影响(归 `TD-audio-101` 批次)。

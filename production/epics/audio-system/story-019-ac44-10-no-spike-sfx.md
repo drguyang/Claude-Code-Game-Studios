@@ -193,3 +193,17 @@ Assert ③ 由「到期后重开新段、elapsed 归零」改写为「**到期�
 4. **两条听测是两件事,别混**:`AC-019-6` 判的是**呼吸尾音**(本卡,判据 3 = 尾音「一阵一阵」);
    `AC-44-E5` 判的是**无提示音铁律**(story-016,15 条 cue 是否在报状态)。同一次实机听测可一并做,
    但**判定表各填各的**。
+
+### 补做代码评审 2026-10-20(补缺 · 不追认 2026-10-18 判定)
+
+**判定:APPROVED WITH SUGGESTIONS** —— 0 BLOCKING · 4 WARNING · 4 INFO。
+原件:`production/qa/evidence/review-s19-ac44-10-2026-10-20.md`。
+**补做声明**:本卡实现轮与修复轮(2026-10-18)当时**从未跑过** `/code-review`;本件于 2026-10-20 **补做**,
+评的是**当下**的代码,**不追认、不平反** 2026-10-18 的任何判定(承 `.claude/docs/review-workflow.md` §不可追补)。
+- 已核实修复真在代码里:驱动 `_tailDone` 封口(`:79/400/433-434/314/355/369`)、`IsBreathTailDone`、两处夹具改写/新增;
+  修复轮全量原件 `unity/Logs/s19-tailonce-full-editmode.xml` 在盘(`3770/3724/1/45`,新测 Passed)。
+- **W-1(须处置)**:`BreathTailRamp.Begin/Step/State` 生产侧**零调用** —— 尾音实际经 `_sink.Emit` 每拍发一条
+  「一次性」DTO(`looped: true` 但走 `Emit` 而非 loop 参数);AC-019-5「驱动基础气流层增益」按代码字面不成立,归尾音 sink 接线轮或与 AC-019-6 同批裁定。
+- W-2(8-bit 量化)· W-3(新测 `coughCue: null` 使 `EmitCount==0` 恒真)· W-4(注释自相矛盾) 登记未修。
+
+⚠️ **本件不解除 `AC-019-6` NOT-RUN 的 BLOCKING**,`Status` 维持 `In Progress`。
