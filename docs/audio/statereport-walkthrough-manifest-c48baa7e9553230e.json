@@ -2,7 +2,7 @@
   "schema_version": 1,
   "_note": "AC-44-E5 手跑走查清单 —— 由 StateReportWalkthroughProbe 播放**全部**事件表 cue 生成。reason 前缀 = 归属四选一(physiology / player_action / world_ambience / music_layer);走查据此**逐条**对照 design/gdd/audio-system.md:66-78 黑名单四禁判定,再在谓词文件里落结果。本文件不承载任何判定 —— 判定只存在于谓词文件 + 记录文件。",
   "event_table_schema_version": 1,
-  "event_table_config_version": 511471757,
+  "event_table_config_version": 2044814530,
   "rows": [
     { "ordinal": 0, "cue": "Voice_Cough_Damp", "first_asset": "vo_patient_cough_damp_m1_1.wav", "loop": false, "occupancy": 0.9953, "whitelist_category": "ContinuousPhysiology", "trigger_source": "ContinuousPhysiology", "subtitle_text": "咳…咳咳…", "reason": "physiology:Voice_Cough_Damp: whitelist_category = 「ContinuousPhysiology」∈ 白名单;替代读法 = 有(manifest §四);症状的连续变化本身即病人状态,不是「宣告」状态变化" },
     { "ordinal": 1, "cue": "BreathLayer_Base_Calm", "first_asset": "sfx_breath_base_loop_small.wav", "loop": true, "occupancy": 0.9997, "whitelist_category": "ContinuousPhysiology", "trigger_source": "ContinuousPhysiology", "subtitle_text": null, "reason": "physiology:BreathLayer_Base_Calm: whitelist_category = 「ContinuousPhysiology」∈ 白名单;替代读法 = 有(manifest §四);症状的连续变化本身即病人状态,不是「宣告」状态变化" },
