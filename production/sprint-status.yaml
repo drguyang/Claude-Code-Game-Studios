@@ -17,7 +17,7 @@ goal: "44 的 P0 收口面压到「只剩听测排期 + 用户裁决」—— st
 start: "2026-10-19"
 end: ""            # 不设结束日期 —— 做完即收,收口时补记(承 sprint-12/13/14 口径)
 generated: "2026-10-18"
-updated: "2026-10-18"   # 初始生成。⚠️ Phase 1 重扫核出两处陈旧前提(TD-audio-030 素材已齐 /
+updated: "2026-10-20"   # 2026-10-20 复验收口(S15-4/5/7/8 → done)。初始生成于 2026-10-18。⚠️ Phase 1 重扫核出两处陈旧前提(TD-audio-030 素材已齐 /
                         #   101-102 素材已齐),已写入 sprint-15.md §前提订正 —— 不得照旧快照读本文件。
 
 stories:
@@ -63,26 +63,33 @@ stories:
     name: "TD-audio-028 空间化链接入生产(含 S3-a 自建第二池负例)"
     file: "docs/tech-debt-register.md"     # 债行直接驱动,无独立 story 文件
     priority: should-have
-    status: review
+    status: done
     owner: "claude"
     estimate_days: 0          # 复杂度 = M
     blocker: ""
-    completed: "2026-10-18"
-    # 实现已落(夹具 11/11 绿 · 证伪 F1–F12 全红 · 全量 3781/3735/1/45 = 基线 +11)。
-    # status 记 review 而非 done:听感半边(距离衰减 / 遮挡音色)NOT-RUN,归 TD-audio-101/102。
-    # 残留三项另立 TD-audio-035(latticeSize 正式值 / 真 raycast / 表列承载)。
+    completed: "2026-10-20"   # 复验收口日(实现轮 2026-10-18)
+    # ✅ 2026-10-20 复验收口(方案甲 · 用户裁定):无独立 story 文件 ⇒ 不凑形式,
+    #   以「证据原件 + 当日全量实测」双重对码收口。实测:今天 01:11 全量 EditMode 中
+    #   `SpatializationWiringTest` 11/11 Passed、0 Failed;负例
+    #   `test_td028_selfBuiltPool_wouldBreakSinglePoolInvariant` 在盘。
+    #   ⚠️ 复验不追认原判定 —— 原判定与证伪轮证据仍以 impl-s15-4-* 原件为准。
+    # 听感半边(距离衰减 / 遮挡音色)NOT-RUN 归 TD-audio-101/102;残留三项归 TD-audio-035。
+
 
   - id: "S15-5"
     name: "TD-audio-029 + 032 合并卫生批(one-shot 归还 / (int)tick / RowCount 守卫 / buffer 复用)"
     file: "docs/tech-debt-register.md"
     priority: should-have
-    status: review
+    status: done
     owner: "claude"
     estimate_days: 0          # 复杂度 = M
     blocker: ""
-    completed: "2026-10-18"
-    # 实现已落(夹具 13/13 · 证伪全红 · 全量 3794/3748/1/45 = 基线 +13)。
-    # status 记 review:032 ③ 的 BuildAudioSeams 仍 >40 行 · isPlaying 时序 PlayMode NOT-RUN。
+    completed: "2026-10-20"   # 复验收口日(实现轮 2026-10-18)
+    # ✅ 2026-10-20 复验收口(方案甲):实测今天全量 EditMode 中 `S15_5HygieneTest`
+    #   13/13 Passed、0 Failed;`OneShotReclaimPump` / `MarkFinished` / `ReclaimExpired` 均在盘。
+    # ⚠️ 未解面如实保留(不因收口消失):032 ③ 的 BuildAudioSeams 仍 >40 行 ·
+    #   isPlaying 时序 PlayMode NOT-RUN · 032 ① 调参入生产仍 open(归 13 数据轮)。
+
 
   - id: "S15-6"
     name: "TD-audio-101 + 102 同批听测([L] · 呼吸两层 / 语声变体 / SNR)"
@@ -99,27 +106,26 @@ stories:
     name: "债册刷账批(TD-audio-103 阻塞源改口 + story-016 reconcile + 本 sprint 结案注)"
     file: "docs/tech-debt-register.md"
     priority: nice-to-have
-    status: review
+    status: done
     owner: "claude"
     estimate_days: 0          # 复杂度 = S
     blocker: "E5 人半仍待走查人真听 + 改写 15 条 not_reporting(裁定 A 的出路,不可代劳)"
-    completed: "2026-10-18"
-    # 零代码改动;8 项刷账逐条先只读对码(见 impl-s15-7-* §三/§四)。
-    # ✅ 用户裁定两项已落:E5 = A(维持未通过,出路 = 真听后改写 15 条 not_reporting)·
-    #   副本 = A(删)+ C(治法:内容哈希命名 + 内容判等 + 异内容拒写;夹具 3 条、证伪 G1–G3 全红)。
-    # status 记 review 而非 done:E5 人半仍缺(不可代劳)· 031 两半 · 032 ① · BuildAudioSeams ·
-    #   101/102/103 听测均仍 open。全量 3797/3751/1/45 = 基线 +3。
+    completed: "2026-10-20"   # 复验收口日(实现轮 2026-10-18)
+    # ✅ 2026-10-20 复验收口(方案甲):8 项刷账逐条对码的结论与复核值见 impl-s15-7-* §三/§四;
+    #   今日抽验 `SelectVariantCube` 仍是生产选择器(`AudioClipLibrary.cs:182`)。
+    # ⚠️ 收口的是「刷账这一批」,不是上列 blocker —— E5 人半与听测项**仍 open**,
+    #   不得因本件 done 而读作已通过。
+
 
   - id: "S15-8"
     name: "/retrospective sprint-14"
     file: "production/retrospectives/retro-sprint-14-2026-10-18.md"   # ✅ 已落盘
     priority: nice-to-have
-    status: review
+    status: done
     owner: "claude"
     estimate_days: 0          # 复杂度 = S
     blocker: "retro-13 行动项 3+4(跨 epic 假绿普查)未兑现 ⇒ 已立为 sprint-16 行动项"
-    completed: "2026-10-18"
-    # retro 已写:sprint-14 计划 7/7 + 追加 4 件 = 11 done;strict 提交 47(区间 56)。
-    # 核心:retro-13 行动项 2/4 兑现(证伪轮门全面落地),3+4 未做(同型样本已 3 个);
-    # 件/日基线(3.7 vs 8–10)因件变大不可跨 sprint 比 ⇒ 需重标定 CAPACITY-MODEL。
-    # status 记 review 而非 done:5 条行动项归 sprint-16,本件只完成「写 retro」本身。
+    completed: "2026-10-20"   # 复验收口日(落盘 2026-10-18)
+    # ✅ 2026-10-20 收口:retro 产出物本身存在且非空(19938 B)。
+    # ⚠️ 收口的是「写 retro 这个交付物」,不是其 5 条行动项 —— 那些归 sprint-16。
+
