@@ -134,11 +134,18 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>启动期日志 / 测试的可观测面 —— 「装了没装」不得靠猜(承 story-018 头注)。</para></summary>
         public bool AudioRenderAssembled { get; }
 
+        /// <summary>51 遥测的装配层入口(TD-epic-01 接线片 · 2026-10-19)。
+        /// <para>**纯读**:不持 `IEventSink`、不写三流、不写文件(ADR-019 §三 / GDD R1)。</para>
+        /// <para>用处:任何人问「F1 是多少」只调 <see cref="TelemetryReporter.JudgmentReport"/> ——</para>
+        /// <para>接线前 51 的重算器只有 EditMode 夹具驱动、**生产零调用**(普查判的正是这条)。</para>
+        /// <para>⚠️ 当前只接线 F1;F2–F7 的还原器接线归各自 story 轮(见
+        /// <see cref="TelemetryReporter.AllMetricsReport"/> 的自陈)。</para></summary>
+        public TelemetryReporter Telemetry { get; }
+
         /// <summary>世界语境空间化的装配入口(S15-4 · TD-audio-028)。
         /// <para>⚠️ 与 <see cref="AudioPool"/> **共享同一池**(AC-018-4 单池不变量)。
         /// null ⇔ 渲染面未装配(<see cref="AudioRenderAssembled"/> = false)。</para>
-        /// <para>可观测面:位置是否真被写看 <c>(renderTarget as AudioSourceRenderTarget).SpatializedCount</c>;
-        /// 排名 / 寿命看本属性的 <c>ActiveCount</c> / <c>Order</c>。</para></summary>
+        /// <para>可观测面:位置是否真被写看 <c>(renderTarget as AudioSourceRenderTarget).SpatializedCount</c>;        /// 排名 / 寿命看本属性的 <c>ActiveCount</c> / <c>Order</c>。</para></summary>
         public SpatializationDirector Spatialization { get; }
 
         /// <summary>44 的渲染目标(听者锚点注入缝在它身上 —— <see cref="Gameplay.Presentation.Audio.AudioSourceRenderTarget.SetListenerPosition"/>)。
@@ -223,6 +230,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             AudioRenderAssembled = audioRenderAssembled;
             PatientCueDriver = patientCueDriver;
             BehaviorDirector = behaviorDirector;
+
+            // 51 遥测接线(TD-epic-01):decoder 在 Sim.Codec、51 的装配引不到 ⇒ 在本装配层包成委托。
+            // ⚠️ stream / decoder 均已是本 ctor 的形参 ⇒ 不加新装配边、不改 Assemble 签名。
+            Telemetry = new TelemetryReporter(stream, decoder);
         }
     }
 }

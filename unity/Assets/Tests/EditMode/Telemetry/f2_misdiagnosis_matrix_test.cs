@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DaYiJingCheng.Telemetry;
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.Unit.Telemetry
@@ -22,62 +23,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
     [TestFixture]
     internal sealed class F2MisdiagnosisMatrixTest
     {
-        // ══════════════ F2 公式(测试自持谓词面,零生产依赖)══════════════
-
-        /// <summary>F2 公式谓词面(测试自持,纯函数)。
-        /// 语义 = GDD Formulas F2:混淆矩阵 M[t][j] + 三桶显式计数。</summary>
-        private static class F2Formula
-        {
-            /// <summary>一次判断记录(测试自持夹具)。</summary>
-            public sealed class CaseRecord
-            {
-                public int CaseId;
-                public ISet<string> Truth;      // D(c)
-                public ISet<string> Judged;     // J(c) = 全序最后一条
-                public bool HasCaseClosed;      // ∃ CaseClosed
-                public bool JudgmentMappable;   // judgment 携带病种枚举
-            }
-
-            /// <summary>计算混淆矩阵 + 三桶。
-            /// 返回 (matrix, nComorbid, nOpen, nUnmappable, nMatchedComorbid)。
-            /// matrix = Dictionary<(truth, judged), count>;truth/judged ∈ 病种枚举 ∪ 哨兵。</summary>
-            public static (Dictionary<(string, string), int> matrix, int nComorbid, int nOpen,
-                           int nUnmappable, int nMatchedComorbid)
-                Compute(IReadOnlyList<CaseRecord> records, ISet<string> diseaseEnum)
-            {
-                var matrix = new Dictionary<(string, string), int>();
-                int nComorbid = 0, nOpen = 0, nUnmappable = 0, nMatchedComorbid = 0;
-
-                foreach (var r in records)
-                {
-                    // 三桶:不可归类
-                    if (!r.HasCaseClosed) { nOpen++; continue; }
-                    if (!r.JudgmentMappable) { nUnmappable++; continue; }
-
-                    bool comorbid = r.Truth.Count >= 2 || r.Judged.Count >= 2;
-                    if (comorbid)
-                    {
-                        nComorbid++;
-                        if (SetEquals(r.Judged, r.Truth)) nMatchedComorbid++;
-                        continue;   // 共病不进矩阵
-                    }
-
-                    // Scorable_single:|D| ≤ 1 ∧ |J| ≤ 1
-                    string t = r.Truth.Count == 0 ? "无病" : r.Truth.First();
-                    string j = r.Judged.Count == 0 ? "未落笔" : r.Judged.First();
-                    if (!diseaseEnum.Contains(t) && t != "无病") { nUnmappable++; continue; }
-                    if (!diseaseEnum.Contains(j) && j != "未落笔") { nUnmappable++; continue; }
-
-                    var key = (t, j);
-                    matrix[key] = matrix.GetValueOrDefault(key) + 1;
-                }
-                return (matrix, nComorbid, nOpen, nUnmappable, nMatchedComorbid);
-            }
-
-            /// <summary>集合相等(含 ∅ == ∅ 判对)。</summary>
-            public static bool SetEquals(ISet<string> a, ISet<string> b)
-                => a.SetEquals(b);
-        }
+        // ⚠️ S19 修复(TD-epic-01):原「测试自持谓词面」已删除 ——
+        //    谓词面上移为生产类 `DaYiJingCheng.Telemetry.MisdiagnosisMatrixMetrics`
+        //    (ADR-019 §一;那个自持面在普查里被判为「AC 语义层无生产主语」)。
+        //    本文件现在**只做夹具 + 断言**,不再自带公式。
 
         // ══════════════ AC-51-B5:F2 与 F1 同源 + 差额记账 ══════════════
 
@@ -89,18 +38,18 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         {
             // Arrange:夹具含 D=∅∧J=∅、D={t}∧J=∅ 与共病判对各 ≥ 1 例
             var diseaseEnum = new HashSet<string> { "X", "Y" };
-            var records = new List<F2Formula.CaseRecord>
+            var records = new List<MisdiagnosisMatrixMetrics.CaseRecord>
             {
-                new F2Formula.CaseRecord { CaseId = 1, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "X" }, HasCaseClosed = true, JudgmentMappable = true },  // M[X][X]
-                new F2Formula.CaseRecord { CaseId = 2, Truth = new HashSet<string>(), Judged = new HashSet<string>(), HasCaseClosed = true, JudgmentMappable = true },               // M[无病][未落笔]
-                new F2Formula.CaseRecord { CaseId = 3, Truth = new HashSet<string> { "X", "Y" }, Judged = new HashSet<string> { "X", "Y" }, HasCaseClosed = true, JudgmentMappable = true }, // 共病判对
-                new F2Formula.CaseRecord { CaseId = 4, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "Y" }, HasCaseClosed = true, JudgmentMappable = true },  // M[X][Y] 判错
-                new F2Formula.CaseRecord { CaseId = 5, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string>(), HasCaseClosed = true, JudgmentMappable = true },     // M[X][未落笔] 单病种未落笔
-                new F2Formula.CaseRecord { CaseId = 6, Truth = new HashSet<string>(), Judged = new HashSet<string> { "X" }, HasCaseClosed = true, JudgmentMappable = true },     // M[无病][X] 误开方
+                new MisdiagnosisMatrixMetrics.CaseRecord { CaseId = 1, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "X" }, HasCaseClosed = true, JudgmentMappable = true },  // M[X][X]
+                new MisdiagnosisMatrixMetrics.CaseRecord { CaseId = 2, Truth = new HashSet<string>(), Judged = new HashSet<string>(), HasCaseClosed = true, JudgmentMappable = true },               // M[无病][未落笔]
+                new MisdiagnosisMatrixMetrics.CaseRecord { CaseId = 3, Truth = new HashSet<string> { "X", "Y" }, Judged = new HashSet<string> { "X", "Y" }, HasCaseClosed = true, JudgmentMappable = true }, // 共病判对
+                new MisdiagnosisMatrixMetrics.CaseRecord { CaseId = 4, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "Y" }, HasCaseClosed = true, JudgmentMappable = true },  // M[X][Y] 判错
+                new MisdiagnosisMatrixMetrics.CaseRecord { CaseId = 5, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string>(), HasCaseClosed = true, JudgmentMappable = true },     // M[X][未落笔] 单病种未落笔
+                new MisdiagnosisMatrixMetrics.CaseRecord { CaseId = 6, Truth = new HashSet<string>(), Judged = new HashSet<string> { "X" }, HasCaseClosed = true, JudgmentMappable = true },     // M[无病][X] 误开方
             };
 
             // Act
-            var (matrix, nComorbid, _, _, nMatchedComorbid) = F2Formula.Compute(records, diseaseEnum);
+            var (matrix, nComorbid, _, _, nMatchedComorbid) = MisdiagnosisMatrixMetrics.Compute(records, diseaseEnum);
 
             // Assert:F1a 恒等式三项
             int diagonal = matrix.Where(kv => kv.Key.Item1 == kv.Key.Item2 && kv.Key.Item1 != "无病")
@@ -136,17 +85,17 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         {
             // Arrange:夹具含三类不可归类例(含 |D|≥2 与 |J|≥2 两条共病路径)
             var diseaseEnum = new HashSet<string> { "X", "Y" };
-            var records = new List<F2Formula.CaseRecord>
+            var records = new List<MisdiagnosisMatrixMetrics.CaseRecord>
             {
-                new F2Formula.CaseRecord { CaseId = 1, Truth = new HashSet<string> { "X", "Y" }, Judged = new HashSet<string> { "X" }, HasCaseClosed = true, JudgmentMappable = true },   // ① 共病(|D|≥2)
-                new F2Formula.CaseRecord { CaseId = 2, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "X" }, HasCaseClosed = false, JudgmentMappable = true },    // ② 未结案
-                new F2Formula.CaseRecord { CaseId = 3, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "Unknown" }, HasCaseClosed = true, JudgmentMappable = false }, // ③ 不可映射
-                new F2Formula.CaseRecord { CaseId = 4, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "X" }, HasCaseClosed = true, JudgmentMappable = true },     // 正常判对
-                new F2Formula.CaseRecord { CaseId = 5, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "X", "Y" }, HasCaseClosed = true, JudgmentMappable = true }, // ①' 共病(|J|≥2)
+                new MisdiagnosisMatrixMetrics.CaseRecord { CaseId = 1, Truth = new HashSet<string> { "X", "Y" }, Judged = new HashSet<string> { "X" }, HasCaseClosed = true, JudgmentMappable = true },   // ① 共病(|D|≥2)
+                new MisdiagnosisMatrixMetrics.CaseRecord { CaseId = 2, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "X" }, HasCaseClosed = false, JudgmentMappable = true },    // ② 未结案
+                new MisdiagnosisMatrixMetrics.CaseRecord { CaseId = 3, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "Unknown" }, HasCaseClosed = true, JudgmentMappable = false }, // ③ 不可映射
+                new MisdiagnosisMatrixMetrics.CaseRecord { CaseId = 4, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "X" }, HasCaseClosed = true, JudgmentMappable = true },     // 正常判对
+                new MisdiagnosisMatrixMetrics.CaseRecord { CaseId = 5, Truth = new HashSet<string> { "X" }, Judged = new HashSet<string> { "X", "Y" }, HasCaseClosed = true, JudgmentMappable = true }, // ①' 共病(|J|≥2)
             };
 
             // Act
-            var (matrix, nComorbid, nOpen, nUnmappable, _) = F2Formula.Compute(records, diseaseEnum);
+            var (matrix, nComorbid, nOpen, nUnmappable, _) = MisdiagnosisMatrixMetrics.Compute(records, diseaseEnum);
 
             // Assert:三桶各等于该类例数(含 |D|≥2 与 |J|≥2 两条共病路径)
             Assert.That(nComorbid, Is.EqualTo(2), "N_comorbid = 2(案例 1 |D|≥2 + 案例 5 |J|≥2)");

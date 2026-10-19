@@ -6238,3 +6238,41 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
   ⑤ `ITelemetrySource` / `ITelemetrySink` 未实现(4 条 Ignore 挂着)。
   ⇒ **10 条 story 的 `Complete` 本批不动**,只还了 story-002 的谓词面一条。
 - **未提交**。
+
+## Session Extract — S19b 续还 TD-epic-01(四片)· 2026-10-19
+
+- **② 七个谓词面全上移**(子代理执行 + 编排方独立复核):7 类 17 方法体,**零公式变更**
+  (`git show HEAD:` 作原子典,brace-match 逐字比对,`ComputeSessionSpan`/`ComputeRhythm` 归一缩进后 diff 为空)。
+  命名处理:`F6F7Formula`→`SessionRhythmMetrics`;`blank_and_degraded` 的 `FoldEngine`→`TickFoldEngine`(不改会 CS0101 撞 story-008 的同名类)。
+  ⚠️ **一处无效功已登记**:`blank_and_degraded` 对原私有类**零调用点**(走本地替身)⇒ `TickFoldEngine` 上移后测试仍未驱动它。
+- **③ 契约面**:`ITelemetrySource`(恰好三个 `Read*`,对应 ADR-009 三流)+ `ITelemetrySink`(零 `Upload`/`Send`/`Post`)
+  ⇒「只读」与「零出厂」成为**编译期不可表达**。**同时收窄一条过宽判据**(原扫方法名含 `Write` ⇒ 误杀 ADR-019 §五 允许的本地导出;
+  AC-19-04 宾语逐字是「无 `IEventSink.Append` 调用点」)。`asmdefNoCycle` 两个 Ignore 改真判据。
+- **④ 还原器 + 导出**:`JudgmentStreamReducer`(全序取末条 / Scorious 语义 / 解码失败可观测)+ `MetricsReport`(整数对 / Q16.16 显式舍入 / 分母 0 报「分母 0」)。
+  **为何用解码委托**:`PayloadRef` 只寻址,内容要 `Sim.Codec` 的 decoder,而本装配引用集被 AC-51-A2 钉死 ⇒ 物理上引不到 ⇒ 委托注入(ADR-031 同型)。
+- **判别力 12 条变异全转红**(改生产码,非删断言)。⚠️ **两轮「变异没转红」根因不同,都查清了**:
+  ① 还原器 M1(取首条)不红 = **夹具弱**(两条判断解出同一集合 ⇒ 取首取末无差别)⇒ 修夹具后转红;
+  ② 导出 M1(舍入)不红 = **变异式写错**(`(n+d/2)/d` 与半远离零**等价**,不是 ties-even)⇒ 换真 ties-to-even 后转红。
+  ⇒ **新纪律:「变异没转红」先分清夹具弱还是变异假,两者都要修但不能混为一谈。**
+- **实现中抓到自己的生产 bug**:`CaseClosed` 分支里我写了 `if (!truthOf.ContainsKey(...)) { }` 空语句 + 错误的 caseOrder 门 ⇒
+  有真值无判断的 case 会漏进 caseOrder 再被第二遍丢掉(逻辑碰巧对但绕)。已改为两遍职责清晰:首遍只收集,末遍统一判 Scorable。
+- **回归**:`3812/3775/1/36`(`unity/Logs/s19b-epic01-full.xml`)vs `3805/3769/0/36` ⇒ total **+7** = 新增测数;唯一红 = `TD-player-01` 间歇(不抵扣)。
+- 🔴 **仍未还**:① **调试视图**;② **装配层未接线**(生产零调用 —— 还原器今天只有 EditMode 驱动 ⇒ F1 在生产里仍算不出来);
+  ③ 3 条 Ignore;④ 10 条 story 的 `Complete` 一条未动。⇒ 状态 = **偿还中,不是已修好**。
+- **未提交**。
+
+## Session Extract — S19c TD-epic-01 第五片:接线到 CompositionRoot · 2026-10-19
+
+- **接线件**:`Gameplay.Boot/TelemetryReporter.cs`(解码委托的**生产实现**)+ `CompositionRootServices.Telemetry` 属性
+  (ctor 尾 `new TelemetryReporter(stream, decoder)` —— 两形参本就是该 ctor 入参 ⇒ **零新装配边、零签名变动**)。
+- **为何必须补判据**:接线前四片只被「编译过 + 零回归」证明,**没有任何测试调用过** `TelemetryReporter`
+  —— 那正是普查批的形态。补 `telemetry_wiring_test.cs` 7 条,全部用**真** EventStream + 真 Encoder/Decoder + 真 blob 池。
+- **证伪 3/3 转红**(改生产码):M1 位掩码当单值 · M2 取错字段域 · M3 解码失败当 0。
+  ⚠️ M3 首轮不红 = **夹具缺损坏场景**(跳过 vs 当 0 不可观测)⇒ 补「用 CaseClosed 编码却以 JudgmentRecorded Kind 入流」的损坏用例后转红。
+- **只读不变量判据首版过宽,被自己的断言打红**:扫「字段类型实现 IEventSink」命中 `_stream: EventStream`
+  (具体类恰好实现该接口,但只用其只读快照)⇒ 收窄为「字段**声明类型**就是 IEventSink」+「无 Append/Emit 方法」。
+- ⚠️ **过程失误**:给 `Gameplay.Boot.asmdef` 手写 JSON 注释 ⇒ asmdef 不支持注释 ⇒ Unity `JSON parse error`。
+  已修。**教训:asmdef 只写合法 JSON**(上一批加 EditMode 引用没犯,这批加了)。
+- **回归**:`3819/3782/1/36`(`unity/Logs/s19c-wiring-full.xml`)vs `3812/3775/1/36` ⇒ **+7 = 新增测数**,唯一红 = `TD-player-01` 间歇。
+- 🔴 **仍未还**:① **调试视图**;② F2–F7 还原器接线(`AllMetricsReport` 已自陈未接,夹具钉住);③ 3 条 Ignore;④ 10 条 story 的 `Complete` 一条未动。
+- **未提交**。

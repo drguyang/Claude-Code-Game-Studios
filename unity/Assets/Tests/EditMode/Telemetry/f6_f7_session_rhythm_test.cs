@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DaYiJingCheng.Telemetry;
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.Unit.Telemetry
@@ -24,62 +25,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
     [TestFixture]
     internal sealed class F6F7SessionRhythmTest
     {
-        // ══════════════ F6/F7 公式(测试自持谓词面,零生产依赖)══════════════
-
-        /// <summary>F6/F7 公式谓词面(测试自持,纯函数)。
-        /// 语义 = GDD Formulas F6/F7:SessionSpan 可审计 + 上中位数 + MAD + 退化处理。</summary>
-        private static class F6F7Formula
-        {
-            /// <summary>一条事件(测试自持夹具)。</summary>
-            public sealed class SimEvent
-            {
-                public long Tick;
-            }
-
-            /// <summary>F6:计算 SessionSpan = Tick_max − Tick_min。
-            /// 返回 (tickMin, tickMax, sessionSpan, eventCount)。
-            /// 空流 ⇒ (0, 0, 0, 0);单事件 ⇒ span = 0(合法)。</summary>
-            public static (long tickMin, long tickMax, long sessionSpan, int eventCount)
-                ComputeSessionSpan(IReadOnlyList<SimEvent> events)
-            {
-                if (events.Count == 0) return (0, 0, 0, 0);
-                long min = events.Min(e => e.Tick);
-                long max = events.Max(e => e.Tick);
-                return (min, max, max - min, events.Count);
-            }
-
-            /// <summary>F7:计算节律指标(上中位数 + MAD + Δ_min + Δ_max + GapCount)。
-            /// 返回 (deltaMedian, deltaMad, deltaMin, deltaMax, gapCount, defined)。
-            /// n < 2 ⇒ 无 Δ 序列 ⇒ (0, 0, 0, 0, 0, false)——「不可定义」≠ 0。</summary>
-            public static (int deltaMedian, int deltaMad, int deltaMin, int deltaMax, int gapCount, bool defined)
-                ComputeRhythm(IReadOnlyList<SimEvent> events, int gapThreshold)
-            {
-                int n = events.Count;
-                if (n < 2) return (0, 0, 0, 0, 0, false);   // 退化:无 Δ 序列
-
-                // Δ_i = Tick(e_{i+1}) − Tick(e_i),i = 0…n−2
-                var deltas = new List<int>();
-                for (int i = 0; i < n - 1; i++)
-                    deltas.Add((int)(events[i + 1].Tick - events[i].Tick));
-
-                // 上中位数:m = n-1 个 Δ,排序后第 ⌈m/2⌉ 项(1-indexed),禁插值
-                var sorted = deltas.OrderBy(d => d).ToList();
-                int median = sorted[(n - 1 + 1) / 2 - 1];   // ⌈(n-1)/2⌉ 1-indexed → 0-indexed
-
-                // Δ_MAD = median(|Δ_i − Δ_median|)
-                var absDeviations = deltas.Select(d => Math.Abs(d - median)).OrderBy(d => d).ToList();
-                int mad = absDeviations[(n - 1 + 1) / 2 - 1];
-
-                // Δ_min / Δ_max
-                int deltaMin = sorted.First();
-                int deltaMax = sorted.Last();
-
-                // GapCount = |{i : Δ_i > GAP_THRESHOLD}|
-                int gapCount = deltas.Count(d => d > gapThreshold);
-
-                return (median, mad, deltaMin, deltaMax, gapCount, true);
-            }
-        }
+        // ⚠️ S19 修复(TD-epic-01):原「测试自持谓词面」已删除 ——
+        //    谓词面上移为生产类 `DaYiJingCheng.Telemetry.SessionRhythmMetrics`
+        //    (ADR-019 §一;那个自持面在普查里被判为「AC 语义层无生产主语」)。
+        //    本文件现在**只做夹具 + 断言**,不再自带公式。
 
         // ══════════════ AC-51-B15:F6 可审计 ══════════════
 
@@ -89,13 +38,13 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f6_auditable_singleEventSpanZero()
         {
             // Arrange:单事件
-            var events = new List<F6F7Formula.SimEvent>
+            var events = new List<SessionRhythmMetrics.SimEvent>
             {
-                new F6F7Formula.SimEvent { Tick = 42 },
+                new SessionRhythmMetrics.SimEvent { Tick = 42 },
             };
 
             // Act
-            var (tickMin, tickMax, sessionSpan, eventCount) = F6F7Formula.ComputeSessionSpan(events);
+            var (tickMin, tickMax, sessionSpan, eventCount) = SessionRhythmMetrics.ComputeSessionSpan(events);
 
             // Assert:可审计(同时输出三量)
             Assert.That(tickMin, Is.EqualTo(42), "Tick_min = 42");
@@ -111,10 +60,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f6_emptyStream_returnsZero()
         {
             // Arrange:空流
-            var events = new List<F6F7Formula.SimEvent>();
+            var events = new List<SessionRhythmMetrics.SimEvent>();
 
             // Act
-            var (tickMin, tickMax, sessionSpan, eventCount) = F6F7Formula.ComputeSessionSpan(events);
+            var (tickMin, tickMax, sessionSpan, eventCount) = SessionRhythmMetrics.ComputeSessionSpan(events);
 
             // Assert
             Assert.That(tickMin, Is.EqualTo(0));
@@ -128,15 +77,15 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f6_multiEvent_spanPositive()
         {
             // Arrange
-            var events = new List<F6F7Formula.SimEvent>
+            var events = new List<SessionRhythmMetrics.SimEvent>
             {
-                new F6F7Formula.SimEvent { Tick = 10 },
-                new F6F7Formula.SimEvent { Tick = 20 },
-                new F6F7Formula.SimEvent { Tick = 35 },
+                new SessionRhythmMetrics.SimEvent { Tick = 10 },
+                new SessionRhythmMetrics.SimEvent { Tick = 20 },
+                new SessionRhythmMetrics.SimEvent { Tick = 35 },
             };
 
             // Act
-            var (tickMin, tickMax, sessionSpan, eventCount) = F6F7Formula.ComputeSessionSpan(events);
+            var (tickMin, tickMax, sessionSpan, eventCount) = SessionRhythmMetrics.ComputeSessionSpan(events);
 
             // Assert
             Assert.That(tickMin, Is.EqualTo(10));
@@ -154,17 +103,17 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f7_upperMedian_evenCount_noInterpolation()
         {
             // Arrange:偶数项 Δ 序列(4 个事件 ⇒ 3 个 Δ,奇数项;用 5 事件 ⇒ 4 个 Δ,偶数项)
-            var events = new List<F6F7Formula.SimEvent>
+            var events = new List<SessionRhythmMetrics.SimEvent>
             {
-                new F6F7Formula.SimEvent { Tick = 10 },  // Δ: 2, 5, 1, 3
-                new F6F7Formula.SimEvent { Tick = 12 },
-                new F6F7Formula.SimEvent { Tick = 17 },
-                new F6F7Formula.SimEvent { Tick = 18 },
-                new F6F7Formula.SimEvent { Tick = 21 },
+                new SessionRhythmMetrics.SimEvent { Tick = 10 },  // Δ: 2, 5, 1, 3
+                new SessionRhythmMetrics.SimEvent { Tick = 12 },
+                new SessionRhythmMetrics.SimEvent { Tick = 17 },
+                new SessionRhythmMetrics.SimEvent { Tick = 18 },
+                new SessionRhythmMetrics.SimEvent { Tick = 21 },
             };
 
             // Act
-            var (deltaMedian, _, _, _, _, defined) = F6F7Formula.ComputeRhythm(events, gapThreshold: 100);
+            var (deltaMedian, _, _, _, _, defined) = SessionRhythmMetrics.ComputeRhythm(events, gapThreshold: 100);
 
             // Assert:Δ = [2, 5, 1, 3],排序 = [1, 2, 3, 5],上中位数 = 第 ⌈4/2⌉ = 第 2 项 = 2
             Assert.That(defined, Is.True);
@@ -178,16 +127,16 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f7_upperMedian_oddCount()
         {
             // Arrange:4 事件 ⇒ 3 个 Δ(奇数项)
-            var events = new List<F6F7Formula.SimEvent>
+            var events = new List<SessionRhythmMetrics.SimEvent>
             {
-                new F6F7Formula.SimEvent { Tick = 10 },  // Δ: 3, 1, 4
-                new F6F7Formula.SimEvent { Tick = 13 },
-                new F6F7Formula.SimEvent { Tick = 14 },
-                new F6F7Formula.SimEvent { Tick = 18 },
+                new SessionRhythmMetrics.SimEvent { Tick = 10 },  // Δ: 3, 1, 4
+                new SessionRhythmMetrics.SimEvent { Tick = 13 },
+                new SessionRhythmMetrics.SimEvent { Tick = 14 },
+                new SessionRhythmMetrics.SimEvent { Tick = 18 },
             };
 
             // Act
-            var (deltaMedian, _, _, _, _, defined) = F6F7Formula.ComputeRhythm(events, gapThreshold: 100);
+            var (deltaMedian, _, _, _, _, defined) = SessionRhythmMetrics.ComputeRhythm(events, gapThreshold: 100);
 
             // Assert:Δ = [3, 1, 4],排序 = [1, 3, 4],上中位数 = 第 ⌈3/2⌉ = 第 2 项 = 3
             Assert.That(defined, Is.True);
@@ -202,13 +151,13 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f7_degenerate_singleEvent_reportsUndefined()
         {
             // Arrange:单事件(零个 Δ)
-            var events = new List<F6F7Formula.SimEvent>
+            var events = new List<SessionRhythmMetrics.SimEvent>
             {
-                new F6F7Formula.SimEvent { Tick = 42 },
+                new SessionRhythmMetrics.SimEvent { Tick = 42 },
             };
 
             // Act
-            var (_, _, _, _, _, defined) = F6F7Formula.ComputeRhythm(events, gapThreshold: 100);
+            var (_, _, _, _, _, defined) = SessionRhythmMetrics.ComputeRhythm(events, gapThreshold: 100);
 
             // Assert:报「不可定义」,不得报 0
             Assert.That(defined, Is.False, "n = 1 ⇒ 无 Δ 序列 ⇒ 不可定义(不得报 0)");
@@ -219,14 +168,14 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f7_twoEvents_madZeroIsLegal()
         {
             // Arrange:2 事件 ⇒ 1 个 Δ
-            var events = new List<F6F7Formula.SimEvent>
+            var events = new List<SessionRhythmMetrics.SimEvent>
             {
-                new F6F7Formula.SimEvent { Tick = 10 },
-                new F6F7Formula.SimEvent { Tick = 15 },  // Δ = 5
+                new SessionRhythmMetrics.SimEvent { Tick = 10 },
+                new SessionRhythmMetrics.SimEvent { Tick = 15 },  // Δ = 5
             };
 
             // Act
-            var (deltaMedian, deltaMad, _, _, _, defined) = F6F7Formula.ComputeRhythm(events, gapThreshold: 100);
+            var (deltaMedian, deltaMad, _, _, _, defined) = SessionRhythmMetrics.ComputeRhythm(events, gapThreshold: 100);
 
             // Assert:Δ = [5],中位数 = 5,MAD = |5−5| = 0(合法)
             Assert.That(defined, Is.True, "n = 2 ⇒ 有 Δ 序列 ⇒ 可定义");
@@ -241,17 +190,17 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f7_gapCount_nonZero()
         {
             // Arrange
-            var events = new List<F6F7Formula.SimEvent>
+            var events = new List<SessionRhythmMetrics.SimEvent>
             {
-                new F6F7Formula.SimEvent { Tick = 10 },
-                new F6F7Formula.SimEvent { Tick = 12 },
-                new F6F7Formula.SimEvent { Tick = 17 },
-                new F6F7Formula.SimEvent { Tick = 18 },
-                new F6F7Formula.SimEvent { Tick = 21 },
+                new SessionRhythmMetrics.SimEvent { Tick = 10 },
+                new SessionRhythmMetrics.SimEvent { Tick = 12 },
+                new SessionRhythmMetrics.SimEvent { Tick = 17 },
+                new SessionRhythmMetrics.SimEvent { Tick = 18 },
+                new SessionRhythmMetrics.SimEvent { Tick = 21 },
             };
 
             // Act
-            var (_, _, _, _, gapCount, defined) = F6F7Formula.ComputeRhythm(events, gapThreshold: 2);
+            var (_, _, _, _, gapCount, defined) = SessionRhythmMetrics.ComputeRhythm(events, gapThreshold: 2);
 
             // Assert
             Assert.That(defined, Is.True);
@@ -266,17 +215,17 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f7_nonZeroMad()
         {
             // Arrange
-            var events = new List<F6F7Formula.SimEvent>
+            var events = new List<SessionRhythmMetrics.SimEvent>
             {
-                new F6F7Formula.SimEvent { Tick = 10 },
-                new F6F7Formula.SimEvent { Tick = 12 },
-                new F6F7Formula.SimEvent { Tick = 17 },
-                new F6F7Formula.SimEvent { Tick = 18 },
-                new F6F7Formula.SimEvent { Tick = 21 },
+                new SessionRhythmMetrics.SimEvent { Tick = 10 },
+                new SessionRhythmMetrics.SimEvent { Tick = 12 },
+                new SessionRhythmMetrics.SimEvent { Tick = 17 },
+                new SessionRhythmMetrics.SimEvent { Tick = 18 },
+                new SessionRhythmMetrics.SimEvent { Tick = 21 },
             };
 
             // Act
-            var (_, deltaMad, _, _, _, defined) = F6F7Formula.ComputeRhythm(events, gapThreshold: 100);
+            var (_, deltaMad, _, _, _, defined) = SessionRhythmMetrics.ComputeRhythm(events, gapThreshold: 100);
 
             // Assert
             Assert.That(defined, Is.True);
