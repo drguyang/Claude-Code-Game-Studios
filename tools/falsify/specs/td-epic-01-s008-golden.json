@@ -1,0 +1,83 @@
+{
+  "name": "TD-epic-01 story-008 C3 —— 黄金夹具(ADR-012)对生产面的判别力",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.Unit.Telemetry.TelemetryGoldenFixturesTest",
+  "unityProject": "unity",
+  "_note": [
+    "立规缘由:第十六片为 AC-51-C3 补了 ADR-012 黄金夹具载体 ——",
+    "独立 Python 参考实现(tests/golden/telemetry/golden_v1_reference.py)→ golden-v1.txt",
+    "→ EditMode 逐行断言(本件)。若 C# 侧把金标准「追认」而不是「对拍」,",
+    "则这条夹具恒绿 —— 本规格逐条改坏**生产侧**的求值面,断言对应行转红。",
+    "⚠️ 与 F5/F6(自指面)不同:本规格的变异全落在 unity/Assets/(生产/夹具本体),",
+    "**不改** tests/golden/telemetry/golden-v1.txt —— 金标准是判据,不是被测物。"
+  ],
+  "mutations": [
+    {
+      "name": "G1-t1-tiesToEven",
+      "file": "unity/Assets/Telemetry/MetricsReport.cs",
+      "line": 61,
+      "expect": "            long q = (2 * n + d) / (2 * d);         // ⌊(2n+d)/(2d)⌋ = 半远离零的整数商",
+      "replace": "            long q = n / d;         // FALSIFY-G1:裸截断(等价于 ties-toward-zero)",
+      "expectRed": [
+        "test_golden_t1_roundHalfAwayFromZero_matchesReference",
+        "test_golden_t2_toQ1616_matchesReference"
+      ],
+      "exactRed": true,
+      "_why": "把统一舍入退化成截断 ⇒ R02(2.5→2)/ R04(−2.5→−2)/ R08(−2/3→0)等行漂移 ⇒ T1 必红。这正是 ADR-006 §三 禁的 ties-to-even 同族的退化形态。⚠️ T2 也必红,且属**预期内**:`ToQ1616` 的实现就是 `return RoundHalfAwayFromZero(num << 16, den);`(MetricsReport.cs:82)⇒ T2 天然继承该舍入模式,破坏舍入必然同时打穿 T2。2026-10-19 首轮实跑(2 红)证实;原稿只写 T1 是**期望范围写窄**,非夹具缺陷。"
+    },
+    {
+      "name": "G2-t2-noExplicitRounding",
+      "file": "unity/Assets/Telemetry/MetricsReport.cs",
+      "line": 82,
+      "expect": "            return RoundHalfAwayFromZero(num << 16, den);",
+      "replace": "            return (num << 16) / den;",
+      "expectRed": [
+        "test_golden_t2_toQ1616_matchesReference"
+      ],
+      "exactRed": true,
+      "_why": "GDD R7 逐字:折标量必须被 RoundHalfAwayFromZero 包住。去掉 ⇒ Q01 2/3 由 43691 变 43690 ⇒ T2 红。注:T1 仍绿且属正当 —— 它只判 RoundHalfAwayFromZero 本身,G2 没改它。"
+    },
+    {
+      "name": "G3-t3-emptyJudgedCountedAsNoJudgement",
+      "file": "unity/Assets/Telemetry/JudgmentMetrics.cs",
+      "line": 109,
+      "expect": "                if (SetEquals(records[i].Judged, records[i].Truth)) correct++;",
+      "replace": "                if (records[i].Judged.Count > 0 && SetEquals(records[i].Judged, records[i].Truth)) continue; // FALSIFY-G3 无判断剔除",
+      "expectRed": [
+        "test_golden_t3_f1Metrics_matchesReference"
+      ],
+      "exactRed": true,
+      "_why": "把「落笔判空集」误当成「无判断」排除出分母 —— 这是 F1 最典型的语义错。`continue` 让 **所有** 案例都不计 correct,`F1_typical_a` 由 2,3 → 0,3 ⇒ T3 红;`F1_allWrong_a` 由 0,2 → 0,2 不变(它本来就 0 对),所以判别力在本条靠典型组承担。若仍绿 ⇒ 夹具对「判对计数」无判别力(BLOCKING)。"
+    },
+    {
+      "name": "G4-t4-emptyFoldSentinel",
+      "file": "unity/Assets/Telemetry/TickFoldEngine.cs",
+      "line": 58,
+      "expect": "            if (ticks.Count == 0) return (0, 0, 0, 0, 0);",
+      "replace": "            if (ticks.Count == 0) return (0, 0, 0, int.MaxValue, int.MinValue);",
+      "expectRed": [
+        "test_golden_t4_tickFold_matchesReference"
+      ],
+      "exactRed": true,
+      "_why": "空流改报哨兵值(而非 0,0,0,0,0)⇒ K02 行漂移 ⇒ T4 红。这条钉住「空白与退化场景」的语义:空 ≠ 哨兵。"
+    },
+    {
+      "name": "G5-guardReferenceImplementationDeleted",
+      "file": "unity/Assets/Tests/EditMode/Telemetry/determinism_golden_fixtures_test.cs",
+      "line": 234,
+      "expect": "            Assert.That(File.Exists(Path.Combine(dir, \"golden_v1_reference.py\")), Is.True,",
+      "replace": "            Assert.That(true, Is.True, // FALSIFY-G5 防自指守卫失效(判据被抹成常量 true)",
+      "expectRed": [],
+      "exactRed": false,
+      "skip": true,
+      "_skipReason": "【2026-10-19 实测判定:本变异不适合用「行替换」表达,已改为单手复验 —— 用户裁定 A】",
+      "_manualProof": {
+        "what": "降级断言 + 移走 tests/golden/telemetry/golden_v1_reference.py",
+        "command": "sed -i '234s/Is\\.True,/Is.Not.False,/' <测试文件> && mv golden_v1_reference.py golden_v1_reference.py.hidden && unity test unity --mode EditMode --filter DaYiJingCheng.Tests.Unit.Telemetry.TelemetryGoldenFixturesTest",
+        "observed": "total=5 passed=4 failed=1 —— test_golden_referenceImplementationExists_notSelfReferential 转红,报文「独立参考实现 `golden_v1_reference.py` 不在盘上 —— 金标准失去非自指来源,AC-51-C3 退化为「C# 自己对自己」/ Expected: not False / But was: False」",
+        "restore": "cp 备份回原文件 + 移回 .py,已 SHA-256 逐字节校验通过"
+      },
+      "_why": "本变异检验的是「防自指判据有没有判别力」。\n⚠️ **2026-10-19 三轮实跑全部逃逸,根因已查清 —— 是夹具结构让「单行替换」打不到它**:\n① 首轮 `Is.True → Is.Not.False` 逃逸。探针实测 `Is.Not.False` 对 `false` 照样失败(`Expected: not False / But was: False`)⇒ 它不是恒真形态;逃逸真因是**参考实现一直在盘上**,`File.Exists` 返回 true,两种写法都过。\n② 第二轮换成 `Assert.That(true, Is.True);` ⇒ 234–236 是**一条三行语句**,整行替换留下孤儿行 ⇒ `error CS1002: ; expected` ⇒ 编译失败(退出码 6,无 XML)。\n③ 第三轮保留行尾逗号、编译通过 ⇒ **仍全绿**。因为该测试**不止这一条断言**:同函数内还有「金标准存在」与「`py` 内容含零共享代码自陈」两条真判据兜底,且 `File.ReadAllText` 在文件存在时不抛。\n⇒ **用「改断言」测一条「查文件在不在」的测试,方法论上不成立** —— 判据来源是**环境**(文件是否在盘),不是代码。正确变异必须**改环境**,而行替换工具做不到。\n⇒ 故本变异 `skip: true`,判别力改由 `_manualProof` 的单手复验承载(真跑过、有 XML、有正确报文、有 SHA-256 还原校验),证据强度不低于变异轮,只是不在自动化流水线里。"
+    }
+  ]
+}

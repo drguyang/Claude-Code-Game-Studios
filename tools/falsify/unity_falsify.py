@@ -172,6 +172,24 @@ def run(repo: Path, spec: dict, guards, dry_run: bool, keep_logs: bool) -> int:
     try:
         for mut in mutations:
             name = mut["name"]
+
+            # ── skip:该变异**不适用行替换方法论**,判别力由 `_manualProof` 单手复验承载。
+            #    典型场景:被测判据的来源是**环境**(文件在不在盘)而非代码 ⇒ 改断言打不到它,
+            #    必须改环境,而行替换做不到。标 skip 而非删掉,是为把「为什么不适用」留在规格里。
+            if mut.get("skip"):
+                print(f"\n──── 跳过 {name}(skip:true)────")
+                print("  理由:" + str(mut.get("_skipReason", "(未写 _skipReason)")))
+                proof = mut.get("_manualProof") or {}
+                if proof:
+                    print(f"  单手复验({proof.get('what', '')}):")
+                    print(f"    命令 {proof.get('command', '')}")
+                    print(f"    实测 {proof.get('observed', '')}")
+                    print(f"    还原 {proof.get('restore', '')}")
+                else:
+                    print("  ⚠️ 标了 skip 却没给 _manualProof —— 该变异**没有任何判别力证据**")
+                    verdict = max(verdict, EXIT_ESCAPE)
+                continue
+
             print(f"\n──── 施加 {name}:{mut['file']}:{mut['line']} ────")
 
             # 每个变异都从**干净基线**出发(逐个施加、逐个还原 —— 不叠变异)

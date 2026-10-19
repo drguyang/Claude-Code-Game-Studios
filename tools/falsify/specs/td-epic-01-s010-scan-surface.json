@@ -1,0 +1,63 @@
+{
+  "name": "TD-epic-01 story-010 扫描面订正 —— E1/E2/E4/E5 是否真的看得到报告生产者",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.Unit.Telemetry.OutOfBoundsRejectionTest",
+  "unityProject": "unity",
+  "_note": [
+    "立规缘由:原 GetTelemetryTypes() 只扫 DaYiJingCheng.Telemetry 命名空间,",
+    "而报告生产者 TelemetryReporter / TelemetryDeveloperView 住在 Gameplay.Boot ——",
+    "E1/E2/E4/E5 四条判据对真正的出数路径视而不见。",
+    "本规格在**生产者**上注入违规,断言对应判据转红:",
+    "若仍绿 ⇒ 扫描面没扩到位(假绿) ⇒ 夹具 BLOCKING。"
+  ],
+  "mutations": [
+    {
+      "name": "F1-e5-switchFieldOnProducer",
+      "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
+      "line": 67,
+      "expect": "        public IEventAuthority EventAuthority { get; }",
+      "replace": "        public IEventAuthority EventAuthority { get; }\n        private bool _telemetryEnabled = true; // FALSIFY-F1:AC-51-E5 开关字段",
+      "expectRed": [
+        "test_e5_noSwitch_noSwitchFieldsInNamespace"
+      ],
+      "exactRed": true,
+      "_why": "在生产者的**字段**上加 enabled 开关 ⇒ E5 的字段名扫描须抓到。注:E5 另有一条 test_e5_noSwitch_noSwitchFields(非 InNamespace)—— 若它也红,说明两条扫同一面,属正当判别面,须在规格里补。"
+    },
+    {
+      "name": "F2-e4-causalFieldOnProducer",
+      "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
+      "line": 67,
+      "expect": "        public IEventAuthority EventAuthority { get; }",
+      "replace": "        public IEventAuthority EventAuthority { get; }\n        private int _attributionCount; // FALSIFY-F2:AC-51-E4 因果字段",
+      "expectRed": [
+        "test_e4_noCausation_noCausalFields"
+      ],
+      "exactRed": true,
+      "_why": "在生产者的**字段**上加 attribution ⇒ E4 须抓到。"
+    },
+    {
+      "name": "F3-e2-proposedFieldOnProducer",
+      "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
+      "line": 67,
+      "expect": "        public IEventAuthority EventAuthority { get; }",
+      "replace": "        public IEventAuthority EventAuthority { get; }\n        private int _suggestedValue; // FALSIFY-F3:AC-51-E2 建议值字段",
+      "expectRed": [
+        "test_e2_noWriteBack_noProposedFields"
+      ],
+      "exactRed": true,
+      "_why": "在生产者的**字段**上加 suggested ⇒ E2 建议值字段扫描须抓到。"
+    },
+    {
+      "name": "F4-e3-gapSentinelFiresWhenAuthorityAppears",
+      "file": "unity/Assets/Gameplay.Boot/SeenDiseaseProjector.cs",
+      "line": 46,
+      "expect": "    public sealed class SeenDiseaseProjector",
+      "replace": "    public sealed class FalsifyAuthority : IEventAuthority\n    {\n        public bool IsAuthority => true;\n        public bool IsHost => true;\n        public EventRollResult Roll(in RollRequest r) => default;\n    }\n\n    public sealed class SeenDiseaseProjector",
+      "expectRed": [
+        "test_e3_realOnline_nonHostRejected_gapSentinel"
+      ],
+      "exactRed": true,
+      "_why": "在生产树里放一个 `IEventAuthority` 实装(模拟 P1b 联机轮就绪)⇒ 缺口哨兵必须转红,逼出真判据。若仍绿,说明哨兵扫不到生产装配 —— 那它就是个恒绿的空壳(第五形态换了个名字)。"
+    }
+  ]
+}

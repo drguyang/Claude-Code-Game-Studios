@@ -68,3 +68,9 @@ See `docs/COLLABORATIVE-DESIGN-PRINCIPLE.md` for full protocol and examples.
 - batch 需独占工程 ⇒ 先 `pgrep` + 查 `unity/Temp/UnityLockfile` 确认编辑器已关;
   跑完提醒用户可重开编辑器。
 - 只有「必须图形界面/手动交互才能复现」的问题才请用户操作编辑器。
+- **`-projectPath` 必须指向 `unity/`,绝不能用仓库根(2026-10-19 实测踩坑)**:
+  仓库根**也有** `ProjectSettings/` + `Packages/`(git 跟踪),看起来像个工程,但**没有 `Assets/`**
+  ⇒ 写成 `-projectPath .` 且 cwd 是仓库根时,Unity 会在**仓库根**造出 `Library/` `Logs/` `Temp/`
+  和一串 `mono_crash.mem.*.blob`,然后在**没有 Assets 的空工程**上反复初始化、主线程空转不收敛。
+  **正确写法**:先 `cd unity`,再 `-projectPath "$PWD"`(或任何指向 `unity/` 的绝对路径)。
+  ⚠️ 相对路径(如 `-projectPath .`)会按 cwd 解析,而 cwd 可能被 shell 或工具链改掉 —— **不要依赖它**。

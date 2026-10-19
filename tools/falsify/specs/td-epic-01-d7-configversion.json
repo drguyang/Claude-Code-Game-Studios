@@ -1,0 +1,37 @@
+{
+  "name": "TD-epic-01 D7 —— ConfigVersion 不匹配标注 + 不出数 的判别力",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.Unit.Telemetry.BlankAndDegradedTest",
+  "unityProject": "unity",
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed)。",
+    "两个变异各停用 D7 的一条生产守卫:版本门早退 / 标注生成。",
+    "AC-51-D7 的末句「断言不存在『版本不符 ⇒ 自动按当前版本重算』的路径」由 F1 直接证。"
+  ],
+  "mutations": [
+    {
+      "name": "F1-configVersionEarlyExit",
+      "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
+      "line": 617,
+      "expect": "            if (configVersion.HasValue && !configVersion.Value.Match)",
+      "replace": "            if (false) // FALSIFY-F1:停用版本门早退(版本不符也照常出数)",
+      "expectRed": [
+        "test_d7_configVersionMismatch_flaggedAndNoMetrics"
+      ],
+      "exactRed": true,
+      "_why": "停用早退 ⇒ 版本不符时照常算出指标 ⇒ 报告里出现 F1a ⇒「不得出任何指标」断言红。这正是 AC 末句禁止的「自动按当前版本重算」路径。"
+    },
+    {
+      "name": "F2-configVersionBanner",
+      "file": "unity/Assets/Telemetry/ConfigVersionGate.cs",
+      "line": 48,
+      "expect": "            if (Match) return string.Empty;",
+      "replace": "            return string.Empty; // FALSIFY-F2:标注恒空",
+      "expectRed": [
+        "test_d7_configVersionMismatch_flaggedAndNoMetrics"
+      ],
+      "exactRed": true,
+      "_why": "标注恒空 ⇒ 版本不符时报告无「版本不匹配」字样 ⇒ 该夹具的标注断言红。早退仍在(仍不出数),故只红这一条、不红正向对照。"
+    }
+  ]
+}

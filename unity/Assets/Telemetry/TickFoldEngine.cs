@@ -5,6 +5,9 @@
 //   · D2:分母 0 ⇒ 输出整数对 (0,0) + 显式「分母 0/未定义」标记;不报 0/1、不报标量 0、不报 NaN
 //   · D3:Faulted 不产出半份 —— 状态 = Faulted 且中止;ITelemetrySink 零调用;
 //          本地文件未生成/未覆写(旧文件字节保持);无部分指标;不可自愈(后续 Compute() 从 Idle 重入)
+//         ⚠️ 生产主语在 `StreamIntegrity.cs`(`StreamIntegrity` + `ComputeSession`)与
+//            `Gameplay.Boot/TelemetryReporter.ComputeAndSink`;本类的 `Fold(IReadOnlyList<int>)` 仍是
+//            D1/D5/D6 的折叠面,D3 不在本类内承担。
 //   · D5:R7 整数纪律 —— 无 float/double;率以 (num, den) 承载;
 //          标量导出 = ROUND_HALF_AWAY_FROM_ZERO((num << 16) / den)
 //   · D6:规模不改变数值 —— 同一超长流以 FOLD_MEMORY_MODE 两值各重算,全部指标逐位相同
@@ -35,9 +38,11 @@ namespace DaYiJingCheng.Telemetry
     /// ⚠️ 上移台账(TD-epic-01):本类逐字搬自
     /// <c>Tests/EditMode/Telemetry/blank_and_degraded_test.cs</c> 的测试自持私有类
     /// <c>FoldEngine</c> —— **上移 = 逐字搬移,零公式变更**(含常量、哨兵与空流口径)。
-    /// <para>⚠️ 命名不与 story-008 上移的同名折叠器(<see cref="FoldEngine"/>)冲突 ——
-    /// 两支形状不同(本支折叠 <see cref="int"/> tick 序列,出五元组;story-008 支折叠
-    /// <see cref="FoldEngine.Event"/>,出 <see cref="FoldResult"/>),分属两个 story 的独立谓词面。</para>
+    /// <para>⚠️ **2026-10-19 第十六片订正**:story-008 上移的同类折叠器 `FoldEngine`
+    /// 经实测**全仓零生产调用点**(只被自己的夹具引用)⇒ 已删除;其 C1/C2 夹具改挂
+    /// **真实报告链**(`TelemetryReporter.JudgmentReport` → `JudgmentStreamReducer`
+    /// → `JudgmentMetrics.Compute` → `MetricsReport.Render`),不再另立第二折叠面。
+    /// 本类因此是全程序集**唯一**的「纯计数折叠」谓词面。</para>
     /// <para>⚠️ 上移时实测:测试内对原私有类**零调用点**(该文件 D1–D9 的断言走本地替身
     /// <c>FoldOutcome</c> / <c>ComputeEmpty</c> / <c>ComputeFaulted</c> / <c>ComputeTwoModes</c>)。
     /// 本件仍按 TD-epic-01 口径**逐字上移**(不因无调用点而丢弃谓词面),是否进一步改为

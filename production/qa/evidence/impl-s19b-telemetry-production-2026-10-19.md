@@ -933,3 +933,27 @@ rm -f test-results.xml && unity test unity --mode EditMode -- --log-file -
 # 期望:total 3912 / passed 3870 / failed 0 / skipped 41(第十三片后,`unity/Logs/s19j-cdea-full.xml`;
 #       若 TD-player-01 间歇复发则 failed 1 —— 该条与遥测无关,单跑 8/8 可复核)
 ```
+
+### 第十六片 —— story-009 的 D3/D5/D7 + story-010 扫描面 + story-008 夹具换锚(2026-10-19)
+
+**原判定 → 修复落点 → 验证命令**
+
+| # | 原判定 | 修复落点 | 验证命令(可复算) |
+|---|---|---|---|
+| 1 | story-009 D3/D5/D7 三条 `NOT-RUN`(「无生产主语」) | `Telemetry/StreamIntegrity.cs`(D3:E-4/E-5/E-6 + `ComputeSession` 不可自愈)· `Telemetry/ConfigVersionGate.cs`(D7)· `Gameplay.Boot/TelemetryReporter.ComputeAndSink`(sink 门) | `unity test unity --mode EditMode --filter DaYiJingCheng.Tests.Unit.Telemetry.BlankAndDegradedTest` ⇒ 11 测 8 passed + 3 skipped |
+| 2 | story-010 E1/E2/E4/E5 只扫 `Telemetry` 命名空间,报告生产者扫不到 | `out_of_bounds_rejection_test.cs`:`GetTelemetryTypes()` 并入两个生产者 `FullName` + `RequireNonEmptyScan` 取代 5 处 `Assert.Ignore` | `python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/td-epic-01-s010-scan-surface.json` ⇒ 退出码 0(3/3) |
+| 3 | story-008 C1/C2 断言跑在零生产调用点的 `FoldEngine` 上 | 删除 `FoldEngine`;C1/C2/C4 沿真实报告链重写 | `python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/td-epic-01-s008-recompute.json` ⇒ 退出码 0(6/6) |
+| 4 | **(新发现)** `TelemetryReporter` 两处解码器对 `JudgmentRevised` 用错载荷类型 ⇒ 改写史静默丢失 | `DecodeJudgmentRecord`(`:142-153`)· `DecodeMisdiagnosisRecord`(`:606` 起)改分支解;F2 侧新增回归夹具 | 证伪 F5 / F6 两变异分别转红对应夹具 |
+
+**第 4 项的证据链(逐字可复算)**:
+
+```bash
+# 修正前全量 3912 条测试中,**无一条**会红 —— 端到端夹具从不造改写事件
+grep -rln "EncodeJudgmentRevised" unity/Assets/Tests/EditMode/    # 修正前:0 命中
+grep -rln "EncodeJudgmentRevised" unity/Assets/Tests/EditMode/    # 修正后:f2_wiring_test.cs / pure_function_recomputable_test.cs
+```
+
+**口径登记(禁借绿)**:AC-51-C3 仍 NOT-RUN(ADR-012 载体未建)· AC-51-E3 真实联机半边仍 NOT-RUN
+(`IEventAuthority` 零生产实装)· 两条 story 均留 `In Review`。
+
+**全量回归**:`3921 / 3882 / 1 / 38`(`unity/Logs/s19p-full.xml`),唯一红 = `TD-player-01` 既有间歇。

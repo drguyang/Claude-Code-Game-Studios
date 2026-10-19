@@ -1,0 +1,91 @@
+{
+  "name": "TD-epic-01 story-008 C1/C2 —— 夹具换锚到真实报告链后的判别力",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.Unit.Telemetry.PureFunctionRecomputableTest|DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest",
+  "unityProject": "unity",
+  "_note": [
+    "立规缘由:第十六片把 C1/C2 从孤儿类 `FoldEngine` 改挂到真实报告链",
+    "(TelemetryReporter.JudgmentReport → JudgmentStreamReducer → JudgmentMetrics → MetricsReport),",
+    "并删除了 `FoldEngine`(全仓零生产调用点)。",
+    "本规格逐条停用链上的守卫,断言对应夹具转红 —— 仍绿即假绿。",
+    "⚠️ F1 的变异同时是**生产缺陷的回归夹具**:第十六片实测发现两处",
+    "`Decode<JudgmentRecordedPayload>(JudgmentRevised, …)` 类型错配(F1 与 F2 各一处),",
+    "改写事件被静默计进 skipped —— 停用该修复 ⇒ C1/C2 立即红。"
+  ],
+  "mutations": [
+    {
+      "name": "F1-reducer-revisionFlagDropped",
+      "file": "unity/Assets/Telemetry/JudgmentStreamReducer.cs",
+      "line": 111,
+      "expect": "                        if (d.IsRevision || e.Kind == EventKind.JudgmentRevised)",
+      "replace": "                        if (false) // FALSIFY-F1:改写史整段丢失",
+      "expectRed": [
+        "test_c1_sameStreamTwiceBitwiseIdentical",
+        "test_c1_q1616ScalarExport_bitwiseIdenticalTwice"
+      ],
+      "exactRed": true,
+      "_why": "还原「改写史丢失」的**唯一真实守卫** = `JudgmentStreamReducer:111` 的 `d.IsRevision ∨ e.Kind==JudgmentRevised`。⚠️ 前两版变异都**逃逸**,根因实测:① 只改 `TelemetryReporter` 的 IsRevision 参数 → 被 `e.Kind` 兜底挡住;② 同一行写 `false) // …` → 行尾同行注释把 `||` 连同行末分号一起注掉,语义未变。⇒ 单点坏不掉这条判据,正是**双面守卫**的设计意图;本变异把整条判据停用(两面同时失效),才对应「改写史真的丢了」这一可观测后果 ⇒ F1b 1/3 → 0/3,两条经 `Reduce` 取真值的夹具都必须看见。"
+    },
+    {
+      "name": "F2-tickfold-caseSeqCollapse",
+      "file": "unity/Assets/Tests/EditMode/Telemetry/pure_function_recomputable_test.cs",
+      "line": 318,
+      "expect": "                new CaseClosedPayload(2, new CaseId(2, 1, 2), new DiseaseIdSet(1UL << 1), true));",
+      "replace": "                new CaseClosedPayload(2, new CaseId(2, 1, 1), new DiseaseIdSet(1UL << 1), true));",
+      "expectRed": [
+        "test_c1_sameStreamTwiceBitwiseIdentical",
+        "test_c1_q1616ScalarExport_bitwiseIdenticalTwice"
+      ],
+      "exactRed": false,
+      "_why": "把案 b 的 CaseId 三元组退回与案 a 相同 ⇒ 两案在 reducer 里坍缩成一条(第十六片实际踩过的坑)。这是**夹具自身**的判别力检验:C1 的黄金值断言(2/3)必须抓到它,否则夹具只是「两次都一样」的空断言。"
+    },
+    {
+      "name": "F3-q1616-tiesToEven",
+      "file": "unity/Assets/Telemetry/MetricsReport.cs",
+      "line": 82,
+      "expect": "            return RoundHalfAwayFromZero(num << 16, den);",
+      "replace": "            return (num << 16) / den;",
+      "expectRed": [
+        "test_c1_q1616ScalarExport_bitwiseIdenticalTwice"
+      ],
+      "exactRed": true,
+      "_why": "去掉显式舍入(C# `/` 是截断)⇒ 2/3 的 Q16.16 从 43691 变 43690 ⇒ 黄金值断言转红。这条同时钉住 GDD R7「必须由 RoundHalfAwayFromZero 包住」。"
+    },
+    {
+      "name": "F4-c2-persistentState",
+      "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
+      "line": 36,
+      "expect": "        private readonly IReadOnlyList<DiseaseRegistryEntry> _registry;",
+      "replace": "        private readonly IReadOnlyList<DiseaseRegistryEntry> _registry;\n        private int _computeCount; // FALSIFY-F4:R8/R9 违例 —— 跨调用持久状态",
+      "expectRed": [
+        "test_c2_twoEntriesSingleFold_sameValue_noPersistentState"
+      ],
+      "exactRed": true,
+      "_why": "在出数入口所在类上加一个可写实例字段 ⇒ C2 的「无跨调用持久状态」反射断言须抓到。仍绿 = 该断言没扫到 `TelemetryReporter`。"
+    },
+    {
+      "name": "F5-f1-f2decoder-revisedInWrongBranch",
+      "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
+      "line": 144,
+      "expect": "                            var rev = _decoder.Decode<JudgmentRevisedPayload>(kind, payloadRef);",
+      "replace": "                            var rev = _decoder.Decode<JudgmentRevisedPayload>(EventKind.JudgmentRecorded, payloadRef);",
+      "expectRed": [
+        "test_c1_sameStreamTwiceBitwiseIdentical"
+      ],
+      "exactRed": true,
+      "_why": "⚠️ **原缺陷的逐字复原,可编译形态**。原实现是 `Decode<JudgmentRecordedPayload>(kind=JudgmentRevised)` —— 会编译但必抛;本变异改成 `Decode<JudgmentRevisedPayload>(kind=JudgmentRecorded)`,同一道类型校验、同一后果(必抛 ⇒ 被 catch 成 skipped),只是错配的方向反过来,因而可编译。若本夹具**不红**,说明 story-008 夹具对「改写事件解码」这一环没有判别力。⚠️ 同一形状在 F2 解码器(`DecodeMisdiagnosisRecord`)另有一处,本变异只覆盖 F1 侧。 ⚠️ 实测 Q1616 那条**不红且属正当**:它走的是测试内自建的 `Reduce` 解码(经 reducer,不经 reporter) —— 该条判的是 MetricsReport 的定点导出,本就不覆盖 reporter 的解码分派。两条夹具的判别面在此处刻意分家。 ⚠️ 实测 F2 回归夹具**不红且属正当**:本变异只动 F1 的解码分支(`:144`),F2 走自己的 `DecodeMisdiagnosisRecord`(`:606`)—— 两个实例由 F5/F6 分别覆盖。"
+    },
+    {
+      "name": "F6-f2decoder-unifiedRecordedPayload",
+      "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
+      "line": 606,
+      "expect": "                        if (kind == EventKind.JudgmentRevised)",
+      "replace": "                        if (false && kind == EventKind.JudgmentRevised) // FALSIFY-F6:F2 侧统一按 Recorded 解",
+      "expectRed": [
+        "test_wired_judgmentRevised_decodedAsItsOwnPayload_noSkip"
+      ],
+      "exactRed": true,
+      "_why": "把 F2 解码分支的改写判断停用 ⇒ 改写事件走 `JudgmentRecordedPayload` 分支 ⇒ 类型校验必抛 ⇒ 计进 skipped ⇒ 回归夹具的 skipped==0 断言转红。"
+    }
+  ]
+}

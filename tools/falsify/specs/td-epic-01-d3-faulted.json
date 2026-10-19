@@ -1,0 +1,74 @@
+{
+  "name": "TD-epic-01 D3 —— Faulted 状态机 / 三流校验 / sink 门 的判别力",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.Unit.Telemetry.BlankAndDegradedTest",
+  "unityProject": "unity",
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed)。",
+    "四个变异各停用一条**生产守卫**:E-4 校验 / E-5 校验 / E-6 校验 / 不可自愈。",
+    "另有一条 sink 门变异(F5)停用 ComputeAndSink 的 Faulted 早退 —— 这是 AC-51-D3 的核心。"
+  ],
+  "mutations": [
+    {
+      "name": "F1-tickRegressionCheck",
+      "file": "unity/Assets/Telemetry/StreamIntegrity.cs",
+      "line": 149,
+      "expect": "                if (e.Tick < lastTick)",
+      "replace": "                if (false) // FALSIFY-F1:停用 E-4 Tick 回退校验",
+      "expectRed": [
+        "test_d3_tickRegression_faults",
+        "test_d3_faulted_notSelfHealing"
+      ],
+      "exactRed": true,
+      "_why": "停用 E-4 ⇒ 回退流不再 Faulted ⇒ ① 直接断言违规种类的夹具红;② 不可自愈测的前置「先造出 Faulted」失效 ⇒ 第一次 Compute 就得 Computed ⇒ 也红。两条都是该守卫的正当判别面。"
+    },
+    {
+      "name": "F2-seqGapCheck",
+      "file": "unity/Assets/Telemetry/StreamIntegrity.cs",
+      "line": 157,
+      "expect": "                    if (e.Seq != lastSeq + 1)",
+      "replace": "                    if (false) // FALSIFY-F2:停用 E-5 同组 Seq 连续性",
+      "expectRed": [
+        "test_d3_seqGap_faults"
+      ],
+      "exactRed": true,
+      "_why": "停用组内连续性 ⇒ {0,2,3} 不再判断号。⚠️ 跨组起点检查(另一处 `e.Seq != 0`)不动 —— 本夹具的违规在同组内,不受它影响。"
+    },
+    {
+      "name": "F3-casePatientInHistoryCheck",
+      "file": "unity/Assets/Telemetry/StreamIntegrity.cs",
+      "line": 189,
+      "expect": "                if (!known.Contains(e.Patient.Value))",
+      "replace": "                if (false) // FALSIFY-F3:停用 E-6 跨流病人一致性",
+      "expectRed": [
+        "test_d3_casePatientNotInHistory_faultsAndSinkUntouched"
+      ],
+      "exactRed": true,
+      "_why": "停用 E-6 ⇒ 病人 7 不在病史流也不再 Faulted ⇒ ComputeAndSink 判 Computed ⇒ sink 被调用 ⇒ 本条三条断言全失败(报为一条 fixture)。"
+    },
+    {
+      "name": "F4-sessionSelfHealing",
+      "file": "unity/Assets/Telemetry/StreamIntegrity.cs",
+      "line": 225,
+      "expect": "            if (_state == EvalState.Faulted) return EvalState.Faulted; // 不可自愈",
+      "replace": "            // FALSIFY-F4:停用「Faulted 不可自愈」早退",
+      "expectRed": [
+        "test_d3_faulted_notSelfHealing"
+      ],
+      "exactRed": true,
+      "_why": "停用早退 ⇒ 第二次喂好流会重新校验并得 Computed ⇒「须仍 Faulted」的断言红。"
+    },
+    {
+      "name": "F5-emitAllFaultedEarlyExit",
+      "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
+      "line": 693,
+      "expect": "            if (session.Compute(history, cases, Array.Empty<SimEvent>()) == EvalState.Faulted)",
+      "replace": "            if (session.Compute(history, cases, Array.Empty<SimEvent>()) == EvalState.Idle) // FALSIFY-F5:停用 sink 门",
+      "expectRed": [
+        "test_d3_casePatientNotInHistory_faultsAndSinkUntouched"
+      ],
+      "exactRed": true,
+      "_why": "AC-51-D3 的核心守卫:把「Faulted ⇒ 早退」改成恒假 ⇒ 坏流照常落 sink ⇒ 该夹具的 ComputeAndSink 断言红。⚠️ 改动后 `state` 也不再是 Faulted ⇒ 首条断言同时红,同属一个夹具。"
+    }
+  ]
+}

@@ -159,13 +159,194 @@ namespace DaYiJingCheng.Tests.Boot
                 "51 契约程序集不得承载调试视图入口(它会被**所有**构建编译):\n" + string.Join("\n", offenders));
         }
 
-        /// <summary>AC-51-D4 的**未覆盖半边** —— Release player 构建里入口不存在:本机只跑 EditMode
-        /// (编译宏含 `UNITY_EDITOR`)⇒ **NOT-RUN**,不记绿。</summary>
+        /// <summary>AC-51-D4 的 **Release 半边** —— Release player 构建里入口不存在。
+        /// <para><b>判据</b>:读**构建产物**的 `Gameplay.Boot.dll` 元数据,断言
+        /// `TelemetryDeveloperView` **零定义**;同时断言 `TelemetryReporter` **有定义** ——
+        /// 后者是**正向对照**,排除「扫描面失效 ⇒ 什么都找不到」的假绿(第五形态)。</para>
+        /// <para><b>为什么能在这里跑</b>:Release player 的 Managed 程序集是真实 DLL 文件,
+        /// 不是只能进 player 才看得见 —— 用 `Mono.Cecil`-等价手段(`Assembly.LoadFrom`)读元数据即可。
+        /// 2026-10-19 已用 `unity build --target StandaloneLinux64` 产出 Release player 于
+        /// `builds/release-d4/`,并用 `monodis --typedef` 交叉复核(Reporter 在 / DeveloperView 不在)。</para>
+        /// <para>⚠️ 产物缺失 ⇒ **硬红**,不跳过 —— 「没构建过」不是「通过」。</para></summary>
         [Test]
-        public void test_d4_releasePlayer_entryAbsent_NOT_RUN()
+        public void test_d4_releasePlayer_entryAbsent()
         {
-            Assert.Ignore("AC-51-D4 的 Release 半边 NOT-RUN:须 Release player 构建后反射扫描(本机仅 EditMode,宏含 UNITY_EDITOR);不得以源码形态判据代替");
+            string repoRoot = Path.GetFullPath(Path.Combine(UnityEngine.Application.dataPath, "..", ".."));
+            string dllPath = Path.Combine(repoRoot, "builds", "release-d4", "Boot_Data", "Managed",
+                                          "Gameplay.Boot.dll");
+
+            Assert.That(File.Exists(dllPath), Is.True,
+                "Release 产物缺失:" + dllPath + "\n" +
+                "  ⇒ 先跑 `unity build unity --target StandaloneLinux64 --output-path builds/release-d4/Boot.x86_64`。\n" +
+                "  ⇒ **不得**因产物缺失而跳过 —— 没构建过 ≠ 通过(禁借绿)。");
+
+            // ⚠️ **绝不能用 `Assembly.LoadFrom`**:Editor 运行时已加载同名 `Gameplay.Boot`
+            //    程序集(`Library/ScriptAssemblies`,含 DeveloperView),`LoadFrom` 会绑定到**那一份**
+            //    而不是磁盘上的构建产物 ⇒ 测的根本不是被测物(第五形态:扫不到被测装配)。
+            //    2026-10-19 实测:首版用 `LoadFrom` 得到「DeveloperView 仍然存在」的**假红**,
+            //    而 `monodis --typedef` 对同一文件的扫描结果是零定义。
+            //    ⚠️ 也不能用 `MetadataLoadContext`/`PEReader` —— 都是 .NET Core API,
+            //    本工程 netstandard2.1 + Unity 6.3 用不了。
+            //    ⇒ 走**手写元数据解析**:PE → CLI Header → Metadata Root → 流头 → `#Strings` + TypeDef 表。
+            //       只读字节,不加载、不执行、不参与程序集绑定。
+            byte[] image = File.ReadAllBytes(dllPath);
+            List<string> typeNames = ReadCliTypeNames(image);
+
+            // ── 正向对照:先证明扫描面有效 ──
+            Assert.That(typeNames, Is.Not.Empty,
+                "正向对照失败:TypeDef 表解析出 0 个类型 ⇒ 元数据解析本身失效,"
+                + "此时**不能**据「DeveloperView 找不到」判绿");
+            Assert.That(typeNames, Has.Some.Contains("TelemetryReporter"),
+                "正向对照失败:`TelemetryReporter` 在 Release 产物的 TypeDef 表里也找不到 ⇒ "
+                + "扫描面失效(解析错位 / 命名空间变了),此时**不能**判绿");
+
+            // ── 真正的判据 ──
+            Assert.That(typeNames, Has.None.Contains("TelemetryDeveloperView"),
+                "AC-51-D4 违例:Release player 的 TypeDef 表里仍有 `TelemetryDeveloperView` ⇒ "
+                + "`#if UNITY_EDITOR || DEVELOPMENT_BUILD` 没把它剔除干净");
         }
+
+        /// <summary>只读地枚举一个托管 DLL 的 **TypeDef 全名**(命名空间 + 名字)。
+        /// <para>不加载程序集、不执行代码 ⇒ 不会与 Editor 已加载的同名程序集发生绑定折叠。</para>
+        /// <para>支持的形态:PE32/PE32+ + CLI Header + 单一 Metadata Root。读不出即抛 —— **不猜**。</para></summary>
+        private static List<string> ReadCliTypeNames(byte[] p)
+        {
+            int pe = BitConverter.ToInt32(p, 0x3c);
+            Assert.That(p[pe] == 'P' && p[pe + 1] == 'E', Is.True, "不是有效 PE 文件");
+
+            int coff = pe + 4;
+            int nSections = BitConverter.ToUInt16(p, coff + 2);
+            int optSize = BitConverter.ToUInt16(p, coff + 16);
+            int opt = coff + 20;
+            bool pe32Plus = BitConverter.ToUInt16(p, opt) == 0x20b;
+            int dirBase = pe32Plus ? opt + 112 : opt + 96;
+            int cliRva = BitConverter.ToInt32(p, dirBase + 14 * 8);
+            Assert.That(cliRva, Is.GreaterThan(0), "无 CLI Header(不是托管程序集)");
+
+            int sectBase = opt + optSize;
+            int RvaToOffset(int rva)
+            {
+                for (int i = 0; i < nSections; i++)
+                {
+                    int s = sectBase + i * 40;
+                    uint vaddr = BitConverter.ToUInt32(p, s + 12);
+                    uint vsize = BitConverter.ToUInt32(p, s + 8);
+                    int rawSize = BitConverter.ToInt32(p, s + 16);
+                    int rawPtr = BitConverter.ToInt32(p, s + 20);
+                    if (rva >= vaddr && rva < vaddr + Math.Max(vsize, (uint)rawSize))
+                        return rawPtr + (int)(rva - vaddr);
+                }
+                throw new InvalidDataException($"RVA 0x{rva:x} 不在任何节内");
+            }
+
+            int cli = RvaToOffset(cliRva);
+            int mdRva = BitConverter.ToInt32(p, cli + 8);
+            int md = RvaToOffset(mdRva);
+            Assert.That(BitConverter.ToUInt32(p, md), Is.EqualTo(0x424A5342u), "Metadata Root 签名不符");
+
+            int verLen = BitConverter.ToInt32(p, md + 12);
+            int r = (md + 16 + verLen + 3) & ~3;          // Flags/Streams 起点须 4 字节对齐
+            int nStreams = BitConverter.ToUInt16(p, r + 2);
+            r += 4;
+
+            int stringsOff = -1;
+            for (int i = 0; i < nStreams; i++)
+            {
+                int off = BitConverter.ToInt32(p, r);
+                int size = BitConverter.ToInt32(p, r + 4);
+                int nameStart = r + 8;
+                var sb = new System.Text.StringBuilder();
+                while (p[nameStart + sb.Length] != 0) sb.Append((char)p[nameStart + sb.Length]);
+                r = (nameStart + sb.Length + 1 + 3) & ~3;
+                if (sb.ToString() == "#Strings") stringsOff = md + off;
+            }
+            Assert.That(stringsOff, Is.GreaterThan(0), "#Strings 流缺失");
+
+            string Str(uint idx)
+            {
+                int s = stringsOff + (int)idx;
+                var sb = new System.Text.StringBuilder();
+                while (p[s + sb.Length] != 0) sb.Append((char)p[s + sb.Length]);
+                return sb.ToString();
+            }
+
+            // TypeDef 表:列序 Flags(4) → Name(2) → Namespace(2) → …
+            const int TypeDefRows = 0x02;
+            var (tdOff, tdRows) = FindTable(p, md, TypeDefRows);
+
+            var names = new List<string>();
+            for (int i = 0; i < tdRows; i++)
+            {
+                int row = tdOff + i * TypeDefRowBytes;
+                string name = Str(BitConverter.ToUInt16(p, row + 4));
+                string ns = Str(BitConverter.ToUInt16(p, row + 6));
+                names.Add(string.IsNullOrEmpty(ns) ? name : ns + "." + name);
+            }
+            return names;
+        }
+
+        /// <summary>在 `#~` 流里定位 TypeDef(0x02)。
+        /// <para>TypeDef 之前只有 **Module(0x00)** 与 **TypeRef(0x01)** 两张表(表序恒为编号升序),
+        /// 故只需这两张的行宽。其余表**一律不解析** —— 少算一张表都不会影响本题。</para>
+        /// <para>只支持「小」形态:各表行数 &lt; 65536、`#Strings`/`#GUID`/`#Blob` 索引 2 字节。超出即抛 —— **不猜**。</para></summary>
+        private static (int offset, int rows) FindTable(byte[] p, int md, int target)
+        {
+            const int S = 2, G = 2;                 // #Strings / #GUID 索引(小形态)
+            Assert.That(target, Is.EqualTo(0x02), "本解析器只服务于 TypeDef 定位");
+
+            int verLen = BitConverter.ToInt32(p, md + 12);
+            int r = (md + 16 + verLen + 3) & ~3;          // Flags/Streams 起点须 4 字节对齐
+            int nStreams = BitConverter.ToUInt16(p, r + 2);
+            r += 4;
+            int tblOff = -1;
+            for (int i = 0; i < nStreams; i++)
+            {
+                int off = BitConverter.ToInt32(p, r);
+                int nameStart = r + 8;
+                var sb = new System.Text.StringBuilder();
+                while (p[nameStart + sb.Length] != 0) sb.Append((char)p[nameStart + sb.Length]);
+                r = (nameStart + sb.Length + 1 + 3) & ~3;
+                if (sb.ToString() == "#~") tblOff = md + off;
+            }
+            Assert.That(tblOff, Is.GreaterThan(0), "#~ 流缺失");
+
+            // 表头布局(ECMA-335 II.22):Reserved(4) · Major(1) · Minor(1) · HeapSizes(1) · Reserved2(1)
+            //                              · **Valid(8)** · **Sorted(8)** · 各表行数
+            // ⚠️ Valid 在 +8、Sorted 在 +16 —— 把 Sorted 当 Valid 会让「表在不在」全判错(实测踩过)。
+            // ⚠️ 用两段 UInt32 而不是 ToUInt64:这里只需存在性位图,分段读无代价。
+            uint validLo = BitConverter.ToUInt32(p, tblOff + 8);
+            uint validHi = BitConverter.ToUInt32(p, tblOff + 12);
+            int q = tblOff + 24;
+            bool Present(int t) => t < 32
+                ? ((validLo >> t) & 1) != 0
+                : ((validHi >> (t - 32)) & 1) != 0;
+
+            // 行数区紧跟在 Valid 之后,按位升序
+            var rows = new int[64];
+            for (int t = 0; t < 64; t++)
+            {
+                if (!Present(t)) continue;
+                rows[t] = BitConverter.ToInt32(p, q); q += 4;
+            }
+
+            bool Wide(int t) => rows[t] >= 65536;
+
+            // Module(0x00): Generation(2) · Name(#Strings) · Mvid(#GUID) · EncId(#GUID) · EncBaseId(#GUID)
+            if (Present(0x00))
+                q += rows[0x00] * (2 + S + 3 * G);
+            // TypeRef(0x01): ResolutionScope(coded → 固定 2 字节) · Name · Namespace
+            if (Present(0x01))
+                q += rows[0x01] * (2 + 2 * S);
+
+            Assert.That(Present(target), Is.True, $"目标表 0x{target:x} 不在 #~ 中(validLo=0x{validLo:x8})");
+            Assert.That(Wide(0x02) || Wide(0x04) || Wide(0x06), Is.False, "TypeDef 各行数 ≥ 65536 ⇒ 宽索引形态,本解析器不支持");
+
+            // TypeDef(0x02): Flags(4) · Name · Namespace · Extends(coded) · FieldList · MethodList
+            return (q, rows[target]);
+        }
+
+        /// <summary>TypeDef 行宽(小形态):4 + 2 + 2 + 2 + 2 + 2 = **14**。</summary>
+        private const int TypeDefRowBytes = 14;
 
         /// <summary>AC-51-D4 的**另一半** —— `GIVEN Development 构建,THEN 入口存在且输出指标`。
         /// <para>TD-epic-01 第十三片(2026-10-19)补:此前只钉了「Release 侧被条件编译包住」,

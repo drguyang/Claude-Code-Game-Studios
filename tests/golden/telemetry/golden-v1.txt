@@ -1,0 +1,47 @@
+# golden-v1 —— 51 遥测确定性黄金夹具(story-008 AC-51-C3 · ADR-012 双级)
+# 产出:独立 Python 参考实现 golden_v1_reference.py(与 C# 零共享代码)
+# 刷新:升 golden-v2 + 全体平台同时重签(禁单平台独签,禁就地改老数)
+# 值域:R 行 / Q 行 = 十进制整数;Qz 行 = 分母零标记;F1 行 = num,den 对;K 行 = 五元组
+R01_positive_exact 4
+R02_positive_below 3
+R03_negative_exact -4
+R04_negative_below -3
+R05_zero_numerator 0
+R06_zero_denominator 0
+R07_both_negative 1
+R08_neg_over_pos -1
+R09_third 0
+R10_two_thirds 1
+R11_large 123457
+R12_tie_away_at_scale 500000000000
+Q01_two_thirds 43691
+Q01_two_thirds_z 0
+Q02_one_third 21845
+Q02_one_third_z 0
+Q03_full 65536
+Q03_full_z 0
+Q04_zero 0
+Q04_zero_z 0
+Q05_zero_den 0
+Q05_zero_den_z 1
+Q06_half 32768
+Q06_half_z 0
+Q07_negative_half -32768
+Q07_negative_half_z 0
+Q08_three_halves 98304
+Q08_three_halves_z 0
+F1_typical_a 2,3
+F1_typical_b 1,3
+F1_typical_z 0
+F1_empty_a 0,0
+F1_empty_b 0,0
+F1_empty_z 1
+F1_allWrong_a 0,2
+F1_allWrong_b 1,2
+F1_allWrong_z 0
+K01_typical 4,4,100,10,40
+K02_empty 0,0,0,0,0
+K03_single 1,1,7,7,7
+K04_negative 3,3,0,-5,5
+K05_duplicates 3,3,9,3,3
+K06_large 3,3,2000000000,1,1000000000

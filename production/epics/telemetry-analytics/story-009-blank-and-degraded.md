@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-19
 
 ## Context
 
@@ -30,15 +30,15 @@
 
 *From GDD `design/gdd/telemetry-analytics.md`, scoped to this story:*
 
-- [ ] **AC-51-D1**(BLOCKING):三流皆空 —— 状态 = `Computed`(非 `Faulted`)、全部指标零值、不抛异常/不写错误日志
-- [ ] **AC-51-D2**(BLOCKING):`Level` 未携带 —— 报「不可得」(与 0 可区分),不报 0;窗口内无事件 ⇒ 全 0(合法)
-- [ ] **AC-51-D3**(BLOCKING):Faulted 不产出半份 —— 三种流异常(`Tick` 回退 / `Seq` 断号 / 病例流引用不在病史流的 `Patient`);状态 = `Faulted` 且中止;`ITelemetrySink` 零调用;本地文件未生成/未覆写;`Faulted` 不可自愈
-- [ ] **AC-51-D4**(BLOCKING):Release 无调试视图 —— 入口不存在(编译期剔除 `#if DEVELOPMENT_BUILD`);Development 构建入口存在且输出指标
-- [ ] **AC-51-D5**(BLOCKING):R7 整数纪律 —— 无 `float`/`double`;率以 `(num, den)` 承载;标量导出 = `ROUND_HALF_AWAY_FROM_ZERO((num << 16) / den)`
-- [ ] **AC-51-D6**(BLOCKING):规模不改变数值 —— 同一超长流以 `FOLD_MEMORY_MODE` 两个取值各重算,全部指标逐位相同
-- [ ] **AC-51-D7**(BLOCKING):ConfigVersion 不匹配 —— 报告含显式「版本不匹配」标注,不静默出数
-- [ ] **AC-51-D8**(ADVISORY):部分流 —— 要么拒绝要么产出并显式标注「部分指标」;禁止把部分流当完整流静默出数
-- [ ] **AC-51-D9**(BLOCKING):样本不足 —— 报告照常产出数值且含「样本不足」标注;不隐藏、不四舍五入掩盖
+- [x] **AC-51-D1**(BLOCKING):三流皆空 —— 状态 = `Computed`(非 `Faulted`)、全部指标零值、不抛异常/不写错误日志
+- [x] **AC-51-D2**(BLOCKING):`Level` 未携带 —— 报「不可得」(与 0 可区分),不报 0;窗口内无事件 ⇒ 全 0(合法)
+- [x] **AC-51-D3**(BLOCKING):Faulted 不产出半份 —— 三种流异常(`Tick` 回退 / `Seq` 断号 / 病例流引用不在病史流的 `Patient`);状态 = `Faulted` 且中止;`ITelemetrySink` 零调用;本地文件未生成/未覆写;`Faulted` 不可自愈
+- [x] **AC-51-D4**(BLOCKING · **两侧已证 2026-10-19**):Release 无调试视图 —— 入口不存在(编译期剔除 `#if UNITY_EDITOR || DEVELOPMENT_BUILD`);Development 构建入口存在且输出指标。Release 半边经**真 StandaloneLinux64 Release 包 + 手写 PE/CLI 元数据解析**验证,并经**反向构建证伪**
+- [x] **AC-51-D5**(BLOCKING):R7 整数纪律 —— 无 `float`/`double`;率以 `(num, den)` 承载;标量导出 = `ROUND_HALF_AWAY_FROM_ZERO((num << 16) / den)`
+- [ ] **AC-51-D6**(BLOCKING · **口径已改 2026-10-19**):规模不改变数值 —— ~~同一超长流以 `FOLD_MEMORY_MODE` 两个取值各重算,全部指标逐位相同~~ ⇒ **用户裁定:P0 只保留一套折叠实现,双模式对拍整个推开**(开冻条件:出现真实内存压力时另开 ADR 定第二模式)
+- [x] **AC-51-D7**(BLOCKING):ConfigVersion 不匹配 —— 报告含显式「版本不匹配」标注,不静默出数
+- [x] **AC-51-D8**(ADVISORY):部分流 —— 要么拒绝要么产出并显式标注「部分指标」;禁止把部分流当完整流静默出数
+- [x] **AC-51-D9**(BLOCKING):样本不足 —— 报告照常产出数值且含「样本不足」标注;不隐藏、不四舍五入掩盖
 
 ---
 
@@ -80,13 +80,17 @@
 **Story Type**: Logic
 **Required evidence**: `tests/unit/telemetry/blank_and_degraded_test.cs`
 
-**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Telemetry/blank_and_degraded_test.cs`(6 测);账本互链 `tests/integration/telemetry/README.md`
+**Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Telemetry/blank_and_degraded_test.cs`
+(**11 测:8 passed + 3 skipped**,2026-10-19 第十三片重写后的实测;原记「6 测」为旧版);
+账本互链 `tests/integration/telemetry/README.md`
 
 ## Dependencies
 - Depends on: Story 008(纯函数)
 - Unlocks: Story 010(越界拒绝)
 
 ## Completion Notes
+> ⚠️ **本节 2026-09-28 的原记录以下方「2026-10-19 · 收口」为准,原数字不删留作历史**
+
 **Completed**: 2026-09-28
 **Criteria**: 4/4 passing(AC-51-D1 空输入零值 / AC-51-D2 Level 未携带报不可得 / AC-51-D3 Faulted 不产出半份 / AC-51-D4 部分流显式标注;无 deferred,0 UNTESTED)
 **Deviations**(均 ADVISORY):
@@ -111,3 +115,106 @@
 **Code Review**: Complete —— 双评审并行 + B1/R1-R4 修复 + 复验;review mode = lean。
 **ADR Compliance**: ADR-019 §一(R8/R9/R11 纯函数)· ADR-006 §五(Fix 编码器 + 守恒律)。COMPLIANT。
 **Tech Debt**: 未立文件;上述 NICE 5 项已分处登记(本 notes · story Known Risks · 账本)。
+
+## Completion Notes — 2026-10-19 逐条核账(TD-epic-01 · 假绿普查后)
+
+**原 `Complete` 不成立,已撤回 `In Review`。** 上一轮 Completion Notes 记的是 **4 条 AC**,
+而本 story 实际有 **9 条**(D1–D9);缺的 5 条从未被核过,其中 3 条(D3/D6/D7)**连生产对象都不存在**。
+
+### 逐条判定
+
+| AC | 判定 | 生产主语 | 夹具 / 反证 |
+|---|---|---|---|
+| **D1** 三流皆空 ⇒ Computed / 全零 / 不抛 | ✅ 已证 | `TickFoldEngine.Fold` 空流分支 `TickFoldEngine.cs:53` | `test_d1_emptyStreams_computedZeroNoThrow` · `test_d1_nonEmptyStream_valuesFollowInput`;反证 F2(停用空流分支 ⇒ 红) |
+| **D2** `Level` 未携带 ⇒ 报不可得 | ✅ 已证 | `SkillGrowthMetrics.TryComputeDeltaLevel`(`return (false, null)`)· `MetricsReport.cs:102`「分母 0」 | `test_f4_levelNotCarried_reportsUnavailable` · `test_f4_levelCarried_computesDelta` · `test_d2_*`;反证 F3 |
+| **D3** Faulted 不出半份 | ✅ **已证**(2026-10-19 第十四片) | `Telemetry/StreamIntegrity.cs`:`StreamIntegrity.Validate`(E-4/E-5/E-6)+ `ComputeSession`(不可自愈)· `TelemetryReporter.ComputeAndSink` 的 Faulted 早退 | 5 测:三流异常各一 + 不可自愈 + 完好流正向对照;**证伪 5/5 恰如预期转红**(`tools/falsify/specs/td-epic-01-d3-faulted.json`) |
+| **D4** Release 无调试视图 | ✅ **已证**(2026-10-19 第十七片) | `TelemetryDeveloperView.cs:16` `#if UNITY_EDITOR \|\| DEVELOPMENT_BUILD` · `TelemetryReporter.cs:675` | 开发期半边 3 测(含反射真调入口 + 输出真指标);Release 半边 `test_d4_releasePlayer_entryAbsent`(读 `builds/release-d4/.../Gameplay.Boot.dll` 的 TypeDef 表,正对照 `TelemetryReporter` 必在);**证伪 = 造一个 `#if true` 的坏 Release 包 ⇒ 该条恰转红** |
+| **D5** R7 整数纪律 | ✅ 已证(2026-10-19 补) | `Telemetry` 程序集 + `TelemetryReporter` / `TelemetryDeveloperView` 实测零浮点;率载体 `(num, den)`;`MetricsReport.RoundHalfAwayFromZero` / `ToQ1616` | `test_d5_telemetryAssembly_noFloatOrDoubleMembers` · `test_d5_reportProducers_noFloatOrDoubleMembers`(含空集守卫)· `metrics_report_test.cs` 七测;**反证 2/2 恰如预期转红**(`tools/falsify/specs/td-epic-01-d5-float-scan.json`) |
+| **D6** 规模不改变数值 | ⏸ **已推开(P0 不做)** | —— | 用户裁定 2026-10-19:P0 只留一套折叠实现;双模式对拍与内存上界两半一并推迟 |
+| **D7** ConfigVersion 不匹配标注 | ✅ **已证**(2026-10-19 第十五片) | `Telemetry/ConfigVersionGate.cs`:`ConfigVersionCheck.Banner` · `TelemetryReporter.AllMetricsReport` 的版本门早退 | 3 测(不匹配不出数 / 一致正常 / 未注入不设门);**证伪 2/2 恰如预期转红**(`tools/falsify/specs/td-epic-01-d7-configversion.json`) |
+| **D8** 部分流显式标注(ADVISORY) | ✅ 已证 | `TelemetryReporter.CompletenessBanner` `:675` | `test_d8_*` 两测 · `Boot/telemetry_debug_view_test.cs` 侧;反证 F4(3 条红) |
+| **D9** 样本不足照常出数 + 标注 | ✅ 已证 | `TelemetryDeveloperView.cs:71-73` | `test_d9_lowSample_addsBannerNumbersUnchanged` · `test_d9_ampleSmpale_noBanner`;反证 F5 |
+
+**统计**:9 条中 **8 已证 / 1 已推开(D6 · 用户裁定)**。**NOT-RUN 归零**;D4 的两个半边均已证(见下 §D4 收口)。
+
+### D5 的解冻(2026-10-19)
+
+原 NOT-RUN 理由「率载体 / 浮点扫描面未裁定」**已过期**:率载体早已定为 `(num, den)`,
+扫描面本批裁定为 **`DaYiJingCheng.Telemetry` 全类型 + 两个报告生产者类**。
+两条夹具带 `Count > 0` 空集守卫(防「反射扫不到装配」式空洞为真),并经证伪轮证明判别力。
+
+### D3 的解冻与落地(2026-10-19 第十四片)
+
+原 NOT-RUN 的解冻条件「出现持状态且调 `ITelemetrySink` 的生产类型」已满足。落地:
+`StreamIntegrity.Validate` 按 E-4 → E-5 → E-6 次序返回首条违规;`ComputeSession` 一旦 Faulted
+**永不回 Idle**(GDD「不可自愈」);`ComputeAndSink` 在 Faulted 时**一个 sink 方法都不调**。
+
+⚠️ **两处如实登记**:
+1. **E-4 / E-5 不能经 `EventStream.Append` 构造** —— `Append` 自己会拒收 Tick 回退(`BCD-码-3`)
+   并给 Seq 续号。这两条只在 GDD R9 ② 的**离线重算**输入面才有意义,夹具因此直驱 `Validate`;
+   只有 E-6 走 `ComputeAndSink` 端到端。
+2. **E-5 组键分歧**:`EventStream` 的发号组键是 `(Tick, Patient)`(**不含 StreamId**),GDD E-5 的
+   组键含 `StreamPriority`。只在「同 tick 同病人跨流」时分歧,归流层(ADR-008),本件不扩大。
+
+### D6 的推开(2026-10-19 · 用户裁定)
+
+**P0 只保留一套折叠实现,`FOLD_MEMORY_MODE` 双模式对拍整个推开。** 两条依据:
+
+1. GDD 的「流式 / 整表」两模式当前**都没有独立实现**;写两套玩具实现再断言「逐位相同」是**自证**,
+   不是 AC 要验的东西(同型:上一版 `ComputeTwoModes` 手搓常量)。
+2. 内存上界那半条另卡 **ADR-005 的 Memory Ceiling `*待定*`** —— GDD `:654` 已登记「**无值 ⇒ 现不可写**」。
+
+`test_d6_scaleDoesNotChangeValues_NOT_RUN` 保留为**开冻哨兵**(不删)。开冻条件:
+出现真实内存压力 ⇒ 另开 ADR 定第二模式,同批须给出 Memory Ceiling 值,届时两边换成真实现。
+
+### D4 的 Release 半边落地(2026-10-19 第十七片)
+
+**产物**:`unity build unity --target StandaloneLinux64 --output-path builds/release-d4/Boot.x86_64`(96 MB)。
+Release 的 ManagedStripped 产物与 `Boot_Data/Managed` 两份**均无** `TelemetryDeveloperView`
+(`monodis --typedef` 与 `strings` 双法独立核对),而 `Library/ScriptAssemblies` 那份有 —— 说明类型确实被 `#if` 剔除。
+
+**夹具的两次假象与修法(如实登记)**:
+
+1. **首版用 `Assembly.LoadFrom` ⇒ 假红**。它绑定到 Editor 已加载的**同名**程序集
+   (`Library/ScriptAssemblies/Gameplay.Boot.dll`),测的根本不是构建产物 —— 第五形态「扫不到被测装配」。
+   `MetadataLoadContext` / `PEReader` 是 .NET Core API,本工程 netstandard2.1 用不了。
+   ⇒ 改为**手写 PE/CLI 元数据解析**(PE → CLI Header → Metadata Root → 流头 → `#Strings` + TypeDef 表),
+   只读字节、不加载、不参与程序集绑定。
+2. **解析器的三个实现错误**,全部由「正向对照失败」逼出(没有一个被静默吞掉):
+   ① TypeDef 列序写成 `Name, NameSpace`,实为 `Flags(4), Name, NameSpace`;
+   ② 表头把 `Sorted(8)` 当成 `Valid(8)`(Valid 在 `+8`),导致「表在不在」全判错;
+   ③ 流头起点在 `+2` 之后又对齐了一次,多跳 2 字节。
+   **正向对照 = 先断言 `TelemetryReporter` 必须出现在 TypeDef 表里** —— 解析失效时该断言先红,
+   不会退化成「找不到 ⇒ 通过」的空洞为真。
+
+**判别力证伪(实跑,非推演)**:
+
+| 步骤 | 命令 | 实测 |
+|---|---|---|
+| 造坏包 | 把 `TelemetryDeveloperView.cs:16` 的 `#if` 改成 `#if true`,重建到 `builds/release-d4-bad/`,**随即还原源码**(SHA-256 逐字节一致) | `strings` 计数:坏包 1 / 好包 0 |
+| 夹具指向坏包 | 临时把夹具路径改成 `release-d4-bad`,`unity test … --filter TelemetryDeveloperViewTest`,**随即还原**(SHA-256 一致) | `13 total / 12 passed / 1 failed` —— 仅 `test_d4_releasePlayer_entryAbsent` 转红,报文点名 `TelemetryDeveloperView` |
+| 夹具指向好包 | 同上,默认路径 | `13 total / **13 passed** / 0 failed / 0 skipped`(`unity/Logs/d4-release.xml`) |
+
+### ⚠️ 仍如实 NOT-RUN 的面
+
+- **IL2CPP 三格**(ADR-012 矩阵)—— 本机只跑得动 Mono 那一格;Release 包为 Mono 后端。
+  本片只证「Mono Release 包剔除了该类型」,**不证** IL2CPP 下同样成立。
+
+### 转 `Complete`
+
+用户 2026-10-19 裁定:9 条 AC 中 8 条已证、D6 经用户裁定推开,**story 转 `Complete`**。
+
+---
+
+## 2026-10-19 · 收口
+
+| 项 | 2026-09-28 原记录 | 2026-10-19 收口后 |
+|---|---|---|
+| Status | In Review(原记 Complete 后被撤) | **Complete**(用户裁定) |
+| AC 勾选 | 4/4(**AC 清单实为 9 条**,原记录漏核 5 条) | **8 已证 / 1 推开(D6)** |
+| D4 | 半边(NOT-RUN) | **两侧已证** + 反向构建证伪 |
+| `blank_and_degraded_test.cs` | 旧记「6 测」 | **11 测(8 passed + 3 哨兵 skipped)** |
+| 仍 NOT-RUN | —— | **IL2CPP 三格**(本机只有 Mono) |
+
+**禁借绿口径**:本 story 的「Complete」**不**表示 ADR-012 的跨平台矩阵已验;Release 包为 Mono 后端,
+只证明 Mono 下该类型被剔除。

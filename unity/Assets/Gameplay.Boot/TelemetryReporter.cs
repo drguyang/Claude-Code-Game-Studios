@@ -132,12 +132,30 @@ namespace DaYiJingCheng.Gameplay.Boot
 
                     case EventKind.JudgmentRecorded:
                     case EventKind.JudgmentRevised:
-                        var rec = _decoder.Decode<JudgmentRecordedPayload>(kind, payloadRef);
+                        // ⚠️ 2026-10-19 第十六片订正:**两个 Kind 的载荷是两种类型**
+                        //    (`JudgmentRecordedPayload` / `JudgmentRevisedPayload`,字段同名同序但类型不同)。
+                        //    `PayloadCodec.Decode<T>` 带类型校验 —— 按 `JudgmentRecorded` 的 Kind 请求
+                        //    `JudgmentRecordedPayload` 遇 `JudgmentRevised` 必抛 ⇒ 该条被静默计进 skipped,
+                        //    而 reducer 的跳过**不改变 F1a/F1b 之外的可观测面** ⇒ 改写史整段丢失且不易察觉。
+                        //    (原实现正是这样:一次只解一种类型。)
+                        int caseSeq, lexicon;
+                        if (kind == EventKind.JudgmentRevised)
+                        {
+                            var rev = _decoder.Decode<JudgmentRevisedPayload>(kind, payloadRef);
+                            caseSeq = checked((int)rev.CaseId.Seq);
+                            lexicon = rev.LexiconId;
+                        }
+                        else
+                        {
+                            var rec = _decoder.Decode<JudgmentRecordedPayload>(kind, payloadRef);
+                            caseSeq = checked((int)rec.CaseId.Seq);
+                            lexicon = rec.LexiconId;
+                        }
                         // ⚠️ P0 落笔 = 单值病种(LexiconId)⇒ 集合 = {LexiconId};
                         //    多病种落笔的载荷形状归 8 的词表轮(若有),届时这里随动。
-                        var judged = new List<int>(1) { rec.LexiconId };
+                        var judged = new List<int>(1) { lexicon };
                         decoded = new JudgmentStreamReducer.DecodedJudgment(
-                            checked((int)rec.CaseId.Seq), judged, kind == EventKind.JudgmentRevised);
+                            caseSeq, judged, kind == EventKind.JudgmentRevised);
                         return true;
 
                     default:
@@ -582,10 +600,24 @@ namespace DaYiJingCheng.Gameplay.Boot
 
                     case EventKind.JudgmentRecorded:
                     case EventKind.JudgmentRevised:
-                        var rec = _decoder.Decode<JudgmentRecordedPayload>(kind, payloadRef);
-                        var judged = new List<int>(1) { rec.LexiconId };
+                        // ⚠️ 同上(F1 侧):两个 Kind = 两种载荷类型,`Decode<T>` 错配必抛 ⇒
+                        //    按 `JudgmentRecordedPayload` 统一请求会把每一条改写静默计进 skipped。
+                        int f2Case, f2Lex;
+                        if (kind == EventKind.JudgmentRevised)
+                        {
+                            var rv = _decoder.Decode<JudgmentRevisedPayload>(kind, payloadRef);
+                            f2Case = checked((int)rv.CaseId.Seq);
+                            f2Lex = rv.LexiconId;
+                        }
+                        else
+                        {
+                            var rc = _decoder.Decode<JudgmentRecordedPayload>(kind, payloadRef);
+                            f2Case = checked((int)rc.CaseId.Seq);
+                            f2Lex = rc.LexiconId;
+                        }
+                        var judged = new List<int>(1) { f2Lex };
                         decoded = new JudgmentStreamF2Reducer.DecodedJudgment(
-                            checked((int)rec.CaseId.Seq), judged, kind == EventKind.JudgmentRevised);
+                            f2Case, judged, kind == EventKind.JudgmentRevised);
                         return true;
 
                     default:
@@ -605,10 +637,24 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// F6·F7(`GAP_THRESHOLD`)—— 这些参数全部 `*待定*`(用户调),本类**不设默认值**
         /// (禁替用户调参);调用方拿到对应 `*Report(...)` 方法自行传数。</para>
         /// <para>F3 的 cause 关联已于第八片落地(结算全序贴);跳过里贴不上的条数在 F3 段
-        /// 以「跳过·未关联」行可观测 —— 它大于 0 说明关联面有洞,报告**不**把它并进任一 cause。</para></summary>
-        public string AllMetricsReport(out int skipped)
+        /// 以「跳过·未关联」行可观测 —— 它大于 0 说明关联面有洞,报告**不**把它并进任一 cause。</para>
+        /// <param name="configVersion">可空:存档头 `ConfigVersion` 与当前产物的比对(AC-51-D7)。
+        /// null ⇒ 不做版本门(单机 / 无存档场景);注入了且**不匹配** ⇒ 报告只出标注,**不出指标**。</param></summary>
+        public string AllMetricsReport(out int skipped, ConfigVersionCheck? configVersion = null)
         {
             RequireHost();
+
+            // AC-51-D7 / E-10:版本不符 ⇒ **不静默出数**。早退在一切取数之前 ——
+            // 保证不存在「先按当前版本算完再补一句警示」的路径(AC 末句逐字禁止)。
+            if (configVersion.HasValue && !configVersion.Value.Match)
+            {
+                skipped = 0;
+                var banner = new StringBuilder();
+                banner.Append(configVersion.Value.Banner());
+                banner.Append("# ⚠️ 因版本不匹配,本报告不含任何指标(不出数,不是测得 0)\n");
+                return banner.ToString();
+            }
+
             string body = JudgmentReport(out int f1Skipped);
             body += '\n' + MisdiagnosisReport(out int f2Skipped);
             body += '\n' + SkipRateReport(out int f3Skipped, out int _);
@@ -669,6 +715,47 @@ namespace DaYiJingCheng.Gameplay.Boot
                 new TelemetryPreviewRequest(null, growth, first, step, window, gap, minSample), sink);
         }
 #endif
+
+        /// <summary>AC-51-D3 的 sink 门(GDD 组 B · 第十四片):三流完整性校验 → 通过才落 sink。
+        /// <para>**Faulted ⇒ `ITelemetrySink` 零调用**:一个 `WriteLocalReport` / `LogDeveloperSummary`
+        /// 都不发,本地旧文件字节原样保持。这是「不静默出半份数据」在出口处的落实 ——
+        /// 校验在生产谓词 <see cref="StreamIntegrity"/> 里,本方法是它的**唯一出口守卫**。</para>
+        /// <para>⚠️ 流数据取自 <see cref="_stream"/> 的三流**合流快照**(51 的 `EventStream` 是单流容器;
+        /// 按 `Kind` 拆分归 E-6 需要病史 / 病例两份视图 —— 本方法按 GDD `E-6` 口径用
+        /// `JudgmentStreamReducer` 的同一拆分面重建,不新增第二套拆分逻辑)。</para></summary>
+        /// <param name="sink">输出面(控制台 / 本地文件)。Faulted 时**不触碰**。</param>
+        /// <param name="reports">按序产出报告文本的委托(仅在 Computed 时被调用)。</param>
+        /// <returns>本次重算的状态(Computed 或 Faulted)。</returns>
+        public EvalState ComputeAndSink(ITelemetrySink sink, Func<ComputeSession, IEnumerable<string>> reports)
+        {
+            RequireHost();
+            if (sink == null) throw new ArgumentNullException(nameof(sink));
+            if (reports == null) throw new ArgumentNullException(nameof(reports));
+
+            // 每次调用 = 一次新重算 ⇒ 新会话(51 不跨调用持有状态;R8 纯函数)。
+            var session = new ComputeSession();
+            IReadOnlyList<SimEvent> history = FilterByStream(_stream.Events, StreamId.History);
+            IReadOnlyList<SimEvent> cases = FilterByStream(_stream.Events, StreamId.Case);
+            if (session.Compute(history, cases, Array.Empty<SimEvent>()) == EvalState.Faulted)
+            {
+                // 中止:不产出任何报告、不触碰 sink(AC-51-D3)
+                return EvalState.Faulted;
+            }
+
+            foreach (string text in reports(session))
+                sink.WriteLocalReport("telemetry-report.txt", text);
+            sink.LogDeveloperSummary("# 51 重算完成(Computed)");
+            return EvalState.Computed;
+        }
+
+        /// <summary>按流别取子集(路由口径 = 既有 <see cref="StreamOf"/>,即 `StreamRouting`,不另抄白名单)。</summary>
+        private static IReadOnlyList<SimEvent> FilterByStream(IReadOnlyList<SimEvent> all, StreamId id)
+        {
+            var picked = new List<SimEvent>();
+            for (int i = 0; i < all.Count; i++)
+                if (StreamOf(all[i].Kind) == id) picked.Add(all[i]);
+            return picked;
+        }
 
         public string CompletenessBanner(bool f1Faulted)
         {

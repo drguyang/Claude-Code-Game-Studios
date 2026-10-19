@@ -107,6 +107,19 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             _stream.Append(new SimEvent(_tailTick++, new PatientId(1), -1, EventKind.JudgmentRecorded, r));
         }
 
+        /// <summary>写入一条 JudgmentRevised(改写,存新值)—— 载荷类型与 Recorded 不同,走具名重载。</summary>
+        private void AppendJudgmentRevised(long caseSeq, int lexiconId)
+        {
+            var payload = new JudgmentRevisedPayload(
+                patientId: 1,
+                new CaseId(10, 1, caseSeq),
+                authorPlayerId: 1,
+                lexiconId,
+                confidence: 3);
+            PayloadRef r = _encoder.EncodeJudgmentRevised(payload, "");
+            _stream.Append(new SimEvent(_tailTick++, new PatientId(1), -1, EventKind.JudgmentRevised, r));
+        }
+
         // ══════════════ 接线正向 ══════════════
 
         /// <summary>核心接线:真链路端到端 ⇒ 混淆矩阵 + 三桶全部算出。</summary>
@@ -173,6 +186,26 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             StringAssert.Contains("F2 M[1][1] = 1", report);
             // M[无病][未落笔]=0(无 D=∅∧J=∅ 案例),N_matched_comorbid=0 ⇒ 分子=1
             StringAssert.Contains("F2 N_matched_comorbid = 0", report);
+        }
+
+        /// <summary>⚠️ 2026-10-19 第十六片回归:改写的**载荷类型**是 `JudgmentRevisedPayload`
+        /// (与 `JudgmentRecordedPayload` 字段同名同序但类型不同),而 `Decode<T>` 带类型校验。
+        /// <para><b>修前缺陷</b>:`DecodeMisdiagnosisRecord` 对两个 Kind 统一按
+        /// `Decode&lt;JudgmentRecordedPayload&gt;` 请求 ⇒ **每一笔改写都抛 ⇒ 计进 skipped**,
+        /// 且该案在矩阵里退化成「未落笔」。</para>
+        /// <para><b>判别力</b>:把 F2 解码分支改回统一解 `JudgmentRecordedPayload` ⇒ 本条红
+        /// (skipped 由 0 变 1)。</para></summary>
+        [Test]
+        public void test_wired_judgmentRevised_decodedAsItsOwnPayload_noSkip()
+        {
+            AppendCaseClosed(caseSeq: 3L, diseaseBits: 1UL << 0);            // D={1}
+            AppendJudgmentRevised(caseSeq: 3L, lexiconId: 1);                // 改写后 J={1}
+
+            string report = _reporter.MisdiagnosisReport(out int skipped);
+
+            Assert.That(skipped, Is.EqualTo(0), "改写事件须按其自有载荷类型解出,不得计进跳过");
+            StringAssert.Contains("F2 M[1][1] = 1", report);
+            StringAssert.Contains("F2 N_open = 0", report);
         }
 
         /// <summary>空流 ⇒ 空矩阵 + 零桶 + skipped=0(不除零)。</summary>

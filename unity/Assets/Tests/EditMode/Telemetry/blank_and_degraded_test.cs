@@ -130,60 +130,301 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         // ══════════════ AC-51-D3:Faulted 不产出半份 ══════════════
 
         /// <summary>AC-51-D3:Faulted 不产出半份 —— 状态 = Faulted 且中止;`ITelemetrySink` 零调用;
-        /// 本地文件未生成/未覆写;无部分指标;不可自愈。</summary>
-        /// <remarks>⚠️ <b>NOT-RUN(禁借绿)</b>:生产侧**尚无**「Faulted 状态机 + sink 调用门」。
-        /// <see cref="TickFoldEngine"/> 只做纯折叠、不持状态、不碰 sink ⇒ 本 AC 在当下
-        /// **没有可被变坏的守卫**。上一版用 `ComputeFaulted()` 手搓 `SinkCalled = false`
-        /// 冒充通过 —— 那断言的是常量,不是生产行为,已删除。
-        /// <para>解冻条件:出现持 `EngineState` 且调 `ITelemetrySink` 的生产类型时,本测改为直接驱动它,
-        /// 并以「去掉 Faulted 早退 ⇒ 本条红」作为判别力判据。</para></remarks>
+        /// 本地文件未生成/未覆写;无部分指标。
+        /// <para><b>生产主语</b>:<see cref="StreamIntegrity.Validate"/> 的三条校验 +
+        /// <see cref="TelemetryReporter.ComputeAndSink"/> 的 Faulted 早退。</para>
+        /// <para><b>判别力</b>:从 <see cref="TelemetryReporter.ComputeAndSink"/> 删掉 Faulted 早退 ⇒ 三条全红。</para></summary>
+        /// <remarks>⚠️ **2026-10-19 解冻(第十四片)**:原 `NOT_RUN` 写明解冻条件 = 「出现持状态且调
+        /// `ITelemetrySink` 的生产类型时,本测改为直接驱动它」—— <see cref="ComputeSession"/> +
+        /// `ComputeAndSink` 即为该类型,条件已满足。</remarks>
         [Test]
-        public void test_d3_faulted_noPartialOutput_NOT_RUN()
+        public void test_d3_tickRegression_faults()
         {
-            Assert.Ignore("AC-51-D3 NOT-RUN:生产侧尚无 Faulted 状态机 + sink 门;" +
-                          "TickFoldEngine 是纯函数(不持状态/不碰 sink)⇒ 无守卫可变异。" +
-                          "不得以手搓常量冒充(上一版即此法)。");
+            // ⚠️ Tick 回退**不能**经 `EventStream.Append` 造(其 `BCD-码-3` 会先抛)⇒ 直驱生产校验器。
+            var history = new[] { Ev(10, 0, new PatientId(1)), Ev(5, 0, new PatientId(1)) };
+
+            IntegrityResult r = StreamIntegrity.Validate(history, Array.Empty<SimEvent>(), Array.Empty<SimEvent>());
+
+            Assert.That(r.Violation, Is.EqualTo(IntegrityViolation.TickRegression), "Tick 回退须判 TickRegression");
+            Assert.That(r.Stream, Is.EqualTo(StreamId.History), "违规在病史流");
+            Assert.That(r.Index, Is.EqualTo(1), "违规位于回退的那一条");
+        }
+
+        /// <summary>AC-51-D3 ②:`Seq` 断号(E-5)⇒ Faulted,且病例流也被抓得到。
+        /// <para>⚠️ 直驱 <see cref="StreamIntegrity.Validate"/> —— 经 `EventStream.Append` 造不出断号
+        /// (发号器会把它续上),这正是「离线重算」与「实时流」两条输入面的差异(GDD R9)。</para></summary>
+        [Test]
+        public void test_d3_seqGap_faults()
+        {
+            var history = new[] { Ev(1, 0, new PatientId(1)) };
+            var cases = new[] { Ev(2, 0, new PatientId(1)), Ev(2, 2, new PatientId(1)), Ev(2, 3, new PatientId(1)) };
+
+            IntegrityResult r = StreamIntegrity.Validate(history, cases, Array.Empty<SimEvent>());
+
+            Assert.That(r.Violation, Is.EqualTo(IntegrityViolation.SeqGap), "Seq 断号须判 SeqGap");
+            Assert.That(r.Stream, Is.EqualTo(StreamId.Case), "违规在病例流");
+        }
+
+        /// <summary>AC-51-D3 ③:病例流引用不在病史流的 `Patient`(E-6)⇒ Faulted。
+        /// <para>本条**能**走 `ComputeAndSink` 端到端:`Append` 逐条发号 ⇒ 单流内 Seq 天然连续,
+        /// 唯一人为构造的是「病例流的病人从未在病史流出现」。</para>
+        /// <para><b>判别力</b>:删掉 `ComputeAndSink` 的 Faulted 早退 ⇒ 本条红;删掉 E-6 校验 ⇒ 本条红。</para></summary>
+        [Test]
+        public void test_d3_casePatientNotInHistory_faultsAndSinkUntouched()
+        {
+            var (reporter, stream) = NewReporter();
+
+            // Arrange:病史流只有病人 1;病例流带一个病人 7(Append 发号 ⇒ Seq 天然 0,1)
+            PayloadRef r0 = new PayloadRef(0, 0, 0);
+            stream.Append(new SimEvent(0L, new PatientId(1), -1, EventKind.CareApplied, r0));
+            stream.Append(new SimEvent(1L, new PatientId(7), -1, EventKind.CaseOpened, r0));
+
+            // Act
+            var sink = new RecordingSink();
+            EvalState state = reporter.ComputeAndSink(sink, _ => new[] { "不该出现" });
+
+            // Assert
+            Assert.That(state, Is.EqualTo(EvalState.Faulted), "E-6 违规 ⇒ ComputeAndSink 判 Faulted");
+            Assert.That(sink.WriteCount, Is.Zero, "Faulted ⇒ WriteLocalReport 零调用");
+            Assert.That(sink.LogCount, Is.Zero, "Faulted ⇒ LogDeveloperSummary 零调用");
+        }
+
+        /// <summary>AC-51-D3(不可自愈):Faulted 的会话再次 `Compute` ⇒ 仍 Faulted,不回 Idle、不重算。
+        /// <para><b>判别力</b>:把 <see cref="ComputeSession.Compute"/> 的 Faulted 早退改成「重新校验」⇒
+        /// 第二次喂好流会得 Computed ⇒ 本测红。</para></summary>
+        [Test]
+        public void test_d3_faulted_notSelfHealing()
+        {
+            var session = new ComputeSession();
+            var bad = new[] { Ev(10, 0, new PatientId(1)), Ev(5, 0, new PatientId(1)) };
+
+            Assert.That(session.Compute(bad, Array.Empty<SimEvent>(), Array.Empty<SimEvent>()),
+                Is.EqualTo(EvalState.Faulted), "前置:Faulted");
+
+            var good = new[] { Ev(1, 0, new PatientId(1)), Ev(2, 0, new PatientId(1)) };
+            Assert.That(session.Compute(good, Array.Empty<SimEvent>(), Array.Empty<SimEvent>()),
+                Is.EqualTo(EvalState.Faulted), "Faulted 不可自愈 —— 好流也不能救回同一次会话");
+            Assert.That(session.LastIntegrity.Violation, Is.EqualTo(IntegrityViolation.TickRegression),
+                "不过期不重算:违规明细仍是首次那条");
+        }
+
+        /// <summary>AC-51-D3 正向对照:三流完好 ⇒ Computed,sink 被调用(证明门不是「恒拒」)。
+        /// <para><b>判别力</b>:把 `ComputeAndSink` 写成恒返回 Faulted ⇒ 本条红。</para></summary>
+        [Test]
+        public void test_d3_cleanStreams_computedAndSinkCalled()
+        {
+            var (reporter, _) = NewReporter();
+            var sink = new RecordingSink();
+
+            EvalState state = reporter.ComputeAndSink(sink, _ => new[] { "报告正文" });
+
+            Assert.That(state, Is.EqualTo(EvalState.Computed), "完好流 ⇒ Computed");
+            Assert.That(sink.WriteCount, Is.EqualTo(1), "Computed ⇒ 正常落 sink");
+            Assert.That(sink.LogCount, Is.EqualTo(1));
+        }
+
+        private static SimEvent Ev(long tick, long seq, PatientId p)
+            => new SimEvent(tick, p, seq, EventKind.CareApplied, new PayloadRef(0, 0, 0));
+
+        /// <summary>真装配:空 `EventStream` + 真 `PayloadDecoder` + 单病种注册表。</summary>
+        private (TelemetryReporter reporter, EventStream stream) NewReporter()
+        {
+            var pool = new InMemoryBlobPool();
+            var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
+            var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
+                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } });
+            return (reporter, stream);
+        }
+
+        /// <summary>计数型 sink(零调用 = 两个计数都为 0)。</summary>
+        private sealed class RecordingSink : ITelemetrySink
+        {
+            public int WriteCount;
+            public int LogCount;
+            public void WriteLocalReport(string fileName, string content) => WriteCount++;
+            public void LogDeveloperSummary(string summary) => LogCount++;
         }
 
         // ══════════════ AC-51-D5:R7 整数纪律 ══════════════
 
-        /// <summary>AC-51-D5:R7 整数纪律 —— 无 float/double;率以 (num, den) 承载。</summary>
-        /// <remarks>⚠️ <b>NOT-RUN(禁借绿)</b>:本 AC 的判据面 = 「哪些类型承载率 / 是否出现浮点」,
-        /// 须先裁定扫描面(是 `Telemetry` 程序集全类型,还是报告类型子集),未裁定前自造扫描范围
-        /// 等于自造判据。上一版对此 AC **零断言**(顶部登记了 D5,代码里却没有 D5 测) —— 属实登记。</remarks>
+        // ── D5 第一半:率以 (num, den) 承载 + 标量导出走定点 ──
+        //   夹具:`metrics_report_test.cs::test_render_rateAsIntegerPair_notDecimal`(数值侧)
+        //       + `test_roundHalfAway_*` / `test_toQ1616_*`(舍入与 Q16.16 导出)。
+        // ── D5 第二半:无 float/double —— 见下方两条程序集扫描 ──
+
+        /// <summary>AC-51-D5(浮点扫描面):<c>Telemetry</c> 程序集**零浮点** —— 字段 / 属性 /
+        /// 方法返回值 / 方法参数 / 事件委托签名,全类型全成员。
+        /// <para><b>扫描面</b>:命名空间 <c>DaYiJingCheng.Telemetry</c> 全部类型。该程序集即 51 的
+        /// 纯逻辑面(率载体、折叠、渲染都在这里),R7 的「无 float/double」首先约束它。</para>
+        /// <para><b>判别力</b>:任一成员声明成 <c>float</c> / <c>double</c>(含 <c>double?</c>) ⇒ 本条红。</para>
+        /// <para>⚠️ 扫描为空 ⇒ 直接红(`types.Count &gt; 0` 守卫)—— 防「反射扫不到装配」式空洞为真
+        /// (详见 <c>readonly_boundary_test.cs:412</c> 的同类警告)。</para></summary>
         [Test]
-        public void test_d5_integerDiscipline_noFloatInRatioCarriers_NOT_RUN()
+        public void test_d5_telemetryAssembly_noFloatOrDoubleMembers()
         {
-            Assert.Ignore("AC-51-D5 NOT-RUN:「率载体 / 浮点扫描面」未裁定;" +
-                          "自造扫描范围 = 自造判据。上一版对本 AC 零断言。");
+            AssertNoFloatingMembers(TypesInNamespace("DaYiJingCheng.Telemetry"), "DaYiJingCheng.Telemetry");
+        }
+
+        /// <summary>AC-51-D5(浮点扫描面 · 报告生产者半边):<c>TelemetryReporter</c> 与
+        /// <c>TelemetryDeveloperView</c> **零浮点** —— 指标不得经 float/double 中转。
+        /// <para>扫描面按**具体类型**取(而非整个 <c>Gameplay.Boot</c>):该程序集还住启动序与玩家搬运等
+        /// 非 51 类型,对它们套 R7 超出本 AC 范围。报告若未来迁出 Boot,本条须随之改锚点 ——
+        /// 改锚点时的空集守卫会先红,不会静默失效。</para></summary>
+        [Test]
+        public void test_d5_reportProducers_noFloatOrDoubleMembers()
+        {
+            var producers = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(SafeTypes)
+                .Where(t => t.FullName == "DaYiJingCheng.Gameplay.Boot.TelemetryReporter" ||
+                            t.FullName == "DaYiJingCheng.Gameplay.Boot.TelemetryDeveloperView")
+                .ToList();
+
+            Assert.That(producers.Count, Is.EqualTo(2),
+                "报告生产者类须各命中一个(少于 2 ⇒ 类被改名/移走 ⇒ 扫描面失效,非「通过」)");
+
+            AssertNoFloatingMembers(producers, "报告生产者");
+        }
+
+        /// <summary>按命名空间前缀取类型(与 <c>readonly_boundary_test.cs</c> 同款取法)。</summary>
+        private static List<Type> TypesInNamespace(string ns)
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(SafeTypes)
+                .Where(t => t.Namespace != null &&
+                            (t.Namespace == ns || t.Namespace.StartsWith(ns + ".", StringComparison.Ordinal)))
+                .ToList();
+        }
+
+        /// <summary>反射取类型;动态程序集等抛异常者跳过(不让扫描整体崩,但空集守卫会兜住)。</summary>
+        private static Type[] SafeTypes(System.Reflection.Assembly a)
+        {
+            try { return a.GetTypes(); }
+            catch { return Array.Empty<Type>(); }
+        }
+
+        /// <summary>断言给定类型集的所有成员声明中无浮点。违例逐条点名(成员全名 ⇒ 排查不用猜)。</summary>
+        private static void AssertNoFloatingMembers(List<Type> types, string scopeLabel)
+        {
+            Assert.That(types.Count, Is.GreaterThan(0), $"{scopeLabel} 扫描集为空 —— 反射未命中装配,判据无效");
+
+            const System.Reflection.BindingFlags Members =
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic |
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static |
+                System.Reflection.BindingFlags.DeclaredOnly;
+
+            var violations = new List<string>();
+            foreach (Type t in types)
+            {
+                foreach (System.Reflection.FieldInfo f in t.GetFields(Members))
+                    if (IsFloating(f.FieldType)) violations.Add($"{t.Name}.{f.Name} 字段 : {f.FieldType.Name}");
+
+                foreach (System.Reflection.PropertyInfo p in t.GetProperties(Members))
+                    if (IsFloating(p.PropertyType)) violations.Add($"{t.Name}.{p.Name} 属性 : {p.PropertyType.Name}");
+
+                foreach (System.Reflection.MethodInfo m in t.GetMethods(Members))
+                {
+                    if (m.IsSpecialName && !m.Name.StartsWith("get_", StringComparison.Ordinal)) continue;
+                    if (IsFloating(m.ReturnType)) violations.Add($"{t.Name}.{m.Name} 返回 : {m.ReturnType.Name}");
+                    foreach (var p in m.GetParameters())
+                    {
+                        Type pt = p.ParameterType;
+                        if (pt.IsByRef) pt = pt.GetElementType();
+                        if (IsFloating(pt)) violations.Add($"{t.Name}.{m.Name} 参数 {p.Name} : {pt.Name}");
+                    }
+                }
+
+                foreach (System.Reflection.ConstructorInfo c in t.GetConstructors(Members))
+                    foreach (var p in c.GetParameters())
+                        if (IsFloating(p.ParameterType))
+                            violations.Add($"{t.Name}..ctor 参数 {p.Name} : {p.ParameterType.Name}");
+            }
+
+            Assert.That(violations, Is.Empty,
+                $"{scopeLabel} 中出现浮点成员(R7 / AC-51-D5 禁止):\n  " + string.Join("\n  ", violations));
+        }
+
+        /// <summary>是否为 <c>float</c> / <c>double</c>(含 <c>Nullable&lt;double&gt;</c>、数组元素、泛型实参)。</summary>
+        private static bool IsFloating(Type ty)
+        {
+            if (ty == null) return false;
+            if (ty == typeof(float) || ty == typeof(double)) return true;
+            if (ty.HasElementType && IsFloating(ty.GetElementType())) return true;
+            if (ty.IsGenericType && ty.GetGenericArguments().Any(IsFloating)) return true;
+            return false;
         }
 
         // ══════════════ AC-51-D6:规模不改变数值 ══════════════
 
-        /// <summary>AC-51-D6:规模不改变数值 —— 同一超长流以 `FOLD_MEMORY_MODE` 两值各重算,逐位相同。</summary>
-        /// <remarks>⚠️ <b>NOT-RUN(禁借绿)</b>:`FOLD_MEMORY_MODE` 在 GDD 里**仍为 `*待定*`**
-        /// (且已裁定不进 `telemetry_analytics.json` —— 实现策略非测量参数)。无两种模式 ⇒
-        /// 没有「两值对拍」的对象。上一版 `ComputeTwoModes(1000)` 返回两个**手搓常量**,
-        /// 连字段都不全对等(`b` 多填 `SumPayload/MinTick/MaxTick`),断言却只比两个字段 —— 已删除。
-        /// <para>解冻条件:`FOLD_MEMORY_MODE` 裁定并落地两实现后,本测改为同输入跑两实现逐位比对。</para></remarks>
+        /// <summary>AC-51-D6:规模不改变数值 —— ~~同一超长流以 `FOLD_MEMORY_MODE` 两值各重算,逐位相同~~。</summary>
+        /// <remarks>⏸ <b>P0 已推开(用户裁定 2026-10-19)</b>:P0 只保留一套折叠实现,双模式对拍整个推迟 ——
+        /// GDD 的「流式 / 整表」两模式当前**都没有独立实现**,而「两套玩具实现逐位相同」是自证,
+        /// 不是 AC 要验的东西。内存上界那半另卡 ADR-005 的 Memory Ceiling 数值(GDD `:654`「现不可写」)。
+        /// <para>保留本测(仍 Ignore)而非删除:它是 AC 的开冻哨兵 —— 将来另开 ADR 定第二模式时,
+        /// 解冻它并把两边换成真实现。上一版 `ComputeTwoModes(1000)` 返回两个**手搓常量**已删除。</para>
+        /// <para>开冻条件:出现真实内存压力 ⇒ 另开 ADR 定第二模式;同批须给出 Memory Ceiling 值。</para></remarks>
         [Test]
         public void test_d6_scaleDoesNotChangeValues_NOT_RUN()
         {
-            Assert.Ignore("AC-51-D6 NOT-RUN:FOLD_MEMORY_MODE 仍 *待定* ⇒ 无两模式可对拍。" +
-                          "上一版以手搓常量冒充,且两常量字段不对等。");
+            Assert.Ignore("AC-51-D6 已推开(P0 只留一套折叠实现,用户裁定 2026-10-19);" +
+                          "内存上界半条另卡 ADR-005 Memory Ceiling。开冻另开 ADR。");
         }
 
         // ══════════════ AC-51-D7:ConfigVersion 不匹配 ══════════════
 
-        /// <summary>AC-51-D7:ConfigVersion 不匹配 —— 报告含显式「版本不匹配」标注,不静默出数。</summary>
-        /// <remarks>⚠️ <b>NOT-RUN(禁借绿)</b>:须有「读存档头 ConfigVersion → 与当前内容哈希比对 →
-        /// 报告出标注」的生产路径。51 的装配层现无此路径(ConfigVersion 的比对归 7a / ADR-010 §七)。
-        /// 上一版用本地布尔 + 三元表达式拼字符串再断言 contains —— **恒真**,零判别力。</remarks>
+        /// <summary>AC-51-D7:ConfigVersion 不匹配 —— 报告含显式「版本不匹配」标注,**不静默出数**。
+        /// <para><b>生产主语</b>:<see cref="ConfigVersionCheck.Banner"/> +
+        /// <see cref="TelemetryReporter.AllMetricsReport"/> 的版本门早退。</para>
+        /// <para><b>判别力</b>:删掉 `AllMetricsReport` 的版本门早退 ⇒ 报告里出现指标行 ⇒ 本条红;
+        /// 把 `Banner()` 改成恒空串 ⇒ 标注断言红。</para></summary>
+        /// <remarks>⚠️ **2026-10-19 解冻(第十五片)**:原 NOT-RUN 记「51 无比对路径」属实,但外部依赖
+        /// (`Sim.Codec/SaveHeader.ConfigVersion`)**早已存在**。本次按 ADR-010 §七 / ADR-014 §五
+        /// 落地比对门 —— 51 收两个 u32(`SaveHeader` 在装配层解出),**不直引 `Sim.Codec`**
+        /// (`Telemetry.asmdef` 引用集恰 = `{Sim.Contracts}`,与 `JudgmentStreamReducer` 同一条边界纪律)。</remarks>
         [Test]
-        public void test_d7_configVersionMismatch_flagged_NOT_RUN()
+        public void test_d7_configVersionMismatch_flaggedAndNoMetrics()
         {
-            Assert.Ignore("AC-51-D7 NOT-RUN:51 无「ConfigVersion 比对 → 报告标注」生产路径" +
-                          "(归 7a / ADR-010 §七)。上一版为本地布尔 + 三元拼串,恒真。");
+            var (reporter, _) = NewReporter();
+
+            // Arrange:存档头 v41,当前产物 v42
+            var mismatch = new ConfigVersionCheck(saveHeaderConfigVersion: 41, currentConfigVersion: 42);
+
+            // Act
+            string report = reporter.AllMetricsReport(out int skipped, mismatch);
+
+            // Assert ①:显式标注,且两个版本号都在
+            Assert.That(report, Does.Contain("版本不匹配"), "须显式标注版本不匹配");
+            Assert.That(report, Does.Contain("41"), "须点出存档头版本号");
+            Assert.That(report, Does.Contain("42"), "须点出当前产物版本号");
+
+            // Assert ②:不出数 —— 不是「测得 0」
+            Assert.That(report, Does.Not.Contain("F1a"), "版本不匹配时不得出任何指标");
+            Assert.That(report, Does.Not.Contain("/ "), "不得出现任何率值");
+            Assert.That(skipped, Is.Zero, "不出数 ⇒ 无跳过计数可报");
+        }
+
+        /// <summary>AC-51-D7 正向对照:版本一致 ⇒ 出正常报告、**无**「版本不匹配」标注。
+        /// <para><b>判别力</b>:把 `AllMetricsReport` 的版本门写成恒拒 ⇒ 本条红。</para></summary>
+        [Test]
+        public void test_d7_configVersionMatch_noBannerAndMetricsPresent()
+        {
+            var (reporter, _) = NewReporter();
+            var match = new ConfigVersionCheck(saveHeaderConfigVersion: 42, currentConfigVersion: 42);
+
+            string report = reporter.AllMetricsReport(out _, match);
+
+            Assert.That(report, Does.Not.Contain("版本不匹配"), "一致 ⇒ 不得出该标注");
+            Assert.That(report, Does.Contain("F1"), "一致 ⇒ 正常出指标");
+        }
+
+        /// <summary>AC-51-D7:未注入版本检查 ⇒ 不做门(单机 / 无存档场景不误伤)。
+        /// <para><b>判别力</b>:把可空参数改成必填 / 缺省即拒 ⇒ 本条红。</para></summary>
+        [Test]
+        public void test_d7_noConfigVersionCheck_noGate()
+        {
+            var (reporter, _) = NewReporter();
+            string report = reporter.AllMetricsReport(out _);
+            Assert.That(report, Does.Not.Contain("版本不匹配"));
+            Assert.That(report, Does.Contain("F1"));
         }
 
         // ══════════════ AC-51-D8 前半:空流标注 ══════════════

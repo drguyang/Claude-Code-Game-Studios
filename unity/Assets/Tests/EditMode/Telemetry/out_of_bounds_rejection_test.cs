@@ -47,13 +47,51 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(thisFile) ?? ".",
                 "..", "..", "..", "..", ".."));
 
-        /// <summary>获取 51 命名空间下的所有类型(R1 修复:提取重复代码)。</summary>
+        /// <summary>获取 51 的全部面类型 —— **命名空间 + 报告生产者**。
+        /// <para>⚠️ **2026-10-19 扫描面订正(第十六片)**:原实现只取
+        /// <c>DaYiJingCheng.Telemetry</c> 命名空间,而 51 的**报告生产者**
+        /// (<c>TelemetryReporter</c> / <c>TelemetryDeveloperView</c>)住在 <c>Gameplay.Boot</c>
+        /// ⇒ <c>E1 / E2 / E4 / E5</c> 四条判据对真正的出数路径**视而不见**。
+        /// 这是与 <c>AC-19-02</c>(第十三片)同一个坑 —— 当时只补了那一处,没回头补这四条。</para>
+        /// <para>⚠️ 生产者按 **FullName 逐个点名**,不按整个 <c>Gameplay.Boot</c> 程序集取:
+        /// 该程序集还住启动序 / 玩家搬运等非 51 类型,对它们套 51 的越界判据是**判据越权**。
+        /// 生产者若改名 / 迁出,<see cref="RequireNonEmptyScan"/> 会先红 —— 不会静默失去扫描面。</para></summary>
+        private static readonly string[] ProducerTypeNames =
+        {
+            "DaYiJingCheng.Gameplay.Boot.TelemetryReporter",
+            "DaYiJingCheng.Gameplay.Boot.TelemetryDeveloperView",
+        };
+
         private static List<Type> GetTelemetryTypes()
         {
-            return AppDomain.CurrentDomain.GetAssemblies()
+            var all = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
                 .Where(t => t.Namespace != null && t.Namespace.StartsWith("DaYiJingCheng.Telemetry"))
                 .ToList();
+
+            foreach (string producer in ProducerTypeNames)
+            {
+                Type t = AppDomain.CurrentDomain.GetAssemblies()
+                    .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
+                    .FirstOrDefault(x => x.FullName == producer);
+                if (t != null && !all.Contains(t)) all.Add(t);
+            }
+
+            return all;
+        }
+
+        /// <summary>扫描面非空守卫 —— 取代原来的 <c>Assert.Ignore</c>。
+        /// <para>⚠️ **为什么不再 Ignore**:原守卫的理由是「51 未实现,空命名空间是正确行为」,
+        /// 但 51 现已实现(第十三~十五片),空集只可能意味着**反射扫不到装配** ——
+        /// 那正是「假绿」最隐蔽的形态(全绿但什么都没测)。守卫须**转红**,不是跳过。</para>
+        /// <para>同时点名断言两个生产者都在扫描集里 —— 生产者改名 / 移走时先红。</para></summary>
+        private static void RequireNonEmptyScan(List<Type> types)
+        {
+            Assert.That(types.Count, Is.GreaterThan(0),
+                "51 扫描集为空 —— 反射未命中装配,判据无效(不得以跳过冒充通过)");
+            foreach (string producer in ProducerTypeNames)
+                Assert.That(types.Any(t => t.FullName == producer), Is.True,
+                    $"报告生产者 {producer} 不在扫描集内 —— 扫描面失效(改名 / 移出?须同步本表)");
         }
 
         // ══════════════ AC-51-E1:无玩家可见统计界面 ══════════════
@@ -94,12 +132,8 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             // Arrange:扫描 51 命名空间下的类型
             var telemetryTypes = GetTelemetryTypes();
 
-            // B1 修复:空命名空间 ⇒ 跳过(当前阶段正确行为)
-            if (telemetryTypes.Count == 0)
-            {
-                Assert.Ignore("DaYiJingCheng.Telemetry 命名空间为空(当前阶段 51 未实现,正确行为)");
-                return;
-            }
+            // 空集守卫(第十六片):原 Ignore 已撤销 —— 51 已实现,空集 = 扫描面失效,须转红
+            RequireNonEmptyScan(telemetryTypes);
 
             // Act:扫描公开方法签名中的 UI 入口特性
             var violations = new List<string>();
@@ -140,12 +174,8 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             // Arrange:扫描 51 命名空间下的类型
             var telemetryTypes = GetTelemetryTypes();
 
-            // B1 修复:空命名空间 ⇒ 跳过(当前阶段正确行为)
-            if (telemetryTypes.Count == 0)
-            {
-                Assert.Ignore("DaYiJingCheng.Telemetry 命名空间为空(当前阶段 51 未实现,正确行为)");
-                return;
-            }
+            // 空集守卫(第十六片):原 Ignore 已撤销 —— 51 已实现,空集 = 扫描面失效,须转红
+            RequireNonEmptyScan(telemetryTypes);
 
             // Act:扫描公开方法签名中的文件写入类型
             var violations = new List<string>();
@@ -192,12 +222,8 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             // Arrange:扫描 51 命名空间下的类型
             var telemetryTypes = GetTelemetryTypes();
 
-            // B1 修复:空命名空间 ⇒ 跳过(当前阶段正确行为)
-            if (telemetryTypes.Count == 0)
-            {
-                Assert.Ignore("DaYiJingCheng.Telemetry 命名空间为空(当前阶段 51 未实现,正确行为)");
-                return;
-            }
+            // 空集守卫(第十六片):原 Ignore 已撤销 —— 51 已实现,空集 = 扫描面失效,须转红
+            RequireNonEmptyScan(telemetryTypes);
 
             // Act:扫描字段名
             var violations = new List<string>();
@@ -222,22 +248,71 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         [Test]
         public void test_e2_noWriteBack_dataDirectoryUnchanged()
         {
-            // Arrange:检查 assets/data/ 目录
+            // Arrange:目录存在性
             string dataDir = Path.Combine(repoRoot(), "assets", "data");
-
-            // Act:检查目录是否存在
             if (!Directory.Exists(dataDir))
             {
-                // 目录不存在 = 无数据文件 = 字节不变 = 通过(QA 修复:非 Ignore)
                 Assert.Pass("assets/data/ 目录不存在 ⇒ 无数据文件 ⇒ 字节不变(AC-51-E2:不写回数值)");
                 return;
             }
 
-            // Assert:目录存在时,验证无 51 写入路径
-            // 当前阶段 51 未实现,无写入路径 = 字节不变
-            // 实现后应改为:运行 51 前后对比目录哈希
-            var dataFiles = Directory.GetFiles(dataDir, "*.*", SearchOption.AllDirectories);
-            Assert.That(dataFiles, Is.Not.Null, "assets/data/ 目录应可读取");
+            // Act ①:**运行 51 之前**的全目录字节指纹(SHA-256,按相对路径排序后连带路径一起哈希)
+            string before = FingerprintDirectory(dataDir);
+
+            // Act ②:真跑一遍 51 —— 全指标汇总 + 落 sink(sink 写的是调用方给的路径策略,
+            //          不指向 assets/data/;这里只为让 51 真的执行一遍全部取数路径)
+            var (reporter, _) = NewReporter();
+            var sink = new CountingSink();
+            reporter.ComputeAndSink(sink, _ => new[] { reporter.AllMetricsReport(out int _) });
+
+            // Act ③:**运行 51 之后**的同一指纹
+            string after = FingerprintDirectory(dataDir);
+
+            // Assert:字节完全一致(不是「目录可读」这种恒真断言)
+            Assert.That(after, Is.EqualTo(before),
+                "assets/data/** 在 51 运行前后须字节不变(AC-51-E2:不写回数值)");
+        }
+
+        /// <summary>目录指纹:逐文件 SHA-256,按相对路径序拼接,再整体哈希。
+        /// <para>⚠️ 用 BCL `System.Security.Cryptography.SHA256`(51 本身不引 IO;
+        /// 本条是**测试**侧的观测手段,不违反 AC-51-E2 的「无文件写入 API」判据 ——
+        /// 那条判据扫的是 51 的**生产类型**,不是夹具)。</para></summary>
+        private static string FingerprintDirectory(string dir)
+        {
+            var files = Directory.GetFiles(dir, "*.*", SearchOption.AllDirectories)
+                .OrderBy(f => f, StringComparer.Ordinal)
+                .ToList();
+            using var sha = System.Security.Cryptography.SHA256.Create();
+            var combined = new List<byte>();
+            foreach (string f in files)
+            {
+                combined.AddRange(System.Text.Encoding.UTF8.GetBytes(
+                    Path.GetRelativePath(dir, f) + "\n"));
+                combined.AddRange(sha.ComputeHash(File.ReadAllBytes(f)));
+            }
+            // ⚠️ 不用 `Convert.ToHexString` —— 它是 .NET 5+ API,Unity 6.3 的 netstandard2.1 没有
+            byte[] digest = sha.ComputeHash(combined.ToArray());
+            var hex = new System.Text.StringBuilder(digest.Length * 2);
+            foreach (byte b in digest) hex.Append(b.ToString("x2"));
+            return hex.ToString();
+        }
+
+        /// <summary>计数 sink(E2 只要求 51 能跑完,不关心落哪)。</summary>
+        private sealed class CountingSink : ITelemetrySink
+        {
+            public int Calls;
+            public void WriteLocalReport(string fileName, string content) => Calls++;
+            public void LogDeveloperSummary(string summary) => Calls++;
+        }
+
+        /// <summary>真装配:空 <c>EventStream</c> + 真 <c>PayloadDecoder</c> + 单病种注册表。</summary>
+        private static (TelemetryReporter reporter, EventStream stream) NewReporter()
+        {
+            var pool = new InMemoryBlobPool();
+            var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
+            var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
+                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } });
+            return (reporter, stream);
         }
 
         // ══════════════ AC-51-E3:非主机侧拒绝 ══════════════
@@ -314,13 +389,40 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             Assert.DoesNotThrow(() => reporter.JudgmentReport(out _), "单机/离线不设门");
         }
 
-        /// <summary>AC-51-E3 的**未覆盖半边** —— 真联机环境下非主机侧被拒。</summary>
+        /// <summary>AC-51-E3 的**未覆盖半边** —— 真联机环境下非主机侧被拒。
+        /// <para>⚠️ 2026-10-19 第十六片:本条由 `Assert.Ignore`(跳过)**改为缺口哨兵**(硬断言)。</para>
+        /// <para><b>为什么不再跳过</b>:`Assert.Ignore` 让「环境不具备」以**跳过**的形式长期存活,
+        /// 而跳过既不会红、也不会计入失败 —— 正是 `TD-epic-01` 普查里「第五形态」的载体
+        /// (症状是跳过,连红的机会都没有)。哨兵反过来:环境**一旦就绪**它立刻转红,
+        /// 逼着把真判据补上,而不是让缺口悄悄留在绿里。</para>
+        /// <para><b>当前判据(用户 2026-10-19 裁定:半边推到 P1b)</b>:P0 断言
+        /// `IEventAuthority` 在 `unity/Assets/` 下**零生产实装**(排除 `Sim.Contracts` 契约面与测试树)。
+        /// 该事实成立 ⇒ 本条绿(缺口已登记,归 P1b 联机轮);
+        /// 一旦出现生产实装 ⇒ 本条**红** ⇒ 须改为真驱动「真非主机进程被拒」。</para></summary>
         [Test]
-        public void test_e3_realOnline_nonHostRejected_NOT_RUN()
+        public void test_e3_realOnline_nonHostRejected_gapSentinel()
         {
-            Assert.Ignore("AC-51-E3 的「真联机」半边 NOT-RUN:`IEventAuthority` 全仓零生产实装" +
-                          "(SeenDiseaseProjector.cs:23-26 自陈归 P1b 联机轮)⇒ 本机无法构造真非主机进程。" +
-                          "已覆盖的是「注入非主机 authority 时拒」(test_e3_nonHostAuthority_rejectsAllReports)。");
+            string[] productionImplementations = FindProductionEventAuthorityImplementations();
+
+            Assert.That(productionImplementations, Is.Empty,
+                "AC-51-E3 的「真联机」半边仍登记为 P1b 缺口,但检测到 `IEventAuthority` 的生产实装:" +
+                string.Join(", ", productionImplementations) +
+                " —— 缺口已就绪 ⇒ 本条哨兵必须改为真驱动(构造真非主机进程断言被拒)," +
+                "不得继续以「环境不具备」为由留绿。");
+        }
+
+        /// <summary>扫描 `unity/Assets/` 下**生产树**里实现 <c>IEventAuthority</c> 的类型。
+        /// <para>排除面:① `Sim.Contracts`(契约面 —— 接口本身住那里,不是实装);
+        /// ② 任何名字含 `Tests` 的装配(测试替身不算生产实装)。</para></summary>
+        private static string[] FindProductionEventAuthorityImplementations()
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .Where(a => a.GetName().Name != null && !a.GetName().Name.Contains("Tests"))
+                .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
+                .Where(t => t != null && typeof(IEventAuthority).IsAssignableFrom(t)
+                            && t.IsClass && !t.IsAbstract)
+                .Select(t => t.FullName)
+                .ToArray();
         }
 
         private sealed class FakeEventAuthority : IEventAuthority
@@ -356,12 +458,8 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             // Arrange:扫描 51 命名空间下的类型
             var telemetryTypes = GetTelemetryTypes();
 
-            // B1 修复:空命名空间 ⇒ 跳过(当前阶段正确行为)
-            if (telemetryTypes.Count == 0)
-            {
-                Assert.Ignore("DaYiJingCheng.Telemetry 命名空间为空(当前阶段 51 未实现,正确行为)");
-                return;
-            }
+            // 空集守卫(第十六片):原 Ignore 已撤销 —— 51 已实现,空集 = 扫描面失效,须转红
+            RequireNonEmptyScan(telemetryTypes);
 
             // Act:扫描字段名
             var violations = new List<string>();
@@ -437,12 +535,8 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             // Arrange:扫描 51 命名空间下的类型
             var telemetryTypes = GetTelemetryTypes();
 
-            // B1 修复:空命名空间 ⇒ 跳过(当前阶段正确行为)
-            if (telemetryTypes.Count == 0)
-            {
-                Assert.Ignore("DaYiJingCheng.Telemetry 命名空间为空(当前阶段 51 未实现,正确行为)");
-                return;
-            }
+            // 空集守卫(第十六片):原 Ignore 已撤销 —— 51 已实现,空集 = 扫描面失效,须转红
+            RequireNonEmptyScan(telemetryTypes);
 
             // Act:扫描字段名
             var violations = new List<string>();

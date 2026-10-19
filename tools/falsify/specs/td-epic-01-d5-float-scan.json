@@ -1,0 +1,37 @@
+{
+  "name": "TD-epic-01 D5 浮点扫描面 —— 程序集级无 float/double 夹具的判别力",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.Unit.Telemetry.BlankAndDegradedTest",
+  "unityProject": "unity",
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed)。",
+    "D5 的两条夹具各需一条变异:只动 Telemetry 程序集 ⇒ 只有第一条红;只动报告生产者 ⇒ 只有第二条红。",
+    "两条交替 ⇒ 顺带证明扫描面确实是**分开**的(不是一条夹具覆盖全部)。"
+  ],
+  "mutations": [
+    {
+      "name": "F1-telemetryAssemblyFloatField",
+      "file": "unity/Assets/Telemetry/MetricsReport.cs",
+      "line": 21,
+      "expect": "    /// <summary>一行指标报告(整数纪律 R7:全部字段整数;率 = (num, den) 对)。</summary>",
+      "replace": "    internal static class FalsifyProbe21 { internal static double Leak; } // FALSIFY-F1\n    /// <summary>一行指标报告(整数纪律 R7:全部字段整数;率 = (num, den) 对)。</summary>",
+      "expectRed": [
+        "test_d5_telemetryAssembly_noFloatOrDoubleMembers"
+      ],
+      "exactRed": true,
+      "_why": "在 Telemetry 程序集内插一个 double 静态字段 ⇒ 第一条夹具必须点名它并转红;第二条只扫 Reporter / DeveloperView 两个 FullName ⇒ 不红。"
+    },
+    {
+      "name": "F2-reportProducerFloatField",
+      "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
+      "line": 67,
+      "expect": "        public IEventAuthority EventAuthority { get; }",
+      "replace": "        public IEventAuthority EventAuthority { get; }\n        private readonly double _falsifyLeak = 0; // FALSIFY-F2",
+      "expectRed": [
+        "test_d5_reportProducers_noFloatOrDoubleMembers"
+      ],
+      "exactRed": true,
+      "_why": "给 TelemetryReporter 加私有 double 字段 ⇒ 第二条(具体类型 + NonPublic)必红;该类型不在 Telemetry 命名空间 ⇒ 第一条不红。"
+    }
+  ]
+}
