@@ -49,6 +49,19 @@ namespace DaYiJingCheng.Gameplay.Boot
         private const int EmergencyDzMag = 0;
         private const int EmergencyMagMax = 65536;
 
+        // ── 设备切换迟滞六旋钮 = **临时种子**(TD-epic-01 第八片;值归数值轮)──
+        // 与 `assets/data/input_device_switch.json` 的种子**同值**(Fix 字符串经 FixParse 得
+        // 同一 raw;区间断言由 InputDeviceSwitchBinder 在装载期执法,本处只做种子搬运)。
+        // ⚠️ ⚠️ 这是**临时种子,未进 data-core** —— ADR-014 §五/§九:含 Fix 的常量表须经
+        //    两阶段烘焙;设备态旋钮目前**只有来源 JSON + EditMode 装载判据,零运行期制品**。
+        //    本常量 = 运行期兜底,数值轮定稿时须改走 cooked,届时删本组常量(登记为残留)。
+        public const int EmergencyDeviceSwitchSeedAxisThreshold = 32768;      // "1/2"
+        public const int EmergencyDeviceSwitchSeedAxisTolerance = 8192;       // "1/8"
+        public const int EmergencyDeviceSwitchSeedAxisDwell = 4;
+        public const int EmergencyDeviceSwitchSeedPointerThreshold = 262144;  // "4"
+        public const int EmergencyDeviceSwitchSeedPointerTolerance = 65536;   // "1"
+        public const int EmergencyDeviceSwitchSeedPointerDwell = 4;
+
         // ── story-018 · A-3 接线:GDD 点名的两个 cue 名(单一出处 = AudioEventDataSet)──
         // ⚠️ 这里**只引用常量,不另抄字面量**(ADR-024 §⑥):名字的存在性由构建期门
         //    `AudioEventTableGates.RequiredCues` 断言;运行期解析不到 ⇒ ordinal = null ⇒ 不发 cue。
@@ -173,6 +186,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 手动入口 = EmergencyManualDriver(BootRoot 生成玩家后调用)。
             var emergencyProcessor = new HostEmergencyProcessor(stream, idAuthority, encoder);
             var emergencyDriver = new EmergencyAttemptDriver();
+            // cause 判据的输入面(TD-epic-01 第八片):空 = 夹具默认「玩家选择」;
+            // 生产 BootRoot 以 3 的 DeviceStateManager 造 EmergencyDeviceReadiness 适配注入
+            // (启动序 4.2 —— 设备态须先挂接才能读到在场设备)。
             var emergencyManual = new EmergencyManualDriver(emergencyProcessor, presence);
 
             // ── 病人最小可见实体(sprint-05 T2.0):给运行期病人生成占位视觉 ──
@@ -469,6 +485,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: PatientCueDriver 装配产出 null");
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,
+                                               fallbackRegistry,   // registry → 51 TelemetryReporter
                                                presence, spawner, patientDriver, caseDriver,
                                                emergencyDriver, emergencyManual,
                                                emergencyChannelDriver, patientVisuals,

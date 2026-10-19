@@ -72,6 +72,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// cue 语义 / 状态一律不在此(ADR-013 §9 C3 · ADR-018 §一)。</para></summary>
         private AudioAssemblySeams _audioSeams;
 
+        /// <summary>3 的设备态(启动序 2.9 挂接;TD-epic-01 第八片 —— cause 判据的输入面)。</summary>
+        private Input.DeviceStateManager _deviceState;
+
         /// <summary>
         /// 只缓存引用 / 初始化字段 —— **零异步、零装配**(装配严格在 <see cref="Start"/> 启动序第 2 步)。
         /// </summary>
@@ -166,6 +169,36 @@ namespace DaYiJingCheng.Gameplay.Boot
                 dataProvider: preloaded ? DataCorePreloader.Provider : null,
                 inputActions: inputActions,
                 audio: _audioSeams);
+
+            // ── 2.9 设备态挂接(TD-epic-01 第八片 · 2026-10-19)──
+            // 病因:`DeviceStateManager`(story-008)此前**零生产实例**(零生产调用方,与
+            // story-008 Handover 第 7 条「四件新 API 零生产调用点」登记吻合)—— 而 10 的
+            // `cause`(GDD 规则十二:无模拟量通道 ⇒ 降级)要读它。本处即该接线的启动序半边:
+            //   · `Attach()` 快照 `InputSystem.devices` 并按 onDeviceChange 维护在场集;
+            //   · 用 3 的 `EmergencyDeviceReadiness` 把读数交给 `EmergencyManualDriver`
+            //     (启动序 4.65 的跳过入口之后才有动作,故先于玩家生成即可)。
+            // ⚠️ 迟滞三旋钮 = **临时种子**(`CompositionRoot.EmergencyDeviceSwitchSeed*`,
+            //    ADR-014 §五/§九 裁定值待裁决)—— 与 data-core 同源,数值轮同批定稿。
+            // ⚠️ 未挂接 / 失败 ≠ 阻断启动:读数恒「无模拟量」⇒ 所有 cause 记降级(如实可见,
+            //    不是静默记成「玩家选择」)。设备态是 P0 的展示 / 读数面,不是 sim 真值。
+            try
+            {
+                var devices = new Input.DeviceStateManager(
+                    CompositionRoot.EmergencyDeviceSwitchSeedAxisThreshold,
+                    CompositionRoot.EmergencyDeviceSwitchSeedAxisTolerance,
+                    CompositionRoot.EmergencyDeviceSwitchSeedAxisDwell,
+                    CompositionRoot.EmergencyDeviceSwitchSeedPointerThreshold,
+                    CompositionRoot.EmergencyDeviceSwitchSeedPointerTolerance,
+                    CompositionRoot.EmergencyDeviceSwitchSeedPointerDwell);
+                devices.Attach();
+                _deviceState = devices;
+                _services.EmergencyManualDriver?.BindDeviceReadiness(
+                    new Input.EmergencyDeviceReadiness(devices));
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[BootRoot][TD-epic-01] 设备态挂接失败 ⇒ cause 记降级(无模拟量):" + e);
+            }
 
             // ── 3. World 场景 additive 加载(ADR-023:永不用 LoadSceneMode.Single)──
             // ⚠️ 本版 `LoadSceneAsync` **没有 `autoReleaseHandle` 形参**(U1 spike 坑 A 的
@@ -731,6 +764,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 急救直读通道卸挂(story-009):onAfterUpdate 是全局静态回调,必须在
             // BootRoot 销毁时显式 Detach,否则域内悬挂委托引用已弃通道(下次 Play 泄漏)。
             _services?.EmergencyChannel?.Detach();
+
+            // 设备态卸挂(TD-epic-01 第八片):onDeviceChange 同属全局静态回调,须显式摘。
+            _deviceState?.Detach();
 
             // 病人 cue 驱动收尾(story-018 · ADR-018 §一「句柄由唯一持有者负责收尾」)——
             // 本驱动即呼吸层句柄的持有者;不显式 EndLoop ⇒ 句柄跨 Play 轮残留。

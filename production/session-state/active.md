@@ -6276,3 +6276,95 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
 - **回归**:`3819/3782/1/36`(`unity/Logs/s19c-wiring-full.xml`)vs `3812/3775/1/36` ⇒ **+7 = 新增测数**,唯一红 = `TD-player-01` 间歇。
 - 🔴 **仍未还**:① **调试视图**;② F2–F7 还原器接线(`AllMetricsReport` 已自陈未接,夹具钉住);③ 3 条 Ignore;④ 10 条 story 的 `Complete` 一条未动。
 - **未提交**。
+
+## Session Extract — S19d TD-epic-01 第六片:F2–F7 接线 + 证伪 · 2026-10-19
+
+- **生产面**:`Gameplay.Boot/TelemetryReporter.cs` 新增 `SkipRateReport` / `SkillGrowthReport` /
+  `DifficultyCurveReport` / `SessionRhythmReport` 四个还原器 + 报告方法;`AllMetricsReport` 扩为 F1+F2+F3
+  并自陈 F4–F7 须传参。参数(`W`/`S`/`t_0`/`GAP_THRESHOLD`/`GROWTH_WINDOW`)**无默认值**(用户调)。
+- **判据**:新增 `Tests/EditMode/Telemetry/f3_f7_wiring_test.cs` 14 条(F3 4 / F4 3 / F5 4 / F6·F7 3);
+  F2 6 条(`f2_wiring_test.cs`)本批首次跑通。
+- **证伪 4/4 转红**(M-fz-2/3/4/5,同命令改→跑→还原,SHA-256 校验)。
+- **两个登记项(禁借绿)**:① F3 `cause` 关联归 10 实现轮 ⇒ SkipByChoice 恒 0,有 `causeNotInvented` 钉住;
+  ② **F7 上中位数与 GDD 不符**(生产式得 20,口径得 30)⇒ 归 story-007 轮修,本批钉现行行为。
+- **过程失误**:解码委托名 `DecodeJudgment` 命中只读门 `Emit` 子串 ⇒ 与自陈断言同次抵消(红 2 绿自欺);
+  处理 = 改生产命名 `Decode*Record`,不放松判据。
+- **回归**:`3839/3802/1/36`(`unity/Logs/s19d-f3f7-wiring-full.xml`)vs `3819/3782/1/36` ⇒ **+20**,唯一红 = `TD-player-01` 间歇。
+- 🔴 **仍未还**:① **调试视图**;② F3 cause 关联(归 10)· F7 中位数偏差(归 story-007);③ 3 条 Ignore;④ 10 条 story 的 `Complete` 一条未动。
+- **未提交**。
+
+## Session Extract — S19e TD-epic-01 第七片:调试视图(ADR-019 §五 第三项)· 2026-10-19
+
+- **件**:`Gameplay.Boot/TelemetryDeveloperView.cs`(新,整类型在 `#if UNITY_EDITOR || DEVELOPMENT_BUILD` 内)
+  + `TelemetryReporter.RenderDeveloperPreview(request, sink)` + `RenderDeveloperSummary(sink)`(默认入口,只收 sink)
+  + `CompletenessBanner(bool)`(空流 / 部分指标口径)。
+- **参数纪律**:`W`/`S`/`t_0`/`GAP_THRESHOLD`/`GROWTH_WINDOW`/`TELEMETRY_MIN_SAMPLE` 全部可空,未给即
+  「未给(未算 —— 旋钮待用户调)」,**不代填**(M-dv-7/8 双形态钉住)。
+- **判据**:`Tests/EditMode/Boot/telemetry_debug_view_test.cs` 12 条(11 绿 + 1 NOT-RUN):D4 源形态/反射面/NOT-RUN 哨兵 ·
+  入口交 sink · 参数纪律 · 默认入口同口径 · D8 空流/部分指标 · D9 样本不足数值不变 · A5 零呈现引用 · E1 零呈现资产。
+- **证伪 8/8 转红**(M-dv-1…8,同命令改→跑→还原 + `sha256sum -c` 基线)。
+  ⚠️ 证伪轮自己抓到三处「绿但什么都没测」:① 判据被头注满足(加 `CodeOnly()` 去注释)② 条件表达式未钉
+  (`#if true` 仍全绿 ⇒ 补条件行断言)③ **M-dv-7 是假变异**(只改 `.Value` 不改 `HasValue` ⇒ 走不到)⇒ 条件取值一并改。
+- **实现中抓到自己的两个真缺陷**:① 完整性头重复两份(视图前置 + `AllMetricsReport` 自带)⇒ 视图不前置 + 判据钉「只许出现一次」;
+  ② `sink == null` 检查在 `Render` 之后 ⇒ 前置。
+- ⚠️ **过程失误**:证伪批被中断后变异留在盘上(`#if true`),第二次基线 1 红才发现 ⇒ 从变异表还原 + SHA 复核后重跑;
+  脚本随后加「开跑前基线自检 + finally 内 sha 校验」。
+- **回归**:`3851/3813/1/37`(`unity/Logs/s19e-debugview-full.xml`)vs `3839/3802/1/36` ⇒ **+12 = 新增测数**(11 绿 + 1 skip);唯一红 = `TD-player-01` 间歇。
+- 🔴 **仍未还**:① 调试视图**生产装配无调用点**(DevBuild 怎么唤未裁)② AC-51-D4 Release 半边 **NOT-RUN**
+  ③ F3 cause 关联(归 10)· F7 中位数偏差(归 story-007)④ 3 条 Ignore ⑤ 10 条 story 的 `Complete` 一条未动。
+- **未提交**。
+
+## Session Extract — S19f TD-epic-01 第八片:F3 `cause` 关联 · 2026-10-19
+
+- **写侧(10 → 流)**:`Gameplay.Input/EmergencyDeviceReadiness.cs`(新)+ `IEmergencyDeviceReadiness`
+  —— 判据归 3(通道拥有者),Boot 只转发 bool(零新增引用边)。`EmergencyManualDriver.ResolveCause()` +
+  `BindDeviceReadiness()`(单次注入);`TryAttempt` 改传 `ResolveCause()`。`BootRoot` 启动序 **2.9** 构造
+  `DeviceStateManager`(**首个生产实例**)+ `Attach()` → 注入;`OnDestroy` 卸挂。
+  `CompositionRoot` 六旋钮 `EmergencyDeviceSwitchSeed*` 临时种子(**未进 data-core**,残留)。
+- **修掉的生产 bug**:`TryAttempt` 原硬编码 `cause: 0` ⇒ AC-10-21「纯键鼠 ⇒ 降级」半边**生产恒假**。
+- **读侧(流 → 指标)**:`TelemetryReporter.ReduceActions` 改**结算全序关联**(同 (病人, 施予者) 的**最早未结算**
+  意图);`SkipRateReport(out skipped, out unattributed)` 输出四行(玩家选择 / 降级 / 未关联)。
+  `SkipRateMetrics.CauseNameOf`(闭集外 ⇒ null 不猜)+ `CountDegradedSkips`。**刻意不用 tick 作判据**。
+- **判据**:三 fixture **33 全绿** —— `EmergencyManualDriverTest` 10(+4)· `EmergencyDeviceReadinessTest` 4(新)·
+  `F3ToF7WiringTest` 净 +4。
+- **证伪 10/10 转红**(M-c-1…10,同命令改→跑→还原 + `sha256sum -c`)。
+  ⚠️ **抓到一处假绿夹具(BLOCKING,已修)**:`associationIsSettlementOrder` 首版两笔意图**同为 Skip**、
+  两笔结算各给一 cause ⇒ 贴第一笔与贴第二笔读数**完全相同** ⇒ M-c-6 首轮 **GREEN**。修法 = 两笔意图改
+  **不同结算路径**(Manual / Skip),cause 落哪笔会改变读数 ⇒ 转红。
+  另:`ReduceActions` 类注写「最近一笔」与实现「最早一笔」矛盾 ⇒ 已订正。
+- **回归**:`3864/3827/0/37`(`unity/Logs/s19f-f3cause-full.xml`)vs `3851/3813/1/37` ⇒ **total +13**
+  (+14 passed −1 failed);逐名比对**无消失用例**,新增 13 条 = 12 条新测 + 上批唯一红 `TD-player-01` 本轮转绿。
+  ⚠️ 汇总脚本首版把 Skipped 漏出 total,已按同口径修正重数。
+- 🔴 **未落半边(禁借绿)**:① 纯键鼠 `magnitude ≡ MAG_MAX` 的**通道读数回填未落**(AC-10-21 幅度门恒过半边
+  生产未成立)② 设备六旋钮临时种子未进 `data-core` ③ F7 中位数偏差(归 story-007)④ 调试视图生产无调用点
+  ⑤ AC-51-D4 Release 半边 NOT-RUN ⑥ 3 条 Ignore ⑦ 10 条 story 的 `Complete` 一条未动。
+- **未提交**。
+
+## Session Extract — S19g TD-epic-01 第九片:纯键鼠 MAG_MAX 回填 · 2026-10-19
+
+- **用户裁定(两问)**:① 回填落点 = **读侧门豁免**(不写回载荷)② 覆盖面 = **只包急救通道**
+  (`TryAggregated` 链;跳过入口 `TryManual` 不受影响)。
+- **病根**:`FeelLatencyEvaluator.CreateKeyboardFallbackReading()` 自 GDD 起草就在,但**只有夹具调用**;
+  生产对键鼠与手柄一视同仁 ⇒ 键鼠 `Axis` 恒 0 ⇒ 幅度门恒挂 ⇒ **每次键鼠动作都 Missed**。
+- **落点**:`FeelLatencyEvaluator` 新增 `CreateKeyboardFallbackReading(action, holdTicks, edges, edgeTicks)`
+  重载(计时原样透传,只置 `magnitude = MAG_MAX`);`HostEmergencyProcessor.Process` 新增带
+  `analogChannelAbsent` 的重载;`EmergencyManualDriver.IsAnalogChannelAbsent` = 判据真源,
+  `ResolveCause()` 由它派生。
+- **三条口径**:① 回填只落求值侧(载荷 `MagPeak` 记玩家真给了什么,仍原样进流)② 只改幅度,
+  节奏 / 稳度照评(GDD Edge Cases `:728`)③ 不知道就不回填(未注入 ⇒ 判据 false,宁严勿猜)。
+- **判据**:`EmergencyManualDriverTest` **18 条全绿**(本片 +8)。
+- **证伪 10/10 转红**。⚠️ 两处首轮 GREEN、性质不同:
+  ① **M-m-1 = 变异等价** —— 6 参兼容入口当时从 `cause` 反推判据,注入后两者恒同源 ⇒ 行为不变。
+    复查判定**设计本身错**(用结算输出反推判定输入 = 第二真源)⇒ **改生产码**:兼容入口改为
+    `analogChannelAbsent: false`,不承载判据。
+  ② **M-m-8 = 夹具缺判据** —— 改完后无人钉住「兼容入口不豁免」⇒ 补
+    `test_ac1021_legacyOverload_doesNotInferFromCause` 后转红。
+- ⚠️ **另修两处夹具自身缺陷**:`MinHoldTicks = 0` 使节奏门恒过(`edges ≥ MinEdges || hold ≥ MinHoldTicks`);
+  `ResultMul[Missed] = 0` 使 Missed 与「没执行」不可分 ⇒ 另建 GDD 三档动作行。
+- **回归**:`3872/3835/0/37`(`unity/Logs/s19g-magfill-full.xml`)vs `3864/3827/0/37`
+  ⇒ **total +8 = passed +8**;逐名比对 **NEW 8 / GONE 0**。**零回归**。
+- 🔴 **边界(禁借绿)**:① 只覆盖急救直读通道链 ② 设备读数未注入 ⇒ 不回填(挂接失败时键鼠玩家退回
+  「每次 Missed」,是**已知降级行为、无提示**;是否改为「宁可回填」属产品判断,未裁)③ VR 半边归 P1b。
+- 🔴 **仍未还**:① 设备六旋钮临时种子未进 data-core ② F7 中位数偏差(归 story-007)③ F4–F7 参数待定
+  ④ 调试视图生产无调用点 ⑤ AC-51-D4 Release 半边 NOT-RUN ⑥ 3 条 Ignore ⑦ 10 条 story 的 `Complete` 一条未动。
+- **未提交**。

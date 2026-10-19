@@ -7,6 +7,7 @@
 // 服务袋 = Assemble(...) 的只读产物。**只读属性,不提供 setter** —— 装配完成后不允许
 // 事后替换依赖(fail-loud 的一半:要么全装配,要么抛异常,不存在「半装配袋」)。
 
+using System.Collections.Generic;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
@@ -168,6 +169,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         internal CompositionRootServices(EventStream stream, IIdAuthority idAuthority,
                                          InMemoryBlobPool blobPool, IPayloadEncoder encoder,
                                          IPayloadDecoder decoder,
+                                         IReadOnlyList<DiseaseRegistryEntry> registry,
                                          PresenceRegistry presence, PatientSpawner patientSpawner,
                                          PatientAppearedDriver patientAppearedDriver,
                                          CaseOpenedDriver caseOpenedDriver,
@@ -232,8 +234,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             BehaviorDirector = behaviorDirector;
 
             // 51 遥测接线(TD-epic-01):decoder 在 Sim.Codec、51 的装配引不到 ⇒ 在本装配层包成委托。
-            // ⚠️ stream / decoder 均已是本 ctor 的形参 ⇒ 不加新装配边、不改 Assemble 签名。
-            Telemetry = new TelemetryReporter(stream, decoder);
+            // ⚠️ stream / decoder / registry 均已是本 ctor 的形参 ⇒ 不加新装配边、不改 Assemble 签名。
+            Telemetry = new TelemetryReporter(stream, decoder, registry ?? CreateFallbackRegistry());
         }
+
+        /// <summary>最小内联病种注册表(DiseaseId=1)—— 装配层未传入真表时的接线载体。</summary>
+        private static IReadOnlyList<DiseaseRegistryEntry> CreateFallbackRegistry()
+            => new List<DiseaseRegistryEntry> { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "fallback" } };
     }
 }

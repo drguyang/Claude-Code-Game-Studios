@@ -38,6 +38,37 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         }
 
         /// <summary>
+        /// 键鼠回退读数的**生产形状**(2026-10-19 · TD-epic-01 第九片 · AC-10-21 的幅度半边):
+        /// 节奏 / 稳度两门的输入**原样取自本次动作**(GDD Edge Cases `:728`「只走节奏 + 稳度双门」),
+        /// **只把幅度置为 <see cref="MAG_MAX"/>** ⇒ 幅度门恒过。
+        /// </summary>
+        /// <remarks>
+        /// <para>与无参重载的区别:无参版是**形状示意**(夹具时代的固定样本 100/3/<c>{10,20,30}</c>),
+        /// 计时与边沿是写死的假数;本重载把它们换成**真实采样**,只有幅度是回填值。
+        /// 10 侧生产求值(<c>HostEmergencyProcessor</c>)走本重载。</para>
+        /// <para>⚠️ 回填**不写回载荷**:载荷是判定输入(ADR-011 Amendment B C 路),
+        /// 记录玩家真给了什么;回填只作用于本次 Judge 调用(F-10.4 `mag_peak` 的「判定量」语义不变)。</para>
+        /// </remarks>
+        /// <param name="action">动作 ordinal(原样透传)。</param>
+        /// <param name="holdTicks">本次动作持时(原样透传)。</param>
+        /// <param name="edges">本次动作 press 沿数(原样透传)。</param>
+        /// <param name="edgeTicks">本次动作 press 沿时刻(原样透传;须非 null —— 载荷契约要求)。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="edgeTicks"/> 为 null。</exception>
+        public static EmergencyReading CreateKeyboardFallbackReading(
+            int action, int holdTicks, int edges, int[] edgeTicks)
+        {
+            if (edgeTicks == null)
+                throw new ArgumentNullException(nameof(edgeTicks),
+                    "键鼠回退读数须原样透传边沿序列(载荷契约 Edges=0 时也要求空数组非 null)");
+            return new EmergencyReading(
+                action: action,
+                holdTicks: holdTicks,
+                edges: edges,
+                edgeTicks: edgeTicks,
+                magnitude: MAG_MAX);
+        }
+
+        /// <summary>
         /// 键鼠回退 cause = 降级（AC-10-21）。
         /// </summary>
         public static int GetKeyboardFallbackCause()

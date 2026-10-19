@@ -31,6 +31,24 @@ namespace DaYiJingCheng.Telemetry
     /// </remarks>
     public static class SkipRateMetrics
     {
+        /// <summary>`cause = 玩家选择` 的显示名(GDD 规则十二的枚举名;序数 0 归 10)。</summary>
+        public const string CauseNamePlayerSelection = "玩家选择";
+
+        /// <summary>`cause = 降级` 的显示名(GDD 规则十二;序数 1 归 10)。</summary>
+        public const string CauseNameDegraded = "降级";
+
+        /// <summary>cause 序数 → 显示名(序数承 10:`0 = 玩家选择` · `1 = 降级`,见 `EmergencyTreatmentApplied.cause`)。
+        /// <para>闭集外序数 ⇒ null(**不猜**)—— 该实例的 cause 计为「未知」,不进 SkipByChoice。</para></summary>
+        public static string CauseNameOf(int ordinal)
+        {
+            switch (ordinal)
+            {
+                case 0: return CauseNamePlayerSelection;
+                case 1: return CauseNameDegraded;
+                default: return null;
+            }
+        }
+
         /// <summary>一次动作实例(由调用方从**事件流**还原后喂入)。</summary>
         public sealed class ActionInstance
         {
@@ -50,8 +68,13 @@ namespace DaYiJingCheng.Telemetry
                 return (0, 0, 0, 0, true);   // 分母 0 ⇒ 不可定义
 
             int skip = instances.Count(i => i.Resolution == "Skipped");
-            int choice = instances.Count(i => i.Resolution == "Skipped" && i.Cause == "玩家选择");
+            int choice = instances.Count(i => i.Resolution == "Skipped" && i.Cause == CauseNamePlayerSelection);
             return (skip, opportunity, choice, opportunity, false);
         }
+
+        /// <summary>降级跳过数(`Skipped ∧ cause = 降级`)—— AC-51-B8「两个独立分子」的第二分子。
+        /// <para>与 <see cref="Compute"/> 的 SkipByChoice **分开报**,不并入 <c>Skip</c> 单一形状。</para></summary>
+        public static int CountDegradedSkips(IReadOnlyList<ActionInstance> instances)
+            => instances.Count(i => i.Resolution == "Skipped" && i.Cause == CauseNameDegraded);
     }
 }

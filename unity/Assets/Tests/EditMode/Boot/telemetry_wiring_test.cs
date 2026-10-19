@@ -26,6 +26,15 @@ namespace DaYiJingCheng.Tests.Boot
         private EventStream _stream;
         private TelemetryReporter _reporter;
 
+        /// <summary>F2 wiring 用的最小注册表(bit i ↔ DiseaseId i+1)。</summary>
+        private static IReadOnlyList<DiseaseRegistryEntry> MinimalRegistry(params int[] diseaseIds)
+        {
+            var list = new List<DiseaseRegistryEntry>();
+            foreach (int id in diseaseIds)
+                list.Add(new DiseaseRegistryEntry { DiseaseId = id, DiseaseKey = $"d{id}" });
+            return list;
+        }
+
         [SetUp]
         public void SetUp()
         {
@@ -35,7 +44,8 @@ namespace DaYiJingCheng.Tests.Boot
             _ids = NewIdAuthority();
             _presence = new PresenceRegistry();
             _stream = new EventStream(_ids, _presence);
-            _reporter = new TelemetryReporter(_stream, _decoder);
+            // F1 只解码,不进 Compute ⇒ registry 不影响 F1 断言;传最小表 DiseaseId=1。
+            _reporter = new TelemetryReporter(_stream, _decoder, MinimalRegistry(1));
         }
 
         /// <summary>IdAuthority 的生产实装(测试内联替身;机制 A 计数器)。</summary>
@@ -81,8 +91,10 @@ namespace DaYiJingCheng.Tests.Boot
         [Test]
         public void test_wired_realStream_f1aComputed()
         {
-            AppendCaseClosed(caseSeq: 1L, diseaseBits: 1UL << 3);   // 真值 {3}
-            AppendJudgmentRecorded(caseSeq: 1L, lexiconId: 3);      // 判 {3} ⇒ 判对
+            // 位掩码 bit i → DiseaseId i+1(1-based,与 F2 / diseaseEnum 同空间):
+            //   bit 3 → DiseaseId 4; lexiconId 4(P0 阶段 lexicon_id == disease_id)。
+            AppendCaseClosed(caseSeq: 1L, diseaseBits: 1UL << 3);   // 真值 {4}
+            AppendJudgmentRecorded(caseSeq: 1L, lexiconId: 4);      // 判 {4} ⇒ 判对
 
             string report = _reporter.JudgmentReport(out int skipped);
 
@@ -177,6 +189,11 @@ namespace DaYiJingCheng.Tests.Boot
             }
 
             // ② 写动作方法(名级判据,与 readonly_boundary_test 同口径)
+            // ⚠️ 名级判据的**已知过宽**(2026-10-19 实测):子串 "Emit" 亦会命中含
+            //    `…m-i-t…` 的常规词(如 `Limit` / `Submit` 形态);本批两处解码委托
+            //    (`DecodeJudgment` / `DecodeF2`)因此改名为 `Decode*Record`。
+            //    判据不放松(禁借「改门」过关),以命名避让解决
+            //    (coding-standards「机械门避让表」同源)。
             foreach (var m in typeof(TelemetryReporter).GetMethods(
                 System.Reflection.BindingFlags.Instance |
                 System.Reflection.BindingFlags.NonPublic |
@@ -192,12 +209,15 @@ namespace DaYiJingCheng.Tests.Boot
                 string.Join("\n", bad));
         }
 
-        /// <summary>**AllMetricsReport 自陈未接线的部分**(禁借绿):必须明说 F2–F7 未接。</summary>
+        /// <summary>**AllMetricsReport 自陈须调用方传参的部分**(禁借绿):F4–F7 的参数全部待定,
+        /// 汇总报告**不得**假装已覆盖 —— 必须明说须调用方传参。</summary>
         [Test]
         public void test_wired_allMetrics_admitsUnwired()
         {
             string all = _reporter.AllMetricsReport(out _);
-            StringAssert.Contains("F2–F7 未接线", all);
+            // 2026-10-19 第六片:F3 已进汇总(部分还原),F2 早已接入 ⇒ 自陈面从 F2–F7 收窄到 F4–F7
+            StringAssert.Contains("F4 / F5 / F6·F7 须调用方传参", all);
+            Assert.That(all, Does.Not.Contain("F2–F7 未接线"), "F2/F3 已接入,不得再自陈未接线");
         }
     }
 }

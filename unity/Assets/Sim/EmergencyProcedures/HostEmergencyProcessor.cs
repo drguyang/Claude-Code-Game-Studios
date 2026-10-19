@@ -84,6 +84,25 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         public void Process(EmergencyAttemptPayload attempt, EmergencyActionRow action,
                             JudgeContext ctx, PatientId patientId, long tick, int cause)
         {
+            // 兼容入口(既有调用方):**不承载幅度门豁免判据** ⇒ 一律照常按 `MagPeak` 判。
+            // ⚠️ 2026-10-19(第九片)起草时此入口曾**从 cause 反推**判据(`cause == 降级` ⇒ 豁免),
+            //   被证伪轮 M-m-1 判为**等价变异**后复查发现:那是**用结算输出反推判定输入**,
+            //   正是本项目反复剿的第二真源(且「未注入 ⇒ cause 记玩家选择」的默认会让它进一步失真)。
+            //   ⇒ 判据只能由调用方**直接给**;不知道设备态就别回填(宁严勿猜)。
+            //   生产路径(`EmergencyManualDriver`)走下方带 `analogChannelAbsent` 的重载。
+            Process(attempt, action, ctx, patientId, tick, cause, analogChannelAbsent: false);
+        }
+
+        /// <summary>处理 EmergencyAttempt(带**幅度门判据**的重载;AC-10-21 的幅度半边)。</summary>
+        /// <param name="analogChannelAbsent">本次动作是否无模拟量通道(纯键鼠回退形状)。
+        /// true ⇒ **幅度门按 `MAG_MAX` 判**(载荷里的真实 `MagPeak` 不变,仍原样进流);
+        /// false ⇒ 照常按 `MagPeak` 判。判据的信息源在输入层(3),由调用方传入。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="action"/> 为 null。</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="patientId"/> 为 None / 负值。</exception>
+        public void Process(EmergencyAttemptPayload attempt, EmergencyActionRow action,
+                            JudgeContext ctx, PatientId patientId, long tick, int cause,
+                            bool analogChannelAbsent)
+        {
             if (action == null) throw new ArgumentNullException(nameof(action));
 
             // ── fail-loud 门(入口,先于 Judge 与任何 Append)──────────────────
@@ -104,6 +123,21 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
                 attempt.EdgeTicks,
                 attempt.MagPeak);
 
+            // ── 幅度门判据(第九片):无模拟量通道 ⇒ 按 MAG_MAX 判;流里仍记真实采样 ──
+            // 权威 = 10 GDD Edge Cases `:728`「`magnitude` 通道无输入设备(纯键鼠)⇒ 回退形状 =
+            //   离散档,自动置 `magnitude = MAG_MAX`(即幅度门在键鼠上恒过),只走节奏 + 稳度双门」。
+            // **为什么豁免只落求值侧、不写回载荷**:F-10.4 `:679-692` 规定 `mag_peak` 是
+            //   「存在量词取峰值」的**判定量**且**进流**,而载荷是**判定输入**(ADR-011 Amendment B
+            //   C 路:客户端上行 → 主机 Judge)—— 输入写的是玩家**真给了什么**,不是它被怎么判。
+            //   回填若写进载荷,读流方就再也分不出「玩家按满了」与「设备按不出」。
+            // ⇒ 门豁免只作用于本次 Judge 调用;回填的形状由 10 侧
+            //   <see cref="FeelLatencyEvaluator.CreateKeyboardFallbackReading(int,int,int,int[])"/>
+            //   唯一给出(节奏 / 稳度输入原样透传,只改幅度 —— 不在此另写一份回填逻辑)。
+            EmergencyReading judgedReading = analogChannelAbsent
+                ? FeelLatencyEvaluator.CreateKeyboardFallbackReading(
+                    attempt.Action, attempt.HoldTicks, attempt.Edges, attempt.EdgeTicks)
+                : reading;
+
             // Judge(⚠️ 2026-10-14 story-009 用户裁定「带最小 Judge 分支」):
             //   method = Skip(1) ⇒ 判定结果不走时序 / 幅度门 —— 规则六:跳过恒 AppliedWeak
             //   (取 <see cref="ModalPhaseEvaluator.Skip"/> 的 Result;无障碍开关
@@ -112,7 +146,7 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
             //   不在本处置拍值 —— 本分支只裁「结果」不裁「强度」。
             var result = attempt.Method == 1
                 ? ModalPhaseEvaluator.Skip(accessibilityOn: false).Result
-                : JudgeEvaluator.Judge(reading, action, ctx);
+                : JudgeEvaluator.Judge(judgedReading, action, ctx);
 
             // ── Append ① EmergencyAttempt(物化;八字段全载)────────────────
             var attemptEvent = new SimEvent(
