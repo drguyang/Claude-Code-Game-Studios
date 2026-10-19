@@ -85,7 +85,18 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
             Int3 cell = cue.Cell;          // 体内装配(公开签名受 B3 约束,见类注)
             int cueId = cue.Cue;
 
-            AudioSource src = _pool.Spawn(actorId, cell.X, cell.Y, cell.Z, cueId);
+            // ⚠️ **取源不归本类** —— 源由 `AudioSourceRenderTarget` 在调本方法**之前**建好
+            //    (它按事件表 `bus` 列挂好混音组,A-6),本方法只做「换算锚点 + 遮挡 + 排名」。
+            //    原实现此处**二次 `_pool.Spawn(...)` 且不传 bus** ⇒ `SpawnCore` 把 `entry.Bus`
+            //    覆盖成 null:混音组还是对的(Voice),可 `BusForActor()` 返回 null ⇒
+            //    **账与音分叉**(2026-10-19 由 `audio_wiring_test` 抓出)。
+            AudioSource src = _pool.SourceForActor(actorId);
+            if (src == null)
+            {
+                throw new InvalidOperationException(
+                    $"[A-6] 空间化收到未建的源(actorId={actorId})—— 调用序错误:" +
+                    "必须先 `AudioSourcePool.Spawn(...)`(带 bus),再 `SpatializationDirector.Spawn(...)`。");
+            }
 
             // 锚点:整数格 → float(单向)。cell_jitter 只叠渲染坐标,不回写。
             // ⚠️ jitter 是**格内**偏移(GDD :845「确定性格内偏移」/ ADR-023 ⑦「格锚点 +

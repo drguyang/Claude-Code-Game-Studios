@@ -21,6 +21,7 @@ using System.Runtime.CompilerServices;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Audio;                        // AudioMixer(A-6 真混音器装载面)
 using DaYiJingCheng.EditorTools.Gates;
 using DaYiJingCheng.Gameplay.Presentation.Audio;
 using DaYiJingCheng.Sim.Contracts;
@@ -440,6 +441,59 @@ namespace DaYiJingCheng.Tests.Unit.Audio
 
         // ═══ AC-44-16:世界语境呼吸行接线(**真门** AudioEventTableGates)═══
 
+        // ═══ A-6 总线归属的**账音一致**(2026-10-19 · 音频总线账实分叉修复)═══
+        //
+        // 病因:`SpatializationDirector.Spawn` 曾**二次** `_pool.Spawn(...)` 且不传 bus,
+        //   `SpawnCore` 无条件 `entry.Bus = bus` ⇒ 混音组还是 Voice,`BusForActor` 却报 null。
+        // 修法两处:① director 改读 `SourceForActor`(取源不归它 · 序错即抛);
+        //           ② `SpawnCore` 未给 bus **不覆盖**已登记归属(纵深防御)。
+        // ⚠️ 下面两条**各自独立**钉住一处 —— 单独回退任一处都必须转红:
+        //   ②' 池层用例 ⇒ 回退 ② 必红;①' 导演层用例 ⇒ 回退 ① 必红。
+        //   (PlayMode 的 `test_ac018_6` 只判终态,两处修复互相兜底 ⇒ 对它**零判别力**,
+        //    不可用它顶替本组。)
+
+        private const string MixerAssetPath = "Assets/Audio/DaYiJingCheng.mixer";
+
+        private AudioBusResolver RealResolver()
+        {
+            AudioMixer mixer = AssetDatabase.LoadAssetAtPath<AudioMixer>(MixerAssetPath);
+            Assert.That(mixer, Is.Not.Null, $"混音器资产装载失败:{MixerAssetPath}");
+            return new AudioBusResolver(mixer);
+        }
+
+        [Test]
+        public void test_a6_pool_respawnWithoutBus_keepsRegisteredBus()
+        {
+            // Arrange:带 bus 建源 —— 账与组都正确
+            var pool = new AudioSourcePool(busResolver: RealResolver());
+            _disposables.Add(pool);
+            pool.Spawn(actorId: 7, 1, 0, 2, cueId: 0, bus: "Voice");
+
+            // Act:同一 actor **不带 bus** 再 spawn(历史 bug 的触发形态)
+            pool.Spawn(actorId: 7, 1, 0, 2, cueId: 1);
+
+            // Assert:归属**不得**被 null 清掉 —— 混音组本就还在 Voice,账也必须还在 Voice
+            Assert.That(pool.BusForActor(7), Is.EqualTo("Voice"),
+                "未给 bus 的复用 spawn 清了归属 ⇒ 账(entry.Bus=null)与音(组仍是 Voice)分叉");
+        }
+
+        [Test]
+        public void test_a6_director_spawn_unspawnedSource_throws_loud()
+        {
+            // Arrange:空池 —— actor 从未建源
+            var pool = new AudioSourcePool();
+            _disposables.Add(pool);
+            var dir = new SpatializationDirector(LatticeSize, pool);
+
+            // Act + Assert:序错须**抛**(旧实现会静默替调用方建一条无 bus 的源并把账带歪)
+            InvalidOperationException ex = Assert.Throws<InvalidOperationException>(
+                () => dir.Spawn(new AudioCueDto(0, 128, new Int3(1, 0, 2), 77, false),
+                                PriorityWorldPhysiology, occluded: false,
+                                occlusionLowpassHz: 1200f, distance: 3f));
+            Assert.That(ex.Message, Does.Contain("77"),
+                "报文须点名 actorId,便于定位调用序错误");
+        }
+
         /// <summary>构造一行(不经 JSON —— 直击门的输入面,避免「测试自造解析器」这层假绿)。</summary>
         private static AudioEventTableRow WorldBreathRow(string bus, params string[] presentKeys)
             => new AudioEventTableRow
@@ -520,12 +574,16 @@ namespace DaYiJingCheng.Tests.Unit.Audio
         [Test]
         public void test_spatializationDirector_endToEnd()
         {
-            using var dir = new SpatializationDirector(LatticeSize);
+            // 单池直构(不传既有池)⇒ 本测**自己**按生产序建源:先池 Spawn,再导演定位。
+            using var pool = new AudioSourcePool();
+            using var dir = new SpatializationDirector(LatticeSize, pool);
             var cell = new Int3(3, 0, 4);
             var cue1 = new AudioCueDto(cue: 10, intensity: 128, cell: cell, source: 1, looped: true);
             var cue2 = new AudioCueDto(cue: 11, intensity: 128, cell: cell, source: 2, looped: true);
             // cell = (3,0,4) ⇒ 锚点 (6, 0, 8);cell_jitter 只加**格内**偏移 [0, LatticeSize)。
 
+            pool.Spawn(1, cell.X, cell.Y, cell.Z, cueId: 10);
+            pool.Spawn(2, cell.X, cell.Y, cell.Z, cueId: 11);
             dir.Spawn(cue1, PriorityWorldPhysiology, occluded: true, occlusionLowpassHz: 1200f, distance: 3f);
             dir.Spawn(cue2, PriorityWorldPhysiology, occluded: false, occlusionLowpassHz: 1200f, distance: 3f);
 

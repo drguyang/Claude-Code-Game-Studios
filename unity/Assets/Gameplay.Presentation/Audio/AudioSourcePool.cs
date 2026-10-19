@@ -298,7 +298,13 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
 
             entry.CellX = cellX; entry.CellY = cellY; entry.CellZ = cellZ;
             entry.CueId = cueId;
-            entry.Bus = bus;
+            // ⚠️ **未给 bus 不覆盖已登记归属**(2026-10-19):`bus == null` 有两种语义 ——
+            //    ① 新建源(`entry.Bus` 本来就 null)⇒ 不挂组,Master 直通;
+            //    ② 复用已有源且本调用方未指定 ⇒ **保持原归属不变**。
+            //    原实现无条件 `entry.Bus = bus`,导致「先带 bus 建源、后被无 bus 的二次调用覆盖」
+            //    时,**混音组仍是旧组、登记却变 null**(`ApplyBus` 见 null 提前返回)⇒ 账与音分叉。
+            //    纵深防御:治在池本身,不只治某个调用方的调用序。
+            if (bus != null) entry.Bus = bus;
             entry.Active = true;
             entry.Source.gameObject.SetActive(true);
             ApplyBus(entry.Source, bus);
