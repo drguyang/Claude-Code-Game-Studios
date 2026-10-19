@@ -129,13 +129,13 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             Assert.That(sink.Calls[0].Center, Is.EqualTo(1234.0).Within(1e-9));
         }
 
-        /// <summary>4 → 3 映射(待裁)· 越界钳位。</summary>
+        /// <summary>4 → 3 映射(✅ 2026-10-20 已裁 = 甲案上钳)· 越界钳位。</summary>
         [Test]
         public void test_tier_mapping_clampsFourToTopTier()
         {
             Assert.That(AudioTierMapping.ToMixerTier(0), Is.EqualTo(0));
             Assert.That(AudioTierMapping.ToMixerTier(2), Is.EqualTo(2));
-            Assert.That(AudioTierMapping.ToMixerTier(3), Is.EqualTo(2), "4 档 → 3 档:高档按 2(待裁)");
+            Assert.That(AudioTierMapping.ToMixerTier(3), Is.EqualTo(2), "4 档 → 3 档:满档按高档 2(已裁 = 甲案上钳)");
             Assert.That(AudioTierMapping.ToMixerTier(-4), Is.EqualTo(0));
         }
 

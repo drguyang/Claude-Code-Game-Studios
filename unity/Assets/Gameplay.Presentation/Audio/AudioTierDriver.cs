@@ -10,10 +10,15 @@
 // ⚠️ **档位输入 = 只读委托(整数)**:本类**不读 sim、不推进任何状态**(ADR-018 §一 只渲染)。
 //    诊断等级 → 档序由调用方给(组合根 = `DiagnosisReadFloorEvaluator.TierIndex(queryLevel)`)。
 //
-// ⚠️ **4 → 3 映射(待裁 · `TD-audio-035` 2026-10-20 注)**:诊断 `TierIndex` ∈ {0,1,2,3},
-//    `tier_map` 只有 "0"/"1"/"2"。GDD F-44.1 / 规则五**未写**该映射 ⇒ 本类取**最保守**的
-//    `min(TierIndex, 2)`(高档 3 按高档 2 给带宽 —— 宁可解析带宽略窄,不越权放大可听细节);
-//    这是**实现选择,不是定论**,待设计轮裁定后只改 `MapTierIndex` 一处。
+// ⚠️ **4 → 3 映射(✅ 2026-10-20 用户裁定 = 甲案「上钳」· `TD-audio-035` 子项结案)**:
+//    诊断 `TierIndex` ∈ {0,1,2,3},`tier_map` 只有 "0"/"1"/"2"。GDD F-44.1 / 规则五原本**未写**
+//    该映射;现裁定 = `min(TierIndex, 2)`:粗→低 · 中→中 · **细→高 · 满→高**。
+//    **理据**:44 的「高档」定义就是「宽通带 + 低噪声底 + 全细节」,与 8 的「满 = 全通道满精度」
+//    同义 ⇒ 满落高档不是信息损失。**设计后果(有意)**:听诊细节在诊断 Lv20(细档)饱和;
+//    Lv50 的收益落在**判定**与脉案精度,不在耳朵上。GDD 补注见 `audio-system.md` F-44.1 段末。
+//    **否决**:① 加第 4 条 `tier_map` 行(要改 GDD 三处硬规格 + 两条 AC 措辞);
+//    ② 44 自设阈值(违 F-44.1 ②「44 不拥有数值」)。
+//    ⚠️ 映射的**唯一落点** = `AudioTierMapping.ToMixerTier` —— 日后改判只改那一处。
 //
 // ⚠️ **缺列 / 解析失败 ⇒ 该档跳过 + 记错误**:不得用 0 值写进 mixer(0 Hz 通带 / 0 dB 是合法数值,
 //    写进去会被当成真档位)。同档持续失败只记一次错误(每帧刷日志 = 日志淹没)。
@@ -63,10 +68,12 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         public bool IsRamping => _driver.IsRamping;
     }
 
-    /// <summary>诊断档序 → 听诊精度档(byte 0..2)的**单一落点**(待裁映射,见文件头注)。</summary>
+    /// <summary>诊断档序 → 听诊精度档(byte 0..2)的**单一落点**(映射已裁,见文件头注)。</summary>
     public static class AudioTierMapping
     {
-        /// <summary>4 → 3:钳在高档(`min(TierIndex, 2)`)。⚠️ 待裁 —— 不是 GDD 定论。</summary>
+        /// <summary>4 → 3:钳在高档(`min(TierIndex, 2)`)。
+        /// <para>✅ **2026-10-20 用户裁定 = 甲案「上钳」**:粗→低 · 中→中 · 细→高 · 满→高。
+        /// 理据与设计后果(GDD 补注)见文件头注;此处只记结论与落点唯一性。</para></summary>
         /// <param name="tierIndex">诊断档序(0..3;越界按边界钳)。</param>
         /// <returns>tier_map 档位(0..2)。</returns>
         public static int ToMixerTier(int tierIndex)

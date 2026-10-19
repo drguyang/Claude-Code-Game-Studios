@@ -384,7 +384,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ── 听诊精度档位驱动(B 轮 2026-10-20 · 补 T-1 接线空白)────────────
             // `TierFilterDriver` / `AudioMixerParameterSink` 此前**生产零构造** ⇒ `tier_map`
             // 五列的运行期承载为零。本段:档位来源 = 诊断等级(与 `ExamineDriver` **同一** queryLevel)
-            // ⇒ `TierIndex` ⇒ `min(·,2)`(4→3 待裁,见 AudioTierMapping 注;登记 TD-audio-035)。
+            // ⇒ `TierIndex` ⇒ `min(·,2)`(4→3 **已裁** = 甲案上钳,见 AudioTierMapping 注 /
+            //   GDD F-44.1 段末补注;`TD-audio-035` 该子项已结案)。
             // ⚠️ 档变才 `SetTargets`(每帧调会重置 ramp);mixer 句柄 null ⇒ fail-loud 一次并禁用。
             // ⚠️ tick 边沿链**不调**本驱动:它按帧推进 ramp,由 BootRoot 帧泵调 `Tick(Time.deltaTime)`。
             AudioTierDriver audioTierDriver = null;

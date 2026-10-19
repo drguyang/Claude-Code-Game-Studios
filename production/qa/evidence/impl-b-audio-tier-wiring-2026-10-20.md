@@ -8,7 +8,7 @@
 | # | 原状态(证据) | 改动落点 |
 |---|---|---|
 | T-1 | `TierFilterDriver.SetTargets` / `AudioMixerParameterSink` **生产零构造** ⇒ `tier_map` 五列无运行期承载 | 新 `Gameplay.Presentation/Audio/AudioTierDriver.cs`:`IAudioCueSinkLoopGainRead` 无关;**档位=整数只读委托**,档变才 `SetTargets`,每帧 `Tick(Time.deltaTime)`;缺列/无档 ⇒ 跳过 + 单次错误,**不写 0**;mixer null ⇒ `BindMixer(false)` fail-loud 一次并禁用 |
-| T-2 | 诊断 `TierIndex` ∈ {0..3},`tier_map` 仅 "0"/"1"/"2";GDD F-44.1(:285-312)/ 规则五(:544-546)**未写映射** | `AudioTierMapping.ToMixerTier = min(TierIndex, 2)` —— **待裁**(注释 + `TD-audio-035` 注) |
+| T-2 | 诊断 `TierIndex` ∈ {0..3},`tier_map` 仅 "0"/"1"/"2";GDD F-44.1(:285-312)/ 规则五(:544-546)**未写映射** | `AudioTierMapping.ToMixerTier = min(TierIndex, 2)` —— ✅ **2026-10-20 已裁 = 甲案「上钳」**(见 §九;GDD 补注落 `audio-system.md` F-44.1 段末) |
 | T-3 | `CompositionRoot` 无档位装配 | audio 段(:385-398)接:`queryLevel`(:255 提为变量,**与 `ExamineDriver` 同一出处**)→ `DiagnosisReadFloorEvaluator.TierIndex` → 驱动;mixer 经 `PlayerBusVolumeInitializer.MixerResolver`;`CompositionRootServices.AudioTierDriver`(新属性);`BootRoot.cs:775` 帧泵每帧 `Tick(Time.deltaTime)` |
 | W-1 | 尾音走 `_sink.Emit(...)` 一次性 cue;`BreathTailRamp` 生产零调用;起点写死 1.0 | `ICueRenderTarget.SetLoopGain`(44 内部缝)+ `CueRenderSink.SetLoopGain` + `CueRenderSink.Emit` 对 `looped:true` **改为循环增益读数**(按 `Source` 路由);`PatientCueDriver.TailGain` 起点 = 44 读面 `TryGetLoopGain`(`IAudioCueSinkLoopGainRead`,驱动按接口探测;替身无读面退化本拍体征),**不再写 1.0**;**`IAudioCueSink` 四方法形状不改**(ADR-018 §二) |
 | W-2 | 8-bit 量化(`_tailDone: byte`;`(byte)Math.Round(gain*255)`) | 封口簿记 `_tailDone: Dictionary<int, double>` 存全精度;写入仍经 DTO `Intensity: byte`(契约面,**不改契约**),单一换算点 `GainByte` |
@@ -148,3 +148,110 @@
 > 同一份代码在全量执行下**仍然红** ⇒ 进一步支持 §五 的判定「**与本轮改动无因果**,
 > 与全量执行序 / 耗时相关」。**但仍不等于已证无关** —— 该红的查因**仍归另立**(不归 B 轮、不归本轮)。
 > ⚠️ 因此**不得**据 `passed 3901` 称「全量全绿」。
+
+## §九 4 → 3 档位映射结案(2026-10-20 · 用户裁定 = 甲案「上钳」)
+
+### 9.1 缺口的两端(实测,非推测)
+
+| 侧 | 事实 | 出处 |
+|---|---|---|
+| **8 诊断** | `TierIndex ∈ {0,1,2,3}` —— 粗 / 中 / 细 / 满 | `diagnosis-system.md:244-248` · `DiagnosisTuning.SlotBounds = (10,20,50)` |
+| **44 听诊** | `Tier ∈ {0,1,2}` —— 低 / 中 / 高(**只有三个位置**) | `audio-system.md:295`(F-44.1 表)· `:369`(F-44.2 `0–2`)· `:546`(规则五 5 **构建期硬门**要求键集 = `{"0","1","2"}`) |
+| **数据** | `assets/data/audio_events.json` 的 `tier_map` **恰 3 行**,`passband_width_hz` = 500 / 900 / 1600 | 实测 |
+
+⇒ 缺口性质:**不是实现漏写,是 44 的规格里只有三个位置,而 8 吐出四个值**。
+二选一:把第四个值压进已有位置,还是给 44 加一个位置(= 改 44 的规格)。
+
+### 9.2 四个候选与取舍
+
+| 案 | 映射 | 听感后果 | 代价 | 裁定 |
+|---|---|---|---|---|
+| **甲** | 粗→低 · 中→中 · **细→高 · 满→高** | 听诊细节在 **Lv20 饱和**;满级收益落在**判定**与脉案精度,不在耳朵 | 零代码行为变化:补 GDD 一条注 + 同步 3 处「待裁」注释 + 结案本债子项 | ✅ **采纳** |
+| 乙 | 粗→0 · 中→1 · 细→2 · **满→3** | Lv50 有独立听感(第 4 条通带曲线) | 改 GDD **三处硬规格**(`:295` Tier 值域 / `:369` 的 `0–2` / 规则五 5 键集门)+ `AC-44-01`/`AC-44-02` 的「三档」措辞 + `tier_map` 第 4 行 6 列(**数值归数值轮**) | ✗ |
+| 丙 | 粗→低 · **中→中 · 细→中** · 满→高 | 「全细节」只给满级 | 把 8 的「细」档(`:255` 明写「第一次成为可据以排除的证据」)与「中」合并,抹掉「你终于听清了」那一刻 —— 与 **D-A 裁定的理据**(`:148` 要避免「听觉侧技能成长永不发生」)方向相反 | ✗ **否决** |
+| 丁 | 44 自设三档阈值(如 1-19 / 20-49 / 50) | 满级 = 高档 | 直接违 **F-44.1 ②**(`:281`)「**44 不拥有数值** —— 精度档曲线 / 阈值 / 通带参数全部是 8 的 F-8.x 或旋钮的映射输入」 | ✗ **否决(架构禁区)** |
+
+**甲 vs 乙 的取舍理据(为什么不是乙)**:44 对「高档」的定义(`:300`)已经是
+「宽通带 + 低噪声底 + **全细节**」,而 8 对「满」的定义(`diagnosis-system.md:248`)是
+「全通道满精度」—— **两者同义**。⇒ 满落高档**不是**信息损失,是同一个东西的两个名字。
+乙要付三处硬规格 + 两条 AC 措辞的代价,买到的「Lv50 独立听感」在设计上**没有对应的语义**
+(8 的档位语义表只给了四层的**能读出什么**,没给「耳朵更细」).
+
+### 9.3 落地(本次改动面 · 零逻辑变更)
+
+| # | 落点 | 改动 |
+|---|---|---|
+| 1 | `design/gdd/audio-system.md` F-44.1 段末 | **新增补注块** —— 映射值、理据、设计后果、两案否决、单一落点 |
+| 2 | `Gameplay.Presentation/Audio/AudioTierDriver.cs` 文件头 + `AudioTierMapping` doc | 「待裁」→「已裁 = 甲案上钳」,补理据与后果 |
+| 3 | `Gameplay.Boot/CompositionRoot.cs` audio 装配段 | 行内注同步 |
+| 4 | `Tests/EditMode/Audio/audio_tier_driver_test.cs` | 测试 doc + 断言消息同步 |
+| 5 | `docs/tech-debt-register.md` `TD-audio-035` | 子项结案;明写 **①②③ 三项代偿常量不受影响、仍 open** |
+
+⚠️ **`ToMixerTier` 的实现一行未改** —— `min(TierIndex, 2)` 本来就是裁定结果。
+⇒ 既有断言 `test_tier_mapping_clampsFourToTopTier` 的**断言值全部不变**
+(它钉的一直就是裁定值),只需同步其措辞。
+⚠️ **`assets/data/audio_events.json` / `tier_map` 构建期门 / 任何生产逻辑 / 任何断言值均未动**。
+
+### 9.4 复算命令
+
+```bash
+# 映射结论可读面(唯一落点)
+grep -n "ToMixerTier" -A8 unity/Assets/Gameplay.Presentation/Audio/AudioTierDriver.cs
+
+# 数据仍是三行(本裁定不扩表)
+python3 -c "import json;d=json.load(open('assets/data/audio_events.json'));print(sorted(d['tier_map']))"   # 期望 ['0','1','2']
+
+# 定向复跑(断言值未变 ⇒ 应仍绿;非必需,用于确认注释改动未碰逻辑)
+cd unity && unity test unity --mode EditMode \
+  --filter "DaYiJingCheng.Tests.Unit.Audio.AudioTierDriverTest" --output ../unity/Logs/tier-map-ruling.xml
+#   ⚠️ 全名含 `.Unit.` —— 写 `DaYiJingCheng.Tests.Audio.*` 会静默产出空 XML(非「无红」)
+```
+
+### 9.5 落地核验(2026-10-20 · 实跑)
+
+| 项 | 结果 |
+|---|---|
+| `git diff` 三处代码件 | **只有注释 / 断言消息** —— `ToMixerTier` 函数体 `^$` 零变动(`min(TierIndex,2)` 一字未改) |
+| 定向 `AudioTierDriverTest` `unity/Logs/tier-map-ruling.xml` | **7 total / 7 passed / 0 failed / 0 skipped** |
+| 其中 `test_tier_mapping_clampsFourToTopTier` | ✅ Passed —— 断言值本就是裁定值,措辞同步未动断言 |
+| 全量 EditMode `unity/Logs/tier-map-ruling-full.xml` | **3940 total / 3904 passed / 0 failed / 0 skipped-inconclusive / 36 skipped** —— **零红**。见 §9.6 |
+
+七条实测名(留档,便于比对):
+
+`test_tier_absentKey_skips_thenRecovers` · `test_tier_changed_threeTimes_setTargetsCalledPerChange` ·
+`test_tier_mapping_clampsFourToTopTier` · `test_tier_missingColumn_skipsAndLogsOnce_noZeroWrite` ·
+`test_tier_nullMixer_disablesOnce_noWriteNoTick` · `test_tier_sameTierAcrossFrames_setTargetsCalledOnce` ·
+`test_tier_tick_writesRowValuesInContractOrder`
+
+> ⚠️ **本节的「已证」边界**:证明的是「**裁定值 = 代码值**,且代码仍编译可跑」。
+> **不证**「甲案在听感上正确」—— 那要听测(`AC-44-02` 三档可辨),仍归你的实听协议。
+
+### 9.6 全量对账(带基线三元组 · 禁裸数)
+
+**基线溯源三元组**:截至时刻 `2026-10-19T23:30Z`(本机 UTC)· 批次 `TD-audio-035 甲案裁定轮 · 全量` ·
+commit `b2bbc9b` **+ 本轮未提交改动**(工作区非干净树 —— 见下方 ⚠️)
+
+| 轮次 | total | passed | failed | inconclusive | skipped | 红项 |
+|---|---|---|---|---|---|---|
+| `TD-player-01` 修复后基线 `td01-full-2026-10-20.xml` | 3940 | 3904 | 0 | 0 | 36 | — |
+| **本轮** `tier-map-ruling-full-2026-10-20.xml` | **3940** | **3904** | **0** | **0** | **36** | — |
+
+**等式(禁借绿口径)**:
+
+```
+Δtotal   = 3940 − 3940 = 0   ✓ 本轮零增删测试件(只改注释与断言消息)
+Δpassed  = 3904 − 3904 = 0   ✓
+Δfailed  = 0 − 0 = 0         ✓
+Δskipped = 36 − 36 = 0       ✓
+```
+
+> ✅ **四列逐位相同是该结果的正确形态,不是巧合**:本轮**没有新增或删除任何测试**,
+> 也没有改动任何断言值 ⇒ 计数面**必须**零变动。若此处出现 +N,反而说明改动越界了。
+
+> ⚠️ **commit 字段的诚实边界**:工作区在 `b2bbc9b` 之上带着本轮六文件改动(未提交)。
+> 因此本次数值**不是**「`b2bbc9b` 干净树的全量」,而是「`b2bbc9b` + 甲案注释改动」。
+> 提交后若下游要引用干净树基线,须重跑或按 commit 重新标注 —— **不得把本行改写成 `b2bbc9b` 的基线**。
+
+> ⚠️ **`§五` 那条红(§八 复裁时仍在)本轮已不在** —— 那是 `TD-player-01` **完整修复**的结果
+> (见 `impl-td-player-01-2026-10-20.md`),**不是**本轮注释改动带来的。
+> 本轮**不主张**对该红的任何贡献。
