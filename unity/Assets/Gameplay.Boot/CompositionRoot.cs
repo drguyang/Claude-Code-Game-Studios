@@ -49,12 +49,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         private const int EmergencyDzMag = 0;
         private const int EmergencyMagMax = 65536;
 
-        // ── 设备切换迟滞六旋钮 = **临时种子**(TD-epic-01 第八片;值归数值轮)──
+        // ── 设备切换迟滞六旋钮 = **烘焙表的兜底值**(TD-epic-01 第十一片;值归数值轮)──
         // 与 `assets/data/input_device_switch.json` 的种子**同值**(Fix 字符串经 FixParse 得
-        // 同一 raw;区间断言由 InputDeviceSwitchBinder 在装载期执法,本处只做种子搬运)。
-        // ⚠️ ⚠️ 这是**临时种子,未进 data-core** —— ADR-014 §五/§九:含 Fix 的常量表须经
-        //    两阶段烘焙;设备态旋钮目前**只有来源 JSON + EditMode 装载判据,零运行期制品**。
-        //    本常量 = 运行期兜底,数值轮定稿时须改走 cooked,届时删本组常量(登记为残留)。
+        // 同一 raw;区间断言由 InputDeviceSwitchBinder 在装载期执法)。
+        // ✅ **2026-10-19 还债**:原注释写「临时种子,未进 data-core —— 只有来源 JSON + EditMode
+        //    装载判据,零运行期制品」。现 data-core 已有 `input_device_switch.cooked.bytes`
+        //    (`InputDeviceSwitchBake` 烘焙 → `AddressablesDataProvider` 装载),生产真源 = 烘焙表;
+        //    本组常量**降级为兜底**(预载失败时由 `BootRoot.ResolveDeviceSwitchKnobs` 取)。
+        // ⚠️ 兜底与烘焙表**必须逐值相等** —— 由 `device_switch_wiring_test` 的对账夹具钉住
+        //    (承 44 侧 `AudioSettingsRegistryBinder.ValidateValueReconciliation` 同构形态);
+        //    数值轮定稿时改 JSON → 重烘焙 ⇒ 对账夹具会先红,提醒同改本组常量(或按当时裁定删除兜底)。
         public const int EmergencyDeviceSwitchSeedAxisThreshold = 32768;      // "1/2"
         public const int EmergencyDeviceSwitchSeedAxisTolerance = 8192;       // "1/8"
         public const int EmergencyDeviceSwitchSeedAxisDwell = 4;

@@ -62,7 +62,7 @@ namespace DaYiJingCheng.Tests.PlayMode
             Assert.That(diag, Is.EqualTo("missing=[" + ghost + "]"), "诊断须点名缺失的那条,且真地址全部可解析");
         }
 
-        /// <summary>真实 catalog 下的正向半边:7 条真地址全部可解析(与负向同一次运行内对照)。</summary>
+        /// <summary>真实 catalog 下的正向半边:全部真地址(第十一片后 8 条)全部可解析(与负向同一次运行内对照)。</summary>
         [Test]
         public void test_precheck_liveCatalog_allRealAddressesLocatable()
         {

@@ -509,6 +509,48 @@ namespace DaYiJingCheng.EditorTools.Bake
         }
 
         /// <summary>
+        /// 烘焙设备切换迟滞常量表(阶段 1 词法 → 阶段 2 两列绑定 + 区间断言 → deterministic 编码)
+        /// → 产物写入 Assets/DataCooked/(入 data-core 组)。
+        /// <para>⚠️ TD-epic-01 第十一片:此前六旋钮只有 <c>assets/data/input_device_switch.json</c>
+        /// + <see cref="InputDeviceSwitchBinder"/>(构建期校验)+ <c>CompositionRoot.EmergencyDeviceSwitchSeed*</c>
+        /// 六个手抄常量 —— **零 cooked 制品、零运行期装载路径**,JSON 与常量表无机械对账。
+        /// 本菜单是 <see cref="InputDeviceSwitchBake"/> 的**唯一调用点链路**(菜单 → BakeFromRepo → Bind → 编码)。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 input_device_switch(3 设备切换旋钮)")]
+        public static void BakeInputDeviceSwitch()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                InputDeviceSwitchBake.BakeOutput result = InputDeviceSwitchBake.BakeFromRepo(repoRoot);
+
+                // 真往返:编码 → 解码 → 跨侧逐项等值(布局分叉的唯一自动兜现)
+                InputDeviceSwitchBake.Materialize(result);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, InputDeviceSwitchBake.CookedFileName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{InputDeviceSwitchBake.CookedFileName} = {result.Cooked.Length} B, " +
+                    $"pointer(阈值 {result.Bound.Pointer.DeviceSwitchThreshold.Raw} / 容差 " +
+                    $"{result.Bound.Pointer.DriftTolerance.Raw} / 驻留 {result.Bound.Pointer.DwellTicks})·" +
+                    $"axis(阈值 {result.Bound.Axis.DeviceSwitchThreshold.Raw} / 容差 " +
+                    $"{result.Bound.Axis.DriftTolerance.Raw} / 驻留 {result.Bound.Axis.DwellTicks})," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
         /// 构建 Addressables 内容(<c>BuildPlayerContent</c>)—— **改过组条目之后必须跑**。
         /// <para>⚠️ <b>为什么需要这个菜单</b>(2026-10-17 实测):PlayMode 下 Addressables 解析的是
         /// <c>unity/Library/com.unity.addressables/aa/&lt;platform&gt;/catalog.bin</c> 这份**预建 catalog**。

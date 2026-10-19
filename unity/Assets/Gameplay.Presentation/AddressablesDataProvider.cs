@@ -10,6 +10,7 @@ using System;
 using DaYiJingCheng.Gameplay.Presentation.Audio;
 using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
+using DaYiJingCheng.Gameplay.Presentation.Input;
 using DaYiJingCheng.Gameplay.Presentation.Settings;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
@@ -65,6 +66,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <para>⚠️ 单一出处 = <see cref="AudioSettingsDataSet.CookedFileName"/>。</para></summary>
         public const string AudioSettingsAddress = AudioSettingsDataSet.CookedFileName;
 
+        /// <summary>设备切换迟滞常量表 address(TD-epic-01 第十一片;原「临时种子」的还债面)。
+        /// <para>⚠️ 单一出处 = <see cref="DeviceSwitchTuningDataSet.CookedFileName"/>。</para></summary>
+        public const string DeviceSwitchTuningAddress = DeviceSwitchTuningDataSet.CookedFileName;
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -78,6 +83,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         // 音频侧两数据集(S14-6):struct ⇒ 可空承载。
         private AudioEventDataSet? _audioEvents;
         private AudioSettingsDataSet? _audioSettings;
+        // 设备切换常量表(TD-epic-01 第十一片):struct ⇒ 可空承载。
+        private DeviceSwitchTuningDataSet? _deviceSwitchTuning;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -125,10 +132,17 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureAudioSettings();
                 return (TDataSet)(object)_audioSettings.Value;
             }
+            // ── TD-epic-01 第十一片(2026-10-19):设备切换常量表 ──
+            if (typeof(TDataSet) == typeof(DeviceSwitchTuningDataSet))
+            {
+                EnsureDeviceSwitchTuning();
+                return (TDataSet)(object)_deviceSwitchTuning.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
-                " + 两份 44 侧产物(S14-6:AudioEventDataSet / AudioSettingsDataSet)");
+                " + 两份 44 侧产物(S14-6:AudioEventDataSet / AudioSettingsDataSet)" +
+                " + 设备切换常量表(TD-epic-01 第十一片:DeviceSwitchTuningDataSet)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -142,6 +156,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureLexicon();
             EnsureAudioEvents();
             EnsureAudioSettings();
+            EnsureDeviceSwitchTuning();
         }
 
         private void EnsureItems()
@@ -252,6 +267,22 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 设置注册表 cooked 解码失败(address={AudioSettingsAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureDeviceSwitchTuning()
+        {
+            if (_deviceSwitchTuning.HasValue) return;
+            byte[] bytes = FetchBytes(DeviceSwitchTuningAddress);
+            try
+            {
+                _deviceSwitchTuning = DeviceSwitchTuningCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 设备切换常量表 cooked 解码失败(address={DeviceSwitchTuningAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }
         }

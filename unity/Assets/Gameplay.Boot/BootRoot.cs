@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using DaYiJingCheng.Gameplay.Presentation;
 using DaYiJingCheng.Gameplay.Presentation.Audio;      // 44 运行期音频链(story-018 装配面)
 using DaYiJingCheng.Gameplay.Presentation.Camera;
+using DaYiJingCheng.Gameplay.Presentation.Input;      // DeviceSwitchTuningDataSet(第十一片取值缝)
 using DaYiJingCheng.Gameplay.Presentation.Player;
 using DaYiJingCheng.Gameplay.Presentation.Settings;   // AudioSettingsRegistry(S14-6 注入缝)
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
@@ -177,19 +178,23 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   · `Attach()` 快照 `InputSystem.devices` 并按 onDeviceChange 维护在场集;
             //   · 用 3 的 `EmergencyDeviceReadiness` 把读数交给 `EmergencyManualDriver`
             //     (启动序 4.65 的跳过入口之后才有动作,故先于玩家生成即可)。
-            // ⚠️ 迟滞三旋钮 = **临时种子**(`CompositionRoot.EmergencyDeviceSwitchSeed*`,
-            //    ADR-014 §五/§九 裁定值待裁决)—— 与 data-core 同源,数值轮同批定稿。
+            // ⚠️ 迟滞六旋钮 = **data-core 烘焙表**(TD-epic-01 第十一片,2026-10-19)——
+            //    此前是 `CompositionRoot.EmergencyDeviceSwitchSeed*` 六个手抄常量(与源 JSON
+            //    同值但无机械对账 ⇒ 数值轮改一边不改另一边 = 静默分叉)。现行为:
+            //      预载成功 ⇒ provider 读 `input_device_switch.cooked.bytes`(真源);
+            //      预载失败 ⇒ 常量兜底(与 `AudioSettingsRegistry.Provider` 同款设计内降级面)。
+            //    两条路径的等值由 **EditMode 对账夹具**钉住(种子常量 == 烘焙表,逐值),
+            //    与 44 侧 `AudioSettingsRegistryBinder.ValidateValueReconciliation` 同构。
             // ⚠️ 未挂接 / 失败 ≠ 阻断启动:读数恒「无模拟量」⇒ 所有 cause 记降级(如实可见,
             //    不是静默记成「玩家选择」)。设备态是 P0 的展示 / 读数面,不是 sim 真值。
             try
             {
+                (int axisThreshold, int axisTolerance, int axisDwell,
+                 int pointerThreshold, int pointerTolerance, int pointerDwell) =
+                    ResolveDeviceSwitchKnobs(preloaded ? DataCorePreloader.Provider : null);
                 var devices = new Input.DeviceStateManager(
-                    CompositionRoot.EmergencyDeviceSwitchSeedAxisThreshold,
-                    CompositionRoot.EmergencyDeviceSwitchSeedAxisTolerance,
-                    CompositionRoot.EmergencyDeviceSwitchSeedAxisDwell,
-                    CompositionRoot.EmergencyDeviceSwitchSeedPointerThreshold,
-                    CompositionRoot.EmergencyDeviceSwitchSeedPointerTolerance,
-                    CompositionRoot.EmergencyDeviceSwitchSeedPointerDwell);
+                    axisThreshold, axisTolerance, axisDwell,
+                    pointerThreshold, pointerTolerance, pointerDwell);
                 devices.Attach();
                 _deviceState = devices;
                 _services.EmergencyManualDriver?.BindDeviceReadiness(
@@ -520,6 +525,43 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (!preloaded || provider == null) return;
             AudioSettingsRegistry.Provider =
                 () => provider.Load<AudioSettingsDataSet>().Rows;
+        }
+
+        /// <summary>设备切换迟滞六旋钮的**取值缝**(TD-epic-01 第十一片)。
+        /// <para>预载成功 ⇒ 取烘焙表(<c>input_device_switch.cooked.bytes</c>,真源);
+        /// 预载失败 / provider 为 null ⇒ 取 <see cref="CompositionRoot.EmergencyDeviceSwitchSeed*"/>
+        /// 常量兜底(设计内降级面,与 <see cref="ApplyAudioSettingsProvider"/> 同款)。</para>
+        /// <para><b>为何是静态可直驱的方法而不是内联在 <see cref="Start"/> 里</b>:承
+        /// <see cref="ApplyAudioSettingsProvider"/> 同款理由 —— 内联后本接线只能经完整启动序
+        /// (Addressables catalog + 场景)才可达 ⇒ EditMode 无从断言。</para>
+        /// <para>返回序 = <c>DeviceStateManager</c> 构造序(轴列三 + 指针列三)。</para></summary>
+        /// <param name="provider">data-core provider(null ⇒ 常量兜底)。</param>
+        /// <returns>(axisThreshold, axisTolerance, axisDwell, pointerThreshold, pointerTolerance, pointerDwell)。</returns>
+        public static (int axisThreshold, int axisTolerance, int axisDwell,
+                       int pointerThreshold, int pointerTolerance, int pointerDwell)
+            ResolveDeviceSwitchKnobs(IDataProvider provider)
+        {
+            if (provider != null)
+            {
+                var data = provider.Load<DeviceSwitchTuningDataSet>();
+                // ⚠️ Fix.Raw 是 long,而 DeviceStateManager 收 Q16.16 **int**(Gameplay.Input
+                //    不引 Sim.Contracts —— 见 DeviceSwitchTuning.cs 头注的落点注记)。
+                //    窄化是**契约面**而非顺手转换:装载期 InputDeviceSwitchBinder 已断区间,
+                //    越界值到不了这里;真越界 ⇒ 窄化抛 OverflowException(启动期硬失败,零静默截断)。
+                return (checked((int)data.Tuning.Axis.DeviceSwitchThreshold.Raw),
+                        checked((int)data.Tuning.Axis.DriftTolerance.Raw),
+                        data.Tuning.Axis.DwellTicks,
+                        checked((int)data.Tuning.Pointer.DeviceSwitchThreshold.Raw),
+                        checked((int)data.Tuning.Pointer.DriftTolerance.Raw),
+                        data.Tuning.Pointer.DwellTicks);
+            }
+
+            return (CompositionRoot.EmergencyDeviceSwitchSeedAxisThreshold,
+                    CompositionRoot.EmergencyDeviceSwitchSeedAxisTolerance,
+                    CompositionRoot.EmergencyDeviceSwitchSeedAxisDwell,
+                    CompositionRoot.EmergencyDeviceSwitchSeedPointerThreshold,
+                    CompositionRoot.EmergencyDeviceSwitchSeedPointerTolerance,
+                    CompositionRoot.EmergencyDeviceSwitchSeedPointerDwell);
         }
 
         /// <summary>装配 44 运行期音频链的启动序半边(story-018 · A-1/A-2/A-4/A-5/A-7)。

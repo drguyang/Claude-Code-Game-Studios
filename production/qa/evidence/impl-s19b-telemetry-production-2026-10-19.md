@@ -536,16 +536,116 @@ GDD 出处:`emergency-procedures.md` 规则十二 `:464-469` / Edge Cases `:728`
 
 ---
 
+## 三·十一、第十一片:设备切换六旋钮临时种子(2026-10-19)
+
+### 原判定(§四 残留 2① 的「下一半」)
+
+「设备切换六旋钮仍为临时种子未进 data-core」。**实测**(还债前):
+
+| 面 | 实测 |
+|---|---|
+| 源 | `assets/data/input_device_switch.json` 存在,`InputDeviceSwitchBinder` 构建期校验存在 |
+| 运行期真源 | **无** —— `CompositionRoot.EmergencyDeviceSwitchSeed*` 六个**手抄常量**直接进 `DeviceStateManager` |
+| cooked 制品 | **零**(`unity/Assets/DataCooked/` 无 `input_device_switch.*`) |
+| 装载路径 | **无**(`AddressablesDataProvider` 无该分支,`DataCoreAddresses` 7 条) |
+| JSON ↔ 常量对账 | **无任何机械约束** —— 同值纯属手抄巧合;数值轮改一边 ⇒ 静默分叉 |
+
+### 用户裁定(2026-10-19)
+
+**「种子常量降为兜底 + 对账断言」** —— 预载失败(未预载 / catalog 未重建)时仍取常量兜底
+(设计内降级面,与 `ApplyAudioSettingsProvider` 同款),并加构建期对账断言钉住「常量 == 烘焙表」。
+
+### 落点
+
+| # | 文件 | 改动 |
+|---|---|---|
+| 1 | `Gameplay.Presentation/Input/DeviceSwitchTuningDataSet.cs`(**新**) | 运行期载体(两列 + schemaVersion + ConfigVersion);`CookedFileName` 单一出处 |
+| 2 | `Gameplay.Presentation/Input/DeviceSwitchTuningCookedCodec.cs`(**新**) | 读方;与写方**严格镜像**;缺列 / 头损坏 / 截断 / 版本不符 ⇒ `[E-13]` 硬失败 |
+| 3 | `Editor.Tools.Bake/InputDeviceSwitchCookedWriter.cs`(**新**) | deterministic 写方(列序固定 pointer → axis;`Fix` 写 i64 raw;schema 只住头槽) |
+| 4 | `Editor.Tools.Bake/InputDeviceSwitchBake.cs`(**新**) | 仓根装载器 + `Materialize`(**真往返** = 写读两侧布局的唯一自动兜现) |
+| 5 | `Editor.Tools.Bake/DataBakeMenu.cs` | 菜单「烘焙 input_device_switch(3 设备切换旋钮)」 |
+| 6 | `Gameplay.Presentation/AddressablesDataProvider.cs` | `DeviceSwitchTuningAddress` + `Load<>` 分支 + `Preload()` 追加 |
+| 7 | `Gameplay.Presentation/DataCorePreloader.cs` | `DataCoreAddresses` 7 → **8** |
+| 8 | `Gameplay.Boot/BootRoot.cs` | 取值缝 `ResolveDeviceSwitchKnobs(IDataProvider)`(provider 非空 ⇒ 烘焙表;null ⇒ 兜底);`checked` 窄化 long → int |
+| 9 | `Gameplay.Boot/CompositionRoot.cs` | 六常量注释「临时种子」→「**烘焙表的兜底值**」 |
+| 10 | `Assets/DataCooked/input_device_switch.cooked.bytes`(+`.meta`) | 烘焙产物 66 B(`ConfigVersion = 0x34F3BBCE`) |
+| 11 | `AddressableAssetsData/AssetGroups/data-core.asset` | 第 8 条目(GUID `4780fed9…`、address = 文件名、label `data-core`) |
+| 12 | `Tests/EditMode/InputSystem/device_switch_wiring_test.cs`(**新**) | 12 条夹具(下) |
+| 13 | `Tests/PlayMode/precheck_allKeys_test.cs` | 注释「7 条真地址」→「第十一片后 8 条」 |
+
+### 判据:新夹具 `DeviceSwitchWiringTest` **12/12 全绿**
+
+对账断言 / 真往返(+**绝对偏移**位置断言:载荷首列 = pointer)· 头槽 schema 非 0 ·
+同源两次逐位一致 · 两列对调载荷逐位一致 · 取值缝两分支(provider ⇒ 烘焙表,**非**兜底;
+null ⇒ 兜底)· E-13 负例 5 条(头槽 0 / 载荷-头槽 schema 分叉 / 缺列标志 / 截断三截法 / 魔数)。
+
+### 证伪轮(`tools/falsify/unity_falsify.py` · 改 → 跑 → **同进程**还原 + SHA-256)7/7 转红
+
+spec:`tools/falsify/specs/td-epic-01-device-switch-cooked.json`(`exactRed: true`)。
+⚠️ **spec 内的 `guards` 字段驱动不读** —— `unity_falsify.py:269` 只认 `--guard` 与 `DEFAULT_GUARDS`。
+故本轮**显式追加** `--guard unity/Assets/DataCooked`(否则 cooked 产物不在受保护面内),命令:
+
+```bash
+python3 tools/falsify/unity_falsify.py \
+  --spec tools/falsify/specs/td-epic-01-device-switch-cooked.json \
+  --guard unity/Assets/DataCooked
+```
+
+| 变异 | 改坏什么 | 转红的用例 |
+|---|---|---|
+| F1 | 停用头槽 schemaVersion 守卫 | `test_codec_headerSchemaZero_e13` |
+| F2 | 停用载荷/头槽 schema 交叉断言 | `test_codec_payloadSchemaMismatch_e13` |
+| F3 | 停用缺列守卫 | `test_codec_missingColumnFlag_e13` |
+| F4 | 停用 payloadLength 一致性守卫 | `test_codec_truncatedPayload_e13` |
+| F5 | 停用魔数守卫 | `test_codec_badMagic_e13` |
+| F6 | 写方列序改 axis 先 | `test_bake_materialize_roundTripExact` |
+| F7 | 兜底常量漂移 **1 个 raw 单位** | `test_reconciliation_emergencyConstantsEqualBakedTable` |
+
+### ⚠️ 过程中实测到的两件事(如实登记)
+
+1. **`DeviceSwitchTuning` / `DeviceSwitchColumn` 的命名空间是 `Gameplay.Presentation`,不是
+   `.Input`**(`DeviceSwitchTuning.cs:16`;落点注记:Gameplay.Input 不引 Sim.Contracts)。
+   写侧(`Editor.Tools.Bake`)与夹具起初只 `using …Presentation.Input` ⇒ CS0246。**已订正**。
+2. **真往返测试对「写方列序」零判别力** —— 读方按同一新序回读,往返仍等值。首版只有往返等值
+   ⇒ 静默假绿。**已补绝对偏移位置断言**(`HeaderSize + 4 + 2` 处读 i64 须 = pointer 阈值),
+   F6 的转红即该断言的判别力证明。
+3. 夹具首版载荷长度算式漏了 `u32 schema_version` 的 4 B(期望 62,实际 66)—— 已订正。
+
+### 回归
+
+`3885 / 3847 / 1 / 37`(`unity/Logs/s19h-dsswitch-full.xml`,2026-10-19)vs 本片前 `3872 / 3835 / 0 / 37`。
+- **total +13 = passed +12(+1 failed)**:新增用例 13 条 = `DeviceSwitchWiringTest` **12** + `F6F7SessionRhythmTest.test_f7_upperMedian_…` **1**
+  (`s19g-magfill-full.xml` 是第十片**之前**的基线,故第十片那条也在差集里);逐名比对 **GONE = 0**。
+- 唯一红 = `MovementFeedTest.test_move_afterFreeFall_horizontalDisplacementBoundedByConfig` ——
+  **`TD-player-01` 的已知间歇**(`docs/tech-debt-register.md:207`:Unity 默认 `minMoveDistance = 0.001`
+  吞掉亚阈值位移,`dx` 恰为 `0.0`,与本片无任何文件交集),不抵扣、**不记为已修**。
+  **间歇性已实测定性**:单独重跑 `MovementFeedTest` **5/5 全绿**(`unity/Logs/ds_movfeed_rerun.xml`,
+  该条 `Passed`)—— 与本次改动同批红、单跑转绿 ⇒ 间歇,不是回归。
+
+### ⚠️ 未落半边(禁借绿)
+
+- **catalog 重建 = 机器本地产物**:`AddressableAssetsData/*.bin` 被 `.gitignore` 忽略 ⇒
+  `data-core.asset` 第 8 条目已入库,但**本机 catalog** 是否已含该地址由
+  `precheck_allKeys_test::test_precheck_liveCatalog_allRealAddressesLocatable`(PlayMode)判定,
+  **本轮未跑 PlayMode** ⇒ 该半边 **NOT-RUN**。跑 PlayMode 前须先跑「构建 Addressables 内容」菜单。
+- **「产物 ↔ 组条目」一致无门**:`DataCooked/` 里有 cooked 产物、`data-core.asset` 里没登记
+  ⇒ 预检能抓到(地址不可解析),但**反向**(组里多一条无产物)**无门**。本片靠「确保 data-core 组」菜单实测写入(8 条)。
+- **`ResolveDeviceSwitchKnobs` 的 `checked` 窄化分支无夹具**:装载期 binder 已断区间,
+  越界值到不了 ⇒ 该分支行为面不可达(靠 binder 的既有负例 `test_deviceSwitchBinder_violations_hardFail`)。
+- **六个兜底常量与烘焙表对账**只钉「相等」,不钉「谁是真源」—— 删掉兜底须另裁。
+
+---
+
 ## 四、仍未还(epic 级 · 禁借绿)
 
 | # | 缺口 | 说明 |
 |---|---|---|
 | 1 | ~~**调试视图**~~ **✅ 第七片已落(留两半未落)** | 视图本体 + 入口 + 判据 12 条 + 证伪 8/8 全落。**残余**:① 生产装配**无调用点**(DevBuild 怎么唤未裁 ⇒ 只由夹具驱动)② AC-51-D4 的 Release 半边 **NOT-RUN**(须 Release player 构建) |
-| 2 | ~~**装配层未接线**~~ **✅ 第五/六/八/九片已接** | F1–F7 均已有生产还原器 + 各自的真链路判据。**残余**:① ~~F3 的 `cause` 关联~~ **✅ 第八片已落**;~~纯键鼠 `MAG_MAX` 回填~~ **✅ 第九片已落**(AC-10-21 两半边齐);**该残余的下一半** = 设备切换六旋钮仍为临时种子未进 data-core ② ~~F7 上中位数与 GDD 不符~~ **✅ 第十片已结清**(§三·十 —— 生产式本就对,订正的是 GDD 符号 `n→m` 与一处下标注释)③ F4–F7 的参数全 `*待定*`,生产方法**无默认值**,须调用方传 |
+| 2 | ~~**装配层未接线**~~ **✅ 第五/六/八/九片已接** | F1–F7 均已有生产还原器 + 各自的真链路判据。**残余**:① ~~F3 的 `cause` 关联~~ **✅ 第八片已落**;~~纯键鼠 `MAG_MAX` 回填~~ **✅ 第九片已落**(AC-10-21 两半边齐);~~设备切换六旋钮仍为临时种子未进 data-core~~ **✅ 第十一片已落**(§三·十一 —— cooked 制品 + 装载路径 + 取值缝 + 8 条地址 + 对账断言;PlayMode catalog 半边 NOT-RUN);**该残余的下一半** = 兜底常量与烘焙表并存(删兜底须另裁)② ~~F7 上中位数与 GDD 不符~~ **✅ 第十片已结清**(§三·十 —— 生产式本就对,订正的是 GDD 符号 `n→m` 与一处下标注释)③ F4–F7 的参数全 `*待定*`,生产方法**无默认值**,须调用方传 |
 | 3 | 3 条 Ignore 未清 | `AC-51-B9`(集成目录 `tests/integration/51/` 未建)· `AC-51-E3`(非主机侧拒绝,依赖 `OQ-51-5` 未裁)· `blank_and_degraded` 的谓词面仍无测试驱动(见 §二②) |
 | 4 | **10 条 story 的 `Complete` 一条未动** | 账面与实现的背离仍在 |
 
-**⇒ `TD-epic-01` 状态 = 偿还中(十片),不是已修好。**
+**⇒ `TD-epic-01` 状态 = 偿还中(十一片),不是已修好。**
 
 ---
 
@@ -579,6 +679,13 @@ sha256sum -c /tmp/fz/baseline_magfill.sha && python3 /tmp/fz/fz_mag_fill.py M-m-
 unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.Unit.Telemetry.F6F7SessionRhythmTest"
 # 期望:11/11 全绿(原 10 + 新增 1)
 sha256sum -c /tmp/fz/baseline_f7median.sha && python3 /tmp/fz/fz_f7_median.py M-f7-1   # 其余 M-f7-2…M-f7-4 同;每例须 RED + 还原后基线 OK
+
+# 设备切换六旋钮(第十一片)
+unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.Unit.InputSystem.DeviceSwitchWiringTest"
+# 期望:12/12 全绿
+python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/td-epic-01-device-switch-cooked.json --guard unity/Assets/DataCooked
+# 期望:退出码 0(7 个变异全部恰如预期转红,受保护路径指纹未变)
+# ⚠️ --guard 不可省:驱动不读 spec 里的 guards 字段,缺它则 cooked 产物不在受保护面内
 
 # 全量
 rm -f test-results.xml && unity test unity --mode EditMode -- --log-file -

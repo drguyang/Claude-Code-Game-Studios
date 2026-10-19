@@ -1,0 +1,101 @@
+{
+  "name": "TD-epic-01 第十一片 —— 设备切换六旋钮烘焙管线 + 装载接缝",
+  "mode": "EditMode",
+  "filter": "DeviceSwitchWiringTest",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/AddressableAssetsData",
+    "unity/Assets/DataCooked"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期)。",
+    "F6 证明「列序位置断言」有判别力 —— 没有它,写方换序时往返仍等值(自证假绿形态)。"
+  ],
+  "mutations": [
+    {
+      "name": "F1-headerSchemaGuard",
+      "file": "unity/Assets/Gameplay.Presentation/Input/DeviceSwitchTuningCookedCodec.cs",
+      "line": 86,
+      "expect": "            if (schemaVersion != ExpectedSchemaVersion)",
+      "replace": "            if (false) // FALSIFY-F1:停用 schema 版本守卫",
+      "expectRed": [
+        "test_codec_headerSchemaZero_e13"
+      ],
+      "exactRed": true,
+      "_why": "schema_version 是读方与写方的版本契约;停用它 ⇒ 头槽被改 0 的产物会被当作合法装载 = 静默降级(ADR-014 §五 E-13)。"
+    },
+    {
+      "name": "F2-payloadHeaderSchemaCrossCheck",
+      "file": "unity/Assets/Gameplay.Presentation/Input/DeviceSwitchTuningCookedCodec.cs",
+      "line": 43,
+      "expect": "            if (payloadSchemaVersion != headerSchemaVersion)",
+      "replace": "            if (false) // FALSIFY-F2:停用载荷/头槽 schema 交叉断言",
+      "expectRed": [
+        "test_codec_payloadSchemaMismatch_e13"
+      ],
+      "exactRed": true,
+      "_why": "同一真值两处存;不停用交叉断言 ⇒ 两处分叉无人察觉(本次实测:F3 正踩此线)。"
+    },
+    {
+      "name": "F3-missingColumnGuard",
+      "file": "unity/Assets/Gameplay.Presentation/Input/DeviceSwitchTuningCookedCodec.cs",
+      "line": 49,
+      "expect": "            if (!hasPointer || !hasAxis)",
+      "replace": "            if (false) // FALSIFY-F3:停用缺列守卫",
+      "expectRed": [
+        "test_codec_missingColumnFlag_e13"
+      ],
+      "exactRed": true,
+      "_why": "缺列 = 运行期静默回退到常量兜底(Ⓑ.1);停用 ⇒ 空列被读成 0 值旋钮。"
+    },
+    {
+      "name": "F4-truncationGuard",
+      "file": "unity/Assets/Gameplay.Presentation/Input/DeviceSwitchTuningCookedCodec.cs",
+      "line": 90,
+      "expect": "            if (payloadLength != bytes.Length - CookedFormat.HeaderSize)",
+      "replace": "            if (false) // FALSIFY-F4:停用 payloadLength 一致性守卫",
+      "expectRed": [
+        "test_codec_truncatedPayload_e13"
+      ],
+      "exactRed": true,
+      "_why": "截断载荷必须 E-13 硬失败;停用 ⇒ 截断产物流入 ReadColumn(越界读或短读)。"
+    },
+    {
+      "name": "F5-badMagicGuard",
+      "file": "unity/Assets/Gameplay.Presentation/Input/DeviceSwitchTuningCookedCodec.cs",
+      "line": 80,
+      "expect": "            if (bytes[0] != 'D' || bytes[1] != 'Y' || bytes[2] != 'J' || bytes[3] != 'C')",
+      "replace": "            if (false) // FALSIFY-F5:停用魔数守卫",
+      "expectRed": [
+        "test_codec_badMagic_e13"
+      ],
+      "exactRed": true,
+      "_why": "魔数 = 「这是不是本格式」的唯一判据;停用 ⇒ 任意 20 B 以上的字节都被当作常量表。"
+    },
+    {
+      "name": "F6-columnOrderPointerFirst",
+      "file": "unity/Assets/Editor.Tools.Bake/InputDeviceSwitchCookedWriter.cs",
+      "line": 44,
+      "expect": "                WriteColumn(w, tuning.Pointer);",
+      "replace": "                WriteColumn(w, tuning.Axis); // FALSIFY-F6:写方列序改 axis 先",
+      "expectRed": [
+        "test_bake_materialize_roundTripExact"
+      ],
+      "exactRed": true,
+      "_why": "列序固定 pointer → axis(不靠 JSON 迭代序);写方单侧换序 ⇒ 绝对偏移断言红(读方回读测不出 —— 正因如此才需要该位置断言)。"
+    },
+    {
+      "name": "F7-reconciliationConstantDrift",
+      "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+      "line": 66,
+      "expect": "        public const int EmergencyDeviceSwitchSeedPointerTolerance = 65536;   // \"1\"",
+      "replace": "public const int EmergencyDeviceSwitchSeedPointerTolerance = 65535; // FALSIFY-F7:常量漂移 1",
+      "expectRed": [
+        "test_reconciliation_emergencyConstantsEqualBakedTable"
+      ],
+      "exactRed": true,
+      "_why": "对账断言的存在理由:数值轮只改一边 ⇒ 兜底与真源静默分叉。漂移 1 是**最小**分叉(64K 内的 1 个 raw 单位),专测该断言不是靠大差才红。"
+    }
+  ]
+}

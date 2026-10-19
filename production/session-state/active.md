@@ -6392,3 +6392,39 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
   ③ F4–F7 参数待定 ④ 调试视图生产无调用点 ⑤ AC-51-D4 Release 半边 NOT-RUN ⑥ 3 条 Ignore
   ⑦ 10 条 story 的 `Complete` 一条未动。
 - **未提交**。
+
+## Session Extract — TD-epic-01 第十一片:设备切换六旋钮临时种子(2026-10-19)
+
+- **原登记**:「设备六旋钮仍为临时种子未进 data-core」。**实测病根**:六旋钮只有
+  `assets/data/input_device_switch.json` + `InputDeviceSwitchBinder`(构建期校验)
+  + `CompositionRoot.EmergencyDeviceSwitchSeed*` 六个**手抄常量**;
+  **零 cooked 制品、零运行期装载路径、JSON 与常量零机械对账**(同值纯属手抄巧合)。
+- **用户裁定**:**种子常量降为兜底 + 对账断言**(预载失败仍取常量,与 `ApplyAudioSettingsProvider` 同款)。
+- **落盘 13 处**:新 `DeviceSwitchTuningDataSet` / `DeviceSwitchTuningCookedCodec`(读方)/
+  `InputDeviceSwitchCookedWriter`(写方)/ `InputDeviceSwitchBake`(仓根装载器 + 真往返);
+  `DataBakeMenu` 菜单;`AddressablesDataProvider` 支路;`DataCorePreloader` 7 → **8 条地址**;
+  `BootRoot.ResolveDeviceSwitchKnobs(IDataProvider)` 取值缝;`CompositionRoot` 六常量注释改「兜底」;
+  cooked 产物 66 B(`ConfigVersion = 0x34F3BBCE`)+ `.meta`;`data-core.asset` **第 8 条目**;
+  新夹具 `device_switch_wiring_test.cs`;PlayMode 预检注释。
+- ⚠️ **命名空间坑**:`DeviceSwitchTuning` / `DeviceSwitchColumn` 住 **`Gameplay.Presentation`**
+  (不是 `.Input`)⇒ 写侧与夹具起初 CS0246,已订正。
+- ⚠️ **自证假绿**:真往返**测不出**写方列序变化(读方同序回读仍等值)⇒ 补**绝对偏移**位置断言
+  (载荷首列必 = pointer 阈值);F6 的转红即其判别力证明。
+- **判据**:`DeviceSwitchWiringTest` **12/12 全绿**。**证伪 7/7 转红**
+  (`tools/falsify/specs/td-epic-01-device-switch-cooked.json`,驱动 `unity_falsify.py`,同进程还原 + SHA-256)。
+- 🔴 **未落半边**:① **PlayMode catalog 半边 NOT-RUN** —— `AddressableAssetsData/*.bin` 被 gitignore,
+  本机 catalog 是否含第 8 地址由 `precheck_allKeys_test` 判定;跑 PlayMode 前须先「构建 Addressables 内容」
+  ② `checked` 窄化分支不可达(靠 binder 既有负例)③ 兜底常量与烘焙表并存(删兜底须另裁)。
+- 🔴 **仍未还**:① F4–F7 参数待定 ② 调试视图生产无调用点 ③ AC-51-D4 Release 半边 NOT-RUN
+  ④ 3 条 Ignore ⑤ 10 条 story 的 `Complete` 一条未动。
+- **未提交**。
+- **补记(证伪轮口径)**:`unity_falsify.py:269` **不读** spec 的 `guards` 字段 —— 本轮必须
+  `--guard unity/Assets/DataCooked`,否则 cooked 产物不在受保护面。首轮未带该参数即已通过,
+  已带参数**重跑**一次并把该口径写进证据 §三·十一 与 §五 命令。
+- **判据(最终)**:`DeviceSwitchWiringTest` **12/12 全绿**(`unity/Logs/ds_wiring.xml`)。**证伪 7/7 转红**
+  (`--guard unity/Assets/DataCooked` 重跑一次确认受保护面覆盖产物,退出码 0)。
+- **回归**:`3885/3847/1/37`(`unity/Logs/s19h-dsswitch-full.xml`)vs 基线 `3872/3835/0/37`
+  ⇒ **total +13 = passed +12 + failed +1**;差集 = 新增 13 条(本片 12 + 第十片 1),**GONE = 0**。
+  唯一红 = `MovementFeedTest.test_move_afterFreeFall_…` = **`TD-player-01` 已知间歇**
+  (tech-debt-register:207;`minMoveDistance` 默认 0.001 吞亚阈值位移);**单跑 5/5 转绿**
+  (`unity/Logs/ds_movfeed_rerun.xml`)⇒ 间歇已实测定性,**不抵扣、不记为已修**。
