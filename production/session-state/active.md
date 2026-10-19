@@ -6472,3 +6472,32 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
   ⚠️ **实际推送 4 个提交,非 2 个** —— 第十片 `6220d5e` / 第十一片 `1371834` 此前**一直只在本地**,
   随本次一并推送。本地与远端同步(`main...origin/main` 无领先/落后)。
 - **推送后本地状态**:工作区仍余两条 audio `statereport-walkthrough-*`(untracked,归 audio 侧)。
+
+## Session Extract — TD-epic-01 第十三片:C 假绿重写 / D 开发期半边 / A 主机门 / E 零出厂扫描面(2026-10-19)
+
+- **用户裁定**:「按建议完成四类」。
+- **侦察改口(四项原登记与实测不符)**:
+  ① **C** 比登记更糟 —— `TickFoldEngine` 全仓唯一引用是**一句注释**,D1–D9 全跑手搓常量,D7 两条恒真;
+  ② **D** 编译期半边**早有夹具**,Release 半边是刻意 NOT-RUN(GDD 允许「或」)—— 真缺口是
+     GDD 另一半「Development 构建入口存在且输出指标」**无夹具**;
+  ③ **A** `OQ-51-5` **2026-10-06 已裁**,理由过期;真阻塞 = `IEventAuthority` 零生产实装;
+  ④ **E** `AC-19-02` 只扫 `Telemetry` 程序集,**漏了报告生产者所在的 `Gameplay.Boot`**。
+- **落地**:
+  - C:`blank_and_degraded_test.cs` 重写 —— D1 驱动 `TickFoldEngine.Fold`、D2 驱动 `MetricsReport.Render`、
+    D8 驱动 `CompletenessBanner`;**D3/D5/D6/D7 改 NOT-RUN**(无生产主语,注释写明解冻条件)。
+  - D:`test_d4_developmentBuild_entryExists_andOutputsMetrics`(反射 + 真调入口 + 断言输出真指标)。
+  - A:`TelemetryReporter.RequireHost()` + 可空 `IEventAuthority`;7 个报告方法 + `ScorableCount` 全覆盖。
+    **null ⇒ 不设门**(单机/离线),**刻意不自造恒 true 占位**。
+  - E:`test_ac1902_reportProducer_noNetworkInGameplayBoot`(字段+签名反射扫描)、
+    `test_ac1901_metricsRecomputableFromExistingStream_only`(只用既有 Kind 造流 ⇒ 分母非 0 + 同流同值)。
+- **证伪**:第 **3** 轮通过(退出码 0,5/5)。前两轮失败**全是我自己的期望写窄 / 变异写坏**:
+  ① F4 多红 2 条(同一守卫的正当判别面)· F5 首版漏赋 `out skipped` ⇒ **编译失败**根本没跑到断言;
+  ② F5 多红 1 条(`test_d9_ampleSmpale_noBanner` 同样依赖 `ScorableCount`)。
+  **未缩短清单掩盖,均按机制解释列全。**
+- **回归**:`3912 / 3870 / 1 / 41`(`unity/Logs/s19j-cdea-full.xml`)vs 前 `3902 / 3865 / 0 / 37`。
+  等式:Δpassed(+5)+Δfailed(+1)+Δskipped(+4)=+10=Δtotal ✓;新夹具 16 − 删假绿 6 = +10 ✓。
+  唯一红 = `test_move_afterFreeFall_…`(`TD-player-01` 既有间歇,**单跑 8/8 全绿**)。
+  **GONE 6 条全部是主动删除的假绿**(逐条列在证据 §三·十三)。
+- **仍 NOT-RUN**:C 的 D3/D5/D6/D7 · A 的真联机半边 · D 的 Release player 半边 ·
+  E 的运行期零出站 · `AC-51-B9`(真实会话数据不存在)。
+- **未提交**。

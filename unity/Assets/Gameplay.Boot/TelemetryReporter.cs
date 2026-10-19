@@ -49,12 +49,33 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="knobs">可空旋钮(第十二片);null ⇒ 不代填。</param>
         public TelemetryReporter(EventStream stream, IPayloadDecoder decoder,
                                  IReadOnlyList<DiseaseRegistryEntry> registry,
-                                 TelemetryAnalyticsTuning? knobs = null)
+                                 TelemetryAnalyticsTuning? knobs = null,
+                                 IEventAuthority eventAuthority = null)
         {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
             Knobs = knobs;
+            EventAuthority = eventAuthority;
+        }
+
+        /// <summary>写权权威(GDD E-15 / `AC-51-E3` 的非主机侧门;第十三片)。
+        /// <para>⚠️ **可空**:`IEventAuthority` 全仓**零生产实装**(`SeenDiseaseProjector.cs:23-26`
+        /// 自陈「归 P1b 联机轮」)⇒ 注入 null = 单机/离线(结构上恒为「主机或从主机存档」),
+        /// 不设门。注入了才判 —— **不**在此处自造一个恒 true 的占位实现来假装门存在。</para>
+        /// <para>⚠️ 与 ADR-019 §三 一致:本门是**只读侧拒绝**,不新增任何写入通道。</para></summary>
+        public IEventAuthority EventAuthority { get; }
+
+        /// <summary>GDD E-15 / `AC-51-E3` 的生产门:非主机侧请求出指标 ⇒ **拒绝**,不产出空 / 截断指标。
+        /// <para>为什么必须拒:非主机不执行 `Step`(ADR-005 主机唯一执行)⇒ 读不到完整流 ⇒
+        /// 硬跑只会得到空或截断的指标,而那种数一旦被当成「测得的 0」就是下游污染。</para></summary>
+        /// <exception cref="InvalidOperationException">当前进程不是主机。</exception>
+        private void RequireHost()
+        {
+            if (EventAuthority != null && !EventAuthority.IsHost)
+                throw new InvalidOperationException(
+                    "[51][E-15] 非主机侧不得请求出指标 —— 非主机不执行 Step(ADR-005)," +
+                    "读不到完整流,硬跑只会得到空 / 截断指标(AC-51-E3)。");
         }
 
         /// <summary>F1 指标的本地报告文本(整数对;分母 0 报「分母 0」)。
@@ -62,6 +83,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="skipped">解码失败 / 载荷不可用被跳过的条数(可观测;非静默吞)。</param>
         public string JudgmentReport(out int skipped)
         {
+            RequireHost();
             IReadOnlyList<JudgmentRecord> records = Reduce(out skipped);
             JudgmentMetrics.Result r = JudgmentMetrics.Compute(records);
             return MetricsReport.Render("F1 判断层指标(本地会话)", new[]
@@ -73,10 +95,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             });
         }
 
-        /// <summary>当前 Scorable 病例数(可观测面;0 ⇒ 分母 0 的意思)。</summary>
+        /// <summary>当前 Scorable 病例数(可观测面;0 ⇒ 分母 0 的意思)。
+        /// <para>⚠️ 同样受 E-15 门:非主机侧读到的是截断流 ⇒ 这个「0」没有意义。</para></summary>
         public int ScorableCount
         {
-            get { IReadOnlyList<JudgmentRecord> r = Reduce(out int _); return r.Count; }
+            get { RequireHost(); IReadOnlyList<JudgmentRecord> r = Reduce(out int _); return r.Count; }
         }
 
         // ────────────────────────────────────────────────────────────────
@@ -156,6 +179,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 可观测面,**不进任何分母** —— 它大于 0 说明关联面有洞,而不是说「这些人选了玩家选择」。</param>
         public string SkipRateReport(out int skipped, out int unattributed)
         {
+            RequireHost();
             IReadOnlyList<SkipRateMetrics.ActionInstance> instances = ReduceActions(out skipped, out unattributed);
             var (skipNum, skipDen, choiceNum, choiceDen, denominatorZero) =
                 SkipRateMetrics.Compute(instances);
@@ -333,6 +357,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="skipped">解码失败被跳过的条数(可观测)。</param>
         public string SkillGrowthReport(string skill, (long from, long to)? growthTicks, out int skipped)
         {
+            RequireHost();
             IReadOnlyList<SkillGrowthMetrics.GrowthEvent> events = ReduceGrowth(growthTicks, out skipped);
             var (practice, nNew, nRepeat, nStale) = SkillGrowthMetrics.Compute(events, skill);
             var (deltaOk, delta) = SkillGrowthMetrics.TryComputeDeltaLevel(events, skill);
@@ -413,6 +438,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="skipped">恒为 0(F5 只读事件头,不解码载荷 —— 保留形参以统一签名)。</param>
         public string DifficultyCurveReport(long firstWindowTick, int step, int window, out int skipped)
         {
+            RequireHost();
             skipped = 0;
             IReadOnlyList<DifficultyCurveMetrics.SimEvent> events = FlattenByStream();
             var sb = new StringBuilder();
@@ -446,6 +472,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="skipped">恒为 0(F6/F7 只读事件头 —— 保留形参以统一签名)。</param>
         public string SessionRhythmReport(int gapThreshold, out int skipped)
         {
+            RequireHost();
             skipped = 0;
             IReadOnlyList<SessionRhythmMetrics.SimEvent> events = FlattenTicks();
             var (tickMin, tickMax, span, count) = SessionRhythmMetrics.ComputeSessionSpan(events);
@@ -509,6 +536,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="skipped">解码失败 / 载荷不可用被跳过的条数(可观测)。</param>
         public string MisdiagnosisReport(out int skipped)
         {
+            RequireHost();
             IReadOnlyList<MisdiagnosisMatrixMetrics.CaseRecord> records =
                 JudgmentStreamF2Reducer.Reduce(_stream.Events, DecodeMisdiagnosisRecord, out skipped);
 
@@ -580,6 +608,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 以「跳过·未关联」行可观测 —— 它大于 0 说明关联面有洞,报告**不**把它并进任一 cause。</para></summary>
         public string AllMetricsReport(out int skipped)
         {
+            RequireHost();
             string body = JudgmentReport(out int f1Skipped);
             body += '\n' + MisdiagnosisReport(out int f2Skipped);
             body += '\n' + SkipRateReport(out int f3Skipped, out int _);

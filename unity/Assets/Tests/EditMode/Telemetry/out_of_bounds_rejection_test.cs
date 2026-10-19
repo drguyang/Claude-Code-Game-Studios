@@ -28,6 +28,12 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using DaYiJingCheng.Gameplay.Boot;      // TelemetryReporter(AC-51-E3 生产主语)
+using DaYiJingCheng.Gameplay.PatientAI; // PresenceRegistry
+using DaYiJingCheng.Sim;
+using DaYiJingCheng.Sim.Codec;
+using DaYiJingCheng.Sim.Contracts;
+using DaYiJingCheng.Telemetry;           // ITelemetrySink
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.Unit.Telemetry
@@ -234,26 +240,108 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             Assert.That(dataFiles, Is.Not.Null, "assets/data/ 目录应可读取");
         }
 
-        // ══════════════ AC-51-E3:非主机侧拒绝(ADVISORY)══════════════
+        // ══════════════ AC-51-E3:非主机侧拒绝 ══════════════
 
-        /// <summary>AC-51-E3:非主机客户端请求 Compute() 时拒绝。
-        /// ⚠️ ADVISORY:依赖 OQ-51-5(联机时 51 在哪跑)未裁 ⇒ 现不可签核。
-        /// 当前阶段用 Assert.Ignore 标记,裁定后回升 BLOCKING。</summary>
+        /// <summary>AC-51-E3:非主机客户端请求出指标时**拒绝**,不产出空 / 截断指标。
+        /// <para>TD-epic-01 第十三片(2026-10-19):`OQ-51-5` **已于 2026-10-06 裁定**
+        /// (`telemetry-analytics.md:706` — 51 只在主机或离线运行,非主机侧拒绝),
+        /// 「未裁 ⇒ NOT-RUN」的理由**已失效**;生产侧 `TelemetryReporter.RequireHost` 亦已落。
+        /// 本条由 `Assert.Ignore` 改为真驱动。</para>
+        /// <para><b>判别力</b>:删掉 `RequireHost()` 里的 `throw` ⇒ 本条红(会正常返回报告)。</para>
+        /// <para>⚠️ <b>只覆盖「注入了非主机 authority 时拒」</b>。`IEventAuthority` 全仓**零生产实装**
+        /// (`SeenDiseaseProjector.cs:23-26` 自陈归 P1b)⇒ 「真联机时被拒」这半边**仍 NOT-RUN**,
+        /// 见下方 <see cref="test_e3_realOnline_nonHostRejected_NOT_RUN"/>。</para></summary>
         [Test]
-        public void test_e3_nonHostRejection_advisory()
+        public void test_e3_nonHostAuthority_rejectsAllReports()
         {
-            // Arrange:OQ-51-5 未裁定
-            bool oq515Resolved = false;
+            // Arrange:真 reporter + 注入「非主机」authority
+            var pool = new InMemoryBlobPool();
+            var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
+            var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
+                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } },
+                knobs: null, eventAuthority: new FakeEventAuthority(isHost: false));
+            var sink = new NullSink();
 
-            // Act + Assert:未裁定 ⇒ 跳过
-            if (!oq515Resolved)
-            {
-                Assert.Ignore("AC-51-E3:非主机侧拒绝 —— 依赖 OQ-51-5(联机时 51 在哪跑)未裁,现不可签核");
-                return;
-            }
+            // Act + Assert:每一条出口都必须拒(不留「某一条忘了设门」的缝)
+            Assert.Throws<InvalidOperationException>(() => reporter.JudgmentReport(out _), "F1");
+            Assert.Throws<InvalidOperationException>(() => reporter.MisdiagnosisReport(out _), "F2");
+            Assert.Throws<InvalidOperationException>(() => reporter.SkipRateReport(out _, out _), "F3");
+            Assert.Throws<InvalidOperationException>(() => reporter.SkillGrowthReport("1", (0, 1), out _), "F4");
+            Assert.Throws<InvalidOperationException>(() => reporter.DifficultyCurveReport(0, 5, 5, out _), "F5");
+            Assert.Throws<InvalidOperationException>(() => reporter.SessionRhythmReport(3, out _), "F6/F7");
+            Assert.Throws<InvalidOperationException>(() => reporter.AllMetricsReport(out _), "汇总");
+            Assert.Throws<InvalidOperationException>(() => _ = reporter.ScorableCount, "ScorableCount");
+            Assert.Throws<InvalidOperationException>(
+                () => reporter.RenderDeveloperPreview(new TelemetryPreviewRequest(null, null, null, null, null, null, null), sink),
+                "调试视图入口");
+        }
 
-            // 裁定后实现:验证非主机客户端请求 Compute() 时拒绝
-            // 预期:抛出 InvalidOperationException 或返回空结果
+        /// <summary>AC-51-E3 负向:主机侧照常出数 —— 门不是「一律拒」。
+        /// <para><b>判别力</b>:把 `RequireHost` 的判据写成恒拒 ⇒ 本条红。</para></summary>
+        [Test]
+        public void test_e3_hostAuthority_producesReports()
+        {
+            // Arrange
+            var pool = new InMemoryBlobPool();
+            var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
+            var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
+                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } },
+                knobs: null, eventAuthority: new FakeEventAuthority(isHost: true));
+
+            // Act
+            string report = reporter.JudgmentReport(out _);
+
+            // Assert
+            Assert.That(report, Does.Contain("F1"), "主机侧须正常出指标");
+            Assert.DoesNotThrow(() => _ = reporter.ScorableCount, "主机侧 ScorableCount 须可读");
+        }
+
+        /// <summary>AC-51-E3 无 authority = 单机/离线,不设门(如实登记的设计)。
+        /// <para>为什么是「不设门」而不是「默认当主机」:`IEventAuthority` 零生产实装 ⇒
+        /// 注入 null 只可能发生在单机 / 离线重算(结构上恒为主机或从主机存档)。
+        /// 但本类**不自造**一个恒 true 的占位实现来假装门存在 —— 那会把「门还没接」伪装成「门已实现」。</para></summary>
+        [Test]
+        public void test_e3_nullAuthority_isSinglePlayer_noGate()
+        {
+            // Arrange
+            var pool = new InMemoryBlobPool();
+            var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
+            var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
+                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } });
+
+            // Act + Assert
+            Assert.That(reporter.EventAuthority, Is.Null, "未注入 ⇒ EventAuthority 保持 null(不自造占位)");
+            Assert.DoesNotThrow(() => reporter.JudgmentReport(out _), "单机/离线不设门");
+        }
+
+        /// <summary>AC-51-E3 的**未覆盖半边** —— 真联机环境下非主机侧被拒。</summary>
+        [Test]
+        public void test_e3_realOnline_nonHostRejected_NOT_RUN()
+        {
+            Assert.Ignore("AC-51-E3 的「真联机」半边 NOT-RUN:`IEventAuthority` 全仓零生产实装" +
+                          "(SeenDiseaseProjector.cs:23-26 自陈归 P1b 联机轮)⇒ 本机无法构造真非主机进程。" +
+                          "已覆盖的是「注入非主机 authority 时拒」(test_e3_nonHostAuthority_rejectsAllReports)。");
+        }
+
+        private sealed class FakeEventAuthority : IEventAuthority
+        {
+            public FakeEventAuthority(bool isHost) { IsHost = isHost; }
+            public bool IsAuthority => IsHost;
+            public bool IsHost { get; }
+            public EventRollResult Roll(in RollRequest r) => default;
+        }
+
+        private sealed class NullSink : ITelemetrySink
+        {
+            public void WriteLocalReport(string fileName, string content) { }
+            public void LogDeveloperSummary(string summary) { }
+        }
+
+        private sealed class SeqIdAuthority : IIdAuthority
+        {
+            private long _n = 100;
+            public PatientId NextPatientId() => new PatientId((int)_n++);
+            public ItemInstanceId NextItemInstanceId() => new ItemInstanceId(_n++);
         }
 
         // ══════════════ AC-51-E4:无因果字段(ADVISORY)══════════════

@@ -167,6 +167,46 @@ namespace DaYiJingCheng.Tests.Boot
             Assert.Ignore("AC-51-D4 的 Release 半边 NOT-RUN:须 Release player 构建后反射扫描(本机仅 EditMode,宏含 UNITY_EDITOR);不得以源码形态判据代替");
         }
 
+        /// <summary>AC-51-D4 的**另一半** —— `GIVEN Development 构建,THEN 入口存在且输出指标`。
+        /// <para>TD-epic-01 第十三片(2026-10-19)补:此前只钉了「Release 侧被条件编译包住」,
+        /// 没钉「开发期这半边**确实活着**」—— 若 `#if` 条件写成永假,Release 侧判据照样全绿,
+        /// 而开发期入口静默消失。</para>
+        /// <para><b>判别力</b>:把条件改成 `#if false` ⇒ 本夹具编译失败(类型不存在)⇒ 红;
+        /// 把 `RenderDeveloperPreview` 改成不调 sink ⇒ 第二条断言红;
+        /// 把 `AllMetricsReport` 从正文里拿掉 ⇒ 第三条红。</para></summary>
+        [Test]
+        public void test_d4_developmentBuild_entryExists_andOutputsMetrics()
+        {
+            // Arrange:本夹具程序集编在 Editor ⇒ 宏含 UNITY_EDITOR,入口在编译面内。
+            //          这里用**反射**取类型,而不是直接 `new` —— 若类型真被剔除,
+            //          拿到的是「找不到类型」而非编译错误,红的理由更可读。
+            Type view = typeof(TelemetryReporter).Assembly.GetType(
+                "DaYiJingCheng.Gameplay.Boot.TelemetryDeveloperView", throwOnError: false);
+            Assert.That(view, Is.Not.Null,
+                "Development/Editor 构建里 TelemetryDeveloperView 必须存在(AC-51-D4 开发期半边)");
+
+            // ⚠️ 形参是 `in TelemetryPreviewRequest` ⇒ 反射面是 `TelemetryPreviewRequest&`(ByRef),
+            //    按值类型取会拿不到(首轮实测即此)。
+            MethodInfo preview = typeof(TelemetryReporter).GetMethod(
+                "RenderDeveloperPreview",
+                new[] { typeof(TelemetryPreviewRequest).MakeByRefType(), typeof(ITelemetrySink) });
+            Assert.That(preview, Is.Not.Null,
+                "Development/Editor 构建里 RenderDeveloperPreview 入口必须存在");
+
+            AppendCaseClosed(1L, 1UL << 0);
+            AppendJudgment(1L, 1);
+            var sink = new RecordingSink();
+
+            // Act
+            string text = _reporter.RenderDeveloperPreview(
+                new TelemetryPreviewRequest("1", (0, 10), 0, 5, 5, 3, null), sink);
+
+            // Assert:入口真活着且**输出指标**(不是「有入口但点了没用」)
+            Assert.That(sink.Logged, Has.Count.EqualTo(1), "开发期入口须真把正文交给 sink");
+            StringAssert.Contains("# F1 判断层指标", text, "开发期入口须输出真实指标段");
+            Assert.That(text.Length, Is.GreaterThan(100), "输出不得为空壳");
+        }
+
         // ══════════════ 入口行为 ══════════════
 
         /// <summary>入口把正文交 sink(ADR-019 §五「控制台 / 本地文件」),且正文含各段标题。</summary>

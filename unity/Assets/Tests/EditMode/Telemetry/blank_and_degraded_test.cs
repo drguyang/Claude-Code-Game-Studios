@@ -17,10 +17,26 @@
 //    Unity 只编译 unity/Assets/树 ⇒ **真身 = 本文件**;账本侧由 tests/integration/telemetry/README.md 互链。
 // ⚠️ 测试纪律:arrange/act/assert · 无随机 · 无时间依赖(禁 DateTime/Time)·
 //    夹具自持,不依赖文件系统/网络/数据库。
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// ⚠️ **TL-epic-01 第十三片重写(2026-10-19)** —— 本文件此前是**假绿**(普查第五形态:
+//    扫不到被测装配)。实测证据:
+//      · 上一版把「谓词面」上移为 `Telemetry.TickFoldEngine`,但全仓对它的**唯一引用是注释**;
+//      · D1–D9 的断言全部跑在 `ComputeEmpty()` / `ComputeFaulted()` / `ComputeTwoModes()`
+//        三个**手搓常量**上 —— 删掉 `TickFoldEngine` 整个文件,本文件**照样全绿**;
+//      · D7 的两条更是只断言「本地拼的字符串 contains」 ⇒ 恒真。
+//    **重写原则**:每条断言必须有**生产主语**,且把主语的守卫改坏 ⇒ 该条**必须转红**。
+//    无生产主语的 D3/D5/D6/D7,如实登记为 **NOT-RUN**(禁借绿),不再用自造常量冒充。
+// ═══════════════════════════════════════════════════════════════════════════════
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DaYiJingCheng.Gameplay.Boot;      // TelemetryReporter(AC-51-D8 生产主语)
+using DaYiJingCheng.Gameplay.PatientAI; // PresenceRegistry(EventStream 构造需要)
+using DaYiJingCheng.Sim;                // EventStream 等装配面
+using DaYiJingCheng.Sim.Codec;          // PayloadEncoder / PayloadDecoder / InMemoryBlobPool
+using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Telemetry;
 using NUnit.Framework;
 
@@ -29,15 +45,12 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
     [TestFixture]
     internal sealed class BlankAndDegradedTest
     {
-        // ⚠️ S19 修复(TD-epic-01):原「测试自持谓词面」已删除 ——
-        //    谓词面上移为生产类 `DaYiJingCheng.Telemetry.TickFoldEngine`
-        //    (ADR-019 §一;那个自持面在普查里被判为「AC 语义层无生产主语」)。
-        //    本文件现在**只做夹具 + 断言**,不再自带公式。
-
         // ══════════════ AC-51-D1:三流皆空 ⇒ Computed + 零值 ══════════════
 
-        /// <summary>AC-51-D1:三流皆空 —— 状态 = Computed(非 Faulted)、全部指标零值、
-        /// 不抛异常/不写错误日志。</summary>
+        /// <summary>AC-51-D1:三流皆空 —— 全部指标零值、不抛异常。
+        /// <para><b>生产主语</b>:<see cref="TickFoldEngine.Fold"/> 的 `ticks.Count == 0` 空流分支。</para>
+        /// <para><b>判别力</b>:删掉 `Fold` 里的 `if (ticks.Count == 0) return (0,0,0,0,0);`
+        /// ⇒ 落到 `ticks.Min()` 抛 `InvalidOperationException` ⇒ 首条断言红。</para></summary>
         [Test]
         public void test_d1_emptyStreams_computedZeroNoThrow()
         {
@@ -45,216 +58,188 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             var empty = new List<int>();
 
             // Act
-            var outcome = ComputeEmpty();
+            (int totalEvents, int computedCases, int sumPayload, int minTick, int maxTick) outcome = default;
+            Assert.DoesNotThrow(() => outcome = TickFoldEngine.Fold(empty),
+                "空输入不得抛异常(D1:状态 Computed,非 Faulted)");
 
-            // Assert:状态 Computed(非 Faulted)
-            Assert.That(outcome.State, Is.EqualTo(EngineState.Computed),
-                "空输入 ⇒ 状态 Computed(非 Faulted)");
             // Assert:全部指标零值
-            Assert.That(outcome.TotalEvents, Is.EqualTo(0), "空流 TotalEvents = 0");
-            Assert.That(outcome.ComputedCases, Is.EqualTo(0));
-            Assert.That(outcome.SumPayload, Is.EqualTo(0));
-            Assert.That(outcome.MinTick, Is.EqualTo(0));
-            Assert.That(outcome.MaxTick, Is.EqualTo(0));
-            // Assert:不抛异常(隐式 —— 无 throw 即通过)
+            Assert.That(outcome.totalEvents, Is.EqualTo(0), "空流 TotalEvents = 0");
+            Assert.That(outcome.computedCases, Is.EqualTo(0), "空流 ComputedCases = 0");
+            Assert.That(outcome.sumPayload, Is.EqualTo(0), "空流 SumPayload = 0");
+            Assert.That(outcome.minTick, Is.EqualTo(0), "空流 MinTick = 0");
+            Assert.That(outcome.maxTick, Is.EqualTo(0), "空流 MaxTick = 0");
+        }
+
+        /// <summary>AC-51-D1 正向对照:非空流 ⇒ 五值真由输入决定(防「恒返回零」也能过 D1)。</summary>
+        /// <remarks><b>判别力</b>:把 `Fold` 改成恒返回 `(0,0,0,0,0)` ⇒ 本条红。</remarks>
+        [Test]
+        public void test_d1_nonEmptyStream_valuesFollowInput()
+        {
+            // Arrange
+            var ticks = new List<int> { 7, 3, 11 };
+
+            // Act
+            var r = TickFoldEngine.Fold(ticks);
+
+            // Assert
+            Assert.That(r.totalEvents, Is.EqualTo(3), "事件数 = 输入长度");
+            Assert.That(r.sumPayload, Is.EqualTo(21), "载荷和 = 7+3+11");
+            Assert.That(r.minTick, Is.EqualTo(3), "min = 3");
+            Assert.That(r.maxTick, Is.EqualTo(11), "max = 11");
         }
 
         // ══════════════ AC-51-D2:分母 0 报 (0,0) ══════════════
 
-        /// <summary>AC-51-D2:分母 0 —— 输出整数对 (0,0) + 显式「分母 0/未定义」标记。
-        /// 不报 0/1、不报标量 0、不报 NaN。</summary>
+        /// <summary>AC-51-D2:分母 0 —— 报「分母 0」标记,**不**报 `0 / 1`、不报标量 0、不除零。
+        /// <para><b>生产主语</b>:<see cref="MetricsReport.Render"/> 的 `l.DenominatorZero` 分支
+        /// (E-2 逐字:`sb.Append("分母 0")`)。</para>
+        /// <para><b>判别力</b>:删掉该分支、落进正常分支 ⇒ 本条红(渲染成 `0 / 0`)。</para></summary>
         [Test]
-        public void test_d2_zeroDenominator_reports00WithFlag()
+        public void test_d2_zeroDenominator_reportsFlagNotZeroOverOne()
         {
-            // Arrange:分母 0(空流)
-            int den = 0;
+            // Arrange:分母 0 的真实指标行(走生产 struct,不自造)
+            var lines = new List<MetricLine> { new MetricLine("F3a", 0, 0) };
 
             // Act
-            var (ratio, undefined) = HandleZeroDenominator();
+            string rendered = MetricsReport.Render("blank", lines);
 
-            // Assert:输出 (0,0)
-            Assert.That(ratio.Num, Is.EqualTo(0), "分子 = 0");
-            Assert.That(ratio.Den, Is.EqualTo(0), "分母 = 0(非 1)");
-            // Assert:显式标记
-            Assert.That(undefined, Is.True, "必须显式标记「分母 0/未定义」");
-            // Assert:不报 NaN(整数对不可能产生 NaN)
+            // Assert:显式「分母 0」
+            Assert.That(rendered, Does.Contain("F3a = 分母 0"), "分母 0 ⇒ 显式标「分母 0」");
+            // Assert:不报 0 / 1(不得假装有分母)
+            Assert.That(rendered, Does.Not.Contain("0 / 1"), "不得用 0 / 1 假装有分母");
+            // Assert:不报裸标量 0
+            Assert.That(rendered, Does.Not.Contain("F3a = 0\n"), "不得报标量 0");
+        }
+
+        /// <summary>AC-51-D2 负向:分母非 0 ⇒ 报 `num / den` 整数对,**不**折小数。
+        /// <para><b>判别力</b>:把正常分支改成折成小数(如 `0.5`)⇒ 本条红。</para></summary>
+        [Test]
+        public void test_d2_nonZeroDenominator_reportsIntegerPair()
+        {
+            // Arrange
+            var lines = new List<MetricLine> { new MetricLine("F1a", 3, 7) };
+
+            // Act
+            string rendered = MetricsReport.Render("normal", lines);
+
+            // Assert
+            Assert.That(rendered, Does.Contain("F1a = 3 / 7"), "率须以 (num, den) 整数对承载(R7)");
+            Assert.That(rendered, Does.Not.Contain("0.4"), "不得自作主张折小数");
         }
 
         // ══════════════ AC-51-D3:Faulted 不产出半份 ══════════════
 
-        /// <summary>AC-51-D3:Faulted 不产出半份 —— 状态 = Faulted 且中止;
-        /// ITelemetrySink 零调用;本地文件未生成/未覆写;无部分指标;不可自愈。</summary>
+        /// <summary>AC-51-D3:Faulted 不产出半份 —— 状态 = Faulted 且中止;`ITelemetrySink` 零调用;
+        /// 本地文件未生成/未覆写;无部分指标;不可自愈。</summary>
+        /// <remarks>⚠️ <b>NOT-RUN(禁借绿)</b>:生产侧**尚无**「Faulted 状态机 + sink 调用门」。
+        /// <see cref="TickFoldEngine"/> 只做纯折叠、不持状态、不碰 sink ⇒ 本 AC 在当下
+        /// **没有可被变坏的守卫**。上一版用 `ComputeFaulted()` 手搓 `SinkCalled = false`
+        /// 冒充通过 —— 那断言的是常量,不是生产行为,已删除。
+        /// <para>解冻条件:出现持 `EngineState` 且调 `ITelemetrySink` 的生产类型时,本测改为直接驱动它,
+        /// 并以「去掉 Faulted 早退 ⇒ 本条红」作为判别力判据。</para></remarks>
         [Test]
-        public void test_d3_faulted_noPartialOutput()
+        public void test_d3_faulted_noPartialOutput_NOT_RUN()
         {
-            // Act
-            var outcome = ComputeFaulted();
-
-            // Assert:状态 Faulted
-            Assert.That(outcome.State, Is.EqualTo(EngineState.Faulted));
-            // Assert:sink 零调用
-            Assert.That(outcome.SinkCalled, Is.False, "Faulted ⇒ ITelemetrySink 零调用");
-            // Assert:文件未生成/未覆写
-            Assert.That(outcome.FileWritten, Is.False, "Faulted ⇒ 本地文件未生成/未覆写");
-            // Assert:无部分指标(全部零)
-            Assert.That(outcome.TotalEvents, Is.EqualTo(0));
-            Assert.That(outcome.ComputedCases, Is.EqualTo(0));
+            Assert.Ignore("AC-51-D3 NOT-RUN:生产侧尚无 Faulted 状态机 + sink 门;" +
+                          "TickFoldEngine 是纯函数(不持状态/不碰 sink)⇒ 无守卫可变异。" +
+                          "不得以手搓常量冒充(上一版即此法)。");
         }
 
-        // ══════════════ AC-51-D5:规模不改变数值 ══════════════
+        // ══════════════ AC-51-D5:R7 整数纪律 ══════════════
 
-        /// <summary>AC-51-D5:规模不改变数值 —— 同一超长流以 FOLD_MEMORY_MODE 两值各重算,
-        /// 全部指标逐位相同。</summary>
+        /// <summary>AC-51-D5:R7 整数纪律 —— 无 float/double;率以 (num, den) 承载。</summary>
+        /// <remarks>⚠️ <b>NOT-RUN(禁借绿)</b>:本 AC 的判据面 = 「哪些类型承载率 / 是否出现浮点」,
+        /// 须先裁定扫描面(是 `Telemetry` 程序集全类型,还是报告类型子集),未裁定前自造扫描范围
+        /// 等于自造判据。上一版对此 AC **零断言**(顶部登记了 D5,代码里却没有 D5 测) —— 属实登记。</remarks>
         [Test]
-        public void test_d6_scaleDoesNotChangeValues()
+        public void test_d5_integerDiscipline_noFloatInRatioCarriers_NOT_RUN()
         {
-            // Arrange:同一超长流(1000 事件)
-            int eventCount = 1000;
+            Assert.Ignore("AC-51-D5 NOT-RUN:「率载体 / 浮点扫描面」未裁定;" +
+                          "自造扫描范围 = 自造判据。上一版对本 AC 零断言。");
+        }
 
-            // Act:两模式各重算
-            var (a, b) = ComputeTwoModes(eventCount);
+        // ══════════════ AC-51-D6:规模不改变数值 ══════════════
 
-            // Assert:全部指标逐位相同
-            Assert.That(b.TotalEvents, Is.EqualTo(a.TotalEvents), "规模不改变 TotalEvents");
-            Assert.That(b.ComputedCases, Is.EqualTo(a.ComputedCases), "规模不改变 ComputedCases");
+        /// <summary>AC-51-D6:规模不改变数值 —— 同一超长流以 `FOLD_MEMORY_MODE` 两值各重算,逐位相同。</summary>
+        /// <remarks>⚠️ <b>NOT-RUN(禁借绿)</b>:`FOLD_MEMORY_MODE` 在 GDD 里**仍为 `*待定*`**
+        /// (且已裁定不进 `telemetry_analytics.json` —— 实现策略非测量参数)。无两种模式 ⇒
+        /// 没有「两值对拍」的对象。上一版 `ComputeTwoModes(1000)` 返回两个**手搓常量**,
+        /// 连字段都不全对等(`b` 多填 `SumPayload/MinTick/MaxTick`),断言却只比两个字段 —— 已删除。
+        /// <para>解冻条件:`FOLD_MEMORY_MODE` 裁定并落地两实现后,本测改为同输入跑两实现逐位比对。</para></remarks>
+        [Test]
+        public void test_d6_scaleDoesNotChangeValues_NOT_RUN()
+        {
+            Assert.Ignore("AC-51-D6 NOT-RUN:FOLD_MEMORY_MODE 仍 *待定* ⇒ 无两模式可对拍。" +
+                          "上一版以手搓常量冒充,且两常量字段不对等。");
         }
 
         // ══════════════ AC-51-D7:ConfigVersion 不匹配 ══════════════
 
         /// <summary>AC-51-D7:ConfigVersion 不匹配 —— 报告含显式「版本不匹配」标注,不静默出数。</summary>
+        /// <remarks>⚠️ <b>NOT-RUN(禁借绿)</b>:须有「读存档头 ConfigVersion → 与当前内容哈希比对 →
+        /// 报告出标注」的生产路径。51 的装配层现无此路径(ConfigVersion 的比对归 7a / ADR-010 §七)。
+        /// 上一版用本地布尔 + 三元表达式拼字符串再断言 contains —— **恒真**,零判别力。</remarks>
         [Test]
-        public void test_d7_configVersionMismatch_flagged()
+        public void test_d7_configVersionMismatch_flagged_NOT_RUN()
         {
-            // Arrange:模拟版本不匹配的报告
-            bool configVersionMismatch = true;
-            string report = configVersionMismatch
-                ? "[版本不匹配] 存档头 ConfigVersion 与当前内容哈希不符"
-                : "正常报告";
-
-            // Act + Assert:含显式标注
-            Assert.That(report.Contains("版本不匹配"), Is.True,
-                "ConfigVersion 不匹配 ⇒ 报告含显式标注,不静默出数");
+            Assert.Ignore("AC-51-D7 NOT-RUN:51 无「ConfigVersion 比对 → 报告标注」生产路径" +
+                          "(归 7a / ADR-010 §七)。上一版为本地布尔 + 三元拼串,恒真。");
         }
 
-        /// <summary>AC-51-D7 负向:版本匹配时不报「版本不匹配」。</summary>
+        // ══════════════ AC-51-D8 前半:空流标注 ══════════════
+
+        /// <summary>AC-51-D8(空流半边):空输入 ⇒ 完整性头明说「这是空输入零值」,不是测得的 0。
+        /// <para><b>生产主语</b>:<see cref="TelemetryReporter.CompletenessBanner"/> 的 `empty` 分支。</para>
+        /// <para>⚠️ 端到端版本见 <c>Boot/telemetry_debug_view_test.cs::test_d8_emptyStream_bannerSaysZeroIsLegit</c>
+        /// (经真 reporter + 真事件流)。本条是**纯生产类**侧的重复钉住,两处同源。</para></summary>
         [Test]
-        public void test_d7_configVersionMatch_notFlagged()
+        public void test_d8_emptyStream_bannerSaysEmptyZero()
         {
-            // Arrange:版本匹配
-            bool configVersionMismatch = false;
-            string report = configVersionMismatch
-                ? "[版本不匹配] 存档头 ConfigVersion 与当前内容哈希不符"
-                : "正常报告";
+            // Arrange:真空事件流(真生产装配,不自造替身)
+            var pool = new InMemoryBlobPool();
+            var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
+            var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
+                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } });
 
-            // Act + Assert:不含标注
-            Assert.That(report.Contains("版本不匹配"), Is.False,
-                "版本匹配 ⇒ 不报「版本不匹配」");
+            // Act
+            string banner = reporter.CompletenessBanner(f1Faulted: false);
+
+            // Assert
+            Assert.That(banner, Does.Contain("空流"), "空输入 ⇒ 头须明说「空流」");
+            Assert.That(banner, Does.Contain("空输入零值"), "须点明这是空输入零值,不是测得 0");
+            Assert.That(banner, Does.Contain("Computed"), "须声明状态 Computed(非 Faulted)");
+            Assert.That(banner, Does.Not.Contain("Faulted:流异常"), "空流不得报 Faulted");
         }
 
-        // ══════════════ 测试替身与工具方法 ══════════════
-
-        /// <summary>模拟引擎状态(测试自持)。</summary>
-        private enum EngineState { Idle, Reading, Computed, Faulted }
-
-        /// <summary>模拟折叠结果(测试自持)。</summary>
-        private sealed class FoldOutcome
+        /// <summary>AC-51-D8(空流半边)负向:非空流 ⇒ 不得再报「空流」。
+        /// <para><b>判别力</b>:把 `CompletenessBanner` 的 `empty` 改成恒 true ⇒ 本条红。</para></summary>
+        [Test]
+        public void test_d8_nonEmptyStream_noEmptyBanner()
         {
-            public EngineState State;
-            public int TotalEvents;
-            public long SessionSpan;
-            public int ComputedCases;
-            public int SkippedCases;
-            public bool SinkCalled;
-            public bool FileWritten;
-            public int SumPayload;
-            public long MinTick;
-            public long MaxTick;
+            // Arrange:真流里追加一条真实事件
+            var pool = new InMemoryBlobPool();
+            var encoder = new PayloadEncoder(pool);
+            var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
+            PayloadRef r = encoder.Encode(EventKind.CaseClosed,
+                new CaseClosedPayload(patientId: 1, new CaseId(10, 1, 1),
+                    new DiseaseIdSet(1UL << 0), treated: true));
+            stream.Append(new SimEvent(0L, new PatientId(1), -1, EventKind.CaseClosed, r));
+            var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
+                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } });
+
+            // Act
+            string banner = reporter.CompletenessBanner(f1Faulted: false);
+
+            // Assert
+            Assert.That(banner, Does.Not.Contain("空流"), "非空流不得报「空流」");
+            Assert.That(banner, Does.Contain("流事件"), "非空流须报事件条数");
         }
 
-        private static FoldOutcome ComputeEmpty()
+        private sealed class SeqIdAuthority : IIdAuthority
         {
-            return new FoldOutcome
-            {
-                State = EngineState.Computed,
-                TotalEvents = 0,
-                SessionSpan = 0,
-                ComputedCases = 0,
-                SkippedCases = 0,
-                SinkCalled = false,
-                FileWritten = false,
-                SumPayload = 0,
-                MinTick = 0,
-                MaxTick = 0,
-            };
-        }
-
-        private static FoldOutcome ComputeFaulted()
-        {
-            return new FoldOutcome
-            {
-                State = EngineState.Faulted,
-                TotalEvents = 0,
-                SessionSpan = 0,
-                ComputedCases = 0,
-                SkippedCases = 0,
-                SinkCalled = false,
-                FileWritten = false,
-                SumPayload = 0,
-                MinTick = 0,
-                MaxTick = 0,
-            };
-        }
-
-        private static (FoldOutcome a, FoldOutcome b) ComputeTwoModes(int eventCount)
-        {
-            var a = new FoldOutcome
-            {
-                State = EngineState.Computed,
-                TotalEvents = eventCount,
-                SessionSpan = eventCount * 2,
-                ComputedCases = eventCount,
-                SkippedCases = 0,
-                SinkCalled = true,
-                FileWritten = true,
-            };
-            var b = new FoldOutcome
-            {
-                State = EngineState.Computed,
-                TotalEvents = eventCount,
-                SessionSpan = eventCount * 2,
-                ComputedCases = eventCount,
-                SkippedCases = 0,
-                SinkCalled = true,
-                FileWritten = true,
-                SumPayload = eventCount,
-                MinTick = 10,
-                MaxTick = 10 + eventCount * 2,
-            };
-            return (a, b);
-        }
-
-        private static (Ratio ratio, bool undefined) HandleZeroDenominator()
-        {
-            // 分母 0 ⇒ 不可定义
-            return (new Ratio(0, 0), true);
-        }
-
-        /// <summary>比率整数对(num, den)—— D4:率以此承载,禁浮点。</summary>
-        private readonly struct Ratio
-        {
-            public readonly int Num;
-            public readonly int Den;
-            public Ratio(int num, int Den) { Num = num; this.Den = Den; }
-        }
-
-        private static long ExportScalar(int num, int den)
-        {
-            if (den == 0) return 0;
-            long shifted = (long)num << 16;
-            // ROUND_HALF_AWAY_FROM_ZERO
-            if (shifted >= 0)
-                return (shifted + den / 2) / den;
-            return -(((-shifted) + den / 2) / den);
+            private long _n = 100;
+            public PatientId NextPatientId() => new PatientId((int)_n++);
+            public ItemInstanceId NextItemInstanceId() => new ItemInstanceId(_n++);
         }
     }
 }

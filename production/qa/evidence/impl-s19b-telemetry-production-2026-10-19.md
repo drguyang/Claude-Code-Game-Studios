@@ -767,16 +767,109 @@ python3 tools/falsify/unity_falsify.py \
 
 ---
 
+## 三·十三、第十三片:剩余四项(C 假绿重写 / D 开发期半边 / A 主机门 / E 零出厂扫描面)(2026-10-19)
+
+### 原判定(逐项实测后的真实形态)
+
+先做了一轮**侦察**,结果与本 epic 登记的原话**有出入**,逐项如实改口:
+
+| 项 | 原登记 | 实测 | 结论 |
+|---|---|---|---|
+| **C** `blank_and_degraded` | 「谓词面仍无测试驱动」 | **比登记更糟**:`TickFoldEngine` **全仓唯一引用是一句注释**;D1–D9 全跑 `ComputeEmpty()` 等**手搓常量**;D7 两条是本地布尔 + 三元拼串(`contains` 恒真) | 假绿,须重写 |
+| **D** `AC-51-D4` | 「Release 半边 NOT-RUN」 | 编译期半边**已有源码级夹具**(`telemetry_debug_view_test.cs:105-142`),Release 半边是**刻意** NOT-RUN(GDD 允许「编译期剔除 **或** 运行期硬禁」,已取前者)。**真缺口是另一半** —— GDD「`GIVEN Development 构建,THEN 入口存在且输出指标`」**无任何夹具** | 补开发期半边 |
+| **A** `AC-51-E3` | 「依赖 `OQ-51-5` 未裁」 | **`OQ-51-5` 已于 2026-10-06 裁定**(`telemetry-analytics.md:706`),理由**已过期**。真阻塞 = `IEventAuthority` **全仓零生产实装**(`SeenDiseaseProjector.cs:23-26` 自陈归 P1b) | 可做主门,真联机半 NOT-RUN |
+| **E** `AC-19-01/02` | (未登为本片项) | `AC-19-02` 已有夹具但**只扫 `Telemetry` 程序集** —— 报告生产者住在 `Gameplay.Boot`,那边加网络调用**扫不到**;`AC-19-01` 只断言接口形状,不证「既有流真能重算」 | 补扫描面 + 补重算判据 |
+| **B9** | 「集成目录 `tests/integration/51/` 未建」 | 目录名是 `telemetry` **已存在**(`tests/integration/telemetry/README.md`,S15-7 前就建了);但 B9 要求的是**真实会话离线重算**,`OQ-10-8` 虽已裁但**真实会话数据不存在** | **仍 NOT-RUN**,不改 |
+
+### 用户裁定
+
+「**按建议完成四类**」(2026-10-19)—— C / D / A / E 全做。
+
+### 落地(原判定 → 修复落点)
+
+| # | 原判定 | 修复落点 | 判据(可证伪) |
+|---|---|---|---|
+| 1 | C:D1–D9 断言手搓常量 | `blank_and_degraded_test.cs` 重写:D1 驱动 `TickFoldEngine.Fold`;D2 驱动 `MetricsReport.Render`;D8 驱动 `TelemetryReporter.CompletenessBanner` | 反证 F2(停用空流分支)⇒ `test_d1_…` 红;F3(停用分母 0 分支)⇒ `test_d2_…` 红;F4 ⇒ `test_d8_…` 红 |
+| 2 | C:D3/D5/D6/D7 无生产主语 | 四条改为 `*_NOT_RUN` 并在注释里写明**解冻条件** | `Assert.Ignore` 带理由;不计绿 |
+| 3 | D:开发期半边无夹具 | `test_d4_developmentBuild_entryExists_andOutputsMetrics`(反射取类型 + 真调入口 + 断言输出真指标) | 条件改 `#if false` ⇒ 类型不存在 ⇒ 红 |
+| 4 | A:无主机门 | `TelemetryReporter.RequireHost()` + 可空 `IEventAuthority` 注入;7 个报告方法 + `ScorableCount` 全覆盖 | 反证 F1(停用门)⇒ `test_e3_nonHostAuthority_rejectsAllReports` 红 |
+| 5 | E:扫描面漏 `Gameplay.Boot` | `test_ac1902_reportProducer_noNetworkInGameplayBoot`(类型/字段/方法签名反射扫描) | 在 reporter 加 `HttpClient` 字段 ⇒ 红(未跑变异,见下) |
+| 6 | E:AC-19-01 只证接口形状 | `test_ac1901_metricsRecomputableFromExistingStream_only`(只用既有 Kind 造流 ⇒ 分母非 0 + 同流同值) | 反证 F5(重算抽空)⇒ 本条 + `test_d9_ampleSmpale_noBanner` 红 |
+
+**`IEventAuthority` 的设计选择(须登记)**:注入 `null` ⇒ **不设门**(单机 / 离线)。
+**刻意不**自造一个恒 true 的占位实装来假装门存在 —— 那会把「门还没接」伪装成「门已实现」。
+`test_e3_nullAuthority_isSinglePlayer_noGate` 把这一设计本身钉住。
+
+### 证伪(5 变异,`--guard` 默认)
+
+| 变异 | 实测转红 |
+|---|---|
+| F1 停用 E-15 主机门 | `test_e3_nonHostAuthority_rejectsAllReports` |
+| F2 停用空流分支 | `test_d1_emptyStreams_computedZeroNoThrow` |
+| F3 停用「分母 0」分支 | `test_d2_zeroDenominator_reportsFlagNotZeroOverOne` |
+| F4 空流判断恒 true | `test_d8_nonEmptyStream_noEmptyBanner` + `test_d8_nonEmptyWithoutScorable_flagsPartial` + `test_entry_writesToSink_withAllSections` |
+| F5 重算抽空 | `test_ac1901_metricsRecomputableFromExistingStream_only` + `test_d9_ampleSmpale_noBanner` |
+
+**判据:第 3 轮通过(退出码 0),5/5 恰如预期**;还原 SHA-256 逐字节通过;受保护路径指纹未变。
+
+**三轮的过程(如实,含我自己写坏的两处)**:
+
+| 轮 | 结果 | 归因 |
+|---|---|---|
+| 1 | ❌ F4 多红 2 条;F5 **编译失败** | F4:`empty` 恒 true ⇒ 全部「非空流不得自称空流」的夹具都红(期望写窄);F5:首版变异写成表达式体、漏赋 `out skipped` ⇒ CS0177,**根本没跑到断言** |
+| 2 | ❌ F5 多红 1 条 | `test_d9_ampleSmpale_noBanner` 也依赖 `ScorableCount`(同样出自 `Reduce`)—— 同一守卫的正当判别面 |
+| 3 | ✅ 5/5 | 两次都是**期望清单**写窄,不是夹具弱;**均未缩短清单掩盖,而是按机制解释列全** |
+
+> ⚠️ **F4 / F5 的 `exactRed` 是「同一守卫的多条正当判别面」**,与 §三·十二 首轮的三处订正同类:
+> 一个守卫被停用,凡断言它的测都该红。这不是判别面不清,恰恰是判别面清楚的表现。
+
+### 回归
+
+`3912 / 3870 / 1 / 41`(`unity/Logs/s19j-cdea-full.xml`)vs 第十二片后 `3902 / 3865 / 0 / 37`。
+
+| 量 | 前 | 后 | Δ | 对账 |
+|---|---|---|---|---|
+| total | 3902 | 3912 | **+10** | 新夹具 **16** 条 − 删除假绿 **6** 条 = **+10** ✓ |
+| passed | 3865 | 3870 | **+5** | 新增 11 绿 − 删除 6 假绿 = **+5** ✓ |
+| failed | 0 | 1 | **+1** | `test_move_afterFreeFall_…` —— `TD-player-01` 既有间歇;**单跑 8/8 全绿**,确认非回归 |
+| skipped | 37 | 41 | **+4** | 新增 5 条 NOT-RUN − 删除 1 条旧 `Assert.Ignore`(e3_advisory)= **+4** ✓ |
+
+**等式**:Δpassed(+5) + Δfailed(+1) + Δskipped(+4) = **+10** = Δtotal ✓
+
+**GONE 6 条 —— 全部是主动删除的假绿**(逐条可审):
+
+| 删除的测 | 为什么删 |
+|---|---|
+| `test_d2_zeroDenominator_reports00WithFlag` | 跑 `HandleZeroDenominator()` 手搓常量 ⇒ 换成驱动 `MetricsReport.Render` |
+| `test_d3_faulted_noPartialOutput` | 跑 `ComputeFaulted()` 手搓常量 ⇒ 改 NOT-RUN |
+| `test_d6_scaleDoesNotChangeValues` | 跑 `ComputeTwoModes()` 手搓常量(且两常量字段不对等)⇒ 改 NOT-RUN |
+| `test_d7_configVersionMatch_notFlagged` | 本地布尔 + 三元 ⇒ 恒真 ⇒ 删(合并进 NOT-RUN 一条) |
+| `test_d7_configVersionMismatch_flagged` | 同上 ⇒ 删 |
+| `test_e3_nonHostRejection_advisory` | `bool oq515Resolved = false; Assert.Ignore` ⇒ 换成真驱动 |
+
+### ⚠️ 未落半边(禁借绿)
+
+- **C · D3 / D5 / D6 / D7** —— 无生产主语,`Assert.Ignore` 并在注释写明解冻条件。
+  其中 **D6** 与第十二片的「`FOLD_MEMORY_MODE` 刻意不进配置文件」同源:无两模式即无对拍对象。
+- **A · 真联机半边** —— `IEventAuthority` 零生产实装 ⇒ 只能证「注入非主机时拒」。
+- **D · Release player 半边** —— 须 Release 构建后反射扫描,本机仅 EditMode。
+- **E · `AC-19-02` 的运行期半边** —— 本片只补了**静态反射**扫描面;真运行期零出站须抓包 / 构建期符号扫描,未做。
+- **B9** —— 真实会话数据不存在,不改判。
+- 兜底常量与烘焙表并存 · GDD `*待定*` 回写 · 10 条 story 的 `Complete` —— 同前,未动。
+
+---
+
 ## 四、仍未还(epic 级 · 禁借绿)
 
 | # | 缺口 | 说明 |
 |---|---|---|
-| 1 | ~~**调试视图**~~ **✅ 第七片已落(留两半未落)** | 视图本体 + 入口 + 判据 12 条 + 证伪 8/8 全落。**残余**:① 生产装配**无调用点**(DevBuild 怎么唤未裁 ⇒ 只由夹具驱动)② AC-51-D4 的 Release 半边 **NOT-RUN**(须 Release player 构建) |
+| 1 | ~~**调试视图**~~ **✅ 第七片已落 + 第十三片补开发期半边** | 视图本体 + 入口 + 判据 12 条 + 证伪 8/8 全落;**第十三片**补 `test_d4_developmentBuild_entryExists_andOutputsMetrics`(GDD 的另一半「Development 构建入口存在且输出指标」此前**无夹具**)。**残余**:① 生产装配**无调用点**(DevBuild 怎么唤未裁 ⇒ 只由夹具驱动)② AC-51-D4 的 Release 半边 **NOT-RUN**(须 Release player 构建) |
 | 2 | ~~**装配层未接线**~~ **✅ 第五/六/八/九片已接** | F1–F7 均已有生产还原器 + 各自的真链路判据。**残余**:① ~~F3 的 `cause` 关联~~ **✅ 第八片已落**;~~纯键鼠 `MAG_MAX` 回填~~ **✅ 第九片已落**(AC-10-21 两半边齐);~~设备切换六旋钮仍为临时种子未进 data-core~~ **✅ 第十一片已落**(§三·十一 —— cooked 制品 + 装载路径 + 取值缝 + 8 条地址 + 对账断言;PlayMode catalog 半边 NOT-RUN);**该残余的下一半** = 兜底常量与烘焙表并存(删兜底须另裁)② ~~F7 上中位数与 GDD 不符~~ **✅ 第十片已结清**(§三·十 —— 生产式本就对,订正的是 GDD 符号 `n→m` 与一处下标注释)③ ~~F4–F7 的参数全 `*待定*`,生产方法**无默认值**,须调用方传~~ **✅ 第十二片已落**(§三·十二 —— 文件 + 烘焙 + 加载期门 + 可空注入;数值经用户批准,**仍是临时值待数值轮**,GDD 表内 `*待定*` 未回写) |
-| 3 | 3 条 Ignore 未清 | `AC-51-B9`(集成目录 `tests/integration/51/` 未建)· `AC-51-E3`(非主机侧拒绝,依赖 `OQ-51-5` 未裁)· `blank_and_degraded` 的谓词面仍无测试驱动(见 §二②) |
+| 3 | ~~3 条 Ignore 未清~~ **✅ 第十三片结清 2 / 3** | ① ~~`AC-51-E3` 依赖 `OQ-51-5` 未裁~~ —— **实测 `OQ-51-5` 2026-10-06 已裁**,`RequireHost` 生产门已落,主半边转绿;**真联机半**仍 NOT-RUN(`IEventAuthority` 零生产实装)② ~~`blank_and_degraded` 谓词面无测试驱动~~ —— **实测更糟**:`TickFoldEngine` 全仓唯一引用是一句注释,本文件重写为真主语,4 条无主语的改 NOT-RUN ③ **`AC-51-B9` 仍 NOT-RUN**(真实会话数据不存在;`OQ-10-8` 虽已裁但数据无从产生) |
 | 4 | **10 条 story 的 `Complete` 一条未动** | 账面与实现的背离仍在 |
+| 5 | **AC-19-01/02 的运行期 / 构建期半边**(第十三片新登记) | 本片补了 `Gameplay.Boot` 的**静态反射**扫描面与「既有流重算」判据;真**运行期零出站**(抓包 / 构建期符号扫描)未做 |
 
-**⇒ `TD-epic-01` 状态 = 偿还中(十一片),不是已修好。**
+**⇒ `TD-epic-01` 状态 = 偿还中(十三片),不是已修好。**
 
 ---
 
@@ -829,8 +922,14 @@ python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/td-epic-01-tel
 #   unity build unity --target StandaloneLinux64 --execute-method DaYiJingCheng.EditorTools.Bake.DataBakeMenu.BakeTelemetryAnalytics
 #   ⚠️ 该 CLI 的 build 子命令**编译失败也返回 0** ⇒ 必须 grep 日志里的「烘焙完成」/「Scripts have compiler errors」
 
+# 遥测 剩余四项(第十三片)
+unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.Unit.Telemetry.BlankAndDegradedTest;DaYiJingCheng.Tests.Boot.TelemetryDeveloperViewTest;DaYiJingCheng.Tests.Unit.Telemetry.OutOfBoundsRejectionTest;DaYiJingCheng.Tests.Unit.Telemetry.ReadonlyBoundaryTest"
+# 期望:total 48 / passed 42 / failed 0 / skipped 6(6 条 = 5 条新 NOT-RUN + 1 条既有 D4 Release 半边)
+python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/td-epic-01-cdea-remaining.json
+# 期望:退出码 0(5 个变异全部恰如预期转红,受保护路径指纹未变)
+
 # 全量
 rm -f test-results.xml && unity test unity --mode EditMode -- --log-file -
-# 期望:total 3902 / passed 3865 / failed 0 / skipped 37(第十二片后,`unity/Logs/s19i-ta-knobs-full.xml`;
-#       若 TD-player-01 间歇复发则 failed 1 —— 该条与遥测无关,单跑可复核)
+# 期望:total 3912 / passed 3870 / failed 0 / skipped 41(第十三片后,`unity/Logs/s19j-cdea-full.xml`;
+#       若 TD-player-01 间歇复发则 failed 1 —— 该条与遥测无关,单跑 8/8 可复核)
 ```

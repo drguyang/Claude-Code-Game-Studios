@@ -1,0 +1,77 @@
+{
+  "name": "TD-epic-01 第十三片 —— C/D/A/E 四类剩余项(真主语夹具 + 主机门 + 零出厂扫描面)",
+  "mode": "EditMode",
+  "filter": "DaYiJingCheng.Tests.Unit.Telemetry.BlankAndDegradedTest;DaYiJingCheng.Tests.Boot.TelemetryDeveloperViewTest;DaYiJingCheng.Tests.Unit.Telemetry.OutOfBoundsRejectionTest;DaYiJingCheng.Tests.Unit.Telemetry.ReadonlyBoundaryTest",
+  "unityProject": "unity",
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed)。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期)。",
+    "本片的核心是「把上一版的假绿换成真主语」:每条变异都停用一条**生产守卫**,",
+    "若对应断言仍绿 ⇒ 说明新夹具也是假绿。"
+  ],
+  "mutations": [
+    {
+      "name": "F1-hostGate",
+      "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
+      "line": 75,
+      "expect": "            if (EventAuthority != null && !EventAuthority.IsHost)",
+      "replace": "            if (false) // FALSIFY-F1:停用 E-15 非主机门",
+      "expectRed": [
+        "test_e3_nonHostAuthority_rejectsAllReports"
+      ],
+      "exactRed": true,
+      "_why": "AC-51-E3 的生产门。停用 ⇒ 非主机侧正常出数 ⇒ 九条出口断言全红(报为一条 fixture)。"
+    },
+    {
+      "name": "F2-emptyStreamBranch",
+      "file": "unity/Assets/Telemetry/TickFoldEngine.cs",
+      "line": 53,
+      "expect": "            if (ticks.Count == 0) return (0, 0, 0, 0, 0);",
+      "replace": "            // FALSIFY-F2:停用空流分支(落到 ticks.Min() 抛)",
+      "expectRed": [
+        "test_d1_emptyStreams_computedZeroNoThrow"
+      ],
+      "exactRed": true,
+      "_why": "AC-51-D1 的生产主语。上一版的 D1 只断言 ComputeEmpty() 常量,本条变异对它零影响 ⇒ 那才是假绿。"
+    },
+    {
+      "name": "F3-zeroDenominatorBranch",
+      "file": "unity/Assets/Telemetry/MetricsReport.cs",
+      "line": 102,
+      "expect": "                    sb.Append(\"分母 0\");                     // E-2 逐字",
+      "replace": "                    sb.Append(\"0 / 0\"); // FALSIFY-F3:停用分母 0 显式标注",
+      "expectRed": [
+        "test_d2_zeroDenominator_reportsFlagNotZeroOverOne"
+      ],
+      "exactRed": true,
+      "_why": "AC-51-D2 的生产主语。停用 ⇒ 渲染成 0 / 0,不再有「分母 0」标记。"
+    },
+    {
+      "name": "F4-emptyBannerBranch",
+      "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
+      "line": 675,
+      "expect": "            bool empty = _stream.Events.Count == 0;",
+      "replace": "            bool empty = true; // FALSIFY-F4:空流判断恒真",
+      "expectRed": [
+        "test_d8_nonEmptyStream_noEmptyBanner",
+        "test_d8_nonEmptyWithoutScorable_flagsPartial",
+        "test_entry_writesToSink_withAllSections"
+      ],
+      "exactRed": true,
+      "_why": "⚠️ 2026-10-19 首轮实测订正:`empty` 恒 true ⇒ **所有断言「非空流不得自称空流」的夹具**都红(三条)。另两条是同一守卫的正当判别面(它们都含 `Does.Not.Contain(\"空流\")`),不是耦合噪声。"
+    },
+    {
+      "name": "F5-telemetrySinkGate",
+      "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
+      "line": 110,
+      "expect": "            => JudgmentStreamReducer.Reduce(_stream.Events, DecodeJudgmentRecord, out skipped);",
+      "replace": "            { skipped = 0; return new List<JudgmentRecord>(); } // FALSIFY-F5:重算化为空(流外来源)",
+      "expectRed": [
+        "test_ac1901_metricsRecomputableFromExistingStream_only",
+        "test_d9_ampleSmpale_noBanner"
+      ],
+      "exactRed": true,
+      "_why": "AC-19-01 强化条:报告不再从既有事件流重算 ⇒ Scorable 恒 0 ⇒ 分母 0 断言红。⚠️ 2026-10-19 两轮实测订正:① 首版变异漏赋 `out skipped` ⇒ 编译失败(CS0177),根本没跑到断言;改成块体后 ② 多红一条 `test_d9_ampleSmpale_noBanner` —— 该夹具要求样本充足时不加标注,而 `ScorableCount` 同样出自 `Reduce` ⇒ 重算被抽空后它必然转红。两条同属该守卫的正当判别面。"
+    }
+  ]
+}

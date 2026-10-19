@@ -20,6 +20,10 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using NUnit.Framework;
+using DaYiJingCheng.Gameplay.Boot;
+using DaYiJingCheng.Gameplay.PatientAI;
+using DaYiJingCheng.Sim;
+using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Tests.Unit.Telemetry
@@ -97,6 +101,65 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 m.Name.StartsWith("Write") || m.Name.StartsWith("Append") || m.Name.StartsWith("Emit")).ToArray();
             Assert.That(writeMethods, Is.Empty,
                 "ITelemetrySource 不得有 Write/Append/Emit 方法(AC-19-01:零新埋点)");
+        }
+
+        /// <summary>AC-19-01(强化 · TD-epic-01 第十三片):指标真能从**既有事件流**重算 —— 不是「接口形状对」。
+        /// <para>原版只断言 `ITelemetrySource` 有三个 `Read*`。那证明的是**契约形状**,
+        /// 证明不了「51 算指标所需的输入都已在流里」。</para>
+        /// <para>本条的判据:向**只含既有 `Kind`** 的事件流追加若干条,`TelemetryReporter` 的
+        /// F1/F2/F3 报告即产出**非空分母的实数** —— 即所需输入**零新埋点**。</para>
+        /// <para><b>判别力</b>:把 `Reduce` 改成读任何流外来源(墙钟 / 全局计数)⇒ 本条的
+        /// 「同流同值」后半红;把 `CaseClosed` 的载荷解码删掉 ⇒ 分母恒 0 ⇒ 前半红。</para></summary>
+        [Test]
+        public void test_ac1901_metricsRecomputableFromExistingStream_only()
+        {
+            // Arrange:只用 ADR-007/008/009 已登记的既有 Kind
+            var pool = new InMemoryBlobPool();
+            var encoder = new PayloadEncoder(pool);
+            var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
+            var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
+                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } },
+                knobs: null, eventAuthority: null);
+
+            // 零新埋点:只用既有病例流事件 —— CaseClosed(结论)+ JudgmentRecorded(判断),
+            // 两者成对才构成「可打分病例」(Scorable = 有判断的已结案)。
+            for (int i = 0; i < 2; i++)
+            {
+                var caseId = new CaseId(10, 1, i + 1);
+                PayloadRef closed = encoder.Encode(EventKind.CaseClosed,
+                    new CaseClosedPayload(patientId: 1, caseId,
+                        new DiseaseIdSet(1UL << 0), treated: true));
+                stream.Append(new SimEvent(i * 2, new PatientId(1), -1,
+                    EventKind.CaseClosed, closed));
+
+                // JudgmentRecorded 带 G-3 变长段 ⇒ 走编码器的具名重载(不经泛型 Encode)
+                PayloadRef judged = encoder.EncodeJudgmentRecorded(
+                    new JudgmentRecordedPayload(patientId: 1, caseId,
+                        authorPlayerId: 1, lexiconId: 1, confidence: 1), freehandText: "");
+                stream.Append(new SimEvent(i * 2 + 1, new PatientId(1), -1,
+                    EventKind.JudgmentRecorded, judged));
+            }
+
+            // Act:同一流上算两次
+            string first = reporter.MisdiagnosisReport(out int sk1);
+            string second = reporter.MisdiagnosisReport(out int sk2);
+            int scorable = reporter.ScorableCount;
+
+            // Assert ①:输入确实来自流 ⇒ 分母非 0(不是「空流零值」)
+            Assert.That(scorable, Is.GreaterThan(0),
+                "既有事件流里的 CaseClosed 必须足以算出 Scorable > 0(否则说明指标依赖流外来源)");
+            // Assert ②:零新埋点 ⇒ 不需要任何额外采集调用,报告就已可算
+            Assert.That(first, Does.Not.Contain("(无指标"), "报告不得因「无输入」而空");
+            // Assert ③:同流同值(R8 纯函数)| 不读墙钟 / 不读执行次数
+            Assert.That(second, Is.EqualTo(first), "同一事件流两次重算必须逐字相同(R8:不读墙钟)");
+            Assert.That(sk1, Is.EqualTo(sk2), "跳过计数同样不得随调用次数漂移");
+        }
+
+        private sealed class SeqIdAuthority : IIdAuthority
+        {
+            private long _n = 100;
+            public PatientId NextPatientId() => new PatientId((int)_n++);
+            public ItemInstanceId NextItemInstanceId() => new ItemInstanceId(_n++);
         }
 
         /// <summary>AC-19-04:无 `IEventSink.Append` 调用点(无向**三流**写入的成员)。
@@ -216,6 +279,60 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             Assert.That(violations, Is.Empty,
                 "51 不得引用 HttpClient/UnityWebRequest/System.Net.*(AC-19-02/AC-51-A4):\n" +
                 string.Join("\n", violations));
+        }
+
+        /// <summary>AC-19-02 的**另一半扫描面**(TD-epic-01 第十三片补):报告生产者住在
+        /// `Gameplay.Boot`(`TelemetryReporter` / `TelemetryDeveloperView`),**不在** `Telemetry` 程序集里。
+        /// 在那边加一个 `HttpClient` 字段,上面那条 `test_zeroEgress_noNetworkTypes` 扫不到。</summary>
+        /// <remarks>
+        /// <b>判别力</b>:在 `TelemetryReporter` 里加 `private readonly HttpClient _c;` ⇒ 本条红。
+        /// <para>⚠️ 扫描面是**类型 + 字段 + 方法签名**(反射),不是源码 grep —— grep 会被注释里
+        /// 的「零网络」说明误伤(同 `test_d4_viewSource_entirelyInsideConditionalCompilation` 的教训)。</para>
+        /// </remarks>
+        [Test]
+        public void test_ac1902_reportProducer_noNetworkInGameplayBoot()
+        {
+            // Arrange:排除 51 程序集(由上一条覆盖),只看报告生产者所在的程序集
+            var producerTypes = new[] { "Gameplay.Boot" }
+                .Select(n => AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(a => a.GetName().Name == n))
+                .Where(a => a != null)
+                .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
+                .ToList();
+            // ⚠️ 扫描键非空守卫 —— `GetTypes()` 空洞返回会令下面的 Is.Empty 恒真(假绿)
+            Assert.That(producerTypes, Is.Not.Empty,
+                "Gameplay.Boot 程序集须可枚举(否则本条对变异零判别力)");
+
+            // Act
+            var violations = new List<string>();
+            foreach (var t in producerTypes)
+            {
+                const BindingFlags surface = BindingFlags.Public | BindingFlags.NonPublic |
+                                             BindingFlags.Instance | BindingFlags.Static |
+                                             BindingFlags.DeclaredOnly;
+                foreach (var f in t.GetFields(surface))
+                    if (IsNetwork(f.FieldType)) violations.Add($"{t.Name}.{f.Name} 字段");
+                foreach (var m in t.GetMethods(surface))
+                {
+                    if (IsNetwork(m.ReturnType)) violations.Add($"{t.Name}.{m.Name}() 返回");
+                    foreach (var p in m.GetParameters())
+                        if (IsNetwork(p.ParameterType)) violations.Add($"{t.Name}.{m.Name}() 参数");
+                }
+            }
+
+            // Assert
+            Assert.That(violations, Is.Empty,
+                "报告生产者不得持有网络类型(AC-19-02:零出厂):\n" + string.Join("\n", violations));
+
+            static bool IsNetwork(Type ty)
+            {
+                if (ty == null) return false;
+                if (ty.HasElementType) ty = ty.GetElementType();
+                string n = ty.Name, f = ty.FullName ?? n;
+                return n.Contains("HttpClient") || n.Contains("UnityWebRequest")
+                    || n.Contains("WebClient") || n == "Socket"
+                    || f.StartsWith("System.Net.") || f.StartsWith("UnityEngine.Networking");
+            }
         }
 
         /// <summary>AC-19-02/AC-51-A4:ITelemetrySink 无 <c>Upload</c>/<c>Send</c>/<c>Post</c>。
