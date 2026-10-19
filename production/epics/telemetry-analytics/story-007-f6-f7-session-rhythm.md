@@ -31,7 +31,7 @@
 *From GDD `design/gdd/telemetry-analytics.md`, scoped to this story:*
 
 - [ ] **AC-51-B15**(BLOCKING):F6 可审计 —— 同时输出 `Tick_min`/`Tick_max`/`|E|`;`Tick_min + SessionSpan = Tick_max`;`SessionSpan ≥ 0`;单事件 ⇒ `span = 0`(合法);空流 ⇒ 0
-- [ ] **AC-51-B16**(BLOCKING):F7 上中位数取法定死(禁插值) —— 偶数项 Δ 序列 `⟨a₁<a₂<a₃<a₄⟩` ⇒ `Δ_median = a₂`(1-indexed 第 `⌈n/2⌉` 项),不是 `(a₂+a₃)/2`;结果 ∈ 输入集;奇数项同法
+- [ ] **AC-51-B16**(BLOCKING):F7 上中位数取法定死(禁插值) —— 偶数项 Δ 序列 `⟨a₁<a₂<a₃<a₄⟩`(`m = 4` 个 Δ、5 个事件)⇒ `Δ_median = a₂`(1-indexed 第 `⌈m/2⌉` 项,`m` = Δ 项数 = `n−1`),不是 `(a₂+a₃)/2`;结果 ∈ 输入集;奇数项同法
 - [ ] **AC-51-B17**(BLOCKING):F7 退化 = 不可定义 ≠ 0 —— `n = 1`(零个 Δ)⇒ 全部五个字段报「不可定义」,不得报 0;`n = 2` ⇒ `Δ_MAD = 0` 合法;断言输出可区分「不可定义」与「真实的 0」
 - [ ] **AC-51-B18**(BLOCKING):F7 禁浮点统计量 —— 无方差/标准差/`Math.Sqrt`/浮点除法的离散度实现;节律字段类型全为 `Tick`/`int`
 
@@ -42,9 +42,9 @@
 *Derived from ADR-019 §一 + ADR-006 §五 + GDD Formulas F6/F7:*
 
 - **F6**:`SessionSpan = Tick_max − Tick_min`;同时报 `Tick_min`/`Tick_max`/`|E|`;单事件 ⇒ `span = 0`(合法);空流 ⇒ 0
-- **F7**:`Δ_i = Tick(e_{i+1}) − Tick(e_i)`,`i = 1…n−1`;`Δ_median = Δ_(⌈n/2⌉)`(1-indexed,上中位数,禁插值);`Δ_MAD = median(|Δ_i − Δ_median|)`;`GapCount = |{i : Δ_i > GAP_THRESHOLD}|`
+- **F7**:`Δ_i = Tick(e_{i+1}) − Tick(e_i)`,`i = 1…m`(`m = n−1` = Δ 项数);`Δ_median = Δ_(⌈m/2⌉)`(1-indexed,上中位数,禁插值);`Δ_MAD = median(|Δ_i − Δ_median|)`;`GapCount = |{i : Δ_i > GAP_THRESHOLD}|`
 - **禁方差/标准差**(`sqrt` + 除法 ⇒ 浮点);离散度只用整数序统计量
-- **上中位数**(`⌈n/2⌉`)而非插值 —— 两个实现者必须得同一个数
+- **上中位数**(`⌈m/2⌉`,`m` = Δ 项数 = `n−1`)而非插值 —— 两个实现者必须得同一个数
 - **边界**:`n < 2` ⇒ 无 Δ 序列 ⇒ 全部字段报「不可定义」;`n = 1` 时 `Δ_MAD` 不是 0,是「无意义」;`n = 2` ⇒ `Δ_MAD = 0`(合法)
 
 ---
@@ -56,7 +56,7 @@
 
 ## QA Test Cases
 - **AC-51-B15**: F6 可审计。Given: 任一夹具。When: 计算 `SessionSpan`。Then: 同时输出 `Tick_min`/`Tick_max`/`|E|`;`Tick_min + SessionSpan = Tick_max`。
-- **AC-51-B16**: F7 上中位数。Given: 偶数项 Δ 序列。When: 计算 `Δ_median`。Then: = `a₂`(1-indexed 第 `⌈n/2⌉` 项),不是插值。
+- **AC-51-B16**: F7 上中位数。Given: 偶数项 Δ 序列。When: 计算 `Δ_median`。Then: = `a₂`(1-indexed 第 `⌈m/2⌉` 项,`m` = Δ 项数),不是插值。
 - **AC-51-B17**: F7 退化。Given: `n = 1`。When: 计算节律。Then: 全部五个字段报「不可定义」,不得报 0。
 - **AC-51-B18**: F7 禁浮点。Given: 51 的程序集。When: grep。Then: 无方差/标准差/`Math.Sqrt`/浮点除法。
 
@@ -97,3 +97,27 @@
 **Code Review**: Complete —— 双评审并行 + B1/B2/R1/R4 修复 + 复验;review mode = lean。
 **ADR Compliance**: ADR-019 §一(回放即数据记录,零新埋点)· ADR-006 §五(整数 (num, den) 对)。COMPLIANT。
 **Tech Debt**: 未立文件;上述 NICE 5 项已分处登记(本 notes · story Known Risks · 账本)。
+
+---
+
+## 追加记录 · F7 符号订正(2026-10-19 · TD-epic-01 第十片)
+
+**原判定 → 根因 → 修复落点 → 验证命令**(可证伪):
+
+- **原登记**:`production/qa/evidence/impl-s19b-telemetry-production-2026-10-19.md:141-144`
+  记「F7 上中位数与 GDD 不符(生产式得 20,口径得 30)」,归本 story 轮修。
+- **实测根因**:生产式 `SessionRhythmMetrics.cs:74` 的 `sorted[(n-1+1)/2-1]` **恒等于 `⌈m/2⌉-1`**
+  (`m = n−1` = Δ 项数),即**早已符合** `AC-51-B16` 的 `⟨a₁a₂a₃a₄⟩ ⇒ a₂`。
+  偏差在**文档符号**:GDD `F7` 公式写 `Δ_(⌈n/2⌉)` 而 `n` 在节内**从未定义为 Δ 项数**;
+  按事件数读会取第 `⌈(m+1)/2⌉` 项(m=4 时 30),与同一 AC 的举例自相矛盾。
+- **用户裁定(2026-10-19)**:**口径 1 —— 上中位数 = `⌈m/2⌉`,`m` = Δ 项数**。
+- **修复落点**:GDD `design/gdd/telemetry-analytics.md` F7 块(补 `n`/`m` 定义行 + 三处 `n→m`
+  + 一段符号订正注 + 一条「夹具须选两值互异输入」的判别力提醒)· GDD `AC-51-B16` 行
+  · 本 story `:34/:45/:47/:59` 四处 · `SessionRhythmMetrics.cs` 头注与 `m`/`medianIdx` 局部名
+  · `f6_f7_session_rhythm_test.cs` 头注与 `:101` · `f3_f7_wiring_test.cs:436-440` 的**错误下标注释**。
+- **生产行为零变更**:`ComputeRhythm` 输出逐位不变(仅局部命名与注释;`(m-1)/2` ≡ 原 `(n-1+1)/2-1`)。
+- **判别力夹具**:新增 `test_f7_upperMedian_differsFromInterpolationAndEventCount`
+  (Δ = `{10,20,30,50}` ⇒ 上中位数 **20** / 插值 **25** / 事件数口径 **30**,三值互异)。
+  旧用例 `test_f7_upperMedian_evenCount_noInterpolation` 用 `{2,5,1,3}`,插值 `(2+3)/2` 截断 = 2
+  ⇒ **对插值变异零判别力**(保留,作为「结果 ∈ 输入集」的断言;判别力由新用例承担)。
+- **证伪轮**:停用/改坏生产式 → 新用例必红(逐条记录见证据文档 §三·十)。

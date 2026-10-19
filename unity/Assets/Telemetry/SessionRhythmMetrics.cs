@@ -1,7 +1,8 @@
 // 权威来源:production/epics/telemetry-analytics/story-007-f6-f7-session-rhythm.md
 //   (AC-51-B15…B18 — F6 局内时长 + F7 节律:SessionSpan 可审计 + 上中位数 + MAD + 退化处理)
 //   · F6: SessionSpan = Tick_max − Tick_min;同时报 Tick_min/Tick_max/|E|;单事件 ⇒ span=0;空流 ⇒ 0
-//   · F7: Δ_i = Tick(e_{i+1}) − Tick(e_i);Δ_median = Δ_(⌈n/2⌉)(1-indexed,上中位数,禁插值);
+//   · F7: Δ_i = Tick(e_{i+1}) − Tick(e_i);Δ_median = Δ_(⌈m/2⌉)(1-indexed,上中位数,禁插值)
+//          (m = n−1 = **Δ 项数**;序统计量的长度是 m,不是事件数 n —— GDD 2026-10-19 符号订正);
 //          Δ_MAD = median(|Δ_i − Δ_median|);GapCount = |{i : Δ_i > GAP_THRESHOLD}|
 //   · 退化:n < 2 ⇒ 无 Δ 序列 ⇒ 全部字段报「不可定义」;n=1 时 Δ_MAD 不是 0,是「无意义」;
 //          n=2 ⇒ Δ_MAD = 0(合法)
@@ -64,18 +65,21 @@ namespace DaYiJingCheng.Telemetry
             int n = events.Count;
             if (n < 2) return (0, 0, 0, 0, 0, false);   // 退化:无 Δ 序列
 
-            // Δ_i = Tick(e_{i+1}) − Tick(e_i),i = 0…n−2
+            // Δ_i = Tick(e_{i+1}) − Tick(e_i),i = 0…n−2 ⇒ m = n−1 项
             var deltas = new List<int>();
             for (int i = 0; i < n - 1; i++)
                 deltas.Add((int)(events[i + 1].Tick - events[i].Tick));
 
-            // 上中位数:m = n-1 个 Δ,排序后第 ⌈m/2⌉ 项(1-indexed),禁插值
+            // 上中位数:m 个 Δ,排序后第 ⌈m/2⌉ 项(1-indexed),禁插值
+            //   ⌈m/2⌉ 的 0-indexed 起点 = ⌈m/2⌉ − 1 = ⌊(m−1)/2⌋ = (m − 1) / 2(整数除)
+            int m = n - 1;
+            int medianIdx = (m - 1) / 2;
             var sorted = deltas.OrderBy(d => d).ToList();
-            int median = sorted[(n - 1 + 1) / 2 - 1];   // ⌈(n-1)/2⌉ 1-indexed → 0-indexed
+            int median = sorted[medianIdx];
 
-            // Δ_MAD = median(|Δ_i − Δ_median|)
+            // Δ_MAD = median(|Δ_i − Δ_median|) —— 偏差序列长度同为 m,取法同上
             var absDeviations = deltas.Select(d => Math.Abs(d - median)).OrderBy(d => d).ToList();
-            int mad = absDeviations[(n - 1 + 1) / 2 - 1];
+            int mad = absDeviations[medianIdx];
 
             // Δ_min / Δ_max
             int deltaMin = sorted.First();

@@ -433,11 +433,13 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
 
             string report = _reporter.SessionRhythmReport(gapThreshold: 20, out _);
 
-            // ⚠️ 生产式(即原夹具 F6F7Formula 上移,零公式变更):idx = ⌈m/2⌉−1,m = n−1 = 4
-            //    ⇒ idx = 2 ⇒ sorted{10,20,30,50}[2] = 30。实测 2026-10-19 两次对表:
-            //    修正版 [2.5] 与总长 n 索引 [4] 均得 20,与夹具注释「上中位数 30」及 AC 口径不符 ⇒
-            //    **生产式与 GDD「上中位数」的偏差登记为 TD-epic-01 遗留项**(公式面归 story-007 轮修,
-            //    本批不擅改谓词面 —— 上移纪律 = 零公式变更)。本用例钉**现行生产行为**并写明该偏差。
+            // 口径(2026-10-19 用户裁定「口径 1」):Δ_median = 排序后第 ⌈m/2⌉ 项(1-indexed),
+            //   m = Δ 项数 = 4 ⇒ 第 2 项 ⇒ sorted{10,20,30,50}[idx=1] = **20**。
+            // ⚠️ 本条注释此前把 1-indexed 项号 `⌈m/2⌉ = 2` 直接当 0-indexed 下标用(漏减 1),
+            //   因此误判「生产式得 30、与 GDD 不符」并把偏差登记为 TD-epic-01 遗留项。
+            //   实测:三个候选口径是 **20(上中位数,正确)/ 25(插值)/ 30(误按事件数 n=5 取第 3 项)**,
+            //   生产式自始即取 20;错的是 GDD 公式里的符号 `n`(已订正为 `m`)与这条注释。
+            //   判别力由 `f6_f7_session_rhythm_test::test_f7_upperMedian_differsFromInterpolationAndEventCount` 承担。
             StringAssert.Contains("F7 Δ_median = 20", report);
             StringAssert.Contains("F7 Δ_MAD = 10", report);
             // min/max 同行输出:整行断言(`Δ_min = 10` 单独匹配会命中 `Δ_max = 10` 的前缀)

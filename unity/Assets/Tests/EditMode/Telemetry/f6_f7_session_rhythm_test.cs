@@ -1,7 +1,8 @@
 // 权威来源:production/epics/telemetry-analytics/story-007-f6-f7-session-rhythm.md
 //   (AC-51-B15…B18 — F6 局内时长 + F7 节律:SessionSpan 可审计 + 上中位数 + MAD + 退化处理)
 //   · F6: SessionSpan = Tick_max − Tick_min;同时报 Tick_min/Tick_max/|E|;单事件 ⇒ span=0;空流 ⇒ 0
-//   · F7: Δ_i = Tick(e_{i+1}) − Tick(e_i);Δ_median = Δ_(⌈n/2⌉)(1-indexed,上中位数,禁插值);
+//   · F7: Δ_i = Tick(e_{i+1}) − Tick(e_i);Δ_median = Δ_(⌈m/2⌉)(1-indexed,上中位数,禁插值)
+//          (m = n−1 = Δ 项数 —— 序统计量的长度是 m,不是事件数 n;2026-10-19 GDD 符号订正);
 //          Δ_MAD = median(|Δ_i − Δ_median|);GapCount = |{i : Δ_i > GAP_THRESHOLD}|
 //   · 退化:n < 2 ⇒ 无 Δ 序列 ⇒ 全部字段报「不可定义」;n=1 时 Δ_MAD 不是 0,是「无意义」;
 //          n=2 ⇒ Δ_MAD = 0(合法)
@@ -98,7 +99,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         // ══════════════ AC-51-B16:F7 上中位数取法定死(禁插值) ══════════════
 
         /// <summary>AC-51-B16:F7 上中位数 —— 偶数项 Δ 序列 ⟨a₁<a₂<a₃<a₄⟩ ⇒ Δ_median = a₂
-        /// (1-indexed 第 ⌈n/2⌉ 项),不是 (a₂+a₃)/2;结果 ∈ 输入集;奇数项同法。</summary>
+        /// (1-indexed 第 ⌈m/2⌉ 项,m = Δ 项数),不是 (a₂+a₃)/2;结果 ∈ 输入集;奇数项同法。</summary>
         [Test]
         public void test_f7_upperMedian_evenCount_noInterpolation()
         {
@@ -120,6 +121,42 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             Assert.That(deltaMedian, Is.EqualTo(2), "上中位数 = 2(非插值 (2+3)/2 = 2.5)");
             // 结果 ∈ 输入集
             Assert.That(new[] { 2, 5, 1, 3 }.Contains(deltaMedian), Is.True, "结果 ∈ 输入集");
+        }
+
+        /// <summary>AC-51-B16 判别力夹具(2026-10-19 补):**上中位数 / 插值 / 事件数口径三者互异**。
+        /// <para>⚠️ 上一条 `test_f7_upperMedian_evenCount_noInterpolation` 用 Δ = `{2,5,1,3}`,
+        /// 而插值 `(2+3)/2` 在整数域截断后**也是 2** ⇒ 该用例对「改成插值」的变异**零判别力**。
+        /// 本用例把三个候选口径拆到三个不同的数上:</para>
+        /// <list type="bullet">
+        /// <item>上中位数 `⌈m/2⌉ = 2` ⇒ 排序 `{10,20,30,50}` 第 2 项 = **20**(口径 1,正确)</item>
+        /// <item>插值中位数 `(a₂+a₃)/2 = 25` ⇒ 报 **25** 即转红</item>
+        /// <item>事件数口径 `⌈n/2⌉ = 3`(n = 5)⇒ 第 3 项 = **30**,报 30 即转红</item>
+        /// </list>
+        /// <para>第三个口径正是 TD-epic-01 登记「生产得 20 / GDD 得 30」时被误读的那一支 ——
+        /// 本用例把它钉成可判别项,防止文档符号再次漂移时无人发现。</para></summary>
+        [Test]
+        public void test_f7_upperMedian_differsFromInterpolationAndEventCount()
+        {
+            // Arrange:5 事件 ⇒ m = 4 个 Δ = {10, 20, 30, 50}
+            var events = new List<SessionRhythmMetrics.SimEvent>
+            {
+                new SessionRhythmMetrics.SimEvent { Tick = 0 },    // Δ: 10, 20, 30, 50
+                new SessionRhythmMetrics.SimEvent { Tick = 10 },
+                new SessionRhythmMetrics.SimEvent { Tick = 30 },
+                new SessionRhythmMetrics.SimEvent { Tick = 60 },
+                new SessionRhythmMetrics.SimEvent { Tick = 110 },
+            };
+
+            // Act
+            var (deltaMedian, _, _, _, _, defined) = SessionRhythmMetrics.ComputeRhythm(events, gapThreshold: 100);
+
+            // Assert
+            Assert.That(defined, Is.True);
+            Assert.That(deltaMedian, Is.EqualTo(20),
+                "上中位数 = ⌈m/2⌉ = 第 2 项 = 20 —— 不是插值 25,也不是事件数口径 ⌈n/2⌉ 的第 3 项 30");
+            Assert.That(deltaMedian, Is.Not.EqualTo(25), "不得插值((20+30)/2)");
+            Assert.That(deltaMedian, Is.Not.EqualTo(30), "不得按事件数 n=5 取第 ⌈n/2⌉ = 3 项");
+            Assert.That(new[] { 10, 20, 30, 50 }.Contains(deltaMedian), Is.True, "结果 ∈ 输入集");
         }
 
         /// <summary>AC-51-B16:奇数项同法。</summary>

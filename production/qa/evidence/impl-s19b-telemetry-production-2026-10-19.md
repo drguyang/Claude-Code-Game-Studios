@@ -138,10 +138,12 @@ F2 的 `MisdiagnosisReport` 生产实现虽在,但**没有任何测试调用过�
 **F5 序列长度的实测订正(两轮)**:序列长度 = `f(t_0, S, Tick_max)`、**与 W 无关**
 (首版夹具按「三窗」写 ⇒ 红;改为按实际窗数断言,并把判别力锚在**半开窗边界**(tick=W 不进 `[t_k,t_k+W)`)。
 
-**F7 上中位数偏差(登记为遗留项,本批不擅改)**:生产式(原 `F6F7Formula` 逐字上移)
-`idx = ⌈(n−1)/2⌉−1` 在 n=5(Δ 4 个)时取 20;而夹具注释、AC 口径与两处修正式(`[2.5]` / 总长 `n` 索引)均得 30。
-⇒ **现行生产行为与 GDD「上中位数」不符**。上移纪律 = 零公式变更 ⇒ 本批**只登记不改**,
-夹具钉**现行行为**并写明偏差;**修公式归 story-007 轮**(改后本用例须随之改正,不得当回归修掉)。
+**F7 上中位数偏差(~~登记为遗留项,本批不擅改~~ **✅ 2026-10-19 第十片已结清** —— 见 §三·十)**:
+生产式(原 `F6F7Formula` 逐字上移)`sorted[(n-1+1)/2-1]` ≡ `⌈m/2⌉-1`(`m` = Δ 项数),
+n=5(m=4)时取 20。当时把这段判为「与 GDD 不符」,依据是 GDD `:338` 的**字面** `Δ_(⌈n/2⌉)`
+(按事件数读 ⇒ 第 3 项 ⇒ 30)与夹具注释「idx = ⌈m/2⌉−1 ⇒ idx=2」。
+**第十片实测:生产式符合 `AC-51-B16` 的 `⟨a₁a₂a₃a₄⟩ ⇒ a₂`;错的是 GDD 公式符号 `n` 与那条注释(漏减 1)。**
+原文保留作闭环记录。
 
 **证伪轮(改生产码 → 跑 → 同命令还原 + SHA-256 校验)4/4 转红**:
 
@@ -418,6 +420,86 @@ GDD 出处:`emergency-procedures.md` 规则十二 `:464-469` / Edge Cases `:728`
 
 ---
 
+## 三·十、第十片:F7 上中位数口径订正(2026-10-19)
+
+### 原判定(§三 留下的遗留项)
+
+「生产式得 **20**,GDD 口径得 **30** ⇒ 现行生产行为与 GDD「上中位数」不符」,归 story-007 轮修。
+
+### 实测根因 —— 判定本身错了,生产代码是对的
+
+生产式 `SessionRhythmMetrics.cs` 原 `sorted[(n - 1 + 1) / 2 - 1]`,代入 `m = n − 1`(Δ 项数):
+
+```
+(n - 1 + 1) / 2 - 1  ≡  ⌈m/2⌉ - 1
+```
+
+`m = 1…10` 逐项复算,**全部**等于 `⌈m/2⌉` 的 1-indexed 项号 —— 即**恰好**是 `AC-51-B16`
+的 `⟨a₁<a₂<a₃<a₄⟩ ⇒ a₂`。原判定的「口径得 30」来自两处**符号/下标错误**,不是生产式:
+
+| 落点 | 原文 | 错在哪 |
+|---|---|---|
+| `telemetry-analytics.md:338/:344/:345` | `Δ_(⌈n/2⌉)` | `n` 在该节**从未定义为 Δ 项数**;按事件数读 ⇒ 取第 `⌈(m+1)/2⌉` 项(m=4 时 30) |
+| `telemetry-analytics.md:587`(AC-51-B16) | `⌈n/2⌉` | 同款;而同一句的举例 `⟨a₁a₂a₃a₄⟩⇒a₂` 是 m 口径 —— **同一句里 `n` 有两个含义** |
+| `f3_f7_wiring_test.cs:436` | 「idx = ⌈m/2⌉−1 ⇒ idx = 2 ⇒ 30」 | 把 **1-indexed 项号** `⌈m/2⌉ = 2` 直接当 **0-indexed 下标**用(漏减 1);实际 idx = 1 ⇒ 20 |
+
+**三值互异**(m = 4,Δ = `{10,20,30,50}`):上中位数 **20** / 插值 **25** / 事件数口径 **30**。
+
+### 用户裁定(2026-10-19)
+
+**口径 1 —— 上中位数 = `⌈m/2⌉`,`m` = Δ 项数 = `n − 1`。** 与 AC-51-B16 的举例逐字一致。
+
+### 修复落点
+
+| # | 文件 | 改动 |
+|---|---|---|
+| 1 | `design/gdd/telemetry-analytics.md` | F7 块补 `n := \|E\|` / `m := n − 1` 两行定义;`Δ_i` 取值域 `1…n−1 → 1…m`;`:338/:344/:345` `n → m`;新增一段符号订正注 + 一条「夹具须选两值互异输入」的判别力提醒;AC-51-B16 行 `n → m` 并写明 `m = 4 个 Δ、5 个事件` |
+| 2 | `production/epics/telemetry-analytics/story-007-*.md` | `:34/:45/:47/:59` 四处 `n → m`;追加 `## 追加记录 · F7 符号订正`(原判定 → 根因 → 落点 → 验证命令) |
+| 3 | `unity/Assets/Telemetry/SessionRhythmMetrics.cs` | 头注 `:4` `n → m`;**等价重构**:引入 `int m = n - 1; int medianIdx = (m - 1) / 2;`,消掉诱人算错的 `(n-1+1)/2-1` 噪音 |
+| 4 | `unity/Assets/Tests/EditMode/Telemetry/f6_f7_session_rhythm_test.cs` | 头注与 `:101` `n → m`;**新增判别力夹具**(下) |
+| 5 | `unity/Assets/Tests/EditMode/Telemetry/f3_f7_wiring_test.cs` | `:436-440` 错误下标注释订正为三口径对账(20 / 25 / 30) |
+| 6 | 本文档 | §三 遗留项段就地结清;§四 残留表第 2 项 ② 划掉 |
+
+**生产行为零变更**:`(m - 1) / 2` 与 `(n - 1 + 1) / 2 - 1` 在整数域恒等,`ComputeRhythm` 输出逐位不变。
+
+### 判据
+
+- `F6F7SessionRhythmTest` **11/11 全绿**(原 10 + 新增 1)。
+- 新增 `test_f7_upperMedian_differsFromInterpolationAndEventCount`:Δ = `{10,20,30,50}` ⇒ 断言
+  `deltaMedian == 20` 且**显式** `!= 25`(插值)、`!= 30`(事件数口径)—— 三值互异,任一变异必红。
+
+> ⚠️ **旧用例的判别力缺口(如实登记)**:`test_f7_upperMedian_evenCount_noInterpolation` 用
+> Δ = `{2,5,1,3}`,而插值 `(2+3)/2` 在整数域截断**也是 2** ⇒ 该用例**对「改成插值」的变异零判别力**。
+> 它保留下来只承担「结果 ∈ 输入集」这一条断言;判别力由新用例承担。这是假绿夹具的又一实例
+> (与 S11-9 / 第九片 M-m-8 同型),**未被发现时它以绿的形式留下了却没测插值**。
+
+### 证伪轮(改 → 编译 → 跑 → **同命令**还原 + `sha256sum -c` 基线)4/4 转红
+
+驱动:`/tmp/fz/fz_f7_median.py`;基线 `/tmp/fz/baseline_f7median.sha`。
+
+| 变异 | 改坏什么 | 转红的用例 |
+|---|---|---|
+| M-f7-1 | 取项改事件数口径 `(n + 1) / 2 - 1`(= 事故里「GDD 得 30」那一支) | `test_f7_upperMedian_differsFromInterpolationAndEventCount` · `test_f7_upperMedian_evenCount_noInterpolation` · `test_f7_nonZeroMad` |
+| M-f7-2 | 取项改下中位数 `m / 2 - 1`(对偶数 m 等价于插值向下取整) | `test_f7_upperMedian_oddCount` · `test_f7_twoEvents_madZeroIsLegal` |
+| M-f7-3 | 只改 MAD 的取项(中位数不动)⇒ 上中位数/MAD 取法不一致 | `test_f7_twoEvents_madZeroIsLegal` |
+| M-f7-4 | 退化时 `defined` 报 `true`(报 0 而非「不可定义」) | `test_f7_degenerate_singleEvent_reportsUndefined` |
+
+四次还原后 `sha256sum -c` 均 OK(`3c24d1cab81e58bb…`)。
+
+### 回归
+
+`3873 / 3836 / 0 / 37`(`unity/test-results.xml`,2026-10-19)vs 本片前 `3872 / 3835 / 0 / 37`
+⇒ **total +1 = passed +1**,与新增测数**逐一相等**。`TD-player-01` 间歇本轮未复发。**零回归**。
+
+### ⚠️ 未落半边(禁借绿)
+
+- **GDD 符号订正无夹具**:`m` / `n` 的定义行是文档,没有机械门钉它(不属可执行判据)。
+  防漂移靠 review + 本片新增的**行为夹具**(行为一旦回到事件数口径,夹具即红)。
+- **`Δ_MAD` 的「中位数」口径**:GDD 写 `median(|Δ_i − Δ_median|)`,未明写「上中位数」。
+  实现与 `Δ_median` 同取 `⌈m/2⌉`(m 相同),本片未改;若将来要把 MAD 定为下中位数,**须另裁**。
+
+---
+
 ## 三·五、第五片:接线到 CompositionRoot(2026-10-19)
 
 **接线前状态(如实,也是本片的存在理由)**:四片加起来只被「**编译通过 + 全量零回归**」证明
@@ -459,11 +541,11 @@ GDD 出处:`emergency-procedures.md` 规则十二 `:464-469` / Edge Cases `:728`
 | # | 缺口 | 说明 |
 |---|---|---|
 | 1 | ~~**调试视图**~~ **✅ 第七片已落(留两半未落)** | 视图本体 + 入口 + 判据 12 条 + 证伪 8/8 全落。**残余**:① 生产装配**无调用点**(DevBuild 怎么唤未裁 ⇒ 只由夹具驱动)② AC-51-D4 的 Release 半边 **NOT-RUN**(须 Release player 构建) |
-| 2 | ~~**装配层未接线**~~ **✅ 第五/六/八/九片已接** | F1–F7 均已有生产还原器 + 各自的真链路判据。**残余**:① ~~F3 的 `cause` 关联~~ **✅ 第八片已落**;~~纯键鼠 `MAG_MAX` 回填~~ **✅ 第九片已落**(AC-10-21 两半边齐);**该残余的下一半** = 设备切换六旋钮仍为临时种子未进 data-core ② F7 上中位数与 GDD 不符(归 story-007 轮)③ F4–F7 的参数全 `*待定*`,生产方法**无默认值**,须调用方传 |
+| 2 | ~~**装配层未接线**~~ **✅ 第五/六/八/九片已接** | F1–F7 均已有生产还原器 + 各自的真链路判据。**残余**:① ~~F3 的 `cause` 关联~~ **✅ 第八片已落**;~~纯键鼠 `MAG_MAX` 回填~~ **✅ 第九片已落**(AC-10-21 两半边齐);**该残余的下一半** = 设备切换六旋钮仍为临时种子未进 data-core ② ~~F7 上中位数与 GDD 不符~~ **✅ 第十片已结清**(§三·十 —— 生产式本就对,订正的是 GDD 符号 `n→m` 与一处下标注释)③ F4–F7 的参数全 `*待定*`,生产方法**无默认值**,须调用方传 |
 | 3 | 3 条 Ignore 未清 | `AC-51-B9`(集成目录 `tests/integration/51/` 未建)· `AC-51-E3`(非主机侧拒绝,依赖 `OQ-51-5` 未裁)· `blank_and_degraded` 的谓词面仍无测试驱动(见 §二②) |
 | 4 | **10 条 story 的 `Complete` 一条未动** | 账面与实现的背离仍在 |
 
-**⇒ `TD-epic-01` 状态 = 偿还中(九片),不是已修好。**
+**⇒ `TD-epic-01` 状态 = 偿还中(十片),不是已修好。**
 
 ---
 
@@ -493,7 +575,12 @@ unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.Boot.EmergencyMan
 # 期望:18/18 全绿
 sha256sum -c /tmp/fz/baseline_magfill.sha && python3 /tmp/fz/fz_mag_fill.py M-m-1   # 其余 M-m-2…M-m-10 同;每例须 RED + 还原后基线 OK
 
+# F7 中位数口径(第十片)
+unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.Unit.Telemetry.F6F7SessionRhythmTest"
+# 期望:11/11 全绿(原 10 + 新增 1)
+sha256sum -c /tmp/fz/baseline_f7median.sha && python3 /tmp/fz/fz_f7_median.py M-f7-1   # 其余 M-f7-2…M-f7-4 同;每例须 RED + 还原后基线 OK
+
 # 全量
 rm -f test-results.xml && unity test unity --mode EditMode -- --log-file -
-# 期望:total 3872 / passed 3835 / failed 0 / skipped 37(第九片后;若 TD-player-01 间歇复发则 failed 1)
+# 期望:total 3873 / passed 3836 / failed 0 / skipped 37(第十片后;若 TD-player-01 间歇复发则 failed 1)
 ```
