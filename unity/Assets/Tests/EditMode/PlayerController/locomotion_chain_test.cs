@@ -195,24 +195,103 @@ namespace DaYiJingCheng.Tests.PlayerController
         }
 
         // ══════════ AC-1-33: CharacterController 参数装载期契约 ══════════
+        //
+        // ⚠️ **断言对象 = 控制器真值,不是夹具字段**(`TD-player-01` 修正 · 2026-10-20):
+        //    原版读 `LocomotionConfig.LoadDefault().MinMoveDistance` —— 那是**测试自己的夹具**,
+        //    而生产从未把这个值写进 `CharacterController` ⇒ 断言恒真、组件实际是引擎默认 0.001。
+        //    后果已实测:全量跑测 dt≈0.0095 ⇒ 首帧位移 10·dt²≈0.0009 < 0.001 ⇒ 被引擎丢弃 ⇒
+        //    `MovementFeedTest` 的 dx 恰为 0。取证见
+        //    `production/qa/evidence/rootcause-movementfeed-fullred-2026-10-20.md`。
+
+        /// <summary>建一个真 `PlayerController`(含 `RequireComponent` 自动补的 `CharacterController`)。
+        /// <para>⚠️ 只用 `AddComponent`,**不经** `Initialize` —— 本组断的是「取件时应用参数」,
+        /// 不是初始化链。EditMode 不跑 `Awake`,故由 `GetComponent`/属性路径触发应用。</para></summary>
+        private static (GameObject go, PlayerControllerType player, CharacterController cc) MakePlayer()
+        {
+            var go = new GameObject("ac133_player");
+            var player = go.AddComponent<PlayerControllerType>();   // RequireComponent 补 CharacterController
+            var cc = go.GetComponent<CharacterController>();
+            return (go, player, cc);
+        }
 
         [Test]
-        public void test_ac133_minMoveDistanceIsZero()
+        public void test_ac133_minMoveDistanceIsZero_onActualController()
         {
-            // minMoveDistance == 0(P0)
-            var config = LocomotionConfig.LoadDefault();
-            Assert.AreEqual(0f, config.MinMoveDistance, 0.0001f,
-                "minMoveDistance 应为 0(非零会吞掉起步微小位移)");
+            var (go, player, cc) = MakePlayer();
+            try
+            {
+                Assert.IsNotNull(cc, "前置:RequireComponent 应已补 CharacterController");
+                // 触发参数应用(懒绑定点 = 取件时)
+                player.Teleport(new Vector3(0f, 1f, 0f));
+
+                Assert.AreEqual(0f, cc.minMoveDistance, 0.0001f,
+                    "**控制器真值**的 minMoveDistance 须为 0 —— 非零会吞掉起步微小位移(TD-player-01)");
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        [Test]
+        public void test_ac133_configValues_areAppliedToActualController()
+        {
+            var (go, player, cc) = MakePlayer();
+            try
+            {
+                player.Teleport(new Vector3(0f, 1f, 0f));   // 触发应用
+
+                LocomotionConfig config = LocomotionConfig.LoadDefault();
+                Assert.AreEqual(config.SkinWidth, cc.skinWidth, 1e-6f,
+                    "skinWidth 须 = 配置值(不是引擎默认 0.08)");
+                Assert.AreEqual(config.Radius, cc.radius, 1e-6f,
+                    "radius 须 = 配置值");
+                Assert.AreEqual(config.Height, cc.height, 1e-6f,
+                    "height 须 = 配置值(不是引擎默认 2)");
+                Assert.AreEqual(config.Center, cc.center,
+                    "center 须 = 配置值(R6 的格判定以 transform.position 为取样点)");
+                Assert.AreEqual(config.EnableOverlapRecovery, cc.enableOverlapRecovery,
+                    "enableOverlapRecovery 须 = 配置值(P0 = true)");
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
         }
 
         [Test]
         public void test_ac133_skinWidthRadiusHeightPositive()
         {
-            // skinWidth > 0 ∧ radius > 0 ∧ height > 0
-            var config = LocomotionConfig.LoadDefault();
-            Assert.Greater(config.SkinWidth, 0f, "skinWidth 应 > 0");
-            Assert.Greater(config.Radius, 0f, "radius 应 > 0");
-            Assert.Greater(config.Height, 0f, "height 应 > 0");
+            // ③ skinWidth > 0 ∧ radius > 0 ∧ height > 0 —— 判**控制器真值**
+            var (go, player, cc) = MakePlayer();
+            try
+            {
+                player.Teleport(new Vector3(0f, 1f, 0f));
+                Assert.Greater(cc.skinWidth, 0f, "skinWidth 应 > 0");
+                Assert.Greater(cc.radius, 0f, "radius 应 > 0");
+                Assert.Greater(cc.height, 0f, "height 应 > 0");
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        [Test]
+        public void test_ac133_engineDefaultsDifferFromConfig_provesApplicationIsObservable()
+        {
+            // ⚠️ **判别力前置**:若引擎默认恰好等于配置值,上面那组断言就是恒真的空转。
+            //    本测钉住「至少有三项的引擎默认 ≠ 配置值」⇒ 参数应用与否**可观测**。
+            var (go, _pc, raw) = MakePlayer();
+            var fresh = new GameObject("ac133_fresh").AddComponent<CharacterController>();
+            try
+            {
+                LocomotionConfig config = LocomotionConfig.LoadDefault();
+                int differing = 0;
+                if (!Mathf.Approximately(fresh.minMoveDistance, config.MinMoveDistance)) differing++;
+                if (!Mathf.Approximately(fresh.skinWidth, config.SkinWidth)) differing++;
+                if (!Mathf.Approximately(fresh.height, config.Height)) differing++;
+
+                Assert.GreaterOrEqual(differing, 3,
+                    $"引擎默认与配置值须至少 3 项不同(实测 {differing});" +
+                    "否则 test_ac133_configValues_areAppliedToActualController 无判别力");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(fresh.gameObject);
+            }
         }
 
         // ══════════ AC-1-18: F-1-3 求值次序 ══════════

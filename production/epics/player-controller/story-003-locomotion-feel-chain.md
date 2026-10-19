@@ -56,7 +56,11 @@
 - [x] **AC-1-19(BLOCKING)** —— **`‖MoveInput‖` 是因子不是开关**(F-1-2):半推摇杆应得半速(因子非开关)。测试: 2 用例（半速/半≠满）全通过。
 - [x] **AC-1-20a(BLOCKING)** —— **F-1-4 / F-1-8 的数值契约**:① `v_horiz ≈ 0` 时 `yaw` 保持;② 越过 ±180° 边界时方向一致;③ `TURN_RATE` 单位为 °/s;④ 转相机时 `yaw` 不变。测试: 5 用例（含反向用例）全通过。
 - [x] **AC-1-20b(ADVISORY)** —— **"转向是否跟得上"**:属 Visual/Feel ⇒ **playtest 签核**。
-- [x] **AC-1-33(BLOCKING)** —— **参数契约已钉(F-1-9)**:① `minMoveDistance == 0`;② `slopeLimit`/`stepOffset` 等于 ADR-015 §一 几何取值;③ `skinWidth > 0 ∧ radius > 0 ∧ height > 0`。测试: 2 用例全通过。
+- [~] **AC-1-33(BLOCKING)** —— **参数契约已钉(F-1-9)**:① `minMoveDistance == 0`;② `slopeLimit`/`stepOffset` 等于 ADR-015 §一 几何取值;③ `skinWidth > 0 ∧ radius > 0 ∧ height > 0`。
+  - ✅ **①③ 已真落地(2026-10-20 · `TD-player-01`)** —— 原版 2 条测**断言的是夹具字段**(`LocomotionConfig.LoadDefault()`),而生产**从未**把这些值写进 `CharacterController` ⇒ 恒真、零判别力(实测组件一直用引擎默认:`minMoveDistance=0.001` / `skinWidth=0.08` / `height=2`)。现 `PlayerController.ApplyControllerParameters` 在取件时写六项,断言对象改为**控制器真值**;新增 3 条(含判别力前置「≥3 项引擎默认 ≠ 配置值」)。证伪:M-A 停用参数应用 ⇒ 2 红;M-B 只停 `minMoveDistance` ⇒ 恰 1 红。测试:**25 total / 23 passed / 0 failed / 2 ignored**。
+  - ❌ **② 仍无载体** —— `slopeLimit` / `stepOffset` 的几何取值卡 **`O-9`**(ADR-015 §一之补只定**归属与语义**、明写「不定数值」);系统 1 只是**执行者**,无权在代码里发明取值。⇒ 本子条**保持未勾**,不得读作已通过。
+  - ⚠️ `test_ac133_skinWidthRadiusHeightPositive` 对「是否应用」**无判别力**(判据是 `> 0`,引擎默认也都 `> 0`)—— 属 AC 原文判据形态所限,如实登记。
+  - 原件:`production/qa/evidence/impl-td-player-01-2026-10-20.md` · 根因:`rootcause-movementfeed-fullred-2026-10-20.md`。
 - [x] **AC-1-18(BLOCKING)** —— **F-1-3 求值次序钉死**:断言单帧内的调用序为 `读格 → v_target → 加速 → 转向 → Move`。测试: 3 用例（求值次序/旧格乘数/真实调用序探针）全通过。
 - [~] **AC-1-21(BLOCKING,接地半边待 ε 实测;~~挂起~~ ✅ 2026-10-07 方案已定)** —— **F-1-1a 的运行期断言 + `ε_slide`**:① 代码级不变量;② 运行期断言;③ `ε_slide` 由 spike 实测。**本条记 BLOCKED-BY-OQ-1-12**(spike 未跑 ⇒ ③ 无上确界可填;① 半边可先行)。测试: 1 用例（Assert.Ignore）正确跳过。
 - [x] **AC-1-25(ADVISORY)** —— **地貌可辨**:数据 lint 脚本本体随本故事交付;真表跑 = NOT-RUN 直到 6/24 内容就位。

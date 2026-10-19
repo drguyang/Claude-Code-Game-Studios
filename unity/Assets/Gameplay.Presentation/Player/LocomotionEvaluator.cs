@@ -18,6 +18,10 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
 {
     /// <summary>
     /// 移动配置(数值留白,归用户)。
+    /// <para>⚠️ 本类是 <c>CharacterController</c> 参数的**唯一声明出处**(GDD F-1-9 / `AC-1-33`)——
+    /// 但**声明不等于落地**:这六项须由 <see cref="PlayerController"/> 在取件时**写进组件**,
+    /// 否则控制器取 Unity 默认值(2026-10-20 `TD-player-01`:声明了却从不写入 ⇒
+    /// `minMoveDistance` 停在引擎默认 `0.001` ⇒ 吞掉亚阈值位移)。</para>
     /// </summary>
     public class LocomotionConfig
     {
@@ -34,7 +38,9 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
             MinMoveDistance = 0f,
             SkinWidth = 0.01f,
             Radius = 0.5f,
-            Height = 1.8f
+            Height = 1.8f,
+            Center = Vector3.zero,
+            EnableOverlapRecovery = true,
         };
 
         public float SpeedWalk;
@@ -45,10 +51,22 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
         public float JumpHeightMin;
         public float JumpHeightMax;
         public float GravityFallMult;
+
+        // ── CharacterController 六项(F-1-9 / AC-1-33;`PlayerController` 负责写进组件)──
+        /// <summary>位移抖动抑制下限 —— **P0 = 0**(GDD F-1-9:`≠ 0` 会吞掉起步微小位移)。
+        /// <para>⚠️ 这是 `TD-player-01` 的直接病灶:声明为 0 但从未写进组件 ⇒ 引擎默认 0.001 生效。</para></summary>
         public float MinMoveDistance;
+        /// <summary>碰撞皮肤厚度 —— 须 &lt; `DOWNWARD_PRESSURE`(`AC-1-34`)。</summary>
         public float SkinWidth;
+        /// <summary>胶囊半径 —— 与 `LATTICE_SIZE` 有几何约束(EC-12:`LATTICE_SIZE ≥ radius × 2`)。</summary>
         public float Radius;
+        /// <summary>胶囊总高。</summary>
         public float Height;
+        /// <summary>胶囊中心偏移 —— **须为原点**:R6 的「用中心点取 floor」以 `transform.position`
+        /// 为取样点(GDD F-1-9),偏移非零会让格判定与胶囊实际位置错开。</summary>
+        public Vector3 Center;
+        /// <summary>叠加时的自动分离 —— P0 保持默认 `true`(GDD F-1-9)。</summary>
+        public bool EnableOverlapRecovery;
     }
 
     /// <summary>

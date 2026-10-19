@@ -66,9 +66,39 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
             get
             {
                 if (_controller == null)
+                {
                     _controller = GetComponent<CharacterController>();
+                    ApplyControllerParameters(_controller);
+                }
                 return _controller;
             }
+        }
+
+        /// <summary>把 <see cref="LocomotionConfig"/> 的六项 `CharacterController` 参数**写进组件**
+        /// (GDD F-1-9 / `AC-1-33` / `AC-1-34`)。
+        /// <para>⚠️ **本方法是「声明 → 落地」的唯一连接点**(2026-10-20 · `TD-player-01`):此前
+        /// `LocomotionConfig` 声明了 `MinMoveDistance = 0`,而**全库零处**把它写进组件 ⇒
+        /// 控制器一直用 Unity 默认 `minMoveDistance = 0.001` ⇒ 全量跑测(`dt ≈ 0.0095 s`,
+        /// 首帧位移 `10·dt² ≈ 0.0009 < 0.001`)时位移被引擎**整体丢弃**,`MovementFeedTest`
+        /// 断言 `dx` 必为 `0.0`。根因取证见
+        /// `production/qa/evidence/rootcause-movementfeed-fullred-2026-10-20.md`。</para>
+        /// <para>⚠️ 只在**取件时**写一次(懒绑定 / `Awake`),不每帧写 —— 每帧写会让
+        /// 动过 Inspector 的调参失效,且是无谓的组件属性赋值。</para>
+        /// <para>⚠️ `slopeLimit` / `stepOffset` **刻意不在此处**:GDD F-1-9 与 ADR-015 §一之补
+        /// 把二者的几何取值归**关卡工具 / 世界几何**(`O-9`,数值未定)⇒ 系统 1 只是执行者,
+        /// 无权在此发明取值。它们落地时应由关卡烘焙数据注入,不在本类硬编码。</para></summary>
+        /// <param name="controller">目标组件(null ⇒ 无操作)。</param>
+        private static void ApplyControllerParameters(CharacterController controller)
+        {
+            if (controller == null) return;
+
+            LocomotionConfig config = DefaultConfig;
+            controller.minMoveDistance = config.MinMoveDistance;   // P0 = 0(AC-1-33 ①)
+            controller.skinWidth = config.SkinWidth;
+            controller.radius = config.Radius;
+            controller.height = config.Height;
+            controller.center = config.Center;
+            controller.enableOverlapRecovery = config.EnableOverlapRecovery;   // P0 = true
         }
 
         // ADR-020 Amendment B: 模式开关 + 上行接缝
@@ -157,7 +187,10 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
 
         private void Awake()
         {
-            if (Controller == null)   // 触发懒绑定 + 缺件告警(运行期唯一正常路径)
+            // ⚠️ 读 `Controller` 属性即触发懒绑定 ⇒ `ApplyControllerParameters` 在运行期也跑
+            //    (不只在 EditMode / 测试路径)。改这里时勿把属性访问换成 `_controller` 直读,
+            //    否则 `AC-1-33` 的参数应用会在真机路径上**静默失效**(= `TD-player-01` 的复现条件)。
+            if (Controller == null)   // 触发懒绑定 + 参数应用 + 缺件告警(运行期唯一正常路径)
             {
                 Debug.LogError("[PlayerController] CharacterController component missing.");
             }
