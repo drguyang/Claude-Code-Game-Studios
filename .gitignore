@@ -80,6 +80,12 @@ unity/Assets/Scenes/Spike*
 unity/Assets/Scenes/AtlasProbe*
 # Unity Test Framework 首跑自动生成的初始化场景(Assets 根,机器相关;含同级 .meta)。
 unity/Assets/InitTestScene*
+# Unity Test Framework 默认结果文件(每次 `unity test unity` 覆盖写,2.9 MB,机器本地)。
+# ⚠️ 必须带 `unity/` 前缀锚定:仓根的 `test-results.xml` 是**已入库**的历史产物
+# (`git ls-files test-results.xml` 命中),裸写 `test-results.xml` 会连它一起忽略 ——
+# 已跟踪文件虽不受影响,但会让规则语义与意图不符(2026-10-19,第十二片提交时发现)。
+# 结果以 `unity/Logs/*.xml`(已被上方 `[Ll]ogs/` 覆盖)为留档,本文件不入库。
+unity/test-results.xml
 # Addressables:只忽略**机器本地产物**(逐平台内容状态),组定义本身是作者态,**须入库**。
 #
 # ⚠️ 2026-10-17 收窄(原为整目录忽略)—— 依据与实测见下:
