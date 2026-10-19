@@ -72,7 +72,6 @@ using DaYiJingCheng.Gameplay.Presentation.Audio;
 using NUnit.Framework;
 using UnityEngine.TestTools;
 using UnityEngine;
-using UnityEngine.TestTools;
 
 namespace DaYiJingCheng.Tests.EditMode.Audio
 {

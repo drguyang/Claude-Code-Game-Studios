@@ -741,18 +741,18 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
 
         private sealed class StateFieldFixture
         {
-            private float _confidence = 0.5f;                       // 置信度 → 红
-            private long _lastRecheckTick = 0;                      // 重查 tick → 红
-            private ITickProvider _tick = null;                     // tick 类型 → 红
-            private int _rewriteCount = 0;                          // 改写次数 → 红
+            private float _confidence;                              // 置信度 → 红(扫描器只读名/类型,不读值)
+            private long _lastRecheckTick;                          // 重查 tick → 红(同上)
+            private ITickProvider _tick;                            // tick 类型 → 红(同上)
+            private int _rewriteCount;                              // 改写次数 → 红(未显式初始化:CS0414 只报「赋值后未读」)
             private readonly List<int> _readings = new List<int>(); // 读数记录 → 红
-            private readonly int _frameCache = 42;                  // 当帧缓存(非累积语义)→ 绿
+            private readonly int _frameCache;                       // 当帧缓存(非累积语义)→ 绿(扫描器只读 FieldType,不读值)
         }
 
         private sealed class DoubleScalarFixture
         {
             private double _mix = 1.0;                 // double 字段 → 红
-            private float _single = 0.5f;              // single 合法 → 绿
+            private float _single;                     // single 合法 → 绿(未显式初始化:CS0414 只报「赋值后未读」)
             private double Gain(float x) => x * (float)_mix;   // double 返回 → 红
             private void Feed(double amount) { _mix = amount; } // double 参数 → 红
         }

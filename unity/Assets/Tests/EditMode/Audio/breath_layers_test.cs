@@ -355,7 +355,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
 
             var readBack = new List<KeyValuePair<string, string>>();   // name → guid 原值
             var guidTypes = new Dictionary<string, string>(StringComparer.Ordinal);
-            bool reflectReached = false;   // 反射拿到数组并逐项 dump(读法层面走到头)
+            // reflectReached 已随「最后探测」退役(仅赋值、无消费者;CS0219 清理)
 
             Type mixerType = mixer.GetType();
             PropertyInfo exposedPi = mixerType.GetProperty(
@@ -368,13 +368,13 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 {
                     exposed = exposedPi.GetValue(mixer);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
 
                 if (exposed is Array arr)
                 {
-                    reflectReached = true;
+                    // 反射拿到数组并逐项 dump(读法层面走到头)
                     Type elemType = arr.GetType().GetElementType();
                     foreach (object elem in arr)
                     {
@@ -451,9 +451,7 @@ namespace DaYiJingCheng.Tests.Unit.Audio
 
             // ── 结论:读回事实 × SetFloat 事实 → **三条出口只走一条**(最后一次探测;
             //    不论哪条出口都不再提新修法);原文进日志供判读 ──
-            bool allSetTrue = true;
-            foreach (KeyValuePair<string, bool> kv in setResults)
-                if (!kv.Value) allSetTrue = false;
+            // allSetTrue 已随「最后探测」退役(仅赋值、无消费者;CS0219 清理)
 
             if (!allGuidReadOk)
             {

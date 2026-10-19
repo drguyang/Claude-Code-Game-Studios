@@ -375,7 +375,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </summary>
         private SkeuoRuntimeDriver FindOrCreateSkeuoUi()
         {
-            var existing = UnityEngine.Object.FindObjectOfType<SkeuoRuntimeDriver>();
+            var existing = UnityEngine.Object.FindFirstObjectByType<SkeuoRuntimeDriver>();
             if (existing != null)
                 return existing;
 
@@ -397,7 +397,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private EventSystem EnsureEventSystem()
         {
             // 含 inactive:预摆件可能被禁用,仍是「唯一合法挂载点」(承 AudioListener 断言的 IncludeInactive 纪律)。
-            var existing = UnityEngine.Object.FindObjectOfType<EventSystem>(includeInactive: true);
+            var existing = UnityEngine.Object.FindFirstObjectByType<EventSystem>(FindObjectsInactive.Include);
             if (existing != null)
             {
                 var presetModule = existing.GetComponent<InputSystemUIInputModule>();
