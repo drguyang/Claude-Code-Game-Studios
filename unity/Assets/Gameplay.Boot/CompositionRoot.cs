@@ -22,6 +22,7 @@ using DaYiJingCheng.Gameplay.Presentation;
 using DaYiJingCheng.Gameplay.Presentation.Audio;
 using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
+using DaYiJingCheng.Gameplay.Presentation.Telemetry;   // TelemetryAnalyticsTuning(第十二片注入缝)
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
@@ -90,9 +91,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             IDataProvider dataProvider = null,
             InputActionAsset inputActions = null,
             AudioAssemblySeams audio = null,
-            ClinicKnowledge clinicKnowledge = null)
+            ClinicKnowledge clinicKnowledge = null,
+            TelemetryAnalyticsTuning? telemetryKnobs = null)
             => AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(),
-                            0UL, registry, dataProvider, inputActions, audio, clinicKnowledge);
+                            0UL, registry, dataProvider, inputActions, audio, clinicKnowledge, telemetryKnobs);
 
         /// <summary>
         /// 显式依赖注入装配(读档 / 测试用:由调用方给出发号权威、在场登记簿、blob 池与世界种子)。
@@ -114,13 +116,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                        IDataProvider dataProvider = null,
                                                        InputActionAsset inputActions = null,
                                                        AudioAssemblySeams audio = null,
-                                                       ClinicKnowledge clinicKnowledge = null)
+                                                       ClinicKnowledge clinicKnowledge = null,
+                                                       TelemetryAnalyticsTuning? telemetryKnobs = null)
         {
             if (idAuthority == null) throw new ArgumentNullException(nameof(idAuthority));
             if (presence == null) throw new ArgumentNullException(nameof(presence));
             if (blobPool == null) throw new ArgumentNullException(nameof(blobPool));
             return AssembleCore(idAuthority, presence, blobPool, worldSeed, registry, dataProvider,
-                                inputActions, audio, clinicKnowledge);
+                                inputActions, audio, clinicKnowledge, telemetryKnobs);
         }
 
         private static CompositionRootServices AssembleCore(IIdAuthority idAuthority,
@@ -131,7 +134,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                              IDataProvider dataProvider,
                                                              InputActionAsset inputActions,
                                                              AudioAssemblySeams audio,
-                                                             ClinicKnowledge clinicKnowledge)
+                                                             ClinicKnowledge clinicKnowledge,
+                                                             TelemetryAnalyticsTuning? telemetryKnobs)
         {
             // ── 依赖前置校验(全自动路径同样 fail-loud)──
             if (idAuthority == null)
@@ -507,7 +511,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                // 把上面的三元逼成 `NullRenderTarget` 而此处仍重算 ⇒ 标志照旧 true
                                                // ⇒ `test_ac018_3_assemble_withSeams_...` **不转红** = 假绿)。
                                                renderTarget is AudioSourceRenderTarget,
-                                               patientCueDriver, behaviorDirector);
+                                               patientCueDriver, behaviorDirector,
+                                               telemetryKnobs);
         }
 
         /// <summary>

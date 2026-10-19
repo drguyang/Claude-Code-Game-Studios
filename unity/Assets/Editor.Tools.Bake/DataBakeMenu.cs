@@ -20,6 +20,7 @@ using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Gameplay.Presentation;
+using DaYiJingCheng.Gameplay.Presentation.Telemetry;   // TelemetryAnalyticsDataSet(第十二片:单一出处常量)
 using DaYiJingCheng.EditorTools.Gates;   // AudioAssetGroupGates(S14-6:audio 组名 / 素材目录常量单一出处)
 using Stopwatch = System.Diagnostics.Stopwatch; // 别名引入,避免 System.Diagnostics.Debug 与 UnityEngine.Debug 歧义
 
@@ -540,6 +541,46 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"axis(阈值 {result.Bound.Axis.DeviceSwitchThreshold.Raw} / 容差 " +
                     $"{result.Bound.Axis.DriftTolerance.Raw} / 驻留 {result.Bound.Axis.DwellTicks})," +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙遥测参数旋钮表(阶段 1 词法 → 阶段 2 四组白名单 + schema + 范围断言 → deterministic 编码)
+        /// → 产物写入 Assets/DataCooked/(入 data-core 组)。
+        /// <para>⚠️ TD-epic-01 第十二片:GDD 声明的落地位置 <c>assets/data/telemetry_analytics.json</c>
+        /// 此前**从未存在** ⇒ AC-51-B14 的「配置加载」半边无对象、AC-51-E5 只能靠「文件不存在」恒真通过。
+        /// 本菜单是 <see cref="TelemetryAnalyticsBake"/> 的**唯一调用点链路**。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 telemetry_analytics(6 遥测旋钮)")]
+        public static void BakeTelemetryAnalytics()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                TelemetryAnalyticsBake.BakeOutput result = TelemetryAnalyticsBake.BakeFromRepo(repoRoot);
+
+                // 真往返:编码 → 解码(含加载期范围门)→ 跨侧逐项等值(布局分叉的唯一自动兜现)
+                TelemetryAnalyticsBake.Materialize(result);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, TelemetryAnalyticsBake.CookedFileName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{TelemetryAnalyticsBake.CookedFileName} = {result.Cooked.Length} B, " +
+                    $"W={result.Bound.DifficultyCurve.WindowTicks} S={result.Bound.DifficultyCurve.StepTicks} " +
+                    $"t0={result.Bound.DifficultyCurve.FirstWindowTick} " +
+                    $"GAP={result.Bound.GapThresholdTicks} GROWTH={result.Bound.GrowthWindowTicks} " +
+                    $"MIN_SAMPLE={result.Bound.MinSample},ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }
             catch (BakeValidationException ex)

@@ -636,12 +636,143 @@ python3 tools/falsify/unity_falsify.py \
 
 ---
 
+## 三·十二、第十二片:51 遥测 F4–F7 六旋钮参数(2026-10-19)
+
+### 原判定(本片还的债)
+
+`design/gdd/telemetry-analytics.md:541` 声明「**旋钮的落地位置** = `assets/data/telemetry_analytics.json`」,
+而该文件**从未存在**(`ls assets/data/ | grep telemetry` 空输出)。后果两半:
+
+1. **`AC-51-B14` 的「配置加载」半边没有对象** —— `W < 1` / `S < 1` 没有可加载的配置,
+   加载期硬失败无处施加(只有 `DifficultyCurveMetrics` 的运行期 `ArgumentException`)。
+2. **`AC-51-E5` 是恒真分支** —— `test_e5_noSwitch_noSwitchFields` 在文件缺失时 `Assert.Pass`,
+   而文件永远缺失 ⇒ 对变异零判别力(已登记 `review-cross-epic-fake-green-2026-10-18.md:58`)。
+
+### 用户裁定(2026-10-19,AskUserQuestion)
+
+| 问 | 裁定 |
+|---|---|
+| 六个数值旋钮谁定 | **「我给建议值,你批准后写死」** |
+| 建不建 `assets/data/telemetry_analytics.json` | **「建文件 + 烘焙 + 装载 + 加载期门」** |
+| E5 那条恒真测试改成什么 | **「文件必须存在 + 扫描禁止字段」** |
+
+### 数值(用户 2026-10-19 批准;仍标临时、待数值轮)
+
+| 旋钮 | 值 | 换算(20 Hz) | 推荐理由 |
+|---|---|---|---|
+| `W` | 600 tick | 30 s | 窗内单流事件约 5–20 条 |
+| `S` | 300 tick | 15 s | `= W/2` ⇒ 50% 重叠、`CoveredTicks == SpanTicks` |
+| `t_0` | 0 | — | 窗锚定世界起点 |
+| `GAP_THRESHOLD` | 200 tick | 10 s | 中位 Δ 的 4–10× |
+| `GROWTH_WINDOW` | 12000 tick | 10 min | 窗内成长事件约 30–60 条 |
+| `TELEMETRY_MIN_SAMPLE` | 30 | 计数 | 比例型指标稳定下限;低于 GDD 工作例 `|Scorable| = 40` |
+
+### 落地(原判定 → 修复落点)
+
+| # | 原判定 | 修复落点 | 判据(可证伪) |
+|---|---|---|---|
+| 1 | 配置文件不存在 | `assets/data/telemetry_analytics.json`(四组结构;白名单 = 无开关) | `test_e5_noSwitch_noSwitchFields` 断言文件**存在**且 binder 无错 |
+| 2 | 构建期门无对象 | `TelemetryAnalyticsBinder`(词法 → 四组白名单 → schema → `TelemetryAnalyticsTuning.Validate`) | `test_binder_windowZero_buildTimeReject` / `…_stepZero_…` |
+| 3 | 加载期门无对象 | `TelemetryAnalyticsCookedCodec.Read` 解码后调 `Validate`,越界 ⇒ E-13 | `test_codec_windowZero_loadTimeReject` / `test_codec_otherOutOfRange_loadTimeReject` |
+| 4 | 无 cooked 制品/装载路径 | `TelemetryAnalyticsBake` + `…CookedWriter` + 菜单 + `AddressablesDataProvider` 第 9 支路 + `DataCorePreloader` 9 地址 | `test_bake_materialize_roundTripExact` / `…_payloadColumnOrder_byAbsoluteOffset` |
+| 5 | 生产方法「无默认值」= 调试视图永远「未给」 | `BootRoot.ResolveTelemetryKnobs` → `CompositionRoot.Assemble(telemetryKnobs:)` → `TelemetryReporter.Knobs` → `RenderDeveloperSummary` 用烘焙值 | `test_developerSummary_withKnobs_computesF5AndF7`(vs `…_withoutKnobs_keepsNotGiven`) |
+| 6 | E5 恒真 | 测试重写(见 #1),并加白名单负例 | `test_binder_switchField_rejectedByWhitelist` / `…_nestedUnknownKey_…` / `…_missingGroup_…` |
+
+### 本片实测到的两件事(如实登记)
+
+1. **`unity build --execute-method` 首跑报 CS0246 却以退出码 0 返回** —— 该 CLI 的 build 子命令
+   **不把编译失败映射为退出码**。判别只能读日志里的 `Scripts have compiler errors`。首跑未读日志
+   会导致「以为烘焙成功、实际产物是旧的」。已改口径:**跑完必须 grep 日志**。
+2. **生产消费缝的真实形态比「传参」复杂**:`RenderDeveloperSummary` 原设计「不替用户填旋钮」,
+   与本片「装入烘焙值」正面冲突。解法 = 注入**可空**旋钮:注入了才填,未注入仍是「未给」——
+   既落了真源又没造默认值。**`GROWTH_WINDOW` 是窗宽而非区间**,生产映射
+   `(Tick_max − GROWTH_WINDOW, Tick_max)`;`Skill` 仍恒 null(F4 需要指名技能,预览不猜)。
+
+### 证伪(7 变异,`--guard unity/Assets/DataCooked`)
+
+| # | 变异 | 期望转红 |
+|---|---|---|
+| F1 | 停用 `W ≥ 1` 守卫 | `test_binder_windowZero_buildTimeReject` |
+| F2 | 停用加载期范围门 | `test_codec_windowZero_loadTimeReject` + `test_codec_otherOutOfRange_loadTimeReject` |
+| F3 | 停用顶层白名单 | `test_binder_switchField_rejectedByWhitelist` |
+| F4 | 写方列序改 S 先 | `test_bake_payloadColumnOrder_byAbsoluteOffset` |
+| F5 | 头槽 schemaVersion 硬写 0 | `test_bake_headerSchemaSlot_notZero_equalsContract` + `…_roundTripExact` |
+| F6 | 取值缝断线 | `test_resolveKnobs_withProvider_takesBakedTable` |
+| F7 | 停用 `MIN_SAMPLE ≥ 1` 守卫 | `test_codec_otherOutOfRange_loadTimeReject` |
+
+> 结果见下方「判据」段(证伪轮完成后回填;未完成前本节**不得**记绿)。
+
+#### 首轮实测(2026-10-19):**未通过(退出码 1)** —— 三处「红得比预期多」
+
+首版期望清单按「理想情况」只列了**一条**期望转红的测;实测 F1 / F4 / F5 三个变异各红了更多。
+逐条复核 —— **不是夹具弱,是我把期望写窄了**:
+
+| 变异 | 首版期望 | 实测 | 归因 |
+|---|---|---|---|
+| F1 停用 `W≥1` | 1 条(构建期) | **2 条**(+加载期) | 守卫住在**共享**的 `TelemetryAnalyticsTuning.Validate` ⇒ 构建期与加载期**同时**失效,两条红是必然 |
+| F4 写方列序 | 1 条(绝对偏移) | **3 条**(+往返 + 三方同值) | W=600 / S=300 **异值** ⇒ 写反后往返确实丢值;三条分别是「位置 / 单值 / 六值」三种粒度,互补 |
+| F5 头槽 schemaVersion=0 | 2 条 | **5 条** | 读方版本门拒收 ⇒ 任何走整条管线的测都红 |
+
+**处置**:期望清单**按实测**列全(已改 `…-cooked.json` 并标「首轮实测订正」),
+然后**重跑**。原则是「清单必须与实测一致」,但**不得**用缩短清单的办法掩盖判别面不清 ——
+三处差异均有**机制解释**,不是耦合噪声。还原与受保护指纹判据首轮**已通过**(SHA-256 + 零 diff)。
+
+#### 判据(最终):**证伪轮通过(退出码 0)** —— 7/7 恰如预期
+
+| 变异 | 实测转红 |
+|---|---|
+| F1 `W≥1` 守卫 | `test_binder_windowZero_buildTimeReject` + `test_codec_windowZero_loadTimeReject` |
+| F2 加载期范围门 | `test_codec_otherOutOfRange_loadTimeReject` + `test_codec_windowZero_loadTimeReject` |
+| F3 顶层白名单 | `test_binder_switchField_rejectedByWhitelist` |
+| F4 写方列序 | `…_boundEqualsReloaded_sixKnobs` + `…_materialize_roundTripExact` + `…_payloadColumnOrder_byAbsoluteOffset` |
+| F5 头槽 schemaVersion | 5 条(见上表) |
+| F6 取值缝断线 | `test_resolveKnobs_withProvider_takesBakedTable` |
+| F7 `MIN_SAMPLE≥1` 守卫 | `test_codec_otherOutOfRange_loadTimeReject` |
+
+还原 SHA-256 逐字节通过 · 受保护路径 `unity/Assets/DataCooked` 指纹未变。
+命令:`python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/td-epic-01-telemetry-analytics-cooked.json --guard unity/Assets/DataCooked`
+(`--guard` 不可省 —— 驱动不读 spec 的 `guards` 字段,同第十一片口径)。
+
+### data-core 组登记(走真菜单,非手改)
+
+`DataBakeMenu.EnsureDataCoreGroup` via `unity build --execute-method`:
+
+- 组条目 **8 → 9**,`data-core.asset` diff **仅 +6 行**(1 条):
+  `m_Address: telemetry_analytics.cooked.bytes` · `m_SerializedLabels: [data-core]`;
+- 条目 `m_GUID` = `89dcadb188a11e789a0ea310199b1d5b`,与
+  `unity/Assets/DataCooked/telemetry_analytics.cooked.bytes.meta:2` **逐字一致**;
+- 同一次命令编译错误 grep = **0** 命中。
+
+### 回归
+
+`3902 / 3865 / 0 / 37`(`unity/Logs/s19i-ta-knobs-full.xml`,2026-10-19)vs 本片前 `3885 / 3847 / 1 / 37`。
+
+| 量 | 前 | 后 | Δ | 对账 |
+|---|---|---|---|---|
+| total | 3885 | 3902 | **+17** | = 新夹具 `telemetry_analytics_wiring_test.cs` 的 `[Test]` 数 **17**(等式成立) |
+| passed | 3847 | 3865 | **+18** | = +17 新增 + 1(上批 `TD-player-01` 间歇 `MovementFeedTest` 本轮转绿) |
+| failed | 1 | 0 | −1 | 同上 |
+| skipped | 37 | 37 | 0 | 无新跳过;37 条前批已有 NOT-RUN 逐名不变 |
+
+**GONE = 0** —— 前批 3885 条一名未丢(总数只增不减且增量恰等于新夹具数)。**零回归**。
+
+### ⚠️ 未落半边(禁借绿)
+
+- **`FOLD_MEMORY_MODE` 刻意不在本文件** —— 它是折叠实现策略而非测量参数;`AC-51-D6` 要求两值对拍,
+  配置文件只能承载一个值 ⇒ 落进去会让对拍失去第二值来源。
+- **`ComputeSeries` 覆盖记账既有偏差**(末窗越过 `Tick_max` ⇒ `CoveredTicks` 可能 &gt; `SpanTicks`)
+  —— 从测试上移时带入,**不混在旋钮片里**改(改它 = 改 F5 行为)。
+- **PlayMode catalog 半边 NOT-RUN** —— 同 §三·十一;跑 PlayMode 前须先跑「构建 Addressables 内容」菜单。
+- **GDD `:519-529` 的 `*待定*` 标注**仍是旧的(值已批准但 GDD 未回写) —— 回写归 GDD 轮,本片不动 GDD。
+
+---
+
 ## 四、仍未还(epic 级 · 禁借绿)
 
 | # | 缺口 | 说明 |
 |---|---|---|
 | 1 | ~~**调试视图**~~ **✅ 第七片已落(留两半未落)** | 视图本体 + 入口 + 判据 12 条 + 证伪 8/8 全落。**残余**:① 生产装配**无调用点**(DevBuild 怎么唤未裁 ⇒ 只由夹具驱动)② AC-51-D4 的 Release 半边 **NOT-RUN**(须 Release player 构建) |
-| 2 | ~~**装配层未接线**~~ **✅ 第五/六/八/九片已接** | F1–F7 均已有生产还原器 + 各自的真链路判据。**残余**:① ~~F3 的 `cause` 关联~~ **✅ 第八片已落**;~~纯键鼠 `MAG_MAX` 回填~~ **✅ 第九片已落**(AC-10-21 两半边齐);~~设备切换六旋钮仍为临时种子未进 data-core~~ **✅ 第十一片已落**(§三·十一 —— cooked 制品 + 装载路径 + 取值缝 + 8 条地址 + 对账断言;PlayMode catalog 半边 NOT-RUN);**该残余的下一半** = 兜底常量与烘焙表并存(删兜底须另裁)② ~~F7 上中位数与 GDD 不符~~ **✅ 第十片已结清**(§三·十 —— 生产式本就对,订正的是 GDD 符号 `n→m` 与一处下标注释)③ F4–F7 的参数全 `*待定*`,生产方法**无默认值**,须调用方传 |
+| 2 | ~~**装配层未接线**~~ **✅ 第五/六/八/九片已接** | F1–F7 均已有生产还原器 + 各自的真链路判据。**残余**:① ~~F3 的 `cause` 关联~~ **✅ 第八片已落**;~~纯键鼠 `MAG_MAX` 回填~~ **✅ 第九片已落**(AC-10-21 两半边齐);~~设备切换六旋钮仍为临时种子未进 data-core~~ **✅ 第十一片已落**(§三·十一 —— cooked 制品 + 装载路径 + 取值缝 + 8 条地址 + 对账断言;PlayMode catalog 半边 NOT-RUN);**该残余的下一半** = 兜底常量与烘焙表并存(删兜底须另裁)② ~~F7 上中位数与 GDD 不符~~ **✅ 第十片已结清**(§三·十 —— 生产式本就对,订正的是 GDD 符号 `n→m` 与一处下标注释)③ ~~F4–F7 的参数全 `*待定*`,生产方法**无默认值**,须调用方传~~ **✅ 第十二片已落**(§三·十二 —— 文件 + 烘焙 + 加载期门 + 可空注入;数值经用户批准,**仍是临时值待数值轮**,GDD 表内 `*待定*` 未回写) |
 | 3 | 3 条 Ignore 未清 | `AC-51-B9`(集成目录 `tests/integration/51/` 未建)· `AC-51-E3`(非主机侧拒绝,依赖 `OQ-51-5` 未裁)· `blank_and_degraded` 的谓词面仍无测试驱动(见 §二②) |
 | 4 | **10 条 story 的 `Complete` 一条未动** | 账面与实现的背离仍在 |
 
@@ -687,7 +818,19 @@ python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/td-epic-01-dev
 # 期望:退出码 0(7 个变异全部恰如预期转红,受保护路径指纹未变)
 # ⚠️ --guard 不可省:驱动不读 spec 里的 guards 字段,缺它则 cooked 产物不在受保护面内
 
+# 遥测 F4–F7 六旋钮(第十二片)
+unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.Unit.Telemetry.TelemetryAnalyticsWiringTest"
+# 期望:17/17 全绿
+unity test unity --mode EditMode --filter "DaYiJingCheng.Tests.Unit.Telemetry.OutOfBoundsRejectionTest.test_e5_noSwitch_noSwitchFields"
+# 期望:1/1 绿(文件必须存在 + 扫禁止字段 + binder 白名单无错)
+python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/td-epic-01-telemetry-analytics-cooked.json --guard unity/Assets/DataCooked
+# 期望:退出码 0(7 个变异全部恰如预期转红);--guard 不可省(同第十一片)
+# 重新烘焙(改了 assets/data/telemetry_analytics.json 之后):
+#   unity build unity --target StandaloneLinux64 --execute-method DaYiJingCheng.EditorTools.Bake.DataBakeMenu.BakeTelemetryAnalytics
+#   ⚠️ 该 CLI 的 build 子命令**编译失败也返回 0** ⇒ 必须 grep 日志里的「烘焙完成」/「Scripts have compiler errors」
+
 # 全量
 rm -f test-results.xml && unity test unity --mode EditMode -- --log-file -
-# 期望:total 3873 / passed 3836 / failed 0 / skipped 37(第十片后;若 TD-player-01 间歇复发则 failed 1)
+# 期望:total 3902 / passed 3865 / failed 0 / skipped 37(第十二片后,`unity/Logs/s19i-ta-knobs-full.xml`;
+#       若 TD-player-01 间歇复发则 failed 1 —— 该条与遥测无关,单跑可复核)
 ```

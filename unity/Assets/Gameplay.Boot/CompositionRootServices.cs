@@ -15,6 +15,7 @@ using DaYiJingCheng.Sim.DiseaseSimulation;
 using DaYiJingCheng.Sim.Prescription;
 using DaYiJingCheng.Gameplay.PatientAI;
 using DaYiJingCheng.Gameplay.Presentation.Audio;
+using DaYiJingCheng.Gameplay.Presentation.Telemetry;   // TelemetryAnalyticsTuning(第十二片)
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
@@ -196,7 +197,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          AudioSourceRenderTarget renderTarget,
                                          bool audioRenderAssembled,
                                          PatientCueDriver patientCueDriver,
-                                         PatientBehaviorDirector behaviorDirector)
+                                         PatientBehaviorDirector behaviorDirector,
+                                         TelemetryAnalyticsTuning? telemetryKnobs = null)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -235,7 +237,8 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             // 51 遥测接线(TD-epic-01):decoder 在 Sim.Codec、51 的装配引不到 ⇒ 在本装配层包成委托。
             // ⚠️ stream / decoder / registry 均已是本 ctor 的形参 ⇒ 不加新装配边、不改 Assemble 签名。
-            Telemetry = new TelemetryReporter(stream, decoder, registry ?? CreateFallbackRegistry());
+            // 第十二片:旋钮表(TD-epic-01)由调用方传入,缺省 null ⇒ F4–F7 保持「未给」,不代填默认值。
+            Telemetry = new TelemetryReporter(stream, decoder, registry ?? CreateFallbackRegistry(), telemetryKnobs);
         }
 
         /// <summary>最小内联病种注册表(DiseaseId=1)—— 装配层未传入真表时的接线载体。</summary>

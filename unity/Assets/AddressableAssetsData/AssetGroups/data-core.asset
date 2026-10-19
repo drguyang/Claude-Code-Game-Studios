@@ -45,6 +45,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 89dcadb188a11e789a0ea310199b1d5b
+    m_Address: telemetry_analytics.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 8b106ce25846736ebb969c17bd4db1fc
     m_Address: audio_settings_registry.cooked.bytes
     m_ReadOnly: 0

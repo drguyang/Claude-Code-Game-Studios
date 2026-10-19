@@ -12,6 +12,7 @@ using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using DaYiJingCheng.Gameplay.Presentation.Input;
 using DaYiJingCheng.Gameplay.Presentation.Settings;
+using DaYiJingCheng.Gameplay.Presentation.Telemetry;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 using SignDataSet = DaYiJingCheng.Gameplay.Presentation.Diagnosis.DiagnosisSignDataSet;
@@ -70,6 +71,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <para>⚠️ 单一出处 = <see cref="DeviceSwitchTuningDataSet.CookedFileName"/>。</para></summary>
         public const string DeviceSwitchTuningAddress = DeviceSwitchTuningDataSet.CookedFileName;
 
+        /// <summary>遥测参数旋钮表 address(TD-epic-01 第十二片;F4–F7 六旋钮的还债面)。
+        /// <para>⚠️ 单一出处 = <see cref="TelemetryAnalyticsDataSet.CookedFileName"/>。</para></summary>
+        public const string TelemetryAnalyticsAddress = TelemetryAnalyticsDataSet.CookedFileName;
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -85,6 +90,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private AudioSettingsDataSet? _audioSettings;
         // 设备切换常量表(TD-epic-01 第十一片):struct ⇒ 可空承载。
         private DeviceSwitchTuningDataSet? _deviceSwitchTuning;
+        // 遥测参数旋钮表(TD-epic-01 第十二片):struct ⇒ 可空承载。
+        private TelemetryAnalyticsDataSet? _telemetryAnalytics;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -138,11 +145,18 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureDeviceSwitchTuning();
                 return (TDataSet)(object)_deviceSwitchTuning.Value;
             }
+            // ── TD-epic-01 第十二片(2026-10-19):遥测参数旋钮表 ──
+            if (typeof(TDataSet) == typeof(TelemetryAnalyticsDataSet))
+            {
+                EnsureTelemetryAnalytics();
+                return (TDataSet)(object)_telemetryAnalytics.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
                 " + 两份 44 侧产物(S14-6:AudioEventDataSet / AudioSettingsDataSet)" +
-                " + 设备切换常量表(TD-epic-01 第十一片:DeviceSwitchTuningDataSet)");
+                " + 设备切换常量表(TD-epic-01 第十一片:DeviceSwitchTuningDataSet)" +
+                " + 遥测参数旋钮表(TD-epic-01 第十二片:TelemetryAnalyticsDataSet)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -157,6 +171,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureAudioEvents();
             EnsureAudioSettings();
             EnsureDeviceSwitchTuning();
+            EnsureTelemetryAnalytics();
         }
 
         private void EnsureItems()
@@ -283,6 +298,22 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 设备切换常量表 cooked 解码失败(address={DeviceSwitchTuningAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureTelemetryAnalytics()
+        {
+            if (_telemetryAnalytics.HasValue) return;
+            byte[] bytes = FetchBytes(TelemetryAnalyticsAddress);
+            try
+            {
+                _telemetryAnalytics = TelemetryAnalyticsCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 遥测参数旋钮表 cooked 解码失败(address={TelemetryAnalyticsAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }
         }

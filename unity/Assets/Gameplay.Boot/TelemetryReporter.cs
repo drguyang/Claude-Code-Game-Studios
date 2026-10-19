@@ -22,6 +22,7 @@ using System.Text;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Telemetry;
+using DaYiJingCheng.Gameplay.Presentation.Telemetry;   // TelemetryAnalyticsTuning(第十二片:可空旋钮注入)
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
@@ -34,17 +35,26 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly IPayloadDecoder _decoder;
         private readonly IReadOnlyList<DiseaseRegistryEntry> _registry;
 
+        /// <summary>可空旋钮(来源 = data-core 烘焙表 `telemetry_analytics.cooked.bytes`;TD-epic-01 第十二片)。
+        /// <para>null = 调用方没装载旋钮表 ⇒ F4–F7 报告保持「未给」形态(<b>不</b>在此代填默认值,
+        /// 与 GDD「数值归用户」一致)。显式传参的调用方仍优先 —— 注入的可空值只服务于
+        /// 「谁都没给」的开发者预览路径。</para></summary>
+        public TelemetryAnalyticsTuning? Knobs { get; }
+
         /// <summary>构造(组合根调用点)。</summary>
         /// <param name="stream">事件流(只读其 <see cref="EventStream.Events"/> 快照;不持写面)。</param>
         /// <param name="decoder">载荷解码器(实现在 `Sim.Codec`;组合根引得到,51 的装配引不到 ⇒ 委托注入)。</param>
         /// <param name="registry">病种注册表(真表到位后替换 Fallback;DiseaseId → ordinal,
         /// 与 CaseClosed 位掩码 bit 位置对齐,用于把 truth/judged 还原成同一字符串空间)。</param>
+        /// <param name="knobs">可空旋钮(第十二片);null ⇒ 不代填。</param>
         public TelemetryReporter(EventStream stream, IPayloadDecoder decoder,
-                                 IReadOnlyList<DiseaseRegistryEntry> registry)
+                                 IReadOnlyList<DiseaseRegistryEntry> registry,
+                                 TelemetryAnalyticsTuning? knobs = null)
         {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
+            Knobs = knobs;
         }
 
         /// <summary>F1 指标的本地报告文本(整数对;分母 0 报「分母 0」)。
@@ -603,13 +613,32 @@ namespace DaYiJingCheng.Gameplay.Boot
             return text;
         }
 
-        /// <summary>开发期默认预览 —— **只收 sink**(不替用户填旋钮):参数全 `*待定*` ⇒ 只出
-        /// F1–F3 + 「未给(未算)」逐条点名。供 DevBuild 里挂一个键位 / 控制台命令直接调;
-        /// 生产装配**尚不挂调用点**(键位选型未裁,见 TD 账)—— 有调用点之后这条才会被
-        /// 真实链路驱动,在那之前它只由夹具证明。
+        /// <summary>开发期默认预览 —— **只收 sink**。旋钮优先取注入的烘焙表
+        /// (<see cref="Knobs"/>,TD-epic-01 第十二片);未注入 ⇒ 各字段仍为 null ⇒ 报告显式写
+        /// 「未给(未算)」—— **绝不**在此处硬编码默认值(GDD:数值归用户)。
+        /// <para>`GROWTH_WINDOW` 是**窗宽**而 <see cref="SkillGrowthReport"/> 收 `(from, to)` 闭区间
+        /// ⇒ 生产映射 = `(Tick_max − GROWTH_WINDOW, Tick_max)`。⚠️ 需指名技能(`g.skill`);
+        /// 预览不猜技能 ⇒ `Skill` 恒 null,**F4 在默认预览里仍是「未给」**(如实登记,非遗漏)。</para>
         /// <para>同样在 Release 编译期剔除。</para></summary>
-        public string RenderDeveloperSummary(ITelemetrySink sink) =>
-            RenderDeveloperPreview(new TelemetryPreviewRequest(null, null, null, null, null, null, null), sink);
+        public string RenderDeveloperSummary(ITelemetrySink sink)
+        {
+            long? first = null;
+            int? step = null, window = null, gap = null, minSample = null;
+            (long from, long to)? growth = null;
+            if (Knobs.HasValue)
+            {
+                TelemetryAnalyticsTuning k = Knobs.Value;
+                first = k.DifficultyCurve.FirstWindowTick;
+                step = k.DifficultyCurve.StepTicks;
+                window = k.DifficultyCurve.WindowTicks;
+                gap = k.GapThresholdTicks;
+                minSample = k.MinSample;
+                var (_, tickMax, _, count) = SessionRhythmMetrics.ComputeSessionSpan(FlattenTicks());
+                if (count > 0) growth = (tickMax - k.GrowthWindowTicks, tickMax);
+            }
+            return RenderDeveloperPreview(
+                new TelemetryPreviewRequest(null, growth, first, step, window, gap, minSample), sink);
+        }
 #endif
 
         public string CompletenessBanner(bool f1Faulted)

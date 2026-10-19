@@ -6428,3 +6428,39 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
   唯一红 = `MovementFeedTest.test_move_afterFreeFall_…` = **`TD-player-01` 已知间歇**
   (tech-debt-register:207;`minMoveDistance` 默认 0.001 吞亚阈值位移);**单跑 5/5 转绿**
   (`unity/Logs/ds_movfeed_rerun.xml`)⇒ 间歇已实测定性,**不抵扣、不记为已修**。
+
+## Session Extract — TD-epic-01 第十二片:51 遥测 F4–F7 六旋钮参数(2026-10-19)
+
+- **原登记**:「F4–F7 的参数全 `*待定*`」。**实测病根比「缺数值」深一层**:
+  GDD `:541` 声明的落地位置 `assets/data/telemetry_analytics.json` **从未存在**
+  ⇒ ① `AC-51-B14` 的「配置加载」半边**没有对象**;② `AC-51-E5` 的
+  `test_e5_noSwitch_noSwitchFields` 走「文件不存在 ⇒ Assert.Pass」**恒真分支**
+  (`review-cross-epic-fake-green-2026-10-18.md:58` 已登记)。
+- **用户三项裁定(AskUserQuestion)**:① 数值 = 「我给建议值,你批准后写死」;
+  ② 落地 = 「建文件 + 烘焙 + 装载 + 加载期门」;③ E5 = 「文件必须存在 + 扫描禁止字段」。
+- **数值(用户 2026-10-19 批准;仍临时,待数值轮)**:`W=600` `S=300` `t_0=0`
+  `GAP_THRESHOLD=200` `GROWTH_WINDOW=12000` `TELEMETRY_MIN_SAMPLE=30`(20 Hz 换算见证据 §三·十二)。
+- **落盘**:`assets/data/telemetry_analytics.json`(四组)· `TelemetryAnalyticsTuning`(内存形 +
+  `Validate` 安全范围谓词)· `TelemetryAnalyticsBinder`(白名单 = AC-51-E5 结构性执法)·
+  `TelemetryAnalyticsCookedWriter` / `…DataSet` / `…CookedCodec`(**加载期门** = B14 第二半)·
+  `TelemetryAnalyticsBake` · `DataBakeMenu` 菜单 · `AddressablesDataProvider` 第 9 支路 ·
+  `DataCorePreloader` 8 → **9 条地址** · `BootRoot.ResolveTelemetryKnobs` ·
+  `CompositionRoot`/`CompositionRootServices`/`TelemetryReporter` 可空注入 ·
+  `RenderDeveloperSummary` 用烘焙值 · cooked 产物 **52 B**(`ConfigVersion = 0x080b5c53`)· 新夹具 17 条。
+- ⚠️ **CLI 陷阱(新发现)**:**`unity build --execute-method` 编译失败仍返回退出码 0** ——
+  首跑 CS0246 却 `exit=0`,判别只能 grep 日志里的 `Scripts have compiler errors`。
+- ⚠️ **设计冲突的解法**:`RenderDeveloperSummary` 原口径「不替用户填旋钮」与本片「装真源」正面冲突
+  ⇒ 改为**可空注入**:注入了才填,未注入仍是「未给」(既不造默认值,又落了真源)。
+  `GROWTH_WINDOW` 是**窗宽**不是区间 ⇒ 生产映射 `(Tick_max − GROWTH_WINDOW, Tick_max)`;
+  `Skill` 仍恒 null(F4 需指名技能,预览不猜)。
+- **刻意不做**:`FOLD_MEMORY_MODE` 不进本文件(实现策略非测量参数;AC-51-D6 要两值对拍,
+  配置只能承载一个值)· `ComputeSeries` 覆盖记账的既有偏差(末窗越 `Tick_max`)不混入本片。
+- **未回写**:GDD `:519-529` 的 `*待定*` 标注仍是旧值(回写归 GDD 轮)。
+- **证伪**:7 变异全过(退出码 0,7/7 恰如预期);首轮 F1/F4/F5 三处「红得比预期多」已按实测订正
+  期望清单(机制解释见证据 §三·十二),还原 SHA-256 + 受保护路径指纹通过。
+- **data-core 组登记**:走真菜单(`EnsureDataCoreGroup`)⇒ 条目 **8 → 9**,diff 仅 +6 行;
+  条目 GUID 与产物 `.meta` 逐字一致。
+- **回归**:`3902 / 3865 / 0 / 37`(`unity/Logs/s19i-ta-knobs-full.xml`)vs 前 `3885 / 3847 / 1 / 37`
+  ⇒ total **+17 = 新夹具 17 条**(等式成立)· passed **+18**(+17 新增 + 1 上批间歇转绿)·
+  skipped **37 不变** · **GONE = 0**。**零回归**。
+- **未提交**。

@@ -29,6 +29,7 @@ using DaYiJingCheng.Gameplay.Presentation.Camera;
 using DaYiJingCheng.Gameplay.Presentation.Input;      // DeviceSwitchTuningDataSet(第十一片取值缝)
 using DaYiJingCheng.Gameplay.Presentation.Player;
 using DaYiJingCheng.Gameplay.Presentation.Settings;   // AudioSettingsRegistry(S14-6 注入缝)
+using DaYiJingCheng.Gameplay.Presentation.Telemetry;  // TelemetryAnalyticsTuning / DataSet(第十二片取值缝)
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
 using DaYiJingCheng.Sim.Contracts;                    // IDataProvider(ApplyAudioSettingsProvider 形参)
 using UnityEngine;
@@ -169,7 +170,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                 registry: null,
                 dataProvider: preloaded ? DataCorePreloader.Provider : null,
                 inputActions: inputActions,
-                audio: _audioSeams);
+                audio: _audioSeams,
+                // 51 遥测六旋钮(TD-epic-01 第十二片):预载成功 ⇒ 烘焙表;失败 ⇒ null(报告维持「未给」)。
+                telemetryKnobs: ResolveTelemetryKnobs(preloaded ? DataCorePreloader.Provider : null));
 
             // ── 2.9 设备态挂接(TD-epic-01 第八片 · 2026-10-19)──
             // 病因:`DeviceStateManager`(story-008)此前**零生产实例**(零生产调用方,与
@@ -525,6 +528,19 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (!preloaded || provider == null) return;
             AudioSettingsRegistry.Provider =
                 () => provider.Load<AudioSettingsDataSet>().Rows;
+        }
+
+        /// <summary>遥测 F4–F7 六旋钮的**取值缝**(TD-epic-01 第十二片)。
+        /// <para>provider 非空 ⇒ 取烘焙表(<c>telemetry_analytics.cooked.bytes</c>,真源,加载期已过范围门);
+        /// provider 为 null(预载失败)⇒ **返回 null**,由 <see cref="TelemetryReporter"/> 维持「未给」
+        /// 形态 —— <b>不</b>造第二份常量兜底(与第十一片的设备旋钮刻意不同:GDD「数值归用户」,
+        /// 51 不替用户转旋钮;凭空兜底默认值 = 没告诉任何人就改了口径)。
+        /// W &lt; 1 / S &lt; 1 在<b>装载期</b>已被 <c>TelemetryAnalyticsCookedCodec</c> 拒收 ⇒
+        /// 此处拿到的值必然合法;到达本处的越界值 ⇒ startup hard failure 已先发生。</para></summary>
+        /// <param name="provider">data-core provider(null ⇒ null)。</param>
+        public static TelemetryAnalyticsTuning? ResolveTelemetryKnobs(IDataProvider provider)
+        {
+            return provider?.Load<TelemetryAnalyticsDataSet>().Tuning;
         }
 
         /// <summary>设备切换迟滞六旋钮的**取值缝**(TD-epic-01 第十一片)。

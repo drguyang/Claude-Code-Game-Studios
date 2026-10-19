@@ -1,0 +1,110 @@
+{
+  "name": "TD-epic-01 第十二片 —— 51 遥测 F4–F7 六旋钮烘焙管线 + 加载期门 + 消费缝",
+  "mode": "EditMode",
+  "filter": "TelemetryAnalyticsWiringTest",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/AddressableAssetsData",
+    "unity/Assets/DataCooked"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期)。",
+    "⚠️ 驱动脚本 unity_falsify.py 只读 --guard 参数(不读本文件的 guards 字段)⇒ 运行必须带 --guard unity/Assets/DataCooked。",
+    "F4/F5 是本片的核心:B14 的「构建期 / 加载期两半」必须各有一道,停用任一半都得转红。"
+  ],
+  "mutations": [
+    {
+      "name": "F1-windowRangeGuard",
+      "file": "unity/Assets/Gameplay.Presentation/Telemetry/TelemetryAnalyticsTuning.cs",
+      "line": 75,
+      "expect": "            if (DifficultyCurve.WindowTicks < 1)",
+      "replace": "            if (false) // FALSIFY-F1:停用 W >= 1 守卫",
+      "expectRed": [
+        "test_binder_windowZero_buildTimeReject",
+        "test_codec_windowZero_loadTimeReject"
+      ],
+      "exactRed": true,
+      "_why": "⚠️ 2026-10-19 首轮实测订正:守卫住**共享**的 Validate ⇒ 构建期与加载期同时失效,两条必红(首版只列一条 = 期望写窄)。"
+    },
+    {
+      "name": "F2-loadTimeRangeGate",
+      "file": "unity/Assets/Gameplay.Presentation/Telemetry/TelemetryAnalyticsCookedCodec.cs",
+      "line": 60,
+      "expect": "            List<string> errors = tuning.Validate(\"[加载期][telemetry_analytics]\");",
+      "replace": "            List<string> errors = new List<string>(); // FALSIFY-F2:停用加载期范围门",
+      "expectRed": [
+        "test_codec_windowZero_loadTimeReject",
+        "test_codec_otherOutOfRange_loadTimeReject"
+      ],
+      "exactRed": true,
+      "_why": "AC-51-B14 的第二半:上游绕过 binder 时,加载期必须自己拒收。停用它 ⇒ 越界产物被当作合法装载。"
+    },
+    {
+      "name": "F3-topLevelWhitelist",
+      "file": "unity/Assets/Editor.Tools.Bake/TelemetryAnalyticsBinder.cs",
+      "line": 102,
+      "expect": "                if (!allowed.Contains(key))",
+      "replace": "                if (false) // FALSIFY-F3:停用顶层白名单",
+      "expectRed": [
+        "test_binder_switchField_rejectedByWhitelist"
+      ],
+      "exactRed": true,
+      "_why": "AC-51-E5 的结构性执法:白名单停用 ⇒ enabled / sample_rate 等开关字段可入 schema。"
+    },
+    {
+      "name": "F4-writerColumnOrder",
+      "file": "unity/Assets/Editor.Tools.Bake/TelemetryAnalyticsCookedWriter.cs",
+      "line": 44,
+      "expect": "                w.Write(tuning.DifficultyCurve.WindowTicks);            // i32 W",
+      "replace": "                w.Write(tuning.DifficultyCurve.StepTicks);              // FALSIFY-F4:列序改 S 先",
+      "expectRed": [
+        "test_bake_boundEqualsReloaded_sixKnobs",
+        "test_bake_materialize_roundTripExact",
+        "test_bake_payloadColumnOrder_byAbsoluteOffset"
+      ],
+      "exactRed": true,
+      "_why": "⚠️ 2026-10-19 首轮实测订正:W=600 与 S=300 异值 ⇒ 写反后往返/三方同值/绝对偏移三条都红(后者是**位置**判据,前者是**值**判据,两者互补)。"
+    },
+    {
+      "name": "F5-headerSchemaSlot",
+      "file": "unity/Assets/Editor.Tools.Bake/TelemetryAnalyticsCookedWriter.cs",
+      "line": 64,
+      "expect": "            WriteU32Le(output, 8, schemaVersion);",
+      "replace": "            WriteU32Le(output, 8, 0); // FALSIFY-F5:头槽 schemaVersion 硬写 0",
+      "expectRed": [
+        "test_bake_boundEqualsReloaded_sixKnobs",
+        "test_bake_headerSchemaSlot_notZero_equalsContract",
+        "test_bake_materialize_roundTripExact",
+        "test_codec_otherOutOfRange_loadTimeReject",
+        "test_codec_windowZero_loadTimeReject"
+      ],
+      "exactRed": true,
+      "_why": "⚠️ 2026-10-19 首轮实测订正:头槽 schemaVersion=0 ⇒ 读方版本门拒收 ⇒ 任何走整条管线的测都红(五条)。判别力成立且更强;清单按实测列全。"
+    },
+    {
+      "name": "F6-resolveKnobsSeam",
+      "file": "unity/Assets/Gameplay.Boot/BootRoot.cs",
+      "line": 543,
+      "expect": "            return provider?.Load<TelemetryAnalyticsDataSet>().Tuning;",
+      "replace": "            return null; // FALSIFY-F6:取值缝断线(永不取烘焙表)",
+      "expectRed": [
+        "test_resolveKnobs_withProvider_takesBakedTable"
+      ],
+      "exactRed": true,
+      "_why": "消费缝的存在理由:provider 非空时必须取真源;断线后报告永远停在「未给」。"
+    },
+    {
+      "name": "F7-minSampleRangeGuard",
+      "file": "unity/Assets/Gameplay.Presentation/Telemetry/TelemetryAnalyticsTuning.cs",
+      "line": 90,
+      "expect": "            if (MinSample < 1)",
+      "replace": "            if (false) // FALSIFY-F7:停用 MIN_SAMPLE >= 1 守卫",
+      "expectRed": [
+        "test_codec_otherOutOfRange_loadTimeReject"
+      ],
+      "exactRed": true,
+      "_why": "MIN_SAMPLE = 0 会让「样本不足」标注恒不触发(E-3 的读数面失效);停用 ⇒ 加载期不再拒收。"
+    }
+  ]
+}

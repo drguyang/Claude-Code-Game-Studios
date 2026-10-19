@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "_note": "TD-epic-01 第十二片(2026-10-19)· 51 遥测 F4–F7 的**参数旋钮**真源(GDD §Tuning Knobs 落地位置)。分组镜像按用途成对象:difficulty_curve = F5 滑窗(W / S / t_0,同属 registry 登记项 difficulty_curve_window_density)· session_rhythm = F7 静默段阈值 · skill_growth = F4 成长统计窗 · sample = E-3 样本不足标注门槛。⚠️ 数值由用户 2026-10-19 批准(用户裁定「我给建议值,你批准后写死」),但**仍是临时值,待数值轮**;推导以 TICK_SECONDS = 0.05(20 Hz)为基准:W = 600 tick(30 s,窗内单流事件约 5–20 条)· S = 300 tick(= W/2,50% 重叠、无洞,成本仅 2× 窗数)· t_0 = 0(锚定世界起点)· GAP_THRESHOLD = 200 tick(10 s,约中位 Δ 的 4–10×)· GROWTH_WINDOW = 12000 tick(10 min,窗内成长事件约 30–60 条)· TELEMETRY_MIN_SAMPLE = 30(比例型指标稳定下限,且低于 GDD 工作例 |Scorable| = 40)。全部为 int 计数**不是 Fix**(ADR-006 D-21-17 同口径);范围门由 TelemetryAnalyticsBinder 构建期执法、TelemetryAnalyticsCookedCodec 加载期再执法(AC-51-B14 两半)。⚠️ AC-51-E5:本 schema **无** enabled / sample_rate / endpoint / experiment / consent —— 加一个开关就是加一个出厂面,白名单外键 = 烘焙期硬失败。FOLD_MEMORY_MODE 刻意**不在本文件**:它是折叠实现策略而非测量参数,且 AC-51-D6 要求两值对拍,配置文件只能承载一个值。",
+  "difficulty_curve": {
+    "window_ticks": 600,
+    "step_ticks": 300,
+    "first_window_tick": 0
+  },
+  "session_rhythm": {
+    "gap_threshold_ticks": 200
+  },
+  "skill_growth": {
+    "growth_window_ticks": 12000
+  },
+  "sample": {
+    "min_sample": 30
+  }
+}

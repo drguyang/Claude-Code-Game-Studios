@@ -297,35 +297,47 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
 
         /// <summary>AC-51-E5:telemetry_analytics.json schema 中无
         /// enabled/sample_rate/endpoint/experiment/consent 字段。
-        /// QA 修复:直接验证 JSON 文件不存在(当前阶段)或存在时不包含禁止字段。
-        /// B1 修复:空命名空间 ⇒ Assert.Ignore(假绿防护)。</summary>
+        /// <para>⚠️ <b>2026-10-19 重写(TD-epic-01 第十二片,用户裁定「文件必须存在 + 扫描禁止字段」)</b>:
+        /// 原实现「文件不存在 ⇒ <c>Assert.Pass</c>」是**恒真分支** —— 而该文件当时**从未存在**
+        /// (见 `review-cross-epic-fake-green-2026-10-18.md:58` 的登记),本条对变异零判别力。
+        /// 现判据:文件**必须存在**(缺失 = 红,点名 GDD 声明的落地位置);存在 ⇒ 扫禁止字段,
+        /// 并把<b>白名单</b>顶层的结构性执法也断言上 —— 白名单外键在烘焙期即硬失败,这比
+        /// 黑名单扫描更强(黑名单只挡已知的)。</para></summary>
         [Test]
         public void test_e5_noSwitch_noSwitchFields()
         {
-            // Arrange:检查 telemetry_analytics.json 文件
+            // Arrange
             string configPath = Path.Combine(repoRoot(), "assets", "data", "telemetry_analytics.json");
 
-            // Act:检查文件是否存在
-            if (!File.Exists(configPath))
-            {
-                // 文件不存在 = 无 schema = 无开关 = 通过(QA 修复:非 Ignore)
-                Assert.Pass("telemetry_analytics.json 不存在 ⇒ 无 schema ⇒ 无开关(AC-51-E5:无开关)");
-                return;
-            }
+            // Act + Assert ①:文件必须存在(不存在 ⇒ 无对象可测 = 红,不再 Pass)
+            Assert.That(File.Exists(configPath), Is.True,
+                $"telemetry_analytics.json 必须存在(GDD §Tuning Knobs 的落地位置)—— {configPath}。" +
+                "文件缺失时本条**不得**以「无 schema ⇒ 无开关」通过:那是对变异的零判别力(假绿)。");
 
-            // Assert:文件存在时,扫描禁止字段
+            // Act ②:黑名单扫描(逐 token,避免子串误命)
+            string jsonContent = File.ReadAllText(configPath);
             var switchFieldNames = new[] { "enabled", "sample_rate", "endpoint", "experiment", "consent" };
             var violations = new List<string>();
-            var jsonContent = File.ReadAllText(configPath);
-            foreach (var field in switchFieldNames)
-            {
-                if (jsonContent.Contains($"\"{field}\""))
+            foreach (string field in switchFieldNames)
+                if (jsonContent.Contains($"\"{field}\"", StringComparison.Ordinal))
                     violations.Add($"telemetry_analytics.json 含禁止字段: {field}");
-            }
 
             Assert.That(violations, Is.Empty,
                 "telemetry_analytics.json 不得含 enabled/sample_rate/endpoint/experiment/consent 字段(AC-51-E5:无开关):\n" +
                 string.Join("\n", violations));
+
+            // Assert ③:白名单执法(binder 对文件里的禁止字段必须**拒收**,而不仅仅是「扫不到」)
+            var binderErrors = new List<string>();
+            try
+            {
+                DaYiJingCheng.EditorTools.Bake.TelemetryAnalyticsBinder.BindFromSourceText(jsonContent);
+            }
+            catch (DaYiJingCheng.EditorTools.Bake.BakeValidationException ex)
+            {
+                binderErrors.AddRange(ex.Errors);
+            }
+            Assert.That(binderErrors, Is.Empty,
+                "真文件必须经 binder 白名单无错通过(否则烘焙管线本身就拒收它):\n" + string.Join("\n", binderErrors));
         }
 
         /// <summary>AC-51-E5:51 命名空间无开关字段。
