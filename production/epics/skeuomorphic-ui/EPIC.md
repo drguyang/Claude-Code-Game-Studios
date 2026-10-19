@@ -134,8 +134,9 @@
 | 022 | M2 形态件②(墨乾湿两态 —— 主题色明度轴 · 双态接图 · 洇开语义) | UI/Visual-Feel | **Complete ✅ 2026-10-08**(三步全交付:两态主题色 + `.ink-wet`/`.ink-dry` 接冻结图 + 洇开覆盖方向判据;M2 形态件 2/4) | ADR-013 + `milestones §三` + art-bible §4.5/G4 |
 | 023 | M2 形态件③(急救零数字 + 可跳过 —— 跳过入口元件 · 零数字角标门 · 焦点落点形态) | UI/Visual-Feel | **Complete ✅ 2026-10-09**(三步全交付:`.skip-entry` 元件 + G2 零数字门 + 焦点落点/属性交集判据;零新变量零新图;M2 形态件 3/4) | ADR-013 + `milestones §三` + art-bible G2 + `O-10-1` |
 | 024 | M2 形态件④(一条真实状态反馈通道 —— 体征词条→五通道分发 · 通道值区形态 · 真表端到端) | UI/Visual-Feel | **Complete ✅ 2026-10-09**(三步全交付:`SignChannelBinder` 分发纯函数 + `.channel-reading`/`-negative` 两态类 + 34 行真表端到端;零新图零新变量;M2 形态件 4/4) | ADR-013 + `milestones §三` + diagnosis-system 规则五/F-8.2 |
+| 025 | 戥子档位形态元件(戥杆倾角 / 药包鼓胀 · 离散档 ↔ 离散形态) | UI/Visual-Feel | **Complete ✅ 2026-10-18**(实现轮 23 测全绿 + 证伪 17/17 · 评审轮 CHANGES REQUIRED → R-1 重锚 + 修复 8 项/留白 2 → 截图轮首图判红(三色全同零对比度)→ 甲案修复 → 复图判绿(金档块位置逐行阶梯)→ **`S13-7` 走查重跑:A3 ✅ 可读 / B2 ✅ 可辨,主创+医学从业双签 ⇒ `TD-prescription-01/-02/-03` 结案** · EditMode `3732/3686/1/45`(唯一红=已知间歇红)+ PlayMode `197/197/0/0`。⚠️ `AC-025-6` **维持不勾**(三枚举分类器归 `TD-prescription-07`,用户裁定重锚,不阻塞结案)) | ADR-013 + prescription-and-medication `:867-868`/`:875` + skeuomorphic-ui `:1219` |
 
-Counts: 5 Logic · 3 Integration · 5 Visual/Feel · **10 UI** = **24 total (23 Complete + 1 ◐ = story-019)**。
+Counts: 5 Logic · 3 Integration · 5 Visual/Feel · **11 UI** = **25 total (24 Complete + 1 ◐ = story-019)**。
 43 条 AC 全覆盖(按子条拆入);全 ADR Accepted ⇒ 零 ADR-blocked story。
 ⚠️ **story 019 是范围补件,非原 18 条的追加** —— 它填的是「贴图绑定」这个原本**没有任何 story 覆盖**的面
 (见上方 §范围边界声明)。**上表 18 条 Complete 不因 019 Ready 而失效** —— 二者覆盖不同的面。

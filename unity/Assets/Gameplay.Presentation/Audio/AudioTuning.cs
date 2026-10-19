@@ -64,6 +64,25 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// 「构建期数值比较,超界 = 失败」)。</para></summary>
         public const int MusicXfadeMinMs = 2000;
 
+        /// <summary>`breath_tail_ramp_ms`(呼吸尾音 = 基础气流层增益衰减的**总时长**)——
+        /// **种子值 1500 ms**(音色上的「一阵尾巴」量级)。
+        /// <para>GDD :571-573「停顿(昏迷)= 有**极轻微的背景气流尾**」—— 该尾音的时长载体即本常量;
+        /// 调太短 = 听不出尾音(停顿与停止不可辨);调太长 = 病人「早就不喘了还在响」(干扰听诊)。</para>
+        /// <para>⚠️ **数值归用户**(数值轮);本 const 只保证「有正有界 + 单一出处」。
+        /// ⚠️ **与 <see cref="RampSeconds"/> 是两个量** —— 后者是交叉淡化 / 滤波的**下界**
+        /// (AC-44-04 的判据),本值是**尾音总长**(AC-44-10 / OQ-44-7 的判据),不得互用。</para></summary>
+        public const double BreathTailRampMs = 1500.0;
+
+        /// <summary>`breath_tail_gain_floor_db`(呼吸尾音的**增益终值**)—— **种子值 −36 dB**。
+        /// <para>GDD :571-573「**极轻微**的背景气流尾」—— 「极轻微」的量化即本值:−36 dB ≈ 线性 0.016,
+        /// 远低于呼吸层稳态,任何合理的试听音量下都是「若有若无」。
+        /// 调太高 = 尾音变成可见的音效(= 变相报状态,违 AC-44-10);调太低 = 与「完全无声」不可辨。</para>
+        /// <para>⚠️ **数值归用户**(数值轮);衰减到本值后**停表**,不再推(防 -∞ 与 0 volume 的歧义)。</para></summary>
+        public const double BreathTailGainFloorDb = -36.0;
+
+        /// <summary><see cref="BreathTailRampMs"/> 的秒形态(尾音衰减的唯一时长输入)。</summary>
+        public const double BreathTailRampSeconds = BreathTailRampMs / 1000.0;
+
         /// <summary>`AUDIO_BUDGET_MS`(DSP 预算探针 P95 上限,60 s 采样窗)——
         /// **种子值 2.5 ms**(≈ 平面帧预算 16.6 ms 的 15%)。
         /// <para>GDD §Tuning Knobs :759 安全范围 = **「≤ 帧预算 15% 类(16.6 / 11.1 ms 为参考上界)」**;
@@ -72,5 +91,39 @@ namespace DaYiJingCheng.Gameplay.Presentation.Audio
         /// <see cref="AudioBudgetProbe"/> 的纯谓词承载,实测 P95 归 evidence 文档
         /// (60 s 窗采样须真 GPU / 真音频回调,EditMode 无 DSP 图,不可在此断言)。</para></summary>
         public const double AudioBudgetMs = 2.5;
+
+        // ── 空间化种子值(S15-4 · TD-audio-028)──────────────────────────────
+        // ⚠️ **这三个量的「正式家」不在 44**,它们是**代偿常量**:
+        //    · LatticeSize 归**系统 6**(`LatticeToWorld` 文件头明令「44 不得自造比例」;
+        //      6 侧 `LATTICE_SIZE` 至今无值)⇒ 1f 是 P0 占位,**与 `PlayerController.GetCell()`
+        //      的 `RoundToInt(world)` 隐含的「1 世界单位 = 1 格」对齐**,不是 6 的裁定值;
+        //    · Min/MaxDistance 归**事件表**(行级 `min_distance` / `max_distance` 列已在表里、
+        //      已有构建期键存在性门),但 `AudioEventDataSet.AudioEventRow` **未承载**这两列
+        //      ⇒ 本类的是**兜底**,表列一旦接入就以表为准;
+        //    · PriorityClass 归 **GDD rank_key 公式**(`:848` 的类序),事件表无此列。
+        //    ⚠️ **全部登记为债**,数值归用户(数值轮)。见 `TD-audio-028` 与 `TD-audio-035`。
+
+        /// <summary>格边长(米)的 **P0 占位** —— 与 `PlayerController.GetCell()` 的
+        /// `RoundToInt(world)` 同一约定。⚠️ 正式值归系统 6(见上注)。</summary>
+        public const float LatticeSizePlaceholder = 1f;
+
+        /// <summary>空间化声源的**最近距离**(米)—— `min_distance` 表列的兜底种子值。</summary>
+        public const float SpatialMinDistance = 1f;
+
+        /// <summary>空间化声源的**最远距离**(米)—— `max_distance` 表列的兜底种子值
+        /// (取 `WorldBreath_Baseline` 行的现值,便于对账)。</summary>
+        public const float SpatialMaxDistance = 12f;
+
+        // `rank_key` 的 `priority_class`(GDD :848 类序:自身/检查 &lt; 世界≈生理 &lt; 氛围)。
+        // 数值越小越优先;**类别 ≠ 总线**(同一类可走不同 bus,GDD :861 逐字)。
+
+        /// <summary>优先级类别:**玩家自身动作 / 主动检查声**(GDD 类序 0,最高)。</summary>
+        public const int PriorityClassSelf = 0;
+
+        /// <summary>优先级类别:**世界线索 ≈ 持续生理声**(两者同为信息通道,由距离分高下)。</summary>
+        public const int PriorityClassWorldOrPhysiology = 1;
+
+        /// <summary>优先级类别:**环境 / 氛围**(底噪,永远最低)。</summary>
+        public const int PriorityClassAmbience = 2;
     }
 }

@@ -1057,6 +1057,73 @@ namespace DaYiJingCheng.Tests.MedConsequences
         }
 
         /// <summary>
+        /// S-B1 负夹具(2026-10-17 补,**原判定所列三条夹具中唯一真缺的一条**):
+        /// <c>Emit</c> 的调用方义务 = <c>eligible</c> 须含**全部** <c>EmitTick ≤ now</c> 的合格行。
+        /// 若调用方按 lookback 裁掉队首到期行,幂等判据「按该病人升序前缀」会把余行误判「已发」
+        /// ⇒ 该病人余下后果**永久不发**,而返回码仍是合法的 <c>NothingPending</c>(静默,破 AC-53-14)。
+        /// <para>⚠️ 本夹具钉的是**前提被违反时的可观察后果**,不是一条函数边界 ——
+        /// 前提本身在 <c>Emit</c> 的 doc 里("S-B1")。判别力由原判定给的判据证明:
+        /// **删除该 doc 前置条件块 ⇒ 本测转红**(它对 <c>ConsequenceEmitter.cs</c> 的源码文本做断言,
+        /// 是该前置条件在代码里的唯一可执行证据;删 doc 的同时也就删掉了「这是调用方义务」的声明)。</para>
+        /// </summary>
+        [Test]
+        public void test_sb1_truncatedEligible_headRowDropped_silentlyWithholdsRest()
+        {
+            var table = LoadDelayTable();
+            long dResidual = ResidualDelay(table);
+            long dRecurrence = RecurrenceDelay(table);
+            Assert.AreNotEqual(dResidual, dRecurrence,
+                "前置:两案延迟须不同,否则两条 EmitTick 相同,裁队首 = 裁全部,夹具失去区分度");
+
+            var all = new[]
+            {
+                Eligible(100, 7, 0, Outcome53.Outcome.Residual),
+                Eligible(200, 7, 1, Outcome53.Outcome.Recurrence),
+            };
+            long firstEmit = 100 + dResidual;
+            long secondEmit = 200 + dRecurrence;
+
+            // ① 前提满足:全量 eligible ⇒ 第一次到期行落地(对照基线)。
+            var stream = NewStream();
+            var emitter = NewEmitter(stream);
+            stream.Append(all[0].CaseClosed);
+            stream.Append(all[1].CaseClosed);
+            Assert.AreEqual(ConsequenceEmitResult.Emitted,
+                emitter.Emit(stream.Events, all, firstEmit, out int firstCount), "① 全量入参 ⇒ 发");
+            Assert.AreEqual(1, firstCount, "① 恰一条(CaseClosed 本身不计)");
+
+            // ② 前提违反:调用方按 lookback 裁掉队首(早已发行)那条,只喂余行。
+            var truncated = new[] { all[1] };
+            var second = emitter.Emit(stream.Events, truncated, secondEmit, out int secondCount);
+
+            // ③ 静默漏发的指纹:返回码**合法**、却一条不发。
+            Assert.AreEqual(ConsequenceEmitResult.NothingPending, second,
+                "S-B1:裁掉队首后返回码仍是**合法**的 NothingPending —— 这正是静默面");
+            Assert.AreEqual(0, secondCount, "S-B1:该病人余下后果一条不发(静默、不可观察)");
+            Assert.AreEqual(1, ConsequenceCount(stream.Events),
+                "S-B1:流中 ConsequenceResolved 仍只有 ① 落地的那条 —— ② 本该发的那条丢了");
+
+            // ④ 对照:同一输入不裁 ⇒ 第二条照常发。证明 ③ 的漏发**确由裁剪引起**。
+            var control = NewStream();
+            var controlEmitter = NewEmitter(control);
+            control.Append(all[0].CaseClosed);
+            control.Append(all[1].CaseClosed);
+            Assert.AreEqual(ConsequenceEmitResult.Emitted,
+                controlEmitter.Emit(control.Events, all, firstEmit), "④ 对照:第一次照发");
+            Assert.AreEqual(ConsequenceEmitResult.Emitted,
+                controlEmitter.Emit(control.Events, all, secondEmit), "④ 对照:不裁则第二次照发");
+            Assert.AreEqual(2, ConsequenceCount(control.Events),
+                "④ 对照:全量入参 ⇒ 两条后果都在流里 ⇒ ③ 的 1 条缺口确由裁剪造成");
+
+            // ⑤ 前提的**可执行出处**:Emit 的 doc 必须声明该义务(删前置条件块 ⇒ 本断言红)。
+            string src = File.ReadAllText(Path.Combine(RepoRoot(),
+                "unity/Assets/Sim/Consequences/ConsequenceEmitter.cs"));
+            StringAssert.Contains("S-B1", src, "⑤ 前置条件块须带 S-B1 标记");
+            StringAssert.Contains("不得", src, "⑤ 前置条件块须写明「不得」裁剪");
+            StringAssert.Contains("永久不发", src, "⑤ 须写明静默失效模式");
+        }
+
+        /// <summary>
         /// W-5 已裁接缝(**照发 + 具名登记**,归 9/7a):发射器**不 catch** EventStream 的
         /// CAP 分支异常 ⇒ 主机语义(静默吞后果会破 AC-53-14)。
         /// <para>⚠️ 存根须**两段式**:<c>Arm=false</c> 放行前置 CaseClosed 入流

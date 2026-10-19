@@ -124,3 +124,15 @@
 **Code Review**: unity-specialist + qa-tester 评审完成，无 BLOCKING 问题
 
 **Manifest**: 版本号已对齐 2026-10-02(⚠️ **仅版本号** —— 抽象点计数订正另立批次,见 control-manifest §传播范围)
+
+
+---
+
+**⚠️ 2026-10-18 追补(S16 · TD-epic-02 修复)**:本 story 的 `AC-27-34`(开发者调试视图三条隔离)
+被普查判为**借绿** —— `encounter_lifecycle_test.cs:177` 原在方法**开头**写 `Assert.Pass("需集成测试验证")`,
+使紧随其后的真断言(`EnemySignalDto` 各字段不得引用 `UnityEngine` 命名空间)**全部成为死代码**。
+本批已删该 `Assert.Pass` ⇒ 真断言恢复执行。
+⚠️ **这是借绿最隐蔽的形态**:不是没写断言,是**写了但永不执行**。
+⚠️ **卡面 AC 盒仍保持未勾** —— 删 `Assert.Pass` 只让**已写的那部分**恢复执行,
+不等于三条隔离的另两条(①只读零 `Append` ③不进玩家呈现层)已有断言;那两条仍无判据,
+按「禁借绿」不得勾。证据:`docs/tech-debt-register.md` `TD-epic-02`。

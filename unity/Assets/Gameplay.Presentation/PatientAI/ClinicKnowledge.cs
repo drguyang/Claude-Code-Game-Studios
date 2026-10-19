@@ -67,4 +67,50 @@ namespace DaYiJingCheng.Gameplay.PatientAI
         public bool KnowsClinic(WorldPos spawnAnchor)
             => ClinicKnownByRegion(HomeRegion(spawnAnchor));
     }
+    /// <summary>`IClinicKnowledgeSource` 的**接线期最小生产实装**(story-021)。
+    /// <para>三件事实的**来源都在三源内**,本类只是它们到 F-13.2 接口的转接,<b>不自造事实</b>:</para>
+    /// <list type="bullet">
+    /// <item>`EcozoneOf` → 6 的 <see cref="DaYiJingCheng.Sim.World.EcozoneRegistry.EcozoneOf"/>;</item>
+    /// <item>`HasClinicPoiIn` → 6 的**烘焙 POI 定义**侧(ADR-021 §一 定义侧,注入查询缝);</item>
+    /// <item>`HasPlayerBuiltClinicIn` → 23 的 `StructurePlaced`(世界流;同样注入查询缝)。</item>
+    /// </list>
+    /// <para>⚠️ **两个查询缝为 null ⇒ 该析取项恒假**(且本类<b>不</b>把 null 当「没有」以外的东西):
+    /// 静态 POI 定义与建造事件今天都还没有装载面,故接线期 `KnowsClinic` 恒假 ——
+    /// 这不是本类发明规则,而是**真值源尚未接线**的如实表达;装载面到位后只需注入委托,本类与
+    /// `PatientCueDriver` 均不改。登记于 `TD-audio-033` ② 的同族残留。</para>
+    /// <para>⚠️ **唯一硬失败**:装配 `EcozoneRegistry` 为 null ⇒ 构造抛(生态区是 F-13.2 的第一项,
+    /// 缺它整条判据无定义 —— 静默默认 `EcozoneId.None` 会把「世界未装载」装成「病人不知道医馆」)。</para>
+    /// </summary>
+    public sealed class RegistryClinicKnowledgeSource : IClinicKnowledgeSource
+    {
+        private readonly EcozoneRegistry _ecozones;
+        private readonly Func<EcozoneId, bool> _hasClinicPoi;
+        private readonly Func<EcozoneId, bool> _hasPlayerBuiltClinic;
+
+        /// <summary>构造。</summary>
+        /// <param name="ecozones">6 的生态区注册表(非 null)。</param>
+        /// <param name="hasClinicPoi">「该区静态存在医馆 POI」查询缝(烘焙定义侧;null ⇒ 恒假)。</param>
+        /// <param name="hasPlayerBuiltClinic">「该区已有玩家建造的医馆」查询缝(世界流;null ⇒ 恒假)。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="ecozones"/> 为 null。</exception>
+        public RegistryClinicKnowledgeSource(EcozoneRegistry ecozones,
+                                             Func<EcozoneId, bool> hasClinicPoi = null,
+                                             Func<EcozoneId, bool> hasPlayerBuiltClinic = null)
+        {
+            _ecozones = ecozones ?? throw new ArgumentNullException(nameof(ecozones),
+                "RegistryClinicKnowledgeSource 需要 6 的 EcozoneRegistry —— " +
+                "缺它时 HomeRegion 无定义,不得静默默认 None(story-021)。");
+            _hasClinicPoi = hasClinicPoi;
+            _hasPlayerBuiltClinic = hasPlayerBuiltClinic;
+        }
+
+        /// <inheritdoc/>
+        public EcozoneId EcozoneOf(WorldPos cell) => _ecozones.EcozoneOf(cell);
+
+        /// <inheritdoc/>
+        public bool HasClinicPoiIn(EcozoneId region) => _hasClinicPoi != null && _hasClinicPoi(region);
+
+        /// <inheritdoc/>
+        public bool HasPlayerBuiltClinicIn(EcozoneId region)
+            => _hasPlayerBuiltClinic != null && _hasPlayerBuiltClinic(region);
+    }
 }

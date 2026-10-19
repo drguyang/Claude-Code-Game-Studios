@@ -7,12 +7,14 @@
 // 服务袋 = Assemble(...) 的只读产物。**只读属性,不提供 setter** —— 装配完成后不允许
 // 事后替换依赖(fail-loud 的一半:要么全装配,要么抛异常,不存在「半装配袋」)。
 
+using System.Collections.Generic;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.DiseaseSimulation;
 using DaYiJingCheng.Sim.Prescription;
 using DaYiJingCheng.Gameplay.PatientAI;
+using DaYiJingCheng.Gameplay.Presentation.Audio;
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
@@ -118,9 +120,56 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>世界种子(存档头量;patient_seed = hash(world_seed, patient_id) 的入参)。</summary>
         public ulong WorldSeed { get; }
 
+        /// <summary>44 的 cue 界面(story-018 · A-1 的生产构造点)。
+        /// <para>⚠️ 本属性非 null **恒成立** —— 装配缝未接时它是 `CueRenderSink(NullRenderTarget)`,
+        /// 契约语义(句柄 / 档位)仍完整,只是没有声音。<b>是否有声</b>看
+        /// <see cref="AudioRenderAssembled"/>,不看本属性是否为 null。</para></summary>
+        public IAudioCueSink AudioSink { get; }
+
+        /// <summary>44 的世界语境声源池(story-018 · A-4 的生产构造点)。
+        /// <para>⚠️ **单池不变量**(AC-018-4):全案只有这一个池;
+        /// `SpatializationDirector` 若被构造**必须**走 `(latticeSize, pool)` 重载共享它。</para></summary>
+        public AudioSourcePool AudioPool { get; }
+
+        /// <summary>渲染面是否真装配(`false` ⇒ <see cref="AudioSink"/> 走 `NullRenderTarget`)。
+        /// <para>启动期日志 / 测试的可观测面 —— 「装了没装」不得靠猜(承 story-018 头注)。</para></summary>
+        public bool AudioRenderAssembled { get; }
+
+        /// <summary>51 遥测的装配层入口(TD-epic-01 接线片 · 2026-10-19)。
+        /// <para>**纯读**:不持 `IEventSink`、不写三流、不写文件(ADR-019 §三 / GDD R1)。</para>
+        /// <para>用处:任何人问「F1 是多少」只调 <see cref="TelemetryReporter.JudgmentReport"/> ——</para>
+        /// <para>接线前 51 的重算器只有 EditMode 夹具驱动、**生产零调用**(普查判的正是这条)。</para>
+        /// <para>⚠️ 当前只接线 F1;F2–F7 的还原器接线归各自 story 轮(见
+        /// <see cref="TelemetryReporter.AllMetricsReport"/> 的自陈)。</para></summary>
+        public TelemetryReporter Telemetry { get; }
+
+        /// <summary>世界语境空间化的装配入口(S15-4 · TD-audio-028)。
+        /// <para>⚠️ 与 <see cref="AudioPool"/> **共享同一池**(AC-018-4 单池不变量)。
+        /// null ⇔ 渲染面未装配(<see cref="AudioRenderAssembled"/> = false)。</para>
+        /// <para>可观测面:位置是否真被写看 <c>(renderTarget as AudioSourceRenderTarget).SpatializedCount</c>;        /// 排名 / 寿命看本属性的 <c>ActiveCount</c> / <c>Order</c>。</para></summary>
+        public SpatializationDirector Spatialization { get; }
+
+        /// <summary>44 的渲染目标(听者锚点注入缝在它身上 —— <see cref="Gameplay.Presentation.Audio.AudioSourceRenderTarget.SetListenerPosition"/>)。
+        /// <para>⚠️ 与 <see cref="AudioRenderAssembled"/> **同一真源**:后者就是由它
+        /// `is AudioSourceRenderTarget` 派生的 ⇒ 两处不可能分叉。</para>
+        /// <para>null ⇔ 渲染面未装配(null sink)。</para></summary>
+        public AudioSourceRenderTarget RenderTarget { get; }
+
+        /// <summary>病人 cue 驱动(story-018 · AC-018-6 的**调用方**)—— tick 边沿 → 13 调度 → 44 发射。
+        /// <para>⚠️ 由 <see cref="BootRoot"/> 的 tick 边沿序列驱动(与 <see cref="PatientAppearedDriver"/>
+        /// 等同一泵);本类只提供引用,**不自行推进 tick**。</para></summary>
+        public PatientCueDriver PatientCueDriver { get; }
+
+        /// <summary>病人 cue 驱动内部消费的**同一个** 13 行为导演实例(story-021 起的可观测面)。
+        /// <para>⚠️ 暴露它**不是**把行为态合并成单一所有者 —— `TD-audio-033` ②(视觉侧另持一份)
+        /// 仍 open。此处只为让「装配层究竟喂了 `KnowsClinic` 什么」成为**可判定的**:
+        /// 驱动 `PatientCueDriver` 后读 <c>BehaviorDirector.For(id).Current</c> 即可。</para></summary>
+        public PatientBehaviorDirector BehaviorDirector { get; }
+
         internal CompositionRootServices(EventStream stream, IIdAuthority idAuthority,
                                          InMemoryBlobPool blobPool, IPayloadEncoder encoder,
                                          IPayloadDecoder decoder,
+                                         IReadOnlyList<DiseaseRegistryEntry> registry,
                                          PresenceRegistry presence, PatientSpawner patientSpawner,
                                          PatientAppearedDriver patientAppearedDriver,
                                          CaseOpenedDriver caseOpenedDriver,
@@ -140,7 +189,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          MinimalPortionsStore portionsStore,
                                          EmergencyCandidateRuntime emergencyCandidates,
                                          PrescriptionPageHost prescriptionPage,
-                                         CasebookCommandRouter casebookCommands)
+                                         CasebookCommandRouter casebookCommands,
+                                         IAudioCueSink audioSink,
+                                         AudioSourcePool audioPool,
+                                         SpatializationDirector spatialization,
+                                         AudioSourceRenderTarget renderTarget,
+                                         bool audioRenderAssembled,
+                                         PatientCueDriver patientCueDriver,
+                                         PatientBehaviorDirector behaviorDirector)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -169,6 +225,21 @@ namespace DaYiJingCheng.Gameplay.Boot
             PrescriptionPage = prescriptionPage;
             CasebookCommands = casebookCommands;
             WorldSeed = worldSeed;
+            AudioSink = audioSink;
+            AudioPool = audioPool;
+            Spatialization = spatialization;
+            RenderTarget = renderTarget;
+            AudioRenderAssembled = audioRenderAssembled;
+            PatientCueDriver = patientCueDriver;
+            BehaviorDirector = behaviorDirector;
+
+            // 51 遥测接线(TD-epic-01):decoder 在 Sim.Codec、51 的装配引不到 ⇒ 在本装配层包成委托。
+            // ⚠️ stream / decoder / registry 均已是本 ctor 的形参 ⇒ 不加新装配边、不改 Assemble 签名。
+            Telemetry = new TelemetryReporter(stream, decoder, registry ?? CreateFallbackRegistry());
         }
+
+        /// <summary>最小内联病种注册表(DiseaseId=1)—— 装配层未传入真表时的接线载体。</summary>
+        private static IReadOnlyList<DiseaseRegistryEntry> CreateFallbackRegistry()
+            => new List<DiseaseRegistryEntry> { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "fallback" } };
     }
 }

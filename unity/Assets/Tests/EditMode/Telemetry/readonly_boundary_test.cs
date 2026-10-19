@@ -99,8 +99,13 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 "ITelemetrySource 不得有 Write/Append/Emit 方法(AC-19-01:零新埋点)");
         }
 
-        /// <summary>AC-19-04:无 IEventSink.Append 调用点(grep 断言)。
-        /// 扫描 51 命名空间下所有方法名,验证无 Append/Write/Emit 方法。</summary>
+        /// <summary>AC-19-04:无 `IEventSink.Append` 调用点(无向**三流**写入的成员)。
+        /// <para>⚠️ **S19 修订判据范围(TD-epic-01 第二片)**:原判据扫「方法名含 Write/Append/Emit」⇒
+        /// **过宽**。ADR-019 §五 明确允许**本地导出**(写本地文件),`ITelemetrySink.WriteLocalReport`
+        /// 正因此被误判为违例。AC-19-04 的宾语逐字是「**无 `IEventSink.Append` 调用点**」
+        /// —— 禁的是**向三流写**,不是禁一切 Write。</para>
+        /// <para>⇒ 收窄为两条:① **不得有任何 `IEventSink` 类型的形参 / 字段 / 返回**
+        /// (与 `test_noEventSinkRefs` 同源但这里是方法签名级);② 不得有 `Append`/`Emit` 命名的方法。</para></summary>
         [Test]
         public void test_noAppendCallSite_noWriteMethods()
         {
@@ -110,45 +115,71 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                 .Where(t => t.Namespace != null && t.Namespace.StartsWith("DaYiJingCheng.Telemetry"))
                 .ToList();
 
-            // Act:扫描方法名
+            // Act:扫描 —— 只扫「向三流写」的形态,不扫本地导出
             var violations = new List<string>();
             foreach (var t in telemetryTypes)
                 foreach (var m in t.GetMethods(BindingFlags.Public | BindingFlags.NonPublic |
                                               BindingFlags.Instance | BindingFlags.Static |
                                               BindingFlags.DeclaredOnly))
                 {
-                    if (m.Name.Contains("Append") || m.Name.Contains("Write") || m.Name.Contains("Emit"))
-                        violations.Add($"{t.Name}.{m.Name} 是写入方法");
+                    // ① 向三流写的命名(Append / Emit)—— AC-19-04 的逐字宾语
+                    if (m.Name.Contains("Append") || m.Name.Contains("Emit"))
+                        violations.Add($"{t.Name}.{m.Name} 是向三流写的方法(AC-19-04)");
+
+                    // ② IEventSink 形参(拿到写通道即可能写)
+                    foreach (var p in m.GetParameters())
+                        if (p.ParameterType.Name.Contains("IEventSink"))
+                            violations.Add($"{t.Name}.{m.Name} 有形参 {p.ParameterType.Name}(写通道)");
                 }
 
-            // Assert:零写入方法(实现前后都成立)
+            // Assert:零「向三流写」形态
             Assert.That(violations, Is.Empty,
-                "51 不得有 Append/Write/Emit 方法(AC-19-04:无 IEventSink.Append 调用点):\n" +
+                "51 不得有向三流写入的成员(AC-19-04:无 IEventSink.Append 调用点):\n" +
                 string.Join("\n", violations));
         }
 
         // ══════════════ AC-51-A2:无环(asmdef 引用集)══════════════
 
         /// <summary>AC-51-A2:51 asmdef 引用集 ⊆ {sim 程序集, BCL 白名单};sim 不引用 51。
-        /// ⚠️ 当前阶段 51 asmdef 尚未创建 —— 跳过断言(实现后应验证引用集)。</summary>
+        /// <para>⚠️ **S19 实现(TD-epic-01 第二片)**:asmdef 已于本批创建(`unity/Assets/Telemetry/Telemetry.asmdef`)
+        /// ⇒ 原两个 `Assert.Ignore`(「asmdef 尚未创建」/「引用集验证未实现」)**都不再成立**,
+        /// 改为**真判据**:解析 JSON,断言引用集 ⊆ {`Sim.Contracts`} 且 `noEngineReferences == true`。</para></summary>
         [Test]
         public void test_readonlyBoundary_asmdefNoCycle()
         {
             // Arrange:读 51 的 asmdef
             string asmdefPath = Path.Combine(repoRoot(), "unity", "Assets", "Telemetry",
                 "Telemetry.asmdef");
+            Assert.That(File.Exists(asmdefPath), Is.True,
+                "51 asmdef 应存在(ADR-019 §三:51 住边界层)");
 
-            // Act:检查 asmdef 是否存在
-            if (!File.Exists(asmdefPath))
+            string json = File.ReadAllText(asmdefPath);
+
+            // Assert ①:noEngineReferences = true(GDD R3:51 不进 sim、不引任何引擎程序集)
+            Assert.That(json, Does.Contain("\"noEngineReferences\": true"),
+                "51 asmdef 须 noEngineReferences = true(GDD R3 / ADR-019 §三)");
+
+            // Assert ②:引用集 ⊆ {Sim.Contracts}(只读三流需要 SimEvent 类型)
+            //   ⚠️ 用文本包含而非 JSON 解析:门(b3)同款判据也是按文本取 name 字段,
+            //     且本工程 EditMode 无 Newtonsoft(ADR-014 禁 JsonConvert)。
+            //   ⚠️ 只取 **references 数组内**的串 —— 首版把 rootNamespace 也收进来 ⇒ 误报。
+            var refs = new List<string>();
+            int refStart = json.IndexOf("\"references\"", StringComparison.Ordinal);
+            if (refStart >= 0)
             {
-                // 当前阶段 51 asmdef 尚未创建 —— 跳过断言
-                Assert.Ignore("51 asmdef 尚未创建(实现后应验证引用集 ⊆ {sim, BCL})");
-                return;
+                int arrStart = json.IndexOf('[', refStart);
+                int arrEnd = json.IndexOf(']', arrStart);
+                string arr = json.Substring(arrStart, arrEnd - arrStart + 1);
+                foreach (var m in System.Text.RegularExpressions.Regex.Matches(arr, "\"([A-Za-z0-9_.]+)\"").Cast<System.Text.RegularExpressions.Match>())
+                    refs.Add(m.Groups[1].Value);
             }
+            Assert.That(refs, Is.SubsetOf(new[] { "Sim.Contracts" }),
+                "51 引用集须 ⊆ {Sim.Contracts}(只读三流;不引 sim 实现、不引引擎)。实际:" +
+                string.Join(", ", refs));
 
-            // Assert:asmdef 存在时验证引用集
-            // 实现后应改为:解析 asmdef JSON,验证 references ⊆ {sim, BCL 白名单}
-            Assert.Ignore("asmdef 存在但引用集验证未实现(实现后应解析 JSON 验证 references)");
+            // Assert ③:名单里不得出现 Sim(实现)—— R3 逐字「不进 sim 程序集」的**编译期**面
+            Assert.That(json, Does.Not.Contains("\"Sim\""),
+                "51 不得引用 Sim(实现);只读三流只需 Sim.Contracts 的 SimEvent 形状");
         }
 
         // ══════════════ AC-19-02/AC-51-A4:零出厂(无网络类型)══════════════

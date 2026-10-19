@@ -17,8 +17,21 @@
 //   - 最小动作表 = 一张行(止血包扎 · action 0;真实动作表归 21a/10 烘焙轮)。
 //
 // ⚠️ 单线程:tick 由 BootRoot 泵驱动,本驱动只在玩家意图发生时被调用。
+//
+// ⚠️ 2026-10-19(TD-epic-01 第八片 · F3 cause 关联的**写侧**):`cause` 原**硬编码 0**
+//   ⇒ 每一次跳过在流上都被标成「玩家选择」,AC-10-21 的「纯键鼠 ⇒ cause = 降级」半边
+//   在生产里**恒假**(降级读数永远为 0)。现改为:
+//     `cause = ResolveCause()` —— 3 报告「本次动作无模拟量通道」⇒ 降级;否则 ⇒ 玩家选择。
+//   判据出处 = 10 GDD 规则十二 `:467`「设备无模拟量通道(纯键鼠,`OQ-10-3` 的回退路径)⇒ 降级」
+//   + Edge Cases `:728`「`magnitude` 通道无输入设备(纯键鼠)⇒ 回退形状,`cause = 降级`」。
+//   ⚠️ **未注入来源 ⇒ 记 玩家选择** —— 显式记为夹具默认(守卫 `test_cause_deviceReadinessNotBound_defaultsToPlayerSelection`),
+//      不是判据。生产路径 BootRoot 启动序 2.9 必注入 3 的 `EmergencyDeviceReadiness`
+//      (经 <see cref="BindDeviceReadiness"/>;本类构造第三参同型,供组合根 / 夹具直传)。
+//      接口 `IEmergencyDeviceReadiness` **住 3**(Gameplay.Input;判据归通道拥有者),
+//      Boot 已引 3 ⇒ 零新增引用边。
 
 using System;
+using DaYiJingCheng.Gameplay.Input;           // IEmergencyDeviceReadiness(cause 判据的 3 侧读数)
 using DaYiJingCheng.Gameplay.Input.Intents;   // AggregatedEmergency(3 的聚合交出物,story-009)
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
@@ -44,8 +57,18 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// </summary>
     public sealed class EmergencyManualDriver
     {
+        /// <summary>`EmergencyTreatmentApplied.cause` 的「玩家选择」序数(GDD 规则十二;序数承既有测试)。</summary>
+        public const int CausePlayerSelection = 0;
+
+        /// <summary>`EmergencyTreatmentApplied.cause` 的「降级」序数(GDD 规则十二;AC-10-21)。
+        /// 与 `FeelLatencyEvaluator.GetKeyboardFallbackCause()` 同值 —— 10 侧已钉 1,此处不另立新值。</summary>
+        public const int CauseDegraded = 1;
+
         private readonly HostEmergencyProcessor _processor;
         private readonly IPresenceQuery _presence;
+
+        /// <summary>3 的设备就绪读数(可空 —— 未注入 = 夹具默认「玩家选择」,见文件头注)。</summary>
+        private IEmergencyDeviceReadiness _devices;
 
         /// <summary>最小动作表(action 0 = 止血包扎;真实表归 10/21a 烘焙轮)。</summary>
         private static readonly EmergencyActionRow BandageRow = new EmergencyActionRow
@@ -64,11 +87,40 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="processor">主机侧急救处理器(规则十一)。</param>
         /// <param name="presence">在场查询 —— 急救前置:病人须在场
         /// (C3-M1;与处方侧 <c>PrescribeFlow</c> 1c 对称)。</param>
-        public EmergencyManualDriver(HostEmergencyProcessor processor, IPresenceQuery presence)
+        /// <param name="devices">3 的设备就绪读数(判 `cause` 用;**可空** = 夹具默认「玩家选择」)。
+        /// 生产由 BootRoot 以 <see cref="DeviceStateManager"/> 适配后注入。</param>
+        public EmergencyManualDriver(HostEmergencyProcessor processor, IPresenceQuery presence,
+                                     IEmergencyDeviceReadiness devices = null)
         {
             _processor = processor ?? throw new ArgumentNullException(nameof(processor));
             _presence = presence ?? throw new ArgumentNullException(nameof(presence));
+            _devices = devices;
         }
+
+        /// <summary>后置注入设备读数(BootRoot SetAuthor 同款形态 —— 设备态须先挂接才能读到在场设备)。
+        /// 单次装配内恰一次;重复注入 = 编程错误(两个真源)。</summary>
+        /// <exception cref="ArgumentNullException"><paramref name="devices"/> 为 null。</exception>
+        /// <exception cref="InvalidOperationException">已注入过。</exception>
+        public void BindDeviceReadiness(IEmergencyDeviceReadiness devices)
+        {
+            if (devices == null) throw new ArgumentNullException(nameof(devices));
+            if (_devices != null)
+                throw new InvalidOperationException("EmergencyManualDriver 已注入设备读数,不可重复注入。");
+            _devices = devices;
+        }
+
+        /// <summary>当次动作的 `cause`(GDD 规则十二判据;见文件头注 —— 降级 ⇔ 无模拟量通道)。</summary>
+        public int ResolveCause()
+        {
+            return IsAnalogChannelAbsent ? CauseDegraded : CausePlayerSelection;
+        }
+
+        /// <summary>当次动作是否**无模拟量通道**(键鼠回退形状;AC-10-21 的幅度半边)。
+        /// <para>这是**判据**;`cause` 是它的投影(<see cref="ResolveCause"/>)。
+        /// 两者分开传,是因为「未注入设备读数」时 `cause` 必须落到「玩家选择」(夹具默认),
+        /// 而幅度门**不得**跟着豁免 —— 不知道就不回填(宁严勿猜)。
+        /// 生产启动序 2.9 注入后两者恒同源。</para></summary>
+        public bool IsAnalogChannelAbsent => _devices != null && _devices.IsAnalogChannelAbsent;
 
         /// <summary>
         /// 一次手动急救:构造判定输入 → <see cref="HostEmergencyProcessor.Process"/>
@@ -167,7 +219,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                 MagThresholdEffective = 50,
             };
 
-            _processor.Process(attempt, BandageRow, ctx, patientId, tick, cause: 0);
+            // cause = 判据解析(原 hardcode 0 ⇒ 降级恒 0;见文件头注 + ResolveCause)。
+            // ⚠️ 第九片:幅度门豁免的判据**不是** cause —— 见下。
+            _processor.Process(attempt, BandageRow, ctx, patientId, tick, ResolveCause(), IsAnalogChannelAbsent);
             return new EmergencyManualResult(true);
         }
     }

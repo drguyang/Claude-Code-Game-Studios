@@ -6,6 +6,9 @@
 > **Status**: Ready(2026-10-16 进度注:**2/4 story 已收口** —— 001 于 2026-10-16 `/story-done`
 > S13-1 · 002 于 2026-10-16 翻 Complete(返工 + 重评两轮,commit `85f5469`);003/004 未完 ⇒ epic 未收口。
 > 承库约定 epic 级 `Status:` 二元制(Ready 未收口 / Complete 全收口),进度以本注 + Stories 表体现)
+> **⚠️ 2026-10-17 收口前置(sprint-13 核对派生 · `TD-s13-02`)**:story-003 为 `Complete` 但 **AC-5 PARTIAL**
+> (W-4 代价表永不致死形状门未兑现,转 `TD-medcons-15`)⇒ 本 epic DoD 的「AC-53-01…15 全部 verified」
+> **在 `TD-medcons-15` 结清前不成立**。**4 story 全 Complete ≠ AC 全验,不得据此收口。**
 > **Stories**: 4 stories created(2026-09-28 `/create-stories`)
 
 ## Overview

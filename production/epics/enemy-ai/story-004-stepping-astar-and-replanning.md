@@ -37,6 +37,13 @@
 - [ ] 被围死:`PATH_FAIL_GRACE` 到点进 `Disengage`,期间**零瞬移**(逻辑格连续)(AC-27-18);当前格恰被封时不推出墙外(EC-27-08)
 - [ ] 步进性质测试:任意合法 `ENEMY_SPEED < FIX_ONE` × 任意 `Moving` 真假序列(含冻结/Alert/Engage/Down 进出)下,`0 ≤ acc < FIX_ONE`、`LogiPose.Cell` 整数性、每 tick 位移 ≤ 1 格三者恒成立(AC-27-19 —— 原判据漏 Moving 面已补)
 - [ ] 重算保光标:新路径游标 = 离当前格最近节点 ≠ 0;新路径首段不经过已走过的格(AC-27-20);重算失败时 `path_cursor` 不动、走完旧路径余段
+      🔴 **2026-10-18 复核(TD-epic-02):本 AC 无生产宾语 —— 不能改绿,只能诚实登记**。
+      实测 `EnemyPathing`(`unity/Assets/Sim/EnemyPathing.cs`)公开面只有
+      `ComputeOctileHeuristic` / `FindPath` / `StepAccumulator` / `ValidateAccumulator`
+      —— **无 Replan、无 path_cursor**;`PathCursor` 属**病人 AI** 的 `LogicalStepper`,不是敌人侧。
+      原测试 `Assert.Pass("需集成测试验证")` 把「测试没写 + 生产没做」双重缺失伪装成单一一句话 = 借绿。
+      现已改 `Assert.Ignore("NOT-RUN: 无生产宾语 …")`(CI 显示 skipped 而非 passed)。
+      **还债 = 敌人侧重算落地后补真实断言**;在那之前本 AC **不得**勾。
 - [ ] A* 假阳性防护:完全无阻挡开阔地形 + 任意远合法目标 ⇒ 返回非空路径(性质测试,对任意 `NODE_BUDGET ≥ 1` 在有解图上)(AC-27-21)
 - [ ] 禁反推:代码不存在由 `Transform.position` 推逻辑格的路径(反射 + 负面夹具,AC-27-02 扩面)
 

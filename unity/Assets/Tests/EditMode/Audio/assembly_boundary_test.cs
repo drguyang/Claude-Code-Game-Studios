@@ -61,6 +61,10 @@ namespace DaYiJingCheng.Tests.Unit.Audio
             // Story 006 增列:`VolumeRamp.State` 取代 `FilterRamp.State` 作为运行期 ramp 状态
             // (前者在 Story 006 退役),两条铁律与四条 PASS 边界不变。
             typeof(VolumeRamp.State),
+            // **2026-10-18 Story 019 增列**:呼吸尾音的指数衰减会话状态 —— 与 `VolumeRamp.State`
+            // 同族(运行期 ramp 状态,由调用方持有、本类不持),不是新的状态入口:
+            // 它只承载线性 volume 标量,没有游戏状态字段、不进三流、不进 sim(AC-019-5 载体)。
+            typeof(BreathTailRamp.State),
             // Story 006 增列:语声变体库的公开类型(纯函数域,见 VoiceVariantLib.cs 头注)。
             typeof(VoiceBucket), typeof(VoiceVariantLib), typeof(VoiceVariantLib.VoiceVariantTable),
             typeof(VoiceVariantLib.VoiceVariantRow),

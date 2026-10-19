@@ -14,6 +14,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DaYiJingCheng.Telemetry;
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.Unit.Telemetry
@@ -21,35 +22,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
     [TestFixture]
     internal sealed class F3SkipRateTest
     {
-        // ══════════════ F3 公式(测试自持谓词面,零生产依赖)══════════════
-
-        /// <summary>F3 公式谓词面(测试自持,纯函数)。
-        /// 语义 = GDD Formulas F3:SkipRate = Skip / Opportunity;SkipByChoice 分开报。</summary>
-        private static class F3Formula
-        {
-            /// <summary>一次动作实例(测试自持夹具)。</summary>
-            public sealed class ActionInstance
-            {
-                public int InstanceId;
-                public string Resolution;   // Played / Skipped / NotOffered
-                public string Cause;        // 玩家选择 / 降级 / null
-            }
-
-            /// <summary>计算 F3 指标。
-            /// 返回 (skipNum, skipDen, skipByChoiceNum, skipByChoiceDen, denominatorZero)。
-            /// Opportunity = 提供小游戏的实例数(不含 NotOffered);分母 0 ⇒ 不可定义。</summary>
-            public static (int skipNum, int skipDen, int choiceNum, int choiceDen, bool denominatorZero)
-                Compute(IReadOnlyList<ActionInstance> instances)
-            {
-                int opportunity = instances.Count(i => i.Resolution != "NotOffered");
-                if (opportunity == 0)
-                    return (0, 0, 0, 0, true);   // 分母 0 ⇒ 不可定义
-
-                int skip = instances.Count(i => i.Resolution == "Skipped");
-                int choice = instances.Count(i => i.Resolution == "Skipped" && i.Cause == "玩家选择");
-                return (skip, opportunity, choice, opportunity, false);
-            }
-        }
+        // ⚠️ S19 修复(TD-epic-01):原「测试自持谓词面」已删除 ——
+        //    谓词面上移为生产类 `DaYiJingCheng.Telemetry.SkipRateMetrics`
+        //    (ADR-019 §一;那个自持面在普查里被判为「AC 语义层无生产主语」)。
+        //    本文件现在**只做夹具 + 断言**,不再自带公式。
 
         // ══════════════ AC-51-B8:F3 分开报 + 分母口径 ══════════════
 
@@ -60,16 +36,16 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f3_separateNumerators_notOfferedExcluded()
         {
             // Arrange:含两类跳过原因 + NotOffered
-            var instances = new List<F3Formula.ActionInstance>
+            var instances = new List<SkipRateMetrics.ActionInstance>
             {
-                new F3Formula.ActionInstance { InstanceId = 1, Resolution = "Skipped", Cause = "玩家选择" },
-                new F3Formula.ActionInstance { InstanceId = 2, Resolution = "Skipped", Cause = "降级" },
-                new F3Formula.ActionInstance { InstanceId = 3, Resolution = "Played", Cause = null },
-                new F3Formula.ActionInstance { InstanceId = 4, Resolution = "NotOffered", Cause = null },
+                new SkipRateMetrics.ActionInstance { InstanceId = 1, Resolution = "Skipped", Cause = "玩家选择" },
+                new SkipRateMetrics.ActionInstance { InstanceId = 2, Resolution = "Skipped", Cause = "降级" },
+                new SkipRateMetrics.ActionInstance { InstanceId = 3, Resolution = "Played", Cause = null },
+                new SkipRateMetrics.ActionInstance { InstanceId = 4, Resolution = "NotOffered", Cause = null },
             };
 
             // Act
-            var (skipNum, skipDen, choiceNum, choiceDen, denominatorZero) = F3Formula.Compute(instances);
+            var (skipNum, skipDen, choiceNum, choiceDen, denominatorZero) = SkipRateMetrics.Compute(instances);
 
             // Assert:两个独立分子(Skip = 2, SkipByChoice = 1)
             Assert.That(skipNum, Is.EqualTo(2), "Skip 分子 = 2(两类跳过)");
@@ -87,14 +63,14 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f3_notOfferedNotInDenominator()
         {
             // Arrange:仅 NotOffered + 一个 Played
-            var instances = new List<F3Formula.ActionInstance>
+            var instances = new List<SkipRateMetrics.ActionInstance>
             {
-                new F3Formula.ActionInstance { InstanceId = 1, Resolution = "Played", Cause = null },
-                new F3Formula.ActionInstance { InstanceId = 2, Resolution = "NotOffered", Cause = null },
+                new SkipRateMetrics.ActionInstance { InstanceId = 1, Resolution = "Played", Cause = null },
+                new SkipRateMetrics.ActionInstance { InstanceId = 2, Resolution = "NotOffered", Cause = null },
             };
 
             // Act
-            var (skipNum, skipDen, _, _, _) = F3Formula.Compute(instances);
+            var (skipNum, skipDen, _, _, _) = SkipRateMetrics.Compute(instances);
 
             // Assert:NotOffered 不入分母
             Assert.That(skipDen, Is.EqualTo(1), "Opportunity = 1(仅 Played;NotOffered 不入)");
@@ -109,10 +85,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f3_denominatorZero_reports00()
         {
             // Arrange:空实例集
-            var instances = new List<F3Formula.ActionInstance>();
+            var instances = new List<SkipRateMetrics.ActionInstance>();
 
             // Act
-            var (skipNum, skipDen, choiceNum, choiceDen, denominatorZero) = F3Formula.Compute(instances);
+            var (skipNum, skipDen, choiceNum, choiceDen, denominatorZero) = SkipRateMetrics.Compute(instances);
 
             // Assert
             Assert.That(denominatorZero, Is.True, "Opportunity = 0 必须显式标记");
@@ -132,14 +108,14 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f3_allNotOffered_denominatorZero()
         {
             // Arrange:全 NotOffered
-            var instances = new List<F3Formula.ActionInstance>
+            var instances = new List<SkipRateMetrics.ActionInstance>
             {
-                new F3Formula.ActionInstance { InstanceId = 1, Resolution = "NotOffered", Cause = null },
-                new F3Formula.ActionInstance { InstanceId = 2, Resolution = "NotOffered", Cause = null },
+                new SkipRateMetrics.ActionInstance { InstanceId = 1, Resolution = "NotOffered", Cause = null },
+                new SkipRateMetrics.ActionInstance { InstanceId = 2, Resolution = "NotOffered", Cause = null },
             };
 
             // Act
-            var (skipNum, skipDen, choiceNum, choiceDen, denominatorZero) = F3Formula.Compute(instances);
+            var (skipNum, skipDen, choiceNum, choiceDen, denominatorZero) = SkipRateMetrics.Compute(instances);
 
             // Assert:全 NotOffered ⇒ Opportunity = 0 ⇒ 分母 0
             Assert.That(denominatorZero, Is.True, "全 NotOffered ⇒ Opportunity = 0 ⇒ 分母 0");

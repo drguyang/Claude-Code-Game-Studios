@@ -173,7 +173,7 @@
 | **S13-3** | `/code-review` 结账表分「已落 / 已证」两列落地 | 对 story-002 重跑新模板:J 项进「已落」列、**不进**「已证」列(它首轮只拆一半) | claude |
 | **S13-4** | asmdef 引用面判读固化(GUID → 装配名) | 注入「按名补一条已由 GUID `09b3130c3cce749c78793250d6d191f4` 覆盖的 `Editor.Tools.Gates`」⇒ 判定器报 `duplicate references` | claude |
 | **S13-5** | python 预检(括号配平 / JSON 合法性 / 断言自相矛盾)收成一个脚本 + 「何时必跑」 | 对 `medcons_outcome_judge_test.cs` 跑 ⇒ 结论与返工期实测四项一致 | claude |
-| **S13-6** | 重评 prompt 拆「原判据核账」/「新缺陷+硬约束」两 agent(或预声明「先出报告再补查」) | **下一次重评两位专家均在轮次上限内交付报告**(sprint-12 是 20 / 10 轮双双撞限) | claude |
+| **S13-6** | 重评 prompt 拆「原判据核账」/「新缺陷+硬约束」两 agent(或预声明「先出报告再补查」) | ⚠️ **原判据 =「下一次重评两位专家均在轮次上限内交付报告」—— 首次实战实测为红**(story-003 评审:20 / 10 轮双双零报告)。**2026-10-17 判据收窄**(`code-review` SKILL §Phase 7b ③ 增量落盘):草稿在轮次耗尽前非空且覆盖清单过半 | claude |
 | **S13-8** | 9 条 Minor 入 `docs/tech-debt-register.md`(不存在则建册) | 逐条带出处(重评件 `review-medcons-story-002-rework-2026-10-16.md` §五 条目号),**9 条全在** | claude |
 | **S13-7** | 11 人工走查 AC-11-12 / 13 / 21 | 三签落盘:**主创 / 医学从业 / 音频 lead** —— **agent 不可代劳** | **user** |
 | story-003 烘焙面 | 53 判定表 + `DelayTable` 作者态 JSON → `.cooked` 重跑 | 同一输入两次烘焙**字节相同**;`AssemblyGates.RunAll()` 零违例;`MedConsFloatGate` 扫描面零命中 | claude |
@@ -227,6 +227,8 @@ S13-7(11 人工走查 + 三签)**不是 playtest**,是三签走查,见 §Manual 
 - [ ] 全量回归对照 `3462 / 3416 / 0 / 46` 基线,**failed = 0**
 - [ ] **IL2CPP 三格 `NOT-RUN` 如实登记**(禁借绿,挂 ADR-012 矩阵)
 - [ ] Smoke check 通过(`/smoke-check sprint`)
+      —— **2026-10-17 结案口径**:本 sprint **无独立冒烟件**;以用户陈述「我在其他 epic 听过了,没问题」
+      登记为人工冒烟证据(不可证伪为「真听过」)。`TD-s13-03`。
 - [ ] 治理件 S13-3 / 4 / 5 / 6 / 8 各自证伪判据兑现;S13-1 翻 `Complete` + EPIC 口径一致
 - [ ] Design documents updated for any deviations(两处张力已在卡面具名,不静默)
 - [ ] **Code reviewed**(story-003 走 `/code-review` 两轮口径)and merged

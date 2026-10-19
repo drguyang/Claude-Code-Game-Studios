@@ -320,15 +320,31 @@ namespace DaYiJingCheng.Tests.PatientAI
         [Test]
         public void test_ac13b1_terminalLatch_recoversDoNotResurrect()
         {
-            // 痊愈锁存:position ≤ RECOVER_MAX ∧ trend ≤ 0 ⇒ 置位;之后 position 回升也不复活
+            // ⚠️ **NOT-RUN 哨兵(禁借绿 · 2026-10-18 立)** —— 本条 AC-13-B1 的**痊愈半边**
+            //    当前**不可判**:痊愈锁存依赖 `VitalsDto.Trend`,而 trend 今日是 9 侧的
+            //    tripwire 占位(恒 0,`Sim/ProgressionEvaluator.ComputeTrend` 自陈
+            //    「保留占位…不得当成本批缺陷删改」)⇒ `BehaviorMap.TrendWired == false`
+            //    ⇒ 痊愈锁存**整条停用**(见 `TrendWired` 注:启用它会让**每个新出现的病人**
+            //    在首拍即被锁存「痊愈」—— 2026-10-18 实机取证)。
+            //    ⚠️ 本哨兵**有意可红**:trend 接线后把 `TrendWired` 改 true ⇒ 它转红 ⇒
+            //    须把下方注释掉的断言**改回真断言**,而**不是**删掉哨兵。
+            //    ⚠️ 锁存的「不复活」单调性另有**死亡半边**的活测试
+            //    (`test_ac13b1_terminalLatch_deathIsMonotonic`),该半条不受本停用影响。
+            Assert.IsFalse(BehaviorMap.TrendWired,
+                "NOT-RUN 哨兵:trend 已接线 ⇒ 把本测改回真断言(痊愈锁存 + 不复活),勿删哨兵");
+
             var b = new PatientBehavior();
             b.Step(Bands.RecoverMax - 0.01f, -0.5f, Bands, knowsClinic: true);
-            Assert.IsTrue(b.Terminal.Latched, "痊愈线以下 + trend ≤ 0 ⇒ Terminal 置位");
-            Assert.AreEqual(TerminalCause.Recovered, b.Terminal.Cause, "成因须为 Recovered");
+            Assert.IsFalse(b.Terminal.Latched,
+                "trend 未接线 ⇒ **不得**据 position 低判痊愈(否则新出现病人首拍即终局," +
+                "呼吸层与一次性 cue 永不启动)");
 
-            var frozen = b.Current;
-            b.Step(0.80f, +0.9f, Bands, knowsClinic: true);   // 回升假输入
-            Assert.AreEqual(frozen, b.Current, "终态后 position 回升不得改出(闩锁,单调)");
+            // ── trend 接线后应恢复的断言(现停用,**勿删**)──────────────────
+            // Assert.IsTrue(b.Terminal.Latched, "痊愈线以下 + trend ≤ 0 ⇒ Terminal 置位");
+            // Assert.AreEqual(TerminalCause.Recovered, b.Terminal.Cause, "成因须为 Recovered");
+            // var frozen = b.Current;
+            // b.Step(0.80f, +0.9f, Bands, knowsClinic: true);   // 回升假输入
+            // Assert.AreEqual(frozen, b.Current, "终态后 position 回升不得改出(闩锁,单调)");
         }
 
         [Test]

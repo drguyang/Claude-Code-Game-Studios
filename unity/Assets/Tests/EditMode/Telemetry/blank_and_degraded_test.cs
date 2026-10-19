@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DaYiJingCheng.Telemetry;
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.Unit.Telemetry
@@ -28,21 +29,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
     [TestFixture]
     internal sealed class BlankAndDegradedTest
     {
-        // ══════════════ D6:单一折叠器(测试自持谓词面,零生产依赖)══════════════
-
-        /// <summary>D6 单一折叠器:恰有一个实现;空流 ⇒ 全 0;无跨调用持久状态。</summary>
-        private static class FoldEngine
-        {
-            /// <summary>计算五字段折叠结果(全部整数域)。
-            /// 空流 ⇒ (0,0,0,0)(D1);无 float(D5);无外部状态(D6)。</summary>
-            public static (int totalEvents, int computedCases, int sumPayload, int minTick, int maxTick)
-                Fold(IReadOnlyList<int> ticks)
-            {
-                if (ticks.Count == 0) return (0, 0, 0, 0, 0);
-                return (ticks.Count, ticks.Count,
-                    ticks.Sum(), ticks.Min(), ticks.Max());
-            }
-        }
+        // ⚠️ S19 修复(TD-epic-01):原「测试自持谓词面」已删除 ——
+        //    谓词面上移为生产类 `DaYiJingCheng.Telemetry.TickFoldEngine`
+        //    (ADR-019 §一;那个自持面在普查里被判为「AC 语义层无生产主语」)。
+        //    本文件现在**只做夹具 + 断言**,不再自带公式。
 
         // ══════════════ AC-51-D1:三流皆空 ⇒ Computed + 零值 ══════════════
 

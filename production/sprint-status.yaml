@@ -8,163 +8,118 @@
 #   review         ↔  In Review
 #   done           ↔  Complete
 #   blocked        ↔  Blocked
+#
+# ⚠️ sprint-14 的完整 yaml(含逐件判据与六批落盘注)已归档为
+#    `production/sprint-status-sprint14-archive.yaml`,不随本文件覆盖丢失。
 
-sprint: 14
-goal: "44 运行期音频链接通 —— 6 条 In Review story(007-012)补生产实现,AC 语义层首次被生产代码保证"
-start: ""
-end: ""
-generated: "2026-10-16"
-updated: "2026-10-17"   # S14-9(story-017 音频门加固)收口 —— 计划外追加(story-015 评审 W-2/W-3 派生件)
+sprint: 15
+goal: "44 的 P0 收口面压到「只剩听测排期 + 用户裁决」—— story-019(AC-44-10)+ 变体混合接线(AC-44-02)+ knowsClinic 注入缝 + 028/029/032 结构性缺口"
+start: "2026-10-19"
+end: ""            # 不设结束日期 —— 做完即收,收口时补记(承 sprint-12/13/14 口径)
+generated: "2026-10-18"
+updated: "2026-10-18"   # 初始生成。⚠️ Phase 1 重扫核出两处陈旧前提(TD-audio-030 素材已齐 /
+                        #   101-102 素材已齐),已写入 sprint-15.md §前提订正 —— 不得照旧快照读本文件。
 
 stories:
-  # ── Must Have(关键路径 · Wave 1+2)──
-  - id: "S14-1"
-    name: "008 生产实现:声源池 + 空间化原语(LatticeToWorld / cell_jitter / rank_key / 遮挡驱动器)"
-    file: "production/epics/audio-system/story-008-spatialization-world-breath.md"
+  # ── Must Have(关键路径)──
+  - id: "S15-1"
+    name: "story-019 实现:AC-44-10 无突变音效映射(10-a 门 / 10-b 断言 / 10-c 用户听测)"
+    file: "production/epics/audio-system/story-019-ac44-10-no-spike-sfx.md"
+    priority: must-have
+    status: in-progress        # 10-a/10-b 已落 + 证伪 F1–F9 转红;10-c 听测 NOT-RUN(BLOCKING)
+    owner: "claude"
+    estimate_days: 0          # 不估天 —— 依 production/CAPACITY-MODEL.md,复杂度 = L
+    blocker: "AC-019-6 人工听测未执行(用户实机)— 协议件 production/qa/evidence/s19-breath-transition-listening-2026-10-18.md"
+    completed: ""
+    # 三面一卡。10-c(BLOCKING 用户实听)未跑 ⇒ 本件不得 Complete。
+    # 判据:证伪轮逐条转红;尾音衰减序列单调无拐点;一次性 cue 计数从被观测链路派生。
+
+  - id: "S15-2"
+    name: "TD-audio-030 语声变体混合接线(AudioClipLibrary 由恒取 Assets[0] → VoiceVariantLib.SelectVariant)"
+    file: "production/epics/audio-system/story-020-voice-variant-selection-wired.md"
     priority: must-have
     status: done
     owner: "claude"
-    estimate_days: 0
+    estimate_days: 0          # 复杂度 = L
     blocker: ""
-    completed: "2026-10-16"
-    # 根件 —— S14-2/3 均依赖它。20 测由自造 Fake 换真生产类(commit a2c6bd6)。
-    # 判据:FakeSourcePool 内部须有真 AudioSource(AC-44-D8 ② 逐字「N 条独立 AudioSource」);
-    #      证伪轮:停用池 ⇒ ≥3 测红(实得 8 例全红);AC-44-16 的 bus ∈ Ambience 真门半边落地。
-    # ✅ S14-7 补做(2026-10-16):证伪轮 8 例全红(原 commit 自述轮未持久化 ⇒ 补做,不追认);
-    #    原件 production/qa/evidence/impl-s14-1-spatialization-2026-10-16.md + 账本 README story-008 段已更新;
-    #    测试数订正 20 → 28。
+    completed: "2026-10-18"
+    # 🔁 2026-10-18 前提订正:12 个 vo_ 变体已在场(旧说法「未录制」过时)⇒ 阻塞只剩选择器。
+    # ⚠️ 回归面较宽(改 S14-6 烘焙产物读取面)⇒ 全量 EditMode/PlayMode 对账,等式判据。
+    # 下游:TD-audio-101/102 听测宜排在本件之后。
 
-  - id: "S14-2"
-    name: "007 生产实现:cue 发射派生器 + IAudioCueSink 生产实现 + 锚点门 + EndLoop 看门狗"
-    file: "production/epics/audio-system/story-007-net-divergence-remote-derivation.md"
+  - id: "S15-3"
+    name: "TD-audio-033 knowsClinic 注入缝(装配层不再发明行为输入)"
+    file: "production/epics/audio-system/story-021-knowsclinic-injection-seam.md"
     priority: must-have
     status: done
     owner: "claude"
-    estimate_days: 0
+    estimate_days: 0          # 复杂度 = M
     blocker: ""
-    completed: "2026-10-16"
-    # 4 新生产类(CueEmitDeriver / AnchorGate / EndLoopWatchdog / CueRenderSink)+ D1 门收窄。
-    # 19 测 → 34 测,自造 Fake 全数删除。证伪轮 7 例全红。回归 3538/3492/0/46(+15,零回归)。
-    # 原件:production/qa/evidence/impl-s14-2-audio-cue-deriver-2026-10-16.md
-    # ✅ S14-7 复评结案(2026-10-16):story 转 Complete —— 证伪轮全红 + 证据原件落盘 + EPIC 6 行 reconcile。
+    completed: "2026-10-18"
+    # 只结 ①(knowsClinic 硬编码);② 两份行为态分叉明确留 open(归视觉侧/装配层收敛轮)。
 
-  - id: "S14-3"
-    name: "009 生产实现:HandoverMux 交接 FSM + LoopSelfTerminationDriver(自评执行器)"
-    file: "production/epics/audio-system/story-009-source-lifecycle-handover.md"
-    priority: must-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: "S14-1(008 是根)"
-    completed: "2026-10-16"
-    # ⚠️ 交付面经用户裁定收敛:三类中两类已由 S14-2 交付(EndLoopWatchdog / CueRenderSink)
-    #    ⇒ 本件只落 HandoverMux + LoopSelfTerminationDriver,兜底谓词与句柄面改指 S14-2 生产类。
-    # 2 新生产类 + AudioTuning.HandoverTicks = 10 + 白名单 += HandoverPhase。
-    # 12 测 → 16 测,自造 Fake 全数删除。证伪轮 9 例全红(含修夹具后 ② 由 0 红 → 3 红)。
-    # 回归 3542/3496/0/46(+4,零回归)。原件:production/qa/evidence/impl-s14-3-loop-handover-2026-10-16.md
-    # AC 编号补齐:4 条 AC 补 story 局部 AC-009-1…4;幽灵 ID AC-44-D10 就地订正(用户裁定)。
-    # ✅ S14-7 复评结案(2026-10-16):story 转 Complete —— 证伪轮全红 + 证据原件落盘 + EPIC 6 行 reconcile。
-
-  # ── Should Have(Wave 3 · 三件相互独立)──
-  - id: "S14-4"
-    name: "012 生产实现:xfade_ms ≥ MUSIC_XFADE_MIN_MS 下界门 + 常量"
-    file: "production/epics/audio-system/story-012-music-guardrails-perf-vr.md"
+  # ── Should Have(相互独立,可顺延)──
+  - id: "S15-4"
+    name: "TD-audio-028 空间化链接入生产(含 S3-a 自建第二池负例)"
+    file: "docs/tech-debt-register.md"     # 债行直接驱动,无独立 story 文件
     priority: should-have
-    status: done
+    status: review
     owner: "claude"
-    estimate_days: 0
+    estimate_days: 0          # 复杂度 = M
     blocker: ""
-    completed: "2026-10-16"
-    # 唯一具名空位 = AudioEventTableGates.ValidateXfade(XML doc 已写「不做…归 Story 012」)
-    # ⇒ 已补下界比较,下界 = AudioTuning.MusicXfadeMinMs(2000,单一出处,门不另抄)。
-    # 2 新生产类(AudioMeasurementPoints / AudioBudgetProbe)+ AudioTuning 两常量。
-    # 12 测 → 22 测,两个自造谓词类全数删除。证伪轮 11 例全红 + 真种子端到端(1999 ⇒ 2 条红)。
-    # 回归 3552/3506/0/46(+10,零回归)。原件:production/qa/evidence/impl-s14-4-music-guardrails-2026-10-16.md
-    # ⚠️ 证伪轮两次抓到撰写者自己的缺陷(弱判别面 / 锚定不严)⇒ 均补自证测后转红。
-    # ✅ S14-7 复评结案(2026-10-16):story 转 Complete —— 证伪轮全红 + 证据原件落盘 + EPIC 6 行 reconcile。
+    completed: "2026-10-18"
+    # 实现已落(夹具 11/11 绿 · 证伪 F1–F12 全红 · 全量 3781/3735/1/45 = 基线 +11)。
+    # status 记 review 而非 done:听感半边(距离衰减 / 遮挡音色)NOT-RUN,归 TD-audio-101/102。
+    # 残留三项另立 TD-audio-035(latticeSize 正式值 / 真 raycast / 表列承载)。
 
-  - id: "S14-5"
-    name: "011 生产实现:settings_visible 注册表 + ISettingsStore + 归零机制 + sidecar"
-    file: "production/epics/audio-system/story-011-settings-exposure-reset.md"
+  - id: "S15-5"
+    name: "TD-audio-029 + 032 合并卫生批(one-shot 归还 / (int)tick / RowCount 守卫 / buffer 复用)"
+    file: "docs/tech-debt-register.md"
     priority: should-have
-    status: done
+    status: review
     owner: "claude"
-    estimate_days: 0
+    estimate_days: 0          # 复杂度 = M
     blocker: ""
-    completed: "2026-10-16"
-    # ISettingsStore 落 Gameplay.Presentation(禁 Sim,GDD :1204)。
-    # 恢复 AC-44-13 被删空的「出厂默认 ∈ 烘焙分区」断言。sidecar 先例 = Gameplay.Input/BindingsStore.cs。
-    # 交付:7 新(数据 1 + 生产 6 + 构建期 2)+ 3 改;测试 11 → 31;证伪轮 12 例全红(17 条断言)。
-    # 回归 3572/3526/0/46(基线 3552/3506 ⇒ +20/+20,零回归)。
-    # ✅ S14-7 复评结案(2026-10-16):story 转 Complete —— 证伪轮全红 + 证据原件落盘 + EPIC 6 行 reconcile。
-    # ⚠️ 证伪轮抓到三处缺陷:生产实现 1(原子载入)+ 夹具判别力 2(签名敏感性 / 分支钉定)。
-    # ⚠️ 证据原件 = production/qa/evidence/impl-s14-5-settings-exposure-2026-10-16.md。
+    completed: "2026-10-18"
+    # 实现已落(夹具 13/13 · 证伪全红 · 全量 3794/3748/1/45 = 基线 +13)。
+    # status 记 review:032 ③ 的 BuildAudioSeams 仍 >40 行 · isPlaying 时序 PlayMode NOT-RUN。
 
-  - id: "S14-6"
-    name: "010 生产实现:事件表 Baker/Binder/CookedWriter + Addressables 音频组 + 听诊预载门"
-    file: "production/epics/audio-system/story-010-asset-pipeline-bake-gates.md"
+  - id: "S15-6"
+    name: "TD-audio-101 + 102 同批听测([L] · 呼吸两层 / 语声变体 / SNR)"
+    file: "docs/tech-debt-register.md"
     priority: should-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-16"
-    # 交付:新 11(烘焙 5 + 门 1 + 生产 5)+ 改 8 + 5 占位 wav;测试 11 → 52。
-    # 四个自造替身(FakePreloadGate/GroupSeparabilityPredicate/ExtractFieldName/内联 File.Exists)
-    # + 文件系统写入副作用整段删除;遗留空目录 assets/audio/ 已 rmdir。
-    # 证伪轮 11 例全红(改→跑→还原同命令内 + SHA-256 逐字节校验);
-    # ⚠️ C4(D5(b) 漏网条目判据)首轮 0 红 = 弱判别面(BLOCKING)⇒ 夹具形态修正后复跑转红。
-    # 回归 3613/3568/0/45(基线 3572/3526/0/46;逐 fullname diff = 差异恰为旧 11 测 → 新 52 测,零结果变化)。
-    # ⚠️ 证伪轮首次抓到「夹具判别力」缺陷:负向夹具的期望集成员未合法登记 ⇒ 断言被 (a) 半边的误报满足。
-    # ✅ S14-7 复评结案(2026-10-16):story 转 Complete —— 证伪轮全红 + 证据原件落盘 + EPIC 6 行 reconcile。
-    # ⚠️ 证据原件 = production/qa/evidence/impl-s14-6-asset-pipeline-2026-10-16.md。
+    status: backlog
+    owner: "用户(实听)+ claude(备协议)"
+    estimate_days: 0          # 复杂度 = M
+    blocker: "依赖 S15-2 —— 否则听的是恒取 Assets[0] 的形态"
+    completed: ""
 
   # ── Nice to Have ──
-  - id: "S14-7"
-    name: "6 条复评 + 转 Complete + 44 EPIC 6 行 reconcile"
-    file: "production/qa/evidence/review-audio-epic-fake-green-2026-10-16.md"
+  - id: "S15-7"
+    name: "债册刷账批(TD-audio-103 阻塞源改口 + story-016 reconcile + 本 sprint 结案注)"
+    file: "docs/tech-debt-register.md"
     priority: nice-to-have
-    status: done
+    status: review
     owner: "claude"
-    estimate_days: 0
-    blocker: "S14-1..6"
-    completed: "2026-10-16"
-    # ⚠️ 判据须是变异测试(停用生产码 ⇒ 断言转红),非「测试名 + 行号」(retro-13 行动项 2)。
+    estimate_days: 0          # 复杂度 = S
+    blocker: "E5 人半仍待走查人真听 + 改写 15 条 not_reporting(裁定 A 的出路,不可代劳)"
+    completed: "2026-10-18"
+    # 零代码改动;8 项刷账逐条先只读对码(见 impl-s15-7-* §三/§四)。
+    # ✅ 用户裁定两项已落:E5 = A(维持未通过,出路 = 真听后改写 15 条 not_reporting)·
+    #   副本 = A(删)+ C(治法:内容哈希命名 + 内容判等 + 异内容拒写;夹具 3 条、证伪 G1–G3 全红)。
+    # status 记 review 而非 done:E5 人半仍缺(不可代劳)· 031 两半 · 032 ① · BuildAudioSeams ·
+    #   101/102/103 听测均仍 open。全量 3797/3751/1/45 = 基线 +3。
 
-  # ── 计划外追加(2026-10-17)──
-  - id: "S14-8"
-    name: "015 音频资产接入:5 个被引 .wav 真内容落地 + 存在性门真素材复验 + 缺失⇒构建期硬失败"
-    file: "production/epics/audio-system/story-015-audio-asset-binding.md"
-    priority: should-have
-    status: done
+  - id: "S15-8"
+    name: "/retrospective sprint-14"
+    file: "production/retrospectives/retro-sprint-14-2026-10-18.md"   # ✅ 已落盘
+    priority: nice-to-have
+    status: review
     owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-17"
-    # 本件原登记为「content 批 · Ready ⬜,非 sprint-14 面内」;2026-10-17 提前兑现(4/4 AC 全勾)。
-    # 交付:5 个占位静音(2044 B)替换为真内容 wav + music_* Load Type pin(loadType 0 → 2);
-    #       烘焙/门代码**零改动**(本件只喂真素材 + 复验负向半 —— 承 Out of Scope)。
-    # 判据:证伪轮三例(真删 .wav ⇒ 15 红 / 去重 ⇒ 1 红 / inDataCore ⇒ 1 红);
-    #       回归 unity/Logs/s15-final.xml = total 395 / passed 395 / failed 0。
-    # ⚠️ 证伪轮一触发 Unity 资产维护,静默改写 audio.asset(5 → 4 条);已跑生产菜单项 EnsureAudioGroup 修复。
-    # ⚠️ 6 条 ADVISORY 见 story §Completion Notes(含「组半不可从全新 clone 复现」—— 建议登记 tech-debt)。
-    # ⚠️ 代码评审 = 待跑(用户裁定「收尾前会跑」)。
-
-  - id: "S14-9"
-    name: "017 音频门加固:跨平台大小写(W-2) + ValidateEntries 拆分(W-3)"
-    file: "production/epics/audio-system/story-017-audio-gate-hardening.md"
-    priority: should-have
-    status: done
-    owner: "claude"
-    estimate_days: 0
-    blocker: ""
-    completed: "2026-10-17"
-    # 立件依据 = story-015 收口轮 /code-review 产出的 W-2 / W-3(落在 story-010 既有门代码上)。
-    # W-2 修法 = 判据收单一出处(Gates.IsAudioAssetName 纯谓词 + FilterAudioNames 纯映射),
-    #           Bake.IsWavName 改委派;禁「改成 *.WAV」(只是把分叉挪到另一边)。
-    # W-3 修法 = ValidateEntries 退化为编排 + 两个判据半拆为私有方法(语义零变更)。
-    # 判据:证伪轮 10 变异全部 exactRed:true(FALSIFY_EXIT=0,SHA-256 还原校验通过,
-    #       受保护路径指纹未变);过滤 74/74;全量 3635/3590/0/45 vs 基线 3630/3585/0/45
-    #       ⇒ Δtotal = +5 = 新增测数,零回归。
-    # 同批不同账(用户裁定 #11 · 归 TD-audio-01f):U1SpikeSetup.Teardown 加 Play Mode 复原委派
-    #       —— Landed ✅ / Proven ✗(生命周期回调,EditMode 不触发,未造判据;不得标已证)。
+    estimate_days: 0          # 复杂度 = S
+    blocker: "retro-13 行动项 3+4(跨 epic 假绿普查)未兑现 ⇒ 已立为 sprint-16 行动项"
+    completed: "2026-10-18"
+    # retro 已写:sprint-14 计划 7/7 + 追加 4 件 = 11 done;strict 提交 47(区间 56)。
+    # 核心:retro-13 行动项 2/4 兑现(证伪轮门全面落地),3+4 未做(同型样本已 3 个);
+    # 件/日基线(3.7 vs 8–10)因件变大不可跨 sprint 比 ⇒ 需重标定 CAPACITY-MODEL。
+    # status 记 review 而非 done:5 条行动项归 sprint-16,本件只完成「写 retro」本身。

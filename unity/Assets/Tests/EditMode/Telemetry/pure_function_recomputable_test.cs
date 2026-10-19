@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using DaYiJingCheng.Telemetry;
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.Unit.Telemetry
@@ -24,97 +25,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
     [TestFixture]
     internal sealed class PureFunctionRecomputableTest
     {
-        // ══════════════ 纯函数谓词面(测试自持,零生产依赖)══════════════
-
-        /// <summary>纯函数折叠器(测试自持,纯函数)。
-        /// 语义 = ADR-019 §一 R8/R9:每条指标 = Fold(E);两种入口共用同一个折叠函数。</summary>
-        private static class FoldEngine
-        {
-            /// <summary>一条事件(测试自持夹具)。</summary>
-            public sealed class Event
-            {
-                public int Kind;      // 事件类型枚举值
-                public long Tick;     // 逻辑 tick
-                public int Payload;   // 载荷
-            }
-
-            /// <summary>折叠结果(全部整数域,无浮点)。</summary>
-            public readonly struct FoldResult
-            {
-                public readonly int TotalEvents;
-                public readonly int DistinctKinds;
-                public readonly int SumPayload;
-                public readonly long MinTick;
-                public readonly long MaxTick;
-                public readonly long SessionSpan;
-
-                public FoldResult(int totalEvents, int distinctKinds, int sumPayload,
-                                   long minTick, long maxTick)
-                {
-                    TotalEvents = totalEvents;
-                    DistinctKinds = distinctKinds;
-                    SumPayload = sumPayload;
-                    MinTick = minTick;
-                    MaxTick = maxTick;
-                    SessionSpan = maxTick - minTick;
-                }
-
-                /// <summary>Q16.16 标量导出(ROUND_HALF_AWAY_FROM_ZERO)。
-                /// 用于跨实现对比的标量指纹。</summary>
-                public long ExportScalarQ1616()
-                {
-                    // 将各字段组合成一个 64 位标量,使用 ROUND_HALF_AWAY_FROM_ZERO 舍入
-                    long h = 17;
-                    h = h * 31 + TotalEvents;
-                    h = h * 31 + DistinctKinds;
-                    h = h * 31 + SumPayload;
-                    h = h * 31 + (int)(MinTick & 0xFFFFFFFF);
-                    h = h * 31 + (int)(MaxTick & 0xFFFFFFFF);
-                    h = h * 31 + (int)(SessionSpan & 0xFFFFFFFF);
-                    // 模拟 ROUND_HALF_AWAY_FROM_ZERO:加上 0.5 后截断
-                    long rounded = (h >= 0) ? (h + 1) / 2 : -((-h + 1) / 2);
-                    return rounded;
-                }
-            }
-
-            /// <summary>离线整表折叠(唯一实现)。</summary>
-            public static FoldResult Fold(IReadOnlyList<Event> events)
-            {
-                if (events.Count == 0)
-                    return new FoldResult(0, 0, 0, 0, 0);
-
-                int total = events.Count;
-                int distinctKinds = events.Select(e => e.Kind).Distinct().Count();
-                int sumPayload = events.Sum(e => e.Payload);
-                long minTick = events.Min(e => e.Tick);
-                long maxTick = events.Max(e => e.Tick);
-                return new FoldResult(total, distinctKinds, sumPayload, minTick, maxTick);
-            }
-
-            /// <summary>增量边读边折(与离线共用同一个 Fold 终值逻辑)。
-            /// 模拟:逐事件读入,维护滚动状态,终值 == 离线整表折叠。</summary>
-            public static FoldResult FoldIncremental(IReadOnlyList<Event> events)
-            {
-                if (events.Count == 0)
-                    return new FoldResult(0, 0, 0, 0, 0);
-
-                var seenKinds = new HashSet<int>();
-                long sumPayload = 0;
-                long minTick = long.MaxValue;
-                long maxTick = long.MinValue;
-
-                foreach (var e in events)
-                {
-                    seenKinds.Add(e.Kind);
-                    sumPayload += e.Payload;
-                    if (e.Tick < minTick) minTick = e.Tick;
-                    if (e.Tick > maxTick) maxTick = e.Tick;
-                }
-
-                return new FoldResult(events.Count, seenKinds.Count,
-                    (int)sumPayload, minTick, maxTick);
-            }
-        }
+        // ⚠️ S19 修复(TD-epic-01):原「测试自持谓词面」已删除 ——
+        //    谓词面上移为生产类 `DaYiJingCheng.Telemetry.FoldEngine`
+        //    (ADR-019 §一;那个自持面在普查里被判为「AC 语义层无生产主语」)。
+        //    本文件现在**只做夹具 + 断言**,不再自带公式。
 
         // ══════════════ AC-51-C1:同流两次重算逐位相同 ══════════════
 

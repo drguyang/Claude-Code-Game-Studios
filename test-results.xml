@@ -1,39 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
-<test-run id="2" testcasecount="1" result="Passed" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.0747534">
-  <test-suite type="TestSuite" id="1000" name="unity" fullname="unity" runstate="Runnable" testcasecount="823" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.074753" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+<test-run id="2" testcasecount="6" result="Passed" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-19 04:08:15Z" end-time="2026-10-19 04:08:15Z" duration="0.4362901">
+  <test-suite type="TestSuite" id="1000" name="unity" fullname="unity" runstate="Runnable" testcasecount="3825" result="Passed" start-time="2026-10-19 04:08:15Z" end-time="2026-10-19 04:08:15Z" duration="0.436290" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
     <properties>
       <property name="platform" value="EditMode" />
     </properties>
-    <test-suite type="Assembly" id="1865" name="Sim.Contracts.Tests.dll" fullname="/home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity/Library/ScriptAssemblies/Sim.Contracts.Tests.dll" runstate="Runnable" testcasecount="822" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.062090" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <test-suite type="Assembly" id="4781" name="Sim.Contracts.Tests.dll" fullname="/home/gu/文档/nm/nm2/Claude-Code-Game-Studios/unity/Library/ScriptAssemblies/Sim.Contracts.Tests.dll" runstate="Runnable" testcasecount="3547" result="Passed" start-time="2026-10-19 04:08:15Z" end-time="2026-10-19 04:08:15Z" duration="0.295928" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
       <properties>
-        <property name="_PID" value="3799870" />
+        <property name="_PID" value="2232053" />
         <property name="_APPDOMAIN" value="Unity Child Domain" />
         <property name="platform" value="EditMode" />
         <property name="EditorOnly" value="True" />
       </properties>
-      <test-suite type="TestSuite" id="1866" name="DaYiJingCheng" fullname="DaYiJingCheng" runstate="Runnable" testcasecount="822" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.056858" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <test-suite type="TestSuite" id="4782" name="DaYiJingCheng" fullname="DaYiJingCheng" runstate="Runnable" testcasecount="3547" result="Passed" start-time="2026-10-19 04:08:15Z" end-time="2026-10-19 04:08:15Z" duration="0.224383" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
         <properties />
-        <test-suite type="TestSuite" id="1867" name="Tests" fullname="DaYiJingCheng.Tests" runstate="Runnable" testcasecount="822" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.051861" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <test-suite type="TestSuite" id="4783" name="Tests" fullname="DaYiJingCheng.Tests" runstate="Runnable" testcasecount="3547" result="Passed" start-time="2026-10-19 04:08:15Z" end-time="2026-10-19 04:08:15Z" duration="0.152496" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
           <properties />
-          <test-suite type="TestSuite" id="1868" name="Unit" fullname="DaYiJingCheng.Tests.Unit" runstate="Runnable" testcasecount="822" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.046961" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <test-suite type="TestSuite" id="4807" name="Unit" fullname="DaYiJingCheng.Tests.Unit" runstate="Runnable" testcasecount="1618" result="Passed" start-time="2026-10-19 04:08:15Z" end-time="2026-10-19 04:08:15Z" duration="0.090093" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
             <properties />
-            <test-suite type="TestSuite" id="1872" name="Audio" fullname="DaYiJingCheng.Tests.Unit.Audio" runstate="Runnable" testcasecount="153" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.039881" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <test-suite type="TestSuite" id="4808" name="Telemetry" fullname="DaYiJingCheng.Tests.Unit.Telemetry" runstate="Runnable" testcasecount="84" result="Passed" start-time="2026-10-19 04:08:15Z" end-time="2026-10-19 04:08:15Z" duration="0.066346" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
               <properties />
-              <test-suite type="TestFixture" id="1732" name="BreathLayersTest" fullname="DaYiJingCheng.Tests.Unit.Audio.BreathLayersTest" classname="DaYiJingCheng.Tests.Unit.Audio.BreathLayersTest" runstate="Runnable" testcasecount="38" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.037603" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <test-suite type="TestFixture" id="3083" name="F2WiringTest" fullname="DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest" classname="DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-10-19 04:08:15Z" end-time="2026-10-19 04:08:15Z" duration="0.063021" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
                 <properties />
-                <test-case id="1748" name="test_experiment1_getFloatAlone_discriminatesHaVsHb" fullname="DaYiJingCheng.Tests.Unit.Audio.BreathLayersTest.test_experiment1_getFloatAlone_discriminatesHaVsHb" methodname="test_experiment1_getFloatAlone_discriminatesHaVsHb" classname="DaYiJingCheng.Tests.Unit.Audio.BreathLayersTest" runstate="Runnable" seed="621391776" result="Passed" start-time="2026-09-26 14:46:24Z" end-time="2026-09-26 14:46:24Z" duration="0.021143" asserts="0">
+                <test-case id="3086" name="test_wired_emptyStream_zeroEverything" fullname="DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest.test_wired_emptyStream_zeroEverything" methodname="test_wired_emptyStream_zeroEverything" classname="DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest" runstate="Runnable" seed="2123174033" result="Passed" start-time="2026-10-19 04:08:15Z" end-time="2026-10-19 04:08:15Z" duration="0.027341" asserts="0">
                   <properties>
                     <property name="retryIteration" value="0" />
                     <property name="repeatIteration" value="0" />
                   </properties>
-                  <output><![CDATA[[实验1·GetFloat] bus_volume_master ⇒ got=True value=0
-[实验1·GetFloat] bus_volume_music ⇒ got=True value=0
-[实验1·GetFloat] bus_volume_ambience ⇒ got=True value=0
-[实验1·GetFloat] bus_volume_voice ⇒ got=True value=0
-[实验1·GetFloat] bus_volume_sfx ⇒ got=True value=0
-[实验1·GetFloat] bus_volume_stethoscope ⇒ got=True value=0
-[实验1·GetFloat] bus_volume_uicue ⇒ got=True value=0
-Saving results to: /home/gu/.config/unity3d/DefaultCompany/unity/TestResults.xml
+                </test-case>
+                <test-case id="3085" name="test_wired_f2_f1aIdentity" fullname="DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest.test_wired_f2_f1aIdentity" methodname="test_wired_f2_f1aIdentity" classname="DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest" runstate="Runnable" seed="530853883" result="Passed" start-time="2026-10-19 04:08:15Z" end-time="2026-10-19 04:08:15Z" duration="0.017495" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="3089" name="test_wired_judgedIsLexiconId_notOtherField" fullname="DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest.test_wired_judgedIsLexiconId_notOtherField" methodname="test_wired_judgedIsLexiconId_notOtherField" classname="DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest" runstate="Runnable" seed="821279792" result="Passed" start-time="2026-10-19 04:08:15Z" end-time="2026-10-19 04:08:15Z" duration="0.000385" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="3087" name="test_wired_judgedNotInRegistry_unmappableNotMatrix" fullname="DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest.test_wired_judgedNotInRegistry_unmappableNotMatrix" methodname="test_wired_judgedNotInRegistry_unmappableNotMatrix" classname="DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest" runstate="Runnable" seed="253894177" result="Passed" start-time="2026-10-19 04:08:15Z" end-time="2026-10-19 04:08:15Z" duration="0.000434" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="3084" name="test_wired_realStream_f2MatrixAndBuckets" fullname="DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest.test_wired_realStream_f2MatrixAndBuckets" methodname="test_wired_realStream_f2MatrixAndBuckets" classname="DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest" runstate="Runnable" seed="21173142" result="Passed" start-time="2026-10-19 04:08:15Z" end-time="2026-10-19 04:08:15Z" duration="0.001179" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="3088" name="test_wired_truthBitPlusOne_isDiseaseId" fullname="DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest.test_wired_truthBitPlusOne_isDiseaseId" methodname="test_wired_truthBitPlusOne_isDiseaseId" classname="DaYiJingCheng.Tests.Unit.Telemetry.F2WiringTest" runstate="Runnable" seed="512575517" result="Passed" start-time="2026-10-19 04:08:15Z" end-time="2026-10-19 04:08:15Z" duration="0.000343" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <output><![CDATA[Saving results to: /home/gu/.config/unity3d/DefaultCompany/unity/TestResults.xml
 ]]></output>
                 </test-case>
               </test-suite>

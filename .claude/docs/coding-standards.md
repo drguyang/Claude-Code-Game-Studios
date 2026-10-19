@@ -10,6 +10,23 @@
   For UI changes, verify with screenshots. Compare expected output to actual output
   before marking work complete. Every implementation should have a way to prove it works.
 
+# Naming — 机械门避让表(2026-10-18 立)
+
+**为什么单列一节**:项目里有一批**机械门**是按**标识符字面**扫的,不看你写注释里的意图。
+撞上去的失败信息**指向门的词表、不指向你的命名**,排查成本高且极易被误读成「门坏了」。
+下表是**已实测命中**的避让项 —— 命名前先扫一眼。
+
+| 避让 | 触发门 | 判据(实测) | 出处 |
+|---|---|---|---|
+| **`strip` / `grip` / `trip`** 等**含 `rip` 子串**的成员名 | `NoHealthbarFeedbackTest.test_markRegistry_noPaperTear_noTearFields` | 破纸词表 `{tear, rip, break, split, fracture}` 按**成员名小写子串**匹配,**限引用类型**(`f.FieldType.IsClass \|\| IsInterface`),`BindingFlags.DeclaredOnly` | story-025 实现轮(2026-10-18):`const string DetentStripClass` + `private readonly VisualElement _detentStrip` **双双命中** ⇒ 改 `band` |
+
+**适用范围**:仅 **`Gameplay.UI/Skeuomorphic/**` 的成员名**(该门只扫 42 侧装配)。
+**不是**全仓禁令 —— 值内容、局部变量、注释均不在扫描面内。
+
+**同族提醒(未穷举)**:`AC-42-F3` 词门扫 `Skeuomorphic/**/*.cs` 的**全文(含注释)**,
+避让 `未查标签` / `占位符` / `计数` / `分组` / `排序` / `检索控件` / `同源提示` / `数字角标` / `进度填充`。
+⇒ **写 42 侧注释时也要避开这些词**,否则注释本身就会让门转红。
+
 # Review Evidence Standards
 
 - **评审报告原件落盘(BLOCKING 级 · 2026-10-02 立)**:任何产出 **BLOCKING 判定**的评审,

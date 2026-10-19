@@ -27,6 +27,23 @@
 //
 // ⚠️ 设备回退为 Mono 的机器上:`execGate_` / `playback_` / `walkthrough_` **红** ——
 //    红即「本机未走查」这一事实,不得被当回归修掉。E5 记 ✗。
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+// ⚠️ **S15-7 reconcile 后的人半口径(2026-10-18 用户裁定「E5 选 A」)**:
+//    E5 的签核格是 `[ ] 通过`,与该文件自订判据「未勾选 = E5 未通过」**一致** ⇒ E5 = ✗。
+//    **且人半比「缺一个勾」更弱一层(本批实测)**:谓词文件里的 15 条 `not_reporting`
+//    **与 probe 预填的建议稿逐字相同** —— 指令 ④ 自陈「这是**默认判定**,不是你听过的结论」,
+//    而 `ReplayPredicatesFromText` 对 `not_reporting` **只校验非空**(无任何机制要求它必须被改过)。
+//    ⇒ `status_words: null` 既可能是「听完确实没有」,也可能是「没人填」;
+//     记录表 15 行判定列的「✅ 不是状态播报」是机器从 null 推出的,**不是人写的**。
+//    **出路**(用户裁 A):走查人真听一遍,把 15 条 `not_reporting` **改写成自己的话**
+//   (哪怕只改语气、加听到的具体质地),`status_words` 保持 null,重跑本 probe 生成新记录 ⇒
+//    人半才有「人听过」的物证。**不需要新机制,现有判据就够。**
+// ⚠️ **同批治法(S15-7 · 用户裁定「副本选 A + 顺手做 C」)**:清单 / 记录的文件名
+//    从「当天日期」改为「**内容哈希**」,`WriteOnce` 判据从「当天已存在」改为「**内容相同**」
+//    —— 原实现的失效形态实测过两次(10-18 两份副本与 10-17 原件逐字节相同且已入库;
+//    record 侧还是无条件 `File.WriteAllText` ⇒ 同天二次重跑会静默改写已签核记录)。
+//    判据 = 本节末三条 `fileName_isContentAddressed_*` / `contentHash_*` / `writeOnce_*` 夹具。
 // ═══════════════════════════════════════════════════════════════════════════════
 //
 // 走查设计的意图:
@@ -53,6 +70,7 @@ using System.Text.RegularExpressions;
 using DaYiJingCheng.EditorTools.Bake;
 using DaYiJingCheng.Gameplay.Presentation.Audio;
 using NUnit.Framework;
+using UnityEngine.TestTools;
 using UnityEngine;
 using UnityEngine.TestTools;
 
@@ -413,9 +431,10 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
             Assert.That(audible.Count + unmeasured.Count, Is.GreaterThan(0),
                 "全部 cue 静音 —— 机器半无法支撑人耳走查,判定无效");
 
-            // ① 清单(首次生成;已存在则不覆盖 —— 第二版确认靠谓词文件 + 记录文件)
-            string manifestPath = Path.Combine(_repoRoot, WalkthroughDirRel, ManifestFileName());
-            WriteOnce(manifestPath, BuildManifestJson(table, strings));
+            // ① 清单(内容哈希命名 + 同内容不重复生成 —— S15-7 治法:拆掉「跨天必然产副本」的根因)
+            string manifestJson = BuildManifestJson(table, strings);
+            string manifestPath = Path.Combine(_repoRoot, WalkthroughDirRel, ManifestFileName(manifestJson));
+            WriteOnce(manifestPath, manifestJson);
 
             // ② 文本先后(机器半的必要条件;判据器 = CueTextOrderingRules,判别力由 EditMode 夹具证)
             //    ⚠️ 逐 cue 对**事件表全部行**判,遍历 cooked 表(而非 subtitles 字典)—— 源里有、表里没有的
@@ -437,6 +456,8 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
                 "文本先后判定失败(文字先于声音 = 音频在给已读出的结论加提示音):\n" + string.Join("\n", problems));
 
             // ③ 记录(仅当谓词文件存在)
+            // ⚠️ S15-7 治法:原为**无条件** `File.WriteAllText` ⇒ 同天第二次重跑会静默改写当天记录。
+            //    现统一走 `WriteOnce`(内容判等)+ 内容哈希命名 —— 与 manifest 同一条规则。
             string predicatesPath = Path.Combine(_repoRoot, WalkthroughDirRel, PredicatesFileName);
             if (!File.Exists(predicatesPath))
             {
@@ -451,9 +472,9 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
             Assert.That(verdictProblems, Is.Empty,
                 "走查判定失败:\n" + string.Join("\n", verdictProblems));
 
-            File.WriteAllText(Path.Combine(_repoRoot, WalkthroughDirRel, RecordFileName()), markdown,
-                new UTF8Encoding(false));
-            Debug.Log($"[E5] 走查记录已写:{Path.Combine(WalkthroughDirRel, RecordFileName())}" +
+            string recordPath = Path.Combine(_repoRoot, WalkthroughDirRel, RecordFileName(markdown));
+            WriteOnce(recordPath, markdown);
+            Debug.Log($"[E5] 走查记录已写:{Path.Combine(WalkthroughDirRel, RecordFileName(markdown))}" +
                       "(待走查人签字 —— 未签字 = E5 未通过)");
         }
 
@@ -598,23 +619,118 @@ namespace DaYiJingCheng.Tests.EditMode.Audio
 
         // ══════════════ 清单 / 记录 ══════════════
 
-        internal static string ManifestFileName() => $"statereport-walkthrough-manifest-{TodayStamp()}.json";
+        // ⚠️ **S15-7 治法(用户裁定「副本选 A + 顺手做 C」· 2026-10-18)**:
+        //    原实现 = **按当天日期命名** + manifest 走 `WriteOnce`(当天已存在则不覆盖)、
+        //    record 走**无条件** `File.WriteAllText`。两种语义各有一个失效形态:
+        //    ① 跨天重跑 ⇒ 日期不同 ⇒ 必然产出**与旧件逐字节相同**的新副本
+        //       (实测:10-18 两份副本与 10-17 入库原件 md5 全同,且已随 S15-5 `910aa79` 入库);
+        //    ② record 无条件覆盖 ⇒ 同一天第二次重跑会**静默改写**当天记录。
+        //    ⇒ 改为**内容哈希命名 + 按内容判等**:
+        //       · 同内容 ⇒ 任何一天都命中同一路径,不重复生成(副本的根因被拆掉);
+        //       · 不同内容 ⇒ 路径不同 ⇒ 旧件保留(可追溯),不被静默覆盖。
+        //    ⚠️ 副作用如实登记:文件路径**不再含日期**。日期信息在 manifest / 记录的正文里
+        //       (`BuildManifestJson` 的 `event_table_config_version` 与记录的标题行),
+        //       不靠文件名承载 —— 这与「不许 chunk 局部坐标系」同型:**不用位置编码时间**。
 
-        internal static string RecordFileName() => $"statereport-walkthrough-{TodayStamp()}.md";
+        /// <summary>清单文件名 = 内容哈希(不再是当天日期 —— 见上方 S15-7 治法注)。</summary>
+        internal static string ManifestFileName(string content) => $"statereport-walkthrough-manifest-{ContentHash(content)}.json";
 
-        private static string TodayStamp() => DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        /// <summary>记录文件名 = 内容哈希(同上)。</summary>
+        internal static string RecordFileName(string content) => $"statereport-walkthrough-{ContentHash(content)}.md";
 
-        private static bool FileFresh(string path)
-            => File.Exists(path) && (DateTime.Now - File.GetLastWriteTime(path)).TotalDays <= 1.0;
+        /// <summary>内容的确定性短哈希(16  hex;FNV-1a 64 位,禁 `UnityEngine.Hash128` —— ADR-010 同款纪律)。</summary>
+        internal static string ContentHash(string content)
+        {
+            ulong h = 1469598103934665603UL;
+            foreach (char c in content)
+            {
+                h ^= (byte)(c & 0xFF);
+                h *= 1099511628211UL;
+                h ^= (byte)((c >> 8) & 0xFF);
+                h *= 1099511628211UL;
+            }
+            return h.ToString("x16", CultureInfo.InvariantCulture);
+        }
+
+        private static bool SameContent(string path, string content)
+            => File.Exists(path) && File.ReadAllText(path) == content;
+
+        // ══════════════ S15-7 治法的判据(内容哈希命名 + 同内容不重复生成)══════════════
+
+        /// <summary>文件名只由内容决定 —— 与「哪一天跑」无关。
+        /// <para>这正是「跨天重跑必然产副本」的根因判据:若名字里含日期,两次同内容跑必得两个路径。</para></summary>
+        [Test]
+        public void fileName_isContentAddressed_notDateAddressed()
+        {
+            const string a = "同内容甲";
+            Assert.That(ManifestFileName(a), Is.EqualTo(ManifestFileName(a)),
+                "同内容两次命名必须同一路径 —— 否则副本根因仍在");
+            Assert.That(RecordFileName(a), Is.EqualTo(RecordFileName(a)), "同上(记录)");
+            Assert.That(ManifestFileName(a), Is.Not.EqualTo(ManifestFileName("同内容乙")),
+                "不同内容须得不同路径 —— 否则旧件被静默覆盖");
+        }
+
+        /// <summary>哈希确定性 + 不含日期戳:同一字符串跨进程 / 跨日恒同,且形态是 16 hex。</summary>
+        [Test]
+        public void contentHash_isDeterministic_andHex16()
+        {
+            Assert.That(ContentHash("abc"), Is.EqualTo(ContentHash("abc")), "确定性(可复算)");
+            Assert.That(ContentHash("abc"), Does.Not.EqualTo(ContentHash("abd")), "异内容异值");
+            Assert.That(ContentHash("abc"), Does.Match("^[0-9a-f]{16}$"), "16 位小写 hex");
+        }
+
+        /// <summary>`WriteOnce` 同内容不重复生成、异内容**拒写**(不覆盖)。
+        /// <para>⚠️ 本条是本治法的**执行判据**,且它首轮就是红的 —— 首版实现只用「内容哈希命名」
+        /// 保证异内容换路径,`WriteOnce` 本身**仍会覆盖**。命名纪律 ≠ 断言兜底:本条把
+        /// 「不会静默覆盖已签核记录」从偶然变成不变式。</para>
+        /// <para>反证:把 `WriteOnce` 的 `File.Exists` 分支改回无条件 `File.WriteAllText` ⇒ 本条红。</para></summary>
+        [Test]
+        public void writeOnce_sameContent_isNotRewritten_differentContent_isRefused()
+        {
+            string dir = Path.Combine(Path.GetTempPath(), "e5-writeonce-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                string path = Path.Combine(dir, "probe.md");
+                WriteOnceForTest(path, "第一版");
+                WriteOnceForTest(path, "第一版");          // 同内容 —— 不得重复产出
+                Assert.That(File.ReadAllText(path), Is.EqualTo("第一版"), "同内容不得改写");
+
+                // 拒写路径会打 `Debug.LogError` —— 那是**设计内的告警**,不是失败。
+                // 若不声明,UTF 的 Unhandled log 检查会把「正确地拒写」判成红(假绿反向形态)。
+                LogAssert.Expect(UnityEngine.LogType.Error,
+                    new System.Text.RegularExpressions.Regex("拒写.*内容不同"));
+                WriteOnceForTest(path, "第二版");          // 异内容 —— 必须拒写
+                Assert.That(File.ReadAllText(path), Is.Not.EqualTo("第二版"),
+                    "异内容不得静默覆盖旧件(旧件是已签核走查记录,覆盖 = 销毁证据)");
+            }
+            finally
+            {
+                if (Directory.Exists(dir)) Directory.Delete(dir, true);
+            }
+        }
+
+        /// <summary>`WriteOnce` 是 private static,测试经此薄封装驱动(不改生产可见性)。</summary>
+        private static void WriteOnceForTest(string path, string content) => WriteOnce(path, content);
 
         private static void WriteOnce(string path, string content)
         {
-            // 首次生成:目录尚不存在 ⇒ 建之;已存在 ⇒ 不触碰(不覆盖旧清单,也不动目录)。
+            // 首次生成:目录尚不存在 ⇒ 建之。
             string dir = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            if (FileFresh(path))
+
+            if (File.Exists(path))
             {
-                Debug.Log($"[E5] 清单已存在,不覆盖:{path}");
+                string existing = File.ReadAllText(path);
+                if (existing == content)
+                {
+                    Debug.Log($"[E5] 清单已存在且内容相同,不重复生成:{path}");
+                    return;
+                }
+                // ⚠️ **拒写,不是覆盖** —— 旧件是已签核的走查记录/清单,覆盖 = 销毁证据。
+                //    内容哈希命名让「同路径异内容」在生产里**结构上不可能**(路径 = f(内容)),
+                //    故这条分支正常情况下永不命中;它存在是为了把「不可能」从**命名纪律**升级为
+                //    **断言兜底** —— 万一将来有人传错路径,静默覆盖不会发生。
+                Debug.LogError($"[E5] 拒写:目标已存在且内容不同(不覆盖已签核件):{path}");
                 return;
             }
             File.WriteAllText(path, content, new UTF8Encoding(false));

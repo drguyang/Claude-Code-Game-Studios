@@ -7,6 +7,11 @@
 > **Estimate**: 4h
 > **Manifest Version**: 2026-10-15
 > **Last Updated**: 2026-10-16
+> **AC-5 状态(2026-10-17 核对订正)**:原记「8/9 passing + 1 PARTIAL」。
+> **可执行的那一半已补测并通过**:`medcons_outcome_judge_test.cs::test_ac5_outcomeEnumClosure_*`
+> (Outcome 闭集恰 6 成员 + 零致死语义;反证:注入 `CostLethal` ⇒ 该测 + `test_ac5301_*` 恰 2 红)。
+> **仍 PARTIAL 的只有「致死行在 P0 表 = 构建期拒收」** —— 需要**代价表**载体,全仓今日无该表
+> ⇒ 判据无宾语,归 `TD-medcons-15` / 数值轮。**不得据本条推定 AC-5 已全验。**
 
 ## Context
 
@@ -95,6 +100,8 @@
   - Given: 禁忌代价表行
   - Then: 代价映射 ∈ {伤, 后遗};「致死」行在 P0 表 = 构建期拒收
   - Edge cases: 9 判「走」+ 后果并存 ⇒ 无因果混写(结局轴只读)
+  - **2026-10-17 载体登记**:Then 句的前半(**类型级封闭**)= `medcons_outcome_judge_test.cs::test_ac5_outcomeEnumClosure_hasNoLethalMember_costPathCantExpressDeath`;
+    后半(**表级拒收**)= **无载体 —— 全仓无代价表**,`TD-medcons-15`。
 
 > **补录 AC-6 / AC-7(2026-10-16 · `/qa-plan sprint` 回填,只增不改上方五条)** ——
 > 原因为 2026-09-28 建卡时这三项尚未立案:`ConsequenceResolved` Kind 于 2026-09-19 直登 registry、

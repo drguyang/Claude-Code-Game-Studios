@@ -28,9 +28,63 @@
     /* ⚠️ 评审 M4:刻度条底色**独立命名**,不复用 `--skeuo-brass-border` ——
        描边语义 ≠ 实心蚀刻面语义(值暂同,但调边框不应连带改刻度条)。 */
     background-color: var(--skeuo-brass-scale-color);
-    height: var(--skeuo-brass-scale-height);
+    /* ⚠️ 2026-10-18(AC-025-3):`height` → `min-height` —— 本条 2px 是**蚀刻刻度条基线**,
+       而自 AC-025-1 起本元件同时承载逐档形态子件;硬高会把子件夹扁(UI Toolkit 默认
+       `overflow: visible`,形态会溢出到相邻行)。改 `min-height` 后基线仍在,形态有容身之处。
+       全库零测试断言该值(改前已 grep 复核)。
+       ⚠️ **2026-10-18 评审 R-3:本 class 自此 = 内容驱动尺寸**,两种观感并存:
+       无档(表头 `_brassScale`,从不调 `SetDetents`)⇒ `_detentBand` 空 ⇒ **2px 基线**;
+       有档(每行 `rowForm`)⇒ 高度由带内容决定 ⇒ **12px 板**(落焦档另向上溢出 8px,
+       由 `.paper` 的 16px padding 吸收)。在行内实例上误加子件 / 误设高度前先读本注。 */
+    min-height: var(--skeuo-brass-scale-height);
     margin-top: var(--skeuo-brass-scale-gap);
     margin-bottom: var(--skeuo-brass-scale-gap);
+}
+
+/* ── 逐档形态(戥子档位 · AC-025-1 / AC-025-3)──────────────────────────────
+   ⚠️ 归**黄铜侧分支**(AC-42-F3 / AC-025-6):墨侧元件不得引本族类。
+   档位读数由「N 个形态子件 + 其中一档几何放大」表达 —— 零数字文本(AC-025-5)。
+   ⚠️ 落焦档块内**刻意零颜色声明** ⇒ 「可分性全部由几何承载」(AC-025-1 ②)可判真。 */
+.brass-detent-band {
+    flex-direction: row;
+    align-items: flex-end;
+}
+
+.brass-detent {
+    /* ⚠️ 2026-10-18 评审 R-2:`flex-shrink: 0` —— 档块是本元件的**读数本体**,
+       被压缩会同时缩掉「落焦档 vs 常态档」的绝对几何差(压缩按基础尺寸加权),
+       即 AC-025-1 ② 的几何可分性随容器宽度漂移。钉死 ⇒ 可分性与行宽解耦。 */
+    flex-shrink: 0;
+    width: var(--skeuo-brass-detent-width);
+    height: var(--skeuo-brass-detent-height);
+    margin-left: var(--skeuo-brass-detent-gap);
+    margin-right: var(--skeuo-brass-detent-gap);
+    /* ⚠️ 2026-10-18 首次真机截图判读(unity/Logs/shots/20261018_090548_1x.png)实证的修复:
+       原底色 `--skeuo-brass-scale-color`(#8C5A2B)= 描边 `--skeuo-brass-border` 同值 =
+       所在板 `.brass-scale` 底色**三者全同** ⇒ 档块完全溶进铜条,5 行逐像素相同,
+       形态「几何可分」在渲染层零对比度(评审原件 §五 未及核查项 #5 命中)。
+       现改 `--skeuo-brass-bg`(#B8863B,art-bible §4.1 权威黄铜金)⇒ 金块立铜条,
+       1px 深棕描边 = 既有 border 色。落焦块**仍零颜色声明**(承同金,只几何放大)
+       ⇒ AC-025-1 ② 的可分性依旧全部由几何承载。 */
+    background-color: var(--skeuo-brass-bg);
+    border-top-color: var(--skeuo-brass-border);
+    border-right-color: var(--skeuo-brass-border);
+    border-bottom-color: var(--skeuo-brass-border);
+    border-left-color: var(--skeuo-brass-border);
+    border-top-width: var(--skeuo-brass-detent-border-width);
+    border-right-width: var(--skeuo-brass-detent-border-width);
+    border-bottom-width: var(--skeuo-brass-detent-border-width);
+    border-left-width: var(--skeuo-brass-detent-border-width);
+}
+
+.brass-detent--focused {
+    width: var(--skeuo-brass-detent-focused-width);
+    height: var(--skeuo-brass-detent-focused-height);
+    margin-top: var(--skeuo-brass-detent-focused-lift);
+    border-top-width: var(--skeuo-brass-detent-focused-border-width);
+    border-right-width: var(--skeuo-brass-detent-focused-border-width);
+    border-bottom-width: var(--skeuo-brass-detent-focused-border-width);
+    border-left-width: var(--skeuo-brass-detent-focused-border-width);
 }
 
 /* 铜锈(氧化斑点) — 变体 */

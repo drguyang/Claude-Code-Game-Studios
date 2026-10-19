@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DaYiJingCheng.Telemetry;
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.Unit.Telemetry
@@ -22,51 +23,10 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
     [TestFixture]
     internal sealed class F4SkillGrowthTest
     {
-        // ══════════════ F4 公式(测试自持谓词面,零生产依赖)══════════════
-
-        /// <summary>F4 公式谓词面(测试自持,纯函数)。
-        /// 语义 = GDD Formulas F4:新颖度三分守恒 + 不重算 XP。</summary>
-        private static class F4Formula
-        {
-            /// <summary>一次成长事件(测试自持夹具)。</summary>
-            public sealed class GrowthEvent
-            {
-                public string Skill;
-                public string NoveltyClass;  // new / repeat / stale
-                public long? Level;          // null = 未携带
-            }
-
-            /// <summary>计算 Practice 与 NoveltyMix。
-            /// 返回 (practice, nNew, nRepeat, nStale)。</summary>
-            public static (int practice, int nNew, int nRepeat, int nStale)
-                Compute(IReadOnlyList<GrowthEvent> events, string skill)
-            {
-                var inWindow = events.Where(e => e.Skill == skill).ToList();
-                int practice = inWindow.Count;
-                int nNew = inWindow.Count(e => e.NoveltyClass == "new");
-                int nRepeat = inWindow.Count(e => e.NoveltyClass == "repeat");
-                int nStale = inWindow.Count(e => e.NoveltyClass == "stale");
-                return (practice, nNew, nRepeat, nStale);
-            }
-
-            /// <summary>尝试计算 ΔLevel(Level_end − Level_start)。
-            /// 返回 (success, delta):所有事件携带 Level ⇒ (true, delta);
-            /// 任一事件未携带 Level ⇒ (false, null)——「不可得」与 0 可区分。</summary>
-            public static (bool success, int? delta)
-                TryComputeDeltaLevel(IReadOnlyList<GrowthEvent> events, string skill)
-            {
-                var inWindow = events.Where(e => e.Skill == skill).ToList();
-                if (inWindow.Count == 0) return (true, 0);
-                if (inWindow.Any(e => e.Level == null)) return (false, null);
-                long start = inWindow.Where(e => e.Level.HasValue).Min(e => e.Level.Value);
-                long end = inWindow.Where(e => e.Level.HasValue).Max(e => e.Level.Value);
-                return (true, (int)(end - start));
-            }
-
-            /// <summary>新颖度三分守恒:N_new + N_repeat + N_stale = Practice。</summary>
-            public static bool NoveltyConserves(int practice, int nNew, int nRepeat, int nStale)
-                => nNew + nRepeat + nStale == practice;
-        }
+        // ⚠️ S19 修复(TD-epic-01):原「测试自持谓词面」已删除 ——
+        //    谓词面上移为生产类 `DaYiJingCheng.Telemetry.SkillGrowthMetrics`
+        //    (ADR-019 §一;那个自持面在普查里被判为「AC 语义层无生产主语」)。
+        //    本文件现在**只做夹具 + 断言**,不再自带公式。
 
         // ══════════════ AC-51-B10:F4 新颖度三分守恒 ══════════════
 
@@ -76,24 +36,24 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f4_noveltyThreeWayConservation()
         {
             // Arrange:某 skill 在窗口内三类各 ≥ 1 例
-            var events = new List<F4Formula.GrowthEvent>
+            var events = new List<SkillGrowthMetrics.GrowthEvent>
             {
-                new F4Formula.GrowthEvent { Skill = "诊断", NoveltyClass = "new" },
-                new F4Formula.GrowthEvent { Skill = "诊断", NoveltyClass = "repeat" },
-                new F4Formula.GrowthEvent { Skill = "诊断", NoveltyClass = "stale" },
-                new F4Formula.GrowthEvent { Skill = "诊断", NoveltyClass = "new" },  // 第二个 new
-                new F4Formula.GrowthEvent { Skill = "炮制", NoveltyClass = "new" },   // 不同 skill
+                new SkillGrowthMetrics.GrowthEvent { Skill = "诊断", NoveltyClass = "new" },
+                new SkillGrowthMetrics.GrowthEvent { Skill = "诊断", NoveltyClass = "repeat" },
+                new SkillGrowthMetrics.GrowthEvent { Skill = "诊断", NoveltyClass = "stale" },
+                new SkillGrowthMetrics.GrowthEvent { Skill = "诊断", NoveltyClass = "new" },  // 第二个 new
+                new SkillGrowthMetrics.GrowthEvent { Skill = "炮制", NoveltyClass = "new" },   // 不同 skill
             };
 
             // Act
-            var (practice, nNew, nRepeat, nStale) = F4Formula.Compute(events, "诊断");
+            var (practice, nNew, nRepeat, nStale) = SkillGrowthMetrics.Compute(events, "诊断");
 
             // Assert:三分之和 = Practice,且三类不重复计数
             Assert.That(practice, Is.EqualTo(4), "Practice = 4(诊断的 4 个事件)");
             Assert.That(nNew, Is.EqualTo(2), "N_new = 2");
             Assert.That(nRepeat, Is.EqualTo(1), "N_repeat = 1");
             Assert.That(nStale, Is.EqualTo(1), "N_stale = 1");
-            Assert.That(F4Formula.NoveltyConserves(practice, nNew, nRepeat, nStale), Is.True,
+            Assert.That(SkillGrowthMetrics.NoveltyConserves(practice, nNew, nRepeat, nStale), Is.True,
                 "N_new + N_repeat + N_stale = Practice(守恒)");
         }
 
@@ -102,17 +62,17 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f4_emptyWindow_allZero()
         {
             // Arrange:空事件列表
-            var events = new List<F4Formula.GrowthEvent>();
+            var events = new List<SkillGrowthMetrics.GrowthEvent>();
 
             // Act
-            var (practice, nNew, nRepeat, nStale) = F4Formula.Compute(events, "诊断");
+            var (practice, nNew, nRepeat, nStale) = SkillGrowthMetrics.Compute(events, "诊断");
 
             // Assert:全 0(合法,不报错)
             Assert.That(practice, Is.EqualTo(0), "空窗口 Practice = 0");
             Assert.That(nNew, Is.EqualTo(0), "空窗口 N_new = 0");
             Assert.That(nRepeat, Is.EqualTo(0), "空窗口 N_repeat = 0");
             Assert.That(nStale, Is.EqualTo(0), "空窗口 N_stale = 0");
-            Assert.That(F4Formula.NoveltyConserves(practice, nNew, nRepeat, nStale), Is.True,
+            Assert.That(SkillGrowthMetrics.NoveltyConserves(practice, nNew, nRepeat, nStale), Is.True,
                 "空窗口守恒(0 = 0)");
         }
 
@@ -121,13 +81,13 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f4_skillNotMatched_allZero()
         {
             // Arrange:窗口有事件但无目标 skill
-            var events = new List<F4Formula.GrowthEvent>
+            var events = new List<SkillGrowthMetrics.GrowthEvent>
             {
-                new F4Formula.GrowthEvent { Skill = "炮制", NoveltyClass = "new" },
+                new SkillGrowthMetrics.GrowthEvent { Skill = "炮制", NoveltyClass = "new" },
             };
 
             // Act
-            var (practice, nNew, nRepeat, nStale) = F4Formula.Compute(events, "诊断");
+            var (practice, nNew, nRepeat, nStale) = SkillGrowthMetrics.Compute(events, "诊断");
 
             // Assert:全 0(合法)
             Assert.That(practice, Is.EqualTo(0), "skill 未命中 Practice = 0");
@@ -190,13 +150,13 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f4_levelNotCarried_reportsUnavailable()
         {
             // Arrange:有成长事件但 Level 未携带
-            var events = new List<F4Formula.GrowthEvent>
+            var events = new List<SkillGrowthMetrics.GrowthEvent>
             {
-                new F4Formula.GrowthEvent { Skill = "诊断", NoveltyClass = "new", Level = null },
+                new SkillGrowthMetrics.GrowthEvent { Skill = "诊断", NoveltyClass = "new", Level = null },
             };
 
             // Act
-            var (success, delta) = F4Formula.TryComputeDeltaLevel(events, "诊断");
+            var (success, delta) = SkillGrowthMetrics.TryComputeDeltaLevel(events, "诊断");
 
             // Assert:报「不可得」,不报 0
             Assert.That(success, Is.False, "Level 未携带 ⇒ 不可计算(报「不可得」)");
@@ -208,14 +168,14 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         public void test_f4_levelCarried_computesDelta()
         {
             // Arrange:所有事件携带 Level
-            var events = new List<F4Formula.GrowthEvent>
+            var events = new List<SkillGrowthMetrics.GrowthEvent>
             {
-                new F4Formula.GrowthEvent { Skill = "诊断", NoveltyClass = "new", Level = 3 },
-                new F4Formula.GrowthEvent { Skill = "诊断", NoveltyClass = "repeat", Level = 5 },
+                new SkillGrowthMetrics.GrowthEvent { Skill = "诊断", NoveltyClass = "new", Level = 3 },
+                new SkillGrowthMetrics.GrowthEvent { Skill = "诊断", NoveltyClass = "repeat", Level = 5 },
             };
 
             // Act
-            var (success, delta) = F4Formula.TryComputeDeltaLevel(events, "诊断");
+            var (success, delta) = SkillGrowthMetrics.TryComputeDeltaLevel(events, "诊断");
 
             // Assert:正常计算
             Assert.That(success, Is.True, "Level 已携带 ⇒ 可计算");

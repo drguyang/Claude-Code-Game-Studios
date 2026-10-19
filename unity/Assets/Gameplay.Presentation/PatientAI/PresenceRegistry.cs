@@ -37,6 +37,12 @@ namespace DaYiJingCheng.Gameplay.PatientAI
         private readonly Dictionary<int, WorldPos> _cellOf = new Dictionary<int, WorldPos>();
         private readonly HashSet<WorldPos> _occupiedCells = new HashSet<WorldPos>();
 
+        // 在场集的**只读快照**(S15-5 · TD-audio-032 ④):`PresentPatientIds()` 每 tick 边沿被
+        // 多个驱动调用,若每次 `ToArray()` 就每拍分配 N 个数组。改为「成员变动才重建」——
+        // 快照由登记簿**自己**的写面失效(AddPresent / RemovePresent),故不会读到陈旧集。
+        // ⚠️ 返回的是**同一份数组**:调用方只读,不得持有并期待后续更新(与 `IReadOnlyCollection` 同义)。
+        private int[] _presentSnapshot;
+
         /// <summary>在场集变更(进 / 出)通知,载荷 = 实体 id。
         /// <para>组合层订阅以同步 13 侧视图(PresentPatientsView / PatientSpatialDirector),
         /// 避免「只调了登记簿、漏调视图」的双写漂移(评审 ADVISORY #6)。
@@ -49,11 +55,11 @@ namespace DaYiJingCheng.Gameplay.PatientAI
         /// <summary>当前在场病人数(AC-15 与 PATIENT_APPEARANCE_CAP 比较;玩家 / 敌人不计)。</summary>
         public int PresentCount => _present.Count;
 
-        /// <summary>当前在场病人的 id 集合(只读快照;sprint-05 T1.2 新增)。</summary>
+        /// <summary>当前在场病人的 id 集合(只读快照;sprint-05 T1.2 新增)。
+        /// <para>⚠️ S15-5(TD-audio-032 ④):快照**只在成员变动时重建**(写面即失效点),
+        /// 稳态下每拍调用零分配。返回的数组与上一次调用**可能是同一实例** —— 只读使用。</para></summary>
         public IReadOnlyCollection<int> PresentPatientIds()
-        {
-            return _present.ToArray();
-        }
+            => _presentSnapshot ?? (_presentSnapshot = _present.ToArray());
 
         /// <summary>指定格上是否有实体(玩家 / 敌人 / 病人)。</summary>
         public bool IsPresentAt(WorldPos cell) => _occupiedCells.Contains(cell);
@@ -63,6 +69,7 @@ namespace DaYiJingCheng.Gameplay.PatientAI
         public void AddPresent(PatientId id, WorldPos cell)
         {
             if (!_present.Add(id.Value)) return; // 幂等:已在场则不重复占格
+            _presentSnapshot = null;
             Occupy(id.Value, cell);
             PresentChanged?.Invoke(id.Value);
         }
@@ -71,9 +78,19 @@ namespace DaYiJingCheng.Gameplay.PatientAI
         public void RemovePresent(PatientId id)
         {
             if (!_present.Remove(id.Value)) return;
+            _presentSnapshot = null;
             VacateCell(id.Value);
             PresentChanged?.Invoke(id.Value);
         }
+
+        /// <summary>取病人当前锚点格(不在场 ⇒ false)。
+        /// <para>story-018(A-3 接线)新增:cue 发射需要病人的**逻辑格**(`AudioCueDto.Cell`),
+        /// 而此前登记簿只暴露「是否在场」—— 没有格,44 无法空间化。</para>
+        /// <para>⚠️ 只读,不改任何状态;返回的是**格**(整数),不是表现态位置(ADR-016 §三)。</para></summary>
+        /// <param name="id">病人。</param>
+        /// <param name="cell">锚点格(不在场 ⇒ default)。</param>
+        public bool TryGetCell(PatientId id, out WorldPos cell)
+            => _cellOf.TryGetValue(id.Value, out cell);
 
         /// <summary>病人跨格(组合层在 ActorCellEntered 等时机调用)。</summary>
         public void MovePresent(PatientId id, WorldPos toCell)
@@ -105,6 +122,7 @@ namespace DaYiJingCheng.Gameplay.PatientAI
         public void ResetForLoad()
         {
             _present.Clear();
+            _presentSnapshot = null;
             _cellOf.Clear();
             _occupiedCells.Clear();
         }

@@ -498,6 +498,10 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         /// 每档一行,<c>userData</c> = **显式 ordinal**(非显示索引)。</para>
         /// <para>黄铜刻度读数元件 <see cref="BrassScaleElement"/>(<c>AC-42-F3</c> 黄铜分支):
         /// <c>TickCount</c> = 档数(**零降级数字读数**,承 ADR-013 §十-B 义务②)。</para>
+        /// <para><c>AC-025-4</c>(2026-10-18):每行**携带该行自己的**档位形态 —— 第 k 行
+        /// <c>SetDetents(档数, k)</c> ⇒ 第 k 档被几何放大。原先每行一个恒同的
+        /// <c>Label("戥子档")</c> 不承载任何逐档信息(行与行完全同形),
+        /// 现改为「离散档 ↔ 离散形态」,零数字文本(<c>AC-025-5</c>)。</para>
         /// </summary>
         private void RefreshDentchDoses()
         {
@@ -545,7 +549,15 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 var row = _library.Create(SkeuoElement.Paper);
                 row.focusable = true;
                 row.userData = rowOrdinal;       // 显式 ordinal(非显示索引 —— TD 第五风险)
-                row.Add(new Label("戥子档"));    // 零数字:标签不写档序数(序数在 userData 整数里)
+
+                // AC-025-4:该行自己的档位形态(第 k 行 ⇒ 第 k 档几何放大)。
+                // ⚠️ 形态子件**不带 userData** —— 行收集器按 `userData is int` 认行
+                //    (`casebook_page_turn_test` / `e2e_full_loop_test` / `casebook_lexicon_book_test`),
+                //    给子件挂整数会把行集撑大。
+                var rowForm = new BrassScaleElement();
+                rowForm.SetDetents(detentCount, rowOrdinal);
+                row.Add(rowForm);
+
                 BindSubmitAndClick(row, () => SubmitDose(rowOrdinal));   // 键盘 Submit + 鼠标 Click(P-04)
                 _dentchDoses.Add(row);
             }

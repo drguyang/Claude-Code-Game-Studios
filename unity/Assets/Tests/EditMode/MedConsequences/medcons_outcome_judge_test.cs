@@ -428,6 +428,35 @@ namespace DaYiJingCheng.Tests.MedConsequences
                 "Judge.Evaluate 零 ref/out 形参(纯函数;零写回通道)");
         }
 
+        /// <summary>
+        /// AC-5(故事本地编号,= GDD `AC-53-xx` 的 OQ-53-8 形状门)**可执行的那一半**:
+        /// 代价路径的 Outcome 限定 ∈ {伤, 后遗} 子集 —— 本工程以**类型级封闭**兑现:
+        /// <see cref="Outcome53.Outcome"/> 是闭集枚举,其成员**全部**是「结局轴(只读)/ 回响轴 / 无痕」三类,
+        /// 没有任何「致死」语义成员;新的代价型 Outcome 只能作为新成员加进来 ⇒ 本测即红。
+        /// <para>⚠️ **不可执行的那一半(如实登记,不借绿)**:「致死行在 P0 表 = 构建期拒收」需要一张
+        /// **代价表**载体;全仓今日无该表(`DelayTable` 定义域 = 回响轴三分立值,结局轴不入表)
+        /// ⇒ 该判据**无宾语**。归 `TD-medcons-15` / 数值轮;本测**不**声称已覆盖它。</para>
+        /// </summary>
+        [Test]
+        public void test_ac5_outcomeEnumClosure_hasNoLethalMember_costPathCantExpressDeath()
+        {
+            var names = Enum.GetNames(typeof(Outcome53.Outcome)).ToHashSet();
+            Assert.AreEqual(
+                new HashSet<string>
+                {
+                    "PatientLives", "PatientLoses",           // 结局轴:9 结算,53 只读
+                    "Residual", "Recurrence", "TrialHistory", // 回响轴:伤 / 后遗
+                    "NoEcho",                                  // 无痕
+                },
+                names,
+                "AC-5 类型级半边:Outcome 闭集须恰为这 6 个成员 —— 新增任何成员(尤其是致死语义)" +
+                "都必须先回到本测显式放行,否则代价路径就可能表达「致死」");
+            Assert.IsTrue(names.All(n =>
+                    !n.ToLowerInvariant().Contains("death") && !n.ToLowerInvariant().Contains("kill") &&
+                    !n.ToLowerInvariant().Contains("lethal") && !n.ToLowerInvariant().Contains("fatal")),
+                "AC-5:闭集内零致死语义成员(勿只靠上一条的字面集合 —— 两层判据独立成立)");
+        }
+
         // ════════════════════════════════════════════════════════════════════
         // 试药史形状(OQ-53-9)—— run 计数 + 支持性判断打断;阈值留槽
         // ════════════════════════════════════════════════════════════════════

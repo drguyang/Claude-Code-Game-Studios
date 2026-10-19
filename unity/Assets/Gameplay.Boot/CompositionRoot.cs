@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using DaYiJingCheng.Gameplay.Presentation;
+using DaYiJingCheng.Gameplay.Presentation.Audio;
 using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using DaYiJingCheng.Sim;
@@ -28,6 +29,7 @@ using DaYiJingCheng.Sim.Contracts.SkillSystem;
 using DaYiJingCheng.Sim.DiseaseSimulation;
 using DaYiJingCheng.Sim.EmergencyProcedures;
 using DaYiJingCheng.Sim.Prescription;
+using DaYiJingCheng.Sim.World;                 // EcozoneRegistry(story-021 真值源链)
 using DaYiJingCheng.Gameplay.PatientAI;
 using DaYiJingCheng.Gameplay.Input;                 // EmergencyDirectReadChannel(story-009 通道装配)
 using UnityEngine.InputSystem;                 // InputActionAsset(story-009 通道装载,可空)
@@ -47,6 +49,25 @@ namespace DaYiJingCheng.Gameplay.Boot
         private const int EmergencyDzMag = 0;
         private const int EmergencyMagMax = 65536;
 
+        // ── 设备切换迟滞六旋钮 = **临时种子**(TD-epic-01 第八片;值归数值轮)──
+        // 与 `assets/data/input_device_switch.json` 的种子**同值**(Fix 字符串经 FixParse 得
+        // 同一 raw;区间断言由 InputDeviceSwitchBinder 在装载期执法,本处只做种子搬运)。
+        // ⚠️ ⚠️ 这是**临时种子,未进 data-core** —— ADR-014 §五/§九:含 Fix 的常量表须经
+        //    两阶段烘焙;设备态旋钮目前**只有来源 JSON + EditMode 装载判据,零运行期制品**。
+        //    本常量 = 运行期兜底,数值轮定稿时须改走 cooked,届时删本组常量(登记为残留)。
+        public const int EmergencyDeviceSwitchSeedAxisThreshold = 32768;      // "1/2"
+        public const int EmergencyDeviceSwitchSeedAxisTolerance = 8192;       // "1/8"
+        public const int EmergencyDeviceSwitchSeedAxisDwell = 4;
+        public const int EmergencyDeviceSwitchSeedPointerThreshold = 262144;  // "4"
+        public const int EmergencyDeviceSwitchSeedPointerTolerance = 65536;   // "1"
+        public const int EmergencyDeviceSwitchSeedPointerDwell = 4;
+
+        // ── story-018 · A-3 接线:GDD 点名的两个 cue 名(单一出处 = AudioEventDataSet)──
+        // ⚠️ 这里**只引用常量,不另抄字面量**(ADR-024 §⑥):名字的存在性由构建期门
+        //    `AudioEventTableGates.RequiredCues` 断言;运行期解析不到 ⇒ ordinal = null ⇒ 不发 cue。
+        private const string CoughCueName = AudioEventDataSet.CoughCueName;
+        private const string BreathCueName = AudioEventDataSet.BreathBaseCueName;
+
         /// <summary>
         /// 全自动装配(全新世界:计数器从 0 起、空在场登记簿、内存 blob 池、world_seed = 0)。
         /// </summary>
@@ -63,9 +84,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         public static CompositionRootServices Assemble(
             IReadOnlyList<DiseaseRegistryEntry> registry = null,
             IDataProvider dataProvider = null,
-            InputActionAsset inputActions = null)
+            InputActionAsset inputActions = null,
+            AudioAssemblySeams audio = null,
+            ClinicKnowledge clinicKnowledge = null)
             => AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(),
-                            0UL, registry, dataProvider, inputActions);
+                            0UL, registry, dataProvider, inputActions, audio, clinicKnowledge);
 
         /// <summary>
         /// 显式依赖注入装配(读档 / 测试用:由调用方给出发号权威、在场登记簿、blob 池与世界种子)。
@@ -85,13 +108,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                        ulong worldSeed,
                                                        IReadOnlyList<DiseaseRegistryEntry> registry = null,
                                                        IDataProvider dataProvider = null,
-                                                       InputActionAsset inputActions = null)
+                                                       InputActionAsset inputActions = null,
+                                                       AudioAssemblySeams audio = null,
+                                                       ClinicKnowledge clinicKnowledge = null)
         {
             if (idAuthority == null) throw new ArgumentNullException(nameof(idAuthority));
             if (presence == null) throw new ArgumentNullException(nameof(presence));
             if (blobPool == null) throw new ArgumentNullException(nameof(blobPool));
             return AssembleCore(idAuthority, presence, blobPool, worldSeed, registry, dataProvider,
-                                inputActions);
+                                inputActions, audio, clinicKnowledge);
         }
 
         private static CompositionRootServices AssembleCore(IIdAuthority idAuthority,
@@ -100,7 +125,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                              ulong worldSeed,
                                                              IReadOnlyList<DiseaseRegistryEntry> registry,
                                                              IDataProvider dataProvider,
-                                                             InputActionAsset inputActions)
+                                                             InputActionAsset inputActions,
+                                                             AudioAssemblySeams audio,
+                                                             ClinicKnowledge clinicKnowledge)
         {
             // ── 依赖前置校验(全自动路径同样 fail-loud)──
             if (idAuthority == null)
@@ -159,6 +186,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 手动入口 = EmergencyManualDriver(BootRoot 生成玩家后调用)。
             var emergencyProcessor = new HostEmergencyProcessor(stream, idAuthority, encoder);
             var emergencyDriver = new EmergencyAttemptDriver();
+            // cause 判据的输入面(TD-epic-01 第八片):空 = 夹具默认「玩家选择」;
+            // 生产 BootRoot 以 3 的 DeviceStateManager 造 EmergencyDeviceReadiness 适配注入
+            // (启动序 4.2 —— 设备态须先挂接才能读到在场设备)。
             var emergencyManual = new EmergencyManualDriver(emergencyProcessor, presence);
 
             // ── 病人最小可见实体(sprint-05 T2.0):给运行期病人生成占位视觉 ──
@@ -302,6 +332,81 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   的开方写路径。与 Writer 同源(宿主即 Writer 的持有者)⇒ 单写者、单作者真源。
             var casebookCommands = new CasebookCommandRouter(
                 prescriptionPage.Writer, () => tickDriver.CurrentTick, prescriptionPage);
+
+            // ── 音频链装配(story-018 · A-1/A-4)─────────────────────────────
+            // 池 → 渲染目标 → sink(ADR-028 ①「池唯一所有者 = 44」;单池,不建第二个)。
+            // ⚠️ 缝为 null(62 处既有 EditMode 调用)⇒ sink 走 NullRenderTarget:
+            //    **契约语义(句柄 / 档位)仍成立**,只是没有声音 —— 与装配前的行为一致。
+            //    生产路径(BootRoot)传真缝 ⇒ 真播放 + 真总线(A-6)。
+            var audioPool = new AudioSourcePool(busResolver: audio?.Buses);
+
+            // ── 空间化链接线(S15-4 · TD-audio-028 · 用户裁定四项)──────────────
+            // 导演**共享**上面那个池(AC-018-4 单池不变量 / ADR-028 ① —— **禁**走自建池重载)。
+            // ⚠️ 格边长 = `AudioAssemblySeams.LatticeSize`(**此前零读取方的死字段**,本轮起成为唯一入参);
+            //    它今天的 1f 是 **P0 占位**,正式值归系统 6(`LatticeToWorld` 头注明令 44 不自造)。
+            // ⚠️ 遮挡输入**本轮恒 false**(用户裁定):真 raycast 未实现,登记 `TD-audio-028` 残留。
+            float latticeSize = audio?.LatticeSize > 0f
+                ? audio.LatticeSize : AudioTuning.LatticeSizePlaceholder;
+            SpatializationDirector spatialDirector = null;
+            ICueRenderTarget renderTarget;
+            if (audio != null && audio.HasAny)
+            {
+                spatialDirector = new SpatializationDirector(latticeSize, audioPool);
+                var sources = new AudioSourceRenderTarget(audioPool, spatialDirector, latticeSize,
+                                                          // story-020:按整条 cue 解析 —— 变体选择键含
+                                                          // 患者身份(cue.Source),只给 ordinal 分不开病人。
+                                                          cue => audio.Clips != null
+                                                                  ? audio.Clips.ResolveCue(cue) : null,
+                                                          cue => audio.Clips != null
+                                                                  ? audio.Clips.BusOf(cue) : null,
+                                                          // 遮挡:用户 2026-10-18 裁定「本轮恒 false,登记缺口」
+                                                          occludedFor: () => false);
+                renderTarget = sources;
+            }
+            else
+            {
+                renderTarget = new NullRenderTarget();
+            }
+            var audioSink = new CueRenderSink(renderTarget);
+            audioSink.SetTier(TierSource.Local);      // 裁定 D-A:恒本机档
+
+            // ── 病人 cue 驱动(story-018 · AC-018-6 / A-3 的调用方)──────────────
+            // 13 的 `PatientCueSchedule.Decide` 与 `PatientCueEmit.Emit` 此前**双双零调用方**
+            // (A-3)—— 本驱动即那个调用方:每 tick 边沿对每个在场病人跑一次调度,按结果
+            // 起停呼吸层循环 / 发射一次性 cue。
+            // ⚠️ cue ordinal **从事件表按名解析**,不写 `(int)CueKind`(见 PatientCueDriver 头注:
+            //    后者今日恰好是 0,是**巧合不是契约**)。
+            // ⚠️ 缝未接(62 处既有 EditMode 调用)⇒ 两个 ordinal 均为 null ⇒ 驱动仍装配
+            //    (调度逻辑可测),但不发任何声音 —— 与 AudioRenderAssembled 同一诚实口径。
+            // ── `knowsClinic` 注入缝的真值接线(story-021 · AC-021-1 · TD-audio-033 ①)──
+            // F-13.2:`KnowsClinic(p) := ClinicKnownByRegion(HomeRegion(spawn_anchor(p)))`。
+            // 三件事实全部来自三源(ADR-016 §一):生态区 = 6 的烘焙定义;医馆 POI = 6 的定义侧;
+            // 玩家建造 = 23 的世界流 `StructurePlaced`。**装配层不发明其中任何一项**。
+            // ⚠️ **今日口径(如实登记)**:生态区注册表在本装配内**尚未有装载面**
+            //    (ADR-022 §三 的 `world_ecozones.cooked` 未接),POI / 建造查询缝亦未接
+            //    ⇒ `EcozoneOf` 对任何格都回 `EcozoneId.None`、两缝恒假 ⇒ `KnowsClinic` **恒假**,
+            //    与 story-021 之前的硬编码 `false` **行为等价**。差别是**形状**:真值源到位后
+            //    只需给本处三个注入缝,`PatientCueDriver` 与本装配的调用点均不再改
+            //    (债项 `TD-audio-033` ② 仍 open:两份行为态分叉)。
+            // 注入优先(测试 / 读档轮可从真装载面给);null ⇒ 组合根自建**空**生态区表
+            // (装载面未接时的今日形态 —— `EcozoneOf` 恒 `None`)。
+            ClinicKnowledge knowledge = clinicKnowledge ?? new ClinicKnowledge(
+                new RegistryClinicKnowledgeSource(new EcozoneRegistry()));
+            var clinicDirectory = new ClinicKnowledgeDirectory(
+                knowledge,
+                // 锚点格 = 在场登记簿的逻辑格(不读表现态位置,ADR-016 §三)。
+                p => presence.TryGetCell(p, out WorldPos anchor)
+                        ? (true, anchor) : (false, default));
+
+            var behaviorDirector = new PatientBehaviorDirector(vitals, BehaviorBands.Default);
+            var patientCueDriver = new PatientCueDriver(
+                audioSink, vitals, presence, behaviorDirector,
+                coughCue: audio != null && audio.TryResolveCue(CoughCueName, out int coughOrdinal)
+                    ? coughOrdinal : (int?)null,
+                breathCue: audio != null && audio.TryResolveCue(BreathCueName, out int breathOrdinal)
+                    ? breathOrdinal : (int?)null,
+                knowsClinic: clinicDirectory.KnowsClinic,
+                hasCourse: p => vitals.Courses.TryGet(p, out _));
             // 后置接回:命令路由就绪后把档位面接进 42 只读源(构造序所限,见本源 BindCommands 注)
             casebookSource.BindCommands(casebookCommands);
             // 后置接回(2):戥子档数真源 —— 处方驱动(构造序所限,见 BindPrescribeDriver 注)
@@ -372,8 +477,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: PrescriptionPageHost 装配产出 null");
             if (casebookCommands == null)
                 throw new InvalidOperationException("Assemble: CasebookCommandRouter 装配产出 null");
+            if (audioSink == null)
+                throw new InvalidOperationException("Assemble: CueRenderSink 装配产出 null");
+            if (audioPool == null)
+                throw new InvalidOperationException("Assemble: AudioSourcePool 装配产出 null");
+            if (patientCueDriver == null)
+                throw new InvalidOperationException("Assemble: PatientCueDriver 装配产出 null");
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,
+                                               fallbackRegistry,   // registry → 51 TelemetryReporter
                                                presence, spawner, patientDriver, caseDriver,
                                                emergencyDriver, emergencyManual,
                                                emergencyChannelDriver, patientVisuals,
@@ -382,7 +494,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                seenDisease, lexiconBook,
                                                tickDriver, prescribeDriver, prescribePorts,
                                                portionsStore, emergencyCandidates,
-                                               prescriptionPage, casebookCommands);
+                                               prescriptionPage, casebookCommands,
+                                               audioSink, audioPool, spatialDirector,
+                                               renderTarget as AudioSourceRenderTarget,
+                                               // ⚠️ **单一出处**:标志由**已构造出的那个对象**派生,
+                                               // 不重算一遍 `audio != null && audio.HasAny` ——
+                                               // 重算 = 同一判断的第二份拷贝,两者可分叉(证伪轮 F4 实测:
+                                               // 把上面的三元逼成 `NullRenderTarget` 而此处仍重算 ⇒ 标志照旧 true
+                                               // ⇒ `test_ac018_3_assemble_withSeams_...` **不转红** = 假绿)。
+                                               renderTarget is AudioSourceRenderTarget,
+                                               patientCueDriver, behaviorDirector);
         }
 
         /// <summary>

@@ -106,7 +106,7 @@
 
 | ID | Landed | Proven | File(s) | Proven-by(可复算判据) |
 |---|---|---|---|---|
-| **S-B1** | ✅ | ✅ | `ConsequenceEmitter.cs` `Emit` 的 `eligible` 文档 | 文档 precondition 已写;证伪轮 ④(停用幂等读流)连带覆盖该语义面 |
+| **S-B1** | ✅ | ✅ | `ConsequenceEmitter.cs` `Emit` 的 `eligible` 文档 | 文档 precondition 已写;证伪轮 ④(停用幂等读流)连带覆盖该语义面。**2026-10-17 补强**:原判定点名的**负夹具本缺**(原行未登记「无」)⇒ 已补 `medcons_delayed_emit_test.cs::test_sb1_truncatedEligible_headRowDropped_silentlyWithholdsRest`;**反证:删 `Emit` 的 S-B1 前置条件块 ⇒ 该测红**(108 中恰 1 红) |
 | **S-B2** | ✅ | ✅ | `ConsequenceEmitter.cs` `AppendDueRows`(预检) | **反证:停用 S-B2 预检 ⇒ `test_r1_overdueRowAfterStreamTailAdvanced_failsLoud_notBcdBareThrow` 红**;正路径 `test_r1_*` 全绿 |
 | **T-B1** | ✅ | ✅ | `medcons_delayed_emit_test.cs` `test_ac2_bake_cookedBytes_rowOrderIndependentOfInputOrder` | **反证:停用写方 `rowList.Sort` ⇒ 该测红**(载荷区判据;头区 configVersion 合法不同已排除) |
 | **S-W1** | ✅ | ✅ | `ConsequenceEmitter.cs`(`BuildDueRows`/`SelectPending`/`AppendDueRows`) | `awk` 净行数:三私有方法各 ≤40;`Emit` 主体现 15 行。⚠️ ≤40 界无门 ⇒ 证据 = 人工复核 + 命令输出 |

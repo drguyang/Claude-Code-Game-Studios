@@ -179,6 +179,8 @@ namespace DaYiJingCheng.EditorTools.Bake
             row.Bus = RawOf(obj, "bus");
             row.ClockRef = RawOf(obj, "clock_ref");
             row.XfadeRaw = RawOf(obj, "xfade_ms");
+            // story-020 重裁 ①:缺省 = 不是变体行(assets[] 是并列素材,非变体集)。
+            row.VariantAxisRaw = RawOf(obj, "variant_axis");
 
             // ⚠️ subtitle_text 的三态:**缺失** = null / **在但空** = "" —— 两者对语声族都是失败,
             //    门据此区分诊断措辞(承 story-002 模型注)。

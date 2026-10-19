@@ -5560,3 +5560,811 @@ M1 乐层分支(恰红 2) · M3 流式 null(恰红 1) · M4 素材落盘(恰红 
 无状态词、字幕无结论句式、15/15 真播。
 
 **收口**:story-016 **Complete(5/5)**;EPIC 头部同步为「001–016 全 Complete · 017 Ready · 尚未收口」。
+
+## 九、sprint-13 核对 → 改判「收口存疑」(2026-10-17 · 用户裁定「按这个改」)
+
+**核账方法**:独立复算,不照抄 2026-10-16 原收口记录。逐项实测:
+
+| 项 | 实测 | 判 |
+|---|---|---|
+| 回归 | `s13-full.xml` 3515/3469/0/46 · `s003-final-full.xml` 3508/3462/0/46;逐 fullname 差集 **+7 / −0**,新增 7 全为 `AssemblyGateRefDupTest.*` | ✅ Δ = 新增数 |
+| S13-1 | 四 story `Status:` = Complete/Complete/Complete/Ready,与 EPIC 四行逐字一致 | ✅ |
+| S13-4 | `AssemblyGates.cs:981/996`,接入 `RunAll:115`;`s13-4-refdup.xml` 7/7 | ✅ |
+| S13-5 | 当场重跑 precheck ⇒ `[Test]=41 · FAIL 0 · WARN 0`,退出码 0 | ✅ |
+| S13-8 | `TD-medcons-01…09` 逐条带 rework §五 出处;§五 已加收口回指 | ✅ |
+| **S13-6** | story-003 评审实测 `tools-programmer` 撞 20 轮 / `qa-tester` 撞 10 轮**均零报告**交回 | ❌ **判据为红** |
+| **story-003 AC** | 卡面 8/9 passing + **AC-5 PARTIAL**(W-4 → `TD-medcons-15`) | ⚠️ 未上挂 |
+| **Smoke** | 两份 DoD 都无 smoke 执行记录;最新仍是 `smoke-2026-10-15.md`(仅自动面) | ⚠️ 未登记 |
+
+**改动四处**:
+1. `production/sprints/sprint-13.md` —— DoD 第 2 条勾撤回(S13-6 实测未兑现);AC-5 PARTIAL / smoke 补挂;
+   收口记录追加「2026-10-17 核对订正」三条(原文不删)。
+2. `production/qa/evidence/sprint-13-governance-…md` —— §S13-6 补「首次实战实测 = 红」,不追认原判定。
+3. `docs/tech-debt-register.md` —— 新增 `TD-s13-01/02/03` 三条。
+4. `production/epics/medical-consequences/EPIC.md` —— 头部加收口前置(4 story 全 Complete ≠ AC 全验);
+   `audio-system/EPIC.md` 加同型索引一行。
+
+**结论**:组件已做且证伪轮真红;**缺口 = 最后一步被报告成已做**(S13-6 / AC-5 / smoke)。与音频 epic 非同级。
+
+## 十、存疑部分修复(2026-10-17 · 用户裁定「修存疑的部分」)
+
+| 存疑项 | 修法 | 证据 |
+|---|---|---|
+| **S-B1** 负夹具本缺(story-003 评审原判定点名) | 补 `medcons_delayed_emit_test.cs::test_sb1_truncatedEligible_headRowDropped_silentlyWithholdsRest`(含对照组 + doc 前置的可执行出处) | 证伪:删 `Emit` 的 S-B1 前置条件块 ⇒ **108 中恰 1 红**(目标测);SHA-256 还原一致 |
+| **AC-5** 可执行半边无载体 | 补 `medcons_outcome_judge_test.cs::test_ac5_outcomeEnumClosure_hasNoLethalMember_costPathCantExpressDeath`(闭集恰 6 成员 + 零致死语义,两层判据) | 证伪:注入 `CostLethal` ⇒ **恰 2 红**(目标测 + `test_ac5301_outcome_isClosedEnum_*`);SHA-256 还原一致 |
+| **TD-s13-01**(S13-6 机制) | `code-review` SKILL §Phase 7b 增 ③ **增量落盘**;判据收窄为「草稿在轮次耗尽前非空且覆盖清单过半」,旧判据作废 | 存在性:`grep -n "增量落盘" .claude/skills/code-review/SKILL.md`;⚠️ **有效性仍前瞻性,不可自证** |
+| **TD-s13-03**(smoke) | 用户裁定按陈述登记:「我在其他 epic 听过了,没问题」 | ⚠️ **无独立冒烟件**;不可证伪为「真听过」,册内已注明 |
+| **TD-s13-02**(AC-5 上挂) | 53 epic 头部 / story-003 头部 + QA AC-5 行 / qa-plan S13-6 与 smoke 行 | 残留 = 表级半边无载体(`TD-medcons-15`) |
+
+**⚠️ PlayMode 全量 180/189** —— 9 红全因 `Addressables.InvalidKeyException: Key=audio_events.cooked.bytes`
+(S14-6 把音频表接入 `AddressablesDataProvider`,但该键不在 Addressables 组内)。**与 sprint-13 无关,与 S14-6 有关**;
+已登记待处理,**不得当作本批引入的回归**。
+
+> ✅ **2026-10-17 已解** —— PlayMode 全量 **189 / 189 / 0**(`Logs/s46-playmode.xml`,复跑 `s47` 同)。
+> 三层机制:① Play Mode 脚本漂移(已归位 0)· ② `TryPreload` 单键预检(改逐条全检)· ③ 静态状态跨 Play 轮残留
+> (`BootRoot` 三元短路 + `ResetForPlayModeTests` + `Tests/PlayMode/PlayModeSetUp.cs`)。
+> 反证:A) 只删 ⑤ ⇒ **仍全绿**(⑤ 单独无判别力,如实登记;候选解释 = 程序集重建触发重载,未证);B) ③+⑤ 回退 ⇒ **恰 9 红、逐名与基线一致**。
+> 详情见 `docs/tech-debt-register.md` 2026-10-17 段。
+>
+> **残留清零(用户「继续修残留问题」· 同日)** —— `TryPreload` 拆 `TryPreloadGated(precheck, factory, load)`;
+> 失败收口 `FailPreload` = 复位 + 写 `LastPreloadDiagnostic`(`"missing=[…]"`)+ false;新 7 测
+> (EditMode 4 + PlayMode 3)。回归:**EditMode 3682/3637/0/45**(`s52`,对 `s42` 逐名 +4/−0)·
+> **PlayMode 192/192/0**(`s51`,对 `s46` +3/−0)。证伪:A/B/C 均转红(`fzr2-*.xml`);D(删失败复位)**0 红 = 未钉住**;
+> 发现 `data-core.asset` 入库文件缺两条音频条目 ⇒ 跑菜单补齐 **5 → 7 条**(入库文件改动,**未 commit**)。
+> **仍 open(同日登记,见 `tech-debt-register.md` §2026-10-17 残留清零批「残留」)**:
+> #④ `Start` 侧「未预载不求值 `Provider`」无夹具(REV 干净条件下**未重跑**)· #⑤ 「失败时静态复位」行为半边未钉(D 0 红)·
+> #⑥ 组条目悬空**为条件性风险**:本工作树 7 条 GUID 全部可解析(只读复核),触发条件未在本机复现 ⇒ **不得**宣称当前已损坏。
+> 待用户裁:`data-core.asset` 的 5 → 7 是否入库。
+> **删缓存绕行后复算**:`s53` 全量 EditMode **3682/3637/0/45**(14:46:29Z → 14:48:11Z),对 `s52` 逐名 **+0/−0**。
+
+## Session Extract — sprint-13 最终收口 2026-10-17
+- **Verdict: 带条件收口**(用户裁定「完成 1 2 3 4 后收口」)
+- ① S13-7:用户裁定**不签、按缺口登记**(签核件 §7;story-005 三条 AC / 11 EPIC / README / TD-prescription-01·04 已同步)
+- ② S13-6:**真跑一次重评实测新判据 ⇒ PASS(n=1)** —— A 草稿 11 行 3/3;B 草稿 45 行 4/4(撞 10 轮零报告但草稿在盘)
+- ③ Smoke:**用户实机冒烟「冒烟通过」**(陈述登记)
+- ④ DoD 第 2 条**保持未勾**
+- 新债:TD-medcons-16(旧假绿夹具未删)· 17(BuildDueRows 51 行)· 18(D-1/D-2/D-3)· 19(弱判别夹具)
+- 原件:production/qa/evidence/review-medcons-s003-recheck-2026-10-17.md
+- 回归:s53 EditMode 3682/3637/0/45 · s51 PlayMode 192/192/0
+- ⚠️ 未 commit(无用户指令)
+
+- ⚠️ **更正(同日)**:**S13-7 不得以「不签」收口** —— 用户「s13-7 重新修复完成」⇒ sprint-13 转「未收口,前置 = 三签完成」;
+  签核件 §7 撤回、§8 生效;新立 `TD-s13-04`。
+
+- ✅ **三签完成(同日)** —— 用户裁定「本人兼任三签」;签核件 §9 已签(dr_guyang 兼主创 / 医学从业 / 音频 lead,注明兼任)。
+  处置:AC-11-12/13 **须补**(新立 42 戥子元件 story)· AC-11-21 **待接入后重走**。§5 义务 1–5 全部回填。
+- **sprint-13 → ✅ 已收口 8/8**(`TD-s13-04` 结清;DoD 第 2 条仍如实未勾)。
+- 新立案:`TD-audio-023`(音频链零运行期装配 6 处)· `TD-audio-024`(处方音效白名单验证)。
+  勘察件:`production/qa/evidence/audio-asset-gaps-2026-10-17.md`(素材 0 缺;缺的是装配)。
+- ⚠️ **戥子元件 story 尚未新立**(`TD-prescription-01` 处置已裁,执行待批)。
+
+## Session Extract — 两件新 story 立卡 2026-10-17
+- **story-025(42 侧戥子形态元件)** — `production/epics/skeuomorphic-ui/story-025-dentch-dose-form-element.md`,Status=Ready
+  · 6 条 AC(AC-025-1…6)· `TD-prescription-01` 执行件 · 边界裁定五条
+- **story-018(44 侧音频运行期装配)** — `production/epics/audio-system/story-018-runtime-audio-assembly.md`,Status=Ready
+  · 7 条 AC(AC-018-1…7)· `TD-audio-023` + `TD-audio-024` 执行件
+  · ⚠️ **新发现 A-7**:`DaYiJingCheng.mixer` 不在任何 Addressables 组 ⇒ `MixerResolver` 解析不到
+  · ⚠️ **A-6 口径改判**:走运行期 `source.outputAudioMixerGroup`,不改 38 个 `.meta`
+- 同批回刷:skeuomorphic-ui/EPIC.md(Counts 24→25)· audio-system/EPIC.md(+018 行 + 覆盖面说明)·
+  sprint-status.yaml(+S14-10)· tech-debt-register(TD-prescription-01 / TD-audio-023·024 挂 story 指针)
+- 下一步:实现 story-018(用户指令「然后接音频6处」)
+
+## Session Extract — story-018 音频运行期装配 实现轮 2026-10-18
+- **story-018 状态 = `In Progress`(代码落地,等实机听测签核)** —— 用户裁定「你实机听测后再签」。
+- **交付**:7 处缺口 A-1…A-6 + 新发现 A-7 **全有生产落点**。
+  新建生产件 5(`AudioSourceRenderTarget` / `AudioBusResolver` / `AudioClipLibrary` /
+  `AudioAssemblySeams` / `PatientCueDriver`)+ 改生产件 6 + 新建测试件 2(EditMode 27 测 / PlayMode 5 测)。
+- **证伪轮 14/14 转红(`FALSIFY_EXIT=0`)** —— F1–F11 + P1/P3/P4。
+  ⚠️ **首轮 F4 假绿已修**:`AudioRenderAssembled` 标志原在别处**重算**构造条件(同一判断的第二份拷贝)
+  ⇒ 变异不转红;改由**已构造出的对象**派生(`renderTarget is AudioSourceRenderTarget`)后复跑转红。
+  **教训:可观测标志必须从被观测对象派生,不得复述构造条件。**
+- **回归对账(等式判据)**:
+  EditMode 基线 `s53` 3682/3637/0/45 ⇒ 本轮 `s18-full-editmode-2` **3709/3664/0/45**(`+27 = 新增测数`)。
+  PlayMode 基线 `s51` 192/192/0/0 ⇒ 本轮 `s18-full-playmode` **197/197/0/0**(`+5 = 新增测数`)。
+  ⚠️ **口径**:准确表述是「两棵树在本轮全部新增测上零回归」,不得写成无限定的「零回归」。
+  EditMode **首跑**另有 1 条既有间歇红(`MovementFeedTest.test_move_afterFreeFall_...`):
+  隔离复跑 5/5 绿、全量复跑零红 ⇒ 环境相关;**根因 = `AC-1-33` ③ 未落地的下游症状**(见 `TD-player-01`)。
+- **上游修复(用户「本轮就修」授权)**:13 的痊愈锁存停用 —— `BehaviorMap.TrendWired = false`。
+  病根:9 侧 `Sim/ProgressionEvaluator.cs:439 ComputeTrend` **恒返回 `Fix.Zero`**(已登记 tripwire,
+  归 M2 可玩级),而痊愈判据 `position ≤ RecoverMax ∧ trend ≤ 0` 在 trend 恒 0 时**恒真**
+  ⇒ **每个新病人首拍即被锁存「痊愈」** ⇒ 呼吸层永不启动、一次性 cue 永不发射
+  (修复前实机:`tick=2` 起 `term=True emit=False breath=None`)。取「停用」非「误判」(痊愈是终局,不可逆)。
+  两侧 NOT-RUN 哨兵已下(接线后转红,禁删);反证 F11 坐实哨兵有判别力。新债 `TD-audio-025`。
+  修复后实测:`末驱动 tick=40 · 一次性发射=1 · 存活呼吸层=0 · 在场=1`。
+- **本轮新立案 3 条**:
+  `TD-audio-025`(ComputeTrend 恒 0 / 痊愈锁存停用)· `TD-audio-026`(`Assemble()` 无条件建池致 EditMode 泄漏)·
+  **`TD-player-01`(`AC-1-33` ③ `minMoveDistance` P0=0 语义层未被验证 —— 测试断言夹具字段而非控制器真值,
+  全库零处写进 `CharacterController`;GDD 逐字预言的下游症状已实测出现)**。
+- **落盘件**:`production/qa/evidence/impl-s18-runtime-audio-assembly-2026-10-18.md`(证据原件)·
+  `production/qa/evidence/audio-wiring-listening-2026-10-18.md`(**NOT-RUN**)· story-018 ·
+  audio-system/EPIC.md · `docs/tech-debt-register.md` · `production/sprint-status.yaml` · 本文件。
+- **下一步**:① 用户实机听测(待听:`cue#0` / `Voice_Cough_Damp` / 总线 `Voice`;判据含「推 `Voice` 滑块音量随之变」)
+  ⇒ 签核后 story-018 转 `Complete`;② story-025(42 戥子形态元件)仍 `Ready`,实现未开工。
+- ⚠️ **未 commit**(无用户指令)。
+
+---
+
+## Session Extract — story-025 戥子剂量读取形态元素 实现轮 2026-10-18
+
+- **Story**:`production/epics/skeuomorphic-ui/story-025-dentch-dose-form-element.md` —— **Status: In Progress**
+  (代码与自动化判据全部落地并自证;两条 NOT-RUN 未闭 ⇒ 未转 Complete)
+- **交付(5 文件)**:
+  `SkeuoThemeVariables.uss`(黄铜层 +7 个 `--skeuo-brass-detent-*` 变量)·
+  `SkeuoBrass.uss`(+.brass-detent-band / .brass-detent / .brass-detent--focused;
+  **附带** `.brass-scale` 的 `height` → `min-height`)·
+  `Brass/BrassScaleElement.cs`(+`SetDetents(count, focusedOrdinal)` / `DetentCount` / `FocusedDetentOrdinal`)·
+  `Screens/CasebookScreen.cs`(`RefreshDentchDoses()` 每行由 `Label("戥子档")` 改为该行自己的形态)·
+  `Tests/EditMode/SkeuomorphicUI/dentch_dose_form_test.cs`(**新建,23 测**)
+- **形态 = 几何可分,颜色不变** —— 落焦块**零颜色声明** ⇒ AC-025-1 ②「非颜色」在 USS 文本层可判真。
+  **未用 `style.rotate`**(承 story §Engine Notes 优先口径)。
+- **过滤**:23/23 绿。
+- **证伪轮**:`RED-OK 15/15`(脚本 `/tmp/fz-s25.py`;改→跑→还原同命令内 + SHA-256 还原校验通过)。
+  ⚠️ **首轮 F1 = 假绿**:`test_ac025_1_setDetents_countNotPositive_throws` 原只断异常类型,
+  撤掉「档数 ≤ 0」守卫后仍被**档序守卫**抛出同型异常 ⇒ 被掩蔽。改断 `ParamName == "count"` 后复跑 RED-OK。
+  **教训**:两条守卫抛同型异常时,「断类型」的夹具对其中一条**零判别力**。
+- **回归(等式判据)**:EditMode `3732/3687/0/45` vs 基线 `3709/3664/0/45` ⇒ `+23 = +23` ✅ ·
+  PlayMode `197/197/0/0` vs 基线同值 ⇒ `+0 = +0` ✅。
+  口径:**「两棵树在本轮全部新增测上零回归」**,非无限定的「零回归」。
+- **首轮回归抓到 1 条本件引入的红(已修)**:`NoHealthbarFeedbackTest.test_markRegistry_noPaperTear_noTearFields` ——
+  破纸词表 `{tear, rip, break, split, fracture}` 扫的是**成员名**(限引用类型),
+  `DetentStripClass` / `_detentStrip` 的 `strip` 含 **`rip`** ⇒ 误判。**已改 `band`**。
+  ⚠️ **该命名避让事实此前全库无登记**,建议入 `.claude/docs/coding-standards.md`。
+  (另一条红 `MovementFeedTest...` = 已知间歇红,`TD-player-01` 下游症状,非本件引入。)
+- **NOT-RUN(禁借绿)**:① N 档截图 —— **batch 出不了图是结构性事实**
+  (`ScreenshotTool.cs` 头注两次实测;须编辑器 Play 按 F12);② `AC-11-12` 形态半 / `AC-11-13` 转绿 ——
+  须 `S13-7` 走查重跑,本件不得自判。
+- **证据原件**:`production/qa/evidence/impl-s25-dentch-dose-form-2026-10-18.md`
+- **落盘件**:story-025 · skeuomorphic-ui/EPIC.md(行 025 + Counts)·
+  `docs/tech-debt-register.md`(`TD-prescription-01` 加 2026-10-18 实现轮注,**仍未结案**)· 本文件。
+  ⚠️ **`production/sprint-status.yaml` 未改** —— story-025 不在 sprint-14 面内,是否登记为「计划外追加」待用户裁。
+- **下一步**:`/code-review` → `/story-done`;截图 + `S13-7` 走查重跑归收口轮。
+- ⚠️ **未 commit**(无用户指令)。
+
+---
+
+## Session Extract — story-025 评审轮 + 修复轮(2026-10-18)
+
+**承接**:上文实现轮(23 测落地)→ 用户三问裁定 → `/code-review` → 修复轮。
+
+### 用户裁定(2026-10-18,两轮 AskUserQuestion)
+
+1. 下一步 = **跑 `/code-review`**;`sprint-status.yaml` = **登记为 S14-11(计划外追加)**;
+   `rip` 命名避让事实 = **入 `.claude/docs/coding-standards.md`**(已落,新立「Naming — 机械门避让表」节)。
+2. 评审产出 BLOCKING ⇒ **落原件**;**R-1 处置 = 重锚 AC-025-6 + 落债**;
+   **修复范围**(多选)= **R-2 flex-shrink · R-3 注释登记 · R-5 白名单死码 · 其余 MINOR 四项**(= R-6 / R-7 / R-9 / R-10)。
+
+### 评审裁定:**CHANGES REQUIRED**(唯一 BLOCKING = R-1)
+
+- **原件**:`production/qa/evidence/review-story-025-2026-10-18.md`(三专家并行,Phase 8b 双列结账)。
+- **R-1(BLOCKING)**:`AC-025-6` 引用的「`ink`/`brass`/`implement` **三枚举**材质分支分类器」**全库不存在**
+  (实测 `grep classify|BranchOf|MaterialOf` 零命中;`SkeuoElement.cs:4-10` 是**四员** `{Paper,Scroll,Ink,Seal}`;
+  GDD 侧载体 `world_billboard_test.cs:87` 仍是占位符)⇒ 夹具以自造 `ClassListContains("brass")` **顶替 AC 语义层**
+  ——「AC 语义层被测试自造断言顶替」的**第 4 次**实例。
+- **处置**:AC-025-6 **撤勾** + 重锚为两条(① 类名级已实现 ✅ / ② 分类器缺口 ⛔)+ 落债 **`TD-prescription-07`**。
+- **R-4**(`TickCount` write-only)→ **`TD-prescription-08`**;**R-8**(Manifest「绑定点唯一」措辞与 AC-025-4 矛盾,
+  `git blame` = `c125742a` 2026-10-12 **既有债**)→ **本件未自行改注,待用户裁定**。
+
+### 修复轮落地(7 项,用户选定范围)
+
+`SkeuoBrass.uss`(R-2 `flex-shrink: 0` · R-3 双观感注释)· `BrassScaleElement.cs`(R-9 `hierarchy.Add` → `Add`)·
+`dentch_dose_form_test.cs`(R-5 白名单改 `BackingFieldName()` + 非空守卫 · R-6 `LayerRange`/`AssertDeclaredInLayer` 行区间判定 ·
+R-7 收窄到 `prescription-page` 子树 · R-10 负向门主断言对齐 AC 的 `content:` 数字面)。
+⚠️ **夹具一改 ⇒ 判别力须重证** ⇒ 证伪轮 **15 → 17 例**(新增 **F16** 钉 R-5 · **F17** 钉 R-6)。
+
+### 判据
+
+| 判据 | 状态 |
+|---|---|
+| 过滤测 `--filter dentch_dose_form_test` | ✅ 23/23 绿(修复后复跑) |
+| 证伪轮 `/tmp/fz-s25-r1.py`(17 例) | ✅ **`RED-OK 17/17`** · SHA-256 还原校验全部通过 · F16/F17 双双转红 |
+| 两棵树全量 EditMode / PlayMode | ✅ **`3732/3687/0/45`** · **`197/197/0/0`** —— 与实现轮逐位同值 ⇒ `+0 = +0`(修复轮未新增 `[Test]`);本轮零红,`MovementFeedTest` 间歇红未复现(**不得读成已修**) |
+
+### 落盘件(本轮)
+
+story-025(AC-025-6 重锚 · AC 勾选表 · Test Evidence 17 例 · 新 `## 评审轮记录`)·
+`production/qa/evidence/review-story-025-2026-10-18.md`(**新建,原件**)·
+`docs/tech-debt-register.md`(新节 + `TD-prescription-07` / `08`)·
+`impl-s25-dentch-dose-form-2026-10-18.md`(§九 评审修复轮附录,订正过时引用)·
+`skeuomorphic-ui/EPIC.md`(行 025)· `production/sprint-status.yaml`(S14-11 评审轮注)· 本文件。
+三份专家草稿 `tmp-review-s25-*.md` **已合并入原件并删除**。
+
+### 未闭(禁借绿)
+
+- **R-1 只解决「不实声称」,分类器仍未实现**(`TD-prescription-07`);
+- **R-4 未修**(→ `TD-prescription-08`);**R-8 ✅ 已就地改注**(用户 2026-10-18 裁定「就地改注」——
+  story-025 该行限定为「selector → element 绑定点唯一」+ 声明「行 → 形态」另一条轴;新文本零命中 AC-42-F3 词门);
+- **截图 NOT-RUN**(batch 结构性不可得,须编辑器 Play 按 F12)· **`S13-7` 走查重跑未执行**;
+- **三专家均未运行 Unity** ⇒ 几何 / Yoga 结论为静态推导(engine-reference 对 `flex-shrink`/`min-height`/`overflow`/`Clear()`/`ClassListContains` **零覆盖**)。
+
+### 下一步
+
+回归对账填毕 ✅ · R-8 已就地改注 ✅ ⇒ 余下:截图(编辑器 Play 按 F12)+ `S13-7` 走查重跑 → `/story-done`。
+⚠️ **未 commit**(无用户指令)。
+
+---
+
+## Session Extract — story-025 截图轮(2026-10-18 · 编辑器 Play · F12 · 1x)
+
+**当前任务**:story-025(S14-11)截图判读 + 判绿 + 落账 —— **完成**;余项仅 `S13-7` 走查重跑。
+
+### 实测链(双通道交叉)
+
+1. **首图判红** `unity/Logs/shots/20261018_090548_1x.png`(/image-vision + PIL 逐像素一致):
+   5 行逐像素相同,仅焦点高亮差异 ⇒ 评审原件 §五 **未及核查项 #5 实测命中**。
+   根因(机械定位):`.brass-detent` 底色 = 描边 = `.brass-scale` 板色,**三色全同 `#8C5A2B`**
+   ⇒ 档块溶进铜条。23 测测不到此类(断 USS 文本 / resolved style,非可见性)。
+2. **修复(用户裁甲案,1 行)**:`SkeuoBrass.uss` `.brass-detent` 底色 → `var(--skeuo-brass-bg)`
+   (`#B8863B`,art-bible §4.1,`:root` 可继承);零新增色 · 落焦块仍零颜色声明(AC-025-1② 不破坏)。
+3. **复图判绿** `unity/Logs/shots/20261018_092936_1x.png`:每行恰一个金档块且位置阶梯
+   (x 18/22/26/30/34 = 行 k 第 k 档)· 旧图同扫描零金簇(唯一变量 = 那行 USS)· 全画面零数字。
+   ⚠️ 观感限制如实登记:常态档仅约 2px,**每行实际只落焦档金芯露出**(低密度读数)——
+   够不够归走查人眼;增强属 44 调参、数值归用户,不在本件。
+
+### 判据
+
+| 判据 | 状态 |
+|---|---|
+| 过滤测 `dentch_dose_form_test` | ✅ 23/23 绿(`unity/Logs/s25-ussfix-editmode-filtered.xml`,USS 改后复跑) |
+| 两棵树全量 | ✅ 已跑:EditMode **3732/3686/1/45**(total 与基线逐位同值 `+0=+0`;唯一红 = `MovementFeedTest` 已知间歇红 `TD-player-01` 下游,失败信息同实现轮首轮同型,**单跑 5/5 绿**⇒ 非本件引入、不得读成已修)· PlayMode **197/197/0/0** 逐位同值(原件 §10.5)。⚠️ 操作教训:EditMode+PlayMode 两 batch **勿串一条命令**(第二条 exit 2 起不来,拆开即成) |
+| 证伪轮 17 例 | 未重跑(本轮只改 USS 值引用,夹具零改动;F16/F17 判别力记录仍有效) |
+
+### 落盘件(本轮)
+
+`SkeuoBrass.uss`(1 行 + 注释)· 证据图 ×2(`production/qa/evidence/skeuomorphic-ui/dentch-form-2026-10-18.png`
++ `-before-fix.png`)· `impl-s25-…md` §六 更新 + **新 §十 截图轮** · story-025(Test Evidence 视觉证据改判 +
+**新 §截图轮记录** + 「仍未 Complete」清单改)· `sprint-status.yaml` S14-11 截图轮注 ·
+`tech-debt-register.md` TD-prescription-01 行(前置①②达成,余项③)· 本文件。
+
+### 未闭(禁借绿)
+
+- **`S13-7` 走查重跑**(唯一余项;须含人眼裁定「低密度读数」够不够);
+- 全量回归数字**已回填**(story §截图轮记录判据表 + 本表 + 原件 §10.5 + sprint-status);`MovementFeedTest` 间歇红**未修**(仍归 `TD-player-01`);
+- R-1 分类器未实现(`TD-prescription-07`)· R-4 未修(`TD-prescription-08`)—— 均刻意留债。
+
+### 下一步
+
+走查重跑(`AC-11-12` 二分签 + `AC-11-13` 双签,须真人)⇒ `/story-done`。
+⚠️ **未 commit**(无用户指令)。
+
+---
+
+## Session Extract — story-025 走查重跑批 + 收口(2026-10-18)
+
+**当前任务**:S13-7 走查重跑回填 ⇒ story-025 **转 Complete** —— **完成;全链闭合**。
+
+### 走查裁定(真人,AskUserQuestion 四问)
+
+- **腿 A3**(`AC-11-12` 拟物载体可读半)= **✅ 可读**;**腿 B2**(`AC-11-13` 仅凭形态分辨)= **✅ 可辨**(`ELSE` 不触发);
+- 观感限制(低密度读数,截图轮如实登记)= 用户裁「**够用,不增强**」⇒ 不触发 44 增强债;
+- 签核 = **主创 + 医学从业双签**(solo 同签)。**AC-11-21 / 腿 C 本批不重走**(归 S14-10,⚫ 维持不可判)。
+
+### 改判后果(债结转)
+
+`TD-prescription-01`(根因)/ `-02` / `-03` **✅ 结案**;维持 open:`-04`(听测,S14-10)·
+`-05`(49 通道,豁免≠满足)· `-06`(美术轮)· `-07`(三枚举分类器)· `-08`(`TickCount` write-only)。
+`AC-11-12` / `AC-11-13` 转 ✅(判定权在走查,报告为证)。
+
+### 落盘件(本轮)
+
+**新建** `production/playtests/playtest-2026-10-18-s13-7-rerun-dentch-form.md`(9 节,含 §8 证伪性)·
+原批 10-16 走查包(头部**改判指针注**,历史 🔴 不就地改写)· 签核件 `story-005-…-signoff.md` **§6 重跑改签**·
+story-005 卡面 `AC-11-12`/`AC-11-13` 两行改判 + Test Evidence `:90` 过期行订正注 ·
+`tech-debt-register.md`(01/02/03 划线结案 + 共同性质结转注)·
+story-025(**Status: Complete** + Completion Notes + 走查重跑记录移至截图轮后)·
+impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14-11 → **done/2026-10-18**,updated 行改写)·
+`skeuomorphic-ui/EPIC.md`(行 025 → Complete;Counts **24 Complete + 1 ◐**)。
+
+### 未闭(禁借绿)
+
+- ⚠️ **未 commit**(无用户指令)—— 本轮全部改动待用户处置;
+- **S14-10**(story-018 音频装配)仍留「实机听测后签」;`AC-11-21` 重走依赖其完成;
+- `TD-prescription-05/06/07/08` 各自触发条件不变。
+
+### 下一步
+
+用户裁定 commit(可选:`/story-done` 流程复跑对账,或直接提交)。
+
+---
+
+## Session Extract — /story-done(S14-10 听测签核批)2026-10-18
+
+- **对象**:`production/epics/audio-system/story-018-runtime-audio-assembly.md`(S14-10)
+  —— 唯一余项「实机听测 AC」由**用户实机执行并签核** ⇒ **story-018 转 `Complete`** · S14-10 → `done`。
+- **四腿判定**(记录件 `production/qa/evidence/audio-wiring-listening-2026-10-18.md` §〇):
+  ① `Voice_Cough_Damp` **可闻** · 总线 **`Voice`** · **`Voice` 滑块生效** ⇒ A-6 人耳判据首次坐实;
+  ② **零状态播报** ⇒ `AC-11-21` ⚫→✅ + `AC-44-09` 听测半边 ✅(GDD `:986` 联合判据,非溢出);
+  ③ **呼吸层可闻 ⇒ 记录件 §四 预判被推翻**(口径错在拿 PlayMode 合成场景 `存活呼吸层=0`
+  外推真实会话)—— `TD-audio-025` 处置**不变、仍 open**;
+  ④ 协议第 4 项「无爆音」= **未判**,不勾不借。
+- **覆盖面钉住**:当前事件表**无给药/疗效 cue 条目** ⇒ 实听对象 = `Page_Turn` / `Cabinet_Prop`;
+  判据成立靠**全表构建期白名单门**(`AC-018-7`)+ **11 侧零独立 `AudioCue`**。
+- **`AC-44-09` 归属收窄(本批自查)**:其 ✅ = **10-17 E5 走查(全 15 cue probe 真播)+ 本批
+  (游戏内场景形态)合取**,本批**不独力结清**;顺带登记 story-016 `:83` 自述与走查件签字行
+  (`[ ] 通过` + 自注「未勾选 = E5 未通过」)的**账面矛盾**,处置归 story-016 的 reconcile 轮。
+- **落盘件(本批)**:听测件(§〇/§三/§四订正注/§五/§六签/§七 + 与 E5 的关系)·
+  `impl-s18-*`(§七/§八刷注 + §九 + §九附)· story-018(Complete + 听测签核轮记录 + Completion Notes)·
+  签核件 §7 · story-005 卡面 · 两个 EPIC · `docs/tech-debt-register.md`
+  (`TD-prescription-04` / `TD-audio-023` / `-024` 结案 + 44 内容需求册 §三 触发行订正)·
+  `sprint-status.yaml`(S14-10 done)· sprint-13 / sprint-14 · retro-13 · playtest-2026-10-18。
+- **结案边界(禁溢出)**:**44 epic 仍 ⛔ 不得收口** —— `TD-audio-100…109` 逐条未动;
+  `TD-audio-025` / `-026` / `TD-player-01` / `TD-prescription-05/06` 仍 open;
+  **未跑 `/code-review`**(用户裁定不含评审,如实留痕)。
+- **工作树重复件处置 ✅ 已落**:两份逐字节相同的未跟踪 `docs/audio/statereport-walkthrough-2026-10-18.md` +
+  `-manifest-2026-10-18.json` —— 用户裁定**删除**(删前 diff 复核与 10-17 入库原件相同),已删,
+  `docs/audio/` 无 10-18 残留。⚠️ E5 账面矛盾本体**不因删除消解**,仍归 story-016 reconcile 轮。
+  `unity/Assets/Audio/DaYiJingCheng.mixer` 的一处 **Default 快照捕获 Master 原始电平 = 0 dB**
+  (听测期编辑器副作用,键 `4b26ff…` = `:551` Master 的 `m_Volume` 哈希;值 = 出厂默认 ⇒ 当前运行期等价)
+  ⇒ **提交前已复跑核验**:`--filter "MixerTopology"` EditMode **21/21** +
+  `--filter "DaYiJingCheng.Tests.PlayMode.AudioWiringTest"` PlayMode **5/5**
+  (`unity/Logs/s18-listening-mixer-editmode.xml` / `s18-listening-playmode2.xml`)
+  ⇒ 顺带暴露 **AC② 门不覆盖「快照捕获 Master 原始电平」** ⇒ **新立 `TD-audio-027`**(债册
+  「2026-10-18 · 听测签核批新立案」· `impl-s18-*` §十)。
+  ⚠️ 首跑 PlayMode 用了短式过滤器 ⇒ `total=0` **空跑**,非证据;过滤器须写命名空间限定名。
+- **下一步**:分两笔提交(实现件一笔、账面回填一笔)。
+
+## Session Extract — story-018 补评轮 + 推 epic 44 对码复测(2026-10-18)
+
+**触发**:用户裁定「补跑 code review,然后推 44 epic」+「按建议来,一卡两面,尾音走增益衰减,10-c 挂 story 内」。
+
+### A. `/code-review` story-018(转 Complete 后追补,三代理并行)
+- **原件**:`production/qa/evidence/review-story-018-2026-10-18.md`(三草稿 16/39/19 行全非空 → 合并 → 删)。
+- **Verdict**:CHANGES REQUIRED → 修复后 **APPROVED WITH DEBTS(TD-audio-028…033)**。
+- **确认**:A-1…A-7 七缺口全闭 · **无假绿**(可观测标志全由被观测对象派生)· HC-1…HC-8 全 PASS。
+- **BLOCKING 1 项 B-1(账面)**:卡面 AC-018-6 逐字要求的「哪条链仍无上游驱动」登记**从未落**
+  ⇒ 本批补落 `## Test Evidence`(BreathLayerDriver/CueEmitDeriver 运行期零构造;语声变体族零载体)。
+- **同批两处账面修复**:证伪表补 F2 行(13→14 与表头 14/14 对齐)· AC-018-2③「默认 SFX」订正注(实作 `bus: null`)。
+- **新缺陷 N-1…N-10** 逐条对码复核属实 ⇒ 六条新债立案(028 空间化链未接 / 029 one-shot 不归还 /
+  030 变体混合未兑现 / 031 静态缝未回收+异常泄漏 / 032 常量+截断+行长+簿记 / 033 knowsClinic 硬编码)。
+- **本批零代码改动**(story 已 Complete,补评不重开 AC)。
+
+### B. 推 epic 44:TD-audio-100…109 逐条对码复测(账面滞后失效模式再现两例)
+- **TD-audio-106 ✅ 结案** —— 「断言被删空」早在 S14-5 已清偿;本批复跑 `SettingsExposureTest` **31/31**
+  (`unity/Logs/epic44-recheck-td106.xml`)。⚠️ AC-44-13 的 mono 运行期载体缺口**不随本条结案**。
+- **TD-audio-109 半边结案** —— D5/D6 打真件,`PipelineGateTest` **98/98**(`epic44-recheck-td109.xml`);
+  第二半(story-015 的 7 WARNING 归属)**待用户裁**。
+- **TD-audio-100** 由「真空洞」→「有卡在途」(story-019 `Ready`,未开工)。
+- ⚠️ **过滤器一律命名空间限定名**(短式 `total=0` 空跑教训,承 §十)。
+
+### C. 落盘件(本批,均未提交)
+`story-018-*`(Test Evidence 加 B-1 登记 + 评审原件行 / F2 行 / S3-c 订正注 / 评审轮记录 / Completion Notes 改「补评」)·
+`impl-s18-*` §十一 · `docs/tech-debt-register.md`(补评批六债新节 + 026 加 S3-b 注 + 100…109 刷账)·
+新卡 `story-019-ac44-10-no-spike-sfx.md` · 新件 `review-story-018-2026-10-18.md`。
+
+### D. 下一步(待用户)
+1. **是否顺手做 N-6(TD-audio-031)两行加固**(做 = 新证伪;不做 = 债内已含判据)。
+2. **commit 本批账面改动**(story-019 新卡用户已裁定落盘)。
+3. **story-019 进实现轮**(10-a/10-b;10-c 待 spike 出参数后用户实听)。
+4. 101/102 听测批**宜排在 TD-audio-030 之后**(否则测不到变体混合)。
+
+### E. 收口批(2026-10-18 · 用户裁定「按 1→2 落,merge 我自己来」)✅ 已落
+- **三笔提交**:`d389276`(story-018 补评 + TD-audio-028…033 + 100…109 刷账)·
+  `bc80cfb`(story-019 立卡)· `94b69a9`(**sprint-14 收口**:DoD 8 条逐条落勾带实测依据 +
+  收口记录块 + yaml `end=2026-10-18` / `start` 空白不追补)。
+- **merge 归用户**:`fix/playmode-datacore-precheck` 现领先 main **10 个 commit**。
+- **如实登记两处**:① DoD「可证伪判据」条记「已兑现 + 一处已知欠例」(S3-a 挂 028);
+  ② **retro-sprint-14 未写**(非 DoD 条目,列下一步)。
+- ⚠️ **本会话唯一未落账改动** = 本段 active.md 追加(账面惯例:active.md 随下批提交,不单独成笔)。
+
+### F. epic-44 DoD 切片修订(2026-10-18 · 用户裁定「甲」)✅ 已落未提交
+- **缘起**:用户问「TD-audio-101…108 完成就收口吗?」→ 核出结构性问题:现行 DoD 第 2 条
+  (36 条 AC 全量分母)把 **103 双盲(被试 ≥2 人)/ 104 VR(P1b)/ 105 无障碍走查(外部)/
+  107 联机(45 P1b)/ 108 目标硬件** 全压在 P0 期内 ⇒ **epic 44 照原文 P1b 前不可能收口**,
+  与实际规划不符。用户裁定「甲:搬出 5 项」。
+- **裁决形态**:DoD **分两层,判据不删不放宽** —— ① P0 收口面 = 36 条 − 5 项搬出;
+  ② **P1b/外部复列项** = 搬出五项仍挂触发条件,触发时**并回分母**做终收口核查。
+  ⛔ epic 状态**不变**(P0 面仍未清)。
+- **四处落点**:`EPIC.md`(头部「结清」分层注 · §DoD 切片修订块含搬出清单表 + P0 完整余项 ·
+  §Next Step 原顺序划线作废 + 新五步口径)· `docs/tech-debt-register.md`(100…109 还债顺序块
+  加分层效果注)· `sprint-status.yaml`(注释批 ⑨)· 本段。
+- **P0 收口面完整余项(已写进 EPIC §DoD,防「债表行 = 全部」的误读)**:story-019(10-a/b/c)·
+  101+102 听测(宜在 TD-audio-030 后)· 109 第二半(用户裁 7 WARNING)· TD-audio-025 / -028…033 ·
+  **AC-44-13 mono 载体缺口(不随 106 结案)**· -027 · story-016 reconcile(E5 签字矛盾)·
+  收口前重跑 36 条逐条核查(「16 条计数」切片后仍不重算,核查时统算)。
+- **待用户**:本四处是否提交(建议一笔 `docs(audio): epic-44 DoD 切片修订…`)。
+
+<!-- QA-PLAN: 2026-10-18 | System: sprint-15(44 音频 P0 收口面) | Plan written: production/qa/qa-plan-sprint-15-2026-10-18.md -->
+
+### G. sprint-15 规划轮(2026-10-18 · `/sprint-plan new` · 用户裁定「按建议来」)✅ 已落未提交
+- **产出四件**:`production/sprints/sprint-15.md` · `production/sprint-status.yaml`(重写为 sprint-15;
+  sprint-14 全文归档 `production/sprint-status-sprint14-archive.yaml`)· story-020 / story-021 两张新卡(`Ready`)·
+  `production/qa/qa-plan-sprint-15-2026-10-18.md`。
+- **Phase 1 重扫核出两处陈旧前提(技能硬前置的正向命中)**:
+  ① **TD-audio-030** 旧写「12 个 `vo_` 变体未录制」⇒ **实测已全部落地**(`unity/Assets/Audio/`,事件表 12 条已列)⇒ 阻塞**只剩选择器**;
+  ② **TD-audio-101/102** 旧阻塞「素材未接入」⇒ **18 个文件 10-17 已落地** ⇒ 听测今天可排;
+  ③ 顺带:TD-audio-103 的阻塞源**须改口**为「被试 ≥2 人」(素材已不是理由)⇒ 挂 S15-7 刷账。
+- **Must**:S15-1 story-019(AC-44-10,含 10-c 用户实听)· S15-2 story-020(变体混合)· S15-3 story-021(knowsClinic 注入缝)。
+  **Should**:S15-4(028 空间化)· S15-5(029+032)· S15-6(101+102 听测,S15-2 之后)。
+  **Nice**:S15-7 债册刷账 · S15-8 retro-14。
+- **QA plan 已写**(Phase 5 选 A 后即跑);PR-SPRINT 跳过(Lean)。
+- **待用户**:① 上述四件是否提交;② 是否开 S15-1(`/dev-story story-019`)。
+
+### H. S15-1 · story-019(AC-44-10 + OQ-44-7 尾音)—— 实现轮 2026-10-18(**10-c 未跑 ⇒ 卡留 In Progress**)
+- **改**:`Editor.Tools.Gates/AudioEventTableGates.cs`(`TransitionSemanticTokens` + `ValidateNoTransitionOneShotCues` 两臂,接入 `Validate`)、
+  `Gameplay.Boot/PatientCueDriver.cs`(`End` → 开尾音段而非 `EndLoop`;`AdvanceBreathTail` 到期停表;`Pause`/`Stop` 分界 = 在场性)、
+  新 `Gameplay.Presentation/Audio/BreathTailRamp.cs`、`AudioTuning.cs`(`BreathTailRampMs=1500` / `BreathTailGainFloorDb=-36`,数值归用户)。
+- **测**:`event_table_gate_test.cs` +6(34→69 全套件)、`runtime_assembly_test.cs` +9(27→36)、
+  `assembly_boundary_test.cs` 白名单 +`BreathTailRamp.State`(首跑全量唯一红即此门,已增列)。
+- **证伪 F1–F9 全转红**;证伪轮抓出**两处假绿**并已修(FG-1 强度判据混尾音增益+前段恒值;FG-2 `coughCue:null` 使零一次性 cue 恒真)。
+- **全量 EditMode `3748/3703/0/45`**(`unity/Logs/s19-full-editmode.xml`)vs 基线 `3732/3687/0/45` ⇒ 差 **+16**,夹具逐名 **+15**,**差 1 挂【待核】**(基线无 XML 件)。
+- **⚠️ 未结**:`AC-019-6` 听测 NOT-RUN(`production/qa/evidence/s19-breath-transition-listening-2026-10-18.md`);
+  实现停在**分段重复尾音**(每 1.5 s 重开一段)—— 听测判据 3 专门判「是否一阵一阵」。
+- **原件**:`production/qa/evidence/impl-s19-ac44-10-breath-tail-2026-10-18.md`;TD-audio-100 / OQ-44-7 已刷「代码半边 / 未结案」。
+- **待用户**:① 实机听测签核;② 是否提交本批。
+
+### I. S15-2 · story-020(语声变体选择接线 · TD-audio-030)—— 实现轮 2026-10-18
+- **改**:`AudioClipLibrary.cs`(逐条装行内全部 `assets[]`;新增 `Resolve(cue, tableCueId, tier, identity)` 与
+  `ResolveCue(in AudioCueDto)`;`Preload` 增 `loader` / `internalRelease` 两个可选缝)、
+  `VoiceVariantLib.cs`(`BucketBand` / `IdentityScalar` / `SelectSlot`,纯整数零随机)、
+  `AudioSourceRenderTarget.cs`(整条 cue 解析缝,既有 `Func<int,AudioClip>` 保留)、`CompositionRoot.cs`(改走整条 cue)。
+- **测**:新 `voice_selection_wiring_test.cs` **9 测**;证伪 **F1–F8 全转红**;一处失败尝试(F8-a 对调优先级 ⇒ 不红)已记录。
+- **全量 EditMode `3757 / 3712 / 0 / 45`**(`unity/Logs/s20-full-editmode.xml`)vs S19 基线 `3748/3703` ⇒ **+9 = 新增 9 条**,等式严丝合缝。
+  音频全域 `492/492` 零回归。
+- **账面**:`TD-audio-030` 结案注(明写人耳半边未证)· `TR-diag-022` note 补运行期半边判据 · story-020 勾 4/4 + Completion Notes · 账本 README Story 020 段。
+- **⚠️ 未证**:AC-44-02 人耳听测(TD-audio-102)· 真 Addressables 装 12 条变体的 PlayMode 夹具 · `assets[]` 重排无专门门 · IL2CPP 三格。
+- **原件**:`production/qa/evidence/impl-s20-voice-variant-selection-2026-10-18.md`。
+- **待用户**:① `/code-review` 后再收口;② 是否提交本批。
+
+### J. S15-3 · story-021(`knowsClinic` 注入缝 · TD-audio-033 ①)—— 实现轮 2026-10-18
+- **改**:`PatientCueDriver.cs`(构造参数 `knowsClinic` **必填**,null ⇒ 具名 ANE —— 所选口径 = **显式 fail-loud**;
+  新可观测面 `KnowsClinicOf(id)`)、`CompositionRoot.cs`(真值链接线 + 可选形参 `ClinicKnowledge`;
+  `behaviorDirector` 提成局部变量)、`CompositionRootServices.cs`(`BehaviorDirector` 可观测)、
+  `ClinicKnowledge.cs`(新增 `RegistryClinicKnowledgeSource`)、
+  **新** `Gameplay.Boot/ClinicKnowledgeDirectory.cs`(F-13.2 三段 + `HomeRegion` 首见缓存)。
+- **测**:新 `knowsclinic_seam_test.cs` **8 测**;证伪 **F1–F6 全转红**。
+  ⚠️ 首轮 F1/F3 **不红**——主测根本没驱动组合根装配件(自己另 new 了一个驱动);加可观测面后转红。
+  F5 首版与 F1 无观测差(行注释被源码门剥掉),改为「只塞文本违例」后转红。两处均如实登记。
+- **全量 EditMode `3765 / 3719 / 1 / 45`**(`unity/Logs/s21-full-editmode.xml`)vs S20 基线 `3757/3712/0/45`
+  ⇒ total **+8** = 新增 8 条;`passed +7 + 1 红 = +8`。唯一红 = `MovementFeedTest` 已知间歇红(`TD-player-01`,单跑 5/5 绿)。
+- **账面**:`TD-audio-033` ① 结案注 + ② 留 open · story-021 勾 4/4 + Completion Notes · sprint-status S15-3 → `review`。
+- **⚠️ 未证 / 留 open**:真值源今日**恒假**(生态区 / POI / 建造三个装载面未接 ⇒ 组合根自建空表);
+  锚点取在场登记簿逻辑格而非 `spawn_anchor(p)`(`O-13-5`);② 两份行为态分叉;AC-13 `[L]` 走查;IL2CPP 三格。
+- **评审**(2026-10-18 两路并行):**BLOCKING 0 · WARNING 8 · INFO 4**。修 2 条并各加反证:
+  W-1(空表测宾语改组合根产物,反证 F8)· W-2(源码门扩到全部生产树 `scanned>300`,反证 F7)。
+  W-3(`StripComments`)**已落未证**(无夹具)—— 如实登记。
+- **原件**:`production/qa/evidence/impl-s21-knowsclinic-seam-2026-10-18.md`(实现)+
+  `review-s21-knowsclinic-seam-2026-10-18.md`(评审)。
+- **顺带事实订正**:生产侧 `new PatientBehaviorDirector(` 唯一在组合根,`PatientSpatialDirector` 生产零构造点
+  ⇒ `TD-audio-033` ② 是**前瞻性**债项,今天在生产里不成立;已写回债行。
+- **终轮全量 `3765 / 3720 / 0 / 45`**(`unity/Logs/s21-full-editmode.xml`)。
+- **已收口**:story-021 `Status: Complete` · sprint-status S15-3 → `done`。
+- **待用户**:是否提交本批(S15-2 / S15-3 两件均待提交/收口)。
+
+## Session Extract — S15-4(TD-audio-028 空间化链接入生产)· 2026-10-18
+
+- **用户裁定四项**(AskUserQuestion,全取推荐):`latticeSize` 保留 `1f` + 显式登记缺口 ·
+  遮挡本轮恒 `false` + 登记缺口 · 听者锚点 = **主相机**(承 ADR-020 §七)·
+  `priority_class` / `min/max_distance` 用**代码常量 + 登记债**(不扩事件表 schema)。
+- **生产改动**:`AudioTuning`(五个空间化种子常量)· `AudioSourcePool.CreateSource` pin 三件套 ·
+  `AudioSourceRenderTarget`(新构造 / `Place` / `SetListenerPosition` / `SpatializedCount` / `LatticeSize`)·
+  `CompositionRoot`(导演共享池 + 死字段 `LatticeSize` 转为唯一入参)·
+  `CompositionRootServices`(`Spatialization` / `RenderTarget` 两属性)·
+  `BootRoot`(启动序 5.1 注入主相机为听者)。
+- **实现轮另修一处真 bug**(原债行未记载):`StartLoop` 池键 = `LoopActorOf(handleId)`(负偏移)
+  ≠ `cue.Source`,原 `Place(source, in cue)` 把位置写到**另一条源**上 ⇒ 真正在响的循环源留在原点。
+  改 `Place(in cue, int actorId)` 显式收池键;反证 F3 转红。
+- **测**:新 `spatialization_wiring_test.cs` **11 测**;证伪 **F1–F12 全转红**(零假绿)。
+  含 **S3-a 负例**(自建池 ⇒ 池根 2)—— 该负例是 `TD-audio-028` 行内逐字要求的。
+- **全量 EditMode `3781 / 3735 / 1 / 45`**(`unity/Logs/s154-full-editmode.xml`)vs S15-3 基线
+  `3770/3724/0/45` ⇒ total **+11** = 新增 11 条;`passed +11`;唯一红 = `MovementFeedTest`
+  已知间歇(`TD-player-01`,单跑 5/5 绿,**不用于抵扣计数**)。
+- **账面**:`TD-audio-028` 结案注(四项判据 + 残留指向新债)· **新立 `TD-audio-035`**
+  (latticeSize 正式值 / 真 raycast / `AudioEventRow` 未承载三列)· sprint-status S15-4 → `review`
+  (不记 done:听感半边 NOT-RUN)。
+- **原件**:`production/qa/evidence/impl-s15-4-spatialization-wiring-2026-10-18.md`。
+- **待用户**:是否提交本批(S15-2 / S15-3 / S15-4 三件均待提交);听测批(`TD-audio-101/102`)未跑。
+
+## Session Extract — S15-5(TD-audio-029 + 032 合并卫生批)· 2026-10-18
+
+- **029(一次性 cue 归还)**:`AudioSourcePool` 新增 `EnqueueOneShot` / `MarkFinished` / `ReclaimExpired` /
+  `PendingOneShotActors`;`AudioSourceRenderTarget.PlayOneShot` = Spawn → Place → Play → 排队(删 `Replay` / 时长学习 /
+  render target 的 `clock` 形参)。新 `Gameplay.Boot/OneShotReclaimPump.cs`:每 tick 边沿 回收 → 观测(`isPlaying`)→ 回收。
+  **池不读素材时长**:「播完」只来自观测(显式 `MarkFinished` / 探针面 / 帧泵)。
+- **实现期抓到两处静默缺陷**:① Unity `probe == null` 对「未绑」与「已销毁」**同为真** ⇒ 未绑探针的源会被当播完;
+  修法 = `ReferenceEquals` 区分「绑过」。② 「排队 → 同帧回收」会掐刚开播的源 ⇒ 「刚排队」单次跳过(`JustQueued`)。
+- **032**:② tick 形参 / 簿记 → `long`;③ `OnTickEdge` 拆 `StepOnePatient` / `DecideFor` / `EmitOneShotIfDue`
+  (`PruneAbsent` 拆 `PruneIfAbsent`/`PruneOneAbsent`)+ 源码物理行 ≤40 夹具(带计数器自校准);④ `PresentPatientIds`
+  成员变动快照 + `PruneAbsent` 五表并集 + 新可观测面 `TrackedPatientCount`;⑤ `RowCount > 0` 前置。
+- **测**:新 `s15_5_hygiene_test.cs` **13 测**;证伪 **F1–F10 全红**(F3/F6/F9 首版是弱判别面,已修夹具后重证);
+  F6 的「Decide 内截断」反证**未转红已被拒**,判据改由簿记侧 F6 承担;F10 判别力收窄为**防御纵深**(库构造已 fail-loud)。
+- **全量 EditMode `3794 / 3748 / 1 / 45`**(`unity/Logs/s155-full-editmode.xml`)vs S15-4 基线 `3781/3735/1/45`
+  ⇒ total **+13** = 新增 13 条;唯一红 = `MovementFeedTest` 已知间歇(**不抵扣计数**)。
+  ⚠️ 首轮全量时我曾把 `Skipped` 也读成红(47),已按 XML `failed` 字段纠正,原件 §四是纠正后数字。
+- **账面**:`TD-audio-029` 结案(残留 `isPlaying` 时序 NOT-RUN)· `TD-audio-032` ②③④⑤ 结、① 仍 open;
+  sprint-status S15-5 → `review`(不记 done:`BuildAudioSeams` 仍 >40 行 · PlayMode 半边未跑)。
+- **原件**:`production/qa/evidence/impl-s15-5-audio-hygiene-2026-10-18.md`。
+- **待用户**:是否提交本批(S15-2 / S15-3 / S15-4 / S15-5 均待提交);听测批(`TD-audio-101/102`)未跑。
+
+## Session Extract — S15-7(债册刷账批 · 零代码改动)· 2026-10-18
+
+- **方法**:派只读勘察 agent 对 10 个编号命题逐条 grep + 行号实测 ⇒ **逐条自验**每条 `file:line` ⇒ 只改**声明**,
+  代码侧一律不动(符合 S15-7 的 Config/Data 性质)。实测结论:**8 项需刷账 + 1 批复核通过;没有一处是「代码没做而账上记了做完」的假绿**
+  —— 不一致全部是「声明错 / 代码对」或「声明半真」。
+- **8 项刷账**:① **TD-audio-103 阻塞源改口** —— 12 个 `vo_*.wav` 12/12 在场,素材**不是**阻塞,真阻塞 = **被试 ≥2 人**(不解除,只订归因);
+  ② **story-016 `AC-44-E5` reconcile**(本批正题)见下;③ **TD-audio-030** 结案注 API 名订正 = `SelectVariantCube`(非 `SelectVariant`/`SelectSlot`,后两者生产零调用);
+  ④ **TD-audio-032 ③** 刷 `BuildAudioSeams` 行号(`:513-559`,方法体 **45 行**仍 >40 ⇒ 该半边**仍 open**);
+  ⑤ **TD-audio-032 ④**「零分配」订正为「零**分配**、每拍 O(N) 拷贝仍在」;⑥ **TD-audio-031** 四处行号全刷(`:488/:542/:513-559/:725-757`)+ 明写两半未修;
+  ⑦ **TD-audio-033**「全仓」三处收窄为「**生产树**」(测试树 `behavior_map_test.cs:61` 是夹具必需);⑧ `assets/audio/` 路径**未改**(登记待订正,归 `OQ-44-2` 同族)。
+- **E5 reconcile 结论**:**内容真实、签核空** —— predicates 15 条 verdicts(`dr_guyang` / 2026-10-17 / 全 `status_words: null`)
+  + 记录表 15 行判定列齐;但签字表是 `[ ] 通过`,其自注逐字「**未勾选 = E5 未通过**」⇒ 按**该文件自订判据**,
+  **`AC-44-E5` 暂回退为「内容齐 / 签核缺」**。**不代签、不追认、不改 story-016 的 `Status: Complete`**;
+  回退范围**仅 E5 这一个签核格**,不波及 E1–E4(构建期门)。
+- **顺带订正一处上游误记**:`impl-s18-*:330-332` 写「10-18 两份副本**已删除**」—— 实测**未删**,与 10-17 原件**逐字节相同**
+  (md5 `1ad6ba93…` / `152ea3b0…`),且已随 S15-5(`910aa79`)**入库**;成因 = probe 按当天日期命名 + `WriteOnce` 当天不覆盖
+  ⇒ 跨天重跑**必然**产出同内容副本。副本去留**交回用户裁**。
+- **连带订正(不改判定)**:`SelectVariantCube` 第三形参在生产 = `AudioCueDto.Source` ⇒ **患者身份轴已接**、
+  **`Intensity` 桶轴未接**(归 `TD-audio-034` ①,不扩张 030 结案面)。
+- **复核通过项(声明与代码一致)**:TD-audio-028 四项结案判据逐条成立 · 029 四 API + Pump + tick 边沿调用在场 ·
+  032 ②全 long / ③ 各段 9/24/23/12 行 + 自校准 / ④ 快照三处失效 + `TrackedPatientCount` ·
+  035 三项代偿常量仍在 · `TD-audio-034/035` 已登记且 **036–039 零命中**(无游离债号)。
+- **无回归可报**:本批零代码改动 ⇒ **不跑测试**,不声称任何测试数(最近一次 = S15-5 的 `3794/3748/1/45`)。
+- **账面**:债册新增 §「2026-10-18 · S15-7 债册刷账批」专节;story-016 卡面三处加 reconcile 注;`story-021:43` 与 `sprint-15:46` 口径收窄;
+  sprint-status S15-7 → `review`(**不记 done**:E5 补勾 + 副本去留两件待用户裁)。
+- **原件**:`production/qa/evidence/impl-s15-7-debt-ledger-reconcile-2026-10-18.md`。
+- **待用户裁两件**:① E5 签核格补勾(或明确裁定「内容即判据」);② `docs/audio/` 下 10-18 两份副本去留。
+
+## Session Extract — S15-8(/retrospective sprint-14)· 2026-10-18
+
+- **产出**:`production/retrospectives/retro-sprint-14-2026-10-18.md`(兑现 sprint-14 收口时登记的「列为下一步」)。
+- **口径实测(三项)**:sprint-14 计划 7 件 **7/7** + 计划外追加 4 件 = **11 done**;
+  strict 提交 **47**(`git rev-list --count 21b13fa..d49efee~1`)· 区间 `21b13fa..910aa79` = 56(多 9 = `d49efee` 规划件 + S15 八条);
+  TODO 计数 **15 → 14**(递归 grep,`1130186` 与 HEAD 同口径,**retro-13 的 15 可复现**;唯一条消解 = `music_guardrails_test.cs:193` 在 S14-4 变真门)。
+- **retro-13 四项行动项核查:2/4 兑现** —— ① 行动项 1(链接通)✅但被证成**两层**(第二层装配由计划外 S14-10 兑现);
+  ② 行动项 2(证伪轮门)✅**全面落地**(`/code-review` §Phase 8b 双列 + `/story-done` §Falsifiability Gate 均在场,story-018 证伪 14/14);
+  ③ 行动项 3(44 epic 001–006/013–014 假绿普查)❌ 未做(评审原件 `:17`/`:504` 自陈只覆盖 007–012);
+  ④ 行动项 4(跨 epic 假绿抽查)❌ 未做 —— **同型样本已累积 3 个**(case-system 001–004 · 44 epic 6 条 · story-025 R-1)却仍未判断是否系统性。
+- **本 retro 最重两条判断**:① **本 sprint 抓出的问题多于修完的** —— 收口新立 7 条债,其中 6 条是「代码在、语义层没接」,TODO 计数对它们**完全失明**;
+  ② **「链接通」与「语义对」被当成一个里程碑,实际是两层** ⇒ 下个 epic 同类件的 Goal 须显式含「语义层每个输入有生产宾语」。
+- **五次行动项(全部归 sprint-16)**:1 重标定 `CAPACITY-MODEL` 产能旋钮(件/日已不可比:本 sprint 3.7 vs 基线 8–10,因件变大非产能降;追加率 57% 应列为常规指标)·
+  2 **合并兑现 retro-13 行动项 3+4 = 跨 epic 假绿普查** ·
+  3 给「已证」补**分支覆盖**判据(S3-a 证明「证伪轮次够 ≠ 分支覆盖够」)·
+  4 给「测试/工具不得写仓库」立机械门(已三发:S14-6 副作用 · S15-5 的 `WriteOnce` 日期副本 · 更早的 `Directory.CreateDirectory`)·
+  5 `TD-player-01` 归口(已两次露头,「不抵扣计数」不能无限期用)。
+- ⚠️ **起草时两次计数口径误读,已就地留档**(不删):① 用非递归 pathspec 数 TODO 得 12,误判「retro-13 的 15 无法复现」并写错订正段 —— 递归复核后**删除该错误结论**,确认 15 可复现;
+  ② 提交数先用区间 56 当 strict,又 `log|wc -l` 数出 50 误改一轮 —— 终局以 `rev-list --count` = **47/56** 为准。
+  ⇒ 教训(同型第三次):**计数类判据必须固定口径 + 实测端点,`log|wc -l` 与减法在三段区间上都会错**。
+- **账面**:`sprint-14.md:160` 的「retro 未写」行已划改并附三条核心结论;`sprint-status.yaml` S15-8 → `review`(不记 done:5 条行动项归 sprint-16)。
+- **未提交**。S15-1(10-c 听测)· S15-6(听测批)待用户;S15-7 的两件用户裁(E5 补勾 / 副本去留)仍待。
+
+## Session Extract — S15-7 裁定落地(E5 = A · 副本 = A + C 治法)· 2026-10-18
+
+- **用户裁定**:「E5 选 A,副本选 A,顺手做 C 的治法」—— 两项均已落,并**附证伪轮**。
+- **① E5 = A(维持未通过,不补勾)**:签核格 `[ ] 通过` 与文件自订判据「未勾选 = E5 未通过」**一致** ⇒ E5 就是 ✗。
+  **本批新测出人半更弱一层**:谓词 15 条 `not_reporting` **与 probe 预填建议稿逐字相同**(`_instructions` ④ 自陈
+  「这是默认判定,不是你听过的结论」),而 `ReplayPredicatesFromText` 对它**只校验非空** ⇒
+  `status_words: null` 证不了「人听过」;记录表 15 行判定列的 ✅ 是**机器从 null 推出的**。
+  ⇒ **出路**:走查人真听一遍 → 把 15 条 `not_reporting` 改写成自己的话 → `status_words` 保持 null → 重跑 probe 生成新记录。
+  **不代签、不追认、不改判据口径**(C 案已否:改规则迁就证据)。
+- **② 副本 = A(删)+ C(治法)**:两份 10-18 副本已 `git rm`;**根因已治** —— 失效形态实测两处:
+  manifest「按当天日期命名 + `WriteOnce` 当天不覆盖」⇒ 跨天重跑**必然**产副本;record 是**无条件** `File.WriteAllText`
+  ⇒ 同天二次重跑**静默改写已签核记录**(比副本更重)。治法:文件名「日期」→「**内容哈希**」、判据「当天已存在」→「**内容相同**」、
+  **异内容一律拒写**(`Debug.LogError` + 不覆盖)。
+- **判据 3 条**(`StateReportWalkthroughProbe` **16/16 绿**,`unity/Logs/s157-e5-probe.xml`):`fileName_isContentAddressed_notDateAddressed` ·
+  `contentHash_isDeterministic_andHex16` · `writeOnce_sameContent_isNotRewritten_differentContent_isRefused`。
+  **证伪 G1–G3 全转红**(文件名回日期戳 / `WriteOnce` 回无条件覆盖 / 哈希改常数),还原 SHA `5501eb6c…` 一致。
+- ⚠️ **治法侧两次红灯都如实登记**:① 判据**首轮就红** —— 首版只靠「内容哈希命名」保证异内容换路径,`WriteOnce` 本身**仍会覆盖**;
+  是断言打红后才补拒写分支 ⇒ **命名纪律 ≠ 断言兜底**。② 第二轮撞 UTF Unhandled log(`Debug.LogError` 被当失败日志)⇒ `LogAssert.Expect` 声明为设计内告警。
+- **全量 EditMode `3797 / 3751 / 1 / 45`**(`unity/Logs/s157-full-editmode.xml`)vs S15-5 基线 `3794/3748/1/45` ⇒ **+3 = 新增夹具数**,唯一红 = `TD-player-01` 已知间歇。
+- ⚠️ **一次读数污染(同型第三次)**:证伪脚本末次运行停在 **G3 变异态**,其 `test-results.xml` 被我直接 cp 成 fixture 日志 ⇒ 首份记 16/14/2;
+  发现后重跑基线覆盖为 16/16/0。教训:**证伪轮产物不得直接当基线日志**(过程态 ≠ 结果态)。
+- **账面**:债册 S15-7 专节补裁定 + 103 行副本处置;`story-016` 两处 reconcile 注补裁定与新事实;`sprint-15.md` S15-7 卡面补账;
+  `sprint-status.yaml` S15-7 blocker 改为「E5 人半待走查人真听 + 改写 15 条」;`impl-s15-7-*` 新增 §六·五 + §七 实数。
+- **仍未裁/未做**:E5 人半(需你本人听);S15-1 的 10-c;S15-6 听测批;S15-7 的 `assets/audio/` 路径订正(归 `OQ-44-2` 同族)。
+- **未提交**(S15-7 + S15-8 + 本裁定批均在工作区)。
+
+## Session Extract — 跨 epic 假绿普查(retro-14 行动项 2 / retro-13 行动项 3+4)· 2026-10-18
+
+- **兑现**:欠两个 sprint 的判定已做 —— `production/qa/evidence/review-cross-epic-fake-green-2026-10-18.md`
+  (31 epic · 158 篇 Complete,排除已处理的 audio-system / case-system)。只读勘察 + 编排方逐条自验,**未跑任何 Unity 测试**。
+- **判定:是系统性的,但集中度极高。** 命中 30 条 AC 层 + 52 处跳过断言,新命中 4 个 epic
+  (telemetry-analytics · enemy-ai · combat-weapons · skeuomorphic-ui / camera-viewpoint)⇒ 病灶不局限于已处理的三个。
+  ⚠️ **反例同时成立**:item-database / input-system / persistence 有真实消费方与可证伪断言 ⇒ **不得**推出「所有 Complete 都假绿」。
+- **⚠️ 本件最重要的方法学发现 = 第五形态「扫不到被测装配」**(子代理原判「诚实跳过」被编排方实测推翻,已就地留档):
+  `Assert.Inconclusive("42 命名空间无 X 类型")` 的理由是**假的** —— `SkeuoComponentRegistry.cs:18` · `ModalId.cs:9` ·
+  `FocusOrder.cs:18` · `PaperCloseupScreen.cs:20` 等 8+ 个类型**实际在场**。真病因:受影响 14 文件里 **13 个无 `using Gameplay.UI`**,
+  而 `Gameplay.UI.asmdef:10` = `"autoReferenced": false` ⇒ EditMode 下 `AppDomain` 只返回**已加载**装配 ⇒ `SelectMany(GetTypes())` 扫不到。
+  **比前四种更危险**:前四种症状是「绿」,证伪轮有机会打红;第五种症状是「**跳过**」—— 连红的机会都没有,
+  且让本可转绿的判据以 ADVISORY 身份存活(`9307ae5` 建 Registry → `b581e12` 写测试却说「未创建」,story-007 自 09-29 未刷新)。
+  **检测手法(可机械复用)**:扫跳过断言的**理由**,对声称「无 X」的 grep 该符号 —— **符号在场 ⇒ 该跳过是误报**。
+- **五条债已立**(债册 §「跨 epic 假绿普查」):`TD-epic-01` telemetry 全 epic(🔴 10/10 Complete vs 51 程序集零文件,
+  **与已处理三 epic 不同型** —— 那是零散 AC 层,这是整个 epic,须用户裁整体降级还是补实现)·
+  `TD-epic-02` 三条 `Assert.Pass` 借绿(enemy-ai ×2 + combat ×1,卡面 AC 未勾却 Complete)·
+  `TD-epic-03` skeuomorphic-ui 扫面修复(🔴 可机械批量)· `TD-epic-04` disease-sim `Signs` 恒空零断言 ·
+  `TD-epic-05` camera/emergency/interaction 状态字段失真。
+- **记忆已写**:`project_cross_epic_fake_green_audit.md`(第五形态 + 检测手法 + 写扫面测试必须按装配名直取)。
+- **未核查(禁借绿)**:未跑任何 Unity 测试 · 8 个 epic 未逐 AC 跑 B 类 grep · A 类 Fake 仅抽样 ·
+  `tests/unit|integration/` 账本树未扫 · 回归数字未核。
+- **待用户裁**:`TD-epic-01`(telemetry epic 整体降级 vs 补实现)—— 补实现工作量未知,是唯一需要你定方向的。
+- **未提交**(本批普查 + 债册 + retro 订正)。
+
+## Session Extract — S16 修复 TD-epic-02(三条 Assert.Pass 借绿)· 2026-10-18/19
+
+- **背景**:跨 epic 假绿普查(retro-14 行动项 2)立 `TD-epic-01…05` 五条债;本批修 **TD-epic-02**(三条 `Assert.Pass` 借绿)。
+- **三条形态各异,不可一刀切**:
+  ① **combat AC-25-1-08** ⇒ **改写为真断言**(生产宾语 `CatchUp.ComputeCatchUp` 在场):输入含窗口外事件(tick 50/999),
+     主判据 = 闭窗口 `[100,300]` 内 5 条 + 窗外 2 条被剔除,辅以窗口内逐条字段比对。
+  ② **enemy-ai AC-27-34** ⇒ **删掉方法开头的 `Assert.Pass`**:真断言本就写在它**后面**
+     (`EnemySignalDto` 字段不得引用 `UnityEngine`),`Assert.Pass` 让它们**全成死代码** —— **借绿最隐蔽的形态:不是没写,是写了不执行**。
+  ③ **enemy-ai AC-27-20** ⇒ **不能改绿,只能诚实 Ignore**:`EnemyPathing` 公开面无 Replan / path_cursor
+     (`PathCursor` 属病人 AI 的 `LogicalStepper`)⇒ 宾语在生产侧不存在 = 真缺口。
+- ⚠️ **本批最贵的教训(方法论)**:我前两轮证伪**删的是断言自己** ⇒ 删掉当然不红 ⇒ 连判四条「无判别力」,**全错**。
+  **判别力的判据是「改坏生产码 ⇒ 断言转红」,不是「删断言 ⇒ 变绿」**(后者 trivially true)。
+  修正后对**生产码**变异:M1(过滤恒真)· M2(下界 `>=` 改 `>`)⇒ **均转红**,判据坐实。
+- ⚠️ **过程事故(第二次同类)**:证伪脚本被 kill 时文件**停在变异态**(F4 删了输入的两条窗口外事件),
+  下一条命令的测试因此红。已还原并复跑 7/7 绿。⇒ 纪律须升级:**还原做进 `finally` + 每例跑完立即还原**,
+  不接受「脚本自然跑完才还原」(S15-7 已有一次读数污染,这是同型第二次)。
+- **回归**:全量 EditMode `3797/3751/0/46`(`unity/Logs/s16-epic02-full.xml`)vs S15-7 基线 `3797/3751/1/45`
+  ⇒ total/passed **不变(零回归)**;`failed 1→0` = `TD-player-01` 间歇红本次未发作;**skipped +1** = ③ 新增的诚实 Ignore。
+- **账面**:债册 `TD-epic-02` 记 ✅ 已修(三条逐条处置 + 方法论教训);combat story-006 的 AC-25-1-08 **已勾**(附证伪);
+  enemy-ai story-004 的 AC-27-20 **保持未勾** + 登记无宾语;story-005 追加追补注(已写那部分恢复执行,另两条仍无判据故未勾)。
+- **顺带**:S15-7 治的内容哈希 probe 每次全量跑都会再生成两份内容相同的文件(与在库 10-17 件同 md5)⇒ 已删;
+  这是治法的**预期行为**(同内容复用路径),但「哈希名与日期名并存同内容」需在 E5 人半重做时一并归一。
+- **未修(余四条)**:`TD-epic-01`(telemetry 全 epic,**待用户裁** 整体降级 vs 补实现)· `TD-epic-03`(skeuomorphic-ui 扫面,可机械批量)·
+  `TD-epic-04`(Signs 恒空)· `TD-epic-05`(状态字段失真)。
+- **未提交**。
+
+## Session Extract — S19 修 TD-epic-03(skeuomorphic-ui 跳过)· 2026-10-19
+
+- ⚠️ **本批最大的事: Diagnosis 被实测推翻,原判是错的**。普查(及其后我的判断)说 13/14 文件「扫不到 Gameplay.UI 装配」
+  (`autoReferenced:false` + 无 `using`)⇒ `Assert.Inconclusive` 误报「无类型」。**实测跑一次全 fixture:27 fixtures / 264 Passed / 13 Skipped / 0 Failed**,
+  SetUp 护桩 `Assert.That(_uiTypes, Is.Not.Empty)` **从未红** ⇒ 装配**确已加载、类型确能扫到**。
+  ⇒ **「扫不到装配」不成立;那批 Inconclusive 是死路径**(条件永不满足)。**类型/装配侧无代码要改。**
+- ✅ **真实问题(比原判轻,但更要紧)**:13 条 skip **全是 `[Ignore]` 属性**,理由「42 未实现 - 待 UI 走查 / 帧探针」,
+  **且每条都声明了替代证据路径** —— 而那 **8 个路径全部不存在**(`production/qa/evidence/` 下无 `*-walkthrough.md` / `*-evidence.md`;
+  skeuomorphic-ui 子目录只有两张 dentch 截图)。⇒ 形态 = **「拿不存在的证据当出口」**:测试停了,却没停在一个真实存在的东西上。
+- **修法**:11 处 `[Ignore]` 理由改口为「替代证据**尚未产出**」+ 就地注明原路径不存在(7 个测试文件,各附 S19 订正注释)。
+  **不**代走查、**不**声称已走查;**卡面 AC 保持未勾**;8 个走查件归 UI 走查轮(需真人)。
+- **验证**:改后 fixture 逐项一致(27/264/13/0)—— **零破坏**;全量 `3797/3751/0/46` vs S16 批**四项全同**。
+- ⚠️ **元教训(本批最贵,值一次记忆)**:原诊断的两个方向**都没实测就信了** ——
+  ① 先信「Inconclusive 的理由是假的(类型在场)」(这个对),② 随即推「理由是假 ⇒ 因为扫不到装配」(这个错)。
+  **从 grep 读散文推出的因果链,缺一环实测就整条错。** 判「测试为什么跳过」只能跑一次看它真的跳在哪。
+- **未提交**。余债:`TD-epic-01`(telemetry,**待用户裁**)· `TD-epic-04`(Signs 恒空)· `TD-epic-05`(状态字段失真)。
+
+## Session Extract — S19 修 TD-epic-01(51 遥测生产主语)· 2026-10-19
+
+- **范围裁定**:用户令「修 TD-epic-01」⇒ 按 ADR-019 §五 的 **P0 最小切面**补实现,不整体降级。
+  **本批只还第一片**(F1 谓词面的生产主语),**未**伪造「epic 已修好」。
+- **做了什么**:① 新建边界层装配 `Telemetry`(`noEngineReferences: true` + 引用仅 `Sim.Contracts`
+  —— ADR-019 §三「51 住边界层、不进 sim」的编译期表达);② 把 F1 谓词面从测试上移为生产类
+  `DaYiJingCheng.Telemetry.JudgmentMetrics`(AC-51-B1…B4:整数 (num,den) / 分母 0 报 (0,0)+标记不抛 / ∅==∅ 判对 / F1a⊥F1b);
+  ③ F1 测试删自持副本、改打生产类;④ 登记 **ADR-025 §① 表 + `AssemblyGates.cs:59` b3 manifest**。
+- ⚠️ **门当场拦下我(正履职,非回归)**:新增装配未登记 ⇒ `AssemblyGateRunAllTest` 与 `PayloadDecoderTest` 两条红,
+  报文逐字「[b3] 未登记 asmdef「Telemetry」—— 清单封闭性 = 构建失败(ADR-025 §④)」。补两处登记后转绿。
+  ⇒ **教训**:新装配要同时改**文档(ADR-025)**与**门代码(AssemblyGates.cs)**,只改文档门仍红。
+- **判别力(对生产码变异,记住 S16 教训)**:M1 分母 0 改抛 · M2 空集判错 · M3 改写计入准确率
+  ⇒ **三条全转红且各精确命中对应 AC**。
+- **回归**:`3797/3758/0/39`(`unity/Logs/s19-epic01-full.xml`)vs 改前 `3797/3756/0/39` ⇒ passed **+2**,failed 归零。
+- 🔴 **仍未还(epic 级,如实登记,不得读成已修好)**:① 事件流 → `JudgmentRecord` 的**还原器**未写;
+  ② 调试视图未写;③ 本地导出未写;④ 另 6 个 story 的谓词面(f2–f7 / pure_function / blank_and_degraded / out_of_bounds)**仍在测试里**;
+  ⑤ `ITelemetrySource` / `ITelemetrySink` 未实现(4 条 Ignore 挂着)。
+  ⇒ **10 条 story 的 `Complete` 本批不动**,只还了 story-002 的谓词面一条。
+- **未提交**。
+
+## Session Extract — S19b 续还 TD-epic-01(四片)· 2026-10-19
+
+- **② 七个谓词面全上移**(子代理执行 + 编排方独立复核):7 类 17 方法体,**零公式变更**
+  (`git show HEAD:` 作原子典,brace-match 逐字比对,`ComputeSessionSpan`/`ComputeRhythm` 归一缩进后 diff 为空)。
+  命名处理:`F6F7Formula`→`SessionRhythmMetrics`;`blank_and_degraded` 的 `FoldEngine`→`TickFoldEngine`(不改会 CS0101 撞 story-008 的同名类)。
+  ⚠️ **一处无效功已登记**:`blank_and_degraded` 对原私有类**零调用点**(走本地替身)⇒ `TickFoldEngine` 上移后测试仍未驱动它。
+- **③ 契约面**:`ITelemetrySource`(恰好三个 `Read*`,对应 ADR-009 三流)+ `ITelemetrySink`(零 `Upload`/`Send`/`Post`)
+  ⇒「只读」与「零出厂」成为**编译期不可表达**。**同时收窄一条过宽判据**(原扫方法名含 `Write` ⇒ 误杀 ADR-019 §五 允许的本地导出;
+  AC-19-04 宾语逐字是「无 `IEventSink.Append` 调用点」)。`asmdefNoCycle` 两个 Ignore 改真判据。
+- **④ 还原器 + 导出**:`JudgmentStreamReducer`(全序取末条 / Scorious 语义 / 解码失败可观测)+ `MetricsReport`(整数对 / Q16.16 显式舍入 / 分母 0 报「分母 0」)。
+  **为何用解码委托**:`PayloadRef` 只寻址,内容要 `Sim.Codec` 的 decoder,而本装配引用集被 AC-51-A2 钉死 ⇒ 物理上引不到 ⇒ 委托注入(ADR-031 同型)。
+- **判别力 12 条变异全转红**(改生产码,非删断言)。⚠️ **两轮「变异没转红」根因不同,都查清了**:
+  ① 还原器 M1(取首条)不红 = **夹具弱**(两条判断解出同一集合 ⇒ 取首取末无差别)⇒ 修夹具后转红;
+  ② 导出 M1(舍入)不红 = **变异式写错**(`(n+d/2)/d` 与半远离零**等价**,不是 ties-even)⇒ 换真 ties-to-even 后转红。
+  ⇒ **新纪律:「变异没转红」先分清夹具弱还是变异假,两者都要修但不能混为一谈。**
+- **实现中抓到自己的生产 bug**:`CaseClosed` 分支里我写了 `if (!truthOf.ContainsKey(...)) { }` 空语句 + 错误的 caseOrder 门 ⇒
+  有真值无判断的 case 会漏进 caseOrder 再被第二遍丢掉(逻辑碰巧对但绕)。已改为两遍职责清晰:首遍只收集,末遍统一判 Scorable。
+- **回归**:`3812/3775/1/36`(`unity/Logs/s19b-epic01-full.xml`)vs `3805/3769/0/36` ⇒ total **+7** = 新增测数;唯一红 = `TD-player-01` 间歇(不抵扣)。
+- 🔴 **仍未还**:① **调试视图**;② **装配层未接线**(生产零调用 —— 还原器今天只有 EditMode 驱动 ⇒ F1 在生产里仍算不出来);
+  ③ 3 条 Ignore;④ 10 条 story 的 `Complete` 一条未动。⇒ 状态 = **偿还中,不是已修好**。
+- **未提交**。
+
+## Session Extract — S19c TD-epic-01 第五片:接线到 CompositionRoot · 2026-10-19
+
+- **接线件**:`Gameplay.Boot/TelemetryReporter.cs`(解码委托的**生产实现**)+ `CompositionRootServices.Telemetry` 属性
+  (ctor 尾 `new TelemetryReporter(stream, decoder)` —— 两形参本就是该 ctor 入参 ⇒ **零新装配边、零签名变动**)。
+- **为何必须补判据**:接线前四片只被「编译过 + 零回归」证明,**没有任何测试调用过** `TelemetryReporter`
+  —— 那正是普查批的形态。补 `telemetry_wiring_test.cs` 7 条,全部用**真** EventStream + 真 Encoder/Decoder + 真 blob 池。
+- **证伪 3/3 转红**(改生产码):M1 位掩码当单值 · M2 取错字段域 · M3 解码失败当 0。
+  ⚠️ M3 首轮不红 = **夹具缺损坏场景**(跳过 vs 当 0 不可观测)⇒ 补「用 CaseClosed 编码却以 JudgmentRecorded Kind 入流」的损坏用例后转红。
+- **只读不变量判据首版过宽,被自己的断言打红**:扫「字段类型实现 IEventSink」命中 `_stream: EventStream`
+  (具体类恰好实现该接口,但只用其只读快照)⇒ 收窄为「字段**声明类型**就是 IEventSink」+「无 Append/Emit 方法」。
+- ⚠️ **过程失误**:给 `Gameplay.Boot.asmdef` 手写 JSON 注释 ⇒ asmdef 不支持注释 ⇒ Unity `JSON parse error`。
+  已修。**教训:asmdef 只写合法 JSON**(上一批加 EditMode 引用没犯,这批加了)。
+- **回归**:`3819/3782/1/36`(`unity/Logs/s19c-wiring-full.xml`)vs `3812/3775/1/36` ⇒ **+7 = 新增测数**,唯一红 = `TD-player-01` 间歇。
+- 🔴 **仍未还**:① **调试视图**;② F2–F7 还原器接线(`AllMetricsReport` 已自陈未接,夹具钉住);③ 3 条 Ignore;④ 10 条 story 的 `Complete` 一条未动。
+- **未提交**。
+
+## Session Extract — S19d TD-epic-01 第六片:F2–F7 接线 + 证伪 · 2026-10-19
+
+- **生产面**:`Gameplay.Boot/TelemetryReporter.cs` 新增 `SkipRateReport` / `SkillGrowthReport` /
+  `DifficultyCurveReport` / `SessionRhythmReport` 四个还原器 + 报告方法;`AllMetricsReport` 扩为 F1+F2+F3
+  并自陈 F4–F7 须传参。参数(`W`/`S`/`t_0`/`GAP_THRESHOLD`/`GROWTH_WINDOW`)**无默认值**(用户调)。
+- **判据**:新增 `Tests/EditMode/Telemetry/f3_f7_wiring_test.cs` 14 条(F3 4 / F4 3 / F5 4 / F6·F7 3);
+  F2 6 条(`f2_wiring_test.cs`)本批首次跑通。
+- **证伪 4/4 转红**(M-fz-2/3/4/5,同命令改→跑→还原,SHA-256 校验)。
+- **两个登记项(禁借绿)**:① F3 `cause` 关联归 10 实现轮 ⇒ SkipByChoice 恒 0,有 `causeNotInvented` 钉住;
+  ② **F7 上中位数与 GDD 不符**(生产式得 20,口径得 30)⇒ 归 story-007 轮修,本批钉现行行为。
+- **过程失误**:解码委托名 `DecodeJudgment` 命中只读门 `Emit` 子串 ⇒ 与自陈断言同次抵消(红 2 绿自欺);
+  处理 = 改生产命名 `Decode*Record`,不放松判据。
+- **回归**:`3839/3802/1/36`(`unity/Logs/s19d-f3f7-wiring-full.xml`)vs `3819/3782/1/36` ⇒ **+20**,唯一红 = `TD-player-01` 间歇。
+- 🔴 **仍未还**:① **调试视图**;② F3 cause 关联(归 10)· F7 中位数偏差(归 story-007);③ 3 条 Ignore;④ 10 条 story 的 `Complete` 一条未动。
+- **未提交**。
+
+## Session Extract — S19e TD-epic-01 第七片:调试视图(ADR-019 §五 第三项)· 2026-10-19
+
+- **件**:`Gameplay.Boot/TelemetryDeveloperView.cs`(新,整类型在 `#if UNITY_EDITOR || DEVELOPMENT_BUILD` 内)
+  + `TelemetryReporter.RenderDeveloperPreview(request, sink)` + `RenderDeveloperSummary(sink)`(默认入口,只收 sink)
+  + `CompletenessBanner(bool)`(空流 / 部分指标口径)。
+- **参数纪律**:`W`/`S`/`t_0`/`GAP_THRESHOLD`/`GROWTH_WINDOW`/`TELEMETRY_MIN_SAMPLE` 全部可空,未给即
+  「未给(未算 —— 旋钮待用户调)」,**不代填**(M-dv-7/8 双形态钉住)。
+- **判据**:`Tests/EditMode/Boot/telemetry_debug_view_test.cs` 12 条(11 绿 + 1 NOT-RUN):D4 源形态/反射面/NOT-RUN 哨兵 ·
+  入口交 sink · 参数纪律 · 默认入口同口径 · D8 空流/部分指标 · D9 样本不足数值不变 · A5 零呈现引用 · E1 零呈现资产。
+- **证伪 8/8 转红**(M-dv-1…8,同命令改→跑→还原 + `sha256sum -c` 基线)。
+  ⚠️ 证伪轮自己抓到三处「绿但什么都没测」:① 判据被头注满足(加 `CodeOnly()` 去注释)② 条件表达式未钉
+  (`#if true` 仍全绿 ⇒ 补条件行断言)③ **M-dv-7 是假变异**(只改 `.Value` 不改 `HasValue` ⇒ 走不到)⇒ 条件取值一并改。
+- **实现中抓到自己的两个真缺陷**:① 完整性头重复两份(视图前置 + `AllMetricsReport` 自带)⇒ 视图不前置 + 判据钉「只许出现一次」;
+  ② `sink == null` 检查在 `Render` 之后 ⇒ 前置。
+- ⚠️ **过程失误**:证伪批被中断后变异留在盘上(`#if true`),第二次基线 1 红才发现 ⇒ 从变异表还原 + SHA 复核后重跑;
+  脚本随后加「开跑前基线自检 + finally 内 sha 校验」。
+- **回归**:`3851/3813/1/37`(`unity/Logs/s19e-debugview-full.xml`)vs `3839/3802/1/36` ⇒ **+12 = 新增测数**(11 绿 + 1 skip);唯一红 = `TD-player-01` 间歇。
+- 🔴 **仍未还**:① 调试视图**生产装配无调用点**(DevBuild 怎么唤未裁)② AC-51-D4 Release 半边 **NOT-RUN**
+  ③ F3 cause 关联(归 10)· F7 中位数偏差(归 story-007)④ 3 条 Ignore ⑤ 10 条 story 的 `Complete` 一条未动。
+- **未提交**。
+
+## Session Extract — S19f TD-epic-01 第八片:F3 `cause` 关联 · 2026-10-19
+
+- **写侧(10 → 流)**:`Gameplay.Input/EmergencyDeviceReadiness.cs`(新)+ `IEmergencyDeviceReadiness`
+  —— 判据归 3(通道拥有者),Boot 只转发 bool(零新增引用边)。`EmergencyManualDriver.ResolveCause()` +
+  `BindDeviceReadiness()`(单次注入);`TryAttempt` 改传 `ResolveCause()`。`BootRoot` 启动序 **2.9** 构造
+  `DeviceStateManager`(**首个生产实例**)+ `Attach()` → 注入;`OnDestroy` 卸挂。
+  `CompositionRoot` 六旋钮 `EmergencyDeviceSwitchSeed*` 临时种子(**未进 data-core**,残留)。
+- **修掉的生产 bug**:`TryAttempt` 原硬编码 `cause: 0` ⇒ AC-10-21「纯键鼠 ⇒ 降级」半边**生产恒假**。
+- **读侧(流 → 指标)**:`TelemetryReporter.ReduceActions` 改**结算全序关联**(同 (病人, 施予者) 的**最早未结算**
+  意图);`SkipRateReport(out skipped, out unattributed)` 输出四行(玩家选择 / 降级 / 未关联)。
+  `SkipRateMetrics.CauseNameOf`(闭集外 ⇒ null 不猜)+ `CountDegradedSkips`。**刻意不用 tick 作判据**。
+- **判据**:三 fixture **33 全绿** —— `EmergencyManualDriverTest` 10(+4)· `EmergencyDeviceReadinessTest` 4(新)·
+  `F3ToF7WiringTest` 净 +4。
+- **证伪 10/10 转红**(M-c-1…10,同命令改→跑→还原 + `sha256sum -c`)。
+  ⚠️ **抓到一处假绿夹具(BLOCKING,已修)**:`associationIsSettlementOrder` 首版两笔意图**同为 Skip**、
+  两笔结算各给一 cause ⇒ 贴第一笔与贴第二笔读数**完全相同** ⇒ M-c-6 首轮 **GREEN**。修法 = 两笔意图改
+  **不同结算路径**(Manual / Skip),cause 落哪笔会改变读数 ⇒ 转红。
+  另:`ReduceActions` 类注写「最近一笔」与实现「最早一笔」矛盾 ⇒ 已订正。
+- **回归**:`3864/3827/0/37`(`unity/Logs/s19f-f3cause-full.xml`)vs `3851/3813/1/37` ⇒ **total +13**
+  (+14 passed −1 failed);逐名比对**无消失用例**,新增 13 条 = 12 条新测 + 上批唯一红 `TD-player-01` 本轮转绿。
+  ⚠️ 汇总脚本首版把 Skipped 漏出 total,已按同口径修正重数。
+- 🔴 **未落半边(禁借绿)**:① 纯键鼠 `magnitude ≡ MAG_MAX` 的**通道读数回填未落**(AC-10-21 幅度门恒过半边
+  生产未成立)② 设备六旋钮临时种子未进 `data-core` ③ F7 中位数偏差(归 story-007)④ 调试视图生产无调用点
+  ⑤ AC-51-D4 Release 半边 NOT-RUN ⑥ 3 条 Ignore ⑦ 10 条 story 的 `Complete` 一条未动。
+- **未提交**。
+
+## Session Extract — S19g TD-epic-01 第九片:纯键鼠 MAG_MAX 回填 · 2026-10-19
+
+- **用户裁定(两问)**:① 回填落点 = **读侧门豁免**(不写回载荷)② 覆盖面 = **只包急救通道**
+  (`TryAggregated` 链;跳过入口 `TryManual` 不受影响)。
+- **病根**:`FeelLatencyEvaluator.CreateKeyboardFallbackReading()` 自 GDD 起草就在,但**只有夹具调用**;
+  生产对键鼠与手柄一视同仁 ⇒ 键鼠 `Axis` 恒 0 ⇒ 幅度门恒挂 ⇒ **每次键鼠动作都 Missed**。
+- **落点**:`FeelLatencyEvaluator` 新增 `CreateKeyboardFallbackReading(action, holdTicks, edges, edgeTicks)`
+  重载(计时原样透传,只置 `magnitude = MAG_MAX`);`HostEmergencyProcessor.Process` 新增带
+  `analogChannelAbsent` 的重载;`EmergencyManualDriver.IsAnalogChannelAbsent` = 判据真源,
+  `ResolveCause()` 由它派生。
+- **三条口径**:① 回填只落求值侧(载荷 `MagPeak` 记玩家真给了什么,仍原样进流)② 只改幅度,
+  节奏 / 稳度照评(GDD Edge Cases `:728`)③ 不知道就不回填(未注入 ⇒ 判据 false,宁严勿猜)。
+- **判据**:`EmergencyManualDriverTest` **18 条全绿**(本片 +8)。
+- **证伪 10/10 转红**。⚠️ 两处首轮 GREEN、性质不同:
+  ① **M-m-1 = 变异等价** —— 6 参兼容入口当时从 `cause` 反推判据,注入后两者恒同源 ⇒ 行为不变。
+    复查判定**设计本身错**(用结算输出反推判定输入 = 第二真源)⇒ **改生产码**:兼容入口改为
+    `analogChannelAbsent: false`,不承载判据。
+  ② **M-m-8 = 夹具缺判据** —— 改完后无人钉住「兼容入口不豁免」⇒ 补
+    `test_ac1021_legacyOverload_doesNotInferFromCause` 后转红。
+- ⚠️ **另修两处夹具自身缺陷**:`MinHoldTicks = 0` 使节奏门恒过(`edges ≥ MinEdges || hold ≥ MinHoldTicks`);
+  `ResultMul[Missed] = 0` 使 Missed 与「没执行」不可分 ⇒ 另建 GDD 三档动作行。
+- **回归**:`3872/3835/0/37`(`unity/Logs/s19g-magfill-full.xml`)vs `3864/3827/0/37`
+  ⇒ **total +8 = passed +8**;逐名比对 **NEW 8 / GONE 0**。**零回归**。
+- 🔴 **边界(禁借绿)**:① 只覆盖急救直读通道链 ② 设备读数未注入 ⇒ 不回填(挂接失败时键鼠玩家退回
+  「每次 Missed」,是**已知降级行为、无提示**;是否改为「宁可回填」属产品判断,未裁)③ VR 半边归 P1b。
+- 🔴 **仍未还**:① 设备六旋钮临时种子未进 data-core ② F7 中位数偏差(归 story-007)③ F4–F7 参数待定
+  ④ 调试视图生产无调用点 ⑤ AC-51-D4 Release 半边 NOT-RUN ⑥ 3 条 Ignore ⑦ 10 条 story 的 `Complete` 一条未动。
+- **未提交**。

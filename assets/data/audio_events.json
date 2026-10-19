@@ -49,6 +49,7 @@
       "loop": false,
       "whitelist_category": "ContinuousPhysiology",
       "trigger_source": "ContinuousPhysiology",
+      "variant_axis": "voice_gender_intensity",
       "subtitle_text": "咳…咳咳…"
     },
     {
