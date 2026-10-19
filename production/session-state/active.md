@@ -6463,4 +6463,12 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
 - **回归**:`3902 / 3865 / 0 / 37`(`unity/Logs/s19i-ta-knobs-full.xml`)vs 前 `3885 / 3847 / 1 / 37`
   ⇒ total **+17 = 新夹具 17 条**(等式成立)· passed **+18**(+17 新增 + 1 上批间歇转绿)·
   skipped **37 不变** · **GONE = 0**。**零回归**。
-- **未提交**。
+- **提交 `731d2bf`**:31 文件 +1477 / −37。工作区刻意留下三件 —— 两条 audio
+  `statereport-walkthrough-*`(非本片产物,归属未明,未认领)· `unity/test-results.xml`(跑测副产物)。
+- **`.gitignore` 提交 `efcaa22`**:加 `unity/test-results.xml`(+6 行)。**规则带 `unity/` 前缀锚定** ——
+  仓根另有**已入库**的 `test-results.xml`(`git ls-files` 命中),裸写文件名会连它一起忽略。
+  实测:`check-ignore` 对 `unity/` 那份命中、对仓根那份无命中。
+- **已推送(用户 2026-10-19 指令)**:`4294a27..efcaa22` → `origin/main`(快进,无强推)。
+  ⚠️ **实际推送 4 个提交,非 2 个** —— 第十片 `6220d5e` / 第十一片 `1371834` 此前**一直只在本地**,
+  随本次一并推送。本地与远端同步(`main...origin/main` 无领先/落后)。
+- **推送后本地状态**:工作区仍余两条 audio `statereport-walkthrough-*`(untracked,归 audio 侧)。
