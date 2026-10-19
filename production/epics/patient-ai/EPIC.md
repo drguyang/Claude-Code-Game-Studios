@@ -5,6 +5,8 @@
 > **Architecture Module**: 边界层(呈现侧)· **不在门 A sim 程序集内**(ADR-016 §一 补注)
 > **Status**: ✅ **4/4 story 全闭**(001 `4076e1e` · 002 `6e0d178` · 003 `a1f7a36` · 004 `0b6f948` 2026-10-05 实现收口)· **story-004 评审原件已于 2026-10-07 补做落库**(`review-patient-ai-story-004-2026-10-07.md`:双代理单轮 → 修复 → 复跑绿 175/173 + 全量 2955/2908/0 红 ⇒ 004 转 Complete,治理缺口闭)
 > **Stories**: 4 stories — see table below
+>
+> ⚠️ **2026-10-20 账面订正(逐文件实测)**:本 epic 实有 **5** 条 story,实测 **4/5 Complete**。未闭 = **story-005**(`Ready ⬜(依赖素材本体产出 —— 外部美术 / 用户自产)`)。原 header 与上行 `**Stories**: 4 stories` 漏登 story-005 —— 原文保留不改,以本注为准。本注只改声明,不改 story 状态。
 
 ## Overview
 

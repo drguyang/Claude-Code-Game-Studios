@@ -145,6 +145,7 @@
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/MedConsequences/medcons_delayed_emit_test.cs` — must exist and pass
 **Status**: [x] Created and passing — **46 测试函数 / 107 用例全绿**(过滤 `MedConsequences`);
+> ⚠️ **2026-10-20 账面订正**:此处「46 / 107」为 2026-10-17 口径;实测 `unity/Logs/full-editmode-2026-10-20.xml` 的 `MedConsequences` 套件 = **109 / 109 passed / 0 failed / 0 skipped**(全量 3928 / 3892 / 0 / 36)。原文保留不改。
 全量 EditMode **3508 / 3462 passed / 0 failed / 46 skipped**(基线 3493/3447/0/46 ⇒ **+15/+15 零回归**)
 **账本路径**: `tests/unit/medcons/` 未落地 —— 主体编译树 `unity/Assets/Tests/EditMode/MedConsequences/` 承载
 (两树均已扫:`grep -rln "ConsequenceEmitter" unity/Assets/Tests/ tests/` 唯命中上列件)
@@ -190,3 +191,25 @@
 **Code Review**: Complete —— `/code-review`(S13-6 拆小 prompt 实战,3 并行有界 agent);
 原件 `production/qa/evidence/review-medcons-story-003-2026-10-16.md`(BLOCKING S-B1/S-B2/T-B1 + WARNING + MINOR 全表 + §六 已落/已证双列)
 **Falsifiability Gate**: PASS —— 五类形态全命中且全数反证转红(另抓出并修复 1 条假绿夹具)
+
+---
+
+## ⚠️ 2026-10-20 状态行历史矛盾(已订正 · 留存记录)
+
+**病因**:本文件此前出现过两处状态行互相矛盾,现均已不得再按陈旧口径解读:
+
+| 位置 | 旧原文(已改 / 当前实况) |
+|---|---|
+| 文件头 `**Status**:` | `Complete`(2026-10-16) |
+| 正文底部 `Completion Notes` | 旧 `[ ] Not yet created` —— **2026-10-20 前已不存在**(grep `Not yet created` 零命中;底部现为 `**Completed**: 2026-10-16` + `**Criteria**: 8/9 passing + 1 PARTIAL`) |
+
+**订正判据(2026-10-20 实测)**:
+- 测试载体在盘:`unity/Assets/Tests/EditMode/MedConsequences/medcons_delayed_emit_test.cs`;
+  最新全量件 `unity/Logs/full-editmode-2026-10-20.xml` 中 `MedConsequences` 套件 = **109/109 passed,0 failed**。
+- 评审原件:`production/qa/evidence/review-medcons-story-003-2026-10-16.md`(Verdict **CHANGES
+  REQUIRED**)→ 修复 → `review-medcons-s003-recheck-2026-10-17.md`(S-B1/S-B2「已修(部分强支撑)」,
+  T-B1「部分修」)。**⇒ `Complete` 头部口径有实据;但下的 PARTIAL 面未消,见下。**
+
+**不构成订正面的残留(不得借本条转绿)**:
+- **AC-5 PARTIAL** 仍在 —— `TD-medcons-15`(`docs/tech-debt-register.md:51`)登记:代价表永不致死**表级**拒收无载体(全仓无代价表);`TD-medcons-16`(旧假绿夹具 `:468` 未删)仍 open。
+- `Completion Notes` 里 `Criteria` 行「8/9 passing + 1 PARTIAL(AC-7 / OQ-53-8 …)」与文件头 `AC-5 状态` 段把 PARTIAL 归到 **AC-5** —— **两处对「哪条 AC 是 PARTIAL」表述不一**(8/9 的计数口径与 AC-5/AC-7 的归口口径不同)。原文保留不改;**以文件头 `AC-5 状态` 段 + `TD-medcons-15` 为准**,`Criteria` 行待口径统一。

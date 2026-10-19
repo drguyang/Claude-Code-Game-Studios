@@ -2,6 +2,8 @@
 
 > **Epic**: 10 急救动作
 > **Status**: **Complete ✅**(2026-10-14 实现轮 + 当日评审收口 —— 评审原件
+> ⚠️ **2026-10-20 账面订正**:EPIC `§Stories` 表原**漏登本 story**,已补齐 `| 009 |` 行(取本行状态);
+> 生产侧实例化实测在盘:`CompositionRoot.cs:311` + `EmergencyDirectReadChannel.cs:94`。
 > `production/qa/evidence/review-story-009-2026-10-14.md`:1 BLOCKING(中止看门狗)当场修复
 > + 回归测试,双套件零回归;AC-9-10/11 ADVISORY 欠账登记归人工走查轮,不挡收口)
 > **Layer**: Core

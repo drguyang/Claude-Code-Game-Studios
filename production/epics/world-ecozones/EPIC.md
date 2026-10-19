@@ -5,6 +5,8 @@
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ Tooling 消费侧(ADR-022 关卡工具)
 > **Status**: Complete ✅ 2026-10-03(6/6 story 已实现;两轮评审的判据缺陷 N1/N5 已修并复跑 **109/109 绿 0 红**;评审原件两份已落 `qa/evidence/`;未闭项 = **N3** 白名单判据待 27 侧落地 + **Story 005** [L] 走查 EXTERNAL —— 详见 §Epic Status)
 > **Stories**: 6 stories — see table below
+>
+> ⚠️ **2026-10-20 账面订正(逐文件实测)**:实测 **5/6 Complete**。原 header「6/6 story 已实现」数字不实 —— **story-005** 仍 `Pending — [L] 桌面走查 + 工具 CI(draft 走查表已落 production/qa/evidence/world-ecozones/story-005-discovery-walkthrough-2026-10-01.md)`(该 story 为 [L]/EXTERNAL 验证类,非实现欠账;§Epic Status 已登记其为显式未执行)。原文保留不改,以本注为准。本注只改声明,不改 story 状态。
 
 ## Overview
 

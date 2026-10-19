@@ -335,6 +335,11 @@ Exit Criteria 第 5 条的形态件 **① 脉案线格/空行/焦点明度轴压
 故本 story 的 AC 走「构建断言 + 目视截图」双轨,不能只靠断言)+ 构建期断言测试
 
 **Status**: **019-c ✅(2026-10-05)** · **019-e ✅(2026-10-05)** · **019-d ✅(2026-10-05)** · **019-f ✅(2026-10-08)** · 019-b NOT-RUN(归 C9 / PAGES_MAX spike)
+> ⚠️ **2026-10-20 账面订正(就地加注,上行原文保留)**:本行 `019-b NOT-RUN` 为 **2026-10-14 前**口径。
+> 已实测:**019-b 冻结轮 2026-10-14 落定** —— `PAGES_MAX` 判据已由 spike 实测倒推冻结
+> (`design/assets/specs/atlas-budget-freeze-2026-10-14.md`;本文件 `:4` 头、`:48` 表行、`:216` AC-42-C9 行三处一致)。
+> **当前口径**:019-b = **冻结落定 ✅ · 判据门(构建期「瓦片取用 ≤ 32」断言)待接线 · 真机取瓦片数结构性不可测**(本文件 `:222-223`)。
+> 本注只改声明,不改 AC-42-C9 的 `[ ]` 勾选(门未接线 ⇒ C9 不得转绿)。
 **Test File**: `unity/Assets/Tests/EditMode/SkeuomorphicUI/texture_binding_gate_test.cs`(17 条)
 **Implementation**: `unity/Assets/Editor.Tools.Gates/TextureBindingGates.cs`(纯逻辑,零引擎依赖)·
   `unity/Assets/Editor.Tools.Gates/SkeuomorphicUiGates.cs`(门聚合,`#if UNITY_EDITOR`)

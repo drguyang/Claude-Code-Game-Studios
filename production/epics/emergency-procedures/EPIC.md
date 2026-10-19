@@ -5,6 +5,8 @@
 > **Architecture Module**: L3 Gameplay + L2 Sim 接缝(判定输入进流,主机权威)
 > **Status**: **Complete ✅ 2026-10-08**(7/7 story 已实现;两轮评审 A1/A2/A6/B4/C4/C5 **已全闭**;✅ **评审原件两份均在库**(首轮 + round2);**转 Complete 的两条真实前置已于 2026-10-08 全部结清** —— ① **实跑 Unity 测试套件**(EditMode 急救模块 **120/116/0 红/4 NOT-RUN** · PlayMode 急救模块 **4/4** · 全量 EditMode **3001/2954/0 红** · 全量 PlayMode **96/96**);② D1/D2/D3 文档状态对齐(逐项核实已对齐)。验证原件 `production/qa/evidence/verification-emergency-procedures-tests-2026-10-08.md`。其余未闭项:载荷 `Seq` 占位(归上行链 45)· AC-10-04b 三格逐位(ADR-012 矩阵未激活,NOT-RUN)—— **均结构性归属其他 epic,不阻塞本 epic**。⚠️ 详见下方 §Epic Status)
 > **Stories**: **8 stories**(001–007 机制全闭 + **008 资产提前 = Ready ⬜,不改变 Complete 判定**)—— see table below
+>
+> ⚠️ **2026-10-20 账面订正(逐文件实测)**:本 epic 实有 **9** 条 story(含下文 §2026-10-14 补注登记的 **story-009**,已 Complete ✅ 2026-10-14),补齐 §Stories 表 009 行后实测 **8/9 Complete**。未闭 = **story-008**(`Ready ⬜(依赖素材本体产出 —— 外部美术 / 用户自产)`)。原 header「7/7」与上行「8 stories」为订正前口径,原文保留不改,以本注为准。本注只改声明,不改 story 状态。
 
 ## Epic Status(2026-10-03 · **2026-10-08 结清**)
 
@@ -127,6 +129,16 @@ This epic is complete when:
 - All AC from `design/gdd/emergency-procedures.md`(AC-10-01…24)verified;[L] ADVISORY 项以主创走查签核
 - AC-10-04b 三格逐位在 ADR-012 矩阵实跑(此前该条 NOT-RUN,禁借绿)
 - 与 prescription-medication epic 的载荷交叉校验(AC-10-06b)双向绿;三 Kind 在 kindgen 白名单(AC-10-07b)
+> ⚠️ **2026-10-20 账面订正(补行)**:上方 §Stories 表原只列 001–008,**漏登 story-009**。已按
+> `story-009-direct-read-channel-runtime-wiring.md:4-8`(标题 / `Type: Integration`)补一行 `| 009 |`。
+> **⚠️ 该行状态 `Complete ✅ 2026-10-14` 取**自 story 文件头(:4 `**Status**: **Complete ✅** … 当日评审收口`);
+> 另经**实测**:生产侧 `CompositionRoot.cs:311` `new EmergencyDirectReadChannel(`,聚合器由通道内建(`EmergencyDirectReadChannel.cs:94`);
+> 上文 2026-10-14 补注的 `:167-168` 「❌ 零生产实例化」为**当时**快照,现已不成立。仍需说明的是 EPIC `:145` 旧表行
+> 曾写 `Ready ⬜ · 归 sprint-10`,那是更早的立件时口径;以文件头 + 上述实测为准,旧表行原文保留。
+> 补行依据:文件头 `Complete ✅`(评审原件 `production/qa/evidence/review-story-009-2026-10-14.md`);
+> 执行件 `unity/Logs/story009_review_editmode.xml`(3279/0)· `story009_review_playmode.xml`(186/186);
+> 测试件在盘 `unity/Assets/Tests/EditMode/EmergencyProcedures/emergency_skip_entry_wiring_test.cs`,
+> 2026-10-20 复发件 `full-editmode-2026-10-20.xml` 中 `EmergencySkipEntryWiringTest` 9/9。
 
 ## Stories
 
@@ -140,7 +152,7 @@ This epic is complete when:
 | 006 | 手感、预表现与键鼠回退 | Visual-Feel | **Complete ✅ 2026-10-02** | ADR-011/013/018 |
 | 007 | `EmergencyTreatmentApplied` 载荷的结算链补完 —— 九字段齐备(b6 门查出的手搓点) | Logic | **Complete ✅ 2026-10-03**(17/17) | ADR-029 + ADR-009 Amendment I |
 | 008 | P2 施治动作真资产提前 —— 止血/通气的真接触音 + 手势/节律 VFX | Visual-Feel | **Ready ⬜** —— 2026-10-12 美术提前裁定(用户取甲案 P1+P2 全提前)· sprint-07 §6 · 依赖素材本体产出;批次 = G-3 emergency 手势 VFX 子集 + batch-03 素材 | ADR-018/011 |
-| 009 | 急救直读通道运行期装配 + 跳过入口接线(M2 形态件③ 功能半) | Integration | **Ready ⬜** —— 2026-10-14 立 · 同日用户批准转 Ready · 归 **sprint-10** · 兑现「10 实现轮」幽灵待办(见下注) | ADR-011/013/020 |
+| 009 | 急救直读通道运行期装配 + 跳过入口接线(M2 形态件③ 功能半) | Integration | **Complete ✅ 2026-10-14** | ADR-011/013/020 |
 
 ---
 

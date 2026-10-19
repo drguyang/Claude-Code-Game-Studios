@@ -5,6 +5,10 @@
 > **Architecture Module**: L5 Presentation(PRES)
 > **Status**: **Complete ✅ 2026-09-28**(18/18 stories)· ⚠️ **范围**见下方 §范围边界声明
 > **Stories**: 18 stories created (2026-09-27) + **019 贴图接入(2026-10-03 补 · ◐ 部分完成:c/d/e/f ✅ · b Blocked)** + **020 M2 形态件解锁链(2026-10-08 补 · Complete ✅ 同日)** + **021 M2 形态件①(2026-10-08 补 · Complete ✅ 同日)** + **022 M2 形态件②墨乾湿两态(2026-10-08 补 · Complete ✅ 同日)** + **023 M2 形态件③急救零数字+可跳过(2026-10-09 补 · Complete ✅ 同日)** + **024 M2 形态件④状态反馈通道(2026-10-09 补 · Complete ✅ 同日)**
+>
+> ⚠️ **2026-10-20 账面订正(逐文件实测)**:实有 **25** 条 story(001–025),原 header「18/18 stories」为过期数字。实测 **24 Complete + 1 ◐ = story-019**(story 文件头 `**Status**: **部分完成**` —— 019-c/d/e/f ✅ · **019-b 冻结轮落定 ✅ 但判据门待接线 / NOT-RUN**;末行状态行仍写 `019-b NOT-RUN(归 C9 / PAGES_MAX spike)`,两处不一,以文件头为准);**025 戥子形态件 Complete**(2026-10-18 立)。原文保留不改,以本注为准。本注只改声明,不改 story 状态。
+>
+> ⚠️ **2026-10-20 账面订正(§Stories 末尾 `Counts` 行)**:`Counts: … = 25 total (24 Complete + 1 ◐ = story-019)` **与 story 文件实测一致**,不改;但该行紧随的「⚠️ story 019 是范围补件,非原 18 条的追加」中的「18」为订正前基数(今实有 25 条),**计数以 Counts 行为准**;且「◐」所指的正是文件头 `部分完成` 的 019 —— 不得读作 Complete。
 
 ## Overview
 
