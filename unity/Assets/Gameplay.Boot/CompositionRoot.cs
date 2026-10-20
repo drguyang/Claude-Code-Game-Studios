@@ -334,7 +334,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 doseBase: prescriptionActions?.DoseBase ?? 65536);      // 产物优先;回退字面量(数值轮注记)
             var prescribeDriver = new PrescribeRequestDriver(stream, encoder,
                 prescribePorts, isHost: true,
-                prescriptionRows: prescriptionActions?.Rows);           // null ⇒ 回退硬编码单条
+                prescriptionRows: prescriptionActions?.Rows,            // null ⇒ 回退硬编码单条
+                // 甲档剩余项(2026-10-20):档数上限此前读常量 9(窄化前的旧建议),
+                // 产物 `MAX_DOSE_DETENTS`(= 7,GDD 已裁)零读者 ⇒ 上限读数与真源脱钩。
+                // 现产物优先;null ⇒ 回退常量(两者现已同为 7)。
+                // ⚠️ 不改行为:当前药 dose_range = (1,5) ⇒ 5 落点,上限 7/9 都远大于它。
+                maxDoseDetents: prescriptionActions?.MaxDoseDetents);
 
             // ── 交互契约表读方接线(2026-10-20)──
             // ⚠️ **`KindPriorityTable` 的最终运行期消费者 = 4 的选择器,而 `InteractionSelector`

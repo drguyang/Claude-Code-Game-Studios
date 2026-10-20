@@ -87,11 +87,25 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>⚠️ 装配层注记:真装载面(21a baked)落地后替换,装配签名零改动。</para></summary>
         private readonly DentchDoseSelector _selector;
 
+        /// <summary>本驱动实际使用的档数上限(产物优先 · 回退 <see cref="FallbackMaxDoseDetents"/>)。
+        /// <para>⚠️ 与 <see cref="DoseDetentCount"/> 的区别:<b>本值 = 上限旋钮</b>,
+        /// 后者 = 该药的实际落点数(`hi − lo + 1`)。二者不相等是正常的(上限 ≥ 实际档数)。</para></summary>
+        private readonly int _maxDoseDetents;
+
         /// <summary>是否主机上下文(非主机 ⇒ Prescribe 零 Append / 零扣减)。</summary>
         private readonly bool _isHost;
 
-        /// <summary>戥子档位上限旋钮(值归用户数值轮;GDD 规则十三登记建议值)。</summary>
-        public const int MaxDoseDetents = DentchDoseSelector.RegisteredMaxDoseDetents;
+        /// <summary>戥子档位上限旋钮的**回退值**(产物缺省时用)。
+        /// <para>⚠️ <b>2026-10-20 读方接线后,本常量不再是运行期真源</b> ——
+        /// 真源 = `prescription_actions.cooked.bytes` 的 <c>MAX_DOSE_DETENTS</c>
+        /// (经 <c>PrescriptionActionsDataSet.MaxDoseDetents</c> 由装配层传入构造参
+        /// <c>maxDoseDetents</c>)。本常量退为:① 未带产物的装配缺省;② 测试面锚点。</para>
+        /// <para>⚠️ <b>取值口径订正</b>:GDD `prescription-and-medication.md:794` 已裁
+        /// <c>MAX_DOSE_DETENTS = 7</c>(2026-10-07,「原建议 ≤ 9」的**窄化**)。
+        /// 本常量原写 9 是**窄化前**的旧建议值,已过期 —— 现对齐 GDD 的 7,
+        /// 使「回退值」与「产物值」一致(否则无产物路径会静默用另一个上限)。</para>
+        /// <para>⚠️ 值仍归**数值轮**;此处取 GDD 已裁值,不自造新数。</para></summary>
+        public const int FallbackMaxDoseDetents = DentchDoseSelector.RegisteredMaxDoseDetents;
 
         /// <summary>当前戥子**档位数**(= <c>hi − lo + 1</c>;整剂路径 = 1)。
         /// <para>⚠️ 唯一出处 = 本驱动持有的 <see cref="DentchDoseSelector"/>
@@ -101,6 +115,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </summary>
         public int DoseDetentCount => _selector.TickCount;
 
+        /// <summary>本驱动实际生效的**档数上限旋钮**(产物 `MAX_DOSE_DETENTS` 优先 · 回退常量)。
+        /// <para>⚠️ 与 <see cref="DoseDetentCount"/>(= 落点数 `hi − lo + 1`)是**两个量**:
+        /// 上限 ≥ 落点数,相等只是特例。判「源真的换了」须读本属性,不能读落点数
+        /// (落点数由药档 `dose_range` 决定,与上限无关)。</para>
+        /// <para>⚠️ 只读投影(ADR-013 §9 C3 同款):42 只读不持,无 setter。</para></summary>
+        public int MaxDoseDetents => _maxDoseDetents;
+
         /// <param name="eventSink">主机事件写入通道(唯一 Append 落点)。</param>
         /// <param name="encoder">载荷编码器(ADR-029 唯一路径)。</param>
         /// <param name="ports">11 兄弟 epic 接缝(21a/20/30 最小端口实装)。</param>
@@ -108,10 +129,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="prescriptionRows">处方表烘焙产物行(<c>prescription_actions.cooked.bytes</c>
         /// 解码所得);<c>null</c> / 空 ⇒ 回退 <see cref="FallbackEntries"/>(零行为变化 ——
         /// 15+ 个既有装配调用方全部不传本参)。</param>
+        /// <param name="maxDoseDetents">戥子档数上限旋钮(<c>dose_const.MAX_DOSE_DETENTS</c>,
+        /// 由装配层从同一产物传入);<c>null</c> ⇒ 回退 <see cref="FallbackMaxDoseDetents"/>。</param>
         /// <exception cref="ArgumentException">产物行内 item_key 重复 / 极性串无法解析。</exception>
         public PrescribeRequestDriver(IEventSink eventSink, IPayloadEncoder encoder,
                                       PrescribePorts ports, bool isHost,
-                                      IReadOnlyList<PrescriptionActionCookedRow> prescriptionRows = null)
+                                      IReadOnlyList<PrescriptionActionCookedRow> prescriptionRows = null,
+                                      int? maxDoseDetents = null)
         {
             _eventSink = eventSink ?? throw new ArgumentNullException(nameof(eventSink));
             _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
@@ -125,9 +149,17 @@ namespace DaYiJingCheng.Gameplay.Boot
                 ? BuildFromRows(prescriptionRows)
                 : FallbackEntries;
 
+            // 档数上限(2026-10-20 读方接线 · 甲档剩余项):产物优生;缺省 = 回退常量。
+            // ⚠️ 此前这里是常量 `DentchDoseSelector.RegisteredMaxDoseDetents`(= 9),
+            //    而产物 `MAX_DOSE_DETENTS` = 7(GDD 已裁值)⇒ **上限读数与真源脱钩**。
+            //    接上后:产物有值 ⇒ 读产物;无 ⇒ 读回退常量(两者现已同为 7)。
+            // ⚠️ 不改行为(replay-safety):当前药 `dose_range = (1,5)` ⇒ 5 落点,
+            //    上限 7 / 9 都远大于它 ⇒ **落点集与档值逐位相同**。判据是「源真的换了」。
+            _maxDoseDetents = maxDoseDetents ?? FallbackMaxDoseDetents;
+
             _selector = new DentchDoseSelector(
                 MinimalDrugCatalog.DrugProfileFor(MinimalDrugCatalog.DrugKey),
-                MaxDoseDetents,
+                _maxDoseDetents,
                 isFocusEnabled: true);
         }
 

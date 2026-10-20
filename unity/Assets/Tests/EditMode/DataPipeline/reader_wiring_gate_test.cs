@@ -299,6 +299,127 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
         }
 
         // ══════════════════════════════════════════════════════════════════════
+        // C. prescription_actions → PrescribeRequestDriver.MaxDoseDetents(甲档剩余项)
+        //
+        // 病因:`MAX_DOSE_DETENTS` 是甲档 2 份产物里**最后一个零读者字段** ——
+        //   驱动此前读常量 `DentchDoseSelector.RegisteredMaxDoseDetents`(= 9),
+        //   而产物带 7(GDD 已裁)⇒ 上限读数与真源脱钩。
+        //
+        // ⚠️ **为什么必须用合成夹具证「换源」**(与 A/B 段同因,理由实测):
+        //   当前药 `dose_range = (1,5)` ⇒ **5 落点**;上限 7 与 9 都远大于它 ⇒
+        //   `TickCount`(落点数)在两种取值下**相同**。若拿 `TickCount` 当观察面,
+        //   接线前后恒绿 = 假门。观察面必须是**上限本身**(`MaxDoseDetents` 属性)。
+        // ══════════════════════════════════════════════════════════════════════
+
+        /// <summary><b>对照</b>:盘上真产物的 <c>MAX_DOSE_DETENTS</c> ⟷ 回退常量
+        /// (<see cref="PrescribeRequestDriver.FallbackMaxDoseDetents"/>)。
+        /// <para>两者现已同为 7(2026-10-20 把回退常量自 9 订正为 GDD 已裁的 7)。
+        /// 本测钉住「它们不许再分叉」—— 分叉 = 有无产物两条路径拿到不同的上限。</para></summary>
+        [Test]
+        public void test_readers_maxDoseDetents_artifactMatchesFallbackConstant()
+        {
+            PrescriptionActionsDataSet ds = CommittedPrescriptionActions();
+            Assert.AreEqual(PrescribeRequestDriver.FallbackMaxDoseDetents, ds.MaxDoseDetents,
+                $"产物 MAX_DOSE_DETENTS={ds.MaxDoseDetents} ≠ 回退常量=" +
+                $"{PrescribeRequestDriver.FallbackMaxDoseDetents} ⇒ 有/无产物两条路径的上限分叉");
+        }
+
+        /// <summary>真产物经组合根装配 ⇒ 驱动生效上限 = 产物值。</summary>
+        [Test]
+        public void test_readers_maxDoseDetents_assemblyReadsArtifact()
+        {
+            CompositionRootServices bag = AssembleWith(BuildProvider());
+
+            Assert.AreEqual(CommittedPrescriptionActions().MaxDoseDetents, bag.PrescribeDriver.MaxDoseDetents,
+                "装配后驱动的档数上限须取自产物 `dose_const.MAX_DOSE_DETENTS`");
+        }
+
+        /// <summary><b>换源(承重)</b>:合成产物把上限设成 <b>6</b>(与真产物 7、回退 7 都不同)
+        /// ⇒ 驱动生效上限必为 6。
+        /// <para>⚠️ 这是本段的**唯一承重判据** —— 真产物与回退常量同为 7 ⇒ 用真产物测恒绿。</para></summary>
+        [Test]
+        public void test_readers_maxDoseDetents_syntheticArtifact_drivesCeiling()
+        {
+            const int syntheticCeiling = 6;   // ≠ 7(真产物)· ≠ 回退常量
+
+            var synthetic = new PrescriptionActionsDataSet(
+                rows: new List<PrescriptionActionCookedRow>
+                {
+                    new PrescriptionActionCookedRow("salicylic_acid", 10, "symptomatic"),
+                },
+                doseBase: 65536,
+                maxDoseDetents: syntheticCeiling,
+                singleDoseMaxRaw: 0,
+                configVersion: 0u);
+
+            CompositionRootServices bag = AssembleWith(BuildProvider().Add(synthetic));
+
+            Assert.AreEqual(syntheticCeiling, bag.PrescribeDriver.MaxDoseDetents,
+                $"驱动上限须取自产物(期望 {syntheticCeiling})—— 仍得 " +
+                $"{PrescribeRequestDriver.FallbackMaxDoseDetents} ⇒ 读的还是回退常量,产物没接上");
+        }
+
+        /// <summary><b>回退(零行为变化)</b>:不带产物的装配 ⇒ 上限 = 回退常量。
+        /// <para>与上一条配对:一条证「产物优先」,一条证「无产物时仍可用」。
+        /// 单有前者会把「回退路径已死」放过去。</para></summary>
+        [Test]
+        public void test_readers_maxDoseDetents_withoutArtifact_fallsBackToConstant()
+        {
+            var synthetic = new PrescriptionActionsDataSet(
+                rows: new List<PrescriptionActionCookedRow>
+                {
+                    new PrescriptionActionCookedRow("salicylic_acid", 10, "symptomatic"),
+                },
+                doseBase: 65536,
+                maxDoseDetents: PrescribeRequestDriver.FallbackMaxDoseDetents,
+                singleDoseMaxRaw: 0,
+                configVersion: 0u);
+
+            CompositionRootServices bag = AssembleWith(BuildProvider().Add(synthetic));
+
+            Assert.AreEqual(PrescribeRequestDriver.FallbackMaxDoseDetents, bag.PrescribeDriver.MaxDoseDetents,
+                "上限须等于回退常量");
+        }
+
+        /// <summary>⚠️ <b>本段的判别力分布(禁借绿)</b>:五条里只有
+        /// <see cref="test_readers_maxDoseDetents_syntheticArtifact_drivesCeiling"/> 一条
+        /// 能区分「读了产物」与「读了常量」;其余四条是对照 / 装配面 / 回退 / 判别力论证,
+        /// 单看恒绿。<b>不得</b>以「五条全绿」替代「换源已证」。
+        /// <para>⚠️ 另一处易犯的假门:<c>DoseDetentCount</c>(落点数)**不是**本段的观察面 ——
+        /// 当前药 `dose_range = (1,5)` 只有 5 落点,上限 6/7/9 都不改变它。
+        /// 下一条把这一点变成可红的机器。</para></summary>
+        [Test]
+        public void test_readers_maxDoseDetents_detentCountIsBlindToCeiling()
+        {
+            // 判据:同一药档 (1,5) 在两个不同上限(6 / 9)下,驱动的 `DoseDetentCount` **同值**。
+            // ⇒ 若谁拿 DoseDetentCount 当「上限已接线」的判据,那是恒绿假门。
+            CompositionRootServices atSix = AssembleWith(BuildProvider().Add(
+                new PrescriptionActionsDataSet(
+                    rows: new List<PrescriptionActionCookedRow>
+                    {
+                        new PrescriptionActionCookedRow("salicylic_acid", 10, "symptomatic"),
+                    },
+                    doseBase: 65536, maxDoseDetents: 6, singleDoseMaxRaw: 0, configVersion: 0u)));
+            CompositionRootServices atNine = AssembleWith(BuildProvider().Add(
+                new PrescriptionActionsDataSet(
+                    rows: new List<PrescriptionActionCookedRow>
+                    {
+                        new PrescriptionActionCookedRow("salicylic_acid", 10, "symptomatic"),
+                    },
+                    doseBase: 65536, maxDoseDetents: 9, singleDoseMaxRaw: 0, configVersion: 0u)));
+
+            // 前置:上限**确实**不同(否则本测在证一个不存在的对照)
+            Assert.AreEqual(6, atSix.PrescribeDriver.MaxDoseDetents, "前置:上限 6 已生效");
+            Assert.AreEqual(9, atNine.PrescribeDriver.MaxDoseDetents, "前置:上限 9 已生效");
+
+            // 承重:上限不同 ⇒ 落点数**仍相同** ⇒ `DoseDetentCount` 看不见上限。
+            Assert.AreEqual(atSix.PrescribeDriver.DoseDetentCount, atNine.PrescribeDriver.DoseDetentCount,
+                "落点数随上限变了 ⇒ 本段的判别力论证失效,须重评观察面选择");
+            Assert.AreNotEqual(6, atNine.PrescribeDriver.DoseDetentCount,
+                "落点数恰等于上限 ⇒ 上限与落点数的区分度消失,本测不再有证明力");
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
         // 夹具
         // ══════════════════════════════════════════════════════════════════════
 

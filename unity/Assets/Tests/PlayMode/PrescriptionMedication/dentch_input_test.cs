@@ -190,13 +190,20 @@ namespace DaYiJingCheng.Tests.PlayMode.PrescriptionMedication
             Assert.Throws<ArgumentOutOfRangeException>(() => sel.DoseValueOf(-1));
         }
 
-        // ══ MAX_DOSE_DETENTS 旋钮(合成 hi−lo 扫 1…9)════════════════════════
+        // ══ MAX_DOSE_DETENTS 旋钮(合成 hi−lo 扫 1…SYNTHETIC_SWEEP_MAX)══════════
+        //
+        // ⚠️ 扫描上界**刻意用本夹具自己的常量**,不读 `RegisteredMaxDoseDetents`(2026-10-20)。
+        //    理由:这是一条**合成**测试 —— 它证的是「BuildDetents 对任意 k 都确定生成」,
+        //    与「生产登记的旋钮值是多少」是两个不相干的量。原先拿生产常量当循环上界 ⇒
+        //    该常量按 GDD 从 9 窄化到 7 时,本测的覆盖面会**静默缩水 2 档**(9 仍是合法的
+        //    合成输入,只是生产不再取它)。判据与生产取值解耦后,覆盖面不再随数值轮漂移。
+        private const int SyntheticSweepMax = 9;
 
         [Test]
         public void test_maxDoseDetents_syntheticSweep_oneToNine_generatesDeterministically()
         {
             // QA 卡:合成 hi−lo 扫 1…9 证明焦点序列随档数确定生成。
-            for (int k = 1; k <= DentchDoseSelector.RegisteredMaxDoseDetents; k++)
+            for (int k = 1; k <= SyntheticSweepMax; k++)
             {
                 var sel = new DentchDoseSelector(ProfileWith(new DoseRange(1, k)), k);
                 Assert.AreEqual(k, sel.Detents.Count, $"档数 {k} ⇒ 落点数须 = {k}。");

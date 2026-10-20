@@ -45,6 +45,30 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
         private static string ReadItemsJson() =>
             File.ReadAllText(Path.Combine(DataDir, "item_database_items.json"));
 
+        /// <summary>把源文本里的 <c>MAX_DOSE_DETENTS</c> 改成一个**不同的合法值**。
+        /// <para><b>为什么从源里抽现值,而不是写死</b>(2026-10-20 订正):该字段的取值会随
+        /// 数值轮 / 数据订正变化(当日由 <c>5</c> 改为 GDD 已裁的 <c>7</c>)。写死字面量的夹具
+        /// 会在取值一变时**替换落空** ⇒ 测试自报「夹具替换未生效 ⇒ 本测真空」。
+        /// 判据本身与具体取值无关(只要求「改一个数 ⇒ 哈希变」),故只须保证「改成了别的值」。</para>
+        /// <para>改成 <c>现值 + 1</c>:既恒为合法正整数(无上界约束),也恒不等于现值。</para></summary>
+        private static string MutateMaxDoseDetents(string actionsJson)
+        {
+            const string key = "\"MAX_DOSE_DETENTS\":";
+            int at = actionsJson.IndexOf(key, StringComparison.Ordinal);
+            if (at < 0) return actionsJson;   // 键缺失 ⇒ 返回原文本,由调用方的 Assert 报真空
+
+            int numStart = at + key.Length;
+            while (numStart < actionsJson.Length && char.IsWhiteSpace(actionsJson[numStart])) numStart++;
+            int numEnd = numStart;
+            while (numEnd < actionsJson.Length && char.IsDigit(actionsJson[numEnd])) numEnd++;
+            if (numEnd == numStart) return actionsJson;   // 非数字 ⇒ 同上
+
+            int current = int.Parse(actionsJson.Substring(numStart, numEnd - numStart));
+            return actionsJson.Substring(0, numStart)
+                 + (current + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                 + actionsJson.Substring(numEnd);
+        }
+
         // ── DC-1:处方表 item_key ⊂ ItemDef 闭集 ───────────────────────────
 
         [Test]
@@ -254,7 +278,11 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
 
             uint baseline = PrescriptionActionsBinderProbe.ConfigVersionOf(actionsJson, lexiconJson);
 
-            string changedActions = actionsJson.Replace("\"MAX_DOSE_DETENTS\": 5", "\"MAX_DOSE_DETENTS\": 6");
+            // ⚠️ **不得写死源里的现值**(2026-10-20 订正)。原稿写死 `"MAX_DOSE_DETENTS": 5`,
+            //    而当日该字段由 5 改为 7(GDD 已裁值)⇒ 替换不再命中 ⇒ 本测**自报真空**。
+            //    这不是本测失效,是夹具把**可变量**当成了**常量** —— 判据本身与取值无关
+            //    (只要求「改一个数 ⇒ 哈希变」),故改为从源文本抽出当前值再改成另一个合法值。
+            string changedActions = MutateMaxDoseDetents(actionsJson);
             Assert.AreNotEqual(actionsJson, changedActions, "夹具替换未生效 ⇒ 本测真空");
             uint afterChange = PrescriptionActionsBinderProbe.ConfigVersionOf(changedActions, lexiconJson);
 

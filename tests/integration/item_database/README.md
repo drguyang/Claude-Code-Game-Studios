@@ -709,3 +709,86 @@ A 的接线点「Processor 构造注入 + Process 入口校验」。
 > 因果由证伪 F6 反证:重新去掉复位,该 case **精确转红**。
 
 详见 `production/qa/evidence/impl-data-core-readers-b-2026-10-20.md`。
+
+---
+
+## 2026-10-20 更新⑥ —— 甲档剩余项接线(`prescription_actions.MAX_DOSE_DETENTS` → `PrescribeRequestDriver`)+ 三方值分歧订正
+
+**用户裁定**(AskUserQuestion):「**先改 JSON 为 7 重烘,再接**」。
+
+### 「甲档剩下的」是怎么定出来的 —— 逐字段普查,不是估计
+
+甲档 2 份(`interaction_kinds` / `prescription_actions`)的**主读点**在 `370345c` 已接。
+本轮把两份产物的**每一个字段**过一遍生产读者,才定出唯一可接项:
+
+| 产物 | 可接(甲) | 缺调用方(乙) | 缺整条链(丙) |
+|---|---|---|---|
+| `interaction_kinds` | `kind_priority`(已接) | `r_interact` / `routes_to` / `stable_id_source` | `suppresses_motor` / `duration_owner` / `intent_uplink` |
+| `prescription_actions` | `DOSE_BASE` / `actions[]`(已接)· **`MAX_DOSE_DETENTS`(本件)** | `single_dose_max` | — |
+
+⇒ **`MAX_DOSE_DETENTS` 是甲档 2 份的最后一个零读者字段**。其余 6 项本轮**不改判**,
+只是把「乙/丙」细化到字段级(理由逐条可复算,见原件 §0/§7.3)。
+
+### ⚠️ 普查抓出的真问题:同一个旋钮**三个值互不相同**
+
+| 来源 | 改前 | 权威性 |
+|---|---|---|
+| GDD `prescription-and-medication.md:794` | **7** | **已裁**(2026-10-07;原「建议 ≤ 9」的**窄化**) |
+| 产物 JSON | 5 | 文件 `_note` 自述「占位种子 / 夹具值」 |
+| 代码常量 `RegisteredMaxDoseDetents` | 9 | **过期** —— 注释称「GDD 规则十三」,实取**窄化前**的旧值 |
+
+**没有任何机械判据发现它** —— 产物漂移门只比「盘上字节 == 现烘字节」,常量与产物之间**零对拍**。
+当前因药档窄(`dose_range = (1,5)`)无可观测差异,属**潜伏**缺陷。
+⇒ 按裁定:JSON 5 → **7**、重烘、再接 ⇒ **三处统一为 7**,此后数值轮改值只须改 JSON。
+
+### 改动 + 新增门(`ReaderWiringGateTest` 10 → **15** 用例)
+
+| 用例 | 性质 |
+|---|---|
+| `maxDoseDetents_artifactMatchesFallbackConstant` | **对照**(钉「产物与回退常量不许分叉」) |
+| `maxDoseDetents_assemblyReadsArtifact` | 装配面 |
+| **`maxDoseDetents_syntheticArtifact_drivesCeiling`** | **换源(唯一承重)**:合成上限 6 |
+| `maxDoseDetents_withoutArtifact_fallsBackToConstant` | 回退 |
+| `maxDoseDetents_detentCountIsBlindToCeiling` | **判别力论证** |
+
+> ⚠️ **观察面必须是「上限」,不能是「落点数」** —— 当前药 `dose_range = (1,5)` ⇒ **5 落点**;
+> 上限 6 / 7 / 9 都不改变 `DoseDetentCount`。拿落点数当判据 = **恒绿假门**。
+> 最后一条把这个陷阱**变成可红的机器**(前置断言两装配上限**确实**为 6 / 9 且不同)。
+> 另:真产物 = 回退常量 = 7 ⇒ 用真产物测「源换了」恒绿 ⇒ **承重只能靠合成夹具**。
+
+### 证伪轮(4 变异 · **4/4 全部转红**,`finally` 还原后 sha256 逐字节一致)
+
+| # | 变异 | 结果 | 红点 |
+|---|---|---|---|
+| F1 | 组合根不传上限 | `13/15 failed=2` | 换源 + 判别力 |
+| F2 | 驱动忽略构造参 | `13/15 failed=2` | 同上 |
+| F3 | 回退常量改 99 | `14/15 failed=1` | **只有对照条响**(其余四条不受影响是**对的** —— 它们不比常量与产物) |
+| F4 | 属性改报落点数(假门形态本身) | `11/15 failed=4` | 装配面 / 换源 / 回退 / 判别力**四条同时响** |
+
+### 回归对账(2026-10-20 13:25 CST · 批次 `sprint-15 甲档剩余项接线轮(全量 EditMode,单批)` · commit `001de75` · 工作树 8 个未提交改动 + 1 新证据件)
+
+| 项 | 值 |
+|---|---|
+| 前次 | `total=4007 passed=3971 failed=0 inconclusive=0 skipped=36` |
+| 本轮 | **`total=4012 passed=3976 failed=0 inconclusive=0 skipped=36`** |
+| 等式判据 | `total − 前次 = 新增数`(5 条门用例)⇒ **✅ 精确成立,零回归** |
+| 红点 | **无**(遍历 XML 无非 `Passed`/`Skipped` 用例;36 条 `Skipped` 与前次同,非本轮引入) |
+| PlayMode | **NOT-RUN** |
+
+> ⚠️ **退出码本轮未采集** —— 以 `nohup … &` 起跑,stdout/stderr 落盘实测 **0 字节**。
+> ⇒ 判读**只依据 XML**(`failed=0` + 零红点),**不主张 `exit 0`**。
+> 另:XML 根节点 `result="Skipped:Ignored"` 是 NUnit 在**有 Ignored 用例**时的根结果串,
+> **不是失败信号**,防下游误读。
+
+### ⚠️ 本轮两处如实标「未证」(禁借绿)
+
+| 项 | 状态 | 理由 |
+|---|---|---|
+| A-3 `RegisteredMaxDoseDetents` 9 → 7 | **Landed ✅ / Proven 部分** | 实体动作有 F3 间接覆盖;**但「注释所称 GDD 规则十三 = 7」是散文,无判据可钉** |
+| T-3 `dentch_input_test` 扫描解耦 | **Landed ✅ / Proven ✗** | 改的是 **PlayMode** 夹具,而 PlayMode 本轮 **NOT-RUN** ⇒ 连「能被跑」都未证 |
+
+**其余未结**(原件 §9):`single_dose_max` 仍未接(乙档)· `interaction_kinds` 6 字段未接 ·
+GDD 的 `dose_range.hi ≤ 7` **启动期无门**(运行期由戥子「档数 > 上限 ⇒ 硬失败」兜住)·
+IL2CPP 三格 NOT-RUN。
+
+详见 `production/qa/evidence/impl-data-core-maxdosedetents-2026-10-20.md`。

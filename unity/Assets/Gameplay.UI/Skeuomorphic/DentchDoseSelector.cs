@@ -131,8 +131,17 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
     /// </remarks>
     public sealed class DentchDoseSelector
     {
-        /// <summary>档数上限旋钮的**登记建议值**(GDD 规则十三;值归用户数值轮)。</summary>
-        public const int RegisteredMaxDoseDetents = 9;
+        /// <summary>档数上限旋钮的**登记建议值**(GDD 规则十三;值归用户数值轮)。
+        /// <para>⚠️ <b>2026-10-20 口径订正</b>:原写 <c>9</c> 并称「GDD 规则十三」,
+        /// 但 GDD `prescription-and-medication.md:794` 已于 **2026-10-07 裁为 <c>7</c>**
+        /// (原注「原『建议 ≤ 9』的**窄化**」)—— <c>9</c> 是**窄化前**的旧建议,已过期。
+        /// 现对齐 GDD 已裁值 <c>7</c>。</para>
+        /// <para>⚠️ <b>本常量不是运行期真源</b>:真源 = 烘焙产物
+        /// <c>prescription_actions.cooked.bytes</c> 的 <c>MAX_DOSE_DETENTS</c>,
+        /// 由装配层经 <c>PrescribeRequestDriver</c> 的构造参注入
+        /// (见 <c>PrescribeRequestDriver.FallbackMaxDoseDetents</c>)。
+        /// 本常量退为 42 侧构造未注入时的缺省值 + 测试面锚点。</para></summary>
+        public const int RegisteredMaxDoseDetents = 7;
 
         private readonly DentchDetent[] _detents;
         private readonly int _doseMin;
