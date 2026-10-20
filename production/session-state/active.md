@@ -7440,3 +7440,57 @@ sprint-16 收口轮 · `f6cdaaf`);`Δtotal = Δpassed = +14`;差集实测**新�
 - **Next**:① `EcozoneIntegerGates` / `EmergencyIntegerGates` 接不接 BuildGate —— **待裁**;
   ② `TD-gate-03` 词表修正 —— 另开批次;③ `docs/tech-debt-register.md` §四 总索引回填 ——
   须先裁定 `91` 口径是否升版。**sprint-16 的 C-1 / C-3 两条条件已结清。**
+
+---
+
+## Session Extract — TD-gate-03 口径订正 + 债册回填升版 94(2026-10-21)
+
+> ⚠️ **上一节(`### TD-gate-03 仍 open…`)是 C-1 轮当时的记录,原文不删** —— 其结论已被本节推翻。
+
+### 一、`TD-gate-03` 的 ① **经读代码证伪,不是债**
+
+登记原写「falsify 残留判据**词表**有盲区」。**实测驱动没有词表**:还原判据 =
+`restore_all()` 的**逐文件 SHA-256 比对**(`tools/falsify/unity_falsify.py:152-176`,跑在 `finally`)。
+证据件里的 `grep -c "FALSIFY-F"` 是**手工补充复核**,被(我)误登记成「驱动词表」
+⇒ 由此推出的「词表盲区」**不成立**。哈希比词表强得多。
+
+**错误链**:两处证据件各写了一句手工 grep → 被读成「驱动有词表」→ 推出「词表有盲区」。
+**该条挂了四天(2026-10-17 → 2026-10-21)才被打开代码验证。**
+
+②(并发读取污染)**仍成立**,但属**过程纪律非代码缺陷** —— 驱动只保证自己不并发,
+**原理上侦测不到他人并发读**(读文件不留痕)。已实测两次。
+
+⇒ **处置**:`tools/falsify/README.md` 新增两节(「⚠️ 并发读取禁令」/「还原判据是 SHA-256,不是标记名」);
+三处文件就地加注(`impl-c1` §4.4 · `impl-s16-4` §四+§八 · 债册 `TD-gate-03` 行改判 `closed`)。
+
+### 二、债册 §四 回填 + 口径升版 **94**(用户裁定「回填,升级为 94」)
+
+| 项 | 回填前 | 回填后 |
+|---|---|---|
+| 条目 | 91 | **94** |
+| 状态 | `{open:70, partial:5, closed:16}` | `{open:70, partial:5, closed:19}` |
+| P0 面 | `{Y:87, N:4}` | `{Y:87, N:7}` |
+| **未闭 P0 面** | **72** | **72(一位不动)** |
+
+三条 `TD-gate-01/02/03` 全是**治理债**(`P0 面 = N`)⇒ **回填只让分母变全,不改变 M3 判定**。
+原登记预估的输出 `条目 94 | P0 面 {Y:87, N:7}` 与实测**逐字一致**。
+
+**已就地加注 6 处**(原文一律不删):债册头部 · §一/§二 计数口径 · §四 标题+状态行 ·
+§五(新输出在前、旧输出留档)· §★ 收口注(原「未回填」块)· `sprint-16.md` S16-3 收口注 + DoD ·
+`p0-remaining-roadmap` §M3 + §八 ① 行 · `sprint-status.yaml` baseline 行内注。
+
+### 三、`sprint-status.yaml` 条件清单收口
+
+`conditions_closed` 4 条(`C-1` / `C-3` / `TD-gate-03` / `§四 总索引回填`);
+`conditions_open` **仅剩 1 条**:`Ecozone/EmergencyIntegerGates 是否接 BuildGate`(**待裁**)。
+
+### 四、`Ecozone` / `Emergency` 两门**不接 BuildGate** 的技术理由(登记,待用户裁)
+
+两者签名都取 `dllPath`(Cecil IL 级扫)。`OnPreprocessBuild` 跑时 `Library/ScriptAssemblies/*.dll`
+是**上一版编译产物** ⇒ 扫到陈旧 DLL。测试侧已有等价守卫
+(`ecozone_query_test.cs:285` 的 `EditorUtility.scriptCompilationFailed` 断言),**BuildGate 无**。
+⇒ 接 = 引入假绿面。**本项不擅自做,交用户裁。**
+
+- **Blockers**:无
+- **Next**:① `Ecozone/Emergency` 接 BuildGate —— **待裁**;② 本节四项改动(债册 · 两证据件 ·
+  falsify README · sprint-16 · roadmap · sprint-status.yaml)**均未 commit**,待用户指令。

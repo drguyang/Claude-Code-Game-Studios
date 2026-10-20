@@ -56,6 +56,9 @@ work_items:
     depends_on: []
     evidence: "docs/tech-debt-register.md §★ 总索引(91 行索引表 · 三列)+ 求值命令实跑 = 「条目 91 | 状态 {open:70, partial:5, closed:16} | P0 面 {Y:87, N:4};未闭 P0 面 = 72」· M3 Exit 第二条合取 ⇒ 假(72 条未闭 / 12 个 epic);⚠️ 初版命令漏滤已闭 15 条曾报 87,已修+ §六 八道门载体表"
     note: "① 用户 2026-10-20 四项裁定:宽判据(归属 P0 epic 即算)· 总索引表 · 声明「归属 epic」列 · 采纳 91;② ⚠️ 宽判据**如实执行**得 87 Y 而非预览的「91 全中」—— 差 4 = 2 条 R2(系统 45=P1b / 49=P2)+ 2 条 R3(跨 epic 治理无归属);③ 状态列**刻意不用**「含 ✅ 即 closed」机械规则(实测 5 处 ✅ 在非结案语境:勘验结论 / 前提订正 / 证据记录)⇒ 91 行逐条读原文判定,是本表唯一不可机械复算的列;④ 归属取「须还方」不取「登记小节」⇒ 11 处方一节 8 条分落 4 epic;⑤ 原文一律不删:头部「待办」块就地加注(82→91 · ~20 张表→恰 20),各日期小节零改动;⑥ TD-net-01 的「义务级 P0 · 归属系统级 P1b · 无 epic」三重错位 + 2 条 R3 一并进待裁清单;⑦ **待裁 4 条已裁(2026-10-20,全取推荐 ⇒ 俱判 N)**:TD-net-01(归属优先,义务仍以 open 跟踪,只答「算不算 M3 出口」)· TD-prescription-05(49=P2 且 AC-11-13 已按豁免口径转 ✅)· TD-s13-01/TD-s13-03(治理债≠产品债)⇒ **待裁桶清零,M3 分母 = 单一 72(不再带 +3),数一位不变**"
+    # 🔁 2026-10-21:本卡的 `91 条 / 91 行 / 条目 91` 俱为**交货时数**,原文不删。
+    #    回填 TD-gate-01/02/03 后债册现役 = 94 行(closed 16→19 · N 4→7),未闭 P0 面 = 72 一位不动
+    #    ⇒ M3 判定不变。现役真源 = docs/tech-debt-register.md §★ 总索引 §五(可复算)。
   - id: "S16-4"
     name: "retro-14 A4「测试/工具不得写仓库」立机械门"
     file: ".claude/rules/test-standards.md"
@@ -98,8 +101,11 @@ baseline:
   story_other: 2            # skeuo-019 部分完成 / world-ecozones-005 Pending
   story_non_complete: 44
   epic_all_complete: 18     # / 31,按 story Status 逐条归并
-  tech_debt_ids: 92         # ⚠️ 全文串扫口径(多算 1 族引用 / 少算 5 个带后缀号 —— 净 +1)
+  tech_debt_ids: 92         # ⚠️ 全文串扫口径(多算 1 族引用 / 少算 5 个带后缀号 —— 净 +1);口径待废,回填后应然值未重算
   tech_debt_ids_strict: 91  # ✅ 真源(S16-3 落定):`###`/`####` 标题 ∪ 表格行首列。见 docs/tech-debt-register.md §★ 总索引 §二
+                            # 🔁 2026-10-21 回填 `TD-gate-01/02/03` 后现役 = **94**(用户裁定「升级为 94」)。
+                            #    此处的 91 是 S16-3 规划时刻的 baseline,原文不删;变的是 `closed`(16→19)与 `N`(4→7),
+                            #    `未闭 P0 面 = 72` 一位不动 ⇒ 不影响 M3 判定。
   tech_debt_tables: 17      # 债型表(另有 7 张非债型表)—— ⚠️ 口径待订,见下行
   tech_debt_tables_with_td: 20  # ✅ 实测(S16-3):含 TD 行的 Markdown 表恰 20 张(全册 50 张表)
 
@@ -119,10 +125,19 @@ conditions_closed:
     evidence: "production/milestones/README.md:582-583 已就地并列(原文不删):EditMode 3401/3355/0/46 → **4085/4049/0/36**(2026-10-21 01:03 CST · C-1 实现轮 · f6cdaaf · c1-full-editmode.xml);PlayMode 186/186/0 → **197/197/0/0**(2026-10-21 00:22 CST · sprint-16 收口轮 · f6cdaaf · smoke-s16-playmode.xml)"
     note: "① 增量已拆分归属:EditMode +684 中 +14 = C-1 新增测,余 +670 与 skipped −10 未逐笔归属;PlayMode +11 中 +5 = s18 音频装配轮(session-state:5663 可证),余 +6 未逐笔归属。② **两值时点不同**(PlayMode 00:22 早于 EditMode 01:03);C-1 零运行时改动故不受影响 —— 但这是判断不是实测。③ 顺带复核第 581 行 story 行:226/182/41/1/2 逐项同值,无需刷(中途我自己数错过一次 168,是脚本未剥 ** 加粗前缀,已在 README 留痕)。"
 
-conditions_open:
   - id: "TD-gate-03"
-    note: "falsify 残留词表盲区 + 并发读取禁令 —— 仍 open,且 C-1 证伪轮**两个盲区双双再中**(仍用 FALSIFY-F 前缀;窗口内并发读了 AssemblyGates.cs)。触发条件已到而未执行,须另开批次。"
-  - id: "Ecozone/EmergencyIntegerGates 是否接 BuildGate"
-    note: "两条 BLOCKING 级 AC 零构建期强制点。须另裁(接 = 改构建前门语义 + 须确认 Cecil 在 batch 下的 DLL 新鲜度)。C-1 只做具名登记,未擅自接。"
+    requirement: "falsify 残留判据登记口径订正 + 并发读取禁令成文"
+    status: "closed"
+    closed_on: "2026-10-21"
+    evidence: "tools/falsify/README.md 新增「⚠️ 并发读取禁令(2026-10-21 立 · TD-gate-03)」+「还原判据是 SHA-256,不是标记名」两节;docs/tech-debt-register.md:1581 条内改判 closed(2026-10-21 · 口径订正);两处证据件就地加注(impl-c1 §4.4 · impl-s16-4 §四/§八)"
+    note: "① **① 结论经实测证伪,登记描述本身有错** —— 驱动**没有**残留词表,还原判据 `restore_all()` 的逐文件 SHA-256 比对(`tools/falsify/unity_falsify.py:152-176`,跑在 `finally`)。证据件里的 `grep -c \"FALSIFY-F\"` 是**手工补充复核**,被误登记成「驱动词表」。哈希比词表强:词表只证明「没留下这个字符串」,哈希证明「内容真的一致」。② ②(并发读取污染)仍成立,但属**过程纪律非代码缺陷** —— 驱动只保证自己不并发,**侦测不到他人并发读**(读文件不留痕)。已实测两次(qa-lead 在 sprint-16 QA 轮、编排方在 C-1 的 F2 窗口)。纪律表已落 README:发令方声明窗口 + 读者窗口内不读 / 改用 `git show HEAD:<path>`。③ 该条挂了四天(2026-10-17 → 2026-10-21)才被打开代码验证 —— 教训:登记的措辞不等于事实。"
   - id: "tech-debt-register §四 总索引回填"
-    note: "三条 TD-gate 未进 §四 索引(刻意);求值命令实测仍输出 91/72,未被污染。回填须先裁定 91 口径是否升版。"
+    requirement: "三条 TD-gate 进 §四 索引 + 口径升版裁定"
+    status: "closed"
+    closed_on: "2026-10-21"
+    evidence: "docs/tech-debt-register.md §★ 总索引 TD-INDEX 区间加入 `TD-gate-01/02/03` 三行(`判据` 列 = `R3-裁`);重新求值 = `条目 94 | 状态 {open:70, partial:5, closed:19} | P0 面 {Y:87, N:7}` / `未闭 P0 面 = 72`(§五 已并列新输出,旧 91 版原文保留)"
+    note: "① 用户 2026-10-21 裁定「回填,升级为 94」⇒ **口径升版**:`94` = 现役单一真值,`91` 自此只作历史数出现在 S16-3 收口注。② **`未闭 P0 面 = 72` 一位不动** —— 三条为治理债(`P0 面 = N`),不进 M3 出口 ⇒ 回填只让分母变全,**不改变 M3 判定**。③ 原登记预估的输出 `条目 94 | P0 面 {Y:87, N:7}` 与实测**逐字一致**。④ ⚠️ 本文件 `baseline.tech_debt_ids: 92` **未重算其应然值** —— 该字段的出处口径(全文串扫)本身待废,现役真源只看债册 `94`(本条不写推测数)。"
+
+conditions_open:
+  - id: "Ecozone/EmergencyIntegerGates 是否接 BuildGate"
+    note: "两条 BLOCKING 级 AC(AC-6-22 / AC-10-02·03)零构建期强制点。须另裁(接 = 改构建前门语义 + 须确认 Cecil 在 batch 下的 DLL 新鲜度 —— `OnPreprocessBuild` 跑时 `Library/ScriptAssemblies/*.dll` 是**上一版编译产物**,而测试侧已有 `EditorUtility.scriptCompilationFailed` 守卫、BuildGate 无等价守卫)。C-1 只做具名登记(`KnownTestDrivenBlockingGaps`),未擅自接。"
