@@ -7625,3 +7625,5 @@ Addressables 构建期自动生成,项目代码零引用,`git check-ignore` 判�
 - **Next**:C-2 两笔已由用户指令提交(`fdfa705` + `dc94a63`)。C3 轮的 ④ 项补跑与
   证据件 §六 更新**未提交**,待用户指令。
 
+
+<!-- QA-PLAN: 2026-10-21 | System: sprint-17 | Plan written: production/qa/qa-plan-sprint-17-2026-10-21.md -->

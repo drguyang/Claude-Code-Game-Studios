@@ -10,95 +10,123 @@
 #   blocked        ↔  Blocked
 #
 # ⚠️ sprint-14 的完整 yaml(含逐件判据与六批落盘注)已归档为
-#    `production/sprint-status-sprint14-archive.yaml`
+#    `production/sprint-status-sprint14-archive.yaml`,不随本文件覆盖丢失。
 # ⚠️ sprint-15 的完整 yaml(8 件 = 7 done + 1 removed;含两处前提订正)已归档为
-#    `production/sprint-status-sprint15-archive.yaml`,不随本文件覆盖丢失。
+#    `production/sprint-status-sprint15-archive.yaml`。
+# ⚠️ sprint-16 的完整 yaml(零 story + 5 个工作项 + 5 条结清条件 + 三元 baseline)已归档为
+#    `production/sprint-status-sprint16-archive.yaml`(2026-10-21 归档,SHA-256 与归档时本文件逐字节一致:
+#    `d6bf9dccad3dab7b60067c8b03483995742bb7c8c472e94af9020ce6a24eb98f`)。
+#    该文件内含 `conditions_closed` 5 条(C-1 / C-3 / TD-gate-03 / 债册 §四 回填 / 两门接 BuildGate)
+#    与 `moved_out` 3 条(A5 → 本 sprint;sprint-19 两条)—— **本文件不再重复承载,查归档**。
 
-sprint: 16
-goal: "把 P0 收官的判据面从「四处口径互相矛盾、剩余件数不可复算」压到「四份文件同值、分母有单一真源、八道门的清偿载体可机械求值」—— 本 sprint 不产出任何 story"
-start: "2026-10-20"
-end: "2026-10-21"   # ✅ 收口日已补记(2026-10-21)—— 承 sprint-15 同口径「不设结束日期,做完即收」,
-                    #    但**收口时补记实际收口日**(sprint-14 `end: "2026-10-18"` / sprint-15
-                    #    `end: "2026-10-20"` 皆如此)。空串只表示「规划时未定」,不表示「永不填」。
-generated: "2026-10-20"
+sprint: 17
+goal: "把 P0 的 A-1 批四件(clinic-002 / clinic-003 / tutorial-001 / casebook-002)从 Ready 推到 AC 勾满 —— 全库唯一能勾满的一类;并清掉上游三处前提错位(clinic-001 状态口径 / casebook-001 名义依赖 / 四件 manifest 落后)。本 sprint 不改变 M3 分母(未闭 P0 面 = 72 一位不动)"
+start: "2026-10-21"
+end: ""             # 不设结束日期口径,做完即收;**收口时补记实际收口日**(承 sprint-14/15/16 同例)。
+                    # 空串只表示「规划时未定」,不表示「永不填」。
+generated: "2026-10-21"
 updated: "2026-10-21"
 
-# ⚠️⚠️ 本 sprint 零 story 交付 ⇒ `stories` 为空数组,这是**真实状态不是遗漏**。
-# 本 sprint 的五件工作项登记在下方 `work_items`,该键**不属于本文件头注里声明的格式**
-# (格式只定义了 stories),属**格式外扩展** —— 目的仅为让 /sprint-status 侧至少看得见本 sprint 存在。
-# ⚠️ 若某工具按严格 schema 解析本文件,`work_items` 可能被忽略或被判未知键;
-# 在把它提升为正式 schema 之前,**真源 = `production/sprints/sprint-16.md` 的 Tasks 表**。
-stories: []
+stories:
+  # ── Must Have(关键路径)· 批 1 ──
+  - id: "S17-1"
+    name: "clinic-002 房间析出与连通性"
+    file: "production/epics/clinic-machine/story-002-room-extraction-connectivity.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: "claude"
+    estimate_days: 0          # 不估天 —— 依 production/CAPACITY-MODEL.md §3.1,三元只记录不外推;复杂度 = M
+    complexity: M
+    depends_on: ["clinic-001"]
+    blocker: ""               # ⚠️ 依赖 clinic-001 = `In Review`(非 Complete)—— 用户 2026-10-21 裁定「承风险照排」
+    completed: ""
+    note: "偏离登记 ①:sprint-17.md §两处偏离登记。上游**契约**实存(6 个 bake 文件 + 三份 clinicmachine_*.json 种子 + 42 测 + review-clinic-001-2026-10-20.md 在册),上游 **story** 未 Complete ⇒ 取 /dev-story 的 [A] 分支。**不转 clinic-001 状态**(其两条 AC 真挂 BLOCKED-BY-O-24-1,转 Complete 即借绿)。测试载体 = Tests/EditMode/ClinicMachine/clinic_room_extraction_test.cs"
 
-work_items:
-  - id: "S16-1"
-    name: "CAPACITY-MODEL 重标定 = 三元(件 + 复杂度分布 + 追加率)"
-    file: "production/CAPACITY-MODEL.md"
+  - id: "S17-2"
+    name: "clinic-003 乘子求值(F-24-1 / F-24-2)"
+    file: "production/epics/clinic-machine/story-003-modifier-evaluation.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: "claude"
+    estimate_days: 0          # 复杂度 = M
     complexity: M
-    status: "done"            # 2026-10-20 收口(含两条判据订正,见 note)
-    owner: "claude"
-    depends_on: []
-    evidence: "production/CAPACITY-MODEL.md §二·补二 + §3.1/§3.2 + §六;#2/#3 换靶;SKILL §4b 改读两层(grep 实测)"
-    note: "① 三元落 §3.1(记录)/§3.2(约束)两层;② ⚠️ 本卡判据②「件/日列整列移除」**早已完成** —— 该列在 S12-1 写入当日即自废(§二 注 + §六 Bulletin 一)⇒ 改为「核实并登记」,零工作;③ §六 #2/#3 换靶;#2 由「超容⇒顺延」改为「三元缺记/口径不唯一 ⇒ 不可比」;④ ⚠️ 判据④我自拟首版被自己证伪(「grep 件/日 = 0 命中」实为 2 命中,均为禁令句)⇒ 收窄为「无『件/日 作对照单位』的命中」"
-  - id: "S16-2"
-    name: "三份静态件物理合并 + M3 Exit 两条合取 + 分母真源裁决"
-    file: "production/milestones/p0-remaining-roadmap-2026-10-20.md"
-    complexity: L
-    status: "done"            # 2026-10-20 收口
-    owner: "claude"
-    depends_on: ["S16-3"]
-    evidence: "路线图 §〇·二/§〇·三/§一/§2.4/§2.5/§3.1/§4.4/§5.1/§5.2/§6.5–§6.7/§7.1/§八(吸收两件);README M3 Exit 两条合取(:370-385 块);四处加注 :49/:370 块/:393 复核块/:570;git rm 两件"
-    note: "① 落点/编号/删除三项均取用户推荐(并入 roadmap · 保留 §〇–§十一 · 我执行 git rm);② 两件 `git rm` 已执行(backlog + completion-plan);③ ⚠️ 判据「README:371」**行号随加注下移** —— 实测落在 **:370-385 块**(① = :372,② = :373),已按实测登记;④ 第二条合取标 **NOT-YET-EVALUABLE**(债册「P0 面」列归 S16-3)—— **禁标绿**;⑤ 吸收件内部 § 引用已逐处重指(backlog「承 §三」= 依赖环 ⇒ §2.5);⑥ 去重仅一组:backlog S-4 ≡ roadmap SP-3"
-  - id: "S16-3"
-    name: "债册增「P0 面 / 状态」两列(实测 91 条 / 20 张含 TD 的表)+ 八道门清偿载体成文"
-    file: "docs/tech-debt-register.md"
-    complexity: L
-    status: "done"            # 2026-10-20 收口
-    owner: "claude"
-    depends_on: []
-    evidence: "docs/tech-debt-register.md §★ 总索引(91 行索引表 · 三列)+ 求值命令实跑 = 「条目 91 | 状态 {open:70, partial:5, closed:16} | P0 面 {Y:87, N:4};未闭 P0 面 = 72」· M3 Exit 第二条合取 ⇒ 假(72 条未闭 / 12 个 epic);⚠️ 初版命令漏滤已闭 15 条曾报 87,已修+ §六 八道门载体表"
-    note: "① 用户 2026-10-20 四项裁定:宽判据(归属 P0 epic 即算)· 总索引表 · 声明「归属 epic」列 · 采纳 91;② ⚠️ 宽判据**如实执行**得 87 Y 而非预览的「91 全中」—— 差 4 = 2 条 R2(系统 45=P1b / 49=P2)+ 2 条 R3(跨 epic 治理无归属);③ 状态列**刻意不用**「含 ✅ 即 closed」机械规则(实测 5 处 ✅ 在非结案语境:勘验结论 / 前提订正 / 证据记录)⇒ 91 行逐条读原文判定,是本表唯一不可机械复算的列;④ 归属取「须还方」不取「登记小节」⇒ 11 处方一节 8 条分落 4 epic;⑤ 原文一律不删:头部「待办」块就地加注(82→91 · ~20 张表→恰 20),各日期小节零改动;⑥ TD-net-01 的「义务级 P0 · 归属系统级 P1b · 无 epic」三重错位 + 2 条 R3 一并进待裁清单;⑦ **待裁 4 条已裁(2026-10-20,全取推荐 ⇒ 俱判 N)**:TD-net-01(归属优先,义务仍以 open 跟踪,只答「算不算 M3 出口」)· TD-prescription-05(49=P2 且 AC-11-13 已按豁免口径转 ✅)· TD-s13-01/TD-s13-03(治理债≠产品债)⇒ **待裁桶清零,M3 分母 = 单一 72(不再带 +3),数一位不变**"
-    # 🔁 2026-10-21:本卡的 `91 条 / 91 行 / 条目 91` 俱为**交货时数**,原文不删。
-    #    回填 TD-gate-01/02/03 后债册现役 = 94 行(closed 16→19 · N 4→7),未闭 P0 面 = 72 一位不动
-    #    ⇒ M3 判定不变。现役真源 = docs/tech-debt-register.md §★ 总索引 §五(可复算)。
-    # 🔁 2026-10-21(收口记账轮):再 `+1` ⇒ **现役 = 95 行**(TD-build-01 入表,commit b436bd5)。
-    #    上两条 `94` 均**保留为历史数**。`未闭 P0 面 = 72` 仍一位不动 ⇒ **M3 判定不变**。
-    #    实测:`grep -c "^| \`TD-" docs/tech-debt-register.md` ⇒ 95。
-  - id: "S16-4"
-    name: "retro-14 A4「测试/工具不得写仓库」立机械门"
-    file: ".claude/rules/test-standards.md"
-    complexity: M
-    status: "done"
-    owner: "claude"
-    depends_on: []
-    evidence: "production/qa/evidence/impl-s16-4-fs-write-boundary-2026-10-20.md · 门 = unity/Assets/Editor.Tools.Gates/FsWriteBoundaryGate.cs(接 AssemblyGates.RunAll)· 17 条测试 = unity/Assets/Tests/EditMode/DataPipeline/fs_write_boundary_gate_test.cs · 证伪轮 F1/F2/F3 三条全 exactRed,驱动退出码 0(SHA-256 还原校验通过 · 指纹未变 · 残留 0)· 全量 EditMode = 4071/4035/0/36(2026-10-20 23:45 CST · sprint-16/S16-4/全量 · commit f6cdaaf),对照基线 4054/4018/0/36 ⇒ Δ = +17/17/0/0,差集实测新增 17 条全为本轮测试、消失 0"
-    note: "① 判据落法 = 两规则而非一张 grep 名单:R1 写盘第一实参直接是字面量 ⇒ 红;R2 文件含写盘调用且含仓库**代码锚点**(Application.dataPath / Directory.GetCurrentDirectory / Application.streamingAssetsPath)⇒ 须具名声明带理由,声明过期/悬空同样红。② 扫描面 = Assets/Tests/**(用户裁定「仅测试树」);工具侧 35 处 *.cooked 写盘刻意不扫(否则只能整目录白名单 = 自我豁免)。③ **门当天抓到 2 处活违规**:u1/story007 的 Assets/ 兜底候选会把尖刺结果写成 Unity 资产 ⇒ 已删候选、就地加注。④ 声明表 6 条,其中第 6 条(assembly_gate_b6_test)是**真树断言抓出来的漏项** —— 起草期抽样只列「有代码锚点且无字面量锚点」的 4 个,漏了「两种锚点都有」的这一个 ⇒ 抽样不是普查。⑤ ⚠️ **基线订正**:QA plan 记的 3940/3904/0/36 是规划时刻快照,同日 clinic-machine 修复轮已先期推到 4041(18:44)→ 4054(19:10);若拿 3940 当对照,Δ=+131 会把 114 条误读成本门新增 ⇒ 按 4054 对账(禁借绿第一形态)。⑥ 盲区 ①②③(跨文件 / 字面量锚点 / 无锚点绕行)已登记,统一升级触发条件 = 第四例事故且形态属盲区 ⇒ 升 Cecil IL 级。"
-  - id: "S16-5"
-    name: "EPIC.md 4 户分母刷账(emergency 7→9 / patient-ai 4→5 / skeuo 18→25 / world-ecozones 分子 −1)"
-    file: "production/epics/*/EPIC.md"
-    complexity: M
-    status: "done"
-    owner: "claude"
-    depends_on: []
-    evidence: "四份 EPIC.md header 已刷:emergency-procedures 8/9(分母 7→9)· patient-ai 4/5(4→5)· skeuomorphic-ui 24/25(18→25)· world-ecozones 5/6(分子 6→5)。AC① 分母 = 实际 story 文件数(9/5/25/6)逐户 ✅;AC② EPIC.md 直接读出 = 18/31,story 逐条归并 = 18/31,非 Complete 13 户名单逐一相同;改前 EPIC.md 读出 = 22/31(差 4 户 = 本次四户)。零 story 状态变更(git status 对 story-*.md 为空)。落盘六处:sprint-16 收口注 · 本 yaml · qa-plan smoke 第 6 项 · 路线图 §1.2 ✅ 块 · milestones/README :580 加注 · active.md"
-    note: "① 用户 2026-10-21 裁定:刷分母 + 状态改判为未 Complete(非只刷分母、非降为未定)—— 理由:只刷分母会让 EPIC.md 自相矛盾(Complete ✅ 却 8/9),grep 仍得 22。② 改法承「原文不删,就地加注」:每份插入新 Status 行于原行之上,原行改标 Status(历史 · 原文保留),内容一字未删;派生论断三处同步加注(emergency §Epic Status / world §Epic Status + §Next Step / skeuo §里程碑归属)。③ ⚠️ **判据险情留痕**:首版复算脚本把「无分数的 Status 行」(input/interaction/skill-system 只写 Complete;audio-system 写「001–018 全 Complete」)误按非 Complete 处理 ⇒ 误报 18;真因是「按分数判 = 22 且漏 4 个 Complete 无分数户」⇒ **两个错误恰好抵消成 18**。若直接签 = 巧合正确。修正规则(有分数以分数为准;无分数看状态词)后基线 22 → 刷账后 18,才可解释。教训:输出等于预期值 ≠ 判据正确。④ 副作用已登记:milestones/README :580 与路线图 §1.2「不认 EPIC.md 分数」的**理由**自此消失(两口径同值),结论不变,已就地加注为「两口径互为校验」。"
+    depends_on: ["S17-1", "clinic-001"]
+    blocker: ""
+    completed: ""
+    note: "⚠️ 命名撞车:`unity/Assets/Sim/EnvMod.cs` 是**系统 5** 的 EnvMod_raw(94 行纯函数,envmod_raw_test.cs 在册);系统 24 的 F-24-1 也叫 EnvMod ⇒ 落点须用限定名并在文件头注明二者无关。测试载体 = Tests/EditMode/ClinicMachine/clinic_modifier_eval_test.cs"
 
-# ⚠️ 从本 sprint 移出的件与去向(登记,防蒸发)
-moved_out:
-  - id: "TD-epic-01 清 P0 面"
-    to: "sprint-19"
-    note: "⚠️ 工序须按实测重定 —— telemetry 10 条 story 全 Complete,`In Review` = 0,不是「重评 3 条」"
-  - id: "retro-14 A3(「已证」补分支覆盖判据)"
-    to: "sprint-19"
-    note: "与 AC 判据同族"
-  - id: "retro-14 A5(TD-player-01 回写)"
-    to: "sprint-17"
-    note: "实质已于 2026-10-20 修完(3940/3904/0/36),只差刷 retro 行动项表那一行"
+  - id: "S17-3"
+    name: "tutorial-001 内容 schema + 六项构建期校验"
+    file: "production/epics/tutorial-onboarding/story-001-content-schema-and-bake-validation.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: "claude"
+    estimate_days: 0          # 复杂度 = M(不判 L:3 个形式依赖中 2 个为已落既有基建 —— 口径判断,非实测)
+    complexity: M
+    depends_on: ["ADR-014 管线", "entities.yaml registry", "9/44/13 词表 .cooked"]
+    blocker: ""               # 词表为并行产出,故事自带降级路径;缺则 AC ④ 记 NOT-RUN 不勾
+    completed: ""
+    note: "⚠️ manifest 落后 13 天(卡面 2026-10-02 / 现行 2026-10-15),且 Cross-Cutting 之八「判据不得用文化敏感字符串比较」**正面命中**本件的病名闭集扫描 ⇒ 开跑前按 /dev-story Phase 2 判定;冲突时判据宾语改「词表 id 整数域」并如实登记(不预判结论 —— 用户 2026-10-21 裁定)。测试载体 = Tests/EditMode/Tutorial/tutorial_content_validation_test.cs"
+
+  - id: "S17-4"
+    name: "casebook-002 病例列表全序纯函数"
+    file: "production/epics/casebook/story-002-case-list-sort-pure-function.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: "claude"
+    estimate_days: 0          # 复杂度 = M(最轻)—— 本批唯一可在零前置下独自完成的件
+    complexity: M
+    depends_on: ["casebook-001"]
+    blocker: ""               # ⚠️ 依赖为**名义**:casebook-001 = Ready(全未实现),但本件 Implementation Notes ① 明写「以事件列表参数形态解耦」
+    completed: ""
+    note: "依赖名义性有据:6 条 AC 全打纯函数 + 反射断言,**无一条需要加载路径**。⚠️ 端到端「加载后列表」不可勾,但本件 AC 面不含该判据。测试载体 = Tests/EditMode/Casebook/casebook_sort_test.cs"
+
+  # ── Should Have · 批 2 ──
+  - id: "S17-5"
+    name: "retro-14 行动项 5(TD-player-01 归口)回写"
+    file: "production/retrospectives/retro-sprint-14-2026-10-18.md"
+    priority: should-have
+    status: backlog
+    owner: "claude"
+    estimate_days: 0          # 复杂度 = S
+    complexity: S
+    depends_on: []
+    blocker: ""
+    completed: ""
+    note: "承 sprint-16 moved_out(to: sprint-17)。实质已于 2026-10-20 修完(impl-td-player-01-2026-10-20.md;3938/3901/1 → 3940/3904/0/36),只差刷 :213 行动项行。判据 = 债册 :209 `closed` 与 retro 行两处同值可 grep;原文不删,就地加注。"
+
+# ── 分批(承 CAPACITY-MODEL §3.2:每批 2–4 件 · 并发 ≤ 3)──
+batches:
+  - batch: 1
+    items: ["S17-1", "S17-3", "S17-4"]
+    concurrency: 3
+  - batch: 2
+    items: ["S17-2", "S17-5"]     # S17-2 依赖 S17-1 ⇒ 串行
+    concurrency: 2
+
+# ── 规划期登记的三处前提偏离(见 sprint-17.md §两处偏离登记 + §Phase 1 硬前置)──
+deviations:
+  - id: "①"
+    item: "clinic-001 依赖状态"
+    fact: "clinic-001 = `In Review`(实现已落 + 复核原件在册);两条 AC 仍挂 BLOCKED-BY-O-24-1"
+    user_ruling: "2026-10-21 —— 承风险照排(/dev-story [A] 分支)"
+    boundary: "不为 clinic-001 转任何状态;[C] 分支在此不成立(转 Complete = 借绿)"
+  - id: "②"
+    item: "四件 manifest 落后 13 天(2026-10-02 vs 现行 2026-10-15)"
+    fact: "期间新增 Cross-Cutting 之七/之八;之八正面命中 tutorial-001 的病名闭集扫描"
+    user_ruling: "2026-10-21 —— 逐件开跑前判定,不预判结论"
+    boundary: "规划期不改卡面 Manifest Version 字段(那等于预设 [A] 判定)"
+  - id: "③"
+    item: "casebook-001 未实现(Ready)"
+    fact: "casebook-002 登记 Depends on story-001,但 Implementation Notes ① 明写以「事件列表参数」形态解耦"
+    user_ruling: "规划期判定为**名义依赖**,S17-4 可独立实施"
+    boundary: "端到端加载路径不可勾,但本件 6 条 AC 面不含该判据"
 
 # ⚠️ 基线三元组(任何引用本文件计数的下游件须同抄)
 baseline:
-  measured_at: "2026-10-20"
-  batch: "sprint-16 规划轮(Phase 1 重扫)"
+  measured_at: "2026-10-21"
+  batch: "sprint-17 规划轮(Phase 1 重扫)"
+  commit: "96ecea2"
   story_total: 226
   story_complete: 182
   story_ready: 41
@@ -106,50 +134,30 @@ baseline:
   story_other: 2            # skeuo-019 部分完成 / world-ecozones-005 Pending
   story_non_complete: 44
   epic_all_complete: 18     # / 31,按 story Status 逐条归并
-  tech_debt_ids: 92         # ⚠️ 全文串扫口径(多算 1 族引用 / 少算 5 个带后缀号 —— 净 +1);口径待废,回填后应然值未重算
-  tech_debt_ids_strict: 91  # ✅ 真源(S16-3 落定):`###`/`####` 标题 ∪ 表格行首列。见 docs/tech-debt-register.md §★ 总索引 §二
-                            # 🔁 2026-10-21 回填 `TD-gate-01/02/03` 后现役 = **94**(用户裁定「升级为 94」)。
-                            #    此处的 91 是 S16-3 规划时刻的 baseline,原文不删;变的是 `closed`(16→19)与 `N`(4→7),
-                            #    `未闭 P0 面 = 72` 一位不动 ⇒ 不影响 M3 判定。
-  tech_debt_tables: 17      # 债型表(另有 7 张非债型表)—— ⚠️ 口径待订,见下行
-  tech_debt_tables_with_td: 20  # ✅ 实测(S16-3):含 TD 行的 Markdown 表恰 20 张(全册 50 张表)
+  tech_debt_ids: 95         # ✅ 现役真源 = docs/tech-debt-register.md §★ 总索引 §五(可复算)
+                            #    求值:`条目 95 | 状态 {open:71, partial:5, closed:19} | P0 面 {Y:87, N:8}`
+  tech_debt_unclosed_p0: 72 # ✅ 一位不动(承 sprint-16 三次回填 91→94→95 均未变动)。M3 Exit ② ⇒ 假。
+  editmode_current: "4086 / 4050 / 0 / 36"   # 2026-10-21 05:08 CST · sprint-16 收口记账轮 · 6855ba7
+  playmode_current: "197 / 197 / 0 / 0"      # 2026-10-21 00:22 CST · sprint-16 收口轮 · f6cdaaf
+  # ⚠️ 两值时点不同;EditMode 晚于 PlayMode。跨平台(ADR-012 IL2CPP 三格)仍 NOT-RUN(本机仅 Mono)。
 
-# ⚠️ 条件结清(2026-10-21 · 承 qa-signoff-sprint-16-2026-10-21.md §7)
-# 本段不是 story —— 签核条件是 sprint 级欠账,不产生 story 状态变更。
-conditions_closed:
-  - id: "C-1"
-    requirement: "给 AssemblyGates.RunAll 门链补反向判据(TD-gate-01)"
-    status: "closed"
-    closed_on: "2026-10-21"
-    evidence: "production/qa/evidence/impl-c1-gate-wiring-2026-10-21.md · 新件 unity/Assets/Tests/EditMode/Sim/gate_chain_source.cs(解析器)+ gate_wiring_manifest_test.cs(手写清单 + 14 条断言)· 证伪 F1/F2/F3 三条全 exactRed(F1 删 AssemblyGates.cs:130 ⇒ 3 条红;S16-4 当时同一变异 17/17 全绿)· 全量 EditMode 4085/4049/0/36(2026-10-21 01:03 CST · C-1 实现轮 · commit f6cdaaf),对照 4071/4035/0/36 ⇒ Δ = +14/+14/0/0,差集新增 14 / 消失 0"
-    note: "① 形态**偏离原登记**(原写「在 assembly_gate_runall_test.cs 加两条断言」)—— 改为独立新件,理由:判据若与「删一行」的变异同装配,递归没有底。② 「清单须手写、禁从源生成」照做。③ **TD-gate-02 结论与原猜相反** —— 逐门核 23 类,链上 6 个全部真接线,不是「全门链共性」;真洞在 TestDriven 的 EcozoneIntegerGates(AC-6-22 BLOCKING)/ EmergencyIntegerGates(AC-10-02/03 BLOCKING)—— 零构建期强制点,已具名登记,**接不接 BuildGate 须另裁**。④ 实现期自己犯两错:IsGateClassName 只判 Gate 后缀(漏光 *Gates)/ 首轮 expectRed 漏列 —— 均由反空转守卫与「先论证再改预期」处置,详见证据件 §6。"
-  - id: "C-3"
-    requirement: "milestones/README.md:582-583 基线表刷新为带三元组的当前值"
-    status: "closed"
-    closed_on: "2026-10-21"
-    evidence: "production/milestones/README.md:582-583 已就地并列(原文不删):EditMode 3401/3355/0/46 → **4085/4049/0/36**(2026-10-21 01:03 CST · C-1 实现轮 · f6cdaaf · c1-full-editmode.xml);PlayMode 186/186/0 → **197/197/0/0**(2026-10-21 00:22 CST · sprint-16 收口轮 · f6cdaaf · smoke-s16-playmode.xml)"
-    note: "① 增量已拆分归属:EditMode +684 中 +14 = C-1 新增测,余 +670 与 skipped −10 未逐笔归属;PlayMode +11 中 +5 = s18 音频装配轮(session-state:5663 可证),余 +6 未逐笔归属。② **两值时点不同**(PlayMode 00:22 早于 EditMode 01:03);C-1 零运行时改动故不受影响 —— 但这是判断不是实测。③ 顺带复核第 581 行 story 行:226/182/41/1/2 逐项同值,无需刷(中途我自己数错过一次 168,是脚本未剥 ** 加粗前缀,已在 README 留痕)。"
-
-  - id: "TD-gate-03"
-    requirement: "falsify 残留判据登记口径订正 + 并发读取禁令成文"
-    status: "closed"
-    closed_on: "2026-10-21"
-    evidence: "tools/falsify/README.md 新增「⚠️ 并发读取禁令(2026-10-21 立 · TD-gate-03)」+「还原判据是 SHA-256,不是标记名」两节;docs/tech-debt-register.md:1581 条内改判 closed(2026-10-21 · 口径订正);两处证据件就地加注(impl-c1 §4.4 · impl-s16-4 §四/§八)"
-    note: "① **① 结论经实测证伪,登记描述本身有错** —— 驱动**没有**残留词表,还原判据 `restore_all()` 的逐文件 SHA-256 比对(`tools/falsify/unity_falsify.py:152-176`,跑在 `finally`)。证据件里的 `grep -c \"FALSIFY-F\"` 是**手工补充复核**,被误登记成「驱动词表」。哈希比词表强:词表只证明「没留下这个字符串」,哈希证明「内容真的一致」。② ②(并发读取污染)仍成立,但属**过程纪律非代码缺陷** —— 驱动只保证自己不并发,**侦测不到他人并发读**(读文件不留痕)。已实测两次(qa-lead 在 sprint-16 QA 轮、编排方在 C-1 的 F2 窗口)。纪律表已落 README:发令方声明窗口 + 读者窗口内不读 / 改用 `git show HEAD:<path>`。③ 该条挂了四天(2026-10-17 → 2026-10-21)才被打开代码验证 —— 教训:登记的措辞不等于事实。"
-  - id: "tech-debt-register §四 总索引回填"
-    requirement: "三条 TD-gate 进 §四 索引 + 口径升版裁定"
-    status: "closed"
-    closed_on: "2026-10-21"
-    evidence: "docs/tech-debt-register.md §★ 总索引 TD-INDEX 区间加入 `TD-gate-01/02/03` 三行(`判据` 列 = `R3-裁`);重新求值 = `条目 94 | 状态 {open:70, partial:5, closed:19} | P0 面 {Y:87, N:7}` / `未闭 P0 面 = 72`(§五 已并列新输出,旧 91 版原文保留)"
-    note: "① 用户 2026-10-21 裁定「回填,升级为 94」⇒ **口径升版**:`94` = 现役单一真值,`91` 自此只作历史数出现在 S16-3 收口注。② **`未闭 P0 面 = 72` 一位不动** —— 三条为治理债(`P0 面 = N`),不进 M3 出口 ⇒ 回填只让分母变全,**不改变 M3 判定**。③ 原登记预估的输出 `条目 94 | P0 面 {Y:87, N:7}` 与实测**逐字一致**。④ ⚠️ 本文件 `baseline.tech_debt_ids: 92` **未重算其应然值** —— 该字段的出处口径(全文串扫)本身待废,现役真源只看债册(见 ⑤,本条不写推测数)。⑤ 🔁 **2026-10-21 收口记账轮再订**:`TD-build-01` 入表 ⇒ **现役 = 95**;本卡 evidence 里的 `条目 94` 是**该卡结案时**的数,保留不删。最新求值 = `条目 95 | 状态 {open:71, partial:5, closed:19} | P0 面 {Y:87, N:8}` / `未闭 P0 面 = 72`。"
-
-  - id: "Ecozone/EmergencyIntegerGates 接 BuildGate"
-    requirement: "两条 BLOCKING 级 AC(AC-6-22 / AC-10-02·03)的构建期强制点"
-    status: "closed"
-    closed_on: "2026-10-21"
-    evidence: "两门各新增 `RunAll()` 强制入口(含 scriptCompilationFailed 守卫,复刻 RunAudioBoundary 形态);AssemblyGates.cs `RunMenu`+`OnPreprocessBuild` 各接两行;manifest BuildGate/RunMenu 清单各 +2 行、两门 Kind TestDriven→Chain、KnownTestDrivenBlockingGaps 清空 + 新增 ExpectedTestDrivenClasses 封闭性断言;GateWiringManifestTest 15/15 通过;证伪轮 tools/falsify/specs/c2-il-gate-wiring.json"
-    note: "① 用户 2026-10-21 裁定「接 —— 复刻 b5 先例」。② 🔴 **我提交该裁定前给的不接理由是错的**:说「IL 级门不能进 BuildGate、BuildGate 无等价守卫」—— 实测 `AssemblyGates.cs:1230` 的 OnPreprocessBuild 本就在调 IL 门 `RunAudioBoundary`,而 `scriptCompilationFailed` 守卫就住在它内部(`:1155`)。真因是**这两个门没把守卫写在自己身上**(留给了测试)。错误链:原文写「IL 门放不进 **reload 路径**」(对的),我读成了「放不进 **BuildGate**」;而 manifest Note 里**已经写着**「但**可**进 BuildGate —— 现未接」,我也没读。③ 接线挖出新假绿面并同批补掉:缺口表清空后守它的断言遍历零条恒绿 ⇒ 新增 `ExpectedTestDrivenClasses` + `test_testDrivenKind_isClosedSet_notDefault`。"
-
+# ⚠️ 条件清单:本 sprint 规划期为**空**(新 sprint,尚无签核条件)。
+conditions_closed: []
 conditions_open: []
-  # ✅ 2026-10-21:原「Ecozone/EmergencyIntegerGates 接 BuildGate」已结清并移入上方 conditions_closed。
-  #    本清单**当前为空** —— 不是遗漏。sprint-16 的 5 条签核条件全部结清。
+  # sprint-16 的 5 条结清条件全部保存在 `production/sprint-status-sprint16-archive.yaml` 的
+  # `conditions_closed`(C-1 / C-3 / TD-gate-03 / 债册 §四 总索引回填 / Ecozone·EmergencyIntegerGates 接 BuildGate)。
+
+# ⚠️ 从本 sprint 移出/未纳入的件与去向(登记,防蒸发)
+moved_out:
+  - id: "clinic-004 / clinic-005"
+    to: "sprint-20"
+    note: "路线图 §6.5 前置 = sprint-18 的 G-8(clinic 链 BLOCKED-BY 根因消除)"
+  - id: "tutorial-002…005"
+    to: "sprint-25"
+    note: "002/003 挂 BLOCKED-BY-45(联机运行面)"
+  - id: "casebook-001"
+    to: "sprint-27"
+    note: "路线图 §6.5 把 casebook-001/003/004 + inventory-005 排 sprint-27;本 sprint 的 S17-4 不依赖其实现(名义依赖)"
+  - id: "TD-epic-01 清 P0 面 / retro-14 A3"
+    to: "sprint-19"
+    note: "承 sprint-16 moved_out,原样顺延"

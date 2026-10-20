@@ -92,6 +92,22 @@
 
 ---
 
+> ### 🔁 QA plan 回填(2026-10-21 · `production/qa/qa-plan-sprint-17-2026-10-21.md`)
+>
+> 上列规格**原文保留**;只补增量。**估计测试数 ~20**。
+>
+> | # | 新增判据 | 依据 |
+> |---|---|---|
+> | 1 | 🔴 **Cross-Cutting 之八 强制项(BLOCKING 级)** —— 第 ④ 项「病名闭集扫描」在**中文散文**上判定:① 谓词处**显式** `StringComparison.Ordinal`(`IndexOf`/`Contains`/`Equals` 一律带,禁默认重载);② 扫描结果**须是结构化计数 / 命中 id 列表**,**失败与否由计数派生**,不得由字符串前缀判真假。测试须**至少一例钉住**(构造只差 `Ordinal` 语义的输入,证明判定不随 culture 变化) | `control-manifest.md:571-590`(Manifest `2026-10-15`,**晚于**本卡 `2026-10-02`) |
+> | 2 | **长度边界成对断言**:`narration[].text` 恰 **170** 过 / **171** 拒;`papers[].body` 同;`papers[].title` 恰 **2 行**过 / **3 行**拒。上列只测了 171 单侧 | 规则八校验规则 3 · `paper-closeup-48.md` §12 |
+> | 3 | **`ConfigVersion` 内容哈希一致**(不只「字节级两次一致」):同源两次烘焙的 `ConfigVersion`(内容哈希 u32)相等;改一个数值 ⇒ 版本号变 | AC 第 3 条 · ADR-014 §五 |
+> | 4 | **程序集引用断言须带 `Count > 0` 守卫** —— 上列 AC-3 的「无 Newtonsoft / `System.Text.Json`」在**空引用集下恒真**;须先断言「扫描的引用集非空」再断言「不含禁用项」 | `presentation_projection_test.cs:412` 记的同型警告 |
+> | 5 | **`archive` 步白名单例外**:`predicateKind = 字面 "Checkpoint"`(7a 存档头,**不是** `SimEvent.Kind`);且该字面**不得**被放到其它五步 | 规则八「`archive` 步判据例外」· ADR-024 |
+>
+> ⚠️ **未定项(实施期须落定)**:第 ④ 项要扫的「9 的病种名表」= **扫描字典**。若实施期该表尚未烘成可读产物,
+> AC 第 4 条(种子 17 条过全部 6 项)的「第 ④ 项」记 **`NOT-RUN`,不勾**;
+> **不得**用弱化词表凑绿(本仓「自造断言顶替 AC 语义层」形态之一)。
+
 ## Test Evidence
 
 **Story Type**: Logic
