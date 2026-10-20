@@ -33,47 +33,47 @@ work_items:
     name: "CAPACITY-MODEL 重标定 = 三元(件 + 复杂度分布 + 追加率)"
     file: "production/CAPACITY-MODEL.md"
     complexity: M
-    status: "not-started"     # not-started | in-progress | done | blocked
-    owner: ""
+    status: "done"            # 2026-10-20 收口(含两条判据订正,见 note)
+    owner: "claude"
     depends_on: []
-    evidence: ""
-    note: "「件/日」列整列移除;§六 失败条件 #2/#3 改写"
+    evidence: "production/CAPACITY-MODEL.md §二·补二 + §3.1/§3.2 + §六;#2/#3 换靶;SKILL §4b 改读两层(grep 实测)"
+    note: "① 三元落 §3.1(记录)/§3.2(约束)两层;② ⚠️ 本卡判据②「件/日列整列移除」**早已完成** —— 该列在 S12-1 写入当日即自废(§二 注 + §六 Bulletin 一)⇒ 改为「核实并登记」,零工作;③ §六 #2/#3 换靶;#2 由「超容⇒顺延」改为「三元缺记/口径不唯一 ⇒ 不可比」;④ ⚠️ 判据④我自拟首版被自己证伪(「grep 件/日 = 0 命中」实为 2 命中,均为禁令句)⇒ 收窄为「无『件/日 作对照单位』的命中」"
   - id: "S16-2"
     name: "三份静态件物理合并 + M3 Exit 两条合取 + 分母真源裁决"
     file: "production/milestones/p0-remaining-roadmap-2026-10-20.md"
     complexity: L
-    status: "not-started"
-    owner: ""
+    status: "done"            # 2026-10-20 收口
+    owner: "claude"
     depends_on: ["S16-3"]
-    evidence: ""
-    note: "⚠️ 自我指涉:被合并者含承载本件序列表的 p0-completion-plan;先定落点再动手"
+    evidence: "路线图 §〇·二/§〇·三/§一/§2.4/§2.5/§3.1/§4.4/§5.1/§5.2/§6.5–§6.7/§7.1/§八(吸收两件);README M3 Exit 两条合取(:370-385 块);四处加注 :49/:370 块/:393 复核块/:570;git rm 两件"
+    note: "① 落点/编号/删除三项均取用户推荐(并入 roadmap · 保留 §〇–§十一 · 我执行 git rm);② 两件 `git rm` 已执行(backlog + completion-plan);③ ⚠️ 判据「README:371」**行号随加注下移** —— 实测落在 **:370-385 块**(① = :372,② = :373),已按实测登记;④ 第二条合取标 **NOT-YET-EVALUABLE**(债册「P0 面」列归 S16-3)—— **禁标绿**;⑤ 吸收件内部 § 引用已逐处重指(backlog「承 §三」= 依赖环 ⇒ §2.5);⑥ 去重仅一组:backlog S-4 ≡ roadmap SP-3"
   - id: "S16-3"
-    name: "债册增「P0 面 / 状态」两列(92 条 / ~17 债型表)+ 八道门清偿载体成文"
+    name: "债册增「P0 面 / 状态」两列(实测 91 条 / 20 张含 TD 的表)+ 八道门清偿载体成文"
     file: "docs/tech-debt-register.md"
     complexity: L
-    status: "not-started"
-    owner: ""
+    status: "done"            # 2026-10-20 收口
+    owner: "claude"
     depends_on: []
-    evidence: ""
-    note: "「P0 面」判定只走三条可机械规则;其余单列待裁,不自行裁"
+    evidence: "docs/tech-debt-register.md §★ 总索引(91 行索引表 · 三列)+ 求值命令实跑 = 「条目 91 | 状态 {open:70, partial:5, closed:16} | P0 面 {Y:87, N:4};未闭 P0 面 = 72」· M3 Exit 第二条合取 ⇒ 假(72 条未闭 / 12 个 epic);⚠️ 初版命令漏滤已闭 15 条曾报 87,已修+ §六 八道门载体表"
+    note: "① 用户 2026-10-20 四项裁定:宽判据(归属 P0 epic 即算)· 总索引表 · 声明「归属 epic」列 · 采纳 91;② ⚠️ 宽判据**如实执行**得 87 Y 而非预览的「91 全中」—— 差 4 = 2 条 R2(系统 45=P1b / 49=P2)+ 2 条 R3(跨 epic 治理无归属);③ 状态列**刻意不用**「含 ✅ 即 closed」机械规则(实测 5 处 ✅ 在非结案语境:勘验结论 / 前提订正 / 证据记录)⇒ 91 行逐条读原文判定,是本表唯一不可机械复算的列;④ 归属取「须还方」不取「登记小节」⇒ 11 处方一节 8 条分落 4 epic;⑤ 原文一律不删:头部「待办」块就地加注(82→91 · ~20 张表→恰 20),各日期小节零改动;⑥ TD-net-01 的「义务级 P0 · 归属系统级 P1b · 无 epic」三重错位 + 2 条 R3 一并进待裁清单;⑦ **待裁 4 条已裁(2026-10-20,全取推荐 ⇒ 俱判 N)**:TD-net-01(归属优先,义务仍以 open 跟踪,只答「算不算 M3 出口」)· TD-prescription-05(49=P2 且 AC-11-13 已按豁免口径转 ✅)· TD-s13-01/TD-s13-03(治理债≠产品债)⇒ **待裁桶清零,M3 分母 = 单一 72(不再带 +3),数一位不变**"
   - id: "S16-4"
     name: "retro-14 A4「测试/工具不得写仓库」立机械门"
     file: ".claude/rules/test-standards.md"
     complexity: M
-    status: "not-started"
-    owner: ""
+    status: "done"
+    owner: "claude"
     depends_on: []
-    evidence: ""
-    note: "证伪判据 = 注入 File.WriteAllText ⇒ 门必须红"
+    evidence: "production/qa/evidence/impl-s16-4-fs-write-boundary-2026-10-20.md · 门 = unity/Assets/Editor.Tools.Gates/FsWriteBoundaryGate.cs(接 AssemblyGates.RunAll)· 17 条测试 = unity/Assets/Tests/EditMode/DataPipeline/fs_write_boundary_gate_test.cs · 证伪轮 F1/F2/F3 三条全 exactRed,驱动退出码 0(SHA-256 还原校验通过 · 指纹未变 · 残留 0)· 全量 EditMode = 4071/4035/0/36(2026-10-20 23:45 CST · sprint-16/S16-4/全量 · commit f6cdaaf),对照基线 4054/4018/0/36 ⇒ Δ = +17/17/0/0,差集实测新增 17 条全为本轮测试、消失 0"
+    note: "① 判据落法 = 两规则而非一张 grep 名单:R1 写盘第一实参直接是字面量 ⇒ 红;R2 文件含写盘调用且含仓库**代码锚点**(Application.dataPath / Directory.GetCurrentDirectory / Application.streamingAssetsPath)⇒ 须具名声明带理由,声明过期/悬空同样红。② 扫描面 = Assets/Tests/**(用户裁定「仅测试树」);工具侧 35 处 *.cooked 写盘刻意不扫(否则只能整目录白名单 = 自我豁免)。③ **门当天抓到 2 处活违规**:u1/story007 的 Assets/ 兜底候选会把尖刺结果写成 Unity 资产 ⇒ 已删候选、就地加注。④ 声明表 6 条,其中第 6 条(assembly_gate_b6_test)是**真树断言抓出来的漏项** —— 起草期抽样只列「有代码锚点且无字面量锚点」的 4 个,漏了「两种锚点都有」的这一个 ⇒ 抽样不是普查。⑤ ⚠️ **基线订正**:QA plan 记的 3940/3904/0/36 是规划时刻快照,同日 clinic-machine 修复轮已先期推到 4041(18:44)→ 4054(19:10);若拿 3940 当对照,Δ=+131 会把 114 条误读成本门新增 ⇒ 按 4054 对账(禁借绿第一形态)。⑥ 盲区 ①②③(跨文件 / 字面量锚点 / 无锚点绕行)已登记,统一升级触发条件 = 第四例事故且形态属盲区 ⇒ 升 Cecil IL 级。"
   - id: "S16-5"
     name: "EPIC.md 4 户分母刷账(emergency 7→9 / patient-ai 4→5 / skeuo 18→25 / world-ecozones 分子 −1)"
     file: "production/epics/*/EPIC.md"
     complexity: M
-    status: "not-started"
-    owner: ""
+    status: "done"
+    owner: "claude"
     depends_on: []
-    evidence: ""
-    note: "分母 = 实际 story 文件数;刷账后须能读出 18/31"
+    evidence: "四份 EPIC.md header 已刷:emergency-procedures 8/9(分母 7→9)· patient-ai 4/5(4→5)· skeuomorphic-ui 24/25(18→25)· world-ecozones 5/6(分子 6→5)。AC① 分母 = 实际 story 文件数(9/5/25/6)逐户 ✅;AC② EPIC.md 直接读出 = 18/31,story 逐条归并 = 18/31,非 Complete 13 户名单逐一相同;改前 EPIC.md 读出 = 22/31(差 4 户 = 本次四户)。零 story 状态变更(git status 对 story-*.md 为空)。落盘六处:sprint-16 收口注 · 本 yaml · qa-plan smoke 第 6 项 · 路线图 §1.2 ✅ 块 · milestones/README :580 加注 · active.md"
+    note: "① 用户 2026-10-21 裁定:刷分母 + 状态改判为未 Complete(非只刷分母、非降为未定)—— 理由:只刷分母会让 EPIC.md 自相矛盾(Complete ✅ 却 8/9),grep 仍得 22。② 改法承「原文不删,就地加注」:每份插入新 Status 行于原行之上,原行改标 Status(历史 · 原文保留),内容一字未删;派生论断三处同步加注(emergency §Epic Status / world §Epic Status + §Next Step / skeuo §里程碑归属)。③ ⚠️ **判据险情留痕**:首版复算脚本把「无分数的 Status 行」(input/interaction/skill-system 只写 Complete;audio-system 写「001–018 全 Complete」)误按非 Complete 处理 ⇒ 误报 18;真因是「按分数判 = 22 且漏 4 个 Complete 无分数户」⇒ **两个错误恰好抵消成 18**。若直接签 = 巧合正确。修正规则(有分数以分数为准;无分数看状态词)后基线 22 → 刷账后 18,才可解释。教训:输出等于预期值 ≠ 判据正确。④ 副作用已登记:milestones/README :580 与路线图 §1.2「不认 EPIC.md 分数」的**理由**自此消失(两口径同值),结论不变,已就地加注为「两口径互为校验」。"
 
 # ⚠️ 从本 sprint 移出的件与去向(登记,防蒸发)
 moved_out:
@@ -98,5 +98,7 @@ baseline:
   story_other: 2            # skeuo-019 部分完成 / world-ecozones-005 Pending
   story_non_complete: 44
   epic_all_complete: 18     # / 31,按 story Status 逐条归并
-  tech_debt_ids: 92         # 唯一 TD 编号
-  tech_debt_tables: 17      # 债型表(另有 7 张非债型表)
+  tech_debt_ids: 92         # ⚠️ 全文串扫口径(多算 1 族引用 / 少算 5 个带后缀号 —— 净 +1)
+  tech_debt_ids_strict: 91  # ✅ 真源(S16-3 落定):`###`/`####` 标题 ∪ 表格行首列。见 docs/tech-debt-register.md §★ 总索引 §二
+  tech_debt_tables: 17      # 债型表(另有 7 张非债型表)—— ⚠️ 口径待订,见下行
+  tech_debt_tables_with_td: 20  # ✅ 实测(S16-3):含 TD 行的 Markdown 表恰 20 张(全册 50 张表)

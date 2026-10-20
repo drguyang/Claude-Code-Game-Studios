@@ -41,6 +41,35 @@ Use the Task tool to spawn each team member as a subagent:
 
 Always provide full context in each agent's prompt (story file paths, QA plan path, scope constraints). Launch independent qa-tester tasks in parallel where possible (e.g., multiple stories in Phase 5 can be scaffolded simultaneously).
 
+### ⚠️ 轮次纪律(**强制 · 2026-10-21 立 · 承 `TD-s13-01` 同型复现**)
+
+> **立规缘由(sprint-16 QA 签核轮实测)**：本 skill 的 Phase 2 prompt 要求 qa-lead
+> 「读每个 story + 逐件分类 + 核 smoke + 产表」，却**没有任何落盘纪律** ⇒
+> qa-lead **撞 20 轮上限、零报告**交回，由编排方 `SendMessage` 二次催才交付。
+> 这与 `TD-s13-01` 记的 code-review 事故**同型**，而 `code-review` skill
+> 早在 2026-10-17 就补了机制（`grep -n "增量落盘" .claude/skills/code-review/SKILL.md`），
+> **本 skill 漏补** —— 同一个病在另一个 skill 上复现，是「修了一处就当修了全类」的代价。
+
+**每次 spawn `qa-lead` / `qa-tester` 时，prompt 必须含以下三条（缺一不可）：**
+
+1. **草稿路径**（编排方指定，如 `production/qa/evidence/tmp-qa-<sprint>-<role>.md`），并写明：
+   ```
+   每完成一项勘察（读完一个文件 / 跑完一条命令 / 核完一条判定），
+   **立即 Append 一条到草稿文件**，格式：`| ID | 判定 | 证据 | 出处 |`。
+   不要等全部勘察完再写 —— 草稿 = 报告的分析段，轮次耗尽时它就是交付物。
+   ```
+2. **交付定义 = 草稿文件非空且覆盖清单过半**，不是「在对话里贴出完整报告」。
+   即使 agent 超限被停，草稿仍在盘上，由编排方读草稿补成报告。
+3. **硬预算 + 投降条款**：`≤ N 次工具调用产出报告`（按勘察面大小定，QA 策略轮建议 15）；
+   逼近上限**立即交付当前报告**，并在「未及核查项」一节如实列出剩余项（**禁借绿**）。
+
+**并且：编排方自己也要查** —— agent 交回后若「零报告」，先看草稿文件是否在盘上，
+再决定 `SendMessage` 续跑还是直接据草稿合并。**不要把「agent 没交报告」当成「agent 没做工作」**。
+
+**判据（可复算）**：`wc -l <草稿路径> > 0` 且草稿内结论行数 ≥ 应核条数 / 2。
+⚠️ 仍为**前瞻性判据** —— 须在下次真实 QA 轮实测，当下不可自证（禁借绿）。
+本节**存在性**可证伪（改本节 ⇒ skill 行为变），**有效性**待下次 QA 轮。
+
 ## Pipeline
 
 ### Phase 1: Load Context

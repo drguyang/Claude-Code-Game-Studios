@@ -3,10 +3,15 @@
 > **Layer**: Foundation → Core → Feature
 > **GDD**: design/gdd/world-and-ecozones.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)+ Tooling 消费侧(ADR-022 关卡工具)
-> **Status**: Complete ✅ 2026-10-03(6/6 story 已实现;两轮评审的判据缺陷 N1/N5 已修并复跑 **109/109 绿 0 红**;评审原件两份已落 `qa/evidence/`;未闭项 = **N3** 白名单判据待 27 侧落地 + **Story 005** [L] 走查 EXTERNAL —— 详见 §Epic Status)
+> **Status**: 🔁 **未 Complete —— 5/6 story 完成**(2026-10-21 · **S16-5 分母刷账**;判据 = M3 口径「story `Status:` 逐条归并」,承 S16-2 真源裁决)。未闭 = **story-005**(`Pending — [L]` 桌面走查 + 工具 CI:**EXTERNAL 验证类,非实现欠账**)。⚠️ **本改判只动 epic 级状态词与分母,不动任何 story 状态**;原「6/6 story 已实现」数字**不实**(story-005 从未收口)。
+> **Status(历史 · 原文保留)**: Complete ✅ 2026-10-03(6/6 story 已实现;两轮评审的判据缺陷 N1/N5 已修并复跑 **109/109 绿 0 红**;评审原件两份已落 `qa/evidence/`;未闭项 = **N3** 白名单判据待 27 侧落地 + **Story 005** [L] 走查 EXTERNAL —— 详见 §Epic Status)
 > **Stories**: 6 stories — see table below
+> 🔁 **2026-10-21(S16-5 刷账)**:分母 **6** 与实有 story 文件数一致,**不改**;变的是**分子**(6/6 → **5/6**,
+> 因 story-005 未收口)。
 >
 > ⚠️ **2026-10-20 账面订正(逐文件实测)**:实测 **5/6 Complete**。原 header「6/6 story 已实现」数字不实 —— **story-005** 仍 `Pending — [L] 桌面走查 + 工具 CI(draft 走查表已落 production/qa/evidence/world-ecozones/story-005-discovery-walkthrough-2026-10-01.md)`(该 story 为 [L]/EXTERNAL 验证类,非实现欠账;§Epic Status 已登记其为显式未执行)。原文保留不改,以本注为准。本注只改声明,不改 story 状态。
+> 🔁 **2026-10-21(S16-5)**:分数与状态词**已刷入 header**(上方新 `**Status**` 行);原行改为
+> `**Status(历史 · 原文保留)**`,**内容一字未删**;判据以新 Status 行为准。
 
 ## Overview
 
@@ -70,6 +75,10 @@ This epic is complete when:
 
 ## Epic Status
 
+> 🔁 **2026-10-21(S16-5 刷账)**:下行的「Complete ✅ 2026-10-03(6/6 story 已实现)」**原文保留**,
+> 但**分子不实** —— 实为 **5/6**(story-005 `Pending — [L]`)。按 M3 口径(全部 story `Complete`)
+> 本 epic **不计入「全 Complete epic」**;story 状态一个未动。
+
 **Complete ✅ 2026-10-03**(6/6 story 已实现;story 005 的 [L]/EXTERNAL 走查为**显式未执行**,见下)。
 
 **转 Complete 的两个前置均已满足**:
@@ -113,6 +122,9 @@ This epic is complete when:
 ## Next Step
 
 **本 Epic 已 Complete(2026-10-03)** —— 无剩余**本 epic 范围内**的实现工作。
+
+> 🔁 **2026-10-21(S16-5)**:上行按**当时的**「story-005 走查属 EXTERNAL、不计入实现欠账」口径成立,
+> 原文保留。按 M3 口径 story-005 仍未收口 ⇒ epic 级现读 **5/6,未 Complete**。两说法的唯一分歧就是它。
 等待事项均属外部主语 / 外部轮次:
 
 - **N3 白名单静态断言** ⇒ 27 的 AI 实现落地时同批补(带 27 侧负向夹具)。

@@ -127,13 +127,25 @@ sprint dates not found."
 > 「又一份文档」—— 它是本 skill 在无日期场景下的**替代度量源**。
 
 For a sprint with no usable end date (dates missing, or the plan declares
-「不设结束日期」), **read `production/CAPACITY-MODEL.md`** and replace the burndown
-verdict with a capacity verdict built from its three knobs:
+「不设结束日期」), **read `production/CAPACITY-MODEL.md` §三** and replace the burndown
+verdict with a capacity verdict built from its **两层**(`3.1 记录三元` + `3.2 约束三条`)。
 
-- **复杂度 C** — each story's `estimate_days: 0` in `sprint-status.yaml` is a
-  **legacy field, not a duration** (sprint-12 起废止旧「solo 人日」口径). Read
-  complexity from the story's `Est` column in the sprint plan (S / M / L), not
-  from `estimate_days`.
+**3.1 记录三元(先报这一层 —— 它是本 skill 此前完全没报的东西)**:
+
+- **件数** — 计划件 / 计划内完成 / 计划外追加. Read the sprint plan's Tasks tables
+  and the per-story `status` in `sprint-status.yaml`. 追加 = 计划表里没有、却在
+  收口记 / archive yaml 里出现的件.
+- **复杂度分布** — S / M / L **各几件**. Read each story's `Est` column in the sprint
+  plan. ⚠️ `estimate_days: 0` in `sprint-status.yaml` is a **legacy field, not a
+  duration** (sprint-12 起废止旧「solo 人日」口径) — never read complexity from it.
+- **追加率** = 计划外追加件 / 计划件. 实测区间 **0%–57%**(见 `CAPACITY-MODEL.md` §二·补二).
+
+**两个导出量**:`计划内完成率 = 计划内 done / 计划件`(**未明写「含追加」时,「完成率」
+一律指这个**;它是**移出率的影子**,纪律指标而非产能指标)· `追加率` 同上.
+
+**3.2 约束三条(旧三旋钮 —— 仍报,但列为约束而非常量)**:
+
+- **复杂度 C** — S / M / L,由依赖数 + 判别力要求定,不由工作量估.
 - **并发上限 P** — 同时在跑 ≤ 3 件. Count stories that were `in-progress`
   simultaneously; > 3 is a process flag, not a schedule slip.
 - **判别力门槛 D** — 每件须有可证伪判据(「回退即转红」)才计入 done.
@@ -142,12 +154,19 @@ verdict with a capacity verdict built from its three knobs:
 Then report, in place of the burndown line:
 
 ```markdown
-### 产能(无结束日期 —— 依 production/CAPACITY-MODEL.md)
+### 产能(无结束日期 —— 依 production/CAPACITY-MODEL.md §三)
+- 记录三元:计划 [n] 件 · 完成 [d] 件(另 [r] 件移出)· **追加 [a] 件(追加率 [x]%)**
 - 复杂度分布: S×[n] / M×[n] / L×[n]
-- 判别力门槛 D: [n] 件有「回退即转红」记录 / [m] 件未证伪(不计完成)
-- 基线对照: sprint-11 实测 16 件 / 2 执行日(治理债类);本 sprint = [n] 件 / [d] 执行日
-- 结论: [与基线一致 / 高于基线 / 低于基线 —— 说明差异来源]
+- 导出量: 计划内完成率 [y]%(⚠️ 移出率的影子,不是产能指标)
+- 约束三条: C = 分布如上 / 并发峰值 [p](≤3)/ D = [n] 件有「回退即转红」记录 · [m] 件未证伪(不计完成)
+- 结论: [与基线一致 / 高于基线 / 低于基线] —— **差异来源须指明是复杂度分布还是追加,不是件数**
 ```
+
+> ⚠️ **禁把三元任一(件数 / 复杂度分布 / 追加率)当速率做线性外推** —— 承
+> `CAPACITY-MODEL.md` §六 条件 #3(该条 2026-10-20 已把靶从「件/日那一列」扩到「三元本身」)。
+> **同理禁用「件/日」作对照单位** —— 该单位已整条废止(§一 / §二·补),本段模板此前仍在教
+> 人用它对照,已于 2026-10-20(S16-1)换靶。
+> **某元缺记或口径不唯一 ⇒ 该轮不可比**,如实写「不可比 + 缺哪一元」,**不得**凑一个数(§六 条件 #2)。
 
 **不要**对「不设结束日期」的 sprint 输出 "unknown" —— 那是把**口径缺省**错报成
 **信息缺省**;产能模型正是为填这个空而建立。

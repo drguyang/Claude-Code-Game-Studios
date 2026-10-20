@@ -5,7 +5,7 @@
 > **Architecture Module**: `Gameplay.UI`(42 屏幕空间模态 `ModalId.SaveSlots`)—— 只读 7a 的槽位投影,**零写入**
 > **Status**: **`Ready`(卡面)· 实测 `BLOCKED-BY-7a`** —— ⚠️ 卡面零 `BLOCKED-BY` 标记,但上游两条契约在今日代码里**零落点**(§Epic Status)。已登记 **`TD-persist-02`**(不立 story)
 > **Stories**: 1 story(全案 31 个 epic 中**唯一的单件 epic**,见 §S-6)
-> **本 EPIC 建于**:2026-10-20(`production/p0-remaining-backlog-2026-10-20.md:271` **S-6** —— 31 个 epic 目录里唯一缺 `EPIC.md` 的一个)
+> **本 EPIC 建于**:2026-10-20(`production/milestones/p0-remaining-roadmap-2026-10-20.md` **§7.1 S-6** —— 31 个 epic 目录里唯一缺 `EPIC.md` 的一个。原件曾为 `p0-remaining-backlog-2026-10-20.md:271`,该件已于 2026-10-20 由 S16-2 物理并入路线图)
 
 ## Stories
 
@@ -89,7 +89,7 @@
 
 ## S-6 结案：单件 epic 是有意的吗？M3 分母怎么算？
 
-**问**(`production/p0-remaining-backlog-2026-10-20.md:271`)：「若有意(单件 epic)，在 M3 分母口径里注明。」
+**问**(`production/milestones/p0-remaining-roadmap-2026-10-20.md` **§7.1 S-6**;原件 `p0-remaining-backlog-2026-10-20.md:271`,已由 S16-2 并入)：「若有意(单件 epic)，在 M3 分母口径里注明。」
 
 **答 —— 两条**：
 

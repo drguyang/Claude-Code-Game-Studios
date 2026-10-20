@@ -3,12 +3,22 @@
 > **Layer**: Core(输入聚合 / 判定)× Feature(模态期交互)
 > **GDD**: design/gdd/emergency-procedures.md
 > **Architecture Module**: L3 Gameplay + L2 Sim 接缝(判定输入进流,主机权威)
-> **Status**: **Complete ✅ 2026-10-08**(7/7 story 已实现;两轮评审 A1/A2/A6/B4/C4/C5 **已全闭**;✅ **评审原件两份均在库**(首轮 + round2);**转 Complete 的两条真实前置已于 2026-10-08 全部结清** —— ① **实跑 Unity 测试套件**(EditMode 急救模块 **120/116/0 红/4 NOT-RUN** · PlayMode 急救模块 **4/4** · 全量 EditMode **3001/2954/0 红** · 全量 PlayMode **96/96**);② D1/D2/D3 文档状态对齐(逐项核实已对齐)。验证原件 `production/qa/evidence/verification-emergency-procedures-tests-2026-10-08.md`。其余未闭项:载荷 `Seq` 占位(归上行链 45)· AC-10-04b 三格逐位(ADR-012 矩阵未激活,NOT-RUN)—— **均结构性归属其他 epic,不阻塞本 epic**。⚠️ 详见下方 §Epic Status)
+> **Status**: 🔁 **未 Complete —— 8/9 story 完成**(2026-10-21 · **S16-5 分母刷账**;判据 = M3 口径「story `Status:` 逐条归并」,承 S16-2 真源裁决)。未闭 = **story-008**(`Ready ⬜` 资产提前:依赖素材本体产出 —— 外部美术 / 用户自产)。⚠️ **本改判只动 epic 级状态词与分母,不动任何 story 状态**;原「Complete」所据的例外(008 资产提前「不改变 Complete 判定」)见下方 §Epic Status —— 该例外**按 epic 自身口径成立,按 M3 口径不计入「全 Complete epic」**。
+> **Status(历史 · 原文保留)**: **Complete ✅ 2026-10-08**(7/7 story 已实现;两轮评审 A1/A2/A6/B4/C4/C5 **已全闭**;✅ **评审原件两份均在库**(首轮 + round2);**转 Complete 的两条真实前置已于 2026-10-08 全部结清** —— ① **实跑 Unity 测试套件**(EditMode 急救模块 **120/116/0 红/4 NOT-RUN** · PlayMode 急救模块 **4/4** · 全量 EditMode **3001/2954/0 红** · 全量 PlayMode **96/96**);② D1/D2/D3 文档状态对齐(逐项核实已对齐)。验证原件 `production/qa/evidence/verification-emergency-procedures-tests-2026-10-08.md`。其余未闭项:载荷 `Seq` 占位(归上行链 45)· AC-10-04b 三格逐位(ADR-012 矩阵未激活,NOT-RUN)—— **均结构性归属其他 epic,不阻塞本 epic**。⚠️ 详见下方 §Epic Status)
 > **Stories**: **8 stories**(001–007 机制全闭 + **008 资产提前 = Ready ⬜,不改变 Complete 判定**)—— see table below
+> 🔁 **2026-10-21(S16-5 刷账)**:本行「8 stories」为**漏登 story-009 前**的口径;实有 **9** 条(分母以 9 为准,见下行 2026-10-20 订正注)。
 >
 > ⚠️ **2026-10-20 账面订正(逐文件实测)**:本 epic 实有 **9** 条 story(含下文 §2026-10-14 补注登记的 **story-009**,已 Complete ✅ 2026-10-14),补齐 §Stories 表 009 行后实测 **8/9 Complete**。未闭 = **story-008**(`Ready ⬜(依赖素材本体产出 —— 外部美术 / 用户自产)`)。原 header「7/7」与上行「8 stories」为订正前口径,原文保留不改,以本注为准。本注只改声明,不改 story 状态。
+> 🔁 **2026-10-21(S16-5)**:本注所指的**分数与状态词已刷入 header**(见上方新 `**Status**` 行);
+> 原行改为 `**Status(历史 · 原文保留)**`,**内容一字未删**。本注「原文保留不改」自此指**原行内容仍保留**,
+> 而**判据以新 Status 行为准**。
 
 ## Epic Status(2026-10-03 · **2026-10-08 结清**)
+
+> 🔁 **2026-10-21(S16-5 刷账)**:本节及以下的「已转 Complete(2026-10-08)」是**当时依据「008 资产提前
+> 不改变 Complete 判定」这一例外口径**作出的判定,原文不删。按 **M3 口径**(全部 story `Complete`,
+> 承 S16-2 真源裁决)本 epic 现读 **8/9**,**不计入「全 Complete epic」**(现 18/31)。
+> 两套口径的**唯一分歧 = story-008**(`Ready ⬜` 资产);story 状态一个未动。
 
 **✅ 已转 Complete(2026-10-08)** —— 两条前置全部结清:
 
