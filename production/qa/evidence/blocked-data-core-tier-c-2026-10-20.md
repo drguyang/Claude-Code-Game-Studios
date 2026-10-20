@@ -204,6 +204,7 @@ $ grep -c "^\s*void Submit" unity/Assets/Gameplay.UI/Skeuomorphic/CasebookBindin
 | — | **零代码改动**(无 `.cs` / `.json` / `.cooked` 变更) | 用户裁定 |
 | R-1 | 丙档 5 项的**可复算阻塞证据**(§1 / §2) | 登记 |
 | R-2 | F-1 → `design/gdd/inventory-and-items.md` **新增 `OQ-20-11` 行**(20 侧欠账:搜箱是否持续交互 + 时长归属) | design 文档一处 |
+| R-2b | F-3 → `design/ux/casebook-39.md` **新增 `OQ-CB-7` 行**(39 侧欠账:结案的交互形态未成文;含三个形态候选,不选、不预设) | design 文档一处 |
 | R-3 | F-2 / F-3 / F-4 三条发现登记(§4) | 登记 |
 | R-4 | 「为什么不能照抄 `CaseOpenedDriver`」的**先例边界辨析**(§3) | 登记 |
 | R-5 | 三项用户裁定入档(§5) | 登记 |
@@ -229,6 +230,7 @@ $ grep -c "^\s*void Submit" unity/Assets/Gameplay.UI/Skeuomorphic/CasebookBindin
 |---|---|---|---|---|
 | R-1 | 丙档 5 项可复算证据 | ✅ | ✅ | §1.1 / §1.2 / §1.3 / §2.1 的命令及输出(可重跑) |
 | R-2 | F-1 的 20 侧登记行 | ✅ | ✅ | `design/gdd/inventory-and-items.md` §Open Questions `OQ-20-11` 行在盘;判据 = `grep -n "OQ-20-11" design/gdd/inventory-and-items.md` 命中 |
+| R-2b | F-3 的 39 侧登记行 | ✅ | ✅ | `design/ux/casebook-39.md` §14 `OQ-CB-7` 行在盘;判据 = `grep -n "OQ-CB-7" design/ux/casebook-39.md` 命中,且该行 5 个 cell 与表头同构(§7 校验命令见 §11) |
 | R-3 | F-2 / F-3 / F-4 三条发现 | ✅ | ✅ | §4.2 / §4.3 / §4.4 逐条带命令或 `file:line` |
 | R-4 | `CaseOpenedDriver` 先例边界辨析 | ✅ | ⚠️ **推理,非实测** | 由 37 规则八 + `AC-37-04` 的文本推出;本轮**未**构造自动结案实验去实测其后果 —— 如实标注 |
 | R-5 | 三项裁定入档 | ✅ | ✅ | §5 表 + 本轮 AskUserQuestion 记录 |
@@ -251,8 +253,13 @@ $ grep -c "^\s*void Submit" unity/Assets/Gameplay.UI/Skeuomorphic/CasebookBindin
    ⚠️ **4 的 GDD(`:1247` / `:1036`)措辞待回刷** —— 它现称该行「构建期红」,而实测绿;
    回刷归 4 的复核轮,**本轮不改 4 的文档**(未授权)。
 5. **F-2 的文档漂移** —— 归 `stable_id_source` 的回刷轮;**本轮不裁哪边权威**。
-6. **F-3 的 39 侧规格缺口** —— ⚠️ **本轮未在 39 文档加注**(用户裁定的授权面是「请 20 侧补登记」一处);
-   是否给 `casebook-39.md` §14 挂一条 OQ 行,**待用户指示**。
+6. **F-3 的 39 侧规格缺口** —— ✅ **已于同一轮落盘**:`design/ux/casebook-39.md` §14 新增 `OQ-CB-7`
+   (用户「按建议继续」授权)。该行**只登记开放项,不改本 spec 任何既有判据**,并明写补形态时
+   须同时回刷 §7 动作表 + §8 Events Fired。三个形态候选(页缘/折边 Submit · 合上纸 · 独立结案页)
+   **只列不选** —— 且 §5.3 的「禁复选框」与 GDD 字面「勾选」是否等同,**该判定 39 从未作过**,
+   本行不预设。
+   ⚠️ **仍未做**:39 GDD(`casebook.md`)侧无对应回刷 —— `:141` 那行仍写「39 定形态」而未指向
+   `OQ-CB-7`;是否加注待 39 的修订轮(与 `OQ-CB-2` 的 GDD 回写同款残留模式)。
 7. **ADR-012 IL2CPP 三格矩阵** —— NOT-RUN(本机仅 Mono),与本轮无关,照旧挂账。
 
 ---
@@ -263,7 +270,41 @@ $ grep -c "^\s*void Submit" unity/Assets/Gameplay.UI/Skeuomorphic/CasebookBindin
 |---|---|
 | 本登记件 | ✅ |
 | `design/gdd/inventory-and-items.md`(R-2:`OQ-20-11` 行) | ✅ |
+| `design/ux/casebook-39.md`(R-2b:`OQ-CB-7` 行) | ✅ |
 | `tests/integration/item_database/README.md`(账本) | ✅ §2026-10-20 更新⑧ |
 | `production/session-state/active.md`(Session Extract) | ✅ 第七段 |
 | 代码 / 数据 / 产物 | **零改动**(用户裁定) |
 | commit | **未做**(不经用户指令不 commit) |
+
+---
+
+## §11 可复算校验(两处登记行的判据)
+
+两行都是 Markdown 表格行,判据必须能机械核,不能只写「已落」。
+
+```bash
+# R-2:OQ-20-11 在盘,且与表头同构(5 cell)
+grep -c "OQ-20-11" design/gdd/inventory-and-items.md            # 期望 ≥1
+python3 -c "
+import io
+ls=io.open('design/gdd/inventory-and-items.md',encoding='utf-8').read().split(chr(10))
+r=[l for l in ls if l.startswith('| **OQ-20-11**')][0]
+print('cells =', len(r.strip().strip('|').split('|')))"          # 期望 cells = 5
+
+# R-2b:OQ-CB-7 在盘,行序在 OQ-CB-6 之后,且 5 cell
+grep -c "OQ-CB-7" design/ux/casebook-39.md                       # 期望 ≥1
+python3 -c "
+import io
+ls=io.open('design/ux/casebook-39.md',encoding='utf-8').read().split(chr(10))
+i7=[i for i,l in enumerate(ls) if l.startswith('| **OQ-CB-7**')][0]
+i6=[i for i,l in enumerate(ls) if l.startswith('| ~~**OQ-CB-6**~~')][0]
+print('order ok =', i7 > i6)
+print('cells =', len(ls[i7].strip().strip('|').split('|')))"    # 期望 order ok = True · cells = 5
+
+# 两行均不得把转义管符 / 四连星带进表格
+grep -c '\\|' design/ux/casebook-39.md                           # 期望 0
+```
+
+**⚠️ 一处必须如实说清**:上述判据证明的是「**登记行在盘且格式合法**」,
+**不证明**「20 / 39 已就这两个问题作出裁定」—— 两行都是**开放项**,不是结论。
+`R-2` / `R-2b` 的 Proven 只覆盖「行真的落上去了」这一件事。

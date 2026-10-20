@@ -7072,7 +7072,8 @@ F6 复跑(树冻结后,`/tmp/fz-f6-rerun.py`)结果**逐位重现**首轮,已补
 
 - 新增登记件 `production/qa/evidence/blocked-data-core-tier-c-2026-10-20.md`
   (Landed/Proven 双列;R-4「照抄 CaseOpenedDriver 不成立」如实标 **推理非实测**)
-- `design/gdd/inventory-and-items.md` 新增 `OQ-20-11`(R-2,唯一 design 改动)
+- `design/gdd/inventory-and-items.md` 新增 `OQ-20-11`(R-2)·`design/ux/casebook-39.md` §14 新增
+  `OQ-CB-7`(R-2b,用户「按建议继续」授权)—— **两处均只登记开放项,不改任何既有判据**
 - 账本 §更新⑧ · 本 Session Extract
 - **代码 / 数据 / 产物零改动**(用户裁定)
 - **未提交**(不经用户指令不 commit)
@@ -7082,5 +7083,5 @@ F6 复跑(树冻结后,`/tmp/fz-f6-rerun.py`)结果**逐位重现**首轮,已补
 C-1/C-2 → 4 装配轮 · C-3 → 45 P1b · C-4/C-5 → **五处**(39 UX 规格 / 37·42 装配 /
 9 的 `IDiseaseProjection` / 53 的 `eligible` 装配器 / 结案触发) · F-1 的 20 回填已落 `OQ-20-11` ·
 **4 的 GDD 措辞待回刷**(它现称该行「构建期红」而实测绿,回刷归 4 的复核轮) · F-2 文档漂移 ·
-**F-3 的 39 侧缺口本轮未加注**(授权面只有「请 20 侧补登记」一处;是否给 `casebook-39.md` §14
-挂 OQ 行**待用户指示**)。
+**F-3 已落 `OQ-CB-7`**,但 **39 GDD(`casebook.md:141`)侧无对应回刷** —— 它仍写「39 定形态」而未指向该行,
+归 39 的修订轮(与 `OQ-CB-2` 同款残留模式)。
