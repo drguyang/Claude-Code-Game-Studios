@@ -29,6 +29,34 @@
       "skill_gate": 0,
       "min_quality": 1,
       "boundary_state": ["dried>extracted"]
+    },
+    {
+      "recipe_id": "craft_wooden_splint",
+      "owner": "craft",
+      "inputs": [
+        { "item_key": { "base_id": "willow_bark", "processing_state": "dried" }, "qty": 2 }
+      ],
+      "outputs": [
+        { "item_key": { "base_id": "wooden_splint", "processing_state": "raw" }, "qty": 1 }
+      ],
+      "duration_ticks": 90,
+      "skill_gate": 0,
+      "min_quality": 1,
+      "boundary_state": []
+    },
+    {
+      "recipe_id": "assemble_wooden_post",
+      "owner": "build",
+      "inputs": [
+        { "item_key": { "base_id": "willow_bark", "processing_state": "dried" }, "qty": 3 }
+      ],
+      "outputs": [
+        { "item_key": { "base_id": "wooden_post", "processing_state": "raw" }, "qty": 1 }
+      ],
+      "duration_ticks": 30,
+      "skill_gate": 0,
+      "min_quality": 1,
+      "boundary_state": []
     }
   ]
 }

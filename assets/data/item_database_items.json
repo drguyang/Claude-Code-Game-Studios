@@ -74,6 +74,34 @@
       "drug_profile": null,
       "tcm_profile": null,
       "inflicts_injury": ["cut_wound"]
+    },
+    {
+      "base_id": "wooden_splint",
+      "processing_state": "raw",
+      "display_name": "木夹板",
+      "category": "tool",
+      "stack_max": 20,
+      "weight": 1,
+      "deprecated": false,
+      "legal_transitions": [],
+      "gather_profile": null,
+      "drug_profile": null,
+      "tcm_profile": null,
+      "inflicts_injury": null
+    },
+    {
+      "base_id": "wooden_post",
+      "processing_state": "raw",
+      "display_name": "木柱",
+      "category": "build_part",
+      "stack_max": 50,
+      "weight": 1,
+      "deprecated": false,
+      "legal_transitions": [],
+      "gather_profile": null,
+      "drug_profile": null,
+      "tcm_profile": null,
+      "inflicts_injury": null
     }
   ],
   "known_injury_ids": ["cut_wound"]
