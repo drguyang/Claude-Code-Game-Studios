@@ -6902,3 +6902,79 @@ F6 复跑(树冻结后,`/tmp/fz-f6-rerun.py`)结果**逐位重现**首轮,已补
 **原件**:`production/qa/evidence/impl-data-core-maxdosedetents-2026-10-20.md`
 **账本**:`tests/integration/item_database/README.md` §2026-10-20 更新⑥
 **未提交**(不经用户指令不 commit)。
+
+---
+
+## Session Extract — 2026-10-20(第六段):乙档剩余 4 项 → **全登记为阻塞,零代码改动**
+
+**用户裁定**(AskUserQuestion):「**三项全登记为阻塞,不动代码**」。
+(问题里给了四个选项:接运行期 4-DC 校验门 / 只接 `single_dose_max` 启动断言 / 全登记 / 只接半径半边。
+用户选了「全登记」。)
+
+### 乙档剩下 4 项,但**两类阻塞根因完全不同** —— 这是本轮最重要的一条
+
+| 字段 | 根因 | 解除前置 |
+|---|---|---|
+| `r_interact` · `routes_to` · `stable_id_source` | **装配链整条不存在**(载体齐备) | 4 的运行期装配轮 |
+| `single_dose_max` | **缺数值裁定**(载体已在跑) | `MAX_ACTIVE_DOSE` 定值 + 9 装载面 |
+
+**不得把两类混成「都是乙档阻塞」** —— 一类要写装配代码,一类要等你裁数值。处置路径毫无共同点。
+
+### 一、三项交互字段:载体是好的,缺的是「谁构造它」
+
+载体**都带真实判据**(`InteractionRadius` 4-DC-1 · `KindRouteTable` 4-DC-5 · `CandidateSetLoader` 4-DC-4 ②)
+⇒ 不是「没实现」,是装配链缺席。**可复算证据**:
+
+- 4 侧五类(`InteractionSelector` / `ModalGate` / `NeighbourhoodReporter` / `CandidateSetLoader` /
+  `KindRouteTable`)**生产构造点各 0**;
+- `InteractionRadius` 构造点 1,但那一处在 **`InteractionSelector` 自己的便捷重载**里,选择器零构造 ⇒ **不可达**;
+- `IDiscoveryReporter`(4 的**唯一**出境通道)**生产实现 0**;
+- 三个候选源接口 + `CandidateSources` **生产实现各 0**;
+- Boot 侧 4 的装配代码 **0**(唯一命中是 `CompositionRoot:345` 的**注释**)。
+
+⇒ `new InteractionRadius(ds.RInteract)` = 造没人持有的对象;`KindRouteTable(...)` = 造没人查的表;
+`CandidateSetLoader` **构造不出来**(三源零实现)。共同形态 = **已装载但无人用** = 借绿家族。
+
+**⚠️ 这是复测而非新发现** —— 更新④「一处必须看清的边界」已登记同一条;本轮实测**边界未变**。
+
+### 二、`single_dose_max`:载体已在跑,断在两因子乘积的另半边
+
+**必须分清:它与上面三项不同 —— 数据流是通的**:
+派生(`PrescriptionDerivedBaker`,AC-11-09 零手填)✅ · 落盘(i64 raw `= 32768`,字节解码已验)✅ ·
+解码(`PrescriptionActionsCookedCodec:36`)✅ · 消费 API **已实现且有测** ✅。
+断点 = `DiseaseVitalsService:260` 不传第七参 ⇒ `doseClampBound = null`。
+
+**为什么不能顺手传** —— 界 = `MAX_ACTIVE_DOSE × single_dose_max`,两因子:
+`single_dose_max` 有值(`32768`),**`MAX_ACTIVE_DOSE` 是 `待定`**(`entities.yaml:1755` 逐字)。
+只传前者 = **隐含把 `MAX_ACTIVE_DOSE` 当 1**,假设零出处。
+
+**⚠️ 且这不是「无害的保守估计」** —— 传 `32768` 会**截断多次给药**。GDD `:874` 特意把界定成两因子相乘
+(而不是单剂值),正因为单剂界会误截叠加剂量 ⇒ **传它是语义错误的界,不是中间态**。
+保持 `null` + 登记,是当前唯一正确处置。
+
+**⚠️ 一个易踩的误判**:`entities.yaml:1772` 的 `single_dose_max` **也写「待定」** —— 但那是**登记表旋钮行**
+口径;它是**派生量、不由人定**(GDD `:795` 逐字「⚠️ **不由人定** —— 手填必漂移」)⇒ **它有值,值是派生的**。
+**不得**拿 `:1772` 当「它没值」的证据。
+
+### 三、附带发现(登记,不立不裁):运行期 `4-DC` 校验门不存在
+
+`InteractionKindTableValidator.Validate` 生产面**唯一命中 = 烘焙期**(`InteractionKindBinder:128`);
+`AddressablesDataProvider` 对**任何**数据集**零语义校验**(codec 只查魔数 / 版本 / 载荷长度 / `AssertFullyConsumed`)。
+
+⇒ 接上可让 **5 个死字段**(含 2 个丙档)获得真的生产消费者(且是**会 throw 的**消费者)。但:
+(a) 全库第一个数据集运行期语义校验 = **新先例**;(b) **不解除 §一 的阻塞** ——
+校验器读字段 ≠ 4 在跑;`routes_to` 仍无**路由**消费者,只是多了**校验**消费者。
+**禁把「字段被校验」写成「字段被使用」**。
+
+### 回归
+
+**无回归可跑** —— 本轮零代码 / 零数据 / 零产物改动。末次全量 = `7d563a2` 轮的 `4012/3976/0/36`
+(截至 `2026-10-20 13:25 CST`)。⚠️ **该数不得引用为「本轮的回归结果」**,只是「登记前的最后已知基线」。
+
+### 本轮产出
+
+- 新增登记件 `production/qa/evidence/blocked-data-core-tier-b-remaining-2026-10-20.md`(Landed/Proven 双列;
+  R-3「传单剂值会截断多剂」如实标 **推理非实测**)
+- 账本 §更新⑦ · 本 Session Extract
+- **代码 / 数据 / 产物零改动**(用户裁定)
+- **未提交**(不经用户指令不 commit)

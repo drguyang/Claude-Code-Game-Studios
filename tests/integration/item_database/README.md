@@ -792,3 +792,88 @@ GDD 的 `dose_range.hi ≤ 7` **启动期无门**(运行期由戥子「档数 > 
 IL2CPP 三格 NOT-RUN。
 
 详见 `production/qa/evidence/impl-data-core-maxdosedetents-2026-10-20.md`。
+
+---
+
+## 2026-10-20 更新⑦ —— 乙档剩余 4 项:**全登记为阻塞,零代码改动**
+
+**用户裁定**(AskUserQuestion):「**三项全登记为阻塞,不动代码**」。
+
+甲档已清零(`7d563a2`)。乙档原 5 项,`001de75` 接走 1 项 ⇒ **剩 4 项**,本轮**全部登记为阻塞**,
+但**两类阻塞的根因完全不同**,不可混为一谈:
+
+| 字段 | 阻塞根因 | 解除前置 |
+|---|---|---|
+| `r_interact` · `routes_to` · `stable_id_source` | **装配链整条不存在**(载体齐备) | 4 的运行期装配轮 |
+| `single_dose_max` | **缺数值裁定**(载体已在跑) | `MAX_ACTIVE_DOSE` 定值(数值轮)+ 9 装载面 |
+
+### 一、三项交互字段:载体是好的,缺的是「谁构造它」
+
+载体**都带真实判据**(不是没实现):`InteractionRadius`(4-DC-1 下界)· `KindRouteTable`(4-DC-5 + 双向闭合)·
+`CandidateSetLoader`(4-DC-4 ②)。
+
+**可复算的阻塞证据**:
+
+| 测点 | 结果 |
+|---|---|
+| 4 侧类生产构造点(`InteractionSelector` / `ModalGate` / `NeighbourhoodReporter` / `CandidateSetLoader` / `KindRouteTable`) | **各 0** |
+| `InteractionRadius` | 1 —— 但那一处在 `InteractionSelector` **自己的便捷重载**里,选择器零构造 ⇒ **不可达** |
+| `IDiscoveryReporter`(4 的**唯一**出境通道)生产实现 | **0** |
+| `IDropSource` / `IWorldBakedSource` / `IPatientSource` / `CandidateSources` 生产实现 | **各 0** |
+| Boot 侧 4 的装配代码 | **0**(唯一命中是 `CompositionRoot:345` 的**注释**) |
+
+**硬接的后果是可预判的**:`new InteractionRadius(ds.RInteract)` 造出没人持有的对象;
+`new KindRouteTable(...)` 造出没人查的表;`CandidateSetLoader` **构造不出来**(三源零实现)。
+共同形态 = **已装载但无人用** = 借绿家族。**不做。**
+
+> ⚠️ **这是复测,不是新发现** —— 更新④ 的「一处必须看清的边界」已登记同一件事
+> (「`InteractionSelector` 生产侧仍零构造点……选择器的生产装配归 4 的装配轮」)。
+> **本轮实测:该边界未变。**
+
+### 二、`single_dose_max`:载体已在跑,断在两因子乘积的另半边
+
+**要分清:这一项与上面三项不同 —— 它的数据流是通的**:
+派生(`PrescriptionDerivedBaker`,AC-11-09 零手填)✅ · 落盘(i64 raw `= 32768`,已字节解码)✅ ·
+解码(`PrescriptionActionsCookedCodec:36`)✅ · 消费 API 已实现**且有测** ✅。
+
+断点 = `DiseaseVitalsService:260` 不传第七参 ⇒ `doseClampBound = null` ⇒ 不 clamp。
+
+**为什么不能顺手传 `single_dose_max`** —— clamp 界 = **`MAX_ACTIVE_DOSE × single_dose_max`**,两因子:
+
+| 因子 | 值 |
+|---|---|
+| `single_dose_max` | ✅ `32768`(产物派生) |
+| `MAX_ACTIVE_DOSE` | ❌ **`待定`**(`entities.yaml:1755` 逐字;GDD `:1576` 同款) |
+
+⇒ 只传 `single_dose_max` = **隐含把 `MAX_ACTIVE_DOSE` 当 1**,而这个假设**零出处**。
+
+**⚠️ 且这不是「无害的保守估计」** —— 传单剂值 `32768` 会**截断多次给药**:
+GDD `:874` 特意把界定为两因子相乘(而不是单剂值),正因为单剂界会误截叠加剂量。
+⇒ 传它是**语义错误的界**,不是中间态。**保持 `null` 并登记,是当前唯一正确处置。**
+
+> ⚠️ **别拿 `entities.yaml:1772`(`single_dose_max` 也写「待定」)当「它没值」的证据** ——
+> 那是**登记表旋钮行**口径;它是**派生量、不由人定**(GDD `:795` 逐字「⚠️ **不由人定** —— 手填必漂移」)。
+> **它有值,值是派生的。**
+
+### 三、附带发现(不在本轮裁决面):运行期 `4-DC` 校验门不存在
+
+```
+$ grep -rn "InteractionKindTableValidator.Validate" unity/Assets --include=*.cs | grep -v "/Tests/"
+unity/Assets/Editor.Tools.Bake/InteractionKindBinder.cs:128   ⇒ 生产面唯一命中 = 烘焙期
+```
+
+`AddressablesDataProvider` 对**任何**数据集**零语义校验** —— codec 只查魔数 / 版本 / 载荷长度 /
+`AssertFullyConsumed`,**不查** kind 闭集 / 优先级互异 / `routes_to` 已登记 / `duration_owner` 合法 / `r_interact` 区间。
+
+⇒ 若接上,可让 **5 个死字段**(含 2 个丙档)获得真的生产消费者,且它是**会 throw 的**消费者。
+**但**:(a) 是全库第一个数据集运行期语义校验 = **新先例**;(b) **它不解除 §一 的阻塞** ——
+校验器读字段 ≠ 4 在跑;`routes_to` 仍无**路由**消费者,只是多了**校验**消费者
+(**不得**把「字段被校验」写成「字段被使用」)。**本轮登记,不立不裁。**
+
+### 回归
+
+**无回归可跑** —— 本件零代码 / 零数据 / 零产物改动。
+末次全量 EditMode = `7d563a2` 轮的 `4012 / 3976 / 0 / 36`(截至 `2026-10-20 13:25 CST`)。
+⚠️ **该数不得引用为「本轮的回归结果」** —— 它只是「登记前的最后已知基线」。
+
+详见 `production/qa/evidence/blocked-data-core-tier-b-remaining-2026-10-20.md`。
