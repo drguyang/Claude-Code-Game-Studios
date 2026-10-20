@@ -1576,17 +1576,75 @@ F1 的注入不再被拦」—— 它所指的那个调用点,**恰恰是唯一�
 
 | # | 债 | 归属 epic | 状态 | P0 面 | 出处 | 触发条件(何时须还) |
 |---|---|---|---|---|---|---|
-| **TD-gate-01** | **`AssemblyGates.RunAll` 门链缺反向判据** —— 任何门从链上掉线,S 侧无感知。最小补法(已由 qa-lead 给出,含防自守要求):在 `assembly_gate_runall_test.cs` 加**门链清单封闭性**两条断言 —— ① 读 `AssemblyGates.cs` 源文本,抽出 `errs.AddRange(<X>Gate.RunAll(` 的**门名集合**;② 与该文件内**手写常量** `GateWiringManifest` 做**双向差集**,任一方向非空即红。⚠️ **清单须手写,禁从 RunAll 体反射生成**(否则恒等 ⇒ 零判别力);且须配一条变异「删 RunAll 里一行 ⇒ 红」进证伪轮,否则只是把假绿换个位置。形态先例:ADR-025 §④「清单封闭性 = 本法」· 既有 `CheckManifestClosure` 双向差 · 读 `.cs` 源文本先例 = `FsWriteBoundaryGate` 本身 | `(跨 epic · 治理／Editor.Tools.Gates)` | open | **N** | QA 签核轮实测 · `assembly_gate_runall_test.cs:31` · `AssemblyGates.cs:130` | **下一个触碰 `AssemblyGates.RunAll` 的 sprint**(补判据前,`FsWriteBoundaryGate` 只能记「本体已证、接线未证」,**不得**在 `/gate-check` / M3 判定 / 构建前门说明里写成「写盘边界门已生效」) |
-| **TD-gate-02** | **同类缺口大概率是全门链共性,非 S16-4 独有** —— `MedConsFloatGate` / `WriterExistenceGate` / `EcozoneIntegerGates` 等**未逐门核**(qa-lead 明标「未核,不作全域断言」)。已知形态相同:都只有「本体直调 + 一条零红端到端」 | `(跨 epic · 治理／Editor.Tools.Gates)` | open | **N** | 同上 | 与 `TD-gate-01` **同批**(补清单时一次覆盖全部门,分两次修等于把同一份勘察成本付两遍) |
-| **TD-gate-03** | **falsify 残留判据词表有盲区** —— `impl-s16-4` §四/§七 的残留检查是 `grep -c "FALSIFY-F"`,而人工变异可用任意标记(`FALSIFY-QA` 等)⇒ **该 grep 抓不到**。「还原校验通过」因此存在漏网形态。另:并发变异会污染旁路读取(qa-lead 读 `AssemblyGates.cs` 时正好落在编排方变异窗口内) | `(跨 epic · 治理／tools/falsify)` | open | **N** | QA 签核轮实测 | **下次动 `tools/falsify/` 时** —— 词表改为覆盖 `FALSIFY-` **前缀全集**;并在驱动/README 写明「变异进行中须声明,读者不得并发读被变异文件」。⚠️ **C-1 证伪轮用 `FALSIFY-F` 前缀 + 窗口内并发读了 `AssemblyGates.cs`,两个盲区双双再中** —— 见文末 §TD-gate 结案 |
+| **TD-gate-01** | **`AssemblyGates.RunAll` 门链缺反向判据** —— 任何门从链上掉线,S 侧无感知。最小补法(已由 qa-lead 给出,含防自守要求):在 `assembly_gate_runall_test.cs` 加**门链清单封闭性**两条断言 —— ① 读 `AssemblyGates.cs` 源文本,抽出 `errs.AddRange(<X>Gate.RunAll(` 的**门名集合**;② 与该文件内**手写常量** `GateWiringManifest` 做**双向差集**,任一方向非空即红。⚠️ **清单须手写,禁从 RunAll 体反射生成**(否则恒等 ⇒ 零判别力);且须配一条变异「删 RunAll 里一行 ⇒ 红」进证伪轮,否则只是把假绿换个位置。形态先例:ADR-025 §④「清单封闭性 = 本法」· 既有 `CheckManifestClosure` 双向差 · 读 `.cs` 源文本先例 = `FsWriteBoundaryGate` 本身 | `(跨 epic · 治理／Editor.Tools.Gates)` | **closed**(2026-10-21 · C-1) | **N** | QA 签核轮实测 · `assembly_gate_runall_test.cs:31` · `AssemblyGates.cs:130` | ~~**下一个触碰 `AssemblyGates.RunAll` 的 sprint**~~ ✅ **已还**(C-1)—— 判据 = `gate_wiring_manifest_test.cs`;原限定语解除,见文末 §TD-gate 结案 |
+| **TD-gate-02** | **同类缺口大概率是全门链共性,非 S16-4 独有** —— `MedConsFloatGate` / `WriterExistenceGate` / `EcozoneIntegerGates` 等**未逐门核**(qa-lead 明标「未核,不作全域断言」)。已知形态相同:都只有「本体直调 + 一条零红端到端」 | `(跨 epic · 治理／Editor.Tools.Gates)` | **closed**(2026-10-21 · C-1 逐门核) | **N** | 同上 | ~~与 `TD-gate-01` **同批**~~ ✅ **已还** —— 23 类逐门判决**已完成**;结论与原猜**不同**(详见文末 §TD-gate 结案) |
+| **TD-gate-03** | **falsify 残留判据词表有盲区** —— `impl-s16-4` §四/§七 的残留检查是 `grep -c "FALSIFY-F"`,而人工变异可用任意标记(`FALSIFY-QA` 等)⇒ **该 grep 抓不到**。「还原校验通过」因此存在漏网形态。另:并发变异会污染旁路读取(qa-lead 读 `AssemblyGates.cs` 时正好落在编排方变异窗口内) | `(跨 epic · 治理／tools/falsify)` | open(**C-1 轮再次命中,未修**) | **N** | QA 签核轮实测 | **下次动 `tools/falsify/` 时** —— 词表改为覆盖 `FALSIFY-` **前缀全集**;并在驱动/README 写明「变异进行中须声明,读者不得并发读被变异文件」。⚠️ **C-1 证伪轮用 `FALSIFY-F` 前缀 + 窗口内并发读了 `AssemblyGates.cs`,两个盲区双双再中** —— 见文末 §TD-gate 结案 |
 
 > **三条均判 `P0 面 = N`** —— 归属是 `Editor.Tools.Gates` / `tools/falsify` 的**治理面**,
 > 不落在 31 个 P0 epic 的任何一个(承 §一 R3 的 2026-10-20 裁定口径:**治理债 ≠ 产品/架构债**)。
 > ⇒ **不进 M3 出口量**;`72 / 12 epic` 一位不动。
 > ⚠️ 但 `TD-gate-01` 的**限定语是硬要求**:C-1 未闭期间,该门不得被引作「已生效」。
+> ✅ **2026-10-21 加注(原文不删)**:C-1 已闭 ⇒ **限定语解除**。`FsWriteBoundaryGate` 现可写
+> 「已生效」—— 其接线现由 `gate_wiring_manifest_test.cs` 钉住(F1 删 `AssemblyGates.cs:130`
+> ⇒ 3 条红)。判据见此文件 §TD-gate 结案记录。
 >
 > **本块为 append 新增,未回填 §四 总索引表。** 若读者要求「全 91 行可机械求值」,
 > 须同时把这三行加入 §四 并重跑 §五(届时输出会变 `条目 94 | P0 面 {Y:87, N:7}`)。
 > **该回填归 §四/§五 的维护轮,不在本块内做** —— 理由:§四 是 S16-3 的落盘产物,
 > 就地改它会让「S16-3 的交货数」与「今日真值」混成一团;且须用户裁定 `91` 这个口径
 > 是否随之升版。**本条登记即为此事的触发点。**
+
+### TD-gate 结案记录(2026-10-21 · C-1 实现轮)
+
+**两份新件**(`unity/Assets/Tests/EditMode/Sim/`):
+`gate_chain_source.cs`(源文本解析器,350 行)· `gate_wiring_manifest_test.cs`(手写清单 +
+14 条断言,597 行)。证伪规格 `tools/falsify/specs/c1-gate-wiring.json`。
+**证据原件 = `production/qa/evidence/impl-c1-gate-wiring-2026-10-21.md`**(含原判定 → 修复落点 →
+验证命令,逐条可复算)。
+
+#### TD-gate-01 → **closed**
+
+**形态未照原写法。** 原文要求「在 `assembly_gate_runall_test.cs` 加两条断言」;实做改为**独立新件**。
+理由:若判据与「删掉 RunAll 一行」的变异同住一个装配,递归没有底 —— 判据自己被删的那一次,
+也正好是它不再运行的那一次。「清单须手写、禁从源生成」这一条**照做**(两份 manifest 均为手写常量)。
+
+| 判据 | 变异 | 实测 |
+|---|---|---|
+| 方向「清单有、源无」 | F1 删 `AssemblyGates.cs:130` | **3 条红**(S16-4 当时的同一变异:**17/17 全绿**) |
+| 方向「源有、清单无」 | F2 从清单删一条声明 | **1 条红** ⇒ 证明「双向」不是装饰 |
+| 判别力非 `0 == 0` | F3 停用解析器(恒返回空集) | **5 条红**(含反空转守卫) |
+
+全量 EditMode **`4085 / 4049 / 0 / 36`**(基线 `4071 / 4035 / 0 / 36`,
+截至 `2026-10-21 01:03 CST` · C-1 实现轮 · `f6cdaaf`);`Δtotal = Δpassed = +14`;
+差集实测「新增 14 / 消失 0」。⇒ **`:1586` 的限定语解除** —— `FsWriteBoundaryGate` 现在可以写
+「已生效」。
+
+#### TD-gate-02 → **closed**,但**结论与原猜不同**
+
+原登记猜「同类缺口大概率是全门链共性,非 S16-4 独有」。**逐门核完 23 个类,该猜测不成立**:
+
+| Kind | 数量 | 判决 |
+|---|---|---|
+| Host / Chain | 1 / 6 | 链上 6 个**全部**真接线,无第二个 S16-4 |
+| Library / TestDriven / Menu / Tool | 9 / 4 / 2 / 1 | 各有具名强制点(代码引用 / 测试 / `[MenuItem]` 逐字 / 工具入口) |
+
+**真正的洞不在「忘了接线」,在「从未上线」**:`EcozoneIntegerGates`(**AC-6-22 BLOCKING**)
+与 `EmergencyIntegerGates`(**AC-10-02 / AC-10-03 BLOCKING**)是 BLOCKING 级 AC,
+却**零构建期强制点**,只有 EditMode 测试驱动。IL 级门(Cecil + 真 DLL)放不进 reload
+路径(会读陈旧产物)—— 那不是缺陷是设计,故单列 `Kind = TestDriven` 而非 `Chain`。
+两者已入 `KnownTestDrivenBlockingGaps` 具名登记,由
+`test_knownTestDrivenBlockingGaps_areStillAccuratelyRecorded` 钉住「它们**仍然**是缺口」——
+一旦有人接进 BuildGate,该断言转红并要求同步删行。
+
+> ⚠️ **本结案不含「这两条该不该接进 BuildGate」的裁定。** 接 = 改构建前门语义 + 须确认
+> Cecil 在 batch 下的 DLL 新鲜度 ⇒ **另裁**(证据件 §九 #1)。此处只做**具名登记**,不擅自接。
+
+#### TD-gate-03 → **维持 open**,且本轮**再次命中两个盲区**
+
+1. **词表盲区**:残留检查仍是 `grep -c "FALSIFY-F"`;本轮变异**正是**用 `FALSIFY-F` 前缀,
+   故「抓得到」属侥幸 —— 换 `FALSIFY-QA` 就抓不到。修法未动。
+2. **并发读取污染**:**本轮又中了** —— 在 F2 变异窗口内读了 `AssemblyGates.cs`,看到
+   `FALSIFY-F2` 标记。与 qa-lead 上次撞的是同一形态。
+
+⇒ 触发条件**已到而未执行**。修 `tools/falsify/` 词表 + README 并发禁令须**另开批次**
+(不在 C-1 的授权面内)。
