@@ -123,7 +123,8 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
 
         // ══════════════════ ① address 常量 == baker 产物名 ══════════════════
 
-        /// <summary>2026-10-20 新接线的两份:运行期 address 字面串必须与 baker 声明**逐字相等**。
+        /// <summary>2026-10-20 新接线的六份(路 A 两份 + 第二轮四份):运行期 address 字面串必须与
+        /// baker 声明**逐字相等**。
         /// <para><b>判别力</b>:任一侧改一个字符 ⇒ 本测红。这正是「改了产物名却忘了改装载面」的形态。</para></summary>
         [Test]
         public void test_wiring_newArtifactAddresses_matchBakerArtifactNames()
@@ -134,6 +135,18 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             Assert.That(AddressablesDataProvider.DiagnosisNegativeConfidenceAddress,
                 Is.EqualTo(DataBakeMenu.DiagnosisNegativeConfidenceCookedAssetName),
                 "阴性把握度定表的 address 与 baker 产物名不一致 ⇒ 同上");
+            Assert.That(AddressablesDataProvider.PrescriptionActionsAddress,
+                Is.EqualTo(DataBakeMenu.PrescriptionActionsCookedAssetName),
+                "处方表的 address 与 baker 产物名不一致 ⇒ 同上");
+            Assert.That(AddressablesDataProvider.DiseaseActionAxisAddress,
+                Is.EqualTo(DataBakeMenu.DiseaseActionAxisCookedAssetName),
+                "处置轴契约表的 address 与 baker 产物名不一致 ⇒ 同上");
+            Assert.That(AddressablesDataProvider.OutcomeTableAddress,
+                Is.EqualTo(DataBakeMenu.OutcomeTableCookedAssetName),
+                "53 判定表的 address 与 baker 产物名不一致 ⇒ 同上");
+            Assert.That(AddressablesDataProvider.DelayTableAddress,
+                Is.EqualTo(DataBakeMenu.DelayTableCookedAssetName),
+                "53 延迟表的 address 与 baker 产物名不一致 ⇒ 同上");
         }
 
         // ══════════════════ ② data-core 组 ⊇ 全部 address 常量 ══════════════════
@@ -147,7 +160,7 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
         public void test_wiring_dataCoreGroup_containsEveryProviderAddress()
         {
             string[] sources = ProviderAddressConstants();
-            Assert.That(sources.Length, Is.GreaterThanOrEqualTo(11),
+            Assert.That(sources.Length, Is.GreaterThanOrEqualTo(15),
                 "扫描键守卫 —— 取不到 address 常量则下面的逐条断言会被「什么都不查」满足");
 
             List<(string Guid, string Address)> entries = ReadDataCoreEntries();
@@ -216,7 +229,7 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
         public void test_wiring_preload_invokesEveryEnsureMethod()
         {
             string[] ensures = EnsureMethodNames();
-            Assert.That(ensures.Length, Is.GreaterThanOrEqualTo(11),
+            Assert.That(ensures.Length, Is.GreaterThanOrEqualTo(15),
                 "扫描键守卫 —— 取不到 Ensure* 方法则下面的覆盖断言会被「什么都不查」满足");
 
             Assert.That(File.Exists(ProviderSourcePath), Is.True, $"provider 源码缺失:{ProviderSourcePath}");
@@ -273,9 +286,48 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
                 ds => Assert.That(ds.Table.Count, Is.GreaterThan(0)));
         }
 
-        private static void AssertLoadHitsRealLoadPath<TDataSet>(
-            string expectedAddress, Action<TDataSet> onSuccess) where TDataSet : struct
+        /// <summary>同 <see cref="test_wiring_loadBranch_interactionKinds_exists"/>,
+        /// 对象 = 处方表。</summary>
+        [Test]
+        public void test_wiring_loadBranch_prescriptionActions_exists()
         {
+            AssertLoadHitsRealLoadPath<PrescriptionActionsDataSet>(
+                AddressablesDataProvider.PrescriptionActionsAddress,
+                ds => Assert.That(ds.Rows, Is.Not.Null));
+        }
+
+        /// <summary>同 <see cref="test_wiring_loadBranch_interactionKinds_exists"/>,
+        /// 对象 = 处置轴契约表。</summary>
+        [Test]
+        public void test_wiring_loadBranch_diseaseActionAxis_exists()
+        {
+            AssertLoadHitsRealLoadPath<DiseaseActionAxisDataSet>(
+                AddressablesDataProvider.DiseaseActionAxisAddress,
+                ds => Assert.That(ds.Actions, Is.Not.Null));
+        }
+
+        /// <summary>同 <see cref="test_wiring_loadBranch_interactionKinds_exists"/>,
+        /// 对象 = 53 判定表。</summary>
+        [Test]
+        public void test_wiring_loadBranch_outcomeTable_exists()
+        {
+            AssertLoadHitsRealLoadPath<OutcomeTable53DataSet>(
+                AddressablesDataProvider.OutcomeTableAddress,
+                ds => Assert.That(ds.Table, Is.Not.Null));
+        }
+
+        /// <summary>同 <see cref="test_wiring_loadBranch_interactionKinds_exists"/>,
+        /// 对象 = 53 延迟表。</summary>
+        [Test]
+        public void test_wiring_loadBranch_delayTable_exists()
+        {
+            AssertLoadHitsRealLoadPath<DelayTable53DataSet>(
+                AddressablesDataProvider.DelayTableAddress,
+                ds => Assert.That(ds.Table, Is.Not.Null));
+        }
+
+        private static void AssertLoadHitsRealLoadPath<TDataSet>(
+            string expectedAddress, Action<TDataSet> onSuccess) where TDataSet : struct        {
             var provider = new AddressablesDataProvider();
             bool ignore = LogAssert.ignoreFailingMessages;
             LogAssert.ignoreFailingMessages = true;

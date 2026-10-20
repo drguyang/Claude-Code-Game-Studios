@@ -63,6 +63,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a2b9028dae01387c7930880bdebd835e
+    m_Address: 53_delay_table.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: a7d29c531dea6ef19b1ba767f0ccf40b
     m_Address: item_database_items.cooked.bytes
     m_ReadOnly: 0
@@ -75,8 +81,26 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c4bba4bbcba3a4dee9a2566f5a60dddc
+    m_Address: 53_outcome_table.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e1e0ba87ce199509ca823ebef18bd1e0
     m_Address: audio_events.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fbb79a2caa04579bd8c86d5873dd2fa7
+    m_Address: prescription_actions.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fe1af3c4e9c2326ddb8ac4c231d680cc
+    m_Address: disease_action_axis.cooked.bytes
     m_ReadOnly: 0
     m_SerializedLabels:
     - data-core

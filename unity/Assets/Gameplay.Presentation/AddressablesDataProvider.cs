@@ -85,6 +85,22 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public const string DiagnosisNegativeConfidenceAddress =
             "diagnosis_negative_confidence.cooked.bytes";
 
+        /// <summary>处方表 address(2026-10-20 第二轮接线)。
+        /// <para>⚠️ 产物名单一出处 = `DataBakeMenu.PrescriptionActionsCookedAssetName`;同上为字面串。</para></summary>
+        public const string PrescriptionActionsAddress = "prescription_actions.cooked.bytes";
+
+        /// <summary>处置轴契约表 address(2026-10-20 第二轮接线)。
+        /// <para>⚠️ 产物名单一出处 = `DataBakeMenu.DiseaseActionAxisCookedAssetName`;同上为字面串。</para></summary>
+        public const string DiseaseActionAxisAddress = "disease_action_axis.cooked.bytes";
+
+        /// <summary>53 判定表 address(2026-10-20 第二轮接线)。
+        /// <para>⚠️ 产物名单一出处 = `DataBakeMenu.OutcomeTableCookedAssetName`;同上为字面串。</para></summary>
+        public const string OutcomeTableAddress = "53_outcome_table.cooked.bytes";
+
+        /// <summary>53 延迟表 address(2026-10-20 第二轮接线)。
+        /// <para>⚠️ 产物名单一出处 = `DataBakeMenu.DelayTableCookedAssetName`;同上为字面串。</para></summary>
+        public const string DelayTableAddress = "53_delay_table.cooked.bytes";
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -106,6 +122,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private InteractionKindDataSet? _interactionKinds;
         // 阴性把握度定表(2026-10-20 补接线):struct ⇒ 可空承载。
         private DiagnosisNegativeConfidenceDataSet? _negativeConfidence;
+        // 处方表 / 处置轴 / 53 判定表 / 53 延迟表(2026-10-20 第二轮接线):均 struct ⇒ 可空承载。
+        private PrescriptionActionsDataSet? _prescriptionActions;
+        private DiseaseActionAxisDataSet? _diseaseActionAxis;
+        private OutcomeTable53DataSet? _outcomeTable;
+        private DelayTable53DataSet? _delayTable;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -176,6 +197,27 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureDiagnosisNegativeConfidence();
                 return (TDataSet)(object)_negativeConfidence.Value;
             }
+            // ── 2026-10-20 第二轮接线:11 处方表 / 9 处置轴 / 53 判定表 / 53 延迟表 ──
+            if (typeof(TDataSet) == typeof(PrescriptionActionsDataSet))
+            {
+                EnsurePrescriptionActions();
+                return (TDataSet)(object)_prescriptionActions.Value;
+            }
+            if (typeof(TDataSet) == typeof(DiseaseActionAxisDataSet))
+            {
+                EnsureDiseaseActionAxis();
+                return (TDataSet)(object)_diseaseActionAxis.Value;
+            }
+            if (typeof(TDataSet) == typeof(OutcomeTable53DataSet))
+            {
+                EnsureOutcomeTable();
+                return (TDataSet)(object)_outcomeTable.Value;
+            }
+            if (typeof(TDataSet) == typeof(DelayTable53DataSet))
+            {
+                EnsureDelayTable();
+                return (TDataSet)(object)_delayTable.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
@@ -183,7 +225,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 " + 设备切换常量表(TD-epic-01 第十一片:DeviceSwitchTuningDataSet)" +
                 " + 遥测参数旋钮表(TD-epic-01 第十二片:TelemetryAnalyticsDataSet)" +
                 " + 交互种类契约表(2026-10-20:InteractionKindDataSet)" +
-                " + 阴性把握度定表(2026-10-20:DiagnosisNegativeConfidenceDataSet)");
+                " + 阴性把握度定表(2026-10-20:DiagnosisNegativeConfidenceDataSet)" +
+                " + 处方表 / 处置轴 / 53 判定表 / 53 延迟表(2026-10-20 第二轮:PrescriptionActionsDataSet / " +
+                "DiseaseActionAxisDataSet / OutcomeTable53DataSet / DelayTable53DataSet)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -201,6 +245,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureTelemetryAnalytics();
             EnsureInteractionKinds();
             EnsureDiagnosisNegativeConfidence();
+            EnsurePrescriptionActions();
+            EnsureDiseaseActionAxis();
+            EnsureOutcomeTable();
+            EnsureDelayTable();
         }
 
         private void EnsureItems()
@@ -375,6 +423,70 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 阴性把握度定表 cooked 解码失败(address={DiagnosisNegativeConfidenceAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsurePrescriptionActions()
+        {
+            if (_prescriptionActions.HasValue) return;
+            byte[] bytes = FetchBytes(PrescriptionActionsAddress);
+            try
+            {
+                _prescriptionActions = PrescriptionActionsCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 处方表 cooked 解码失败(address={PrescriptionActionsAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureDiseaseActionAxis()
+        {
+            if (_diseaseActionAxis.HasValue) return;
+            byte[] bytes = FetchBytes(DiseaseActionAxisAddress);
+            try
+            {
+                _diseaseActionAxis = DiseaseActionAxisCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 处置轴契约表 cooked 解码失败(address={DiseaseActionAxisAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureOutcomeTable()
+        {
+            if (_outcomeTable.HasValue) return;
+            byte[] bytes = FetchBytes(OutcomeTableAddress);
+            try
+            {
+                _outcomeTable = OutcomeTableCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 53 判定表 cooked 解码失败(address={OutcomeTableAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureDelayTable()
+        {
+            if (_delayTable.HasValue) return;
+            byte[] bytes = FetchBytes(DelayTableAddress);
+            try
+            {
+                _delayTable = DelayTableCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 53 延迟表 cooked 解码失败(address={DelayTableAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }
         }

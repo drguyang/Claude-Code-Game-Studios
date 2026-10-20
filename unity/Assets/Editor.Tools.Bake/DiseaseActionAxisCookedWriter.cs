@@ -7,6 +7,14 @@
 //
 // ⚠️ 布局与 Gameplay.Presentation.DiseaseActionAxisCookedCodec **严格镜像** —— 改一处必须改两处
 //    (与 CookedWriter / CookedCodec 同纪律)。
+//
+// ⚠️ **2026-10-20 就地修正(契约违例)**:原实现用 <c>BinaryWriter.Write(string)</c> 写
+//    <c>name</c> / <c>owner</c> / <c>disease_key</c> / <c>polarity</c> —— 那是 **7-bit 变长前缀**,
+//    而 <see cref="CookedFormat"/> 明文规定载荷内字符串 = **i32 字节长 + UTF-8**(无终止符)。
+//    九个姊妹写方均按 i32 写,本件是唯一例外(实测:按 i32 读会错位,按 7-bit 读则 0 剩余字节)。
+//    违例在**无读方**时不可见 —— 本件之所以暴露,正是因为首次为它写运行期 codec。
+//    现改为显式 <see cref="WriteString32"/>,**产物已重烘**(字节与本文件一致)。
+//    ⚠️ 该修正**改变产物字节**:旧产物(7-bit)与现实现不再兼容;盘上产物已同步更新。
 
 using System.Collections.Generic;
 using System.IO;
@@ -53,16 +61,36 @@ namespace DaYiJingCheng.EditorTools.Bake
         private static void WriteActionRow(BinaryWriter w, in ActionAxisRow row)
         {
             w.Write(row.ActionId);                     // int
-            w.Write(row.Name ?? "");                   // string
-            w.Write(row.Owner ?? "");                  // string
+            WriteString32(w, row.Name);                // i32 字节长 + UTF-8
+            WriteString32(w, row.Owner);               // i32 字节长 + UTF-8
         }
 
         /// <summary>单行编码(字段顺序 = TreatableByRow 构造序,与读方镜像)。</summary>
         private static void WriteTreatableByRow(BinaryWriter w, in TreatableByRow row)
         {
-            w.Write(row.DiseaseKey ?? "");             // string
+            WriteString32(w, row.DiseaseKey);          // i32 字节长 + UTF-8
             w.Write(row.ActionId);                     // int
-            w.Write(row.Polarity ?? "");               // string
+            WriteString32(w, row.Polarity);            // i32 字节长 + UTF-8
+        }
+
+        /// <summary>写 <see cref="CookedFormat"/> 规定的字符串形状:i32 字节长 + UTF-8(无终止符)。
+        /// <para>⚠️ <b>不是</b> <c>BinaryWriter.Write(string)</c>(7-bit 变长前缀)—— 见文件头修正记录。
+        /// null 写 <c>-1</c>(与 <c>CookedFormat</c> 的「数组 = -1 表 null」同口径)。</para></summary>
+        /// <exception cref="System.InvalidOperationException">UTF-8 字节数越出 i32 表示范围(实际不可达)。</exception>
+        private static void WriteString32(BinaryWriter w, string value)
+        {
+            if (value == null)
+            {
+                w.Write(-1);
+                return;
+            }
+
+            byte[] utf8 = Encoding.UTF8.GetBytes(value);
+            if (utf8.Length > int.MaxValue)
+                throw new System.InvalidOperationException(
+                    $"字符串 UTF-8 字节数 {utf8.Length} 越出 i32 表示范围");
+            w.Write(utf8.Length);
+            w.Write(utf8);
         }
 
         /// <summary>头(magic + formatVersion + schemaVersion + configVersion + payloadLength)+ 载荷。</summary>

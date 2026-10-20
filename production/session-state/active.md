@@ -6611,3 +6611,41 @@ failed / skipped 未变 ⇒ 零回归。
    (`rm Logs/fz-s2.xml && rmdir Logs`,cwd = 仓库根)。
 
 **未提交**(不经用户指令不 commit)。Unity 工程已释放,可重开编辑器。
+
+## Session Extract — 2026-10-20(下半场续):6 份欠账接线完成(路 A 2/6 → 第二轮 4/6)
+
+**触发**:用户裁定 ①「把那 6 份接到运行期装载面」→ **路 A**(只接已具备全部前置的 2 份);
+②「把剩下 4 份也接上」→ **第二轮**。
+
+**路 A(commit `bdadfb3`)**:接 `interaction_kinds` + `diagnosis_negative_confidence`,
+立接线门 `DataPipeline/provider_wiring_gate_test.cs`(7 用例),证伪 F1–F6 6/6 转红,
+回归 `3980/3944/0/36`(+7)。原件 `production/qa/evidence/impl-data-core-wiring-a-2026-10-20.md`。
+
+**第二轮(未提交)**:接 `prescription_actions` / `disease_action_axis` / `53_outcome_table` /
+`53_delay_table`,并为它们**首次**写运行期 codec + 数据集类型。
+- 新件:`CookedReadUtil.cs`(共享读面)+ 4 个 codec(各带同形只读行,因行类型住
+  `Editor.Tools.Bake` 不进玩家构建)+ `DataPipeline/cooked_codec_roundtrip_test.cs`(镜像门 4 用例)。
+- 接线:address 常量 ×4 · 可空字段 ×4 · `Load<T>` 分支 ×4 · `Preload()` 调用 ×4 · `Ensure*` ×4;
+  `DataCoreAddresses` 11 → **15**;`data-core.asset` 11 → **15**(GUID 逐条对 `.meta`)。
+- **⚠️ 抓出一处历史契约违例**:`DiseaseActionAxisCookedWriter` 用
+  `BinaryWriter.Write(string)`(**7-bit 变长**)写字符串,而 `CookedFormat` 规定
+  **i32 字节长 + UTF-8**(九个姊妹写方均照此)。该产物此前**全库零读方** ⇒
+  漂移门「盘上 == 现烘」照样绿,错字节长期不可见;首次写读方即暴露。
+  **处置 = 修写方 + 重烘**(不让读方去实现 7-bit)。产物 **304 → 370 B**,
+  `ConfigVersion = 0x6C83B441`。
+- 门:`ProviderWiringGateTest` 7 → **11** 用例,新增镜像门 4 用例;证伪 **F1–F7 7/7 转红**
+  (F7 = 把写方改回 7-bit ⇒ 镜像门红,直接复现上述违例)。
+- 回归:全量 EditMode **`3988/3952/0/36`**(exit 0),前次 `3980/3944/0/36` ⇒
+  恰 **`+8/+8/0/0`**(4 `LoadBranch` + 4 镜像门),零回归。
+- catalog 已重建(**15/15 HIT**);它是机器本地产物,跨机须重跑「构建 Addressables 内容」。
+- 原件 `production/qa/evidence/impl-data-core-wiring-b-2026-10-20.md`。
+
+**⚠️ 必须如实登记(禁借绿)**
+1. **6 个新数据集在运行期仍零读者** —— 实测 `Load<*DataSet>` 在非 `Tests/` 面全部零命中;
+   `Outcome53.Judge.Evaluate` 生产侧零调用点;`ConsequenceEmitter` 仍只在测试里被构造。
+   两轮做的是「**可装载**」,不是「已被使用」。
+2. **`53_outcome_table` 的 `has_default` 不在载荷里** —— 读方据
+   `OutcomeTableBinder.ValidateCoverage`(硬拒无 default 行)推 `true`;已在 codec 文件头写明。
+3. **IL2CPP 三格 NOT-RUN** —— 本机仅 Mono。
+
+**未提交**(不经用户指令不 commit)。Unity 工程已释放,可重开编辑器。

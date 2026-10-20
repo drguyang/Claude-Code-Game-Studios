@@ -205,10 +205,17 @@ S-2 的补口**不该被逼着写别的 epic 的内容**,故改为 `category: to
 
 **归属 = item-database epic 的测试基建**(S-2 只是暴露者,不是所有者)。
 
-> **2026-10-20 更新② —— 接线门已立**:`DataPipeline/provider_wiring_gate_test.cs`(7 用例),
+> **2026-10-20 更新③ —— 6/6 全部接线**:`DataPipeline/provider_wiring_gate_test.cs` 7 → **11 用例**,
 > 钉住「产物名 / address 常量 / Addressables 组 / `Preload()`」四处的集合闭合;
-> 本批接线 2 份(`interaction_kinds` + `diagnosis_negative_confidence`),证伪轮 F1–F6 **6/6 转红**。
+> 两轮共接 6 份(路 A:`interaction_kinds` + `diagnosis_negative_confidence`;
+> 第二轮:`prescription_actions` + `disease_action_axis` + `53_outcome_table` + `53_delay_table`),
+> 并新增**读方镜像门** `DataPipeline/cooked_codec_roundtrip_test.cs`(4 用例)。
+> 证伪轮两轮合计 **13/13 转红**(含一例复现 `disease_action_axis` 写方 7-bit vs i32 的契约违例)。
 > 详见 `tests/integration/item_database/README.md` §运行期装载面接线。
+>
+> **2026-10-20 更新② —— 接线门首版(路 A · 2/6)**:`DataPipeline/provider_wiring_gate_test.cs`
+> 7 用例,钉住「产物名 / address 常量 / Addressables 组 / `Preload()`」四处的集合闭合;
+> 本批接线 2 份(`interaction_kinds` + `diagnosis_negative_confidence`),证伪轮 F1–F6 **6/6 转红**。
 >
 > **2026-10-20 更新 —— 路 2 已立**:全目录通用漂移门
 > `unity/Assets/Tests/EditMode/DataPipeline/cooked_drift_all_artifacts_test.cs` 已落盘,

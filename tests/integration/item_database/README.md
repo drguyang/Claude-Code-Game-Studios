@@ -425,7 +425,13 @@ AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→d
 > `interaction_kinds` + `diagnosis_negative_confidence`(其余 4 份需新运行期数据集类型 + 解码器,
 > 各自 120–220 行,另开一轮)。详细见下节 §运行期装载面接线。
 
-### 运行期装载面接线(2026-10-20 · 路 A · 2/6)
+### 运行期装载面接线(2026-10-20 · 路 A 2/6 → 第二轮 4/6 ⇒ **6/6 全部接线**)
+
+> **两轮合记**:路 A 接 `interaction_kinds` / `diagnosis_negative_confidence`;
+> 第二轮(用户裁定「把剩下 4 份也接上」)接 `prescription_actions` / `disease_action_axis` /
+> `53_outcome_table` / `53_delay_table`,并同时为它们写运行期 codec + 数据集类型。
+> 原件:`production/qa/evidence/impl-data-core-wiring-a-2026-10-20.md`(路 A)·
+> `production/qa/evidence/impl-data-core-wiring-b-2026-10-20.md`(第二轮)。
 
 **为什么不能「补烘完就标完」**:6 份产物归属的 5 个 story **全部 `Complete`**,
 但其中一件名字就叫「烘焙接线」(`story-007-interaction-kinds-bake-wiring`)——
@@ -436,29 +442,37 @@ AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→d
 
 | # | 要素 | 落点 | 失了的症状 |
 |---|---|---|---|
-| ① | address 常量 | `AddressablesDataProvider.InteractionKindsAddress` / `DiagnosisNegativeConfidenceAddress` | 无处可查 |
+| ① | address 常量 | `AddressablesDataProvider.{InteractionKinds,DiagnosisNegativeConfidence,PrescriptionActions,DiseaseActionAxis,OutcomeTable,DelayTable}Address` | 无处可查 |
 | ② | Addressables 组条目 | `unity/Assets/AddressableAssetsData/AssetGroups/data-core.asset`(**入库**) | 启动预载 `FetchBytes` 直接 **E-13 硬失败**,整链起不来 |
 | ③ | 组条目 GUID ↔ 产物 `.meta` | 同上(YAML 手可编辑) | 条目指向虚空,打包期才炸 |
 | ④ | `Preload()` 调用 + `DataCoreAddresses` | `AddressablesDataProvider.Preload()` · `DataCorePreloader.DataCoreAddresses` | 方法存在但缓存永不填充,首次 `Load` 在远处炸 |
 
+**第二轮补的两件事(路 A 不需要、后 4 份缺)**
+
+| 件 | 落点 | 为什么必须有 |
+|---|---|---|
+| 运行期 codec + 数据集类型 ×4 | `Gameplay.Presentation/{PrescriptionActions,DiseaseActionAxis,OutcomeTable,DelayTable}CookedCodec.cs` · `CookedReadUtil.cs` | 后 4 份此前**零读方**;行类型住 `Editor.Tools.Bake`(不进玩家构建),故各 codec 自带同形只读行 |
+| **读方镜像门** | `DataPipeline/cooked_codec_roundtrip_test.cs`(4 用例) | 漂移门只证「字节 == 现烘」,**不证有人读得懂**。本轮首次为 `disease_action_axis` 写读方,即抓出写方用 7-bit 变长串而 `CookedFormat` 规定 i32(详见证据 §2);该门把这类「字节稳定、写读不同形」变成红 |
+
 **门真身**:`unity/Assets/Tests/EditMode/DataPipeline/provider_wiring_gate_test.cs`
-(7 用例;装配零新增引用 —— 走 `Tests/EditMode/EditMode.asmdef`)
+(7 → **11** 用例;装配零新增引用 —— 走 `Tests/EditMode/EditMode.asmdef`)
 
 | 用例 | 判据 | 对应失效模式 |
 |---|---|---|
-| `test_wiring_newArtifactAddresses_matchBakerArtifactNames` | address 字面串 == `DataBakeMenu.*CookedAssetName` | ① |
+| `test_wiring_newArtifactAddresses_matchBakerArtifactNames` | 6 组 address 字面串 == `DataBakeMenu.*CookedAssetName` | ① |
 | `test_wiring_dataCoreGroup_containsEveryProviderAddress` | 每个 `*Address` 常量在组里**恰 1 条** | ② |
 | `test_wiring_dataCoreGroup_entriesResolveToExistingArtifacts` | 组每条 → `DataCooked/` 有真文件 | ② |
 | `test_wiring_dataCoreGroup_guidsMatchArtifactMeta` | 组 `m_GUID` == 产物 `.meta` 的 guid | ③ |
 | `test_wiring_preload_invokesEveryEnsureMethod` | `Ensure*` 方法集 == `Preload()` 调用集 == 地址表集 | ④ |
-| `test_wiring_loadBranch_interactionKinds_exists` | `Load<T>` 走到装载分支(非「未知类型」兜底) | 分支缺失 |
-| `test_wiring_loadBranch_negativeConfidence_exists` | 同上 | 同上 |
+| `test_wiring_loadBranch_{interactionKinds,negativeConfidence,prescriptionActions,diseaseActionAxis,outcomeTable,delayTable}_exists` | `Load<T>` 走到装载分支(非「未知类型」兜底) | 分支缺失 |
 
 > ⚠️ 两个 `LoadBranch` 用例**不依赖装载成功** —— EditMode 无 Addressables locator,装载必失败;
 > 判别靠**失败报文**:走到装载分支 ⇒ 报文点名产物基名;分支缺失 ⇒ 报文是「未知数据集类型」。
 > 两者互斥 ⇒ 有判别力。(`LogAssert.ignoreFailingMessages` 只关日志门,断言照跑。)
 
-**证伪轮 F1–F6(6/6 全转红)**
+**证伪轮(两轮合记 · **13/13 全转红**)
+
+路 A(F1–F6,对象 = 路 A 的两份):
 
 | # | 变异 | 实测红项 |
 |---|---|---|
@@ -469,33 +483,76 @@ AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→d
 | **F5** | 删掉 `Load<T>` 的 `InteractionKindDataSet` 分支 | `loadBranch_interactionKinds_exists` |
 | **F6** | `DataCoreAddresses` 删掉 `InteractionKindsAddress` | `preload_invokesEveryEnsureMethod` |
 
-- 基线:`7/7 passed`;每例「备份 → 单点变异 → 跑 → `cp` 回 → `sha256` 比对」**同一执行内**完成
-- 六例还原后 `sha256` **逐字节一致**;`git status` 与变异前同形
-- **F1 红 2 条是预期**:它同时改坏字面串 ⇒ 组里自然查不到那个 address,
-  故 ② 与 ① 同红;不是误伤(其余五例各**仅**红 1 条,证明隔离性好)
-- 脚本原件 `/tmp/fz-wiring.py`(临时件,不入库)
+第二轮(F1′–F7′,对象 = 后 4 份 + 镜像门):
 
-**⚠️ 必须如实登记的三条边界(禁借绿)**
+| # | 变异 | 实测红项 |
+|---|---|---|
+| **F1′** | `PrescriptionActionsAddress` 字面串改一字 | `newArtifactAddresses` + `dataCoreGroup_containsEvery…` **2 红** |
+| **F2′** | 组里删掉 `53_delay_table` 条目 | `dataCoreGroup_containsEvery…` |
+| **F3′** | 组条目 GUID 末位 `c→d` | `dataCoreGroup_guidsMatchArtifactMeta` |
+| **F4′** | `Preload()` 删掉 `EnsureDelayTable();` | `preload_invokesEveryEnsureMethod` |
+| **F5′** | 删掉 `Load<T>` 的 `DelayTable53DataSet` 分支 | `loadBranch_delayTable_exists` |
+| **F6′** | `DataCoreAddresses` 删掉 `DelayTableAddress` | `preload_invokesEveryEnsureMethod` |
+| **F7′** | `DiseaseActionAxisCookedWriter` 回退 `BinaryWriter.Write(string)`(7-bit 变长) | `roundTrip_diseaseActionAxis_diskMatchesFreshBake` |
 
-1. **两个新数据集在运行期零读者**。实测 `grep -rn "Load<InteractionKindDataSet>\|Load<DiagnosisNegativeConfidenceDataSet>"`
-   在非 `Tests/` 面**零命中**;`ImmutableInteractionKindTable`(story-007 `## Dependencies` 里
-   「Unlocks」的那件)在仓库里**不存在**。⇒ 本轮做的是「**可装载**」,不是「已被使用」。
-   读者归各 epic 的消费轮。
+- 基线:路 A `7/7` · 第二轮 `11/11` + `4/4`;每例「备份 → 单点变异 → 跑 → 还原 → `sha256` 比对」**同一执行内**完成
+- 十三例还原后 `sha256` **逐字节一致**;`git status` 与变异前同形
+- **`F1`/`F1′` 红 2 条是预期**:它们同时改坏字面串 ⇒ 组里自然查不到那个 address,
+  故 ② 与 ① 同红;不是误伤(其余十一例各**仅**红 1 条,证明隔离性好)
+- **`F7′` 是本轮信息量最大的一例**:它复现了 `disease_action_axis` 写方的历史违例
+  (`CookedFormat` 规定 `i32` 长度串,写方用 7-bit 变长),证明镜像门对该形态**有判别力**
+- 脚本原件 `/tmp/fz-wiring.py`(路 A)· `/tmp/fz-wiring-b.py`(第二轮)—— 临时件,不入库
+
+**⚠️ 必须如实登记的四条边界(禁借绿)**
+
+1. **6 个新数据集在运行期**仍然**零读者**。实测非 `Tests/` 面:
+   `Load<InteractionKindDataSet>` / `Load<DiagnosisNegativeConfidenceDataSet>` /
+   `Load<PrescriptionActionsDataSet>` / `Load<DiseaseActionAxisDataSet>` /
+   `Load<OutcomeTable53DataSet>` / `Load<DelayTable53DataSet>` **全部零命中**;
+   `ImmutableInteractionKindTable`(story-007 `## Dependencies` 里「Unlocks」的那件)在仓库里
+   **不存在**;`Outcome53.Judge.Evaluate` 生产侧零调用点;`ConsequenceEmitter`(消费
+   `DelayTable53.Table`)仍**只在测试里被构造**。
+   ⇒ 两轮做的是「**可装载**」,不是「已被使用」。读者归各 epic 的消费轮。
 2. **本机 catalog 必须重建后才生效**。`unity/Library/com.unity.addressables/aa/Linux/catalog.bin`
    是**机器本地产物**(`.gitignore:61` `[Ll]ibrary/`)。实测旧 catalog(**10-19 22:42**)里
    `interaction_kinds.cooked.bytes` / `diagnosis_negative_confidence.cooked.bytes` **均 MISS**。
    ⇒ 新检出 / 未重建 catalog 的机器上,`test_precheck_liveCatalog_allRealAddressesLocatable`
    (PlayMode)会判死。**这不是缺陷,是 E-13 的设计行为**;但跨机复现须先跑
-   `大医精诚/数据管线/构建 Addressables 内容`。
-3. **其余 4 份仍未接线**。`prescription_actions` / `disease_action_axis` / `53_outcome_table` /
-   `53_delay_table` 各自需要**新的运行期数据集类型 + 解码器**(`PrescriptionActionRow` /
-   `ActionAxisRow` 现住 `Editor.Tools.Bake`;`Outcome53.Table` / `DelayTable53.Table` 住 `Sim`,
-   且 `Outcome53.CreateTable` 自注「运行期生产装载归装配轮」)。另开一轮。
+   `大医精诚/数据管线/构建 Addressables 内容`。第二轮重建后实测 **15/15 HIT**。
+3. **`53_outcome_table` 的 `has_default` 位不在载荷里**。载荷只有
+   `u_band_count` / `default_outcome` / `row_count` / 行集。读方据此传 `hasDefault: true`,
+   依据是 `OutcomeTableBinder.ValidateCoverage` **硬拒无 default 行的表** ⇒ 合法产物该位恒真。
+   **这是从烘焙期不变量推出的,不是载荷携带的** —— 已在 codec 文件头写明;若需读方独立判别,
+   须升 `CookedFormat.FormatVersion`(不在本轮面内)。
+4. **IL2CPP 三格(ADR-012 矩阵)NOT-RUN** —— 本机仅 Mono。
 
-**连带改动**:`DataCorePreloader.DataCoreAddresses` 9 → **11 条**(与 `Preload()` 的 `Ensure*`
-调用数逐一相等,由 `test_preloader_list_sources_matchPreloadedProducts` 与
+**连带改动**:`DataCorePreloader.DataCoreAddresses` 9 → 11 → **15 条**(与 `Preload()` 的
+`Ensure*` 调用数逐一相等,由 `test_preloader_list_sources_matchPreloadedProducts` 与
 `test_wiring_preload_invokesEveryEnsureMethod` 双门钉住);`Preload()` 的 E-13 未知类型
 错误串同步订正。
+
+**⚠️ 第二轮抓出的写方契约违例(如实登记)**
+
+`DiseaseActionAxisCookedWriter` 原以 `BinaryWriter.Write(string)` 写字符串 = **7-bit 变长前缀**,
+而 `CookedFormat` 明文规定载荷内字符串 = **`i32` 字节长 + UTF-8**(九个姊妹写方均照此)。
+该产物此前**全库零读方**,漂移门只比对「盘上 == 现烘」⇒ 自洽的错字节长期不可见。
+第二轮首次为它写读方即暴露。**处置 = 修写方 + 重烘**(而非让读方去实现 7-bit ——
+那会把偏离固化成永久行为);产物 **304 → 370 B**,`ConfigVersion = 0x6C83B441`,
+`drift[disease_action_axis.cooked.bytes]` 证明盘上与现烘一致。
+回归夹具 = `roundTrip_diseaseActionAxis_diskMatchesFreshBake`(F7′ 实测回退即红)。
+
+**回归对账(2026-10-20 · 第二轮接线轮)**
+
+| 项 | 值 |
+|---|---|
+| 本轮 | **`total=3988 passed=3952 failed=0 inconclusive=0 skipped=36`**(exit 0) |
+| 前次(路 A 接线轮) | `3980 / 3944 / 0 / 36` |
+| Δ | **`+8 / +8 / 0 / 0`**(4 条 `LoadBranch` + 4 条镜像门) |
+| 等式判据 | `total − 前次 = 新增数` ⇒ **✅ 精确成立,零回归** |
+
+> **三元组(强制)**:截至时刻 `2026-10-20 11:30 本地` · 批次 `第二轮接线轮(全量 EditMode)` ·
+> commit `bdadfb3` + 未提交工作树。结果原件 `unity/Logs/wiring-b-full.xml`;
+> 报告原件 `production/qa/evidence/impl-data-core-wiring-b-2026-10-20.md`。
 
 **回归对账(2026-10-20 · 路 A 接线轮)**
 
