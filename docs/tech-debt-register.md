@@ -887,6 +887,7 @@ A 类(自造 Fake)只深挖 telemetry · `tests/unit|integration/` 账本树未�
 |---|---|
 | **受影响协议** | ① `production/qa/evidence/breath-layers-listen-evidence.md`(AC-44-02 / AC-44-08,38 项)② `production/qa/evidence/main-channel-listen-evidence.md`(AC-44-17,5 项)③ `production/qa/evidence/voice-variant-listen-evidence-2026-10-20.md`(AC-44-03 / AC-44-04)④ `production/qa/evidence/s19-breath-transition-listening-2026-10-18.md`(AC-019-6 / 10-c,6 项) |
 | **状态** | 四份全部**维持 NOT-RUN**;`[ ]` 一格未勾(`voice-variant` 的 `BLOCKED` 行原样保留) |
+| **归属变更留痕** | **2026-10-20(用户裁定「同 S15-6 一并移出」)**:协议 ④(`AC-019-6` / story-019 的**面 10-c**)**移出 story-019**,并入本债条 —— 与 S15-6 同因(前置代码级不可达)、同批处置。⇒ story-019 转 `Complete`(10-a / 10-b 已落),**`AC-019-6` 仍 NOT-RUN**,判据原文保留在 `production/epics/audio-system/story-019-ac44-10-no-spike-sfx.md` §面 10-c 节首声明之后。⚠️ **移出不等于通过**。 |
 
 #### 五个阻断项(逐条实测,可复算)
 
@@ -935,8 +936,11 @@ A 类(自造 Fake)只深挖 telemetry · `tests/unit|integration/` 账本树未�
 
 #### 解除后的执行入口
 
-原 `S15-6` 卡面判据已在 `production/sprints/sprint-15.md` 内**保留不改写**
-(标注「已移出,解除后按此执行」),届时按该段逐条执行即可,无需重写协议。
+- 原 `S15-6` 卡面判据已在 `production/sprints/sprint-15.md` 内**保留不改写**
+  (标注「已移出,解除后按此执行」),届时按该段逐条执行即可,无需重写协议。
+- `AC-019-6`(10-c)卡面判据保留在
+  `production/epics/audio-system/story-019-ac44-10-no-spike-sfx.md` §面 10-c 节首声明之后。
+  **依赖 L-1(判据 ② 两极中的「停止」极)与 L-3(判据 ① 的「急促」段时长)** —— 这两项不清则不可执行。
 
 **触发条件**:L-1 / L-2 任一落地(它们是纯接线,不依赖数值轮)即可**部分**执行 ——
 先跑不依赖病程时长的项(AC-44-03 主判据的四条中「同病人一致 / 无变声器感 / 性别不串」三条、

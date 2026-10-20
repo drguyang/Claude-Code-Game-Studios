@@ -6501,3 +6501,72 @@ impl 原件 §六 两行 + **§十一 走查结清** · `sprint-status.yaml`(S14
 - **仍 NOT-RUN**:C 的 D3/D5/D6/D7 · A 的真联机半边 · D 的 Release player 半边 ·
   E 的运行期零出站 · `AC-51-B9`(真实会话数据不存在)。
 - **未提交**。
+
+## Session Extract — sprint-15 收口 · 2026-10-20
+
+**状态**:sprint-15 **已收口**(`2026-10-19` → `2026-10-20`),QA sign-off = **APPROVED WITH CONDITIONS**
+(`production/qa/qa-signoff-sprint-15-2026-10-20.md`)。
+
+### 本轮两件事
+
+**① 10-c 移出 story-019(用户裁定「同 S15-6 一并移出」)**
+- `story-019` → `Complete`(10-a 门 / 10-b 断言已落 + 证伪 F1–F9 + 修复轮 F1–F4);
+  **面 10-c(`AC-019-6`)移出**,判据原文保留在节首声明之后。
+- 移出理由 = **代码级不可达**:`IPresenceWriter.RemovePresent` 生产零调用(无病人离场路径 ⇒
+  「停顿 vs 停止」缺「停止」极)· 占位 plateau 曲线把病程压到 1.55 s(「急促」档仅 0.4 s)。
+- 并入 `docs/tech-debt-register.md` **`TD-listen-01`**(新增「归属变更留痕」行);
+  `sprint-status.yaml` S15-1 `done` / S15-6 `removed`(**非 done 非 blocked**)。
+
+**② 收口轮全量实测出 7 红 —— 已修 + 双反证**
+- 首跑 PlayMode `197/190/**7**/0`,7 条红同一条 `AC-20-10 AudioListener 单挂点`,
+  `active` 逐测递增(2→3→…→7)。**是本轮修「零听音点」时引入/暴露的回归,不是既有缺陷。**
+- 缺陷 A:`CameraRig` 是根级对象、`BootRoot.OnDestroy` 从不销毁 ⇒ 每测试残留一个带 listener 的相机。
+  修 = `SetParent(transform)`(与 `EnsureEventSystem` 同一纪律)。**反证 M1:删 SetParent ⇒ 7 红**。
+- 缺陷 B:预摆相机摘 listener 用 `GameObject.Find`(只找 active)⇒ 预摆 inactive 时摘不掉。
+  修 = 新增 `FindInactiveInclusive`。**反证 M2:改回 Find ⇒ 1 红(`active 1 / 总数 2`)**。
+- 还原 SHA 均一致(`c5397e6b6351df41`)。原件 `production/qa/evidence/fix-camerarig-listener-leak-2026-10-20.md`。
+
+### 测试终值(三元组)
+
+| 套件 | 截至 | 批次 | commit | 结果 |
+|---|---|---|---|---|
+| EditMode | 2026-10-20 01:09 UTC | 收口轮全量 | `3f6c084`+工作树 | `3945 / 3909 / 0 / 36` |
+| PlayMode | 2026-10-20 01:09 UTC | 收口轮全量 | 同上 | `197 / 197 / 0 / 0` |
+
+对中途闸(`smoke-2026-10-20.md` §1 · `3928/3892` + `197/197`)差 = EditMode `+17`(新夹具),
+failed / skipped 未变 ⇒ 零回归。
+
+### 元教训(已入原件)
+
+1. **单件全绿对「跨测试累积」零判别力** —— 修 A 时只跑了 4 条定向件,各自单跑全绿。
+   本 sprint 第二次实证「单件绿 ≠ 全量绿」。
+2. **把一个「不计数」的对象变成「计数」的对象时,必须同步检查它的生命周期归属** ——
+   `CameraRig` 从空壳升级为「唯一听音点持有者」,所有权义务随之升级,当时只改了 `AddComponent`。
+3. **守卫的谓词边界不得窄于失效集合** —— 缺陷 B(`Find` 只覆盖 active)与今晨
+   `MuteCaptureFloorDb = -80` 漏过 −74 dB 是**同一类错误**,一天内两次。
+
+### 仍 open(不得读作已解决)
+
+- **`TD-listen-01` L-1…L-5 一个都没动**;四份听测协议**全部 NOT-RUN**、`[ ]` 一格未勾。
+- 6 条 AC 的听测半边**一条未验证**:`AC-019-6` / `AC-44-02` / `AC-44-03` / `AC-44-04` /
+  `AC-44-08` / `AC-44-17`。
+- sign-off 的 4 条条件:见 `qa-signoff-sprint-15-2026-10-20.md` §7。
+- 测试侧 `camera_follow_wiring_test` 的 `GameObject.Find("Main Camera")` 死代码**未改**
+  (生产侧已不依赖它),归测试基建清理轮。
+- **epic 44 仍不得收口**(101/102/103/104/105/107/108 + 素材录制在途)。
+
+### 文件清单(本轮改动,全部未提交)
+
+```
+ M docs/tech-debt-register.md                                    # TD-listen-01 归属变更留痕 + 执行入口
+ M production/epics/audio-system/story-019-...md                 # Status Complete + 10-c 移出声明
+ M production/qa/qa-plan-sprint-15-2026-10-18.md                 # Manual QA 节首归属变更注
+ M production/qa/smoke-2026-10-20.md                             # §7 收口轮终值 + 7 红如实登记
+ M production/sprint-status.yaml                                 # S15-1 done / S15-6 removed / end 日期
+ M production/sprints/sprint-15.md                                # S15-1 收口注 + 前提订正之二 + DoD
+ M unity/Assets/Gameplay.Boot/BootRoot.cs                        # CameraRig SetParent + FindInactiveInclusive
+?? production/qa/evidence/fix-camerarig-listener-leak-2026-10-20.md
+?? production/qa/qa-signoff-sprint-15-2026-10-20.md
+```
+
+**未提交**(不经用户指令不 commit)。

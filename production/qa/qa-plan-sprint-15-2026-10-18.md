@@ -146,6 +146,15 @@
 
 ## Manual QA Checklist
 
+> **⛔ 2026-10-20 归属变更注(原文保留不改写)**:本节的**两个** `[L]` 人工项
+> (S15-1 面 10-c · S15-6)已被用户裁定**同批移出 sprint-15**,合并登记为
+> `docs/tech-debt-register.md` **`TD-listen-01`**(阻断项 L-1…L-6 + 解除条件 + 执行入口)。
+> ⇒ 本 sprint **不再有待用户实听的门**;下方清单**依然有效**,只是其**执行时点**从「本 sprint」
+> 改为「`TD-listen-01` 解除后」。
+> ⚠️ **移出不等于通过** —— 两项判据一格未勾、一条未验证;`AC-019-6` / `AC-44-02` / `AC-44-08`
+> 的听测半边**仍为 NOT-RUN**。
+> ⚠️ 本节其余内容(Smoke Test Scope 第 2–7 条、Playtest Requirements 表)**同受此注约束**。
+
 ### S15-1 面 10-c · `AC-019-6` `[L]`(BLOCKING)
 **Verification method**:用户实机 Play · 编辑器内听测
 **Who must sign off**:用户本人(人耳)
