@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具(AC-24-12 已实现半边):子句类型 kind = proximity 不在闭集 {min_count, has_type, adjacency_min_count} 内 ⇒ 构建失败。",
+  "rooms": [
+    {
+      "room_type": "ward",
+      "clauses": [
+        { "kind": "proximity", "type": "bed", "min": 1 }
+      ]
+    }
+  ]
+}

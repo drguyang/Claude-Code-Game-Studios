@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "_note": "Story 001 schema 种子 —— 本表数值 = 夹具值,不是游戏平衡值(逐值调参归用户数值轮,GDD clinic-machine.md :52 / :325)。唯一合法作者态 = 本文件(assets/data/*.json 明文)。k_speed 档集 = {1, 7/8, 3/4}(OQ-24-1 2026-09-25 已裁),值域 (0,1] 由档集蕴含;档集外一律同一条 schema 错(单机制,不另设分支)。base_env ∈ [ENV_MOD_MIN, ENV_MOD_MAX] = [-1/2, +1/2](21a 常量,读 item_database_constants.json,不硬编码)。K_CONTEXT_MAX = max(k_speed) 由烘焙期派生(禁裸常数,F-24-3)。Fix 字段在 JSON 里必须写字符串,不是 JSON 数字(ADR-014 四)。两阶段烘焙 → *.cooked → IDataProvider;玩家构建零 JSON 解析器。",
+  "contexts": [
+    {
+      "room_type": "ward",
+      "context_id": "ward_plain",
+      "k_speed": "1",
+      "base_env": "0"
+    },
+    {
+      "room_type": "surgery",
+      "context_id": "surgery_sterile",
+      "k_speed": "7/8",
+      "base_env": "1/4"
+    },
+    {
+      "room_type": "herb_room",
+      "context_id": "herb_heavy",
+      "k_speed": "3/4",
+      "base_env": "1/8"
+    }
+  ]
+}

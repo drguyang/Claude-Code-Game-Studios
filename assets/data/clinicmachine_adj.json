@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "_note": "Story 001 schema 种子 —— 本表数值 = 夹具值,不是游戏平衡值(逐值调参归用户数值轮)。ADJ_TABLE 权重 w(a,b) = 无序对、可负、缺失 = 0(F-24-1 公共定义)。烘焙期硬门 = 对称性 forall a,b: w(a,b) == w(b,a)(AC-24-06);单向缺项亦视为不对称 => 拒。故本表按 >>有向<< 逐条登记,每组无序对须双向各写一行。W 域 = [-1/4, +1/4](OQ-24-6 已裁;硬约束 W_MIN < 0 < W_MAX 且 |W_MIN| <= W_MAX 由烘焙门保证,非作者纪律)。n_max = 单房间格数上界 = 64(OQ-24-5 2026-10-07 已裁;O-24-2 要求登记为 6 的复核点)。注意 TIER_MAX(= 3,OQ-24-2)是 21a 的旋钮,其声明家 = 21a 家具目录扩展(O-24-1)—— 本表刻意不含 tier_max(在 24 的数据里再写一份 = 第二真源);烘焙工具内以具名常数承接。Fix 字段在 JSON 里必须写字符串(ADR-014 四)。",
+  "n_max": 64,
+  "w_min": "-1/4",
+  "w_max": "1/4",
+  "pairs": [
+    {
+      "a": "surgery_table",
+      "b": "sterile_cabinet",
+      "w": "1/8"
+    },
+    {
+      "a": "sterile_cabinet",
+      "b": "surgery_table",
+      "w": "1/8"
+    },
+    {
+      "a": "herb_cabinet",
+      "b": "chamber_pot",
+      "w": "-1/8"
+    },
+    {
+      "a": "chamber_pot",
+      "b": "herb_cabinet",
+      "w": "-1/8"
+    },
+    {
+      "a": "bed",
+      "b": "chamber_pot",
+      "w": "-1/4"
+    },
+    {
+      "a": "chamber_pot",
+      "b": "bed",
+      "w": "-1/4"
+    }
+  ]
+}

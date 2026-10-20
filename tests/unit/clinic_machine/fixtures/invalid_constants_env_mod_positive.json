@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具(O-24-4):env_mod_min = 1/4 非负 ⇒ 拒。用来证明 O-24-4 门不是空转(真常量表里 env_mod_min = -1/2 必过)。",
+  "env_mod_min": "1/4",
+  "env_mod_max": "1/2"
+}

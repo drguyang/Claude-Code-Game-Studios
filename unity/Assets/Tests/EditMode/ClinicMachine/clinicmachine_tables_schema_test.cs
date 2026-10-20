@@ -1,0 +1,469 @@
+// Story 001 · clinic-machine —— 烘焙表与 schema 构建门(AC-24-05 / 06 / 08 半边 / 12 半边 · O-24-4 / O-24-5 · K_CONTEXT_MAX)。
+//
+// 卡面:production/epics/clinic-machine/story-001-baked-tables-schema-gates.md
+//   (§Test Evidence 逐字点名本路径 —— 真身 = 本文件)
+// 权威来源:
+//   ADR-014 §三(阶段 2:白名单 / FixParse / schema_version / 聚合 throw)· §四(Fix 字段必须字符串)
+//   GDD design/gdd/clinic-machine.md:
+//     规则二(ROOM_TABLE 谓词 + 邻接子句 + 方向确定性)· 规则三 / F-24-3(K_speed 档集 / K_CONTEXT_MAX 派生)
+//     · F-24-1(W 域 / 对称硬门)· F-24-2(n_max × TIER_MAX < 2^31)· O-24-4(ENV_MOD_MIN < 0)· O-24-5(四项断言)
+//   OQ-24-1(2026-09-25)K_speed = {1, 7/8, 3/4} · OQ-24-2 TIER_MAX = 3 · OQ-24-5 n_max = 64 · OQ-24-6 W 域 [-1/4, +1/4]
+//
+// ⚠️ 被测对象 = **生产代码**(ClinicMachineSchema / 三个 Binder / ClinicMachineTablesBake / CookedWriter)
+//    —— 不是本文件的副本。本文件只含夹具读取与断言。
+//
+// ⚠️ **AC-24-08 / AC-24-12 维持 BLOCKED-BY-O-24-1**:本文件的对应测只证**已实现半边**
+//    (FURN_TABLE 的 schema **形状** / 子句类型闭集 + 方向确定性),**不构成**那两条 AC 通过。
+//    闭集来源(`FURN_TYPES`)= 21a 家具目录扩展(O-24-1),本件**不伪造闭集**:接缝经注入参数,
+//    测试替身是**协作对象**(命名 StubFurnSource,注释标明非真闭集),生产缺席由缺口哨兵自陈。
+//
+// ⚠️ 测试纪律:零写盘(夹具只读;违例走字符串入口 BakeFromJson / 单表 BindForTest)·
+//    无随机 · 无时间依赖 · 夹具缺失即红(不静默跳过)。
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Runtime.CompilerServices;
+using DaYiJingCheng.EditorTools.Bake;
+using DaYiJingCheng.Sim.Contracts;
+using NUnit.Framework;
+
+namespace DaYiJingCheng.Tests.ClinicMachine
+{
+    /// <summary>24 三表烘焙 schema 门的 EditMode 测试。</summary>
+    [TestFixture]
+    public sealed class ClinicMachineTablesSchemaTest
+    {
+        // ════════════════════════════════════════════════════════════════════
+        // 夹具基建(只读)
+        // ════════════════════════════════════════════════════════════════════
+
+        // 本文件在 unity/Assets/Tests/EditMode/ClinicMachine/ ⇒ 仓库根 = 上 5 层
+        // (ClinicMachine→EditMode→Tests→Assets→unity→仓根)。承 Audio/settings_exposure_test.cs:47-49。
+        private static string RepoRoot([CallerFilePath] string thisFile = "")
+            => Path.GetFullPath(Path.Combine(
+                Path.GetDirectoryName(thisFile) ?? ".", "..", "..", "..", "..", ".."));
+
+        private static string FixtureText(string name)
+        {
+            string path = Path.Combine(
+                RepoRoot(), "tests", "unit", "clinic_machine", "fixtures", name);
+            Assert.That(File.Exists(path), Is.True, $"违例夹具缺失:{path}");
+            return File.ReadAllText(path);
+        }
+
+        private static string RepoDataText(string name)
+        {
+            string path = Path.Combine(RepoRoot(), "assets", "data", name);
+            Assert.That(File.Exists(path), Is.True, $"作者态源表缺失:{path}");
+            return File.ReadAllText(path);
+        }
+
+        /// <summary>断言异常的错误集**至少一条**包含给定子串(单一出口,失败信息给出全集)。</summary>
+        private static void AssertErrorsContain(BakeValidationException ex, params string[] needles)
+        {
+            string joined = string.Join("; ", ex.Errors);
+            Assert.That(ex.Errors.Count, Is.GreaterThan(0), "构建期拒收必须给出至少一条可读原因");
+            for (int i = 0; i < needles.Length; i++)
+                Assert.That(joined, Does.Contain(needles[i]),
+                    $"错误集未包含「{needles[i]}」;全集 = {joined}");
+        }
+
+        /// <summary>注入用的**测试内局部**家具类型替身。
+        /// <para>⚠️ **非真闭集**(`FURN_TYPES` 的真源 = 21a 家具目录扩展,O-24-1,实测零落点)。
+        /// 它是**传给注入参数的协作对象**,不是声明的闭集 —— 用于证明接缝通电(裁决 2(a))。</para></summary>
+        private sealed class StubFurnSource : IFurnTypeSource
+        {
+            private readonly IReadOnlyCollection<string> _types;
+
+            public StubFurnSource(params string[] types) { _types = types; }
+
+            public bool TryGetTypes(out IReadOnlyCollection<string> types)
+            {
+                types = _types;
+                return true;
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // AC-24-05 · CONTEXT_TABLE 的 K_speed ∈ (0,1](档集单机制)
+        // ════════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_context_k_speed_above_one_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextForTest(FixtureText("invalid_context_table.json")));
+
+            AssertErrorsContain(ex, "k_speed", "5/4");
+        }
+
+        [Test]
+        public void test_context_k_speed_zero_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextForTest(FixtureText("invalid_context_zero.json")));
+
+            AssertErrorsContain(ex, "k_speed", "档集");
+        }
+
+        [Test]
+        public void test_context_k_speed_boundary_one_accepted()
+        {
+            // 边界双向的另一侧:"1/1" 解析后 = 档集成员 1(raw 65536)⇒ 必须通过。
+            ClinicMachineContextBinder.BindResult bound = ClinicMachineTablesBake.BindContextForTest(
+                FixtureText("valid_context_boundary.json"));
+
+            Assert.That(bound.Rows.Count, Is.GreaterThan(0));
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // AC-24-06 · ADJ_TABLE 对称性 = 烘焙硬门
+        // ════════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_adj_asymmetric_value_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindAdjForTest(FixtureText("invalid_adj_table.json")));
+
+            AssertErrorsContain(ex, "不对称", "surgery_table");
+        }
+
+        [Test]
+        public void test_adj_single_sided_pair_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindAdjForTest(FixtureText("invalid_adj_single_sided.json")));
+
+            AssertErrorsContain(ex, "单向缺项", "chamber_pot");
+        }
+
+        [Test]
+        public void test_adj_symmetric_pairs_accepted()
+        {
+            ClinicMachineAdjBinder.BindResult bound = ClinicMachineTablesBake.BindAdjForTest(
+                RepoDataText("clinicmachine_adj.json"));
+
+            Assert.That(bound.Pairs.Count, Is.GreaterThan(0));
+            Assert.That(bound.NMax, Is.GreaterThan(0));
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // O-24-5 · 溢出界(n_max × TIER_MAX < 2^31 且 |W_MIN| <= W_MAX)
+        // ════════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_overflow_bounds_exact_2pow31_minus_one_accepted()
+        {
+            // 恰 2^31 − 1(= Int32Max)通过:乘积的允许上确界。
+            var errors = new List<string>();
+            ClinicMachineSchema.AssertOverflowBounds(
+                ClinicMachineSchema.Int32Max, 1L, -16384L, 16384L, errors);
+
+            Assert.That(errors, Is.Empty);
+        }
+
+        [Test]
+        public void test_overflow_bounds_at_2pow31_rejected()
+        {
+            // 恰 2^31 拒:边界双向的另一侧(不用夹具体 —— 该边界须可直驱)。
+            var errors = new List<string>();
+            ClinicMachineSchema.AssertOverflowBounds(
+                ClinicMachineSchema.Int32Limit, 1L, -16384L, 16384L, errors);
+
+            Assert.That(errors, Is.Not.Empty);
+            Assert.That(string.Join("; ", errors), Does.Contain("溢出界"));
+        }
+
+        [Test]
+        public void test_adj_n_max_boundary_floor_accepted()
+        {
+            // n_max = floor((2^31−1)/3) ⇒ ×3 = 2147483646 < 2^31。
+            ClinicMachineAdjBinder.BindResult bound = ClinicMachineTablesBake.BindAdjForTest(
+                FixtureText("valid_adj_boundary.json"));
+
+            Assert.That(bound.NMax, Is.EqualTo(715827882L));
+        }
+
+        [Test]
+        public void test_adj_n_max_over_floor_rejected()
+        {
+            // n_max = floor + 1 ⇒ ×3 = 2147483649 >= 2^31。
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindAdjForTest(FixtureText("invalid_adj_overflow.json")));
+
+            AssertErrorsContain(ex, "溢出界");
+        }
+
+        [Test]
+        public void test_adj_wmin_abs_gt_wmax_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindAdjForTest(FixtureText("invalid_adj_wdomain.json")));
+
+            AssertErrorsContain(ex, "W_MIN");
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // O-24-4 · ENV_MOD_MIN < 0(21a 常量,读表不硬编码)
+        // ════════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_constants_env_mod_min_negative_accepted()
+        {
+            // 生产路径 = 读 assets/data/item_database_constants.json(env_mod_min = "-1/2")。
+            Assert.DoesNotThrow(() => ClinicMachineTablesBake.BakeFromRepo(RepoRoot()));
+        }
+
+        [Test]
+        public void test_constants_env_mod_min_nonnegative_rejected()
+        {
+            // 负例证明 O-24-4 门不是空转:把 env_mod_min 改成 1/4 ⇒ 必拒。
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BakeFromJson(
+                    RepoDataText("clinicmachine_context.json"),
+                    RepoDataText("clinicmachine_adj.json"),
+                    RepoDataText("clinicmachine_room.json"),
+                    FixtureText("invalid_constants_env_mod_positive.json")));
+
+            // ⚠️ 断言钉到 O-24-4 守卫**自己的**报文前缀,不用共用 token「ENV_MOD_MIN」——
+            //    后者同时出现在 base_env 域校验的报文里,会把本测借绿(证伪轮 F4 实测存活,
+            //    停用 AssertEnvModMinNegative 后仍是绿)。2026-10-20 证伪轮修正。
+            AssertErrorsContain(ex, "O-24-4 失败");
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // 规则三 / F-24-1 · base_env ∈ [ENV_MOD_MIN, ENV_MOD_MAX](ENV 域 = 21a,非 24 的 W 域)
+        // ════════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_context_base_env_outside_env_domain_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BakeFromJson(
+                    FixtureText("invalid_context_base_env.json"),
+                    RepoDataText("clinicmachine_adj.json"),
+                    RepoDataText("clinicmachine_room.json"),
+                    RepoDataText("item_database_constants.json")));
+
+            AssertErrorsContain(ex, "base_env", "ENV_MOD_MIN");
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // K_CONTEXT_MAX = max(K_speed) —— 表派生,禁裸常数(F-24-3)
+        // ════════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_k_context_max_derived_from_table()
+        {
+            ClinicMachineContextBinder.BindResult bound = ClinicMachineTablesBake.BindContextForTest(
+                RepoDataText("clinicmachine_context.json"));
+
+            long maxRaw = long.MinValue;
+            for (int i = 0; i < bound.Rows.Count; i++)
+                if (bound.Rows[i].KSpeed.Raw > maxRaw) maxRaw = bound.Rows[i].KSpeed.Raw;
+
+            // ① 导出值 = 表行最大值(不是手填)
+            Assert.That(bound.KContextMax.Raw, Is.EqualTo(maxRaw));
+
+            // ② 且 = 档集里的最大档(档集本身是唯一出处,仍不抄字面量)
+            long whitelistMax = long.MinValue;
+            for (int i = 0; i < ClinicMachineSchema.KSpeedLiterals.Count; i++)
+            {
+                long raw = FixParse.Parse(ClinicMachineSchema.KSpeedLiterals[i]).Raw;
+                if (raw > whitelistMax) whitelistMax = raw;
+            }
+            Assert.That(bound.KContextMax.Raw, Is.EqualTo(whitelistMax));
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // AC-24-08 **已实现半边** · FURN_TABLE 字段形状(tier ∈ 整数域 / e_env Fix 字符串)
+        //   ⚠️ 整条 AC 挂 BLOCKED-BY-O-24-1 —— 下列测只证 schema 形状门。
+        // ════════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_furn_table_field_spec_accepted()
+        {
+            Assert.DoesNotThrow(() => ClinicMachineSchema.AssertFurnTableShape(
+                FixtureText("valid_furn_shape.json")));
+        }
+
+        [Test]
+        public void test_furn_table_missing_field_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineSchema.AssertFurnTableShape(FixtureText("invalid_furn_missing_field.json")));
+
+            AssertErrorsContain(ex, "e_env");
+        }
+
+        [Test]
+        public void test_furn_table_wrong_token_kind_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineSchema.AssertFurnTableShape(FixtureText("invalid_furn_token_kinds.json")));
+
+            // tier 写成字符串 / e_env 写成 JSON 数字 —— 两种 token 种类错都要报。
+            AssertErrorsContain(ex, "tier", "e_env");
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // AC-24-12 **已实现半边** · 子句类型闭集 + 方向确定性;成员资格 = 注入接缝 + 缺口哨兵
+        //   ⚠️ 整条 AC 挂 BLOCKED-BY-O-24-1 —— 成员资格未在生产路径强制。
+        // ════════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_room_unknown_clause_kind_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindRoomForTest(
+                    FixtureText("invalid_room_clause_kind.json"), null));
+
+            AssertErrorsContain(ex, "未知子句类型", "proximity");
+        }
+
+        [Test]
+        public void test_room_clause_direction_invalid_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindRoomForTest(
+                    FixtureText("invalid_room_direction.json"), null));
+
+            AssertErrorsContain(ex, "direction");
+        }
+
+        [Test]
+        public void test_room_furn_membership_enforced_with_injected_source()
+        {
+            // 注入替身覆盖全部引用类型 ⇒ 通过,且哨兵 = true(接缝通电,不是死码)。
+            const string roomJson =
+                @"{ ""schema_version"": 1, ""rooms"": [ { ""room_type"": ""ward"", ""clauses"": " +
+                @"[ { ""kind"": ""has_type"", ""type"": ""bed"" }, " +
+                @"{ ""kind"": ""has_type"", ""type"": ""cot"" } ] } ] }";
+
+            ClinicMachineRoomBinder.BindResult bound = ClinicMachineTablesBake.BindRoomForTest(
+                roomJson, new StubFurnSource("bed", "cot"));
+
+            Assert.That(bound.FurnMembershipEnforced, Is.True);
+        }
+
+        [Test]
+        public void test_room_furn_membership_rejects_type_outside_injected_source()
+        {
+            // 替身缺 cot ⇒ 成员资格门必须拒(证明不是只置标志)。
+            const string roomJson =
+                @"{ ""schema_version"": 1, ""rooms"": [ { ""room_type"": ""ward"", ""clauses"": " +
+                @"[ { ""kind"": ""has_type"", ""type"": ""bed"" }, " +
+                @"{ ""kind"": ""has_type"", ""type"": ""cot"" } ] } ] }";
+
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindRoomForTest(roomJson, new StubFurnSource("bed")));
+
+            AssertErrorsContain(ex, "cot");
+        }
+
+        [Test]
+        public void test_room_furn_membership_absent_sentinel_false()
+        {
+            // **缺口哨兵**:生产路径无闭集来源(O-24-1 未兑现)⇒ 必须显式自陈未强制。
+            // O-24-1 落地后此测**转红是被要求的行为**,不得当回归修掉(承 S14-6 哨兵口径)。
+            ClinicMachineRoomBinder.BindResult bound = ClinicMachineTablesBake.BindRoomForTest(
+                RepoDataText("clinicmachine_room.json"), null);
+
+            Assert.That(bound.FurnMembershipEnforced, Is.False);
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // 通用构建期门(ADR-014 §三 / §四)
+        // ════════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_unknown_key_rejected()
+        {
+            const string json =
+                @"{ ""schema_version"": 1, ""context"": [], ""contexts"": " +
+                @"[ { ""room_type"": ""ward"", ""context_id"": ""c"", ""k_speed"": ""1"", ""base_env"": ""0"" } ] }";
+
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextForTest(json));
+
+            AssertErrorsContain(ex, "未知键", "context");
+        }
+
+        [Test]
+        public void test_schema_version_mismatch_rejected()
+        {
+            const string json =
+                @"{ ""schema_version"": 999, ""contexts"": " +
+                @"[ { ""room_type"": ""ward"", ""context_id"": ""c"", ""k_speed"": ""1"", ""base_env"": ""0"" } ] }";
+
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextForTest(json));
+
+            AssertErrorsContain(ex, "schema_version");
+        }
+
+        [Test]
+        public void test_fix_field_json_number_token_rejected()
+        {
+            // base_env 写成 JSON 数字 ⇒ 结构性拒(ADR-014 §四:Fix 字段必须字符串)。
+            const string json =
+                @"{ ""schema_version"": 1, ""contexts"": " +
+                @"[ { ""room_type"": ""ward"", ""context_id"": ""c"", ""k_speed"": ""1"", ""base_env"": 0 } ] }";
+
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextForTest(json));
+
+            AssertErrorsContain(ex, "须为 JSON 字符串");
+        }
+
+        [Test]
+        public void test_multiple_errors_aggregated_in_single_throw()
+        {
+            // 两处独立违例(未知键 + k_speed 越界)⇒ 一次 throw 报全(不是首错即停)。
+            const string json =
+                @"{ ""schema_version"": 1, ""surprise"": 1, ""contexts"": " +
+                @"[ { ""room_type"": ""ward"", ""context_id"": ""c"", ""k_speed"": ""5/4"", ""base_env"": ""0"" } ] }";
+
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextForTest(json));
+
+            Assert.That(ex.Errors.Count, Is.GreaterThanOrEqualTo(2));
+            AssertErrorsContain(ex, "surprise", "5/4");
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // 仓根烘焙与确定性(ADR-014 §二)
+        // ════════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_bake_from_repo_seed_tables_accepted()
+        {
+            ClinicMachineTablesBake.BakeOutput output = ClinicMachineTablesBake.BakeFromRepo(RepoRoot());
+
+            Assert.That(output.ContextCooked.Length, Is.GreaterThanOrEqualTo(CookedFormat.HeaderSize));
+            Assert.That(output.AdjCooked.Length, Is.GreaterThanOrEqualTo(CookedFormat.HeaderSize));
+            Assert.That(output.RoomCooked.Length, Is.GreaterThanOrEqualTo(CookedFormat.HeaderSize));
+            Assert.That(output.Context.Rows.Count, Is.GreaterThan(0));
+            Assert.That(output.Adj.Pairs.Count, Is.GreaterThan(0));
+            Assert.That(output.Room.Rooms.Count, Is.GreaterThan(0));
+
+            // 缺口哨兵:生产路径无闭集来源。
+            Assert.That(output.Room.FurnMembershipEnforced, Is.False);
+        }
+
+        [Test]
+        public void test_cooked_bytes_deterministic_for_same_source()
+        {
+            // ADR-014 §二:同源两次烘焙逐位一致。
+            ClinicMachineTablesBake.BakeOutput first = ClinicMachineTablesBake.BakeFromRepo(RepoRoot());
+            ClinicMachineTablesBake.BakeOutput second = ClinicMachineTablesBake.BakeFromRepo(RepoRoot());
+
+            Assert.That(first.ConfigVersion, Is.EqualTo(second.ConfigVersion));
+            Assert.That(first.ContextCooked, Is.EqualTo(second.ContextCooked));
+            Assert.That(first.AdjCooked, Is.EqualTo(second.AdjCooked));
+            Assert.That(first.RoomCooked, Is.EqualTo(second.RoomCooked));
+        }
+    }
+}

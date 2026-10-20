@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具(AC-24-08 schema 形状半边,缺字段):第 2 行缺 e_env ⇒ 拒。该夹具只证「schema 形状」半边;AC-24-08 整体挂 BLOCKED-BY-O-24-1。",
+  "furn": [
+    { "type": "bed", "tier": 2, "e_env": "1/64" },
+    { "type": "herb_cabinet", "tier": 1 }
+  ]
+}

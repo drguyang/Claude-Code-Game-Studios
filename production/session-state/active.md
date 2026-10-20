@@ -7103,3 +7103,62 @@ C-1/C-2 → 4 装配轮 · C-3 → 45 P1b · C-4/C-5 → **五处**(39 UX 规格
 **4 的 GDD 措辞待回刷**(它现称该行「构建期红」而实测绿,回刷归 4 的复核轮) · F-2 文档漂移 ·
 **F-3 已落 `OQ-CB-7`**,且 **39 GDD 三处已回刷指向它**(R-6 ①)。剩余 = `OQ-CB-7` 的**形态裁定**本身(39 UX 轮)。
 **4 的 GDD 三处已回刷**(R-6 ②):「Container 构建期红」的预言已被实测证伪,现文写明是「门被无出处填值静默绕开」。
+
+---
+
+## 2026-10-20 · 取件轮:批 A-1 前三件(clinic-machine 001/002/003)
+
+**承** `production/milestones/p0-remaining-roadmap-2026-10-20.md` §6.2/§6.3。sprint-15 已于
+2026-10-20 收口 ⇒ **本轮是路线图取件轮,不新开 sprint**。
+
+### 四道复核结论(§6.3 R-1…R-4,逐件跑)
+
+| 件 | R-1 卡面 | R-2 挂标 | R-3 实现/登记 | R-4 上游契约 |
+|---|---|---|---|---|
+| clinic-machine/001 烘焙表与 schema 构建门 | Ready | 0 | 实现(`clinicmachine*` 零命中) | ✅ ADR-014 基建齐 |
+| clinic-machine/002 房间析出与连通 | Ready | 0 | 实现(`RoomExtractor` 零命中) | ✅ 23 Complete 7/7,`World.Structures` public |
+| clinic-machine/003 乘子求值 F-24-1/2/3 | Ready | 0 | 实现(`adj_sum` 零命中) | ✅ `Fix` 定点域全落 |
+
+**A-1 五件全部通过 R-4**(tutorial-001 / casebook-002 一并跑过,留待后续轮取件)。
+
+### 本轮两处陈旧前提(已入 §七 SP-7 / SP-8)
+
+- **SP-7** `clinic-machine/story-004` 交付物已在树上(`ClinicEnvDto` + `IClinicEnvQuery`,
+  `Sim.Contracts/ClinicEnvDto.cs:36`)⇒ 前提是**接线**,非从零实现(该件在 A-2)。
+- **SP-8** `clinic-machine/story-002` 卡面「23 未就绪可桩」**已消解**(23 Complete 7/7)⇒ 不需桩。
+
+### 取件额度(§6.2)
+
+Must ≤ 4 件/批 · 预留 1 额度给追加 ⇒ 本轮取 **3 件**(clinic-machine 001→002→003,一条线形链)。
+五件候选均 **M 级**(零 story 依赖或依赖同批前序件),无 L 件占额度。
+
+### 铁律提醒(本轮适用)
+
+- **不经用户指令不 commit**
+- 每件实现后按 `/story-done` 走 AC 验证 + **Falsifiability Gate**(假绿夹具反证轮)
+- 测试计数须带**三元组**(截至时刻 / 批次 / commit),不得借绿
+
+---
+
+## Session Extract — /dev-story 2026-10-20(clinic-machine/story-001)
+
+- **Story**: `production/epics/clinic-machine/story-001-baked-tables-schema-gates.md` — 烘焙表与 schema 构建门
+- **Status**: `In Progress` → **`In Review`**(两条 AC 挂 `BLOCKED-BY-O-24-1`,**不转 `Complete`**)
+- **Files changed**:
+  - 数据:`assets/data/clinicmachine_{context,adj,room}.json`
+  - 工具:`unity/Assets/Editor.Tools.Bake/ClinicMachine{Schema,ContextBinder,AdjBinder,RoomBinder,CookedWriter,TablesBake}.cs`(+6 `.meta`)
+  - 测试:`unity/Assets/Tests/EditMode/ClinicMachine/clinicmachine_tables_schema_test.cs`(**29 个 `[Test]`**)+ `ClinicMachine.meta`
+  - 夹具:`tests/unit/clinic_machine/fixtures/`(15)
+  - 证据原件:`production/qa/evidence/impl-clinic-001-2026-10-20.md`
+- **回归**:`4041 / 4005 / 0 / 36` · `2026-10-20 18:44:31 +0800` · `story-001 最终全量` · `73d20a4`+工作树(rc=0)
+- **证伪轮**:**13/13 转红**。两处需记住的:
+  ① **F4 首轮存活** —— 夹具断言命中**跨守卫共享 token** `ENV_MOD_MIN`,被 `base_env` 域校验借绿;
+     改为钉守卫自己的报文前缀后转红。⇒ **写断言一律用守卫自己的报文前缀,不用共享符号名**
+  ② **F13 首轮存活是探针打错靶**(改 `ReadRequiredString`,被测路径是 `ReadRequiredFix`);
+     ⇒ **判「夹具弱」前先核变异是否落在被测路径上**
+- **基线教训**:`unity/Logs/fz2-F6-rerun.xml`(4007 条)是**证伪轮变异树产物**,不作干净基线 ——
+  其唯一红在本轮转绿,且 5 条已在 HEAD 的 `maxDoseDetents` 用例缺席该 XML。**引用他人/前轮的 XML 作基线前必须先验其树是否干净**。
+- **另一处记账**:`harness` 报 `exit code 0` 是我外层 `echo` 的退出码,Unity 真实退出是 **6**(首轮编译失败)。
+  ⇒ **判绿只看 `EXIT=` 行与 XML `result`,不看 harness 完成状态**
+- **Blockers**:`O-24-1`(21a 家具目录扩展 `type`/`tier`/`e_env`)零落点 ⇒ AC-24-08 / AC-24-12 半边不可达
+- **Next**:`/code-review`(6 个工具件 + 测试)然后 `/story-done`;002 / 003 依赖本件的 cooked 表

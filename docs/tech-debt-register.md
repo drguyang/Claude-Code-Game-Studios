@@ -1143,3 +1143,31 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > ⚠️ **本批仍未处置的一类**(如实留白,见原件 §5 / §7.2):**无 epic 归属的优先事项**
 > (`systems-index` 中优先级标 P1a/P1b/P2 的 23 个系统)—— 它们的契约缺口**不属于 G 型手法面内**,
 > 本轮**未逐个核**,须由各自里程碑的规划轮处置。
+
+---
+
+## 2026-10-20 · 取件轮新揭:GDD 级义务零落点(1 条)
+
+> **与上面几批的区别(这一节的由来)**:前七道 G 门(G-1…G-7)的符号取自 **ADR**(代码块 / 散文)。
+> 本条取自 **GDD 的 `O-<sys>-<n>` 义务登记** —— 一个**从未进过扫描列表的第三符号源**。
+> 路线图 §十一 **C-9** 记其方法论后果;**§八 #3 的「结案」当天即被本条的发现证伪一次**。
+
+### TD-clinic-01 — `O-24-1`(21a 家具目录扩展 `type` / `tier` / `e_env`)= 双向登记在册、零承载
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `clinic-machine.md:301` 逐字:`O-24-1` → **21a**:家具目录须扩展 `type` / `tier` / `e_env` 字段(承 23 的模块目录先例,与 `cost(m)` 同一处)—— **24 只读,不拥有目录**。同一条**双向登记在册**:21a 侧 `item-database.md:859` 亦逐字认领(「`FURN_TABLE` 须扩展 `type` / `tier` / `e_env` 字段(与 `cost(m)` 同源)」)。**义务有登记、有双方署名,而零承载。**<br>⚠️ **它不是可选优化**:`FURN_TYPES` 闭集由这三字段派生,而 `FURN_TYPES` 是 24 的 `AC-24-08` / `AC-24-12` 两条判据的**唯一判据面**。 |
+| **实测(扫描面 = `unity/Assets` 全树 C# **不剥注释** + `tools/` + `assets/data/` + `design/`)** | ① `FURN_TYPES` ⇒ **全库零定义**,只在 `clinic-machine.md` 的**散文**里出现 6 处(`:77` / `:94` / `:161` / `:316` / `:377` / `:382`);<br>② `assets/data/item_database_items.json` 的 items ⇒ **无 `type` / `tier` / `e_env` 任一字段**(`category:"build_part"` 仅 `wooden_post` 一行,字段集 = `base_id`/`processing_state`/`display_name`/`category`/`stack_max`/`weight`/`deprecated`/`legal_transitions`/`gather_profile`/`drug_profile`/`tcm_profile`/`inflicts_injury`);<br>③ `build_part` 在代码里**只作为枚举值**存在(`Sim.Contracts/ItemDatabase/ItemCategory.cs:22` · `Editor.Tools.Gates/ItemDbValidation.cs:117`);<br>④ **21a epic 已标 `Complete ✅ 12/12`(2026-09-25),而 12 份 story 里认领 `O-24-1` / `FURN_TABLE` / `e_env` 的 = 0 份**(`grep` 空)。 |
+| **卡住的判据** | `24` 的 **`AC-24-08`**(`FURN_TABLE` 扩展字段缺失/越界 ⇒ 构建失败)· **`AC-24-12`**(`ROOM_TABLE` 谓词子句 `type ⊆ FURN_TYPES`,越界 ⇒ 构建失败)—— 亦即 `clinic-machine` epic 全链 **001→005** 的入口。两条判据**结构上不可达**:闭集不存在,就无所谓「越界」。 |
+| **为什么此前不在册(结构性,非疏漏)** | **双层盲区**(见路线图 §十一 **C-9**):<br>**① 普查侧** —— `census-adr-obligation-2026-10-20.md` §1 自陈的符号源只有**两源**(ADR 代码块 52 + ADR 散文 379);`O-24-1` 是 **GDD 的 `O-<sys>-<n>` 义务登记**,**不在任何一源的枚举里**。<br>**② 取件 R-4 侧**(§6.3)—— R-4 判据写的是「对**上游 ADR** 点名的义务符号逐个 grep」⇒ 取件轮只扫了 story 卡面点名的 **ADR-014/006**,而本条义务**不挂在任何 ADR 上**。<br>⇒ **两层都是「源的枚举不全」,不是「判据写错」** —— 靠收紧判据解决不了,**只能靠扩容源清单**。 |
+| **解除动作** | 由 **21a** 在其家具目录(`assets/data/item_database_items.json` 的 `build_part` 行,或随 21a 目录另立的同源表)扩展 `type` / `tier` / `e_env` 三字段 + 过 ADR-014 阶段 2 绑定与校验(字段类型 ∈ 整数域 / `Fix` 字符串;`tier ∈ [0, TIER_MAX]`;`e_env` ∈ `[−C_max, C_max]`)。落定后 24 侧 `FURN_TYPES` 由该目录派生,`AC-24-08` / `AC-24-12` 的挂标同时解除。**不改任何 ADR 裁决、不动 24 的 GDD。** |
+| **触发条件** | **`clinic-machine/story-001` 的 `AC-24-08` / `AC-24-12` 转可判之前** —— 该两 AC 现挂 `BLOCKED-BY-O-24-1`(用户裁定 2026-10-20)。亦即在那两条 AC 被勾之前;或 21a 目录的任何一次改版轮。 |
+| **归属** | **21a**(物品与配方数据库)—— ⚠️ **该 epic 已标 `Complete ✅ 12/12`**。用户裁定(2026-10-20):**不给已 Complete 的 epic 开新 story**,按「本体交 + 半边挂标」形态处理 ⇒ 本债**由 TD 跟踪**,不新立 story、不重开 epic。 |
+
+> **⚠️ 同批的处置裁定(用户 2026-10-20,两句)**:
+> ① **维持 GDD `:297`**「**21a 拥有**家具目录 `FURN_TABLE`」 ⇒ **不改判给 24**。
+>    (`clinic-machine/story-001` 的 Implementation Note #1 写表落 `assets/data/clinicmachine_furn.json`,
+>    与 GDD `:297` **张力未消** —— 已在卡面挂标处注明,留待 24 的 GDD 回刷轮或 21a 改版轮裁决;
+>    **本轮不开工该表**。)
+> ② **`clinic-machine/story-001` 半边挂标、本体同批交** —— 本体 = `CONTEXT_TABLE` / `ADJ_TABLE` /
+>    `ROOM_TABLE` 的 schema 与构建门 + `O-24-5` 溢出界门(`n_max` 已裁 2026-10-07 = 64)。

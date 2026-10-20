@@ -123,13 +123,18 @@ tutorial-onboarding(48 教学)
 
 ---
 
-## 三、★ 七道硬门(最高杠杆 —— 清一道解锁一整片)
+## 三、★ 八道硬门(最高杠杆 —— 清一道解锁一整片)
 
 > **这一节是本次实测最重要的产出。**
 > **2026-10-20 普查后由「四道」改「七道」** —— G-5 / G-6 / G-7 是 §八 #3′ 普查(原件
 > `production/qa/evidence/census-adr-obligation-2026-10-20.md`)的产出,与 G-1 / G-2 / G-4 **同族**。
-> 七道门中有**六道不在剩余 44 条里** —— 它们挂在**已标 `Complete` 的 epic 之下**,
-> 是「epic 关了但契约没落」的形态。不清它们,29 / 18 / 7a / 7b / 1 / 2 / 27 / 52 的整片 AC 永远不可勾。
+> **2026-10-20 取件轮再由「七道」改「八道」** —— **G-8** 是取件 R-4 途中撞见的,
+> 与 G-1/G-2/G-4/G-5/G-6/G-7 **同一失效形态,但符号源不同**:前七道的符号取自 **ADR**
+> (代码块 / 散文),**G-8 取自 GDD 的 `O-<sys>-<n>` 义务登记** —— 一个**从未被扫过的第三源**
+> (见 §十一 **C-9**)。⚠️ **它证明 §八 #3 的「结案」不能读成「门清单已完备」**:
+> 普查当天结的案,**同一天**就因换一个符号源而再出新户。
+> 八道门中有**七道不在剩余 44 条里** —— 它们挂在**已标 `Complete` 的 epic 之下**,
+> 是「epic 关了但契约没落」的形态。不清它们,29 / 18 / 7a / 7b / 1 / 2 / 27 / 52 / **21a** 的整片 AC 永远不可勾。
 >
 > ⚠️ **2026-10-20 补建 `save-slot-ui/EPIC.md` 时新揭 G-4** —— 它与 G-1 / G-2 **同族**
 > (ADR 已裁 · GDD 已写 · epic 已标 `Complete` · 代码零落点),
@@ -146,6 +151,7 @@ tutorial-onboarding(48 教学)
 | **G-5** | **`IPlayerMotor`** 契约(ADR-020 §Key Interfaces:`Tick` / `Cell` / `Position` / `ConsumeCellChanged`) | `1` 玩家控制器(**自己的 story-006 点名**)· `2` 相机(`story-003` / `story-001` 点名,以其为只读上游) | **零落点**(2026-10-20 普查)。`PlayerController.cs` 是 `MonoBehaviour`,只有 `Move` / `Teleport` / `GetCell` / `OnTickEdge` 等,**无 `Position` / `Cell` / `ConsumeCellChanged` 成员**;旁证 = `AnchorFollower` 在出货代码里为孤儿(已记于 `review-camera-viewpoint-story-003-td-2026-10-03.md:68`) | ✅ **`TD-player-02`**(2026-10-20 普查登记,用户裁定「能归 epic 的登记 TD,不立 story」) |
 | **G-6** | **27 的 sim 侧形状** —— `LogiPose`(`(WorldPos Cell, byte Facing)`)· `ITameable` · `TameState` | `27` 敌人 AI 的 `story-003/004/005` 与 `EPIC.md` 逐条点名;`ITameable` / `TameState` 由 ADR-016 §七「**P0 只定形状**…P0 交付:接口 + 数据字段占位」定 | **全树零命中**(含 `Tests/`)。⇒ 27 的「决策进 sim」这条承重裁决(ADR-016 §二/§九)在代码里**无载体** | ✅ **`TD-enemy-01`**(2026-10-20 普查登记) |
 | **G-7** | **`DeferredThreatSlot`** 状态量(ADR-007 §三/§四:进流 `ThreatDeferred` / `ThreatDeferralCleared`) | `52` 的 `story-004`(整条 story 名即 `density-budget-and-deferred-threat-slot`)· `story-002` · `EPIC.md` | **全树零命中**。⇒ 52 的「延迟威胁须进流(否则主机迁移静默丢失 / 重复补发)」这条核心不变量**无实现** | ✅ **`TD-randomevents-01`**(2026-10-20 普查登记) |
+| **G-8** | **`O-24-1` 的落点** —— 21a 家具目录扩展 `type` / `tier` / `e_env` 三字段(`FURN_TYPES` 闭集由此派生) | `24` 的 **`AC-24-08`**(FURN_TABLE 字段缺失/越界 ⇒ 构建失败)· **`AC-24-12`**(`ROOM_TABLE` 子句 `type ⊆ FURN_TYPES`)—— 亦即 clinic-machine 全链 001→005 | **全库零落点**(2026-10-20 取件轮实测):`FURN_TYPES` 只在 `clinic-machine.md` **散文**里出现(6 处),**无任何定义**;`assets/data/item_database_items.json` 的 items **无 `type`/`tier`/`e_env` 字段**(`category:"build_part"` 仅 `wooden_post` 一行);**21a epic 已标 `Complete ✅ 12/12`(2026-09-25),而 12 份 story 里认领 `O-24-1` 的 = 0**。⚠️ **义务本身双向登记在册**(`clinic-machine.md:301` **与** `item-database.md:859`)—— 登记了,没人接 | ✅ **`TD-clinic-01`**(2026-10-20 取件轮登记,用户裁定「维持 GDD `:297` FURN_TABLE 归 21a · 不给已 Complete 的 21a 开新 story」)<br>⚠️ **`clinic-machine/story-001` 的 `AC-24-08` / `AC-24-12` 半边挂 `BLOCKED-BY-O-24-1`,本体同批交** |
 
 ### G-4 的逐项实测(2026-10-20T06:50 UTC · `EPIC.md` 补建轮 · `5353e38`)
 
@@ -221,15 +227,22 @@ tutorial-onboarding(48 教学)
 
 | 件 | 卡面挂标数 | 上游契约实测(2026-10-20) |
 |---|---|---|
-| `clinic-machine/001 · 002 · 003` | 0 / 0 / 0 | ⬜ **未跑 R-4**(见下表注) |
-| `tutorial-onboarding/001` | 0 | ⬜ **未跑 R-4** |
-| `casebook/002` | 0 | ⬜ **未跑 R-4** |
-| ~~`save-slot-ui/001`~~ | ~~0~~ | ❌ **移出 —— 上游 7a 契约零落点(G-4)**,**唯一跑过 R-4 的一件** |
+| `clinic-machine/001` | 0 | ⚠️ **R-4 部分通过(6/7 AC 面)** —— ADR-014 两阶段基建齐(`Editor.Tools.Bake/` 10+ `*Binder` / `*CookedWriter` 先例);`O-24-4` 常量在(`item_database_constants.json: env_mod_min="-1/2"`);`O-24-5` 参数**已裁**(`n_max=64`,2026-10-07)。**❌ `AC-24-08` / `AC-24-12` 的上游 = GDD 级义务 `O-24-1`(21a 家具目录扩展 `type`/`tier`/`e_env`),实测零落点**(`FURN_TYPES` 全仓零 · `item_database_items.json` 无三字段 · 21a epic **Complete 12/12 却零 story 认领**)⇒ **半边挂 `BLOCKED-BY-O-24-1`**(用户裁定 2026-10-20:维持 GDD `:297`「FURN_TABLE 归 21a」,**本体同批交**)。详见 **G-8** |
+| `clinic-machine/002 · 003` | 0 / 0 | ✅ **R-4 已跑(取件轮)** —— `002`:23 `modular-building` **Complete ✅ 7/7**,`World.Structures`(**public**,`World.cs:26`)→ `StructureInstanceRegistry.TryGet`(`StructureKinds.cs:111`)/ `GetInstanceAt`(`:117`)⇒ `structure_at(cell)→{ModuleId,Orientation}` 可达 · `003`:`Fix` 定点域全落,`ROUND_HALF_AWAY_FROM_ZERO`(`Fix.cs:38` / `:135` / `:322`) |
+| `tutorial-onboarding/001` | 0 | ✅ **R-4 已跑(取件轮)** —— 35 个 `SimEvent.Kind`(`entities.yaml`)· `tools/kindgen/kindgen.py` · `Sim/StreamRouting.g.cs` · 病名闭集 `DiseaseId` 类型(`Sim.Contracts/Payloads/CasePayloads.cs` 等) |
+| `casebook/002` | 0 | ✅ **R-4 已跑(取件轮)** —— 病例流全落:`EventKind.CaseOpened` · `CaseOpenedPayload` · `PayloadCodec.Case.cs` · `CaseId` 内联全序键 `(Tick, Patient, Seq)`(`CodecWriter.cs:130`) |
+| ~~`save-slot-ui/001`~~ | ~~0~~ | ❌ **移出 —— 上游 7a 契约零落点(G-4)**,**R-4 首例** |
 
-> ⚠️ **「⬜ 未跑」≠「✅ 无缺口」**(禁借绿)。本轮只因 `save-slot-ui/001` 移出而跑了
-> **它一件**的 R-4;其余三格是**未测**,不是**通过**。
-> 它们仍留在 A-1 的理由是:① 卡面零挂标;② **未发现**反例(不是**已排除**)。
-> ⇒ **取件时必须先对这 2–4 件补跑 R-4**,未跑完不得宣称「A-1 全绿」。
+> ⚠️ **2026-10-20 取件轮 R-4 结论(含一处自我更正)** —— 扫描面 = `unity/Assets/` 全树 C# **不剥注释** + `tools/`,
+> 逐符号问同物异名(承 §十一 C-8)。
+> **❌ 更正**:本轮**先**写下「A-1 五件全部通过 R-4」—— **该结论过宽,已作废**。
+> 真实结论 = **4 件通过 · `clinic-machine/001` 6/7 AC 面通过**(两条半边挂 `BLOCKED-BY-O-24-1`)。
+> **错因**:那次 R-4 只扫了 **story 卡面点名的 ADR**,未扫 **GDD 级的跨系统义务**(`O-<sys>-<n>`)—— 见 **C-9** / **G-8**。
+> R-1/R-2/R-3 五件全绿(均 `Ready` · 零挂标 · 均为**真「从零实现」**,非补登记)。
+> ⚠️ A-1 之外的 16 条零挂标件上游仍未扫(见 SP-6 / §八 #3)。
+
+> ⚠️ **「⬜ 未跑」≠「✅ 无缺口」**(禁借绿)。A-1 判据原为单条件(卡面零挂标),**2026-10-20 改为双条件合取**
+> (见下方订正块)。上表三格原本是**未测**,不是**通过** —— 取件轮已补跑,结论见上方 ✅ 块。
 
 > ⚠️ **全 44 条里仅 17 条卡面零挂标**,其中 **5 条落 A-1** · **7 条落批 B**
 > (`casebook-004` / `clinic-machine-005` / `foraging-003` / `inventory-004` /
@@ -401,7 +414,10 @@ M3 Exit（epic 面） =
 | **SP-3** | `milestones/README.md:49` / `:372` | `22/31` · `220 story / 172 Complete / 46 Ready` | **2026-10-15 快照,已过期**(现 31/226/182/44) | 下次 epic 收口核查时刷新 |
 | **SP-4** | `audio-system/story-019` | 旧 `In Progress` | **已 `Complete`**(10-c 移出转 `TD-listen-01`) | 已订正于该卡 `:4` |
 | **SP-5** | `Milestones §五 M3` | 「31 个 epic 全 Complete」单条判据 | 见 §五:会假绿 | **本文件要求改写为两条合取** |
-| **SP-6** | 本文件 §四 **A-1** | 判据 = 「卡面零 `BLOCKED-BY` 标记」**单条件** | ⚠️ **判据本身有洞**(2026-10-20 实测):卡面挂标 = **立卡当时已知**的阻塞,不含「上游契约从未落过」。`save-slot-ui/001` 卡面 0 挂标但上游 5 个符号全零命中(G-4) | **判据已改为双条件合取**(§四 A-1 注);⚠️ **其余 16 条零挂标件的上游未逐个扫** —— 下次取件前按新判据补扫 |
+| **SP-6** | 本文件 §四 **A-1** | 判据 = 「卡面零 `BLOCKED-BY` 标记」**单条件** | ⚠️ **判据本身有洞**(2026-10-20 实测):卡面挂标 = **立卡当时已知**的阻塞,不含「上游契约从未落过」。`save-slot-ui/001` 卡面 0 挂标但上游 5 个符号全零命中(G-4) | **判据已改为双条件合取**(§四 A-1 注);✅ **A-1 五件的上游已于取件轮全部补扫**(结论见 §四 A-1);⚠️ **A-1 之外的 16 条零挂标件上游仍未扫** |
+| **SP-7** | `clinic-machine/story-004:4`(卡面) | `Status: Ready` ⇒ 读作「从零实现」 | ⚠️ **实为「接线 / 补登记」** —— 其交付物**已在树上**:`Sim.Contracts/ClinicEnvDto.cs`(40 行,`OQ-CP-4` 2026-09-22 裁定件)+ `IClinicEnvQuery`(`:36`)均已落,**生产侧零消费者**(仅 `intent_boundary_test` / `case_secrecy_discipline_test` 两处测试引用) | **取件前就地订正卡面**(该件在 A-2);判据从「实现 DTO + 查询接口」改为「**把 DTO 接进 42 的读面 + AC-24-07 白名单 / AC-24-09 移 42**」 |
+| **SP-8** | `clinic-machine/story-002:99` `Depends on` | 「系统 23 的 `structure_at` 只读契约(GDD 侧已定,**实现若未就绪可用 fixture 桩注入**)」 | 23 `modular-building` epic **Complete ✅ 2026-10-03(7/7)**;读面实测在:`World.Structures`(public `World.cs:26`)→ `StructureInstanceRegistry.TryGet`(`StructureKinds.cs:111`)/ `GetInstanceAt`(`:117`),便捷包装 `GetModuleAt`(`World.cs:114`) | **条件已消解 —— 不需桩**;取件时**就地订正卡面**该从句(桩本可为「23 只是老实现在树上」留下借口,与 §十一 元教训同型) |
+| **SP-9** | `tr-registry.yaml:4150`(TR-clinic-006 的 `note`) | 「⚠️ `n_max` 悬于 `OQ-24-5` **未裁** ⇒ 断言无参数可写」 | `OQ-24-5` **已于 2026-10-07 裁定 `n_max = 64`**(`clinic-machine.md:397`,并连带拍定 `C_max = 1/64`);note 写于 2026-09-21,早于裁定 ⇒ `status: partial` 的理由**已消失**,断言参数**已有着落**(`n_max × TIER_MAX = 64 × 3 = 192 < 2^31` ✓) | **registry `status` 由 `partial` → `covered`**(判据 = 参数已裁 + 表值可在烘焙门写死);⚠️ **改 registry 归 architecture-review 轮**,本行只登记陈旧事实。**同 SP-1(`OQ-17-2`)型** —— 这是本仓**第二次**「裁定已下、下游仍写未裁」 |
 
 ---
 
@@ -411,7 +427,7 @@ M3 Exit（epic 面） =
 |---|---|---|
 | 1 | 某轮 `/sprint-plan` 未引用 §6.3 四条复核(尤 **R-4**) | 本文件判为**未落地**,不因「已写」而算兑现 |
 | 2 | 有人用「件/日」做线性外推排日期 | 等同 `CAPACITY-MODEL.md` §六 条件 #3 触发 ⇒ 本文件 §6.1 作废 |
-| 3 | 又出现「epic 全 story Complete 但契约零命中」的新户 | ⇒ §三 的门清单**不完备**;须重做一次全 epic 契约普查,不得只补这一户。<br>**✅ 已预防性跑完(2026-10-20)—— 本条件已「兑现处置」并结案**:普查见下行 **#3′**,三项未清项(① 孤儿契约 ② 未溯源桶 ③ 代码零改动声明)全部结清 ⇒ **门清单据实由「四道」扩为「七道」(G-5/G-6/G-7),做法自本轮起定为「新户出现前先普查」**。⚠️ 结案 ≠ 门清单**永久**完备 —— 再出现新户仍触发本行。 |
+| 3 | 又出现「epic 全 story Complete 但契约零命中」的新户 | ⇒ §三 的门清单**不完备**;须重做一次全 epic 契约普查,不得只补这一户。<br>**✅ 已预防性跑完(2026-10-20)—— 本条件已「兑现处置」**:普查见下行 **#3′**,三项未清项(① 孤儿契约 ② 未溯源桶 ③ 代码零改动声明)全部结清 ⇒ **门清单据实由「四道」扩为「七道」(G-5/G-6/G-7),做法自本轮起定为「新户出现前先普查」**。<br>🔴 **⚠️ 且同一天的取件轮就再出新户** —— 取件 R-4 撞见 **G-8**(`O-24-1`,21a 家具目录扩展),**门清单再扩为八道**。⇒ **本条「结案」的意思是「本轮处置已履行」,不是「门清单已完备」** —— 它**当天就被证伪一次**。**根因 = 符号源**:前七道取自 ADR,`O-24-1` 取自 **GDD 的 `O-<sys>-<n>` 义务登记**,是一个**从未进过扫描列表的第三源**(见 §十一 **C-9**)。⇒ **再出现新户仍触发本行**;且**换符号源即等于换扫描面**,不得假设单一源的普查已覆盖全集。 |
 | **3′** | — | **✅ 已跑(2026-10-20)** —— 原件 = `production/qa/evidence/census-adr-obligation-2026-10-20.md`(三元组 `2026-10-20T07:59` UTC · §八 #3′ 普查轮 · `54fd5e5`)。<br>**扫描面**:31 个 epic 中含 story 者 → **17 个全 story Complete**(前轮引用的 18 作废,见原件 §4.2);符号源 = 31 份 ADR 的**代码块**(52 符号)+ **散文**(379 符号)两级;代码面 = `unity/Assets/` 全树 C#,**剥注释**,`Tests/` 单列档。<br>**结果**:零命中分类 —— **① 真缺口 12** · ② 命名漂移 5 · ③ 零命中正确 7 · ④ 显式延后 2 · ⑤ 面外噪音余。<br>**够格成为 G 型债的 = 4 项**(须同时满足:符号零命中 ∧ 归属 epic 全 Complete ∧ **epic 卡面自己点名该符号**):`IPlayerMotor`(`player-controller` 6/6 + `camera-viewpoint` 6/6 **双向点名**)· `LogiPose` / `ITameable` / `TameState`(`enemy-ai` 5/5)· `DeferredThreatSlot`(`random-events` 6/6)⇒ **已登记 `TD-player-02` / `TD-enemy-01` / `TD-randomevents-01`**(用户裁定「能归 epic 的登记 TD,不立 story」)。<br>**⚠️ 未清项**:<br>① ~~**孤儿契约未处置**~~ ✅ **第二轮专扫已跑(同日)** —— 原件 §7。结论:**P0 系统无缺 epic**(`systems-index` 的 P0 集合与 31 个 epic 严格一一对应);无 epic 的 23 个系统优先级全为 P1a/P1b/P2/P0-前置。真正的孤儿**仅一条**:`IReplayPipe`/`ReorderBuffer` —— **义务级 P0 ≠ 归属系统级 P1b**(`systems-index.md:81` 记 45 = P1b;ADR-001 `:167` / `:448` 逐字要求「P0 预埋 / P0 写 `IReplayPipe` + `ReorderBuffer`」)⇒ **八个抽象点落了 7 个,它是唯一零落点** ⇒ 已登记 **`TD-net-01`**。`ISceneRouter`/`IWorldSpawner` 与 `IPerTargetIl2CppArgs` **均有显式跟踪面**(`BootRoot.cs:20` / ADR-023 §Validation S2 `⏸` / ADR-012 未勾项)⇒ **不同级,不另立 TD**。<br>② ~~**§4.3 未溯源桶 10 个符号**未逐个核其声明 ADR 是否构成 P0 义务~~ ✅ **第三轮已跑完(同日)** —— 原件 §4.3。**结果:零条新债**(同物异名 2 · 语义已承载 1 · 未开工 4 · ADR 明确排除 2 · 已并入既有 TD 1)。**并更正原件自身一处错**:原写「10 个全树零命中」**不成立** —— `WeaponMultiplier` 9 处(实现为复数 `WeaponMultipliers` + 访问器) · `QualityCap` 6 处 · `ReputationMult` 1 处 均有命中;错因 = 「剥注释 + 精确单数」两误叠加(第三度同型,见 §十一 C-6)。未开工的 4 个(`QualityCap` / `DeathAllowed` / `RegrowWindow` / `InventoryOf`)归属 epic 分别 0/5 · 0/6 · 0/5 · 0/6 ⇒ 按够格判据②**不够格,非债**。<br>③ **本件是勘察,未改任何代码 / GDD / ADR / 卡面。**<br>**⇒ 三项未清项全部结清,#3′ 普查闭环。** |
 | 4 | §1 计数与本文件三元组相距 > 3 轮未刷 | 计数段作废,重测后再用 |
 
@@ -495,6 +511,7 @@ M3 Exit（epic 面） =
 | **C-5** | §九 表内 `批 A-1/A-2 之分` 标 **Proven ✅**;~~`G-3 零命中`~~ 标 **✅✅** | A-1/A-2 行**撤回 Proven**;**G-3 行整行撤回** | 两行都是**扫描面 ≠ 断言面**:A-1 验的是挂标数、断言的是「全 AC 可勾」;G-3 验的是「`Sim/ItemDatabase/` 没有」、断言的是「全树没有」。**这正是 §十一 元教训本身,却在本文件 §九 里犯了两次** |
 | **C-6** | ~~「18 个全 story Complete 的 epic」~~ | **17**(判据 = 文件头 blockquote `Status` 行,可复算;18 作废,差 1 未复核) | 与前轮同一类错:**计数判据没写死**。且本轮普查**当场自曝三处假零** —— `GoldenHashV1Test`(生产-only 扫描漏了**测试树义务**)· `StructureKinds`(**ADR 引的是文件名,不是符号**)· `FixPow`/`FixSqrt`(**ADR 声明的成员名 ≠ 代码成员名**)。三条合起来的教训:C-5 的「全树」还不够,**还要「Tests/ 单列一档」+「文件名 ≠ 符号」+「别名的反向:同物异名也算命中」** |
 | **C-8** | §4.3「未溯源桶 10 个符号**全树零命中**」 | ❌ **第三度同型错** —— `WeaponMultiplier` **9** · `QualityCap` **6** · `ReputationMult` **1** 均有命中;另 `ItemId` = `ItemKey`(**同物异名**) | **C-6 的教训写下后当场又犯一次**:原判据 = 「剥注释 + 精确单数」,而这一桶里**恰好全是「只被注释引用」+「复数/访问器形态」**。⇒ 判据**收窄**为:全树(含 `Tests/`)**不剥注释** ∧ 逐符号问**同物异名** ∧ 判「缺口」前再问**归属 epic 是否已 Complete**。**「写下教训」不等于「下次会遵守」** —— 判据须落成**可执行的命令形态**,不是散文守则(本条即 C-6 三重奏的第四件) |
+| **C-9** | 取件轮 R-4 写下「A-1 五件**全部**通过 R-4」 | ❌ **过宽,已作废** —— 实为 **4 件通过 · `clinic-machine/001` 6/7 AC 面通过**(`AC-24-08` / `AC-24-12` 的上游 `O-24-1` 零落点 ⇒ 半边挂标) | **双层盲区,两层都要单独记住**:<br>**① R-4 自身**(§6.3):其判据写的是「对**上游 ADR** 点名的义务符号逐个 grep」⇒ **只扫 story 卡面点名的 ADR**。而 `clinic-machine/story-001` 的 `AC-24-08`/`AC-24-12` 依赖的是 **GDD 级的跨系统义务 `O-24-1`(24 → 21a)**,**不挂在任何 ADR 上** ⇒ 结构上扫不到。<br>**② §八 #3′ 普查的符号源**(原件 §1):只声明了两源 = ADR **代码块**(52)+ ADR **散文**(379)。**GDD 的 `O-<sys>-<n>` 义务登记是第三个源**,从未进过扫描列表 —— 而 G-8 正是从这里冒出来的。<br>⇒ **修正**:R-4 的扫描面**须含 GDD 的 `O-*` 义务登记**;**普查的符号源须增第三源**。<br>⚠️ **本条与 C-6/C-8 不同族**:C-6/C-8 是**同源内的判据写错**(剥注释 / 精确单数),C-9 是**源的枚举不全** —— 前者靠收紧判据解决,后者**只能靠扩容源清单**。**扩源的触发方式 = 换一个符号族去扫**;故本条也是 C-7 的第三层(第 1 层 = 有 epic 无下游指针;第 2 层 = 连 epic 都没有;第 3 层 = **义务根本没走 ADR 这条路**) |
 | **C-7** | §八 #3 门清单「普查做完即完备」 | ❌ **仍不完备** —— 发现**孤儿契约**一类:ADR 有义务、但**无归属 epic**(ADR-001 的系统 45 · ADR-023 的一对) | **G 型手法以「归属 epic 全 Complete」为前提** ⇒ 对**没有 epic 的契约结构上不可见**。这是 C-4 盲区的**第二层**(C-4 = 有 epic 但无下游指针;C-7 = 连 epic 都没有)。本轮实测坐实,**专扫未做** |
 
 ⇒ **元教训**:「按标识符 grep 零命中」**只在扫描面覆盖全树时才成立**。

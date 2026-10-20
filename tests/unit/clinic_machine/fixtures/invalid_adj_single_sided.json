@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具(AC-24-06 Edge):只有 (a,b) 无 (b,a) ⇒ 单向缺项视为不对称,拒。",
+  "n_max": 64,
+  "w_min": "-1/4",
+  "w_max": "1/4",
+  "pairs": [
+    { "a": "herb_cabinet", "b": "chamber_pot", "w": "-1/8" }
+  ]
+}

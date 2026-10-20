@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具(AC-24-06):w(a,b)=1/8 而 w(b,a)=0 ⇒ 值不对称。两个方向都在(故不是「单向缺项」形态)。",
+  "n_max": 64,
+  "w_min": "-1/4",
+  "w_max": "1/4",
+  "pairs": [
+    { "a": "surgery_table", "b": "sterile_cabinet", "w": "1/8" },
+    { "a": "sterile_cabinet", "b": "surgery_table", "w": "0" }
+  ]
+}

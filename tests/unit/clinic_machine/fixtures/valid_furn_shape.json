@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "_note": "通过夹具(AC-24-08 schema 形状半边):三字段(type / tier / e_env)齐全且 token 种类合规。⚠️ 这不是 FURN_TYPES 闭集,也不是真家具目录 —— 只证「字段形状门」通电;AC-24-08 整体挂 BLOCKED-BY-O-24-1。",
+  "furn": [
+    { "type": "bed", "tier": 2, "e_env": "1/64" },
+    { "type": "herb_cabinet", "tier": 0, "e_env": "-1/64" }
+  ]
+}

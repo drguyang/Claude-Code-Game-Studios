@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具(AC-24-05):k_speed = 5/4 越出档集 {1, 7/8, 3/4} 与值域 (0,1]。其余行合法,使唯一触发面 = 该条。",
+  "contexts": [
+    { "room_type": "ward", "context_id": "ward_plain", "k_speed": "1", "base_env": "0" },
+    { "room_type": "surgery", "context_id": "surgery_sterile", "k_speed": "5/4", "base_env": "1/4" },
+    { "room_type": "herb_room", "context_id": "herb_heavy", "k_speed": "3/4", "base_env": "1/8" }
+  ]
+}

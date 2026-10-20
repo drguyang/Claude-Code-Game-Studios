@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具(规则三 / F-24-1 ENV 域):base_env = 3/4 越出 21a 的 [ENV_MOD_MIN, ENV_MOD_MAX] = [-1/2, +1/2]。k_speed 全合法,使唯一触发面 = ENV 域。",
+  "contexts": [
+    { "room_type": "ward", "context_id": "ward_plain", "k_speed": "1", "base_env": "0" },
+    { "room_type": "surgery", "context_id": "surgery_sterile", "k_speed": "7/8", "base_env": "3/4" }
+  ]
+}

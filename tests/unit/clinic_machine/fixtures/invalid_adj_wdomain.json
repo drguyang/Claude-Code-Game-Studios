@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具(O-24-5 界健全性):w_min = -1/2, w_max = 1/4 ⇒ |W_MIN| = 1/2 > W_MAX = 1/4。W_MIN < 0 与 W_MAX > 0 均成立 ⇒ 唯一触发面 = |W_MIN| <= W_MAX。",
+  "n_max": 64,
+  "w_min": "-1/2",
+  "w_max": "1/4",
+  "pairs": [
+    { "a": "surgery_table", "b": "sterile_cabinet", "w": "1/8" },
+    { "a": "sterile_cabinet", "b": "surgery_table", "w": "1/8" }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具(AC-24-12 已实现半边 · 方向确定性):邻接子句 direction = -x 不在闭集 {+x, +y} 内 ⇒ 构建失败(规则二 / ADR-015 §五)。",
+  "rooms": [
+    {
+      "room_type": "surgery",
+      "clauses": [
+        { "kind": "adjacency_min_count", "type": "surgery_table", "neighbor_type": "sterile_cabinet", "direction": "-x", "min": 1 }
+      ]
+    }
+  ]
+}

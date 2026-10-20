@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具(O-24-5 溢出门):n_max = 715827883 ⇒ × TIER_MAX(3) = 2147483649 >= 2^31 ⇒ 拒。余项(对称性 / W 域)均合法,使唯一触发面 = 溢出门。",
+  "n_max": 715827883,
+  "w_min": "-1/4",
+  "w_max": "1/4",
+  "pairs": [
+    { "a": "surgery_table", "b": "sterile_cabinet", "w": "1/8" },
+    { "a": "sterile_cabinet", "b": "surgery_table", "w": "1/8" }
+  ]
+}

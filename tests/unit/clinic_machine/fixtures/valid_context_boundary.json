@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "_note": "边界通过夹具(AC-24-05 边界):k_speed = 1/1 解析后 = 档集成员 1(raw 65536)⇒ 通过。",
+  "contexts": [
+    { "room_type": "ward", "context_id": "ward_plain", "k_speed": "1/1", "base_env": "0" },
+    { "room_type": "surgery", "context_id": "surgery_sterile", "k_speed": "7/8", "base_env": "1/4" },
+    { "room_type": "herb_room", "context_id": "herb_heavy", "k_speed": "3/4", "base_env": "1/8" }
+  ]
+}
