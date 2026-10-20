@@ -8,7 +8,7 @@
 
 ## Overview
 
-死亡与复活(29)只管**玩家**的死亡与归来:病人之死归 9+53。触发输入 = 9 的 `DeathCandidate`(经 `SelfLimited(entity,d)` 逐实体门,OQ-25-1 路甲),29 **不自行判死**(TR-death-001)。P0 代价 = 两件套:**掉落**(从死亡格回捡)+ **技能掉级**(`Level_new = (Level × 19) / 20` 的 C# int 截断除法 —— B2 定点陷阱明令禁 `Fix.Div`/floor_Mul;计时归 29、公式归 30,同 tick 运行期调用零重复实现);**无压力轴**(47 P1a)、无存档回滚、无尸体玩法。`death_cell` = 世界流中该玩家**最后一条 `ActorCellEntered`** 的格(禁读实时物理,B4 订正);掉落清单由流派生(`InventoryOf`)、位置由 7a 快照(格锚点 + 确定性格内偏移);29 零铸造 `instance_id`(归 20/`IIdAuthority`)。复活落点 = 医馆床具格(24 提供,选择规则欠 24 下轮)/ 兜底世界出生点;29 调 1 的 `TeleportTo(cell)`(经 `ITeleportCommandSink` 整数命令半,ADR-025 全案唯一跨门调用点),**29 自身 Append 计数 = 0**(AC-29-09)。死亡冷却 `DeathAllowed ⟺ t − last_death_tick ≥ DEATH_COOLDOWN`,且 `last_death_tick` **只从世界流 PlayerDied 重算**(零计数器,AC-29-15)。呈现铁律:无 Game Over 屏/文字/统计面板/失败音 —— 白名单 {过渡动画, 环境音, 42 拟物元件}(AC-29-06),DTO 递归扫描零代价数值字段(AC-29-07)。⚠️ 9 侧 `SelfLimited` 未落地 ⇒ AC-29-01/02/05/08/10/17 **BLOCKED-BY-9**、AC-29-16 **BLOCKED-BY OQ-7a-9**(SkillGrown 折叠豁免)—— 一律禁记绿。`DEATH_COOLDOWN` 值未定(OQ-29-5,须 >0);判断技能豁免口径待裁(2026-09-20 R-4-W-6),**不得当既有规则实现**。
+死亡与复活(29)只管**玩家**的死亡与归来:病人之死归 9+53。触发输入 = 9 的 `DeathCandidate`(经 `SelfLimited(entity,d)` 逐实体门,OQ-25-1 路甲),29 **不自行判死**(TR-death-001)。P0 代价 = 两件套:**掉落**(从死亡格回捡)+ **技能掉级**(`Level_new = (Level × 19) / 20` 的 C# int 截断除法 —— B2 定点陷阱明令禁 `Fix.Div`/floor_Mul;计时归 29、公式归 30,同 tick 运行期调用零重复实现);**无压力轴**(47 P1a)、无存档回滚、无尸体玩法。`death_cell` = 世界流中该玩家**最后一条 `ActorCellEntered`** 的格(禁读实时物理,B4 订正);掉落清单由流派生(`InventoryOf`)、位置由 7a 快照(格锚点 + 确定性格内偏移);29 零铸造 `instance_id`(归 20/`IIdAuthority`)。复活落点 = 医馆床具格(24 提供,选择规则欠 24 下轮)/ 兜底世界出生点;29 调 1 的 `TeleportTo(cell)`(经 `ITeleportCommandSink` 整数命令半,ADR-025 全案唯一跨门调用点),**29 自身 Append 计数 = 0**(AC-29-09)。死亡冷却 `DeathAllowed ⟺ t − last_death_tick ≥ DEATH_COOLDOWN`,且 `last_death_tick` **只从世界流 PlayerDied 重算**(零计数器,AC-29-15)。呈现铁律:无 Game Over 屏/文字/统计面板/失败音 —— 白名单 {过渡动画, 环境音, 42 拟物元件}(AC-29-06),DTO 递归扫描零代价数值字段(AC-29-07)。⚠️ 9 侧 `SelfLimited` 未落地 ⇒ AC-29-01/02/05/08/10/17 **BLOCKED-BY-9**、AC-29-16 ~~**BLOCKED-BY OQ-7a-9**(SkillGrown 折叠豁免)~~ **BLOCKED-BY-7a 折叠实现**(〔2026-10-20 订正:`OQ-7a-9` 已于 `ADR-026 §⑦` 2026-09-23 结案 = `SkillGrown` 豁免折叠;阻塞性质由「裁决待定」改为「实现待落」,实测 `Folded(p)` 生产谓词全库零命中〕)—— 一律禁记绿。`DEATH_COOLDOWN` 值未定(OQ-29-5,须 >0);判断技能豁免口径待裁(2026-09-20 R-4-W-6),**不得当既有规则实现**。
 
 ## Governing ADRs
 
@@ -36,7 +36,7 @@
 | TR-death-002 | PlayerDied 世界流事件 | covered(ADR-009) |
 | TR-death-003 | death_cell 由 sim 整数格派生,禁读表现态 | covered(ADR-020+009) |
 | TR-death-004 | 复活清单/掉落回收 = 事件流重放重建;位置不快照 | covered(ADR-009+023) |
-| TR-death-005 | 掉级 = fold 投影(SkillGrown 参与重放折叠) | partial(OQ-7a-9 豁免面) |
+| TR-death-005 | 掉级 = fold 投影(SkillGrown 参与重放折叠) | partial(**豁免面已裁** = `ADR-026 §⑦` 案 1,`SkillGrown` 不随折叠抹除;剩「`Folded(p)` 实现未落」—— 2026-10-20 订正) |
 | TR-death-006 | 复活传送走 ITeleportCommandSink 整数命令半 | covered(ADR-025) |
 | TR-death-007 | 死亡线三半边落点:判定 Sim / 命令 Sim.Contracts / 呈现 Presentation | covered(ADR-025) |
 | TR-death-008 | 死亡呈现白名单 + DTO 只读投影 | partial(ADR-013,实现轮) |
@@ -45,7 +45,7 @@
 
 This epic is complete when:
 - All stories are implemented, reviewed, and closed via `/story-done`
-- AC-29-01…17 中非 BLOCKED 条目全部有通过证据;BLOCKED-BY-9 / BLOCKED-BY-OQ-7a-9 条目维持显式标注,禁借绿
+- AC-29-01…17 中非 BLOCKED 条目全部有通过证据;BLOCKED-BY-9 / **BLOCKED-BY-7a 折叠实现**(原 BLOCKED-BY-OQ-7a-9,2026-10-20 订正)条目维持显式标注,禁借绿
 - AC-29-11/12 的 [L] 人工走查在证据目录留档(承 GDD 原标注)
 - UX Flag:全屏过渡经 `/ux-design` spec 先于本 epic 的呈现故事关闭(29 的 epics 前置,GDD 明写)
 - `DEATH_COOLDOWN` / 判断技能豁免等未裁项保持「待裁」标注,数值归用户数值轮
