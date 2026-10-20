@@ -86,8 +86,16 @@ AC-21a-5/6 的断言无从编译。已增两条 GUID:
 | 负向夹具(新增) | `tests/unit/item_database/fixtures/invalid_state_int.json` |
 | AC-47 冒烟(ADVISORY) | `production/qa/smoke-2026-09-24.md` |
 
-**测试计数**:**22 [Test] + 1 TestCaseSource × 30 夹具 = 52 个用例**
-(31 夹具 − 1 跳过 `invalid_quality_dist.json` = 30)。EditMode **407 = 355 + 52**。
+**测试计数**:**25 [Test] + 1 TestCaseSource × 33 夹具 = 58 个用例**
+(**2026-10-20 实测**;`fixtures/*.json` = 34,减 1 跳过 `invalid_quality_dist.json` = 33)。
+
+> ⚠️ **本行曾记「22 [Test] + 1 TestCaseSource × 30 夹具 = 52」**(2026-09-24)。
+> 现值的差额分两部分,**来源不同,不得混记**:
+> - **+3 [Test] = 产物漂移门**(`test_drift_*`,2026-10-20 本文件 §产物漂移门 所述);
+> - **+3 夹具**(30 → 33)= **其他 Story 后续增量**,非本次改动 ——
+>   该行自 2026-09-24 起未随夹具增长而刷新。
+> 本表**只报实跑实测值**;历史 52 保留作对账参照。
+
 
 **执行状态:✅ VERIFIED 2026-09-24 桌面** —— EditMode **407 全绿**;同批 PlayMode **12 全绿**。
 AC-47 冒烟三数已回填 `production/qa/smoke-2026-09-24.md`;E-13 自检五跑收敛(反向经反射探针
@@ -198,3 +206,99 @@ AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→d
 
 已交付的 Mono 侧可跑面(AC-28 黄金比对 + AC-30 静态扫描,5 测)落点表见
 `tests/unit/item_database/README.md` §Story 011;AC-29 腿的双腿跑法与受控重复纪律同见该节。
+
+---
+
+## 产物漂移门(2026-10-20 立 · 跨 Story 的基建件,不属于任何单一 Story)
+
+### 为什么会有这条门
+
+**实测暴露的缺口**:改 `assets/data/item_database_*.json` 而**不重烘**
+`unity/Assets/DataCooked/*.cooked.bytes`,**全量 EditMode 照样全绿**。
+
+**为什么绿**:本套件加门之前的 **55 个用例全部**走 `BakeFromSourceText` / `BakeFromRepo`(**现烘**),
+**没有一条**读 `DataCooked/` 下那份**已提交的**字节 ⇒ 漂移通道无断言覆盖。
+
+> ⚠️ **这不是「断言写错」,是「该断言的通道没被覆盖」** —— 属借绿家族的
+> 「扫不到被测装配」同族形态。发现经过:S-2
+> (`processing/story-001` AC-18-18 补口,2026-10-20)时,盘上产物是**改动前**烘的陈旧件,
+> 而全量套件 `3951/3915/0/36` 全绿 —— 这才把缺口照出来。
+
+**同型门早已在仓里,只是没扩到这里**:`Boot/examine_driver_test.cs:92-108` 对
+`diagnosis_signs` / `diagnosis_read_floor` 两份产物断言「库内字节须 = baker 现烘输出」。
+本条门 = **把同一形态扩到 item DB 两产物**(照抄先例,不引入新机制)。
+
+### 落点
+
+| 内容 | 路径 |
+|---|---|
+| 门真身 | `unity/Assets/Tests/EditMode/ItemDatabase/data_pipeline_bake_test.cs` |
+| 段名 | `══════════ 产物漂移门(改源必重烘)══════════` |
+| 装配 | `unity/Assets/Tests/EditMode/EditMode.asmdef`(零新增引用 —— 不用 `UnityEngine`,路径由既有的 `UnityAssetsRoot` 常量拼) |
+
+### 三条断言
+
+| 测试 | 判据 | 判别力 |
+|---|---|---|
+| `test_drift_itemsCooked_matchesBakerFreshOutput` | 盘上 items 产物 **逐字节** = baker 现烘 | ✅ 变异实测转红 |
+| `test_drift_recipesCooked_matchesBakerFreshOutput` | 盘上 recipes 产物 **逐字节** = baker 现烘 | ✅ 变异实测转红 |
+| `test_drift_configVersion_onDisk_matchesFreshlyDerived` | 两产物头 `ConfigVersion` 各 = 由现源复算值 | ✅ 单侧陈旧时转红 |
+
+> ⚠️ **第三条不是前两条的替代** —— 两份同源同旧时,头值仍**互相一致**,
+> `ConfigVersion` 门**看不出来**。漂移只能由**逐字节比对**兜住。三条各查一个面,都保留。
+
+### 证伪轮(判别力实测)
+
+变异全部作用于**已提交的产物字节**(不动源 JSON),等价于「改了源却没重烘」:
+
+| # | 变异 | 期望 | 实测 |
+|---|---|---|---|
+| **D0** | 无(基线) | `3/0` | ✅ `3 / 0` |
+| **D1** | 篡改 items 产物 1 字节 | items 漂移门红 | ✅ `2 / 1`,红的是 `test_drift_itemsCooked_matchesBakerFreshOutput` |
+| **D2** | 篡改 recipes 产物 1 字节 | recipes 漂移门红 | ✅ `2 / 1`,红的是 `test_drift_recipesCooked_matchesBakerFreshOutput` |
+| **D3** | 改 items 头 `ConfigVersion` 4 字节 | items 漂移门 **+** configVersion 门 **两红** | ✅ `1 / 2`,两项皆红 |
+
+**逐例红项(实测取证,非「期望」)**:
+
+| # | 实际转红的测试 |
+|---|---|
+| D1 | `test_drift_itemsCooked_matchesBakerFreshOutput` |
+| D2 | `test_drift_recipesCooked_matchesBakerFreshOutput` |
+| D3 | `test_drift_configVersion_onDisk_matchesFreshlyDerived` · `test_drift_itemsCooked_matchesBakerFreshOutput` |
+
+> ⚠️ **判别力的关键**:D1/D2 各只转红**对应的一项**,另一项仍绿 ——
+> 证明两条漂移门**各自独立**,不是「任一产物变了就整体红」(那会掩盖是哪一侧陈旧)。
+> D3 转红两项且 `passed=1`(recipes 漂移门仍绿,因 recipes 产物未动)—— 同理。
+
+**还原纪律**:每例跑完**立即** `cp` 回并做 `sha256` 逐字节比对(承 S-2 证伪轮纪律;
+禁 `git checkout` / `git stash` —— 会抹掉未提交改动)。
+**实测还原**:items `ff2c7d1b…831cf0` · recipes `55fc80d1…588ef2`,**逐字节一致 ✅**;
+`git status unity/Assets/DataCooked/` **干净**。
+脚本原件:`/tmp/fz-drift-gate.py`(临时件,不入库)。
+
+### ⚠️ 本条门的边界(禁借绿)
+
+- **只查产出侧字节一致性,不查源内容正确性** —— 源里写错数值而正确重烘,本条门**绿**。
+  源内容正确性归各 AC 自身的门。
+- **只覆盖 item DB 两份产物** —— `assets/DataCooked/` 下其余产物(8/11/13/44/51/53 等)
+  **无同款门**。本题材**只做了扩项**,未立 `DataCooked/` 全目录通用门 ——
+  通用门需先把各 baker 的 `BakeFromRepo` 签名与产物命名统一,属独立一件,须另裁。
+- **不替代**「改源必重烘」的流程纪律,只是把静默失败变成**可观测的失败**。
+
+### 回归对账(2026-10-20 · 加门后)
+
+| 项 | 值 |
+|---|---|
+| 命令 | `unity test <unity/> --mode EditMode --output <绝对路径>` |
+| 本轮 | **`total=3954 passed=3918 failed=0 inconclusive=0 skipped=36`**(exit 0) |
+| 前次(加门前) | `3951 / 3915 / 0 / 36` |
+| Δ | **`+3 / +3 / 0 / 0`** |
+| 等式判据 | `total − 前次 = 新增数`(3 条新门)⇒ **✅ 精确成立,零回归** |
+
+> **三元组(强制)**:截至时刻 `2026-10-20 10:17 本地` · 批次 `产物漂移门落盘轮(全量 EditMode)` ·
+> commit `6afc18d` + 未提交工作树(1 测试文件 + 2 账本)。
+> ⚠️ **`+3` 是实跑出来的** —— 前次 `3951` 亦实跑且带三元组(`2026-10-20 09:46`,S-2 批),可复算。
+> ⚠️ **`3951` 与 `3954` 的用途不同,勿混引**:`3951` 是**加门之前**的值,
+> 它「产物陈旧却全绿」这件事本身就是**缺口证据**(见 §为什么会有这条门)。
+
+

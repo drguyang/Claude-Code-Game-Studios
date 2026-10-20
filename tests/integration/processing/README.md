@@ -190,8 +190,22 @@ S-2 的补口**不该被逼着写别的 epic 的内容**,故改为 `category: to
 2. 或立一条通用「DataCooked 全目录漂移门」(`Assets/DataCooked/*.cooked.bytes` 逐份
    与对应 baker 现烘输出比对),把「改源必重烘」变成**构建失败**而非纪律。
 
-⚠️ **本件不擅自动手** —— 新增门属跨系统改动(可能归 item-database epic 或测试基建轮),
-须用户裁定归属后再落。**本轮已按纪律手工重烘产物**(见下)。
+⇒ **2026-10-20 已裁取路 1(扩项)并已落地** —— 门真身
+`unity/Assets/Tests/EditMode/ItemDatabase/data_pipeline_bake_test.cs`
+(段名「产物漂移门(改源必重烘)」),三条断言 + 证伪轮 D0–D3 全通过:
+
+| # | 变异 | 实测 |
+|---|---|---|
+| D0 | 无(基线) | `3 / 0` ✅ |
+| D1 | 篡改 items 产物 1 字节 | `2 / 1` —— **仅** items 漂移门红 ✅ |
+| D2 | 篡改 recipes 产物 1 字节 | `2 / 1` —— **仅** recipes 漂移门红 ✅ |
+| D3 | 改 items 头 `ConfigVersion` | `1 / 2` —— items 漂移门 + configVersion 门**两红** ✅ |
+
+产物 `sha256` 逐字节还原;`git status unity/Assets/DataCooked/` 干净。
+
+**归属 = item-database epic 的测试基建**(S-2 只是暴露者,不是所有者);
+路 2(全目录通用门)仍**未立**,需先统一各 baker 的 `BakeFromRepo` 签名与产物命名。
+详见 `tests/integration/item_database/README.md` §产物漂移门。
 
 ### 本轮的重烘记录
 

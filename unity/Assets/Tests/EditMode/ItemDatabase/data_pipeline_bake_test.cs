@@ -343,6 +343,81 @@ namespace DaYiJingCheng.Tests.Unit.ItemDatabase
             Assert.That(result.RecipesCooked, Is.Not.Empty);
         }
 
+        // ══════════ 产物漂移门(改源必重烘)══════════
+        //
+        // 权威来源:ADR-014 两阶段烘焙(`*.cooked` 是**入 git 的出货产物**)
+        //         · 先例 = `Boot/examine_driver_test.cs:92-108` 对 diagnosis_* 两份的同款断言
+        //
+        // ⚠️ **本条门的由来(2026-10-20,实证发现)**:
+        //   本套件其余全部测试都走 `BakeFromSourceText` / `BakeFromRepo`(**现烘**),
+        //   没有一条读 `unity/Assets/DataCooked/` 下那份**已提交的**字节 ⇒
+        //   **改了源 JSON 而忘记重烘,全量 EditMode 照样全绿**。
+        //   该缺口在 S-2(processing/story-001 AC-18-18 补口)被实测暴露:
+        //   当时盘上 `item_database_*.cooked.bytes` 是**改动前**烘的陈旧产物,
+        //   而全量套件 `3951/3915/0/36` 全绿。⇒ 漂移通道无门覆盖 = 借绿家族的
+        //   「该断言的通道没被覆盖」形态。
+        //
+        // 判据:baker 现烘输出 == 盘上已提交产物(**逐字节**)。不等 ⇒ 红,报文点名该重烘。
+        // 覆盖:items + recipes 两份;它们共用同一 `ConfigVersion`(同一命名源集)。
+
+        /// <summary>盘上 <c>Assets/DataCooked/</c> 下某产物的绝对路径。</summary>
+        private static string CookedPath(string assetName)
+            => Path.Combine(UnityAssetsRoot, "DataCooked", assetName);
+
+        /// <summary>
+        /// <b>产物漂移门 · items</b> —— 库内 <c>item_database_items.cooked.bytes</c>
+        /// 须 = baker 现烘输出。改源不重烘 ⇒ 红。
+        /// </summary>
+        [Test]
+        public void test_drift_itemsCooked_matchesBakerFreshOutput()
+        {
+            const string assetName = "item_database_items.cooked.bytes";
+
+            BakeResult fresh = ItemDatabaseBaker.BakeFromRepo(RepoRoot);
+            byte[] onDisk = File.ReadAllBytes(CookedPath(assetName));
+
+            Assert.That(onDisk, Is.EqualTo(fresh.ItemsCooked),
+                $"库内 {assetName} ≠ baker 现烘输出 —— 改了 assets/data/item_database_*.json 却未重烘。" +
+                "重烘:unity build <unity/> --target StandaloneLinux64 " +
+                "--execute-method DaYiJingCheng.EditorTools.Bake.DataBakeMenu.BakeItemDatabase" +
+                "(`*.cooked` 是入 git 的出货产物,ADR-014;漂移 = 运行期读陈旧数据而测试全绿)");
+        }
+
+        /// <summary>
+        /// <b>产物漂移门 · recipes</b> —— 对称半边。
+        /// </summary>
+        [Test]
+        public void test_drift_recipesCooked_matchesBakerFreshOutput()
+        {
+            const string assetName = "item_database_recipes.cooked.bytes";
+
+            BakeResult fresh = ItemDatabaseBaker.BakeFromRepo(RepoRoot);
+            byte[] onDisk = File.ReadAllBytes(CookedPath(assetName));
+
+            Assert.That(onDisk, Is.EqualTo(fresh.RecipesCooked),
+                $"库内 {assetName} ≠ baker 现烘输出 —— 改了源 JSON 却未重烘(见 items 侧报文的重烘命令)");
+        }
+
+        /// <summary>
+        /// 两份产物头的 <c>ConfigVersion</c> 须彼此一致,且 = 由现源复算的值。
+        /// <para>⚠️ 本测**不是**漂移门的替代 —— 它查的是「两产物内部一致 + 与源派生值一致」,
+        /// 但**无法**发现「两者一起陈旧」(两份同源同旧 ⇒ 头值仍互相一致)。
+        /// 漂移只能由上面两条**逐字节比对**兜住。</para>
+        /// </summary>
+        [Test]
+        public void test_drift_configVersion_onDisk_matchesFreshlyDerived()
+        {
+            BakeResult fresh = ItemDatabaseBaker.BakeFromRepo(RepoRoot);
+
+            byte[] itemsOnDisk = File.ReadAllBytes(CookedPath("item_database_items.cooked.bytes"));
+            byte[] recipesOnDisk = File.ReadAllBytes(CookedPath("item_database_recipes.cooked.bytes"));
+
+            Assert.That(ReadHeaderConfigVersion(itemsOnDisk), Is.EqualTo(fresh.ConfigVersion),
+                "盘上 items 产物头的 ConfigVersion ≠ 由现源派生的值");
+            Assert.That(ReadHeaderConfigVersion(recipesOnDisk), Is.EqualTo(fresh.ConfigVersion),
+                "盘上 recipes 产物头的 ConfigVersion ≠ 由现源派生的值");
+        }
+
         // ══════════ 门接线抽查(绑定成功后由门拒 —— 证明 B2 执行而非只靠白名单)══════════
 
         /// <summary>stack_max 改 0(结构合法 int)⇒ 门拒并点名 AC-21a-15。</summary>
