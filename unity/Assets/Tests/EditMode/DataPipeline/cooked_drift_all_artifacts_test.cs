@@ -8,7 +8,7 @@
 //    逐份产物比对「盘上已提交字节」vs「对应 baker 现烘输出」,不等 ⇒ 红。
 //
 // ⚠️ **为什么需要它(实证)**:
-//    点状门只覆盖 diagnosis_* 两份 + item_database_* 两份 = 4/9。
+//    点状门原只覆盖 diagnosis_* 两份 + item_database_* 两份 = 4/9。
 //    2026-10-20 勘查 `DataCooked/` 实测发现**盘上只有 9 份产物,而源码声明了
 //    15 份产物名(14 个 baker,`ItemDatabaseBaker` 出两份)** ⇒ 6 份**从未落盘**
 //    (git 历史 0 笔):
@@ -18,8 +18,10 @@
 //    ① 无任何代码从 `DataCooked/` 读它们;② `AddressablesDataProvider.Preload()`
 //    的装载清单恰为盘上那 9 份 ⇒ **不在运行期面内**,故从未被发现。
 //    ⚠️ 且这 6 份所归属的 5 个 story **全部标 `Complete`**(含一件名为
-//    `story-007-interaction-kinds-bake-wiring` 的「烘焙接线」件)—— **不在本门裁决面**,
-//    已在报告里作为发现上呈;本门只如实登记,不替它判「该不该有」。
+//    `story-007-interaction-kinds-bake-wiring` 的「烘焙接线」件)。
+//
+//    ✅ **2026-10-20 用户裁定「那 6 份补烘掉」,已全部落盘** ⇒ 盘上 9 → **15**,
+//    15 份全部进入 `BakedArtifacts` 受逐字节漂移门保护;`KnownUnbaked` 清空(6 → 0)。
 //
 // ⚠️ **本门查什么 / 不查什么**:
 //    查 —— ① 已烘产物的**字节漂移**(改源不重烘);
@@ -35,7 +37,8 @@
 //    `DataBakeMenu` 的公共常量引用(**不另抄字面量** —— 承 ADR-024 §⑥ 单一定义处纪律)。
 //
 // ⚠️ **为什么住在 `Tests/EditMode/DataPipeline/` 而不是 `ItemDatabase/`**:
-//    本门覆盖 9 份产物、跨 8 个系统(2 物品 / 2 诊断 / 1 病例 / 2 音频 / 1 输入 / 1 遥测),
+//    本门覆盖 **15 份产物**、跨 8 个系统(2 物品 / 3 诊断 / 1 病例 / 2 音频 / 1 输入 /
+//    1 遥测 / 1 交互 / 1 处方 / 1 处置轴 / 2 医疗后果),
 //    是**跨 Story 的数据管线基建**,不属任何单一系统。初始落在 `ItemDatabase/` 是从
 //    先例(`data_pipeline_bake_test.cs`)续写的顺位,但与判据面不符 ⇒ 2026-10-20 迁至独立目录。
 //    目录级装配仍共用 `EditMode.asmdef`(该树唯一共享装配),**零新增引用**。
@@ -106,11 +109,13 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             new ArtifactBake(DataBakeMenu.RecipesCookedAssetName,
                 root => ItemDatabaseBaker.BakeFromRepo(root).RecipesCooked),
 
-            // ── 8 诊断(2 份)──
+            // ── 8 诊断(3 份)──
             new ArtifactBake(DataBakeMenu.DiagnosisSignsCookedAssetName,
                 root => DiagnosisSignBaker.BakeFromRepo(root).Cooked),
             new ArtifactBake(DataBakeMenu.DiagnosisReadFloorCookedAssetName,
                 root => DiagnosisReadFloorBaker.BakeFromRepo(root).Cooked),
+            new ArtifactBake(DataBakeMenu.DiagnosisNegativeConfidenceCookedAssetName,
+                root => DiagnosisNegativeConfidenceBaker.BakeFromRepo(root).Cooked),
 
             // ── 37 病例(1 份)──
             new ArtifactBake(DataBakeMenu.JudgmentLexiconCookedAssetName,
@@ -129,38 +134,44 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             // ── 51 遥测(1 份)──
             new ArtifactBake(TelemetryAnalyticsBake.CookedFileName,
                 root => TelemetryAnalyticsBake.BakeFromRepo(root).Cooked),
+
+            // ── 4 交互(1 份;2026-10-20 补烘)──
+            new ArtifactBake(DataBakeMenu.InteractionKindsCookedAssetName,
+                root => InteractionKindBaker.BakeFromRepo(root).Cooked),
+
+            // ── 11 处方(1 份;2026-10-20 补烘)──
+            new ArtifactBake(DataBakeMenu.PrescriptionActionsCookedAssetName,
+                root => PrescriptionActionsBaker.BakeFromRepo(root).Cooked),
+
+            // ── 9 处置轴(1 份;2026-10-20 补烘)──
+            new ArtifactBake(DataBakeMenu.DiseaseActionAxisCookedAssetName,
+                root => DiseaseActionAxisBaker.BakeFromRepo(root).Cooked),
+
+            // ── 53 医疗后果(2 份;2026-10-20 补烘)──
+            new ArtifactBake(DataBakeMenu.OutcomeTableCookedAssetName,
+                root => OutcomeTable53.BakeFromRepo(root).Cooked),
+            new ArtifactBake(DataBakeMenu.DelayTableCookedAssetName,
+                root => DelayTable53Bake.BakeFromRepo(root).Cooked),
         };
 
         /// <summary>
-        /// <b>已知未烘产物登记</b> —— 仓里有 baker 与菜单项,但**从未落盘**的产物。
+        /// <b>已知未烘产物登记</b> —— 仓里有 baker 与菜单项,但**有意不落盘**的产物。
         /// <para>⚠️ **这不是豁免清单,是欠账清单**。每条须写明「为什么现在不烘」,
         /// 且当该产物**真的落盘**时,<see cref="test_sweep_noGhostArtifact_onDiskButUnregistered"/>
         /// 会要求把它移进 <see cref="BakedArtifacts"/>(否则红)。</para>
-        /// <para>2026-10-20 勘查依据(逐份实测):这 6 份**无任何代码从 <c>DataCooked/</c> 读取**,
-        /// 且不在 <c>AddressablesDataProvider.Preload()</c> 的 9 项装载清单内
-        /// ⇒ 运行期不受影响。**但**其归属 story **全部标 `Complete`** ⇒
-        /// 「有 baker 却无产物」这件事**不是被裁为延后的**,是被**漏掉**的
-        /// —— 已作为发现上呈,本门**只登记不裁决**。</para>
+        /// <para><b>2026-10-20:本表已清空(6 → 0)。</b>原记 6 份从未落盘的产物
+        /// (<c>interaction_kinds</c> / <c>diagnosis_negative_confidence</c> /
+        /// <c>prescription_actions</c> / <c>disease_action_axis</c> /
+        /// <c>53_outcome_table</c> / <c>53_delay_table</c>)已由用户裁定**全部补烘**,
+        /// 六份均已移入 <see cref="BakedArtifacts"/> 并接受漂移门保护。
+        /// 原欠账理由(其归属 story 全标 Complete 却零产物)保留在 git 历史中。</para>
+        /// <para>⚠️ **表清空 ≠ 判据面缩小**:门② 仍要求「盘上每一份都登记」,
+        /// 门②b 仍要求「源码声明的每份都登记」,门③ 仍要求本表零理由空缺
+        /// (空表天然满足)。新增欠账仍须在此加条目并同步改
+        /// <see cref="test_registry_knownUnbakedCount_isPinned"/> 的钉定值。</para>
         /// </summary>
         private static readonly Dictionary<string, string> KnownUnbaked =
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                [DataBakeMenu.InteractionKindsCookedAssetName] =
-                    "4 交互:归属 `interaction-system/story-007-interaction-kinds-bake-wiring`"
-                    + "(自称烘焙接线)已标 Complete,但产物 git 0 笔、`AddressablesDataProvider` 零该 address。",
-                [DataBakeMenu.DiagnosisNegativeConfidenceCookedAssetName] =
-                    "8 阴性把握度:归属 `diagnosis-system/story-004` 已标 Complete;有生产侧 codec,"
-                    + "但 provider 无该 address ⇒ 未接入装载面。",
-                [DataBakeMenu.PrescriptionActionsCookedAssetName] =
-                    "11 处方表:归属 `prescription-medication/story-001` 已标 Complete;"
-                    + "无生产侧 codec,仅测试读现烘产物。",
-                [DataBakeMenu.DiseaseActionAxisCookedAssetName] =
-                    "9 处置轴:归属 `disease-simulation/story-007` 已标 Complete;同上,无生产侧 codec。",
-                [DataBakeMenu.OutcomeTableCookedAssetName] =
-                    "53 判定表:归属 `medical-consequences/story-002` 已标 Complete;装载面未定。",
-                [DataBakeMenu.DelayTableCookedAssetName] =
-                    "53 延迟表:同 `medical-consequences` epic;与判定表同批。",
-            };
+            new Dictionary<string, string>(StringComparer.Ordinal);
 
         // ══════════════════ 门 ①:已烘产物逐字节比对 ══════════════════
 
@@ -265,7 +276,7 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
 
             // 扫描器完备性哨兵 —— 剥离器若过度吞字(如把逐字串 `@"…"` 的 `"` 当转义),
             // 声明集会**变小**,本行先红。⚠️ 这是本门唯一能自证「扫全了」的判据。
-            const int pinnedDeclared = 15; // 2026-10-20 实测(9 盘上 + 6 欠账)
+            const int pinnedDeclared = 15; // 2026-10-20 实测(15 份均已落盘并登记)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +
@@ -359,15 +370,18 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
 
         /// <summary>
         /// <b>KnownUnbaked 的「反成长期」守卫</b> —— 一张欠账清单若只增不减,
-        /// 迟早变成永久豁免。本测钉住「它当前是 6 条」,
+        /// 迟早变成永久豁免。本测钉住「它当前是 0 条」,
         /// 逼使任何新增/移除都必须**显式改这个数字**并说明理由。
         /// <para>⚠️ 数字本身不是目的 —— 它是**让人停下来看一眼**的闸。
         /// 若确需变更:同时改 <see cref="KnownUnbaked"/> 与本节数字 + 注释理由。</para>
+        /// <para><b>2026-10-20:钉定值 6 → 0</b> —— 用户裁定六份欠账全部补烘,
+        /// 故清单清空。<b>这不是「删条目让门变松」</b>:那些产物已进入
+        /// <see cref="BakedArtifacts"/> 并**逐字节**受门① 保护(比欠账登记更严)。</para>
         /// </summary>
         [Test]
         public void test_registry_knownUnbakedCount_isPinned()
         {
-            const int pinned = 6; // 2026-10-20 勘查值(见类头 §未登记产物)
+            const int pinned = 0; // 2026-10-20 补烘后值(原 6,见类头 §未登记产物)
 
             Assert.That(KnownUnbaked.Count, Is.EqualTo(pinned),
                 $"KnownUnbaked 条数 = {KnownUnbaked.Count},钉定值 = {pinned}。" +

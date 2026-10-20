@@ -206,8 +206,9 @@ S-2 的补口**不该被逼着写别的 epic 的内容**,故改为 `category: to
 **归属 = item-database epic 的测试基建**(S-2 只是暴露者,不是所有者)。
 
 > **2026-10-20 更新 —— 路 2 已立**:全目录通用漂移门
-> `unity/Assets/Tests/EditMode/DataPipeline/cooked_drift_all_artifacts_test.cs` 已落盘(13 用例),
-> 覆盖 `DataCooked/` **盘上全部 9 份**产物(原 4/9);证伪轮 F0–F5 **6/6 转红**。
+> `unity/Assets/Tests/EditMode/DataPipeline/cooked_drift_all_artifacts_test.cs` 已落盘,
+> 覆盖 `DataCooked/` **盘上全部 15 份**产物(原 4/9;19 用例);证伪轮 F0–F5 **6/6 转红**。
+> 该轮同时把勘查发现的 6 份「有 baker 无产物」欠账**全部补烘**(盘上 9 → 15)。
 > ⚠️ 原文写的「须先统一各 baker 的 `BakeFromRepo` 签名与产物命名」**已被实测证伪** ——
 > 委托登记表即可绕开签名不一致,**不必**改动任何 baker。详见
 > `tests/integration/item_database/README.md` §全目录通用漂移门。

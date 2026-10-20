@@ -281,7 +281,7 @@ AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→d
 - **只查产出侧字节一致性,不查源内容正确性** —— 源里写错数值而正确重烘,本条门**绿**。
   源内容正确性归各 AC 自身的门。
 - ~~**只覆盖 item DB 两份产物**~~ —— **2026-10-20 已成过去式**:全目录通用门已落
-  `unity/Assets/Tests/EditMode/DataPipeline/cooked_drift_all_artifacts_test.cs`,覆盖**盘上全部 9 份**。
+  `unity/Assets/Tests/EditMode/DataPipeline/cooked_drift_all_artifacts_test.cs`,覆盖**盘上全部 15 份**。
   ⚠️ **原记的「须先统一各 baker 的 `BakeFromRepo` 签名与产物命名」这一前置被实测证伪** ——
   14 个 baker 的返回体虽是各自文件内的 `BakeOutput`(不共享类型),但都以 `byte[] Cooked` 暴露产物;
   `ItemDatabaseBaker` 返回 `BakeResult` 带两个产物。**用委托登记表(`Func<string, byte[]>`)
@@ -299,21 +299,22 @@ AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→d
 | 门真身 | `unity/Assets/Tests/EditMode/DataPipeline/cooked_drift_all_artifacts_test.cs` |
 | 命名空间 | `DaYiJingCheng.Tests.Unit.DataPipeline` |
 | 装配 | `Tests/EditMode/EditMode.asmdef`(零新增引用) |
-| 覆盖 | `unity/Assets/DataCooked/` **盘上全部 9 份**产物(原 4/9) |
+| 覆盖 | `unity/Assets/DataCooked/` **盘上全部 15 份**产物(原 4/9;2026-10-20 补烘 6 份欠账后) |
 
-**为什么单立目录**:本门覆盖 8 个系统(2 物品 / 2 诊断 / 1 病例 / 2 音频 / 1 输入 / 1 遥测),
+**为什么单立目录**:本门覆盖 10 个系统(2 物品 / 3 诊断 / 1 病例 / 2 音频 / 1 输入 /
+1 遥测 / 1 交互 / 1 处方 / 1 处置轴 / 2 医疗后果),
 是跨 Story 的数据管线基建,**不属于 `ItemDatabase/`**。初版落在 `ItemDatabase/`(续写先例的顺位),
 判据面与位置不符 ⇒ 迁独立目录。
 
-### 三条判据 + 两个哨兵(13 用例)
+### 三条判据 + 两个哨兵(19 用例)
 
 | # | 测试 | 判据 |
 |---|---|---|
-| ① ×9 | `drift[<产物名>]`(`TestCaseSource`) | 盘上字节 **逐字节** = 该 baker 现烘输出 |
+| ① ×15 | `drift[<产物名>]`(`TestCaseSource`) | 盘上字节 **逐字节** = 该 baker 现烘输出 |
 | ② | `test_sweep_noGhostArtifact_onDiskButUnregistered` | 盘上每一份都在两张表里(禁**幽灵产物**) |
 | ②b | `test_sweep_declaredArtifactNames_allTriaged` | 源码声明的每个产物名都在两张表里(禁**新增 baker 忘了登记**) |
 | ③a | `test_registry_noDuplicateOrCrossRegistration` | 两张表内零重复、零交叉、欠账项须写理由 |
-| ③b | `test_registry_knownUnbakedCount_isPinned` | 欠账清单条数钉定为 **6**(防其长成永久豁免名单) |
+| ③b | `test_registry_knownUnbakedCount_isPinned` | 欠账清单条数钉定为 **0**(2026-10-20 补烘前为 6;防其长成永久豁免名单) |
 
 **封闭性**:`已烘 ⊆ 盘上`(① 的 `File.Exists`)· `盘上 ⊆ 已烘 ∪ 欠账`(②)· `声明 ⊆ 已烘 ∪ 欠账`(②b)
 —— 三条合起来,新增产物无论走哪条路都必须显式登记。
@@ -354,23 +355,38 @@ AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→d
 - **残余盲区**:一份产物若**既不落盘、又不被任何源码字面量提到**,本门看不见它(无来源可比对)。
   但那种形态连「谁烘它」都没写下来,已不属本门判据面。
 
-### 回归对账(2026-10-20 · 全目录门落盘后)
+### 回归对账(2026-10-20 · 两轮)
+
+**轮 1 —— 全目录门落盘后(覆盖 9 份)**
 
 | 项 | 值 |
 |---|---|
-| 命令 | `unity test <unity/> --mode EditMode --output <绝对路径>` |
 | 本轮 | **`total=3967 passed=3931 failed=0 inconclusive=0 skipped=36`**(exit 0) |
 | 前次(加全目录门前) | `3954 / 3918 / 0 / 36` |
 | Δ | **`+13 / +13 / 0 / 0`** |
-| 等式判据 | `total − 前次 = 新增数`(13 条:9 漂移 + 2 扫描 + 2 登记表)⇒ **✅ 精确成立,零回归** |
+| 等式判据 | `total − 前次 = 新增数`(13 条:9 漂移 + 2 扫描 + 2 登记表)⇒ **✅ 精确成立** |
 
-> **三元组(强制)**:截至时刻 `2026-10-20 10:32 本地` · 批次 `全目录漂移门落盘轮(全量 EditMode)` ·
-> commit `0a144f1` + 未提交工作树(1 测试文件迁目录 + 3 账本)。
-> ⚠️ `+13` 是实跑出来的;前次 `3954` 亦实跑且带三元组(`2026-10-20 10:17`),可复算。
+> 三元组:截至时刻 `2026-10-20 10:32 本地` · 批次 `全目录漂移门落盘轮` · commit `0a144f1` + 工作树。
 
-### ⚠️ 本门勘查中发现、**不在门裁决面**的事项(待裁)
+**轮 2 —— 6 份欠账补烘后(覆盖 15 份)**
 
-**实测**:6 份产物有 baker、有菜单项、有测试,**从未落盘**(git 历史 **0 笔**):
+| 项 | 值 |
+|---|---|
+| 本轮 | **`total=3973 passed=3937 failed=0 inconclusive=0 skipped=36`**(exit 0) |
+| 前次(轮 1) | `3967 / 3931 / 0 / 36` |
+| Δ | **`+6 / +6 / 0 / 0`** |
+| 等式判据 | `total − 前次 = 新增数`(6 条新漂移测 = 6 份补烘产物)⇒ **✅ 精确成立,零回归** |
+
+> 三元组:截至时刻 `2026-10-20 10:42 本地` · 批次 `6 份欠账补烘轮(全量 EditMode)` ·
+> commit `95af239` + 未提交工作树(6 产物 + 6 `.meta` + 门 + 2 账本)。
+> ⚠️ 本门 19 条在轮 2 中**全通过**;`+6` 恰为「6 份新产物进入门①」的数目,可复算。
+
+**定向验证(补烘后)**:**`drift-15.xml` = 19/19 passed** —— 15 份产物逐字节 = baker 现烘输出,
+证明补烘产出的是**正确字节**而非空壳。
+
+### 6 份欠账的发现与补烘(2026-10-20 · 已结案)
+
+**发现**:6 份产物有 baker、有菜单项、有测试,**从未落盘**(git 历史 **0 笔**):
 
 `interaction_kinds` · `diagnosis_negative_confidence` · `prescription_actions` ·
 `disease_action_axis` · `53_outcome_table` · `53_delay_table`
@@ -381,9 +397,29 @@ AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→d
 **⚠️ 关键事实**:这 6 份所归属的 **5 个 story 全部标 `Complete`**,其中
 `interaction-system/story-007-interaction-kinds-bake-wiring`(名字即「烘焙接线」)的 AC 明写
 「全绿 ⇒ 写出 deterministic `interaction_kinds.cooked`」,而该产物 git **0 笔**。
+⇒ 这不是「被裁为延后」,是**有 baker 无产物**的漏项。
 
-⇒ 这不是「被裁为延后」,是**有 baker 无产物**的漏项。门只如实登记,**处置归用户裁定**
-(补烘 / 承认为欠账 / 或判定相关 story 状态标早了)。
+**✅ 处置(用户 2026-10-20 裁定:「那 6 份补烘掉」)—— 六份全部补烘落盘**
+
+| 产物 | 大小 | ConfigVersion | 菜单方法 |
+|---|---|---|---|
+| `interaction_kinds` | 330 B | `0x75D32E3B` | `BakeInteractionKinds` |
+| `diagnosis_negative_confidence` | 312 B | `0x1CE313DD` | `BakeDiagnosisNegativeConfidence` |
+| `prescription_actions` | 77 B | `0xA5273A45` | `BakePrescriptionActions` |
+| `disease_action_axis` | 304 B | `0x6C83B441` | `BakeDiseaseActionAxis` |
+| `53_outcome_table` | 176 B | `0x47F95050` | `BakeOutcomeTable` |
+| `53_delay_table` | 60 B | `0xDE533AC6` | `BakeDelayTable` |
+
+- 命令:`unity build <unity/> --target StandaloneLinux64 --execute-method DaYiJingCheng.EditorTools.Bake.DataBakeMenu.<方法>`
+- 六次全部 `Exiting batchmode successfully now!` · exit **0**;`.meta` 由 Unity 自动生成、随产物入库
+- **ConfigVersion 全部非零** ⇒ 源内容哈希派生链路生效(ADR-014 §五),不是空壳
+- 六份已从 `KnownUnbaked` **移入 `BakedArtifacts`** ⇒ 受门① **逐字节**保护
+- `KnownUnbaked` 清空(6 → 0),钉定值同步改 0
+
+> ⚠️ **补烘 ≠ 接线**:这 6 份现在**有正确字节**,但仍**未接入运行期装载面**
+> (`AddressablesDataProvider` 无对应 address、`Preload()` 不含它们)。
+> 补烘解决的是「有 baker 无产物」;**「产物有了但没有读者」是另一个问题**,
+> 归各归属 epic 的接线轮,不在本条门裁决面。逐份的接线状态见上表所属 story。
 
 ### 回归对账(2026-10-20 · 加门后)
 
