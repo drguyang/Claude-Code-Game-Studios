@@ -6570,3 +6570,44 @@ failed / skipped 未变 ⇒ 零回归。
 ```
 
 **未提交**(不经用户指令不 commit)。
+
+---
+
+## Session Extract — 2026-10-20(下半场):P0 静态 backlog + S-1 / S-2 订正
+
+**触发**:用户问「现在能系统规划 P0 的后续所有 sprint 吗?」⇒ 答**不能**承诺全量排期
+(CAPACITY-MODEL 禁人日外推;S-15 自身两次中途作废;剩余阻塞多为 EXTERNAL),
+但**顺序与不可闭合面可以现在就钉死** ⇒ 立两层做法:静态 backlog + 滚动逐 sprint 承诺。
+
+**产物**
+- `production/p0-remaining-backlog-2026-10-20.md`(新)——
+  八节:判读边界 / 分母台账 / 八条依赖链 / 依赖环 / 五类外部阻塞 / **六处陈旧阻塞** /
+  现在就能开工的件 / 三条供 `/sprint-plan` 复用的硬约束。
+  **每个数字都是实测算的**,不是回忆的;含可复算脚本。
+
+**S-1 订正(`death-respawn/story-003` + `EPIC.md`)**
+`BLOCKED-BY-OQ-7a-9` 已于 2026-09-23 由 `ADR-026 §⑦` 结案(折叠豁免 `SkillGrown`)——
+但**阻塞未归零,只是换了性质**:裁决面已清,**实现面未落**(全库 `Folded(p)` 生产谓词零命中)。
+⇒ 措辞改为 `BLOCKED-BY-7a 折叠实现`(可排期),而非「裁决待定」(不可排期)。
+
+**S-2 订正 + 补口(`processing/story-001` AC-18-18)**
+- 原病根:AC 判据「并 = 全表、两两交 = ∅」在**空子集下恒真** ⇒ 恒绿而什么都不测。
+  更深一层:`PartitionRecipeOwners` 是 `if/else if/else` ⇒ 该判据**由代码结构保证**,与数据无关。
+- 订正:三段判据(① 非空 ② 并 ③ 交),**只有 ① 有判别力**;拆「机制/真表覆盖度」两段记分。
+- **补口**:真表补 `craft_wooden_splint` + `assemble_wooden_post` 两条**占位配方**
+  ⇒ `owner` 分布 `{process:2, craft:1, build:1}`;新物品 `wooden_splint` / `wooden_post`。
+- **改道**:首版 craft 产出 `herbal_salve`(`drug`)会踩红 11 的 `AC-11-20`
+  (药类必须在 `materia_lexicon.json` 有功效词 = 11 的内容)⇒ 改 `tool` 类切断耦合。
+- **证伪轮**:删 craft / 删 build / craft 改 process ⇒ 真表夹具**三次全转红**,数据逐字节还原。
+- **回归**:全量 EditMode `3951/3915/0/36`,前次基线 `3945/3909/0/36` ⇒ 恰 `+6/+6/0/0`,零回归。
+- 产物重烘:`ConfigVersion 0x78F37B5F → 0x2E03E7CF`,items 715 B / recipes 524 B。
+
+**⚠️ 本轮发现、未修,待裁(两条)**
+1. **门缺口 —— item DB 无「产物漂移」门**:改源不重烘 `Assets/DataCooked/*.cooked.bytes`
+   ⇒ **全量套件照样全绿**(本轮实测)。同型门在 `Boot/examine_driver_test.cs:92-108` 已存在,
+   **只覆盖 `diagnosis_*` 两份**。建议扩到 item DB 或立通用全目录漂移门。**归属须裁。**
+2. **仓库根 `Logs/`** —— 我的证伪脚本误建的(`unity test --output` 按 **cwd** 解析,
+   不按 project 形参)。已被 `.gitignore:66` 忽略、不进 git。**删除交用户**
+   (`rm Logs/fz-s2.xml && rmdir Logs`,cwd = 仓库根)。
+
+**未提交**(不经用户指令不 commit)。Unity 工程已释放,可重开编辑器。
