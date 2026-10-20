@@ -196,6 +196,15 @@ public readonly struct Fix
 }
 ```
 
+> **⭑ 2026-10-20(普查加注 —— 只登记实测,不改写本块的裁决)**
+> 本块声明的 `Fix.ISqrt` ⇒ 代码侧成员名为 **`Fix.Sqrt`**(`Sim.Contracts/Fix.cs:212`)。
+> 本文散文里的 `FixPow` / `FixSqrt` ⇒ 代码侧分别为 **`Fix.Pow`**(`Fix.cs:191` 整数幂 /
+> `:240` 半整数幂重载)/ **`Fix.Sqrt`**;`Fix.Div` 与散文一致。
+> `FixPow` / `FixSqrt` / `ISqrt` **全树零命中(含 `Tests/`)** —— `Fix.cs:264` 的注释自身写
+> 「ADR-026 FixPow/FixSqrt 同族先例」,即代码作者知道二者是同一物。
+> ⇒ **仅命名漂移,不是缺口**(实现已落);**ADR 措辞回刷待裁**。
+> 出处:`production/qa/evidence/census-adr-obligation-2026-10-20.md` §4.1(三处假零之一)。
+
 ```
 // 30 的成长事件载荷(已在 Sim.Contracts.Payloads.HistoryPayloads.cs 实现)
 SkillGrownPayload { int ActorId; int PatientId; int SkillId; int ObjectId; int NoveltyClass; int Level; }

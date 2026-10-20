@@ -190,6 +190,17 @@ tutorial-onboarding(48 教学)
 > (见 §八 #3′ 的「未清项」:孤儿契约 + 未溯源桶)。**G-4 的入册本身即证明了普查的必要性**:
 > 它是在**第 31 个 epic 的补建过程里**偶然撞见的,不是扫出来的。
 
+> **另有一类(不占 G 号,因无归属 epic):孤儿契约**
+>
+> | 契约 | 义务级 | 归属系统级 | 实测 | 挂牌 |
+> |---|---|---|---|---|
+> | `IReplayPipe` / `ReorderBuffer` | **P0**(ADR-001 `:167` / `:448` 逐字「P0 预埋 / P0 写」) | **P1b**(`systems-index.md:81` 系统 45,**无 epic**) | **八个抽象点落 7 个,它是唯一零落点**(其余 7 个的接口声明全在 `Sim.Contracts/`) | ✅ **`TD-net-01`**(2026-10-20 第二轮专扫登记) |
+>
+> **为何单列**:G-1…G-7 的判别前提是「归属 epic 全 `Complete`」;孤儿契约**连 epic 都没有**
+> ⇒ **G 型手法结构上够不到它**(§十一 C-7)。**这是「P0 义务 · P1b 归属 · 无 epic」的三重错位**。
+> `ISceneRouter`/`IWorldSpawner` 与 `IPerTargetIl2CppArgs` 经查**均有显式跟踪面**
+> (`BootRoot.cs:20` / ADR-023 §Validation S2 `⏸` / ADR-012 未勾项)⇒ **不同级,不登记**。
+
 ⇒ **处置(用户裁定 2026-10-20「不立 story」)**:两条已登记入
 `docs/tech-debt-register.md`(`TD-sim-01` / `TD-persist-01`),**不补立 story**。
 理由:两个 epic 均已标全 `Complete`,补立会把计数从「全绿」打回「未全绿」、扰动 M3 分母;
@@ -399,7 +410,7 @@ M3 Exit（epic 面） =
 | 1 | 某轮 `/sprint-plan` 未引用 §6.3 四条复核(尤 **R-4**) | 本文件判为**未落地**,不因「已写」而算兑现 |
 | 2 | 有人用「件/日」做线性外推排日期 | 等同 `CAPACITY-MODEL.md` §六 条件 #3 触发 ⇒ 本文件 §6.1 作废 |
 | 3 | 又出现「epic 全 story Complete 但契约零命中」的新户 | ⇒ §三 的门清单**不完备**;须重做一次全 epic 契约普查,不得只补这一户 |
-| **3′** | — | **✅ 已跑(2026-10-20)** —— 原件 = `production/qa/evidence/census-adr-obligation-2026-10-20.md`(三元组 `2026-10-20T07:59` UTC · §八 #3′ 普查轮 · `54fd5e5`)。<br>**扫描面**:31 个 epic 中含 story 者 → **17 个全 story Complete**(前轮引用的 18 作废,见原件 §4.2);符号源 = 31 份 ADR 的**代码块**(52 符号)+ **散文**(379 符号)两级;代码面 = `unity/Assets/` 全树 C#,**剥注释**,`Tests/` 单列档。<br>**结果**:零命中分类 —— **① 真缺口 12** · ② 命名漂移 5 · ③ 零命中正确 7 · ④ 显式延后 2 · ⑤ 面外噪音余。<br>**够格成为 G 型债的 = 4 项**(须同时满足:符号零命中 ∧ 归属 epic 全 Complete ∧ **epic 卡面自己点名该符号**):`IPlayerMotor`(`player-controller` 6/6 + `camera-viewpoint` 6/6 **双向点名**)· `LogiPose` / `ITameable` / `TameState`(`enemy-ai` 5/5)· `DeferredThreatSlot`(`random-events` 6/6)⇒ **已登记 `TD-player-02` / `TD-enemy-01` / `TD-randomevents-01`**(用户裁定「能归 epic 的登记 TD,不立 story」)。<br>**⚠️ 未清项,故 #3 判据**仍**红**:<br>① **孤儿契约未处置** —— `production/epics/` 实测**无网络 epic、无场景/Boot epic** ⇒ ADR-001 的系统 45(`IReplayPipe` / `ReorderBuffer`,逐字要求「P0 全实现为本地占位」)与 ADR-023 的一对(`ISceneRouter` / `IWorldSpawner`)**无归属 epic**。**G 型手法以「归属 epic 全 Complete」为前提 ⇒ 对孤儿契约结构性不可见**(§十一 C-4 的盲区,本轮实测坐实)。⇒ **门清单仍不完备**;待裁「是否另立『无归属 epic 的 ADR 契约』专扫」。<br>② **§4.3 未溯源桶 10 个符号**未逐个核其声明 ADR 是否构成 P0 义务。<br>③ **本件是勘察,未改任何代码 / GDD / ADR / 卡面。** |
+| **3′** | — | **✅ 已跑(2026-10-20)** —— 原件 = `production/qa/evidence/census-adr-obligation-2026-10-20.md`(三元组 `2026-10-20T07:59` UTC · §八 #3′ 普查轮 · `54fd5e5`)。<br>**扫描面**:31 个 epic 中含 story 者 → **17 个全 story Complete**(前轮引用的 18 作废,见原件 §4.2);符号源 = 31 份 ADR 的**代码块**(52 符号)+ **散文**(379 符号)两级;代码面 = `unity/Assets/` 全树 C#,**剥注释**,`Tests/` 单列档。<br>**结果**:零命中分类 —— **① 真缺口 12** · ② 命名漂移 5 · ③ 零命中正确 7 · ④ 显式延后 2 · ⑤ 面外噪音余。<br>**够格成为 G 型债的 = 4 项**(须同时满足:符号零命中 ∧ 归属 epic 全 Complete ∧ **epic 卡面自己点名该符号**):`IPlayerMotor`(`player-controller` 6/6 + `camera-viewpoint` 6/6 **双向点名**)· `LogiPose` / `ITameable` / `TameState`(`enemy-ai` 5/5)· `DeferredThreatSlot`(`random-events` 6/6)⇒ **已登记 `TD-player-02` / `TD-enemy-01` / `TD-randomevents-01`**(用户裁定「能归 epic 的登记 TD,不立 story」)。<br>**⚠️ 未清项**:<br>① ~~**孤儿契约未处置**~~ ✅ **第二轮专扫已跑(同日)** —— 原件 §7。结论:**P0 系统无缺 epic**(`systems-index` 的 P0 集合与 31 个 epic 严格一一对应);无 epic 的 23 个系统优先级全为 P1a/P1b/P2/P0-前置。真正的孤儿**仅一条**:`IReplayPipe`/`ReorderBuffer` —— **义务级 P0 ≠ 归属系统级 P1b**(`systems-index.md:81` 记 45 = P1b;ADR-001 `:167` / `:448` 逐字要求「P0 预埋 / P0 写 `IReplayPipe` + `ReorderBuffer`」)⇒ **八个抽象点落了 7 个,它是唯一零落点** ⇒ 已登记 **`TD-net-01`**。`ISceneRouter`/`IWorldSpawner` 与 `IPerTargetIl2CppArgs` **均有显式跟踪面**(`BootRoot.cs:20` / ADR-023 §Validation S2 `⏸` / ADR-012 未勾项)⇒ **不同级,不另立 TD**。<br>② **§4.3 未溯源桶 10 个符号**未逐个核其声明 ADR 是否构成 P0 义务 —— **§八 #3 唯一剩余未清项**。<br>③ **本件是勘察,未改任何代码 / GDD / ADR / 卡面。** |
 | 4 | §1 计数与本文件三元组相距 > 3 轮未刷 | 计数段作废,重测后再用 |
 
 ---

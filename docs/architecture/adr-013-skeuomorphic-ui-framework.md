@@ -344,6 +344,14 @@ public static class PresentationDtoGuard
 
 ### Implementation Guidelines
 
+> **⭑ 2026-10-20(普查加注 —— 只登记实测,不改写上方 Key Interfaces 块的裁决)**
+> 该代码块内的 `interface ISkeuoElementLibrary` ⇒ 代码侧接口名为 **`ISkeuoComponentLibrary`**
+> (`Gameplay.UI/Skeuomorphic/ISkeuoComponentLibrary.cs:7`),`VisualElement Create(SkeuoElement)` 签名一致;
+> `ISkeuoElementLibrary` **全树零命中**。⇒ **仅改名,不是缺口**;**ADR 措辞回刷待裁**。
+> 同批另注:`§十` 的 `ModalOpen` 是**谓词概念**(`¬ModalOpen(42)`),代码侧的实现面是
+> `IModalState.Modal`(`IModalState.cs`,13 个生产文件引用)⇒ 概念已落,仅措辞不同。
+> 出处:`production/qa/evidence/census-adr-obligation-2026-10-20.md` §3.3 ② 类。
+
 1. **先建焦点导航原型 spike**(报告 §6.6 假设 6「半可信」):UI Toolkit + 官方桥的焦点质量,
    复用 ADR-011 的 spike;质量不达预期则回落自实现焦点算法(接口不变)。
 2. **一栈一栈落**:先 UI Toolkit 平面拟物 UI(42 / 39 / 7b)+ world-space 最小实现(敌人读数条);

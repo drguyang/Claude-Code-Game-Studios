@@ -270,6 +270,18 @@ struct InteractIntent  { /* 交互对象 / 时机 */ }
 struct EmergencyIntent { /* 急救动作类型 / 方向 */ }
 ```
 
+> **⭑ 2026-10-20(普查加注 —— 只登记实测,不改写本块的裁决)**
+> 本代码块的两个类型与**代码实际名/形态不一致**:
+> - `enum FocusDirection` ⇒ 代码为 **`enum FocusNavigationDirection`**(`Gameplay.Input/IntentTypes.cs:169`),
+>   且**成员不同**:`{ None=0, Up, Down, Left, Right, PageUp, PageDown }`
+>   (原 `Previous`/`Next` → `PageUp`/`PageDown`,并增 `None`)。
+> - `interface IEmergencyInput` ⇒ 代码中**无接口**,实现为具体类
+>   **`EmergencyDirectReadChannel`**(`Gameplay.Input/EmergencyDirectReadChannel.cs:83`)。
+>
+> ⇒ **两者均为命名/形态漂移,不是缺口**(功能面存在)。**ADR 措辞回刷待裁**;
+> 在此之前引用这两个符号的文档/卡面应以代码名为准。
+> 出处:`production/qa/evidence/census-adr-obligation-2026-10-20.md` §3.3 ② 类。
+
 > **⚠️ 2026-09-15 Amendment A:本轮明确不加宽 `IEmergencyInput`。**
 > 系统 3 GDD 评审指出 `Emergency = Button(0/1)` **表达不了** `game-concept.md:693` 点名的
 > 两个动作(心肺复苏 = **节奏** / 止血包扎 = **顺序与力道**)—— 缺模拟量通道。

@@ -155,6 +155,7 @@ G 型债的定义(**本册既有口径**)=「**ADR 已裁 · GDD 已写 · epic 
 | **`TD-player-02`** | `IPlayerMotor` | 1 玩家控制器(**+ 2 相机为下游消费者**) | epic 已 Complete · 契约零落点。⚠️ **编号非 `-01`**:`TD-player-01` 是既有另一条债(`AC-1-33` 的 `minMoveDistance`),不合并 |
 | **`TD-enemy-01`** | `LogiPose` · `ITameable` · `TameState` | 27 敌人 AI | 同上 |
 | **`TD-randomevents-01`** | `DeferredThreatSlot` | 52 随机事件导演 | 同上 |
+| **`TD-net-01`**(第二轮) | `IReplayPipe` · `ReorderBuffer` | **无 epic**(系统 45 = P1b) | **孤儿**:ADR-001 逐字要求 P0 预埋,归属系统排在 P1b ⇒ 无人跟踪。见 §7.2 ① |
 
 **不重复登记**:`SelfLimited` = 已登记 `TD-sim-01`(本件只作交叉引用)。
 
@@ -163,13 +164,92 @@ G 型债的定义(**本册既有口径**)=「**ADR 已裁 · GDD 已写 · epic 
 - **② 类 5 项命名漂移** —— 留档,ADR 措辞回刷待裁。
 - **④ 类 2 项显式延后** —— `ISceneRouter` / `IWorldSpawner`,已有出处与触发条件。
 - **§3.4 的 ❌ 行** —— epic 未全 Complete ⇒ **未开工,非债**。
-- **§5 的孤儿契约**(`IReplayPipe` / `ReorderBuffer` / `IPerTargetIl2CppArgs`)——
-  **本件未处置**;待裁「是否另立孤儿契约登记节」。
-- **§4.3 未溯源桶** —— 未核实,留白。
+- **§5 的孤儿契约** —— **已由 §7 第二轮专扫处置**:`IReplayPipe`/`ReorderBuffer` 入 `TD-net-01`;
+  `ISceneRouter`/`IWorldSpawner` 记为「显式延后 + 无主人」不登记;`IPerTargetIl2CppArgs` 由 ADR-012 自身未勾项跟踪。
+- **§4.3 未溯源桶** —— 未核实,留白(**§八 #3 唯一剩余未清项**)。
 
 ---
 
-## §7 可复算命令
+## §7 孤儿契约专扫(第二轮 —— §5 提出的待办,当日补跑)
+
+**动机**:§5 指出「G 型手法以『归属 epic 全 Complete』为前提 ⇒ 对无归属 epic 的契约结构上不可见」。
+本轮专扫**不依赖 epic 状态**,改用「**系统 ↔ epic** 映射」作枢轴。
+
+**扫描面**:`design/gdd/systems-index.md:34` 起的系统表(**54 个系统 + 1 个已并入行**);
+`production/epics/` 的 **31** 个目录;代码面 = `unity/Assets/` 全树 C#,剥注释,`Tests/` 单列。
+
+### 7.1 系统 ↔ epic 映射(可复算)
+
+| 结果 | 值 |
+|---|---|
+| 系统表行数 | **55**(54 系统 + #26 已并入 #25) |
+| epic 目录数 | **31** |
+| 已映射 | **31 / 31**(无未映射 epic) |
+| **无 epic 的系统** | **23** |
+| **其中优先级 = P0 的** | **0** |
+
+> **⇒ `systems-index` 的 P0 集合与 `production/epics/` 的 31 个目录严格一一对应,无缺项。**
+> 无 epic 的 23 个系统优先级全为:**P1a**(17 个)· **P1b**(2 个)· **P2**(2 个)·
+> **P0 前置 / 不计入 P0 的 31 项**(1 个 = #54 关卡工具,Tooling 层,ADR-022 明定不进构建)。
+
+### 7.2 由此得到的**真实**孤儿集
+
+「无 epic」不等于「有债」——**P1a/P1b/P2 系统本就尚未排期**,无 epic 是正常的。
+真正的孤儿 = **义务级别 ≥ P0,但归属系统 < P0(或其系统根本不存在)**。实测**两个**:
+
+#### ① `IReplayPipe` / `ReorderBuffer` —— **义务级 P0 ≠ 归属系统级 P1b**
+
+- `systems-index.md:81` 逐字:`| 45 | 网络层与同步 | Foundation | **P1b** | 未开始 | — | ADR-001 ✅(pipe 抽象 **P0 生效**,库 P1b 前 swap 评审) |`
+- 但 **ADR-001 把 pipe 抽象明确编入 P0**:
+  - `:10` · `:59` · `:131` —— 「系统 45 = **P0 预埋** · P1b 实现」
+  - `:167` —— 「**P0 预埋**:接口与 `ReorderBuffer` 是纯 C# 逻辑,**P0 全实现为本地占位**」
+  - `:448` Implementation Plan **第 1 条**:「**P0**:写 `IReplayPipe` + `ReorderBuffer`(纯 C# 逻辑,零依赖)」;
+    **第 2 条**:「**P0**:八个抽象点(P0 全实现为本地占位)+ 三流全序键单测」
+- **实测:八个抽象点落了 7 个,`IReplayPipe` 是唯一零落点。**
+
+  | 抽象点 | 生产侧接口声明处 | 状态 |
+  |---|---|---|
+  | `ITickProvider` | `Sim.Contracts/Abstractions.cs` | ✅ |
+  | `IEventSink` | `Sim.Contracts/Abstractions.cs` | ✅ |
+  | `IIdAuthority` | `Sim.Contracts/Abstractions.cs` | ✅ |
+  | `IVitalsQuery` | `Sim.Contracts/VitalsDto.cs` | ✅ |
+  | `IEventAuthority` | `Sim.Contracts/Abstractions.cs` | ✅ |
+  | `IPayloadEncoder` | `Sim.Contracts/IPayloadEncoder.cs` | ✅ |
+  | `IPayloadDecoder` | `Sim.Contracts/IPayloadDecoder.cs` | ✅ |
+  | **`IReplayPipe`** | **无** | ❌ **零落点(含 `Tests/`)** |
+
+  `ReorderBuffer` 同为零;`tests` 内唯一一处 `ReorderBuffer` 是**注释引用**(`Audio/net_derivation_test.cs:353`)。
+
+- **⇒ 这是「P0 义务 · P1b 归属 · 无 epic」三重错位**:义务要求在 P0 落接口占位,
+  而承它的系统被排在 P1b(因而无 epic),⇒ **没有任何 epic 的输出面会显示这个缺口**。
+- **已登记 `TD-net-01`**(见 `docs/tech-debt-register.md`)。
+
+#### ② `ISceneRouter` / `IWorldSpawner` —— **契约无系统认领**
+
+- `systems-index.md` **无「场景生命周期」系统**(全文唯一相关处是 `:852` 对 ADR-023 的叙述性引用)。
+  ⇒ ADR-023 §Key Interfaces 的两个契约**在系统表里没有主人**。
+- **但这不是隐藏缺口**:`Gameplay.Boot/BootRoot.cs:20` 逐字「⚠️ 刻意不抽 `ISceneRouter`:Phase 1 只有一个 World 场景」;
+  ADR-023 §Validation **S2** 标 `⏸ 延后(触发:首个 World/MainMenu 场景落地)`。
+- **⇒ 记为「显式延后 + 无主人」,不登记 TD**;但**触发点到了要有人接** —— 届时须补系统归属或改由 Boot 层承接。
+
+#### ③ `IPerTargetIl2CppArgs` —— **CI 横切,无系统**
+
+- ADR-012 §Key Interfaces 声明;ADR-012 §Validation「旗标登记表落地」**仍 `[ ]`**(ADR **自陈未跑**)。
+- 它属**构建/CI 横切面**,`systems-index` 无对应系统(ADR-012 本身是横切 ADR)。
+- **⇒ 不与上两条合并记账**;ADR-012 自带未勾项即为其跟踪面,**本轮不另立 TD**(避免与 ADR 自身的 Validation 列表形成双真源)。
+
+### 7.3 第二轮结论
+
+- **§5 的「孤儿契约」担忧成立,但范围比初判窄**:P0 系统无缺 epic(0 个);
+  真正的孤儿只有 **`IReplayPipe`/`ReorderBuffer` 一条**(义务 P0 vs 归属 P1b)。
+- `ISceneRouter`/`IWorldSpawner` 与 `IPerTargetIl2CppArgs` **均有显式跟踪面**(BootRoot 注释 / ADR-023 S2 / ADR-012 未勾项),
+  与 `IReplayPipe` 的「**无人跟踪的 P0 义务**」**不同级**。
+- ⇒ **§八 #3 的未清项 ① 由「未做」改为「已做,结论见本节」**;
+  门清单剩 **未清项 ②(未溯源桶 10 符号)**。
+
+---
+
+## §8 可复算命令
 
 ```bash
 # 全 story Complete 的 epic(判据:文件头 blockquote Status 行)

@@ -1098,11 +1098,27 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | **52 下一次动延迟威胁 / 主机迁移语义时**;或任何 `AC-52-*` 要勾「延迟威胁进流」之前 |
 | **归属** | **52**(随机事件导演) |
 
-> ⚠️ **本批**未**处置的两类**(如实留白,见原件 §5 / §4.3):
-> ① **孤儿契约** —— `IReplayPipe` / `ReorderBuffer`(ADR-001 系统 45,逐字要求「P0 全实现为本地占位」)·
-> `IPerTargetIl2CppArgs`(ADR-012 F3)· `ISceneRouter` / `IWorldSpawner`(ADR-023,`BootRoot.cs:20` 明写「刻意不抽」)
-> —— `production/epics/` **实测无网络 epic、无场景/Boot epic** ⇒ **无归属 epic**,
-> G 型普查手法结构上够不到。**待裁是否另立专扫或孤儿契约登记节。**
-> ② **未溯源桶 10 个符号**(`QualityCap` / `FiredSet` / `DeathAllowed` / `RegrowWindow` / `HistoryMult` /
+### TD-net-01 — `IReplayPipe` / `ReorderBuffer` 的 **P0 预埋**零落点(系统 45 · 无归属 epic)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `ADR-001` 把 pipe 抽象的**落地级别定为 P0**,三处逐字:`:10`/`:59`/`:131`「系统 45 = **P0 预埋** · P1b 实现」;`:167`「**P0 预埋**:接口与 `ReorderBuffer` 是纯 C# 逻辑,**P0 全实现为本地占位**」;`:448` Implementation Plan **第 1 条**「**P0**:写 `IReplayPipe` + `ReorderBuffer`(纯 C# 逻辑,零依赖)」、**第 2 条**「**P0**:八个抽象点(P0 全实现为本地占位)+ 三流全序键单测」。**义务级 = P0,实现零落点。** |
+| **实测(扫描面 = `unity/Assets` 全树 C#,剥注释;`Tests/` 单列)** | `IReplayPipe` ⇒ **全树零命中**;`ReorderBuffer` ⇒ **生产零**,测试树唯一一处是**注释引用**(`Tests/EditMode/Audio/net_derivation_test.cs:353`「ADR-001 ReorderBuffer 语义的静态半」)。<br>**八个抽象点落 7 个** —— 其余 7 个的生产侧接口声明全在 `Sim.Contracts/`:`ITickProvider` / `IEventSink` / `IIdAuthority` / `IEventAuthority`(`Abstractions.cs`)· `IVitalsQuery`(`VitalsDto.cs`)· `IPayloadEncoder`(`IPayloadEncoder.cs`)· `IPayloadDecoder`(`IPayloadDecoder.cs`)。**`IReplayPipe` 是唯一零落点。** |
+| **卡住的判据** | ADR-001 §Implementation Plan **P0 第 1 / 第 2 条**本身即是判据(逐字点名两个类型);「三流全序键单测」的 pipe 侧半边无从建立;P1b 的 swap 评审(`§八 验收标准`)失去可替换的接缝 —— 没有抽象可换 |
+| **为什么此前不在册(结构性,非疏漏)** | **三重错位**:① **义务级 P0**;② **归属系统 45 在 `systems-index.md:81` 被排为 P1b**(「未开始」);③ **P1b 系统无 epic**。⇒ **没有任何 epic 的输出面会显示它** —— 上一轮 G 型普查以「归属 epic 全 `Complete`」为前提,**连 epic 都没有的契约结构上不可见**(路线图 §十一 **C-7** 的实例)。上一轮扫描符号表也从未包含 `IReplayPipe`。 |
+| **解除动作** | 在 `Sim.Contracts` 落 `IReplayPipe`(`Publish` / `Subscribe`)+ 有界 `ReorderBuffer`(`TryEnqueue` / `Drain`,全序键吸收,**超界丢弃 + 告警**),**纯 C# 零依赖、P0 本地占位**(不 import NGO / Fusion);补「乱序注入 → 全序键吸收 → 无丢无重放」单测。**不改 ADR-001 的任何裁决**;不动 P1b 的库选型时点 |
+| **触发条件** | **P1b 的 swap 评审之前**(否则无抽象可换,评审对象不存在);或 **ADR-005 八个抽象点**的任何一次整批复核时;或任何消费方要经 pipe 上行/下行之前 |
+| **归属** | **系统 45**(网络层与同步)—— ⚠️ **该系统无 epic**;实际落点建议由 **`Sim.Contracts` 的持有方 + ADR-025 程序集清单轮**承接,不新开 epic(与「不加 #54」取向一致) |
+
+> **同批查过但**不登记**的两条**(见原件 §7.2):<br>
+> · `ISceneRouter` / `IWorldSpawner`(ADR-023)—— `systems-index` **无场景系统**,契约无系统认领;
+>   但 `Gameplay.Boot/BootRoot.cs:20` 逐字「刻意不抽 `ISceneRouter`:Phase 1 只有一个 World 场景」+
+>   ADR-023 §Validation **S2** `⏸ 延后(触发:首个 World/MainMenu 场景落地)` ⇒ **显式延后,有跟踪面**。
+>   ⚠️ 触发点到了须有人接,**届时须补系统归属或改由 Boot 层承接**。<br>
+> · `IPerTargetIl2CppArgs`(ADR-012 §Key Interfaces)—— CI 横切,`systems-index` 无对应系统;
+>   ADR-012 §Validation「旗标登记表落地」**仍 `[ ]`**(ADR 自陈未跑)⇒ **由 ADR 自身未勾项跟踪**,不立 TD(避免双真源)。
+
+> ⚠️ **本批仍未处置的一类**(如实留白,见原件 §4.3):
+> **未溯源桶 10 个符号**(`QualityCap` / `FiredSet` / `DeathAllowed` / `RegrowWindow` / `HistoryMult` /
 > `ReputationMult` / `WeaponMultiplier` / `OwnerId` / `ItemId` / `InventoryOf`)—— 全树零命中,
 > 但**其声明 ADR 是否构成 P0 义务未逐个核** ⇒ **不得算入本册**。
