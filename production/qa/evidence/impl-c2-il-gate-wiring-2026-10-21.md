@@ -342,7 +342,70 @@ AssemblyGates.cs:1252   ← OnPreprocessBuild(C3 轮要证的那条)
   `provenance.json`,在 `Preprocess Player` 即中止)⇒ 已被 `.gitignore:65 [Bb]uilds/` 覆盖
 - `unity/Assets/AddressableAssetsData/link.xml` + `.meta` —— **Addressables 构建期自动生成**,
   项目代码零引用,`git check-ignore` 判定**未被忽略** ⇒ 以未跟踪形态出现在工作树。
-  **未擅自删除**,处置交用户。
+  已按用户指令加进 `.gitignore`(窄 glob,不整目录忽略 `AddressableAssetsData/`)
+- `unity/Assets/Resources/PerformanceTestRun{Info,Settings}.json` + `.meta` + `Resources.meta`
+  —— `com.unity.test-framework.performance` 的 `TestRunBuilder.OnPreprocessBuild` 每次构建重写。
+  已加进 `.gitignore`(窄 glob,**刻意不整目录忽略** `Assets/Resources/` —— 那是
+  `Resources.Load` 只认的特殊目录,整目录忽略会让将来真该入库的资产被静默吞掉)
+
+### 6.5 `UniversalRenderPipelineGlobalSettings.asset` —— 🔴 首轮定性有误,已订正
+
+**我最初的说法**(2026-10-21 C3 轮当场):「该文件被 URP 构建处理器**污染**了,
+`m_RuntimeSettings` 从 16 条 rid 被清成 `[]`,已还原」。**该定性错误。**
+
+**查 Core 源码后的机制**(`com.unity.render-pipelines.core@21d6c4fca829`):
+
+`Runtime/RenderPipeline/RenderPipelineGraphicsSettingsContainer.cs` —— 该类同时持有两份列表:
+
+```csharp
+[SerializeField] private RenderPipelineGraphicsSettingsCollection m_SettingsList = new();   // 编辑器侧
+[SerializeField, HideInInspector] private ... m_RuntimeSettings = new();                    // 播放器侧
+
+public List<IRenderPipelineGraphicsSettings> settingsList
+{
+#if UNITY_EDITOR
+    get => m_SettingsList.settingsList;      // ← 编辑器读这份
+#else
+    get => m_RuntimeSettings.settingsList;   // ← 只有播放器读这份
+#endif
+}
+
+public void OnBeforeSerialize()
+{
+#if UNITY_EDITOR
+    m_RuntimeSettings.settingsList.Clear();
+    if (BuildPipeline.isBuildingPlayer)
+        RenderPipelineGraphicsSettingsStripper.PerformStripping(m_SettingsList.settingsList,
+                                                               m_RuntimeSettings.settingsList);
+#endif
+}
+```
+
+⇒ `m_RuntimeSettings` 是**构建期由 `PerformStripping` 派生的播放器侧快照**,
+被 `Clear()` 再重填是**设计内的正常输出**,**不是损坏**。三条佐证:
+
+| 佐证 | 实测 |
+|---|---|
+| 编辑器侧根本不读它 | getter `#if UNITY_EDITOR` 读的是 `m_SettingsList` |
+| 它是 `[HideInInspector]` | 序列化声明逐字如此 |
+| 文件里 34 条 `m_Settings`(编辑器侧真实设置)**一条没动** | `git diff` 只触及 `m_RuntimeSettings` 块 |
+
+**它唯一真实的影响 = 工作树噪音**:这份派生快照混在作者态资产文件里,于是**每次真构建**
+都会在 `git status` 里冒出一条假改动。**不是资产损坏。**
+
+⚠️ **我上轮还多做了一步(已记)**:我把它「还原」了(用 `git show HEAD:` 写回)。
+按现机制看,**还原是多余的** —— 下次构建会再派生一遍。已登记的处置取向见
+`docs/tech-debt-register.md` 的 `TD-build-01`(**只登记,不动** —— 是否改资产序列化策略
+是个裁定点,不在本轮自裁)。
+
+**⚠️ 为什么这条不能跟 `link.xml` / `PerformanceTestRun*` 一样整文件进 `.gitignore`**:
+后者是**纯生成物**,整个文件都派生;而 `UniversalRenderPipelineGlobalSettings.asset`
+是**同一文件里混着作者态与派生态** —— 它同时承载 34 条 `m_Settings`(编辑器侧真实设置,
+作者态、须入库)。整文件忽略会让**将来对 `m_Settings` 的正常编辑**也一起被静默吞掉。
+⇒ 这是本条与其余两条的**结构性差别**,不是尺度取舍。
+
+**教训**:「git 里出现一条我看不懂的改动」有三种可能 —— 损坏 / 正常派生 / 我的误读。
+我直接按最坏的那一种报了,且用了「污染」这个断定词。**先查机制再定词。**
 
 ---
 
