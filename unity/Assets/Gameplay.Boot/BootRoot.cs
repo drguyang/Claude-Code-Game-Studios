@@ -308,7 +308,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   正确形态 = listener 随「主相机」迁到 CameraRig 运行时相机(ADR-020 §七:
             //   单挂点就是主相机)。预摆相机上的那份**必须先摘除** —— 否则它会以 inactive
             //   形态留在挂载计数里,把「零 active」掩盖成「1 个挂载」(见 AssertSingleAudioListener)。
-            var presetCamera = GameObject.Find("Main Camera");
+            // ⚠️ **必须含 inactive 地找预摆相机**(2026-10-20 全量 PlayMode 实测):
+            //   `GameObject.Find` 只找 **active** 对象 ⇒ 若预摆相机此刻已 inactive,本节整个跳过
+            //   ⇒ 它身上的 listener **摘不掉**,以「挂载但不活动」的形态留在计数里,
+            //   与运行时 CameraRig 的那一个并成 **2 个挂载**,`AssertSingleAudioListener` 抛。
+            //   实测路径:全量 run 里 `camera_follow_wiring_test` 自建的预摆相机被启动序禁用后
+            //   再没被恢复(它的拆卸也用 `GameObject.Find` 恢复 —— 同一处死代码),
+            //   后续测试经 `FindPresetCamera`(**含 inactive**)复用它并补 listener
+            //   ⇒ 单跑绿、全量红。本件与「单件全绿 ≠ 全量全绿」同型。
+            //   语义上本节的义务是「**无论预摆相机处于什么状态**,都不许它与运行时相机并存有 listener」
+            //   —— 用 `FindObjectsByType(Camera, includeInactive)` 而非名字 Find 才对得上这句话。
+            var presetCamera = FindInactiveInclusive("Main Camera");
             if (presetCamera != null)
             {
                 var presetListener = presetCamera.GetComponent<UnityEngine.AudioListener>();
@@ -318,6 +328,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             }
 
             var cameraObj = new GameObject("CameraRig");
+            // ⚠️ **必须归 BootRoot**(2026-10-20 · 全量 PlayMode 实测出的一处真泄漏):
+            //   `new GameObject` 落**当前活动场景**,而启动序第 3 步已 additive 载入 World
+            //   ⇒ 不归 Boot 则 ① Phase 2 卸载 World 会带走相机;② **更早暴露的是测试间泄漏** ——
+            //   CameraRig 是根级对象,`BootRoot.OnDestroy` 从不销毁它(它不在 BootRoot 层级下),
+            //   每个 PlayMode 测试都留下一个。修前它无害(运行时相机**没有** listener,泄漏件不计数);
+            //   本轮把 listener 迁到它身上之后,**每个残留 CameraRig 都带一个 listener**
+            //   ⇒ `AssertSingleAudioListener` 的 active 计数逐测递增(2 → 3 → … → 7),全量 7 红。
+            //   单件跑看不见(每测试基数都是 1)—— 这是「单件全绿 ≠ 全量全绿」的一次实证。
+            //   与 `EnsureEventSystem`(:430)同一纪律,此处用 SetParent 更简
+            //   (跨场景 reparent 自动随父进 Boot 场景;相机每帧赋**世界坐标**,reparent 不影响)。
+            cameraObj.transform.SetParent(transform, worldPositionStays: false);
             _cameraRig = cameraObj.AddComponent<CameraRig>();
             cameraObj.AddComponent<UnityEngine.Camera>();
             cameraObj.AddComponent<UnityEngine.AudioListener>();   // 运行时主相机 = 唯一听音点
@@ -661,6 +682,23 @@ namespace DaYiJingCheng.Gameplay.Boot
             };
         }
 
+        /// <summary>
+        /// 按名字查相机,**含 inactive**(<see cref="GameObject.Find"/> 只找 active)。
+        /// <para>预摆 <c>Main Camera</c> 在启动序里会被 <c>SetActive(false)</c>;若某条路径
+        /// 让它带着 listener 留成 inactive 形态,再用 active-only 的 Find 去摘就会**整个跳过**。</para>
+        /// </summary>
+        private static GameObject FindInactiveInclusive(string objectName)
+        {
+            var cameras = UnityEngine.Object.FindObjectsByType<UnityEngine.Camera>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var cam in cameras)
+            {
+                if (cam != null && cam.gameObject.name == objectName)
+                    return cam.gameObject;
+            }
+            return null;
+        }
+
         private static void AssertSingleAudioListener()
         {
             // **双判据,缺一不可**(2026-10-20 修):
@@ -862,6 +900,10 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             _booted = false;
             _player = null;
+            // CameraRig 的销毁**不在这里**:它已 SetParent(transform)(启动序第 5 步),
+            // 随本对象的层级销毁一并走 —— 它身上挂着**唯一** AudioListener(AC-20-10),
+            // 显式再 Destroy 会与层级销毁重复、且若顺序在前会让本帧出现「零听音点」窗口。
+            _cameraRig = null;
             _services = null;
             _tickDriver = null;
             _uiDriver = null;
