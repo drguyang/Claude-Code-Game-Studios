@@ -1623,7 +1623,7 @@ F1 的注入不再被拦」—— 它所指的那个调用点,**恰恰是唯一�
 | # | 债 | 归属 epic | 状态 | P0 面 | 出处 | 触发条件(何时须还) |
 |---|---|---|---|---|---|---|
 | **TD-gate-01** | **`AssemblyGates.RunAll` 门链缺反向判据** —— 任何门从链上掉线,S 侧无感知。最小补法(已由 qa-lead 给出,含防自守要求):在 `assembly_gate_runall_test.cs` 加**门链清单封闭性**两条断言 —— ① 读 `AssemblyGates.cs` 源文本,抽出 `errs.AddRange(<X>Gate.RunAll(` 的**门名集合**;② 与该文件内**手写常量** `GateWiringManifest` 做**双向差集**,任一方向非空即红。⚠️ **清单须手写,禁从 RunAll 体反射生成**(否则恒等 ⇒ 零判别力);且须配一条变异「删 RunAll 里一行 ⇒ 红」进证伪轮,否则只是把假绿换个位置。形态先例:ADR-025 §④「清单封闭性 = 本法」· 既有 `CheckManifestClosure` 双向差 · 读 `.cs` 源文本先例 = `FsWriteBoundaryGate` 本身 | `(跨 epic · 治理／Editor.Tools.Gates)` | **closed**(2026-10-21 · C-1) | **N** | QA 签核轮实测 · `assembly_gate_runall_test.cs:31` · `AssemblyGates.cs:130` | ~~**下一个触碰 `AssemblyGates.RunAll` 的 sprint**~~ ✅ **已还**(C-1)—— 判据 = `gate_wiring_manifest_test.cs`;原限定语解除,见文末 §TD-gate 结案 |
-| **TD-gate-02** | **同类缺口大概率是全门链共性,非 S16-4 独有** —— `MedConsFloatGate` / `WriterExistenceGate` / `EcozoneIntegerGates` 等**未逐门核**(qa-lead 明标「未核,不作全域断言」)。已知形态相同:都只有「本体直调 + 一条零红端到端」 | `(跨 epic · 治理／Editor.Tools.Gates)` | **closed**(2026-10-21 · C-1 逐门核) | **N** | 同上 | ~~与 `TD-gate-01` **同批**~~ ✅ **已还** —— 23 类逐门判决**已完成**;结论与原猜**不同**(详见文末 §TD-gate 结案) |
+| **TD-gate-02** | **同类缺口大概率是全门链共性,非 S16-4 独有** —— `MedConsFloatGate` / `WriterExistenceGate` / `EcozoneIntegerGates` 等**未逐门核**(qa-lead 明标「未核,不作全域断言」)。已知形态相同:都只有「本体直调 + 一条零红端到端」 | `(跨 epic · 治理／Editor.Tools.Gates)` | **closed**(2026-10-21 · C-1 逐门核) | **N** | 同上 | ~~与 `TD-gate-01` **同批**~~ ✅ **已还** —— 23 类逐门判决**已完成**;结论与原猜**不同**(详见文末 §TD-gate 结案)<br>🔁 **2026-10-21 追加**:逐门核出的**两个真缺口**(`EcozoneIntegerGates` / `EmergencyIntegerGates`)**已接进 BuildGate**(用户裁定「接 —— 复刻 b5 先例」)⇒ `Kind` `TestDriven`→`Chain`,缺口表清空。**本条自此完全结清。** |
 | **TD-gate-03** | ~~**falsify 残留判据词表有盲区** —— `impl-s16-4` §四/§七 的残留检查是 `grep -c "FALSIFY-F"`,而人工变异可用任意标记(`FALSIFY-QA` 等)⇒ **该 grep 抓不到**。「还原校验通过」因此存在漏网形态。~~ <br>🔁 **2026-10-21 实测订正:① 不成立,登记描述本身有错。** 驱动**没有**残留词表 —— 还原判据 = `restore_all()` 的**逐文件 SHA-256 比对**(`tools/falsify/unity_falsify.py:152-176`,跑在 `finally` 里),**任何标记名都不影响它**。那句 `grep -c "FALSIFY-F"` 是**证据件里的手工补充复核**(`impl-s16-4` §四 / `impl-c1` §4.4),被人(我)误登记成「驱动词表」⇒ **① 词表盲区不是债,真判据是哈希,比词表强**。<br>**仍成立的只剩 ②**:并发变异会污染旁路读取(qa-lead 读 `AssemblyGates.cs` 时落在编排方变异窗口内 · C-1 轮**再次命中**)—— 那是**流程纪律**缺口,**不是驱动代码缺陷**(驱动只保证自己不并发,`README:53-54` 已自陈) | `(跨 epic · 治理／tools/falsify)` | **closed**(2026-10-21 · 口径订正) | **N** | **实测复核** `unity_falsify.py:152-176` 的 `restore_all()`(SHA-256)+ `:240-247` 的 `finally` 还原;两份证据件的 grep 行为手工复核 · QA 签核轮原登记 | ✅ **已还**(2026-10-21)—— ② 的纪律已写入 `tools/falsify/README.md`「并发读取禁令」节;① 经实测证伪,不成立 |
 
 > **三条均判 `P0 面 = N`** —— 归属是 `Editor.Tools.Gates` / `tools/falsify` 的**治理面**,
@@ -1697,6 +1697,47 @@ F1 的注入不再被拦」—— 它所指的那个调用点,**恰恰是唯一�
 
 > ⚠️ **本结案不含「这两条该不该接进 BuildGate」的裁定。** 接 = 改构建前门语义 + 须确认
 > Cecil 在 batch 下的 DLL 新鲜度 ⇒ **另裁**(证据件 §九 #1)。此处只做**具名登记**,不擅自接。
+
+##### ✅ 2026-10-21 已裁并已接线 —— **接,复刻 b5 先例**
+
+**用户裁定**:`接 —— 复刻 b5 先例`。两门**已进 `RunMenu` + `OnPreprocessBuild`**,
+`Kind` 由 `TestDriven` 改判 `Chain`,`KnownTestDrivenBlockingGaps` 两行按协议删除。
+
+> 🔴 **本节的立案理由曾被我自己写错一次,必须留痕。**
+> 我在 2026-10-21 向用户提的「不接」理由是:**「IL 级门不能进 BuildGate,BuildGate 无等价守卫
+> ⇒ 接 = 开假绿面」**。**该理由的前两半都是错的**,实测:
+>
+> | 我说的 | 实测 |
+> |---|---|
+> | 「BuildGate 无等价守卫」 | `AssemblyGates.cs:1230` 的 `OnPreprocessBuild` **本来就在调 IL 门** `RunAudioBoundary` |
+> | 「IL 级门不能进 BuildGate」 | `RunAudioBoundary`(`:1151`)就是 Cecil + `dllPath` 的 IL 门,**且** `scriptCompilationFailed` 守卫就住在它内部(`:1155`) |
+> | 「接 = 开假绿面」 | 不成立 —— **守卫不是没有,是这两个门没写在自己身上**(它们把守卫留给了测试) |
+>
+> **错误链**:上段原文写的是「IL 级门放不进 **reload 路径**」—— **那是对的**
+> (`RunAll` 随脚本重载跑,那时 DLL 必然陈旧)。我把它读成了「放不进 **BuildGate**」,
+> 而 `OnPreprocessBuild` 恰恰是**编译完成后**才跑,是全案**最适合**放 IL 门的位置。
+> **同一份文档里 `Kind` 那一栏的 Note 甚至已经写着「但**可**进 BuildGate —— 现未接」** —— 我连它也没读。
+> ⇒ **教训与 `TD-gate-03` 同型**:登记的措辞不等于事实,但**更常见的是把措辞读错**。
+> 这次是**读漏**,不是登记错。
+
+**接线形态(逐字复刻 b5,不新造机制)**:守卫住在门自己的 `RunAll()` 内,不指望每个调用方各写一遍。
+
+```csharp
+// EcozoneIntegerGates.RunAll() / EmergencyIntegerGates.RunAll() 内:
+if (EditorUtility.scriptCompilationFailed)
+{
+    errs.Add("[AC-xx] EditorUtility.scriptCompilationFailed = true ⇒ 拒扫陈旧产物" +
+             "(假绿防护:读上一版 DLL = 假绿;红在编译器,本门只声明不可判)。");
+    return errs;   // 记红,不静默跳过 —— 静默跳过 = 该次构建里本门不存在
+}
+```
+
+**接线时挖出的一个新假绿面(同批补掉)**:缺口表清空后,守它的
+`test_knownTestDrivenBlockingGaps_areStillAccuratelyRecorded` **遍历零条恒绿** —— 此时若有人把
+某个已上线的门悄悄改回 `TestDriven`,缺口表还是空的,**全绿无人报警**。
+⇒ 新增 `ExpectedTestDrivenClasses`(封闭清单:`PodTypeScanner` / `PresentationDtoGuard`)
++ 断言 `test_testDrivenKind_isClosedSet_notDefault`(正反向都判)。
+**这不是顺手加戏** —— 不清空缺口表就不需要它;是清空动作本身带来的新义务。
 
 #### TD-gate-03 → **closed(2026-10-21 · 口径订正)** —— 原登记的一半不成立
 

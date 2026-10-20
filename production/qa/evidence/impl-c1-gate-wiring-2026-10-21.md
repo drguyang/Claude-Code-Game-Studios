@@ -102,6 +102,13 @@ EXIT=0
 断言的正是「它们**仍然**是缺口」—— 一旦有人把其中一条接进 BuildGate,该断言转红并要求同步删行。
 ⇒ 缺口不会被静默补齐,也不会被静默遗忘。
 
+> ✅ **2026-10-21 更新(本件写完之后):两门已接进 BuildGate,本节的状态列已过时。**
+> 用户裁定「接 —— 复刻 b5 先例」,两门现同时在 `RunMenu` 与 `OnPreprocessBuild` 上,
+> `Kind` 由 `TestDriven` 改判 `Chain`,本表所记的上方两条「现状」不再成立。
+> 详见 `docs/tech-debt-register.md` §TD-gate 结案记录的「2026-10-21 已裁并已接线」小节
+> (含**我自己把不接理由写错一次的完整留痕**)。
+> ⚠️ **原文不删** —— 它记录的是 C-1 当时的事实判断,当时确实成立。
+
 ⚠️ **签核件的措辞已由此订正**:`TD-gate-02` 原文记「`EcozoneIntegerGates` 等**未逐门核**」。
 现实测:它**确实不在链上**,且**不可能是**「掉线」—— 它**从未上线**。两者处置不同
 (掉线 = 恢复调用;从未上线 = 决定是否要接),故 `Kind` 单列 `TestDriven` 而非 `Chain`。
@@ -376,7 +383,7 @@ $ grep -h 'public static class' unity/Assets/Editor.Tools.Gates/*.cs | wc -l
 
 | # | 项 | 归属 |
 |---|---|---|
-| 1 | `EcozoneIntegerGates` / `EmergencyIntegerGates` **接不接进 BuildGate** | 须另裁(接 = 改构建前门语义 + 需确认 Cecil 在 batch 下的 DLL 新鲜度)。本件只做**具名登记**,不擅自接 |
+| 1 | `EcozoneIntegerGates` / `EmergencyIntegerGates` **接不接进 BuildGate** | ✅ **2026-10-21 已裁「接 —— 复刻 b5 先例」并已接线**(本件写完之后的事)。~~须另裁~~ ⇒ 见债册 §TD-gate 结案记录的「已裁并已接线」小节。⚠️ 我在该轮**把不接的理由写错了一次**(说「BuildGate 无等价守卫」,实测 `RunAudioBoundary` 早在里面且守卫就在其内部)—— 完整留痕见该节 |
 | 2 | `RunMenu` 重复调用 `CheckPayloadRefCallsites`(RunAll 内已调)⇒ 同一批红行打印两次 | 无害冗余;已在 manifest 注释里点名,修复归 Editor.Tools.Gates 维护轮 |
 | 3 | IL2CPP 三格(ADR-012 矩阵) | **NOT RUN**(本机仅 Mono) |
 

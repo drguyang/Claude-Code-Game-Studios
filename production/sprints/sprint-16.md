@@ -397,10 +397,19 @@ EOF
 
 **未结(不在本 sprint 面内)**:
 
-- `EcozoneIntegerGates`(**AC-6-22 BLOCKING**)/ `EmergencyIntegerGates`(**AC-10-02/03 BLOCKING**)
-  是 BLOCKING 级 AC 却**零构建期强制点** —— **该不该接 BuildGate 须另裁**(已具名登记,不擅自接)
-- `TD-gate-03`(falsify 残留词表盲区 + 并发读取)**仍 open**,且本轮两个盲区**双双再中** ⇒ 另开批次
-- `docs/tech-debt-register.md` §四 总索引未回填这三条 `TD-gate`;求值命令实测仍 `91 / 72`(未污染)
+- ~~`EcozoneIntegerGates`(**AC-6-22 BLOCKING**)/ `EmergencyIntegerGates`(**AC-10-02/03 BLOCKING**)
+  是 BLOCKING 级 AC 却**零构建期强制点** —— **该不该接 BuildGate 须另裁**(已具名登记,不擅自接)~~
+  → ✅ **2026-10-21 已裁并已接线**(用户裁定「接 —— 复刻 b5 先例」)。两门现同时在
+  `RunMenu` 与 `OnPreprocessBuild` 上,守卫 (`scriptCompilationFailed`) 住在门自己的 `RunAll()` 内。
+  🔴 **注意:我最初给用户的「不接」理由是错的** —— 说「BuildGate 无等价守卫」,实测
+  `RunAudioBoundary` 早在里面且守卫就在其内部;原文写的是「放不进 **reload 路径**」(对的),
+  我读成了「放不进 **BuildGate**」。完整留痕见债册 §TD-gate 结案记录。
+- ~~`TD-gate-03`(falsify 残留词表盲区 + 并发读取)**仍 open**,且本轮两个盲区**双双再中** ⇒ 另开批次~~
+  → ✅ **2026-10-21 已结**:① 经读代码证伪(驱动无词表,判据是 SHA-256);② 纪律已写入 `tools/falsify/README.md`
+- ~~`docs/tech-debt-register.md` §四 总索引未回填这三条 `TD-gate`;求值命令实测仍 `91 / 72`(未污染)~~
+  → ✅ **2026-10-21 已回填并升版 `94`**(`未闭 P0 面 = 72` 一位不动)
+
+⇒ **本 sprint 的 5 条签核条件至此全部结清**(`conditions_open: []`)。
 
 ---
 

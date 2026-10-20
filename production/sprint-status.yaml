@@ -138,6 +138,13 @@ conditions_closed:
     evidence: "docs/tech-debt-register.md §★ 总索引 TD-INDEX 区间加入 `TD-gate-01/02/03` 三行(`判据` 列 = `R3-裁`);重新求值 = `条目 94 | 状态 {open:70, partial:5, closed:19} | P0 面 {Y:87, N:7}` / `未闭 P0 面 = 72`(§五 已并列新输出,旧 91 版原文保留)"
     note: "① 用户 2026-10-21 裁定「回填,升级为 94」⇒ **口径升版**:`94` = 现役单一真值,`91` 自此只作历史数出现在 S16-3 收口注。② **`未闭 P0 面 = 72` 一位不动** —— 三条为治理债(`P0 面 = N`),不进 M3 出口 ⇒ 回填只让分母变全,**不改变 M3 判定**。③ 原登记预估的输出 `条目 94 | P0 面 {Y:87, N:7}` 与实测**逐字一致**。④ ⚠️ 本文件 `baseline.tech_debt_ids: 92` **未重算其应然值** —— 该字段的出处口径(全文串扫)本身待废,现役真源只看债册 `94`(本条不写推测数)。"
 
-conditions_open:
-  - id: "Ecozone/EmergencyIntegerGates 是否接 BuildGate"
-    note: "两条 BLOCKING 级 AC(AC-6-22 / AC-10-02·03)零构建期强制点。须另裁(接 = 改构建前门语义 + 须确认 Cecil 在 batch 下的 DLL 新鲜度 —— `OnPreprocessBuild` 跑时 `Library/ScriptAssemblies/*.dll` 是**上一版编译产物**,而测试侧已有 `EditorUtility.scriptCompilationFailed` 守卫、BuildGate 无等价守卫)。C-1 只做具名登记(`KnownTestDrivenBlockingGaps`),未擅自接。"
+  - id: "Ecozone/EmergencyIntegerGates 接 BuildGate"
+    requirement: "两条 BLOCKING 级 AC(AC-6-22 / AC-10-02·03)的构建期强制点"
+    status: "closed"
+    closed_on: "2026-10-21"
+    evidence: "两门各新增 `RunAll()` 强制入口(含 scriptCompilationFailed 守卫,复刻 RunAudioBoundary 形态);AssemblyGates.cs `RunMenu`+`OnPreprocessBuild` 各接两行;manifest BuildGate/RunMenu 清单各 +2 行、两门 Kind TestDriven→Chain、KnownTestDrivenBlockingGaps 清空 + 新增 ExpectedTestDrivenClasses 封闭性断言;GateWiringManifestTest 15/15 通过;证伪轮 tools/falsify/specs/c2-il-gate-wiring.json"
+    note: "① 用户 2026-10-21 裁定「接 —— 复刻 b5 先例」。② 🔴 **我提交该裁定前给的不接理由是错的**:说「IL 级门不能进 BuildGate、BuildGate 无等价守卫」—— 实测 `AssemblyGates.cs:1230` 的 OnPreprocessBuild 本就在调 IL 门 `RunAudioBoundary`,而 `scriptCompilationFailed` 守卫就住在它内部(`:1155`)。真因是**这两个门没把守卫写在自己身上**(留给了测试)。错误链:原文写「IL 门放不进 **reload 路径**」(对的),我读成了「放不进 **BuildGate**」;而 manifest Note 里**已经写着**「但**可**进 BuildGate —— 现未接」,我也没读。③ 接线挖出新假绿面并同批补掉:缺口表清空后守它的断言遍历零条恒绿 ⇒ 新增 `ExpectedTestDrivenClasses` + `test_testDrivenKind_isClosedSet_notDefault`。"
+
+conditions_open: []
+  # ✅ 2026-10-21:原「Ecozone/EmergencyIntegerGates 接 BuildGate」已结清并移入上方 conditions_closed。
+  #    本清单**当前为空** —— 不是遗漏。sprint-16 的 5 条签核条件全部结清。

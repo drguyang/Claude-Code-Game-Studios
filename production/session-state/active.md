@@ -7494,3 +7494,107 @@ sprint-16 收口轮 · `f6cdaaf`);`Δtotal = Δpassed = +14`;差集实测**新�
 - **Blockers**:无
 - **Next**:① `Ecozone/Emergency` 接 BuildGate —— **待裁**;② 本节四项改动(债册 · 两证据件 ·
   falsify README · sprint-16 · roadmap · sprint-status.yaml)**均未 commit**,待用户指令。
+
+---
+
+## Session Extract — C-2:6/10 两个 IL 门接进 BuildGate(2026-10-21)
+
+### 一、用户裁定
+
+问:`EcozoneIntegerGates` / `EmergencyIntegerGates` 接不接 BuildGate?
+答:**「接 —— 复刻 b5 先例」**。
+
+### 二、🔴 我必须先记下:提交裁定前我给的不接理由是**错的**
+
+我写的是:「IL 级门不能进 BuildGate;BuildGate 无等价守卫 ⇒ 接 = 开假绿面」。实测推翻:
+
+| 我说的 | 实测 |
+|---|---|
+| 「BuildGate 无等价守卫」 | `AssemblyGates.cs:1230` 的 `OnPreprocessBuild` **本就在调 IL 门** `RunAudioBoundary` |
+| 「IL 级门不能进 BuildGate」 | `RunAudioBoundary`(`:1151`)就是 Cecil + `dllPath`,**且** `scriptCompilationFailed` 守卫住在它内部(`:1155`) |
+| 「接 = 开假绿面」 | 不成立 —— 守卫不是没有,是**这两个门没写在自己身上**(留给了测试) |
+
+**错误链**:债册原文写「IL 级门放不进 **reload 路径**」(这句**对的** —— `RunAll` 随脚本重载跑,
+那时 DLL 必然陈旧)。我把它读成了「放不进 **BuildGate**」。而 `OnPreprocessBuild` 恰恰是
+**编译完成后**才跑,是全案**最适合**放 IL 门的位置。
+更糟:`gate_wiring_manifest_test.cs` 的 `ClassVerdict` Note 里**本来就写着**
+「但**可**进 BuildGate —— 现未接」,我也没读到。
+
+⇒ **与 `TD-gate-03` 同族教训,但方向相反**:那一次是**登记写错**(驱动根本没有词表);
+这一次是**我把登记读错**。两次都靠「打开代码看」才纠正。
+**登记的措辞要验证,而我读登记的方式同样要验证。**
+
+### 三、接线形态(逐字复刻 b5,不新造机制)
+
+守卫住在门自己的 `RunAll()` 内,不指望每个调用方各写一遍:
+
+```csharp
+if (EditorUtility.scriptCompilationFailed)
+{
+    errs.Add("[AC-xx] scriptCompilationFailed = true ⇒ 拒扫陈旧产物...");
+    return errs;   // 记红,不静默跳过 —— 静默跳过 = 该次构建里本门不存在
+}
+```
+
+落点 3 个生产文件 + 1 个测试文件(见下「改动面」)。
+
+### 四、接线挖出的**新假绿面**,同批补掉(这是接线的代价,不是顺手加戏)
+
+缺口表 `KnownTestDrivenBlockingGaps` 两行按协议删除后,**守它的断言遍历零条 = 恒绿**。
+此时若有人把某个已上线的门悄悄改回 `TestDriven`,缺口表还是空的,**全绿、无人报警**。
+
+⇒ 新增 `ExpectedTestDrivenClasses = { PodTypeScanner, PresentationDtoGuard }`(封闭清单)
++ 断言 `test_testDrivenKind_isClosedSet_notDefault`(正向:清单里的须真判 TestDriven;
+反向:判 TestDriven 的须在清单内)。**不清空缺口表就不需要这条。**
+
+### 五、改动面
+
+| 文件 | 改动 |
+|---|---|
+| `unity/Assets/Editor.Tools.Gates/EcozoneIntegerGates.cs` | `+using UnityEditor`;`RunAll(out List<string>)` + 便捷重载 |
+| `unity/Assets/Editor.Tools.Gates/EmergencyIntegerGates.cs` | 同上;扫两装配(AC-10-02→`Gameplay.Input` / AC-10-03→`Sim`) |
+| `unity/Assets/Editor.Tools.Gates/AssemblyGates.cs` | `RunMenu` + `OnPreprocessBuild` 各 +2 行;`BuildFailedException` 报文补两项 |
+| `unity/Assets/Tests/EditMode/Sim/gate_wiring_manifest_test.cs` | 两入口清单各 +2;两门 Kind→`Chain`;缺口表清空;新增封闭性表 + 1 条断言 |
+| `tools/falsify/specs/c2-il-gate-wiring.json` | **新件** —— F1/F2/F3/F4 四变异 |
+| `docs/tech-debt-register.md` | `TD-gate-02` 行加注 + §TD-gate 结案记录新增「已裁并已接线」节 |
+| `production/qa/evidence/impl-c1-gate-wiring-2026-10-21.md` | §3.2 状态列 + §九 #1 加注过时 |
+| `production/sprint-status.yaml` | 第 5 条条件结清 ⇒ `conditions_open: []` |
+| `production/sprints/sprint-16.md` | 「未结」三条全部转为已结 |
+
+### 六、验证(**全部实测,带三元组**)
+
+| 项 | 结果 |
+|---|---|
+| `--filter GateWiringManifestTest` | **15 / 15 / 0**(原 14 + 新增 1)· `unity/Logs/c2-gatewiring.xml` |
+| **证伪轮**(两轮,首轮不过) | 第二轮 **4/4 全 `exactRed`,退出码 0** · `falsify-F{1..4}-*.xml` |
+| **全量 EditMode** | **`4086 / 4050 / 0 / 36`** @ `2026-10-21 01:50 CST` · C-2 接线轮 · `33188fd` |
+| 对照基线 | `4085 / 4049 / 0 / 36` @ `01:03 CST` · C-1 轮 · `f6cdaaf` ⇒ **Δ = +1/+1/0/0** |
+| 差集 | 新增 **1**(`test_testDrivenKind_isClosedSet_notDefault`)· 消失 **0** |
+
+**等式 `Δtotal = Δpassed = 新增条数 = 1` 成立。**
+
+### 六之二、明确 NOT-RUN 四项(禁借绿)
+
+① **守卫本身的反证**(把 `scriptCompilationFailed` 分支改恒 false ⇒ 须红)—— 依赖「编译失败」
+环境态,batch 无法稳定构造。**不用「15/15 全绿」冒充「守卫已验证」。**
+② **PlayMode** —— 零运行时改动是**判断不是实测**。
+③ **IL2CPP 三格** —— 本机仅 Mono。
+④ **真实构建端到端** —— 本批判据是**源文本级**(`GateChainSource` 解析 `AssemblyGates.cs`),
+证明的是「这两行在源码里且删掉会红」,**不证明 `OnPreprocessBuild` 真的执行成功**。
+
+### 七、本轮又自己抓到三个错(如实记)
+
+1. **F4 行号写成 231,实际 236** —— `--dry-run` 当场抓到(`原文对不上`)。
+   这正是 dry-run 存在的意义:**夹具过期信号 ≠ 判别力缺口**,premise 校验必须先过。
+2. **F1 的 `expectRed` 与自己的论证矛盾**:论证段写「`chainKindEntriesAreActuallyWired` 因
+   三入口并集不变而**保持绿**」,却在 `expectRed` 里列了它。已按论证改正,并**另加 F4**
+   (PodTypeScanner 谎报 Chain)去真正证明那条断言承重 —— **不让「并集恰好没变」冒充「判据有效」**。
+3. **F3 首跑红 2 条而我预期 1 条**(驱动判 exit 1)。按 C-1 轮纪律,先论证「它为什么**应该**红」
+   (`TestDriven` 档要求 `Consumer` 是文件路径,而 Ecozone 填的是 `"RunMenu+BuildGate"`),
+   论证成立后才改预期 —— **没把实得抄进 `expectRed`**。
+   ⚠️ 这是同一个坑**第二次**(C-1 §6.0 是第一次):**写 `expectRed` 时容易只想到「新加的那条断言」,
+   漏掉既有的自洽检查也会一起红。**
+
+- **Blockers**:无
+- **Next**:commit 待用户指令(12 个文件:10 改 + 2 新)。
+
