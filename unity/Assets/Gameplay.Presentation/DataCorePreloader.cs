@@ -43,12 +43,16 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 句柄随 Play 退出失效。两者叠加的结果是 <c>BootRoot</c> 第 2 步走「预载成功」分支、再取
         /// <see cref="Provider"/> ⇒ <c>InvalidOperationException</c>(PlayMode 9 红之一,2026-10-17 实测)。
         /// 连同 <see cref="AudioSettingsRegistry.Provider"/> 一并清空 —— 它同样跨轮残留。
+        /// <para>⚠️ <b>2026-10-20 增列</b> <see cref="Interaction.KindPriorityTable"/>:读方接线后它同样
+        /// 持有静态 <c>Provider</c> ⇒ 跨轮残留形态与前两者一致。置 <c>null</c> 即让已建表失效
+        /// (该表的缓存按 Provider 委托身份判定,**无需**额外的复位 API)。</para>
         /// <para>production 路径永远不调本方法 ⇒ 判据不弱化(失败仍是 E-13 硬失败)。</para></summary>
         internal static void ResetForPlayModeTests()
         {
             _provider = null;
             IsPreloaded = false;
             Settings.AudioSettingsRegistry.Provider = null;
+            Interaction.KindPriorityTable.Provider = null;
         }
 
         /// <summary>预载 data-core 全部产物(物品表 + 配方/常量表;幂等)。

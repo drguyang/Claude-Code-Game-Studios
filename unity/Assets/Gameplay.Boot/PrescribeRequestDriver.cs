@@ -20,6 +20,7 @@
 
 using System;
 using System.Collections.Generic;
+using DaYiJingCheng.Gameplay.Presentation;
 using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
@@ -77,7 +78,9 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly IPayloadEncoder _encoder;
         private readonly PrescribePorts _ports;
 
-        /// <summary>处方表最小映射:item_key → 11 处方表条目(action_id / polarity / unlock)。</summary>
+        /// <summary>处方表映射:item_key → 11 处方表条目(action_id / polarity / unlock)。
+        /// <para><b>2026-10-20 读方接线</b>:源 = 烘焙产物行(构造参 <c>prescriptionRows</c>,
+        /// 由装配层经 <c>IDataProvider</c> 装载);缺省 = <see cref="FallbackEntries"/>。</para></summary>
         private readonly IReadOnlyDictionary<ItemKey, PrescriptionEntry> _entries;
 
         /// <summary>戥子档位源(装配层最小:单一药物档案,档位 = DoseRange(1..5))。
@@ -102,25 +105,84 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="encoder">载荷编码器(ADR-029 唯一路径)。</param>
         /// <param name="ports">11 兄弟 epic 接缝(21a/20/30 最小端口实装)。</param>
         /// <param name="isHost">是否主机上下文。</param>
+        /// <param name="prescriptionRows">处方表烘焙产物行(<c>prescription_actions.cooked.bytes</c>
+        /// 解码所得);<c>null</c> / 空 ⇒ 回退 <see cref="FallbackEntries"/>(零行为变化 ——
+        /// 15+ 个既有装配调用方全部不传本参)。</param>
+        /// <exception cref="ArgumentException">产物行内 item_key 重复 / 极性串无法解析。</exception>
         public PrescribeRequestDriver(IEventSink eventSink, IPayloadEncoder encoder,
-                                      PrescribePorts ports, bool isHost)
+                                      PrescribePorts ports, bool isHost,
+                                      IReadOnlyList<PrescriptionActionCookedRow> prescriptionRows = null)
         {
             _eventSink = eventSink ?? throw new ArgumentNullException(nameof(eventSink));
             _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
             _ports = ports ?? throw new ArgumentNullException(nameof(ports));
             _isHost = isHost;
 
-            // 最小处方表(21a 作者态已登记 salicylic_acid;数值轮未开的接线载体)
-            _entries = new Dictionary<ItemKey, PrescriptionEntry>
-            {
-                [MinimalDrugCatalog.DrugKey] = new PrescriptionEntry(
-                    actionId: 10, polarity: PrescriptionPolarity.Symptomatic, unlockLevel: 0),
-            };
+            // 处方表源(2026-10-20 读方接线):产物行优先;缺省 = 最小硬编码单条。
+            // ⚠️ 本轮**行为逐值不变** —— 产物的唯一条目 (salicylic_acid, 10, symptomatic)
+            //    与回退条目同形(实测;见实现轮原件 §诚实边界)。
+            _entries = prescriptionRows != null && prescriptionRows.Count > 0
+                ? BuildFromRows(prescriptionRows)
+                : FallbackEntries;
 
             _selector = new DentchDoseSelector(
                 MinimalDrugCatalog.DrugProfileFor(MinimalDrugCatalog.DrugKey),
                 MaxDoseDetents,
                 isFocusEnabled: true);
+        }
+
+        /// <summary>回退处方表(最小硬编码单条)—— 21a 作者态已登记 salicylic_acid。
+        /// <para>读方接线后双重身份:① 产物行缺省时的生产表;② 产物行的**独立对照 oracle**
+        /// (<c>ReaderWiringGateTest.test_readers_prescriptionActions_artifactRows_matchFallbackLiteral</c>
+        /// 用它逐项对拍产物行 —— 产物被烘成另一套即转红)。</para>
+        /// <para>⚠️ <b>public 的理由 = 它是判据的宾语</b>:若只留 <c>internal</c> 而测试够不着,
+        /// 「独立 oracle」就只是注释里的一句话(散文),不是可红的机器。</para>
+        /// <para>⚠️ 值归**数值轮**(此处仅为接线可测)。</para></summary>
+        public static IReadOnlyDictionary<ItemKey, PrescriptionEntry> FallbackEntries { get; } =
+            new Dictionary<ItemKey, PrescriptionEntry>
+            {
+                [MinimalDrugCatalog.DrugKey] = new PrescriptionEntry(
+                    actionId: 10, polarity: PrescriptionPolarity.Symptomatic, unlockLevel: 0),
+            };
+
+        /// <summary>产物行集 → 处方表。
+        /// <para>⚠️ 两处**派生映射**(产物不携带,已登记为实现轮 §诚实边界):
+        /// ① <c>ProcessingState</c> 取 <see cref="ProcessingState.Extracted"/> —— 产物只带
+        ///    <c>base_id</c>,与 21a <c>MinimalDrugCatalog.DrugKey</c> 同口径;
+        /// ② <c>unlockLevel</c> 恒 <c>0</c> —— 产物无该字段(F-11.5 的门槛值仍归数值轮)。
+        /// 产物一旦带上这两者,本节即成**第二真源**,须同批删。</para></summary>
+        /// <exception cref="ArgumentException">item_key 重复 / 极性串未知。</exception>
+        private static Dictionary<ItemKey, PrescriptionEntry> BuildFromRows(
+            IReadOnlyList<PrescriptionActionCookedRow> rows)
+        {
+            var built = new Dictionary<ItemKey, PrescriptionEntry>(rows.Count);
+            for (int i = 0; i < rows.Count; i++)
+            {
+                PrescriptionActionCookedRow row = rows[i];
+                ItemKey key = new ItemKey(row.ItemKey, ProcessingState.Extracted);
+                if (built.ContainsKey(key))
+                    throw new ArgumentException(
+                        $"处方表建表失败:item_key \"{row.ItemKey}\" 在产物行集中出现两次(行序 #{i})" +
+                        " ⇒ 静默后者胜出会让生效条目取决于行序(不可见;产物损坏)");
+                built.Add(key, new PrescriptionEntry(
+                    actionId: row.ActionId,
+                    polarity: ParsePolarity(row.Polarity, row.ItemKey),
+                    unlockLevel: 0));
+            }
+            return built;
+        }
+
+        /// <summary>极性串 → 枚举。<b>未知串即抛</b>(不静默默认)。
+        /// <para>烘焙期已由 DC-3 白名单(∈ {causal, symptomatic})拦过 ⇒ 运行期再遇未知 = 产物被
+        /// 换过 / schema_version 不匹配,属启动期硬失败面(E-13 同口径)。</para></summary>
+        /// <exception cref="ArgumentException">极性串 ∉ {causal, symptomatic}。</exception>
+        private static PrescriptionPolarity ParsePolarity(string polarity, string itemKey)
+        {
+            if (polarity == "symptomatic") return PrescriptionPolarity.Symptomatic;
+            if (polarity == "causal") return PrescriptionPolarity.Causal;
+            throw new ArgumentException(
+                $"处方表极性无法解析:item_key \"{itemKey}\" 的 polarity=\"{polarity}\" " +
+                "∉ {causal, symptomatic}(烘焙期 DC-3 已拦;运行期遇未知 ⇒ 产物被换过 / schema_version 不匹配)");
         }
 
         /// <summary>

@@ -351,21 +351,60 @@ namespace DaYiJingCheng.Gameplay.Interaction
     /// <para>现收敛:本类型是<b>唯一</b>的表真源,<see cref="InteractionSelector"/> 与
     /// <see cref="InteractionKindTableValidator"/> 皆引用它 ⇒ 「校验的表」与「选择器读的表」
     /// 物理上不可能是两张。</para>
-    /// <para>⚠️ <b>数值归数值轮</b> —— 下列取值是 <b>GDD §F-4.1b 演示序</b>(Patient:0…Drop:9,
-    /// 逐字照录),仅用来让「校验的表 = 选择的表」这条接线可跑可测;<b>真表待数值轮落
-    /// <c>assets/data/interaction_kinds.json</c></b>(ADR-014 烘焙,装载本体归 story 007)。
-    /// 换真表时只改本类型一处,选择器与校验器自动同源。</para>
+    /// <para>⚠️ <b>2026-10-20 读方接线后</b>:表源由硬编码字面量扩为
+    /// <b>烘焙产物优先 · 字面量回退</b>(见 <see cref="Provider"/>)。字面量本身**保留**作
+    /// 产物行的独立对照 oracle(为什么保留,见类内接线段)。</para>
     /// <para>⚠️ 破 `Gameplay.Presentation` 的程序集纯净性<b>不适用</b>:本类型只依赖
     /// <see cref="InteractableKind"/>(同命名空间)· <c>System</c> · <c>System.Collections.Generic</c>
-    /// —— 零 9 / 11 / 8 的 sim 侧类型,AC-4-05 反射闭包不受影响。</para>
+    /// —— 零 9 / 11 / 8 的 sim 侧类型,AC-4-05 反射闭包不受影响。
+    /// (<see cref="KindContractRow"/> 读形亦同命名空间,不新增程序集依赖。)</para>
     /// </summary>
     public static class KindPriorityTable
     {
+        // ══════════════════ 读方接线(2026-10-20)—— 从产物读了,不再只认硬编码 ══════════════════
+        //
+        // 病因:`interaction_kinds.cooked.bytes` 已可装载(2026-10-20 路 A),但**运行期零读者** ——
+        //   本类型的 10 项优先级一直是**硬编码字面量**,产物装载了没人读。
+        // 现口径:Provider 非空 ⇒ 从烘焙产物的行集建表(真源 = `assets/data/interaction_kinds.json`
+        //   经 ADR-014 两阶段烘焙);Provider 为空 / 返回空 ⇒ 回退 `FallbackPriorities`。
+        //
+        // ⚠️ **为什么保留回退字面量而不是删掉**(用户 2026-10-20 裁定):回退字典即
+        //   **GDD §F-4.1b 演示序的逐字转录** ⇒ 它是一份**独立于产物的 oracle**。
+        //   `reader_wiring_gate_test` 用它逐项对拍产物行 —— 若产物被烘成另一套优先级,
+        //   该对拍转红。删掉它 = 少一条判别力来源(且 15+ 个不传 provider 的 Assemble
+        //   调用方会立刻无表可用)。
+        //
+        // ⚠️ **本轮不改变任何行为**(已实测):产物的 (kind, priority) 逐项 == 回退字典
+        //   (§F-4.1b 演示序,枚举序数本身是乱的:Drop=0 / ForageSpot=1 / Patient=2 …)。
+        //   ⇒ 本轮的判据是「**源真的换了**」,不是「行为变了」—— 禁把前者写成后者。
+
         /// <summary>
-        /// kind → 优先级(越小越优先)。10 项**两两互异**(4-DC-3 的判据面)。
-        /// 取值 = GDD §F-4.1b 演示序(逐字照录;真表待数值轮)。
+        /// 表源注入缝(装配层设置;**null ⇒ 回退 <see cref="FallbackRows"/>**)。
+        /// <para>住静态 = 选择器 (<see cref="InteractionSelector"/>) 与校验器
+        /// (<see cref="InteractionKindTableValidator"/>) 都是静态调用点,无构造注入面;
+        /// 形态对齐既有先例 <c>Settings.AudioSettingsRegistry.Provider</c>。</para>
+        /// <para>⚠️ <b>缓存按 Provider 自身身份</b>(<see cref="_cachedFor"/>)—— 表建起后缓存;
+        /// 换一个 Provider 委托(或置 <c>null</c>)即自动失效重建 ⇒ **无需额外的 Reset API**
+        /// (跨 Play 轮残留只需把本属性置 null,由 <c>DataCorePreloader.ResetForPlayModeTests</c> 做)。
+        /// 之所以不用「一次建好即永久缓存」:那种形态下「后设的 Provider 不生效」,且必须再开一个
+        /// 测试专用复位口 —— 本形态两问题一起消掉。</para>
         /// </summary>
-        private static readonly Dictionary<InteractableKind, int> Priorities =
+        public static Func<IReadOnlyList<KindContractRow>> Provider;
+
+        /// <summary>已建表缓存所对应的 Provider 委托(引用相等判定;null ⇒ 缓存无效)。</summary>
+        private static Func<IReadOnlyList<KindContractRow>> _cachedFor;
+
+        /// <summary>Provider 建起的表(仅在 <see cref="_cachedFor"/> 与当前 Provider 同一委托时有效)。</summary>
+        private static Dictionary<InteractableKind, int> _providerTable;
+
+        /// <summary>
+        /// 回退表 —— <b>GDD §F-4.1b 演示序的逐字转录</b>(Patient:0…Drop:9)。
+        /// <para>双重身份:① Provider 缺省时的生产表;② 产物行的**独立对照 oracle**
+        /// (<c>reader_wiring_gate_test</c> 逐项对拍)。⇒ 改本字典 = 同时改「回退行为」与
+        /// 「产物判据」,须两处一起想。</para>
+        /// <para>⚠️ 值归**数值轮**;此处取值仅让接线可跑可测。</para>
+        /// </summary>
+        private static readonly Dictionary<InteractableKind, int> FallbackPriorities =
             new Dictionary<InteractableKind, int>
             {
                 // source: GDD §F-4.1b 演示序(⚠️ 值归数值轮 —— 此处仅为接线可测)
@@ -381,13 +420,66 @@ namespace DaYiJingCheng.Gameplay.Interaction
                 { InteractableKind.Drop,        9 },
             };
 
+        /// <summary>回退表(只读)—— 生产缺省 + 产物对照 oracle;见 <see cref="FallbackPriorities"/>。</summary>
+        public static IReadOnlyDictionary<InteractableKind, int> FallbackRows => FallbackPriorities;
+
+        /// <summary>当前生效表:Provider 建起的(若有)否则回退表。
+        /// <para>Provider 为 null / 返回空 ⇒ 回退表(**且不缓存** —— 空行集不构成一张可用的表,
+        /// 缓存它会让「Provider 配错」在首次调用后永久静默)。</para></summary>
+        private static Dictionary<InteractableKind, int> Active()
+        {
+            Func<IReadOnlyList<KindContractRow>> provider = Provider;
+            if (provider == null)
+            {
+                // 连同缓存一起失效 —— 只清 Provider 不清 _cachedFor/_providerTable 会留下
+                // 「上一轮的产物表」,一旦有人重新注入前读到它,拿到的就不是回退表。
+                _cachedFor = null;
+                _providerTable = null;
+                return FallbackPriorities;
+            }
+
+            if (!ReferenceEquals(provider, _cachedFor))
+            {
+                IReadOnlyList<KindContractRow> rows = provider();
+                if (rows == null || rows.Count == 0)
+                {
+                    _cachedFor = null;
+                    _providerTable = null;
+                    return FallbackPriorities;
+                }
+                _providerTable = BuildFromRows(rows);
+                _cachedFor = provider;
+            }
+            return _providerTable;
+        }
+
+        /// <summary>把产物行集转成 kind → 优先级表。
+        /// <para>⚠️ <b>重复 kind ⇒ 抛</b>(不静默后者胜出)—— 重复 = 产物损坏 / 两行争同一 kind,
+        /// 静默覆盖会让「哪个优先级生效」取决于行序(不可见)。缺项不在此查:由
+        /// <see cref="PriorityOf"/> 按 kind 抛(口径与回退表一致)。</para></summary>
+        /// <exception cref="ArgumentException">同一 kind 出现两次。</exception>
+        private static Dictionary<InteractableKind, int> BuildFromRows(IReadOnlyList<KindContractRow> rows)
+        {
+            var built = new Dictionary<InteractableKind, int>(rows.Count);
+            for (int i = 0; i < rows.Count; i++)
+            {
+                KindContractRow row = rows[i];
+                if (built.ContainsKey(row.Kind))
+                    throw new ArgumentException(
+                        $"KindPriority 表建表失败:kind {row.Kind} 在产物行集中出现两次(行序 #{i})" +
+                        " ⇒ 静默后者胜出会让生效优先级取决于行序(不可见;产物损坏)");
+                built.Add(row.Kind, row.KindPriority);
+            }
+            return built;
+        }
+
         /// <summary>
         /// 查表(F-4.1 第二键)。<b>缺项即抛</b> —— 缺项 = 该 kind 永不可选(静默失效),
         /// 与 4-DC-2 的失效模式同源;不静默退化为枚举序。
         /// </summary>
         public static int PriorityOf(InteractableKind kind)
         {
-            if (!Priorities.TryGetValue(kind, out int p))
+            if (!Active().TryGetValue(kind, out int p))
                 throw new ArgumentOutOfRangeException(nameof(kind),
                     $"KindPriority 表缺 kind {kind} ⇒ 该 kind 永不可选(静默失效;4-DC-2/4-DC-3 失效模式)");
             return p;
@@ -396,6 +488,6 @@ namespace DaYiJingCheng.Gameplay.Interaction
         /// <summary>
         /// 表本体(只读视图)—— 供 4-DC-3 校验器逐行对拍。
         /// </summary>
-        public static IReadOnlyDictionary<InteractableKind, int> Rows => Priorities;
+        public static IReadOnlyDictionary<InteractableKind, int> Rows => Active();
     }
 }

@@ -585,3 +585,71 @@ AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→d
 > 它「产物陈旧却全绿」这件事本身就是**缺口证据**(见 §为什么会有这条门)。
 
 
+
+---
+
+## 2026-10-20 更新④ —— **读者面接线**(装载 → 消费)
+
+上两轮(①②)做完的是「**可装载**」,并在原件 §7.1 如实登记了边界:
+
+> 「6 个新数据集在运行期**仍然零读者**…… 读者归各 epic 的消费轮。」
+
+本轮把那条边界收口 —— **接 2 份 · 如实登记 4 份**。
+
+### 6 份按「有没有真读点」实测分三档
+
+| # | 数据集 | 生产侧现状 | 档 | 本轮 |
+|---|---|---|---|---|
+| 1 | `interaction_kinds` | `KindPriorityTable` 硬编码 10 项;选择器 + 校验器都在读它 | **甲** | ✅ 换源 |
+| 2 | `prescription_actions` | `PrescribeRequestDriver._entries` 硬编码单条;`doseBase: 65536` 字面量 | **甲** | ✅ 换源 |
+| 3 | `disease_action_axis` | `ValidateActionIdFromAxis` 零生产调用;R1-19 是显式 `NotImplementedException` | 乙 | 登记 |
+| 4 | `diagnosis_negative_confidence` | `Evaluator` 零生产调用;8 的运行期求值走阳性族 | 乙 | 登记 |
+| 5 | `53_outcome_table` | `Judge.Evaluate` / `JudgeInputs` 零生产构造 | 丙 | 登记 |
+| 6 | `53_delay_table` | `new ConsequenceEmitter(` 零生产构造 | 丙 | 登记 |
+
+**为什么不把 4 份也「接上」**:乙档缺的是**调用方**、丙档缺的是**整条消费链**。
+往缝里塞 provider 而没人读 = 「已装载但无人用」,与前两轮登记的边界**同一形态**,
+属借绿家族。逐份的 grep 证据见
+`production/qa/evidence/impl-data-core-readers-2026-10-20.md` §5。
+
+### 门:`ReaderWiringGateTest`(10 用例)
+
+| 段 | 用例 | 性质 |
+|---|---|---|
+| 交互表 | `artifactRows_matchFallbackLiteral` | **对照**(字面量作独立 oracle) |
+| | `artifactRows_totalOrderAndCoverEnum` | 数据完整性 |
+| | `providerInjection_swapsTable` | **换源(承重)** |
+| | `assemblyInjectsProvider` | **接线(承重)** |
+| | `duplicateKindInRows_throws` | 负向 |
+| 处方表 | `artifactRows_matchFallbackLiteral` | **对照** |
+| | `realArtifact_rowIsPrescribable` | 正向 |
+| | `syntheticRow_drivesEntriesAndDoseBase` | **换源(承重)** |
+| | `duplicateItemKey_throws` | 负向 |
+| | `unknownPolarity_throws` | 负向 |
+
+> ⚠️ **「换源」两段刻意用合成夹具**:两份产物的数据**逐值等于**既有硬编码字面量
+> ⇒ 用真产物测「源换了」是**恒绿假门**。真产物只用于「对照」与「正向可跑」。
+> **本轮不改变任何行为** —— 判据是「源真的换了」,不是「行为变了」。
+
+### ⚠️ 一处必须看清的边界
+
+`InteractionSelector` 在生产侧**仍零构造点**(实测:非 Tests 面唯一命中是 `ModalGate` 的形参)。
+⇒ 本轮接的是**契约层读点**(选择器第二键查表 + 4-DC-3 校验器),
+**不是**「运行期已有实例在查」。选择器的生产装配归 4 的装配轮。
+
+详见 `production/qa/evidence/impl-data-core-readers-2026-10-20.md`。
+
+### 回归对账(2026-10-20 12:19 CST · commit `1a55c81` · 工作树 9 个未提交改动)
+
+| 项 | 值 |
+|---|---|
+| 前次 | `total=3988 passed=3952 failed=0 inconclusive=0 skipped=36` |
+| 本轮 | **`total=3998 passed=3962 failed=0 inconclusive=0 skipped=36`**(exit 0) |
+| 等式判据 | `total − 前次 = 新增数`(10 条门用例)⇒ **✅ 精确成立,零回归** |
+| PlayMode | **NOT-RUN** ⇒ P-4(`ResetForPlayModeTests` 清 Provider)保持 `Landed ✅ / Proven ✗` |
+
+> ⚠️ **本轮第二次踩「没出结果 ≠ 绿的」**:首轮全量回归**根本没启动** —— 等待前置
+> `until ! pgrep -f "Unity.*batchmode" …` 里,`pgrep -f` 匹配整条命令行,而等待脚本
+> **自身命令行就含该模式字面量** ⇒ 自匹配 ⇒ `until` 恒假 ⇒ 四个等待任务全部空转。
+> 处置改**同步前台**跑。判据:XML 的 mtime 必须晚于启动时刻。
+> 完整记载见证据原件 §7.1(前两个变体:XML 陈旧、变异脚本编译失败)。

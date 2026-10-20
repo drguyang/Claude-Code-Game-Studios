@@ -33,6 +33,7 @@ using DaYiJingCheng.Sim.Prescription;
 using DaYiJingCheng.Sim.World;                 // EcozoneRegistry(story-021 真值源链)
 using DaYiJingCheng.Gameplay.PatientAI;
 using DaYiJingCheng.Gameplay.Input;                 // EmergencyDirectReadChannel(story-009 通道装配)
+using DaYiJingCheng.Gameplay.Interaction;           // KindPriorityTable(2026-10-20 交互契约表读方接线)
 using UnityEngine.InputSystem;                 // InputActionAsset(story-009 通道装载,可空)
 
 namespace DaYiJingCheng.Gameplay.Boot
@@ -291,13 +292,37 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ── 处方链(G3 · 2026-10-11 用户裁定「最小生产端口实装」)──
             // 21a(换算/药物档案)+ 20(库存面)+ 30(成长)三端口最小实装 + 驱动,
             // 把 PrescribeFlow(11)接进运行期。⚠️ 完整 21a/20 落地后只换端口实现,签名零改动。
+            //
+            // ⚠️ **2026-10-20 读方接线**:`prescription_actions` 产物此前**零生产读者**
+            //    (`_entries` = 硬编码单条 · `doseBase` = 写字面量 65536)。现:
+            //    dataProvider != null ⇒ **一次** `Load<PrescriptionActionsDataSet>()`,
+            //    行集喂驱动、`DoseBase` 喂端口;dataProvider == null ⇒ 原状(零行为变化)。
+            //    ⚠️ 本轮**行为逐值不变** —— 产物唯一条目 (salicylic_acid, 10, symptomatic)
+            //       与回退条目同形;`DOSE_BASE` 恰 = 65536。判据是「源真的换了」。
+            PrescriptionActionsDataSet? prescriptionActions = dataProvider != null
+                ? dataProvider.Load<PrescriptionActionsDataSet>()
+                : (PrescriptionActionsDataSet?)null;
+
             var drugCatalog = new MinimalDrugCatalog();                 // 21a 最小换算表
             var portionsStore = new MinimalPortionsStore();            // 20 最小库存面
             var skillGrowthPort = new AssemblySkillGrowthPort(stream, encoder, prescriptionLevel: 0);
             var prescribePorts = new PrescribePorts(drugCatalog, portionsStore,
-                presence, skillGrowthPort, doseBase: 65536);            // DOSE_BASE(数值轮注记)
+                presence, skillGrowthPort,
+                doseBase: prescriptionActions?.DoseBase ?? 65536);      // 产物优先;回退字面量(数值轮注记)
             var prescribeDriver = new PrescribeRequestDriver(stream, encoder,
-                prescribePorts, isHost: true);
+                prescribePorts, isHost: true,
+                prescriptionRows: prescriptionActions?.Rows);           // null ⇒ 回退硬编码单条
+
+            // ── 交互契约表读方接线(2026-10-20)──
+            // ⚠️ **`KindPriorityTable` 的最终运行期消费者 = 4 的选择器,而 `InteractionSelector`
+            //    当前在生产侧**零构造点**(实测:非 Tests 面只有 `ModalGate` 的形参)。
+            //    ⇒ 本注入接的是**契约层读点**(选择器的第二键查表 + 4-DC-3 校验器),不是
+            //    「运行期已有实例在查」。选择器的生产装配归 4 的装配轮 —— 本行只保证
+            //    「到那时读的是产物,不是字面量」。
+            // ⚠️ 静态注入 ⇒ 须在**任何** `PriorityOf` 调用前设好;跨 Play 轮残留由
+            //    `DataCorePreloader.ResetForPlayModeTests()` 清(与 AudioSettingsRegistry 同款)。
+            if (dataProvider != null)
+                KindPriorityTable.Provider = () => dataProvider.Load<InteractionKindDataSet>().Rows;
 
             // ── 急救候选列表生产实例宿主(S3.1 · 2026-10-11)──
             // M2 形态件③(候选动作列表)的「运行期有载体」半边:实例化 + 喂 10 最小动作

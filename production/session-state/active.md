@@ -6649,3 +6649,60 @@ failed / skipped 未变 ⇒ 零回归。
 3. **IL2CPP 三格 NOT-RUN** —— 本机仅 Mono。
 
 **未提交**(不经用户指令不 commit)。Unity 工程已释放,可重开编辑器。
+
+## Session Extract — 2026-10-20(第三段):6 份数据集的**读者面**(接 2 · 登记 4)
+
+**用户裁定**:「把 6 个数据集的读者接上」→ 范围为 **甲档 2 份 + 其余 4 份落实测登记**;
+`KindPriorityTable` 的行⟷表对拍退化问题 → **保留硬编码回退字面量作对照**。
+
+**6 份按「生产侧有没有真读点」分三档(实测,非估计)**:
+- **甲(有真读点,本段接)**:`interaction_kinds` → `KindPriorityTable`(硬编码 10 项;
+  选择器 + 校验器都在读)· `prescription_actions` → `PrescribeRequestDriver`(硬编码单条 + `doseBase` 字面量)
+- **乙(缺的是调用方)**:`disease_action_axis`(`ValidateActionIdFromAxis` 零生产调用;
+  R1-19 是显式 `NotImplementedException`)· `diagnosis_negative_confidence`(`Evaluator` 零生产调用)
+- **丙(缺整条消费链)**:`53_outcome_table`(`Judge.Evaluate` 零生产构造)·
+  `53_delay_table`(`new ConsequenceEmitter(` 零生产构造)
+
+**改动(P-1…P-4 + T-1)**:`KindPriorityTable` 加 Provider 缝(产物优先 · 回退字面量 ·
+缓存按 Provider 身份失效)· `PrescribeRequestDriver` 加 `prescriptionRows` 可选参(缺省回退,零行为变化)·
+`CompositionRoot` 两行装配(`doseBase` 真读产物 + `Provider` 注入)· `ResetForPlayModeTests` 清 Provider ·
+新门 `DataPipeline/reader_wiring_gate_test.cs` **10 用例**。
+
+**证伪轮 8/8 全部转红**,每例 sha256 逐字节还原。**抓出三处真缺口**(都已修):
+① 重复 `item_key` 检查原先无判据(F6 首轮仍绿);② `Provider = null` 时缓存未清(F8 红点错位);
+③ `ReferenceEquals` 缓存无「换 Provider」专属断言。
+
+**⚠️ 必须如实登记(禁借绿)**
+1. **本段不改变任何行为** —— 两份产物数据**逐值等于**原硬编码字面量(实测)。
+   判据是「**源真的换了**」,不是「行为变了」;「换源」半边只由**合成夹具**证(真产物测恒绿)。
+2. **`InteractionSelector` 生产侧仍零构造点** —— 接的是**契约层读点**,不是「运行期已有实例在查」。
+   选择器的生产装配归 4 的装配轮。
+3. **`unlock_level` / `ProcessingState` 是派生映射**(产物不携带):前者恒 0,后者取 `Extracted`。
+4. **P-4(`ResetForPlayModeTests` 清 Provider)= Landed ✅ / Proven ✗** —— 判据在 PlayMode 侧,本轮未跑 PlayMode。
+5. **IL2CPP 三格 NOT-RUN** —— 本机仅 Mono。
+6. **自我订正**:首版勘察用 `grep -v "/Tests/"` 过滤失效(仓库路径是 `Tests/EditMode/…`,无前导斜杠),
+   一度误判 B-1「零命中」。已改用 `grep -v "^unity/Assets/Tests/"`。
+
+**原件**:`production/qa/evidence/impl-data-core-readers-2026-10-20.md`
+**账本**:`tests/integration/item_database/README.md` §2026-10-20 更新④
+**未提交**(不经用户指令不 commit)。
+
+### 全量回归对账(2026-10-20 12:19 CST · commit `1a55c81` · 工作树 9 个未提交改动)
+
+| 量 | 前次 | 本次 | Δ | 预期 | 判 |
+|---|---|---|---|---|---|
+| total | 3988 | **3998** | +10 | +10 | ✅ |
+| passed | 3952 | **3962** | +10 | +10 | ✅ |
+| failed | 0 | **0** | 0 | 0 | ✅ 零回归 |
+| skipped | 36 | **36** | 0 | 0 | ✅ |
+
+`ReaderWiringGateTest` 在全量里 **10/10 Passed**(逐名核对)。
+**PlayMode NOT-RUN** ⇒ P-4 保持 `Landed ✅ / Proven ✗`。
+
+**⚠️ 第三个「没出结果 ≠ 绿的」变体(已登记原件 §7.1)**:首轮全量回归**根本没启动** ——
+等待前置 `until ! pgrep -f "Unity.*batchmode" …` 的 `pgrep -f` 匹配整条命令行,
+而等待脚本**自身命令行里就含那两个模式字面量** ⇒ 自匹配 ⇒ `until` 恒假 ⇒ 死循环。
+四个等待任务全部空转,`readers-full.xml` 一直没生成。处置:停掉自匹配任务,改**同步前台**跑
+(先验无 lockfile / 无 Unity 进程,再 `rm -f` 旧 XML)。判据:XML 的 mtime 必须晚于启动时刻。
+
+**盘上变异残留**:零 ✅(grep `if (false &&|if (true)|&& false|[MUTATED]` 为空)。
