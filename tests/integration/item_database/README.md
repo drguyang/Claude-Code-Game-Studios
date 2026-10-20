@@ -420,6 +420,96 @@ AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→d
 > (`AddressablesDataProvider` 无对应 address、`Preload()` 不含它们)。
 > 补烘解决的是「有 baker 无产物」;**「产物有了但没有读者」是另一个问题**,
 > 归各归属 epic 的接线轮,不在本条门裁决面。逐份的接线状态见上表所属 story。
+>
+> ✅ **2026-10-20 第二次裁定「接到运行期装载面」—— 路 A,已落 2 份**:
+> `interaction_kinds` + `diagnosis_negative_confidence`(其余 4 份需新运行期数据集类型 + 解码器,
+> 各自 120–220 行,另开一轮)。详细见下节 §运行期装载面接线。
+
+### 运行期装载面接线(2026-10-20 · 路 A · 2/6)
+
+**为什么不能「补烘完就标完」**:6 份产物归属的 5 个 story **全部 `Complete`**,
+但其中一件名字就叫「烘焙接线」(`story-007-interaction-kinds-bake-wiring`)——
+**「烘焙接线」这个词在仓库里被用来指「烘焙管线接线」,而运行期装载是另一条线**。
+补烘让字节成立;接线让**启动时会有人读它**。两者是不同的失效面。
+
+**路 A 的四要素(少一处即静默失效)**
+
+| # | 要素 | 落点 | 失了的症状 |
+|---|---|---|---|
+| ① | address 常量 | `AddressablesDataProvider.InteractionKindsAddress` / `DiagnosisNegativeConfidenceAddress` | 无处可查 |
+| ② | Addressables 组条目 | `unity/Assets/AddressableAssetsData/AssetGroups/data-core.asset`(**入库**) | 启动预载 `FetchBytes` 直接 **E-13 硬失败**,整链起不来 |
+| ③ | 组条目 GUID ↔ 产物 `.meta` | 同上(YAML 手可编辑) | 条目指向虚空,打包期才炸 |
+| ④ | `Preload()` 调用 + `DataCoreAddresses` | `AddressablesDataProvider.Preload()` · `DataCorePreloader.DataCoreAddresses` | 方法存在但缓存永不填充,首次 `Load` 在远处炸 |
+
+**门真身**:`unity/Assets/Tests/EditMode/DataPipeline/provider_wiring_gate_test.cs`
+(7 用例;装配零新增引用 —— 走 `Tests/EditMode/EditMode.asmdef`)
+
+| 用例 | 判据 | 对应失效模式 |
+|---|---|---|
+| `test_wiring_newArtifactAddresses_matchBakerArtifactNames` | address 字面串 == `DataBakeMenu.*CookedAssetName` | ① |
+| `test_wiring_dataCoreGroup_containsEveryProviderAddress` | 每个 `*Address` 常量在组里**恰 1 条** | ② |
+| `test_wiring_dataCoreGroup_entriesResolveToExistingArtifacts` | 组每条 → `DataCooked/` 有真文件 | ② |
+| `test_wiring_dataCoreGroup_guidsMatchArtifactMeta` | 组 `m_GUID` == 产物 `.meta` 的 guid | ③ |
+| `test_wiring_preload_invokesEveryEnsureMethod` | `Ensure*` 方法集 == `Preload()` 调用集 == 地址表集 | ④ |
+| `test_wiring_loadBranch_interactionKinds_exists` | `Load<T>` 走到装载分支(非「未知类型」兜底) | 分支缺失 |
+| `test_wiring_loadBranch_negativeConfidence_exists` | 同上 | 同上 |
+
+> ⚠️ 两个 `LoadBranch` 用例**不依赖装载成功** —— EditMode 无 Addressables locator,装载必失败;
+> 判别靠**失败报文**:走到装载分支 ⇒ 报文点名产物基名;分支缺失 ⇒ 报文是「未知数据集类型」。
+> 两者互斥 ⇒ 有判别力。(`LogAssert.ignoreFailingMessages` 只关日志门,断言照跑。)
+
+**证伪轮 F1–F6(6/6 全转红)**
+
+| # | 变异 | 实测红项 |
+|---|---|---|
+| **F1** | provider 的 `InteractionKindsAddress` 字面串改一字 | `newArtifactAddresses` + `dataCoreGroup_containsEvery…` **2 红** |
+| **F2** | 组里删掉 `diagnosis_negative_confidence` 条目 | `dataCoreGroup_containsEvery…` |
+| **F3** | 组条目 GUID 末位 `8→9` | `dataCoreGroup_guidsMatchArtifactMeta` |
+| **F4** | `Preload()` 删掉 `EnsureInteractionKinds();` | `preload_invokesEveryEnsureMethod` |
+| **F5** | 删掉 `Load<T>` 的 `InteractionKindDataSet` 分支 | `loadBranch_interactionKinds_exists` |
+| **F6** | `DataCoreAddresses` 删掉 `InteractionKindsAddress` | `preload_invokesEveryEnsureMethod` |
+
+- 基线:`7/7 passed`;每例「备份 → 单点变异 → 跑 → `cp` 回 → `sha256` 比对」**同一执行内**完成
+- 六例还原后 `sha256` **逐字节一致**;`git status` 与变异前同形
+- **F1 红 2 条是预期**:它同时改坏字面串 ⇒ 组里自然查不到那个 address,
+  故 ② 与 ① 同红;不是误伤(其余五例各**仅**红 1 条,证明隔离性好)
+- 脚本原件 `/tmp/fz-wiring.py`(临时件,不入库)
+
+**⚠️ 必须如实登记的三条边界(禁借绿)**
+
+1. **两个新数据集在运行期零读者**。实测 `grep -rn "Load<InteractionKindDataSet>\|Load<DiagnosisNegativeConfidenceDataSet>"`
+   在非 `Tests/` 面**零命中**;`ImmutableInteractionKindTable`(story-007 `## Dependencies` 里
+   「Unlocks」的那件)在仓库里**不存在**。⇒ 本轮做的是「**可装载**」,不是「已被使用」。
+   读者归各 epic 的消费轮。
+2. **本机 catalog 必须重建后才生效**。`unity/Library/com.unity.addressables/aa/Linux/catalog.bin`
+   是**机器本地产物**(`.gitignore:61` `[Ll]ibrary/`)。实测旧 catalog(**10-19 22:42**)里
+   `interaction_kinds.cooked.bytes` / `diagnosis_negative_confidence.cooked.bytes` **均 MISS**。
+   ⇒ 新检出 / 未重建 catalog 的机器上,`test_precheck_liveCatalog_allRealAddressesLocatable`
+   (PlayMode)会判死。**这不是缺陷,是 E-13 的设计行为**;但跨机复现须先跑
+   `大医精诚/数据管线/构建 Addressables 内容`。
+3. **其余 4 份仍未接线**。`prescription_actions` / `disease_action_axis` / `53_outcome_table` /
+   `53_delay_table` 各自需要**新的运行期数据集类型 + 解码器**(`PrescriptionActionRow` /
+   `ActionAxisRow` 现住 `Editor.Tools.Bake`;`Outcome53.Table` / `DelayTable53.Table` 住 `Sim`,
+   且 `Outcome53.CreateTable` 自注「运行期生产装载归装配轮」)。另开一轮。
+
+**连带改动**:`DataCorePreloader.DataCoreAddresses` 9 → **11 条**(与 `Preload()` 的 `Ensure*`
+调用数逐一相等,由 `test_preloader_list_sources_matchPreloadedProducts` 与
+`test_wiring_preload_invokesEveryEnsureMethod` 双门钉住);`Preload()` 的 E-13 未知类型
+错误串同步订正。
+
+**回归对账(2026-10-20 · 路 A 接线轮)**
+
+| 项 | 值 |
+|---|---|
+| 本轮 | **`total=3980 passed=3944 failed=0 inconclusive=0 skipped=36`**(exit 0) |
+| 前次(补烘轮) | `3973 / 3937 / 0 / 36` |
+| Δ | **`+7 / +7 / 0 / 0`** |
+| 等式判据 | 7 条新接线测 ⇒ **✅ 精确成立,零回归** |
+
+> **三元组(强制)**:截至时刻 `2026-10-20 11:01 本地` · 批次 `路 A 接线轮(全量 EditMode)` ·
+> commit `08fb813` + 未提交工作树。原件
+> `production/qa/evidence/impl-data-core-wiring-a-2026-10-20.md`。
+
 
 ### 回归对账(2026-10-20 · 加门后)
 

@@ -75,6 +75,16 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <para>⚠️ 单一出处 = <see cref="TelemetryAnalyticsDataSet.CookedFileName"/>。</para></summary>
         public const string TelemetryAnalyticsAddress = TelemetryAnalyticsDataSet.CookedFileName;
 
+        /// <summary>交互种类契约表 address(2026-10-20 补接线;AC-4-15 的装载半边)。
+        /// <para>⚠️ 产物名单一出处 = `DataBakeMenu.InteractionKindsCookedAssetName`;本处为字面串
+        /// (边界程序集不引用 Editor.Tools.Bake —— 那是编辑期装配,不进玩家构建)。</para></summary>
+        public const string InteractionKindsAddress = "interaction_kinds.cooked.bytes";
+
+        /// <summary>阴性把握度定表 address(2026-10-20 补接线)。
+        /// <para>⚠️ 产物名单一出处 = `DataBakeMenu.DiagnosisNegativeConfidenceCookedAssetName`;同上为字面串。</para></summary>
+        public const string DiagnosisNegativeConfidenceAddress =
+            "diagnosis_negative_confidence.cooked.bytes";
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -92,6 +102,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private DeviceSwitchTuningDataSet? _deviceSwitchTuning;
         // 遥测参数旋钮表(TD-epic-01 第十二片):struct ⇒ 可空承载。
         private TelemetryAnalyticsDataSet? _telemetryAnalytics;
+        // 交互种类契约表(2026-10-20 补接线):struct ⇒ 可空承载。
+        private InteractionKindDataSet? _interactionKinds;
+        // 阴性把握度定表(2026-10-20 补接线):struct ⇒ 可空承载。
+        private DiagnosisNegativeConfidenceDataSet? _negativeConfidence;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -151,12 +165,25 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureTelemetryAnalytics();
                 return (TDataSet)(object)_telemetryAnalytics.Value;
             }
+            // ── 2026-10-20 补接线:4 交互契约表 / 8 阴性把握度定表 ──
+            if (typeof(TDataSet) == typeof(InteractionKindDataSet))
+            {
+                EnsureInteractionKinds();
+                return (TDataSet)(object)_interactionKinds.Value;
+            }
+            if (typeof(TDataSet) == typeof(DiagnosisNegativeConfidenceDataSet))
+            {
+                EnsureDiagnosisNegativeConfidence();
+                return (TDataSet)(object)_negativeConfidence.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
                 " + 两份 44 侧产物(S14-6:AudioEventDataSet / AudioSettingsDataSet)" +
                 " + 设备切换常量表(TD-epic-01 第十一片:DeviceSwitchTuningDataSet)" +
-                " + 遥测参数旋钮表(TD-epic-01 第十二片:TelemetryAnalyticsDataSet)");
+                " + 遥测参数旋钮表(TD-epic-01 第十二片:TelemetryAnalyticsDataSet)" +
+                " + 交互种类契约表(2026-10-20:InteractionKindDataSet)" +
+                " + 阴性把握度定表(2026-10-20:DiagnosisNegativeConfidenceDataSet)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -172,6 +199,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureAudioSettings();
             EnsureDeviceSwitchTuning();
             EnsureTelemetryAnalytics();
+            EnsureInteractionKinds();
+            EnsureDiagnosisNegativeConfidence();
         }
 
         private void EnsureItems()
@@ -314,6 +343,38 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 遥测参数旋钮表 cooked 解码失败(address={TelemetryAnalyticsAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureInteractionKinds()
+        {
+            if (_interactionKinds.HasValue) return;
+            byte[] bytes = FetchBytes(InteractionKindsAddress);
+            try
+            {
+                _interactionKinds = InteractionKindCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 交互种类契约表 cooked 解码失败(address={InteractionKindsAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureDiagnosisNegativeConfidence()
+        {
+            if (_negativeConfidence.HasValue) return;
+            byte[] bytes = FetchBytes(DiagnosisNegativeConfidenceAddress);
+            try
+            {
+                _negativeConfidence = DiagnosisNegativeConfidenceCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 阴性把握度定表 cooked 解码失败(address={DiagnosisNegativeConfidenceAddress})—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }
         }

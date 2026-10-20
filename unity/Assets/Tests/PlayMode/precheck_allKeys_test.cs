@@ -62,7 +62,11 @@ namespace DaYiJingCheng.Tests.PlayMode
             Assert.That(diag, Is.EqualTo("missing=[" + ghost + "]"), "诊断须点名缺失的那条,且真地址全部可解析");
         }
 
-        /// <summary>真实 catalog 下的正向半边:全部真地址(第十二片后 **9** 条)全部可解析(与负向同一次运行内对照)。</summary>
+        /// <summary>真实 catalog 下的正向半边:全部真地址(2026-10-20 补接线后 **11** 条)全部可解析
+        /// (与负向同一次运行内对照)。
+        /// <para>⚠️ 本测是「组条目 ↔ 真 catalog」的唯一行为面 —— 11 条地址里**任一条**未进
+        /// `data-core` 组,本测即红(且报文点名诊断)。2026-10-20 新接线的 2 份
+        /// (`interaction_kinds` / `diagnosis_negative_confidence`)若组条目漏登,红的就是本测。</para></summary>
         [Test]
         public void test_precheck_liveCatalog_allRealAddressesLocatable()
         {

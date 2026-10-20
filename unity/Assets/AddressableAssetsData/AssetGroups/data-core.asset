@@ -15,6 +15,12 @@ MonoBehaviour:
   m_GroupName: data-core
   m_GUID: 3414a52e56054de1ea9a3a6a5a44f5bf
   m_SerializeEntries:
+  - m_GUID: 10a4fb2c35e5cb2cc9ce36f415fb06d8
+    m_Address: interaction_kinds.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 185819cc4ea2b26e1aeb975453d289b8
     m_Address: item_database_recipes.cooked.bytes
     m_ReadOnly: 0
@@ -59,6 +65,12 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: a7d29c531dea6ef19b1ba767f0ccf40b
     m_Address: item_database_items.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b6ba4a04f5b21f0c4ab9599a427a49a0
+    m_Address: diagnosis_negative_confidence.cooked.bytes
     m_ReadOnly: 0
     m_SerializedLabels:
     - data-core
