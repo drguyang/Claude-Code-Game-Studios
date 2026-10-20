@@ -928,7 +928,7 @@ A 类(自造 Fake)只深挖 telemetry · `tests/unit|integration/` 账本树未�
 | **L-3** | `disease_registry.json` 真表到位(数值轮)—— 真曲线给出可判别的「平稳 / 急促 / 停顿」三段时长;占位 plateau 曲线不承载听测 | 数值轮(用户) |
 | **L-4** | 随 L-3 一并:真病程足够长 ⇒ 多病人可同时存活;或接线期把 `SpawnIntervalTicks` 临时调小 | 数值轮 / 52 |
 | **L-5** | **被试 ≥ 2 人**(`TD-audio-103` 同口径)+ 双盲 n ≥ 6 人(AC-44-02 / AC-44-17 原文硬要求) | 排期 |
-| **L-6** | **已修(2026-10-20,两轮)**:<br>**① 听音点**:启动序把 listener 从预摆相机迁到运行时 `CameraRig` 主相机(预摆那份先摘除),断言改**双判据**(active = 1 **且** 挂载总数 = 1)。实测 `no audio listeners` 由 10 845 条 → **0**。<br>**② 快照静音捕获(第一版漏掉的真因)**:`Master` 组被 `Default` 快照钉在 **−74.14725 dB**;该组**不是** exposed 参数 ⇒ `PlayerBusVolumeInitializer` 碰不到,运行期无回写路径。<br>**③ 构建期门**:新增 `MixerTopologyGates.SilentCaptureFloorDb = -60` + `ValidateNoSilentCaptureOnPlayerAdjustedGroups`(只罩非 exposed 组)+ 5 条夹具 + 3 轮证伪。<br>⚠️ 旧判据 `MuteCaptureFloorDb = -80` **未动**(它是 AC-44-01 ② 的语义面);这次事故正是从 −80 擦边漏过 5.85 dB。 | ① **待用户实听复核**;②③ 已落 ①③ 结构面 |
+| **L-6** | **已修(2026-10-20,两轮)**:<br>**① 听音点**:启动序把 listener 从预摆相机迁到运行时 `CameraRig` 主相机(预摆那份先摘除),断言改**双判据**(active = 1 **且** 挂载总数 = 1)。实测 `no audio listeners` 由 10 845 条 → **0**。<br>**② 快照静音捕获(第一版漏掉的真因)**:`Master` 组被 `Default` 快照钉在 **−74.14725 dB**;该组**不是** exposed 参数 ⇒ `PlayerBusVolumeInitializer` 碰不到,运行期无回写路径。<br>**③ 构建期门**:新增 `MixerTopologyGates.SilentCaptureFloorDb = -60` + `ValidateNoSilentCaptureOnPlayerAdjustedGroups`(只罩非 exposed 组)+ 5 条夹具 + 3 轮证伪。<br>⚠️ 旧判据 `MuteCaptureFloorDb = -80` **未动**(它是 AC-44-01 ② 的语义面);这次事故正是从 −80 擦边漏过 5.85 dB。 | **✅ L-6 已结案(2026-10-20)**:用户实听**「有声音了」**(`ccd06c8` 后重开编辑器)。⚠️ 结案的是 L-6 本身,「有声」是听测**前置**不是证据 —— **L-1…L-5 一个都没动**,三份协议仍全部 NOT-RUN |
 
 > ⚠️ **L-5 是协议原文的硬要求,不是本登记新增** —— AC-44-02 原文写「n ≥ 6 人 × 每对 ≥ 8 次」,
 > AC-44-17 写「n ≥ 6 人」。**单人实听只能产生「非正式预听」,不得记为该 AC 的证据。**
