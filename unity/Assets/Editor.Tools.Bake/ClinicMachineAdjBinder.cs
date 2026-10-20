@@ -150,6 +150,14 @@ namespace DaYiJingCheng.EditorTools.Bake
             ok &= ClinicMachineSchema.ReadRequiredString(
                 row, "b", where, FileName, errors, out string b);
 
+            // D9:建键前拒控制字符 —— Key(a,b) = a + U+0001 + b 的单射性前提。
+            // 原注释声称「构建期另拒控制字符」但零实现;评审 D9 后补上(现在注释为真)。
+            if (ok)
+            {
+                ok &= ClinicMachineSchema.RejectControlChars(a, $"{where}.a", FileName, errors);
+                ok &= ClinicMachineSchema.RejectControlChars(b, $"{where}.b", FileName, errors);
+            }
+
             if (!ClinicMachineSchema.ReadRequiredFix(
                     row, "w", where, FileName, errors, out Fix w))
                 ok = false;

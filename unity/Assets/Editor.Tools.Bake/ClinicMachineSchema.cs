@@ -254,6 +254,17 @@ namespace DaYiJingCheng.EditorTools.Bake
                 throw new BakeValidationException(errors);
             }
 
+            // D1:空表与三姊妹 binder 同纪律(Context:104 / Adj:116 / Room:135)——
+            // 空家具目录会让所有房间谓词恒不匹配(整表静默失效),拒。
+            if (rowsNode.Items.Count == 0)
+            {
+                errors.Add($"{fileName}:furn 为空表 —— 空表让所有房间谓词恒不匹配(整表静默失效),拒");
+                throw new BakeValidationException(errors);
+            }
+
+            // D2:重复 type 与三姊妹 binder 同纪律 —— 每家具类型恰一行。
+            var seenTypes = new HashSet<string>(StringComparer.Ordinal);
+
             for (int i = 0; i < rowsNode.Items.Count; i++)
             {
                 JsonNode row = rowsNode.Items[i];
@@ -272,6 +283,12 @@ namespace DaYiJingCheng.EditorTools.Bake
                 {
                     errors.Add($"{fileName}:{where}.type 缺失或非非空字符串" +
                                $"({(typeNode == null ? "缺失" : typeNode.Kind.ToString())})");
+                }
+                else if (!seenTypes.Add(typeNode.Str))
+                {
+                    errors.Add(
+                        $"{fileName}:{where}.type「{typeNode.Str}」重复 —— 家具目录每类型恰一行" +
+                        "(重复会让「取哪一行」成为隐式规则 = 静默失序)");
                 }
 
                 // tier —— int 计数(ADR-006 D-21-17:不在 Fix 解析集),域 [0, TIER_MAX]
@@ -422,6 +439,29 @@ namespace DaYiJingCheng.EditorTools.Bake
                     errors.Add($"{fileName}:{where} 未知键「{key}」[ADR-014·unknown-key]" +
                                "(拼写错误会静默丢字段 ⇒ 构建期硬失败)");
             }
+        }
+
+        /// <summary>拒含控制字符的标识符字符串(ADJ 键的单射性前提,D9)。
+        /// <para>ADJ 有向键 = <c>a + U+0001 + b</c>。若 <c>a</c> 或 <c>b</c> 自身含控制字符,
+        /// 不同的 <c>(a,b)</c> 可拼出同一个键 ⇒ 静默错配。**必须在建键前校验**,
+        /// 不能只写在注释里(评审 D9:原注释声称「构建期另拒控制字符」但零实现)。</para></summary>
+        internal static bool RejectControlChars(
+            string value, string fieldPath, string fileName, List<string> errors)
+        {
+            if (string.IsNullOrEmpty(value)) return true;
+
+            for (int i = 0; i < value.Length; i++)
+            {
+                if (char.IsControl(value[i]))
+                {
+                    errors.Add(
+                        $"{fileName}:{fieldPath} 含控制字符 U+{(int)value[i]:X4}(下标 {i}) —— " +
+                        "ADJ 键 = a + U+0001 + b,单射性要求类型 id 不含控制字符(D9)");
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>子句类型字面量 → 枚举(闭集外 ⇒ false;不另设分支)。</summary>

@@ -109,9 +109,11 @@
 
 **Story Type**: Config-Data
 **Required evidence**: `unity/Assets/Tests/EditMode/ClinicMachine/clinicmachine_tables_schema_test.cs` — must exist and pass(含两个 invalid fixture 的拒绝断言)
-**Status**: [x] Created — **29 个测试函数**,全 `Passed`
-**全量回归**: `4041 / 4005 / 0 / 36` · `2026-10-20 18:44:31 +0800` · `story-001 最终全量` · `73d20a4`+工作树(退出码 0)
-**证伪轮**: **13/13 转红** —— 见原件 `production/qa/evidence/impl-clinic-001-2026-10-20.md` §四
+**Status**: [x] Created — **42 个测试函数**(实现轮 29 + 评审修复轮 13),全 `Passed`
+**全量回归**: `4054 / 4018 / 0 / 36` · `2026-10-20 19:10:23 +0800` · `修复轮全量 EditMode` · `fb87e2a`+工作树(退出码 0)
+**证伪轮**: **19/19 转红** —— 实现轮 13(F1–F13)+ 评审修复轮 6(G1–G6)。
+见原件 `production/qa/evidence/impl-clinic-001-2026-10-20.md` §四 / §七,
+评审原件 `production/qa/evidence/review-clinic-001-2026-10-20.md` §七。
 (F4 首轮存活 → 夹具被 `base_env` 域校验借绿,已修断言并复核转红;F13 首轮为探针打错靶,修正后转红)
 
 ---
@@ -144,3 +146,17 @@
   **实测零落点**(`TD-clinic-01` · 路线图 §三 G-8)⇒ 两条结构上不可达。story 置 **`In Review`**。
 - **未跑项**(禁借绿):`|W_MIN| ≤ W_MAX` 分支未单独变异 · 11 条正向接受类测试未入证伪轮 ·
   cooked → Addressables 接线不在本 story · IL2CPP 三格 NOT RUN(本机仅 Mono) · 逐值调参归用户数值轮。
+
+**2026-10-20 · 评审修复轮(前 5 项 · 🔴 4 → 0)**
+
+- **评审原件**:`production/qa/evidence/review-clinic-001-2026-10-20.md`(双专家并行;合并判定
+  `CHANGES REQUIRED` · 4 🔴 / 16 🟡)。修复轮后总判定 → **`APPROVED WITH SUGGESTIONS`**。
+- **已修**:R-08(`k_speed` 档集判别力,补 `1/2` 夹具)· D9(补 `RejectControlChars`,原伪注释自此为真)·
+  R-10a(断言由共享 token `"W_MIN"` 改为钉子分支 `"界健全性失败"`)· R-17(补 9 条边界测)·
+  D1/D2(`AssertFurnTableShape` 补「空表拒」「重复 `type` 拒」)。**测试函数 29 → 42**。
+- **证伪**:修复轮 6/6 转红(每条新守卫逐一停用验证);工作树零变异残留(`SHA-256` 逐字节校验)。
+- **未修(15 🟡)**:R-09 · R-10b/c/d · R-18 · R-19 · R-21 · S23 · S24 · D4 · D8 · S19 · S16 ·
+  R-13 · S25 · S6 —— 均为判别力收紧或建议项,不阻断本体交付。
+- **⚠️ 两条如实登记**:① R-17 的 9 条新测**只抽证 1 例**(G3),其余 8 条判别力未经反证;
+  ② 修复轮**只跑 EditMode**,PlayMode / IL2CPP 三格仍 NOT RUN。
+- **仍未转 `Complete`**:`AC-24-08` / `AC-24-12` 的闭集半边仍挂 `BLOCKED-BY-O-24-1`(不变)。

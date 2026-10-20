@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具(R-08 · AC-24-05 语义层):k_speed = 1/2 ∈ (0,1] 但 ∉ 档集 {1, 7/8, 3/4} ⇒ 必拒。这条是把「纯区间判据」与「离散档集判据」分开的唯一判别面 —— 若实现退化为 0 < raw <= 65536 的区间判据,本夹具会被接受,test_context_k_speed_in_range_but_not_in_set_rejected 随之转红。档集由 OQ-24-1(2026-09-25)裁定。",
+  "contexts": [
+    {
+      "room_type": "ward",
+      "context_id": "ward_half",
+      "k_speed": "1/2",
+      "base_env": "0"
+    }
+  ]
+}

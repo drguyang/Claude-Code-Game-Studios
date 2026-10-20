@@ -202,7 +202,10 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
                 ClinicMachineTablesBake.BindAdjForTest(FixtureText("invalid_adj_wdomain.json")));
 
-            AssertErrorsContain(ex, "W_MIN");
+            // 断言钉到「界健全性」子分支 —— 该 token 被 AssertOverflowBounds ②段三条报文共用
+            // (「W_MIN…须 < 0」/「W_MAX…须 > 0」/「界健全性失败:|W_MIN| > W_MAX」),
+            // 只写 "W_MIN" 无法判别命中哪条(评审 R-10a / S27,F4 同族)。
+            AssertErrorsContain(ex, "界健全性失败");
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -464,6 +467,173 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             Assert.That(first.ContextCooked, Is.EqualTo(second.ContextCooked));
             Assert.That(first.AdjCooked, Is.EqualTo(second.AdjCooked));
             Assert.That(first.RoomCooked, Is.EqualTo(second.RoomCooked));
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // 评审修复轮补充(2026-10-20)—— R-08 / R-17 / D9 / D1 / D2
+        // 原件:production/qa/evidence/review-clinic-001-2026-10-20.md
+        // ════════════════════════════════════════════════════════════════════
+
+        // ── R-08:AC-24-05 的语义层(区间 vs 档集)────────────────────────────
+
+        [Test]
+        public void test_context_k_speed_in_range_but_not_in_set_rejected()
+        {
+            // 值 ∈ (0,1] 但 ∉ 档集 {1, 7/8, 3/4} ⇒ 必拒。
+            // 这条是 AC-24-05「离散档集」语义的**唯一判别面**:若实现退化为
+            // 纯区间判据(0 < raw <= 65536),本测转红 —— 缺了它,29 条测试对
+            // 「区间 vs 档集」分叉完全不可判(评审 R-08)。
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextForTest(
+                    FixtureText("invalid_context_k_speed_not_in_set.json")));
+
+            AssertErrorsContain(ex, "∉ 档集");
+        }
+
+        // ── D9:ADJ 键的单射性前提(控制字符门)──────────────────────────────
+
+        [Test]
+        public void test_adj_type_containing_separator_rejected()
+        {
+            // 键 = a + U+0001 + b。a 含分隔符 ⇒ 不同 (a,b) 可拼出同一键 ⇒ 必须构建期拒。
+            // 评审 D9:原注释声称有此门但零实现,本测是该门的判别面。
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindAdjForTest(
+                    "{ \"schema_version\": 1, \"n_max\": 64, \"w_min\": \"-1/4\", \"w_max\": \"1/4\"," +
+                    " \"pairs\": [ { \"a\": \"bed\\u0001x\", \"b\": \"pot\", \"w\": \"1/8\" } ] }"));
+
+            AssertErrorsContain(ex, "控制字符");
+        }
+
+        // ── D1 / D2:FURN 形状与三姊妹 binder 同纪律 ─────────────────────────
+
+        [Test]
+        public void test_furn_empty_table_rejected()
+        {
+            // D1:空家具目录 ⇒ 所有房间谓词恒不匹配(整表静默失效),拒。
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineSchema.AssertFurnTableShape(
+                    "{ \"schema_version\": 1, \"furn\": [] }"));
+
+            AssertErrorsContain(ex, "furn 为空表");
+        }
+
+        [Test]
+        public void test_furn_duplicate_type_rejected()
+        {
+            // D2:每家具类型恰一行;重复 ⇒ 拒。
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineSchema.AssertFurnTableShape(
+                    "{ \"schema_version\": 1, \"furn\": [" +
+                    " { \"type\": \"bed\", \"tier\": 0, \"e_env\": \"0\" }," +
+                    " { \"type\": \"bed\", \"tier\": 1, \"e_env\": \"1/64\" } ] }"));
+
+            AssertErrorsContain(ex, "重复");
+        }
+
+        // ── R-17:七类边界(均为已实现的生产守卫,原零测试)──────────────────
+
+        [Test]
+        public void test_context_empty_table_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextForTest(
+                    "{ \"schema_version\": 1, \"contexts\": [] }"));
+
+            AssertErrorsContain(ex, "contexts 为空");
+        }
+
+        [Test]
+        public void test_adj_empty_pairs_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindAdjForTest(
+                    "{ \"schema_version\": 1, \"n_max\": 64, \"w_min\": \"-1/4\", \"w_max\": \"1/4\"," +
+                    " \"pairs\": [] }"));
+
+            AssertErrorsContain(ex, "pairs 为空");
+        }
+
+        [Test]
+        public void test_room_empty_table_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindRoomForTest(
+                    "{ \"schema_version\": 1, \"rooms\": [] }", null));
+
+            AssertErrorsContain(ex, "rooms 为空");
+        }
+
+        [Test]
+        public void test_room_empty_clauses_rejected()
+        {
+            // 空谓词会匹配任一布局(房间身份退化为恒真),拒。
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindRoomForTest(
+                    "{ \"schema_version\": 1, \"rooms\": [ { \"room_type\": \"ward\", \"clauses\": [] } ] }", null));
+
+            AssertErrorsContain(ex, "clauses 为空");
+        }
+
+        [Test]
+        public void test_adj_duplicate_pair_rejected()
+        {
+            // 同一有向对两行 ⇒ 「取哪一行」成为隐式规则(静默失序),拒。
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindAdjForTest(
+                    "{ \"schema_version\": 1, \"n_max\": 64, \"w_min\": \"-1/4\", \"w_max\": \"1/4\"," +
+                    " \"pairs\": [" +
+                    " { \"a\": \"bed\", \"b\": \"pot\", \"w\": \"1/8\" }," +
+                    " { \"a\": \"bed\", \"b\": \"pot\", \"w\": \"1/8\" } ] }"));
+
+            AssertErrorsContain(ex, "重复键");
+        }
+
+        [Test]
+        public void test_context_duplicate_room_type_rejected()
+        {
+            // 每房间类型恰一上下文行;重复 ⇒ 拒。
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextForTest(
+                    "{ \"schema_version\": 1, \"contexts\": [" +
+                    " { \"room_type\": \"ward\", \"context_id\": \"a\", \"k_speed\": \"1\", \"base_env\": \"0\" }," +
+                    " { \"room_type\": \"ward\", \"context_id\": \"b\", \"k_speed\": \"1\", \"base_env\": \"0\" } ] }"));
+
+            AssertErrorsContain(ex, "重复");
+        }
+
+        [Test]
+        public void test_overflow_n_max_nonpositive_rejected()
+        {
+            // n_max ≤ 0(单房间格数上界须为正整数)—— 直驱该分支,不经 JSON。
+            var errors = new List<string>();
+            ClinicMachineSchema.AssertOverflowBounds(0L, 3L, -16384L, 16384L, errors);
+
+            Assert.That(string.Join("; ", errors), Does.Contain("须为正整数"));
+        }
+
+        [Test]
+        public void test_adj_wmin_equals_wmax_rejected()
+        {
+            // w_min == w_max 无法满足 W_MIN < 0 < W_MAX ⇒ 必拒。
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindAdjForTest(
+                    "{ \"schema_version\": 1, \"n_max\": 64, \"w_min\": \"1/4\", \"w_max\": \"1/4\"," +
+                    " \"pairs\": [ { \"a\": \"bed\", \"b\": \"pot\", \"w\": \"1/8\" } ] }"));
+
+            AssertErrorsContain(ex, "W_MIN");
+        }
+
+        [Test]
+        public void test_context_null_fix_value_rejected()
+        {
+            // null 不是「缺字段」也不是合法 Fix —— 必填,拒。
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextForTest(
+                    "{ \"schema_version\": 1, \"contexts\": [ { \"room_type\": \"ward\"," +
+                    " \"context_id\": \"a\", \"k_speed\": null, \"base_env\": \"0\" } ] }"));
+
+            AssertErrorsContain(ex, "为 null");
         }
     }
 }
