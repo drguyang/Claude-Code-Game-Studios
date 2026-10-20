@@ -985,6 +985,41 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | **`death-respawn/story-003` 开工前**;或 **7a 下一次动 `Sim.Codec` / 存档格式**时 |
 | **归属** | **7a**(持久化服务) |
 
+---
+
+## 2026-10-20 · 7a 槽位契约高层面零实现(补建 7b `EPIC.md` 时新揭 · 1 条)
+
+**出处**:`production/epics/save-slot-ui/EPIC.md` §Epic Status(三元组
+`2026-10-20T07:28` UTC · 7b `EPIC.md` 补建轮 · `5353e38`);
+路线图侧同一条 = `production/milestones/p0-remaining-roadmap-2026-10-20.md` §三 **G-4**。
+**性质**:与上节两条**同族** —— 「**ADR 已裁、GDD 已写、epic 已标 `Complete`、代码里零落点**」。
+它是**上一轮跨 epic 勘察的漏项**,漏因见下「为什么此前不在册」。
+
+**为什么单独立本册而不立 story(用户裁定 2026-10-20「G-4 也登记 TD,不立 story」)**:
+与 `TD-sim-01` / `TD-persist-01` **同一条裁定口径** —— `persistence-service` 已标
+`Complete ✅ 2026-10-02(2/2)`,补立 story 会把它的计数从「全绿」打回「未全绿」,扰动 M3 分母口径;
+本条实现面 = **一组接口方法 + 两个投影谓词**,随 7a 下一次动 `Sim.Codec` 一并落即可。
+⚠️ **不立 story ≠ 不还** —— 带具名触发条件,到点不还即违反本册口径。
+
+### TD-persist-02 — 7a 槽位契约高层面(`Checkpoint` / `Load` / `Writable` / `Loadable` / `Gating`)零实现
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `ADR-010` §Key Interfaces(`adr-010:324-327`)定 `ISaveService` 三方法:`Checkpoint(SaveSlot)`(**唯一写入口**,走 7a 规则十四)· `SaveOnExit()`(退出保存,非玩家可选槽位)· `Load(SaveSlot)`(校验和 → 回退 `bak` → 迁移链 → 三流重放)。7a **规则十四** + **`AC-7a-19`** 并要求:**(a)** 写时序递增槽位允许;**(b)** 覆盖既有槽位(`slot_seq` 不增)= 7a 拒绝(非 7b 提示);**(c)** 无未决医疗动作上下文之外 = 7a 拒绝;**(d)** 读档后该槽位在同一会话内 **reads 侧锁定**,再读被拒。这些判定的**产出面** = `Writable` / `Loadable` 两个投影 + 载入门状态 `Gating`。**裁决齐,实现零落点。** |
+| **实测(扫描面已声明)** | 扫描面 = **`unity/Assets/` 全工程,排除 `Tests/`,C# 文件,排除注释行**(`//` / `///`)。逐符号:<br>· `Checkpoint` ⇒ **0 处**<br>· `SaveOnExit` ⇒ **0 处**<br>· `Loadable` ⇒ **0 处**<br>· `Gating` ⇒ **0 处**<br>· `Writable` ⇒ **1 处,但非同物** —— `Sim/EnemyEncounter.cs:91` 的 `static bool ValidateWritableSet()`(敌人遭遇集可写性),与 7a 槽位可写性无任何关系。<br>**别名扩展扫描**(防 `SelfLimited` / `Recipe.owner` 同型误判):`SaveCheckpoint` / `ManualSave` / `QuickSave` / `SaveGame` / `LoadGame` / `SlotList` / `ListSlots` / `CanWrite` / `CanOverwrite` / `CanLoad` / `IsLoadable` / `Readable` / `SlotState` / `SaveOnExit` ⇒ **全部 0 处**。<br>现存接口见 `Sim.Codec/ISaveService.cs:20-28`,**只有** `SaveBytes` / `LoadBytes`;`SaveSlot`(`:13-17`)**只有 `SlotSeq` 一个字段**,无 tick / 时间戳 / 摘要。 |
+| **关键证据:这是「推迟」不是「漏写」** | `persistence-service/story-001-storage-abstraction.md:54` 的 **Deviations** 逐字:「`ISaveService` 接口只保留低层原语(SaveBytes/LoadBytes),**高层方法(Checkpoint/SaveOnExit/Load)归后续 story**」;`ISaveService.cs:19` 的 doc 同样自陈「高层方法（Checkpoint/SaveOnExit/Load）归后续 story」。<br>⇒ **该 deferred 承诺从未被任何 story 认领** —— 7a 只有 2 条 story,均已 `Complete`,**不存在「后续 story」**。这是**推迟登记到期未兑现**,不是静默遗漏。 |
+| **卡住的判据** | `7b` 的 **AC-7b-01**(唯一写入 API = `Checkpoint`/`Load`,零自定义写入路径)· **AC-7b-02**(零本地判定,`Writable`/`Loadable` 全来自 7a)· **AC-7b-10**(呈现 = 7a 返回值的纯函数)**—— 三条 BLOCKING 的宾语全部不存在**;<br>7a 自身的 **AC-7a-19**(规则十四四个子判据 (a)–(d));<br>`7b` 的 `F-7b.2` 两投影公式与 UI-7b.2(灰置 / 页角小字)**无输入源** |
+| **为什么此前不在册(两次漏)** | **第一次漏**:上一轮跨 epic 勘察(`dd7af25` 轮)只 grep 了 `SelfLimited` / `Folded(p)` / `Recipe.owner` 三个符号 —— **`Checkpoint` 从未进过扫描符号表**。<br>**第二次漏(结构性)**:G-1 / G-2 的**发现路径**是「下游卡面有 `BLOCKED-BY` 指向某个 ADR 义务 → 顺着义务名 grep」。而 `7b` 是 **31 个 epic 里唯一卡面零挂标的**(`story-001` 实测 0 个 `BLOCKED-BY`)⇒ **没有下游指针能把这条缺口顶出来**。<br>⇒ **同一个病根的两面**:缺口既不在扫描列表里,也没有下游卡面替它报警。**这正是路线图 §八 失败条件 #3 的实例,该条已于 2026-10-20 记为「已触发」。** |
+| **解除动作** | ① 把 `ISaveService` 补到 ADR-010 §Key Interfaces 的形状(`Checkpoint` / `SaveOnExit` / `Load`);② 实现规则十四四子判据并产出 `Writable` / `Loadable` 两投影 + `Gating` 载入门;<br>③ **夹具须覆盖 `AC-7a-19` 的闭合回路**:「先手动存 → 读档 → 再覆盖回去」任一环被拒(该回路是该 AC 的 BLOCKING 判据);<br>④ ⚠️ **`Folded(p)` 与本条相邻但不同债** —— 折叠谓词归 `TD-persist-01`,不要合并记账 |
+| **触发条件** | **`save-slot-ui/story-001` 勾 `AC-7b-01 / 02 / 10` 之前**(否则只能交「槽行 + 排序 + 灰置骨架」,三条 AC 必挂);或 **7a 下一次动 `Sim.Codec` / 存档格式**时 |
+| **归属** | **7a**(持久化服务) |
+
+> ⚠️ **本条与 `TD-persist-01` 的位置关系**:两条同在 `Sim.Codec`,但其**解除动作互不依赖**
+> (`Folded(p)` 是病史流折叠;本条是槽位契约的高层面)。合并成一条会让「已还一半」的记账变得不可判,
+> 故**分立两条**。
+
+---
+
 ### 同批被**证伪**的一条(留痕,防重复登记)
 
 本批勘察原拟登记**第三条**:`Recipe.owner ∈ {process, craft, build}` 字段未落地(`18` 的 `AC-18-18`)。
