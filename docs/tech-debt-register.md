@@ -6,8 +6,14 @@
 > 本册记**已知残留的债**——原件结案后仍悬的项。
 
 > ## ⚠️ 待办:本册将增「P0 面 / 状态」两列(**归 sprint-16 ③**)
+> 
+> 🔁 **2026-10-20 已兑现(S16-3 落盘)** —— 三列已落,真源见下方 **§★ 总索引**。
+> **本块原文全部保留**(它记的是落盘前的状态,不删)。⚠️ 其中两处数字经实测**已过时**:
+> 「**82 条**」→ 实测 **91 条**;「**~20 张表**」→ 含 TD 行的 Markdown 表**恰 20 张**。
+> 判据本身亦已换:**原 ②「逐条判该债是否卡住某条 P0 AC」** 由用户 2026-10-20 裁定的
+> **宽判据 R1**(归属 epic ∈ 31 个 P0 epic ⇒ P0 面 = Y)取代 —— 见 §★ 总索引 §一。
 >
-> **裁定**(用户 2026-10-20,见 `production/milestones/p0-completion-plan-2026-10-20.md` §6.1 ①):
+> **裁定**(用户 2026-10-20,见 `production/milestones/p0-remaining-roadmap-2026-10-20.md` **§6.6 ①**):
 > 八道硬门(G-1…G-8)挂在与已 `Complete` 的 epic 之下,**以「TD 工作项」为实施载体**
 > (不立 story、不重开 epic);而 M3 Exit 的第二条合取逐字是
 > 「**该 epic 名下 TD 的 P0 面 = 0**」—— 这是 **TD 口径,不是 story 口径**。
@@ -19,6 +25,286 @@
 > ② 逐条判「该债是否卡住某条 P0 AC」→ **P0 面**列。
 > **完成后**:每道门在其归属 epic 名下的 P0 面条目清零 ⇒ M3 Exit 第二条合取可判。
 > ⚠️ **未完成前,任何「M3 已接近闭环」的读数都缺这一半判据 —— 不得据 story 计数推定。**
+
+---
+
+## ★ 总索引(机器可读 —— 归属 epic / 状态 / P0 面)· 2026-10-20 · S16-3 落盘
+
+> **本节是 M3 Exit 第二条合取的唯一求值面。** 它把此前**嵌在散文里**的状态、
+> 与**从未存在**过的「P0 面」标记,抽成一张表;下方各日期小节**一律不动**
+> (原文保留,承「原文不删,就地加注」纪律)。节末附**求值命令**与
+> **G-1…G-8 八道硬门的清偿载体**。
+
+### 一、判据(三条 · 用户 2026-10-20 裁定)
+
+| 代号 | 规则 | 结果 |
+|---|---|---|
+| **R1** | 归属 epic ∈ **31 个 P0 epic** | P0 面 = **Y** |
+| **R2** | 归属 = **非 P0 系统** —— 45 网络层(P1b)· 49 无障碍(P2) | P0 面 = **N** |
+| **R3** | 归属**不落在任何 epic**(跨 epic 治理) | ~~**待裁**(须用户裁)~~ ⇒ ✅ **N**(2026-10-20 已裁,见下方 ✅ 块) |
+
+⚠️ **口径订正(实测,非自裁)**:裁定时的选项预览写「R1 命中 **91 条全中**」——
+**实测 87 条**。差 4 条 = **2 条 R2**(系统 45 / 49:有优先级、无 epic,**判 N**)
++ **2 条 R3**(`TD-s13-01` / `TD-s13-03`:跨 epic 治理,**无归属 epic** ⇒ 待裁 —— **该「待裁」后经 2026-10-20 裁定改为 `N`,见下**)。
+
+> ✅ **R3 已裁(2026-10-20 · 用户裁定「治理不入 M3」)** —— 原「待裁」桶**清零**,
+> **四条全判 `N`**(上表 R2 两条 + 本节 R3 两条):
+>
+> | 条 | 归属 | 判定 | 理由(裁定口径) |
+> |---|---|---|---|
+> | `TD-net-01` | 系统 45 网络层(P1b) | **N** | **归属优先**:归属不是 31 个 P0 epic 之一 ⇒ 不进 M3 出口。ADR-001 的「P0 预埋」义务**仍成立且仍在本册跟踪**,触发条件 = P1b swap 评审之前 |
+> | `TD-prescription-05` | 49 无障碍(P2) | **N** | 49 = P2;**且已不卡任何 P0 AC** —— `AC-11-13` 已按「本载体零颜色读数通道 ⇒ 形态与颜色无关」的**豁免口径**转 ✅(有判据,非口头豁免) |
+> | `TD-s13-01` | 跨 epic · 治理(code-review skill) | **N** | **治理债 ≠ 产品/架构债**;M3 Exit 是**系统机制面** |
+> | `TD-s13-03` | 跨 epic · 治理(sprint 冒烟) | **N** | 同上;且该条本身已 `closed` |
+>
+> ⚠️ **本裁不新增规则 R4** —— 治理债与「非 P0 系统」在**处置面**上同归
+> 「**不进 M3 出口,但仍在册跟踪**」,只是 R2 的原措辞举的是「非 P0 系统」,
+> 而治理债是「**非系统**」。二者共用 R2 的处置,**分列理由以免日后把「治理」读成「系统」**。
+> ⚠️ **裁定不改变任何数字** —— 四条**本就不计进出口量** ⇒ `91 / 72 / 12` 一位不动;
+> 变的是「**有没有悬着的格子**」:索引表 `P0 面` 列自此**无 `待裁` 值**,
+> 求值命令的输出随之从 `{'Y': 87, 'N': 2, '待裁': 2}` 变为 `{'Y': 87, 'N': 4}`
+> (§五 已同步)。**全 91 行 `P0 面` 取值至此封闭,可机械复算无残留分支。**
+
+⇒ **R1 是宽判据**(归属即算),故 **M3 第二条合取今天 = 「91 条里的 87 条标 P0 面」**。
+**这不是收紧口径** —— 是宽判据**如实执行**后的读数;预览的「全中」是**未逐条比对的估值**。
+
+> ⚠️ **但出口量不是 87,是 72**(S16-3 收口轮自查修正,留痕不删)。
+> 「**该 epic 名下 TD 的 P0 面 = 0**」的求值对象必须是**未闭**的 P0 面债 —— 若把**已清偿**的债
+> 也算进去,该条**永远不可能为 0**(closed 条目会永久保留 `P0 面 = Y` 标记)⇒ **判据自相矛盾**。
+> ⇒ **87 = 曾经/现在属于 P0 面的条目数**(静态属性);**72 = 仍需偿还的 P0 面债**(87 − 已闭 15;§五 实跑)。
+> **M3 判据取后者。** 初版求值命令漏了 `r[2] != 'closed'` 过滤,已修(§五)。
+
+### 二、计数口径:基线 `92` → 本表 `91`(⚠️ 两数并存,出处不同)
+
+| 口径 | 值 | 取法 |
+|---|---|---|
+| `production/sprint-status.yaml` `baseline.tech_debt_ids` | **92** | **全文串扫** `TD-<a>-<b>` 形态 |
+| **本表(真源)** | **91** | **`###`/`####` 标题 ∪ 表格行首列** |
+
+**92 的错因(逐集验证,可复算)**:全文扫 **多算 1** —— 裸串 `TD-audio-01` 是**族引用**
+(正文里指 `TD-audio-01a…01f` 这一族),**不是独立债号**;**少算 5** —— `TD-epic-01-a…-e`
+五个**带字母后缀**的真债号,在第三个 `-` 处被**截断**成 `TD-epic-01`。净 `+1`:
+`91 − 5 + 6 = 92` ✓(集合差双向打印核对:`allids − real` = `{TD-audio-01, TD-epic-01…05}`;
+`real − allids` = `{TD-epic-01-a…-e}`)。
+
+> ⚠️ **原文不删**:`sprint-status.yaml` 的 `92` 保留不动,其侧已加注指向本节。
+> 同理,**本册头部原「82 条 / ~20 张表」自述亦已过时** —— 实测 = **91 条 / 20 张含 TD 的表**
+> (原「~17 债型表」亦不准:含 TD 行的 Markdown 表**恰 20 张**)。
+
+### 三、`状态` 列的值域与判据
+
+`open`(未闭)· `partial`(半边已落 / 有具名残留)· `closed`(原条自陈结案)。
+
+**判据 = 该条的「结论列」(表格行末格)或「状态」行(独立小节)的原文自陈。**
+
+> ⚠️ **禁用「含 `✅` 即 `closed`」的机械规则** —— 实测 **5 处 `✅` 出现在非结案语境**:
+> `TD-clinic-12`「✅ **已核对**:不构成 ADR-014 合规缺口」(勘验结论)·
+> `TD-audio-103`「✅ 阻塞源改口」(前提订正)·
+> `TD-audio-028` / `TD-audio-030` / `TD-audio-033`「✅ 评审实测…」(证据记录)。
+> ⇒ 机械判会把**勘验结论 / 前提订正**读成**结案**。
+> **本表 91 行的状态为逐条读原文判定;任何行与本表不符时,以原条原文为准。**
+
+**今天实测**:`open` **70** · `partial` **5** · `closed` **16** —— 合计 **91** ✓
+
+### 四、总索引表(91 行)
+
+<!-- TD-INDEX:BEGIN -->
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| `TD-medcons-01` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-02` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-03` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-04` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-05` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-06` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-07` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-08` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-09` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-10` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-11` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-12` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-13` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-14` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-15` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-16` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-17` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-18` | `medical-consequences` | open | **Y** | R1 |
+| `TD-medcons-19` | `medical-consequences` | open | **Y** | R1 |
+| `TD-s13-02` | `medical-consequences` | partial | **Y** | R1 |
+| `TD-s13-01` | `（跨 epic · 治理／code-review skill）` | partial | **N** | R3-裁 |
+| `TD-s13-03` | `（跨 epic · 治理／sprint 冒烟）` | closed | **N** | R3-裁 |
+| `TD-s13-04` | `prescription-medication` | closed | **Y** | R1 |
+| `TD-prescription-01` | `skeuomorphic-ui` | closed | **Y** | R1 |
+| `TD-prescription-02` | `skeuomorphic-ui` | closed | **Y** | R1 |
+| `TD-prescription-03` | `skeuomorphic-ui` | closed | **Y** | R1 |
+| `TD-prescription-07` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-prescription-08` | `skeuomorphic-ui` | open | **Y** | R1 |
+| `TD-prescription-04` | `audio-system` | closed | **Y** | R1 |
+| `TD-audio-023` | `audio-system` | closed | **Y** | R1 |
+| `TD-audio-024` | `audio-system` | closed | **Y** | R1 |
+| `TD-audio-026` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-027` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-028` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-029` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-030` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-031` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-032` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-033` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-034` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-035` | `audio-system` | partial | **Y** | R1 |
+| `TD-audio-01a` | `audio-system` | closed | **Y** | R1 |
+| `TD-audio-01b` | `audio-system` | closed | **Y** | R1 |
+| `TD-audio-01c` | `audio-system` | closed | **Y** | R1 |
+| `TD-audio-01d` | `audio-system` | closed | **Y** | R1 |
+| `TD-audio-01e` | `audio-system` | closed | **Y** | R1 |
+| `TD-audio-01f` | `audio-system` | closed | **Y** | R1 |
+| `TD-audio-100` | `audio-system` | partial | **Y** | R1 |
+| `TD-audio-101` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-102` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-103` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-104` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-105` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-106` | `audio-system` | closed | **Y** | R1 |
+| `TD-audio-107` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-108` | `audio-system` | open | **Y** | R1 |
+| `TD-audio-109` | `audio-system` | partial | **Y** | R1 |
+| `TD-listen-01` | `audio-system` | open | **Y** | R1 |
+| `TD-prescription-05` | `（49 无障碍 · P2 · 无 epic）` | open | **N** | R2 |
+| `TD-prescription-06` | `patient-ai` | open | **Y** | R1 |
+| `TD-audio-025` | `disease-simulation` | open | **Y** | R1 |
+| `TD-sim-01` | `disease-simulation` | open | **Y** | R1 |
+| `TD-player-01` | `player-controller` | closed | **Y** | R1 |
+| `TD-player-02` | `player-controller` | open | **Y** | R1 |
+| `TD-epic-01-a` | `telemetry-analytics` | open | **Y** | R1 |
+| `TD-epic-01-b` | `telemetry-analytics` | open | **Y** | R1 |
+| `TD-epic-01-c` | `telemetry-analytics` | open | **Y** | R1 |
+| `TD-epic-01-d` | `telemetry-analytics` | open | **Y** | R1 |
+| `TD-epic-01-e` | `telemetry-analytics` | open | **Y** | R1 |
+| `TD-persist-01` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-02` | `persistence-service` | open | **Y** | R1 |
+| `TD-enemy-01` | `enemy-ai` | open | **Y** | R1 |
+| `TD-randomevents-01` | `random-events` | open | **Y** | R1 |
+| `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | open | **N** | R2 |
+| `TD-clinic-01` | `item-database` | open | **Y** | R1 |
+| `TD-clinic-02` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-03` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-04` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-05` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-06` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-07` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-08` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-09` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-10` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-11` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-12` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-13` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-14` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-15` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-16` | `clinic-machine` | open | **Y** | R1 |
+| `TD-clinic-17` | `clinic-machine` | open | **Y** | R1 |
+<!-- TD-INDEX:END -->
+
+> **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
+> **无归属 epic 者**写成括号说明(`` `（系统 45 网络层 · P1b · 无 epic）` ``),
+> 括注里**写明优先级与「无 epic」** —— 这正是 R2 / R3 的判据来源,可逐条复核。
+> **归属取「须还此债的 epic」,不取「登记时所在的小节」** —— 故 `11 处方用药走查缺口`
+> 一节下的 8 条**分落 4 个 epic**(42 五条 / 44 一条 / 49 一条 / 13 一条)。
+
+### 五、M3 Exit 第二条合取的求值命令(可复算)
+
+```bash
+python3 - <<'PYEVAL'
+import re, collections
+txt = open('docs/tech-debt-register.md', encoding='utf-8').read()
+blk = re.search(r'<!-- TD-INDEX:BEGIN -->(.*?)<!-- TD-INDEX:END -->', txt, re.S).group(1)
+rows = [[c.strip() for c in l.strip().strip('|').split('|')]
+        for l in blk.split('\n') if l.startswith('| `TD-')]
+st = collections.Counter(r[2] for r in rows)
+p  = collections.Counter(r[3].strip('*') for r in rows)
+# ⚠️ M3 Exit ② 的求值对象 = **未闭**的 P0 面债。
+#    已清偿的债不再构成出口障碍 —— 否则该条在任何情况下都不可能为 0。
+live = [r for r in rows if r[2] != 'closed' and r[3].strip('*') == 'Y']
+ep = collections.Counter(r[1].strip('`') for r in live)
+print('条目', len(rows), '| 状态', dict(st), '| P0 面', dict(p))
+print('未闭 P0 面 =', len(live), '（已闭但曾标 P0 面的',
+      sum(1 for r in rows if r[2] == 'closed' and r[3].strip('*') == 'Y'), '条不计）')
+print('M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒',
+      '真' if not live else f'假 —— {len(live)} 条,分布在 {len(ep)}/31 个 epic')
+for k, v in ep.most_common():
+    print(f'    {k}: {v}')
+PYEVAL
+```
+
+**当前预期输出(2026-10-20 实测,如实报 —— `≠ 0`,禁为好看而判非 P0)**:
+
+```text
+条目 91 | 状态 {'open': 70, 'partial': 5, 'closed': 16} | P0 面 {'Y': 87, 'N': 4}
+未闭 P0 面 = 72 （已闭但曾标 P0 面的 15 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 72 条,分布在 12/31 个 epic
+    medical-consequences: 20   audio-system: 20          clinic-machine: 16
+    telemetry-analytics: 5     skeuomorphic-ui: 2        disease-simulation: 2
+    persistence-service: 2     patient-ai: 1              player-controller: 1
+    enemy-ai: 1                random-events: 1           item-database: 1
+```
+
+> ⚠️ **该输出即 S16-3 的交付判据**。它**不是绿** —— 它把 M3 的出口量**如实显示为 72 条**。
+> ⚠️ **本命令初版有 bug 并已修(留痕)**:初版缺 `r[2] != 'closed'` 过滤,把**已闭的 15 条**
+> 也计入出口量 ⇒ 报 **87**。**87 是「属 P0 面的条目总数」(静态属性),72 是「仍需偿还的量」**。
+> 该错**方向是保守**(多报 15 条未偿),不构成借绿;但**口径错就是错**,已就地改正并留痕。
+> `N` 的 4 条**不进** M3 出口(原为「`N` / `待裁`」,2026-10-20 用户裁定后 `待裁` 桶清零),
+> 但**须在 M3 判定时单独说明**其义务是否仍在(尤其 `TD-net-01`,见 §六 尾注)。
+
+### 六、八道硬门的清偿载体(G-1…G-8 · 用户裁定「以 TD 工作项为载体」)
+
+**八道门全部在册,且全部落在本表内** —— 逐条对应(门的定义与逐项实测证据引
+`production/milestones/p0-remaining-roadmap-2026-10-20.md` §三,**本节不复制其实测**):
+
+| 门 | 载体 TD | 归属 epic(括号 = 该 epic 的 story 数,均全 `Complete`) | 状态 | P0 面 | 触发条件(何时须还) |
+|---|---|---|---|---|---|
+| **G-1** | `TD-sim-01` | `disease-simulation`(7/7) | open | **Y** | `death-respawn` 任一 story 开工前;或 9 下一轮动 F4 / `StateMachine` |
+| **G-2** | `TD-persist-01` | `persistence-service`(2/2) | open | **Y** | `death-respawn/story-003` 开工前;或 7a 下次动 `Sim.Codec` |
+| **G-4** | `TD-persist-02` | `persistence-service`(2/2) | open | **Y** | `save-slot-ui/story-001` 勾 `AC-7b-01/02/10` 之前 |
+| **G-5** | `TD-player-02` | `player-controller`(6/6)+ `camera-viewpoint`(6/6) | open | **Y** | 1 或 2 的下一轮动到玩家位移 / 相机锚点时 |
+| **G-6** | `TD-enemy-01` | `enemy-ai`(5/5) | open | **Y** | 27 具备可跑行为程序之前 |
+| **G-7** | `TD-randomevents-01` | `random-events`(6/6) | open | **Y** | 52 下一次动延迟威胁 / 主机迁移语义时 |
+| **G-8** | `TD-clinic-01` | `item-database`(12/12) | open | **Y** | `clinic-machine/story-001` 的 `AC-24-08` / `AC-24-12` 转可判之前 |
+| ~~**G-3**~~ | ❌ **不登记** | —— | —— | —— | **已证伪**(错因 = grep 目录限定;留痕见本册「同批被证伪的一条」) |
+
+**两类角色(排期含义不同 · 承路线图 §3.1)**:
+
+| 类 | 门 | 清一道解锁什么 |
+|---|---|---|
+| **链门** | **G-8 · G-1 · G-2** | **整条链的剩余件** —— G-8 → clinic 004/005(+001 的两条挂标 AC);G-1 → `death-respawn` 全 6 件 + 29 的 7 条 AC + 25 的 `AC-25-6-08` |
+| **AC 门** | **G-4 · G-5 · G-6 · G-7** | **已标 `Complete` 的 epic 的 AC** —— 7a/7b · 1,2 · 27 · 52(**零剩余 story**) |
+
+> **清偿载体统一 = TD 工作项**(用户裁定 2026-10-20):
+> **不立 story · 不重开已 `Complete` 的 epic**。理由 = 补立会把计数从「全绿」打回「未全绿」、
+> 扰动 M3 分母;而各门的实现面各只一两个谓词 / 一两个字段,随触发条件并入下一个动该 epic 的轮次即可。
+> ⚠️ **不立 story ≠ 不还** —— 八条各带具名触发条件(上表末列)。
+> ⚠️ **入册 ≠ 已还** —— 八道的 AC 判据**今天一条都仍不可达**;上表 8 行的状态**全为 `open`**。
+
+**⚠️ 一处须另裁的错位(本节如实登记,不自行裁)** —— 孤儿契约 `TD-net-01`
+(`IReplayPipe` / `ReorderBuffer`)不占 G 号(它**连 epic 都没有**),其
+**义务级 = P0**(ADR-001 `:167` / `:448` 逐字「P0 预埋 / P0 写」)而
+**归属系统级 = P1b**(`systems-index.md:81` 系统 45)。⇒ 按 **R2** 本表判其 **P0 面 = N**,
+**但它的义务本身是 P0** —— 这是「**义务级 P0 · 归属系统级 P1b · 无 epic**」的三重错位。
+**该条与另 2 条 R3(`TD-s13-01` / `TD-s13-03`)一并进待裁清单,交用户裁**;
+在本轮裁定前,**M3 第二步判定的分母须并列记 `72(Y,未闭) + 3(待说明)`** ——
+3 条 = 上述待裁中**尚未结案**的 3 条(`TD-s13-03` 已 `closed`,不计出口量)。
+
+> ✅ **2026-10-20 已裁(用户「全部取推荐」:三条俱判 `N`)** —— 上文「交用户裁」与
+> 「分母须并列记 `72 + 3`」**均已兑现并失效**,原文保留留痕。**现行口径**:
+>
+> - **M3 第二步的分母 = 单一的 `72`**,不再带「+ 3 待说明」尾巴。
+> - **三重错位的处置**:`TD-net-01` 判 **`N`(归属优先)** —— 归属不是 31 个 P0 epic 之一
+>   ⇒ 不进 M3 出口。⚠️ **这不等于「义务作废」**:ADR-001 的「P0 预埋」仍逐字有效,
+>   该条**仍在本册以 `open` 跟踪**,触发条件 = **P1b swap 评审之前**
+>   (与 `TD-randomevents-01` 等八道门同款「具名触发条件 + 入册跟踪」形态)。
+>   **本裁只回答「算不算 M3 出口」,不回答「要不要还」—— 后者不变,仍是要还。**
+> - **备选 `Y`(义务级优先)已被否**:那会要求新增规则 **R4 = 义务级 P0 优先于归属系统级**,
+>   使 `P0 面` 列的判据从一个(归属)**变成两个**(归属 + 义务),而两者在
+>   `TD-net-01` 上**恰好相反** ⇒ 判据不再单一可复算。宽判据的价值正在「一条规则、无例外」。
+> - **治理两条(`TD-s13-01` / `TD-s13-03`)** 同判 `N`,理由见 §一 的 ✅ 块。
 
 ---
 
@@ -1253,3 +1539,54 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 与 `TD-clinic-12`(字符串字段进落盘形状)。**族 A 的 9 条建议合成一次「接受侧判别力收紧」小轮**
 一并处理(判据:逐条变异 ⇒ 转红),因为它们是**同一个病灶的九个面**,分开修等于把同一份
 勘察成本付九次。
+
+---
+
+## 2026-10-21 · 门链接线判据缺失(QA 签核轮 C-1 立案)
+
+**出处**:`production/qa/` sprint-16 QA 签核轮。qa-lead 定性 **S3(判据覆盖缺口)**;
+编排方实测复现。**不是伪绿,是覆盖不全** —— 门的**本体**确实能拦,缺的是「门还在门链上」这一条。
+
+**病症(实测,非推断)**:`FsWriteBoundaryGate` 经 `AssemblyGates.cs:130` 一行接入构建期门链:
+
+```csharp
+errs.AddRange(FsWriteBoundaryGate.RunAll("."));   // :130
+```
+
+把该行删掉(换成注释)后跑 `--filter FsWriteBoundaryGateTest`:
+
+```
+EXIT=0
+{'total': '17', 'passed': '17', 'failed': '0'}     ← 17/17 全绿
+```
+
+⇒ **门从门链掉线变成死代码时,现有全部判据一条都不红。**
+已还原,`sha256` 逐字节一致,残留 0。
+
+**为什么「有端到端测试」也不够**:`unity/Assets/Tests/EditMode/Sim/assembly_gate_runall_test.cs:31`
+确实调真实入口,但它断的是 `errs.Count == 0`(「门链不报红」)。
+**这是单调判据 —— 删掉一个门只会让 errs 变少,永远不会让它变多。**
+⇒ 「零红」只覆盖「多了不该有的红」这一个方向,对「少了一个门」完全失明。
+`payload_decoder_test.cs:380` 一处同型。
+
+**这解释了 QA plan 原措辞为何误导**:`qa-plan-sprint-16:55` 写「停用**门的调用点** ⇒
+F1 的注入不再被拦」—— 它所指的那个调用点,**恰恰是唯一没有判据的对象**。
+`impl-s16-4` §四 当时登记「F3 停在判别力源头这一层」是诚实的,但**低估**了严重性:
+实际是「接线层零覆盖」,不只是「未在叠加态实测」。
+
+| # | 债 | 归属 epic | 状态 | P0 面 | 出处 | 触发条件(何时须还) |
+|---|---|---|---|---|---|---|
+| **TD-gate-01** | **`AssemblyGates.RunAll` 门链缺反向判据** —— 任何门从链上掉线,S 侧无感知。最小补法(已由 qa-lead 给出,含防自守要求):在 `assembly_gate_runall_test.cs` 加**门链清单封闭性**两条断言 —— ① 读 `AssemblyGates.cs` 源文本,抽出 `errs.AddRange(<X>Gate.RunAll(` 的**门名集合**;② 与该文件内**手写常量** `GateWiringManifest` 做**双向差集**,任一方向非空即红。⚠️ **清单须手写,禁从 RunAll 体反射生成**(否则恒等 ⇒ 零判别力);且须配一条变异「删 RunAll 里一行 ⇒ 红」进证伪轮,否则只是把假绿换个位置。形态先例:ADR-025 §④「清单封闭性 = 本法」· 既有 `CheckManifestClosure` 双向差 · 读 `.cs` 源文本先例 = `FsWriteBoundaryGate` 本身 | `(跨 epic · 治理／Editor.Tools.Gates)` | open | **N** | QA 签核轮实测 · `assembly_gate_runall_test.cs:31` · `AssemblyGates.cs:130` | **下一个触碰 `AssemblyGates.RunAll` 的 sprint**(补判据前,`FsWriteBoundaryGate` 只能记「本体已证、接线未证」,**不得**在 `/gate-check` / M3 判定 / 构建前门说明里写成「写盘边界门已生效」) |
+| **TD-gate-02** | **同类缺口大概率是全门链共性,非 S16-4 独有** —— `MedConsFloatGate` / `WriterExistenceGate` / `EcozoneIntegerGates` 等**未逐门核**(qa-lead 明标「未核,不作全域断言」)。已知形态相同:都只有「本体直调 + 一条零红端到端」 | `(跨 epic · 治理／Editor.Tools.Gates)` | open | **N** | 同上 | 与 `TD-gate-01` **同批**(补清单时一次覆盖全部门,分两次修等于把同一份勘察成本付两遍) |
+| **TD-gate-03** | **falsify 残留判据词表有盲区** —— `impl-s16-4` §四/§七 的残留检查是 `grep -c "FALSIFY-F"`,而人工变异可用任意标记(`FALSIFY-QA` 等)⇒ **该 grep 抓不到**。「还原校验通过」因此存在漏网形态。另:并发变异会污染旁路读取(qa-lead 读 `AssemblyGates.cs` 时正好落在编排方变异窗口内) | `(跨 epic · 治理／tools/falsify)` | open | **N** | QA 签核轮实测 | **下次动 `tools/falsify/` 时** —— 词表改为覆盖 `FALSIFY-` **前缀全集**;并在驱动/README 写明「变异进行中须声明,读者不得并发读被变异文件」。⚠️ **C-1 证伪轮用 `FALSIFY-F` 前缀 + 窗口内并发读了 `AssemblyGates.cs`,两个盲区双双再中** —— 见文末 §TD-gate 结案 |
+
+> **三条均判 `P0 面 = N`** —— 归属是 `Editor.Tools.Gates` / `tools/falsify` 的**治理面**,
+> 不落在 31 个 P0 epic 的任何一个(承 §一 R3 的 2026-10-20 裁定口径:**治理债 ≠ 产品/架构债**)。
+> ⇒ **不进 M3 出口量**;`72 / 12 epic` 一位不动。
+> ⚠️ 但 `TD-gate-01` 的**限定语是硬要求**:C-1 未闭期间,该门不得被引作「已生效」。
+>
+> **本块为 append 新增,未回填 §四 总索引表。** 若读者要求「全 91 行可机械求值」,
+> 须同时把这三行加入 §四 并重跑 §五(届时输出会变 `条目 94 | P0 面 {Y:87, N:7}`)。
+> **该回填归 §四/§五 的维护轮,不在本块内做** —— 理由:§四 是 S16-3 的落盘产物,
+> 就地改它会让「S16-3 的交货数」与「今日真值」混成一团;且须用户裁定 `91` 这个口径
+> 是否随之升版。**本条登记即为此事的触发点。**

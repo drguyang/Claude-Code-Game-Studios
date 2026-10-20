@@ -1,0 +1,81 @@
+{
+  "name": "C-1 门链接线判据证伪轮 —— 双向差集三向各一条",
+  "mode": "EditMode",
+  "filter": "GateWiringManifestTest",
+  "unityProject": "unity",
+  "_note": [
+    "判据 = 每个变异**恰如预期**转红(exactRed),且跑完后受保护路径零 diff。",
+    "",
+    "本规格为什么需要三条(而不是一条):",
+    "  双向差集有两个方向,单测任一侧都会漏掉另一半 —— 这正是 TD-gate-01 指出的病根",
+    "  (「零红」只覆盖「多了不该有的红」)。故必须两向各打一次:",
+    "    F1 = 生产侧丢一根线  ⇒ 方向「清单有、源无」",
+    "    F2 = 清单侧丢一条声明 ⇒ 方向「源有、清单无」",
+    "  再加 F3 打**判别力源头**:停用解析 ⇒ 证明判据不是「两边都空所以相等」。",
+    "",
+    "⚠️ 与 S16-4 的 F3 同理如实登记:本驱动不允许叠变异(每条从干净基线出发),",
+    "   故 F3 停在「解析器失效」这一层。它与「接线判据失效」是同一件事的合成形态",
+    "   (解析器若抽不出东西,真接线也认不出),但**本 spec 未在真删线的状态下叠加实测解析失效** —— 不借绿。"
+  ],
+  "mutations": [
+    {
+      "name": "F1-removeFsWriteWiring",
+      "file": "unity/Assets/Editor.Tools.Gates/AssemblyGates.cs",
+      "line": 130,
+      "expect": "            errs.AddRange(FsWriteBoundaryGate.RunAll(\".\"));",
+      "replace": "",
+      "expectRed": [
+        "test_entryWiring_matchesManifest_bidirectionally",
+        "test_classManifest_chainKindEntriesAreActuallyWired",
+        "test_extractor_actuallyExtractsKnownMembers"
+      ],
+      "exactRed": true,
+      "_why": "删掉 AssemblyGates.cs:130(门链上唯一接 FsWriteBoundaryGate 的那行)⇒ 方向「清单有、源无」必红。这正是 S16-4 QA 轮实测出「17/17 仍全绿」的那个变异 —— 本文件存在的唯一理由就是让这条形变转红。",
+      "_alsoRed": "test_classManifest_chainKindEntriesAreActuallyWired:FsWriteBoundaryGate 的 Kind=Chain,而链上已无它 ⇒ 声明与事实不符,应同时红。两条同时红是**预期**,不是超范围。",
+      "_expectRed_justification": [
+        "① bidirectional:清单声明了 FsWriteBoundaryGate.RunAll,源没了 ⇒ 方向「清单有、源无」红(核心)。",
+        "② chainKind:FsWriteBoundaryGate 的 Kind=Chain,链上已无它 ⇒ 声明与事实不符。",
+        "③ actuallyExtractsKnownMembers:该测**逐条点名**断言 FsWriteBoundaryGate.RunAll 在 RunAll 集合里",
+        "   (gate_wiring_manifest_test.cs:324「提取器抽不到 … 这正是 C-1 立案的那条线」)—— 删掉它必红。",
+        "⇒ 三条同时红是**预期**。实测(2026-10-21 首轮)恰为这三条,exactRed 成立。"
+      ]
+    },
+    {
+      "name": "F2-dropManifestEntry",
+      "file": "unity/Assets/Tests/EditMode/Sim/gate_wiring_manifest_test.cs",
+      "line": 85,
+      "expect": "                    \"CheckPayloadRefCallsites\",      // b6 载荷手搓",
+      "replace": "                    // FALSIFY-F2:清单侧删一条声明(源侧仍调用)⇒ 方向「源有、清单无」必红",
+      "expectRed": [
+        "test_entryWiring_matchesManifest_bidirectionally"
+      ],
+      "exactRed": true,
+      "_why": "从 RunAll 的手写清单里删掉 CheckPayloadRefCallsites(源文本仍调用 b6)⇒ 反向差集必红。**单向判据(只查「清单⊆源」)不会红** —— 这一条正是双向性的证明。"
+    },
+    {
+      "name": "F3-disableExtractor",
+      "file": "unity/Assets/Tests/EditMode/Sim/gate_chain_source.cs",
+      "line": 237,
+      "expect": "            if (bodyOut == null) return Array.Empty<string>();",
+      "replace": "            if (bodyOut == null) return Array.Empty<string>();\n            if (signature != null) return Array.Empty<string>(); // FALSIFY-F3:停用解析 ⇒ 调用集恒为空",
+      "expectRed": [
+        "test_entryWiring_matchesManifest_bidirectionally",
+        "test_extractor_actuallyExtractsKnownMembers",
+        "test_extractor_ignoresCommentedOutCalls",
+        "test_extractor_ignoresCallsInsideStringLiterals",
+        "test_classManifest_chainKindEntriesAreActuallyWired"
+      ],
+      "exactRed": true,
+      "_why": "让解析器恒返回空集 ⇒ ① 反空转守卫必红(抽不到 CheckGateA);② 双向差集必红(清单 7 条 vs 源 0 条)。证明判别力来自**真解析**,不是「两边都空所以相等」的 0==0 假绿。",
+      "_expectRed_justification": [
+        "F3 让 InvokedMembers 恒返回空集 ⇒ **凡依赖解析面的断言全红**,这是灵敏度正确而非过宽:",
+        "① bidirectional:清单 7 条 vs 源 0 条;",
+        "② actuallyExtractsKnownMembers:抽不到 CheckGateA / MedConsFloatGate.* / FsWriteBoundaryGate.RunAll;",
+        "③④ 两条词法夹具(注释 / 字符串)同样经 InvokedMembers 取值(gate_wiring_manifest_test.cs:350/:377),",
+        "    空集 ⇒ Has.Member(\"RealGate.RunAll\") 红;**注意它们红的原因不是词法错,是解析器被整体停用** —— 如实登记;",
+        "⑤ chainKind:actual.Values 为空 ⇒ 所有 Kind=Chain 的类都「不在链上」。",
+        "⇒ 五条同时红是**预期**。实测(2026-10-21 首轮)恰为这五条,exactRed 成立。"
+      ]
+    }
+  ]
+}

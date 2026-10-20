@@ -1199,6 +1199,15 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 菜单(RunMenu)· EditMode 测试 · CI(ADR-012 Editor 格)。理由:原每次域重载
             // 全跑 ⇒ 线性扫描成本 + 每刷固定 2 条 WARN(baseline Sim / 44 零命中)刷屏。
             // 编译失败时 b2/b3 自身有「程序集加载不到则跳过」口径,不重复报。
+            //
+            // ⚠️ **2026-10-21 加注(C-1 勘察,原文不删)**:上句「只跑 b3/b2」**已过期** ——
+            // `RunAll()` 此后陆续接了 b6 载荷手搓(b6 于 2026-10-02)、b7 写者存在性
+            // (2026-10-10)、`MedConsFloatGate`(S12-9)、`FsWriteBoundaryGate`(S16-4),
+            // 现已含 **7 项**。这些门是**源文本扫 / 文件遍历**级(O(N 文件)),不是 O(1)。
+            // 降噪的**结论仍成立**(b4 / b5 这类 Cecil + 全量引用集的门确实还在 reload 之外),
+            // 但「只跑 b3/b2」这个**计数断言不再成立**。
+            // 本条不修改行为(改行为须另裁),只订正注释所陈述的事实;
+            // 精确的接线集合现由 `gate_wiring_manifest_test.cs` 逐条钉住(C-1 / TD-gate-01)。
             var errs = RunAll();
             foreach (var e in errs) Debug.LogError(e);
         };
