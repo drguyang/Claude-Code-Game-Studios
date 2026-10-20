@@ -129,19 +129,22 @@ tutorial-onboarding(48 教学)
 > 三道门都**不在剩余 44 条里** —— 它们挂在**已标 `Complete` 的 epic 之下**,
 > 是「epic 关了但契约没落」的形态。不清它们,29 / 18 / 7a 的整片 AC 永远不可勾。
 
-| # | 门 | 谁在等 | 实测(2026-10-20) | 归属 |
+| # | 门 | 谁在等 | 实测(2026-10-20) | 挂牌 |
 |---|---|---|---|---|
-| **G-1** | `SelfLimited(entity, d)` **逐实体**判死谓词 | `29` 的 `AC-29-01/02/05/08/10/17`(6 条)· `25` 的 `AC-25-6-08` · `29` 全 epic 的 `BLOCKED-BY-9` 根因 | `unity/Assets/` **零命中**。存在的是**疾病级** `Curve.SelfLimit` 标志(`RegistrySchema.cs:107`)与 F1 求值(`ProgressionEvaluator.cs:220`)**—— 与「逐实体谓词」是两件事,不得互顶** | **9** 的下一轮(9 epic 已 7/7 Complete,此门无 story 承载) |
-| **G-2** | `Folded(p)` 折叠谓词 | `29` 的 `AC-29-16` · 7a 全链折叠面 | **零命中**(`CasebookScreen.IsFolded` 同名巧合,非此物) | **7a**(已 2/2 Complete,无 story 承载) |
-| **G-3** | `Recipe.owner ∈ {process, craft, build}` 字段 | `18` 的 `AC-18-18` | `Sim/ItemDatabase/` **零命中** | **21a**(item-database 已 12/12 Complete) |
+| **G-1** | `SelfLimited(entity, d)` **逐实体**判死谓词 | `29` 的 `AC-29-01/02/05/08/10/17`(6 条)· `25` 的 `AC-25-6-08` · `29` 全 epic 的 `BLOCKED-BY-9` 根因 | `unity/Assets/` 全树(排除注释)**零命中**。存在的是**疾病级** `Curve.SelfLimit` 标志(`RegistrySchema.cs:107`)与 F1 求值(`ProgressionEvaluator.cs:220`)**—— 与「逐实体谓词」是两件事,不得互顶** | ✅ **`TD-sim-01`**(2026-10-20 登记) |
+| **G-2** | `Folded(p)` 折叠谓词 | `29` 的 `AC-29-16` · 7a 全链折叠面 | 全树 `bool Fold` / `FoldEligible` / `CanFold` / `ShouldFold` **零命中**(`CasebookScreen.IsFolded` 同名巧合,非此物) | ✅ **`TD-persist-01`**(2026-10-20 登记) |
+| ~~**G-3**~~ | ~~`Recipe.owner ∈ {process, craft, build}` 字段~~ | ~~`18` 的 `AC-18-18`~~ | ❌ **本条判定已证伪,不成立** —— 字段**存在**:`Sim.Contracts/ItemDatabase/Recipe.cs:41` 的 `RecipeOwner Owner` + `RecipeOwner.cs:9` 枚举 + `CookedCodec.cs:181` 烘焙期读取。**原判错因 = grep 目录限定成 `Sim/ItemDatabase/`,而字段住 `Sim.Contracts/`**;且今日更早的 `42ab88c`(S-2)已订正判据 + 补真表 + 三转红证伪 | ❌ **不登记**;错因留档于债册 §「同批被证伪的一条」 |
 
-**共同形态**:G-1/G-2/G-3 都是「ADR 裁了、GDD 写了、epic 关了、代码里没有」。
-按 `docs/tech-debt-register.md` 的既有记账法,它们应入 TD;但**三道门都不在 TD 册里**
-(实测 `TD-*` 全部条目:audio 92 / medcons 24 / prescription 17 / epic 11 / s13 5 / player 4 / listen 1 —— 无一条覆盖 G-1/G-2/G-3)。
+**共同形态(仍成立的 G-1 / G-2)**:两者都是「ADR 裁了、GDD 写了、epic 关了、代码里没有」,
+且**在归属 epic 自己的卡面里完全看不见** —— `disease-simulation/` 全 7 条 story 对 `SelfLimited` 零命中;
+`persistence-service/` 两条 story 对 `Folded` 零命中;而下游(29 / 25 / 37 / 53)各有引用自陈。
+⇒ 形态 = **记在别人的账上,自己的账上看不见**。
 
-⇒ **立卡动作(本路线图要求的第一步,不是实现)**:把 G-1/G-2/G-3 登记为 TD,
-并各立一条 story 挂回原 epic。**不立卡则永远不可见**,因为 epic 已 `Complete`,
-任何按 epic 状态统计的视图都会漏掉它们。
+⇒ **处置(用户裁定 2026-10-20「不立 story」)**:两条已登记入
+`docs/tech-debt-register.md`(`TD-sim-01` / `TD-persist-01`),**不补立 story**。
+理由:两个 epic 均已标全 `Complete`,补立会把计数从「全绿」打回「未全绿」、扰动 M3 分母;
+而两条实现面各只一个谓词,随触发条件并入下一个动该 epic 的轮次即可。
+⚠️ **不立 story ≠ 不还** —— 两条各带具名触发条件。
 
 ---
 
@@ -344,14 +347,26 @@ M3 Exit（epic 面） =
 
 ## 十、立即可做的下一件事
 
-**不是写代码,是立卡**:G-1 / G-2 / G-3 三道门今天**在 TD 册里不存在**,
-而它们各自卡住一整片 AC。建议顺序:
+**✅ 已完成(2026-10-20)**:G-1 / G-2 已登记入 `docs/tech-debt-register.md`
+(`TD-sim-01` / `TD-persist-01`),用户裁定**不立 story**。G-3 经复核**证伪,不登记**(见 §三)。
 
-1. 三道门登记入 `docs/tech-debt-register.md`(零代码改动)
-2. 各立一条 story 挂回原 epic(9 / 7a / 21a)
-3. 之后按 §4 批 A 开始取件
+**下一步 = 按 §四 批 A-1 取件**:六条零挂标件 —— `clinic-machine/001-003` ·
+`tutorial-onboarding/001` · `casebook/002` · `save-slot-ui/001`(该件需先补 `EPIC.md`)。
+取件前按 §6.3 跑三条复核(R-1 卡面状态 / R-2 每个 `BLOCKED-BY` 是否仍成立 / R-3 实现还是补登记)。
 
 ⚠️ **本文件未改任何代码 / 数据 / 产物**,亦未改 `milestones/README.md` 的计数与 M3 判据
 (§五 只是提出改写要求,实际改写归 epic 收口核查轮)。
 
 **不经用户指令不 commit。**
+
+---
+
+## 十一、本批的两处自我订正(留痕)
+
+| # | 原判 | 订正后 | 错因 |
+|---|---|---|---|
+| **C-1** | **G-3** `Recipe.owner` 字段未落地 | ❌ **证伪,不登记** —— 字段存在于 `Sim.Contracts/ItemDatabase/Recipe.cs:41` | grep 时把目录限定成 `Sim/ItemDatabase/`,而字段住在 **`Sim.Contracts/`**。**目录限定写错即得出反结论** |
+| **C-2** | 三道门「都没有 story 承载」 | ⚠️ **收窄** —— G-2 的缺口**被三个下游 epic 各自登记过**(`case-system/story-006:39/:134` · `disease-simulation/story-002:54` · `death-respawn/story-003`),只是**从未入债册**且**责任 epic 自己没提** | 原判把「没有承载实现的 story」说成了「没有任何 story 提过」—— 两件事不同 |
+
+⇒ **元教训**:「按标识符 grep 零命中」**只在扫描面覆盖全树时才成立**。
+此后同型判定须**先声明扫描面**(扫了哪些目录、用了哪些别名),再落结论。

@@ -945,3 +945,59 @@ A 类(自造 Fake)只深挖 telemetry · `tests/unit|integration/` 账本树未�
 **触发条件**:L-1 / L-2 任一落地(它们是纯接线,不依赖数值轮)即可**部分**执行 ——
 先跑不依赖病程时长的项(AC-44-03 主判据的四条中「同病人一致 / 无变声器感 / 性别不串」三条、
 AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未清前仍不得判通过**。
+
+---
+
+## 2026-10-20 · ADR 已裁但零实现的契约债(跨 epic 静态勘察 · 2 条)
+
+**出处**:`production/milestones/p0-remaining-roadmap-2026-10-20.md` §三(三元组
+`2026-10-20T06:27` UTC · 路线图首建轮 · `dd7af25`)。
+**性质**:两条都是「**裁决已定、GDD 已写、epic 已标 `Complete`、代码里零落点**」。
+它们不是排期问题,是**契约缺失** —— 不清则相关 AC 永远无法记绿。
+
+**为什么单独立本册而不立 story(用户裁定 2026-10-20「不立 story」)**:
+`disease-simulation`(7/7)与 `persistence-service`(2/2)两个 epic **均已标全 `Complete`**。
+补立 story 会把它们的计数从「全绿」打回「未全绿」,扰动 M3 分母口径;
+而两条债的实现面都很窄(各一个谓词),**在触发条件下随下一个动该 epic 的轮次一并落**即可。
+⚠️ **不立 story ≠ 不还** —— 两条各带具名触发条件,到点不还即违反本册口径。
+
+### TD-sim-01 — `SelfLimited(entity, d)` 逐实体判死谓词未落地
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `OQ-25-1` 已裁**路甲**(2026-09-19,用户 + Opus 复核照准):把「自限门」升为**逐实体谓词** `SelfLimited(entity, d)`,默认取注册表 `self_limit(d)`,**仅当 `kind = Player ∧ d.kind = injury ∧ d ∈ 战伤白名单` 时破例返回 `false`**;不改任何既有条目的 `self_limit` 值(⇒ 对 13 / 52 / 10 零涟漪)。`death-and-respawn.md:88-108` 规则二逐字落盘。**裁决齐,实现零落点。** |
+| **实测** | `unity/Assets/` 全树 grep `SelfLimited`(**C#,排除注释行**)⇒ **0 处**。现存 `StateMachine.ComputeTransition(InjuryState currentState, Fix positionAgg, long lastInterventionTick, long currentTick, string diseaseKey)`(`Sim/StateMachine.cs:74-79`)**只收 `diseaseKey`,不收 entity** ⇒ **结构上无法表达**「同一病种对玩家与 NPC 判死不同」。`IsDeceased(InjuryState)`(`:135`)只读状态枚举,不携带来源。<br>⚠️ **不得与疾病级 `Curve.SelfLimit` 混读**:`RegistrySchema.cs:107` 的 `bool SelfLimit` 是**注册表条目字段**(13 个字段之一,R1-06 校验),`ProgressionEvaluator.cs:220` 按它求 F1 —— 那是**病种级**开关,**不是**逐实体谓词。两者同名近但不是一物,「grep 到 SelfLimit」**不构成**本债已还。 |
+| **卡住的判据** | `death-respawn` 的 **AC-29-01 / 02 / 05 / 08 / 10 / 17**(6 条,`EPIC.md:11` 逐字点名)· `death-respawn` 全 epic 的 `BLOCKED-BY-9` **根因** · `combat-weapons` 的 **AC-25-6-08**(`EPIC.md:68` · `story-006:25`,维持禁记绿)· 9 的 `story-005` 判死路径(标 `Complete`,但只覆盖病种级 `Curve.SelfLimit`) |
+| **为什么此前不在册** | 对 `production/epics/` 全树搜 `SelfLimited` ⇒ **4 个文件 / 8 处**,全部是**下游的引用自陈**(「`SelfLimited` 未落地」),**无一处是承载实现**。逐处:<br>· `combat-weapons/EPIC.md:11` · `:68`(「维持 BLOCKED-BY-9,不得记绿」)<br>· `combat-weapons/story-006…:25`(Guardrail)<br>· `death-respawn/EPIC.md:11` · `:35`<br>· `death-respawn/story-001…:17` · `:25` · `:64`(「本 epic BLOCKED 清单根因」)<br>· **`disease-simulation/` 全 7 条 story 零命中** ⇒ **归属 epic 自己完全没提这件事**。<br>⇒ 形态同 `TD-persist-01`:缺口被下游登记过,责任 epic 的卡面看不见;且 9 / 29 按 story 计数均已全绿 ⇒ 任何按 epic 状态的视图都漏掉它。 |
+| **解除动作** | 9 的下一轮:给判死路径加 `entity` 形参(或并列独立谓词 `SelfLimited(entity, d)`),并补一条**夹具**证明「同病种对 Player 与 NPC 判死不同」;不改任何 `self_limit` 数据值 |
+| **触发条件** | **`death-respawn` 任一 story 开工前**(否则只能桩先行、6 条 AC 全挂);或 **9 的下一轮**动到 F4 / `StateMachine` 时 |
+| **归属** | **9**(疾病与伤情模拟) |
+
+### TD-persist-01 — `Folded(p)` 折叠谓词未实现
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `ADR-010` **义务 4**(`adr-010:175`)定:病史流终态折叠谓词 `Folded(p)` 合并**三条件** —— ① 终态(痊愈 / 死亡,AC-36)② plateau / `relapse.*` 豁免(AC-36)③ **无未结案病例**(ADR-008 §六);**义务 14**(`adr-010:185`,由 `ADR-026 §⑦` 追加)再加**第 ④ 条 —— `SkillGrown` 行豁免**。四条件合起来才是现行完整判据。§二(`:158-161`)并定**折叠行形状** `(onset, 病种_id, patient_id, patient_seed, outcome, t_end)`。**裁决齐,实现零落点。** |
+| **实测** | `unity/Assets/` 全树 grep `bool Fold` / `FoldEligible` / `CanFold` / `ShouldFold`(C#)⇒ **0 处**。唯一相关内容是**测试侧的自陈**:`Tests/EditMode/CaseSystem/case_replay_persistence_test.cs:22` 与 `:131` 逐字「7a `Folded(p)` 生产谓词不存在(grep 零命中)⇒ 折叠执行半边 NOT-RUN」。⚠️ 同名巧合**不构成本债已还**:`CasebookScreen.IsFolded`(`Gameplay.UI`)与 `MarkRegistry.FoldedCorner` 是 42 的纸面折角,与 7a 的流折叠无关。 |
+| **卡住的判据** | `death-respawn` 的 **AC-29-16**(`story-003` 卡面已于 `1e1ac20` / S-1 把阻塞性质由「裁决待定」订正为「**实现待落**」)· 7a 全链折叠面 · **ADR-010 义务 4 与义务 14 的验收** |
+| **为什么此前不在册** | ⚠️ **准确说法**:卡面**有**自陈,但**入错了账**。① **7a 自己的两条 story 零命中** `Folded`(实测:对 `production/epics/persistence-service/` 下全部 story 搜 `Folded` 与「折叠」两个词,均无命中)⇒ 义务 4 在**归属 epic** 内**无承载者**;② 缺口是由**下游**发现的 —— `case-system/story-006:39/:134` 逐字「7a `Folded(p)` 折叠执行半边(NOT-RUN):生产谓词不存在(grep 零命中)」· `disease-simulation/story-002:54` 写「折叠谓词**读侧归 7a**」· `death-respawn/story-003` 写「阻塞性质 = 实现待落」。<br>⇒ **形态 = 缺口被三个下游 epic 各自登记过,但从未登记在债册,而责任 epic 自己的卡面完全没提** —— 这正是「记在别人的账上,自己的账上看不见」。 |
+| **解除动作** | 实现 `Folded(patientId)` 谓词(四条件,含 `SkillGrown` 豁免分支)+ 折叠行按义务 4 形状产出;并补正反夹具:有未结案病例 ⇒ `Folded = false`、`SkillGrown` 行不被抹除 |
+| **触发条件** | **`death-respawn/story-003` 开工前**;或 **7a 下一次动 `Sim.Codec` / 存档格式**时 |
+| **归属** | **7a**(持久化服务) |
+
+### 同批被**证伪**的一条(留痕,防重复登记)
+
+本批勘察原拟登记**第三条**:`Recipe.owner ∈ {process, craft, build}` 字段未落地(`18` 的 `AC-18-18`)。
+**该判定已被证伪,不登记**。实测:
+
+- 字段**存在** —— `Sim.Contracts/ItemDatabase/Recipe.cs:41` 有 `public RecipeOwner Owner { get; set; }`,
+  枚举在 `RecipeOwner.cs:9`,烘焙期读取在 `CookedCodec.cs:181`。
+- **原判错因**:grep 时把目录限定成 `Sim/ItemDatabase/`,而字段住在 **`Sim.Contracts/`** ——
+  **目录限定写错即得出反结论**。
+- 且它已被**同日更早的 `42ab88c`(S-2)** 处置完毕:AC-18-18 改**三段判据**(非空前置 / 并 / 交)、
+  真表补 `craft` + `build` 占位配方(`owner` 分布 = `{process:2, craft:1, build:1}`)、
+  删 craft / 删 build / 改 `process` **三次证伪全转红**。
+
+⇒ **元教训(本批)**:「按标识符 grep 零命中」**只在扫描面覆盖全树时才成立**。
+`SelfLimited` / `Folded(p)` 两条本批已**改用全树 grep 并复核别名**,才敢落账;
+`Recipe.owner` 正是漏掉这一步的实例。**本条留档即为此后同型判定须先声明扫描面。**
