@@ -186,8 +186,10 @@ tutorial-onboarding(48 教学)
 > | **G-6** | **`TD-enemy-01`** | `enemy-ai`(5/5) | 27 具备可跑行为程序之前(否则决策无进 sim 的载体) |
 > | **G-7** | **`TD-randomevents-01`** | `random-events`(6/6) | 52 下一次动延迟威胁 / 主机迁移语义时 |
 >
-> ⚠️ **入册 ≠ 已还**:六道的 AC 判据**一条都仍不可达**。`§八 #3` 的普查**已跑但门清单仍不完备**
-> (见 §八 #3′ 的「未清项」:孤儿契约 + 未溯源桶)。**G-4 的入册本身即证明了普查的必要性**:
+> ⚠️ **入册 ≠ 已还**:六道的 AC 判据**一条都仍不可达**。**`§八 #3` 的普查已跑完并结案(2026-10-20)**
+> —— 三项未清项(孤儿契约 · 未溯源桶 · 零代码改动声明)**全清**,门清单据实由四道扩为七道。
+> ⚠️ 但**结案 ≠ 完备**:C-7 已证 G 型手法对「无 epic 的契约」结构上不可见,
+> **再出现新户仍触发 §八 #3**。**G-4 的入册本身即证明了普查的必要性**:
 > 它是在**第 31 个 epic 的补建过程里**偶然撞见的,不是扫出来的。
 
 > **另有一类(不占 G 号,因无归属 epic):孤儿契约**
@@ -409,8 +411,8 @@ M3 Exit（epic 面） =
 |---|---|---|
 | 1 | 某轮 `/sprint-plan` 未引用 §6.3 四条复核(尤 **R-4**) | 本文件判为**未落地**,不因「已写」而算兑现 |
 | 2 | 有人用「件/日」做线性外推排日期 | 等同 `CAPACITY-MODEL.md` §六 条件 #3 触发 ⇒ 本文件 §6.1 作废 |
-| 3 | 又出现「epic 全 story Complete 但契约零命中」的新户 | ⇒ §三 的门清单**不完备**;须重做一次全 epic 契约普查,不得只补这一户 |
-| **3′** | — | **✅ 已跑(2026-10-20)** —— 原件 = `production/qa/evidence/census-adr-obligation-2026-10-20.md`(三元组 `2026-10-20T07:59` UTC · §八 #3′ 普查轮 · `54fd5e5`)。<br>**扫描面**:31 个 epic 中含 story 者 → **17 个全 story Complete**(前轮引用的 18 作废,见原件 §4.2);符号源 = 31 份 ADR 的**代码块**(52 符号)+ **散文**(379 符号)两级;代码面 = `unity/Assets/` 全树 C#,**剥注释**,`Tests/` 单列档。<br>**结果**:零命中分类 —— **① 真缺口 12** · ② 命名漂移 5 · ③ 零命中正确 7 · ④ 显式延后 2 · ⑤ 面外噪音余。<br>**够格成为 G 型债的 = 4 项**(须同时满足:符号零命中 ∧ 归属 epic 全 Complete ∧ **epic 卡面自己点名该符号**):`IPlayerMotor`(`player-controller` 6/6 + `camera-viewpoint` 6/6 **双向点名**)· `LogiPose` / `ITameable` / `TameState`(`enemy-ai` 5/5)· `DeferredThreatSlot`(`random-events` 6/6)⇒ **已登记 `TD-player-02` / `TD-enemy-01` / `TD-randomevents-01`**(用户裁定「能归 epic 的登记 TD,不立 story」)。<br>**⚠️ 未清项**:<br>① ~~**孤儿契约未处置**~~ ✅ **第二轮专扫已跑(同日)** —— 原件 §7。结论:**P0 系统无缺 epic**(`systems-index` 的 P0 集合与 31 个 epic 严格一一对应);无 epic 的 23 个系统优先级全为 P1a/P1b/P2/P0-前置。真正的孤儿**仅一条**:`IReplayPipe`/`ReorderBuffer` —— **义务级 P0 ≠ 归属系统级 P1b**(`systems-index.md:81` 记 45 = P1b;ADR-001 `:167` / `:448` 逐字要求「P0 预埋 / P0 写 `IReplayPipe` + `ReorderBuffer`」)⇒ **八个抽象点落了 7 个,它是唯一零落点** ⇒ 已登记 **`TD-net-01`**。`ISceneRouter`/`IWorldSpawner` 与 `IPerTargetIl2CppArgs` **均有显式跟踪面**(`BootRoot.cs:20` / ADR-023 §Validation S2 `⏸` / ADR-012 未勾项)⇒ **不同级,不另立 TD**。<br>② **§4.3 未溯源桶 10 个符号**未逐个核其声明 ADR 是否构成 P0 义务 —— **§八 #3 唯一剩余未清项**。<br>③ **本件是勘察,未改任何代码 / GDD / ADR / 卡面。** |
+| 3 | 又出现「epic 全 story Complete 但契约零命中」的新户 | ⇒ §三 的门清单**不完备**;须重做一次全 epic 契约普查,不得只补这一户。<br>**✅ 已预防性跑完(2026-10-20)—— 本条件已「兑现处置」并结案**:普查见下行 **#3′**,三项未清项(① 孤儿契约 ② 未溯源桶 ③ 代码零改动声明)全部结清 ⇒ **门清单据实由「四道」扩为「七道」(G-5/G-6/G-7),做法自本轮起定为「新户出现前先普查」**。⚠️ 结案 ≠ 门清单**永久**完备 —— 再出现新户仍触发本行。 |
+| **3′** | — | **✅ 已跑(2026-10-20)** —— 原件 = `production/qa/evidence/census-adr-obligation-2026-10-20.md`(三元组 `2026-10-20T07:59` UTC · §八 #3′ 普查轮 · `54fd5e5`)。<br>**扫描面**:31 个 epic 中含 story 者 → **17 个全 story Complete**(前轮引用的 18 作废,见原件 §4.2);符号源 = 31 份 ADR 的**代码块**(52 符号)+ **散文**(379 符号)两级;代码面 = `unity/Assets/` 全树 C#,**剥注释**,`Tests/` 单列档。<br>**结果**:零命中分类 —— **① 真缺口 12** · ② 命名漂移 5 · ③ 零命中正确 7 · ④ 显式延后 2 · ⑤ 面外噪音余。<br>**够格成为 G 型债的 = 4 项**(须同时满足:符号零命中 ∧ 归属 epic 全 Complete ∧ **epic 卡面自己点名该符号**):`IPlayerMotor`(`player-controller` 6/6 + `camera-viewpoint` 6/6 **双向点名**)· `LogiPose` / `ITameable` / `TameState`(`enemy-ai` 5/5)· `DeferredThreatSlot`(`random-events` 6/6)⇒ **已登记 `TD-player-02` / `TD-enemy-01` / `TD-randomevents-01`**(用户裁定「能归 epic 的登记 TD,不立 story」)。<br>**⚠️ 未清项**:<br>① ~~**孤儿契约未处置**~~ ✅ **第二轮专扫已跑(同日)** —— 原件 §7。结论:**P0 系统无缺 epic**(`systems-index` 的 P0 集合与 31 个 epic 严格一一对应);无 epic 的 23 个系统优先级全为 P1a/P1b/P2/P0-前置。真正的孤儿**仅一条**:`IReplayPipe`/`ReorderBuffer` —— **义务级 P0 ≠ 归属系统级 P1b**(`systems-index.md:81` 记 45 = P1b;ADR-001 `:167` / `:448` 逐字要求「P0 预埋 / P0 写 `IReplayPipe` + `ReorderBuffer`」)⇒ **八个抽象点落了 7 个,它是唯一零落点** ⇒ 已登记 **`TD-net-01`**。`ISceneRouter`/`IWorldSpawner` 与 `IPerTargetIl2CppArgs` **均有显式跟踪面**(`BootRoot.cs:20` / ADR-023 §Validation S2 `⏸` / ADR-012 未勾项)⇒ **不同级,不另立 TD**。<br>② ~~**§4.3 未溯源桶 10 个符号**未逐个核其声明 ADR 是否构成 P0 义务~~ ✅ **第三轮已跑完(同日)** —— 原件 §4.3。**结果:零条新债**(同物异名 2 · 语义已承载 1 · 未开工 4 · ADR 明确排除 2 · 已并入既有 TD 1)。**并更正原件自身一处错**:原写「10 个全树零命中」**不成立** —— `WeaponMultiplier` 9 处(实现为复数 `WeaponMultipliers` + 访问器) · `QualityCap` 6 处 · `ReputationMult` 1 处 均有命中;错因 = 「剥注释 + 精确单数」两误叠加(第三度同型,见 §十一 C-6)。未开工的 4 个(`QualityCap` / `DeathAllowed` / `RegrowWindow` / `InventoryOf`)归属 epic 分别 0/5 · 0/6 · 0/5 · 0/6 ⇒ 按够格判据②**不够格,非债**。<br>③ **本件是勘察,未改任何代码 / GDD / ADR / 卡面。**<br>**⇒ 三项未清项全部结清,#3′ 普查闭环。** |
 | 4 | §1 计数与本文件三元组相距 > 3 轮未刷 | 计数段作废,重测后再用 |
 
 ---
@@ -440,6 +442,9 @@ M3 Exit（epic 面） =
 | **普查三处假零自曝** | ✅ | ✅ | `GoldenHashV1Test`(`Tests/EditMode/Sim/golden_hash_v1_test.cs:24`)· `StructureKinds`(`Sim/World/StructureKinds.cs`)· `FixPow`/`FixSqrt`(`Fix.cs:191/212/240`)各贴落点 ⇒ 与 G-3 同型,已拦 |
 | **「孤儿契约」结论** | ✅ | ✅ | `ls production/epics/` 全表(原件附录 B)**无 network / scene / boot 目录** ⇒ ADR-001 的 45 与 ADR-023 的一对无归属 epic |
 | **~~前轮「18 个全 Complete」~~** | ⚠️ **数字已废** | ❌ **撤回** | 本轮判据(文件头 blockquote `Status` 行)可复算得 **17**;差 1 未复核 ⇒ 18 作废,原文不删留闭环 |
+| **未溯源桶 10 符号已跑完** | ✅ | ✅ | 逐符号重扫(不剥注释 + 查同物异名)⇒ **零条新债**;分布同物异名 2 / 语义已承载 1 / 未开工 4 / ADR 明确排除 2 / 并入既有 TD 1。**4 个未开工项各自的 epic 计数 0/5·0/6·0/5·0/6 均已贴**(原件 §4.3)⇒ 不够格判据② |
+| **「10 个全树零命中」更正** | ✅ | ✅ | ❌ **原说法错**,已就地更正 —— `WeaponMultiplier` 9(`CombatPower.cs:49/54`)· `QualityCap` 6 · `ReputationMult` 1(`EventF1Pipeline.cs:91`)· `ItemId`=`ItemKey`(`Sim.Contracts/ItemDatabase/ItemKey.cs:14`)。第三度同型假零,已立 **C-8** |
+| **§八 #3 结案** | ✅ | ✅ | 三项未清项(① 孤儿契约 ② 未溯源桶 ③ 零代码改动声明)全清;§八 #3 行加收口注,#3′ 闭环 |
 
 > **`Landed=✅ / Proven=✗` 是合法的诚实状态** —— 批次划分与动态规则属判断面,
 > 不宣称已证。**本轮未运行任何夹具,故不得为它们标 Proven ✅**。
@@ -467,7 +472,8 @@ M3 Exit（epic 面） =
 **待用户裁定两件**(本轮只登记,不自裁):
 1. **G-4 怎么还** —— 7a 的 `Checkpoint` / `Load` / `Writable` / `Loadable` / `Gating`,
    而 `persistence-service` 已标 `Complete 2/2`。**补 story** 还是 **照 G-1/G-2 先例登记 TD**?
-2. **§八 #3′ 的普查** —— 18 个「全 story Complete」的 epic 是否需要逐个跑一次「ADR 义务符号 vs 代码」?
+2. **§八 #3′ 的普查** —— ~~18 个~~ **17 个**「全 story Complete」的 epic 是否需要逐个跑一次「ADR 义务符号 vs 代码」?
+   ✅ **已跑并结案(2026-10-20)** —— 见 §八 #3′;新登 **`TD-player-02` / `TD-enemy-01` / `TD-randomevents-01` / `TD-net-01`**。
 
 ⚠️ **本文件未改任何代码 / 数据 / 产物**,亦未改 `milestones/README.md` 的计数与 M3 判据
 (§五 只是提出改写要求,实际改写归 epic 收口核查轮)。
@@ -488,6 +494,7 @@ M3 Exit（epic 面） =
 | **C-4** | **G-x 门普查「已完备」** | ❌ **不完备** —— 追加 **G-4**,§三 由「三道」改「四道」 | 门是**逐个符号去 grep** 发现的,而符号表来自「下游卡面的 `BLOCKED-BY` 指向某个 ADR 义务」。**零挂标的 epic 没有下游指针** ⇒ 它的缺口**永远顶不出来**。同 C-3 的病根 |
 | **C-5** | §九 表内 `批 A-1/A-2 之分` 标 **Proven ✅**;~~`G-3 零命中`~~ 标 **✅✅** | A-1/A-2 行**撤回 Proven**;**G-3 行整行撤回** | 两行都是**扫描面 ≠ 断言面**:A-1 验的是挂标数、断言的是「全 AC 可勾」;G-3 验的是「`Sim/ItemDatabase/` 没有」、断言的是「全树没有」。**这正是 §十一 元教训本身,却在本文件 §九 里犯了两次** |
 | **C-6** | ~~「18 个全 story Complete 的 epic」~~ | **17**(判据 = 文件头 blockquote `Status` 行,可复算;18 作废,差 1 未复核) | 与前轮同一类错:**计数判据没写死**。且本轮普查**当场自曝三处假零** —— `GoldenHashV1Test`(生产-only 扫描漏了**测试树义务**)· `StructureKinds`(**ADR 引的是文件名,不是符号**)· `FixPow`/`FixSqrt`(**ADR 声明的成员名 ≠ 代码成员名**)。三条合起来的教训:C-5 的「全树」还不够,**还要「Tests/ 单列一档」+「文件名 ≠ 符号」+「别名的反向:同物异名也算命中」** |
+| **C-8** | §4.3「未溯源桶 10 个符号**全树零命中**」 | ❌ **第三度同型错** —— `WeaponMultiplier` **9** · `QualityCap` **6** · `ReputationMult` **1** 均有命中;另 `ItemId` = `ItemKey`(**同物异名**) | **C-6 的教训写下后当场又犯一次**:原判据 = 「剥注释 + 精确单数」,而这一桶里**恰好全是「只被注释引用」+「复数/访问器形态」**。⇒ 判据**收窄**为:全树(含 `Tests/`)**不剥注释** ∧ 逐符号问**同物异名** ∧ 判「缺口」前再问**归属 epic 是否已 Complete**。**「写下教训」不等于「下次会遵守」** —— 判据须落成**可执行的命令形态**,不是散文守则(本条即 C-6 三重奏的第四件) |
 | **C-7** | §八 #3 门清单「普查做完即完备」 | ❌ **仍不完备** —— 发现**孤儿契约**一类:ADR 有义务、但**无归属 epic**(ADR-001 的系统 45 · ADR-023 的一对) | **G 型手法以「归属 epic 全 Complete」为前提** ⇒ 对**没有 epic 的契约结构上不可见**。这是 C-4 盲区的**第二层**(C-4 = 有 epic 但无下游指针;C-7 = 连 epic 都没有)。本轮实测坐实,**专扫未做** |
 
 ⇒ **元教训**:「按标识符 grep 零命中」**只在扫描面覆盖全树时才成立**。

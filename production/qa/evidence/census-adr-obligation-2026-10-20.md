@@ -119,14 +119,30 @@ G 型债的定义(**本册既有口径**)=「**ADR 已裁 · GDD 已写 · epic 
 前轮引用 **18** 个全 Complete epic,本轮可复算得 **17**。差的那一件**未复核**
 ⇒ 本轮取 17,**并声明 18 作废**。
 
-### 4.3 「未逐条溯源」桶(**未算进 ①**)
+### 4.3 「未溯源桶」10 个符号 —— **已于第三轮逐一核实(2026-10-20 当日追加)**
 
-以下符号全树零命中,但**其声明 ADR 是否构成 P0 义务、以及归属谁,本轮未逐个核实** ⇒ **不得算进 ①**:
+**⚠️ 先更正本件先前的错**:§4.3 原称这 10 个「**全树零命中**」。第三轮**重扫(不剥注释 + 查同物异名)后证明该说法有误** ——
+`WeaponMultiplier` **9 处** · `QualityCap` **6 处** · `ReputationMult` **1 处** 均有命中。
+错因与 §4.1 的 `FixPow` 同型:**剥注释 + 精确单数**两条同时作用 ⇒ 假零。
 
-`QualityCap` · `FiredSet` · `DeathAllowed` · `RegrowWindow` · `HistoryMult` · `ReputationMult` ·
-`WeaponMultiplier` · `OwnerId` · `ItemId` · `InventoryOf`
+| 符号 | 重扫命中 | 形态 | 归属 / ADR 口径 | **判定** |
+|---|---|---|---|---|
+| `WeaponMultiplier` | **9**(全为注释 / 测试注释) | 公式项 | 30 技能(8/8) | **同物异名** —— 实现为 `SkillTuningTable.WeaponMultipliers`(复数)+ `GetWeaponMultiplier(line)`(`CombatPower.cs:49/54`)⇒ **非缺口** |
+| `ItemId` | 0(**但 `ItemKey` 存在**) | 类型 | 21a 物品库(12/12) | **同物异名** —— `Sim.Contracts/ItemDatabase/ItemKey.cs:14` `readonly struct ItemKey` 即其实现 ⇒ **非缺口** |
+| `QualityCap` | **6**(注释 + 测试注释,无生产实现) | 规则/谓词 | 17 采集(**0/5 未开工**) | **未开工** —— `ResourceHarvestWriter.cs:34` 自陈「`QualityCap` 截断的**调用面均归 17/20 的装配轮**」⇒ 明确待办,**非债**(epic 未 Complete) |
+| `FiredSet` | 0 | 概念(「派生自读流」的已发集合) | 37 病例(6/6) | **语义已承载** —— `PatternDetector` 有逐案 `Fired` / `FiredDiseases`(`:50/52`);`FiredSet` 是 ADR 散文里的**集合名,非契约类型** ⇒ **非缺口** |
+| `OwnerId` | 0 | 字段 | 27(`ITameable` 的归属字段) | **已并入 `TD-enemy-01`**(`ITameable` / `TameState` 同簇)⇒ **不重复登记** |
+| `DeathAllowed` | 0 | 谓词 | 29 死亡复活(**0/6 未开工**) | **未开工**,非债 |
+| `RegrowWindow` | 0 | 常量/窗口(F-17-3) | 17 采集(**0/5 未开工**) | **未开工**,非债 |
+| `InventoryOf` | 0 | fold 谓词 | 20 库存(**0/6 未开工**) | **未开工**,非债 |
+| `HistoryMult` | 0 | F1 权重乘子 | 52(6/6);**ADR-007 明文「不解锁 52 的 F1 公式」** | **ADR 明确排除**(数值归用户)⇒ 非 ADR 义务 |
+| `ReputationMult` | **1**(仅注释 `EventF1Pipeline.cs:91`) | F1 权重乘子 | 同上 | **ADR 明确排除**;代码仅在注释提到,无符号实现 |
 
-多为 GDD 侧字段名,与 ADR `Key Interfaces` 不同级。**如实留白,不臆断。**
+**⇒ 本桶结论:零条新债。** 分布 = 同物异名 2 · 概念已承载 1 · 未开工 4 · ADR 明确排除 2 · 已并入既有 TD 1。
+
+**⚠️ 三处假零的根因(第三轮再犯)**:**「剥注释」会抹掉「仅被注释引用的契约」**,而**「精确单数」会漏掉复数/访问器形态**。
+⇒ 本件的零命中判据自本段起**收窄为**:「全树(含 `Tests/`)grep **不剥注释** ∧ 逐符号问一次**同物异名** ∧ 判「缺口」前再问一次**归属 epic 是否已 Complete**」。
+前两轮已落入 §4.1 与 §4.3 的教训合并适用。
 
 ---
 
@@ -166,7 +182,8 @@ G 型债的定义(**本册既有口径**)=「**ADR 已裁 · GDD 已写 · epic 
 - **§3.4 的 ❌ 行** —— epic 未全 Complete ⇒ **未开工,非债**。
 - **§5 的孤儿契约** —— **已由 §7 第二轮专扫处置**:`IReplayPipe`/`ReorderBuffer` 入 `TD-net-01`;
   `ISceneRouter`/`IWorldSpawner` 记为「显式延后 + 无主人」不登记;`IPerTargetIl2CppArgs` 由 ADR-012 自身未勾项跟踪。
-- **§4.3 未溯源桶** —— 未核实,留白(**§八 #3 唯一剩余未清项**)。
+- **§4.3 未溯源桶** —— ✅ **已由 §4.3 第三轮处置(2026-10-20 当日)**:10 个符号逐一核实 ⇒ **零条新债**;
+  并更正原「全树零命中」的错(实为 `WeaponMultiplier` 9 / `QualityCap` 6 / `ReputationMult` 1 有命中,`ItemId`=`ItemKey`)。
 
 ---
 
@@ -245,7 +262,7 @@ G 型债的定义(**本册既有口径**)=「**ADR 已裁 · GDD 已写 · epic 
 - `ISceneRouter`/`IWorldSpawner` 与 `IPerTargetIl2CppArgs` **均有显式跟踪面**(BootRoot 注释 / ADR-023 S2 / ADR-012 未勾项),
   与 `IReplayPipe` 的「**无人跟踪的 P0 义务**」**不同级**。
 - ⇒ **§八 #3 的未清项 ① 由「未做」改为「已做,结论见本节」**;
-  门清单剩 **未清项 ②(未溯源桶 10 符号)**。
+- ⇒ **未清项 ②(未溯源桶 10 符号)已由 §4.3 第三轮处置** ⇒ **两项全清,§八 #3 闭环**。
 
 ---
 

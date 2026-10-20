@@ -1118,7 +1118,28 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > · `IPerTargetIl2CppArgs`(ADR-012 §Key Interfaces)—— CI 横切,`systems-index` 无对应系统;
 >   ADR-012 §Validation「旗标登记表落地」**仍 `[ ]`**(ADR 自陈未跑)⇒ **由 ADR 自身未勾项跟踪**,不立 TD(避免双真源)。
 
-> ⚠️ **本批仍未处置的一类**(如实留白,见原件 §4.3):
-> **未溯源桶 10 个符号**(`QualityCap` / `FiredSet` / `DeathAllowed` / `RegrowWindow` / `HistoryMult` /
-> `ReputationMult` / `WeaponMultiplier` / `OwnerId` / `ItemId` / `InventoryOf`)—— 全树零命中,
-> 但**其声明 ADR 是否构成 P0 义务未逐个核** ⇒ **不得算入本册**。
+> ✅ **该桶已于 2026-10-20 当日跑完并结清(第三轮·逐符号核实)** —— **结果:零条新债。**
+> ⚠️ **同时更正上文一处错**:原文称这 10 个「**全树零命中**」,**该说法有误** —— 重扫(不剥注释 + 查同物异名)后
+> `WeaponMultiplier` **9 处** · `QualityCap` **6 处** · `ReputationMult` **1 处** 均有命中。
+> 错因与 §4.1 的 `FixPow` 同型:**「剥注释」抹掉「仅被注释引用的契约」+「精确单数」漏掉复数/访问器**两条同时作用。
+>
+> | 符号 | 重扫命中 | 判定 | 依据 |
+> |---|---|---|---|
+> | `WeaponMultiplier` | **9**(全注释) | **同物异名,非缺口** | 实现为 `SkillTuningTable.WeaponMultipliers`(复数)+ `GetWeaponMultiplier(line)`(`CombatPower.cs:49/54`);归属 30 技能 **8/8 Complete** |
+> | `ItemId` | 0(但 `ItemKey` 在) | **同物异名,非缺口** | `Sim.Contracts/ItemDatabase/ItemKey.cs:14` `readonly struct ItemKey` 即其实例 |
+> | `FiredSet` | 0 | **语义已承载,非缺口** | `PatternDetector` 有逐案 `Fired` / `FiredDiseases`(`:50/52`);`FiredSet` 是 ADR 散文的**集合名,非契约类型** |
+> | `QualityCap` | **6**(注释 + 测试注释,无生产实现) | **未开工,非债** | `ResourceHarvestWriter.cs:34` 自陈「`QualityCap` 截断的**调用面均归 17/20 的装配轮**」;归属 17 采集 **0/5 未开工** |
+> | `DeathAllowed` | 0 | **未开工,非债** | 归属 29 死亡与复活 **0/6 未开工** |
+> | `RegrowWindow` | 0 | **未开工,非债** | 归属 17 采集 **0/5 未开工**(F-17-3) |
+> | `InventoryOf` | 0 | **未开工,非债** | 归属 20 库存与物品 **0/6 未开工** |
+> | `OwnerId` | 0 | **已并入 `TD-enemy-01`** | `ITameable` / `TameState` 同簇(ADR-016 §七),**不重复登记** |
+> | `HistoryMult` | 0 | **ADR 明确排除** | ADR-007 逐字「**不解锁 52 的 F1 公式**」⇒ 非 ADR 义务(数值归用户) |
+> | `ReputationMult` | **1**(仅注释 `EventF1Pipeline.cs:91`) | **ADR 明确排除** | 同上;代码仅在注释提及,无符号实现 |
+>
+> **分布**:同物异名 2 · 语义已承载 1 · 未开工 4 · ADR 明确排除 2 · 已并入既有 TD 1 ⇒ **新增 TD = 0**。
+> **零命中判据自此收窄**(原件 §4.3 已同步):「全树(含 `Tests/`)**不剥注释** ∧ 逐符号问一次**同物异名** ∧
+> 判「缺口」前再问一次**归属 epic 是否已 Complete**」。
+
+> ⚠️ **本批仍未处置的一类**(如实留白,见原件 §5 / §7.2):**无 epic 归属的优先事项**
+> (`systems-index` 中优先级标 P1a/P1b/P2 的 23 个系统)—— 它们的契约缺口**不属于 G 型手法面内**,
+> 本轮**未逐个核**,须由各自里程碑的规划轮处置。
