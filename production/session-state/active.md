@@ -6706,3 +6706,91 @@ failed / skipped 未变 ⇒ 零回归。
 (先验无 lockfile / 无 Unity 进程,再 `rm -f` 旧 XML)。判据:XML 的 mtime 必须晚于启动时刻。
 
 **盘上变异残留**:零 ✅(grep `if (false &&|if (true)|&& false|[MUTATED]` 为空)。
+
+## Session Extract — 2026-10-20(第四段):乙档第一份接线(`disease_action_axis` → DC-4)+ 第二份四层降级登记
+
+**用户裁定(AskUserQuestion 两问,均取推荐)**:
+- **B(`diagnosis_negative_confidence`)**:「**只接 A,B 降级登记**」—— B 如实登记为
+  「缺整条消费链:求值 / 传输 / 呈现 / 下游 **四层**」,逐层列缺口与归属系统,**不硬接**。
+- **A 的接线点**:「**Processor 构造注入 + `Process` 入口校验**」—— 不用静态 `Provider` 缝,
+  也不只在装配期校验 `BandageRow`。
+
+**为什么 A 能接、B 不能接(grep 出来的,不是估计)**:A 的缺是「**一次调用**」
+(读点本身在跑,只差把产物接上去);B 的缺是「**整条链**」。往 B 的缝里塞 provider 而没人读
+= 「已装载但无人用」,与前两轮登记的边界**同一形态**,属借绿家族,故不做。
+
+**改动(A-1…A-3 + T-1/T-2)**:
+- **A-1** `HostEmergencyProcessor` 构造增可选参 `ISet<int> actionAxis = null`;
+  DC-4 门落 `Process`(带 `analogChannelAbsent` 的重载)**入口**,且**先于** `patientId` 门
+  (载荷非法则后面算什么都没意义;该门只读入参、零副作用 ⇒ 放最前不改任何既有语义)。
+- **A-2** `CompositionRoot`:`dataProvider != null` ⇒ `Load<DiseaseActionAxisDataSet>()` →
+  按 `owner=="10"` 过滤 → 注入。
+- **A-3** `EmergencyAction` **doc-only**:`ValidateActionId` 自陈从「唯一判据」改为「兜底影子」。
+- **T-1** 新门 `DataPipeline/action_axis_reader_gate_test.cs` **9 用例**;
+  **T-2** `reader_wiring_gate_test.cs` 装配面补 `DiseaseActionAxisDataSet`(组合根**即时** Load)。
+
+**两个必须记的设计点**:
+1. **门查两个 action id,不是只查一个** —— `attempt.Action`(进 `EmergencyAttempt` 载荷,
+   **判定输入**)与 `action.ActionId`(进 `EmergencyTreatmentApplied.treatmentId`)**都查**;
+   只查表行 ⇒ 轴外 id 照样进流,由 9 的构建期白名单**静默拒收**,且报文无法定位是哪个字段错。
+2. **`null` ≠ 空集(刻意区分)** —— `null` = 装配层未装 ⇒ 走 `Enum.IsDefined` 影子,
+   **零行为变化**;空集 = 装了但产物无 `owner=="10"` 条目 ⇒ **装配错误**,入口直接
+   `throw InvalidOperationException`。混为一谈则产物损坏会静默退化成「全部动作非法/全部合法」。
+
+**为什么在装配层过滤而不在 Processor 里**:`Sim` 住门 A(`noEngineReferences: true`),
+**够不着** `Gameplay.Presentation.DiseaseActionAxisCookedCodec` ⇒ Processor 只收一个 `ISet<int>`,
+与 `IPayloadEncoder` 同构 —— **零新增程序集边**;门 A / b2 / ADR-025 §① 全部继续成立。
+
+**证伪轮 7/7 全部转红**,每例「改 → 跑 → 还原」同命令内完成,`finally` 还原后 **sha256 逐字节一致**,
+盘上零残留(`grep -E "if \(false &&|\[MUTATED\]"` 为空)。最重的一条是 **F6**:
+去掉本夹具的静态缝复位 ⇒ 全量里 `cooked_drift_all_artifacts_test.drift[interaction_kinds]`
+**精确转红**(`3970/4007 failed=1`,红点逐字命中)—— 这正是本轮 6 条回归里第 6 条的真因反证。
+F6 复跑(树冻结后,`/tmp/fz-f6-rerun.py`)结果**逐位重现**首轮,已补进原件 §4.3。
+
+### ⚠️ 本轮首次全量跑出 6 条红 —— 两类**因果无关**的真因(承重记录)
+
+| 红 | 真因 | 修 |
+|---|---|---|
+| `ReaderWiringGateTest` ×5 | 组合根现在**即时** `Load<DiseaseActionAxisDataSet>()`,该夹具的 `MultiTableProvider` 没有这份表 | 补 `CommittedDiseaseActionAxis()`(读**盘上真产物**,非合成值)+ `BuildProvider()` 增一行 |
+| `cooked_drift_all_artifacts_test.drift[interaction_kinds]` | **我新夹具引入的静态污染** —— `CompositionRoot:348` 设进程级静态 `KindPriorityTable.Provider`,D 组经 `Assemble(dataProvider: …)` 把它设到一份**刻意不含 `InteractionKindDataSet`** 的 provider 上且不复位 | 补 `[SetUp][TearDown] ResetInjectionSeam()`(与 `ReaderWiringGateTest` 既有先例同款) |
+
+**⚠️ 这一条值得记住**:6 条红里 **5 条**是「装配面扩大」的正常后果(夹具要跟上),
+但第 6 条**不是** —— 它是一条**跨夹具、跨命名空间**的静态状态泄漏,症状出现在一个
+**与本轮改动无关的测试文件**里。区分方法(可复算):删掉新增的整个测试文件后,
+那 5 条仍红(**产品侧接线仍在**),第 6 条转绿。
+
+### 全量回归对账(2026-10-20 12:51 CST · 批次 `sprint-15 数据管线乙档接线轮(全量 EditMode,单批)` · commit `370345c` · 工作树 6 个未提交改动)
+
+| 量 | 前次 | 本次 | Δ | 预期 Δ | 判 |
+|---|---|---|---|---|---|
+| total | 3998 | **4007** | **+9** | +9(T-1 九用例) | ✅ |
+| passed | 3962 | **3971** | **+9** | +9 | ✅ |
+| failed | 0 | **0** | 0 | 0 | ✅ 零回归 |
+| skipped | 36 | **36** | 0 | 0 | ✅ |
+
+**判据是等式 `total − 前次 = 新增数`,不是「全绿」** —— 6 条红已修复,修复后重跑零回归。
+
+### ⚠️ 必须如实登记(禁借绿)
+
+1. **A-3 = Landed ✅ / Proven ✗** —— 它**只改注释措辞**,没有任何机械判据能钉住
+   「注释说的是对的口径」。如实登记,不标已证。
+2. **「换源」只能靠合成夹具证 —— 理由是实测的**:产物 `owner=="10"` 段 = `{0, 1}`
+   **恰等于** `EmergencyAction` 枚举 `{0, 1}`(直接解 `disease_action_axis.cooked.bytes` 字节所得)
+   ⇒ **接线前后游戏行为逐位相同** ⇒ 用真产物测「源换了」= **恒绿假门**。
+   补 `assemblyInjectsSyntheticAxis_overridesShadow`(合成轴 `{99}`)才有判别力 ——
+   **本轮自查发现并修掉的一个判别力缺口**:首版 9 条里 `assemblyWithArtifact_acceptsActionInAxis`
+   单独看没有判别力(F4 首轮删掉组合根注入那行,**8 条仍全绿**,正是假绿夹具形态)。
+3. **B 侧四层全缺(§2),`AC-8-13`(Lv15 不构成排除 / Lv20 构成排除的端到端)仍未可执行** ——
+   它是 `[I] BLOCKING` 级,归 8 的 story-004/story-006 与 9 的投影落地。**不因本轮降级登记而缓解**。
+4. **`treatable_by` 段仍未接** —— 消费者是 F-11.5 的 `GateHit`,属 11 二轮评审 BL-3 阻断项,不在本件面内。
+5. **`EmergencyManualDriver.BandageRow` 仍是硬编码单行**(`ActionId = 0`),真源归 21a/10 烘焙轮;
+   本轮只保证**注入的轴**能拦住它。
+6. **PlayMode NOT-RUN** —— 判据需 Addressables 组,而组数据被 `.gitignore` 忽略(机器本地产物)
+   ⇒ 本机不可复现。不借 EditMode 的绿说它已证。
+7. **IL2CPP 三格 NOT-RUN** —— 本机仅 Mono。
+8. **AC-10-08 的 `L_input < 50 ms` 与本门无关** —— 门开销 = `ISet<int>.Contains` 两次,
+   不涉定格点 / 求值,不构成手感预算负担。
+
+**原件**:`production/qa/evidence/impl-data-core-readers-b-2026-10-20.md`
+**账本**:`tests/integration/item_database/README.md` §2026-10-20 更新⑤
+**未提交**(不经用户指令不 commit)。

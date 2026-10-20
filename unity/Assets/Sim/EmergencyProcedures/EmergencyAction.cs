@@ -87,7 +87,7 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
             return row.JitterRelaxMul >= MUL_ONE;
         }
 
-        /// <summary>DC-4: action_id 闭集 = 9 的处置轴(owner=="10" 段)</summary>
+        /// <summary>DC-4: action_id 闭集 = 9 的处置轴(owner=="10" 段)
         /// <para>⚠️ 2026-10-07 改:判据源从 <c>Enum.IsDefined(typeof(EmergencyAction), actionId)</c>
         /// 改为**读 9 的烘焙轴**(owner=="10" 段)。</para>
         /// <para>⚠️ **单一轴归 9,两贡献者共用 id 空间**(用户 2026-10-07 裁定):
@@ -95,26 +95,27 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         /// `prescription_actions.json` 都是该轴上的条目。</para>
         /// <para>⚠️ `EmergencyAction` 枚举**保留**为 10 侧对 0–1 段的**类型别名**
         /// (载荷 `EmergencyAttempt.action` 的字段类型不变 ⇒ 零涟漪)。</para>
-        /// <para>⚠️ **DC-4 判据本体当前为影子(Enum.IsDefined),真源接线待后续 story** ——
-        /// 本类住 `Sim`(门 A 侧),不能引用 `Editor.Tools.Bake`。
-        /// 真源接线须由 `Editor.Tools.Bake` 侧调用 <see cref="ValidateActionIdFromAxis"/>
-        /// 并传入 9 的烘焙产物。</para>
+        /// <para>⚠️ **本方法仍是影子(Enum.IsDefined)—— 但自 2026-10-20 起不再是 DC-4 的
+        /// 唯一判据**:运行期真源门已落在 <c>HostEmergencyProcessor.Process</c> 入口
+        /// (构造注入 9 产物的 `owner=="10"` 段;<c>null</c> ⇒ 回退本方法)。
+        /// 保留本方法 = 未注入时的兜底 + 既有测试与编辑期工具的调用面。</para>
+        /// <para>⚠️ 影子**已知会错**的地方:9 的轴若新增一个 `owner=="10"` 的处置 id(如 2),
+        /// <see cref="EmergencyAction"/> 枚举没有对应成员 ⇒ 本方法会**错误地拒绝**它。
+        /// 运行期已由注入的轴门覆盖该情形(读轴,不读枚举)。</para>
+        /// <para><b>真源</b> = 9 的烘焙产物 `disease_action_axis.cooked.bytes` 的 `actions` 段,
+        /// 经 <c>DiseaseActionAxisCookedCodec</c> 解码后按 `owner=="10"` 过滤。
+        /// 接线点在装配层(<c>Sim</c> 够不着 <c>Gameplay.Presentation</c>)——
+        /// 见 <see cref="ValidateActionIdFromAxis"/> 与 <c>HostEmergencyProcessor</c>。</para>
         /// </summary>
         public static bool ValidateActionId(int actionId)
         {
-            // ⚠️ 构建期断言:枚举 ordinal ⊂ 9 的轴 ∩ owner=="10",且逐值相等 ——
-            //    把「单一轴」变成可红的机器,而非散文。
-            //    ⚠️ 当前数据集:9 的处置轴 = {0, 1, 10, 11, 12},owner=="10" 段 = {0, 1}。
-            //    枚举 ordinal = {0, 1} ⊂ {0, 1} ✓
-            // ⚠️ 2026-10-07:判据源改指 9 的烘焙轴。
-            // ⚠️ 当前实现:仍用 Enum.IsDefined,但 9 的轴已落地。
-            // ⚠️ 若 9 的轴新增了一个 owner=="10" 的处置 id(如 2),
-            //    EmergencyAction 枚举没有对应成员,DC-4 会错误地拒绝它。
-            // ⚠️ 后续须改为读 9 的烘焙产物。
+            // ⚠️ 当前数据集:9 的处置轴 = {0, 1, 10, 11, 12},owner=="10" 段 = {0, 1};
+            //    枚举 ordinal = {0, 1} ⊂ {0, 1} ✓ —— 故当前**逐值等价于真源**。
+            //    这正是本轮换源「行为不变」的原因,也是它不能靠行为变化证明的原因。
             return Enum.IsDefined(typeof(EmergencyAction), actionId);
         }
 
-        /// <summary>DC-4 真源校验:action_id ∈ 外部传入的闭集(9 的处置轴 ∩ owner=="10" 段)。</summary>
+        /// <summary>DC-4 真源校验:action_id ∈ 外部传入的闭集(9 的处置轴 ∩ owner=="10" 段)。
         /// <para>⚠️ 本方法是 DC-4 的**真源接线点** —— 由 `Editor.Tools.Bake` 侧调用,
         /// 传入 9 的烘焙产物中 owner=="10" 段的 id 集。</para>
         /// <para>⚠️ 当前数据集:9 的处置轴 = {0, 1, 10, 11, 12},owner=="10" 段 = {0, 1}。</para>

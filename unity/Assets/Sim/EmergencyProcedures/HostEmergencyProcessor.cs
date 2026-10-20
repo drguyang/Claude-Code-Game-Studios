@@ -43,18 +43,32 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         private readonly IIdAuthority _idAuthority;
         private readonly IPayloadEncoder _encoder;
 
+        /// <summary>DC-4 处置轴闭集(9 的烘焙产物 `owner=="10"` 段);<c>null</c> = 未注入。</summary>
+        /// <para><b>2026-10-20 真源接线</b>:源 = `disease_action_axis.cooked.bytes` 的
+        /// <c>actions</c> 段经 <c>DiseaseActionAxisCookedCodec</c> 解码后按 <c>owner=="10"</c>
+        /// 过滤。⚠️ <b>不得</b>在 <c>Sim</c> 侧读产物(<c>Sim</c> 够不着 <c>Gameplay.Presentation</c>)
+        /// ⇒ 由装配层注入,与 <see cref="IPayloadEncoder"/> 同构。</para>
+        /// <para>⚠️ <b>null ≠ 空集</b>:<c>null</c> = 装配层未装(EditMode 15+ 既有调用方),
+        /// 走 <see cref="EmergencyActionSchema.ValidateActionId"/> 的枚举影子;
+        /// 空集 = **装配错误**,入口直接拒(拒以空集冒充绿)。</para>
+        private readonly System.Collections.Generic.ISet<int> _actionAxis;
+
         /// <param name="eventSink">事件写入通道(主机唯一)。</param>
         /// <param name="idAuthority">发号权威。</param>
         /// <param name="encoder">
         /// 载荷编码器(ADR-029 §③)—— **唯一合法的载荷构造路径**。
         /// 本类内不得出现 <c>new PayloadRef(</c>(ADR-029 §③ 的门判据,由 b6 门强制)。
         /// </param>
+        /// <param name="actionAxis">DC-4 处置轴闭集(<c>owner=="10"</c> 段的 action_id 集);
+        /// <c>null</c> ⇒ 回退枚举影子(零行为变化 —— 15+ 个既有装配调用方全部不传本参)。</param>
         public HostEmergencyProcessor(IEventSink eventSink, IIdAuthority idAuthority,
-                                      IPayloadEncoder encoder)
+                                      IPayloadEncoder encoder,
+                                      System.Collections.Generic.ISet<int> actionAxis = null)
         {
             _eventSink = eventSink ?? throw new ArgumentNullException(nameof(eventSink));
             _idAuthority = idAuthority ?? throw new ArgumentNullException(nameof(idAuthority));
             _encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
+            _actionAxis = actionAxis;
         }
 
         /// <summary>
@@ -98,12 +112,46 @@ namespace DaYiJingCheng.Sim.EmergencyProcedures
         /// true ⇒ **幅度门按 `MAG_MAX` 判**(载荷里的真实 `MagPeak` 不变,仍原样进流);
         /// false ⇒ 照常按 `MagPeak` 判。判据的信息源在输入层(3),由调用方传入。</param>
         /// <exception cref="ArgumentNullException"><paramref name="action"/> 为 null。</exception>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="patientId"/> 为 None / 负值。</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="patientId"/> 为 None / 负值;
+        /// 或 <c>attempt.Action</c> / <c>action.ActionId</c> ∉ 注入的处置轴闭集(DC-4)。</exception>
+        /// <exception cref="InvalidOperationException">处置轴闭集注入为空(DC-4;空集 = 装配错误)。</exception>
         public void Process(EmergencyAttemptPayload attempt, EmergencyActionRow action,
                             JudgeContext ctx, PatientId patientId, long tick, int cause,
                             bool analogChannelAbsent)
         {
             if (action == null) throw new ArgumentNullException(nameof(action));
+
+            // ── DC-4 处置轴闭集门(2026-10-20 真源接线)────────────────────────
+            // 病因:`EmergencyActionSchema.ValidateActionId` 的注释自陈「真源接线须由
+            //   Editor.Tools.Bake 侧调用 ValidateActionIdFromAxis 并传入 9 的烘焙产物」,
+            //   但**两个方法在生产侧都是零调用** ⇒ DC-4 判据长期是 Enum.IsDefined 的影子。
+            //   后果(枚举注释已点名):9 的轴若新增一个 owner=="10" 的 id(如 2),
+            //   EmergencyAction 枚举没有对应成员 ⇒ 影子**错误地拒绝**它。
+            // 现口径:轴注入 ⇒ 读轴;未注入 ⇒ 枚举影子(null 与空集区别对待,见字段注)。
+            // ⚠️ 位置在 patientId 门**之前**:载荷里的 action 是非法的 ⇒ 后面算什么都没意义;
+            //    且该门只读入参,不产生任何副作用(不 Append / 不发号)。
+            if (_actionAxis != null)
+            {
+                if (_actionAxis.Count == 0)
+                    throw new InvalidOperationException(
+                        "[DC-4] 处置轴闭集注入为空 —— 拒以空集冒充绿(空集会让每一次合法动作都被拒)。" +
+                        "装配层须从 disease_action_axis 产物 owner==\"10\" 段建集。");
+                // ⚠️ 两个 action id 都要过门,缺一不可 —— 它们落**不同**的去处:
+                //   · `attempt.Action` ⇒ `EmergencyAttempt` 载荷(判定输入,**进流**);
+                //   · `action.ActionId`  ⇒ `EmergencyTreatmentApplied.treatmentId`(九字段之二)。
+                //   只查后者会漏掉前者:轴外 id 照样进流,由 9 的构建期白名单拒收 = 静默失败。
+                if (!_actionAxis.Contains(attempt.Action))
+                    throw new ArgumentOutOfRangeException(nameof(attempt), attempt.Action,
+                        $"[DC-4] 载荷 action = {attempt.Action} ∉ 处置轴 owner==\"10\" 段" +
+                        $"({{{string.Join(", ", _actionAxis)}}})—— 该值进 EmergencyAttempt 载荷," +
+                        "轴外 id 会被 9 的构建期白名单拒收(静默失败)。");
+
+                if (!_actionAxis.Contains(action.ActionId))
+                    throw new ArgumentOutOfRangeException(nameof(action), action.ActionId,
+                        $"[DC-4] action_id = {action.ActionId} ∉ 处置轴 owner==\"10\" 段" +
+                        $"({{{string.Join(", ", _actionAxis)}}})—— 9 的轴是处置 id 的唯一 master;" +
+                        "轴外 id 落流会被 9 的构建期白名单拒收(静默失败)。");
+            }
 
             // ── fail-loud 门(入口,先于 Judge 与任何 Append)──────────────────
             // 失效模式(2026-10-09 批次 E 修的原 bug):归因写死 PatientId.None

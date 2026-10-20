@@ -653,3 +653,59 @@ AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→d
 > **自身命令行就含该模式字面量** ⇒ 自匹配 ⇒ `until` 恒假 ⇒ 四个等待任务全部空转。
 > 处置改**同步前台**跑。判据:XML 的 mtime 必须晚于启动时刻。
 > 完整记载见证据原件 §7.1(前两个变体:XML 陈旧、变异脚本编译失败)。
+
+---
+
+## 2026-10-20 更新⑤ —— 乙档第一份接线(`disease_action_axis` → DC-4)+ 第二份四层登记
+
+**用户裁定**(AskUserQuestion 两问):B(`diagnosis_negative_confidence`)「只接 A,B 降级登记」·
+A 的接线点「Processor 构造注入 + Process 入口校验」。
+
+### 新增门:`ActionAxisReaderGateTest`(9 用例)
+
+| 组 | 用例 | 性质 |
+|---|---|---|
+| A | `artifactOwner10Set_matchesEmergencyActionEnum` | **对照** |
+| A | `artifactIdsUniqueAndOwnerClosed` | 数据完整性 |
+| B | `syntheticAxis_rejectsActionOutsideAxis` | **换源(承重 · 拒)** |
+| B | `syntheticAxis_acceptsActionInsideAxis` | **换源(承重 · 放)** |
+| B | `gatesPayloadActionNotJustRowActionId` | **门覆盖载荷侧** |
+| C | `emptyAxis_throwsDistinctFromNotInjected` | 负向(空集 ≠ 未注入) |
+| C | `notInjected_fallsBackToEnumShadow` | 回退(零行为变化) |
+| D | `assemblyWithArtifact_acceptsActionInAxis` | 接线(对照半边,**单独看无判别力**) |
+| D | `assemblyInjectsSyntheticAxis_overridesShadow` | **接线(承重半边)** |
+
+> ⚠️ **「换源」必须用合成夹具** —— 产物实测 `owner=="10"` 段 = `{0,1}` **恰等于**
+> `EmergencyAction` 枚举 ⇒ 接线前后行为**逐位相同**,用真产物测「源换了」是**恒绿假门**。
+> 这不是修辞:证伪 F4 首轮删掉组合根注入,**9 条全绿**(假绿夹具的形态),
+> 补合成轴 `{99}` 那条后才转红。
+
+### B 侧四层缺口(不硬接的理由)
+
+| 层 | 缺口 |
+|---|---|
+| ① 求值 | 实现**齐备** —— 不缺 |
+| ② 装载 | `Load<DiagnosisNegativeConfidenceDataSet>` **全库零调用**(含测试) |
+| ③ 传输 | `ExaminedSet` 只 4 字段,**无把握度**;`ExamineDriver` 无注入点 |
+| ④ 呈现 | 42 `ConfidenceColumn` **无数值字段**;`PendingConfidence` 是 u8 判断档位,非 F-8.3 把握度 |
+| ⑤ 下游 | `ConstitutesExclusion` / `ExclusionLevel` / `CurveAt` **零生产调用** |
+
+⇒ 即便接上 ②,①③④⑤ 全缺 ⇒ 「装载了但**零玩法效果**」。**`AC-8-13` 仍未可执行**。
+
+### 回归对账(2026-10-20 12:51 CST · commit `370345c` · 工作树 6 个未提交改动)
+
+| 项 | 值 |
+|---|---|
+| 前次 | `total=3998 passed=3962 failed=0 inconclusive=0 skipped=36` |
+| 本轮 | **`total=4007 passed=3971 failed=0 inconclusive=0 skipped=36`**(exit 0) |
+| 等式判据 | `total − 前次 = 新增数`(9 条门用例)⇒ **✅ 精确成立,零回归** |
+| PlayMode | **NOT-RUN** |
+
+> ⚠️ **首次全量跑出 6 条红**(`passed=3965 failed=6`),**是本轮真回归,不是测试污染**。
+> 其中 **5 条**是装配面扩大的正常后果(`ReaderWiringGateTest` 的 provider 缺新表);
+> 第 **6** 条(`cooked_drift[interaction_kinds]`)是**跨夹具、跨命名空间的静态状态泄漏**
+> (`CompositionRoot:348` 设进程级 `KindPriorityTable.Provider`,新夹具没复位)。
+> 区分方法:删掉新增测试文件后 5 条仍红(产品接线仍在),第 6 条转绿。
+> 因果由证伪 F6 反证:重新去掉复位,该 case **精确转红**。
+
+详见 `production/qa/evidence/impl-data-core-readers-b-2026-10-20.md`。

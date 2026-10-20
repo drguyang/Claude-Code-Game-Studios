@@ -65,6 +65,14 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
         private static PrescriptionActionsDataSet CommittedPrescriptionActions()
             => PrescriptionActionsCookedCodec.Read(ReadCommitted("prescription_actions.cooked.bytes"));
 
+        /// <summary>9 的处置轴产物(`disease_action_axis`)。
+        /// <para>⚠️ 本门**不测**它(其读者门 = `ActionAxisReaderGateTest`)。此处只为让
+        /// <c>CompositionRoot.Assemble(dataProvider: …)</c> **装配得起来** ——
+        /// 组合根对它是**即时** Load(DC-4 闭集注入),缺它装配当场抛;
+        /// 且喂的是**盘上真产物**而非合成值:本门用的是真装配路径,不该塞假输入。</para></summary>
+        private static DiseaseActionAxisDataSet CommittedDiseaseActionAxis()
+            => DiseaseActionAxisCookedCodec.Read(ReadCommitted("disease_action_axis.cooked.bytes"));
+
         /// <summary>⚠️ 静态注入缝跨测试残留 ⇒ 每测先复原(生产由 BootRoot/PlayMode 复位)，
         /// 每测后同样复原。置 null 即让按 Provider 身份缓存的表失效。</summary>
         [SetUp]
@@ -353,7 +361,10 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
                 .Add(DiagnosisCookedDisk.LoadReadFloor())
                 .Add(DiagnosisCookedDisk.LoadJudgmentLexicon())
                 .Add(CommittedInteractionKinds())
-                .Add(CommittedPrescriptionActions());
+                .Add(CommittedPrescriptionActions())
+                // ⚠️ DC-4 处置轴(2026-10-20 接线后组合根**即时** Load)——
+                //    缺它装配当场抛;本门不测其语义,只为装配面完备。
+                .Add(CommittedDiseaseActionAxis());
 
         private sealed class MultiTableProvider : IDataProvider
         {

@@ -189,11 +189,34 @@ namespace DaYiJingCheng.Gameplay.Boot
             var caseOpenWriter = new CaseOpenWriter(stream, presence, encoder, stream.Events);
             var caseDriver = new CaseOpenedDriver(caseOpenWriter, presence);
 
+            // ── DC-4 处置轴闭集(2026-10-20 真源接线)──
+            // 病因:`disease_action_axis` 的 `actions` 段编辑期已被消费
+            //   (`PrescriptionActionIdRegistry.RealActionIds()` 读 `owner=="11"` 段作 DC-2 闭集),
+            //   但**运行期零读点** ⇒ `EmergencyActionSchema.ValidateActionId` 长期是
+            //   `Enum.IsDefined` 的影子(枚举注释自己点名「9 的轴新增 id ⇒ 影子会错误拒绝」)。
+            // 现:装配层读产物 → 按 `owner=="10"` 过滤 → 注入 `HostEmergencyProcessor`。
+            // ⚠️ **为什么在装配层过滤而不是在 Processor 里**:`Sim` 住门 A(`noEngineReferences`),
+            //    够不着 `Gameplay.Presentation.DiseaseActionAxisCookedCodec`;
+            //    Processor 只收一个 `ISet<int>`,与 `IPayloadEncoder` 同构(零新增程序集边)。
+            // ⚠️ dataProvider == null(EditMode / 15+ 既有调用方)⇒ 传 null ⇒ 回退枚举影子,
+            //    与接线前**逐位相同**。
+            System.Collections.Generic.ISet<int> emergencyActionAxis = null;
+            if (dataProvider != null)
+            {
+                DiseaseActionAxisDataSet axis = dataProvider.Load<DiseaseActionAxisDataSet>();
+                var owner10 = new System.Collections.Generic.HashSet<int>();
+                for (int i = 0; i < axis.Actions.Count; i++)
+                    if (axis.Actions[i].Owner == "10")
+                        owner10.Add(axis.Actions[i].ActionId);
+                emergencyActionAxis = owner10;
+            }
+
             // ── 急救链处理器 + 驱动(sprint-05 T1.3 → sprint-06 G4.1 退役)──
             // G4.1(2026-10-11 用户裁定「急救手动化」):自动触发分支已从
             // EmergencyAttemptDriver 删除(退役壳零事件);触发权归玩家,
             // 手动入口 = EmergencyManualDriver(BootRoot 生成玩家后调用)。
-            var emergencyProcessor = new HostEmergencyProcessor(stream, idAuthority, encoder);
+            var emergencyProcessor = new HostEmergencyProcessor(stream, idAuthority, encoder,
+                actionAxis: emergencyActionAxis);
             var emergencyDriver = new EmergencyAttemptDriver();
             // cause 判据的输入面(TD-epic-01 第八片):空 = 夹具默认「玩家选择」;
             // 生产 BootRoot 以 3 的 DeviceStateManager 造 EmergencyDeviceReadiness 适配注入
