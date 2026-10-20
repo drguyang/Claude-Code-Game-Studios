@@ -46,7 +46,7 @@
 |---|--------|--------|--------|------|
 | **M1** | Pre-Production Complete | 架构与生产档齐备,可以开工 | 硬件选型 / spike | 7/9(**未闭 2**:性能预算 · ADR-023 spike) |
 | **M2** | Vertical Slice(**美术待裁**) | **核心循环跑通** —— 机制闭环优先 | 代码 | ✅ **Complete(2026-10-14,Exit 10/10 全勾;Phase 2 = 2/7 系统,余四系统归 M3 推进)** |
-| **M3** | Systems Complete | **31 系统机制齐** —— P0 的每一件都在跑 | 代码 + 集成 | **22/31** epic 全 Complete(2026-10-15 实测) |
+| **M3** | Systems Complete | **31 系统机制齐** —— P0 的每一件都在跑 | 代码 + 集成 | **22/31** epic 全 Complete(2026-10-15 实测)<br>⚠️ **陈旧** —— 2026-10-20 实测 **18/31**(见 §Milestone 3 的分母真源裁决块) |
 | **M4** | Content Complete | **42 VS Critical 资产 + 数值冻结** —— 能看了 | 美术 + 数值轮 | 0/42(灰盒豁免中) |
 | **M5** | MVP / Release Candidate | 上述合流,可交外部试玩 | 全部 | 未开始 |
 
@@ -368,8 +368,34 @@ patient-ai ⬜ · diagnosis-system ⬜ · case-system ⬜ · prescription-medica
 **Goal**: P0 的 **31 个系统机制全部落地** —— 每一件都在跑,能用灰盒资产走完全部路径。
 
 **Exit Criteria**:
-- [ ] 31 个 P0 epic 全部 `Complete`(⚠️ 现 **22/31**)
-- [ ] 全部 P0 story `Complete`(⚠️ 现 **220 story / 172 Complete / 46 Ready / 1 In Review / 1 Pending**)
+- [ ] **epic 面 —— M3 出口 = 两条合取(S16-2 落盘 · 2026-10-20)**:
+  - [ ] ① **31 个 P0 epic 全部 `Complete`** —— ⚠️ 现 **18 / 31**(2026-10-20 实测,见下方刷新块)
+  - [ ] ② **该 epic 名下 TD 的 P0 面 = 0** —— 🔴 **`NOT MET`(2026-10-20 S16-3 落盘后首次可求值)**
+        **实测 = 72 条(未闭),分布在 12 / 31 个 epic**。求值命令与逐 epic 分布见
+        `docs/tech-debt-register.md` **§★ 总索引 §五**(夹在 `TD-INDEX` 标记间,与表同源)。
+        三元组:截至 **2026-10-20** · 批次 **sprint-16 S16-3 收口轮** · commit **`f6cdaaf`**。
+        > ~~🔴 `NOT-YET-EVALUABLE`:债册**尚无「P0 面」列**(状态现嵌在「债」列的散文里),
+        > 该列归 **S16-3**,未落前**此条跑不出数**。~~ ← **原文保留留痕**(它记的是 S16-3 前的状态)
+        > ⚠️ **「可求值」≠「已满足」** —— 该条**今天跑得出数,而这个数是 72,不是 0**。
+        > **禁为好看而预判为 0**(本仓假绿禁令):判定口径 `P0 面` 由用户 2026-10-20 裁定为
+        > **宽判据**(归属 epic ∈ 31 个 P0 epic 即算 Y),故 **M3 第二步的出口量本身 = 72 条未闭债**
+        > (~~+ 3 条待说明~~ ← **2026-10-20 已裁:该尾巴作废**,四条全判 `N`,`待裁` 桶清零;
+        > 裁法与理由见 `docs/tech-debt-register.md` §一 的 ✅ 块与 §六 尾注 —— **裁定不改变 72 这个数**)。
+        > **这不是加码,是宽判据如实执行的结果。**
+        > ⚠️ **口径**:出口量只算**未闭**的 P0 面债 —— 已清偿的 15 条不再构成障碍(否则该条永不可能为 0)。
+  > ⚠️ **本判据已由「单条」改为「两条合取」** —— 裁定与三项理由见
+  > `p0-remaining-roadmap-2026-10-20.md` **§五**。**这不是加码,是补回原判据漏掉的那一半**:
+  > 本项目已两次踩过「story 全绿 ≠ epic 可收口」(`TD-epic-01` / `TD-audio-100…109`),
+  > 且 `audio-system/EPIC.md:11` 逐字写「**不得据『17 份 story 全 Complete』推定已闭**」。
+  > ⚠️ **第二条合取 = 八道硬门(路线图 §三)的清偿面** —— 其中 **AC 门**四道(G-4/G-5/G-6/G-7)
+  > **直接等于本条**(路线图 §3.1)。故**不清门,本条永远不可勾**。
+  >
+  > ~~- [ ] 31 个 P0 epic 全部 `Complete`(⚠️ 现 **22/31**)~~ ← **原文保留留痕**(其数字已被下方刷新块取代)
+- [ ] 全部 P0 story `Complete`(⚠️ 现 **226 story / 182 Complete / 41 Ready / 1 In Review / 2 其他**)
+  > ⚠️ **2026-10-20 刷新**(三元组:截至 **2026-10-20** · 批次 **sprint-16 规划轮(Phase 1 重扫)** · commit **`be60b2c`**)。
+  > 原文 ~~`220 story / 172 Complete / 46 Ready / 1 In Review / 1 Pending`~~ 系 **2026-10-15 快照**,保留留痕。
+  > **差因**:`Ready` 46→41 与 `In Review` 1→2 的唯一来源 = `clinic-machine/story-001`(2026-10-20 交付转 `In Review`);
+  > 其余差额为三个 sprint 的交付。**分母 31 未变**(见下方口径说明)。
 - [ ] `Sim` 引用集门 / b2 / b6 全绿(承 ADR-025 §① / ADR-029 §③)
 - [ ] 零 S1/S2 未关闭 bug(⚠️ 实测 `production/qa/bugs/` 仅有 `README.md`,**零 bug 文件** ⇒ 本项**形式上已满足**,
       但须注意其含义是「无登记」而非「已修复」—— bug 追踪机制 2026-10-02 建立后尚无实际录入)
@@ -402,6 +428,28 @@ patient-ai ⬜ · diagnosis-system ⬜ · case-system ⬜ · prescription-medica
 > ⚠️ **本节其余两条 Exit Criteria 的「未勾」是真实状态,非陈旧标记** ——
 > `Sim` 引用集门 / b2 / b6 的门定义散在 ADR-025/029 与 `Editor.Tools.Gates`,**尚无单一「全绿」实测记录**;
 > 零 S1/S2 一条见上方括注。**本轮只订正计数,不改判定。**
+
+> ### 🔁 **2026-10-20 分母真源裁决(承 S16-2;原文全部保留,只加注)**
+>
+> | 处 | 现写 | 真源(2026-10-20) |
+> |---|---|---|
+> | 本节 Exit ① · `:49` 表 · `:532` 附表 | **22 / 31** | ❌ **陈旧**(= 上方 2026-10-15 快照)。真源 = **18 / 31** |
+> | 本节 story 行 | 220 / 172 / 46 Ready | ❌ **陈旧**。真源 = **226 / 182 / 41 Ready / 1 In Review / 2 其他** |
+>
+> - **分母 31 —— ✅ 与上方口径说明一致,不变,且已确认为唯一真源**
+>   (`ls -d production/epics/*/ | wc -l` = 31;与 `systems-index.md` 的 P0 集合严格一一对应)。
+> - **分子 22 → 18 —— 两次独立实测同值**(路线图首建轮 + `be60b2c` 的 `/sprint-plan` Phase 1 重扫;
+>   二者**判据相同**:epic 全 `Complete` ⟺ **其全部 story 均 `Complete`**,逐目录归并)。
+>   ⚠️ **差 4 的来源 = 本文件旧快照本身**(路线图 §1.2 逐户表);**与另一件事勿混读**:
+>   另有**五户**并非全 `Complete`(`emergency-procedures` 8/9 · `medical-consequences` 3/4 ·
+>   `patient-ai` 4/5 · `skeuomorphic-ui` 24/25 · `world-ecozones` 5/6)。
+> - ⚠️ **`EPIC.md` 的「X/X story 已实现」不可直接采信** —— 实测其中**四户分母自身偏小**
+>   (`emergency 7/7→实 9` · `patient-ai 4/4→实 5` · `skeuo 18/18→实 25` · `world-ecozones` **分子多 1**),
+>   刷账归 **S16-5**;⇒ **判 epic 完成度只认 story `Status:` 逐条归并,不认 `EPIC.md` 分数**。
+> - ⇒ **本文件的 `22/31` 自此读作「2026-10-15 快照」**。引用者须抄上方 2026-10-20 三元组,
+>   **不得再把它当现值**(这正是 sprint-11 `smoke-2026-10-15.md` 伪基线的同型病灶)。
+> - ⚠️ **本节推迟的「不改判定」仍然有效**:本轮只做**分母真源裁决**,
+>   未改任何 epic 的 `Status`、未改任何 story 的 `Status`。
 
 **ETA**: TBD
 
@@ -474,7 +522,7 @@ patient-ai ⬜ · diagnosis-system ⬜ · case-system ⬜ · prescription-medica
      ⇒ ✅ **已估(2026-10-04,见下方 ⛔ 甲′ 翻转块)** —— **表一 外部侧 ≈58.5 : 表二 内部侧 ≈10.5 人日**。
      ⚠️ **本行原写「⬜ 仍待办 / 每一格的数仍为空」,那是登记当时的快照,已被同块的后续更新覆盖** ——
      **勿照抄本行的「仍待办」当作现状**(2026-10-20 回注;这正是本仓已知坑
-     「**照抄登记行、漏读同文件处置块**」,同 `p0-completion-plan-2026-10-20.md` §七 的自我订正)。
+     「**照抄登记行、漏读同文件处置块**」,同 `p0-remaining-roadmap-2026-10-20.md` **§6.6.1** 的自我订正)。
      ⚠️ **填数后的强制复核**:表一(外部)合计 **vs** 表二(内部)合计 ——
      **表一 > 表二 ⇒ 甲′ 不成立,须重开乙′**(这是甲′ 的可证伪条件,非备注)。
    > ⚠️ **本项与 1–3 不同类**:1–3 是**待裁的选项**;本项是**已实测的缺口** ——
@@ -529,15 +577,53 @@ patient-ai ⬜ · diagnosis-system ⬜ · case-system ⬜ · prescription-medica
 | 量 | 值 | 来源(可复核) |
 |---|---|---|
 | P0 系统 | 31 | `design/gdd/systems-index.md:180`;`ls -d production/epics/*/ \| wc -l` = **31**(目录数与 GDD 数**一致**) |
-| epic 全 Complete | **22 / 31** | `production/epics/*/EPIC.md` 的 `> **Status**:` 行逐件实测(30 个有 `EPIC.md`;`save-slot-ui` **无** ⇒ 计非 Complete) |
-| story | **220 total · 172 Complete · 46 Ready · 1 In Review · 1 Pending** | `production/epics/*/story-*.md` 的 `> **Status**:` 行逐件实测 |
-| EditMode 基线 | **3401 total · 3355 passed · 0 failed · 0 inconclusive · 46 skipped** | `unity/Logs/s12-6-final.xml`(2026-10-15 S12-6 终轮;`s12-6-editmode.xml` 首轮**逐位一致**) |
-| PlayMode 基线 | **186 total · 186 passed · 0 failed** | `unity/Logs/s12-2-full-pm.xml`(2026-10-15 S12-2) |
+| epic 全 Complete | **22 / 31** ⚠️ **陈旧** | `production/epics/*/EPIC.md` 的 `> **Status**:` 行逐件实测(30 个有 `EPIC.md`;`save-slot-ui` **无** ⇒ 计非 Complete)。<br>🔁 **2026-10-20 真源 = 18 / 31**,判据改用 story `Status:` 逐条归并(不认 `EPIC.md` 分数 —— 实测四户分母偏小,见上)。`save-slot-ui/EPIC.md` 亦已于 2026-10-20 补建 ⇒ **31/31 均有**。<br>✅ **2026-10-21(S16-5 四户刷账)**:`emergency-procedures` / `patient-ai` / `skeuomorphic-ui` / `world-ecozones` 的 header 分数与状态词已刷(8/9 · 4/5 · 24/25 · 5/6)⇒ **`EPIC.md` 直接读出亦 = 18 / 31**,与 story 归并**同值**。⚠️ 上行「不认 `EPIC.md` 分数」的**理由**自此消失,但**结论不变**;今后两口径互为校验 |
+| story | **220 total · 172 Complete · 46 Ready · 1 In Review · 1 Pending** ⚠️ **陈旧** | `production/epics/*/story-*.md` 的 `> **Status**:` 行逐件实测。<br>🔁 **2026-10-20 真源 = 226 / 182 / 41 Ready / 1 In Review / 2 其他**(三元组 `be60b2c`) |
+| EditMode 基线 | ~~**3401 total · 3355 passed · 0 failed · 0 inconclusive · 46 skipped**~~ <br>🔁 **现值 = `4085 / 4049 / 0 / 36`** · 三元组:截至 `2026-10-21 01:03 CST` · 批次 `C-1 门链接线判据实现轮(全量 EditMode)` · commit `f6cdaaf` | ~~`unity/Logs/s12-6-final.xml`(2026-10-15 S12-6 终轮;`s12-6-editmode.xml` 首轮**逐位一致**)~~<br>**现值来源** = `unity/Logs/c1-full-editmode.xml`(`stat -c %y` = `2026-10-21 01:03:12`;<test-run> 头 `total="4085" passed="4049" failed="0" inconclusive="0" skipped="36"`) |
+| PlayMode 基线 | ~~**186 total · 186 passed · 0 failed**~~ <br>🔁 **现值 = `197 / 197 / 0 / 0`** · 三元组:截至 `2026-10-21 00:22 CST` · 批次 `sprint-16 收口轮(全量 PlayMode)` · commit `f6cdaaf` | ~~`unity/Logs/s12-2-full-pm.xml`(2026-10-15 S12-2)~~<br>**现值来源** = `unity/Logs/smoke-s16-playmode.xml`(`stat -c %y` = `2026-10-21 00:22:12`;<test-run> 头 `total="197" passed="197" failed="0" skipped="0"`)。与 `unity/Logs/full-playmode-2026-10-20.xml`(`2026-10-20 01:05`)同值 |
 | VS Critical 资产 | 42(全 spec 化) | `design/assets/entity-inventory.md`(**未重测** —— M4 面,本轮不触) |
 | P0 工期基线 | 6-9 个月(**不得重算**) | `systems-index.md:190` 用户裁定 2026-09-14 |
 
 > **⚠️ 两条基线的时点差(如实登记,防伪基线)**:EditMode `3401/3355` 取自 **S12-6 终轮**;
 > 若其后有新增测试件落地,该值即**滞后** —— 引用时须连带三元组,不得裸引(承 S12-0 建闸)。
+
+> ### 🔁 2026-10-21 C-3:两条基线刷新(原文不删,上表已就地并列)
+>
+> **原判定**(`production/qa/qa-signoff-sprint-16-2026-10-21.md` §7 条件 **C-3**、§6 缺陷 3):
+> 本表 EditMode 记 `3401/3355/0/46`、PlayMode 记 `186`,分别是 **2026-10-15** 与 **S12-2** 的值;
+> 实测已为 `4071/4035/0/36`(差 **670**)与 `197`。该表是**下游基线污染源** ⇒ 下一 sprint 必踩。
+>
+> **刷新后值(均带三元组)**:
+>
+> | 套件 | 旧值 | **新值** | 截至时刻 | 批次 | commit | XML |
+> |---|---|---|---|---|---|---|
+> | EditMode | `3401/3355/0/46` | **`4085/4049/0/36`** | `2026-10-21 01:03 CST` | C-1 实现轮 | `f6cdaaf` | `c1-full-editmode.xml` |
+> | PlayMode | `186/186/0` | **`197/197/0/0`** | `2026-10-21 00:22 CST` | sprint-16 收口轮 | `f6cdaaf` | `smoke-s16-playmode.xml` |
+>
+> **增量可解释**(不是「变了就对」):
+> - EditMode `+684 total / +694 passed / −10 skipped`。其中 **`+14` 可精确归属** = C-1 新增的
+>   `GateWiringManifestTest.*` 全体(差集实测「新增 14 / 消失 0」,见
+>   `production/qa/evidence/impl-c1-gate-wiring-2026-10-21.md` §5.2);剩余 **`+670`** 落在
+>   `2026-10-15 → 2026-10-20` 的 sprint-13…16 交付面,**未逐笔归属**(如实登记,不假装能归)。
+>   `skipped 46 → 36` 的 **−10** 同为这五天内的变化,**未逐条核**。
+> - PlayMode `186 → 197` 的 **`+11`**,分两段:**`186 → 192`**(`+6`)落在 S12-2 → `s51` 之间,
+>   **未逐笔归属**;**`192 → 197`**(**`+5`**)= s18 运行时音频装配轮,可精确归属
+>   (`production/session-state/active.md:5663` 记「PlayMode 基线 `s51` 192/192/0/0 ⇒
+>   本轮 `s18-full-playmode` **197/197/0/0**(`+5 = 新增测数`)」)。
+>
+> **⚠️ 两条值的时点不同(如实登记)**:PlayMode 测于 `00:22`,**早于** EditMode 的 `01:03`。
+> C-1 的改动是**测试件 + 一处注释,零运行时改动**,故 PlayMode 不受影响 ——
+> **但这是判断,不是实测**:若下游需要「C-1 之后」的 PlayMode 证据,须另跑。
+> (C-1 证据件 §5.3 已同款登记 `PlayMode = NOT RUN`)。
+>
+> **⚠️ 本表其余行未动** —— 第 579–581、584–585 行(`P0 系统` / `epic 全 Complete` / `story` /
+> `VS Critical 资产` / `P0 工期基线`)各带自己的陈旧标注与真源,不在 C-3 的授权面内。
+> 顺带复核第 581 行 `story` 行:2026-10-20 真源 `226 / 182 / 41 Ready / 1 In Review / 2 其他`;
+> 今日重算 **`226 / 182 Complete / 41 Ready / 1 In Review / 1 Pending / 1 部分完成`**
+> —— **逐项同值**(`2 其他` = `Picker`+`部分完成`),该行**无需刷**。
+> ⚠️ **留痕**:本轮首版复算脚本把 `**Complete ✅ <日期>**` 这类**加粗前缀**未剥,误得 `168`,
+> 一度写进本注当作「口径差」。真因是脚本 `startswith('Complete')` 对 `**` 开头的行恒假 ——
+> **是计数错,不是口径差**。已订正;第 581 行结论不变。
 >
 > **⚠️ 本表原记 EditMode `2204 / 2163 / 0 / 40 / 1`(2026-10-03)** —— 该值是**当时**的真跑,
 > 原文不删留证;现值见上。两值差 **+1197 total / +1192 passed**,系 12 天内的正常增量,非订正。
