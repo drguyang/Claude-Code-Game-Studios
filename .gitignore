@@ -80,6 +80,30 @@ unity/Assets/Scenes/Spike*
 unity/Assets/Scenes/AtlasProbe*
 # Unity Test Framework 首跑自动生成的初始化场景(Assets 根,机器相关;含同级 .meta)。
 unity/Assets/InitTestScene*
+# com.unity.test-framework.performance 的 `TestRunBuilder.OnPreprocessBuild` 在**每次构建**时
+# 重写这两个文件(2026-10-21 C3 真构建实测:构建日志明写
+# `[TestRunBuilder] Creating new file 'Assets/Resources/PerformanceTestRunInfo.json'`)。
+#
+# ⚠️ **刻意不整目录忽略 `unity/Assets/Resources/`** —— 那是 Unity 的**特殊目录**,
+# `Resources.Load` 只认它。整目录忽略会让将来任何**真该入库**的 Resources 资产被**静默吞掉**
+# (症状是「资产在本地好好的,clone 下来就没了」),且不可见。故按 `Spike*` / `AtlasProbe*` /
+# `InitTestScene*` 同款**窄 glob** 只忽略已实测的两类产物 —— 若将来生成第三种,
+# 它会以**未跟踪形态可见地**冒出来,由人判断去留,而不是被悄悄吃掉。
+# 同时匹配同级 `.meta`(见下方 `Resources.meta` 一条)。
+unity/Assets/Resources/PerformanceTestRunInfo.json*
+unity/Assets/Resources/PerformanceTestRunSettings.json*
+# `Assets/Resources/` 目录本身由上一行的文件生成时一并创建;其 .meta 也是生成物。
+# 单独列:`.meta` 文件名是 `Resources.meta`,与目录同级,窄 glob 覆盖不到。
+unity/Assets/Resources.meta
+# Addressables 在**播放器构建期**自动生成的链接器保留清单
+# (2026-10-21 C3 真构建实测:`unity build` 后出现在 `AddressableAssetsData/`)。
+# 判据:全仓 `git ls-files | grep -i link.xml` **零命中** —— 该类文件从未入库;
+# 项目代码对 `link.xml` **零引用**(`grep -rn "link.xml" --include=*.cs unity/Assets` 无命中);
+# 内容全是 Addressables / UnityEngine 类型的 preserve 条目 ⇒ 纯生成物。
+# 构建产物自己的副本(`*_Data/StreamingAssets/aa/AddressablesLink/link.xml`)已被 `[Bb]uilds/` 覆盖,
+# 本规则只管**工程源树**里那一份。
+unity/Assets/AddressableAssetsData/link.xml
+unity/Assets/AddressableAssetsData/link.xml.meta
 # Unity Test Framework 默认结果文件(每次 `unity test unity` 覆盖写,2.9 MB,机器本地)。
 # ⚠️ 必须带 `unity/` 前缀锚定:仓根的 `test-results.xml` 是**已入库**的历史产物
 # (`git ls-files test-results.xml` 命中),裸写 `test-results.xml` 会连它一起忽略 ——

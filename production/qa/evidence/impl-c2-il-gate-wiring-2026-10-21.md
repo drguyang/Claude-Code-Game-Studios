@@ -257,11 +257,92 @@ skipped   36 → 36
 | **守卫本身的反证**(把 `RunAll` 里的 `scriptCompilationFailed` 分支改成恒 false ⇒ 须红) | **NOT RUN** | 该守卫的判据依赖「编译失败」这一环境态,batch 下无法稳定构造。**不用「15/15 全绿」冒充「守卫已验证」。** |
 | **PlayMode** | **NOT RUN** | 本批零运行时改动,但「零运行时改动 ⇒ PlayMode 不受影响」是**判断不是实测**。 |
 | IL2CPP 三格(ADR-012) | **NOT RUN** | 本机仅 Mono |
-| 真实构建(`OnPreprocessBuild` 端到端) | **NOT RUN** | 未跑 `unity build`;本批只证明了「接线存在且删之会红」,未证明「构建时它真的跑通」 |
+| 真实构建(`OnPreprocessBuild` 端到端) | ✅ **已补跑(C3 轮,见 §六)** | 三轮回填:`Success` + 两条独立探针各自令构建 `Failure` |
 
-> 🔴 **最后一条要特别说明**:本批的判据是**源文本级**(`GateChainSource` 解析 `AssemblyGates.cs`),
+> 🔴 **最后一条原为 NOT RUN**:本批判据是**源文本级**(`GateChainSource` 解析 `AssemblyGates.cs`),
 > 它证明的是「这两行调用在源码里,且删掉会红」。**它不证明 `OnPreprocessBuild` 真的执行成功。**
-> 端到端验证须跑一次真构建 —— 归下一轮,此处如实登记为未跑。
+> **2026-10-21 C3 轮已补跑**(见 §六),原文保留作闭环记录。
+
+---
+
+## 六、C3 轮 —— 真实构建端到端(`OnPreprocessBuild`)
+
+**起因**:§五 最后一条 NOT RUN。用户 2026-10-21 指令「跑一次真构建,把 `OnPreprocessBuild`
+那条 NOT-RUN 补掉」。
+
+### 6.1 为什么「构建成功」本身不够
+
+干净构建跑绿只能证明「门链**没误报**」。两个 IL 门在无错时**零输出**(`errs` 为空即返回),
+所以绿 = `errs.Count == 0`,**不能区分**下面两种情况:
+
+- ① 门真的跑了,扫了 DLL,没发现问题 ⇒ 绿(有效);
+- ② 门**根本没被调用**,`errs` 永远是空 ⇒ 绿(假绿,与本批要消灭的形态同型)。
+
+⇒ 必须有一轮「**让门自己说话**」的构建。故设计**两条独立探针**,各自单独施加、单独还原
+(不叠变异,承 `tools/falsify/README.md` 纪律)。
+
+### 6.2 三轮实测
+
+| 轮 | 内容 | 构建结果 | 判据 |
+|---|---|---|---|
+| **① 干净** | 无任何变异 | **`Build Finished, Result: Success.`** | 门链不误报 |
+| **② 探针 6 门** | `EcozoneIntegerGates.RunAll` 开头 `errs.Add("[C3-PROBE]…"); return errs;` | **`Build Finished, Result: Failure.`** | AC-6-22 接线**真的执行** |
+| **③ 探针 10 门** | `EmergencyIntegerGates.RunAll` 开头 `errs.Add("[C3-PROBE-EMG]…"); return errs;` | **`Build Finished, Result: Failure.`** | AC-10-02/03 接线**真的执行** |
+
+**逐轮日志原件**:
+
+| 轮 | 日志 | 关键行 |
+|---|---|---|
+| ① | `unity/Logs/build-StandaloneLinux64-1792518964732.log` | `:8584` `Build Finished, Result: Success.` |
+| ② | `unity/Logs/build-StandaloneLinux64-1792519051344.log` | `:1072` 探针串 · `:1086` `BuildFailedException` · `:1146` `Result: Failure.` |
+| ③ | `unity/Logs/build-StandaloneLinux64-1792519134642.log` | `:1055` 探针串 · `:1069` `BuildFailedException` · `:1095` `Result: Failure.` |
+
+### 6.3 探针为何能**定位**到 `OnPreprocessBuild`(而不是别的调用方)
+
+四条判据同时成立,缺一不成立:
+
+| # | 判据 | 实测 |
+|---|---|---|
+| 1 | 探针串出现在**构建日志**里 | 是 |
+| 2 | 探针串的 `Debug.LogError` 栈帧上是 **`BuildGate:OnPreprocessBuild (AssemblyGates.cs:1257)`** | 是(两轮都是) |
+| 3 | 构建**因它而失败**:`BuildFailedException` + utp `steps` 只有 `Preprocess Player`(1.4 s)即止 | 是 |
+| 4 | **批次模式下该方法的唯一调用点就是 `OnPreprocessBuild`** | 见下 |
+
+判据 4 的实测依据 —— `EcozoneIntegerGates.RunAll` 全仓调用点只有两处:
+
+```
+AssemblyGates.cs:114    ← RunMenu(菜单,批次模式不触发)
+AssemblyGates.cs:1252   ← OnPreprocessBuild(C3 轮要证的那条)
+```
+
+(`gate_wiring_manifest_test.cs:102/:115` 是**字符串清单**,不是调用。)
+`EmergencyIntegerGates.RunAll` 同构。
+
+> ⚠️ **诚实边界**:判据 4 是「唯一调用点」论证,**不是**「我看到了调用点行号被命中」的直接证据
+> ——探针串的栈帧给的是 `AssemblyGates.cs:1257`(`Debug.LogError` 行),不是 `:1252`(接线行)。
+> 但既已由判据 1–3 证明「门在构建期执行了」,而批次模式下唯一可达路径只有 `:1252`,
+> 故归因成立。**这一层推理如实写在这里,不冒充直接观测。**
+
+### 6.4 副作用与还原
+
+**还原判据 = SHA-256 逐字节**,不是 grep 标记名(承 `TD-gate-03` 订正):
+
+| 文件 | 变异前(= 还原后) | 变异态 | 还原校验 |
+|---|---|---|---|
+| `EcozoneIntegerGates.cs` | `981c99b9f84cae3b16d6aa44601934d84de51d076c3f6d6128fd9928c95879aa` | `a8613ca5…` | ✅ 逐字节相同 |
+| `EmergencyIntegerGates.cs` | `9f6f704512ac6859209616b7e7d7be836030d239dc1b5fe59a3cf39d41dfd378` | `19006e41…` | ✅ 逐字节相同 |
+
+两文件还原后 `git status --short` 均为空(与 HEAD 无差异)。
+
+**变异窗口纪律**:两轮各在起跑前**声明窗口 + 点名被变异文件**,窗口内编排方未读该文件
+(承 `tools/falsify/README.md` §并发读取禁令)。
+
+**构建期副作用(如实记)**:
+- `unity/Builds/c3-clean/`(96 MB,完整产物)· `c3-probe/`、`c3-probe2/`(各仅
+  `provenance.json`,在 `Preprocess Player` 即中止)⇒ 已被 `.gitignore:65 [Bb]uilds/` 覆盖
+- `unity/Assets/AddressableAssetsData/link.xml` + `.meta` —— **Addressables 构建期自动生成**,
+  项目代码零引用,`git check-ignore` 判定**未被忽略** ⇒ 以未跟踪形态出现在工作树。
+  **未擅自删除**,处置交用户。
 
 ---
 

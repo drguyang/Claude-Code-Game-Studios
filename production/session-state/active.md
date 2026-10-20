@@ -7573,14 +7573,40 @@ if (EditorUtility.scriptCompilationFailed)
 
 **等式 `Δtotal = Δpassed = 新增条数 = 1` 成立。**
 
-### 六之二、明确 NOT-RUN 四项(禁借绿)
+### 六之二、NOT-RUN 项 —— ③ 项已在 C3 轮补跑
 
-① **守卫本身的反证**(把 `scriptCompilationFailed` 分支改恒 false ⇒ 须红)—— 依赖「编译失败」
-环境态,batch 无法稳定构造。**不用「15/15 全绿」冒充「守卫已验证」。**
-② **PlayMode** —— 零运行时改动是**判断不是实测**。
-③ **IL2CPP 三格** —— 本机仅 Mono。
-④ **真实构建端到端** —— 本批判据是**源文本级**(`GateChainSource` 解析 `AssemblyGates.cs`),
-证明的是「这两行在源码里且删掉会红」,**不证明 `OnPreprocessBuild` 真的执行成功**。
+| # | 项 | 状态 |
+|---|---|---|
+| ① | **守卫本身的反证**(把 `scriptCompilationFailed` 分支改恒 false ⇒ 须红) | **仍 NOT RUN** —— 依赖「编译失败」环境态,batch 无法稳定构造。**不用「15/15 全绿」冒充「守卫已验证」。** |
+| ② | **PlayMode** | **仍 NOT RUN** —— 零运行时改动是**判断不是实测** |
+| ③ | **IL2CPP 三格** | **仍 NOT RUN** —— 本机仅 Mono |
+| ④ | **真实构建端到端** | ✅ **C3 轮已补跑,见 §六之三** |
+
+### 六之三、C3 轮 —— 真构建补掉 ④(**2026-10-21,用户指令**)
+
+**关键认识**:干净构建跑绿**不够** —— 两 IL 门无错时零输出,绿 = `errs.Count == 0`,
+**不能区分**「门跑了没发现问题」与「门压根没被调用」。⇒ 须让门自己说话。
+
+| 轮 | 内容 | 结果 | 日志 |
+|---|---|---|---|
+| **① 干净** | 无变异 | **`Result: Success.`** | `build-…1792518964732.log:8584` |
+| **② 探针 6 门** | `EcozoneIntegerGates.RunAll` 开头 add + return | **`Result: Failure.`** | `…1792519051344.log:1072 / :1086 / :1146` |
+| **③ 探针 10 门** | `EmergencyIntegerGates.RunAll` 开头 add + return | **`Result: Failure.`** | `…1792519134642.log:1055 / :1069 / :1095` |
+
+**归因四条**:① 探针串进构建日志;② 其 `LogError` 栈帧 = `BuildGate:OnPreprocessBuild
+(AssemblyGates.cs:1257)`;③ 构建因它失败(`BuildFailedException`,utp `steps` 只有
+`Preprocess Player` 即止);④ **批次模式下 `RunAll` 的唯一调用点就是 `:1252`/`:1253`**
+(`:114`/`:115` 是 `RunMenu`,批次不触发;`gate_wiring_manifest_test` 里是字符串清单非调用)。
+
+⚠️ **诚实边界**:④ 是「唯一调用点」**论证**,不是「看到接线行被执行」的直接观测 ——
+栈帧给的是 `:1257`(`LogError` 行),不是 `:1252`。不冒充直接证据。
+
+**还原**:两文件 SHA-256 逐字节校验通过(`981c99b9…` / `9f6f7045…`),
+`git status` 两文件均空。变异窗口均起跑前声明,窗口内未读被变异文件。
+
+**新产生的未跟踪文件**:`unity/Assets/AddressableAssetsData/link.xml`(+`.meta`)——
+Addressables 构建期自动生成,项目代码零引用,`git check-ignore` 判未忽略 ⇒ 以未跟踪形态出现。
+**未擅自删除**,待处置。
 
 ### 七、本轮又自己抓到三个错(如实记)
 
@@ -7596,5 +7622,6 @@ if (EditorUtility.scriptCompilationFailed)
    漏掉既有的自洽检查也会一起红。**
 
 - **Blockers**:无
-- **Next**:commit 待用户指令(12 个文件:10 改 + 2 新)。
+- **Next**:C-2 两笔已由用户指令提交(`fdfa705` + `dc94a63`)。C3 轮的 ④ 项补跑与
+  证据件 §六 更新**未提交**,待用户指令。
 
