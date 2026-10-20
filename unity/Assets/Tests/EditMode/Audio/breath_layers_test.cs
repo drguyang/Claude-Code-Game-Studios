@@ -179,6 +179,147 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 () => string.Join("\n", emptyErrors));
         }
 
+        // ══════════ 快照静音捕获 · 组粒度(2026-10-20 · TD-listen-01 L-6 的构建期门)══════════
+        //
+        // 事故复盘:Master 组(非 exposed)在 Default 快照里被钉到 −74.14725 dB
+        // ⇒ 全场景静音,而 AC-44-01 ② 的 ≤ −80 判据**擦边漏过**(−74 > −80)。
+        // 下面四条:真实资产正例 / 事故复现负例 / 老口径对照 / 空转守卫。
+
+        /// <summary>真实资产正例:五份快照的捕获值最深处 = −6 dB ⇒ 零错误。</summary>
+        [Test]
+        public void test_silentCaptureOnGroup_realAsset_zeroErrors()
+        {
+            // Arrange
+            string yaml = ReadRepoFile("unity", "Assets", "Audio", "DaYiJingCheng.mixer");
+
+            // Act
+            IReadOnlyList<string> errors =
+                MixerTopologyGates.ValidateNoSilentCaptureOnPlayerAdjustedGroups(yaml);
+
+            // Assert
+            Assert.That(errors, Is.Empty, () => string.Join("\n", errors));
+        }
+
+        /// <summary>
+        /// **事故复现负例**:把 Master 组在 Default 快照里压到 −74.14725 dB(2026-10-20 实测值)
+        /// ⇒ 红,且错误须**点名 Master 与 Groups 快照**。
+        /// <para>判别力:该值 **&gt; −80** ⇒ 老的 AC-44-01 ② 判据**抓不到它**
+        /// (下方 test_silentCaptureOnGroup_aboveLegacyFloor_stillCaught 钉住这条对照)。</para>
+        /// </summary>
+        [Test]
+        public void test_silentCaptureOnGroup_masterAtMinus74_red()
+        {
+            // Arrange:真资产 + 把 Master 的 Default 捕获值改成事故值
+            string yaml = ReadRepoFile("unity", "Assets", "Audio", "DaYiJingCheng.mixer");
+            // Master 组 m_Volume 哈希(实测 2026-10-20;换资产须同步)
+            const string masterVolumeHash = "4b26ff2484ad0dd3dbba5a2756453a2e";
+            string sabotaged = yaml.Replace(
+                $"{masterVolumeHash}: 0",
+                $"{masterVolumeHash}: -74.14725");
+            Assert.That(sabotaged, Is.Not.EqualTo(yaml), "变异未生效 —— Master 的捕获行没被替换到");
+
+            // Act
+            IReadOnlyList<string> errors =
+                MixerTopologyGates.ValidateNoSilentCaptureOnPlayerAdjustedGroups(sabotaged);
+
+            // Assert
+            Assert.That(AnyError(errors, "Master"), Is.True,
+                () => "错误须点名 Master 组:\n" + string.Join("\n", errors));
+            Assert.That(AnyError(errors, "−74.14725") || AnyError(errors, "-74.14725"), Is.True,
+                () => "错误须带上事故值:\n" + string.Join("\n", errors));
+            Assert.That(AnyError(errors, "快照静音捕获"), Is.True,
+                () => string.Join("\n", errors));
+        }
+
+        /// <summary>
+        /// **老口径对照**:同一个 −74.14725 变异,AC-44-01 ② 的 ≤ −80 判据**仍为绿**
+        /// ⇒ 证明新判据覆盖的是旧判据够不着的区间(不是重复)。
+        /// <para>⚠️ 本测断言的是**旧判据的盲区**,不是「旧判据错了」—— ≤ −80 那条管的是
+        /// 「拉到底」,语义不同。两条并存。</para>
+        /// </summary>
+        [Test]
+        public void test_silentCaptureOnGroup_aboveLegacyFloor_zeroFromLegacyGate()
+        {
+            // Arrange
+            string yaml = ReadRepoFile("unity", "Assets", "Audio", "DaYiJingCheng.mixer");
+            const string masterVolumeHash = "4b26ff2484ad0dd3dbba5a2756453a2e";
+            string sabotaged = yaml.Replace(
+                $"{masterVolumeHash}: 0",
+                $"{masterVolumeHash}: -74.14725");
+
+            // Act:旧判据(≤ −80)
+            IReadOnlyList<string> legacyErrors =
+                MixerTopologyGates.ValidateNoTierMuteFlags(sabotaged);
+            // Act:新判据(≤ −60,仅非 exposed 组)
+            IReadOnlyList<string> newErrors =
+                MixerTopologyGates.ValidateNoSilentCaptureOnPlayerAdjustedGroups(sabotaged);
+
+            // Assert:旧判据漏掉,新判据抓到
+            Assert.That(AnyError(legacyErrors, "−74.14725") ||
+                        AnyError(legacyErrors, "-74.14725"), Is.False,
+                () => "旧判据(≤ −80)本应**漏掉** −74.14725;若它报出来了,说明阈值已被改动," +
+                      "本对照的前提失效 —— 须重核 MuteCaptureFloorDb:\n" +
+                      string.Join("\n", legacyErrors));
+            Assert.That(newErrors, Is.Not.Empty,
+                "新判据须抓到旧判据漏掉的 −74.14725");
+        }
+
+        /// <summary>空转守卫:真资产至少解析出一个「可解析为组名」的捕获配对;空输入 NOT-RUN。</summary>
+        [Test]
+        public void test_silentCaptureOnGroup_notRunGuard()
+        {
+            // Arrange
+            string realMixer = ReadRepoFile("unity", "Assets", "Audio", "DaYiJingCheng.mixer");
+
+            // Act
+            int realPairs = MixerTopologyGates.CountSilentCaptureScanPairs(realMixer);
+            IReadOnlyList<string> emptyErrors =
+                MixerTopologyGates.ValidateNoSilentCaptureOnPlayerAdjustedGroups("");
+
+            // Assert
+            Assert.That(realPairs, Is.GreaterThan(0),
+                "非空转守卫:真 .mixer 至少解析出一个可判定配对(组名可解析的捕获键)," +
+                "0 = NOT-RUN 不是绿");
+            Assert.That(AnyError(emptyErrors, "NOT-RUN"), Is.True,
+                () => "空输入必须 NOT-RUN:\n" + string.Join("\n", emptyErrors));
+        }
+
+        /// <summary>
+        /// **玩家可调组不受本条约束**:把 duck_master 在 Paused 快照里从 −6 再压到 −70 ——
+        /// <c>duck_master</c> 虽是组,但… 实测它同样**不在** exposed 集里 ⇒ **会报**。
+        /// 本测钉住的是相反面:<c>bus_volume_master</c> 这类**同名 exposed 组**压到 −70 时**不报**
+        /// (那是玩家滑块的合法落点)。
+        /// </summary>
+        [Test]
+        public void test_silentCaptureOnGroup_exposedGroup_notFlagged()
+        {
+            // Arrange:构造最小 YAML —— 一个 exposed 组 bus_volume_master 被压到 −70
+            const string yaml =
+                "--- !u!241 &24100000\n" +
+                "AudioMixerController:\n" +
+                "  m_ExposedParameters:\n" +
+                "  - guid: cd069f7b2e4248a329448803d1ba3143\n" +
+                "    name: bus_volume_master\n" +
+                "--- !u!243 &12345\n" +
+                "AudioMixerGroupController:\n" +
+                "  m_Name: bus_volume_master\n" +
+                "  m_Volume: cd069f7b2e4248a329448803d1ba3143\n" +
+                "--- !u!245 &24500006\n" +
+                "AudioMixerSnapshotController:\n" +
+                "  m_Name: Quiet\n" +
+                "  m_FloatValues:\n" +
+                "    cd069f7b2e4248a329448803d1ba3143: -70\n";
+
+            // Act
+            IReadOnlyList<string> errors =
+                MixerTopologyGates.ValidateNoSilentCaptureOnPlayerAdjustedGroups(yaml);
+
+            // Assert
+            Assert.That(errors, Is.Empty,
+                () => "exposed 组(玩家滑块管得着)被压低是合法设定,不得报:\n" +
+                      string.Join("\n", errors));
+        }
+
         // ══════════ AC-44-01 ②:mixer 静音路径 —— 脚本调用点半 ══════════
 
         /// <summary>AC-44-01 ② 脚本正例:源文本无 SetFloat(≤-80) / 无 .mute = true 赋值 ⇒ 零错误。</summary>

@@ -1,8 +1,14 @@
-# 修复原件 · 运行时零 AudioListener(全场景静音)+ 占位病人品红
+# 修复原件 · 运行时零 AudioListener + 快照静音捕获 + 占位病人品红
 
 **日期**:2026-10-20
 **触发**:用户实机报告「开了,看到品红色病人胶囊占位,**完全没声音**」
-**结论**:两处**独立**的代码缺陷,均已修;自动化面全绿,**实听面待用户复核**。
+**结论**:三轮修复 —— ① 听音点缺失(已修,evidence §一);② 品红占位(已修,§二);
+③ **`Master` 组被快照钉在 −74 dB**(§六,第二轮实机回报「中性灰,无声音」后定位)。
+②③ 均为**静音/观感**缺陷;③ 才是「第二轮回访仍无声音」的真因。
+
+> ⚠️ **本件的判定顺序留痕**:第一版原件把「无声」**唯一**归因为听音点缺失(§一),
+> 那一半是对的(Editor.log 10 845 条可证),但**不完备** —— 修完听音点后用户回报仍无声。
+> §六 记录第二根因与「为什么第一版没查到」。**不删 §一 的原文**。
 
 ---
 
@@ -184,3 +190,148 @@ else mat.color = neutralGrey;                                               // S
   会话开始时即存在,未由本轮触碰。
 
 **未提交**(不经用户指令不 commit)。
+
+---
+
+## 六、第二根因:`Master` 组被快照钉在 −74 dB(2026-10-20 追加)
+
+### 6.1 触发
+
+§一 修完后用户回报:**「中性灰,无声音。」** —— 品红已消(§二 生效),但声音仍未回来。
+复查 `Editor.log`:`no audio listeners` **计数 = 0**(`:627` 那批已消失)
+
+⇒ **听音点确实修好了**,但声音仍不通 ⇒ 缺陷不在听音点,**在下游**。
+
+### 6.2 根因
+
+工作树里的 `unity/Assets/Audio/DaYiJingCheng.mixer` 有一处未提交改动,把 `Default` 快照写成:
+
+```yaml
+m_FloatValues:
+    4b26ff2484ad0dd3dbba5a2756453a2e: -74.14725   # ← Master 组的 m_Volume
+    74060fb5be3f940ec945eefb8ff36174: 5.05        # ← Master 组的 m_Pitch
+```
+
+HEAD 版本是 `...: 0`(0 dB = 不衰减)。`-74.14725 dB` 在 16-bit 输出下已低于最低有效位,
+**听觉上就是静音**。
+
+### 6.3 为什么运行期救不回来(机制)
+
+mixer 里有两个**名字像但对象不同**的东西:
+
+| 对象 | GUID | 谁管它 |
+|---|---|---|
+| `Master` **组**本身 | `4b26ff2484ad0dd3dbba5a2756453a2e` | **无人**。快照说了算 |
+| 暴露参数 `bus_volume_master` | `cd069f7b2e4248a329448803d1ba3143` | `PlayerBusVolumeInitializer` 启动期 `SetFloat` |
+
+`PlayerBusVolumeInitializer` 推的是 7 个 `bus_volume_*`(出厂默认线性 1.0 → 0 dB),
+**碰不到 `Master` 组的 `m_Volume`**。于是 `bus_volume_master` = 0 dB 正常,
+但它下面挂着 `Master` = −74 dB,实际输出被这一级掐死。**玩家把滑块推到 100% 也依然静音。**
+
+### 6.4 为什么没有任何门抓到(这是本件的核心教训)
+
+`MixerTopologyGates` **早有一道**判据覆盖「快照静音捕获」:
+
+```csharp
+public const double MuteCaptureFloorDb = -80.0;   // :954
+...
+foreach (double db in doc.CaptureDbValues)
+    if (db <= MuteCaptureFloorDb) errors.Add("... 以拉到底实现的静音捕获 ...");
+```
+
+`test_mixerNoTierMuteFlag_assetSide_zeroErrors` 也确实对**真资产**运行。它没报,因为:
+
+**`-74.14725 > -80`** —— 差 **5.85 dB**,擦边漏过。
+
+**⇒ 根因不是「缺门」,是「门的判据边界比失效边界宽」。** 这道门只管「拉到底」,
+而 −74 dB 已经足够静音却不在「到底」的定义里。
+
+**为什么现有的 AC-2 门也管不着**:`ValidateSnapshotExposedDisjoint` 的判据是
+「快照不得捕获**玩家 exposed 参数**」。`Master` 组不是 exposed 参数(暴露的是子 `bus_volume_master`)
+⇒ 按它自己的规格**允许**。这是设计内的放行,不是 bug —— 说明必须**另开**一条判据。
+
+### 6.5 处置
+
+**a) 资产回退**:`git checkout -- unity/Assets/Audio/DaYiJingCheng.mixer`
+(用户裁定「不是我调的」)。`Default` 快照恢复为 `Master: 0`,pitch 覆盖行消失。
+
+**b) 新增构建期门**(`MixerTopologyGates.cs`):
+
+| 项 | 内容 |
+|---|---|
+| 新常量 | `SilentCaptureFloorDb = -60.0` |
+| 新判据 | `ValidateNoSilentCaptureOnPlayerAdjustedGroups(yaml)` —— 快照不得把**非 exposed 组**压到 ≤ −60 dB |
+| 空转守卫 | `CountSilentCaptureScanPairs(yaml)` —— 解析到 0 个可判定配对 ⇒ NOT-RUN |
+| 解析增强 | `MixerDoc.CapturePairs`(`键→值` 配对)—— 原来只有裸值 `CaptureDbValues`,**丢键** ⇒ 无法点名「哪个组」被压 |
+
+**判据的三条边界(刻意收窄)**:
+
+1. **只罩非 exposed 组** —— `bus_volume_*` 与 `tier_*` 由玩家滑块合法控制,压低是正当设定,
+   不报(用户裁定「只罩非玩家组」)。
+2. **−60 而非复用手边的 −80** —— 真资产五快照最深处 = `−6 dB`(四份 duck 快照),
+   余量 54 dB;−60 既抓得到 −74,又不会误伤。
+3. **不改 `MuteCaptureFloorDb`** —— 那条是 AC-44-01 ② 的原判据,改它会动既有 AC 语义面。
+   两条判据并存,各管一段区间。
+
+### 6.6 验证(含证伪)
+
+**新增 5 条夹具**(`unity/Assets/Tests/EditMode/Audio/breath_layers_test.cs`):
+
+| 测试 | 判据 |
+|---|---|
+| `test_silentCaptureOnGroup_realAsset_zeroErrors` | 真资产零错误(正向半边) |
+| `test_silentCaptureOnGroup_masterAtMinus74_red` | **事故值复现** ⇒ 红,且点名 `Master` + `-74.14725` |
+| `test_silentCaptureOnGroup_aboveLegacyFloor_zeroFromLegacyGate` | **老口径对照**:同一变异,旧 ≤ −80 判据**仍绿** ⇒ 证明新判据覆盖的是旧判据够不着的区间 |
+| `test_silentCaptureOnGroup_notRunGuard` | 空转守卫(真资产配对数 > 0;空输入 NOT-RUN) |
+| `test_silentCaptureOnGroup_exposedGroup_notFlagged` | exposed 组压到 −70 **不报**(豁免面正确) |
+
+**证伪轮(三条,全部按「变异 → 跑 → 从好版本 cp 回 → sha256 比对」执行)**:
+
+| # | 变异 | 结果 | 转红项 |
+|---|---|---|---|
+| F1 | `SilentCaptureFloorDb` −60 → −100 | **2 红 / 40 绿** | `masterAtMinus74_red` · `aboveLegacyFloor` |
+| F2 | 同上(重跑确认可复现) | **2 红 / 40 绿** | 同上 |
+| F3 | 停用 exposed 豁免(`if (false && ...)`) | **1 红 / 41 绿** | `exposedGroup_notFlagged` |
+
+还原核对:`sha256sum` 与备份 `/tmp/gates_GOOD.cs` 一致(`17cbec6dbc856c2a…`),阈值回到 −60。
+
+**全量 EditMode 回归**(三元组强制):
+
+| 项 | 值 |
+|---|---|
+| 截至时刻 | **2026-10-20 00:55 UTC** |
+| 批次 | 全量 · commit `3b97a85`(工作树含本轮未提交改动) |
+| 本次结果 | **`3945 / 3909 / 0 / 36`** |
+| 对照基线 | `3940 / 3904 / 0 / 36`(同 commit,§三 前次全量) |
+| 差值 | `total +5` · `passed +5` · `failed 0` · `skipped 0` |
+
+**等式成立**:新增 5 条夹具 = `total +5` = `passed +5`;`failed` 与 `skipped` 均未变 ⇒ **零回归**。
+产物:`unity/Logs/gate-full-2026-10-20.xml`(2 951 145 B);5 条新测试名已在 XML 中逐一确认在盘。
+
+**验证命令**(可复算,全名含 `.Unit.`):
+
+```bash
+cd unity && unity test unity --mode EditMode \
+  --filter "DaYiJingCheng.Tests.Unit.Audio.BreathLayersTest" \
+  --output "$PWD/Logs/gate-silent-capture.xml"
+```
+
+### 6.7 ⚠️ 本轮的一处过程失误(如实登记)
+
+第一轮证伪脚本把 `git checkout -- <file>` 当作还原手段,而它还原的是**整个文件到 HEAD**
+⇒ 把**全部新门代码**一并抹掉;备份 `cp` 排在该命令之后 ⇒ 备份到的是空壳。
+**新门一度全部丢失**,靠重新写入找回(符号计数已复核:4 处 `CapturePairs` / 2 处
+`ValidateNoSilentCaptureOnPlayerAdjustedGroups` / 1 处 `CountSilentCaptureScanPairs`)。
+
+**教训**:证伪还原**不得**用 `git checkout` / `git stash`(粒度是整个文件/整个工作树),
+必须「备份好版本 → `sed` 单点变异 → 跑 → `cp` 回 → `sha256` 比对」。
+已写入个人记忆 `feedback_git_checkout_wipes_uncommitted.md`。
+
+### 6.8 仍未证的一面
+
+| 项 | 状态 |
+|---|---|
+| **用户实听确认有声音** | **NOT-RUN**(待用户重开编辑器) —— 这是唯一的最终判据 |
+| 旧口径 `MuteCaptureFloorDb` 是否也该收紧 | **未动,有意** —— 会改 AC-44-01 ② 语义面,须另裁 |
+| `-74.14725` / `pitch 5.05` 的**产生原因** | **未知** —— 用户确认「不是我调的」;成因(编辑器误操作 / 视图切换写回)未查,但已由构建期门兜住 |
+

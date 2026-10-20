@@ -1020,6 +1020,133 @@ namespace DaYiJingCheng.EditorTools.Gates
             return errors;
         }
 
+        // ══════════ 快照静音捕获 · 组粒度(2026-10-20 立 · TD-listen-01 L-6 的构建期门)══════════
+
+        /// <summary>**非玩家可调组**在快照里被压到静音区的阈值(dB)。
+        /// <para><b>为什么是 −60 而不是复用手边的 −80</b>:−80 那条线只覆盖「拉到底」,
+        /// 而 2026-10-20 事故的实测值是 **−74.14725 dB** —— 它 &gt; −80,从
+        /// <see cref="MuteCaptureFloorDb"/> 的判据里**擦边漏过**,却已低到 16-bit 输出的
+        /// 最低有效位以下,**听觉上就是静音**。⇒ 判据边界比失效边界宽 5.85 dB,是这次
+        /// 「整场景静音一整天没被任何门发现」的直接机制。</para>
+        /// <para><b>为什么 −60 不会误伤</b>:真资产现有五快照的全部捕获值最深处 = <c>−6 dB</c>
+        /// (四份 duck 快照),余量 54 dB。</para>
+        /// <para>⚠️ **刻意不改 <see cref="MuteCaptureFloorDb"/>** —— 那条是 AC-44-01 ② 的
+        /// 原判据(≤ −80 的「拉到底」),改它会动既有 AC 的语义面。本常量是**另一条**判据。</para></summary>
+        public const double SilentCaptureFloorDb = -60.0;
+
+        /// <summary>**快照不得把非玩家可调组压到静音区**(组粒度 · BLOCKING)。
+        /// <para><b>为什么需要这一条(<see cref="ValidateNoTierMuteFlags"/> 之外)</b>:
+        /// 原判据只问「有没有一个 ≤ −80 的捕获值」,**不区分组**,也不问「这个值是谁在管」。
+        /// 而一级 <c>Master</c> 组的 <c>m_Volume</c> **不是** exposed 参数(暴露的是它的子
+        /// <c>bus_volume_master</c>,两者 GUID 不同)⇒ <c>PlayerBusVolumeInitializer</c> 的
+        /// 7 次 <c>SetFloat</c> **碰不到它**,快照说了算。于是「Master 被压到 −74」=
+        /// 玩家把滑块推到 100% 也依然静音,且运行期**没有任何回写路径**能救 ⇒ 只能构建期拒收。</para>
+        /// <para><b>判据</b>:对每份快照的每个捕获配对 <c>(key, dB)</c> —— 若该键能解析到一个
+        /// **组名**,且该组名**不在** exposed 参数集里(⇒ 玩家无法调节),且
+        /// <c>dB ≤ <see cref="SilentCaptureFloorDb"/></c> ⇒ 报错并点名快照 + 组 + 值。</para>
+        /// <para>⚠️ 解析不出组名的键(纯参数哈希子级)**不报** —— 这类键即 exposed 参数本身,
+        /// 归玩家管,静音是合法设定。</para>
+        /// <para><b>空转守卫</b>:解析到 0 个「可解析成组名」的捕获配对 ⇒ NOT-RUN
+        /// (与 <see cref="CountResolvedCaptureKeys"/> 同纪律,不得以空集冒充绿)。</para></summary>
+        /// <param name="yamlText">.mixer 原文(Force Text YAML)。</param>
+        /// <returns>错误列表(空 = 通过)。**零 throw** —— 解析级错误并入返回值。</returns>
+        public static IReadOnlyList<string> ValidateNoSilentCaptureOnPlayerAdjustedGroups(string yamlText)
+        {
+            var errors = new List<string>();
+            List<MixerDoc> docs = ParseMixerYaml(yamlText, errors);
+
+            var groupNames = new HashSet<string>(StringComparer.Ordinal);
+            foreach (MixerDoc doc in docs)
+                if (doc.ClassName == GroupClassName && doc.Name != null)
+                    groupNames.Add(doc.Name);
+
+            // exposed 参数名集 —— **玩家可调**的那些(判据的豁免面)
+            var exposed = new HashSet<string>(StringComparer.Ordinal);
+            foreach (MixerDoc doc in docs)
+                if (doc.ClassName == MixerClassName)
+                    foreach (string p in doc.Exposed) exposed.Add(p);
+            if (exposed.Count == 0)
+                return new[] { "[NOT-RUN 守卫] 未解析到 exposed 参数 —— 豁免面为空," +
+                               "本判据不可执行(拒空集冒充绿)" };
+
+            // 捕获键(32-hex 组音量哈希)→ 组名
+            var hashToGroup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (MixerDoc doc in docs)
+            {
+                if (doc.ClassName != GroupClassName || doc.Name == null ||
+                    string.IsNullOrEmpty(doc.VolumeHash))
+                    continue;
+                hashToGroup[doc.VolumeHash] = doc.Name;
+            }
+
+            int resolvedPairs = 0;
+            foreach (MixerDoc snap in docs)
+            {
+                if (snap.ClassName != SnapshotClassName) continue;
+                foreach (KeyValuePair<string, double> pair in snap.CapturePairs)
+                {
+                    if (pair.Key == null) continue;
+
+                    string group = null;                 // 键 → 组名(哈希反查 / 字面量组名)
+                    if (hashToGroup.TryGetValue(pair.Key, out string byHash)) group = byHash;
+                    else if (groupNames.Contains(pair.Key)) group = pair.Key;
+                    if (group == null) continue;         // 纯参数哈希键 ⇒ 玩家可调,跳过
+                    resolvedPairs++;
+
+                    if (exposed.Contains(group)) continue;   // 玩家管得着 ⇒ 允许
+                    if (pair.Value > SilentCaptureFloorDb) continue;
+
+                    errors.Add(
+                        $"[快照静音捕获] 快照「{snap.Name}」把组「{group}」压到 " +
+                        pair.Value.ToString(CultureInfo.InvariantCulture) + " dB " +
+                        $"(≤ {SilentCaptureFloorDb.ToString(CultureInfo.InvariantCulture)}) —— " +
+                        "该组**不是** exposed 参数(玩家滑块管不到),运行期无任何回写路径可救 ⇒ " +
+                        "整个下游静音且不可恢复。" +
+                        "2026-10-20 实测:Master 被钉在 −74.14725 dB ⇒ 全场景静音," +
+                        "Editor.log 10 845 条 `no audio listeners` 起初被误读为缺听音点。");
+                }
+            }
+
+            if (resolvedPairs == 0)
+                errors.Add("[NOT-RUN 守卫] 未解析到任何「可解析为组名」的快照捕获配对 —— " +
+                           "本判据空转(解析失败与通过不可区分)");
+
+            return errors;
+        }
+
+        /// <summary><see cref="ValidateNoSilentCaptureOnPlayerAdjustedGroups"/> 的**空转守卫**:
+        /// 可判定配对计数(能解析到组名的捕获键数)。测试断言 <c>&gt; 0</c>。</summary>
+        /// <param name="yamlText">.mixer 原文(Force Text YAML)。</param>
+        public static int CountSilentCaptureScanPairs(string yamlText)
+        {
+            var errors = new List<string>();
+            List<MixerDoc> docs = ParseMixerYaml(yamlText, errors);
+
+            var groupNames = new HashSet<string>(StringComparer.Ordinal);
+            var hashToGroup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (MixerDoc doc in docs)
+            {
+                if (doc.ClassName != GroupClassName || doc.Name == null) continue;
+                groupNames.Add(doc.Name);
+                if (!string.IsNullOrEmpty(doc.VolumeHash))
+                    hashToGroup[doc.VolumeHash] = doc.Name;
+            }
+
+            int count = 0;
+            foreach (MixerDoc snap in docs)
+            {
+                if (snap.ClassName != SnapshotClassName) continue;
+                foreach (KeyValuePair<string, double> pair in snap.CapturePairs)
+                {
+                    if (pair.Key == null) continue;
+                    if (hashToGroup.ContainsKey(pair.Key) || groupNames.Contains(pair.Key))
+                        count++;
+                }
+            }
+
+            return count;
+        }
+
         /// <summary>AC-44-01 ② **空转守卫**:可判定键计数 = 带 <c>m_Mute</c> 的组数 + 快照捕获值数。
         /// 返回 0 = 解析面空(NOT-RUN)—— 测试断言 <c>&gt; 0</c>,0 不得当绿
         /// (形态仿 <see cref="CountResolvedCaptureKeys"/>)。</summary>
@@ -1196,6 +1323,12 @@ namespace DaYiJingCheng.EditorTools.Gates
             /// <summary>快照 <c>m_FloatValues</c> 的**数值**(dB)—— AC-44-01 ② 的 ≤ −80 静音捕获
             /// 扫描面(2026-09-26 前值不入判据,只存键;Story 004 起值参与扫描)。</summary>
             public readonly List<double> CaptureDbValues = new List<double>();
+            /// <summary>快照 <c>m_FloatValues</c> 的**键→值配对**((键, dB) 按出现序)。
+            /// <para>⚠️ **与 <see cref="CaptureDbValues"/> 并存不是冗余**:裸值列表丢键 ⇒
+            /// 无法回答「**哪个**组被压到静音」,而 2026-10-20 的缺陷正是「一个特定的组
+            /// (<c>Master</c>)被压到 −74 dB」—— 只知道「有个 −74 的值」不足以点名修复对象。</para></summary>
+            public readonly List<KeyValuePair<string, double>> CapturePairs =
+                new List<KeyValuePair<string, double>>();
         }
 
         /// <summary>手写逐行状态机:多文档切分 + 关键字段提取(零正则、零第三方解析器)。
@@ -1379,6 +1512,7 @@ namespace DaYiJingCheng.EditorTools.Gates
         private static void ParseFloatValuesContent(string content, MixerDoc doc)
         {
             if (doc == null || content == null) return;
+            string lastKey = null;                       // 上一个键 —— 供「键→值」配对
             int i = 0;
             while (i < content.Length)
             {
@@ -1399,13 +1533,17 @@ namespace DaYiJingCheng.EditorTools.Gates
                     // 非数字忽略(与旧行为一致)
                     if (double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture,
                             out double db))
+                    {
                         doc.CaptureDbValues.Add(db);
+                        doc.CapturePairs.Add(new KeyValuePair<string, double>(lastKey, db));
+                    }
                     continue;
                 }
                 if (long.TryParse(token, out long numeric) && numeric != 0)
                     doc.CaptureTargets.Add(numeric);
                 else
                     doc.CaptureNames.Add(token);
+                lastKey = token;                         // 键 → 供随后的值配对
                 i = j + 1;
             }
         }
