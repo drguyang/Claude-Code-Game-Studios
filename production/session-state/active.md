@@ -7375,3 +7375,68 @@ Must ≤ 4 件/批 · 预留 1 额度给追加 ⇒ 本轮取 **3 件**(clinic-ma
   `TD-gate-02` 随 C-1 一次覆盖全部门。**sprint-16 可收口**(S16-4 带限定语)。
 
 ---
+
+## Session Extract — C-1 / C-3 条件结清(2026-10-21)
+
+**触发**:`qa-signoff-sprint-16-2026-10-21.md` §7 条件 **C-1**(门链反向判据)与
+**C-3**(基线表刷新)。用户两轮指令:「继续 C-1」→「照此执行」→「三个都做,先 C-3」。
+
+### C-1 —— `TD-gate-01` / `TD-gate-02` 结清
+
+**两份新件**(均在 `unity/Assets/Tests/EditMode/Sim/`,**刻意不住** `Editor.Tools.Gates`):
+
+| 文件 | 行数 | 作用 |
+|---|---|---|
+| `gate_chain_source.cs` | 350 | 源文本解析器(剥注释/字符串/字符字面量 + 花括号配平 + 三入口抽取) |
+| `gate_wiring_manifest_test.cs` | 597 | **手写**清单(三入口 + 23 类判决)+ 14 条断言 |
+
+**为什么判据必须住测试**:若做成 `GateWiringGate` 接进 `RunAll`,它就在检查「自己是否在链上」——
+**它自己被删的那一次,也正好是它不再运行的那一次**。递归必须有底,底只能落独立入口。
+
+**证伪轮(三向各一条,全 `exactRed`)**:F1 删 `AssemblyGates.cs:130` ⇒ **3 条红**
+(S16-4 当时的同一变异:**17/17 全绿**);F2 从清单删一条 ⇒ **1 条红**(证明双向);
+F3 停用解析器 ⇒ **5 条红**(证明非 `0==0`)。XML 原件已以 `--keep-logs` 重跑落盘
+(`unity/Logs/falsify-F{1,2,3}-*.xml`);还原后三文件 SHA-256 与变异前**逐位相同**,残留 0。
+
+**全量 EditMode `4085 / 4049 / 0 / 36`**(基线 `4071 / 4035 / 0 / 36` @ `2026-10-21 00:23` ·
+sprint-16 收口轮 · `f6cdaaf`);`Δtotal = Δpassed = +14`;差集实测**新增 14 / 消失 0**。
+
+**`TD-gate-02` 的结论与原猜相反** —— 原登记猜「同类缺口是全门链共性」,**逐门核完 23 类不成立**:
+链上 6 个**全部**真接线。真洞在 `TestDriven` 那 4 个:`EcozoneIntegerGates`(**AC-6-22 BLOCKING**)
+与 `EmergencyIntegerGates`(**AC-10-02/03 BLOCKING**)是 BLOCKING 级 AC 却**零构建期强制点**。
+已具名登记入 `KnownTestDrivenBlockingGaps`,**但「该不该接 BuildGate」不在本件裁决面**(须另裁)。
+
+### C-3 —— 基线表刷新
+
+`production/milestones/README.md:582-583` 两行就地并列新旧值(原文不删):
+
+| 套件 | 旧值 | 新值 | 截至时刻 | 批次 | XML |
+|---|---|---|---|---|---|
+| EditMode | `3401/3355/0/46` | **`4085/4049/0/36`** | `2026-10-21 01:03 CST` | C-1 实现轮 | `c1-full-editmode.xml` |
+| PlayMode | `186/186/0` | **`197/197/0/0`** | `2026-10-21 00:22 CST` | sprint-16 收口轮 | `smoke-s16-playmode.xml` |
+
+**增量已拆分归属,不假装能全归**:EditMode `+684` 中 `+14` = C-1 新增测,余 `+670` 与
+`skipped −10` **未逐笔归属**;PlayMode `+11` 中 `+5` = s18 音频装配轮(`session-state:5663` 可证),
+余 `+6` **未逐笔归属**。**两值时点不同**(PlayMode `00:22` 早于 EditMode `01:03`),C-1 零运行时
+改动故不受影响 —— **但这是判断不是实测**,已同款登记。
+
+### 本轮自己犯的两个错(如实记)
+
+1. **`IsGateClassName` 只判 `"Gate"` 后缀** —— `"DiagnosisBoundaryGates".EndsWith("Gate")` **为假**,
+   全部门类被漏光,只剩两个单数名可见。**这个 bug 我在 Python 原型里修过,写 C# 时凭记忆写回了错的版本。**
+   由 `test_extractor_actuallyExtractsKnownMembers` 首跑当场抓出(3 红)。
+   ⇒ **反空转守卫的价值实测兑现**:若无它,双向差集会在「两边都只看到 3 个门类」上**保持绿色**。
+2. **首轮证伪的 `expectRed` 漏列** —— F1 写 2 实得 3,F3 写 2 实得 5。**处理方式 = 逐条论证
+   「它们为什么应该红」**(每条指向具体断言的 `file:line`),论证成立后才更新 spec 并留
+   `_expectRed_justification` 字段。**没有直接把实得抄进预期** —— 那会让 `exactRed` 退化成 tautology。
+
+### `TD-gate-03` 仍 open,且本轮**两个盲区双双再中**
+
+① 残留检查仍用 `grep -c "FALSIFY-F"`,本轮变异**正是**该前缀 ⇒ 「抓得到」属侥幸;
+② 在 F2 变异窗口内读了 `AssemblyGates.cs`,看到 `FALSIFY-F2` 标记 —— 与 qa-lead 上次撞的同一形态。
+⇒ 触发条件**已到而未执行**;修 `tools/falsify/` 词表 + README 并发禁令须**另开批次**。
+
+- **Blockers**:无
+- **Next**:① `EcozoneIntegerGates` / `EmergencyIntegerGates` 接不接 BuildGate —— **待裁**;
+  ② `TD-gate-03` 词表修正 —— 另开批次;③ `docs/tech-debt-register.md` §四 总索引回填 ——
+  须先裁定 `91` 口径是否升版。**sprint-16 的 C-1 / C-3 两条条件已结清。**

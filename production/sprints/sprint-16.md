@@ -354,6 +354,45 @@ EOF
 - [ ] 规划件 `p0-completion-plan-2026-10-20.md` §三 与 `TD-epic-01` 行**同步回写**(件集变更 + 移出去向)⇒ ✅ **S16-2 已兑现**:件集变更与移出去向落于路线图 **§6.5.1**(含 🔁 四项调整表 + 移出与去向表 + 同批订正两处数字);`TD-epic-01` 的工序重定归 sprint-19
 - [ ] 无 S1 / S2 bug
 
+### 🔁 条件结清:C-1 / C-3(2026-10-21 · 承 QA 签核 §7)
+
+> **来源**:`production/qa/qa-signoff-sprint-16-2026-10-21.md` §7 的条件 C-1 与 C-3。
+> 签核判定 = **APPROVED WITH CONDITIONS**,两条条件现已结清。
+
+| 条件 | 内容 | 状态 | 判据 |
+|---|---|---|---|
+| **C-1** | 给 `AssemblyGates.RunAll` 门链补**反向判据**(`TD-gate-01`) | ✅ **已结清** | 见下 |
+| **C-3** | `milestones/README.md:582-583` 基线表刷新为带三元组的当前值 | ✅ **已结清** | 见下 |
+
+**C-1 —— 判据已落且双向可证**
+
+- 新件:`unity/Assets/Tests/EditMode/Sim/gate_chain_source.cs`(解析器)+
+  `gate_wiring_manifest_test.cs`(**手写**清单 + 14 条断言)
+- **形态偏离原登记**:原文要求在 `assembly_gate_runall_test.cs` 加两条断言;实做改为**独立新件** ——
+  判据若与「删一行」的变异同装配,递归没有底(它自己被删的那次,也正好是它不再运行的那次)
+- 证伪三向全 `exactRed`:**F1 删 `AssemblyGates.cs:130` ⇒ 3 条红**(S16-4 当时同一变异
+  **17/17 全绿**)· **F2 删清单一条 ⇒ 1 条红**(证明双向)· **F3 停用解析器 ⇒ 5 条红**(证明非 `0==0`)
+- 全量 EditMode `4085 / 4049 / 0 / 36`(基线 `4071 / 4035 / 0 / 36`),`Δ = +14/+14/0/0`,
+  差集**新增 14 / 消失 0**
+- ⚠️ **`:1586` 那类限定语(「不得写成已生效」)现解除** —— `FsWriteBoundaryGate` 可写「已生效」
+- 证据原件:`production/qa/evidence/impl-c1-gate-wiring-2026-10-21.md`
+
+**C-3 —— 基线表已刷(原文不删,新旧并列)**
+
+| 套件 | 旧值 | 新值 | 截至时刻 · 批次 · commit |
+|---|---|---|---|
+| EditMode | `3401/3355/0/46` | **`4085/4049/0/36`** | `2026-10-21 01:03 CST` · C-1 实现轮 · `f6cdaaf` |
+| PlayMode | `186/186/0` | **`197/197/0/0`** | `2026-10-21 00:22 CST` · sprint-16 收口轮 · `f6cdaaf` |
+
+⚠️ **两条值的时点不同**(PlayMode 早于 EditMode);C-1 零运行时改动故不受影响 ——
+**但这是判断不是实测**,若下游需要「C-1 之后」的 PlayMode 证据须另跑。
+
+**未结(不在本 sprint 面内)**:
+
+- `EcozoneIntegerGates`(**AC-6-22 BLOCKING**)/ `EmergencyIntegerGates`(**AC-10-02/03 BLOCKING**)
+  是 BLOCKING 级 AC 却**零构建期强制点** —— **该不该接 BuildGate 须另裁**(已具名登记,不擅自接)
+- `TD-gate-03`(falsify 残留词表盲区 + 并发读取)**仍 open**,且本轮两个盲区**双双再中** ⇒ 另开批次
+- `docs/tech-debt-register.md` §四 总索引未回填这三条 `TD-gate`;求值命令实测仍 `91 / 72`(未污染)
 
 ---
 

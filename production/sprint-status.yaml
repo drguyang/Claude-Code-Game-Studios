@@ -102,3 +102,27 @@ baseline:
   tech_debt_ids_strict: 91  # ✅ 真源(S16-3 落定):`###`/`####` 标题 ∪ 表格行首列。见 docs/tech-debt-register.md §★ 总索引 §二
   tech_debt_tables: 17      # 债型表(另有 7 张非债型表)—— ⚠️ 口径待订,见下行
   tech_debt_tables_with_td: 20  # ✅ 实测(S16-3):含 TD 行的 Markdown 表恰 20 张(全册 50 张表)
+
+# ⚠️ 条件结清(2026-10-21 · 承 qa-signoff-sprint-16-2026-10-21.md §7)
+# 本段不是 story —— 签核条件是 sprint 级欠账,不产生 story 状态变更。
+conditions_closed:
+  - id: "C-1"
+    requirement: "给 AssemblyGates.RunAll 门链补反向判据(TD-gate-01)"
+    status: "closed"
+    closed_on: "2026-10-21"
+    evidence: "production/qa/evidence/impl-c1-gate-wiring-2026-10-21.md · 新件 unity/Assets/Tests/EditMode/Sim/gate_chain_source.cs(解析器)+ gate_wiring_manifest_test.cs(手写清单 + 14 条断言)· 证伪 F1/F2/F3 三条全 exactRed(F1 删 AssemblyGates.cs:130 ⇒ 3 条红;S16-4 当时同一变异 17/17 全绿)· 全量 EditMode 4085/4049/0/36(2026-10-21 01:03 CST · C-1 实现轮 · commit f6cdaaf),对照 4071/4035/0/36 ⇒ Δ = +14/+14/0/0,差集新增 14 / 消失 0"
+    note: "① 形态**偏离原登记**(原写「在 assembly_gate_runall_test.cs 加两条断言」)—— 改为独立新件,理由:判据若与「删一行」的变异同装配,递归没有底。② 「清单须手写、禁从源生成」照做。③ **TD-gate-02 结论与原猜相反** —— 逐门核 23 类,链上 6 个全部真接线,不是「全门链共性」;真洞在 TestDriven 的 EcozoneIntegerGates(AC-6-22 BLOCKING)/ EmergencyIntegerGates(AC-10-02/03 BLOCKING)—— 零构建期强制点,已具名登记,**接不接 BuildGate 须另裁**。④ 实现期自己犯两错:IsGateClassName 只判 Gate 后缀(漏光 *Gates)/ 首轮 expectRed 漏列 —— 均由反空转守卫与「先论证再改预期」处置,详见证据件 §6。"
+  - id: "C-3"
+    requirement: "milestones/README.md:582-583 基线表刷新为带三元组的当前值"
+    status: "closed"
+    closed_on: "2026-10-21"
+    evidence: "production/milestones/README.md:582-583 已就地并列(原文不删):EditMode 3401/3355/0/46 → **4085/4049/0/36**(2026-10-21 01:03 CST · C-1 实现轮 · f6cdaaf · c1-full-editmode.xml);PlayMode 186/186/0 → **197/197/0/0**(2026-10-21 00:22 CST · sprint-16 收口轮 · f6cdaaf · smoke-s16-playmode.xml)"
+    note: "① 增量已拆分归属:EditMode +684 中 +14 = C-1 新增测,余 +670 与 skipped −10 未逐笔归属;PlayMode +11 中 +5 = s18 音频装配轮(session-state:5663 可证),余 +6 未逐笔归属。② **两值时点不同**(PlayMode 00:22 早于 EditMode 01:03);C-1 零运行时改动故不受影响 —— 但这是判断不是实测。③ 顺带复核第 581 行 story 行:226/182/41/1/2 逐项同值,无需刷(中途我自己数错过一次 168,是脚本未剥 ** 加粗前缀,已在 README 留痕)。"
+
+conditions_open:
+  - id: "TD-gate-03"
+    note: "falsify 残留词表盲区 + 并发读取禁令 —— 仍 open,且 C-1 证伪轮**两个盲区双双再中**(仍用 FALSIFY-F 前缀;窗口内并发读了 AssemblyGates.cs)。触发条件已到而未执行,须另开批次。"
+  - id: "Ecozone/EmergencyIntegerGates 是否接 BuildGate"
+    note: "两条 BLOCKING 级 AC 零构建期强制点。须另裁(接 = 改构建前门语义 + 须确认 Cecil 在 batch 下的 DLL 新鲜度)。C-1 只做具名登记,未擅自接。"
+  - id: "tech-debt-register §四 总索引回填"
+    note: "三条 TD-gate 未进 §四 索引(刻意);求值命令实测仍输出 91/72,未被污染。回填须先裁定 91 口径是否升版。"
