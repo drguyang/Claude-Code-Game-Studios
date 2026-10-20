@@ -6978,3 +6978,109 @@ F6 复跑(树冻结后,`/tmp/fz-f6-rerun.py`)结果**逐位重现**首轮,已补
 - 账本 §更新⑦ · 本 Session Extract
 - **代码 / 数据 / 产物零改动**(用户裁定)
 - **未提交**(不经用户指令不 commit)
+
+---
+
+## Session Extract — 2026-10-20(第七段):丙档 5 项 → **全登记为阻塞** + 结案触发经裁定归 39 UX 轮
+
+**用户裁定**(AskUserQuestion 两轮,三项):① 丙档处置 =「**先裁「结案触发」再谈接线**」;
+② F-1 =「**登记 + 请 20 侧补登记**」;③ 结案触发 =「**归 39 UX 轮先设计形态**」。
+
+三档至此**全部走完一轮**:甲档清零(`7d563a2`)· 乙档全登记(`24ac2da`)· 丙档全登记(本轮)。
+
+### 丙档 5 项,根因**比乙档更硬**
+
+| # | 项 | 阻塞根因 | 归属轮 |
+|---|---|---|---|
+| C-1 | `suppresses_motor` | 有 1 个**烘焙期**读者(4-DC-6),**运行期 0**;运动压制消费面整体不存在 | 4 的装配轮 |
+| C-2 | `duration_owner` + `_system_id` | 同 C-1 | 4 的装配轮 |
+| C-3 | `intent_uplink` | **连烘焙期读者都没有**(4-DC 六条判据无一涉及) | 45 的 P1b 轮 |
+| C-4 | `53_outcome_table` | `Judge.Evaluate` 0 生产调用 · `new JudgeInputs(` **全库 0** | 五处(见下) |
+| C-5 | `53_delay_table` | `new ConsequenceEmitter(` 0 生产构造 | 同上 |
+
+**乙档缺「调用方」,丙档缺「整条链 + 前置裁定」** —— 后者不可靠补一个 provider 解决。
+
+### 一、C-1 / C-2:有烘焙期读者,无运行期读者
+
+`SuppressesMotor` 生产面命中全部落在 ① 行模型 ② 三个烘焙期件 ③ **4-DC-6 校验器**;
+后者只在烘焙期跑(`InteractionKindBinder.cs:128`)。
+
+运动压制消费面**整体不存在**(可复算):
+`IMotorGate 0 · IMotorSuppression 0 · SuppressMotor 0 · ArmedState 0 · IArmedState 10`。
+⚠️ `IArmedState` 那 10 处**不等于**消费面存在 —— 生产实现 `EmergencyChannelDriver` 是
+**10 的模态门**(急救进行中),与 **4 的持续交互**(搜箱 / 采集)**不是同一回事**。**不得据它判「已接」。**
+
+### 二、C-3:C-3 连烘焙期读者都没有
+
+生产面 10 处 = 行模型 / 枚举 / 解码 / 编码 / binder,**零判据读者**:
+4-DC 六条(`interaction-system.md:1023-1028`)**无一条**涉及 `intent_uplink`。
+它的消费者 = `ADR-001 §一之三` 的通道分流,归 45。
+⇒ **本轮不自行发明一条 4-DC-7** —— 发明判据 = 越权改 GDD。
+
+### 三、C-4 / C-5:链头断在**一个尚不存在的玩家 UI 动作**上
+
+53 链生产构造点(**全 0**):`CaseCloseWriter` · `ConsequenceEmitter` ·
+`ConsequenceInputAggregator` · `TrialHistoryPredicate` 各 0;`new JudgeInputs(` **全库 0**
+(连 Tests 都没有);`IDiseaseProjection` 生产实现 **0**(3 处全是 Tests 的 Stub)。
+
+链头 `CaseCloseWriter` **文件头自己登记了未接线**(`:38-39` 逐字):
+「生产触发点(结案 UI「已处置」勾选 + 确认 → 本写者)**尚未接线**:归 37/42 的交互装配轮。」
+
+**而那个 UI 动作在呈现层也不存在** —— `ICasebookCommandSink` 的 **6 个命令零结案命令**。
+
+### ⚠️ 四、最重要的判断:为什么**不能**照抄 `CaseOpenedDriver`
+
+`CaseOpenedDriver`(sprint-05 T1.2)是本仓**已成立**的「补调用方」先例。它能成立的前提是
+**开案有一个不依赖 UI 的近似触发**(病人在场)。
+
+**结案没有这种近似** —— 37 规则八逐字:
+`可结案(c) := c.state = 开 ∧ 已处置(c) ∧ 玩家已勾选「已处置」`,勾选是**玩家显式动作**。
+⇒ 造自动结案载体 = **每 tick 自动结案** ⇒ 后果事件自动涌出 + **覆盖 `AC-37-04`(BLOCKING)**
+= **改玩法语义**,不是接线。**不由本轮代裁** —— 这就是用户裁定「先裁结案触发」的由来。
+
+### 五、F-1(新发现):`Container` 行 4-DC-6 **绿着**,而 GDD 期望它**红**
+
+| 面 | 内容 |
+|---|---|
+| 4 的 GDD 期望 | `:1247` 逐字「`Container` 未登记即**构建期红**(合法待办,非缺陷)」;`:1036` 同款 |
+| 实际数据 | 种子 kind 4:`suppresses_motor: true` + `duration_owner: "RoutedSystem"` + `duration_owner_system_id: 20` |
+| 判据结果 | 4-DC-6 只查 `RegisteredSystems.Contains(20)`(`RoutedSystems.cs:32` 含 20)⇒ **通过 ⇒ 烘焙绿** |
+| 20 侧登记 | 对 `inventory-and-items.md` grep 六词 ⇒ **零命中** |
+
+⇒ **「未登记即红」的门,在这一行上被一个无出处的填值静默绕开了。**
+该值自 `7eacc12`(2026-10-04,该文件**唯一一次**提交)起就在。两种读法
+(种子越权填值 / 判定已作而 GDD 未回刷)**本轮不裁**,按裁定落 **`OQ-20-11`**。
+
+### 六、F-2 / F-3 / F-4
+
+- **F-2**:GDD `:1006` 的 `StableIdSource` 枚举名与实现(`Candidate.cs:22-41`)**6 项里 4 项不同**
+  (`InstanceSeq`↔`InstanceId` · `PatientSeq`↔`PatientId` · `ResourcePointIndex`↔`BakedResourceIndex` ·
+  `StructureSeq`↔`StructureId`)。属 `stable_id_source`(乙档)的文档漂移,**哪边权威不裁**。
+- **F-3(本轮最硬)**:39 GDD `casebook.md:141` 把「已处置勾选」判给 **39 定形态**;
+  而 39 UX spec §7 的 9 个动作**零结案行**,§5.3 又明禁「**复选框**」
+  ⇒ **规格本身空缺**(不是「未实现」)。这解释了为什么链头 37/42/39 三侧都没有它。
+  形态候选其实写在别处(`casebook.md:401` 的「**结案合上纸**」),只是没进 §7。
+- **F-4**:42 的结案命令面为零(与 F-3 同源,单列对账)。
+
+### 回归
+
+**无回归可跑** —— 本轮零代码 / 零数据 / 零产物改动(唯一改动 = 一处 design 文档登记行)。
+末次全量 = `7d563a2` 轮的 `4012/3976/0/36`(截至 `2026-10-20 13:25 CST`)。
+⚠️ **该数不得引用为「本轮的回归结果」**,只是「丙档登记前的最后已知基线」。
+
+### 本轮产出
+
+- 新增登记件 `production/qa/evidence/blocked-data-core-tier-c-2026-10-20.md`
+  (Landed/Proven 双列;R-4「照抄 CaseOpenedDriver 不成立」如实标 **推理非实测**)
+- `design/gdd/inventory-and-items.md` 新增 `OQ-20-11`(R-2,唯一 design 改动)
+- 账本 §更新⑧ · 本 Session Extract
+- **代码 / 数据 / 产物零改动**(用户裁定)
+- **未提交**(不经用户指令不 commit)
+
+### 未结(原件 §9 全文)
+
+C-1/C-2 → 4 装配轮 · C-3 → 45 P1b · C-4/C-5 → **五处**(39 UX 规格 / 37·42 装配 /
+9 的 `IDiseaseProjection` / 53 的 `eligible` 装配器 / 结案触发) · F-1 的 20 回填已落 `OQ-20-11` ·
+**4 的 GDD 措辞待回刷**(它现称该行「构建期红」而实测绿,回刷归 4 的复核轮) · F-2 文档漂移 ·
+**F-3 的 39 侧缺口本轮未加注**(授权面只有「请 20 侧补登记」一处;是否给 `casebook-39.md` §14
+挂 OQ 行**待用户指示**)。
