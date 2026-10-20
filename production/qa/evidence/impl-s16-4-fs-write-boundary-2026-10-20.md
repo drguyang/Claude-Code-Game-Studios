@@ -139,6 +139,9 @@ v2 漏抓的根因是结构性的:两者的写目标是 `foreach` 变量,而锚�
   `unity/Assets/AddressableAssetsData` · `unity/Assets/Audio`(新增文件数 0、内容哈希不变)。
 - 变异残留:`grep -c "FALSIFY-F"` 对 `cooked_codec_roundtrip_test.cs` 与 `FsWriteBoundaryGate.cs`
   均返回 **0**。
+  > ⚠️ **2026-10-21 订正(`TD-gate-03`)**:这是**手工补充复核**,不是驱动判据。
+  > 驱动的还原判据 = `restore_all()` 的**逐文件 SHA-256 比对**,不依赖标记名。
+  > 原文不删,保留作当时的操作记录。
 
 > ⚠️ **如实登记一处口径差异(不借绿)**:QA plan 对 F3 的措辞是「停用门的调用点 ⇒
 > F1 的注入不再被拦」。**本驱动不允许叠变异**(每条变异从干净基线出发),故 F3 停在
@@ -242,7 +245,7 @@ PY
 # 5) 证伪轮(变异 → 跑 → 还原,同一进程;退出码 0 = 全中)
 python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s16-4-fs-write-boundary.json
 
-# 6) 变异残留(应为 0 / 0)
+# 6) 变异残留(应为 0 / 0)—— ⚠️ 手工补充复核,非驱动判据(驱动用 SHA-256,见 TD-gate-03 订正)
 grep -c "FALSIFY-F" unity/Assets/Tests/EditMode/DataPipeline/cooked_codec_roundtrip_test.cs \
                     unity/Assets/Editor.Tools.Gates/FsWriteBoundaryGate.cs
 

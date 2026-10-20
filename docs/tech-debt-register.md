@@ -1578,7 +1578,7 @@ F1 的注入不再被拦」—— 它所指的那个调用点,**恰恰是唯一�
 |---|---|---|---|---|---|---|
 | **TD-gate-01** | **`AssemblyGates.RunAll` 门链缺反向判据** —— 任何门从链上掉线,S 侧无感知。最小补法(已由 qa-lead 给出,含防自守要求):在 `assembly_gate_runall_test.cs` 加**门链清单封闭性**两条断言 —— ① 读 `AssemblyGates.cs` 源文本,抽出 `errs.AddRange(<X>Gate.RunAll(` 的**门名集合**;② 与该文件内**手写常量** `GateWiringManifest` 做**双向差集**,任一方向非空即红。⚠️ **清单须手写,禁从 RunAll 体反射生成**(否则恒等 ⇒ 零判别力);且须配一条变异「删 RunAll 里一行 ⇒ 红」进证伪轮,否则只是把假绿换个位置。形态先例:ADR-025 §④「清单封闭性 = 本法」· 既有 `CheckManifestClosure` 双向差 · 读 `.cs` 源文本先例 = `FsWriteBoundaryGate` 本身 | `(跨 epic · 治理／Editor.Tools.Gates)` | **closed**(2026-10-21 · C-1) | **N** | QA 签核轮实测 · `assembly_gate_runall_test.cs:31` · `AssemblyGates.cs:130` | ~~**下一个触碰 `AssemblyGates.RunAll` 的 sprint**~~ ✅ **已还**(C-1)—— 判据 = `gate_wiring_manifest_test.cs`;原限定语解除,见文末 §TD-gate 结案 |
 | **TD-gate-02** | **同类缺口大概率是全门链共性,非 S16-4 独有** —— `MedConsFloatGate` / `WriterExistenceGate` / `EcozoneIntegerGates` 等**未逐门核**(qa-lead 明标「未核,不作全域断言」)。已知形态相同:都只有「本体直调 + 一条零红端到端」 | `(跨 epic · 治理／Editor.Tools.Gates)` | **closed**(2026-10-21 · C-1 逐门核) | **N** | 同上 | ~~与 `TD-gate-01` **同批**~~ ✅ **已还** —— 23 类逐门判决**已完成**;结论与原猜**不同**(详见文末 §TD-gate 结案) |
-| **TD-gate-03** | **falsify 残留判据词表有盲区** —— `impl-s16-4` §四/§七 的残留检查是 `grep -c "FALSIFY-F"`,而人工变异可用任意标记(`FALSIFY-QA` 等)⇒ **该 grep 抓不到**。「还原校验通过」因此存在漏网形态。另:并发变异会污染旁路读取(qa-lead 读 `AssemblyGates.cs` 时正好落在编排方变异窗口内) | `(跨 epic · 治理／tools/falsify)` | open(**C-1 轮再次命中,未修**) | **N** | QA 签核轮实测 | **下次动 `tools/falsify/` 时** —— 词表改为覆盖 `FALSIFY-` **前缀全集**;并在驱动/README 写明「变异进行中须声明,读者不得并发读被变异文件」。⚠️ **C-1 证伪轮用 `FALSIFY-F` 前缀 + 窗口内并发读了 `AssemblyGates.cs`,两个盲区双双再中** —— 见文末 §TD-gate 结案 |
+| **TD-gate-03** | ~~**falsify 残留判据词表有盲区** —— `impl-s16-4` §四/§七 的残留检查是 `grep -c "FALSIFY-F"`,而人工变异可用任意标记(`FALSIFY-QA` 等)⇒ **该 grep 抓不到**。「还原校验通过」因此存在漏网形态。~~ <br>🔁 **2026-10-21 实测订正:① 不成立,登记描述本身有错。** 驱动**没有**残留词表 —— 还原判据 = `restore_all()` 的**逐文件 SHA-256 比对**(`tools/falsify/unity_falsify.py:152-176`,跑在 `finally` 里),**任何标记名都不影响它**。那句 `grep -c "FALSIFY-F"` 是**证据件里的手工补充复核**(`impl-s16-4` §四 / `impl-c1` §4.4),被人(我)误登记成「驱动词表」⇒ **① 词表盲区不是债,真判据是哈希,比词表强**。<br>**仍成立的只剩 ②**:并发变异会污染旁路读取(qa-lead 读 `AssemblyGates.cs` 时落在编排方变异窗口内 · C-1 轮**再次命中**)—— 那是**流程纪律**缺口,**不是驱动代码缺陷**(驱动只保证自己不并发,`README:53-54` 已自陈) | `(跨 epic · 治理／tools/falsify)` | **closed**(2026-10-21 · 口径订正) | **N** | **实测复核** `unity_falsify.py:152-176` 的 `restore_all()`(SHA-256)+ `:240-247` 的 `finally` 还原;两份证据件的 grep 行为手工复核 · QA 签核轮原登记 | ✅ **已还**(2026-10-21)—— ② 的纪律已写入 `tools/falsify/README.md`「并发读取禁令」节;① 经实测证伪,不成立 |
 
 > **三条均判 `P0 面 = N`** —— 归属是 `Editor.Tools.Gates` / `tools/falsify` 的**治理面**,
 > 不落在 31 个 P0 epic 的任何一个(承 §一 R3 的 2026-10-20 裁定口径:**治理债 ≠ 产品/架构债**)。
@@ -1639,12 +1639,52 @@ F1 的注入不再被拦」—— 它所指的那个调用点,**恰恰是唯一�
 > ⚠️ **本结案不含「这两条该不该接进 BuildGate」的裁定。** 接 = 改构建前门语义 + 须确认
 > Cecil 在 batch 下的 DLL 新鲜度 ⇒ **另裁**(证据件 §九 #1)。此处只做**具名登记**,不擅自接。
 
-#### TD-gate-03 → **维持 open**,且本轮**再次命中两个盲区**
+#### TD-gate-03 → **closed(2026-10-21 · 口径订正)** —— 原登记的一半不成立
 
-1. **词表盲区**:残留检查仍是 `grep -c "FALSIFY-F"`;本轮变异**正是**用 `FALSIFY-F` 前缀,
-   故「抓得到」属侥幸 —— 换 `FALSIFY-QA` 就抓不到。修法未动。
-2. **并发读取污染**:**本轮又中了** —— 在 F2 变异窗口内读了 `AssemblyGates.cs`,看到
-   `FALSIFY-F2` 标记。与 qa-lead 上次撞的是同一形态。
+> 🔁 **本节 2026-10-21 改写**:上两句(「维持 open」)是 C-1 实现轮当时的判断,
+> 基于**未核实原登记描述**。随后实测发现 **① 根本不是债**。原文留档见本节末尾。
 
-⇒ 触发条件**已到而未执行**。修 `tools/falsify/` 词表 + README 并发禁令须**另开批次**
-(不在 C-1 的授权面内)。
+**① 「词表盲区」→ 实测证伪,不是债。**
+
+驱动里**没有残留词表**。还原判据是 `restore_all()` 的**逐文件 SHA-256 比对**
+(`tools/falsify/unity_falsify.py:152-176`,跑在 `:240` 的 `finally` 里):
+
+```python
+def restore_all():
+    for f, bak in backups.items():
+        shutil.copy2(bak, f)
+    bad = [str(f.relative_to(repo)) for f, d in before.items() if sha256(f) != d]
+    if bad:
+        raise RestoreError("SHA-256 还原校验失败:" + ", ".join(bad))
+```
+
+⇒ **判据不看标记名**,换 `FALSIFY-QA` 照样抓得住(因为压根不检查标记)。
+哈希比词表**强** —— 词表只能证明「没留下这个字符串」,哈希证明「内容真的一致」。
+
+**原登记怎么来的(错误链条,如实记)**:`impl-s16-4` §四与 `impl-c1` §4.4 里各有一句
+**手工补充复核** `grep -c "FALSIFY-F"`(操作者顺手加的冗余检查)。这两句被误读成
+「驱动的残留判据是一张词表」⇒ 进而推出「词表有盲区」。**是描述错,不是代码缺陷。**
+两份证据件已就地加注订正(原文不删)。
+
+**② 「并发读取污染」→ 成立,且已结清。**
+
+C-1 轮**又中了**:在 F2 变异窗口内读了 `AssemblyGates.cs`,看到 `FALSIFY-F2` 标记。
+与 qa-lead 上次撞的是同一形态(实测两次)。
+
+这是**流程纪律**缺口,不是驱动代码缺陷 —— 驱动只保证自己不并发(`README:53-54` 早已自陈),
+且**原理上查不出**(读文件不留痕)。
+⇒ 已写入 `tools/falsify/README.md` 新增的「⚠️ 并发读取禁令」节:
+发令方须**声明窗口**、读者窗口内不读被变异文件、需要读请走 `git show HEAD:<path>`
+(读 git 对象库,不碰工作树)。
+
+> **本节原判断留档(原文不删)**:
+> ```
+> #### TD-gate-03 → 维持 open,且本轮再次命中两个盲区
+> 1. 词表盲区:残留检查仍是 grep -c "FALSIFY-F";本轮变异正是用 FALSIFY-F 前缀,
+>    故「抓得到」属侥幸 —— 换 FALSIFY-QA 就抓不到。修法未动。
+> 2. 并发读取污染:本轮又中了 —— 在 F2 变异窗口内读了 AssemblyGates.cs,看到
+>    FALSIFY-F2 标记。与 qa-lead 上次撞的是同一形态。
+> ⇒ 触发条件已到而未执行。修 tools/falsify/ 词表 + README 并发禁令须另开批次。
+> ```
+> ⚠️ **教训**:`①` 从「读登记」到「读代码」隔了一次实测。**登记的措辞不等于事实** ——
+> 该条挂了四天(2026-10-17 → 2026-10-21)才被打开代码验证。
