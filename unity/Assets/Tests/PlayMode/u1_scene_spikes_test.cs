@@ -95,8 +95,11 @@ namespace DaYiJingCheng.Tests.PlayMode
         {
             if (Candidates.Count > 0) return;
             var root = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
-            Candidates.Add(Path.Combine(root, "Logs", "u1_spike_results.txt"));                    // 主:项目根 Logs/
-            Candidates.Add(Path.Combine(Application.dataPath, "u1_spike_results.txt"));           // 兜底:Assets/
+            Candidates.Add(Path.Combine(root, "Logs", "u1_spike_results.txt"));                    // 主:项目根 Logs/(gitignored 指定暂存区)
+            // ⚠️ 原「兜底:Assets/」候选已于 **S16-4**(2026-10-20)删除 —— 它写的是
+            //    `unity/Assets/u1_spike_results.txt`,会变成 Unity 资产并被 `b` 系列门扫到;
+            //    违 `.claude/rules/test-standards.md`「测试不得写仓库」。
+            //    门 = `FsWriteBoundaryGate`(R2 声明制)。**不要加回来**。
             Candidates.Add(Path.Combine(Application.persistentDataPath, "u1_spike_results.txt")); // 兜底:玩家数据目录
         }
 

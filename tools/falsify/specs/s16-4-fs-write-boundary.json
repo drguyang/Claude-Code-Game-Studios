@@ -1,0 +1,54 @@
+{
+  "name": "S16-4 写盘边界门证伪轮 —— R1 字面量目标 / R2 锚点×写盘声明制 / 判别力源头",
+  "mode": "EditMode",
+  "filter": "FsWriteBoundaryGateTest",
+  "unityProject": "unity",
+  "_note": [
+    "判据 = 每个变异**恰如预期**转红,且跑完后受保护路径零 diff。",
+    "F1 是 sprint-16 DoD 的逐字判据:「注入一处 File.WriteAllText ⇒ 门必须红」—— 变异打在**测试树**(被扫对象),不是门本体。",
+    "F2/F3 打门本体:分别停用「声明查找」与「锚点识别」,证明两条规则各自承重。",
+    "⚠️ F3 与 QA plan 的措辞差异(如实登记):QA plan 写「停用门的调用点 ⇒ F1 的注入不再被拦」;",
+    "   本驱动不允许叠变异(逐条从干净基线出发)⇒ F3 停在**判别力源头**这一层:停用锚点识别 ⇒",
+    "   合成夹具 test_r2_anchorPlusWrite_withoutDeclaration_isRed 转红。它与「注入不再被拦」是同一件事的合成形态",
+    "   (锚点识别若失效,真树注入的 Application.dataPath 同样认不出),但**本 spec 未在注入态下实测后者** —— 不借绿。"
+  ],
+  "mutations": [
+    {
+      "name": "F1-injectRepoWrite",
+      "file": "unity/Assets/Tests/EditMode/DataPipeline/cooked_codec_roundtrip_test.cs",
+      "line": 37,
+      "expect": "        private static readonly string RepoRoot = ComputeRepoRoot();",
+      "replace": "        private static readonly string RepoRoot = ComputeRepoRoot();\n        private static void FalsifyInjectF1() { System.IO.File.WriteAllText(System.IO.Path.Combine(UnityEngine.Application.dataPath, \"x.txt\"), \"y\"); } // FALSIFY-F1",
+      "expectRed": [
+        "test_realTestTree_zeroRed"
+      ],
+      "exactRed": true,
+      "_why": "往无声明、无锚点的测试文件里注入一处「锚点 + 写盘」⇒ R2 必须报红。这是 sprint-16 DoD 的逐字判据(「注入一处 File.WriteAllText ⇒ 门必须红」)。"
+    },
+    {
+      "name": "F2-disableDeclarationLookup",
+      "file": "unity/Assets/Editor.Tools.Gates/FsWriteBoundaryGate.cs",
+      "line": 219,
+      "expect": "            Declaration decl = FindDeclaration(relPath);",
+      "replace": "            Declaration decl = null; // FALSIFY-F2:停用声明查找 ⇒ 已声明的 6 个文件全部转红",
+      "expectRed": [
+        "test_r2_anchorPlusWrite_withDeclaration_isGreen",
+        "test_realTestTree_zeroRed"
+      ],
+      "exactRed": true,
+      "_why": "证明声明表**真被读**:停用它 ⇒ 6 个已具名声明文件全部报 R2(真树红 + 合成夹具红)。若不红,声明就是装饰。"
+    },
+    {
+      "name": "F3-disableAnchorDetection",
+      "file": "unity/Assets/Editor.Tools.Gates/FsWriteBoundaryGate.cs",
+      "line": 216,
+      "expect": "            string[] anchors = FindRepoAnchorsIn(structure);",
+      "replace": "            string[] anchors = new string[0]; // FALSIFY-F3:停用锚点识别",
+      "expectRed": [
+        "test_r2_anchorPlusWrite_withoutDeclaration_isRed"
+      ],
+      "exactRed": true,
+      "_why": "判别力的**源头**是生产门的锚点识别,不是夹具自证:停用它 ⇒ 「含锚点+写盘 ⇒ 须声明」这条合成夹具不再报红。"
+    }
+  ]
+}

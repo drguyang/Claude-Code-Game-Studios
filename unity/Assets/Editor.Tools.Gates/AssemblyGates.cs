@@ -125,6 +125,9 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 53 静态面门(S12-9 · story-002,2026-10-15):AC-53-03 零浮点 +
             // AC-53-12 零 31 符号 —— 扫 `Assets/Sim/Consequences/*.cs`(MedConsFloatGate)。
             errs.AddRange(MedConsFloatGate.RunAll("."));
+            // 写盘边界门(S16-4 · retro-14 行动项 A4,2026-10-20):测试不得写仓库。
+            // 扫 `Assets/Tests/**/*.cs` —— R1 字面量相对目标 + R2 「锚点 × 写盘」须具名声明。
+            errs.AddRange(FsWriteBoundaryGate.RunAll("."));
             return errs;
         }
 
