@@ -21,8 +21,9 @@
     {
       "name": "F1-removeFsWriteWiring",
       "file": "unity/Assets/Editor.Tools.Gates/AssemblyGates.cs",
-      "line": 130,
+      "line": 139,
       "expect": "            errs.AddRange(FsWriteBoundaryGate.RunAll(\".\"));",
+      "_lineHistory": "130 → 139(2026-10-21 C-2 接线轮在 :130 附近插了两行 Ecozone/Emergency 接线 + 注释,行号整体下移 9 行)。**原文不删** —— 出错时要能看出这是行号漂移而非接线被删。",
       "replace": "",
       "expectRed": [
         "test_entryWiring_matchesManifest_bidirectionally",
@@ -30,7 +31,7 @@
         "test_extractor_actuallyExtractsKnownMembers"
       ],
       "exactRed": true,
-      "_why": "删掉 AssemblyGates.cs:130(门链上唯一接 FsWriteBoundaryGate 的那行)⇒ 方向「清单有、源无」必红。这正是 S16-4 QA 轮实测出「17/17 仍全绿」的那个变异 —— 本文件存在的唯一理由就是让这条形变转红。",
+      "_why": "删掉 AssemblyGates.cs:139(门链上唯一接 FsWriteBoundaryGate 的那行)⇒ 方向「清单有、源无」必红。这正是 S16-4 QA 轮实测出「17/17 仍全绿」的那个变异 —— 本文件存在的唯一理由就是让这条形变转红。⚠️ 原为 :130,C-2 接线轮插入两行后漂移至 :139(见 _lineHistory)。",
       "_alsoRed": "test_classManifest_chainKindEntriesAreActuallyWired:FsWriteBoundaryGate 的 Kind=Chain,而链上已无它 ⇒ 声明与事实不符,应同时红。两条同时红是**预期**,不是超范围。",
       "_expectRed_justification": [
         "① bidirectional:清单声明了 FsWriteBoundaryGate.RunAll,源没了 ⇒ 方向「清单有、源无」红(核心)。",

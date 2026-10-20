@@ -69,6 +69,38 @@ F1 的注入不再被拦」—— 它所指的那个调用点,**恰恰是唯一�
 实际是「接线层零覆盖」,不只是「未在叠加态实测」。
 **⇒ 该 evidence 原件的定性需按本件 §5 更新。**
 
+> ### 🔁 2026-10-21 加注:接线判据已由 C-1 补上(本节原文保留不删)
+>
+> **本节判 PARTIAL 的前提已在同日被解除** —— 不是判定被推翻,是**它指出的缺口被补了**。
+>
+> C-1 落的 `unity/Assets/Tests/EditMode/Sim/gate_wiring_manifest_test.cs` 补的正是这里缺的那一层:
+> 它的 F1 变异**逐字就是本节实测的那个动作** —— 删掉 `AssemblyGates.cs` 里接
+> `FsWriteBoundaryGate.RunAll` 的那一行。
+>
+> | 时点 | 同一变异(删 `FsWriteBoundaryGate` 接线行)的结果 |
+> |---|---|
+> | **本节实测**(S16-4 QA 轮) | `FsWriteBoundaryGateTest` **17/17 全绿** ⇒ 接线层零判据 |
+> | **C-1 F1**(2026-10-21) | **3 条转红**,`exactRed` 成立:`bidirectionally` / `chainKindEntriesAreActuallyWired` / `actuallyExtractsKnownMembers` |
+>
+> ⇒ S16-4 的「接线」半列自此 **`Landed ✅ / Proven ✅`**:
+> 可复算判据 = `tools/falsify/specs/c1-gate-wiring.json` 的 F1,实测记录见
+> `production/qa/evidence/impl-c1-gate-wiring-2026-10-21.md` §4.1。
+>
+> ⚠️ **四条边界,不得越读**:
+> ① **本节与 §1 表格的 `PARTIAL` 字样不改** —— 那是**本件出具时的判定**,删除即销毁当时记录。
+> 解除的是**条件**,不是判定;下方 §6 第 1 行「未解面」同样保留原样。
+> ② **只解除「接线层零判据」这一条** —— S16-4 门本体那半列本就 ✅,不受本条影响。
+> ③ **行号已漂移**:本节写的 `AssemblyGates.cs:130` 现为 **`:139`**(C-2 接线轮在附近插入两行)。
+> C-1 的 falsify spec 已同步更新并留 `_lineHistory`;两者不一致时以 spec 为准。
+> ④ **C-1 自身的残余风险仍在** —— 「清单是否手写」无机械判据
+> (`gate_wiring_manifest_test.cs:28-33` 自陈),已登记于 `impl-c1-gate-wiring` 原件。
+>
+> **本轮复跑取证**(把「补上了」从纸面变成可复算数):
+> 全量 EditMode = **`4086 / 4050 / 0 / 36`**(截至 **2026-10-21 05:08 CST** · 批次 **sprint-16 收口记账轮** ·
+> commit **`6855ba7`** · XML `unity/Logs/s16-close-full-editmode.xml`),
+> 其中 `GateWiringManifestTest` **15 条**与 `FsWriteBoundaryGateTest` **17 条**均在册,
+> **0 failures**。与 C-2 轮基线 `4086 / 4050 / 0 / 36` **逐位一致** ⇒ 零回归。
+
 ---
 
 ## 2. Automated Tests(本轮实测)

@@ -339,28 +339,99 @@ EOF
 
 ## Definition of Done for this Sprint
 
-- [ ] Must **5 件**全部完成,**每件附可复算命令 + 预期输出**(禁止「已落盘」当判据)
+- [x] Must **5 件**全部完成,**每件附可复算命令 + 预期输出**(禁止「已落盘」当判据)
+  ⇒ ✅ **2026-10-21 记账轮复核**:`S16-1…S16-5` 在 `production/sprint-status.yaml`
+  的 `work_items` 内**五行全 `status: "done"`**;各件收口注在本文件内
+  `:108`(S16-1)· `:144`(S16-3)· `:227`(S16-4)· `:269`(S16-5)· S16-2 收口登记在
+  `sprint-status.yaml` 的 `work_items[1].note`。
+  ⚠️ **本条只判「五件都收了」,不代替各件自带的判据** —— 各件的「可复算命令 + 预期输出」
+  仍以各自收口注为准。三元组:截至 **2026-10-21 04:59 CST** · 批次 **sprint-16 收口记账轮** · commit **`6855ba7`**。
 - [x] **零 story 转 `Complete`** —— 本 sprint 不产生任何 story 状态变更
   ⇒ ✅ **2026-10-21 复核**:S16-4 / S16-5 均未碰 story。S16-5 改的是 **EPIC.md 的 epic 级
   `Status` 词与分母**(四户),`git status --porcelain production/epics/*/story-*.md` = **空**
-- [ ] 四处分数**同值**:`226` / `182` / `44` / `18-31`;债册 **92 条**两列齐
+- [x] 四处分数**同值**:`226` / `182` / `44` / `18-31`;债册 **92 条**两列齐
   → 🔁 **2026-10-20(S16-3 收口):本行后半已兑现,但数字订正为 `91`** ——
   三列(`归属 epic / 状态 / P0 面`)落于债册 **§★ 总索引**(91 行);**92 是全文串扫口径**,
   严格口径 = 91(详见上方 S16-3 收口注 订正 ①)。**原文保留不删**。
   ⚠️ 且「两列」实为**三列** —— 用户裁定增「归属 epic」列作 R1 的判据载体。
   → 🔁 **2026-10-21(回填):现役 = `94` 行**。三条 `TD-gate-01/02/03` 已入索引块;
   `未闭 P0 面 = 72` 一位不动 ⇒ **M3 判定不变**。`91` 为准入时的交货数,原文保留。
+  → 🔁 **2026-10-21(记账轮补记):现役 = `95` 行** —— `TD-build-01`(C3 轮立,commit `b436bd5`)
+  是第 95 条,上一行写 `94` 时它尚未入库。求值命令与实测输出:
+  `grep -c '^| \`TD-' docs/tech-debt-register.md` ⇒ **`95`**。
+  ⚠️ **`未闭 P0 面 = 72` 仍一位不动** —— `TD-build-01` 的 `P0 面` 列为 **`N`**,
+  逐字出处 `docs/tech-debt-register.md:241` 的索引行:
+  `| TD-build-01 | （跨 epic · 治理／构建期派生） | open | **N** | R3-裁 |`
+  ⇒ 它是**治理债**(判断列 `R3-裁`),不进 31 个 P0 epic 的出口分子,只让分母变全,
+  **不改 M3 判定**。同理新求值 = `条目 95 | 状态 {open:71, partial:5, closed:19} |
+  P0 面 {Y:87, N:8}` —— **`Y` 仍是 87**,`N` 从 7 变 8。
+  四处分数同日复算通过:`ls production/epics/*/story-*.md | wc -l` ⇒ **226**;
+  Status 归并 ⇒ `Complete` **182**(179 直判 + 3 条带括注的 `Complete(...)`)/ `Ready` **41** /
+  `In Review` **1** / `部分完成` **1** / `Pending` **1** ⇒ 非 `Complete` = **44** ✓(182+44=226);
+  全 `Complete` epic = **18 / 31** ✓。
+  ⚠️ **本仓复算脚本有一处脆弱面如实登记**:`Complete` 实为 `179 + 3` —— 归并脚本按
+  `s.split()[0]` 取首词,三条写成 `Complete(2026-10-20`)` / `Complete(实现轮` /
+  `Complete（2026-09-27,…` 形态的会被切成独立的 key 而不并入 `Complete`。
+  **总数 226 与非 Complete 44 不受影响**(它们只数总数与差集),
+  **但「Complete = 182」这个数在脚本原样口径下需要把三个变体键归一**。禁写成「脚本直出 182」。
+  归一后实跑(加一行 `k = 'Complete' if k.startswith('Complete') else k`):
+  ```
+  {'Complete': 182, 'Ready': 41, 'In': 1, '部分完成': 1, 'Pending': 1}  总数= 226
+  全 Complete epic: 18 / 31
+  ```
+  三元组:截至 **2026-10-21 04:59 CST** · 批次 **sprint-16 收口记账轮** · commit **`6855ba7`**。
 - [x] S16-4 的机械门过**证伪轮**(改坏生产 ⇒ 门转红)
   ⇒ ✅ **2026-10-20 已兑现**:F1 / F2 / F3 **三条全部 `exactRed`**,驱动退出码 0,
   SHA-256 还原校验通过、指纹未变、变异残留 0;**全量 EditMode 零回归**
   (`4071 / 4035 / 0 / 36`,对照 `4054 / 4018 / 0 / 36`,Δ = +17 = 新增测数,消失 0)。
   证据原件:`production/qa/evidence/impl-s16-4-fs-write-boundary-2026-10-20.md`
-- [ ] S16-2 后「静态件只剩一份」有实测命令输出
-- [ ] QA plan 存在:`production/qa/qa-plan-sprint-16-2026-10-20.md`
-- [ ] Smoke check 记录:`/smoke-check sprint`
-- [ ] QA sign-off:`/team-qa sprint`
-- [ ] 规划件 `p0-completion-plan-2026-10-20.md` §三 与 `TD-epic-01` 行**同步回写**(件集变更 + 移出去向)⇒ ✅ **S16-2 已兑现**:件集变更与移出去向落于路线图 **§6.5.1**(含 🔁 四项调整表 + 移出与去向表 + 同批订正两处数字);`TD-epic-01` 的工序重定归 sprint-19
-- [ ] 无 S1 / S2 bug
+- [x] S16-2 后「静态件只剩一份」有实测命令输出
+  ⇒ ✅ **2026-10-21 记账轮实跑**(命令与输出逐字):
+  ```
+  $ ls -1 production/milestones/p0-*.md
+  production/milestones/p0-remaining-roadmap-2026-10-20.md
+  $ ls -1 production/milestones/p0-*.md | wc -l
+  1
+  ```
+  三元组:截至 **2026-10-21 04:59 CST** · 批次 **sprint-16 收口记账轮** · commit **`6855ba7`**。
+- [x] QA plan 存在:`production/qa/qa-plan-sprint-16-2026-10-20.md`
+  ⇒ ✅ 文件在盘(`17249` 字节 · 落盘 `2026-10-21 00:33`)。三元组:截至 **2026-10-21 04:59 CST** · 批次 **sprint-16 收口记账轮** · commit **`6855ba7`**。
+- [x] Smoke check 记录:`/smoke-check sprint`
+  ⇒ ✅ `production/qa/smoke-2026-10-21.md` §7 **Verdict = PASS**(EditMode 4071 + PlayMode 197 · **0 failures**)。
+  **该报告的基线三元组照抄其自身 `:10`**(不重新盖本轮的戳):
+  截至 **2026-10-21 00:23 CST** · 批次 **sprint-16 收口轮(全量双套件)** · commit **`f6cdaaf`**
+  (工作树含 S16-4/S16-5 未提交改动)。
+- [x] QA sign-off:`/team-qa sprint`
+  ⇒ ✅ `production/qa/qa-signoff-sprint-16-2026-10-21.md` §7 **Verdict = APPROVED WITH CONDITIONS**;
+  **其两条待办条件 C-1 / C-3 已于 2026-10-21 全部结清**(见下方「条件结清」表)⇒
+  **条件面已无未闭项**。
+  ⚠️ **不得读成 APPROVED** —— 本行勾的是「sign-off 记录存在且其条件已结清」。
+  签核原文的 `PARTIAL` 字样**原文保留**(它是出具时的判定),但其**前提已解除**:
+  C-1 已补上接线判据,且同变异下 3 条转红(`exactRed`),故 S16-4 的「接线」半列
+  现为 `Landed ✅ / Proven ✅` —— 加注见签核件 §1.1 末的 🔁 块。
+  签核 §8.3 的三条禁令中,**第三条(`FsWriteBoundaryGate` 在 C-1 前不得说成已生效)现已解除**,
+  **前两条(不得声明 M3 达成 / 不得引作 story 验收证据)继续有效**。
+- [x] 规划件 `p0-completion-plan-2026-10-20.md` §三 与 `TD-epic-01` 行**同步回写**(件集变更 + 移出去向)⇒ ✅ **S16-2 已兑现**:件集变更与移出去向落于路线图 **§6.5.1**(含 🔁 四项调整表 + 移出与去向表 + 同批订正两处数字);`TD-epic-01` 的工序重定归 sprint-19
+  ⇒ ✅ **2026-10-21 记账轮实测**:`grep -n "6.5.1" production/milestones/p0-remaining-roadmap-2026-10-20.md`
+  ⇒ `805:#### 6.5.1 🔁 2026-10-20 件集变更(用户裁定四项调整)`;`TD-epic-01` 的去向行在 `:856`。
+  ⚠️ **原文保留**:`p0-completion-plan-2026-10-20.md` 原件已由 S16-2 `git rm`,本行前半的
+  「同步回写」实为「其内容并入路线图后回写」,非对已删件本身的编辑。
+- [x] 无 S1 / S2 bug
+  ⇒ ✅ 两个独立出处同结论:
+  ① `production/qa/qa-signoff-sprint-16-2026-10-21.md:137` 逐字 = 「**无 S1 / S2 / S3 / S4 缺陷**」;
+  ② `ls production/qa/bugs/*.md` ⇒ **0 份 bug 件**(仅 `README.md`)。
+  ⚠️ **全量 EditMode 已于 2026-10-21 05:08 在 `6855ba7` 上实跑**(上一版此处写「C3 轮未重跑」,该限制现已解除):
+  ```
+  $ unity test unity --mode EditMode --output unity/Logs/s16-close-full-editmode.xml
+  total=4086  passed=4050  failed=0  inconclusive=0  skipped=36
+  ```
+  三元组:截至 **2026-10-21 05:08 CST** · 批次 **sprint-16 收口记账轮** · commit **`6855ba7`**
+  (XML `unity/Logs/s16-close-full-editmode.xml`,mtime 实测)。
+  ⚠️ **工作树不是干净的** —— 该轮跑时含本记账轮的未提交改动(`sprint-16.md` / `sprint-status.yaml` /
+  签核件加注 / `c1-gate-wiring.json`),**全是文档与 falsify spec,零代码**。如实登记,不当作干净基线。
+  **与 C-2 轮基线逐位一致**(`4086 / 4050 / 0 / 36` @ 01:50 · `33188fd`)⇒ **零回归、零新增**。
+  两个相关套件均在册:`GateWiringManifestTest` **15 条** · `FsWriteBoundaryGateTest` **17 条**,failed = 0。
+  ⇒ 「代码相同 ⇒ 结果相同」这一步不再需要作为**前提**主张 —— 现在是**实测**。
 
 ### 🔁 条件结清:C-1 / C-3(2026-10-21 · 承 QA 签核 §7)
 
