@@ -871,3 +871,63 @@ A 类(自造 Fake)只深挖 telemetry · `tests/unit|integration/` 账本树未�
 ```
 - **[YYYY-MM-DD]** (<story / 对象>):<债描述> — 出处 <原件 §N:行> — 触发条件:<何时须还> — tracked from <story file path>
 ```
+
+---
+
+## 2026-10-20 · 听测协议前置不满足(从 sprint-15 移出 · 用户裁定「登记待办」)
+
+**出处**:sprint-15 `S15-6`(TD-audio-101 + 102 同批听测);用户 2026-10-20 裁定
+「**把这些前置不满足的移出 sprint15,登记待办**」。
+**性质**:不是「听测做失败了」,是**测试对象在今日代码里不存在或不可达** ——
+勾了会构成借绿,故**整批移出**,改为以本登记的解除条件为前置。
+
+### TD-listen-01 — 三份听测协议的执行前置未满足
+
+| 侧 | 内容 |
+|---|---|
+| **受影响协议** | ① `production/qa/evidence/breath-layers-listen-evidence.md`(AC-44-02 / AC-44-08,38 项)② `production/qa/evidence/main-channel-listen-evidence.md`(AC-44-17,5 项)③ `production/qa/evidence/voice-variant-listen-evidence-2026-10-20.md`(AC-44-03 / AC-44-04)④ `production/qa/evidence/s19-breath-transition-listening-2026-10-18.md`(AC-019-6 / 10-c,6 项) |
+| **状态** | 四份全部**维持 NOT-RUN**;`[ ]` 一格未勾(`voice-variant` 的 `BLOCKED` 行原样保留) |
+
+#### 四个阻断项(逐条实测,可复算)
+
+| # | 阻断 | 实测依据 | 影响的判据 |
+|---|---|---|---|
+| **L-1** | **无病人离场路径** | `IPresenceWriter.RemovePresent`(`Sim.Contracts/IPresenceWriter.cs:36`)**生产零调用方** —— 全库 grep 仅命中 `PresenceRegistry.cs:78` 的定义与注释;`PatientAppearedDriver` 只调 `AddPresent`(`:101`) | 10-c 判据 4(停止期完全无声)· 判据 5(停顿 vs 停止可辨)· AC-44-02 的「停止」一极 · AC-44-17 三态中的「停顿 vs 停止」 |
+| **L-2** | **听诊档位无回写路径** | `queryLevel` = `CompositionRoot.cs:258` 的**局部 `int = 1`**,全库零写回;`ExamineDriver` 也只在构造时收快照(`:56`)⇒ `TierIndex(1) = 0`(`1 < SLOT_BOUNDS[0] = 10`)**恒最低档** | AC-44-02 全条(三档 forced-choice 配对无第二/第三档可听)· 本轮甲案裁定的听感半边 |
+| **L-3** | **病程被占位曲线压缩到 1.55 s** | `CreateFallbackRegistry` 的 `fallback` 病种配 **plateau 型** `Curve`(`CompositionRoot.cs:609-625`):Incubation 20 tick · APeak 1.0 · TauRise 5 · TauPeak 40。实算:`τ=23` 跨 SeekMin(0.45)= **1.15 s**,`τ=31` 跨 DeathBandMin(0.90)= **1.55 s** ⇒ **「急促」档仅 0.4 s**,随后 `Terminal.Latched` ⇒ `BreathShouldLive = false`(连一次性 cue 一并停) | 10-c 判据 1/2/3/6(窗口存在但约 3 s 总长,人工判别余量极薄)· AC-44-17 三态时序 |
+| **L-4** | **同屏 3 病人需 ~40 s,且每人 1.55 s 即死** | `PatientAppearedDriver.SpawnIntervalTicks = 400`(20 Hz ⇒ **20 s/人**)· 上限哨 `MaxPatientsDuringWiring = 3` ⇒ 凑齐 3 人 ≈ 40 s,但依 L-3 每人 1.55 s 后静默 ⇒ **凑不齐同时"活"的三人** | AC-44-03 的「跨病人可辨 ≥2 对」· AC-44-04 的「多人交替咳嗽无爆音」· 10-c 的多病人对照 |
+
+> ⚠️ **L-3 的措辞纠正留痕**:本轮初次勘察时曾判「病程不存在」(据 plateau 判据外推),
+> **该结论下过头** —— 实算后病程**存在**但被压缩到 1.55 s。以本表为准,原判断作废。
+
+#### 与之无关、今日**确实可听**的部分(不得与上述混读)
+
+| 可听 | 依据 |
+|---|---|
+| `Voice_Cough_Damp` 可闻 + 走 `Voice` 总线 | 2026-10-18 用户实机已确认(`audio-wiring-listening-2026-10-18.md` §〇 腿①)。**该结论有效,不被本条撤销** |
+| `BreathLayer_Base_Calm` 在潜伏→达峰窗口(约 2 s)内起 loop | `BreathShouldLive = !terminal.Latched`(`PatientCueSchedule.cs:82-83`) |
+| `WorldBreath_Baseline` / `Clinic_Room_Tone` / `Page_Turn` 等世界与 UI 层 | 与病人状态无关 |
+
+⇒ 今日成立的是「**有音 · 走对总线**」,**不成立**的是「三档差异 / 尾音形态 / 停顿 vs 停止 / 变体可辨」。
+
+#### 解除条件(逐项,可独立推进)
+
+| # | 解除动作 | 归属 |
+|---|---|---|
+| **L-1** | 给病人加**离场路径**(生产调用方调 `RemovePresent`)—— 真实来源应是 6 的 chunk 激活 / 9 的病程终局;接线期可先由驱动在 `Terminal.Latched` 后按节奏移除 | 9 / 6(接线期可临时) |
+| **L-2** | 把 `queryLevel` 从局部常量改为**可回写来源**(30 的 `QueryLevel`),或在听测期提供**受控注入缝**(如 dev 开关按数字键切档) | 30 / 8 |
+| **L-3** | `disease_registry.json` 真表到位(数值轮)—— 真曲线给出可判别的「平稳 / 急促 / 停顿」三段时长;占位 plateau 曲线不承载听测 | 数值轮(用户) |
+| **L-4** | 随 L-3 一并:真病程足够长 ⇒ 多病人可同时存活;或接线期把 `SpawnIntervalTicks` 临时调小 | 数值轮 / 52 |
+| **L-5** | **被试 ≥ 2 人**(`TD-audio-103` 同口径)+ 双盲 n ≥ 6 人(AC-44-02 / AC-44-17 原文硬要求) | 排期 |
+
+> ⚠️ **L-5 是协议原文的硬要求,不是本登记新增** —— AC-44-02 原文写「n ≥ 6 人 × 每对 ≥ 8 次」,
+> AC-44-17 写「n ≥ 6 人」。**单人实听只能产生「非正式预听」,不得记为该 AC 的证据。**
+
+#### 解除后的执行入口
+
+原 `S15-6` 卡面判据已在 `production/sprints/sprint-15.md` 内**保留不改写**
+(标注「已移出,解除后按此执行」),届时按该段逐条执行即可,无需重写协议。
+
+**触发条件**:L-1 / L-2 任一落地(它们是纯接线,不依赖数值轮)即可**部分**执行 ——
+先跑不依赖病程时长的项(AC-44-03 主判据的四条中「同病人一致 / 无变声器感 / 性别不串」三条、
+AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未清前仍不得判通过**。

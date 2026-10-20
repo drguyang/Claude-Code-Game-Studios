@@ -29,7 +29,7 @@ stories:
     status: in-progress        # 10-a/10-b 已落 + 证伪 F1–F9 转红;10-c 听测 NOT-RUN(BLOCKING)
     owner: "claude"
     estimate_days: 0          # 不估天 —— 依 production/CAPACITY-MODEL.md,复杂度 = L
-    blocker: "AC-019-6 人工听测未执行(用户实机)— 协议件 production/qa/evidence/s19-breath-transition-listening-2026-10-18.md"
+    blocker: "AC-019-6 人工听测未执行(用户实机)— 协议件 production/qa/evidence/s19-breath-transition-listening-2026-10-18.md。⚠️ **2026-10-20 追加**:该听测另被 `TD-listen-01` 的 **L-1**(`RemovePresent` 生产零调用 ⇒ 判据 4『停止期完全无声』与判据 5『停顿 vs 停止可辨』**无测试对象**)与 **L-3**(病程压缩到 1.55 s,判据 1/2/3/6 窗口约 3 s)阻断 ⇒ **10-c 在 L-1 解除前不可能通过**;story-019 因此**不得**转 Complete。听测任务已随 S15-6 移出 sprint-15"
     completed: ""
     # 三面一卡。10-c(BLOCKING 用户实听)未跑 ⇒ 本件不得 Complete。
     # 判据:证伪轮逐条转红;尾音衰减序列单调无拐点;一次性 cue 计数从被观测链路派生。
@@ -92,13 +92,14 @@ stories:
 
 
   - id: "S15-6"
-    name: "TD-audio-101 + 102 同批听测([L] · 呼吸两层 / 语声变体 / SNR)"
+    name: "~~TD-audio-101 + 102 同批听测([L] · 呼吸两层 / 语声变体 / SNR)~~ ⛔ 2026-10-20 移出本 sprint ⇒ 转 `TD-listen-01`"
     file: "docs/tech-debt-register.md"
     priority: should-have
-    status: backlog
+    status: removed            # ⛔ 2026-10-20 用户裁定「把这些前置不满足的移出 sprint15,登记待办」
     owner: "用户(实听)+ claude(备协议)"
     estimate_days: 0          # 复杂度 = M
-    blocker: "实听未执行(三份协议件 [x] 全 0)。原『依赖 S15-2』已过时 —— S15-2 2026-10-18 done。真阻塞 = ① `breath-layers-listen-evidence.md` 38 [ ](101)② `voice-variant-listen-evidence-2026-10-20.md` 27 [ ](102)③ 102 的 B-1..B-4:桶轴取身份哈希非 Intensity(`VoiceVariantLib.cs:295-302`,归 TD-audio-034 ①)/ 语声均 one-shot 无交叉淡化对象 / 语声不经 TierFilterDriver / 相位抵消适用性待裁 —— 其中 B-2/B-3/B-4 须先由 44 裁定『AC-44-04 交叉淡化是否约束语声』；④ 102 须 ≥2 名被试(与 TD-audio-103 同源,项目外部)。2026-10-20 由 qa-lead QA 策略轮刷新"
+    blocker: "⛔ **移出本 sprint(非 done、非 blocked —— 见 `removed_reason`)**。原 blocker(三份协议件 [x] 全 0 · 102 的 B-1..B-4 · 被试 ≥2)仍成立且**不足**:2026-10-20 实测另有四个**代码级**前置不满足 ⇒ 见 `removed_reason` 与 `TD-listen-01`"
+    removed_reason: "2026-10-20 用户裁定移出,原因 = 听测的**测试对象在今日代码里不存在或不可达**,勾了即借绿。四项实测:L-1 `IPresenceWriter.RemovePresent` 生产零调用(全库仅 `PresenceRegistry.cs:78` 定义)⇒ 10-c 判据 4/5、『停顿 vs 停止』不可达;L-2 `queryLevel` = `CompositionRoot.cs:258` 局部 `int=1` 零回写 ⇒ `TierIndex(1)=0` 恒最低档 ⇒ AC-44-02 三档配对无对象;L-3 `fallback` 病种为 plateau 占位曲线(`CompositionRoot.cs:609-625`)⇒ 病程被压缩到 **1.55 s**(τ=23 跨 0.45=1.15s / τ=31 跨 0.90=1.55s),急促档仅 0.4 s;L-4 `SpawnIntervalTicks=400`(20s/人)+ 上限 3 ⇒ 同屏 3 人需 ~40 s 而每人 1.55 s 即死。另 L-5 双盲 n≥6 人 / 被试≥2 人。解除条件与『今日确实可听』的部分见 `docs/tech-debt-register.md` `TD-listen-01`。原卡面判据保留在 sprint-15.md 供解除后复用"
     completed: ""
 
   # ── Nice to Have ──
