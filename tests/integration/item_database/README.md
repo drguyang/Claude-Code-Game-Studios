@@ -280,10 +280,110 @@ AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→d
 
 - **只查产出侧字节一致性,不查源内容正确性** —— 源里写错数值而正确重烘,本条门**绿**。
   源内容正确性归各 AC 自身的门。
-- **只覆盖 item DB 两份产物** —— `assets/DataCooked/` 下其余产物(8/11/13/44/51/53 等)
-  **无同款门**。本题材**只做了扩项**,未立 `DataCooked/` 全目录通用门 ——
-  通用门需先把各 baker 的 `BakeFromRepo` 签名与产物命名统一,属独立一件,须另裁。
+- ~~**只覆盖 item DB 两份产物**~~ —— **2026-10-20 已成过去式**:全目录通用门已落
+  `unity/Assets/Tests/EditMode/DataPipeline/cooked_drift_all_artifacts_test.cs`,覆盖**盘上全部 9 份**。
+  ⚠️ **原记的「须先统一各 baker 的 `BakeFromRepo` 签名与产物命名」这一前置被实测证伪** ——
+  14 个 baker 的返回体虽是各自文件内的 `BakeOutput`(不共享类型),但都以 `byte[] Cooked` 暴露产物;
+  `ItemDatabaseBaker` 返回 `BakeResult` 带两个产物。**用委托登记表(`Func<string, byte[]>`)
+  即可绕开签名不统一,无需改动任何 baker**。该前置本就不成立,不是「已满足」而是「不必满足」。
 - **不替代**「改源必重烘」的流程纪律,只是把静默失败变成**可观测的失败**。
+
+---
+
+## 全目录通用漂移门(2026-10-20 立 · 跨系统基建)
+
+### 落点
+
+| 内容 | 路径 |
+|---|---|
+| 门真身 | `unity/Assets/Tests/EditMode/DataPipeline/cooked_drift_all_artifacts_test.cs` |
+| 命名空间 | `DaYiJingCheng.Tests.Unit.DataPipeline` |
+| 装配 | `Tests/EditMode/EditMode.asmdef`(零新增引用) |
+| 覆盖 | `unity/Assets/DataCooked/` **盘上全部 9 份**产物(原 4/9) |
+
+**为什么单立目录**:本门覆盖 8 个系统(2 物品 / 2 诊断 / 1 病例 / 2 音频 / 1 输入 / 1 遥测),
+是跨 Story 的数据管线基建,**不属于 `ItemDatabase/`**。初版落在 `ItemDatabase/`(续写先例的顺位),
+判据面与位置不符 ⇒ 迁独立目录。
+
+### 三条判据 + 两个哨兵(13 用例)
+
+| # | 测试 | 判据 |
+|---|---|---|
+| ① ×9 | `drift[<产物名>]`(`TestCaseSource`) | 盘上字节 **逐字节** = 该 baker 现烘输出 |
+| ② | `test_sweep_noGhostArtifact_onDiskButUnregistered` | 盘上每一份都在两张表里(禁**幽灵产物**) |
+| ②b | `test_sweep_declaredArtifactNames_allTriaged` | 源码声明的每个产物名都在两张表里(禁**新增 baker 忘了登记**) |
+| ③a | `test_registry_noDuplicateOrCrossRegistration` | 两张表内零重复、零交叉、欠账项须写理由 |
+| ③b | `test_registry_knownUnbakedCount_isPinned` | 欠账清单条数钉定为 **6**(防其长成永久豁免名单) |
+
+**封闭性**:`已烘 ⊆ 盘上`(① 的 `File.Exists`)· `盘上 ⊆ 已烘 ∪ 欠账`(②)· `声明 ⊆ 已烘 ∪ 欠账`(②b)
+—— 三条合起来,新增产物无论走哪条路都必须显式登记。
+
+**扫描器哨兵**:②b 内钉 `pinnedDeclared = 15`(源码声明产物名总数)。若注释剥离器被改坏、把字面量
+吞掉,声明集会**变小** ⇒ 该断言先红 —— 这是本门唯一能自证「扫全了」的判据。
+
+### 证伪轮(实测,不是「测试名 + 行号」)
+
+**纪律**:禁 `git checkout` / `git stash`(会抹未提交改动)⇒ 备份 → 单点变异 → 跑 → `cp` 回 → `sha256` 比对。
+
+| # | 变异 | 期望 | 实测红项 |
+|---|---|---|---|
+| **F0** | 无(基线) | `13 / 0` | ✅ `13/13` |
+| **F1** | 篡改 `audio_events` 产物 1 字节 | 仅该份漂移门红 | ✅ `12/1` — `drift[audio_events.cooked.bytes]` |
+| **F2** | 篡改 `case_judgment_lexicon` 产物 | 仅该份红 | ✅ `12/1` — `drift[case_judgment_lexicon.cooked.bytes]` |
+| **F3** | 伪造 `zz_ghost.cooked.bytes` | 门② 红 | ✅ `12/1` — `test_sweep_noGhostArtifact_onDiskButUnregistered` |
+| **F4b** | 非 Tests 源码(`DataBakeMenu.cs`)插入未登记产物名 | 门②b 红 | ✅ `12/1` — `test_sweep_declaredArtifactNames_allTriaged` |
+| **F5** | 欠账清单增一条 | 钉定条数红 | ✅ `12/1` — `test_registry_knownUnbakedCount_isPinned` |
+
+**F1/F2 的判别力关键**:各只转红**自己那份**,其余 12 条仍绿 ⇒ 9 条漂移门**逐产物独立**,
+不是「任一产物变了就整体红」(那会掩盖究竟哪一份陈旧)。
+
+> ⚠️ **F4 首版设计错误(留作记录)**:首版把未登记产物名插进**测试文件自身**,
+> 结果 `13/13` 全绿、被初读为「门无判别力」。真相是**变异落错了面** ——
+> 扫描面**排除 `/Tests/`**(否则测试文件里的 15 个产物名字面量会让门永久自红),
+> 所以插在测试里当然看不见。**这次失败反向证明了 `/Tests/` 排除确实生效**,
+> 但它验证不了门本身 ⇒ 重做为 F4b(变异落 `DataBakeMenu.cs`),才真正转红。
+> 教训与 S-2 首轮同型:**「没转红」先查变异是否落在判据面内**,再断言门失效。
+
+**还原**:audio / lexicon / `DataBakeMenu.cs` 三处 `sha256` 逐字节一致;
+`grep UnregisteredProbeCooked` = **0** 残留。脚本原件 `/tmp/fz-all-artifacts.py` · `/tmp/fz-f4b.py`(临时件,不入库)。
+
+### ⚠️ 本条门的边界(禁借绿)
+
+- **只查字节一致性,不查源内容正确性** —— 源里写错数值而正确重烘,本门**绿**。
+- **不裁决「该不该有某份产物」** —— 那是接线决策,归各 epic。6 份未落盘产物走**具名欠账登记**。
+- **残余盲区**:一份产物若**既不落盘、又不被任何源码字面量提到**,本门看不见它(无来源可比对)。
+  但那种形态连「谁烘它」都没写下来,已不属本门判据面。
+
+### 回归对账(2026-10-20 · 全目录门落盘后)
+
+| 项 | 值 |
+|---|---|
+| 命令 | `unity test <unity/> --mode EditMode --output <绝对路径>` |
+| 本轮 | **`total=3967 passed=3931 failed=0 inconclusive=0 skipped=36`**(exit 0) |
+| 前次(加全目录门前) | `3954 / 3918 / 0 / 36` |
+| Δ | **`+13 / +13 / 0 / 0`** |
+| 等式判据 | `total − 前次 = 新增数`(13 条:9 漂移 + 2 扫描 + 2 登记表)⇒ **✅ 精确成立,零回归** |
+
+> **三元组(强制)**:截至时刻 `2026-10-20 10:32 本地` · 批次 `全目录漂移门落盘轮(全量 EditMode)` ·
+> commit `0a144f1` + 未提交工作树(1 测试文件迁目录 + 3 账本)。
+> ⚠️ `+13` 是实跑出来的;前次 `3954` 亦实跑且带三元组(`2026-10-20 10:17`),可复算。
+
+### ⚠️ 本门勘查中发现、**不在门裁决面**的事项(待裁)
+
+**实测**:6 份产物有 baker、有菜单项、有测试,**从未落盘**(git 历史 **0 笔**):
+
+`interaction_kinds` · `diagnosis_negative_confidence` · `prescription_actions` ·
+`disease_action_axis` · `53_outcome_table` · `53_delay_table`
+
+逐份查明:① 无任何代码从 `DataCooked/` 读它们;② `AddressablesDataProvider.Preload()`
+恰装载盘上那 9 份 ⇒ **不在运行期面内**,故从未被发现。
+
+**⚠️ 关键事实**:这 6 份所归属的 **5 个 story 全部标 `Complete`**,其中
+`interaction-system/story-007-interaction-kinds-bake-wiring`(名字即「烘焙接线」)的 AC 明写
+「全绿 ⇒ 写出 deterministic `interaction_kinds.cooked`」,而该产物 git **0 笔**。
+
+⇒ 这不是「被裁为延后」,是**有 baker 无产物**的漏项。门只如实登记,**处置归用户裁定**
+(补烘 / 承认为欠账 / 或判定相关 story 状态标早了)。
 
 ### 回归对账(2026-10-20 · 加门后)
 
