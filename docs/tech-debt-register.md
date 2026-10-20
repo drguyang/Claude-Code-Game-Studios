@@ -1171,3 +1171,70 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 >    **本轮不开工该表**。)
 > ② **`clinic-machine/story-001` 半边挂标、本体同批交** —— 本体 = `CONTEXT_TABLE` / `ADJ_TABLE` /
 >    `ROOM_TABLE` 的 schema 与构建门 + `O-24-5` 溢出界门(`n_max` 已裁 2026-10-07 = 64)。
+
+---
+
+## 2026-10-20 · clinic-machine/story-001 评审残余 16 条(sprint 外 · 用户裁定「一条不修,全部记债」)
+
+**出处**:`production/qa/evidence/review-clinic-001-2026-10-20.md` §二(双专家并行静态评审)。
+修复轮已结 **R-08 / D9 / R-10a / R-17 / D1+D2**(🔴 4 → 0,总判定 → `APPROVED WITH SUGGESTIONS`),
+**本节登记的是修复轮之后的残余 🟡**。
+
+**用户裁定(2026-10-20)**:**一条不修,全部登记**。判据三条——
+① **本件不在 sprint-15 的 story 列表内**(sprint-15 = 44 音频收口,7 done + 1 removed,已于
+`2026-10-20` 全量收口);本件走 milestone `p0-remaining-roadmap-2026-10-20` §四 **批 A-1 取件**
+⇒ 这 16 条**没有一条是任何 sprint 的 DoD 门**;
+② 16 条中**除 `D4` 外全部落在测试判别力**,不碰生产正确性 —— 而下游 story-002 / 003 消费的是本件的
+**cooked 表字节**,不是它的测试;
+③ ⚠️ **本件残余不阻塞它自己转 `Complete` 之外的状态?** —— 否:**本件仍不转 `Complete`**,但其理由是
+`AC-24-08` / `AC-24-12` 挂 `BLOCKED-BY-O-24-1`(即 **TD-clinic-01**),**与本节 16 条无关**。
+
+> **⚠️ 计数订正(如实)**:评审 `§七之二` 记「剩余 🟡 共 **15** 条」,其中把 `R-10b/c/d`
+> 写成**一个**条目 —— 实为**三行**。按行计 = **16**。本节以 16 条为准。
+
+### 族 A · 判别力借绿族(9 条)—— 与已修 🔴 同形,是本仓反复被咬的病灶
+
+> **为什么单列一族**:本件修复轮的 **R-08(R-09 同族)· R-10a(与 R-10b/c/d 同族)** 都是 🔴;
+> 且 `F4` 的借绿(夹具被另一条守卫的报文满足)就是这一族**从潜伏转实现**的实例。
+> 它们**当前不借绿**(夹具恰好触发正确分支),但**不可判别** —— 一旦夹具或守卫消息改动即可能转实现。
+
+| # | 债 | 出处 | 触发条件(何时须还) |
+|---|---|---|---|
+| **TD-clinic-02** | **R-09 · O-24-5 接受侧判别力≈0** —— `_exact_2pow31_minus_one_accepted` 只断言 `errors.Is.Empty`;`_n_max_boundary_floor_accepted` 只断言 `NMax` 等于夹具字面值(只证**解析回读**)。评审断言:**删掉 `AssertOverflowBounds` 调用,两条仍绿**。⚠️ **该断言为评审方静态推断,本轮未实测复现** —— 采用前须先变异坐实 | §二 R-09(`test:157,180`) | 下次动 `ClinicMachineSchema.AssertOverflowBounds` 或其接受侧夹具时;**或** O-24-5 参数(`n_max` / `TIER_MAX`)任一被改时 |
+| **TD-clinic-03** | **R-10b** —— `test:333` 只断言 `"direction"`,而该 token 同时出现在 `RoomBinder` 的**两条**报文(`缺字符串 direction` / `未知方向 direction=`)⇒ 走错分支也满足 | §二 R-10b(`test:333` · `Room:249,257`) | 下次动 `ClinicMachineRoomBinder.ParseClause` 的方向校验时 |
+| **TD-clinic-04** | **R-10c** —— `test:250` 断言 `"ENV_MOD_MIN"` —— **正是 `F4` 借绿的那个 token**。当前夹具的常量表合法,未触发 `O-24-4`,**故暂不借绿**;但同一 token 被再次使用 ⇒ 同一陷阱已重设 | §二 R-10c(`test:250`) | 夹具常量表任一被改动时(连锁:**它一转红即说明借绿已发生**) |
+| **TD-clinic-05** | **R-10d** —— `test:418` 断言 `"须为 JSON 字符串"`,而 `ReadRequiredString` 与 `ReadRequiredFix` **共用该子串**(两条守卫、同一报文片段) | §二 R-10d(`test:418` · `Schema:336,366`) | 下次动 `ReadRequiredString` / `ReadRequiredFix` 任一 |
+| **TD-clinic-06** | **R-18 · 多错误聚合顺序稳定性无测** —— `test:422` 只断言 `Count ≥ 2` + 两子串,**不钉顺序**。而聚合 throw 的**顺序**是 ADR-014 确定性面的一部分 | §二 R-18(`test:422`) | 聚合 throw 的字节/顺序被下游依赖时(7a 折叠 / 存档字节);**或** ADR-012 集成级夹具立案时 |
+| **TD-clinic-07** | **R-19** —— `_furn_membership_enforced_with_injected_source` 断言的是 **`FurnMembershipEnforced` 标志**(由 `Room:102-103` **独立算出**),而非 `AssertFurnMember` 的行为 ⇒ 删掉该调用本测仍绿。**判别力现由姊妹测 `test:352` 兜住**(故非 🔴) | §二 R-19(`test:337` · `Room:230`) | 姊妹测 `test:352` 被改/删时(届时本条即失去兜底) |
+| **TD-clinic-08** | **R-21 · 弱接受侧** —— `test_constants_env_mod_min_negative_accepted` 仅 `DoesNotThrow`;`test_bake_from_repo_seed_tables_accepted` 仅 `Count > 0`(不证**哪些**行被接受) | §二 R-21(`test:213,443`) | 同上;与 TD-clinic-09 同批处理最省 |
+| **TD-clinic-09** | **S24 · 多条正向测只断言 `Count > 0`** ⇒ **语义值全错仍绿**。落点 `test:111-118,143-150,286-290,441-454`(与 R-21 同族,范围更大) | §二 S24 | 同上;建议与 TD-clinic-02 / 08 合成一次「接受侧判别力收紧」小轮 |
+| **TD-clinic-10** | **S23 · 11 条正向接受类未入证伪轮** —— 判别力**未经反证**(实现证据原件 §五.2 自陈)。含 `test_cooked_bytes_deterministic_for_same_source` / `test_multiple_errors_aggregated_in_single_throw` / `test_bake_from_repo_seed_tables_accepted` / `test_adj_symmetric_pairs_accepted` 等 | §二 S23 · 实现证据 §五.2 | 下一次对本件做的证伪轮(或本件任一守卫被改动时) |
+
+### 族 B · 生产健壮性(2 条)
+
+| # | 债 | 出处 | 触发条件(何时须还) |
+|---|---|---|---|
+| **TD-clinic-11** | **D4 · `ContextBinder` 档集外时 `ok` 未置 `false`,非法行仍入 `rows`。** 当前**无害** —— throw 发生在 `K_CONTEXT_MAX` 派生之前。但若将来把 throw **降级为告警**,非法行会污染 `K_CONTEXT_MAX` 派生集 ⇒ **静默改变派生值**。修法 = 一行(`ok = false`) | §二 D4(`Context:136-149`) | **把 `k_speed` 档集违例的 throw 降级为告警时**;或 `K_CONTEXT_MAX` 派生被提前到行层校验之前时 |
+| **TD-clinic-12** | **D8 · 字符串字段无长度上界** —— `room_type` / `context_id` / `type` / `a` / `b` 只校非空。⚠️ **本条已核对:不构成 ADR-014 合规缺口** —— ADR-014 的「长度校验」(`:197`)指的是**数组长度 = `MAX_QUALITY`**,非字符串上界。故为**真实但潜伏的健壮性项**,不是欠了一条 ADR 义务 | §二 D8(各 binder) | story-002 / 003 引入**外部作者输入的字符串字段**时;或任一字符串字段进入**落盘形状**(存档 / 网络)时 |
+
+### 族 C · 结构性重构建议(3 条,纯建议)
+
+| # | 债 | 出处 | 触发条件(何时须还) |
+|---|---|---|---|
+| **TD-clinic-13** | **S19 · 三 binder 前言四步逐字重复**(词法 → 根须对象 → `RejectUnknownKeys` → `ReadSchemaVersion` → 缺数组早 throw),可抽 `Schema.BeginTable(...)`。**不阻塞** | §二 S19(三 binder) | **第四张表加入本件同族烘焙管线时**(届时重复份数上升,抽取收益 > 改动面) |
+| **TD-clinic-14** | **S16 · 超 40 行** —— `ParseClause`(`Room:196-277`,~82 行)· `AssertFurnTableShape`(~62 行)。⚠️ 仓内**无明文 40 行规则**,`code-review` 清单有该项但仅建议 | §二 S16 | 下次动 `ParseClause` / `AssertFurnTableShape` 任一 |
+| **TD-clinic-15** | **R-13 · 测试专用 `public` 包装进生产装配面** —— `Bind*ForTest`(`TablesBake:102,106,110`)仅转发公开 `Bind`,**功能无碍**,但**命名把测试意图带进了生产 API** | §二 R-13 | `Bind*ForTest` 被**生产侧**引用时(即测试意图真正渗入生产前);或本件 API 面整理轮 |
+
+### 族 D · 跨件 / 全仓既有实践(2 条,非本件独有)
+
+| # | 债 | 出处 | 触发条件(何时须还) |
+|---|---|---|---|
+| **TD-clinic-16** | **S25 · 测试读文件系统**(`assets/data/` + `tests/unit/clinic_machine/fixtures/`),与 `.claude/rules/test-standards.md`「Unit tests must not depend on external state (filesystem)」**字面相抵**。⚠️ **属本项目既有 EditMode 实践**(承 `Audio/settings_exposure_test.cs`),非本件新引入 | §二 S25 | **CI runner 落地时(ADR-012 矩阵)** —— 与 **TD-medcons-09 同触发点**,宜同批处置 |
+| **TD-clinic-17** | **S6 · 承继偏差(非本件文件)** —— `JsonStage1Lexer.cs:5-8` 取 `FloatParseHandling = Decimal`,而 ADR-014 原文钉 `None`(该文件自陈 Newtonsoft 无 `None` 成员)。行为拒收已由**阶段 2 结构化**封住,但**字面偏离应登记** | §二 S6(`JsonStage1Lexer.cs`) | **`JsonStage1Lexer` 统一加固轮**(与 TD-medcons-10「不拒重复 property」同轮 —— 两条都是该词法器的口子) |
+
+**共同性质**:16 条**全部不阻塞**任何 sprint 的 DoD,亦**不阻塞**本件的挂标状态
+(本件转 `Complete` 的唯一门是 **TD-clinic-01**)。
+**两条有明确外部触发点、宜优先**:`TD-clinic-16`(CI runner 落地 ⇒ 与 TD-medcons-09 同批)
+与 `TD-clinic-12`(字符串字段进落盘形状)。**族 A 的 9 条建议合成一次「接受侧判别力收紧」小轮**
+一并处理(判据:逐条变异 ⇒ 转红),因为它们是**同一个病灶的九个面**,分开修等于把同一份
+勘察成本付九次。
