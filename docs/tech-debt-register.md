@@ -1036,3 +1036,73 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 ⇒ **元教训(本批)**:「按标识符 grep 零命中」**只在扫描面覆盖全树时才成立**。
 `SelfLimited` / `Folded(p)` 两条本批已**改用全树 grep 并复核别名**,才敢落账;
 `Recipe.owner` 正是漏掉这一步的实例。**本条留档即为此后同型判定须先声明扫描面。**
+
+---
+
+## 2026-10-20 · §八 #3′ 普查新揭:三条同族契约债(3 条)
+
+**出处**:`production/qa/evidence/census-adr-obligation-2026-10-20.md`(原件);
+路线图侧 = `production/milestones/p0-remaining-roadmap-2026-10-20.md` §三 **G-5 / G-6 / G-7**。
+**三元组**:`2026-10-20T07:59` UTC · §八 #3′ 普查轮 · `54fd5e5`。
+**性质**:与 `TD-sim-01` / `TD-persist-01` / `TD-persist-02` **同族** ——
+「**ADR 已裁 · GDD 已写 · epic 已标 `Complete` · 代码零落点**」。
+本批是**普查产出**(非追赶式登记):对 17 个「全 story `Complete`」的 epic 逐个扫其 ADR 义务符号。
+
+**为什么单独立本册而不立 story(用户裁定 2026-10-20/21「能归 epic 的登记 TD,不立 story」)**:
+三条的归属 epic(`player-controller` 6/6 · `camera-viewpoint` 6/6 · `enemy-ai` 5/5 ·
+`random-events` 6/6)**均已标全 `Complete`**,补立 story 会扰动 M3 分母口径。
+⚠️ **不立 story ≠ 不还** —— 三条各带具名触发条件。
+
+**够格判据(本批用,比前三条更硬)**:①符号全树零命中 **∧** ②归属 epic 全 story `Complete`
+**∧** ③**该 epic 卡面自己点名了该符号**。前三条(G-1/2/4)的归属 epic 是**零点名**的,
+本批三条**卡面逐条点名** ⇒ 判别证据更强一档。
+
+### TD-player-02 — `IPlayerMotor` 契约零落点(1 玩家控制器 · 2 相机为其消费者)
+
+> ⚠️ **ID 说明**:本条**不是** `TD-player-01` —— 后者是既有另一条债(`AC-1-33` 的
+> `minMoveDistance` 未写进 `CharacterController`,2026-10-20 已修)。两条**同属系统 1 但不同债**,
+> 不合并记账。
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `ADR-020` §Key Interfaces 定 1 的移动抽象:`IPlayerMotor { void Tick(float, in MoveInput); WorldPos Cell { get; } Vector3 Position { get; } bool ConsumeCellChanged(out WorldPos); }`(表现层;**不引用 sim,不进流**)。`ADR-025` §② 明载荷「`IPlayerMotor`/`ICameraRig` 落位」。**裁决齐,实现零落点。** |
+| **实测(扫描面 = `unity/Assets` 全树 C#,剥注释)** | `IPlayerMotor` ⇒ **全树零命中(含 `Tests/`)**。现存 `Gameplay.Presentation/Player/PlayerController.cs` 为 `public sealed class PlayerController : MonoBehaviour`,只有 `Initialize` / `OnPositionSample` / `OnUplinkSample` / `Move` / `OnTickEdge` / `Teleport` / `GetCell`,**无 `Position` / `Cell` / `ConsumeCellChanged` 成员** ⇒ 契约面**结构上不存在**。 |
+| **⚠️ 旁证(非本债判据)** | `Gameplay.Presentation/Camera/AnchorFollower.cs:90` 的 `new AnchorFollower(...)` **只出现在测试里** —— 出货代码中为孤儿,已记于 `production/qa/evidence/review-camera-viewpoint-story-003-td-2026-10-03.md:68`。与「相机锚点无上游契约可挂」同源。 |
+| **卡住的判据** | `1` 的 `story-006-state-purity-motor-lease.md`(**点名 `IPlayerMotor`**)· `2` 的 `story-003-anchor-follow-orbit.md` / `story-001-presentation-discipline.md`(**点名 `IPlayerMotor`**)—— 两个 epic 均标 **6/6 全 `Complete`**,而其消费者所依赖的只读上游**不存在** |
+| **为什么此前不在册** | 前轮跨 epic 勘察的扫描符号表只有 `SelfLimited` / `Folded(p)` / `Recipe.owner` 三个;**从未包含任何 `I*` 接口名**。本轮普查把 31 份 ADR 的代码块(52 符号)与散文(379 符号)**全量**入表才发现。`ICameraRig` 已落 ⇒ 这一对里**只落了一半**,按 `ICameraRig` 的存在**不足以**推定 `IPlayerMotor` 也在 |
+| **解除动作** | 落 `IPlayerMotor` 契约并让 `PlayerController` 实现之(或按 ADR-025 §② 的实际裁定形态二选一);补夹具证明「跨格时 `ConsumeCellChanged` 恰好触发一次」;不改 ADR-020 的任何裁决 |
+| **触发条件** | **`1` 或 `2` 的下一轮动到玩家位移 / 相机锚点时**;或任一消费方要勾「以 `IPlayerMotor` 为只读上游」的 AC 之前 |
+| **归属** | **1**(玩家控制器)· **2**(相机,消费者) |
+
+### TD-enemy-01 — 27 的 sim 侧形状(`LogiPose` / `ITameable` / `TameState`)零落点
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `ADR-016` §二/§九 定:**敌方 AI 决策进 sim、表现态位移在表现层**,其载体是 `LogiPose = (WorldPos Cell, byte Facing)`(逐 tick 整数推进,沿 §五 路径步进;表现层单向驱动,禁反推)。§七 定 P1a 驯化接口形状 `ITameable`(可驯化标记 + `OwnerId`) + `TameState` 枚举,并明写「**P0 只定形状**…**P0 交付:接口 + 数据字段占位**」。**裁决齐,实现零落点。** |
+| **实测** | `LogiPose` / `ITameable` / `TameState` ⇒ **全树零命中(含 `Tests/`)**。`Sim/` 与 `Sim.Contracts/` 内无对应类型;27 侧现有的行为程序 / 遭遇生命周期实现**未引用**任何一个。 |
+| **卡住的判据** | `27` 的 `story-003-hostility-state-machine-morale-and-lod.md` · `story-004-stepping-astar-and-replanning.md` · `story-005-encounter-lifecycle-injury-routing-and-output-whitelist.md` 与 `enemy-ai/EPIC.md`(均点名 `LogiPose` / `ITameable` / `TameState`)· `13` 的 `patient-ai/story-003`(亦点名 `LogiPose`)。`enemy-ai` 标 **5/5 全 `Complete`**。 |
+| **⚠️ 不得与既有物混读** | `LogiPose` 与任何表现层 `Transform` / `Vector3` 位姿**不是一物**(ADR-016 §二 逐字「**反向不可信** —— 禁从 `Transform.position` 反推逻辑格」)。grep 到位姿类代码**不构成**本债已还 |
+| **解除动作** | ① 落 `LogiPose` 结构并接线到 27 的逐 tick 整数推进;② 落 `ITameable` / `TameState` **接口与字段占位**(P0 只需形状,不需驯化行为);③ 补夹具证明「决策过程不进流、效果进流」(ADR-016 §一 三源不变量的可证伪形态) |
+| **触发条件** | **27 具备可跑行为程序之前**(否则「决策进 sim」这条承重裁决无载体);或 13 的 `story-003` 要勾其投影 AC 之前 |
+| **归属** | **27**(敌人 AI,P0 形状部分)· 13 为下游消费者 |
+
+### TD-randomevents-01 — `DeferredThreatSlot` 状态量零落点
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `ADR-007` §三/§四 定:延迟威胁的槽位 `DeferredThreatSlot` 是**状态**,**必须进事件流**(经 `ThreatDeferred` / `ThreatDeferralCleared` 两个 `Kind`)。设计意图逐字:「否则**主机迁移静默丢失 / 重复补发**」。**裁决齐,实现零落点。** |
+| **实测** | `DeferredThreatSlot` ⇒ **全树零命中(含 `Tests/`)**。`design/registry/entities.yaml` 内**有** `SimEvent.Kind.ThreatDeferred`(`:2465`)/ `ThreatDeferralCleared`(`:2479`)条目,其 `constraint` 逐字写「**存在理由 = 承重条款** —— `DeferredThreatSlot` 若只活在可变运行时对象里,主机迁移后挂起威胁**静默丢失或重复补发**」,但**消费/生产该状态的类型不存在** ⇒ 两个 `Kind` 有登记**无实现**。 |
+| **卡住的判据** | `52` 的 `story-004-density-budget-and-deferred-threat-slot.md`(**整条 story 名即此物**)· `story-002-deterministic-roll-and-stream-registration.md` · `random-events/EPIC.md`。`random-events` 标 **6/6 全 `Complete`**。 |
+| **⚠️ 不得与「Kind 已登记」混读** | `entities.yaml` 里有 `ThreatDeferred` / `ThreatDeferralCleared` **只是路由表登记**(ADR-024 真源),不等于状态量已实现。**「Kind 在册」不构成本债已还**(同 `TD-sim-01` 的 `Curve.SelfLimit` 混读陷阱) |
+| **解除动作** | 落 `DeferredThreatSlot` 状态载体 + 其在 `ThreatDeferred` / `ThreatDeferralCleared` 两 `Kind` 上的读写路径;补夹具证明「主机迁移后延迟威胁不丢不重」 |
+| **触发条件** | **52 下一次动延迟威胁 / 主机迁移语义时**;或任何 `AC-52-*` 要勾「延迟威胁进流」之前 |
+| **归属** | **52**(随机事件导演) |
+
+> ⚠️ **本批**未**处置的两类**(如实留白,见原件 §5 / §4.3):
+> ① **孤儿契约** —— `IReplayPipe` / `ReorderBuffer`(ADR-001 系统 45,逐字要求「P0 全实现为本地占位」)·
+> `IPerTargetIl2CppArgs`(ADR-012 F3)· `ISceneRouter` / `IWorldSpawner`(ADR-023,`BootRoot.cs:20` 明写「刻意不抽」)
+> —— `production/epics/` **实测无网络 epic、无场景/Boot epic** ⇒ **无归属 epic**,
+> G 型普查手法结构上够不到。**待裁是否另立专扫或孤儿契约登记节。**
+> ② **未溯源桶 10 个符号**(`QualityCap` / `FiredSet` / `DeathAllowed` / `RegrowWindow` / `HistoryMult` /
+> `ReputationMult` / `WeaponMultiplier` / `OwnerId` / `ItemId` / `InventoryOf`)—— 全树零命中,
+> 但**其声明 ADR 是否构成 P0 义务未逐个核** ⇒ **不得算入本册**。
