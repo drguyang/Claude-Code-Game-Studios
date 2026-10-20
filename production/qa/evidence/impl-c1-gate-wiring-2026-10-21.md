@@ -4,6 +4,29 @@
 **任务**:C-1(sprint-16 QA 签核件 §7 条件)+ `TD-gate-01` + `TD-gate-02`
 **基线溯源三元组**:截至 `2026-10-21 01:01 CST` · 批次 `C-1 实现轮(全量 EditMode)` · commit `f6cdaaf`(工作树含本件未提交改动)
 
+> ## ⚠️ 行号订正(2026-10-21 后补 · 原文不删)
+>
+> **本件全文出现的 `AssemblyGates.cs:130` 现为 `:139`。**
+>
+> 病因:C-2 接线轮(`fdfa705`)在 `RunAll` 里 `:130` 附近插入两行
+> (`EcozoneIntegerGates.RunAll()` / `EmergencyIntegerGates.RunAll()`)加注释,
+> `FsWriteBoundaryGate.RunAll(".")` 那条接线整体下移 **9 行**。
+> **接线本身没变、没被删** —— 只是位置变了。
+>
+> ⚠️ **这是静默过期**:本件正文里的 `:130` 读起来仍然通顺,而按它去源码里找会**找到一行注释**
+> 而不是接线。复算的人如果不先核对原文,会把「行号漂移」误读成「接线被删」。
+>
+> **复算入口以 spec 为准**(已同步修正并留 `_lineHistory`):
+> `tools/falsify/specs/c1-gate-wiring.json` 的 `F1-removeFsWriteWiring`。
+> `python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/c1-gate-wiring.json --dry-run`
+> ⇒ 3 个变异前提全部成立(2026-10-21 实测)。
+>
+> **影响面**:仅行号。§4.1 的 `total=14 passed=11 failed=3` 与三条 RED 名单**不受影响**
+> —— 变异内容与断言逻辑一字未变,改的只是「打在哪一行」。
+> 原文四处 `130` **均保留**,以此注为准:§一「原判定」的实测代码块 · §四 变异总表 F1 行 ·
+> §4.1 F1 代码块首行 · §五 复算命令的 `sed` 行。
+> ⚠️ **此处刻意不写行号** —— 写行号的注会随后续编辑一起漂移,正是本注要防的那件事。
+
 ---
 
 ## 一、原判定(为什么需要这一件)
@@ -20,6 +43,8 @@
 EXIT=0
 {'total': '17', 'passed': '17', 'failed': '0'}
 ```
+
+> ⚠️ `:130` 是**当时**的行号,今为 `:139`(见文首「行号订正」注)。
 
 门从门链掉线,**17 条门测试 + 2 条端到端 = 19 条判据一条都不红**。
 
@@ -121,7 +146,7 @@ EXIT=0
 
 | # | 变异 | 打在哪 | 转红(实测) |
 |---|---|---|---|
-| **F1** | 删 `AssemblyGates.cs:130` | **生产侧**(真实接线) | 3 条 |
+| **F1** | 删 `AssemblyGates.cs:130` ⚠️**今为 `:139`** | **生产侧**(真实接线) | 3 条 |
 | **F2** | 从 `RunAll` 清单删一条声明 | **清单侧** | 1 条 |
 | **F3** | 停用解析器(恒返回空集) | **判别力源头** | 5 条 |
 
@@ -136,6 +161,10 @@ EXIT=0
     RED: test_extractor_actuallyExtractsKnownMembers
   ✅ 恰如预期转红
 ```
+
+> ⚠️ **上面这份是当时的原始输出,一字未改** —— 其中 `:130` 是**跑的那一刻**的行号。
+> 今日复算请用 `:139`(见文首「行号订正」注)。**改的是位置,不是结果**:三条 RED 名单与
+> `14/11/3` 的计数不受影响。
 
 三条同时红的**逐条论证**(不是「多红了就放宽预期」):
 
@@ -366,7 +395,7 @@ $ python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/c1-gate-wiri
   ⇒ ══ 证伪轮通过:3 个变异全部恰如预期 ══
 
 # ③ 本件的核心判据:删一行 ⇒ 必红(S16-4 当初的变异)
-$ sed -i '130s/.*//' unity/Assets/Editor.Tools.Gates/AssemblyGates.cs   # 备份先行
+$ sed -i '130s/.*//' unity/Assets/Editor.Tools.Gates/AssemblyGates.cs   # 备份先行 ⚠️ 今须写 139s
 $ cd unity && unity test "$PWD" --mode EditMode --output /tmp/x.xml --filter GateWiringManifestTest
   ⇒ failed=3(S16-4 时:failed=0)
 
