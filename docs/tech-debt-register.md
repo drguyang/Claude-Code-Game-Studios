@@ -888,7 +888,7 @@ A 类(自造 Fake)只深挖 telemetry · `tests/unit|integration/` 账本树未�
 | **受影响协议** | ① `production/qa/evidence/breath-layers-listen-evidence.md`(AC-44-02 / AC-44-08,38 项)② `production/qa/evidence/main-channel-listen-evidence.md`(AC-44-17,5 项)③ `production/qa/evidence/voice-variant-listen-evidence-2026-10-20.md`(AC-44-03 / AC-44-04)④ `production/qa/evidence/s19-breath-transition-listening-2026-10-18.md`(AC-019-6 / 10-c,6 项) |
 | **状态** | 四份全部**维持 NOT-RUN**;`[ ]` 一格未勾(`voice-variant` 的 `BLOCKED` 行原样保留) |
 
-#### 四个阻断项(逐条实测,可复算)
+#### 五个阻断项(逐条实测,可复算)
 
 | # | 阻断 | 实测依据 | 影响的判据 |
 |---|---|---|---|
@@ -896,19 +896,28 @@ A 类(自造 Fake)只深挖 telemetry · `tests/unit|integration/` 账本树未�
 | **L-2** | **听诊档位无回写路径** | `queryLevel` = `CompositionRoot.cs:258` 的**局部 `int = 1`**,全库零写回;`ExamineDriver` 也只在构造时收快照(`:56`)⇒ `TierIndex(1) = 0`(`1 < SLOT_BOUNDS[0] = 10`)**恒最低档** | AC-44-02 全条(三档 forced-choice 配对无第二/第三档可听)· 本轮甲案裁定的听感半边 |
 | **L-3** | **病程被占位曲线压缩到 1.55 s** | `CreateFallbackRegistry` 的 `fallback` 病种配 **plateau 型** `Curve`(`CompositionRoot.cs:609-625`):Incubation 20 tick · APeak 1.0 · TauRise 5 · TauPeak 40。实算:`τ=23` 跨 SeekMin(0.45)= **1.15 s**,`τ=31` 跨 DeathBandMin(0.90)= **1.55 s** ⇒ **「急促」档仅 0.4 s**,随后 `Terminal.Latched` ⇒ `BreathShouldLive = false`(连一次性 cue 一并停) | 10-c 判据 1/2/3/6(窗口存在但约 3 s 总长,人工判别余量极薄)· AC-44-17 三态时序 |
 | **L-4** | **同屏 3 病人需 ~40 s,且每人 1.55 s 即死** | `PatientAppearedDriver.SpawnIntervalTicks = 400`(20 Hz ⇒ **20 s/人**)· 上限哨 `MaxPatientsDuringWiring = 3` ⇒ 凑齐 3 人 ≈ 40 s,但依 L-3 每人 1.55 s 后静默 ⇒ **凑不齐同时"活"的三人** | AC-44-03 的「跨病人可辨 ≥2 对」· AC-44-04 的「多人交替咳嗽无爆音」· 10-c 的多病人对照 |
+| **L-6** | **运行时零 active AudioListener(全场景静音)** | `BootRoot.cs:305-307`(修前)禁用预摆 `Main Camera`(唯一 listener 持有者)后,运行时 `CameraRig` 相机(`:309-311`)**未挂 listener**;`AssertSingleAudioListener` 原用 `Resources.FindObjectsOfTypeAll`(**含 inactive**)计数 = 1 ⇒ 断言通过,**抓不到零 active**。2026-10-20 `Editor.log` 实测 **10 845 条** `There are no audio listeners in the scene`(首次出现于本次 Play 首帧,`:627`)。同日用户实机:「完全没声音」 | **全部音频听测**(无听音点 ⇒ 任何 cue 都听不见);本条同时**撤销**下方「今日确实可听」原判 |
 
 > ⚠️ **L-3 的措辞纠正留痕**:本轮初次勘察时曾判「病程不存在」(据 plateau 判据外推),
 > **该结论下过头** —— 实算后病程**存在**但被压缩到 1.55 s。以本表为准,原判断作废。
 
-#### 与之无关、今日**确实可听**的部分(不得与上述混读)
+#### ⛔ 原「今日**确实可听**」表 —— 2026-10-20 作废(原文保留不改写)
 
-| 可听 | 依据 |
+> **作废理由 = L-6**:运行时 active listener = 0 ⇒ 下表所有条目在 2026-10-20 这次 Play 里
+> **一条都听不见**。下表保留作历史;`Voice_Cough_Damp` 的「2026-10-18 已确认」仍是**那次**的
+> 有效记录(listener 当时是否正常未复核),但**不得**被读作「2026-10-20 可听」。
+> **元教训**:「代码里有 emit 路径」≠「耳朵能听到」—— 中间隔着「有无听音点」这一段,
+> 而当时的断言恰好把这段写成了假的。判「可听」必须有**实听**或**active listener 断言**之一。
+
+| 可听(原判,已作废) | 依据 |
 |---|---|
 | `Voice_Cough_Damp` 可闻 + 走 `Voice` 总线 | 2026-10-18 用户实机已确认(`audio-wiring-listening-2026-10-18.md` §〇 腿①)。**该结论有效,不被本条撤销** |
 | `BreathLayer_Base_Calm` 在潜伏→达峰窗口(约 2 s)内起 loop | `BreathShouldLive = !terminal.Latched`(`PatientCueSchedule.cs:82-83`) |
 | `WorldBreath_Baseline` / `Clinic_Room_Tone` / `Page_Turn` 等世界与 UI 层 | 与病人状态无关 |
 
-⇒ 今日成立的是「**有音 · 走对总线**」,**不成立**的是「三档差异 / 尾音形态 / 停顿 vs 停止 / 变体可辨」。
+⇒ 原判「今日成立的是『**有音 · 走对总线**』」**已由 L-6 推翻**;今日成立且**可证伪**的是
+「**零 active listener**」(日志 10 845 条)。「三档差异 / 尾音形态 / 停顿 vs 停止 / 变体可辨」
+依旧不成立。
 
 #### 解除条件(逐项,可独立推进)
 
@@ -919,6 +928,7 @@ A 类(自造 Fake)只深挖 telemetry · `tests/unit|integration/` 账本树未�
 | **L-3** | `disease_registry.json` 真表到位(数值轮)—— 真曲线给出可判别的「平稳 / 急促 / 停顿」三段时长;占位 plateau 曲线不承载听测 | 数值轮(用户) |
 | **L-4** | 随 L-3 一并:真病程足够长 ⇒ 多病人可同时存活;或接线期把 `SpawnIntervalTicks` 临时调小 | 数值轮 / 52 |
 | **L-5** | **被试 ≥ 2 人**(`TD-audio-103` 同口径)+ 双盲 n ≥ 6 人(AC-44-02 / AC-44-17 原文硬要求) | 排期 |
+| **L-6** | **已修(2026-10-20)**:启动序把 listener 从预摆相机迁到运行时 `CameraRig` 主相机(预摆那份先摘除),并把断言改为**双判据**(active = 1 **且** 挂载总数 = 1)。验证 = EditMode 全量回归 + 用户重开编辑器实听「log 无 `no audio listeners` 且能听到声音」 | 已落 · 待实听复核 |
 
 > ⚠️ **L-5 是协议原文的硬要求,不是本登记新增** —— AC-44-02 原文写「n ≥ 6 人 × 每对 ≥ 8 次」,
 > AC-44-17 写「n ≥ 6 人」。**单人实听只能产生「非正式预听」,不得记为该 AC 的证据。**

@@ -300,15 +300,27 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   实测代价(2026-10-10 人工 playtest):Editor.log 31868 条同文本,
             //   Console 被淹 → Editor IPC 管道超载 → `write EPIPE` → 进程异常终止,
             //   表现为「无法退出 Play / 点关闭无响应」。根因是日志洪泛,不是死循环。
-            //   修复 = 单挂点:本节**禁用**预摆相机(它只持 listener 语义),
-            //   运行时相机由 CameraRig 自持;AudioListener 恒 1 个(预摆那个)。
+            //   修复 ① = 单挂点:本节**禁用**预摆相机(它只持 listener 语义)。
+            //   ⚠️ **修复 ②(2026-10-20)** —— 修复 ① 只做了一半:预摆相机被禁用后,
+            //   运行时 CameraRig 相机**没有**补 listener ⇒ 运行时 active listener = 0,
+            //   整个场景静音。Editor.log 实测 10845 条
+            //   `There are no audio listeners in the scene`(首次出现于本次 Play 首帧)。
+            //   正确形态 = listener 随「主相机」迁到 CameraRig 运行时相机(ADR-020 §七:
+            //   单挂点就是主相机)。预摆相机上的那份**必须先摘除** —— 否则它会以 inactive
+            //   形态留在挂载计数里,把「零 active」掩盖成「1 个挂载」(见 AssertSingleAudioListener)。
             var presetCamera = GameObject.Find("Main Camera");
             if (presetCamera != null)
+            {
+                var presetListener = presetCamera.GetComponent<UnityEngine.AudioListener>();
+                if (presetListener != null)
+                    UnityEngine.Object.DestroyImmediate(presetListener);
                 presetCamera.SetActive(false);
+            }
 
             var cameraObj = new GameObject("CameraRig");
             _cameraRig = cameraObj.AddComponent<CameraRig>();
             cameraObj.AddComponent<UnityEngine.Camera>();
+            cameraObj.AddComponent<UnityEngine.AudioListener>();   // 运行时主相机 = 唯一听音点
             _cameraRig.SetModeForTest(CameraMode.Explore);
 
             // ── 5.1. 空间化听者锚点(S15-4 · TD-audio-028)────────────────────
@@ -651,21 +663,25 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         private static void AssertSingleAudioListener()
         {
-            // ⚠️ 必须用 `FindObjectsInactive`(含 inactive),**不是** `FindObjectsOfType`(只查 active):
-            //    启动序先 `presetCamera.SetActive(false)` 再断言 —— 预摆相机被禁用后,
-            //    listener 仍应参与计数(它就是唯一合法的那个)。实测(2026-10-10):
-            //    用含 active-only 的 FindObjectsOfType 得 0(预摆已禁用、CameraRig 不加)
-            //    ⇒ 断言把**正确形态**判成错误。IncludeInactive 才是「挂载数」语义。
-            var listeners = Resources.FindObjectsOfTypeAll<UnityEngine.AudioListener>();
-            if (listeners == null || listeners.Length != 1)
+            // **双判据,缺一不可**(2026-10-20 修):
+            //  ① active = 1 —— Unity 是否认这个听音点。0 个 ⇒ 全场景静音,每帧刷
+            //     `no audio listeners in the scene`(2026-10-20 实测 10845 条,Play 首帧起)。
+            //  ② 挂载总数 = 1 —— 无残留挂载。≥2 ⇒ 每帧警告洪泛 → Console 管道超载 →
+            //     Editor 进程 EPIPE 终止(2026-10-10 实测 31868 条)。
+            // ⚠️ **旧实现只查 `Resources.FindObjectsOfTypeAll`(含 inactive)的总数 = 1**
+            //    ⇒ 把「预摆已禁用 + CameraRig 未挂」判成正确形态,**永远抓不到零 active**。
+            //    旧注释「用 active-only 得 0 ⇒ 断言把正确形态判成错误」正是把缺陷写成了规格。
+            var active = UnityEngine.Object.FindObjectsByType<UnityEngine.AudioListener>(
+                FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            var all = UnityEngine.Object.FindObjectsByType<UnityEngine.AudioListener>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (active.Length != 1 || all.Length != 1)
             {
-                int n = listeners?.Length ?? 0;
                 throw new InvalidOperationException(
-                    $"AC-20-10 AudioListener 单挂点:场景内应有**恰好 1 个**,实际 {n} 个。" +
-                    "多挂点 = Unity 每帧刷警告 → Console 管道超载 → Editor 进程 EPIPE 终止" +
-                    "(2026-10-10 实测 31868 条);零挂点 = 无听音点。" +
-                    "正确形态:Boot.unity 预摆 Main Camera 持唯一 listener," +
-                    "CameraRig 运行时相机**不加** listener。");
+                    $"AC-20-10 AudioListener 单挂点:active {active.Length} 个 / 挂载总数 {all.Length} 个(应各为 1)。" +
+                    "0 个 active = 无听音点 ⇒ 整个场景静音(2026-10-20 实测 10845 条警告);" +
+                    "≥2 个 = 每帧警告洪泛 → Console 管道超载 → Editor 进程 EPIPE 终止(2026-10-10 实测 31868 条)。" +
+                    "正确形态:运行时 CameraRig 主相机持唯一 listener;预摆 Main Camera 禁用前已摘除其 listener。");
             }
         }
 

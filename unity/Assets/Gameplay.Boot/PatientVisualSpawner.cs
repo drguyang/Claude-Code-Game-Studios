@@ -84,11 +84,30 @@ namespace DaYiJingCheng.Gameplay.Boot
                 capsule.transform.SetParent(VisualRoot.transform, false);
 
                 // 中性灰 —— 零语义(不映射体征/病种;那归 13 Material(p) + 8 词表)
-                var mat = new Material(Shader.Find("Standard")) { color = new Color(0.7f, 0.7f, 0.7f) };
-                capsule.GetComponent<Renderer>().sharedMaterial = mat;
+                // ⚠️ 本工程是 URP:`Shader.Find("Standard")` 在该管线下返回 null ⇒ 渲染走
+                //    错误着色器(品红占位),「中性灰」的意图也未兑现。URP Lit 的基色属性是
+                //    `_BaseColor`(不是 `Standard` 的 `_Color`),按属性存在性择一写入。
+                capsule.GetComponent<Renderer>().sharedMaterial = CreatePlaceholderMaterial();
 
                 _visuals[patientId] = capsule;
             }
+        }
+
+        /// <summary>
+        /// 占位胶囊的中性灰材质(URP Lit 优先;Standard 仅作非 URP 构建的回退)。
+        /// <para>⚠️ 必须按属性存在性写色:URP Lit 用 <c>_BaseColor</c>,<c>Standard</c> 用 <c>_Color</c>
+        /// (<c>Material.color</c> 只映射后者)。错误着色器(品红)在实机上是可观测的回归信号 ——
+        /// 它会让「本帧是否正常渲染」这一观察失效,不得以「占位无所谓」放过。</para>
+        /// </summary>
+        private static Material CreatePlaceholderMaterial()
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) shader = Shader.Find("Standard");
+            var mat = new Material(shader);
+            var neutralGrey = new Color(0.7f, 0.7f, 0.7f);
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", neutralGrey);
+            else mat.color = neutralGrey;
+            return mat;
         }
 
         /// <summary>
