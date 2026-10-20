@@ -1,0 +1,65 @@
+{
+  "name": "C-2 —— 6/10 两个 IL 门接进 BuildGate(反证:删线必红)",
+  "mode": "EditMode",
+  "filter": "GateWiringManifestTest",
+  "unityProject": "unity",
+  "guards": ["unity/Assets/AddressableAssetsData", "unity/Assets/Audio"],
+  "_note": "判据 = 每个变异**恰如预期**转红(exactRed)。F1/F2 打生产侧接线(删一行),F3 打 manifest 回退方向(Kind Chain → TestDriven)。F1/F2 与 F3 必须各自承重:前者证明「掉线可被发现」,后者证明「清空缺口表后仍有判别力」(即 ExpectedTestDrivenClasses 那条新断言确实在守)。",
+  "mutations": [
+    {
+      "name": "F1-removeEcozoneWiring",
+      "file": "unity/Assets/Editor.Tools.Gates/AssemblyGates.cs",
+      "line": 1252,
+      "expect": "                errs.AddRange(EcozoneIntegerGates.RunAll());       // AC-6-22",
+      "replace": "",
+      "expectRed": [
+        "test_entryWiring_matchesManifest_bidirectionally"
+      ],
+      "exactRed": true,
+      "_why": "删 BuildGate 里的 Ecozone 接线 ⇒ BuildGate 入口的双向差集发现「清单有、源无」。",
+      "_expectRed_justification": "先论证后钉。F1 只删 BuildGate 的 1252,RunMenu 的 114 保留 ⇒ `allWired` 是**三入口并集**,仍含 `EcozoneIntegerGates.RunAll` ⇒ `chainKindEntriesAreActuallyWired` **保持绿**。故预期红集**只应**有 bidirectional 一条。",
+      "_known_limit": "⚠️ 该条判据单行变异证不了:两个入口都接了 Ecozone ⇒ 删任一处并集不变。证明它承重须另用 F4(PodTypeScanner 改判 Chain)。如实登记,不用「并集恰好没变」冒充「判据有效」。"
+    },
+    {
+      "name": "F2-removeEmergencyWiringFromBuildGate",
+      "file": "unity/Assets/Editor.Tools.Gates/AssemblyGates.cs",
+      "line": 1253,
+      "expect": "                errs.AddRange(EmergencyIntegerGates.RunAll());     // AC-10-02 / AC-10-03",
+      "replace": "",
+      "expectRed": [
+        "test_entryWiring_matchesManifest_bidirectionally"
+      ],
+      "exactRed": true,
+      "_why": "删 BuildGate 里的 Emergency 接线。与 F1 同理,RunMenu 那行仍在 ⇒ Chain 并集仍含它。"
+    },
+    {
+      "name": "F3-revertEcozoneKindToTestDriven",
+      "file": "unity/Assets/Tests/EditMode/Sim/gate_wiring_manifest_test.cs",
+      "line": 226,
+      "expect": "            new ClassVerdict { ClassName = \"EcozoneIntegerGates\", Kind = WiringKind.Chain,",
+      "replace": "            new ClassVerdict { ClassName = \"EcozoneIntegerGates\", Kind = WiringKind.TestDriven,",
+      "expectRed": [
+        "test_classManifest_libraryAndTestConsumersAreRealReferences",
+        "test_testDrivenKind_isClosedSet_notDefault"
+      ],
+      "exactRed": true,
+      "_why": "**这条是本轮新判据的判别力证明**。把已上线的门改判回 TestDriven——缺口表已清空,`areStillAccuratelyRecorded` 遍历零条恒绿,**只有**新加的 ExpectedTestDrivenClasses 封闭性断言能抓住它。若这条不红,说明清空缺口表确实开了个洞。",
+      "_expectRed_justification": "**首轮我写错,已按论证改正(不是把实得抄进来)**:两条红的理由各自独立 —— ① `test_testDrivenKind_isClosedSet_notDefault`:`EcozoneIntegerGates` 不在 ExpectedTestDrivenClasses(只列 PodTypeScanner / PresentationDtoGuard)⇒ 第 ① 支命中;② `test_classManifest_libraryAndTestConsumersAreRealReferences`:该条对 `TestDriven` 档要求 `Consumer` 是**文件路径**,而 Ecozone 的 `Consumer` 仍写着 `\"RunMenu+BuildGate\"`(那是 Chain 档的语义)⇒ `Path.Combine(root, \"RunMenu+BuildGate\")` 不存在 ⇒ 红。**这是同一处谎报的第二重自洽检查**:改 Kind 却不改 Consumer,本来就该红,不是误伤。",
+      "_first_run_note": "首跑实得 2 红、预期 1 红 ⇒ 驱动判 exit 1(判别面不清)。处置 = 逐条论证「为什么**应该**红」(上条),论证成立后才改期望 —— **没有直接把实得抄进 expectRed**,那会让 exactRed 退化成 tautology(承 C-1 轮 §6.0 同款纪律)。"
+    },
+    {
+      "name": "F4-podTypeScannerTestDrivenToChain",
+      "file": "unity/Assets/Tests/EditMode/Sim/gate_wiring_manifest_test.cs",
+      "line": 236,
+      "expect": "            new ClassVerdict { ClassName = \"PodTypeScanner\", Kind = WiringKind.TestDriven,",
+      "replace": "            new ClassVerdict { ClassName = \"PodTypeScanner\", Kind = WiringKind.Chain,",
+      "expectRed": [
+        "test_classManifest_chainKindEntriesAreActuallyWired",
+        "test_testDrivenKind_isClosedSet_notDefault"
+      ],
+      "exactRed": true,
+      "_why": "**证明 `chainKindEntriesAreActuallyWired` 承重**(F1/F2 因并集不变证不了它)。PodTypeScanner 从未接线,谎报 Chain ⇒ 该断言必须抓。同时它也违反 ExpectedTestDrivenClasses(清单里 PodTypeScanner 应为 TestDriven)⇒ 新断言第 ② 支命中。",
+      "_expectRed_justification": "两条红各有独立理由:① chainKind —— 声明 Chain 但三入口接线集里无 `PodTypeScanner.*`;② testDrivenKind —— 清单要求它 TestDriven,manifest 却是 Chain(第 ② 支「清单与事实不符」)。其余断言不涉该类的 Kind ⇒ 预期恰这两条。"
+    }
+  ]
+}

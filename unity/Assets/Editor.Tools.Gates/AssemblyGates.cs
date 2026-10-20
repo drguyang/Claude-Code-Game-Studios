@@ -105,9 +105,18 @@ namespace DaYiJingCheng.EditorTools.Gates
             var rxErrs = PrescriptionWriterGates.RunAll(out var rxSummary);
             errs.AddRange(rxErrs);
             foreach (var s in rxSummary) Debug.Log("[PrescriptionWriterGates] " + s);
+            // 2026-10-21(TD-gate-02 收口 · 用户裁定「接 —— 复刻 b5 先例」):6 的 AC-6-22 与
+            // 10 的 AC-10-02 / AC-10-03 三条 BLOCKING 此前**只有 EditMode 测试驱动**,无构建期
+            // 强制点。两门与 b5 同族(同为 Cecil IL 级、同取 dllPath),故**接线形态完全复刻
+            // `RunAudioBoundary`** —— 陈旧产物守卫住在门自己的 `RunAll()` 里,不指望每个调用方
+            // 各写一遍。⚠️ 不要在此处另加 scriptCompilationFailed 判断:那样会把「守卫」变成
+            // 「调用点纪律」,下一个调用方就会漏。
+            errs.AddRange(EcozoneIntegerGates.RunAll());       // AC-6-22
+            errs.AddRange(EmergencyIntegerGates.RunAll());     // AC-10-02 / AC-10-03
             foreach (var e in errs) Debug.LogError(e);
             Debug.Log(errs.Count == 0
-                ? "[AssemblyGates] b2/b3/b3-refdup/b4/b5 + 3 意图边界门 + 8 边界门 + 11 写者门 全过"
+                ? "[AssemblyGates] b2/b3/b3-refdup/b4/b5 + 3 意图边界门 + 8 边界门 + 11 写者门 " +
+                  "+ 6 生态区整数门 + 10 急救整数门 全过"
                 : $"[AssemblyGates] {errs.Count} 条失败(见红行)");
         }
 
@@ -1238,13 +1247,18 @@ namespace DaYiJingCheng.EditorTools.Gates
                 // ⇒ AC-10-06b 字面的「漂移 ⇒ 构建失败」没有执行体。此处补接,与 8 / 3 门同格。
                 errs.AddRange(PrescriptionWriterGates.RunAll(out var rxSummary));
                 foreach (var s in rxSummary) Debug.Log("[PrescriptionWriterGates] " + s);
+                // 2026-10-21(TD-gate-02 收口):6 / 10 两个 IL 门的构建期强制点。
+                // 与 RunMenu 同一形态,守卫在门内(见 RunMenu 处注释)。
+                errs.AddRange(EcozoneIntegerGates.RunAll());       // AC-6-22
+                errs.AddRange(EmergencyIntegerGates.RunAll());     // AC-10-02 / AC-10-03
                 if (roots == 0)
                     errs.Add("[InputBoundaryGates] A7 扫描根为 0 —— 扫描面丢失(假绿面),构建中止。");
                 if (errs.Count == 0) return;
                 foreach (var e in errs) Debug.LogError(e);
                 throw new BuildFailedException(
                     $"[AssemblyGates] 构建前门失败 {errs.Count} 条(装配封闭性 / ToFloat 白名单 / " +
-                    "44 边界门 / 8 边界门 / 3 意图边界门 / 11 写者门)—— 见构建日志红行。");
+                    "44 边界门 / 8 边界门 / 3 意图边界门 / 11 写者门 / 6 生态区整数门 / " +
+                    "10 急救整数门)—— 见构建日志红行。");
             }
         }
     }

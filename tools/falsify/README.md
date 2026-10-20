@@ -155,6 +155,17 @@ Unity 侧判据只能走桌面 + 本驱动。
 |---|---|---|---|
 | `specs/audio-import-settings-and-playmode.json` | OQ-44-2 Import Load Type 门 + TD-audio-01f Play Mode Script 门 + wav 扩展名跨平台大小写 | **5**(F1–F5) | 2026-10-17 |
 | `specs/s16-4-fs-write-boundary.json` | `FsWriteBoundaryGate`(S16-4 写盘边界门):F1 注入仓库写盘到测试树(R1/R2 判别面如常)· F2 停用声明查找 · F3 停用锚点识别 | **3**(F1–F3) | 2026-10-20 |
+| `specs/c1-gate-wiring.json` | 门链接线判据(C-1 / `TD-gate-01`+`-02`):F1 删 `RunAll` 里一行 · F2 删清单一条声明 · F3 停用解析器 | **3**(F1–F3) | 2026-10-21 |
+| `specs/c2-il-gate-wiring.json` | 6 / 10 两个 IL 门接进 BuildGate(C-2):F1 删 Ecozone 接线 · F2 删 Emergency 接线 · F3 已上线门改判回 `TestDriven` · F4 `PodTypeScanner` 谎报 `Chain` | **4**(F1–F4) | 2026-10-21 |
+
+> **C-2 规格的两处口径说明(2026-10-21)**:
+> ① **F1 / F2 证不了 `chainKindEntriesAreActuallyWired`** —— 该断言取**三入口并集**,
+> 而 Ecozone / Emergency 在 `RunMenu` 与 `BuildGate` **两处**都接了 ⇒ 删任一处并集不变。
+> ⇒ 另立 **F4**(把从未接线的 `PodTypeScanner` 谎报成 `Chain`)去真正证明那条断言承重。
+> **不让「并集恰好没变」冒充「判据有效」。**
+> ② **F3 首跑红 2 条而我只预期 1 条**,驱动判 exit 1。处置 = 逐条论证「为什么**应该**红」,
+> 论证成立后才改期望(见 spec 的 `_expectRed_justification`)—— **没有直接把实得抄进
+> `expectRed`**,那会让 `exactRed` 退化成 tautology(承 C-1 轮同款纪律)。
 
 > **S16-4 规格的口径说明(2026-10-20)**:F2 / F3 打的是**门本体**而非被扫对象,
 > 证明两条规则(R2 声明制 / 锚点识别)**各自承重**;F1 打被扫**测试树**,是

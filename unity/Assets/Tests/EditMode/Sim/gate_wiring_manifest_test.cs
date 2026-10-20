@@ -99,6 +99,8 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "DiagnosisBoundaryGates.RunAll", // 8 边界门
                     "InputBoundaryGates.RunAll",     // 3 意图边界门
                     "PrescriptionWriterGates.RunAll",// 11 写者门
+                    "EcozoneIntegerGates.RunAll",    // AC-6-22 · 2026-10-21 接线上线
+                    "EmergencyIntegerGates.RunAll",  // AC-10-02 / -03 · 同上
                 },
 
                 // BuildGate = IPreprocessBuildWithReport.OnPreprocessBuild(**构建前 fail-fast**)。
@@ -110,6 +112,8 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "DiagnosisBoundaryGates.RunAll",
                     "InputBoundaryGates.RunAll",
                     "PrescriptionWriterGates.RunAll",
+                    "EcozoneIntegerGates.RunAll",      // AC-6-22(BLOCKING)· 2026-10-21 接线上线
+                    "EmergencyIntegerGates.RunAll",    // AC-10-02 / -03(BLOCKING)· 同上
                 },
             };
 
@@ -214,13 +218,21 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 Consumer = "Assets/Editor.Tools.Gates/SkeuomorphicUiGates.cs",
                 Note = "SkeuomorphicUiGates.ValidateAll 聚合其 5 条校验 → 菜单可达" },
 
+            // ── 链上(6 → 8,2026-10-21 `TD-gate-02` 收口)──
+            // 原注记「可进 BuildGate 而现未接」—— 该判断本身是对的,**是我(2026-10-21 首轮)
+            // 误读成「放不进」**。复查发现 `RunAudioBoundary`(同为 Cecil IL 门、同取 dllPath)
+            // 早已在 `OnPreprocessBuild` 上,且陈旧产物守卫就住在它内部 ⇒ 接线形态完全可复刻。
+            // 用户裁定「接 —— 复刻 b5 先例」后两门已上线,Kind 由 TestDriven 改判 Chain。
+            new ClassVerdict { ClassName = "EcozoneIntegerGates", Kind = WiringKind.Chain,
+                Consumer = "RunMenu+BuildGate",
+                Note = "AC-6-22 BLOCKING。2026-10-21 接线上线:守卫(scriptCompilationFailed)" +
+                       "住在其 RunAll() 内,复刻 RunAudioBoundary 形态" },
+            new ClassVerdict { ClassName = "EmergencyIntegerGates", Kind = WiringKind.Chain,
+                Consumer = "RunMenu+BuildGate",
+                Note = "AC-10-02/10-03 BLOCKING。2026-10-21 接线上线:同款守卫;" +
+                       "扫两装配(AC-10-02→Gameplay.Input / AC-10-03→Sim)" },
+
             // ── 仅测试驱动(**无构建期强制点**)──
-            new ClassVerdict { ClassName = "EcozoneIntegerGates", Kind = WiringKind.TestDriven,
-                Consumer = "Assets/Tests/EditMode/WorldEcozones/ecozone_query_test.cs",
-                Note = "⚠️ AC-6-22 BLOCKING;IL 门(Cecil + 真 DLL)放不进 reload 路径(会读陈旧产物),但**可**进 BuildGate —— 现未接 ⇒ 见 ADR-6 缺口登记" },
-            new ClassVerdict { ClassName = "EmergencyIntegerGates", Kind = WiringKind.TestDriven,
-                Consumer = "Assets/Tests/EditMode/EmergencyProcedures/reading_contract_test.cs",
-                Note = "⚠️ AC-10-02/10-03 BLOCKING;同上 —— 可进 BuildGate 而现未接 ⇒ 见 ADR-6 缺口登记" },
             new ClassVerdict { ClassName = "PodTypeScanner", Kind = WiringKind.TestDriven,
                 Consumer = "Assets/Tests/EditMode/ItemDatabase/schema_types_primary_key_test.cs",
                 Note = "扫描库(非门):名字不含 Gate 是刻意 —— AC-21a-27 的执行体由测试驱动" },
@@ -247,13 +259,33 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         /// `test_knownTestDrivenBlockingGaps_areStillGaps` 断言的正是「它们**仍然**是缺口」——
         /// 一旦有人把其中一条接进 BuildGate,**该断言会转红并要求同步删行**。
         /// 这样缺口不会被静默补齐、也不会被静默遗忘。</para>
+        /// <para>🔁 **2026-10-21 已清空**:两条 BLOCKING 缺口(`EcozoneIntegerGates` /
+        /// `EmergencyIntegerGates`)**均已接进 BuildGate**(用户裁定「接 —— 复刻 b5 先例」)
+        /// ⇒ 按本表自身的协议,登记须同步删除。**清空 ≠ 判据失效** ——
+        /// `test_knownTestDrivenBlockingGaps_areStillAccuratelyRecorded` 在空表上遍历零次,
+        /// 其判别力由下面<b>新增</b>的 <see cref="ExpectedTestDrivenClasses"/> 接续承担。</para>
         /// </summary>
         private static readonly Dictionary<string, string> KnownTestDrivenBlockingGaps =
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                ["EcozoneIntegerGates"] = "AC-6-22 [BLOCKING]",
-                ["EmergencyIntegerGates"] = "AC-10-02 / AC-10-03 [BLOCKING]",
+                // 2026-10-21:两行已删除(缺口补齐)。新增缺口须在此登记并附 AC 号。
             };
+
+        /// <summary>
+        /// `TestDriven` 是**例外**,不是默认值 —— 现存仅这两个类应落在该档。
+        /// <para>⚠️ **本表是 `KnownTestDrivenBlockingGaps` 清空后补的判别力载体**:
+        /// 缺口表清空后,`areStillAccuratelyRecorded` 遍历零条恒绿 —— 若此时有人把某个
+        /// **已上线**的门悄悄改回 `TestDriven`,缺口表仍是空的,**全绿、无人报警**。
+        /// 本表把「哪些类**允许**无强制点」写成封闭清单:**不在表内的类被判 TestDriven ⇒ 红**。</para>
+        /// <para>两员的共同点:**都不承载 BLOCKING AC 的构建期判据**(`PodTypeScanner` 是扫描库、
+        /// `PresentationDtoGuard` 由 42/37 侧测试驱动)。若将来某条升格为 BLOCKING,
+        /// 须先给它找强制点,再动本表。</para>
+        /// </summary>
+        private static readonly string[] ExpectedTestDrivenClasses =
+        {
+            "PodTypeScanner",
+            "PresentationDtoGuard",
+        };
 
         // ══════════════════════════════════════════════════════════════════════
         // 三、入口级:双向差集(本件的核心判据)
@@ -592,6 +624,43 @@ public static List<string> RunAll()
             }
 
             Assert.That(mismatched, Is.Empty, string.Join("\n", mismatched));
+        }
+
+        /// <summary>
+        /// **`TestDriven` 封闭性** —— 不在 <see cref="ExpectedTestDrivenClasses"/> 里的类,
+        /// 一律不得被判 `TestDriven`。
+        /// <para>本断言是**清空缺口表之后**补的判别力载体(见
+        /// <see cref="KnownTestDrivenBlockingGaps"/> 的 2026-10-21 注)。它守的是
+        /// **接线回退方向**:把已上线的门改回 `TestDriven`,本断言转红。</para>
+        /// <para>⚠️ 与 `test_classManifest_coversEveryDeclaredClass` 的分工:那条管
+        /// 「每个类都要有判决」,本条管「判决可否落到最弱的一档」。**两者都必要** ——
+        /// 前者允许把新类直接判 TestDriven,后者禁止。</para>
+        /// </summary>
+        [Test]
+        public void test_testDrivenKind_isClosedSet_notDefault()
+        {
+            var allowed = new HashSet<string>(ExpectedTestDrivenClasses, StringComparer.Ordinal);
+
+            // ① 反向:manifest 里判 TestDriven 的,必须在允许清单内。
+            var unexpected = ClassConsumerManifest
+                .Where(v => v.Kind == WiringKind.TestDriven && !allowed.Contains(v.ClassName))
+                .Select(v => $"{v.ClassName}: 被判 TestDriven,但不在 ExpectedTestDrivenClasses 内" +
+                             " —— 要么给它找强制点(改 Chain/Menu/Library),要么显式登记进该清单并写明理由")
+                .ToList();
+
+            // ② 正向:清单里列的必须真的存在且真的判 TestDriven(防清单腐烂成幽灵条目)。
+            foreach (string cls in ExpectedTestDrivenClasses)
+            {
+                ClassVerdict v = ClassConsumerManifest.FirstOrDefault(x => x.ClassName == cls);
+                if (v == null)
+                    unexpected.Add($"{cls}: 在 ExpectedTestDrivenClasses 内,但 manifest 无此条目(幽灵条目)");
+                else if (v.Kind != WiringKind.TestDriven)
+                    unexpected.Add($"{cls}: 在 ExpectedTestDrivenClasses 内,但 manifest 判的是 {v.Kind}" +
+                                   " —— 清单与事实不符,须同步");
+            }
+
+            Assert.That(unexpected, Is.Empty,
+                "TestDriven 封闭性被破坏:\n  " + string.Join("\n  ", unexpected));
         }
     }
 }

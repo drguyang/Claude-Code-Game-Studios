@@ -26,6 +26,7 @@ using System.IO;
 using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using UnityEditor;
 
 namespace DaYiJingCheng.EditorTools.Gates
 {
@@ -324,6 +325,43 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <summary>便捷重载:用默认 <see cref="JudgeRoots"/>。</summary>
         public static List<string> CheckJudgeIntegerIl(string dllPath)
             => CheckJudgeIntegerIl(dllPath, JudgeRoots, out _);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // 门链强制入口(2026-10-21 · 用户裁定「接 —— 复刻 b5 先例」)
+        // ══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// **构建前门 / 菜单入口** —— 取两个编译产物自行扫描,含陈旧产物守卫。
+        /// <para>两条 AC 各扫一侧:**AC-10-02 → `Gameplay.Input`**(3 侧零 Judge/JudgeResult/SimEvent);
+        /// **AC-10-03 → `Sim`**(10 判定路径闭包零浮点)。</para>
+        /// <para>守卫必要性同 <see cref="EcozoneIntegerGates.RunAll(out List{string})"/>:经 Cecil 读
+        /// `Library/ScriptAssemblies/*.dll`,而 `OnPreprocessBuild` 触发时那是**上一次编译**的产物。</para>
+        /// </summary>
+        /// <param name="scannedMethods">AC-10-02 的 IL 面实际扫到的方法数(0 = 扫描面丢失,
+        /// 调用方可据此判假绿)。守卫提前返回时为 0。</param>
+        public static List<string> RunAll(out int scannedMethods)
+        {
+            var errs = new List<string>();
+            scannedMethods = 0;
+            if (EditorUtility.scriptCompilationFailed)
+            {
+                errs.Add("[AC-10-02/03] EditorUtility.scriptCompilationFailed = true ⇒ 拒扫陈旧产物" +
+                         "(假绿防护:读上一版 DLL = 假绿;红在编译器,本门只声明不可判)。");
+                return errs;
+            }
+
+            // AC-10-02:3 侧(输入)边界 —— 零 Judge / JudgeResult / SimEvent。
+            var inputDll = AssemblyGates.ScriptAssemblyPath(InputAssemblyName);
+            errs.AddRange(CheckInputBoundaryIl(inputDll, out scannedMethods));
+
+            // AC-10-03:10 侧(判定)整数域 —— Judge 闭包零浮点。
+            var simDll = AssemblyGates.ScriptAssemblyPath(SimAssemblyName);
+            errs.AddRange(CheckJudgeIntegerIl(simDll, JudgeRoots, out _));
+            return errs;
+        }
+
+        /// <summary>便捷重载(丢弃扫描计数)。</summary>
+        public static List<string> RunAll() => RunAll(out _);
 
         /// <summary>枚举类型全部方法(含属性访问器 / 构造)。</summary>
         private static IEnumerable<MethodDefinition> AllMethods(TypeDefinition type)

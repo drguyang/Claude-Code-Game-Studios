@@ -32,6 +32,7 @@ using System.IO;
 using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using UnityEditor;
 
 namespace DaYiJingCheng.EditorTools.Gates
 {
@@ -150,6 +151,41 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <summary>生产侧便捷重载:扫 <see cref="EcozoneRoots"/>。</summary>
         public static List<string> CheckEcozoneIntegerIl(string dllPath)
             => CheckEcozoneIntegerIl(dllPath, EcozoneRoots, out _);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // 门链强制入口(2026-10-21 · 用户裁定「接 —— 复刻 b5 先例」)
+        // ══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// **构建前门 / 菜单入口** —— 取编译产物自行扫描,含陈旧产物守卫。
+        /// <para>形态复刻 <see cref="AssemblyGates.RunAudioBoundary"/>:守卫住在**门自己**身上,
+        /// 不指望每个调用方各写一遍。</para>
+        /// <para>⚠️ 守卫的必要性:本门经 Mono.Cecil 读
+        /// `Library/ScriptAssemblies/Sim.dll`。`OnPreprocessBuild` 触发时该文件是
+        /// **上一次编译**的产物 —— 编译失败时扫它 = 拿旧代码发言 = 假绿/假红双向失真。
+        /// `EditorUtility.scriptCompilationFailed` 为真时**记红并声明不可判**,
+        /// 不静默跳过(静默跳过 = 该次构建里本门不存在)。</para>
+        /// </summary>
+        /// <param name="closureMembers">实际进入闭包的方法全名(供调用方做形状守卫)。
+        /// 守卫提前返回时为空集。</param>
+        public static List<string> RunAll(out List<string> closureMembers)
+        {
+            var errs = new List<string>();
+            closureMembers = new List<string>();
+            if (EditorUtility.scriptCompilationFailed)
+            {
+                errs.Add("[AC-6-22] EditorUtility.scriptCompilationFailed = true ⇒ 拒扫陈旧产物" +
+                         "(假绿防护:读上一版 DLL = 假绿;红在编译器,本门只声明不可判)。");
+                return errs;
+            }
+
+            var dll = AssemblyGates.ScriptAssemblyPath(SimAssemblyName);
+            errs.AddRange(CheckEcozoneIntegerIl(dll, EcozoneRoots, out closureMembers));
+            return errs;
+        }
+
+        /// <summary>便捷重载(丢弃闭包清单)。</summary>
+        public static List<string> RunAll() => RunAll(out _);
 
         /// <summary>
         /// call 图闭包:BFS 沿 call / callvirt / newobj 的方法引用走,**只收本装配内**的方法
