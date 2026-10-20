@@ -205,6 +205,7 @@ $ grep -c "^\s*void Submit" unity/Assets/Gameplay.UI/Skeuomorphic/CasebookBindin
 | R-1 | 丙档 5 项的**可复算阻塞证据**(§1 / §2) | 登记 |
 | R-2 | F-1 → `design/gdd/inventory-and-items.md` **新增 `OQ-20-11` 行**(20 侧欠账:搜箱是否持续交互 + 时长归属) | design 文档一处 |
 | R-2b | F-3 → `design/ux/casebook-39.md` **新增 `OQ-CB-7` 行**(39 侧欠账:结案的交互形态未成文;含三个形态候选,不选、不预设) | design 文档一处 |
+| R-6 | **两处上游文档回刷**(用户「接着回刷那两处文档」)<br>① `design/gdd/casebook.md` —— 3 处加注:`:141` 表行后(主注)+ `:310`(`Edge Cases` 行内)+ `:444`(`UI-39.2` 表后),均指向 `OQ-CB-7`<br>② `design/gdd/interaction-system.md` —— 3 处订正:`:1028`(`4-DC-6` 判据行内)+ `:1247`(`OQ-4-4` 行右列)+ `:1036` 段后(**订正块**,含实测四项) | design 文档六处,**均不改任何判据 / 数据** |
 | R-3 | F-2 / F-3 / F-4 三条发现登记(§4) | 登记 |
 | R-4 | 「为什么不能照抄 `CaseOpenedDriver`」的**先例边界辨析**(§3) | 登记 |
 | R-5 | 三项用户裁定入档(§5) | 登记 |
@@ -230,7 +231,8 @@ $ grep -c "^\s*void Submit" unity/Assets/Gameplay.UI/Skeuomorphic/CasebookBindin
 |---|---|---|---|---|
 | R-1 | 丙档 5 项可复算证据 | ✅ | ✅ | §1.1 / §1.2 / §1.3 / §2.1 的命令及输出(可重跑) |
 | R-2 | F-1 的 20 侧登记行 | ✅ | ✅ | `design/gdd/inventory-and-items.md` §Open Questions `OQ-20-11` 行在盘;判据 = `grep -n "OQ-20-11" design/gdd/inventory-and-items.md` 命中 |
-| R-2b | F-3 的 39 侧登记行 | ✅ | ✅ | `design/ux/casebook-39.md` §14 `OQ-CB-7` 行在盘;判据 = `grep -n "OQ-CB-7" design/ux/casebook-39.md` 命中,且该行 5 个 cell 与表头同构(§7 校验命令见 §11) |
+| R-2b | F-3 的 39 侧登记行 | ✅ | ✅ | `design/ux/casebook-39.md` §14 `OQ-CB-7` 行在盘;判据 = `grep -n "OQ-CB-7" design/ux/casebook-39.md` 命中,且该行 5 个 cell 与表头同构(§11 校验命令) |
+| R-6 | 两处上游文档回刷(39 GDD ×3 处 · 4 GDD ×3 处) | ✅ | ✅ | `grep -c "2026-10-20" design/gdd/casebook.md` = 4 · `grep -n "OQ-20-11" design/gdd/interaction-system.md` 命中;两张表列数与表头同构(§11 已跑) |
 | R-3 | F-2 / F-3 / F-4 三条发现 | ✅ | ✅ | §4.2 / §4.3 / §4.4 逐条带命令或 `file:line` |
 | R-4 | `CaseOpenedDriver` 先例边界辨析 | ✅ | ⚠️ **推理,非实测** | 由 37 规则八 + `AC-37-04` 的文本推出;本轮**未**构造自动结案实验去实测其后果 —— 如实标注 |
 | R-5 | 三项裁定入档 | ✅ | ✅ | §5 表 + 本轮 AskUserQuestion 记录 |
@@ -249,17 +251,18 @@ $ grep -c "^\s*void Submit" unity/Assets/Gameplay.UI/Skeuomorphic/CasebookBindin
 2. **C-3** —— 归 **45 的 P1b 轮**(上行通道);且 **GDD 侧无对应判据** ⇒ 若将来要立判据,须另裁。
 3. **C-4 / C-5** —— 归 **39 的 UX 轮(F-3 规格缺口)+ 37/42 的交互装配轮 + 9 的
    `IDiseaseProjection` + 53 的 `eligible` 装配器**(五处,见 §2.4)。
-4. **F-1 的 20 侧回填** —— 已落 `OQ-20-11`,归 20 的下一轮(与 `OQ-4-4` 的 20 半边同批);
-   ⚠️ **4 的 GDD(`:1247` / `:1036`)措辞待回刷** —— 它现称该行「构建期红」,而实测绿;
-   回刷归 4 的复核轮,**本轮不改 4 的文档**(未授权)。
+4. **F-1 的 20 侧回填** —— 已落 `OQ-20-11`,归 20 的下一轮(与 `OQ-4-4` 的 20 半边同批)。
+   ✅ **4 的 GDD 措辞已于本轮回刷**(R-6 ②)—— `:1028` / `:1247` / `:1036` 三处均加订正,
+   明写「原『Container 未登记即构建期红』的预言**已被实测证伪**」,并把「门被无出处填值静默绕开」
+   这一**更严重**的失效模式写清。**判据与数据均未改。**
 5. **F-2 的文档漂移** —— 归 `stable_id_source` 的回刷轮;**本轮不裁哪边权威**。
 6. **F-3 的 39 侧规格缺口** —— ✅ **已于同一轮落盘**:`design/ux/casebook-39.md` §14 新增 `OQ-CB-7`
    (用户「按建议继续」授权)。该行**只登记开放项,不改本 spec 任何既有判据**,并明写补形态时
    须同时回刷 §7 动作表 + §8 Events Fired。三个形态候选(页缘/折边 Submit · 合上纸 · 独立结案页)
    **只列不选** —— 且 §5.3 的「禁复选框」与 GDD 字面「勾选」是否等同,**该判定 39 从未作过**,
    本行不预设。
-   ⚠️ **仍未做**:39 GDD(`casebook.md`)侧无对应回刷 —— `:141` 那行仍写「39 定形态」而未指向
-   `OQ-CB-7`;是否加注待 39 的修订轮(与 `OQ-CB-2` 的 GDD 回写同款残留模式)。
+   ⚠️ **仍未做**:39 GDD 侧已于本轮回刷(R-6 ①)—— `:141` / `:310` / `:444` 三处加注并指向 `OQ-CB-7`。
+   剩余缺口 = `OQ-CB-7` 本身的**形态裁定**(归 39 UX 轮);GDD 侧已不再有「未指向」的残留。
 7. **ADR-012 IL2CPP 三格矩阵** —— NOT-RUN(本机仅 Mono),与本轮无关,照旧挂账。
 
 ---
@@ -303,6 +306,28 @@ print('cells =', len(ls[i7].strip().strip('|').split('|')))"    # 期望 order o
 
 # 两行均不得把转义管符 / 四连星带进表格
 grep -c '\\|' design/ux/casebook-39.md                           # 期望 0
+```
+
+**R-6(两处上游文档回刷)的判据**:
+
+```bash
+# ① 39 GDD:三处加注,且均指向 OQ-CB-7
+grep -c "OQ-CB-7" design/gdd/casebook.md                          # 期望 ≥3
+grep -n "⭑ 2026-10-20" design/gdd/casebook.md                     # 期望 3 行(141 后 / 310 行内 / 444 后)
+
+# ② 4 GDD:三处订正,且均指向 Container 的实测
+grep -c "2026-10-20" design/gdd/interaction-system.md             # 期望 ≥4(1028 / 1036 块 2 处 / 1247)
+grep -c "OQ-20-11" design/gdd/interaction-system.md               # 期望 ≥2
+grep -n "已被实测证伪" design/gdd/interaction-system.md            # 期望 ≥2
+
+# ③ 两张被改的表列数不变(表头同构)
+python3 -c "
+import io
+ls=io.open('design/gdd/casebook.md',encoding='utf-8').read().split(chr(10))
+r=[l for l in ls if l.startswith('| **结案页「已处置」勾选**')][0]
+print('casebook 141 cells =', len(r.strip().strip('|').split('|')))"   # 期望 3
+awk 'NR>=1023 && NR<=1028 {n=gsub(/\|/,"|"); if(n!=4) print NR": BAD "n}' design/gdd/interaction-system.md
+                                                                  # 期望无输出(6 行判据表均 4 pipe)
 ```
 
 **⚠️ 一处必须如实说清**:上述判据证明的是「**登记行在盘且格式合法**」,
