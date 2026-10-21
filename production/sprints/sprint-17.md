@@ -213,6 +213,11 @@
       🔁 **2026-10-21 更新**:C-2 已补跑结清(**EXACT**)⇒ **未结条件 = C-1 / C-4**;
       **C-1 是 verdict 拉档的唯一直接原因**。C-3(记账)亦已同日结清。
       C-3(记账)已于同日结清。
+      🔁 **2026-10-21 回刷(晚于上句)**:C-1 亦已结清 —— `impl-c1-tutorial-media-keys-2026-10-21.md`;
+      实测 cue 19 行(含 4 条 `Narration_Teach*_01`)· clipKey 6 条 · wav 41 个 ⇒ 两个 `*TableReady` **双 true**。
+      ⇒ **未结条件 = C-4 一条**,且 C-4 三半已结其二(PlayMode 全量 202/202/0/0 · IL2CPP 两格已跑/第三格不可达),
+      **仅 CI 常驻 job 仍开**(缺 `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`)。
+      ⚠️ 签核件的 verdict **不改判** —— 它评的是签核时点的事实;要改须另跑一次签核。
 - [x] 无 S1 / S2 缺陷
       <br>实测:`production/qa/bugs/` 仅 `README.md` ⇒ 零在册 bug。
 - [x] 代码评审完成(`/code-review`)
@@ -258,3 +263,8 @@ QA plan 定的正是「每件的测试要求 + AC → 载体映射」;不写它,
   本 sprint **不清偿任何 P0 面债**,不得据此推进 M3。
 - **基线三元组**:`2026-10-21` · `sprint-17 规划轮(Phase 1 重扫)` · `96ecea2`。
   全量 EditMode 现值 = `4086 / 4050 / 0 / 36`(2026-10-21 05:08 CST · sprint-16 收口记账轮 · `6855ba7`)。
+  > 🔁 **2026-10-21 回刷:该「现值」已过期三次,真源见 `production/sprint-status.yaml` 的 `baseline.editmode_current`**
+  > —— 现为 **`4354 / 4318 / 0 / 36`**(`2026-10-21 19:09 CST` · `C-1 结清后全量` · `1cd5780`+工作树;
+  > XML = `unity/Logs/regress-1cd5780.xml`,另有 `c1-full4.xml` 逐条同名同结果互为印证)。
+  > PlayMode 同批回刷:`197/197/0/0` → **`202 / 202 / 0 / 0`**(19:10 CST · `regress-playmode-1cd5780.xml`)。
+  > 原文保留作沿革 —— 它记的是**规划轮时点**的事实,不是今日真值。

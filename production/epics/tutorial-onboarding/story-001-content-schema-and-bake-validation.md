@@ -133,7 +133,11 @@
 
 ## Completion Notes
 **Completed**: 2026-10-21
-**Criteria**: 6/6 passing（仅 AC 第 2 条的**外部表半边** cueId / clipKey 仍 NOT-RUN,见下）
+**Criteria**: 6/6 passing（~~仅 AC 第 2 条的**外部表半边** cueId / clipKey 仍 NOT-RUN,见下~~）
+> 🔁 **2026-10-21 回刷：该限定语已解除** —— C-1 结清，`CueIdTableReady` / `ClipKeyTableReady` **双 true**。
+> 判据（实测，非自述）：`audio_events.json` 19 行（含 4 条 `Narration_Teach*_01`）·
+> `48_demonstration_clips.json` 6 条 clipKey · `unity/Assets/Audio/` 41 wav（含 4 条 TTS 真语声）。
+> 证据原件 = `production/qa/evidence/impl-c1-tutorial-media-keys-2026-10-21.md`。原文保留作沿革。
 **Deviations**:
 - ✅ **已解除（2026-10-21 修整轮）** — ④ 病名闭集词表：此前 `assets/data/` 下无独立病名表 ⇒ 校验器报
   结构化哨兵 `TableNotReady`、AC-48-13 只能 NOT-RUN。现补齐**生产实现者**：
@@ -153,6 +157,14 @@
   证明「表就位后可过 6 项」。**这是内容缺口不是代码缺口**（实测 `teach`/`mentor` 在
   `audio_requirements.json` 与 `audio-material-manifest.md` 均 0 命中、`Assets/Audio/` 37 个 wav 零 `teach_*`），
   补表须同时产出音频素材本体会撞 D6 素材存在性门 ⇒ **具名归属：cue + wav = 系统 44；片段表 = 系统 13**。
+  > 🔁 **2026-10-21 回刷：本条 ADVISORY 已解除（C-1 结清）** —— 归属的两侧均已落地：
+  > ① **44 侧**：`audio_events.json` 15 → **19 行**，新增 4 条 `Narration_Teach{Observe,Judge,Close,Archive}_01`；
+  >    `unity/Assets/Audio/` 37 → **41 wav**，4 条为 TTS 真语声（非静音占位）；
+  > ② **13 侧**：新建 `assets/data/48_demonstration_clips.json`，**6 条 clipKey 闭集**。
+  > 生产侧新增 `Editor.Tools.Bake/TutorialMediaKeySource.cs`（`ITutorialMediaKeySource` 的实现者），
+  > 并由 `BakeFromRepo` **默认注入**（同 `diseaseNames` 纪律）⇒ `CueIdTableReady` / `ClipKeyTableReady` **双 true**。
+  > ⚠️ **仍开的边界**：13 侧只落 **clipKey 闭集**（键名 + 语义），**片段资产本体未做** —— 表现面归 48 实现轮。
+  > 证据原件 = `production/qa/evidence/impl-c1-tutorial-media-keys-2026-10-21.md`。原文保留作沿革。
 - ✅ **已解除（2026-10-21 修整轮）** — `ValidateReferences` 71 行：已拆为
   dispatcher / `CollectStepIds` / `ValidateStepReferences` / `MarkReferenced` /
   `ValidateReverseStepFields` / `ValidateNoOrphans` 六件，最大 17 原始（次大 24），错误串逐字保留。

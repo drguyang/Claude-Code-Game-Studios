@@ -268,10 +268,20 @@ System.OverflowException : env_score 的 Σ e_env:4611686018427387904 + 46116860
 > |---|---|---|
 > | **C-3** | ✅ **已结** | `story-006:54` / `:78-80` / `:81-86` / `:103-104` / `:131` / `:187-188` 六处已加注「`OQ-24-7` 已结案」,原文加删除线保留;`EPIC.md:71` 的「24 测」已加注为历史快照并标 32。**全部 append-only,原文未删** |
 > | **C-2** | ✅ **已结(2026-10-21 补跑)** | ~~本轮**仍未跑** CA-M3 —— 中断所致~~<br>已补跑:**EXACT**(28/27/1,恰红 `test_clinic_envMod_sumExactlyMax_doesNotThrow`);还原后复跑 **28/28/0**;还原 sha256 逐字节一致(`33032f88…`)。详见 §4.1 |
-> | **C-1 / C-4** | ⏳ 仍开 | 归 44 / 13 内容轮 与 CI / 发版前,与本轮无关<br>🔁 **2026-10-21**:C-1 已由 `impl-c1-tutorial-media-keys-2026-10-21.md` 结清;C-4 三半结其二(PlayMode 全量 / IL2CPP 矩阵),**CI 常驻仍开** |
+> | **C-1 / C-4** | ~~⏳ 仍开~~ → **C-1 ✅ 已结 / C-4 ⏳ 仅 CI 常驻仍开** | 归 44 / 13 内容轮 与 CI / 发版前,与本轮无关<br>🔁 **2026-10-21**:C-1 已由 `impl-c1-tutorial-media-keys-2026-10-21.md` 结清;C-4 三半结其二(PlayMode 全量 / IL2CPP 矩阵),**CI 常驻仍开**<br>🔁 **同日回刷**:C-1 的结清判据经实测复核 —— cue 19 行 / teach 4 条 / clipKey 6 条 / wav 41 个,`CueIdTableReady` 与 `ClipKeyTableReady` 双 true。⚠️ 13 侧片段**资产本体**仍未做(本条件结清的是键表) |
 >
 > ⚠️ **C-3 / C-2 的结清都不改变 verdict** —— verdict 拉档的直接原因现为 **C-1**(见上句),
 > C-3 是记账、C-2 是证据强度。**APPROVED WITH CONDITIONS 维持不变。**
+>
+> 🔁 **2026-10-21 回刷:C-1 亦已结清** —— `impl-c1-tutorial-media-keys-2026-10-21.md`。
+> 判据(实测,非自述):`audio_events.json` **19 行**(含 4 条 `Narration_Teach*_01`)·
+> `48_demonstration_clips.json` **6 条 clipKey** · `unity/Assets/Audio/` **41 wav**(含 4 条 TTS 真语声)
+> ⇒ `CueIdTableReady` / `ClipKeyTableReady` **双 true**。
+>
+> ⚠️ **本条不构成 verdict 改判** —— 本件是**签核时点**的判定件,当时的 C-1 确为 PARTIAL,
+> 拉一档是**对当时事实的正确判读**。C-1 事后结清只说明**条件已满足**,不追认也不推翻原 verdict。
+> 若要把 verdict 改为纯 APPROVED,须**另跑一次签核**(评当下),不得在本件上改写 —— 承
+> 「评审不可事后追补」。**本件结论维持 APPROVED WITH CONDITIONS。**
 
 ---
 
@@ -293,6 +303,12 @@ smoke check ✅ · QA sign-off ✅(本件)· 每件附可复算命令与输出 �
 2. ~~**C-3 与 C-2 同批**~~ ✅ **均已完成(2026-10-21)**。
 3. **C-1 归 44 / 13 的内容轮** —— **现为唯一拉档条件**,也是唯一会**持续被误读**的一条
    (六项校验的绿会一直被引作「内容就位」)。**这是下一步唯一必须做的事。**
+   > 🔁 **2026-10-21 已完成** —— `impl-c1-tutorial-media-keys-2026-10-21.md`。
+   > 44 侧:`audio_events.json` 15 → 19 行 + `Assets/Audio/` 37 → 41 wav(4 条 TTS 真语声);
+   > 13 侧:`48_demonstration_clips.json` 6 条 clipKey。生产实现者 = `TutorialMediaKeySource.cs`,
+   > `BakeFromRepo` 默认注入 ⇒ 两个 `*TableReady` 哨兵**双 true**。
+   > ⚠️ **13 侧只落 clipKey 闭集,片段资产本体归 48 实现轮** —— 本条件结清的是**键表**,不是**资产**。
+   > ⚠️ 本条不改变本件 verdict(见 §5 上方加注:不追认、不改写)。
 4. **C-4 归发版前 / CI 常驻轮**,与 ADR-012 的矩阵账一并处理。<br>🔁 **2026-10-21 订正**:三半中 PlayMode 全量(`c4-playmode-full-2026-10-21.md`)与 IL2CPP 三格矩阵(`c4-il2cpp-matrix-2026-10-21.md`)已补跑并落账;**仅 CI 常驻 job 仍开**(缺 `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`)。
 
 ### 6.3 不得据此推进的事

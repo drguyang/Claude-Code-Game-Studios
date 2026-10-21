@@ -210,16 +210,27 @@ baseline:
                             #    条目 98 / Y 88 / **未闭面 73** / epic 分布 13/31 **全部一位不动**。
                             #    ⇒ 现役 = `条目 98 | {open:71, partial:6, closed:20, done:1} | P0 面 {Y:88, N:9} | 未闭面 73`。
                             #    ⚠️ 结案的是**治理面**债,不抵扣任何 P0 面项 —— 「73」不变是**对**的,不是漏刷。
-  editmode_current: "4350 / 4314 / 0 / 36"   # 2026-10-21 16:51 CST · sprint-17 QA 签核轮全量 EditMode · e0ad379+工作树
-                                             # 🔁 原值 "4086 / 4050 / 0 / 36"(2026-10-21 05:08 CST · sprint-16 收口记账轮 · 6855ba7)保留作沿革
+  editmode_current: "4354 / 4318 / 0 / 36"   # 2026-10-21 19:09 CST · C-1 结清后全量 EditMode · 1cd5780+工作树
+                                             # 🔁 **2026-10-21 回刷**:原值 "4350 / 4314 / 0 / 36"(16:51 CST · 签核轮 · e0ad379+工作树)保留作沿革
+                                             #    对签核轮基线 4350/4314/0/36 ⇒ Δtotal=4 Δpassed=4 新增=5 消失=1 同名变结果=0(按 fullname 集合差独立复算)
+                                             #    新增 5 = 4 条 mediaKeySource 测 + 1 条改判后新名(settings_exposure);消失 1 = 改判前旧名。详见 impl-c1 件 §4.1
+                                             #    ⚠️ 另有 c1-full4.xml(19:01)与 regress-1cd5780.xml(19:09)**逐条同名同结果**,两轮互为印证
+                                             # 🔁 更早原值 "4086 / 4050 / 0 / 36"(2026-10-21 05:08 CST · sprint-16 收口记账轮 · 6855ba7)保留作沿革
                                              # 对基线 4347/4311/0/36(s17-6x-full-editmode.xml)⇒ Δtotal=3 Δpassed=3 新增=3 消失=0
-  playmode_current: "197 / 197 / 0 / 0"      # 2026-10-21 00:22 CST · sprint-16 收口轮 · f6cdaaf
+  playmode_current: "202 / 202 / 0 / 0"      # 2026-10-21 19:10 CST · C-4 补跑(全量)· 1cd5780+工作树
+                                             # 🔁 **2026-10-21 回刷**:原值 "197 / 197 / 0 / 0"(2026-10-21 00:22 CST · sprint-16 收口轮 · f6cdaaf)保留作沿革
+                                             #    对基线 197 ⇒ Δtotal=+5 Δpassed=+5 新增=5 消失=0(按 fullname 集合差独立复算);详见 c4-playmode-full 件 §2.1
   # ⚠️ 两值时点不同;EditMode 晚于 PlayMode。跨平台(ADR-012 IL2CPP 三格)仍 NOT-RUN(本机仅 Mono)。<br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。
 
 # ⚠️ 条件清单:本 sprint 规划期为**空**(新 sprint,尚无签核条件)。
 # 🔁 2026-10-21 QA 签核轮填充 —— 签核件 `production/qa/qa-signoff-sprint-17-2026-10-21.md`
 #    Verdict = **APPROVED WITH CONDITIONS**(4 条条件:C-1 / C-2 / C-3 / C-4)。
 conditions_closed:
+  - id: "C-1"
+    what: "S17-3 AC 第 2 条转 covered 的前提:`audio_events.json` 补 `teach_*` 键 + 对应 wav;13 的示范片段表落地"
+    how: "① `assets/data/audio_events.json` 15 → 19 行,新增 4 条 `Narration_Teach{Observe,Judge,Close,Archive}_01`(前缀落进 AC-44-15 的 `Narration_` 族,零新增门代码即纳入字幕覆盖);② 4 条 TTS 真语声落 `unity/Assets/Audio/`;③ 新建 `assets/data/48_demonstration_clips.json`(6 条 clipKey);④ 新 `Editor.Tools.Bake/TutorialMediaKeySource.cs`(`ITutorialMediaKeySource` 的生产实现);⑤ `BakeFromRepo` 默认注入(同 `diseaseNames` 纪律);⑥ `AudioEventTableGates.LibraryUnregisteredExempt` +4(用户裁定,逐项具名);⑦ 两张表重烘"
+    proven: "`CueIdTableReady` / `ClipKeyTableReady` 双 true(经 `BakeFromRepo` **默认注入**路径,非替身);实测 `python3 -c \"...\"` ⇒ cue 19 行 / teach 4 条 / clipKey 6 条 / wav 41 个。全量 EditMode **4354/4318/0/36**(19:09 · `regress-1cd5780.xml`),集合差「新增 5 · 消失 1 · 同名变结果 0」⇒ 零回归"
+    note: "证据原件 = `production/qa/evidence/impl-c1-tutorial-media-keys-2026-10-21.md`。⚠️ 三条边界:① 13 侧**片段资产本体未做** —— 本件只落 clipKey **闭集**(键名 + 语义),表现面归 48 实现轮;② 4 条语声的 Import Settings 定稿仍归 content 批(`OQ-44-2`);③ AC-44-E5 的人耳半边已由走查人 `dr_guyang` 复核(17.49 s 合成试听件),判定强度与其余 15 条相同"
   - id: "C-3"
     what: "`OQ-24-7` 卡面表述订正 + `EPIC.md` 的 24 测加注"
     how: "`story-006` 六处 + `EPIC.md:71` 全部 append-only 加注,原文加删除线保留"
@@ -230,17 +241,28 @@ conditions_closed:
     proven: "`unity/Logs/ca-m3.xml` = **28/27/1**,恰红 `test_clinic_envMod_sumExactlyMax_doesNotThrow`(预登记一致);还原后 `ca-m3-restored.xml` = **28/28/0**;还原 `sha256sum -c /tmp/CME-m3.sha256` 成功(33032f88…)"
     note: "失败原文 = OverflowException: 4611686018427387904 + 4611686018427387903 越出 int64 上界 —— 两数之和恰为 long.MaxValue"
 conditions_open:
-  - id: "C-1"
-    what: "S17-3 AC 第 2 条转 covered 的前提:`audio_events.json` 补 `teach_*` 键 + 对应 wav;13 的示范片段表落地"
-    why_open: "`CueIdTableReady` / `ClipKeyTableReady` 现为 false;`Assets/Audio/` 37 wav 零 `teach_*`"
-    owner: "cue + wav = 系统 44 · 片段表 = 系统 13"
-    gate: "在此之前该条只能写「代码半边已证 / 内容半边 NOT-RUN」,**不得**写成「AC-48 六条全过」"
-    note: "🔁 2026-10-21:C-2 结清后,本条件是 **verdict 拉档的唯一直接原因**"
+  # ── C-1 已于 2026-10-21 结清,本条**整块转为注释**保留原文(原文逐字未删),真源见 conditions_closed 的同 id 条目 ──
+  #    为什么转注释而不是留着:本文件是**机器可读真源**(下游 `/sprint-status` / `/story-done` 直读),
+  #    同一条 id 同时出现在 open 与 closed 两段会让工具读到互相矛盾的结论。
+  #    原文保留方式 = 整块 `#` 化,一字未改。
+  # - id: "C-1"
+  #   what: "S17-3 AC 第 2 条转 covered 的前提:`audio_events.json` 补 `teach_*` 键 + 对应 wav;13 的示范片段表落地"
+  #   why_open: "`CueIdTableReady` / `ClipKeyTableReady` 现为 false;`Assets/Audio/` 37 wav 零 `teach_*`"
+  #   owner: "cue + wav = 系统 44 · 片段表 = 系统 13"
+  #   gate: "在此之前该条只能写「代码半边已证 / 内容半边 NOT-RUN」,**不得**写成「AC-48 六条全过」"
+  #   note: "🔁 2026-10-21:C-2 结清后,本条件是 **verdict 拉档的唯一直接原因**"
+  #   结清判据(实测,非自述):audio_events.json 19 行(含 4 条 Narration_Teach*_01)
+  #     · 48_demonstration_clips.json 6 条 clipKey · unity/Assets/Audio/ 41 wav(含 4 条 TTS 真语声)
+  #   证据原件 = `production/qa/evidence/impl-c1-tutorial-media-keys-2026-10-21.md`
   - id: "C-4"
     what: "PlayMode 全量套件 + IL2CPP 三格矩阵在 M3 前补齐"
     why_open: "本 sprint 只证了「Linux-x64-IL2CPP 下这 5 条通过」;ARM64 目标不存在;PlayMode 全量上一值为 197 条"
     owner: "CI / 发版前"
     gate: "矩阵级,非本 sprint 个体判据"
+    # 🔁 **2026-10-21 回刷:C-4 三半结其二,仅 CI 常驻仍开**
+    #    PlayMode 全量 ✅ 202/202/0/0(`c4-playmode-full-2026-10-21.md`)
+    #    IL2CPP 三格 ✅ 两格已跑 / 第三格 ARM64 不可达(`c4-il2cpp-matrix-2026-10-21.md`)
+    #    CI 常驻 ⛔ 从未跑(缺 UNITY_CLIENT_ID / UNITY_CLIENT_SECRET)⇒ **C-4 整条不结清**
   # sprint-16 的 5 条结清条件全部保存在 `production/sprint-status-sprint16-archive.yaml` 的
   # `conditions_closed`(C-1 / C-3 / TD-gate-03 / 债册 §四 总索引回填 / Ecozone·EmergencyIntegerGates 接 BuildGate)。
 
