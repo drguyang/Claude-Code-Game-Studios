@@ -2308,6 +2308,59 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 
 **用户裁定(2026-10-21)**:**CI 常驻 job 无法完成,登记到项目规划。**
 
+#### 二之补 · 2026-10-21 代码级勘察:本债是**三段**,不是一段
+
+> **立此补的缘由**:上方 §二 把整件事钉成「EXTERNAL · 无法完成」,**混淆了两件不同因的事**
+> —— ① workflow 自身的**结构缺陷**(agent 侧可修)与 ② **凭证缺口**(用户侧)。
+> 若不拆,下一轮会把 ① 也当外部件,而它其实是「配了凭证也跑不起来」的原因。
+> **§二 原文不删**(它记的是定性那一刻的依据),本补**只增不改**。
+
+| 段 | 内容 | 谁能做 | 2026-10-21 状态 |
+|---|---|---|---|
+| **A** | workflow 结构缺陷修复 | **agent** | ❌ 未做 —— 用户裁定「**不做,登记**」 |
+| **B** | Unity 服务账号凭证 | **只有用户** | ❌ 未申请 |
+| **C** | 首次 `workflow_dispatch` 验证 | 依赖 B | ❌ 未跑 |
+
+⇒ **`EXTERNAL` 只对 B / C 成立**。A 段是 agent 侧的活,性质是「**可修但裁定不做**」,
+**不是**「agent 侧无法解除」。本债的 `open` 结论不变,变的是**归因**。
+
+**A 段实测出的六个硬缺陷**(全部 `file:line` 可复算,文件 = `.github/workflows/unity-tests.yml`):
+
+| # | 缺陷 | 落点 | 后果 |
+|---|---|---|---|
+| ① | `if: env.UNITY_CLIENT_ID != ''` **恒假** —— `UNITY_CLIENT_ID` 只写在 `Unity CI Login` **这一个 step 的 `env:`** 里(`:30-32` / `:67-69` / `:122-124`),而 `if` 出现在**后续 step**(`:41` / `:78` / `:136` / `:143` / `:152`)。GitHub Actions 的 `env:` 是 **step 级作用域,不跨 step 继承** | 同上 | **即使配好 secret,五个干活 step 仍全部 skip** |
+| ② | `ubuntu-latest` 上**没有 `unity` CLI**(本机装的是 `1.0.0-beta.8`,非 runner 预装),且两 job **无安装步** | `:43` / `:80` | 现状(无 secret)走 `exit 0` ⇒ **绿但零执行**;**配上 secret 后 Login 真跑 ⇒ command not found ⇒ job 红** |
+| ③ | `executeMethod` 类名带 namespace,而目标类**无 `namespace`** ⇒ 全限定名应为 `Ac29Il2CppSwitch.SetIl2cpp`(桌面轮实证 `production/qa/evidence/c4-il2cpp-matrix-2026-10-21.md:115`) | `:139` 写 `DaYiJingCheng.EditorTools.Spike.Ac29Il2CppSwitch.SetIl2cpp` | 一执行即「找不到方法」 |
+| ④ | **登录两套体系混用**:EditMode/PlayMode 走 `unity auth login --client-id/--client-secret`(服务账号),IL2CPP 走 `unity-editor -username/-password`(旧式账号密码),且把**服务账号的 Key ID 当用户名**塞进去 | `:131-132` | 两套凭证不通,IL2CPP job 登录必失败 |
+| ⑤ | **对拍步三处互不匹配** —— 详见下方子表 | `:157` / `:163` | 该步**结构上不可能通过** |
+| ⑥ | `if-no-files-found: warn` —— 产物没产出时只 warn 不失败 | `:174` | 与「禁假绿」直接冲突 |
+
+**⑤ 的逐项实测**:
+
+| 行 | workflow 写的 | 实测 |
+|---|---|---|
+| `:157` | 期望产物 `il2cpp-hashes.txt` | 测试实际落盘 **`ac29-computed.txt`**(`unity/Assets/Tests/PlayMode/determinism_golden_crossplatform_test.cs:228-230`,可由 `AC29_OUT` 改);**全库零处**写 `il2cpp-hashes.txt` |
+| `:163` | `python3 tests/golden/medcons/golden_v1_reference.py --check <file>` | 该脚本**没有 `--check` 参数**,无 `sys.argv` 解析;`main()` 写死输出 `golden-v1.txt` |
+| `:163` | 指向 `tests/golden/medcons/golden-v1.txt` | 该文件 **32 行**(`A01…C01` + `B01…B18`);测试要的 **19 条**在 **`tests/unit/item_database/golden/golden-v1.txt`**(`GoldenFileName` 常量 + `:240` 的路径解析) |
+| (缺) | 未注入 `AC29_OUT` / `AC29_GOLDEN`(workflow 里仅在注释 `:159` 出现过一次) | player 侧金标准不可达 ⇒ 测试走 `Assert.Ignore`(`:289-294`),**什么都没断言** |
+
+> ⚠️ **NOT-RUN(如实登记,不写成缺陷)**:`-runTests -testPlatform StandaloneLinux64`
+> 能否「构建 + 运行 player 一步完成」,**本机未验证**。桌面轮走的是 `unity run` + 单独 build。
+> 这一条**不得**据推断写成「可行」或「不可行」。
+
+**A 段若要修,六步**(2026-10-21 已勘察出,但**用户裁定不做**):
+
+1. `env:` 提到 **job 级**(与 `runs-on` 同级),或把五个 `if` 改成 `if: ${{ secrets.UNITY_CLIENT_ID != '' }}`
+2. 三个 job 统一走 `unity auth login --client-id/--client-secret`,删 `:131-132` 的 `-username/-password`
+3. `executeMethod` 改为 `Ac29Il2CppSwitch.SetIl2cpp`
+4. EditMode / PlayMode 两 job 补 CLI 安装步,**或**统一改走 `unityci/editor` 容器(与 IL2CPP job 同路径)
+5. 重写对拍步:注入 `AC29_OUT=$PWD/ac29-computed.txt` + `AC29_GOLDEN=$PWD/tests/unit/item_database/golden/golden-v1.txt`;比对改用外部 diff(照抄 `c4-il2cpp-matrix-2026-10-21.md:123` 的 `diff <(grep -v '^#' … | sort)`),**删掉不存在的 `--check`**
+6. `if-no-files-found: error`
+
+**用户裁定(2026-10-21,晚于上述勘察)**:**不做,规划中登记。**
+⇒ A 段**保持现状**(缺陷仍在盘上),本债 `open` 不变。⚠️ **不得**把本节读成「A 段已修」或
+「A 段不可修」—— 它**可修、未修**。
+
 ### 三、卡住的判据(点名)
 
 | 判据 | 状态 | 说明 |
@@ -2338,13 +2391,21 @@ Linux-ARM64-IL2CPP  不可达            (pinned 工具链零 arm 目标,2026-10
 ⚠️ **复活时应作为一次性的基础设施动作恢复,不得塞进某个 sprint 的 Must Have** ——
 它不是 backlog,是 EXTERNAL。
 
+> 🔁 **2026-10-21 补(承 §二之补)**:上句的「**唯一**」**只对凭证这一环成立**。
+> 由 §二之补 的勘察,复活实际是**两段**:
+> ① **A 段**(workflow 结构缺陷)可修、**未修**;
+> ② **B 段**(凭证)须用户提供;
+> ③ **C 段**(`workflow_dispatch`)依赖 ②。
+> ⇒ **只配凭证而不修 A 段,`workflow_dispatch` 不会成功** —— 五个干活 step 的 `if` 恒假。
+> 本节标题的「(唯一)」**原文保留不改**(它记的是立债时的判据),但**读法须按本补**。
+
 ### 六、与 `TD-testasm-01` 的区别(防混读)
 
 | | `TD-testasm-01` | `TD-ci-01` |
 |---|---|---|
-| 性质 | **代码缺陷**(PlayMode 测试裸用 `UnityEditor`) | **基础设施缺口**(无 CI 凭证) |
+| 性质 | **代码缺陷**(PlayMode 测试裸用 `UnityEditor`) | **基础设施缺口**(无 CI 凭证)+ **workflow 结构缺陷**(见 §二之补) |
 | 状态 | ✅ `closed`(2026-10-21) | **open** |
-| 解除者 | agent(已解除) | **用户**(提供凭证) |
+| 解除者 | agent(已解除) | **用户**(提供凭证)<br>🔁 **2026-10-21 补**:实为**两段** —— A 段 workflow 结构缺陷(agent **可修,裁定不做**)· B 段凭证(用户) |
 | 桌面轮能否补 | ✅ 已补(IL2CPP 腿真跑通 5/5) | ❌ **不能** —— 桌面跑通 ≠ CI 常驻 |
 
 ⇒ **不得**因 `TD-testasm-01` 已 closed 而推断本债也已解决。两者只是同批被发现。

@@ -652,7 +652,7 @@ processing/story-001  ◄──────── processing/story-003  ("Story 
 
 | 半 | 状态 | 性质 | 解除者 |
 |---|---|---|---|
-| **E-2a · CI 常驻 job** | ⛔ **无法完成(用户裁定 2026-10-21)** | **凭证缺口**,不是工作量缺口 | 见下 §4.5.1 |
+| **E-2a · CI 常驻 job** | ⛔ **无法完成(用户裁定 2026-10-21)**<br>🔁 **2026-10-21 补**:本项实为**三段**(A workflow 结构缺陷 / B 凭证 / C 首跑),`EXTERNAL` 只覆盖 **B / C**;A 段 **agent 可修但裁定不做** ⇒ 见 §4.5.1 补 | **凭证缺口**,不是工作量缺口<br>🔁 **补**:归因拆两半 —— A 段是**结构缺陷**、B 段是**凭证缺口** | 见下 §4.5.1 |
 | **E-2b · ARM64 格** | ⛔ **结构性不可达**(2026-10-17 已裁) | **裁决缺口** | 见上「E-2 的独立结论」 |
 | **E-2c · `tests/golden/` 覆盖窄** | ⚠️ 仍开 | 工作量缺口 | 对应 epic 落地时补 |
 
@@ -692,6 +692,57 @@ processing/story-001  ◄──────── processing/story-003  ("Story 
 
 **复活条件(唯一)**:用户提供 `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET` 并完成一次成功的
 `workflow_dispatch` 运行。在此之前**本节结论不变**,任何下游件不得写「CI 常驻已就绪」。
+
+---
+
+###### 4.5.1 补:2026-10-21 代码级勘察 —— 本项是**三段**,`EXTERNAL` 只覆盖两段
+
+> **立此补的缘由**:上方把整件事钉成「EXTERNAL · 无法完成」,**混淆了不同因的两件事**
+> —— ① workflow 自身的**结构缺陷**(agent 侧可修)与 ② **凭证缺口**(用户侧)。
+> 上方原文**全部保留不删**(它记的是定性那一刻的依据),本补**只增不改**。
+
+| 段 | 内容 | 谁能做 | 状态(2026-10-21) |
+|---|---|---|---|
+| **A** | workflow 结构缺陷修复 | **agent** | ❌ 未做 —— 用户裁定「**不做,登记**」 |
+| **B** | Unity 服务账号凭证 | **只有用户** | ❌ 未申请 |
+| **C** | 首次 `workflow_dispatch` 验证 | 依赖 B | ❌ 未跑 |
+
+⇒ **`EXTERNAL` 只对 B / C 成立**。A 段性质是「**可修但裁定不做**」,
+**不是**「agent 侧无法解除」。**本项的结论不变,变的是归因。**
+
+**A 段实测出的六个硬缺陷**(全部 `file:line` 可复算;文件 = `.github/workflows/unity-tests.yml`):
+
+| # | 缺陷 | 落点 | 后果 |
+|---|---|---|---|
+| ① | `if: env.UNITY_CLIENT_ID != ''` **恒假** —— 该变量只写在 `Unity CI Login` **这一个 step 的 `env:`** 里(`:30-32` / `:67-69` / `:122-124`),`if` 却在**后续 step**(`:41` / `:78` / `:136` / `:143` / `:152`)。Actions 的 `env:` 是 **step 级作用域,不跨 step 继承** | 同上 | **配好 secret 也没用** —— 五个干活 step 仍全部 skip |
+| ② | `ubuntu-latest` 上**没有 `unity` CLI**(本机为 `1.0.0-beta.8`,非 runner 预装),两 job **无安装步** | `:43` / `:80` | 现状走 `exit 0` ⇒ **绿但零执行**;配 secret 后 ⇒ **command not found ⇒ 红** |
+| ③ | `executeMethod` 类名带 namespace,目标类**无 `namespace`** ⇒ 应为 `Ac29Il2CppSwitch.SetIl2cpp`(桌面轮实证 `c4-il2cpp-matrix-2026-10-21.md:115`) | `:139` | 一执行即「找不到方法」 |
+| ④ | **登录两套体系混用**:两 job 走 `unity auth login --client-id/--client-secret`,IL2CPP 走 `unity-editor -username/-password`,把**服务账号 Key ID 当用户名** | `:131-132` | 凭证不通,IL2CPP job 登录必失败 |
+| ⑤ | **对拍步三处互不匹配** —— 见下子表 | `:157` / `:163` | 该步**结构上不可能通过** |
+| ⑥ | `if-no-files-found: warn` | `:174` | 产物缺失只 warn 不失败,与「禁假绿」冲突 |
+
+**⑤ 逐项实测**:
+
+| 行 | 写的 | 实测 |
+|---|---|---|
+| `:157` | 期望 `il2cpp-hashes.txt` | 测试实际落盘 **`ac29-computed.txt`**(`unity/Assets/Tests/PlayMode/determinism_golden_crossplatform_test.cs:228-230`,可由 `AC29_OUT` 改);**全库零处**写 `il2cpp-hashes.txt` |
+| `:163` | `golden_v1_reference.py --check <file>` | 该脚本**无 `--check` 参数**,无 `sys.argv` 解析,`main()` 写死 `golden-v1.txt` |
+| `:163` | 指向 `tests/golden/medcons/golden-v1.txt` | 该文件 **32 行**;测试要的 **19 条**在 **`tests/unit/item_database/golden/golden-v1.txt`** |
+| (缺) | 未注入 `AC29_OUT` / `AC29_GOLDEN` | player 侧金标准不可达 ⇒ 测试走 `Assert.Ignore`(`:289-294`),**什么都没断言** |
+
+> ⚠️ **NOT-RUN(如实登记)**:`-runTests -testPlatform StandaloneLinux64` 能否
+> 「构建 + 运行 player 一步完成」,**本机未验证**。桌面轮走的是 `unity run` + 单独 build。
+> 不得据推断写成「可行」或「不可行」。
+
+**A 段若要修,六步**(已勘察出):① `env:` 提到 job 级 / 或 `if` 改读 `secrets`;
+② 三 job 统一 `unity auth login`,删 `:131-132`;③ `executeMethod` 改 `Ac29Il2CppSwitch.SetIl2cpp`;
+④ 两 job 补 CLI 安装步或统一走 `unityci/editor` 容器;⑤ 对拍步注入 `AC29_OUT` / `AC29_GOLDEN`
+并改用外部 diff(照抄 `c4-il2cpp-matrix-2026-10-21.md:123`),删 `--check`;
+⑥ `if-no-files-found: error`。
+
+**用户裁定(2026-10-21,晚于上述勘察)**:**不做,规划中登记。**
+⇒ A 段**保持现状**(缺陷仍在盘上),本项 `EXTERNAL` 结论不变。
+⚠️ **不得**把本节读成「A 段已修」或「A 段不可修」—— 它**可修、未修**。
 
 **同批落点**:
 
