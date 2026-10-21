@@ -3145,3 +3145,34 @@ constants:
 #     unit: slots
 #     added: 2026-03-26
 #     revised: ""
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # 【Kind 追加区】新 Kind 一律追加到本文件末尾(零行号漂移,承 ADR-024 §① 追加纪律)
+  #   插入到中间会让下方全部 entities.yaml:NNN 引用静默错位 ——
+  #   2026-10-21 实测:一次性插入 26 行冲偏 20 处引用。
+  # ═══════════════════════════════════════════════════════════════════════
+  # ── 9 疾病与伤情模拟 · 病程终态 Kind(ADR-032 · 2026-10-21 用户裁定方案 A)──────
+  # 缺口:7a 的 Folded(p) 条件 ①「终态」(persistence-service.md:316)此前**零事件载体**
+  #   —— 病史流 14 支 Kind 无一表示痊愈 / 死亡 ⇒ 条件 ① 输入恒为空 ⇒ 折叠永不发生。
+  #   旁证:本文件 :2281/2282(InjuryStateChanged 的 payload_schema / constraint 注)自称「病人侧由 9 的病史流
+  #   既有 Kind 承载」,而那个 Kind **当时不存在** —— 本条使其成立。
+  # 被否:Alt 2 升格 threshold_transition(registry 结构冲突 + 有界性从 ≤2 变 ≤9)·
+  #   Alt 3 读快照(循环依赖 + 违反 ADR-016 §一 三源不变量)·
+  #   Alt 4 只发死亡(AC-36 两态并列;痊愈重放需完整 position 历史 = 与折叠目的矛盾)·
+  #   Alt 5 复用 InjuryStateChanged(世界流永不折叠,与目的相反)。
+  - name: SimEvent.Kind.PatientOutcomeChanged
+    status: active
+    source: design/gdd/disease-simulation.md   # AC-36 :1924 终态折叠(命名首现归 ADR-032)
+    referenced_by:
+      - design/gdd/disease-simulation.md     # 9:AC-36 终态折叠 · 规则六边界表「终态折叠」· F4 九态吸收态
+      - design/gdd/persistence-service.md    # 7a:F-7a-4 :316 条件 ①(终态)· :161 折叠行 outcome / t_end 两列
+      - docs/architecture/adr-032-patient-outcome-kind.md   # 本件(命名 / 流别 / 写者 / 载荷 / 有界性)
+      - docs/architecture/adr-008-case-event-stream.md      # §六 有界性扩展注记(扩写不重写)
+      - docs/architecture/adr-005-deterministic-sim.md      # 病史流唯一真源 · 主机唯一 Append
+    unit: kind
+    stream: history
+    author: "9 疾病与伤情(终态判定方 = F4 九态求值方 = Step 执行方 = 主机,ADR-005;内容归属与 Append 调用者重合 —— 与 DiseaseOnset 同格)"
+    payload_schema: "patient_id: i32(IIdAuthority 机制 A;折叠行 patient_id 必留)· disease_id: i32(取得 position_agg 的那个 d,argmax;并列取 DiseaseId 最小者 —— disease-simulation.md:1120 补注)· outcome: i32(PatientOutcome 枚举:Recovered=1 / Died=2;Unspecified=0 是漏填哨兵,解码 mask 校验拒收)· seq: i64(主机 Append 时分配,ADR-006 Amendment A/C)。**t_end 不进载荷** —— 它就是事件头部的 Tick(判出终态的那一 tick 写出),入载荷 = 同一量的第二处存储(第二真源,ADR-016 §一 同型病)。上界 ≤ Σ_p |D_p|(每病人每病种至多一条:终态是 F4 九态的吸收态,不可逆)"
+    constraint: "落**病史流**(病人侧;与 DiseaseOnset / InjuryOnset / CareApplied 同流 —— 9 的主场,可随终态折叠)。**写者 = 9**(终态判定方 = F4 九态求值方 = Step 执行方 = 主机;ADR-005 主机唯一 Append)。**`t_end` 不进载荷** —— 折叠行的 `t_end` 取事件头部 `Tick`。**`disease_id` 必带** —— F4 的 `d` = argmax(:1120 补注),终态是**逐病种**的结论,不是病人级读法。⚠️ **原子性义务(硬)**:9 须在**判出终态的那一 tick** 写出本事件;漏写 ⇒ 「流里有终态」与「F4 重放说终态」漂移 ⇒ 该病人**永不折叠**,且无机械门可扫(唯一反查判据 = 「Folded(p)=false 而 F4 重放为终态」)。有界性 = 每病人每病种至多一条(吸收态),`Σ_p |D_p| ≤ PATIENT_APPEARANCE_CAP × |D_max|`,**与 tick 频率无关**(扩展 ADR-008 §六,不重写)"
+    added: 2026-10-21
+    revised: ""

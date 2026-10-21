@@ -45,6 +45,58 @@ namespace DaYiJingCheng.Sim.Contracts
         }
     }
 
+    /// <summary>
+    /// 病程终态枚举(ADR-032 ②)。<b><c>Unspecified = 0</c> 是漏填哨兵,不是合法终态</b>。
+    /// <para><b>零值方向为何必须留哨兵</b>:终态是 7a 折叠谓词 <c>Folded(p)</c> 的条件 ①
+    /// (<c>persistence-service.md:316</c>)。若漏填默认落成 <c>Recovered</c>,
+    /// 则死亡病人被**静默**标成痊愈 —— 折叠行 <c>outcome</c> 从此撒谎,而折叠**不可逆**
+    /// (病史行已删)。故 0 必须是「未声明」,并由解码 mask 校验拒收。</para>
+    /// </summary>
+    public enum PatientOutcome : int
+    {
+        /// <summary>未声明 —— <b>不是合法终态</b>;解码期拒收。</summary>
+        Unspecified = 0,
+
+        /// <summary>痊愈(F4 痊愈支)。</summary>
+        Recovered = 1,
+
+        /// <summary>死亡(F4 死亡支)。</summary>
+        Died = 2,
+    }
+
+    /// <summary>
+    /// 病程终态(ADR-032 · 写者 = 9)—— 病人「痊愈 / 死亡」的**唯一事件载体**。
+    /// <para><b>为什么需要它</b>:7a 的 <c>Folded(p)</c> 条件 ①「终态」
+    /// (<c>persistence-service.md:316</c>)此前**零事件载体** —— 病史流 14 支 Kind 无一表示终态
+    /// ⇒ 条件 ① 输入恒为空 ⇒ 折叠永不发生。本事件使其可从**流前缀**查询(存在性),
+    /// **不需重放 F4**。</para>
+    /// <para><b>⚠️ <c>t_end</c> 不在载荷里</b> —— 它就是事件头部的 <see cref="SimEvent.Tick"/>
+    /// (判出终态的那一 tick 写出)。入载荷 = 同一量的第二处存储(第二真源,ADR-016 §一 同型病)。
+    /// 折叠行 <c>t_end</c> 取 <c>event.Tick</c>。</para>
+    /// <para><b>⚠️ <c>DiseaseId</c> 必带</b> —— F4 的 <c>d</c> 是 argmax
+    /// (<c>disease-simulation.md:1120</c> 补注:取得 <c>position_agg</c> 的那个 <c>d</c>,
+    /// 并列取 <c>DiseaseId</c> 最小者)⇒ 终态是**逐病种**的结论,不是「病人死于某个病」的病人级读法。
+    /// 折叠行 <c>病种_id</c> 由此填。</para>
+    /// <para><b>有界性</b>:终态在 F4 九态里是**吸收态**(痊愈 / 死亡无出边)⇒ 每病人每病种至多写一次
+    /// ⇒ 上界 <c>Σ_p |D_p| ≤ PATIENT_APPEARANCE_CAP × |D_max|</c>,与 tick 频率无关
+    /// (扩 ADR-008 §六,不重写)。</para>
+    /// <para><b>⚠️ 原子性义务</b>:9 须在**判出终态的那一 tick**写出本事件。漏写 ⇒
+    /// 「流里有终态」与「F4 重放说终态」漂移 ⇒ 该病人永不折叠,且无机械门可扫
+    /// (唯一反查判据 = 「<c>Folded(p)=false</c> 而 F4 重放为终态」)。</para>
+    /// </summary>
+    public readonly struct PatientOutcomeChangedPayload
+    {
+        public readonly int PatientId;   // IIdAuthority 机制 A(折叠行 patient_id 必留)
+        public readonly int DiseaseId;   // argmax d(disease-simulation.md:1120)
+        public readonly int Outcome;     // PatientOutcome 枚举值(0 = 漏填哨兵,解码拒收)
+        public readonly long Seq;        // 主机 Append 时分配(ADR-006 Amendment A/C)
+
+        public PatientOutcomeChangedPayload(int patientId, int diseaseId, int outcome, long seq)
+        {
+            PatientId = patientId; DiseaseId = diseaseId; Outcome = outcome; Seq = seq;
+        }
+    }
+
     /// <summary>9(ADR-009 §三 骨架)。触发即落 —— 条件首次满足时写(给 F3 闭式求值一个锚点)。
     /// 触发次数 ≤ compound_max_triggers(每病人每规则)。</summary>
     public readonly struct CompoundTriggeredPayload

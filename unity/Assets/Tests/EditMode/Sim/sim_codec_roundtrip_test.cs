@@ -1,7 +1,7 @@
 // tests/EditMode/Sim/sim_codec_roundtrip_test.cs
 //
 // R-1(U0-b 残留)的可执行验收面。覆盖:
-//   1. 35 支载荷 Encode→Decode 逐字段往返(病史 14 / 病例 5 / 世界 16);
+//   1. 36 支载荷 Encode→Decode 逐字段往返(病史 15 / 病例 5 / 世界 16;2026-10-22 ADR-032 起 35→36);
 //   2. SimEvent 头(G-1 权威序)+ **乱序容忍**(field-name 编码判据 —— 重排不改可解码性);
 //   3. 严格性:未知 tag / 重复 tag / 缺字段 / 跨字段约束(EmergencyAttempt · Craft);
 //   4. blob 池访问签名(拍板点 0-2):命中 / 未命中 / 越界;

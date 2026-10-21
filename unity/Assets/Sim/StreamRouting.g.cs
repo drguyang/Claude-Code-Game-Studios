@@ -10,7 +10,7 @@
 //   `throw new BuildContractException(kind)` 的该类型全案无定义件可依,
 //   以 InvalidOperationException 承位;若后续 ADR 具名该异常,替换属机械改。
 //
-// 生成参数: 14 history / 5 case / 16 world = 35 支
+// 生成参数: 15 history / 5 case / 16 world = 36 支
 // ─────────────────────────────────────────────────────────────────────────────
 
 using DaYiJingCheng.Sim.Contracts;
@@ -33,6 +33,7 @@ namespace DaYiJingCheng.Sim
             EventKind.EventRolled => StreamId.History,
             EventKind.HistoryFlagChanged => StreamId.History,
             EventKind.InjuryOnset => StreamId.History,
+            EventKind.PatientOutcomeChanged => StreamId.History,
             EventKind.SkillGrown => StreamId.History,
             EventKind.ThreatDeferralCleared => StreamId.History,
             EventKind.ThreatDeferred => StreamId.History,

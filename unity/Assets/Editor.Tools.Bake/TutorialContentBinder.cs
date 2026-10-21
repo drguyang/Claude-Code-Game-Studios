@@ -4,7 +4,7 @@
 // 权威来源:
 //   GDD design/gdd/tutorial-and-onboarding.md §规则八(六项校验逐条)
 //   ADR-014 §三(阶段 2:已知键白名单 · 聚合 throw · 禁数值经 double 中转)
-//   ADR-024 §①(predicateKind 白名单真源 = registry 的 35 支 Kind)
+//   ADR-024 §①(predicateKind 白名单真源 = registry 的 36 支 Kind;2026-10-22 ADR-032 起 35→36)
 //   ADR-010 §六(archive 步 `Checkpoint` 例外)
 //   docs/architecture/control-manifest.md:571-590(Cross-Cutting 之八 —— 本次实现的主要落点)
 //

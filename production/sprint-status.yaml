@@ -135,10 +135,14 @@ open_items:
 
   - id: "PRE-S18-C"
     item: "`Folded` 条件 ① 终态无事件载体 —— 病人痊愈 / 死亡在病史流里没有 Kind"
-    status: "⛔ 阻塞 S18-2 的四条件实现(条件 ① 输入恒为空)"
+    status: "✅ 已裁 2026-10-21(方案 A)· 已落盘"
     evidence: "病史流 14 个 Kind 实测枚举:`CareApplied` / `CompoundTriggered` / `CompoundExpired` / `InjuryOnset` / `EmergencyAttempt` / `EmergencyTreatmentApplied` / `DrugTreatmentApplied` / `DiseaseOnset` / `EventRolled` / `EventArrived` / `ThreatDeferred` / `ThreatDeferralCleared` / `HistoryFlagChanged` / `SkillGrown` —— **零个是终态标记**"
-    detail: "最接近的 `InjuryStateChanged` 是 **`stream: world`**(`entities.yaml:2279`),且其 `author` 注 `:2280` 明写「病人侧由 9 的病史流**既有 Kind** 承载」—— **那个「既有 Kind」不存在**。`persistence-service.md:320` 把 `终态(p)` 归 9 的 AC-36,而 AC-36(`disease-simulation.md:1924`)只说「终态(痊愈/死亡)可折叠」,**不给事件载体** ⇒ 终态**不可从流重算**,与 ADR-016 §一「决策可从三源重建」的前提冲突。须裁:立新病史流 Kind / 复用既有 / 改折叠读侧"
+    detail: "最接近的 `InjuryStateChanged` 是 **`stream: world`**(`entities.yaml:2279`),且其 `payload_schema:2281` / `constraint:2282` 明写「病人侧由 9 的病史流**既有 Kind** 承载」—— **那个「既有 Kind」不存在**。`persistence-service.md:320` 把 `终态(p)` 归 9 的 AC-36,而 AC-36(`disease-simulation.md:1924`)只说「终态(痊愈/死亡)可折叠」,**不给事件载体** ⇒ 终态**不可从流重算**,与 ADR-016 §一「决策可从三源重建」的前提冲突。须裁:立新病史流 Kind / 复用既有 / 改折叠读侧"
     owner: "用户(裁定)+ 9 的 GDD 轮 + ADR-024 registry 增列"
+    ruling: "**方案 A —— 立新病史流 Kind `PatientOutcomeChanged`**(用户 2026-10-21 裁定)。权威件 = `docs/architecture/adr-032-patient-outcome-kind.md`。载荷 `(patient_id, disease_id, outcome, seq)`,`outcome ∈ {Recovered=1, Died=2}`(0 = 漏填哨兵,解码期拒收),写者 = 9,落病史流。**`t_end` 不进载荷** —— 它就是事件头部的 `Tick`(ADR-032 ④a)。**`disease_id` 必带** —— F4 的 `d` = argmax(`disease-simulation.md:1120`),终态是逐病种结论(④b)。有界性 = 每病人每病种至多一条(终态是吸收态),扩 ADR-008 §六 不重写(⑤)。条件 ① 消费口径 = **存在性查询**,不重放 F4(⑥)"
+    landed: "2026-10-21 —— ADR-032 新建 · entities.yaml 增列 · EventKind.cs 35→36 · PatientOutcomeChangedPayload + PatientOutcome 枚举 · PayloadCodec(.History) 编解码 · PayloadEncoder 分派 · kindgen 重跑(A1–A5 全过,产物 diff 仅两行)· WriterExistenceGate 豁免表挂债 · drug_event_test 闭集哨兵 35→36 · 新增 patient_outcome_kind_test(13 测)"
+    residual: "**9 的终态写者未落**(`WriterExistenceGate` 已具名挂债)—— 9 须在 F4 判出终态的那一 tick **原子写出**;漏写 ⇒ 该病人永不折叠,且**无机械门可扫**(唯一反查判据 = 「`Folded(p)=false` 而 F4 重放为终态」)。另:`|D_max|`(有界性第二因子)归 9 的 GDD;`Folded(p)` 本体归 S18-2"
+    rejected: "Alt 1 立两个 Kind(零独立信息)· Alt 2 升格 `threshold_transition`(registry 结构冲突 + 有界性 ≤2→≤9)· Alt 3 读快照(循环依赖 + 违反 ADR-016 §一 三源不变量)· Alt 4 只发死亡(AC-36 两态并列 + 痊愈重放与折叠目的矛盾)· Alt 5 复用 `InjuryStateChanged`(世界流永不折叠)"
 
   - id: "PRE-S18-D"
     item: "`SelfLimited` / `LethalFor` 的 `lethal` 形参类型未统一"

@@ -56,10 +56,10 @@
 *(账本路径 `tests/unit/disease-simulation/` 并列登记;同目录既有 `state_machine_death_test.cs` 为改前基线)*
 
 **规范依据**:
-- `design/gdd/disease-simulation.md:1135-1140` —— `LethalFor(entity,d) = lethal(d) ∧ ¬IsCombatant(entity)`
-- `design/gdd/disease-simulation.md:1141-1149` —— `SelfLimited(entity,d) = self_limit(d) ∧ ¬IsCombatant(entity)`,**与 `LethalFor` 正交**
-- `design/gdd/disease-simulation.md:1151-1160` —— **`IsCombatant` 真值表**(敌人/兽 `true`;玩家/13 病人/友方 NPC `false`)
-- `design/gdd/disease-simulation.md:571` / `:574` / `:1084` / `:1087` —— F4 死亡支 = `LethalFor ∧ ¬SelfLimited ∧ 越阈 ∧ 窗口过`
+- `design/gdd/disease-simulation.md:1153-1160` —— `LethalFor(entity,d) = lethal(d) ∧ ¬IsCombatant(entity)`
+- `design/gdd/disease-simulation.md:1162-1210` —— `SelfLimited(entity,d) = self_limit(d) ∧ ¬IsCombatant(entity)`,**与 `LethalFor` 正交**
+- `design/gdd/disease-simulation.md:1212-1230` —— **`IsCombatant` 真值表**(敌人/兽 `true`;玩家/13 病人/友方 NPC `false`)
+- `design/gdd/disease-simulation.md:571` / `:574` / `:1084` / `:1084-1089` —— F4 死亡支 = `LethalFor ∧ ¬SelfLimited ∧ 越阈 ∧ 窗口过`
 - `design/gdd/death-and-respawn.md:88-108` —— **规则二**:破例 `kind = Player ∧ d.kind = injury ∧ d ∈ 战伤白名单` ⇒ `SelfLimited` 返回 `false`
 - `design/gdd/disease-simulation.md:358` —— **规则九**:`kind: injury` 字段照填,**实现里多一个 `if kind == injury` 违反规则九**
 - `design/gdd/disease-simulation.md:285` —— `kind ∈ {injury, disease, poison}`(**当前 `DiseaseRegistryEntry` 无此字段**)
@@ -69,7 +69,7 @@
 | # | 测什么 | 依据 | 判别力要求 |
 |---|---|---|---|
 | 1 | **同病种、同 `self_limit` 值,`Player` 与 `NPC` 判死不同** —— 本件**最核心**的一条 | `death-and-respawn.md:96` | ⚠️ **夹具必须让两种实体的其它入参完全相同**,否则「结果不同」可能是别的变量造成的 ⇒ 假绿 |
-| 2 | `IsCombatant`:敌人/兽 = `true` ⇒ `LethalFor` 恒 `false` ⇒ **归零走昏迷支,不走死亡支** | `:1151-1160` · ADR-016 §二 | 需一条**反例**:同一 `lethal=true` 的病种对 NPC 判死**成立** |
+| 2 | `IsCombatant`:敌人/兽 = `true` ⇒ `LethalFor` 恒 `false` ⇒ **归零走昏迷支,不走死亡支** | `:1212-1230` · ADR-016 §二 | 需一条**反例**:同一 `lethal=true` 的病种对 NPC 判死**成立** |
 | 3 | **正交性**:`LethalFor` 与 `SelfLimited` 互不蕴含 —— 四个组合(真/真、真/假、假/真、假/假)各一测 | `:1143-1146` | 只测两个组合 = 无法排除「实现成一个谓词」 |
 | 4 | **破例只在三条件合取时成立**:`kind=Player` ∧ `d.kind=injury` ∧ `d ∈ 白名单` —— 三条各做一个**否例**(去掉任一条件 ⇒ 破例不成立) | `death-and-respawn.md:96` | 三个否例**逐条**必须转红,不能只测一个 |
 | 5 | **零涟漪**:不改任何既有条目的 `self_limit` 数据值 ⇒ 13 / 52 / 10 的既有行为不变 | `:96` 第二点 | 用**改前基线**(`state_machine_death_test.cs` 既有断言)对照,不是自造期望 |
@@ -93,6 +93,9 @@
 > ⚠️ **但两条连带后果须在实施期解决,不得当已结**(本裁打开、未关闭):
 > ① **破例同时关闭玩家的昏迷支** —— F4 昏迷支(`disease-simulation.md:1088`)读 `SelfLimited`,
 >    破例返回 `false` 后玩家从「归零 = 昏迷」变为**跳过昏迷直奔死亡**;`position ∈ [COMA, DEATH)` 时停在危殆不下场。
+>    🔁 **2026-10-22 订正** —— 该后果**已由 GDD 同日第二轮订正消解**:昏迷支现在**无谓词门**
+>    (`disease-simulation.md:1090`「`昏迷 ← position_agg ≥ COMA_THRESHOLD ∧ 存活`」;转移表 `:570` 同步订正),
+>    `SelfLimited` 只服务死亡支(`:1176`)。原文「`:1088` 读 `SelfLimited`」是订正前旧式,**保留作闭环记录**。
 > ② **白名单伤情须靠自身 `natural_progress` 越 `DEATH_THRESHOLD`** —— `TRAUMA_CAP = 4/5` 已钉
 >    (`combat-and-weapon-lines.md:1362`)、`DEATH_THRESHOLD > COMA_THRESHOLD`(校验 9)⇒ 战伤注入量
 >    **单独永远够不到死亡阈**。而 R1.3 十七条校验**无**「`self_limit ∧ lethal` ⇒ `A_peak/SCALE ≥ DEATH_THRESHOLD`」
@@ -124,11 +127,11 @@
 
 **规范依据**:
 - `design/gdd/persistence-service.md:314-330` —— **F-7a-4 单一出处**:`Folded(p) = 终态(p) ∧ ¬豁免(p) ∧ ¬未结案(p)`
-- `design/gdd/persistence-service.md:320` —— `¬豁免` = **豁免类(`lethal = false ∧ plateau`,R3.6)** **或**携带 `relapse.*` 块
+- `design/gdd/persistence-service.md:321` —— `¬豁免` = **豁免类(`lethal = false ∧ plateau`,R3.6)** **或**携带 `relapse.*` 块
 - `docs/architecture/adr-008-case-event-stream.md:270+` §六 —— ③「无未结案病例」
 - `docs/architecture/adr-026-skill-growth-fixed-point.md:163-180` §⑦ —— **第 ④ 条:`SkillGrown` 行豁免**(案 1)
 - `docs/architecture/adr-010-persistence-save-format.md` §二 —— 折叠行 = `(onset, 病种_id, patient_id, patient_seed, outcome, t_end)`
-- `design/gdd/disease-simulation.md:1854` —— AC-36(①② 的定义方)
+- `design/gdd/disease-simulation.md:1924` —— AC-36(①② 的定义方)
 
 **What to test**(每条 AC 至少一测):
 
@@ -280,6 +283,7 @@ S18-3 是纸面件,判据是命令输出。
 | 4 | **`DeathCandidate` 的产出路径形状** ✅ **已核(2026-10-21)** | 原:规划轮只确认「全树零命中」,未读 29 的消费侧契约形状。**实测**:`DeathCandidate` / `PlayerDeathWarranted` / `IDeathCandidateSource` 三者在 `.cs` 全树 **0 命中**、`entities.yaml` **0 命中** ⇒ **它不是 `SimEvent.Kind`(35 个已登记 Kind 里没有它),不进任何流**。**契约形状已在盘上,在 story-001 里**:`story-001:48`「`IDeathCandidateSource`(**9 侧提供**)→ 29 的 `OnDeathCandidate(playerId, tick)`;29 内部只有『转发 + 发射 + 编排后续』,**无生命值读取路径**」· `death-and-respawn.md:90`「29 只消费一个**布尔** `PlayerDeathWarranted(actor)`」· `story-004:47` 管线序 `DeathCandidate → DeathAllowed 门 → PlayerDied` ⇒ **形状 = 进程内接口,不是事件** | **S18-1 的 AC ⑦⑧ 判据可定形**:判据 = 生产树存在 `IDeathCandidateSource` 实现 + 29 侧注入点;`WriterExistenceGate.cs:98` 的 `PlayerDied` 条目判的是**写者**不是 candidate 源,两者不可混记 |
 | 5 | **`IsCombatant(entity)` 的 entity 类型** ✅ **已核(2026-10-21)· 形状已裁 = A** | 原:`Sim.Contracts` 内无 `ActorId` / 实体类别类型(实测零命中)。**实测补全**:`PlayerId` 类型**全库不存在**(`PayloadCommon.cs:13-14` 自陈;玩家 id 一律裸 `int`)· `EntityKind`/`DownClass` 住 `EnemyBehaviorProgram.cs:26-27` 且是 **`string`**(校验只查非空,`:52`)· `ActorClass` 住 `CombatActionSchema.cs:25` 也是 **`string`**(`:58` 只查非空)· 类别查询面(`IsEnemy`/`IsCombatant`/`ActorCategory`/`IsPlayer`)全树零命中 · **`ai_enemy.json` 不存在**(`EntityKind` 的数据载体还没有)。**三条候选**中用户 **2026-10-21 裁定取 A** = `Sim.Contracts` 新增 `ActorClass` enum `{ Player=0, HumanEnemy=1, Beast=2 }` + `IsCombatant(ActorClass)` | 谓词签名**已定**;⚠️ **须同步加注 ADR-025 §①:112 的 `Sim.Contracts` 成员清单**(新增类型);⚠️ **零值 = `Player`** ⇒ 见下方「第六条」的漏填陷阱 |
 | 6 | **IL2CPP 矩阵** | 本机可跑 x64-Mono / x64-IL2CPP 两格,ARM64 目标不存在;CI 常驻 job 缺凭证(`TD-ci-01`,EXTERNAL) | 矩阵级,非本件个体判据;不得声称跨平台 |
+| 7 | **`Folded` 条件 ①「终态」无事件载体** ✅ **已裁 + 已落(2026-10-21 · 方案 A · ADR-032)** | 原:病史流 14 支 Kind 零个终态标记 ⇒ 条件 ① 输入恒为空 ⇒ 折叠永不发生。**用户 2026-10-21 裁定取方案 A** = 立新病史流 Kind `PatientOutcomeChanged` | **已解除** —— `docs/architecture/adr-032-patient-outcome-kind.md` 落盘;registry / `EventKind.cs`(35→36)/ 载荷 / 编解码 / encoder 分派 / kindgen(A1–A5 全过)/ `WriterExistenceGate` 豁免表 / 闭集哨兵 全部同步;新增 `patient_outcome_kind_test.cs`(13 测)。**条件 ① 消费口径 = 存在性查询**(该病人有无本 Kind 事件),**不重放 F4**。**替代未及项(同档)**:**9 的终态写者未落** —— 须在 F4 判出终态的那一 tick **原子写出**,漏写 ⇒ 该病人永不折叠且**无机械门可扫**(唯一反查判据 = 「`Folded(p)=false` 而 F4 重放为终态」);另 `\|D_max\|`(有界性第二因子)归 9 的 GDD |
 
 ### 2 / 4 / 5 三行核完后的**连带后果**(新登记 · 2026-10-21 · 禁当已结)
 
@@ -356,7 +360,7 @@ S18-3 是纸面件,判据是命令输出。
 - [ ] 无 S1 / S2 缺陷
 - [ ] 代码评审完成(`/code-review`)
 - [ ] **不得**把本 sprint 的绿引作 M3 进展;分母变化须写清方向(**清债 `73 → 71`**,非新增)
-- [ ] 「未及核查项」6 条在收口时**逐条更新状态**(已核 / 仍未核 + 原因),**不得静默消失**
+- [ ] 「未及核查项」~~6~~ **7** 条在收口时**逐条更新状态**(已核 / 仍未核 + 原因),**不得静默消失**(第 7 条 = 2026-10-21 新增的「终态无事件载体」,已裁已落)
       —— 🔁 **2026-10-21 现状**:1 / 2 / 3 / 4 / 5 **五行已核**,仅 6(IL2CPP 矩阵)**仍未核**;
       🔁 **2026-10-21 实施轮追加**:连带后果 ①③④ **三条已落**(`kind` 字段 + `R1_CHECK_31` + 22 处夹具 ·
       证伪轮 1 红 · ADR-025 §①:112 加注),全量 EditMode `4356/4320/0/36`(Δ = 新增 2 条,零回归);
@@ -379,7 +383,7 @@ S18-3 是纸面件,判据是命令输出。
 | 项 | 出处 |
 |---|---|
 | 件集登记 | 路线图 §6.5:909(经 `sprint-18.md` §Phase 1 订正为 **G-1 · G-2**) |
-| S18-1 规范 | `disease-simulation.md:1135-1160`(两谓词 + `IsCombatant` 真值表)· `:571` / `:574` / `:1084` / `:1087`(F4 各支)· `death-and-respawn.md:88-108`(规则二) |
+| S18-1 规范 | `disease-simulation.md:1153-1230`(两谓词 + `IsCombatant` 真值表)· `:571` / `:574` / `:1084` / `:1084-1089`(F4 各支)· `death-and-respawn.md:88-108`(规则二) |
 | S18-2 规范 | `persistence-service.md:314-330`(F-7a-4 单一出处)· `adr-008:270+` §六 · `adr-026:163-180` §⑦ · `adr-010` §二(折叠行) |
 | S18-3 判据 | 路线图 §6.4(回写义务)· `death-and-respawn.md:192`(`BLOCKED-BY-24` 的义务原文) |
 | 分母现值 | `TD-INDEX` 复算:99 条 · `P0 = Y` 88 · 未闭 P0 面 **73** · epic **13 / 31** |

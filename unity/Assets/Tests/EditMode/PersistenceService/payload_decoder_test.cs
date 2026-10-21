@@ -285,14 +285,14 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
         // ══════════ V-6: 分派完备性(与 EncodeBoxed 双向差集归零)══════════
 
-        /// <summary>可由 Decode&lt;T&gt; 表达的 35 支(读侧无 Judgment 例外 —— §④)。</summary>
+        /// <summary>可由 Decode&lt;T&gt; 表达的 36 支(读侧无 Judgment 例外 —— §④;2026-10-22 ADR-032 起 35→36)。</summary>
         private static readonly EventKind[] DecodableKinds =
             Enum.GetValues(typeof(EventKind)).Cast<EventKind>().ToArray();
 
         [Test]
-        public void test_adr031_v6_dispatchCoversAll35Kinds()
+        public void test_adr031_v6_dispatchCoversAll36Kinds()
         {
-            Assert.AreEqual(35, DecodableKinds.Length, "EventKind 须恰 35 支");
+            Assert.AreEqual(36, DecodableKinds.Length, "EventKind 须恰 36 支(ADR-032 起 35→36)");
 
             // 与 PayloadCodec 的具名 Decode 方法集双向差集归零(承 ADR-024 A5 口径)
             var named = typeof(PayloadCodec).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
@@ -337,10 +337,11 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 checkedCount++;
             }
 
-            // 读侧**无** Judgment 例外(§④:接口不含 freehand ⇒ Decode 对 35 支一律可用);
-            // 编码侧那 2 支经**具名重载**(freehandText="")—— 故此处覆盖 35/35,强于编码侧的 33。
-            Assert.AreEqual(35, checkedCount,
-                $"须覆盖 35 支往返(读侧无 Judgment 例外),实测 {checkedCount}");
+            // 读侧**无** Judgment 例外(§④:接口不含 freehand ⇒ Decode 对 36 支一律可用);
+            // 编码侧那 2 支经**具名重载**(freehandText="")—— 故此处覆盖 36/36,强于编码侧的 34。
+            // (2026-10-22:35→36 / 33→34,ADR-032 加 PatientOutcomeChanged)
+            Assert.AreEqual(36, checkedCount,
+                $"须覆盖 36 支往返(读侧无 Judgment 例外),实测 {checkedCount}");
         }
 
         // ══════════ V-4 / V-10: b5 门补两项 ══════════
@@ -454,6 +455,13 @@ namespace DaYiJingCheng.Tests.PersistenceService
                     return new EncounterStartedPayload(
                         encounterId: 1, protoId: 2, spawnCell: new WorldPos(3, 0, 4),
                         actorIds: new[] { 5, 6 });
+                case EventKind.PatientOutcomeChanged:
+                    // `Outcome = 0`(Unspecified)被解码期零值守卫有意拒收(ADR-032 ②)
+                    // ⇒ 须造合法终态。守卫本身另有独立夹具覆盖
+                    // (`PatientOutcomeKindTest.test_codec_unspecifiedOutcome_isRejectedAtDecode`)。
+                    return new PatientOutcomeChangedPayload(
+                        patientId: 11, diseaseId: 3,
+                        outcome: (int)PatientOutcome.Recovered, seq: 21L);
                 default:
                     return Activator.CreateInstance(t);
             }

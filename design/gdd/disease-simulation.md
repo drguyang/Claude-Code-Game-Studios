@@ -171,7 +171,7 @@ Progress(t) = Base(t − onset_tick)                // 病种自然曲线(注册
 >
 > | 流 | 9 写入的 Kind | 折叠 | 备注 |
 > | ---- | ---- | ---- | ---- |
-> | **病史流** | 病程类(onset / 处置 / **护理动作起止** / **compounds 触发/窗止** / 终态折叠)· **战伤 `InjuryOnset`(病人侧;2026-09-17 25 回填 · R1)** · **急救三件套 `EmergencyAttempt` / `EmergencyTreatmentApplied` / `DrugTreatmentApplied`(2026-09-18 10 首轮评审 · `O-10-4` 兑现;ADR-009 Amendment I)** | ✅ 可折叠(终态) | 9 的主场;**护理动作 = 玩家主动动作事件,K ≤ \|护理动作表\|**,构造 `?(reason, 动作)`;**`CompoundTriggered` / `CompoundExpired` 已登记 `entities.yaml`(2026-09-16 三轮 · 集群 3)**;⚠️ **战伤 onset 的 `Append` 调用者 = 25**(命中即写;9 是**内容归属方**,消费该事件),见下注;⚠️ **急救三件套的调用者亦非 9**:`EmergencyTreatmentApplied` = **10** · `DrugTreatmentApplied` = **11** · `EmergencyAttempt` = **主机物化客户端产出**(语义归 10)。9 消费其载荷的 `polarity` / `drug_potency` / `half_life` 三量(F1 / F4)—— **缺任一量则 AC-28 写入期拒收**;`half_life` 对动作类由 **10 的动作数据表**产出(原稿无式 ⇒ `= 0` 触发 `Decay` 除零) |
+> | **病史流** | 病程类(onset / 处置 / **护理动作起止** / **compounds 触发/窗止** / 终态折叠)· **战伤 `InjuryOnset`(病人侧;2026-09-17 25 回填 · R1)** · **急救三件套 `EmergencyAttempt` / `EmergencyTreatmentApplied` / `DrugTreatmentApplied`(2026-09-18 10 首轮评审 · `O-10-4` 兑现;ADR-009 Amendment I)** · 🔁 **终态 `PatientOutcomeChanged`(2026-10-21 · ADR-032;见文末附录)** | ✅ 可折叠(终态) | 9 的主场;**护理动作 = 玩家主动动作事件,K ≤ \|护理动作表\|**,构造 `?(reason, 动作)`;**`CompoundTriggered` / `CompoundExpired` 已登记 `entities.yaml`(2026-09-16 三轮 · 集群 3)**;⚠️ **战伤 onset 的 `Append` 调用者 = 25**(命中即写;9 是**内容归属方**,消费该事件),见下注;⚠️ **急救三件套的调用者亦非 9**:`EmergencyTreatmentApplied` = **10** · `DrugTreatmentApplied` = **11** · `EmergencyAttempt` = **主机物化客户端产出**(语义归 10)。9 消费其载荷的 `polarity` / `drug_potency` / `half_life` 三量(F1 / F4)—— **缺任一量则 AC-28 写入期拒收**;`half_life` 对动作类由 **10 的动作数据表**产出(原稿无式 ⇒ `= 0` 触发 `Decay` 除零) |
 > | **病例流** | **不写** —— 病例由 37 包装(ADR-008) | ❌ 永不折叠 | 9 只被 37 读 |
 > | **世界流** | **敌人伤情 `EnemyInjuryOnset`**(ADR-016 §二:敌人伤情落世界流,不污染病史流)· **`InjuryStateChanged`**(敌/兽伤情状态变更,**写者 = 9**)· **`PatientId.None` 哨兵事件**(ADR-007 §四) | ❌ 永不折叠 | **⚠️ 本列读作「内容归属」,不是 `Append` 调用者**(2026-09-17 25 回填 · R1):`EnemyInjuryOnset` 由 **25** 调用写入(25 是伤害施加方,载荷含 `magnitude` + `dose_seq`),9 只拥有其**语义与消费**;`InjuryStateChanged` 的调用者才是 9 自己。玩家跨格事件经 ADR-020 另走。**敌人伤情 Kind 枚举已登记 `entities.yaml`(2026-09-17 · 25 的 R2/R3 兑现:三元组 `InjuryOnset` / `EnemyInjuryOnset` / `InjuryStateChanged`)**|
 >
@@ -1921,7 +1921,7 @@ last_intervention = last of:
 | **AC-33** | **`boundary_mode = scan` 路径可用**:一个显式认领 `scan` 的病种能正确完成 `CatchUp`(不静默退化);**空处置史(无数据)路径**:从未被处置过的病人走同一 `CatchUp`,结果与「有处置史」的病人同构(Σ 空和为 0,不 NaN / 不短路) | 单测 | [L] BLOCKING |
 | **AC-34** | **34 聚合**:9 每 N tick 在**下一 tick 边界**广播生态区级聚合(病种计数 + 趋势);**不含任何个体可识别字段**(C4);**零订阅者时跳过全量遍历,订阅出现后恢复**(B4 开关)。**2026-09-16 三轮分裁(CD)**:「零订阅者跳扫」是 9 可判子句;**「订阅恢复」的机制实现归 P1a 的 34**(9 只提供开关状态机,不实现订阅协议 —— 34 GDD 未设计,AC 越界部分本行不承担) | 集成测试 | [I] BLOCKING |
 | **AC-35** | **玩家自身也是 `PatientState`** —— 玩家角色染病走**完全相同**的病程路径(52 规则九的接口)。**四轮 REC 分级**:拆两条 —— (a)**结构子句 [L] BLOCKING**:玩家染病的代码路径与 NPC 病人**同一函数**(grep 守门:玩家入口不新建求值路径);(b)**行为子句 [I] ADVISORY**:实际染病 → 病程推进 → 康复 / 昏迷的端到端集成 | 集成测试 + grep 守门 | [I] ADVISORY(行为)· **[L] BLOCKING(结构子句)** |
-| **AC-36** | **终态折叠**:终态病人(痊愈 / 死亡)可折叠;**折叠行必须保留 `patient_id`**(ADR-006 Amendment B 第 3 条 —— 高水位可重构);**`plateau` 型与带 `relapse.*` 的病种【不折叠】**(P0 最耐久的病种恰非终态);**病例流 / 世界流永不折叠**(仅病史流可折叠,D1)。**折叠谓词 `Folded(p)` 归 7a(2026-09-16 三轮 · 集群 8,qa REC)**:补「无未结案病例」条件 —— 9 只负责终态,**结案判定是 37 / 7a 的语义** | 单测 + 集成 | [L] BLOCKING |
+| **AC-36** | **终态折叠**:终态病人(痊愈 / 死亡)可折叠;**折叠行必须保留 `patient_id`**(ADR-006 Amendment B 第 3 条 —— 高水位可重构);**`plateau` 型与带 `relapse.*` 的病种【不折叠】**(P0 最耐久的病种恰非终态);**病例流 / 世界流永不折叠**(仅病史流可折叠,D1)。**折叠谓词 `Folded(p)` 归 7a(2026-09-16 三轮 · 集群 8,qa REC)**:补「无未结案病例」条件 —— 9 只负责终态,**结案判定是 37 / 7a 的语义**。🔁 **2026-10-21 补(ADR-032)**:**「终态」的事件载体 = `PatientOutcomeChanged`**(落病史流,写者 = 9)。本 AC 此前只说「终态可折叠」而**不给载体** ⇒ 7a 条件 ① 输入恒为空;载体自此具名。**9 侧义务**:F4 判出终态的那一 tick **须同 tick 写出该事件**(原子性;漏写 ⇒ 该病人永不折叠,且无机械门可扫) | 单测 + 集成 | [L] BLOCKING |
 | **AC-37** | **`trend` 死区**:plateau 病人 `\|trend\| < TREND_EPS` ⇒ 判「持平」(返回 0),不返回 ±1 LSB 抖动;`trend` 中心 / `trend_backward` 单侧各测一条 | 单测 | [L] BLOCKING · **Gate**(C2) |
 
 ## Open Questions
@@ -2026,3 +2026,21 @@ C4 定「34 只订阅聚合」。但**聚合的粒度**未定:按区块?按病�
 > **✅ 结案(2026-09-15,二轮复核)**:出处已由 **`game-concept.md:487-501` 列全并核实**
 > (Beard 1869 · Shapiro · S. Weir Mitchell · DSM-III/IV · ICD-11,并注明「未核实已弃用」的处置)。
 > **9 直引该出处即可,不重复考据** —— 支柱五已由上游文档满足,`D-9-B` 办结,本 OQ 关闭。
+
+---
+
+## 附录 A · ADR-032 补注 —— 终态折叠的具名载体(2026-10-21)
+
+> **🔁 2026-10-21 补 —— 「终态折叠」的具名载体 = `PatientOutcomeChanged`(ADR-032)**:规则六边界表
+> 病史流一栏的「**终态折叠**」此前**只有机制名、没有 Kind** —— 7a 的折叠谓词条件 ①
+> (`Folded(p)` 的 `终态(p)`,见 `persistence-service.md:316`)因此**输入恒为空**,折叠永不发生。
+> 实测旁证:病史流 14 支 Kind **零个终态标记**;而 `entities.yaml:2281/2282`(`InjuryStateChanged` 的 `payload_schema` /
+> `constraint` 注)自称「病人侧由 9 的病史流**既有 Kind** 承载」—— **那个 Kind 当时不存在**。
+> **本补注使其成立**:立 `SimEvent.Kind.PatientOutcomeChanged`(`stream: history`),
+> 载荷 `(patient_id, disease_id, outcome, seq)`,`outcome ∈ {Recovered=1, Died=2}`(0 = 漏填哨兵),
+> **写者 = 9**(终态判定方 = `Step` 执行方 = 主机,ADR-005)。
+> ⚠️ **`t_end` 不进载荷** —— 它就是事件头部的 `Tick`(判出终态的那一 tick 写出)。
+> ⚠️ **`disease_id` 必带** —— F4 的 `d` 是 argmax(见 :1120 补注),终态是**逐病种**的结论。
+> ⚠️ **原子性义务(硬)**:判终态与写事件**须同 tick**;漏写 ⇒ 「流里有终态」与「F4 重放说终态」
+> 漂移 ⇒ 该病人**永不折叠**。该义务无机械门可扫,只能由「`Folded(p)=false` 而 F4 说终态」反查。
+> 有界性:每病人每病种至多一次(终态是吸收态)⇒ 扩 ADR-008 §六,不重写。

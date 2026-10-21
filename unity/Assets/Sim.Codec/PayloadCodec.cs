@@ -29,7 +29,7 @@ using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Sim.Codec
 {
-    /// <summary>35 支 per-Kind 载荷的唯一编解码器(b1b 支 0 甲:解码即构造)。</summary>
+    /// <summary>36 支 per-Kind 载荷的唯一编解码器(b1b 支 0 甲:解码即构造;2026-10-22 ADR-032 起 35→36)。</summary>
     public static partial class PayloadCodec
     {
         // ── 分发 ──────────────────────────────────────────────────────────
@@ -52,6 +52,7 @@ namespace DaYiJingCheng.Sim.Codec
             {
                 case EventKind.InjuryOnset:               return DecodeInjuryOnset(payloadBytes);
                 case EventKind.DiseaseOnset:             return DecodeDiseaseOnset(payloadBytes);
+                case EventKind.PatientOutcomeChanged:    return DecodePatientOutcomeChanged(payloadBytes);
                 case EventKind.CompoundTriggered:         return DecodeCompoundTriggered(payloadBytes);
                 case EventKind.CompoundExpired:           return DecodeCompoundExpired(payloadBytes);
                 case EventKind.CareApplied:               return DecodeCareApplied(payloadBytes);
@@ -86,7 +87,7 @@ namespace DaYiJingCheng.Sim.Codec
                 case EventKind.ConsequenceResolved:       return DecodeConsequenceResolved(payloadBytes);
                 case EventKind.PlayerDied:                return DecodePlayerDied(payloadBytes);
                 default:
-                    throw new InvalidDataException($"未知 EventKind={(int)kind} —— 不在 35 支闭集内");
+                    throw new InvalidDataException($"未知 EventKind={(int)kind} —— 不在 36 支闭集内");
             }
         }
 

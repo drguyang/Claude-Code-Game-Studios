@@ -269,7 +269,7 @@ namespace DaYiJingCheng.Sim
         /// ⚠️ **只实现首击(k = 0 ⇒ τ_rel = relapse_interval)**,与批次 B 的测试侧 oracle
         /// (`curve_fixture_test.OracleRelapse`)同一读法。**缺口登记**:F1 写
         /// `τ_rel = relapse_interval × (复发次数 + 1)` 且注明「复发次数由病史事件流直接计数」,
-        /// 但 35 支 Kind 中**无任何复发事件**(EventKind 无 Relapse 支)⇒ 多次复发的计数
+        /// 但 36 支 Kind 中**无任何复发事件**(2026-10-22 ADR-032 起 35→36,新支亦非复发)(EventKind 无 Relapse 支)⇒ 多次复发的计数
         /// 在当前数据面**不可求值**;且该式按字面读,首次复发后 count=1 会使 τ_rel ≥ τ 而恒 0,
         /// 与 oracle 相反。本批不自造 Kind、不自造计数语义 —— 归 9 的 GDD 轮裁定(见任务报告)。
         /// `Relapse == null` = 无复发(合法形态),恒 0。

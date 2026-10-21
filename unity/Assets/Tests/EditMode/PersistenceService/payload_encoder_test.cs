@@ -150,27 +150,27 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
         // ══════════ AC-29-04: 分派完备性(32 + 2)══════════
 
-        /// <summary>可由 Encode&lt;T&gt; 表达的 33 支(35 − Judgment 两支)。</summary>
+        /// <summary>可由 Encode&lt;T&gt; 表达的 34 支(36 − Judgment 两支;2026-10-22 ADR-032 起 35→36 / 33→34)。</summary>
         private static readonly EventKind[] EncodableKinds =
             Enum.GetValues(typeof(EventKind)).Cast<EventKind>()
                 .Where(k => k != EventKind.JudgmentRecorded && k != EventKind.JudgmentRevised)
                 .ToArray();
 
         [Test]
-        public void test_ac2904_dispatchCovers33Kinds()
+        public void test_ac2904_dispatchCovers34Kinds()
         {
-            Assert.AreEqual(33, EncodableKinds.Length,
-                "可编码 Kind 须恰 33 支(35 总 − 2 Judgment)");
+            Assert.AreEqual(34, EncodableKinds.Length,
+                "可编码 Kind 须恰 34 支(36 总 − 2 Judgment;ADR-032 起 35→36)");
 
             // 与 PayloadCodec 的具名 Encode 重载集双向差集归零(承 ADR-024 A5 口径)
             var named = typeof(PayloadCodec).GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .Where(m => m.Name == "Encode" && !m.IsGenericMethodDefinition)
                 .ToList();
 
-            // 33 支单参重载 + 2 支双参(Judgment)重载 = 35
+            // 34 支单参重载 + 2 支双参(Judgment)重载 = 36
             int singleArg = named.Count(m => m.GetParameters().Length == 1);
             int doubleArg = named.Count(m => m.GetParameters().Length == 2);
-            Assert.AreEqual(33, singleArg, "单参具名 Encode 重载须恰 33");
+            Assert.AreEqual(34, singleArg, "单参具名 Encode 重载须恰 34");
             Assert.AreEqual(2, doubleArg, "双参(Judgment)具名 Encode 重载须恰 2");
         }
 
@@ -356,8 +356,19 @@ namespace DaYiJingCheng.Tests.PersistenceService
                         encounterId: 1, protoId: 2, spawnCell: new WorldPos(3, 0, 4),
                         actorIds: new[] { 5, 6 });
 
+                case EventKind.PatientOutcomeChanged:
+                    // ⚠️ 本支**打破**了下方 default 分支的隐含前提「零值全部通过约束」:
+                    //    `Outcome = 0`(Unspecified)被解码期零值守卫**有意拒收**(ADR-032 ②
+                    //    —— 终态折叠不可逆,漏填须 fail-loud)。故须造合法终态。
+                    // ⚠️ 本条不是「为让测试变绿而绕过守卫」:守卫本身另有独立夹具覆盖
+                    //    (`PatientOutcomeKindTest.test_codec_unspecifiedOutcome_isRejectedAtDecode`)。
+                    return new PatientOutcomeChangedPayload(
+                        patientId: 11, diseaseId: 3,
+                        outcome: (int)PatientOutcome.Recovered, seq: 21L);
+
                 default:
-                    // 余 29 支无数组字段 —— default 构造即合法(零值全部通过约束)
+                    // 余 28 支无数组字段 —— default 构造即合法(零值全部通过约束)
+                    // (2026-10-22:29 → 28,PatientOutcomeChanged 已上提为具名分支)
                     return Activator.CreateInstance(t);
             }
         }

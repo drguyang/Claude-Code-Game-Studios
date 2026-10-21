@@ -1,4 +1,4 @@
-// 权威来源:ADR-024 §① 真源 = design/registry/entities.yaml(35 支,stream 分布 14/5/16)
+// 权威来源:ADR-024 §① 真源 = design/registry/entities.yaml(36 支,stream 分布 15/5/16)
 //          · 成员级出处见各支 registry 条目的 source 字段(ADR-007 §三 / ADR-008 §三 /
 //            ADR-009 Amendment F–I / ADR-016 §二 / ADR-021 §三 等)
 //
@@ -10,10 +10,10 @@
 
 namespace DaYiJingCheng.Sim.Contracts
 {
-    /// <summary>三逻辑流全部 35 支具名事件 Kind。</summary>
+    /// <summary>三逻辑流全部 36 支具名事件 Kind。</summary>
     public enum EventKind : int
     {
-        // ── 病史流 History(14)────────────────────────────────────────────
+        // ── 病史流 History(15)────────────────────────────────────────────
         InjuryOnset,                 // 25 直登(ADR-006)
         DiseaseOnset,                // ADR-030(病程 onset / 病人出现 · 写者 = 9)
         CompoundTriggered,           // 9(ADR-009 §三 骨架)
@@ -53,5 +53,17 @@ namespace DaYiJingCheng.Sim.Contracts
         EncounterEnded,              // 52 奇遇
         ConsequenceResolved,         // ADR-024 §④ 幽灵引据订正后的具名出处
         PlayerDied,                  // 26 death-and-respawn
+
+        // ── ⚠️ 追加区:新成员一律加在此处,禁止插入上方任何位置 ──────────────
+        // 理由:本枚举是**隐式值**(无显式 `= N`),成员值 = 声明序号。
+        //   序列化按 int 落盘(`SimEventCodec` / 黄金字节夹具),故**插入中间成员
+        //   = 其后全部成员值 +1 = 历史存档读错 Kind = 静默数据损坏**。
+        //   实测(2026-10-22):把 `PatientOutcomeChanged` 插在 `DiseaseOnset` 之后,
+        //   致 `SkillGrown` 由 8 变 9,`simEventHeader_matchesGoldenBytes` 与
+        //   `B03_sim_event_header_bytes` 两条黄金夹具**同时转红** —— 那两条是
+        //   ADR-012 的确定性回归门,红了先查实现、**禁改期望值**(ADR-012 裁决③)。
+        //   ⇒ 追加在末尾 = 既有成员值零位移,黄金字节不变,无需重签金标准。
+        // ⚠️ 追加区成员仍须先改 registry 再重跑 kindgen(ADR-024 §①)。
+        PatientOutcomeChanged,       // ADR-032(病程终态 · 写者 = 9 · Folded 条件 ① 的载体)
     }
 }

@@ -8,7 +8,7 @@
 //     · 校验 1..6(JSON 合法 / 引用完整性 / 长度 / 病名闭集 / 显式指令 / predicateKind 白名单)
 //   design/ux/paper-closeup-48.md §12(长度上限 = 作者态约束,防 40% 本地化扩张破版)
 //   ADR-014 §三(per-schema 绑定:已知键白名单 · 聚合 throw · 禁数值经 double 中转)
-//   ADR-024 §①(predicateKind 白名单真源 = design/registry/entities.yaml 的 35 支 Kind)
+//   ADR-024 §①(predicateKind 白名单真源 = design/registry/entities.yaml 的 36 支 Kind;2026-10-22 ADR-032 起 35→36)
 //   ADR-010 §六(archive 步判据 = 7a 存档头 Checkpoint 写入 —— schema 白名单的**唯一**例外)
 //   docs/architecture/control-manifest.md:571-590(Cross-Cutting 之八:判据不得用文化敏感字符串比较)
 //
@@ -95,7 +95,7 @@ namespace DaYiJingCheng.EditorTools.Bake
 
         /// <summary>`archive` 步的判据字面量 —— **7a 存档头 Checkpoint 写入,不是 SimEvent.Kind**。
         /// <para>⚠️ 这是 predicateKind 白名单的**唯一例外**(GDD 规则八「archive 步判据例外」·
-        /// ADR-010 §六:存档头不落流,故 ADR-024 的 35 支 Kind 里没有它)。</para>
+        /// ADR-010 §六:存档头不落流,故 ADR-024 的 36 支 Kind 里没有它;2026-10-22 ADR-032 起 35→36)。</para>
         /// <para>⚠️ **防后人当 bug 修**:本例外的存在是 **ADR-010 §六 的裁决**,不是漏登记;
         /// 若把 `Checkpoint` 删除/改成某个 Kind,<c>archive</c> 步的完成判据即失去语义
         /// (7a 存档头写入 <b>不产生</b> SimEvent)。改动须先改 ADR-010 §六 与 GDD F-48.1 ⑤。</para>
@@ -176,7 +176,7 @@ namespace DaYiJingCheng.EditorTools.Bake
 
         // ── predicateKind 白名单(registry 全集 ∪ {Checkpoint})────────────────
 
-        /// <summary>registry 的 Kind 名全集(35 支)。
+        /// <summary>registry 的 Kind 名全集(36 支;2026-10-22 ADR-032 起 35→36)。
         /// <para>⚠️ **真源 = <c>design/registry/entities.yaml</c>**(ADR-024 §①);此处读编译期镜像
         /// <see cref="EventKind"/> —— 二者由 ADR-024 断言 **A5(双向差集归零)** 锁死,
         /// 故本处不构成第二真源(与 <c>OutcomeTableBinder</c> 「以枚举符号直用」同纪律)。

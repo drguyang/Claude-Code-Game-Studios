@@ -95,6 +95,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             //    `CaseOpenWriter` 亦未接线而已被本门接受为「有写者」。)
 
             // ── 9 疾病与伤情模拟 ──
+            ("PatientOutcomeChanged", "9 终态写者未落 —— ADR-032 立 Kind(2026-10-21),9 须在 F4 判出终态的那一 tick 原子写出;归 9 实现轮。⚠️ 写者落地的那一批须同批撤本条目(判据①:已存在写者的 Kind 绝不在此表)"),
             ("PlayerDied", "9 致死判据写者未落 —— registry author 自述「Append 调用点 = 0」(entities.yaml PlayerDied 条);归 9 实现轮(2026-10-10)"),
             ("CompoundTriggered", "9 并发症触发写者未落 —— 归 9 实现轮(disease-simulation 并发症节)(2026-10-10)"),
             ("CompoundExpired", "9 并发症过期写者未落 —— 归 9 实现轮(同上)(2026-10-10)"),

@@ -86,6 +86,68 @@ namespace DaYiJingCheng.Sim.Codec
             return new DiseaseOnsetPayload(onsetTick, diseaseId, patientId, patientSeed, seq);
         }
 
+        // ── 2b. PatientOutcomeChanged(ADR-032 · 写者 = 9 · Folded 条件 ①)──
+        // tag: 1 PatientId · 2 DiseaseId · 3 Outcome · 4 Seq
+        // ⚠️ 无 t_end —— 它就是事件头部的 Tick(ADR-032 ④a)。
+        // ⚠️ Outcome 的 0(Unspecified)在解码期拒收,见下 RequireOutcomeDeclared。
+
+        public static byte[] Encode(in PatientOutcomeChangedPayload p)
+        {
+            var w = new CodecWriter();
+            w.WriteFieldInt32(1, p.PatientId);
+            w.WriteFieldInt32(2, p.DiseaseId);
+            w.WriteFieldInt32(3, p.Outcome);
+            w.WriteFieldInt64(4, p.Seq);
+            return w.ToArray();
+        }
+
+        private static PatientOutcomeChangedPayload DecodePatientOutcomeChanged(ReadOnlySpan<byte> bytes)
+        {
+            var r = new CodecReader(bytes);
+            uint seen = 0;
+            long seq = 0;
+            int patientId = 0, diseaseId = 0, outcome = 0;
+            while (r.HasMore)
+            {
+                switch (ReadTagChecked(ref r, nameof(EventKind.PatientOutcomeChanged), ref seen))
+                {
+                    case 1: patientId = r.ReadInt32LittleEndian(); break;
+                    case 2: diseaseId = r.ReadInt32LittleEndian(); break;
+                    case 3: outcome = r.ReadInt32LittleEndian(); break;
+                    case 4: seq = r.ReadInt64LittleEndian(); break;
+                    default: throw new InvalidDataException($"PatientOutcomeChanged: 未知 tag");
+                }
+            }
+            RequireCompleteMask(nameof(EventKind.PatientOutcomeChanged), seen, (1u << 4) - 1);
+            RequireOutcomeDeclared(outcome);
+            r.EnsureFullyConsumed();
+            return new PatientOutcomeChangedPayload(patientId, diseaseId, outcome, seq);
+        }
+
+        /// <summary>
+        /// <c>outcome</c> 值域守卫(ADR-032 ②)—— <b>零值陷阱</b>。
+        ///
+        /// <para><b>为何在解码期拒收而不只是写入期</b>:终态是 7a 折叠谓词 <c>Folded(p)</c>
+        /// 的条件 ①(<c>persistence-service.md:316</c>)。若 <c>Unspecified = 0</c> 被放过,
+        /// 折叠行 <c>outcome</c> 会落成「既非痊愈也非死亡」的第三态,而折叠<b>不可逆</b>
+        /// (病史行已删)—— 读到坏存档时已无从回退。故 <b>解码即拒</b>。</para>
+        ///
+        /// <para><b>为何不默认成 Recovered</b>:漏填默认落成痊愈 = 把死亡病人标成痊愈,
+        /// 是**最危险的方向**(与 <c>ActorClass</c> 若把 <c>Player</c> 定为 0 的同型陷阱,
+        /// 方向相反 —— 该枚举实际取 <c>Unspecified = 0</c> / <c>Player = 1</c>)。</para>
+        /// </summary>
+        private static void RequireOutcomeDeclared(int outcome)
+        {
+            if (outcome != (int)PatientOutcome.Recovered
+                && outcome != (int)PatientOutcome.Died)
+            {
+                throw new InvalidDataException(
+                    $"PatientOutcomeChanged: outcome={outcome} 不是合法终态" +
+                    $"(须为 Recovered={(int)PatientOutcome.Recovered} 或 Died={(int)PatientOutcome.Died};" +
+                    "0 = Unspecified 是漏填哨兵,ADR-032 ②)—— 终态折叠不可逆,解码期即拒");
+            }
+        }
+
         // ── 3. CompoundTriggered(9)───────────────────────────────────────
         // tag: 1 Tick · 2 TargetId · 3 RuleId · 4 ComponentId
 
