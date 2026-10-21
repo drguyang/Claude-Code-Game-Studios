@@ -70,25 +70,25 @@
   "narration": [
     {
       "id": "n_observe_1",
-      "cueId": "teach_observe_01",
+      "cueId": "Narration_TeachObserve_01",
       "order": 1,
       "text": "先看看这个人。气色、神态,都在脸上。"
     },
     {
       "id": "n_judge_1",
-      "cueId": "teach_judge_01",
+      "cueId": "Narration_TeachJudge_01",
       "order": 1,
       "text": "看明白了,就翻本子记一笔。"
     },
     {
       "id": "n_close_1",
-      "cueId": "teach_close_01",
+      "cueId": "Narration_TeachClose_01",
       "order": 1,
       "text": "处置妥当,一个病例才算了结。"
     },
     {
       "id": "n_archive_1",
-      "cueId": "teach_archive_01",
+      "cueId": "Narration_TeachArchive_01",
       "order": 1,
       "text": "要紧的,都写进册子。"
     }

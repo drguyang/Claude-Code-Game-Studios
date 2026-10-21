@@ -479,6 +479,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <c>assets/data/disease_names.json</c>)。该件**缺席**时 ④ 记 NOT-RUN 并在日志里点名
         /// (不阻断烘焙);**存在但损坏 / 为空**时抛 <see cref="BakeValidationException"/> ⇒ 本菜单硬失败。
         /// 此处**显式注入**(而非依赖 <c>BakeFromRepo</c> 的默认值):菜单是唯一生产链路,注入点写死更易审计。</para>
+        /// <para>⚠️ 校验 ② 的外部半边 = <see cref="TutorialMediaKeySource"/>(读 <c>audio_events.json</c> 的
+        /// <c>rows[].cue</c> 与 <c>48_demonstration_clips.json</c> 的 <c>clips[].clipKey</c>)。
+        /// 缺席语义同 ④;两个半边各自独立(一个缺席不把另一个降级)。2026-10-21 C-1 起本菜单显式注入。</para>
         /// </summary>
         [MenuItem("大医精诚/数据管线/烘焙 48_tutorial_content(48 教学内容)")]
         public static void BakeTutorialContent()
@@ -487,7 +490,8 @@ namespace DaYiJingCheng.EditorTools.Bake
             {
                 string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
                 TutorialContentBake.BakeOutput result = TutorialContentBake.BakeFromRepo(
-                    repoRoot, new TutorialDiseaseNameSource(repoRoot));
+                    repoRoot, new TutorialDiseaseNameSource(repoRoot),
+                    new TutorialMediaKeySource(repoRoot));
 
                 string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
                 Directory.CreateDirectory(cookedDir);

@@ -158,7 +158,7 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
             var bound = TutorialContentBinder.Bind(Seed(),
                 new FakeDiseaseNames(true, "疟疾", "伤寒"),   // 词表在但种子文本零命中
                 new FakeMediaKeys(
-                    new[] { "teach_observe_01", "teach_judge_01", "teach_close_01", "teach_archive_01" },
+                    new[] { "Narration_TeachObserve_01", "Narration_TeachJudge_01", "Narration_TeachClose_01", "Narration_TeachArchive_01" },
                     new[] { "mentor_pulse_exam", "mentor_open_notebook", "mentor_bandage_demo",
                             "mentor_close_case", "mentor_open_ledger", "mentor_place_structure" }));
 
@@ -166,6 +166,77 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
             Assert.AreEqual(TutorialDiseaseScanOutcome.Clean, bound.InstructionScan.Outcome);
             Assert.IsTrue(bound.CueIdTableReady);
             Assert.IsTrue(bound.ClipKeyTableReady);
+        }
+
+        // ════════════════════════════════════════════════════════════════
+        //  C-1(2026-10-21)· ② 外部半边的**生产来源**通电证明
+        //
+        //  ⚠️ 上面 test_seed_content_withAllTablesInjected_passesAllSix 打的是 FakeMediaKeys
+        //     ⇒ 它只证明**接缝**通,不证明 `TutorialMediaKeySource` 这个生产实现能读出真表。
+        //     生产来源若读错字段名(如 `cue` 写成 `cueId`),上面那条**照样绿** ——
+        //     这正是「扫不到被测装配」的形态。本节补的是生产来源自己的断言。
+        // ════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_mediaKeySource_productionTables_areReady()
+        {
+            // 走**默认注入**路径:BakeFromRepo 未显式传 mediaKeys ⇒ 内部 new TutorialMediaKeySource(repoRoot)。
+            var output = TutorialContentBake.BakeFromRepo(RepoRoot());
+            var bound = output.Bound;
+
+            Assert.IsTrue(bound.CueIdTableReady,
+                "44 cue 表就位 ⇒ ② 外部半边真跑过(teach_* 四键已登记在 assets/data/audio_events.json)");
+            Assert.IsTrue(bound.ClipKeyTableReady,
+                "13 clipKey 表就位 ⇒ ② 外部半边真跑过(assets/data/48_demonstration_clips.json)");
+
+            // 就绪 ≠ 零悬垂。烘焙未抛异常已蕴含零悬垂,但这里显式断言计数,
+            // 使「表就绪」与「引用全命中」两件事各自可读。
+            Assert.AreEqual(4, bound.Narration.Count, "前置:种子口述 4 条均须被逐条查过");
+            Assert.AreEqual(6, bound.Demonstrations.Count, "前置:种子示范 6 条均须被逐条查过");
+        }
+
+        [Test]
+        public void test_mediaKeySource_productionTables_containSeedKeys()
+        {
+            // 生产来源直接读:闭集须**真含**种子引用的键(而非仅仅「非空」)。
+            var source = new TutorialMediaKeySource(RepoRoot());
+
+            Assert.IsTrue(source.TryGetCueIds(out IReadOnlyCollection<string> cues), "44 表须可读");
+            Assert.IsTrue(source.TryGetClipKeys(out IReadOnlyCollection<string> keys), "13 表须可读");
+
+            string[] seedCues = { "Narration_TeachObserve_01", "Narration_TeachJudge_01", "Narration_TeachClose_01", "Narration_TeachArchive_01" };
+            string[] seedKeys =
+            {
+                "mentor_pulse_exam", "mentor_open_notebook", "mentor_bandage_demo",
+                "mentor_close_case", "mentor_open_ledger", "mentor_place_structure",
+            };
+
+            var cueSet = new HashSet<string>(cues);
+            var keySet = new HashSet<string>(keys);
+            for (int i = 0; i < seedCues.Length; i++)
+                Assert.IsTrue(cueSet.Contains(seedCues[i]), "44 表缺种子 cueId:" + seedCues[i]);
+            for (int i = 0; i < seedKeys.Length; i++)
+                Assert.IsTrue(keySet.Contains(seedKeys[i]), "13 表缺种子 clipKey:" + seedKeys[i]);
+        }
+
+        [Test]
+        public void test_mediaKeySource_emptyTable_throws_notSilentlyNotRun()
+        {
+            // 判别力对照:空表若被静默当成「未就绪」,则一张写坏的表会让该半边永远 NOT-RUN
+            // 而无人察觉 —— 那是假绿。生产解析器须硬失败。
+            Assert.Throws<BakeValidationException>(() =>
+                TutorialMediaKeySource.ParseCueIds("{\"rows\": []}"), "零 cue 表须抛,不得静默 NOT-RUN");
+            Assert.Throws<BakeValidationException>(() =>
+                TutorialMediaKeySource.ParseClipKeys("{\"clips\": []}"), "零 clipKey 表须抛,不得静默 NOT-RUN");
+        }
+
+        [Test]
+        public void test_mediaKeySource_absentFile_isNotReady_notThrow()
+        {
+            // 缺席 ≠ 损坏:指向一个不含两张表的仓根 ⇒ 半边返回 false(记 NOT-RUN),不抛。
+            var source = new TutorialMediaKeySource(Path.Combine(RepoRoot(), "assets", "data", "__absent__"));
+            Assert.IsFalse(source.TryGetCueIds(out _), "文件缺席 ⇒ 该半边 NOT-RUN(文档化语义)");
+            Assert.IsFalse(source.TryGetClipKeys(out _), "文件缺席 ⇒ 该半边 NOT-RUN(文档化语义)");
         }
 
         // ════════════════════════════════════════════════════════════════
@@ -285,9 +356,9 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         [Test]
         public void test_check2_danglingCueId_throwsWhenTableReady()
         {
-            string json = Mutate(Seed(), "\"cueId\": \"teach_close_01\"", "\"cueId\": \"teach_404\"");
+            string json = Mutate(Seed(), "\"cueId\": \"Narration_TeachClose_01\"", "\"cueId\": \"teach_404\"");
             var media = new FakeMediaKeys(
-                new[] { "teach_observe_01", "teach_judge_01", "teach_close_01", "teach_archive_01" },
+                new[] { "Narration_TeachObserve_01", "Narration_TeachJudge_01", "Narration_TeachClose_01", "Narration_TeachArchive_01" },
                 null);
             var ex = AssertThrowsTagged(json, "[②]", null, media);
             StringAssert.Contains("teach_404", string.Join("\n", ex.Errors), "须点名悬垂 cueId");
@@ -302,7 +373,7 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
             //    「表缺席时不检查悬空」这条语义**无事可证**(空转夹具)。现改成注入真悬空 id,
             //    这样若实现把「表缺席」误写成「跳过整条 ②」以外的行为(例如漏掉 NOT-RUN 标记,
             //    或反过来在缺表时凭空报悬空),本测都会红。
-            string json = Mutate(Seed(), "\"cueId\": \"teach_close_01\"", "\"cueId\": \"teach_404\"");
+            string json = Mutate(Seed(), "\"cueId\": \"Narration_TeachClose_01\"", "\"cueId\": \"teach_404\"");
             var bound = TutorialContentBinder.Bind(json, null, new FakeMediaKeys(null, null));
 
             Assert.IsFalse(bound.CueIdTableReady, "表缺席 ⇒ 该半边 NOT-RUN(不是「通过」)");
@@ -487,8 +558,8 @@ namespace DaYiJingCheng.Tests.EditMode.Tutorial
         {
             // `order` 只认 JsonNodeKind.Integer(ADR-014 §三:禁数值经浮点中转)
             string json = Mutate(Seed(),
-                "\"cueId\": \"teach_observe_01\",\n      \"order\": 1,",
-                "\"cueId\": \"teach_observe_01\",\n      \"order\": 1.5,");
+                "\"cueId\": \"Narration_TeachObserve_01\",\n      \"order\": 1,",
+                "\"cueId\": \"Narration_TeachObserve_01\",\n      \"order\": 1.5,");
             var ex = AssertThrowsTagged(json, "[①]");
             StringAssert.Contains("order", string.Join("\n", ex.Errors), "错误须点名 order");
         }

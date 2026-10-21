@@ -1084,12 +1084,23 @@ namespace DaYiJingCheng.EditorTools.Gates
 
         /// <summary>素材库内**不属 R-2** 但合法存在的文件(逐项具名 —— 加一项须改代码,同 A 锁纪律)。</summary>
         /// <remarks>
-        /// ⚠️ 目前只有 <c>music_encounter_layer_loop.wav</c>(<c>Music_Encounter_Layer</c> 行,
-        /// R-2 归属表未列音乐层 —— 它是 GDD 规则七的必需 cue,不属 R-2 九项)。
+        /// ⚠️ 目前两类:
+        /// ① <c>music_encounter_layer_loop.wav</c>(<c>Music_Encounter_Layer</c> 行,
+        ///    R-2 归属表未列音乐层 —— 它是 GDD 规则七的必需 cue,不属 R-2 九项)。
+        /// ② 48 教学口述四件(2026-10-21 C-1,用户裁定「加进豁免清单」)——
+        ///    它们的归属是 **44 ↔ 48 契约**(`audio-system.md:698` 登记行 +
+        ///    `AC-44-15` 字幕通道),**不在 R-2 的九项裁决面内**。R-2 是「诊断/急救/世界」
+        ///    三条感知通道的归属闭合,教学口述不属其中任何一条。
+        ///    ⚠️ 逐项具名而非按前缀豁免:`Narration_` 前缀将来若再进别的行,
+        ///    必须重新过这里 —— 豁免面不得随命名法自动扩张。
         /// </remarks>
         public static readonly IReadOnlyList<string> LibraryUnregisteredExempt = new[]
         {
             "music_encounter_layer_loop.wav",
+            "Narration_TeachObserve_01.wav",
+            "Narration_TeachJudge_01.wav",
+            "Narration_TeachClose_01.wav",
+            "Narration_TeachArchive_01.wav",
         };
 
 

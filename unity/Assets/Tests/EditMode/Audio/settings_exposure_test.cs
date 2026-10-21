@@ -439,39 +439,41 @@ namespace DaYiJingCheng.Tests.Unit.Audio
                 "错误须点名 subtitle_text:\n" + string.Join("\n", errors));
         }
 
-        /// <summary>**缺口登记(NOT-RUN)** —— AC-44-15 [A] 的「含 48 口述」半边**当前不可判**。
-        /// <para>实测:48 的 4 支教学口述(见 <c>assets/data/48_tutorial_content.json</c> 的
-        /// <c>narration[].cueId</c>)既不 ∉ 事件表,前缀也不匹配已登记的
+        /// <summary>AC-44-15 [A] 的「含 48 口述」半边 —— **已落地**(2026-10-21 C-1 改判)。
+        /// <para><b>原判定(2026-10-16 → 2026-10-21 前)</b>:本条是**缺口哨兵**,钉住
+        /// 「48 的 4 支教学口述既不在事件表、前缀也不匹配
         /// <see cref="AudioEventTableGates.SubtitleCuePrefixes"/>(<c>Voice_</c>/<c>Narration_</c>)
-        /// ⇒ 生产门**看不见它们**,「表键集 ⊇ 语声 cue 集(含 48 口述)」的字面在本门下**恒真**。</para>
-        /// <para>⚠️ 本条是**缺口哨兵**,不是 AC 通过:它钉住「缺口现在存在」这一实测事实。
-        /// 48 侧契约落地(口述 cue 入事件表或前缀入登记)后**本条会转红** —— 届时须随之改判,
-        /// 而不是把红当回归修掉。用户裁定(2026-10-16):如实登记 NOT-RUN + 缺口,
-        /// **不代 48 立契约、不扩前缀、不登种子**。</para></summary>
+        /// ⇒ 生产门看不见它们」这一实测事实;当时断言两条 `Is.False`。</para>
+        /// <para><b>为何改判</b>:C-1 把 4 条口述 cue 落进事件表,并按用户裁定
+        /// (2026-10-21)改名为 <c>Narration_Teach*_01</c> —— 前缀落进 <c>Narration_</c> 族
+        /// ⇒ `IsSubtitleCue()` 转真,门的字幕覆盖断言**首次真正覆盖到 48 口述**。
+        /// 承本测原注:「48 侧契约落地后本条会转红 —— 届时须随之改判,**而不是把红当回归修掉**」。
+        /// 这正是那次改判。</para>
+        /// <para>⚠️ 判据未放宽:两条断言由 `Is.False` 翻成 `Is.True`,**同一条覆盖命题的两端**
+        /// (落地前「扫不到」/ 落地后「扫得到且真在表里」)。不是删断言、不是换夹具。</para></summary>
         [Test]
-        public void test_tutorialNarrationCues_registeredAsGap_notVisibleToGate()
+        public void test_tutorialNarrationCues_areInEventTable_andAreSubtitleCues()
         {
             // Arrange:48 的教学口述 cueId(读真种子,非硬编码 —— 48 改内容时本测随之动)
             string tutorialPath = Path.Combine(repoRoot(), "assets", "data", "48_tutorial_content.json");
             Assert.That(File.Exists(tutorialPath), Is.True, $"48 教学种子缺失:{tutorialPath}");
             IReadOnlyList<string> narrationCueIds = ExtractNarrationCueIds(File.ReadAllText(tutorialPath));
             Assert.That(narrationCueIds.Count, Is.GreaterThan(0),
-                "前置:48 教学种子须有 narration[].cueId(否则缺口不成立)");
+                "前置:48 教学种子须有 narration[].cueId(否则本条无判别力)");
 
             // Arrange:事件表 cue 集
             string eventsPath = Path.Combine(repoRoot(), "assets", "data", "audio_events.json");
             IReadOnlyList<AudioEventTableRow> rows = ExtractRows(File.ReadAllText(eventsPath));
 
-            // Act + Assert:① 48 口述 cue 一条也不在事件表 ② 一条也不被生产门判为语声族
+            // Act + Assert:① 48 口述 cue 全部在事件表 ② 全部被生产门判为语声族(⇒ 字幕断言覆盖到)
             for (int i = 0; i < narrationCueIds.Count; i++)
             {
                 string cueId = narrationCueIds[i];
-                Assert.That(ContainsCue(rows, cueId), Is.False,
-                    $"缺口登记:48 口述 cue「{cueId}」当前**不在**事件表 —— " +
-                    "若它已入表,说明 48 侧契约已落地,本缺口哨兵应随之改判(见本测 XML 注)");
-                Assert.That(AudioEventTableGates.IsSubtitleCue(cueId), Is.False,
-                    $"缺口登记:48 口述 cue「{cueId}」当前**不匹配**已登记前缀 —— " +
-                    "若已匹配,说明前缀登记已扩,本缺口哨兵应随之改判");
+                Assert.That(ContainsCue(rows, cueId), Is.True,
+                    $"AC-44-15 [A]:48 口述 cue「{cueId}」须在事件表内(否则字幕文本无出处)");
+                Assert.That(AudioEventTableGates.IsSubtitleCue(cueId), Is.True,
+                    $"AC-44-15 [A]:48 口述 cue「{cueId}」须匹配字幕族前缀 —— " +
+                    "否则生产门的「表键集 ⊇ 语声 cue 集」对本条恒真(覆盖不到 = 义务悬空)");
             }
         }
 

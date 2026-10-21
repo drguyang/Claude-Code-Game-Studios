@@ -33,6 +33,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - audio
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 298a3795b0f6bb07a9af4f63b73ebf37
+    m_Address: Narration_TeachJudge_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 29ff3dc214c7093cfabc75022dab9519
     m_Address: sfx_cabinet_drawer_01.wav
     m_ReadOnly: 0
@@ -83,6 +89,12 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 508bc3da96ba540798c1936b8c9a481b
     m_Address: sfx_footstep_dirt_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 602a0212a9dfd0644923f9fbaa5076d7
+    m_Address: Narration_TeachClose_01.wav
     m_ReadOnly: 0
     m_SerializedLabels:
     - audio
@@ -153,6 +165,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - audio
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: afe5f6ce9a9578d53a4bacca792ae27b
+    m_Address: Narration_TeachArchive_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b39e5b3c87133f29abc27b743819adbf
     m_Address: vo_patient_cough_damp_m2_2.wav
     m_ReadOnly: 0
@@ -201,6 +219,18 @@ MonoBehaviour:
     m_SerializedLabels:
     - audio
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e67961ebdd8caeda2848309e5d3608e9
+    m_Address: DaYiJingCheng.mixer
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ea2e807b370006c1f8f07dd8575cb912
+    m_Address: Narration_TeachObserve_01.wav
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - audio
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: eaf88513d7d489c0286d3734b1930696
     m_Address: sfx_footstep_snow_01.wav
     m_ReadOnly: 0
@@ -233,12 +263,6 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: fd5e5455c25d221b7ad46c8dad78e5c0
     m_Address: sfx_world_horse_01.wav
-    m_ReadOnly: 0
-    m_SerializedLabels:
-    - audio
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: e67961ebdd8caeda2848309e5d3608e9
-    m_Address: DaYiJingCheng.mixer
     m_ReadOnly: 0
     m_SerializedLabels:
     - audio

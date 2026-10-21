@@ -226,6 +226,54 @@
       "loop": true,
       "whitelist_category": "WorldPerceptible",
       "trigger_source": "WorldPerceptible"
+    },
+    {
+      "schema_version": 1,
+      "cue": "Narration_TeachObserve_01",
+      "assets": [
+        "Narration_TeachObserve_01.wav"
+      ],
+      "bus": "Voice",
+      "loop": false,
+      "whitelist_category": "WorldPerceptible",
+      "trigger_source": "WorldPerceptible",
+      "subtitle_text": "喘着气,气色、神态,都在脸上。"
+    },
+    {
+      "schema_version": 1,
+      "cue": "Narration_TeachJudge_01",
+      "assets": [
+        "Narration_TeachJudge_01.wav"
+      ],
+      "bus": "Voice",
+      "loop": false,
+      "whitelist_category": "WorldPerceptible",
+      "trigger_source": "WorldPerceptible",
+      "subtitle_text": "哼一声,看明白了,就翻本子记一笔。"
+    },
+    {
+      "schema_version": 1,
+      "cue": "Narration_TeachClose_01",
+      "assets": [
+        "Narration_TeachClose_01.wav"
+      ],
+      "bus": "Voice",
+      "loop": false,
+      "whitelist_category": "WorldPerceptible",
+      "trigger_source": "WorldPerceptible",
+      "subtitle_text": "叹口气,处置妥当,一个病例才算了结。"
+    },
+    {
+      "schema_version": 1,
+      "cue": "Narration_TeachArchive_01",
+      "assets": [
+        "Narration_TeachArchive_01.wav"
+      ],
+      "bus": "Voice",
+      "loop": false,
+      "whitelist_category": "WorldPerceptible",
+      "trigger_source": "WorldPerceptible",
+      "subtitle_text": "哼着曲,要紧的,都写进册子。"
     }
   ]
 }

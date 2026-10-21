@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "note": "13 的示范片段表(clipKey 闭集)。48_tutorial_content.json 的 demonstrations[].clipKey 引用本表;引用完整性 = 构建期断言(悬垂键 = 硬失败)。承 tutorial-and-onboarding.md:253「narration[].cueId → 44 表」的同构口径,本表是 clipKey 侧的对应真源。⚠️ 本表只登记键名与片段语义,不含时序/时长 —— 节奏规格归 48 实现轮(paper-closeup-48.md 的 OQ-C4 明让「不代 48 拍时序」)。",
+  "clips": [
+    {
+      "clipKey": "mentor_pulse_exam",
+      "step": "observe",
+      "actor": "mentor",
+      "note": "示范者搭脉。承 tutorial-and-onboarding.md:105「口述 = NPC 对话(世界内,空间化音频)」—— 示范是可见动作,不是状态播报。"
+    },
+    {
+      "clipKey": "mentor_open_notebook",
+      "step": "judge",
+      "actor": "mentor",
+      "note": "示范者翻开本子落笔。对应 39 脉案的落笔锚点。"
+    },
+    {
+      "clipKey": "mentor_bandage_demo",
+      "step": "treat",
+      "actor": "mentor",
+      "note": "示范者包扎处置。对应 10 急救动作的表现面。"
+    },
+    {
+      "clipKey": "mentor_close_case",
+      "step": "close",
+      "actor": "mentor",
+      "note": "示范者合上病例。对应 37 病例的 CaseClosed 表现面(处置事件为证,非自述复选框 —— ADR-008)。"
+    },
+    {
+      "clipKey": "mentor_open_ledger",
+      "step": "archive",
+      "actor": "mentor",
+      "note": "示范者翻开存档册。对应 7b 存档位 UI 的册子道具。"
+    },
+    {
+      "clipKey": "mentor_place_structure",
+      "step": "manage",
+      "actor": "mentor",
+      "note": "示范者摆放建造物。对应 23 模块化建造 / 24 医馆机器(第⑥步营造)。"
+    }
+  ]
+}
