@@ -2,7 +2,8 @@
 //   GDD design/gdd/clinic-machine.md `:161-162`(`S` 成员判据 = `type(c) ∈ FURN_TYPES`;
 //     `tier(c) ∈ [0, TIER_MAX]`,0 = 无档)· `:188`(`e_env(type)` ∈ [−C_max, C_max],可负)
 //   GDD `:297` 家具目录 `FURN_TABLE` 归 **21a**(作者态 `assets/data/item_database_furniture.json`)
-//   OQ-24-2 `TIER_MAX = 3` · OQ-24-5 / OQ-24-6 `C_max = 1/64`
+//   OQ-24-2 `TIER_MAX = 3` · OQ-24-5 `n_max = 64`
+//   ⚠️ **2026-10-21 用户裁定:`C_max` 1/64 → 1/8**(原派生式 `C_max = 1/n_max` 作废)
 //   ADR-014 §五(运行期只读烘焙产物 —— 本类型是 cooked 的**解码后形态**,不是作者态)
 //
 // ⚠️ 本件住 Sim(`DaYiJingCheng.Sim.Clinic`,门 A:引用集 = BCL + Sim.Contracts,零引擎)。
@@ -41,11 +42,15 @@ namespace DaYiJingCheng.Sim.Clinic
     /// <summary>家具目录(<c>FURN_TABLE</c>)的运行期只读视图 —— `FURN_TYPES` 闭集的运行期载体。</summary>
     public sealed class ClinicFurnitureCatalogue
     {
-        /// <summary>`e_env` 的绝对值上界 `C_max = 1/64`(OQ-24-5 / OQ-24-6)。
+        /// <summary>`e_env` 的绝对值上界 `C_max = 1/8`。</summary>
+        /// <remarks>
+        /// <para>🔁 **2026-10-21 用户裁定:1/64 → 1/8**(原派生式 `C_max = 1/n_max` 作废)
+        /// —— 理由与代价见 `ItemDatabaseFurnitureBinder.EnvContributionMax` 的 `<remarks>`。</para>
         /// <para>⚠️ 与 `ItemDatabaseFurnitureBinder.EnvContributionMax` **必须同值** ——
         /// 二者分居两层(烘焙期 / 运行期),跨侧等值由
-        /// `test_furniture_catalogue_cMax_matchesBinder` 钉住(单一数值,两处表达)。</para></summary>
-        public const long EnvContributionMaxRaw = Fix.OneRaw / 64;
+        /// <c>test_furniture_catalogue_cMax_matchesBinder</c> 钉住(单一数值,两处表达)。</para>
+        /// </remarks>
+        public const long EnvContributionMaxRaw = Fix.OneRaw / 8;
 
         private readonly Dictionary<string, ClinicFurnitureEntry> _byType;
         private readonly ClinicFurnitureEntry[] _rows;
@@ -100,7 +105,7 @@ namespace DaYiJingCheng.Sim.Clinic
                 if (row.EEnv.Raw > EnvContributionMaxRaw || row.EEnv.Raw < -EnvContributionMaxRaw)
                     throw new ArgumentException(
                         $"FURN_TABLE「{row.Type}」e_env raw={row.EEnv.Raw} 越出 ±{EnvContributionMaxRaw}" +
-                        "(C_max = 1/64;OQ-24-6 的耦合 n·C_max ≤ 1)");
+                        "(C_max = 1/8;2026-10-21 用户裁定,原 C_max = 1/n_max 派生式已作废)");
                 if (_byType.ContainsKey(row.Type))
                     throw new ArgumentException(
                         $"FURN_TABLE type「{row.Type}」重复 —— 每类型恰一行(重复使闭集大小失真)");

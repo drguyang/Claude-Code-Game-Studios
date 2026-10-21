@@ -4,7 +4,9 @@
 //     · `:188`(`e_env(type)` ∈ [−C_max, C_max],可负 = 污染 / 劣化)
 //     · `:330`(`e_env` 量级:正 ∈ [1/16,1/8] / 负 ∈ [−1/4,−1/8] 为**案卷建议**,定值归内容轮)
 //   OQ-24-2(2026-09-25)`TIER_MAX = 3` —— **声明家 = 本表**(`tier_max` 根字段)
-//   OQ-24-5 / OQ-24-6(2026-10-07)`n_max = 64` ⇒ `C_max = 1/n_max = 1/64`
+//   OQ-24-5(2026-10-07)`n_max = 64`
+//   ⚠️ **2026-10-21 用户裁定:`C_max` 1/64 → 1/8**(原「`C_max = 1/n_max`」的派生式**作废**)——
+//      详见下方 `EnvContributionMax` 的注释与 GDD `:188` / `:330` / OQ-24-5/6 的回刷注。
 //   ADR-014 §三/§四(阶段 2:白名单 · `FixParse` 唯一入口 · `Fix` 字段写字符串 · 聚合 throw)
 //   `TD-clinic-01` / 路线图 §三 G-8(`O-24-1` 的兑现件)
 //
@@ -14,8 +16,10 @@
 //
 // ⚠️ **三条"不能靠作者自觉"的域**,各由一条硬门守:
 //   ① `tier ∈ [0, tier_max]` —— 越界 = 构建失败(不是钳制;钳制会把作者错误静默吞掉)
-//   ② `|e_env| ≤ C_max = 1/64` —— 越界拒收。⚠️ `C_max` 与 24 的 `n_max` **耦合**(`n·C_max ≤ 1`),
-//      改一侧必须同改另一侧;本处是具名常数,不是从 24 的数据里读回来的(那会成反向依赖)
+//   ② `|e_env| ≤ C_max = 1/8` —— 越界拒收。⚠️ **`C_max` 自此与 `n_max` 解耦**
+//      (2026-10-21 裁定前它是 `1/n_max`,耦合式 `n·C_max ≤ 1`;现为独立裁定值 `1/8`,
+//      满 64 件 = `n·C_max = 8.0`)⇒ 改 `C_max` **不再需要**同改 24 的 `n_max`。
+//      本处仍是具名常数,不是从 24 的数据里读回来的(那会成反向依赖)
 //   ③ `tier_max` 与 24 的 `ClinicMachineSchema.TierMax` **对账** —— 在 `ClinicMachineTablesBake`
 //      注入时执行(本件只声明,不对账:21a 不认识 24)
 //
@@ -34,9 +38,23 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>源文件名(单一出处;烘焙装载器 / 菜单 / 测试共用)。</summary>
         public const string FileName = "item_database_furniture.json";
 
-        /// <summary>`e_env` 的绝对值上界 `C_max = 1/64`(OQ-24-5 / OQ-24-6:与 `n_max = 64` 耦合,
-        /// `n·C_max ≤ 1` ⇒ 家具堆叠的总环境贡献永不超过 1)。</summary>
-        public static readonly Fix EnvContributionMax = new Fix(Fix.OneRaw / 64);
+        /// <summary>`e_env` 的绝对值上界 `C_max = 1/8`。</summary>
+        /// <remarks>
+        /// <para>🔁 **2026-10-21 用户裁定:1/64 → 1/8**(原派生式 `C_max = 1/n_max` **作废**)。</para>
+        /// <para><b>为什么改</b>:原值 `1/64` 使**单条邻接边(`W_max = 1/4`)等于 16 件家具的贡献**
+        /// ⇒ 家具类型几乎不影响 `env_score`,成了纯装饰;且 GDD `:330` 的案卷建议区间
+        /// (正 `[1/16,1/8]`)在 `C_max = 1/64` 下**完全不可达**(最小建议值 4× 于上界,必被拒收)。
+        /// 取 `1/8` 后:① 案卷建议**正半** `[1/16,1/8]` 完全可达;② 边:件 权重比由 `16:1` 降到 `2:1`,
+        /// 家具类型重新成为可感知的设计变量。</para>
+        /// <para>⚠️ <b>附带代价(如实登记,不假装全解决)</b>:① 原设计约束 `n·C_max ≤ 1`
+        /// (「堆多少家具都换不来一次满修正」)<b>不再成立</b> —— 满 64 件 = `8.0`;
+        /// ② 案卷建议的**负半** `[−1/4,−1/8]` 只有下段可达(`−1/8` = 8192 = 上界 ✓;
+        /// `−1/4` = 16384 > 8192 ✗ 仍被拒);③ GDD 药房算例的 `e_env`(`+12000` / `−20000`)
+        /// 仍越界 —— 那是**独立的第三处冲突**,不在本次裁定面内。</para>
+        /// <para>⚠️ int64 域不受影响:`max|env_score| ≤ |base| + n·C_max + 2n·Φ`
+        /// = `1/2 + 64×(1/8) + 64×(1/4)` = `24.5` ≪ int64 上界(余量约 5×10⁷ 倍)。</para>
+        /// </remarks>
+        public static readonly Fix EnvContributionMax = new Fix(Fix.OneRaw / 8);
 
         /// <summary>一行家具。</summary>
         public readonly struct FurnRow
@@ -187,8 +205,9 @@ namespace DaYiJingCheng.EditorTools.Bake
                 {
                     errors.Add(
                         $"{FileName}:{where}(type=\"{type ?? "?"}\") e_env raw={eEnv.Raw} 越出 " +
-                        $"[−C_max, C_max] = ±{EnvContributionMax.Raw}(C_max = 1/n_max = 1/64," +
-                        "OQ-24-5 / OQ-24-6 的耦合 n·C_max ≤ 1)—— 越界拒收,不钳制");
+                        $"[−C_max, C_max] = ±{EnvContributionMax.Raw}(C_max = 1/8," +
+                        "2026-10-21 用户裁定;原派生式 C_max = 1/n_max 已作废)" +
+                        " —— 越界拒收,不钳制");
                 }
             }
             else

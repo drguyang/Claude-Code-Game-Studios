@@ -22,6 +22,14 @@
 > §五 命令实测(逐字,含 `TD-clinic-01` 的 `done` 键):
 > `条目 96 | 状态 {'open': 71, 'partial': 5, 'closed': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 87, 'N': 8, '~~**Y**~~': 1}`。
 > **现役单一真值 = 96。**
+> 🔁 **2026-10-21 五订(`TD-itemdb-01` 兑现轮 · `open` → `partial`)**:条目数、`Y`、未闭 P0 面**三项一位不动**
+> (`96` / `87` / `72`),只有 `open 71 → 70`、`partial 5 → 6` 对调。
+> §五 命令实测:`条目 96 | 状态 {'open': 70, 'partial': 6, 'closed': 19, '**done**(2026-10-21)': 1}
+> | P0 面 {'Y': 87, 'N': 8, '~~**Y**~~': 1}`;未闭 P0 面 = **72**(未动)。
+> ⚠️ **本轮是「同一笔债推进」,不是「新增/结案」** —— 与四订的性质不同:
+> 四订是「结一条 + 增一条」两笔相抵,五订是**一条债自己的状态列换了一个字**。
+> `partial` 仍计入未闭 P0 面(§五 脚本 `r[2] != 'closed'` 不认 `partial` 为已闭)⇒ **出口判据不受影响**。
+> 兑现面与仍缺面逐条见 `TD-itemdb-01` 条目末尾的「兑现轮」小节。
 > 判据本身亦已换:**原 ②「逐条判该债是否卡住某条 P0 AC」** 由用户 2026-10-20 裁定的
 > **宽判据 R1**(归属 epic ∈ 31 个 P0 epic ⇒ P0 面 = Y)取代 —— 见 §★ 总索引 §一。
 >
@@ -158,6 +166,11 @@
 > `**done**(2026-10-21)`(与既有 `closed` 并存),§五 的脚本按字面分桶,故它单列。
 > **它已结清,不计入未闭 P0 面**;`P0 面` 列的 `~~Y~~` 同理(删除线态,同一条)。
 > 变化 = `open` **+1**(新债)· `done` **+1**(结案)· `Y` 净 **0**(见 §一 四订块的逐条说明)。
+> 🔁 **2026-10-21(五订 · `TD-itemdb-01` 兑现轮)**:`open` **70** · `partial` **6** ·
+> `closed` **19** · `done` **1** —— 合计 **96** ✓(未变)· `P0 面 {Y:87, N:8, ~~Y~~:1}`(未变)。
+> 变化 = `open` **−1** / `partial` **+1**(**同一行**,`TD-itemdb-01` 由 `open` 转 `partial`)。
+> ⚠️ **本轮与四订的性质不同**:四订是「结一条 + 增一条」两笔互抵,五订是**一行自己的状态列换字**。
+> ⇒ **`未闭 P0 面` 仍 72**,原因却与四订完全不同 —— **禁止把「还是 72」读成「本轮没动」**。
 
 ### 四、总索引表(91 行)
 
@@ -166,6 +179,8 @@
 > 标题原文不删(承「原文不删,就地加注」),读数以**表内实际行数**为准 —— 由 §五 的求值命令机械复算。
 > 🔁 **2026-10-21(再 +1)**:新增 `TD-build-01`(治理)⇒ **现役 95 行**。
 > 🔁 **2026-10-21(四订)**:新增 `TD-itemdb-01`(产品债)⇒ **现役 96 行**。
+> 🔁 **2026-10-21(五订)**:`TD-itemdb-01` 由 `open` 转 `partial`(**行数不变**,只是状态列换字)
+> ⇒ **现役仍 96 行**。
 > ⚠️ **标题里的 `91 行` 与现役值的差 = 5 行**,其中 3 条 `TD-gate` + 1 条 `TD-build-01` + 1 条 `TD-itemdb-01`。
 > `TD-clinic-01` **不是新行**,它是**原 91 行里的那一行改了状态**(⇒ 行数不变,`done` 计数 +1)。
 
@@ -267,7 +282,7 @@
 | `TD-gate-02` | `（跨 epic · 治理／Editor.Tools.Gates）` | closed | **N** | R3-裁 |
 | `TD-gate-03` | `（跨 epic · 治理／tools/falsify）` | closed | **N** | R3-裁 |
 | `TD-build-01` | `（跨 epic · 治理／构建期派生）` | open | **N** | R3-裁 |
-| `TD-itemdb-01` | `item-database` | open | **Y** | R1 |
+| `TD-itemdb-01` | `item-database` | partial | **Y** | R1 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -301,10 +316,10 @@ for k, v in ep.most_common():
 PYEVAL
 ```
 
-**当前预期输出(2026-10-21 四订实测 · 含 `TD-itemdb-01` —— 三订版原文留档于下)**:
+**当前预期输出(2026-10-21 五订实测 · 含 `TD-itemdb-01` → `partial` —— 四订版原文留档于下)**:
 
 ```text
-条目 96 | 状态 {'open': 71, 'partial': 5, 'closed': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 87, 'N': 8, '~~**Y**~~': 1}
+条目 96 | 状态 {'open': 70, 'partial': 6, 'closed': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 87, 'N': 8, '~~**Y**~~': 1}
 未闭 P0 面 = 72 （已闭但曾标 P0 面的 15 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 72 条,分布在 12/31 个 epic
     medical-consequences: 20   audio-system: 20          clinic-machine: 16
@@ -312,6 +327,10 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
     persistence-service: 2     patient-ai: 1              player-controller: 1
     enemy-ai: 1                random-events: 1           item-database: 1
 ```
+
+> 🔁 **2026-10-21 四订版(原文留档,已被上方五订取代)**:
+> `条目 96 | 状态 {'open': 71, 'partial': 5, 'closed': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 87, 'N': 8, '~~**Y**~~': 1}`;
+> `未闭 P0 面 = 72`。差异仅在 `open 71 → 70` / `partial 5 → 6`(同一行换字)。
 
 > ⚠️ **`状态` / `P0 面` 两个 Counter 各多出一个键,是 `TD-clinic-01` 结案后的真实现象,不是 bug**:
 > 它的状态列写 `**done**(2026-10-21)`(不是 `closed`)、`P0 面` 列写 `~~**Y**~~`(删除线包住)。
@@ -348,6 +367,10 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 > `N 7 → 8`。**`未闭 P0 面 = 72` 一位不动**,`Y: 87` 也不动。
 > ⇒ 本次同样**只让分母变全,不改变 M3 判定**。~~**现役单一真值 = 95**~~(§五 命令实测)。
 > 🔁 **2026-10-21 四订已取代本行** —— 现役真值 = **96**,见上方「四订」块。原文不删。
+> 🔁 **2026-10-21 五订(`TD-itemdb-01` 兑现轮)**:`open 71 → 70` · `partial 5 → 6`。
+> `条目 96` / `Y 87` / **`未闭 P0 面 = 72` 三项一位不动**。
+> ⚠️ **本次只换了一个状态字**(`open` → `partial`),既非新增也非结案 ⇒ 与四订的「一增一减相抵」不同。
+> **现役真值 = 96,见上方「五订」块。**
 
 **以下是回填前的旧输出(2026-10-20 实测 · 原文保留)**:
 
@@ -1959,7 +1982,7 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
-| **TD-itemdb-01** | `item-database` | **open** | **Y** | R1 |
+| **TD-itemdb-01** | `item-database` | **partial**(2026-10-21) | **Y** | R1 |
 
 > **`P0 面 = Y`** —— 归属 epic `item-database` ∈ 31 个 P0 epic(承 §一 **R1 宽判据**:
 > 归属 epic 是 P0 epic ⇒ `P0 面 = Y`)。**与 `TD-clinic-01` 同口径** —— 后者结案前亦为 `Y`。
@@ -1970,3 +1993,54 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 > ⚠️ **M3 Exit 判定不变**:`item-database` 名下未闭 P0 面债由 0 → 1,
 > 该 epic 的「未闭 TD 的 P0 面 = 0」合取**本就为假**(另有 71 条分布在其余 epic)⇒ **出口判定仍为假**,
 > 只是分母从 71 变 72。
+
+---
+
+#### 🔁 2026-10-21 兑现轮:`open` → **`partial`**(解除动作的第 ① 半已落,第 ② 半仍缺)
+
+**用户裁定(2026-10-21,`AskUserQuestion`):「乙 · 现在补 `build_modules.json` 作者态」**
+—— 即在本轮兑现解除动作的**数据侧**,不推到 23 装配轮。
+**证据原件**:`production/qa/evidence/impl-td-itemdb-01-build-modules-2026-10-21.md`
+(含逐条 Landed/Proven 双列、证伪轮 C/D/E、全量回归集合差)。
+
+**已落(Landed)**:
+
+| 面 | 落点 | 判据 |
+|---|---|---|
+| 作者态 | `assets/data/build_modules.json`(9 行,`schema_version: 1`) | 文件存在且过四道域门 |
+| 绑定器 | `unity/Assets/Editor.Tools.Bake/BuildModulesBinder.cs` | 四门:锚点格 `(0,0,0) ∈ occupancy_local` / `module_id` 唯一且 > 0 / `module_type ∈ SlotType 闭集`(不含 `None`)/ `cost ≥ 1`;白名单键;`refundable` 与 `furn_type` 缺席 ≠ 默认值 |
+| 写方 | `BuildModulesCookedWriter.cs` | 行序 = `module_id` 升序(声明序不进字节流);`refundable` 写 i32 与 `ModuleDefinition.Refundable` 同型 |
+| 烘焙入口 | `BuildModulesBake.cs` + `DataBakeMenu.BakeBuildModulesCore` | **跨表同源门**:`furn_type ∉ FURN_TYPES` ⇒ `BakeValidationException`(闭集取**本次**烘焙,不用旧产物) |
+| 产物 | `unity/Assets/DataCooked/build_modules.cooked.bytes` | 20 字节头 + 载荷;`ConfigVersion` = 源文本内容哈希 |
+| 测试 | `unity/Assets/Tests/EditMode/ClinicMachine/build_modules_bake_test.cs`(18 测) | 见下证伪轮 |
+| 机械门 | `FsWriteBoundaryGate.Declarations` 第 7 条 | 锚点 `Application.dataPath` 只喂**读**;写落 `Path.GetTempPath()` |
+
+**证伪轮(3 例,`exactRed`)**:
+
+| 变异 | 停用的守卫 | 转红的测试(恰 1 条) |
+|---|---|---|
+| C | `if (ok && !seen.Contains((0, 0, 0)))` → `false &&` | `test_buildModules_missingAnchorCell_isRejected` |
+| D | 注释掉 `rows.Sort(CompareModuleId);` | `test_buildModules_rowOrder_isModuleIdSorted`(`bakeIsDeterministic` 如期**仍绿**) |
+| E | `if (!known.Contains(row.FurnType))` → `false &&` | `test_buildModules_productionCore_rejectsUnknownFurnType` |
+
+⚠️ **E 的前情须如实登记**:预注册时(夹具尚未写)预期是「**全绿 ⇒ 覆盖缺口**」——
+因为当时跨表门只在 `DataBakeMenu` 里、唯一打它的测试是真种子的**正向**测。
+**该缺口在跑 E 之前被补掉了**(新增负向夹具 `..._rejectsUnknownFurnType`,造最小仓根注入 `"ghost"`),
+所以 E 跑出来是 **RED**,不是预注册里写的「全绿」。**这是预期被证伪后改夹具,不是事后改预期** ——
+预注册文本 `/tmp/fz-expect-s17-5-E.txt` 原文未改,判据差异记在此处。
+
+**仍未落(故 `partial` 而非 `closed`)**:
+
+| 面 | 缺什么 | 归属 |
+|---|---|---|
+| 运行期读方 | `IModuleCatalog` 的**生产树实现仍为零**(`TD-itemdb-01` 实测 ⑦ 原样) | 23 装配轮 |
+| `cost(m)` 消费 | `ModuleDefinition` 仍只有五字段,**无 `Cost`**;`DemolishChecker.CalculateRefund(int cost, …)` 仍由调用方喂 | 23 装配轮 |
+| 槽位骨架 | `world_buildslots.json` **仍不存在**(story-001:45 的「两烘焙源」只落了一源) | 54 关卡工具 / 23 |
+
+> ⚠️ **`partial` 的语义**:解除动作原写「落定后两件事同批」—— 本次只做了第 ① 半(数据落地 + 「同源」措辞就地修订),
+> 第 ② 半(补 `ModuleDefinition.Cost` + `DemolishChecker` 从目录读)按原触发条件**仍归 23 装配轮**。
+> **两半不合并、不互抵** —— 承原债条「单做任一半都会留下新的『半边』」的自我警告。
+> ⚠️ **本状态变更不动 `P0 面`**:`Y` 依旧(`partial` 仍计入未闭 P0 面,§五 脚本的 `r[2] != 'closed'` 判据不变)
+> ⇒ **`未闭 P0 面` 仍为 72**,与四订时的读数一致 —— 但**原因不同**:
+> 四订时是「新债 +1」,本轮是「同一笔债仍在,只是从 `open` 走到 `partial`」。
+> **禁止把「还是 72」读成「本轮没动」**。

@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "_note": "23 模块化建造的**模块目录**（`modular-building.md:88` 规则一）—— 21a 拥有（`item-database.md:859`「与 cost(m) 同源」），23 只读。本文件兑现 `TD-itemdb-01`（cost(m) 作者态缺席）。⚠️ 数值 = 夹具种子值，不是游戏平衡值（数值归用户轮，`modular-building.md:507` 的 cost(m) 旋钮）：cost ∈ [1, 99]，refundable 为布尔。⚠️ **字段集与 story-001:45 的偏差**：卡面写 `module_id / module_type / OccupiedCells_local / cost / refundable` 五字段，本表另加第六字段 `furn_type`（2026-10-21 用户裁定 甲案）—— 理由：24 的 `FURN_TYPES` 是**字符串词汇**（bed / herb_cabinet / …），而 `module_id` 在载荷与 registry 里是 **i32**（entities.yaml:2106），两套表示不可互推；`furn_type = null` 表示非家具件。⚠️ `module_type` 用 23 的 `SlotType` 枚举名（None/Bed/Table/Cabinet/Plot/Decor/Shell，见 BuildSlotCatalog.cs:17），**不是** `furn_type` 那套词汇 —— 两者同名不同物。⚠️ `occupancy_local` 每项为 `[x, y, z]` 整数三元组（相对锚点的偏移，ADR-015 §三 单一整数格）；目录校验要求 `[0,0,0]` 必须在内（锚点自身计入占用，`modular-building.md:90` 评审 B5）。",
+  "modules": [
+    {
+      "module_id": 1,
+      "module_type": "Bed",
+      "furn_type": "bed",
+      "occupancy_local": [[0, 0, 0]],
+      "cost": 4,
+      "refundable": true
+    },
+    {
+      "module_id": 2,
+      "module_type": "Table",
+      "furn_type": "surgery_table",
+      "occupancy_local": [[0, 0, 0], [1, 0, 0]],
+      "cost": 8,
+      "refundable": true
+    },
+    {
+      "module_id": 3,
+      "module_type": "Cabinet",
+      "furn_type": "sterile_cabinet",
+      "occupancy_local": [[0, 0, 0]],
+      "cost": 6,
+      "refundable": true
+    },
+    {
+      "module_id": 4,
+      "module_type": "Cabinet",
+      "furn_type": "herb_cabinet",
+      "occupancy_local": [[0, 0, 0]],
+      "cost": 6,
+      "refundable": true
+    },
+    {
+      "module_id": 5,
+      "module_type": "Table",
+      "furn_type": "grinder",
+      "occupancy_local": [[0, 0, 0]],
+      "cost": 3,
+      "refundable": true
+    },
+    {
+      "module_id": 6,
+      "module_type": "Decor",
+      "furn_type": "drying_rack",
+      "occupancy_local": [[0, 0, 0], [0, 1, 0]],
+      "cost": 2,
+      "refundable": true
+    },
+    {
+      "module_id": 7,
+      "module_type": "Decor",
+      "furn_type": "chamber_pot",
+      "occupancy_local": [[0, 0, 0]],
+      "cost": 1,
+      "refundable": true
+    },
+    {
+      "module_id": 8,
+      "module_type": "Shell",
+      "furn_type": null,
+      "occupancy_local": [[0, 0, 0]],
+      "cost": 1,
+      "refundable": false
+    },
+    {
+      "module_id": 9,
+      "module_type": "Decor",
+      "furn_type": null,
+      "occupancy_local": [[0, 0, 0]],
+      "cost": 1,
+      "refundable": false
+    }
+  ]
+}

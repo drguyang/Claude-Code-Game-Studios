@@ -108,11 +108,14 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
         public void test_furniture_eEnvAsJsonNumber_isRejected()
             => AssertRejected(SourceWith("{\"type\":\"bed\",\"tier\":1,\"e_env\":0.015625}"), "e_env");
 
-        /// <summary>`|e_env| > C_max = 1/64` ⇒ 拒(OQ-24-6 的耦合 `n·C_max ≤ 1`)。</summary>
-        /// <remarks><b>判别力</b>:停用 Binder 的 `EnvContributionMax` 比较 ⇒ 本测红。</remarks>
+        /// <summary>`|e_env| > C_max = 1/8` ⇒ 拒(2026-10-21 裁定后上界)。</summary>
+        /// <remarks><b>判别力</b>:停用 Binder 的 `EnvContributionMax` 比较 ⇒ 本测红。
+        /// <para>⚠️ **2026-10-21 随 `C_max` 1/64 → 1/8 改判据值**:原夹具用 `1/32`
+        /// (在旧上界 `1/64` 下越界,在新上界 `1/8` 下**合法**)。改成 `1/4`=16384,新上界 8192 的 2×
+        /// —— 两个上界下都越界,故本测的判别力不依赖裁定值。</para></remarks>
         [Test]
         public void test_furniture_eEnvBeyondCMax_isRejected()
-            => AssertRejected(SourceWith(Row("bed", 1, "1/32")), "C_max");
+            => AssertRejected(SourceWith(Row("bed", 1, "1/4")), "C_max");
 
         /// <summary>`type` 重复 ⇒ 拒(重复使闭集大小失真)。</summary>
         [Test]
@@ -200,7 +203,7 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
         }
 
         /// <summary>`C_max` 两侧同值(烘焙期 Binder ↔ 运行期表)。</summary>
-        /// <remarks><b>判别力</b>:任一侧改 `1/64` 为别的值 ⇒ 本测红。
+        /// <remarks><b>判别力</b>:任一侧改 `1/8` 为别的值 ⇒ 本测红。
         /// 两处分居两层(编辑期 / 运行期),本测是它们唯一的等值钉。</remarks>
         [Test]
         public void test_furniture_cMax_matchesBinder()
@@ -214,7 +217,7 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
         [Test]
         public void test_furniture_catalogue_rejectsOutOfDomainRow()
         {
-            var tooBig = new[] { new ClinicFurnitureEntry("bed", 1, new Fix(Fix.OneRaw / 32)) };
+            var tooBig = new[] { new ClinicFurnitureEntry("bed", 1, new Fix(Fix.OneRaw / 4)) };
             Assert.Throws<ArgumentException>(() => new ClinicFurnitureCatalogue(tooBig, 3),
                 "|e_env| > C_max 的运行期表须被拒(Sim 侧纵深防御)");
 

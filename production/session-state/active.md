@@ -8037,3 +8037,57 @@ readonly 2/2 有效 · s17-4 4/4 有效                 合计 13 变异,**6 个
 - `e_env` / `cost(m)` 两处的**裁定都还没做** —— 本轮只登记,不裁
 - S17-2 的 W1/W2 判别力仍未复验;IL2CPP 三格 NOT-RUN
 - **未 commit**(用户未指令)
+
+---
+
+## Session Extract — 2026-10-21 · `TD-itemdb-01` 兑现轮(`build_modules.json` 作者态)
+
+**触发**:用户两处裁定(`AskUserQuestion`):
+① `e_env` → 「甲 · `C_max` 抬到 1/8,案卷建议落地」;② `cost(m)` → 「乙 · 现在补 `build_modules.json` 作者态」。
+③ 形状追问 → 「甲 · `module_id` = int + 新增 `furn_type` 字符串列」。
+**本段只记 ②③;① 已记在上一段(§9 节)。**
+
+### 落盘面(9 改 / 3 新)
+- **新** `assets/data/build_modules.json` —— 9 行模块(`module_id` / `module_type` / `furn_type` / `occupancy_local` / `cost` / `refundable`)
+- **新** `unity/Assets/Editor.Tools.Bake/BuildModules{Binder,CookedWriter,Bake}.cs` —— 四道域门 + deterministic 编码 + 装载器
+- **改** `DataBakeMenu.cs` —— `BuildModulesCookedAssetName` + `BakeBuildModulesCore`(**跨表同源门**)+ 菜单项
+- **新** `unity/Assets/DataCooked/build_modules.cooked.bytes`(+meta)
+- **新** `unity/Assets/Tests/EditMode/ClinicMachine/build_modules_bake_test.cs` —— 18 测
+- **改** `FsWriteBoundaryGate.cs` —— `Declarations` 第 7 条
+- **改** `cooked_drift_all_artifacts_test.cs` —— `BakedArtifacts` 21 条 + `pinnedDeclared` 21
+- **改** `clinic-machine.md:310` / `item-database.md:859` —— 「同源」从散文落成可执行门(就地加注)
+- **新** 证据原件 `production/qa/evidence/impl-td-itemdb-01-build-modules-2026-10-21.md`
+
+### 三方表示冲突(本轮的**真正**难点,不是「补个 JSON」)
+`module_id` 在 payload/registry 是 **i32**,在 24 的 `IPlacedStructureReadView` 是 **string**,24 的 `FURN_TYPES` 又是**字符串词汇**。
+⇒ 甲案:`module_id` 保 int(23 零改动)+ 加 `furn_type: string|null` 作桥。**24 侧的 int→string 适配今日不存在,故不破任何代码。**
+
+### 证伪轮 C/D/E —— 全部 `exactRed`
+| 例 | 停用的守卫 | 恰红的测试 |
+|---|---|---|
+| C | 锚点格门 `if (ok && !seen.Contains((0,0,0)))` | `..._missingAnchorCell_isRejected` |
+| D | 写方 `rows.Sort(CompareModuleId);` | `..._rowOrder_isModuleIdSorted`(`bakeIsDeterministic` 如期**仍绿**) |
+| E | 跨表门 `if (!known.Contains(row.FurnType))` | `..._productionCore_rejectsUnknownFurnType` |
+
+⚠️ **E 的预注册预期被自己推翻了**:预注册写「全绿 ⇒ 覆盖缺口」,因为当时跨表门只在 `DataBakeMenu`、唯一打它的是**正向**测。
+**跑之前先补了负向夹具**(造最小仓根注入 `"ghost"`),才得到 RED。预注册原文未改,差异记在证据件 §4.1。
+**若按原预注册判据「全绿 ⇒ 登记缺口、不阻塞」放过去,跨表门就会以零判别力留库** —— 与 `TD-clinic-01` 假绿同型。
+
+### 全量回归:首跑 **2 条真红**,修后零回归
+- 首跑红:`test_sweep_declaredArtifactNames_allTriaged`(21≠20)+ `test_sweep_noGhostArtifact_onDiskButUnregistered`(幽灵 `build_modules.cooked.bytes`)
+- **这是漂移门第三次抓到同类漏登记**(24 三表 / 21a 家具 / 本份)⇒ 「新产物必登记」靠人记不成立,门是必要的
+- 复跑 `4291 / 4255 / 0 / 36 @ 12:38 CST · HEAD 009f301 + 工作树`;对基线 `4272 / 4236 / 0 / 36` 的 **`fullname` 集合差 = 新增 19 · 消失 0** ⇒ 零回归
+
+### 编号订正(起草期自查)
+本件最初被我写成「S17-5」**是错的** —— sprint-17 的 `S17-5` 是 retro-14 行动项 5(`TD-player-01` 回写)。
+本件是 S17-4 轮里从 `O-24-1` 长出来的 **TD 工作项**,按 `impl-td-*` 先例归名。**不占 story 编号、不改 story 表。**
+
+### 账
+- `docs/tech-debt-register.md` —— `TD-itemdb-01` 状态 `open` → **`partial`** + 条目末尾新增「兑现轮」小节(已落/仍缺双列)+ §一/§三/§四/§五 五处计数注(五订)
+
+### 仍未有(禁借绿)
+- **`IModuleCatalog` 生产树实现仍为零** · `ModuleDefinition.Cost` 仍缺 · `DemolishChecker` 仍由调用方喂 ⇒ **接线归 23 装配轮**
+- **`world_buildslots.json` 仍不存在**(story-001:45 的「两烘焙源」只落一源)⇒ 归 54 关卡工具
+- **`AC-23-08`(`refundable ⇒ cost ≥ ⌈1/R⌉`)仍无目录行触发**(`R=1` 下自动满足)
+- IL2CPP 三格 NOT-RUN
+- **未 commit**(用户未指令)

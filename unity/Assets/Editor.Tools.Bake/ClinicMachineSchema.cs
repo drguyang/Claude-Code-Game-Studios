@@ -228,8 +228,8 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// (字段存在 + token 种类 ∈ {整数域 / Fix 字符串} + <c>tier</c> 域)。
         /// <para>⚠️ **不是** AC-24-08 通过:该 AC 挂 <c>BLOCKED-BY-O-24-1</c>(闭集来源 = 21a 家具目录)。
         /// 本方法只承载「schema 形状」半边,且**不含任何类型闭集值**(协调方 2026-10-20 裁决 2)。</para>
-        /// <para>⚠️ GL 与 <c>e_env</c> 的量级上界(<c>C_max = 1/64</c>,OQ-24-5/6)归 FURN_TABLE 内容轮
-        /// (O-24-1),本处不预置 —— 否则是在 24 侧替 21a 定内容域。</para>
+        /// <para>⚠️ GL 与 <c>e_env</c> 的量级上界(<c>C_max = 1/8</c>,2026-10-21 用户裁定)归
+        /// FURN_TABLE 内容轮(O-24-1),本处不预置 —— 否则是在 24 侧替 21a 定内容域。</para>
         /// </summary>
         /// <param name="json">FURN_TABLE 形状的 JSON 文本(生产路径当前无此文件;由测试驱动的样本提供)。</param>
         /// <exception cref="BakeValidationException">词法失败 / 字段缺失 / token 种类不符 / tier 越界(聚合)。</exception>

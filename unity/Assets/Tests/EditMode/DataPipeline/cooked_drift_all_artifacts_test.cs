@@ -31,6 +31,11 @@
 //    点名三份幽灵产物)—— 门工作正常,是接线时漏登记。
 //    ⚠️ **2026-10-21 二次增补**:再 +1 份 `item_database_furniture`(O-24-1 兑现)
 //    ⇒ 盘上 **20** 份、`BakedArtifacts` 20 条、`pinnedDeclared` **20**。
+//    ⚠️ **2026-10-21 三次增补**:再 +1 份 `build_modules`(`TD-itemdb-01` 兑现)
+//    ⇒ 盘上 **21** 份、`BakedArtifacts` 21 条、`pinnedDeclared` **21**。
+//    ⚠️ 同样**是本门抓出来的**:落盘后首跑全量即两条红(21≠20 + 幽灵产物点名
+//    `build_modules.cooked.bytes`)。**这是本门第三次抓到同类漏登记**(24 三表 / 21a 家具 / 本份)
+//    —— 说明「新产物必登记」这条纪律靠人记是不成立的,门的存在是必要的。
 //
 // ⚠️ **本门查什么 / 不查什么**:
 //    查 —— ① 已烘产物的**字节漂移**(改源不重烘);
@@ -182,6 +187,15 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             //    ⇒ 有闭集 / 无闭集两条路径的 ROOM_TABLE 字节相同,故上面三条沿用单参重载。
             new ArtifactBake(DataBakeMenu.FurnitureCatalogueCookedAssetName,
                 root => ItemDatabaseFurnitureBake.BakeFromRepo(root).Cooked),
+
+            // ── 23 模块目录(1 份;`TD-itemdb-01` 兑现,2026-10-21)──
+            //    ⚠️ 委托走 **`BuildModulesBake.BakeFromRepo`(裸烘焙)**,不是生产链路的
+            //    `DataBakeMenu.BakeBuildModulesCore` —— 后者多一道跨表同源门(抛异常),
+            //    而本门只比字节。同源门**不改编码**(只决定「要不要落盘」),
+            //    故两条路径的 cooked 字节相同(与上面 21a 家具目录的 `FurnMembershipEnforced`
+            //    同一口径:校验不进载荷)。
+            new ArtifactBake(DataBakeMenu.BuildModulesCookedAssetName,
+                root => BuildModulesBake.BakeFromRepo(root).Cooked),
         };
 
         /// <summary>
@@ -306,7 +320,7 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
 
             // 扫描器完备性哨兵 —— 剥离器若过度吞字(如把逐字串 `@"…"` 的 `"` 当转义),
             // 声明集会**变小**,本行先红。⚠️ 这是本门唯一能自证「扫全了」的判据。
-            const int pinnedDeclared = 20; // 2026-10-21 实测(20 份;+48_tutorial_content(S17-3 AC-5 接线)+24 clinic 三表(S17-2 接线)+21a 家具目录(O-24-1 兑现))
+            const int pinnedDeclared = 21; // 2026-10-21 实测(21 份;+48_tutorial_content(S17-3 AC-5 接线)+24 clinic 三表(S17-2 接线)+21a 家具目录(O-24-1 兑现)+23 模块目录(TD-itemdb-01 兑现))
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

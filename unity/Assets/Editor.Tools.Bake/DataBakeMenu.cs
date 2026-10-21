@@ -90,6 +90,12 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <para>⚠️ 与运行期 <c>AddressablesDataProvider.FurnitureCatalogueAddress</c> 同值(同一段注记理由)。</para></summary>
         public const string FurnitureCatalogueCookedAssetName = "item_database_furniture.cooked.bytes";
 
+        /// <summary>产物文件名(23 模块目录 = `build_modules.json`;<c>TD-itemdb-01</c> 的兑现件)。
+        /// <para>⚠️ 本产物**今日无运行期消费方** —— `IModuleCatalog` 的生产实现为零
+        /// (`TD-itemdb-01` 的实测 ⑦)。落产物的意义是:作者态表存在、过四道域门、字节确定性可复算;
+        /// **接线归 23 的装配轮**,不在本件(承「补烘 ≠ 登记 ≠ 接线」三分)。</para></summary>
+        public const string BuildModulesCookedAssetName = "build_modules.cooked.bytes";
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -549,7 +555,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"[大医精诚] 烘焙完成:{FurnitureCatalogueCookedAssetName} = {result.Cooked.Length} B," +
                     $"家具类型 {result.Bound.Rows.Count} 件(FURN_TYPES 闭集)," +
                     $"tier_max = {result.Bound.TierMax}," +
-                    $"e_env 界 = ±{ItemDatabaseFurnitureBinder.EnvContributionMax.Raw} raw(C_max = 1/64)," +
+                    $"e_env 界 = ±{ItemDatabaseFurnitureBinder.EnvContributionMax.Raw} raw(C_max = 1/8)," +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }
@@ -583,6 +589,96 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             return ClinicMachineTablesBake.BakeFromRepo(
                 repoRoot, ItemDatabaseFurnitureBake.AsFurnTypeSource(furn.Bound));
+        }
+
+        /// <summary>
+        /// <c>BakeBuildModules</c> 的**计算段**(不落盘、不碰 Addressables、不打印日志)。
+        /// <para>⚠️ 与 <see cref="BakeClinicMachineTablesCore"/> 同款分层理由:菜单带
+        /// <see cref="MenuItemAttribute"/>,batch 下不触发 ⇒ 计算段抽出来,菜单与测试调**同一份代码**。</para>
+        /// <para>⚠️ **跨表一致性门(本函数的核心判据,不是附属检查)**:`build_modules.json` 的每个
+        /// 非 null `furn_type` 必须 ∈ `item_database_furniture.json` 的 `FURN_TYPES` 闭集。
+        /// 这是 `clinic-machine.md:297` / `item-database.md:859` 那句「**与 `cost(m)` 同源**」的
+        /// **可执行形态** —— 没有这道门,「同源」就只是两句散文,两表各写各的照样全绿。
+        /// **反向不查**:家具目录里允许有不在模块目录里的类型(家具目录是 24 的词汇表,
+        /// 模块目录是 23 的件表,后者可以是前者的真子集)。</para>
+        /// </summary>
+        /// <param name="repoRoot">仓库根(含 <c>assets/</c> 的目录)。</param>
+        /// <param name="furn">21a 家具目录的烘焙结果(闭集的来源)。</param>
+        /// <exception cref="BakeValidationException">词法 / 四条域门 / **跨表同源门**失败(聚合)。</exception>
+        public static BuildModulesBake.BakeOutput BakeBuildModulesCore(
+            string repoRoot, out ItemDatabaseFurnitureBake.BakeOutput furn)
+        {
+            // 闭集来自**本次**烘焙(与 24 同款理由:不用上一次落盘的产物)。
+            furn = ItemDatabaseFurnitureBake.BakeFromRepo(repoRoot);
+
+            BuildModulesBake.BakeOutput result = BuildModulesBake.BakeFromRepo(repoRoot);
+
+            // 跨表同源门 —— 逐 `furn_type` 对照本次烘出的闭集。
+            var known = new HashSet<string>(StringComparer.Ordinal);
+            for (int i = 0; i < furn.Bound.Rows.Count; i++) known.Add(furn.Bound.Rows[i].Type);
+
+            var errors = new List<string>();
+            for (int i = 0; i < result.Bound.Rows.Count; i++)
+            {
+                BuildModulesBinder.ModuleRow row = result.Bound.Rows[i];
+                if (row.FurnType == null) continue;
+                if (!known.Contains(row.FurnType))
+                {
+                    errors.Add(
+                        $"{BuildModulesBinder.FileName}:modules[{i}](module_id={row.ModuleId}) " +
+                        $"furn_type=\"{row.FurnType}\" 不在 FURN_TYPES 闭集内 —— " +
+                        "两表漂移(clinic-machine.md:297 / item-database.md:859 要求「与 cost(m) 同源」);" +
+                        "要么在家具目录里补该类型,要么把本行的 furn_type 置 null(若它真不是家具)");
+                }
+            }
+
+            if (errors.Count > 0) throw new BakeValidationException(errors);
+
+            return result;
+        }
+
+        /// <summary>
+        /// 烘焙 23 模块目录(<c>build_modules.json</c> —— <c>TD-itemdb-01</c> 的兑现件):
+        /// 仓库 <c>assets/data/build_modules.json</c>
+        /// → <see cref="BuildModulesBinder"/>(四条域门:**聚合 throw**)
+        /// → **跨表同源门**(`furn_type ⊆ FURN_TYPES`)
+        /// → deterministic 编码 → <see cref="BuildModulesCookedAssetName"/> 写入 Assets/DataCooked/。
+        /// <para>⚠️ 本菜单是 <see cref="BuildModulesBake"/> 的**唯一生产调用点链路**。
+        /// 绕过它 = 四条域门与跨表门永不执行(与 BakeFurnitureCatalogue / BakeClinicMachineTables 同型先例)。</para>
+        /// <para>⚠️ **本表今日无运行期消费方** —— `IModuleCatalog` 的生产实现为零。
+        /// 本菜单的判据是「作者态表存在且过门」,**不是**「23 能建造了」。
+        /// 接线(装载 + `IModuleCatalog` 实现 + `ModuleDefinition.Cost`)归 23 的装配轮。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 build_modules(23 模块目录 · 21a)")]
+        public static void BakeBuildModules()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+
+                ItemDatabaseFurnitureBake.BakeOutput furn;
+                BuildModulesBake.BakeOutput result = BakeBuildModulesCore(repoRoot, out furn);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, BuildModulesCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{BuildModulesCookedAssetName} = {result.Cooked.Length} B," +
+                    $"模块 {result.Bound.Rows.Count} 件," +
+                    $"furn_type 去重 {BuildModulesBake.DeclaredFurnTypes(result.Bound).Count} 个" +
+                    $"(全部 ⊆ FURN_TYPES 闭集 {furn.Bound.Rows.Count} 类型 ✓)," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
         }
 
         /// <summary>
