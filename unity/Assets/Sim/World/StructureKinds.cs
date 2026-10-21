@@ -129,6 +129,26 @@ namespace DaYiJingCheng.Sim.World
         /// <summary>获取实例总数。</summary>
         public int Count => _instances.Count;
 
+        /// <summary>
+        /// 只读枚举全部实例(**无写面**)—— 供 24 的只读结构视图
+        /// (<c>IPlacedStructureReadView</c>)的生产实现遍历注册表。
+        /// <para>🔁 **2026-10-21 新增(`TD-building-01` 读侧)**:此前本类**无公开枚举器**
+        /// (只有 `TryGet(id)` / `GetInstanceAt(anchor)` / `Count` / `Clear`)⇒ 24 在「不改 23」
+        /// 的前提下**无法**遍历它,只能靠测试替身。该事实逐字记在
+        /// `Sim/Clinic/IPlacedStructureReadView.cs` 的文件头(陷阱 ①)。</para>
+        /// <para>⚠️ <b>只读承诺靠类型守</b>:本方法返回 <see cref="IEnumerable{T}"/> 而非
+        /// 可变集合,且 <see cref="StructureInstance"/> 是 <c>readonly struct</c>
+        /// ⇒ 调用方拿不到任何写回注册表的路径(与 24「只读不持占用真相」同构)。</para>
+        /// <para>⚠️ <b>枚举序不作契约</b>:内部是 `Dictionary` 桶序。需要确定性序的调用方
+        /// **必须自己排序**(24 侧的析出已在 `ClinicRoomExtraction.ExtractFromMembership`
+        /// 做规范排序,不依赖本枚举序)。</para>
+        /// </summary>
+        public IEnumerable<StructureInstance> EnumerateInstances()
+        {
+            foreach (KeyValuePair<long, StructureInstance> kv in _instances)
+                yield return kv.Value;
+        }
+
         /// <summary>清空(重建用)。</summary>
         public void Clear()
         {

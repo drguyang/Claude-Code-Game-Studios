@@ -87,7 +87,7 @@
     {
       "name": "F4-menucCoreDropsFurnClosure",
       "file": "unity/Assets/Editor.Tools.Bake/DataBakeMenu.cs",
-      "line": 585,
+      "line": 591,
       "expect": "                repoRoot, ItemDatabaseFurnitureBake.AsFurnTypeSource(furn.Bound));",
       "replace": "                repoRoot, null); // FALSIFY-F4:闭集注入被摘掉(退回 2026-10-20 的传 null)",
       "expectRed": [

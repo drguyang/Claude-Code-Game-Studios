@@ -99,6 +99,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: af15ebd0dcfe6a2d6b496f3c869f008b
+    m_Address: build_modules.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b6ba4a04f5b21f0c4ab9599a427a49a0
     m_Address: diagnosis_negative_confidence.cooked.bytes
     m_ReadOnly: 0

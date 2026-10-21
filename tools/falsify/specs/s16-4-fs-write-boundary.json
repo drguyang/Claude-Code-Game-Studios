@@ -28,7 +28,7 @@
     {
       "name": "F2-disableDeclarationLookup",
       "file": "unity/Assets/Editor.Tools.Gates/FsWriteBoundaryGate.cs",
-      "line": 219,
+      "line": 230,
       "expect": "            Declaration decl = FindDeclaration(relPath);",
       "replace": "            Declaration decl = null; // FALSIFY-F2:停用声明查找 ⇒ 已声明的 6 个文件全部转红",
       "expectRed": [
@@ -41,7 +41,7 @@
     {
       "name": "F3-disableAnchorDetection",
       "file": "unity/Assets/Editor.Tools.Gates/FsWriteBoundaryGate.cs",
-      "line": 216,
+      "line": 227,
       "expect": "            string[] anchors = FindRepoAnchorsIn(structure);",
       "replace": "            string[] anchors = new string[0]; // FALSIFY-F3:停用锚点识别",
       "expectRed": [

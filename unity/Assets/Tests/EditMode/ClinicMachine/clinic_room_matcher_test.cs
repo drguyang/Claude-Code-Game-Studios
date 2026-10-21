@@ -22,11 +22,13 @@
 //   EC-24-01 是 EC-24-02 的**特例**(空布局必然谓词全不成立),反向不成立
 //   ⇒ 只测 ① 会把「子句求值整段坏了」伪装成通过。
 //
-// ⚠️ **`ROOM_NONE` 短路的可观测面 = 诊断全零**(不是「返回 false」):
+// ⚠️ **未析出房间短路的可观测面 = 诊断全零**(不是「返回 false」):
 //   空 `RoomCells` 下子句本来就全不成立,删掉短路返回值不变 —— 因此卡面证伪表里
 //   「删 `HasRoom == false` 短路 ⇒ EC-24-01 测红」这一条,只能由
-//   `diagnostics` 的「ROOM_NONE ⇒ 不进入子句求值 ⇒ 未知类型计数恒 0」承载。
+//   `diagnostics` 的「`HasRoom == false` ⇒ 不进入子句求值 ⇒ 未知类型计数恒 0」承载。
 //   见 `ClinicRoomMatchDiagnostics` 的备注。
+//   ⚠️ **「ROOM_NONE」有两义**(评审 W2):① 未析出房间(`HasRoom == false`)⇒ 诊断恒 0;
+//   ② 已析出但无类型匹配(`MatchedRoomCount == 0`)⇒ 诊断**可以非零**。本文件的断言按此分层。
 
 using System;
 using System.Collections.Generic;
@@ -433,15 +435,50 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             Assert.That(roomType, Is.EqualTo("wardish"), "声明序反了 ⇒ 胜出者也反");
         }
 
-        /// <summary>缺口哨兵:多匹配裁决**仍是暂定的**(`OQ-24-7` 未裁)。</summary>
-        /// <remarks>⚠️ **`OQ-24-7` 裁定后本测必须转红** —— 那是提醒,不是回归。
-        /// 届时须同步改实现与 `MultiMatchPolicyIsProvisional`,并**如实登记改判**,
-        /// 不得把它当「坏掉的测试」静默改绿(与 `FurnTraitsProductionReady` 同款纪律)。</remarks>
+        /// <summary>缺口哨兵:**多匹配裁决已转正**(`OQ-24-7` 已于 2026-10-21 结案)。</summary>
+        /// <remarks>⚠️ **本测在 `OQ-24-7` 裁定轮已按纪律转红一次并随之改写** —— 那是提醒,不是回归。
+        /// 改判轨迹:`true`(暂定)→ 跑出恰 1 红(`s17-6b-sentinel-red.xml`,`24/23/1`)→ 改本测断言 + 生产侧转 `false`。
+        /// **不得把它当「坏掉的测试」静默改绿。**</remarks>
         [Test]
         public void test_multiMatch_policyIsProvisional_sentinel()
         {
-            Assert.That(ClinicRoomMatcher.MultiMatchPolicyIsProvisional, Is.True,
-                "OQ-24-7 未裁 ⇒ 暂定裁决可观测;裁定后本测转红即提醒");
+            Assert.That(ClinicRoomMatcher.MultiMatchPolicyIsProvisional, Is.False,
+                "OQ-24-7 已裁(声明序首个匹配转正)⇒ 哨兵应为 false;若有人改回暂定实现却未翻本属性,本测硬失败");
+        }
+
+        /// <summary>
+        /// 把「哨兵可观测」升级为「哨兵**可检测**」—— 承 `ClinicRoomExtraction.FurnTypeClosureEnforced`
+        /// 的 C11 先例(`clinic_room_extraction_test.cs:577` 起的 `_isDetectable_` 测)。
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ **立本测的缘由(评审 W3)**:上一形态的转红链**只对一个裁定方向成立**。
+        /// 若 `OQ-24-7` 当年裁成「多匹配 ⇒ `ROOM_NONE`」,两条多匹配测会随实现一起被改写
+        /// (它们本来就在红),而哨兵仍 `true`、哨兵测仍绿 ⇒ **哨兵静默变成谎言,没有任何东西会红**。
+        /// <para>本测把两个方向都覆盖:**「存在多匹配且返回了非空 `roomType`」当且仅当「哨兵为 false」**。
+        /// 只要实现与哨兵不一致(任一方向),本测即红。</para>
+        /// </remarks>
+        [Test]
+        public void test_multiMatch_policyIsProvisional_isDetectable()
+        {
+            // 造一个**确定性多匹配**布局:bed ×2 同时满足 ward(min_count bed≥2)与 wardish(has_type bed)。
+            ClinicRoomExtractionResult room = Room(Cell(0, 0), Cell(1, 0));
+            FakeTraits traits = Traits((Cell(0, 0), "bed"), (Cell(1, 0), "bed"));
+            ClinicRoomTable table = Table(
+                RoomDef("ward", MinCount("bed", 2)),
+                RoomDef("wardish", HasType("bed")));
+
+            bool matched = ClinicRoomMatcher.TryMatchRoom(
+                room, traits, table, out string roomType, out ClinicRoomMatchDiagnostics diagnostics);
+
+            // 前提:这确实是多匹配(否则本测不构成判别,不得当作通过)。
+            Assert.That(diagnostics.MatchedRoomCount, Is.GreaterThanOrEqualTo(2),
+                "前提:本夹具必须真的产生多匹配,否则本测无判别力");
+
+            // 等价式:返回了非空 roomType(即「做了裁决」)⇔ 哨兵为 false(即「裁决已定」)。
+            bool madeADecision = matched && roomType != null;
+            Assert.That(madeADecision, Is.EqualTo(!ClinicRoomMatcher.MultiMatchPolicyIsProvisional),
+                "哨兵与实现不一致 —— 多匹配时若做了裁决,哨兵必须为 false;若未裁决(如整盘 ROOM_NONE),哨兵必须为 true。" +
+                "两者任一方向的漂移都会在本测转红");
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -476,7 +513,12 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         /// <remarks><b>判别力</b>:引入一个「不按输入分键」的静态缓存(第二次调用直接返回首次结果)
         /// ⇒ 本测返回 `ward` 而非 `surgery` ⇒ 红。这钉的是 control-manifest 的
         /// 「Forbidden:在 sim 程序集内留匹配结果缓存」在**可观测面**上的那一半
-        /// (一个按 `RoomId` 正确分键的缓存是不可观测的,故本测只能钉住「泄漏」这一种失败)。</remarks>
+        /// (一个按 `RoomId` 正确分键的缓存是不可观测的,故本测只能钉住「泄漏」这一种失败)。
+        /// <para>🔁 <b>2026-10-21 补记(M14 实测):本测同时是按引用分键缓存的真载体</b> ——
+        /// 它<b>复用同一张表实例</b>做两次调用,而 <c>ClinicRoomTable.Rooms</c> 是稳定字段引用
+        /// (`ClinicMachineTables.cs:374`)⇒ 按引用分键的缓存会**命中** ⇒ 本测转红。
+        /// ⚠️ 这一点此前**无人登记**:<c>test_purity_rebuiltInputs_*</c> 自称覆盖该类缓存,
+        /// 实测反了(它重建对象 ⇒ 恰好规避)。见 M14 手动复验原件。</para></remarks>
         [Test]
         public void test_purity_noCache_acrossDifferentLayouts()
         {
@@ -626,6 +668,199 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                         $"参数 `{p.Name}` 的类型 `{name}` 不在白名单 —— 邻接子句不得复用 adj_sum 的 ClinicAdjTable");
                 }
             }
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // 判别力补齐(2026-10-21 评审 B 路「零载体」项)
+        //   以下 6 条对应 B 路报告 §「边界覆盖缺口」里实测「删掉都不红」的分支。
+        //   每条都先断言**前提成立**,再断言判据 —— 防「夹具没造出目标形态却假装通过」。
+        // ════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 控制清单 Required「字符串判定一律 `StringComparison.Ordinal`」的载体。
+        /// <para>⚠️ 立本测缘由(评审 B):原 24 测里 `Ordinal` **零载体** —— 把生产侧
+        /// `CountOfType` / `CountAdjacent` / `HasTypeAt` 的 `StringComparison.Ordinal`
+        /// 改成默认比较(文化敏感),**24 测全绿**。用大小写变体把这个口堵上。</para>
+        /// </summary>
+        [Test]
+        public void test_ordinalComparison_caseVariant_isNotTreatedAsSameType()
+        {
+            // 布局里是 "Bed"(大写 B);表里写 "bed"。
+            ClinicRoomExtractionResult room = Room(Cell(0, 0), Cell(1, 0));
+            FakeTraits traits = Traits((Cell(0, 0), "Bed"), (Cell(1, 0), "Bed"));
+            ClinicRoomTable table = Table(RoomDef("ward", MinCount("bed", 2)));
+
+            bool matched = ClinicRoomMatcher.TryMatchRoom(
+                room, traits, table, out string roomType, out ClinicRoomMatchDiagnostics diagnostics);
+
+            // 前提:这两格确实被识别为家具(否则「不匹配」是因为格都不算,不是比较口径问题)。
+            Assert.That(diagnostics.UnknownClauseTypeCount, Is.EqualTo(1),
+                "前提:「Bed」不等于「bed」⇒ 表里的 bed 在布局中不可见 ⇒ 未知引用 1 条");
+
+            Assert.That(matched, Is.False,
+                "Ordinal 比较:「Bed」≠「bed」⇒ 不得匹配。若改成文化敏感比较,本测转红");
+            Assert.That(roomType, Is.Null);
+        }
+
+        /// <summary>
+        /// 邻接子句 `min ≥ 2` 的路径(生产 `CountAdjacent(...) >= clause.Min`)。
+        /// <para>⚠️ 立本测缘由(评审 B):原有全部 `Adjacent(...)` 取默认 `min = 1`
+        /// ⇒ `≥ 2` 这条分支**从未求值**,删掉 `>=` 改 `>` 也不红。</para>
+        /// </summary>
+        [Test]
+        public void test_clause_adjacencyMinCount_twoNeighbours_requiresBoth()
+        {
+            // 两格 surgery_table,各在 +x 侧有 1 个 sterile_cabinet ⇒ 邻接计数 = 2。
+            ClinicRoomExtractionResult room = Room(Cell(0, 0), Cell(1, 0), Cell(2, 0), Cell(3, 0));
+            FakeTraits traits = Traits(
+                (Cell(0, 0), "surgery_table"), (Cell(1, 0), "sterile_cabinet"),
+                (Cell(2, 0), "surgery_table"), (Cell(3, 0), "sterile_cabinet"));
+
+            ClinicRoomClause adjTwo = Adjacent(
+                "surgery_table", "sterile_cabinet", ClinicRoomClauseDirection.PlusX, min: 2);
+
+            // ① min = 2:两处邻接都成立 ⇒ 匹配。
+            bool matchedTwo = ClinicRoomMatcher.TryMatchRoom(
+                room, traits, Table(RoomDef("surgery", adjTwo)), out _, out ClinicRoomMatchDiagnostics dTwo);
+            Assert.That(dTwo.MatchedRoomCount, Is.EqualTo(1), "前提:邻接计数 = 2,满足 min = 2");
+
+            // ② min = 3:同样布局 ⇒ 不匹配(证明 min 真被当作阈值,不是「有邻接就算」)。
+            ClinicRoomClause adjThree = Adjacent(
+                "surgery_table", "sterile_cabinet", ClinicRoomClauseDirection.PlusX, min: 3);
+            bool matchedThree = ClinicRoomMatcher.TryMatchRoom(
+                room, traits, Table(RoomDef("surgery", adjThree)), out _, out ClinicRoomMatchDiagnostics dThree);
+
+            Assert.That(matchedThree, Is.False, "邻接计数 2 < min 3 ⇒ 不匹配");
+            Assert.That(dThree.MatchedRoomCount, Is.EqualTo(0));
+            Assert.That(matchedTwo, Is.True, "同一布局在 min = 2 下匹配 ⇒ 阈值判据是活的");
+        }
+
+        /// <summary>
+        /// `int.MaxValue` 边界坐标**不得抛**(匹配期的 `HasNeighbourOfType` 守卫)。
+        /// <para>⚠️ <b>本测的判别力边界,如实登记(2026-10-21 补齐轮 · 第二次修正)</b>:
+        /// 它<b>不能</b>钉住「删掉 `cell.X &lt; int.MaxValue` 守卫」。原因不是夹具写错,是<b>结构性的</b>
+        /// —— `typeByCell` 的键 ⊆ <see cref="ClinicRoomExtractionResult.RoomCells"/>,而
+        /// `int.MaxValue` 与 `int.MinValue` 相距 2³²−1(4-连通路径在 int 域内不存在)⇒ 单簇布局
+        /// <b>不可能</b>同时含这两格 ⇒ 回绕目标<b>永远不在查表里</b> ⇒ 守卫删不删结果相同。</para>
+        /// <para>⇒ <b>该守卫在本层无变异可证面</b>。同形态守卫的**可证载体在析出层**:
+        /// <c>ClinicRoomExtractionTest.test_countComponents_xAtIntMax_noPhantomUnionFromWraparound</c>
+        /// (那里 `GetOccupiedCells` 不要求连通,单实例可同时占两端 ⇒ 可观测)。
+        /// 本测保留的承重面是<b>另一半</b>:边界坐标走到邻居查询时**不抛**(字典查 `int.MinValue` 是合法查表)。</para>
+        /// </summary>
+        [Test]
+        public void test_adjacency_xAtIntMax_doesNotThrow()
+        {
+            // 边界格 (int.MaxValue, 0) 单格成房;回绕目标 (int.MinValue, 0) 只在属性源里(不在成员集)。
+            var maxCell = new WorldPos(int.MaxValue, 0, 0);
+            var minCell = new WorldPos(int.MinValue, 0, 0);
+
+            ClinicRoomExtractionResult room = Room(maxCell);
+            FakeTraits traits = Traits((maxCell, "surgery_table"), (minCell, "sterile_cabinet"));
+
+            ClinicRoomTable table = Table(RoomDef("surgery",
+                Adjacent("surgery_table", "sterile_cabinet", ClinicRoomClauseDirection.PlusX)));
+
+            Assert.That(room.HasRoom, Is.True, "前提:单格布局析出成功");
+
+            bool matched = false;
+            ClinicRoomMatchDiagnostics diagnostics = default;
+            Assert.DoesNotThrow(
+                () => matched = ClinicRoomMatcher.TryMatchRoom(
+                    room, traits, table, out _, out diagnostics),
+                "边界坐标走到邻居查询时不得抛(`int.MinValue` 是合法查表键,不是越界)");
+
+            Assert.That(matched, Is.False, "x = int.MaxValue 的 +x 邻格不存在 ⇒ 不匹配");
+            Assert.That(diagnostics.MatchedRoomCount, Is.EqualTo(0));
+        }
+
+        /// <summary>
+        /// 「标记为家具但 `type` 为空」⇒ 硬失败(生产 `ResolveTypes` 的 `string.IsNullOrEmpty` 分支)。
+        /// <para>⚠️ 立本测缘由(评审 B):无 `""` / null type 夹具,删该 throw 不红。</para>
+        /// </summary>
+        [Test]
+        public void test_furnitureCellWithEmptyType_throws()
+        {
+            ClinicRoomExtractionResult room = Room(Cell(0, 0));
+            FakeTraits traits = Traits((Cell(0, 0), string.Empty));
+            ClinicRoomTable table = Table(RoomDef("ward", MinCount("bed", 1)));
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => ClinicRoomMatcher.TryMatchRoom(room, traits, table, out _),
+                "家具格 type 为空 = 属性源违约 ⇒ 硬失败,不得静默当作「无此类型」");
+            Assert.That(ex.Message, Does.Contain("type 为空"));
+        }
+
+        /// <summary>参数 null 守卫(生产 `TryMatchRoom` 开头的两个 ANE)。</summary>
+        /// <remarks>⚠️ 立本测缘由(评审 B):`traits` / `table` 为 null 的分支**零载体**。</remarks>
+        [Test]
+        public void test_nullArguments_throwArgumentNullException()
+        {
+            ClinicRoomExtractionResult room = Room(Cell(0, 0));
+            FakeTraits traits = Traits((Cell(0, 0), "bed"));
+            ClinicRoomTable table = Table(RoomDef("ward", HasType("bed")));
+
+            Assert.Throws<ArgumentNullException>(
+                () => ClinicRoomMatcher.TryMatchRoom(room, null, table, out _), "traits 为 null ⇒ ANE");
+            Assert.Throws<ArgumentNullException>(
+                () => ClinicRoomMatcher.TryMatchRoom(room, traits, null, out _), "table 为 null ⇒ ANE");
+        }
+
+        /// <summary>
+        /// `z ≠ 0` 的邻接(生产 `HasNeighbourOfType` 透传 `cell.Z`)。
+        /// <para>⚠️ 立本测缘由(评审 B):原有全部夹具 `z = 0` ⇒ z 轴透传**零载体**。
+        /// 若实现把 `cell.Z` 写成常量 0,本测转红。</para>
+        /// </summary>
+        [Test]
+        public void test_adjacency_zIsPassedThrough_notHardcodedZero()
+        {
+            // 两格都在 z = 3 层:surgery_table 在 (0,0,3),sterile_cabinet 在 (1,0,3)。
+            var tableCell = new WorldPos(0, 0, 3);
+            var cabinetCell = new WorldPos(1, 0, 3);
+
+            ClinicRoomExtractionResult room = Room(tableCell, cabinetCell);
+            FakeTraits traits = Traits((tableCell, "surgery_table"), (cabinetCell, "sterile_cabinet"));
+            ClinicRoomTable table = Table(RoomDef("surgery",
+                Adjacent("surgery_table", "sterile_cabinet", ClinicRoomClauseDirection.PlusX)));
+
+            bool matched = ClinicRoomMatcher.TryMatchRoom(room, traits, table, out string roomType, out _);
+
+            Assert.That(room.HasRoom, Is.True, "前提:两格 4-连通(z 相同)⇒ 单簇");
+            Assert.That(matched, Is.True, "z = 3 层上的 +x 邻接成立");
+            Assert.That(roomType, Is.EqualTo("surgery"));
+        }
+
+        /// <summary>
+        /// 跨实例求值:两次调用之间**重建全部输入对象**,结果必须相同。
+        /// <para>⚠️ <b>本测的判别面,如实登记(2026-10-21 补齐轮 · M14 实测推翻原设计前提)</b>:
+        /// 本测原写「重建输入对象 ⇒ 使**按对象引用分键的缓存**无法命中 ⇒ 该类缓存会在此暴露」。
+        /// <b>方向反了</b> —— 重建对象恰好<b>规避</b>了按引用分键的缓存:引用不同 ⇒ 缓存不命中
+        /// ⇒ 行为与无缓存<b>等价</b> ⇒ 结果仍正确 ⇒ <b>本测保持绿</b>。
+        /// 实测(M14,见 <c>unity/Logs/falsify-manual/PRE-REGISTERED-EXPECTATIONS.md</c>):
+        /// 引入按引用分键的缓存后,<b>本测绿</b>,红的是
+        /// <c>test_purity_noCache_acrossDifferentLayouts</c> /
+        /// <c>test_purity_sameInputsTwice_identicalResult</c>(二者复用同一张表实例,
+        /// 而 <c>ClinicRoomTable.Rooms</c> 是稳定字段引用 ⇒ 缓存命中)。</para>
+        /// <para>⇒ <b>本测真正钉住的是</b>:「结果只依赖输入的<b>值</b>,不依赖输入对象的<b>身份</b>」——
+        /// 即<b>按值正确分键</b>的缓存与本测等价(不可观测,承原备注)。
+        /// 按引用分键的缓存<b>归另两条测</b>,不归本测。</para>
+        /// </summary>
+        [Test]
+        public void test_purity_rebuiltInputs_sameResult_noIdentityKeyedCache()
+        {
+            ClinicRoomTable BuildTable() => Table(RoomDef("ward", MinCount("bed", 2)));
+            FakeTraits BuildTraits() => Traits((Cell(0, 0), "bed"), (Cell(1, 0), "bed"));
+
+            bool m1 = ClinicRoomMatcher.TryMatchRoom(
+                Room(Cell(0, 0), Cell(1, 0)), BuildTraits(), BuildTable(), out string t1, out var d1);
+
+            // 第二次:全部输入对象**重新构造**(引用不同,值相同)。
+            bool m2 = ClinicRoomMatcher.TryMatchRoom(
+                Room(Cell(0, 0), Cell(1, 0)), BuildTraits(), BuildTable(), out string t2, out var d2);
+
+            Assert.That(m2, Is.EqualTo(m1), "输入值相同、对象不同 ⇒ 结果必须相同(按引用分键的缓存会在此漂移)");
+            Assert.That(t2, Is.EqualTo(t1));
+            Assert.That(d2.MatchedRoomCount, Is.EqualTo(d1.MatchedRoomCount));
+            Assert.That(d2.UnknownClauseTypeCount, Is.EqualTo(d1.UnknownClauseTypeCount));
         }
     }
 }

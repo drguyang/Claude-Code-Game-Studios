@@ -5,7 +5,8 @@
 //   规则二 —— 房间的**定义 = ROOM_TABLE**(24 拥有);房间类型 ⇒ 该房间承担的效果;
 //     **未满足任何房间类型 ⇒ `ROOM_NONE`**(不产生效果乘子)—— 本件兑现的就是这一句(AC-24-03)。
 //   规则二 2026-09-17 复核 —— 判据语言允许**邻接子句**,其方向确定性「同 `adj_sum` 的 +x/+y 单向查法」。
-//   规则二 2026-10-21 补记 —— **多匹配未定义**,登记 `OQ-24-7`;暂定 = **声明序首个匹配**。
+//   规则二 2026-10-21 补记 —— **多匹配未定义**,登记 `OQ-24-7`。
+//   ✅ **2026-10-21 用户裁定(OQ-24-7 结案)**:多匹配 = **声明序首个匹配**(转正,不再是暂定)。
 //   EC-24-01(空布局 ⇒ ROOM_NONE)· EC-24-02(有家具但谓词全不成立 ⇒ 中性)
 //     · EC-24-07(≥ 2 个 4-不连通簇 ⇒ 整盘 ROOM_NONE)。
 // ADR-015 §三(单一整数格)· §五(4 邻接判定,非物理 / 非 NavMesh)
@@ -47,10 +48,15 @@ namespace DaYiJingCheng.Sim.Clinic
     /// 多匹配(OQ-24-7 暂定裁决)与未知子句类型(AC 第 6 条)若只从返回值看,
     /// 读者无法区分「恰好一个匹配」与「三个都匹配,取了第一个」,也分不清
     /// 「这条房间不成立」与「它引用的类型在布局里压根没有」。</para>
-    /// <para>⚠️ <b>ROOM_NONE 时两项恒为 0</b> —— ROOM_NONE 短路**不进入子句求值**
-    /// (与 <see cref="ClinicModifierEvaluator"/> 的 `HasRoom == false` 短路同形)。
+    /// <para>⚠️ <b><see cref="ClinicRoomExtractionResult.HasRoom"/> == false(未析出房间)时两项恒为 0</b>
+    /// —— 该短路**不进入子句求值**(与 <see cref="ClinicModifierEvaluator"/> 的 `HasRoom == false` 短路同形)。
     /// 想知道「为什么没有房间」,读 <see cref="ClinicRoomExtractionResult.ConnectedClusterCount"/> /
     /// <see cref="ClinicRoomExtractionResult.CellCount"/>,不要读本结构。</para>
+    /// <para>⚠️ <b>「ROOM_NONE」有两个含义,不得混读</b>(2026-10-21 评审 W2 收窄):
+    /// ① <b>未析出房间</b>(`HasRoom == false`)⇒ 两项恒 0;
+    /// ② <b>已析出房间但无房间类型匹配</b>(`MatchedRoomCount == 0`)⇒ 本结构**可以非零**
+    /// (例如子句引用了布局里没有的类型,`UnknownClauseTypeCount > 0`)。
+    /// 两者对外都表现为 <c>TryMatchRoom</c> 返回 `false`,但诊断面不同。</para>
     /// </summary>
     public readonly struct ClinicRoomMatchDiagnostics
     {
@@ -90,23 +96,37 @@ namespace DaYiJingCheng.Sim.Clinic
     public static class ClinicRoomMatcher
     {
         /// <summary>
-        /// 缺口哨兵:**当前多匹配裁决是暂定的**(`OQ-24-7` 未裁)。
-        /// <para>**✅ 现为 `true`** —— GDD 规则二只写「未满足**任何**房间类型 ⇒ `ROOM_NONE`」,
-        /// **没写同时满足多个怎么办**。而种子表 `clinicmachine_room.json` 的 `ward`(bed ≥ 2)与
-        /// `surgery`(手术台 + 邻接无菌柜)**谓词可同时成立**,`base_env` 又按 `room_type` 查
-        /// ⇒ 选谁**直接改变 `EnvMod` 输出值**。用户 2026-10-21 裁定暂取**声明序首个匹配**
+        /// 缺口哨兵:**多匹配裁决是否仍是暂定的**。
+        /// <para>**✅ 现为 `false`** —— `OQ-24-7` 已于 **2026-10-21 由用户裁定结案**:
+        /// 多匹配 = **声明序首个匹配**(转正)。裁定前的沿革:GDD 规则二只写「未满足**任何**
+        /// 房间类型 ⇒ `ROOM_NONE`」,**没写同时满足多个怎么办**;而种子表 `clinicmachine_room.json`
+        /// 的 `ward`(bed ≥ 2)与 `surgery`(手术台 + 邻接无菌柜)**谓词可同时成立**,`base_env`
+        /// 又按 `room_type` 查 ⇒ 选谁**直接改变 `EnvMod` 输出值**。曾以 `true` 钉住暂定状态
         /// (备选「多匹配 ⇒ ROOM_NONE」已否决:复合布局会静默归零且无诊断)。</para>
-        /// <para>⚠️ **`OQ-24-7` 裁定后本属性须转 `false`,并同步改
-        /// <see cref="TryMatchRoom(in ClinicRoomExtractionResult, IClinicFurnitureTraitsSource, ClinicRoomTable, out string, out ClinicRoomMatchDiagnostics)"/>
-        /// 的遍历裁决** —— 届时哨兵测试 `test_multiMatch_policyIsProvisional_sentinel`
-        /// **转红即提醒**,不得静默改绿(与 <see cref="ClinicModifierEvaluator.FurnTraitsProductionReady"/> /
-        /// <see cref="ClinicRoomExtraction.FurnTypeClosureEnforced"/> 同款纪律)。</para>
+        /// <para>⚠️ **本属性转 `false` 是被要求的动作,不是回归修复** —— 转 false 的同时
+        /// 哨兵测试 `test_multiMatch_policyIsProvisional_sentinel` 已从「断言 true」改为
+        /// 「断言 false」,并**新增** `test_multiMatch_policyIsProvisional_isDetectable`
+        /// 把「可观测」升级为「可检测」(承 `ClinicRoomExtraction.FurnTypeClosureEnforced`
+        /// 的 C11 先例):若日后有人改回暂定实现却不翻本属性,该测硬失败。</para>
+        /// <para>⚠️ **「声明序」在运行期 = 产物行序,不是作者态 JSON 的手写序**(2026-10-21 端到端
+        /// 实测发现,`clinic_room_matching_e2e_test.test_multiMatch_takesFirstInRoomsOrder_fromRealTable`):
+        /// `ClinicMachineCookedWriter.cs:123` 对房间行做
+        /// <c>string.CompareOrdinal(x.RoomType, y.RoomType)</c> 全序排序(写方头注 `:22-26`
+        /// 自陈为消除 `List.Sort` 不稳定导致的跨平台漂移)⇒ 作者态写
+        /// `ward, surgery, herb_room`,**产物与 <c>ClinicRoomTable.Rooms</c> 的顺序是
+        /// `herb_room, surgery, ward`**。⇒ 多匹配胜出者 = **`room_type` 序数最小者**。
+        /// 本裁决的**内容**(取 `Rooms` 序首个)不变,但读者不得把「声明序」读成「JSON 手写序」。</para>
         /// </summary>
-        public static bool MultiMatchPolicyIsProvisional => true;
+        public static bool MultiMatchPolicyIsProvisional => false;
 
         /// <summary>匹配房间类型(不带诊断面的便捷重载)。</summary>
         /// <returns>存在匹配 ⇒ true 且 <paramref name="roomType"/> 为该房间类型 id;
         /// 否则 false 且 <paramref name="roomType"/> 为 <c>null</c>(= `ROOM_NONE`)。</returns>
+        /// <remarks>本重载无条件转发到带诊断的版本 ⇒ **会抛与之一模一样的异常**
+        /// (2026-10-21 评审 W1:原文档漏声明,与同文件夹 `ClinicModifierEvaluator` 的写法不一致)。</remarks>
+        /// <exception cref="ArgumentNullException"><paramref name="traits"/> 或 <paramref name="table"/> 为 null。</exception>
+        /// <exception cref="InvalidOperationException">某格的属性查询返回
+        /// <see cref="ClinicCellLookup.Unknown"/> 或「是家具但 `type` 为空」。</exception>
         public static bool TryMatchRoom(
             in ClinicRoomExtractionResult room,
             IClinicFurnitureTraitsSource traits,
@@ -141,8 +161,9 @@ namespace DaYiJingCheng.Sim.Clinic
             roomType = null;
             diagnostics = default;
 
-            // ── ROOM_NONE 短路(EC-24-01 / EC-24-07)────────────────────────────────
-            // 未析出房间 ⇒ **不进入子句求值**:诊断保持全零(见 ClinicRoomMatchDiagnostics 的备注)。
+            // ── 未析出房间短路(EC-24-01 / EC-24-07)────────────────────────────────
+            // `HasRoom == false` ⇒ **不进入子句求值**:诊断保持全零(见 ClinicRoomMatchDiagnostics 的备注)。
+            // ⚠️ 这是「未析出房间」,不是「已析出但无类型匹配」—— 后者诊断**可以非零**(评审 W2)。
             // ⚠️ 本条**不是**「为了返回 false」才存在 —— 空 `RoomCells` 下子句本来就全不成立;
             //   它的承重面是**诊断契约**(ROOM_NONE ⇒ 诊断全零),由
             //   test_roomNone_emptyLayout_returnsFalse / test_roomNone_twoClusters_returnsFalse 钉住。
@@ -166,9 +187,8 @@ namespace DaYiJingCheng.Sim.Clinic
                 if (!RoomHolds(def, typeByCell)) continue;
 
                 matchedRoomCount++;
-                // ⚠️ **`OQ-24-7` 暂定实现**:多匹配时取**声明序第一个**。
-                //    不排序、不按名字、不取最大 `base_env`。改判时本处与
-                //    `MultiMatchPolicyIsProvisional` 及哨兵测试须同步改。
+                // ✅ **`OQ-24-7` 已裁(2026-10-21)**:多匹配时取**声明序第一个**(正式裁决)。
+                //    不排序、不按名字、不取最大 `base_env`。
                 if (firstMatch == null) firstMatch = def.RoomType;
             }
 

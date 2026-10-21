@@ -14,6 +14,7 @@ using DaYiJingCheng.Sim.Contracts;
 using DaYiJingCheng.Sim.DiseaseSimulation;
 using DaYiJingCheng.Sim.Prescription;
 using DaYiJingCheng.Gameplay.PatientAI;
+using DaYiJingCheng.Gameplay.Presentation;             // ClinicRoomMatchingService(TD-building-01 读侧)
 using DaYiJingCheng.Gameplay.Presentation.Audio;
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;   // TelemetryAnalyticsTuning(第十二片)
 
@@ -171,6 +172,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para>null ⇔ 事件表缝未接(`audio.Table` 为空)· 由 `BootRoot` 帧泵每帧调 `Tick(Time.deltaTime)`。</para></summary>
         public AudioTierDriver AudioTierDriver { get; }
 
+        /// <summary>24「布局 → 房间类型」匹配链的生产装配(`TD-building-01` 读侧 · 2026-10-21)。
+        /// <para>链 = 23 注册表 → 只读视图 → 家具属性索引 → 房间析出(真判据)→ ROOM_TABLE 子句求值。</para>
+        /// <para>⚠️ <b>null ⇔ 装配时未传入 23 的 <c>StructureInstanceRegistry</c></b>
+        /// (见 `CompositionRoot.Assemble` 的 <c>structures</c> 形参备注)——
+        /// 本装配**不自建**注册表(自建 = 与将来的 `World` 实例分叉,两份真源)。
+        /// ⇒ 「24 能不能在运行期求值」是**可观测**的,不是靠猜。</para>
+        /// <para>⚠️ 无缓存:每次 <c>Match()</c> 都按**当下**的注册表重算(建造 / 拆除后自动生效;
+        /// 失效机制 / Memoize 归 story-005)。</para></summary>
+        public ClinicRoomMatchingService ClinicRoomMatching { get; }
+
         internal CompositionRootServices(EventStream stream, IIdAuthority idAuthority,
                                          InMemoryBlobPool blobPool, IPayloadEncoder encoder,
                                          IPayloadDecoder decoder,
@@ -203,7 +214,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          PatientCueDriver patientCueDriver,
                                          PatientBehaviorDirector behaviorDirector,
                                          AudioTierDriver audioTierDriver = null,
-                                         TelemetryAnalyticsTuning? telemetryKnobs = null)
+                                         TelemetryAnalyticsTuning? telemetryKnobs = null,
+                                         ClinicRoomMatchingService clinicRoomMatching = null)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -240,6 +252,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             PatientCueDriver = patientCueDriver;
             BehaviorDirector = behaviorDirector;
             AudioTierDriver = audioTierDriver;
+            ClinicRoomMatching = clinicRoomMatching;
 
             // 51 遥测接线(TD-epic-01):decoder 在 Sim.Codec、51 的装配引不到 ⇒ 在本装配层包成委托。
             // ⚠️ stream / decoder / registry 均已是本 ctor 的形参 ⇒ 不加新装配边、不改 Assemble 签名。

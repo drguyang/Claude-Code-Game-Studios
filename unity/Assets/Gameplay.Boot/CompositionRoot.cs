@@ -93,9 +93,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             InputActionAsset inputActions = null,
             AudioAssemblySeams audio = null,
             ClinicKnowledge clinicKnowledge = null,
-            TelemetryAnalyticsTuning? telemetryKnobs = null)
+            TelemetryAnalyticsTuning? telemetryKnobs = null,
+            StructureInstanceRegistry structures = null)
             => AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(),
-                            0UL, registry, dataProvider, inputActions, audio, clinicKnowledge, telemetryKnobs);
+                            0UL, registry, dataProvider, inputActions, audio, clinicKnowledge, telemetryKnobs,
+                            structures);
 
         /// <summary>
         /// 显式依赖注入装配(读档 / 测试用:由调用方给出发号权威、在场登记簿、blob 池与世界种子)。
@@ -118,13 +120,14 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                        InputActionAsset inputActions = null,
                                                        AudioAssemblySeams audio = null,
                                                        ClinicKnowledge clinicKnowledge = null,
-                                                       TelemetryAnalyticsTuning? telemetryKnobs = null)
+                                                       TelemetryAnalyticsTuning? telemetryKnobs = null,
+                                                       StructureInstanceRegistry structures = null)
         {
             if (idAuthority == null) throw new ArgumentNullException(nameof(idAuthority));
             if (presence == null) throw new ArgumentNullException(nameof(presence));
             if (blobPool == null) throw new ArgumentNullException(nameof(blobPool));
             return AssembleCore(idAuthority, presence, blobPool, worldSeed, registry, dataProvider,
-                                inputActions, audio, clinicKnowledge, telemetryKnobs);
+                                inputActions, audio, clinicKnowledge, telemetryKnobs, structures);
         }
 
         private static CompositionRootServices AssembleCore(IIdAuthority idAuthority,
@@ -136,7 +139,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                              InputActionAsset inputActions,
                                                              AudioAssemblySeams audio,
                                                              ClinicKnowledge clinicKnowledge,
-                                                             TelemetryAnalyticsTuning? telemetryKnobs)
+                                                             TelemetryAnalyticsTuning? telemetryKnobs,
+                                                             StructureInstanceRegistry structures)
         {
             // ── 依赖前置校验(全自动路径同样 fail-loud)──
             if (idAuthority == null)
@@ -302,6 +306,47 @@ namespace DaYiJingCheng.Gameplay.Boot
             else
                 lexiconTable = DiagnosisCookedDisk.LoadJudgmentLexicon();
             var lexiconBook = new LexiconBookSource(lexiconTable.Rows);
+
+            // ── 24「布局 → 房间类型」匹配链(TD-building-01 读侧 · 2026-10-21)──────────
+            // 病因:链上**四个零件**今日都只被测试直接构造,生产装配零落点 ——
+            //   ① `IPlacedStructureReadView` 生产实现(现 = `StructureInstanceReadView`);
+            //   ② `IModuleCatalog` 生产实现(现 = `BuildModulesCatalog`,读 `build_modules.cooked`);
+            //   ③ `ClinicFurnitureTraitsSource`(24 的 `type(c)` 来源)零生产构造点;
+            //   ④ `ClinicRoomExtraction` / `ClinicRoomMatcher` 两条纯函数零生产调用点。
+            // ⇒ 本段把它们接成 `ClinicRoomMatchingService`(装配层胶水,零新增判据)。
+            //
+            // ⚠️ **`structures` 从哪来**:23 的 `StructureInstanceRegistry` 今日在生产树**零构造**
+            //    (`new World(` 同样零构造,见 `TD-building-01` 实测 ①)。本装配**不自建**一个 ——
+            //    那会造出「装配层私有的世界」,与将来的 `World` 实例分叉(两份注册表 = 两份真源)。
+            //    故:
+            //      · 调用方给了(`BootRoot` 的 World 场景装配轮 / 测试注入真 `World.Structures`)
+            //        ⇒ 接真注册表;
+            //      · 未给 ⇒ 本段**不构造**匹配服务(`ClinicRoomMatching = null`),如实可观测。
+            //    ⇒ 缺口从「静默 Fake」变成「null 可判」,且不新增第二真源。
+            // ⚠️ 三份烘焙数据的装载策略同 S1.2:provider != null ⇒ Addressables;
+            //    provider == null ⇒ `DataCookedDisk` 直读**同一份产物** + 同一 codec。
+            // ⚠️ 装载失败(产物缺失 / 解码抛)⇒ **不吞**:本段在装配期抛(E-13 同口径)。
+            //    ⚠️ 但只在 `structures != null` 时才装载 —— 未接世界时不该因为「产物缺失」
+            //    让 77 处既有 `Assemble()` 调用方集体转红(那会把本接线变成全局回归)。
+            ClinicRoomMatchingService clinicRoomMatching = null;
+            if (structures != null)
+            {
+                BuildModulesDataSet buildModules = dataProvider != null
+                    ? dataProvider.Load<BuildModulesDataSet>()
+                    : DataCookedDisk.LoadBuildModules();
+                ClinicFurnitureDataSet clinicFurniture = dataProvider != null
+                    ? dataProvider.Load<ClinicFurnitureDataSet>()
+                    : DataCookedDisk.LoadClinicFurniture();
+                ClinicRoomDataSet clinicRooms = dataProvider != null
+                    ? dataProvider.Load<ClinicRoomDataSet>()
+                    : DataCookedDisk.LoadClinicRoom();
+
+                clinicRoomMatching = new ClinicRoomMatchingService(
+                    structures,
+                    new BuildModulesCatalog(buildModules),
+                    clinicFurniture.Catalogue,
+                    clinicRooms.Table);
+            }
 
             // ── 42 侧只读源(sprint-08 S1.1 件 E 起:病名册条目集接入)──
             // 依赖已备齐(ledger / 病例流 / tick / seenDisease / lexiconBook)⇒ 此处构造。
@@ -587,7 +632,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                // ⇒ `test_ac018_3_assemble_withSeams_...` **不转红** = 假绿)。
                                                renderTarget is AudioSourceRenderTarget,
                                                patientCueDriver, behaviorDirector,
-                                               audioTierDriver, telemetryKnobs);
+                                               audioTierDriver, telemetryKnobs,
+                                               clinicRoomMatching);
         }
 
         /// <summary>

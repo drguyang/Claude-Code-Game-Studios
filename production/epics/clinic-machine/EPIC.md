@@ -68,8 +68,25 @@ This epic is complete when:
 > 同批登记 **`OQ-24-7`**(多匹配裁决,暂定 = 声明序首个匹配)。
 >
 > ✅ **2026-10-21 实现轮(用户指令「story-006 实现」)**:story-006 转 `Complete`。
-> 落点 `Sim/Clinic/ClinicRoomMatcher.cs`(新)+ `clinic_room_matcher_test.cs`(新,24 测);
+> 落点 `Sim/Clinic/ClinicRoomMatcher.cs`(新)+ `clinic_room_matcher_test.cs`(新,~~24 测~~ **32 测** —— 🔁 2026-10-21 QA 签核轮实测订正;24 为**建卡估计值被误记为实测值**);
 > 证伪 7/7 恰如预期;回归 `4315/4279/0/36` 对基线 `4291/4255/0/36` ⇒ **+24/+24/0/0**,集合差「新增 24 · 消失 0」。
 > 原件 `production/qa/evidence/impl-s17-6-room-matcher-2026-10-21.md`。
-> ⚠️ **`OQ-24-7` 仍未裁** —— 哨兵 `MultiMatchPolicyIsProvisional => true` 钉住;裁定后须转 `false`
-> + 改实现 + 哨兵测试**转红即提醒**,不得静默改绿。
+> ~~⚠️ **`OQ-24-7` 仍未裁** —— 哨兵 `MultiMatchPolicyIsProvisional => true` 钉住;裁定后须转 `false`
+> + 改实现 + 哨兵测试**转红即提醒**,不得静默改绿。~~
+> ✅ **2026-10-21 补齐轮:用户裁定「转正:声明序首个匹配」** —— 哨兵已转 `false`、哨兵测已翻转、
+> 另配双向等价断言;`OQ-24-7` 结案。⚠️ 同轮订正:「声明序」在运行期 = **产物行序**
+> (`ClinicMachineCookedWriter.cs:123` 按 `room_type` 序数排序 ⇒ `herb_room, surgery, ward`),
+> 不是 JSON 手写序 —— 裁决内容不变,读者不得混读。
+>
+> ✅ **2026-10-21 补齐轮另两项**:① **全链真接线(含 23 侧)** —— `ClinicRoomMatchingService` +
+> `CompositionRoot` 装配段 + `StructureInstanceRegistry.EnumerateInstances()` + e2e **11 测**;
+> ② **Code Review 补做**(三路并行),原件 `review-s17-6-room-matcher-2026-10-21.md`。
+> 证据 = `impl-s17-6-wiring-2026-10-21.md`。
+> ⚠️ **仍未证**:`TD-building-01` 的 **`World` 半边**(e2e 用裸 `StructureInstanceRegistry`,
+> `IsEffectivelyWalkable` 端到端未验)· `ModuleDefinition.Cost` + `DemolishChecker` 未做。
+> ✅ **2026-10-21 补齐轮末:IL2CPP 腿已真跑通** —— Linux-x64-IL2CPP player 上 5/5 · 0 Inconclusive · 退出码 0
+> (`unity/Logs/s17-6s-il2cpp-player.xml`)。~~cooked 产物不进 player ⇒ 第二段 Inconclusive~~ **该判断已被推翻**:
+> cooked 产物**已经**随 `data-core` Addressables 组进 player,首版 3 条 Inconclusive 是**夹具设计错误**,已修。
+> ⚠️ 仍只跑**一格**(ARM64 目标不存在 / Windows·Apple Silicon 归发版前)。
+> ⚠️ 同轮暴露并修掉 4 个既有 PlayMode 文件的 `UnityEditor` 裸用(IL2CPP 腿自 2026-10-13 结构性坏),
+> 已立 **`TD-testasm-01`**(仍缺机械门)。

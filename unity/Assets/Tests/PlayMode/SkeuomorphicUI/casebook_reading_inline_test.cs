@@ -63,8 +63,16 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         {
             _go = new GameObject("ReadingInlineTest");
             _doc = _go.AddComponent<UIDocument>();
+            // ⚠️ **player 里取不到**(2026-10-21 立):`UnityEditor.AssetDatabase` 在 player 里
+            // 不存在(CS0234),故此处整段受 `#if UNITY_EDITOR` 守卫 —— 无守卫时**整条 IL2CPP
+            // player 构建失败**(2026-10-21 实测 48 errors,本文件与同目录三姊妹件)。编辑器内逐字不变。
+            // player 侧 `_prodPs = null` 无害:本类唯一的 UnityTest 已在体内 Inconclusive 短路。
+#if UNITY_EDITOR
             _prodPs = UnityEditor.AssetDatabase.LoadAssetAtPath<PanelSettings>(
                 "Assets/Gameplay.UI/Skeuomorphic/PanelSettings.asset");
+#else
+            _prodPs = null;
+#endif
             _doc.panelSettings = _prodPs;
         }
 
@@ -97,6 +105,14 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         [UnityTest]
         public IEnumerator test_reading_inlineFlow_and_pageEdge_notSqueezed()
         {
+            // ⚠️ **player 里不可跑**(2026-10-21 立):本测经 `UnityEditor.AssetDatabase`
+            // 按路径取生产 PanelSettings 与九份 USS —— player 里无该命名空间(CS0234)。
+#if !UNITY_EDITOR
+            Assert.Inconclusive(
+                "[NOT-RUN in player] 本测依赖 UnityEditor.AssetDatabase(路径 → PanelSettings / StyleSheet)," +
+                "该命名空间在 player 里不存在 ⇒ 结构上不可运行。编辑器中照常运行。");
+            yield break;
+#else
             yield return WaitForRoot();
             var root = _doc.rootVisualElement;
             foreach (var p in UssPaths)
@@ -151,6 +167,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             Object.Destroy(_doc);
             Object.Destroy(_go);
             yield break;
+#endif
         }
     }
 }

@@ -215,6 +215,13 @@ namespace DaYiJingCheng.Gameplay.Presentation
             AddressablesDataProvider.ClinicRoomAddress,
             // 21a 家具目录(O-24-1 兑现:`FURN_TYPES` 闭集的运行期载体,2026-10-21)。
             AddressablesDataProvider.FurnitureCatalogueAddress,
+            // 23 模块目录(TD-building-01 读侧:cost / furn_type / 足迹,2026-10-21)。
+            // ⚠️ 首轮接线**漏了本条** —— `EnsureBuildModules()` 已进 `Preload()` 且
+            // `BuildModulesAddress` 常量已声明,唯独地址表未登记 ⇒ 两条既有门转红:
+            //   ① `test_preloader_list_sources_matchPreloadedProducts`(常量 ⊄ 地址表);
+            //   ② `test_wiring_preload_invokesEveryEnsureMethod`(Ensure 21 ≠ 表 20 ≠ 常量 21)。
+            // 该门的作用正是「Ensure* / Preload / 地址表 / 常量」四处集合相等,漏一处即红。
+            AddressablesDataProvider.BuildModulesAddress,
         };
 
         /// <summary>地址是否可被 Addressables 解析(遍历 ResourceLocators 的 Locate)。</summary>

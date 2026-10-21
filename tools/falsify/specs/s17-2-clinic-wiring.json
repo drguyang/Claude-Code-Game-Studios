@@ -30,7 +30,7 @@
     {
       "name": "W2-preloadMissingCall",
       "file": "unity/Assets/Gameplay.Presentation/AddressablesDataProvider.cs",
-      "line": 337,
+      "line": 350,
       "expect": "            EnsureClinicContext();",
       "replace": "            // FALSIFY-W2:停用 Preload 的 clinic-context 调用",
       "expectRed": [

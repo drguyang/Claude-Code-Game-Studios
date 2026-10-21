@@ -38,6 +38,15 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         [UnityTest]
         public IEnumerator test_driver_mounts_all_stylesheets_real_lifecycle()
         {
+            // ⚠️ **player 里不可跑**(2026-10-21 立):本测经 `UnityEditor.AssetDatabase`
+            // 按 GUID 取生产 PanelSettings 与九份 USS —— player 里无该命名空间(CS0234)。
+            // 无守卫时整条 IL2CPP player 构建失败(2026-10-21 实测)。守卫后编辑器内逐字不变。
+#if !UNITY_EDITOR
+            Assert.Inconclusive(
+                "[NOT-RUN in player] 本测依赖 UnityEditor.AssetDatabase(GUID → PanelSettings / StyleSheet)," +
+                "该命名空间在 player 里不存在 ⇒ 结构上不可运行。编辑器中照常运行。");
+            yield break;
+#else
             _go = new GameObject("MountProbeHost");
             _go.SetActive(false);   // 停用 ⇒ AddComponent 不触发 Awake(模拟真机预摆)
 
@@ -71,6 +80,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             Assert.AreEqual(UssGuids.Length, mounted,
                 $"driver 应把清单内全部 {UssGuids.Length} 份样式表挂到 root —— 实测 {mounted}。" +
                 "少挂 ⇒ 文本回退默认字体 = 糊(AttachStyleSheets 时序守卫回归?)。");
+#endif
         }
 
         [TearDown]

@@ -121,6 +121,16 @@
 > `open 71 → 70` / `partial 5 → 6`,其余两列一位不动。
 > 🔁 **2026-10-21 六订(`TD-building-01` 入表 · N-r2)**:`96 → 97`;`open 70 → 71`;`Y: 87 → 88`;
 > **`未闭 P0 面 72 → 73`**;**epic 分布 `12/31 → 13/31`**(新增 `modular-building`)。
+> 🔁 **2026-10-21 七订(`TD-testasm-01` 入表 · PlayMode 装配 `UnityEditor` 裸用)**:`97 → 98`;
+> `partial 6 → 7`;`N: 8 → 9`;`Y` **一位不动**(88)· **`未闭 P0 面` 一位不动**(**73**)·
+> **epic 分布一位不动**(**13/31**)。
+> ⚠️ **本条是治理面债(`P0 面 = N`)**,故与六订**性质相反**:六订三个数全动,七订**一个统计数都不动**,
+> 只 `条目 +1` / `partial +1`。**禁止把「未闭面还是 73」读成「本轮没动」** ——
+> 变的是**总条目**与**治理面未闭数**,不是 P0 面分母。
+> 🔁 **2026-10-21 八订(`TD-testasm-01` 当日结案)**:`partial 7 → 6` · `closed 19 → 20`;
+> `条目` **98 一位不动** · `Y` **88 一位不动** · **`未闭 P0 面` 一位不动(73)** · `epic 分布` 一位不动。
+> ⚠️ **这是七订的对偶**:七订 `+1 条 partial`,八订 `−1 条 partial / +1 条 closed`。
+> ⇒ **条目数在七订 / 八订之间没变,但状态分布变了** —— 两件事都要报,不得只报一个。
 > ⚠️ **与四订的区别必须说清**:四订的 +1 落在 `item-database`(名下已有 `TD-clinic-01` 刚结案),
 > 六订的 +1 落在 **`modular-building` —— 一个此前名下零债的 epic**。
 > ⇒ **「23 已 `Complete` 且名下无债」这句自此失效**,且它以前是「门清单完备性」的一个隐含前提。
@@ -197,6 +207,15 @@
 > 变化 = `open` **+1** · `Y` **+1** · **`未闭 P0 面` 72 → 73** · **epic 分布 12/31 → 13/31**。
 > ⚠️ **三个数全动,与五订的「一位不动」相反**;且 **`modular-building` 首次出现在 epic 分布里**。
 > ⇒ 本册此前可写「23 已 `Complete` 且名下无债」,**这句话自此不成立**。
+> 🔁 **2026-10-21(七订 · `TD-testasm-01` 立债)**:`open` **71** · `partial` **7** ·
+> `closed` **19** · `done` **1** —— 合计 **98** ✓ · `P0 面 {Y:88, N:9, ~~Y~~:1}`。
+> 变化 = `partial` **+1** · `N` **+1** · **`未闭 P0 面` 一位不动(73)** · **epic 分布一位不动(13/31)**。
+> ⚠️ **与六订相反**:六订动 P0 面分母(新增一个 epic),七订**只动治理面**。
+> ⇒ **「73」这个数在六订和七订之间没变,但册子从 97 长到 98** —— 两件事都要报,不得只报一个。
+> 🔁 **2026-10-21(八订 · `TD-testasm-01` 当日结案)**:`open` **71** · `partial` **6** ·
+> `closed` **20** · `done` **1** —— 合计 **98** ✓ · `P0 面 {Y:88, N:9, ~~Y~~:1}`(全未变)。
+> 变化 = `partial` **−1** / `closed` **+1**(**同一行**的状态列换字)。
+> ⇒ **`未闭 P0 面` 仍 73、`epic 分布` 仍 13/31** —— 与五订同型(一行换字),与七订(+1 行)不同。
 
 ### 四、总索引表(91 行)
 
@@ -209,8 +228,9 @@
 > ⇒ **现役仍 96 行**。
 > 🔁 **2026-10-21(六订)**:新增 `TD-building-01`(`modular-building` / `open` / `P0 面 = Y`)
 > ⇒ **现役 97 行**。
-> ⚠️ **标题里的 `91 行` 与现役值的差 = 6 行**,其中 3 条 `TD-gate` + 1 条 `TD-build-01` + 1 条 `TD-itemdb-01`
-> + 1 条 `TD-building-01`。
+> 🔁 **2026-10-21(七订)**:新增 `TD-testasm-01`(治理面 / `partial` / `P0 面 = N`)⇒ **现役 98 行**。
+> ⚠️ **标题里的 `91 行` 与现役值的差 = 7 行**,其中 3 条 `TD-gate` + 1 条 `TD-build-01` + 1 条 `TD-itemdb-01`
+> + 1 条 `TD-building-01` + 1 条 `TD-testasm-01`。
 > `TD-clinic-01` **不是新行**,它是**原 91 行里的那一行改了状态**(⇒ 行数不变,`done` 计数 +1)。
 
 <!-- TD-INDEX:BEGIN -->
@@ -313,6 +333,7 @@
 | `TD-build-01` | `（跨 epic · 治理／构建期派生）` | open | **N** | R3-裁 |
 | `TD-itemdb-01` | `item-database` | partial | **Y** | R1 |
 | `TD-building-01` | `modular-building` | open | **Y** | R1 |
+| `TD-testasm-01` | `（跨 epic · 治理／Tests/PlayMode 装配）` | closed | **N** | R3-裁 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -2106,6 +2127,7 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | **触发条件** | **读侧**:`/sprint-plan` 取 `clinic-004` / `clinic-005` 时,按 §6.3 **R-4**(上游契约逐代码实测)必然撞见 `IPlacedStructureReadView` 生产实现为零 ⇒ 该轮**就地裁定**是本轮补还是继续 Fake(**继续 Fake 则 `AC-24-11` 不得记绿**)。**写侧**:`O-23-6` 落地时。 |
 | **归属** | **23**(模块化建造)—— ⚠️ **该 epic 已标 `Complete ✅ 2026-10-03`**。按用户 2026-10-20 / 2026-10-21 同口径:**由 TD 跟踪,不新立 story、不重开 epic**。 |
 | **与 `TD-itemdb-01` 的关系** | **不合并、不互抵**。`TD-itemdb-01` 登记的是「`cost(m)` 作者态缺席」,其数据半边**已于 2026-10-21 落**(`build_modules.json` + 烘焙 + 跨表同源门);本债登记的是「那笔数据**没有读方**」。两条互为对方的到期条件 —— 数据落地不蕴含读方存在,读方存在也不蕴含数据正确。 |
+| **🔁 2026-10-21 读侧部分解除(S17-6 接线轮)** | 用户裁定「全链真接线(含 23 侧)」后,**读侧五件里的四件已落**:<br>① `IPlacedStructureReadView` 生产实现 = **`Gameplay.Presentation/StructureInstanceReadView.cs`**(包 `StructureInstanceRegistry`);<br>② `IModuleCatalog` 生产实现 = **`BuildModulesCatalog.cs`**(读 `build_modules.cooked`);<br>③ 装配根注入 = **`CompositionRoot.AssembleCore`** 的 `structures != null` 分支(含 `ClinicRoomMatchingService`);<br>④ `StructureInstanceRegistry.EnumerateInstances()`(23 侧只读枚举器)。<br>证据 `production/qa/evidence/impl-s17-6-wiring-2026-10-21.md`。<br>**⚠️ 仍未解除的两半(不标结案)**:<br>**(a) 判据的 `World` 半边** —— 本债逐字要求「**真 `World`** 端到端:`Place → IsEffectivelyWalkable == false` / `Remove → true`」。e2e 用的是**裸 `StructureInstanceRegistry`** + 真 `StructureWriter.Place`,**未经 `World`** ⇒ `IsEffectivelyWalkable` 端到端判据**未验**。<br>**(b) `ModuleDefinition.Cost` + `DemolishChecker` 从目录读** —— **未做**(`ModuleDefinition` 仍是五字段)。<br>**(c) 写侧**(`Place` / `Remove` 生产发起方)—— 归 42 的建造交互(`O-23-6`),本轮不碰。<br>⇒ **状态维持 `open`**;`partial` 的准确表述是「读侧 4/6 件已落,判据与 Cost 半边未落」。 |
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
 |---|---|---|---|---|
@@ -2115,3 +2137,81 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 > ⚠️ **本条使 `未闭 P0 面` 从 72 变 73**,且 **`modular-building` 由「名下零债」变为「名下 1 条」**
 > ⇒ M3 Exit ② 的 epic 分布由 **12/31 变 13/31**。**这是分母变大,不是读数波动。**
 > ⚠️ **M3 Exit 判定不变**(本就为假) —— 但「23 已 Complete 且名下无债」这一句**自此不再成立**。
+
+## 2026-10-21 · PlayMode 装配的 `UnityEditor` 裸用(IL2CPP 腿自 2026-10-13 起结构性坏)
+
+**出处**:S17-6 接线轮按用户裁定「加 PlayMode 载体 + 真跑」跑 IL2CPP 腿,
+**首跑构建失败**(`unity/Logs/s17-6k-il2cpp.log`:`Build Finished, Result: Failure.`,48 errors),
+根因**不在本轮改动**,在 4 个**既有** PlayMode 测试文件。
+
+**机制**:`Assets/Tests/PlayMode/PlayMode.asmdef` 的 `includePlatforms: []`
+⇒ 该装配**进 player**;而下列文件**裸用** `UnityEditor.AssetDatabase` 且**零 `#if UNITY_EDITOR` 守卫**
+⇒ 编辑器里 `UnityEditor` 存在、编得过;**player 构建时该命名空间不存在** ⇒ 装配编不过
+⇒ **整个 IL2CPP player 出不来**。
+
+**实测(2026-10-21,`grep -rln 'UnityEditor' Assets/Tests/PlayMode/` = 6 文件,逐个核守卫)**:
+
+| 文件 | `UnityEditor` 命中 | 守卫 | 是否致命 |
+|---|---|---|---|
+| `SkeuomorphicUI/sdf_font_render_path_probe_test.cs` | 8 | **0**(修前) | 🔴 是(7 条错误) |
+| `SkeuomorphicUI/skeuo_stylesheet_mount_probe_test.cs` | 6 | **0**(修前) | 🔴 是(4 条) |
+| `SkeuomorphicUI/sdf_font_coverage_probe_test.cs` | 4 | **0**(修前) | 🔴 是(2 条) |
+| `SkeuomorphicUI/casebook_reading_inline_test.cs` | 5 | **0**(修前) | 🔴 是(2 条) |
+| `Audio/stethoscope_preload_loadstate_test.cs` | 1 | **2**(本来就有) | ✅ 否 |
+| `direct_read_channel_phase_test.cs` | 1 | 0 | ✅ 否 —— 唯一命中在**注释**里(`:56`「规避 UnityEditor 资产加载依赖」),非代码引用 |
+
+⇒ **15 条 unique 错误(`error CS0234 'AssetDatabase' does not exist in the namespace 'UnityEditor'`)
+全部来自前 4 个文件**;后两个从未致命,但**混在同一份 grep 结果里**,
+故「扫到 `UnityEditor` 就报」的判据会**误报 2 条**(本行即为该误报面的留档)。
+
+**时间线**:ADR-012 的 IL2CPP 腿最后一次跑通 = **2026-09-24**;这 4 件**全部在 09-25 之后入库**
+(2026-10-13 ×3 / 2026-10-14 ×1)⇒ **IL2CPP 腿自 2026-10-13 起结构性坏**,与 S17-6 无关,
+也与这期间的任何一次「全量 EditMode 绿」不矛盾 —— **EditMode 树根本不含这些文件**
+(`Sim.Contracts.Tests` 的 `includePlatforms: ["Editor"]`)。
+
+**处置(用户 2026-10-21 裁定「就地修 4 个文件 + 重跑」)**:方法级 `#if !UNITY_EDITOR` 守卫 ——
+编辑器内行为**逐字不变**,player 里走 `Assert.Inconclusive` 短路;`AssetDatabase` 调用原样保留在
+`#else` 分支内。**不改测试语义、不改断言语义。**
+
+**验证**:守卫修复后 IL2CPP 构建 `Result: Success`;载体 5 测在 `IL2CPP Root Domain` 下
+**5/5 通过、0 Inconclusive**(`unity/Logs/s17-6s-il2cpp-player.xml`,退出码 0)。
+原件 = `production/qa/evidence/impl-s17-6-wiring-2026-10-21.md` §5.3 / §8.1。
+
+**🔁 2026-10-21 当日还债:机械门已落(原「未做」两件之一)**
+① ~~**无机械门**~~ ⇒ ✅ **已落** `Assets/Editor.Tools.Gates/PlayerAssemblyGate.cs`,接进
+`AssemblyGates.RunAll()`(**三入口共用**:菜单 / 域重载 / 构建前门),并在
+`gate_wiring_manifest_test.cs` 的 `EntryWiringManifest` + `ClassConsumerManifest` 双表登记
+(该测试的设计就是「新接一门不声明 ⇒ 红」)。
+判据 = 扫 `Assets/Tests/PlayMode/**/*.cs` 的**代码引用**(剥注释 + 剥字符串字面量),
+逐行判 `#if UNITY_EDITOR` 活跃区;活跃区外 ⇒ 红。测试 11 条(`player_assembly_gate_test.cs`),
+含**非空守卫**与**那 4 个原始肇事件的逐文件点名**(删文件 ≠ 修好)。
+⚠️ **零误报是实测换来的,不是设计推出来的**:首轮普查 `grep -rln 'UnityEditor'` 得 6 个文件,
+其中 2 个从不致命(1 个本来有守卫、1 个唯一命中在**注释**里);修好 4 件后又冒出 4 条
+**字符串字面量**误报(`Assert.Inconclusive("…依赖 UnityEditor.AssetDatabase…")`)。
+⇒ 判据必须**同时**剥注释与剥串内容,否则误报 6 条。
+② **这 4 件的 player 侧仍是 NOT-RUN,不是「通过」** —— 它们在 player 里走 `Inconclusive`,
+`Assert.Inconclusive` 不计失败也不计通过。**如实登记,禁读成绿**(此项**不随本债结案**,
+它是这 4 件测试本身的语义边界,不是缺陷)。
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-testasm-01** | `（跨 epic · 治理／Tests/PlayMode 装配）` | ~~**partial**~~ **closed** | **N** | R3-裁 |
+
+> **`P0 面 = N`** —— 无归属 epic(治理面),承 §一 **R3 裁量判据**;不改变 `未闭 P0 面 73`。
+> ✅ **2026-10-21 当日转 `closed`** —— 三项全部「已落 + 已证」:
+> ① 4 个肇事件已修(方法级 `#if !UNITY_EDITOR`);② IL2CPP 腿真跑通
+> (`s17-6s-il2cpp-player.xml` 5/5 · 0 Inconclusive · 退出码 0);
+> ③ **机械门已落并反证** —— `PlayerAssemblyGate` 编译通过,测试 **12/12 绿**
+> (`unity/Logs/s17-6v-playasm-gate.xml`);证伪 **V-PA2**(摘掉 `sdf_font_coverage_probe_test.cs`
+> 的守卫三行 ⇒ **恰 2 条红**,与预注册一致)+ **V-PA1**(停用守卫放行 ⇒ 5 红,**过红**,如实登记
+> 为 `MISMATCH` 不记 EXACT)。两次还原 `sha256` 逐字节相同,零 `FALSIFY` 残留,
+> 还原后复跑 12/12 绿(`s17-6w-playasm-restored.xml`)。
+> ⚠️ **一条不随本债结案的如实登记**:那 4 件的 player 侧仍是 **NOT-RUN**
+> (`Assert.Inconclusive` 不计失败也不计通过)—— 那是测试自身的语义边界,不是缺陷,
+> 故它不作为本债的未闭项,但**读者不得把「本债 closed」读成「那 4 件在 player 里通过了」**。
+> **结案后 `closed` 计数 +1**(19 → 20),条目数与 P0 面分母**均不变**。
+> 🔁 **2026-10-21 就地订正(记账卫生)**:本段此前**多贴了一张重复表**(状态写 `closed`),
+> 与上方 `partial` 那张并存 ⇒ 同一 `TD` 在同一节内出现两个互相矛盾的状态。
+> 处置:上方表的**状态列**改 `~~**partial**~~ **closed**`(原文加删除线保留,承「原文不删」),
+> 重复表删除,其独有的计数句并入本段。**§五 求值不受影响** —— 它只解析
+> `TD-INDEX` 块(`:236`–`:337`),本节的表在块外,从未计入 `条目 / 状态 / P0 面` 任何计数。

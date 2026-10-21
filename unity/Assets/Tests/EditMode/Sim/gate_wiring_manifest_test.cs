@@ -86,6 +86,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "WriterExistenceGate.RunAll",    // b7 写者存在性
                     "MedConsFloatGate.RunAll",       // 53 静态面(零浮点/零 31 符号)
                     "FsWriteBoundaryGate.RunAll",    // 测试不得写仓库(S16-4)
+                    "PlayerAssemblyGate.RunAll",     // PlayMode 装配 UnityEditor 裸用(TD-testasm-01 · 2026-10-21)
                 },
 
                 // RunMenu = 菜单项「大医精诚/Validation/Run Assembly Gates」。
@@ -188,6 +189,9 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 Consumer = "RunMenu+BuildGate" },
             new ClassVerdict { ClassName = "MedConsFloatGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll" },
+            new ClassVerdict { ClassName = "PlayerAssemblyGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "TD-testasm-01 落(2026-10-21);IL2CPP 腿自 2026-10-13 结构性坏 8 天,唯一发现途径曾是跑一次构建" },
             new ClassVerdict { ClassName = "PrescriptionWriterGates", Kind = WiringKind.Chain,
                 Consumer = "RunMenu+BuildGate" },
             new ClassVerdict { ClassName = "WriterExistenceGate", Kind = WiringKind.Chain,

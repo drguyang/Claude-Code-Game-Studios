@@ -48,6 +48,15 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         [UnityTest]
         public IEnumerator test_casebook_all_labels_resolve_to_sdf()
         {
+            // ⚠️ **player 里不可跑**(2026-10-21 立):本测经 `UnityEditor.AssetDatabase`
+            // 按路径取生产 PanelSettings 与九份 USS —— player 里无该命名空间(CS0234)。
+            // 无守卫时整条 IL2CPP player 构建失败(2026-10-21 实测)。守卫后编辑器内逐字不变。
+#if !UNITY_EDITOR
+            Assert.Inconclusive(
+                "[NOT-RUN in player] 本测依赖 UnityEditor.AssetDatabase(路径 → PanelSettings / StyleSheet)," +
+                "该命名空间在 player 里不存在 ⇒ 结构上不可运行。编辑器中照常运行。");
+            yield break;
+#else
             _go = new GameObject("CovProbeHost");
             var doc = _go.AddComponent<UIDocument>();
             // 用**生产 PanelSettings**(带 UnityDefaultRuntimeTheme)—— 排除「主题的
@@ -103,6 +112,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
                 "③ 该 USS 在挂载清单内;④ 字号变量 `--skeuo-font-size-default` ≥24px。");
             Debug.Log($"[COV-GATE] 脉案屏 {total} 个文本元素全部解析到 SDF 字体且字号合格 ✓ " +
                       $"fontSize 范围 [{minFs},{maxFs}]");
+#endif
         }
 
         [TearDown]

@@ -36,6 +36,20 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
         [UnityTest]
         public IEnumerator test_directFontDefinitionAssignment_vs_uss()
         {
+            // ⚠️ **player 里不可跑**(2026-10-21 立):本测全程经 `UnityEditor.AssetDatabase`
+            // 按 GUID / 路径取资产 —— 该命名空间**在 player 里不存在**(编译期 CS0234)。
+            // 本装配 `PlayMode.asmdef` 的 `includePlatforms: []` ⇒ 进 player ⇒ 无守卫时
+            // **整个 IL2CPP player 构建失败**(2026-10-21 实测 `Build Finished, Result: Failure.`
+            // + 48 errors,全部指向本文件与同目录三个姊妹件)。
+            // 处置 = 方法级守卫:编辑器内行为**逐字不变**;player 里编成 Inconclusive 分支。
+            // ⚠️ **这不是「player 里也验过了」** —— player 侧本测**未运行**,如实记 NOT-RUN。
+#if !UNITY_EDITOR
+            Assert.Inconclusive(
+                "[NOT-RUN in player] 本测依赖 UnityEditor.AssetDatabase(按 GUID 取 PanelSettings / " +
+                "FontAsset / StyleSheet),该命名空间在 player 里不存在 ⇒ 结构上不可运行。" +
+                "编辑器中照常运行,结果不因本守卫改变。");
+            yield break;
+#else
             string sdfPath = UnityEditor.AssetDatabase.GUIDToAssetPath(SdfAssetGuid);
 
             // ① 资产类型
@@ -90,6 +104,7 @@ namespace DaYiJingCheng.Tests.PlayMode.SkeuomorphicUI
             Assert.IsTrue(classedFa != null && classedFa.Contains("SDF"),
                 $"[P-③] 真实 USS `.channel-label` 应解析到 SDF 资产 —— 实测 '{classedFa}'。" +
                 "成功 = resource() 语法生效,糊的根因已修。");
+#endif
         }
 
         [TearDown]

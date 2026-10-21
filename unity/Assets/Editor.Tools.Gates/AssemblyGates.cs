@@ -143,6 +143,11 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 写盘边界门(S16-4 · retro-14 行动项 A4,2026-10-20):测试不得写仓库。
             // 扫 `Assets/Tests/**/*.cs` —— R1 字面量相对目标 + R2 「锚点 × 写盘」须具名声明。
             errs.AddRange(FsWriteBoundaryGate.RunAll("."));
+            // PlayMode 装配的 `UnityEditor` 裸用门(TD-testasm-01,2026-10-21):IL2CPP 腿自
+            // 2026-10-13 起结构性坏 8 天,唯一发现途径是「跑一次 IL2CPP 构建」(数十分钟)。
+            // 扫 `Assets/Tests/PlayMode/**/*.cs` —— 该装配 `includePlatforms: []` ⇒ 进 player,
+            // 裸用 `UnityEditor` ⇒ CS0234 ⇒ 整个 player 出不来。
+            errs.AddRange(PlayerAssemblyGate.RunAll("."));
             return errs;
         }
 
