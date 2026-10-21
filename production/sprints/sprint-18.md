@@ -90,7 +90,7 @@
 
 | ID | 任务 | 层/型 | C | 依赖 | 验收判据(可复算) | 测试载体 |
 |---|---|---|---|---|---|---|
-| **S18-1** | `TD-sim-01` / **G-1**:`SelfLimited(entity, d)` 逐实体判死谓词及其依赖面 | Core / Logic | L | ① `DiseaseRegistryEntry.kind` 字段(数据面**缺**)② 战伤白名单闭集(**无定义,须裁定**)③ `DeathCandidate` 产出 ④ `WriterExistenceGate` 两条写者 | ① 谓词存在且**同病种对 Player 与 NPC 判死不同** —— 夹具必须能区分,否则假绿;② `d.kind` 参与判据时**无 `if kind == injury` 分支**(规则九,`disease-simulation.md:358`);③ 破例**只**在 `kind = Player ∧ d ∈ 白名单` 成立;④ 不改任何既有 `self_limit` 数据值(对 13 / 52 / 10 **零涟漪**);⑤ `DeathCandidate` 产出路径有生产调用点,`WriterExistenceGate` 两条从「未落」转为「已落」 | `unity/Assets/Tests/EditMode/DiseaseSimulation/self_limited_predicate_test.cs`(新) |
+| **S18-1** | `TD-sim-01` / **G-1**:`SelfLimited(entity, d)` 逐实体判死谓词及其依赖面 | Core / Logic | L | ① `DiseaseRegistryEntry.kind` 字段(数据面**缺**)② 战伤白名单闭集(**✅ 已裁 2026-10-21 `OQ-S18-1` = 双条件 `lethal(d) ∧ d ∈ {STAB, LACERATION, HEMORRHAGE, CLAW, BITE}`**,见 `death-and-respawn.md` 规则二订正注)③ `DeathCandidate` 产出 ④ `WriterExistenceGate` 两条写者 **⑤ F4 昏迷支的 combatant 矛盾**(`disease-simulation.md:1084-1090` 与 `:570` 两处渲染不一致) | ① 谓词存在且**同病种对 Player 与 NPC 判死不同** —— 夹具必须能区分,否则假绿;② `d.kind` 参与判据时**无 `if kind == injury` 分支**(规则九,`disease-simulation.md:358`);③ 破例**只**在 `kind = Player ∧ d ∈ 白名单` 成立;④ 不改任何既有 `self_limit` 数据值(对 13 / 52 / 10 **零涟漪**);⑤ `DeathCandidate` 产出路径有生产调用点,`WriterExistenceGate` 两条从「未落」转为「已落」 | `unity/Assets/Tests/EditMode/DiseaseSimulation/self_limited_predicate_test.cs`(新) |
 
 **批 2 —— `S18-2` + `S18-3`**
 
@@ -122,7 +122,7 @@
 | 风险 | 概率 | 影响 | 缓解 |
 |---|---|---|---|
 | **G-1 的「一个谓词」口径失真** —— 债册原文只写加 `entity` 形参,实测缺四件 | **确定** | **高** | 已在 §Phase 1 ③ 就地订正;S18-1 的 AC 按四件套写,**不按债册单句写**;复杂度判 **L** 并独占 1 批 |
-| **战伤白名单内容无定义** ⇒ AC 判据不可写 | **确定** | 中 | 实施前须用户裁定闭集,或判「归 25 / 9 的 GDD 轮」并登记为 **`NOT-RUN`**。**不得自造白名单凑绿** |
+| ~~**战伤白名单内容无定义** ⇒ AC 判据不可写~~ | ~~**确定**~~ | ~~中~~ | ✅ **已结(2026-10-21 `OQ-S18-1`)** —— 闭集 = 双条件 `lethal(d) ∧ d ∈ {INJ_STAB, INJ_LACERATION, INJ_HEMORRHAGE, INJ_CLAW, INJ_BITE}`。**替代风险(同档,未结)**:① 破例**同时关闭玩家昏迷支**(F4 昏迷支读 `SelfLimited`);② 白名单伤情须靠自身曲线越 `DEATH_THRESHOLD`(`TRAUMA_CAP = 4/5` 已钉 ⇒ 注入量单独够不到),而 R1.3 十七条校验**无此项** ⇒ 须补一条新校验,否则「白名单里的伤情永远杀不死人」且**无任何东西报错** |
 | `kind` 字段进 `DiseaseRegistryEntry` 触及 registry 17 条校验 + 烘焙管线 + 现有数据无该字段 | 中 | 中 | 实施前先测涟漪面(9 的 story-003 校验器 + `Sim.Codec` 的 cooked 面);若涟漪超「加一个字段」⇒ 拆批并**如实登记** |
 | **G-1 / G-2 结案 ≠ `death-respawn` 可开工** —— 还有 `BLOCKED-BY-24` | **确定** | 中 | 本 sprint 明确**不开** `death-respawn` 任何 story;`BLOCKED-BY-24` 由 `S18-3` 登记去向 |
 | **借绿**:两件全 Logic,且 G-1 的判据天然易滑向「自造断言顶替 AC 语义层」(本仓已三发) | 中 | **高** | 每件过**证伪轮**(改坏生产码 ⇒ 指定断言转红);`exactRed` 须**先论证后定预期**,禁把实得抄进 `expectRed`;`Proven` 列填可复算判据,禁写动作描述 |

@@ -85,9 +85,23 @@
 
 **Estimated test count**: ~18–24 测
 
-> ⚠️ **本件有一条硬前置未解**:「战伤白名单」**全库无定义**(`assets/data/` 内 `INJ_*` 零命中;
-> `death-and-respawn.md:96` 只点名不给闭集)⇒ **AC ④ 在裁定前记 `NOT-RUN`,不勾**。
-> **不得自造白名单凑绿** —— 自造的白名单会让「破例」这条判据变成测我自己的假设。
+> ✅ **本件的硬前置已解除(2026-10-21 `OQ-S18-1` 裁)**:「战伤白名单」此前全库无定义
+> (`assets/data/` 内 `INJ_*` 零命中;`death-and-respawn.md:96` 只点名不给闭集)⇒ 现闭集 =
+> **双条件 `lethal(d) ∧ d ∈ {INJ_STAB, INJ_LACERATION, INJ_HEMORRHAGE, INJ_CLAW, INJ_BITE}`**
+> (`death-and-respawn.md` 规则二订正注 + `OQ-29-7` 结案行)。**AC ④ 自此可写,不再是 `NOT-RUN`。**
+>
+> ⚠️ **但两条连带后果须在实施期解决,不得当已结**(本裁打开、未关闭):
+> ① **破例同时关闭玩家的昏迷支** —— F4 昏迷支(`disease-simulation.md:1088`)读 `SelfLimited`,
+>    破例返回 `false` 后玩家从「归零 = 昏迷」变为**跳过昏迷直奔死亡**;`position ∈ [COMA, DEATH)` 时停在危殆不下场。
+> ② **白名单伤情须靠自身 `natural_progress` 越 `DEATH_THRESHOLD`** —— `TRAUMA_CAP = 4/5` 已钉
+>    (`combat-and-weapon-lines.md:1362`)、`DEATH_THRESHOLD > COMA_THRESHOLD`(校验 9)⇒ 战伤注入量
+>    **单独永远够不到死亡阈**。而 R1.3 十七条校验**无**「`self_limit ∧ lethal` ⇒ `A_peak/SCALE ≥ DEATH_THRESHOLD`」
+>    (只有 `plateau ∧ lethal` 的校验 14 与急性保持型的校验 4b)⇒ **须补一条新校验**,
+>    否则「白名单里的伤情永远杀不死人」且**没有任何东西会报错**。
+>
+> **第三条(非本裁,但同属 S18-1 实现面)**:F4 昏迷支把 combatant 全排除
+> (`LethalFor` 与 `SelfLimited` 对 combatant 双关)⇒ 敌人/兽永远进不了昏迷,与 C1「归零 = 昏迷,可救治」
+> 及该行自带注释「自限型 combatant 归零 = 昏迷,不死」矛盾;转移表 `:570` 同一行**没有这两门**。两处渲染不一致。
 
 ---
 
@@ -192,7 +206,7 @@ S18-3 是纸面件,判据是命令输出。
 
 | # | 项 | 为什么没核 | 影响 |
 |---|---|---|---|
-| 1 | **战伤白名单闭集内容** | 全库无定义,须用户裁定 | S18-1 的 AC ④ 在裁定前记 **`NOT-RUN`** |
+| 1 | ~~**战伤白名单闭集内容**~~ ✅ **已核(2026-10-21 `OQ-S18-1` 裁)** | 原:全库无定义,须用户裁定 | **已解除** —— 闭集 = 双条件 `lethal(d) ∧ d ∈ {INJ_STAB, INJ_LACERATION, INJ_HEMORRHAGE, INJ_CLAW, INJ_BITE}`(`death-and-respawn.md` 规则二订正注 + `OQ-29-7` 结案行)。**替代未及项(同档)**:破例关闭玩家昏迷支 · 白名单伤情越 `DEATH_THRESHOLD` 的校验缺口(R1.3 十七条无此项) |
 | 2 | **`kind` 字段进 `DiseaseRegistryEntry` 的涟漪面** | 规划轮只确认「字段不存在」,未测加字段会红哪些既有门(registry 17 条校验 / cooked codec / 既有数据) | 若涟漪超「加一个字段」⇒ S18-1 须拆批;**实施前必须先测** |
 | 3 | **`Folded` 的程序集归属** | 见 S18-2 末的架构前置;须实施前裁定 | 定不下来则 S18-2 不可开工 |
 | 4 | **`DeathCandidate` 的产出路径形状** | 规划轮只确认「全树零命中」,未读 29 的消费侧契约形状 | S18-1 的 AC ⑦⑧ 判据待实施期定形 |

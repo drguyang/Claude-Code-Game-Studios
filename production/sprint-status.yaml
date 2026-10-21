@@ -103,8 +103,11 @@ deviations:
 open_items:
   - id: "OQ-S18-1"
     item: "战伤白名单闭集的内容"
-    status: "未裁"
-    impact: "S18-1 的 AC ③ 判据不可写;若不裁 ⇒ 该条记 NOT-RUN,不得自造白名单凑绿"
+    status: "✅ 已裁 2026-10-21"
+    ruling: "双条件 —— 破例条件 = kind=Player ∧ d.kind=injury ∧ lethal(d) ∧ d ∈ {INJ_STAB, INJ_LACERATION, INJ_HEMORRHAGE, INJ_CLAW, INJ_BITE}。落盘 = design/gdd/death-and-respawn.md 规则二订正注 + OQ 表新增 OQ-29-7 结案行 + §Dependencies 25 行"
+    why_double: "单取 lethal 会把「现实医学语义」改写成「P0 玩家致死路径」—— INJ_BLUNT / INJ_FRACTURE / INJ_BURN / INJ_DISLOCATION 现实上均可致死,置 false 等于改写 disease-simulation.md:293 的既有语义(25 的 R12 回填面,非本件可裁)"
+    impact: "S18-1 的 AC ③ 判据自此可写;闭集是 R2 枚举表的数据行,不是新字段"
+    residual: "两条连带后果未结 —— ① 破例同时关闭玩家昏迷支(F4 昏迷支读 SelfLimited);② 白名单伤情须靠自身 natural_progress 越 DEATH_THRESHOLD(TRAUMA_CAP=4/5 已钉,注入量单独够不到),R1.3 十七条校验无此项 ⇒ 须补新校验"
     owner: "用户"
   - id: "OQ-S18-2"
     item: "QA 计划(qa-plan-sprint-18)"
