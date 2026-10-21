@@ -86,14 +86,14 @@ stories:
     name: "retro-14 行动项 5(TD-player-01 归口)回写"
     file: "production/retrospectives/retro-sprint-14-2026-10-18.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: "claude"
     estimate_days: 0          # 复杂度 = S
     complexity: S
     depends_on: []
     blocker: ""
-    completed: ""
-    note: "承 sprint-16 moved_out(to: sprint-17)。实质已于 2026-10-20 修完(impl-td-player-01-2026-10-20.md;3938/3901/1 → 3940/3904/0/36),只差刷 :213 行动项行。判据 = 债册 :209 `closed` 与 retro 行两处同值可 grep;原文不删,就地加注。"
+    completed: "2026-10-21"
+    note: "承 sprint-16 moved_out(to: sprint-17)。实质已于 2026-10-20 修完(impl-td-player-01-2026-10-20.md;3938/3901/1 → 3940/3904/0/36),只差刷 :213 行动项行。判据 = 债册 :209 `closed` 与 retro 行两处同值可 grep;原文不删,就地加注。✅ 2026-10-21 回写完成,且**不止 :213 一处** —— 全文四处 TD-player-01 现在都带结论::22(回归行,原已写「复跑绿」)· :119(Blocker 表「未解决」行)· :147(结转表「仍 open」行)· :213(行动项 5,加「✅ 已兑现(2026-10-20 · 走「修」这条腿,用户裁定 B)」块 + Deadline 列改 `✅ **已结(2026-10-20)**`)。后两处原文若只刷 :213 会自相矛盾(同一文件里一边写「未解决 / 仍 open」,一边写「已结」)⇒ 就地加注,原文不删;原文关键词(不抵扣 / 要么修 / flaky registry)逐词保留。债册侧 `| TD-player-01 | player-controller | closed | **Y** | R1 |` 同值可 grep。⚠️ `AC-1-33②`(slopeLimit / stepOffset)仍开放,卡 `O-9`,不得读作整条已闭。"
 
 # ── 分批(承 CAPACITY-MODEL §3.2:每批 2–4 件 · 并发 ≤ 3)──
 batches:
