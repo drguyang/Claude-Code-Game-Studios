@@ -567,11 +567,11 @@ P0 病种 ~8(`systems-index.md` §8)。**新增病种 = 加一行数据,不改�
 | 潜伏 | 痊愈 | **不经发病直接痊愈**(`self_limit = true` 且无 `relapse.*` 块)—— **有些病自己会好**。九态表无「自愈」态,**这是「潜伏 → 痊愈」的路径,不是独立状态**(2026-09-15 B5 改注) |
 | 发病 | 进展 / 好转 | `trend_backward_agg` 符号(规则四);由 `Base` 曲线 + 处置偏移决定 |
 | 进展 | 危殆 | `position_agg ≥ CRITICAL_THRESHOLD`(**合成量**,规则十) |
-| 危殆 | 昏迷 | `position_agg ≥ COMA_THRESHOLD` 且存活 —— **C1 的登记点** |
-| 危殆 | 死亡 | `LethalFor(entity, d) ∧ ¬SelfLimited(entity, d)` 且 `position_agg ≥ DEATH_THRESHOLD` 且**干预窗口已过**(F4;两门合并 = `lethal ∧ self_limit=false ∧ ¬IsCombatant`) |
+| 危殆 | 昏迷 | `position_agg ≥ COMA_THRESHOLD` 且存活 —— **C1 的登记点** 🔁 **2026-10-21 订正(两段)** —— ① 中途曾按 F4 补 `SelfLimited(entity,d)` 门,**该补门已撤销**:`SelfLimited` 里叠着 29 侧白名单破例 ⇒ 玩家被白名单伤情打到 `≥COMA` 时会跳过昏迷直奔死亡,而昏迷是重要医学环节;② **本行恢复为原文的无门式**,且 **F4 `:1090` 已同步为无门**(`昏迷 ← position_agg ≥ COMA_THRESHOLD ∧ 存活`)⇒ 本行与 F4 **现已一致**,先前的「转移表 vs F4 不一致」就此消除。⚠️ 本行**不是**「只做注记」,而是权威口径 —— 昏迷是纯状态投影,与致死性 / 自限性 / 实体类别全部无关。 |
+| 危殆 | 死亡 | `LethalFor(entity, d) ∧ ¬SelfLimited(entity, d)` 且 `position_agg ≥ DEATH_THRESHOLD` 且**干预窗口已过**(F4;两门合并 = `lethal ∧ self_limit=false ∧ ¬IsCombatant`) 🔁 **2026-10-21 订正** —— 括号里的展开式**已失效**(`SelfLimited` 已订正,见其定义块的「正交性」注)。谓词式本身**不变**,只是不再等价于该展开式。 |
 | 好转 | 发病(复发) | 病种有 `relapse.*` 块(如疟疾)且经过 `relapse_interval` —— **复发不是状态机加边,是 F1 的显式项;九态表无「复发」态**(2026-09-15 B5 改注) |
 | 迁延 | 发病(复发) | 同上。**复发型病种的脉冲间谷底判为迁延,不判痊愈**(见 R3.3 注) |
-| 昏迷 | 苏醒 / 死亡 | 救治成功 / **F4 死亡主谓词**(`LethalFor(entity,d) ∧ ¬SelfLimited(entity,d) ∧ 越阈 ∧ 窗口过` —— 2026-09-16 三轮 A3:该边**不得只查 `lethal`**,否则绕过死亡门;2026-09-17 R12:`lethal` 已升为逐实体门;2026-09-29 G2:`self_limit` 升为逐实体谓词 `SelfLimited`,与 `LethalFor` 正交) |
+| 昏迷 | 苏醒 / 死亡 | 救治成功 / **F4 死亡主谓词**(`LethalFor(entity,d) ∧ ¬SelfLimited(entity,d) ∧ 越阈 ∧ 窗口过` —— 2026-09-16 三轮 A3:该边**不得只查 `lethal`**,否则绕过死亡门; 🔁 **2026-10-21** 谓词式不变,但其等价展开式已随 `SelfLimited` 订正失效(见该谓词定义块的「正交性」注);2026-09-17 R12:`lethal` 已升为逐实体门;2026-09-29 G2:`self_limit` 升为逐实体谓词 `SelfLimited`,与 `LethalFor` 正交) |
 | 痊愈 | — | `position_agg < RECOVER_THRESHOLD` ∧ 无 `relapse.*` 块 ∧ **非豁免类**(豁免类 = `plateau ∧ lethal = false`,永不入痊愈)且低位稳定 ≥ `W` 触发(终态判定,B5);非经由好转 `position_agg` 直接跌破痊愈阈也可触发(九态机闭合);**非上升期门(2026-09-16 四轮 K5)**:`trend_backward_agg ≤ 0` 或 `τ > τ_peak` —— 自限型上升段 `position` 尚低,缺门则「病刚发(τ<incubation)就判愈」(豁免类的 `τ` 恒 < τ_peak 不误伤) |
 | 危殆 / 迁延 | 痊愈 | `position_agg < RECOVER_THRESHOLD`(终态判定衔接:任何未达痊愈阈的非终态经此边入痊愈,2026-09-15 B5) |
 
@@ -1082,10 +1082,27 @@ State(t) 只在 tick 采样点上判定 —— 不做一般求根
 
 【判定顺序:严重度降序 —— 这条顺序是规格的一部分,不可改动】
    死亡 ← LethalFor(entity, d) ∧ ¬SelfLimited(entity, d)       // 两门合并:lethal ∧ ¬combatant ∧ self_limit=false
+                                                                // 🔁 2026-10-21:上式注释的展开**已失效**(`SelfLimited`
+                                                                // 订正后含 `∨ IsCombatant` 与白名单破例)。现行展开见
+                                                                // `SelfLimited` 定义块的「正交性」订正注。
           ∧ position_agg ≥ DEATH_THRESHOLD
           ∧ (t − last_intervention) > TREATMENT_WINDOW
-   昏迷 ← LethalFor(entity, d) ∧ SelfLimited(entity, d)        // 自限型 combatant 归零 = 昏迷,不死
-          ∧ position_agg ≥ COMA_THRESHOLD                       // C1 的登记点
+   昏迷 ← position_agg ≥ COMA_THRESHOLD ∧ 存活              // C1 的登记点 —— **无谓词门**
+    // 🔁 2026-10-21 订正(原式 = `LethalFor(entity, d) ∧ SelfLimited(entity, d)`;同日中途曾改为
+    //    `SelfLimited(entity, d)`,再订正为**无门**)—— 两次订正的理由不同,合并记:
+    //    ① **原式下 combatant 两门双关**(`LethalFor = lethal ∧ ¬IsCombatant` 与旧
+    //       `SelfLimited = self_limit ∧ ¬IsCombatant` 对 combatant **皆 false**)⇒ 敌人/兽**永远
+    //       进不了昏迷**,与本行原注释「自限型 combatant 归零 = 昏迷,不死」及 ADR-016 §二
+    //       「归零 = 昏迷,晾着不死」直接矛盾。
+    //    ② **中途版(`SelfLimited` 单门)同样错**:`SelfLimited` 里叠着 29 侧白名单破例 ⇒ 玩家被
+    //       白名单伤情打到 `≥COMA` 时 `SelfLimited = false` ⇒ **跳过昏迷直奔死亡**。而昏迷在医学上
+    //       是**重要的一环**(失血 → 昏过去 → 不治才死),且 `SelfLimited` 若同时控制死亡支与昏迷支,
+    //       必然二选一地错一边 —— **根因是 `SelfLimited` 根本不该出现在昏迷支**。
+    //    ③ **现式(无门)**:死亡支先判(严重度降序),死亡不成立 ⇒ 人还活着 ⇒ `≥COMA` 即昏迷。
+    //       **与致死性、自限性、实体类别全部无关** —— 这恰好就是转移表 `:570` 的原文。
+    //    ⚠️ **行为变化(刻意)**:急性保持型病人(痢疾 / 伤寒 / 心衰)与白名单伤情下的玩家,
+    //       现在**先昏迷、不治才死**(旧式从危殆直接死)。符合医学,也符合 `:570` 原文。
+    //    ⚠️ **`SelfLimited` 自此只被死亡支消费**(全库唯一消费者)⇒ 语义收窄为「关死亡支」。
    危殆 ← position_agg ≥ CRITICAL_THRESHOLD
    潜伏 ← τ < incubation
    痊愈 ← position_agg < RECOVER_THRESHOLD ∧ 无 relapse.* 块
@@ -1098,6 +1115,12 @@ State(t) 只在 tick 采样点上判定 —— 不做一般求根
    其余 ← 迁延 —— 未达任何阈值 ∧ 未达痊愈,由 sign(trend_backward_agg) 分段   // 因果:只读过去(F2)
 
 position_agg(t) = max over d∈D of position_d(t)               // 合成量,规则十 / F5
+// 🔁 2026-10-21 补:F4 各支里的 `d` = **取得 position_agg 的那个 d**(argmax;并列时取 DiseaseId 最小者,
+//    保证确定性)。此前 `d` 的选取**全库无定义** —— `LethalFor(entity,d)` / `SelfLimited(entity,d)`
+//    吃单个 d,而 `position_agg` 对 D 取 max,无人说 d 是哪个。按字面读会出假绿:
+//    病人患麻疹(position 0.9)+ 一道轻刺伤(position 0.2,`lethal=true` 急性保持型)
+//    ⇒ position_agg = 0.9 ≥ DEATH ∧ LethalFor(刺伤) ⇒ **判死**,尽管刺伤只有 0.2。
+//    ⚠️ 本条的取 max 语义**先于** 2026-10-21 的白名单裁定存在,白名单只是让它对玩家也活了。
 trend_backward_agg(t) = max over d∈D of trend_backward_d(t)   // 合成趋势(B5,与 position_agg 同源)
 
 last_intervention = last of:
@@ -1140,9 +1163,49 @@ last_intervention = last of:
 > `SelfLimited(entity, d) = self_limit(d) ∧ ¬IsCombatant(entity)`。**敌人 / 兽那一支恒
 > `true`**(非致命模型:归零 = 昏迷,ADR-016 §二,自限门对 combatant 恒开—— 昏迷支承接,
 > 死亡支关闭)。病人 / 玩家那一支 = 注册表 `self_limit(d)` 原语义。
+> 🔁 **2026-10-21 订正(原式写错,与它自己的散文相反)** —— 原式 `self_limit(d) ∧ ¬IsCombatant(entity)`
+> 代入 combatant 得 `∧ false = **false**`,而本段散文说「敌人 / 兽那一支**恒 `true`**……自限门对
+> combatant **恒开**」⇒ **公式与注释矛盾**。**订正为**:
+> ```
+> SelfLimited(entity, d) = [ self_limit(d) ∨ IsCombatant(entity) ]
+>                          ∧ ¬( kind = Player ∧ d.kind = injury ∧ lethal(d) ∧ d ∈ 战伤白名单 )
+> ```
+> 即 `∧ ¬IsCombatant` 改为 **`∨ IsCombatant`**(combatant 恒开自限门),并叠上 29 侧
+> `OQ-S18-1`(2026-10-21)裁定的白名单破例(破例 ⇒ `false`)。
+>
+> ⚠️ **本谓词现在只被死亡支消费**(全库唯一消费者)—— 同日两轮订正后**昏迷支已无谓词门**
+> (见 F4 `:1090`),故下表**删去「昏迷支」列**:昏迷是纯状态投影(`≥COMA ∧ 存活`),
+> 与本谓词无关。**逐实体真值表(只剩死亡支)**:
+>
+> | 实体 | `d` | `SelfLimited` | 死亡支 | 依据 |
+> |---|---|---|---|---|
+> | 敌人 / 兽 | 任意 | **true** | ✗ | ADR-016 §二「归零 = 昏迷」 |
+> | 病人 / 友方 NPC | 自限型 | true | ✗ | R2.1 |
+> | 病人 / 友方 NPC | 急性保持型(`lethal`) | false | ✓(≥DEATH) | 危殆 → 死亡 |
+> | **玩家** | **白名单伤** | **false** | ✓(≥DEATH) | `OQ-S18-1` |
+> | 玩家 | 其它病 / 伤 | `self_limit(d)` | 视 `LethalFor` | AC-35(玩家亦是 `PatientState`) |
+>
+> ⚠️ **白名单破例只影响死亡支,不影响昏迷支**(2026-10-21 第二轮订正,用户裁定「昏迷是重要医学」):
+> 玩家被白名单伤情打到 `position_agg ∈ [COMA, DEATH)` 时**照常昏迷**;越 `DEATH_THRESHOLD`
+> 且窗口过才死。⇒ 「先昏过去、不治才死」这条医学链路对**所有实体**成立。
+> ⚠️ **本谓词的 `d` 与 `LethalFor` 的 `d` 必须同源** —— 见下条「`d` 的选取」。
 > **正交性**:`LethalFor` 和 `SelfLimited` 是**独立的逐实体谓词**,各自由注册表字段 +
 > `IsCombatant` 派生,互不蕴含。F4 死亡支同时引用两者: `LethalFor ∧ ¬SelfLimited ∧ …`
 > (= `LethalFor ∧ self_limit=false ∧ …`,两门合并为同一布尔表达式)。
+> 🔁 **2026-10-21 订正** —— 上句的括号展开式**已随 `SelfLimited` 的订正而失效**:
+> 新式含 `∨ IsCombatant` 与白名单破例两项,不再等价于 `self_limit=false`。**现行展开式**:
+> ```
+> LethalFor(e,d) ∧ ¬SelfLimited(e,d)
+>   = [lethal(d) ∧ ¬IsCombatant(e)]
+>     ∧ ¬[ (self_limit(d) ∨ IsCombatant(e)) ∧ ¬白名单破例(e,d) ]
+> ```
+> 对 combatant:第一个因子 `¬IsCombatant = false` ⇒ **整体恒 false**(死亡支恒关,ADR-016 §二)——
+> 这条**结论不变**,变的是**达成路径**(原靠 `¬SelfLimited`,现靠 `LethalFor` 自己)。
+> ⇒ **`SelfLimited` 在 combatant 上不再承担「关死亡支」的职责** —— 该职责**本来就冗余**
+> (旧式下 `LethalFor` 已单独关掉 combatant 的死亡支),而 `SelfLimited` 的 `∨ IsCombatant`
+> 一项**只影响 `¬SelfLimited` 因子**,对 combatant 的死亡支**结论零影响**;其存在价值是让
+> 谓词的**散文语义**(「自限门对 combatant 恒开」)与公式一致,避免后续实现者按散文写错。
+> **「互不蕴含」这句仍成立**(两者各自独立求值),但**两者的耦合方向已变** —— 实现时不得照旧式写。
 > **实现落点**:9 的注册表数据已含 `self_limit` 字段(`curve.self_limit`);谓词实现 = **9 的
 > 下一轮**(当前注册表读者可先读该字段,谓词封装延后到实现故事)。
 
@@ -1158,6 +1221,13 @@ last_intervention = last of:
 > 「版本化烘焙数据」(ADR-016 §一);分类表本身归 9 的注册表数据。**上表与 R12 注块「敌人/兽
 > 那一支恒 `false`」不矛盾**:那句说的是 `LethalFor` 的输出(战伤致死门对 combatant 恒关),
 > 本表说的是谓词输入 —— `LethalFor = lethal(d) ∧ ¬IsCombatant` ⇒ combatant=true ⇒ LethalFor=false。
+> 🔁 **2026-10-21 订正** —— 上表**不变**,但「敌人归零走昏迷支由阈值序保证,非本门」这句
+> **在旧式下是假的**:旧昏迷支要求 `LethalFor ∧ SelfLimited`,而两者对 combatant **皆 false**
+> ⇒ 双关 ⇒ **敌人永远进不了昏迷**,「由阈值序保证」从未成立。**现式已修**:昏迷支**已无任何
+> 谓词门**(`昏迷 ← position_agg ≥ COMA_THRESHOLD ∧ 存活`)⇒ 「由阈值序保证」**字面成立**,
+> 且 `IsCombatant` 对昏迷支**零影响**(它只进 `LethalFor` 与 `SelfLimited`,两者现在都只服务死亡支)。
+> ⚠️ 玩家的 `IsCombatant = false` 一行**不变**,但「玩家的战伤致死路径另论」现已有落点:
+> 走 `SelfLimited` 的白名单破例(`OQ-S18-1`),不靠 `IsCombatant` 翻转。
 
 > ⚠️ **`HurtLevel` 折叠投影与公开查询(2026-09-17 由 25 GDD 回填 · 义务 R17 · S2 改判)**:
 > 25 的 S2 裁定(评审后改判)把 `HurtLevel` 档位的**折叠定义归 9**:`HurtLevel(entity) =
@@ -1804,7 +1874,7 @@ last_intervention = last of:
 | **AC-17** | 三阈值**严格单调** `CRITICAL < COMA < DEATH`,**且 `DEATH_THRESHOLD < 1`** —— **注册表写入期**校验,违反即**构建失败** | 构建期校验 + 单测条 | [L] BLOCKING |
 | **AC-18** | **从未被对因处置过**的病人,`last_intervention = onset_tick`,`(t − onset_tick) > TREATMENT_WINDOW` 时死亡判定给出**确定的布尔值(非 NaN / 非未定义)** | 单测(回归 —— 针对 D 缺陷) | [L] BLOCKING · **Gate**(C2) |
 | **AC-19** | 只用对症药(柳树皮)给危重病人,死亡时刻与**完全不用药相同** —— 对症药**无法刷死亡窗口** | 单测(伪治疗防线) | [L] BLOCKING · **Gate**(C2) |
-| **AC-29** | **F4 判定顺序**:构造 `position_agg` 同时 ≥ CRITICAL、≥ COMA、≥ DEATH 且窗口已过的病人,结果必须是**「死亡」,不是「危殆」**(或「昏迷」)—— 锁死严重度降序 | 单测(回归 —— 针对死代码缺陷) | [L] BLOCKING · **Gate**(C2) |
+| **AC-29** | **F4 判定顺序**:构造 `position_agg` 同时 ≥ CRITICAL、≥ COMA、≥ DEATH 且窗口已过的病人,结果必须是**「死亡」,不是「危殆」**(或「昏迷」)—— 锁死严重度降序 🔁 **2026-10-21 追加三条同族 AC(承 `SelfLimited` 订正 + `d` 选取补定义)**:(a) **combatant 归零 = 昏迷**:`position_agg ≥ COMA` 且 `< DEATH` 的敌人/兽,`State = 昏迷`(**旧式下恒 `危殆`**,本条是对 ADR-016 §二 的落地判据);(b) 🔁 **2026-10-21 二轮改判** —— 原拟「白名单伤情下的玩家永不昏迷」**已作废**(用户裁定:昏迷是重要医学环节)。**现行判据 = 白名单伤情下的玩家照常昏迷**:玩家 + `INJ_STAB`(五项闭集内),`position_agg ∈ [COMA, DEATH)` ⇒ `State = **昏迷**`(不是危殆、也不是死亡);越 `DEATH_THRESHOLD` 且窗口过才转死亡。**同族正例(须一并钉)**:急性保持型病人(痢疾 / 伤寒 / 心衰)到 `≥COMA` 亦**先昏迷、不治才死**(旧式从危殆直接死);(c) **`d` = argmax**:病人同时患 `position 0.9` 的非致死病与 `position 0.2` 的急性保持型伤情 ⇒ **不得判死**(`d` 取 max 的那个,其 `lethal=false`)。⚠️ (c) 是对「借绿」的堵口:旧式下 `d` 无定义,字面实现会判死 | 单测(回归 —— 针对死代码缺陷) | [L] BLOCKING · **Gate**(C2) |
 | **AC-30** | **B′ 死亡路径(2026-09-16 三轮拆两条,集群 2 重写判据;四轮 K8 收窄适用范围)**。① **照护暂停**:无对因手柄致死病(**照护杠杆适用 = {伤寒 / 痢疾 / 心衰} 3 种**,四轮 K8 收窄)越阈后,持续**护理动作**(起止事件,24 入向)期间死亡倒计时**暂停** —— fixture:护理动作起、停留 > 2×`TREATMENT_WINDOW`(**并每 `CARE_GAP` 刷新一次动作,保持连续性**),断言不死亡;**破伤风(K8 剔除)**:同样 fixture 断言**死亡**(护理不刷窗口,与对症药同级);② **弃护计时**:护理动作止后过 `TREATMENT_WINDOW` **必然死亡**(照护适用 3 种),断言以(止 → 死)为可判别据;照护期间永不死;**护理动作间隔 > `CARE_GAP` ⇒ 视为中止**(续照判定可测);**`last_intervention(照护)` 用派生式 `max(止, 最后动作 + CARE_GAP)` 求值**(三轮 · 集群 2);对症药(毛地黄 / 柳树皮)不刷窗口(照护 ≠ 药)。**密度界子句(三轮 · 集群 7)**:单 tick 内护理动作事件数 ≤ `CARE_EVENTS_PER_TICK`(超界拒收 + 记账)—— 防止「护理起止刷事件」把 `O(处置次数)` 击穿成 `O(tick)` | 单测(双 fixture + 破伤风反例 + 密度界) | [L] BLOCKING · **Gate**(C2) |
 
 ### 组五 · 表现层边界(铁律 / 视觉 / UI)
