@@ -254,7 +254,7 @@
   **实测零落点**(`TD-clinic-01` · 路线图 §三 G-8)⇒ 两条结构上不可达。story 置 **`In Review`**。
 - **未跑项**(禁借绿):`|W_MIN| ≤ W_MAX` 分支未单独变异 · 11 条正向接受类测试未入证伪轮 ·
   ~~cooked → Addressables 接线不在本 story~~ **✅ 2026-10-21 已补(见 §Test Evidence「补记」)** ·
-  IL2CPP 三格 NOT RUN(本机仅 Mono) · 逐值调参归用户数值轮。
+  IL2CPP 三格 NOT RUN(本机仅 Mono) · 逐值调参归用户数值轮。<br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。
 - **2026-10-21 补记**:三表补烘落盘 + 四处接线闭合已落,判据见 §Test Evidence「补记」。
   **`Status` 仍 `In Review`** —— `AC-24-08` / `AC-24-12` 的闭集半边仍挂 `BLOCKED-BY-O-24-1`,
   两条**仍不可勾**;接线补齐不动摇该挂标。

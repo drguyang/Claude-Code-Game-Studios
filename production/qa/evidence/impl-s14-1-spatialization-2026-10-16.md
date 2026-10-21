@@ -118,7 +118,7 @@ commit `a2c6bd6` 自述逐例为:① 池 actorId ⇒ 3 红 · ② cutoff≤0 ⇒
 | 3 | **事件表 `occlusion_lowpass` 值 > 0 / `loop: true` 的断言** | 缺口 | 门只断**键存在性**(AC-44-16 字面),不断**值域**;值域归数值轮 |
 | 4 | **真实遮挡 raycast** | NOT-RUN | 本类**只消费**判定结果(bool),raycast 需物理场景 ⇒ 归装配轮 |
 | 5 | 真 `AudioClip` / 真 `AudioSource` 的**运行期可听性** | NOT-RUN | 素材本体未定稿(内容批 `OQ-44-2`);承 `story-013`(主通道听测,`Complete` 只覆盖文档判据) |
-| 6 | IL2CPP 三格(ADR-012 矩阵) | **NOT-RUN** | 本机仅 Mono;CI 矩阵 |
+| 6 | IL2CPP 三格(ADR-012 矩阵) | **NOT-RUN** | 本机仅 Mono;CI 矩阵 <br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。 |
 
 ---
 

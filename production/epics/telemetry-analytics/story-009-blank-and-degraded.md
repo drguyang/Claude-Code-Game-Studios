@@ -214,7 +214,7 @@ Release 的 ManagedStripped 产物与 `Boot_Data/Managed` 两份**均无** `Tele
 | AC 勾选 | 4/4(**AC 清单实为 9 条**,原记录漏核 5 条) | **8 已证 / 1 推开(D6)** |
 | D4 | 半边(NOT-RUN) | **两侧已证** + 反向构建证伪 |
 | `blank_and_degraded_test.cs` | 旧记「6 测」 | **11 测(8 passed + 3 哨兵 skipped)** |
-| 仍 NOT-RUN | —— | **IL2CPP 三格**(本机只有 Mono) |
+| 仍 NOT-RUN | —— | **IL2CPP 三格**(本机只有 Mono) <br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。 |
 
 **禁借绿口径**:本 story 的「Complete」**不**表示 ADR-012 的跨平台矩阵已验;Release 包为 Mono 后端,
 只证明 Mono 下该类型被剔除。

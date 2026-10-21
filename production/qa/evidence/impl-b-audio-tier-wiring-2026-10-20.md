@@ -282,6 +282,6 @@ commit `b2bbc9b` **+ 本轮未提交改动**(工作区非干净树 —— 见下
 > 排除了「一条红一条绿相互抵消」这种计数看不见的形态。
 
 > ⚠️ **仍不在本节主张面内的三件事**:
-> ① **跨平台确定性**(ADR-012 三格矩阵) —— 本机仅 Mono,**IL2CPP 格 NOT-RUN**;
+> ① **跨平台确定性**(ADR-012 三格矩阵) —— 本机仅 Mono,**IL2CPP 格 NOT-RUN**;<br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。
 > ② **甲案的听感正确性** —— 要听测(`AC-44-02` 三档可辨),归实听协议;
 > ③ **`AC-1-33②` / `AC-1-34` / `LOC-config` 其余 5 字段** 等既有开放项 —— 与本次裁定无关,状态不变。

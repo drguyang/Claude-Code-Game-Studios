@@ -113,7 +113,7 @@ F-13.2 有**两条**语义(「`HomeRegion` 只在初始化时求一次」与「`
 | 2 | **生产 `KnowsClinic` 今日恒假** | **如实登记** | 生态区装载面(`world_ecozones.cooked`)未接 ⇒ 组合根自建空 `EcozoneRegistry`;POI 定义 / `StructurePlaced` 两个查询缝亦未接 ⇒ F-13.2 两个析取项皆假。**行为与 story-021 之前等价**,差别只在**形状**(真值源到位后只换三个注入缝,调用点不改)。`test_ac021_3_emptyRegistry_makesTruthSourceHonestlyFalse` 钉住这一实况 —— **装载面接上后该条期望须随之改**,不得当回归修掉。<br>⚠️ **禁止误读**:**不得**把本件读成「`Seeking` 现在可达了」。本件只让 `knowsClinic` 的**传值路径**从写死常量变成注入真值源;真值源今天全假 ⇒ 生产行为的可观测结果**与旧硬编码 `false` 逐位相同**。「`Seeking` 在生产可达」的充要条件是三个装载面接通后另跑一次,**不在本件的证据面内** |
 | 3 | `spawn_anchor(p)` 的病人侧登记(`O-13-5`) | **未解决** | 本件用**在场登记簿的逻辑格**作锚点(`presence.TryGetCell`),因为病人侧 `spawn_anchor` 尚无登记面。这不是 `spawn_anchor` 的替代品 —— 只是「没有锚点时最保守的读法」;真锚点到位后 `ClinicKnowledgeDirectory` 的定位缝换掉即可 |
 | 4 | AC-13-D2/D3 的 `[L]` 走查 | **NOT-RUN** | story `## Out of Scope` 明写归 13 epic 的走查面 |
-| 5 | IL2CPP 三格(ADR-012 矩阵) | **NOT-RUN** | 本机仅 Mono |
+| 5 | IL2CPP 三格(ADR-012 矩阵) | **NOT-RUN** | 本机仅 Mono <br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。 |
 | 6 | 44 epic 收口 | **不得收口** | story DoD 明写;本件只结 `TD-audio-033` ① |
 
 ---

@@ -97,7 +97,7 @@
 | **032 ① 调参常量入生产** | **仍 open** | 触发条件不变(13 数据轮) |
 | **`isPlaying` 轮询频率** | **20 Hz** | 挂在 tick 边沿;素材最短数百毫秒 ⇒ 归还最多晚一拍,不影响听感。数值面如需调整归用户 |
 | **兜底窗口 3600 s** | 常量 | 只兜观测面全沉默;不是旋钮(`UnobservedOneShotWindowSeconds`) |
-| **IL2CPP 三格**(ADR-012) | NOT-RUN | 本机仅 Mono |
+| **IL2CPP 三格**(ADR-012) | NOT-RUN | 本机仅 Mono <br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。 |
 
 ---
 

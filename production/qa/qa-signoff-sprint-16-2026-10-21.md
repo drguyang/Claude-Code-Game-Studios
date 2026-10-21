@@ -208,7 +208,7 @@ qa-lead 定性与编排方实测一致。
 | 2 | **同类缺口大概率全门链共性** —— `MedConsFloatGate` / `WriterExistenceGate` / `EcozoneIntegerGates` **未逐门核** | `TD-gate-02`;**不作全域断言** |
 | 3 | **`milestones/README.md:582-583` 基线表落后** —— EditMode 记 `3401/3355/0/46`(现实 `4071/4035/0/36`,差 **670**);PlayMode 记 `186`(现实 `197`) | 见 C-3 |
 | 4 | **falsify 残留判据词表盲区** —— `FALSIFY-F` 抓不到其它前缀;且并发变异会污染旁路读取 | `TD-gate-03` |
-| 5 | **ADR-012 IL2CPP 三格** | **NOT RUN**(本机仅 Mono);本 sprint 不新增跨平台面,不阻塞 |
+| 5 | **ADR-012 IL2CPP 三格** | **NOT RUN**(本机仅 Mono);本 sprint 不新增跨平台面,不阻塞 <br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。 |
 | 6 | **S16-3 的「状态」列** —— 91 行逐条人工判定,唯一不可机械复算列 | 复核须回原条原文 |
 | 7 | **债册 §四 总索引未收录 `TD-gate-01/02/03`** | 刻意为之:§四 是 S16-3 的落盘产物,就地改它会让「交货数」与「今日真值」混淆;回填须同时裁定 `91` 是否升版 ⇒ **归 §四/§五 维护轮**。本件登记即为其触发点 |
 

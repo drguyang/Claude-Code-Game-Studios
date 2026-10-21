@@ -59,3 +59,10 @@ This epic is complete when:
 | 003 | 乘子求值 F-24-1/2/3 | Logic | Ready | ADR-005/006 |
 | 004 | 乘子交付边界与 ClinicEnvDto | Integration | Ready | ADR-025/013/006 |
 | 005 | 纯函数重放与 Memoize 失效 | Integration | Ready | ADR-016/005 |
+| 006 | 房间类型匹配(ROOM_TABLE 子句求值)+ AC-24-03 | Logic | Ready | ADR-015/005 |
+
+> 🔁 **2026-10-21 新增 story-006** —— 立卡缘由:**`AC-24-03` 此前无主**(`grep -l AC-24-03 story-*.md` = 空;
+> 001–005 五件全不认领),而「布局 → 房间类型」匹配全树零实现(`MatchRoom`/`RoomTypeOf`/`EvaluateClause` = 0)。
+> story-003 的 6 条 AC **不含**匹配(其 `base_env` 由调用方喂)⇒ **S17-2 置 `In Review` 的理由把上游的无主义务
+> 记到了 story-003 账上**。用户裁定:立本件认领 `AC-24-03`,story-003 转 `Complete`。
+> 同批登记 **`OQ-24-7`**(多匹配裁决,暂定 = 声明序首个匹配)。

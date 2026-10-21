@@ -524,7 +524,7 @@ AC-31/35 的「7a 持久化往返」以 `ItemInstanceCodec` 字节级 encode→d
    依据是 `OutcomeTableBinder.ValidateCoverage` **硬拒无 default 行的表** ⇒ 合法产物该位恒真。
    **这是从烘焙期不变量推出的,不是载荷携带的** —— 已在 codec 文件头写明;若需读方独立判别,
    须升 `CookedFormat.FormatVersion`(不在本轮面内)。
-4. **IL2CPP 三格(ADR-012 矩阵)NOT-RUN** —— 本机仅 Mono。
+4. **IL2CPP 三格(ADR-012 矩阵)NOT-RUN** —— 本机仅 Mono。<br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。
 
 **连带改动**:`DataCorePreloader.DataCoreAddresses` 9 → 11 → **15 条**(与 `Preload()` 的
 `Ensure*` 调用数逐一相等,由 `test_preloader_list_sources_matchPreloadedProducts` 与

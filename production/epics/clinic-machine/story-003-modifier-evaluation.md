@@ -1,7 +1,7 @@
 # Story 003: 乘子求值 F-24-1/2/3(EnvMod / EquipMod / adj_sum)
 
 > **Epic**: 医馆即机器
-> **Status**: In Review
+> **Status**: Complete  <!-- 原 `In Review` —— 2026-10-21 用户裁定转 Complete（承 S17-2 收口轮）；原文保留 -->
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
@@ -247,7 +247,8 @@
 
 ## Completion Notes
 
-**Completed**: — (**未置 `Complete`**;本件置 **`In Review`**,理由见下)
+**Completed**: **2026-10-21**(原 `In Review`,用户裁定转 `Complete` —— 理由见「为何置 `In Review` 而非 `Complete`」节末的就地订正)
+> 🔁 **原文保留**:`**Completed**: — (**未置 \`Complete\`**;本件置 **\`In Review\`**,理由见下)`
 **Criteria**: **6/6 已勾**(逐条载体见 §Acceptance Criteria;全部载体名已 `grep` 逐条核实存在)
 
 **实现轮**:2026-10-21(批次 = sprint-17 批 2 / S17-2)
@@ -288,17 +289,37 @@ C5 红 1 · W1 红 2 · W2 红 1 · R1 红 1 · R2 红 1);还原 SHA-256 逐字�
 | # | 未跑项 | 性质 |
 |---|---|---|
 | 1 | ~~`FURN_TYPES` 闭集未兑现~~ | ✅ **2026-10-21 稍后已解除**(S17-4) —— 生产属性源已落地、哨兵翻 true |
-| 2 | 「布局 → 房间类型」匹配(`ROOM_TABLE` 求值)**未实现** —— `base_env` 由调用方解析后传入,求值器不假装房间匹配已存在 | **面未做**(非环境问题) |
-| 3 | IL2CPP 三格 / 跨平台逐位(ADR-012 矩阵) | **环境未就绪**(本机仅 Mono) |
+| 2 | 「布局 → 房间类型」匹配(`ROOM_TABLE` 求值)**未实现** —— `base_env` 由调用方解析后传入,求值器不假装房间匹配已存在 | **面未做**(非环境问题) <br>✅ **2026-10-21 已归口**:该缺口**不在本件 6 条 AC 面内**,真被卡住的是无主的 `AC-24-03` ⇒ 立 `story-006`(见下「转 `Complete` 的裁定」) |
+| 3 | IL2CPP 三格 / 跨平台逐位(ADR-012 矩阵) | **环境未就绪**(本机仅 Mono) <br>🔁 **2026-10-21 订正:上句为假** —— 逐格见下;**矩阵级,非本件判据** |
 | 4 | 数值(`base_env` / 各 `e_env` / 各 `tier` 分布)未定稿 | 归用户数值轮(承「数值用户自己调」) |
 | 5 | 「`env_score` 与 21a 的 clamp 配对」未跑 | **归 story-004 联测** |
 
-⇒ 置 `In Review`:实现与 AC 判据面已完整且已证,**但第 2 项是求值器上游的实质缺口**
-(「房间匹配」整段不存在,`base_env` 靠调用方喂),不宜在它缺席时记 `Complete`。
+> 原文保留(2026-10-21 撤回):
+> 「⇒ 置 `In Review`:实现与 AC 判据面已完整且已证,**但第 2 项是求值器上游的实质缺口**
+> (「房间匹配」整段不存在,`base_env` 靠调用方喂),不宜在它缺席时记 `Complete`。」
+> 🔁 **2026-10-21 转 `Complete` 的裁定(用户,承 S17-2 收口轮)** —— **上面那句归因错了,就地订正**:
+> 第 2 项「房间匹配未实现」**不在本件的 6 条 AC 面内**。本件 AC-24-01 / 01b / 02 测的是**求值器本体**,
+> `base_env` 按设计由调用方喂(`ClinicContextTable.TryGetBaseEnv`),这是**契约形态,不是缺口**。
+> 真正被它卡住的是 **`AC-24-03`(「未匹配任何房间类型 ⇒ `(0,0)`」),而该 AC 此前无任何 story 认领**
+> (`grep -l "AC-24-03" story-*.md` = 空)—— 那是 **epic 的 AC→story 映射缺一行**,不是本件的欠账。
+> ⇒ 处置:立 **`clinic-machine/story-006`**(房间类型匹配 + `AC-24-03`),本件**转 `Complete`**。
+> **不借绿**:本件 6 条 AC 逐条有载体且已证;转移的是**上游义务的归属**,不是判据的松绑。
+> 原文保留不删。
 
 ### 未跑项(禁借绿,如实登记)
 
 - **IL2CPP 三格**:本机仅 Mono,ADR-012 矩阵未跑。
+  <br>🔁 **2026-10-21 上句已作废(原文保留不删)**,订正见下一条。
+- **IL2CPP 三格** —— 🔁 **2026-10-21 订正:原写「本机仅 Mono」为假**(ADR-012 §Validation 已于
+  2026-10-17 逐格订正过同一句)。现状逐格:
+  - **Linux-x64-Mono 腿** = ✅ **2026-09-24 已跑通**(编辑器 PlayMode,3/3)
+  - **Linux-x64-IL2CPP 腿** = ✅ **2026-09-24 已跑通**(StandaloneLinux64 player,3/3;
+    与独立 Python 金标准 + Mono 三方 **19/19 逐位相同**)
+  - **Linux-ARM64-IL2CPP 腿** = ❌ **目标不存在** —— 2026-10-17 `BuildTargetProbeCli` 探针实测:
+    pinned 工具链 46 个 `BuildTarget` 里**无任何 arm 目标**;用户已裁定**维持三格原样、登记长期未达**
+  - **CI 常驻矩阵** = ⚠️ `unity-tests.yml` 的 `il2cpp-determinism` job 已从 TODO 改为真 job,
+    但**从未跑过**(仓库未配 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET` ⇒ 走 skip 分支)
+  ⇒ **矩阵级验证,非本件的个体判据**;本件是纯整数算术,跨平台面由 ADR-012 独立承担。
 - **~~无 `/code-review` 原件~~** ⇒ ✅ **2026-10-21 已补**:
   `production/qa/evidence/review-s17-2-clinic003-2026-10-21.md`(两路并行,合并裁定 **CHANGES REQUIRED · 1 BLOCKING**)。
   见下方「评审结论」节。

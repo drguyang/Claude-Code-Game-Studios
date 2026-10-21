@@ -272,7 +272,7 @@
    > `production/qa/evidence/impl-s17-4-furniture-catalogue-2026-10-21.md`。
    > ⚠️ `FurnTypeClosureEnforced` **仍为 false**(默认入口走代理判据,装配层未选真判据)—— 那一条不变。
 2. **「布局 → 房间类型」匹配(ROOM_TABLE 求值)未实现**:`base_env` 由调用方经 `ClinicContextTable.TryGetBaseEnv` 解析后传入;求值器不假装房间匹配已存在。
-3. **IL2CPP 三格 / 跨平台逐位**(ADR-012 矩阵):NOT-RUN,本机仅 Mono。
+3. **IL2CPP 三格 / 跨平台逐位**(ADR-012 矩阵):NOT-RUN,本机仅 Mono。<br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。
 4. **数值**(`base_env` / 各 `e_env` / 各 `tier` 分布)未定稿 —— 归用户数值轮;夹具只用 GDD 算例与符号化小值验机制。
 5. **story-003 的 AC 中「`env_score` 与 21a 的 clamp 配对」**(story-004 联测)未跑 —— 本件只测 24 侧「不 clamp」。
 

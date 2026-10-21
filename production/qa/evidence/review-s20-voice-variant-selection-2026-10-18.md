@@ -150,7 +150,7 @@
 | 2 | **gender 轴未接线** | **未落** | GDD F-44.3 的变体行是 `{gender(M/F/不拘), 桶→句尾变体集}`,而 `VoiceVariantRow` 的 `gender` 参数在生产恒传 0(首版 `VariantTableOf` 已删,现立方体不再携带 gender)。**gender 是「素材表声明」(GDD 原文,内容侧非运行时输入)** ⇒ 正确落点应是**事件表声明**,但今日表里无该字段。归 `TD-audio-034` 同批 |
 | 3 | AC-44-02 **人耳半边** | **NOT-RUN** | 归 `TD-audio-102`;本件只让被听的对象真的在变 |
 | 4 | 真 Addressables 装载 12 条变体 | **未证** | EditMode 无 catalog;PlayMode 半边只断言行数 |
-| 5 | IL2CPP 三格(ADR-012) | **NOT-RUN** | 本机仅 Mono |
+| 5 | IL2CPP 三格(ADR-012) | **NOT-RUN** | 本机仅 Mono <br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。 |
 | 6 | 首版 W-1…W-8 | **登记未处置** | 其中 W-2(gender 未接线)并入 `TD-audio-034`;W-3(`BucketBand` 自造语义)随重裁删除;其余(静默回退 / 热路径分配 / 双构造二义)保留登记 |
 
 ---

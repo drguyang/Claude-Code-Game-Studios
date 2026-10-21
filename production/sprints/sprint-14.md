@@ -127,7 +127,7 @@ reconcile 归 S14-7(避免 epic 表与 story 头在实现期反复不同步)。
       ⚠️ 该 plan §Playtest:「本 sprint 全部 Logic / Integration / Config 类,**不需真人 playtest**」⇒ 无此项欠账。
 - [x] 6 条 story 由 `In Review` 转 `Complete`(经证伪轮复评)✅ 2026-10-16(S14-7 复评批)
 - [x] IL2CPP 三格 **NOT-RUN 如实登记**(禁借绿,挂 ADR-012 矩阵)✅ —— 本文件 §External Factors
-      逐字登记 NOT-RUN(本机仅 Mono,`UNITY_LICENSE` 未配真 runner);**未跑 ⇒ 不得标绿**
+      逐字登记 NOT-RUN(本机仅 Mono,`UNITY_LICENSE` 未配真 runner);**未跑 ⇒ 不得标绿**<br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。
 - [x] Design documents updated for any deviations ✅(债册 / GDD 补注 / EPIC / ADR 侧散见各批;
       story-018 三处口径差均**就地加订正注不删原文** —— S3-c「默认 SFX」· 听测件 §四 预判被实机推翻注 ·
       AC-44-09 归属合取收窄)

@@ -8154,3 +8154,42 @@ readonly 2/2 有效 · s17-4 4/4 有效                 合计 13 变异,**6 个
 - **sprint-17 现状**:S17-1 / 3 / 4 / 5 = `done`;**S17-2 = `review`(刻意不 done)** ——
   `ROOM_TABLE` 匹配缺口 + IL2CPP NOT-RUN,须单独裁定,不是「剩下的件」。
 - **未 commit**(用户未指令)。
+
+## Session Extract — S17-2 收口轮(2026-10-21)
+
+**用户指令**「S17-2 收掉」;三轮裁定:① 立 story-006 认领 `AC-24-03`,story-003 转 Complete
+② 多匹配 = 声明序首个 + 登记 `OQ-24-7` ③ 「本机仅 Mono」按 ADR-012 现口径改写 + 全库扫。
+
+### 核心发现(本轮新揭)
+`AC-24-03` **此前无任何 story 认领**(`grep -l AC-24-03 story-*.md` = 空)。S17-2 置 `review`
+的理由「求值器上游有实质缺口」**归因错了** —— story-003 的 6 条 AC 不含房间匹配,
+`base_env` 由调用方喂是**契约形态**;真被卡住的是无主的 `AC-24-03`。
+
+### 落账五件
+1. **新建** `production/epics/clinic-machine/story-006-room-type-matching.md`(Logic · 6 AC · 证伪形态表)
+2. `story-003` — `Status: In Review → Complete` · `Completed: 2026-10-21` · 归因就地订正 · IL2CPP 逐格订正
+3. `EPIC.md` — Stories 表 +行 006 + 立卡缘由
+4. `design/gdd/clinic-machine.md` — 规则二补记多匹配未定义 · OQ 表 +`OQ-24-7`
+5. `sprint-status.yaml` — S17-2 `review → done` + 归因订正注
+
+### 「本机仅 Mono」扫除
+- **40 文件 / 42 处加注 / 原文删除 0**
+- 跳过:ADR-012(真源)· session-state · session-logs · `impl-td-audio-01-fix:497`(是订正文本本身)
+- 现行逐格:**x64-Mono ✅ 09-24 · x64-IL2CPP ✅ 09-24(三方 19/19 逐位相同)**
+  · ARM64 ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无 arm 目标,用户裁定长期未达)
+  · CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`SECRET`)
+
+### 证据原件
+`production/qa/evidence/impl-s17-2-closeout-2026-10-21.md`
+
+### sprint-17 现状
+**S17-1 / 2 / 3 / 4 / 5 = 全部 done**。
+
+### 未做(禁借绿)
+- **story-006 未实现**(只立卡)· `OQ-24-7` 未裁(暂定)· **本轮零代码改动、未跑测试**
+- IL2CPP x64 腿未重跑(引用 2026-09-24 既有证据)
+- **未 commit**(用户未指令)
+
+### 本轮自我订正
+上一轮回答 IL2CPP 处置时**照抄了「本机仅 Mono」**,该说法在本机为假且 ADR-012 早已订正过。
+本应在引用任何 NOT-RUN 理由前先核实依据,而非当既有结论继承。

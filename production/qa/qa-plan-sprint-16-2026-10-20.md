@@ -195,7 +195,7 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
    (`unity/Assets/Tests/EditMode/DataPipeline/fs_write_boundary_gate_test.cs`,17 条)。
    ⇒ 两者都成立,不是二选一:门在 Editor 侧、判别力由 EditMode 测试钉住。
 3. **S16-5 的「分母」口径** —— `world-ecozones` 是「分子多 1」而非「分母少 N」,刷账形态与另三户**不同类**,须单独处置。
-4. **IL2CPP 三格(ADR-012 矩阵)** —— **NOT RUN**(本机仅 Mono)。本 sprint 全部纸面 + 一处 Editor 门,**不新增**跨平台面。
+4. **IL2CPP 三格(ADR-012 矩阵)** —— **NOT RUN**(本机仅 Mono)。本 sprint 全部纸面 + 一处 Editor 门,**不新增**跨平台面。<br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。
 
 ---
 

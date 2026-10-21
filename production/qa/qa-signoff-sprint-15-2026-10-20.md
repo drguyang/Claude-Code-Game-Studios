@@ -148,7 +148,7 @@ S15-2 / S15-3 各有 `review-s20-*` / `review-s21-*` 原件。✅
 | `TD-audio-101/102` 空间化听感 · SNR | **NOT-RUN** | `TD-listen-01` |
 | `TD-audio-032` ③ `BuildAudioSeams` >40 行 · `isPlaying` 时序 PlayMode | **open** | 未解面如实保留 |
 | `TD-audio-035` 残留三项 | **open** | 同上 |
-| IL2CPP 三格(ADR-012 矩阵) | **NOT-RUN** | 本机仅 Mono;CI `UNITY_LICENSE` 未配 |
+| IL2CPP 三格(ADR-012 矩阵) | **NOT-RUN** | 本机仅 Mono;CI `UNITY_LICENSE` 未配 <br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。 |
 | 测试侧 `GameObject.Find("Main Camera")` 死代码 | **未改** | 生产侧已不依赖它;归测试基建清理轮 |
 | **epic 44 收口** | **不得** | 本件只签 sprint-15 这一批 |
 

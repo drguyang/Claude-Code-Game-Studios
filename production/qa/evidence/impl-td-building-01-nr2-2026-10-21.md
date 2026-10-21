@@ -133,7 +133,7 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 - **未改任何代码**。本轮是**登记轮**,零实现。
 - **写侧(`Place`/`Remove` 生产发起方)未登记触发条件之外的东西** ——
   它归 42 的 `O-23-6`(`modular-building.md:494`,状态「⏳ 待 42 下一轮」),该义务**自身也没有排期**。
-- **IL2CPP 三格 NOT-RUN**(本机仅 Mono)—— 与本轮无关,照旧。
+- **IL2CPP 三格 NOT-RUN**(本机仅 Mono)—— 与本轮无关,照旧。<br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。
 - **未 commit**(用户未指令)。
 
 ---

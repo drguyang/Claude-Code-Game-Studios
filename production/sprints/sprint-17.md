@@ -170,7 +170,7 @@
 | `clinic-003` 的 `EnvMod` 与系统 5 `Sim/EnvMod.cs`(`EnvMod_raw`)命名撞车 | 中 | 中 | 24 侧落点用限定名(如 `ClinicEnvModEvaluator`),文件头写明「与系统 5 `EnvMod_raw` 无关」;`grep -rn 'EnvMod'` 的判据须限定命名空间 |
 | **manifest 版本落后 13 天**(四件 `2026-10-02` vs 现行 `2026-10-15`) | **确定** | 低-中 | 逐件开跑前判定(偏离 ②);**不得默认取 `[A]`** |
 | `tutorial-001` 的 17 条种子要求过全部 6 项校验,而病名闭集词表未落定 | 中 | 中 | 若词表缺 ⇒ AC ④ 记 **`NOT-RUN`,不勾**;**不得**用语料外的弱词表凑绿 |
-| ADR-012 IL2CPP 三格仍 **`NOT RUN`**(本机仅 Mono) | **确定** | 低 | 本批零跨平台新增面;`clinic-003` 的逐位判据**只在 Mono 立**,不声称跨平台 |
+| ADR-012 IL2CPP 三格仍 **`NOT RUN`**(本机仅 Mono) | **确定** | 低 | 本批零跨平台新增面;`clinic-003` 的逐位判据**只在 Mono 立**,不声称跨平台 <br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。 |
 
 ---
 

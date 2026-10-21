@@ -203,7 +203,7 @@ DaYiJingCheng.EditorTools.Bake.DataBakeMenu.EnsureDataCoreGroup`
 
 ## 六、未及核查 / 未跑项(如实登记,禁借绿)
 
-1. **IL2CPP 三格 / 跨平台逐位**(ADR-012 矩阵):**NOT-RUN**,本机仅 Mono。
+1. **IL2CPP 三格 / 跨平台逐位**(ADR-012 矩阵):**NOT-RUN**,本机仅 Mono。<br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。
 2. **菜单本体未被测试执行**:`[MenuItem]` 在 batch 下不触发;本件测的是它内部唯一计算段(Core)。
    详见 §二 末尾的判据边界。
 3. **`FurnTypeClosureEnforced` 仍为 `false`** —— 这是**正确的**:析出的**默认单参入口**仍走代理判据
@@ -351,7 +351,7 @@ DaYiJingCheng.EditorTools.Bake.DataBakeMenu.EnsureDataCoreGroup`
 
 ### 9.6 未及核查(禁借绿)
 
-- **IL2CPP 三格 / 跨平台逐位**(ADR-012 矩阵):**NOT-RUN**,本机仅 Mono。
+- **IL2CPP 三格 / 跨平台逐位**(ADR-012 矩阵):**NOT-RUN**,本机仅 Mono。<br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。
 - **数值定稿**:`1/16` / `−1/8` 是**落在案卷建议区间内的种子值**,不是平衡值 —— 仍归用户数值轮(`OQ-24-3`)。
 - **GDD 药房算例未重写** —— 只登记冲突;重写归 FURN_TABLE 内容轮。
 - **`TD-itemdb-01`(`cost(m)`)与本裁定无关,仍 `open`** —— 见 §六 7。

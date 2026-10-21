@@ -154,7 +154,7 @@ expected = [ "Assets/Audio/sfx_breath_base_loop_small.wav" ]
 | 1 | 真 `AudioClip.loadState` 的 PlayMode 半边 | **NOT-RUN** | 素材本体定稿(内容批 `OQ-44-2`)⇒ 缺口哨兵 `test_preload_realAudioClipLoadState_pendingPlayModeHalf` 转红 ⇒ **须随之改判,不得当回归修掉** |
 | 2 | 素材 Import Settings 定稿(呼吸/语声族 `DecompressOnLoad` 等) | 归内容批 | `OQ-44-2` |
 | 2b | **素材内容需求本身**(逐族声学判据 + 4 条系统级要求) | 已立册 | **`docs/tech-debt-register.md` §「44 音频素材内容需求」**(2026-10-16);本节此前**未登记内容需求**,只有「NOT-RUN + 解除条件」 |
-| 3 | IL2CPP 三格(ADR-012 矩阵) | **NOT-RUN** | 本机仅 Mono;CI 矩阵 |
+| 3 | IL2CPP 三格(ADR-012 矩阵) | **NOT-RUN** | 本机仅 Mono;CI 矩阵 <br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。 |
 | 4 | `AddressableAssetsData/` 是 gitignored 机器生成物 | 机器前置 | 每台机器首次须跑「确保 data-core / audio Addressables 组」菜单(与既有 `data-core` 同款) |
 | 5 | `Editor.Tools.Bake/AudioEventTableBinder` 与 `event_table_gate_test.cs` 的手写 JSON 扫描器是**两份阶段 2 抽取器** | 已登记的重复 | **刻意不动**:后者承载 story-002 的截断夹具语义(`__truncated__` 哨兵);归 story-002 轮 |
 
@@ -171,7 +171,7 @@ expected = [ "Assets/Audio/sfx_breath_base_loop_small.wav" ]
 >   **Linux-x64-Mono ✅ + Linux-x64-IL2CPP ✅(2026-09-24,19/19 逐位相同)**;
 >   **Mono player 第三上下文 ✅(2026-09-25,15/15)**;**ARM64 腿 ❌**(本机无该模块;ADR-012 §二
 >   要求原生 ARM64 runner,qemu 否决);**CI 常驻矩阵 job ❌ 未建**(`il2cpp-determinism` = TODO 占位)。
->   ⇒ 矩阵**整体**仍 NOT-RUN,但**不是**「本机只有 Mono」。
+>   ⇒ 矩阵**整体**仍 NOT-RUN,但**不是**「本机只有 Mono」。<br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。
 >   证据:`production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`。
 > - **#4 `AddressableAssetsData/` 是 gitignored 机器生成物** ⇒ **✅ 已收窄(TD-audio-01a)**:
 >   组定义已随仓库入库;「每台机器首次须跑建组菜单」的前提**不再成立** —— 组缺失 = 入库文件被删/损坏,

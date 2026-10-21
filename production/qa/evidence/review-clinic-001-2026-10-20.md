@@ -147,7 +147,7 @@
 3. **`FixParse.Parse` 本体未读** —— 只核签名与默认 RoundMode;字符串文法(是否接受 `"5/4"`、负号、截断)未核
 4. **`assets/data/clinicmachine_*.json` 与 `item_database_constants.json` 内容未自核**(QA 侧读了夹具,unity 侧未读)
 5. **读侧镜像 `Gameplay.Presentation.CookedCodec` 未审**(cooked 当前无生产消费者)
-6. **IL2CPP 三格 / 跨平台逐位性 NOT RUN**(本机仅 Mono)
+6. **IL2CPP 三格 / 跨平台逐位性 NOT RUN**(本机仅 Mono)<br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。
 7. **`tests/unit/` 账本树是否另载同 AC 活测试未扫**(只审 `unity/Assets/Tests/EditMode/` 树)
 
 ### 4.2 明确「未经反证」的测试(11 条,沿用实现证据 §五.2)
