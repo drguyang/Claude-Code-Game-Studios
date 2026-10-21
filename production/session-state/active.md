@@ -7977,3 +7977,63 @@ readonly 2/2 有效 · s17-4 4/4 有效                 合计 13 变异,**6 个
 - **`CheckedAdd` 越界分支仍无独立载体**(D1 的第一条路未走)
 - IL2CPP 三格 NOT-RUN · story-004 联测未跑 · 数值未定稿
 - **未 commit**
+
+---
+
+## Session Extract — 2026-10-21 · S17-4 结案后两条残留入册
+
+**触发**:用户「这两条都补进去」—— 把 S17-4 结案时发现、但证据件当时**未登记**的两条缺口补进账。
+
+### ① `cost(m)` 作者态缺席 ⇒ 新债 `TD-itemdb-01`
+
+`O-24-1` 逐字要求家具目录「与 23 的 `cost(m)` **同源**」,而 **`cost(m)` 那一侧今日不存在**。
+实测七条(全在债册新条目里,可逐条复算):
+
+| # | 事实 |
+|---|---|
+| ① | `assets/data/*.json` 26 份,**无 `build_modules.json` / `world_buildslots.json`**;全仓 `find` = 0 |
+| ② | `unity/Assets/DataCooked/` 20 份产物,**无 build/module/slot** ⇒ 作者态与烘焙产物**两端都空** |
+| ③ | `grep -rln "module_id\|MODULE_TABLE" assets/data/` = **零命中** |
+| ④ | `item_database_items.json` 6 行,唯一 `build_part` 行 = `wooden_post`,**无 `cost` 字段**;含 `cost` 的行 = 0 |
+| ⑤ | 生产树 `ModuleDefinition` 五字段(`PlaceableChecker.cs:138-144`),**无 `Cost`** |
+| ⑥ | `cost` 在 `Sim/World` 只作**形参**;`CalculateRefund` 生产树调用点 = **0** |
+| ⑦ | `IModuleCatalog` 生产树实现 = **0**;`new BuildSlotCatalog` 生产树构造点 = **0** |
+
+**登记**:`docs/tech-debt-register.md` 新节「2026-10-21 · S17-4 结案时新揭」+ §★ 总索引新行
+(`item-database` / `open` / `P0 面 = Y` / R1)。归属 21a(已 Complete 12/12 ⇒ 按 `TD-clinic-01` 同例,
+**由 TD 跟踪,不开 story、不重开 epic**)。触发 = 23 的生产装配轮(EPIC §未闭项 N-r2)。
+
+### ② `e_env` 量级:GDD 硬界与案卷建议**互斥**,不是我此前说的「低 4 倍」
+
+补登时重算,**推翻了我先前的判断**。我原以为「取了较弱的一处、差 4 倍」,实际是**两个区间不可兼容**:
+
+| 案卷建议 | raw | 对 `C_max raw = 1024` | binder |
+|---|---|---|---|
+| `1/16` | 4096 | 4× | **拒收** |
+| `1/8` | 8192 | 8× | **拒收** |
+| `−1/8`(最小负幅) | 8192 | 8× | **拒收** |
+| `−1/4` | 16384 | 16× | **拒收** |
+| 现值 `±1/64` | **1024** | 1× | 通过 |
+
+⇒ **建议区间里任何值都过不了烘焙**(`ItemDatabaseFurnitureBinder.cs:186-192` /
+`ClinicFurnitureCatalogue.cs:100-103`)。这是 **GDD `:188`/`:330` 与 OQ-24-5/6 三处口径的冲突**,
+须用户裁定;本件按硬界取值,**该冲突不阻塞本件,但阻塞数值定稿**。
+
+**顺带查出**(同节登记,不裁定):`:188` 的 `C_max := max|e_env| over FURN_TABLE` 是**自指定义**
+⇒ `|e_env| ≤ C_max` 对任何表恒真、**单独看零约束力**;真正生效的是 OQ-24-5/6 的 `1/64` 与 `:330` 的派生式。
+
+### 账(已改 3 份)
+- `docs/tech-debt-register.md` —— 新节 + 索引行 + §一/§三/§四/§五 五处计数注(96 条 / 未闭面 72)
+- `production/qa/evidence/impl-s17-4-furniture-catalogue-2026-10-21.md` —— §六 新增 7、8 两条;
+  §二 2.1 加「作者态」读法注;§八 交接补两条未闭项
+- `production/sprint-status.yaml` —— baseline 块加注(**数不改**:它是规划轮时点快照)
+
+### ⚠️ 一个必须点破的数字巧合(已写进债册)
+`TD-clinic-01` 当日结案 ⇒ 未闭 P0 面 `72 → 71`;`TD-itemdb-01` 入表 ⇒ `71 → 72`。
+**读数回到 72,但路径不是「一位不动」。** 债册 §一 四订块逐条写明,**禁止把「还是 72」读成「没变」**。
+条目数 = **96**(改前 95)。
+
+### 仍未有(禁借绿)
+- `e_env` / `cost(m)` 两处的**裁定都还没做** —— 本轮只登记,不裁
+- S17-2 的 W1/W2 判别力仍未复验;IL2CPP 三格 NOT-RUN
+- **未 commit**(用户未指令)

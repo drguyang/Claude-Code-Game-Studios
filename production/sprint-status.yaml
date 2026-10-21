@@ -134,9 +134,15 @@ baseline:
   story_other: 2            # skeuo-019 部分完成 / world-ecozones-005 Pending
   story_non_complete: 44
   epic_all_complete: 18     # / 31,按 story Status 逐条归并
-  tech_debt_ids: 95         # ✅ 现役真源 = docs/tech-debt-register.md §★ 总索引 §五(可复算)
-                            #    求值:`条目 95 | 状态 {open:71, partial:5, closed:19} | P0 面 {Y:87, N:8}`
+  tech_debt_ids: 95         # ⚠️ **这是规划轮(96ecea2)的时点值,不是现役值** —— 见下方 2026-10-21 加注。
+                            #    真源 = docs/tech-debt-register.md §★ 总索引 §五(可复算)
+                            #    求值(时点):`条目 95 | 状态 {open:71, partial:5, closed:19} | P0 面 {Y:87, N:8}`
   tech_debt_unclosed_p0: 72 # ✅ 一位不动(承 sprint-16 三次回填 91→94→95 均未变动)。M3 Exit ② ⇒ 假。
+                            # ⚠️ **2026-10-21 S17-4 落盘后:该数仍是 72,但路径变了** ——
+                            #    `TD-clinic-01` 当日结案 ⇒ 未闭面 72→**71**;新增 `TD-itemdb-01`(P0 面=Y)
+                            #    ⇒ 71→**72**。**净变化 0 ≠ 没变**:一条 P0 面债清了,另一条进了册。
+                            #    条目数现役 = **96**(非 95)。**本 baseline 块不改数**(它是时点快照,
+                            #    改它会让「规划时的分母」与「今日真值」混成一团);现役值以债册 §五 实测为准。
   editmode_current: "4086 / 4050 / 0 / 36"   # 2026-10-21 05:08 CST · sprint-16 收口记账轮 · 6855ba7
   playmode_current: "197 / 197 / 0 / 0"      # 2026-10-21 00:22 CST · sprint-16 收口轮 · f6cdaaf
   # ⚠️ 两值时点不同;EditMode 晚于 PlayMode。跨平台(ADR-012 IL2CPP 三格)仍 NOT-RUN(本机仅 Mono)。
