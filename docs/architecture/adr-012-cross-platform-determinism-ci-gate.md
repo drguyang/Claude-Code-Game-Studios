@@ -401,6 +401,15 @@ public interface IPerTargetIl2CppArgs : IPreprocessBuildWithReport
         + `-runTests -testPlatform StandaloneLinux64`,与桌面已跑通命令同形)。
         **但本 job 从未跑过** —— 仓库未配置 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET` ⇒ 走 skip 分支。
         ⇒ **常驻性仍未兑现**,本条**维持未勾**。
+        🔁 **2026-10-21 用户裁定:CI 常驻 job「无法完成」,已登记到项目规划** ——
+        出处 `production/milestones/p0-remaining-roadmap-2026-10-20.md` **§4.5.1** ·
+        债册 **`TD-ci-01`**(治理面 · `P0 面 = N`)。
+        **性质订正**:此前写作「从未跑过 / 仍开」,那种措辞暗示「排上就能做」;
+        实际是 **EXTERNAL** —— 凭证须用户侧申请,agent 侧无任何路径可取得。
+        ⚠️ **本条仍未勾,且不得因登记而勾选**;**也不得因「桌面两腿已跑通」而勾选** ——
+        桌面证据补的是**判据**,不是**常驻性**。二者的精确口径见 §4.5.1 硬边界 2。
+        **复活条件(唯一)**:用户提供 `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET` 并完成一次
+        成功的 `workflow_dispatch`(三个 job 各跑通一次)。
 
       **⚠️ 2026-10-17 §ARM64 探针裁定(把「未跑」升级为「不可达 + 依据」)**
 
@@ -466,6 +475,9 @@ public interface IPerTargetIl2CppArgs : IPreprocessBuildWithReport
       见上 §ARM64 探针裁定;用户裁定**维持三格原样**,本格登记为「长期未达」)**
       · **CI 常驻 ❌(job 已建但从未跑过)** ⇒ 本条**不得勾**,且 ARM64 半边**在本工具链上结构上不可达**
       (其未勾语义 = 「长期未达」,非「待跑」;须待工具链出现受支持 ARM64 目标方能解锁)。
+      🔁 **2026-10-21**:CI 常驻的未勾语义亦已明确 = **「无法完成」(EXTERNAL)**,非「待跑」——
+      用户裁定见 `p0-remaining-roadmap-2026-10-20.md` §4.5.1 · 债册 `TD-ci-01`。
+      ⚠️ **仍不得勾** —— 登记性质 ≠ 解除判据。
 - [ ] **集成级黄金字节三格全绿**:同一存档(ADR-010 格式)三格产出逐位相同字节流
 - [ ] **下钻路径可用**:注入一个人为字节错位,能从集成级首异字节下钻到单元级具体算子
 - [ ] **刷新协议演示**:公式变更 → golden-v2 新目录 + 变更日志 + 三格重签;单平台独签被 CI 拒绝

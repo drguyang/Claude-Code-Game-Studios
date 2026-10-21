@@ -309,7 +309,7 @@ smoke check ✅ · QA sign-off ✅(本件)· 每件附可复算命令与输出 �
    > `BakeFromRepo` 默认注入 ⇒ 两个 `*TableReady` 哨兵**双 true**。
    > ⚠️ **13 侧只落 clipKey 闭集,片段资产本体归 48 实现轮** —— 本条件结清的是**键表**,不是**资产**。
    > ⚠️ 本条不改变本件 verdict(见 §5 上方加注:不追认、不改写)。
-4. **C-4 归发版前 / CI 常驻轮**,与 ADR-012 的矩阵账一并处理。<br>🔁 **2026-10-21 订正**:三半中 PlayMode 全量(`c4-playmode-full-2026-10-21.md`)与 IL2CPP 三格矩阵(`c4-il2cpp-matrix-2026-10-21.md`)已补跑并落账;**仅 CI 常驻 job 仍开**(缺 `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`)。
+4. **C-4 归发版前 / CI 常驻轮**,与 ADR-012 的矩阵账一并处理。<br>🔁 **2026-10-21 订正**:三半中 PlayMode 全量(`c4-playmode-full-2026-10-21.md`)与 IL2CPP 三格矩阵(`c4-il2cpp-matrix-2026-10-21.md`)已补跑并落账;**仅 CI 常驻 job 仍开**(缺 `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`)。<br>🔁 **同日再订(用户裁定)**:CI 常驻 job **「无法完成」**,已登记到项目规划 —— `p0-remaining-roadmap-2026-10-20.md` **§4.5.1** · 债册 **`TD-ci-01`** · ADR-012 §Validation 就地加注。<br>⚠️ **性质由「仍开(待跑)」订正为 EXTERNAL(无法完成)** —— 凭证须用户侧申请,agent 侧无路径。**但 C-4 仍不结清**:登记性质 ≠ 满足判据;本件 verdict 亦**不因本条改判**(承「评审不可事后追补」)。
 
 ### 6.3 不得据此推进的事
 

@@ -298,6 +298,10 @@ IL2CPP 三格(ADR-012 矩阵**整体**未建;逐格状态见下「NOT-RUN 如实
   探针原件 + 可复跑命令:`production/qa/evidence/impl-td-audio-01-fix-2026-10-17.md` §十三。
   另有 **Windows-x64 / Apple Silicon**(ADR-012 §二:发版前必跑,不进常驻)。
   两格证据:`production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`。
+  🔁 **2026-10-21 再订**:上段「CI 常驻 job 未跑」的性质经用户裁定为 **EXTERNAL(无法完成)**
+  —— job **已建**但未配凭证(走 skip 分支),凭证须用户侧申请。登记见
+  `p0-remaining-roadmap-2026-10-20.md` §4.5.1 · 债册 `TD-ci-01`。
+  ⚠️ **仍未兑现,不得读成「已解决」**。
 - ~~**`AddressableAssetsData/` 是 gitignored 机器生成物**~~ **✅ 2026-10-17 已收窄(TD-audio-01a)**:
   `.gitignore` 现只忽略逐平台的 `*/addressables_content_state.bin`,**组定义已随仓库入库** ⇒
   「每台机器首次须跑建组菜单」的前提**不再成立**;组缺失 = 入库文件被删/损坏,恢复靠
@@ -320,6 +324,8 @@ IL2CPP 三格(ADR-012 矩阵**整体**未建;逐格状态见下「NOT-RUN 如实
     **该复选框长期未勾且不得静默移除**;解锁条件 = 引擎升级后出现受支持的 ARM64 目标。
   - **CI 常驻矩阵 job** —— `il2cpp-determinism` 已由 TODO 占位改真 job,**但从未跑过**
     (仓库无 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET` ⇒ 走 skip 分支)⇒ **常驻性未兑现**。
+    🔁 **2026-10-21 再订**:性质经用户裁定为 **EXTERNAL(无法完成)** —— 已入债册 `TD-ci-01`,
+    见 `p0-remaining-roadmap-2026-10-20.md` §4.5.1。⚠️ **仍未兑现,不得读成「已解决」**。
   - **`U1SpikeSetup` 的 Teardown 复原** —— 未改(它是把本机 Play Mode 切到 Existing Build 的元凶;
     改它须先裁「U1 spike 是否保留」)。
   - **`tools/falsify` 的路径≠语义边界** —— 守卫路径之外的污染看不见,新证伪轮仍须逐例人判

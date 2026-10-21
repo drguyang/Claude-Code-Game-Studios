@@ -149,6 +149,10 @@ stories:
     #    `gate_wiring_manifest_test.cs` 双表登记;测试 `player_assembly_gate_test.cs` **12 条**。
     #    ⇒ `TD-testasm-01` 当日 `partial → closed`(债册八订/九订:partial 7→6 · closed 19→20,
     #    条目 98 / 未闭面 73 / 13-31 分布**一位不动**)。
+    #    🔁 **订次口径订正(2026-10-21)**:上句「八订/九订」是本册编号,债册同一事件记作
+    #    **七订(入表)/ 八订(结案)**,差一格 —— 逐条对照见债册 §一 九订块的表。
+    #    ⚠️ **本册跳过「八订」**(无事件占用),故「八订」在本册不存在、在债册 = 结案。
+    #    引用时须写明是哪一册的订次。
     # ⑥ **末轮全量 EditMode 回归** `4347/4311/0/36` @ 16:16 · 工作树,对 ④ 的 `4335/4299/0/36`
     #    ⇒ **+12/+12/0/0**,集合差「新增 12 · 消失 0」= 零回归;12 条**全部**来自
     #    `PlayerAssemblyGateTest`(逐 fixture 核过,见 impl 件 §5.5)。
@@ -210,6 +214,11 @@ baseline:
                             #    条目 98 / Y 88 / **未闭面 73** / epic 分布 13/31 **全部一位不动**。
                             #    ⇒ 现役 = `条目 98 | {open:71, partial:6, closed:20, done:1} | P0 面 {Y:88, N:9} | 未闭面 73`。
                             #    ⚠️ 结案的是**治理面**债,不抵扣任何 P0 面项 —— 「73」不变是**对**的,不是漏刷。
+                            # 🔁 **2026-10-21 十订(`TD-ci-01` 入册 · CI 常驻无法完成)**:`open 71→72` · `N 9→10`;
+                            #    条目 98→**99**。**未闭 P0 面仍 73、epic 分布仍 13/31 一位不动**
+                            #    (`TD-ci-01` 为治理面 · `P0 面 = N`,按 R3 不进 P0 面分母)。
+                            #    ⇒ 现役 = `条目 99 | {open:72, partial:6, closed:20, done:1} | P0 面 {Y:88, N:10} | 未闭面 73`。
+                            #    ⚠️ 与九订同理:「条目涨、未闭面不动」是**对**的,不是漏刷。
   editmode_current: "4354 / 4318 / 0 / 36"   # 2026-10-21 19:09 CST · C-1 结清后全量 EditMode · 1cd5780+工作树
                                              # 🔁 **2026-10-21 回刷**:原值 "4350 / 4314 / 0 / 36"(16:51 CST · 签核轮 · e0ad379+工作树)保留作沿革
                                              #    对签核轮基线 4350/4314/0/36 ⇒ Δtotal=4 Δpassed=4 新增=5 消失=1 同名变结果=0(按 fullname 集合差独立复算)
@@ -263,6 +272,11 @@ conditions_open:
     #    PlayMode 全量 ✅ 202/202/0/0(`c4-playmode-full-2026-10-21.md`)
     #    IL2CPP 三格 ✅ 两格已跑 / 第三格 ARM64 不可达(`c4-il2cpp-matrix-2026-10-21.md`)
     #    CI 常驻 ⛔ 从未跑(缺 UNITY_CLIENT_ID / UNITY_CLIENT_SECRET)⇒ **C-4 整条不结清**
+    # 🔁 **2026-10-21 用户裁定:CI 常驻 job「无法完成」,已登记到项目规划** ——
+    #    出处 `production/milestones/p0-remaining-roadmap-2026-10-20.md` §4.5.1 ·
+    #    债册 `TD-ci-01`(治理面 · P0 面 = N)· ADR-012 §Validation 就地加注。
+    #    **性质订正**:不是「排期没排到」,是 **EXTERNAL**(凭证须用户侧申请,agent 侧无路径)。
+    #    ⚠️ **C-4 仍不结清** —— 登记性质 ≠ 满足判据;本 sprint 不因这条裁定而关闭 C-4。
   # sprint-16 的 5 条结清条件全部保存在 `production/sprint-status-sprint16-archive.yaml` 的
   # `conditions_closed`(C-1 / C-3 / TD-gate-03 / 债册 §四 总索引回填 / Ecozone·EmergencyIntegerGates 接 BuildGate)。
 

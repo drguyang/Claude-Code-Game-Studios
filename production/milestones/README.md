@@ -342,6 +342,9 @@
       —— ⚠️ **该值是 2026-10-03 快照,已过时**;现基线见文末「附:计数与基线(2026-10-15 实测)」。
       本行**原文不删**(它是 M1 当年勾选时的真跑,改数 = 伪造当时记录)
 - [x] `UNITY_LICENSE` secret configured — 改用服务账号授权（`UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`），CI workflow 已生成（`.github/workflows/unity-tests.yml`）
+      🔁 **2026-10-21 订正(该勾为误)**:workflow **确已生成**,但两个 secret **至今未配置** —— 实测每个 job 首步都是 `if [ -z "$UNITY_CLIENT_ID" ] … then exit 0` ⇒ 走 skip 分支、从未真实执行。
+      该勾把「workflow 已生成」写成了「secret 已配置」,**两者不是一回事**。用户 2026-10-21 裁定 CI 常驻 **无法完成(EXTERNAL)**,已入债册 `TD-ci-01` · 见 `p0-remaining-roadmap-2026-10-20.md` §4.5.1。
+      ⚠️ **本勾不改** —— 它是 M1 当年记账的原文(承「原文不删」);**但不得据此认为 CI 已就绪**。
 - [x] OQ-1-12 (接地模型) decision recorded — `player-controller-and-movement.md`
 - [x] OQ-10-12 (两动作原型) decision recorded — `emergency-procedures.md` · ✅ **OQ-10-6(枚举归属归系统 10)2026-10-02 同批裁,落 `production/decisions/oq-10-6-oq-10-12-adjudication.md`**
 - [ ] Performance budgets finalized (Draw Calls, Memory Ceiling) — pending target hardware selection (BLOCKED-BY: hardware decision, not an ADR issue)

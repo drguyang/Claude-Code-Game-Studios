@@ -630,7 +630,7 @@ processing/story-001  ◄──────── processing/story-003  ("Story 
 | # | 外部阻塞 | 实测证据 | 卡住的 AC(点名) | 解除者 |
 |---|---|---|---|---|
 | **E-1** | **数值轮未冻结**(用户裁定) | `assets/data/` 下**无 `disease_registry.json`**;`CompositionRoot.cs:609-625` 用**占位 plateau 曲线**;`entities.yaml:1780` 的 `CARRY_CAP` = `待定` | `AC-20-09`(硬不变量无值可验)· `AC-17-13`(`GATHER_MUL_CAP`)· `AC-44-02/03/04/08/17` 听测半边 · `TD-listen-01` 的 **L-3 / L-4** | **用户** |
-| **E-2** | **ADR-012 三格黄金矩阵不完整** | `tests/golden/` 仅 `medcons/` + `telemetry/`;**CI 的 Linux-x64-IL2CPP job 从未跑过**(未配 `UNITY_CLIENT_ID/SECRET`,job 注释自称「从未跑过」);**Linux-ARM64 格在本 pinned 工具链下物理不可建**(46 个 `BuildTarget` 中零个含 arm) | `AC-17-02` · `AC-18-15` · `clinic-machine/005` 跨平台对拍 | **CI 凭证 + 一次 ARM64 格的用户重裁** |
+| **E-2** | **ADR-012 三格黄金矩阵不完整** | `tests/golden/` 仅 `medcons/` + `telemetry/`;**CI 的 Linux-x64-IL2CPP job 从未跑过**(未配 `UNITY_CLIENT_ID/SECRET`,job 注释自称「从未跑过」);**Linux-ARM64 格在本 pinned 工具链下物理不可建**(46 个 `BuildTarget` 中零个含 arm) | `AC-17-02` · `AC-18-15` · `clinic-machine/005` 跨平台对拍 | **CI 凭证 + 一次 ARM64 格的用户重裁**<br>🔁 **2026-10-21**:本行三件事性质不同,已拆为 **E-2a / E-2b / E-2c**(见 **§4.5**);其中 E-2a(CI 常驻)经用户裁定为 **EXTERNAL · 无法完成**,已入债册 `TD-ci-01` |
 | **E-3** | **45 联机层无 GDD(P1b)** | 全库 `BLOCKED-BY-45` 命中 **36 处 / 16 个文件**(`grep -ro "BLOCKED-BY-45" production/epics/ \| wc -l`);其中 3 处在 `EPIC.md`(audio / prescription / tutorial) | `AC-39-04③` · `AC-48-09` · tutorial 002/003 的联机半边 · `casebook/006` 运行面 | P1b 轮 |
 | **E-4** | **外部美术 / 桌面走查** | `patient-ai/story-005`(病人真模型)· `emergency-procedures/story-008`(动作资产)· `world-ecozones/story-005`(桌面 + 工具 CI) | 三件尾 story 本体 | **外部 / 用户桌面** |
 | **E-5** | **42 呈现侧未交付的载体** | `processing` `AC-18-10b`(面板)· `foraging` `AC-17-07b/13b`(三类失败反馈) | 4 条 [L] 走查 | 42 + 对应 epic |
@@ -640,6 +640,70 @@ processing/story-001  ◄──────── processing/story-003  ("Story 
 > 零个含 arm ⇒ **该格在当前工具链下结构性不可达**。出路只有两条(**均须用户裁**):
 > ① 把该格改为「**不要求**」并在 ADR-012 就地加注;② **换工具链**(须重跑整个矩阵的逐位性论证)。
 > ⇒ **不得**把它当「待排期项」留在表里 —— 它是一处**裁决缺口**,不是一处**工作量缺口**。
+
+#### 4.5 E-2 已拆成三半(2026-10-21 · 用户裁定「CI 常驻 job 无法完成,登记到项目规划」)
+
+> ⚠️ **标题原写「两半已分家」,与正文不符** —— 正文实际拆的是 **E-2a / E-2b / E-2c 三半**
+> (`E-2c` = `tests/golden/` 覆盖窄)。2026-10-21 就地订正标题,原文保留于本注(承「原文不删」)。
+
+**E-2 此前是一团** —— 它把三件不同性质的事捆在一个编号下:①CI 常驻 job 从未跑;
+②ARM64 格不可达;③`tests/golden/` 覆盖窄。三者的**解除者不同、性质不同**,捆在一起会导致
+「某一半解决了就以为 E-2 解决了」。**本节就地拆开,原 E-2 行原文保留作沿革。**
+
+| 半 | 状态 | 性质 | 解除者 |
+|---|---|---|---|
+| **E-2a · CI 常驻 job** | ⛔ **无法完成(用户裁定 2026-10-21)** | **凭证缺口**,不是工作量缺口 | 见下 §4.5.1 |
+| **E-2b · ARM64 格** | ⛔ **结构性不可达**(2026-10-17 已裁) | **裁决缺口** | 见上「E-2 的独立结论」 |
+| **E-2c · `tests/golden/` 覆盖窄** | ⚠️ 仍开 | 工作量缺口 | 对应 epic 落地时补 |
+
+##### 4.5.1 E-2a:CI 常驻 job —— 登记为「无法完成」,不再挂账为「待跑」
+
+**用户裁定(2026-10-21)**:**CI 常驻 job 无法完成,登记到项目规划。**
+
+**裁定依据(实测,非推断)**:
+
+| 判据 | 实测 |
+|---|---|
+| workflow 已建 | ✅ `.github/workflows/unity-tests.yml`(3 个 job:`editmode-tests` / `playmode-tests` / `il2cpp-determinism`) |
+| 三个 job 全部 **secret 门控** | ✅ 每个 job 首步都是 `if [ -z "$UNITY_CLIENT_ID" ] … then exit 0` ⇒ **未配凭证时静默 skip,不是失败** |
+| 仓库未配凭证 | ✅ `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET` 均未配置 |
+| **凭证从哪来** | Unity 账号的 CI 服务账号授权(`unity auth login --client-id/--client-secret`)—— **须用户侧申请**,agent 侧**无任何路径可取得** |
+| 附加未实测项(即使有凭证也未必能跑) | ① 镜像 tag `unityci/editor:ubuntu-6000.3.24f1-linux-il2cpp-3` 是否已发布(game-ci 对新版本有滞后);② 容器内 `-runTests` 是否需额外 license 挂载参数 |
+
+**⇒ 定性:这是 EXTERNAL(承 §〇·一 `CAPACITY-MODEL` 的三分类 —— 「依赖项目外部件,**agent 侧无法解除**」),
+不是「排期没排到」。**它此前被反复写成「从未跑过 / 仍开」,那种写法暗示「排上就能做」,
+**会误导下一轮取件**。本节把它钉死为**无法完成**。
+
+> ⚠️ **上句的出处引用有误(2026-10-21 就地订正,原文保留不删)**:三分类在**本文件 §〇·二 第 3 条**,
+> 不在 §〇·一;而 `CAPACITY-MODEL.md` 讲的是**批次容量**(§3.1),不是这三类。**结论不变** ——
+> `TD-ci-01` 的性质仍是 EXTERNAL;变的只是这句注脚指向的节号。
+
+**登记后的三条硬边界(禁借绿)**:
+
+1. **`ADR-012 §Validation` 的「CI 常驻矩阵」项维持未勾** —— 不得因本节登记而勾选,
+   也不得因「桌面两腿已跑通」而勾选。桌面证据补的是**判据**,不是**常驻性**。
+2. **`AC-17-02` / `AC-18-15` / `clinic-machine/005` 的跨平台对拍半边** —— 维持
+   `EXTERNAL · BLOCKED-BY-ADR-012` 口径,**不因桌面两格已跑而解除**。
+   ⚠️ 但**已可引用桌面证据**:Linux-x64-Mono `3/3` · Linux-x64-IL2CPP `3/2/0/1` + 外部 diff
+   19/19 逐位相同(`production/qa/evidence/c4-il2cpp-matrix-2026-10-21.md`)。
+   ⇒ 口径应为「**判据已由桌面轮证得,常驻性未兑现**」,**不是**「跨平台确定性未验证」。
+3. **不得把 CI 常驻写成 sprint 的取件项** —— 它是 EXTERNAL,不是 backlog。
+   若将来用户提供凭证,应作为**一次性的基础设施动作**恢复,而不是塞进某个 sprint 的 Must Have。
+
+**复活条件(唯一)**:用户提供 `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET` 并完成一次成功的
+`workflow_dispatch` 运行。在此之前**本节结论不变**,任何下游件不得写「CI 常驻已就绪」。
+
+**同批落点**:
+
+| 落点 | 内容 |
+|---|---|
+| `docs/tech-debt-register.md` | 新立 **`TD-ci-01`**(治理面 · `P0 面 = N`)—— 见该册条目 |
+| `production/sprint-status.yaml` | C-4 的 `why_open` 就地加注「CI 常驻半边已由用户裁定为 EXTERNAL」 |
+| `docs/architecture/adr-012-…md` | §Validation 的 CI 常驻行就地加注(原文保留) |
+| `production/qa/qa-signoff-sprint-17-2026-10-21.md` | §6.2 第 4 条加注(性质由「仍开(待跑)」→ EXTERNAL;**verdict 不改判**) |
+| `production/epics/audio-system/story-007/008/009/010/011/012` | 各件「IL2CPP 三格 / CI 常驻」段加注 —— **6 个文件共 7 处**(`story-010` 有 2 处:§`Out of Scope` 段 + `新增登记` 段);**均不得读成「已解决」** |
+| `production/epics/clinic-machine/story-003` | 「CI 常驻矩阵」行加注 |
+| `production/milestones/README.md` | **M1 的 `UNITY_LICENSE` secret 勾选为误** —— 就地加注(勾不改,但不得据此认为 CI 就绪) |
 
 ---
 

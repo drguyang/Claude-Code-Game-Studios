@@ -214,6 +214,11 @@ ADR-029 §③(本件不涉)· **新增**:`ValidateXfade` 下界比较进 `Valida
   Mono player 第三上下文(15/15);真正未跑的只有 **ARM64 腿**(本机无该模块;ADR-012 §二 要求
   原生 ARM64 runner,qemu 否决)与 **Windows-x64 / Apple Silicon**(发版前必跑)。
   证据:`production/qa/evidence/ac-29-il2cpp-crosscheck-2026-09-24.md`。
+  🔁 **2026-10-21 再订**:上段「CI 常驻 job 未建 / 未跑」的**性质已由用户裁定为 EXTERNAL(无法完成)** ——
+  job **已建**(`.github/workflows/unity-tests.yml` 三个 job),但**未配凭证** ⇒ 走 skip 分支;
+  凭证须用户侧申请,agent 侧无路径。登记见 `production/milestones/p0-remaining-roadmap-2026-10-20.md`
+  **§4.5.1** · 债册 **`TD-ci-01`** · ADR-012 §Validation 就地加注。
+  ⚠️ **本条仍未兑现,不得读成「已解决」** —— 登记的是**性质**,不是**判据**。
 
 ### 登记项
 

@@ -336,6 +336,8 @@ C5 红 1 · W1 红 2 · W2 红 1 · R1 红 1 · R2 红 1);还原 SHA-256 逐字�
     pinned 工具链 46 个 `BuildTarget` 里**无任何 arm 目标**;用户已裁定**维持三格原样、登记长期未达**
   - **CI 常驻矩阵** = ⚠️ `unity-tests.yml` 的 `il2cpp-determinism` job 已从 TODO 改为真 job,
     但**从未跑过**(仓库未配 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET` ⇒ 走 skip 分支)
+    🔁 **2026-10-21 再订**:性质经用户裁定为 **EXTERNAL(无法完成)**,已入债册 `TD-ci-01`
+    (见 `p0-remaining-roadmap-2026-10-20.md` §4.5.1)。⚠️ **仍未兑现,不得读成「已解决」**。
   ⇒ **矩阵级验证,非本件的个体判据**;本件是纯整数算术,跨平台面由 ADR-012 独立承担。
 - **~~无 `/code-review` 原件~~** ⇒ ✅ **2026-10-21 已补**:
   `production/qa/evidence/review-s17-2-clinic003-2026-10-21.md`(两路并行,合并裁定 **CHANGES REQUIRED · 1 BLOCKING**)。
