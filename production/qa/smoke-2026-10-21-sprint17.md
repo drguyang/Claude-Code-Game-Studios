@@ -184,6 +184,9 @@
   走 `Assert.Inconclusive`,不计失败也不计通过)。
 - **IL2CPP 三格矩阵仍非齐** —— 本 sprint 只跑 Linux-x64-IL2CPP 一格;
   ARM64 目标不存在(用户裁定长期未达),Windows / Apple Silicon 归发版前。
+  > 🔁 **2026-10-21 补记**:该缺口**已于同日按格结清** —— `production/qa/evidence/c4-il2cpp-matrix-2026-10-21.md`。
+  > 第 1 格 Mono `3/3/0/0` · 第 2 格 IL2CPP-x64 `3/2/0/1` **+ 外部 diff 19/19 逐位相同 = VERIFIED** ·
+  > 第 3 格 ARM64 **不可达**(`Variations/` 零 arm,实测)。原文保留作沿革 —— 本报告的时点结论不变。
 - **本报告不覆盖 DoD 第 8 条** —— QA 签核(`/team-qa sprint`)未跑,缺 `qa-signoff-sprint-17-*.md`。
   > 🔁 **2026-10-21 补记**:该缺口**已于同日关闭** —— 签核件 = `production/qa/qa-signoff-sprint-17-2026-10-21.md`。
   > **本报告自身仍是 smoke 判据件,不因签核完成而扩大覆盖范围**;原文保留作沿革。

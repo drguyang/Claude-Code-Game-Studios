@@ -178,7 +178,7 @@ AC-5「无解析器」断言带 `Count > 0` 守卫(QA plan 增量 4 已兑现)�
 | # | 项 | 状态 | 依据 |
 |---|---|---|---|
 | 1 | **CA-M3 证伪轮**(S17-2 `CheckedAdd` 的第三变异) | ~~**NOT-RUN**~~ ✅ **已跑 · EXACT** | ~~`unity/Logs/` 下无 `ca-m3-*` 任何文件(本轮 `ls \| grep -i ca-m3` 实测空)。**不得**用 CA-M1/M2 的绿推断其结论~~<br>🔁 **2026-10-21 补跑(见下方专节)** —— 结果 **EXACT**(恰 1 红,命中预登记名) |
-| 2 | **IL2CPP 三格矩阵** | **非齐** | Linux-x64-IL2CPP 单格 ✅(`s17-6s-il2cpp-player.xml` = `5/5/0/0`,仅 5 测);**ARM64 目标不存在**(pinned 工具链无 arm BuildTarget,用户裁定长期未达);Windows-x64 / Apple Silicon 归发版前,不进常驻 |
+| 2 | **IL2CPP 三格矩阵** | ~~**非齐**~~ 🔁 **2026-10-21 补跑:两格已跑 · 第三格不可达** | Linux-x64-IL2CPP 单格 ✅(`s17-6s-il2cpp-player.xml` = `5/5/0/0`,仅 5 测);**ARM64 目标不存在**(pinned 工具链无 arm BuildTarget,用户裁定长期未达);Windows-x64 / Apple Silicon 归发版前,不进常驻<br>🔁 **补跑结清(见 `c4-il2cpp-matrix-2026-10-21.md`)** —— 三格逐格落账:**第 1 格 Mono `3/3/0/0`**(就地逐位断言通过)· **第 2 格 IL2CPP-x64 `3/2/0/1` + 外部 diff 19/19 逐位相同 = VERIFIED**(那 1 条 Skipped 是 `determinism_golden_crossplatform_test.cs:290-293` 写死的退化路径:player 内 `Application.dataPath` 指向 `Game_Data` ⇒ 金标准相对路径不可达 ⇒ `Assert.Ignore`,判据自陈「测试绿**且**外部 diff 逐位相同才 VERIFIED」)· **第 3 格 ARM64 不可达**(`Variations/` 零 arm、`find -iname '*arm*'` 零命中,实测非推断)。测集 = `DeterminismGoldenCrossplatform` **仅 3 测**;`ProjectSettings.asset` 已还原(`sha256sum -c` = `0fc69c20…` 成功)。**CI 常驻半边仍开** ⇒ C-4 整条未结清 |
 | 3 | **PlayMode 全量套件** | **NOT-RUN** | 本轮只取到 `s17-6s-il2cpp-player.xml`(5)与 `s17-6q-playmode-editor.xml`(5/5/0/0),**均为 5 测的子集**,不是 PlayMode 全量(上一全量为 `smoke-s16-playmode.xml` 197 条) |
 | 4 | **跨平台 CI 常驻 job** | **从未跑** | job 已建但缺 `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`(承 sprint-16 §6 第 5 行的 2026-10-21 订正) |
 | 5 | **本报告未独立复核的项** | **未核** | ① GDD 逐行比对(AC 转写完整性依赖评审原件,本轮未独立复核 —— S17-2 曾因此丢「性质测试」);② S17-5 两条未解除面(`AC-1-33②` slopeLimit/stepOffset 卡 `O-9`;`AC-1-34` 的 `DOWNWARD_PRESSURE` 全库零命中),沿用债册自述;③ S17-6 `TD-building-01` 的 `World` 半边 / `IsEffectivelyWalkable` 端到端;④ `:119` / `:151` / `:278` 三个调用点的实际可达性(仅论证其与 `:115` 共享同一函数);⑤ S17-3 ④ 病名扫描的 `StringComparison.Ordinal` 语义未逐字复核 |
@@ -253,7 +253,7 @@ System.OverflowException : env_score 的 Σ e_env:4611686018427387904 + 46116860
 | **C-2** | ~~**跑 CA-M3 证伪轮**并落 XML;在此之前,S17-2 的 `>`/`>=` 边界守卫只能记「载体在册且绿」,**不得记「已由变异反证」**~~<br>✅ **2026-10-21 已结** | ~~第三变异无 XML;M1/M2 只覆盖上/下界两条 `throw`~~<br>已跑:**EXACT**(28/27/1,命中预登记名);还原后复跑 28/28/0;还原 sha256 逐字节一致。详见 §4.1 | ~~QA(下一轮自跑,成本 1 次 filter 运行)~~ **已兑现** |
 | **C-3** | **`OQ-24-7` 的卡面表述订正** —— `story-006:54` / `:92` 的「登记待裁」须加注为「已裁(声明序首个匹配)」;`EPIC.md:70` 的「24 测」加注为历史快照 | 哨兵已 `false`、哨兵测已翻转,卡面仍写待裁 ⇒ 同一文件内自相矛盾(与 S17-4 `Test Evidence` 行的历史形态同型) | 卡面维护轮 |
 | | ✅ **2026-10-21 本件写盘后即已兑现** | 见下方 🔁 加注 —— **C-3 已结,不再是条件** | — |
-| **C-4** | **PlayMode 全量套件** 与 **IL2CPP 三格矩阵**须在 M3 前补齐;本 sprint 只证了「Linux-x64-IL2CPP 下这 5 条通过」 | 见 §4 第 2/3 行 | CI / 发版前 |
+| **C-4** | **PlayMode 全量套件** 与 **IL2CPP 三格矩阵**须在 M3 前补齐;本 sprint 只证了「Linux-x64-IL2CPP 下这 5 条通过」 | 见 §4 第 2/3 行 | CI / 发版前<br>🔁 **2026-10-21:PlayMode 全量 ✅ 结清**(`c4-playmode-full-2026-10-21.md`,202/202/0/0)· **IL2CPP 矩阵 ✅ 两格已跑 / 第三格不可达**(`c4-il2cpp-matrix-2026-10-21.md`)· **CI 常驻仍开** ⇒ C-4 三半结其二 |
 
 **⇒ 四条条件中 ~~C-1 / C-2~~ **C-1** 是 verdict 拉档的直接原因(写盘时含 C-2;C-2 已于同日补跑结清);C-3 是记账(已结);C-4 是矩阵级、非本件个体判据。**
 
@@ -268,7 +268,7 @@ System.OverflowException : env_score 的 Σ e_env:4611686018427387904 + 46116860
 > |---|---|---|
 > | **C-3** | ✅ **已结** | `story-006:54` / `:78-80` / `:81-86` / `:103-104` / `:131` / `:187-188` 六处已加注「`OQ-24-7` 已结案」,原文加删除线保留;`EPIC.md:71` 的「24 测」已加注为历史快照并标 32。**全部 append-only,原文未删** |
 > | **C-2** | ✅ **已结(2026-10-21 补跑)** | ~~本轮**仍未跑** CA-M3 —— 中断所致~~<br>已补跑:**EXACT**(28/27/1,恰红 `test_clinic_envMod_sumExactlyMax_doesNotThrow`);还原后复跑 **28/28/0**;还原 sha256 逐字节一致(`33032f88…`)。详见 §4.1 |
-> | **C-1 / C-4** | ⏳ 仍开 | 归 44 / 13 内容轮 与 CI / 发版前,与本轮无关 |
+> | **C-1 / C-4** | ⏳ 仍开 | 归 44 / 13 内容轮 与 CI / 发版前,与本轮无关<br>🔁 **2026-10-21**:C-1 已由 `impl-c1-tutorial-media-keys-2026-10-21.md` 结清;C-4 三半结其二(PlayMode 全量 / IL2CPP 矩阵),**CI 常驻仍开** |
 >
 > ⚠️ **C-3 / C-2 的结清都不改变 verdict** —— verdict 拉档的直接原因现为 **C-1**(见上句),
 > C-3 是记账、C-2 是证据强度。**APPROVED WITH CONDITIONS 维持不变。**
@@ -293,7 +293,7 @@ smoke check ✅ · QA sign-off ✅(本件)· 每件附可复算命令与输出 �
 2. ~~**C-3 与 C-2 同批**~~ ✅ **均已完成(2026-10-21)**。
 3. **C-1 归 44 / 13 的内容轮** —— **现为唯一拉档条件**,也是唯一会**持续被误读**的一条
    (六项校验的绿会一直被引作「内容就位」)。**这是下一步唯一必须做的事。**
-4. **C-4 归发版前 / CI 常驻轮**,与 ADR-012 的矩阵账一并处理。
+4. **C-4 归发版前 / CI 常驻轮**,与 ADR-012 的矩阵账一并处理。<br>🔁 **2026-10-21 订正**:三半中 PlayMode 全量(`c4-playmode-full-2026-10-21.md`)与 IL2CPP 三格矩阵(`c4-il2cpp-matrix-2026-10-21.md`)已补跑并落账;**仅 CI 常驻 job 仍开**(缺 `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`)。
 
 ### 6.3 不得据此推进的事
 
