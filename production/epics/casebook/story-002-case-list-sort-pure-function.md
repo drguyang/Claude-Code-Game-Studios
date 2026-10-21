@@ -1,12 +1,12 @@
 # Story 002: 病例列表排序纯函数(F-39.1)
 
 > **Epic**: 脉案
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 3h
-> **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Manifest Version**: 2026-10-15  <!-- 原 `2026-10-02` —— 2026-10-21 /dev-story Phase 2 逐件判定取 [A]（升级并按现行规则实施）；原文保留 -->
+> **Last Updated**: 2026-10-21
 
 ## Context
 
@@ -31,12 +31,29 @@
 
 *From GDD `design/gdd/casebook.md`, scoped to this story:*
 
-- [ ] `SortKey(c) = (patient_id, Tick(CaseOpened), Seq(CaseOpened))` 三元组升序,纯函数、零落盘
-- [ ] **全序性**(AC-39-02):对任意事件集合,`OrderedList` 输出为确定的全序;同病人多病例按开案 tick 分先后;同 tick 开案按 `Seq` 分先后
-- [ ] **流前缀一致性**(AC-39-03):同一病例流取任意两个前缀 A ⊂ B,`OrderedList(A)` 是 `OrderedList(B)` 的前缀(新事件不重排旧项)—— 补算/重放不炸列
-- [ ] 可序列化类型中**零**「display order / index」类 int 字段(反射断言)
-- [ ] 串接组(同一病人的多病例)作为「线订成叠」呈现**单元**由本函数输出分组标记,组内顺序同样由三元组决定
-- [ ] 病例流为空 ⇒ 返回空列表,不报错(与「未结 N 计数」无关 —— 计数是 Story 004 禁项)
+- [x] `SortKey(c) = (patient_id, Tick(CaseOpened), Seq(CaseOpened))` 三元组升序,纯函数、零落盘
+- [x] **全序性**(AC-39-02):对任意事件集合,`OrderedList` 输出为确定的全序;同病人多病例按开案 tick 分先后;同 tick 开案按 `Seq` 分先后
+- [x] **流前缀一致性**(AC-39-03):同一病例流取任意两个前缀 A ⊂ B,`OrderedList(A)` 是 `OrderedList(B)` 的前缀(新事件不重排旧项)—— 补算/重放不炸列
+- [x] 可序列化类型中**零**「display order / index」类 int 字段(反射断言)
+- [x] 串接组(同一病人的多病例)作为「线订成叠」呈现**单元**由本函数输出分组标记,组内顺序同样由三元组决定
+- [x] 病例流为空 ⇒ 返回空列表,不报错(与「未结 N 计数」无关 —— 计数是 Story 004 禁项)
+
+> 🔁 **2026-10-21 就地加注 —— AC-39-03 补前提(原文不删,判定收窄)**
+>
+> 原文「取**任意**两个前缀 A ⊂ B」是**无条件**表述,**数学上不可满足**:`OrderedList` 是
+> 全量重排,若追加项的三元组小于既有某键,它就会插到前面,`OrderedList(A)` 不再是
+> `OrderedList(B)` 的前缀。反例已单独成测:
+> `test_orderedList_appendedSmallerKey_relativeOrderKeptButNotPrefix`(`casebook_sort_test.cs`)。
+>
+> **现行判据(收窄后)**:AC-39-03 成立的前提 = **追加键三元组 ≥ 该流既有全部键**。
+> 该前提由两件事共同保证,且**均不在本函数判据面内**:
+> ① `IIdAuthority` 单调发号(ADR-006 Amendment B,计数器永不复位);
+> ② 新案开案 tick 严格大于既有开案 tick(开案由 37 在主机侧发事件,ADR-005 唯一真源)。
+>
+> ⇒ 本函数只被要求:**给定满足前提的追加**,不重排旧项。**前提的守护归上游写者**
+> (37 开案路径),不是本函数的义务。本 AC 勾选时按此口径判,**不得**记成无条件全绿。
+>
+> 依据:`production/qa/evidence/review-sprint17-batch1-2026-10-21.md` §三 B-1。
 
 ---
 
@@ -72,10 +89,12 @@
   - Edge cases: 单病例 / 两病例同 pid 同 tick(靠 Seq 分序)
 
 - **AC-2**: 流前缀一致性(AC-39-03)
-  - Given: 事件流 E 与截断前缀 E' ⊂ E
+  - Given: 事件流 E 与截断前缀 E' ⊂ E,**且 E \ E' 的每个键三元组 ≥ E' 的全部键**
+    (🔁 2026-10-21 补前提 —— 见上方 AC 列表后的加注;无条件版不可满足)
   - When: 分别 `OrderedList`
   - Then: `OrderedList(E')` 是 `OrderedList(E)` 的前缀
-  - Edge cases: E' = ∅ ⇒ 空列表是任意列表前缀
+  - Edge cases: E' = ∅ ⇒ 空列表是任意列表前缀;**反例守卫** = 追加更小键时相对序保持但**非**前缀
+    (`test_orderedList_appendedSmallerKey_relativeOrderKeptButNotPrefix`,如实登记,不记为失败)
 
 - **AC-3**: 零落盘 / 零显示顺序字段
   - Given: 排序跑完后检查 39 全部可序列化类型
@@ -121,5 +140,16 @@
 ---
 
 ## Completion Notes
-
-*(empty — fill at story completion via `/story-done`)*
+**Completed**: 2026-10-21
+**Criteria**: 6/6 passing(AC 第 3 条按**收窄后口径**,见下)
+**Deviations**:
+- 🔁 **AC 第 3 条已收窄**(2026-10-21 用户裁定):原「任意两个前缀」数学上不可满足 —— 实现是全量重排。
+  现行判据加前提「追加键三元组 ≥ 该流既有全部键」;前提由 `IIdAuthority` 单调发号(ADR-006 Amendment B)
+  + 新案开案 tick 更大共同保证,**归上游写者(37 开案路径)**,不在本函数判据面内。
+  反例 `test_orderedList_appendedSmallerKey_relativeOrderKeptButNotPrefix` 保留且**不记为失败**。
+- ADVISORY — 零 display-order 的反射断言过滤掉自动属性背衬 ⇒ 属性式 `DisplayOrder` 可逃逸;
+  词表有 `sortindex` 但漏 `sortkey`;类型限 `int`/`long`,`byte`/`short` 逃逸(评审 C4)。
+- ADVISORY — `Casebook.Tests.asmdef` 引用 `Sim` 与 `Gameplay.Presentation` 但零使用,且缺 `autoReferenced: false`(评审 C9)。
+**Test Evidence**: Logic — `unity/Assets/Tests/EditMode/Casebook/casebook_sort_test.cs`(16 测)
+  + 证伪 F3(`CompareTo` → `(int)(a-b)` ⇒ 2 条红)
+**Code Review**: Complete — 同上原件(0 BLOCKING)

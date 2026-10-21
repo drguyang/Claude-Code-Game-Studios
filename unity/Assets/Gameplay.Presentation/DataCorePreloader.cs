@@ -183,7 +183,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 的装载面逐一对应(S14-6 追加 44 侧两表后共 7 条;TD-epic-01 第十一片追加设备切换
         /// 常量表后共 8 条;第十二片追加遥测参数旋钮表后共 9 条;2026-10-20 补接线追加
         /// 交互种类契约表 + 阴性把握度定表后共 **11** 条;2026-10-20 第二轮接线追加处方表 / 处置轴 /
-        /// 53 判定表 / 53 延迟表后共 **15** 条 —— 与 `Preload()` 的
+        /// 53 判定表 / 53 延迟表后共 **15** 条;2026-10-21 S17-3 AC-5 接线追加 48 教学内容后共 **16** 条 —— 与 `Preload()` 的
         /// `Ensure*` 调用数逐一相等,由 `test_preloader_list_sources_matchPreloadedProducts` 钉住)。</summary>
         internal static readonly string[] DataCoreAddresses =
         {
@@ -202,6 +202,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
             AddressablesDataProvider.DiseaseActionAxisAddress,
             AddressablesDataProvider.OutcomeTableAddress,
             AddressablesDataProvider.DelayTableAddress,
+            // 48 教学内容(S17-3 AC-5 接线,2026-10-21 补登)。
+            // ⚠️ 首轮接线漏了本条 ⇒ `provider_wiring_gate_test` 门④ 与
+            // `test_preloader_list_sources_matchPreloadedProducts` 双双转红。
+            // 该门的作用正是「Ensure* / Preload / 地址表」三处集合相等,漏一处即红。
+            AddressablesDataProvider.TutorialContentAddress,
         };
 
         /// <summary>地址是否可被 Addressables 解析(遍历 ResourceLocators 的 Locate)。</summary>

@@ -69,6 +69,12 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>产物文件名(53 延迟表;F-53.2 / story-003 的烘焙产物)。</summary>
         public const string DelayTableCookedAssetName = "53_delay_table.cooked.bytes";
 
+        /// <summary>产物文件名(48 教学内容;S17-3 story-001 / AC-5 的烘焙产物)。
+        /// <para>⚠️ 与运行期 <c>AddressablesDataProvider.TutorialContentAddress</c> /
+        /// <c>TutorialContentTable.CookedFileName</c> 同值(边界程序集不引用本编辑期装配,
+        /// 故那两处为字面串 —— 承 <c>InteractionKindsAddress</c> 同款注记)。</para></summary>
+        public const string TutorialContentCookedAssetName = "48_tutorial_content.cooked.bytes";
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -436,6 +442,65 @@ namespace DaYiJingCheng.EditorTools.Bake
                 foreach (string e in ex.Errors)
                     Debug.LogError("[大医精诚] 烘焙失败:" + e);
                 throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 48 教学内容(tutorial-onboarding · S17-3 story-001 的 **AC-5 接线**):
+        /// 仓库 <c>assets/data/48_tutorial_content.json</c> → 六项校验(**聚合 throw**)
+        /// → deterministic 编码 → 产物写入 Assets/DataCooked/(入 data-core 组)。
+        /// <para>⚠️ 本菜单是 <see cref="TutorialContentBinder"/> 的**唯一生产调用点链路**
+        /// (菜单 → <c>BakeFromRepo</c> → Bind(六项校验)→ <c>TutorialContentCookedWriter.Write</c>)。
+        /// 绕过它 = binder 永不执行 = 六项校验形同虚设(与 BakeDelayTable 同型先例)。</para>
+        /// <para>⚠️ 运行期装载面在本菜单**之外**:<c>AddressablesDataProvider</c> 的
+        /// <c>TutorialContentAddress</c> 分支 + <c>Preload()</c>(E-13 启动期硬失败,不降级)。</para>
+        /// <para>⚠️ 校验 ④ 的扫描字典 = <see cref="TutorialDiseaseNameSource"/>(读
+        /// <c>assets/data/disease_names.json</c>)。该件**缺席**时 ④ 记 NOT-RUN 并在日志里点名
+        /// (不阻断烘焙);**存在但损坏 / 为空**时抛 <see cref="BakeValidationException"/> ⇒ 本菜单硬失败。
+        /// 此处**显式注入**(而非依赖 <c>BakeFromRepo</c> 的默认值):菜单是唯一生产链路,注入点写死更易审计。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 48_tutorial_content(48 教学内容)")]
+        public static void BakeTutorialContent()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                TutorialContentBake.BakeOutput result = TutorialContentBake.BakeFromRepo(
+                    repoRoot, new TutorialDiseaseNameSource(repoRoot));
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, TutorialContentCookedAssetName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{TutorialContentCookedAssetName} = {result.Cooked.Length} B, " +
+                    $"{result.Bound.Steps.Count} 步 / {result.Bound.Narration.Count} 口述 / " +
+                    $"{result.Bound.Demonstrations.Count} 示范 / {result.Bound.Papers.Count} 纸, " +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}, " +
+                    $"校验④ = {DescribeDiseaseScan(result.Bound.DiseaseScan)}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>把校验 ④ 的三态翻成日志串 —— **NOT-RUN 必须肉眼可见**(否则「烘焙成功」会被误读成「四项全过」)。</summary>
+        private static string DescribeDiseaseScan(TutorialTextScanResult scan)
+        {
+            switch (scan.Outcome)
+            {
+                case TutorialDiseaseScanOutcome.Clean:
+                    return "执行 · 零命中";
+                case TutorialDiseaseScanOutcome.Hits:
+                    return $"执行 · {scan.HitCount} 处命中(硬失败,见上)";
+                default:
+                    return "NOT-RUN —— 词表缺席(assets/data/disease_names.json 不存在),本项未执行";
             }
         }
 

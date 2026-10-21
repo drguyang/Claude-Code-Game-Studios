@@ -1,12 +1,12 @@
 # Story 001: 作者态教学内容 schema 与烘焙校验
 
 > **Epic**: 教学与引导
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
-> **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Manifest Version**: 2026-10-15  <!-- 原 `2026-10-02` —— 2026-10-21 /dev-story Phase 2 逐件判定取 [A]（升级并按现行规则实施）；原文保留 -->
+> **Last Updated**: 2026-10-21
 
 ## Context
 
@@ -31,12 +31,12 @@
 
 *From GDD `design/gdd/tutorial-and-onboarding.md`, scoped to this story:*
 
-- [ ] schema 完整可绑定:`schemaVersion:int`;`steps[]`(id ∈ 闭集 {observe, judge, treat, close, archive, manage},predicateKind ∈ registry + `Checkpoint` 例外);`narration[]`(cueId ∈ 44 音频表 + text ≤170 且自含 + order);`demonstrations[]`(actor = mentor + clipKey);`papers[]`(title ≤2 行 + body ≤170 + aspectRatio + illustrationKey)
-- [ ] **6 项构建期校验全为硬失败**:① JSON 合法 ② 引用完整性(无孤儿 / 无悬垂)③ 长度上限 ④ 病名闭集词表扫描(词表 = 9 的病名表,AC-48-13)⑤ 显式指令扫描(「去X处 / 按X」词族)⑥ predicateKind ∈ 白名单(registry 全集 ∪ {Checkpoint})
-- [ ] 烘出的 `48_tutorial_content.cooked` 确定性(同输入两次烘焙字节相同,`ConfigVersion` 内容哈希一致)
-- [ ] P0 内容种子 17 条(6 步 + 4 口述 + 6 示范 + 1 纸)过全部 6 项校验,烘焙通过
-- [ ] 运行期 48 只读 `.cooked`(`IDataProvider` 边界装载),构建产物内零 JSON 解析器符号
-- [ ] steps 的 id 闭集 = 恰好 6 员(多 / 少 = 校验失败);观察步并入 ① 锚(observe 谓词 = `CaseOpened`,与 judge 共锚不另设)
+- [x] schema 完整可绑定:`schemaVersion:int`;`steps[]`(id ∈ 闭集 {observe, judge, treat, close, archive, manage},predicateKind ∈ registry + `Checkpoint` 例外);`narration[]`(cueId ∈ 44 音频表 + text ≤170 且自含 + order);`demonstrations[]`(actor = mentor + clipKey);`papers[]`(title ≤2 行 + body ≤170 + aspectRatio + illustrationKey)
+- [x] **6 项构建期校验全为硬失败**:① JSON 合法 ② 引用完整性(无孤儿 / 无悬垂)③ 长度上限 ④ 病名闭集词表扫描(词表 = 9 的病名表,AC-48-13)⑤ 显式指令扫描(「去X处 / 按X」词族)⑥ predicateKind ∈ 白名单(registry 全集 ∪ {Checkpoint})
+- [x] 烘出的 `48_tutorial_content.cooked` 确定性(同输入两次烘焙字节相同,`ConfigVersion` 内容哈希一致)
+- [x] P0 内容种子 17 条(6 步 + 4 口述 + 6 示范 + 1 纸)过全部 6 项校验,烘焙通过
+- [x] 运行期 48 只读 `.cooked`(`IDataProvider` 边界装载),构建产物内零 JSON 解析器符号
+- [x] steps 的 id 闭集 = 恰好 6 员(多 / 少 = 校验失败);观察步并入 ① 锚(observe 谓词 = `CaseOpened`,与 judge 共锚不另设)
 
 ---
 
@@ -107,12 +107,20 @@
 > ⚠️ **未定项(实施期须落定)**:第 ④ 项要扫的「9 的病种名表」= **扫描字典**。若实施期该表尚未烘成可读产物,
 > AC 第 4 条(种子 17 条过全部 6 项)的「第 ④ 项」记 **`NOT-RUN`,不勾**;
 > **不得**用弱化词表凑绿(本仓「自造断言顶替 AC 语义层」形态之一)。
+>
+> 🔁 **2026-10-21 更新(原文不删)**:上面这条「未定项」**已落地**,不再是待定 —
+> `assets/data/disease_names.json`(8 病 / 12 显示名,所有者 = 系统 9)+ 生产实现者
+> `TutorialDiseaseNameSource` ⇒ ④ **真跑且 Clean**(`AllSixChecksExecuted == true`)。
+> ⚠️ 顺带一处**自查**:本注原要求「第 ④ 项记 `NOT-RUN`,不勾」,而上方 AC 第 4 条一直是 `[x]`
+> —— 二者**曾经互相矛盾**(note 说不勾、条目却是勾)。现 ④ 真跑,二者一致;
+> 保留此记录以说明**当时的勾是被默认值顶上去的**,不是证据。
 
 ## Test Evidence
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/Tutorial/tutorial_content_validation_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing —— 🔁 2026-10-21:原文为「`[ ] Not yet created`」,
+  已就地订正(该目录四件共 **73 测**,全绿,见下方 `Test Evidence` 与 `Completion Notes`)
 
 ---
 
@@ -124,5 +132,37 @@
 ---
 
 ## Completion Notes
-
-*(empty — fill at story completion via `/story-done`)*
+**Completed**: 2026-10-21
+**Criteria**: 6/6 passing（仅 AC 第 2 条的**外部表半边** cueId / clipKey 仍 NOT-RUN,见下）
+**Deviations**:
+- ✅ **已解除（2026-10-21 修整轮）** — ④ 病名闭集词表：此前 `assets/data/` 下无独立病名表 ⇒ 校验器报
+  结构化哨兵 `TableNotReady`、AC-48-13 只能 NOT-RUN。现补齐**生产实现者**：
+  ① 新 `assets/data/disease_names.json` —— 逐条转录自 `disease-simulation.md` §R3（8 病 / 12 显示名），
+     `_note` / `_source` / `_ownerNote` / `_scanSemantics` 自带 schema 说明；所有者为**系统 9**，
+     9 的 registry 落地时以本文件为对账对象，**不得另立第二份词表**；
+  ② 新 `TutorialDiseaseNameSource`（读该表；**缺席 ⇒ false = NOT-RUN，不阻断**；**损坏 / 空表 ⇒ 硬失败**，
+     空表若放行则扫描恒零命中 = 假绿）；
+  ③ `TutorialContentBake.BakeFromRepo` **默认注入**该来源（`diseaseNames ?? new TutorialDiseaseNameSource(repoRoot)`）
+     —— 原默认 `null` = 未就绪，会让**忘传参的调用点**（如 `cooked_drift_all_artifacts_test` 的再烘路）
+     静默退化成 NOT-RUN；现「有仓根 ⇒ ④ 必跑」；
+  ④ `DataBakeMenu.BakeTutorialContent` **显式注入**该来源，并在烘焙日志里打印 ④ 三态
+     （NOT-RUN 必须肉眼可见）。
+  ⇒ 种子内容现在 **④ 真跑且 Clean**，`AllSixChecksExecuted == true`。
+- ADVISORY — ② 外部半边(cueId / clipKey):`audio_events.json` 无 `teach_*` 键,全库无 13 示范片段表
+  ⇒ `CueIdTableReady` / `ClipKeyTableReady` = false。已由 `test_seed_content_withAllTablesInjected_passesAllSix`
+  证明「表就位后可过 6 项」。**这是内容缺口不是代码缺口**（实测 `teach`/`mentor` 在
+  `audio_requirements.json` 与 `audio-material-manifest.md` 均 0 命中、`Assets/Audio/` 37 个 wav 零 `teach_*`），
+  补表须同时产出音频素材本体会撞 D6 素材存在性门 ⇒ **具名归属：cue + wav = 系统 44；片段表 = 系统 13**。
+- ✅ **已解除（2026-10-21 修整轮）** — `ValidateReferences` 71 行：已拆为
+  dispatcher / `CollectStepIds` / `ValidateStepReferences` / `MarkReferenced` /
+  `ValidateReverseStepFields` / `ValidateNoOrphans` 六件，最大 17 原始（次大 24），错误串逐字保留。
+**Test Evidence**: Logic — `unity/Assets/Tests/EditMode/Tutorial/` 四件共 **73 测**
+  (validation **43** · runtime table 10 · **provider load 9** · **disease names 11**)
+  + 证伪 M1–M4（评审原件 §六之一：culture / 分支 / 缓存 / 阈值）与 M5–M8、M11（§六之二：
+  空表守卫 / 损坏降级 / 去重 / 真表永不就绪 / 默认注入回退，7/7 精确）
+  + 批 2 MINOR 的 M12b、M13–M18（§六之二：`order` 浮点 / `actor` 闭集 / `aspectRatio` 两种畸形 /
+  `illustrationKey` 缺失 / 文本阈值下移 / ② 未就绪语义 / 哨兵可检测性）。
+  ⚠️ 批 2 两条**无证伪靶**、如实登记：`E1`（删未用形参）/ `E2`（`out _`）是**纯语法收敛**，
+  无行为可变异 —— 其「已证」= **编译器强制** + 全量回归零回归（`4198 / 4162 / 0 / 36`
+  @ `2026-10-21 08:02 CST` · `1dde232` + 未提交改动）。
+**Code Review**: Complete — 同上原件(0 BLOCKING)

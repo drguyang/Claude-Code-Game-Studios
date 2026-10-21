@@ -152,6 +152,10 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
                 root => OutcomeTable53.BakeFromRepo(root).Cooked),
             new ArtifactBake(DataBakeMenu.DelayTableCookedAssetName,
                 root => DelayTable53Bake.BakeFromRepo(root).Cooked),
+
+            // ── 48 教学内容(1 份;S17-3 story-001 AC-5 接线,2026-10-21)──
+            new ArtifactBake(DataBakeMenu.TutorialContentCookedAssetName,
+                root => TutorialContentBake.BakeFromRepo(root).Cooked),
         };
 
         /// <summary>
@@ -276,7 +280,7 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
 
             // 扫描器完备性哨兵 —— 剥离器若过度吞字(如把逐字串 `@"…"` 的 `"` 当转义),
             // 声明集会**变小**,本行先红。⚠️ 这是本门唯一能自证「扫全了」的判据。
-            const int pinnedDeclared = 15; // 2026-10-20 实测(15 份均已落盘并登记)
+            const int pinnedDeclared = 16; // 2026-10-21 实测(16 份;+48_tutorial_content(S17-3 AC-5 接线))
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

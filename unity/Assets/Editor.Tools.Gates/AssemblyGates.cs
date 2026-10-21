@@ -52,6 +52,10 @@ namespace DaYiJingCheng.EditorTools.Gates
         // Gates/Spike/Bake 三支已于 2026-09-26 回写 ADR-025 §① —— 两处自此一致)。
         // Gameplay.Input = story-001 B1 拆装增员(ADR-025 §① 2026-09-25 已载;清单 2026-09-25 补登)。
         // SkeuomorphicUI.Tests = Story 003 焦点导航边界测试装配(2026-09-28 补登)。
+        // Casebook.Tests = casebook-002 病例列表全序纯函数测试装配(2026-10-21 增员;
+        //   ADR-025 §① 同批回写)。依据 = 该测试须引用 `Gameplay.UI`,而共享的
+        //   `Sim.Contracts.Tests`(EditMode.asmdef)不引用 `Gameplay.UI` ⇒ 只能自带装配。
+        //   ⚠️ 与 `Editor.Tools.Font`(2026-10-13)同型:首跑漏登记被 b3 捕获,§④ 封闭性门工作正常。
         // Gameplay.Boot = M2 接线轮阶段 1 装配轮 · 组合根案 A(2026-10-09 增员;
         //   ADR-025 §① 同批回写 —— b5 把 Sim.Codec 装配级标红 ⇒ 编码器构造点须独立装配)。
         // Editor.Tools.Font = sprint-08 S3「字糊」根治件(SDF FontAsset 生成器,2026-10-13 增员;
@@ -69,6 +73,8 @@ namespace DaYiJingCheng.EditorTools.Gates
             // Editor.Tools.Capture = 截图工具(2026-10-14 增员;ADR-025 §① 同批回写)。
             "Editor.Tools.Capture",
             "Sim.Contracts.Tests", "Gameplay.Tests", "SkeuomorphicUI.Tests",
+            // Casebook.Tests = casebook-002 测试装配(2026-10-21 增员;ADR-025 §① 同批回写)。
+            "Casebook.Tests",
         };
 
         // ── b4 的白名单:允许调 ToFloat() 的装配(ADR-025 §② 甲案 = {Sim.Codec, Gameplay.*})──

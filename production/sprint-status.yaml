@@ -33,13 +33,13 @@ stories:
     name: "clinic-002 房间析出与连通性"
     file: "production/epics/clinic-machine/story-002-room-extraction-connectivity.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "claude"
     estimate_days: 0          # 不估天 —— 依 production/CAPACITY-MODEL.md §3.1,三元只记录不外推;复杂度 = M
     complexity: M
     depends_on: ["clinic-001"]
     blocker: ""               # ⚠️ 依赖 clinic-001 = `In Review`(非 Complete)—— 用户 2026-10-21 裁定「承风险照排」
-    completed: ""
+    completed: "2026-10-21"
     note: "偏离登记 ①:sprint-17.md §两处偏离登记。上游**契约**实存(6 个 bake 文件 + 三份 clinicmachine_*.json 种子 + 42 测 + review-clinic-001-2026-10-20.md 在册),上游 **story** 未 Complete ⇒ 取 /dev-story 的 [A] 分支。**不转 clinic-001 状态**(其两条 AC 真挂 BLOCKED-BY-O-24-1,转 Complete 即借绿)。测试载体 = Tests/EditMode/ClinicMachine/clinic_room_extraction_test.cs"
 
   - id: "S17-2"
@@ -59,26 +59,26 @@ stories:
     name: "tutorial-001 内容 schema + 六项构建期校验"
     file: "production/epics/tutorial-onboarding/story-001-content-schema-and-bake-validation.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "claude"
     estimate_days: 0          # 复杂度 = M(不判 L:3 个形式依赖中 2 个为已落既有基建 —— 口径判断,非实测)
     complexity: M
     depends_on: ["ADR-014 管线", "entities.yaml registry", "9/44/13 词表 .cooked"]
     blocker: ""               # 词表为并行产出,故事自带降级路径;缺则 AC ④ 记 NOT-RUN 不勾
-    completed: ""
+    completed: "2026-10-21"
     note: "⚠️ manifest 落后 13 天(卡面 2026-10-02 / 现行 2026-10-15),且 Cross-Cutting 之八「判据不得用文化敏感字符串比较」**正面命中**本件的病名闭集扫描 ⇒ 开跑前按 /dev-story Phase 2 判定;冲突时判据宾语改「词表 id 整数域」并如实登记(不预判结论 —— 用户 2026-10-21 裁定)。测试载体 = Tests/EditMode/Tutorial/tutorial_content_validation_test.cs"
 
   - id: "S17-4"
     name: "casebook-002 病例列表全序纯函数"
     file: "production/epics/casebook/story-002-case-list-sort-pure-function.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "claude"
     estimate_days: 0          # 复杂度 = M(最轻)—— 本批唯一可在零前置下独自完成的件
     complexity: M
     depends_on: ["casebook-001"]
     blocker: ""               # ⚠️ 依赖为**名义**:casebook-001 = Ready(全未实现),但本件 Implementation Notes ① 明写「以事件列表参数形态解耦」
-    completed: ""
+    completed: "2026-10-21"
     note: "依赖名义性有据:6 条 AC 全打纯函数 + 反射断言,**无一条需要加载路径**。⚠️ 端到端「加载后列表」不可勾,但本件 AC 面不含该判据。测试载体 = Tests/EditMode/Casebook/casebook_sort_test.cs"
 
   # ── Should Have · 批 2 ──

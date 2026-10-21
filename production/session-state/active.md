@@ -7627,3 +7627,66 @@ Addressables 构建期自动生成,项目代码零引用,`git check-ignore` 判�
 
 
 <!-- QA-PLAN: 2026-10-21 | System: sprint-17 | Plan written: production/qa/qa-plan-sprint-17-2026-10-21.md -->
+
+## Session Extract — /dev-story sprint-17 批 1（2026-10-21）
+- 件：S17-1 clinic-002 · S17-3 tutorial-001 · S17-4 casebook-002（全 `in_progress`，**未勾 AC**）
+- 新增生产件：`Sim/Clinic/` 3 · `Editor.Tools.Bake/TutorialContent*` 4 · `Gameplay.Presentation/Tutorial/` 1 · `Gameplay.UI/Casebook/` 1
+- 改既有：`DataBakeMenu` · `AddressablesDataProvider` · `DataCorePreloader` · `AssemblyGates` · `cooked_drift_all_artifacts_test` · `adr-025` §①
+- 新增测试：85 条（Clinic 21 / Casebook 16 / Tutorial 校验 37 / Tutorial 运行期 10 / drift 参数化 1）
+- 验收：`4171 / 4135 / 0 / 36`（基线 `4086 / 4050 / 0 / 36`，Δ = +85/+85，消失 0）
+- 证伪轮：3/3 全红，exactRed 逐例精确，三文件 SHA-256 逐字节还原
+- 产物：`unity/Assets/DataCooked/48_tutorial_content.cooked.bytes`（1 843 B，ConfigVersion 0x71D8182F，data-core 16 条目）
+- 证据原件：`production/qa/evidence/impl-sprint17-batch1-2026-10-21.md`
+- NOT-RUN：S17-3 AC④（病名表缺）· AC② 外部半边 · S17-4 存档字节流 · ADR-012 IL2CPP 三格
+- Blockers：无
+- Next：`/code-review` → `/story-done`；批 2（S17-2 clinic-003 依赖 S17-1 已就绪）
+
+## Session Extract — /code-review + /story-done sprint-17 批 1（2026-10-21）
+- Verdict: **COMPLETE WITH NOTES**（三件均 6/6 AC，0 BLOCKING）
+- Stories: S17-1 clinic-002 · S17-3 tutorial-001 · S17-4 casebook-002 → `Status: Complete`（sprint-status 同步 `done` + `completed: 2026-10-21`）
+- 评审原件: `production/qa/evidence/review-sprint17-batch1-2026-10-21.md`（四份评审合并 + Phase 8b 双列结账 + §六之一 证伪 M1–M4）
+- 修复轮两项（用户裁定）:
+  ① AC-39-03 **收窄**（就地 🔁 加注，原文不删）—— 补前提「追加键三元组 ≥ 既有全部键」
+  ② AC-5 **补装载测** 9 条 —— `Tutorial/` 新增 `tutorial_content_provider_load_test.cs`；`AddressablesDataProvider` 加内部可注入构造（生产行为零变化）
+- 第三项（用户裁定「先修夹具再收口」）: S17-1 壳格夹具改写为「空足迹实例」，判别力经 M3 证明（恰 2 红）
+- 绿基线: 截至 `2026-10-21 06:39 CST` · 批 1 补测轮 · 基于 `1dde232` + 未提交改动 = **4180 / 4144 / 0 / 36**
+- 证伪 4 例: M1 分支 8 红 · M2 缓存 1 红 · M3 instance-as-cell 2 红 · M4 阈值 2 红（M4 预期误算 1 条，已归因「常量单源」，如实登记）
+- 遗留 ADVISORY: `ValidateReferences` 71 行未拆 · `Casebook.Tests.asmdef` 两条未用引用 · S17-3 病名表 / cueId·clipKey 外部表 NOT-RUN（结构化哨兵登记，未凑绿）· casebook 反射断言漏 `GetProperties`
+  → 🔁 **2026-10-21 修整轮已处理其中三项**（前两条 + 病名表 + 反射断言；共四项点名，剩 cueId/clipKey 外部表 = 内容缺口，非代码缺口）
+- Blockers: 无
+- Next: 批 2（`S17-2` clinic-003 **已解锁** —— 其 depends_on S17-1 现为 done）+ `S17-5` retro-14 行动项 5
+- **未 commit** —— 待用户指令
+
+## Session Extract — 修整轮（2026-10-21 · 用户指令「修整这些」）
+- **① `ValidateReferences` 71 行** → 拆 6 件（dispatcher / CollectStepIds / ValidateStepReferences /
+  MarkReferenced / ValidateReverseStepFields / ValidateNoOrphans），最大 17 原始 · 24 原始（次大），全部 ≤ 40；错误串逐字保留
+- **② `Casebook.Tests.asmdef`** → 删 `Sim` + `Gameplay.Presentation` 两条死引用，补 `autoReferenced:false`；ADR-025 §① 就地 🔁 加注
+- **③ S17-3 ④ 病名表** → **已闭合**：新 `assets/data/disease_names.json`（8 病 / 12 显示名，转录 GDD §R3，所有者 = 系统 9）
+  + 新 `TutorialDiseaseNameSource`（缺席 ⇒ false=NOT-RUN；损坏/空表 ⇒ 硬失败）+ `DataBakeMenu` 恒定注入并把 ④ 三态打进日志
+  + 新 `Tests/EditMode/Tutorial/tutorial_disease_name_source_test.cs`（10 测）。**④ 现真跑且 Clean**（`AllSixChecksExecuted == true`）
+- **③' cueId / clipKey** → **仍 NOT-RUN，且判定为内容缺口非代码缺口**：`teach_*` 在 audio_events / audio_requirements /
+  audio-material-manifest / Assets/Audio 中**全 0 命中**；全库无 13 示范片段表。具名归属：cue+wav = 44；片段表 = 13
+- **④ casebook 反射** → 两条反射测同扫 `PropertyInfo`；词表补 `sortkey`；整型面扩到 8 种宽度；补属性集非空守卫；可变态测加 `SetMethod != null`
+- **绿基线**: 截至 `2026-10-21 07:31 CST` · 批 1 修整轮（证伪全部还原后的收尾确认轮）· 基于 `1dde232` + 未提交改动 = **4191 / 4155 / 0 / 36**（Δ +11 = 新增 11 测，零回归）
+- **证伪 7/7 精确**: M5 空表守卫 · M6 损坏降级 · M7 去重 · M8 真表永不就绪 · M9 属性式展示序 · M10 带 setter 属性 · M11 默认注入回退；七例还原均 SHA-256 逐字节一致
+- **附带修正一处静默面**: `TutorialContentBake.BakeFromRepo` 默认 `null = 未就绪` ⇒ 忘传参的调用点（`cooked_drift_all_artifacts_test`）会让 ④ 静默 NOT-RUN；已改默认注入，由 `test_bakeFromRepo_withoutExplicitSource_stillRunsCheck4` 钉住
+- ⚠️ **自查记过**: M9/M10 首跑 `--filter casebook_sort_test`（文件名）≠ 类名 `CasebookSortTest` ⇒ **0 测执行**，
+  差点被读成「无判别力」。已加 `RAN=` 零执行守卫并重跑（`RAN=16`）。**教训：证伪「零红」先分辨 0 红 / 0 跑**
+- **未 commit** —— 待用户指令
+
+## Session Extract — 批 2 MINOR 修整轮（2026-10-21 · 用户指令「其余 MINOR（C11 / T3 / T4 / E1 / E2）未动 …… 现在修整」）
+- **C11**: `FurnTypeClosureEnforced` 只「可观测」→ 补「可检测」：新 `test_furn_type_closure_absent_isDetectable_notJustObservable`
+  （扫 `Sim` 装配全部类型/成员，`PropertyInfo` 按 `get_`/`set_` 剥名；哨兵自身除外）+ 生产侧 doc 就地加注**已知边界**
+  （闭集落地时类型/成员名须带 `FurnType`，否则检测不到）
+- **T3**: 五条字段级负例（`order` 浮点 · `actor` 出闭集 · `aspectRatio` 畸形 · 零段 · `illustrationKey` 缺），每条兼断言报文点名违规值
+- **T4**: 补 `test_check3_body170_passes`（与 `body171_throws` 成对）；把 `test_check2_danglingCueId_isNotCheckedWhenTableMissing`
+  从**空转**改成真注入 `teach_404` + 断言绑定仍成功、`Narration.Count == 4`
+- **E1/E2**: `OrderDemonstrations`/`OrderPapers` 删去从不读取的 `steps` 形参；`note` 改 `out _`（「校验但不使用」不再伪装成「使用」）。
+  **二者纯语法收敛、无证伪靶**，已如实登记（Proven = 编译器强制 + 全量回归零回归）
+- **绿基线**: 截至 `2026-10-21 08:02 CST` · 批 2 MINOR 收口（证伪全部还原后的收尾确认轮）· 基于 `1dde232` + 未提交改动 =
+  **4198 / 4162 / 0 / 36**；按 `fullname` 集合差对账 **Δ +7 / 消失 0**（T3 五 + body170 + C11 可检测性）⇒ **零回归**
+- **证伪 7 例 + 1 重跑**: M13/M14/M15/M16/M18 逐项精确；M17 红集为**真超集**（12 条，变异打在 `null-source` 公共路径，已归因）；
+  **M12 首跑零红 = 打错靶**（锚串在文件里出现 2 次，`replace(...,1)` 命中 `ReadSchemaVersion` 而非 `ReadInt`）⇒ 定向重跑 M12b 恰 1 条红。
+  **纪律已落**：`tools/falsify/README.md` 新增「坑 4：锚串须断言唯一，`in` 只防不存在、防不住不唯一」
+- **探针残留已清**: M18 的 `_FurnTypeProbe.cs.meta`（Unity 自动生成、脚本未清）已单文件删除并复核
+- **未 commit** —— 待用户指令

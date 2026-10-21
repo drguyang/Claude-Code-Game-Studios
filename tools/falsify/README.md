@@ -153,6 +153,20 @@ python3 tools/falsify/unity_falsify.py --spec … --guard unity/Assets/DataCooke
 > `C-2` 轮 F3 是第二次(`2 红 / 预期 1 红`,驱动判 exit 1)。两次都靠「先论证后改预期」纠正。
 > **写到第二次才成文,这本身是流程延迟。**
 
+**坑 4(2026-10-21 立 · S17 批 2 的 M12):手写脚本用锚串替换时,锚串可能不唯一。**
+
+本目录的驱动**不受影响** —— 它按 `line` 行号定位(施加前先核 `lines[ln-1] == 原文`,
+不符即 exit 2)。但**临时脚本**(如 `/tmp/fz-*/run*.py`)惯用
+`content.replace(old, new, 1)`,而 `replace(..., 1)` 只命中**第一处**:
+若锚串在文件里出现 **2 次**,变异会静默打在**另一个函数**上。
+
+- **症状**:`RED=[]` —— 与「夹具无判别力」**一模一样**,极易误判成假绿。
+- **实例**:`n.Kind != JsonNodeKind.Integer` 在 `TutorialContentBinder.cs` 出现 2 次
+  (`:323` 的 `ReadSchemaVersion` / `:927` 的 `ReadInt`),M12 打中前者 ⇒ 零红;
+  定向 `ReadInt` 后(M12b)恰 1 条红。
+- **纪律**:施加前 `assert content.count(anchor) == 1`,不满足即**拒跑**;
+  `assert anchor in content` **只能防「锚串不存在」,防不住「锚串不唯一」**。
+
 ### 并集 / 汇总型断言 —— 单点变异证不了它
 
 若断言取的是**多处来源的并集**(例:三个入口的接线集合并后判「某门在链上」),

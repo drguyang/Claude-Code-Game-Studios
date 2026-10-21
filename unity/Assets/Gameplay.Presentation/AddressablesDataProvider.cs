@@ -13,6 +13,7 @@ using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
 using DaYiJingCheng.Gameplay.Presentation.Input;
 using DaYiJingCheng.Gameplay.Presentation.Settings;
 using DaYiJingCheng.Gameplay.Presentation.Telemetry;
+using DaYiJingCheng.Gameplay.Presentation.Tutorial;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 using SignDataSet = DaYiJingCheng.Gameplay.Presentation.Diagnosis.DiagnosisSignDataSet;
@@ -31,6 +32,29 @@ namespace DaYiJingCheng.Gameplay.Presentation
     /// </summary>
     public sealed class AddressablesDataProvider : IDataProvider
     {
+        /// <summary>字节来源注入缝 —— <c>null</c> 表示走生产路径 <see cref="FetchFromAddressables"/>。</summary>
+        private readonly Func<string, byte[]> _byteSource;
+
+        /// <summary>生产构造:字节一律取自 Addressables(data-core 组)。</summary>
+        public AddressablesDataProvider()
+            : this(null)
+        {
+        }
+
+        /// <summary>可注入构造 —— <b>只给 EditMode 夹具用</b>(生产零调用点)。
+        /// <para><b>为什么需要(2026-10-21 · S17-3 AC-5 装载测)</b>:<see cref="FetchBytes"/> 原为
+        /// <c>private static</c> 直调 Addressables ⇒ <c>EnsureTutorialContent</c> 的解码分支在 EditMode
+        /// 里<b>只可观测到失败</b>(Addressables 无 catalog),正向半边不可达。抽出的唯一目的 = 让
+        /// 「provider 装载分支 → 真 cooked 字节 → 解码出表」成为可执行判据,承
+        /// <see cref="DataCorePreloader.TryPreloadGated"/> 的同款先例。
+        /// <para>⚠️ <b>判据不弱化</b>:生产构造传 <c>null</c> ⇒ 仍走 Addressables + E-13 硬失败,
+        /// 零行为变化。本缝只改「字节从哪来」,不改「失败怎么报」。</para></summary>
+        /// <param name="byteSource">地址 → 字节;返回 <c>null</c> / 空 / 短于头部 ⇒ 走与原实现同款的 E-13 抛出。</param>
+        internal AddressablesDataProvider(Func<string, byte[]> byteSource)
+        {
+            _byteSource = byteSource;
+        }
+
         /// <summary>物品种子表 Addressables address(= DataCooked 文件名,菜单写入时设置)。</summary>
         public const string ItemsAddress = "item_database_items.cooked.bytes";
 
@@ -101,6 +125,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <para>⚠️ 产物名单一出处 = `DataBakeMenu.DelayTableCookedAssetName`;同上为字面串。</para></summary>
         public const string DelayTableAddress = "53_delay_table.cooked.bytes";
 
+        /// <summary>48 教学内容 address(S17-3 · AC-5「运行期只读 .cooked」的装载半边)。
+        /// <para>⚠️ 单一出处 = <see cref="TutorialContentTable.CookedFileName"/>(解码器与 address
+        /// 共用同一常量;菜单写盘名在编辑期装配里,边界程序集不引用它)。</para></summary>
+        public const string TutorialContentAddress = TutorialContentTable.CookedFileName;
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -127,6 +156,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private DiseaseActionAxisDataSet? _diseaseActionAxis;
         private OutcomeTable53DataSet? _outcomeTable;
         private DelayTable53DataSet? _delayTable;
+        // 48 教学内容(S17-3 · AC-5):struct 只读表 ⇒ 可空承载。
+        private TutorialContentTable? _tutorialContent;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -218,6 +249,12 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureDelayTable();
                 return (TDataSet)(object)_delayTable.Value;
             }
+            // ── S17-3(2026-10-21):48 教学内容(AC-5 运行期只读)──
+            if (typeof(TDataSet) == typeof(TutorialContentTable))
+            {
+                EnsureTutorialContent();
+                return (TDataSet)(object)_tutorialContent.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
@@ -227,7 +264,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 " + 交互种类契约表(2026-10-20:InteractionKindDataSet)" +
                 " + 阴性把握度定表(2026-10-20:DiagnosisNegativeConfidenceDataSet)" +
                 " + 处方表 / 处置轴 / 53 判定表 / 53 延迟表(2026-10-20 第二轮:PrescriptionActionsDataSet / " +
-                "DiseaseActionAxisDataSet / OutcomeTable53DataSet / DelayTable53DataSet)");
+                "DiseaseActionAxisDataSet / OutcomeTable53DataSet / DelayTable53DataSet)" +
+                " + 48 教学内容(S17-3:TutorialContentTable)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -249,6 +287,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureDiseaseActionAxis();
             EnsureOutcomeTable();
             EnsureDelayTable();
+            EnsureTutorialContent();
         }
 
         private void EnsureItems()
@@ -491,8 +530,50 @@ namespace DaYiJingCheng.Gameplay.Presentation
             }
         }
 
+        private void EnsureTutorialContent()
+        {
+            if (_tutorialContent.HasValue) return;
+            byte[] bytes = FetchBytes(TutorialContentAddress);
+            if (!TutorialContentTable.TryDecode(bytes, out TutorialContentTable table, out string error))
+            {
+                // 解码器返回 false 而非抛(它不知道调用方语境)⇒ 在此包成 E-13 启动期硬失败。
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 48 教学内容 cooked 解码失败(address={TutorialContentAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{error}");
+            }
+            _tutorialContent = table;
+        }
+
+        /// <summary>取字节的唯一出口:注入缝优先,否则走 Addressables。
+        /// 一切失败路径带 [E-13] 上下文 rethrow,绝不返回 null。</summary>
+        private byte[] FetchBytes(string address) =>
+            _byteSource == null ? FetchFromAddressables(address) : FetchFromByteSource(address);
+
+        /// <summary>注入路径(EditMode 夹具)。校验与生产路径<b>同款</b> ——
+        /// null / 空 / 短于头部一律 E-13 抛出,差别仅在于字节不来自 Addressables
+        /// ⇒ 无「无 catalog」的 [Error] 日志污染。</summary>
+        private byte[] FetchFromByteSource(string address)
+        {
+            byte[] bytes;
+            try
+            {
+                bytes = _byteSource(address);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 启动期硬失败:装载 \"{address}\" 失败 —— 注入字节源抛出:{ex.Message}", ex);
+            }
+
+            if (bytes == null || bytes.Length < CookedFormat.HeaderSize)
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 启动期硬失败:装载 \"{address}\" 失败 —— " +
+                    $"产物字节为空或短于头部 {CookedFormat.HeaderSize} B");
+            return bytes;
+        }
+
         /// <summary>经 Addressables 取 TextAsset 字节;一切失败路径带 [E-13] 上下文 rethrow,绝不返回 null。</summary>
-        private static byte[] FetchBytes(string address)
+        private static byte[] FetchFromAddressables(string address)
         {
             try
             {

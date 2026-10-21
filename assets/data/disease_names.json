@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "_note": "病名闭集（扫描字典）—— 供 48 教学内容校验规则 ④「病名闭合词表扫描」使用（AC-48-13）。本文件是设计文档的数据落地，不是第二真源：条目逐条转录自 design/gdd/disease-simulation.md §R3「病名枚举（P0 · 8 项）」，未新增、未删改任何病种。",
+  "_source": "design/gdd/disease-simulation.md:386-405（§R3 筛选口径与 8 项上限）· :429-435（逐病行）· :432（伤寒 / 肠伤寒 的现代名注）",
+  "_ownerNote": "注册表所有者为系统 9（disease-simulation）。本文件在 9 的数据层落盘前由 48 的校验轮先行转录；9 的 registry 落地时须以本文件为对账对象（条目数 / id / 显示名逐项对齐），不得另立第二份词表。",
+  "_scanSemantics": "扫描只认 displayNames；diseaseId 仅作稳定标识，不参与文本匹配。",
+  "diseases": [
+    { "diseaseId": "DIS_RHEUMATIC_FEVER", "displayNames": [ "风湿热" ] },
+    { "diseaseId": "DIS_HEART_FAILURE", "displayNames": [ "心衰", "风湿性心脏病" ] },
+    { "diseaseId": "DIS_MEASLES", "displayNames": [ "麻疹" ] },
+    { "diseaseId": "DIS_TYPHOID", "displayNames": [ "伤寒", "肠伤寒" ] },
+    { "diseaseId": "DIS_DYSENTERY", "displayNames": [ "细菌性痢疾", "痢疾" ] },
+    { "diseaseId": "DIS_MALARIA", "displayNames": [ "间日疟", "疟疾" ] },
+    { "diseaseId": "DIS_TETANUS", "displayNames": [ "破伤风" ] },
+    { "diseaseId": "DIS_NEURASTHENIA", "displayNames": [ "神经衰弱" ] }
+  ]
+}

@@ -1,12 +1,12 @@
 # Story 002: 房间析出与连通规则
 
 > **Epic**: 医馆即机器
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
-> **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Manifest Version**: 2026-10-15  <!-- 原 `2026-10-02` —— 2026-10-21 /dev-story Phase 2 逐件判定取 [A]（升级并按现行规则实施）；原文保留 -->
+> **Last Updated**: 2026-10-21
 ## Context
 
 **GDD**: `design/gdd/clinic-machine.md`(规则一 房间 = 连通 FURN 格集 · EC-24-07 双簇整盘 ROOM_NONE · 外壳格/空地板为非格 · 开顶簇合法)
@@ -30,12 +30,12 @@
 
 *From GDD `design/gdd/clinic-machine.md`, scoped to this story:*
 
-- [ ] AC-24-10:断开两簇的 fixture 整盘返回 ROOM_NONE(单簇 L 形 / T 形正常析出)
-- [ ] 4 邻接判据:对角接触(`|dx|==1 ∧ |dy|==1`)不连通(与 8-邻接反例可区分)
-- [ ] 外壳格与空地板:不产生房间成员、不阻断两簇判定(壳格内嵌家具时家具照常析出)
-- [ ] 开顶(无围合)家具簇照样成房间 —— 算法中无封闭性检查(规则一明令)
-- [ ] 房间标识稳定:同一布局两次求值得到同一 room id(纯函数,承 AC-24-04 的析出侧)
-- [ ] 输入仅 `structure_at(cell)` 只读视图:24 不调用 23 的写路径、不持建造状态
+- [x] AC-24-10:断开两簇的 fixture 整盘返回 ROOM_NONE(单簇 L 形 / T 形正常析出)
+- [x] 4 邻接判据:对角接触(`|dx|==1 ∧ |dy|==1`)不连通(与 8-邻接反例可区分)
+- [x] 外壳格与空地板:不产生房间成员、不阻断两簇判定(壳格内嵌家具时家具照常析出)
+- [x] 开顶(无围合)家具簇照样成房间 —— 算法中无封闭性检查(规则一明令)
+- [x] 房间标识稳定:同一布局两次求值得到同一 room id(纯函数,承 AC-24-04 的析出侧)
+- [x] 输入仅 `structure_at(cell)` 只读视图:24 不调用 23 的写路径、不持建造状态
 
 ---
 
@@ -49,6 +49,31 @@
 4. 壳格规则:`BakedInitial`(开档自带)按 GDD 归「非格」—— 从 S 中剔除后不参与连通传导(两个家具簇仅靠壳格相连 ⇒ 仍判 2 簇)。
 5. 该纯函数住 `Sim` 程序集(门 A):零 `UnityEngine` 引用;输入类型来自 `Sim.Contracts.WorldPos`。
 6. 房间→格 的反向索引(乘子求值按房间取成员)在返回值内一次性构建,不缓存于 24 之外。
+
+> **7. 🔁 2026-10-21 用户裁定「甲案」—— `type(c) ∈ FURN_TYPES` 的代理判据(实施必须遵循)**
+>
+> **背景(实测)**:GDD F-24 公共定义写「`S` 成员判据 = `type(c) ∈ FURN_TYPES`」,而该闭集
+> **全库零定义**;`FURN_TABLE` 数据文件不存在;`IFurnTypeSource` **零生产实现**;
+> `build_modules.json`(`module_id` 的目录)**同样不存在**。`TD-clinic-01` 自陈封 001→005 全链入口。
+>
+> **裁定**:本件成员判据取**代理判据** ——
+> **家具格 = 被 `StructurePlaced` 事件占用、且在该只读视图内可达的格**(即 Sim 注册表内被占用的格)。
+>
+> **四条实施约束**:
+> ① **逐字登记代理身份**:实现注释里写明「本判据是 `type(c) ∈ FURN_TYPES` 的**代理**,
+>    而非其等价物;代理**更宽**(任何放置件都算家具格)」;
+> ② **配缺口哨兵**:须有一条测试使「闭集缺席」**可观测而非静默**(形态承 `clinic-001` 的缺口哨兵先例);
+> ③ **闭集落地后须重判**:`O-24-1` 落地时,若真判据与代理**不等价** ⇒ 既有测试须**转红**,
+>    届时改判据并如实登记(不得静默改绿);
+> ④ **不得**为将来的类型匹配提前造接缝 —— 002 的 6 条 AC **不含**类型匹配;
+>    类型匹配(`ROOM_TABLE` 子句求值)是 `S17-2` / 后续的事。
+>
+> ⚠️ **两条实现陷阱(本轮实测,勿踩)**:
+> - `StructureInstanceRegistry.GetInstanceAt(anchor)` **只比对 `Anchor`,不比对 `OccupiedCells`**
+>   ⇒ 多格结构的**非锚点格查不到**,`World.GetModuleAt` 对它们返回 `-1`。
+>   本件的格集合须遍历**实例的 `OccupiedCells`**,不能逐格调 `GetInstanceAt`。
+> - 注册表**无公开枚举器**(只有 `TryGet(id)` / `GetInstanceAt(anchor)` / `Count` / `Clear`)
+>   ⇒ 输入视图须由本件**自定义只读接口**注入(承 AC 第 6 条「输入仅只读视图」),测试注入替身。
 
 ---
 
@@ -118,5 +143,13 @@
 ---
 
 ## Completion Notes
-
-*(留空 — story 关闭时回填)*
+**Completed**: 2026-10-21
+**Criteria**: 6/6 passing
+**Deviations**:
+- ADVISORY — 「外壳格」AC 的判据边界:本视图契约下壳格**不是** `StructurePlaced` 实例,24 在类型层面无从识别「23 违规上报的非空壳格」。本件钉的是「空足迹实例不贡献格、不传导、不入 |S|」。
+  反证 M3(注入 instance-as-cell)⇒ 恰 2 条红。提供方半边归系统 23。
+- ADVISORY — `FurnTypeClosureEnforced` 仍是编译期常量 `false`;`O-24-1` 落地改判据时须同时处理该哨兵,否则零测试转红。
+  另:本批**已修**壳格夹具(原夹具无判别力 —— 评审 A3-3),现以「空足迹实例」表达壳格并与无壳格基线逐项比对。
+**Test Evidence**: Logic — `unity/Assets/Tests/EditMode/ClinicMachine/clinic_room_extraction_test.cs`(21 测)
+  + 证伪 2 例(F1 对角并查 / M3 instance-as-cell),见 `production/qa/evidence/review-sprint17-batch1-2026-10-21.md` §六之一
+**Code Review**: Complete — `production/qa/evidence/review-sprint17-batch1-2026-10-21.md`(APPROVED WITH SUGGESTIONS,0 BLOCKING)
