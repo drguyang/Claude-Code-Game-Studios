@@ -8,7 +8,7 @@
 
 ## Overview
 
-死亡与复活(29)只管**玩家**的死亡与归来:病人之死归 9+53。触发输入 = 9 的 `DeathCandidate`(经 `SelfLimited(entity,d)` 逐实体门,OQ-25-1 路甲),29 **不自行判死**(TR-death-001)。P0 代价 = 两件套:**掉落**(从死亡格回捡)+ **技能掉级**(`Level_new = (Level × 19) / 20` 的 C# int 截断除法 —— B2 定点陷阱明令禁 `Fix.Div`/floor_Mul;计时归 29、公式归 30,同 tick 运行期调用零重复实现);**无压力轴**(47 P1a)、无存档回滚、无尸体玩法。`death_cell` = 世界流中该玩家**最后一条 `ActorCellEntered`** 的格(禁读实时物理,B4 订正);掉落清单由流派生(`InventoryOf`)、位置由 7a 快照(格锚点 + 确定性格内偏移);29 零铸造 `instance_id`(归 20/`IIdAuthority`)。复活落点 = 医馆床具格(24 提供,选择规则欠 24 下轮)/ 兜底世界出生点;29 调 1 的 `TeleportTo(cell)`(经 `ITeleportCommandSink` 整数命令半,ADR-025 全案唯一跨门调用点),**29 自身 Append 计数 = 0**(AC-29-09)。死亡冷却 `DeathAllowed ⟺ t − last_death_tick ≥ DEATH_COOLDOWN`,且 `last_death_tick` **只从世界流 PlayerDied 重算**(零计数器,AC-29-15)。呈现铁律:无 Game Over 屏/文字/统计面板/失败音 —— 白名单 {过渡动画, 环境音, 42 拟物元件}(AC-29-06),DTO 递归扫描零代价数值字段(AC-29-07)。⚠️ 9 侧 `SelfLimited` 未落地 ⇒ AC-29-01/02/05/08/10/17 **BLOCKED-BY-9**、AC-29-16 ~~**BLOCKED-BY OQ-7a-9**(SkillGrown 折叠豁免)~~ **BLOCKED-BY-7a 折叠实现**(〔2026-10-20 订正:`OQ-7a-9` 已于 `ADR-026 §⑦` 2026-09-23 结案 = `SkillGrown` 豁免折叠;阻塞性质由「裁决待定」改为「实现待落」,实测 `Folded(p)` 生产谓词全库零命中〕)—— 一律禁记绿。`DEATH_COOLDOWN` 值未定(OQ-29-5,须 >0);判断技能豁免口径待裁(2026-09-20 R-4-W-6),**不得当既有规则实现**。
+死亡与复活(29)只管**玩家**的死亡与归来:病人之死归 9+53。触发输入 = 9 的 `DeathCandidate`(经 `SelfLimited(entity,d)` 逐实体门,OQ-25-1 路甲),29 **不自行判死**(TR-death-001)。P0 代价 = 两件套:**掉落**(从死亡格回捡)+ **技能掉级**(`Level_new = (Level × 19) / 20` 的 C# int 截断除法 —— B2 定点陷阱明令禁 `Fix.Div`/floor_Mul;计时归 29、公式归 30,同 tick 运行期调用零重复实现);**无压力轴**(47 P1a)、无存档回滚、无尸体玩法。`death_cell` = 世界流中该玩家**最后一条 `ActorCellEntered`** 的格(禁读实时物理,B4 订正);掉落清单由流派生(`InventoryOf`)、位置由 7a 快照(格锚点 + 确定性格内偏移);29 零铸造 `instance_id`(归 20/`IIdAuthority`)。复活落点 = 医馆床具格(24 提供,选择规则欠 24 下轮)/ 兜底世界出生点;29 调 1 的 `TeleportTo(cell)`(经 `ITeleportCommandSink` 整数命令半,ADR-025 全案唯一跨门调用点),**29 自身 Append 计数 = 0**(AC-29-09)。死亡冷却 `DeathAllowed ⟺ t − last_death_tick ≥ DEATH_COOLDOWN`,且 `last_death_tick` **只从世界流 PlayerDied 重算**(零计数器,AC-29-15)。呈现铁律:无 Game Over 屏/文字/统计面板/失败音 —— 白名单 {过渡动画, 环境音, 42 拟物元件}(AC-29-06),DTO 递归扫描零代价数值字段(AC-29-07)。⚠️ 9 侧 `SelfLimited` 未落地 ⇒ AC-29-01/02/05/08/10/17 **BLOCKED-BY-9**、AC-29-16 ~~**BLOCKED-BY OQ-7a-9**(SkillGrown 折叠豁免)~~ **BLOCKED-BY-7a 折叠实现**(〔2026-10-20 订正:`OQ-7a-9` 已于 `ADR-026 §⑦` 2026-09-23 结案 = `SkillGrown` 豁免折叠;阻塞性质由「裁决待定」改为「实现待落」,实测 `Folded(p)` 生产谓词全库零命中〕)—— 一律禁记绿。`DEATH_COOLDOWN` 值未定(OQ-29-5,须 >0);判断技能豁免口径待裁(2026-09-20 R-4-W-6),**不得当既有规则实现**。 🔁 **2026-10-21 订正(原文不删,就地加注)** —— 本句**一半已过期**:`OQ-29-5` **已于 2026-10-06 代拍裁定 = `2400` tick(= 120 s @20 Hz,值可调)**,见 `design/gdd/death-and-respawn.md:280` 与 `:535` 结案行 ⇒ 「值未定」不再成立(**「须 > 0」硬约束仍有效**)。**未过期的另一半** = 判断技能豁免口径(`R-4-W-6`)**确仍未裁**(`death-and-respawn.md:333` / `:520`),该项继续「不得当既有规则实现」。⚠️ 两半同句,**不得整句作废**。
 
 ## Governing ADRs
 
@@ -48,7 +48,7 @@ This epic is complete when:
 - AC-29-01…17 中非 BLOCKED 条目全部有通过证据;BLOCKED-BY-9 / **BLOCKED-BY-7a 折叠实现**(原 BLOCKED-BY-OQ-7a-9,2026-10-20 订正)条目维持显式标注,禁借绿
 - AC-29-11/12 的 [L] 人工走查在证据目录留档(承 GDD 原标注)
 - UX Flag:全屏过渡经 `/ux-design` spec 先于本 epic 的呈现故事关闭(29 的 epics 前置,GDD 明写)
-- `DEATH_COOLDOWN` / 判断技能豁免等未裁项保持「待裁」标注,数值归用户数值轮
+- `DEATH_COOLDOWN` / 判断技能豁免等未裁项保持「待裁」标注,数值归用户数值轮 🔁 **2026-10-21 订正(原文不删,就地加注)** —— **`DEATH_COOLDOWN` 已不在「未裁项」之列**:`OQ-29-5` 已于 2026-10-06 代拍裁定 = `2400` tick(120 s @20 Hz,值可调;`death-and-respawn.md:280` / `:535`)⇒ 本条现**只剩「判断技能豁免口径」一项**保持待裁(`R-4-W-6`,2026-09-20,`death-and-respawn.md:333` / `:520`)。数值轮的适用范围随之收窄为「`DEATH_COOLDOWN` 的**再调值**」,**不是「首次定值」**。
 
 ## Stories
 

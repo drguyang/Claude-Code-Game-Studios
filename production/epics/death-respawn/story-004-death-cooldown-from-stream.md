@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-21(仅订正两处过期登记,未改任何 AC 语义 —— 见 `:17` / `:38` 的 🔁 加注)
 ## Context
 
 **GDD**: `design/gdd/death-and-respawn.md`(F-29-2 · EC 表「DEATH_COOLDOWN 内再次致死」行 · OQ-29-4/OQ-29-5)
@@ -14,7 +14,7 @@
 *(Requirement texts live in `docs/architecture/tr-registry.yaml` — read fresh at review time)*
 
 **ADR Governing Implementation**: ADR-005(主): 确定性模拟(状态从流重算)
-**ADR Decision Summary**: `DeathAllowed(actor,t) ⟺ t − last_death_tick(actor) ≥ DEATH_COOLDOWN`;**`last_death_tick` 唯一来源 = 世界流 `PlayerDied` 重算,零独立计数器**(AC-29-15);`DEATH_COOLDOWN` **未定(OQ-29-5,用户平衡轮;须 > 0,= 0 即「自杀清负重」掉落经济漏洞)**;冷却内再次致死 ⇒ **不结算代价、不发 PlayerDied、不传送**(回合继续,EC 行);冷却内二杀语义 = OQ-29-4 **实现期另裁**,本 story 只登记。
+**ADR Decision Summary**: `DeathAllowed(actor,t) ⟺ t − last_death_tick(actor) ≥ DEATH_COOLDOWN`;**`last_death_tick` 唯一来源 = 世界流 `PlayerDied` 重算,零独立计数器**(AC-29-15);`DEATH_COOLDOWN` **未定(OQ-29-5,用户平衡轮;须 > 0,= 0 即「自杀清负重」掉落经济漏洞)**;冷却内再次致死 ⇒ **不结算代价、不发 PlayerDied、不传送**(回合继续,EC 行);冷却内二杀语义 = OQ-29-4 **实现期另裁**,本 story 只登记。 🔁 **2026-10-21 订正(原文不删,就地加注)** —— 本句**两处已过期**:① `DEATH_COOLDOWN` **已于 2026-10-06 代拍裁定 = `2400` tick(= 120 s @20 Hz,值可调)**,见 `design/gdd/death-and-respawn.md:280`(逐字:`✅ **2400**(= 120 s @20 Hz · 2026-10-06 代拍,值可调);**须 > 0**,否则「无限刷死」= 掉落经济漏洞`)与 `:535`(`OQ-29-5` 结案行);② 冷却内二杀语义 **已于 2026-10-07 裁定**,见 `:336`(EC 表本行)与 `:534`(`OQ-29-4` 结案行)= **零事件,含不发 `PlayerDied`;「强制传送」候选因制造无意图传送(第四来源,违 ADR-016 §一 三源不变量)被否决** ⇒ 不再是「实现期另裁」,而是**已定且可判**的语义。⚠️ 原文的「须 > 0」硬约束**仍然有效**(它约束取值域,不随取值确定而失效)。
 
 **Engine**: Unity 6.3 LTS (6000.3.24f1) | **Risk**: LOW
 **Engine Notes**: int tick 减法,纯 BCL。
@@ -35,7 +35,7 @@
 - [ ] AC-29-10 [A] ⚠️ BLOCKED-BY-9:复活来源的 `ActorCellEntered` 条数上界 = `玩家数 / DEATH_COOLDOWN`(有界性;与 story-005 合验)
 - [ ] 谓词边界:`t − last == DEATH_COOLDOWN` 放行;`−1` 拒绝(夹具符号化)
 - [ ] 空流(首死):`last_death_tick = −∞` 语义 ⇒ 首个 candidate 恒允许(不发哨兵事件)
-- [ ] OQ-29-4(冷却内二杀的确切呈现语义)在代码与文档双侧标「待裁」,不做行为发明
+- [ ] OQ-29-4(冷却内二杀的确切呈现语义)在代码与文档双侧标「待裁」,不做行为发明 🔁 **2026-10-21 订正(原文不删,就地加注)** —— **`OQ-29-4` 已于 2026-10-07 裁定**,`design/gdd/death-and-respawn.md:534`(结案行)+ `:336`(EC 表本行)逐字 = **免罚但继续:零事件,连 `PlayerDied` 都不发(`last_death_tick` 不变),回合继续;「强制传送」候选被否决**(理由 = 无意图的位置变更属第四来源,违 ADR-016 §一 三源不变量)。⇒ 本条 AC **不再是「标待裁、不做行为发明」,而是已定且可判**:判据 = `DeathAllowed == false` 期间,世界流中该 actor 的 `PlayerDied` 条数**不增**(`:534` 末段自陈的可证伪判据),且**零代价结算、零传送**。**照原文实现会把一个已裁语义做成未裁** —— 那是反向借绿(该绿的做成不该绿的)。
 
 ---
 
@@ -79,7 +79,7 @@
 - **AC-3(拒绝路径静默)**: 冷却内二杀
   - Given: 刚死亡(t=100,CD=10),t=105 再注入 candidate
   - When: 结算管线
-  - Then: 世界流零新增;代价不结;OQ-29-4 标注在案(行为 = 静默 continue,不发明)
+  - Then: 世界流零新增;代价不结;OQ-29-4 标注在案(行为 = 静默 continue,不发明) 🔁 **2026-10-21 订正** —— 本条是同一处过期登记的**第三个文本落点**(另两处 `:17` / `:38`)。行为「静默 continue」**与裁定一致**(`:336` = 零事件、不发 `PlayerDied`、不传送),但「标注在案 / 不发明」的**理由已不成立** —— `OQ-29-4` 已于 2026-10-07 裁定。⇒ 夹具的 Then 应写成**可判断言**:该 actor 的 `PlayerDied` 条数不增 + 零代价结算 + 零传送;而不是「已标注待裁」这类元断言。
   - Edge cases: 多玩家并行冷却互不影响
 
 ---

@@ -34,7 +34,7 @@
 |---|---|---|---|
 | **S18-1** `SelfLimited(entity,d)` 逐实体判死谓词及依赖面 | **Logic** | **必须自动化 + 必须证伪** —— `unity/Assets/Tests/EditMode/DiseaseSimulation/self_limited_predicate_test.cs`(新) | 无 |
 | **S18-2** `Folded(patientId)` 四条件折叠谓词 + 折叠行产出 | **Logic** | **必须自动化 + 必须证伪** —— `unity/Assets/Tests/EditMode/PersistenceService/folded_predicate_test.cs`(新) | 无 |
-| **S18-3** 台账回写四处 + `BLOCKED-BY-24` 登记 | **Config/Data**(纸面) | **无自动化** —— 判据 = 四处 `grep` 同值 + 一处登记在册 | 无 |
+| **S18-3** 台账回写四处 + `BLOCKED-BY-24` 登记 + **`death-respawn` 台账五处过期登记加注** | **Config/Data**(纸面) | **无自动化** —— 判据 = 四处 `grep` 同值 + 一处登记在册 + 五处「原串 + 加注」双命中 | 无 |
 
 **Summary**:2 Logic(全部需自动化 + 证伪)· 1 Config/Data(免测)· **0 人工验收项**。
 
@@ -137,7 +137,7 @@
 
 ---
 
-### S18-3 — 台账回写四处 + `BLOCKED-BY-24` 登记(Config/Data · 纸面)
+### S18-3 — 台账回写四处 + `BLOCKED-BY-24` 登记 + `death-respawn` 台账五处过期登记加注(Config/Data · 纸面)
 
 **无测试文件** —— 判据是**可复算命令 + 预期输出**,第三方可重跑。
 
@@ -147,6 +147,7 @@
 | 2 | §3.1 链门行移除 G-8 | `sed -n '/### 3.1/,/^---/p' <路线图>` | 链门 = **G-1 · G-2**(G-8 划掉或加注) |
 | 3 | §6.5 sprint-18 行订正件集 | `grep -n 'sprint-18' <路线图>` | 件集行反映 **G-1 · G-2**(G-8 已结) |
 | 4 | `BLOCKED-BY-24` 有去向 | `grep -rn 'BLOCKED-BY-24' production/ docs/` | 卡面 2 处 + **债册条目**或**用户裁定记录** |
+| **5** | **`death-respawn` 台账五处过期登记已就地加注**(2026-10-21 用户裁定追加) | `grep -c '2026-10-21 订正' production/epics/death-respawn/story-004-death-cooldown-from-stream.md production/epics/death-respawn/EPIC.md` | story-004 = **3**(`:17` / `:38` / `:82`)· EPIC.md = **2**(`:11` / `:51`);**且**各处的**原过期串仍可 grep 到**(`DEATH_COOLDOWN` 值未定 / 未定(OQ-29-5 / 实现期另裁 / 标注在案)—— 两条同时成立才算过 |
 
 > ⚠️ **「原文不删,就地加注」是硬纪律** —— 判据 1/2/3 的通过形态是**原句仍可 grep 到**,
 > 不是「原句消失」。判据 = 原串命中 **且** 结案注命中,**两条同时成立**才算过。

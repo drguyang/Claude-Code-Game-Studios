@@ -63,14 +63,14 @@ work_items:
     note: "四条件 = ① 终态(痊愈 / 死亡)② plateau / relapse.* 豁免 ③ 无未结案病例(ADR-008 §六)④ SkillGrown 行豁免(ADR-026 §⑦)。折叠行 = (onset, 病种_id, patient_id, patient_seed, outcome, t_end) 逐字段(ADR-010 §二)。③ 的判据接口**已在盘**:CaseStreamQuery.HasOpenCase(unity/Assets/Sim/CaseOpenDecider.cs:66)⇒ 本件不需要先补 37 侧。⚠️ 实测现状:bool Fold / FoldEligible / CanFold / ShouldFold 全树零命中;唯一相关内容是测试侧自陈(Tests/EditMode/CaseSystem/case_replay_persistence_test.cs:22 / :131)。⚠️ 同名巧合**不构成已还**:CasebookScreen.IsFolded(Gameplay.UI)与 MarkRegistry.FoldedCorner 是 42 的纸面折角,与 7a 的流折叠无关。"
 
   - id: "S18-3"
-    name: "台账回写 —— G-8 结案后路线图 §6.4 回写义务的四处 + BLOCKED-BY-24 登记"
+    name: "台账回写 —— G-8 结案后路线图 §6.4 回写义务的四处 + BLOCKED-BY-24 登记 + death-respawn 台账过期登记订正"
     file: "production/milestones/p0-remaining-roadmap-2026-10-20.md"
     complexity: S
     status: "backlog"
     owner: ""
     depends_on: []
-    evidence: "四处文本同值可 grep;BLOCKED-BY-24 有债册条目或用户裁定去向"
-    note: "① 路线图 §三 G-8 行按 §6.4 划掉;② §3.1 链门行移除 G-8;③ §6.5 sprint-18 行订正件集(G-8 已结 ⇒ 实为 G-1 · G-2);④ death-respawn/story-005:25 / :47 的 BLOCKED-BY-24(床类家具格的确定性选定规则,death-and-respawn.md:192 明写「24 的下一轮须补」)登记去向 —— IClinicReviveCell 全树零命中、债册零条目,属「引用却无登记」失效模式第四次。"
+    evidence: "四处文本同值可 grep;BLOCKED-BY-24 有债册条目或用户裁定去向;death-respawn 台账五处「原串 + 加注」双命中"
+    note: "① 路线图 §三 G-8 行按 §6.4 划掉;② §3.1 链门行移除 G-8;③ §6.5 sprint-18 行订正件集(G-8 已结 ⇒ 实为 G-1 · G-2);④ death-respawn/story-005:25 / :47 的 BLOCKED-BY-24(床类家具格的确定性选定规则,death-and-respawn.md:192 明写「24 的下一轮须补」)登记去向 —— IClinicReviveCell 全树零命中、债册零条目,属「引用却无登记」失效模式第四次。⑤ **2026-10-21 用户裁定追加**:death-respawn 台账的 OQ-29-4 / OQ-29-5 过期登记就地加注 —— story-004:17 / :38 / :82 + EPIC.md:11 / :51 共五处(**五处加注均已于 2026-10-21 落盘**;本项登记的是**判据归口**,防后续回退)。判据 = **原串仍可 grep 到 且 加注串同时命中**,不是原串消失。"
 
 # ── 分批(承 CAPACITY-MODEL §3.2:每批 2–4 件 · 并发 ≤ 3 · L 件独占 1 批)──
 batches:

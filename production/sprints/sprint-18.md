@@ -97,7 +97,7 @@
 | ID | 任务 | 层/型 | C | 依赖 | 验收判据(可复算) | 测试载体 |
 |---|---|---|---|---|---|---|
 | **S18-2** | `TD-persist-01` / **G-2**:`Folded(patientId)` 四条件折叠谓词 + 折叠行产出 | Core / Logic | M | ADR-010 §二 折叠行形状 · `CaseStreamQuery.HasOpenCase` | ① **四条件**全实现:终态(痊愈/死亡)∧ plateau / `relapse.*` 豁免 ∧ **无未结案病例**(ADR-008 §六)∧ **`SkillGrown` 行豁免**(ADR-026 §⑦);② 折叠行 = `(onset, 病种_id, patient_id, patient_seed, outcome, t_end)` **逐字段**;③ 正反夹具:有未结案病例 ⇒ `Folded = false`;`SkillGrown` 行**不被抹除** | `unity/Assets/Tests/EditMode/Persistence/folded_predicate_test.cs`(新) |
-| **S18-3** | 台账回写(G-8 结案后**路线图 §6.4 回写义务未执行**的四处 + `BLOCKED-BY-24` 登记) | 记账 | S | 无 | ① 路线图 §三 G-8 行按 §6.4 划掉;② §3.1 链门行移除 G-8;③ §6.5 sprint-18 行订正件集;④ `BLOCKED-BY-24` 有债册条目或用户裁定去向;判据 = 四处同值可 grep | — |
+| **S18-3** | 台账回写(G-8 结案后**路线图 §6.4 回写义务未执行**的四处 + `BLOCKED-BY-24` 登记 + **`death-respawn` 台账的 `OQ-29-4` / `OQ-29-5` 过期登记订正**) | 记账 | S | 无 | ① 路线图 §三 G-8 行按 §6.4 划掉;② §3.1 链门行移除 G-8;③ §6.5 sprint-18 行订正件集;④ `BLOCKED-BY-24` 有债册条目或用户裁定去向;⑤ `death-respawn` 台账五处过期登记就地加注(`story-004:17/:38/:82` + `EPIC.md:11/:51`);判据 = 各处**原串仍可 grep 到** **且** 加注串同时命中(原文不删) | — |
 
 ### Should Have
 
@@ -145,7 +145,8 @@
 - [ ] **每件过证伪轮**:改坏生产码 ⇒ 指定断言转红;`exactRed` 由**论证**给出后才定预期(禁把实得抄进 `expectRed`)
 - [ ] 全量 EditMode / PlayMode 对账,**三元组齐备**(截至时刻 · 批次 · commit),
       等式 `Δtotal = Δpassed = 新增条数` 成立,且**「消失 0」独立判据**成立(排除「新增 N 同时坏 N」的掩盖形态)
-- [ ] `S18-3` 四处台账同值可 grep
+- [ ] `S18-3` 四处台账同值可 grep + `death-respawn` 台账五处「原串 + 加注」双命中
+      (story-004 `:17` / `:38` / `:82` · EPIC.md `:11` / `:51`;判据见 QA plan S18-3 判据 5)
 - [ ] QA plan 存在(`production/qa/qa-plan-sprint-18-*.md`)
 - [ ] Smoke check 通过(`/smoke-check sprint`)
 - [ ] QA 签核 `APPROVED` 或 `APPROVED WITH CONDITIONS`(`/team-qa sprint`)
