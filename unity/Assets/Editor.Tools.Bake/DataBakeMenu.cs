@@ -86,6 +86,10 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>产物文件名(24 ROOM_TABLE)。</summary>
         public const string ClinicRoomCookedAssetName = "clinicmachine_room.cooked.bytes";
 
+        /// <summary>产物文件名(21a 家具目录 = <c>FURN_TABLE</c>;O-24-1 / <c>TD-clinic-01</c> 的兑现件)。
+        /// <para>⚠️ 与运行期 <c>AddressablesDataProvider.FurnitureCatalogueAddress</c> 同值(同一段注记理由)。</para></summary>
+        public const string FurnitureCatalogueCookedAssetName = "item_database_furniture.cooked.bytes";
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -516,18 +520,92 @@ namespace DaYiJingCheng.EditorTools.Bake
         }
 
         /// <summary>
+        /// 烘焙 21a 家具目录(<c>FURN_TABLE</c> —— `O-24-1` / `TD-clinic-01` 的兑现件):
+        /// 仓库 <c>assets/data/item_database_furniture.json</c>
+        /// → <see cref="ItemDatabaseFurnitureBinder"/>(三条域门:**聚合 throw**)
+        /// → deterministic 编码 → <see cref="FurnitureCatalogueCookedAssetName"/> 写入 Assets/DataCooked/
+        /// (入 data-core 组)。
+        /// <para>⚠️ 本菜单是 <see cref="ItemDatabaseFurnitureBake"/> 的**唯一生产调用点链路**。
+        /// 绕过它 = 三条域门永不执行(与 BakeItemDatabase / BakeClinicMachineTables 同型先例)。</para>
+        /// <para>⚠️ **本表是 `FURN_TYPES` 闭集的唯一作者态**。24 的 <c>ROOM_TABLE</c> 成员资格门
+        /// (`AC-24-12` 的另半边)读的是**本次**烘焙结果,不是上一次落盘的产物 ⇒
+        /// 「先改家具目录、忘了重烘」会在 24 的烘焙期表现为闭集不匹配(而不是静默沿用旧闭集)。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 item-database 家具目录(21a · FURN_TABLE)")]
+        public static void BakeFurnitureCatalogue()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                ItemDatabaseFurnitureBake.BakeOutput result =
+                    ItemDatabaseFurnitureBake.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(Path.Combine(cookedDir, FurnitureCatalogueCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{FurnitureCatalogueCookedAssetName} = {result.Cooked.Length} B," +
+                    $"家具类型 {result.Bound.Rows.Count} 件(FURN_TYPES 闭集)," +
+                    $"tier_max = {result.Bound.TierMax}," +
+                    $"e_env 界 = ±{ItemDatabaseFurnitureBinder.EnvContributionMax.Raw} raw(C_max = 1/64)," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// <c>BakeClinicMachineTables</c> 的**计算段**(不落盘、不碰 Addressables、不打印日志)。
+        /// <para>⚠️ **为什么要有这一层**:菜单方法带 <see cref="MenuItemAttribute"/>,在 batch 模式下
+        /// **不会被调用**(只有 `-executeMethod` 点名才跑)⇒ 若把「先烘 21a 取闭集 → 注入 24」这段
+        /// 直接写在菜单体里,测试就只能**同构复刻**一遍再断言 —— 而复刻品与菜单本体一旦漂移,
+        /// 断言打的就不是生产链路(C-1 轮「栈帧 ≠ 接线」的同型风险)。抽到本函数后,
+        /// **菜单与测试调的是同一份代码**:菜单失败 ⇒ 本函数失败 ⇒ 测红。</para>
+        /// <para>⚠️ 本函数**只做计算**;落盘 / <c>AssetDatabase.Refresh</c> / 日志仍归菜单 ——
+        /// 测试因此天然不写盘(承 <c>.claude/rules/test-standards.md</c>)。</para>
+        /// </summary>
+        /// <param name="repoRoot">仓库根(含 <c>assets/</c> 的目录)。</param>
+        /// <param name="furn">21a 家具目录的烘焙结果(闭集的来源)。</param>
+        /// <exception cref="BakeValidationException">任一域门 / 成员资格门失败(聚合)。</exception>
+        public static ClinicMachineTablesBake.BakeOutput BakeClinicMachineTablesCore(
+            string repoRoot, out ItemDatabaseFurnitureBake.BakeOutput furn)
+        {
+            // O-24-1 已兑现:先烘 21a 家具目录取得 FURN_TYPES 闭集,再注入 24 的 ROOM_TABLE 成员资格门。
+            // ⚠️ 顺序不可颠倒 —— 闭集来自**本次**烘焙的家具目录,不是上一次落盘的产物(防「改了目录却没重烘」)。
+            furn = ItemDatabaseFurnitureBake.BakeFromRepo(repoRoot);
+
+            return ClinicMachineTablesBake.BakeFromRepo(
+                repoRoot, ItemDatabaseFurnitureBake.AsFurnTypeSource(furn.Bound));
+        }
+
+        /// <summary>
         /// 烘焙 24 医馆三表(clinic-machine · S17-2 的**前置** —— 求值器要吃的 cooked 表):
         /// 仓库 <c>assets/data/clinicmachine_{context,adj,room}.json</c> + 21a 常量
         /// → 三个 Binder(**聚合 throw**)→ 跨表断言(O-24-4 / base_env 域)→ deterministic 编码
-        /// → 三份产物写入 Assets/DataCooked/(入 data-core 组)。
+        /// → 四份产物写入 Assets/DataCooked/(入 data-core 组;第四份 = 21a 家具目录,
+        /// 它先被烘焙以取得闭集,故同批落盘 —— 见函数内注释)。
         /// <para>⚠️ 本菜单是 <see cref="ClinicMachineTablesBake"/> 的**唯一生产调用点链路**
-        /// (菜单 → BakeFromRepo → 三个 Binder → ClinicMachineCookedWriter)。绕过它 = 三个 Binder
-        /// 永不执行(与 BakeTutorialContent / BakeDelayTable 同型先例)。</para>
-        /// <para>⚠️ **生产路径刻意传 <c>null</c> 家具类型闭集来源** —— `O-24-1`(21a 家具目录扩展
+        /// (菜单 → <see cref="BakeClinicMachineTablesCore"/> → 三个 Binder → ClinicMachineCookedWriter)。
+        /// 绕过它 = 三个 Binder 永不执行(与 BakeTutorialContent / BakeDelayTable 同型先例)。</para>
+        /// <para>~~⚠️ **生产路径刻意传 <c>null</c> 家具类型闭集来源** —— `O-24-1`(21a 家具目录扩展
         /// `type`/`tier`/`e_env`)尚未兑现(TD-clinic-01,sprint-18 的 G-8 解除)⇒
-        /// `Room.FurnMembershipEnforced == false`。本菜单把它**打进日志**(缺席必须肉眼可见,
-        /// 否则「烘焙成功」会被误读成「AC-24-12 也过了」)。</para>
-        /// <para>⚠️ 运行期装载面在本菜单**之外**:`AddressablesDataProvider` 的三条 Address +
+        /// `Room.FurnMembershipEnforced == false`。~~ **✅ 2026-10-21 已兑现**:经
+        /// <see cref="BakeClinicMachineTablesCore"/> 先烘 21a 家具目录取闭集,再注入
+        /// <see cref="ItemDatabaseFurnitureBake.AsFurnTypeSource"/> ⇒ `FurnMembershipEnforced == true`。
+        /// 日志仍保留「已强制 / NOT-RUN」双态打印(防将来再次退化时静默)。</para>
+        /// <para>⚠️ **闭集强制这件事由测试钉住,不靠本菜单的日志**:
+        /// <c>clinic_furniture_catalogue_test.test_productionMenuPath_coreForcesFurnClosure</c> 直调
+        /// <see cref="BakeClinicMachineTablesCore"/>(菜单与它**同一份代码**),断言
+        /// <c>FurnMembershipEnforced == true</c> 且每个子句 type ∈ 闭集。
+        /// 日志只是人眼可读的副产品 —— 它不构成判据。</para>
+        /// <para>⚠️ 运行期装载面在本菜单**之外**:`AddressablesDataProvider` 的四条 Address +
         /// `Preload()`(E-13 启动期硬失败,不降级)。**补烘 ≠ 接线**,四处闭合由
         /// `provider_wiring_gate_test` 守。</para>
         /// </summary>
@@ -537,14 +615,22 @@ namespace DaYiJingCheng.EditorTools.Bake
             try
             {
                 string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+
+                ItemDatabaseFurnitureBake.BakeOutput furn;
                 ClinicMachineTablesBake.BakeOutput result =
-                    ClinicMachineTablesBake.BakeFromRepo(repoRoot);
+                    BakeClinicMachineTablesCore(repoRoot, out furn);
 
                 string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
                 Directory.CreateDirectory(cookedDir);
                 File.WriteAllBytes(Path.Combine(cookedDir, ClinicContextCookedAssetName), result.ContextCooked);
                 File.WriteAllBytes(Path.Combine(cookedDir, ClinicAdjCookedAssetName), result.AdjCooked);
                 File.WriteAllBytes(Path.Combine(cookedDir, ClinicRoomCookedAssetName), result.RoomCooked);
+                // ⚠️ **同一份烘焙结果也落盘**:闭集已经在这里烘出来了,若不落产物,就会出现
+                // 「24 的烘焙期强制了闭集,而运行期 `AddressablesDataProvider` 装载不到它」的半烘态
+                // (那是 E-13 启动期硬失败,而且本菜单的日志会显示「已强制」—— 假绿)。
+                // 独立菜单 `BakeFurnitureCatalogue` 仍保留(21a 单独改目录时只想重烘它),两者字节同源。
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, FurnitureCatalogueCookedAssetName), furn.Cooked);
                 AssetDatabase.Refresh();
 
                 Debug.Log(
@@ -554,8 +640,10 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"{result.Adj.Pairs.Count} 邻接对(n_max = {result.Adj.NMax});" +
                     $"{ClinicRoomCookedAssetName} = {result.RoomCooked.Length} B, " +
                     $"{result.Room.Rooms.Count} 房间类型;" +
+                    $"{FurnitureCatalogueCookedAssetName} = {furn.Cooked.Length} B, " +
+                    $"{furn.Bound.Rows.Count} 家具类型; " +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}, " +
-                    $"FURN_TYPES 闭集 = {(result.Room.FurnMembershipEnforced ? "已强制" : "NOT-RUN —— O-24-1 未兑现(TD-clinic-01)")}" +
+                    $"FURN_TYPES 闭集 = {(result.Room.FurnMembershipEnforced ? "已强制" : "NOT-RUN —— 闭集来源注入被摘掉")}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }
             catch (BakeValidationException ex)

@@ -169,7 +169,7 @@ namespace DaYiJingCheng.EditorTools.Bake
         }
 
         /// <summary>长度前缀字符串(-1 = null;承 CookedWriter.WriteString 口径)。</summary>
-        private static void WriteString(BinaryWriter w, string s)
+        internal static void WriteString(BinaryWriter w, string s)
         {
             if (s == null)
             {
@@ -182,7 +182,7 @@ namespace DaYiJingCheng.EditorTools.Bake
         }
 
         /// <summary>头(magic + formatVersion + schemaVersion + configVersion + payloadLength)+ 载荷。</summary>
-        private static byte[] FinishHeader(byte[] payload, uint schemaVersion, uint configVersion)
+        internal static byte[] FinishHeader(byte[] payload, uint schemaVersion, uint configVersion)
         {
             var output = new byte[CookedFormat.HeaderSize + payload.Length];
             string magic = CookedFormat.Magic;

@@ -7716,3 +7716,208 @@ Addressables 构建期自动生成,项目代码零引用,`git check-ignore` 判�
 - **未转 Complete**:硬前置 = `FURN_TYPES` 闭集(`O-24-1`,sprint-18 G-8);哨兵仍 false ⇒ 求值器在生产链路上无输入源
 - **待办**:story-001 的 Test Evidence 需回填(三表 + 接线本件已落,不得由 story-003 独占)
 - **未 commit** —— 待用户指令
+
+## Session Extract — S17-4(`O-24-1` 兑现:`FURN_TABLE` 闭集的生产链路)（2026-10-21）
+- **用户指令**「FURN_TYPES 闭集(`O-24-1` / `TD-clinic-01`,sprint-18 的 G-8)未兑现 ⇒
+  `FurnTraitsProductionReady => false`,求值器在生产链路上没有输入源…这部分完成还差的输入源现在补齐」;
+  随后「补这条测,然后跑回归」
+- **交付(21a 侧 = 闭集来源)**:`assets/data/item_database_furniture.json`(`tier_max:3` + `furn[]` **7 行**:
+  bed / surgery_table / sterile_cabinet / herb_cabinet / grinder / drying_rack / chamber_pot)·
+  `Editor.Tools.Bake/ItemDatabaseFurniture{Binder,CookedWriter,Bake}.cs`(三条域门 + deterministic 编码)·
+  产物 `unity/Assets/DataCooked/item_database_furniture.cooked.bytes`(**216 B / 7 类型**,`ConfigVersion = 0xD0DC16A9`)
+- **交付(24 侧 = 消费)**:`Sim/Clinic/ClinicFurnitureCatalogue.cs`(运行期表 + `FurnTypes` 闭集)·
+  `Gameplay.Presentation/ClinicFurnitureCookedCodec.cs` · `AddressablesDataProvider` 第 **20** 条 address 支路 ·
+  `DataCorePreloader` 19 → **20** · `Sim/Clinic/ClinicFurnitureTraitsSource.cs`(**生产**属性源,三值)·
+  `Sim/Clinic/IPlacedStructureReadView.cs` 新增 `GetModuleId` · `ClinicRoomExtraction.Extract(view, furnTypes)` 真判据入口 ·
+  哨兵 `FurnTraitsProductionReady => **true**`
+- **关键设计决定 —— 抽 `DataBakeMenu.BakeClinicMachineTablesCore(repoRoot, out furn)`**:
+  菜单方法带 `[MenuItem]`,batch 下不被调用 ⇒ 若把「先烘 21a 取闭集 → 注入 24」写在菜单体内,
+  测试只能**同构复刻**。抽出后**菜单与测试调同一符号**,漂移不可能发生。
+  ⚠️ **判据边界如实登记**:菜单本体仍未被测试执行;Core 是菜单体内除落盘/Refresh/日志外**唯一计算段**
+- **新测 `test_productionMenuPath_coreForcesFurnClosure`**(4 条断言):① `FurnMembershipEnforced == true`
+  ② 闭集非空 + 产物字节非空 ③ 每个子句 `type`/`neighbor_type` ∈ 闭集 ④ **`referenced > 0`**(防第③条空转成绿)
+- **证伪**:spec `tools/falsify/specs/s17-4-furniture-catalogue.json` **4 变异全 `exactRed`**:
+  F1 `Unknown→NonFurniture` ⇒ 红 2 · F2 真判据转发代理版 ⇒ 红 3 · F3 哨兵退回 false ⇒ 红 2 ·
+  **F4 Core 摘掉闭集注入 ⇒ 恰红 1**(证明新测有判别力,不是空转绿)。还原 SHA-256 逐字节校验通过
+- **⚠️ 证伪首轮 exit 1(3 变异)**:三条全红得比预期多(2/3/2)⇒ 病因 = `tools/falsify/README.md`
+  **坑 1 第三次复发**(写预期只数了新断言,漏既有交叉检查)。处置按**坑 2**:先逐条论证「为什么应该红」
+  (写进 `_expectRed_justification`),论证成立后才改预期,**没有把实得抄进 expectRed**
+- **⚠️ 全量首跑 1 条真红 —— 第三次「补烘 ≠ 登记 ≠ 接线」**:
+  `ProviderWiringGateTest.test_wiring_dataCoreGroup_containsEveryProviderAddress`(`19 < 20`)。
+  病因:家具目录的**产物烘了、`Preload()` 调了、`DataCorePreloader` 登记了,但 `data-core` 组没注册条目**
+  ⇒ 运行期会 E-13 启动期硬失败。修 = 走生产菜单 `EnsureDataCoreGroup`
+  (`unity build <unity/> --target StandaloneLinux64 --execute-method …`)**未手改 `.asset`** ⇒ 组 19 → **20** 条
+- **绿基线**:截至 `2026-10-21 10:17 CST` · `S17-4` · `15fcda8` + 工作树 = **4265 / 4229 / 0 / 36**
+  (`unity/Logs/s17-4-full-regression-r2.xml`);对 `4237/4201/0/36 @ 09:02 · 3a22dbf` 做 `fullname` 集合差 =
+  **Δ +29 / 消失 1**(消失的那条是**改名**:`sentinelFalse` → `sentinelTrue_andImplementationUsable`)⇒ **净增 28,零回归**
+- **落账**:`TD-clinic-01` **done** · 路线图 **G-8 已结** · story-001 `AC-24-08`/`AC-24-12` 解除挂标并勾选 ·
+  story-003「硬前置已解除」加注 · `IClinicFurnitureTraitsSource.cs` 活口径订正 · S17-2 证据件「未跑项 1」加过期注
+- **证据原件**:`production/qa/evidence/impl-s17-4-furniture-catalogue-2026-10-21.md`
+- **仍未跑(禁借绿)**:IL2CPP 三格(本机仅 Mono)· `FurnTypeClosureEnforced` 仍 false(默认入口走代理判据,
+  **装配层尚未选真判据入口**)· story-001 评审残余 16 条 🟡 未修
+- **未 commit** —— 待用户指令
+
+## Session Extract — S17-1 / S17-2 落盘补记(2026-10-21)
+
+**触发**:用户问「sprint17-1 和 2 有未落盘的吗」⇒ 核出 S17-2 账全未落、S17-1 两处未落。
+
+### S17-2(clinic-003)—— 5 处补落
+
+| # | 位置 | 改前 | 改后 |
+|---|---|---|---|
+| 1 | `sprint-status.yaml:49` | `status: ready-for-dev` · `completed: ""` | **`status: review`** · `completed: ""`(**用户裁定 In Review,非 done**) |
+| 2 | `story-003:4` | `> **Status**: Ready` | **`In Review`** |
+| 3 | `story-003` AC 块 | 6 条全 `- [ ]` | **6 条全 `- [x]`** + 每条挂载体名(8 个测试名逐条 `grep` 核实存在) |
+| 4 | `story-003` Completion Notes | `*(留空 — story 关闭时回填)*` | **全节回填**:交付面 / 证伪 9 变异 / 回归三元组 / In Review 理由表 / 未跑项 / 偏离 |
+| 5 | `story-003:8` | `Manifest Version: 2026-10-02` | **`2026-10-15`** + 逐件判定注 |
+
+### Manifest 逐件判定(sprint-17 §偏离登记 ② 要求的动作,S17-2 此前未做)
+
+`control-manifest.md:6-9` 自陈 10-02→10-15 差异**仅新增之七 / 之八两节**。实测两条均未命中:
+- **之七**(Sim 引用集可达性):`ClinicModifierEvaluator.cs` / `ClinicMachineTables.cs` **零**
+  `PayloadCodec` / `Sim.Codec` / `PayloadRef` 引用(grep 空集)⇒ 无适用面。
+- **之八**(禁 culture-sensitive 比较):唯一字符串谓词 = `ClinicMachineTables.cs:263`
+  `string.Equals(p.A, p.B, StringComparison.Ordinal)` —— **已显式 Ordinal**;求值器零字符串判定 ⇒ 合规。
+⇒ 走 `[A]` 分支改字段,**不记 `Manifest-Note`**(那是 `[B]` 分支形态)。
+
+### S17-1(clinic-002)—— 2 处补落
+
+1. `story-002` §Test Evidence 的 `**Status**: [ ] Not yet created` —— 与事实相反的活占位,改为
+   `[x] Created & passing — 22 个测试函数`,并加注原文。
+2. `story-002` §Completion Notes 的 `FurnTypeClosureEnforced` ADVISORY 行 —— S17-4 已处理该哨兵
+   (真判据入口已提供并已证),但**该行未加注**。补:真值仍是 `false` 是**正确的**(默认单参入口走
+   代理判据),C11 检测测判据已按卡面授权**改判并如实登记**。
+   ⚠️ 显式登记「实施约束 ③ 的『既有测试须转红』实际以**改判据**兑现而非『转红后修改』」。
+
+### 第三处未落账(核出的新差异)
+
+**story-002 实际 22 测**,但 `impl-sprint17-batch1-2026-10-21.md:32` 与 story-002 自身记 **21**。
+`review-sprint17-batch1-2026-10-21.md:211` 记的 **22** 才与盘上一致。
+⇒ 两处均加订正注(原文保留)。
+
+### 判定口径(为何 In Review 而 S17-1 是 Complete)
+
+证据件 §五 5 项 NOT-RUN 中,**第 2 项不是环境问题而是面未做**:
+「布局 → 房间类型」匹配(`ROOM_TABLE` 求值)**整段未实现**,`base_env` 靠调用方解析后喂入
+⇒ 求值器上游有实质缺口。另:IL2CPP 三格 NOT-RUN · **无 `/code-review` 原件**
+(`grep -rln` 扫 `review-*.md` 零命中 clinic-003 —— 批 1 评审只覆盖 S17-1/3/4)。
+
+### 仍未做(禁借绿)
+
+- **S17-2 无评审原件** ⇒ 转 `Complete` 前须补一次 `/code-review` 并落原件
+- IL2CPP 三格 NOT-RUN · story-004 联测(21a clamp 配对)未跑 · 数值未定稿
+- `sprint-17.md` 的 DoD **11 框一格未勾**(smoke check / QA 签核 / 代码评审)—— 属 sprint **收口项**,
+  非 S17-1/2 各自的欠账;sprint 尚未收口(`end: ""`)
+- **未 commit** —— 待用户指令
+
+## Session Extract — S17-2 补做评审(2026-10-21)
+
+**触发**:用户指令「补 S17-2 的评审」(S17-2 此前零评审覆盖)。
+
+**评审原件**:`production/qa/evidence/review-s17-2-clinic003-2026-10-21.md`
+**方式**:两路并行(A `unity-specialist` 代码本体 / B `qa-tester` 可测性·假绿),带草稿增量落盘;
+两路草稿均已并入原件并删除。**本目录不跑 Unity** ⇒ 所有测试数/回归数均为引用,非实跑。
+
+### 合并裁定:**CHANGES REQUIRED · 1 BLOCKING**
+
+| 路 | Verdict | BLOCKING |
+|---|---|---|
+| A 代码本体 | APPROVED WITH SUGGESTIONS | 0(零 ARCHITECTURAL VIOLATION) |
+| B 可测性 | GAPS | 1 |
+
+**代码本体质量好**:14 条硬约束 13 CLEAN + 1 N/A(门 A / 零浮点 / Sim 引用集 / 零除法 /
+clamp 唯一性 / 之八 Ordinal / 只读视图 / F7 三处守卫全过);9 个方法全部 ≤33 行、CC ≤7。
+
+### ⚠️ 唯一 BLOCKING(Q7)—— **卡面转写丢了 GDD 的 AC 组成部分**
+
+| 事实 | 命令 | 结果 |
+|---|---|---|
+| GDD 含「性质测试」 | `grep -c` `design/gdd/clinic-machine.md` | **2**(`:370` / `:372`) |
+| **story-003 卡面含「性质测试」** | `grep -c` | **0** |
+| 测试件参数化 | `grep -n "TestCase\|Values(\|Random"` | **零命中** |
+
+GDD 把「性质测试:对任意 MIN < MAX 与任意输入…不含 clamp」写成 AC-24-01/02 的**组成部分**(均 `[B]`)。
+卡面转写时整段丢了 ⇒ 读起来像「一条定点例子即可」。盘上只有 3 条定点例子 ⇒ 只证伪、不证全称。
+**旁证**:`grep -rln "性质测试" production/epics/` 命中 10+ epic,**唯独 clinic-machine 零命中**
+⇒ 不是全库惯例,是本次局部遗漏。**建议另立条目追查 story-001 是否同样丢失。**
+
+**⇒ AC-24-01 / AC-24-02 的 `[x]` 超前于证据。处置待用户裁定**(三选一,
+评审建议 ③ 先补参数化测试再维持勾选,约 20–30 行)。已在卡面 AC 处就地加注,原文不删。
+
+### ⚠️ 证伪夹具锚点过期(两路独立命中 + 本轮实测)
+
+```
+s17-2-clinic-modifier-eval.json  C1@116→121  C2@104→109  C3@242→247  C4@158→163  C5@189→194 (5/5,统一 +5)
+s17-2-clinic-wiring.json         W2@323→337                                              (1/2)
+readonly 2/2 有效 · s17-4 4/4 有效                 合计 13 变异,**6 个锚点过期**
+```
+驱动 `unity_falsify.py:119` fail-closed ⇒ 今天重跑 **exit 2**。**本件实测 dry-run 真实退出码 = 2。**
+定性 **MINOR**(判别力没丢 —— expect 原文仍逐字在盘上;失效的是证据与当前代码的对应关系)。
+建议给驱动加 `--check-only` 接 CI 或 `/story-done` 闸门(与 `cooked_drift_all_artifacts_test` 同构)。
+
+### ⚠️ 本件推翻两条专家结论(原件 §五 已记)
+
+1. **A 路「W2 文本查找命中 `:283`」错** —— `:283` 是 **16 空格**缩进、`:337` 是 **12 空格**,
+   `expect` 12 空格 ⇒ 整行精确相等**唯一命中 `:337`**。A 路漏看缩进。
+2. **A 路「`SumAdjacency` 死代码可删」错** —— `:86`(`ClinicAdjSum` 内最后一行)正在调用它。
+   **按建议删会编译失败。D4 已标作废。**
+3. **采信 B 路对我的纠正**:驱动是纯行号索引(`ln=int(mut["line"]); actual=lines[ln-1]`),
+   锚串不唯一**不影响驱动**;风险在**修复期 grep 挑错靶**(C2 三处缩进全 12 空格,整行匹配三处都成立)。
+
+### ⚠️ 本轮自报一次违规
+
+跑 `--dry-run` 核锚点时,两位专家正在读同一文件 —— 违 `tools/falsify/README.md` §并发读取禁令。
+**侥幸未污染**(C1 锚点已过期,`apply_mutation` 在原文校验处先抛、未写盘),但那是运气。
+**已补文档**:README 新增「`--dry-run` **同样进变异窗口**」—— 原文只禁了真跑,漏了干跑;
+`--dry-run` 只表示不跑 Unity,`apply_mutation` 在 dry_run 判断**之前**执行(实测 `:186-200`)。
+
+### 仍未有(禁借绿)
+
+- **9 个变异未重跑**(锚点先须修)· IL2CPP 三格 NOT-RUN · story-004 联测未跑 · 数值未定稿
+- **未修任何 D 项** —— 原件 §七 结账表 Landed/Proven 全 ✗(评审件不是修复件)
+- **未 commit**
+
+---
+
+## Session Extract — 2026-10-21 性质测试补写轮(用户裁定「选 C」)
+
+### 任务
+评审 `review-s17-2-clinic003-2026-10-21.md` 的唯一 BLOCKING(Q7:卡面转写丢了 GDD 的「性质测试」要求)
++ Q8(`tier < 0` 分支零判据)。用户裁定 **C = 先补参数化性质测试,再维持 AC 勾选**。
+
+### 落盘
+- `unity/Assets/Tests/EditMode/ClinicMachine/clinic_modifier_eval_test.cs` —— **18 → 25 测**
+  - `envMod_property_anyInput_equalsLinearSum_noClamp`(512 组固定种子输入,逐组独立手算;采样守卫 > 400/512 越域,实测 476)
+  - `envMod_property_anyMinMax_outputStillUnclamped`(4 × `[TestCase]`)
+  - `equipMod_property_anyTierVector_inClosedRange`(256 组;采样守卫 > 200/256 钉顶,实测 247)
+  - `equipMod_negativeTier_excludedFromScore`(补 Q8)
+  - 辅助:`NextLong` / `NextInt`(取**高位** —— LCG 低位周期短会让小模数采样退化)+ `MinMaxSlackRaw`
+- `tools/falsify/s17-2-property-round.sh` —— 三变异证伪脚本(备份/变异/跑/还原/SHA 同进程;fail-closed 前置校验)
+
+### 验证(全部实跑)
+| 项 | 结果 |
+|---|---|
+| 25 测定向 | `Logs/s17-2-property.xml` = **25 / 25 / 0 / 0 / 0** |
+| 证伪 M1(env 加 ±32768 钳制) | **7 红**(四组 anyMinMax 全红)—— 修后第二轮 |
+| 证伪 M2(停用 equip 上钳) | **6 红** |
+| 证伪 M3(`tier <= 0` → `== 0`) | **1 红** |
+| 还原 | 三轮 `RESTORED_OK sha256=af9a8f51…d11ea47` · `FINAL_OK` 同值 · `FALSIFY_residue=0` |
+| 全量 EditMode | `Logs/s17-2-property-full.xml` = **`4272 / 4236 / 0 / 36`**(`2026-10-21 10:55 CST` · `性质测试补写轮` · `15fcda8` + 未提交改动);对照 `S17-4` 基线 `4265 / 4229 / 0 / 36`(`10:17`)⇒ `fullname` 集合差 **新增 7 · 消失 0** ⇒ **零回归** |
+
+### ⚠️ 本轮最重要的发现 —— 我自己写的测试有一处假绿,由证伪轮抓出
+**首轮 M1 实测只红 5/7**,差的正是 `anyMinMax` 的 `(-1,1)` 与 `(-1000,1000)`:
+那两组样本和 `= min + 3·max` 只有 **2 / 2000**,落在冻结界 `±32768` **之内**
+⇒ 而实现里唯一可能的钳制**恰好就是钳到冻结界** ⇒ 这两组对 M1 **毫无判别力**。
+**修法**:加一格常量贡献 `MinMaxSlackRaw = 100000`,使任何 (MIN, MAX) 下和既严格越过本组 MAX、又在冻结界外。
+修后四组 = 100002 / 102000 / 165536 / 2100000,复跑 **7 红**。
+⚠️ 已如实登记:这一栏的绿在本轮之前**有一半是空的**。
+
+### 账(已回填)
+- `production/epics/clinic-machine/story-003-modifier-evaluation.md` —— AC-24-01/02 载体改「已证」+ 18→25 测 + 反证表新增 3 行
+- `production/qa/evidence/impl-s17-2-clinic-modifier-eval-2026-10-21.md` —— 新增 §4.4 整节 + 载体 18→25
+- `production/qa/evidence/review-s17-2-clinic003-2026-10-21.md` —— §七之二 结账(Q7/Q8 ✅✅)+ §八 C 已裁注
+
+### 仍未有(禁借绿)
+- **D8 / D1 / D6 / D2 / Q6 / D5 / D7 全部未修** —— 用户裁定只覆盖性质测试面
+- IL2CPP 三格 NOT-RUN · story-004 联测未跑 · 数值未定稿
+- **未 commit**

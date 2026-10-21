@@ -29,7 +29,7 @@
 | `unity/Assets/Sim/Clinic/IPlacedStructureReadView.cs` | 55 | 只读输入视图(零写成员,类型层面断系统 23 写路径) |
 | `unity/Assets/Sim/Clinic/ClinicRoomId.cs` | 75 | 房间标识 + `ROOM_NONE (0,0)` 哨兵 |
 | `unity/Assets/Sim/Clinic/ClinicRoomExtraction.cs` | 296 | 4 邻接并查集析出 + 确定性 room id + 缺口哨兵 |
-| `unity/Assets/Tests/EditMode/ClinicMachine/clinic_room_extraction_test.cs` | — | 21 测 |
+| `unity/Assets/Tests/EditMode/ClinicMachine/clinic_room_extraction_test.cs` | — | 21 测 <br>🔁 **2026-10-21 订正:实测 22 测**(`grep -c "\[Test\]"` 与 `grep -c "public void test_"` 同为 22)。`review-sprint17-batch1-2026-10-21.md:211` 记的 22 才与盘上一致。原文保留作沿革。 |
 
 - **门 A 实测**:`grep -n 'UnityEngine\|UnityEditor' Sim/Clinic/*.cs` 命中项**全部是注释**,零类型引用;零 `float`/`double`/`Math.Round`。
 - **甲案代理判据**:按 story Implementation Notes 第 7 条落,代码注释逐字登记「代理而非等价物、代理更宽」。

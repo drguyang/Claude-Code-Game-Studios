@@ -46,14 +46,14 @@ stories:
     name: "clinic-003 乘子求值(F-24-1 / F-24-2)"
     file: "production/epics/clinic-machine/story-003-modifier-evaluation.md"
     priority: must-have
-    status: ready-for-dev
+    status: review             # ⚠️ 非 done —— 用户 2026-10-21 裁定置 In Review(见 note)
     owner: "claude"
     estimate_days: 0          # 复杂度 = M
     complexity: M
     depends_on: ["S17-1", "clinic-001"]
     blocker: ""
     completed: ""
-    note: "⚠️ 命名撞车:`unity/Assets/Sim/EnvMod.cs` 是**系统 5** 的 EnvMod_raw(94 行纯函数,envmod_raw_test.cs 在册);系统 24 的 F-24-1 也叫 EnvMod ⇒ 落点须用限定名并在文件头注明二者无关。测试载体 = Tests/EditMode/ClinicMachine/clinic_modifier_eval_test.cs"
+    note: "⚠️ 命名撞车:`unity/Assets/Sim/EnvMod.cs` 是**系统 5** 的 EnvMod_raw(94 行纯函数,envmod_raw_test.cs 在册);系统 24 的 F-24-1 也叫 EnvMod ⇒ 落点须用限定名并在文件头注明二者无关。测试载体 = Tests/EditMode/ClinicMachine/clinic_modifier_eval_test.cs ／ **2026-10-21 落盘补记**:6 条 AC 已勾(载体名逐条 grep 核实)、证伪 9 变异全 exactRed、回归 4237/4201/0/36 @ 09:02 · 3a22dbf+工作树。**仍置 review 而非 done 的理由** = 证据件 §五 第 2 项:「布局 → 房间类型」匹配(ROOM_TABLE 求值)**整段未实现**,`base_env` 靠调用方喂 ⇒ 求值器上游有实质缺口;另 IL2CPP 三格 NOT-RUN。／ **2026-10-21 评审轮(补做)**:原件 = `production/qa/evidence/review-s17-2-clinic003-2026-10-21.md`(两路并行)。合并裁定 **CHANGES REQUIRED · 1 BLOCKING** —— A 路代码本体 APPROVED WITH SUGGESTIONS(14 条硬约束 13 CLEAN,零架构违规);B 路 GAPS,BLOCKING = **卡面转写丢了 GDD 的「性质测试」要求**(GDD `:370`/`:372` 各一处,卡面 `grep -c` = 0,测试件零参数化 ⇒ 3 条定点例子不能证全称命题)⇒ **AC-24-01/02 的勾选超前于证据,处置待用户裁定**。另:证伪夹具 **6/13 锚点过期**(驱动 exit 2,证据件「9 变异 exactRed」当前不可复算,定级 MINOR)。评审推翻了两条专家结论(W2 缩进差异 / SumAdjacency 非死代码),已记原件 §五。／ **2026-10-21 性质测试补写轮(用户裁定「选 C」)**:Q7 BLOCKING + Q8 已落并已证 —— 测试件 18 → **25 测**;证伪 M1(env 加 ±32768 钳制)= **7 红** · M2(停用 equip 上钳)= **6 红** · M3(`tier<=0`→`==0`)= **1 红**,三轮还原 SHA-256 逐字节相同 · residue=0;全量回归 `4272/4236/0/36` @ 10:55 · 15fcda8+工作树,对 S17-4 基线 `4265/4229/0/36` 集合差 **新增 7 · 消失 0** ⇒ 零回归。**AC-24-01/02 的勾选不再超前于证据**。⚠️ 补写轮里我写的 `anyMinMax` 窄域两组被证伪轮抓出**假绿**(样本和在冻结界内 ⇒ 对 M1 不可观测),已修并复跑登记。状态**仍为 review**(上游 ROOM_TABLE 匹配缺口未变)。"
 
   - id: "S17-3"
     name: "tutorial-001 内容 schema + 六项构建期校验"

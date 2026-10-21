@@ -25,6 +25,8 @@
 //   ① 「布局 → 房间类型」匹配(ROOM_TABLE 求值)—— 未实现;故 `base_env` 由**调用方**解析后传入
 //      (`ClinicContextTable.TryGetBaseEnv(roomType, out Fix)`),本件不假装房间匹配已存在。
 //   ② FURN_TABLE 的生产实现(`O-24-1` 未兑现)⇒ 属性来源靠注入,生产侧缺席由哨兵登记。
+//      🔁 **2026-10-21 订正**:`O-24-1` 已兑现,生产实现 = `ClinicFurnitureTraitsSource`
+//      ⇒ 本件仍**只依赖抽象**(不改签名),但「生产侧缺席」不再成立。
 //   ③ `K_CONTEXT_MAX` 派生 —— 已在 `ClinicContextTable.KContextMax`(F-24-3,表构造期重算并校验)。
 
 using System;
@@ -49,12 +51,15 @@ namespace DaYiJingCheng.Sim.Clinic
 
         /// <summary>
         /// 缺口哨兵:`FURN_TABLE`(21a 家具目录的 `type` / `tier` / `e_env`)是否已在生产路径兑现。
-        /// <para>**恒 false** —— `O-24-1` / `TD-clinic-01` 已双侧登记、零实现。true 之前,生产侧
-        /// **没有** <see cref="IClinicFurnitureTraitsSource"/> 的实现者;求值器只能由测试注入夹具源。</para>
-        /// <para>⚠️ 兑现时须同时:① 实现生产源;② 本哨兵转 true;③ 顺带处理
-        /// `ClinicRoomExtraction.FurnTypeClosureEnforced`(它届时转红是**被要求的行为**,不是回归)。</para>
+        /// <para>**✅ 2026-10-21 转 true(O-24-1 兑现)** —— 生产实现 =
+        /// <see cref="ClinicFurnitureTraitsSource"/>(输入 = 23 的只读视图 + 21a 家具目录的运行期表
+        /// <see cref="ClinicFurnitureCatalogue"/>,数据来自 `item_database_furniture.cooked.bytes`)。
+        /// 原 false 语义(「生产侧没有实现者,求值器只能吃夹具源」)已不成立。</para>
+        /// <para>⚠️ **本哨兵不是「AC-24-08/12 已通过」的同义词** —— 那两条评的是**烘焙期**字段与闭集校验,
+        /// 由 `ItemDatabaseFurnitureBinder` / `ClinicMachineRoomBinder` 承担;本哨兵只回答
+        /// 「运行期格属性源有没有生产实现者」。</para>
         /// </summary>
-        public static bool FurnTraitsProductionReady => false;
+        public static bool FurnTraitsProductionReady => true;
 
         // ══════════════════ F-24-1 的 adj_sum(公共定义的邻接和)══════════════════
 

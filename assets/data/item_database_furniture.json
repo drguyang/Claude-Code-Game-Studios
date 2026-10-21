@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "_note": "O-24-1 家具目录（FURN_TABLE）—— 21a 拥有（GDD clinic-machine :297）。本文件是 FURN_TYPES 闭集与 tier/e_env 的**唯一作者态**；24（医馆即机器）在烘焙期读它取闭集、在运行期读同一份 cooked 取逐件属性。⚠️ 数值 = 夹具种子值，不是游戏平衡值（数值归用户轮）：tier ∈ [0, tier_max]；e_env 量级按 GDD :330 的 C_max = 1/64（OQ-24-6 的耦合 n·C_max ≤ 1）取，正负号 = GDD 建议口径（净器 +、污器 −）。逐件定值随 OQ-24-3 内容轮。Fix 字段按 ADR-014 §四 写字符串。",
+  "tier_max": 3,
+  "furn": [
+    { "type": "bed", "tier": 1, "e_env": "1/64" },
+    { "type": "surgery_table", "tier": 3, "e_env": "1/64" },
+    { "type": "sterile_cabinet", "tier": 2, "e_env": "1/64" },
+    { "type": "herb_cabinet", "tier": 2, "e_env": "1/64" },
+    { "type": "grinder", "tier": 1, "e_env": "1/64" },
+    { "type": "drying_rack", "tier": 1, "e_env": "1/64" },
+    { "type": "chamber_pot", "tier": 0, "e_env": "-1/64" }
+  ]
+}

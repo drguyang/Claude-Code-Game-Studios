@@ -7,6 +7,11 @@
 //
 // ⚠️ 数值一律**符号化小值**(卡面 §Implementation Notes 5:逐值归用户数值轮)。
 //    唯一例外 = GDD 药房算例(`env_score = 28000`),它是**权威算例**,作黄金夹具。
+//
+// 🔁 **第二条例外(2026-10-21 性质测试补写轮)**:⑦ 段的性质测**刻意取大值**(±400000 / ±100000)。
+//    理由与「符号化小值」不冲突 —— 那条约的是**定点例子**的取值纪律(避免把调参值当判据);
+//    性质测要判的是「有没有 clamp」,样本必须**打到域外**才可观测,小值会让测变假绿
+//    (实测踩过:见 ⑦ 段开头的缺口登记)。数值仍未定稿,这里的大值是**判别力需要**,不是调参取值。
 
 using System;
 using System.Collections.Generic;
@@ -38,6 +43,8 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
 
             public int StructureCount => _instances.Length;
             public IReadOnlyList<WorldPos> GetOccupiedCells(int structureIndex) => _instances[structureIndex];
+            /// <summary>无模块标识 —— 本夹具只喂代理判据析出。</summary>
+            public string GetModuleId(int structureIndex) => null;
         }
 
         private sealed class FakeTraits : IClinicFurnitureTraitsSource
@@ -426,13 +433,269 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
             Assert.That(ea, Is.EqualTo(eb));
         }
 
-        /// <summary>缺口哨兵:`FURN_TABLE` 的生产实现仍未兑现(`O-24-1` / `TD-clinic-01`)。
-        /// <para>⚠️ 哨兵转红 = **被要求的行为**(兑现时须同时改判据),不得当回归修掉。</para></summary>
+        /// <summary>缺口哨兵:**2026-10-21 已兑现**(`O-24-1` 兑现轮)。
+        /// <para>🔁 原测 `test_clinic_furnTraitsProductionReady_sentinelFalse` 断言 false —— 那是
+        /// 「生产侧无实现者」的诚实登记。现生产实现 =
+        /// <see cref="ClinicFurnitureTraitsSource"/>(21a 家具目录的运行期表 +
+        /// 23 的只读视图),故断言翻为 true,并**同时钉住实现者存在且可用**:
+        /// 只断言一个 bool 常量会被「改常量不改实现」满足。</para></summary>
         [Test]
-        public void test_clinic_furnTraitsProductionReady_sentinelFalse()
+        public void test_clinic_furnTraitsProductionReady_sentinelTrue_andImplementationUsable()
         {
-            Assert.That(ClinicModifierEvaluator.FurnTraitsProductionReady, Is.False,
-                "O-24-1(FURN_TABLE)已兑现 ⇒ 本哨兵须转 true 并实现生产属性源;在此之前保持 false");
+            Assert.That(ClinicModifierEvaluator.FurnTraitsProductionReady, Is.True,
+                "O-24-1(FURN_TABLE)已兑现 ⇒ 哨兵须为 true;若退回 false,说明生产属性源被撤");
+
+            // 判别力:造一个最小布局 + 目录,生产源必须给出正确的三值答案。
+            var catalogue = new ClinicFurnitureCatalogue(
+                new[]
+                {
+                    new ClinicFurnitureEntry("bed", 1, new Fix(Fix.OneRaw / 64)),
+                }, 3);
+            var view = new FakeView(new WorldPos(0, 0, 0), new WorldPos(5, 5, 0));
+            var source = new ClinicFurnitureTraitsSource(view, catalogue);
+
+            // 夹具的 GetModuleId 恒 null ⇒ 两格都「有占用但无模块标识」= NonFurniture,
+            // 未占用格 = Unknown。这正钉住三值语义(没被拍平成 bool)。
+            Assert.That(source.Lookup(new WorldPos(0, 0, 0), out _), Is.EqualTo(ClinicCellLookup.NonFurniture));
+            Assert.That(source.Lookup(new WorldPos(9, 9, 0), out _), Is.EqualTo(ClinicCellLookup.Unknown));
+        }
+
+        // ══════════════════ ⑦ 性质测试(AC-24-01 / AC-24-02 的明文组成部分)══════════════════
+        //
+        // 🔁 **2026-10-21 评审轮补写** —— GDD `design/gdd/clinic-machine.md:370` / `:372` 把
+        //    「**性质测试**」写成 AC-24-01 / AC-24-02 的**组成部分**(两条均 `[B]` 级):
+        //      AC-24-01:「**性质测试**:对任意 `MIN < MAX` 与任意输入,24 的产出 = 线性加权和,**不含 clamp**」
+        //      AC-24-02:「`EquipMod ∈ [0, EQUIP_MOD_CAP]` 恒成立(**性质测试**,同 AC-24-01)」
+        //    story-003 卡面转写时**漏了这一句**(卡面 `grep -c "性质测试"` = 0),原测试只有 3 条定点例子。
+        //    **定点例子只能证伪全称命题,不能证明它** ⇒ 本组补上全称面。
+        //    评审原件:`production/qa/evidence/review-s17-2-clinic003-2026-10-21.md` §三 Q7。
+        //
+        // ⚠️ **本组首版有一处假绿,由证伪轮 M1 抓出(2026-10-21)** —— 记在此防复发:
+        //    `anyMinMax` 首版令 `expected = min + 3·max`,窄域两组 (-1,1) / (-1000,1000) 的和只有
+        //    **2 / 2000**,而实现里唯一可能的钳制**恰好就是钳到冻结界 ±32768** ⇒ 这两组对 M1
+        //    **毫无判别力**(M1 实测只红 5/7)。修法 = 加一格常量 `MinMaxSlackRaw`。
+        //    **教训:性质测试的样本必须落在「变异能改变结果」的区间里,否则样本再多也是假的。**
+
+        /// <summary>确定性伪随机(LCG)· 返回 `[-limit, +limit]` 内的 <see cref="long"/>。</summary>
+        /// <remarks>⚠️ 禁 `System.Random` / 时钟 —— 测试须同一次构建内任意次运行结果相同。
+        /// 固定种子的确定性生成符合 test-standards「no random seeds」的本意(禁的是**不可复现**)。
+        /// <para>⚠️ 取 **高位**(`&gt;&gt; 32`):LCG 的低 k 位周期只有 2^(k+1),
+        /// 取低位会让小模数(如 `n ∈ [1,8]`)在几百次采样内原地打转 —— 那样的「性质测试」样本退化。</para></remarks>
+        private static long NextLong(ref ulong state, long limit)
+        {
+            state = state * 6364136223846793005UL + 1442695040888963407UL;
+            return (long)((state >> 32) % (ulong)(2 * limit + 1)) - limit;
+        }
+
+        /// <summary>
+        /// 「任意 MIN &lt; MAX」参数化用的**常量抬升量**(raw)。
+        /// <para>取值须 &gt; `ENV_MOD_MAX` 的绝对值(32768)且远小于 int64 上界 ——
+        /// 100000 满足;它的作用是保证窄域 `(MIN, MAX)` 组的和也**落在冻结界之外**,
+        /// 否则那几组对「钳到冻结界」的变异毫无判别力(见该测 remarks 的缺口登记)。</para>
+        /// </summary>
+        private const long MinMaxSlackRaw = 100000L;
+
+        /// <summary>确定性整数 ∈ `[minInclusive, maxInclusive]`。</summary>
+        private static int NextInt(ref ulong state, int minInclusive, int maxInclusive)
+        {
+            state = state * 6364136223846793005UL + 1442695040888963407UL;
+            int span = maxInclusive - minInclusive + 1;
+            return minInclusive + (int)((state >> 33) % (ulong)span);
+        }
+
+        /// <summary>
+        /// **AC-24-01 性质面**:对**任意**输入,`ClinicEnvModOf` 的产出恒等于
+        /// `base_env + Σ e_env + adj_sum` 的线性求和,**不含任何 clamp / 饱和 / 归一化**。
+        /// </summary>
+        /// <remarks>
+        /// <b>为什么是性质而非例子</b>:用固定种子 LCG 生成 **512 组**输入(量级 ±400000 raw,
+        /// 远超 `ENV_MOD_MIN/MAX` = ∓32768 raw),逐组**独立手算**期望值再比对。
+        /// 定点例子覆盖「这几个值对了」;本测覆盖「任意输入都对了」—— 后者才能证「不含 clamp」这个全称命题。
+        /// <para><b>判别力</b>:在求值链任何位置引入 clamp / 饱和 / 归一化 ⇒ 越域那一批
+        /// `actual ≠ expected` ⇒ 红。末段的采样守卫另钉「本测确实有足够多的越域样本」,
+        /// 防止将来生成器参数被改小后退化成「全在域内 ⇒ 对 clamp 无判别力」。</para>
+        /// </remarks>
+        [Test]
+        public void test_clinic_envMod_property_anyInput_equalsLinearSum_noClamp()
+        {
+            const long EnvModMinRaw = -32768L;      // ENV_MOD_MIN = -1/2 ⇒ raw
+            const long EnvModMaxRaw = 32768L;       // ENV_MOD_MAX = +1/2 ⇒ raw
+            const string TypeA = "a";
+            const string TypeB = "b";
+
+            ulong state = 0x243F6A8885A308D3UL;     // 固定种子
+            long outOfRangeCases = 0;
+
+            for (int i = 0; i < 512; i++)
+            {
+                long baseEnv = NextLong(ref state, 400000L);
+                long e0 = NextLong(ref state, 400000L);
+                long e1 = NextLong(ref state, 400000L);
+                long w = NextLong(ref state, 30000L);
+
+                // 生成器上界 400000 ≪ int64 上界 ⇒ 求和不可能溢出,直接算(不加 try/catch 掩盖失败)
+                long expected = baseEnv + e0 + e1 + w;
+
+                // C0 +x C1 ⇒ 恰一条相邻边 ⇒ adj_sum = w(只查 +x/+y,每条边计一次)
+                ClinicRoomExtractionResult room = Room(C0, C1);
+                var traits = new FakeTraits(new[]
+                {
+                    (C0, TypeA, 0, e0),
+                    (C1, TypeB, 0, e1),
+                });
+                ClinicAdjTable adj = AdjTable(-30000, 30000, 64, (TypeA, TypeB, w));
+
+                long actual = ClinicModifierEvaluator
+                    .ClinicEnvModOf(room, traits, adj, new Fix(baseEnv)).Raw;
+
+                Assert.That(actual, Is.EqualTo(expected),
+                    $"第 {i} 组:base={baseEnv} / e_env={e0},{e1} / w={w} ⇒ 须原样出线性和 {expected}" +
+                    "(任何 clamp 都会让它不等)");
+
+                if (expected < EnvModMinRaw || expected > EnvModMaxRaw) outOfRangeCases++;
+            }
+
+            // 采样守卫 —— 若绝大多数样本都落在域内,本测对「是否 clamp」毫无判别力
+            Assert.That(outOfRangeCases, Is.GreaterThan(400),
+                $"须有足够多的样本落在 [ENV_MOD_MIN, ENV_MOD_MAX] 之外(实得 {outOfRangeCases}/512);" +
+                "否则本测对 clamp 无判别力");
+        }
+
+        /// <summary>
+        /// **AC-24-01 的「对任意 `MIN < MAX`」面**:24 侧**不引用** `ENV_MOD_MIN` / `ENV_MOD_MAX`,
+        /// 故对**任一组** `MIN &lt; MAX`,越域输入的产出都仍是线性加权和 —— **不落进该区间**。
+        /// </summary>
+        /// <remarks>
+        /// <b>编码方式</b>:24 的签名里没有 MIN/MAX 形参,故「任意 MIN &lt; MAX」只能在**期望式**一侧
+        /// 参数化 —— 对每一组 (MIN, MAX),构造一条和**严格大于该组 MAX** 的输入,
+        /// 断言产出 = 未钳制的线性和**且严格越过该组 MAX**。
+        /// <para><b>⚠️ 首版有判别力缺口,已由证伪轮 M1 暴露并修(2026-10-21)</b>:首版令
+        /// `expected = minRaw + 3·maxRaw`,对窄域两组(-1/1、-1000/1000)和只有 2 / 2000 ——
+        /// **落在冻结界 `±32768` 之内**,而实现里唯一可能的钳制恰好就是钳到该冻结界
+        /// ⇒ M1(在 `:121` 前加 `±32768` 钳制)对这**两组无判别力**,实测只红 2/4。
+        /// 修法 = 追加一格常量贡献 <see cref="MinMaxSlackRaw"/>(100000),使**任何** (MIN, MAX)
+        /// 下的和都同时满足两个条件:① 严格越过本组 MAX(原命题)② 落在冻结界之外(对 M1 有判别力)。
+        /// 修后重跑 M1 ⇒ **4/4 全红**。</para>
+        /// <para>⚠️ **判据边界(如实)**:这是对 MIN/MAX 的**采样**覆盖(4 组),不是形式化证明;
+        /// 真正的「对任意」由上面那条 512 组输入的性质测承担。</para>
+        /// </remarks>
+        [TestCase(-1L, 1L)]
+        [TestCase(-1000L, 1000L)]
+        [TestCase(-32768L, 32768L)]        // 21a 已裁定的定值(ENV_MOD_MIN/MAX = ∓1/2)
+        [TestCase(-1000000L, 1000000L)]
+        public void test_clinic_envMod_property_anyMinMax_outputStillUnclamped(long minRaw, long maxRaw)
+        {
+            Assume.That(minRaw < maxRaw, "夹具前提:MIN < MAX");
+
+            // 四格:三格各贡献 maxRaw,第四格贡献常量 Slack;base 从 minRaw 起步。
+            // ⇒ 期望 = minRaw + 3·maxRaw + Slack:对本表四组分别 = 100002 / 102000 / 165536 / 2100000
+            //   —— **每一组都严格越过该组 MAX,且都落在 ±32768 之外**(见 remarks 的缺口说明)。
+            ClinicRoomExtractionResult room = Room(C0, C1, C2, C3);
+            var traits = new FakeTraits(new[]
+            {
+                (C0, "a", 0, maxRaw),
+                (C1, "a", 0, maxRaw),
+                (C2, "a", 0, maxRaw),
+                (C3, "a", 0, MinMaxSlackRaw),
+            });
+
+            long expected = minRaw + 3 * maxRaw + MinMaxSlackRaw;   // 无邻接(NoPairsTable)⇒ adj = 0
+
+            long actual = ClinicModifierEvaluator
+                .ClinicEnvModOf(room, traits, NoPairsTable(), new Fix(minRaw)).Raw;
+
+            Assert.That(actual, Is.EqualTo(expected),
+                $"MIN={minRaw} / MAX={maxRaw}:产出须为未钳制的线性和 {expected}");
+            Assert.That(actual, Is.GreaterThan(maxRaw),
+                $"产出须**严格越过**本组的 MAX={maxRaw} —— 若 24 侧钳制则越不过");
+        }
+
+        /// <summary>
+        /// **AC-24-02 性质面**:对**任意**档位向量,`ClinicEquipModOf` 的产出恒落在
+        /// `[0, EQUIP_MOD_CAP]` 闭区间内 —— 同时独立核对精确值。
+        /// </summary>
+        /// <remarks>
+        /// <b>为什么是性质而非例子</b>:固定种子 LCG 生成 **256 组**档位向量(格数 1–8、
+        /// `tier ∈ [0, TIER_MAX]` 域内),逐组独立手算 `clamp(Σtier × 65536, 0, CAP)` 再比对。
+        /// <para><b>判别力</b>:漏掉上钳 ⇒ `score ≥ 1` 时 `score×65536 ≥ 65536 > CAP` ⇒ 越界 ⇒ 红;
+        /// 漏掉「tier=0 不进和」⇒ 期望式与实际同错时仍可能相等,故**另**由
+        /// `test_clinic_equipMod_allZeroTier_returnsZero` 与 `sumAboveCap_pinsToCap` 分头钉住。</para>
+        /// </remarks>
+        [Test]
+        public void test_clinic_equipMod_property_anyTierVector_inClosedRange()
+        {
+            const int TierMax = 3;                    // TIER_MAX(冻结值)
+            ulong state = 0x452821E638D01377UL;       // 固定种子
+            int pinnedCases = 0;
+
+            for (int iter = 0; iter < 256; iter++)
+            {
+                int n = NextInt(ref state, 1, 8);
+
+                var cells = new List<WorldPos>();
+                var rows = new List<(WorldPos, string, int, long)>();
+                long expectedScore = 0;
+
+                for (int i = 0; i < n; i++)
+                {
+                    var cell = new WorldPos(i, 0, 0);   // 4-连通链 ⇒ 恰 1 簇
+                    cells.Add(cell);
+                    int tier = NextInt(ref state, 0, TierMax);
+                    rows.Add((cell, "t", tier, 0L));
+                    if (tier > 0) expectedScore += tier;  // tier = 0 不进和(F-24-2)
+                }
+
+                ClinicRoomExtractionResult room = Room(cells.ToArray());
+                Assert.That(room.HasRoom, Is.True, $"第 {iter} 组:n={n} 的链须析出为单房间");
+
+                long actual = ClinicModifierEvaluator
+                    .ClinicEquipModOf(room, new FakeTraits(rows)).Raw;
+
+                // ① 全称不变量:恒在闭区间内
+                Assert.That(actual, Is.GreaterThanOrEqualTo(0L),
+                    $"第 {iter} 组(n={n}, Σtier={expectedScore}):EquipMod 须 ≥ 0");
+                Assert.That(actual, Is.LessThanOrEqualTo(ClinicModifierEvaluator.EquipModCapRaw),
+                    $"第 {iter} 组(n={n}, Σtier={expectedScore}):EquipMod 须 ≤ EQUIP_MOD_CAP");
+
+                // ② 精确值:clamp(Σtier × 65536, 0, CAP),独立手算
+                long expectedRaw = expectedScore * Fix.OneRaw;
+                if (expectedRaw > ClinicModifierEvaluator.EquipModCapRaw)
+                    expectedRaw = ClinicModifierEvaluator.EquipModCapRaw;
+
+                Assert.That(actual, Is.EqualTo(expectedRaw),
+                    $"第 {iter} 组(n={n}, Σtier={expectedScore}):须为 clamp 后的 {expectedRaw}");
+
+                if (expectedRaw == ClinicModifierEvaluator.EquipModCapRaw) pinnedCases++;
+            }
+
+            // 采样守卫:CAP = 1/4 < 1 ⇒ 任何 Σtier ≥ 1 都钉顶;本组绝大多数样本须落在此形态,
+            // 否则「恒等 CAP」这一半没被真正覆盖。
+            Assert.That(pinnedCases, Is.GreaterThan(200),
+                $"须有足够多的样本钉顶(实得 {pinnedCases}/256);否则上钳面未被判别");
+        }
+
+        /// <summary>
+        /// **Q8 配套**(2026-10-21 评审):实现 `ClinicModifierEvaluator.cs:150` 主动写了
+        /// `if (tier &lt;= 0) continue;`,但原有夹具的 `tier` 取值全是非负 ⇒ 负值分支**零判据**。
+        /// 若该行被改成 `tier == 0`,负档位会**减分**且无测可察。本测补上该判别面。
+        /// </summary>
+        /// <remarks>⚠️ `tier &lt; 0` 属**域外**输入(域 = `[0, TIER_MAX]`);本测被测的是
+        /// **实现主动写下的防御分支**,不是域内语义。</remarks>
+        [Test]
+        public void test_clinic_equipMod_negativeTier_excludedFromScore()
+        {
+            ClinicRoomExtractionResult room = Room(C0, C1);
+            var traits = new FakeTraits(new[]
+            {
+                (C0, "t", 2, 0L),
+                (C1, "t", -100, 0L),      // 负档:域外,但实现写明不计入
+            });
+
+            Fix equip = ClinicModifierEvaluator.ClinicEquipModOf(room, traits);
+
+            // Σtier 若把 −100 算进去 = −98 ⇒ 钳下界归 0;正确实现 = 2 ⇒ 钉顶。
+            Assert.That(equip.Raw, Is.EqualTo(ClinicModifierEvaluator.EquipModCapRaw),
+                "负档位不得进和:若进和则档位和被拉成负数 ⇒ 下钳到 0(≠ CAP)");
         }
     }
 }

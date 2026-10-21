@@ -218,7 +218,7 @@
 | `TD-enemy-01` | `enemy-ai` | open | **Y** | R1 |
 | `TD-randomevents-01` | `random-events` | open | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | open | **N** | R2 |
-| `TD-clinic-01` | `item-database` | open | **Y** | R1 |
+| `TD-clinic-01` | `item-database` | **done**(2026-10-21) | ~~**Y**~~ | R1 |
 | `TD-clinic-02` | `clinic-machine` | open | **Y** | R1 |
 | `TD-clinic-03` | `clinic-machine` | open | **Y** | R1 |
 | `TD-clinic-04` | `clinic-machine` | open | **Y** | R1 |
@@ -331,7 +331,7 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 | **G-5** | `TD-player-02` | `player-controller`(6/6)+ `camera-viewpoint`(6/6) | open | **Y** | 1 或 2 的下一轮动到玩家位移 / 相机锚点时 |
 | **G-6** | `TD-enemy-01` | `enemy-ai`(5/5) | open | **Y** | 27 具备可跑行为程序之前 |
 | **G-7** | `TD-randomevents-01` | `random-events`(6/6) | open | **Y** | 52 下一次动延迟威胁 / 主机迁移语义时 |
-| **G-8** | `TD-clinic-01` | `item-database`(12/12) | open | **Y** | `clinic-machine/story-001` 的 `AC-24-08` / `AC-24-12` 转可判之前 |
+| **G-8** | `TD-clinic-01` | `item-database`(12/12) | **✅ 已结**(2026-10-21) | ~~**Y**~~ | ~~`clinic-machine/story-001` 的 `AC-24-08` / `AC-24-12` 转可判之前~~ **已达** —— 两条 AC 已解除挂标并勾选(S17-4) |
 | ~~**G-3**~~ | ❌ **不登记** | —— | —— | —— | **已证伪**(错因 = grep 目录限定;留痕见本册「同批被证伪的一条」) |
 
 **两类角色(排期含义不同 · 承路线图 §3.1)**:
@@ -1518,6 +1518,20 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > 路线图 §十一 **C-9** 记其方法论后果;**§八 #3 的「结案」当天即被本条的发现证伪一次**。
 
 ### TD-clinic-01 — `O-24-1`(21a 家具目录扩展 `type` / `tier` / `e_env`)= 双向登记在册、零承载
+
+> ✅ **2026-10-21 已结(S17-4)** —— 落点 = `assets/data/item_database_furniture.json`(21a 侧作者态)
+> + `Editor.Tools.Bake/ItemDatabaseFurniture{Binder,CookedWriter,Bake}.cs` + 产物
+> `unity/Assets/DataCooked/item_database_furniture.cooked.bytes`(216 B / 7 类型)。
+> 24 侧消费:`Sim/Clinic/ClinicFurnitureCatalogue.cs`(运行期表)· `ClinicFurnitureTraitsSource.cs`(生产属性源)
+> · `ClinicRoomExtraction.Extract(view, furnTypes)`(真判据入口)· 哨兵 `FurnTraitsProductionReady => true`。
+> **生产链路强制有机器判据**:`test_productionMenuPath_coreForcesFurnClosure`
+> (`DataBakeMenu.BakeClinicMachineTablesCore` —— 菜单与测试同一份代码)+ 反证 F4(摘掉注入 ⇒ 恰 1 条红)。
+> 证伪 4/4 `exactRed` 全中;全量回归 `4265 / 4229 / 0 / 36 @ 2026-10-21 10:17 CST · 15fcda8`+工作树,
+> `fullname` 集合差 Δ +29 / 消失 1(改名)。
+> 原件:`production/qa/evidence/impl-s17-4-furniture-catalogue-2026-10-21.md`。
+> **判据 = 两件事各自已证**:① 闭集有生产来源且过三道域门;② 生产链路真的强制它(**非**只置标志)。
+> 下列原文保留作沿革记录。
+
 
 | 侧 | 内容 |
 |---|---|

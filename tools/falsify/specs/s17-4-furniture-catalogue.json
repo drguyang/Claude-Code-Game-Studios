@@ -1,0 +1,110 @@
+{
+  "name": "S17-4 / O-24-1 兑现轮 —— 家具目录(FURN_TABLE)的三条承重守卫",
+  "mode": "EditMode",
+  "filter": "Clinic",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "⚠️ 驱动只读 --guard 参数(不读本文件的 guards 字段)⇒ 运行必须带 --guard unity/Assets/DataCooked。",
+    "三条各证一件事:① 三值查询没被拍平成 bool;② 真判据入口真的按闭集筛成员(不是转发代理版);",
+    "③ 生产属性源真的接上了(哨兵不是空承诺)。",
+    "⚠️ **首跑(2026-10-21 10:00)三条全红得比预期多**:F1 得 2 / F2 得 3 / F3 得 2,驱动判 exit 1。",
+    "   处置 = 逐条论证「为什么**应该**红」(见各条 `_expectRed_justification`),论证成立后才改预期 ——",
+    "   **没有直接把实得抄进 expectRed**(README 坑 2:那会让 exactRed 退化成 tautology)。",
+    "   根因 = README 坑 1 的**第三次复发**:我写预期时只数了「新加的那条断言」,漏掉既有的交叉检查",
+    "   (C11 的豁免前提 / 同文件的第二条三值断言 / 同变异的另两条闭集断言)。三条变异本身**都打在正确的守卫上**,",
+    "   首跑的 6 条红已逐条核对断言行号与失败理由,无一条是偶然。"
+  ],
+  "mutations": [
+    {
+      "name": "F1-unknownCollapsedToNonFurniture",
+      "file": "unity/Assets/Sim/Clinic/ClinicFurnitureTraitsSource.cs",
+      "line": 89,
+      "expect": "            return ClinicCellLookup.Unknown;",
+      "replace": "            return ClinicCellLookup.NonFurniture; // FALSIFY-F1:Unknown 拍平成 NonFurniture(二值化)",
+      "expectRed": [
+        "test_traitsSource_threeValuedLookup",
+        "test_clinic_furnTraitsProductionReady_sentinelTrue_andImplementationUsable"
+      ],
+      "exactRed": true,
+      "_why": "三值分类是本轮的核心契约。若 Unknown 退化为 NonFurniture,「源未就绪」就与「这格不是家具」同形,e_env 会静默少算。",
+      "_expectRed_justification": [
+        "① test_traitsSource_threeValuedLookup:末条断言 `Lookup((9,9)) == Unknown`,变异后直接返回 NonFurniture ⇒ 红(核心)。",
+        "② test_clinic_furnTraitsProductionReady_sentinelTrue_andImplementationUsable:该测后半段**同样**断言 `Lookup((9,9,0)) == Unknown`",
+        "   (clinic_modifier_eval_test.cs:455,注释写明「这正钉住三值语义(没被拍平成 bool)」)⇒ 独立命中,不是连带误伤。",
+        "⇒ 两条同时红是**预期**。"
+      ]
+    },
+    {
+      "name": "F2-truePredicateIgnoresClosure",
+      "file": "unity/Assets/Sim/Clinic/ClinicRoomExtraction.cs",
+      "line": 169,
+      "expect": "            return ExtractFromMembership(CollectFurnitureCells(view, furnTypes));",
+      "replace": "            return ExtractFromMembership(CollectFurnitureCells(view)); // FALSIFY-F2:忽略闭集",
+      "expectRed": [
+        "test_roomExtraction_truePredicate_excludesNonFurnitureStructures",
+        "test_roomExtraction_truePredicate_excludesMissingModuleId",
+        "test_roomExtraction_catalogueFurnTypes_feedTruePredicate"
+      ],
+      "exactRed": true,
+      "_why": "真判据入口的全部价值 = 按 type(c) ∈ FURN_TYPES 筛成员。若它转发代理版,闭集落地等于没落(墙会被算成家具格,桥接两个家具簇)。",
+      "_expectRed_justification": [
+        "变异 = 真判据入口退化为转发代理版 ⇒ **凡断言「闭集真的筛掉了东西」的测必须全红**,这是灵敏度正确而非过宽。逐条:",
+        "① excludesNonFurnitureStructures:核心 —— `truth.CellCount` 期望 2,退化后为 3;`ConnectedClusterCount` 期望 2,退化后为 1;`HasRoom` 期望 false,退化后 true。三处独立命中。",
+        "② excludesMissingModuleId(clinic_furniture_catalogue_test.cs:427):断言 `CellCount == 0`(module_id 为 null ⇒ 排除);",
+        "   代理版**不看 module id**,该实例照样贡献 (0,0) ⇒ CellCount = 1 ⇒ 红。同一变异,另一条独立断言。",
+        "③ catalogueFurnTypes_feedTruePredicate(:446):断言 cooked 闭集喂进来后墙被排除(`CellCount == 1`);",
+        "   代理版把 wall 也算进 ⇒ 2 ⇒ 红。它测的是「运行期载体 → 真判据」这条数据通路,与 ① ② 正交。",
+        "⚠️ 上面三条**都不是**新加断言之外的附带检查,而是我写 expectRed 时**只数了 ①**(README 坑 1 第三次复发)。",
+        "⇒ 三条同时红是**预期**,实得恰为这三条。"
+      ]
+    },
+    {
+      "name": "F3-productionReadySentinel",
+      "file": "unity/Assets/Sim/Clinic/ClinicModifierEvaluator.cs",
+      "line": 62,
+      "expect": "        public static bool FurnTraitsProductionReady => true;",
+      "replace": "        public static bool FurnTraitsProductionReady => false; // FALSIFY-F3:哨兵倒退",
+      "expectRed": [
+        "test_clinic_furnTraitsProductionReady_sentinelTrue_andImplementationUsable",
+        "test_furn_type_closure_absent_isDetectable_notJustObservable"
+      ],
+      "exactRed": true,
+      "_why": "哨兵是「生产链路上有没有输入源」的唯一机器读面。退回 false ⇒ 该测红(并把 C11 的豁免前提打掉)。",
+      "_expectRed_justification": [
+        "① sentinelTrue_andImplementationUsable:首句即 `Assert.That(FurnTraitsProductionReady, Is.True)` ⇒ 直接红(核心)。",
+        "② furnish_closure_absent_isDetectable_notJustObservable(C11,clinic_room_extraction_test.cs:643):",
+        "   该测的**豁免前提**逐字是「哨兵仍 false 只有在 FurnTraitsProductionReady == true 时才合法」,",
+        "   而变异把哨兵打回 false ⇒ 豁免前提被击穿 ⇒ 该分支断言 `Is.True` 红。",
+        "   ⚠️ 这条红**不是误伤,是设计**:C11 存在的意义就是「有人把生产源撤了必须有人喊」——",
+        "   哨兵回退正是它要抓的那个动作。两条分别从「哨兵自己的断言」与「豁免前提的守卫」两个方向抓同一件事。",
+        "⇒ 两条同时红是**预期**。"
+      ]
+    },
+    {
+      "name": "F4-menucCoreDropsFurnClosure",
+      "file": "unity/Assets/Editor.Tools.Bake/DataBakeMenu.cs",
+      "line": 585,
+      "expect": "                repoRoot, ItemDatabaseFurnitureBake.AsFurnTypeSource(furn.Bound));",
+      "replace": "                repoRoot, null); // FALSIFY-F4:闭集注入被摘掉(退回 2026-10-20 的传 null)",
+      "expectRed": [
+        "test_productionMenuPath_coreForcesFurnClosure"
+      ],
+      "exactRed": true,
+      "_why": "生产菜单 Core 的闭集注入是 O-24-1 在**生产链路**上的唯一落点。摘掉它,FurnMembershipEnforced 退回 false,AC-24-12 的 (b) 半边重新变成无人强制 —— 而 2026-10-21 之前这件事**没有任何机器判据**(只有烘焙日志可看)。",
+      "_expectRed_justification": [
+        "F4 只打 Core 的注入点,不打 Binder 也不打 schema:",
+        "① 断言 ① `FurnMembershipEnforced == true` 直接红(传 null ⇒ Binder 返回 false)。",
+        "② 断言 ③ 的循环**不会**红 —— 闭集门失效后没有任何子句被拒,循环照常通过。",
+        "   这正说明 ③ 只能证「成员资格语义成立」,证不了「闭集被注入」;两条各自承重,缺一不可。",
+        "⚠️ 本变异只应红这**一条**,因为它打的是菜单 Core 这条链路上独有的对象:",
+        "   `clinicmachine_tables_schema_test` 里那几条打的是**注入替身**与 `BakeFromRepo(repo)` 单参重载",
+        "   (该重载本来就传 null,不经过本行)⇒ 不受影响。",
+        "⇒ 恰 1 条红是预期。"
+      ]
+    }
+  ]
+}

@@ -29,6 +29,8 @@
 //    ⚠️ 这三份是本门**先前红着抓出来的**:S17-2 落盘后首跑全量即两条红
 //    (`test_sweep_declaredArtifactNames_allTriaged` 16≠19 / `test_sweep_noGhostArtifact_onDiskButUnregistered`
 //    点名三份幽灵产物)—— 门工作正常,是接线时漏登记。
+//    ⚠️ **2026-10-21 二次增补**:再 +1 份 `item_database_furniture`(O-24-1 兑现)
+//    ⇒ 盘上 **20** 份、`BakedArtifacts` 20 条、`pinnedDeclared` **20**。
 //
 // ⚠️ **本门查什么 / 不查什么**:
 //    查 —— ① 已烘产物的**字节漂移**(改源不重烘);
@@ -173,6 +175,13 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
                 root => ClinicMachineTablesBake.BakeFromRepo(root).AdjCooked),
             new ArtifactBake(DataBakeMenu.ClinicRoomCookedAssetName,
                 root => ClinicMachineTablesBake.BakeFromRepo(root).RoomCooked),
+
+            // ── 21a 家具目录(1 份;O-24-1 兑现,2026-10-21)──
+            //    ⚠️ 生产菜单先烘本份、再把其闭集注入 24 的 ROOM_TABLE 成员资格门。
+            //    本门只比字节;`FurnMembershipEnforced` **不进载荷**(它只影响校验,不改编码)
+            //    ⇒ 有闭集 / 无闭集两条路径的 ROOM_TABLE 字节相同,故上面三条沿用单参重载。
+            new ArtifactBake(DataBakeMenu.FurnitureCatalogueCookedAssetName,
+                root => ItemDatabaseFurnitureBake.BakeFromRepo(root).Cooked),
         };
 
         /// <summary>
@@ -297,7 +306,7 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
 
             // 扫描器完备性哨兵 —— 剥离器若过度吞字(如把逐字串 `@"…"` 的 `"` 当转义),
             // 声明集会**变小**,本行先红。⚠️ 这是本门唯一能自证「扫全了」的判据。
-            const int pinnedDeclared = 19; // 2026-10-21 实测(19 份;+48_tutorial_content(S17-3 AC-5 接线)+24 clinic 三表(S17-2 接线))
+            const int pinnedDeclared = 20; // 2026-10-21 实测(20 份;+48_tutorial_content(S17-3 AC-5 接线)+24 clinic 三表(S17-2 接线)+21a 家具目录(O-24-1 兑现))
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

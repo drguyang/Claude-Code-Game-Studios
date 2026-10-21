@@ -6,8 +6,13 @@
 > **Type**: Config-Data
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-15
-> **Last Updated**: 2026-10-20
+> **Last Updated**: 2026-10-21
 
+> **🔁 2026-10-21 挂标已解除(S17-4)** —— `O-24-1` 已兑现,闭集来源落地于
+> `assets/data/item_database_furniture.json`(21a 侧),生产链路强制由
+> `test_productionMenuPath_coreForcesFurnClosure` 钉住。详见 §Test Evidence「补记之二」。
+> **下列原文保留作沿革记录**(挂标语义已失效,勿按原文读):
+>
 > ⚠️ **取件轮定案(2026-10-20)** —— 两条 AC 半边挂标,本体同批交:
 > **`AC-24-08` / `AC-24-12` 挂 `BLOCKED-BY-O-24-1`**。
 > 病因:`FURN_TYPES` 闭集的来源 = 21a 家具目录扩展 `type`/`tier`/`e_env`(`O-24-1`),
@@ -44,12 +49,18 @@
 
 - [x] AC-24-05:CONTEXT_TABLE 每项 `K_speed ∈ (0,1]`;违例 fixture(`invalid_context_table.json`)构建期拒绝(throw)
 - [x] AC-24-06:ADJ_TABLE 对称性 `w(a,b)==w(b,a)` 为烘焙期硬门;违例 fixture(`invalid_adj_table.json`)构建失败
-- [ ] **`BLOCKED-BY-O-24-1`** AC-24-08:FURN_TABLE 字段断言通过(字段类型 ∈ 整数域 / Fix 字符串;缺字段 = 构建失败)
-- [ ] **`BLOCKED-BY-O-24-1`** AC-24-12:ROOM_TABLE 谓词子句类型闭集 ⊆ FURN_TYPES(未知子句类型 = 构建失败)
+- [x] ~~**`BLOCKED-BY-O-24-1`**~~ AC-24-08:FURN_TABLE 字段断言通过(字段类型 ∈ 整数域 / Fix 字符串;缺字段 = 构建失败)
+  <br>🔁 **2026-10-21 解除挂标**(S17-4):闭集来源 `assets/data/item_database_furniture.json` 已落地;
+  三条域门各有负向夹具(`ClinicFurnitureCatalogueTest` §一)
+- [x] ~~**`BLOCKED-BY-O-24-1`**~~ AC-24-12:ROOM_TABLE 谓词子句类型闭集 ⊆ FURN_TYPES(未知子句类型 = 构建失败)
+  <br>🔁 **2026-10-21 解除挂标**(S17-4):(a) 半边 2026-10-20 已证;(b) 半边由
+  `test_productionMenuPath_coreForcesFurnClosure` 钉住(`FurnMembershipEnforced == true` + 逐子句 ∈ 闭集)
 - [x] O-24-5 溢出界断言:`n_max × TIER_MAX < 2^31` 且 `|W_MIN| ≤ W_max`(fixture 双向覆盖)
 - [x] O-24-4:`ENV_MOD_MIN < 0` 成立(21a 联动项,本 story 只断言表值)
 - [x] `K_CONTEXT_MAX = max(K_speed)` 由烘焙表派生并作为导出值可供系统 1 读取(规则三)
 
+> 🔁 **2026-10-21**:下列挂标语义**已失效**(`O-24-1` 已兑现,两条可勾)。原文保留。
+>
 > ⚠️ **`AC-24-08` / `AC-24-12` 的挂标语义**:两条**不得勾、不得记 `Complete`**,直至 `O-24-1` 兑现
 > (见头部定案块 + `TD-clinic-01`)。**本体半边仍须实现**(`FURN_TABLE` 的 schema 形状与
 > 未知子句类型拒收规则可先落 —— 缺的只是「闭集从哪来」);**取件轮按「本体交 + 半边挂标」推进**。
@@ -154,6 +165,64 @@
 **回归**:`4237 / 4201 / 0 / 36` · `2026-10-21 09:02 CST` · `sprint-17 批 2 S17-2 收尾轮` · `3a22dbf`+工作树;
 对 `4198 / 4162 / 0 / 36 @ 08:02 · 1dde232` 做 `fullname` 集合差 = **Δ +39 / 消失 0**(零回归)。
 原件:`production/qa/evidence/impl-s17-2-clinic-modifier-eval-2026-10-21.md` §一 / §三。
+
+### 2026-10-21 补记之二 —— **`O-24-1` 兑现:闭集来源落地**(S17-4)
+
+> 上两节原文保留。本节补的是**挂标两条 AC 的上游** —— `FURN_TABLE` / `FURN_TYPES`
+> 此前「双向登记在册、零承载」,故 `AC-24-08` / `AC-24-12` **结构上不可达**。本件把那根断链接上。
+
+**① 交付面(21a 侧 = 闭集来源)**
+
+| 文件 | 内容 |
+|---|---|
+| `assets/data/item_database_furniture.json`(新) | 作者态:`tier_max:3` + `furn[]` **7 行**(`bed` / `surgery_table` / `sterile_cabinet` / `herb_cabinet` / `grinder` / `drying_rack` / `chamber_pot`) |
+| `unity/Assets/Editor.Tools.Bake/ItemDatabaseFurniture{Binder,CookedWriter,Bake}.cs`(新) | 三条域门(`tier ∈ [0,tier_max]` · `\|e_env\| ≤ C_max=1/64` · `tier_max` 与 24 对账)+ deterministic 编码 |
+| `unity/Assets/DataCooked/item_database_furniture.cooked.bytes`(新) | **216 B / 7 类型**,`ConfigVersion = 0xD0DC16A9` |
+
+**② 交付面(24 侧 = 消费)**
+
+| 面 | 落点 |
+|---|---|
+| 运行期表 | `Sim/Clinic/ClinicFurnitureCatalogue.cs`(+ `FurnTypes` 闭集) |
+| 解码 | `Gameplay.Presentation/ClinicFurnitureCookedCodec.cs` |
+| Provider 支路 | `AddressablesDataProvider`:第 20 条 address + `Load<ClinicFurnitureDataSet>` + `EnsureClinicFurniture()` + `Preload()` |
+| 预载清单 | `DataCorePreloader` 19 → **20** |
+| 组注册 | `data-core` 19 → **20** 条(经 `EnsureDataCoreGroup` 菜单) |
+| **生产属性源** | `Sim/Clinic/ClinicFurnitureTraitsSource.cs`(三值:`Furniture`/`NonFurniture`/`Unknown`) |
+| 真判据入口 | `ClinicRoomExtraction.Extract(view, furnTypes)` 重载 |
+| 哨兵 | `ClinicModifierEvaluator.FurnTraitsProductionReady => **true**` |
+
+**③ 证据(本补记的判据)**
+
+| 项 | 结果 | 依据 |
+|---|---|---|
+| 烘焙期域门(AC-24-08) | **10 条 = 9 负向 + 1 正向**(`awk` 切 §一 段实测);负向全拒,正向种子通过 | `ClinicFurnitureCatalogueTest` §一 |
+| 读方↔写方镜像 | 盘上产物 ↔ 现烘**逐字节**相同 | `test_furniture_diskMatchesFreshBake` |
+| **AC-24-12 闭集强制(生产链路)** | `FurnMembershipEnforced == true` 且每个子句 type ∈ 闭集 | `test_productionMenuPath_coreForcesFurnClosure` |
+| 证伪 | 4 变异全部 `exactRed` 恰中(F1 红 2 / F2 红 3 / F3 红 2 / **F4 红 1**) | `tools/falsify/specs/s17-4-furniture-catalogue.json` |
+| 全量回归 | `4265 / 4229 / 0 / 36` · `2026-10-21 10:17 CST` · `S17-4` · `15fcda8`+工作树 | `unity/Logs/s17-4-full-regression-r2.xml` |
+
+**⚠️ 本轮抓到的一处真实半接线态(不是夹具问题)**:首跑全量 `ProviderWiringGateTest` **1 红** ——
+`item_database_furniture` 的产物烘了、`Preload()` 调了、`DataCorePreloader` 登记了,
+**但 `data-core` 组里没注册条目**(19 vs 20)⇒ 运行期会 E-13 启动期硬失败。
+修复 = 走生产菜单 `EnsureDataCoreGroup` 组内补条目(未手改 `.asset`)。
+**这是「补烘 ≠ 登记 ≠ 接线」第三次现身** —— 漂移门(产物)与接线门④(Preload)全绿,
+只有接线门②(组条目)看得见。
+
+**④ 挂标解除**
+
+| AC | 变化 |
+|---|---|
+| `AC-24-08` | `BLOCKED-BY-O-24-1` **解除** —— 字段类型 ∈ 整数域 / `Fix` 字符串 / 缺字段 = 构建失败,三条域门各有负向夹具 |
+| `AC-24-12` | `BLOCKED-BY-O-24-1` **解除** —— (a) 半边 2026-10-20 已证;(b) 半边由本件 `FurnMembershipEnforced == true` 钉住 |
+
+原件:`production/qa/evidence/impl-s17-4-furniture-catalogue-2026-10-21.md`。
+
+**⚠️ 仍未转 `Complete`,理由已变**:原理由是两条 AC 挂标(**已解除**);现为
+① `FurnTypeClosureEnforced` 仍 `false`(默认单参入口走代理判据,**装配层尚未选真判据入口**);
+② §评审残余 16 条 🟡(族 A 判别力借绿族 9 条)未修;
+③ IL2CPP 三格 NOT-RUN。
+
 
 ---
 

@@ -156,6 +156,9 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             Assert.That(AddressablesDataProvider.ClinicRoomAddress,
                 Is.EqualTo(DataBakeMenu.ClinicRoomCookedAssetName),
                 "24 ROOM_TABLE 的 address 与 baker 产物名不一致 ⇒ 同上");
+            Assert.That(AddressablesDataProvider.FurnitureCatalogueAddress,
+                Is.EqualTo(DataBakeMenu.FurnitureCatalogueCookedAssetName),
+                "21a 家具目录(O-24-1)的 address 与 baker 产物名不一致 ⇒ 同上");
         }
 
         // ══════════════════ ② data-core 组 ⊇ 全部 address 常量 ══════════════════

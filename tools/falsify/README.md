@@ -78,6 +78,30 @@ python3 tools/falsify/unity_falsify.py --spec … --guard unity/Assets/DataCooke
 
 > **`git show HEAD:<path>` 是安全读法** —— 它读的是 git 对象库,不碰工作树。
 
+### ⚠️ `--dry-run` **同样进变异窗口**(2026-10-21 立 · 实测踩坑)
+
+**「干跑」这个名字会骗人。** `--dry-run` 只表示**不跑 Unity**,**不**表示「不写盘」:
+
+```
+run() 逐个变异 → restore_all() → apply_mutation(写盘) → if dry_run: continue
+                                         ↑ 已写          ↑ 跳过的是 unity test
+```
+
+即 `unity_falsify.py:186-200` —— `apply_mutation()` 在 `dry_run` 判断**之前**执行。
+⇒ **干跑期间文件在磁盘上是变异态**(只不过每条变异施加后立刻被下一条的 `restore_all()` 还原)。
+
+**后果**:凡是「我想快速核一下 spec 锚点还在不在,干跑一下应该没事」的念头,**都踩这条**。
+实测(2026-10-21,S17-2 评审轮):编排方在两位评审专家正读
+`ClinicModifierEvaluator.cs` 时跑了 `--dry-run`,违反了上面的并发读取禁令。
+该次**侥幸未造成污染** —— C1 的 `expect` 已过期,`apply_mutation` 在
+`:119` 的原文校验处**先抛 `PreconditionError`、未写盘**。但那是**运气,不是纪律**:
+若锚点仍有效,文件就会在评审专家眼皮底下变成变异态。
+
+**纪律补一条**:
+- **只校验锚点、不写盘** ⇒ 用脚本自己做(`逐条比对 line` 与 `expect`),**不要跑驱动**。
+  `--dry-run` 的适用面是「确认这套变异在**当前代码上可施加**」,**不是**「只读检查」。
+- 若确实要跑 `--dry-run`,它**必须**与真跑遵守同一套发令方 / 读者纪律。
+
 ### 还原判据是 SHA-256,不是标记名
 
 **别指望用 grep 找变异标记来证明「已还原」** —— 那是**事后的、弱的、可绕的**检查

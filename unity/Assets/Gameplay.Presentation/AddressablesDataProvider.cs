@@ -141,6 +141,11 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>24 ROOM_TABLE address(同上)。</summary>
         public const string ClinicRoomAddress = "clinicmachine_room.cooked.bytes";
 
+        /// <summary>21a 家具目录 address(O-24-1 兑现 · `FURN_TYPES` 闭集的运行期载体)。
+        /// <para>⚠️ 产物名单一出处 = `DataBakeMenu.FurnitureCatalogueCookedAssetName`;同上为字面串
+        /// (边界程序集不引用编辑期装配)。</para></summary>
+        public const string FurnitureCatalogueAddress = "item_database_furniture.cooked.bytes";
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -173,6 +178,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private ClinicContextDataSet? _clinicContext;
         private ClinicAdjDataSet? _clinicAdj;
         private ClinicRoomDataSet? _clinicRoom;
+        // 21a 家具目录(O-24-1):struct 解码形 ⇒ 可空承载。
+        private ClinicFurnitureDataSet? _clinicFurniture;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -286,6 +293,12 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureClinicRoom();
                 return (TDataSet)(object)_clinicRoom.Value;
             }
+            // ── O-24-1(2026-10-21):21a 家具目录(FURN_TYPES 闭集)──
+            if (typeof(TDataSet) == typeof(ClinicFurnitureDataSet))
+            {
+                EnsureClinicFurniture();
+                return (TDataSet)(object)_clinicFurniture.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
@@ -297,7 +310,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 " + 处方表 / 处置轴 / 53 判定表 / 53 延迟表(2026-10-20 第二轮:PrescriptionActionsDataSet / " +
                 "DiseaseActionAxisDataSet / OutcomeTable53DataSet / DelayTable53DataSet)" +
                 " + 48 教学内容(S17-3:TutorialContentTable)" +
-                " + 24 医馆三表(S17-2 前置:ClinicContextDataSet / ClinicAdjDataSet / ClinicRoomDataSet)");
+                " + 24 医馆三表(S17-2 前置:ClinicContextDataSet / ClinicAdjDataSet / ClinicRoomDataSet)" +
+                " + 21a 家具目录(O-24-1:ClinicFurnitureDataSet)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -323,6 +337,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureClinicContext();
             EnsureClinicAdj();
             EnsureClinicRoom();
+            EnsureClinicFurniture();
         }
 
         private void EnsureItems()
@@ -628,6 +643,25 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 24 ROOM_TABLE cooked 解码失败(address={ClinicRoomAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        // ── O-24-1(2026-10-21):21a 家具目录(FURN_TYPES 闭集)──
+
+        private void EnsureClinicFurniture()
+        {
+            if (_clinicFurniture.HasValue) return;
+            byte[] bytes = FetchBytes(FurnitureCatalogueAddress);
+            try
+            {
+                _clinicFurniture = ClinicFurnitureCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 21a 家具目录 cooked 解码失败(address={FurnitureCatalogueAddress})" +
                     $"—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }

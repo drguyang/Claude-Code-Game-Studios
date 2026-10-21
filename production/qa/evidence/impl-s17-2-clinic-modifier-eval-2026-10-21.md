@@ -61,7 +61,9 @@
 | 属性未知 ⇒ 硬失败(禁静默跳过) | ✅ | ✅ | `:191-194` | `test_clinic_traitsUnknown_throwsInsteadOfSkipping` |
 | 表只读视图不可强转改写 | ✅ | ✅ | `ClinicMachineTables.cs:98 / :362` | `test_clinic_contextTable_rows_notCastableToArray` / `test_clinic_roomTable_rooms_notCastableToArray` · **反证 R1/R2** |
 
-**测试载体**:`unity/Assets/Tests/EditMode/ClinicMachine/clinic_modifier_eval_test.cs`(18 测)· `clinic_machine_cooked_codec_test.cs`(18 测,含 2 条只读视图)· `unity/Assets/Tests/EditMode/DataPipeline/provider_wiring_gate_test.cs`(11 测)。
+**测试载体**:`unity/Assets/Tests/EditMode/ClinicMachine/clinic_modifier_eval_test.cs`(**25 测**)· `clinic_machine_cooked_codec_test.cs`(18 测,含 2 条只读视图)· `unity/Assets/Tests/EditMode/DataPipeline/provider_wiring_gate_test.cs`(11 测)。
+> 🔁 **18 → 25(2026-10-21 性质测试补写轮)**:评审 BLOCKING Q7 的处置(用户裁定「选 C」)。
+> 新增 7 个用例位,见 §八 之二。原文 18 保留作沿革。
 
 ---
 
@@ -85,6 +87,34 @@
 ```
 
 `skipped` 恒 36(基线与本轮同一批 NOT-RUN 登记项,见 §五)。**判定:零回归。**
+
+### 3.2 性质测试补写轮的全量回归(2026-10-21 10:55 CST)
+
+**基线溯源三元组**:截至时刻 `2026-10-21 10:55 CST` · 批次 `性质测试补写轮(用户裁定 C)` · commit `15fcda8` + 未提交改动。
+
+| 套件 | XML | 结果 | 对照基线(同带三元组) |
+|---|---|---|---|
+| EditMode(全量) | `unity/Logs/s17-2-property-full.xml` | `total=4272 passed=4236 failed=0 skipped=36` | `4265 / 4229 / 0 / 36` @ `2026-10-21 10:17 CST` · `S17-4 收尾轮` · `15fcda8` |
+
+**集合差对账(用 `fullname` 集合差,不用总数差)**:
+
+```
+基线 4265 → 本轮 4272      新增 7    消失 0
+  + ClinicModifierEvalTest.test_clinic_envMod_property_anyInput_equalsLinearSum_noClamp
+  + ClinicModifierEvalTest.test_clinic_envMod_property_anyMinMax_outputStillUnclamped(-1,1)
+  + …                                                                    (-1000,1000)
+  + …                                                                    (-32768,32768)
+  + …                                                                    (-1000000,1000000)
+  + ClinicModifierEvalTest.test_clinic_equipMod_property_anyTierVector_inClosedRange
+  + ClinicModifierEvalTest.test_clinic_equipMod_negativeTier_excludedFromScore
+```
+
+`failed=0` · `skipped=36` 与基线同值 · **消失 0** ⇒ **判定:零回归**。
+
+**收尾定向复跑**(注释与常量定稿后,非增量):`unity/Logs/s17-2-property-final.xml` = **`25 / 25 / 0 / 0`**。
+复算命令:`unity test unity --mode EditMode --output <xml> --filter ClinicModifierEvalTest`。
+(注意:这里用的是 10:17 的 S17-4 基线,**不是** §三 表里 09:02 的 S17-2 基线 —— 两者之间夹了 S17-4 的 5 个新测,
+拿旧基线对账会把别人的增量算成自己的。)
 
 ### 3.1 本轮全量首跑抓到两条**真回归**(已修,记录在案)
 
@@ -138,12 +168,66 @@
 
 判据输出逐字:`══ 证伪轮通过:2 个变异全部恰如预期 ══`。**交叉不误伤**:context 侧变异只红 context 一条,room 侧只红 room 一条。
 
+### 4.4 性质测试补写轮(2026-10-21 · `tools/falsify/s17-2-property-round.sh`)
+
+> **为什么另起一个脚本而不复用 `unity_falsify.py`**:本轮变异靶点(CLAMP 前后、`tier <= 0`)是**新增测试的直接宾语**,
+> 而 `unity_falsify.py` 的 spec 锚点当时已 6/13 过期(评审 D8)。用独立脚本 = 变异与还原在同一进程、
+> fail-closed 前置校验、还原后 SHA-256 逐字节比对,与驱动同款纪律,但不依赖过期 spec。
+
+**驱动**:`tools/falsify/s17-2-property-round.sh`(备份 → 单点变异 → 跑 filter `ClinicModifierEvalTest` → `cp` 还原 → SHA-256 校验,同一进程内完成)。
+
+| 变异 | 靶点 | 停用什么 | **预写预期** | **实测红集** | 判定 |
+|---|---|---|---|---|---|
+| M1-envClamp | `ClinicModifierEvaluator.cs:121` | `return new Fix(sum)` 前加 `±32768` 钳制 | 7 条 | **7 条**(见下) | ✅ 恰如预期 |
+| M2-equipNoUpperClamp | `:163` | 删 `if (raw > EquipModCapRaw) raw = EquipModCapRaw;` | 6 条 | **6 条** | ✅ 恰如预期 |
+| M3-tierLtToEq | `:150` | `tier <= 0` → `tier == 0` | 1 条 | **1 条** | ✅ 恰如预期 |
+
+**M1 实测红集**(7):`envMod_aboveEnvModMax_passesThroughUnclamped` · `envMod_allNegative_passesThroughUnclamped` ·
+`envMod_property_anyInput_equalsLinearSum_noClamp` · `envMod_property_anyMinMax_outputStillUnclamped(-1,1)` ·
+`…(-1000,1000)` · `…(-32768,32768)` · `…(-1000000,1000000)`
+
+**M2 实测红集**(6):`equipMod_largeScore_int64NoWrap` · `equipMod_negativeTier_excludedFromScore` ·
+`equipMod_nMaxBoundary_noWrap` · `equipMod_positiveScores_haveNoIntermediateValue` ·
+`equipMod_property_anyTierVector_inClosedRange` · `equipMod_sumAboveCap_pinsToCap`
+
+**M3 实测红集**(1):`equipMod_negativeTier_excludedFromScore`
+
+**还原**:三轮 `RESTORED_OK sha256=af9a8f51…d11ea47`(与 `ORIG_SHA` 逐字节相同)· 收尾 `FINAL_OK` 同值 · `FALSIFY_residue=0`。
+
+#### ⚠️ 首轮实测暴露一处**真缺口**,已修并复跑 —— 这是本轮最有价值的产出
+
+首轮(修复前)M1 **只红 5 条**,预写是 7。差的正是 `anyMinMax` 的 `(-1,1)` 与 `(-1000,1000)` 两组:
+
+| 组 | 修复前 `expected = min + 3·max` | 是否落在冻结界 `±32768` 外 | 对「钳到 ±32768」可观测? |
+|---|---|---|---|
+| (-1, 1) | **2** | ✗ | **✗ 不可观测** |
+| (-1000, 1000) | **2000** | ✗ | **✗ 不可观测** |
+| (-32768, 32768) | 65536 | ✓ | ✓ |
+| (-1e6, 1e6) | 2000000 | ✓ | ✓ |
+
+**根因**:那两组样本和只有 2 / 2000,而实现里唯一可能的钳制**恰好就是钳到冻结界**
+⇒ 「`MIN < MAX` 采样」这条测对这**两组**毫无判别力 —— 它们是**假绿**(S12-4 所定义的形态)。
+
+**修法**:加一格常量贡献 `MinMaxSlackRaw = 100000`(`C3`),使**任何** (MIN, MAX) 下的和
+① 严格越过本组 MAX(原命题)② 落在冻结界之外(对 M1 有判别力)。修后四组 = 100002 / 102000 / 165536 / 2100000,
+**逐组都满足两条件**(算术核对已跑,见下)。
+
+**复跑 M1 ⇒ 7 红,四组 anyMinMax 全红** —— 缺口闭合。
+
+⚠️ **这处缺口是我写的测试自身的缺陷,由证伪轮抓出,不是被评审抓出。** 登记在此以证:
+「性质测试」这一栏的绿,在本轮之前有一半是空的。
+
 ---
 
 ## 五、未及核查 / 未跑项(如实登记,禁借绿)
 
-1. **`FURN_TYPES` 闭集未兑现**(`O-24-1` / `TD-clinic-01`):生产侧**没有** `IClinicFurnitureTraitsSource` 的实现者。求值器只由测试注入夹具源;哨兵 `ClinicModifierEvaluator.FurnTraitsProductionReady => false` 恒 false,且 `ClinicRoomExtraction.FurnTypeClosureEnforced => false` 有一条 Sim 装配扫描测试(C11)使其**可检测**而不仅可观测。
-   ⇒ **本件不主张「求值器已在生产链路上跑过」** —— 它跑在夹具源上。
+1. ~~**`FURN_TYPES` 闭集未兑现**(`O-24-1` / `TD-clinic-01`):生产侧**没有** `IClinicFurnitureTraitsSource` 的实现者。求值器只由测试注入夹具源;哨兵 `ClinicModifierEvaluator.FurnTraitsProductionReady => false` 恒 false,且 `ClinicRoomExtraction.FurnTypeClosureEnforced => false` 有一条 Sim 装配扫描测试(C11)使其**可检测**而不仅可观测。
+   ⇒ **本件不主张「求值器已在生产链路上跑过」** —— 它跑在夹具源上。~~
+   > 🔁 **2026-10-21 稍后已兑现(S17-4)**:`O-24-1` 落地,生产属性源 =
+   > `Sim/Clinic/ClinicFurnitureTraitsSource.cs`,哨兵翻 **true**。
+   > 本条**作为当时状态的记录保留**;现状见
+   > `production/qa/evidence/impl-s17-4-furniture-catalogue-2026-10-21.md`。
+   > ⚠️ `FurnTypeClosureEnforced` **仍为 false**(默认入口走代理判据,装配层未选真判据)—— 那一条不变。
 2. **「布局 → 房间类型」匹配(ROOM_TABLE 求值)未实现**:`base_env` 由调用方经 `ClinicContextTable.TryGetBaseEnv` 解析后传入;求值器不假装房间匹配已存在。
 3. **IL2CPP 三格 / 跨平台逐位**(ADR-012 矩阵):NOT-RUN,本机仅 Mono。
 4. **数值**(`base_env` / 各 `e_env` / 各 `tier` 分布)未定稿 —— 归用户数值轮;夹具只用 GDD 算例与符号化小值验机制。
@@ -161,6 +245,9 @@
 ---
 
 ## 七、待回填 / 交接
+
+> 🔁 **2026-10-21 补记:本条硬前置 ① 已于同日由 S17-4 兑现**(`FurnTraitsProductionReady` 翻 true)。
+> 原文保留作沿革;story-003 的当前状态见 §八之二。
 
 - **story-001 的 Test Evidence**:三表产物 + 接线门本件已落,须回填至 story-001(`Status` 与 `Test Evidence` 两处),**不得**让 story-003 独占该证据。
 - **story-003 转 `Complete` 的硬前置**:`FURN_TYPES` 闭集(§五 1)。在哨兵仍为 false 时,求值器在生产链路上无输入源。

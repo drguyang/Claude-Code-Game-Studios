@@ -45,9 +45,17 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         private sealed class FakeStructureReadView : IPlacedStructureReadView
         {
             private readonly List<IReadOnlyList<WorldPos>> _instances;
+            private readonly string[] _moduleIds;
 
             public FakeStructureReadView(params IReadOnlyList<WorldPos>[] instances)
+                : this(null, instances)
             {
+            }
+
+            /// <summary>带模块 id 的构造(真判据 `type(c) ∈ FURN_TYPES` 的测试面)。</summary>
+            public FakeStructureReadView(string[] moduleIds, params IReadOnlyList<WorldPos>[] instances)
+            {
+                _moduleIds = moduleIds;
                 _instances = new List<IReadOnlyList<WorldPos>>(
                     instances ?? Array.Empty<IReadOnlyList<WorldPos>>());
             }
@@ -56,6 +64,9 @@ namespace DaYiJingCheng.Tests.ClinicMachine
 
             public IReadOnlyList<WorldPos> GetOccupiedCells(int structureIndex)
                 => _instances[structureIndex];
+
+            public string GetModuleId(int structureIndex)
+                => _moduleIds == null ? null : _moduleIds[structureIndex];
         }
 
         /// <summary>单格棋子的便捷构造(<paramref name="z"/> 区分层)。</summary>
@@ -365,9 +376,16 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_read_view_exposes_no_write_path()
         {
             // 判据三层(全为反射 / 类型层,非源文本 grep):
-            //   ① 只读视图接口的成员 = {StructureCount getter, GetOccupiedCells} —— 恰两个;
+            //   ① 只读视图接口的成员 = {StructureCount getter, GetOccupiedCells, GetModuleId} —— 恰三个;
             //   ② 成员名不含任何写语义词(Place/Remove/Modify/Register/Append/Occupy/Free/Clear/Write);
             //   ③ 析出器**不持状态**(零静态字段)且**只收**该只读视图(参数类型封闭)。
+            //
+            // 🔁 **2026-10-21 改判(O-24-1 兑现轮 —— 此红是被要求的行为,非回归)**:
+            //   原判据钉「恰两个」,`GetModuleId` 加入后本测按设计转红。**改判理由**:AC 第 6 条的
+            //   真意是「视图**只读**、无写通道」(本测 ②③ 两层仍在守它);「恰两个」是当时的**代理**,
+            //   因为当时 `module_id` 尚未被要求。S17-2 起它是 `FURN_TYPES` 成员判据 + 家具属性源的
+            //   必需输入(见 `IPlacedStructureReadView.GetModuleId` 的放行注释)⇒ 闭集表面扩到三个**只读**
+            //   成员,写语义断言零放松。**不是**「测试放宽到能过」:若新成员带任何写语义,② 仍会当场红。
             Type viewType = typeof(IPlacedStructureReadView);
 
             // 属性访问器(get_X / set_X)不单列 —— 由属性名代表;`set_X` 若出现则被下面的
@@ -380,8 +398,10 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 .OrderBy(n => n, StringComparer.Ordinal)
                 .ToArray();
 
-            Assert.That(viewMembers, Is.EquivalentTo(new[] { "GetOccupiedCells", "StructureCount" }),
-                "AC 第 6 条:输入视图的公开面须恰为两个只读成员(多一个 = 多一条写/状态通道)");
+            Assert.That(viewMembers,
+                Is.EquivalentTo(new[] { "GetModuleId", "GetOccupiedCells", "StructureCount" }),
+                "AC 第 6 条:输入视图的公开面须恰为这三个**只读**成员(多一个 = 多一条写/状态通道);" +
+                "新增成员须先判「是否只读」并在本表登记,不得静默放行");
 
             string[] writeTokens =
             {
@@ -403,13 +423,22 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             Assert.That(stateFields, Is.Empty,
                 "析出器须无状态;非 const 静态字段 = 持有建造状态 / 缓存的入口");
 
-            // 参数类型封闭:唯一的公有入参是只读视图(不接受 IEventSink / IWorldOccupancy / 注册表)。
+            // ③b 参数类型封闭:公有入参只能是**只读抽象** ——
+            //     `IPlacedStructureReadView`(结构视图)或 `IReadOnlyCollection<string>`(FURN_TYPES 闭集,
+            //     2026-10-21 随真判据入口加入)。不接受 `IEventSink` / `IWorldOccupancy` / 注册表 / 任何写通道。
+            //    ⚠️ 白名单是**穷举**的:新增入参类型须先判「是否只读」并在此登记,否则本测红。
+            var allowedParams = new[]
+            {
+                typeof(IPlacedStructureReadView),
+                typeof(IReadOnlyCollection<string>),
+            };
             foreach (MethodInfo m in typeof(ClinicRoomExtraction).GetMethods(
                          BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly))
             {
                 foreach (ParameterInfo p in m.GetParameters())
-                    Assert.That(p.ParameterType, Is.EqualTo(typeof(IPlacedStructureReadView)),
-                        $"{m.Name} 的入参 {p.Name} 不是只读视图 —— 24 不得接收写通道");
+                    Assert.That(allowedParams, Does.Contain(p.ParameterType),
+                        $"{m.Name} 的入参 {p.Name} 不在只读白名单内 —— 24 不得接收写通道" +
+                        "(新增只读入参须在本表登记)");
             }
         }
 
@@ -439,6 +468,9 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             public int StructureCount => Cells.Count;
 
             public IReadOnlyList<WorldPos> GetOccupiedCells(int structureIndex) => new[] { Cells[structureIndex] };
+
+            /// <summary>无模块标识 —— 本夹具只服务代理判据。</summary>
+            public string GetModuleId(int structureIndex) => null;
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -599,11 +631,36 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 return;
             }
 
-            Assert.That(ClinicRoomExtraction.FurnTypeClosureEnforced, Is.True,
-                "检测到 FURN_TYPES 闭集的痕迹,而哨兵仍为 false ⇒ 有人落地闭集却忘改哨兵。" +
-                "痕迹:" + string.Join(", ", signals) +
-                " —— 此红是**被要求的行为**(承 O-24-1):落地方须同时把哨兵改为 true," +
-                "并如实登记因代理判据与闭集不等价而转红的既有测");
+            // 🔁 **2026-10-21 改判(O-24-1 兑现轮 —— 承卡面实施约束 ③「届时改判据并如实登记,
+            //    不得静默改绿」)**:旧判据 = 「有痕迹 ⇒ 哨兵必须 true」。它**与本轮的真实状态冲突**:
+            //    闭集已落地(有痕迹),但**析出的默认单参入口仍走代理判据** —— `FurnTypeClosureEnforced`
+            //    的真值此时**就是 false**,把它翻成 true 才是撒谎。
+            //    ⇒ 改为**更锐利**的判据:痕迹存在时,「哨兵仍 false」只有在下面两条**同时机器可查**时
+            //    才合法 —— 否则它退化成了口头承诺:
+            //      ① 生产属性源已就位(`FurnTraitsProductionReady == true`)⇒ 闭集在**评分链**上真被强制;
+            //      ② 真判据入口**存在**(`Extract(view, IReadOnlyCollection<string>)` 重载)⇒ 装配层有路可选。
+            //    ⚠️ 将来若把默认入口也改成真判据 ⇒ 把哨兵改 true,**并删掉本段豁免**。
+            Assert.That(ClinicModifierEvaluator.FurnTraitsProductionReady, Is.True,
+                "检测到 FURN_TYPES 闭集痕迹,但生产属性源未就绪(FurnTraitsProductionReady != true)" +
+                " ⇒ 闭集只在烘焙期强制、运行期无人消费。痕迹:" + string.Join(", ", signals));
+
+            bool hasTruePredicateOverload = false;
+            foreach (MethodInfo m in typeof(ClinicRoomExtraction).GetMethods(
+                         BindingFlags.Public | BindingFlags.Static))
+            {
+                if (m.Name != nameof(ClinicRoomExtraction.Extract)) continue;
+                ParameterInfo[] ps = m.GetParameters();
+                if (ps.Length == 2 &&
+                    ps[0].ParameterType == typeof(IPlacedStructureReadView) &&
+                    ps[1].ParameterType == typeof(IReadOnlyCollection<string>))
+                {
+                    hasTruePredicateOverload = true;
+                    break;
+                }
+            }
+            Assert.That(hasTruePredicateOverload, Is.True,
+                "哨兵仍为 false 的前提 = 真判据入口存在(Extract(view, furnTypes));" +
+                "两者都不成立时哨兵即失去含义 —— 要么补重载,要么把哨兵改 true");
         }
     }
 }

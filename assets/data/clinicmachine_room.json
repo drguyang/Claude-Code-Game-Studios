@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "_note": "Story 001 schema 种子 —— 本表数值 = 夹具值,不是游戏平衡值(房间类型清单与判定谓词逐值归内容轮,OQ-24-3)。ROOM_TABLE = 房间类型的判定谓词(24 拥有,GDD 规则二);房间无独立全局 id,由布局 + 本表派生。判据语言允许邻接子句(GDD 规则二 2026-09-17 复核:房间身份与布局互相牵制)。AC-24-12 分两半:(a) 已实现半边 = 子句类型闭集 + 方向确定性(direction in {+x, +y},与 adj_sum 同源的单向查法,承 ADR-015 五);(b) 另半边 = 子句引用的 type 须 in FURN_TYPES —— 挂 BLOCKED-BY-O-24-1(闭集来源 = 21a 家具目录扩展,实测零落点,TD-clinic-01)。本轮不含 FURN_TABLE / FURN_TYPES。",
+  "_note": "Story 001 schema 种子 —— 本表数值 = 夹具值,不是游戏平衡值(房间类型清单与判定谓词逐值归内容轮,OQ-24-3)。ROOM_TABLE = 房间类型的判定谓词(24 拥有,GDD 规则二);房间无独立全局 id,由布局 + 本表派生。判据语言允许邻接子句(GDD 规则二 2026-09-17 复核:房间身份与布局互相牵制)。AC-24-12 分两半:(a) 已实现半边 = 子句类型闭集 + 方向确定性(direction in {+x, +y},与 adj_sum 同源的单向查法,承 ADR-015 五);(b) 另半边 = 子句引用的 type 须 in FURN_TYPES —— 挂 BLOCKED-BY-O-24-1(闭集来源 = 21a 家具目录扩展,实测零落点,TD-clinic-01)。本轮不含 FURN_TABLE / FURN_TYPES。🔁 2026-10-21 订正:(b) 半边的闭集来源已落地 = assets/data/item_database_furniture.json(21a,FURN_TABLE);生产菜单先烘它、再注入本表的成员资格门,故 (b) 现由烘焙期强制。上文「挂 BLOCKED / 本轮不含」为历史口径,保留不删。",
   "rooms": [
     {
       "room_type": "ward",

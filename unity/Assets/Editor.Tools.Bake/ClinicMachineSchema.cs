@@ -128,7 +128,7 @@ namespace DaYiJingCheng.EditorTools.Bake
 
         /// <summary>FURN_TABLE 的字段形状(AC-24-08 的**已实现半边** —— schema 形状)。
         /// <para>⚠️ 只有**字段与 token 种类**的声明,**不含任何类型闭集值**(闭集 = 21a / O-24-1)。</para></summary>
-        internal static readonly string[] FurnRootKeys = { "schema_version", "_note", "furn" };
+        internal static readonly string[] FurnRootKeys = { "schema_version", "_note", "tier_max", "furn" };
 
         /// <summary>FURN_TABLE 行键白名单(O-24-1 的三字段)。</summary>
         internal static readonly string[] FurnRowKeys = { "type", "tier", "e_env" };
@@ -248,6 +248,12 @@ namespace DaYiJingCheng.EditorTools.Bake
             RejectUnknownKeys(root, FurnRootKeys, "根", fileName, errors);
             ReadSchemaVersion(root, fileName, errors);
 
+            // `tier_max` 可选(缺省 = 本类的具名常数):它是 **21a 声明家** 的字段,
+            // 真文件 `item_database_furniture.json` 必带;形状夹具则可省。声明后按声明值校行。
+            long declaredTierMax = TierMax;
+            if (root.TryGet("tier_max", out JsonNode tierMaxNode) && tierMaxNode.Kind == JsonNodeKind.Integer)
+                declaredTierMax = tierMaxNode.Int;
+
             if (!root.TryGet("furn", out JsonNode rowsNode) || rowsNode.Kind != JsonNodeKind.Array)
             {
                 errors.Add($"{fileName}:缺 furn 数组");
@@ -301,9 +307,9 @@ namespace DaYiJingCheng.EditorTools.Bake
                     errors.Add($"{fileName}:{where}.tier 须为整数字面量(实得 {tierNode.Kind}={tierNode.RawText})" +
                                " —— tier 是 int 计数,移出 Fix 解析集(D-21-17)");
                 }
-                else if (tierNode.Int < 0 || tierNode.Int > TierMax)
+                else if (tierNode.Int < 0 || tierNode.Int > declaredTierMax)
                 {
-                    errors.Add($"{fileName}:{where}.tier={tierNode.Int} ∉ [0, TIER_MAX={TierMax}]" +
+                    errors.Add($"{fileName}:{where}.tier={tierNode.Int} ∉ [0, TIER_MAX={declaredTierMax}]" +
                                " —— GDD F-24-2 档位域(0 = 无档)");
                 }
 

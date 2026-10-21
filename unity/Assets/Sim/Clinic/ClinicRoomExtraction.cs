@@ -30,8 +30,15 @@
 //   · `FURN_TYPES` 闭集**全库零定义**;`FURN_TABLE` 数据文件不存在;
 //     `IFurnTypeSource` **零生产实现**;`build_modules.json`(`module_id` 的目录)同样不存在。
 //     (`TD-clinic-01` 自陈封 001→005 全链入口。)
+//     🔁 **2026-10-21 订正(O-24-1 兑现)**:前两项**已不成立** —— 闭集 = `ClinicFurnitureCatalogue`,
+//     作者态 `assets/data/item_database_furniture.json` → `item_database_furniture.cooked.bytes`;
+//     `IFurnTypeSource` 的生产实现 = `ItemDatabaseFurnitureBake.AsFurnTypeSource`。
+//     仍成立的是 `build_modules.json`(23 的模块目录,`module_id` 的真源)—— 本类只**消费** id,
+//     不产生 id。⇒ 真判据已可求值(见 `Extract(view, furnTypes)`);原文保留为历史口径。
 //   · 闭集落地(`O-24-1`)时:若真判据与代理**不等价**,既有测试须**转红**,届时改判据并如实登记,
 //     **不得静默改绿**(卡面实施约束 ③)。
+//     🔁 **2026-10-21 执行记录**:两条入口并存(默认 = 代理,真判据 = 重载),
+//     C11 检测测已按本条**改判并留痕**(见该测的「2026-10-21 改判」注释)。
 //   · 缺口哨兵:`ClinicRoomExtraction.FurnTypeClosureEnforced == false`(恒 false),
 //     由测试 `test_furn_type_closure_absent_sentinel_false` 钉住 —— 缺席**可观测而非静默**
 //     (承 clinic-001 的缺口哨兵先例)。
@@ -111,17 +118,17 @@ namespace DaYiJingCheng.Sim.Clinic
     {
         // ── 缺口哨兵 ────────────────────────────────────────────────────────────
         /// <summary>
-        /// <c>FURN_TYPES</c> 闭集是否已在生产路径强制 —— **恒 false**(缺口哨兵)。
-        /// <para>false 的含义:本件用**代理判据**(被 `StructurePlaced` 占用的格)代替
-        /// `type(c) ∈ FURN_TYPES`;代理**更宽**,不是等价物(见文件头「甲案代理判据」)。</para>
-        /// <para>⚠️ 闭集落地(`O-24-1`)后,**改判据的同时必须处理本哨兵**:真判据上线后此属性
-        /// 仍为 false = 静默倒退;测试 <c>test_furn_type_closure_absent_sentinel_false</c>
-        /// 届时**转红是被要求的行为**,不得当回归修掉(承 clinic-001 哨兵口径)。</para>
-        /// <para>🔁 2026-10-21(评审 C11):本属性仍是**编译期常量**,单独看只让缺席「可观测」。
-        /// 「可检测」由 <c>test_furn_type_closure_absent_isDetectable_notJustObservable</c> 提供 ——
-        /// 该测扫 <c>Sim</c> 程序集,一旦出现名字含 <c>FurnType</c> 的类型或成员(**本哨兵除外**)
-        /// 而本属性仍为 false,即硬失败。⇒ **闭集落地时类型 / 成员名须带 <c>FurnType</c>**,
-        /// 否则检测不到(该命名约定是本判据的前提,如实登记为已知边界)。</para>
+        /// <c>FURN_TYPES</c> 闭集是否在**本类的默认入口**(<see cref="Extract(IPlacedStructureReadView)"/>)上被强制。
+        /// <para>**恒 false** —— 默认入口至今走**代理判据**(被 `StructurePlaced` 占用的格),
+        /// 代理**更宽**,不是等价物(见文件头「甲案代理判据」)。</para>
+        /// <para>🔁 **2026-10-21(O-24-1 兑现轮)语义收窄**:闭集**已落地**
+        /// (<see cref="ClinicFurnitureCatalogue"/> / `item_database_furniture.cooked.bytes`),
+        /// 真判据**已可求值**并经 <see cref="Extract(IPlacedStructureReadView, IReadOnlyCollection{string})"/>
+        /// 公开;但它**不是**默认入口 ⇒ 本哨兵仍为 false。它现在的唯一含义是
+        /// 「默认入口 = 代理」,**不再**表示「闭集不存在」—— 后者由
+        /// <see cref="ClinicModifierEvaluator.FurnTraitsProductionReady"/> 回答(已 true)。</para>
+        /// <para>⚠️ 把默认入口改成真判据 ⇒ 本属性转 true;测试
+        /// <c>test_furn_type_closure_absent_isDetectable_notJustObservable</c> 的豁免段须同步删除。</para>
         /// </summary>
         public static bool FurnTypeClosureEnforced => false;
 
@@ -133,11 +140,39 @@ namespace DaYiJingCheng.Sim.Clinic
         {
             if (view == null) throw new ArgumentNullException(nameof(view));
 
-            // ── 1. S = 被占用的格集(去重)──────────────────────────────────────
             // 外壳格 / 空地板格在本视图中**无表示** —— 二者都不是 `StructurePlaced` 的产物,
             // 因此在 23 的只读视图里**同样缺席**。这与 GDD 规则一的「非格」分类一致
             // (不计分、不参与连通);析出判据不需要区分「壳格」与「空地板」。
-            HashSet<WorldPos> membership = CollectFurnitureCells(view);
+            return ExtractFromMembership(CollectFurnitureCells(view));
+        }
+
+        /// <summary>
+        /// 真判据版析出:<c>S = { c | type(c) ∈ FURN_TYPES }</c>(GDD `:161` 逐字)。
+        /// <para>🔁 **2026-10-21 新增(O-24-1 兑现)**:闭集终于有生产来源
+        /// (<see cref="ClinicFurnitureCatalogue"/>),故真判据**可求值**。语义与
+        /// <see cref="Extract(IPlacedStructureReadView)"/>(代理版)的**唯一差别** = 成员判据:
+        /// 代理版把「凡被 `StructurePlaced` 占用的格」都算家具格,**更宽**(非家具结构会混进 S,
+        /// 既可能把两个家具簇桥接成一个房间,也可能把 `|S|` 撑过 `n_max`)。</para>
+        /// <para>⚠️ **不等价**,所以两条入口并存而非改写代理版:代理版是 story-002 已验收的行为,
+        /// 改它会静默改变既有测试的语义(卡面实施约束 ③「不得静默改绿」)。生产装配层应选**本条**;
+        /// 选哪条是装配层的接线,尚未落地 ⇒ 哨兵 <see cref="FurnTypeClosureEnforced"/> 仍为 false。</para>
+        /// </summary>
+        /// <param name="view">23 的只读结构视图(须实现 <see cref="IPlacedStructureReadView.GetModuleId"/>)。</param>
+        /// <param name="furnTypes">`FURN_TYPES` 闭集(来自 <see cref="ClinicFurnitureCatalogue"/>;
+        /// null ⇒ 退回代理版,即等价于单参重载)。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="view"/> 为 null。</exception>
+        public static ClinicRoomExtractionResult Extract(
+            IPlacedStructureReadView view, IReadOnlyCollection<string> furnTypes)
+        {
+            if (view == null) throw new ArgumentNullException(nameof(view));
+            if (furnTypes == null) return Extract(view);
+            return ExtractFromMembership(CollectFurnitureCells(view, furnTypes));
+        }
+
+        /// <summary>析出的单一实现体(两条入口共用 —— 成员判据之外的每一步都不许分叉)。</summary>
+        private static ClinicRoomExtractionResult ExtractFromMembership(HashSet<WorldPos> membership)
+        {
+            // ── 1. 空布局 ────────────────────────────────────────────────────
             if (membership.Count == 0)
             {
                 // EC-24-01:开局空医馆 —— 无连通格集 ⇒ ROOM_NONE。**不是错误**。
@@ -187,6 +222,38 @@ namespace DaYiJingCheng.Sim.Clinic
                     membership.Add(occupied[j]);
             }
             return membership;
+        }
+
+        /// <summary>
+        /// 汇集 S(真判据版):只收 `type(c) ∈ FURN_TYPES` 的实例的格(GDD `:161`)。
+        /// <para>⚠️ 与代理版的**唯一**差别在成员判据;实例报告序 / 格序仍由后续规范排序吸收。</para>
+        /// <para>模块 id 为 null / 空 = 无模块标识 ⇒ `type(c)` 无从谈起 ⇒ **排除**
+        /// (不是「随便算家具」;GDD 的判据是「属于闭集」,无从证明属于即不属于)。</para>
+        /// </summary>
+        private static HashSet<WorldPos> CollectFurnitureCells(
+            IPlacedStructureReadView view, IReadOnlyCollection<string> furnTypes)
+        {
+            var membership = new HashSet<WorldPos>();
+            int structureCount = view.StructureCount;
+            for (int i = 0; i < structureCount; i++)
+            {
+                if (!IsFurnType(view.GetModuleId(i), furnTypes)) continue;
+
+                IReadOnlyList<WorldPos> occupied = view.GetOccupiedCells(i);
+                if (occupied == null) continue;
+                for (int j = 0; j < occupied.Count; j++)
+                    membership.Add(occupied[j]);
+            }
+            return membership;
+        }
+
+        /// <summary>`module_id ∈ FURN_TYPES`(序数比较;null / 空 ⇒ false)。</summary>
+        private static bool IsFurnType(string moduleId, IReadOnlyCollection<string> furnTypes)
+        {
+            if (string.IsNullOrEmpty(moduleId)) return false;
+            foreach (string t in furnTypes)
+                if (string.Equals(t, moduleId, StringComparison.Ordinal)) return true;
+            return false;
         }
 
         /// <summary>格的规范全序(x → y → z 升序)。纯比较,无减法(不会因极坐标溢出)。</summary>

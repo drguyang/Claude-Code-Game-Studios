@@ -184,7 +184,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 常量表后共 8 条;第十二片追加遥测参数旋钮表后共 9 条;2026-10-20 补接线追加
         /// 交互种类契约表 + 阴性把握度定表后共 **11** 条;2026-10-20 第二轮接线追加处方表 / 处置轴 /
         /// 53 判定表 / 53 延迟表后共 **15** 条;2026-10-21 S17-3 AC-5 接线追加 48 教学内容后共 **16** 条;
-        /// 2026-10-21 S17-2 前置追加 24 医馆三表后共 **19** 条 —— 与 `Preload()` 的
+        /// 2026-10-21 S17-2 前置追加 24 医馆三表后共 **19** 条;同轮 O-24-1 追加 21a 家具目录后共 **20** 条
+        /// —— 与 `Preload()` 的
         /// `Ensure*` 调用数逐一相等,由 `test_preloader_list_sources_matchPreloadedProducts` 钉住)。</summary>
         internal static readonly string[] DataCoreAddresses =
         {
@@ -212,6 +213,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
             AddressablesDataProvider.ClinicContextAddress,
             AddressablesDataProvider.ClinicAdjAddress,
             AddressablesDataProvider.ClinicRoomAddress,
+            // 21a 家具目录(O-24-1 兑现:`FURN_TYPES` 闭集的运行期载体,2026-10-21)。
+            AddressablesDataProvider.FurnitureCatalogueAddress,
         };
 
         /// <summary>地址是否可被 Addressables 解析(遍历 ResourceLocators 的 Locate)。</summary>

@@ -17,6 +17,9 @@
 // ⚠️ 本接口**只出格**,刻意不出现 `module_id` / `orientation` / `structure_id`:
 //   · `module_id` + `orientation` 是 S17-2(类型匹配 / ROOM_TABLE 子句求值)的输入 ——
 //     本 story 的 6 条 AC **不含**类型匹配,提前放进来 = 提前造接缝(卡面实施约束 ④);
+//     🔁 **2026-10-21 订正**:`module_id` 已放行(见 <see cref="IPlacedStructureReadView.GetModuleId"/>)
+//     —— S17-2 已开工,它成了**被要求的输入**(`FURN_TYPES` 闭集成员判据 + 家具属性源)。
+//     `orientation` 仍缺席(归 ROOM_TABLE 子句求值,尚未落地)。上半段保留为历史口径。
 //   · `structure_id` 是**写入顺序**的产物(`Register` 自增),不是布局的函数 ——
 //     让它进入析出会使 room id 依赖建造历史而非布局,破坏「同一布局 ⇒ 同一 room id」(AC 第 5 条)。
 //
@@ -51,5 +54,18 @@ namespace DaYiJingCheng.Sim.Clinic
         /// 调用方不得退化成「逐格查 `GetInstanceAt` / `GetModuleAt`」。
         /// </remarks>
         IReadOnlyList<WorldPos> GetOccupiedCells(int structureIndex);
+
+        /// <summary>第 <paramref name="structureIndex"/> 件结构实例的**模块 id**(`module_id`)。
+        /// <para>🔁 **2026-10-21(S17-2 / O-24-1)放行**:文件头原写「本接口刻意不出 `module_id`」——
+        /// 那是 story-002 的边界(其 6 条 AC 不含类型匹配,提前放进来 = 提前造接缝)。S17-2 起
+        /// `module_id` 是**已被要求的输入**:① `FURN_TYPES` 闭集的成员判据 `type(c) ∈ FURN_TYPES`
+        /// (GDD `:161`);② `IClinicFurnitureTraitsSource` 的生产实现靠它查 `tier(c)` / `e_env(type)`。
+        /// ⇒ 本条**不是**提前造接缝,是 S17-2 自己的输入面。`orientation` 仍**不在**本接口 —
+        /// 它属 `ROOM_TABLE` 子句求值(尚未落地),届时另行放行。</para>
+        /// <para>⚠️ 实现方契约:返回该实例的模块目录键(`build_modules.json` 的 id)。
+        /// 返回 <c>null</c> / 空串 = 该实例**无模块标识** ⇒ 下游按「不在任何家具闭集内」处理
+        /// (不是错误,但是**排除**而非「随便算家具」)。</para></summary>
+        /// <param name="structureIndex">`[0, StructureCount)` 内的下标。</param>
+        string GetModuleId(int structureIndex);
     }
 }

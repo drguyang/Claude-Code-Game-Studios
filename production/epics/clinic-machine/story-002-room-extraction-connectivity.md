@@ -131,7 +131,10 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/ClinicMachine/clinic_room_extraction_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Created & passing — **22 个测试函数**(`grep -c "\[Test\]"` 与 `grep -c "public void test_"` 同为 22)
+> 🔁 **2026-10-21 订正**:本行原为建 story 时的占位 `[ ] Not yet created`,与事实相反(文件已存在且全绿)。
+> 原文「21 测」(本文件 §Completion Notes 与 `impl-sprint17-batch1-2026-10-21.md:32`)为**陈旧记账** ——
+> `review-sprint17-batch1-2026-10-21.md:211` 记的 **22 测**才与盘上一致。
 
 ---
 
@@ -150,6 +153,15 @@
   反证 M3(注入 instance-as-cell)⇒ 恰 2 条红。提供方半边归系统 23。
 - ADVISORY — `FurnTypeClosureEnforced` 仍是编译期常量 `false`;`O-24-1` 落地改判据时须同时处理该哨兵,否则零测试转红。
   另:本批**已修**壳格夹具(原夹具无判别力 —— 评审 A3-3),现以「空足迹实例」表达壳格并与无壳格基线逐项比对。
+  <br>🔁 **2026-10-21 稍后已处理(S17-4 · `O-24-1` 兑现)**:闭集来源落地,真判据入口
+  `Extract(view, furnTypes)` 已提供且已证。**但本应急转红的两条哨兵测并未转红** —— 默认单参入口
+  仍走代理判据(改它会静默改变本 story 已验收的行为,承约束 ③「不得静默改绿」)⇒
+  `FurnTypeClosureEnforced` 的真值**就是 `false`**。C11 检测测的判据已按卡面授权**改判并如实登记**
+  (新判据 = 痕迹存在时,哨兵 false 仅在 `FurnTraitsProductionReady == true ∧ 真判据重载存在` 时合法),
+  见 `production/qa/evidence/impl-s17-4-furniture-catalogue-2026-10-21.md` §七 1。
+  ⚠️ **实施约束 ③ 的「既有测试须转红」这一步,实际以「改判据」兑现而非「转红后修改」** —— 形态不同,故在此显式登记。
+  **仍未落**:装配层尚未选真判据入口(选哪条是装配层接线)。
 **Test Evidence**: Logic — `unity/Assets/Tests/EditMode/ClinicMachine/clinic_room_extraction_test.cs`(21 测)
   + 证伪 2 例(F1 对角并查 / M3 instance-as-cell),见 `production/qa/evidence/review-sprint17-batch1-2026-10-21.md` §六之一
+  <br>🔁 **2026-10-21 订正**:实测 **22 测**(非 21)。原文保留作沿革。
 **Code Review**: Complete — `production/qa/evidence/review-sprint17-batch1-2026-10-21.md`(APPROVED WITH SUGGESTIONS,0 BLOCKING)

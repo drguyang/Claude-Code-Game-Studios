@@ -7,6 +7,10 @@
 //   21a 家具目录的 `type` / `tier` / `e_env` 三列已双侧登记、零实现)。
 //   ⇒ 本接口是那条缺口的**注入缝**:求值器只依赖抽象,生产实现者**当前不存在**
 //     (`FurnTraitsProductionReady == false` 哨兵),测试注入夹具源。
+//   🔁 **2026-10-21 订正(S17-4 · `O-24-1` 兑现)**:`FURN_TABLE` 已落地于
+//     `assets/data/item_database_furniture.json`(21a);生产实现者 =
+//     <see cref="ClinicFurnitureTraitsSource"/>,哨兵已翻 **true**。
+//     上文「全库不存在 / 当前不存在」为历史口径,保留不删。
 //
 // ⚠️ 三值分类是刻意的(禁二值 bool):
 //   `Furniture` / `NonFurniture` / `Unknown` 三分让「这格不是家具」与「我不知道这格是什么」
