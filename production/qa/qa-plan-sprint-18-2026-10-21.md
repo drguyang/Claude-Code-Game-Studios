@@ -102,6 +102,18 @@
 > **第三条(非本裁,但同属 S18-1 实现面)**:F4 昏迷支把 combatant 全排除
 > (`LethalFor` 与 `SelfLimited` 对 combatant 双关)⇒ 敌人/兽永远进不了昏迷,与 C1「归零 = 昏迷,可救治」
 > 及该行自带注释「自限型 combatant 归零 = 昏迷,不死」矛盾;转移表 `:570` 同一行**没有这两门**。两处渲染不一致。
+> ✅ **第三条已修(2026-10-21,commit `ee12668`)**:F4 昏迷支改为**无谓词门**
+> (`昏迷 ← position_agg ≥ COMA_THRESHOLD ∧ 存活`),`SelfLimited` 收窄为**只服务死亡支**;
+> 转移表 `:570` 与 F4 恢复一致。**判据 = 昏迷支公式里零 `LethalFor` / 零 `SelfLimited`**。
+>
+> ### 依赖面四条已核(2026-10-21 侦察 · 详见「未及核查项」2 / 4 / 5 行 + 其下连带后果)
+>
+> | 依赖 | 状态 | 对 AC 面的影响 |
+> |---|---|---|
+> | ① `DiseaseRegistryEntry.Kind` 字段 | ✅ 涟漪**有界**,不拆批 | 加字段 + 1 条 `R1_CHECK_31` + 22 处夹具赋值。⚠️ **零值须不可用**(见连带后果 ①),否则 22 处静默变 `injury` |
+> | ③ `DeathCandidate` 产出路径 | ✅ 形状**已在 story-001 定形** | 进程内接口 `IDeathCandidateSource`,**不是流 Kind**。AC ⑦ 判据 = 生产树有实现 + 29 侧注入点。⚠️ **`AC-29-13` 的「Kind 集」措辞与 registry 冲突**(连带后果 ②),读法 A/B 须裁 |
+> | ⑤ `IsCombatant(entity)` 的 entity 类型 | ✅ **已裁 = A**(用户 2026-10-21) | `Sim.Contracts` 新增 `ActorClass` enum `{Player=0, HumanEnemy=1, Beast=2}`。⚠️ **须同批加注 ADR-025 §①:112** 成员清单(连带后果 ③) |
+> | 既有测试的语义 | ⚠️ **11 条钉的是改前语义** | `ComputeTransition` 生产调用点 = 0、5 参 4 未用、判死无条件 ⇒ `test_deathTakesPrecedenceOverComa` / `test_comaTakesPrecedenceOverCritical` **须改写**,否则测不出谓词 |
 
 ---
 
@@ -207,11 +219,23 @@ S18-3 是纸面件,判据是命令输出。
 | # | 项 | 为什么没核 | 影响 |
 |---|---|---|---|
 | 1 | ~~**战伤白名单闭集内容**~~ ✅ **已核(2026-10-21 `OQ-S18-1` 裁)** | 原:全库无定义,须用户裁定 | **已解除** —— 闭集 = 双条件 `lethal(d) ∧ d ∈ {INJ_STAB, INJ_LACERATION, INJ_HEMORRHAGE, INJ_CLAW, INJ_BITE}`(`death-and-respawn.md` 规则二订正注 + `OQ-29-7` 结案行)。**替代未及项(同档)**:破例关闭玩家昏迷支 · 白名单伤情越 `DEATH_THRESHOLD` 的校验缺口(R1.3 十七条无此项) |
-| 2 | **`kind` 字段进 `DiseaseRegistryEntry` 的涟漪面** | 规划轮只确认「字段不存在」,未测加字段会红哪些既有门(registry 17 条校验 / cooked codec / 既有数据) | 若涟漪超「加一个字段」⇒ S18-1 须拆批;**实施前必须先测** |
+| 2 | **`kind` 字段进 `DiseaseRegistryEntry` 的涟漪面** ✅ **已核(2026-10-21)** | 原:规划轮只确认「字段不存在」,未测加字段会红哪些既有门(registry 17 条校验 / cooked codec / 既有数据)。**实测**:现有字段 **23 个**无 `Kind`;构造点 **生产 2**(`CompositionRoot.cs:666` / `CompositionRootServices.cs:265`,均 `DiseaseKey="fallback"` 占位)· **测试 20**;**cooked 编码器零**(`Sim.Codec/` + `Editor.Tools.Bake/` 对该类型零命中);**`disease_registry.json` 不存在**(registry 全由 C# 构造,不经 ADR-014 烘焙);**机械门零**(`Editor.Tools.Gates/` 零命中);**反射面零**(无 `typeof(DiseaseRegistryEntry)` / 无字段数断言);引用测试 **17 件**;校验常量 **`R1_CHECK_01…30` = 30 个**(⚠️ `registry_bake_test.cs:3` 自称「17 条」= 既有不一致,**不是本件要修的东西**) | **结论 = 有界,不拆批**。加字段 = ① 字段声明 ② 一条新 `R1_CHECK_31` ③ 20 处测试夹具显式赋值 ④ 2 处 fallback。**不动二进制格式、不触机械门、不触 ADR-025 清单** |
 | 3 | **`Folded` 的程序集归属** | 见 S18-2 末的架构前置;须实施前裁定 | 定不下来则 S18-2 不可开工 |
-| 4 | **`DeathCandidate` 的产出路径形状** | 规划轮只确认「全树零命中」,未读 29 的消费侧契约形状 | S18-1 的 AC ⑦⑧ 判据待实施期定形 |
-| 5 | **`IsCombatant(entity)` 的 entity 类型** | `Sim.Contracts` 内无 `ActorId` / 实体类别类型(实测零命中) | 谓词签名待定;可能需要新建类型 ⇒ 触及 ADR-025 清单 |
+| 4 | **`DeathCandidate` 的产出路径形状** ✅ **已核(2026-10-21)** | 原:规划轮只确认「全树零命中」,未读 29 的消费侧契约形状。**实测**:`DeathCandidate` / `PlayerDeathWarranted` / `IDeathCandidateSource` 三者在 `.cs` 全树 **0 命中**、`entities.yaml` **0 命中** ⇒ **它不是 `SimEvent.Kind`(35 个已登记 Kind 里没有它),不进任何流**。**契约形状已在盘上,在 story-001 里**:`story-001:48`「`IDeathCandidateSource`(**9 侧提供**)→ 29 的 `OnDeathCandidate(playerId, tick)`;29 内部只有『转发 + 发射 + 编排后续』,**无生命值读取路径**」· `death-and-respawn.md:90`「29 只消费一个**布尔** `PlayerDeathWarranted(actor)`」· `story-004:47` 管线序 `DeathCandidate → DeathAllowed 门 → PlayerDied` ⇒ **形状 = 进程内接口,不是事件** | **S18-1 的 AC ⑦⑧ 判据可定形**:判据 = 生产树存在 `IDeathCandidateSource` 实现 + 29 侧注入点;`WriterExistenceGate.cs:98` 的 `PlayerDied` 条目判的是**写者**不是 candidate 源,两者不可混记 |
+| 5 | **`IsCombatant(entity)` 的 entity 类型** ✅ **已核(2026-10-21)· 形状已裁 = A** | 原:`Sim.Contracts` 内无 `ActorId` / 实体类别类型(实测零命中)。**实测补全**:`PlayerId` 类型**全库不存在**(`PayloadCommon.cs:13-14` 自陈;玩家 id 一律裸 `int`)· `EntityKind`/`DownClass` 住 `EnemyBehaviorProgram.cs:26-27` 且是 **`string`**(校验只查非空,`:52`)· `ActorClass` 住 `CombatActionSchema.cs:25` 也是 **`string`**(`:58` 只查非空)· 类别查询面(`IsEnemy`/`IsCombatant`/`ActorCategory`/`IsPlayer`)全树零命中 · **`ai_enemy.json` 不存在**(`EntityKind` 的数据载体还没有)。**三条候选**中用户 **2026-10-21 裁定取 A** = `Sim.Contracts` 新增 `ActorClass` enum `{ Player=0, HumanEnemy=1, Beast=2 }` + `IsCombatant(ActorClass)` | 谓词签名**已定**;⚠️ **须同步加注 ADR-025 §①:112 的 `Sim.Contracts` 成员清单**(新增类型);⚠️ **零值 = `Player`** ⇒ 见下方「第六条」的漏填陷阱 |
 | 6 | **IL2CPP 矩阵** | 本机可跑 x64-Mono / x64-IL2CPP 两格,ARM64 目标不存在;CI 常驻 job 缺凭证(`TD-ci-01`,EXTERNAL) | 矩阵级,非本件个体判据;不得声称跨平台 |
+
+### 2 / 4 / 5 三行核完后的**连带后果**(新登记 · 2026-10-21 · 禁当已结)
+
+> **定位**:上面 2 / 4 / 5 三行从「未核」转「已核」,**不是把问题消掉了** —— 每一条核完都露出
+> 一件**实施期必须解决、且没有任何机械门会替你发现**的东西。按「原文不删,就地加注」纪律,
+> 三条**新增**在此,不替换上面任何一行。
+
+| # | 连带后果 | 判据(可复算) | 为什么是陷阱 |
+|---|---|---|---|
+| **①** | **`Kind` 零值静默陷阱** | `DiseaseRegistryEntry` 全部用**命名初始化器**构造 ⇒ 新字段默认值 = **0**。若 `Kind` 定为 `{ Injury = 0, Disease = 1, Poison = 2 }`,则**全部 22 处构造点静默变成 `injury`** —— 现有 8 病种夹具(`cold` / `fever` / `DIS_SYNTH_FIXTURE` …)一夜之间被当成伤情 | **没有任何东西会报错**。加字段这一步"编译通过 + 全量回归绿"是**必然**的,而语义已经错了 ⇒ 典型借绿形态。**须让零值不可用**:`Unspecified = 0` 由 `R1_CHECK_31` 直接拒收,强制 22 处逐处显式赋值 |
+| **②** | **`AC-29-13` 的「Kind 集」措辞与 registry 冲突** + **11 条既有测试要改写** | ①`death-and-respawn.md:519` 写「29 的**输入 Kind 集 ⊆ {`DeathCandidate`}**」,但 `DeathCandidate` **不在 `entities.yaml` 的 35 个 Kind 里** ⇒ 两种读法:**A** = 措辞错误,应改「输入**源**集 ⊆ {`IDeathCandidateSource`}」(`PlayerDied` 是**输出**不是输入,AC 仍成立);**B** = 补登为流 Kind,则与 `:90` 的「只消费一个**布尔**」直接冲突且 9→29 多一条流写入(有界性论证要重做)。读法 A 与其余全部原文一致(`story-001:48` / `:90` / `story-004:47`),读法 B 只与 `:519` 一处措辞一致。②`StateMachine.ComputeTransition` **生产调用点 = 0**(唯一生产命中是它自己的声明 `StateMachine.cs:74`;9 处调用全在 `state_machine_death_test.cs`),签名 5 参**4 个完全未用**(`:75-79`),判死**无条件**(`≥ DEATH_THRESHOLD ⇒ Deceased`,无 `LethalFor`/无 `SelfLimited`/无实体参数/无干预窗口) | 既有 11 条测试钉的是**改前语义**:`test_deathTakesPrecedenceOverComa`(`DEATH+100` ⇒ 无条件 `Deceased`)、`test_comaTakesPrecedenceOverCritical`(`COMA+100` ⇒ 无条件 `Coma`)。S18-1 落地后**这两条必须改写成带实体的形态**,否则要么测不出谓词、要么直接红 ⇒ **S18-1 的测试侧涟漪,须进 AC 面** |
+| **③** | **`ActorClass` 新类型须加注 ADR-025 §①:112** | 用户 2026-10-21 裁定取 **A** = `Sim.Contracts` 新增 `ActorClass` enum `{ Player=0, HumanEnemy=1, Beast=2 }` + `IsCombatant(ActorClass)`。该 enum 与 25 的 `actor_class` 闭集(`combat-and-weapon-lines.md:1154`)**逐值相同**;但 `Player=0` 是**零值** ⇒ 漏填静默变玩家 | `Sim.Contracts` 的成员清单是 **ADR-025 §①:112** 的表格行(现列 `WorldPos` · 八抽象点 · `SimEvent`/`PatientId`/`StreamId`/`EventKind` · `VitalsDto` · `Fix`+`FixParse` · `IDataProvider` · `AudioCueDto`+`IAudioCueSink` · `IPositionalChannel` · `ClinicEnvDto`+`IClinicEnvQuery`)⇒ 新增类型**须同批加注该行**,否则清单与实际装配分叉。⚠️ 无机械门校验该清单(`Editor.Tools.Gates/AssemblyGates.cs` 只校验**引用集**,不校验**成员表**)⇒ 分叉**不会转红** |
 
 ---
 
@@ -230,6 +254,9 @@ S18-3 是纸面件,判据是命令输出。
 - [ ] 代码评审完成(`/code-review`)
 - [ ] **不得**把本 sprint 的绿引作 M3 进展;分母变化须写清方向(**清债 `73 → 71`**,非新增)
 - [ ] 「未及核查项」6 条在收口时**逐条更新状态**(已核 / 仍未核 + 原因),**不得静默消失**
+      —— 🔁 **2026-10-21 现状**:1 / 2 / 4 / 5 **四行已核**,3(`Folded` 程序集归属)与 6(IL2CPP 矩阵)**仍未核**;
+      2 / 4 / 5 三行核完**新露出三条连带后果**(零值静默陷阱 · `AC-29-13` 措辞冲突 + 11 条既有测试 · ADR-025 清单加注),
+      收口时须**连同这三条**一并更新状态 —— **已核 ≠ 已解决**
 
 ---
 
