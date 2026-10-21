@@ -1,7 +1,7 @@
 # Story 006: 房间类型匹配(ROOM_TABLE 子句求值)+ AC-24-03
 
 > **Epic**: 医馆即机器
-> **Status**: Ready
+> **Status**: Complete  <!-- 原 `Ready` —— 2026-10-21 实现轮(用户指令「story-006 实现」);原文保留 -->
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
@@ -45,17 +45,17 @@ story-003 的 6 条 AC(01 / 01b / 02 / 四条配套)**不含**房间匹配 —�
 
 *From GDD `design/gdd/clinic-machine.md`, scoped to this story:*
 
-- [ ] AC-24-03:空布局 / 未匹配任何房间类型 ⇒ 输出中性 `(EnvMod, EquipMod) = (0, 0)`(ROOM_NONE 基例,EC-24-01 / EC-24-02)
+- [x] AC-24-03:空布局 / 未匹配任何房间类型 ⇒ 输出中性 `(EnvMod, EquipMod) = (0, 0)`(ROOM_NONE 基例,EC-24-01 / EC-24-02)
   <br>载体须**双向**:① 空布局(EC-24-01);② 有家具但谓词全不成立(EC-24-02)—— 两者**分别**一测,
   不得只测一个就宣称覆盖(EC-24-01 是 EC-24-02 的特例,反向不成立)。
-- [ ] 三种子句类型各有判据:`min_count`(类型计数 ≥ min)· `has_type`(存在性)· `adjacency_min_count`(方向性邻接计数 ≥ min)
+- [x] 三种子句类型各有判据:`min_count`(类型计数 ≥ min)· `has_type`(存在性)· `adjacency_min_count`(方向性邻接计数 ≥ min)
   <br>载体 = 每种至少一正一反;`adjacency_min_count` 须有**方向反例**(把邻居放在 −x 侧 ⇒ 不计数,与 `adj_sum` 单向查法同源)。
-- [ ] 谓词 = **子句合取**:全部子句成立才匹配;任一子句不成立 ⇒ 不匹配(不得「部分匹配」)
-- [ ] **多匹配裁决 = 声明序首个匹配**(2026-10-21 用户裁定 · GDD `OQ-24-7` 登记待裁)
+- [x] 谓词 = **子句合取**:全部子句成立才匹配;任一子句不成立 ⇒ 不匹配(不得「部分匹配」)
+- [x] **多匹配裁决 = 声明序首个匹配**(2026-10-21 用户裁定 · GDD `OQ-24-7` 登记待裁)
   <br>载体 = 构造一个**同时满足两个房间类型**的布局,断言胜出者 = `ROOM_TABLE.Rooms` 中**行序靠前**那个;
   并配**缺口哨兵**(见下)使该裁决**可观测而非静默**。
-- [ ] 匹配是**纯函数**:同一布局 + 同一表两次求值逐位相同;不持有缓存、不读墙钟 / 表现态(ADR-016 §一)
-- [ ] 邻接子句的 `type` / `neighbor_type` 在匹配期**只读表**;未知类型不抛(由 story-001 烘焙门保证闭集),匹配期按「不成立」处理并**可观测**
+- [x] 匹配是**纯函数**:同一布局 + 同一表两次求值逐位相同;不持有缓存、不读墙钟 / 表现态(ADR-016 §一)
+- [x] 邻接子句的 `type` / `neighbor_type` 在匹配期**只读表**;未知类型不抛(由 story-001 烘焙门保证闭集),匹配期按「不成立」处理并**可观测**
 
 ---
 
@@ -154,4 +154,58 @@ story-003 的 6 条 AC(01 / 01b / 02 / 四条配套)**不含**房间匹配 —�
 
 ## Completion Notes
 
-**Completed**: —
+**Completed**: **2026-10-21**  <!-- 原值 `—`(未完成);原文保留 -->
+
+**Criteria**: **6/6 passing**(AC-24-03 双向 + 子句三型 + 合取 + 多匹配定序 + 纯函数 + 未知类型可观测)
+**Test Evidence**: Logic —— `unity/Assets/Tests/EditMode/ClinicMachine/clinic_room_matcher_test.cs`(**24 测**)
+**Code Review**: 未跑(`production/review-mode.txt` = `lean`;`/code-review` 未执行 —— 如实登记,不主张已评审)
+
+### 落地
+
+| 文件 | 状态 |
+|---|---|
+| `unity/Assets/Sim/Clinic/ClinicRoomMatcher.cs` | 新建(生产实现,门 A 零引擎) |
+| `unity/Assets/Tests/EditMode/ClinicMachine/clinic_room_matcher_test.cs` | 新建(24 测) |
+| `tools/falsify/specs/s17-6-clinic-room-matcher.json` | 新建(6 自动变异 + 1 手动) |
+| `production/qa/evidence/impl-s17-6-room-matcher-2026-10-21.md` | 证据原件 |
+
+**零既有文件改动** —— 纯新增。
+
+### 证伪轮(S12-4 · BLOCKING)
+
+**7/7 恰如预期**(6 自动 exactRed + 1 手动复验),受保护路径指纹未变:
+
+| 变异 | 形态 | 停用 ⇒ 转红 |
+|---|---|---|
+| M1 | ① 定序 | 声明序首个 → 最后者胜 ⇒ 多匹配 2 测红 |
+| M2 | ③ 定义域收窄 | 合取 → 只看首子句 ⇒ 4 测红 |
+| M3 | ③ 定义域收窄 | `+x` 单向 → 双向 ⇒ −x 方向反例红 |
+| M4 | ③ 定义域收窄 | 删 `HasRoom == false` 短路 ⇒ 2 条 ROOM_NONE 测红 |
+| M5 | ③ 定义域收窄 | 邻接 `neighbor_type` 引用不计数 ⇒ 1 测红 |
+| M6 | ③ 定义域收窄 | 格属性 `Unknown` 静默跳过 ⇒ 1 测红 |
+| M7(手动) | ⑤ 一次性 / 无缓存 | 引入跨调用缓存 ⇒ `test_purity_noCache_acrossDifferentLayouts` 红 |
+
+⚠️ **M7 未走自动驱动** —— 缓存需三处改动,超出「单行替换」方法论;驱动里标 `skip: true`
++ `_manualProof`,改 → 跑 → 还原全在同一轮内完成,`sha256sum -c` 逐字节通过(未用 `git checkout`)。
+⚠️ **M6 首版形态编译失败**(`if (false) throw` ⇒ switch 段落穿透)⇒ 换形「`Unknown` 单开 `break`」后
+恰 1 条转红。教训已写进 spec 的 `_note_on_form`。两处均见证据件 §3.2 / §3.3。
+
+### 回归
+
+`4315 / 4279 / 0 / 36` @ 2026-10-21 13:50–13:52 CST · commit `09340e6`+工作树
+(`unity/Logs/s17-6-full-editmode.xml`)。基线 `4291 / 4255 / 0 / 36` @ 12:38
+⇒ **+24 / +24 / 0 / 0**;集合差「新增 24 · 消失 0」⇒ **零回归**。
+
+### 偏离 / 自陈边界(禁借绿)
+
+- **`OQ-24-7` 未裁** —— 只有暂定裁决(声明序首个)。哨兵 `MultiMatchPolicyIsProvisional => true`;
+  裁定后须转 `false` + 改实现 + 哨兵测试**转红即提醒**,不得静默改绿。
+- **AC-24-03 的「⇒ `(0,0)` 中性输出」这一半由 story-003 承担** —— 本件只产出 `room_type` /
+  `ROOM_NONE`,不改 `ClinicModifierEvaluator` 签名。两件合起来才是完整的 AC-24-03。
+- **M4 的承重面是诊断契约,不是返回值** —— 删短路不改变返回值,只让 `UnknownClauseTypeCount`
+  从 0 变非零。卡面证伪表原写「⇒ EC-24-01 测红」,在本实现形态下由「诊断全零」这一条断言承载。
+- **M7 只能钉住「缓存泄漏」** —— 一个按 `RoomId` 正确分键的缓存不可观测。
+- **「未知类型」在本件被拆成两件**:① 布局里没有该类型的格 ⇒ 不成立 + 可观测(**本件**);
+  ② 该类型不在 `FURN_TYPES` 闭集 ⇒ **烘焙期**判据(归 story-001),匹配期无从判定,本件不假装判定。
+- **未接线到装配根** —— 生产装配选哪条 `Extract` 入口尚未落地,归后续接线轮。
+- **IL2CPP 腿未跑** —— 零跨平台新增面;矩阵级证据仍引用 ADR-012 §Validation 的 2026-09-24 实跑。

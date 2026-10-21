@@ -1,0 +1,118 @@
+{
+  "name": "S17-6 clinic-machine story-006 —— 房间类型匹配(ROOM_TABLE 子句求值)+ AC-24-03",
+  "mode": "EditMode",
+  "filter": "ClinicRoomMatcherTest",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期)。",
+    "⚠️ 驱动只读 --guard 参数(不读本文件的 guards 字段)⇒ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "本批 6 个自动变异 + 1 个手动变异(purity,行替换无法表达 —— 见 M7 的 skip 记录)。",
+    "⚠️ **预期是本轮先写死的推演值,不是实跑抄来的**(承 README「不得把实得抄进 exactRed」)。实跑后若不符,须先论证「为什么某条该红/不该红」再改预期,并在 _expectRed_justification 里留下论证。",
+    "基线(2026-10-21 13:4x):ClinicRoomMatcherTest 全绿 24/24(第 1 跑 XML = unity/Logs/s17-6-matcher-1.xml)。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-declarationOrderLastWins",
+      "file": "unity/Assets/Sim/Clinic/ClinicRoomMatcher.cs",
+      "line": 172,
+      "expect": "                if (firstMatch == null) firstMatch = def.RoomType;",
+      "replace": "                firstMatch = def.RoomType; // FALSIFY-M1:改成「声明序最后者胜」",
+      "expectRed": [
+        "test_multiMatch_declarationOrderFirstWins",
+        "test_multiMatch_reversedDeclarationOrder_winsTheOtherOne"
+      ],
+      "exactRed": true,
+      "_why": "定序类(OQ-24-7 暂定裁决 = 声明序首个)。改成「最后者胜」⇒ 两条多匹配测**方向相反**,必然一起红:正序夹具的首个是 ward、反序夹具的首个是 wardish,任一定序被颠倒两条都翻。其余测都只有**唯一**匹配 ⇒ firstMatch 与遍历方向无关 ⇒ 不受影响(这正是 exactRed 的判别面)。",
+      "_expectRed_justification": "推演:① 多匹配测 2 条(正序 / 反序)必然红;② test_conjunction_partialMatch_isNotCountedAsMatched 只有 ward 匹配 ⇒ 绿;③ test_purity_sameInputsTwice 两次都取最后者 ⇒ 仍逐位相同 ⇒ 绿。故预期恰 2 条。"
+    },
+    {
+      "name": "M2-conjunctionOnlyFirstClause",
+      "file": "unity/Assets/Sim/Clinic/ClinicRoomMatcher.cs",
+      "line": 245,
+      "expect": "            IReadOnlyList<ClinicRoomClause> clauses = def.Clauses;",
+      "replace": "            IReadOnlyList<ClinicRoomClause> clauses = def.Clauses; if (clauses.Count > 0) return ClauseHolds(clauses[0], typeByCell); // FALSIFY-M2:合取收窄为「只看首子句」",
+      "expectRed": [
+        "test_conjunction_onlyOneClauseHolds_doesNotMatch",
+        "test_conjunction_partialMatch_isNotCountedAsMatched",
+        "test_clause_adjacency_neighbourOnMinusX_doesNotMatch",
+        "test_clause_adjacency_neighbourOnMinusY_doesNotMatch"
+      ],
+      "exactRed": true,
+      "_why": "定义域收窄类(合取语义)。⚠️ **本变异的形态是「只看首子句」而不是字面的 `&&`→`||`** —— 后者在单行替换下表达不出(`return false;` 之后仍会落到函数末尾的 `return true;`,导致「无子句成立」也判成立 = 另一个缺陷,判别面反而不清)。「只看首子句」是丢弃合取的**可观测等价失败**:任一房间只要有**一条**子句成立就被判匹配。",
+      "_expectRed_justification": "推演逐条:① conjunction_onlyOneClauseHolds —— combo 首子句 = min_count bed≥1(成立)⇒ 由 false 变 true ⇒ 红;② conjunction_partialMatch —— surgery 首子句 = has_type surgery_table(成立)⇒ MatchedRoomCount 由 1 变 2 ⇒ 红;③ adjacency_neighbourOnMinusX —— surgery 首子句 = has_type surgery_table(成立)⇒ 由 false 变 true ⇒ 红;④ adjacency_neighbourOnMinusY —— herb_room 首子句 = min_count herb_cabinet≥1(成立)⇒ 红。**不该红的**:clause_minCount_oneBed(ward 首子句就是 min_count bed≥2,仍 false)、roomNone_furniturePresentButNoPredicateHolds(同上)、adjacency_plusX / plusY(首子句本就成立,结论不变)、multiMatch 两条(首子句仍成立)、purity 两条。故预期恰 4 条。"
+    },
+    {
+      "name": "M3-adjacencyTwoDirections",
+      "file": "unity/Assets/Sim/Clinic/ClinicRoomMatcher.cs",
+      "line": 315,
+      "expect": "                if (cell.X < int.MaxValue && HasTypeAt(typeByCell, new WorldPos(cell.X + 1, cell.Y, cell.Z), neighbourType)) return true;",
+      "replace": "                if (cell.X < int.MaxValue && HasTypeAt(typeByCell, new WorldPos(cell.X + 1, cell.Y, cell.Z), neighbourType)) return true;\n                if (cell.X > int.MinValue && HasTypeAt(typeByCell, new WorldPos(cell.X - 1, cell.Y, cell.Z), neighbourType)) return true; // FALSIFY-M3:+x 改成双向",
+      "expectRed": [
+        "test_clause_adjacency_neighbourOnMinusX_doesNotMatch"
+      ],
+      "exactRed": true,
+      "_why": "定义域收窄类(邻接方向)。GDD 规则二 2026-09-17 复核逐字要求邻接子句的方向「同 adj_sum 的 +x/+y 单向查法」。加 -x 反向 ⇒ 邻居放在 −x 侧也成立 ⇒ 方向反例由 false 变 true。",
+      "_expectRed_justification": "推演:只动 PlusX 分支 ⇒ 只影响 +x 的方向反例(1 条)。+y 的方向反例由 M3 不覆盖(归 M2 的红集),这是刻意的 —— 两个方向各有一条独立载体,改动哪个方向就只红对应那条。plusX 正例仍绿(它的邻居本来就在 +x)。"
+    },
+    {
+      "name": "M4-roomNoneShortCircuitRemoved",
+      "file": "unity/Assets/Sim/Clinic/ClinicRoomMatcher.cs",
+      "line": 149,
+      "expect": "            if (!room.HasRoom) return false;",
+      "replace": "            // FALSIFY-M4:删 ROOM_NONE 短路(诊断契约随之失效)",
+      "expectRed": [
+        "test_roomNone_emptyLayout_returnsFalse",
+        "test_roomNone_twoClusters_returnsFalse"
+      ],
+      "exactRed": true,
+      "_why": "定义域收窄类 / AC-24-03 的**可观测面**。⚠️ 本变异**不会**改变返回值(空 RoomCells 下子句本来就全不成立)—— 它改变的是**诊断**:ROOM_NONE 时不再短路 ⇒ 未知类型引用计数被点亮 ⇒ 两条 ROOM_NONE 测的最后一条断言(`UnknownClauseTypeCount == 0`)转红。这正是卡面证伪表「删 `HasRoom == false` 短路 ⇒ EC-24-01 测红」在**当前实现形态**下的唯一承重面,须如实登记。",
+      "_expectRed_justification": "推演:① emptyLayout —— 表 ward 两条子句都引用 bed,布局无任何格 ⇒ 计数 = 2 ≠ 0 ⇒ 红;② twoClusters —— RoomCells 空(EC-24-07)⇒ 同上 = 1(表只有 min_count bed 一条)⇒ 红;③ roomNone_furniturePresentButNoPredicateHolds 的 HasRoom 为 true ⇒ 短路本就没走到 ⇒ 绿。故预期恰 2 条。"
+    },
+    {
+      "name": "M5-unknownTypeUnobservable",
+      "file": "unity/Assets/Sim/Clinic/ClinicRoomMatcher.cs",
+      "line": 236,
+      "expect": "                    if (clause.NeighborType != null && !present.Contains(clause.NeighborType)) count++;",
+      "replace": "                    // FALSIFY-M5:邻接子句的 neighbor_type 引用不再计入(未知类型变成静默)",
+      "expectRed": [
+        "test_unknownType_doesNotBlockOtherRooms_andCountsEachRef"
+      ],
+      "exactRed": true,
+      "_why": "AC 第 6 条「未知类型按不成立处理且**可观测**」。删掉 neighbor_type 一侧的计数 ⇒ ghost 房间的 3 条引用只报 2 条 ⇒ 「表写错类型名」与「布局真没摆」重新变得不可区分。",
+      "_expectRed_justification": "推演:只有断言 `UnknownClauseTypeCount == 3` 的那条会红;`test_clause_hasType_absent_doesNotMatch`(期望 1)与 `test_unknownType_doesNotThrow_treatedAsNotSatisfied`(期望 1)走的都是 clause.Type 一侧 ⇒ 不受影响。故预期恰 1 条。"
+    },
+    {
+      "name": "M6-unknownCellLookupSilentlySkipped",
+      "file": "unity/Assets/Sim/Clinic/ClinicRoomMatcher.cs",
+      "line": 208,
+      "expect": "                    default:",
+      "replace": "                    case ClinicCellLookup.Unknown: break; default: // FALSIFY-M6:Unknown 静默跳过",
+      "expectRed": [
+        "test_unknownCellLookup_throws_incompleteSource"
+      ],
+      "exactRed": true,
+      "_why": "与 ClinicModifierEvaluator 同一判据:格属性 `Unknown` = 源不完整,必须硬失败(静默跳过会让子句计数静默少算)。改成「给 `Unknown` 单开一支 `break`」⇒ 该值不再落到 `default` 的 `throw` ⇒ 不抛。",
+      "_note_on_form": "⚠️ **首版形态编译失败,已换形并如实登记**(2026-10-21 第 1 跑):首版把 `throw` 包成 `if (false) throw …`,结果 `default` 分支不再终止 ⇒ C# 报「switch 段落不得穿透」⇒ unity 退出码 6、**零 XML**。驱动判为「未产出结果 XML」并计逃逸(退出码 1)。**这不是判别力缺口,是变异形态本身不合法** —— 换成本形态后重跑。留此记录,防后人重蹈。",
+      "_expectRed_justification": "推演:唯一断言「抛」的测转红;其余测的夹具都不产生 Unknown(要么 Furniture 要么 NonFurniture)⇒ 不受影响。故预期恰 1 条。"
+    },
+    {
+      "name": "M7-purityNoCache",
+      "file": "unity/Assets/Sim/Clinic/ClinicRoomMatcher.cs",
+      "line": 163,
+      "expect": "            for (int i = 0; i < rooms.Count; i++)",
+      "skip": true,
+      "_skipReason": "行替换**无法**表达「引入一个跨调用缓存」—— 缓存必须有存储位,而 Sim 侧当前没有任何可变静态字段(全为 const / readonly),新增字段要改两处(声明 + 读取),超出单行变异的方法论。⇒ 用手动变异复验,记录在下方 _manualProof。本条的 file/line/expect 仅作**占位锚点**(让 check_anchors 能过):它标的是「匹配循环」那一行,不参与自动施加。",
+      "_manualProof": {
+        "what": "在 ClinicRoomMatcher 里加一个静态字段 + 一次读取,让第二次求值直接返回首次结果,然后跑 test_purity_noCache_acrossDifferentLayouts",
+        "command": "见 production/qa/evidence/impl-s17-6-room-matcher-2026-10-21.md §四(含改 → 跑 → 还原的完整命令与 SHA-256 前后值)",
+        "observed": "test_purity_noCache_acrossDifferentLayouts 转红(typeB 得 ward 而非 surgery),其余 23 条保持绿",
+        "restore": "cp 备份回 + sha256sum 与变异前逐字节相同(值见证据件 §四)"
+      }
+    }
+  ]
+}

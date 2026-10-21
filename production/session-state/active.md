@@ -8193,3 +8193,41 @@ readonly 2/2 有效 · s17-4 4/4 有效                 合计 13 变异,**6 个
 ### 本轮自我订正
 上一轮回答 IL2CPP 处置时**照抄了「本机仅 Mono」**,该说法在本机为假且 ADR-012 早已订正过。
 本应在引用任何 NOT-RUN 理由前先核实依据,而非当既有结论继承。
+
+---
+
+## Session Extract — S17-6 story-006 实现(2026-10-21)
+
+**用户指令**:「story-006 实现」
+
+### 交付(纯新增,零既有文件改动)
+| 文件 | 状态 |
+|---|---|
+| `unity/Assets/Sim/Clinic/ClinicRoomMatcher.cs`(+`.meta`) | 新建 —— 生产实现,门 A 零引擎 |
+| `unity/Assets/Tests/EditMode/ClinicMachine/clinic_room_matcher_test.cs`(+`.meta`) | 新建 —— **24 测** |
+| `tools/falsify/specs/s17-6-clinic-room-matcher.json` | 新建 —— 6 自动变异 + 1 手动(M7) |
+| `production/qa/evidence/impl-s17-6-room-matcher-2026-10-21.md` | 证据原件 |
+
+**改动的既有文件(仅状态回写)**:`story-006`(Status/AC 勾/Completion Notes)· `EPIC.md`(行 006)· `sprint-status.yaml`(+S17-6)
+
+### 证伪轮(S12-4):**7/7 恰如预期**
+M1 定序 · M2 合取 · M3 邻接方向 · M4 ROOM_NONE 短路 · M5 未知类型计数 · M6 格属性 Unknown · M7 缓存(手动)
+受保护路径指纹未变;M7 手动变异 `sha256sum -c` 逐字节还原(**未用 git checkout**)。
+
+### 回归(三元组)
+`4315 / 4279 / 0 / 36` @ **2026-10-21 13:50–13:52 CST** · 批次 `S17-6 全量` · commit `09340e6`+工作树
+基线 `4291 / 4255 / 0 / 36` @ 12:38 ⇒ **+24 / +24 / 0 / 0**,集合差「新增 24 · 消失 0」⇒ **零回归**
+
+### 未做 / 未证(禁借绿)
+- **`OQ-24-7` 未裁** —— 哨兵 `MultiMatchPolicyIsProvisional => true`;裁定后须转 `false` + 改实现 + 哨兵测转红即提醒
+- **AC-24-03 的「⇒ (0,0)」半边由 story-003 承担** —— 本件只出 `room_type` / `ROOM_NONE`
+- **M4 承重面是诊断契约**(删短路不改返回值,只让 `UnknownClauseTypeCount` 从 0 变非零)
+- **M7 只能钉「缓存泄漏」**(按 RoomId 正确分键的缓存不可观测)
+- **未接线到装配根** · **IL2CPP 腿未跑**(零跨平台新增面)
+- **Code Review 未跑**(review-mode = lean,如实登记)
+- **未 commit**(用户未指令)
+
+### 本轮的一处自我订正
+M6 首版变异形态(`if (false) throw …`)导致 **switch 段落穿透 = 编译失败**,驱动判「零 XML」计逃逸。
+**这不是判别力缺口,是变异形态不合法** —— 换形「`Unknown` 单开 `break`」后恰 1 条转红。
+教训写进 spec 的 `_note_on_form`。

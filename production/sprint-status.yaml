@@ -103,6 +103,20 @@ stories:
     completed: "2026-10-21"
     note: "承 sprint-16 moved_out(to: sprint-17)。实质已于 2026-10-20 修完(impl-td-player-01-2026-10-20.md;3938/3901/1 → 3940/3904/0/36),只差刷 :213 行动项行。判据 = 债册 :209 `closed` 与 retro 行两处同值可 grep;原文不删,就地加注。✅ 2026-10-21 回写完成,且**不止 :213 一处** —— 全文四处 TD-player-01 现在都带结论::22(回归行,原已写「复跑绿」)· :119(Blocker 表「未解决」行)· :147(结转表「仍 open」行)· :213(行动项 5,加「✅ 已兑现(2026-10-20 · 走「修」这条腿,用户裁定 B)」块 + Deadline 列改 `✅ **已结(2026-10-20)**`)。后两处原文若只刷 :213 会自相矛盾(同一文件里一边写「未解决 / 仍 open」,一边写「已结」)⇒ 就地加注,原文不删;原文关键词(不抵扣 / 要么修 / flaky registry)逐词保留。债册侧 `| TD-player-01 | player-controller | closed | **Y** | R1 |` 同值可 grep。⚠️ `AC-1-33②`(slopeLimit / stepOffset)仍开放,卡 `O-9`,不得读作整条已闭。"
 
+  # ── 中途追加(2026-10-21 用户裁定「立 story-006 认领 AC-24-03」)──
+  - id: "S17-6"
+    name: "clinic-006 房间类型匹配(ROOM_TABLE 子句求值)+ AC-24-03"
+    file: "production/epics/clinic-machine/story-006-room-type-matching.md"
+    priority: must-have
+    status: done
+    owner: "claude"
+    estimate_days: 0          # 复杂度 = S(单文件纯函数 + 24 测)
+    complexity: S
+    depends_on: ["S17-1", "clinic-001", "S17-4"]
+    blocker: ""               # OQ-24-7 未裁 ⇒ 按暂定裁决(声明序首个)实现,哨兵钉住
+    completed: "2026-10-21"
+    note: "立卡缘由 = **AC-24-03 此前无主**(`grep -l AC-24-03 story-*.md` = 空;001–005 五件全不认领)。落点 = `Sim/Clinic/ClinicRoomMatcher.cs`(新)+ `Tests/EditMode/ClinicMachine/clinic_room_matcher_test.cs`(新,24 测)。**零既有文件改动**。证伪 **7/7 恰如预期**(6 自动 exactRed + 1 手动 M7 缓存变异;`sha256sum -c` 逐字节还原,未用 git checkout)。回归 `4315/4279/0/36` @ 13:50–13:52 · 09340e6+工作树,对基线 `4291/4255/0/36` @ 12:38 ⇒ **+24/+24/0/0**,集合差「新增 24 · 消失 0」⇒ 零回归。证据原件 = `production/qa/evidence/impl-s17-6-room-matcher-2026-10-21.md`。⚠️ 三处自陈边界:① **`OQ-24-7` 未裁**(哨兵 `MultiMatchPolicyIsProvisional => true`,裁定后须转 false + 改实现 + 哨兵测转红即提醒);② **AC-24-03 的「⇒ (0,0) 中性输出」由 story-003 承担**,本件只出 `room_type` / `ROOM_NONE`;③ **M4 的承重面是诊断契约**(删 `HasRoom==false` 短路不改变返回值,只让 `UnknownClauseTypeCount` 从 0 变非零)。⚠️ M6 首版变异形态**编译失败**(`if (false) throw` ⇒ switch 段落穿透),换形后恰 1 条转红 —— 教训写进 spec 的 `_note_on_form`。**Code Review 未跑**(review-mode = lean;如实登记,不主张已评审)。"
+
 # ── 分批(承 CAPACITY-MODEL §3.2:每批 2–4 件 · 并发 ≤ 3)──
 batches:
   - batch: 1
