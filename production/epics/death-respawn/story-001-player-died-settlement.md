@@ -32,7 +32,7 @@
 
 - [ ] AC-29-01(半边,⚠️ BLOCKED-BY-9 整链):29 收到 `DeathCandidate` 信号即发 `PlayerDied`;**夹具以桩注入 DeathCandidate** 验证消费形状;与 9 真件联调前本条不记绿
 - [ ] AC-29-03:空背包玩家死亡仍产生 PlayerDied(无条件路径;掉落清单可为空集)
-- [ ] AC-29-13:29 输入 Kind 集 ⊆ {DeathCandidate} 正向白名单;零非 DeathCandidate 输入订阅(断言 29 的事件源注册表仅含 DeathCandidate)
+- [ ] AC-29-13:29 输入 Kind 集 ⊆ {DeathCandidate} 正向白名单;零非 DeathCandidate 输入订阅(断言 29 的事件源注册表仅含 DeathCandidate) 🔁 **2026-10-21 订正(承 GDD AC-29-13 同日裁定 = 读法 A,原文不删)**:`DeathCandidate` **不是流 `Kind`**(`entities.yaml` 35 个登记 `Kind` 零命中)⇒ 本条的「输入 **Kind** 集」读作「输入**源**集」,判据 = **29 的构造依赖集 ⊆ {`IDeathCandidateSource`}**(本 story `:48` 已定形);「事件源注册表仅含 DeathCandidate」这句**按字面不可判**(该 `Kind` 不存在)⇒ 实际断言形态 = **29 的事件订阅集里零 `DeathCandidate` 类 `Kind` + 零病人身份谓词**。⚠️ **`PlayerDied` 是输出不是输入**,不在本 AC 的输入白名单面内
 - [ ] PlayerDied 路由断言:落世界流、不落病史流(扫流内 Kind 分布;kindgen 生成物核对 entities.yaml)
 - [ ] 装配三分面:结算代码住 `Sim`(门 A 反射断言零 UnityEngine)、PlayerDied→1 的消费信号住边界、呈现订阅在 `Gameplay.Presentation`
 - [ ] 主机唯一 Append:客户端侧无 PlayerDied 铸造路径(29 的上行 = 格/意图,非结算)
