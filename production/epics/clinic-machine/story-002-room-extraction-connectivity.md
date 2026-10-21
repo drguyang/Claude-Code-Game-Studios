@@ -131,10 +131,15 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/ClinicMachine/clinic_room_extraction_test.cs` — must exist and pass
-**Status**: [x] Created & passing — **22 个测试函数**(`grep -c "\[Test\]"` 与 `grep -c "public void test_"` 同为 22)
+**Status**: [x] Created & passing — ~~**22 个测试函数**~~ **23 个测试函数**(`grep -c "\[Test\]"` 与 `grep -c "public void test_"` 同为 23)
 > 🔁 **2026-10-21 订正**:本行原为建 story 时的占位 `[ ] Not yet created`,与事实相反(文件已存在且全绿)。
 > 原文「21 测」(本文件 §Completion Notes 与 `impl-sprint17-batch1-2026-10-21.md:32`)为**陈旧记账** ——
 > `review-sprint17-batch1-2026-10-21.md:211` 记的 **22 测**才与盘上一致。
+> 🔁 **2026-10-21 第二次订正(QA 签核轮)**:实测 **23 测**。第 23 条 =
+> `test_countComponents_xAtIntMax_noPhantomUnionFromWraparound`(`git diff` 工作树新增件,
+> 承载 int64 极值下「不产生幻影并集」的守卫)。⇒ **22 → 23**,原文加删除线保留。
+> 溯源:`2026-10-21 16:51 CST` · 批次 `sprint-17 QA 签核轮全量 EditMode` · `e0ad379`+工作树 ·
+> `4350/4314/0/36`(集合差 **新增 3 · 消失 0**)。
 
 ---
 
@@ -161,7 +166,9 @@
   见 `production/qa/evidence/impl-s17-4-furniture-catalogue-2026-10-21.md` §七 1。
   ⚠️ **实施约束 ③ 的「既有测试须转红」这一步,实际以「改判据」兑现而非「转红后修改」** —— 形态不同,故在此显式登记。
   **仍未落**:装配层尚未选真判据入口(选哪条是装配层接线)。
-**Test Evidence**: Logic — `unity/Assets/Tests/EditMode/ClinicMachine/clinic_room_extraction_test.cs`(21 测)
+**Test Evidence**: Logic — `unity/Assets/Tests/EditMode/ClinicMachine/clinic_room_extraction_test.cs`(~~21 测~~ **23 测**)
   + 证伪 2 例(F1 对角并查 / M3 instance-as-cell),见 `production/qa/evidence/review-sprint17-batch1-2026-10-21.md` §六之一
   <br>🔁 **2026-10-21 订正**:实测 **22 测**(非 21)。原文保留作沿革。
+  <br>🔁 **2026-10-21 第二次订正(QA 签核轮)**:实测 **23 测**(非 22)。新增第 23 条 =
+  `test_countComponents_xAtIntMax_noPhantomUnionFromWraparound`。**22 → 23**。
 **Code Review**: Complete — `production/qa/evidence/review-sprint17-batch1-2026-10-21.md`(APPROVED WITH SUGGESTIONS,0 BLOCKING)

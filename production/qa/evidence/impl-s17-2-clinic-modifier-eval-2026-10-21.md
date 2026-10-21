@@ -61,7 +61,14 @@
 | 属性未知 ⇒ 硬失败(禁静默跳过) | ✅ | ✅ | `:191-194` | `test_clinic_traitsUnknown_throwsInsteadOfSkipping` |
 | 表只读视图不可强转改写 | ✅ | ✅ | `ClinicMachineTables.cs:98 / :362` | `test_clinic_contextTable_rows_notCastableToArray` / `test_clinic_roomTable_rooms_notCastableToArray` · **反证 R1/R2** |
 
-**测试载体**:`unity/Assets/Tests/EditMode/ClinicMachine/clinic_modifier_eval_test.cs`(**25 测**)· `clinic_machine_cooked_codec_test.cs`(18 测,含 2 条只读视图)· `unity/Assets/Tests/EditMode/DataPipeline/provider_wiring_gate_test.cs`(11 测)。
+**测试载体**:`unity/Assets/Tests/EditMode/ClinicMachine/clinic_modifier_eval_test.cs`(~~**25 测**~~ **28 用例位** = `[Test]=24` + `[TestCase]=4`)· `clinic_machine_cooked_codec_test.cs`(18 测,含 2 条只读视图)· `unity/Assets/Tests/EditMode/DataPipeline/provider_wiring_gate_test.cs`(11 测)。
+> 🔁 **2026-10-21 QA 签核轮补记**:**25 → 28** —— 补 `CheckedAdd` 守卫本体三条载体
+> (`sumOverflowUpper_throws` / `sumOverflowLower_throws` / `sumExactlyMax_doesNotThrow`),
+> 结清本件自陈的「`CheckedAdd` 守卫零载体」。证伪 **CA-M1 / CA-M2 / CA-M3 三条全 EXACT**
+> (CA-M3 为 2026-10-21 补跑:`ca-m3.xml` = 28/27/1 恰红 `sumExactlyMax_doesNotThrow`,
+> 还原后 28/28/0,还原 sha256 逐字节一致)。
+> ⚠️ 本件是**实现轮证据原件**,补记不改其原判定 —— 三条新测属**签核轮**动作,另见
+> `production/qa/qa-signoff-sprint-17-2026-10-21.md` §2。
 > 🔁 **18 → 25(2026-10-21 性质测试补写轮)**:评审 BLOCKING Q7 的处置(用户裁定「选 C」)。
 > 新增 7 个用例位,见 §八 之二。原文 18 保留作沿革。
 

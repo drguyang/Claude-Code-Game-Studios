@@ -128,7 +128,12 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/Casebook/casebook_sort_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: ~~[ ] Not yet created~~ **[x] Created & passing — 16 个测试函数**
+> 🔁 **2026-10-21 订正(QA 签核轮)**:本行为**建 story 时的占位**,与事实相反 ——
+> 文件早已存在且全绿,本文件 §Completion Notes(`:172`)自己也记了「16 测」,**同一文件内自相矛盾**。
+> 实测:`grep -c '^\s*\[Test\]' unity/Assets/Tests/EditMode/Casebook/casebook_sort_test.cs` = **16**。
+> 原文加删除线保留(承「原文不删」)。
+> 溯源:`2026-10-21 16:51 CST` · 批次 `sprint-17 QA 签核轮全量 EditMode` · `e0ad379`+工作树 · `4350/4314/0/36`。
 
 ---
 

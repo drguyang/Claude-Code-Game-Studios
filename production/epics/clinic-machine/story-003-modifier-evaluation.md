@@ -97,6 +97,10 @@
   <br>⚠️ **仍未证的一步(禁借绿)**:上面的改写**没有**新增「直接测 `CheckedAdd` 本体」的夹具 ——
   评审建议的第一条路(测守卫本体而非经求值器)未做。当前 `CheckedAdd` 的越界分支
   **无独立载体**,只有经求值器的两条越域夹具(它们打到的是 clamp 而非守卫)。登记为剩余缺口。
+  <br>🔁 **2026-10-21 已关闭(QA 签核轮 + CA-M3 补跑轮)**:上述缺口**已补齐** ——
+  新增 3 条载体经 `ClinicEnvModOf` 触达 `CheckedAdd` 的两个 `throw` 分支与 `>`/`>=` 边界,
+  且**三条证伪全 EXACT**(CA-M1 上界 / CA-M2 下界 / CA-M3 边界),逐条「删/改守卫 ⇒ 恰一红」。
+  **原文保留作沿革**(它如实记录了缺口存在的那个时点)。
 
 ---
 
@@ -168,7 +172,20 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/ClinicMachine/clinic_modifier_eval_test.cs` — must exist and pass
-**Status**: [x] Created & passing(2026-10-21 · **25 测**)
+**Status**: [x] Created & passing(2026-10-21 · ~~**25 测**~~ **28 用例位** = `[Test]=24` + `[TestCase]=4`)
+  <br>🔁 **2026-10-21 订正(QA 签核轮)**:25 → **28 用例位**。新增 3 条 `CheckedAdd` 守卫载体
+  (`sumOverflowUpper_throws` / `sumOverflowLower_throws` / `sumExactlyMax_doesNotThrow`),
+  承载 AC 第 6 条「每处乘加均经显式域守卫」的**守卫本体** —— 此前全树 `grep CheckedAdd` 零命中
+  (即本件 `:97-99` 自陈的「仍未证的一步」)。证伪 **CA-M1 / CA-M2 / CA-M3 三条全 EXACT**
+  (各 28 中恰 1 红,命中预期名)。
+  <br>🔁 **2026-10-21 CA-M3 补跑(签核条件 C-2 结清)**:原记「未跑 ⇒ NOT-RUN」**已消解** ——
+  变异 `:284` 的 `>` → `>=` ⇒ `unity/Logs/ca-m3.xml` = **28 / 27 / 1**,
+  恰红 `test_clinic_envMod_sumExactlyMax_doesNotThrow`(与**跑前预登记**一致);
+  还原后复跑 `ca-m3-restored.xml` = **28 / 28 / 0**;还原 `sha256` 逐字节一致(`33032f88…`)。
+  失败原文:`OverflowException: 4611686018427387904 + 4611686018427387903 越出 int64 上界`
+  —— 两数之和恰为 `long.MaxValue`,正是被 `>=` 误判的边界。
+  ⇒ `>`/`>=` 边界守卫**可记「已由变异反证」**。详见 `qa-signoff-sprint-17-2026-10-21.md` §4.1。
+  原文 25 为补写前实测值,**保留作沿革**。
   <br>全量回归(性质测试补写轮)· 三元组 `2026-10-21 10:55 CST` · `性质测试补写轮` · `15fcda8` + 未提交改动:
   `unity/Logs/s17-2-property-full.xml` = **`4272 / 4236 / 0 / 36`**;对照 `S17-4` 基线 `4265 / 4229 / 0 / 36`(`10:17`)
   ⇒ `fullname` 集合差 **新增 7 · 消失 0**,7 条全为本轮性质测 ⇒ **零回归**。
@@ -263,7 +280,7 @@
 | 表 | `Sim/Clinic/ClinicMachineTables.cs`(CONTEXT / ADJ / ROOM 三表 + 只读视图) |
 | 解码 | `Gameplay.Presentation/ClinicMachineCookedCodec.cs` |
 | 接线 | `AddressablesDataProvider` 三 address / 三 `Load<T>` / 三 `Ensure*` / `Preload()` · `DataCorePreloader` 16→19 · `data-core` 组 19 条 |
-| 测试 | `clinic_modifier_eval_test.cs` **25 测**(🔁 原 18,2026-10-21 性质测试补写 +7)· `clinic_machine_cooked_codec_test.cs` **18 测** · `provider_wiring_gate_test.cs` **11 测** |
+| 测试 | `clinic_modifier_eval_test.cs` ~~**25 测**~~ **28 用例位**(🔁 原 18 → 25 为性质测试补写 +7;**25 → 28** 为 QA 签核轮补 `CheckedAdd` 守卫载体 +3)· `clinic_machine_cooked_codec_test.cs` **18 测** · `provider_wiring_gate_test.cs` **11 测** |
 
 ### 证伪轮(S12-4 · 9 变异全 `exactRed`)
 

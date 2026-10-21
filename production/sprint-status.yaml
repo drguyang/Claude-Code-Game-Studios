@@ -113,9 +113,46 @@ stories:
     estimate_days: 0          # 复杂度 = S(单文件纯函数 + 24 测)
     complexity: S
     depends_on: ["S17-1", "clinic-001", "S17-4"]
-    blocker: ""               # OQ-24-7 未裁 ⇒ 按暂定裁决(声明序首个)实现,哨兵钉住
+    blocker: ""               # ✅ OQ-24-7 已于 2026-10-21 裁定「转正:声明序首个匹配」⇒ 原「未裁」解除
     completed: "2026-10-21"
-    note: "立卡缘由 = **AC-24-03 此前无主**(`grep -l AC-24-03 story-*.md` = 空;001–005 五件全不认领)。落点 = `Sim/Clinic/ClinicRoomMatcher.cs`(新)+ `Tests/EditMode/ClinicMachine/clinic_room_matcher_test.cs`(新,24 测)。**零既有文件改动**。证伪 **7/7 恰如预期**(6 自动 exactRed + 1 手动 M7 缓存变异;`sha256sum -c` 逐字节还原,未用 git checkout)。回归 `4315/4279/0/36` @ 13:50–13:52 · 09340e6+工作树,对基线 `4291/4255/0/36` @ 12:38 ⇒ **+24/+24/0/0**,集合差「新增 24 · 消失 0」⇒ 零回归。证据原件 = `production/qa/evidence/impl-s17-6-room-matcher-2026-10-21.md`。⚠️ 三处自陈边界:① **`OQ-24-7` 未裁**(哨兵 `MultiMatchPolicyIsProvisional => true`,裁定后须转 false + 改实现 + 哨兵测转红即提醒);② **AC-24-03 的「⇒ (0,0) 中性输出」由 story-003 承担**,本件只出 `room_type` / `ROOM_NONE`;③ **M4 的承重面是诊断契约**(删 `HasRoom==false` 短路不改变返回值,只让 `UnknownClauseTypeCount` 从 0 变非零)。⚠️ M6 首版变异形态**编译失败**(`if (false) throw` ⇒ switch 段落穿透),换形后恰 1 条转红 —— 教训写进 spec 的 `_note_on_form`。**Code Review 未跑**(review-mode = lean;如实登记,不主张已评审)。"
+    note: "立卡缘由 = **AC-24-03 此前无主**(`grep -l AC-24-03 story-*.md` = 空;001–005 五件全不认领)。落点 = `Sim/Clinic/ClinicRoomMatcher.cs`(新)+ `Tests/EditMode/ClinicMachine/clinic_room_matcher_test.cs`(新,24 测)。**零既有文件改动**。证伪 **7/7 恰如预期**(6 自动 exactRed + 1 手动 M7 缓存变异;`sha256sum -c` 逐字节还原,未用 git checkout)。回归 `4315/4279/0/36` @ 13:50–13:52 · 09340e6+工作树,对基线 `4291/4255/0/36` @ 12:38 ⇒ **+24/+24/0/0**,集合差「新增 24 · 消失 0」⇒ 零回归。证据原件 = `production/qa/evidence/impl-s17-6-room-matcher-2026-10-21.md`。⚠️ 三处自陈边界:① ~~**`OQ-24-7` 未裁**(哨兵 `MultiMatchPolicyIsProvisional => true`,裁定后须转 false + 改实现 + 哨兵测转红即提醒)~~ 🔁 **2026-10-21 已解除** —— 用户裁定「转正:声明序首个匹配」,哨兵已转 `false`(`ClinicRoomMatcher.cs:120`),哨兵测已翻转(`:445` 断言 `Is.False`);② **AC-24-03 的「⇒ (0,0) 中性输出」由 story-003 承担**,本件只出 `room_type` / `ROOM_NONE`;③ **M4 的承重面是诊断契约**(删 `HasRoom==false` 短路不改变返回值,只让 `UnknownClauseTypeCount` 从 0 变非零)。⚠️ M6 首版变异形态**编译失败**(`if (false) throw` ⇒ switch 段落穿透),换形后恰 1 条转红 —— 教训写进 spec 的 `_note_on_form`。**Code Review 未跑**(review-mode = lean;如实登记,不主张已评审)。"
+    # ── 2026-10-21 补齐轮(用户指令「补齐」· 三项裁定)──
+    # ① OQ-24-7 **已裁** = 「转正:声明序首个匹配」⇒ 哨兵 true→false、哨兵测翻转、
+    #    另配 test_multiMatch_policyIsProvisional_isDetectable 双向等价断言。
+    #    ⚠️ 同轮订正:「声明序」在运行期 = **产物行序**(ClinicMachineCookedWriter.cs:123 按
+    #    room_type 序数排序 ⇒ 实际 herb_room, surgery, ward),不是 JSON 手写序。
+    # ② 全链真接线(含 23 侧)已落:ClinicRoomMatchingService + CompositionRoot 装配段 +
+    #    StructureInstanceRegistry.EnumerateInstances() + BuildModulesCatalog + StructureInstanceReadView
+    #    + DataCookedDisk + e2e 11 测。证据 = impl-s17-6-wiring-2026-10-21.md
+    # ③ Code Review **已补做**(三路:lead-programmer / qa-tester / unity-specialist),
+    #    原件 = review-s17-6-room-matcher-2026-10-21.md;⚠️ 不追认原实现轮判定。
+    # ⚠️ 本轮自查发现并修掉**三处漏登**(均由接线引入,都会让既有门转红或让生产启动抛 E-13):
+    #    BuildModulesAddress 未进 DataCoreAddresses ⇒ 两条既有门红;build_modules.cooked.bytes
+    #    不在 data-core Addressables 组 ⇒ Preload() 无条件调 EnsureBuildModules() 会炸。
+    #    修后四处闭合 21/21/21/21。
+    # ⚠️ 仍未证:TD-building-01 的 **World 半边**(e2e 用裸 StructureInstanceRegistry,不是 World;
+    #    IsEffectivelyWalkable 端到端未验)· ModuleDefinition.Cost + DemolishChecker 未做 ·
+    #    build_modules 的 Addressables catalog **未重建**(机器本地,承 TD-audio-01f 同款机制)。
+    # 🔁 **2026-10-21 末轮订正(两条原登记被本轮自身推翻)**:
+    # ① ~~cooked 产物不进 player ⇒ player 载体第二段 Inconclusive~~ ⇒ **推翻**:cooked 产物**已经**
+    #    随 data-core Addressables 组进 player;首版 3 条 Inconclusive 是**夹具设计错误**
+    #    (AssembleCore 在 dataProvider==null 时无条件读 Assets/DataCooked/,与 structures 无关),已修。
+    # ② **IL2CPP 腿已真跑通**:Linux-x64-IL2CPP player **5/5 · 0 Inconclusive · 退出码 0**
+    #    (`unity/Logs/s17-6s-il2cpp-player.xml`)。⚠️ 只跑一格(ARM64 目标不存在;Win/Apple 归发版前)。
+    # ③ 同轮暴露并修掉 4 个**既有** PlayMode 文件的 UnityEditor 裸用(IL2CPP 腿自 2026-10-13 结构性坏)
+    #    ⇒ 立 **TD-testasm-01**(治理面 · partial · 仍缺机械门)。
+    # ④ 全量 EditMode 回归 `4335/4299/0/36` @ 15:49 · e0ad379+工作树,对基线 `4315/4279/0/36`
+    #    ⇒ **+20/+20/0/0**,集合差「新增 20 · 消失 0」= 零回归(+11 e2e + 8 matcher + 1 extraction)。
+    # ⑤ ~~③ 的「仍缺机械门」~~ ⇒ **同日已补**:`Assets/Editor.Tools.Gates/PlayerAssemblyGate.cs`
+    #    (扫 `Assets/Tests/PlayMode/**/*.cs` 的 `UnityEditor` **代码引用**,剥注释 + 剥字符串字面量,
+    #    逐行判 `#if UNITY_EDITOR` 活跃区)接进 `AssemblyGates.RunAll()`,并在
+    #    `gate_wiring_manifest_test.cs` 双表登记;测试 `player_assembly_gate_test.cs` **12 条**。
+    #    ⇒ `TD-testasm-01` 当日 `partial → closed`(债册八订/九订:partial 7→6 · closed 19→20,
+    #    条目 98 / 未闭面 73 / 13-31 分布**一位不动**)。
+    # ⑥ **末轮全量 EditMode 回归** `4347/4311/0/36` @ 16:16 · 工作树,对 ④ 的 `4335/4299/0/36`
+    #    ⇒ **+12/+12/0/0**,集合差「新增 12 · 消失 0」= 零回归;12 条**全部**来自
+    #    `PlayerAssemblyGateTest`(逐 fixture 核过,见 impl 件 §5.5)。
+    #    ⇒ 本 story 三次回归的完整链:`4315 → 4335(+20) → 4347(+12)`,failed / inconclusive 恒 0。
 
 # ── 分批(承 CAPACITY-MODEL §3.2:每批 2–4 件 · 并发 ≤ 3)──
 batches:
@@ -165,13 +202,45 @@ baseline:
                             #    ⇒ 71→**72**。**净变化 0 ≠ 没变**:一条 P0 面债清了,另一条进了册。
                             #    条目数现役 = **96**(非 95)。**本 baseline 块不改数**(它是时点快照,
                             #    改它会让「规划时的分母」与「今日真值」混成一团);现役值以债册 §五 实测为准。
-  editmode_current: "4086 / 4050 / 0 / 36"   # 2026-10-21 05:08 CST · sprint-16 收口记账轮 · 6855ba7
+                            # 🔁 **2026-10-21 再订(S17-6 接线轮后)**:`TD-building-01` 入册(六订)⇒ 未闭面 72→**73**;
+                            #    本轮再增 `TD-testasm-01`(七订 · 治理面 · `P0 面 = N`)⇒ 条目 97→**98**,
+                            #    但 **未闭 P0 面仍 73 一位不动**(治理债不计入 P0 面分母)。
+                            #    ⇒ 现役 = `条目 98 | {open:71, partial:7, closed:19, done:1} | P0 面 {Y:88, N:9} | 未闭面 73`。
+                            # 🔁 **2026-10-21 九订(`TD-testasm-01` 当日结案)**:`partial 7→6` · `closed 19→20`;
+                            #    条目 98 / Y 88 / **未闭面 73** / epic 分布 13/31 **全部一位不动**。
+                            #    ⇒ 现役 = `条目 98 | {open:71, partial:6, closed:20, done:1} | P0 面 {Y:88, N:9} | 未闭面 73`。
+                            #    ⚠️ 结案的是**治理面**债,不抵扣任何 P0 面项 —— 「73」不变是**对**的,不是漏刷。
+  editmode_current: "4350 / 4314 / 0 / 36"   # 2026-10-21 16:51 CST · sprint-17 QA 签核轮全量 EditMode · e0ad379+工作树
+                                             # 🔁 原值 "4086 / 4050 / 0 / 36"(2026-10-21 05:08 CST · sprint-16 收口记账轮 · 6855ba7)保留作沿革
+                                             # 对基线 4347/4311/0/36(s17-6x-full-editmode.xml)⇒ Δtotal=3 Δpassed=3 新增=3 消失=0
   playmode_current: "197 / 197 / 0 / 0"      # 2026-10-21 00:22 CST · sprint-16 收口轮 · f6cdaaf
   # ⚠️ 两值时点不同;EditMode 晚于 PlayMode。跨平台(ADR-012 IL2CPP 三格)仍 NOT-RUN(本机仅 Mono)。<br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。
 
 # ⚠️ 条件清单:本 sprint 规划期为**空**(新 sprint,尚无签核条件)。
-conditions_closed: []
-conditions_open: []
+# 🔁 2026-10-21 QA 签核轮填充 —— 签核件 `production/qa/qa-signoff-sprint-17-2026-10-21.md`
+#    Verdict = **APPROVED WITH CONDITIONS**(4 条条件:C-1 / C-2 / C-3 / C-4)。
+conditions_closed:
+  - id: "C-3"
+    what: "`OQ-24-7` 卡面表述订正 + `EPIC.md` 的 24 测加注"
+    how: "`story-006` 六处 + `EPIC.md:71` 全部 append-only 加注,原文加删除线保留"
+    proven: "`grep -n 'OQ-24-7' production/epics/clinic-machine/story-006-room-type-matching.md` ⇒ 无裸「待裁」"
+  - id: "C-2"
+    what: "跑 CA-M3 证伪轮并落 XML"
+    how: "把 `ClinicModifierEvaluator.cs:284` 的 `>` 改成 `>=`,重跑 `ClinicModifierEvalTest`;跑完立即还原"
+    proven: "`unity/Logs/ca-m3.xml` = **28/27/1**,恰红 `test_clinic_envMod_sumExactlyMax_doesNotThrow`(预登记一致);还原后 `ca-m3-restored.xml` = **28/28/0**;还原 `sha256sum -c /tmp/CME-m3.sha256` 成功(33032f88…)"
+    note: "失败原文 = OverflowException: 4611686018427387904 + 4611686018427387903 越出 int64 上界 —— 两数之和恰为 long.MaxValue"
+conditions_open:
+  - id: "C-1"
+    what: "S17-3 AC 第 2 条转 covered 的前提:`audio_events.json` 补 `teach_*` 键 + 对应 wav;13 的示范片段表落地"
+    why_open: "`CueIdTableReady` / `ClipKeyTableReady` 现为 false;`Assets/Audio/` 37 wav 零 `teach_*`"
+    owner: "cue + wav = 系统 44 · 片段表 = 系统 13"
+    gate: "在此之前该条只能写「代码半边已证 / 内容半边 NOT-RUN」,**不得**写成「AC-48 六条全过」"
+    note: "🔁 2026-10-21:C-2 结清后,本条件是 **verdict 拉档的唯一直接原因**"
+  - id: "C-4"
+    what: "PlayMode 全量套件 + IL2CPP 三格矩阵在 M3 前补齐"
+    why_open: "本 sprint 只证了「Linux-x64-IL2CPP 下这 5 条通过」;ARM64 目标不存在;PlayMode 全量上一值为 197 条"
+    owner: "CI / 发版前"
+    gate: "矩阵级,非本 sprint 个体判据"
   # sprint-16 的 5 条结清条件全部保存在 `production/sprint-status-sprint16-archive.yaml` 的
   # `conditions_closed`(C-1 / C-3 / TD-gate-03 / 债册 §四 总索引回填 / Ecozone·EmergencyIntegerGates 接 BuildGate)。
 

@@ -8231,3 +8231,136 @@ M1 定序 · M2 合取 · M3 邻接方向 · M4 ROOM_NONE 短路 · M5 未知类
 M6 首版变异形态(`if (false) throw …`)导致 **switch 段落穿透 = 编译失败**,驱动判「零 XML」计逃逸。
 **这不是判别力缺口,是变异形态不合法** —— 换形「`Unknown` 单开 `break`」后恰 1 条转红。
 教训写进 spec 的 `_note_on_form`。
+
+---
+
+## Session Extract — S17-6 补齐轮(2026-10-21)
+
+**用户指令**:「补齐」+ 三项裁定(`AskUserQuestion`)
+
+### 三项裁定的落地
+
+| # | 裁定 | 落地 |
+|---|---|---|
+| 1 | `OQ-24-7` **转正:声明序首个匹配** | 哨兵 `true`→`false`;哨兵测翻转;配 `test_multiMatch_policyIsProvisional_isDetectable` 双向等价 |
+| 2 | **全链真接线(含 23 侧)** | 6 新件 + 7 改动件;e2e **11 测**全绿 |
+| 3 | **加 PlayMode 载体 + 真跑 IL2CPP** | 载体 5 测已写;IL2CPP 真跑见下 |
+
+### ⚠️ 本轮自查发现并修掉的**三处漏登**(均由接线引入)
+
+| # | 漏登 | 后果 | 修 |
+|---|---|---|---|
+| 1 | `BuildModulesAddress` 未进 `DataCoreAddresses` | `test_preloader_list_sources_...` **红** | 已补 |
+| 2 | 连带四处基数不等 | `test_wiring_preload_invokesEveryEnsureMethod` **红**(21≠20≠21) | 修后 21/21/21/21 |
+| 3 | `build_modules.cooked.bytes` 不在 `data-core` 组 | `Preload()` 无条件调 ⇒ 生产启动 **E-13 炸** | 已补组条目 |
+
+**⚠️ 为什么之前那条「全绿」是过期的**:`s17-6e-full-editmode.xml` 写于 **14:50:20**,
+`AddressablesDataProvider.cs` 保存于 **14:50:55** ⇒ **XML 早于源文件 35 秒**,跑的是旧版本。
+**该 XML 不得作为「接线后零回归」的证据。**
+
+### ⚠️ IL2CPP 腿:首跑失败,根因在**既有**代码(非本轮)
+
+`Build Finished, Result: Failure.` / 48 errors,全部同一个 `CS0234`,
+分布在 **4 个 2026-10-13/14 入库的 PlayMode 文件**(裸用 `UnityEditor.AssetDatabase`,零守卫):
+
+`sdf_font_render_path_probe_test.cs` · `skeuo_stylesheet_mount_probe_test.cs` ·
+`casebook_reading_inline_test.cs` · `sdf_font_coverage_probe_test.cs`
+
+⇒ **IL2CPP 腿自 2026-10-13 起就是结构性坏的**,与 S17-6 无关。
+用户裁定「就地修 4 个文件 + 重跑」⇒ 已加方法级 `#if !UNITY_EDITOR` 守卫
+(编辑器内行为逐字不变,player 里 `Inconclusive` 短路)。重跑后 C# 编译**零 error CS**。
+
+### 未做 / 未证(禁借绿)
+- **`TD-building-01` 的 `World` 半边未验** —— e2e 用**裸 `StructureInstanceRegistry`**,不是 `World`;
+  `IsEffectivelyWalkable` 端到端**未验** ⇒ 读侧只能算**部分解除**
+- **`ModuleDefinition.Cost` + `DemolishChecker` 从目录读** —— **未做**
+- ~~**cooked 产物不进 player** ⇒ 24 的 player 载体第二段在 player 里 `Inconclusive`~~
+  ⇒ ✅ **2026-10-21 末轮推翻**:cooked 产物**已经**随 `data-core` Addressables 组进 player;
+  首版 3 条 `Inconclusive` 是**夹具设计错误**(`AssembleCore` 在 `dataProvider==null` 时无条件读
+  `Assets/DataCooked/`,与 `structures` 无关),已改为 player 内传 `AddressablesDataProvider`。
+- **`build_modules` 的 Addressables catalog 未重建** —— 机器本地,承 `TD-audio-01f` 同款机制
+- **`+y` 专属变异** —— 已补 M15(评审 B-3 结案)
+- **未 commit**(用户未指令)
+
+### ✅ 末轮补齐(IL2CPP 腿 · 2026-10-21)
+- **IL2CPP player 腿真跑通**:Linux-x64-IL2CPP `5/5 · 0 Inconclusive · 退出码 0`
+  (`unity/Logs/s17-6s-il2cpp-player.xml`,`_APPDOMAIN = IL2CPP Root Domain`)。⚠️ **只跑一格**。
+- **全量 EditMode 回归**(三轮,逐次可复算):
+  `4315/4279/0/36` @ 13:52(基线)→ `4335/4299/0/36` @ 15:49(+20/+20,零回归)
+  → **`4347/4311/0/36` @ 16:16**(+12/+12,零回归;12 条**全部**来自 `PlayerAssemblyGateTest`)。
+  `failed` / `inconclusive` 三次恒 `0 / 0`。中间那次 +20 = +11 e2e + 8 matcher 补测 + 1 extraction 补测(逐名对账)。
+- **同轮暴露的既有缺口**:4 个 PlayMode 文件裸用 `UnityEditor.AssetDatabase` ⇒ IL2CPP 腿
+  自 **2026-10-13** 起结构性坏。已修(方法级 `#if !UNITY_EDITOR`),并立 **`TD-testasm-01`**
+  (治理面 · `partial` · 仍缺**机械门**)。
+- **`ProjectSettings.asset` 已还原**:`Ac29Il2CppSwitch` 留下的 `Standalone: 0` 一行已删,
+  sha256 与备份 `0fc69c20…` 一致,`git diff` 零 diff。
+- **`TD-testasm-01` 当日立债并当日结案** —— 那 4 件的机械门已落
+  `Assets/Editor.Tools.Gates/PlayerAssemblyGate.cs`(扫 `Assets/Tests/PlayMode/**/*.cs` 的
+  `UnityEditor` **代码引用**,逐行判 `#if UNITY_EDITOR` 活跃区;剥注释 + 剥字符串字面量),
+  接进 `AssemblyGates.RunAll()` + `gate_wiring_manifest_test.cs` 双表登记。
+  测试 `player_assembly_gate_test.cs` **12 条**,编译后 **12/12 绿**
+  (`unity/Logs/s17-6v-playasm-gate.xml`)。证伪 **V-PA2 EXACT**(摘守卫三行 ⇒ 恰 2 红)、
+  **V-PA1 过红**(5 红,如实记 `MISMATCH`);两次还原 `sha256` 逐字节相同。
+  ⇒ 债册八订:`partial 7→6` / `closed 19→20`,条目 98 / 未闭面 73 **一位不动**。
+- **锚点全库修复**:`python3 tools/falsify/check_all_anchors.py` ⇒ **18/18 份 spec 全绿**
+  (修 `s17-6` 14 条 + 连带 4 份 spec 的 5 条,均由本轮改生产文件造成)。
+- **`s17-6` 证伪轮复算通过**:锚点修好后重跑驱动 ⇒ **15/15 恰如预期**,退出码 0,
+  还原 `sha256` 逐字节通过,受保护路径指纹未变。
+
+### 证据原件
+`impl-s17-6-wiring-2026-10-21.md`(新)· `review-s17-6-room-matcher-2026-10-21.md`(已回填 §三/§五)
+
+---
+
+## Session Extract — 2026-10-21 · sprint-17 QA 签核轮(`/team-qa sprint`)
+
+### 交付物(4 份新/改)
+| 件 | 路径 | 状态 |
+|---|---|---|
+| **QA 签核** | `production/qa/qa-signoff-sprint-17-2026-10-21.md` | 新 · 290 行 · **APPROVED WITH CONDITIONS** |
+| QA plan 增补 | `production/qa/qa-plan-sprint-17-2026-10-21.md` | 就地增补(260 → 317 行) |
+| 策略草稿 ×2 | `evidence/tmp-qa-sprint17-lead.md` · `-lead-delta.md` | qa-lead 增量轮 + delta 轮 |
+| 签核草稿 | `evidence/tmp-qa-sprint17-signoff-draft.md` | qa-lead 签核轮 |
+
+### 判据实测(全部本轮自跑,非引用)
+- **全量 EditMode**:`2026-10-21 16:51 CST` · `sprint-17 QA 签核轮全量 EditMode` · `e0ad379`+工作树
+  ⇒ **`4350 / 4314 / 0 / 36`**;对基线 `4347 / 4311 / 0 / 36` ⇒ `Δtotal=3 Δpassed=3 新增=3 消失=0`
+  (按 `fullname` 集合差独立复算,非只看计数)。新增 3 条全为 `CheckedAdd` 守卫载体。
+- **S4 清理后复跑**:`ClinicModifierEvalTest` **28/28/0**,编译错误 **0**。
+- **锚点**:`python3 tools/falsify/check_all_anchors.py` ⇒ **18/18 全绿**。
+- **债册独立复算**:`TD-INDEX` 98 条 · `P0=Y` 88 · **未闭 P0 面 = 73**。
+
+### 本轮关闭/结清的缺口
+1. **`CheckedAdd` 守卫零载体**(qa-lead 草稿 K-05 / 缺口 ①)⇒ **已关闭**。
+   3 条新测 + CA-M1/CA-M2 各 **EXACT**(28 中恰 1 红,命中预期名)。⚠️ ~~**CA-M3 未跑(NOT-RUN)**~~
+   🔁 **2026-10-21 补跑结清:EXACT**(28/27/1,恰红 `sumExactlyMax_doesNotThrow`;还原后 28/28/0)。
+2. **三处测数漂移 + 扫出的 5 处漏网**(共 8 处)全部订正,原文加删除线保留:
+   `story-002:134/:172` 22→23 · `story-003:171/:272` 25→28 · `story-006:182/:198` 24→32 ·
+   `casebook:131` `[ ]`→`[x] 16` · `EPIC.md:71` 24→32 · `smoke:158/:161` · `impl-s17-2:64`。
+   **可复算判据**:`grep -rn "[0-9]\+ 测" production/epics/{clinic-machine,casebook,tutorial-onboarding}/ production/qa/ | grep -v "~~"` ⇒ 空。
+3. **`OQ-24-7` 口径订正**:派单说「未裁」**已过期** —— 源码实读 `ClinicRoomMatcher.cs:120` =
+   `MultiMatchPolicyIsProvisional => false`,哨兵测 `:445` 断言 `Is.False`。`story-006` 六处 + `EPIC.md` 已加注。
+4. **DoD 11/11 全勾**,逐条附可复算判据(`sprint-17.md` §Definition of Done)。
+
+### 仍未结(C-1 / C-2 / C-4)
+- **C-1** S17-3 AC 第 2 条内容半边 —— 归 **44(cue+wav)/ 13(片段表)**。
+  ⚠️ **不得**把 `AllSixChecksExecuted == true` 读成「六项内容均就位」。
+- ~~**C-2** **CA-M3 未跑**(中断,`unity/Logs/` 无 `ca-m3-*`)。⇒ S17-2 的 `>`/`>=` 边界守卫
+  **只能记「载体在册且绿」,不得记「已由变异反证」**。~~
+  🔁 **2026-10-21 补跑结清** —— **EXACT**:`:284` 的 `>` → `>=` ⇒ `ca-m3.xml` = **28/27/1**,
+  恰红 `test_clinic_envMod_sumExactlyMax_doesNotThrow`(跑前已预登记);还原后复跑 **28/28/0**;
+  还原 `sha256sum -c` 成功(`33032f88…`)。失败原文 = `OverflowException:
+  4611686018427387904 + 4611686018427387903 越出 int64 上界`(两数之和恰为 `long.MaxValue`)。
+  ⇒ `>`/`>=` 边界守卫**可记「已由变异反证」**。详见签核件 §4.1。
+- **C-4** PlayMode 全量(上一值 197 条,本轮只有 5 测子集)· IL2CPP 三格(ARM64 目标不存在)· CI 常驻(从未跑)。
+
+### 元观察(写进签核件 §8)
+- **§8.1 自我印证**:「测数订正须扫全部引用点」这条教训,在写下它的同一轮里**自己又漏了 2 处**
+  (`story-003:171` / `EPIC.md:71`),写盘后复核才补上 ⇒ 「扫全部」这一步本身也要有判据。
+- **§8.2 输入面的 PARTIAL 比测试面的更难发现**:S17-3 测试全绿、`AllSixChecksExecuted == true`,
+  **绿得毫无异常**;只能靠 `CueIdTableReady == false` 这类结构化哨兵发现。
+
+### 未提交
+本轮全部改动**未 commit、未 push**(承「不经用户指令不 commit」)。
+
+<!-- QA RUN: 2026-10-21 | Sprint: sprint-17 | Verdict: APPROVED WITH CONDITIONS | Report: production/qa/qa-signoff-sprint-17-2026-10-21.md -->

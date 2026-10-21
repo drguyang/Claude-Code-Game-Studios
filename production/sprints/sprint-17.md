@@ -1,6 +1,9 @@
 # Sprint 17 — 2026-10-21 起 · **批 A-1 收口**
 
 **周期**:`2026-10-21` → **`""`**(不设结束日期口径,做完即收,**收口时补记实际收口日** —— 承 sprint-14 `2026-10-18` / sprint-15 `2026-10-20` / sprint-16 `2026-10-21` 同例)
+> 🔁 **2026-10-21 收口**:实际收口日 = **`2026-10-21`**(单日 sprint)。
+> QA 签核 = `production/qa/qa-signoff-sprint-17-2026-10-21.md` · **APPROVED WITH CONDITIONS**(C-1/C-2/C-4 开,C-3 已结)。
+> DoD 11/11 全勾(逐条附可复算判据,见本节 §Definition of Done)。
 **规划依据**:`production/milestones/p0-remaining-roadmap-2026-10-20.md` §6.5:783(段 = **批 A-1 收口**,Exit = **4 件 AC 勾满**)· §6.5 注(`clinic-001` 已于 2026-10-20 本体交付)·
 `production/sprint-status-sprint16-archive.yaml` §`moved_out`(A5 → sprint-17)·
 `docs/architecture/control-manifest.md`(Manifest Version = `2026-10-15`)
@@ -101,7 +104,7 @@
 
 | 元 | 值 | 出处 |
 |---|---|---|
-| **件数** | 计划 **5 件**(4 story + 1 记账)· 计划内完成 0 · 计划外追加 0(待收口记) | 本节 Tasks 表 + `sprint-status.yaml` |
+| **件数** | 计划 **5 件**(4 story + 1 记账)· 计划内完成 0 · 计划外追加 0(待收口记)<br>🔁 **2026-10-21 收口实测**:计划 **5 件** + **计划外追加 1 件**(S17-6,`AC-24-03` 无主补立)· **完成 6/6** · **追加率 20%**(落在预留区间 `[0%, 57%]` 内) | 本节 Tasks 表 + `sprint-status.yaml` |
 | **复杂度分布** | **M × 4** + **S × 1** | §3.2「C」= 依赖数 + 判别力要求(人判);**卡面 6h/6h/4h/3h 仅作参考,不作排期单位** |
 | **追加率预留** | 按实测区间 **[0%, 57%]** 预留额度 ⇒ 批 1 只塞 3 件,留 1 件额度 | §3.1 第三元 |
 | **约束** | 每批 **2–4** 件 · 并发 **≤ 3** · 每件须有**可证伪判据**(回退即转红)才计入 done | §3.2 三条 |
@@ -183,18 +186,41 @@
 
 ## Definition of Done for this Sprint
 
-- [ ] Must Have 四件全部完成,**每件 6 条 AC 逐条勾选并附可复算判据**(禁止「已落盘」当判据)
-- [ ] **每件过证伪轮**:改坏生产码 ⇒ 指定断言转红;`exactRed` 由**论证**给出后才定预期(禁把实得抄进 `expectRed`)
-- [ ] 四份测试件在册并通过(路径见 Tasks 表)
-- [ ] 全量 EditMode / PlayMode 对账,**三元组齐备**(截至时刻 · 批次 · commit),
+- [x] Must Have 四件全部完成,**每件 6 条 AC 逐条勾选并附可复算判据**(禁止「已落盘」当判据)
+      <br>实测:五件(S17-1/2/3/4/6)均 `[x]=6 · [ ]=0`;`grep -c '^- \[x\]'` 与 `'^- \[ \]'` 逐件核。
+- [x] **每件过证伪轮**:改坏生产码 ⇒ 指定断言转红;`exactRed` 由**论证**给出后才定预期(禁把实得抄进 `expectRed`)
+      <br>实测:`tools/falsify/specs/s17-*.json` 五份;`python3 tools/falsify/check_all_anchors.py` ⇒ **18/18 全绿**。
+      S17-1(F1/M3)· S17-3(M1–M8/M11)的反证记录在评审原件 §六;S17-2(9 变异 + CA-M1/M2 EXACT)·
+      S17-6(7/7)有独立 spec。⚠️ ~~**S17-2 的 CA-M3 未跑(NOT-RUN)**~~
+      🔁 **2026-10-21 补跑结清**:**EXACT**(`ca-m3.xml` = 28/27/1,恰红 `sumExactlyMax_doesNotThrow`;
+      还原后 28/28/0;还原 sha256 逐字节一致)。见签核件 §4.1。
+- [x] 四份测试件在册并通过(路径见 Tasks 表)
+      <br>实测:五份载体全在册且全绿(见签核件 §1)。
+- [x] 全量 EditMode / PlayMode 对账,**三元组齐备**(截至时刻 · 批次 · commit),
       等式 `Δtotal = Δpassed = 新增条数` 成立,且**「消失 0」独立判据**成立(排除「新增 N 同时坏 N」的掩盖形态)
-- [ ] `S17-5` 两处台账同值(retro 行 + 债册行)
-- [ ] QA plan 存在(`production/qa/qa-plan-sprint-17-*.md`)
-- [ ] Smoke check 通过(`/smoke-check sprint`)
-- [ ] QA 签核 `APPROVED` 或 `APPROVED WITH CONDITIONS`(`/team-qa sprint`)
-- [ ] 无 S1 / S2 缺陷
-- [ ] 代码评审完成(`/code-review`)
-- [ ] **不得**把本 sprint 的绿引作 M3 进展(`未闭 P0 面 = 72` 一位不动;承 `qa-signoff-sprint-16` §8.3)
+      <br>实测:`2026-10-21 16:51 CST` · `sprint-17 QA 签核轮全量 EditMode` · `e0ad379`+工作树 ⇒
+      `4350/4314/0/36`,对基线 `4347/4311/0/36` ⇒ `Δtotal=3 Δpassed=3 新增=3 消失=0`(按 `fullname` 集合差独立复算)。
+      ⚠️ **PlayMode 全量 NOT-RUN** —— 只有 5 测子集;见签核件 §4 第 3 行。
+- [x] `S17-5` 两处台账同值(retro 行 + 债册行)
+      <br>实测:债册 `:301` = `| TD-player-01 | player-controller | closed | **Y** | R1 |`;retro `:213` 行动项行含结案注。
+- [x] QA plan 存在(`production/qa/qa-plan-sprint-17-*.md`)
+      <br>`production/qa/qa-plan-sprint-17-2026-10-21.md`(317 行,签核轮就地增补 S17-6 段 + 实测对账节)。
+- [x] Smoke check 通过(`/smoke-check sprint`)
+      <br>`production/qa/smoke-2026-10-21-sprint17.md` — Verdict **PASS**(5 PASS + 1 N/A)。
+- [x] QA 签核 `APPROVED` 或 `APPROVED WITH CONDITIONS`(`/team-qa sprint`)
+      <br>`production/qa/qa-signoff-sprint-17-2026-10-21.md` — **APPROVED WITH CONDITIONS**。
+      条件 C-1(S17-3 AC 第 2 条内容半边,归 44/13)· ~~C-2(CA-M3 未跑)~~ · C-4(矩阵级)。
+      🔁 **2026-10-21 更新**:C-2 已补跑结清(**EXACT**)⇒ **未结条件 = C-1 / C-4**;
+      **C-1 是 verdict 拉档的唯一直接原因**。C-3(记账)亦已同日结清。
+      C-3(记账)已于同日结清。
+- [x] 无 S1 / S2 缺陷
+      <br>实测:`production/qa/bugs/` 仅 `README.md` ⇒ 零在册 bug。
+- [x] 代码评审完成(`/code-review`)
+      <br>五份原件齐:`review-sprint17-batch1`(S17-1/3/4)· `review-s17-2-clinic003` ·
+      `review-s17-5-retro-backfill` · `review-s17-6-room-matcher`。**五件全覆盖**。
+- [x] **不得**把本 sprint 的绿引作 M3 进展(~~`未闭 P0 面 = 72`~~ **73** 一位不动;承 `qa-signoff-sprint-16` §8.3)
+      <br>🔁 **2026-10-21 订正**:原文 `72` 已过期 —— `TD-building-01` 立债(六订)后为 **73**。
+      本 sprint 方向是 **`72 → 73`**(立债,不是清债)。独立复算:`TD-INDEX` 98 条 · P0=Y 88 · 未闭 P0 面 **73**。
 
 ---
 
