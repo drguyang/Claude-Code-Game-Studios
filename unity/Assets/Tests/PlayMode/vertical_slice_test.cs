@@ -124,9 +124,7 @@ namespace DaYiJingCheng.Tests.PlayMode
         /// </summary>
         private static DiseaseRegistryEntry CreateSyntheticEntry()
         {
-            return new DiseaseRegistryEntry
-            {
-                DiseaseId = SyntheticDiseaseId,
+            return new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = SyntheticDiseaseId,
                 DiseaseKey = "DIS_SYNTH_FIXTURE",
                 Polarity = 1,           // 0=寒 1=热 2=平
                 Severity = 3,

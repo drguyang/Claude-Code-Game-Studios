@@ -395,9 +395,7 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
         [Test]
         public void test_ac834_forward9sideSignsStillEmpty_tripwire()
         {
-            var registry = new DiseaseRegistryEntry
-            {
-                DiseaseId = 1,
+            var registry = new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1,
                 DiseaseKey = "tripwire_disease",
                 Polarity = 0,
                 Severity = 3,

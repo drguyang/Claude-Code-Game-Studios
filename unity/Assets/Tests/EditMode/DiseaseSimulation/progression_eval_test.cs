@@ -23,9 +23,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         [SetUp]
         public void Setup()
         {
-            _registry = new DiseaseRegistryEntry
-            {
-                DiseaseId = 1,
+            _registry = new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1,
                 DiseaseKey = "test_disease",
                 Polarity = 0,
                 Severity = 3,

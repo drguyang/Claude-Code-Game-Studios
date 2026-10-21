@@ -667,6 +667,10 @@ namespace DaYiJingCheng.Gameplay.Boot
             {
                 DiseaseId = 1,
                 DiseaseKey = "fallback",
+                // 2026-10-21 S18-1:占位条目是**病种**,不是伤情(零值陷阱见 DiseaseKind 注释)。
+                // ⚠️ 本装配路径不调 RegistrySchemaValidator.Validate ⇒ R1_CHECK_31 不覆盖此处,
+                //    显式赋值是**纪律**不是**门**;生产侧消除随真病种表落地(ADR-014 阶段 2)。
+                Kind = DiseaseKind.Disease,
                 Polarity = 2,            // 平
                 Severity = 1,
                 Contagion = 0,

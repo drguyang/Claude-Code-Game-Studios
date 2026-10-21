@@ -30,9 +30,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         {
             _validEntries = new List<DiseaseRegistryEntry>
             {
-                new DiseaseRegistryEntry
-                {
-                    DiseaseId = 1,
+                new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1,
                     DiseaseKey = "cold",
                     Polarity = 0,
                     Severity = 2,
@@ -49,9 +47,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
                     RegionMod = 10,
                     ClimateMod = 15
                 },
-                new DiseaseRegistryEntry
-                {
-                    DiseaseId = 2,
+                new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 2,
                     DiseaseKey = "fever",
                     Polarity = 1,
                     Severity = 3,
@@ -83,10 +79,38 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         public void test_r1_01_duplicateDiseaseId_throws()
         {
             var entries = new List<DiseaseRegistryEntry>(_validEntries);
-            entries.Add(new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "duplicate" });
+            entries.Add(new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1, DiseaseKey = "duplicate" });
 
             var ex = Assert.Throws<RegistryValidationException>(() => RegistrySchemaValidator.Validate(entries));
             Assert.AreEqual(1, ex.RuleNumber);
+        }
+
+        // AC-23 R1-31: kind 零值陷阱守卫 —— 漏填 Kind 必须响亮失败
+        //
+        // 为什么这条是 BLOCKING 级的夹具而不是锦上添花:本类型的 22 处构造点
+        // 全部用具名初始化器 ⇒ 漏填 Kind 时 C# 静默给 0。若 0 = Injury(直觉做法),
+        // 全部既有病种夹具会静默变成伤情,**零报错**。本夹具把「静默」变成「红」。
+        [Test]
+        public void test_r1_31_unspecifiedKind_throws()
+        {
+            var entries = new List<DiseaseRegistryEntry>(_validEntries);
+            entries[0].Kind = DiseaseKind.Unspecified;
+
+            var ex = Assert.Throws<RegistryValidationException>(() => RegistrySchemaValidator.Validate(entries));
+            Assert.AreEqual(31, ex.RuleNumber, "漏填 kind 须由 R1-31 拒收");
+        }
+
+        // AC-23 R1-31 正向半边:三个合法 kind 都过(守卫不是「拒一切」)
+        [Test]
+        public void test_r1_31_allDeclaredKinds_pass()
+        {
+            foreach (var kind in new[] { DiseaseKind.Disease, DiseaseKind.Injury, DiseaseKind.Poison })
+            {
+                var entries = new List<DiseaseRegistryEntry>(_validEntries);
+                entries[0].Kind = kind;
+                Assert.DoesNotThrow(() => RegistrySchemaValidator.Validate(entries),
+                    $"kind={kind} 是合法形态,不应被 R1-31 拒收");
+            }
         }
 
         // AC-23 R1-03: Polarity ∈ {0,1,2}

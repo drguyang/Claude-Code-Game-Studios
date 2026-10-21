@@ -31,7 +31,7 @@ namespace DaYiJingCheng.Tests.Boot
         {
             var list = new List<DiseaseRegistryEntry>();
             foreach (int id in diseaseIds)
-                list.Add(new DiseaseRegistryEntry { DiseaseId = id, DiseaseKey = $"d{id}" });
+                list.Add(new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = id, DiseaseKey = $"d{id}" });
             return list;
         }
 

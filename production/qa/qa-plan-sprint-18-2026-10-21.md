@@ -294,6 +294,52 @@ S18-3 是纸面件,判据是命令输出。
 | **③** | **`ActorClass` 新类型须加注 ADR-025 §①:112** | 用户 2026-10-21 裁定取 **A** = `Sim.Contracts` 新增 `ActorClass` enum `{ Player=0, HumanEnemy=1, Beast=2 }` + `IsCombatant(ActorClass)`。该 enum 与 25 的 `actor_class` 闭集(`combat-and-weapon-lines.md:1154`)**逐值相同**;但 `Player=0` 是**零值** ⇒ 漏填静默变玩家 | `Sim.Contracts` 的成员清单是 **ADR-025 §①:112** 的表格行(现列 `WorldPos` · 八抽象点 · `SimEvent`/`PatientId`/`StreamId`/`EventKind` · `VitalsDto` · `Fix`+`FixParse` · `IDataProvider` · `AudioCueDto`+`IAudioCueSink` · `IPositionalChannel` · `ClinicEnvDto`+`IClinicEnvQuery`)⇒ 新增类型**须同批加注该行**,否则清单与实际装配分叉。⚠️ 无机械门校验该清单(`Editor.Tools.Gates/AssemblyGates.cs` 只校验**引用集**,不校验**成员表**)⇒ 分叉**不会转红** |
 | **④** | **S18-2 也新增了一个 `Sim.Contracts` 类型** —— 同型义务 | 用户 2026-10-21 裁定甲案:`Sim.Contracts` 新增 `IFoldedPredicate`(见上表第 3 行 + S18-2 末的裁定落盘) | 与 ③ **同一条 ADR-025 §①:112 义务**,但**两件分属 S18-1 / S18-2** ⇒ 若两件不同批实施,**加注要落两次**(或合并成一次落)。⚠️ 本项登记的就是这个**跨件协调点**,防止「S18-1 加注了 `ActorClass` 就以为清单已更新」 |
 
+### 🔁 2026-10-21 实施轮:**三条已落 / 四条阻塞**(原文不删,就地加注)
+
+> **定位**:上面「连带后果」①③④ 三条**已在本轮落盘**;而 S18-1 / S18-2 的**实现本体**
+> 经逐条实测,**四条前置全缺**。此处如实分列 —— **落地的三条都不构成任何 AC 的绿**。
+
+#### 已落三条(可复算)
+
+| # | 项 | 落点 | 判据(第三方可重跑) |
+|---|---|---|---|
+| **A** | **`kind` 字段 + 零值守卫** | `RegistrySchema.cs`:`DiseaseKind` 枚举(`Unspecified=0` / `Disease=1` / `Injury=2` / `Poison=3`)+ `DiseaseRegistryEntry.Kind` + `R1_CHECK_31` + `Validate` 内守卫;22 处构造点全部显式赋值(2 生产 + 20 测试) | `grep -rn 'new DiseaseRegistryEntry' unity/Assets --include=*.cs \| wc -l` = **22**;`grep -rn 'Kind = DiseaseKind\.' … \| wc -l` = **22**。⚠️ **两处生产构造点显式赋值是纪律不是门**(见 OBS-S18-E) |
+| **B** | **证伪轮(定义域收窄类)** | 停用 `R1_CHECK_31` 守卫 ⇒ 重跑 `DiseaseSimulation` 过滤 | **改前** `136/136/0`;**变异后** `136/135/1` —— 恰好 `test_r1_31_unspecifiedKind_throws` 转红(`Expected RegistryValidationException / But was null`),同文件正向半边 `test_r1_31_allDeclaredKinds_pass` **仍绿** ⇒ 判别力互不重叠。还原 SHA-256 逐字节相同(`c9576da0…`) |
+| **C** | **ADR-025 §①:112 加注**(连带后果 ③+④ 同批落) | `adr-025-contract-assembly-manifest.md:112` `Sim.Contracts` 行尾追加 🔁 注:`ActorClass`(S18-1 待增员)+ `IFoldedPredicate`(S18-2 待增员)+ 「本表无机械门校验」警示 | 原串 `八抽象点` / `IPayloadDecoder` **各 1 命中**(原文未删)+ 加注串 `ActorClass` / `IFoldedPredicate` / `2026-10-21 待增员` **各 1 命中** |
+
+**全量回归对账**(2026-10-21 23:2x CST · 全量 EditMode · 工作树未提交):
+
+```
+当前 4356 / 4320 / 0 / 36
+基线 4354 / 4318 / 0 / 36   (sprint-17 archive :232)
+差    +2 / +2 / 0 / 0
+等式  Δtotal(+2) = Δpassed(+2) = 新增测试数(2)  ✅
+```
+
+> ⚠️ **这个绿的含义**:它只证明「加字段 + 加守卫 + 22 处夹具赋值」**没破坏任何既有测试**。
+> 它**不**证明 F4 / `SelfLimited` 被实现 —— 那两件本轮**一行没写**(四条前置未解)。
+
+#### 四条阻塞(缺一即实现本体不可落)
+
+| # | 阻塞项 | 实测证据 | 性质 |
+|---|---|---|---|
+| **A** | **伤情数据行不存在** —— `kind: injury` 白名单五项无载体 | `grep -rn 'INJ_' assets/data/` ⇒ **0 个文件命中**;registry 唯一实数据 = `{ DiseaseId = 1, DiseaseKey = "fallback" }`(`CompositionRoot.cs:666` / `CompositionRootServices.cs:265`),`CompositionRoot.cs:13` 自陈「`disease_registry.json` 未建(数值轮未开)」 | **缺数据 + 缺数值裁定** |
+| **B** | **`kind: injury` 不是加一个字段,是加三个** | GDD `:829-831`:`kind: injury` 行**另须** `SCALE_d` + `trauma_half_life`(整数 tick);后者上界受 `HALF_LIFE_MAX` 约束,而「数值归 `OQ-25-7` 用户自裁」 | **缺数值裁定** |
+| **C** | **`Folded` 条件 ① 终态无事件载体** | 病史流 **14 个 Kind** 实测枚举(`CareApplied` / `CompoundTriggered` / `CompoundExpired` / `InjuryOnset` / `EmergencyAttempt` / `EmergencyTreatmentApplied` / `DrugTreatmentApplied` / `DiseaseOnset` / `EventRolled` / `EventArrived` / `ThreatDeferred` / `ThreatDeferralCleared` / `HistoryFlagChanged` / `SkillGrown`)—— **零个是终态标记**。最接近的 `InjuryStateChanged` 是 `stream: world`(`entities.yaml:2279`),其 `author` 注 `:2280` 明写「病人侧由 9 的病史流**既有 Kind** 承载」——**那个「既有 Kind」不存在** | **缺架构登记** |
+| **D** | **F4 三常量缺值 / 未登记** | `.cs` 命中:`RECOVER_THRESHOLD` **0** · `CARE_GAP` **0** · `TREATMENT_WINDOW` **0**;`entities.yaml`:`RECOVER_THRESHOLD`(`:1559`)/ `CARE_GAP`(`:1663`)value = 「待定」,`TREATMENT_WINDOW` **无独立 `name:` 块**。⚠️ 新发现:`DEATH_THRESHOLD` / `COMA_THRESHOLD` / `CRITICAL_THRESHOLD` **亦无 `name:` 块**(`grep -c "^  - name: <X>$"` 各 = **0**),值只活在 `StateMachine.cs:14-16`(9000 / 6000 / 3000) | **缺数值 + 缺登记** |
+
+> **另登记一处口径冲突**(归 PRE-S18-D):`RegistrySchema.cs:398-401` 自陈既有字段是
+> `Lethality ∈ [0,3]` **整数**,而 GDD R1 表写 **bool** `lethal`;既有先例是 `Lethality > 0` 代
+> `lethal`(`R1_CHECK_22` 即如此写)。`LethalFor(entity, d)` 签名须明写取哪种,否则与既有校验打架。
+
+> **另登记一处覆盖面限制**(归 OBS-S18-E):`RegistrySchemaValidator.Validate` 的调用点
+> **全在测试**(`curve_fixture_test.cs` / `registry_bake_test.cs`);生产装配路径
+> `CompositionRoot.CreateFallbackRegistry` **不调**它 ⇒ `R1_CHECK_31` **不构成**生产侧
+> 零值陷阱的消除,只守住测试夹具与将来的 `disease_registry.json` 烘焙面(ADR-014 阶段 2)。
+
+**这四条已同步登记进 `production/sprint-status.yaml` 的 `open_items`**
+(`PRE-S18-A` / `PRE-S18-B` / `PRE-S18-C` / `PRE-S18-D` + `OBS-S18-E`)。
+
 ---
 
 ## Definition of Done — This Sprint
@@ -312,6 +358,10 @@ S18-3 是纸面件,判据是命令输出。
 - [ ] **不得**把本 sprint 的绿引作 M3 进展;分母变化须写清方向(**清债 `73 → 71`**,非新增)
 - [ ] 「未及核查项」6 条在收口时**逐条更新状态**(已核 / 仍未核 + 原因),**不得静默消失**
       —— 🔁 **2026-10-21 现状**:1 / 2 / 3 / 4 / 5 **五行已核**,仅 6(IL2CPP 矩阵)**仍未核**;
+      🔁 **2026-10-21 实施轮追加**:连带后果 ①③④ **三条已落**(`kind` 字段 + `R1_CHECK_31` + 22 处夹具 ·
+      证伪轮 1 红 · ADR-025 §①:112 加注),全量 EditMode `4356/4320/0/36`(Δ = 新增 2 条,零回归);
+      **但 S18-1 / S18-2 的实现本体四条前置全缺**(伤情数据行 · `kind: injury` 另需两字段 ·
+      终态无事件载体 · F4 三常量缺值)—— 见上节「四条阻塞」,**两条 AC 均不得记绿**。
       2 / 3 / 4 / 5 四行核完**新露出四条连带后果**(零值静默陷阱 · `AC-29-13` 措辞冲突 + 11 条既有测试 ·
       ADR-025 清单加注 · **`IFoldedPredicate` 与 `ActorClass` 的跨件加注协调**),
       收口时须**连同这四条**一并更新状态 —— **已核 ≠ 已解决**

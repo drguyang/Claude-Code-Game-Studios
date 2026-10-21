@@ -115,6 +115,45 @@ open_items:
     impact: "未写 ⇒ 「什么算 done」只能由 /dev-story 逐件临场判"
     owner: "编排方(/qa-plan sprint)"
 
+  # ── 2026-10-21 实施期实测:四条前置(缺一即 S18-1 / S18-2 的实现本体不可落)──
+  # 登记缘由:S18-1 / S18-2 的「实施期义务」经逐条实测,三条能落(已落:kind 字段 +
+  # R1_CHECK_31 + 22 处夹具 / 零值守卫 / ADR-025 §①:112 加注),**实现本体四条前置全缺**。
+  # 性质分两类:①② 缺**数据与数值裁定**,③④ 缺**架构登记**。禁自造凑绿。
+  - id: "PRE-S18-A"
+    item: "伤情数据行不存在 —— `kind: injury` 白名单五项无载体"
+    status: "⛔ 阻塞 S18-1 的 AC ③(破例条件)"
+    evidence: "`grep -rn 'INJ_' assets/data/` ⇒ **0 个文件命中**;registry 唯一实数据 = `{ DiseaseId = 1, DiseaseKey = \"fallback\" }`(`CompositionRoot.cs:666` / `CompositionRootServices.cs:265`),`CompositionRoot.cs:13` 自陈「`disease_registry.json` 未建(数值轮未开)」"
+    detail: "R2 的 11 项 `INJ_*` 只存在于 `disease-simulation.md:362-375` 的**表**里,零数据行 ⇒ 白名单 `{INJ_STAB, INJ_LACERATION, INJ_HEMORRHAGE, INJ_CLAW, INJ_BITE}`(OQ-S18-1 已裁)仍**悬空**。⚠️ 且 `kind: injury` 行按 GDD `:829-831` **另须** `SCALE_d` + `trauma_half_life`,后者上界受 `HALF_LIFE_MAX` 约束而**数值归 OQ-25-7 用户自裁** ⇒ 不是「加一个字段」而是「加三个字段 + 等一个数值裁定」"
+    owner: "数值轮(用户)"
+
+  - id: "PRE-S18-B"
+    item: "F4 三个常量缺值 / 未登记"
+    status: "⛔ 阻塞 S18-1 死亡支与 S18-2 的 F4 关联判据"
+    evidence: "`.cs` 命中:`RECOVER_THRESHOLD` **0** · `CARE_GAP` **0** · `TREATMENT_WINDOW` **0**;`entities.yaml`:`RECOVER_THRESHOLD`(`:1559`)/ `CARE_GAP`(`:1663`)value 均为「**待定 —— 见 disease-simulation.md Tuning Knobs**」,`TREATMENT_WINDOW` **无独立 `name:` 块**(仅 `:662` 的 `variables:` 列表引用)"
+    detail: "⚠️ 另发现:`DEATH_THRESHOLD` / `COMA_THRESHOLD` / `CRITICAL_THRESHOLD` **亦无独立 `name:` 块**(registry 未登记),值只活在 `StateMachine.cs:14-16`(9000 / 6000 / 3000)⇒ 「registry 是唯一真源」在这三个量上**不成立**。此为本轮新发现的登记缺口,与 G-1 同族"
+    owner: "数值轮(用户)+ 9 的 GDD 轮(补登记块)"
+
+  - id: "PRE-S18-C"
+    item: "`Folded` 条件 ① 终态无事件载体 —— 病人痊愈 / 死亡在病史流里没有 Kind"
+    status: "⛔ 阻塞 S18-2 的四条件实现(条件 ① 输入恒为空)"
+    evidence: "病史流 14 个 Kind 实测枚举:`CareApplied` / `CompoundTriggered` / `CompoundExpired` / `InjuryOnset` / `EmergencyAttempt` / `EmergencyTreatmentApplied` / `DrugTreatmentApplied` / `DiseaseOnset` / `EventRolled` / `EventArrived` / `ThreatDeferred` / `ThreatDeferralCleared` / `HistoryFlagChanged` / `SkillGrown` —— **零个是终态标记**"
+    detail: "最接近的 `InjuryStateChanged` 是 **`stream: world`**(`entities.yaml:2279`),且其 `author` 注 `:2280` 明写「病人侧由 9 的病史流**既有 Kind** 承载」—— **那个「既有 Kind」不存在**。`persistence-service.md:320` 把 `终态(p)` 归 9 的 AC-36,而 AC-36(`disease-simulation.md:1924`)只说「终态(痊愈/死亡)可折叠」,**不给事件载体** ⇒ 终态**不可从流重算**,与 ADR-016 §一「决策可从三源重建」的前提冲突。须裁:立新病史流 Kind / 复用既有 / 改折叠读侧"
+    owner: "用户(裁定)+ 9 的 GDD 轮 + ADR-024 registry 增列"
+
+  - id: "PRE-S18-D"
+    item: "`SelfLimited` / `LethalFor` 的 `lethal` 形参类型未统一"
+    status: "⚠️ 阻塞 S18-1 谓词签名定稿"
+    evidence: "`RegistrySchema.cs:398-401` 自陈:既有字段是 `Lethality ∈ [0,3]` 整数,GDD R1 表写 bool `lethal`,「字段错位属既有 16 字段问题」;既有先例是 `Lethality > 0` 代 `lethal`(`R1_CHECK_22` 校验即如此写)"
+    detail: "F4 的 `LethalFor(entity, d)` 若取 `d.Lethality > 0`,则 OQ-S18-1 裁的「双条件 `lethal(d)` ∧ 五项闭集」中 `lethal(d)` 的语义 = `Lethality > 0`;**若取 bool 则须先改字段类型**(牵动 22 处夹具 + R1-06 校验)。二选一须明写,否则谓词签名与既有校验打架"
+    owner: "编排方(建议:`Lethality > 0`,承既有先例)—— 待用户确认"
+
+  - id: "OBS-S18-E"
+    item: "R1_CHECK_31 的覆盖面限制(如实登记,禁借绿)"
+    status: "ℹ️ 已落但不构成生产侧保护"
+    evidence: "`RegistrySchemaValidator.Validate` 的调用点**全在测试**(`curve_fixture_test.cs` / `registry_bake_test.cs`);生产装配路径 `CompositionRoot.CreateFallbackRegistry` **不调** Validate"
+    detail: "⇒ `R1_CHECK_31` 只守住测试夹具与将来的 `disease_registry.json` 烘焙面(ADR-014 阶段 2),**不构成**生产侧零值陷阱的消除。两处生产构造点已**显式赋值** `Kind = DiseaseKind.Disease`,但那是**纪律不是门**"
+    owner: "ADR-014 阶段 2 烘焙管线(随真病种表落地)"
+
 # ⚠️ 基线三元组(任何引用本文件计数的下游件须同抄)
 baseline:
   measured_at: "2026-10-21"

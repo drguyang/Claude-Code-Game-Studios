@@ -41,7 +41,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         private const int MethodSkip = 1;     // Skipped ⇔ Skip
 
         private static IReadOnlyList<DiseaseRegistryEntry> Registry()
-            => new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } };
+            => new[] { new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1, DiseaseKey = "d1" } };
 
         [SetUp]
         public void SetUp()

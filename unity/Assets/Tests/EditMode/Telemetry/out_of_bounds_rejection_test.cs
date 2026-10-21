@@ -311,7 +311,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             var pool = new InMemoryBlobPool();
             var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
             var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
-                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } });
+                new[] { new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1, DiseaseKey = "d1" } });
             return (reporter, stream);
         }
 
@@ -333,7 +333,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             var pool = new InMemoryBlobPool();
             var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
             var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
-                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } },
+                new[] { new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1, DiseaseKey = "d1" } },
                 knobs: null, eventAuthority: new FakeEventAuthority(isHost: false));
             var sink = new NullSink();
 
@@ -360,7 +360,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             var pool = new InMemoryBlobPool();
             var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
             var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
-                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } },
+                new[] { new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1, DiseaseKey = "d1" } },
                 knobs: null, eventAuthority: new FakeEventAuthority(isHost: true));
 
             // Act
@@ -382,7 +382,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             var pool = new InMemoryBlobPool();
             var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
             var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
-                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } });
+                new[] { new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1, DiseaseKey = "d1" } });
 
             // Act + Assert
             Assert.That(reporter.EventAuthority, Is.Null, "未注入 ⇒ EventAuthority 保持 null(不自造占位)");

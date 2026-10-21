@@ -132,12 +132,56 @@ namespace DaYiJingCheng.Sim
     }
 
     /// <summary>
+    /// 病种 / 伤情 / 中毒类别(GDD <c>disease-simulation.md:285</c>:
+    /// <c>kind ∈ {injury, disease, poison}</c>)。
+    ///
+    /// <para><b>为什么 <see cref="Unspecified"/> = 0 而不是让 injury = 0</b> —— 零值陷阱:
+    /// <see cref="DiseaseRegistryEntry"/> 的 <b>22 处构造点</b>(2 生产 + 20 测试)全部使用
+    /// <b>具名初始化器</b>,漏填 <c>Kind</c> 时 C# 默认给 0。若 0 = <c>Injury</c>,
+    /// 则全部既有病种夹具(伤寒 / 痢疾 / 心衰 …)会<b>静默</b>变成伤情,
+    /// <b>没有任何东西报错</b>。故 0 留给 <see cref="Unspecified"/>,
+    /// 由 <c>R1_CHECK_31</c> 拒收。</para>
+    ///
+    /// <para><b>⚠️ 本枚举落地 ≠ 伤情数据面可用</b>(2026-10-21 S18-1):GDD <c>:829-831</c> 要求
+    /// <c>kind: injury</c> 行<b>另带</b> <c>SCALE_d</c> + <c>trauma_half_life</c>(整数 tick),
+    /// 二者<b>尚未</b>落入本 schema,且后者上界受 <c>HALF_LIFE_MAX</c> 约束(数值归
+    /// <c>OQ-25-7</c> 用户自裁);R2 的 11 项 <c>INJ_*</c> 亦<b>零数据行</b>
+    /// (<c>assets/data/</c> 内 <c>INJ_</c> 零命中)。见 sprint-18 前置清单。</para>
+    /// </summary>
+    public enum DiseaseKind
+    {
+        /// <summary>未声明 —— <b>一律拒收</b>(<c>R1_CHECK_31</c>)。不是合法数据形态。</summary>
+        Unspecified = 0,
+
+        /// <summary>病种(伤寒 / 痢疾 / 心衰 / 破伤风 …)。</summary>
+        Disease = 1,
+
+        /// <summary>
+        /// 伤情(R2 枚举 <c>INJ_*</c>)。⚠️ 该行另须 <c>trauma_half_life</c> + <c>SCALE_d</c>
+        /// (GDD <c>:829-831</c>)—— 二者尚未落入本 schema,故本值当前<b>无合法数据行</b>。
+        /// </summary>
+        Injury = 2,
+
+        /// <summary>中毒(<c>TOX_ENVENOMATION</c>)。</summary>
+        Poison = 3,
+    }
+
+    /// <summary>
     /// 病种注册表项。
     /// </summary>
     public sealed class DiseaseRegistryEntry
     {
         public int DiseaseId;
         public string DiseaseKey;
+
+        /// <summary>
+        /// 病种类别(GDD <c>:285</c> <c>kind ∈ {injury, disease, poison}</c>)。
+        /// <para>归 <b>9</b> 所有;25 只出 onset,不填本字段(GDD <c>:356-358</c> 规则九:
+        /// 禁在代码里写 <c>if kind == injury</c> 分支 —— 伤情与病种走同一张 schema)。</para>
+        /// <para>⚠️ <b>必须显式赋值</b>:零值 <see cref="DiseaseKind.Unspecified"/> 由
+        /// <c>R1_CHECK_31</c> 拒收(零值陷阱守卫,理由见枚举注释)。</para>
+        /// </summary>
+        public DiseaseKind Kind;
         public int Polarity; // 0 = 寒, 1 = 热, 2 = 平
         public int Severity; // 1-5
         public int Contagion; // 0-3
@@ -237,6 +281,21 @@ namespace DaYiJingCheng.Sim
         // ── BCD 码-1(2026-10-10 登记债收口):R1-30 = GDD 校验 12 + F3 全局不等式 ──
         public const int R1_CHECK_30 = 30; // R_rise > ε_MIN(GDD 校验 12 + F3 全局不等式注,同一条的两个观测面)
 
+        // ── kind 零值陷阱守卫(S18-1 · 2026-10-21;GDD R1 表 :285 的 kind 字段)──
+        /// <summary>
+        /// <c>Kind ≠ Unspecified</c> —— 零值陷阱守卫。
+        /// <para><b>为什么需要这一条</b>:本类型 22 处构造点全部用<b>具名初始化器</b>,
+        /// 漏填 <c>Kind</c> 时 C# 给 0。若把 0 定义成 <c>Injury</c>(直觉做法),
+        /// 全部既有病种夹具会静默变成伤情且<b>零报错</b>。故 0 = <c>Unspecified</c>,
+        /// 由本校验拒收 —— 漏填变成<b>响亮的失败</b>。</para>
+        /// <para>⚠️ <b>覆盖面限制(如实登记,禁借绿)</b>:<see cref="RegistrySchemaValidator.Validate"/>
+        /// 的调用点目前<b>全在测试</b>(<c>curve_fixture_test.cs</c> / <c>registry_bake_test.cs</c>);
+        /// 生产装配路径(<c>CompositionRoot.CreateFallbackRegistry</c>)<b>不调</b>本校验
+        /// ⇒ 本守卫<b>只</b>守住测试夹具与将来的 <c>disease_registry.json</c> 烘焙面,
+        /// <b>不构成</b>生产侧零值陷阱的消除。生产侧消除随真病种表落地(ADR-014 阶段 2)。</para>
+        /// </summary>
+        public const int R1_CHECK_31 = 31;
+
         /// <summary>
         /// ε_MIN(Q16.16 raw 单位)= 1 —— 归一化 `R_rise` 的下界守卫。
         /// 权威:GDD disease-simulation.md Tuning §六 ε_MIN 行(2026-10-10 用户授权裁定定值
@@ -272,6 +331,13 @@ namespace DaYiJingCheng.Sim
                 // R1-02: DiseaseKey 非空
                 if (string.IsNullOrEmpty(entry.DiseaseKey))
                     throw new RegistryValidationException(R1_CHECK_02, "DiseaseKey 不能为空");
+
+                // R1-31: kind 零值陷阱守卫 —— 漏填 Kind ⇒ 响亮失败,不静默落成某一种类。
+                if (entry.Kind == DiseaseKind.Unspecified)
+                    throw new RegistryValidationException(R1_CHECK_31,
+                        $"kind 未声明(DiseaseId={entry.DiseaseId}, DiseaseKey='{entry.DiseaseKey}')" +
+                        " —— GDD R1 表要求 kind ∈ {injury, disease, poison};" +
+                        "Unspecified=0 是「漏填」的哨兵,不是合法数据形态");
 
                 // R1-03: Polarity ∈ {0,1,2}
                 if (entry.Polarity < 0 || entry.Polarity > 2)

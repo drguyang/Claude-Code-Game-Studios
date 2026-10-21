@@ -50,6 +50,8 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         {
             return new DiseaseRegistryEntry
             {
+                // S18-1:零值陷阱守卫 —— Kind 必须显式声明(R1_CHECK_31 拒收 Unspecified)。
+                Kind = DiseaseKind.Disease,
                 // ── 既有 16 字段(区间校验 R1-01…16 全过;数值同为合成占位)──
                 DiseaseId = DiseaseId,
                 DiseaseKey = DiseaseKey,

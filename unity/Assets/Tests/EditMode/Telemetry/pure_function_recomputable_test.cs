@@ -233,7 +233,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         /// <summary>真装配:真 `EventStream` + 真 `PayloadDecoder` + 单病种注册表。</summary>
         private static TelemetryReporter NewReporter(EventStream stream, InMemoryBlobPool pool)
             => new TelemetryReporter(stream, new PayloadDecoder(pool),
-                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } });
+                new[] { new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1, DiseaseKey = "d1" } });
 
         /// <summary>报告入口的转发(让 C1 的两行 Act 读起来对称)。</summary>
         private static class TextReporter

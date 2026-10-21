@@ -118,7 +118,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             var encoder = new PayloadEncoder(pool);
             var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
             var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
-                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } },
+                new[] { new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1, DiseaseKey = "d1" } },
                 knobs: null, eventAuthority: null);
 
             // 零新埋点:只用既有病例流事件 —— CaseClosed(结论)+ JudgmentRecorded(判断),

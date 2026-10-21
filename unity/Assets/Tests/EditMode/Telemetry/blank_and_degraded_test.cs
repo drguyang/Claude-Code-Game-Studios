@@ -232,7 +232,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             var pool = new InMemoryBlobPool();
             var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
             var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
-                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } });
+                new[] { new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1, DiseaseKey = "d1" } });
             return (reporter, stream);
         }
 
@@ -440,7 +440,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             var pool = new InMemoryBlobPool();
             var stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
             var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
-                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } });
+                new[] { new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1, DiseaseKey = "d1" } });
 
             // Act
             string banner = reporter.CompletenessBanner(f1Faulted: false);
@@ -466,7 +466,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
                     new DiseaseIdSet(1UL << 0), treated: true));
             stream.Append(new SimEvent(0L, new PatientId(1), -1, EventKind.CaseClosed, r));
             var reporter = new TelemetryReporter(stream, new PayloadDecoder(pool),
-                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } });
+                new[] { new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1, DiseaseKey = "d1" } });
 
             // Act
             string banner = reporter.CompletenessBanner(f1Faulted: false);

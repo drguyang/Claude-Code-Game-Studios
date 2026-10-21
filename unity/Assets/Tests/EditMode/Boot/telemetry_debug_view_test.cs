@@ -52,7 +52,7 @@ namespace DaYiJingCheng.Tests.Boot
             _decoder = new PayloadDecoder(_pool);
             _stream = new EventStream(new SeqIdAuthority(), new PresenceRegistry());
             _reporter = new TelemetryReporter(_stream, _decoder,
-                new[] { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "d1" } });
+                new[] { new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = 1, DiseaseKey = "d1" } });
             _tailTick = 0;
         }
 

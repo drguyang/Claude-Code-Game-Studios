@@ -262,6 +262,10 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <summary>最小内联病种注册表(DiseaseId=1)—— 装配层未传入真表时的接线载体。</summary>
         private static IReadOnlyList<DiseaseRegistryEntry> CreateFallbackRegistry()
-            => new List<DiseaseRegistryEntry> { new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "fallback" } };
+            => new List<DiseaseRegistryEntry>
+            {
+                // Kind 显式赋值 —— 零值陷阱守卫(见 DiseaseKind 注释);本路径不调 Validate。
+                new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "fallback", Kind = DiseaseKind.Disease },
+            };
     }
 }

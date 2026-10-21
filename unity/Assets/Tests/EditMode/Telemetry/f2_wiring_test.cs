@@ -50,9 +50,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         /// <summary>最小注册表(DiseaseId → DiseaseKey)。DiseaseId 与位掩码 bit 位置
         /// 的映射:bit i ↔ DiseaseId i+1。F2 wiring 使用 1..3。</summary>
         private static IReadOnlyList<DiseaseRegistryEntry> Registry(params int[] ids)
-            => ids.Select(id => new DiseaseRegistryEntry
-            {
-                DiseaseId = id,
+            => ids.Select(id => new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = id,
                 DiseaseKey = $"d{id}",
             }).ToList();
 
