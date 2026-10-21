@@ -15,7 +15,7 @@
 
 | # | 项 | 路线图登记 | 今日实测(可复算) | 对规划的影响 |
 |---|---|---|---|---|
-| **①** | **G-8** | sprint-18 的件之一 | **已于 2026-10-21 结案**(S17-4)。债册 `docs/tech-debt-register.md:523` 状态列 = `**✅ 已结**(2026-10-21)`、P0 面列 = `~~**Y**~~`;证据原件 = `production/qa/evidence/impl-s17-4-furniture-catalogue-2026-10-21.md`(§八「`TD-clinic-01` 可结:判据见 §三」/「路线图 §三 G-8 可结」) | **件集 3 → 2**;G-8 **从本 sprint 移除** |
+| **①** | **G-8** | sprint-18 的件之一 | **已于 2026-10-21 结案**(S17-4)。债册 `docs/tech-debt-register.md:525` 状态列 = `**✅ 已结**(2026-10-21)`、P0 面列 = `~~**Y**~~`;证据原件 = `production/qa/evidence/impl-s17-4-furniture-catalogue-2026-10-21.md`(§八「`TD-clinic-01` 可结:判据见 §三」/「路线图 §三 G-8 可结」) | **件集 3 → 2**;G-8 **从本 sprint 移除** |
 | **②** | G-8 的 Exit 判据 | 「`clinic-001` 的两条挂标 AC 同步转可判」 | **已达** —— `clinic-machine/story-001-baked-tables-schema-gates.md:52`(`AC-24-08`)/ `:55`(`AC-24-12`)两条已解除 `BLOCKED-BY-O-24-1` 挂标并勾选 `[x]` | 该 Exit 判据**不再是待办**,是既成事实 |
 | **③** | **G-1**(`TD-sim-01`) | 债册 `:1523`「解除动作」= 给判死路径加 `entity` 形参 + 补一条夹具 | **实现面是四件,不是一件**(下表展开) | **L 级**;AC 判据须按四件套写,不得按债册单句写 |
 | **④** | G-2(`TD-persist-01`) | 「`Folded(p)` 谓词未实现」 | 与登记**一致**。缺 = 7a 侧谓词本体 + 折叠行产出;四条件里「无未结案病例」的**判据接口已在盘**(`CaseStreamQuery.HasOpenCase`,`unity/Assets/Sim/CaseOpenDecider.cs:66`) | 口径**无需订正** |

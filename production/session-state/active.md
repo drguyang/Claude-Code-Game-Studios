@@ -8406,3 +8406,11 @@ M6 首版变异形态(`if (false) throw …`)导致 **switch 段落穿透 = 编�
 - **六条未及核查项**(禁借绿,收口时须逐条更新状态):战伤白名单闭集未裁 · `kind` 字段涟漪面未测 ·
   `Folded` 程序集归属冲突(`Sim.Codec` 够不着 `Sim` 的 `HasOpenCase`)· `DeathCandidate` 产出形状未读 ·
   `IsCombatant` 的 entity 类型不存在 · IL2CPP 矩阵
+
+<!-- S18-3 落盘 2026-10-22 -->
+## 🗂 S18-3 台账回写(2026-10-22 落盘)
+
+- **五条判据**:① 路线图 `:442` G-8 门行 `~~**G-8**~~ 🔁 已结 2026-10-21` + 结案注 ✅ · ② `:512` 链门现 = **G-1 · G-2** ✅ · ③ `:909` sprint-18 件集订正(实欠 G-1 · G-2)✅ · ④ 债册新条目 **`TD-clinic-18`**(`:2417`)+ 索引行 ✅ · ⑤ `death-respawn` 五处订正注(story-004 ×3 / EPIC.md ×2)**本轮之前已落**,本次复核通过 ✅
+- **触达 5 文件**:路线图(5 行,均就地加注)· `docs/tech-debt-register.md`(索引 +1 行 / 新条目 / §五 十订输出 / 十订记)· `sprint-status.yaml`(deviations ③ 加 `resolution`)· `sprints/sprint-18.md`(`:523 → :525`)· `qa/evidence/impl-s17-6-wiring-2026-10-21.md`(订正一处**改前即陈旧**的行号)
+- **债册实测**:`条目 100 | open 73 | Y 89 | 未闭 P0 面 74(73 → 74)` · epic 13/31 不动
+- **⚠️ 未做**:S18-3 的 `status: done`(归 `/story-done`)· sprint-18 的 **PlayMode 全量回归**(QA 计划点名禁引用 sprint-17 的 `202/202/0/0`,须真跑)

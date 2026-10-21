@@ -98,6 +98,7 @@ deviations:
     fact: "death-respawn/story-005:25 / :47 挂标;IClinicReviveCell 全树零命中;death-and-respawn.md:192 明写义务归 24 下一轮"
     user_ruling: "未裁 —— 本 sprint 只由 S18-3 登记去向,不实现"
     boundary: "不得把「取第一个床格」当裁决实现(卡面 :47 逐字禁止)"
+    resolution: "🔁 2026-10-22 S18-3 已落去向 = 债册 `TD-clinic-18`(docs/tech-debt-register.md:2417;归属 clinic-machine / P0 面 Y / open)。原 item 的「无债册条目」**自此过时**(原文不删,记规划期实测);⚠️ user_ruling 的「未裁」**未变** —— 只登记去向,不主张实现口径;`TD-clinic-18` 入表使未闭 P0 面 73 → 74(见债册「十订记」)"
 
 # ── 规划期未决项(须在实施前解决)──
 open_items:
