@@ -553,6 +553,40 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         }
 
         // ════════════════════════════════════════════════════════════════════
+        // `int.MaxValue` 邻格溢出守卫 —— 本层是**唯一变异可证**的载体
+        // ════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 并查集枚举的溢出守卫(生产 `CountComponents` 的 `c.X &lt; int.MaxValue`):
+        /// 边界格**不得**把 `int.MinValue` 当成它的 +x 邻居并进同一簇。
+        /// <para>⚠️ <b>立本测缘由(2026-10-21 补齐轮 · 变异可证性缺口)</b>:同一形态的守卫在工程里有
+        /// <b>两处</b> —— 本层 `CountComponents` 与 `ClinicRoomMatcher.HasNeighbourOfType`。
+        /// 匹配期那处**结构上不可触发**:`typeByCell` 的键 ⊆ <see cref="ClinicRoomExtractionResult.RoomCells"/>,
+        /// 而单簇不可能同时含 `int.MaxValue` 与 `int.MinValue`(相距 2³²−1,4-连通路径在 int 域内不存在)
+        /// ⇒ 删掉它**没有任何测能转红**。本层不同:<see cref="IPlacedStructureReadView.GetOccupiedCells"/>
+        /// **不要求连通**,单个实例可以同时占这两格 ⇒ 守卫删掉即可观测。</para>
+        /// <para><b>判别力</b>:删掉 `c.X &lt; int.MaxValue` ⇒ 两格被并成 1 簇 ⇒ `ConnectedClusterCount`
+        /// 由 2 变 1 且 `HasRoom` 由 false 变 true ⇒ 本测红。</para>
+        /// </summary>
+        [Test]
+        public void test_countComponents_xAtIntMax_noPhantomUnionFromWraparound()
+        {
+            // 同一件结构同时占两格(跨整数的两端)。二者在整数格上相距 2³²−1 ⇒ **不相邻**。
+            var maxCell = Cell(int.MaxValue, 0);
+            var minCell = Cell(int.MinValue, 0);
+            var view = new FakeStructureReadView(new[] { maxCell, minCell });
+
+            ClinicRoomExtractionResult result = ClinicRoomExtraction.Extract(view);
+
+            Assert.That(result.CellCount, Is.EqualTo(2), "前提:两格都进了成员集");
+            Assert.That(result.ConnectedClusterCount, Is.EqualTo(2),
+                "int.MaxValue 的 +x 邻格不存在 ⇒ 不得因回绕把它与 int.MinValue 并成一簇。" +
+                "删掉 `c.X < int.MaxValue` 守卫,本测转红");
+            Assert.That(result.HasRoom, Is.False, "2 簇 ⇒ EC-24-07 整盘 ROOM_NONE");
+            Assert.That(result.RoomCells, Is.Empty, "ROOM_NONE 不提供部分成员");
+        }
+
+        // ════════════════════════════════════════════════════════════════════
         // 缺口哨兵 —— `FURN_TYPES` 闭集缺席**可观测而非静默**(承 clinic-001 先例)
         // ════════════════════════════════════════════════════════════════════
 

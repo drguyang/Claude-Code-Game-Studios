@@ -705,5 +705,91 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
             Assert.That(equip.Raw, Is.EqualTo(ClinicModifierEvaluator.EquipModCapRaw),
                 "负档位不得进和:若进和则档位和被拉成负数 ⇒ 下钳到 0(≠ CAP)");
         }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // CheckedAdd 守卫本体(2026-10-21 QA 策略轮补 —— 覆盖缺口 ①)
+        // ══════════════════════════════════════════════════════════════════════
+        //
+        // **为什么补这三条**:qa-lead 在 sprint-17 签核轮实测
+        //   `grep -rn "CheckedAdd" unity/Assets/Tests/EditMode/ClinicMachine/*.cs` = **零命中**,
+        // 而生产侧 `ClinicModifierEvaluator.cs` 有 3 处调用(:115 / :119 / :151)。
+        // 卡面 AC 第 6 条改写后的主语是「**每处乘加均经显式域守卫**」——
+        // 但守卫的**越界分支**(throw)此前无任何独立载体:既有两条越域夹具
+        // (`largeScore` / `nMaxBoundary`)打到的是 **clamp 钉顶**,不是 `CheckedAdd` 的 throw。
+        //
+        // ⚠️ **判别力来源**:若把 `CheckedAdd` 退回裸 `a + b`(C# 未检查上下文下**回绕**),
+        //   上溢用例会得到一个**负数**、下溢用例会得到一个**正数**,断言必然红。
+        //   这不是「域内会不会溢出」的命题 —— 域内(`n_max × C_max` 等)有 schema 门守,
+        //   本组钉的是**实现主动写下的防御分支**(与 `negativeTier` 那条同款纪律)。
+        //
+        // ⚠️ **域外输入,如实登记**:下列 fixture 的 `EEnvRaw` 取 `long.MaxValue` / `long.MinValue`,
+        //   远超 `EnvContributionMaxRaw = 1/8`。与既有两条越域夹具同格。
+
+        /// <summary>
+        /// `CheckedAdd` **上溢分支**:`base_env` 已接近 `long.MaxValue`,再加正的 `e_env` ⇒ throw。
+        /// <para>判别力:退回裸 `a + b` ⇒ 回绕成负数 ⇒ 不抛 ⇒ 本测红。</para>
+        /// </summary>
+        [Test]
+        public void test_clinic_envMod_sumOverflowUpper_throws()
+        {
+            // EEnvRaw = long.MaxValue - 1,baseEnv = 1 ⇒ 1 + (MaxValue-1) = MaxValue(不溢);
+            // 再加一格 +1 就溢。故此处给两格:EEnv 各 (MaxValue/2),baseEnv = 2。
+            long half = long.MaxValue / 2;
+            var traits = new FakeTraits(new[]
+            {
+                (C0, "t", 0, half),
+                (C1, "t", 0, half),
+            });
+            ClinicRoomExtractionResult two = Room(C0, C1);
+
+            // Σe_env = 2 × (MaxValue/2) = MaxValue - 1;baseEnv = 2 ⇒ 溢出。
+            Assert.Throws<OverflowException>(() =>
+                    ClinicModifierEvaluator.ClinicEnvModOf(two, traits, NoPairsTable(), new Fix(2)),
+                "Σe_env + base_env 越 int64 上界 ⇒ 必须 throw,不得回绕(ADR-012 F7)");
+        }
+
+        /// <summary>
+        /// `CheckedAdd` **下溢分支**:`base_env` 已接近 `long.MinValue`,再加负的 `e_env` ⇒ throw。
+        /// <para>判别力:退回裸 `a + b` ⇒ 回绕成正数 ⇒ 不抛 ⇒ 本测红。</para>
+        /// </summary>
+        [Test]
+        public void test_clinic_envMod_sumOverflowLower_throws()
+        {
+            long half = long.MinValue / 2;               // 负
+            var traits = new FakeTraits(new[]
+            {
+                (C0, "t", 0, half),
+                (C1, "t", 0, half),
+            });
+            ClinicRoomExtractionResult two = Room(C0, C1);
+
+            Assert.Throws<OverflowException>(() =>
+                    ClinicModifierEvaluator.ClinicEnvModOf(two, traits, NoPairsTable(), new Fix(-2)),
+                "Σe_env + base_env 越 int64 下界 ⇒ 必须 throw,不得回绕(ADR-012 F7)");
+        }
+
+        /// <summary>
+        /// **边界正例**:恰好等于 `long.MaxValue` 时**不抛**(守卫是 `>` 不是 `>=`)。
+        /// <para>判别力:若把 `a > long.MaxValue - b` 写成 `>=`,本测会抛 ⇒ 红。
+        /// 反向:若写成 `a > long.MaxValue` 这种永假式,上溢测不抛 ⇒ 那条红。</para>
+        /// </summary>
+        [Test]
+        public void test_clinic_envMod_sumExactlyMax_doesNotThrow()
+        {
+            long half = long.MaxValue / 2;               // MaxValue/2 × 2 = MaxValue - 1
+            var traits = new FakeTraits(new[]
+            {
+                (C0, "t", 0, half),
+                (C1, "t", 0, half),
+            });
+            ClinicRoomExtractionResult two = Room(C0, C1);
+
+            // Σe_env = MaxValue - 1;baseEnv = 1 ⇒ 恰为 MaxValue,不越界 ⇒ 不得抛。
+            Fix env = ClinicModifierEvaluator.ClinicEnvModOf(
+                two, traits, NoPairsTable(), new Fix(1));
+
+            Assert.That(env.Raw, Is.EqualTo(long.MaxValue),
+                "恰好等于 int64 上界属**合法**,守卫判据是 `>` 不是 `>=`");
+        }
     }
 }
