@@ -1,7 +1,17 @@
 // 权威来源:ADR-014 §二/§五(运行期读烘焙产物)· CookedFormat.cs(布局契约)
 //          写方严格镜像:`Editor.Tools.Bake/ClinicMachineCookedWriter.cs`
-//          表构造 / 结构性拒收**单一出处**:`DaYiJingCheng.Sim.Clinic.{ClinicContextTable,
-//          ClinicAdjTable,ClinicRoomTable}` —— 本件**不重做**这些校验,零漂移。
+//          表构造 / 结构性拒收的**权威出处**:`DaYiJingCheng.Sim.Clinic.{ClinicContextTable,
+//          ClinicAdjTable,ClinicRoomTable}`(构造期拒收的真实判据住在那里)。
+//
+// ⚠️ 本件**复做 4 类字节级校验**(2026-10-21 订正,评审 D6):
+//    ① 空表 / 空条目 / 空合取拒收(三个 Read* 各自的 `须 ≥ 1` 守卫)
+//    ② 重复键拒收(room_type 去重 · 有向邻接键去重 —— 后者用 `\u0001` 分隔,防串键)
+//    ③ 长度耗尽校验(`CookedReadUtil.AssertFullyConsumed`,CONTEXT / ROOM 各有一次)
+//    ④ 表构造拒收 → 包成 `InvalidDataException`(三个 Read* 各自的 `表构造被拒`)
+//    这些**不是**「重做表构造校验」,而是**解码期**的纵深防御:字节流可能被截断 /
+//    被旧版本写入 / 被篡改,而这些形态**进不到**构造器(类型系统看不到字节)。
+//    与构造器重复的部分(域端点 / 对称性 / n_max)**只在构造器里做一次** —— 那才是
+//    「单一出处」,本件不复制它们的判据。
 //
 // ⚠️ 载荷布局(全部 little-endian;字符串 = i32 字节长 + UTF-8,长度 -1 = null):
 //    CONTEXT: i64 k_context_max_raw; i32 row_count;

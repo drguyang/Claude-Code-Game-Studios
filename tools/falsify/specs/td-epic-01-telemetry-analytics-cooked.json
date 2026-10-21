@@ -85,7 +85,7 @@
     {
       "name": "F6-resolveKnobsSeam",
       "file": "unity/Assets/Gameplay.Boot/BootRoot.cs",
-      "line": 543,
+      "line": 576,
       "expect": "            return provider?.Load<TelemetryAnalyticsDataSet>().Tuning;",
       "replace": "            return null; // FALSIFY-F6:取值缝断线(永不取烘焙表)",
       "expectRed": [

@@ -61,7 +61,38 @@ jobs:
           fi
           echo "StreamRouting.g.cs 与 registry 一致(逐字节)"
 
-  # 2026-10-15 立:kindgen 变异探针(= A2 / A2b **判别力**的常驻执行体)。
+  # 2026-10-21 立:证伪 spec 锚点常驻校验(= S17-2 评审 D8 的完整修复)。
+  # 背景:评审 D8 判定「9 变异全 exactRed」**当前不可复算** —— 驱动在
+  #   apply_mutation 的原文校验处以退出码 2 中止。实测全库 17 份 spec 里
+  #   **8 份共 10 条锚点过期**,其中 6 份自 2026-10-17 落档后从未复核。
+  #   ⇒ 过期的后果不是「文档陈旧」,而是**证据件里的那句话失去可复算性**。
+  # 本 job = 让锚点漂移在提交时可见,而不是等下一次有人想复算时才暴露。
+  # 纯 Python + 零文件写入(只读 + 子进程调 --check-only)+ 零 Unity 依赖。
+  # ⚠️ 判据边界:本 job 只证「锚点对得上」,**不证判别力** —— 判别力仍须桌面真跑。
+  falsify-anchor-assertions:
+    name: "Falsify spec anchors (全库 --check-only)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Anchor check (纯读,零写盘)
+        run: python3 tools/falsify/check_all_anchors.py
+
+      - name: 校验本 job 确实没写盘
+        run: |
+          # 与 kindgen job 的「产物须与 registry 逐字节一致」同款思路:
+          # 若脚本意外写了什么,这里抓到。check_all_anchors.py 自称纯读 ⇒ 此步须绿。
+          if ! git diff --quiet; then
+            echo "::error::check_all_anchors.py 声称纯读,却留下了工作树改动"
+            git diff --stat
+            exit 1
+          fi
+          echo "工作树零改动 —— 纯读成立"
+
   # 背景:fix-s11-12 §四 的 7 变异矩阵当时是 /tmp 沙箱**一次性**实测;
   #   补评原件 review-case-system-story-001-postfix §六-5 如实登记:
   #     「【变异矩阵无常驻执行体】§四 的 7 变异是沙箱一次性实测,**未固化为 CI 步骤**」

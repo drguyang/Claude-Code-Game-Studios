@@ -44,7 +44,7 @@
     {
       "name": "F3-playModePredicateMinusOne",
       "file": "unity/Assets/Editor.Tools.Bake/DataBakeMenu.cs",
-      "line": 839,
+      "line": 1137,
       "expect": "            if (settings == null) return -1;",
       "replace": "            if (settings == null) return 0; // FALSIFY-F3:null 时回 0 冒充命中",
       "expectRed": [

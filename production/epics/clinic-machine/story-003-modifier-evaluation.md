@@ -56,9 +56,10 @@
     **> 400/512 越域**(实测 476),否则本测对 clamp 无判别力。
   · `test_clinic_envMod_property_anyMinMax_outputStillUnclamped` —— `[TestCase]` 4 组 `MIN < MAX`
     (−1/1 · −1000/1000 · ∓32768 · −1e6/1e6),断言产出 = 未钳制线性和**且严格越过该组 MAX**。
-  · **反证 M1(进行中)**:在 `ClinicModifierEvaluator.cs:121` 前加 `±32768` 钳制 ⇒ 预期 7 条红。
-    ⏳ **结果待证伪轮跑完回填** —— 预期是先写死的(`tools/falsify/s17-2-property-round.sh` 头注),
-    实跑结果未经核对前不得当作既成事实。
+  · **反证 M1(✅ 已跑)**:在 `ClinicModifierEvaluator.cs:121` 前加 `±32768` 钳制 ⇒ **实测 7 条红**
+    (与预写的 7 一致)。⚠️ **首轮只红 5 条** —— 差的正是 `anyMinMax` 的 `(-1,1)` 与 `(-1000,1000)`:
+    那两组样本和只有 2 / 2000,落在冻结界内 ⇒ 对「钳到 ±32768」**不可观测** = 我写的测试**假绿**。
+    修法 = 加 `MinMaxSlackRaw` 使四组和全部越界;复跑 7 红。
 - [x] AC-24-01b:超界 env_score **原样透传**(24 侧不 clamp;与 21a 的 clamp 配对由 story-004 联测)
   <br>载体:`test_clinic_envMod_aboveEnvModMax_passesThroughUnclamped` / `..._allNegative_...` · 反证 C1(在 `:116` 加钳制 ⇒ 两条同红)
 - [x] AC-24-02:EquipMod 按 F-24-2 求值,tier=0 的家具不进和;结果 = `clamp(Σtier × 65536, 0, EQUIP_MOD_CAP)` 的定点值
@@ -70,18 +71,32 @@
     闭区间不变量;末段采样守卫要求 **> 200/256 钉顶**(实测 247)。
   · `test_clinic_equipMod_negativeTier_excludedFromScore` —— 补 Q8(`tier < 0` 分支零判据):
     `tier ≤ 0` 若被改成 `tier == 0`,负档会**减分**并逃出上钳。
-  · **反证 M2 / M3(进行中)**:M2 = 停用上钳(`:163`)⇒ 预期 6 条红;M3 = `tier <= 0` → `tier == 0`
-    ⇒ 预期 1 条红。⏳ **结果待回填,不预写**。
+  · **反证 M2 / M3(✅ 已跑)**:M2 = 停用上钳(`:163`)⇒ **实测 6 条红**(与预写一致);
+    M3 = `tier <= 0` → `tier == 0` ⇒ **实测 1 条红**(与预写一致)。
+    三轮还原 `RESTORED_OK sha256=af9a8f51…d11ea47` · `FINAL_OK` 同值 · `FALSIFY_residue=0`。
 - [x] `EQUIP_MOD_CAP < 1` 的二值语义(2026-09-25 随拍记账)在夹具中可观测:score ≥ 阈值即钉顶,不产生 1 与 CAP 之间的中间值
   <br>载体:`test_clinic_equipMod_positiveScores_haveNoIntermediateValue` · 反证 C4
 - [x] adj_sum 逐对格查 ADJ_TABLE,每对有界(`n_max` 内),O(1) 查表不重复计(只 +x/+y)
   <br>载体:`test_clinic_adjSum_adjacentPair_countedOnce` / `..._missingPair_isZero` / `..._singleCell_isZero` · 反证 C3(−x 反向 ⇒ 重复计)
-- [x] 溢出安全:全部乘加在 int64 内;`n_max×TIER_MAX < 2^31` 前提下无环绕(fixture 取域边界值)
+- [x] 溢出安全:**每处乘法/加法均经显式域守卫**,越界即 throw(不依赖「域内值不会溢出」这一前提)
   <br>载体:`test_clinic_equipMod_largeScore_int64NoWrap` / `test_clinic_equipMod_nMaxBoundary_noWrap`
   <br>⚠️ **证词收窄(承证据件 §六 3)**:两条夹具的 `tier`(100000 / 1000)**远超冻结的 `TIER_MAX=3`**;
   域内最大档位和 `64 × 3 = 192` ⇒ `192 × 65536 = 12 582 912` 在 int32 内装得下 ⇒ 域内 int32/int64
-  两实现在此夹具上**不可区分**。故本条证的是卡面「乘加在 int64 内」这一**实现要求**,
+  两实现在此夹具上**不可区分**。故本条证的是「乘加在 int64 内」这一**实现要求**,
   **不是**「域内值会溢出」—— 后者为假,不主张。域界本身由 story-001 的 schema 断言守。
+  <br>🔁 **2026-10-21 评审 D1 处置 —— 本 AC 的措辞已改写**(原文见下):原写
+  「`n_max×TIER_MAX < 2^31` 前提下无环绕(fixture 取域边界值)」,而 D1 指出:那两条夹具
+  **根本不触达守卫**(`100000 ≪ long.MaxValue>>16 ≈ 1.4×10¹⁴`)⇒ 实测方向是 **clamp 钉顶**,
+  与 `equipMod_sumAboveCap_pinsToCap` 判别面重叠。更关键的是「域内 int32/int64 逐位不可区分」
+   ⇒ **原措辞的命题在域内不可证伪**。
+  **改法(取评审建议的第二条)**:把 AC 主语从「结果不溢出」(对域内恒真、不可证伪)
+  改成「**每处乘加均经显式域守卫**」(对实现可证伪 —— 删掉 `CheckedAdd` / 上界预判即红)。
+  这样 AC 描述的是**代码结构**,而不是一个在域内无法被推翻的数值命题。
+  <br>原文保留作沿革:
+  > 溢出安全:全部乘加在 int64 内;`n_max×TIER_MAX < 2^31` 前提下无环绕(fixture 取域边界值)
+  <br>⚠️ **仍未证的一步(禁借绿)**:上面的改写**没有**新增「直接测 `CheckedAdd` 本体」的夹具 ——
+  评审建议的第一条路(测守卫本体而非经求值器)未做。当前 `CheckedAdd` 的越界分支
+  **无独立载体**,只有经求值器的两条越域夹具(它们打到的是 clamp 而非守卫)。登记为剩余缺口。
 
 ---
 
@@ -168,6 +183,17 @@
   <br>🔁 **2026-10-21 订正**:上述 23 = **S17-2 当时**的值(19 份登记产物 + 4 个 `[Test]` +
   `TestCaseSource` 展开)。S17-4 追加第 20 份产物后现为 **24**。原文保留作沿革。
 
+> **Q6 处置(2026-10-21 评审 · 登记为 Integration)** —— 上面第一条载体里,
+> **三条 `*_diskMatchesFreshBake` 测的性质是 Integration,不是 Logic**:
+> `test_clinic_cooked{Context,Adj,Room}_diskMatchesFreshBake`(`:62` / `:89` / `:117`)
+> 走 `ReadCommitted()`(`File.ReadAllBytes` 读**入库的 `unity/Assets/DataCooked/*.cooked.bytes`**)
+> 与 `FreshBake()`(`BakeFromRepo(RepoRoot)` 从**源 JSON 现烘**)对拍。
+> 两个真实来源互证 ⇒ 按 `.claude/docs/coding-standards.md` §Testing Standards 的
+> 「Integration(multi-system)」归口。**本 story 的 `Story Type: Logic` 不受影响**
+> (主体载体 `clinic_modifier_eval_test.cs` 是纯函数测,零 I/O);
+> 此处登记的是**载体清单里那三条的类别**,以防下游把它们当纯单元测计数。
+> 该文件其余 15 测为纯 Logic(字节解码 / 只读视图),不在此列。
+
 ### 反证记录(S12-4 Falsifiability Gate)
 
 | 命中形态 | 主要断言 | 反证:停用什么 ⇒ 哪条转红 |
@@ -184,6 +210,13 @@
 
 三份 spec:`tools/falsify/specs/s17-2-clinic-modifier-eval.json`(C1–C5)· `s17-2-clinic-wiring.json`(W1/W2)· `s17-2-clinic-readonly.json`(R1/R2)。
 全部 `exactRed: true`,逐条实测恰如预期;还原 SHA-256 逐字节校验通过。
+
+> **✅ D8 修复后的复跑(2026-10-21 第二批)**:锚点 10 条过期全部订正(全库 17/17 绿),
+> 用**驱动**复跑 eval(C1–C5)+ readonly(R1–R2)= **7 个变异,全部恰如预期**
+> (C1 7 · C2 2 · C3 4 · C4 7 · C5 1 · R1 1 · R2 1);eval 那轮末行逐字
+> `══ 证伪轮通过:5 个变异全部恰如预期 ══`、`EXIT_DRIVER=0`。
+> ⚠️ **W1/W2 本轮未跑**(锚点已核,判别力证据仍是 2026-10-21 首轮实测的 `2 / 1`),
+> 详见证据件 §4.5。
 
 > 🔁 **2026-10-21 性质测试补写轮另起独立脚本** `tools/falsify/s17-2-property-round.sh`(M1/M2/M3)——
 > 不复用上面三份 spec 的原因:它们的锚点当时已 6/13 过期(评审 D8,驱动 exit 2)。

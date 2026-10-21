@@ -25,7 +25,7 @@
     {
       "name": "F2-emptyStreamBranch",
       "file": "unity/Assets/Telemetry/TickFoldEngine.cs",
-      "line": 53,
+      "line": 58,
       "expect": "            if (ticks.Count == 0) return (0, 0, 0, 0, 0);",
       "replace": "            // FALSIFY-F2:停用空流分支(落到 ticks.Min() 抛)",
       "expectRed": [
@@ -49,7 +49,7 @@
     {
       "name": "F4-emptyBannerBranch",
       "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
-      "line": 675,
+      "line": 762,
       "expect": "            bool empty = _stream.Events.Count == 0;",
       "replace": "            bool empty = true; // FALSIFY-F4:空流判断恒真",
       "expectRed": [

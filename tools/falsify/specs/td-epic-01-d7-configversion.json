@@ -12,7 +12,7 @@
     {
       "name": "F1-configVersionEarlyExit",
       "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
-      "line": 617,
+      "line": 649,
       "expect": "            if (configVersion.HasValue && !configVersion.Value.Match)",
       "replace": "            if (false) // FALSIFY-F1:停用版本门早退(版本不符也照常出数)",
       "expectRed": [

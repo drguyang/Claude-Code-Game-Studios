@@ -233,6 +233,20 @@ namespace DaYiJingCheng.Sim.Clinic
         /// 邻接和(整数 raw):遍历 S 的每格,只查 **+x** 与 **+y** 两个邻居 ——
         /// 每条无向相邻边因此**恰计一次**(承 F-24-1「每条边恰好计数一次」)。
         /// </summary>
+        /// <remarks>
+        /// <para><b>前置条件(2026-10-21 评审 D2 登记)</b>:本方法内 <c>cell.X + 1</c> / <c>cell.Y + 1</c>
+        /// 是<b>无守卫</b>的 <c>int</c> 有符号加法。若 <c>cell.X == int.MaxValue</c> ⇒ C# 回绕到
+        /// <c>int.MinValue</c>(而 IL2CPP 下按 ADR-012 F7 是有符号溢出 UB)。后果不是崩溃,
+        /// 而是<b>邻居查不到 ⇒ 静默少算一条边</b>。</para>
+        /// <para><b>为什么不在本方法里加守卫</b>:这要求调用方传入的坐标 ∈ <c>[0, LATTICE_SIZE)</c> ——
+        /// 承 <b>ADR-015 §三</b>「<c>WorldPos</c> = 单一整数格,全部空间量共用同一套格」,
+        /// 坐标域由<b>关卡工具导出时</b>保证(ADR-022 C4 多边形合法性检查),不是求值器的职责。
+        /// 在每格加一次 <c>if (cell.X == int.MaxValue)</c> 只是把 UB 挪个地方 ——
+        /// 真正的守卫在数据入口,不在这里。</para>
+        /// <para>⚠️ <b>域内不可达</b>:<c>LATTICE_SIZE</c> 远小于 <c>int.MaxValue</c>,
+        /// 故本条是<b>前置登记</b>而非缺陷。若将来允许外部构造超域 <c>WorldPos</c>,
+        /// 本前置须升级为显式守卫。</para>
+        /// </remarks>
         private static long SumAdjacencyRaws(
             IReadOnlyList<WorldPos> cells,
             Dictionary<WorldPos, string> typeByCell,

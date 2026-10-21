@@ -61,7 +61,7 @@
     {
       "name": "F5-emitAllFaultedEarlyExit",
       "file": "unity/Assets/Gameplay.Boot/TelemetryReporter.cs",
-      "line": 693,
+      "line": 739,
       "expect": "            if (session.Compute(history, cases, Array.Empty<SimEvent>()) == EvalState.Faulted)",
       "replace": "            if (session.Compute(history, cases, Array.Empty<SimEvent>()) == EvalState.Idle) // FALSIFY-F5:停用 sink 门",
       "expectRed": [

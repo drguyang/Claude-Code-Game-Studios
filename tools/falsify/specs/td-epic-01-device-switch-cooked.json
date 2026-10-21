@@ -88,7 +88,7 @@
     {
       "name": "F7-reconciliationConstantDrift",
       "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
-      "line": 66,
+      "line": 68,
       "expect": "        public const int EmergencyDeviceSwitchSeedPointerTolerance = 65536;   // \"1\"",
       "replace": "public const int EmergencyDeviceSwitchSeedPointerTolerance = 65535; // FALSIFY-F7:常量漂移 1",
       "expectRed": [

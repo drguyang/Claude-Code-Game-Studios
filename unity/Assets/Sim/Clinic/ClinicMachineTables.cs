@@ -333,10 +333,22 @@ namespace DaYiJingCheng.Sim.Clinic
         /// <summary>房间类型 id。</summary>
         public readonly string RoomType;
 
-        /// <summary>子句集(构造期拷贝为只读视图)。</summary>
+        /// <summary>子句集。</summary>
+        /// <remarks>
+        /// <para>⚠️ <b>本结构体的公共构造器<b>不</b>做防强转包装</b>(2026-10-21 评审 D5 登记)——
+        /// 它原样保存传入的引用。若调用方传入裸 <c>ClinicRoomClause[]</c>,则该数组仍可被强转回去就地改写。</para>
+        /// <para><b>只读保证由 <see cref="ClinicRoomTable"/> 提供</b>:表构造器
+        /// (<c>ClinicRoomTable</c> ctor 内的 <c>Array.AsReadOnly(copied)</c>)会**拷贝一份**再包成
+        /// <see cref="ReadOnlyCollection{T}"/>,故经表拿到的一律不可强转。
+        /// ⇒ 只要 `ClinicRoomDef` 实例来自表(生产路径的唯一来源),只读性成立。</para>
+        /// <para><b>为什么不在本构造器里也包一层</b>:那会让每一次拷贝都多分配一次
+        /// <see cref="ReadOnlyCollection{T}"/> 而表构造器随后**再包一次** —— 双包装不可观测,
+        /// 只是把「谁负责只读」这件事从一处散成两处。今日<b>零生产调用方</b>绕过表构造器
+        /// (直接 <c>new ClinicRoomDef</c> 的只有本文件与测试)。</para>
+        /// </remarks>
         public readonly IReadOnlyList<ClinicRoomClause> Clauses;
 
-        /// <summary>构造一个。</summary>
+        /// <summary>构造一个。<b>不</b>对 <paramref name="clauses"/> 做只读包装 —— 见 <see cref="Clauses"/> 的备注。</summary>
         public ClinicRoomDef(string roomType, IReadOnlyList<ClinicRoomClause> clauses)
         {
             RoomType = roomType; Clauses = clauses;
@@ -412,7 +424,15 @@ namespace DaYiJingCheng.Sim.Clinic
         private static void ValidateClause(string roomType, int index, ClinicRoomClause clause)
         {
             string where = $"ROOM_TABLE「{roomType}」clauses[{index}]";
+            ValidateClauseEnums(where, clause);
+            ValidateClausePayload(where, clause);
+        }
 
+        /// <summary>公共字段守卫:两个枚举须 ∈ 闭集,<c>type</c> 须非空。
+        /// <para>2026-10-21 评审 D7:从 <see cref="ValidateClause"/> 拆出(该件唯一建议拆的方法)。
+        /// 拆分是<b>纯提取</b> —— 判据、顺序、报文逐字不变。</para></summary>
+        private static void ValidateClauseEnums(string where, ClinicRoomClause clause)
+        {
             if (clause.Kind != ClinicRoomClauseKind.MinCount
                 && clause.Kind != ClinicRoomClauseKind.HasType
                 && clause.Kind != ClinicRoomClauseKind.AdjacencyMinCount)
@@ -425,7 +445,12 @@ namespace DaYiJingCheng.Sim.Clinic
 
             if (string.IsNullOrEmpty(clause.Type))
                 throw new ArgumentException($"{where} type 为空 —— 拒收");
+        }
 
+        /// <summary>按 <c>Kind</c> 分支的载荷守卫:邻接类须带方向与正阈值,其余不得带。
+        /// <para>2026-10-21 评审 D7:纯提取,判据与报文逐字不变。</para></summary>
+        private static void ValidateClausePayload(string where, ClinicRoomClause clause)
+        {
             bool isAdjacency = clause.Kind == ClinicRoomClauseKind.AdjacencyMinCount;
             if (isAdjacency)
             {

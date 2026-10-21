@@ -129,6 +129,58 @@ class PreconditionError(RuntimeError):
     pass
 
 
+def check_anchors(repo: Path, spec: dict) -> int:
+    """只校验每个变异的 `line`/`expect` 是否仍与盘上代码对得上 —— **纯读,零写盘**。
+
+    为什么单列这条路径:2026-10-21 实测发现 `--dry-run` **仍会写盘** ——
+    `apply_mutation()` 在 `run()` 里先于 `if dry_run:` 判断执行(见该轮登记),
+    所以「只想核对锚点」的人一旦用 `--dry-run`,文件就已处于变异态。
+    本函数不碰 `apply_mutation`,只 `read_text`,因此**可以**在不进变异窗口的前提下跑。
+
+    判定:每条锚点「行号处的整行 == expect」⇒ OK;不等 ⇒ 报出实读 + 全文精确命中行(若唯一,直接给可改的行号)。
+    返回 0 = 全部对得上;`EXIT_PRECONDITION` = 至少一条过期。
+    """
+    stale = 0
+    for mut in spec["mutations"]:
+        path = repo / mut["file"]
+        lines = path.read_text(encoding="utf-8").split("\n")
+        ln = int(mut["line"])
+        expect = mut["expect"]
+        actual = lines[ln - 1] if 0 < ln <= len(lines) else "<行号越界>"
+        name = mut.get("name", "?")
+        expect_prev = mut.get("expectPrev")          # 可选:上一行原文,用于消歧
+
+        if actual == expect and (expect_prev is None
+                                 or (ln >= 2 and lines[ln - 2] == expect_prev)):
+            print(f"  ✅ {name:26s} :{ln} 锚点对得上")
+            continue
+
+        stale += 1
+        # 消歧:**上一行也相同**才算候选(治「同一句在多处逐字相同」的形态)
+        hits = [i + 1 for i, l in enumerate(lines)
+                if l == expect
+                and (expect_prev is None
+                     or (i >= 1 and lines[i - 1] == expect_prev))]
+        print(f"  ❌ {name:26s} :{ln} 锚点**过期**")
+        print(f"       期望 {expect!r}")
+        if expect_prev is not None:
+            print(f"      +上一行 {expect_prev!r}")
+        print(f"       实读 {actual!r}")
+        if len(hits) == 1:
+            print(f"       ⇒ 该原文现居 :{hits[0]}(唯一命中,可直接改 line)")
+        elif hits:
+            why = "该原文**连同上一行**" if expect_prev is not None else "该原文"
+            print(f"       ⇒ {why}在 {hits} 多处命中 ⇒ **追加 `expectPrev` 消歧**,不要凭缩进猜")
+        else:
+            print("       ⇒ 该原文在盘上**零命中** —— 生产码已被实质修改,不是行号漂移")
+
+    if stale:
+        print(f"\n!! {stale}/{len(spec['mutations'])} 条锚点过期 —— 须先修 spec 才能跑证伪轮")
+        return EXIT_PRECONDITION
+    print(f"\n✅ {len(spec['mutations'])} 条锚点全部对得上(未写盘)")
+    return 0
+
+
 class RestoreError(RuntimeError):
     pass
 
@@ -280,6 +332,8 @@ def main() -> int:
     ap.add_argument("--guard", action="append", default=None,
                     help=f"追加受保护路径(可重复;默认 {DEFAULT_GUARDS})")
     ap.add_argument("--dry-run", action="store_true", help="只校验前提(行号/原文),不跑 Unity")
+    ap.add_argument("--check-only", action="store_true",
+                    help="只校验 spec 锚点是否与盘上代码对得上 —— **绝不写盘**(ADR 评审 D8 的修复)")
     ap.add_argument("--keep-logs", action="store_true", help="保留每次跑测的结果 XML")
     args = ap.parse_args()
 
@@ -290,6 +344,9 @@ def main() -> int:
     print(f"仓根   : {repo}")
     print(f"规格   : {args.spec} —— {spec.get('name', '(未命名)')}")
     print(f"受保护 : {', '.join(guards)}")
+
+    if args.check_only:
+        return check_anchors(repo, spec)
 
     try:
         return run(repo, spec, guards, args.dry_run, args.keep_logs)

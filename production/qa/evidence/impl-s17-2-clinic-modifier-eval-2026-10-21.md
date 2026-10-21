@@ -217,6 +217,49 @@
 ⚠️ **这处缺口是我写的测试自身的缺陷,由证伪轮抓出,不是被评审抓出。** 登记在此以证:
 「性质测试」这一栏的绿,在本轮之前有一半是空的。
 
+### 4.5 评审 D8 修复后的复跑(2026-10-21 11:2x CST · `--keep-logs`)
+
+> **为什么有这一轮**:§4.4 的 M1/M2/M3 用的是独立脚本(`s17-2-property-round.sh`),
+> 而**原三份 spec** 当时因锚点过期(驱动 exit 2)跑不了。评审 D8 修完后,spec 恢复可跑
+> ⇒ 用**驱动**复跑。
+
+⚠️ **本轮复跑的覆盖面 = eval(C1–C5)+ readonly(R1–R2),共 7 个变异。
+`wiring` spec(W1/W2)本轮**未跑** —— 它的两个锚点已由 `--check-only` 证实对得上,
+但**「锚点对得上」不等于「判别力已复验」**。W1/W2 的判别力证据仍是 §4.2 那一轮的实测
+(`W1 红 2 · W2 红 1`),**不因本轮而更新**。禁借绿:此处不把 W1/W2 并进「本轮已复跑」。
+
+| spec | 变异 | 预写 `expectRed` | 实测 | 判定 |
+|---|---|---|---|---|
+| eval | C1-envUnclamped | 7 | **7** | ✅ |
+| eval | C2-roomNoneNeutral | 2 | **2** | ✅ |
+| eval | C3-adjTwoDirections | 4 | **4** | ✅ |
+| eval | C4-equipCapRemoved | 7 | **7** | ✅ |
+| eval | C5-nonFurnitureSkipped | 1 | **1** | ✅ |
+| readonly | R1-contextRowsBareArray | 1 | **1** | ✅ |
+| readonly | R2-roomRoomsBareArray | 1 | **1** | ✅ |
+
+**C3 / C4 的 `expectRed` 从 3 / 6 改为 4 / 7 —— 依据是先论证,不是照抄实测**:
+两处多出的红都是 **S17-4(2026-10-21)新加的** `test_traitsSource_feedsEvaluator_endToEnd`
+(`clinic_furniture_catalogue_test.cs`)。该测断言
+`env.Raw == Fix.OneRaw/8`(C3 加 −x 反向 ⇒ adj 翻倍 ⇒ 必红)与
+`equip.Raw == EquipModCapRaw`(C4 删上钳 ⇒ raw 留 65536 ⇒ 必红)。
+论证写在 spec 的 `_expectRed_justification` 字段里,**不是把实得抄进 `exactRed`**
+(`tools/falsify/README.md` 坑 2)。
+
+**还原**:每轮 `──── 还原:SHA-256 逐字节校验通过 ────` · 受保护路径
+(`unity/Assets/DataCooked` + `unity/Assets/AddressableAssetsData`)指纹前后未变。
+
+**驱动的 verdict 逐字(不合并两轮)**:
+
+| 轮 | spec | 末行 | exit |
+|---|---|---|---|
+| 复跑 A | `modifier-eval` | `══ 证伪轮**未通过**(退出码 1)══` | 1 —— **C3 预期当时还是旧 3 条** |
+| 复跑 A | `readonly` | `══ 证伪轮通过:2 个变异全部恰如预期 ══` | 0 |
+| 复跑 B | `modifier-eval` | `══ 证伪轮通过:5 个变异全部恰如预期 ══` | **0** |
+
+复跑 A 的 exit 1 **不抹掉**(它是「改预期前实跑」的真实记录);
+改完 C3 预期后补跑复跑 B,5/5 恰如预期 ⇒ **C3 的 4 条现在是实跑一致,不是推断**。
+
 ---
 
 ## 五、未及核查 / 未跑项(如实登记,禁借绿)

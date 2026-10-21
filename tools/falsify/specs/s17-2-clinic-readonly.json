@@ -27,7 +27,7 @@
     {
       "name": "R2-roomRoomsBareArray",
       "file": "unity/Assets/Sim/Clinic/ClinicMachineTables.cs",
-      "line": 362,
+      "line": 374,
       "expect": "        public IReadOnlyList<ClinicRoomDef> Rooms => _roomView;",
       "replace": "        public IReadOnlyList<ClinicRoomDef> Rooms => _rooms; // FALSIFY-R2:退回裸数组",
       "expectRed": [

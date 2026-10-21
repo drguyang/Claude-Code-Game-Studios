@@ -40,8 +40,11 @@
 ## 用法
 
 ```bash
-# 干跑:只校验前提(行号 + 原文锚点),不跑 Unity —— 秒级
-python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/<name>.json --dry-run
+# 只校验**一份** spec 的锚点 —— 纯读,零写盘(不进变异窗口)
+python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/<name>.json --check-only
+
+# 校验**全库** spec 的锚点 —— 纯读,常驻 CI(D8 的完整修复)
+python3 tools/falsify/check_all_anchors.py
 
 # 真跑
 python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/<name>.json
@@ -50,8 +53,31 @@ python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/<name>.json
 python3 tools/falsify/unity_falsify.py --spec … --guard unity/Assets/DataCooked
 ```
 
+> ⚠️ **不要用 `--dry-run` 当「只读检查」** —— 它**会写盘**(见下节)。
+> 「只想核锚点」的正确工具是 `--check-only` / `check_all_anchors.py`。
+
 ⚠️ **Unity batch 独占工程** —— 起跑前确认编辑器已关(`unity/Temp/UnityLockfile` 不存在)。
 本驱动**不**代你查(竞态仍在);它只保证自己不并发。
+
+### 锚点会腐烂 —— 故有 CI 常驻校验(2026-10-21 · D8 的完整修复)
+
+**问题不是「某个 spec 过期了」,是「没人跑过」。** 2026-10-21 实测:全库 **17 份 spec 里
+8 份共 10 条锚点过期**,其中 6 份自 2026-10-17 落档后**从未复核**。后果不是「文档陈旧」,
+而是**证据件里「N 变异全 exactRed」这句话不可复算** —— 任何人今天重跑都会在
+`apply_mutation` 的原文校验处以**退出码 2** 中止,断言根本没机会跑。
+
+⇒ 两道常驻校验:
+
+| 入口 | 面 | 何时跑 |
+|---|---|---|
+| `unity_falsify.py --check-only` | **一份** spec | 改完该 spec 后 |
+| `check_all_anchors.py` | **全库** spec | **每次 push / PR**(`tests.yml` 的 `falsify-anchor-assertions` job) |
+
+两者都是**纯读、零写盘** —— 与 `--dry-run` 的关键区别,后者会写盘。
+
+⚠️ **CI 判据的边界**:`check_all_anchors.py` 只证「锚点对得上」,**不证**判别力。
+判别力仍须桌面真跑(`unity_falsify.py` 无 `--check-only`),因为那需要 Unity batch。
+**锚点绿 ≠ 证伪轮通过** —— 别把它读成后者。
 
 ### ⚠️ 并发读取禁令(2026-10-21 立 · `TD-gate-03`)
 
@@ -230,6 +256,16 @@ Unity 侧判据只能走桌面 + 本驱动。
 | `specs/s16-4-fs-write-boundary.json` | `FsWriteBoundaryGate`(S16-4 写盘边界门):F1 注入仓库写盘到测试树(R1/R2 判别面如常)· F2 停用声明查找 · F3 停用锚点识别 | **3**(F1–F3) | 2026-10-20 |
 | `specs/c1-gate-wiring.json` | 门链接线判据(C-1 / `TD-gate-01`+`-02`):F1 删 `RunAll` 里一行 · F2 删清单一条声明 · F3 停用解析器 | **3**(F1–F3) | 2026-10-21 |
 | `specs/c2-il-gate-wiring.json` | 6 / 10 两个 IL 门接进 BuildGate(C-2):F1 删 Ecozone 接线 · F2 删 Emergency 接线 · F3 已上线门改判回 `TestDriven` · F4 `PodTypeScanner` 谎报 `Chain` | **4**(F1–F4) | 2026-10-21 |
+| `specs/s17-2-clinic-modifier-eval.json` | 24 乘子求值:F-24-1 零钳制 / ROOM_NONE 中性 / adj 单向边 / F-24-2 单钳制 / 非家具格跳过 | **5**(C1–C5) | 2026-10-21 |
+| `specs/s17-2-clinic-wiring.json` | 24 三表的 address ↔ baker 产物名 / `Preload()` 逐条 Ensure | **2**(W1–W2) | 2026-10-21 |
+| `specs/s17-2-clinic-readonly.json` | 表只读视图不可强转改写(context / room) | **2**(R1–R2) | 2026-10-21 |
+| `specs/s17-4-furniture-catalogue.json` | 家具目录:unknown 不得塌缩成 non-furniture · 真判据忽略闭集 · 生产哨兵 · 菜单漏烘闭集 | **4**(F1–F4) | 2026-10-21 |
+
+> **锚点健康度(2026-10-21 · D8 修复轮)**:全库 17 份 spec、**76 条锚点**
+> (复算:`python3 -c` 逐份累加 `len(mutations)`,非目测),
+> 修前 **8 份共 10 条过期**(6 份自 2026-10-17 落档后从未复核);修后 **17/17 全绿**。
+> 常驻校验 = `python3 tools/falsify/check_all_anchors.py`(纯读)+ `tests.yml` 的
+> `falsify-anchor-assertions` job。**锚点绿 ≠ 判别力**,后者仍须桌面真跑。
 
 > **C-2 规格的两处口径说明(2026-10-21)**:
 > ① **F1 / F2 证不了 `chainKindEntriesAreActuallyWired`** —— 该断言取**三入口并集**,

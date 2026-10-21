@@ -10,7 +10,8 @@
   "_note": [
     "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
     "本 spec 补的是 S17-2 主 spec 的**接线半边**:求值器绿 ≠ 表被真正装载。",
-    "⚠️ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。"
+    "⚠️ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "2026-10-21 锚点订正:W2 323 → 337(唯一命中)。复核:--check-only(纯读)。"
   ],
   "mutations": [
     {
@@ -29,7 +30,7 @@
     {
       "name": "W2-preloadMissingCall",
       "file": "unity/Assets/Gameplay.Presentation/AddressablesDataProvider.cs",
-      "line": 323,
+      "line": 337,
       "expect": "            EnsureClinicContext();",
       "replace": "            // FALSIFY-W2:停用 Preload 的 clinic-context 调用",
       "expectRed": [

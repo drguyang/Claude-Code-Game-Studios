@@ -3,13 +3,16 @@
   "mode": "EditMode",
   "filter": "GateWiringManifestTest",
   "unityProject": "unity",
-  "guards": ["unity/Assets/AddressableAssetsData", "unity/Assets/Audio"],
+  "guards": [
+    "unity/Assets/AddressableAssetsData",
+    "unity/Assets/Audio"
+  ],
   "_note": "判据 = 每个变异**恰如预期**转红(exactRed)。F1/F2 打生产侧接线(删一行),F3 打 manifest 回退方向(Kind Chain → TestDriven)。F1/F2 与 F3 必须各自承重:前者证明「掉线可被发现」,后者证明「清空缺口表后仍有判别力」(即 ExpectedTestDrivenClasses 那条新断言确实在守)。",
   "mutations": [
     {
       "name": "F1-removeEcozoneWiring",
       "file": "unity/Assets/Editor.Tools.Gates/AssemblyGates.cs",
-      "line": 1252,
+      "line": 1258,
       "expect": "                errs.AddRange(EcozoneIntegerGates.RunAll());       // AC-6-22",
       "replace": "",
       "expectRed": [
@@ -23,7 +26,7 @@
     {
       "name": "F2-removeEmergencyWiringFromBuildGate",
       "file": "unity/Assets/Editor.Tools.Gates/AssemblyGates.cs",
-      "line": 1253,
+      "line": 1259,
       "expect": "                errs.AddRange(EmergencyIntegerGates.RunAll());     // AC-10-02 / AC-10-03",
       "replace": "",
       "expectRed": [

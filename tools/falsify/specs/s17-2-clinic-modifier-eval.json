@@ -11,18 +11,25 @@
     "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
     "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期)。",
     "⚠️ 驱动只读 --guard 参数(不读本文件的 guards 字段)⇒ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
-    "本批 5 个变异覆盖:F-24-1 零钳制 / ROOM_NONE 中性 / adj 单向边 / F-24-2 单钳制 / 非家具格跳过。"
+    "本批 5 个变异覆盖:F-24-1 零钳制 / ROOM_NONE 中性 / adj 单向边 / F-24-2 单钳制 / 非家具格跳过。",
+    "2026-10-21 锚点订正:5/5 统一 +5(S17-4 在 ClinicModifierEvaluator.cs 文件头加了 5 行注释);C2 的 expect 在 :83/:109/:140 三处逐字相同 ⇒ 追加 expectPrev 消歧(驱动 check_anchors 已支持)。复核命令:python3 tools/falsify/unity_falsify.py --spec <本文件> --check-only(纯读,不写盘)。",
+    "2026-10-21 exactRed 期望重算:性质测 +7 后原红集过期。**本轮预期是推演值,先写死再实跑对照** —— C1 由 2 → 7(anyInput 279/512 组失配 + anyMinMax 4 组全越 262144)· C3 由 2 → 3(anyInput 的 C0-C1 边被反向重计)· C4 由 4 → 6 · C2/C5 不变。"
   ],
   "mutations": [
     {
       "name": "C1-envUnclamped",
       "file": "unity/Assets/Sim/Clinic/ClinicModifierEvaluator.cs",
-      "line": 116,
+      "line": 121,
       "expect": "            return new Fix(sum);",
       "replace": "            return new Fix(Math.Max(Math.Min(sum, 65536L * 4), -65536L * 4)); // FALSIFY-C1:env 侧加钳制",
       "expectRed": [
         "test_clinic_envMod_aboveEnvModMax_passesThroughUnclamped",
-        "test_clinic_envMod_allNegative_passesThroughUnclamped"
+        "test_clinic_envMod_allNegative_passesThroughUnclamped",
+        "test_clinic_envMod_property_anyInput_equalsLinearSum_noClamp",
+        "test_clinic_envMod_property_anyMinMax_outputStillUnclamped(-1L,1L)",
+        "test_clinic_envMod_property_anyMinMax_outputStillUnclamped(-1000L,1000L)",
+        "test_clinic_envMod_property_anyMinMax_outputStillUnclamped(-32768L,32768L)",
+        "test_clinic_envMod_property_anyMinMax_outputStillUnclamped(-1000000L,1000000L)"
       ],
       "exactRed": true,
       "_why": "AC-24-01b / D-21-31:env 侧唯一钳制点在 21a F1。在 24 侧加任何 clamp ⇒ 越界透传的两条必红(正负各一条 = 判别面成对)。"
@@ -30,7 +37,7 @@
     {
       "name": "C2-roomNoneNeutral",
       "file": "unity/Assets/Sim/Clinic/ClinicModifierEvaluator.cs",
-      "line": 104,
+      "line": 109,
       "expect": "            if (!room.HasRoom) return Fix.Zero;",
       "replace": "            if (!room.HasRoom) return baseEnv; // FALSIFY-C2:ROOM_NONE 返回 base_env 而非中性 0",
       "expectRed": [
@@ -38,40 +45,48 @@
         "test_clinic_twoClusters_returnsNeutralZero"
       ],
       "exactRed": true,
-      "_why": "EC-24-01/02/07:未析出房间必须中性 (0,0),不得回落 base_env —— 否则 9 / 21a 无法区分「空 / 中性 / 最差」。两簇同样整盘中性 ⇒ 两条一起红。"
+      "_why": "EC-24-01/02/07:未析出房间必须中性 (0,0),不得回落 base_env —— 否则 9 / 21a 无法区分「空 / 中性 / 最差」。两簇同样整盘中性 ⇒ 两条一起红。",
+      "expectPrev": "            if (adjTable == null) throw new ArgumentNullException(nameof(adjTable));"
     },
     {
       "name": "C3-adjTwoDirections",
       "file": "unity/Assets/Sim/Clinic/ClinicModifierEvaluator.cs",
-      "line": 242,
+      "line": 261,
       "expect": "                sum = AddNeighbor(sum, type, typeByCell, cell.X + 1, cell.Y, cell.Z, adjTable);",
       "replace": "                sum = AddNeighbor(sum, type, typeByCell, cell.X + 1, cell.Y, cell.Z, adjTable);\n                sum = CheckedAdd(sum, AddNeighbor(0, type, typeByCell, cell.X - 1, cell.Y, cell.Z, adjTable), \"adj_sum\"); // FALSIFY-C3:四邻域(反向再加一次)",
       "expectRed": [
         "test_clinic_adjSum_adjacentPair_countedOnce",
-        "test_clinic_envMod_gddWorkedExample_matches28000"
+        "test_clinic_envMod_gddWorkedExample_matches28000",
+        "test_clinic_envMod_property_anyInput_equalsLinearSum_noClamp",
+        "test_traitsSource_feedsEvaluator_endToEnd"
       ],
       "exactRed": true,
-      "_why": "F-24-1 公共定义:每条相邻边恰计一次(+x/+y 单向查)。加 -x 反向 ⇒ 同一对被计两次:一对格夹具 5000→10000 红,GDD 算例 adj 从 −8000 变 −4000 ⇒ 28000→32000 红。"
+      "_why": "F-24-1 公共定义:每条相邻边恰计一次(+x/+y 单向查)。加 -x 反向 ⇒ 同一对被计两次:一对格夹具 5000→10000 红,GDD 算例 adj 从 −8000 变 −4000 ⇒ 28000→32000 红。",
+      "_expectRed_justification": "2026-10-21 实跑红 4 条,预写 3 条。**先论证「第 4 条为什么应该红」再改预期**(承 README 坑 2):`clinic_furniture_catalogue_test.cs:342-345` 注释逐字写 `env = base_env(0) + (1/64) + (−1/64) + adj(1/8) = 1/8`,断言 `env.Raw == Fix.OneRaw/8`。C3 加 −x 反向邻接 ⇒ bed↔chamber_pot 这条边被**再计一次** ⇒ adj 由 1/8 变 2/8 ⇒ env 由 8000 变 9000(1/8 → 9/64)⇒ **必然红**。该测是 S17-4(2026-10-21)新加的文件,写本 spec 时不存在 ⇒ 与 C4 同型的**预期过期**。"
     },
     {
       "name": "C4-equipCapRemoved",
       "file": "unity/Assets/Sim/Clinic/ClinicModifierEvaluator.cs",
-      "line": 158,
+      "line": 163,
       "expect": "            if (raw > EquipModCapRaw) raw = EquipModCapRaw;",
       "replace": "            // FALSIFY-C4:停用 EQUIP_MOD_CAP 上钳",
       "expectRed": [
-        "test_clinic_equipMod_sumAboveCap_pinsToCap",
-        "test_clinic_equipMod_positiveScores_haveNoIntermediateValue",
         "test_clinic_equipMod_largeScore_int64NoWrap",
-        "test_clinic_equipMod_nMaxBoundary_noWrap"
+        "test_clinic_equipMod_nMaxBoundary_noWrap",
+        "test_clinic_equipMod_negativeTier_excludedFromScore",
+        "test_clinic_equipMod_positiveScores_haveNoIntermediateValue",
+        "test_clinic_equipMod_property_anyTierVector_inClosedRange",
+        "test_clinic_equipMod_sumAboveCap_pinsToCap",
+        "test_traitsSource_feedsEvaluator_endToEnd"
       ],
       "exactRed": true,
-      "_why": "F-24-2 的单钳制。停用 ⇒ 四条钉顶断言全红(sumAboveCap / 二值语义 / int64 大值 / n_max 边界)。"
+      "_why": "F-24-2 的单钳制。停用 ⇒ 四条钉顶断言全红(sumAboveCap / 二值语义 / int64 大值 / n_max 边界)。",
+      "_expectRed_justification": "2026-10-21 实跑红 7 条,旧预期 6 条。**先论证「第 7 条为什么应该红」再改预期**(承 README 坑 2:不得把实得抄进 exactRed):`clinic_furniture_catalogue_test.cs:349-351` 断言 `ClinicEquipModOf(room, source).Raw == EquipModCapRaw` —— 该布局 bed(tier=1) + chamber_pot(tier=0) ⇒ score=1 ⇒ raw=1×65536=65536;C4 删的正是把 65536 钳到 16384 的那一行 ⇒ raw 留在 65536 ≠ 16384 ⇒ **必然红**。该测是 S17-4(2026-10-21)新加的文件,写本 spec 时它还不存在 ⇒ 这是**预期过期**,不是判别面不清。同上:`_why` 原写「四条钉顶」,实为**六条**(5 条 eval 侧 + 1 条 catalogue 侧)。"
     },
     {
       "name": "C5-nonFurnitureSkipped",
       "file": "unity/Assets/Sim/Clinic/ClinicModifierEvaluator.cs",
-      "line": 189,
+      "line": 194,
       "expect": "                    case ClinicCellLookup.NonFurniture:",
       "replace": "                    case ClinicCellLookup.NonFurniture: byCell[cell] = default; break; // FALSIFY-C5:非家具格当家具(全零属性)",
       "expectRed": [

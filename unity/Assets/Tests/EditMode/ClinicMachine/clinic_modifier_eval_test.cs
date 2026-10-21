@@ -489,11 +489,18 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
 
         /// <summary>
         /// 「任意 MIN &lt; MAX」参数化用的**常量抬升量**(raw)。
-        /// <para>取值须 &gt; `ENV_MOD_MAX` 的绝对值(32768)且远小于 int64 上界 ——
-        /// 100000 满足;它的作用是保证窄域 `(MIN, MAX)` 组的和也**落在冻结界之外**,
-        /// 否则那几组对「钳到冻结界」的变异毫无判别力(见该测 remarks 的缺口登记)。</para>
+        /// <para>⚠️ 这个值被改过两次,每次都是证伪轮抓出来的 —— 记在此防复发:</para>
+        /// <list type="number">
+        /// <item><b>100000(首版)</b>:只够打穿冻结界 `±32768`,对证伪 M2(钳到 `±262144`)不可观测
+        /// ⇒ 四组里三组恒绿。</item>
+        /// <item><b>4000000(现行)</b>:保证**四组全部** `|expected| &gt; 262144`,
+        /// 对「钳到冻结界(±32768)」与「钳到 ±4.0(±262144)」两种变异**都可观测**。</item>
+        /// </list>
+        /// <para><b>取值纪律</b>:slack 的判据不是「够大就行」,而是「
+        /// 任一 MIN/MAX 组合下和都要超过**被测变异可能引入的最宽钳制界**」。
+        /// 定这个界前先看证伪轮打算试哪些钳制 —— 否则测出来的绿是空绿。</para>
         /// </summary>
-        private const long MinMaxSlackRaw = 100000L;
+        private const long MinMaxSlackRaw = 4000000L;
 
         /// <summary>确定性整数 ∈ `[minInclusive, maxInclusive]`。</summary>
         private static int NextInt(ref ulong state, int minInclusive, int maxInclusive)
@@ -588,8 +595,9 @@ namespace DaYiJingCheng.Tests.Unit.ClinicMachine
             Assume.That(minRaw < maxRaw, "夹具前提:MIN < MAX");
 
             // 四格:三格各贡献 maxRaw,第四格贡献常量 Slack;base 从 minRaw 起步。
-            // ⇒ 期望 = minRaw + 3·maxRaw + Slack:对本表四组分别 = 100002 / 102000 / 165536 / 2100000
-            //   —— **每一组都严格越过该组 MAX,且都落在 ±32768 之外**(见 remarks 的缺口说明)。
+            // ⇒ 期望 = minRaw + 3·maxRaw + Slack:对本表四组分别 = 4000002 / 4002000 / 4065536 / 6000000
+            //   —— **每一组都严格越过该组 MAX,且都落在 ±262144 之外**(故对 ±32768 与 ±262144 两种
+            //   钳制变异都可观测;见 MinMaxSlackRaw 的两次修正记录)。
             ClinicRoomExtractionResult room = Room(C0, C1, C2, C3);
             var traits = new FakeTraits(new[]
             {

@@ -21,7 +21,7 @@
     {
       "name": "F1-removeFsWriteWiring",
       "file": "unity/Assets/Editor.Tools.Gates/AssemblyGates.cs",
-      "line": 139,
+      "line": 145,
       "expect": "            errs.AddRange(FsWriteBoundaryGate.RunAll(\".\"));",
       "_lineHistory": "130 → 139(2026-10-21 C-2 接线轮在 :130 附近插了两行 Ecozone/Emergency 接线 + 注释,行号整体下移 9 行)。**原文不删** —— 出错时要能看出这是行号漂移而非接线被删。",
       "replace": "",
