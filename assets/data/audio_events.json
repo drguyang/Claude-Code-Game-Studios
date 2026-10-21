@@ -249,7 +249,7 @@
       "loop": false,
       "whitelist_category": "WorldPerceptible",
       "trigger_source": "WorldPerceptible",
-      "subtitle_text": "哼一声,看明白了,就翻本子记一笔。"
+      "subtitle_text": "哼了一声,看明白了,就翻本子记一笔。"
     },
     {
       "schema_version": 1,
@@ -273,7 +273,7 @@
       "loop": false,
       "whitelist_category": "WorldPerceptible",
       "trigger_source": "WorldPerceptible",
-      "subtitle_text": "哼着曲,要紧的,都写进册子。"
+      "subtitle_text": "哼着小曲,要紧的,都写进册子。"
     }
   ]
 }

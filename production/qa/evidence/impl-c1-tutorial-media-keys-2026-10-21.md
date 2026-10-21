@@ -103,7 +103,8 @@ after : 41622a4a…                             c798b257…      ⇒ sha256sum -
 | **基线** `s17-qa-full-editmode.xml`(C-1 前) | 4350 | 4314 | 0 | 36 | — |
 | 第 1 轮(改名/豁免前) | 4354 | 4314 | **4** | 36 | 4 条全由新素材引起(见 §5) |
 | 第 2 轮(改名后、素材未修) | 4354 | 4311 | **7** | 36 | 改名引入 3 条夹具失效 + 素材未导入 |
-| 第 3 轮(素材修好、重烘后) | 4354 | **4317** | **1** | 36 | 仅剩 §6 的人耳走查红 |
+| 第 3 轮(素材修好、重烘后) | 4354 | 4317 | 1 | 36 | 仅剩 §6 的人耳走查红 |
+| **第 4 轮**(真语声 + 判定补齐) | 4354 | **4318** | **0** | 36 | **全绿,exit 0** |
 
 ### 4.1 集合差(按 `fullname`,不从 Δtotal 推)
 
@@ -153,29 +154,66 @@ Passed → Failed   …Audio.StateReportWalkthroughProbe.walkthrough_allCues_man
 
 ---
 
-## 6. ⚠️ 已知红 —— AC-44-E5 人耳走查(1 条,不得当回归修掉)
+## 6. AC-44-E5 人耳走查 —— 已补(2026-10-21 追加轮)
 
-**红**:`StateReportWalkthroughProbe.walkthrough_allCues_manifestPlaybackAndOrdering`
+**初始状态(本文件首版)**:`StateReportWalkthroughProbe.walkthrough_allCues_*` 红,
+原因是谓词文件只覆盖原 15 条 cue、新增 4 条无判定。当时判定:**留红 + 登记 NOT-RUN**,
+理由是该文件是人工听判,而交付的是 1 采样静音占位 —— 任何判定都是伪造。
+
+**用户裁定(2026-10-21 追加轮):生成真语声。** 执行如下:
+
+### 6.1 素材:占位静音 → 真实语声
+
+| cue | 生成方式 | 时长 | peak | ASR 回读 |
+|---|---|---|---|---|
+| `Narration_TeachObserve_01` | `audio-tts` · `linjiajiejie` | 2.39 s | −1.0 dBFS | 内容一致(标点被吞) |
+| `Narration_TeachJudge_01` | 同上(第 4 版) | 3.4 s | −1.0 dBFS | **一致** |
+| `Narration_TeachClose_01` | 同上(第 1 版) | 4.88 s | −1.0 dBFS | **一致** |
+| `Narration_TeachArchive_01` | 同上(第 3 版) | 3.31 s | −1.0 dBFS | 内容一致(标点被吞) |
+
+全部经 `stepfun_audio.py post` 后处理(44100 单声道 / 去直流 / 裁首尾静音 / 归一化),
+`clipped_run_len = 0`(无削波),`loadType = 0 (DecompressOnLoad)`。
+
+### 6.2 ASR 抓出的两处 TTS 真念错(已修)
+
+| 原台词 | 首版念成 | 处置 |
+|---|---|---|
+| 「哼着曲,要紧的…」 | **「狠着去,要紧的…」** | 改「哼着小曲」⇒ 念对 |
+| 「哼一声,看明白了…」 | 「哼」被当语气词吞掉 | 改「哼了一声」⇒ 念对 |
+
+> ⚠️ 这两处是 **`/audio-asr` 词法回读**抓的,**不是**听出来的 —— 机器只能证明「念的是这些字」,
+> 不能证明「念得好听」或「没在报状态」。
+
+### 6.3 台词改动与 E5 首词门的联动
+
+Judge 首版去掉「哼」后,字幕首词变成「看」—— **不在 `StatementHeads`**
+(`咳/喘/喊/叫/呻吟/嘶/哼/叹`)里,会撞 `CueTextOrderingRules.TextOrderingProblems:121`。
+⇒ 改为「哼了一声」后首词回到「哼」,四条逐条验过:
 
 ```
-[E5 · 谓词] 清单 cue「Narration_TeachObserve_01」无判定 —— 走查须逐条
-[E5 · 谓词] 清单 cue「Narration_TeachJudge_01」无判定 —— 走查须逐条
-[E5 · 谓词] 清单 cue「Narration_TeachClose_01」无判定 —— 走查须逐条
-[E5 · 谓词] 清单 cue「Narration_TeachArchive_01」无判定 —— 走查须逐条
+✅ Narration_TeachObserve_01: 首词「喘着气」
+✅ Narration_TeachJudge_01:   首词「哼了一声」
+✅ Narration_TeachClose_01:   首词「叹口气」
+✅ Narration_TeachArchive_01: 首词「哼着小曲」
 ```
 
-**成因**:`docs/audio/statereport-walkthrough-predicates.json` 只覆盖原 **15** 条 cue,
-本轮把事件表扩到 **19** 行 ⇒ 走查清单的「逐条须有判定」判据转红。
+### 6.4 ⚠️ 谓词文件的判定强度 —— 必须如实读
 
-**为何不修**:该文件是 **AC-44-E5 的人耳走查人工判定**,其 `_instructions` 明写
-「请逐条听过之后再决定是否把它们留成 null」「**留着不代表你听过**」。
-本轮交付的是 **1 采样静音占位**,人耳**听不出任何东西** ⇒ 任何判定都是伪造。
-**用户裁定(2026-10-21):留红 + 登记 NOT-RUN。**
+4 条判定由**编排方按字幕文本与素材生成内容代填**(用户裁定「你代填判定」),
+**不是走查人亲耳听判**。该文件的 `_instructions` 已追加第 ⑥ 条明写此事:
 
-⇒ **AC-44-E5 对这 4 条 cue = NOT-RUN**。素材落地(真内容)且走查人听过之后,
-把 4 条判定补进该 JSON,本条自会转绿。
+> ⑥ 2026-10-21 C-1:新增 4 条 Narration_Teach*_01(48 教学口述)。其 not_reporting 为
+> **代填建议稿**(由编排方按字幕文本与素材生成内容写就,非走查人亲耳听判)——
+> ⚠️ 走查人复核前,这 4 条的判定强度低于其余 15 条。
 
-**这与 S14-6 的「缺口哨兵」同款纪律**:缺口是**登记**出来的,不是**修掉**的。
+⇒ **AC-44-E5 对这 4 条 cue 的 `[L]`(人耳听测)半边仍待人耳复核**。
+测试转绿证明的是「判定已登记且格式合法」,**不是**「已确认不是状态播报」。
+这条不得在任何下游件写成「E5 已通过」。
+
+### 6.5 结果
+
+`walkthrough_allCues_manifestPlaybackAndOrdering` **转绿**;
+Audio 套件 **24/24/0/0**;全量 **4354 / 4318 / 0 / 36**(exit 0)。
 
 ---
 
@@ -183,9 +221,9 @@ Passed → Failed   …Audio.StateReportWalkthroughProbe.walkthrough_allCues_man
 
 | 项 | 状态 | 说明 |
 |---|---|---|
-| **零回归** | ✅ **已证** | §4.1 —— 集合差:新增 5 / 消失 1 / 同名变红 1(已归因);其余 4348 逐条不变 |
-| **AC-44-E5 对 4 条新 cue** | ⛔ **NOT-RUN** | §6 —— 人耳走查未做 |
-| **wav 素材内容** | ⛔ **占位** | 1 采样静音;Import Settings 定稿 / 真内容归 content 批(`OQ-44-2`) |
+| **零回归** | ✅ **已证** | §4.1 与 §6.5 —— 集合差:新增 5 / 消失 1 / 同名变结果 **0**;其余 4348 逐条不变 |
+| **AC-44-E5 对 4 条新 cue 的 `[L]` 半边** | ⚠️ **待人耳复核** | §6.4 —— 判定为代填建议稿,测试绿 ≠ 已确认不是状态播报 |
+| **wav 素材内容** | ✅ **真实语声** | 4 段 TTS 生成、ASR 回读核对;Import Settings 定稿仍归 content 批(`OQ-44-2`) |
 | **48 示范片段真素材** | ⛔ **未做** | `48_demonstration_clips.json` 只登记 **clipKey 闭集**(键名 + 语义),**零片段资产** —— 13 侧的表现面归 48 实现轮 |
 | **`docs/audio/statereport-walkthrough-manifest-*.json`** | 未跟踪 | 走查机器半产物,内容哈希命名(同内容不重复生成) |
 

@@ -13,10 +13,11 @@
     "   这是**默认判定**,不是你听过的结论。请逐条听过之后再决定是否把它们留成 null。",
     "   留着不代表你听过;改掉必须是真的听到了结论词。",
     "⑤ Music_Encounter_Layer 的判定口径按 G1/G2:**听不出切换的那一刻**才算过;",
-    "   听得出「哪一段新乐句 / 哪一拍告诉你遭遇开始了」⇒ 写进 status_words(词形用字幕或结论词形里的字,如「遭遇」不在清单内,须写在 not_reporting 里并另报)。"
+    "   听得出「哪一段新乐句 / 哪一拍告诉你遭遇开始了」⇒ 写进 status_words(词形用字幕或结论词形里的字,如「遭遇」不在清单内,须写在 not_reporting 里并另报)。",
+    "⑥ 2026-10-21 C-1:新增 4 条 Narration_Teach*_01(48 教学口述)。其 not_reporting 为**代填建议稿**(由编排方按字幕文本与素材生成内容写就,非走查人亲耳听判)—— ⚠️ 走查人复核前,这 4 条的判定强度低于其余 15 条。"
   ],
   "reviewer": "dr_guyang",
-  "date": "2026-10-17",
+  "date": "2026-10-21",
   "verdicts": [
     {
       "cue": "Voice_Cough_Damp",
@@ -91,6 +92,26 @@
     {
       "cue": "Clinic_Room_Tone",
       "not_reporting": "医馆环境底噪 —— 世界里的可闻事实,连续不宣告任何状态",
+      "status_words": null
+    },
+    {
+      "cue": "Narration_TeachObserve_01",
+      "not_reporting": "听到的是一位年长医者一边喘气一边随口提点 —— 「喘着气」是说话人自己的气息,不是给病人的诊断;后面「气色、神态都在脸上」是教后辈看哪里,没有哪一句在替玩家下结论",
+      "status_words": null
+    },
+    {
+      "cue": "Narration_TeachJudge_01",
+      "not_reporting": "听到的是医者「哼了一声」的鼻音反应,随后「看明白了」是他说自己看懂了、不是宣判病人怎么了;整段没有念出任何病名或轻重判定",
+      "status_words": null
+    },
+    {
+      "cue": "Narration_TeachClose_01",
+      "not_reporting": "听到的是收尾时的一声叹气 —— 「叹口气」是动作不是评价;「处置妥当」说的是他自己手上的活做完了,不是给病人的状态下结论",
+      "status_words": null
+    },
+    {
+      "cue": "Narration_TeachArchive_01",
+      "not_reporting": "听到的是医者一边哼小曲一边收拾 —— 「哼着小曲」是闲适的声形;「要紧的都写进册子」讲的是记录动作,没有读出任何结论",
       "status_words": null
     }
   ]
