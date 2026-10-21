@@ -1,0 +1,84 @@
+{
+  "name": "S17-2 clinic-003 —— 乘子求值 F-24-1/F-24-2 + 24 三表 cooked 接线",
+  "mode": "EditMode",
+  "filter": "Clinic",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "行号 + 原文双锚定:生产码一动 ⇒ 退出码 2(夹具过期)。",
+    "⚠️ 驱动只读 --guard 参数(不读本文件的 guards 字段)⇒ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。",
+    "本批 5 个变异覆盖:F-24-1 零钳制 / ROOM_NONE 中性 / adj 单向边 / F-24-2 单钳制 / 非家具格跳过。"
+  ],
+  "mutations": [
+    {
+      "name": "C1-envUnclamped",
+      "file": "unity/Assets/Sim/Clinic/ClinicModifierEvaluator.cs",
+      "line": 116,
+      "expect": "            return new Fix(sum);",
+      "replace": "            return new Fix(Math.Max(Math.Min(sum, 65536L * 4), -65536L * 4)); // FALSIFY-C1:env 侧加钳制",
+      "expectRed": [
+        "test_clinic_envMod_aboveEnvModMax_passesThroughUnclamped",
+        "test_clinic_envMod_allNegative_passesThroughUnclamped"
+      ],
+      "exactRed": true,
+      "_why": "AC-24-01b / D-21-31:env 侧唯一钳制点在 21a F1。在 24 侧加任何 clamp ⇒ 越界透传的两条必红(正负各一条 = 判别面成对)。"
+    },
+    {
+      "name": "C2-roomNoneNeutral",
+      "file": "unity/Assets/Sim/Clinic/ClinicModifierEvaluator.cs",
+      "line": 104,
+      "expect": "            if (!room.HasRoom) return Fix.Zero;",
+      "replace": "            if (!room.HasRoom) return baseEnv; // FALSIFY-C2:ROOM_NONE 返回 base_env 而非中性 0",
+      "expectRed": [
+        "test_clinic_roomNone_returnsNeutralZero",
+        "test_clinic_twoClusters_returnsNeutralZero"
+      ],
+      "exactRed": true,
+      "_why": "EC-24-01/02/07:未析出房间必须中性 (0,0),不得回落 base_env —— 否则 9 / 21a 无法区分「空 / 中性 / 最差」。两簇同样整盘中性 ⇒ 两条一起红。"
+    },
+    {
+      "name": "C3-adjTwoDirections",
+      "file": "unity/Assets/Sim/Clinic/ClinicModifierEvaluator.cs",
+      "line": 242,
+      "expect": "                sum = AddNeighbor(sum, type, typeByCell, cell.X + 1, cell.Y, cell.Z, adjTable);",
+      "replace": "                sum = AddNeighbor(sum, type, typeByCell, cell.X + 1, cell.Y, cell.Z, adjTable);\n                sum = CheckedAdd(sum, AddNeighbor(0, type, typeByCell, cell.X - 1, cell.Y, cell.Z, adjTable), \"adj_sum\"); // FALSIFY-C3:四邻域(反向再加一次)",
+      "expectRed": [
+        "test_clinic_adjSum_adjacentPair_countedOnce",
+        "test_clinic_envMod_gddWorkedExample_matches28000"
+      ],
+      "exactRed": true,
+      "_why": "F-24-1 公共定义:每条相邻边恰计一次(+x/+y 单向查)。加 -x 反向 ⇒ 同一对被计两次:一对格夹具 5000→10000 红,GDD 算例 adj 从 −8000 变 −4000 ⇒ 28000→32000 红。"
+    },
+    {
+      "name": "C4-equipCapRemoved",
+      "file": "unity/Assets/Sim/Clinic/ClinicModifierEvaluator.cs",
+      "line": 158,
+      "expect": "            if (raw > EquipModCapRaw) raw = EquipModCapRaw;",
+      "replace": "            // FALSIFY-C4:停用 EQUIP_MOD_CAP 上钳",
+      "expectRed": [
+        "test_clinic_equipMod_sumAboveCap_pinsToCap",
+        "test_clinic_equipMod_positiveScores_haveNoIntermediateValue",
+        "test_clinic_equipMod_largeScore_int64NoWrap",
+        "test_clinic_equipMod_nMaxBoundary_noWrap"
+      ],
+      "exactRed": true,
+      "_why": "F-24-2 的单钳制。停用 ⇒ 四条钉顶断言全红(sumAboveCap / 二值语义 / int64 大值 / n_max 边界)。"
+    },
+    {
+      "name": "C5-nonFurnitureSkipped",
+      "file": "unity/Assets/Sim/Clinic/ClinicModifierEvaluator.cs",
+      "line": 189,
+      "expect": "                    case ClinicCellLookup.NonFurniture:",
+      "replace": "                    case ClinicCellLookup.NonFurniture: byCell[cell] = default; break; // FALSIFY-C5:非家具格当家具(全零属性)",
+      "expectRed": [
+        "test_clinic_adjSum_nonFurnitureCellExcluded"
+      ],
+      "exactRed": true,
+      "_why": "GDD 公共定义:S 成员判据 = type(c) ∈ FURN_TYPES;外壳 / 空地板是非格,不计分不连通。把 NonFurniture 塞进 byCell(类型为空)⇒ 邻接链被接上 ⇒ 夹具从 0 变非 0。"
+    }
+  ]
+}

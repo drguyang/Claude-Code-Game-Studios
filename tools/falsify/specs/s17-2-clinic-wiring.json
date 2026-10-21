@@ -1,0 +1,42 @@
+{
+  "name": "S17-2 前置 —— 24 三表的 provider 接线门(地址 / 预载)",
+  "mode": "EditMode",
+  "filter": "ProviderWiringGateTest",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "本 spec 补的是 S17-2 主 spec 的**接线半边**:求值器绿 ≠ 表被真正装载。",
+    "⚠️ 运行必须带 --guard unity/Assets/DataCooked --guard unity/Assets/AddressableAssetsData。"
+  ],
+  "mutations": [
+    {
+      "name": "W1-addressTypo",
+      "file": "unity/Assets/Gameplay.Presentation/AddressablesDataProvider.cs",
+      "line": 139,
+      "expect": "        public const string ClinicAdjAddress = \"clinicmachine_adj.cooked.bytes\";",
+      "replace": "        public const string ClinicAdjAddress = \"clinicmachine_adjX.cooked.bytes\"; // FALSIFY-W1:地址与产物名不一致",
+      "expectRed": [
+        "test_wiring_newArtifactAddresses_matchBakerArtifactNames",
+        "test_wiring_dataCoreGroup_containsEveryProviderAddress"
+      ],
+      "exactRed": true,
+      "_why": "「改了产物名却忘了改装载面」的形态:门① 逐字比对 address ↔ baker 产物名,门② 比对组条目 ⊇ 全部 address。改一个字符 ⇒ 两条同时红。"
+    },
+    {
+      "name": "W2-preloadMissingCall",
+      "file": "unity/Assets/Gameplay.Presentation/AddressablesDataProvider.cs",
+      "line": 323,
+      "expect": "            EnsureClinicContext();",
+      "replace": "            // FALSIFY-W2:停用 Preload 的 clinic-context 调用",
+      "expectRed": [
+        "test_wiring_preload_invokesEveryEnsureMethod"
+      ],
+      "exactRed": true,
+      "_why": "门④ 的三集合相等(Ensure* 方法集 / Preload 调用集 / 地址表集)。漏一处 ⇒ 首次 Step 前不会预载 ⇒ 届时才炸。"
+    }
+  ]
+}

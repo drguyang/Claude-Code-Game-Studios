@@ -116,6 +116,45 @@
 评审原件 `production/qa/evidence/review-clinic-001-2026-10-20.md` §七。
 (F4 首轮存活 → 夹具被 `base_env` 域校验借绿,已修断言并复核转红;F13 首轮为探针打错靶,修正后转红)
 
+### 2026-10-21 补记 —— 三表**补烘落盘 + cooked→Addressables 接线**(S17-2 前置)
+
+> 上列 42 测与 19/19 证伪轮为 story-001 本体面,原文保留。本节补的是本体之外**从未跑过**的两件事:
+> 三份产物此前**从未落盘**,运行期装载面**从未接线**。由 S17-2(乘子求值)倒逼补齐。
+
+**① 补烘落盘**(`DataBakeMenu.BakeClinicMachineTables()`,:535)
+
+- `unity/Assets/DataCooked/clinicmachine_{context,adj,room}.cooked.bytes`(+meta),`ConfigVersion = 0x4301F2B1`
+- 烘焙日志逐字:`FURN_TYPES 闭集 = NOT-RUN — O-24-1 未兑现(TD-clinic-01)`
+
+**② 运行期接线**(四处闭合,由 `provider_wiring_gate_test` 守)
+
+| 面 | 落点 |
+|---|---|
+| Sim 侧表 | `unity/Assets/Sim/Clinic/ClinicMachineTables.cs`(`ClinicContextTable` / `ClinicAdjTable` / `ClinicRoomTable` + 镜像枚举 + 构造期拒收) |
+| 运行期解码 | `unity/Assets/Gameplay.Presentation/ClinicMachineCookedCodec.cs` |
+| Provider 支路 | `AddressablesDataProvider`:三 address(`:139` 区)/ 三 `Load<T>` / 三 `Ensure*` / `Preload()` 三调用(`:323-325`) |
+| 预载清单 | `DataCorePreloader` 16 → 19 条 |
+| 组注册 | `data-core.asset` ⇒ 19 条地址 |
+
+**③ 证据(本补记的判据)**
+
+| 项 | 结果 | 依据 |
+|---|---|---|
+| 盘上 ↔ 现烘逐字段 | 16 测全绿(三表各一条 disk↔fresh) | `ClinicMachineCookedCodecTest` |
+| 四处闭合(门①②③④) | 11 测全绿 | `ProviderWiringGateTest`(S17-2 起含三条 clinic address 断言) |
+| 漂移门登记 | 23 测全绿(三份产物进 `BakedArtifacts`,带现烘委托) | `cooked_drift_all_artifacts_test` |
+| 证伪 | W1(地址改一字符)⇒ 恰 2 条红 · W2(`Preload` 漏一条)⇒ 恰 1 条红 | `tools/falsify/specs/s17-2-clinic-wiring.json` |
+| 只读视图 | `Rows`/`Rooms` 不可强转回数组;R1/R2 各恰 1 条红 | `s17-2-clinic-readonly.json` |
+
+**⚠️ 本轮抓到的两处真实欠账(不是夹具问题)**:
+- 首跑全量 `cooked_drift_all_artifacts_test` **两条红**:三份产物已落盘但未进漂移门登记表(`pinnedDeclared` 16 ≠ 19、幽灵产物点名三份)
+  ⇒ **「补烘 ≠ 登记 ≠ 接线」是三件事**;修法 = 加 `BakedArtifacts` 三条 + `pinnedDeclared` 19。
+- `ClinicAdjTable` 首版按「有向条目数」比对自对 ⇒ 自对 `(bed,bed)` 被计 2 次,误报对称性缺失;已改为按无序键首次插入累加。
+
+**回归**:`4237 / 4201 / 0 / 36` · `2026-10-21 09:02 CST` · `sprint-17 批 2 S17-2 收尾轮` · `3a22dbf`+工作树;
+对 `4198 / 4162 / 0 / 36 @ 08:02 · 1dde232` 做 `fullname` 集合差 = **Δ +39 / 消失 0**(零回归)。
+原件:`production/qa/evidence/impl-s17-2-clinic-modifier-eval-2026-10-21.md` §一 / §三。
+
 ---
 
 ## Dependencies
@@ -145,7 +184,11 @@
 - **未转 `Complete` 的原因**:`AC-24-08` / `AC-24-12` 的闭集来源 = 21a 家具目录扩展 `O-24-1`,
   **实测零落点**(`TD-clinic-01` · 路线图 §三 G-8)⇒ 两条结构上不可达。story 置 **`In Review`**。
 - **未跑项**(禁借绿):`|W_MIN| ≤ W_MAX` 分支未单独变异 · 11 条正向接受类测试未入证伪轮 ·
-  cooked → Addressables 接线不在本 story · IL2CPP 三格 NOT RUN(本机仅 Mono) · 逐值调参归用户数值轮。
+  ~~cooked → Addressables 接线不在本 story~~ **✅ 2026-10-21 已补(见 §Test Evidence「补记」)** ·
+  IL2CPP 三格 NOT RUN(本机仅 Mono) · 逐值调参归用户数值轮。
+- **2026-10-21 补记**:三表补烘落盘 + 四处接线闭合已落,判据见 §Test Evidence「补记」。
+  **`Status` 仍 `In Review`** —— `AC-24-08` / `AC-24-12` 的闭集半边仍挂 `BLOCKED-BY-O-24-1`,
+  两条**仍不可勾**;接线补齐不动摇该挂标。
 
 **2026-10-20 · 评审修复轮(前 5 项 · 🔴 4 → 0)**
 

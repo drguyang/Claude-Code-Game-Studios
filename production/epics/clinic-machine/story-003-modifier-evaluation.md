@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: 6h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Last Updated**: 2026-10-21
 ## Context
 
 **GDD**: `design/gdd/clinic-machine.md`(规则四 EnvMod · 规则五 EquipMod · F-24-1 / F-24-2 / F-24-3 · 无 clamp 铁律)
@@ -107,7 +107,29 @@
 
 **Story Type**: Logic
 **Required evidence**: `unity/Assets/Tests/EditMode/ClinicMachine/clinic_modifier_eval_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Created & passing(2026-10-21 · 18 测)
+**Additional carriers**(同一 AC 允许多条载体,承 `.claude/docs/review-workflow.md` 义务 4):
+- `unity/Assets/Tests/EditMode/ClinicMachine/clinic_machine_cooked_codec_test.cs`(18 测 —— 三表解码 / 盘上↔现烘 / provider 三支路 / 只读视图不可强转)
+- `unity/Assets/Tests/EditMode/DataPipeline/provider_wiring_gate_test.cs`(11 测 —— 三 address 四处闭合)
+- `unity/Assets/Tests/EditMode/DataPipeline/cooked_drift_all_artifacts_test.cs`(23 测 —— 三份新产物进漂移门登记表)
+
+### 反证记录(S12-4 Falsifiability Gate)
+
+| 命中形态 | 主要断言 | 反证:停用什么 ⇒ 哪条转红 |
+|---|---|---|
+| 阈值边界(零 clamp 铁律) | `envMod_aboveEnvModMax` | 在 `ClinicModifierEvaluator.cs:116` 加钳制 ⇒ 2 条红 |
+| 定义域收窄(ROOM_NONE 中性) | `roomNone_returnsNeutralZero` | `:104` 改 `return baseEnv` ⇒ 2 条红 |
+| 一次性/幂等(每条邻接边恰一次) | `adjSum_adjacentPair_countedOnce` | `:242` 加 −x 反向邻居 ⇒ 2 条红(含 GDD 算例 28000→32000) |
+| 阈值边界(EQUIP_MOD_CAP 单钳制) | `equipMod_sumAboveCap_pinsToCap` | `:158` 停用上钳 ⇒ 4 条红 |
+| 定义域收窄(非家具格不计分) | `adjSum_nonFurnitureCellExcluded` | `:189` 把 `NonFurniture` 塞进 `byCell` ⇒ 1 条红 |
+| 形态断言(只读视图不可强转) | `contextTable_rows_notCastableToArray` / `roomTable_rooms_notCastableToArray` | `ClinicMachineTables.cs:98/:362` 退回裸数组 ⇒ 各恰 1 条红 |
+
+三份 spec:`tools/falsify/specs/s17-2-clinic-modifier-eval.json`(C1–C5)· `s17-2-clinic-wiring.json`(W1/W2)· `s17-2-clinic-readonly.json`(R1/R2)。
+全部 `exactRed: true`,逐条实测恰如预期;还原 SHA-256 逐字节校验通过。
+
+**⚠️ 未达 `Complete` 的硬前置**:`FURN_TYPES` 闭集(`O-24-1` / `TD-clinic-01`,sprint-18 G-8)未兑现 ⇒
+`ClinicModifierEvaluator.FurnTraitsProductionReady => false`,求值器在生产链路上**无输入源**(只有测试注入的夹具源)。
+证据原件:`production/qa/evidence/impl-s17-2-clinic-modifier-eval-2026-10-21.md`。
 
 ---
 

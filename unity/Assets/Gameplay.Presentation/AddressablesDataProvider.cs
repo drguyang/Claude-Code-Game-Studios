@@ -130,6 +130,17 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 共用同一常量;菜单写盘名在编辑期装配里,边界程序集不引用它)。</para></summary>
         public const string TutorialContentAddress = TutorialContentTable.CookedFileName;
 
+        /// <summary>24 CONTEXT_TABLE address(S17-2 前置:clinic-001 三表落 cooked 后补接线)。
+        /// <para>⚠️ 产物名单一出处 = `DataBakeMenu.ClinicContextCookedAssetName`;同上为字面串
+        /// (边界程序集不引用编辑期装配)。</para></summary>
+        public const string ClinicContextAddress = "clinicmachine_context.cooked.bytes";
+
+        /// <summary>24 ADJ_TABLE address(同上)。</summary>
+        public const string ClinicAdjAddress = "clinicmachine_adj.cooked.bytes";
+
+        /// <summary>24 ROOM_TABLE address(同上)。</summary>
+        public const string ClinicRoomAddress = "clinicmachine_room.cooked.bytes";
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -158,6 +169,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private DelayTable53DataSet? _delayTable;
         // 48 教学内容(S17-3 · AC-5):struct 只读表 ⇒ 可空承载。
         private TutorialContentTable? _tutorialContent;
+        // 24 医馆三表(S17-2 前置):均 struct 解码形 ⇒ 可空承载。
+        private ClinicContextDataSet? _clinicContext;
+        private ClinicAdjDataSet? _clinicAdj;
+        private ClinicRoomDataSet? _clinicRoom;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -255,6 +270,22 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureTutorialContent();
                 return (TDataSet)(object)_tutorialContent.Value;
             }
+            // ── S17-2 前置(2026-10-21):24 医馆三表(cooked 落盘 + 装载面)──
+            if (typeof(TDataSet) == typeof(ClinicContextDataSet))
+            {
+                EnsureClinicContext();
+                return (TDataSet)(object)_clinicContext.Value;
+            }
+            if (typeof(TDataSet) == typeof(ClinicAdjDataSet))
+            {
+                EnsureClinicAdj();
+                return (TDataSet)(object)_clinicAdj.Value;
+            }
+            if (typeof(TDataSet) == typeof(ClinicRoomDataSet))
+            {
+                EnsureClinicRoom();
+                return (TDataSet)(object)_clinicRoom.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
@@ -265,7 +296,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 " + 阴性把握度定表(2026-10-20:DiagnosisNegativeConfidenceDataSet)" +
                 " + 处方表 / 处置轴 / 53 判定表 / 53 延迟表(2026-10-20 第二轮:PrescriptionActionsDataSet / " +
                 "DiseaseActionAxisDataSet / OutcomeTable53DataSet / DelayTable53DataSet)" +
-                " + 48 教学内容(S17-3:TutorialContentTable)");
+                " + 48 教学内容(S17-3:TutorialContentTable)" +
+                " + 24 医馆三表(S17-2 前置:ClinicContextDataSet / ClinicAdjDataSet / ClinicRoomDataSet)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -288,6 +320,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureOutcomeTable();
             EnsureDelayTable();
             EnsureTutorialContent();
+            EnsureClinicContext();
+            EnsureClinicAdj();
+            EnsureClinicRoom();
         }
 
         private void EnsureItems()
@@ -542,6 +577,60 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     $"—— 启动期硬失败,绝不降级:{error}");
             }
             _tutorialContent = table;
+        }
+
+        // ── S17-2 前置(2026-10-21):24 医馆三表 ──
+        // 解码器一律**抛形**(表构造拒收已在 codec 内包成 InvalidDataException)⇒ 此处统一包 E-13。
+
+        private void EnsureClinicContext()
+        {
+            if (_clinicContext.HasValue) return;
+            byte[] bytes = FetchBytes(ClinicContextAddress);
+            try
+            {
+                _clinicContext = ClinicMachineCookedCodec.ReadContext(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 24 CONTEXT_TABLE cooked 解码失败(address={ClinicContextAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureClinicAdj()
+        {
+            if (_clinicAdj.HasValue) return;
+            byte[] bytes = FetchBytes(ClinicAdjAddress);
+            try
+            {
+                _clinicAdj = ClinicMachineCookedCodec.ReadAdj(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 24 ADJ_TABLE cooked 解码失败(address={ClinicAdjAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureClinicRoom()
+        {
+            if (_clinicRoom.HasValue) return;
+            byte[] bytes = FetchBytes(ClinicRoomAddress);
+            try
+            {
+                _clinicRoom = ClinicMachineCookedCodec.ReadRoom(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 24 ROOM_TABLE cooked 解码失败(address={ClinicRoomAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
         }
 
         /// <summary>取字节的唯一出口:注入缝优先,否则走 Addressables。

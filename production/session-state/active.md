@@ -7690,3 +7690,29 @@ Addressables 构建期自动生成,项目代码零引用,`git check-ignore` 判�
   **纪律已落**：`tools/falsify/README.md` 新增「坑 4：锚串须断言唯一，`in` 只防不存在、防不住不唯一」
 - **探针残留已清**: M18 的 `_FurnTypeProbe.cs.meta`（Unity 自动生成、脚本未清）已单文件删除并复核
 - **未 commit** —— 待用户指令
+
+## Session Extract — 批 2 S17-2(clinic-003 求值器 + 24 三表 cooked 落盘接线)（2026-10-21）
+- **用户路径裁定**「先补 cooked 落盘接线再做求值」⇒ 分两段交付
+- **段一 · 落盘**:`DataBakeMenu.BakeClinicMachineTables()`(:535)烘出
+  `clinicmachine_{context,adj,room}.cooked.bytes`(+meta),`ConfigVersion = 0x4301F2B1`;
+  `data-core` 组注册 ⇒ **19 条地址**。烘焙日志逐字打 `FURN_TYPES 闭集 = NOT-RUN — O-24-1 未兑现(TD-clinic-01)`
+- **段一 · 接线**:`Sim/Clinic/ClinicMachineTables.cs`(三表 + 镜像枚举 + 构造期拒收)·
+  `Gameplay.Presentation/ClinicMachineCookedCodec.cs` · `AddressablesDataProvider`(三 address / 三 `Load<T>` / 三 `Ensure*` /
+  `Preload()` 三调用)· `DataCorePreloader`(16 → 19)· `provider_wiring_gate_test` 门① 增三条
+- **段二 · 求值**:`Sim/Clinic/IClinicFurnitureTraitsSource.cs`(**三值** `Furniture/NonFurniture/Unknown`,Unknown 硬失败)·
+  `Sim/Clinic/ClinicModifierEvaluator.cs`(F-24-1 env **零 clamp** · F-24-2 单 clamp `EquipModCapRaw=16384` · adj 只 +x/+y)·
+  哨兵 `FurnTraitsProductionReady => false`
+- **证伪 9 变异 / 3 份 spec,全部恰如预期**:
+  C1–C5(求值)· W1/W2(接线)· R1/R2(只读视图)。⚠️ 主轮只传了一个 `--guard`(AddressableAssetsData 未受保护,已在证据件登记)
+- **修整**:`Rows`/`Rooms` 改 `Array.AsReadOnly`(裸数组可被强转回数组就地改写)⇒ 补 2 条形态断言 + 证伪 R1/R2;
+  两条越域夹具(`tier=100000` / `tier=1000` 均超 `TIER_MAX=3`)加注**收窄证词**:域内 `64×3×65536 = 12 582 912` 装得进 int32,
+  故这两条只证「实现选用 int64」,不证「域内会溢出」
+- **⚠️ 全量首跑抓到 2 条真回归(门没错,是接线漏了)**:`cooked_drift_all_artifacts_test` 的 `pinnedDeclared` 仍 16、
+  `BakedArtifacts` 无三份 clinic ⇒ 幽灵产物点名。按门给的路径 ① 修:加 `BakedArtifacts` 三条(带现烘委托)+ 16 → 19 + 文件头加注。
+  **教训:「补烘 ≠ 登记 ≠ 接线」是三件事**,`provider_wiring_gate` 绿不覆盖漂移门登记面
+- **绿基线**:截至 `2026-10-21 09:02 CST` · 批 2 S17-2 收尾轮 · `3a22dbf` + 未提交改动 =
+  **4237 / 4201 / 0 / 36**;`fullname` 集合差 **Δ +39 / 消失 0**(18 codec + 18 eval + 3 drift 参数化)⇒ **零回归**
+- **证据原件**:`production/qa/evidence/impl-s17-2-clinic-modifier-eval-2026-10-21.md`
+- **未转 Complete**:硬前置 = `FURN_TYPES` 闭集(`O-24-1`,sprint-18 G-8);哨兵仍 false ⇒ 求值器在生产链路上无输入源
+- **待办**:story-001 的 Test Evidence 需回填(三表 + 接线本件已落,不得由 story-003 独占)
+- **未 commit** —— 待用户指令

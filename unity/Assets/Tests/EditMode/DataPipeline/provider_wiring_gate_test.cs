@@ -147,6 +147,15 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             Assert.That(AddressablesDataProvider.DelayTableAddress,
                 Is.EqualTo(DataBakeMenu.DelayTableCookedAssetName),
                 "53 延迟表的 address 与 baker 产物名不一致 ⇒ 同上");
+            Assert.That(AddressablesDataProvider.ClinicContextAddress,
+                Is.EqualTo(DataBakeMenu.ClinicContextCookedAssetName),
+                "24 CONTEXT_TABLE 的 address 与 baker 产物名不一致 ⇒ 同上");
+            Assert.That(AddressablesDataProvider.ClinicAdjAddress,
+                Is.EqualTo(DataBakeMenu.ClinicAdjCookedAssetName),
+                "24 ADJ_TABLE 的 address 与 baker 产物名不一致 ⇒ 同上");
+            Assert.That(AddressablesDataProvider.ClinicRoomAddress,
+                Is.EqualTo(DataBakeMenu.ClinicRoomCookedAssetName),
+                "24 ROOM_TABLE 的 address 与 baker 产物名不一致 ⇒ 同上");
         }
 
         // ══════════════════ ② data-core 组 ⊇ 全部 address 常量 ══════════════════

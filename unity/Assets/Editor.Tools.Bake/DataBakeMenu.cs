@@ -75,6 +75,17 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// 故那两处为字面串 —— 承 <c>InteractionKindsAddress</c> 同款注记)。</para></summary>
         public const string TutorialContentCookedAssetName = "48_tutorial_content.cooked.bytes";
 
+        /// <summary>产物文件名(24 CONTEXT_TABLE;clinic-001 的三表之一)。
+        /// <para>⚠️ 与运行期 <c>AddressablesDataProvider.ClinicContextAddress</c> 同值(边界程序集不引用本编辑期装配,
+        /// 故那处为字面串 —— 承 <c>InteractionKindsAddress</c> 同款注记)。</para></summary>
+        public const string ClinicContextCookedAssetName = "clinicmachine_context.cooked.bytes";
+
+        /// <summary>产物文件名(24 ADJ_TABLE)。</summary>
+        public const string ClinicAdjCookedAssetName = "clinicmachine_adj.cooked.bytes";
+
+        /// <summary>产物文件名(24 ROOM_TABLE)。</summary>
+        public const string ClinicRoomCookedAssetName = "clinicmachine_room.cooked.bytes";
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -501,6 +512,57 @@ namespace DaYiJingCheng.EditorTools.Bake
                     return $"执行 · {scan.HitCount} 处命中(硬失败,见上)";
                 default:
                     return "NOT-RUN —— 词表缺席(assets/data/disease_names.json 不存在),本项未执行";
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 24 医馆三表(clinic-machine · S17-2 的**前置** —— 求值器要吃的 cooked 表):
+        /// 仓库 <c>assets/data/clinicmachine_{context,adj,room}.json</c> + 21a 常量
+        /// → 三个 Binder(**聚合 throw**)→ 跨表断言(O-24-4 / base_env 域)→ deterministic 编码
+        /// → 三份产物写入 Assets/DataCooked/(入 data-core 组)。
+        /// <para>⚠️ 本菜单是 <see cref="ClinicMachineTablesBake"/> 的**唯一生产调用点链路**
+        /// (菜单 → BakeFromRepo → 三个 Binder → ClinicMachineCookedWriter)。绕过它 = 三个 Binder
+        /// 永不执行(与 BakeTutorialContent / BakeDelayTable 同型先例)。</para>
+        /// <para>⚠️ **生产路径刻意传 <c>null</c> 家具类型闭集来源** —— `O-24-1`(21a 家具目录扩展
+        /// `type`/`tier`/`e_env`)尚未兑现(TD-clinic-01,sprint-18 的 G-8 解除)⇒
+        /// `Room.FurnMembershipEnforced == false`。本菜单把它**打进日志**(缺席必须肉眼可见,
+        /// 否则「烘焙成功」会被误读成「AC-24-12 也过了」)。</para>
+        /// <para>⚠️ 运行期装载面在本菜单**之外**:`AddressablesDataProvider` 的三条 Address +
+        /// `Preload()`(E-13 启动期硬失败,不降级)。**补烘 ≠ 接线**,四处闭合由
+        /// `provider_wiring_gate_test` 守。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 clinic-machine 三表(24 医馆)")]
+        public static void BakeClinicMachineTables()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                ClinicMachineTablesBake.BakeOutput result =
+                    ClinicMachineTablesBake.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(Path.Combine(cookedDir, ClinicContextCookedAssetName), result.ContextCooked);
+                File.WriteAllBytes(Path.Combine(cookedDir, ClinicAdjCookedAssetName), result.AdjCooked);
+                File.WriteAllBytes(Path.Combine(cookedDir, ClinicRoomCookedAssetName), result.RoomCooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{ClinicContextCookedAssetName} = {result.ContextCooked.Length} B, " +
+                    $"{result.Context.Rows.Count} 情境行(K_CONTEXT_MAX raw = {result.Context.KContextMax.Raw});" +
+                    $"{ClinicAdjCookedAssetName} = {result.AdjCooked.Length} B, " +
+                    $"{result.Adj.Pairs.Count} 邻接对(n_max = {result.Adj.NMax});" +
+                    $"{ClinicRoomCookedAssetName} = {result.RoomCooked.Length} B, " +
+                    $"{result.Room.Rooms.Count} 房间类型;" +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}, " +
+                    $"FURN_TYPES 闭集 = {(result.Room.FurnMembershipEnforced ? "已强制" : "NOT-RUN —— O-24-1 未兑现(TD-clinic-01)")}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
             }
         }
 

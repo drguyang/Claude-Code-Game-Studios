@@ -1,0 +1,40 @@
+{
+  "name": "S17-2 修整轮 —— 24 两表的只读视图不可强转(裸数组回归)",
+  "mode": "EditMode",
+  "filter": "Clinic",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "⚠️ 驱动只读 --guard 参数(不读本文件的 guards 字段)⇒ 运行必须带 --guard unity/Assets/DataCooked。",
+    "本 spec 只证「两条只读视图断言有判别力」:把 AsReadOnly 包装退回裸数组 ⇒ 对应的**那一条**红,另一条不动。"
+  ],
+  "mutations": [
+    {
+      "name": "R1-contextRowsBareArray",
+      "file": "unity/Assets/Sim/Clinic/ClinicMachineTables.cs",
+      "line": 98,
+      "expect": "        public IReadOnlyList<ClinicContextRow> Rows => _rowView;",
+      "replace": "        public IReadOnlyList<ClinicContextRow> Rows => _rows; // FALSIFY-R1:退回裸数组",
+      "expectRed": [
+        "test_clinic_contextTable_rows_notCastableToArray"
+      ],
+      "exactRed": true,
+      "_why": "裸数组按 IReadOnlyList 暴露后可强转回 ClinicContextRow[] 就地改写 ⇒ 不可变契约静默失效。变异只动 context 侧 ⇒ 只能红 context 那一条。"
+    },
+    {
+      "name": "R2-roomRoomsBareArray",
+      "file": "unity/Assets/Sim/Clinic/ClinicMachineTables.cs",
+      "line": 362,
+      "expect": "        public IReadOnlyList<ClinicRoomDef> Rooms => _roomView;",
+      "replace": "        public IReadOnlyList<ClinicRoomDef> Rooms => _rooms; // FALSIFY-R2:退回裸数组",
+      "expectRed": [
+        "test_clinic_roomTable_rooms_notCastableToArray"
+      ],
+      "exactRed": true,
+      "_why": "同 R1,room 侧。"
+    }
+  ]
+}
