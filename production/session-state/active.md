@@ -8364,3 +8364,24 @@ M6 首版变异形态(`if (false) throw …`)导致 **switch 段落穿透 = 编�
 本轮全部改动**未 commit、未 push**(承「不经用户指令不 commit」)。
 
 <!-- QA RUN: 2026-10-21 | Sprint: sprint-17 | Verdict: APPROVED WITH CONDITIONS | Report: production/qa/qa-signoff-sprint-17-2026-10-21.md -->
+
+<!-- SPRINT CLOSE: 2026-10-21 | Sprint: sprint-17 | 6/6 done (含计划外追加 S17-6) | DoD 11/11 | 条件 C-1/C-2/C-3 结清 · C-4 未结 | 收口记录: production/sprints/sprint-17.md §「✅ 收口记录(2026-10-21)」 -->
+
+## ✅ sprint-17 收口(2026-10-21)
+
+- **件数 6/6**:S17-1…S17-5 计划内 + **S17-6 计划外追加**(`AC-24-03` 无主补立)· 追加率 20%,在 `[0%, 57%]` 预留内
+- **DoD 11/11 全勾** · **零在册缺陷**(`production/qa/bugs/` 仅 `README.md`)
+- **条件**:C-1 ✅ / C-2 ✅(EXACT)/ C-3 ✅ / **C-4 ⛔ 不结清**
+  - C-4 三半:PlayMode 全量 ✅ `202/202/0/0` · IL2CPP 两格 ✅ 已跑 / ARM64 ❌ 不可达 · 余下一半已由用户裁定登记到项目规划(`TD-ci-01`)
+- **回归**:EditMode `4354/4318/0/36`(19:09 · `1cd5780`+工作树)· PlayMode `202/202/0/0`(19:10)
+- **M3 分母一位不动且方向是「立债」**:未闭 P0 面 `72 → 73`;epic `13/31`
+- **收口不代表的四件**(已写入 sprint-17.md §收口记录 八):`clinic-001` 收口 · `ADR-012` CI 常驻项可勾 ·
+  签核件 §4 第 5 行 5 项「未核」已核 · 本 sprint 绿可引作 M3 进展
+- **收口时仍未做**:`/retrospective sprint-17` —— retro-15 / 16 / 17 **三份均不存在**(累计缺口,非本 sprint 独有);非 DoD 条目,不阻断收口
+
+### 下一步(候选,未排期)
+
+1. 下个 sprint 规划 —— 须先把 `production/sprint-status.yaml` 按 sprint-16 先例归档为 `sprint-status-sprint17-archive.yaml`
+2. `clinic-machine/story-001` 的三条现役理由(归 clinic-machine epic 实现轮)
+3. 签核件 §4 第 5 行 5 项「未核」—— 须另跑一次复核并落新原件(承「评审不可事后追补」)
+4. `/retrospective sprint-17`(连同 retro-15 / 16 的累计缺口一并处理)
