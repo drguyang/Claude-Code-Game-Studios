@@ -8385,3 +8385,24 @@ M6 首版变异形态(`if (false) throw …`)导致 **switch 段落穿透 = 编�
 2. `clinic-machine/story-001` 的三条现役理由(归 clinic-machine epic 实现轮)
 3. 签核件 §4 第 5 行 5 项「未核」—— 须另跑一次复核并落新原件(承「评审不可事后追补」)
 4. `/retrospective sprint-17`(连同 retro-15 / 16 的累计缺口一并处理)
+
+<!-- SPRINT PLAN: 2026-10-21 | Sprint: sprint-18 | 3 件(L×1 + M×1 + S×1) | 计划: production/sprints/sprint-18.md | yaml: production/sprint-status.yaml | sprint-17 yaml 已归档(sprint-status-sprint17-archive.yaml, sha256 dc66c31f…) -->
+
+## 🗂 sprint-18 规划(2026-10-21)
+
+- **件集订正**:路线图 §6.5:909 登记 `G-8 · G-1 · G-2` ⇒ **实为 2 件**(G-8 已于 2026-10-21 由 S17-4 结案)
+- **S18-1**(L · 独占批 1)= `TD-sim-01` / G-1 `SelfLimited(entity,d)` —— **实测缺四件** + 白名单无定义
+- **S18-2**(M · 批 2)= `TD-persist-01` / G-2 `Folded(p)` 四条件 + 折叠行
+- **S18-3**(S · 批 2)= 台账回写四处(G-8 结案后的 §6.4 义务)+ `BLOCKED-BY-24` 登记
+- **两处未决**:`OQ-S18-1` 战伤白名单闭集(用户裁)· `OQ-S18-2` QA 计划(用户裁定先跑 `/qa-plan sprint`)
+- **分母**:99 条 / P0=Y 88 / 未闭 P0 面 **73** / epic **13-31**;G-1+G-2 结案预期 `73 → 71`(清债方向)
+
+<!-- QA-PLAN: 2026-10-21 | Sprint: sprint-18 | Plan written: production/qa/qa-plan-sprint-18-2026-10-21.md -->
+
+### QA 计划(sprint-18)
+
+- 已写 `production/qa/qa-plan-sprint-18-2026-10-21.md`
+- 3 件:2 Logic(必自动化 + 必证伪)+ 1 Config/Data(纸面,命令可重跑)
+- **六条未及核查项**(禁借绿,收口时须逐条更新状态):战伤白名单闭集未裁 · `kind` 字段涟漪面未测 ·
+  `Folded` 程序集归属冲突(`Sim.Codec` 够不着 `Sim` 的 `HasOpenCase`)· `DeathCandidate` 产出形状未读 ·
+  `IsCombatant` 的 entity 类型不存在 · IL2CPP 矩阵
