@@ -30,7 +30,7 @@ start: "2026-10-21"
 end: ""              # 不设结束日期口径,做完即收;收口时补记实际收口日(承 sprint-14/15/16/17 同例)。
                      # 空串只表示「规划时未定」,不表示「永不填」。
 generated: "2026-10-21"
-updated: "2026-10-21"
+updated: "2026-10-22"
 
 # ── 本 sprint 的件不是 story,而是 TD 工作项 ──
 # 承债册 §六 的用户裁定(2026-10-20):八道硬门的清偿载体 = **TD 工作项**,
@@ -66,11 +66,12 @@ work_items:
     name: "台账回写 —— G-8 结案后路线图 §6.4 回写义务的四处 + BLOCKED-BY-24 登记 + death-respawn 台账过期登记订正"
     file: "production/milestones/p0-remaining-roadmap-2026-10-20.md"
     complexity: S
-    status: "backlog"
-    owner: ""
+    status: "done"
+    owner: "claude"
+    completed: "2026-10-22"
     depends_on: []
     evidence: "四处文本同值可 grep;BLOCKED-BY-24 有债册条目或用户裁定去向;death-respawn 台账五处「原串 + 加注」双命中"
-    note: "① 路线图 §三 G-8 行按 §6.4 划掉;② §3.1 链门行移除 G-8;③ §6.5 sprint-18 行订正件集(G-8 已结 ⇒ 实为 G-1 · G-2);④ death-respawn/story-005:25 / :47 的 BLOCKED-BY-24(床类家具格的确定性选定规则,death-and-respawn.md:192 明写「24 的下一轮须补」)登记去向 —— IClinicReviveCell 全树零命中、债册零条目,属「引用却无登记」失效模式第四次。⑤ **2026-10-21 用户裁定追加**:death-respawn 台账的 OQ-29-4 / OQ-29-5 过期登记就地加注 —— story-004:17 / :38 / :82 + EPIC.md:11 / :51 共五处(**五处加注均已于 2026-10-21 落盘**;本项登记的是**判据归口**,防后续回退)。判据 = **原串仍可 grep 到 且 加注串同时命中**,不是原串消失。"
+    note: "① 路线图 §三 G-8 行按 §6.4 划掉;② §3.1 链门行移除 G-8;③ §6.5 sprint-18 行订正件集(G-8 已结 ⇒ 实为 G-1 · G-2);④ death-respawn/story-005:25 / :47 的 BLOCKED-BY-24(床类家具格的确定性选定规则,death-and-respawn.md:192 明写「24 的下一轮须补」)登记去向 —— IClinicReviveCell 全树零命中、债册零条目,属「引用却无登记」失效模式第四次。⑤ **2026-10-21 用户裁定追加**:death-respawn 台账的 OQ-29-4 / OQ-29-5 过期登记就地加注 —— story-004:17 / :38 / :82 + EPIC.md:11 / :51 共五处(**五处加注均已于 2026-10-21 落盘**;本项登记的是**判据归口**,防后续回退)。判据 = **原串仍可 grep 到 且 加注串同时命中**,不是原串消失。 ✅ **2026-10-22 收口**:五条判据全部复算通过 —— 判据 1 路线图 `:442` G-8 划掉 + 结案注;判据 2 `:512` 链门现 = G-1 · G-2;判据 3 `:909` 件集订正;判据 4 实测卡面 **4 处**(`story-005` `:25` / `:47` / `:78` / `:90`)+ 债册 `TD-clinic-18`(`docs/tech-debt-register.md:2417`)+ 索引 `:371`(本项原登记写「卡面 2 处」,实测 4 处);判据 5 `story-004` **3** / `EPIC.md` **2** 条订正注,且原过期串仍可 grep 到。全量回归已**真跑**(基线 = `regress-1cd5780` / `regress-playmode-1cd5780`,commit `1cd5780` + 树):**EditMode** `4354/4318/0/36` → `4389/4353/0/36`(Δtotal = Δpassed = **+35**;截至 2026-10-22 07:34 +0800 · 批次 `s18-editmode-final-20261022` · commit `220acc3` 干净树);**PlayMode** `202/202/0/0` → `202/202/0/0`(Δ = 0;截至 07:27 · 批次 `s18-playmode-full-20261022` · commit `220acc3`;本 sprint 零新增 PlayMode 测试,故与 sprint-17 同数属**预期**,且已与本 sprint 自身基线做全名级差集 = 新增 0 / 消失 0,非引用)。⚠️ **「消失 0」不严格成立,如实登记**:EditMode 全名差集 = 新增 **37** / 消失 **2**,两条系 ADR-032 增第 36 个 `Kind` 后的计数断言**改名**(`test_ac2904_dispatchCovers33Kinds` → `34Kinds`;`test_adr031_v6_dispatchCoversAll35Kinds` → `All36Kinds`),语义严格加强、新旧各 1 条、新名皆 Passed ⇒ 净 `37 − 2 = +35`,与 Δtotal 相等 ⇒ **有账可查的改名,非静默消失**。**未做(禁借绿)**:`/smoke-check sprint` · `/team-qa sprint` · `/code-review` · `sprint-status` 归档 SHA-256。"
 
 # ── 分批(承 CAPACITY-MODEL §3.2:每批 2–4 件 · 并发 ≤ 3 · L 件独占 1 批)──
 batches:

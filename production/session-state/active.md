@@ -8414,3 +8414,22 @@ M6 首版变异形态(`if (false) throw …`)导致 **switch 段落穿透 = 编�
 - **触达 5 文件**:路线图(5 行,均就地加注)· `docs/tech-debt-register.md`(索引 +1 行 / 新条目 / §五 十订输出 / 十订记)· `sprint-status.yaml`(deviations ③ 加 `resolution`)· `sprints/sprint-18.md`(`:523 → :525`)· `qa/evidence/impl-s17-6-wiring-2026-10-21.md`(订正一处**改前即陈旧**的行号)
 - **债册实测**:`条目 100 | open 73 | Y 89 | 未闭 P0 面 74(73 → 74)` · epic 13/31 不动
 - **⚠️ 未做**:S18-3 的 `status: done`(归 `/story-done`)· sprint-18 的 **PlayMode 全量回归**(QA 计划点名禁引用 sprint-17 的 `202/202/0/0`,须真跑)
+
+<!-- S18 收口 2026-10-22 -->
+## ✅ S18-3 收口 + sprint-18 全量回归真跑(2026-10-22)
+
+- **S18-3 → `status: done`**(`production/sprint-status.yaml`:owner `claude` · `completed: 2026-10-22`)。**未跑 `/story-done`** —— 本件无 epic story 卡(是 sprint 级记账件,`file` 指路线图),AC/Test Evidence 骨架无处可挂;收口形态承 **S17-5 先例**(直接改 `sprint-status.yaml`,判据锚在 QA plan 五条可复算命令上)。上一条记的「⚠️ 未做」两项**均已兑现**。
+- **五条判据复算**(2026-10-22 重跑,全部通过):① 路线图 `:442` G-8 划掉 + 结案注;② `:512` 链门现 = G-1 · G-2;③ `:909` 件集订正;④ 卡面 **4 处**(`story-005:25/:47/:78/:90`)+ 债册 `TD-clinic-18`(`:2417`)+ 索引 `:371`(**原登记写「2 处」,实测 4 处**);⑤ `story-004` **3** / `EPIC.md` **2** 条加注,且**原过期串仍 grep 到**。
+- **全量回归三元组**(基线 = `regress-1cd5780` / `regress-playmode-1cd5780`,commit `1cd5780` + 树):
+
+  | 平台 | 截至(+0800) | 批次 | commit | 结果 | Δ |
+  |---|---|---|---|---|---|
+  | EditMode | 2026-10-22 07:34 | `s18-editmode-final-20261022` | `220acc3`(干净树) | `4389 / 4353 / 0 / 36` | +35 / +35 |
+  | PlayMode | 2026-10-22 07:27 | `s18-playmode-full-20261022` | `220acc3` | `202 / 202 / 0 / 0` | 0 / 0 |
+
+  `error CS` = 0 · 失败/未处理异常 = 0 · `UnityLockfile` 已释放 · 工作树干净。**两轮 EditMode**(`s18-post-commit` 07:01 与本次 07:34)全名集逐条相同、结果串零差异。
+- **⚠️ 「消失 0」不严格成立(如实登记,禁借绿)**:EditMode 全名差集 = **新增 37 / 消失 2**;那 2 条是 ADR-032 增第 36 个 `Kind` 后的**计数断言改名**(`test_ac2904_dispatchCovers33Kinds` → `34Kinds`;`test_adr031_v6_dispatchCoversAll35Kinds` → `All36Kinds`),新旧各 1 条、语义严格加强、新名皆 Passed ⇒ 净 `37 − 2 = +35` = Δtotal。**不得**写成「消失 0」。
+- **PlayMode 数字与 sprint-17 相同(202/202/0/0)但非引用** —— 本轮独立跑出(mtime 07:27,`start-time 2026-10-21T23:27:02Z`,PID 1497138),且与本 sprint 自身 PlayMode 基线做全名差集 = **新增 0 / 消失 0**(本 sprint 零新增 PlayMode 测试,预期如此)。
+- **仍未做(禁借绿)**:`/smoke-check sprint` · `/team-qa sprint` · `/code-review` · `sprint-status` 归档 `sprint-status-sprint18-archive.yaml`(SHA-256 逐字节)。⇒ **sprint-18 未收口**。
+- 编辑器**可重开**(batch 已退出,锁文件已释放)。
+
