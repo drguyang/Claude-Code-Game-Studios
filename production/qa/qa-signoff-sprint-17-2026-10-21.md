@@ -175,12 +175,17 @@ AC-5「无解析器」断言带 `Count > 0` 守卫(QA plan 增量 4 已兑现)�
 
 以下各项**本轮未跑 / 未核**,逐条如实登记。**任何一项都不得被读作通过**:
 
+> 🔁 **2026-10-21 回刷(写盘之后发生的动作,不是写盘时的事实)**:第 1 / 2 / 3 行已补跑结清,
+> 第 4 行性质已订正为 EXTERNAL。**原文以删除线保留**,不删。
+> ⚠️ **本节标题「NOT-RUN 清单」保持不变** —— 它记的是**签核时点**的未跑项,不是今日状态;
+> 今日状态看每行的 🔁 加注。**该清单的现役未结项 = 第 4 行(CI 常驻,EXTERNAL)与第 5 行(未核)**。
+
 | # | 项 | 状态 | 依据 |
 |---|---|---|---|
 | 1 | **CA-M3 证伪轮**(S17-2 `CheckedAdd` 的第三变异) | ~~**NOT-RUN**~~ ✅ **已跑 · EXACT** | ~~`unity/Logs/` 下无 `ca-m3-*` 任何文件(本轮 `ls \| grep -i ca-m3` 实测空)。**不得**用 CA-M1/M2 的绿推断其结论~~<br>🔁 **2026-10-21 补跑(见下方专节)** —— 结果 **EXACT**(恰 1 红,命中预登记名) |
 | 2 | **IL2CPP 三格矩阵** | ~~**非齐**~~ 🔁 **2026-10-21 补跑:两格已跑 · 第三格不可达** | Linux-x64-IL2CPP 单格 ✅(`s17-6s-il2cpp-player.xml` = `5/5/0/0`,仅 5 测);**ARM64 目标不存在**(pinned 工具链无 arm BuildTarget,用户裁定长期未达);Windows-x64 / Apple Silicon 归发版前,不进常驻<br>🔁 **补跑结清(见 `c4-il2cpp-matrix-2026-10-21.md`)** —— 三格逐格落账:**第 1 格 Mono `3/3/0/0`**(就地逐位断言通过)· **第 2 格 IL2CPP-x64 `3/2/0/1` + 外部 diff 19/19 逐位相同 = VERIFIED**(那 1 条 Skipped 是 `determinism_golden_crossplatform_test.cs:290-293` 写死的退化路径:player 内 `Application.dataPath` 指向 `Game_Data` ⇒ 金标准相对路径不可达 ⇒ `Assert.Ignore`,判据自陈「测试绿**且**外部 diff 逐位相同才 VERIFIED」)· **第 3 格 ARM64 不可达**(`Variations/` 零 arm、`find -iname '*arm*'` 零命中,实测非推断)。测集 = `DeterminismGoldenCrossplatform` **仅 3 测**;`ProjectSettings.asset` 已还原(`sha256sum -c` = `0fc69c20…` 成功)。**CI 常驻半边仍开** ⇒ C-4 整条未结清 |
-| 3 | **PlayMode 全量套件** | **NOT-RUN** | 本轮只取到 `s17-6s-il2cpp-player.xml`(5)与 `s17-6q-playmode-editor.xml`(5/5/0/0),**均为 5 测的子集**,不是 PlayMode 全量(上一全量为 `smoke-s16-playmode.xml` 197 条) |
-| 4 | **跨平台 CI 常驻 job** | **从未跑** | job 已建但缺 `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`(承 sprint-16 §6 第 5 行的 2026-10-21 订正) |
+| 3 | **PlayMode 全量套件** | ~~**NOT-RUN**~~ 🔁 **2026-10-21 补跑:✅ 已结清** | ~~本轮只取到 `s17-6s-il2cpp-player.xml`(5)与 `s17-6q-playmode-editor.xml`(5/5/0/0),**均为 5 测的子集**,不是 PlayMode 全量(上一全量为 `smoke-s16-playmode.xml` 197 条)~~<br>🔁 **补跑结清**(见 `production/qa/evidence/c4-playmode-full-2026-10-21.md`,2026-10-21 17:45)—— **`202/202/0/0`**,对上一全量 197 ⇒ 集合差「新增 5 · 消失 0」= 零回归。⚠️ 跑的是 **PlayMode in Editor(Mono)**,**不是** IL2CPP player 内的 PlayMode(那半边仍只有 S17-6 的 5 条,两者不同范围、不得互替) |
+| 4 | **跨平台 CI 常驻 job** | **从未跑** | job 已建但缺 `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`(承 sprint-16 §6 第 5 行的 2026-10-21 订正)<br>🔁 **2026-10-21 性质订正**:用户裁定为 **EXTERNAL(无法完成)** —— 凭证须用户侧申请,agent 侧无路径。已入债册 **`TD-ci-01`** · 见 `p0-remaining-roadmap-2026-10-20.md` §4.5.1。**「从未跑」仍属实,变的只是性质**(不是「排上就能做」) |
 | 5 | **本报告未独立复核的项** | **未核** | ① GDD 逐行比对(AC 转写完整性依赖评审原件,本轮未独立复核 —— S17-2 曾因此丢「性质测试」);② S17-5 两条未解除面(`AC-1-33②` slopeLimit/stepOffset 卡 `O-9`;`AC-1-34` 的 `DOWNWARD_PRESSURE` 全库零命中),沿用债册自述;③ S17-6 `TD-building-01` 的 `World` 半边 / `IsEffectivelyWalkable` 端到端;④ `:119` / `:151` / `:278` 三个调用点的实际可达性(仅论证其与 `:115` 共享同一函数);⑤ S17-3 ④ 病名扫描的 `StringComparison.Ordinal` 语义未逐字复核 |
 
 ### 4.1 CA-M3 补跑记录(2026-10-21 · C-2 结清件)

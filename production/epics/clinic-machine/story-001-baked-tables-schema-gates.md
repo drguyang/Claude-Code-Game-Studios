@@ -258,6 +258,13 @@
 - **2026-10-21 补记**:三表补烘落盘 + 四处接线闭合已落,判据见 §Test Evidence「补记」。
   **`Status` 仍 `In Review`** —— `AC-24-08` / `AC-24-12` 的闭集半边仍挂 `BLOCKED-BY-O-24-1`,
   两条**仍不可勾**;接线补齐不动摇该挂标。
+  > 🔁 **2026-10-21 稍后订正(晚于上句)** —— 上面这条补记写于 **S17-4 解除挂标之前**,
+  > 其「仍挂 `BLOCKED-BY-O-24-1` / 两条仍不可勾」**已被同日的 S17-4 取代**:
+  > `O-24-1` 已兑现(闭集来源 `assets/data/item_database_furniture.json` 落地),
+  > 两条 AC 在 §Acceptance Criteria 已勾(`[x] ~~**BLOCKED-BY-O-24-1**~~`)。
+  > ⇒ **本 story 现仍为 `In Review`,但理由已换** —— 见上方 §Test Evidence「补记之二」④ 之后的
+  > 三条(**① `FurnTypeClosureEnforced` 仍 `false` · ② 评审残余 🟡 未修 · ③ IL2CPP 三格 NOT-RUN**),
+  > **不再是挂标**。原文保留不删。
 
 **2026-10-20 · 评审修复轮(前 5 项 · 🔴 4 → 0)**
 
@@ -272,3 +279,6 @@
 - **⚠️ 两条如实登记**:① R-17 的 9 条新测**只抽证 1 例**(G3),其余 8 条判别力未经反证;
   ② 修复轮**只跑 EditMode**,PlayMode / IL2CPP 三格仍 NOT RUN。
 - **仍未转 `Complete`**:`AC-24-08` / `AC-24-12` 的闭集半边仍挂 `BLOCKED-BY-O-24-1`(不变)。
+  > 🔁 **2026-10-21 订正(晚于上句)**:本行写于 **2026-10-20 评审修复轮**,其「挂标不变」**已被 S17-4 取代**
+  > —— 挂标已解除,两条 AC 已勾。**仍不转 `Complete` 的理由见 §Test Evidence「补记之二」④ 之后的三条**
+  > (`FurnTypeClosureEnforced == false` / 评审残余 🟡 / IL2CPP 三格)。原文保留不删。

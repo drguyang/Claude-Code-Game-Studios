@@ -173,7 +173,7 @@
 | `clinic-003` 的 `EnvMod` 与系统 5 `Sim/EnvMod.cs`(`EnvMod_raw`)命名撞车 | 中 | 中 | 24 侧落点用限定名(如 `ClinicEnvModEvaluator`),文件头写明「与系统 5 `EnvMod_raw` 无关」;`grep -rn 'EnvMod'` 的判据须限定命名空间 |
 | **manifest 版本落后 13 天**(四件 `2026-10-02` vs 现行 `2026-10-15`) | **确定** | 低-中 | 逐件开跑前判定(偏离 ②);**不得默认取 `[A]`** |
 | `tutorial-001` 的 17 条种子要求过全部 6 项校验,而病名闭集词表未落定 | 中 | 中 | 若词表缺 ⇒ AC ④ 记 **`NOT-RUN`,不勾**;**不得**用语料外的弱词表凑绿 |
-| ADR-012 IL2CPP 三格仍 **`NOT RUN`**(本机仅 Mono) | **确定** | 低 | 本批零跨平台新增面;`clinic-003` 的逐位判据**只在 Mono 立**,不声称跨平台 <br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。 |
+| ADR-012 IL2CPP 三格仍 **`NOT RUN`**(本机仅 Mono) | **确定** | 低 | 本批零跨平台新增面;`clinic-003` 的逐位判据**只在 Mono 立**,不声称跨平台 <br>⚠️ **2026-10-21 订正:本句「本机仅 Mono」为假** —— ADR-012 §Validation 2026-10-17 已逐格实测:Linux-x64-Mono ✅ 09-24(3/3)· **Linux-x64-IL2CPP ✅ 09-24**(StandaloneLinux64 player 3/3,与独立 Python 金标准 + Mono 三方 19/19 逐位相同)· Linux-ARM64-IL2CPP ❌ **目标不存在**(pinned 工具链 46 个 BuildTarget 无任何 arm 目标;用户裁定长期未达)· CI 常驻 ⚠️ job 已建但从未跑(缺 `UNITY_CLIENT_ID`/`UNITY_CLIENT_SECRET`)。⇒ **矩阵级,非本件个体判据**。原文保留不删。<br>🔁 **2026-10-21 再订(CI 常驻)**:性质经用户裁定为 **EXTERNAL(无法完成)** —— 凭证须用户侧申请,agent 侧无路径。已入债册 **`TD-ci-01`** · 见 `p0-remaining-roadmap-2026-10-20.md` §4.5.1。⚠️ **「从未跑」仍属实,变的只是性质**;不得读成「已解决」。 |
 
 ---
 
@@ -201,6 +201,10 @@
       <br>实测:`2026-10-21 16:51 CST` · `sprint-17 QA 签核轮全量 EditMode` · `e0ad379`+工作树 ⇒
       `4350/4314/0/36`,对基线 `4347/4311/0/36` ⇒ `Δtotal=3 Δpassed=3 新增=3 消失=0`(按 `fullname` 集合差独立复算)。
       ⚠️ **PlayMode 全量 NOT-RUN** —— 只有 5 测子集;见签核件 §4 第 3 行。
+      🔁 **2026-10-21 回刷(晚于上句)**:**PlayMode 全量已补跑结清** ——
+      `production/qa/evidence/c4-playmode-full-2026-10-21.md` ⇒ **`202/202/0/0`**,对上一全量 197
+      ⇒ 集合差「新增 5 · 消失 0」= 零回归。⚠️ 跑的是 **PlayMode in Editor(Mono)**,
+      **不是** IL2CPP player 内的 PlayMode(后者仍只有 S17-6 那 5 条,两者不得互替)。
 - [x] `S17-5` 两处台账同值(retro 行 + 债册行)
       <br>实测:债册 `:301` = `| TD-player-01 | player-controller | closed | **Y** | R1 |`;retro `:213` 行动项行含结案注。
 - [x] QA plan 存在(`production/qa/qa-plan-sprint-17-*.md`)
@@ -218,6 +222,9 @@
       ⇒ **未结条件 = C-4 一条**,且 C-4 三半已结其二(PlayMode 全量 202/202/0/0 · IL2CPP 两格已跑/第三格不可达),
       **仅 CI 常驻 job 仍开**(缺 `UNITY_CLIENT_ID` / `UNITY_CLIENT_SECRET`)。
       ⚠️ 签核件的 verdict **不改判** —— 它评的是签核时点的事实;要改须另跑一次签核。
+      🔁 **2026-10-21 再订(晚于上句,用户裁定)**:CI 常驻 job **「无法完成」**,性质 = **EXTERNAL**
+      (凭证须用户侧申请,agent 侧无路径)⇒ 已入债册 **`TD-ci-01`** · `p0-remaining-roadmap-2026-10-20.md` §4.5.1。
+      ⚠️ **C-4 仍不结清** —— 登记性质 ≠ 满足判据;本 sprint 不因这条裁定而关闭 C-4。
 - [x] 无 S1 / S2 缺陷
       <br>实测:`production/qa/bugs/` 仅 `README.md` ⇒ 零在册 bug。
 - [x] 代码评审完成(`/code-review`)
