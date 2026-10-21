@@ -5,6 +5,9 @@
 **要证**:`AssemblyGates.cs:150` 的 `errs.AddRange(PlayerAssemblyGate.RunAll("."))` 这行接线,
 **在真实构建时确实被执行** —— 而非「源码里有这行」或「EditMode 测试断言它在」。
 
+> 🔁 **2026-10-21 补轮**:原 §7 登记「未在 IL2CPP 后端复跑」这一边界已消解 ——
+> 见 **§7 IL2CPP 后端复跑**,探针轮 5/5 EXACT 且与 Mono 轮逐条一致。
+
 ---
 
 ## 0. 为什么需要这一轮(判据差一层)
@@ -130,10 +133,61 @@ git diff -- …/PlayerAssemblyGate.cs    # ⇒ 空
 
 ---
 
-## 7. 边界(禁借绿)
+## 7. IL2CPP 后端复跑(2026-10-21 补,§7 原「未复跑」边界已消解)
+
+§5 的干净对照轮跑在 **Mono** 后端下。门是 `IPreprocessBuildWithReport`,与后端无关,
+但「与后端无关」是**论证**,不是观测 —— 故补一轮 IL2CPP 后端下的同款探针 + 对照。
+
+**后端切换**:`Ac29Il2CppSwitch.SetIl2cpp`(`unity run <proj> -- -executeMethod …`,
+与 `s17-6-il2cpp-switch.log` 同一入口)。切换后 `ProjectSettings.asset` 的
+`scriptingBackend.Standalone: 0 → 1`,跑完由 `SetMono` 归位。
+
+### 7.1 IL2CPP 探针轮
+
+变异与 §2 **逐字相同**(同一单点,同一探针串),sha256 亦相同(`da9d1ee8…`)。
+
+命令:`unity build "$PWD" --target StandaloneLinux64 -o /tmp/probe-il2cpp/… --no-tail`
+
+进程退出码 **6**。
+
+| # | 判据 | 实得 | 判定 |
+|---|---|---|---|
+| 1 | 构建结论 | `Build Finished, Result: Failure.`(`:2220`) | ✅ |
+| 2 | 探针串在日志 | `:2150` / `:2223` 两处 | ✅ |
+| 3 | 栈帧归属 | `Debug.LogError` → `BuildGate:OnPreprocessBuild … (at AssemblyGates.cs:1268)` | ✅ |
+| 4 | 失败原因 | `BuildFailedException: [AssemblyGates] 构建前门失败 1 条(…)`(`:2164` / `:2224`) | ✅ |
+| 5 | utp 阶段 | `"steps":[{"description":"Preprocess Player","duration":1431}]` | ✅ |
+
+**5/5 EXACT**,与 Mono 轮**逐条一致**。
+
+### 7.2 IL2CPP 干净对照轮
+
+还原后同一命令:
+
+| 判据 | 实得 |
+|---|---|
+| 进程退出码 | **0** |
+| 构建结论 | `Build Finished, Result: Success.`(`:9450`) |
+| 探针串 | **0** 处 |
+| `BuildGate:OnPreprocessBuild` 栈帧 | **6** 次 |
+| `BuildFailedException` | **0** 处 |
+
+⇒ **两个后端下探针轮/对照轮的结论完全同构**。§7 原「未在 IL2CPP 后端复跑」这一条**已消解**。
+
+**日志**:`unity/Logs/probe-pag-il2cpp-2026-10-21.log` ·
+`probe-pag-il2cpp-clean-2026-10-21.log` · `probe-pag-il2cpp-switch.log`
+
+**ProjectSettings 归位**:`SetMono` 后仍残留一行显式 `Standalone: 0`(值等价于默认,
+但文本与 HEAD 不同)⇒ 以 `cp` 从备份还原,`sha256sum -c` 通过(`0fc69c20…`),`git status` 干净。
+
+---
+
+## 8. 边界(禁借绿)
 
 - 本轮证的是**门被执行**,不是**门的判据正确**。判据本身的判别力由
   `player_assembly_gate_test.cs`(11 测)与 `TD-testasm-01` 记录的实测误报面负责。
-- 本轮只跑 **Linux-x64**(Mono 编辑器内置构建),不涉 IL2CPP 三格矩阵。
-- 探针轮用的是 `--target StandaloneLinux64` 的内置构建(非 IL2CPP);门是
-  `IPreprocessBuildWithReport`,与后端无关,但**未在 IL2CPP 后端下复跑**。
+- 只跑 **Linux-x64** 单格(Mono + IL2CPP 各一轮)。**不涉 ADR-012 的三格矩阵**:
+  Linux-ARM64-IL2CPP 目标不存在,Windows-x64 / Apple Silicon 归发版前。
+- 两轮都用 `--target StandaloneLinux64` 的**内置构建**(无 `--execute-method`),
+  即「默认构建路径」;门挂在 `IPreprocessBuildWithReport`,与是否自定义 executeMethod 无关,
+  但**未在自定义构建入口下复跑**。
