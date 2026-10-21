@@ -710,6 +710,16 @@ M3 Exit（epic 面） =
 
 ⇒ **M3 Exit = 三源同时归零**。**报收官进度时,三源须并列,缺一即失真**(§八 #5)。
 
+> 🔁 **2026-10-21 补注(第三源的**盲区**实测,由 N-r2 立债提出)**:
+> 第三源「TD 的 P0 面」**只数已入册的债**。实测存在一类**三源全都够不着**的缺口:
+> **`modular-building` 的 N-r2(生产装配根)** —— 23 的 7 条 story 全 `Complete`(第一源看不见)、
+> 不在 G-1…G-8(第二源看不见)、**此前从未入债册**(第三源看不见)、§6.5 的 sprint 表里
+> `modular` 三处命中全是「拿 23 当上游前提」而非「做 23」。
+> ⇒ 用户 2026-10-21 裁定**立 `TD-building-01`**(债册),**正是为了让第三源能看见它**;
+> 并裁定**不写 sprint-20**,排期留给 `/sprint-plan` 现裁。
+> ⚠️ **本条补注不改变三源的定义**,只登记:**第三源的完备性取决于「有人先把它入册」** ——
+> 它不是一个能自己发现缺口的源。同类判据见 §八 #3 / #3′ 的「门清单完备性」教训。
+
 ---
 
 ## 六、动态层:每轮怎么切
@@ -910,11 +920,12 @@ foraging 5 · inventory 6 · processing 5 · tutorial 5 · 单件 6)。
 | **SP-6** | 本文件 §四 **A-1** | 判据 = 「卡面零 `BLOCKED-BY` 标记」**单条件** | ⚠️ **判据本身有洞**(2026-10-20 实测):卡面挂标 = **立卡当时已知**的阻塞,不含「上游契约从未落过」。`save-slot-ui/001` 卡面 0 挂标但上游 5 个符号全零命中(G-4) | **判据已改为双条件合取**(§四 A-1 注);✅ **A-1 五件的上游已于取件轮全部补扫**(结论见 §四 A-1);⚠️ **A-1 之外的 16 条零挂标件上游仍未扫** |
 | **SP-7** | `clinic-machine/story-004:4`(卡面) | `Status: Ready` ⇒ 读作「从零实现」 | ⚠️ **实为「接线 / 补登记」** —— 其交付物**已在树上**:`Sim.Contracts/ClinicEnvDto.cs`(40 行,`OQ-CP-4` 2026-09-22 裁定件)+ `IClinicEnvQuery`(`:36`)均已落,**生产侧零消费者**(仅 `intent_boundary_test` / `case_secrecy_discipline_test` 两处测试引用) | **取件前就地订正卡面**(该件在 A-2);判据从「实现 DTO + 查询接口」改为「**把 DTO 接进 42 的读面 + AC-24-07 白名单 / AC-24-09 移 42**」 |
 | **SP-8** | `clinic-machine/story-002:99` `Depends on` | 「系统 23 的 `structure_at` 只读契约(GDD 侧已定,**实现若未就绪可用 fixture 桩注入**)」 | 23 `modular-building` epic **Complete ✅ 2026-10-03(7/7)**;读面实测在:`World.Structures`(public `World.cs:26`)→ `StructureInstanceRegistry.TryGet`(`StructureKinds.cs:111`)/ `GetInstanceAt`(`:117`),便捷包装 `GetModuleAt`(`World.cs:114`) | **条件已消解 —— 不需桩**;取件时**就地订正卡面**该从句(桩本可为「23 只是老实现在树上」留下借口,与 §十一 元教训同型) |
-| **SP-9** | `tr-registry.yaml:4150`(TR-clinic-006 的 `note`) | 「⚠️ `n_max` 悬于 `OQ-24-5` **未裁** ⇒ 断言无参数可写」 | `OQ-24-5` **已于 2026-10-07 裁定 `n_max = 64`**(`clinic-machine.md:397`,并连带拍定 `C_max = 1/64`);note 写于 2026-09-21,早于裁定 ⇒ `status: partial` 的理由**已消失**,断言参数**已有着落**(`n_max × TIER_MAX = 64 × 3 = 192 < 2^31` ✓) | **registry `status` 由 `partial` → `covered`**(判据 = 参数已裁 + 表值可在烘焙门写死);⚠️ **改 registry 归 architecture-review 轮**,本行只登记陈旧事实。**同 SP-1(`OQ-17-2`)型** —— 这是本仓**第二次**「裁定已下、下游仍写未裁」 |
+| **SP-9** | `tr-registry.yaml:4150`(TR-clinic-006 的 `note`) | 「⚠️ `n_max` 悬于 `OQ-24-5` **未裁** ⇒ 断言无参数可写」 | `OQ-24-5` **已于 2026-10-07 裁定 `n_max = 64`**(`clinic-machine.md:397`,并连带拍定 `C_max = 1/64`);note 写于 2026-09-21,早于裁定 ⇒ `status: partial` 的理由**已消失**,断言参数**已有着落**(`n_max × TIER_MAX = 64 × 3 = 192 < 2^31` ✓) | **registry `status` 由 `partial` → `covered`**(判据 = 参数已裁 + 表值可在烘焙门写死);⚠️ **改 registry 归 architecture-review 轮**,本行只登记陈旧事实。**同 SP-1(`OQ-17-2`)型** —— 这是本仓**第二次**「裁定已下、下游仍写未裁」<br>🔁 **2026-10-21 补注**:**本行的「实测」列自身已半陈旧** —— `C_max` 已于 2026-10-21 由 `1/64` 改裁为 **`1/8`**(与 `n_max` **解耦**,原耦合式 `n·C_max ≤ 1` 作废)。**不影响本行的结论**(`n_max = 64` 未变、`partial` 仍该转 `covered`),但**引本行时不得照抄 `C_max = 1/64`**。出处 = `design/gdd/clinic-machine.md:198` 的就地重算注 + `production/qa/evidence/impl-td-itemdb-01-build-modules-2026-10-21.md` §九 |
+| **SP-10** | **54 关卡工具**(ADR-022 / `systems-index.md:90,170`) | 全库**三处引用它**(ADR-022 §三 定义 · `systems-index` 登记 · `world-ecozones/story-005` 的 EXTERNAL 前置),读起来像「一个已排期的系统」 | 🔴 **实测:它没有 epic、没有 story、不在 §6.5 的 sprint-16…29 表里、债册无任何条目。** ⇒ **三处引用、零排期载体** —— 承本仓反复记录的「**引用却无登记**」失效模式(同 `CompoundTriggered` / `ActorCellEntered` / ADR-022 自身的立件缘由)。<br>**连带后果(实测)**:① `world_buildslots.json` **全仓零存在**(`assets/data/` 26 份 JSON 无它);② 23 的 `BuildSlotCatalog.IsInBuildSlotRegion`(`:86`)因此**P0 简化为「有槽位即区域内」**,其注释自陈「多边形包含检查需 ADR-022 烘焙数据,**当前无多边形输入**」;③ `AC-23-08` 的第三个半边(占用格 ⊆ `BuildSlotRegion`)**零载体**;④ `world-ecozones/story-005` 排在 **sprint-29 批 C**,该批的判据逐字是「素材与冻结到位才动 —— **现在做 = 自造断言**」 | **用户 2026-10-21 裁定:不立 epic、不排期**,只在本行登记缺口 ⇒ **取件时不会以为它已有人做**。<br>⚠️ **登记 ≠ 解除**:`world_buildslots.json` 在 P0 内**仍不产出**;23 的 Region 校验**维持 P0 简化实现**;`AC-23-08` 第三半边登记为**已知缺口**(承 `TD-building-01` 的「卡住的判据」①)。<br>⚠️ **本行不是「54 可以不做」** —— 它是「**54 今天没有承接者**」;`world-ecozones/story-005` 的 EXTERNAL 阻塞**因此仍成立** |
 
 #### 7.1 陈旧阻塞(卡面写了但事实已变 —— 承已合并的 backlog §5)
 
-> **与上方 SP-1…SP-9 的关系**:SP 系列是**本路线图自身**的陈旧前提(取件前复核);
+> **与上方 SP-1…SP-10 的关系**:SP 系列是**本路线图自身**的陈旧前提(取件前复核);
 > S 系列是**卡面 / 里程碑文件**的陈旧阻塞(须就地订正)。**同族不同源,不合并编号。**
 > ⚠️ **去重登记**:backlog 的 **`S-4` ≡ 上方 `SP-3`**(同一处 `README:49` 的 `22/31`)—— 合并时
 > **不再单列**,只在 SP-3 行内保留 S-4 的原始措辞以免丢信息。其余 5 条**无重复**,逐条吸收。

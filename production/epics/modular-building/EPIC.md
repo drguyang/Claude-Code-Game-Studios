@@ -90,13 +90,18 @@ This epic is complete when:
 | **C2** `World.OccupyCells/FreeCells` 零调用方 ⇒ Overlay 写路径未接线 | 🔴 真缺陷 | `Place`/`Remove` 接 `IWorldOccupancy`;`test_c2_place_writesOccupancy` / `test_c2_remove_freesOccupancy` 钉死 | ✅ **已修** |
 | **N-r1** `moduleCatalog == null` 时静默退化(复现 C1/C2) | 🔴 真缺陷 | 改 **fail-closed**:未注入目录 / 未知 moduleId / 未注入 occupancy 三处**抛**;三条 `test_nr1_*_throwsFailClosed` 钉死 | ✅ **已修(真到位)** |
 | **C8/ID** 注册表 id `int` vs 权威件 `i64` | 🔴 真缺陷 | **本轮修复**(2026-10-03)—— 全链升 `long`,与契约 / codec / `entities.yaml:2068` 口径一致;两条回归用例 + 两次突变测试 | ✅ **已修** |
-| **N-r2** 无生产装配根(非测试代码 `new World(` / `new StructureWriter(` 零引用) | ⚠️ 缺口(低-中) | 实测仍为 **0 引用**;ADR-023 三场景制下 `World.unity` 尚不存在,现在补装配点 = **孤岛接线**(零消费者、其自身正确性无处验证) | ⚠️ **登记为待办(用户裁定 2026-10-03),不阻塞本 epic**。**✅ 2026-10-10 批次 F 回填**:重开条件**已触发** —— Boot 装配轮 2026-10-09 开工(组合根 `CompositionRoot` 已建 · 门④冒烟 10-10 实跑绿);但当日复测 `new World(` / `new StructureWriter(` 生产引用**仍 = 0** ⇒ 装配入口未接,本条**仍开**,状态升级为「重开条件已到 · 待接线」,归接线轮(带集成判据,承原注) |
+| **N-r2** 无生产装配根(非测试代码 `new World(` / `new StructureWriter(` 零引用) | ⚠️ 缺口(低-中) | 实测仍为 **0 引用**;ADR-023 三场景制下 `World.unity` 尚不存在,现在补装配点 = **孤岛接线**(零消费者、其自身正确性无处验证) | ⚠️ **登记为待办(用户裁定 2026-10-03),不阻塞本 epic**。**✅ 2026-10-10 批次 F 回填**:重开条件**已触发** —— Boot 装配轮 2026-10-09 开工(组合根 `CompositionRoot` 已建 · 门④冒烟 10-10 实跑绿);但当日复测 `new World(` / `new StructureWriter(` 生产引用**仍 = 0** ⇒ 装配入口未接,本条**仍开**,状态升级为「重开条件已到 · 待接线」,归接线轮(带集成判据,承原注)<br>🔁 **2026-10-21 立债(用户裁定「登记 TD · 不写 sprint-20」)**:本条**已入债册为 `TD-building-01`**(`docs/tech-debt-register.md`),判据面由原「两符号」**扩为四层构造点 + 两个接口生产实现 + `Cost` 字段 + Region 数据**,逐条实测见该债条。<br>⚠️ **扩面理由**:原 N-r2 只数 `World` / `StructureWriter`,而实测 **`new BuildSlotCatalog` 与 `new WorldGeometry(` 的生产构造点同样为零** —— 23 的四层(几何 / 槽位骨架 / 世界 / 写者)在生产树里**一层都没被构造过**;`IModuleCatalog` 与 `IPlacedStructureReadView` 的生产实现也均为零。<br>⚠️ **本行不改任何裁决**;原注「归接线轮」**仍成立** —— 只是那一轮**至今没有承接者**,故立债使其进入路线图 §5.2 的第三源(TD 的 P0 面)。**排期未定,归 `/sprint-plan` 现裁。** |
 
 ### 未闭项登记(不阻塞本 epic 转 Complete)
 
 - ⚠️ **N-r2 —— 生产装配根**:实缺陷仍开。**重开条件** = ADR-023 三场景制落地 / Boot 装配轮开工时,
   同批补 `World` + `StructureWriter` 的生产装配入口(`IModuleCatalog` / `IWorldOccupancy` /
   `IPayloadEncoder` 注入),并补该接线自身的集成判据。
+  **🔁 2026-10-21**:已入债册 = **`TD-building-01`**(判据面扩为四层构造点 + 两接口生产实现 +
+  `Cost` 字段 + Region 数据)。用户裁定:**只登记,不写 sprint-20** —— 排期归 `/sprint-plan` 现裁。
+  ⚠️ **解除动作分两半,不合并**:**读侧**(`IPlacedStructureReadView` 生产实现 + `IModuleCatalog` 注入 +
+  `ModuleDefinition.Cost` + `DemolishChecker` 从目录读)与**写侧**(`Place` / `Remove` 的生产发起方,
+  归 **42 的 `O-23-6`**)—— **单做任一半都只落半边**,承 `TD-itemdb-01` 的自我警告。
 - ⏸️ **AC-23-09 跨平台签名半边**:按 ADR-012 现状处置 —— 本仓先钉 **Mono 往返等值**(已绿),
   **跨平台黄金夹具矩阵未建**,落地后补签,**禁单平台独签**。
 - ⏸️ **`TR-building-004` / `-009` / `-010` 三条 `⚠️ partial`**:归数值轮 / P1a,非本 epic 阻塞项。
@@ -120,6 +125,9 @@ This epic is complete when:
 
 - **N-r2 生产装配根** ⇒ ADR-023 三场景制 / Boot 装配轮开工时同批补(带该接线自身的集成判据)。
   ✅ **2026-10-10 回填**:Boot 装配轮已开工(10-09)⇒ 条件已到、待接线(引用实测仍 0,见上表 N-r2 行)。
+  🔁 **2026-10-21**:已入债册 = **`TD-building-01`**。**⚠️ 本条不再是「等一个会来的轮次」** ——
+  实测 §6.5 的 sprint-16…29 表里没有任何一轮承接它 ⇒ 它是**已到期但无排期的待办**,须由
+  `/sprint-plan` 取件时按 §6.3 **R-4** 显式裁定。
 - **AC-23-09 跨平台签名** ⇒ ADR-012 黄金夹具矩阵落地后补签(禁单平台独签)。
 - **`TR-building-004/-009/-010`** ⇒ 数值轮交付 `R` / `BUILD_TIME` / 目录成本后翻真值;`-010` 归 P1a。
 - **story-004 `World.unity` 构建期扫描** ⇒ 该场景创建时同批补。

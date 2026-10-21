@@ -8091,3 +8091,52 @@ readonly 2/2 有效 · s17-4 4/4 有效                 合计 13 变异,**6 个
 - **`AC-23-08`(`refundable ⇒ cost ≥ ⌈1/R⌉`)仍无目录行触发**(`R=1` 下自动满足)
 - IL2CPP 三格 NOT-RUN
 - **未 commit**(用户未指令)
+
+---
+
+## Session Extract — `TD-building-01` 立债轮(2026-10-21)
+
+**缘起**:用户问「`IModuleCatalog` 生产实现 / `ModuleDefinition.Cost` / `DemolishChecker` 读目录 /
+`world_buildslots.json` / `AC-23-08` 目录行触发 —— 全归 23 装配轮与 54。**什么时候去做**」。
+按「什么时候」逐条实测 ⇒ 诚实答案是**没有任何已排期的 sprint 会自己带上它们**。
+
+### 用户裁定(两轮,第二轮是改判)
+- ① 「登记 TD **+ 排进 sprint-20**」→ 我落笔前实测发现 **sprint-20 只消费 23 的只读面**
+  (`IPlacedStructureReadView`),**不创造写面消费者**(`Place`/`Remove` 归 42 的 `O-23-6`)
+  ⇒ 挂 sprint-20 会**把半边写成整边** ⇒ 摆出后用户改选 **「不写 sprint-20,只登记」**
+- ② 54 关卡工具 → **「先不立 epic,但把缺口写进路线图 §七」**
+
+### 实测(全零)
+| 构造点 | 总 | 测试 | **生产** |
+|---|---|---|---|
+| `new World(` | 1 | 1 | **0** |
+| `new StructureWriter(` | 10 | 10 | **0** |
+| `new BuildSlotCatalog` | 4 | 4 | **0** |
+| `new WorldGeometry(` | 10 | 10 | **0** |
+
++ `IModuleCatalog` / `IPlacedStructureReadView` 生产实现**均零**;`ModuleDefinition` 五字段无 `Cost`;
+`world_buildslots.json` 全仓零存在;`IsInBuildSlotRegion` P0 简化为「有槽位即区域内」。
+
+### `AC-23-08` 是三条判据,只落一条
+`(0,0) ∈ Occupancy` ✅ 已落 · `cost ≥ ⌈1/R⌉` ⚠️ `R=1` 恒真 · **占用格 ⊆ `BuildSlotRegion` 🔴 零载体**
+⚠️ **订正 `7ff1d37` 的 message**:它只说了第二半,漏了第三半(不是「无判别力」,是**代码不存在**)。
+
+### 落账四文件
+1. `docs/tech-debt-register.md` —— 新立 **`TD-building-01`** + 索引 +1 + **六订**计数注六处 + `TD-itemdb-01` 触发条件补注
+2. `p0-remaining-roadmap-2026-10-20.md` —— §七 **SP-10**(54 三处引用零排期载体)· §7.1 标题改 SP-1…SP-10 · §5.2 第三源补注(它**不能自己发现缺口**)· **SP-9 补注**(`C_max` 已 1/64→1/8)
+3. `modular-building/EPIC.md` —— N-r2 三处补注(已入册 / 扩面理由 / **读侧写侧不合并**)
+4. `design/gdd/modular-building.md` —— `AC-23-08` 三半边进度表 + 表行补注
+
+### 计数(六订)
+```
+条目 97 | 状态 {'open': 71, 'partial': 6, 'closed': 19, 'done': 1} | P0 面 {'Y': 88, 'N': 8, '~~Y~~': 1}
+未闭 P0 面 = 73 · epic 分布 = 13/31
+```
+对五订(`96/72/12`)差:**条目 +1 · open +1 · Y +1 · 未闭面 +1 · epic 分布 +1(`modular-building` 首次入列)**
+⚠️ **「23 已 Complete 且名下无债」自此不成立。**
+
+### 仍未有(禁借绿)
+- **未写 sprint-20**(用户裁定)· **未立 54 的 epic**(用户裁定)· **未改任何代码**(纯登记轮)
+- `world_buildslots.json` P0 内**仍不产出**;`AC-23-08` 第三半边**仍为已知缺口**
+- 写侧(`Place`/`Remove` 发起方)归 42 的 `O-23-6`,**该义务自身也无排期**
+- **未 commit**(用户未指令)

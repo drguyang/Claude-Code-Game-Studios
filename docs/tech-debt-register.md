@@ -30,6 +30,15 @@
 > 四订是「结一条 + 增一条」两笔相抵,五订是**一条债自己的状态列换了一个字**。
 > `partial` 仍计入未闭 P0 面(§五 脚本 `r[2] != 'closed'` 不认 `partial` 为已闭)⇒ **出口判据不受影响**。
 > 兑现面与仍缺面逐条见 `TD-itemdb-01` 条目末尾的「兑现轮」小节。
+> 🔁 **2026-10-21 六订(`TD-building-01` 入表 · N-r2 立债)**:再 `+1` ⇒ **现役 = 97 条**。
+> `open` **+1**(71)· `Y` **+1**(88)· **`未闭 P0 面` 72 → 73** · **epic 分布 12/31 → 13/31**。
+> §五 命令实测:`条目 97 | 状态 {'open': 71, 'partial': 6, 'closed': 19, '**done**(2026-10-21)': 1}
+> | P0 面 {'Y': 88, 'N': 8, '~~**Y**~~': 1}`。
+> ⚠️ **本轮与五订性质相反**:五订是同一行换字(**三个数一位不动**),六订是**真新增一笔债**
+> ⇒ **三个数全都动了**。⚠️ **且这不是「回到四订前」** —— 四订的 +1 是 `item-database`,
+> 六订的 +1 是 **`modular-building`,一个此前名下零债的 epic**。
+> ⚠️ **由此产生一句必须改写的话**:「23 已 `Complete` 且名下无债」**自此不成立**。
+> M3 Exit ② 的判定**仍为假**(本就为假),变的是**分母与其构成**。
 > 判据本身亦已换:**原 ②「逐条判该债是否卡住某条 P0 AC」** 由用户 2026-10-20 裁定的
 > **宽判据 R1**(归属 epic ∈ 31 个 P0 epic ⇒ P0 面 = Y)取代 —— 见 §★ 总索引 §一。
 >
@@ -108,6 +117,13 @@
 > ⇒ **净变化 = `条目 +1`,两个统计列各自「−1 后 +1」回到原值。**
 > ⚠️ **禁止把「`Y` 还是 87 / 未闭面还是 72」写成「一位不动」** —— 那是前三次(纯治理债)的写法,
 > **对本次不成立**:本次**确有一条 P0 面债结清、另有一条新 P0 面债入表**,两件事互相抵消了读数。
+> 🔁 **2026-10-21 五订**:`TD-itemdb-01` `open → partial`(**行数不变**,只是状态列换字)⇒ **现役仍 96**;
+> `open 71 → 70` / `partial 5 → 6`,其余两列一位不动。
+> 🔁 **2026-10-21 六订(`TD-building-01` 入表 · N-r2)**:`96 → 97`;`open 70 → 71`;`Y: 87 → 88`;
+> **`未闭 P0 面 72 → 73`**;**epic 分布 `12/31 → 13/31`**(新增 `modular-building`)。
+> ⚠️ **与四订的区别必须说清**:四订的 +1 落在 `item-database`(名下已有 `TD-clinic-01` 刚结案),
+> 六订的 +1 落在 **`modular-building` —— 一个此前名下零债的 epic**。
+> ⇒ **「23 已 `Complete` 且名下无债」这句自此失效**,且它以前是「门清单完备性」的一个隐含前提。
 
 ### 二、计数口径:基线 `92` → 本表 `91`(⚠️ 两数并存,出处不同)
 
@@ -153,6 +169,11 @@
 > 它由 `TD-clinic-01` 引入(2026-10-21),语义等同 `closed`(已结清),**但字面不同**。
 > ⇒ 读 §五 输出时,`done: 1` **不进未闭集**,须与 `closed: 19` 合并读作「已结清 = 20」。
 > **本节值域暂不扩**(扩它会连带改 §五 脚本与前三订的可比性),**只登记该差异**。
+> 🔁 **2026-10-21 五订后为 96 行**(`TD-itemdb-01` 由 `open` 转 `partial`,行数不变)。
+> 🔁 **2026-10-21 六订后为 97 行**(再增 `TD-building-01`,`open` / `P0 面 = Y`)—— 适用面 97 行。
+> ⚠️ **六订的行不是「又一条同族」**:前三次治理债(`TD-gate` ×3 / `TD-build-01`)全 `P0 面 = N`,
+> `TD-itemdb-01` 是 `item-database` 名下;`TD-building-01` 是**首个落在 `modular-building` 名下的债** ——
+> 该 epic 自 2026-10-03 标 `Complete` 起,名下债条数一直是 **0**。
 
 **今天实测**:`open` **70** · `partial` **5** · `closed` **16** —— 合计 **91** ✓
 > 🔁 **2026-10-21(回填后)**:`open` **70** · `partial` **5** · `closed` **19** —— 合计 **94** ✓
@@ -171,6 +192,11 @@
 > 变化 = `open` **−1** / `partial` **+1**(**同一行**,`TD-itemdb-01` 由 `open` 转 `partial`)。
 > ⚠️ **本轮与四订的性质不同**:四订是「结一条 + 增一条」两笔互抵,五订是**一行自己的状态列换字**。
 > ⇒ **`未闭 P0 面` 仍 72**,原因却与四订完全不同 —— **禁止把「还是 72」读成「本轮没动」**。
+> 🔁 **2026-10-21(六订 · `TD-building-01` 立债)**:`open` **71** · `partial` **6** ·
+> `closed` **19** · `done` **1** —— 合计 **97** ✓ · `P0 面 {Y:88, N:8, ~~Y~~:1}`。
+> 变化 = `open` **+1** · `Y` **+1** · **`未闭 P0 面` 72 → 73** · **epic 分布 12/31 → 13/31**。
+> ⚠️ **三个数全动,与五订的「一位不动」相反**;且 **`modular-building` 首次出现在 epic 分布里**。
+> ⇒ 本册此前可写「23 已 `Complete` 且名下无债」,**这句话自此不成立**。
 
 ### 四、总索引表(91 行)
 
@@ -181,7 +207,10 @@
 > 🔁 **2026-10-21(四订)**:新增 `TD-itemdb-01`(产品债)⇒ **现役 96 行**。
 > 🔁 **2026-10-21(五订)**:`TD-itemdb-01` 由 `open` 转 `partial`(**行数不变**,只是状态列换字)
 > ⇒ **现役仍 96 行**。
-> ⚠️ **标题里的 `91 行` 与现役值的差 = 5 行**,其中 3 条 `TD-gate` + 1 条 `TD-build-01` + 1 条 `TD-itemdb-01`。
+> 🔁 **2026-10-21(六订)**:新增 `TD-building-01`(`modular-building` / `open` / `P0 面 = Y`)
+> ⇒ **现役 97 行**。
+> ⚠️ **标题里的 `91 行` 与现役值的差 = 6 行**,其中 3 条 `TD-gate` + 1 条 `TD-build-01` + 1 条 `TD-itemdb-01`
+> + 1 条 `TD-building-01`。
 > `TD-clinic-01` **不是新行**,它是**原 91 行里的那一行改了状态**(⇒ 行数不变,`done` 计数 +1)。
 
 <!-- TD-INDEX:BEGIN -->
@@ -283,6 +312,7 @@
 | `TD-gate-03` | `（跨 epic · 治理／tools/falsify）` | closed | **N** | R3-裁 |
 | `TD-build-01` | `（跨 epic · 治理／构建期派生）` | open | **N** | R3-裁 |
 | `TD-itemdb-01` | `item-database` | partial | **Y** | R1 |
+| `TD-building-01` | `modular-building` | open | **Y** | R1 |
 <!-- TD-INDEX:END -->
 
 > **`归属 epic` 的取值形态**:31 个 P0 epic 用目录 slug(`` `audio-system` `` 等);
@@ -316,18 +346,23 @@ for k, v in ep.most_common():
 PYEVAL
 ```
 
-**当前预期输出(2026-10-21 五订实测 · 含 `TD-itemdb-01` → `partial` —— 四订版原文留档于下)**:
+**当前预期输出(2026-10-21 六订实测 · 含 `TD-building-01` 立债 —— 五订版原文留档于下)**:
 
 ```text
-条目 96 | 状态 {'open': 70, 'partial': 6, 'closed': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 87, 'N': 8, '~~**Y**~~': 1}
-未闭 P0 面 = 72 （已闭但曾标 P0 面的 15 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 72 条,分布在 12/31 个 epic
+条目 97 | 状态 {'open': 71, 'partial': 6, 'closed': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 88, 'N': 8, '~~**Y**~~': 1}
+未闭 P0 面 = 73 （已闭但曾标 P0 面的 15 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 73 条,分布在 13/31 个 epic
     medical-consequences: 20   audio-system: 20          clinic-machine: 16
     telemetry-analytics: 5     skeuomorphic-ui: 2        disease-simulation: 2
     persistence-service: 2     patient-ai: 1              player-controller: 1
     enemy-ai: 1                random-events: 1           item-database: 1
+    modular-building: 1
 ```
 
+> 🔁 **2026-10-21 五订版(原文留档,已被上方六订取代)**:
+> `条目 96 | 状态 {'open': 70, 'partial': 6, 'closed': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 87, 'N': 8, '~~**Y**~~': 1}`;
+> `未闭 P0 面 = 72`,分布在 **12/31** 个 epic。与六订的差异 = `open +1` · `Y +1` ·
+> `未闭面 +1` · **epic 分布多一个 `modular-building`**。
 > 🔁 **2026-10-21 四订版(原文留档,已被上方五订取代)**:
 > `条目 96 | 状态 {'open': 71, 'partial': 5, 'closed': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 87, 'N': 8, '~~**Y**~~': 1}`;
 > `未闭 P0 面 = 72`。差异仅在 `open 71 → 70` / `partial 5 → 6`(同一行换字)。
@@ -1977,7 +2012,7 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | **卡住的判据** | ① `modular-building.md:416` 的 `cost(m)` 来源栏逐字 = **21a**;`:507` 亦然。**该行在 21a 侧无对应载体。**<br>② `AC-23-08` 的 `refundable ⇒ cost ≥ ⌈1/R⌉` 校验 —— 今日**只对夹具字面值成立**(`refund_calculator_test.cs:45-54` 传的是 `1` / `2` / `100` 三个手写整数),**不针对任何目录行**。<br>③ `clinic-machine.md:297` 的「同源」判据 —— 无第二个对象可比,结构上不可判。 |
 | **为什么此前不在册(结构性,非疏漏)** | 同 `TD-clinic-01` 的**双层盲区**再加一层:<br>**① 21a epic 已标 `Complete ✅ 12/12`(2026-09-25)**,12 份 story 里认领 `build_modules` / `cost(m)` 的 = 0 份 ⇒ 与 `TD-clinic-01` 同一形态(**义务有登记、有双方署名,而零承载**)。<br>**② 23 epic 亦已标 `Complete ✅ 2026-10-03`(7/7)**,其 story-001 `:45` 把 `build_modules.json` 列为「两烘焙源」之一 —— 但实落的是**装载器 + 测试夹具**,数据文件从未产出。<br>**③ 两侧 epic 都 Complete ⇒ 没有任何 epic 的输出面会显示它**(路线图 §十一 C-7 同型)。`TD-clinic-01` 是靠 `O-24-1` 这条 GDD 义务登记才被取件轮抓到的;而 `cost(m)` **本身没有 `O-` 编号**,它只是别处被引用时的一个栏位值 ⇒ **连 `TD-clinic-01` 那条抓法也够不着它**。 |
 | **解除动作** | 由 **21a** 落 `assets/data/build_modules.json`(承 `modular-building.md:88` 与 `story-001:45` 已定的字段集:`module_id` / `module_type` / `OccupiedCells_local` / `cost` / `refundable`),走 ADR-014 阶段 2 烘焙。**落定后**两件事同批:① 决定 `item_database_furniture.json` 与它是否真的合表(若合,须另立迁移;若不合,须**就地修订** `clinic-machine.md:297` 与 `item-database.md:859` 的「同源」措辞,改为「同一作者态目录族的两个文件」并写明理由);② `ModuleDefinition` 补 `Cost` 字段 + `DemolishChecker` 从目录读而非由调用方喂。<br>**不改任何 ADR 裁决。** |
-| **触发条件** | **23 建造系统的生产装配轮**(= `modular-building/EPIC.md` §未闭项 **N-r2「生产装配根」** 的重开条件:ADR-023 三场景制落地 / Boot 装配轮开工)—— 那一轮必须注入 `IModuleCatalog` 的生产实现,届时 `cost` 的来源无法再回避。**或** 21a 目录的任何一次改版轮。 |
+| **触发条件** | **23 建造系统的生产装配轮**(= `modular-building/EPIC.md` §未闭项 **N-r2「生产装配根」** 的重开条件:ADR-023 三场景制落地 / Boot 装配轮开工)—— 那一轮必须注入 `IModuleCatalog` 的生产实现,届时 `cost` 的来源无法再回避。**或** 21a 目录的任何一次改版轮。<br>🔁 **2026-10-21 补注**:本行指向的「那一轮」**已具名 = `TD-building-01`**(同册,2026-10-21 立),且其实测结论是**那一轮没有排期** —— 故本债剩余半边的到期日**不再是「等一个会来的轮次」,而是「等 `TD-building-01` 被取件」**。两条互为对方的到期条件(详 `TD-building-01` 的「与 `TD-itemdb-01` 的关系」行)。**本条不改状态**:`partial` 仍准确 —— 数据半边已落,消费半边仍缺。 |
 | **归属** | **21a**(物品与配方数据库)—— ⚠️ **该 epic 已标 `Complete ✅ 12/12`**。用户裁定(2026-10-20,同 `TD-clinic-01`):**不给已 Complete 的 epic 开新 story** ⇒ 本债**由 TD 跟踪**,不新立 story、不重开 epic。**跨归属注**:解除动作的第 ② 半(补 `ModuleDefinition.Cost`)落 **23**,但触发权在 21a 的数据落地 —— 两条须同批,单做任一半都会留下新的「半边」。 |
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
@@ -2044,3 +2079,39 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 > ⇒ **`未闭 P0 面` 仍为 72**,与四订时的读数一致 —— 但**原因不同**:
 > 四订时是「新债 +1」,本轮是「同一笔债仍在,只是从 `open` 走到 `partial`」。
 > **禁止把「还是 72」读成「本轮没动」**。
+
+---
+
+## 2026-10-21 · 23 生产装配根零落点(N-r2 立债 · 用户裁定「只登记,不写 sprint-20」)
+
+**出处**:用户 2026-10-21 问「`IModuleCatalog` 生产实现 / `ModuleDefinition.Cost` / `DemolishChecker`
+读目录 / `world_buildslots.json` / `AC-23-08` 目录行触发 —— 全归 23 装配轮与 54,什么时候去做」。
+按「什么时候」逐条实测,发现**这批东西没有任何一个已排期的 sprint 会自己带上它**,且
+`N-r2` **从未进过债册** —— 全库唯一登记处是 `modular-building/EPIC.md` §未闭项的一行。
+用户随即裁定(AskUserQuestion 两轮):**① 登记 TD;② 不写 sprint-20,排期留给 `/sprint-plan` 现裁**。
+
+**性质**:与 `TD-sim-01` / `TD-persist-01` / `TD-persist-02` / `TD-player-02` / `TD-enemy-01` /
+`TD-randomevents-01` **同一形态** —— **ADR 已裁 · GDD 已写 · epic 已标 `Complete` · 代码零落点**。
+用户裁定同一处置口径:**不立 story、不重开已 `Complete` 的 epic**,由 TD 跟踪。
+
+### TD-building-01 — 23 的生产装配根零落点(`World` / `StructureWriter` / 目录 / 骨架四件同时缺)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `modular-building/EPIC.md:93` 的 **N-r2** 逐字:「无生产装配根(非测试代码 `new World(` / `new StructureWriter(` 零引用)」。该条自 2026-10-03 登记,**2026-10-10 重开条件已触发**(Boot 装配轮开工、`CompositionRoot` 已建、门④冒烟绿)但**接线从未落**。用户 2026-10-21 裁定立此债条,并**扩其面**:N-r2 原本只数 `World` / `StructureWriter` 两个符号,实测发现**同一根缺口上还挂着三件**,合起来才是「23 能不能在生产里跑起来」的完整判据。 |
+| **实测(扫描面 = `unity/Assets/**/*.cs` 全树,`/Tests/` 单列)** | **构造点四件全零(生产树)**:<br>① `new World(` —— 总 **1** / 测试 **1** / **生产 0**(唯一构造在 `Tests/EditMode/ModularBuilding/world_test.cs:39`)。<br>② `new StructureWriter(` —— 总 **10** / 测试 **10** / **生产 0**(全在 `Tests/EditMode/ModularBuilding/` 三件)。<br>③ `new BuildSlotCatalog` —— 总 **4** / 测试 **4** / **生产 0**。<br>④ `new WorldGeometry(` —— 总 **10** / 测试 **10** / **生产 0**(全在 `world_lattice_test.cs` / `world_test.cs`)。<br>**⇒ 23 的四层(几何 / 槽位骨架 / 世界 / 写者)在生产树里一层都没被构造过。**<br>⑤ `IModuleCatalog`(`PlaceableChecker.cs:174`)**生产实现 = 零**(测试树 4 个 stub)。<br>⑥ `IPlacedStructureReadView`(`Sim/Clinic/IPlacedStructureReadView.cs`)**生产实现 = 零** —— 4 处实现全在 `Tests/EditMode/ClinicMachine/`(`FakeView` ×2 / `FakeStructureReadView` / `MutableView`)。<br>⑦ `ModuleDefinition`(`PlaceableChecker.cs:138-144`)**只有五字段** —— `ModuleId` / `SlotType` / `LocalOccupancy` / `ValidOrientations` / `Refundable`。**`Cost` 不在其中。**<br>⑧ `cost` 在 `Sim/World` 全树**唯一形态 = 形参**(`DemolishChecker.cs:86` `CalculateRefund(int cost, int demolishRefundRatio)` / `:100` `ValidateRefundable(int cost, int demolishRefundRatio)`),**由调用方喂,不从目录读**;且 `CalculateRefund` 的**生产树调用点 = 零**。<br>⑨ `BuildSlotCatalog.IsInBuildSlotRegion`(`BuildSlotCatalog.cs:86`)**P0 简化为「有槽位即区域内」**,其自身注释(`:83-85`)自陈「多边形包含检查需 ADR-022 烘焙数据,**当前无多边形输入**」。<br>⑩ `world_buildslots.json` **全仓零存在**(`assets/data/` 26 份 JSON 无它,`DataCooked/` 无任何 slot 产物)。 |
+| **卡住的判据** | ① **`AC-23-08` 的三个半边只落了半个**:`(0,0) ∈ OccupiedCells_local` ✅ 已落(`BuildModulesBinder` 锚点格门,证伪 C 坐实);`refundable ⇒ cost ≥ ⌈1/R⌉` ⚠️ **`R = 1` 下恒真**,9 行 `cost ∈ [1,99]` 无一行能触发;`占用格 ⊆ BuildSlotRegion` 🔴 **零载体**(`BuildModulesBinder` 无该门,因为 Region 数据不存在)。<br>② **`AC-24-11`**(布局经 23 变更后重算、旧缓存失效)今日**只能对 Fake 求值** —— 布局来源 `IPlacedStructureReadView` 生产实现为零。<br>③ **`TD-itemdb-01` 的剩余半边**(`ModuleDefinition.Cost` + `DemolishChecker` 从目录读)**到期日指向本债** —— 其触发条件逐字写「23 建造系统的生产装配轮」,而那一轮**没有排期**。⇒ **本债不立,`TD-itemdb-01` 的 `partial` 就永远没有到期日。**<br>④ `TR-building-004` / `-009` / `-010` 三条 `partial`(归数值轮 / P1a)与本债**不重叠**,本债不为它们负责。 |
+| **为什么此前不在册(结构性)** | 与 `TD-itemdb-01` 的**三层盲区**同型,但多一层:<br>**① `modular-building` epic 已标 `Complete ✅ 2026-10-03`(7/7 story)** ⇒ 其输出面不显示任何未闭项。<br>**② N-r2 只活在 `EPIC.md` §未闭项节** —— 路线图 §5.2 的**三源(剩余 story / 八道门 / TD 的 P0 面)一个都够不着它**:23 的 7 条 story 全 `Complete`(§1.3 剩余件零行);它不在 G-1…G-8(§三 八道门);它不是 TD(§5.2 第三源)。<br>**③ 路线图 §6.5 的 sprint-16…29 表里 `modular` 三处命中全是「拿 23 当上游前提」**(SP-8 读面 / `clinic-002` 的 R-4 / `processing-005`),**无一处是「做 23」**。<br>**④ 它没有 `O-` 编号** ⇒ 连 `TD-clinic-01` / `TD-itemdb-01` 那条「靠 GDD 义务登记抓出来」的抓法也够不着。 |
+| **解除动作** | **两半,不合并**(承 `TD-itemdb-01` 「单做任一半都会留下新的半边」的自我警告):<br>**读侧** = 给 `IPlacedStructureReadView` 一个生产实现(由 `World.Structures` 包一层)+ 在装配根注入 `IModuleCatalog` 的生产实现(读 `build_modules.cooked`)+ `ModuleDefinition` 补 `Cost` + `DemolishChecker` 从目录读。判据 = **真 `World` 端到端**:`Place → IsEffectivelyWalkable == false` / `Remove → true`(承 `review-modular-building-round2-2026-10-03.md:240` 的原始要求),且 `AC-24-11` 的布局输入来自真 `World` 而非 Fake。<br>**写侧** = `Place` / `Remove` 的**生产发起方**。⚠️ 归 **42 的建造交互**(`O-23-6`,`modular-building.md:494`,状态「⏳ 待 42 下一轮」)—— **本债不为它设判据,只登记依赖方向**。<br>**不改任何 ADR 裁决。** |
+| **触发条件** | **读侧**:`/sprint-plan` 取 `clinic-004` / `clinic-005` 时,按 §6.3 **R-4**(上游契约逐代码实测)必然撞见 `IPlacedStructureReadView` 生产实现为零 ⇒ 该轮**就地裁定**是本轮补还是继续 Fake(**继续 Fake 则 `AC-24-11` 不得记绿**)。**写侧**:`O-23-6` 落地时。 |
+| **归属** | **23**(模块化建造)—— ⚠️ **该 epic 已标 `Complete ✅ 2026-10-03`**。按用户 2026-10-20 / 2026-10-21 同口径:**由 TD 跟踪,不新立 story、不重开 epic**。 |
+| **与 `TD-itemdb-01` 的关系** | **不合并、不互抵**。`TD-itemdb-01` 登记的是「`cost(m)` 作者态缺席」,其数据半边**已于 2026-10-21 落**(`build_modules.json` + 烘焙 + 跨表同源门);本债登记的是「那笔数据**没有读方**」。两条互为对方的到期条件 —— 数据落地不蕴含读方存在,读方存在也不蕴含数据正确。 |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-building-01** | `modular-building` | **open** | **Y** | R1 |
+
+> **`P0 面 = Y`** —— 归属 epic `modular-building` ∈ 31 个 P0 epic(承 §一 **R1 宽判据**)。
+> ⚠️ **本条使 `未闭 P0 面` 从 72 变 73**,且 **`modular-building` 由「名下零债」变为「名下 1 条」**
+> ⇒ M3 Exit ② 的 epic 分布由 **12/31 变 13/31**。**这是分母变大,不是读数波动。**
+> ⚠️ **M3 Exit 判定不变**(本就为假) —— 但「23 已 Complete 且名下无债」这一句**自此不再成立**。

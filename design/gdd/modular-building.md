@@ -295,6 +295,19 @@ StructureModified { structure_id, cell: WorldPos, module_id,
 
 > **P0 判据落地**:`DEMOLISH_REFUND_RATIO` 在 P0 恒等于 1 时,AC-23-08 的 `cost ≥ ⌈1/R⌉` 目录校验
 > 在 P0 自动满足(P1a `R < 1` 时重新生效)。旋钮表同步标注(见 Tuning Knobs)。
+>
+> 🔁 **2026-10-21 补注 —— `AC-23-08` 实为三条判据,落地进度各不相同(禁把「R=1 自动满足」读成整条已落)**:
+>
+> | 半边 | 落地 | 判据可判性 |
+> |---|---|---|
+> | `(0,0) ∈ OccupiedCells_local` | ✅ **已落** | `BuildModulesBinder` 锚点格门;证伪轮 C 坐实(停用门 ⇒ `test_buildModules_missingAnchorCell_isRejected` 红) |
+> | `refundable ⇒ cost ≥ ⌈1/R⌉` | ⚠️ **恒真** | `R = 1` 下 `⌈1/R⌉ = 1`,而目录 9 行 `cost ∈ [1,99]` ⇒ **无一行能触发**。P1a `R < 1` 才恢复判别力 |
+> | **占用格 ⊆ `BuildSlotRegion`** | 🔴 **零载体** | `BuildModulesBinder` **无此门** —— 因为 `BuildSlotRegion` 的数据(`world_buildslots.json`)全仓零存在,`BuildSlotCatalog.IsInBuildSlotRegion`(`:86`)在 P0 简化为「有槽位即区域内」 |
+>
+> ⇒ **上面那句「P0 自动满足」只覆盖第二半**,不得据此把 `AC-23-08` 记作已兑现。
+> 第三半的解除方 = **54 关卡工具**(ADR-022),其**无 epic、无排期** —— 登记于
+> `production/milestones/p0-remaining-roadmap-2026-10-20.md` §七 **SP-10**;
+> 装配侧缺口登记于 `docs/tech-debt-register.md` **`TD-building-01`**。
 
 ### 规则十 —— `StructureModified` 写者分界与 24 的联动(本 GDD 的承重裁决点)
 
@@ -524,7 +537,7 @@ Q16.16 原始值;`⌈1/R⌉ = ⌈65536/rawR⌉ = (65536 + rawR − 1) / rawR`(�
 | **AC-23-05** | [L] BLOCKING | **GIVEN** 四向朝向的模块,**WHEN** 应用 F-23-2b 整数旋转,`THEN` 占用格集正确且**零浮点中间量**。**载体升级(评审,qa-lead #9)**:类型级反射断言(字段 / 参数类型 ∈ 整数集,与 `PresentationDtoGuard` AC-37-15 同构);grep 仅辅助 | `rotation_cases.json` + 反射断言 |
 | **AC-23-06** | [L] BLOCKING | **GIVEN** 判定代码,`THEN` 支持四向朝向(**即使 P0 目录 ⊆ {0°}**)—— P1a 加旋转**不得改 sim 代码**(规则六判据)。**载体(评审,qa-lead #2)**:`rotation_cases.json` 含**合成目录四向条目**,驱动 Placeable / 重放走 orientation ∈ {90,180,270} 的**可执行用例**;改朝向走 `Modifiable`(规则十) | `rotation_cases.json` 可执行用例 |
 | **AC-23-07** | [L] BLOCKING | **GIVEN** `StructureRemoved`(EC-23-02 / EC-23-03 情形),`THEN` 不存在 `structure_id` / **格上有实体(玩家 / 敌人)**时**拒绝且不 Append**;实体判定 = 量化格 + 宽容半径,**零 Physics 调用**(评审 B4 / unity-specialist #2) | `remove_cases.json` + 反射断言 |
-| **AC-23-08** | [L] BLOCKING | **GIVEN** 模块目录,`WHEN` 校验,`THEN` 可返还模块满足 `cost ≥ ⌈1/DEMOLISH_REFUND_RATIO⌉`(EC-23-08),否则**构建期拒绝**;**`(0,0) ∈ OccupiedCells_local` ∧ 占用格 ⊆ `BuildSlotRegion`**(评审 B5)。P0 `R = 1` 时本校验自动通过 | 目录校验 |
+| **AC-23-08** | [L] BLOCKING | **GIVEN** 模块目录,`WHEN` 校验,`THEN` 可返还模块满足 `cost ≥ ⌈1/DEMOLISH_REFUND_RATIO⌉`(EC-23-08),否则**构建期拒绝**;**`(0,0) ∈ OccupiedCells_local` ∧ 占用格 ⊆ `BuildSlotRegion`**(评审 B5)。P0 `R = 1` 时本校验自动通过 <br>⚠️ **2026-10-21**:本条含**三条**判据,「自动通过」只覆盖第二条;第一条已落,第三条(`BuildSlotRegion`)零载体 —— 逐条进度见 §规则九 后的补注表 | 目录校验 |
 
 ### 世界流与呈现
 
