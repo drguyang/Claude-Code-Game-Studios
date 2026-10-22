@@ -475,16 +475,29 @@ namespace DaYiJingCheng.EditorTools.Gates
                 }
 
                 // ── I2:收集与 Kind 比较的枚举常量 ──
-                // 形态 = `ldarg.0; ldfld Kind; ldc.i4.N; ceq` —— 常量在**装载之后**。
-                // 窗口取 i..i+3:首版写成 i+1..i+3,而 `ldfld Kind` 在 i 位时
-                // 常量恰在 i+1,那个写法**能**抓到;但若 `ldfld` 在 i-1(窗口命中)
-                // 而常量在 i,原写法漏。改为从 i 起,覆盖两种相位。
+                // 形态 = `ldarg.0; ldfld Kind; ldc.i4.N; ceq` —— 常量在装载**之后**,
+                // 且**紧跟比较指令**。
+                //
+                // ⚠️ **2026-10-22 修(实测假红,承 `R1_CHECK_32` 落地轮)**:
+                //   原判据是「窗口 `i..i+3` 内的任意 `ldc.i4` 都算」—— 那个窗口会把
+                //   **与 Kind 无关的整数常量**一并捞进来。实测 `RegistrySchemaValidator.Validate`
+                //   报出常量 `(0, 2, 31)`:**31 是 `R1_CHECK_31` 的异常码**,根本不是
+                //   `DiseaseKind` 成员(合法值域只有 0..3)。⇒ 判据过宽 = **假红**,
+                //   与假绿同属静默失败。
+                //   收紧为:**常量必须紧跟 `ceq` / `beq` / `bne.un`** 才算「与 Kind 比较」。
+                //   ⚠️ 判别力为何不损:外层 `i` 遍历全部指令,而 `KindLoadedWithin(i, 2)`
+                //   在 `ldfld` 位于 `i-1` **或** `i-2` 时都成立 ⇒ 对同一处 `Kind == X`,
+                //   外层会在两个相邻的 `i` 上各跑一次,窗口合并后覆盖
+                //   `ldfld` 之后 1..5 条指令 —— `Kind == DiseaseKind.X` 的标准 IL
+                //   (`ldfld Kind; ldc.i4.X; ceq`)必然落在其中,且 `ldc.i4` 恒紧邻 `ceq`。
                 if (KindLoadedWithin(instrs, i, 2))
                 {
                     for (int k = i; k < instrs.Count && k <= i + 3; k++)
                     {
                         int? v = TryGetI4(instrs[k]);
-                        if (v.HasValue) kindConstants.Add(v.Value);
+                        if (!v.HasValue) continue;
+                        if (k + 1 >= instrs.Count) continue;
+                        if (IsComparisonOp(instrs[k + 1].OpCode)) kindConstants.Add(v.Value);
                     }
                 }
             }
@@ -543,6 +556,17 @@ namespace DaYiJingCheng.EditorTools.Gates
             if (mr.DeclaringType?.FullName != "System.String") return false;
             return mr.Name == "op_Equality" || mr.Name == "Equals";
         }
+
+        /// <summary>
+        /// 该指令是否为「整数比较」(I2 用 —— 只有紧跟它的 `ldc.i4` 才算「与 Kind 比较」)。
+        /// <para>✅ 2026-10-22 加:原判据把窗口内**任意**整数常量都收进 I2,导致
+        /// <c>R1_CHECK_31</c> 的异常码 31 被当成 <c>DiseaseKind</c> 成员(合法值域仅 0..3)
+        /// ⇒ **假红**。收紧到「常量须紧跟比较指令」后仍有判别力:
+        /// <c>Kind == DiseaseKind.X</c> 的 IL 恒为 <c>ldfld Kind; ldc.i4.X; ceq</c>。</para>
+        /// </summary>
+        private static bool IsComparisonOp(OpCode op) =>
+            op == OpCodes.Ceq || op == OpCodes.Beq || op == OpCodes.Beq_S
+            || op == OpCodes.Bne_Un || op == OpCodes.Bne_Un_S;
 
         /// <summary>把 `ldc.i4*` 形态取成 int(非该形态返回 null)。</summary>
         private static int? TryGetI4(Instruction ins)
