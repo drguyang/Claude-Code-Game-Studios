@@ -516,8 +516,8 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 
 | 门 | 载体 TD | 归属 epic(括号 = 该 epic 的 story 数,均全 `Complete`) | 状态 | P0 面 | 触发条件(何时须还) |
 |---|---|---|---|---|---|
-| **G-1** | `TD-sim-01` | `disease-simulation`(7/7) | open | **Y** | `death-respawn` 任一 story 开工前;或 9 下一轮动 F4 / `StateMachine` |
-| **G-2** | `TD-persist-01` | `persistence-service`(2/2) | open | **Y** | `death-respawn/story-003` 开工前;或 7a 下次动 `Sim.Codec` |
+| **G-1** | `TD-sim-01` | `disease-simulation`(7/7) | open | **Y** | `death-respawn` 任一 story 开工前;或 9 下一轮动 F4 / `StateMachine`<br>🔁 **2026-10-22(sprint-18 收口)**:S18-1 **结转 sprint-19**(用户裁定)⇒ 本门**未清**,`TD-sim-01` 保持 `open`。四条入口判据见 `qa-signoff-sprint-18-2026-10-22.md` §六 |
+| **G-2** | `TD-persist-01` | `persistence-service`(2/2) | open | **Y** | `death-respawn/story-003` 开工前;或 7a 下次动 `Sim.Codec`<br>🔁 **2026-10-22(sprint-18 收口)**:谓词 + 折叠行产出**已落**(S18-2 `done`,29 测全绿),但**本册不据此结案** —— ① `FoldedPredicate` **零生产调用点**(`SaveService` 形参默认 `null`,折叠未进存档路径;`HistoryFolder.Fold` 调用点全在测试内);② `OQ-7a-10` 未裁(抹除作用域取权威字面而非已裁口径);③ 折叠产出面**无变异反证**(签核件 D-5)。结案判据 = 三项同时满足。详见 `production/sprints/sprint-18.md` §九.2 |
 | **G-4** | `TD-persist-02` | `persistence-service`(2/2) | open | **Y** | `save-slot-ui/story-001` 勾 `AC-7b-01/02/10` 之前 |
 | **G-5** | `TD-player-02` | `player-controller`(6/6)+ `camera-viewpoint`(6/6) | open | **Y** | 1 或 2 的下一轮动到玩家位移 / 相机锚点时 |
 | **G-6** | `TD-enemy-01` | `enemy-ai`(5/5) | open | **Y** | 27 具备可跑行为程序之前 |

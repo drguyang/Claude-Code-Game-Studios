@@ -31,8 +31,16 @@
 #    `3212ceb6eb9b8f384c4c32556de09be5b0ed43a9d84191404678294cf1ecc6a7`;`cmp` 复核 = BYTE-IDENTICAL)。
 #    ⚠️ **本条与 sprint-14…17 的处置不同,如实写明**:那四件的归档发生在**下一 sprint 规划时**
 #    (活文件被整体重写,归档 = 重写前快照);本次归档发生在**收口即归档**,而 sprint-19 尚未规划
-#    ⇒ **活文件此刻仍承载 sprint-18 全文,与归档件内容重复**,差异**只有本条注**。
-#    sprint-19 规划时本文件将被整体替换,届时重复自行消失。**在此之前,真源 = 归档件**。
+#    ⇒ **活文件此刻仍承载 sprint-18 全文,与归档件内容重复**,差异 = 本条注 + **下方 errata**。
+#    sprint-19 规划时本文件将被整体替换,届时重复自行消失。**在此之前,真源 = 归档件 + errata**。
+#
+# 📌 **归档件 errata(2026-10-22 收口后补记 —— 归档件本身按「SHA-256 逐字节」纪律不改)**
+#    归档件 `:246` / `:252` 两处写着「清债方向,分母 73 → 71」。**该数字作废** —— 实测两门皆未清
+#    (G-1 结转 sprint-19 / G-2 不主张结案),且本 sprint 期间 `TD-clinic-18` 立债令基数 +1
+#    ⇒ 未闭 P0 面 **`73 → 74`**;连「双结案」假设下也只有 **72**,**`71` 从未在任何情形下成立**。
+#    **耐久订正落点 = `production/sprints/sprint-18.md` §九.1**(永久文件,不随本文件替换消失)。
+#    本 errata 存在的理由:归档件是 sprint-18 的唯一真源,若不记这一笔,假数字会随归档长期存活
+#    —— 正是 `smoke-check` skill §Baseline provenance 警告的「伪基线」形态。
 
 sprint: 18
 goal: "清掉 clinic / death-respawn 两链的剩余 BLOCKED-BY 根因(G-1 SelfLimited · G-2 Folded(p)),并把 G-8 结案后路线图未回写的四处登记补平"
@@ -73,6 +81,7 @@ work_items:
     status: "done"
     owner: "claude"
     completed: "2026-10-22"
+    closure_caveat: "⚠️ **`status: done` 只表示本工作项交付完毕,不表示 `TD-persist-01` 结案** —— 债册 `TD-INDEX` 该行保持 `open`(2026-10-22 收口复核)。三条未满足:① `FoldedPredicate` **零生产调用点**(`SaveService` 形参默认 `null`,折叠未进存档路径;`HistoryFolder.Fold` 调用点全在 `folded_predicate_test.cs` 内);② `OQ-7a-10` 未裁(抹除作用域取权威字面而非已裁口径);③ 折叠**产出面**无变异反证(签核件 D-5 —— 四轮变异无一打「抹哪些行」)。结案判据 = 三项同时满足。详见 `production/sprints/sprint-18.md` §九.2。"
     depends_on: ["ADR-010 §二 折叠行形状", "CaseStreamQuery.HasOpenCase(已在盘)"]
     evidence: "unity/Assets/Tests/EditMode/PersistenceService/folded_predicate_test.cs(新 · 29 测 · 2026-10-22 已跑全绿)"
     note: "四条件 = ① 终态(痊愈 / 死亡)② plateau / relapse.* 豁免 ③ 无未结案病例(ADR-008 §六)④ SkillGrown 行豁免(ADR-026 §⑦)。折叠行 = (onset, 病种_id, patient_id, patient_seed, outcome, t_end) 逐字段(ADR-010 §二)。③ 的判据接口**已在盘**:CaseStreamQuery.HasOpenCase(unity/Assets/Sim/CaseOpenDecider.cs:66)⇒ 本件不需要先补 37 侧。⚠️ 实测现状:bool Fold / FoldEligible / CanFold / ShouldFold 全树零命中;唯一相关内容是测试侧自陈(Tests/EditMode/CaseSystem/case_replay_persistence_test.cs:22 / :131)。⚠️ 同名巧合**不构成已还**:CasebookScreen.IsFolded(Gameplay.UI)与 MarkRegistry.FoldedCorner 是 42 的纸面折角,与 7a 的流折叠无关。 ✅ **2026-10-22 收口**:按 2026-10-21 两项用户裁定落 —— **甲案(抽象点住 `Sim.Contracts`、实现住 `Sim`)** + **折叠行与折叠动作住 `Sim`**;`SaveService` 走**构造函数注入**(可选形参),`ISaveService` 公开方法集**未动**(ADR-010 `:331` 反射断言)。落盘 = `Sim.Contracts/IFoldedPredicate.cs` · `Sim/FoldedPredicate.cs`(①②③,③ **复用** `CaseStreamQuery.HasOpenCase` 不另抄)· `Sim/FoldRow.cs`(六字段,次序逐字 = ADR-010 §二)· `Sim/HistoryFolder.cs`(产行 + 抹除,条件 ④ 的落点)· `Sim.Codec/SaveService.cs`(改)· 测试 29 条。回写 = `adr-025-contract-assembly-manifest.md:112` 的「② `IFoldedPredicate`」标**已落**。 **⚠️ 与提案的一处偏离(已就地登记,未代拍)**:提案写「保留**无终态病程的行**」,**实现为抹除该病人全部病史行减 `SkillGrown`** —— 理由:① `Folded(p)` 输出是布尔、按病人整体判定(F-7a-4 `:328`),无「按病种切」的信息;② 终态是 F4 吸收态(ADR-032 ⑤),判成终态者不存在仍在演进的病程;③ 除 onset / outcome 外的病史行**不携带病种 id**,按病种保留只能是任意切分。条件 ① 「存在性查询病人级 vs 折叠行逐病种产」之缝**权威件未裁** ⇒ 新立 **`OQ-7a-10`**(`design/gdd/persistence-service.md` §Open Questions,归属 7a × 9 × 37,P1a 前)。 **全量回归三元组**(基线 = 本 sprint 自身 `s18-editmode-final-20261022` = `4389 / 4353 / 0 / 36`@commit `220acc3`):**截至 2026-10-22 08:27(+0800)· 批次 `s18-2-folded-full-20261022` · 树 = `220acc3` + S18-2 未提交件** ⇒ `4418 / 4382 / 0 / 36`。**Δtotal = Δpassed = 新增条数 = 29**;**全名集差集 = 新增 29 / 消失 0**(逐条列出,新增 29 条全为本件新测);`error CS` = 0 · 新件零编译告警 · skipped 36 不变。**证伪轮 4/4 全红**(S12-4,「改 → 跑 → `cp` 还原 → sha256 校验」同命令内完成,未用 `git checkout`,还原后两份生产件 `sha256sum -c` 皆「成功」):① 定义域收窄 = 停用 `patientId < 0` 守卫 ⇒ `test_folded_negativePatientId_throws` 红;② 共存互斥 = 删 `entry.Lethality <= 0 &&`(让 plateau 单独成豁免)⇒ `test_folded_plateauAndLethal_isNotExempt_returnsTrue` 红;③ 一次性/幂等 = 删「同病种第二条终态」抛错 ⇒ `test_fold_duplicateOutcomeForSameDisease_throws` 红;④ 定义域收窄(ADR-026 ④)= `e.Kind != SkillGrown` 改恒真 ⇒ `test_fold_retainsSkillGrownRows` + `test_fold_skillGrownReplayIsBitIdentical` 红。四轮均**无附带红**。 **未做(禁借绿)**:`FoldedPredicate` 当前**零生产调用点**(折叠尚未进存档路径,`SaveCodec` 只有单事件编解码 ⇒ 形参默认 `null`);9 的终态写者仍挂在 `WriterExistenceGate`;折叠行走字节级落盘归 7a 存档往返轮。**`lethal(d)` 取 `Lethality > 0`**(承 `EntityDeathGates.LethalityOf` / `R1_CHECK_22` 既有先例,未立第二套语义);`PRE-S18-D` 的「待用户确认」**未变**,若改判 bool 字段落点 = `FoldedPredicate.cs` 一处。"
@@ -243,20 +252,27 @@ baseline:
     editmode:
       value: "4419 / 4383 / 0 / 36"
       measured_at: "2026-10-22 10:19 (+0800)"
-      batch: "review-s18-r4-fix-20261022"
-      commit: "ad7316c + 评审修复件(未提交)"
+      batch: "review-s18-r4-editmode-20261022"
+      artifact: "unity/Logs/review-s18-r4-editmode-20261022.{xml,log}"
+      commit: "d91edeb(修复轮已提交)"
       baseline: "4418 / 4382 / 0 / 36 @ s18-2-editmode-commit-20261022 · ad7316c"
       delta: "新增 1 / 消失 0(全名集差集);Δtotal = Δpassed = 1 = 新增条数"
+      note: "⚠️ 原记批次名 `review-s18-r4-fix-20261022` **盘上无同名产物**,2026-10-22 收口时已改指实际产物;数值未变。"
     playmode:
-      value: "202 / 202 / 0 / 0"
-      measured_at: "2026-10-22 08:55 (+0800)"
-      batch: "s18-2-playmode-final-20261022"
-      commit: "ad7316c 干净树"
-      delta: "新增 0 / 消失 0"
-    note: "⚠️ 本 sprint 的绿**不得**引作 M3 进展(清债方向,分母 73 → 71)。"
+      value: "202 / 202 / 0 / 0 / 0"
+      measured_at: "2026-10-22 11:33 (+0800)"
+      batch: "s18-final-playmode-20261022"
+      artifact: "unity/Logs/s18-final-playmode-20261022.{xml,log}"
+      commit: "08049fb(干净树,含 d91edeb 全部修复)"
+      delta: "新增 0 / 消失 0;error CS = 0"
+      note: "🔁 **2026-10-22 收口补跑** —— 原记录 `202/202/0/0` 判的是 `ad7316c` 干净树(08:55),**早于 `d91edeb` 对 `HistoryFolder.cs` 的拆方法改动** ⇒ 不覆盖最终代码。本行是重跑后的值,取代原值(原值留档于此 note,不删)。"
+    note: "⚠️ 本 sprint 的绿**不得**引作 M3 进展。原写「清债方向,分母 73 → 71」**已作废** —— 实测方向是「立债 + 结转」,见下方 td_index。"
   td_index:
-    entries: 99
-    p0_y: 88
-    unclosed_p0: 73
+    entries: 100
+    p0_y: 89
+    unclosed_p0: 74
     epic_spread: "13 / 31"
-  note: "G-1 / G-2 结案后预期 73 → 71(清债方向,非新增)。⚠️ 不得把本 sprint 的绿引作 M3 进展。"
+    measured_at: "2026-10-22 收口(债册 §五 求值命令原样跑)"
+    raw: "条目 100 | 状态 {open:73, partial:6, closed:20, done:1} | P0 面 {Y:89, N:10} | 未闭 P0 面 = 74"
+    note: "🔁 规划轮记的是 `99 条 / P0=Y 88 / 未闭 73`,已作废 —— 本 sprint 期间 `TD-clinic-18` 立债(`clinic-machine` 16 → 17)令全部 +1。"
+  note: "⚠️ 不得把本 sprint 的绿引作 M3 进展。原写「G-1 / G-2 结案后预期 73 → 71」**已作废**:G-1 结转 sprint-19、G-2 不主张结案 ⇒ 两门皆不减分母;且 `TD-clinic-18` 立债令基数 73 → 74。真值 = **74**(当前)或 **73**(若 G-2 单独结案);「71」在任何情形下都不成立 —— 连双结案也只有 72。"
