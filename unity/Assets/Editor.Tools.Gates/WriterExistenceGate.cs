@@ -96,10 +96,15 @@ namespace DaYiJingCheng.EditorTools.Gates
 
             // ── 9 疾病与伤情模拟 ──
             ("PatientOutcomeChanged", "9 终态写者未落 —— ADR-032 立 Kind(2026-10-21),9 须在 F4 判出终态的那一 tick 原子写出;归 9 实现轮。⚠️ 写者落地的那一批须同批撤本条目(判据①:已存在写者的 Kind 绝不在此表)"),
-            ("PlayerDied", "9 致死判据写者未落 —— registry author 自述「Append 调用点 = 0」(entities.yaml PlayerDied 条);归 9 实现轮(2026-10-10)"),
+            // ✅ 2026-10-22 撤 `PlayerDied` 豁免(S18-1 AC ⑧ 落地 · 用户同日裁定 S18-1 拉回 sprint-18):
+            //   写者已落 —— `Sim/PlayerDiedWriter.cs`(9 的世界流写入通道)。
+            //   判据①「已存在写者的 Kind 仍挂豁免表 = 红」强制同批撤表(承 `CaseClosed` / `PatternRecognized` 先例)。
+            //   ⚠️ 与 `CaseOpenWriter` 同格:**有写者 ≠ 已接线** —— 生产触发点(9 的 F4 装配)归 9 实现轮。
             ("CompoundTriggered", "9 并发症触发写者未落 —— 归 9 实现轮(disease-simulation 并发症节)(2026-10-10)"),
             ("CompoundExpired", "9 并发症过期写者未落 —— 归 9 实现轮(同上)(2026-10-10)"),
-            ("InjuryStateChanged", "9 伤情状态真值写者未落 —— 归 9 实现轮;25 只出 onset(entities.yaml author 注)(2026-10-10)"),
+            // ✅ 2026-10-22 撤 `InjuryStateChanged` 豁免(同上批):写者已落 ——
+            //   `Sim/InjuryStateChangedWriter.cs`(受伤实体集 {敌人, 玩家})。
+            //   顺带结清「`ComputeTransition` 生产调用点 = 0」—— 本写者是它的第一个生产调用点。
 
             // ── 25 格斗与武器线 ──
             ("InjuryOnset", "25 格斗伤害结算写者未落 —— 归 25 实现轮(伤害施加方 = 25,entities.yaml author 注)(2026-10-10)"),
