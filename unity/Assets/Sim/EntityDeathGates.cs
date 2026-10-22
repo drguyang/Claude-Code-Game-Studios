@@ -2,7 +2,11 @@
 //
 // 权威来源:
 //   GDD disease-simulation.md:1153-1160  —— LethalFor(entity,d) = lethal(d) ∧ ¬IsCombatant(entity)
-//   GDD disease-simulation.md:1162-1210  —— SelfLimited(entity,d) = self_limit(d) ∧ ¬IsCombatant(entity)
+//   GDD disease-simulation.md:1162-1210  —— SelfLimited(entity,d) = [self_limit(d) ∨ IsCombatant(entity)]
+//                                           ∧ ¬(Player ∧ d.Kind = Injury ∧ lethal(d) ∧ d ∈ 战伤白名单)
+//                                           ⚠️ 2026-10-21 GDD 就地订正:原式写 `∧ ¬IsCombatant`,
+//                                           代入 combatant 得 false,与「自限门对 combatant 恒开」相反。
+//                                           GDD 原文:「实现时不得照旧式写」。
 //   GDD disease-simulation.md:1212-1230  —— IsCombatant 真值表(敌人/兽 true;玩家/13 病人/友方 NPC false)
 //   GDD death-and-respawn.md:96           —— 规则二:战伤破例(OQ-S18-1 已裁闭集)
 //   GDD disease-simulation.md:358         —— 规则九:禁 `if kind == injury` 分支
@@ -113,16 +117,25 @@ namespace DaYiJingCheng.Sim
         ///
         /// <para><b>combatant 那一支恒 <c>false</c></b>:敌人 / 兽归零 = 昏迷,不走死亡支
         /// (ADR-016 §二)。</para>
+        ///
+        /// <para><b>求值次序 = <c>IsCombatant</c> 优先</b>:写成
+        /// <c>LethalityOf(entry) &amp;&amp; !IsCombatant(...)</c> 时,非致死条目会让短路跳过
+        /// <see cref="IsCombatant"/>,<c>Unspecified</c> 便<b>静默</b>返回 <c>false</c> —— 与本类
+        /// fail-loud 契约相反。故先判类别:<c>Unspecified</c> 无论 <c>Lethality</c> 取值都抛。</para>
         /// </summary>
         public static bool LethalFor(ActorClass actorClass, DiseaseRegistryEntry entry)
         {
             if (entry == null) throw new ArgumentNullException(nameof(entry));
-            return LethalityOf(entry) && !IsCombatant(actorClass);
+            return !IsCombatant(actorClass) && LethalityOf(entry);
         }
 
         /// <summary>
-        /// <c>SelfLimited(entity, d) = self_limit(d) ∧ ¬IsCombatant(entity)</c> —— GDD <c>:1162-1210</c>,
+        /// <c>SelfLimited(entity, d) = [self_limit(d) ∨ IsCombatant(entity)] ∧ ¬战伤破例</c> —— GDD <c>:1162-1210</c>,
         /// **叠加战伤破例**(<c>death-and-respawn.md:96</c>)。
+        ///
+        /// <para><b>⚠️ 公式与文件头同源,均取 2026-10-21 订正后的 <c>∨</c> 式</b>。旧式
+        /// <c>self_limit(d) ∧ ¬IsCombatant(entity)</c> 代入 combatant 得 <c>false</c>,与「自限门对
+        /// combatant 恒开」相反 —— GDD 明令不得照旧式写。</para>
         ///
         /// <para><b>三段口径</b>:</para>
         /// <list type="number">

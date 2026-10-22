@@ -2,14 +2,20 @@
 //
 // 权威来源:
 //   GDD disease-simulation.md:1153-1160 —— LethalFor(entity,d) = lethal(d) ∧ ¬IsCombatant(entity)
-//   GDD disease-simulation.md:1162-1210 —— SelfLimited(entity,d) = self_limit(d) ∧ ¬IsCombatant(entity)
+//   GDD disease-simulation.md:1162-1210 —— SelfLimited(entity,d) = [self_limit(d) ∨ IsCombatant(entity)]
+//                                          ∧ ¬战伤破例(**2026-10-21 GDD 订正**;旧式 `∧ ¬IsCombatant` 已作废)
 //   GDD disease-simulation.md:1212-1230 —— IsCombatant 真值表
 //   GDD death-and-respawn.md:96          —— 战伤破例(OQ-S18-1 2026-10-21 裁定闭集)
 //   GDD disease-simulation.md:358        —— 规则九:禁 `if kind == injury` 分支
-//   ADR-016 §二                           —— 非 combatant 模型:敌人归零 = 昏迷,不死
+//   ADR-016 §二                           —— 非致命模型:敌人归零 = 昏迷,不死
 //
 // ⚠️ 本文件的验收范围(如实登记,禁借绿):
-//   覆盖 QA 计划 S18-1 的 AC ①–⑥(谓词逻辑 / 正交性 / 破例三条件 / 零涟漪 / 规则九)。
+//   AC ①–⑤(谓词逻辑 / 正交性 / 破例三条件 / 零涟漪)= **行为面有测**。
+//   ⚠️ **AC ⑥(规则九)无机械断言** —— 2026-10-22 代码评审 R-2 实测:本文件此前声称
+//   「文件末尾有 AST 式断言」,**该断言从未存在**,全仓 `Editor.Tools.Gates` 亦无规则九门。
+//   现有 `test_ruleNine_*` 只验「Kind 是数据、结论随数据变」,**不**能抓 `if kind == injury`
+//   式硬分支 ⇒ **AC ⑥ = NOT-RUN**(唯一证据 = 人工读 `EntityDeathGates.cs` 的源码)。
+//   补机械门归 Tooling 层(见评审原件 §Required R-2)。
 //   **AC ⑦⑧(`DeathCandidate` 生产写者 / `InjuryStateChanged` 写者)不在本文件** ——
 //   二者是生产接线,须 `WriterExistenceGate` 条目转绿,当前 NOT-RUN。
 //   本文件**不**验证 F4 求值(越阈 + 干预窗口)—— 那依赖 `TREATMENT_WINDOW` 等未裁定常量。
@@ -93,6 +99,23 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             var mild = Entry("DIS_MILD", DiseaseKind.Disease, selfLimit: true, lethality: 0);
             Assert.IsFalse(EntityDeathGates.LethalFor(ActorClass.Player, mild),
                 "Lethality = 0 不致死");
+        }
+
+        [Test]
+        public void test_lethalFor_unspecifiedFailsLoud_evenOnNonLethalEntry()
+        {
+            // 2026-10-22 评审 R-4:求值次序若写成 `LethalityOf(entry) && !IsCombatant(...)`,
+            // 非致死条目会让短路跳过 IsCombatant ⇒ Unspecified **静默**返回 false,
+            // 击穿 fail-loud 契约。本测试专钉该不对称路径:致死与非致死两条都必须抛。
+            var lethal = Entry("DIS_TYPHOID", DiseaseKind.Disease, selfLimit: false, lethality: 3);
+            var mild = Entry("DIS_MILD", DiseaseKind.Disease, selfLimit: true, lethality: 0);
+
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => EntityDeathGates.LethalFor(ActorClass.Unspecified, lethal),
+                "致死条目 + Unspecified 须抛");
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => EntityDeathGates.LethalFor(ActorClass.Unspecified, mild),
+                "非致死条目 + Unspecified 同样须抛 —— 短路不得跳过类别校验");
         }
 
         // ══ AC ①:同条目、不同实体,SelfLimited 结论不同(本件最核心)════════
@@ -240,12 +263,12 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         [Test]
         public void test_ruleNine_kindIsDataDrivenNotControlFlow()
         {
-            // 判据形态:把**同一个**白名单键改成不同 Kind,破例结论须随之改变 ——
-            // 若实现里有 `if kind == injury { 白名单查表 } else { … }` 的硬分支,
-            // 本测试仍可能过;但若实现把 Kind 与白名单**绑死**(如按 Kind 前缀推断),
-            // 则下面的「同名不同 Kind」会暴露。
+            // 判据形态:把**同一个**白名单键改成不同 Kind,破例结论须随之改变。
             //
-            // 真正的规则九守卫是**结构性**的:见本文件末尾的 AST 式断言(禁子串)。
+            // ⚠️ **本测试不构成 AC ⑥(规则九)的证据**(2026-10-22 评审 R-2):它只验
+            // 「Kind 是数据、结论随数据变」;**抓不到** `if kind == injury` 式硬分支
+            // (那种实现下本测试照样绿)。规则九**无任何机械断言** —— 此前注释声称的
+            // 「文件末尾 AST 式断言」从未存在,已删。补门归 Tooling 层。
             var asInjury = Entry("INJ_STAB", DiseaseKind.Injury, selfLimit: true, lethality: 2);
             var asDisease = Entry("INJ_STAB", DiseaseKind.Disease, selfLimit: true, lethality: 2);
 

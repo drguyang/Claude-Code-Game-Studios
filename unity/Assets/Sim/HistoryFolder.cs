@@ -82,7 +82,18 @@ namespace DaYiJingCheng.Sim
             if (!folded.Folded(patientId))
                 return new FoldResult(Array.Empty<FoldRow>(), history);
 
-            // ── 收 onset(逐病种首条)与 outcome(逐病种至多一条)──
+            (Dictionary<int, DiseaseOnsetPayload> onsets, Dictionary<int, OutcomeRecord> outcomes) =
+                Collect(history, patientId, decoder);
+
+            return new FoldResult(BuildRows(onsets, outcomes, patientId), Erase(history, patientId));
+        }
+
+        /// <summary>
+        /// 收 onset(逐病种首条)与 outcome(逐病种至多一条)。
+        /// </summary>
+        private static (Dictionary<int, DiseaseOnsetPayload> Onsets, Dictionary<int, OutcomeRecord> Outcomes)
+            Collect(IReadOnlyList<SimEvent> history, int patientId, IPayloadDecoder decoder)
+        {
             var onsets = new Dictionary<int, DiseaseOnsetPayload>();
             var outcomes = new Dictionary<int, OutcomeRecord>();
 
@@ -114,7 +125,18 @@ namespace DaYiJingCheng.Sim
                 }
             }
 
-            // ── 产行 ──
+            return (onsets, outcomes);
+        }
+
+        /// <summary>
+        /// 逐终态产折叠行;每个终态都必须能在 onset 里找到来源(找不到即流损坏,不猜)。
+        /// 顺序 = <c>(Onset, DiseaseId)</c> 升序 —— 字节级夹具依赖它。
+        /// </summary>
+        private static IReadOnlyList<FoldRow> BuildRows(
+            Dictionary<int, DiseaseOnsetPayload> onsets,
+            Dictionary<int, OutcomeRecord> outcomes,
+            int patientId)
+        {
             var rows = new List<FoldRow>(outcomes.Count);
             foreach (KeyValuePair<int, OutcomeRecord> kv in outcomes)
             {
@@ -132,11 +154,17 @@ namespace DaYiJingCheng.Sim
                     kv.Value.TEnd));   // t_end —— 终态事件头部 Tick(ADR-032 ④a)
             }
 
-            // 确定性次序:折叠行按 (Onset, DiseaseId) 升序 —— 字节级夹具依赖它。
             rows.Sort((a, b) =>
                 a.Onset != b.Onset ? a.Onset.CompareTo(b.Onset) : a.DiseaseId.CompareTo(b.DiseaseId));
 
-            // ── 抹除:该病人的全部病史行,减去 SkillGrown(ADR-026 §⑦ 条件 ④)──
+            return rows;
+        }
+
+        /// <summary>
+        /// 抹除该病人的全部病史行,减去 <c>SkillGrown</c>(ADR-026 §⑦ 条件 ④)。其余保持原序。
+        /// </summary>
+        private static IReadOnlyList<SimEvent> Erase(IReadOnlyList<SimEvent> history, int patientId)
+        {
             var retained = new List<SimEvent>(history.Count);
             for (int i = 0; i < history.Count; i++)
             {
@@ -147,7 +175,7 @@ namespace DaYiJingCheng.Sim
                 retained.Add(e);
             }
 
-            return new FoldResult(rows, retained);
+            return retained;
         }
 
         /// <summary>终态记录(私有传递形状;不进任何流 / 存档)。</summary>
