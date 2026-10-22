@@ -1553,6 +1553,76 @@ constants:
   # 【值全部待定】—— 依硬约束「数值用户自己调」,本次只登记【存在性、归属与边界约束】。
   # 归属:9 的 Tuning Knobs 拥有;登记它们是因为【下游 / ADR 必须取同一组值】:
   # 52 疫情事件(TR-disease-021)· 7a 存档 · ADR-008 §六 有界性 · ADR-005 性能表 · ADR-017 §三。
+  # ── 三阈值 + 干预窗口(2026-10-22 补登记 · PRE-S18-B 的登记半边)──────────
+  # ⚠️ 本条补的是【登记】,不是【裁定】。这四个量此前**只**出现在 `9.疾病状态机`
+  #    条目的 `variables:` 列表里(被引用),没有独立的 `name:` 块
+  #    ⇒ 「registry 是唯一真源」在这四个量上不成立(与 G-1 同族缺口)。
+  # ⚠️ 值的现状:实现期占位值活在 `unity/Assets/Sim/StateMachine.cs:73-75`,
+  #    **从未经用户裁定**。此处如实登记该事实,**不**把占位值写成裁定值。
+  #    ⚠️ 勿把 `value:` 里的「现网实现值」读成「已裁」—— 数值仍归用户数值轮。
+  - name: CRITICAL_THRESHOLD
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md        # F4 危殆判定(九态闭合)
+      - design/gdd/combat-and-weapon-lines.md   # A12 联动(TRAUMA_CAP ≥ COMA_THRESHOLD)
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs §五。⚠️ 现网实现值 = 3000 raw
+      (≈ 0.0458)住 `Sim/StateMachine.cs:73`,**非裁定值**"
+    unit: "Q16.16 position"
+    constraint: "∈ (0,1];`CRITICAL < COMA < DEATH` 严格单调(校验 9)——
+      倒置会造出「先死后昏迷」的状态机,构建期拒"
+    added: 2026-10-22
+    revised: ""
+
+  - name: COMA_THRESHOLD
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md        # F4 昏迷判定(C1 登记点;2026-10-21 订正后昏迷支**无谓词门**)
+      - design/gdd/combat-and-weapon-lines.md   # A12(`TRAUMA_CAP ≥ COMA_THRESHOLD`)· A13a/A13b
+      - docs/architecture/adr-016-ai-architecture.md   # §二 combatant 归零 = 昏迷(非死亡)
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs §五。⚠️ 现网实现值 = 6000 raw
+      (≈ 0.0916)住 `Sim/StateMachine.cs:74`,**非裁定值**"
+    unit: "Q16.16 position"
+    constraint: "`CRITICAL < COMA < DEATH`(校验 9)。⚠️ **`TRAUMA_CAP` 的下界依赖本值**:
+      A12 要求 `TRAUMA_CAP ≥ COMA_THRESHOLD`(25 侧 `TRAUMA_CAP = 4/5` 已裁 2026-10-07)
+      ⇒ 本值一经裁定,**须同批复核 A12 是否仍成立**(现网 6000 raw ≈ 0.0916 < 0.8,成立)"
+    added: 2026-10-22
+    revised: ""
+
+  - name: DEATH_THRESHOLD
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md        # F4 死亡门(铁律一的落地)
+      - design/gdd/disease-simulation.md        # 校验 4b / 14:急性保持型与 plateau∧lethal 须 `A_peak/SCALE ≥ 本值`
+      - design/gdd/death-and-respawn.md         # 规则二:白名单伤情须靠自身曲线越本值
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs §五。⚠️ 现网实现值 = 9000 raw
+      (≈ 0.1373)住 `Sim/StateMachine.cs:75`,**非裁定值**"
+    unit: "Q16.16 position"
+    constraint: "`> COMA_THRESHOLD` 且 **`< 1`** —— 不得取 1:保守舍入会让
+      `position = 1 − ulp < 1`,死亡**永不可达**(校验 9)。三阈值严格单调 `CRITICAL < COMA < DEATH`。
+      ⚠️ 本值同时是两条**注册表写入期下界**的量纲来源(校验 4b / 14):
+      `plateau ∧ lethal` 与急性保持型都须 `A_peak/SCALE ≥ DEATH_THRESHOLD`,否则「致死型永不致死」"
+    added: 2026-10-22
+    revised: ""
+
+  - name: TREATMENT_WINDOW
+    status: active
+    source: design/gdd/disease-simulation.md
+    referenced_by:
+      - design/gdd/disease-simulation.md        # F4 死亡支:最后一次有效干预后多久算「放弃」
+      - design/gdd/disease-simulation.md        # 校验 17 排序:`TREATMENT_WINDOW ≥ CARE_GAP`
+    value: "待定 —— 见 disease-simulation.md Tuning Knobs §五。
+      ⚠️ **本值连实现期占位值都没有**(`grep` 全树 `.cs` 零命中)⇒ F4 死亡支的窗口条件
+      当前**不可求值**,`EntityDeathGates` 只提供实体门、不实现 F4 求值(该文件头注已登记)"
+    unit: ticks
+    constraint: "> 0。**这是铁律一的时间维度**;照护 ≠ 药 —— 对症药不刷窗口。
+      **须 `≥ CARE_GAP`**(校验 17,否则「连续照护」在窗口内会被误判中止,
+      AC-30① 的 fixture 不可构造)"
+    added: 2026-10-22
+    revised: ""
+
   - name: RECOVER_THRESHOLD
     status: active
     source: design/gdd/disease-simulation.md

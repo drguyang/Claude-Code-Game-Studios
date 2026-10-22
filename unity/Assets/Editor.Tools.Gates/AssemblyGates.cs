@@ -127,7 +127,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             foreach (var e in errs) Debug.LogError(e);
             Debug.Log(errs.Count == 0
                 ? "[AssemblyGates] b2/b3/b3-refdup/b4/b5 + 3 意图边界门 + 8 边界门 + 11 写者门 " +
-                  "+ 6 生态区整数门 + 10 急救整数门 全过"
+                  "+ 6 生态区整数门 + 10 急救整数门 + 9 常量登记门 全过"
                 : $"[AssemblyGates] {errs.Count} 条失败(见红行)");
         }
 
@@ -142,6 +142,11 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 的 Kind ∈ 已写者集 ∪ 具名豁免表。接进本路径(菜单 / reload / 构建前门三处
             // 共用 RunAll)—— 承「零调用方的门形同虚设」口径。
             errs.AddRange(WriterExistenceGate.RunAll());
+            // 9 调参常量登记完整性门(2026-10-22 · PRE-S18-B 机械半边):`entities.yaml`
+            // 的三阈值 + 干预窗口须各有独立 `name:` 块。与 b7 同格 —— 两者都是
+            // 「registry ↔ 代码」一致性,都住在 RunAll(菜单 / reload / 构建前三处共用)。
+            // ⚠️ 只查登记存在性,不查数值(数值归用户数值轮;判了会恒红)。
+            errs.AddRange(DiseaseConstantRegistryGate.RunAll());
             // 53 静态面门(S12-9 · story-002,2026-10-15):AC-53-03 零浮点 +
             // AC-53-12 零 31 符号 —— 扫 `Assets/Sim/Consequences/*.cs`(MedConsFloatGate)。
             errs.AddRange(MedConsFloatGate.RunAll("."));
@@ -1276,7 +1281,7 @@ namespace DaYiJingCheng.EditorTools.Gates
                 throw new BuildFailedException(
                     $"[AssemblyGates] 构建前门失败 {errs.Count} 条(装配封闭性 / ToFloat 白名单 / " +
                     "44 边界门 / 8 边界门 / 3 意图边界门 / 11 写者门 / 6 生态区整数门 / " +
-                    "10 急救整数门 / 规则九门)—— 见构建日志红行。");
+                    "10 急救整数门 / 9 常量登记门 / 规则九门)—— 见构建日志红行。");
             }
         }
     }

@@ -84,6 +84,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "CheckGateA",                    // b2 门 A
                     "CheckPayloadRefCallsites",      // b6 载荷手搓
                     "WriterExistenceGate.RunAll",    // b7 写者存在性
+                    "DiseaseConstantRegistryGate.RunAll", // 9 常量登记(PRE-S18-B)· 2026-10-22 接线上线
                     "MedConsFloatGate.RunAll",       // 53 静态面(零浮点/零 31 符号)
                     "FsWriteBoundaryGate.RunAll",    // 测试不得写仓库(S16-4)
                     "PlayerAssemblyGate.RunAll",     // PlayMode 装配 UnityEditor 裸用(TD-testasm-01 · 2026-10-21)
@@ -198,6 +199,12 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 Consumer = "RunMenu+BuildGate" },
             new ClassVerdict { ClassName = "WriterExistenceGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll" },
+            new ClassVerdict { ClassName = "DiseaseConstantRegistryGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "PRE-S18-B 机械半边(2026-10-22 立)。查 `entities.yaml` 三阈值 + " +
+                       "干预窗口各有独立 `name:` 块及其六项必填字段。" +
+                       "⚠️ 只查登记存在性,不查数值 —— 数值归用户数值轮,GDD §五 default 全 `*待定*`;" +
+                       "把「值没裁」判红会让本门恒红(判据对合法输入类误判)" },
 
             // ── 库式:生产侧直调(强制点 = 调用点)──
             new ClassVerdict { ClassName = "AudioAssetGroupGates", Kind = WiringKind.Library,
