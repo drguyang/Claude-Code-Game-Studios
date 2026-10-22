@@ -99,6 +99,20 @@ namespace DaYiJingCheng.Sim.DiseaseSimulation
         /// <summary>最近一次判定输入的 action id(无 = -1 哨兵)。</summary>
         public int LastEmergencyActionId { get; private set; } = -1;
 
+        /// <summary>
+        /// 最后一条护理动作**止**事件的 tick;无「止」事件 = <c>null</c>。
+        /// <para>GDD <c>:1126-1133</c> 照护支的两个派生输入之一。</para>
+        /// </summary>
+        public long? LastCareStopTick { get; private set; }
+
+        /// <summary>
+        /// 最后一条护理动作事件(**起或止**)的 tick;无任何护理动作 = <c>null</c>。
+        /// <para>GDD <c>:1126-1133</c> 的另一半 —— 照护支 =
+        /// <c>max(最后止, 最后事件 + CARE_GAP)</c>,后者覆盖「起后玩家走开、无「止」」的情形
+        /// (三轮 · 集群 2 · CD 裁定,见 GDD <c>:221-224</c>)。</para>
+        /// </summary>
+        public long? LastCareActionTick { get; private set; }
+
         internal DiseaseCourse(PatientId patient, int diseaseId, long onsetTick, long patientSeed)
         {
             Patient = patient;
@@ -117,5 +131,46 @@ namespace DaYiJingCheng.Sim.DiseaseSimulation
             EmergencyAttemptCount++;
             LastEmergencyActionId = actionId;
         }
+
+        /// <summary>
+        /// 登记一条护理动作事件(消费 <c>CareApplied</c>)。
+        /// </summary>
+        /// <param name="tick">动作事件的 tick(载荷自带,与事件头同值 —— 校验 13 ② 保证)。</param>
+        /// <param name="phase">0 = 起 · 1 = 止(见 <c>CareAppliedPayload.Phase</c>)。</param>
+        /// <remarks>
+        /// <para><b>⚠️ 只记时刻,不判适用集</b>:「该病种是否吃照护杠杆」归
+        /// <see cref="CareLeverApplicability"/>(破伤风恒 <c>false</c>,K8)。
+        /// 本档案照单全收 —— 因为它同时服务别的消费者(8 的护理记录 / 折叠),
+        /// 且把适用集判据复制到这里就是第二份实现。</para>
+        /// <para><b>单调不减</b>:取 <c>max</c> 而非直接赋值 —— 入流序理论上升序,
+        /// 但乱序重放(AC-16)下直接赋值会让「最后一条」退化成「最后到达的一条」。</para>
+        /// </remarks>
+        internal void NoteCareAction(long tick, int phase)
+        {
+            // ⚠️ 值域 fail-loud(2026-10-22 第五轮):`entities.yaml` 只写「phase: 枚举(起 止)」,
+            //    全库**没有**序数定义 —— 本实现的 `0 = 起 / 1 = 止` 是**落地约定**,不是权威件。
+            //    写者(24)落地前须与本约定对齐;在那之前,越界值必须当场抛,
+            //    否则「2 / −1 / 写者用了反序」会被静默当成「起」⇒ 照护支永不记录「止」。
+            if (phase != CarePhaseStart && phase != CarePhaseStop)
+                throw new InvalidOperationException(
+                    $"CareApplied 的 phase={phase} 越界 —— 本实现约定 0 = 起 / 1 = 止" +
+                    "(entities.yaml 只写「枚举(起 止)」,无序数;写者落地前须对齐,不得静默取值)");
+
+            if (!LastCareActionTick.HasValue || tick > LastCareActionTick.Value)
+                LastCareActionTick = tick;
+
+            // Phase 1 = 止。⚠️ 与起用同一「取大」纪律。
+            if (phase == CarePhaseStop
+                && (!LastCareStopTick.HasValue || tick > LastCareStopTick.Value))
+                LastCareStopTick = tick;
+        }
+
+        /// <summary>护理动作相位「起」的序数(<c>CareAppliedPayload.Phase</c>)。</summary>
+        public const int CarePhaseStart = 0;
+
+        /// <summary>护理动作相位「止」的序数(<c>CareAppliedPayload.Phase</c>)。</summary>
+        /// <remarks>⚠️ 序数出处:GDD <c>:164</c> 的「起/止」,与 <c>CareAppliedPayload.Phase</c> 的
+        /// 注释「枚举:起 | 止」同源。载荷侧是裸 int(与 <c>Polarity</c> 同法,不造第二套枚举)。</remarks>
+        public const int CarePhaseStop = 1;
     }
 }

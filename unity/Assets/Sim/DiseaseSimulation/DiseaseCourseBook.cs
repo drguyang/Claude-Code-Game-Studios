@@ -98,6 +98,26 @@ namespace DaYiJingCheng.Sim.DiseaseSimulation
             return course;
         }
 
+        /// <summary>
+        /// 登记一次护理动作(消费 <c>CareApplied</c>;GDD <c>:208-224</c>)。
+        /// </summary>
+        /// <param name="headerPatient">事件头归因(<c>CareAppliedPayload</c> 无 patient 字段 ⇒ 头是唯一病人来源)。</param>
+        /// <param name="tick">动作 tick(载荷自带;校验 13 ② 保证「止 ≥ 起」)。</param>
+        /// <param name="phase">0 = 起 · 1 = 止。</param>
+        /// <returns>所属档案。</returns>
+        /// <exception cref="InvalidOperationException">无病人归因,或该病人未建档。</exception>
+        /// <remarks>
+        /// <para><b>⚠️ 本方法不判适用集</b> —— 破伤风护理也要进流、进档(它是「有效动作」,
+        /// 只是不刷新死亡窗口)。适用集判据唯一实现在
+        /// <see cref="CareLeverApplicability.AppliesTo"/>,由 F4 接线侧调用。</para>
+        /// </remarks>
+        public DiseaseCourse ApplyCare(PatientId headerPatient, long tick, int phase)
+        {
+            DiseaseCourse course = Require(headerPatient, "CareApplied");
+            course.NoteCareAction(tick, phase);
+            return course;
+        }
+
         /// <summary>取档(不存在返回 false;不抛 —— 探测面)。</summary>
         public bool TryGet(PatientId patient, out DiseaseCourse course)
             => _byPatient.TryGetValue(patient.Value, out course);

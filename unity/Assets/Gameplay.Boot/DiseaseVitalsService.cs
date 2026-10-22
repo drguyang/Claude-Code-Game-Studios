@@ -258,6 +258,13 @@ namespace DaYiJingCheng.Gameplay.Boot
                     Courses.RegisterEmergencyAttempt(e.Patient, p);
                     break;
                 }
+                case EventKind.CareApplied:
+                {
+                    if (!PayloadCodec.TryGetPayload(in e, _blobPool, out CareAppliedPayload p))
+                        throw DecodeFailure(in e, nameof(CareAppliedPayload));
+                    Courses.ApplyCare(e.Patient, p.Tick, p.Phase);
+                    break;
+                }
                 default:
                     break;   // 其余 Kind:与体征链无关(战伤累积 / compounds / 护理动作归各自轮)
             }
@@ -328,11 +335,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <list type="bullet">
         /// <item><b>有效对因处置</b> —— 经 <see cref="ProgressionEvaluator.IsEffectiveCausalDose"/>
         /// 逐剂量筛(F1 与 F4 共用**同一实现**,不复制判据)。</item>
-        /// <item><b>照护</b> —— 经 <see cref="CareLeverApplicability.AppliesTo"/> 判适用集
-        /// (**破伤风不在内**,K8),再取本病人已归档的护理动作摘要。
-        /// ⚠️ 当前恒 <c>None</c>:<c>CareApplied</c> 的写者未落
-        /// (<c>WriterExistenceGate</c> 具名登记「24 医馆与案头写者未落」)⇒ 流里**没有**护理事件。
-        /// 本段不伪造该通道 —— 写者落地后在此接上即可。</item>
+        /// <item><b>照护(2026-10-22 第五轮接真)</b> —— 经
+        /// <see cref="CareLeverApplicability.AppliesTo"/> 判适用集(**破伤风不在内**,K8),
+        /// 再从本病人的 <see cref="DiseaseCourse.LastCareStopTick"/> /
+        /// <see cref="DiseaseCourse.LastCareActionTick"/> 取两条时刻。
+        /// ⚠️ **写者仍未落**(`CareApplied` 的 author = 24,`WriterExistenceGate` 具名登记)
+        /// ⇒ 生产流里目前零护理事件 ⇒ 本通道在生产路径上仍恒 <c>None</c>。
+        /// **但读取面已完整**:写者一落地即自动生效,接线侧不必再改。</item>
         /// <item><b><c>onset_tick</c> 哨兵</b> —— 由 <see cref="LastInterventionAggregator.Evaluate"/>
         /// 在三条通道全空时显式返回(不是靠初值巧合)。</item>
         /// </list>
@@ -341,8 +350,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             DiseaseCourse course, DiseaseRegistryEntry entry, ProgressionResult result, long tick,
             ulong worldSeed)
         {
-            // 注:本方法**静态** ⇒ 不持有任何状态。照护通道的「恒空」由调用点决定(见下),
-            // 将来接上 `CareApplied` 时,把摘要作为第 4 个入参传进来即可,求值式本身不变。
+            // 注:本方法**静态** ⇒ 不持有任何状态;照护通道的时刻由 `course` 上的两个字段提供
+            // (2026-10-22 第五轮接真,见下通道 ②)。
+            // 🔁 原文(第三轮)写「照护通道的『恒空』由调用点决定,将来接上 `CareApplied` 时
+            //    把摘要作为第 4 个入参传进来即可」—— **已失实,就地加注不删**:实际落地取的是
+            //    「档案持有两个时刻字段」而不是「第 4 个入参」,因为 `Apply()` 已经解码并归档,
+            //    再往求值体传一份摘要就是同一事实的两个载体(易分叉)。求值式本身确实未变。
             // ── F2 投影:position = clamp(Progress / SCALE, 0, 1) ──
             // ⚠️ 与 GetVitals 的投影桥**同式**,但**不复用同一行代码**是刻意的:
             //    GetVitals 在 SCALE ≤ 0 时 fail-loud 抛,那是「取数面」的契约;
@@ -360,13 +373,19 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ── 通道 ①:有效对因处置(F1 与 F4 同一判据)──
             long[] causalTicks = CollectEffectiveCausalTicks(entry, course);
 
-            // ── 通道 ②:照护 —— 本批**恒空**,且理由是结构性的,不是遗漏 ──
-            //   `CareApplied` 的写者未落(`WriterExistenceGate` 具名登记
-            //   「24 医馆与案头写者未落」)⇒ 流里**零**护理事件 ⇒ 无从算 `CareChannelInput`。
-            //   本段**不伪造**该通道(伪造 = 让「照护续命」在数据面不存在时看起来已接线)。
-            //   ⚠️ 破伤风的双约束(K8)由 `CareLeverApplicability.AppliesTo` 保证;
-            //   写者落地后在此处按 `AppliesTo(entry)` 分流即可,求值侧不必改。
-            var care = LastInterventionAggregator.CareChannelInput.None;
+            // ── 通道 ②:照护(2026-10-22 第五轮接真)──
+            //   GDD `:1126-1133`:照护支 = max(最后一条护理动作止, 最后一条护理动作事件 + CARE_GAP)。
+            //   ⚠️ **适用集门在这里**(不在档案里):破伤风护理**不刷新**死亡窗口(K8),
+            //      故先问 `CareLeverApplicability.AppliesTo(entry)`,不适用就传 None ——
+            //      护理事件仍进流、仍进档(它是有效动作),只是不参与 F4 的窗口。
+            //   ⚠️ 写者现状:`CareApplied` 的写者未落(`WriterExistenceGate` 具名登记
+            //      「24 医馆与案头写者未落」)⇒ **生产流里目前仍无护理事件** ⇒ 本通道
+            //      在生产路径上仍恒 None。但**读取面已完整**:写者一落地即自动生效,
+            //      接线侧无需再改。这与上一轮「恒 None 且无从读取」不是同一状态。
+            var care = CareLeverApplicability.AppliesTo(entry)
+                ? new LastInterventionAggregator.CareChannelInput(
+                    course.LastCareStopTick, course.LastCareActionTick)
+                : LastInterventionAggregator.CareChannelInput.None;
 
             // ── 通道 ③:trend_backward(2026-10-22 第四轮接真)──
             //   ⚠️ **不是 `result.Trend`** —— 那是 F2 的**中心差分**(读未来,只供 8 的展示),

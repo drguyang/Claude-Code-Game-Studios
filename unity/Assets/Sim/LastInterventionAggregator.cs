@@ -115,6 +115,17 @@ namespace DaYiJingCheng.Sim
         /// <para><b>照护支的派生式</b>:
         /// <c>max(LastCareStopTick, LastCareActionTick + CARE_GAP)</c> ——
         /// 两项各自可为空,只在存在的项上取 max。</para>
+        ///
+        /// <para><b>⚠️ 该式使「止」项恒冗余(2026-10-22 第五轮发现,GDD 内部冲突,待裁)</b>:
+        /// 「止」本身就是一条护理动作事件 ⇒ <c>LastCareActionTick ≥ LastCareStopTick</c>
+        /// ⇒ <c>LastCareActionTick + CARE_GAP &gt; LastCareStopTick</c> **恒成立**
+        /// (CARE_GAP &gt; 0)⇒ 第二项永远覆盖第一项,<c>LastCareStopTick</c> 对
+        /// <c>last_intervention</c> **零影响**。
+        /// 而 GDD <c>:226</c> 的散文写「『止』存在则**从止起计时**」—— **公式做不到**。
+        /// 两者不可能同时为真。本类**按公式实现**(公式是该段的正式定义),并把冲突登记为待裁;
+        /// 判据见 <c>test_careStop_isRedundantUnderDerivedFormula</c>。
+        /// ⚠️ 本类仍**收**该字段(不删参) —— 删掉会让「按散文修」变成签名变更;
+        /// 保留使裁定任一侧都只需改这一段逻辑。</para>
         /// </remarks>
         public static long Evaluate(
             long onsetTick,

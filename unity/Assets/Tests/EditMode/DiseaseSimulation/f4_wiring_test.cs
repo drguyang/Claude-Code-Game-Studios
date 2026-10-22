@@ -101,6 +101,23 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
                 c.Bag.Encoder.Encode(EventKind.DrugTreatmentApplied, payload)));
         }
 
+        /// <summary>同一急性保持型曲线,但换成可指定病种键(照护适用集按 <c>DiseaseKey</c> 判)。</summary>
+        private static DiseaseRegistryEntry AcuteLethalWithKey(string diseaseKey)
+        {
+            DiseaseRegistryEntry entry = AcuteLethal();
+            entry.DiseaseKey = diseaseKey;
+            return entry;
+        }
+
+        /// <summary>追加一条护理动作事件(起 = phase 0 · 止 = phase 1)。</summary>
+        private static void AppendCare(Chain c, long tick, int phase)
+        {
+            var payload = new CareAppliedPayload(tick, actionId: 1, caregiver: 1, phase: phase);
+            c.Bag.EventSink.Append(new SimEvent(
+                tick, c.Patient, -1, EventKind.CareApplied,
+                c.Bag.Encoder.Encode(EventKind.CareApplied, payload)));
+        }
+
         // ══════════════════ ① 接线存在:Step 后九态可查 ══════════════════
 
         /// <summary>
@@ -245,6 +262,192 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
 
             Assert.AreEqual(InjuryState.Deceased, c.Outcome(),
                 "potency 与 Base 同号 ⇒ 不是有效对因处置 ⇒ 不刷新窗口");
+        }
+
+        // ══════════════════ ④b 照护通道(2026-10-22 第五轮接真) ══════════════════
+
+        /// <summary>
+        /// **照护通道真的接进去了**:一条护理动作把死亡时刻推后。
+        /// <para>判据构造:两链同时驱动到 `TREATMENT_WINDOW + 10` —— 无护理者已死;
+        /// 有护理者(动作在 τ = 3000,无「止」)的照护支 =
+        /// `max(null, 3000 + CARE_GAP=600) = 3600`,
+        /// 故 `t − last_intervention = 3610 − 3600 = 10 ≤ 3600` ⇒ **仍昏迷**。</para>
+        /// <para>若接线不传照护通道(恒 <c>None</c>),有护理者也会死 ⇒ 本条红。</para>
+        /// <para>⚠️ 病种取 <c>typhoid</c>(适用集内)—— 适用集外的病种见下一条。</para>
+        /// </summary>
+        [Test]
+        public void test_care_refreshesDeathWindow()
+        {
+            Chain uncared = OpenChain(AcuteLethalWithKey("typhoid"));
+            Chain cared = OpenChain(AcuteLethalWithKey("typhoid"));
+
+            const long careAt = 3000;
+            AppendCare(cared, careAt, phase: 0);      // 起,无「止」⇒ 派生式生效
+
+            long probe = StateMachine.TREATMENT_WINDOW + 10;   // 3610
+            uncared.DriveTo(probe);
+            cared.DriveTo(probe);
+
+            Assert.AreEqual(InjuryState.Deceased, uncared.Outcome(),
+                "无护理 ⇒ last_intervention = onset_tick ⇒ 窗口已过 ⇒ 死亡");
+
+            Assert.AreEqual(InjuryState.Coma, cared.Outcome(),
+                "τ=3000 的护理动作 ⇒ 照护支 = 3000+600 = 3600 ⇒ 3610−3600 = 10 < 3600 ⇒ 仍昏迷");
+        }
+
+        /// <summary>
+        /// **适用集外的病种,护理不刷新窗口** —— 破伤风(K8)。
+        /// <para>同样 fixture、同样护理动作,唯一差别是 <c>DiseaseKey = "tetanus"</c>。
+        /// 若接线漏掉 <see cref="CareLeverApplicability.AppliesTo"/> 这道门,
+        /// 破伤风会被护理无限续命,「发病前清创预防」的手柄失去意义 ⇒ 本条红。</para>
+        /// <para>⚠️ 这条与上一条构成**双向判据**:只测「伤寒不死」会漏掉「破伤风也不死」的
+        /// 漏门实现(两者同效);只测「破伤风死」会漏掉「谁都不死」的恒 None 实现。
+        /// 两条同时成立才排除这两种错法。</para>
+        /// </summary>
+        [Test]
+        public void test_care_nonApplicableDisease_doesNotRefreshWindow()
+        {
+            Chain c = OpenChain(AcuteLethalWithKey("tetanus"));
+
+            AppendCare(c, 3000, phase: 0);
+            c.DriveTo(StateMachine.TREATMENT_WINDOW + 10);
+
+            Assert.AreEqual(InjuryState.Deceased, c.Outcome(),
+                "破伤风不在照护适用集(K8)⇒ 护理不刷新窗口 ⇒ 越阈 + 过窗口即死");
+        }
+
+        /// <summary>
+        /// **「止」项在当前派生式下恒冗余** —— 本轮发现的一条 GDD 内部矛盾,钉成可观测事实。
+        ///
+        /// <para><b>算式</b>:照护支 = <c>max(最后止, 最后动作 + CARE_GAP)</c>
+        /// (GDD <c>:1126-1133</c>)。但「止」本身就是一条护理动作事件 ⇒
+        /// <c>最后动作 ≥ 最后止</c> ⇒ <c>最后动作 + CARE_GAP &gt; 最后止</c> **恒成立**。
+        /// ⇒ 第二项永远覆盖第一项,<c>LastCareStopTick</c> 对 <c>last_intervention</c> **零影响**。</para>
+        ///
+        /// <para><b>与 GDD 散文的冲突</b>:同段明写「『止』存在则**从止起计时**」——
+        /// 而公式做不到。两者不可能同时为真。本轮**不代拍**:
+        /// 公式是 GDD 的正式定义,散文是它的意图说明;改哪一边须用户裁定。
+        /// ⇒ 本测试只把「当前实现按公式走」钉死,并留一条可复算的判据给裁定轮。</para>
+        ///
+        /// <para><b>对实现的影响</b>:<see cref="DiseaseCourse.NoteCareAction"/> 仍**照记**两个字段
+        /// (字段级判据见下一条)—— 因为 <c>CareApplied</c> 的 phase 是载荷的一部分,
+        /// 折叠 / 8 的护理记录等其他消费者需要它。只是 F4 的窗口不吃它。</para>
+        /// </summary>
+        [Test]
+        public void test_careStop_isRedundantUnderDerivedFormula()
+        {
+            // 「止」晚于任何动作(物理上可达的唯一形态):止 = 6500,最后动作也是 6500
+            long withStop = LastInterventionAggregator.Evaluate(
+                onsetTick: 0,
+                LastInterventionAggregator.TreatmentChannelInput.None,
+                new LastInterventionAggregator.CareChannelInput(
+                    lastCareStopTick: 6500, lastCareActionTick: 6500));
+
+            long withoutStop = LastInterventionAggregator.Evaluate(
+                onsetTick: 0,
+                LastInterventionAggregator.TreatmentChannelInput.None,
+                new LastInterventionAggregator.CareChannelInput(
+                    lastCareStopTick: null, lastCareActionTick: 6500));
+
+            Assert.AreEqual(6500 + StateMachine.CARE_GAP, withStop,
+                "有「止」时结果 = 最后动作 + CARE_GAP(派生项),不是止本身 6500");
+            Assert.AreEqual(withoutStop, withStop,
+                "「止」的有无不改变结果 ⇒ 该项在派生式下恒冗余(GDD 公式 vs 散文的冲突,待裁)");
+        }
+
+        /// <summary>
+        /// **两个字段各自独立记录** —— 判据落在字段值上,不从九态反推。
+        ///
+        /// <para><b>为什么判据落在字段而不是九态上</b>:上一条已证「止」在派生式下恒冗余
+        /// ⇒ 从九态**不可能**观测到 <c>LastCareStopTick</c> 是否被写。要钉「phase 被读了」
+        /// 只能直接读字段。</para>
+        ///
+        /// <para><b>⚠️ 夹具的关键 = 「止」之后还有一次「起」</b>(第二次护理)。
+        /// 若只造「起 3000 → 止 6500」,两种读法**同效**:</para>
+        /// <list type="bullet">
+        /// <item>正确(区分 phase):<c>StopTick = 6500</c>,<c>ActionTick = 6500</c>;</item>
+        /// <item>忽略 phase(止也当普通动作):<c>StopTick = max(3000, 6500) = 6500</c> —— **一样**。</item>
+        /// </list>
+        /// <para>⇒ 那种夹具对「忽略 phase」**假存活**(本轮实测确认)。必须让止**早于**某个起:</para>
+        /// <list type="bullet">
+        /// <item>正确:<c>StopTick = 3000</c>(止只记止),<c>ActionTick = 5000</c>(起更晚);</item>
+        /// <item>忽略 phase:<c>StopTick = max(3000, 5000) = 5000</c> ⇒ **分叉**。</item>
+        /// </list>
+        /// </summary>
+        [Test]
+        public void test_careStop_recordedSeparatelyFromAction()
+        {
+            var book = new DiseaseCourseBook();
+            var patient = new PatientId(11);
+            book.ApplyOnset(new DiseaseOnsetPayload(
+                onsetTick: 0, diseaseId: 60, patientId: 11, patientSeed: 123, seq: 0), patient);
+
+            book.ApplyCare(patient, tick: 3000, phase: DiseaseCourse.CarePhaseStart);  // 第一次护理:起
+            book.ApplyCare(patient, tick: 4000, phase: DiseaseCourse.CarePhaseStop);   // 第一次护理:止
+            book.ApplyCare(patient, tick: 5000, phase: DiseaseCourse.CarePhaseStart);  // 第二次护理:起
+
+            DiseaseCourse course = book.Get(patient);
+
+            Assert.AreEqual(4000L, course.LastCareStopTick,
+                "LastCareStopTick 只由 phase=1 写 ⇒ 仍是第一次的止 4000," +
+                "不得被后到的 5000「起」顶上去(顶上去 = 忽略 phase)");
+            Assert.AreEqual(5000L, course.LastCareActionTick,
+                "LastCareActionTick 记录任意 phase 的最后一条 ⇒ 5000");
+        }
+
+        /// <summary>
+        /// **「取大而非覆盖」** —— 乱序重放(AC-16)下直接赋值会让「最后一条」
+        /// 退化成「**最后到达**的一条」。
+        ///
+        /// <para>本测试**直接调档案簿**(不经 <c>EventStream</c> —— 流本身有 BCD-码-3 的
+        /// tick 非降断言,构造不出乱序入流):先送 6500 的止、再送 3000 的起,
+        /// 两个字段都必须**留在 6500**。若改成直接赋值,第二个调用会把两字段都写成 3000。</para>
+        /// </summary>
+        [Test]
+        public void test_careTimes_takeMax_notOverwrite()
+        {
+            var book = new DiseaseCourseBook();
+            var patient = new PatientId(12);
+            book.ApplyOnset(new DiseaseOnsetPayload(
+                onsetTick: 0, diseaseId: 60, patientId: 12, patientSeed: 123, seq: 0), patient);
+
+            book.ApplyCare(patient, tick: 6500, phase: DiseaseCourse.CarePhaseStop);  // 止(先到)
+            book.ApplyCare(patient, tick: 3000, phase: DiseaseCourse.CarePhaseStart); // 起(后到 —— 乱序)
+
+            DiseaseCourse course = book.Get(patient);
+
+            Assert.AreEqual(6500L, course.LastCareStopTick,
+                "后到的 3000 起不得把 6500 的止降回去");
+            Assert.AreEqual(6500L, course.LastCareActionTick,
+                "LastCareActionTick 取大 ⇒ 仍是 6500");
+        }
+
+        /// <summary>
+        /// **越界 phase 当场抛,不静默当「起」**。
+        ///
+        /// <para><b>为什么这条必要</b>:<c>entities.yaml</c> 的 <c>CareApplied</c> 条目只写
+        /// 「phase: 枚举(起 止)」,**全库没有序数定义** —— <c>0 = 起 / 1 = 止</c> 是本实现的
+        /// 落地约定。若写者(24)用了别的编码(如 <c>1 = 起 / 0 = 止</c>,或三值枚举),
+        /// 静默取值会让 <c>LastCareStopTick</c> 永远为空 ⇒ 照护支退化成
+        /// <c>最后动作 + CARE_GAP</c> 单项式,而**没有任何测试会红**。</para>
+        ///
+        /// <para>⇒ 越界值必须 fail-loud。本测试送 <c>2</c> 与 <c>-1</c> 两种。</para>
+        /// </summary>
+        [Test]
+        public void test_carePhase_outOfRange_throws()
+        {
+            var book = new DiseaseCourseBook();
+            var patient = new PatientId(12);
+            book.ApplyOnset(new DiseaseOnsetPayload(
+                onsetTick: 0, diseaseId: 60, patientId: 12, patientSeed: 1, seq: 0), patient);
+
+            Assert.Throws<InvalidOperationException>(
+                () => book.ApplyCare(patient, tick: 100, phase: 2),
+                "phase = 2 越界 ⇒ 必须抛(否则静默当成「起」)");
+
+            Assert.Throws<InvalidOperationException>(
+                () => book.ApplyCare(patient, tick: 100, phase: -1),
+                "phase = -1 越界 ⇒ 必须抛");
         }
 
         // ══════════════════ ⑤ 痊愈支/迁延支未求值(W/TREND_EPS 未裁定) ══════════════════
