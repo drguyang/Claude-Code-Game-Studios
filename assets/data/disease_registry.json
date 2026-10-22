@@ -1,10 +1,13 @@
 {
-  "schema_version": 1,
-  "_note": "系统 9 的病种注册表**作者态**。走 ADR-014 两阶段烘焙 → disease_registry.cooked.bytes。⚠️ 本文件当前**只含 R2 战伤白名单五项**(kind: injury)—— 病种(DIS_*)一行未建,因为它们的曲线/严重度数值未经用户数值轮裁定,建全表 = 被迫填占位值,而 9 的 17 条区间校验会面对假数据(GDD 点名的「判据对合法输入类误判」)。这是 PRE-S18-A 的**部分**兑现,不是全部。",
-  "_source": "design/gdd/disease-simulation.md §R2(:362-373 伤情枚举)· §R1.3(:312-330 曲线 schema)· F1(:788 战伤累积项)· :829-831(trauma_half_life)· OQ-25-7(combat-and-weapon-lines.md:1363,2026-10-07 已裁)· death-and-respawn.md:96(白名单闭集双条件)",
+  "_note": "系统 9 的病种注册表**作者态**。走 ADR-014 两阶段烘焙 → disease_registry.cooked.bytes。⚠️ 本文件当前**只含 R2 战伤白名单五项**(kind: injury)—— 病种(DIS_*)一行未建,因为它们的曲线/严重度数值未经用户数值轮裁定,建全表 = 被迫填占位值,而 9 的 17 条区间校验会面对假数据(GDD 点名的「判据对合法输入类误判」)。这是 PRE-S18-A 的**部分**兑现,不是全部。 ⚠️ 2026-10-22 增补:八病种 DIS_* 已建(id 7–14)。八行的曲线数值由用户 2026-10-22 四项裁定生成(四阈值档 C / 时间阈 3min-30s / 病程十分钟级 / A_peak 按尾部形态分档),**不是占位值**。",
+  "_source": "design/gdd/disease-simulation.md §R2(:362-373 伤情枚举)· §R1.3(:312-330 曲线 schema)· F1(:788 战伤累积项)· :829-831(trauma_half_life)· OQ-25-7(combat-and-weapon-lines.md:1363,2026-10-07 已裁)· death-and-respawn.md:96(白名单闭集双条件) · R3.3(:428 八病种表)· Tuning §五(:1676-1679 四阈值)",
   "_whitelistSource": "death-and-respawn.md:96 —— 战伤白名单 = lethal(d) ∧ d ∈ {INJ_STAB, INJ_LACERATION, INJ_HEMORRHAGE, INJ_CLAW, INJ_BITE}。本文件五项 = 该闭集,R2 其余六项(INJ_BLUNT / INJ_FRACTURE / INJ_DISLOCATION / INJ_BURN / INJ_COMA / TOX_ENVENOMATION)刻意不建 —— 它们不在白名单内,且 INJ_COMA 是状态投影、TOX_ 是 poison。",
   "_curveShapeNote": "五项全为**急性保持型**(self_limit=false ∧ plateau=false)—— 这是白名单伤情能致死的**结构前提**:GDD :581 的死亡支要求 lethal ∧ self_limit=false。自愈型(self_limit=true)的伤永远不会死人,与「短兵可杀你、野兽可杀你」的设计意图冲突。校验 4 要求该型必须 lethal=true,本文件五项均 Lethality=2。",
   "_apexNote": "A_peak/Scale = 峰值 position(见 F2:position = clamp(Progress/Scale, 0, 1),单病种时 position_agg = 该值)。本文件统一取 Scale=100 让 A_peak 直接等于百分数,便于人读。五个比值由用户 2026-10-22 裁定:STAB/HEMORRHAGE=1.00 · CLAW=0.85 · BITE=0.75 · LACERATION=0.60。全部 >> DEATH_THRESHOLD(现网 9000 raw ≈ 0.1373)⇒ 均可致死。",
+  "_thresholdNote": "四阈值 2026-10-22 用户裁定(档 C):RECOVER=7864 · CRITICAL=19661 · COMA=29491 · DEATH=38011 raw(0.12 / 0.30 / 0.45 / 0.58)。⚠️ 本轮裁定 DEATH=0.58 与上一轮五项伤情验算所用的现网 0.1373 不同 ⇒ GDD :1620-1621 要求同批复核,已在 GDD §二之一加注。",
+  "_relapseNote": "⚠️ DIS_MALARIA 的 relapse.* 块**未建** —— R1-26 要求三字段(a_rel / interval / tau_rel_fall)齐全且 > 0,而这三个数的量级用户本轮未裁。缺块 = 该病「无复发」,与 GDD :429「因有复发块,永不入痊愈」不一致 ⇒ **已知缺口,归疟疾复发数值轮**。",
+  "_compoundsNote": "⚠️ DIS_RHEUMATIC_FEVER 的 compounds → DIS_HEART_FAILURE **未建** —— schema 无 compounds 字段(DiseaseRegistryEntry 无此成员)。旗舰共病线因此**当前不可求值**。归 9 的 compounds 实现轮。",
+  "schema_version": 1,
   "diseases": [
     {
       "id": 2,
@@ -130,6 +133,190 @@
       },
       "signs": [],
       "_rowNote": "狼 · 野狗。A_peak/Scale = 0.75,τ_peak = 700 tick(35 s)—— 五种里最慢达峰(咬合撕裂有过程,见 combat-and-weapon-lines.md:1499 的呈现语义)。"
+    },
+    {
+      "id": 7,
+      "key": "DIS_MALARIA",
+      "kind": "disease",
+      "zh": "间日疟",
+      "severity": 4,
+      "causes": [],
+      "treatable_by": [],
+      "lethal": true,
+      "scale": "100",
+      "natural_progress": {
+        "incubation": 0,
+        "a_peak": "45",
+        "tau_rise": "1800",
+        "tau_peak": 12000,
+        "tau_fall": "3000",
+        "plateau": false,
+        "self_limit": true,
+        "boundary_mode": "monotone"
+      },
+      "signs": [],
+      "_rowNote": "self_limit + 复发块(relapse 块未建,见本文件 _relapseNote)。因有复发块,永不入痊愈;lethal 保留(GDD :429,2026-09-16 裁定)。F4 死亡支要求 self_limit=false ⇒ 死亡支永不触发。"
+    },
+    {
+      "id": 8,
+      "key": "DIS_RHEUMATIC_FEVER",
+      "kind": "disease",
+      "zh": "风湿热",
+      "severity": 3,
+      "causes": [],
+      "treatable_by": [],
+      "lethal": false,
+      "scale": "100",
+      "natural_progress": {
+        "incubation": 0,
+        "a_peak": "40",
+        "tau_rise": "1500",
+        "tau_peak": 10000,
+        "tau_fall": "2400",
+        "plateau": false,
+        "self_limit": true,
+        "boundary_mode": "monotone"
+      },
+      "signs": [],
+      "_rowNote": "self_limit(热退即缓)。急性;compounds → DIS_HEART_FAILURE(旗舰共病,compounds 块未建)。"
+    },
+    {
+      "id": 9,
+      "key": "DIS_HEART_FAILURE",
+      "kind": "disease",
+      "zh": "心衰",
+      "severity": 5,
+      "causes": [],
+      "treatable_by": [],
+      "lethal": true,
+      "scale": "100",
+      "natural_progress": {
+        "incubation": 0,
+        "a_peak": "667/10",
+        "tau_rise": "4000",
+        "tau_peak": 24000,
+        "tau_fall": "6000",
+        "plateau": true,
+        "self_limit": false,
+        "boundary_mode": "monotone"
+      },
+      "signs": [],
+      "_rowNote": "plateau。慢性迁延不退;毛地黄对症(缓和,不逆转)。care 类成员(GDD :294)。A_peak/Scale=DEATH×1.15 ⇒ 校验 4b 过。"
+    },
+    {
+      "id": 10,
+      "key": "DIS_TYPHOID",
+      "kind": "disease",
+      "zh": "伤寒",
+      "severity": 4,
+      "causes": [],
+      "treatable_by": [],
+      "lethal": true,
+      "scale": "100",
+      "natural_progress": {
+        "incubation": 1200,
+        "a_peak": "667/10",
+        "tau_rise": "3600",
+        "tau_peak": 20000,
+        "tau_fall": "5000",
+        "plateau": true,
+        "self_limit": false,
+        "boundary_mode": "monotone"
+      },
+      "signs": [],
+      "_rowNote": "plateau,长平台期。care 类成员。显示名保留「伤寒」,8 在脉案注现代名「肠伤寒」。incubation=1200(1 分钟潜伏)。"
+    },
+    {
+      "id": 11,
+      "key": "DIS_MEASLES",
+      "kind": "disease",
+      "zh": "麻疹",
+      "severity": 2,
+      "causes": [],
+      "treatable_by": [],
+      "lethal": false,
+      "scale": "100",
+      "natural_progress": {
+        "incubation": 600,
+        "a_peak": "35",
+        "tau_rise": "1200",
+        "tau_peak": 9000,
+        "tau_fall": "2000",
+        "plateau": false,
+        "self_limit": true,
+        "boundary_mode": "monotone"
+      },
+      "signs": [],
+      "_rowNote": "self_limit,自限性代表。柳树皮对症 + 判断「自限,不必重药」。"
+    },
+    {
+      "id": 12,
+      "key": "DIS_DYSENTERY",
+      "kind": "disease",
+      "zh": "细菌性痢疾",
+      "severity": 4,
+      "causes": [],
+      "treatable_by": [],
+      "lethal": true,
+      "scale": "100",
+      "natural_progress": {
+        "incubation": 600,
+        "a_peak": "100",
+        "tau_rise": "2000",
+        "tau_peak": 14000,
+        "tau_fall": "3000",
+        "plateau": false,
+        "self_limit": false,
+        "boundary_mode": "monotone"
+      },
+      "signs": [],
+      "_rowNote": "急性保持型。care 类成员(GDD :294)。照护杠杆适用(K8 保留):越阈 + 照护停止后过窗口死。A_peak/Scale=1.0 ⇒ 4b 过且无余量。"
+    },
+    {
+      "id": 13,
+      "key": "DIS_TETANUS",
+      "kind": "disease",
+      "zh": "破伤风",
+      "severity": 5,
+      "causes": [],
+      "treatable_by": [],
+      "lethal": true,
+      "scale": "100",
+      "natural_progress": {
+        "incubation": 6000,
+        "a_peak": "100",
+        "tau_rise": "2400",
+        "tau_peak": 16000,
+        "tau_fall": "4000",
+        "plateau": false,
+        "self_limit": false,
+        "boundary_mode": "monotone"
+      },
+      "signs": [],
+      "_rowNote": "急性保持型。handle=none(发病后 P0 无解)。护理不刷新窗口(K8 收窄)。incubation=6000(5 分钟)体现「潜伏 → 发病极重」。"
+    },
+    {
+      "id": 14,
+      "key": "DIS_NEURASTHENIA",
+      "kind": "disease",
+      "zh": "神经衰弱",
+      "severity": 1,
+      "causes": [],
+      "treatable_by": [],
+      "lethal": false,
+      "scale": "100",
+      "natural_progress": {
+        "incubation": 0,
+        "a_peak": "15",
+        "tau_rise": "4000",
+        "tau_peak": 24000,
+        "tau_fall": "6000",
+        "plateau": true,
+        "self_limit": false,
+        "boundary_mode": "monotone"
+      },
+      "signs": [],
+      "_rowNote": "豁免类(plateau ∧ lethal=false),空体征。永不入痊愈。"
     }
   ]
 }

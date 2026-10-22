@@ -169,10 +169,11 @@ namespace DaYiJingCheng.EditorTools.Bake
                 case JsonToken.StartObject:
                 {
                     var node = new JsonNode { Kind = JsonNodeKind.Object, Props = new List<KeyValuePair<string, JsonNode>>() };
+                    bool closed = false;
                     while (reader.Read())
                     {
                         if (reader.TokenType == JsonToken.Comment) continue;
-                        if (reader.TokenType == JsonToken.EndObject) break;
+                        if (reader.TokenType == JsonToken.EndObject) { closed = true; break; }
                         if (reader.TokenType != JsonToken.PropertyName)
                             throw new JsonReaderException($"对象内期待属性名,实得 {reader.TokenType}(@ 行{reader.LineNumber})");
 
@@ -183,19 +184,28 @@ namespace DaYiJingCheng.EditorTools.Bake
                         JsonNode child = ReadValue(reader);
                         node.Props.Add(new KeyValuePair<string, JsonNode>(key, child));
                     }
+                    // ⚠️ 循环退出有**两条**路径:EndObject(合法)与 Read() 返回 false(输入耗尽)。
+                    //    不区分二者 ⇒ 截断的 JSON 被当成完整对象收下,词法层静默放行
+                    //    (2026-10-22 实测:`{ "a": 1, ` 通过阶段1,错误一路飘到绑定层报「缺字段」,
+                    //    报错指向的地方不是坏掉的地方)。
+                    if (!closed)
+                        throw new JsonReaderException("对象未闭合 —— 输入在 EndObject 前终止(@ 行" + reader.LineNumber + ")");
                     return node;
                 }
 
                 case JsonToken.StartArray:
                 {
                     var node = new JsonNode { Kind = JsonNodeKind.Array, Items = new List<JsonNode>() };
+                    bool closed = false;
                     while (reader.Read())
                     {
                         if (reader.TokenType == JsonToken.Comment) continue;
-                        if (reader.TokenType == JsonToken.EndArray) break;
+                        if (reader.TokenType == JsonToken.EndArray) { closed = true; break; }
                         SkipCommentsBacktrack(reader);
                         node.Items.Add(ReadValue(reader));
                     }
+                    if (!closed)
+                        throw new JsonReaderException("数组未闭合 —— 输入在 EndArray 前终止(@ 行" + reader.LineNumber + ")");
                     return node;
                 }
 

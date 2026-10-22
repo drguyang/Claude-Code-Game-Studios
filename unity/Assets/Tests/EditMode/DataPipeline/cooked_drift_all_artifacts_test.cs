@@ -213,9 +213,25 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
         /// 门②b 仍要求「源码声明的每份都登记」,门③ 仍要求本表零理由空缺
         /// (空表天然满足)。新增欠账仍须在此加条目并同步改
         /// <see cref="test_registry_knownUnbakedCount_isPinned"/> 的钉定值。</para>
+        /// <para><b>2026-10-22:0 → 1。</b>新增 <c>disease_registry.cooked.bytes</c> ——
+        /// 9 注册表的**写方已立、读方 codec 未立**,产物此刻无人消费。
+        /// 详见表内条目。⚠️ 这一条与 2026-10-20 清空的那六份**性质不同**:
+        /// 那六份是「story 标 Complete 却零产物」(漏做),本份是「写方先行、读方后补」(有意分步)。
+        /// 两者共用本表是因为**门要的判据相同**(声明了但盘上/消费面缺失须被点名),
+        /// 不是因为欠账理由相同。</para>
         /// </summary>
         private static readonly Dictionary<string, string> KnownUnbaked =
-            new Dictionary<string, string>(StringComparer.Ordinal);
+            new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            // ── 9 病种注册表(1 份;2026-10-22 立)──
+            ["disease_registry.cooked.bytes"] =
+                "写方已立(`DiseaseRegistryBaker` / `DiseaseRegistryCookedWriter`,2026-10-22)," +
+                "**读方 codec 尚不存在**(无 `DiseaseRegistryCookedCodec`),运行期仍走 " +
+                "`CompositionRoot.CreateFallbackRegistry()`。此刻落盘 = 产出一份**无人消费**的字节," +
+                "且漂移门会把它钉成「必须与 baker 输出逐字节一致」—— 而布局还要变" +
+                "(八病种落地时 `Relapse` / `Signs` 须入编码,格式版本 +1,见 CookedWriter 文件尾 ②)。" +
+                "⇒ 待读方 codec 与八病种布局同时定稿后再落盘。**这是欠账,不是豁免。**",
+        };
 
         // ══════════════════ 门 ①:已烘产物逐字节比对 ══════════════════
 
@@ -320,7 +336,7 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
 
             // 扫描器完备性哨兵 —— 剥离器若过度吞字(如把逐字串 `@"…"` 的 `"` 当转义),
             // 声明集会**变小**,本行先红。⚠️ 这是本门唯一能自证「扫全了」的判据。
-            const int pinnedDeclared = 21; // 2026-10-21 实测(21 份;+48_tutorial_content(S17-3 AC-5 接线)+24 clinic 三表(S17-2 接线)+21a 家具目录(O-24-1 兑现)+23 模块目录(TD-itemdb-01 兑现))
+            const int pinnedDeclared = 22; // 2026-10-22 实测(22 份;+disease_registry(9 注册表写方,2026-10-22)—— 前值 21,见 git 历史)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +
@@ -425,7 +441,7 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
         [Test]
         public void test_registry_knownUnbakedCount_isPinned()
         {
-            const int pinned = 0; // 2026-10-20 补烘后值(原 6,见类头 §未登记产物)
+            const int pinned = 1; // 2026-10-22 值(原 0 —— 2026-10-20 补烘后清空;+1 = disease_registry,写方已立读方未立)
 
             Assert.That(KnownUnbaked.Count, Is.EqualTo(pinned),
                 $"KnownUnbaked 条数 = {KnownUnbaked.Count},钉定值 = {pinned}。" +

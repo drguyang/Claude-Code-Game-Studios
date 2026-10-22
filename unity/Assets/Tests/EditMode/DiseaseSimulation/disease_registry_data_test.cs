@@ -174,15 +174,53 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         }
 
         [Test]
-        public void test_dataFile_hasExactlyTheFiveWhitelistRows()
+        public void test_dataFile_containsExactlyTheFiveWhitelistInjuryRows()
         {
+            // ⚠️ 2026-10-22 改名 + 收窄:本断言原先要求「**全部行**恰等于白名单五项」。
+            //    八病种落地后该口径失效 —— 文件里现在有 5 伤情 + 8 病种 = 13 行。
+            //    改为只对 `kind: injury` 的行断言闭集,病种行由下一条断言管。
             var rows = LoadRows(File.ReadAllText(DataPath));
-            string[] keys = rows.Select(r => r.DiseaseKey).OrderBy(k => k, StringComparer.Ordinal).ToArray();
+            string[] keys = rows
+                .Where(r => r.DiseaseKey.StartsWith("INJ_", StringComparison.Ordinal))
+                .Select(r => r.DiseaseKey)
+                .OrderBy(k => k, StringComparer.Ordinal)
+                .ToArray();
             string[] expected = Whitelist.OrderBy(k => k, StringComparer.Ordinal).ToArray();
 
             Assert.That(keys, Is.EqualTo(expected),
-                "五行须恰等于白名单闭集(death-and-respawn.md:96)\n" +
+                "伤情行须恰等于白名单闭集(death-and-respawn.md:96)\n" +
                 $"实得:{string.Join(", ", keys)}\n应得:{string.Join(", ", expected)}");
+        }
+
+        /// <summary>
+        /// R3.3 八病种必在(GDD :428 表)。**断言键集合,不写死行数** ——
+        /// 写死行数会让「加一行数据」变成「改一个测试」。
+        /// </summary>
+        [Test]
+        public void test_dataFile_containsAllEightR33Diseases()
+        {
+            // ⚠️ 走**真 binder**,不走本文件的 `LoadRows` ——
+            //    后者是手写最小读取器,第 83 行硬编码 `continue` 掉所有非 injury 行,
+            //    用它断言病种存在会**永远红**(读不到 ≠ 不存在)。
+            var bound = DaYiJingCheng.EditorTools.Bake.DiseaseRegistryBinder
+                .Bind(File.ReadAllText(DataPath));
+
+            var keys = new System.Collections.Generic.HashSet<string>();
+            foreach (var r in bound.Rows) keys.Add(r.DiseaseKey);
+
+            string[] required =
+            {
+                "DIS_MALARIA", "DIS_RHEUMATIC_FEVER", "DIS_HEART_FAILURE", "DIS_TYPHOID",
+                "DIS_MEASLES", "DIS_DYSENTERY", "DIS_TETANUS", "DIS_NEURASTHENIA",
+            };
+            foreach (string k in required)
+                Assert.That(keys, Does.Contain(k), $"R3.3 病种缺失:{k}(GDD :428)");
+
+            // 病种行的 kind 必须是 Disease(不是 Injury)—— 防「建了行但 kind 写错」
+            foreach (var r in bound.Rows)
+                if (r.DiseaseKey.StartsWith("DIS_", StringComparison.Ordinal))
+                    Assert.That(r.Kind, Is.EqualTo(DiseaseKind.Disease),
+                        $"{r.DiseaseKey} 的 kind 应为 Disease");
         }
 
         // ══════════════════════════════════════════════════════════════════════
