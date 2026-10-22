@@ -8433,3 +8433,14 @@ M6 首版变异形态(`if (false) throw …`)导致 **switch 段落穿透 = 编�
 - **仍未做(禁借绿)**:`/smoke-check sprint` · `/team-qa sprint` · `/code-review` · `sprint-status` 归档 `sprint-status-sprint18-archive.yaml`(SHA-256 逐字节)。⇒ **sprint-18 未收口**。
 - 编辑器**可重开**(batch 已退出,锁文件已释放)。
 
+
+<!-- S18-2 收口 2026-10-22 -->
+## ✅ S18-2 收口(折叠谓词 `Folded(p)` + 折叠行产出)
+
+- **`status: done`**(`production/sprint-status.yaml`:owner `claude` · `completed: 2026-10-22`)。落盘六件:`Sim.Contracts/IFoldedPredicate.cs` · `Sim/FoldedPredicate.cs` · `Sim/FoldRow.cs` · `Sim/HistoryFolder.cs` · `Sim.Codec/SaveService.cs`(改)· `Tests/EditMode/PersistenceService/folded_predicate_test.cs`(29 测)。回写:`adr-025:112` 的「② `IFoldedPredicate`」标已落。
+- **三元组**:基线 = 本 sprint 自身 `s18-editmode-final-20261022`(`4389 / 4353 / 0 / 36`@`220acc3`);本次 = **截至 2026-10-22 08:27 +0800 · 批次 `s18-2-folded-full-20261022` · 树 `220acc3` + S18-2 未提交件** ⇒ `4418 / 4382 / 0 / 36`。**Δtotal = Δpassed = 新增 29**;全名集差集 = **新增 29 / 消失 0**;`error CS` = 0。
+- **证伪轮 4/4 全红**(改 → 跑 → `cp` 还原 → `sha256sum -c`,同命令内完成,未用 `git checkout`):定义域守卫 / `Lethality <= 0` 半条件 / 重复终态抛错 / `SkillGrown` 豁免 —— 各自只打红目标测,零附带红。
+- **⚠️ 与提案的一处偏离(已登记未代拍)**:折叠的**保留面**从「保留无终态病程的行」改为「抹除该病人全部病史行减 `SkillGrown`」—— 布尔谓词无「按病种切」的信息、终态是吸收态、非 onset/outcome 行不携带病种 id。之缝新立 **`OQ-7a-10`**(`design/gdd/persistence-service.md` §Open Questions)。
+- **仍未做(禁借绿)**:`FoldedPredicate` **零生产调用点**(折叠未进存档路径 ⇒ `SaveService` 形参默认 `null`)· 9 的终态写者仍挂 `WriterExistenceGate` · 折叠行字节级落盘归 7a 往返轮 · `PRE-S18-D`(lethal 口径)待用户确认。
+- **⚠️ 上一条 S18-3 记录的「仍未做」订正(原文不删)**:其中 `/smoke-check sprint` **已完成**(`production/qa/smoke-2026-10-22.md`,commit `e5b2623`,verdict = PASS WITH WARNINGS)。仍欠:`/team-qa sprint` · `/code-review` · `sprint-status` 归档 `sprint-status-sprint18-archive.yaml`(SHA-256 逐字节)。
+- 编辑器**可重开**(batch 已退出,锁文件已释放)。

@@ -27,13 +27,36 @@ namespace DaYiJingCheng.Sim.Codec
     {
         private readonly string _basePath;
         private readonly ISaveCodec _codec;
+        private readonly IFoldedPredicate _folded;
 
-        public SaveService(string basePath, ISaveCodec codec)
+        /// <summary>
+        /// 构造。
+        /// </summary>
+        /// <param name="basePath">存档目录(须可写)。</param>
+        /// <param name="codec">存档编解码器。</param>
+        /// <param name="folded">
+        /// 折叠谓词(7a 义务 G-2 · `IFoldedPredicate` 住 `Sim.Contracts`、实现住 `Sim`)。
+        /// <para><b>为何走构造函数注入而不是给 <c>Checkpoint</c> 加形参</b>:ADR-010 <c>:331</c>
+        /// 逐字 <c>interface ISaveService { void Checkpoint(SaveSlot slot); }</c>,并带
+        /// **反射断言「公开方法参数集恰等于 <c>{SaveSlot}</c>」** ⇒ 加形参会直接打红该断言
+        /// (ADR-025 §① 2026-10-21 甲案裁定 ④)。</para>
+        /// <para><b>可空</b>:折叠尚未进入存档路径(本类的 <c>SaveBytes</c> 只收原始字节,
+        /// <c>SaveCodec</c> 只有单事件编解码)⇒ 允许不注入。**未注入 ≠ 可折叠**:
+        /// 消费方拿 <c>SaveService.FoldedPredicate</c> 判断是否可用,本类不替它决定。</para>
+        /// </param>
+        public SaveService(string basePath, ISaveCodec codec, IFoldedPredicate folded = null)
         {
             _basePath = basePath ?? throw new ArgumentNullException(nameof(basePath));
             _codec = codec ?? throw new ArgumentNullException(nameof(codec));
+            _folded = folded;
             Directory.CreateDirectory(_basePath);
         }
+
+        /// <summary>
+        /// 注入的折叠谓词(未注入 ⇒ <c>null</c>)。
+        /// <para>只读暴露:让装配层与测试可以核对「注入的是哪个实现」,不必反射私有字段。</para>
+        /// </summary>
+        public IFoldedPredicate FoldedPredicate => _folded;
 
         /// <summary>原子写:tmp → flush → rename。双档 bak。</summary>
         public void SaveBytes(SaveSlot slot, byte[] data)
