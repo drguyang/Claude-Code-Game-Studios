@@ -56,6 +56,20 @@ namespace DaYiJingCheng.Sim
     public static class StateMachine
     {
         // AC-17: 三阈值严格单调
+        //
+        // ⚠️⚠️ **以下三个值是实现期占位值,不是裁定值**(2026-10-22 补注,承 PRE-S18-B)。
+        //   权威:`design/gdd/disease-simulation.md` §五 三行 default 全为 `*待定*`;
+        //   `design/registry/entities.yaml` 的 `CRITICAL_THRESHOLD` / `COMA_THRESHOLD` /
+        //   `DEATH_THRESHOLD` 三块 value 亦写「待定」并把本处值标注为「现网实现值,非裁定值」。
+        //   数值归用户数值轮 —— **改它们须先有裁定记录**,不得由实现侧自行调。
+        //
+        //   量纲:Q16.16 raw(`9000 / 65536 ≈ 0.1373`),与 GDD「三阈值 ∈ (0,1]」一致。
+        //   约束:`CRITICAL < COMA < DEATH` 且 `DEATH < 1`(校验 9 —— 取 1 会让
+        //   `position = 1 − ulp < 1`,死亡永不可达)。
+        //
+        //   ⚠️ 连带:`DEATH_THRESHOLD` 同时是注册表写入期两条下界的量纲来源
+        //   (校验 4b / 14:`plateau ∧ lethal` 与急性保持型须 `A_peak/SCALE ≥ DEATH_THRESHOLD`)。
+        //   本值一动,伤情 / 病种数据行的 `A_peak` / `Scale` 须同批复核。
         public const int CRITICAL_THRESHOLD = 3000;
         public const int COMA_THRESHOLD = 6000;
         public const int DEATH_THRESHOLD = 9000;
