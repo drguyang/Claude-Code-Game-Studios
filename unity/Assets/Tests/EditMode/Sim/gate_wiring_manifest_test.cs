@@ -102,6 +102,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "PrescriptionWriterGates.RunAll",// 11 写者门
                     "EcozoneIntegerGates.RunAll",    // AC-6-22 · 2026-10-21 接线上线
                     "EmergencyIntegerGates.RunAll",  // AC-10-02 / -03 · 同上
+                    "RuleNineGate.RunAll",           // AC ⑥ 规则九(源码 + IL)· 2026-10-22 接线上线
                 },
 
                 // BuildGate = IPreprocessBuildWithReport.OnPreprocessBuild(**构建前 fail-fast**)。
@@ -115,6 +116,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "PrescriptionWriterGates.RunAll",
                     "EcozoneIntegerGates.RunAll",      // AC-6-22(BLOCKING)· 2026-10-21 接线上线
                     "EmergencyIntegerGates.RunAll",    // AC-10-02 / -03(BLOCKING)· 同上
+                    "RuleNineGate.RunAll",             // AC ⑥ 规则九(BLOCKING)· 2026-10-22 接线上线
                 },
             };
 
@@ -235,6 +237,11 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 Consumer = "RunMenu+BuildGate",
                 Note = "AC-10-02/10-03 BLOCKING。2026-10-21 接线上线:同款守卫;" +
                        "扫两装配(AC-10-02→Gameplay.Input / AC-10-03→Sim)" },
+            new ClassVerdict { ClassName = "RuleNineGate", Kind = WiringKind.Chain,
+                Consumer = "RunMenu+BuildGate",
+                Note = "S18-1 AC ⑥(BLOCKING · `R2-AC6`)。2026-10-22 立:此前长期 NOT-RUN" +
+                       " —— S18-1 测试注释自述「有 AST 式断言」,实测该断言从未存在(第五个假绿形态)。" +
+                       "判据形态按 qa-plan:80 = 源码 + IL 双证,两半都在 RunAll 内合流" },
 
             // ── 仅测试驱动(**无构建期强制点**)──
             new ClassVerdict { ClassName = "PodTypeScanner", Kind = WiringKind.TestDriven,

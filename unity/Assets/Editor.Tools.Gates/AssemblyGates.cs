@@ -119,6 +119,11 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 「调用点纪律」,下一个调用方就会漏。
             errs.AddRange(EcozoneIntegerGates.RunAll());       // AC-6-22
             errs.AddRange(EmergencyIntegerGates.RunAll());     // AC-10-02 / AC-10-03
+            // 2026-10-22(S18-1 AC ⑥ 收口):规则九门。AC ⑥ 长期 NOT-RUN ——
+            //   S18-1 测试注释曾声称「文件末尾有 AST 式断言」,实测该断言从未存在。
+            //   判据形态按 `qa-plan-sprint-18-2026-10-21.md:80` = **IL + 源码双证**
+            //   (原文「单靠 grep 可被换写法绕过」)⇒ 本门两半都在,RunAll 内合流。
+            errs.AddRange(RuleNineGate.RunAll("."));           // AC ⑥ · 规则九
             foreach (var e in errs) Debug.LogError(e);
             Debug.Log(errs.Count == 0
                 ? "[AssemblyGates] b2/b3/b3-refdup/b4/b5 + 3 意图边界门 + 8 边界门 + 11 写者门 " +
@@ -1262,6 +1267,8 @@ namespace DaYiJingCheng.EditorTools.Gates
                 // 与 RunMenu 同一形态,守卫在门内(见 RunMenu 处注释)。
                 errs.AddRange(EcozoneIntegerGates.RunAll());       // AC-6-22
                 errs.AddRange(EmergencyIntegerGates.RunAll());     // AC-10-02 / AC-10-03
+                // 2026-10-22(S18-1 AC ⑥):规则九门接入构建前 fail-fast(与上面两 IL 门同格)。
+                errs.AddRange(RuleNineGate.RunAll("."));           // AC ⑥ · 规则九(源码 + IL)
                 if (roots == 0)
                     errs.Add("[InputBoundaryGates] A7 扫描根为 0 —— 扫描面丢失(假绿面),构建中止。");
                 if (errs.Count == 0) return;
@@ -1269,7 +1276,7 @@ namespace DaYiJingCheng.EditorTools.Gates
                 throw new BuildFailedException(
                     $"[AssemblyGates] 构建前门失败 {errs.Count} 条(装配封闭性 / ToFloat 白名单 / " +
                     "44 边界门 / 8 边界门 / 3 意图边界门 / 11 写者门 / 6 生态区整数门 / " +
-                    "10 急救整数门)—— 见构建日志红行。");
+                    "10 急救整数门 / 规则九门)—— 见构建日志红行。");
             }
         }
     }

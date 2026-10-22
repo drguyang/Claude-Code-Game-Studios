@@ -121,6 +121,13 @@ namespace DaYiJingCheng.EditorTools.Gates
             },
             new Declaration
             {
+                FileSuffix = "EditMode/DiseaseSimulation/rule_nine_gate_test.cs",
+                Reason = "`Application.dataPath` 仅用于**读**(定位 unity/ 根以扫 RuleNineGate.cs 源文本、" +
+                         "取 ScriptAssemblies 下的 DLL 做 IL 半);写目标 = Path.GetTempPath() 下的" +
+                         "一次性探针目录(`rulenine-probe-<guid>`),TearDown 即删 —— 不写仓库",
+            },
+            new Declaration
+            {
                 FileSuffix = "EditMode/PatientAI/presentation_projection_test.cs",
                 Reason = "`Directory.GetCurrentDirectory` 在被测门的**读**搜索路径表里;写目标走局部 tmp",
             },
