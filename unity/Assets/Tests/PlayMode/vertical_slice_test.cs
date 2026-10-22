@@ -43,8 +43,21 @@ namespace DaYiJingCheng.Tests.PlayMode
     /// </summary>
     public class VerticalSliceTest
     {
-        /// <summary>合成病种 id(镜像 synthetic_disease_fixture;1..8 P0 冻结清单之外)。</summary>
-        private const int SyntheticDiseaseId = 9001;
+        /// <summary>
+        /// 合成病种 id(镜像 <c>Tests/EditMode/DiseaseSimulation/synthetic_disease_fixture.cs</c>)。
+        ///
+        /// <para><b>🔁 2026-10-22 由 9001 改为 64</b>:两处镜像须同批同值。
+        /// <c>RegistrySchemaValidator.R1_CHECK_33</c> 立起后 <c>DiseaseId ∈ [1, 64]</c>,
+        /// <c>9001</c> 越界 ⇒ 任何走 <c>Validate</c> 的路径都会拒收。
+        /// 取<b>上界 64</b> 是刻意的:它同时避开真表的 2..14 与 fallback 的 1,
+        /// 且若将来有人扩 <c>DiseaseIdMax</c>,本常量立刻越界转红(位掩码是 <c>ulong</c>,扩上界须换类型)。</para>
+        ///
+        /// <para><b>为什么这里写字面量而不引用 <c>RegistrySchemaValidator.DiseaseIdMax</c></b>:
+        /// 本文件与 EditMode fixture 是<b>两份同源镜像</b>(EditMode.asmdef 为 Editor-only,
+        /// PlayMode 不得引用),镜像的语义就是「两边各写一遍、由人同批改」。
+        /// 改字面量为常量引用会掩盖「两处可能不同步」这个事实。</para>
+        /// </summary>
+        private const int SyntheticDiseaseId = 64;
 
         /// <summary>潜伏期刻度(镜像 fixture;给药前基线的取样窗口上界)。</summary>
         private const int IncubationTicks = 600;

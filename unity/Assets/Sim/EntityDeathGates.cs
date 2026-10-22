@@ -22,6 +22,30 @@
 //
 // ⚠️ 本文件**不**实现 F4 的求值(越阈 + 干预窗口),只提供三个门。
 //    F4 的死亡支求值依赖 `TREATMENT_WINDOW` 等常量,那些值尚未裁定(PRE-S18-B / D)。
+//
+// 🔁 **2026-10-22 补注 —— 上面那句「理由」已失效,但结论不变(原文不删)**:
+//    `TREATMENT_WINDOW`(3600 tick)/ `CARE_GAP`(600 tick)/ `RECOVER_THRESHOLD`(7864 raw)
+//    三值已于 2026-10-22 裁定并登记(`entities.yaml` + GDD §五)⇒ **「值没裁」不再是
+//    不实现 F4 求值的理由**。F4 求值仍未实现,但性质从「阻塞(前提缺失)」变成
+//    **「欠账(可做未做)」** —— 差的是**求值体**,不是**数值**。
+//
+//    差的三件(实测,非声称):
+//    ① **求值体** —— 本类只出 `LethalFor` / `SelfLimited` / `IsCombatant` 三个门;
+//       「越阈 ∧ 过窗口」那两半没有落点。`StateMachine.ComputeTransition` **也不承担**
+//       (它只做纯阈值分级,且签名里 `lastInterventionTick` / `currentTick` / `diseaseKey`
+//       三个形参**函数体一个都不读** —— 见 `StateMachine.cs` 该方法的补注)。
+//    ② **`last_intervention` 求值体** —— 全库 `grep -rn "last_intervention\|LastIntervention"
+//       Assets/ --include=*.cs | grep -v Tests` **零命中**。GDD `:1126-1133` 要它从流重算
+//       (三通道取 max,空则 `onset_tick` 哨兵),而聚合器不存在 ⇒ 连入参都备不出来。
+//    ③ **注册表侧 4b** —— `A_peak/SCALE ≥ DEATH_THRESHOLD` 的写入期下界**全库零校验**
+//       (见 `RegistrySchema.cs` 的 `R1_CHECK_22` 补注)。缺它,注册表可以收进一条
+//       「致死但永远打不到死线」的行。
+//
+//    ⚠️ **可达性(诚实分级)**:`ComputeTransition` 当前**生产调用点 = 0**
+//    (`InjuryStateChangedWriter` 无生产调用方)⇒ 上述缺口**今天不可达**。
+//    但 9 的 `Step` 一旦接线,纯阈值判定会让任何实体 `position ≥ 0.58` 即判死,
+//    **绕过两门与窗口** ⇒ 敌人/兽被疾病杀死(违 ADR-016 §二)、玩家被白名单伤情
+//    直接死而跳过昏迷。⇒ 该缺口须在 9 的 Step 接线**之前**补。
 
 using System;
 using System.Collections.Generic;

@@ -1566,13 +1566,16 @@ constants:
     referenced_by:
       - design/gdd/disease-simulation.md        # F4 危殆判定(九态闭合)
       - design/gdd/combat-and-weapon-lines.md   # A12 联动(TRAUMA_CAP ≥ COMA_THRESHOLD)
-    value: "待定 —— 见 disease-simulation.md Tuning Knobs §五。⚠️ 现网实现值 = 3000 raw
-      (≈ 0.0458)住 `Sim/StateMachine.cs:73`,**非裁定值**"
+    value: "19661 raw(≈ 0.3000)—— **2026-10-22 用户裁定(档 C)**。
+      量纲 Q16.16(65536 = 1.0);住 `Sim/StateMachine.cs` 同名常量,两侧同批落盘。
+      裁定依据:GDD §五(:1676-1679)+ 伤情梯度要求(DEATH 抬高使 R2 五项的
+      `A_peak/Scale` 产生真实致死性差异)。⚠️ 原「现网实现值 3000/6000/9000 raw」
+      作废,原文保留在 git 历史中。"
     unit: "Q16.16 position"
     constraint: "∈ (0,1];`CRITICAL < COMA < DEATH` 严格单调(校验 9)——
       倒置会造出「先死后昏迷」的状态机,构建期拒"
     added: 2026-10-22
-    revised: ""
+    revised: "2026-10-22 —— 用户裁定档 C,值由「待定」改为裁定值"
 
   - name: COMA_THRESHOLD
     status: active
@@ -1581,14 +1584,17 @@ constants:
       - design/gdd/disease-simulation.md        # F4 昏迷判定(C1 登记点;2026-10-21 订正后昏迷支**无谓词门**)
       - design/gdd/combat-and-weapon-lines.md   # A12(`TRAUMA_CAP ≥ COMA_THRESHOLD`)· A13a/A13b
       - docs/architecture/adr-016-ai-architecture.md   # §二 combatant 归零 = 昏迷(非死亡)
-    value: "待定 —— 见 disease-simulation.md Tuning Knobs §五。⚠️ 现网实现值 = 6000 raw
-      (≈ 0.0916)住 `Sim/StateMachine.cs:74`,**非裁定值**"
+    value: "29491 raw(≈ 0.4500)—— **2026-10-22 用户裁定(档 C)**。
+      量纲 Q16.16(65536 = 1.0);住 `Sim/StateMachine.cs` 同名常量,两侧同批落盘。
+      裁定依据:GDD §五(:1676-1679)+ 伤情梯度要求(DEATH 抬高使 R2 五项的
+      `A_peak/Scale` 产生真实致死性差异)。⚠️ 原「现网实现值 3000/6000/9000 raw」
+      作废,原文保留在 git 历史中。"
     unit: "Q16.16 position"
     constraint: "`CRITICAL < COMA < DEATH`(校验 9)。⚠️ **`TRAUMA_CAP` 的下界依赖本值**:
       A12 要求 `TRAUMA_CAP ≥ COMA_THRESHOLD`(25 侧 `TRAUMA_CAP = 4/5` 已裁 2026-10-07)
-      ⇒ 本值一经裁定,**须同批复核 A12 是否仍成立**(现网 6000 raw ≈ 0.0916 < 0.8,成立)"
+      ⇒ **2026-10-22 已复核 A12 仍成立**:COMA = 29491 raw ≈ 0.45 ≤ `TRAUMA_CAP` = 0.8 ✓(原注记的「现网 6000 raw」已作废)"
     added: 2026-10-22
-    revised: ""
+    revised: "2026-10-22 —— 用户裁定档 C,值由「待定」改为裁定值"
 
   - name: DEATH_THRESHOLD
     status: active
@@ -1597,15 +1603,18 @@ constants:
       - design/gdd/disease-simulation.md        # F4 死亡门(铁律一的落地)
       - design/gdd/disease-simulation.md        # 校验 4b / 14:急性保持型与 plateau∧lethal 须 `A_peak/SCALE ≥ 本值`
       - design/gdd/death-and-respawn.md         # 规则二:白名单伤情须靠自身曲线越本值
-    value: "待定 —— 见 disease-simulation.md Tuning Knobs §五。⚠️ 现网实现值 = 9000 raw
-      (≈ 0.1373)住 `Sim/StateMachine.cs:75`,**非裁定值**"
+    value: "38011 raw(≈ 0.5800)—— **2026-10-22 用户裁定(档 C)**。
+      量纲 Q16.16(65536 = 1.0);住 `Sim/StateMachine.cs` 同名常量,两侧同批落盘。
+      裁定依据:GDD §五(:1676-1679)+ 伤情梯度要求(DEATH 抬高使 R2 五项的
+      `A_peak/Scale` 产生真实致死性差异)。⚠️ 原「现网实现值 3000/6000/9000 raw」
+      作废,原文保留在 git 历史中。"
     unit: "Q16.16 position"
     constraint: "`> COMA_THRESHOLD` 且 **`< 1`** —— 不得取 1:保守舍入会让
       `position = 1 − ulp < 1`,死亡**永不可达**(校验 9)。三阈值严格单调 `CRITICAL < COMA < DEATH`。
       ⚠️ 本值同时是两条**注册表写入期下界**的量纲来源(校验 4b / 14):
       `plateau ∧ lethal` 与急性保持型都须 `A_peak/SCALE ≥ DEATH_THRESHOLD`,否则「致死型永不致死」"
     added: 2026-10-22
-    revised: ""
+    revised: "2026-10-22 —— 用户裁定档 C,值由「待定」改为裁定值"
 
   - name: TREATMENT_WINDOW
     status: active
@@ -1613,27 +1622,47 @@ constants:
     referenced_by:
       - design/gdd/disease-simulation.md        # F4 死亡支:最后一次有效干预后多久算「放弃」
       - design/gdd/disease-simulation.md        # 校验 17 排序:`TREATMENT_WINDOW ≥ CARE_GAP`
-    value: "待定 —— 见 disease-simulation.md Tuning Knobs §五。
-      ⚠️ **本值连实现期占位值都没有**(`grep` 全树 `.cs` 零命中)⇒ F4 死亡支的窗口条件
-      当前**不可求值**,`EntityDeathGates` 只提供实体门、不实现 F4 求值(该文件头注已登记)"
+    value: "3600 tick(@ 20 Hz = 180 秒 = 3 分钟)—— **2026-10-22 用户裁定**。
+      裁定口径:玩家离开病人 30 秒算照护中止(`CARE_GAP`),再过 3 分钟死 ——
+      留出跑腿取药的时间,但铁律二的悲剧面仍可达成。
+      ⚠️ 原「连实现期占位值都没有」的状态就此结清;`EntityDeathGates` 仍只提供实体门、
+      不实现 F4 求值(该文件头注所记的缺口**未因此消失**)。"
+    # ── 实现侧欠账(2026-10-22 复核登记;**这不是常量**,是「谁读它」的缺口)──
+    #   ⚠️ **值已裁 ≠ F4 可求值** —— 三件实测缺口:
+    #     ① F4 求值体不存在:`EntityDeathGates` 只出三个门;
+    #        `StateMachine.ComputeTransition` 只做纯阈值分级,且其三个形参
+    #        (`lastInterventionTick` / `currentTick` / `diseaseKey`)**函数体一个都不读**。
+    #     ② `last_intervention` 聚合器不存在:全库 `grep -rn "last_intervention\|LastIntervention"
+    #        unity/Assets/ --include=*.cs | grep -v Tests` ⇒ **零命中**。
+    #        GDD `:1126-1133` 要它从三通道取 max(有效对因处置 / 护理动作止 / 最后动作 tick + CARE_GAP),
+    #        空则 `onset_tick` 哨兵 ⇒ F4 连入参都备不出来。
+    #     ③ 注册表侧 4b(`A_peak/SCALE ≥ DEATH_THRESHOLD`)零校验(见 `R1_CHECK_22` 补注)。
+    #   ⇒ **① 与 ② 必须同批实现**(否则 F4 只能吃外部灌进来的数,违 ADR-016 §一 三源不变量);
+    #     ③ 须在 ① 之前或同批。
+    #   ⚠️ **可达性**:`ComputeTransition` 当前生产调用点 = 0(`InjuryStateChangedWriter` 无生产调用方)
+    #     ⇒ 今天不可达。但 9 的 `Step` 一旦接线,纯阈值判定会让任何 `position ≥ 0.58` 即判死,
+    #     **绕过两门与窗口** ⇒ 敌人/兽被疾病杀死(违 ADR-016 §二)、玩家被白名单伤情直接死而跳过昏迷。
+    #     ⇒ **须在 9 的 Step 接线之前补**。
+    #   归属:9 实现轮。裁定名 `F4OutcomeEvaluator.Evaluate`(纯函数,与 ComputeTransition 分家)。
     unit: ticks
     constraint: "> 0。**这是铁律一的时间维度**;照护 ≠ 药 —— 对症药不刷窗口。
       **须 `≥ CARE_GAP`**(校验 17,否则「连续照护」在窗口内会被误判中止,
       AC-30① 的 fixture 不可构造)"
     added: 2026-10-22
-    revised: ""
+    revised: "2026-10-22 —— 用户裁定,值由「待定」改为裁定值"
 
   - name: RECOVER_THRESHOLD
     status: active
     source: design/gdd/disease-simulation.md
     referenced_by:
       - design/gdd/disease-simulation.md   # F4 痊愈判定(九态闭合,B5)
-    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    value: "7864 raw(≈ 0.1200)—— **2026-10-22 用户裁定(档 C)**。
+      排序校验 `RECOVER < CRITICAL < COMA < DEATH` 满足(0.12 < 0.30 < 0.45 < 0.58)。"
     unit: "Q16.16 position"
     constraint: "0 ≤ RECOVER_THRESHOLD < CRITICAL_THRESHOLD —— 痊愈须在危殆之下;
       < 0 或 ≥ CRITICAL_THRESHOLD 构建期拒(九态机自洽,B5 闭合)"
     added: 2026-09-15
-    revised: ""
+    revised: "2026-10-22 —— 用户裁定,值由「待定」改为裁定值"
 
   - name: TREND_EPS
     status: active
@@ -1733,13 +1762,15 @@ constants:
     referenced_by:
       - design/gdd/disease-simulation.md   # F4 last_intervention 照护通道(B′;相邻护理动作 gap > CARE_GAP ⇒ 中止)
       # ✅ 2026-09-19:24 医馆即机器已成稿(clinic-machine.md);⚠️ 护理动作「时基(tick 刻度)」的本值同刻度措辞仍未见 24 正文 —— 载体回填义务待 24 修订轮
-    value: "待定 —— 见 disease-simulation.md Tuning Knobs"
+    value: "600 tick(@ 20 Hz = 30 秒)—— **2026-10-22 用户裁定**。
+      相邻护理动作 gap > 本值 ⇒ 照护中止,死亡倒计时开始。
+      排序校验 `TREATMENT_WINDOW(3600) ≥ CARE_GAP(600)` 满足(校验 17)。"
     unit: ticks
     constraint: "≥ 0 整数 —— 相邻护理动作事件 gap > CARE_GAP ⇒ 视为照护中止(死亡倒计时开始);
       0 表示「护理动作须首尾相接」;值越大照护越宽容。仅由 24 的【护理动作事件】测量,
       【不得】由 EnvMod / 「在医馆」状态推出(2026-09-16 三轮 · 二轮 B2)"
     added: 2026-09-16
-    revised: ""
+    revised: "2026-10-22 —— 用户裁定,值由「待定」改为 600 tick"
 
   # ── CARE_EVENTS_PER_TICK ─────────────────────────────────────────────
   # 每病人每 tick 护理动作事件数上界(2026-09-16 三轮 · 集群 7)。

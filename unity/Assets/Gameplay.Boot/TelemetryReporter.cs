@@ -44,8 +44,10 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>构造(组合根调用点)。</summary>
         /// <param name="stream">事件流(只读其 <see cref="EventStream.Events"/> 快照;不持写面)。</param>
         /// <param name="decoder">载荷解码器(实现在 `Sim.Codec`;组合根引得到,51 的装配引不到 ⇒ 委托注入)。</param>
-        /// <param name="registry">病种注册表(真表到位后替换 Fallback;DiseaseId → ordinal,
-        /// 与 CaseClosed 位掩码 bit 位置对齐,用于把 truth/judged 还原成同一字符串空间)。</param>
+        /// <param name="registry">病种注册表(真表到位后替换 Fallback)。
+        /// <para>用途:把 CaseClosed 位掩码的 <c>bit index</c> 经 <c>bit + 1</c> 还原成
+        /// <c>DiseaseId</c> 后,与这里的 <c>DiseaseId</c> 集合比对,使 truth / judged
+        /// 落在同一字符串空间。位序契约见 <c>PayloadCommon.cs</c> 的 <c>DiseaseIdSet</c> 注释块。</para></param>
         /// <param name="knobs">可空旋钮(第十二片);null ⇒ 不代填。</param>
         public TelemetryReporter(EventStream stream, IPayloadDecoder decoder,
                                  IReadOnlyList<DiseaseRegistryEntry> registry,
@@ -119,9 +121,20 @@ namespace DaYiJingCheng.Gameplay.Boot
                 {
                     case EventKind.CaseClosed:
                         var closed = _decoder.Decode<CaseClosedPayload>(kind, payloadRef);
-                        // 位掩码 → ordinal 升序(ordinal 0-based → DiseaseId 1-based,即 bit+1)。
-                        // 与 `PatternDetector.DiseaseOrdinalsOf` 定序一致：bit 位置 i 对应
-                        // 注册表第 i 个条目，DiseaseId = i + 1(ADR-014 append-only ordinal)。
+                        // 位掩码 → **DiseaseId** 升序:bit index(0-based) → DiseaseId(1-based),
+                        // 即 `DiseaseId = bit + 1`(2026-10-22 裁定的位序契约,见
+                        // `Sim.Contracts/Payloads/PayloadCommon.cs` 的 `DiseaseIdSet` 注释块)。
+                        //
+                        // ⚠️ 此处**必须 +1** —— 本文件消费的是 **DiseaseId**(与注册表 `id`、
+                        //    与 JudgmentRecorded 的 lexicon_id 比对),不是 bit index。
+                        //    而 `PatternDetector.DiseaseBitIndicesOf` **刻意不加 1**,它服务的是
+                        //    「逐 bit 独立」的检测逻辑,那条链上的 bit 语义自洽闭环、不与注册表对齐。
+                        //    ⇒ **两个函数用的不是同一个量**,不是「同口径」——
+                        //    原文写「与 DiseaseOrdinalsOf 定序一致」有歧义(已订正)。
+                        //
+                        // ⚠️ 真表 id 从 **2** 起(`id = 1` 归 CreateFallbackRegistry)⇒ 若把 +1 去掉,
+                        //    真表上每一格都会错位一格;**但 id 从 1 起的夹具看不出差别**(假绿形态,
+                        //    见 `disease_id_bit_pin_test.cs` 的 P2)。
                         ulong bits = closed.DiseaseSet.Bits;
                         var diseases = new List<int>();
                         for (int bit = 0; bit < 64; bit++)
@@ -546,11 +559,11 @@ namespace DaYiJingCheng.Gameplay.Boot
         // F2 误诊分布接线(下一条 story 轮会把 F3–F7 按同款模板补上)
 
         /// <summary>F2 误诊分布的本地报告文本(混淆矩阵 + 三桶显式计数)。
-        /// <para>truth = CaseClosed 位掩码的 ordinal(bit 位置)字符串集;</para>
+        /// <para>truth = CaseClosed 位掩码展开后的 <c>DiseaseId</c> 字符串集
+        /// (bit index + 1;位序契约见 <c>DiseaseIdSet</c> 注释块);</para>
         /// <para>judged = JudgmentRecorded/Revised 的 LexiconId 字符串集。</para>
         /// <para>两者同一字符串空间 ⇒ `diseaseEnum` = 注册表的 `DiseaseId`(字符串);
-        /// 位掩码 bit 位置 == DiseaseId(承 `DiseaseIdSet` bitmask 语义),既注册表病种
-        /// 又出现在矩阵行/列上。</para></summary>
+        /// 矩阵行/列上的每个值都是 <c>DiseaseId</c>,既注册表病种又参与比对。</para></summary>
         /// <param name="skipped">解码失败 / 载荷不可用被跳过的条数(可观测)。</param>
         public string MisdiagnosisReport(out int skipped)
         {
@@ -587,9 +600,20 @@ namespace DaYiJingCheng.Gameplay.Boot
                 {
                     case EventKind.CaseClosed:
                         var closed = _decoder.Decode<CaseClosedPayload>(kind, payloadRef);
-                        // 位掩码 → ordinal 升序(ordinal 0-based → DiseaseId 1-based,即 bit+1)。
-                        // 与 `PatternDetector.DiseaseOrdinalsOf` 定序一致：bit 位置 i 对应
-                        // 注册表第 i 个条目，DiseaseId = i + 1(ADR-014 append-only ordinal)。
+                        // 位掩码 → **DiseaseId** 升序:bit index(0-based) → DiseaseId(1-based),
+                        // 即 `DiseaseId = bit + 1`(2026-10-22 裁定的位序契约,见
+                        // `Sim.Contracts/Payloads/PayloadCommon.cs` 的 `DiseaseIdSet` 注释块)。
+                        //
+                        // ⚠️ 此处**必须 +1** —— 本文件消费的是 **DiseaseId**(与注册表 `id`、
+                        //    与 JudgmentRecorded 的 lexicon_id 比对),不是 bit index。
+                        //    而 `PatternDetector.DiseaseBitIndicesOf` **刻意不加 1**,它服务的是
+                        //    「逐 bit 独立」的检测逻辑,那条链上的 bit 语义自洽闭环、不与注册表对齐。
+                        //    ⇒ **两个函数用的不是同一个量**,不是「同口径」——
+                        //    原文写「与 DiseaseOrdinalsOf 定序一致」有歧义(已订正)。
+                        //
+                        // ⚠️ 真表 id 从 **2** 起(`id = 1` 归 CreateFallbackRegistry)⇒ 若把 +1 去掉,
+                        //    真表上每一格都会错位一格;**但 id 从 1 起的夹具看不出差别**(假绿形态,
+                        //    见 `disease_id_bit_pin_test.cs` 的 P2)。
                         ulong bits = closed.DiseaseSet.Bits;
                         var diseases = new List<int>();
                         for (int bit = 0; bit < 64; bit++)

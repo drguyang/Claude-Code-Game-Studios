@@ -9,17 +9,29 @@
 //   算出 F2 混淆矩阵 + 三桶」—— 与 EditMode 里喂假 CaseRecord 的替身是两回事。
 //
 // ⚠️ 关键空间(必须三方对齐,否则矩阵全错):
-//   · truth = CaseClosed 位掩码展开:bit 位置 i → DiseaseId = i+1(1-based,
-//     承 PatternDetector.DiseaseOrdinalsOf / ADR-014 append-only ordinal);
+//   · truth = CaseClosed 位掩码展开:**bit index i → DiseaseId = i + 1**
+//     (2026-10-22 裁定的位序契约,见 `Sim.Contracts/Payloads/PayloadCommon.cs`
+//     的 `DiseaseIdSet` 注释块);
 //   · judged = JudgmentRecorded/Revised 的 lexionId(P0 阶段按 lexicon_id == disease_id,
 //     与 truth 同 DiseaseId 空间,承 ADR-030 Q3);
 //   · diseaseEnum = 注册表的 DiseaseId 字符串集(TelemetryReporter 构造时注入)。
 //
+// 🔁 **2026-10-22 夹具 id 起点订正(1,2,3) → (2,3,4)** —— 这一改让本文件从**假绿**变成**真绿**:
+//   原夹具 id 从 **1** 起,而真表 `assets/data/disease_registry.json` 从 **2** 起
+//   (`id = 1` 归 `CompositionRoot.CreateFallbackRegistry`)。
+//   ⇒ 在「id = 1,2,3」的夹具里,`bit = id − 1` 与 `bit = 行序` **数值相同**
+//     ⇒ 本文件**分辨不出**两种读法,它证明的不是契约,是巧合。
+//   改成 (2,3,4) 后,若有人把 `bit` 理解成行序,`bit 0 → DiseaseId 1` 落不进
+//   `diseaseEnum = {"2","3","4"}` ⇒ **立刻转红**。
+//   位序契约本身由 `disease_id_bit_pin_test.cs`(P1/P2/P3)用真表钉死。
+//
 // 证伪判别力(每条若生产码守卫被移除/改错 ⇒ 本条转红):
 //   · 位掩码未展开(把 Bits 当单值) ⇒ truth 集合错 ⇒ 矩阵行/列错 ⇒ 红;
-//   · truth 不做 bit+1 ⇒ bit 0 → "0" ∉ diseaseEnum ⇒ nUnmappable 假升 ⇒ 红;
+//   · truth 不做 bit+1 ⇒ bit 1 → "1" ∉ diseaseEnum ⇒ nUnmappable 假升 ⇒ 红;
+//   · truth 多做一次 +1(或把 bit 当行序) ⇒ bit 1 → "2" 恰好仍对,**但 bit 0 → "1" 落空**
+//     ⇒ 这正是本夹具 id 起点必须 ≠ 1 的理由(见上);
 //   · judged 不走 lexionId ⇒ 列错 ⇒ 红;
-//   · diseaseEnum 不注入(用 fallback 只有 "1") ⇒ DiseaseId 2/3 全判 unmappable ⇒ 红.
+//   · diseaseEnum 不注入(用 fallback 只有 "1") ⇒ DiseaseId 2/3/4 全判 unmappable ⇒ 红.
 
 using System;
 using System.Collections.Generic;
@@ -38,6 +50,19 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
     [TestFixture]
     internal sealed class F2WiringTest
     {
+        // ── 夹具的 DiseaseId 起点 = 2(对齐真表;见文件头「夹具 id 起点订正」)──
+        private const int IdA = 2;   // bit index 1
+        private const int IdB = 3;   // bit index 2
+        private const int IdC = 4;   // bit index 3
+
+        /// <summary>
+        /// 把 <c>DiseaseId</c> 换成位掩码 —— <b>按位序契约</b> <c>bit index = DiseaseId − 1</c>。
+        /// <para>⚠️ 本 helper 内嵌了被测契约,故**不能**用它单独证明契约(那是
+        /// <c>disease_id_bit_pin_test.cs</c> 的活)。它在这里的作用是让每个夹具<b>显式说出</b>
+        /// 它想表示哪个病种,而不是靠一个裸的 <c>1UL &lt;&lt; 0</c> 让读的人猜。</para>
+        /// </summary>
+        private static ulong BitsOf(int diseaseId) => 1UL << (diseaseId - 1);
+
         private InMemoryBlobPool _pool;
         private IPayloadEncoder _encoder;
         private IPayloadDecoder _decoder;
@@ -47,8 +72,7 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         private TelemetryReporter _reporter;
         private long _tailTick;
 
-        /// <summary>最小注册表(DiseaseId → DiseaseKey)。DiseaseId 与位掩码 bit 位置
-        /// 的映射:bit i ↔ DiseaseId i+1。F2 wiring 使用 1..3。</summary>
+        /// <summary>最小注册表(DiseaseId → DiseaseKey)。</summary>
         private static IReadOnlyList<DiseaseRegistryEntry> Registry(params int[] ids)
             => ids.Select(id => new DiseaseRegistryEntry { Kind = DiseaseKind.Disease, DiseaseId = id,
                 DiseaseKey = $"d{id}",
@@ -64,8 +88,9 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             _presence = new PresenceRegistry();
             _stream = new EventStream(_ids, _presence);
             // F2 走 Compute,须把 truth/judged 还原成 diseaseEnum 空间 ⇒ registry 不能是
-            // fallback(只有 DiseaseId=1),否则 DiseaseId 2/3 的案例全被判 unmappable。
-            _reporter = new TelemetryReporter(_stream, _decoder, Registry(1, 2, 3));
+            // fallback(只有 DiseaseId=1),否则 IdA/IdB 的案例全被判 unmappable。
+            // ⚠️ id 从 2 起 —— 与真表一致,使「bit = id − 1」与「bit = 行序」在此**可区分**。
+            _reporter = new TelemetryReporter(_stream, _decoder, Registry(IdA, IdB, IdC));
             _tailTick = 10;
         }
 
@@ -124,23 +149,23 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         [Test]
         public void test_wired_realStream_f2MatrixAndBuckets()
         {
-            // Arrange:位掩码 bit i ↔ DiseaseId i+1; lexionId P0 阶段 == disease_id。
+            // Arrange:位掩码 bit index = DiseaseId − 1; lexionId P0 阶段 == disease_id。
             //   病例流的三条也全部入流:错序版本 ⇒ `Seq` 键不符 ⇒ 错判为 N_open(可观测)且 tick 不冲突。
-            //   c1: D={1}(bit0) ∧ J={1}          ⇒ M[1][1]      (判对)
-            //   c2: D={2}(bit1) ∧ J={1}          ⇒ M[2][1]      (判错)
-            //   c3: D=∅(bits=0)   ∧ J={1}        ⇒ M[无病][1]   (无病误开方)
-            //   c4: 仅判断 J={2}, 无 CaseClosed  ⇒ N_open++
-            //   c5: D={1,2}(bits 0,1,共病) ∧ J={1} ⇒ N_comorbid++, 不进矩阵
-            //   c6: D={1} ∧ J={9}(9 ∉ registry)  ⇒ N_unmappable++
+            //   c1: D={IdA}(bit1) ∧ J={IdA}          ⇒ M[2][2]      (判对)
+            //   c2: D={IdB}(bit2) ∧ J={IdA}          ⇒ M[3][2]      (判错)
+            //   c3: D=∅(bits=0)   ∧ J={IdA}          ⇒ M[无病][2]   (无病误开方)
+            //   c4: 仅判断 J={IdB}, 无 CaseClosed     ⇒ N_open++
+            //   c5: D={IdA,IdB}(bits 1,2,共病) ∧ J={IdA} ⇒ N_comorbid++, 不进矩阵
+            //   c6: D={IdA} ∧ J={9}(9 ∉ registry)     ⇒ N_unmappable++
             foreach (long caseSeq in new long[] { 1L, 2L, 3L, 4L, 5L, 6L })
             {
-                int lexiconId = caseSeq == 4L ? 2 : caseSeq == 6L ? 9 : 1;
+                int lexiconId = caseSeq == 4L ? IdB : caseSeq == 6L ? 9 : IdA;
                 if (caseSeq != 4L)
                 {
-                    ulong bits = caseSeq == 1L || caseSeq == 6L ? 1UL << 0
-                               : caseSeq == 2L ? 1UL << 1
+                    ulong bits = caseSeq == 1L || caseSeq == 6L ? BitsOf(IdA)
+                               : caseSeq == 2L ? BitsOf(IdB)
                                : caseSeq == 3L ? 0UL
-                               : (1UL << 0) | (1UL << 1);
+                               : BitsOf(IdA) | BitsOf(IdB);
                     AppendCaseClosed(caseSeq, bits);                 // 每条先 Close(ADR-008 流序)
                 }
                 AppendJudgmentRecorded(caseSeq, lexiconId);
@@ -153,35 +178,35 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             Assert.That(skipped, Is.EqualTo(0), "真载荷不该有解码失败");
 
             // Assert:混淆矩阵格(字典序输出)
-            StringAssert.Contains("F2 M[1][1] = 1", report, "c1 判对 ⇒ M[1][1] = 1");
-            StringAssert.Contains("F2 M[2][1] = 1", report, "c2 判错 ⇒ M[2][1] = 1");
-            StringAssert.Contains("F2 M[无病][1] = 1", report, "c3 D=∅ ∧ J={1} ⇒ M[无病][1] = 1");
-            // 矩阵恰三格:不应有 M[1][未落笔] 等(所有案例皆有判断且非共病/非不可映射)
+            StringAssert.Contains($"F2 M[{IdA}][{IdA}] = 1", report, "c1 判对 ⇒ M[2][2] = 1");
+            StringAssert.Contains($"F2 M[{IdB}][{IdA}] = 1", report, "c2 判错 ⇒ M[3][2] = 1");
+            StringAssert.Contains($"F2 M[无病][{IdA}] = 1", report, "c3 D=∅ ∧ J={2} ⇒ M[无病][2] = 1");
+            // 矩阵恰三格:不应有 M[2][未落笔] 等(所有案例皆有判断且非共病/非不可映射)
             int matrixLineCount = report.Split('\n')
                 .Count(line => line.StartsWith("F2 M["));
             Assert.That(matrixLineCount, Is.EqualTo(3),
-                "矩阵恰三格(M[1][1], M[2][1], M[无病][1])");
+                "矩阵恰三格(M[2][2], M[3][2], M[无病][2])");
 
             // Assert:三桶
             StringAssert.Contains("F2 N_comorbid = 1", report, "c5 共病 ⇒ N_comorbid = 1");
             StringAssert.Contains("F2 N_open = 1", report, "c4 无 CaseClosed ⇒ N_open = 1");
             StringAssert.Contains("F2 N_unmappable = 1", report, "c6 lexionId 9 ∉ diseaseEnum ⇒ N_unmappable = 1");
-            StringAssert.Contains("F2 N_matched_comorbid = 0", report, "c5 D={1,2}≠J={1} ⇒ 不进 matched");
+            StringAssert.Contains("F2 N_matched_comorbid = 0", report, "c5 D={2,3}≠J={2} ⇒ 不进 matched");
         }
 
         /// <summary>F1a 恒等式在接线面也成立:Σ M[t][t] + M[无病][未落笔] + N_matched_comorbid。</summary>
         [Test]
         public void test_wired_f2_f1aIdentity()
         {
-            // 一例判对 D={1}∧J={1} ⇒ M[1][1]=1;其余均不贡献分子。
-            AppendCaseClosed(caseSeq: 1L, diseaseBits: 1UL << 0);
-            AppendJudgmentRecorded(caseSeq: 1L, lexiconId: 1);
+            // 一例判对 D={IdA}∧J={IdA} ⇒ M[2][2]=1;其余均不贡献分子。
+            AppendCaseClosed(caseSeq: 1L, diseaseBits: BitsOf(IdA));
+            AppendJudgmentRecorded(caseSeq: 1L, lexiconId: IdA);
 
             _reporter.MisdiagnosisReport(out int skipped);
             Assert.That(skipped, Is.EqualTo(0));
 
             string report = _reporter.AllMetricsReport(out int _);
-            StringAssert.Contains("F2 M[1][1] = 1", report);
+            StringAssert.Contains($"F2 M[{IdA}][{IdA}] = 1", report);
             // M[无病][未落笔]=0(无 D=∅∧J=∅ 案例),N_matched_comorbid=0 ⇒ 分子=1
             StringAssert.Contains("F2 N_matched_comorbid = 0", report);
         }
@@ -196,13 +221,13 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         [Test]
         public void test_wired_judgmentRevised_decodedAsItsOwnPayload_noSkip()
         {
-            AppendCaseClosed(caseSeq: 3L, diseaseBits: 1UL << 0);            // D={1}
-            AppendJudgmentRevised(caseSeq: 3L, lexiconId: 1);                // 改写后 J={1}
+            AppendCaseClosed(caseSeq: 3L, diseaseBits: BitsOf(IdA));         // D={IdA}
+            AppendJudgmentRevised(caseSeq: 3L, lexiconId: IdA);              // 改写后 J={IdA}
 
             string report = _reporter.MisdiagnosisReport(out int skipped);
 
             Assert.That(skipped, Is.EqualTo(0), "改写事件须按其自有载荷类型解出,不得计进跳过");
-            StringAssert.Contains("F2 M[1][1] = 1", report);
+            StringAssert.Contains($"F2 M[{IdA}][{IdA}] = 1", report);
             StringAssert.Contains("F2 N_open = 0", report);
         }
 
@@ -224,8 +249,8 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
         [Test]
         public void test_wired_judgedNotInRegistry_unmappableNotMatrix()
         {
-            AppendCaseClosed(caseSeq: 1L, diseaseBits: 1UL << 0); // D={1}
-            AppendJudgmentRecorded(caseSeq: 1L, lexiconId: 42);    // 42 ∉ {1,2,3}
+            AppendCaseClosed(caseSeq: 1L, diseaseBits: BitsOf(IdA)); // D={IdA}
+            AppendJudgmentRecorded(caseSeq: 1L, lexiconId: 42);      // 42 ∉ {2,3,4}
 
             _reporter.MisdiagnosisReport(out int skipped);
             Assert.That(skipped, Is.EqualTo(0));
@@ -238,38 +263,49 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
 
         // ══════════════ 证伪面(生产码守卫被移除 ⇒ 本条红) ══════════════
 
-        /// <summary>**bit+1 映射守候**:truth bit 0 必须还原成 DiseaseId "1"。
-        /// 若生产码改回裸 bit(bit 0 → "0"),"0" ∉ diseaseEnum ⇒ c1 判
-        /// unmappable,矩阵 M[1][1] 消失 ⇒ 本条红。</summary>
+        /// <summary>
+        /// **bit+1 映射守候**:truth 的 bit index <b>1</b> 必须还原成 <c>DiseaseId</c> <b>"2"</b>。
+        ///
+        /// <para><b>⚠️ 这里刻意用字面量 <c>1UL &lt;&lt; 1</c>,不用 <c>BitsOf</c></b> ——
+        /// 本条的职责就是钉住「哪个 bit 对应哪个 id」,用 helper 会让断言变成同义反复。</para>
+        ///
+        /// <para><b>判别力</b>:若生产码改回裸 bit(bit 1 → "1"),"1" ∉ <c>diseaseEnum = {2,3,4}</c>
+        /// ⇒ 该案判 unmappable,矩阵格消失 ⇒ 本条红。
+        /// 若有人把 bit 理解成行序(bit 0 → id 2),本条的 bit 1 会落到 id 3 ⇒ 同样红。
+        /// <b>⇒ 这正是夹具 id 起点必须 ≠ 1 的理由</b>:id 从 1 起时,裸 bit 与 bit+1
+        /// 只在 bit 0 处分岔,而那一点在旧夹具里恰好被「id=1 存在」掩盖。</para>
+        /// </summary>
         [Test]
         public void test_wired_truthBitPlusOne_isDiseaseId()
         {
-            AppendCaseClosed(caseSeq: 1L, diseaseBits: 1UL << 0); // bit 0 → DiseaseId 1
-            AppendJudgmentRecorded(caseSeq: 1L, lexiconId: 1);
+            const ulong bits = 1UL << 1;                            // bit index 1 ⇒ DiseaseId 2
+            AppendCaseClosed(caseSeq: 1L, diseaseBits: bits);
+            AppendJudgmentRecorded(caseSeq: 1L, lexiconId: 2);
 
             _reporter.MisdiagnosisReport(out int skipped);
             Assert.That(skipped, Is.EqualTo(0));
 
             string report = _reporter.MisdiagnosisReport(out int _);
-            StringAssert.Contains("F2 M[1][1] = 1", report,
-                "bit 0 必须映射成 DiseaseId 1 并进 M[1][1](若裸 bit ⇒ \"0\" ∉ diseaseEnum ⇒ 红)");
+            StringAssert.Contains("F2 M[2][2] = 1", report,
+                "bit index 1 必须映射成 DiseaseId 2 并进 M[2][2]" +
+                "(若裸 bit ⇒ \"1\" ∉ diseaseEnum ⇒ 红;若把 bit 当行序 ⇒ 落到 3 ⇒ 红)");
             StringAssert.Contains("F2 N_unmappable = 0", report);
         }
 
-        /// <summary>**judged 用 lexionId 守候**:c1 判 lexionId=1 ⇒ 列 "1"。
+        /// <summary>**judged 用 lexionId 守候**:c1 判 lexionId=IdA ⇒ 列 "2"。
         /// 若生产码改成取错字段(如 authorPlayerId) ⇒ 列错 ⇒ 红。</summary>
         [Test]
         public void test_wired_judgedIsLexiconId_notOtherField()
         {
-            AppendCaseClosed(caseSeq: 1L, diseaseBits: 1UL << 0); // D={1}
-            AppendJudgmentRecorded(caseSeq: 1L, lexiconId: 1);    // J={1} ⇒ M[1][1]
+            AppendCaseClosed(caseSeq: 1L, diseaseBits: BitsOf(IdA)); // D={IdA}
+            AppendJudgmentRecorded(caseSeq: 1L, lexiconId: IdA);     // J={IdA} ⇒ M[2][2]
 
             _reporter.MisdiagnosisReport(out int skipped);
             Assert.That(skipped, Is.EqualTo(0));
 
             string report = _reporter.MisdiagnosisReport(out int _);
-            StringAssert.Contains("F2 M[1][1] = 1", report,
-                "judged 必须是 lexionId(1-based DiseaseId 空间),列 " + "\"1\"");
+            StringAssert.Contains($"F2 M[{IdA}][{IdA}] = 1", report,
+                "judged 必须是 lexionId(1-based DiseaseId 空间),列 \"2\"");
         }
     }
 }

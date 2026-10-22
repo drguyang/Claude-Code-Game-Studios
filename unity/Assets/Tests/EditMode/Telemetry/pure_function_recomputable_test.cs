@@ -362,10 +362,16 @@ namespace DaYiJingCheng.Tests.Unit.Telemetry
             PayloadRef r = encoder.Encode(kind, payload);
             int patient = ((CaseClosedPayload)(object)payload).PatientId;
             // Seq 传 -1 = 「未发号,交主机发放」(SimEvent.cs 哨兵口径;禁手填 0 冒充首号)
-            // ⚠️ 疾病掩码**必须**走 `1UL << (CaseId.Seq - 1)**:`TelemetryReporter.DecodeJudgmentRecord`
-            //    把掩码 bit i 映射成病种 ordinal i+1 ⇒ `1UL << 0` 等于「掩码里没有这个病」
-            //    (`PatternDetector.DiseaseOrdinalsOf` 同口径)。夹具若自定 bit 位置,
-            //    真值集合就会与判笔集合落在不同编号空间上,判对/判错全错位。
+            // ⚠️ 疾病掩码**必须**走 `1UL << (CaseId.Seq - 1)`:位序契约是
+            //    `bit index = DiseaseId − 1`(见 `Sim.Contracts/Payloads/PayloadCommon.cs`
+            //    的 `DiseaseIdSet` 注释块),而 `TelemetryReporter.DecodeJudgmentRecord`
+            //    把 bit index 还原成 `DiseaseId = bit + 1` ⇒ `1UL << 0` 对应 DiseaseId 1。
+            //    夹具若自定 bit 位置,真值集合就会与判笔集合落在不同编号空间上,判对/判错全错位。
+            //
+            // 🔁 2026-10-22 订正:原文此处写「`PatternDetector.DiseaseOrdinalsOf` 同口径」——
+            //    **那句是错的**。`PatternDetector.DiseaseBitIndicesOf`(原名 `DiseaseOrdinalsOf`)
+            //    返回 **bit index,刻意不加 1**;`TelemetryReporter` 才做 `+1`。
+            //    两者不是「同口径」,是「同一契约的两端」。这正是「ordinal」一词被停用的理由。
             int before = stream.Count;
             stream.Append(new SimEvent(tick, new PatientId(patient), -1L, kind, r));
             Assert.That(stream.Count, Is.EqualTo(before + 1),

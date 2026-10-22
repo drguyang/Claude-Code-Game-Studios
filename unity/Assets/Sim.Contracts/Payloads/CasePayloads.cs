@@ -43,7 +43,7 @@ namespace DaYiJingCheng.Sim.Contracts
         public readonly CaseId AnchorCase;       // 冻结三元组 · 1/3
         public readonly ulong SaltedKey;         // = WorldSeed 派生盐(ADR-008 §三 盐契约)
         public readonly DiseaseIdSet MemberDiseaseSet; // 冻结三元组 · 2/3
-        public readonly int Version;             // 冻结三元组 · 3/3(ordinal 映射表版本,append-only)
+        public readonly int Version;             // 冻结三元组 · 3/3(病种映射表版本,append-only)
 
         public PatternRecognizedPayload(int patientId, CaseId anchorCase, ulong saltedKey,
             DiseaseIdSet memberDiseaseSet, int version)

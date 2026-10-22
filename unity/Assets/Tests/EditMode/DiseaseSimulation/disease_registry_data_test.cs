@@ -329,7 +329,10 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             // 造一个 disease 行,trauma_half_life 留 0(默认值)
             var disease = new DiseaseRegistryEntry
             {
-                DiseaseId = 99, DiseaseKey = "DIS_PROBE", Kind = DiseaseKind.Disease,
+                // 🔁 2026-10-22:99 → 64。R1_CHECK_33 立起后 DiseaseId ∈ [1, 64],
+                //   99 越界会被 R1-33 拒收 ⇒ 本测试会因「别的规则红」而失去判别力
+                //   (它要证的是「R1-32 不适用于非 injury 行」)。取上界 64:与真表 2..14 不冲突。
+                DiseaseId = 64, DiseaseKey = "DIS_PROBE", Kind = DiseaseKind.Disease,
                 Polarity = 2, Severity = 2, Contagion = 0, Lethality = 0,
                 TreatmentDifficulty = 5, RecoveryTime = 100,
                 Scale = new Fix(Fix.OneRaw), TraumaHalfLife = 0,

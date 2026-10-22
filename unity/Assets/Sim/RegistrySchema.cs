@@ -286,6 +286,8 @@ namespace DaYiJingCheng.Sim
         public const int R1_CHECK_20 = 20; // curve.self_limit / plateau 互斥(GDD R1.3 校验 1)
         public const int R1_CHECK_21 = 21; // τ_peak > incubation ∧ τ_rise > 0 ∧ incubation ≥ 0(GDD 校验 2 + Tuning §二)
         public const int R1_CHECK_22 = 22; // 急性保持型(双 false)仅当 lethal(GDD 校验 4 前半;4b 需 DEATH_THRESHOLD —— 值待定,未实现)
+        //   🔁 2026-10-22:DEATH_THRESHOLD 已裁 = 38011 raw(≈0.58)⇒ 「值待定」不再是 4b 未实现的理由。
+        //      4b 仍**未实现**,但现在是**欠账**(可做未做),不是**阻塞**(前提缺失)。
         public const int R1_CHECK_23 = 23; // SCALE > 0 ∧ SCALE ≥ A_peak(GDD 校验 5)
         public const int R1_CHECK_24 = 24; // A_peak > 0(GDD 校验 6)
         public const int R1_CHECK_25 = 25; // self_limit ⇒ τ_fall > 0(GDD 校验 7)
@@ -322,6 +324,36 @@ namespace DaYiJingCheng.Sim
         /// 查它会造出「病种行必须填伤情字段」的假红。</para>
         /// </summary>
         public const int R1_CHECK_32 = 32;
+
+        /// <summary>
+        /// <c>DiseaseId ∈ [1, 64]</c> —— <c>DiseaseIdSet</c> 位掩码的**值域守卫**(2026-10-22 立)。
+        ///
+        /// <para><b>为什么需要这一条</b>:<c>DiseaseIdSet</c> 的位序契约是
+        /// <c>bit index = DiseaseId − 1</c>,而位掩码是 <c>ulong</c> ⇒ 只有 64 个位可用。
+        /// 而 <c>DiseaseIdSet</c> 自己的注释长期写着「**上限 = 64 病种**;超界 = **数据层构建失败**,
+        /// 非本 struct 职责」—— <b>那个「构建失败」此前并不存在</b>(只有 R1-01 唯一性,
+        /// 值域零校验)。这是「注释声称有门、门却不在」的形态,本常量把它补成真的。</para>
+        ///
+        /// <para><b>越界的后果是静默的,不是响亮的</b>:C# 的 <c>ulong</c> 移位计数按 <c>&amp; 0x3F</c>
+        /// 掩码,<c>1UL &lt;&lt; (65 − 1)</c> = <c>1UL &lt;&lt; 64</c> = <c>1UL &lt;&lt; 0</c> = <b>1</b>
+        /// ⇒ <c>DiseaseId = 65</c> 静默变成 <c>DiseaseId = 1</c> 的位。<b>不会抛、不会报、不会崩</b>,
+        /// 只会在某天有人查「为什么 id 65 的病和 id 1 的病总是一起出现」时才发现。
+        /// 下界 <c>≥ 1</c> 同理:<c>DiseaseId = 0</c> 会算出 <c>bit = −1</c> ⇒ 左移负数在 C# 里是
+        /// <b>未定义行为</b>(运行时实际按 <c>&amp; 0x3F</c> 取 <c>63</c>)。</para>
+        ///
+        /// <para><b>覆盖面(如实登记,禁借绿)</b>:本校验只在 <c>Validate</c> 的调用点生效 ——
+        /// 即 <c>DiseaseRegistryBinder.Bind</c>(烘焙面)与各测试夹具。
+        /// <c>CompositionRoot.CreateFallbackRegistry</c> <b>不调</b> <c>Validate</c>
+        /// (<c>CompositionRoot.cs:671</c> 自陈)⇒ 该路径上的 id 不受本门约束
+        /// (它只产一条 <c>DiseaseId = 1</c>,在界内)。</para>
+        /// </summary>
+        public const int R1_CHECK_33 = 33;
+
+        /// <summary><c>DiseaseId</c> 下界(含)—— <c>DiseaseIdSet</c> 的 <c>bit index = DiseaseId − 1</c> ⇒ 须 ≥ 1。</summary>
+        public const int DiseaseIdMin = 1;
+
+        /// <summary><c>DiseaseId</c> 上界(含)= <c>ulong</c> 的位数 —— 位掩码上限 64 病种。</summary>
+        public const int DiseaseIdMax = 64;
 
         /// <summary><c>HALF_LIFE_MAX</c> —— <c>trauma_half_life</c> 的上界(tick)。
         /// 值 = <c>120</c>(6 s @ 20 Hz),<c>OQ-25-7</c> 已裁 2026-10-07(代拍,A25a)。
@@ -360,6 +392,15 @@ namespace DaYiJingCheng.Sim
                 // R1-01: DiseaseId 唯一
                 if (!diseaseIds.Add(entry.DiseaseId))
                     throw new RegistryValidationException(R1_CHECK_01, $"DiseaseId 重复: {entry.DiseaseId}");
+
+                // R1-33: DiseaseId ∈ [1, 64] —— DiseaseIdSet 位掩码的值域守卫(2026-10-22)。
+                //   bit index = DiseaseId − 1 且掩码是 ulong ⇒ 界外会静默回绕(C# 移位计数 & 0x3F)。
+                //   ⚠️ 这条必须在任何「DiseaseId → bit」的使用之前,故紧贴 R1-01。
+                if (entry.DiseaseId < DiseaseIdMin || entry.DiseaseId > DiseaseIdMax)
+                    throw new RegistryValidationException(R1_CHECK_33,
+                        $"DiseaseId 越界: {entry.DiseaseId}(DiseaseKey='{entry.DiseaseKey}')—— " +
+                        $"须 ∈ [{DiseaseIdMin}, {DiseaseIdMax}](DiseaseIdSet 位序 bit index = DiseaseId − 1;" +
+                        "越界时 C# 的 ulong 移位按 & 0x3F 回绕 ⇒ 静默撞到别的病种的位,不抛不报)");
 
                 // R1-02: DiseaseKey 非空
                 if (string.IsNullOrEmpty(entry.DiseaseKey))
@@ -497,6 +538,11 @@ namespace DaYiJingCheng.Sim
                     //   ⚠️ 既有字段是 Lethality ∈ [0,3] 整数(GDD R1 表写 bool `lethal`,字段错位
                     //      属既有 16 字段问题),此处以 Lethality > 0 代 lethal;GDD 校验 4b
                     //      (A_peak/SCALE ≥ DEATH_THRESHOLD)因 DEATH_THRESHOLD 值待定未实现,登记。
+                    //   🔁 2026-10-22 补注:**上述「值待定」的理由已失效** —— DEATH_THRESHOLD 已于
+                    //      同日裁定为 38011 raw(≈0.58,档 C;见 StateMachine.cs:90)。
+                    //      ⇒ 4b **现在可以实现**,但**仍未实现**(本轮不做,登记为欠账)。
+                    //      ⚠️ 不得把本注释读成「4b 已过」—— 本处只校验 lethal 那一半,
+                    //      `A_peak/SCALE ≥ DEATH_THRESHOLD` 那一半全库**零校验**。
                     if (!curve.SelfLimit && !curve.Plateau && entry.Lethality <= 0)
                         throw new RegistryValidationException(R1_CHECK_22,
                             "急性保持型(self_limit=false ∧ plateau=false)仅当 lethal=true(GDD 校验 4;4b 需 DEATH_THRESHOLD,值待定未实现)");

@@ -102,10 +102,10 @@ namespace DaYiJingCheng.Tests.CaseSystem
         /// V-8 ③「退」):<c>Evaluate</c> 已改解码口径读 <c>CaseClosedPayload.DiseaseSet</c>,
         /// <c>default(PayloadRef)</c> 解码必抛 ⇒ 本文件全部 CaseClosed 须经真编码。
         /// </summary>
-        private SimEvent MakeClosed(long tick, PatientId patient, long seq, params int[] diseaseOrdinals)
+        private SimEvent MakeClosed(long tick, PatientId patient, long seq, params int[] diseaseBitIndices)
         {
             ulong bits = 0;
-            foreach (int d in diseaseOrdinals) bits |= 1UL << d;
+            foreach (int d in diseaseBitIndices) bits |= 1UL << d;
             var payload = new CaseClosedPayload(
                 patient.Value, new CaseId(tick, patient.Value, seq), new DiseaseIdSet(bits), treated: true);
             return new SimEvent(tick, patient, seq, EventKind.CaseClosed,
@@ -424,7 +424,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
             Assert.That(result.FiredDiseases, Is.EqualTo(new[] { 1, 2 }),
                 "两个病种都触发,且按 salted 升序 [1,2] —— 共病一案(位集 {1,2})进两组各计一次;\n" +
                 "⚠️ 2026-10-15 接线轮订正:载荷 = 位掩码(无序集合),「提取器迭代序 [2,1]」的判别面随委托退役消失,\n" +
-                "本测现钉的是「共病进两组 + salted 定序」;DiseaseOrdinalsOf 的展开序恒为 bit 升序");
+                "本测现钉的是「共病进两组 + salted 定序」;DiseaseBitIndicesOf 的展开序恒为 bit 升序");
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -548,7 +548,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 "FiredDiseases 恰 [1,2](salted 升序)—— 删/停排序即得插入序 [2,1] ⇒ 红");
 
             var emissions = Emit(caseEvents);
-            Assert.That(emissions.Select(x => x.DiseaseOrdinal), Is.EqualTo(new[] { 1, 2 }),
+            Assert.That(emissions.Select(x => x.DiseaseBitIndex), Is.EqualTo(new[] { 1, 2 }),
                 "发射序 = salted 升序(写者按此序 Append ⇒ AC-37-27 的 Seq=0,1 由此得)");
         }
 
@@ -591,8 +591,8 @@ namespace DaYiJingCheng.Tests.CaseSystem
             Assert.That(a.FiredDiseases, Is.EqualTo(b.FiredDiseases),
                 "换插入序重跑 ⇒ 事件流逐位相同(不依赖 disease_set 迭代序)");
 
-            Assert.That(Emit(streamA).Select(x => x.DiseaseOrdinal),
-                Is.EqualTo(Emit(streamB).Select(x => x.DiseaseOrdinal)),
+            Assert.That(Emit(streamA).Select(x => x.DiseaseBitIndex),
+                Is.EqualTo(Emit(streamB).Select(x => x.DiseaseBitIndex)),
                 "发射序亦逐位相同(salted 升序 = 唯一定序源)");
         }
 
@@ -631,7 +631,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
             Assert.That(result.FiredDiseases, Is.EqualTo(new[] { 5, 0, 1 }),
                 "期望序 = salted 升序 [5,0,1](不是 ordinal 序 [0,1,5],也不是插入序)");
 
-            Assert.That(Emit(caseEvents).Select(x => x.DiseaseOrdinal),
+            Assert.That(Emit(caseEvents).Select(x => x.DiseaseBitIndex),
                 Is.EqualTo(new[] { 5, 0, 1 }), "发射序同源(单一定序源)");
         }
 
@@ -678,7 +678,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
         /// <summary>AC-37-14(负半边):载荷字段集**恰等于**白名单 —— 任何新增字段即红。
         /// <para>⚠️ <b>2026-10-15 重写(TA-5)</b> —— 原稿按**字段名**判缺失
         /// (<c>GetField("DiseaseId")</c> / <c>GetField("DiseaseName")</c>):把裸病种换个名字
-        /// (如 <c>DiseaseOrdinal</c> / <c>RawId</c> / <c>Ord</c>)携带即**完全绕过**该断言。
+        /// (如 <c>DiseaseBitIndex</c> / <c>RawId</c> / <c>Ord</c>)携带即**完全绕过**该断言。
         /// 改为**闭集相等**后,「换名携带」与「新增任何字段」一律必红。</para>
         /// <para>⚠️ 白名单变更须同步本表 —— 这是**刻意**的:载荷面加字段是契约变更,
         /// 本就该过评审(与 AC-37-15 的递归闭集扫描同取向)。</para>
@@ -887,9 +887,9 @@ namespace DaYiJingCheng.Tests.CaseSystem
         // ════════════════════════════════════════════════════════════════════
 
         /// <summary>构造脚本链(成员 id 由本层注入 —— 内容值归内容轮 / ADR-014 烘焙)。</summary>
-        private static ScriptedChain MakeChain(int diseaseOrdinal, params int[] memberPatientIds)
+        private static ScriptedChain MakeChain(int diseaseBitIndex, params int[] memberPatientIds)
         {
-            return new ScriptedChain(diseaseOrdinal, memberPatientIds);
+            return new ScriptedChain(diseaseBitIndex, memberPatientIds);
         }
 
         // ⚠️ 原此处有 `MakePatternRecognized(long, int)` + `ExtractSaltedKeyFromSeq`
@@ -999,7 +999,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
             var first = PatternDetector.NextEmissions(
                 caseEvents, WorldSeed, Threshold, _bag.Decoder, chains);
             Assert.That(first.Count, Is.EqualTo(1), "首次恰发一条");
-            Assert.That(first[0].DiseaseOrdinal, Is.EqualTo(0), "D = 0");
+            Assert.That(first[0].DiseaseBitIndex, Is.EqualTo(0), "D = 0");
             Assert.That(first[0].SaltedKey, Is.EqualTo(PatternDetector.ComputeSaltedKey(WorldSeed, 0)),
                 "salted_key 逐 D 派生");
             Assert.That(first[0].MemberSet, Is.EquivalentTo(new[]
@@ -1087,7 +1087,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
 
             var emissions = Emit(caseEvents, chains);
             Assert.That(emissions.Count, Is.EqualTo(1), "恰一条发射(仅 D=1)");
-            Assert.That(emissions[0].DiseaseOrdinal, Is.EqualTo(1), "发射的是无链的 D=1");
+            Assert.That(emissions[0].DiseaseBitIndex, Is.EqualTo(1), "发射的是无链的 D=1");
             Assert.That(emissions[0].MemberSet, Is.EqualTo(new[]
             {
                 new CaseId(100, 1, 0), new CaseId(110, 2, 0), new CaseId(120, 3, 0),

@@ -23,9 +23,9 @@
 //     全序取前 threshold 例、**未排序**(PatternDetector.cs:271-277),故末位 = 第 threshold 例
 //     = ADR-008 §三「`anchor_case` = 触发识别的那一例(锚点)」。
 //   - `member_set` 的三分量逐一分派:① `anchor_case` = 上述末位;② `disease_set` = **该 D 本身**
-//     (`new DiseaseIdSet(1UL << ordinal)` —— 同源检测逐 D 独立、一 D 一条事件,故单条载荷的病种集
+//     (`new DiseaseIdSet(1UL << bitIndex)` —— 同源检测逐 D 独立、一 D 一条事件,故单条载荷的病种集
 //     恒为单元素;依据 = registry `member_set: 冻结三元组(...)` 的唯一真源口径,ADR-024 §①);
-//     ③ `version` = ordinal 映射表版本(由调用方给出,见下登记项)。
+//     ③ `version` = 病种映射表版本(由调用方给出,见下登记项)。
 //   - 事件头:`Patient = PatientId.None`(=-1,世界级事件 —— ADR-007 §四,不污染高水位);
 //     `Seq = -1` 未发号哨兵,由 `EventStream` 在 Append 时发号(同 tick 多条 Patient = None ⇒
 //     Seq = 0,1,2…,恰对上 AC-37-27 的同 tick 多 D 序)。
@@ -34,7 +34,7 @@
 //    的同一先例口径:Sim 侧无真源者由装配层 / 调用方注入,不在本类内发明新机制):
 //   - `worldSeed`(存档头字段,ADR-007 §二)由**调用方**给出 —— 生产 = 7a 读档头经装配层注入;
 //     测试注入字面量。Sim 侧无第二真源。
-//   - `version`(ordinal 映射表版本,append-only 内容值,ADR-014 烘焙)同理由调用方给出。
+//   - `version`(病种映射表版本,append-only 内容值,ADR-014 烘焙)同理由调用方给出。
 //   - `diseaseExtractor` / `saltedKeyExtractor` 两个解码委托由调用方给出(解码归 `Sim.Codec`,
 //     而 Sim 引用集禁引 `Sim.Codec` —— ADR-025 §①);本类只按 `PatternDetector.NextEmissions`
 //     原签名**透传**,不改造、不由本类改写「要发哪些」的列表(否则 CB-1 病灶复发)。
@@ -102,7 +102,7 @@ namespace DaYiJingCheng.Sim
         /// (<c>diseaseExtractor</c> / <c>saltedKeyExtractor</c>):解码归本层,委托面消失
         /// (2026-10-15 接线轮 · 承 ADR-031 V-8 ⑦「退」)。</param>
         /// <param name="scriptedChains">脚本三案链集(GDD F-37.1b);<c>null</c> / 空 = 全走自然检测。</param>
-        /// <param name="version">ordinal 映射表版本(append-only 内容值,ADR-014 烘焙);由调用方给出。</param>
+        /// <param name="version">病种映射表版本(append-only 内容值,ADR-014 烘焙);由调用方给出。</param>
         /// <exception cref="ArgumentNullException">eventSink / encoder / decoder / streamEvents 任一为 null。</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="patternThreshold"/> &lt; 1。</exception>
         public PatternRecognitionWriter(
@@ -183,7 +183,7 @@ namespace DaYiJingCheng.Sim
                     PatientId.None.Value,                            // 世界级 ⇒ -1(ADR-007 §四)
                     anchorCase,                                       // 冻结三元组 1/3
                     emission.SaltedKey,                               // 逐 D 派生盐(ADR-008 §五)
-                    new DiseaseIdSet(1UL << emission.DiseaseOrdinal), // 冻结三元组 2/3:{D}
+                    new DiseaseIdSet(1UL << emission.DiseaseBitIndex), // 冻结三元组 2/3:{D}
                     _version);                                        // 冻结三元组 3/3
 
                 var payloadRef = _encoder.Encode(EventKind.PatternRecognized, payload);

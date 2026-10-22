@@ -27,8 +27,20 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
     /// </summary>
     public static class SyntheticDiseaseFixture
     {
-        /// <summary>合成病种 id —— 刻意取 1..8(P0 冻结清单)之外,防与真实病种表混淆。</summary>
-        public const int DiseaseId = 9001;
+        /// <summary>
+        /// 合成病种 id —— 取 <c>DiseaseIdMax</c>(= 64),刻意避开真表的 2..14 与 fallback 的 1,
+        /// 防与真实病种表混淆。
+        ///
+        /// <para><b>🔁 2026-10-22 由 9001 改为 64</b>:<c>R1_CHECK_33</c> 立起后
+        /// (<c>DiseaseId ∈ [1, 64]</c>),<c>9001</c> 越界 ⇒ 本夹具过不了 <c>Validate</c>。
+        /// 那不是门的误判 —— <c>9001</c> 一旦真被拿去算位掩码,<c>1UL &lt;&lt; 9000</c> 会按
+        /// <c>&amp; 0x3F</c> 静默回绕到别的病种的位。<b>门抓到的是真缺陷,故修夹具、不放宽门。</b></para>
+        ///
+        /// <para><b>为什么取上界 64 而不是随便一个界内值</b>:它同时是一个 pin ——
+        /// 若将来有人改动 <c>DiseaseIdMax</c>(例如扩到 128),本夹具立刻越界转红,
+        /// 提醒「位掩码是 <c>ulong</c>,扩上界须同时换掩码类型」。用 60 之类的中间值就没有这个效果。</para>
+        /// </summary>
+        public const int DiseaseId = RegistrySchemaValidator.DiseaseIdMax;
 
         /// <summary>合成病种 key —— 沿用库内 DIS_ 前缀惯例,但 SYNTH_FIXTURE 明示合成。</summary>
         public const string DiseaseKey = "DIS_SYNTH_FIXTURE";

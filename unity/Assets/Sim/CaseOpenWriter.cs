@@ -105,7 +105,8 @@ namespace DaYiJingCheng.Sim
         /// <param name="patient">病例所属病人(事件头 Patient;哨兵 / 负值 ⇒ <see cref="CaseOpenWriteResult.NoPatient"/>)。</param>
         /// <param name="diseaseSnapshot">
         /// 立案时刻的病种快照(registry: <c>disease_snapshot: DiseaseIdSet</c>,版本化整数
-        /// ordinal 位集 —— 非 FixSet,承 D-21-17)。由调用方给出(见类头登记项)。
+        /// <b>位集</b>,位序 <c>bit index = DiseaseId − 1</c> —— 非 FixSet,承 D-21-17)。
+        /// 由调用方给出(见类头登记项)。
         /// </param>
         /// <returns>结果码;仅 <see cref="CaseOpenWriteResult.Opened"/> 意味着真的写入了一条。</returns>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="tick"/> &lt; 0

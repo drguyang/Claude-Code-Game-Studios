@@ -66,7 +66,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
         // ══════════ 断言辅助(2026-10-15 接线轮:写者已持 _bag.Decoder 自解码;
         //   本处两个委托已从构造器签名删除,只留**断言侧**回读)══════════
 
-        private int[] DiseaseOrdinalsOf(SimEvent e)
+        private int[] DiseaseBitIndicesOf(SimEvent e)
         {
             var p = _bag.Decoder.Decode<CaseClosedPayload>(EventKind.CaseClosed, e.Payload);
             var ordinals = new List<int>();
@@ -100,7 +100,7 @@ namespace DaYiJingCheng.Tests.CaseSystem
                 tick, p, -1, EventKind.CaseClosed, _bag.Encoder.Encode(EventKind.CaseClosed, payload)));
         }
 
-        private static DiseaseIdSet Only(int diseaseOrdinal) => new DiseaseIdSet(1UL << diseaseOrdinal);
+        private static DiseaseIdSet Only(int diseaseBitIndex) => new DiseaseIdSet(1UL << diseaseBitIndex);
 
         private List<SimEvent> FiredEvents()
             => _bag.Stream.Events.Where(e => e.Kind == EventKind.PatternRecognized).ToList();

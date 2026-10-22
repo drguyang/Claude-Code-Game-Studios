@@ -1592,10 +1592,14 @@ last_intervention = last of:
 #### 二之一、R2 战伤白名单五项的**已裁**曲线值(2026-10-22 用户裁定)
 
 > **裁定范围(精确)**:本表只裁**五个 `kind: injury` 行**的 `A_peak/SCALE` 比值与 `τ_peak`。
-> 病种(`DIS_*`)八行**仍未裁** —— 它们的数值不在本次裁定面内。
-> ⚠️ **`CRITICAL` / `COMA` / `DEATH` / `TREATMENT_WINDOW` 四个阈值仍未裁**(见 §五,default 仍 `*待定*`);
-> 本次只是**拿现网 `DEATH_THRESHOLD = 9000 raw(≈ 0.1373)` 当计算基准**验算五项可达死,
-> **不是**裁定它为最终值。两件事不得混读。
+> ~~病种(`DIS_*`)八行**仍未裁**~~ —— **✅ 2026-10-22 已裁,见 §二之二**。
+> ~~**`CRITICAL` / `COMA` / `DEATH` / `TREATMENT_WINDOW` 四个阈值仍未裁**~~ ——
+> **✅ 2026-10-22 已裁(档 C),见 §五 表内值与 §二之二**。
+> 本段下方「拿现网 9000 raw 当计算基准」的验算**保留作历史记录**:
+> 它证明的是「五项在该基准下均可致死」,而**该基准已被 38011 raw(0.58)取代**。
+> ⚠️ **同批复核已完成**:五项在新死线 0.58 下的余量为
+> `INJ_LACERATION +0.02` · `INJ_BITE +0.17` · `INJ_CLAW +0.27` · `INJ_STAB/HEMORRHAGE +0.42`
+> —— 全部仍 ≥ 死线(校验 4b 过),但**切割伤只剩 0.02 余量**,这是档 C 的已知取舍。
 
 | id | `A_peak/SCALE` | `τ_peak`(tick) | `τ_rise`(tick) | 依据 |
 | ---- | ---- | ---- | ---- | ---- |
@@ -1622,8 +1626,90 @@ last_intervention = last of:
 > 块 constraint 栏已登记的连带义务)。
 >
 > **数据落点**:`assets/data/disease_registry.json`(`schema_version: 1`)。
-> 病种八行**刻意不建** —— 建全表 = 被迫填占位值,而 17 条区间校验会面对假数据
-> (GDD 点名的「判据对合法输入类误判」;同 `disease_action_axis.json` 的 `_note`)。
+> ~~病种八行**刻意不建**~~ —— **✅ 2026-10-22 已建,见 §二之二**。
+> 原注的理由(「建全表 = 被迫填占位值」)在数值未裁时成立;本轮数值已裁 ⇒ 前提消失。
+> ⚠️ 该理由**仍适用于**尚未裁的部分:疟疾的 `relapse.*` 三字段与风湿热的 `compounds`
+> 本轮**未裁**,故仍不建(见 §二之二 的缺口登记)。
+
+---
+
+#### 二之二、R3.3 八病种的**已裁**曲线值(2026-10-22 用户裁定)
+
+> **裁定口径**:用户 2026-10-22 四项选择 ——
+> ① 四阈值取**档 C**;② 时间阈取**中(3 分钟 / 30 秒)**;
+> ③ 病种病程取**十分钟级**;④ `A_peak/Scale` **按尾部形态分档**。
+> 本表是这四项选择在八行上的**机械展开**,不是新增裁定。
+>
+> **`id` 分配**:续 R2 伤情(2–6)取 **7–14**。依据 ADR-014 §三③ **append-only**
+> (「新增条目取新号;既有条目的号永不重用、永不改义」)。`id = 1` 保留给
+> `CompositionRoot.CreateFallbackRegistry` 的占位条目(该处注释已声明)。
+
+| id | key | 尾部形态 | `lethal` | `A_peak/Scale` | `τ_peak` | `τ_rise` | `τ_fall` | `incubation` |
+|---|---|---|---|---|---|---|---|---|
+| 7 | `DIS_MALARIA` | `self_limit` | ✅ | 0.45 | 12000 | 1800 | 3000 | 0 |
+| 8 | `DIS_RHEUMATIC_FEVER` | `self_limit` | ❌ | 0.40 | 10000 | 1500 | 2400 | 0 |
+| 9 | `DIS_HEART_FAILURE` | `plateau` | ✅ | 0.667 | 24000 | 4000 | 6000 | 0 |
+| 10 | `DIS_TYPHOID` | `plateau` | ✅ | 0.667 | 20000 | 3600 | 5000 | 1200 |
+| 11 | `DIS_MEASLES` | `self_limit` | ❌ | 0.35 | 9000 | 1200 | 2000 | 600 |
+| 12 | `DIS_DYSENTERY` | 急性保持型 | ✅ | 1.000 | 14000 | 2000 | 3000 | 600 |
+| 13 | `DIS_TETANUS` | 急性保持型 | ✅ | 1.000 | 16000 | 2400 | 4000 | 6000 |
+| 14 | `DIS_NEURASTHENIA` | `plateau` | ❌ | 0.15 | 24000 | 4000 | 6000 | 0 |
+
+**`A_peak/Scale` 的分档依据(第 ④ 项裁定的展开)**:
+
+| 尾部形态 | 取值 | 理由 |
+|---|---|---|
+| 急性保持型(痢疾 / 破伤风) | **1.000** | 「不治就死」应无余量;`A_peak/Scale = 1.0` 使 `position` 顶满 |
+| `plateau ∧ lethal`(心衰 / 伤寒) | **`DEATH × 1.15` = 0.667** | 「迁延」需有余量 —— 越过死线但不顶满,符合慢性病「拖着」的体感 |
+| `self_limit`(疟疾 / 风湿热 / 麻疹) | 0.35–0.45 按病情轻重 | 自限型永不判死(F4 死亡支要求 `self_limit = false`),峰值只需过危殆线 |
+| 豁免类(神经衰弱) | **0.15** | 空体征、永不入痊愈;峰值仅略高于 `RECOVER`(0.12) |
+
+**校验核对(13 行全过真校验器 `RegistrySchemaValidator.Validate`)**:
+R1-21(`τ_peak > incubation ∧ τ_rise > 0`)· R1-20(`self_limit`/`plateau` 互斥)·
+R1-22(急性保持型须 `lethal`)· R1-23(`Scale > 0 ∧ Scale ≥ A_peak`)·
+R1-24(`A_peak > 0`)· R1-30(`R_rise > 1 raw`)· R1-31(`kind ≠ Unspecified`)·
+**R1-4b(4 行致死病种 `A_peak/Scale ≥ DEATH = 0.58`)** —— 全部满足。
+
+> ⚠️ **本轮未建的缺口(禁借绿)**:
+> - **`DIS_MALARIA` 的 `relapse.*` 块** —— R1-26 要求 `a_rel` / `interval` / `tau_rel_fall`
+>   三字段齐全且 > 0,这三个数的量级**本轮未裁**。缺块 = 该病按「无复发」处理,
+>   与 §R3.3 原文「因有复发块,永不入痊愈」**不一致**。归疟疾复发数值轮。
+> - **`DIS_RHEUMATIC_FEVER` 的 `compounds → DIS_HEART_FAILURE`** —— schema 的
+>   `DiseaseRegistryEntry` **无 `compounds` 字段**(GDD R1 表列了它,但 C# 侧未实现)。
+>   旗舰共病线因此**当前不可求值**。归 9 的 compounds 实现轮。
+> - `signs[]` 八行**全为空集** —— 词表归 8,当前未建。
+> - `handle` **未填** —— 它是派生字段,而派生逻辑在仓库里**不存在**(见烘焙管线证据件 §六)。
+
+> ### ⚠️ 二之三、值已裁 ≠ F4 可求值(2026-10-22 复核登记)
+>
+> 上面那张「13 行全过真校验器」的核对表**只覆盖注册表写入期**,不覆盖 F4 的**运行期求值**。
+> 四阈值(CRITICAL / COMA / DEATH / RECOVER)与两时间量(TREATMENT_WINDOW / CARE_GAP)
+> 已于 2026-10-22 全部裁定 ⇒ **「数值从哪来」已解决**;但 **「谁读它」仍未解决**。
+>
+> | # | 缺什么 | 实测证据 |
+> |---|---|---|
+> | ① | **F4 求值体** | `EntityDeathGates` 只出 `LethalFor` / `SelfLimited` / `IsCombatant` 三个门;`StateMachine.ComputeTransition` **只做纯阈值分级**,且其 `lastInterventionTick` / `currentTick` / `diseaseKey` 三个形参**函数体一个都不读** |
+> | ② | **`last_intervention` 聚合器** | 全库 `grep -rn "last_intervention\|LastIntervention" unity/Assets/ --include=*.cs \| grep -v Tests` ⇒ **零命中**。F4 要它从三通道取 max(见 `:1126-1133`),聚合器不存在 ⇒ **连入参都备不出来** |
+> | ③ | **注册表侧 4b** | `A_peak/SCALE ≥ DEATH_THRESHOLD` 的写入期下界**全库零校验**(`RegistrySchema.cs` 的 `R1_CHECK_22` 自陈「未实现」)。缺它,注册表可收进一条「声明致死却永远打不到死线」的行 |
+>
+> **归属裁定**:
+> - ① 与 ② **必须同批实现** —— 否则 F4 只能拿外部灌进来的数,无法从三源重算,
+>   **违 ADR-016 §一 三源不变量**。
+> - ③ 须在 ① 之前或同批。
+> - F4 求值体**不进 `ComputeTransition`**(签名不足 / 实体集不同 / 纯度),另立纯函数
+>   `F4OutcomeEvaluator.Evaluate(ActorClass, DiseaseRegistryEntry, Fix, long tick, long lastInterventionTick)`。
+>   理由三条见 `StateMachine.cs` 该方法补注。
+>
+> **可达性(诚实分级)**:`ComputeTransition` 当前**生产调用点 = 0**
+> (`InjuryStateChangedWriter` 无生产调用方)⇒ 上述缺口**今天不可达**。
+> 但 9 的 `Step` 一旦接线,纯阈值判定会让任何实体 `position_agg ≥ 0.58` 即判死,
+> **绕过两门与窗口** ⇒ 敌人/兽被疾病杀死(违 ADR-016 §二)、玩家被白名单伤情
+> 直接死而跳过昏迷。⇒ **须在 9 的 Step 接线之前补**。
+>
+> ⚠️ **同时订正一处此前的假绿**:§二之一 的约束核对表曾把
+> 「`A_peak/Scale ≥ DEATH`(校验 4b / R1-23)✅」列为已过 —— 那是**判据错引**
+> (`R1_CHECK_23` 查的是 `Scale ≥ A_peak`,与 DEATH 无关),已订正为 `NOT-RUN`。
+> 详见 `production/qa/evidence/impl-thresholds-and-8-disease-rows-2026-10-22.md` §二之一。
 
 ### 二、注册表 ↔ ADR-014 烘焙管线(B2 · 2026-09-15 二轮复核补)
 
@@ -1673,12 +1759,12 @@ last_intervention = last of:
 
 | 旋钮 | 影响 | 安全区间 / 约束 | 默认 |
 | ---- | ---- | ---- | ---- |
-| `CRITICAL_THRESHOLD` | 进入**危殆** | **`< COMA_THRESHOLD`**(三者必须单调)`∈ (0,1]` | `*待定*` |
-| `COMA_THRESHOLD` | 进入**昏迷**(C1 登记点) | **介于 CRITICAL 与 DEATH 之间** | `*待定*` |
-| `DEATH_THRESHOLD` | **死亡门** | **`> COMA_THRESHOLD`** 且 **`< 1`** —— **不得取 1**:保守舍入会让 `position = 1−ulp < 1`,死亡永不可达(校验 9) | `*待定*` |
-| `TREATMENT_WINDOW` | **干预窗口** —— 最后一次有效干预(对因处置 **或** 玩家主动护理动作,P0-G1 B′)后多久算「放弃」 | `> 0`。**这是铁律一的时间维度**;照护 ≠ 药 —— 对症药不刷窗口。**须 `≥ CARE_GAP`**(三轮 · 集群 2,排序校验 —— 否则 AC-30① fixture 不可构造) | `*待定*` |
-| `CARE_GAP` | **连续照护判定阈**(2026-09-16 三轮 B′)—— 相邻两条护理动作 gap `> CARE_GAP` ⇒ 照护中止(死亡倒计时恢复) | `> 0`;**与 `TREATMENT_WINDOW` 独立**但**必须满足排序 `TREATMENT_WINDOW ≥ CARE_GAP`**(2026-09-16 三轮 · 集群 2:否则连续照护会在窗口内被误判中止,AC-30① 的 fixture 不可构造;它同时是 `last_intervention(照护) = max(止, 最后动作 + CARE_GAP)` 的时基) | `*待定*` |
-| `RECOVER_THRESHOLD` | **痊愈判定门**(B5,2026-09-15)—— `position_agg < RECOVER_THRESHOLD` 且低位稳定 ≥ `W` 判痊愈 | `∈ (0, CRITICAL_THRESHOLD)`。防 `±σ` 抖动把终态判成随机;**豁免类永不入痊愈**(见校验 14);**可愈性结构门**(校验 16):不可愈病种即使被 σ / 负 bonus 压到阈值以下也不判痊愈 | `*待定*` |
+| `CRITICAL_THRESHOLD` | 进入**危殆** | **`< COMA_THRESHOLD`**(三者必须单调)`∈ (0,1]` | **19661 raw(≈ 0.30)** ✅ 2026-10-22 裁定 |
+| `COMA_THRESHOLD` | 进入**昏迷**(C1 登记点) | **介于 CRITICAL 与 DEATH 之间** | **29491 raw(≈ 0.45)** ✅ 2026-10-22 裁定 |
+| `DEATH_THRESHOLD` | **死亡门** | **`> COMA_THRESHOLD`** 且 **`< 1`** —— **不得取 1**:保守舍入会让 `position = 1−ulp < 1`,死亡永不可达(校验 9) | **38011 raw(≈ 0.58)** ✅ 2026-10-22 裁定 |
+| `TREATMENT_WINDOW` | **干预窗口** —— 最后一次有效干预(对因处置 **或** 玩家主动护理动作,P0-G1 B′)后多久算「放弃」 | `> 0`。**这是铁律一的时间维度**;照护 ≠ 药 —— 对症药不刷窗口。**须 `≥ CARE_GAP`**(三轮 · 集群 2,排序校验 —— 否则 AC-30① fixture 不可构造) | **3600 tick(3 分钟)** ✅ 2026-10-22 裁定 |
+| `CARE_GAP` | **连续照护判定阈**(2026-09-16 三轮 B′)—— 相邻两条护理动作 gap `> CARE_GAP` ⇒ 照护中止(死亡倒计时恢复) | `> 0`;**与 `TREATMENT_WINDOW` 独立**但**必须满足排序 `TREATMENT_WINDOW ≥ CARE_GAP`**(2026-09-16 三轮 · 集群 2:否则连续照护会在窗口内被误判中止,AC-30① 的 fixture 不可构造;它同时是 `last_intervention(照护) = max(止, 最后动作 + CARE_GAP)` 的时基) | **600 tick(30 秒)** ✅ 2026-10-22 裁定 |
+| `RECOVER_THRESHOLD` | **痊愈判定门**(B5,2026-09-15)—— `position_agg < RECOVER_THRESHOLD` 且低位稳定 ≥ `W` 判痊愈 | `∈ (0, CRITICAL_THRESHOLD)`。防 `±σ` 抖动把终态判成随机;**豁免类永不入痊愈**(见校验 14);**可愈性结构门**(校验 16):不可愈病种即使被 σ / 负 bonus 压到阈值以下也不判痊愈 | **7864 raw(≈ 0.12)** ✅ 2026-10-22 裁定 |
 | `MAX_ACTIVE_DOSE` | **叠加剂量上界**(2026-09-16 三轮)—— `Σᵢ drug_potencyᵢ × Decay(Δᵢ)` 的保守倍数上界 | `> 0`;**运行期**在每次处置时记账,超限 → **饱和截断(clamp 只作用于 Σ)**(用户裁定 + 三轮集群 1:上界不罩整式);注册表写入期**只查本值 `> 0`** 与 `single_dose_max` 存在 | `*待定*` |
 | `single_dose_max` | **单剂偏移上界**(2026-09-16 三轮)—— 由 11 / 21a `drug_profile` 提供(9 只消费);与 `MAX_ACTIVE_DOSE` 相乘得 F1 的 clamp 上界 | `> 0`;与 `drug_potency` 同源数据 | `*待定*` |
 

@@ -48,7 +48,7 @@ namespace DaYiJingCheng.Sim
     {
         /// <summary>是否触发。</summary>
         public readonly bool Fired;
-        /// <summary>触发的病种 ordinal 列表(按 salted_key 升序)。</summary>
+        /// <summary>触发的病种 <b>bit index</b> 列表(按 salted_key 升序)。</summary>
         public readonly IReadOnlyList<int> FiredDiseases;
 
         public PatternDetectionResult(bool fired, IReadOnlyList<int> firedDiseases)
@@ -75,15 +75,16 @@ namespace DaYiJingCheng.Sim
     /// </remarks>
     public readonly struct ScriptedChain
     {
-        /// <summary>该链全体成员所属的病种 ordinal(GDD F-37.1b「同 D = 三次失血」)。</summary>
-        public readonly int DiseaseOrdinal;
+        /// <summary>该链全体成员所属病种的 <b>bit index</b>(GDD F-37.1b「同 D = 三次失血」)。
+        /// <para>⚠️ bit index = <c>DiseaseId − 1</c>,不是注册表 id —— 见 <see cref="DiseaseIdSet"/> 的位序契约。</para></summary>
+        public readonly int DiseaseBitIndex;
 
         /// <summary>显式指定的成员 patient_id(内容值 —— 由烘焙 / 调用方注入,非本层常量)。</summary>
         public readonly IReadOnlyList<int> MemberPatientIds;
 
-        public ScriptedChain(int diseaseOrdinal, IReadOnlyList<int> memberPatientIds)
+        public ScriptedChain(int diseaseBitIndex, IReadOnlyList<int> memberPatientIds)
         {
-            DiseaseOrdinal = diseaseOrdinal;
+            DiseaseBitIndex = diseaseBitIndex;
             MemberPatientIds = memberPatientIds;
         }
     }
@@ -119,17 +120,17 @@ namespace DaYiJingCheng.Sim
         /// 取首条 —— 本层不做校验,数据合法性归 ADR-014 阶段 2)。
         /// </summary>
         /// <param name="chains">链集(可空 —— 空 = 无脚本链,全走自然检测)。</param>
-        /// <param name="diseaseOrdinal">病种 ordinal。</param>
+        /// <param name="diseaseBitIndex">病种 <b>bit index</b>(= <c>DiseaseId − 1</c>)。</param>
         /// <param name="chain">命中的链。</param>
         /// <returns>是否命中。</returns>
         public static bool TryChainOf(
-            IReadOnlyList<ScriptedChain> chains, int diseaseOrdinal, out ScriptedChain chain)
+            IReadOnlyList<ScriptedChain> chains, int diseaseBitIndex, out ScriptedChain chain)
         {
             if (chains != null)
             {
                 for (int i = 0; i < chains.Count; i++)
                 {
-                    if (chains[i].DiseaseOrdinal == diseaseOrdinal)
+                    if (chains[i].DiseaseBitIndex == diseaseBitIndex)
                     {
                         chain = chains[i];
                         return true;
@@ -151,18 +152,18 @@ namespace DaYiJingCheng.Sim
     /// </remarks>
     public readonly struct PatternEmission
     {
-        /// <summary>病种 ordinal。</summary>
-        public readonly int DiseaseOrdinal;
+        /// <summary>病种 <b>bit index</b>(= <c>DiseaseId − 1</c>;见 <see cref="DiseaseIdSet"/> 位序契约)。</summary>
+        public readonly int DiseaseBitIndex;
 
-        /// <summary>salted_key = `SplitMix64(WorldSeed, "case-salt", ordinal(D))`(ADR-008 §五)。</summary>
+        /// <summary>salted_key = `SplitMix64(WorldSeed, "case-salt", bitIndex(D))`(ADR-008 §五)。</summary>
         public readonly ulong SaltedKey;
 
         /// <summary>成员集(冻结于触发 tick;逐 D 归属 —— 即 `member_set` 载荷)。</summary>
         public readonly IReadOnlyList<CaseId> MemberSet;
 
-        public PatternEmission(int diseaseOrdinal, ulong saltedKey, IReadOnlyList<CaseId> memberSet)
+        public PatternEmission(int diseaseBitIndex, ulong saltedKey, IReadOnlyList<CaseId> memberSet)
         {
-            DiseaseOrdinal = diseaseOrdinal;
+            DiseaseBitIndex = diseaseBitIndex;
             SaltedKey = saltedKey;
             MemberSet = memberSet;
         }
@@ -312,12 +313,12 @@ namespace DaYiJingCheng.Sim
             var firstPerPatient = new Dictionary<int, List<SimEvent>>();
             foreach (var e in closedEvents)
             {
-                foreach (int diseaseOrdinal in DiseaseOrdinalsOf(e, decoder))
+                foreach (int diseaseBitIndex in DiseaseBitIndicesOf(e, decoder))
                 {
-                    if (!firstPerPatient.TryGetValue(diseaseOrdinal, out var list))
+                    if (!firstPerPatient.TryGetValue(diseaseBitIndex, out var list))
                     {
                         list = new List<SimEvent>();
-                        firstPerPatient[diseaseOrdinal] = list;
+                        firstPerPatient[diseaseBitIndex] = list;
                     }
                     list.Add(e);
                 }
@@ -375,7 +376,7 @@ namespace DaYiJingCheng.Sim
 
         /// <summary>
         /// 病种定序(单一定序源):<paramref name="keyOf"/> 派生键**升序**;键相等时以
-        /// **ordinal 升序**为次级键(AC-37-27 / ADR-008 §五)。
+        /// **bit index 升序**为次级键(AC-37-27 / ADR-008 §五)。
         /// </summary>
         /// <remarks>
         /// <para><b>⚠️ 次级键的由来(2026-10-15 ADVISORY 清理轮)</b> —— <c>List.Sort</c> 是
@@ -397,7 +398,7 @@ namespace DaYiJingCheng.Sim
             diseases.Sort((a, b) =>
             {
                 int cmp = keyOf(a).CompareTo(keyOf(b));
-                return cmp != 0 ? cmp : a.CompareTo(b);   // 次级键:ordinal 升序
+                return cmp != 0 ? cmp : a.CompareTo(b);   // 次级键:bit index 升序
             });
         }
 
@@ -423,28 +424,28 @@ namespace DaYiJingCheng.Sim
         /// 计算 salted_key(GDD F-37.1 / ADR-008 §五)。
         /// </summary>
         /// <param name="worldSeed">WorldSeed。</param>
-        /// <param name="diseaseOrdinal">病种 ordinal。</param>
+        /// <param name="diseaseBitIndex">病种 <b>bit index</b>(= <c>DiseaseId − 1</c>)。</param>
         /// <returns>salted_key。</returns>
-        public static ulong ComputeSaltedKey(long worldSeed, int diseaseOrdinal)
+        public static ulong ComputeSaltedKey(long worldSeed, int diseaseBitIndex)
         {
-            return SplitMix64.HashTagged(worldSeed, "case-salt", diseaseOrdinal);
+            return SplitMix64.HashTagged(worldSeed, "case-salt", diseaseBitIndex);
         }
 
         /// <summary>
         /// 判断病种是否已触发(读流:存在同 salted_key 的 PatternRecognized 事件)。
         /// </summary>
         /// <param name="caseEvents">病例流事件列表。</param>
-        /// <param name="diseaseOrdinal">病种 ordinal。</param>
+        /// <param name="diseaseBitIndex">病种 <b>bit index</b>(= <c>DiseaseId − 1</c>)。</param>
         /// <param name="worldSeed">WorldSeed。</param>
         /// <param name="decoder">载荷解码器(ADR-031 §①;读 <c>PatternRecognizedPayload.SaltedKey</c>)。</param>
         /// <returns>是否已触发。</returns>
         public static bool IsFired(
-            IReadOnlyList<SimEvent> caseEvents, int diseaseOrdinal, long worldSeed,
+            IReadOnlyList<SimEvent> caseEvents, int diseaseBitIndex, long worldSeed,
             IPayloadDecoder decoder)
         {
             if (decoder == null) throw new ArgumentNullException(nameof(decoder));
 
-            ulong saltedKey = ComputeSaltedKey(worldSeed, diseaseOrdinal);
+            ulong saltedKey = ComputeSaltedKey(worldSeed, diseaseBitIndex);
             foreach (var e in caseEvents)
             {
                 if (e.Kind != EventKind.PatternRecognized)
@@ -458,26 +459,40 @@ namespace DaYiJingCheng.Sim
         }
 
         /// <summary>
-        /// 展开 <c>CaseClosedPayload.DiseaseSet</c>(位掩码)为 ordinal 数组。
+        /// 展开 <c>CaseClosedPayload.DiseaseSet</c>(位掩码)为 <b>bit index</b> 数组。
         ///
         /// <para>2026-10-15 接线轮(承 ADR-031 V-8 ③「退」):本方法**取代**原调用方注入的
         /// <c>Func&lt;SimEvent, int[]&gt; diseaseExtractor</c> —— 委托面消失,解码归本层。</para>
         ///
-        /// <para><b>定序</b>:按位升序(<c>bit 0..63</c>)⇒ ordinal 升序,与
+        /// <para><b>定序</b>:按位升序(<c>bit 0..63</c>)⇒ 与
         /// <c>DiseaseIdSet.Bits</c> 的位序一一对应;不含集合迭代序(AC-37-27 定序纪律)。</para>
+        ///
+        /// <para><b>⚠️ 返回值是 bit index,不是 <c>DiseaseId</c>(2026-10-22 裁定钉死)</b>:
+        /// <c>bit index = DiseaseId − 1</c>(见 <see cref="DiseaseIdSet"/> 的位序契约)。
+        /// 本方法<b>刻意不加 1</b> —— 它服务的是「逐 bit 独立」的检测逻辑(每 bit 一个候选病种),
+        /// 而这个逻辑只要求「同一 bit 在整个检测链里始终指同一病种」,不要求该 bit 与注册表 id 相等。
+        /// 整条链上 <b>bit 的语义自洽闭环</b>:本方法读出 bit ⇒ <see cref="PatternEmission.DiseaseBitIndex"/>
+        /// 携带它 ⇒ <c>PatternRecognitionWriter</c> 用 <c>1UL &lt;&lt; bitIndex</c> 写回同一 bit。</para>
+        ///
+        /// <para><b>⚠️ 但「闭环」≠「与注册表对齐」</b>:本方法的 <c>bit</c> 与真注册表的
+        /// <c>DiseaseId</c> 至今<b>没有生产侧的转换点</b>(<c>CaseOpenedPayload</c> 的唯一生产调用方
+        /// 传 <c>default</c>,<c>CaseCloseWriter.TryClose</c> 生产调用点 = 0)⇒ 两者是<b>两条互不相通的
+        /// 编号空间</b>。要接通须显式做 <c>bit → bit + 1</c>(<c>TelemetryReporter</c> 已如此做)。
+        /// 本方法原名 <c>DiseaseOrdinalsOf</c>,改名正是为了消除「ordinal 到底 0-based 还是 1-based」的歧义
+        /// —— 见 <c>PayloadCommon.cs</c> 的位序契约。</para>
         /// </summary>
-        private static List<int> DiseaseOrdinalsOf(SimEvent e, IPayloadDecoder decoder)
+        private static List<int> DiseaseBitIndicesOf(SimEvent e, IPayloadDecoder decoder)
         {
             var payload = decoder.Decode<CaseClosedPayload>(EventKind.CaseClosed, e.Payload);
             ulong bits = payload.DiseaseSet.Bits;
 
-            var ordinals = new List<int>();
+            var bitIndices = new List<int>();
             for (int bit = 0; bit < 64; bit++)
             {
                 if ((bits & (1UL << bit)) != 0UL)
-                    ordinals.Add(bit);
+                    bitIndices.Add(bit);
             }
-            return ordinals;
+            return bitIndices;
         }
     }
 }

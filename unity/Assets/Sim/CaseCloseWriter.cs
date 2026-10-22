@@ -121,8 +121,9 @@ namespace DaYiJingCheng.Sim
         /// ② 窗口下界(= <c>caseId.Tick</c>);③ 幂等关联键(<c>IsClosed</c> 按精确三元组匹配,
         /// 故复诊新案不被前案已结所误判 —— EC-37-1)。</param>
         /// <param name="diseaseSet">
-        /// 结案时刻的病种快照(registry: <c>disease_set: DiseaseIdSet</c>,版本化整数 ordinal
-        /// 位集 —— 非 FixSet,承 D-21-17;纯伤情案可为空集)。由调用方给出(见类头登记项)。
+        /// 结案时刻的病种快照(registry: <c>disease_set: DiseaseIdSet</c>,版本化整数
+        /// <b>位集</b>,位序 <c>bit index = DiseaseId − 1</c> —— 非 FixSet,承 D-21-17;
+        /// 纯伤情案可为空集)。由调用方给出(见类头登记项)。
         /// </param>
         /// <param name="isChecked">玩家是否勾选「已处置」(GDD 规则六-4 / 四-2 的处置证据前提;
         /// 不勾选一律拒绝,即便窗口内确有处置 —— checkbox 是玩家的**自述**,证据是流的事实,

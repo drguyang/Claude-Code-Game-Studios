@@ -80,10 +80,34 @@ namespace DaYiJingCheng.Sim.Contracts
     }
 
     /// <summary>
-    /// 病种 ordinal 集合(支 1-c · bitmask)。
-    /// ordinal 映射表住 9 的病种注册表(ADR-014 烘焙,append-only:既有条目号永不重用、永不改义,
-    /// case-system.md 2026-09-17 裁定)。**上限 = 64 病种**;超界 = 数据层构建失败,非本 struct 职责。
-    /// 禁 Fix(塞 Q16.16 = D-21-17 同类错,ADR-008 订正①点名)。
+    /// 病种集合(支 1-c · bitmask)。
+    ///
+    /// <para><b>位序契约(2026-10-22 裁定钉死)</b>:<c>bit index = DiseaseId − 1</c>。</para>
+    /// <list type="table">
+    /// <item><term>bit index</term><description>0-based,∈ [0, 63] —— <b>纯存储形态</b>,不是业务标识</description></item>
+    /// <item><term>DiseaseId</term><description>1-based,∈ [1, 64] —— 注册表 <c>id</c> 字段(append-only 主键)</description></item>
+    /// <item><term>ordinal</term><description><b>在病种位掩码语境下停用</b> —— 它在本仓被同时用来指上面两者,
+    /// 正是歧义源。⇒ 谈<b>病种位掩码</b>时一律写 <c>bit index</c> 或 <c>DiseaseId</c>,不写 <c>ordinal</c>。
+    /// ⚠️ 停用范围**仅限病种位掩码**:其他表(技能表 / 物品表 / 音频 cue 表 / 事件表 /
+    /// <c>case_judgment_lexicon</c>)的 <c>ordinal</c> = 「该表的行序」,语义单一、无歧义,
+    /// **照常使用,不受本条影响**。</description></item>
+    /// </list>
+    ///
+    /// <para><b>为什么是 <c>DiseaseId − 1</c> 而不是行序</b>:<c>TelemetryReporter</c> 把 bit 还原成
+    /// <c>bit + 1</c> 后与注册表的 <c>DiseaseId</c> 集合比对(F2 的 <c>diseaseEnum</c>)。
+    /// 真表 <c>assets/data/disease_registry.json</c> 的 id 从 <b>2</b> 起(<c>id = 1</c> 被
+    /// <c>CompositionRoot.CreateFallbackRegistry</c> 占用,不进 JSON)⇒ 行序 = <c>DiseaseId − 2</c>,
+    /// 与 <c>DiseaseId − 1</c> <b>差 1</b>。只有后者能让两侧对齐。
+    /// ⚠️ 两者在「id 恰为 1,2,3…」的夹具里**数值相同** ⇒ 那类夹具**分辨不出**两种读法(假绿形态)。</para>
+    ///
+    /// <para><b>上限 = 64 病种</b>:由 <c>RegistrySchemaValidator.R1_CHECK_33</c> 在数据层强制
+    /// (<c>DiseaseId ∈ [1, 64]</c>)。<b>本 struct 不做越界检查</b> —— 它收的是裸 <c>ulong</c>,
+    /// 拦不住构造方。⚠️ 越界的后果是<b>静默</b>的:C# 的 <c>ulong</c> 移位计数按 <c>&amp; 0x3F</c> 掩码,
+    /// <c>1UL &lt;&lt; (65 − 1)</c> = <c>1UL &lt;&lt; 0</c> = 1 ⇒ id 65 静默变成 id 1 的位。
+    /// 故<b>唯一的界</b>就是 <c>R1_CHECK_33</c>;没有它,注释里这句「上限 64」是空话。</para>
+    ///
+    /// <para>映射表住 9 的病种注册表(ADR-014 烘焙,append-only:既有条目号永不重用、永不改义,
+    /// case-system.md 2026-09-17 裁定)。禁 Fix(塞 Q16.16 = D-21-17 同类错,ADR-008 订正①点名)。</para>
     /// <para><b>相等性</b>:bitmask 值相等。实现 <see cref="IEquatable{T}"/> 以支持字典键。</para>
     /// </summary>
     public readonly struct DiseaseIdSet : IEquatable<DiseaseIdSet>
