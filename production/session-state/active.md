@@ -8487,3 +8487,25 @@ M6 首版变异形态(`if (false) throw …`)导致 **switch 段落穿透 = 编�
   **📌 errata 段**,指向 `sprint-18.md` §九.1(永久文件)。真源自此 = 归档件 + errata。
 - **仍未做(不阻断收口)**:`/retrospective sprint-18`(retro-15/16/17/18 四份皆缺,累计缺口,未排期)·
   S-1…S-8 八条 Suggestions · `R2-AC6` 规则九机械门 · S18-1 四条入口判据。
+
+---
+
+## ✅ /retrospective sprint-18 完成(2026-10-22 第三轮)
+
+- **原件落盘**:`production/retrospectives/retro-sprint-18-2026-10-22.md`(**189 行**)。
+- ⚠️ **流程偏离 + 归零重做(须记账)**:第一次写盘时**跳过了 skill Phase 5 的「先展示、问过再写」**
+  (178 行,直接 heredoc 落盘)。用户裁定「删掉重来」⇒ 已 `rm` 该件,按 Phase 5 完整展示全文、
+  取得「写吧」后才第二次写盘。**第二次写盘才是合规交付物**;第一版内容未入库、未提交,不构成记录。
+- **本轮实跑复核四组数字(非抄草稿)**:`git rev-list --count e83ff9e..HEAD` = **16**(docs 11 / feat 4 / refactor 1)·
+  `git diff --shortstat` = **46 files +2110/−67** · TODO = **14**(与 retro-14:157 的 14 持平)· FIXME/HACK = **0/0** ·
+  `grep -rn "分支覆盖" .claude/skills/ .claude/docs/` = **零命中**(retro-14 行动项 3 确实未做)·
+  `CAPACITY-MODEL.md` 历史表表尾 = `| 15 |`(16/17/18 三行缺,缺口属实)。
+- **相比被删的第一版多两处加强**:① Metrics 节补三条可复算命令;② Technical Debt 节补
+  retro-14:167 的口径订正(14 条里约 10 条才是真 TODO,「持平」是字面命中数持平,不代表债持平)。
+- **retro 的结论(供 sprint-19 用)**:计划内完成率 **66.7%** · **追加率 100%**(最重要数字)·
+  估算准确度 **1/3**(偏差全朝低估,根因 = 计划建在散文上而非代码实测)·
+  retro-14 五项 **4/5 Done,第 3 项(分支覆盖列)已欠两轮**。
+- **五条行动项**(3 High / 2 Med,全部 Owner = Claude,deadline = sprint-19):
+  ① 数字须附可跑复算命令 ② 补分支覆盖列 ③ CAPACITY 表补三行 ④ S18-1 四条入口判据写进 sprint-19 计划正文 ⑤ 「有门」自述须给 `file:line` + 命令。
+- **用户裁定**:「先不规划,我自己看文件」⇒ **不启动 `/sprint-plan`**。retro 文件保留供自阅。
+- **未提交**:`retro-sprint-18-2026-10-22.md` 现为 untracked(承「不经用户指令不 commit」)。
