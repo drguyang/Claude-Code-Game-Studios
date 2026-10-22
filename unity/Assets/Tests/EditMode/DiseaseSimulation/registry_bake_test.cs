@@ -108,6 +108,13 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             {
                 var entries = new List<DiseaseRegistryEntry>(_validEntries);
                 entries[0].Kind = kind;
+                // 2026-10-22:`kind: injury` 行另须 trauma_half_life ∈ (0, HALF_LIFE_MAX]
+                // (R1-32 · GDD :829-831)。本用例验的是「kind 字段本身合法」,故须把
+                // 该 kind 的**其余必填字段**补齐 —— 否则红的是 R1-32,不是 R1-31,
+                // 用例就测错了对象。
+                if (kind == DiseaseKind.Injury)
+                    entries[0].TraumaHalfLife = 60;   // OQ-25-7 已裁值
+
                 Assert.DoesNotThrow(() => RegistrySchemaValidator.Validate(entries),
                     $"kind={kind} 是合法形态,不应被 R1-31 拒收");
             }

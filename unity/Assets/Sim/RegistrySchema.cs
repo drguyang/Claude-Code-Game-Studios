@@ -238,6 +238,22 @@ namespace DaYiJingCheng.Sim
         /// 词表内容与阈值归 8(§Visual/Audio 二)。null = 未声明(既有条目),校验跳过。
         /// </summary>
         public SignEntry[] Signs;
+
+        /// <summary>
+        /// <c>trauma_half_life</c> —— 战伤累积项的衰减半衰期(整数 tick)。
+        /// <para><b>仅 <c>kind: injury</c> 行必填</b>(GDD <c>:829-831</c>):F1 的
+        /// <c>Decay_injury(Δ) = e^(−Δ/trauma_half_life) · [Δ ≥ 0]</c> 的分母。
+        /// 非 injury 行不读本字段(留 0 即可)。</para>
+        /// <para><b>值 = <c>60</c></b>(3 s @ 20 Hz)—— <c>OQ-25-7</c> 已裁 2026-10-07(代拍)。
+        /// <b>上界 <c>HALF_LIFE_MAX = 120</c></b>(A25a):<c>trauma_half_life → ∞</c> ⇒
+        /// <c>Decay → 1.0</c> ⇒ <c>1 − Decay = 0</c> ⇒ A13 除零。本字段的写入期校验
+        /// (<c>R1_CHECK_32</c>)只查 <c>kind: injury ⇒ &gt; 0 ∧ ≤ HALF_LIFE_MAX</c>;
+        /// <b>非 injury 行一律不查</b>(值无意义)。</para>
+        /// <para>⚠️ <b>与 <c>Scale</c> 的关系</b>:GDD 把两者并称「伤情行另带」,但
+        /// <c>SCALE_d</c> 就是既有的 <see cref="Scale"/>(同名同义,不是新字段)——
+        /// 故本字段是**唯一**新增项。</para>
+        /// </summary>
+        public int TraumaHalfLife;
     }
 
     /// <summary>
@@ -295,6 +311,23 @@ namespace DaYiJingCheng.Sim
         /// <b>不构成</b>生产侧零值陷阱的消除。生产侧消除随真病种表落地(ADR-014 阶段 2)。</para>
         /// </summary>
         public const int R1_CHECK_31 = 31;
+
+        /// <summary>
+        /// <c>kind: injury</c> 行须 <c>trauma_half_life &gt; 0</c> 且 <c>≤ HALF_LIFE_MAX</c>
+        /// (GDD <c>:829-831</c> + <c>OQ-25-7</c> 的 A25a 上界)。
+        /// <para><b>为什么必须有上界</b>(A25a):<c>trauma_half_life → ∞</c> ⇒
+        /// <c>Decay = e^(−Δ/∞) → 1.0</c>,Q16.16 舍入下可达 ⇒ <c>1 − Decay = 0</c> ⇒
+        /// A13 除零。<b>下界 0 则连击完全不叠加</b>,与幻想承诺 1 冲突。</para>
+        /// <para>⚠️ <b>只查 <c>kind: injury</c></b> —— 其余 kind 的该字段无意义(留 0),
+        /// 查它会造出「病种行必须填伤情字段」的假红。</para>
+        /// </summary>
+        public const int R1_CHECK_32 = 32;
+
+        /// <summary><c>HALF_LIFE_MAX</c> —— <c>trauma_half_life</c> 的上界(tick)。
+        /// 值 = <c>120</c>(6 s @ 20 Hz),<c>OQ-25-7</c> 已裁 2026-10-07(代拍,A25a)。
+        /// <para>⚠️ 本值住这里而非 <c>StateMachine</c>:它是<b>注册表写入期</b>的校验界,
+        /// 不是运行期状态机阈值。GDD <c>combat-and-weapon-lines.md:1363</c> 是权威出处。</para></summary>
+        public const int HalfLifeMax = 120;
 
         /// <summary>
         /// ε_MIN(Q16.16 raw 单位)= 1 —— 归一化 `R_rise` 的下界守卫。
@@ -493,6 +526,17 @@ namespace DaYiJingCheng.Sim
                         throw new RegistryValidationException(R1_CHECK_28,
                             $"curve.sigma 覆盖值须 ≥ 0: {curve.Sigma.Value.Raw}(Tuning §四)");
                 }
+
+                // R1-32 ← GDD :829-831 + OQ-25-7 的 A25a:kind: injury 行的 trauma_half_life
+                //   须 > 0(否则连击不叠加,与幻想承诺 1 冲突)且 ≤ HALF_LIFE_MAX
+                //   (→∞ ⇒ Decay → 1.0 ⇒ 1−Decay = 0 ⇒ A13 除零)。
+                //   ⚠️ 只查 injury —— 其余 kind 的该字段无意义,查它会造假红。
+                if (entry.Kind == DiseaseKind.Injury &&
+                    (entry.TraumaHalfLife <= 0 || entry.TraumaHalfLife > HalfLifeMax))
+                    throw new RegistryValidationException(R1_CHECK_32,
+                        $"kind: injury 行须 0 < trauma_half_life ≤ {HalfLifeMax}:" +
+                        $" {entry.DiseaseKey} = {entry.TraumaHalfLife}" +
+                        "(GDD :829-831 + A25a;→0 连击不叠加,→∞ 则 1−Decay = 0 致 A13 除零)");
 
                 // R1-26 ← GDD 校验 3 + 8(relapse 块出现时三字段齐全且 > 0;类模型下「齐全」
                 //   = 块存在即字段在位,「半截」的唯一形态是 0/负值,由 > 0 兜住 —— 两条合并)。

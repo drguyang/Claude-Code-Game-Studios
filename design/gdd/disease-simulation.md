@@ -1589,6 +1589,42 @@ last_intervention = last of:
 > **`SCALE_病种 ≥ A_peak` 是硬约束,不是建议。** 若 `SCALE < A_peak`,`position` 会**永久钉在 1.0**,
 > 玩家看到的重病永远是「满格」—— 趋势读数失真,8 诊断的难度阶梯塌掉。
 
+#### 二之一、R2 战伤白名单五项的**已裁**曲线值(2026-10-22 用户裁定)
+
+> **裁定范围(精确)**:本表只裁**五个 `kind: injury` 行**的 `A_peak/SCALE` 比值与 `τ_peak`。
+> 病种(`DIS_*`)八行**仍未裁** —— 它们的数值不在本次裁定面内。
+> ⚠️ **`CRITICAL` / `COMA` / `DEATH` / `TREATMENT_WINDOW` 四个阈值仍未裁**(见 §五,default 仍 `*待定*`);
+> 本次只是**拿现网 `DEATH_THRESHOLD = 9000 raw(≈ 0.1373)` 当计算基准**验算五项可达死,
+> **不是**裁定它为最终值。两件事不得混读。
+
+| id | `A_peak/SCALE` | `τ_peak`(tick) | `τ_rise`(tick) | 依据 |
+| ---- | ---- | ---- | ---- | ---- |
+| `INJ_STAB` | **1.00** | 300 (15 s) | 40 | 刺伤 —— 峰值顶满,中速达峰 |
+| `INJ_LACERATION` | **0.60** | 600 (30 s) | 80 | 切割伤 —— 五种里最低,须持续累积 |
+| `INJ_HEMORRHAGE` | **1.00** | 200 (10 s) | 30 | 失血 —— **状态型**,最快达峰(持续流失) |
+| `INJ_CLAW` | **0.85** | 500 (25 s) | 60 | 熊 · 狼 |
+| `INJ_BITE` | **0.75** | 700 (35 s) | 70 | 狼 · 野狗 —— 最慢达峰(咬合撕裂有过程) |
+
+**共同项**(五项一律):`incubation = 0` · `self_limit = false` · `plateau = false`
+(= **急性保持型**)· `scale = 100`(让 `A_peak` 直接等于百分数,便于人读)· `boundary_mode = "monotone"` ·
+`trauma_half_life = 60`(`OQ-25-7` 2026-10-07 已裁,非本轮)· `Lethality = 2`。
+
+> **为什么五项必须全是急性保持型**:GDD `:581` 的死亡支要求 `lethal ∧ self_limit = false`。
+> 自愈型(`self_limit = true`)的伤**永远不会死人** —— 与「短兵可杀你、野兽可杀你」
+> (`death-and-respawn.md:96` 取舍理由 ①)的设计意图直接冲突。
+> 而校验 4 要求急性保持型必须 `lethal = true`,故五项 `Lethality = 2`。
+>
+> **`A_peak/SCALE ≥ DEATH_THRESHOLD` 的验算**(校验 4b 的下界):
+> 五项最低者 `INJ_LACERATION = 0.60`,仍 **4.4×** 于现网 `DEATH_THRESHOLD ≈ 0.1373`
+> ⇒ 五项均可达死,**无一退化为「过临界却同值不达死线」的无限迁延**。
+> ⚠️ 该验算的**前提**是 `DEATH_THRESHOLD` 取现网值;一旦 §五 裁定出不同的
+> `DEATH_THRESHOLD`,本表五项须**同批复核**(这是 `entities.yaml` 的 `DEATH_THRESHOLD`
+> 块 constraint 栏已登记的连带义务)。
+>
+> **数据落点**:`assets/data/disease_registry.json`(`schema_version: 1`)。
+> 病种八行**刻意不建** —— 建全表 = 被迫填占位值,而 17 条区间校验会面对假数据
+> (GDD 点名的「判据对合法输入类误判」;同 `disease_action_axis.json` 的 `_note`)。
+
 ### 二、注册表 ↔ ADR-014 烘焙管线(B2 · 2026-09-15 二轮复核补)
 
 > 9 的注册表数据走 **ADR-014 数据管线**(已 Accepted)。作者态 `assets/data/disease_registry.json`
