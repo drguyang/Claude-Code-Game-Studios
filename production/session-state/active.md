@@ -9272,3 +9272,90 @@ round25 第 3 项「catalog.bin 陈旧且无门检测」**已闭合**:门已立(
 陈旧已修(catalog 21 → 22 条)、红→绿闭环已验。
 ⚠️ 但**「打包时自动重建」仍不成立**(见上第 5 条)—— 本门是**检测器**,不是**修复器**,
 下次有人新增产物仍须手动跑重建菜单,门会在**下一次跑测试时**红着提醒。
+
+---
+
+# round31 —— 技能重建的多玩家语义空白(2026-10-23)
+
+## 怎么发现的
+
+清账 round25 剩余项时,沿 `skill-30` 登记债(`design/gdd/skill-system.md:139`
+「AC 侧缺 `EmitGrowth` 入口存在性断言」)上溯,发现该断言**已有机械门**
+(`DiagnosisBoundaryGates` 铁律④,IL 调用点恰 = 1),GDD 那条欠账已实质兑现。
+**但顺带查到另一处**:
+
+```
+SkillStateRebuilder.RebuildLevels 的生产调用方 = 0(只有测试在用)
+```
+
+继续追 ⇒ 找到真缺口。
+
+## 缺口
+
+`SkillGrownPayload` **带 `ActorId`**(`HistoryPayloads.cs:251`
+「施予者 = 玩家,与 player_id 共用 id 空间」),但实现是:
+
+```csharp
+result[e.SkillId] = e.Level;      // ← 完全不看 e.ActorId
+```
+
+⇒ **两个玩家练同一技能,等级互相覆盖**。谁的事件在流里靠后,谁的值胜出。
+
+实证(本轮 4 条判据):
+- 同技能同两玩家 ⇒ 结果**只剩 1 个键**,B(3) 覆盖 A(10);
+- 仅调换流序 ⇒ 结果跟着变(A→B 得 3,B→A 得 10)。
+  **同一个技能、同两个玩家,仅因流序不同就得到不同结果。**
+
+## 为什么本轮**不修**
+
+修 = 改 `RebuildLevels` 的返回形状(`Dictionary<int,int>` → 按 actor 分组)。
+而该签名在 **story-008 §Implementation 第 1 条被逐字钉死**,story 状态 = `Complete`;
+且 **ADR 对「多玩家技能重建」零字**(`adr-026` 全文无 multi-player 表述;
+`adr-006` 只定义 `player_id` 发号机制,未定义技能重建的 actor 维度)。
+⇒ 这是**裁定空白**,不是实现缺陷。改它 = 推翻一条已完成 story 的接口契约。
+
+## 本轮做了什么(不裁也能做的那一半)
+
+落 `skill_state_rebuilder_multi_actor_gap_test.cs`(4 条),把缺口**钉成可执行事实**:
+
+| # | 判据 | 断言的是 |
+|---|---|---|
+| ① | `sameSkill_laterActorOverwritesEarlier_currentBehavior` | **当前会覆盖**这个事实(不是「覆盖是对的」) |
+| ② | `resultFollowsStreamOrder_notActorIdentity` | 「谁赢」纯由流序决定,与 actor 身份无关 |
+| ③ | `payload_actorId_carriesRealDistinction_premise` | ActorId 确实有值且经 codec round-trip 保留(否则「忽略它」无害) |
+| ④ | `singleActor_semanticsUnchanged_guard` | 单玩家语义保持不变(防「为了多玩家把单玩家改坏」) |
+
+⚠️ **全绿 ≠ 多玩家已支持** —— 恰恰相反,它记录的是**不支持**。
+将来若按 actor 分组实现,①② 会红 —— 那时应**改写**为正向判据,不是删掉。
+
+## 探针 2 条(其中一条暴露了本文件的覆盖局限)
+
+| 探针 | 变异 | 红 | 说明 |
+|---|---|---|---|
+| **G** | 改为先到先得(`if (!result.ContainsKey(...))`) | **3** | ①②④ 全红 —— ④ 证明它能抓「改坏单玩家」 |
+| **H** | 删哨兵过滤 | **0**(本文件) | 红的是**既有** story-008 的两条(`test_ac2_allSentinel` / `test_ac6_singleSentinel`) |
+
+⚠️ **H 是本轮如实登记的覆盖局限**:我的 4 条**不覆盖哨兵语义** —— 那是 story-008
+既有测试的面。**不得**据本文件声称「哨兵语义已由本轮钉住」。
+
+## 还原判据
+
+`sha256sum -c` 逐字节回基线(`9b7a2297…362ceb7`),两次变异各还原一次均成功,
+残留扫描(`grep -c "MUT-\|if (!result.ContainsKey"`)= **0**。
+
+## 归属
+
+**须用户裁定**:多玩家技能重建的返回形状(是否改签名 / 新开方法 / 留到联机轮)。
+本轮的产出是**让这个决定无法被忽略**,而不是替它做决定。
+
+## 回归三元组
+
+```
+total=4654 passed=4618 failed=0 inconclusive=0 skipped=36
+@ 2026-10-23 06:11 (+0800) · round31 全量 · 基线 commit 754d0b6
+```
+
+Δ = **+4 / +4**(承 `754d0b6` 的 4650 / 4614),零回归 —— 与新增 4 条逐数对上。
+新判据按 fullname 在全集内命中 **4** 条。
+
+**未提交**:待用户指令。
