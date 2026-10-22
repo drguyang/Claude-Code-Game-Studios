@@ -9067,4 +9067,80 @@ PY
 | `Signs` | `diagnosis_signs.json` 有 34 条词表(8 拥有);9 侧 `Project(Sign_j)` **未实现**(`ProgressionEvaluator.Signs` 恒空,`GetVitals` 见非空即 fail-loud) | 须先裁「9 侧阈值从哪来」—— 属 8/9 接口面 |
 | `Handle` | 派生字段,`CareLeverApplicability.CareApplicableConsistent` 已就位;`DiseaseRegistryBinder` 留 null | 派生逻辑本身可实现,但输入是 `TreatableBy` ⇒ 卡在同一条 |
 
+**已提交**:`7782283`(round26+27+28 合批,见该 commit 正文)。
+
+---
+
+# round29 —— 真表「终态 → 折叠链」端到端(2026-10-23)
+
+## 目标与动机
+
+round25 未闭合清单第 ⑥ 项(写者)与第 ⑦ 项(会不会死)已分别由 round27 / round28 关闭,
+但**两者之间的那一跳从未被观测**:写者产出的事件,是否真的被折叠链消费?
+
+实测三处各测一段、无人测整条:
+- `folded_predicate_test` 的病史流是**手搓 `SimEvent`**(直接 `_encoder.Encode` 构造)⇒ 证谓词本身对,
+  **不证**「写者写出的字节形状能被谓词读回」;
+- round27 写者测试断言 Kind / 流别 / 载荷 round-trip,**没接谓词**;
+- `HistoryFolder` 的行 / 抹除判据同样只在合成流上测过。
+
+⇒ 本轮补 `real_registry_patient_outcome_fold_test.cs`(6 条)。
+
+## 判据表
+
+| # | 测试 | 期望 | 判别力归属 |
+|---|---|---|---|
+| ① | `test_realRegistry_exemptionFace_premise` | 真表豁免类恰 = {14};全表零 relapse 块 | 数值轮改列会**点名转红** |
+| ② | `test_realRegistry_deathThenWriter_foldsIntoRow_endToEnd` | 破伤风判死 → 写者 → 谓词 → 折叠产 1 行,六字段逐项对得上**两条真事件** | **本文件独有**(链贯通) |
+| ③ | `test_realRegistry_plateauAndLethal_notExempt_folds` | 心衰(plateau ∧ lethal)**不豁免**、可折 | **真表行**,不是合成(GDD :321) |
+| ④ | `test_realRegistry_plateauNonLethal_exempt_neverFolds` | 神经衰弱:Terminal 真但豁免挡住 | 真表行 |
+| ⑤ | `test_realRegistry_openCaseBlocksFold_closingUnblocks` | 开案挡住、结案放行(次序依赖) | 条件③ 前缀扫描 |
+| ⑥ | `test_realRegistry_duplicateTerminal_forSameDisease_failsLoud` | 同病种两条终态 ⇒ 折叠当场抛 | ADR-032 ⑤ 的下游执行体 |
+
+② 的期望值**从流里解出来**,不硬编码:`row.Onset` 比对 `DiseaseOnsetPayload.OnsetTick`、
+`row.PatientSeed` 比对同一载荷的 `PatientSeed`(证「不重算」)、`row.TEnd` 比对终态事件头部 Tick。
+
+## 三条如实登记的边界(禁借绿)
+
+1. **生产触发点仍未接线** —— ② 里是在判死 tick **手动**调写者,模拟生产触发。
+   本文件证「**接线之后**链是通的」,**不证**「玩家能看见病人死」。
+   前置冲突(`DiseaseVitalsService` 类头「不写流」vs 终态落流)**仍未裁**。
+2. **③④ 的终态是调用方直给的,不是 F4 判出的** —— `W = 0`(`OQ-9-1` 未裁)⇒ 痊愈支生产不求值。
+   本文件把「取一个合法终态」冻结成输入,**验消费侧**,不声称生产会产这个终态。
+3. **relapse 豁免分支在真表上不可达**(全表零 relapse 块,已由 ① 断言钉住)⇒ 该分支只由
+   `folded_predicate_test` 的合成行覆盖。
+
+## 探针(4/4 红,全部命中目标判据)
+
+| 探针 | 变异 | 红 | 命中判据 |
+|---|---|---|---|
+| **A** | `FoldedPredicate.Exempt` 删掉 `Lethality <= 0` 条件(只 plateau 即豁免) | **2** | ③ `plateauAndLethal`(预期内)+ ⑥(连锁:心衰被豁免 ⇒ 不可折 ⇒ 谓词假) |
+| **B** | `Terminal()` 永远返回 false | **5** | ②③④⑤⑥(① 是纯数据前提,不受影响) |
+| **C** | `HistoryFolder` 同病种第二条终态不再抛(`if (false && ...)`) | **1** | ⑥ 单独红 ⇒ 该判据**不被别条搭车** |
+| **D** | `Erase` 去掉 `SkillGrown` 豁免(ADR-026 §⑦ 条件④) | **1** | ② 的「SkillGrown 保留 1 条」断言(期望 1 实得 0) |
+
+⚠️ **A 的红里 ⑥ 是连锁,不是独立命中** —— 必须写清,否则会被读成「A 也验了 ⑥」。
+**C 的单独红才是 ⑥ 判别力的证据**。
+
+## 还原判据
+
+SHA-256 逐字节,四轮变异后三件全部回到基线:
+
+```
+9d4551c2…30c9129  Sim/FoldedPredicate.cs
+3e26a8b4…f12fe37d  Sim/HistoryFolder.cs
+0593d96c…449c512   real_registry_patient_outcome_fold_test.cs
+```
+
+残留变异扫描(`grep -c "false &&\|if (belongsToFolded)$"`)= **0 / 0**。
+变异窗口内未 Read 被变异文件,全部用 `python3` 精确锚串替换(每次断言 `count == 1`)。
+
+## 仍未闭合(承前,未动)
+
+1. `W = 0` / `OQ-9-1` —— 痊愈支 / 迁延支生产不求值
+2. `catalog.bin` 陈旧,仍无门检测
+3. `Relapse` / `TreatableBy` / `Signs` / `Handle` —— 全部需用户裁定
+4. **终态写者的生产接线** —— 须先裁 `DiseaseVitalsService` 冲突
+5. 「玩家能看见病人死」—— 仍不成立(承 4)
+
 **未提交**:待用户指令。
