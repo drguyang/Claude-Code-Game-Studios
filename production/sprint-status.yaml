@@ -48,9 +48,11 @@ work_items:
     complexity: L
     status: "backlog"
     owner: ""
+    deferred_to: "sprint-19"
+    deferred_ruling: "用户 2026-10-22 裁定(team-qa sprint-18 Phase 2 策略后):S18-1 结转 sprint-19。依据 = QA 判定 NOT APPROVED —— AC ⑦⑧ 生产树零证据(`IDeathCandidateSource` / `PlayerDeathWarranted` 全树 0 命中;`WriterExistenceGate.cs:98-102` 的 `PlayerDied` / `InjuryStateChanged` 仍挂「写者未落」),且谓词本体**无证伪轮**(已跑的 `R1_CHECK_31` 那轮守的是 `kind` 零值,与本件三条断言零关系)。⚠️ **结转 ≠ 结案**:本项在 sprint-19 的入口判据 = C-3(谓词补证伪轮 ≥3)+ AC⑦⑧ 落地;AC③ 仍被 PRE-S18-A(白名单五项无数据行)卡住。"
     depends_on: ["DiseaseRegistryEntry.kind 字段", "战伤白名单闭集(用户裁定项)", "DeathCandidate 产出路径", "WriterExistenceGate 两条写者"]
-    evidence: "unity/Assets/Tests/EditMode/DiseaseSimulation/self_limited_predicate_test.cs(新)"
-    note: "⚠️ **口径已订正**:债册 :1523 的「解除动作」只写「加 entity 形参 + 一条夹具」,实测缺**四件** —— 谓词本体(SelfLimited / LethalFor / IsCombatant 全树零命中)· 产出侧(DeathCandidate / PlayerDeathWarranted 零命中)· 生产调用点(StateMachine.ComputeTransition 零生产调用点,9 处全在 Tests/EditMode/DiseaseSimulation/state_machine_death_test.cs)· 数据面(RegistrySchema.DiseaseRegistryEntry :137-197 无 kind 字段,而 GDD disease-simulation.md:285 要求 kind ∈ {injury, disease, poison})。另有第五件:**战伤白名单无任何数据定义**(death-and-respawn.md:96 只点名,assets/data/ 内 INJ_* 零命中)⇒ 须用户裁定,不得自造。判 L 并独占 1 批。"
+    evidence: "unity/Assets/Tests/EditMode/DiseaseSimulation/entity_death_gates_test.cs(已落 · commit `fc1705d` · 17 个 test 方法;⚠️ 原登记写的 `self_limited_predicate_test.cs` **不存在** —— 见下方 note 的载体订正)"
+    note: "⚠️ **口径已订正**:债册 :1523 的「解除动作」只写「加 entity 形参 + 一条夹具」,实测缺**四件** —— 谓词本体(SelfLimited / LethalFor / IsCombatant 全树零命中)· 产出侧(DeathCandidate / PlayerDeathWarranted 零命中)· 生产调用点(StateMachine.ComputeTransition 零生产调用点,9 处全在 Tests/EditMode/DiseaseSimulation/state_machine_death_test.cs)· 数据面(RegistrySchema.DiseaseRegistryEntry :137-197 无 kind 字段,而 GDD disease-simulation.md:285 要求 kind ∈ {injury, disease, poison})。另有第五件:**战伤白名单无任何数据定义**(death-and-respawn.md:96 只点名,assets/data/ 内 INJ_* 零命中)⇒ 须用户裁定,不得自造。判 L 并独占 1 批。 ✅ **2026-10-22 状态订正(原文不删)**:谓词本体**已落**(commit `fc1705d`:`Sim.Contracts/ActorClass.cs` + `Sim/EntityDeathGates.cs` + `Tests/EditMode/DiseaseSimulation/entity_death_gates_test.cs` 258 行),但 **AC ⑦⑧ 未落** —— `IDeathCandidateSource` / `PlayerDeathWarranted` 生产树 **0 命中**(连接口都不存在,不只是没接线)。🔁 **载体订正(C-2)**:本行 `evidence:` 原写 `self_limited_predicate_test.cs`,该文件**从未存在**;实际载体 = `entity_death_gates_test.cs`。同型三处在 `production/qa/qa-plan-sprint-18-2026-10-21.md:35` / `:55` / `:353`(均已就地加注)。**判据 = 两条路径同时 grep,只有后者命中** —— 下游按前者核会反判成「S18-1 零测试」。 ⚠️ **账实不符的定性(2026-10-22 qa-lead 实测,两者兼有)**:`status: backlog` **是对的**(实现确实未完成);`evidence:` 路径**是记账缺陷**。 ⚠️ **另登记**:`ActorClass` 落地值 = `{Unspecified=0, Player=1, HumanEnemy=2, Beast=3}`,与 ADR-025 §①:112 注原文 `{Player=0, …}` **相反**(原文把 `Player` 定为 0,而 `Player` 的 combatant = false ⇒ 漏填会静默放行致死);ADR-025 已于 2026-10-22 就地订正。"
 
   - id: "S18-2"
     name: "TD-persist-01 / G-2 —— Folded(patientId) 四条件折叠谓词 + 折叠行产出"
@@ -149,10 +151,11 @@ open_items:
 
   - id: "PRE-S18-D"
     item: "`SelfLimited` / `LethalFor` 的 `lethal` 形参类型未统一"
-    status: "⚠️ 阻塞 S18-1 谓词签名定稿"
+    status: "✅ 已结 2026-10-22(QA 条件 C-7)· 口径 = `Lethality > 0`"
     evidence: "`RegistrySchema.cs:398-401` 自陈:既有字段是 `Lethality ∈ [0,3]` 整数,GDD R1 表写 bool `lethal`,「字段错位属既有 16 字段问题」;既有先例是 `Lethality > 0` 代 `lethal`(`R1_CHECK_22` 校验即如此写)"
     detail: "F4 的 `LethalFor(entity, d)` 若取 `d.Lethality > 0`,则 OQ-S18-1 裁的「双条件 `lethal(d)` ∧ 五项闭集」中 `lethal(d)` 的语义 = `Lethality > 0`;**若取 bool 则须先改字段类型**(牵动 22 处夹具 + R1-06 校验)。二选一须明写,否则谓词签名与既有校验打架"
     owner: "编排方(建议:`Lethality > 0`,承既有先例)—— 待用户确认"
+    ruling: "**✅ 2026-10-22 结案 —— 取 `Lethality > 0`**(bool 字段案否决:牵动 22 处夹具 + R1-06 校验,且与 `R1_CHECK_22` / `EntityDeathGates.LethalityOf` 两处既有先例冲突)。**结案形式须如实登记**:本条原文写「待用户确认」,而实施轮(`fc1705d` / `ad7316c`)已按 `Lethality > 0` 落码 = **实现先于裁决**;本轮由用户 2026-10-22 指示「三条条件一并落掉」而结案,口径按**现行实现**确认。⚠️ **若改判 bool 字段,本条立即失效**,改动落点 = `Sim/EntityDeathGates.cs` 的 `LethalityOf` + `Sim/FoldedPredicate.cs:123` 的 `entry.Lethality <= 0` + 22 处夹具 + R1-06 校验。"
 
   - id: "OBS-S18-E"
     item: "R1_CHECK_31 的覆盖面限制(如实登记,禁借绿)"

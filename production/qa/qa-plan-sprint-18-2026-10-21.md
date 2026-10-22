@@ -32,7 +32,7 @@
 
 | 工作项 | 类型 | 自动化证据要求 | 人工验收 |
 |---|---|---|---|
-| **S18-1** `SelfLimited(entity,d)` 逐实体判死谓词及依赖面 | **Logic** | **必须自动化 + 必须证伪** —— `unity/Assets/Tests/EditMode/DiseaseSimulation/self_limited_predicate_test.cs`(新) | 无 |
+| **S18-1** `SelfLimited(entity,d)` 逐实体判死谓词及依赖面 | **Logic** | **必须自动化 + 必须证伪** —— `unity/Assets/Tests/EditMode/DiseaseSimulation/self_limited_predicate_test.cs`(新) ⚠️ **2026-10-22 载体订正(原文不删)**:该路径**从未存在**;实际载体 = `unity/Assets/Tests/EditMode/DiseaseSimulation/entity_death_gates_test.cs`(commit `fc1705d` · 17 个 test 方法) | 无 |
 | **S18-2** `Folded(patientId)` 四条件折叠谓词 + 折叠行产出 | **Logic** | **必须自动化 + 必须证伪** —— `unity/Assets/Tests/EditMode/PersistenceService/folded_predicate_test.cs`(新) | 无 |
 | **S18-3** 台账回写四处 + `BLOCKED-BY-24` 登记 + **`death-respawn` 台账五处过期登记加注** | **Config/Data**(纸面) | **无自动化** —— 判据 = 四处 `grep` 同值 + 一处登记在册 + 五处「原串 + 加注」双命中 | 无 |
 
@@ -52,8 +52,12 @@
 
 ### S18-1 — `SelfLimited(entity, d)` 逐实体判死谓词及依赖面(Logic)
 
-**Test file path**: `unity/Assets/Tests/EditMode/DiseaseSimulation/self_limited_predicate_test.cs`(新)
-*(账本路径 `tests/unit/disease-simulation/` 并列登记;同目录既有 `state_machine_death_test.cs` 为改前基线)*
+**Test file path**: `unity/Assets/Tests/EditMode/DiseaseSimulation/self_limited_predicate_test.cs`(新)*(账本路径 `tests/unit/disease-simulation/` 并列登记;同目录既有 `state_machine_death_test.cs` 为改前基线)*
+
+> ⚠️ **2026-10-22 载体订正(原文不删)**:上面点名的 `self_limited_predicate_test.cs` **从未存在**。
+> 实际载体 = `unity/Assets/Tests/EditMode/DiseaseSimulation/entity_death_gates_test.cs`(commit `fc1705d` · 17 个 test 方法)。
+> 同型第二处在 `production/sprint-status.yaml` 的 S18-1 `evidence:`(已就地订正)· 第三处在本文件 `:353` DoD 行(已加注)。
+> **判据 = 两条路径同时 grep,只有后者命中** —— 按前者核会反判成「S18-1 零测试」。
 
 **规范依据**:
 - `design/gdd/disease-simulation.md:1153-1160` —— `LethalFor(entity,d) = lethal(d) ∧ ¬IsCombatant(entity)`
@@ -145,6 +149,13 @@
 | 6 | ④ `SkillGrown` 行**不被抹除** —— 折叠后成长事件仍在流里 | ADR-026 §⑦ 案 1 | ⚠️ 判据是「折叠**之后** `Level(s)@t` 逐位一致」,不是「`Folded` 返回某值」——后者是自造断言 |
 | 7 | **折叠行形状逐字段**:`(onset, 病种_id, patient_id, patient_seed, outcome, t_end)` 六字段全在 | ADR-010 §二 | **`patient_id` 必留**(ADR-006 Amendment B 第 3 条)⇒ 单独一条断言,不许被「字段数对」掩盖 |
 | 8 | **折叠后重放等价**:折叠 + 重放 ⇒ 与未折叠全量重放同结果 | ADR-005 唯一真源 | 本件最强的判别力判据;需 `SkillGrown` 参与的序列 |
+
+> ⚠️ **2026-10-22 判据面收窄(原文不删 · QA 条件 C-6)**:第 8 条在本件**只兑现了 skill-growth 一维** ——
+> 唯一载体是 `test_fold_skillGrownReplayIsBitIdentical`,判的是 `Level(s)@t`(ADR-026 §⑦ 的原文判据)。
+> **general 意义的「重放等价」不成立**:`HistoryFolder` 抹除该病人全部病史行(减 `SkillGrown`),
+> 被抹的 `CareApplied` / `DrugTreatmentApplied` 无法从保留流重放 —— 这是折叠语义本身,不是夹具偷懒
+> (见 `Sim/HistoryFolder.cs` 头注 + `OQ-7a-10`)。**判据 = 测试文件头注同款声明 + 该文件只有一条重放断言。**
+> 补其余病史行等价判据**须先裁 `OQ-7a-10`**。
 
 **边界 / 证伪用例**:
 
@@ -350,7 +361,7 @@ S18-3 是纸面件,判据是命令输出。
 
 - [ ] `S18-1` / `S18-2` 的 AC 逐条勾选并附**可复算判据**(禁止「已落盘」当判据)
 - [ ] **每件过证伪轮**:改坏生产码 ⇒ 指定断言转红;`exactRed` 由**论证**给出后才定预期(禁把实得抄进 `expectRed`)
-- [ ] 两件测试件存在并通过(路径见上;`self_limited_predicate_test.cs` / `folded_predicate_test.cs`)
+- [ ] 两件测试件存在并通过(路径见上;`self_limited_predicate_test.cs` / `folded_predicate_test.cs`) ⚠️ **2026-10-22 载体订正(原文不删)**:S18-1 的实际载体是 `entity_death_gates_test.cs`(本行原点的 `self_limited_predicate_test.cs` 从未存在,见 `:55` 下的订正注)
 - [ ] 全量 EditMode / PlayMode 对账,**三元组齐备**(截至时刻 · 批次 · commit),
       等式 `Δtotal = Δpassed = 新增条数` 成立,且**「消失 0」独立判据**成立
 - [ ] `S18-3` 四条判据逐条贴命令与输出,第三方可重跑复现

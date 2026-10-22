@@ -8444,3 +8444,16 @@ M6 首版变异形态(`if (false) throw …`)导致 **switch 段落穿透 = 编�
 - **仍未做(禁借绿)**:`FoldedPredicate` **零生产调用点**(折叠未进存档路径 ⇒ `SaveService` 形参默认 `null`)· 9 的终态写者仍挂 `WriterExistenceGate` · 折叠行字节级落盘归 7a 往返轮 · `PRE-S18-D`(lethal 口径)待用户确认。
 - **⚠️ 上一条 S18-3 记录的「仍未做」订正(原文不删)**:其中 `/smoke-check sprint` **已完成**(`production/qa/smoke-2026-10-22.md`,commit `e5b2623`,verdict = PASS WITH WARNINGS)。仍欠:`/team-qa sprint` · `/code-review` · `sprint-status` 归档 `sprint-status-sprint18-archive.yaml`(SHA-256 逐字节)。
 - 编辑器**可重开**(batch 已退出,锁文件已释放)。
+
+<!-- QA RUN: 2026-10-22 | Sprint: sprint-18 | Verdict: APPROVED WITH CONDITIONS | Report: production/qa/qa-signoff-sprint-18-2026-10-22.md -->
+## 🧪 team-qa sprint-18 签核(2026-10-22)
+
+- **整体 = APPROVED WITH CONDITIONS**;放行依据 = 用户 2026-10-22 裁定 **S18-1 结转 sprint-19**。
+- 逐件:**S18-3 APPROVED** · **S18-2 APPROVED WITH CONDITIONS(C-6 已结)** · **S18-1 DEFERRED → sprint-19**。
+- **人工 QA = 0 项**(QA 计划判「零人工验收项」)⇒ Phase 4/5 无对象。**Phase 3 复用既有 QA 计划,不重写**(只就地加注载体订正 + AC⑧ 判据面收窄)。
+- **smoke 重跑**:`production/qa/smoke-2026-10-22-sprint18-final.md`(判 `ad7316c`,Verdict = PASS WITH WARNINGS);旧件 `smoke-2026-10-22.md` 判的是 `220acc3`,**已被取代但不删**。
+- **回归三元组**:EditMode `4418/4382/0/36` @ 08:59 · `s18-2-editmode-commit-20261022` · `ad7316c`;PlayMode `202/202/0/0` @ 08:55 · `s18-2-playmode-final-20261022` · `ad7316c`。Δtotal = Δpassed = +29 = 新增条数;全名差集 新增 29 / 消失 0。
+- **条件结账**:C-1/C-2/C-4/C-5/C-6/C-7/C-8 **全部结清**;**C-3 转移**(不是消失)= sprint-19 的入口判据。
+- **⚠️ 两处警示(禁借绿)**:① C-7 的结案形式 = **实现先于裁决**(码先按 `Lethality > 0` 落,本轮才确认);② S18-2 的绿只覆盖「条件①–④各自成立」,**「折叠产出面」无任何变异反证** —— 抹除作用域恰是实现偏离所在(`OQ-7a-10`)。
+- **S18-1 结转的入口判据(四条,不得当已结)**:C-3 证伪轮 ≥3 · AC⑦ `IDeathCandidateSource` + 29 侧注入点 · AC⑧ 两条写者(落地同批撤 `WriterExistenceGate` 豁免表)· AC③ 仍被 `PRE-S18-A`/`PRE-S18-B` 卡住须数值裁定。
+- **仍未做**:`/code-review` · `sprint-status` 归档 `sprint-status-sprint18-archive.yaml`(SHA-256 逐字节)。

@@ -10,6 +10,15 @@
 //   ADR-025 §①:112                     —— 甲案:IFoldedPredicate 住 Contracts · 实现住 Sim
 //   ADR-010 :331                       —— ISaveService 公开方法参数集不变(构造函数注入)
 //
+// ⚠️ **AC ⑧「折叠后重放等价」的判据面只覆盖 skill-growth 一维(2026-10-22 · QA 条件 C-6)**
+//   QA plan S18-2 的「What to test」第 8 条要求:折叠 + 重放 ⇒ 与未折叠全量重放同结果。
+//   本文件只有 `test_fold_skillGrownReplayIsBitIdentical` 一条,覆盖的是 **`Level(s)@t`**
+//   (ADR-026 §⑦ 的原文判据)。**general 意义的「重放等价」本文件不成立**,原因是实现层面的:
+//   `HistoryFolder` 抹除该病人**全部**病史行(减 `SkillGrown`)⇒ 被抹的 `CareApplied` /
+//   `DrugTreatmentApplied` 等**无法从保留流重放**。这不是夹具偷懒,是折叠语义本身
+//   (见 `HistoryFolder.cs` 头注 + `OQ-7a-10`)。
+//   ⇒ **不得**把本文件读成「AC ⑧ 已全维验证」。补其余病史行等价判据须先裁 `OQ-7a-10`。
+//
 // ⚠️ 本文件的验收范围(如实登记,禁借绿):
 //   覆盖 ① 四条件逐条(各一否例 + 正例)② 折叠行六字段 ③ SkillGrown 行存续
 //        ④ 边界(空流 / 空病例流 / 负 id)⑤ fail-loud(未知病种 / 重复终态)
