@@ -317,26 +317,29 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         }
 
         /// <summary>
-        /// **「止」项在当前派生式下恒冗余** —— 本轮发现的一条 GDD 内部矛盾,钉成可观测事实。
+        /// **最后动作是「止」⇒ 立刻起算,不再送 CARE_GAP**(2026-10-22 第六轮裁定后)。
         ///
-        /// <para><b>算式</b>:照护支 = <c>max(最后止, 最后动作 + CARE_GAP)</c>
-        /// (GDD <c>:1126-1133</c>)。但「止」本身就是一条护理动作事件 ⇒
-        /// <c>最后动作 ≥ 最后止</c> ⇒ <c>最后动作 + CARE_GAP &gt; 最后止</c> **恒成立**。
-        /// ⇒ 第二项永远覆盖第一项,<c>LastCareStopTick</c> 对 <c>last_intervention</c> **零影响**。</para>
+        /// <para><b>🔁 本条前身 <c>test_careStop_isRedundantUnderDerivedFormula</c> 已作废</b>
+        /// (原文不删):它钉的是旧 <c>max(最后止, 最后动作 + CARE_GAP)</c> 式下
+        /// 「『止』项恒冗余」这一**事实**。该事实本身没错 —— 它正是冲突的证据 ——
+        /// 但裁定已把该式作废,故断言方向反转。</para>
         ///
-        /// <para><b>与 GDD 散文的冲突</b>:同段明写「『止』存在则**从止起计时**」——
-        /// 而公式做不到。两者不可能同时为真。本轮**不代拍**:
-        /// 公式是 GDD 的正式定义,散文是它的意图说明;改哪一边须用户裁定。
-        /// ⇒ 本测试只把「当前实现按公式走」钉死,并留一条可复算的判据给裁定轮。</para>
+        /// <para><b>现算式</b>:最后动作是止 ⇒ <c>last_care = 止 tick</c>;
+        /// 否则(起 / 走开)⇒ <c>最后动作 + CARE_GAP</c>。判据落在已有两字段上:
+        /// 「最后动作是止」⟺ <c>LastCareStopTick == LastCareActionTick</c>。</para>
+        ///
+        /// <para><b>为什么必须早于无止情形</b>:裁定前那条 <c>max</c> 式让两值**恒等**
+        /// ⇒ 玩家点「止」在数值上零作用。本条用 <c>Greater</c> 把这条差异钉住 ——
+        /// 若有人把实现改回 <c>max</c>,它当场红。</para>
         ///
         /// <para><b>对实现的影响</b>:<see cref="DiseaseCourse.NoteCareAction"/> 仍**照记**两个字段
-        /// (字段级判据见下一条)—— 因为 <c>CareApplied</c> 的 phase 是载荷的一部分,
-        /// 折叠 / 8 的护理记录等其他消费者需要它。只是 F4 的窗口不吃它。</para>
+        /// (字段级判据见下一条)—— 裁定后两个字段都真的被 F4 消费了,
+        /// 而不再是一个有用一个恒冗余。</para>
         /// </summary>
         [Test]
-        public void test_careStop_isRedundantUnderDerivedFormula()
+        public void test_careStop_endsWindowImmediately()
         {
-            // 「止」晚于任何动作(物理上可达的唯一形态):止 = 6500,最后动作也是 6500
+            // 2026-10-22 第六轮裁定:最后动作是「止」⇒ 立刻起算,不再送 CARE_GAP。
             long withStop = LastInterventionAggregator.Evaluate(
                 onsetTick: 0,
                 LastInterventionAggregator.TreatmentChannelInput.None,
@@ -349,10 +352,35 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
                 new LastInterventionAggregator.CareChannelInput(
                     lastCareStopTick: null, lastCareActionTick: 6500));
 
-            Assert.AreEqual(6500 + StateMachine.CARE_GAP, withStop,
-                "有「止」时结果 = 最后动作 + CARE_GAP(派生项),不是止本身 6500");
-            Assert.AreEqual(withoutStop, withStop,
-                "「止」的有无不改变结果 ⇒ 该项在派生式下恒冗余(GDD 公式 vs 散文的冲突,待裁)");
+            Assert.AreEqual(6500L, withStop,
+                "最后动作是「止」⇒ last_care = 止本身 6500,不得再送 CARE_GAP(送了 = 玩家点了停还在续命 30 秒)");
+            Assert.AreEqual(6500 + StateMachine.CARE_GAP, withoutStop,
+                "只有「起」后走开(无止)⇒ 宽限 = 最后动作 + CARE_GAP");
+            Assert.Greater(withoutStop, withStop,
+                "有「止」必须**早于**无止情形结束 —— 这是裁定前那条 max 式做不到的(它让两值恒等)");
+        }
+
+        /// <summary>
+        /// **停后再起:吃新动作,不吃旧止** —— 裁定前两案在这里各错一次。
+        ///
+        /// <para>夹具:起 1000 → 止 2000 → 起 3000(第二次护理正在进行)。</para>
+        /// <list type="bullet">
+        /// <item>旧 max 式:`max(2000, 3600) = 3600` ✓(这一格它是对的)</item>
+        /// <item>散文**字面**读「『止』存在则从止起计时」:`2000` ✗ —— 玩家正在护理却从 2000 起算</item>
+        /// <item>本裁定:最后动作 = 起 3000 ⇒ `3000 + 600 = 3600` ✓</item>
+        /// </list>
+        /// </summary>
+        [Test]
+        public void test_careRestartAfterStop_usesNewActionNotOldStop()
+        {
+            long restart = LastInterventionAggregator.Evaluate(
+                onsetTick: 0,
+                LastInterventionAggregator.TreatmentChannelInput.None,
+                new LastInterventionAggregator.CareChannelInput(
+                    lastCareStopTick: 2000, lastCareActionTick: 3000));
+
+            Assert.AreEqual(3000L + StateMachine.CARE_GAP, restart,
+                "最后动作是「起」(3000),不是「止」(2000)⇒ 从 3000 宽限,不得回退到旧止 2000");
         }
 
         /// <summary>
@@ -361,6 +389,13 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         /// <para><b>为什么判据落在字段而不是九态上</b>:上一条已证「止」在派生式下恒冗余
         /// ⇒ 从九态**不可能**观测到 <c>LastCareStopTick</c> 是否被写。要钉「phase 被读了」
         /// 只能直接读字段。</para>
+        ///
+        /// <para><b>🔁 上段理由在 2026-10-22 第六轮裁定后已部分失效(原文不删)</b>:
+        /// 裁定作废了 <c>max</c> 式 ⇒ 「止」现在**真的**影响 <c>last_intervention</c>
+        /// ⇒ 九态**原则上**可观测到它了。但**本条仍用字段级判据**,理由换成更弱也更稳的一条:
+        /// 九态是**多输入折叠后的单值**(阈值 + 窗口 + 三通道),从一个态反推「某一个字段写没写」
+        /// 需要固定其余全部输入且恰好在边界上 —— 那是**脆弱的**判据(第四轮 N6 的假存活即此类)。
+        /// 字段级判据直接、单义、不依赖别的量。⇒ **结论不变,理由更新**。</para>
         ///
         /// <para><b>⚠️ 夹具的关键 = 「止」之后还有一次「起」</b>(第二次护理)。
         /// 若只造「起 3000 → 止 6500」,两种读法**同效**:</para>
@@ -425,11 +460,16 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         /// <summary>
         /// **越界 phase 当场抛,不静默当「起」**。
         ///
-        /// <para><b>为什么这条必要</b>:<c>entities.yaml</c> 的 <c>CareApplied</c> 条目只写
-        /// 「phase: 枚举(起 止)」,**全库没有序数定义** —— <c>0 = 起 / 1 = 止</c> 是本实现的
-        /// 落地约定。若写者(24)用了别的编码(如 <c>1 = 起 / 0 = 止</c>,或三值枚举),
-        /// 静默取值会让 <c>LastCareStopTick</c> 永远为空 ⇒ 照护支退化成
-        /// <c>最后动作 + CARE_GAP</c> 单项式,而**没有任何测试会红**。</para>
+        /// <para><b>为什么这条必要</b>:越界值若被静默取值(例如当成「起」),会让
+        /// <c>LastCareStopTick</c> 永远为空 ⇒ 照护支退化成
+        /// <c>最后动作 + CARE_GAP</c> 单项式,而**没有任何测试会红**。
+        /// 序数本身现已三处齐备(<c>entities.yaml:2186</c> / <c>Sim.Contracts.CarePhase</c> /
+        /// <c>DiseaseCourse</c> 转发常量),但**序数有权威 ≠ 调用方不会传越界值** ——
+        /// 写者(24)仍可能传三值枚举或 <c>1 = 起 / 0 = 止</c> 的旧编码,故值域门照旧必要。</para>
+        ///
+        /// <para>🔁 原文写「<c>entities.yaml</c> 的 <c>CareApplied</c> 条目只写『phase: 枚举(起 止)』,
+        /// **全库没有序数定义** —— <c>0 = 起 / 1 = 止</c> 是本实现的落地约定」——
+        /// **已失效**(原文不删):2026-10-22 用户裁定「甲+乙 都做」后 registry 已补序数。</para>
         ///
         /// <para>⇒ 越界值必须 fail-loud。本测试送 <c>2</c> 与 <c>-1</c> 两种。</para>
         /// </summary>

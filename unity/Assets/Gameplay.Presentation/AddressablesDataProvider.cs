@@ -150,6 +150,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <remarks>与写方 `BuildModulesBake.CookedFileName` / 读方 `BuildModulesDataSet.CookedFileName` 同值。</remarks>
         public const string BuildModulesAddress = BuildModulesDataSet.CookedFileName;
 
+        /// <summary>9 病种注册表 address(2026-10-22 B1 接真;全局 <c>W</c> / <c>TREND_EPS</c> 的运行期载体)。</summary>
+        /// <remarks>单一出处 = <see cref="DiseaseRegistryDataSet.CookedFileName"/>(读方 DataSet 与 address 共用同一常量)。</remarks>
+        public const string DiseaseRegistryAddress = DiseaseRegistryDataSet.CookedFileName;
+
         /// <summary>data-core 组标签(ADR-014 §五:单组预载)。</summary>
         public const string DataCoreLabel = "data-core";
 
@@ -186,6 +190,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private ClinicFurnitureDataSet? _clinicFurniture;
         // 23 模块目录(TD-building-01 读侧 · 2026-10-21):struct 解码形 ⇒ 可空承载。
         private BuildModulesDataSet? _buildModules;
+        // 9 病种注册表(2026-10-22 B1 接真):struct 解码形 ⇒ 可空承载。
+        private DiseaseRegistryDataSet? _diseaseRegistry;
 
         // ══════════ 8 词表/门槛装载(sprint-07 S1.2)══════════
         // 逃逸判据(S1.2 修订 2026-10-11):CheckSourceEscape 只判「非 8 前缀文件**声明**了
@@ -311,6 +317,12 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureBuildModules();
                 return (TDataSet)(object)_buildModules.Value;
             }
+            // ── 2026-10-22 B1 接真:9 病种注册表(W / TREND_EPS 的生产载体)──
+            if (typeof(TDataSet) == typeof(DiseaseRegistryDataSet))
+            {
+                EnsureDiseaseRegistry();
+                return (TDataSet)(object)_diseaseRegistry.Value;
+            }
             throw new InvalidOperationException(
                 $"[E-13][data-core] 未知数据集类型 {typeof(TDataSet).FullName} —— 启动期硬失败;" +
                 "IDataProvider 承载 ItemDataSet / RecipeDataSet + 三份 8/37 侧产物(S1.2 + S1.1 件 D 扩)" +
@@ -324,7 +336,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 " + 48 教学内容(S17-3:TutorialContentTable)" +
                 " + 24 医馆三表(S17-2 前置:ClinicContextDataSet / ClinicAdjDataSet / ClinicRoomDataSet)" +
                 " + 21a 家具目录(O-24-1:ClinicFurnitureDataSet)" +
-                " + 23 模块目录(TD-building-01 读侧:BuildModulesDataSet)");
+                " + 23 模块目录(TD-building-01 读侧:BuildModulesDataSet)" +
+                " + 9 病种注册表(2026-10-22 B1:DiseaseRegistryDataSet)");
         }
 
         /// <summary>首次 Step 前的全量预载(调用契约见 <see cref="DataCorePreloader"/>;幂等,重复调用走缓存)。</summary>
@@ -352,6 +365,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureClinicRoom();
             EnsureClinicFurniture();
             EnsureBuildModules();
+            EnsureDiseaseRegistry();
         }
 
         private void EnsureItems()
@@ -695,6 +709,25 @@ namespace DaYiJingCheng.Gameplay.Presentation
             {
                 throw new InvalidOperationException(
                     $"[E-13][data-core] 23 模块目录 cooked 解码失败(address={BuildModulesAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        // ── 2026-10-22 B1 接真:9 病种注册表 ──
+
+        private void EnsureDiseaseRegistry()
+        {
+            if (_diseaseRegistry.HasValue) return;
+            byte[] bytes = FetchBytes(DiseaseRegistryAddress);
+            try
+            {
+                _diseaseRegistry = DiseaseRegistryCookedCodec.Read(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 9 病种注册表 cooked 解码失败(address={DiseaseRegistryAddress})" +
                     $"—— 启动期硬失败,绝不降级:{ex.Message}",
                     ex);
             }

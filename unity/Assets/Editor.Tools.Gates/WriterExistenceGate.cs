@@ -75,6 +75,13 @@ namespace DaYiJingCheng.EditorTools.Gates
         //   · 写者落地的那一批**同批撤条目**(撤表 = 该 Kind 转为被门正面盯住)。
         // 2026-10-10 勘察基线:35 支 author 声明 = 11 支有生产写者(9 支既有 + 本批
         //   CaseOpened / ResourceHarvested 两支)+ 24 支豁免。
+        //   🔁 **该「24」是 2026-10-10 的历史基线,不是当前值**(原文不删)。
+        //   实测当前值 = **16 条**。
+        //   ⚠️ 递减来自历次撤表(CaseClosed / PatternRecognized / JudgmentRevised /
+        //   SkillGrown / ConsequenceResolved / PlayerDied / InjuryStateChanged / CareApplied)。
+        //   ⇒ **不要在本行或测试文案里硬编码条数** —— 撤表是常态,硬编码必然过期。
+        //   要数字请数下面这个数组的条目(注意:锚串 `ExemptKinds` 在本注释段里也出现,
+        //   用脚本数时须锚在**声明行** `private static readonly ... ExemptKinds`,否则会锚到注释)。
         // 2026-10-11 G3:SkillGrown 写者经装配层 AssemblySkillGrowthPort 落地(撤豁免),
         //   DrugTreatmentApplied 嫁 PrescribeFlow(现为写者面命中的既有调用点)。
         private static readonly (string Kind, string Reason)[] ExemptKinds =
@@ -126,7 +133,16 @@ namespace DaYiJingCheng.EditorTools.Gates
             ("DropDespawned", "20 掉落消亡写者未落 —— 归 20 实现轮(2026-10-10)"),
 
             // ── 24 / 30 / 53 ──
-            ("CareApplied", "24 医馆与案头写者未落(以入向事件写入)—— 归 24 轮(entities.yaml author 注)(2026-10-10)"),
+            // ✅ 2026-10-22 撤 `CareApplied` 豁免:写者已落 ——
+            //   `Sim/CareAppliedWriter.cs`(24 医馆与案头的照护动作起止写入通道,
+            //   `Encode(EventKind.CareApplied, …)` = 门判据扫得到的生产写入点)。
+            //   判据①「已存在写者的 Kind 仍挂豁免表 = 红」强制同批撤表
+            //   (承 `CaseClosed` / `PatternRecognized` / `PlayerDied` / `InjuryStateChanged` 先例)。
+            //   ⚠️ **本类与该写者必须同批提交** —— 先撤表后写码 ⇒ 「写者缺失」红;
+            //   先写码后撤表 ⇒ 判据① 红。
+            //   ⚠️ 与 `CaseOpenWriter` 同格:**有写者 ≠ 已接线** —— 生产触发点(24 的护理交互 /
+            //   医馆护理台 · 4 的交互装配)归 24/4 的交互装配轮。
+            //   正向存在性断言的载体 = `Tests/EditMode/DiseaseSimulation/care_applied_writer_test.cs`。
             // ⚠️ 2026-10-16 撤 `ConsequenceResolved` 豁免(story-003 延迟发出落地,用户裁定 AC-7):
             //   写者已落 —— `Sim/Consequences/ConsequenceEmitter.cs`
             //   (`Encode(EventKind.ConsequenceResolved, …)` = 门判据扫得到的生产写入点)。
@@ -135,8 +151,13 @@ namespace DaYiJingCheng.EditorTools.Gates
             //   :87-95)—— 先撤表后写码 ⇒ 「写者缺失」红;先写码后撤表 ⇒ 判据① 红。
             //   正向存在性断言的载体 = `Tests/EditMode/MedConsequences/medcons_delayed_emit_test.cs`
             //   (AC-7:防「删了条目但没人写」—— 存在性判据是**双向**的)。
-            //   ⚠️ 基线随之 24 → **23 条豁免**(writer_existence_gate_test 只断 IsNotEmpty,
+            //   ⚠️ 撤表后条数递减(writer_existence_gate_test 只断 IsNotEmpty,
             //  不断条数 ⇒ 无需同批改该测试)。
+            //  🔁 原文写「基线随之 24 → **23 条豁免**」—— **该数字两处都错,已作废**(原文不删):
+            //  撤 `ConsequenceResolved` 之前的真实条数已非 24(24 是 2026-10-10 的基线,
+            //  中间撤过 CaseClosed / PatternRecognized / JudgmentRevised / SkillGrown),
+            //  撤后亦非 23。**任何写死的条数都会在下一次撤表时失效** ⇒ 本条此后只陈述
+            //  「递减」,不复述数字;要数字请跑类头那段复算命令。
         };
 
         // ══════════════════════════════════════════════════════════════════

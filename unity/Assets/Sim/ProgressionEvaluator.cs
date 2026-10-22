@@ -270,6 +270,101 @@ namespace DaYiJingCheng.Sim
             return trend;
         }
 
+        /// <summary>
+        /// `LowPositionHeldTicks` —— `position_agg` 已**连续**低于痊愈门的 tick 数
+        /// (F4 痊愈支条件 ⑥ 的输入;GDD <c>:1114</c>「低位须稳定 ≥ W(防 ±σ 抖动把终态判成随机)」)。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>为什么是纯函数,不是跨 tick 计数器(2026-10-22 B2 修复的核心取舍)</b>:
+        /// 最直觉的实现是「每 tick 若 position 低则 <c>++</c>,否则归零」—— 那是一个**积分量**。
+        /// ADR-016 §九 已就地证伪过同型假设:「冻结态可由三源重放复现 ≠ 从不冻结态」,
+        /// 积分量一旦被跳过 step 就少积分,且**存档不携带它**(ADR-010 不存逐帧状态)
+        /// ⇒ 读档后该值归零 ⇒ 同一时刻的同一病人判出两种终态。
+        /// 本实现把「连续低位多久」写成 <c>t</c> 的**纯函数**(反查历史 tick 的 Progress),
+        /// 与 <see cref="ComputeTrendBackward"/> 同构:只读过去、可重放、无隐藏状态。</para>
+        ///
+        /// <para><b>定义</b>(逐字对应 <see cref="RecoveryWindowInput.LowPositionHeldTicks"/> 的文档):</para>
+        /// <code>
+        /// held(t) = 自 t 往回数,position 连续 &lt; RECOVER_THRESHOLD 的 tick 数,
+        ///           下限 = onsetTick(病程之前无「低位」可言),
+        ///           上限 = windowTicks(消费者只判 held &lt; W,超出部分不影响判定)。
+        /// </code>
+        ///
+        /// <para><b>⚠️ 上界截断是刻意的</b>:返回值语义 = <c>min(真实连续低位 tick 数, W)</c>。
+        /// 唯一消费者 <see cref="F4OutcomeEvaluator"/> 的条件 ⑥ 是 <c>held &lt; W ⇒ 不成立</c>,
+        /// 故截断**不改变任何判定**,却把开销从 <c>O(病程长度)</c> 降到 <c>O(W)</c>
+        /// (24 病人 × 20 Hz 下这是必要的 —— 否则病程越长每 tick 越慢)。</para>
+        ///
+        /// <para><b>⚠️ 未配置(<paramref name="windowTicks"/> ≤ 0)⇒ 返回 0 且不扫</b>:
+        /// <see cref="RecoveryWindowInput.IsConfigured"/> 为 <c>false</c> 时条件 ⑥ 根本不被求值,
+        /// 返回 0 是**零开销的诚实值**,不是「低位 0 tick」的断言。</para>
+        ///
+        /// <para><b>⚠️ 已知边界(未裁,登记于 OQ-9-1)</b>:潜伏期内 <c>τ &lt; incubation</c> ⇒
+        /// <see cref="ComputeProgress"/> 返回 0 ⇒ position = 0 &lt; RECOVER ⇒ **本函数从 onset 起就计数**。
+        /// 若某病种 <c>incubation &gt; W</c>,则 <c>t = onset + W</c> 时 held 已达 W,而此刻病还没发出来
+        /// —— 条件 ⑤(非上升期门)在 trend = 0 时**放行**(<c>trend ≤ 0</c>),故可能判出「潜伏期痊愈」。
+        /// 这是**按 GDD 字面实现的直接后果**,不是本函数的缺陷;是否要额外要求
+        /// <c>τ &gt; incubation</c> 归 9 的设计轮裁定。**本函数不自作主张加门**。</para>
+        /// </remarks>
+        /// <param name="registry">病种注册表条目(与 F1 求值同一条目 —— 必须与
+        /// <c>position_agg</c> 的来源一致,否则「低位」判的不是同一个量)。</param>
+        /// <param name="onsetTick">病程起点(扫描下限)。</param>
+        /// <param name="currentTick">求值时刻 t(扫描起点)。</param>
+        /// <param name="doses">已解码的处置和式输入(F1 求值需要)。</param>
+        /// <param name="worldSeed">世界种子(Noise 入参;Noise 现恒 0)。</param>
+        /// <param name="patientId">病人 id(Noise 入参)。</param>
+        /// <param name="windowTicks"><c>W</c>;≤ 0 ⇒ 未配置 ⇒ 返回 0 且不扫。</param>
+        /// <param name="doseClampBound">剂量钳制上界(F1 透传;生产路径为 null)。</param>
+        /// <returns><c>min(连续低位 tick 数, W)</c>;未配置 / <paramref name="currentTick"/> &lt;
+        /// <paramref name="onsetTick"/> 时为 0。</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="registry"/> 为 null。</exception>
+        public static long ComputeLowPositionHeldTicks(
+            DiseaseRegistryEntry registry,
+            long onsetTick,
+            long currentTick,
+            IReadOnlyList<TreatmentDose> doses,
+            ulong worldSeed,
+            PatientId patientId,
+            long windowTicks,
+            Fix? doseClampBound = null)
+        {
+            if (registry == null) throw new ArgumentNullException(nameof(registry));
+
+            // 未配置 ⇒ 消费者不求值条件 ⑥,零开销返回(见 remarks)
+            if (windowTicks <= 0) return 0;
+
+            // 病程尚未开始 / 同一 tick ⇒ 无「已持续」可言
+            if (currentTick < onsetTick) return 0;
+
+            // 扫描窗口 = min(W, 病程已过 tick 数 + 1) —— 两个上界都必要:
+            //   · W   = 消费者只需要这么多(超出不影响 held < W 的判定);
+            //   · 病程 = 不能越过 onset 去数「低位」(病程之前没有 position)。
+            long span = currentTick - onsetTick + 1;
+            long maxScan = windowTicks < span ? windowTicks : span;
+
+            // SCALE ≤ 0 ⇒ position 不可求值(与 EvaluateOutcome 同口径:压 0,不在 tick 内抛)
+            if (registry.Scale.Raw <= 0) return maxScan;
+
+            long held = 0;
+            for (long back = 0; back < maxScan; back++)
+            {
+                long t = currentTick - back;
+                Fix progress = ComputeProgress(
+                    registry, onsetTick, t, doses, worldSeed, patientId, doseClampBound);
+
+                // F2 投影(与 GetVitals / EvaluateOutcome 同式:clamp(Progress / SCALE, 0, 1))
+                Fix position = progress / registry.Scale;
+                if (position.Raw < Fix.ZeroRaw) position = Fix.Zero;
+                if (position.Raw > Fix.OneRaw) position = Fix.One;
+
+                // 高位 ⇒ 连续段断开,往回数到此为止
+                if (position.Raw >= StateMachine.RECOVER_THRESHOLD) break;
+                held++;
+            }
+
+            return held;
+        }
+
         // ── Base(τ) ──────────────────────────────────────────────────────────
 
         /// <summary>

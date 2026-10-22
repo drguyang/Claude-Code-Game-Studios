@@ -907,6 +907,54 @@ namespace DaYiJingCheng.EditorTools.Bake
         }
 
         /// <summary>
+        /// 烘焙 9 病种注册表(阶段 1 词法 → 阶段 2 绑定 + R1 校验 → deterministic 编码)
+        /// → 产物写入 Assets/DataCooked/(入 data-core 组)。
+        /// <para>⚠️ **为什么要有这一项**:<c>disease_registry.cooked.bytes</c> 此前**从未产出过** ——
+        /// 9 的注册表没有烘焙入口,生产路径只能拿 <c>CreateFallbackRegistry()</c> 的单条占位
+        /// (`DiseaseId = 1`),而真表从 id 2 起。后果 = 全局 <c>W</c> / <c>TREND_EPS</c> 恒 0,
+        /// F4 的痊愈支 / 迁延支在生产里**永不求值**。</para>
+        /// <para>本菜单是 <see cref="DiseaseRegistryBaker"/> 的**唯一调用点链路**(batch 下
+        /// <c>[MenuItem]</c> 不触发 ⇒ 计算段抽在 Baker 里,菜单与测试调同一份代码)。</para>
+        /// <para>⚠️ **烘焙后必须**:① 经「确保 data-core Addressables 组」把条目纳入组
+        /// ② 经「构建 Addressables 内容」重建 catalog,否则 PlayMode 下该 address 查不到。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 disease_registry(9 病种注册表)")]
+        public static void BakeDiseaseRegistry()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                DiseaseRegistryBaker.BakeOutput result = DiseaseRegistryBaker.BakeFromRepo(repoRoot);
+
+                // 真往返:编码 → 解码(含加载期 R1-36 趋势窗口门)→ 跨侧逐项等值
+                // (写方在 Editor.Tools.Bake、读方在 Gameplay.Presentation,两份手写布局,
+                //  这里是唯一自动兜现)
+                DiseaseRegistryBaker.Materialize(result);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                string path = Path.Combine(cookedDir, DiseaseRegistryBaker.CookedFileName);
+                File.WriteAllBytes(path, result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{DiseaseRegistryBaker.CookedFileName} = {result.Cooked.Length} B, " +
+                    $"行数 = {result.Rows.Count},W = {result.TrendWindowTicks}, " +
+                    $"TREND_EPS = {result.TrendEpsRaw}(raw),ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    (result.UnboundKeys.Count > 0
+                        ? $";未绑定键 {result.UnboundKeys.Count} 个:{string.Join(", ", result.UnboundKeys)}"
+                        : "") +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
         /// 构建 Addressables 内容(<c>BuildPlayerContent</c>)—— **改过组条目之后必须跑**。
         /// <para>⚠️ <b>为什么需要这个菜单</b>(2026-10-17 实测):PlayMode 下 Addressables 解析的是
         /// <c>unity/Library/com.unity.addressables/aa/&lt;platform&gt;/catalog.bin</c> 这份**预建 catalog**。

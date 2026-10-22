@@ -2149,6 +2149,40 @@ C4 定「34 只订阅聚合」。但**聚合的粒度**未定:按区块?按病�
 > (Beard 1869 · Shapiro · S. Weir Mitchell · DSM-III/IV · ICD-11,并注明「未核实已弃用」的处置)。
 > **9 直引该出处即可,不重复考据** —— 支柱五已由上游文档满足,`D-9-B` 办结,本 OQ 关闭。
 
+### OQ-9-1 · `LowPositionHeldTicks` 的潜伏期边界(2026-10-22 立 · **未裁**)
+
+> ⚠️ **编号辨异**:本条的 `OQ-9-1` 是**系统前缀式**(系统 9 的第 1 问,与
+> `OQ-10-9` / `OQ-13-1` / `OQ-24-8` / `OQ-25-8` 同族),**不是**上面 `OQ-9`(脉冲剪枝
+> `ε_PRUNE`)的子项 —— 两者只是编号形近,内容无关。原文 `OQ-9` 不动。
+
+**问题**:F4 痊愈支条件 ⑥ 要求 `position_agg` 连续低于痊愈门 ≥ `W` tick。
+`LowPositionHeldTicks` 的现行实现(`ProgressionEvaluator.ComputeLowPositionHeldTicks`,
+2026-10-22 B2 修复轮)是 **t 的纯函数** —— 自 `t` 往回数连续低位 tick,下限 = `onsetTick`。
+
+**边界**:潜伏期内 `τ < incubation` ⇒ `ComputeProgress` 返回 0 ⇒ `position = 0 < RECOVER_THRESHOLD`
+⇒ **本函数从 `onset` 起就计数**。若某病种 `incubation > W`,则 `t = onset + W` 时 `held` 已达 `W`,
+而此刻病还没发出来 —— 条件 ⑤(非上升期门)在 `trend = 0` 时**放行**(`trend ≤ 0`),
+故可能判出「**潜伏期痊愈**」。
+
+**为什么没有当场修**:这是**按 GDD 字面实现的直接后果**,不是实现的缺陷。
+GDD `:1114` 只说「低位须稳定 ≥ W」,没说起算点是否要在 `incubation` 之后。
+两种改法各有代价:
+
+| 方案 | 内容 | 代价 |
+|---|---|---|
+| 甲 | 保持现状(从 `onset` 起算) | `incubation > W` 的病种可被判「潜伏期痊愈」;当前 13 行数据 `incubation` 与 `W=0`(未配置)下**不可观测** |
+| 乙 | 起算点改为 `max(onset, onset + incubation)` | 与条件 ⑤ 的语义更自洽;但 `incubation` 是**病种级**参数,而 `W` 是**全局**参数 ⇒ 引入「本函数的起算点依赖病种」这一新形状,须同步改 `RecoveryWindowInput` 的文档与 F4 的求值序 |
+
+**当下可观测性**:`W = 0`(数值轮未裁)⇒ `RecoveryWindowInput.IsConfigured == false`
+⇒ 条件 ⑥ 与两支**都不求值** ⇒ 本边界**在生产里不可触发**。它是**数值轮一旦填 `W` 就会立刻生效**的
+前置信,不是当下缺陷。
+
+**登记位置**:实现侧自陈见 `unity/Assets/Sim/ProgressionEvaluator.cs:302-307`
+(「⚠️ 已知边界(未裁,登记于 OQ-9-1)」);本处是**它引用的那条 OQ 的正文**
+—— 在此之前该引用是**悬空**的(全库 `grep -rn "OQ-9-1" design/ docs/` 零命中)。
+
+**归**:9 的设计轮 + 数值轮同批(填 `W` 时必须先裁本条,否则 `W` 一非零就同时激活一个未裁边界)。
+
 ---
 
 ## 附录 A · ADR-032 补注 —— 终态折叠的具名载体(2026-10-21)

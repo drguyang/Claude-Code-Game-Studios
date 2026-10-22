@@ -212,6 +212,83 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             Assert.That(ex.Message, Does.Contain("未知键").Or.Contain("severty"));
         }
 
+        // ══════════════════════════════════════════════════════════════════════
+        // ⑤ 全局趋势窗口(W / TREND_EPS)—— R1-36(2026-10-22 铺管轮)
+        // ══════════════════════════════════════════════════════════════════════
+        //
+        // ⚠️ 三条一组,**缺一即留盲区**:
+        //   · 只测「0 可省」 ⇒ 「两键被整个忽略」与「正确读成 0」同效;
+        //   · 只测「负值拒」 ⇒ 无法区分「真校验」与「任何非零都拒」;
+        //   · 只测「读得到」 ⇒ 读的是 binder 自己的默认值还是 JSON 里的值,分不开。
+        //   ⇒ 必须有「给非零值 ⇒ 读回非零」这条**正向**判据(与两个负向判据配对)。
+
+        /// <summary>两键**可省**:缺 = 未配置 = 0(数值轮未裁)。</summary>
+        [Test]
+        public void test_trendWindow_absent_meansUnconfiguredZero()
+        {
+            // MinimalJson() 不含 trend_window_ticks / trend_eps
+            var outp = DiseaseRegistryBaker.BakeFromJson(MinimalJson());
+            Assert.That(outp.TrendWindowTicks, Is.EqualTo(0L),
+                "缺 trend_window_ticks ⇒ 未配置哨兵 0,不得填任何非零默认值");
+            Assert.That(outp.TrendEpsRaw, Is.EqualTo(0L),
+                "缺 trend_eps ⇒ 未配置哨兵 0");
+        }
+
+        /// <summary>
+        /// **正向**:给非零值 ⇒ 原样读回。
+        /// <para>没有这条,「binder 根本没读这两个键、永远返回默认 0」与「正确实现」同效 ——
+        /// 上面那条可省测试与下面那条负值测试都发现不了。</para>
+        /// <para>⚠️ `trend_eps` 按 ADR-014 §四硬规则写**字符串**(Fix 字段),写 JSON 数字会被
+        /// `ReadFix` 记错(浮点泄漏路径)。</para>
+        /// <para>⚠️ **字面量的语义(实测踩过)**:`FixParse` 的裸整数 `"1966"` 表示**值 1966**
+        /// (raw = 1966 × 65536 = 128843776),**不是** raw 1966。
+        /// 要表达 raw 1966 须写比值 `"1966/65536"`(`FixParse.cs:20` 的合法形)。
+        /// 本条用 `"1966/65536"` ⇒ raw 恰 1966,使断言能**逐位**钉住「读的是 raw 不是值」。</para>
+        /// </summary>
+        [Test]
+        public void test_trendWindow_present_isReadBack()
+        {
+            string json = MinimalJson().Replace(
+                "\"schema_version\": 1,",
+                "\"schema_version\": 1,\n  \"trend_window_ticks\": 120,\n  \"trend_eps\": \"1966/65536\",");
+            var outp = DiseaseRegistryBaker.BakeFromJson(json);
+
+            Assert.That(outp.TrendWindowTicks, Is.EqualTo(120L),
+                "trend_window_ticks 须原样读回(120),否则 binder 只是返回了默认 0");
+            Assert.That(outp.TrendEpsRaw, Is.EqualTo(1966L),
+                "trend_eps 须按 Fix **raw** 原样读回(1966)。写 \"1966/65536\" 而非 \"1966\" —— "
+                + "后者是值 1966(raw 128843776),拿它断言会掩盖「raw / 值」的单位混淆");
+        }
+
+        /// <summary>负值 / 奇数 W ⇒ R1-36 拒收(负数与奇数各自独立)。</summary>
+        [Test]
+        public void test_trendWindow_outOfRange_isRejected()
+        {
+            // ① 负 W
+            string negW = MinimalJson().Replace(
+                "\"schema_version\": 1,",
+                "\"schema_version\": 1,\n  \"trend_window_ticks\": -2,");
+            var ex1 = Assert.Throws<BakeValidationException>(
+                () => DiseaseRegistryBaker.BakeFromJson(negW), "负 W 须拒(0 = 未配置,负值无意义)");
+            Assert.That(ex1.Message, Does.Contain("trend_window_ticks"));
+
+            // ② 奇数 W —— GDD Tuning :1743「须为偶数(取 W/2)」
+            string oddW = MinimalJson().Replace(
+                "\"schema_version\": 1,",
+                "\"schema_version\": 1,\n  \"trend_window_ticks\": 121,");
+            var ex2 = Assert.Throws<BakeValidationException>(
+                () => DiseaseRegistryBaker.BakeFromJson(oddW), "奇数 W 须拒(取 W/2 会丢半个 tick)");
+            Assert.That(ex2.Message, Does.Contain("trend_window_ticks"));
+
+            // ③ 负 TREND_EPS
+            string negEps = MinimalJson().Replace(
+                "\"schema_version\": 1,",
+                "\"schema_version\": 1,\n  \"trend_eps\": \"-1\",");
+            var ex3 = Assert.Throws<BakeValidationException>(
+                () => DiseaseRegistryBaker.BakeFromJson(negEps), "负 TREND_EPS 须拒");
+            Assert.That(ex3.Message, Does.Contain("trend_eps"));
+        }
+
         /// <summary>`_` 前缀的作者态注记**不**算未知键(防判据过宽)。</summary>
         [Test]
         public void test_underscorePrefixedKeys_areAllowed()

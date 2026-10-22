@@ -33,6 +33,11 @@
 //    ⇒ 盘上 **20** 份、`BakedArtifacts` 20 条、`pinnedDeclared` **20**。
 //    ⚠️ **2026-10-21 三次增补**:再 +1 份 `build_modules`(`TD-itemdb-01` 兑现)
 //    ⇒ 盘上 **21** 份、`BakedArtifacts` 21 条、`pinnedDeclared` **21**。
+//    ⚠️ **2026-10-22 四次增补**:再 +1 份 `disease_registry`(B1 接真:读方 codec + 运行期
+//    接线 + 产物落盘同批完成)⇒ 盘上 **22** 份、`BakedArtifacts` 22 条、`pinnedDeclared` **22**。
+//    ⚠️ 本份**没有**走「先登记 KnownUnbaked 再迁入」的常规路径 —— 它当天先以欠账形态入表
+//    (`KnownUnbaked` 1 条),同日读方补立后立即迁入 `BakedArtifacts` 并清空欠账表。
+//    两次改动都在同一天,故 git 历史里会看到「0→1→0」的往返;这不是反复,是**同批两阶段**。
 //    ⚠️ 同样**是本门抓出来的**:落盘后首跑全量即两条红(21≠20 + 幽灵产物点名
 //    `build_modules.cooked.bytes`)。**这是本门第三次抓到同类漏登记**(24 三表 / 21a 家具 / 本份)
 //    —— 说明「新产物必登记」这条纪律靠人记是不成立的,门的存在是必要的。
@@ -196,6 +201,16 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             //    同一口径:校验不进载荷)。
             new ArtifactBake(DataBakeMenu.BuildModulesCookedAssetName,
                 root => BuildModulesBake.BakeFromRepo(root).Cooked),
+
+            // ── 9 病种注册表(1 份;2026-10-22 B1 接真 —— 从 KnownUnbaked 迁入)──
+            //    ⚠️ 与上面 21a / 23 同口径:委托走**裸烘焙** `DiseaseRegistryBaker.BakeFromRepo`,
+            //    不是菜单里的 `BakeDiseaseRegistry`(后者多一道 `Materialize` 真往返,
+            //    那是**校验**,不改编码 ⇒ 两条路径的 cooked 字节相同)。
+            //    ⚠️ 本份与其余 21 份的**性质差异**:它的载荷里带两个**全局量**
+            //    (`trend_window_ticks` / `trend_eps`),故本门同时钉住「baker 把这两个量
+            //    真的写进了字节」—— 改 Binder 不透传 ⇒ 字节变 ⇒ 本门红。
+            new ArtifactBake(DiseaseRegistryBaker.CookedFileName,
+                root => DiseaseRegistryBaker.BakeFromRepo(root).Cooked),
         };
 
         /// <summary>
@@ -219,18 +234,16 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
         /// 那六份是「story 标 Complete 却零产物」(漏做),本份是「写方先行、读方后补」(有意分步)。
         /// 两者共用本表是因为**门要的判据相同**(声明了但盘上/消费面缺失须被点名),
         /// 不是因为欠账理由相同。</para>
+        /// <para><b>2026-10-22(同日)1 → 0。</b>读方 codec 与运行期接线同批落地
+        /// (<c>DiseaseRegistryCookedCodec</c> + <c>AddressablesDataProvider.EnsureDiseaseRegistry</c>
+        /// + <c>CompositionRoot</c> 的 provider 分支),产物已烘落盘并迁入
+        /// <see cref="BakedArtifacts"/>。**原欠账理由中的两条前提均已不成立**:
+        /// ① 「读方 codec 尚不存在」→ 已存在;② 「运行期仍走 CreateFallbackRegistry()」
+        /// → provider != null 时走真表。原文不删(append-only),此处仅登记结清。</para>
         /// </summary>
         private static readonly Dictionary<string, string> KnownUnbaked =
             new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            // ── 9 病种注册表(1 份;2026-10-22 立)──
-            ["disease_registry.cooked.bytes"] =
-                "写方已立(`DiseaseRegistryBaker` / `DiseaseRegistryCookedWriter`,2026-10-22)," +
-                "**读方 codec 尚不存在**(无 `DiseaseRegistryCookedCodec`),运行期仍走 " +
-                "`CompositionRoot.CreateFallbackRegistry()`。此刻落盘 = 产出一份**无人消费**的字节," +
-                "且漂移门会把它钉成「必须与 baker 输出逐字节一致」—— 而布局还要变" +
-                "(八病种落地时 `Relapse` / `Signs` 须入编码,格式版本 +1,见 CookedWriter 文件尾 ②)。" +
-                "⇒ 待读方 codec 与八病种布局同时定稿后再落盘。**这是欠账,不是豁免。**",
         };
 
         // ══════════════════ 门 ①:已烘产物逐字节比对 ══════════════════
@@ -441,7 +454,7 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
         [Test]
         public void test_registry_knownUnbakedCount_isPinned()
         {
-            const int pinned = 1; // 2026-10-22 值(原 0 —— 2026-10-20 补烘后清空;+1 = disease_registry,写方已立读方未立)
+            const int pinned = 0; // 2026-10-22 值(0 → 1 → 0:同日 disease_registry 补立读方 + 落盘后迁入 BakedArtifacts)
 
             Assert.That(KnownUnbaked.Count, Is.EqualTo(pinned),
                 $"KnownUnbaked 条数 = {KnownUnbaked.Count},钉定值 = {pinned}。" +

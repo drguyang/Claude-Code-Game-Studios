@@ -184,7 +184,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 常量表后共 8 条;第十二片追加遥测参数旋钮表后共 9 条;2026-10-20 补接线追加
         /// 交互种类契约表 + 阴性把握度定表后共 **11** 条;2026-10-20 第二轮接线追加处方表 / 处置轴 /
         /// 53 判定表 / 53 延迟表后共 **15** 条;2026-10-21 S17-3 AC-5 接线追加 48 教学内容后共 **16** 条;
-        /// 2026-10-21 S17-2 前置追加 24 医馆三表后共 **19** 条;同轮 O-24-1 追加 21a 家具目录后共 **20** 条
+        /// 2026-10-21 S17-2 前置追加 24 医馆三表后共 **19** 条;同轮 O-24-1 追加 21a 家具目录后共 **20** 条;
+        /// 2026-10-21 TD-building-01 读侧追加 23 模块目录后共 **21** 条;
+        /// 2026-10-22 B1 接真追加 9 病种注册表后共 **22** 条
         /// —— 与 `Preload()` 的
         /// `Ensure*` 调用数逐一相等,由 `test_preloader_list_sources_matchPreloadedProducts` 钉住)。</summary>
         internal static readonly string[] DataCoreAddresses =
@@ -222,6 +224,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
             //   ② `test_wiring_preload_invokesEveryEnsureMethod`(Ensure 21 ≠ 表 20 ≠ 常量 21)。
             // 该门的作用正是「Ensure* / Preload / 地址表 / 常量」四处集合相等,漏一处即红。
             AddressablesDataProvider.BuildModulesAddress,
+            // 9 病种注册表(2026-10-22 B1 接真:全局 W / TREND_EPS 的生产载体)。
+            // ⚠️ 与上一条同型的历史教训:常量声明了、`Ensure*` 进了 `Preload()`,
+            //    但地址表漏登记 ⇒ 两条门同时转红。四处集合相等,漏一处即红。
+            AddressablesDataProvider.DiseaseRegistryAddress,
         };
 
         /// <summary>地址是否可被 Addressables 解析(遍历 ResourceLocators 的 Locate)。</summary>

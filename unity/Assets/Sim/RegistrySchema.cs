@@ -392,6 +392,54 @@ namespace DaYiJingCheng.Sim
         /// </summary>
         public const long EpsilonMinRaw = 1;
 
+        // ══════════════════════════════════════════════════════════════════════
+        // 趋势窗口全局配置(W / TREND_EPS)的值域守卫 —— 2026-10-22 立
+        // ══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// <b>R1-36</b> —— 趋势窗口全局配置(<c>W</c> / <c>TREND_EPS</c>)的值域守卫。
+        ///
+        /// <para><b>守什么</b>:<c>trend_window_ticks</c>(<c>W</c>)须 <c>≥ 0</c> 且
+        /// <b>为偶数</b>;<c>trend_eps</c>(<c>TREND_EPS</c>,Q16.16 raw)须 <c>≥ 0</c>。</para>
+        ///
+        /// <para><b>GDD 对应条</b>:Tuning §四 <c>:1743-1744</c> 的安全区间 ——
+        /// <c>W &gt; 0</c> 且须为偶数(取 <c>W/2</c> 做中心差分)、<c>TREND_EPS &gt; 0</c>。</para>
+        ///
+        /// <para>⚠️ <b><c>0</c> 是「未配置」哨兵,不是 GDD 的合法值</b> —— 数值轮裁定前
+        /// 两个量都是 <c>0</c>,<see cref="F4OutcomeEvaluator"/> 据此判
+        /// <c>RecoveryWindowInput.IsConfigured == false</c> 并**不求值**痊愈支 / 迁延支。
+        /// ⇒ 本门**放行 0**(未配置),但负值与奇数 <c>W</c> 一律拒收:
+        /// 奇数会让 <c>W/2</c> 的中心差分丢掉半个 tick 且静默偏置。
+        /// 「<c>W = 0</c> 也放行」是**工程约定,GDD 无此条**,此处明写以绝混读。</para>
+        ///
+        /// <para><b>覆盖面(如实登记,禁借绿)</b>:调用点 = <c>DiseaseRegistryBinder.Bind</c>
+        /// (烘焙面)。<c>CompositionRoot.CreateFallbackRegistry</c> 不读 JSON、不调本门。</para>
+        /// </summary>
+        public const int R1_CHECK_36 = 36;
+
+        /// <summary>
+        /// 校验趋势窗口全局配置(<c>W</c> / <c>TREND_EPS</c>)—— R1-36。
+        /// <para>两个量都是**全局**旋钮:GDD Tuning §四 的段标题是「噪声与读数」,
+        /// 不属 §二「逐病种 · R1.3 schema」,且 R1.3 的字段表里没有 <c>w</c> /
+        /// <c>trend_eps</c> ⇒ 逐病种不是 GDD 的口径。</para>
+        /// </summary>
+        /// <param name="trendWindowTicks"><c>W</c>(tick 数);<c>0</c> = 未配置。</param>
+        /// <param name="trendEpsRaw"><c>TREND_EPS</c>(Q16.16 raw);<c>0</c> = 未配置。</param>
+        /// <exception cref="RegistryValidationException">负值,或 <c>W</c> 为奇数。</exception>
+        public static void ValidateTrendWindow(long trendWindowTicks, long trendEpsRaw)
+        {
+            if (trendWindowTicks < 0)
+                throw new RegistryValidationException(R1_CHECK_36,
+                    $"trend_window_ticks(W) 须 ≥ 0(0 = 未配置): {trendWindowTicks}");
+            if (trendWindowTicks % 2 != 0)
+                throw new RegistryValidationException(R1_CHECK_36,
+                    "trend_window_ticks(W) 须为偶数(GDD Tuning §四 :1743 —— 取 W/2 做中心差分): "
+                    + trendWindowTicks);
+            if (trendEpsRaw < 0)
+                throw new RegistryValidationException(R1_CHECK_36,
+                    $"trend_eps(TREND_EPS) 须 ≥ 0(0 = 未配置): {trendEpsRaw}");
+        }
+
         /// <summary>
         /// 校验病种注册表 —— 17 条构建期校验。
         /// </summary>

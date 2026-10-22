@@ -159,6 +159,16 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             Assert.That(AddressablesDataProvider.FurnitureCatalogueAddress,
                 Is.EqualTo(DataBakeMenu.FurnitureCatalogueCookedAssetName),
                 "21a 家具目录(O-24-1)的 address 与 baker 产物名不一致 ⇒ 同上");
+            // 2026-10-22 B1 接真:9 病种注册表。本条的 address 单一出处是
+            // `DiseaseRegistryDataSet.CookedFileName`(读方 DataSet),而 baker 侧的产物名
+            // 另有 `DiseaseRegistryBaker.CookedFileName` 与 `DataBakeMenu` 的菜单 ——
+            // 三处**必须**逐字相等,否则「菜单烘出的文件名」与「运行期查的 address」分叉。
+            Assert.That(AddressablesDataProvider.DiseaseRegistryAddress,
+                Is.EqualTo(DiseaseRegistryBaker.CookedFileName),
+                "9 病种注册表的 address 与 baker 产物名不一致 ⇒ 同上");
+            Assert.That(AddressablesDataProvider.DiseaseRegistryAddress,
+                Is.EqualTo(DiseaseRegistryDataSet.CookedFileName),
+                "9 病种注册表的 address 与读方 DataSet 声明的产物名不一致 ⇒ 同上");
         }
 
         // ══════════════════ ② data-core 组 ⊇ 全部 address 常量 ══════════════════
@@ -336,6 +346,16 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             AssertLoadHitsRealLoadPath<DelayTable53DataSet>(
                 AddressablesDataProvider.DelayTableAddress,
                 ds => Assert.That(ds.Table, Is.Not.Null));
+        }
+
+        /// <summary>同 <see cref="test_wiring_loadBranch_interactionKinds_exists"/>,
+        /// 对象 = 9 病种注册表(2026-10-22 B1 接真)。</summary>
+        [Test]
+        public void test_wiring_loadBranch_diseaseRegistry_exists()
+        {
+            AssertLoadHitsRealLoadPath<DiseaseRegistryDataSet>(
+                AddressablesDataProvider.DiseaseRegistryAddress,
+                ds => Assert.That(ds.Rows, Is.Not.Null));
         }
 
         private static void AssertLoadHitsRealLoadPath<TDataSet>(

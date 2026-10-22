@@ -147,14 +147,19 @@ namespace DaYiJingCheng.Sim.DiseaseSimulation
         /// </remarks>
         internal void NoteCareAction(long tick, int phase)
         {
-            // ⚠️ 值域 fail-loud(2026-10-22 第五轮):`entities.yaml` 只写「phase: 枚举(起 止)」,
-            //    全库**没有**序数定义 —— 本实现的 `0 = 起 / 1 = 止` 是**落地约定**,不是权威件。
-            //    写者(24)落地前须与本约定对齐;在那之前,越界值必须当场抛,
-            //    否则「2 / −1 / 写者用了反序」会被静默当成「起」⇒ 照护支永不记录「止」。
+            // ⚠️ 值域 fail-loud(2026-10-22 第五轮立,第七轮改引权威件)。
+            //    🔁 原文写「`entities.yaml` 只写『phase: 枚举(起 止)』,全库**没有**序数定义 ——
+            //       本实现的 `0 = 起 / 1 = 止` 是**落地约定**,不是权威件」—— **已失效**(原文不删)。
+            //    2026-10-22 用户裁定「甲+乙 都做」后,序数有三处权威:
+            //      ① `entities.yaml:2186` 写死 `phase: 枚举(起=0, 止=1)`;
+            //      ② `Sim.Contracts.CarePhase`(唯一 C# 定义);
+            //      ③ 机械断言钉住两者一致(`test_carePhase_ordinalsMatchRegistry`)。
+            //    越界仍须当场抛:静默取值会让「2 / −1 / 写者用了反序」被当成「起」
+            //    ⇒ 照护支永不记录「止」。
             if (phase != CarePhaseStart && phase != CarePhaseStop)
                 throw new InvalidOperationException(
-                    $"CareApplied 的 phase={phase} 越界 —— 本实现约定 0 = 起 / 1 = 止" +
-                    "(entities.yaml 只写「枚举(起 止)」,无序数;写者落地前须对齐,不得静默取值)");
+                    $"CareApplied 的 phase={phase} 越界 —— 权威 = entities.yaml:2186 " +
+                    "`phase: 枚举(起=0, 止=1)` + Sim.Contracts.CarePhase;不得静默取值");
 
             if (!LastCareActionTick.HasValue || tick > LastCareActionTick.Value)
                 LastCareActionTick = tick;
@@ -165,12 +170,24 @@ namespace DaYiJingCheng.Sim.DiseaseSimulation
                 LastCareStopTick = tick;
         }
 
-        /// <summary>护理动作相位「起」的序数(<c>CareAppliedPayload.Phase</c>)。</summary>
-        public const int CarePhaseStart = 0;
+        /// <summary>护理动作相位「起」的序数 —— **转发** <see cref="CarePhase.Start"/>(不复制第二份)。</summary>
+        /// <remarks>
+        /// <para><b>2026-10-22(用户裁定「甲+乙 都做」)</b>:原先是本类的
+        /// <c>public const int CarePhaseStart = 0;</c> —— 一个**独立的硬编码常量**。
+        /// 现在改为从 <see cref="CarePhase"/> 派生,序数的**唯一 C# 定义**住在
+        /// <c>Sim.Contracts</c>;本类只做转发,保住既有调用点的签名不变。</para>
+        /// <para>🔁 原文 remarks 写「序数出处:GDD <c>:164</c> 的『起/止』… 载荷侧是裸 int
+        /// (与 <c>Polarity</c> 同法,不造第二套枚举)」—— **前半句失实,后半句已改判**
+        /// (原文不删):GDD <c>:164</c> 只给中文词「起/止」,**没有序数**;
+        /// 而「不造枚举」的取向已被用户 2026-10-22 的裁定推翻 —— 现造了
+        /// <see cref="CarePhase"/>,但**载荷字段仍是 int**(承 <c>PatientOutcome</c> 同构)。</para>
+        /// </remarks>
+        public const int CarePhaseStart = (int)CarePhase.Start;
 
-        /// <summary>护理动作相位「止」的序数(<c>CareAppliedPayload.Phase</c>)。</summary>
-        /// <remarks>⚠️ 序数出处:GDD <c>:164</c> 的「起/止」,与 <c>CareAppliedPayload.Phase</c> 的
-        /// 注释「枚举:起 | 止」同源。载荷侧是裸 int(与 <c>Polarity</c> 同法,不造第二套枚举)。</remarks>
-        public const int CarePhaseStop = 1;
+        /// <summary>护理动作相位「止」的序数 —— **转发** <see cref="CarePhase.Stop"/>(不复制第二份)。</summary>
+        /// <remarks>⚠️ 序数权威 = <c>entities.yaml</c> 的 <c>phase: 枚举(起=0, 止=1)</c>
+        /// + <see cref="CarePhase"/>;两者的一致性由机械断言钉住
+        /// (<c>care_applied_writer_test.cs</c> 的 <c>test_carePhase_ordinalsMatchRegistry</c>)。</remarks>
+        public const int CarePhaseStop = (int)CarePhase.Stop;
     }
 }

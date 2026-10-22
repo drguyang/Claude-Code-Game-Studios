@@ -24,9 +24,11 @@
 //
 // ── 照护支为什么是派生量(不是「最后一条止」直读)────────────────────────────
 //   字面「最后一条护理动作止」在「起」后玩家走开(无「止」事件)时语义为空。
-//   GDD 集群 2 的修正:`max(最后一条护理动作止, 最后一条护理动作事件 tick + CARE_GAP)`。
-//   语义:「起」之后 `CARE_GAP` 内**未出现新动作** ⇒ 中止时刻 = 最后动作 tick + CARE_GAP;
-//   「止」存在则从止起计时。
+//   GDD 集群 2 的修正原写:`max(最后一条护理动作止, 最后一条护理动作事件 tick + CARE_GAP)`。
+//   🔁 **2026-10-22 第六轮裁定:该 max 式已作废**(它使「止」项恒冗余,与散文冲突)。
+//   现口径 = 按「最后一次动作是不是止」分叉:
+//     最后动作 = 止 ⇒ 该 tick;否则 ⇒ 该 tick + CARE_GAP。
+//   GDD 侧文本尚未同步(待用户批),见 `Evaluate` 的 remarks。
 //   ⇒ 本类收的是**已归一化的护理动作摘要**(`CareChannelInput`),不是原始事件流
 //   (Sim 内无解码路径,承 b2 门 —— 与 `ProgressionEvaluator` 的剂量重载同法)。
 //
@@ -112,20 +114,38 @@ namespace DaYiJingCheng.Sim
         /// 缺了它…`(t − last_intervention)` 无定义 → 死亡判定整条短路 —— 而『从没治过』
         /// 恰恰是 F4 最需要覆盖的情形」。返回 `long` 使「空」在类型上**不可能**漏判。</para>
         ///
-        /// <para><b>照护支的派生式</b>:
-        /// <c>max(LastCareStopTick, LastCareActionTick + CARE_GAP)</c> ——
-        /// 两项各自可为空,只在存在的项上取 max。</para>
+        /// <para><b>照护支(2026-10-22 第六轮裁定后)</b>:
+        /// <code>
+        /// 最后动作是「止」 ⇒ last_care = 最后动作 tick
+        /// 否则(最后动作是「起」/ 走开) ⇒ last_care = 最后动作 tick + CARE_GAP
+        /// </code></para>
         ///
-        /// <para><b>⚠️ 该式使「止」项恒冗余(2026-10-22 第五轮发现,GDD 内部冲突,待裁)</b>:
-        /// 「止」本身就是一条护理动作事件 ⇒ <c>LastCareActionTick ≥ LastCareStopTick</c>
-        /// ⇒ <c>LastCareActionTick + CARE_GAP &gt; LastCareStopTick</c> **恒成立**
-        /// (CARE_GAP &gt; 0)⇒ 第二项永远覆盖第一项,<c>LastCareStopTick</c> 对
-        /// <c>last_intervention</c> **零影响**。
-        /// 而 GDD <c>:226</c> 的散文写「『止』存在则**从止起计时**」—— **公式做不到**。
-        /// 两者不可能同时为真。本类**按公式实现**(公式是该段的正式定义),并把冲突登记为待裁;
-        /// 判据见 <c>test_careStop_isRedundantUnderDerivedFormula</c>。
-        /// ⚠️ 本类仍**收**该字段(不删参) —— 删掉会让「按散文修」变成签名变更;
-        /// 保留使裁定任一侧都只需改这一段逻辑。</para>
+        /// <para><b>🔁 原文(第五轮)写 <c>max(最后止, 最后动作 + CARE_GAP)</c> —— 已作废(原文不删)</b>:
+        /// 该式使「止」项**恒冗余**(「止」本身是护理动作 ⇒ <c>最后动作 ≥ 最后止</c>
+        /// ⇒ <c>最后动作 + CARE_GAP &gt; 最后止</c> 恒成立),与 GDD <c>:226</c> 散文
+        /// 「『止』存在则从止起计时」正面冲突。</para>
+        ///
+        /// <para><b>⚠️ 两案都不取,取散文的<em>原意</em>(2026-10-22 第六轮 · 主对话裁定)</b>:
+        /// 把两案各自推到反例就看出它们都错 ——</para>
+        /// <list type="table">
+        /// <item><term>起 1000 → 止 2000(显式停)</term><description>
+        /// 公式给 <c>max(2000, 2600) = 2600</c> —— 玩家明明点了止,还要再送 30 秒;散文给 2000 ✓</description></item>
+        /// <item><term>起 1000 → 走开(无止)</term><description>两案都给 1600 ✓</description></item>
+        /// <item><term>起 1000 → 止 2000 → 起 3000(停后再起)</term><description>
+        /// 公式给 <c>max(2000, 3600) = 3600</c> ✓;散文「『止』存在」⇒ 给 2000 ✗
+        /// —— 玩家正在护理,倒计时却从 2000 起算</description></item>
+        /// </list>
+        /// <para>⇒ GDD <c>:226</c> 那段本身就是**两个互斥情形**的分叉(「未出现新动作」vs
+        /// 「『止』存在」),<c>max()</c> 把它们压成一条式子,于是第二情形永不可达。
+        /// 散文的「『止』存在」在该段语境里指的是**最后一次动作是止**,
+        /// 不是「历史上出现过止」。</para>
+        ///
+        /// <para><b>判据落在已有两个字段上,无需新增</b>:<c>LastCareStopTick ≤ LastCareActionTick</c>
+        /// 恒成立(两者都取大,且止必是一条动作)⇒「最后动作是止」⟺ 两值相等。</para>
+        ///
+        /// <para><b>⚠️ GDD 文本尚未同步</b>:GDD <c>:1127</c> 的 <c>max</c> 公式与 <c>:226</c>
+        /// 的散文都须按本裁定改写(公式作废 · 散文补「最后」二字)。
+        /// 代码先落,<b>GDD 改动待用户批</b> —— 不在实现轮自行改设计文档。</para>
         /// </remarks>
         public static long Evaluate(
             long onsetTick,
@@ -145,17 +165,26 @@ namespace DaYiJingCheng.Sim
                 }
             }
 
-            // ② 照护支 = max(最后止, 最后动作 + CARE_GAP) —— 两项各自可空。
-            if (care.LastCareStopTick.HasValue)
-            {
-                long stop = care.LastCareStopTick.Value;
-                if (!any || stop > result) { result = stop; any = true; }
-            }
+            // ② 照护支(2026-10-22 第六轮裁定):按**最后一次动作是不是「止」**分叉。
+            //    · 最后动作 = 止  ⇒ last_care = 该 tick(玩家显式停了,立刻起算)
+            //    · 否则(起 / 走开)⇒ last_care = 该 tick + CARE_GAP(宽限)
+            //    「最后动作是止」⟺ 两值相等(止必是一条动作,且两者都取大)。
             if (care.LastCareActionTick.HasValue)
             {
-                // ⚠️ 加法不溢出:两值均为 tick(20 Hz 量纲),实践中远小于 long 上界。
-                long derived = care.LastCareActionTick.Value + StateMachine.CARE_GAP;
+                long lastAction = care.LastCareActionTick.Value;
+                long derived = care.LastCareStopTick.HasValue
+                               && care.LastCareStopTick.Value == lastAction
+                    ? lastAction                                      // 最后动作是止 ⇒ 即刻
+                    // ⚠️ 加法不溢出:两值均为 tick(20 Hz 量纲),实践中远小于 long 上界。
+                    : lastAction + StateMachine.CARE_GAP;             // 起 / 走开 ⇒ 宽限
                 if (!any || derived > result) { result = derived; any = true; }
+            }
+            else if (care.LastCareStopTick.HasValue)
+            {
+                // 只有止、没有动作 —— 结构上不可能(止必是一条动作事件)。
+                // 仍收:调用方若只喂了止,按止本身计入,不静默丢弃。
+                long stop = care.LastCareStopTick.Value;
+                if (!any || stop > result) { result = stop; any = true; }
             }
 
             // ③ 全空 ⇒ onset_tick 哨兵(显式,不靠 result 的初值巧合)。

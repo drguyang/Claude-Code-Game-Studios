@@ -166,26 +166,58 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ── 病人创建器:9 的 DiseaseOnset 写者(ADR-030 §③)──
             PatientSpawner spawner = new PatientSpawner(idAuthority, stream, encoder, worldSeed);
 
-            // ── 病种注册表 ────────────────────────────────────────────────
-            // 优先级:① 调用方显式传入(EditMode/PlayMode 测试注入合成 fixture)·
-            //        ② 无 ⇒ 组合根自带最小内联注册表(接线载体,非数值真源)。
+            // ── 病种注册表 + 全局趋势窗口(2026-10-22 B1 接真)─────────────
+            // 三级优先:
+            //   ① 调用方显式传入(EditMode/PlayMode 测试注入合成 fixture)—— 最高优先;
+            //   ② 否则 dataProvider != null(生产:BootRoot 预载成功)⇒ 真注册表产物
+            //      `disease_registry.cooked.bytes`,连同全局 W / TREND_EPS;
+            //   ③ 否则(EditMode / 测试 / 预载失败)⇒ 组合根自带最小内联注册表。
             // ⚠️ **不可合并为「fallback ∪ caller」**:真表到位后,fallback 的 DiseaseId=1
             //    可能与真表撞号(R1-01 唯一性违例)⇒  caller 给表时 fallback 必须**整体让位**。
             //    2026-10-10 实测事故:VerticalSliceTest 显式传 9001 fixture,而体征链仍持
             //    fallback(只有 DiseaseId=1)⇒ `DiseaseOnset disease_id=9001 不在注册表内`
-            //    fail-loud,两条核心循环测试红。真表未建前,该分支只由测试走。
-            var fallbackRegistry = ResolveRegistry(registry);
+            //    fail-loud,两条核心循环测试红。
+            // ⚠️ **B1 缺口(2026-10-22 前的状态)**:`disease_registry.cooked` 从未产出过,
+            //    也没有读方 codec ⇒ 生产恒走 ③,全局 W / TREND_EPS 恒 0 ⇒ F4 的痊愈支 /
+            //    迁延支在生产里**永不求值**。本批补的是 ② 这条路。
+            // ⚠️ **为什么 ③ 不退化成「磁盘兜底读真表」**:真表 id 从 2 起,而 EditMode 侧
+            //    45 处夹具按 `SpawnNext(diseaseId: 1, …)` 建病人(fallback 的占位 id)。
+            //    让 ③ 读真表 ⇒ `DiseaseVitalsService.OnTickEdge` 的「病种不在注册表内」
+            //    fail-loud 会在那 45 处集体触发 —— 那是把「接真」变成全局回归,不是它的目的。
+            //    ③ 的语义**未变**:接线载体,非数值真源(见 <see cref="CreateFallbackRegistry"/>)。
+            IReadOnlyList<DiseaseRegistryEntry> resolvedRegistry;
+            long trendWindowTicks = 0L;
+            long trendEpsRaw = 0L;
+            if (registry != null)
+            {
+                resolvedRegistry = registry;
+                // caller 传表 = 测试合成 fixture;此时**刻意不**混入真 W / TREND_EPS
+                // (两个真源混用会让「这条测试跑的是哪张表」变得不可回答)。
+            }
+            else if (dataProvider != null)
+            {
+                DiseaseRegistryDataSet diseaseRegistry = dataProvider.Load<DiseaseRegistryDataSet>();
+                resolvedRegistry = diseaseRegistry.Rows;
+                trendWindowTicks = diseaseRegistry.TrendWindowTicks;
+                trendEpsRaw = diseaseRegistry.TrendEpsRaw;
+            }
+            else
+            {
+                resolvedRegistry = CreateFallbackRegistry();
+            }
 
             // ── 体征链核心(批次 C):apply 驱动 + 投影桥 + IVitalsQuery 生产实装 ──
             // 它**同时**需要 EventStream/Sim(状态与求值)与 Sim.Codec(载荷解码)
             // ⇒ 只能在本装配(案 A)构造;客户端侧不装配(ADR-005 主机唯一 Step)。
+            // ⚠️ W / TREND_EPS 原样搬运,**不在此校验**(值域守卫归 R1-36 写入期;
+            //    0 = 未配置是合法入参 —— 见 DiseaseVitalsService 构造注释)。
             DiseaseVitalsService vitals = new DiseaseVitalsService(
-                stream, blobPool, fallbackRegistry, worldSeed);
+                stream, blobPool, resolvedRegistry, worldSeed, trendWindowTicks, trendEpsRaw);
 
             // ── 病人出现驱动(sprint-05 T1.1):把 spawner 接进 tick 边沿序列 ──
             // 原状:spawner 在服务袋里但**零生产调用方**(F-6 复评实测)⇒ 运行期无病人。
             // 驱动 = 每 tick 边沿按节奏调 SpawnNext;节奏 = 每 N tick 一个病人(见驱动类头注)。
-            var patientDriver = new PatientAppearedDriver(spawner, presence, fallbackRegistry);
+            var patientDriver = new PatientAppearedDriver(spawner, presence, resolvedRegistry);
 
             // ── 病例开账写者 + 驱动(sprint-05 T1.2):把 CaseOpenWriter 接进 tick 边沿序列 ──
             // 原状:CaseOpenWriter 零生产调用方 ⇒ 运行期链可达性 0%。
@@ -613,7 +645,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: PatientCueDriver 装配产出 null");
 
             return new CompositionRootServices(stream, idAuthority, blobPool, encoder, decoder,
-                                               fallbackRegistry,   // registry → 51 TelemetryReporter
+                                               resolvedRegistry,   // registry → 51 TelemetryReporter
                                                presence, spawner, patientDriver, caseDriver,
                                                emergencyDriver, emergencyManual,
                                                emergencyChannelDriver, patientVisuals,
@@ -637,20 +669,17 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
-        /// 病种注册表解析 **当前实际的决策**(经 T1.1–T1.5 五轮驱动 + 5 PlayMode 全量跑验证):
-        /// caller 显式传表 ⇒ 用 caller 的(合成 fixture 进 EditMode/PlayMode 测试);
-        /// 不传(null)⇒ 组合根自带最小内联注册表(DiseaseId=1,数值轮未开前的接线载体)。
+        /// 最小内联病种注册表 —— sprint-05 T1.1 的接线载体。
+        /// <para><b>注册表解析的现行决策(2026-10-22 B1 接真后)</b>:三级优先,写在
+        /// <c>AssembleCore</c> 的「病种注册表 + 全局趋势窗口」段 ——
+        /// ① caller 显式传表 ⇒ 用 caller 的;② 否则 dataProvider != null ⇒ 真产物
+        /// (<see cref="DiseaseRegistryDataSet"/>);③ 否则(本方法)⇒ 最小内联表。
+        /// 🔁 <b>原文</b>:「不传(null)⇒ 组合根自带最小内联注册表」—— 该二分已被 ② 插入,
+        /// 原文不删;② 存在时本方法**不被调用**。</para>
         /// <para><b>为何不是 union</b>:fallback 的 DiseaseId=1 是占位,与真表可能撞号
         /// (R1-01 唯一性触构建失败)⇒ caller 有表时 fallback **整体让位**,不并表。</para>
         /// <para><b>为何不是「caller 表 + fallback 兜底追加」</b>:会让「注册表须覆盖全部在流病种」
         /// 的 fail-loud 判据静默退化(测试永远测不到真表缺病种的情形)。</para>
-        /// </summary>
-        private static IReadOnlyList<DiseaseRegistryEntry> ResolveRegistry(
-            IReadOnlyList<DiseaseRegistryEntry> callerRegistry)
-            => callerRegistry ?? CreateFallbackRegistry();
-
-        /// <summary>
-        /// 最小内联病种注册表 —— sprint-05 T1.1 的接线载体。
         /// <para><b>为何存在</b>:体征链 Step 的求值要查注册表(<see cref="DiseaseRegistryEntry"/>),
         /// 但 <c>disease_registry.json</c> 未建(数值轮未开 —— 建全表 = 被迫填占位值,
         /// 而 9 的 17 条区间校验会面对假数据 = GDD 点名的「判据对合法输入类误判」)。

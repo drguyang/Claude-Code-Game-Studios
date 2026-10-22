@@ -141,6 +141,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e67ef82b2b120c5bdbbd246d0179fa7e
+    m_Address: disease_registry.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 2c864c592004e1c729cd6c8ed9da4089, type: 2}
   m_SchemaSet:

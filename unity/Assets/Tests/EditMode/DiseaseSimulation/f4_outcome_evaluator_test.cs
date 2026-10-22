@@ -314,8 +314,10 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         }
 
         /// <summary>
-        /// **照护支派生式**:`max(最后止, 最后动作 + CARE_GAP)`。
-        /// <para>只有动作、无止 ⇒ 派生 = `动作 + CARE_GAP`。</para>
+        /// **照护支派生式(2026-10-22 第六轮裁定后)**:最后动作是「起」/ 走开 ⇒
+        /// `最后动作 + CARE_GAP`。
+        /// <para>🔁 原文(第五轮)写「`max(最后止, 最后动作 + CARE_GAP)`」—— 已作废,
+        /// 该式使「止」项恒冗余(原文不删,见 `LastInterventionAggregator.Evaluate` 的 remarks)。</para>
         /// </summary>
         [Test]
         public void test_lastIntervention_careDerived_isActionPlusCareGap()
@@ -326,30 +328,41 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 new LastInterventionAggregator.CareChannelInput(null, lastCareActionTick: 4000));
 
             Assert.AreEqual(4000 + StateMachine.CARE_GAP, r,
-                "照护支 = 最后动作 + CARE_GAP(GDD 集群 2 派生式)");
+                "只有「起」、无止 ⇒ 宽限 = 最后动作 + CARE_GAP");
         }
 
         /// <summary>
-        /// 「止」存在且晚于派生值 ⇒ 取「止」。
+        /// **最后动作是「止」⇒ 立刻起算,不再送 CARE_GAP**。
+        /// <para>🔁 本条前身 = `test_lastIntervention_careStopLaterThanDerived_wins`
+        /// (夹具 `止 9999 / 动作 4000`,断言取 9999)。该夹具在**新口径下结构性不可能** ——
+        /// 「止」本身是一条护理动作 ⇒ `最后动作 ≥ 最后止` 恒成立,`止 9999 > 动作 4000`
+        /// 描述的是一个不存在的状态。旧断言之所以过,恰恰是因为旧 `max` 式让「止」项恒被
+        /// 第二项压过以外的分支永远走不到(即本测试当时**没在测它声称的东西**)。
+        /// 改写为可构造的真实情形:最后一条动作就是「止」。</para>
         /// </summary>
         [Test]
-        public void test_lastIntervention_careStopLaterThanDerived_wins()
+        public void test_lastIntervention_careStop_endsWindowImmediately()
         {
             long r = LastInterventionAggregator.Evaluate(
                 onsetTick: Onset,
                 LastInterventionAggregator.TreatmentChannelInput.None,
                 new LastInterventionAggregator.CareChannelInput(
-                    lastCareStopTick: 9999, lastCareActionTick: 4000));
+                    lastCareStopTick: 9999, lastCareActionTick: 9999));
 
-            Assert.AreEqual(9999, r);
+            Assert.AreEqual(9999, r,
+                "最后动作是「止」(两值相等)⇒ last_care = 止本身,不得再送 CARE_GAP");
         }
 
         /// <summary>
-        /// 「止」早于派生值 ⇒ 取派生值(`max` 的另一半)。
-        /// <para>这条防「只取止、忘了派生式」的半截实现。</para>
+        /// 最后动作是「起」(止更早)⇒ 从「起」宽限,不得回退到旧「止」。
+        /// <para>🔁 本条前身 = `test_lastIntervention_careDerivedLaterThanStop_wins`
+        /// (夹具 `止 4100 / 动作 4000`,断言 4600)。**数值恰好不变,但理由变了** ——
+        /// 旧理由「派生值 4600 &gt; 止 4100 故取派生值」在新口径下无意义(不存在两个候选比较),
+        /// 新理由 = 「最后动作是起 ⇒ 一律从它 + CARE_GAP」。保留本条是因为它钉住了
+        /// **「停后再起」不得回退到旧止** 这一反例(散文原意做不到的那半)。</para>
         /// </summary>
         [Test]
-        public void test_lastIntervention_careDerivedLaterThanStop_wins()
+        public void test_lastIntervention_careRestartAfterStop_usesNewAction()
         {
             long r = LastInterventionAggregator.Evaluate(
                 onsetTick: Onset,
@@ -358,7 +371,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     lastCareStopTick: 4100, lastCareActionTick: 4000));
 
             Assert.AreEqual(4000 + StateMachine.CARE_GAP, r,
-                "派生值 4600 > 止 4100 ⇒ 取派生值");
+                "最后动作是「起」4000(旧止 4100 更早)⇒ 从 4000 宽限;不得回退到旧止");
         }
 
         /// <summary>跨通道取 max(处置 vs 照护)。</summary>

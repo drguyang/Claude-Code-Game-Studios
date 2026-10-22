@@ -8554,3 +8554,194 @@ M6 首版变异形态(`if (false) throw …`)导致 **switch 段落穿透 = 编�
 - **最终回归**:`4451 / 4415 / 0 / 36` @ `2026-10-22 13:51 (+0800)` · 批次 `regress-rulenine2` · 干净树;
   `error CS = 0`。基线 `s18-ac78-full-20261022` = `4435 / 4399 / 0 / 36` ⇒
   **Δtotal = Δpassed = +16**,全名级差集 **新增 16 / 消失 0**(16 条全为 `RuleNineGateTest`)。
+
+## 2026-10-22 第七轮(四代理合并轮)· 收口
+
+**范围**:A/B/C/D 四个并行代理的报告合并 + 用户两条裁定落地。
+
+**用户两条裁定(同批、方向相反,勿混读)**:
+1. **`CareApplied.phase` 序数 = 「甲+乙 都做」** —— registry 写死序数 + `Sim.Contracts.CarePhase`
+   枚举 + 机械断言钉三处一致(= `PatientOutcome` 的三处齐备形态)。
+2. **前置 ⑥「止须有可配对的起」= 「先不裁,我去查 24 的生命周期」** —— 代码**保持拒收**,
+   前提缺口登记为 **`OQ-24-8`**(`design/gdd/clinic-machine.md`)。
+
+**落地清单**:
+- 甲:`design/registry/entities.yaml:2186` → `phase: 枚举(起=0, 止=1)`
+- 乙①:`unity/Assets/Sim.Contracts/Payloads/HistoryPayloads.cs` → `enum CarePhase : int { Start=0, Stop=1 }`
+- 乙②:`unity/Assets/Sim/DiseaseSimulation/DiseaseCourse.cs` → 两常量改 `(int)CarePhase.X` **转发**
+- 丙:`care_applied_writer_test.cs` → `test_carePhase_ordinalsMatchRegistry` +
+  `test_carePhase_enumMatchesForwardingConstants`(**含源码层判据**)
+- `OQ-24-8` 登记 + `CareAppliedWriter.cs` 前置 ⑥ 与对应测试各加「隐含未裁决前提」注
+- 三处陈旧自述就地加注(`CareAppliedWriter.cs` 类头 · `f4_wiring_test.cs:463` · `DiseaseCourse.cs:150`)
+
+**⚠️ 本轮最重要的一条:我的第一条断言是假的(已修,已重证)**
+- 初版 `test_carePhase_enumMatchesForwardingConstants` 只比值 ——
+  把转发常量改回字面量 `0`/`1`(值不变)时**全绿通过**,而注释写的是「不得自成一份硬编码」。
+- **变异 ② 实测:`EXIT=0` 全绿** ⇒ 注释超出判据能力,与「自造断言顶替 AC 语义层」同族。
+- 修法 = 加**源码层判据**(剥注释后判 `(int)CarePhase.`);重放变异 ② ⇒ **1 failed** ✅。
+- ⚠️ 剥注释是必需的:doc 注释按「原文不删」保留了 `= 0;`,不剥会误判(与 `ExemptKinds` 锚串同型陷阱)。
+- 已知边界:文本级非语义级,抓不住别名/中间常量绕过。
+
+**回归(三元组)**:`4614 / 4578 / 0 / 36` · `error CS = 0` ·
+**round23** @ `2026-10-22 20:59:32 (+0800)` · commit `f2747b3` + 未提交工作树。
+基线 round18 = `4609 / 4573 / 0 / 36` ⇒ **Δtotal = Δpassed = +5**,全名级差集 **新增 5 / 消失 0**。
+(round19–23 共五轮全量,只有 round23 的时间窗能自证覆盖全部改动 —— 详见证据件 §七。)
+
+**四轮的教训(batch 与写盘互斥)**:
+- round20 有 5 秒窗口未覆盖(启动后才改注释)⇒ 废轮
+- round22 的 `DiseaseCourse.cs` 只早 7 秒(变异还原)⇒ 险废,靠 `sha256sum -c` 证明内容一致
+- **新纪律**:batch 从启动到 XML 落盘期间**编排方零写盘**;还原动作也要留足余量。
+- **新纪律**:证伪轮应排在**第一次全量之前**(证伪是断言的自检,比全量便宜且发现更根本)。
+
+**四份 tmp 草稿:保留,未删** —— 合并件 §零 已订正原「合并后删除」声明:
+实测草稿含大量细粒度 `file:line` 锚点(A 48 / B 14 / C 59 / D 38 个高信息量 token 缺席合并件),
+删掉 = 把「逐处改动清单」换成一句计数。合并件是摘要级,草稿是勘察级,**不是两份并行分析**。
+
+**未提交**:全部待用户指令。
+
+---
+
+## round24 —— B1 / B2 修复轮(2026-10-22 · 用户裁定「修 B1 和 B2」· B1 取「选 B」)
+
+**授权原话**:「修 B1 和 B2」→ B1 方案选择「选 B」= 按 telemetry 模板补全注册表管线。
+**已知后果(选择时已告知并接受)**:真注册表进生产后 `PatientAppearedDriver` 取的
+`registry[0].DiseaseId` 从 `1`(fallback 占位)变成 `2`(`INJ_STAB`,刺伤,`lethal: true`)
+⇒ **生产里病人开始真的会死**。玩法可见变化,非纯管道改动。
+
+### B1(方案 B 全管线)—— 12 处落点
+
+| # | 落点 | 内容 |
+|---|---|---|
+| 1 | `DiseaseRegistryCookedWriter.cs:51-57` | 载荷前加 `u32 schema 回声` + `i64 trend_window_ticks` + `i64 trend_eps` |
+| 2 | `DiseaseRegistryBaker.cs:84-88` | `BakeFromJson` 把 `bound.TrendWindowTicks/TrendEpsRaw` 传进 `Write` |
+| 3 | `DiseaseRegistryBaker.Materialize`(**新**) | 真往返 = 写/读两侧布局分叉的**唯一自动兜现** |
+| 4 | `Gameplay.Presentation/DiseaseRegistryDataSet.cs`(**新**) | 运行期数据集(行集 + W + eps + 两版本号) |
+| 5 | `Gameplay.Presentation/DiseaseRegistryCookedCodec.cs`(**新**) | 逐字段镜像写方 + 加载期 R1-36 趋势窗口门 |
+| 6 | `AddressablesDataProvider.cs` | `DiseaseRegistryAddress` + `_diseaseRegistry` + `EnsureDiseaseRegistry` + `Load<T>` 分支 + `Preload()` |
+| 7 | `DataCorePreloader.cs` | `DataCoreAddresses` 第 22 条 |
+| 8 | `DataCookedDisk.LoadDiseaseRegistry()`(**新**) | 磁盘兜底(同一份字节 + 同一 codec) |
+| 9 | `CompositionRoot.cs:169-215` | **三级优先**:caller 表 > provider 真表 > fallback;W/eps 灌进 `DiseaseVitalsService` |
+| 10 | `DataBakeMenu.BakeDiseaseRegistry`(**新**) | batch 实跑成功,产物 1869 B / 13 行 / `ConfigVersion = 0x3436F40A` |
+| 11 | `unity/Assets/DataCooked/disease_registry.cooked.bytes`(**新落盘**) | GUID `e67ef82b…fa7e` |
+| 12 | `data-core.asset` | 组条目 +1(GUID 与 `.meta` 逐字一致)⇒ 22 条 |
+
+**四处集合相等(22/22/22/22)**:`*Address` 常量 = `DataCoreAddresses` = `Preload()` 的 `Ensure*` = 组条目。
+
+**⚠️ 关键设计决策(为什么不给 fallback 路径也读真表)**:真表 id 从 2 起,而 EditMode 侧
+**45 处夹具**按 `SpawnNext(diseaseId: 1, …)` 建病人(fallback 的占位 id)。让 `dataProvider == null`
+也读真表 ⇒ `DiseaseVitalsService.OnTickEdge` 的「病种不在注册表内」fail-loud 集体触发
+—— 那是把「接真」变成全局回归。**fallback 语义未变**:接线载体,非数值真源。
+
+### B2 —— `LowPositionHeldTicks`
+
+- 实现 = `ProgressionEvaluator.ComputeLowPositionHeldTicks`(**t 的纯函数**,非跨 tick 计数器)
+- 取舍 = 积分量不满足 ADR-016 §九 三源重放(存档不携带 ⇒ 读档后同刻判出两种终态)
+- 接线 = `DiseaseVitalsService.cs:453-456`
+- 测试 = `low_position_held_test.cs` **8 条**
+- 边界 = **`OQ-9-1`**(本轮新立,`design/gdd/disease-simulation.md` Open Questions 段;
+  此前该编号在全库 `design/` `docs/` 是**悬空引用** —— 只有代码注释提它)
+
+### 回归(三元组)
+
+`4624 / 4588 / 0 / 36` · `error CS = 0` ·
+**round24** @ `2026-10-22 22:03:33 (+0800)`(Unity 启动 `22:01:18`)· commit `f2747b3` + 未提交工作树。
+基线 round23 = `4614 / 4578 / 0 / 36` ⇒ **Δtotal = Δpassed = +10**,全名级差集 **新增 10 / 消失 0**。
+
+### 又废了一轮(round23.5)—— 纪律第二次实战命中
+
+`21:57:36` 启动、`21:59:43` XML 落盘,而我在 **`21:59:38`** 改了
+`cooked_drift_all_artifacts_test.cs`(类头注释)。数字虽同为 `4624/4588/0/36`,**不能作判据**。
+⇒ round24 才是干净轮。窗口核对:`22:01:18 → 22:03:33` 内唯一 mtime 变动是
+`AddressableAssetSettings.asset`(Unity 自己 touch,`git status` 干净、`sha256` 与 `HEAD` 逐位相同)。
+
+### round24 之后仍未闭合(禁借绿)
+
+- **「W/eps 值真的流到 vitals」无端到端夹具** —— 现有证据只到「装配向 provider 要了这张表」
+  (两个 `MultiTableProvider` 夹具缺该类型会当场抛)。这是**间接**证据,不是端到端。
+- **`W = 0` 仍是未配置值** ⇒ 管线通 ≠ 功能可用:痊愈支 / 迁延支在生产里**仍不求值**。
+- **`OQ-9-1` 未裁** —— 填 `W` 前必须先裁。
+- **`Relapse` / `TreatableBy` / `Signs` / `Handle` 仍未编码**(CookedWriter 文件尾 ②③)。
+- **PlayMode 全量未跑** —— 本轮只跑 EditMode;「病人开始会死」的玩法侧影响未经 PlayMode 验证。
+- **`PatientOutcomeChanged` 写者仍未落**(`WriterExistenceGate.cs:105` 在册,与本轮无关)。
+
+**未提交**:全部待用户指令。
+
+---
+
+## round25 —— PlayMode 全量(2026-10-22 · 用户指令「跑 PlayMode 全量」)
+
+### 结果(三元组)
+
+`202 / 202 / 0 / 0` · `error CS = 0` · **round25** @ `2026-10-22 23:35:41 (+0800)`
+(Unity 启动 `23:35:06`,XML `start-time 2026-10-22T15:35:34Z`)· commit `f2747b3` + 未提交工作树。
+
+**对照基线**(引用,非本轮实跑):`202 / 202 / 0 / 0` @ `2026-10-22 11:33 (+0800)` ·
+批次 `s18-final-playmode-20261022` · `f2747b3`。全名级差集 **新增 0 / 消失 0**。
+
+**窗口核对**:`23:35:06 → 23:35:41` 内编排方零写盘;`git status --porcelain` 计数 **47**,与 round24 结束时同值。
+
+复算命令:`python3 -c "import xml.etree.ElementTree as ET;r=ET.parse('<xml>').getroot();print(r.get('total'),r.get('passed'),r.get('failed'),r.get('skipped'))"`
+
+### 结论:**PlayMode 全绿,但它不构成 B1 的玩法侧证据**
+
+跑之前我把「PlayMode 全量能验『病人开始会死』」当成预期。**这个预期是错的**,以下是实测证据链:
+
+1. **PlayMode 里 13 处 `CompositionRoot.Assemble(...)` 调用,12 处不传 `dataProvider`**
+   (`vertical_slice_test:87` 传 `registry` fixture、`clinic_room_matching_player_test:97/162` 只在
+   `!Application.isEditor` 才传)。⇒ 这些测走的是 `registry != null` 或 `dataProvider == null`
+   两级,**碰不到真表**。
+2. 唯一会走真表的是 `BootRoot.Start`(传 `dataProvider: preloaded ? DataCorePreloader.Provider : null`),
+   由 `composition_root_smoke_test` / `patient_appeared_wiring_test` / `case_opened_wiring_test` /
+   `patient_visual_wiring_test` 四条驱动。但这四条**只断言「有 DiseaseOnset / SpawnedCount ≥ 1」**,
+   **零条断言病种 id 或 lethality**。
+3. **`Lethal` / `Lethality` 在 `Gameplay.Boot` 里零消费点** —— 真值只在
+   `F4OutcomeEvaluator:170` (`EntityDeathGates.LethalFor`) 处被读,而 F4 求值要
+   `position_agg ≥ DEATH_THRESHOLD ∧ (t − last_intervention) > TREATMENT_WINDOW`,
+   **PlayMode 的 tick 窗口远不够推进到那个点**。
+
+⇒ **PlayMode 全量测不到「病人会不会死」**。它能证明的是「B1 的管道改动没有把既有 202 条打断」,
+**仅此而已**。把它写成「玩法侧已验证」= 借绿。
+
+### 本轮顺带查出的两处**新**缺口(均不属 B1,但同族)
+
+#### ① `catalog.bin` 陈旧 —— 真表**不在** packed catalog 里
+
+| 证据 | 值 |
+|---|---|
+| `unity/Library/com.unity.addressables/aa/Linux/catalog.bin` mtime | `2026-10-22 14:53:36` |
+| `unity/Assets/DataCooked/disease_registry.cooked.bytes` mtime | `2026-10-22 21:54:18` |
+| `grep -ac disease_registry catalog.bin` | **0** |
+| `grep -ac telemetry_analytics catalog.bin` | 2(旧产物在) |
+
+`m_BuildAddressablesWithPlayerBuild: 0`(= `DoNotBuildWithPlayer`)⇒ **构建 player 不会自动重建 catalog**;
+`BuildPlayerContent` 全库唯一调用点是菜单 `DataBakeMenu.BuildAddressablesContent`,
+**没有任何 `IPreprocessBuildWithReport` 门调它,也没有门检查 catalog 新鲜度**。
+⇒ 走 player / IL2CPP 腿时,`DataCorePreloader.TryPreload()` 的预检会在 `disease_registry.cooked.bytes`
+上判死 ⇒ `preloaded = false` ⇒ `CompositionRoot` 退回 `CreateFallbackRegistry()` ⇒ **生产仍取不到真 W/eps**。
+
+**⚠️ 但这不影响本轮 PlayMode 结果**:`test_precheck_liveCatalog_allRealAddressesLocatable` **通过**,
+而该测读的是**当前 Play 进程内 `Addressables.ResourceLocators`**。packed catalog 里没有
+`disease_registry` 而预检仍全过 ⇒ 本轮 PlayMode 用的是 **Fast Mode**(builder 索引 0 =
+`BuildScriptFastMode`,直接读 AssetDatabase,不经 catalog.bin)。**推断,非直读观测** ——
+`ActivePlayModeDataBuilderIndex` 存在 `Library/AddressablesConfig.dat`(gitignored),未反序列化。
+
+⇒ **B1 的「接真」在编辑器 Play 下成立,在 player 下不成立**,直到有人重跑
+`大医精诚/数据管线/构建 Addressables 内容`。这是**新登记的缺口**,不是本轮引入的。
+
+#### ② 「W/eps 流到 vitals」的端到端夹具仍然不存在
+
+`DiseaseVitalsService` 的 `_trendWindowTicks` / `_trendEpsRaw` 是 `private readonly`,**无只读出口**;
+`CompositionRootServices` 也不暴露它们。⇒ 要写端到端判据必须先开一个测试接缝(或反射)。
+本轮**未开** —— 归下一轮裁定(接缝形状本身要裁:属性 vs 反射 vs 构造回显)。
+
+### round25 之后仍未闭合(禁借绿)
+
+1. `W = 0` 仍是未配置值 ⇒ 痊愈支 / 迁延支在生产里仍不求值。
+2. `OQ-9-1` 未裁(填 `W` 的前置)。
+3. `catalog.bin` 陈旧(见上,新)。
+4. 「W/eps → vitals」端到端夹具不存在(见上,新)。
+5. `Relapse` / `TreatableBy` / `Signs` / `Handle` 仍未编码。
+6. `PatientOutcomeChanged` 写者仍未落(`WriterExistenceGate.cs:105`)。
+7. **玩法侧「病人会不会死」从未被任何测试观测** —— PlayMode 也测不到(见上)。
+
+**未提交**:全部待用户指令。

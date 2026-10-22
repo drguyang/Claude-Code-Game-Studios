@@ -382,6 +382,11 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
                 //    ⇒ 缺它装配当场抛。本测只用它的存在性,不读它的内容。
                 .Add(PrescriptionActionsCookedCodec.Read(File.ReadAllBytes(
                     Path.Combine(RepoRoot, "unity", "Assets", "DataCooked",
-                        "prescription_actions.cooked.bytes"))));
+                        "prescription_actions.cooked.bytes"))))
+                // ⚠️ 9 病种注册表**必须**在场(2026-10-22 B1 接真起):`AssembleCore` 在
+                //    `dataProvider != null` 时对它做**即时** Load ⇒ 缺它装配当场抛。
+                //    走 `DataCookedDisk` = 盘上真产物 + 同一 codec(零 Fake)。
+                //    ⚠️ 本测不跑 tick、`SpawnNext` 不查注册表 ⇒ 真表 id 从 2 起不影响本测。
+                .Add(DataCookedDisk.LoadDiseaseRegistry());
     }
 }

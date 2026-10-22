@@ -485,7 +485,10 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
                 .Add(CommittedPrescriptionActions())
                 // ⚠️ DC-4 处置轴(2026-10-20 接线后组合根**即时** Load)——
                 //    缺它装配当场抛;本门不测其语义,只为装配面完备。
-                .Add(CommittedDiseaseActionAxis());
+                .Add(CommittedDiseaseActionAxis())
+                // ⚠️ 9 病种注册表(2026-10-22 B1 接真后组合根**即时** Load)——
+                //    同上,只为装配面完备。本门不跑 tick ⇒ 真表 id 从 2 起无影响。
+                .Add(DataCookedDisk.LoadDiseaseRegistry());
 
         private sealed class MultiTableProvider : IDataProvider
         {

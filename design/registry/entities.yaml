@@ -2183,10 +2183,10 @@ constants:
     unit: kind
     stream: history
     author: "24 医馆与案头(以入向事件写入;disease-simulation.md 规则)"
-    payload_schema: "tick: i64; action_id: i32(护理动作表 ordinal,K ≤ |护理动作表|); caregiver: i32; phase: 枚举(起 止)。一条事件表示起或止,写入期校验 t(止) ≥ t(起);语义 = 玩家主动护理动作;放医馆本身不计数,EnvMod 不得推出本事件"
-    constraint: "落【病史流】(9 的主场,可随终态折叠);载荷 = { tick, 护理动作_id, 照护者, 起/止 }(均整数/枚举;动作 id ∈ 护理动作表,K ≤ |护理动作表|);一条事件表示【起】或【止】;写入期校验 t(止) ≥ t(起)。**语义 = 玩家主动护理动作**(成本 = 时间/资源,仅在动作持续期内计数);「放医馆」本身不计数,EnvMod 不得推出本事件(2026-09-16 三轮 · 二轮 B2/B3)。F4 消费:相邻 gap > CARE_GAP ⇒ 照护中止;last_intervention(照护) = max(止, 最后动作 + CARE_GAP)(三轮集群 2)"
+    payload_schema: "tick: i64; action_id: i32(护理动作表 ordinal,K ≤ |护理动作表|); caregiver: i32; phase: 枚举(起=0, 止=1)。一条事件表示起或止,写入期校验 t(止) ≥ t(起);语义 = 玩家主动护理动作;放医馆本身不计数,EnvMod 不得推出本事件"
+    constraint: "落【病史流】(9 的主场,可随终态折叠);载荷 = { tick, 护理动作_id, 照护者, 起/止 }(均整数/枚举;动作 id ∈ 护理动作表,K ≤ |护理动作表|);一条事件表示【起】或【止】;写入期校验 t(止) ≥ t(起)。**语义 = 玩家主动护理动作**(成本 = 时间/资源,仅在动作持续期内计数);「放医馆」本身不计数,EnvMod 不得推出本事件(2026-09-16 三轮 · 二轮 B2/B3)。F4 消费:相邻 gap > CARE_GAP ⇒ 照护中止;**照护支(2026-10-22 第六轮裁定,替代原 max 式)**:最后动作是【止】⇒ last_intervention(照护) = 该 tick;否则(起 / 走开)⇒ 该 tick + CARE_GAP。🔁 原文写「last_intervention(照护) = max(止, 最后动作 + CARE_GAP)」—— 该式使「止」项恒冗余(止本身是一条护理动作 ⇒ 最后动作 ≥ 最后止 ⇒ 最后动作 + CARE_GAP > 最后止 恒成立),与 GDD :226 散文正面冲突,已作废(原文不删)"
     added: 2026-09-16
-    revised: ""
+    revised: "2026-10-22 —— ① phase 补序数(起=0, 止=1;原只写「枚举(起 止)」,全库无序数权威);② constraint 的 last_intervention 照护支改为第六轮裁定的分叉式(原 max 式作废,原文保留在串内)"
 
   # ── 世界流 Kind · Structure 三件套 (ADR-009 §三 骨架 · 系统 23 的 GDD 载荷定稿,2026-09-17) ──
   # ADR-009 §三 声明 StructurePlaced / Removed / Modified 三个骨架,载荷「归 R-10」;

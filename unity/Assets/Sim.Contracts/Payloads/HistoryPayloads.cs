@@ -125,6 +125,38 @@ namespace DaYiJingCheng.Sim.Contracts
         }
     }
 
+    /// <summary>
+    /// 护理动作相位(起 / 止)—— <c>CareAppliedPayload.Phase</c> 的序数**唯一 C# 定义**。
+    ///
+    /// <para><b>2026-10-22 立(用户裁定「甲+乙 都做」)</b>:此前(裁定前)<c>0 = 起 / 1 = 止</c>
+    /// 只是 <c>DiseaseCourse.CarePhaseStart/Stop</c> 里的**落地约定**,**当时**全库无序数权威 ——
+    /// <c>entities.yaml:2186</c> 只写「枚举(起 止)」,GDD <c>:164</c> 只给中文词「起/止」,
+    /// author(24)的 <c>clinic-machine.md</c> 零定义。<b>现三处齐备</b>(承 <see cref="PatientOutcome"/> 先例):
+    /// ① 本枚举(序数单一 C# 定义);② <c>entities.yaml:2186</c> 写死 `枚举(起=0, 止=1)`;
+    /// ③ 机械断言钉住两者一致(<c>care_applied_writer_test.cs</c> 的
+    /// <c>test_carePhase_ordinalsMatchRegistry</c> + <c>test_carePhase_enumMatchesForwardingConstants</c>)。</para>
+    /// <para>⚠️ 上面「此前 … 全库无序数权威」是**历史陈述**,不是现状 —— 现状以本段末句为准。</para>
+    ///
+    /// <para><b>⚠️ 载荷字段仍是 <c>int</c>(<c>CareAppliedPayload.Phase</c>)</b> ——
+    /// 与 <see cref="PatientOutcome"/> / <c>PoiState</c> 同构。把字段类型改成枚举会让
+    /// <c>tools/kindgen/kindgen.py</c> 的 A2 判据转红(A2 只接受整数白名单与已登记 struct,
+    /// 枚举类型名两者都不命中 ⇒ <c>fail</c>)。改类型前须先扩 kindgen。</para>
+    ///
+    /// <para><b>为什么不需要 <c>Unspecified = 0</c> 哨兵</b>(与 <see cref="PatientOutcome"/> 的差别):
+    /// 终态的零值若被漏填会**静默撒谎**(死亡病人被标成痊愈),故那里必须留哨兵;
+    /// 而本枚举的 0 是**合法值「起」** —— 一个漏填的 phase 会被读成「起」,
+    /// 后果是照护支少记一个「止」,而**不会**产生「把 A 说成 B」的错误陈述。
+    /// ⇒ 不设哨兵;越界值由写者前置 ②(写入期,具名结果码)与解码门(读取期)各自拒收。</para>
+    /// </summary>
+    public enum CarePhase : int
+    {
+        /// <summary>起 —— 玩家开始一个护理动作。</summary>
+        Start = 0,
+
+        /// <summary>止 —— 玩家结束该护理动作。</summary>
+        Stop = 1,
+    }
+
     /// <summary>8(判断链)。一条事件表示「起」或「止」;写入期校验 t(止) ≥ t(起)。
     /// 放医馆本身不计数,EnvMod 不得推出本事件。</summary>
     public readonly struct CareAppliedPayload
@@ -132,7 +164,9 @@ namespace DaYiJingCheng.Sim.Contracts
         public readonly long Tick;
         public readonly int ActionId;        // 枚举:护理动作表 ordinal,K ≤ |表|
         public readonly int Caregiver;
-        public readonly int Phase;           // 枚举:起 | 止
+        /// <summary>相位序数 —— 见 <see cref="CarePhase"/>(0 = 起 / 1 = 止)。
+        /// 保持 <c>int</c> 不改成枚举:kindgen A2 只接受整数白名单。</summary>
+        public readonly int Phase;
 
         public CareAppliedPayload(long tick, int actionId, int caregiver, int phase)
         {

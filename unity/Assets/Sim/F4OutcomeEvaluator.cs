@@ -72,8 +72,14 @@ namespace DaYiJingCheng.Sim
 
         /// <summary>
         /// 低位已稳定持续的 tick 数 —— 「<c>position_agg &lt; RECOVER_THRESHOLD</c> 已连续保持多久」。
-        /// <para>⚠️ 这是**状态**,不是常量:调用方须从病程档案累计(何时首次跌破痊愈门),
-        /// 本 struct 只承载它。归零 = 本 tick 刚跌破。</para>
+        /// <para>⚠️ 这是**状态量**,不是常量:调用方须从病程档案求值,本 struct 只承载它。
+        /// 求值实现 = <see cref="ProgressionEvaluator.ComputeLowPositionHeldTicks"/>
+        /// (2026-10-22 B2 修复;它是 **t 的纯函数**,不是跨 tick 计数器 —— 取舍理由见该方法的
+        /// remarks:积分量会让读档后同一时刻判出两种终态)。</para>
+        /// <para><b>语义 = 连续低位 tick 数,上界截断到 <c>W</c></b>(消费者只判
+        /// <c>held &lt; W</c>,截断不改变判定)。病程之前不计(下限 = onset)。</para>
+        /// <para>🔁 原文写「归零 = 本 tick 刚跌破」—— 该描述只对「跨 tick 计数器」形态成立,
+        /// 已随 B2 修复失效(原文不删)。现语义以本段为准。</para>
         /// </summary>
         public readonly long LowPositionHeldTicks;
 

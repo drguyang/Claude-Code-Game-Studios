@@ -70,6 +70,18 @@ namespace DaYiJingCheng.Gameplay.Boot
         private long _lastTick = -1;
 
         /// <summary>
+        /// <c>W</c>(趋势差分窗口,tick)—— **全局**配置(GDD Tuning §四 <c>:1743</c>)。
+        /// <para><c>0</c> = <b>未配置</b>(数值轮未裁)⇒ <see cref="RecoveryWindowInput.IsConfigured"/>
+        /// 为 <c>false</c> ⇒ 痊愈支 / 迁延支**不求值**。本类不自己找值 —— 由装配方从
+        /// 烘焙数据面灌入(<c>DiseaseRegistryBinder.BindResult.TrendWindowTicks</c> 是作者态来源;
+        /// cooked 产物尚未携带它,见 <c>DiseaseRegistryCookedWriter</c>)。</para>
+        /// </summary>
+        private readonly long _trendWindowTicks;
+
+        /// <summary><c>TREND_EPS</c>(趋势死区,Q16.16 raw)—— 见 <see cref="_trendWindowTicks"/>。</summary>
+        private readonly long _trendEpsRaw;
+
+        /// <summary>
         /// 构造(fail-loud:任一依赖缺失 = 具名 <see cref="ArgumentNullException"/>,无半装配)。
         /// </summary>
         /// <param name="stream">病史事件流(只读消费)。</param>
@@ -77,15 +89,25 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="registry">病种注册表(直传条目;批次 B 裁定无 id 查找接口,
         /// 本类在装配期自建 id → 条目的字典,**不**向 Sim 侧新增查找面)。</param>
         /// <param name="worldSeed">世界种子(Noise 纯函数入参;Noise 现为 tripwire 恒 0)。</param>
+        /// <param name="trendWindowTicks"><c>W</c>(tick);<c>0</c> = 未配置(默认 —— 数值轮未裁)。</param>
+        /// <param name="trendEpsRaw"><c>TREND_EPS</c>(Q16.16 raw);<c>0</c> = 未配置(默认)。</param>
         /// <exception cref="ArgumentNullException">任一引用依赖为 null(参数名具名)。</exception>
         /// <exception cref="ArgumentException">注册表条目为 null / 病种 id 重复(参数名具名)。</exception>
         public DiseaseVitalsService(EventStream stream, IBlobPool blobPool,
                                     IReadOnlyList<DiseaseRegistryEntry> registry,
-                                    ulong worldSeed)
+                                    ulong worldSeed,
+                                    long trendWindowTicks = 0, long trendEpsRaw = 0)
         {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             _blobPool = blobPool ?? throw new ArgumentNullException(nameof(blobPool));
             _worldSeed = worldSeed;
+
+            // 趋势窗口(W / TREND_EPS)—— 全局配置,原样收下,不做任何代拍。
+            //   ⚠️ 此处**不**校验奇偶 / 负值:值域守卫归注册表写入期(R1-36,
+            //   `RegistrySchemaValidator.ValidateTrendWindow`),装配期只搬运。
+            //   0 是合法入参(未配置),不是错误。
+            _trendWindowTicks = trendWindowTicks;
+            _trendEpsRaw = trendEpsRaw;
 
             if (registry == null) throw new ArgumentNullException(nameof(registry));
             for (int i = 0; i < registry.Count; i++)
@@ -297,7 +319,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // ══ F4 求值(2026-10-22 第三轮接线)══
                 // 用户裁定:「接 F4 求值,**但不写流**」—— 本段只求值并缓存,
                 // 零 `IEventSink.Append`(本类全程不写流的既有纪律不变)。
-                _outcomes[course.Patient.Value] = EvaluateOutcome(course, entry, result, tick, _worldSeed);
+                _outcomes[course.Patient.Value] = EvaluateOutcome(
+                    course, entry, result, tick, _worldSeed, _trendWindowTicks, _trendEpsRaw);
             }
         }
 
@@ -339,19 +362,30 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <see cref="CareLeverApplicability.AppliesTo"/> 判适用集(**破伤风不在内**,K8),
         /// 再从本病人的 <see cref="DiseaseCourse.LastCareStopTick"/> /
         /// <see cref="DiseaseCourse.LastCareActionTick"/> 取两条时刻。
-        /// ⚠️ **写者仍未落**(`CareApplied` 的 author = 24,`WriterExistenceGate` 具名登记)
-        /// ⇒ 生产流里目前零护理事件 ⇒ 本通道在生产路径上仍恒 <c>None</c>。
-        /// **但读取面已完整**:写者一落地即自动生效,接线侧不必再改。</item>
+        /// <para>🔁 **原文(第五轮)写「写者仍未落 … 生产流里目前零护理事件 ⇒ 本通道在生产路径上
+        /// 仍恒 <c>None</c>」—— 前半句已失效(原文不删)**。2026-10-22 写者落地:
+        /// <c>Sim/CareAppliedWriter.cs</c>,且 `WriterExistenceGate` 的 `CareApplied` 豁免已撤
+        /// (撤表 = 该 Kind 转为被门正面盯住,判据① 强制同批)。</para>
+        /// <para>⚠️ **但「生产流里有护理事件」仍不成立**,原因是**接线**而非**写者** ——
+        /// 本类在构造期注入写者之前无从产生事件,而生产触发点(24 的护理交互 / 医馆护理台 /
+        /// 4 的交互装配)尚未接线(与 `CaseOpenWriter` 同格:有写者 ≠ 已接线)。
+        /// ⇒ **结论不变(恒 None),理由变了**:从「没人写」变成「没人调」。
+        /// 读取面仍完整:接线一落即自动生效。</para></item>
         /// <item><b><c>onset_tick</c> 哨兵</b> —— 由 <see cref="LastInterventionAggregator.Evaluate"/>
         /// 在三条通道全空时显式返回(不是靠初值巧合)。</item>
         /// </list>
         /// </remarks>
         private static InjuryState EvaluateOutcome(
             DiseaseCourse course, DiseaseRegistryEntry entry, ProgressionResult result, long tick,
-            ulong worldSeed)
+            ulong worldSeed, long trendWindowTicks, long trendEpsRaw)
         {
             // 注:本方法**静态** ⇒ 不持有任何状态;照护通道的时刻由 `course` 上的两个字段提供
             // (2026-10-22 第五轮接真,见下通道 ②)。
+            // 🔁 2026-10-22 铺管轮:`W` / `TREND_EPS` 以**形参**传入而非读实例字段 ——
+            //    本方法静态,而两值住在 `DiseaseVitalsService` 的 readonly 字段上
+            //    (B 代理原稿直接引用 `_trendWindowTicks`,四个 CS0120)。
+            //    取形参而非把本方法改非静态:静态是刻意的(注释见上),改它会放开
+            //    「求值体偷偷读服务状态」的口子。
             // 🔁 原文(第三轮)写「照护通道的『恒空』由调用点决定,将来接上 `CareApplied` 时
             //    把摘要作为第 4 个入参传进来即可」—— **已失实,就地加注不删**:实际落地取的是
             //    「档案持有两个时刻字段」而不是「第 4 个入参」,因为 `Apply()` 已经解码并归档,
@@ -378,10 +412,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   ⚠️ **适用集门在这里**(不在档案里):破伤风护理**不刷新**死亡窗口(K8),
             //      故先问 `CareLeverApplicability.AppliesTo(entry)`,不适用就传 None ——
             //      护理事件仍进流、仍进档(它是有效动作),只是不参与 F4 的窗口。
-            //   ⚠️ 写者现状:`CareApplied` 的写者未落(`WriterExistenceGate` 具名登记
-            //      「24 医馆与案头写者未落」)⇒ **生产流里目前仍无护理事件** ⇒ 本通道
-            //      在生产路径上仍恒 None。但**读取面已完整**:写者一落地即自动生效,
-            //      接线侧无需再改。这与上一轮「恒 None 且无从读取」不是同一状态。
+            //   🔁 **原文(第五轮)写「`CareApplied` 的写者未落 … 生产流里目前仍无护理事件」
+            //      —— 已失效(原文不删)**。2026-10-22 写者落地:`Sim/CareAppliedWriter.cs`;
+            //      `WriterExistenceGate` 的 `CareApplied` 豁免同批撤除。
+            //   ⚠️ **但本通道在生产路径上仍恒 None,理由已换**:不再是「没人写」,而是
+            //      **「没人调」** —— 生产触发点(24 的护理交互 / 医馆护理台 / 4 的交互装配)
+            //      尚未接线(与 `CaseOpenWriter` 同格)。读取面仍完整:接线一落即自动生效。
+            //      这与第五轮「恒 None 且无从读取」不是同一状态,也与「写者未落」不是同一状态。
             var care = CareLeverApplicability.AppliesTo(entry)
                 ? new LastInterventionAggregator.CareChannelInput(
                     course.LastCareStopTick, course.LastCareActionTick)
@@ -394,12 +431,29 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   本轮之前这里传的是 `result.Trend`,名字写着 `trendBackwardAgg` 而值是中心差分
             //   —— 两者当时都是 tripwire 恒 0,所以看不出来;语义从一开始就是错的。
             //
-            //   `W` / `TREND_EPS` 仍**未配置**(数值轮)⇒ 传 0 ⇒ 本函数返回 0 ⇒ 求值器侧
-            //   的痊愈支 / 迁延支依旧不求值(window 也是 default)。结构就位,数值一填即生效。
+            //   `W` / `TREND_EPS` 的来源(2026-10-22 铺管):**全局配置**,经构造参数
+            //   `trendWindowTicks` / `trendEpsRaw` 从数据面灌入(作者态键
+            //   `trend_window_ticks` / `trend_eps`,见 `disease_registry.json`)。
+            //   ⚠️ **当前值仍为 0**(数值轮未裁)⇒ 本函数返回 0 ⇒ 痊愈支 / 迁延支
+            //   **仍不求值**。「管道已通」≠「功能可用」:数值一填即生效,填之前两支是死的。
             Fix trendBackward = ProgressionEvaluator.ComputeTrendBackward(
                 entry, course.OnsetTick, tick, course.Doses, worldSeed, course.Patient,
-                windowTicks: 0,          // W 未裁定 ⇒ 不求值
-                trendEpsRaw: 0);
+                windowTicks: trendWindowTicks,
+                trendEpsRaw: trendEpsRaw);
+
+            // 趋势窗口 —— W / TREND_EPS 从全局配置灌入(见构造参数注释)。
+            //   🔁 **原文(2026-10-22 铺管轮)写「`LowPositionHeldTicks` 恒传 0,累计器尚未实现,
+            //      ⇒ 即使 W > 0 痊愈支仍不会成立」—— 已失效(原文不删)**。
+            //   2026-10-22 B2 修复:第三参改由 `ProgressionEvaluator.ComputeLowPositionHeldTicks`
+            //   求值 —— 它是 **t 的纯函数**(反查历史 tick 的 Progress),不是跨 tick 计数器。
+            //   取舍理由见该方法的 remarks(积分量会让读档后同刻判出两种终态)。
+            //   ⚠️ **仍未变的**:`W` / `TREND_EPS` 本身仍为 0(数值轮未裁)⇒ `IsConfigured = false`
+            //      ⇒ 条件 ⑥ 与两支**都不求值**。「值填了才生效」这句话对**两支都成立**了,
+            //      不再是「迁延支能生效、痊愈支不能」的偏斜状态。
+            long lowPositionHeldTicks = ProgressionEvaluator.ComputeLowPositionHeldTicks(
+                entry, course.OnsetTick, tick, course.Doses, worldSeed, course.Patient,
+                windowTicks: trendWindowTicks);
+            var window = new RecoveryWindowInput(trendWindowTicks, trendEpsRaw, lowPositionHeldTicks);
 
             return F4OutcomeEvaluator.Evaluate(
                 ActorClass.Patient,          // 病人侧 F4 —— 不走玩家专属的战伤破例
@@ -410,7 +464,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 tick,
                 new LastInterventionAggregator.TreatmentChannelInput(causalTicks),
                 care,
-                default(RecoveryWindowInput));   // W / TREND_EPS 未裁定 ⇒ 痊愈支/迁延支不求值
+                window);                     // W / TREND_EPS 为 0 ⇒ IsConfigured=false ⇒ 两支不求值
         }
 
         /// <summary>

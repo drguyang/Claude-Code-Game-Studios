@@ -31,8 +31,11 @@ namespace DaYiJingCheng.EditorTools.Bake
         //    它们不参与绑定,但**必须**允许存在:它们是作者留给下一个读表人的话。
         //    这不是「宽松」:注记键仍走 RejectUnknownKeys 的 `_` 前缀规则,拼错成
         //    `note`(无下划线)会被当成未知键硬失败。
+        // ⚠️ 2026-10-22 增 `trend_window_ticks` / `trend_eps` —— 趋势窗口是**全局**旋钮
+        //    (GDD Tuning §四 :1743-1744;R1.3 的逐病种字段表里没有它们 ⇒ 不逐病种)。
+        //    作者态缺省 = 两键可省(缺 = 未配置 = 0),因为数值轮尚未裁定。
         private static readonly string[] RootKeys =
-            { "schema_version", "diseases" };
+            { "schema_version", "diseases", "trend_window_ticks", "trend_eps" };
 
         private static readonly string[] DiseaseRowKeys =
         {
@@ -80,6 +83,18 @@ namespace DaYiJingCheng.EditorTools.Bake
             public readonly uint SchemaVersion;
 
             /// <summary>
+            /// 全局 <c>W</c>(趋势差分窗口,tick;GDD Tuning §四 <c>:1743</c>)。
+            /// <c>0</c> = 未配置(数值轮未裁)⇒ F4 的痊愈支 / 迁延支不求值。
+            /// </summary>
+            public readonly long TrendWindowTicks;
+
+            /// <summary>
+            /// 全局 <c>TREND_EPS</c>(趋势死区,Q16.16 raw;GDD Tuning §四 <c>:1744</c>)。
+            /// <c>0</c> = 未配置。
+            /// </summary>
+            public readonly long TrendEpsRaw;
+
+            /// <summary>
             /// **声明了、但本件没有绑定进 <see cref="DiseaseRegistryEntry"/> 的行键**(去重,Ordinal 排序)。
             /// <para>⚠️ 存在的理由:ADR-014 §三 的未知键门防的是「拼错 ⇒ 静默丢字段」,
             /// 但白名单内的键若**不被绑定**,丢字段就换个方式静默发生 —— 门看不见,
@@ -89,9 +104,11 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// </summary>
             public readonly List<string> UnboundKeys;
 
-            public BindResult(List<DiseaseRegistryEntry> rows, uint schemaVersion, List<string> unboundKeys)
+            public BindResult(List<DiseaseRegistryEntry> rows, uint schemaVersion,
+                              List<string> unboundKeys, long trendWindowTicks, long trendEpsRaw)
             {
                 Rows = rows; SchemaVersion = schemaVersion; UnboundKeys = unboundKeys;
+                TrendWindowTicks = trendWindowTicks; TrendEpsRaw = trendEpsRaw;
             }
         }
 
@@ -116,6 +133,30 @@ namespace DaYiJingCheng.EditorTools.Bake
             RejectUnknownKeys(root, RootKeys, "disease_registry.json 根", errors);
 
             uint schemaVersion = ReadSchemaVersion(root, errors);
+
+            // ── 全局趋势窗口(W / TREND_EPS,GDD Tuning §四 :1743-1744)──
+            //   两键**可省**:缺 = 未配置 = 0(数值轮未裁)。负值 / 奇数 W 由
+            //   `ValidateTrendWindow`(R1-36)拒收 —— 与逐病种校验同批跑,同样聚合后抛。
+            long trendWindowTicks = ReadInt(root, "trend_window_ticks", errors,
+                                            "disease_registry.json 根", 0);
+            long trendEpsRaw = 0;
+            if (root.TryGet("trend_eps", out JsonNode epsNode) && epsNode.Kind != JsonNodeKind.Null)
+            {
+                // ⚠️ Fix 字段写**字符串**(ADR-014 §四硬规则 1):`"trend_eps": "0"`。
+                //    收到 JSON 数字 = 浮点泄漏路径,ReadFix 会记错而不是宽容转换。
+                trendEpsRaw = ReadFix(root, "trend_eps", errors, "disease_registry.json 根").Raw;
+            }
+            if (errors.Count == 0)
+            {
+                try
+                {
+                    RegistrySchemaValidator.ValidateTrendWindow(trendWindowTicks, trendEpsRaw);
+                }
+                catch (RegistryValidationException ex)
+                {
+                    errors.Add("R1-36 校验:" + ex.Message);
+                }
+            }
 
             var rows = new List<DiseaseRegistryEntry>();
             var unbound = new SortedSet<string>(StringComparer.Ordinal);
@@ -153,7 +194,8 @@ namespace DaYiJingCheng.EditorTools.Bake
             if (errors.Count > 0)
                 throw new BakeValidationException(errors);
 
-            return new BindResult(rows, schemaVersion, new List<string>(unbound));
+            return new BindResult(rows, schemaVersion, new List<string>(unbound),
+                                  trendWindowTicks, trendEpsRaw);
         }
 
         // ── 单行 ────────────────────────────────────────────────────────────

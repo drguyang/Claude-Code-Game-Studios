@@ -15,7 +15,7 @@
 //   ⑥ 结构:扫描面含 Sim / Presentation / Boot 三面、无重复、不含 Sim.Codec / Tests;
 //           豁免表每条带登记日期。
 //
-// ⚠️ 探针 yaml 刻意只声明 1–2 支 Kind ⇒ 真表的 24 条豁免在探针上全属「陈旧」,
+// ⚠️ 探针 yaml 刻意只声明 1–2 支 Kind ⇒ 真表的**全部**豁免在探针上全属「陈旧」,
 //    故探针断言一律用 `Any(...)` 具名匹配,不做整表计数(整表计数只在真工程面)。
 //
 // 权威:ADR-024 §①(registry 真源)· ADR-005(主机唯一 Append)· ADR-029 §③(唯一编码路径)
@@ -181,10 +181,15 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 var errs = WriterGate.Check(yaml, new[] { srcDir });
                 var stale = errs.Where(e => e.Contains("陈旧豁免")).ToList();
                 Assert.IsNotEmpty(stale,
-                    "24 条豁免在探针 registry 全属陈旧,至少报 1 条。实测:\n"
+                    "全部豁免在探针 registry 全属陈旧,至少报 1 条。实测:\n"
                     + string.Join("\n", errs));
-                Assert.IsTrue(stale.Any(e => e.Contains("CareApplied")),
-                    "须点名被删 Kind(CareApplied 为例 —— G3 撤 SkillGrown 后表内仍留的豁免条目)");
+                // ⚠️ 2026-10-22 换样本:原以 `CareApplied` 举例,而它已于同日撤表
+                //   (`Sim/CareAppliedWriter.cs` 落地)—— 继续点名它会让本断言必红,
+                //   而红的理由与「陈旧豁免判据是否生效」无关(样本已不在豁免表里)。
+                //   改用仍挂表的 `CompoundTriggered`(9 并发症触发写者,归 9 实现轮)。
+                Assert.IsTrue(stale.Any(e => e.Contains("CompoundTriggered")),
+                    "须点名被删 Kind(以仍挂豁免表的 CompoundTriggered 为例 —— " +
+                    "样本须取自当前豁免表,撤表后须同批换样本)");
                 Assert.IsFalse(HasMissingWriterError(errs, "CaseOpened"),
                     "有写者的 CaseOpened 不该报缺写者(该条错误缺席 = 判据没串味)");
             }
@@ -266,7 +271,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         public void test_b7_waiverTable_everyEntryHasDatedReason()
         {
             var waivers = WaiverEntries();
-            Assert.IsNotEmpty(waivers, "豁免表须显式存在(当前基线 = 24 条)");
+            Assert.IsNotEmpty(waivers, "豁免表须显式存在(条数不硬编码 —— 撤表是常态,硬编码必然过期)");
             foreach (var (kind, reason) in waivers)
             {
                 Assert.IsNotEmpty(kind, "豁免条目不得空 Kind");
