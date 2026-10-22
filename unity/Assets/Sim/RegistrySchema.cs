@@ -355,6 +355,25 @@ namespace DaYiJingCheng.Sim
         /// <summary><c>DiseaseId</c> 上界(含)= <c>ulong</c> 的位数 —— 位掩码上限 64 病种。</summary>
         public const int DiseaseIdMax = 64;
 
+        /// <summary>
+        /// <b>R1-34</b> —— GDD 校验 4b / 14a:致死型曲线须能打到死线
+        /// (<c>A_peak/SCALE ≥ DEATH_THRESHOLD</c>)。
+        /// <para>适用型:急性保持型(`self_limit=false ∧ plateau=false`)**或**
+        /// `plateau ∧ lethal`。缺它 ⇒ 「声明致死却永远打不到死线」= 无限迁延。</para>
+        /// <para>🔁 2026-10-22 实现。此前**全库零校验**(`R1_CHECK_22` 自陈「4b 需 DEATH_THRESHOLD,
+        /// 值待定未实现」;值裁后成为欠账)。</para>
+        /// </summary>
+        public const int R1_CHECK_34 = 34;
+
+        /// <summary>
+        /// <b>R1-35</b> —— GDD 校验 14b:豁免类(`plateau ∧ ¬lethal`)峰值窗
+        /// <c>RECOVER_THRESHOLD &lt; A_peak/SCALE &lt; CRITICAL_THRESHOLD</c>。
+        /// <para>下界缺 ⇒ 神经衰弱落地即成「痊愈」,「他还在病着」为假(R3.6);
+        /// 上界缺 ⇒ 豁免类可达危殆,与「空体征」语义冲突。</para>
+        /// <para>🔁 2026-10-22 实现,同批。</para>
+        /// </summary>
+        public const int R1_CHECK_35 = 35;
+
         /// <summary><c>HALF_LIFE_MAX</c> —— <c>trauma_half_life</c> 的上界(tick)。
         /// 值 = <c>120</c>(6 s @ 20 Hz),<c>OQ-25-7</c> 已裁 2026-10-07(代拍,A25a)。
         /// <para>⚠️ 本值住这里而非 <c>StateMachine</c>:它是<b>注册表写入期</b>的校验界,
@@ -562,6 +581,82 @@ namespace DaYiJingCheng.Sim
                         throw new RegistryValidationException(R1_CHECK_25,
                             $"self_limit=true 时 curve.tau_fall 必须 > 0: {curve.TauFall.Raw}(GDD 校验 7)");
 
+                    // ══════════════════════════════════════════════════════════════════
+                    // R1-34 / R1-35 ← GDD 校验 4b + 校验 14(2026-10-22 实现)
+                    //
+                    // 这是「值已裁 ≠ F4 可求值」三件缺口里的第三件 —— 此前**全库零校验**,
+                    // 注册表可以收进一条「声明致死却永远打不到死线」的行。
+                    //
+                    //   4b  (急性保持型)      ⇒ A_peak/SCALE ≥ DEATH_THRESHOLD
+                    //   14a (plateau ∧ lethal)⇒ A_peak/SCALE ≥ DEATH_THRESHOLD
+                    //   14b (豁免类 plateau ∧ ¬lethal)⇒ RECOVER < A_peak/SCALE < CRITICAL
+                    //
+                    // 缺 4b/14a ⇒ 该型「过临界却同值不达死线」= 无限迁延;
+                    // 缺 14b    ⇒ 神经衰弱落地即成「痊愈」,「他还在病着」为假(R3.6)。
+                    //
+                    // ⚠️ **比较在整数域完成,不做除法**(ADR-006 §三 ROUND_HALF_AWAY_FROM_ZERO
+                    //    只约束「必须除」的地方)。`A_peak/SCALE ≥ DEATH` 等价于
+                    //    `A_peak × ONE ≥ DEATH_raw × SCALE`(两边同乘正数,序不变;
+                    //    SCALE > 0 已由 R1-23 保证)。128 位中间量走手工 hi/lo
+                    //    (ADR-005 Amendment G),不用 System.Int128 / BigInteger。
+                    // ══════════════════════════════════════════════════════════════════
+                    {
+                        long scale = entry.Scale.Raw;          // > 0(R1-23 已过)
+                        long aPeak = curve.APeak.Raw;          // > 0(R1-24 已过)
+
+                        // 左式 = aPeak/scale 与阈值 thr 的比较:aPeak × ONE  ?  thr × scale
+                        // 两个乘积都可能超 int64(aPeak/scale 是 raw,量级 1e5 × 1e5 = 1e10 尚可,
+                        // 但 raw 可达 2^48 ⇒ 乘积可达 2^64)⇒ 走 hi/lo 128 位比较。
+                        bool AtLeast(long thrRaw) =>
+                            CompareProducts(aPeak, Fix.OneRaw, thrRaw, scale) >= 0;
+
+                        // 🔁 2026-10-22 实现轮自查修正:严格大于必须**精确表达**,
+                        //    不得用 `AtLeast(RECOVER + 1)` 近似 —— 见下方 R1-35 下界处的长注。
+                        bool StrictlyAbove(long thrRaw) =>
+                            CompareProducts(aPeak, Fix.OneRaw, thrRaw, scale) > 0;
+
+                        bool acuteHold = !curve.SelfLimit && !curve.Plateau;
+                        bool plateau = curve.Plateau;
+                        bool lethal = entry.Lethality > 0;
+
+                        if (acuteHold || (plateau && lethal))
+                        {
+                            // 4b / 14a:须 ≥ DEATH_THRESHOLD
+                            if (!AtLeast(StateMachine.DEATH_THRESHOLD))
+                                throw new RegistryValidationException(R1_CHECK_34,
+                                    $"A_peak/SCALE < DEATH_THRESHOLD(a_peak={aPeak}, scale={scale}, " +
+                                    $"DEATH={StateMachine.DEATH_THRESHOLD} raw)—— " +
+                                    $"{(acuteHold ? "急性保持型" : "plateau ∧ lethal")}须能打到死线," +
+                                    "否则「声明致死却永远打不到死线」= 无限迁延(GDD 校验 4b / 14)");
+                        }
+                        else if (plateau && !lethal)
+                        {
+                            // 14b 豁免类下界:RECOVER < A_peak/SCALE < CRITICAL
+                            //
+                            // 🔁 2026-10-22 实现轮自查修正 —— 下界原写 `!AtLeast(RECOVER + 1)`,
+                            //    即 `aPeak × ONE ≥ (RECOVER+1) × scale`。**这是错的口径**:
+                            //    GDD 校验 14 写的是**严格大于** `RECOVER < A_peak/SCALE`,
+                            //    精确式 = `aPeak × ONE > RECOVER × scale`。
+                            //    两者在 `scale ≠ ONE` 时**不等价** —— `+1` 是「raw 上界」而非
+                            //    「比值上界」,`scale` 越大误差越大。
+                            //    实测可达的误拒:`a_peak=12, scale=100` ⇒ 比值 0.12 >
+                            //    `RECOVER = 7864/65536 ≈ 0.119995`(GDD 判**合法**),
+                            //    但旧写法要求 `aPeak ≥ 13` ⇒ **误拒合法行**。
+                            //    ⇒ 改用 `StrictlyAbove`,在整数域精确表达 `>`。
+                            if (!StrictlyAbove(StateMachine.RECOVER_THRESHOLD))
+                                throw new RegistryValidationException(R1_CHECK_35,
+                                    $"豁免类 A_peak/SCALE ≤ RECOVER_THRESHOLD(a_peak={aPeak}, scale={scale}, " +
+                                    $"RECOVER={StateMachine.RECOVER_THRESHOLD} raw)—— " +
+                                    "豁免类须严格高于痊愈门,否则落地即成「痊愈」," +
+                                    "「他还在病着」为假(GDD 校验 14 · R3.6)");
+                            if (AtLeast(StateMachine.CRITICAL_THRESHOLD))
+                                throw new RegistryValidationException(R1_CHECK_35,
+                                    $"豁免类 A_peak/SCALE ≥ CRITICAL_THRESHOLD(a_peak={aPeak}, scale={scale}, " +
+                                    $"CRITICAL={StateMachine.CRITICAL_THRESHOLD} raw)—— " +
+                                    "豁免类峰值须低于危殆门(GDD 校验 14)");
+                        }
+                    }
+
                     // R1-27 ← R1.3 字段表:boundary_mode 必填,白名单 {monotone, scan}
                     if (curve.BoundaryMode != "monotone" && curve.BoundaryMode != "scan")
                         throw new RegistryValidationException(R1_CHECK_27,
@@ -610,6 +705,74 @@ namespace DaYiJingCheng.Sim
                     }
                 }
             }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════════
+        // 128 位乘积比较 —— R1-34 / R1-35 的整数域判据(2026-10-22 立)
+        // ══════════════════════════════════════════════════════════════════════════
+        //
+        // 为什么要它:校验 4b / 14 的判据是 `a/scale ≥ thr/ONE`,即
+        //   `a × ONE ≥ thr × scale`(两边同乘 `scale × ONE`,均为正 ⇒ 序不变)。
+        // 其中 `a` / `scale` / `thr` 都是 raw(`long`,可达 2^48 量级),两个乘积
+        // **可能超 int64**(2^48 × 2^16 = 2^64)⇒ 必须走 128 位。
+        //
+        // ⚠️ **不用 `System.Int128`**(Unity 6.3 netstandard2.1 / IL2CPP 无此 .NET 7 类型,
+        //    ADR-005 Amendment G / E-2)· **不用 `BigInteger`**(ADR-005 Amendment G / AC-4)。
+        //    走**手工 hi/lo 两 `ulong` 带进位** —— 四路拆分,交叉项全程无符号 + 掩码提取,
+        //    **禁有符号右移**(ADR-012 F7:IL2CPP 下 C# 有符号溢出为 UB)。
+        //
+        // 本函数只做**比较**,不做加减(比较是全部需求),故不需要完整 128 位加法器。
+
+        /// <summary>
+        /// 比较 <c>a × b</c> 与 <c>c × d</c>(全为非负整数 raw)——
+        /// 返回 −1 / 0 / +1。用于 R1-34 / R1-35 的 <c>a_peak/scale</c> 阈值比较。
+        /// <para><b>只接受非负入参</b>:判据面全是 raw 正数(R1-23 / R1-24 已保证
+        /// <c>scale &gt; 0</c> / <c>a_peak &gt; 0</c>;阈值常量亦为正)。传负数 ⇒ 抛,
+        /// 不静默按无符号处理(那会把负数读成巨大的正数)。</para>
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">任一入参为负。</exception>
+        public static int CompareProducts(long a, long b, long c, long d)
+        {
+            if (a < 0) throw new ArgumentOutOfRangeException(nameof(a), a, "CompareProducts 只接受非负入参");
+            if (b < 0) throw new ArgumentOutOfRangeException(nameof(b), b, "CompareProducts 只接受非负入参");
+            if (c < 0) throw new ArgumentOutOfRangeException(nameof(c), c, "CompareProducts 只接受非负入参");
+            if (d < 0) throw new ArgumentOutOfRangeException(nameof(d), d, "CompareProducts 只接受非负入参");
+
+            // 左边 a×b
+            Mul128((ulong)a, (ulong)b, out ulong loL, out ulong hiL);
+            // 右边 c×d
+            Mul128((ulong)c, (ulong)d, out ulong loR, out ulong hiR);
+
+            if (hiL != hiR) return hiL < hiR ? -1 : 1;
+            if (loL != loR) return loL < loR ? -1 : 1;
+            return 0;
+        }
+
+        /// <summary>
+        /// 无符号 64×64 ⇒ 128 位乘法(四路拆分,交叉项带进位)。
+        /// <para>⚠️ 全程 <c>ulong</c>,**无有符号移位**(ADR-012 F7)。</para>
+        /// </summary>
+        private static void Mul128(ulong x, ulong y, out ulong lo, out ulong hi)
+        {
+            const ulong Mask = 0xFFFF_FFFFUL;
+
+            ulong xLo = x & Mask;
+            ulong xHi = x >> 32;
+            ulong yLo = y & Mask;
+            ulong yHi = y >> 32;
+
+            // 四项乘积(每项 ≤ (2^32−1)^2 < 2^64,不溢出)
+            ulong p0 = xLo * yLo;   // 权重 2^0
+            ulong p1 = xLo * yHi;   // 权重 2^32
+            ulong p2 = xHi * yLo;   // 权重 2^32
+            ulong p3 = xHi * yHi;   // 权重 2^64
+
+            // 低 64 位 = p0 + ((p1 + p2) << 32) 的低半
+            ulong mid = (p0 >> 32) + (p1 & Mask) + (p2 & Mask);
+            lo = (mid << 32) | (p0 & Mask);
+
+            // 高 64 位 = p3 + (p1 >> 32) + (p2 >> 32) + (mid >> 32)
+            hi = p3 + (p1 >> 32) + (p2 >> 32) + (mid >> 32);
         }
     }
 

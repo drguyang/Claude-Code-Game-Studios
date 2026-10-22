@@ -89,6 +89,53 @@ namespace DaYiJingCheng.Sim
         public const int COMA_THRESHOLD = 29491;       // 0.45 × 65536
         public const int DEATH_THRESHOLD = 38011;      // 0.58 × 65536
 
+        /// <summary>
+        /// 干预窗口 —— 最后一次有效干预后多久算「放弃」(F4 死亡支第四条件)。
+        /// <para><b>2026-10-22 用户裁定 = 3600 tick</b>(@ 20 Hz = 180 秒 = 3 分钟)。
+        /// 裁定口径:玩家离开病人 30 秒算照护中止(<see cref="CARE_GAP"/>),再过 3 分钟死 ——
+        /// 留出跑腿取药的时间,但铁律二的悲剧面仍可达成。</para>
+        /// <para>⚠️ <b>本常量 2026-10-22 之前不存在</b>(全库 `grep "TREATMENT_WINDOW\s*="`
+        /// 零命中)—— 值虽已裁、登记在 `entities.yaml` + GDD §五,但 C# 侧连符号都没有。
+        /// F4 求值体落地时补此常量,是「值已裁 ≠ 可求值」三件缺口里最基础的一件。</para>
+        /// <para>单位 = <b>tick</b>(非 raw),与 `last_intervention` / `currentTick` 同量纲。</para>
+        /// </summary>
+        public const int TREATMENT_WINDOW = 3600;
+
+        /// <summary>
+        /// 连续照护判定阈 —— 相邻两条护理动作 gap &gt; 本值 ⇒ 视为照护中止
+        /// (GDD 规则六 · 集群 2 的派生定义 `last_intervention(照护) =
+        /// max(最后一条护理动作止, 最后一条护理动作事件 tick + CARE_GAP)`)。
+        /// <para><b>2026-10-22 用户裁定 = 600 tick</b>(@ 20 Hz = 30 秒)。</para>
+        /// <para><b>排序校验(GDD 校验 17)</b>:<c>TREATMENT_WINDOW ≥ CARE_GAP</c> ——
+        /// 否则「连续照护」在窗口内会被误判中止。现值为 3600 ≥ 600 ✓。
+        /// 该排序由 <see cref="F4OutcomeEvaluator"/> 的静态构造断言 + 测试双重钉住。</para>
+        /// </summary>
+        public const int CARE_GAP = 600;
+
+        /// <summary>
+        /// 痊愈判定门 —— `position_agg &lt; 本值` 且低位稳定 ≥ W ⇒ 痊愈(B5,2026-09-15)。
+        /// <para><b>2026-10-22 用户裁定 = 7864 raw</b>(≈ 0.12)。排序
+        /// `RECOVER &lt; CRITICAL &lt; COMA &lt; DEATH` 满足(0.12 &lt; 0.30 &lt; 0.45 &lt; 0.58)。</para>
+        /// <para>⚠️ <b>本常量 2026-10-22 之前不存在</b>(与 `TREATMENT_WINDOW` / `CARE_GAP` 同批补)。
+        /// 它当前**唯一的消费者**是注册表的 R1-35(豁免类下界校验);
+        /// F4 的痊愈支(需要 `trend_backward_agg`)仍未实现 —— 见 `F4OutcomeEvaluator` 的登记项。</para>
+        /// </summary>
+        public const int RECOVER_THRESHOLD = 7864;
+
+        /// <summary>
+        /// 重度档下界(GDD 九态分级,`position ≥ 本值` ⇒ Severe)。
+        /// <para>🔁 2026-10-22:原为 <see cref="ComputeTransition"/> 里的裸字面量 <c>2000</c>。
+        /// 提为具名常量是因为 <see cref="F4OutcomeEvaluator"/> 也要用它 ——
+        /// 两处各写一个字面量就是两份真源,改一处不改另一处会静默分叉。
+        /// <b>值未改</b>(仍 = 2000)。</para>
+        /// </summary>
+        public const int SEVERE_THRESHOLD = 2000;
+
+        /// <summary>
+        /// 中度档下界(同上,裸字面量 <c>1000</c> 提为具名常量;**值未改**)。
+        /// </summary>
+        public const int MODERATE_THRESHOLD = 1000;
+
         // AC-30: 照护杠杆适用集
         public static readonly HashSet<string> CareApplicableDiseases = new HashSet<string>
         {
@@ -159,13 +206,13 @@ namespace DaYiJingCheng.Sim
             }
 
             // 重度判定
-            if (positionAgg.Raw >= 2000)
+            if (positionAgg.Raw >= SEVERE_THRESHOLD)
             {
                 return InjuryState.Severe;
             }
 
             // 中度判定
-            if (positionAgg.Raw >= 1000)
+            if (positionAgg.Raw >= MODERATE_THRESHOLD)
             {
                 return InjuryState.Moderate;
             }
