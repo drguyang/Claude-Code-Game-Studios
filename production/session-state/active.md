@@ -9143,4 +9143,132 @@ SHA-256 逐字节,四轮变异后三件全部回到基线:
 4. **终态写者的生产接线** —— 须先裁 `DiseaseVitalsService` 冲突
 5. 「玩家能看见病人死」—— 仍不成立(承 4)
 
+**已提交**:`ee2515b`。
+
+---
+
+# round30 —— 预建 catalog 陈旧门(2026-10-23)
+
+## 缺口实证(先量后修)
+
+round25 未闭合清单第 3 项「`catalog.bin` 陈旧且无门检测」,本轮**先量化再动手**:
+
+```
+组定义 unity/Assets/AddressableAssetsData/AssetGroups/data-core.asset : 22 条
+构建出的 unity/Library/com.unity.addressables/aa/Linux/catalog.bin    : 21 条
+缺的恰是 disease_registry.cooked.bytes
+```
+
+逐条比对 22 条 address 在 catalog 里的命中数,21 条 = 1,**唯 `disease_registry` = 0**。
+该份**已进 `Preload()`**(`EnsureDiseaseRegistry`,`:368`)⇒ 当前这棵树**启动必挂**
+(`LoadAssetAsync` 查不到 Location ⇒ `FetchBytes` 抛 ⇒ E-13 硬失败)。
+
+而当时全量 EditMode **4647 条全绿** —— 因为**没有任何一条读 catalog**。
+
+## 为什么既有门抓不到
+
+`provider_wiring_gate_test` 钉的四处闭合(① address 常量 ② 组定义 ③ 产物文件 ④ Preload)
+**全部读 `unity/Assets/` 下的入库文件**,碰不到 `Library/` 的构建产物。
+⇒ 存在一条**两侧都绿、中间断开**的静默失效:
+组定义有(作者态绿)+ 字节在盘上(漂移门绿)+ catalog 旧 ⇒ 启动全挂。
+
+## 新门:3 条
+
+落点 `unity/Assets/Tests/EditMode/DataPipeline/catalog_freshness_gate_test.cs`
+
+| # | 判据 | 期望 |
+|---|---|---|
+| ① | `test_catalog_containsEveryDataCoreAddress` | 组里每条 address 都在 catalog 里 |
+| ② | `test_catalog_hasNoGhostCookedEntries` | catalog 里无组未声明的条目(反向) |
+| ③ | `test_catalog_extractor_stillFindsEntries_premise` | 提取器非空 —— **防门自己坏掉后假绿** |
+
+③ 的存在理由值得单说:若提取器因 catalog 格式变化返回**空集**,①② 会**双双绿**
+(空集 ⊆ 任何集 / 空集无幽灵)。那是本门最危险的失效形态,故把「提取器还能工作」钉成前提。
+
+## 两条设计约束
+
+1. **catalog 是 gitignored 的机器本地产物**(`.gitignore:61 [Ll]ibrary/`)⇒ 新检出 / CI 上不存在。
+   故文件缺失时 **`Assert.Inconclusive`,不是红也不是绿** ——
+   绿 = 「比过了,闭合」;红 = 「比过了,缺条目」;Inconclusive = 「没得比」。
+   **禁把 Inconclusive 当绿**(承借绿禁令),判据里已写明。
+2. **不解析 catalog 二进制结构**,只做**字面串提取** —— catalog 是 Unity 私有格式
+   (魔数 `0x0DE38942` + 版本化段表),6.x 与后续不保证稳定;而 address 是明文串存储,
+   字面匹配足以判别且不随版本失效。正则锚定完整文件名,避免 `foo` 命中 `foobar`。
+
+## 首次运行即红(门的判别力证据)
+
+```
+data-core 组声明了 22 条,构建出的 catalog 只有 21 条 —— 缺:disease_registry.cooked.bytes
+```
+
+这不是「门写错了」,是**门抓到了真问题**。
+
+## 重建 catalog 并验证转绿
+
+跑 `DataBakeMenu.BuildAddressablesContent`(`-executeMethod`)重建:
+
+```
+catalog.bin   16589 → 16790 字节   21 → 22 条   disease_registry 命中
+data-core_assets_all_*.bundle     05:49:22 同步重建
+日志标志:「Addressables 内容已构建 —— catalog 现含全部组条目」×1,零 `error CS`
+```
+
+⚠️ **调用遗漏(本轮教训)**:`-executeMethod` **必须显式带 `-quit`**。本轮漏了,
+Unity 干完活后留在编辑器循环里跑资产索引不退出(CPU 107%,日志停在 `Start Indexing`),
+最后由用户终止。`-runTests` 自带退出语义,**不能把它的调用形式套到 `-executeMethod` 上**。
+
+⚠️ **进程被杀后 `unity/Temp/UnityLockfile` 残留 0 字节**。按项目纪律 `rm` 属 deny 规则,
+**未清理** —— Unity 下次启动自行接管。判断「是否真有编辑器在跑」不能只看锁文件存在,
+须 `pgrep` 查进程(本轮实测:锁在、进程无)。
+
+重建后重跑本门 ⇒ **3/3 全绿**。
+
+## 探针 2/2 红(变异窗口:catalog.bin;窗口内未 Read 该文件)
+
+| 探针 | 变异 | 红 | 说明 |
+|---|---|---|---|
+| **E** | catalog 里 `disease_registry` → `disease_registrX`(同长度改名,不破二进制布局) | **1** | ① 点名缺 `disease_registry.cooked.bytes`;②③ 绿(正确:只缺一条,提取器仍工作) |
+| **F** | 全部可打印 ASCII → `0x01`(模拟 catalog 格式变化) | **2** | ① 报「只有 0 条」+ **③ 前提红**;② **假绿** |
+
+⚠️ **F 的 ② 假绿正是本轮设计的关键证据** —— 空集无幽灵条目 ⇒ 反向判据必然绿。
+若没有 ③,F 这轮只会看到「①红 ②绿」,很容易被误读成「只是条目缺失」;
+**③ 的存在把「提取器坏了」与「条目真缺了」在判据面上分开**。
+这也是 round28「探针 F 假绿」教训的直接应用:**断言绿 ≠ 断言有判别力**,故单立一条前提判据。
+
+⚠️ **E 的 ②③ 绿是正确行为**,不是覆盖不足:只改名一条时提取器仍正常工作(③ 应当绿),
+catalog 里也无组未声明的条目(② 应当绿)。**E 的判别力恰在 ① 单独红**。
+
+## 还原判据
+
+`sha256sum -c` 逐字节:探针 E / F 各还原一次,两次均「成功」,条目数复核 22。
+备份 = `$CLAUDE_JOB_DIR/tmp/r30-catalog.bak`,基线 SHA `f19ad878…b6d64017`。
+
+## 回归三元组
+
+```
+total=4650 passed=4614 failed=0 inconclusive=0 skipped=36
+@ 2026-10-23 06:02 (+0800) · round30 全量 · 基线 commit ee2515b
+```
+
+Δ = **+3 / +3**(承 `ee2515b` 的 4647 / 4611),零回归 —— 与新增 3 条门逐数对上。
+新门按 fullname 在全集内命中 **3** 条。
+
+## 仍未闭合
+
+1. `W = 0` / `OQ-9-1` —— 痊愈支 / 迁延支生产不求值
+2. `Relapse` / `TreatableBy` / `Signs` / `Handle` —— 全部需用户裁定
+3. **终态写者的生产接线** —— 须先裁 `DiseaseVitalsService` 冲突
+4. 「玩家能看见病人死」—— 仍不成立(承 3)
+5. ⚠️ **本门只保证「catalog 与组定义一致」,不保证「打包时自动重建」** ——
+   `m_BuildAddressablesWithPlayerBuild: 0` 未改。是否改成 1 属构建策略,须另裁。
+
 **未提交**:待用户指令。
+
+---
+
+## round30 小结(一句话)
+
+round25 第 3 项「catalog.bin 陈旧且无门检测」**已闭合**:门已立(3 条,2 探针)、
+陈旧已修(catalog 21 → 22 条)、红→绿闭环已验。
+⚠️ 但**「打包时自动重建」仍不成立**(见上第 5 条)—— 本门是**检测器**,不是**修复器**,
+下次有人新增产物仍须手动跑重建菜单,门会在**下一次跑测试时**红着提醒。
