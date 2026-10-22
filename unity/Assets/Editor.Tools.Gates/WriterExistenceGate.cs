@@ -102,7 +102,14 @@ namespace DaYiJingCheng.EditorTools.Gates
             //    `CaseOpenWriter` 亦未接线而已被本门接受为「有写者」。)
 
             // ── 9 疾病与伤情模拟 ──
-            ("PatientOutcomeChanged", "9 终态写者未落 —— ADR-032 立 Kind(2026-10-21),9 须在 F4 判出终态的那一 tick 原子写出;归 9 实现轮。⚠️ 写者落地的那一批须同批撤本条目(判据①:已存在写者的 Kind 绝不在此表)"),
+            // ✅ 2026-10-23 撤 `PatientOutcomeChanged` 豁免:写者已落 ——
+            //   `Sim/PatientOutcomeChangedWriter.cs`(9 的 F4 终态写入通道,病史流)。
+            //   判据①「已存在写者的 Kind 仍挂豁免表 = 红」强制同批撤表
+            //   (承 `CaseClosed` / `PatternRecognized` / `PlayerDied` / `InjuryStateChanged` /
+            //    `CareApplied` 先例)。
+            //   ⚠️ 与 `CaseOpenWriter` 同格:**有写者 ≠ 已接线** —— 生产触发点
+            //   (F4 判出终态的那一 tick 调本写者)归 9 的 F4 装配轮,且须先裁
+            //   「`DiseaseVitalsService` 的『不写流』纪律 vs 终态落流」这条冲突(见写者类头注)。
             // ✅ 2026-10-22 撤 `PlayerDied` 豁免(S18-1 AC ⑧ 落地 · 用户同日裁定 S18-1 拉回 sprint-18):
             //   写者已落 —— `Sim/PlayerDiedWriter.cs`(9 的世界流写入通道)。
             //   判据①「已存在写者的 Kind 仍挂豁免表 = 红」强制同批撤表(承 `CaseClosed` / `PatternRecognized` 先例)。

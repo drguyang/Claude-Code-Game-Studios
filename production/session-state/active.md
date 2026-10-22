@@ -8745,3 +8745,326 @@ M6 首版变异形态(`if (false) throw …`)导致 **switch 段落穿透 = 编�
 7. **玩法侧「病人会不会死」从未被任何测试观测** —— PlayMode 也测不到(见上)。
 
 **未提交**:全部待用户指令。
+
+---
+
+## round26 —— W/eps → vitals 端到端夹具(2026-10-23 00:30)
+
+**用户指令**:「继续修」⇒ 取 round25 未闭合项 ④(「W/eps 流到 vitals」无端到端夹具)。
+**纯增量**:零生产语义改动,只新增一个测试文件 + 其 `.meta`。
+
+### 新增件
+
+| 文件 | 内容 |
+|---|---|
+| `unity/Assets/Tests/EditMode/DiseaseSimulation/w_trend_eps_vitals_end_to_end_test.cs` | 4 条判据(见下) |
+| `unity/Assets/Tests/EditMode/DiseaseSimulation/w_trend_eps_vitals_end_to_end_test.cs.meta` | guid `4112cff61c3846b99a7947a7414b2b26` |
+
+### 判据设计(为什么不是「加个只读属性」)
+
+`_trendWindowTicks` / `_trendEpsRaw` 是 `private readonly` 且无出口 —— round25 把「开不开接缝」
+登记为**待裁**。本轮**不开任何接缝**:改用**两路对照**从行为面反证值真的流过了:
+
+| 路 | 装配 | W/eps 来源 | 期望 |
+|---|---|---|---|
+| 甲 | `Assemble(dataProvider: p)` | 烘焙产物 | 能判出 `Recovered` |
+| 乙 | `Assemble(registry: rows)` | 无(① 级刻意不混真值) | 永不 `Recovered` |
+
+四条判据:
+1. `test_endToEnd_WFromCookedData_makesRecoveryReachable` —— 甲能判愈 / 乙不能 / 且 `tick > 100`(晚于 τ_peak)
+2. `test_endToEnd_WZero_fromCookedData_neverRecovers` —— 同一根管道 W=0 ⇒ 两支不求值
+3. `test_endToEnd_trendEpsFromCookedData_shiftsRecoveryOnset` —— 只差 eps 的两表,首次判愈时刻差 ≥ 10 tick
+4. `test_endToEnd_tableCarriesWindow_andRowIdMatches` —— 结构前提(产物真带值 + 行 id 对齐)
+
+### 实现期两处订正(踩坑记录)
+
+- **`trend_eps` 是 `Fix` ⇒ JSON 里必须写字符串**,且值是 **raw**。初稿写 `"2000"` 会经
+  `FixParse.FromRatio(2000,1)` 放大成 raw 131072000(= 2000.0)而非 raw 2000。改为
+  `"<raw>/65536"` 形式逐位还原。**这是 ADR-014 §四硬规则 1 的一次真实踩中**。
+- **`KindPriorityTable.Provider` 是静态注入缝** ⇒ 每测前后须置 null(承
+  `reader_wiring_gate_test` 同款 `[SetUp][TearDown]`),否则跨测残留闭包。
+
+### 证伪轮(3/3 全红,还原判据 = SHA-256 逐字节)
+
+变异窗口内**未 Read** 被变异文件;还原用 `cp` 回备份,不用 `git checkout`/`stash`。
+
+| 探针 | 变异 | 结果 | 红的判据 |
+|---|---|---|---|
+| A | `CompositionRoot` ② 级 `trendWindowTicks = 0L` | 4/2 红 | `WFromCookedData_makesRecoveryReachable` + `trendEps...shiftsRecoveryOnset` |
+| B | `CompositionRoot` ② 级 `trendEpsRaw = 0L` | 4/1 红 | **仅** `trendEps...shiftsRecoveryOnset` |
+| C | `F4OutcomeEvaluator.IsConfigured => true` | 4/2 红 | `WFromCookedData...` + `WZero_fromCookedData_neverRecovers` |
+
+- 探针 A 基线 `CompositionRoot.cs` sha256 `de14f1f6…7188` → 变异 `f930307c…6a3c` → 还原 `de14f1f6…7188` ✅
+- 探针 B 同一文件 → 变异 `072ed6f4…1ec83` → 还原 `de14f1f6…7188` ✅
+- 探针 C 基线 `F4OutcomeEvaluator.cs` sha256 `c96b7f59…0bbb` → 变异 `978b2c3c…8d01` → 还原 `c96b7f59…0bbb` ✅
+
+**探针 B 的独立性是本轮最关键的判据**:它证明 eps 那条**不是**靠 W 那条顺带变红 ——
+两条判据各盯一个量,任一漏读各自转红。
+
+### 回归三元组
+
+| 字段 | 值 |
+|---|---|
+| 全量 EditMode | `total=4628 passed=4592 failed=0 inconclusive=0 skipped=36` |
+| 截至时刻 | `2026-10-23 00:28:06 (+0800)` |
+| 批次 | round26 全量 |
+| commit | `421376a` |
+| `error CS` | 0 |
+
+**Δ = +4 / +4**(round24 基线 `4624 / 4588` ⇒ `4628 / 4592`),零回归。
+新夹具 4 条在全集内**已按 `fullname` 命中验证**(非「靠绿推断」)。
+
+### 仍未闭合(承 round25,本轮未动)
+
+1. `W = 0` 仍是未配置值 ⇒ 痊愈支 / 迁延支在生产里仍不求值(本夹具证的是「管线通」,**不是**「功能可用」)。
+2. `OQ-9-1` 未裁(填 `W` 的前置)。
+3. `catalog.bin` 陈旧 —— **本轮仍无门检测**,`BuildPlayerContent` 唯一调用点仍是菜单。
+4. `Relapse` / `TreatableBy` / `Signs` / `Handle` 仍未编码。
+5. `PatientOutcomeChanged` 写者仍未落(`WriterExistenceGate.cs:105`)。
+6. 玩法侧「病人会不会死」从未被任何测试观测。
+
+**未提交**:待用户指令。
+
+---
+
+## round27 —— `PatientOutcomeChanged` 写者落地(2026-10-23 00:56)
+
+**授权**:承「继续修」;本条属 round25 未闭合清单第 5 项,**不需要新裁定** ——
+ADR-032 已 Accepted(Kind / 流别 / 写者 / 载荷全裁完),载荷 struct 与 codec 已在库,
+且 `WriterExistenceGate` 的豁免条目自己写明「写者落地的那一批须同批撤本条目」。
+
+### 落了什么
+
+| 文件 | 性质 | 说明 |
+|---|---|---|
+| `unity/Assets/Sim/PatientOutcomeChangedWriter.cs`(+ `.meta`) | 新增 | 9 的 F4 终态写入通道。`TryWrite(tick, patient, diseaseId, InjuryState)` ⇒ `PatientOutcomeWriteResult` 四值 |
+| `unity/Assets/Tests/EditMode/DiseaseSimulation/patient_outcome_changed_writer_test.cs`(+ `.meta`) | 新增 | 9 条,真装配(真 EventStream + 真 Encoder + 真 Decoder + 真 blob 池),零 Fake |
+| `unity/Assets/Editor.Tools.Gates/WriterExistenceGate.cs` | 修改 | 撤 `PatientOutcomeChanged` 豁免(判据① 强制同批撤表) |
+
+### 设计要点
+
+**为什么写者收 `InjuryState` 而不收 `PatientOutcome`**:调用方手里拿的是 F4 的九态;
+若让它自己映射成三值枚举,「哪些态算终态」这条判据就复制到每个调用点。
+本类做这一次映射,**不可表达的态在类型上就进不来** —— 被拒收,而非被静默映射。
+
+**为什么用显式 `switch` 而非 `(int)outcome` 直传**:直传会把 `Coma(5)` / `Severe(3)` 原样写进
+`outcome` 字段,而 codec 解码期校验只认 `{1,2}` ⇒ 那种事件**写得出去、读不回来**,
+是比拒收更坏的形态(流里有一条永远解不开的事件)。
+
+**幂等刻意不拒**(与 `CaseCloseWriter` 不同):终态在 F4 九态里是吸收态,正常路径不会重复;
+真重复 = 上游状态回退,**属上游缺陷**,写者里静默吞掉只会掩盖它。
+registry 的「至多一条」是有界性**结论**,不是写入期**判据**。
+
+### ⚠️ 有写者 ≠ 已接线(本条必须与「折叠可用」分开读)
+
+生产触发点(F4 判出终态那一 tick 调本类)**尚未接线**。且接线轮**须先裁一条冲突**:
+`DiseaseVitalsService` 类头明写「**不写流** —— 零 `IEventSink.Append`」,
+而 F4 求值恰在它的 `StepAll` 里 ⇒ 生产调用点就在那儿。
+两个方向(自己持有写者 / 把终态交出去让外部写)本类都不预设,已写进类头注。
+**在此之前,终态折叠在游戏内仍不可用。**
+
+### 测试(9 条,真装配)
+
+| # | 测试 | 判据 |
+|---|---|---|
+| ① | `recovered_appendsExactlyOneHistoryEvent_roundTrip` | 恰增 1 条 + 落病史流 + 头部 `Patient`/`Tick`/`Seq` + 载荷四字段逐项 round-trip |
+| ② | `deceased_appendsOutcomeDied` | `Deceased ⇒ PatientOutcome.Died(2)` |
+| ③ | `nonTerminalStates_noWrite` | **七种过程态逐一拒收,零写入**(本类最关键的判据) |
+| ④ | `terminalSet_partitionsInjuryStateExactly` | 终态集合恰 = `{Recovered, Deceased}` —— 枚举新增成员必须显式归类 |
+| ⑤ | `noneSentinel_noWrite` | `PatientId.None` 不得入流(污染 `max(patient_id)` 高水位) |
+| ⑥ | `negativeDiseaseId_noWrite` | `diseaseId < 0` 拒收 |
+| ⑦ | `negativeTick_throws` | 编程错误 fail-loud,且抛出不产生写入 |
+| ⑧ | `nullDependencies_throw` | 注入面 fail-loud |
+| ⑨ | `mappingMatchesEnumOrdinals` | 三处一致(registry 散文 / 枚举值 / 实际写出的字节) |
+
+### 证伪轮(5/5 全红,还原判据 = SHA-256 逐字节)
+
+变异窗口内**未 Read** 被变异文件;还原用 `cp` 回备份,不用 `git checkout` / `stash`。
+
+| 探针 | 变异文件 | 变异 | 结果 | 红的判据 |
+|---|---|---|---|---|
+| A | `PatientOutcomeChangedWriter.cs` | `default: return NotTerminal` → `terminal = Recovered` | 9/2 红 | `nonTerminalStates_noWrite` + `terminalSet_partitionsInjuryStateExactly` |
+| B | 同上 | `if (patient.IsNone)` → `if (patient.Value > 0 && patient.IsNone)` | 9/1 红 | **仅** `noneSentinel_noWrite` |
+| C | 同上 | `if (diseaseId < 0)` → `if (diseaseId < -1000)` | 9/1 红 | **仅** `negativeDiseaseId_noWrite` |
+| D | `WriterExistenceGate.cs` | 写者已存在却把豁免加回 | 9/3 红 | 真工程面 b7 直接报「已写者仍挂豁免」+ 无日期 + 重叠 |
+| E | `PatientOutcomeChangedWriter.cs` | `Encode(PatientOutcomeChanged` → `Encode(CareApplied` | 9/1 红 | 真工程面 b7 报「写者缺失」 |
+
+- 探针 A/B/C/E 基线 `PatientOutcomeChangedWriter.cs` sha256 `7746b06f…8c2a` → 各自变异 → 还原 `7746b06f…8c2a` ✅
+- 探针 D 基线 `WriterExistenceGate.cs` sha256 `60b31ec7…b7b` → 变异 `2835f25d…38e7` → 还原 `60b31ec7…b7b` ✅
+
+**B / C 的独立性是判据质量的核心**:两条各自只红一条测试,证明它们**不是**靠 A 的
+「非终态全放行」顺带变红 —— 每条前置门各盯一个量。
+**D / E 是一对互补探针**:D 证「撤表是门强制的」(写者在却挂豁免 ⇒ 红),
+E 证「撤表后写者必须真存在」(撤了表但写者不写 ⇒ 红)。两者合起来把「同批撤表」这条纪律夹死。
+
+### 回归三元组
+
+| 字段 | 值 |
+|---|---|
+| 全量 EditMode | `total=4637 passed=4601 failed=0 inconclusive=0 skipped=36` |
+| 截至时刻 | `2026-10-23 00:52:41 (+0800)` |
+| 批次 | round27 全量 |
+| commit | `421376a` |
+| `error CS` | 0 |
+
+**Δ = +9 / +9**(round26 基线 `4628 / 4592` ⇒ `4637 / 4601`),零回归。
+新夹具 9 条在全集内**已按 `fullname` 逐条命中验证**(非「靠绿推断」)。
+
+复算命令:
+```bash
+python3 - <<'PY'
+import xml.etree.ElementTree as ET
+r = ET.parse('/home/gu/.claude/jobs/181888b1/tmp/editmode-full-20261023_005039.xml').getroot()
+print({k: r.get(k) for k in ('total','passed','failed','inconclusive','skipped')})
+print(sum('PatientOutcomeChangedWriterTest' in tc.get('fullname','') for tc in r.iter('test-case')))
+PY
+# 预期: total=4637 passed=4601 failed=0 inconclusive=0 skipped=36 / 9
+```
+
+### 仍未闭合(承 round25,本轮只关掉第 5 项)
+
+1. `W = 0` 仍是未配置值 ⇒ 痊愈支 / 迁延支在生产里仍不求值。
+2. `OQ-9-1` 未裁(填 `W` 的前置)。
+3. `catalog.bin` 陈旧 —— 仍无门检测。
+4. `Relapse` / `TreatableBy` / `Signs` / `Handle` 仍未编码。
+5. ~~`PatientOutcomeChanged` 写者仍未落~~ ✅ **本轮关闭**(写者已落 + 豁免已撤 + 5 探针钉住)。
+   **但**「折叠可用」仍不可读成本条已结:生产触发点未接线,且接线前须先裁
+   `DiseaseVitalsService`「不写流」vs 终态落流 这条冲突。
+6. 玩法侧「病人会不会死」从未被任何测试观测。
+
+**未提交**:待用户指令。
+
+---
+
+## round28 —— 真表病人「会不会死」的首个直接观测(2026-10-23 01:28)
+
+**授权**:承「继续修」;本条属 round25 未闭合清单第 7 项
+(「玩法侧『病人会不会死』从未被任何测试观测」),**不需要新裁定** ——
+它只是给既有能力补观测,零生产语义改动。
+
+### 落了什么
+
+| 文件 | 性质 | 说明 |
+|---|---|---|
+| `unity/Assets/Tests/EditMode/DiseaseSimulation/real_registry_patient_death_test.cs`(+ `.meta`) | 新增 | 4 条判据,**用盘上真产物**(非合成夹具) |
+
+### 判据形态
+
+同一次真装配里,四个病种共用一条 10000 tick 时间线:
+
+| 病人 | 病种 | lethal | self_limit | peak position | 期望 | 「不死」的归因 |
+|---|---|---|---|---|---|---|
+| 甲 | `DIS_TETANUS`(13) | true | false | 1.00 ≥ 0.58 | **必死** | — |
+| — | `INJ_STAB`(2) | true | false | 1.00 ≥ 0.58,incubation=0 | **窗口载体** | — |
+| 乙 | `DIS_RHEUMATIC_FEVER`(8) | false | true | 0.40 < 0.58 | 不死 | ⚠️ **阈值**,不是门 |
+| 丙 | `DIS_NEURASTHENIA`(14) | false | false | 0.15 < 0.58 | 不死 | ⚠️ **阈值**,不是门 |
+
+**四条判据**:
+① `threeRowsCarryExpectedGates` —— 前提(含 peak 与死线的关系,见下);
+② `patientDies_onlyForLethalNonSelfLimited` —— 甲必死 + 乙丙不死;
+③ `deathIsAbsorbing_neverReverts` —— 死亡是吸收态(真表下曲线单调性成立);
+④ `deathWaitsForTreatmentWindow` —— 窗口条件(见下「探针 F 暴露的问题」)。
+
+### ⚠️ 本轮最重要的发现:真表**不能**验那两个门
+
+`test_realRegistry_threeRowsCarryExpectedGates` 首跑就红,抓到的是真问题:
+**真表里唯一的 `lethal ∧ self_limit` 行 `DIS_MALARIA` 峰值 position = 0.45 < DEATH 0.58**
+⇒ 它「不死」是**阈值够不着**,不是 `SelfLimited` 门的功劳。
+
+全表实测(`a_peak/scale` vs `DEATH_THRESHOLD = 38011 raw`):
+
+```
+ id key                    lethal self_lim peak_pos ≥DEATH
+  2 INJ_STAB               True   False     1.0000   YES
+  3 INJ_LACERATION         True   False     0.6000   YES
+  4 INJ_HEMORRHAGE         True   False     1.0000   YES
+  5 INJ_CLAW               True   False     0.8500   YES
+  6 INJ_BITE               True   False     0.7500   YES
+  7 DIS_MALARIA            True   True      0.4500   no   ← 唯一的 lethal∧self_limit,却够不着
+  8 DIS_RHEUMATIC_FEVER    False  True      0.4000   no
+  9 DIS_HEART_FAILURE      True   False     0.6670   YES
+ 10 DIS_TYPHOID            True   False     0.6670   YES
+ 11 DIS_MEASLES            False  True      0.3500   no
+ 12 DIS_DYSENTERY          True   False     1.0000   YES
+ 13 DIS_TETANUS            True   False     1.0000   YES
+ 14 DIS_NEURASTHENIA       False  False     0.1500   no
+```
+
+⇒ 本文件把「乙丙的不死归因于阈值」**写进断言**(`Is.LessThan(DEATH)`),
+将来数值轮把某行调高到够得着时,该断言转红并点名 —— 那时才可以把「够得着却不死」
+的对照加回来。**两个门的判别力仍归 `entity_death_gates_test` 的合成夹具。**
+
+### ⚠️ 探针 F 第一次是**假绿** —— 假判别力被抓到
+
+第一版把「首判死 > `TREATMENT_WINDOW`」挂在**破伤风**上。探针 F(删掉窗口条件)
+跑完 **4/4 仍全绿** —— 根因:破伤风的 `incubation = 6000` **本身就大于** `TREATMENT_WINDOW = 3600`
+⇒ 那条断言是被**潜伏期**满足的,与窗口条件无关。
+
+修法:改用 **`INJ_STAB`(刺伤,`incubation = 0`,`tau_peak = 300`)** 作窗口载体 ——
+实测越阈在 tick **24**,窗口正常时死于 **3601**;删掉窗口条件后死于 **35**。
+≈3577 tick 的差距才是这条判据的全部判别力。
+
+### 证伪轮(4/4 全红,还原判据 = SHA-256 逐字节)
+
+变异窗口内**未 Read** 被变异文件;还原用 `cp` 回备份,不用 `git checkout` / `stash`。
+
+| 探针 | 变异文件 | 变异 | 结果 | 红的判据 |
+|---|---|---|---|---|
+| F | `F4OutcomeEvaluator.cs` | 窗口条件 `> TREATMENT_WINDOW` → `> -1` | 4/1 红 | **仅** `deathWaitsForTreatmentWindow`(刺伤 35 < 3600) |
+| G | `F4OutcomeEvaluator.cs` | 死亡支整支 `&& false` | 4/3 红 | 除前提那条外全部(病人末态停在 Coma) |
+| H | `DiseaseRegistryCookedCodec.cs` | `Lethality` 读成 0 | 4/4 红 | 全部(前提先说「破伤风须 lethal」) |
+
+- 探针 F/G 基线 `F4OutcomeEvaluator.cs` sha256 `c96b7f59…0bbb` → 变异 → 还原 `c96b7f59…0bbb` ✅
+- 探针 H 基线 `DiseaseRegistryCookedCodec.cs` sha256 `7891390f…56c` → 变异 → 还原 `7891390f…56c` ✅
+
+**探针 F 的第一次失败是本轮的方法论收获**:它证明「断言绿」不等于「断言有判别力」。
+若不做探针,这条断言会以「已覆盖窗口条件」的身份留在库里,而实际上它测的是潜伏期。
+
+### 回归三元组
+
+| 字段 | 值 |
+|---|---|
+| 全量 EditMode | `total=4641 passed=4605 failed=0 inconclusive=0 skipped=36` |
+| 截至时刻 | `2026-10-23 01:28:39 (+0800)` |
+| 批次 | round28 全量 |
+| commit | `421376a` |
+| `error CS` | 0 |
+
+**Δ = +4 / +4**(round27 基线 `4637 / 4601`),零回归。
+三条新夹具在全集内**已按 `fullname` 逐条命中验证**:`RealRegistryPatientDeathTest` 4 ·
+`PatientOutcomeChangedWriterTest` 9 · `WTrendEpsVitalsEndToEndTest` 4。
+
+复算命令:
+```bash
+python3 - <<'PY'
+import xml.etree.ElementTree as ET
+r = ET.parse('/home/gu/.claude/jobs/181888b1/tmp/editmode-full-20261023_012635.xml').getroot()
+print({k: r.get(k) for k in ('total','passed','failed','inconclusive','skipped')})
+n = [tc.get('fullname') for tc in r.iter('test-case')]
+for k in ('RealRegistryPatientDeathTest','PatientOutcomeChangedWriterTest','WTrendEpsVitalsEndToEndTest'):
+    print(k, sum(k in x for x in n))
+PY
+# 预期: total=4641 passed=4605 failed=0 inconclusive=0 skipped=36 / 4 / 9 / 4
+```
+
+### 仍未闭合(承 round25)
+
+1. `W = 0` 仍是未配置值 ⇒ 痊愈支 / 迁延支在生产里仍不求值。
+2. `OQ-9-1` 未裁(填 `W` 的前置)。
+3. `catalog.bin` 陈旧 —— 仍无门检测(本轮未动)。
+4. `Relapse` / `TreatableBy` / `Signs` / `Handle` 仍未编码 —— **本轮勘察确认全部需要用户裁定**
+   (见下节)。
+5. ~~`PatientOutcomeChanged` 写者仍未落~~ ✅ round27 已关闭。
+6. ~~玩法侧「病人会不会死」从未被观测~~ ✅ **本轮关闭**(4 条真表判据 + 3 探针)。
+   **但**「玩家能看见病人死」仍不成立:生产触发点未接线,表现层未消费终态。
+
+### 第 4 项的勘察结论(本轮只查不修)
+
+| 字段 | 现状 | 为什么不能自行编码 |
+|---|---|---|
+| `Relapse` | 真表 13 行**全部无 relapse 块**;`_relapseNote` 明写「三个数的量级用户本轮未裁」 | **数值未裁** ⇒ 填任何值都是占位 |
+| `TreatableBy` | 已拆到 `disease_action_axis.json`(真件在,8 病种 8 条关系);但 `RegistrySchema` R1-19 对非 null 直接 `NotImplementedException`,codec 也**不编码**它 | 要编码须先裁「病种表 vs 轴文件谁是双源里的准」+ 实现 R1-19 |
+| `Signs` | `diagnosis_signs.json` 有 34 条词表(8 拥有);9 侧 `Project(Sign_j)` **未实现**(`ProgressionEvaluator.Signs` 恒空,`GetVitals` 见非空即 fail-loud) | 须先裁「9 侧阈值从哪来」—— 属 8/9 接口面 |
+| `Handle` | 派生字段,`CareLeverApplicability.CareApplicableConsistent` 已就位;`DiseaseRegistryBinder` 留 null | 派生逻辑本身可实现,但输入是 `TreatableBy` ⇒ 卡在同一条 |
+
+**未提交**:待用户指令。
