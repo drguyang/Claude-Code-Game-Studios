@@ -290,7 +290,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // ══ F4 求值(2026-10-22 第三轮接线)══
                 // 用户裁定:「接 F4 求值,**但不写流**」—— 本段只求值并缓存,
                 // 零 `IEventSink.Append`(本类全程不写流的既有纪律不变)。
-                _outcomes[course.Patient.Value] = EvaluateOutcome(course, entry, result, tick);
+                _outcomes[course.Patient.Value] = EvaluateOutcome(course, entry, result, tick, _worldSeed);
             }
         }
 
@@ -310,10 +310,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 对单元素集调它只是绕一圈拿回同一个值,且会让「多病聚合」看起来已经接线。
         /// **多病聚合(F5)的接线前提 = 档案簿支持一病人多 course**,那是另一条改动。
         /// <c>dominant d</c> 在此恒 = <see cref="DiseaseCourse.DiseaseId"/>。</item>
-        /// <item><b><c>trend_backward_agg</c> 恒 0</b> —— <see cref="ProgressionEvaluator.ComputeTrend"/>
-        /// 当前是 tripwire(恒 <c>Fix.Zero</c>,见其注释)。故传入的是 <c>result.Trend</c>
-        /// (现恒 0),不是真差分。⚠️ 这意味着痊愈支的「非上升期门」当前**恒放行** ——
-        /// 但它仍被 <c>window</c> 未配置挡在外面(见第 3 条),不会静默判愈。</item>
+        /// <item><b><c>trend_backward_agg</c> —— 本轮已接真,但 <c>W</c> 未配置 ⇒ 恒 0</b>
+        /// 2026-10-22 第四轮起调 <see cref="ProgressionEvaluator.ComputeTrendBackward"/>
+        /// (GDD <c>:921</c> 的后向差分),**不再**误传 <c>result.Trend</c>(那是 F2 的中心差分,
+        /// 读未来,只供 8 的展示读数)。但 <c>W</c> / <c>TREND_EPS</c> 归数值轮
+        /// (GDD Tuning <c>:1743-1744</c> 均标 <c>*待定*</c>)⇒ 本批传 0 ⇒ 函数返回 0。
+        /// ⚠️ 这意味着痊愈支的「非上升期门」当前**恒放行** —— 但它仍被
+        /// <c>window</c> 未配置挡在外面(见第 3 条),不会静默判愈。</item>
         /// <item><b><c>window</c> = <c>default</c>(<c>W</c> / <c>TREND_EPS</c> 未裁定)</b> ——
         /// ⇒ <b>痊愈支与迁延支本批不求值</b>,退回纯阈值分级。这不是遗漏:
         /// 两值归数值轮(GDD Tuning <c>:1743-1744</c> 均标 <c>*待定*</c>),
@@ -335,7 +338,8 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </list>
         /// </remarks>
         private static InjuryState EvaluateOutcome(
-            DiseaseCourse course, DiseaseRegistryEntry entry, ProgressionResult result, long tick)
+            DiseaseCourse course, DiseaseRegistryEntry entry, ProgressionResult result, long tick,
+            ulong worldSeed)
         {
             // 注:本方法**静态** ⇒ 不持有任何状态。照护通道的「恒空」由调用点决定(见下),
             // 将来接上 `CareApplied` 时,把摘要作为第 4 个入参传进来即可,求值式本身不变。
@@ -364,11 +368,25 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   写者落地后在此处按 `AppliesTo(entry)` 分流即可,求值侧不必改。
             var care = LastInterventionAggregator.CareChannelInput.None;
 
+            // ── 通道 ③:trend_backward(2026-10-22 第四轮接真)──
+            //   ⚠️ **不是 `result.Trend`** —— 那是 F2 的**中心差分**(读未来,只供 8 的展示),
+            //   而 F4 的状态转移按 GDD `:921`/`:936-937` 必须吃**后向**差分 `trend_backward`
+            //   (只读过去,否则「在 tick t 上用未来时刻决定状态 = 非因果」)。
+            //   本轮之前这里传的是 `result.Trend`,名字写着 `trendBackwardAgg` 而值是中心差分
+            //   —— 两者当时都是 tripwire 恒 0,所以看不出来;语义从一开始就是错的。
+            //
+            //   `W` / `TREND_EPS` 仍**未配置**(数值轮)⇒ 传 0 ⇒ 本函数返回 0 ⇒ 求值器侧
+            //   的痊愈支 / 迁延支依旧不求值(window 也是 default)。结构就位,数值一填即生效。
+            Fix trendBackward = ProgressionEvaluator.ComputeTrendBackward(
+                entry, course.OnsetTick, tick, course.Doses, worldSeed, course.Patient,
+                windowTicks: 0,          // W 未裁定 ⇒ 不求值
+                trendEpsRaw: 0);
+
             return F4OutcomeEvaluator.Evaluate(
                 ActorClass.Patient,          // 病人侧 F4 —— 不走玩家专属的战伤破例
                 entry,
                 position,
-                result.Trend,                // trend_backward_agg(当前恒 0,见 remarks 第 2 条)
+                trendBackward,               // trend_backward_agg(单病种 ⇒ 恒等;W 未配置 ⇒ 0)
                 course.OnsetTick,
                 tick,
                 new LastInterventionAggregator.TreatmentChannelInput(causalTicks),

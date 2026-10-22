@@ -135,6 +135,46 @@ namespace DaYiJingCheng.Sim
         {
             if (registry == null) throw new ArgumentNullException(nameof(registry));
 
+            // Progress —— 整条 F1 式(潜伏抑制 / Base ⊔ Relapse / 处置和 / Noise / 0 下界)
+            Fix progress = ComputeProgress(
+                registry, onsetTick, currentTick, doses, worldSeed, patientId, doseClampBound);
+
+            // Trend —— **展示用中心差分**(F2),tripwire 恒 0。
+            // ⚠️ 这不是 F4 吃的 `trend_backward` —— 后者见 ComputeTrendBackward。
+            Fix trend = ComputeTrend(registry, currentTick - onsetTick);
+
+            // Signs —— tripwire 恒空(F2 投影归 8 的词表/阈值,story 006)
+            int[] signs = NoSigns;
+
+            return new ProgressionResult(progress, trend, signs);
+        }
+
+        /// <summary>
+        /// 在任意 tick 上求 `Progress`(F1 全式)—— <see cref="Evaluate"/> 与
+        /// <see cref="ComputeTrendBackward"/> 的**唯一实现**。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>为什么提出来(2026-10-22 第四轮)</b>:`trend_backward(t)` 按定义要读
+        /// `Progress(t − W)`(GDD <c>:921</c>)。若在求趋势处**另写一份** F1 式,两份实现
+        /// 一旦分叉,「同一个 tick 的 Progress」就会有两个值 —— 而趋势正是**用它自己的
+        /// 那份**算出来的 ⇒ 判据与读数不自洽,且没有任何测试会红(两处各自都「对」)。
+        /// ⇒ 唯一实现,两处共用(与 <see cref="IsEffectiveCausalDose"/> 同一纪律)。</para>
+        ///
+        /// <para><b>⚠️ 传入过去的 tick 是合法的</b>:`currentTick − W` 可以早于
+        /// <paramref name="onsetTick"/> 甚至为负 —— 潜伏抑制的 <c>τ &lt; incubation</c>
+        /// 分支会把它压成 0(GDD:病未起时 Progress 恒 0)。处置侧同理:
+        /// <see cref="ComputeDrugContribution"/> 对 <c>Δ &lt; 0</c> 归零(AC-27 时间反演),
+        /// 故「尚未给过的药」在过去的 tick 上贡献为 0 —— 这正是因果差分要的语义。</para>
+        /// </remarks>
+        private static Fix ComputeProgress(
+            DiseaseRegistryEntry registry,
+            long onsetTick,
+            long currentTick,
+            IReadOnlyList<TreatmentDose> doses,
+            ulong worldSeed,
+            PatientId patientId,
+            Fix? doseClampBound)
+        {
             long tau = currentTick - onsetTick;
 
             // ── 潜伏期抑制(AC-26):τ < incubation ⇒ Progress ≡ 0(含噪声与处置)──
@@ -142,7 +182,7 @@ namespace DaYiJingCheng.Sim
             // 退化用 `RecoveryTime`(批次 C 之前的原口径,不改既有测试的判读面)。
             long incubation = registry.Curve != null ? registry.Curve.Incubation : registry.RecoveryTime;
             if (tau < incubation)
-                return new ProgressionResult(Fix.Zero, Fix.Zero, NoSigns);
+                return Fix.Zero;
 
             // Base(τ) —— 曲线面接真(三分支)/ 占位条目走简化形
             Fix baseValue = ComputeBase(registry, tau);
@@ -161,15 +201,73 @@ namespace DaYiJingCheng.Sim
 
             // AC-12: Progress ≥ 0(max 的 0 下界在整式外侧,四轮 K1)
             Fix total = mainCurve + drugContribution + noise;
-            Fix progress = total.Raw > 0 ? total : Fix.Zero;
+            return total.Raw > 0 ? total : Fix.Zero;
+        }
 
-            // Trend —— tripwire 恒 0(中心差分 + TREND_EPS 归后续轮)
-            Fix trend = ComputeTrend(registry, tau);
+        /// <summary>
+        /// `trend_backward(t)` —— **状态转移用**的后向趋势(GDD <c>:921</c> / F4 / B5)。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>定义(GDD <c>:921</c> 逐字)</b>:
+        /// <c>trend_backward(t) = (Progress(t) − Progress(t − W)) / W</c>。</para>
+        ///
+        /// <para><b>⚠️ 与 <see cref="ComputeTrend"/> 不是同一个量</b> —— 这是本方法存在的理由:</para>
+        /// <list type="table">
+        /// <item><term><c>trend</c>(中心)</term><description>
+        /// <c>(P(t+W/2) − P(t−W/2)) / W</c> —— **读未来**,仅供 8 的展示读数。</description></item>
+        /// <item><term><c>trend_backward</c>(单侧)</term><description>
+        /// <c>(P(t) − P(t−W)) / W</c> —— **只读过去**,F4 的状态转移吃它。</description></item>
+        /// </list>
+        /// <para>GDD <c>:936-937</c> 明写「F4 在 tick t 上用未来时刻决定状态 = 非因果」,
+        /// 故**状态转移不得用中心差分**。两者数值相近但**语义不同**,不可互相顶替。</para>
+        ///
+        /// <para><b>⚠️ W 未配置 ⇒ 返回 0,不求值</b>:<paramref name="windowTicks"/> ≤ 0
+        /// 即未配置(GDD Tuning <c>:1743</c> 标 <c>*待定*</c>,归数值轮)。
+        /// 用 0 当真窗口会退化成 <c>(P(t) − P(t)) / 0</c> ⇒ 除零;本方法**不代拍**。</para>
+        ///
+        /// <para><b>死区</b>:<c>|trend| &lt; TREND_EPS</c> ⇒ 判「持平」返回 0
+        /// (GDD <c>:926-928</c>)。缺它则 plateau / 迁延段的 ±1 LSB 量化噪声会被读成
+        /// 「在恶化」—— 恰在最需要趋势的心衰类病种上失真。</para>
+        /// </remarks>
+        /// <param name="windowTicks">`W`(tick)。≤ 0 ⇒ 未配置 ⇒ 返回 0。</param>
+        /// <param name="trendEpsRaw">`TREND_EPS`(Q16.16 raw)。≤ 0 ⇒ 无死区。</param>
+        /// <returns>后向趋势(Q16.16);未配置时为 <see cref="Fix.Zero"/>。</returns>
+        public static Fix ComputeTrendBackward(
+            DiseaseRegistryEntry registry,
+            long onsetTick,
+            long currentTick,
+            IReadOnlyList<TreatmentDose> doses,
+            ulong worldSeed,
+            PatientId patientId,
+            long windowTicks,
+            long trendEpsRaw,
+            Fix? doseClampBound = null)
+        {
+            if (registry == null) throw new ArgumentNullException(nameof(registry));
 
-            // Signs —— tripwire 恒空(F2 投影归 8 的词表/阈值,story 006)
-            int[] signs = NoSigns;
+            // W 未配置 ⇒ 不求值(不代拍数值轮的量)
+            if (windowTicks <= 0) return Fix.Zero;
 
-            return new ProgressionResult(progress, trend, signs);
+            Fix now = ComputeProgress(
+                registry, onsetTick, currentTick, doses, worldSeed, patientId, doseClampBound);
+            Fix before = ComputeProgress(
+                registry, onsetTick, currentTick - windowTicks, doses, worldSeed, patientId, doseClampBound);
+
+            // 同标度 Q16.16 相减 —— 无舍入(两值都是 Q16.16,差仍是 Q16.16)
+            Fix diff = now - before;
+
+            // ⚠️ 量纲:trend = diff / W,其中 W 是 **tick 数**(整数),不是 Fix。
+            //   故分母写成 `W × 2¹⁶` 的 Fix 值,走 `Fix.Div` 一次舍入
+            //   (与 ExpNeg 的 `new Fix(Δ×2¹⁶) / τ` 同法 —— 若用 `Fix.FromRational(diffRaw, W)`
+            //   则分子又被左移 16 位,结果放大 2¹⁶ 倍)。
+            if (windowTicks > MaxRatioNumeratorTicks) return Fix.Zero;   // 防 `W×2¹⁶` 溢出
+            Fix trend = diff / new Fix(windowTicks * Fix.OneRaw);
+
+            // 死区:判「持平」返回 0,不返回 ±1 LSB 抖动
+            if (trendEpsRaw > 0 && trend.Raw < trendEpsRaw && trend.Raw > -trendEpsRaw)
+                return Fix.Zero;
+
+            return trend;
         }
 
         // ── Base(τ) ──────────────────────────────────────────────────────────
