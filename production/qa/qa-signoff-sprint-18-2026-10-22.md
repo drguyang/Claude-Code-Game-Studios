@@ -136,12 +136,31 @@ S18-1 的三个缺口(AC ⑦⑧ / 证伪轮 / 数据前置)**转为 sprint-19 �
 | # | 项 | 状态 |
 |---|---|---|
 | 1 | S18-1 测试方法计数口径(17 个方法 vs 展开测数,含 `TestCase`) | 未核 |
-| 2 | S18-1 AC ⑥「规则九」的 **IL / 反射半边**(源码 grep 已合规) | 未核 |
+| 2 | S18-1 AC ⑥「规则九」的 **IL / 反射半边**(源码 grep 已合规) | 🔁 **2026-10-22 已核** —— 见下方订正 |
 | 3 | 既有 11 条 `state_machine_death_test.cs` 是否已改写(未改则接线时会红,且**应当红**) | 未核 |
 | 4 | 白名单**空集**边界(判「未见对应测」,非「不存在」) | 判未见 |
 | 5 | `HistoryFolder` 抹除面的变异反证 | 未做(见 §五 ②) |
 | 6 | IL2CPP 矩阵 / CI 常驻 job(`TD-ci-01` EXTERNAL) | 与本 sprint 零交集 |
 | 7 | 人工可玩性 smoke(A/B/C 三节) | 按 QA 计划 N/A,依据已核(生产构造点 = 0) |
+
+> 🔁 **2026-10-22 第 2 项订正(原文不删)**:本表原记「IL / 反射半边未核」。
+> 该缺口**已关闭** —— 新立 `unity/Assets/Editor.Tools.Gates/RuleNineGate.cs`,判据形态按
+> `qa-plan-sprint-18-2026-10-21.md:80` 的**源码 + IL 双证**(原文:「单靠 grep 可被换写法绕过」)。
+> 可复算判据:
+> - **源码半** `RuleNineGate.CheckSource(".")` —— S1 `switch`(需 `case DiseaseKind.X` 作类型证据)/
+>   S2 多语句 `if` / S3 三元 / S4 具体病种名硬编码
+> - **IL 半** `RuleNineGate.CheckIl(<Sim.dll>)` —— I1 `switch` 按 `DiseaseKind` 字段分派 /
+>   I2 同方法 ≥3 个 `DiseaseKind` 常量 / I3 `DiseaseKey` 与 `ldstr` 常量相等比较
+> - **门真会红**(非空转):`RuleNineGateTest` **16 条** —— S1–S4 四种**源码**注入各自转红 ·
+>   **I1/I2/I3 三条 IL 注入**各自转红(夹具写成测试源码里的真方法,让编译器生成 IL,
+>   扫 `Sim.Contracts.Tests.dll` —— 夹具不进 `Assets/Sim` ⇒ 源码半对它失明而 IL 半抓住,
+>   这正是 IL 半独立价值的直接证明)· `EventKind` / `ClinicRoomClauseKind` 同名尾巴**不得**误报 ·
+>   注释不得触发 · 锚点活体守卫(`FieldType == DiseaseKind`)
+> - **构建期强制点**:`AssemblyGates.RunMenu` + `BuildGate.OnPreprocessBuild` 两处已接,
+>   `gate_wiring_manifest_test` 的入口表与类级表同批登记
+> - **探针轮**(CLAUDE.md §构建前门纪律):无条件 `[PROBE-RuleNine]` ⇒ 真构建 `Result: Failure`,
+>   栈帧 `AssemblyGates.cs:1275` `Debug.LogError`,`BuildFailedException` + utp 在 `Preprocess Player` 即止;
+>   还原后 `sha256sum -c` 逐字节相同;干净轮 `Result: Success` 且零 `[RuleNine` / `[fs-write` / `error CS`。
 
 ---
 

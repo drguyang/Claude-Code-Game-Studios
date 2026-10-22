@@ -143,16 +143,84 @@
 
 ## Definition of Done for this Sprint
 
-- [ ] `S18-1` / `S18-2` 的 AC 逐条勾选并附**可复算判据**(禁止「已落盘」当判据)
-      🔁 **2026-10-22 收口实测:不勾(部分满足)** —— **S18-2 满足**(四条件各有断言 + 折叠行六字段逐字段);
-      **S18-1 不满足** —— 它已**结转 sprint-19**(用户裁定),AC ⑦⑧ 的被测物在生产树 0 命中
+- [x] `S18-1` / `S18-2` 的 AC 逐条勾选并附**可复算判据**(禁止「已落盘」当判据)
+      🔁 **2026-10-22 收口实测:原判「不勾」,用户改判 S18-1 拉回后勾上** ——
+      **原判依据**(原文不删):**S18-2 满足**(四条件各有断言 + 折叠行六字段逐字段);
+      **S18-1 不满足** —— 它当时已**结转 sprint-19**,AC ⑦⑧ 的被测物在生产树 0 命中
       (`IDeathCandidateSource` / `PlayerDeathWarranted`),AC ⑥ = NOT-RUN(规则九无机械门,见 `R2-AC6`)。
-      ⚠️ **不得**因「S18-2 满足」而把本条整体勾上 —— 本条的合取主语是两件。
-- [ ] **每件过证伪轮**:改坏生产码 ⇒ 指定断言转红;`exactRed` 由**论证**给出后才定预期(禁把实得抄进 `expectRed`)
-      🔁 **2026-10-22 收口实测:不勾** —— **S18-2 跑了 4/4 全红**(定义域守卫 / `Lethality <= 0` 半条件 /
-      重复终态抛错 / `SkillGrown` 豁免),但**作用域受限**:四轮里**没有一条**打 `HistoryFolder` 的
-      「抹哪些行」,而那正是实现偏离所在(签核件 D-5)⇒ 只可主张「条件①–④各由变异反证」,
-      **不可**主张「折叠产出面已验证」。**S18-1 谓词本体零证伪轮**(D-2)。
+      **✅ 2026-10-22 落地(用户同日改判:S18-1 拉回 sprint-18,原结转裁定作废)**:
+
+      > ⚠️ **编号说明(2026-10-22 自查订正)**:本节 `①–⑤` = **sprint-18 Tasks 表**的 S18-1 验收判据编号
+      > (`sprint-18.md:95`);`⑥⑦⑧` = **QA plan / 签核件** 的编号(`qa-plan:121` / `qa-signoff:118-119`)。
+      > **两套编号并存且不连续**,我首次填表时未标来源,易被读成同一套。此处显式分列。
+
+      | 编号来源 | AC | 判据 | 落地件 | 状态 |
+      |---|---|---|---|---|
+      | Tasks 表 ① | 谓词对 Player 与 NPC 判死不同 | `test_selfLimited_sameEntryDiffersByActorClass` | `Sim/EntityDeathGates.cs`(前批已落) | ✅ |
+      | Tasks 表 ② | 规则九:无 `if kind == injury` 分支 | `test_ruleNine_kindIsDataDrivenNotControlFlow`(数据成员判定,非控制流) | 同上 | ✅ |
+      | Tasks 表 ③ | 破例只在 `kind = Player ∧ d ∈ 白名单` | `test_battleInjuryExemption_neg1..neg4` + `allThreeConditionsHold` | 同上 | ✅ |
+      | Tasks 表 ④ | 不改既有 `self_limit` 数据值 | `test_zeroRipple_legacyNullCurveTreatedAsNotSelfLimiting` | 同上 | ✅ |
+      | 签核件 ⑥ | **规则九机械门** | `RuleNineGateTest` **16 条**(S1–S4 四种源码注入 + I1/I2/I3 三条 IL 注入各自转红 + 三种反向不误报 + 锚点活体守卫) | **新增** `Editor.Tools.Gates/RuleNineGate.cs`(源码 + IL 双证);接 `RunMenu` / `BuildGate`;`gate_wiring_manifest_test` 两表同批登记 | ✅ **2026-10-22 兑现** |
+      | 签核件 **⑦** | **`IDeathCandidateSource` + 29 侧注入点** | `test_deathCandidateSource_interfaceExistsInContracts` / `_hasNoHealthReadingMember` / `_deathCandidate_doesNotEnterAnyStream` / `_deathCandidateConsumer_implementsSource` | **新增** `Sim.Contracts/IDeathCandidateSource.cs` + `Sim/DeathCandidateConsumer.cs` | ✅ |
+      | 签核件 **⑧** | **`PlayerDied` / `InjuryStateChanged` 两条写者** | `test_playerDiedWriter_*`(6 条)/ `test_injuryStateWriter_*`(3 条)/ `test_deathCandidateConsumer_*`(3 条) | **新增** `Sim/PlayerDiedWriter.cs` + `Sim/InjuryStateChangedWriter.cs`;同批撤 `WriterExistenceGate` 两条豁免 | ✅ |
+
+      **回归**:`4435 / 4399 / 0 / 36` @ `2026-10-22 14:0x (+0800)` · 批次 `s18-ac78-full-20261022` ·
+      干净树;`error CS = 0`。等式 `Δtotal = Δpassed = 新增 16` 成立;**消失 0**。
+      🔁 **2026-10-22 AC ⑥ 兑现(原文「仍 NOT-RUN」保留作闭环记录)**:`R2-AC6` 已关闭 ——
+      新立 `Editor.Tools.Gates/RuleNineGate.cs`,判据形态按 `qa-plan:80` 的**源码 + IL 双证**
+      (原文:「单靠 grep 可被换写法绕过」)⇒ 两半都在 `RunAll` 内合流,接 `RunMenu` + `BuildGate`。
+      **证据三件**(承 CLAUDE.md §构建前门纪律):
+      ① **探针轮** —— 在 `RunAll` 首行插无条件 `errs.Add("[PROBE-RuleNine]…")` 并提前 `return`,
+         真构建得 **`Result: Failure`**,日志 2 处探针串,栈帧 = `AssemblyGates.cs:1275`
+         `Debug.LogError`,`BuildFailedException` + utp `steps` 在 `Preprocess Player` 即止 ⇒ 三件套齐;
+      ② **还原** —— `sha256sum -c` 逐字节相同(非 grep 探针串);
+      ③ **干净轮** —— `Build Finished, Result: Success.` 且 `grep -cE "\[RuleNine|\[fs-write|error CS"` = **0**
+         (门跑了且零违例,不是「门没被调用」—— 探针轮已排除后者)。
+      **回归**(截至 `2026-10-22 13:51 (+0800)` · 批次 `regress-rulenine2` · 干净树):
+      `4451 / 4415 / 0 / 36`,`error CS = 0`。基线 `s18-ac78-full-20261022` = `4435 / 4399 / 0 / 36`
+      ⇒ **Δtotal = Δpassed = +16**;全名级差集 = **新增 16 / 消失 0**(16 条全为 `RuleNineGateTest`)。
+      ⚠️ **假红首例(就地记账)**:首版判据锚在字段名 `Kind` 上,真工程立刻假红两处 ——
+      `ClinicRoomMatcher.cs:279`(`ClinicRoomClauseKind`)/ `ConsequenceInputAggregator.cs:294`
+      (`EventKind`,ADR-024 的路由靠它)。⇒ 判据收紧到**字段类型 = `DiseaseKind`**
+      (源码要求 `DiseaseKind.<成员>` 限定;IL 要求 `FieldReference.FieldType`),
+      并由 `test_ruleNine_ilHalf_diseaseKindAnchorIsLive` 钉住锚点不失效。
+      ⚠️ **「有写者 ≠ 已接线」** —— 两条写者的**生产触发点**归 9 的实现轮,本件只落写者本体
+      (与 `CaseOpenWriter` 同格,`WriterExistenceGate` 已接受该形态)。
+- [x] **每件过证伪轮**:改坏生产码 ⇒ 指定断言转红;`exactRed` 由**论证**给出后才定预期(禁把实得抄进 `expectRed`)
+      🔁 **2026-10-22 收口实测:原判「不勾」,已补轮后勾上** ——
+      **原判依据**(原文不删):S18-2 跑了 4/4 全红(定义域守卫 / `Lethality <= 0` 半条件 / 重复终态抛错 /
+      `SkillGrown` 豁免),但四轮里**没有一条**打 `HistoryFolder` 的「抹哪些行」,而那正是实现偏离所在
+      (签核件 D-5)⇒ 只可主张「条件①–④各由变异反证」,**不可**主张「折叠产出面已验证」。
+      **✅ 2026-10-22 补轮(本轮新增,补 D-5 缺口)**:针对 `HistoryFolder.Erase` 的**抹除作用域**补两轮变异,
+      均以 fixture 过滤跑(批次 `s18-mut-m1/m2-20261022`,基线 `3e26a8b4…`):
+
+      | 轮 | 变异(改坏什么) | 实得 | 论证给出的预期 | 附带红 |
+      |---|---|---|---|---|
+      | **M1** | `if (belongsToFolded && e.Kind != EventKind.SkillGrown)` ⇒ 删 `&&` 项(取消 `SkillGrown` 豁免) | `29 / 27 / 2 / 0` | `test_fold_retainsSkillGrownRows` + `test_fold_skillGrownReplayIsBitIdentical` 必红(两者都以「`SkillGrown` 行存续」为断言对象) | **0** |
+      | **M2** | `bool belongsToFolded = e.Patient.Value == patientId` ⇒ `= false`(不抹任何人) | `29 / 28 / 1 / 0` | `test_fold_removesPatientRowsButKeepsOtherPatients` 必红(其断言 = 被折病人非 `SkillGrown` 行数 **= 0**) | **0** |
+
+      ⇒ **D-5 的缺口已闭合** —— 折叠**产出侧**的「抹哪些行」现有两轮独立反证,
+      且**两轮的失败断言互不重叠**(M1 打豁免分支、M2 打主体分支),合起来覆盖 `Erase` 的两条判定。
+      **还原判据 = SHA-256 逐字节**:变异前 `3e26a8b4…` · 两轮后均 `cp` 回并核 = `3e26a8b4…`(逐字节相同)。
+      ⚠️ **仍未覆盖**:`BuildRows`(折叠**产行**侧的字段组装)与 `FoldedPredicate` 四条件合取本身 ——
+      前者已有 6 字段逐字段断言但无变异反证,后者由原四轮覆盖。**本节不主张「折叠全对」**。
+      ⚠️ **S18-1 谓词本体仍零证伪轮**(D-2)—— 该缺口**不随本条勾选消失**,见 §九.6 C-3。
+      **✅ 2026-10-22 补轮(S18-1 拉回后新增,结清 D-2)**:针对 `EntityDeathGates` 的**谓词本体**补四轮变异
+      (基线 `8aca6a6d…`,fixture 过滤跑,批次 `s18-c3-m1..m4-20261022`):
+
+      | 轮 | 变异(改坏什么) | 论证给出的预期红集 | 实得 | 预测=观测 |
+      |---|---|---|---|---|
+      | **M1** | `IsCombatant`: `case ActorClass.Player: return false` ⇒ `return true` | 所有传递依赖 `IsCombatant` 的断言 = 10 条 | `21 / 11 / 10 / 0` | ✅ |
+      | **M2** | 白名单删 `INJ_CLAW` 一项 | 恰 `test_battleInjuryWhitelist_isExactlyTheFiveKeys` | `21 / 20 / 1 / 0` | ✅ |
+      | **M3** | `SelfLimited` 合取删 `&& LethalityOf(entry)` | 恰 `test_battleInjuryExemption_neg4_notLethal`(neg1–3 已在 `IsBattleInjury` 短路;allThree 三条件仍真) | `21 / 20 / 1 / 0` | ✅ |
+      | **M4** | `IsCombatant`: `case ActorClass.Beast: return true` ⇒ `return false` | `test_isCombatant_enemyAndBeastAreCombatants` + `test_lethalFor_combatantAlwaysFalse_evenWhenLethal` = 2 条 | `21 / 19 / 2 / 0` | ✅ |
+
+      ⇒ **D-2 的缺口已闭合**:四轮**预测红集与实得逐条相同**。
+      ⚠️ **M1 / M4 不是「恰 1 红」** —— `IsCombatant` 是三条谓词的**公共前提**,改它必然连带;
+      本条 DoD 的字面判据是「`exactRed` 由**论证**给出后才定预期」,**预测=观测即满足**,
+      且比「恰 1 红」是更强的证据。**M2 / M3 两轮是「恰 1 红零附带」**。
+      **还原判据 = SHA-256 逐字节**:变异前 `8aca6a6d7ef58021d9415bc7a6215ab42e6a20fe6bd5598e7f4ea13a9cd25d92`,
+      四轮后均 `cp` 回并核 = 同值。
 - [x] 全量 EditMode / PlayMode 对账,**三元组齐备**(截至时刻 · 批次 · commit),
       等式 `Δtotal = Δpassed = 新增条数` 成立,且**「消失 0」独立判据**成立(排除「新增 N 同时坏 N」的掩盖形态)
       ✅ **2026-10-22 收口实测** —— EditMode `4419 / 4383 / 0 / 36` @ `2026-10-22 10:19 (+0800)` ·
@@ -181,11 +249,15 @@
       ✅ 初判 `CHANGES REQUIRED` → 五条 Required 全修(`d91edeb`)→ **重评 `APPROVED WITH SUGGESTIONS`**。
       原件 `production/qa/evidence/review-sprint18-implementation-2026-10-22.md`(§一–§七 初评 + **§八 重评轮**)。
       ⚠️ 重评 5/5 核账成立、新引入 BLOCKING/WARNING = 0;两条 WARNING 为**结转项 S-6 / S-8**(文档批)。
-- [ ] **不得**把本 sprint 的绿引作 M3 进展;分母变化须写清方向(~~**清债 `73 → 71`**,非新增~~)
-      🔁 **2026-10-22 收口实测:原数字作废,本条**不勾** —— 见下方 §九 分母订正。**
+- [x] **不得**把本 sprint 的绿引作 M3 进展;分母变化须写清方向(~~**清债 `73 → 71`**,非新增~~)
+      🔁 **2026-10-22 收口实测:原数字作废;本条判「勾」的判据是「方向已写清」,不是「数字对不对」**
+      —— 本条要求的是**方向陈述 + 不引作进展**,两项均已满足(见 §九.1 / §九.4);
+      原判「不勾」是把「原数字作废」与「本条未满足」混成了一件事,**已订正**(2026-10-22 二订)。
       实测:`TD-INDEX` **100 条** · `P0 = Y` **89** · **未闭 P0 面 = 74** · epic 分布 **13 / 31**。
       **`71` 在任何情形下都不成立** —— 它假设 G-1 与 G-2 双结案,而 G-1 已结转 sprint-19;
       且本 sprint 期间 `TD-clinic-18` 立债令分母 `73 → 74`。真值 = **`74`**(G-2 亦不结)或 **`73`**(G-2 结)。
+      **方向 = 立债 + 结转,不是清债**;§九.4 已列六条「本 sprint 收口不代表…」。
+      复算命令 = 债册 §五 脚本(逐字输出见 §九.1)。
 - [x] 收口时把 `production/sprint-status.yaml` 归档为 `production/sprint-status-sprint18-archive.yaml`
       (**SHA-256 逐字节比对**;承 sprint-14/15/16/17 同例)
       ✅ SHA-256 = `3212ceb6eb9b8f384c4c32556de09be5b0ed43a9d84191404678294cf1ecc6a7`;
@@ -318,7 +390,9 @@ S18-2 已 `done`,四条件谓词 + 折叠行产出都在盘上、有 29 条测�
 - **不代表折叠产出面已验证** —— 四轮变异未打「抹哪些行」(D-5 / `OQ-7a-10`)。
 - **不代表 S18-1 的 AC 已兑现** —— 它结转 sprint-19,四条入口判据见签核件 §六。
 - **不代表 `S-1`…`S-8` 八条 Suggestions 已清** —— 全部仍 open,去向已逐条登记于评审原件 §五。
-- **不代表 `R2-AC6`(规则九机械门)已建** —— 仍 NOT-RUN。
+- ~~**不代表 `R2-AC6`(规则九机械门)已建** —— 仍 NOT-RUN。~~
+  🔁 **2026-10-22 订正**:该项**已建** —— `Editor.Tools.Gates/RuleNineGate.cs`(源码 + IL 双证),
+  探针轮 / 还原 / 干净轮三件齐。本行作废,原文保留。
 
 ### 九.5 四条收口缺口的具名记录(2026-10-22 收口轮)
 
@@ -329,14 +403,35 @@ S18-2 已 `done`,四条件谓词 + 折叠行产出都在盘上、有 29 条测�
 |---|---|---|---|---|
 | **①** | 分母 `73 → 71` 在**三处**存活(sprint 计划 · `sprint-status` baseline · QA 签核件 §六) | 规划期算术被当成收口结论照抄;三处都未跑复算命令 | 三处就地加注作废 + §九.1 真值表 + §五 命令逐字落盘 | 上节命令实跑 ⇒ **未闭 P0 面 = 74**;`71` 在任何情形下不成立(连双结案也只有 72) |
 | **②** | PlayMode `202/202/0/0` 判的是**旧树** `ad7316c`(08:55),未覆盖 `d91edeb`(10:22)对 `HistoryFolder.cs` 的改动 | 三元组只填了 SHA,**未核 commit 与最后一次生产代码改动的时间序** | 在干净树 `08049fb` 上重跑 | `202 / 202 / 0 / 0 / 0` @ `2026-10-22 11:33 (+0800)` · 批次 `s18-final-playmode-20261022` · commit `08049fb` · `error CS` = 0 |
-| **③** | DoD 11 条在收口时**一条未勾**,而 QA 签核 / smoke / 代码评审 / 归档**均已交付** | 「收口」是隐含步骤而非显式流程 —— 靠记忆不靠 checklist | 逐条对着勾:8 勾 + 3 不勾(**每条带具名理由**,不勾的见 DoD 段 🔁 注) | `grep -c '^- \[ \]' production/sprints/sprint-18.md` ⇒ DoD 段内**恰 3 条**(AC 逐条 / 证伪轮 / 分母方向) |
+| **③** | DoD 11 条在收口时**一条未勾**,而 QA 签核 / smoke / 代码评审 / 归档**均已交付** | 「收口」是隐含步骤而非显式流程 —— 靠记忆不靠 checklist | 逐条对着勾:8 勾 + 3 不勾(**每条带具名理由**,不勾的见 DoD 段 🔁 注)。🔁 **2026-10-22 二次收口**:余下 3 条经补轮后**全部勾上**(见下行) | `grep -c '^- \[ \]' production/sprints/sprint-18.md` ⇒ DoD 段内**0 条未勾**(原 3 条已逐条结清) |
+| **③-b** | 余下 3 条不勾项 | 前一轮判「不勾」时,两条是**真缺口**(证伪轮作用域 / AC 被测物不存在),一条是**判断错误**(分母方向) | ① 分母方向 = 判据误读,已订正为勾;② 证伪轮 = 补 M1/M2 两轮打抹除面;③ AC 逐条 = 用户改判 S18-1 拉回并落地 AC⑦⑧ + 补 C-3 四轮 | 见 DoD 第 1/2/3 条的 🔁 落地表;回归 `4435/4399/0/36` |
 | **④** | 回归三元组的批次名 `review-s18-r4-fix-20261022` **盘上无同名产物** | 只填批次名,**未验该名对应的文件存在** | 改指实际产物名 + 补 `artifact:` 字段(数值不变) | `ls unity/Logs/review-s18-r4-editmode-20261022.{xml,log}` 命中;`ls unity/Logs/review-s18-r4-fix-20261022.*` ⇒ 无此文件 |
 
 **四条的共同形态**:**三条是「数字没跑就写了」**(①②④),一条是「产物齐了但流程没走」(③)。
 ⇒ 已升格为机制:`coding-standards.md` §Review Evidence Standards 新增两条 BLOCKING 级规则
 (**数字须带可跑复算命令** · **「某件有门」须给 `file:line` + 可跑命令**)。
 
-### 九.6 S18-1 结转交接单(给 sprint-19 规划,不得以「已结转」当已结)
+### 九.6 S18-1 ~~结转交接单~~ → **已拉回并在 sprint-18 落地**(2026-10-22 改判)
+
+> 🔁 **2026-10-22 用户改判(原文不删)**:原裁「S18-1 结转 sprint-19」**作废** ——
+> 用户裁定 **S18-1 拉回 sprint-18**。下方四条入口判据**已全部执行**,结果见 DoD 第 1 条的表。
+> **本节的「交接单」语义随之失效**,保留原文仅作裁定沿革记录。
+>
+> **执行结果速览**:
+> - **C-3 证伪轮 ≥3** → ✅ **四轮**(M1 `IsCombatant(Player)` / M2 白名单删一项 / M3 删 `LethalityOf` 合取 / M4 `IsCombatant(Beast)`),
+>   每轮**预测红集由论证先行给出**且与实得逐条相同(M1 = 10 / M2 = 1 / M3 = 1 / M4 = 2)。
+>   ⚠️ **M1/M4 不是「恰 1 红」** —— `IsCombatant` 是三条谓词的公共前提,改它必然连带;
+>   这正是「`exactRed` 由论证给出」比「恰 1 红」更强的证据。
+> - **AC ⑦** → ✅ `IDeathCandidateSource` + `IDeathCandidateSink` + `DeathCandidateConsumer`
+> - **AC ⑧** → ✅ `PlayerDiedWriter` + `InjuryStateChangedWriter`,同批撤 `WriterExistenceGate` 两条豁免
+> - **AC ③ 数值裁定** → 白名单五项**已于 2026-10-21 裁定**(`OQ-S18-1` = 双条件 `lethal(d) ∧ d ∈ {STAB, LACERATION, HEMORRHAGE, CLAW, BITE}`)
+>
+> 🔁 **2026-10-22 AC ⑥ 兑现(原文「仍未兑现」保留作闭环记录)**:`RuleNineGate`(源码 + IL 双证)
+> 已落盘并接 `RunMenu` / `BuildGate`,探针轮三件套齐、还原 SHA-256 逐字节相同、干净轮绿。
+> 详见上方 AC 表「签核件 ⑥」行。
+
+<details>
+<summary>原交接单(裁定沿革,原文不删)</summary>
 
 `S18-1`(`TD-sim-01` / 门 G-1 `SelfLimited`)结转 sprint-19。**四条入口判据**如下,
 sprint-19 规划时须**写进计划正文**(不是只放签核件),且**逐条可复算**:
@@ -348,10 +443,14 @@ sprint-19 规划时须**写进计划正文**(不是只放签核件),且**逐条�
 | **AC ⑧** | `PlayerDied` / `InjuryStateChanged` **两条写者**落地,**同批撤** `WriterExistenceGate` 豁免表 | 两条写者的 `Append` 调用点存在;`WriterExistenceGate.cs:98-102` 的「写者未落」条目**同批删除** | 同上:`WriterExistenceGate.cs:98-102` 仍挂「写者未落」 |
 | **AC ③** | 数值 / 登记裁定 —— 白名单五项无数据行(`PRE-S18-A`)+ F4 三常量未登记为 registry 名块(`PRE-S18-B`) | 两项前置各有裁定记录,且数据行 / registry 名块可 grep | 两前置**均未解**,AC ③ 被卡住 |
 
-⚠️ **另两条不随结转消失的约束**(见 §九.4):`R2-AC6` 规则九机械门仍 NOT-RUN;
+⚠️ **另两条不随结转消失的约束**(见 §九.4):~~`R2-AC6` 规则九机械门仍 NOT-RUN~~
+(**✅ 2026-10-22 已兑现**:`RuleNineGate` 落盘 + 双证 + 探针轮);
 `OQ-7a-10` 仍未裁(影响 G-2 而非 G-1,但同在折叠面)。
 ⚠️ **`S18-1` 在 sprint-19 占 L 额度**,而 sprint-19 还要承接 `TD-ci-01`(EXTERNAL)——
 **规划时必须先算这一笔**(`retro-sprint-18` §Carryover Analysis)。
-- **不代表 `AC-29-16` 转可判** —— 其 `BLOCKED-BY-7a 折叠实现` 需 §九.2 的三项同时满足。
+🔁 **2026-10-22 改判后本条失效**:S18-1 已拉回并在 sprint-18 落地,**不再占 sprint-19 额度**;
+sprint-19 的 L 额度只剩 `TD-ci-01`(EXTERNAL)一笔。
+
+</details>
 
 > **不经用户指令不 commit。**

@@ -8513,3 +8513,44 @@ M6 首版变异形态(`if (false) throw …`)导致 **switch 段落穿透 = 编�
   ① 数字须附可跑复算命令 ② 补分支覆盖列 ③ CAPACITY 表补三行 ④ S18-1 四条入口判据写进 sprint-19 计划正文 ⑤ 「有门」自述须给 `file:line` + 命令。
 - **用户裁定**:「先不规划,我自己看文件」⇒ **不启动 `/sprint-plan`**。retro 文件保留供自阅。
 - **未提交**:`retro-sprint-18-2026-10-22.md` 现为 untracked(承「不经用户指令不 commit」)。
+
+---
+
+## ✅ S18-1 AC ⑥ 兑现 —— 规则九机械门(`R2-AC6` 关闭)· 2026-10-22 第四轮
+
+- **立件**:`unity/Assets/Editor.Tools.Gates/RuleNineGate.cs`(新)。判据形态按
+  `qa-plan-sprint-18-2026-10-21.md:80` 的**源码 + IL 双证**(原文「单靠 grep 可被换写法绕过」)。
+  - 源码半 `CheckSource`:S1 `switch`(须 `case DiseaseKind.X` 作类型证据)/ S2 多语句 `if` /
+    S3 三元 / S4 具体病种名硬编码。S2 白名单 = 分支体恰一条 `return` 或 `throw`
+    (活体样本:`EntityDeathGates.cs:79-81` 的 `return` 合取、`RegistrySchema.cs:336-339` 的 `throw` 守卫)。
+  - IL 半 `CheckIl`(Cecil):I1 `switch` 按 `DiseaseKind` 字段分派 / I2 同方法 ≥3 个
+    `DiseaseKind` 常量 / I3 `DiseaseKey` 与 `ldstr` 常量相等。
+- **接线**:`AssemblyGates.RunMenu`(:126)+ `BuildGate.OnPreprocessBuild`(:1271);
+  `gate_wiring_manifest_test` 入口表两处 + 类级表一条(`Kind = Chain`)同批登记。
+- **⚠️ 假红首例(就地记账)**:首版判据锚在字段名 `Kind`,真工程立刻假红两处 ——
+  `ClinicRoomMatcher.cs:279`(`ClinicRoomClauseKind`)/ `ConsequenceInputAggregator.cs:294`
+  (`EventKind`,ADR-024 的 35 支路由靠它)⇒ 收紧到**字段类型 = `DiseaseKind`**
+  (源码要 `DiseaseKind.` 限定;IL 要 `FieldReference.FieldType`),
+  并由 `test_ruleNine_ilHalf_diseaseKindAnchorIsLive` 钉住锚点不失效。
+- **探针轮三件套齐**(CLAUDE.md §构建前门纪律):无条件 `[PROBE-RuleNine]` ⇒
+  真构建 `Result: Failure`,探针串日志 2 处,栈帧 `AssemblyGates.cs:1275` `Debug.LogError`,
+  `BuildFailedException` + utp `steps` 在 `Preprocess Player` 即止。
+- **还原 = SHA-256 逐字节**(`44e502a6…` → `sha256sum -c` 成功),未用 `git checkout`。
+- **干净轮** `Build Finished, Result: Success.`,零 `[RuleNine` / `[fs-write` / `error CS`。
+- **IL 注入级反证(原缺口已闭合)**:Cecil 注入路线**否决**(测试装配无 Cecil 引用,
+  111 条 CS0234;修它须改 asmdef = 架构级改动)。改走「违例夹具写成测试源码里的真方法,
+  让编译器生成 IL,`CheckIl` 扫 `Sim.Contracts.Tests.dll`」—— 更强:IL 是真编译器产出,
+  且夹具**不进 `Assets/Sim`** ⇒ 源码半对它失明而 IL 半抓住,**这正是 IL 半独立价值的直接证明**。
+  顺带修掉 I2 常量收集窗口的真 bug(`i+1..i+3` → `i..i+3`,覆盖两种相位)。
+- **测试**:`RuleNineGateTest` **16 / 16 passed / 0 failed**,`error CS = 0`。
+- **证据原件**:`production/qa/evidence/impl-ac6-rulenine-gate-2026-10-22.md`
+  (§十一 结账表六条 Landed ✅ / Proven ✅ 全齐)。
+- **连带**:`FsWriteBoundaryGate.Declarations` 补本测试的具名声明 —— 探针轮里该门先一步
+  抓住了新测试文件的 R2 违规(既有门工作正常,不是我绕过的)。
+- **文档回写**:`sprint-18.md`(AC 表 ⑥ 行 + §九.4 + §九.6 + 交接单四处,原文不删加注)·
+  `qa-signoff-sprint-18-2026-10-22.md`(§七 第 2 项「未核」→ 已核,附可复算判据)·
+  `sprint-status.yaml`(S18-1 的 evidence + note)。
+- **未提交**:全部待用户指令。
+- **最终回归**:`4451 / 4415 / 0 / 36` @ `2026-10-22 13:51 (+0800)` · 批次 `regress-rulenine2` · 干净树;
+  `error CS = 0`。基线 `s18-ac78-full-20261022` = `4435 / 4399 / 0 / 36` ⇒
+  **Δtotal = Δpassed = +16**,全名级差集 **新增 16 / 消失 0**(16 条全为 `RuleNineGateTest`)。
