@@ -24,6 +24,10 @@ namespace DaYiJingCheng.Sim.Contracts
     /// <para><b>闭集与 25 的 <c>actor_class</c> 逐值相同</b>(<c>combat-and-weapon-lines.md:1154</c>:
     /// <c>Player</c> / <c>HumanEnemy</c> / <c>Beast</c>)—— 刻意同名同序,免生第二套词汇。</para>
     ///
+    /// <para><b>🔁 2026-10-22 订正</b>:上句原写「逐值相同」,现新增 <see cref="Patient"/>
+    /// 后不再逐值相同 —— 本枚举比 25 的闭集<b>多一个值</b>。前三个值仍逐值同名同序;
+    /// 新增值的理由见其自身的 XML 注释。</para>
+    ///
     /// <para><b>⚠️ 本枚举落地 ≠ 数据面可用</b>:<c>ai_enemy.json</c> 不存在
     /// (<c>EntityKind</c> 的数据载体还没有),敌人实体的类别目前**无数据来源**。
     /// 谓词本体与测试用合成夹具即可验;真接线随 27 的数据表落地。</para>
@@ -45,5 +49,24 @@ namespace DaYiJingCheng.Sim.Contracts
 
         /// <summary>兽类 —— combatant = <b>true</b>(同上)。</summary>
         Beast = 3,
+
+        /// <summary>
+        /// 病人 / 友方 NPC —— combatant = <b>false</b>(可被疾病致死;GDD <c>:1219</c> 真值表独立一行)。
+        ///
+        /// <para><b>🔁 2026-10-22 新增(用户裁定)</b>。此前本枚举只有 25 的
+        /// <c>{Player, HumanEnemy, Beast}</c> 三值(承 <c>combat-and-weapon-lines.md:1154</c>),
+        /// 而 GDD 的 <c>IsCombatant</c> 真值表把「13 病人 / 友方 NPC」列为<b>独立一行</b>
+        /// (<c>false</c>)—— 25 的动作表里没有「病人」这个概念,9 的病程求值却必须有。
+        /// 缺这一值 ⇒ F4 对病人**无类别可传**,只能借 <c>Player</c> 顶上,而
+        /// <c>SelfLimited</c> 的战伤破例是 <c>Player</c>-专属 ⇒ 病人会被错误地
+        /// 套上玩家的白名单破例。</para>
+        ///
+        /// <para><b>⚠️ 与 25 的 <c>actor_class</c> 闭集不同步</b> —— 这是<b>刻意的</b>:
+        /// 25 的闭集是「谁会用这条动作」,本枚举是「谁会被判死」。两者在
+        /// <c>{Player, HumanEnemy, Beast}</c> 上重合,<c>Patient</c> 只在后者出现。
+        /// 25 的数据表若写入 <c>Patient</c> 应被其自身校验拒绝(不在 25 的闭集内),
+        /// 不属于本枚举的职责。</para>
+        /// </summary>
+        Patient = 4,
     }
 }

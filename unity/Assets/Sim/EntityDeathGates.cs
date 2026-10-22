@@ -118,7 +118,8 @@ namespace DaYiJingCheng.Sim
         /// <summary>
         /// 实体是否为「战斗员」(敌人 / 兽)—— GDD <c>:1212-1230</c> 真值表。
         ///
-        /// <para><c>Player</c> ⇒ <b>false</b>;<c>HumanEnemy</c> / <c>Beast</c> ⇒ <b>true</b>。</para>
+        /// <para><c>Player</c> ⇒ <b>false</b>;<c>Patient</c> ⇒ <b>false</b>(2026-10-22 新增);
+        /// <c>HumanEnemy</c> / <c>Beast</c> ⇒ <b>true</b>。</para>
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
         /// <paramref name="actorClass"/> = <see cref="ActorClass.Unspecified"/> 时抛出 ——
@@ -131,6 +132,8 @@ namespace DaYiJingCheng.Sim
             switch (actorClass)
             {
                 case ActorClass.Player:     return false;
+                // 🔁 2026-10-22:GDD 真值表把「13 病人 / 友方 NPC」列为独立一行(false)。
+                case ActorClass.Patient:    return false;
                 case ActorClass.HumanEnemy: return true;
                 case ActorClass.Beast:      return true;
                 case ActorClass.Unspecified:
@@ -144,10 +147,11 @@ namespace DaYiJingCheng.Sim
         /// <summary>
         /// <c>LethalFor(entity, d) = lethal(d) ∧ ¬IsCombatant(entity)</c> —— GDD <c>:1153-1160</c>。
         ///
-        /// <para><b><c>lethal(d)</c> 的取法</b>:注册表既有字段是 <c>Lethality ∈ [0,3]</c> 整数,
-        /// GDD R1 表写 bool <c>lethal</c> —— 这是<b>既有字段错位</b>(<c>RegistrySchema.cs:398-401</c>
-        /// 自陈)。本实现承既有先例取 <c>Lethality &gt; 0</c>(<c>R1_CHECK_22</c> 校验即如此写),
-        /// 并登记为待裁项(<c>PRE-S18-D</c>)。</para>
+        /// <para><b><c>lethal(d)</c> 的取法</b>:<c>Lethality &gt; 0</c>(<c>R1_CHECK_22</c> 同写)。
+        /// <para>🔁 2026-10-22:原注释把 <c>int Lethality ∈ [0,3]</c> 对 GDD <c>bool lethal</c>
+        /// 称为「既有字段错位(待裁项 <c>PRE-S18-D</c>)」—— <b>该口径已结案</b>:
+        /// 字段语义 = <b>致死等级 0–3</b>,<c>lethal ⇔ &gt; 0</c> 是正确定义而非近似。
+        /// 逐条论证见 <see cref="LethalityOf"/> 的 XML 注释。</para>
         ///
         /// <para><b>combatant 那一支恒 <c>false</c></b>:敌人 / 兽归零 = 昏迷,不走死亡支
         /// (ADR-016 §二)。</para>
@@ -209,9 +213,28 @@ namespace DaYiJingCheng.Sim
 
         /// <summary>
         /// <c>lethal(d)</c> 的既有字段代理 —— <c>Lethality &gt; 0</c>。
-        /// <para>⚠️ 待裁项(<c>PRE-S18-D</c>):GDD R1 表写 bool <c>lethal</c>,既有字段是
-        /// <c>int Lethality ∈ [0,3]</c>。本实现承 <c>R1_CHECK_22</c> 的既有先例;
-        /// 若改判为 bool 字段,改动落点只在本方法。</para>
+        ///
+        /// <para><b>🔁 2026-10-22 裁定:字段语义 = 「致死等级 0–3」,不再是「字段错位」</b>
+        /// (用户裁定「保持 0-3,明确语义为致死等级」)。此前的注释把 <c>int Lethality</c>
+        /// 对 GDD 的 <c>bool lethal</c> 写成「既有字段错位 / 待裁项 <c>PRE-S18-D</c>」——
+        /// <b>该口径已结案</b>。</para>
+        ///
+        /// <para><b>两侧关系(逐条钉死)</b>:</para>
+        /// <list type="bullet">
+        /// <item><b>GDD R1 表</b>的 <c>lethal: bool</c> = 现实医学语义的<b>二值投影</b>,
+        /// 不是本字段的完整定义域。C# 侧把「能致死」细分为 <c>1..3</c> 三个等级,
+        /// <c>0</c> = 不致死。</item>
+        /// <item><b><c>lethal ⇔ Lethality &gt; 0</c></b> —— 这是<b>正确定义</b>,
+        /// 不是近似。<c>R1_CHECK_22</c> 的「急性保持型须 lethal」即按此写。</item>
+        /// <item><b>等级 1 与 3 今天不可达</b>:binder 把 JSON 的 <c>lethal: bool</c> 映射为
+        /// <c>? 2 : 0</c>(<c>DiseaseRegistryBinder.cs:180</c>)—— 这是<b>作者态的刻意简化</b>
+        /// (JSON schema 只有 bool),不是缺陷。将来若要按等级区分(如 <c>Lethality = 3</c>
+        /// 走更短的死亡窗口),须先扩 JSON schema,再改 binder —— <b>两处同改</b>,
+        /// 单改 binder 会让作者态无法表达 1 / 3。</item>
+        /// </list>
+        ///
+        /// <para>⚠️ <b>本方法仍是唯一代理点</b> —— 若将来引入按等级分档的判据,
+        /// 落点在此方法(或由它派生的新方法),不得在调用方另写 <c>Lethality</c> 比较。</para>
         /// </summary>
         private static bool LethalityOf(DiseaseRegistryEntry entry) => entry.Lethality > 0;
     }

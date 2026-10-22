@@ -1,0 +1,316 @@
+// F4 求值接线 —— `DiseaseVitalsService.StepAll` → `F4OutcomeEvaluator`(2026-10-22 第三轮立)。
+//
+// 权威来源:
+//   GDD disease-simulation.md:1080-1125 —— F4 判定顺序与各支条件
+//   GDD disease-simulation.md:1126-1133 —— `last_intervention` 三通道
+//   GDD disease-simulation.md:1135-1140 —— 照护杠杆适用集(破伤风不在内)
+//   GDD Tuning :1743-1744 —— `W` / `TREND_EPS` 均 *待定*
+//   ADR-005 —— 主机唯一 Step;病史流是唯一真源
+//   ADR-016 §二 —— 病人侧不吃玩家的战伤破例
+//
+// ── 本文件钉的是什么 ──────────────────────────────────────────────────────────
+// 上一轮交付的是「**可求值的纯函数**」,生产调用点 = 0 —— 即 `F4OutcomeEvaluator`
+// 从未被任何 tick 循环调用过。本文件钉的是**接线本身**,判据是:
+//   · 走到 Step 边沿后,`GetOutcome(p)` 返回**由 F1 读数算出的**九态;
+//   · 且该值**随 position 变化**(不是常量、不是默认值);
+//   · 且死亡支**受窗口约束**(接线把 `onsetTick` / `tick` / 处置通道真的传进去了,
+//     不是传了 `0` 让窗口恒过)。
+//
+// ── 真装配,零 Fake ───────────────────────────────────────────────────────────
+// 与 `vitals_chain_test` 同款:`CompositionRoot.Assemble` → 真 `EventStream` +
+// 真 `PayloadEncoder` + 真 `PatientSpawner`。病人由 `PatientSpawner.SpawnNext` 建档。
+
+using System;
+using DaYiJingCheng.Gameplay.Boot;
+using DaYiJingCheng.Sim;
+using DaYiJingCheng.Sim.Contracts;
+using DaYiJingCheng.Sim.DiseaseSimulation;
+using NUnit.Framework;
+
+namespace DaYiJingCheng.Tests.DiseaseSimulation
+{
+    /// <summary>F4 求值接线 —— Step 边沿后九态可查、随读数变化、受窗口约束。</summary>
+    public class F4WiringTest
+    {
+        /// <summary>处置 id(`TreatableBy == null` ⇒ 离牌门不拦)。</summary>
+        private const int TreatmentId = 7;
+
+        /// <summary>一条真装配的体征链 + 单病人。</summary>
+        private sealed class Chain
+        {
+            public CompositionRootServices Bag;
+            public DiseaseVitalsService Svc;
+            public PatientId Patient;
+            public long Tick = -1;
+
+            public void DriveTo(long target)
+            {
+                while (Tick < target)
+                {
+                    Tick++;
+                    Svc.OnTickEdge(Tick);
+                }
+            }
+
+            public InjuryState Outcome() => Svc.GetOutcome(Patient);
+        }
+
+        private static Chain OpenChain(DiseaseRegistryEntry entry)
+        {
+            var bag = CompositionRoot.Assemble(new[] { entry });
+            var chain = new Chain { Bag = bag, Svc = bag.VitalsService };
+            chain.Patient = bag.PatientSpawner.SpawnNext(entry.DiseaseId, tick: 0);
+            return chain;
+        }
+
+        /// <summary>
+        /// 急性保持型致死病种 —— `position` 随 τ 上升后**恒定在 A_peak/SCALE**,
+        /// 便于把「越阈」做成 tick 的函数而不是曲线的函数。
+        /// </summary>
+        private static DiseaseRegistryEntry AcuteLethal(int aPeak = 70, int scale = 100)
+        {
+            return new DiseaseRegistryEntry
+            {
+                DiseaseId = 60,
+                DiseaseKey = "DIS_F4_WIRING_LETHAL",
+                Kind = DiseaseKind.Disease,
+                Lethality = 2,
+                Scale = new Fix(scale * Fix.OneRaw),
+                Curve = new NaturalProgressCurve
+                {
+                    Incubation = 0,
+                    APeak = new Fix(aPeak * Fix.OneRaw),
+                    TauRise = new Fix(10 * Fix.OneRaw),
+                    TauPeak = 100,
+                    TauFall = new Fix(100 * Fix.OneRaw),
+                    Plateau = false,
+                    SelfLimit = false,        // 急性保持型 ⇒ Base 恒 = A_peak(τ ≥ τ_peak)
+                    BoundaryMode = "monotone",
+                },
+            };
+        }
+
+        private static void AppendCausalDrug(Chain c, long tick, Fix potency, long halfLife)
+        {
+            var payload = new DrugTreatmentAppliedPayload(
+                tick: tick, treatmentId: TreatmentId, actorId: 1,
+                polarity: ProgressionEvaluator.PolarityCausal,
+                drugPotency: potency, halfLife: halfLife, seq: 0);
+            c.Bag.EventSink.Append(new SimEvent(
+                tick, c.Patient, -1, EventKind.DrugTreatmentApplied,
+                c.Bag.Encoder.Encode(EventKind.DrugTreatmentApplied, payload)));
+        }
+
+        // ══════════════════ ① 接线存在:Step 后九态可查 ══════════════════
+
+        /// <summary>
+        /// **核心判据**:`GetOutcome` 在 Step 之前抛、之后返回 —— 证明接线真的在 StepAll 里。
+        /// <para>若 `StepAll` 不写 `_outcomes`,本测试在第二段抛
+        /// <see cref="PatientCourseNotFoundException"/>。</para>
+        /// </summary>
+        [Test]
+        public void test_outcome_unavailableBeforeStep_availableAfter()
+        {
+            Chain c = OpenChain(AcuteLethal());
+
+            Assert.Throws<PatientCourseNotFoundException>(() => c.Outcome(),
+                "未走过任何 tick 边沿 ⇒ 无九态(拒绝返回默认值)");
+
+            c.DriveTo(0);
+
+            Assert.DoesNotThrow(() => c.Outcome(),
+                "Step 边沿后必须有九态 —— 否则 F4 仍未接线");
+        }
+
+        // ══════════════════ ② 值由 F1 读数算出(随 position 变) ══════════════════
+
+        /// <summary>
+        /// 九态**随曲线变化** —— 不是常量。
+        /// <para>急性保持型 + `A_peak/SCALE = 0.70` ⇒ τ ≥ τ_peak 后 position 恒 0.70,
+        /// 落在 `[DEATH=0.58, 1)` 区间。故:</para>
+        /// <list type="bullet">
+        /// <item>τ = 0(position = 0)⇒ 非 Deceased;</item>
+        /// <item>τ = τ_peak(越过 DEATH)⇒ 越阈,但窗口未过 ⇒ 不判死,落 <c>Coma</c>
+        /// (≥ COMA = 0.45)。</item>
+        /// </list>
+        /// <para>若接线把 `position` 传错量纲(如把 raw Progress 当 position),
+        /// 第二条会是 Deceased(0.70 raw 远小于 DEATH raw,反而不越阈)——
+        /// 两种错法都会让本条红。</para>
+        /// </summary>
+        [Test]
+        public void test_outcome_tracksPosition_notConstant()
+        {
+            Chain c = OpenChain(AcuteLethal(aPeak: 70, scale: 100));
+
+            c.DriveTo(0);
+            InjuryState atOnset = c.Outcome();
+            Assert.AreNotEqual(InjuryState.Deceased, atOnset,
+                "τ = 0 时 position = 0,不可能已死");
+
+            c.DriveTo(200);   // τ = 200 > τ_peak = 100 ⇒ position = 0.70 ≥ DEATH(0.58)
+            InjuryState afterPeak = c.Outcome();
+
+            Assert.AreEqual(InjuryState.Coma, afterPeak,
+                "position = 0.70 ≥ COMA(0.45)但窗口未过 ⇒ 昏迷(死亡支被窗口挡住)");
+        }
+
+        // ══════════════════ ③ 窗口真的在起作用 ══════════════════
+
+        /// <summary>
+        /// **窗口约束接线判据**:同一 position 下,「刚过阈」不死、「过阈 + 过窗口」才死。
+        /// <para>若接线把 `currentTick` / `onsetTick` 传成常量(如都传 0),
+        /// `t − last_intervention` 恒 0 ⇒ **永不判死** ⇒ 第二条红。</para>
+        /// </summary>
+        [Test]
+        public void test_death_requiresWindowElapsed()
+        {
+            Chain c = OpenChain(AcuteLethal());
+
+            c.DriveTo(200);      // position 已越 DEATH,但 t − onset = 200 < 3600
+            Assert.AreEqual(InjuryState.Coma, c.Outcome(),
+                "越阈但窗口未过 ⇒ 昏迷,不判死(铁律一:不能一越线就死)");
+
+            c.DriveTo(StateMachine.TREATMENT_WINDOW + 10);
+            Assert.AreEqual(InjuryState.Deceased, c.Outcome(),
+                "越阈 + 窗口已过(从未被治过 ⇒ last_intervention = onset_tick)⇒ 死亡");
+        }
+
+        // ══════════════════ ④ 有效对因处置刷新窗口(通道 ① 接通) ══════════════════
+
+        /// <summary>
+        /// **处置通道真的接进去了**:一条有效对因处置把死亡时刻**推后**。
+        /// <para>判据构造:两链同时驱动到 `TREATMENT_WINDOW + 10` —— 无处置者已死;
+        /// 有处置者(处置在 τ = 3000)的 `last_intervention = 3000`,
+        /// 故 `t − last_intervention = 3610 − 3000 = 610 < 3600` ⇒ **仍昏迷**。</para>
+        /// <para>若接线不传处置通道(恒 <c>None</c>),有处置者也会死 ⇒ 本条红。</para>
+        /// </summary>
+        [Test]
+        public void test_causalTreatment_refreshesDeathWindow()
+        {
+            Chain untreated = OpenChain(AcuteLethal());
+            Chain treated = OpenChain(AcuteLethal());
+
+            // 处置在 τ = 3000:potency 为负(与 Base ≥ 0 异号)、半衰期足够长
+            const long treatAt = 3000;
+            AppendCausalDrug(treated, treatAt, new Fix(-10 * Fix.OneRaw), halfLife: 100000);
+
+            long probe = StateMachine.TREATMENT_WINDOW + 10;   // 3610
+            untreated.DriveTo(probe);
+            treated.DriveTo(probe);
+
+            Assert.AreEqual(InjuryState.Deceased, untreated.Outcome(),
+                "无处置 ⇒ last_intervention = onset_tick ⇒ 窗口已过 ⇒ 死亡");
+
+            Assert.AreEqual(InjuryState.Coma, treated.Outcome(),
+                "τ=3000 的有效对因处置把 last_intervention 推到 3000 ⇒ 3610−3000=610 < 3600 ⇒ 仍昏迷");
+        }
+
+        /// <summary>
+        /// **对症处置不刷新窗口**(铁律二 —— 伪治疗不续命)。
+        /// <para>若 `IsEffectiveCausalDose` 的 `polarity = causal` 那一半被删,
+        /// 本条红:对症处置会把死亡推迟,玩家可以靠「乱给药」无限续命。</para>
+        /// </summary>
+        [Test]
+        public void test_symptomaticTreatment_doesNotRefreshWindow()
+        {
+            Chain c = OpenChain(AcuteLethal());
+
+            var payload = new DrugTreatmentAppliedPayload(
+                tick: 3000, treatmentId: TreatmentId, actorId: 1,
+                polarity: 0,                                   // Symptomatic
+                drugPotency: new Fix(-10 * Fix.OneRaw), halfLife: 100000, seq: 0);
+            c.Bag.EventSink.Append(new SimEvent(
+                3000, c.Patient, -1, EventKind.DrugTreatmentApplied,
+                c.Bag.Encoder.Encode(EventKind.DrugTreatmentApplied, payload)));
+
+            c.DriveTo(StateMachine.TREATMENT_WINDOW + 10);
+
+            Assert.AreEqual(InjuryState.Deceased, c.Outcome(),
+                "对症处置**不得**刷新 last_intervention ⇒ 仍按 onset_tick 计时 ⇒ 死亡");
+        }
+
+        /// <summary>
+        /// **正 potency 的处置也不算有效对因**(「与 Base 异号」那一半)。
+        /// <para>若该判据被删,一条把病情推高的处置反而会续命 —— 语义反向。</para>
+        /// </summary>
+        [Test]
+        public void test_positivePotencyTreatment_doesNotRefreshWindow()
+        {
+            Chain c = OpenChain(AcuteLethal());
+
+            // causal 极性,但 potency 为正(与 Base ≥ 0 同号 ⇒ 不是「治疗」)
+            AppendCausalDrug(c, 3000, new Fix(10 * Fix.OneRaw), halfLife: 100000);
+
+            c.DriveTo(StateMachine.TREATMENT_WINDOW + 10);
+
+            Assert.AreEqual(InjuryState.Deceased, c.Outcome(),
+                "potency 与 Base 同号 ⇒ 不是有效对因处置 ⇒ 不刷新窗口");
+        }
+
+        // ══════════════════ ⑤ 痊愈支/迁延支未求值(W/TREND_EPS 未裁定) ══════════════════
+
+        /// <summary>
+        /// **W 未裁定 ⇒ 接线不得代拍**:自限型病人曲线衰减到低位后,
+        /// 九态**仍是阈值分级**(Severe/Moderate/Mild),**不是** <c>Recovered</c>。
+        /// <para>这是「结构先落、数值作入参」那条裁定的接线侧判据 ——
+        /// 若接线擅自传一个 W 值(哪怕 1),本条会转 <c>Recovered</c> 而红。</para>
+        /// </summary>
+        [Test]
+        public void test_selfLimitedLowPosition_doesNotReportRecovered()
+        {
+            DiseaseRegistryEntry entry = AcuteLethal(aPeak: 20, scale: 100);
+            entry.Curve.SelfLimit = true;      // 自限型:τ ≥ τ_peak 后指数衰减
+            entry.Curve.TauFall = new Fix(20 * Fix.OneRaw);   // 快速衰减到低位
+
+            Chain c = OpenChain(entry);
+            c.DriveTo(1000);                   // 远过 τ_peak,position 已衰减到 ~0
+
+            InjuryState state = c.Outcome();
+            Assert.AreNotEqual(InjuryState.Recovered, state,
+                "W / TREND_EPS 未裁定 ⇒ 接线传 default(RecoveryWindowInput) ⇒ 痊愈支不求值");
+            Assert.AreNotEqual(InjuryState.Chronic, state,
+                "同上:迁延支亦不求值");
+        }
+
+        // ══════════════════ ⑥ 病人侧不吃玩家的战伤破例 ══════════════════
+
+        /// <summary>
+        /// 接线传的实体类别是 <see cref="ActorClass.Patient"/> —— 不是 <c>Player</c>。
+        ///
+        /// <para><b>⚠️ 靶子的构造是本条的全部难点(第一版打错了,已订正)</b>:
+        /// 第一版用「白名单伤情 + 急性保持型(`self_limit = false`)」——
+        /// 但那样两种类别**都给 `SelfLimited = false`**:
+        /// <c>Patient</c> 走注册表原值(<c>false</c>),<c>Player</c> 走战伤破例(<c>false</c>)
+        /// ⇒ 二者同效 ⇒ 变异 <c>Patient → Player</c> **假存活**(实测 N6:`4584/4548/0`,零红)。</para>
+        ///
+        /// <para><b>现行构造 = 让两条路径真的分叉</b>:注册表 <c>self_limit = true</c> ⇒</para>
+        /// <list type="bullet">
+        /// <item><c>Patient</c> ⇒ 取注册表原值 <c>true</c> ⇒ **死亡支关闭** ⇒ 不死(昏迷);</item>
+        /// <item><c>Player</c> ⇒ 战伤破例把 <c>true</c> 翻成 <c>false</c> ⇒ **死亡支开启** ⇒ 死。</item>
+        /// </list>
+        /// <para>⇒ 判据 = **不死**。若接线误传 <c>Player</c>,本条转 <c>Deceased</c> 而红。</para>
+        ///
+        /// <para><b>为什么要 <c>TauFall</c> 很大</b>:<c>self_limit = true</c> 会让曲线在
+        /// <c>τ ≥ τ_peak</c> 后指数衰减。取 <c>τ_fall = 100000</c> tick ⇒ 到
+        /// <c>τ = 3610</c> 时衰减 ≈ <c>e^(−0.035) ≈ 0.966</c>,<c>position ≈ 0.676 ≥ DEATH(0.58)</c>
+        /// ⇒ 死亡支的**阈值条件仍成立**,分叉只发生在「门」那一层。
+        /// 若 <c>τ_fall</c> 取小值,position 会先掉到阈值下 ⇒ 两种类别都不死 ⇒ **又是一次假存活**。</para>
+        /// </summary>
+        [Test]
+        public void test_wiringUsesPatientClass_notPlayer()
+        {
+            DiseaseRegistryEntry entry = AcuteLethal();
+            entry.Kind = DiseaseKind.Injury;
+            entry.DiseaseKey = "INJ_STAB";          // 战伤白名单内
+            entry.Curve.SelfLimit = true;           // ⇒ 与 Player 的破例分叉的关键
+            entry.Curve.TauFall = new Fix(100000 * Fix.OneRaw);   // 衰减极慢,position 仍在死线之上
+
+            Chain c = OpenChain(entry);
+            c.DriveTo(StateMachine.TREATMENT_WINDOW + 10);
+
+            Assert.AreNotEqual(InjuryState.Deceased, c.Outcome(),
+                "病人不吃玩家的战伤破例 ⇒ SelfLimited 取注册表原值 true ⇒ 死亡支关闭 ⇒ 不得判死;" +
+                "若本条返回 Deceased,说明接线误传了 ActorClass.Player(破例把 true 翻成了 false)");
+        }
+    }
+}

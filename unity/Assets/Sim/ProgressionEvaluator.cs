@@ -354,6 +354,41 @@ namespace DaYiJingCheng.Sim
         }
 
         /// <summary>
+        /// 「有效对因处置」判据 —— GDD <c>:1127</c> 的三条件合取,**本方法是唯一实现**。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>为什么必须提为公开方法(2026-10-22 F4 接线轮)</b>:同一组判据有两个消费者 ——
+        /// ① <see cref="ComputeDrugContribution"/>(F1 的 Σ 求和);② F4 的
+        /// <see cref="LastInterventionAggregator.TreatmentChannelInput"/>(`last_intervention` 通道)。
+        /// 若各写一遍,改一处不改另一处即**静默分叉**:F1 认为某处置有效、F4 认为它不续命,
+        /// 表现为「玩家一直在治、病人照样死」,且没有任何测试会红。
+        /// ⇒ 唯一实现,两处共用。</para>
+        ///
+        /// <para><b>三条件(GDD <c>:1127</c> 逐字)</b>:</para>
+        /// <list type="number">
+        /// <item><c>polarity = causal</c>(<see cref="PolarityCausal"/>)—— 对症处置不续命(铁律二);</item>
+        /// <item><c>drug_potency 与 Base 异号</c> —— <c>Base ≥ 0</c> 恒成立
+        /// (<c>a_peak &gt; 0</c> 由 R1-24 保证,<c>Base</c> 各分段非负)⇒ 本条等价于
+        /// <c>DrugPotency.Raw &lt; 0</c>。⚠️ 不写成「与当刻 Base 比大小」——
+        /// 那会让判据依赖求值时刻,同一处置在不同 tick 忽有效忽无效,`last_intervention`
+        /// 随之非单调;</item>
+        /// <item><c>处置 ∈ treatable_by(d)</c> —— 经 <see cref="IsInTreatableBy"/>
+        /// (该门当前因数据面缺位恒放行,缺口登记见其注释)。</item>
+        /// </list>
+        ///
+        /// <para><b>⚠️ 本方法不含</b>「<c>Δ ≥ 0</c>」与「<c>Decay ≠ 0</c>」两条 ——
+        /// 那两条是**贡献量**的防御(AC-27 时间反演归零 / 半衰期退化),
+        /// 不是「是否有效处置」的定义。故仍留在 <see cref="ComputeDrugContribution"/> 内。</para>
+        /// </remarks>
+        public static bool IsEffectiveCausalDose(DiseaseRegistryEntry registry, in TreatmentDose dose)
+        {
+            if (registry == null) throw new ArgumentNullException(nameof(registry));
+            if (dose.Polarity != PolarityCausal) return false;
+            if (dose.DrugPotency.Raw >= 0) return false;      // 与 Base(≥0)异号
+            return IsInTreatableBy(registry, dose.TreatmentId);
+        }
+
+        /// <summary>
         /// `Decay(Δ) = e^(−Δ/half_life) · [Δ ≥ 0]`(F1;`Δ &lt; 一律取 0`)。
         /// </summary>
         /// <remarks>

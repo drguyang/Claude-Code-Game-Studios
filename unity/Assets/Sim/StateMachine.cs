@@ -20,6 +20,44 @@ namespace DaYiJingCheng.Sim
     /// <summary>
     /// 伤情状态（九态）。
     /// </summary>
+    /// <remarks>
+    /// <para><b>🔁 2026-10-22 第三轮订正 —— 本枚举的「九态」与 GDD 的「九态」<u>不是同一套词汇</u></b>
+    /// (此前两处注释把二者当成同一物,均已就地加注)。逐值对照:</para>
+    /// <list type="table">
+    /// <item><term>GDD 九态</term><description>潜伏 · 发病 · 进展 · 好转 · 迁延 · 危殆 · 昏迷 · 痊愈 · 死亡
+    /// (<c>disease-simulation.md:536-546</c>)</description></item>
+    /// <item><term>本枚举</term><description>Healthy · Mild · Moderate · Severe · Critical · Coma ·
+    /// Recovered · Chronic · Deceased</description></item>
+    /// </list>
+    /// <para><b>可对齐的只有 5 对</b>:<c>Coma ↔ 昏迷</c> · <c>Critical ↔ 危殆</c> ·
+    /// <c>Recovered ↔ 痊愈</c> · <c>Chronic ↔ 迁延</c> · <c>Deceased ↔ 死亡</c>。
+    /// <b>GDD 有而本枚举无</b>:潜伏 / 发病 / 进展 / 好转 —— 四者都是**病程过程态**,
+    /// GDD 由 <c>τ</c>(病程时长)与 <c>sign(trend)</c> 分段得出,<b>不是 <c>position</c> 阈值的函数</b>。
+    /// <b>本枚举有而 GDD 无</b>:<c>Healthy</c> / <c>Mild</c> / <c>Moderate</c> / <c>Severe</c> ——
+    /// 四者是按 <c>position</c> 切的三档严重度 + 健康,**GDD 九态表里没有这三档**
+    /// (其阈值 <see cref="StateMachine.SEVERE_THRESHOLD"/> / <see cref="StateMachine.MODERATE_THRESHOLD"/>
+    /// 亦无 GDD 出处)。</para>
+    /// <para><b>⚠️ 为什么不是缺陷、也不是可随手改的命名</b>:</para>
+    /// <list type="number">
+    /// <item><b>两个枚举服务两个不同的消费者</b>。<c>InjuryState</c> 是
+    /// <see cref="EventKind.InjuryStateChanged"/> 的载荷词汇(<c>new_state</c> 枚举,
+    /// <c>entities.yaml:2382</c>),服务<b>受伤实体集 {敌人, 玩家}</b>、落<b>世界流</b>;
+    /// GDD 九态是<b>病人侧</b>病程语义、落<b>病史流</b>。改本枚举 = 改一条已登记 Kind 的载荷域。</item>
+    /// <item><b>GDD 明确禁止下游重建九态</b>:13 病人 AI 只按 <c>position</c>/<c>trend</c> 自有
+    /// <c>BEHAVIOR_BAND_*</c> 分档(<c>:528</c> / <c>:646</c> / <c>:1487</c>,ADR-016 §六)——
+    /// 「13 不重建九态」。故 GDD 九态<b>从未计划</b>成为一个跨系统的状态枚举。</item>
+    /// <item><b>病人侧的状态转移本就不走本枚举</b>:<c>entities.yaml:2383</c> 与
+    /// <c>InjuryStateChangedWriter</c> 头注均明写「病人侧的状态转移由 9 的病史流既有 Kind 承载,
+    /// 本 Kind 服务受伤实体集」。⇒ 病人侧终态由 <see cref="EventKind.PatientOutcomeChanged"/>
+    /// (ADR-032,outcome ∈ {Recovered, Died})承载,<b>不经 <c>InjuryState</c></b>。</item>
+    /// </list>
+    /// <para><b>⚠️ 当前的实际可达性</b>:本枚举的<b>唯一生产读取方</b>是
+    /// <see cref="StateMachine.ComputeTransition"/> 的调用点
+    /// <see cref="InjuryStateChangedWriter"/>,而该写者<b>自身零生产构造点</b>
+    /// (只在 <c>death_candidate_writers_test.cs:47</c> 出现)⇒ 整条链在生产上**不可达**。
+    /// 本订正**只加注、不改值** —— 改值须先裁「受伤实体的状态词汇是否要与 GDD 九态合并」,
+    /// 那是一条会动已登记 Kind 载荷域的架构问题,不在实现轮自行处置。</para>
+    /// </remarks>
     public enum InjuryState
     {
         Healthy = 0,
@@ -119,6 +157,12 @@ namespace DaYiJingCheng.Sim
         /// <para>⚠️ <b>本常量 2026-10-22 之前不存在</b>(与 `TREATMENT_WINDOW` / `CARE_GAP` 同批补)。
         /// 它当前**唯一的消费者**是注册表的 R1-35(豁免类下界校验);
         /// F4 的痊愈支(需要 `trend_backward_agg`)仍未实现 —— 见 `F4OutcomeEvaluator` 的登记项。</para>
+        /// <para>🔁 <b>2026-10-22 第三轮订正 —— 上段后两句已失效(原文不删)</b>:
+        /// F4 的痊愈支**已实现**(<see cref="F4OutcomeEvaluator"/> 的
+        /// <c>TryEvaluateRecovered</c>),它**消费本常量**作 <c>position_agg &lt; RECOVER</c> 的判据。
+        /// ⇒ 现有**两个**消费者:① 注册表 R1-35 豁免类下界;② F4 痊愈支第一条件。
+        /// ⚠️ 痊愈支的另两个量(<c>W</c> / <c>TREND_EPS</c>)仍**未裁定** ——
+        /// 它们作**入参**传入(<c>RecoveryWindowInput</c>),不写死在这里。</para>
         /// </summary>
         public const int RECOVER_THRESHOLD = 7864;
 
@@ -128,6 +172,11 @@ namespace DaYiJingCheng.Sim
         /// 提为具名常量是因为 <see cref="F4OutcomeEvaluator"/> 也要用它 ——
         /// 两处各写一个字面量就是两份真源,改一处不改另一处会静默分叉。
         /// <b>值未改</b>(仍 = 2000)。</para>
+        /// <para>⚠️ <b>2026-10-22 第三轮订正 —— 「GDD 九态分级」这个归属是错的(原文不删)</b>:
+        /// 实测 GDD <c>disease-simulation.md</c> 的九态表(:536-546)**没有**「轻度 / 中度 / 重度」三档,
+        /// 全篇亦无 <c>2000</c> / <c>1000</c> 作阈值。本常量与 <see cref="MODERATE_THRESHOLD"/> 的
+        /// 出处是 <see cref="InjuryState"/> 这个**九值枚举本身**(C# 侧既有词汇),
+        /// **不是 GDD 的九态**。两套词汇的对应关系见 <see cref="InjuryState"/> 的订正注。</para>
         /// </summary>
         public const int SEVERE_THRESHOLD = 2000;
 

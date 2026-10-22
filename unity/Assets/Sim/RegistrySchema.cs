@@ -557,6 +557,13 @@ namespace DaYiJingCheng.Sim
                     //   ⚠️ 既有字段是 Lethality ∈ [0,3] 整数(GDD R1 表写 bool `lethal`,字段错位
                     //      属既有 16 字段问题),此处以 Lethality > 0 代 lethal;GDD 校验 4b
                     //      (A_peak/SCALE ≥ DEATH_THRESHOLD)因 DEATH_THRESHOLD 值待定未实现,登记。
+                    //   🔁 2026-10-22 第三轮订正 —— **「字段错位」这个定性已被用户裁定推翻**(原文不删):
+                    //      裁定口径 = 「保持 0-3,明确语义为『致死等级』」⇒ `Lethality ∈ [0,3]`
+                    //      **不是**对 `bool lethal` 的错位映射,而是更细的定义域;`lethal ⇔ Lethality > 0`
+                    //      是**正确定义**,不是代理近似。逐条论证见 `EntityDeathGates.LethalityOf`。
+                    //      ⚠️ 但**本条注释的另一半仍然成立且重要**:binder 把 JSON 的 `lethal: bool`
+                    //      映射为 `? 2 : 0`(`DiseaseRegistryBinder.cs:180`)⇒ 等级 1 与 3
+                    //      **今天从作者态不可达**。这是作者态 schema 的刻意简化,不是缺陷。
                     //   🔁 2026-10-22 补注:**上述「值待定」的理由已失效** —— DEATH_THRESHOLD 已于
                     //      同日裁定为 38011 raw(≈0.58,档 C;见 StateMachine.cs:90)。
                     //      ⇒ 4b **现在可以实现**,但**仍未实现**(本轮不做,登记为欠账)。
