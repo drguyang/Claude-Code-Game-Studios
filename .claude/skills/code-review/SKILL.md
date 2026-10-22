@@ -249,10 +249,11 @@ This skill is read-only — no files are written.
 把完成度拆成两个正交列:
 
 ```
-| ID | Landed(已落) | Proven(已证) | File(s) | Proven-by(可复算判据) |
-|---|---|---|---|---|
-| R-1 | ✅ | ✅ | …Writer.cs:64 | §四 F1 RED:停用头槽写入 ⇒ test_ac53_cookedHeaderSchemaSlot 红 |
-| J   | ✅ | ✗  | …Binder.cs:210 | 拆分已落,但 ParseRows 仍 69 行 —— ≤40 界无夹具 ⇒ 不得标已证 |
+| ID | Landed(已落) | Proven(已证) | Branch(分支覆盖) | File(s) | Proven-by(可复算判据) |
+|---|---|---|---|---|---|
+| R-1 | ✅ | ✅ | ✅ 3/3 | …Writer.cs:64 | §四 F1 RED:停用头槽写入 ⇒ test_ac53_cookedHeaderSchemaSlot 红 |
+| R-2 | ✅ | ✅ | ✗ 2/3 | …Predicate.cs:123 | 三条件合取,只证了 `终态` / `¬豁免`;`¬未结案` 无夹具 |
+| J   | ✅ | ✗  | — | …Binder.cs:210 | 拆分已落,但 ParseRows 仍 69 行 —— ≤40 界无夹具 ⇒ 不得标已证 |
 ```
 
 - **Landed(已落)** = 改动在盘上。仅陈述事实,**不主张任何正确性**。
@@ -261,6 +262,13 @@ This skill is read-only — no files are written.
   ③ 第三方可重跑的命令(含预期输出)。
   ⚠️ 在 Proven / Proven-by 列写**动作描述**(「拆了方法 / 改了措辞 / 已重构 / 见下行清单」)
   = **不合格** —— 那是把 Landed 伪装成证明。
+- **Branch(分支覆盖)** = 该判定的**每个条件分支各有一例夹具**。列 `✅ n/m` / `✗ n/m` 并给出
+  未覆盖分支名(见上方 `R-2` 例)。**这是「Proven ✅」的加强门,不是替代**:
+  - 单分支判定(无 `if` / 无合取 / 无白名单分支)填 `—` 或 `✅ 1/1`,不强制;
+  - **多分支判定而 `Branch` 缺分支 ⇒ 该行 `Proven` 不得标 ✅**(降为 `Landed=✅ / Proven=✗`)。
+  - 立规缘由(sprint-18 实证):S18-2 的折叠谓词是**四条件合取**,证伪轮 4/4 全红却**没有一条**
+    打「抹哪些行」—— 即条件③④ 的分支有反证,而**产出侧分支零反证**。当时若有此列,
+    「折叠产出面已验证」这句话根本写不出来(签核件 D-5 是事后才抓到的)。
 - 一行**两列皆 ✅ 才算结清**。`Landed=✅ / Proven=✗` 是合法的诚实状态
   (部分修 / standards 类无界检查项),**须暴露而非隐藏**。
 - **本轮未运行其判据 ⇒ 不得标 Proven ✅**(禁借绿同族)。
@@ -269,6 +277,10 @@ This skill is read-only — no files are written.
 
 **向前生效**:本规不追改已结案的评审原件(改历史 = 销毁当时记录);
 旧原件单列「状态」的形态作为历史保留,新评审起一律双列。
+
+> 🔁 **2026-10-22(sprint-18 收口 · retro-14 行动项 3,欠两轮后落地)**:结账表增 **`Branch(分支覆盖)`** 列。
+> 该项由 retro-14 提出、sprint-15 与 sprint-17 两轮未做(全仓 `grep -rn "分支覆盖" .claude/skills/ .claude/docs/`
+> 当时零命中)。**不追改已结案原件** —— 上方「向前生效」条款同样适用于本列。
 
 ---
 

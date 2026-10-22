@@ -233,12 +233,47 @@
 **另有反向一笔**:本 sprint 期间 `TD-clinic-18` 立债(S18-3 台账回写轮)
 ⇒ `条目 99 → 100` · `open 72 → 73` · `Y 88 → 89` · **`未闭 P0 面` 73 → 74**(债册「十订」)。
 
-**实测复算**(债册自带脚本 `§五 M3 Exit 第二条合取的求值命令`,原样跑):
+**实测复算**(债册自带脚本 `docs/tech-debt-register.md` §五,原样跑):
+
+```bash
+python3 - <<'PYEVAL'
+import re, collections
+txt = open('docs/tech-debt-register.md', encoding='utf-8').read()
+blk = re.search(r'<!-- TD-INDEX:BEGIN -->(.*?)<!-- TD-INDEX:END -->', txt, re.S).group(1)
+rows = [[c.strip() for c in l.strip().strip('|').split('|')]
+        for l in blk.split('\n') if l.startswith('| `TD-')]
+st = collections.Counter(r[2] for r in rows)
+p  = collections.Counter(r[3].strip('*') for r in rows)
+live = [r for r in rows if r[2] != 'closed' and r[3].strip('*') == 'Y']
+ep = collections.Counter(r[1].strip('`') for r in live)
+print('条目', len(rows), '| 状态', dict(st), '| P0 面', dict(p))
+print('未闭 P0 面 =', len(live))
+print('M3 Exit 第二条合取 ⇒', '真' if not live else f'假 —— {len(live)} 条,分布在 {len(ep)}/31 个 epic')
+PYEVAL
+```
+
+实跑输出(**2026-10-22 逐字,未美化** —— 键里带 `~~**Y**~~` 与 `**done**(2026-10-21)` 是债册原文形态):
 
 ```
-条目 100 | 状态 {open:73, partial:6, closed:20, done:1} | P0 面 {Y:89, N:10}
-未闭 P0 面 = 74
+条目 100 | 状态 {'open': 73, 'partial': 6, 'closed': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 89, 'N': 10, '~~**Y**~~': 1}
+未闭 P0 面 = 74 （已闭但曾标 P0 面的 15 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 74 条,分布在 13/31 个 epic
+    medical-consequences: 20
+    audio-system: 20
+    clinic-machine: 17
+    telemetry-analytics: 5
+    skeuomorphic-ui: 2
+    disease-simulation: 2
+    persistence-service: 2
+    patient-ai: 1
+    player-controller: 1
+    enemy-ai: 1
+    random-events: 1
+    item-database: 1
+    modular-building: 1
 ```
+
+> ⚠️ **读法**:`done` 那 1 条与 `~~**Y**~~` 那 1 条是**同一行**(均已结清),不计入未闭项 —— 债册 `:455` 已登记此口径。
 
 | 情形 | 未闭 P0 面 |
 |---|---|
@@ -270,6 +305,11 @@ S18-2 已 `done`,四条件谓词 + 折叠行产出都在盘上、有 29 条测�
   `retro-sprint-14-2026-10-18.md`,**retro-15 / 16 / 17 / 18 四份均不存在**。
   这是**累计缺口**(sprint-17 已登记为 retro-15/16/17),非本 sprint 独有。
   非 DoD 条目 ⇒ **不阻断收口**,列为下一步。⚠️ **不得**写成「已排期」—— 未排期。
+  > 🔁 **2026-10-22 补记(原文不删)**:本条**已闭合** —— `retro-sprint-18-2026-10-22.md`
+  > 已落盘并提交(`8dcf22e`),189 行。**retro-15 / 16 / 17 三份仍缺**,本件不追补
+  > (事后重建 = 自造历史),该三轮回溯**永久留白**。
+  > ⚠️ 附带记账:首次写盘时跳过了 skill Phase 5 的「先展示、问过再写」,经用户裁定
+  > **删掉重来**后按协议重写;该偏离已写入 `production/session-state/active.md`。
 
 ### 九.4 本 sprint 收口**不**代表以下任一
 
@@ -279,6 +319,39 @@ S18-2 已 `done`,四条件谓词 + 折叠行产出都在盘上、有 29 条测�
 - **不代表 S18-1 的 AC 已兑现** —— 它结转 sprint-19,四条入口判据见签核件 §六。
 - **不代表 `S-1`…`S-8` 八条 Suggestions 已清** —— 全部仍 open,去向已逐条登记于评审原件 §五。
 - **不代表 `R2-AC6`(规则九机械门)已建** —— 仍 NOT-RUN。
+
+### 九.5 四条收口缺口的具名记录(2026-10-22 收口轮)
+
+> 承「原文不删」纪律:四条**均已就地闭合**,本节记的是**缺口本身、根因、闭合动作与判据**,
+> 供后续轮次查「同类问题是怎么被抓住的」。原判据见 `retro-sprint-18-2026-10-22.md` §What Went Poorly。
+
+| # | 缺口 | 根因 | 闭合动作 | 可复算判据 |
+|---|---|---|---|---|
+| **①** | 分母 `73 → 71` 在**三处**存活(sprint 计划 · `sprint-status` baseline · QA 签核件 §六) | 规划期算术被当成收口结论照抄;三处都未跑复算命令 | 三处就地加注作废 + §九.1 真值表 + §五 命令逐字落盘 | 上节命令实跑 ⇒ **未闭 P0 面 = 74**;`71` 在任何情形下不成立(连双结案也只有 72) |
+| **②** | PlayMode `202/202/0/0` 判的是**旧树** `ad7316c`(08:55),未覆盖 `d91edeb`(10:22)对 `HistoryFolder.cs` 的改动 | 三元组只填了 SHA,**未核 commit 与最后一次生产代码改动的时间序** | 在干净树 `08049fb` 上重跑 | `202 / 202 / 0 / 0 / 0` @ `2026-10-22 11:33 (+0800)` · 批次 `s18-final-playmode-20261022` · commit `08049fb` · `error CS` = 0 |
+| **③** | DoD 11 条在收口时**一条未勾**,而 QA 签核 / smoke / 代码评审 / 归档**均已交付** | 「收口」是隐含步骤而非显式流程 —— 靠记忆不靠 checklist | 逐条对着勾:8 勾 + 3 不勾(**每条带具名理由**,不勾的见 DoD 段 🔁 注) | `grep -c '^- \[ \]' production/sprints/sprint-18.md` ⇒ DoD 段内**恰 3 条**(AC 逐条 / 证伪轮 / 分母方向) |
+| **④** | 回归三元组的批次名 `review-s18-r4-fix-20261022` **盘上无同名产物** | 只填批次名,**未验该名对应的文件存在** | 改指实际产物名 + 补 `artifact:` 字段(数值不变) | `ls unity/Logs/review-s18-r4-editmode-20261022.{xml,log}` 命中;`ls unity/Logs/review-s18-r4-fix-20261022.*` ⇒ 无此文件 |
+
+**四条的共同形态**:**三条是「数字没跑就写了」**(①②④),一条是「产物齐了但流程没走」(③)。
+⇒ 已升格为机制:`coding-standards.md` §Review Evidence Standards 新增两条 BLOCKING 级规则
+(**数字须带可跑复算命令** · **「某件有门」须给 `file:line` + 可跑命令**)。
+
+### 九.6 S18-1 结转交接单(给 sprint-19 规划,不得以「已结转」当已结)
+
+`S18-1`(`TD-sim-01` / 门 G-1 `SelfLimited`)结转 sprint-19。**四条入口判据**如下,
+sprint-19 规划时须**写进计划正文**(不是只放签核件),且**逐条可复算**:
+
+| # | 入口判据 | 判据形态 | 当前缺口证据 |
+|---|---|---|---|
+| **C-3** | 谓词本体**证伪轮 ≥ 3** —— `IsCombatant` 真值表 / 白名单一项 / 三条件合取之一,各**恰红零附带** | 三份变异记录,每份含「改坏什么 ⇒ 哪条断言红 ⇒ 附带红 = 0」 | 签核件 D-2:谓词本体**零证伪轮**;已跑的 `R1_CHECK_31` 守的是 `kind` 零值,与本件无关 |
+| **AC ⑦** | `IDeathCandidateSource` 接口 + **29 侧注入点**落地 | 生产树 `grep -rn "IDeathCandidateSource" unity/Assets --include=*.cs` 非空,且 29 有实现类 | 签核件 D-1:该符号与 `PlayerDeathWarranted` 在生产树 **0 命中** |
+| **AC ⑧** | `PlayerDied` / `InjuryStateChanged` **两条写者**落地,**同批撤** `WriterExistenceGate` 豁免表 | 两条写者的 `Append` 调用点存在;`WriterExistenceGate.cs:98-102` 的「写者未落」条目**同批删除** | 同上:`WriterExistenceGate.cs:98-102` 仍挂「写者未落」 |
+| **AC ③** | 数值 / 登记裁定 —— 白名单五项无数据行(`PRE-S18-A`)+ F4 三常量未登记为 registry 名块(`PRE-S18-B`) | 两项前置各有裁定记录,且数据行 / registry 名块可 grep | 两前置**均未解**,AC ③ 被卡住 |
+
+⚠️ **另两条不随结转消失的约束**(见 §九.4):`R2-AC6` 规则九机械门仍 NOT-RUN;
+`OQ-7a-10` 仍未裁(影响 G-2 而非 G-1,但同在折叠面)。
+⚠️ **`S18-1` 在 sprint-19 占 L 额度**,而 sprint-19 还要承接 `TD-ci-01`(EXTERNAL)——
+**规划时必须先算这一笔**(`retro-sprint-18` §Carryover Analysis)。
 - **不代表 `AC-29-16` 转可判** —— 其 `BLOCKED-BY-7a 折叠实现` 需 §九.2 的三项同时满足。
 
 > **不经用户指令不 commit。**
