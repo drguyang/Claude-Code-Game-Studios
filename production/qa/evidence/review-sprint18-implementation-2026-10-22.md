@@ -204,3 +204,67 @@ ADR-026 §⑦(条件 ④ 落动作侧)、ADR-032 ④a/④b/⑤/⑥ —— 全部
 | 权威件 | GDD `persistence-service.md:314-330` · `disease-simulation.md:1153-1230` · ADR-010 / 025 / 026 / 031 / 032 |
 | 回归产物 | `unity/Logs/review-s18-r1-editmode-20261022.{xml,log}` |
 | 关联件 | `production/qa/qa-signoff-sprint-18-2026-10-22.md`(签核判「已落/已证」双列,**结论不受本件推翻**) |
+
+---
+
+## 八、重评轮(修复后 · 2026-10-22)
+
+**形态**:按 `code-review` Phase 7b ② 拆**两个并行 agent** —— A 原判据核账 / B 新缺陷 + 硬约束。
+**草稿溯源**:`tmp-rereview-s18-a-accounting.md` · `tmp-rereview-s18-b-newdefects.md`
+(**保留不删**,理由同本件开头:删掉会让重评的判定表失去可回溯来源)。
+**对象**:HEAD = `d91edeb`(修复轮已提交);面内 = §一 的 7 件 + 修复轮所改的测试件与 `AssemblyGates.cs`。
+
+> ⚠️ **两个 agent 均禁占 Unity batch**(工程独占)⇒ R-1 的「行为不变」与 R-4 的变异反证
+> **未复跑**,仍以 §三 的原件产物为据。**这一轮的绿不构成行为面的重新验证**(禁借绿)。
+
+### 8.1 原判定核账(A)
+
+| ID | 结账 | 实测要点 |
+|---|---|---|
+| **R-1** | ✅ | **自算**(非照抄):`Fold` 21 行 / CC≈6 · `Collect` 36 / ≈7 · `BuildRows` 27 / ≈4 · `Erase` 14 / ≈4。原件 CC 写 ≈8 / ≈3 属启发式计法差,均远低于门限 |
+| **R-2** | ✅ | `AST 式断言` 仅 2 处且**均为否定句**(无肯定式残留);`规则九` 在 `Editor.Tools.Gates/` **零命中** ⇒ AC ⑥ 仍 NOT-RUN,已如实登记 |
+| **R-3** | ✅ | 旧式整句零命中;残存 `∧ ¬IsCombatant` 仅「已作废」注内 + `LethalFor` 本式(后者非旧式) |
+| **R-4** | ✅ | `EntityDeathGates.cs:129` 判序已换;专钉断言对致死 / 非致死**两条均 `Assert.Throws`** |
+| **R-5** | ✅ | 「九抽象点」1 命中 ·「八抽象点」零命中。▸ `AssemblyGates.cs:416` 的「八个 + 2 = 10 项」是**黑名单数组的计数**(数组确 10 项,`IFoldedPredicate` 未入 = 本节 S-1),**不是陈腐**,与「九抽象点」不矛盾 |
+
+**结论:无「修复未到位」条目;无「原判定判错」条目。**
+唯一口径漂移:测试文件 258 → **281 行**,因 R-4 专钉断言所致,不使原判定失效。
+
+### 8.2 新缺陷(B)
+
+**本轮新引入的 BLOCKING = 0;新引入的 WARNING = 0。**
+两条 WARNING **全部是 §五 已具名登记的结转项**(本轮修复未触碰)——
+
+| ID | 上轮编号 | 事实(本轮实测) | 去向 |
+|---|---|---|---|
+| **N-1** | **S-8**(§五 `:176`) | `Sim/FoldedPredicate.cs:14-15` 头注把 ¬豁免 写成「病人的**任一**病种**不属于**豁免类」;实现 `Exempt()`(`:110-135`)为「**任一**病种**属于**豁免类 / 带 `relapse.*` ⇒ `true`」⇒ ¬豁免 应为「**全部**病种均不属于」。同文件 `:101` 方法注方向正确,仅头注反 | 文档批 |
+| **N-2** | **S-6**(§五 `:174`) | `Sim.Contracts/IFoldedPredicate.cs:36` 写「四条件全部成立」;同文件 `:4`、`adr-010:159-160`、GDD F-7a-4 均为**三**条件,条件 ④(`SkillGrown`)按 `FoldedPredicate.cs:18-19` / `HistoryFolder.cs:11-13` 落在折叠**动作**侧 | 文档批 |
+
+**INFO 三条**:N-3 `HistoryFolder` 拆四方法 = **等价重构**(排序 / 抹除谓词 / 异常消息逐字未动);
+N-4 第九抽象点未进 b5 门黑名单(= S-1);N-5 见下。
+
+**N-5(证据口径补记)** —— §三 R-4 只写「还原后 SHA-256 逐字节一致」,**未明写还原手段**。
+**补记:还原方式 = 备份 + `cp` 回写 + `sha256sum` 比对,全程未用 `git checkout` / `git stash`**
+(承「`git checkout` 会抹掉未提交改动」纪律)。变异轮的实际 shell 序列无日志落盘,
+故此项**只能由声明与产物自洽支持,无法从产物反证**。
+
+### 8.3 硬约束(7 项)
+
+| # | 约束 | 判定 | 要点 |
+|---|---|---|---|
+| 1 | 门 A | **PASS** | `Sim.asmdef` 引用集恰 = `["Sim.Contracts"]` + `noEngineReferences: true`;`Sim.Contracts.asmdef` 引用集 `[]` |
+| 2 | 兄弟程序集不可见 + 唯一解码路径 | **PASS** | `Sim/` 内 `Sim.Codec` 9 处、`new PayloadRef(` 15 处**全为注释 / 文档串**;`TryGetPayload` **0 命中**;asmdef 无 `Sim.Codec` |
+| 3 | ADR-010 折叠行形状 | **PASS** | 六字段名 + 声明序 + 构造传参序逐项对齐 `adr-010:160` |
+| 4 | 代码规模 | **PASS** | 面内无 >40 行方法,**最大近似 CC = 7** |
+| 5 | 证伪轮形态(借绿检查) | **PASS** | 变异 XML `total=21 passed=20 failed=1`,唯一红 = R-4 专钉,**零附带红**;该 XML 是 `testFilter` **过滤跑**(顶层 `testcasecount=4419` 而 `total=21`),**未被当全量基线** ⇒ 无借绿 |
+| 6 | 测试写盘边界 | **PASS** | 面内测试件对 `GetTempPath` / `persistentDataPath` / 写盘 API **零命中** |
+| 7 | 文档-代码方向一致性 | **FAIL 2 处** | = N-1 / N-2(**均为结转项 S-8 / S-6**);`EntityDeathGates` 的两处公式注已一致(PASS) |
+
+### 8.4 重评结论
+
+**APPROVED WITH SUGGESTIONS** —— 五条 Required **5/5 核账成立**、零架构违规、零门 A 破损、
+**修复轮新引入的 BLOCKING / WARNING 均为 0**;两条 WARNING 是 §五 结转的 S-6 / S-8(去向 = 文档批),
+不阻断 sprint-18 收口。
+⚠️ **未及核查项(禁借绿)**:A/B 均禁占 batch ⇒ R-1 行为面与 R-4 变异反证未复跑;
+`SaveService.cs` 折叠行写盘路径未逐行核(该文件本轮无 diff);R-4 变异轮 shell 序列无落盘。见两 drafts §未及。
+

@@ -23,12 +23,24 @@
 #    (2026-10-21 归档,SHA-256 与归档时本文件逐字节一致:
 #    `dc66c31f05f5586546526983d26f6ffb278bddfc70dd512386ba60dbf7f91bd1`;`cmp` 复核 = BYTE-IDENTICAL)。
 #    **本文件不重复承载,查归档**。
+# ⚠️ sprint-18 的完整 yaml(零 story + 3 个工作项[S18-1 结转 / S18-2 · S18-3 done] +
+#    `batches` 2 批 / `deviations` 三条 / `open_items` 七条 / `conditions_closed` 七条 /
+#    `conditions_open` 两条 / `baseline` 含收口回刷)已归档为
+#    `production/sprint-status-sprint18-archive.yaml`
+#    (2026-10-22 归档,SHA-256 与归档时本文件逐字节一致:
+#    `3212ceb6eb9b8f384c4c32556de09be5b0ed43a9d84191404678294cf1ecc6a7`;`cmp` 复核 = BYTE-IDENTICAL)。
+#    ⚠️ **本条与 sprint-14…17 的处置不同,如实写明**:那四件的归档发生在**下一 sprint 规划时**
+#    (活文件被整体重写,归档 = 重写前快照);本次归档发生在**收口即归档**,而 sprint-19 尚未规划
+#    ⇒ **活文件此刻仍承载 sprint-18 全文,与归档件内容重复**,差异**只有本条注**。
+#    sprint-19 规划时本文件将被整体替换,届时重复自行消失。**在此之前,真源 = 归档件**。
 
 sprint: 18
 goal: "清掉 clinic / death-respawn 两链的剩余 BLOCKED-BY 根因(G-1 SelfLimited · G-2 Folded(p)),并把 G-8 结案后路线图未回写的四处登记补平"
 start: "2026-10-21"
-end: ""              # 不设结束日期口径,做完即收;收口时补记实际收口日(承 sprint-14/15/16/17 同例)。
-                     # 空串只表示「规划时未定」,不表示「永不填」。
+end: "2026-10-22"   # ✅ **2026-10-22 收口时补记**(承 sprint-14/15/16/17 同例)。收口依据 =
+                     # QA 签核 APPROVED WITH CONDITIONS + S18-1 结转 sprint-19 的用户裁定 +
+                     # `/code-review` 五条 Required 全部修复(commit d91edeb)。
+                     # ⚠️ 原空串的注释「空串只表示『规划时未定』,不表示『永不填』」按原文保留于归档件。
 generated: "2026-10-21"
 updated: "2026-10-22"
 
@@ -164,11 +176,84 @@ open_items:
     detail: "⇒ `R1_CHECK_31` 只守住测试夹具与将来的 `disease_registry.json` 烘焙面(ADR-014 阶段 2),**不构成**生产侧零值陷阱的消除。两处生产构造点已**显式赋值** `Kind = DiseaseKind.Disease`,但那是**纪律不是门**"
     owner: "ADR-014 阶段 2 烘焙管线(随真病种表落地)"
 
+# ⚠️ 条件清单:本 sprint 规划期为**空**(零 story,三件 TD 工作项)。
+# 🔁 2026-10-22 QA 签核轮填充 —— 签核件 `production/qa/qa-signoff-sprint-18-2026-10-22.md`
+#    Verdict = **APPROVED WITH CONDITIONS**(8 条条件 C-1…C-8;其中 C-3 **转移**而非结清)。
+# ⚠️ 本段为**格式外扩展**(同 `work_items` / `moved_out` 先例),真源仍是签核件;
+#    此处登记是为让 `/sprint-status` 侧看得见,并把「已落 / 已证」两列钉在机器可读处。
+conditions_closed:
+  - id: "C-1"
+    what: "S18-1 去向显式化"
+    landed: "`sprint-status.yaml` S18-1 加 `deferred_to: \"sprint-19\"` + `deferred_ruling`"
+    proven: "`yaml.safe_load` 解析通过,S18-1 `status=backlog` 且 `deferred_to=sprint-19`"
+  - id: "C-2"
+    what: "S18-1 载体订正"
+    landed: "`evidence:` → `entity_death_gates_test.cs`;QA plan `:35` / `:55` / `:353` 三处加注"
+    proven: "`ls` 只有实际载体存在;`grep -c self_limited_predicate_test` = 4(全在订正注内)"
+  - id: "C-4"
+    what: "在 `ad7316c`+ 重跑 smoke"
+    landed: "`production/qa/smoke-2026-10-22-sprint18-final.md`"
+    proven: "该报告 coverage 表 S18-1/S18-2 = COVERED;Verdict = PASS WITH WARNINGS"
+  - id: "C-5"
+    what: "回归三元组补 commit"
+    landed: "EditMode / PlayMode 均在 `ad7316c` 真跑"
+    proven: "start-time `00:57:37Z` / `00:55:54Z` 均晚于 commit 时刻 `00:32:50Z`"
+  - id: "C-6"
+    what: "AC ⑧ 判据面写明只覆盖 skill-growth 维"
+    landed: "`folded_predicate_test.cs` 头注 + QA plan S18-2「What to test」第 8 条下的收窄注"
+    proven: "两处文本同款声明 + 该文件只有一条重放断言(`test_fold_skillGrownReplayIsBitIdentical`);改后重跑 `29/29`"
+  - id: "C-7"
+    what: "`PRE-S18-D` `lethal` 口径确认"
+    landed: "`sprint-status.yaml` PRE-S18-D → `✅ 已结 2026-10-22 · 口径 = Lethality > 0`"
+    proven: "签核件 §五 如实登记「实现先于裁决」的事实与失效条件"
+    note: "⚠️ 结案形式 = **实现先于裁决**(码先按 `Lethality > 0` 落,本轮才确认);若改判 bool 字段,本条立即失效"
+  - id: "C-8"
+    what: "ADR-025 §①:112 加注复核"
+    landed: "`adr-025:112` 三项成员(`ActorClass` / `IFoldedPredicate` / `PatientOutcome`)全在行内;`PatientOutcome` 补「✅ 2026-10-22 已落」字样"
+    proven: "`grep` 三项各命中 ≥2 次;「已落」字样缺口的订正可复读"
+
+conditions_open:
+  # ── C-3 **不是结清,是转移** —— 它成为 sprint-19 的入口判据(签核件 §六)。
+  #    为什么放 open 段而不是删掉:删掉等于「消失」,而它是**未满足的条件**,
+  #    只是满足了它的主语从本 sprint 变成了 sprint-19 的 S18-1 承接件。
+  - id: "C-3"
+    what: "S18-1 谓词证伪轮 ≥3(`IsCombatant` 真值表 / 白名单一项 / 三条件合取之一,各恰红零附带)"
+    why_open: "S18-1 结转 sprint-19 ⇒ 本 sprint 内无对象可跑"
+    owner: "sprint-19 的 S18-1 承接件"
+    gate: "结转 ≠ 结案;**不得**以「已结转」当已结"
+    moved_to: "sprint-19"
+  # ── 2026-10-22 `/code-review` 新增:sprint-19 的四条入口判据之一(见评审原件) ──
+  - id: "R2-AC6"
+    what: "S18-1 AC ⑥(规则九)补机械门 —— 现为 **NOT-RUN**"
+    why_open: "代码评审 R-2 实测:测试原声称的「文件末尾 AST 式断言」**从未存在**;全仓 `Editor.Tools.Gates` 无规则九门。已删虚假声明并如实登记,但**门本身未建**"
+    owner: "Tooling 层(`Editor.Tools.Gates`)"
+    gate: "补门之前,AC ⑥ 唯一证据 = 人工读 `EntityDeathGates.cs` 源码"
+    note: "裸子串 grep 不可行 —— 会撞 `EntityDeathGates.cs:35` 注释里的同名文本,假绿风险高于收益"
+
 # ⚠️ 基线三元组(任何引用本文件计数的下游件须同抄)
 baseline:
   measured_at: "2026-10-21"
   batch: "sprint-18 规划轮(Phase 1 重扫)"
   commit: ""                      # 规划时工作树含未提交改动,commit 列待收口补 —— 不填即不构成可比三元组
+                                  # ⚠️ **收口时如实保留空串**:本 sprint 的回归基线是**自引**的
+                                  #    (`s18-editmode-final-20261022` @ `220acc3`),而非本条规划轮数据;
+                                  #    补一个 commit 会让本条看起来是可比三元组,而它**不是**。
+  # 🔁 **2026-10-22 收口回刷 —— 本 sprint 实际的回归三元组(引下游件请抄这组,不是上面那组)**
+  regression:
+    editmode:
+      value: "4419 / 4383 / 0 / 36"
+      measured_at: "2026-10-22 10:19 (+0800)"
+      batch: "review-s18-r4-fix-20261022"
+      commit: "ad7316c + 评审修复件(未提交)"
+      baseline: "4418 / 4382 / 0 / 36 @ s18-2-editmode-commit-20261022 · ad7316c"
+      delta: "新增 1 / 消失 0(全名集差集);Δtotal = Δpassed = 1 = 新增条数"
+    playmode:
+      value: "202 / 202 / 0 / 0"
+      measured_at: "2026-10-22 08:55 (+0800)"
+      batch: "s18-2-playmode-final-20261022"
+      commit: "ad7316c 干净树"
+      delta: "新增 0 / 消失 0"
+    note: "⚠️ 本 sprint 的绿**不得**引作 M3 进展(清债方向,分母 73 → 71)。"
   td_index:
     entries: 99
     p0_y: 88

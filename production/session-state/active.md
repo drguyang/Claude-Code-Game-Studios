@@ -8457,3 +8457,12 @@ M6 首版变异形态(`if (false) throw …`)导致 **switch 段落穿透 = 编�
 - **⚠️ 两处警示(禁借绿)**:① C-7 的结案形式 = **实现先于裁决**(码先按 `Lethality > 0` 落,本轮才确认);② S18-2 的绿只覆盖「条件①–④各自成立」,**「折叠产出面」无任何变异反证** —— 抹除作用域恰是实现偏离所在(`OQ-7a-10`)。
 - **S18-1 结转的入口判据(四条,不得当已结)**:C-3 证伪轮 ≥3 · AC⑦ `IDeathCandidateSource` + 29 侧注入点 · AC⑧ 两条写者(落地同批撤 `WriterExistenceGate` 豁免表)· AC③ 仍被 `PRE-S18-A`/`PRE-S18-B` 卡住须数值裁定。
 - **仍未做**:`/code-review` · `sprint-status` 归档 `sprint-status-sprint18-archive.yaml`(SHA-256 逐字节)。
+
+## 📦 sprint-18 收口:归档 + 评审(2026-10-22)
+
+- **`/code-review` 已跑**(初判 CHANGES REQUIRED,零架构违规):原件 = `production/qa/evidence/review-sprint18-implementation-2026-10-22.md`;五条 Required R-1…R-5 **全部修复**,commit `d91edeb`。
+- **`sprint-status` 归档已落**:`production/sprint-status-sprint18-archive.yaml`(252 行),SHA-256 = `3212ceb6eb9b8f384c4c32556de09be5b0ed43a9d84191404678294cf1ecc6a7`;活文件与归档件的差异 = **仅 sprint-18 注那 10 行**(`diff` 实测 `25a26,35`)。**sprint-19 规划前真源 = 归档件**。
+- **活文件同批补齐**:`end: 2026-10-22` · `conditions_closed` 7 条 · `conditions_open` 2 条(C-3 转移 / R2-AC6)· `baseline.regression` 三元组。
+- **`/code-review` 重评已完成**(Phase 7b ② 拆 A=原判据核账 / B=新缺陷+硬约束 两个并行 agent;B 撞 10 轮上限零 hand-back,据其盘上草稿合并,后经 `SendMessage` 续跑补交正式报告):**R-1…R-5 5/5 核账成立**;**修复轮新引入的 BLOCKING / WARNING = 0**;两条 WARNING 为**结转项 S-6 / S-8**(文档批);硬约束 6 PASS / 1 FAIL(FAIL = 那两条文档方向)。**Verdict = APPROVED WITH SUGGESTIONS**。原件 §八 = 落点。
+- **禁借绿**:重评两 agent 均禁占 batch ⇒ R-1 行为面与 R-4 变异反证**未复跑**,仍以原件产物为据。
+- **提交**:用户 2026-10-22 指令「落 §八 + 提交全部」⇒ 本批三件(归档件 / sprint-status / 评审原件)+ 两份重评草稿 + 本文件。
