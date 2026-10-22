@@ -403,8 +403,46 @@ python3 -c "import xml.etree.ElementTree as ET; r=ET.parse('Logs/test-editmode-f
 
 ### 九.7 本节未证的部分(禁借绿)
 
-- **`R1_CHECK_33` 只有 EditMode 覆盖,没有 PlayMode 覆盖** —— 但 PlayMode 的
-  `vertical_slice_test.cs` 走真 `DiseaseRegistryBinder` + 真 `Validate`,故本轮把它的
-  fixture 改到界内是**必要**的;PlayMode 全量本轮**未跑**(未跑就写未跑)。
+- **`R1_CHECK_33` 只有 EditMode 覆盖,没有 PlayMode 覆盖。**
 - **F4 求值体 / `last_intervention` 聚合器 / registry 侧 4b 校验** 三项**仍未实现**,
   见 §四之一。本节只钉住「位序契约」与「值域守卫」两件,**不表示 F4 可求值**。
+
+### 九.8 订正:§九.7 曾写错一句,且 PlayMode 全量已补跑
+
+> **原文不删**,留作闭环记录。原文写的是:
+> 「~~但 PlayMode 的 `vertical_slice_test.cs` 走真 `DiseaseRegistryBinder` + 真 `Validate`,
+> 故本轮把它的 fixture 改到界内是**必要**的~~」
+>
+> **这句是错的。** 实测(`grep -rn "RegistrySchemaValidator\|DiseaseRegistryBinder"
+> Assets/Tests/PlayMode/ --include=*.cs`)⇒ **PlayMode 全树对二者零调用**,
+> 唯一命中是 `vertical_slice_test.cs` 自己那段注释(`:50` / `:55`)。
+> `CreateSyntheticEntry()` 只是 `new DiseaseRegistryEntry { ... }`,**从不经过校验器**。
+>
+> ⇒ 修正后的口径:
+>
+> | 问题 | 答案 |
+> |---|---|
+> | PlayMode 的 `9001 → 64` 改动是**必要**的吗? | **否**。它不经过 `Validate`,改不改都不影响测试结果 |
+> | 那为什么改? | ① **一致性**:两处是同源镜像,一边界内一边界外会让「镜像」这个词失真;② **防将来**:一旦 PlayMode 侧接上 `Validate`(或经 `CompositionRoot` 装载真注册表),`9001` 就是一颗定时炸弹 |
+> | 改它证明了什么? | **只证明一致性维护,不证明任何门**。不得把它算作 `R1_CHECK_33` 的覆盖证据 |
+
+**PlayMode 全量已补跑**(本节初稿时确实未跑,现已跑):
+
+| 项 | 值 |
+|---|---|
+| 截至时刻 | `2026-10-22 17:53 CST` |
+| 批次 | 全量 PlayMode |
+| commit | `55d557b`(工作树干净) |
+| 结果件 | `unity/Logs/test-playmode-full-20261022.xml` |
+
+```
+total=202  passed=202  failed=0  inconclusive=0  skipped=0   EXIT=0
+```
+
+**差分核对**:`202 − 202 = 0`。PlayMode 本轮**零净增** —— 合理,本批未加 PlayMode 测试
+(`disease_id_bit_pin_test` 在 EditMode 树),`vertical_slice_test` 的改动是改常量值,不增删用例。
+`VerticalSliceTest` 7 条全部 `Passed`(逐条见 XML),证明改到 64 后该测试**仍然真的在跑**,
+不是被跳过。
+
+⚠️ **这 202 条绿不构成 `R1_CHECK_33` 的覆盖证据** —— 原因见上表第三行。
+`R1_CHECK_33` 的覆盖**只有** EditMode 的 P3 一条,且已由证伪轮(§九.4 第一轮)钉住。

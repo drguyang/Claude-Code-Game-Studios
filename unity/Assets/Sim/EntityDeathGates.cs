@@ -41,9 +41,19 @@
 //       (见 `RegistrySchema.cs` 的 `R1_CHECK_22` 补注)。缺它,注册表可以收进一条
 //       「致死但永远打不到死线」的行。
 //
-//    ⚠️ **可达性(诚实分级)**:`ComputeTransition` 当前**生产调用点 = 0**
-//    (`InjuryStateChangedWriter` 无生产调用方)⇒ 上述缺口**今天不可达**。
-//    但 9 的 `Step` 一旦接线,纯阈值判定会让任何实体 `position ≥ 0.58` 即判死,
+//    ⚠️ **可达性(诚实分级,2026-10-22 第二次订正)** —— 原文写
+//    「`ComputeTransition` 当前**生产调用点 = 0**(`InjuryStateChangedWriter` 无生产调用方)」,
+//    **这句的括号是错的,前半句也已过时**。原文保留在上方/历史中,此处给出精确口径:
+//
+//      · `ComputeTransition` **有**生产调用点:`InjuryStateChangedWriter.cs:97`。
+//        (`WriterExistenceGate.cs:107` 亦记「本写者是它的第一个生产调用点」。)
+//      · 但 `InjuryStateChangedWriter` **自身零生产构造点** —— `new InjuryStateChangedWriter(...)`
+//        只在 `Tests/EditMode/DeathRespawn/death_candidate_writers_test.cs:47` 出现。
+//        同型的还有 `PlayerDiedWriter`(仅测试构造)与 `DeathCandidateConsumer`(仅测试构造)。
+//      ⇒ **整条链在生产上仍不可达**,但「调用点 = 0」这个说法**不准确**,不得再引用。
+//      正确说法:**「调用链在生产装配根处断开」**。
+//
+//    9 的 `Step` 一旦接线,纯阈值判定会让任何实体 `position ≥ 0.58` 即判死,
 //    **绕过两门与窗口** ⇒ 敌人/兽被疾病杀死(违 ADR-016 §二)、玩家被白名单伤情
 //    直接死而跳过昏迷。⇒ 该缺口须在 9 的 Step 接线**之前**补。
 
