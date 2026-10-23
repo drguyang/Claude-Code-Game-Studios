@@ -179,21 +179,23 @@
       **回归**(截至 `2026-10-22 13:51 (+0800)` · 批次 `regress-rulenine2` · 干净树):
       `4451 / 4415 / 0 / 36`,`error CS = 0`。基线 `s18-ac78-full-20261022` = `4435 / 4399 / 0 / 36`
       ⇒ **Δtotal = Δpassed = +16**;全名级差集 = **新增 16 / 消失 0**(16 条全为 `RuleNineGateTest`)。
-      🔁 **2026-10-24 就地补记(原文不删)—— 上面这组是「2026-10-22 13:51 那棵树」的值,
-      不是 sprint-18 的最终值。** 该轮起跑于 `05:50Z`(13:51 +0800),其后仍有**三个提交落地且均触碰生产代码**:
-      `3bb2df8`(15:34 · 新常量登记门 `DiseaseConstantRegistryGate.cs` + `AssemblyGates.cs` 接线)·
-      `4e005bd`(16:04 · `assets/data/disease_registry.json` 5 条伤情行 + `RegistrySchema.cs`)·
-      `f5ffff2`(16:04 · `RuleNineGate.cs` I2 判据收紧)。
-      ⇒ **补跑一轮收口终局回归**(截至 `2026-10-23 23:59 (+0800)` · 批次 `s18-closeout-final-20261023` ·
-      commit `2026cce` 干净树 · 产物 `unity/Logs/s18-closeout-final-20261023.{xml,log}`):
-      **`4695 / 4660 / 0 / 35`**;`error CS` / `[RuleNine` / `[fs-write` / `BuildFailedException` 四项 `grep -c` 均 **0**。
-      对照本组:`Δtotal = +244` · `Δpassed = +245` · `Δskipped = −1` · `failed` 恒 0。
-      全名集合差集 = **新增 245 / 消失 1** —— 消失那条是**改名**而非丢失:
-      `SignTableTest.test_ac834_reverseOrphan_blockedish`(旧 · Skipped)→
-      `test_ac834_reverseOrphan_reservedAnnotationCloses`(新 · Passed),对应 AC-8-34 的 reserved 机制落地。
-      ⚠️ **两组并存,不可互相顶替**:本组回答「AC ⑥ 门落地那一刻的树是什么状态」(它与
-      `s18-ac78-full` 的 +16 差集正是 RuleNineGateTest 的增量,该论证只在同树上成立);
-      补跑组回答「sprint-18 收口时树是什么状态」。**引作 sprint-18 收口数时用补跑组。**
+      🔁 **2026-10-24 就地补记(原文不删)—— 上面这组标着「干净树」,该标注经复核实为假。**
+      **复算**:`regress-rulenine2` 起跑 `13:50:16 (+0800)`,当时 HEAD = `f83033e`(13:05);
+      但该轮 XML 含 `RuleNineGateTest` **35 次**,而 `RuleNineGate.cs` 在 `f83033e` 树中
+      **不存在**(`git ls-tree -r --name-only f83033e -- unity/Assets/Editor.Tools.Gates/RuleNineGate.cs`
+      ⇒ 空;该件提交于 `13:55:24` 的 `7014630`,晚于起跑 5 分钟)⇒ **跑测时它在工作树未提交**。
+      ⇒ **该轮是脏树轮**;数值 `4451 / 4415 / 0 / 36` 本身没错(它确实是那次跑出来的),
+      但「干净树」三个字**不成立**,不可作为可复现三元组。
+      ⚠️ **同型第二例**:`regress-final`(16:33:42,HEAD = `4e005bd`)标「覆盖收尾三提交」也需打折 ——
+      其 XML 含 `DiseaseRegistryBakePipelineTest` 43 次,而该件在 `4e005bd` 不存在(提交于 `17:48` 的
+      `133a564`)⇒ **同样是脏树轮**。
+      ⚠️ **因此:sprint-18 内不存在「干净树 + 覆盖收尾三提交」的全量 EditMode。**
+      本轮**不补跑**(那是下一步动作),故此处**不给收口三元组** —— 只给两条如实结论:
+      · 可主张的最强件 = `regress-final` `4501 / 4465 / 0 / 36`(脏树,覆盖收尾三提交的已提交部分);
+      · 真正的干净树收口三元组 = **NOT-RUN**,须在 `4e005bd` 的干净树上重跑。
+      🔁 **首轮误记已撤回(原文留档)**:首轮曾把 `2026cce`(2026-10-23 22:32 · `4695 / 4660 / 0 / 35`)
+      当 sprint-18 收口数。该 commit 距 `4e005bd` **30 小时**、隔 **26 个提交**,中间多轮改 Sim 生产码
+      ⇒ 那是后续轮次的树。**误当收口数 = 借绿**,已作废。
       ⚠️ **假红首例(就地记账)**:首版判据锚在字段名 `Kind` 上,真工程立刻假红两处 ——
       `ClinicRoomMatcher.cs:279`(`ClinicRoomClauseKind`)/ `ConsequenceInputAggregator.cs:294`
       (`EventKind`,ADR-024 的路由靠它)。⇒ 判据收紧到**字段类型 = `DiseaseKind`**

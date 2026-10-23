@@ -341,21 +341,61 @@ baseline:
       delta: "新增 0 / 消失 0;error CS = 0"
       note: "🔁 **2026-10-22 收口补跑** —— 原记录 `202/202/0/0` 判的是 `ad7316c` 干净树(08:55),**早于 `d91edeb` 对 `HistoryFolder.cs` 的拆方法改动** ⇒ 不覆盖最终代码。本行是重跑后的值,取代原值(原值留档于此 note,不删)。"
     note: "⚠️ 本 sprint 的绿**不得**引作 M3 进展。原写「清债方向,分母 73 → 71」**已作废** —— 实测方向是「立债 + 结转」,见下方 td_index。"
-  # 🔁 **2026-10-24 补:收口终局回归三元组 —— 覆盖 sprint-18 全部代码提交**
+  # ⚠️⚠️ **2026-10-24 二轮订正(撤回首轮)—— 首轮本段写错了 commit,已作废。**
+  #    **首轮错在哪(原文留档)**:把 `2026cce`(2026-10-23 22:32)当 sprint-18 的收口 commit。
+  #    `2026cce` 距 sprint-18 最后一个生产提交 `4e005bd`(2026-10-22 16:04)**晚了 30 小时**,
+  #    中间隔 **26 个提交**(`git rev-list --count 4e005bd..2026cce` = 26),其中 `133a564` / `655c8a3` /
+  #    `beb608f` / `f2747b3` / `421376a` 等**都改 Sim 生产码** ⇒ 那不是 sprint-18 的树,
+  #    是后续「F4 / 照护通道 / 烘焙管线」几轮工作的树。拿它当 sprint-18 收口数 = **借绿**。
+  #    **首轮还错在**:声称 `regress-rulenine2`「不覆盖 3bb2df8/4e005bd/f5ffff2」—— 该断言本身没错,
+  #    但**结论对错了地方**:它不覆盖的原因是**跑在它们之前**(13:50 < 13:55 < 16:04),
+  #    而**不是**「需要换一棵 30 小时后的树」。
+  #
+  #    **二轮结论(实测定)**:sprint-18 内**没有任何一次「干净树 + 覆盖收尾三提交」的全量 EditMode**。
+  #    证据链:
+  #      · `regress-rulenine2`(13:50:16)HEAD = `f83033e`(13:05)—— 但 XML 里有 `RuleNineGateTest` 35 次,
+  #        而 `RuleNineGate.cs` 在 `f83033e` **不存在**(`git ls-tree f83033e -- …/RuleNineGate.cs` 空)
+  #        ⇒ **该轮跑的是脏树**(S18-1 新件当时在工作树未提交)⇒ 原标「干净树」**为假**。
+  #      · `regress-final`(16:33:42)HEAD = `4e005bd`(16:04)—— 覆盖了收尾三提交的**已提交**部分,
+  #        但 XML 里有 `DiseaseRegistryBakePipelineTest` 43 次,而该件在 `4e005bd` **不存在**
+  #        (提交于 17:48 的 `133a564`)⇒ **同样跑在脏树**。
+  #      · 之后 `regress-ac3`(15:55)/`regress-bake`(16:26)/`after-thresholds`/`final2/3/4` 等
+  #        依次递增至 4501 / 4502,但**没有一次**在 `4e005bd` 的干净树上跑。
+  #    ⇒ **如实登记:sprint-18 的「收口终局回归」在当前仓库里不存在**。
+  #      可主张的最强结论是「`regress-final` 数值 4501 / 4465 / 0 / 36 的**脏树**轮覆盖了收尾三提交的已提交部分」,
+  #      **不可**主张它是干净树三元组。
+  #
+  #    ⚠️ **补跑前置(未执行,禁借绿)**:要拿到真正的 sprint-18 收口三元组,须
+  #      `git stash`/`git worktree add` 到 `4e005bd` 上跑一次全量 EditMode。
+  #      **本轮未跑**(用户问的是「离收口还差多少」,不是「补跑」),故此处**留空而非填值**。
   closeout_regression:
     editmode:
-      value: "4695 / 4660 / 0 / 35"
-      measured_at: "2026-10-23 23:58 (+0800) 起跑 · 23:59 出件"
-      batch: "s18-closeout-final-20261023"
-      artifact: "unity/Logs/s18-closeout-final-20261023.{xml,log}"
-      commit: "2026cce(干净树;`git status` 仅本文件 M)"
-      prior_triple: "4451 / 4415 / 0 / 36 @ 2026-10-22 13:51 (+0800) · regress-rulenine2 · 干净树"
-      delta: "用例名集合差集:新增 245 / 消失 1;Δtotal = +244;Δpassed = +245;Δskipped = −1;failed 恒 0"
-      gone_case: "`SignTableTest.test_ac834_reverseOrphan_blockedish` —— 该测试**已被改名替换**(不是丢失):现名 `test_ac834_reverseOrphan_reservedAnnotationCloses`(result = Passed)。⚠️ 判据须按**全名集合**比对,按条数比会把「改名」误读成「消失 1 条」。"
-      error_scan: "`error CS` = 0 · `[RuleNine` = 0 · `[fs-write` = 0 · `BuildFailedException` = 0(四项均 `grep -c` 实跑)"
-      why_needed: "⚠️ **原三元组不覆盖 sprint-18 的收尾三提交** —— `regress-rulenine2` 起跑于 2026-10-22 05:50Z,其后仍有 `3bb2df8`(15:34)/ `4e005bd`(16:04)/ `f5ffff2`(16:04)三个提交落地,三者均**触碰生产代码**(新门类 + 数据行 + 判据收紧)⇒ 4451 那组**不能**代表 sprint-18 的最终代码状态。本组是补跑,覆盖三者(`git merge-base --is-ancestor` 三条全 true,且 `2026cce` 是其后续 26 个提交的最新)。"
-      verify_cmd: "python3 -c \"import re;s=open('unity/Logs/s18-closeout-final-20261023.xml',encoding='utf-8',errors='ignore').read();m=re.search(r'<test-run[^>]*>',s).group(0);print({k:re.search(k+r'=\\\"([^\\\"]*)\\\"',m).group(1) for k in ('total','passed','failed','inconclusive','skipped')})\""
-    note: "⚠️ 本组**取代** `regress-rulenine2` 作为 sprint-18 的收口三元组;**但 `regress-rulenine2` 仍是对应提交当时的真值**,不删除、不改写(原文不删)。两组并存的理由:前者回答「sprint-18 收口时树是什么状态」,后者回答「2026-10-22 13:51 那棵树是什么状态」—— 问题不同,不可互相顶替。"
+      status: "⚠️ **NOT-RUN(干净树)** —— sprint-18 无「干净树 + 覆盖收尾三提交」的全量 EditMode"
+      best_available:
+        value: "4501 / 4465 / 0 / 36"
+        measured_at: "2026-10-22 16:33:42 (+0800)"
+        batch: "regress-final"
+        artifact: "unity/Logs/regress-final.xml"
+        head_at_run: "4e005bd(2026-10-22 16:04:21)—— **但工作树脏**"
+        dirt_evidence: "XML 含 `DiseaseRegistryBakePipelineTest` 43 次,该件在 `4e005bd` 树中不存在(提交于 17:48 的 `133a564`)⇒ 跑测时工作树含未提交代码"
+        covers: "`3bb2df8`(常量登记门)· `4e005bd`(伤情数据行)· `f5ffff2`(规则九 I2 收紧)三者的**已提交**部分均在该 HEAD 内"
+        caveat: "⚠️ **不得**当干净树三元组引用;它的数值里混着未提交的烘焙管线代码"
+      superseded_first_attempt:
+        value: "4695 / 4660 / 0 / 35"
+        batch: "s18-closeout-final-20261023"
+        commit_used: "2026cce(2026-10-23 22:32)"
+        why_invalid: "晚于 sprint-18 末个生产提交 `4e005bd` **30 小时**、隔 **26 个提交**;中间 `133a564`/`655c8a3`/`beb608f`/`f2747b3`/`421376a` 等改 Sim 生产码 ⇒ 那是后续轮次的树,不是 sprint-18 的树。**首轮误当收口数 = 借绿,已撤回。**"
+      verify_cmd: "python3 -c \"import re;s=open('unity/Logs/regress-final.xml',encoding='utf-8',errors='ignore').read();m=re.search(r'<test-run[^>]*>',s).group(0);print({k:re.search(k+r'=\\\"([^\\\"]*)\\\"',m).group(1) for k in ('total','passed','failed','inconclusive','skipped','start-time')})\""
+      clean_tree_claim_check: "git ls-tree -r --name-only f83033e -- unity/Assets/Editor.Tools.Gates/RuleNineGate.cs   # 空 ⇒ regress-rulenine2 的「干净树」标注为假"
+    playmode:
+      status: "⚠️ **NOT-RUN(覆盖 sprint-18 最终代码)**"
+      best_available:
+        value: "202 / 202 / 0 / 0"
+        measured_at: "2026-10-22 19:11 (+0800)"
+        batch: "test-playmode-round3"
+        head_at_run: "655c8a3(2026-10-22 18:30)"
+        caveat: "晚于 sprint-18 末个生产提交 `4e005bd`,但**早于** `421376a`(23:48);且其后的 `fed0639` 之前还有 19 个提交改过 `Gameplay.*` / `Sim` ⇒ 不覆盖 sprint-18 最终代码"
+    note: "⚠️ **本段不提供 sprint-18 的收口三元组,只提供「最接近的可用件 + 它们的失效理由」。** 这是**如实的 NOT-RUN**,不是「已收口」。要补齐须在 `4e005bd` 的干净树上重跑 —— 那是**下一步动作**,不是本轮已做的事。"
   td_index:
     entries: 100
     p0_y: 89
