@@ -92,7 +92,7 @@ end: "2026-10-22"   # ✅ **2026-10-22 收口时补记**(承 sprint-14/15/16/17 
                      # `/code-review` 五条 Required 全部修复(commit d91edeb)。
                      # ⚠️ 原空串的注释「空串只表示『规划时未定』,不表示『永不填』」按原文保留于归档件。
 generated: "2026-10-21"
-updated: "2026-10-22"
+updated: "2026-10-24"
 
 # ── 本 sprint 的件不是 story,而是 TD 工作项 ──
 # 承债册 §六 的用户裁定(2026-10-20):八道硬门的清偿载体 = **TD 工作项**,
@@ -274,19 +274,12 @@ conditions_closed:
     landed: "`adr-025:112` 三项成员(`ActorClass` / `IFoldedPredicate` / `PatientOutcome`)全在行内;`PatientOutcome` 补「✅ 2026-10-22 已落」字样"
     proven: "`grep` 三项各命中 ≥2 次;「已落」字样缺口的订正可复读"
 
-conditions_open:
-  # ⚠️⚠️ **2026-10-23 就地订正(原文不删)—— 本段现存两条的 `status` 均为 `closed`。**
-  #    本条段名与段内状态已不一致,是**刻意保留的沿革形态**,不是遗漏:
-  #    「原文不删,就地加注」纪律要求原 `why_open` / `owner` / `gate` 逐字留在原处,
-  #    而**真值以各条新增的 `status:` 字段为准**(下游判「是否仍 open」请读该字段,不要读段名)。
-  #    ⚠️ 订正缘由:**两条的工作都已做完,而段内 `why_open` 停在「未做」那一刻**
-  #    —— C-3 的 `why_open` 说「结转 sprint-19 ⇒ 本 sprint 内无对象可跑」,而用户 2026-10-22
-  #    改判 S18-1 **拉回 sprint-18**,同一文件的 `work_items[S18-1]` 早已是 `status: done`。
-  #    ⇒ 同一文件两处自相矛盾,下游按段名读会得出「sprint-18 未收口」的错误结论。
-
-  # ── C-3 **不是结清,是转移** —— 它成为 sprint-19 的入口判据(签核件 §六)。
-  #    为什么放 open 段而不是删掉:删掉等于「消失」,而它是**未满足的条件**,
-  #    只是满足了它的主语从本 sprint 变成了 sprint-19 的 S18-1 承接件。
+  # ═══ 以下两条 2026-10-24 从 `conditions_open` **迁入本段**(原文逐字保留,不删不改) ═══
+  # 迁移理由:两条的 `status` 早已是 `closed`,却留在 open 段 ⇒ 段名与内容相反,
+  #   下游按段名读会得出「sprint-18 有 2 条未结」的错误结论(实际当时的真未结项
+  #   **一条都没登记**,见现 `conditions_open` 首注)。本段才是它们的正确位置。
+  # ⚠️ 原文的 `why_open` / `owner` / `gate` / `moved_to` **一字未动** —— 它们记录的是
+  #   「写下那一刻的判断」,是沿革证据,不是现行结论。现行结论读 `status` 字段。
   - id: "C-3"
     what: "S18-1 谓词证伪轮 ≥3(`IsCombatant` 真值表 / 白名单一项 / 三条件合取之一,各恰红零附带)"
     why_open: "S18-1 结转 sprint-19 ⇒ 本 sprint 内无对象可跑"
@@ -297,8 +290,8 @@ conditions_open:
     closed_evidence: "四轮变异全部**实跑**,产物在盘(可复算,见下方命令):`unity/Logs/s18-c3-m1-20261022.xml` = `21/11/10` · `m2` = `21/20/1` · `m3` = `21/20/1` · `m4` = `21/19/2`。**预测红集由论证先行给出且与实得逐条相同**(M1 = 10 / M2 = 1 / M3 = 1 / M4 = 2),逐轮对照表见 `production/sprints/sprint-18.md:214-225`。M1/M4 非「恰 1 红」的理由已就地登记(`IsCombatant` 是三条谓词的公共前提,改它必然连带)"
     verify_cmd: "python3 -c \"import re,glob;[print(f.split('/')[-1], re.search(r'total=\\\"(\\\\d+)\\\".*?passed=\\\"(\\\\d+)\\\".*?failed=\\\"(\\\\d+)\\\"', open(f,encoding='utf-8',errors='ignore').read(), re.S).groups()) for f in sorted(glob.glob('unity/Logs/s18-c3-m*-20261022.xml'))]\""
     superseded_note: "⚠️ 本条此前挂在 open 段是**记账缺陷,不是工作未做** —— 同一文件 `work_items[S18-1]` 早已是 `status: done` + `reclaimed: 拉回 sprint-18`。订正日期 2026-10-23,当时 commit = `2026cce`"
+    moved_note: "🔁 **2026-10-24 迁移**:本条自 `conditions_open` 迁入本段(原文逐字保留)。迁入时 `status` 已是 `closed`,留在 open 段与段名相悖。当时 commit = `a7c8b9e`"
 
-  # ── 2026-10-22 `/code-review` 新增:sprint-19 的四条入口判据之一(见评审原件) ──
   - id: "R2-AC6"
     what: "S18-1 AC ⑥(规则九)补机械门 —— 现为 **NOT-RUN**"
     why_open: "代码评审 R-2 实测:测试原声称的「文件末尾 AST 式断言」**从未存在**;全仓 `Editor.Tools.Gates` 无规则九门。已删虚假声明并如实登记,但**门本身未建**"
@@ -309,9 +302,55 @@ conditions_open:
     closed_evidence: "门已建并接线:`unity/Assets/Editor.Tools.Gates/RuleNineGate.cs`(33519 B)· 接线点 `AssemblyGates.cs:126`(RunMenu)与 `:1276`(BuildGate 路径)· 接线登记 `Tests/EditMode/Sim/gate_wiring_manifest_test.cs:106` / `:120` / `:247`(三处,入口表 + 类级表)。探针轮三件套见证据件 `production/qa/evidence/impl-ac6-rulenine-gate-2026-10-22.md`"
     verify_cmd: "grep -n 'RuleNineGate.RunAll' unity/Assets/Editor.Tools.Gates/AssemblyGates.cs && grep -n 'RuleNineGate' unity/Assets/Tests/EditMode/Sim/gate_wiring_manifest_test.cs && ls -l unity/Assets/Editor.Tools.Gates/RuleNineGate.cs"
     superseded_note: "⚠️ 本条此前挂在 open 段是**记账缺陷** —— `why_open` 自陈「门本身未建」,而门已于 2026-10-22 13:55(`7014630`)落地并接线。订正日期 2026-10-23,当时 commit = `2026cce`"
+    moved_note: "🔁 **2026-10-24 迁移**:本条自 `conditions_open` 迁入本段(原文逐字保留)。迁入时 `status` 已是 `closed`。当时 commit = `a7c8b9e`"
 
-  # ⚠️ **本段现存未结条件 = 0 条**(两条 status 均为 closed)。
-  #    段名与段内状态不一致的理由见本段首注;真源以各条 `status:` 为准。
+conditions_open:
+  # ⚠️⚠️ **2026-10-24 结构性订正(原文不删,已迁出)** ——
+  #    本段原存两条(`C-3` / `R2-AC6`),二者 `status` 早已是 `closed`,却留在 open 段,
+  #    与段名相悖。2026-10-24 已**逐字迁入 `conditions_closed`**(含原 `why_open` /
+  #    `owner` / `gate` / `moved_to`,一字未改),本段不再保留其副本。
+  #
+  #    与此同时,当时**真正的两条未结条件却一条都没登记** ——
+  #    它们只活在 `qa-signoff-sprint-18-2026-10-22.md` §六 的条件 5 / 6,本文件零命中
+  #    (复算见下方首条注)。⇒ 本文件当时读起来像「零未结条件」,实际有 2 条。
+  #
+  #    **本段的判读口径(自此固定)**:段名 = 真源,段内条目 = 真未结项。
+  #    「已做但挂 open」与「未做却没登记」是**两个相反方向的记账病**,
+  #    2026-10-24 本轮一次把两个方向都纠了 —— 后者见下方两条。
+
+  # ── 条件 5:2026-10-24 新增(此前**只存在于签核件,本文件零登记**) ──
+  - id: "S18-AC5"
+    what: "S18-1 AC ⑤ —— `DeathCandidate` 产出路径**有生产调用点**"
+    why_open: "**字面判据实测未满足**:生产树零构造点。`grep -rn \"new DeathCandidateConsumer\\|new PlayerDiedWriter\\|new InjuryStateChangedWriter\" unity/Assets --include='*.cs' | grep -v '/Tests/'` ⇒ 唯一命中是 `EntityDeathGates.cs:50` 的**注释**,不是构造点。⇒ 整条链在生产装配根处断开"
+    owner: "9 / 29 的实现轮(装配面)"
+    gate: "**不得**以「写者/接口已落」当已接线 —— `WriterExistenceGate` 判的是写者**存在性**,不是接线。有写者 ≠ 已接线"
+    ac_text: "`sprint-18.md:95` Tasks 表 ⑤ 原文:「`DeathCandidate` 产出路径**有生产调用点**,`WriterExistenceGate` 两条从「未落」转为「已落」」"
+    half_check: "**两半分别核**:后半句「`WriterExistenceGate` 两条转已落」⇒ ✅ 满足(`5f40b59` 同批撤 `PlayerDied` / `InjuryStateChanged` 两条豁免);前半句「产出路径有生产调用点」⇒ ⚠️ 未满足(见 `why_open`)"
+    self_declared: "`Sim/DeathCandidateConsumer.cs:27` 自陈:「生产装配(9 侧 `IDeathCandidateSink` 实现 + 本类注册)归 9 / 29 的装配轮」⇒ **如实登记的已知缺口,不是隐瞒**"
+    cross_ref: "`production/qa/qa-signoff-sprint-18-2026-10-22.md` §六 条件 5 · §三 D-3 专段 · `production/sprints/sprint-18.md` DoD 表 `Tasks 表 ⑤` 行 + 2026-10-24 补记"
+    status: "⚠️ **open**"
+    moved_to: "sprint-19 规划时承接(不得以「S18-1 已 done」当已结)"
+    verify_cmd: "grep -rn \"new DeathCandidateConsumer\\|new PlayerDiedWriter\\|new InjuryStateChangedWriter\" unity/Assets --include='*.cs' | grep -v '/Tests/'"
+    registered_note: "🔁 **2026-10-24 补登记**:本条此前**从未进入本文件** —— 全文件 `grep -c \"AC ⑤\"` = 0(当时),只活在签核件 §六。属「未做且没登记」方向的记账缺陷。当时 commit = `a7c8b9e`"
+
+  # ── 条件 6:2026-10-24 新增(同上,此前只存在于签核件) ──
+  - id: "OQ-7a-10"
+    what: "`OQ-7a-10` 裁定 —— 折叠条件① 的**「病人级存在性查询」vs「折叠行逐病种产出」**之缝"
+    why_open: "**仍未裁**。实现取的是**权威字面**(抹除全部减 `SkillGrown`),而该字面与「病人级存在性」两种读法在**多病种病人**上结论不同 ⇒ 折叠产出面的正确性无判据可依"
+    owner: "用户(裁定)"
+    gate: "**不得**以「实现取权威字面」当已裁 —— 实现先行 ≠ 口径已定(C-7 的 `PRE-S18-D` 是「实现先于裁决」的同型先例,那条已如实登记该形态)"
+    affects: "影响 **G-2 / `TD-persist-01`**,不影响 G-1。`TD-persist-01` 结案判据 = 折叠接入存档路径 + 本条裁定 + 产出面变异反证 ⇒ 本条未裁则该债**保持 open**"
+    cross_ref: "`production/qa/qa-signoff-sprint-18-2026-10-22.md` §三 D-4 · `persistence-service.md:639` · `production/sprints/sprint-18.md` §九.2 / §九.4"
+    status: "⚠️ **open**"
+    moved_to: "sprint-19 规划时承接"
+    verify_cmd: "grep -n 'OQ-7a-10' design/gdd/persistence-service.md | grep -oE '\\| ~~\\*\\*`OQ-7a-10`\\*\\*~~|\\| \\*\\*`OQ-7a-10`\\*\\*'   # 期望输出 = | **`OQ-7a-10`**(无删除线 = 未裁)"
+    verify_note: "🔁 **2026-10-24 判据换代(教训登记)** —— 本命令初版用散文关键词(`grep -iE \"已裁|裁定|结案|closed|resolved\"`),实测**假阳性 6 行**:其中 3 行撞的是「结案**判据**」(说的是「三项满足才结案」,恰是未裁的表述),另 3 行是「**裁定** + 产出面变异反证」这类待办式。⇒ 散文关键词判「某 OQ 是否已裁」**不可靠**,这是本仓第三次踩同型(`qa-signoff` D-4 段记过第一次)。**现判据改用格式约定**:该 GDD 的 OQ 表以 `~~删除线~~` 标记已裁条目标题(`OQ-7a-1…6 / 8 / 9` 皆如此),未裁者无删除线(`OQ-7a-7` / `OQ-7a-10`)。**三向对照**可当场验:`OQ-7a-9` ⇒ `| ~~**\\`OQ-7a-9\\`**~~` · `OQ-7a-7` ⇒ `| **\\`OQ-7a-7\\`**` · `OQ-7a-10` ⇒ `| **\\`OQ-7a-10\\`**`"
+    registered_note: "🔁 **2026-10-24 补登记**:本条此前**从未进入本文件**(全文件 `grep -c \"OQ-7a-10\"` 当时 = 2,两处均为**旁述引用**而非条件登记)。当时 commit = `a7c8b9e`"
+
+  # ⚠️ **本段现存未结条件 = 2 条**(`S18-AC5` / `OQ-7a-10`),二者均 `status: open`。
+  #    段名与段内状态**自此一致** —— 这是本段判读口径的第一处兑现。
+  #    ⚠️ 两条**均不由 sprint-18 关闭**:前者归 9 / 29 的装配轮,后者归用户裁定。
+  #    故 sprint-18 的收口判定不受影响(`APPROVED WITH CONDITIONS`,条件 = 本二条)。
 
 # ⚠️ 基线三元组(任何引用本文件计数的下游件须同抄)
 baseline:
