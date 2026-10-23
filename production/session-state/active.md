@@ -9359,3 +9359,100 @@ total=4654 passed=4618 failed=0 inconclusive=0 skipped=36
 新判据按 fullname 在全集内命中 **4** 条。
 
 **未提交**:待用户指令。
+---
+
+# round32 · 技能等级在生产侧从不从病史流重建(2026-10-23)
+
+## 起点
+
+承 round31 的 `skill-30` 债与「`RebuildLevels` 零生产调用点」的发现,继续往上溯一层,
+问的是:**生产侧的技能等级到底从哪来?**
+
+## 结论(每条都实测,不是读注释推的)
+
+| # | 事实 | 证据 |
+|---|---|---|
+| ① | `RebuildLevels` 生产调用点 = **0** | `grep -rn "RebuildLevels" --include=*.cs unity/Assets/` 只命中自身 + 两个测试文件 |
+| ② | `SkillProgression.TryLevelUp` / `XpGainCalculator.ComputeXpGain` 生产调用点 = **0** | 同上 grep,只命中定义文件自身 |
+| ③ | 两条生产写者**都传 `level: null`** | `SeenDiseaseProjector.cs:108` · `PrescriptionPorts.cs:150` |
+| ④ | 生产 `QueryLevel` 回构造时注入的**固定值** | `PrescriptionPorts.cs:138-139`;装配点 `CompositionRoot.cs:408` 硬编码 `prescriptionLevel: 0` |
+| ⑤ | 诊断技能走**另一条**路,同样硬编码 | `CompositionRoot.cs:318` `int queryLevel = 1;` → `ExamineDriver` 构造参数 |
+
+**⇒ 现状**:技能等级永远是 0(处方用药)/ 永远是 1(诊断),与病史流**没有任何路径**。
+
+## 缺口的三层(为什么不能「顺手修」)
+
+1. **写者侧** —— 流里每条 `SkillGrown` 的 `Level` 恒哨兵 `-1` ⇒ `RebuildLevels`
+   的 `if (e.Level == LevelNotGrown) continue;` 全跳过 ⇒ **即便现在接上重建,也重建出空表**。
+2. **XP 归属** —— `TryLevelUp(ref int currentLevel, ref Fix currentXp, …)` 要求调用方
+   **持有一个可变 XP 累加器**。ADR-026 只裁了 `XP_gain` / `XP_to_next` 的**求值形式**,
+   对「累计 XP 住哪 / 进不进流 / 要不要快照」**零字**。这是裁定空白。
+3. **签名** —— `RebuildLevels` 由 story-008 §Implementation 1 逐字钉死,story = `Complete`;
+   `QueryLevel` 由 `ISkillGrowthPort`(11 的 GDD)定义。
+
+⇒ 三层各自被钉死,且缺一个只有用户能做的裁定(XP 归属)。**不自行消解。**
+
+## 本轮的产出
+
+`unity/Assets/Tests/EditMode/SkillSystem/skill_level_never_rebuilt_from_stream_gap_test.cs`
+(+ `.meta` guid `8d4b6e2f1a3c57d09b8e4f6a2c1d3b57`)· 6 条 · 全绿。
+
+用**真装配件**跑(真 `EventStream` + 真 `PayloadEncoder`/`PayloadDecoder` +
+生产类 `AssemblySkillGrowthPort` 本体),因为要钉的正是**生产装配的接线事实**。
+
+| # | 判据 | 钉住什么 |
+|---|---|---|
+| ① | `test_queryLevel_ignoresExistingGrowthRowsInStream_currentBehavior` | **核心**:流里有 5 级,`QueryLevel` 仍回 0 |
+| ② | `test_queryLevel_followsConstructorArg_notStreamContent` | 返回值纯由装配参数决定,与流无关 |
+| ③ | `test_queryLevel_nonPrescriptionSkill_alwaysZero_currentBehavior` | 非处方技能恒 0 |
+| ④ | `test_productionWriter_alwaysWritesSentinelLevel_rebuildYieldsEmpty` | **核心**:生产写者写哨兵 ⇒ 重建出空表 |
+| ⑤ | `test_rebuildLevels_worksOnNonSentinelRows_premise` | **前提**:重建器本身没坏(否则 ④ 的空表归因不成立) |
+| ⑥ | `test_gateHit_anyPositiveUnlockLevel_neverUnlocks_withProductionPort` | **后果**:门槛 > 0 的药在真 port 下恒不解锁 |
+
+⚠️ **本文件全绿 ≠ 等级已接通** —— 恰恰相反,它记录的是**没接通**。
+①③④⑥ 断言的是「当前如何」这个**事实**,不是「这是对的」。将来接通后应**改写**为正向判据,不删。
+
+## 证伪轮(3 探针,全部命中)
+
+变异窗口声明:本轮变异 `unity/Assets/Gameplay.Boot/PrescriptionPorts.cs`
+与 `unity/Assets/Sim.Contracts/SkillSystem/SkillStateRebuilder.cs`,窗口内**未读**这两个文件。
+
+| 探针 | 变异 | 红 | 说明 |
+|---|---|---|---|
+| **A** | `QueryLevel` 返回值 `_prescriptionLevel` → `_prescriptionLevel + 1` | **4** | ①②③⑥ 全红;④⑤ 保持绿(与 `QueryLevel` 无关)—— 判别力成立 |
+| **B** | 生产写者 `level: null` → `level: 5` | **1** | 恰 ④ 红 —— 证明 ④ 抓的正是「写者写哨兵」 |
+| **C** | 停用 `RebuildLevels` 的哨兵过滤 | **1** | 恰 ④ 红 —— 证明 ④ 同时钉住重建器侧的跳过语义 |
+
+**A 的 4 条红是独立命中,不是链式**:② 不依赖 ①,③ 不依赖 ①,⑥ 走的是
+`PrescribeFlow.EvaluateGateHit` 真方法。⑤ 在 A 下仍绿,正是它作为**前提判据**该有的表现。
+
+## 还原判据
+
+`sha256sum -c` 逐字节回基线:
+
+```
+395a2eb15e35fe5db780d4b98642b9f3c5bdc2796e4d1e87c8d895e35266e2d3  PrescriptionPorts.cs
+9b7a229765db7f549f2c2dfdb8fc7522485ec701d49897b4c8637be82362ceb7  SkillStateRebuilder.cs
+```
+
+三次变异各还原一次均成功;残留扫描(`grep -c "MUT-"` 两文件)= **0**。
+
+## 回归三元组
+
+```
+total=4660 passed=4624 failed=0 inconclusive=0 skipped=36
+@ 2026-10-23 07:53 (+0800) · round32 全量 · 基线 commit 4fa9642
+```
+
+Δ = **+6 / +6**(承 `4fa9642` 的 4654 / 4618),零回归 —— 与新增 6 条逐数对上。
+
+## 归属
+
+**须用户裁定**:技能等级的**接线归属** —— 具体是
+① 累计 XP 住在哪(sim / 表现层)· 进不进三流 · 要不要快照;
+② 谁调 `TryLevelUp`(哪一 tick、主机侧还是表现侧);
+③ `QueryLevel` 改为读重建结果,还是新建一个「等级视图」端口。
+
+本轮产出 = **让这个缺口无法被忽略**,不是替它做决定。
+
+**未提交**:待用户指令。

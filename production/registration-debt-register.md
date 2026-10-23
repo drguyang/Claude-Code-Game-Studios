@@ -42,6 +42,7 @@
 | D-8-11 | `design/gdd/diagnosis-system.md` | 试药史是判据之一不是扣分项 → 归 #53 结算 | **#53 结算轮** | :1243/:2051 同条 |
 | skill-30 | `design/gdd/skill-system.md` | 30 侧欠两项:① 等级→`EFF` 映射(形状已裁,剩逐档填表)② `EmitGrowth` 入口存在性断言 | 30 数值轮 | :139 |
 | PC-债务 | `production/epics/player-controller/story-001` | `Sim` 引用仍在,豁免是已登记债务的显式化 | story-001 轮 | :47 |
+| skill-30-接线 | round32 实测(2026-10-23) | **技能等级在生产侧从不从病史流重建** —— 三层叠加:① 两条生产写者(`SeenDiseaseProjector.cs:108` / `PrescriptionPorts.cs:150`)恒传 `level: null` ⇒ 流里 `SkillGrown.Level` 恒哨兵 `-1` ⇒ `RebuildLevels` 全跳过;② `RebuildLevels` / `TryLevelUp` / `XpGainCalculator` 生产调用点均 **0**;③ `QueryLevel` 回装配时硬编码的固定值(`CompositionRoot.cs:408` = 0)。后果:`UnlockLevel > 0` 的处方恒不解锁(今天不显形仅因数据里无门槛)。**缺口本身不修** —— 修须先裁「累计 XP 住哪 / 进不进三流 / 要不要快照」(ADR-026 对此零字)+ 改 story-008 已钉死的签名 | **须用户裁定** | 判据 = `unity/Assets/Tests/EditMode/SkillSystem/skill_level_never_rebuilt_from_stream_gap_test.cs`(6 条,3 探针全命中) |
 
 ### D. 其他散落登记(active.md 内联 · 待收口)
 
