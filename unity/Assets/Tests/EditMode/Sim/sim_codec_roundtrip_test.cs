@@ -684,10 +684,19 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         public void test_simCodec_skillGrown_matchesGoldenBytes()
         {
             var p = new SkillGrownPayload(1, -1, 3, 12, 0, 5);
+            // ⚠️ 2026-10-23 丙案刷新:SkillGrown 增 tag 7 `XpGain`(Fix raw i64 小端)。
+            //   **实现正确** —— 载荷按用户裁定「丙」扩字段(entities.yaml 已登记),
+            //   夹具失效 = ADR-012 §四「编码变更 invalidate 夹具」刷新路径,与上条 ADR-030
+            //   ordinal 7→8 同型。旧值 30 字节 → 新值 39 字节(+1 tag +8 int64)。
+            //   **新期望值由独立 Python 参考实现产出**,该实现已逐字节复现本文件**全部**既有
+            //   夹具(含未受本次改动影响的 5 条)自证可信 —— 非从本 C# 实现回读。
+            //   本夹具用旧 6 参构造 ⇒ XpGain = Fix.Zero,钉的是「tag 7 在场且为 0」的**字节布局**;
+            //   非零 Fix 的逐位往返由 injuryOnset 夹具(49152)+
+            //   skill_grown_xp_gain_test 的编解码往返判据另行覆盖。
             AssertGolden(
-                "010100000002ffffffff0303000000040c00000005000000000605000000",
+                "010100000002ffffffff0303000000040c00000005000000000605000000070000000000000000",
                 PayloadCodec.Encode(p),
-                "SkillGrown(含 PatientId=-1)黄金字节");
+                "SkillGrown(含 PatientId=-1 + XpGain tag 7)黄金字节");
         }
 
         [Test]

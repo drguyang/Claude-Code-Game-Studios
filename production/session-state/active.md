@@ -9907,3 +9907,219 @@ total=4670 passed=4634 failed=0 inconclusive=0 skipped=36
 
 `25-MAG单位错` 债项**已结清**(裁定 ② 执行完毕)。
 连带处置:round35 发现的「`MAG_FLOOR` 三处定义互不相同」⇒ **归一为单一定义**。
+
+---
+
+# round37 — skill-30-接线 · 侦察结论(2026-10-23)
+
+> **本轮零代码改动。** 任务前提经实测**部分为假**,范围已收窄并登记债册。
+> 未跑测试(无代码改动 ⇒ 回归数与 round36 同:见上条)。
+
+## 一、任务前提订正(原文不删,就地加注)
+
+任务书写作「skill-30-接线 — XP 累计住哪 / 进不进三流 / 快照(**ADR-026 零字**)修复」。
+
+**实测:「ADR-026 对此零字」为假。** ADR-026 三处明确裁定:
+- `:100` — 技能成长的存档持久化:以 `SkillGrown` 落病史流、`Level` 以 int 承载、**不独立快照**、**从流重构**
+- `:153` §⑥ 标题 — 「成长持久化:落病史流、int 承载、不独立快照、从流重构」
+- `:159` — 「**不独立快照**:技能等级**从病史流的 `SkillGrown` 重构**(与 `max(patient_id)` 高水位同构 —— 少一份可失步的状态)」
+- §⑦ — `SkillGrown` **折叠豁免**(案 1 采纳);案 3(快照取基线)**否决**,理由「把等级基线搬进快照 = 独立快照,与 §⑥ 直接冲突」
+
+⇒ **「快照 / 进不进流」两个问题对 `Level` 已有答案**,不是空白。
+
+复算命令:
+```
+grep -n "不独立快照\|从流重构" docs/architecture/adr-026-skill-growth-fixed-point.md
+# 预期::100 与 :159 两命中
+```
+
+## 二、收窄后的真空白 = XP 余量(已登记债册 `30-XP余量无主`)
+
+`SkillProgression.TryLevelUp(ref int currentLevel, ref Fix currentXp, ...)` 需要一个**可变 XP 累加器**,
+全案**零持有者**。而 `SkillGrownPayload` 的全部字段 = `{ActorId, PatientId, SkillId, ObjectId, NoveltyClass, Level}`。
+⇒ `XP_gain = BASE × K_difficulty × K_novelty` 的三因子中,**载荷只覆盖两个**:
+`BASE` ← `SkillId` 查表 ✓ · `K_novelty` ← `NoveltyClass` 查表 ✓ · **`K_difficulty` 零字节 ✗**。
+
+复算命令:
+```
+sed -n '248,264p' unity/Assets/Sim.Contracts/Payloads/HistoryPayloads.cs | grep -E "public readonly"
+# 预期:6 个字段,无任何 difficulty / xp 字段
+```
+
+## 三、⚠️ 自查:我写下的过度断言(已收回)
+
+初稿写「**信息在流里不存在,无论怎么写代码都补不出来**」—— **该断言为假**,已就地订正。
+`K_difficulty` **可**由三源重建:
+- **11 侧**:`|DrugPotency| / DOSE_BASE` —— `DrugTreatmentAppliedPayload` 自带 `DrugPotency`
+  (`HistoryPayloads.cs:233`),`DOSE_BASE` 是常量 65536(`CompositionRoot.cs:411`)。
+- **8 侧**:诊断对错(×0.5)—— 病例流有 `JudgmentRecorded` / `JudgmentRevised`,
+  真实病种在 `DiseaseOnset`(`lexicon_id` vs `disease_id` 比对可判对错)。
+
+⇒ 真实形态是「**载荷里没有,但流里可重建**」。**真空白是权威口径未裁**,不是「信息不存在」。
+
+**教训(承 `feedback_ac_semantic_layer_detection` 同族)**:「不可重建」是**强断言**,须先穷举
+三源(流 / 烘焙数据 / 二者纯函数)才可下;我只查了载荷字段就下了结论。**下结论前须查「消费方」,
+不是只查「定义处」**。
+
+## 四、两处生产写者的实测状态(与 round32 记录一致,本轮复核)
+
+| 写者 | 调用点 | `K_difficulty` 状态 |
+|---|---|---|
+| 8 诊断 | `SeenDiseaseProjector.cs:106` | **压根没算** —— `DiagnosisGrowthExit.EmitGrowth` 签名无 difficulty 形参 |
+| 11 处方 | `PrescribeFlow.cs:351-357` | **算了又丢** —— `DeriveKDifficulty(...)` 真算了(缺 `drug_potency` 即抛),传入端口后 `PrescriptionPorts.cs:147-155` **方法体零使用** |
+
+两侧均 `level: null` ⇒ 流里 `SkillGrown.Level` 恒哨兵 `-1` ⇒ `RebuildLevels` 全跳过。
+
+## 五、待用户裁的三案(各有代价,不代拍)
+
+| 案 | 做法 | 代价 |
+|---|---|---|
+| **甲** | XP 余量独立快照 | 违 ADR-026 §⑥「少一份可失步的状态」精神(§⑦ 正是以「与 §⑥ 冲突」否决了同型的快照基线案) |
+| **乙** | 从三源重建 | 合 ADR-016 §一 三源不变量;但须**新登记跨流关联键**(「哪条 `JudgmentRecorded` / `DrugTreatmentApplied` 对应哪条 `SkillGrown`」全案零定义),重建带关联 = O(n) |
+| **丙** | 扩 `SkillGrown` 载荷加 `xp_gain` | 最直接;但 `PayloadCodec.History.cs:430` 的 `RequireCompleteMask(..., (1u<<6)-1)` **强制 6 tag 全在场** ⇒ 非纯加法:须改编码器 + `entities.yaml` `payload_schema` + 存档 `SaveVersion` 迁移链(ADR-010 §七) |
+
+## 六、本轮产出
+
+- 债册 `skill-30-接线` 行:「ADR-026 零字」→ 就地加注订正(原文保留)
+- 债册新行 `30-XP余量无主`(含三案代价 + 两条复算命令)
+- 本记录
+
+**零代码改动、零测试运行。**
+
+---
+
+# round38 — skill-30-接线 实现(丙案 · 2026-10-23)
+
+> 用户裁定:**丙(扩载荷加 `xp_gain`)** + **不升 SaveVersion** + **丙-3(8 侧基准难度 1.0)**。
+
+## 一、改动面(7 处)
+
+| # | 文件 | 改动 |
+|---|---|---|
+| 1 | `Sim.Contracts/Payloads/HistoryPayloads.cs` | `SkillGrownPayload` 加 `Fix XpGain`;**保留旧 6 参构造**(缺省 `Fix.Zero`)+ 新增 7 参构造 ⇒ 44 处既有 `new SkillGrownPayload(` 零改动 |
+| 2 | `Sim.Codec/PayloadCodec.History.cs` | `Encode` 加 `WriteFieldFix(7, XpGain)`;`Decode` 加 `case 7`;掩码 `(1u<<6)-1` → **`(1u<<7)-1`** |
+| 3 | `Sim.Contracts/SkillSystem/SkillGrownEmitter.cs` | 加 **8 参重载**(显式 `xpGain`,负值 fail-loud);**7 参重载改为按基准难度 `Fix.One` 算** `ComputeXpGain(skillId, novelty, Fix.One)` |
+| 4 | `Gameplay.Boot/PrescriptionPorts.cs` | **修掉「算了又丢」** —— `kDifficulty` 现真被消费:算 `xpGain` 后传入 |
+| 5 | `Gameplay.Boot/SeenDiseaseProjector.cs` | 仅加注释(走 7 参重载 = 丙-3 基准难度),**零逻辑改动** |
+| 6 | `design/registry/entities.yaml` | `payload_schema` 加 `xp_gain: i64(Fix raw)` |
+| 7 | `Tests/EditMode/SkillSystem/skill_grown_emitter_test.cs` | AC-6 字段白名单加 `XpGain` + 加固「须为值类型」 |
+
+**新增判据**:`Tests/EditMode/SkillSystem/skill_grown_xp_gain_test.cs`(6 条,guid `5bc09e9449b144deb58c85db20c2a661`)
+
+> ⚠️ **2026-10-23 收口实测订正:上句「6 条」为假,实际 7 条。原文不删留痕。**
+> 复算命令与实跑输出:
+> ```
+> $ grep -c "^\s*\[Test\]" unity/Assets/Tests/EditMode/SkillSystem/skill_grown_xp_gain_test.cs
+> 7
+> ```
+> 七条全名:`test_xpGain_survivesCodecRoundTrip_bitExact` ·
+> `test_xpGain_fractionalValue_survivesRoundTrip` ·
+> `test_payloadMissingXpGainTag_throws_insteadOfDefaultingToZero` ·
+> `test_emitterWithExplicitXpGain_passesValueThroughUnchanged` ·
+> `test_emitterWithoutXpGain_usesBaselineDifficultyOne` ·
+> `test_productionPort_consumesKDifficulty_intoXpGain` · `test_negativeXpGain_throws`。
+> **立此注的缘由**:「6」是写作时的算术记忆,不是实测值。它是**借绿的第三种形态**
+> (把没核的数写成既成事实)—— 若照此收口,`Δtotal = +7` 与「新增 6 条」会**对不上账**,
+> 而差值恰好是 1,极易被误读成「有 1 条旧测试消失」。**等式判据** `total − 前次 = 新增数`
+> 在本次收口时当场把它抓了出来。
+
+## 二、为什么保留旧 6 参构造
+
+44 处 `new SkillGrownPayload(` 分布在 10 个文件(32 处集中在 `skill_state_rebuilder_test.cs`)。
+改签名 = 44 处全改 + 大量无关 diff。保留旧构造(缺省 `XpGain = Fix.Zero`)+ 新增 7 参构造
+⇒ **改动面从 44 处收窄到 2 处**,且语义正确:不关心 XP 的夹具拿到 0,生产写者一律显式给真值。
+
+## 三、丙-3 的具名代价(已登记债册)
+
+8 侧 `×0.5 K_difficulty`(GDD `:494` 错诊)**今天不实现** —— 查体那一刻玩家尚未落笔诊断,
+「对错」在发射点不存在。取基准 1.0 使诊断照常涨经验,错诊 ×0.5 不伪造、不静默跳过。
+债项 = `30-诊断错诊难度未落`(归 8 的 GDD 轮,须把发射点后移到「落笔诊断」时刻)。
+
+## 四、测试
+
+- SkillSystem 全量:`190/190/0/0`(第三轮;**第二轮曾 189/1**,红的是 AC-6 字段白名单 —— 正常守卫,已显式更新)
+- 全量 EditMode:见下条
+
+### 四之一、收口补记(2026-10-23 10:14 +0800 · round38 收口轮)
+
+**① 黄金夹具失效 → 按 ADR-012 §四 版本化刷新路径处理**
+
+`test_simCodec_skillGrown_matchesGoldenBytes` 红(`Expected: 30 / But was: 39`)。
+**这不是「改期望值迁就错误实现」**:编码契约按用户裁定「丙」变更(tag 7 `XpGain` 入场),
+夹具失效 = ADR-012 §四「编码变更 invalidate 夹具」的**正常刷新路径**,
+与仓内同型先例 2026-10-09 ADR-030(ordinal 7→8)完全一致。
+
+**新期望值由独立 Python 参考实现产出,非从 C# 回读** —— 该实现先被要求**逐字节复现本文件
+全部既有 6 条夹具**(含未受本次改动影响的 5 条),全部 OK 才用它推新值:
+
+```
+[OK ] simEventHeader     [OK ] injuryOnset      [OK ] emergencyAttempt
+[OK ] skillGrown_old6    [OK ] caseClosed       [OK ] judgmentRecorded
+=== 自证结论 === 全部既有夹具逐字节复现: YES —— 参考实现可信
+=== SkillGrown 新夹具 ===
+XpGain = 0 (旧 6 参构造): 010100000002ffffffff0303000000040c00000005000000000605000000070000000000000000 (39 bytes)
+```
+
+`39 − 30 = 9 = 1 tag + 8 int64`(FixCodec 写 raw int64 小端)⇒ 长度差与结构差自洽。
+参考实现留档:`/home/gu/.claude/jobs/181888b1/tmp/golden/ref.py`(未入库 —— 与既有夹具
+「由独立 Python 实现生成」的口径一致,该脚本此前亦未入库;此为**既有缺口**,非本轮引入)。
+
+**② 证伪轮 3/3 全红**(变异窗口已声明,窗口内未读被变异文件;还原 = SHA-256 逐字节)
+
+| 探针 | 变异 | 目标判据 | 结果 | 还原 |
+|---|---|---|---|---|
+| **P1** | 掩码 `(1u<<7)-1` → `(1u<<6)-1` | `test_payloadMissingXpGainTag_throws…` | 🔴 红(`Expected exception / But was null`) | ✅ `9991e657…7808` |
+| **P2** | 端口第三参 `kDifficulty` → `Fix.One` | `test_productionPort_consumesKDifficulty_intoXpGain` | 🔴 红(期望 1179648 / 实测 393216 = **恰好 3 倍**) | ✅ `a24c2bef…4aa3` |
+| **P3** | 端口第三参 → `FixParse.Parse("2")`(非 1.0 非 3.0) | 同上 | 🔴 红(难度 1.0 那条读到 786432 = **2 倍**) | ✅ `a24c2bef…4aa3` |
+
+**P1 的连带面如实记录**:除目标判据外另有 11 条红,**同一根因**——
+掩码退回 6 位而编码仍写 tag 7 ⇒ 所有 SkillGrown 解码抛
+`缺字段(已见 mask=0x7F,应为 0x3F)`,共 12 条红。**不是 12 个独立缺陷**,
+而是「SkillGrown 已全面经由新编码器」这一事实的必然投影(反过来说明覆盖面广)。
+
+**P2/P3 的意义**:各**恰好 1 条**红,且失败数值精确 ⇒ 该判据认的是**精确 raw**,
+不是「非零即绿」;P3 用 2.0(既非 1.0 也非 3.0)排除了「碰巧等于某个夹具常量」的可能。
+
+**③ 回归三元组(实跑,非引用)**
+
+- 截至时刻 **2026-10-23 10:11–10:14 +0800** · 批次 **round38 收口轮(全量 EditMode)** · commit **`01a0296`**
+- `total=4677 passed=4641 failed=0 inconclusive=0 skipped=36` · **EXIT=0**
+- 对照基线 `4670/4634/0/36` @ 2026-10-23 09:06 +0800 · `47bcbd2`(round36)
+- **Δ = +7 / +7 / 0 / 0**;等式自洽:`4677−4670 = 7 = 4641−4634 = 新文件 [Test] 数 7`
+
+**④ 本轮自查抓到的两处自身缺陷(均已就地订正,原文留痕)**
+
+- **grep 漏项**:实现前我用 `grep -rn "SkillGrown" unity/Assets/Tests | grep -i "length\|byte\[\]\|hash\|0x"`
+  断言「无字节级断言」—— **假**。真夹具叫 `test_simCodec_skillGrown_matchesGoldenBytes`,
+  同一行内不含 `length/hash/0x` 任何 token ⇒ 被我的模式漏掉。教训:**判「无某类断言」须按
+  语义找载体(黄金 / 往返 / 序列化),不能只按关键词字面扫**。
+- **数字未核**:见上「6 条 → 实测 7 条」订正注。
+
+**⑤ 复现确认(同状态二次跑)**
+
+黄金夹具刷新后跑了两次全量,数字**逐字相同**:
+
+| 跑次 | 截至时刻(+0800) | total | passed | failed | skipped | EXIT |
+|---|---|---|---|---|---|---|
+| 首次 | 2026-10-23 10:11–10:14 | 4677 | 4641 | 0 | 36 | 0 |
+| 复跑 | 2026-10-23 10:16–10:18 | 4677 | 4641 | 0 | 36 | 0 |
+
+两跑之间**只改了文档**(`active.md` / `registration-debt-register.md`),**零代码改动** ⇒
+数字不变是预期结果,反过来构成「文档改动未污染实现」的旁证。
+
+**⑥ 本轮新登记债(债册 C-2)**
+
+`黄金夹具生成器未入库` —— 见 `production/registration-debt-register.md` C-2 段。
+**不是本轮引入**:该缺口早于 round38 存在(既有 6 条黄金值同样不可复算),
+本轮只是又一次依赖它并把代价显式化。归属 ADR-012 落地轮(建三格矩阵时一并解决)。
+
+**⑦ 工作树(12 项,全部在本轮范围内)**
+
+`M` 10 项:`design/registry/entities.yaml` · `production/registration-debt-register.md` ·
+`production/session-state/active.md` · `Gameplay.Boot/PrescriptionPorts.cs` ·
+`Gameplay.Boot/SeenDiseaseProjector.cs` · `Sim.Codec/PayloadCodec.History.cs` ·
+`Sim.Contracts/Payloads/HistoryPayloads.cs` · `Sim.Contracts/SkillSystem/SkillGrownEmitter.cs` ·
+`Tests/EditMode/Sim/sim_codec_roundtrip_test.cs` · `Tests/EditMode/SkillSystem/skill_grown_emitter_test.cs`
+`??` 2 项:`Tests/EditMode/SkillSystem/skill_grown_xp_gain_test.cs` + `.meta`
+
+**未提交** —— 未收到 commit 指令。

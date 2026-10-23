@@ -396,6 +396,9 @@ namespace DaYiJingCheng.Sim.Codec
 
         // ── 8. SkillGrown(ADR-024 补齐轮)─────────────────────────────────
         // tag: 1 ActorId · 2 PatientId · 3 SkillId · 4 ObjectId · 5 NoveltyClass · 6 Level
+        //      · 7 XpGain(2026-10-23 丙案新增;Fix 走 FixCodec,同 InjuryOnset.Magnitude 先例)
+        // ⚠️ 7 tag 全部**必填**(RequireCompleteMask)—— 缺一即「损坏」而非「缺省」。
+        //    旧 6 参构造产出的 XpGain = Fix.Zero 仍会**编码出 tag 7**(值 0),不是省略。
 
         public static byte[] Encode(in SkillGrownPayload p)
         {
@@ -406,6 +409,7 @@ namespace DaYiJingCheng.Sim.Codec
             w.WriteFieldInt32(4, p.ObjectId);
             w.WriteFieldInt32(5, p.NoveltyClass);
             w.WriteFieldInt32(6, p.Level);
+            w.WriteFieldFix(7, p.XpGain);
             return w.ToArray();
         }
 
@@ -414,6 +418,7 @@ namespace DaYiJingCheng.Sim.Codec
             var r = new CodecReader(bytes);
             uint seen = 0;
             int actorId = 0, patientId = 0, skillId = 0, objectId = 0, noveltyClass = 0, level = 0;
+            Fix xpGain = Fix.Zero;
             while (r.HasMore)
             {
                 switch (ReadTagChecked(ref r, nameof(EventKind.SkillGrown), ref seen))
@@ -424,12 +429,14 @@ namespace DaYiJingCheng.Sim.Codec
                     case 4: objectId = r.ReadInt32LittleEndian(); break;
                     case 5: noveltyClass = r.ReadInt32LittleEndian(); break;
                     case 6: level = r.ReadInt32LittleEndian(); break;
+                    case 7: xpGain = FixCodec.Read(ref r); break;
                     default: throw new InvalidDataException($"SkillGrown: 未知 tag");
                 }
             }
-            RequireCompleteMask(nameof(EventKind.SkillGrown), seen, (1u << 6) - 1);
+            RequireCompleteMask(nameof(EventKind.SkillGrown), seen, (1u << 7) - 1);
             r.EnsureFullyConsumed();
-            return new SkillGrownPayload(actorId, patientId, skillId, objectId, noveltyClass, level);
+            return new SkillGrownPayload(actorId, patientId, skillId, objectId, noveltyClass, level,
+                                         xpGain);
         }
 
         // ── 9. EventRolled(ADR-007 §三)───────────────────────────────────

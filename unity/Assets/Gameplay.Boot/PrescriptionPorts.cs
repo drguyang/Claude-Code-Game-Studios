@@ -140,14 +140,28 @@ namespace DaYiJingCheng.Gameplay.Boot
 
         /// <inheritdoc />
         /// <remarks>成长门(GateHit)由 PrescribeFlow 判定;本端口只在命中时被调用。
-        /// 缺参 / 负 tick 等错误在 <see cref="SkillGrownEmitter"/> 内 fail-loud 抛出。</remarks>
+        /// 缺参 / 负 tick 等错误在 <see cref="SkillGrownEmitter"/> 内 fail-loud 抛出。
+        /// <para><b>⚠️ 2026-10-23(round38 · 用户裁定 丙)修掉「算了又丢」</b>:此前
+        /// <paramref name="kDifficulty"/> 与 <paramref name="noveltyHint"/> **形参收下即弃**
+        /// (方法体零使用),而调用方 <c>PrescribeFlow.cs:351</c> 已实打实算好
+        /// (<c>DeriveKDifficulty</c> 缺 <c>drug_potency</c> 即抛 —— 代价是真的)。
+        /// 现口径:<c>XP_gain = BASE × kDifficulty × K_novelty</c> 经
+        /// <see cref="XpGainCalculator"/> 求值后写入载荷 <see cref="SkillGrownPayload.XpGain"/>。</para>
+        /// <para>⚠️ <paramref name="noveltyHint"/> **仍不采信** —— 11 只传提示,真源在 30 的
+        /// <see cref="NoveltyTracker"/> 词典(GDD `:132` / 契约注)。本端口无 tracker 实例,
+        /// 故 novelty 仍取 <see cref="NoveltyClass.Normal"/>(处方非首见,与既有注释一致)。</para>
+        /// </remarks>
         public void EmitGrowth(int actorId, int skillId, int objectId, int noveltyHint,
                                Fix kDifficulty, long tick, PatientId patientId)
         {
+            // XP_gain = BASE × K_difficulty × K_novelty(丙案:发射时算好推入载荷)
+            Fix xpGain = XpGainCalculator.ComputeXpGain(skillId, NoveltyClass.Normal, kDifficulty);
+
             // EmitGrowth 只构造载荷(30 明写不 Append)—— 编码 + 落流由调用方(本端口)完成。
             SkillGrownPayload payload = SkillGrownEmitter.EmitGrowth(
                 actorId: actorId, skillId: skillId, objectId: objectId,
-                novelty: NoveltyClass.Normal, level: null, currentTick: tick, patientId: patientId);
+                novelty: NoveltyClass.Normal, level: null, currentTick: tick, patientId: patientId,
+                xpGain: xpGain);
 
             var e = new SimEvent(tick, patientId, -1, EventKind.SkillGrown,
                                  _encoder.Encode(EventKind.SkillGrown, payload));

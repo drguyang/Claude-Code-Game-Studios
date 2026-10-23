@@ -245,6 +245,15 @@ namespace DaYiJingCheng.Sim.Contracts
     /// <summary>ADR-024 补齐轮(暴露 OQ-7a-9 折叠丢成长)。
     /// 无病例语境的动作类成长(采集 / 奔跑)取 Patient = PatientId.None = -1。
     /// Level 未升级 ⇒ 缺省 = 哨兵,**不写 0**。</summary>
+    /// <remarks>
+    /// <para><b>2026-10-23(用户裁定 丙 · round38)新增 <see cref="XpGain"/></b> ——
+    /// XP 余量(<c>SkillProgression.TryLevelUp</c> 的 <c>ref Fix currentXp</c>)此前**全案无主**:
+    /// 它既不在本载荷里,也无法从「流 + 烘焙数据」纯函数重建(缺 <c>K_difficulty</c> 这一因子)。
+    /// 裁定取**丙案 = 扩载荷携带本次所得 XP**,使「练到 99% 读档 ⇒ 回到 0%」不再发生。</para>
+    /// <para>⚠️ <b>与本载荷的既有语义正交</b>:<see cref="Level"/> 是**绝对等级**(升级时携带),
+    /// <see cref="XpGain"/> 是**本次增量**(每次成长都携带)。两者不可互相推导 ——
+    /// 前者答「现在几级」,后者答「这一下赚了多少」。</para>
+    /// </remarks>
     public readonly struct SkillGrownPayload
     {
         public const int LevelNotGrown = -1; // 未升级哨兵(非 0,零级是真实等级)
@@ -255,11 +264,29 @@ namespace DaYiJingCheng.Sim.Contracts
         public readonly int NoveltyClass;    // 枚举:首次 | 冷却内 | 其它(三值)
         public readonly int Level;
 
+        /// <summary>本次成长所得经验(Q16.16 `Fix` raw;丙案 2026-10-23)。
+        /// <para>语义 = <c>XP_gain = BASE × K_difficulty × K_novelty</c> 的**求值结果**,
+        /// 由发射方算好后推入(30 不拉取 —— GDD `:132` 裁定不变)。</para>
+        /// <para>重建 XP 余量 = <c>Σ XpGain − Σ 已消耗升级成本</c>(按 Tick 序折叠),
+        /// 与 <c>SkillProgression.TryLevelUp</c> 的扣减逐位一致。</para>
+        /// <para>缺省(<see cref="Fix.Zero"/>)仅由**旧 6 参构造**产生 —— 供「只关心等级、
+        /// 不关心余量」的既有夹具使用;生产写者一律走 7 参构造显式给出真值。</para></summary>
+        public readonly Fix XpGain;
+
         public SkillGrownPayload(int actorId, int patientId, int skillId, int objectId,
             int noveltyClass, int level)
         {
             ActorId = actorId; PatientId = patientId; SkillId = skillId; ObjectId = objectId;
             NoveltyClass = noveltyClass; Level = level;
+            XpGain = Fix.Zero;
+        }
+
+        /// <summary>完整构造(含 <see cref="XpGain"/>)。生产写者用此重载。</summary>
+        public SkillGrownPayload(int actorId, int patientId, int skillId, int objectId,
+            int noveltyClass, int level, Fix xpGain)
+        {
+            ActorId = actorId; PatientId = patientId; SkillId = skillId; ObjectId = objectId;
+            NoveltyClass = noveltyClass; Level = level; XpGain = xpGain;
         }
     }
 

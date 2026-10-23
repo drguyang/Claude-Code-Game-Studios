@@ -103,6 +103,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             NoveltyClass novelty = _novelty.Query(actorId, DiagnosisSkillId, diseaseId, tickInt);
 
             // ③ 构造载荷(SkillGrownEmitter 唯一出口;level = null ⇒ 未升级哨兵)
+            //    ⚠️ 2026-10-23(round38 · 用户裁定 丙-3):本重载**缺省 xpGain**,
+            //    内部按「基准难度 Fix.One」算 XP_gain = BASE × 1.0 × K_novelty。
+            //    取 1.0 而非猜一个难度的理由:查体这一刻玩家**尚未落笔诊断**,「对错」无从得知
+            //    (GDD `:494` 错诊 ×0.5 的因子在此时点不存在)⇒ 不伪造。
+            //    错诊 ×0.5 已登记具名债 `30-诊断错诊难度未落`(归 8 的 GDD 轮,
+            //    须把发射点后移到「落笔诊断」时刻)。
             SkillGrownPayload payload = SkillGrownEmitter.EmitGrowth(
                 actorId: actorId, skillId: DiagnosisSkillId, objectId: diseaseId,
                 novelty: novelty, level: null, currentTick: tick, patientId: patient);

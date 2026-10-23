@@ -175,7 +175,18 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         // AC-6: 载荷无 disease_id(验证 SkillGrownPayload 字段集合)
         // ═══════════════════════════════════════════════════════════════════
 
-        /// <summary>AC-6: SkillGrownPayload 字段集合 = {ActorId, PatientId, SkillId, ObjectId, NoveltyClass, Level}。</summary>
+        /// <summary>AC-6: SkillGrownPayload 字段集合 = {ActorId, PatientId, SkillId, ObjectId, NoveltyClass, Level, XpGain}。</summary>
+        /// <remarks>
+        /// ⚠️ <b>2026-10-23(round38 · 用户裁定「丙」):白名单加入 <c>XpGain</c></b>。
+        /// <para>本条的**本意**是「载荷不含 <c>disease_id</c> / 自由文本」(守密:AC-37-15 /
+        /// ADR-006 G-3),用**精确集合**而非「不含某字段」实现 —— 这样任何**未登记的字段新增**
+        /// 都会红。加 <c>XpGain</c> 正是这种「必须先登记才能加」的正常流程:</para>
+        /// <para>XP 余量此前无主(不可从流重建,缺 <c>K_difficulty</c> 因子),用户裁定丙案 =
+        /// 扩载荷携带本次所得 XP;登记点 = <c>entities.yaml</c> 的
+        /// <c>SimEvent.Kind.SkillGrown.payload_schema</c>。</para>
+        /// <para><b>本条的守密意图未变</b>:集合里仍然没有 <c>DiseaseId</c>,也没有任何 string /
+        /// 引用类型字段(丙案加的是 <c>Fix</c> 值类型)。</para>
+        /// </remarks>
         [Test]
         public void test_ac6_payloadFields_noDiseaseId()
         {
@@ -188,9 +199,15 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
                 fieldNames.Add(f.Name);
 
             CollectionAssert.AreEquivalent(
-                new[] { "ActorId", "PatientId", "SkillId", "ObjectId", "NoveltyClass", "Level" },
+                new[] { "ActorId", "PatientId", "SkillId", "ObjectId", "NoveltyClass", "Level",
+                        "XpGain" },
                 fieldNames,
-                "SkillGrownPayload 字段集合不含 disease_id");
+                "SkillGrownPayload 字段集合不含 disease_id(丙案新增 XpGain 已在 entities.yaml 登记)");
+
+            // 守密加固:新增字段也不得是 string / 引用类型(ADR-006 G-3 禁 sim 读自由文本)
+            foreach (var f in fields)
+                Assert.That(f.FieldType.IsValueType, Is.True,
+                    "SkillGrownPayload." + f.Name + " 须为值类型(禁自由文本 / 引用类型)");
         }
 
         // ═══════════════════════════════════════════════════════════════════
