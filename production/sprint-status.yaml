@@ -31,8 +31,44 @@
 #    `3212ceb6eb9b8f384c4c32556de09be5b0ed43a9d84191404678294cf1ecc6a7`;`cmp` 复核 = BYTE-IDENTICAL)。
 #    ⚠️ **本条与 sprint-14…17 的处置不同,如实写明**:那四件的归档发生在**下一 sprint 规划时**
 #    (活文件被整体重写,归档 = 重写前快照);本次归档发生在**收口即归档**,而 sprint-19 尚未规划
-#    ⇒ **活文件此刻仍承载 sprint-18 全文,与归档件内容重复**,差异 = 本条注 + **下方 errata**。
-#    sprint-19 规划时本文件将被整体替换,届时重复自行消失。**在此之前,真源 = 归档件 + errata**。
+#    ⇒ **活文件此刻仍承载 sprint-18 全文,与归档件内容重复**。
+#    sprint-19 规划时本文件将被整体替换,届时重复自行消失。
+#
+#    🔁 **2026-10-24 就地订正(原文不删)—— 上句原写「差异 = 本条注 + 下方 errata」,该范围是错的。**
+#    差异**不止**注释,还含**七类实质记账改动**(逐类列明,供下游判断该读哪份):
+#
+#      | # | 位置 | 归档件 | 活件 |
+#      |---|---|---|---|
+#      | 1 | `work_items[S18-1].status` | `backlog` | `done` |
+#      | 2 | `work_items[S18-1]` 键 | 无 `reclaimed` / `handoff_ref` | 两键俱在(记 2026-10-22 用户改判「拉回 sprint-18」) |
+#      | 3 | `work_items[S18-2]` 键 | 无 `closure_caveat` | 有(记「done ≠ TD-persist-01 结案」三条件) |
+#      | 4 | `conditions_open` 两条(C-3 / R2-AC6) | 无 `status` / `closed_evidence` / `verify_cmd` / `superseded_note` | 四键俱在,`status` 均为 `closed` |
+#      | 5 | `open_items` 两条(PRE-S18-A / PRE-S18-B) | 无 `status_resolved` / `resolved_evidence` / `verify_cmd` / `superseded_note` | 四键俱在,均 `resolved` |
+#      | 6 | `baseline.regression.editmode` | 批次名 `review-s18-r4-fix-20261022`(盘上无此产物)· commit `ad7316c + 未提交` | 批次名改指实产物 `review-s18-r4-editmode-20261022` · commit `d91edeb` |
+#      | 7 | `baseline.td_index` | `99 / 88 / 73` | `100 / 89 / 74`(含 `TD-clinic-18` 立债 +1) |
+#
+#    ⚠️ **第 1 项是最危险的一条**:归档件仍写 `S18-1 status: backlog`,而活件写 `done`。
+#    **按归档件判「S18-1 未完成」会得出与事实相反的结论。** 这正是本条订正存在的理由 ——
+#    原头注让下游以为两份「只差注释」,于是放心用归档件当 sprint-18 的唯一真源。
+#
+#    **真源口径(订正后)**:
+#      - **sprint-18 的收口事实** → 读**活件**(它含改判、闭条件、补记账全部内容);
+#      - **归档件的价值** = 冻结「2026-10-22 归档那一刻」的快照,**不是当前真值**;
+#      - 归档件按「SHA-256 逐字节」纪律**永不修改**(复算 = `3212ceb6…` 见上),其过时项一律在**本文件**加注。
+#
+#    **复算命令(自包含,当场可跑)**:
+#      ```bash
+#      sha256sum production/sprint-status-sprint18-archive.yaml
+#      # 恒定期望:3212ceb6eb9b8f384c4c32556de09be5b0ed43a9d84191404678294cf1ecc6a7(归档件不可变)
+#      wc -l production/sprint-status-sprint18-archive.yaml production/sprint-status.yaml
+#      diff production/sprint-status-sprint18-archive.yaml production/sprint-status.yaml | grep -c '^[0-9]'
+#      ```
+#    ⚠️ **后两条没有「期望值」,只有「时点值」** —— 活件会随补记账继续增长,差异块数也会变。
+#    **本条刻意不写死这两个数**:订正过程中实测它们随每次编辑变化
+#    (订正前 `252/309` → 第一稿 `252/344` → 落定 `252/347`),写死即制造新的陈旧断言 ——
+#    与 `smoke-check` §Baseline provenance 要防的「伪基线」同型。
+#    ⇒ **判据 = 当场跑、当场读**,引用时写成「`<输出>` @ `<跑的时刻>`」,不写成「应当是多少」。
+#    唯一可写死的是 `sha256sum`(归档件按纪律永不变)。
 #
 # 📌 **归档件 errata(2026-10-22 收口后补记 —— 归档件本身按「SHA-256 逐字节」纪律不改)**
 #    归档件 `:246` / `:252` 两处写着「清债方向,分母 73 → 71」。**该数字作废** —— 实测两门皆未清
@@ -41,6 +77,12 @@
 #    **耐久订正落点 = `production/sprints/sprint-18.md` §九.1**(永久文件,不随本文件替换消失)。
 #    本 errata 存在的理由:归档件是 sprint-18 的唯一真源,若不记这一笔,假数字会随归档长期存活
 #    —— 正是 `smoke-check` skill §Baseline provenance 警告的「伪基线」形态。
+#    🔁 **2026-10-24 就地订正(原文不删)**:上句「**归档件是 sprint-18 的唯一真源**」**已被本文件
+#    上方「真源口径(订正后)」取代** —— 归档件冻结的是 2026-10-22 归档那一刻,其后发生了
+#    **S18-1 改判拉回 + 两条件关闭 + 两条 open_item 结清**共七类改动(见上方表),
+#    **按归档件当唯一真源会判出「S18-1 未完成」这种与事实相反的结论**。
+#    ⇒ 现行口径:**收口事实读活件;归档件 = 冻结快照 + 本 errata 所记的两处数字作废**。
+#    本 errata 段落**本身仍然有效**(分母 73→74 那条与真源归属无关,是独立的数字订正)。
 
 sprint: 18
 goal: "清掉 clinic / death-respawn 两链的剩余 BLOCKED-BY 根因(G-1 SelfLimited · G-2 Folded(p)),并把 G-8 结案后路线图未回写的四处登记补平"
@@ -153,6 +195,10 @@ open_items:
     evidence: "`grep -rn 'INJ_' assets/data/` ⇒ **0 个文件命中**;registry 唯一实数据 = `{ DiseaseId = 1, DiseaseKey = \"fallback\" }`(`CompositionRoot.cs:666` / `CompositionRootServices.cs:265`),`CompositionRoot.cs:13` 自陈「`disease_registry.json` 未建(数值轮未开)」"
     detail: "R2 的 11 项 `INJ_*` 只存在于 `disease-simulation.md:362-375` 的**表**里,零数据行 ⇒ 白名单 `{INJ_STAB, INJ_LACERATION, INJ_HEMORRHAGE, INJ_CLAW, INJ_BITE}`(OQ-S18-1 已裁)仍**悬空**。⚠️ 且 `kind: injury` 行按 GDD `:829-831` **另须** `SCALE_d` + `trauma_half_life`,后者上界受 `HALF_LIFE_MAX` 约束而**数值归 OQ-25-7 用户自裁** ⇒ 不是「加一个字段」而是「加三个字段 + 等一个数值裁定」"
     owner: "数值轮(用户)"
+    status_resolved: "✅ resolved(2026-10-22 落地 · 2026-10-23 补记账)"
+    resolved_evidence: "数据行已落:`assets/data/disease_registry.json` 实测 **13 条**,其中 `kind = injury` **恰 5 条**,`key` 逐字 = 白名单五项(`INJ_STAB` / `INJ_LACERATION` / `INJ_HEMORRHAGE` / `INJ_CLAW` / `INJ_BITE`);每行均带 `scale` + `trauma_half_life`(原 detail 要求的两字段齐)。落地 commit = `4e005bd`(2026-10-22 16:04,`feat(sim): AC ③ 伤情数据行 —— R2 战伤白名单五项落地`)"
+    verify_cmd: "python3 -c \"import json;d=json.load(open('assets/data/disease_registry.json',encoding='utf-8'));r=d.get('diseases') or d;i=[x for x in r if x.get('kind')=='injury'];print('injury 行数',len(i),'| keys',[x.get('key') for x in i],'| 两字段齐',all('scale' in x and 'trauma_half_life' in x for x in i))\""
+    superseded_note: "⚠️ 本条 `status` 停在「⛔ 阻塞」是**记账滞后**,不是工作未做。订正日期 2026-10-23,当时 commit = `2026cce`"
 
   - id: "PRE-S18-B"
     item: "F4 三个常量缺值 / 未登记"
@@ -160,6 +206,11 @@ open_items:
     evidence: "`.cs` 命中:`RECOVER_THRESHOLD` **0** · `CARE_GAP` **0** · `TREATMENT_WINDOW` **0**;`entities.yaml`:`RECOVER_THRESHOLD`(`:1559`)/ `CARE_GAP`(`:1663`)value 均为「**待定 —— 见 disease-simulation.md Tuning Knobs**」,`TREATMENT_WINDOW` **无独立 `name:` 块**(仅 `:662` 的 `variables:` 列表引用)"
     detail: "⚠️ 另发现:`DEATH_THRESHOLD` / `COMA_THRESHOLD` / `CRITICAL_THRESHOLD` **亦无独立 `name:` 块**(registry 未登记),值只活在 `StateMachine.cs:14-16`(9000 / 6000 / 3000)⇒ 「registry 是唯一真源」在这三个量上**不成立**。此为本轮新发现的登记缺口,与 G-1 同族"
     owner: "数值轮(用户)+ 9 的 GDD 轮(补登记块)"
+    status_resolved: "✅ resolved(2026-10-22 落地 · 2026-10-23 补记账)"
+    resolved_evidence: "三常量两侧齐备 —— **`.cs`(排除 `Tests/`)**:`RECOVER_THRESHOLD` **16 处** · `CARE_GAP` **23 处** · `TREATMENT_WINDOW` **15 处**;**`design/registry/entities.yaml`**:三者各有 **1 个独立 `name:` 块**(原 evidence 说 `TREATMENT_WINDOW` 无独立块 —— 已补)。另 `DEATH_THRESHOLD` / `COMA_THRESHOLD` / `CRITICAL_THRESHOLD` 的登记缺口由新立的常量登记门兜住(`3bb2df8`,2026-10-22 15:34,`feat(gates): 立 9 常量登记门 —— PRE-S18-B 机械半边兑现`)"
+    verify_cmd: "for c in RECOVER_THRESHOLD CARE_GAP TREATMENT_WINDOW; do printf '%-20s .cs=%s entities=%s\\n' \"$c\" \"$(grep -rn \"\\\\b$c\\\\b\" unity/Assets --include='*.cs' | grep -v '/Tests/' | wc -l)\" \"$(grep -c \"name: $c\" design/registry/entities.yaml)\"; done"
+    superseded_note: "⚠️ 本条 `status` 停在「⛔ 阻塞」是**记账滞后**,不是工作未做。订正日期 2026-10-23,当时 commit = `2026cce`"
+    superseded_note_2: "🔁 **2026-10-24 追加订正(原文不删)** —— 本行原有一句「`DEATH_THRESHOLD` 等的登记状态**未闭合**」,**该句已被实测推翻,现予撤回**。复算命令:`for c in DEATH_THRESHOLD COMA_THRESHOLD CRITICAL_THRESHOLD; do printf '%-20s %s\\n' \"$c\" \"$(grep -c \"name: $c\" design/registry/entities.yaml)\"; done` ⇒ 实跑输出 **三者各 1**,块位 `entities.yaml:1563`(CRITICAL)/ `:1580`(COMA)/ `:1599`(DEATH),均 `status: active` + `source: design/gdd/disease-simulation.md`。登记由 `3bb2df8`(`git log -1 -S 'name: DEATH_THRESHOLD' -- design/registry/entities.yaml` 可复算)引入,并受 `Editor.Tools.Gates/DiseaseConstantRegistryGate.cs:57-59` 的白名单门守住。⇒ **本条「机械半边」两侧俱在,无未闭合项。**"
 
   - id: "PRE-S18-C"
     item: "`Folded` 条件 ① 终态无事件载体 —— 病人痊愈 / 死亡在病史流里没有 Kind"
@@ -224,6 +275,15 @@ conditions_closed:
     proven: "`grep` 三项各命中 ≥2 次;「已落」字样缺口的订正可复读"
 
 conditions_open:
+  # ⚠️⚠️ **2026-10-23 就地订正(原文不删)—— 本段现存两条的 `status` 均为 `closed`。**
+  #    本条段名与段内状态已不一致,是**刻意保留的沿革形态**,不是遗漏:
+  #    「原文不删,就地加注」纪律要求原 `why_open` / `owner` / `gate` 逐字留在原处,
+  #    而**真值以各条新增的 `status:` 字段为准**(下游判「是否仍 open」请读该字段,不要读段名)。
+  #    ⚠️ 订正缘由:**两条的工作都已做完,而段内 `why_open` 停在「未做」那一刻**
+  #    —— C-3 的 `why_open` 说「结转 sprint-19 ⇒ 本 sprint 内无对象可跑」,而用户 2026-10-22
+  #    改判 S18-1 **拉回 sprint-18**,同一文件的 `work_items[S18-1]` 早已是 `status: done`。
+  #    ⇒ 同一文件两处自相矛盾,下游按段名读会得出「sprint-18 未收口」的错误结论。
+
   # ── C-3 **不是结清,是转移** —— 它成为 sprint-19 的入口判据(签核件 §六)。
   #    为什么放 open 段而不是删掉:删掉等于「消失」,而它是**未满足的条件**,
   #    只是满足了它的主语从本 sprint 变成了 sprint-19 的 S18-1 承接件。
@@ -233,6 +293,11 @@ conditions_open:
     owner: "sprint-19 的 S18-1 承接件"
     gate: "结转 ≠ 结案;**不得**以「已结转」当已结"
     moved_to: "sprint-19"
+    status: "✅ closed(2026-10-22 落地 · 2026-10-23 补记账)"
+    closed_evidence: "四轮变异全部**实跑**,产物在盘(可复算,见下方命令):`unity/Logs/s18-c3-m1-20261022.xml` = `21/11/10` · `m2` = `21/20/1` · `m3` = `21/20/1` · `m4` = `21/19/2`。**预测红集由论证先行给出且与实得逐条相同**(M1 = 10 / M2 = 1 / M3 = 1 / M4 = 2),逐轮对照表见 `production/sprints/sprint-18.md:214-225`。M1/M4 非「恰 1 红」的理由已就地登记(`IsCombatant` 是三条谓词的公共前提,改它必然连带)"
+    verify_cmd: "python3 -c \"import re,glob;[print(f.split('/')[-1], re.search(r'total=\\\"(\\\\d+)\\\".*?passed=\\\"(\\\\d+)\\\".*?failed=\\\"(\\\\d+)\\\"', open(f,encoding='utf-8',errors='ignore').read(), re.S).groups()) for f in sorted(glob.glob('unity/Logs/s18-c3-m*-20261022.xml'))]\""
+    superseded_note: "⚠️ 本条此前挂在 open 段是**记账缺陷,不是工作未做** —— 同一文件 `work_items[S18-1]` 早已是 `status: done` + `reclaimed: 拉回 sprint-18`。订正日期 2026-10-23,当时 commit = `2026cce`"
+
   # ── 2026-10-22 `/code-review` 新增:sprint-19 的四条入口判据之一(见评审原件) ──
   - id: "R2-AC6"
     what: "S18-1 AC ⑥(规则九)补机械门 —— 现为 **NOT-RUN**"
@@ -240,6 +305,13 @@ conditions_open:
     owner: "Tooling 层(`Editor.Tools.Gates`)"
     gate: "补门之前,AC ⑥ 唯一证据 = 人工读 `EntityDeathGates.cs` 源码"
     note: "裸子串 grep 不可行 —— 会撞 `EntityDeathGates.cs:35` 注释里的同名文本,假绿风险高于收益"
+    status: "✅ closed(2026-10-22 落地 · 2026-10-23 补记账)"
+    closed_evidence: "门已建并接线:`unity/Assets/Editor.Tools.Gates/RuleNineGate.cs`(33519 B)· 接线点 `AssemblyGates.cs:126`(RunMenu)与 `:1276`(BuildGate 路径)· 接线登记 `Tests/EditMode/Sim/gate_wiring_manifest_test.cs:106` / `:120` / `:247`(三处,入口表 + 类级表)。探针轮三件套见证据件 `production/qa/evidence/impl-ac6-rulenine-gate-2026-10-22.md`"
+    verify_cmd: "grep -n 'RuleNineGate.RunAll' unity/Assets/Editor.Tools.Gates/AssemblyGates.cs && grep -n 'RuleNineGate' unity/Assets/Tests/EditMode/Sim/gate_wiring_manifest_test.cs && ls -l unity/Assets/Editor.Tools.Gates/RuleNineGate.cs"
+    superseded_note: "⚠️ 本条此前挂在 open 段是**记账缺陷** —— `why_open` 自陈「门本身未建」,而门已于 2026-10-22 13:55(`7014630`)落地并接线。订正日期 2026-10-23,当时 commit = `2026cce`"
+
+  # ⚠️ **本段现存未结条件 = 0 条**(两条 status 均为 closed)。
+  #    段名与段内状态不一致的理由见本段首注;真源以各条 `status:` 为准。
 
 # ⚠️ 基线三元组(任何引用本文件计数的下游件须同抄)
 baseline:
@@ -269,6 +341,21 @@ baseline:
       delta: "新增 0 / 消失 0;error CS = 0"
       note: "🔁 **2026-10-22 收口补跑** —— 原记录 `202/202/0/0` 判的是 `ad7316c` 干净树(08:55),**早于 `d91edeb` 对 `HistoryFolder.cs` 的拆方法改动** ⇒ 不覆盖最终代码。本行是重跑后的值,取代原值(原值留档于此 note,不删)。"
     note: "⚠️ 本 sprint 的绿**不得**引作 M3 进展。原写「清债方向,分母 73 → 71」**已作废** —— 实测方向是「立债 + 结转」,见下方 td_index。"
+  # 🔁 **2026-10-24 补:收口终局回归三元组 —— 覆盖 sprint-18 全部代码提交**
+  closeout_regression:
+    editmode:
+      value: "4695 / 4660 / 0 / 35"
+      measured_at: "2026-10-23 23:58 (+0800) 起跑 · 23:59 出件"
+      batch: "s18-closeout-final-20261023"
+      artifact: "unity/Logs/s18-closeout-final-20261023.{xml,log}"
+      commit: "2026cce(干净树;`git status` 仅本文件 M)"
+      prior_triple: "4451 / 4415 / 0 / 36 @ 2026-10-22 13:51 (+0800) · regress-rulenine2 · 干净树"
+      delta: "用例名集合差集:新增 245 / 消失 1;Δtotal = +244;Δpassed = +245;Δskipped = −1;failed 恒 0"
+      gone_case: "`SignTableTest.test_ac834_reverseOrphan_blockedish` —— 该测试**已被改名替换**(不是丢失):现名 `test_ac834_reverseOrphan_reservedAnnotationCloses`(result = Passed)。⚠️ 判据须按**全名集合**比对,按条数比会把「改名」误读成「消失 1 条」。"
+      error_scan: "`error CS` = 0 · `[RuleNine` = 0 · `[fs-write` = 0 · `BuildFailedException` = 0(四项均 `grep -c` 实跑)"
+      why_needed: "⚠️ **原三元组不覆盖 sprint-18 的收尾三提交** —— `regress-rulenine2` 起跑于 2026-10-22 05:50Z,其后仍有 `3bb2df8`(15:34)/ `4e005bd`(16:04)/ `f5ffff2`(16:04)三个提交落地,三者均**触碰生产代码**(新门类 + 数据行 + 判据收紧)⇒ 4451 那组**不能**代表 sprint-18 的最终代码状态。本组是补跑,覆盖三者(`git merge-base --is-ancestor` 三条全 true,且 `2026cce` 是其后续 26 个提交的最新)。"
+      verify_cmd: "python3 -c \"import re;s=open('unity/Logs/s18-closeout-final-20261023.xml',encoding='utf-8',errors='ignore').read();m=re.search(r'<test-run[^>]*>',s).group(0);print({k:re.search(k+r'=\\\"([^\\\"]*)\\\"',m).group(1) for k in ('total','passed','failed','inconclusive','skipped')})\""
+    note: "⚠️ 本组**取代** `regress-rulenine2` 作为 sprint-18 的收口三元组;**但 `regress-rulenine2` 仍是对应提交当时的真值**,不删除、不改写(原文不删)。两组并存的理由:前者回答「sprint-18 收口时树是什么状态」,后者回答「2026-10-22 13:51 那棵树是什么状态」—— 问题不同,不可互相顶替。"
   td_index:
     entries: 100
     p0_y: 89

@@ -179,6 +179,21 @@
       **回归**(截至 `2026-10-22 13:51 (+0800)` · 批次 `regress-rulenine2` · 干净树):
       `4451 / 4415 / 0 / 36`,`error CS = 0`。基线 `s18-ac78-full-20261022` = `4435 / 4399 / 0 / 36`
       ⇒ **Δtotal = Δpassed = +16**;全名级差集 = **新增 16 / 消失 0**(16 条全为 `RuleNineGateTest`)。
+      🔁 **2026-10-24 就地补记(原文不删)—— 上面这组是「2026-10-22 13:51 那棵树」的值,
+      不是 sprint-18 的最终值。** 该轮起跑于 `05:50Z`(13:51 +0800),其后仍有**三个提交落地且均触碰生产代码**:
+      `3bb2df8`(15:34 · 新常量登记门 `DiseaseConstantRegistryGate.cs` + `AssemblyGates.cs` 接线)·
+      `4e005bd`(16:04 · `assets/data/disease_registry.json` 5 条伤情行 + `RegistrySchema.cs`)·
+      `f5ffff2`(16:04 · `RuleNineGate.cs` I2 判据收紧)。
+      ⇒ **补跑一轮收口终局回归**(截至 `2026-10-23 23:59 (+0800)` · 批次 `s18-closeout-final-20261023` ·
+      commit `2026cce` 干净树 · 产物 `unity/Logs/s18-closeout-final-20261023.{xml,log}`):
+      **`4695 / 4660 / 0 / 35`**;`error CS` / `[RuleNine` / `[fs-write` / `BuildFailedException` 四项 `grep -c` 均 **0**。
+      对照本组:`Δtotal = +244` · `Δpassed = +245` · `Δskipped = −1` · `failed` 恒 0。
+      全名集合差集 = **新增 245 / 消失 1** —— 消失那条是**改名**而非丢失:
+      `SignTableTest.test_ac834_reverseOrphan_blockedish`(旧 · Skipped)→
+      `test_ac834_reverseOrphan_reservedAnnotationCloses`(新 · Passed),对应 AC-8-34 的 reserved 机制落地。
+      ⚠️ **两组并存,不可互相顶替**:本组回答「AC ⑥ 门落地那一刻的树是什么状态」(它与
+      `s18-ac78-full` 的 +16 差集正是 RuleNineGateTest 的增量,该论证只在同树上成立);
+      补跑组回答「sprint-18 收口时树是什么状态」。**引作 sprint-18 收口数时用补跑组。**
       ⚠️ **假红首例(就地记账)**:首版判据锚在字段名 `Kind` 上,真工程立刻假红两处 ——
       `ClinicRoomMatcher.cs:279`(`ClinicRoomClauseKind`)/ `ConsequenceInputAggregator.cs:294`
       (`EventKind`,ADR-024 的路由靠它)。⇒ 判据收紧到**字段类型 = `DiseaseKind`**
