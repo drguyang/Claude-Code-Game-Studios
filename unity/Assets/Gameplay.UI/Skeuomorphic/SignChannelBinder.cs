@@ -42,8 +42,11 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic
     /// <summary>体征词条 → 五通道分发(纯函数 · M2 形态件④ 通道本体)。</summary>
     public static class SignChannelBinder
     {
-        /// <summary>通道闭集(五通道 + 病史例外 —— AC-8-32「五通道 + 病史例外」)。</summary>
-        public const int ChannelCardinality = 6;
+        /// <summary>通道闭集(五体格通道 + 伤口 + 病史 + 主观 = 8;
+        /// AC-8-32「五通道 + 病史例外」+ 2026-10-23 增伤口 / 主观两条)。
+        /// <para>⚠️ 与 <see cref="SignChannel"/> 枚举成员数**必须相等** —— 由
+        /// <c>sign_channel_binder_test</c> 的 <c>Enum.GetValues(...).Length</c> 对照断言守住。</para></summary>
+        public const int ChannelCardinality = 8;
 
         /// <summary>把已查词条按通道分发、按档位取词。
         /// <para><b>规则</b>(逐条挂权威):</para>

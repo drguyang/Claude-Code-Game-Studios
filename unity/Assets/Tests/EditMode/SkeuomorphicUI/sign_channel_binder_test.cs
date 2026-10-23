@@ -70,25 +70,31 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         [Test]
         public void test_ac024_1_binder_dispatch_covers_four_states()
         {
-            // Arrange:六通道各一行(五通道 + 病史例外 —— 通道闭集 cardinality = 6)
-            var six = new[]
+            // Arrange:八通道各一行(五体格通道 + 伤口 + 病史 + 主观 —— 闭集 cardinality = 8)
+            var eight = new[]
             {
                 Row("s_face", new[] { "面色词" }, SignChannel.FaceColor),
                 Row("s_voice", new[] { "语声词" }, SignChannel.Voice),
                 Row("s_posture", new[] { "姿态词" }, SignChannel.Posture),
                 Row("s_breath", new[] { "呼吸词" }, SignChannel.Breathing),
                 Row("s_touch", new[] { "触感词" }, SignChannel.Touch),
+                Row("s_wound", new[] { "伤口词" }, SignChannel.Wound),
                 Row("s_history", new[] { "病史词" }, SignChannel.History),
+                Row("s_subjective", new[] { "主观词" }, SignChannel.Subjective),
             };
 
             // Act
-            var result = SignChannelBinder.Bind(six, slot: 0);
+            var result = SignChannelBinder.Bind(eight, slot: 0);
 
-            // Assert ① 六通道全在且各恰 1(五通道 + 病史例外分流,零漏零溢)
-            Assert.AreEqual(SignChannelBinder.ChannelCardinality, 6,
-                "通道闭集基数须为 6(五通道 + 病史例外,AC-8-32)。");
+            // Assert ① 八通道全在且各恰 1(零漏零溢)
+            Assert.AreEqual(SignChannelBinder.ChannelCardinality, 8,
+                "通道闭集基数须为 8(五体格通道 + 伤口 + 病史 + 主观;AC-8-32 + 2026-10-23 增补)。");
+            // 基数与枚举成员数必须相等 —— 否则「加成员忘改基数」会静默漏桶
+            Assert.AreEqual(Enum.GetValues(typeof(SignChannel)).Length,
+                SignChannelBinder.ChannelCardinality,
+                "ChannelCardinality 须 = SignChannel 枚举成员数(加成员须同步改基数)");
             Assert.AreEqual(SignChannelBinder.ChannelCardinality, result.Count,
-                $"分发结果键集须 = 6 通道(实见 {result.Count})。");
+                $"分发结果键集须 = 8 通道(实见 {result.Count})。");
             foreach (SignChannel ch in Enum.GetValues(typeof(SignChannel)))
             {
                 Assert.IsTrue(result.ContainsKey(ch), $"结果缺通道桶 {ch}。");
@@ -97,6 +103,10 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             Assert.AreEqual("s_face", result[SignChannel.FaceColor][0].SignId);
             Assert.AreEqual("s_history", result[SignChannel.History][0].SignId,
                 "病史例外(sign_purulent_stool 所在通道)须落 History 桶。");
+            Assert.AreEqual("s_wound", result[SignChannel.Wound][0].SignId,
+                "伤口通道须落 Wound 桶(2026-10-23 起 8 侧有该序数标签)。");
+            Assert.AreEqual("s_subjective", result[SignChannel.Subjective][0].SignId,
+                "主观通道须落 Subjective 桶(R3.6 豁免类)。");
 
             // Assert ② 空桶语义:输入空 ⇒ 全通道在结果中且空列表(渲染层据此走「未查 = 空行」,
             //    分发器不发明第四态 —— :329)
@@ -166,7 +176,7 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             var illegal = new[] { Row("s_bad", new[] { "词" }, (SignChannel)99) };
             Assert.Throws<ArgumentOutOfRangeException>(
                 () => SignChannelBinder.Bind(illegal, 0),
-                "通道枚举闭集外的值须 fail-loud(五通道 + 病史例外,AC-8-32)。");
+                "通道枚举闭集外的值须 fail-loud(八通道闭集,AC-8-32)。");
 
             // Assert ⑨ 极性透传(夹具双值 —— 阴性词条与阳性在呈现层同走降档类,但字段本身透传;
             //    测试面 A1:硬编码 Positive 突变在此失守)
@@ -335,16 +345,17 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
             Assert.AreEqual("1", sv.Groups[1].Value,
                 $"schema_version 须 = 1(实见 {sv.Groups[1].Value})。");
 
-            // Assert ①′ 真表 channel 原始值集恰 = 闭集六值(评审 B1 修复:原「34 词条全落合法通道」
+            // Assert ①′ 真表 channel 原始值集恰 = 闭集八值(评审 B1 修复:原「34 词条全落合法通道」
             //    实由下方 switch 保证,与 `Bind` 的非法枚举守卫**结构不等价**(真表行必落预建桶,
             //    守卫不可达)⇒ 此处独立扫原始中文值集,给「真表通道面零漏零溢」独立证据)
+            //    2026-10-23:六值 → 八值(增「伤口」「主观」;病史位由「问诊(非体格通道)」承载)
             var rawChannels = Regex.Matches(json, @"""channel""\s*:\s*""([^""]+)""")
                 .Cast<Match>().Select(m => m.Groups[1].Value).ToList();
             Assert.IsNotEmpty(rawChannels, "真表零 channel 字段(前置失败)。");
             CollectionAssert.AreEquivalent(
-                new[] { "面色", "语声", "姿态", "呼吸", "触感", "问诊(非体格通道)" },
+                new[] { "面色", "语声", "姿态", "呼吸", "触感", "伤口", "问诊(非体格通道)", "主观" },
                 rawChannels.Distinct().ToList(),
-                "真表 channel 原始值集须恰 = 六值闭集(五通道 + 病史例外,AC-8-32)—— " +
+                "真表 channel 原始值集须恰 = 八值闭集(五体格通道 + 伤口 + 病史 + 主观)—— " +
                 "多值 = 真表新增通道而闭集未同步;少值 = 通道面被删。");
 
             // Act:按出现序切行(行体 = 本 sign_id 到下一 sign_id)
@@ -388,10 +399,12 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                     "姿态" => SignChannel.Posture,
                     "呼吸" => SignChannel.Breathing,
                     "触感" => SignChannel.Touch,
+                    "伤口" => SignChannel.Wound,
                     "问诊(非体格通道)" => SignChannel.History,
+                    "主观" => SignChannel.Subjective,
                     _ => throw new AssertionException(
                         $"{signId} channel「{chMatch.Groups[1].Value}」超出闭集 " +
-                        "(面色/语声/姿态/呼吸/触感/问诊(非体格通道))—— 中文映射断或真表新增通道,须同步闭集。"),
+                        "(面色/语声/姿态/呼吸/触感/伤口/问诊(非体格通道)/主观)—— 中文映射断或真表新增通道,须同步闭集。"),
                 };
 
                 // polarity 中文 → SignPolarity
@@ -427,26 +440,26 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
                 }
             }
 
-            // Assert ② 34 行(实计)全落合法通道 —— 分发后总读数守恒(各 slot)
+            // Assert ② 真表全行(实计)全落合法通道 —— 分发后总读数守恒(各 slot)
             foreach (int s in new[] { 0, 1, 2 })
             {
                 var bound = SignChannelBinder.Bind(rows, s);
 
-                // 键集 = 6 通道
+                // 键集 = 8 通道
                 Assert.AreEqual(SignChannelBinder.ChannelCardinality, bound.Count,
-                    $"slot={s} 分发键集须 = 6 通道。");
+                    $"slot={s} 分发键集须 = 8 通道。");
 
                 // 总读数 = 行数(零漏零溢)
                 int total = bound.Sum(kv => kv.Value.Count);
                 Assert.AreEqual(rows.Count, total,
                     $"slot={s} 总读数须 = 行数({rows.Count}),实见 {total}。");
 
-                // 键集恰 = 六枚举(评审 B1 修复:显式断言真表行经 Bind 后键集闭集 ——
+                // 键集恰 = 八枚举(评审 B1 修复:显式断言真表行经 Bind 后键集闭集 ——
                 //    与上方「原始值集」互为独立证据:此断言看 Bind 产物,彼断言看真表原文)
                 CollectionAssert.AreEquivalent(
                     Enum.GetValues(typeof(SignChannel)).Cast<SignChannel>().ToList(),
                     bound.Keys.ToList(),
-                    $"slot={s} 分发键集须恰 = SignChannel 六枚举(真表行全落合法桶)。");
+                    $"slot={s} 分发键集须恰 = SignChannel 八枚举(真表行全落合法桶)。");
 
                 // 逐行期望词复算对拍(F-8.2 向尾回退 + 直取,真表驱动)
                 foreach (var (id, ch, expected) in expectedPerSlot[s])

@@ -17,8 +17,10 @@
 // 权威:ADR-014 §二/§三/§四/§五 · `CookedFormat.cs` · `DiseaseRegistryBinder.cs`
 
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using DaYiJingCheng.EditorTools.Bake;
+using DaYiJingCheng.Sim;
 using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.Unit.Sim
@@ -267,6 +269,137 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                         @"""scale"": ""100"", ""signs"": [],"))).Rows[0];
             Assert.That(emptyRow.Signs, Is.Not.Null, "显式空集应解回空数组,不是 null");
             Assert.That(emptyRow.Signs.Length, Is.EqualTo(0), "显式空集长度应为 0");
+        }
+
+        /// <summary>
+        /// **真表 <c>signs[]</c> 逐病种与 GDD `diagnosis-system.md:462-580` 一致** ——
+        /// 2026-10-23 用户裁定「一并补设计 / 阴性体征进」后新立。
+        ///
+        /// <para><b>为什么必须有这条</b>:在填表之前,真表 13 行的 <c>signs</c> 全是
+        /// <c>[]</c>,而**没有任何判据**钉住这一点 —— 上面那些往返测试用的是**合成夹具**
+        /// (<c>RichJson</c>),合成夹具绿不能证明真表有内容。这正是本项目抓过多次的
+        /// 「全空也绿」形态。<b>本测试数没变就是证据</b>:填完 26 条词条后全量仍是
+        /// <c>4692</c>,说明此前零判据覆盖真表 signs 内容。</para>
+        ///
+        /// <para><b>期望值来源</b>:不是抄产物,而是按 8 的 GDD 体征词表**末列「关联」**
+        /// (阳性表)与**「排除什么」**(阴性表)逐条反推。每行末的阴性词条按用户
+        /// 2026-10-23 裁定「进,作为鉴别锚点」保留。</para>
+        ///
+        /// <para><b>✅ 2026-10-23 补完</b>:此前留空的六行已按用户裁定填齐 ——
+        /// 五个 <c>INJ_*</c> 走新增的**伤口**通道(8 侧此前无该序数标签,是它们无从填写的根因),
+        /// <c>DIS_NEURASTHENIA</c> 走新增的**主观**通道(R3.6 主观族,词表此前零条)。
+        /// <c>DIS_DYSENTERY</c> 另补 <c>sign_purulent_stool</c>(病史位)。</para>
+        ///
+        /// <para><b>⚠️ 填表顺序是「先补词表、再填注册表」</b>:8 侧体征词表是外键的真源,
+        /// 先填注册表会撞 <c>AC-8-34·fk</c> 外键悬空。本次顺序:词表 34 → 43 →
+        /// 注册表六行 → 重烘。</para>
+        /// </summary>
+        [Test]
+        public void test_realSource_signsMatchGddVocabulary_perRow()
+        {
+            var outp = DiseaseRegistryBaker.BakeFromRepo(RepoRoot());
+
+            // 键序 = GDD 表格的书写序(面色 → 语声 → 姿态 → 呼吸 → 触感),
+            // 末项为阴性锚点(用户 2026-10-23 裁定)。
+            var expected = new System.Collections.Generic.Dictionary<string, string[]>
+            {
+                // GDD :462 sign_pallor(失血·休克·心衰) · :486 orthopnea(心衰)
+                // :488 dyspnea_speech(心衰) · :506 tachypnea · :507 rales(心衰肺水肿)
+                // :568 lung_clear 阴性「排除心衰」
+                { "DIS_HEART_FAILURE", new[] {
+                    "sign_pallor", "sign_dyspnea_speech", "sign_orthopnea",
+                    "sign_tachypnea", "sign_rales", "sign_lung_clear" } },
+
+                // GDD :488 trismus · :489 opisthotonus · :490 neck_stiffness · :491 risus(均破伤风)
+                // :570 neck_supple 阴性「排除破伤风(早期)」
+                { "DIS_TETANUS", new[] {
+                    "sign_trismus", "sign_opisthotonus", "sign_neck_stiffness",
+                    "sign_risus", "sign_neck_supple" } },
+
+                // GDD :463 flush(发热·伤寒) · :470 delirium(伤寒) · :541 relative_bradycardia(伤寒)
+                { "DIS_TYPHOID", new[] {
+                    "sign_flush", "sign_delirium", "sign_relative_bradycardia" } },
+
+                // GDD :463 flush(麻疹) · :465 rash(麻疹出疹期) · :466 koplik(麻疹出疹前唯一特异所见)
+                { "DIS_MEASLES", new[] {
+                    "sign_flush", "sign_rash", "sign_koplik" } },
+
+                // GDD :464 diaphoresis(疟疾出汗期) · :467 jaundice(疟疾溶血)
+                // :543 hepatosplenomegaly(疟疾) · :571 no_organomegaly 阴性「排除疟疾」
+                { "DIS_MALARIA", new[] {
+                    "sign_diaphoresis", "sign_jaundice",
+                    "sign_hepatosplenomegaly", "sign_no_organomegaly" } },
+
+                // GDD :487 curled(痢疾) · :544 abd_tenderness(痢疾)
+                // :569 abd_soft 阴性「排除痢疾」—— P0 最难一对鉴别的唯一阴性支点
+                // :556 purulent_stool「补上它,本才有自己的确诊所见」(2026-10-23 补位)
+                { "DIS_DYSENTERY", new[] {
+                    "sign_curled", "sign_abd_tenderness", "sign_abd_soft",
+                    "sign_purulent_stool" } },
+
+                // GDD :463 flush(风湿热) · :492 joint_swelling(风湿热,「游走性」是鉴别点)
+                { "DIS_RHEUMATIC_FEVER", new[] {
+                    "sign_flush", "sign_joint_swelling" } },
+
+                // ── 伤情五行:伤口通道(2026-10-23 起 8 侧有 Wound 序数标签)+ 呻吟 ──
+                // GDD :473 sign_moan「各类剧痛」—— 伤情共用
+                // GDD :550-554 五条伤口词条(形态权威 = 25 combat-and-weapon-lines.md:1490-1499)
+                { "INJ_STAB", new[] {
+                    "sign_wound_stab", "sign_moan" } },
+                { "INJ_LACERATION", new[] {
+                    "sign_wound_laceration", "sign_moan" } },
+                // 失血 = 状态型伤情,四联征逐条见 GDD 关联列(失血 · 休克)
+                { "INJ_HEMORRHAGE", new[] {
+                    "sign_wound_hemorrhage", "sign_pallor",
+                    "sign_voice_weak", "sign_cold_clammy", "sign_pulse_rapid" } },
+                { "INJ_CLAW", new[] {
+                    "sign_wound_claw", "sign_moan" } },
+                { "INJ_BITE", new[] {
+                    "sign_wound_bite", "sign_moan" } },
+
+                // ── 豁免类:主观族(R3.6 —— 客观族中性,主观族有词条)──
+                { "DIS_NEURASTHENIA", new[] {
+                    "sign_fatigue", "sign_insomnia", "sign_palpitation", "sign_low_mood" } },
+            };
+
+            Assert.That(outp.Rows.Count, Is.EqualTo(expected.Count),
+                "真表行数变了 ⇒ 本表须同步复核(按 GDD 体征表重新推,不是改数字)");
+
+            int total = 0;
+            foreach (var row in outp.Rows)
+            {
+                Assert.That(expected.TryGetValue(row.DiseaseKey, out string[] want), Is.True,
+                    $"{row.DiseaseKey} 不在期望表里 —— 新增病种须按 8 的体征词表补一行");
+                Assert.That(row.Signs, Is.Not.Null,
+                    $"{row.DiseaseKey}.signs 为 null(未声明)—— 真表每行都该显式声明");
+
+                string[] got = new string[row.Signs.Length];
+                for (int i = 0; i < got.Length; i++) got[i] = row.Signs[i].SignKey;
+
+                Assert.That(got, Is.EqualTo(want),
+                    $"{row.DiseaseKey}.signs 与 GDD 体征表不符 —— 期望 [{string.Join(",", want)}],"
+                    + $"实得 [{string.Join(",", got)}]");
+
+                // 通道位必须与词表自带的 channel 一致(防「词填对了、位填错了」)
+                for (int i = 0; i < row.Signs.Length; i++)
+                {
+                    Assert.That(row.Signs[i].ChannelMask, Is.Not.EqualTo(0),
+                        $"{row.DiseaseKey}.signs[{i}] 通道位为 0(R1-29 拒收)");
+                    Assert.That(row.Signs[i].ChannelMask & ~SignChannels.All, Is.EqualTo(0),
+                        $"{row.DiseaseKey}.signs[{i}] 通道位越出八通道闭集");
+                }
+                total += got.Length;
+            }
+
+            // 绊线:若有人把真表 signs 全清空,上面逐行比对已红;此处再钉一个总数,
+            // 让「全空」这件事在断言消息里直接可见。
+            // ⚠️ 2026-10-23:总数**改为从 expected 求和** —— 原写死 26(7 病种),而本表的
+            // 循环面是 13 行(7 病种 + 6 伤情),两者本就不对齐;填实伤口词表后总数变 44 时
+            // 又红一次。派生值同时满足两个目的:①「全空」仍可见(total=0 ≠ 期望和);
+            // ② 新增病种时只改上面的 expected 表,**不会**再漏改这里(防第二处真源)。
+            int expectedTotal = expected.Values.Sum(v => v.Length);
+            Assert.That(total, Is.EqualTo(expectedTotal),
+                $"真表体征词条总数应 {expectedTotal}({expected.Count} 行);实得 {total} —— 归零 = 用户 2026-10-23 的填充被抹掉");
         }
 
         // ══════════════════════════════════════════════════════════════════════

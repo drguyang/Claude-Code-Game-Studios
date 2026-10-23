@@ -32,7 +32,16 @@
         "self_limit": false,
         "boundary_mode": "monotone"
       },
-      "signs": [],
+      "signs": [
+        {
+          "sign_key": "sign_wound_stab",
+          "channel_mask": 32
+        },
+        {
+          "sign_key": "sign_moan",
+          "channel_mask": 2
+        }
+      ],
       "_rowNote": "匕首类。A_peak/Scale = 1.00 ⇒ 单独存在时峰值 position 顶满。τ_peak = 300 tick(15 s)。Lethality=2 满足校验 4(急性保持型须 lethal)。trauma_half_life=60(3 s)来自 OQ-25-7。"
     },
     {
@@ -56,7 +65,16 @@
         "self_limit": false,
         "boundary_mode": "monotone"
       },
-      "signs": [],
+      "signs": [
+        {
+          "sign_key": "sign_wound_laceration",
+          "channel_mask": 32
+        },
+        {
+          "sign_key": "sign_moan",
+          "channel_mask": 2
+        }
+      ],
       "_rowNote": "短兵。A_peak/Scale = 0.60 —— 五种里最低,「要持续累积到峰值才致死」。τ_peak = 600 tick(30 s),最缓的两种之一。另:破伤风的 causes 指向本伤(GDD :435),但那条归 47 的 GDD 轮,不在本行。"
     },
     {
@@ -80,7 +98,28 @@
         "self_limit": false,
         "boundary_mode": "monotone"
       },
-      "signs": [],
+      "signs": [
+        {
+          "sign_key": "sign_wound_hemorrhage",
+          "channel_mask": 32
+        },
+        {
+          "sign_key": "sign_pallor",
+          "channel_mask": 1
+        },
+        {
+          "sign_key": "sign_voice_weak",
+          "channel_mask": 2
+        },
+        {
+          "sign_key": "sign_cold_clammy",
+          "channel_mask": 16
+        },
+        {
+          "sign_key": "sign_pulse_rapid",
+          "channel_mask": 16
+        }
+      ],
       "_rowNote": "**状态型**伤情(GDD :372),10 止血的对象。A_peak/Scale = 1.00,τ_peak = 200 tick(10 s)—— 五种里最快达峰,符合「失血是持续流失」。⚠️ 三案成员(甲/乙/丙)均为此伤(he-returns.md §四),故本行的致死节奏直接决定该段剧情的手感。"
     },
     {
@@ -104,7 +143,16 @@
         "self_limit": false,
         "boundary_mode": "monotone"
       },
-      "signs": [],
+      "signs": [
+        {
+          "sign_key": "sign_wound_claw",
+          "channel_mask": 32
+        },
+        {
+          "sign_key": "sign_moan",
+          "channel_mask": 2
+        }
+      ],
       "_rowNote": "熊 · 狼(52 的 P0 兽池)。A_peak/Scale = 0.85,τ_peak = 500 tick(25 s)。"
     },
     {
@@ -128,7 +176,16 @@
         "self_limit": false,
         "boundary_mode": "monotone"
       },
-      "signs": [],
+      "signs": [
+        {
+          "sign_key": "sign_wound_bite",
+          "channel_mask": 32
+        },
+        {
+          "sign_key": "sign_moan",
+          "channel_mask": 2
+        }
+      ],
       "_rowNote": "狼 · 野狗。A_peak/Scale = 0.75,τ_peak = 700 tick(35 s)—— 五种里最慢达峰(咬合撕裂有过程,见 combat-and-weapon-lines.md:1499 的呈现语义)。"
     },
     {
@@ -151,7 +208,24 @@
         "self_limit": true,
         "boundary_mode": "monotone"
       },
-      "signs": [],
+      "signs": [
+        {
+          "sign_key": "sign_diaphoresis",
+          "channel_mask": 1
+        },
+        {
+          "sign_key": "sign_jaundice",
+          "channel_mask": 1
+        },
+        {
+          "sign_key": "sign_hepatosplenomegaly",
+          "channel_mask": 16
+        },
+        {
+          "sign_key": "sign_no_organomegaly",
+          "channel_mask": 16
+        }
+      ],
       "_rowNote": "self_limit + 复发块(relapse 块未建,见本文件 _relapseNote)。因有复发块,永不入痊愈;lethal 保留(GDD :429,2026-09-16 裁定)。F4 死亡支要求 self_limit=false ⇒ 死亡支永不触发。"
     },
     {
@@ -174,7 +248,16 @@
         "self_limit": true,
         "boundary_mode": "monotone"
       },
-      "signs": [],
+      "signs": [
+        {
+          "sign_key": "sign_flush",
+          "channel_mask": 1
+        },
+        {
+          "sign_key": "sign_joint_swelling",
+          "channel_mask": 4
+        }
+      ],
       "_rowNote": "self_limit(热退即缓)。急性;compounds → DIS_HEART_FAILURE(旗舰共病,compounds 块未建)。"
     },
     {
@@ -197,7 +280,32 @@
         "self_limit": false,
         "boundary_mode": "monotone"
       },
-      "signs": [],
+      "signs": [
+        {
+          "sign_key": "sign_pallor",
+          "channel_mask": 1
+        },
+        {
+          "sign_key": "sign_dyspnea_speech",
+          "channel_mask": 2
+        },
+        {
+          "sign_key": "sign_orthopnea",
+          "channel_mask": 4
+        },
+        {
+          "sign_key": "sign_tachypnea",
+          "channel_mask": 8
+        },
+        {
+          "sign_key": "sign_rales",
+          "channel_mask": 8
+        },
+        {
+          "sign_key": "sign_lung_clear",
+          "channel_mask": 8
+        }
+      ],
       "_rowNote": "plateau。慢性迁延不退;毛地黄对症(缓和,不逆转)。care 类成员(GDD :294)。A_peak/Scale=DEATH×1.15 ⇒ 校验 4b 过。"
     },
     {
@@ -220,7 +328,20 @@
         "self_limit": false,
         "boundary_mode": "monotone"
       },
-      "signs": [],
+      "signs": [
+        {
+          "sign_key": "sign_flush",
+          "channel_mask": 1
+        },
+        {
+          "sign_key": "sign_delirium",
+          "channel_mask": 2
+        },
+        {
+          "sign_key": "sign_relative_bradycardia",
+          "channel_mask": 16
+        }
+      ],
       "_rowNote": "plateau,长平台期。care 类成员。显示名保留「伤寒」,8 在脉案注现代名「肠伤寒」。incubation=1200(1 分钟潜伏)。"
     },
     {
@@ -243,7 +364,20 @@
         "self_limit": true,
         "boundary_mode": "monotone"
       },
-      "signs": [],
+      "signs": [
+        {
+          "sign_key": "sign_flush",
+          "channel_mask": 1
+        },
+        {
+          "sign_key": "sign_rash",
+          "channel_mask": 1
+        },
+        {
+          "sign_key": "sign_koplik",
+          "channel_mask": 1
+        }
+      ],
       "_rowNote": "self_limit,自限性代表。柳树皮对症 + 判断「自限,不必重药」。"
     },
     {
@@ -266,7 +400,24 @@
         "self_limit": false,
         "boundary_mode": "monotone"
       },
-      "signs": [],
+      "signs": [
+        {
+          "sign_key": "sign_curled",
+          "channel_mask": 4
+        },
+        {
+          "sign_key": "sign_abd_tenderness",
+          "channel_mask": 16
+        },
+        {
+          "sign_key": "sign_abd_soft",
+          "channel_mask": 16
+        },
+        {
+          "sign_key": "sign_purulent_stool",
+          "channel_mask": 128
+        }
+      ],
       "_rowNote": "急性保持型。care 类成员(GDD :294)。照护杠杆适用(K8 保留):越阈 + 照护停止后过窗口死。A_peak/Scale=1.0 ⇒ 4b 过且无余量。"
     },
     {
@@ -289,7 +440,28 @@
         "self_limit": false,
         "boundary_mode": "monotone"
       },
-      "signs": [],
+      "signs": [
+        {
+          "sign_key": "sign_trismus",
+          "channel_mask": 4
+        },
+        {
+          "sign_key": "sign_opisthotonus",
+          "channel_mask": 4
+        },
+        {
+          "sign_key": "sign_neck_stiffness",
+          "channel_mask": 4
+        },
+        {
+          "sign_key": "sign_risus",
+          "channel_mask": 4
+        },
+        {
+          "sign_key": "sign_neck_supple",
+          "channel_mask": 4
+        }
+      ],
       "_rowNote": "急性保持型。handle=none(发病后 P0 无解)。护理不刷新窗口(K8 收窄)。incubation=6000(5 分钟)体现「潜伏 → 发病极重」。"
     },
     {
@@ -312,7 +484,24 @@
         "self_limit": false,
         "boundary_mode": "monotone"
       },
-      "signs": [],
+      "signs": [
+        {
+          "sign_key": "sign_fatigue",
+          "channel_mask": 64
+        },
+        {
+          "sign_key": "sign_insomnia",
+          "channel_mask": 64
+        },
+        {
+          "sign_key": "sign_palpitation",
+          "channel_mask": 64
+        },
+        {
+          "sign_key": "sign_low_mood",
+          "channel_mask": 64
+        }
+      ],
       "_rowNote": "豁免类(plateau ∧ lethal=false),空体征。永不入痊愈。"
     }
   ]

@@ -9,8 +9,11 @@
 
 namespace DaYiJingCheng.Sim.Contracts
 {
-    /// <summary>体征通道位(P0 现状六条,含「伤口」;集合归 8 拥有可扩展,9 不设上限 —— AC-21)。
-    /// 位序即契约:新增通道 = 新位,构建期查冲突。词条→通道映射住 9 的烘焙表(R1.3 schema)。</summary>
+    /// <summary>体征通道位(P0 现状八条,含「伤口」「主观」「病史」;集合归 8 拥有可扩展,9 不设上限 —— AC-21)。
+    /// 位序即契约:新增通道 = 新位,构建期查冲突。词条→通道映射住 9 的烘焙表(R1.3 schema)。
+    /// <para>⚠️ 后三位是**非体格**或**半体格**通道,8 侧的 <c>MaskOf</c> 对其中两个刻意返回 0 ——
+    /// 见 <c>DiagnosisChannelMaskMap</c>。9 侧登记位是为了让 <c>signs[].channel_mask</c> 有处可落
+    /// (R1-29 要求非零),不表示该位会出现在 <c>VitalsDto.SignChannelMask</c> 里。</para></summary>
     public static class SignChannel
     {
         public const int Complexion   = 1 << 0;  // 面色
@@ -19,6 +22,8 @@ namespace DaYiJingCheng.Sim.Contracts
         public const int Breathing    = 1 << 3;  // 呼吸
         public const int Palpation    = 1 << 4;  // 触感
         public const int Wound        = 1 << 5;  // 伤口(2026-09-17 起第六条,承 25 V1 回填)
+        public const int Subjective   = 1 << 6;  // 主观族(2026-10-23 起第七条,承 R3.6 豁免类)
+        public const int History      = 1 << 7;  // 病史(2026-10-23 起第八条,问诊所得的非体格证据)
     }
 
     /// <summary>病情投影 DTO(8 / 13 / 24 的唯一取数形状)。

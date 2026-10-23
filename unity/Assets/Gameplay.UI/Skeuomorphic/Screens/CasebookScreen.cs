@@ -625,8 +625,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
         // ══════════════════════════════════════════════════════════════════════
 
         /// <summary>通道枚举 → 脉案行名(GDD UI-8.1 五通道 + 问诊栏第 6 行,OQ-8-9)。
-        /// <para>方向与 <see cref="SignChannelBinder"/> 的枚举是同一闭集
-        /// (五通道 + 病史例外);8 的 `SignChannel.History` = 问诊栏。</para>
+        /// <para>方向与 <see cref="SignChannelBinder"/> 的枚举是同一闭集(8 条);
+        /// 但**脉案页只画其中 6 条** —— 理由见下方注释块。</para></summary>
+        /// <returns>行名;该通道**不在脉案页渲染** ⇒ <c>null</c>。</returns>
         private static string RowNameFor(DiagnosisSignChannel channel)
         {
             switch (channel)
@@ -637,12 +638,32 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
                 case DiagnosisSignChannel.Breathing: return "channel-breathing";
                 case DiagnosisSignChannel.Touch: return "channel-palpation";
                 case DiagnosisSignChannel.History: return "channel-inquiry";
+                // ⚠️ 下面两条**刻意不进脉案页**,不是遗漏 —— 理由见紧随其后的注释块。
+                case DiagnosisSignChannel.Wound:
+                case DiagnosisSignChannel.Subjective:
+                    return null;
                 default:
                     throw new System.ArgumentOutOfRangeException(
                         nameof(channel), channel,
-                        "[CasebookScreen] 体征通道超出五通道 + 病史例外闭集(AC-8-32)。");
+                        "[CasebookScreen] 体征通道超出 8 条闭集(AC-8-32 + 2026-10-23 增补)。");
             }
         }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  不渲染进脉案页的两条通道及其理由(2026-10-23)
+        //
+        //  Wound:伤情持续期的外显是**世界空间**所见(破口 / 出血形态 / 贴花),
+        //    由 13 按通道驱动表现。脉案页是**查体读数**的纸面 —— 把伤口形态写进纸面
+        //    等于让玩家「在纸上看见伤」,与「必须走到病人身边看」的设计相反。
+        //
+        //  Subjective:AC-8-42 明写《他回来了》第二幕的判据是「脉案五行为**实笔的
+        //    「无异常」,五行俱在**」。若主观族渲染成第六行,「查体全正常」当场破功
+        //    (R3.6 的医学精确性 = 主观痛苦 + 客观阴性)。主观痛苦的外显
+        //    (叹气 / 按太阳穴 / 语声低微)走 13 的表现映射层。
+        //
+        //  ⚠️ 这两条的**数据仍在流里**(ActiveSignCount 计入、SignChannelMask 按位或),
+        //     只是 42 不画 —— 与「未查 = 空行」是两回事,不要混。
+        // ══════════════════════════════════════════════════════════════════════
 
         /// <summary>
         /// 以只读 DTO 源刷新值区(fail-loud:绑定缺失 = 具名异常,**不退回假数据**)。
@@ -683,6 +704,9 @@ namespace DaYiJingCheng.Gameplay.UI.Skeuomorphic.Screens
             foreach (var kv in byChannel)
             {
                 string rowName = RowNameFor(kv.Key);
+                // null = 该通道刻意不进脉案页(Wound / Subjective —— 见 NonRenderedReason);
+                // 与「行不存在」(下方 continue)是两回事,不要合并。
+                if (rowName == null) continue;
                 var row = _root.Q<VisualElement>(rowName);
                 if (row == null) continue;   // 行由 BuildUI 建;缺行 = 结构被改,由交叉断言先红
 

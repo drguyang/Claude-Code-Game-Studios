@@ -5,7 +5,7 @@
 //   GDD disease-simulation.md R1 —— 17 条构建期校验
 //   GDD disease-simulation.md R1.3 —— natural_progress 字段 schema(curve.* / relapse.* / scale)
 //   GDD disease-simulation.md F1/F2 —— Base/Relapse 分段与 SCALE_病种 投影
-//   GDD disease-simulation.md §Visual/Audio 二 —— 体征六通道位域(signs[].channel_mask)
+//   GDD disease-simulation.md §Visual/Audio 二 —— 体征八通道位域(signs[].channel_mask)
 //   ADR-017 §二 —— 门 A 硬化
 //
 // 核心机制:
@@ -40,10 +40,14 @@ namespace DaYiJingCheng.Sim
     }
 
     /// <summary>
-    /// 体征 → 感知通道位域(P0 六通道)。
+    /// 体征 → 感知通道位域(P0 八通道)。
     /// 权威:GDD disease-simulation.md §Visual/Audio Requirements 二
-    /// (2026-09-16 三轮「通道 = 位域整数」用户裁决②;2026-09-17 五→六增伤口位)。
+    /// (2026-09-16 三轮「通道 = 位域整数」用户裁决②;2026-09-17 五→六增伤口位;
+    /// 2026-10-23 六→八增主观位与病史位,承 R3.6 豁免类主观族 + 问诊病史落 signs[])。
     /// 分工三件套:9 只登记通道位(本表),8 拥有词表与阈值,13/44 按位表现。
+    /// <para>⚠️ <see cref="Subjective"/> 与 <see cref="History"/> 是**非体格位** —— 8 侧的
+    /// <c>DiagnosisChannelMaskMap.MaskOf</c> 对二者刻意返回 0(不驱动表现层)。9 侧登记它们,
+    /// 是为了让 R1-29「channel_mask 非零」在主观族 / 病史词条上成立,不是因为它们有体格所见。</para>
     /// </summary>
     public static class SignChannels
     {
@@ -53,9 +57,11 @@ namespace DaYiJingCheng.Sim
         public const int Breath = 1 << 3;  // 呼吸(平稳 · 急促 · 浅慢 · 停顿)
         public const int Touch = 1 << 4;   // 触感(发热 · 发凉 · 湿冷)
         public const int Wound = 1 << 5;   // 伤口(2026-09-17 新增;伤情持续期外显)
+        public const int Subjective = 1 << 6; // 主观族(2026-10-23 新增;R3.6 豁免类的乏力/失眠/心悸/情绪)
+        public const int History = 1 << 7; // 病史(2026-10-23 新增;问诊所得的非体格证据)
 
-        /// <summary>六通道闭集 —— channel_mask 只允许本掩码内的位(写入期白名单)。</summary>
-        public const int All = Face | Voice | Posture | Breath | Touch | Wound;
+        /// <summary>八通道闭集 —— channel_mask 只允许本掩码内的位(写入期白名单)。</summary>
+        public const int All = Face | Voice | Posture | Breath | Touch | Wound | Subjective | History;
     }
 
     /// <summary>
@@ -294,7 +300,7 @@ namespace DaYiJingCheng.Sim
         public const int R1_CHECK_26 = 26; // relapse 块 ⇒ a_rel > 0 ∧ interval > 0 ∧ τ_rel_fall > 0(GDD 校验 3「齐全」+ 8「值域」合并 —— 类模型下块存在 = Relapse 非 null,「半截」的唯一形态就是值为 0/负,由 8 的 > 0 兜住)
         public const int R1_CHECK_27 = 27; // boundary_mode ∈ {monotone, scan}(R1.3 白名单,必填)
         public const int R1_CHECK_28 = 28; // σ 逐病种覆盖值 ≥ 0(Tuning Knobs §四;Sigma == null 走全局默认,不查)
-        public const int R1_CHECK_29 = 29; // signs[].SignKey 非空 ∧ ChannelMask ⊆ 六通道闭集 ∧ ≠ 0(R1 表 + §Visual/Audio 二位域)
+        public const int R1_CHECK_29 = 29; // signs[].SignKey 非空 ∧ ChannelMask ⊆ 八通道闭集 ∧ ≠ 0(R1 表 + §Visual/Audio 二位域)
 
         // ── BCD 码-1(2026-10-10 登记债收口):R1-30 = GDD 校验 12 + F3 全局不等式 ──
         public const int R1_CHECK_30 = 30; // R_rise > ε_MIN(GDD 校验 12 + F3 全局不等式注,同一条的两个观测面)
@@ -753,7 +759,7 @@ namespace DaYiJingCheng.Sim
                             $"relapse 块三字段须全 > 0(a_rel={entry.Relapse.ARel.Raw}, interval={entry.Relapse.Interval}, tau_rel_fall={entry.Relapse.TauFall.Raw})(GDD 校验 3+8)");
                 }
 
-                // R1-29 ← R1 表 signs[] 行 + §Visual/Audio 二位域:词键非空、通道位 ∈ 六通道闭集且非零。
+                // R1-29 ← R1 表 signs[] 行 + §Visual/Audio 二位域:词键非空、通道位 ∈ 八通道闭集且非零。
                 //   空数组 = 合法(R1 表「可为空集」);null = 未声明(既有条目),跳过。
                 if (entry.Signs != null)
                 {
@@ -765,7 +771,7 @@ namespace DaYiJingCheng.Sim
                                 $"signs[{i}].SignKey 不能为空");
                         if (sign.ChannelMask == 0 || (sign.ChannelMask & ~SignChannels.All) != 0)
                             throw new RegistryValidationException(R1_CHECK_29,
-                                $"signs[{i}].channel_mask={sign.ChannelMask} ∉ 六通道闭集(非零且 ⊆ SignChannels.All)");
+                                $"signs[{i}].channel_mask={sign.ChannelMask} ∉ 八通道闭集(非零且 ⊆ SignChannels.All)");
                     }
                 }
             }

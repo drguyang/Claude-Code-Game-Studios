@@ -10339,3 +10339,75 @@ heart_failure}`,注册表键是 `DIS_` 前缀 ⇒ **交集为空** ⇒ ① 生�
 **M4**(回退成 `DiseaseKeyPrefix + key`,即重放真实 bug)⇒ `CareLeverApplicabilityTest`
 **8 条中恰 1 红**,正是 `test_prefixedKey_equivalentToBareKey`。
 还原 = 备份 + `cp` 回 + SHA-256 逐字节一致(`97f65ce…`),未用 `git checkout`/`stash`。
+
+---
+
+## round43 — signs 真表填充 + 通道闭集六 → 八(2026-10-23 · 用户裁定「甲 + 乙 + 乙」· 全做 · 未提交)
+
+### 用户裁定(三条)
+
+1. **甲:加第 7 位 Subjective** —— 主观族用**新增通道位**表达,不得让 `channel_mask = 0`。
+2. **乙:进,与主观族同解** —— `sign_purulent_stool` 进 `DIS_DYSENTERY.signs[]`,按主观族同法。
+3. **乙:一并造伤口词表** —— 5 个 `INJ_*` 不只手填 GDD 已明写的映射,须造完整伤口词表组。
+4. **「批准,全做」** —— A(GDD)→ B(代码)→ C(数据)→ D(测试) 四段全执行。
+
+### 实际落地面
+
+| 段 | 文件 | 改动 |
+|---|---|---|
+| A | `design/gdd/disease-simulation.md` | §二 标题六通道→八;新增两行通道(主观 / 病史)+ 2026-10-23 修订注;`:1872` 位域注;AC-21 八条;R3.6 落地注;VR 段「八通道」 |
+| A | `design/gdd/diagnosis-system.md` | R-8.2 头注(34→43 行,须有意识重钉);新增**伤口组 5 条** + **主观族组 4 条**;`channel` 字段取值域改「闭集八条」;AC-8-32 / AC-8-35 同步;D-8-2 加注「第六通道序数已过期」;`:430` 段就地订正「不需要扩通道」被证伪 |
+| A | `design/gdd/combat-and-weapon-lines.md` | `:1443` 通道数注补 2026-10-23 再扩 |
+| B | `unity/Assets/Sim.Contracts/VitalsDto.cs` | `Subjective = 1<<6` · `History = 1<<7` |
+| B | `unity/Assets/Sim/RegistrySchema.cs` | 同上两常量 + `All` 扩八;R1-29 错误串「八通道闭集」 |
+| B | `Gameplay.Presentation/Diagnosis/DiagnosisSignTable.cs` | 枚举 `Wound=6` / `Subjective=7`;`SubjectiveSignIds` 白名单 + 校验(用 `Array.IndexOf`,非 `.Contains`) |
+| B | `Gameplay.Presentation/Diagnosis/DiagnosisChannelMaskMap.cs` | `MaskByOrdinal` 扩到 8 项(Wound 映 `ChannelMask.Wound`,History/Subjective 映 0);`PhysicalBits` 六位;`AssertConsistent()` ⑤ 由「Wound 必须悬空」反转为「悬空位归零」+ ⑥ 加 Subjective 检查 |
+| B | `Gameplay.Presentation/Diagnosis/DiagnosisSignCookedCodec.cs` | 通道上界 `SignChannel.Subjective` |
+| B | `Gameplay.UI/Skeuomorphic/SignChannelBinder.cs` | `ChannelCardinality` 6 → 8 |
+| B | `Gameplay.UI/Skeuomorphic/Screens/CasebookScreen.cs` | `RowNameFor` 对 Wound / Subjective 返回 `null`(刻意不进脉案页),调用方 `continue` |
+| B | `Editor.Tools.Bake/DiagnosisSignBinder.cs` | 中文→序数映射加「伤口」「主观」两条 |
+| C | `assets/data/diagnosis_signs.json` | 34 → **43 行**(+5 伤口 +4 主观) |
+| C | `assets/data/disease_registry.json` | 13/13 行 `signs[]` 填实,词条总数 **44**;`DIS_DYSENTERY` 加 `sign_purulent_stool`(mask 128 = History) |
+| C | `Assets/DataCooked/*.cooked.bytes` | 重烘:signs 3091 → **3925 B / 43 行**(ConfigVersion `0x4B5649FB`);registry 2723 → **3121 B**(`0x3DE93AF6`) |
+| D | `sign_table_test.cs` | `PinnedSignIds` +9;34→43(4 处);极性 30/4→39/4;⑥ 六体格通道;⑦ 主观通道断言;`GoldenContentHash` **有意识重钉** `3954e294 → 3f8a0cd1`;扩展种子 35 → 44;`test_ac834_reverseOrphan` 头注加「34 已过期,实测孤儿 5 / 引用集 38」 |
+| D | `DiagnosisGoldenScan.cs` | `GoldenConstantsHash` **有意识重钉** `b711a17c → bfb52fd8` + 变更日志注释 |
+| D | `examine_driver_test.cs` | 词表行数 34 → 43 |
+| D | `disease_registry_bake_pipeline_test.cs` | 六行期望值由空数组改为真值;总数断言由写死 26 改为**从 expected 派生**(`expected.Values.Sum(...)`) |
+| D | `curve_fixture_test.cs` | **假绿修复**:`1<<6` → `1<<20`(64 已是合法 Subjective 位) |
+| D | `sign_channel_binder_test.cs` | 6→8 通道夹具 + 基数断言 |
+| D | `examine_evaluator_test.cs` / `synthetic_disease_fixture.cs` | 34→43 / 注释「八通道位域」 |
+
+### 回归三元组(实跑)
+
+**EditMode**:`total=4693 passed=4657 failed=0 inconclusive=0 skipped=36` · **EXIT=0**
+@ **2026-10-23 18:11:53–18:13:54 +0800** · 批次 **round43 signs 填充 + 通道扩容 · GDD 改动后全量** · 基线 commit **`717c7aa`**
+Δ = **0 / 0 / 0 / 0**(相对 round42 的 `4692/4656`,零新增判据、零回归 —— 本轮只改判据内容不改判据条数)
+
+**PlayMode**:`total=202 passed=202 failed=0 inconclusive=0 skipped=0` · **EXIT=0**
+@ **2026-10-23 18:00:54–18:00:58 +0800** · 同批次
+
+### 证伪轮(四次变异,还原全部 SHA-256 逐字节一致)
+
+| ID | 变异 | 结果 |
+|---|---|---|
+| M1 | `SignChannelBinder.ChannelCardinality` 8 → 6 | **恰红 2**(`test_ac024_1_binder_dispatch_covers_four_states` / `test_ac024_3_real_sign_table_roundtrip`) |
+| M2 | `DiagnosisChannelMaskMap` 的 `Subjective(7)` 由 0 改成 `ChannelMask.Voice` | **首轮全绿(假存活)**,因只跑了 SkeuomorphicUI 命名空间而 `AssertConsistent()` 的调用点在 `DiagnosisSignTable.cs:206`;扩到 DiagnosisSystem 命名空间后 **32 红**,首条即「位 0x2 被多个序数映射」 |
+| M3 | 清空 `DIS_NEURASTHENIA.signs` | **恰红 1**(`test_realSource_signsMatchGddVocabulary_perRow`,逐行比对点名四条缺失) |
+| M4 | 主观白名单删掉 `sign_low_mood` | **21 红**,首条即「R3.6·subjective-channel …『sign_low_mood』不得借用该通道」 |
+
+⚠️ **M2 的教训(本轮新形态)**:证伪轮**跑错命名空间 = 假存活**。变异生效了、断言也在,但
+**该命名空间下没有任何测试触发它** —— 这与「变异打错靶」不同,是**观测面选错**。
+后续证伪轮须先 `grep` 出断言的**调用链入口**在哪个命名空间的测试里,再定 `-testFilter`。
+
+还原记录:四个文件备份在 `$CLAUDE_JOB_DIR/tmp/falsify43/`,还原后 `sha256sum -c before.sha256` 三件全「成功」,
+`DiagnosisSignTable.cs` 单独 `sha256sum -c signtable.sha256` 亦「成功」。**未用 `git checkout` / `git stash`**。
+
+### 未结 / 相邻事实(不属本轮范围)
+
+- **5 条词表孤儿**(`sign_retraction` / `sign_cheyne_stokes` / `sign_dullness` / `sign_fever_skin` / `sign_pulse_bounding`)
+  —— 为 P1a 病种预留;悬空引用 0 条。`test_ac834_reverseOrphan_blockedish` **仍 Ignore**
+  (解锁须走 TR-diag-013 归属件 = 9 规则十 + F5),其头部已加注「34 这个数字已过期」。
+- **`D-8-2` 未结** —— 病史一支被「9 给位 / 8 映 0」的形态提前解决,但检验 / 镜检 / 舌脉三类仍待 P1a。
+- **`Assets/DataCooked/diagnosis_read_floor.cooked.bytes`** 本轮被同批 CLI 顺带重烘(296 B,61 档),
+  内容未变(未出现在 `git status`)。
+- **提交与推送**须用户另行发话。

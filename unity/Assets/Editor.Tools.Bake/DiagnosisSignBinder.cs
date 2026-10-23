@@ -50,6 +50,9 @@ namespace DaYiJingCheng.EditorTools.Bake
                 { "呼吸", SignChannel.Breathing },
                 { "触感", SignChannel.Touch },
                 { "问诊(非体格通道)", SignChannel.History },
+                // 2026-10-23 增补两条:伤口补 9 的 Wound 位悬空,主观补 R3.6 主观族。
+                { "伤口", SignChannel.Wound },
+                { "主观", SignChannel.Subjective },
             };
 
         /// <summary>P1a 通道(AC-8-33 禁入 P0)—— 命中即叠打 AC-8-33·channel tag。</summary>

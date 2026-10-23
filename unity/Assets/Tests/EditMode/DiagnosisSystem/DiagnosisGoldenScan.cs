@@ -58,8 +58,12 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
         /// <c>JudgmentState</c> 三值自动入面,常量行集 +7 ⇒ 有意识重钉)→ 本值(story-006:
         /// **词表路由枚举落地** —— <c>PatientCoarseState</c> 四值 +
         /// <c>VisitRoute</c> 四值自动入面,常量行集 +8 ⇒ 有意识重钉;
-        /// 实测 <c>b711a17c</c>,2026-10-08)。</para></summary>
-        public const string GoldenConstantsHash = "b711a17c";
+        /// 实测 <c>b711a17c</c>,2026-10-08)→ 本值(2026-10-23 **通道闭集六 → 八**:
+        /// <c>SignChannel</c> 枚举加 <c>Wound=6</c> / <c>Subjective=7</c> 两字面 +
+        /// <c>DiagnosisChannelMaskMap</c> 两张静态数组同步扩位 +
+        /// <c>SignChannelBinder.ChannelCardinality</c> 6 → 8,三处均属前缀 ns 常量故入面 ⇒
+        /// 有意识重钉;实测 <c>bfb52fd8</c>)。</para></summary>
+        public const string GoldenConstantsHash = "bfb52fd8";
 
         /// <summary>常量行集:住前缀类型的字面量 / 静态只读字段(含枚举字面),
         /// 加一行「30 侧诊断档位」(耦合常量的另一半),按 ordinal 排序。</summary>

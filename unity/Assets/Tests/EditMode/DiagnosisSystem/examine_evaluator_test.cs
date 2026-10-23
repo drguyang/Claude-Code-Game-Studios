@@ -59,8 +59,8 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
 
             // 解码 roundtrip(生产 codec;E-13 零容忍)
             var signsDs = DiagnosisSignCookedCodec.Read(signs.Cooked);
-            Assert.AreEqual(signsDs.Rows.Count, 34,
-                "真表 R-8.2 34 行(与 sign_table_test 金标一致)");
+            Assert.AreEqual(signsDs.Rows.Count, 43,
+                "真表 R-8.2 43 行(与 sign_table_test 金标一致)");
             Assert.GreaterOrEqual(signsDs.ConfigVersion, 1u);
 
             var floorDs = DiagnosisReadFloorCookedCodec.Read(floor.Cooked);

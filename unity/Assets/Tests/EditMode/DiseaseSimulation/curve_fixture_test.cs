@@ -255,9 +255,12 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         [Test]
         public void test_registry_signChannelOutsideClosedSet_throwsRule29()
         {
-            // Arrange ① —— 第 6 位之外的未定义位(bit 6 = 64 ∉ 六通道闭集)
+            // Arrange ① —— 闭集**之外**的位。
+            // ⚠️ 2026-10-23:原用 1<<6,但该位已成为合法的 Subjective 位(闭集扩到八位)——
+            //    若不改,本用例会**假绿**(报错原因变成「掩码 0」以外的另一条,甚至直接通过)。
+            //    改取 1<<20(远在闭集外,且短期内不会被新通道占用)。
             var e1 = SyntheticDiseaseFixture.Create();
-            e1.Signs[0] = new SignEntry("synth_bogus", 1 << 6);
+            e1.Signs[0] = new SignEntry("synth_bogus", 1 << 20);
             Assert.AreEqual(29, AssertRejects(e1).RuleNumber, "channel_mask 含未定义位须报 R1-29");
 
             // Arrange ② —— 零掩码(非零要求)

@@ -76,8 +76,9 @@ namespace DaYiJingCheng.Tests.Boot
             // S1.2 判据:组合根从**真烘焙产物**装载词表 + 门槛(非合成夹具、非空表)
             Assert.IsTrue(_bag.ExamineDriver.HasLexicon,
                 "组合根装配后 ExamineDriver 须已注入词表(S1.2 装载面闭合)");
-            Assert.AreEqual(34, _bag.ExamineDriver.LexiconRowCount,
-                "真词表 34 行(R-8.2 P0 冻结表;0 = 装载失败被吞 = 假绿)");
+            // 2026-10-23:34 → 43(词表扩「伤口」5 条 + 「主观族」4 条;行数与本处同批改)
+            Assert.AreEqual(43, _bag.ExamineDriver.LexiconRowCount,
+                "真词表 43 行(R-8.2 P0 冻结表;0 = 装载失败被吞 = 假绿)");
         }
 
         [Test]

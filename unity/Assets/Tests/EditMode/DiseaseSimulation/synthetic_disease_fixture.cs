@@ -8,7 +8,7 @@
 // 权威来源:
 //   GDD disease-simulation.md R1.3 —— curve.* / relapse.* / scale 字段 schema 与写入期校验
 //   GDD disease-simulation.md F1 —— Base 上升/衰减段 + Relapse 复发项(数值须自洽跑出该形状)
-//   GDD disease-simulation.md F2 —— SCALE_病种 投影;§Visual/Audio 二 —— signs 六通道位域
+//   GDD disease-simulation.md F2 —— SCALE_病种 投影;§Visual/Audio 二 —— signs 八通道位域
 //   ADR-014 §四 —— 作者态 Fix 字段写字符串("1/2")经 FixParse,禁 JSON 数字/浮点字面量
 //                   (本 fixture 为 EditMode 直构,不经 cooked —— 装载面归后续轮,已登记)
 //
@@ -112,7 +112,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
                 // F2 归一化分母:SCALE = 1.0 ≥ A_peak = 0.5(校验 5)⇒ position 峰值 0.5 ∈ [0,1]
                 Scale = FixParse.Parse("1"),
 
-                // signs[]:词表内容归 8,此处只登记离散词键 + 通道位(六通道位域白名单内)
+                // signs[]:词表内容归 8,此处只登记离散词键 + 通道位(八通道位域白名单内)
                 Signs = new[]
                 {
                     new SignEntry("synth_pallor", SignChannels.Face),

@@ -79,9 +79,12 @@ namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis
                 words[i] = ReadString(b, ref pos);
 
             // 枚举序数界(闭环集守卫:序数超上界 = 产物损坏 —— 不做就等于把闭集校验放行到呈现层)
+            // ⚠️ 上界 = 枚举**最大序数**,不是固定值。2026-10-23 加 Subjective(7) 后若仍写死
+            //    History(5),新增行会被判成「产物损坏」—— 故此处取枚举尾值,加成员时自动跟上。
             byte channelRaw = ReadU8(b, ref pos);
-            if (channelRaw > (byte)SignChannel.History)
-                throw E13($"channel 序数={channelRaw} > 闭集上界 {(byte)SignChannel.History} —— 产物损坏");
+            byte channelMax = (byte)SignChannel.Subjective;
+            if (channelRaw > channelMax)
+                throw E13($"channel 序数={channelRaw} > 闭集上界 {channelMax} —— 产物损坏");
             var channel = (SignChannel)channelRaw;
 
             byte revealCount = ReadU8(b, ref pos);

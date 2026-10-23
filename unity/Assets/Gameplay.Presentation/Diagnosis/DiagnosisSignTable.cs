@@ -38,7 +38,8 @@ namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis
     /// <para>前五 = GDD 五通道(面色/语声/姿态/呼吸/触感,恰好五个值,无新造 —— AC-8-32);
     /// <see cref="History"/> = 病史组 <c>问诊(非体格通道)</c>(通道外第二类证据,
     /// GDD 2026-09-14 用户裁定;AC-8-34 明写「该值不计为新造通道」,且仅白名单给
-    /// <c>sign_purulent_stool</c>)。</para>
+    /// <c>sign_purulent_stool</c>);<see cref="Subjective"/> = 主观族
+    /// (2026-10-23 用户裁定,R3.6 豁免类专用;同为非体格通道)。</para>
     /// <para>P1a 通道(舌/脉/情志/体质/时序)刻意**不在枚举内** —— 绑定期即拒(AC-8-33)。</para>
     /// <para>⚠️⚠️ **同名不同物**(结构侧评审 S-MAJOR):<c>Sim.Contracts.SignChannel</c> 是
     /// AC-21 的体征通道**位掩码静态类**(<c>Complexion=1&lt;&lt;0</c> …),与本枚举的**序数标签**
@@ -63,6 +64,20 @@ namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis
 
         /// <summary>病史(<c>问诊(非体格通道)</c> —— 仅 <c>sign_purulent_stool</c>)。</summary>
         History = 5,
+
+        /// <summary>伤口(2026-10-23 起补 8 侧序数标签 —— 此前该位只有 9 侧有,8 侧无入口)。
+        /// <para>承载伤情持续期的外显(刺 / 划 / 失血 / 爪 / 咬);形态权威 = 25
+        /// (`combat-and-weapon-lines.md:1490-1499`)。**是体格所见**,故映真掩码位。</para>
+        /// <para>⚠️ 序数 6 与 9 侧 <c>SignChannel.Subjective = 1&lt;&lt;6</c> **同数不同物** ——
+        /// 别按数值猜对应关系,一律走 <see cref="DiagnosisChannelMaskMap"/>。</para></summary>
+        Wound = 6,
+
+        /// <summary>主观族(<c>主观</c> —— 2026-10-23 起第八条;R3.6 豁免类专用)。
+        /// <para>⚠️ 与 <see cref="History"/> 同为**非体格通道**,但证据类型不同:
+        /// 病史是**病人说出来的事实**,主观是**病人自己感受到的痛苦**。
+        /// 本通道**不渲染进 42 脉案页**(`AC-8-42` 要求《他回来了》第二幕「五行俱在、实笔的『无异常』」),
+        /// 呈现走 13 的表现映射层。</para></summary>
+        Subjective = 7,
     }
 
     /// <summary>揭示手段(R-8.1 <c>reveal_by</c>)—— P0 五法:视/触/叩/听/问。
@@ -110,7 +125,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis
         /// (F-8.2 空白档回退的可表达性;**禁空串** —— 空串与阴性形态在呈现层同构)。</summary>
         public readonly string[] DisplayWords;
 
-        /// <summary>所属通道(五通道 + 病史例外;AC-8-32/8-34)。</summary>
+        /// <summary>所属通道(五体格通道 + 伤口 + 病史 + 主观;AC-8-32/8-34 + 2026-10-23 增补)。</summary>
         public readonly SignChannel Channel;
 
         /// <summary>揭示手段(P0 五法闭集,可多法合证;AC-8-32/8-33)。</summary>
@@ -168,6 +183,14 @@ namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis
     /// </summary>
     public static class DiagnosisSignTableValidator
     {
+        /// <summary>主观通道的白名单词条(2026-10-23 · R3.6 豁免类专用)。
+        /// <para>与 AC-8-34 的 <c>sign_purulent_stool</c> 白名单同构 —— 非体格通道不得被借用。
+        /// **加一条须同时改 GDD R-8.2 主观族组**,否则词表与白名单分叉。</para></summary>
+        private static readonly string[] SubjectiveSignIds =
+        {
+            "sign_fatigue", "sign_insomnia", "sign_palpitation", "sign_low_mood",
+        };
+
         /// <summary>跑全部构建期校验(烘焙期一次调用)。任一违例即 `throw`。
         /// <b>先跑耦合断言</b>(SLOT_BOUNDS 漂移 ⇒ 后续 tier 域全部无意义)。</summary>
         /// <param name="rows">校验通过绑定期的行集。</param>
@@ -179,7 +202,7 @@ namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis
             AssertSlotBoundsCoupled(SkillTuningTable.Default.GetDiagTiers(), DiagnosisTuning.SlotBounds);
 
             // story-003 Note 6 / 承 S-MAJOR:通道序数 ↔ 位掩码映射的构建期双向断言
-            // (五通道恰满 · 零重复位 · 零悬空 · Wound/History 两处不全等显式登记)
+            // (六体格通道恰满 · 零重复位 · 零悬空 · History/Subjective 两处「映 0」显式登记)
             DiagnosisChannelMaskMap.AssertConsistent();
 
             var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -204,6 +227,19 @@ namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis
                     throw new ArgumentException(
                         $"AC-8-34·channel-exception channel=问诊(非体格通道) 仅白名单给 " +
                         $"sign_purulent_stool —— 「{row.SignId}」不得借用该通道(否则新造通道)");
+
+                // ── 主观通道白名单(2026-10-23 · R3.6 豁免类专用)──
+                //   与 AC-8-34 同构的「非体格通道不得被借用」守卫。主观族**只服务 R3.6 豁免类**,
+                //   若放开成通用通道,任何病种都能塞「补一条主观描述」,豁免类的医学精确性
+                //   (主观痛苦 + 客观阴性)随之失效(disease-simulation.md §Visual/Audio 二 判据①)。
+                // ⚠️ 用 Array.IndexOf 而非 .Contains —— string[] 上的 Contains 会被解析到
+                //    MemoryExtensions.Contains(ReadOnlySpan<char>,…),触发 CS7036(实测踩坑)。
+                if (row.Channel == SignChannel.Subjective
+                    && Array.IndexOf(SubjectiveSignIds, row.SignId) < 0)
+                    throw new ArgumentException(
+                        $"R3.6·subjective-channel channel=主观 仅白名单给 " +
+                        $"{string.Join("/", SubjectiveSignIds)} —— 「{row.SignId}」不得借用该通道" +
+                        "(主观族是豁免类专用,不是通用描述桶)");
 
                 // ── R-8.1 · sign_id 两两互异(主键)──
                 if (row.SignId == null || !seen.Add(row.SignId))
