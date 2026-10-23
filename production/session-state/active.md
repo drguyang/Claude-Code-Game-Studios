@@ -9456,3 +9456,225 @@ total=4660 passed=4624 failed=0 inconclusive=0 skipped=36
 本轮产出 = **让这个缺口无法被忽略**,不是替它做决定。
 
 **未提交**:待用户指令。
+
+---
+
+# round33 · 生产急救驱动 `ResultMul[Missed]` 违反已裁定数值(2026-10-23)
+
+## 这是**真缺陷**,不是登记债
+
+前面几轮撞到的都是「未接线 / 裁定空白」。本轮不同:**生产代码违反了一条已由用户裁定的数值**。
+
+### 病灶
+
+GDD `emergency-procedures.md` 三处 + 一个已结 OQ 钉死 `ResultMul[Missed] = 0.25`(raw 16384):
+
+| 出处 | 原文 |
+|---|---|
+| `:639` | `Missed` \| **0.25** \| ⚠️ **非零,刻意为之** —— 抖了也不至于全废(**手感宽容**) |
+| `:856` | `Applied = 1.0` / `AppliedWeak = 0.5` / `Missed = 0.25`;**三支均 `> 0`**;「**改回 0 须重开 `OQ-10-1`**」 |
+| `:1049` | **AC-10-16 BLOCKING**:恰为三档 raw long **`{65536, 32768, 16384}`** 且第三档 ≠ 0 |
+| `:1068` | `OQ-10-1` **✅ 已结清(用户裁定 2026-09-18)** —— `Missed = 0.25`(非零) |
+
+**而生产急救驱动自己硬编码了另一份**:
+
+```csharp
+// unity/Assets/Gameplay.Boot/EmergencyManualDriver.cs:84
+ResultMul = new long[] { 0, 32768, 65536 }; // Missed/AppliedWeak/Applied
+//                      ↑ 0 —— GDD 裁定 16384
+```
+
+### 为什么既有测试全绿却没抓到
+
+`judge_test.cs:322-328` 断言的 `Missed × 0.25` 用的是
+`EmergencyActionSchema.GetResultMulTiers()` —— 那是 **schema 默认值**,**不是生产那一行**。
+生产行的 `ResultMul` 是**另一份手写副本**,零测试读它。
+
+⇒ 形态:**判据测的是默认表,生产用的是副本**。两者漂移无人可见 —— 与本项目反复剿的
+「自述顶替门」「测试跑自造夹具」同族,但这次是**数据副本**层面的分裂。
+
+### 影响面
+
+`BandageRow` 是**活的生产路径**,不是死代码:
+
+```
+CompositionRoot.cs:260  new EmergencyManualDriver(emergencyProcessor, presence)
+BootRoot.cs:285         CasebookCommands.BindEmergencySkip(_services.EmergencyManualDriver, actorId)
+CasebookCommandRouter   SubmitEmergencySkip → TryManual(method: 1)
+                        → HostEmergencyProcessor.Process → ResultMul[(int)Missed]
+```
+
+⇒ 玩家「跳过」或急救判 Missed 时,**drug_potency = 0** ⇒ 处置完全无效。
+GDD `:657` 明写这条的代价已记账(「手稳」不再可失去),而 `0` 把「不至于全废」直接变成「全废」。
+
+## 本轮产出
+
+`unity/Assets/Tests/EditMode/EmergencyProcedures/emergency_result_mul_production_drift_test.cs`
+(+ `.meta` guid `3e9a7c14d5b82f6039c7e1a48d2b6f95`)· 5 条 · **3 绿 2 红**。
+
+用**真** `EmergencyManualDriver` + 真 `HostEmergencyProcessor` + 真 codec 黑盒驱动,
+从流里解出 `EmergencyTreatmentApplied.drugPotency` —— 不是读表,是读**生产实跑落流的值**。
+
+| # | 判据 | 结果 |
+|---|---|---|
+| ① | `test_schemaDefaultTiers_matchGdd_premise` | **绿** —— 前提:schema 默认表是对的 |
+| ② | `test_productionDriver_missed_potencyIsQuarter_notZero` | **红** —— 实测 **0**,应为 16384 |
+| ③ | `test_productionDriver_applied_potencyIsFull` | **绿** —— 对照:Applied 档 65536 正确 |
+| ④ | `test_productionDriver_appliedWeak_potencyIsHalf` | **绿** —— 对照:AppliedWeak 档 32768 正确 |
+| ⑤ | `test_threeTiers_strictlyIncreasing_acrossProductionDriver` | **红** —— 第三档 `> 0` 不成立 |
+
+③④ 绿是刻意的:**证明 ② 的红只归因第三档**,不是整行都错、也不是测试装配坏了。
+
+## 证伪轮(2 探针,双向成立)
+
+变异窗口:`unity/Assets/Gameplay.Boot/EmergencyManualDriver.cs`,窗口内**未读**该文件。
+
+| 探针 | 变异 | 结果 | 说明 |
+|---|---|---|---|
+| **FIX** | `0` → `16384`(按 GDD 修好) | **5/5 全绿** | 判据**承认修复** —— 不是「恒红」的死断言 |
+| **HALF** | `0` → `8192`(非零但错) | **恰 1 红**(②) | 判据认的是**精确值**,不是「非零即过」 |
+
+⇒ ② 同时通过「修好变绿」与「错值仍红」两个方向,**双向判据**成立。
+
+**还原**:`sha256sum -c` 逐字节回基线
+`2961c7cacc4246b1670b20c862c4f5f1b09485e4aa1d073c5d91284477e56591`,两次变异各还原一次均成功,
+残留 `MUT-` 扫描 = **0**。
+
+## 回归三元组
+
+```
+total=4665 passed=4627 failed=2 inconclusive=0 skipped=36
+@ 2026-10-23 08:18 (+0800) · round33 全量 · 基线 commit 99a2292
+```
+
+Δ total = **+5**(承 `99a2292` 的 4660)。failed = **2** —— **恰为本轮新增的两条红判据**,
+零附带回归(既有 4627 条全绿)。
+
+⚠️ **本批使全量从「0 红」变为「2 红」** —— 这是**有意的**:两条红钉的是一条真缺陷,
+不修就不该绿。**禁把这两条红当成「新引入的回归」**,也**禁**为让全量回绿而删除或跳过它们。
+
+## 归属
+
+**修法已明确且极小**:`EmergencyManualDriver.cs:84` 的 `0` 改成 `16384`。
+但**本轮不代为修改**:
+
+1. 该行属 10 的数值面,GDD 明写「改回 0 须重开 `OQ-10-1`」⇒ **反方向同理须显式记账**,
+   不能由实现侧悄悄改(哪怕改的方向是「改回 GDD 值」—— 因为这意味着有人曾把它改成 0
+   而无人记录,须先查清是谁、为什么);
+2. 同批应处理「**为什么会有第二份手写副本**」—— schema 已有 `GetResultMulTiers()`,
+   生产行却另写一份。正解可能是让 `BandageRow` 引用 schema 默认表(消掉副本),
+   但那会改变 10 的装配形状,超出「修一个数值」的范围。
+
+⇒ 须用户裁定:**① 直接把 0 改回 16384;② 同时消掉副本(引用 `GetResultMulTiers()`);③ 其他。**
+
+**未提交**:待用户指令。
+
+---
+
+# round34 · 裁定 ② 执行:改回 16384 + 消掉副本(2026-10-23)
+
+## 用户裁定
+
+**② 改回 + 消掉副本**。
+
+## 溯源(动手前先查清是谁改的)
+
+该行首次出现 = `8457d5b`(sprint-06 G4.2,2026-10-11),作为「最小动作表」占位
+**随手填入** `{ 0, 32768, 65536 }` —— 不是有意的设计改动,也没有任何记录说明为何
+`Missed` 取 0(与 GDD 相反)。commit 正文只写「最小动作表 = 一张行」,未提数值来源。
+
+⇒ 「改回」不是改设计,是**修正一个占位错误**;GDD `:856` 的「改回 0 须重开 `OQ-10-1`」
+约束的是**往 0 改**,本次是**离开 0**,不触发重开。
+
+## 改动(一处生产文件)
+
+`unity/Assets/Gameplay.Boot/EmergencyManualDriver.cs:74-105`
+
+```diff
+-            ResultMul = new long[] { 0, 32768, 65536 }, // Missed/AppliedWeak/Applied
++            // 唯一真源 = schema 默认表(AC-10-16:{65536, 32768, 16384})。禁在此另写副本。
++            ResultMul = EmergencyActionSchema.GetResultMulTiers(),
+```
+
+同批补 12 行 `<remarks>` 记清:原状 / 与 GDD 的冲突 / 为何长期未被发现 / 现口径 / 判据载体。
+
+**副本消除的判据**(可复算,实跑输出见下):
+
+```bash
+# 判据 A:生产侧**代码行**是否还有手写副本(排除注释行)
+grep -rn "ResultMul = new long\[\]" --include=*.cs unity/Assets/ \
+  | grep -v "/Tests/" | grep -v "^\S*:[0-9]*: *//" | grep -v "///"
+# 实跑: (零命中 —— 生产代码里已无手写副本)
+
+# 判据 B:生产行的实际写法
+grep -n "ResultMul" unity/Assets/Gameplay.Boot/EmergencyManualDriver.cs | grep -v "///"
+# 实跑: 104:            ResultMul = EmergencyActionSchema.GetResultMulTiers(),
+```
+
+⚠️ **判据须排除注释行** —— 不加 `grep -v "///"` 时,`EmergencyManualDriver.cs:76`
+的 `<remarks>` 历史记述文本(`原状:本行曾写 ResultMul = new long[] { 0, 32768, 65536 }`)
+会命中,看起来像「副本还在」。**注释不是执行体**,它正是本轮留下的溯源记录。
+
+**`/Tests/` 下仍有 3 处同模式**(均**不是**生产副本,不属本债项):
+`emergency_manual_driver_test.cs:212`(夹具行,`ResultMul[Missed] = 0` 用于「Missed 与没执行不可分」的判别力对照)
+· 同行 `:228`(GDD 三档对照行)· `action_tables_bake_test.cs:197`(两档 `{65536, 65536}` 的烘焙夹具)。
+
+## 判据
+
+`Tests/EditMode/EmergencyProcedures/emergency_result_mul_production_drift_test.cs`(5 条)·
+**全绿 5/5**。
+
+## 证伪轮(3 探针,分两批)
+
+### 批一(round33,修前):证明判据认的是精确值
+
+| 探针 | 变异 | 结果 |
+|---|---|---|
+| FIX | 生产行 `0` → `16384` | 5/5 全绿 |
+| HALF | 生产行 `0` → `8192`(非零但错) | 恰 1 红(②) |
+
+### 批二(round34,修后):证明副本真的消掉了
+
+| 探针 | 变异 | 结果 | 说明 |
+|---|---|---|---|
+| **SCHEMA** | schema 默认表 `16384` → `4096` | **2 红** | ②(生产驱动)与 ①(前提)**同时红** |
+
+**SCHEMA 探针是本轮的关键证据**:改的是 `EmergencyActionSchema`(另一文件),
+生产的判据**跟着红** ⇒ 证明 `BandageRow.ResultMul` 现在**真的绑定在 schema 上**,
+不是又硬编码了一遍。若副本没消掉,改 schema 不会影响 ② —— ② 会保持绿。
+
+**还原**:`sha256sum -c` 逐字节回基线
+`ce7d02fdba16fc755e46f5e17efa8bb4871e356d6ac0016e2a9609369398b347`,残留 `MUT-` = **0**。
+
+## 回归三元组
+
+```
+total=4665 passed=4629 failed=0 inconclusive=0 skipped=36
+@ 2026-10-23 08:26 (+0800) · round34 全量 · 基线 commit 99a2292
+```
+
+Δ passed = **+2**(承 round33 的 4627)—— 恰为修好的两条。failed **2 → 0**。
+total 不变(4665)—— 本批**零新增测试**,只改生产 + 修绿既有判据。
+
+## 状态
+
+`10-ResultMul-漂移` 债项**已结清**(裁定 ② 执行完毕)。
+
+### 提交前复跑(round34 · 最终树)
+
+08:26 之后本批又动了**纯注释**(测试文件头状态段 + `:84→:104` 指针订正 + 生产 `<remarks>`
+的轮次标注),工作树已非 08:26 那棵。⇒ 按「未跑出的数字不得当既成事实」纪律,对**将要提交的这棵树**
+复跑全量两次:
+
+```
+total=4665 passed=4629 failed=0 inconclusive=0 skipped=36
+@ 2026-10-23 08:31 (+0800) · EXIT=0   (注释改动后)
+@ 2026-10-23 08:34 (+0800) · EXIT=0   (:104 指针订正后 = 待提交树)
+```
+
+三次(08:26 / 08:31 / 08:34)**逐数相同** ⇒ 纯注释改动对结果无影响。
+**提交对应的回归三元组 = 08:34 那次**(与提交树逐字节对应)。
+
+⚠️ 工具噪声记录:`b4p92tegd` 起手 `pgrep -f "Unity.*-runTests"` 命中 PID `84935` =
+**我自己的 Bash 包装进程**(命令行含字面 "Unity…runTests"),非用户并行 batch。
+判据佐证:全仓 `unity/Temp/UnityLockfile` 不存在 + 本 run 2 分钟正常收敛(同前两次耗时)。

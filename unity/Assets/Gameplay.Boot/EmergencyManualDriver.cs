@@ -71,6 +71,25 @@ namespace DaYiJingCheng.Gameplay.Boot
         private IEmergencyDeviceReadiness _devices;
 
         /// <summary>最小动作表(action 0 = 止血包扎;真实表归 10/21a 烘焙轮)。</summary>
+        /// <remarks>
+        /// ⚠️ **2026-10-23(用户裁定 ② · round34 执行):`ResultMul` 不再手写副本**。
+        /// <para><b>原状</b>:本行曾写 <c>ResultMul = new long[] { 0, 32768, 65536 }</c> ——
+        /// 由 sprint-06 G4.2(`8457d5b`,2026-10-11)作为「最小动作表」占位随手填入。
+        /// <b>`Missed` 档 = 0 与 GDD 冲突</b>:GDD `emergency-procedures.md` `:639` / `:856` /
+        /// AC-10-16(`:1049`)三处钉死 `{65536, 32768, 16384}`,且 `:856` 明写
+        /// 「三支均 **> 0**」「**改回 0 须重开 `OQ-10-1`**」,而 `OQ-10-1` 已于
+        /// **2026-09-18 由用户裁定为非零**(`:1068`)。</para>
+        /// <para><b>为什么长期未被发现</b>:既有判据(`judge_test.cs:322`)断言的是
+        /// <see cref="EmergencyActionSchema.GetResultMulTiers"/> 这个 **schema 默认表**,
+        /// 而本类用的是**另一份手写副本** —— 判据测默认表、生产用副本,两者漂移无人可见。
+        /// 影响是实的:<c>BandageRow</c> 是活生产路径(`CompositionRoot.cs:260` →
+        /// `BootRoot.cs:285` → `SubmitEmergencySkip`),玩家跳过 / 判 Missed 时 potency 被
+        /// 归零 ⇒ 处置全废,与 GDD 刻意记账的「抖了也不至于全废」相反。</para>
+        /// <para><b>现口径</b>:直接引用 <see cref="EmergencyActionSchema.GetResultMulTiers"/>,
+        /// **副本消失** ⇒ 只有一份真源,不可能再漂移。判据 =
+        /// <c>Tests/EditMode/EmergencyProcedures/emergency_result_mul_production_drift_test.cs</c>
+        /// (黑盒驱动真驱动,从流里解出 <c>drug_potency</c> 比对 GDD 三档)。</para>
+        /// </remarks>
         private static readonly EmergencyActionRow BandageRow = new EmergencyActionRow
         {
             ActionId = 0,
@@ -81,7 +100,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             MinHoldTicks = 5,
             HalfLifeTicks = 100,
             DurationTicks = 200,
-            ResultMul = new long[] { 0, 32768, 65536 }, // Missed/AppliedWeak/Applied
+            // 唯一真源 = schema 默认表(AC-10-16:{65536, 32768, 16384})。禁在此另写副本。
+            ResultMul = EmergencyActionSchema.GetResultMulTiers(),
         };
 
         /// <param name="processor">主机侧急救处理器(规则十一)。</param>
