@@ -82,6 +82,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly long _trendEpsRaw;
 
         /// <summary>
+        /// <c>treatable_by</c> 查表面(2026-10-23 接真,结清 <c>D-9-P</c>)。
+        /// <para><c>null</c> = <b>未接线</b> ⇒ F1 的离牌门退回条目内联数组(真表上恒 null
+        /// ⇒ 恒放行),与接线前**逐位一致**。生产路径由 <c>CompositionRoot</c> 从已加载的
+        /// <c>DiseaseActionAxisDataSet</c> 造实现灌入。</para>
+        /// <para>⚠️ 与 <see cref="_registry"/> 同为装配期注入的只读依赖,运行期不变。</para>
+        /// </summary>
+        private readonly ITreatableByLookup _treatableBy;
+
+        /// <summary>
         /// 构造(fail-loud:任一依赖缺失 = 具名 <see cref="ArgumentNullException"/>,无半装配)。
         /// </summary>
         /// <param name="stream">病史事件流(只读消费)。</param>
@@ -91,16 +100,24 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="worldSeed">世界种子(Noise 纯函数入参;Noise 现为 tripwire 恒 0)。</param>
         /// <param name="trendWindowTicks"><c>W</c>(tick);<c>0</c> = 未配置(默认 —— 数值轮未裁)。</param>
         /// <param name="trendEpsRaw"><c>TREND_EPS</c>(Q16.16 raw);<c>0</c> = 未配置(默认)。</param>
+        /// <param name="treatableBy"><c>treatable_by</c> 查表面;<c>null</c> = 未接线(默认,
+        /// 与接线前逐位一致)。生产路径由 <c>CompositionRoot</c> 从处置轴产物构造。</param>
         /// <exception cref="ArgumentNullException">任一引用依赖为 null(参数名具名)。</exception>
         /// <exception cref="ArgumentException">注册表条目为 null / 病种 id 重复(参数名具名)。</exception>
         public DiseaseVitalsService(EventStream stream, IBlobPool blobPool,
                                     IReadOnlyList<DiseaseRegistryEntry> registry,
                                     ulong worldSeed,
-                                    long trendWindowTicks = 0, long trendEpsRaw = 0)
+                                    long trendWindowTicks = 0, long trendEpsRaw = 0,
+                                    ITreatableByLookup treatableBy = null)
         {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             _blobPool = blobPool ?? throw new ArgumentNullException(nameof(blobPool));
             _worldSeed = worldSeed;
+
+            // treatable_by 查表面(2026-10-23 接真)。
+            //   ⚠️ null 是**合法入参**(未接线),不是错误 —— 与 W / TREND_EPS 的 0 同格:
+            //   「未接线」与「接线了但查不到」是两种状态,前者不拦(见 ITreatableByLookup 头注)。
+            _treatableBy = treatableBy;
 
             // 趋势窗口(W / TREND_EPS)—— 全局配置,原样收下,不做任何代拍。
             //   ⚠️ 此处**不**校验奇偶 / 负值:值域守卫归注册表写入期(R1-36,
@@ -313,14 +330,16 @@ namespace DaYiJingCheng.Gameplay.Boot
                         "registry");
 
                 ProgressionResult result = ProgressionEvaluator.Evaluate(
-                    entry, course.OnsetTick, tick, course.Doses, _worldSeed, course.Patient);
+                    entry, course.OnsetTick, tick, course.Doses, _worldSeed, course.Patient,
+                    doseClampBound: null, treatableBy: _treatableBy);
                 _results[course.Patient.Value] = result;
 
                 // ══ F4 求值(2026-10-22 第三轮接线)══
                 // 用户裁定:「接 F4 求值,**但不写流**」—— 本段只求值并缓存,
                 // 零 `IEventSink.Append`(本类全程不写流的既有纪律不变)。
                 _outcomes[course.Patient.Value] = EvaluateOutcome(
-                    course, entry, result, tick, _worldSeed, _trendWindowTicks, _trendEpsRaw);
+                    course, entry, result, tick, _worldSeed, _trendWindowTicks, _trendEpsRaw,
+                    _treatableBy);
             }
         }
 
@@ -377,7 +396,8 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </remarks>
         private static InjuryState EvaluateOutcome(
             DiseaseCourse course, DiseaseRegistryEntry entry, ProgressionResult result, long tick,
-            ulong worldSeed, long trendWindowTicks, long trendEpsRaw)
+            ulong worldSeed, long trendWindowTicks, long trendEpsRaw,
+            ITreatableByLookup treatableBy)
         {
             // 注:本方法**静态** ⇒ 不持有任何状态;照护通道的时刻由 `course` 上的两个字段提供
             // (2026-10-22 第五轮接真,见下通道 ②)。
@@ -405,7 +425,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             }
 
             // ── 通道 ①:有效对因处置(F1 与 F4 同一判据)──
-            long[] causalTicks = CollectEffectiveCausalTicks(entry, course);
+            long[] causalTicks = CollectEffectiveCausalTicks(entry, course, treatableBy);
 
             // ── 通道 ②:照护(2026-10-22 第五轮接真)──
             //   GDD `:1126-1133`:照护支 = max(最后一条护理动作止, 最后一条护理动作事件 + CARE_GAP)。
@@ -439,7 +459,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             Fix trendBackward = ProgressionEvaluator.ComputeTrendBackward(
                 entry, course.OnsetTick, tick, course.Doses, worldSeed, course.Patient,
                 windowTicks: trendWindowTicks,
-                trendEpsRaw: trendEpsRaw);
+                trendEpsRaw: trendEpsRaw,
+                doseClampBound: null,
+                treatableBy: treatableBy);
 
             // 趋势窗口 —— W / TREND_EPS 从全局配置灌入(见构造参数注释)。
             //   🔁 **原文(2026-10-22 铺管轮)写「`LowPositionHeldTicks` 恒传 0,累计器尚未实现,
@@ -452,7 +474,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             //      不再是「迁延支能生效、痊愈支不能」的偏斜状态。
             long lowPositionHeldTicks = ProgressionEvaluator.ComputeLowPositionHeldTicks(
                 entry, course.OnsetTick, tick, course.Doses, worldSeed, course.Patient,
-                windowTicks: trendWindowTicks);
+                windowTicks: trendWindowTicks,
+                doseClampBound: null,
+                treatableBy: treatableBy);
             var window = new RecoveryWindowInput(trendWindowTicks, trendEpsRaw, lowPositionHeldTicks);
 
             return F4OutcomeEvaluator.Evaluate(
@@ -475,7 +499,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 本方法只做遍历与装箱,不复制三条件(否则与 F1 的 Σ 静默分叉)。
         /// </remarks>
         private static long[] CollectEffectiveCausalTicks(
-            DiseaseRegistryEntry entry, DiseaseCourse course)
+            DiseaseRegistryEntry entry, DiseaseCourse course, ITreatableByLookup treatableBy)
         {
             IReadOnlyList<TreatmentDose> doses = course.Doses;
             if (doses == null || doses.Count == 0) return Array.Empty<long>();
@@ -487,7 +511,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             for (int i = 0; i < doses.Count; i++)
             {
                 TreatmentDose d = doses[i];
-                if (ProgressionEvaluator.IsEffectiveCausalDose(entry, in d)) count++;
+                if (ProgressionEvaluator.IsEffectiveCausalDose(entry, in d, treatableBy)) count++;
             }
 
             if (count == 0) return Array.Empty<long>();
@@ -497,7 +521,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             for (int i = 0; i < doses.Count; i++)
             {
                 TreatmentDose d = doses[i];
-                if (ProgressionEvaluator.IsEffectiveCausalDose(entry, in d))
+                if (ProgressionEvaluator.IsEffectiveCausalDose(entry, in d, treatableBy))
                     ticks[w++] = d.Tick;
             }
             return ticks;

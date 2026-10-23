@@ -7,7 +7,7 @@
   "_thresholdNote": "四阈值 2026-10-22 用户裁定(档 C):RECOVER=7864 · CRITICAL=19661 · COMA=29491 · DEATH=38011 raw(0.12 / 0.30 / 0.45 / 0.58)。⚠️ 本轮裁定 DEATH=0.58 与上一轮五项伤情验算所用的现网 0.1373 不同 ⇒ GDD :1620-1621 要求同批复核,已在 GDD §二之一加注。",
   "_relapseNote": "⚠️ DIS_MALARIA 的 relapse.* 块**未建** —— R1-26 要求三字段(a_rel / interval / tau_rel_fall)齐全且 > 0,而这三个数的量级用户本轮未裁。缺块 = 该病「无复发」,与 GDD :429「因有复发块,永不入痊愈」不一致 ⇒ **已知缺口,归疟疾复发数值轮**。",
   "_compoundsNote": "⚠️ DIS_RHEUMATIC_FEVER 的 compounds → DIS_HEART_FAILURE **未建** —— schema 无 compounds 字段(DiseaseRegistryEntry 无此成员)。旗舰共病线因此**当前不可求值**。归 9 的 compounds 实现轮。",
-  "schema_version": 1,
+  "schema_version": 2,
   "trend_window_ticks": 0,
   "trend_eps": "0",
   "diseases": [
@@ -20,7 +20,6 @@
       "causes": [],
       "treatable_by": [],
       "lethal": true,
-      "handle": "symptomatic_only",
       "scale": "100",
       "trauma_half_life": 60,
       "natural_progress": {
@@ -45,7 +44,6 @@
       "causes": [],
       "treatable_by": [],
       "lethal": true,
-      "handle": "symptomatic_only",
       "scale": "100",
       "trauma_half_life": 60,
       "natural_progress": {
@@ -70,7 +68,6 @@
       "causes": [],
       "treatable_by": [],
       "lethal": true,
-      "handle": "symptomatic_only",
       "scale": "100",
       "trauma_half_life": 60,
       "natural_progress": {
@@ -95,7 +92,6 @@
       "causes": [],
       "treatable_by": [],
       "lethal": true,
-      "handle": "symptomatic_only",
       "scale": "100",
       "trauma_half_life": 60,
       "natural_progress": {
@@ -120,7 +116,6 @@
       "causes": [],
       "treatable_by": [],
       "lethal": true,
-      "handle": "symptomatic_only",
       "scale": "100",
       "trauma_half_life": 60,
       "natural_progress": {

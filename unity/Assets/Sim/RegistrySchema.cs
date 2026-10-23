@@ -548,22 +548,31 @@ namespace DaYiJingCheng.Sim
                     }
                 }
 
-                // R1-19: treatable_by[].action ∈ 处置轴闭集
-                // ⚠️ 2026-10-07 补:9 GDD R1.3 把 treatable_by[] 定义为病种条目内的字段,
-                //    但病种条目的其余字段数值全冻结,故 treatable_by 拆到独立文件
-                //    `disease_action_axis.json`(见 story-007)。
-                //    本校验在**完整 disease_registry.json** 存在时生效(当前不存在)。
-                //    校验逻辑:action ∈ 处置轴闭集(由 DiseaseActionAxisBaker 产出)。
-                //    ⚠️ 当前数据集:病种条目不存在 ⇒ 本校验**结构性不可达**(登记为已知弱点)。
-                // ⚠️ 2026-10-07 评审 M1:空实现显式标记为未实现 —— 调用方无法区分
-                //    「校验通过」与「校验未实现」。
+                // R1-19: treatable_by 的归属面(2026-10-23 结清 `D-9-P`,原 `NotImplementedException` 退役)
+                //
+                // ── 原文(2026-10-07,保留留痕)──
+                //   「R1-19: treatable_by[].action ∈ 处置轴闭集 —— 待 disease_registry.json 存在后实现
+                //    (当前结构性不可达)。登记为已知弱点……归 9 的下一轮。」
+                //
+                // ── 为什么它不能按原样实现,以及现在它变成什么 ──
+                //   原计划是「条目里带 treatable_by[],逐条查 action ∈ 轴闭集」。但 story-007 起
+                //   treatable_by 已**整体搬到** `disease_action_axis.json` 作单一真源
+                //   (GDD `D-9-K`:极性以轴为准),条目里**不该**再有它。
+                //   ⇒ 「条目内的 action 是否在轴闭集内」这个问题**不再有主语** ——
+                //     真正的等价判据住在轴自己那边:**9-DC-4**
+                //     (`DiseaseActionAxisValidator`),它对轴的每一行查 action ∈ 闭集。
+                //   ⇒ 本条的**新语义**不是「检查」,是**守卫单一真源**:
+                //     条目里出现非 null 的 `treatable_by` = 有人造了第二真源 ⇒ 硬失败。
+                //
+                //   ⚠️ 这与「校验未实现」不是同一状态:原注释说「调用方无法区分校验通过与校验未实现」,
+                //      现在它可以区分了 —— 抛 `RegistryValidationException` 是**判定**,不是占位。
                 if (entry.TreatableBy != null)
                 {
-                    throw new NotImplementedException(
-                        "R1-19: treatable_by[].action ∈ 处置轴闭集 —— " +
-                        "待 disease_registry.json 存在后实现(当前结构性不可达)。" +
-                        "登记为已知弱点:9 的 C# 16 字段 + 17 条区间校验 vs GDD §R1 的 17 条语义校验" +
-                        "是**既有**问题,不属本轮授权面。归 9 的下一轮。");
+                    throw new RegistryValidationException(R1_CHECK_19,
+                        $"'{entry.DiseaseKey}' 的条目携带了 treatable_by —— " +
+                        "该字段自 story-007 起已整体搬到 `disease_action_axis.json`(单一真源,D-9-K);" +
+                        "条目内保留副本 = 第二真源,可与轴静默分叉。" +
+                        "action ∈ 轴闭集的判据在轴侧:9-DC-4(DiseaseActionAxisValidator)");
                 }
 
                 // ── 曲线面校验(R1-20…25/27/28/30 · GDD R1.3 写入期校验;M2 阶段 2 批次 B

@@ -123,6 +123,12 @@ namespace DaYiJingCheng.Sim
         /// <c>single_dose_max</c> 亦尚未进 Sim 装载面 ⇒ 本批不自造数值,登记为缺口;
         /// 非 null 时走完整饱和截断语义(由测试覆盖)。
         /// </param>
+        /// <param name="treatableBy">
+        /// `treatable_by` 查表面(<see cref="ITreatableByLookup"/>,2026-10-23 接真)。
+        /// <b>null = 未接线</b> ⇒ F1 的离牌门与极性门退回载荷 / 内联数组,
+        /// 与接线前**逐位一致**(既有测试不受影响);非 null ⇒ 成员与极性**同查轴行**
+        /// (GDD <c>D-9-K</c>「轴为准」)。
+        /// </param>
         /// <returns>求值结果(Position/Trend/Signs 全整数域)。</returns>
         public static ProgressionResult Evaluate(
             DiseaseRegistryEntry registry,
@@ -131,13 +137,15 @@ namespace DaYiJingCheng.Sim
             IReadOnlyList<TreatmentDose> doses,
             ulong worldSeed,
             PatientId patientId,
-            Fix? doseClampBound = null)
+            Fix? doseClampBound = null,
+            ITreatableByLookup treatableBy = null)
         {
             if (registry == null) throw new ArgumentNullException(nameof(registry));
 
             // Progress —— 整条 F1 式(潜伏抑制 / Base ⊔ Relapse / 处置和 / Noise / 0 下界)
             Fix progress = ComputeProgress(
-                registry, onsetTick, currentTick, doses, worldSeed, patientId, doseClampBound);
+                registry, onsetTick, currentTick, doses, worldSeed, patientId, doseClampBound,
+                treatableBy);
 
             // Trend —— **展示用中心差分**(F2),tripwire 恒 0。
             // ⚠️ 这不是 F4 吃的 `trend_backward` —— 后者见 ComputeTrendBackward。
@@ -173,7 +181,8 @@ namespace DaYiJingCheng.Sim
             IReadOnlyList<TreatmentDose> doses,
             ulong worldSeed,
             PatientId patientId,
-            Fix? doseClampBound)
+            Fix? doseClampBound,
+            ITreatableByLookup treatableBy = null)
         {
             long tau = currentTick - onsetTick;
 
@@ -194,7 +203,8 @@ namespace DaYiJingCheng.Sim
             Fix mainCurve = baseValue.Raw > relapseValue.Raw ? baseValue : relapseValue;
 
             // 处置贡献(批次 C 接真:F1 的 Σ drug_potency×Decay · [causal] · [treatable_by])
-            Fix drugContribution = ComputeDrugContribution(registry, doses, currentTick, doseClampBound);
+            Fix drugContribution = ComputeDrugContribution(
+                registry, doses, currentTick, doseClampBound, treatableBy);
 
             // Noise —— tripwire 恒 0(阶段 0 口径:归「M2 可玩级另计」)
             Fix noise = ComputeNoise(worldSeed, patientId, currentTick);
@@ -241,7 +251,8 @@ namespace DaYiJingCheng.Sim
             PatientId patientId,
             long windowTicks,
             long trendEpsRaw,
-            Fix? doseClampBound = null)
+            Fix? doseClampBound = null,
+            ITreatableByLookup treatableBy = null)
         {
             if (registry == null) throw new ArgumentNullException(nameof(registry));
 
@@ -249,9 +260,11 @@ namespace DaYiJingCheng.Sim
             if (windowTicks <= 0) return Fix.Zero;
 
             Fix now = ComputeProgress(
-                registry, onsetTick, currentTick, doses, worldSeed, patientId, doseClampBound);
+                registry, onsetTick, currentTick, doses, worldSeed, patientId, doseClampBound,
+                treatableBy);
             Fix before = ComputeProgress(
-                registry, onsetTick, currentTick - windowTicks, doses, worldSeed, patientId, doseClampBound);
+                registry, onsetTick, currentTick - windowTicks, doses, worldSeed, patientId,
+                doseClampBound, treatableBy);
 
             // 同标度 Q16.16 相减 —— 无舍入(两值都是 Q16.16,差仍是 Q16.16)
             Fix diff = now - before;
@@ -325,6 +338,9 @@ namespace DaYiJingCheng.Sim
         /// <param name="patientId">病人 id(Noise 入参)。</param>
         /// <param name="windowTicks"><c>W</c>;≤ 0 ⇒ 未配置 ⇒ 返回 0 且不扫。</param>
         /// <param name="doseClampBound">剂量钳制上界(F1 透传;生产路径为 null)。</param>
+        /// <param name="treatableBy">`treatable_by` 查表面(2026-10-23 起透传给
+        /// <see cref="ComputeProgress"/> —— 本方法扫的是**同一份** F1 式,
+        /// 若此处不传,「低位」判的 Progress 与 `position_agg` 的来源就会分叉)。</param>
         /// <returns><c>min(连续低位 tick 数, W)</c>;未配置 / <paramref name="currentTick"/> &lt;
         /// <c>onsetTick + incubation</c>(仍在潜伏期)时为 0。</returns>
         /// <exception cref="ArgumentNullException"><paramref name="registry"/> 为 null。</exception>
@@ -336,7 +352,8 @@ namespace DaYiJingCheng.Sim
             ulong worldSeed,
             PatientId patientId,
             long windowTicks,
-            Fix? doseClampBound = null)
+            Fix? doseClampBound = null,
+            ITreatableByLookup treatableBy = null)
         {
             if (registry == null) throw new ArgumentNullException(nameof(registry));
 
@@ -375,7 +392,8 @@ namespace DaYiJingCheng.Sim
             {
                 long t = currentTick - back;
                 Fix progress = ComputeProgress(
-                    registry, onsetTick, t, doses, worldSeed, patientId, doseClampBound);
+                    registry, onsetTick, t, doses, worldSeed, patientId, doseClampBound,
+                    treatableBy);
 
                 // F2 投影(与 GetVitals / EvaluateOutcome 同式:clamp(Progress / SCALE, 0, 1))
                 Fix position = progress / registry.Scale;
@@ -510,7 +528,8 @@ namespace DaYiJingCheng.Sim
             DiseaseRegistryEntry registry,
             IReadOnlyList<TreatmentDose> doses,
             long currentTick,
-            Fix? clampBound)
+            Fix? clampBound,
+            ITreatableByLookup treatableBy = null)
         {
             if (doses == null || doses.Count == 0) return Fix.Zero;
 
@@ -521,10 +540,13 @@ namespace DaYiJingCheng.Sim
 
                 // polarity 门(B5,2026-09-15):和式内显式限定 causal ——
                 // 对症处置不改 Progress(规则三 / AC-13;它的偏移在 F2 的 Sign 层,另式)。
-                if (d.Polarity != PolarityCausal) continue;
+                // ⚠️ 2026-10-23 起本门的**极性真源是轴**(D-9-K「轴为准」),但只在
+                //    `treatableBy != null` 时查得到 —— 见 IsInTreatableBy 的 remarks。
+                //    轴未接线时退回载荷极性,与接线前逐位一致。
+                if (!IsCausalPerAxisOrPayload(registry, d, treatableBy)) continue;
 
                 // 离牌给药门(取舍 4):不在 treatable_by(d) 内 = 空效果(有效动作,但不进 Progress)
-                if (!IsInTreatableBy(registry, d.TreatmentId)) continue;
+                if (!IsInTreatableBy(registry, d.TreatmentId, treatableBy)) continue;
 
                 long delta = currentTick - d.Tick;
                 if (delta < 0) continue;              // AC-27:时间反演归零(Decay 内部再判一次)
@@ -551,17 +573,40 @@ namespace DaYiJingCheng.Sim
         /// `[处置 ∈ treatable_by(d)]` 门(F1 取舍 4 · 病种×处置级)。
         /// </summary>
         /// <remarks>
-        /// ⚠️ **门当前结构性缺位**:`DiseaseRegistryEntry.TreatableBy` 是**派生字段**,
-        /// 写入期不填(RegistrySchema 头注 + GDD R1.3),且校验 R1-19 对非 null 直接
-        /// `NotImplementedException` ⇒ 数据面上它**恒 null**。
-        /// null ⇒ 门未声明 ⇒ **不拦**(若拦,生产路径的治疗贡献恒 0,最小可证链不可证)。
-        /// <b>缺口登记</b>:真正的门值来自独立轴文件 `disease_action_axis.json`(story-007),
-        /// 装载面落地后本方法须改为「按 (treatment, disease) 查极性/归属」—— 归 9 的 GDD 轮。
-        /// 非 null 时按 actionId 成员判定(polarity 以**载荷**为准,AC-28;GDD 的
-        /// 「同药对不同病可不同极性」若要求以 treatable_by 为准,须先裁双源优先级 —— 见任务报告)。
+        /// <para><b>2026-10-23 接真(用户裁定「运行期查轴」,结清 <c>D-9-P</c>)</b>:
+        /// 门的真值来自 <paramref name="treatableBy"/>(装配层由
+        /// <c>disease_action_axis.cooked.bytes</c> 造的实现)。轴是**单一真源**
+        /// (<c>D-9-K</c>),故产物**不携带** <c>treatable_by</c> ——
+        /// <see cref="DiseaseRegistryEntry.TreatableBy"/> 在真表上恒 <c>null</c>。</para>
+        ///
+        /// <para><b>三种状态,不可混读</b>:</para>
+        /// <list type="table">
+        /// <item><term><paramref name="treatableBy"/> == null</term><description>
+        /// <b>未接线</b> ⇒ **不拦**。若拦,生产路径的治疗贡献恒 0,最小可证链不可证
+        /// (承 <c>D-9-P</c> 的登记临时口径)。</description></item>
+        /// <item><term>查得到,且 actionId 命中</term><description>放行。</description></item>
+        /// <item><term>查得到,但不命中</term><description><b>拦</b> —— 离牌给药,空效果
+        /// (仍是有效动作:进流、耗资源、记入 8;GDD 取舍 4)。</description></item>
+        /// </list>
+        ///
+        /// <para>⚠️ <b>为什么查不到病种也拦</b>:轴里没有该病种 ⇒ 「没有任何处置被声明为
+        /// 可用」—— 这正是真表里全部 <c>INJ_*</c> 伤情行的现状。它们今天不显形,只因
+        /// 生产路径尚未喂处置(<c>doses</c> 恒空)。这与「未接线」是两种状态,
+        /// 前者是数据结论,后者是装配缺失。</para>
         /// </remarks>
-        private static bool IsInTreatableBy(DiseaseRegistryEntry registry, int treatmentId)
+        private static bool IsInTreatableBy(
+            DiseaseRegistryEntry registry, int treatmentId, ITreatableByLookup treatableBy = null)
         {
+            if (treatableBy != null)
+            {
+                // 轴为准(D-9-K):成员与极性同行一次查得。
+                // 极性这里不用(成员判定只看 bool),但接口刻意同时给出 ——
+                // 见 IsCausalPerAxisOrPayload,那才是极性唯一消费点。
+                return treatableBy.TryGetPolarity(registry.DiseaseKey, treatmentId, out _);
+            }
+
+            // ── 未接线:退回条目内联数组(接线前的唯一形态)──
+            //  ⚠️ 该数组在**真表**上恒 null(轴拆分后无人填),只在测试夹具里非空。
             TreatableByEntry[] tb = registry.TreatableBy;
             if (tb == null) return true;
             for (int i = 0; i < tb.Length; i++)
@@ -569,6 +614,35 @@ namespace DaYiJingCheng.Sim
                 if (tb[i] != null && tb[i].ActionId == treatmentId) return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// 「该处置对病种 d 是否对因」—— **极性真源 = 轴**(<c>D-9-K</c>),
+        /// 轴未接线时退回载荷(与接线前逐位一致)。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>为什么极性也要走轴,不能只查成员</b>:GDD F1 取舍 4 明写
+        /// 「成员与极性**同查轴行**」。同一味药对不同病种极性可以不同
+        /// (柳树皮对风湿热 = 对症,对别处可能对因),而载荷里那**一个**
+        /// <c>polarity</c> 值必然对其中一边是错的。只查成员、极性取载荷
+        /// = 退回 <c>D-9-K</c> 裁定前的双源形态。</para>
+        ///
+        /// <para>载荷 <c>polarity</c> 保留 AC-28 的**完整性语义**(事件必须携带它),
+        /// 与轴不一致 = 上游 bug(开发者断言,不拒收事件 —— 历史不可回滚)。</para>
+        /// </remarks>
+        private static bool IsCausalPerAxisOrPayload(
+            DiseaseRegistryEntry registry, in TreatmentDose dose, ITreatableByLookup treatableBy)
+        {
+            if (treatableBy != null
+                && treatableBy.TryGetPolarity(registry.DiseaseKey, dose.TreatmentId, out int axisPolarity))
+            {
+                return axisPolarity == PolarityCausal;
+            }
+
+            // 轴未接线 / 该 (病种, 处置) 不在轴里 ⇒ 退回载荷极性。
+            //  ⚠️ 第二半是有意的:轴里查不到的行(如伤情)不该因「轴没声明极性」
+            //     而被当成对症 —— 那会让对因门对它们**静默关死**。
+            return dose.Polarity == PolarityCausal;
         }
 
         /// <summary>
@@ -591,19 +665,26 @@ namespace DaYiJingCheng.Sim
         /// 那会让判据依赖求值时刻,同一处置在不同 tick 忽有效忽无效,`last_intervention`
         /// 随之非单调;</item>
         /// <item><c>处置 ∈ treatable_by(d)</c> —— 经 <see cref="IsInTreatableBy"/>
-        /// (该门当前因数据面缺位恒放行,缺口登记见其注释)。</item>
+        /// (2026-10-23 起接真:查轴;未接线时退回内联数组并恒放行)。</item>
         /// </list>
         ///
         /// <para><b>⚠️ 本方法不含</b>「<c>Δ ≥ 0</c>」与「<c>Decay ≠ 0</c>」两条 ——
         /// 那两条是**贡献量**的防御(AC-27 时间反演归零 / 半衰期退化),
         /// 不是「是否有效处置」的定义。故仍留在 <see cref="ComputeDrugContribution"/> 内。</para>
+        ///
+        /// <para><b>⚠️ 第一条为什么仍读载荷极性、不读轴</b>:本条的语义是「这一笔处置**自称**
+        /// 对因吗」—— 它判的是**事件内容**(AC-28 完整性),不是「轴怎么定义这一对」。
+        /// 轴参与的是第三条(成员)。两条合取后,「载荷说对因 ∧ 轴里没有这一对」仍为假 ——
+        /// 这正是想要的:自称对因但离牌给药 = 无效。若此处也改读轴,
+        /// 载荷极性就**没有任何消费方**了,AC-28 的完整性语义随之失守。</para>
         /// </remarks>
-        public static bool IsEffectiveCausalDose(DiseaseRegistryEntry registry, in TreatmentDose dose)
+        public static bool IsEffectiveCausalDose(
+            DiseaseRegistryEntry registry, in TreatmentDose dose, ITreatableByLookup treatableBy = null)
         {
             if (registry == null) throw new ArgumentNullException(nameof(registry));
             if (dose.Polarity != PolarityCausal) return false;
             if (dose.DrugPotency.Raw >= 0) return false;      // 与 Base(≥0)异号
-            return IsInTreatableBy(registry, dose.TreatmentId);
+            return IsInTreatableBy(registry, dose.TreatmentId, treatableBy);
         }
 
         /// <summary>

@@ -74,6 +74,48 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             Assert.IsFalse(CareLeverApplicability.AppliesTo(Entry("measles")));
         }
 
+        /// <summary>
+        /// **注册表前缀键(<c>DIS_</c>)与裸键等价** —— 2026-10-23 用户裁定 ② 的主绊线。
+        ///
+        /// <para><b>为什么这条必须有</b>:上面三条 <c>_allTrue</c> 用的是**裸键夹具**
+        /// (<c>Entry("typhoid")</c>),而生产路径喂的是**注册表条目**,其 <c>DiseaseKey</c>
+        /// 是 <c>DIS_TYPHOID</c> 形态。两者形态不同 ⇒ 裸键夹具全绿**完全不能**证明
+        /// 生产路径可用。这正是该缺陷潜伏至今的原因(与 <c>judge_test.cs:322</c> 同型:
+        /// 自引式夹具把被测对象与期望值锁在一起)。</para>
+        ///
+        /// <para><b>三入口全部覆盖</b>:<c>AppliesTo</c>(吃条目,生产实际走的)·
+        /// <c>AppliesToKey</c>(吃键名)· <c>StateMachine.IsCareApplicable</c>(公开转发口)。
+        /// 三者都必须给出一致答案,否则就是「修了入口 A、漏了入口 B」。</para>
+        /// </summary>
+        [Test]
+        public void test_prefixedKey_equivalentToBareKey()
+        {
+            // ① 吃条目的入口 —— 生产路径真正走的那条(DiseaseVitalsService.cs:442)。
+            Assert.IsTrue(CareLeverApplicability.AppliesTo(Entry("DIS_TYPHOID")),
+                "DIS_TYPHOID(注册表形态)必须可照护 —— 否则生产里照护杠杆全失效");
+            Assert.IsTrue(CareLeverApplicability.AppliesTo(Entry("DIS_DYSENTERY")));
+            Assert.IsTrue(CareLeverApplicability.AppliesTo(Entry("DIS_HEART_FAILURE")));
+
+            // ② 吃键名的入口 —— 两个形态必须同答案。
+            foreach (string bare in new[] { "typhoid", "dysentery", "heart_failure" })
+            {
+                Assert.IsTrue(CareLeverApplicability.AppliesToKey(bare), $"裸键 {bare} 应可照护");
+                Assert.IsTrue(CareLeverApplicability.AppliesToKey("DIS_" + bare.ToUpperInvariant()),
+                    $"前缀键 DIS_{bare.ToUpperInvariant()} 应与裸键等价");
+            }
+
+            // ③ 公开转发口 —— 必须与上面同源,不得另存判据。
+            Assert.IsTrue(StateMachine.IsCareApplicable("DIS_TYPHOID"),
+                "IsCareApplicable 已委托给 AppliesToKey;此处红 = 委托被撤、又变回裸键直查");
+
+            // ④ 归一不得把**非**适用集病种误纳(前缀不是「全都算」)。
+            Assert.IsFalse(CareLeverApplicability.AppliesTo(Entry("DIS_TETANUS")),
+                "破伤风加前缀后仍不可照护(K8)—— 归一不得放宽成「带前缀就 true」");
+            Assert.IsFalse(CareLeverApplicability.AppliesTo(Entry("DIS_MALARIA")));
+            Assert.IsFalse(CareLeverApplicability.AppliesTo(Entry("INJ_STAB")),
+                "伤情行不受影响");
+        }
+
         /// <summary>null 键 ⇒ false(不抛)。</summary>
         [Test]
         public void test_nullKey_returnsFalse()

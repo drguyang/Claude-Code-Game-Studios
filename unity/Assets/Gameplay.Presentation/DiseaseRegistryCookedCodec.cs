@@ -36,7 +36,20 @@ namespace DaYiJingCheng.Gameplay.Presentation
     public static class DiseaseRegistryCookedCodec
     {
         /// <summary>读方认领的 schema_version(不匹配 = E-13 拒收)。</summary>
-        public const uint ExpectedSchemaVersion = 1u;
+        /// <remarks>
+        /// <para><b>版本史</b>:</para>
+        /// <list type="bullet">
+        /// <item><c>1</c> —— 首版(19 标量 + curve 块 + 全局 W / TREND_EPS)。</item>
+        /// <item><c>2</c> —— <b>2026-10-23</b> 载荷追加 <c>handle</c> / <c>relapse</c> /
+        /// <c>signs[]</c> 三块(位于 curve 块之后)。<c>treatable_by</c> **仍不携带**
+        /// (轴是单一真源,运行期查 <c>ITreatableByLookup</c>)。</item>
+        /// </list>
+        /// <para>⚠️ <b>为什么升它而不是升 <c>CookedFormat.FormatVersion</c></b>:
+        /// 后者是**全局** 20 字节头格式号,与单个产物的载荷形状无关
+        /// (承 <c>DiseaseRegistryCookedWriter</c> 头注 2026-10-22 的口径订正)。
+        /// 单个产物的载荷演化由**头槽 schemaVersion** 承载 —— 本常量就是它的读方对偶。</para>
+        /// </remarks>
+        public const uint ExpectedSchemaVersion = 2u;
 
         /// <summary>产物基名(仅用于错误报文;真名单一出处 = <see cref="DiseaseRegistryDataSet.CookedFileName"/>)。</summary>
         private const string ProductName = "disease_registry";
@@ -148,13 +161,49 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 e.Curve = c;
             }
 
-            // ── 未编码的三块(写方亦不写)──
-            //  ⚠️ 显式置 null 而**不是**留默认值:读者须一眼看出「本产物不携带这三块」,
-            //    而不是以为「它们恰好为空」。与写方文件尾 §未实现登记 ② 一一对应。
+            // ── handle(2026-10-23 起编码;派生字段,GDD :329)──
+            //  -1 = null(未派生)。值域由写方(`DiseaseHandle.Derive`)保证;
+            //  读方**不**复查闭集 —— 那会在「产物是旧版」与「产物被篡改」之间
+            //  制造一个分不清的红(版本门已在上面按 schemaVersion 判过)。
+            e.Handle = CookedReadUtil.ReadString32(r, $"{ProductName}.{where}.handle");
+
+            // ── relapse(2026-10-23 起)──
+            bool hasRelapse = r.ReadBoolean();
+            if (hasRelapse)
+            {
+                e.Relapse = new RelapseCurve
+                {
+                    ARel = new Fix(r.ReadInt64()),
+                    Interval = r.ReadInt32(),
+                    TauFall = new Fix(r.ReadInt64()),
+                };
+            }
+
+            // ── signs[](2026-10-23 起)──
+            //  -1 = null(未声明);0 = 显式空集。两者语义不同,GDD :291 只允许后者为空。
+            int signCount = r.ReadInt32();
+            if (signCount < -1)
+                throw new InvalidDataException(
+                    $"[cooked] {ProductName}.{where}.sign_count={signCount} < -1 —— " +
+                    "产物损坏(写方只写 null 标记 -1 或非负计数)");
+            if (signCount >= 0)
+            {
+                var signs = new SignEntry[signCount];
+                for (int i = 0; i < signCount; i++)
+                {
+                    string signKey = CookedReadUtil.ReadString32(
+                        r, $"{ProductName}.{where}.signs[{i}].sign_key");
+                    int channelMask = r.ReadInt32();
+                    signs[i] = signKey == null ? null : new SignEntry(signKey, channelMask);
+                }
+                e.Signs = signs;
+            }
+
+            // ── treatable_by:**本产物不携带**(2026-10-23 口径不变)──
+            //  轴是单一真源(`D-9-K`),运行期由装配层的 `ITreatableByLookup` 查。
+            //  显式置 null 而**不是**留默认值:读者须一眼看出「本产物不携带它」,
+            //  而不是以为「它恰好为空」。
             e.TreatableBy = null;
-            e.Relapse = null;
-            e.Signs = null;
-            e.Handle = null;
 
             return e;
         }

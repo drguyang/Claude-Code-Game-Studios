@@ -14,8 +14,9 @@
 //
 // 放置面:测试程序集(EditMode)—— 合成数据不得被误认作生产病种表;
 //    批次 C(体征链核心)测试可直接复用本 fixture。
-//    TreatableBy 必须为 null:非 null 会触发 R1-19 的 NotImplementedException(结构性不可达分支;
-//    treatable_by 已拆独立轴文件 disease_action_axis.json,story-007)。
+//    TreatableBy 必须为 null:非 null 会踩 R1-19 的**第二真源守卫**(抛
+//    RegistryValidationException;2026-10-23 起,此前是 NotImplementedException)。
+//    treatable_by 已拆独立轴文件 disease_action_axis.json,story-007。
 
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;

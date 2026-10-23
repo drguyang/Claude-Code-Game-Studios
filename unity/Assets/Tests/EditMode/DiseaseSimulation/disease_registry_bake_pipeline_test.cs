@@ -36,7 +36,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
 
         /// <summary>取一份**最小合法**源文本(单行 injury),供注入测试改写。</summary>
         private static string MinimalJson() => @"{
-  ""schema_version"": 1,
+  ""schema_version"": 2,
   ""diseases"": [
     {
       ""id"": 2,
@@ -97,6 +97,176 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             var outp = DiseaseRegistryBaker.BakeFromJson(MinimalJson());
             Assert.That(outp.Cooked, Is.Not.Empty);
             Assert.That(outp.Rows.Count, Is.EqualTo(1));
+        }
+
+        /// <summary>
+        /// **真表的 <c>handle</c> 逐行落在 GDD <c>:294</c> 的闭集内,且三条代表性派生都出现。**
+        ///
+        /// <para><b>为什么这条必须有</b>:<c>handle</c> 是**派生字段**(GDD <c>:329</c>),
+        /// 派生出错不会抛 —— 它只会写进字节,然后在 8 的「这病我有没有牌」里静默错。
+        /// 只断言「闭集内」不够(全填 <c>symptomatic_only</c> 也满足);只断言「三档都出现」
+        /// 也不够(可以出现得不对)。下面把<b>逐行期望值</b>钉死,二者同时成立。</para>
+        ///
+        /// <para>⚠️ 期望值**不是**抄产物,而是按 GDD <c>:425-437</c> 的病种表 + 轴
+        /// <c>disease_action_axis.json</c> 的 <c>treatable_by</c> 反推出来的:
+        /// 只有 <c>DIS_MALARIA</c> 有 <c>polarity = causal</c> 的对因处置(金鸡纳皮);
+        /// <c>DIS_TETANUS</c> 发病后无解 ⇒ <c>none</c>;其余七个病种与五个伤情
+        /// ⇒ <c>symptomatic_only</c>。</para>
+        ///
+        /// <para><b>🔁 2026-10-23 用户裁定 ② 已修前缀缺陷(原文不删,留痕)</b>:
+        /// 原文写「当前真表里 <c>care</c> 一档为 0 行 —— 这是缺陷」,根因是
+        /// <c>StateMachine.CareApplicableDiseases</c> 用**裸键**而注册表键是 <c>DIS_</c> 前缀
+        /// ⇒ 交集为空 ⇒ 三个 GDD 点名该为 <c>care</c> 的病种被派生成 <c>symptomatic_only</c>。
+        /// <b>现已修复</b>:归一落在 <c>CareLeverApplicability</c> 的查表层
+        /// (裸键 + 前缀键等价),故下面三行期望值改回 GDD <c>:294</c> 要求的 <c>care</c>。</para>
+        ///
+        /// <para><b>⚠️ 三行 <c>care</c> 是本测试的<em>主判据</em>,不是陪衬</b> —— 若归一实现
+        /// 回退(或有人把查表改回裸键直查),这三行会同时红;它们是这条缺陷的绊线。</para>
+        /// </summary>
+        [Test]
+        public void test_realSource_handleIsDerivedIntoClosedSet_perRow()
+        {
+            var outp = DiseaseRegistryBaker.BakeFromRepo(RepoRoot());
+
+            var expected = new System.Collections.Generic.Dictionary<string, string>
+            {
+                { "INJ_STAB", "symptomatic_only" },
+                { "INJ_LACERATION", "symptomatic_only" },
+                { "INJ_HEMORRHAGE", "symptomatic_only" },
+                { "INJ_CLAW", "symptomatic_only" },
+                { "INJ_BITE", "symptomatic_only" },
+                { "DIS_MALARIA", "causal" },              // 轴:action 12 / causal(金鸡纳皮)
+                { "DIS_RHEUMATIC_FEVER", "symptomatic_only" },
+                { "DIS_HEART_FAILURE", "care" },          // GDD :294 —— 照护适用集三员之一
+                { "DIS_TYPHOID", "care" },                // 同上
+                { "DIS_MEASLES", "symptomatic_only" },
+                { "DIS_DYSENTERY", "care" },              // 同上
+                { "DIS_TETANUS", "none" },                // 发病后无解(K8)
+                { "DIS_NEURASTHENIA", "symptomatic_only" },
+            };
+
+            Assert.That(outp.Rows.Count, Is.EqualTo(expected.Count),
+                "真表行数变了 ⇒ 本表的逐行期望须同步复核(不是改数字,是重新按 GDD 推)");
+
+            foreach (var row in outp.Rows)
+            {
+                Assert.That(DaYiJingCheng.Sim.DiseaseHandle.IsValid(row.Handle), Is.True,
+                    $"{row.DiseaseKey}.handle=\"{row.Handle}\" ∉ GDD :294 闭集");
+                Assert.That(expected.TryGetValue(row.DiseaseKey, out string want), Is.True,
+                    $"{row.DiseaseKey} 不在本测试的期望表里 —— 新增病种须按 GDD :425-437 补一行期望");
+                Assert.That(row.Handle, Is.EqualTo(want),
+                    $"{row.DiseaseKey}.handle 派生值不符 —— 期望 {want},实得 {row.Handle}");
+            }
+        }
+
+        /// <summary>
+        /// **<c>handle</c> 手填 = 烘焙期硬失败**(GDD <c>:329</c>「派生而非手填」)。
+        /// <para>这条防的是「表里写 causal、实际没有对因药」的静默撒谎 ——
+        /// 若 binder 静默丢弃手填值,作者**看不到自己的错**。</para>
+        /// </summary>
+        [Test]
+        public void test_handFilledHandle_isRejected()
+        {
+            // MinimalJson() 是逐字字符串 ⇒ 引号在源里写成两个双引号,替换串须照抄。
+            string bad = MinimalJson().Replace(
+                @"""scale"": ""100"",",
+                @"""scale"": ""100"", ""handle"": ""causal"",");
+            var ex = Assert.Throws<BakeValidationException>(() => DiseaseRegistryBaker.BakeFromJson(bad));
+            Assert.That(ex.Message, Does.Contain("handle"),
+                "报文须点名 handle,否则作者看不出是自己写了派生字段");
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ①b 新编码三块(handle / relapse / signs[])的**非空**往返
+        // ══════════════════════════════════════════════════════════════════════
+        //
+        // ⚠️ 为什么单列:真表 13 行的 `signs` 全是 `[]`、`relapse` 全是 null。
+        //    只跑真表 ⇒ 这两块的**内容编码**一行都没被执行过 —— 「全空也绿」是
+        //    本项目抓过多次的假绿形态。下面用**非空**夹具把编码/解码真的走一遍。
+
+        /// <summary>含非空 <c>signs[]</c> + <c>relapse</c> 块的最小源文本。</summary>
+        private static string RichJson() => @"{
+  ""schema_version"": 2,
+  ""diseases"": [
+    {
+      ""id"": 7,
+      ""key"": ""DIS_PROBE_RICH"",
+      ""kind"": ""disease"",
+      ""severity"": 5,
+      ""lethal"": true,
+      ""scale"": ""100"",
+      ""trauma_half_life"": 0,
+      ""relapse"": { ""a_rel"": ""1/4"", ""interval"": 1200, ""tau_fall"": ""300"" },
+      ""signs"": [
+        { ""sign_key"": ""sign_chill"", ""channel_mask"": 1 },
+        { ""sign_key"": ""sign_sweat"", ""channel_mask"": 9 }
+      ],
+      ""natural_progress"": {
+        ""incubation"": 0,
+        ""a_peak"": ""100"",
+        ""tau_rise"": ""40"",
+        ""tau_peak"": 300,
+        ""tau_fall"": ""600"",
+        ""plateau"": false,
+        ""self_limit"": false,
+        ""boundary_mode"": ""monotone""
+      }
+    }
+  ]
+}";
+
+        /// <summary>
+        /// 非空 <c>signs[]</c> / <c>relapse</c> 经**真往返**(写方 → 读方 codec → 逐字段比对)无损。
+        /// <para>判据走 <c>Materialize</c> —— 它是写/读两份手写布局的**唯一自动兜现**。
+        /// 只断言「解出来不抛」不够:解出来全 null 也能不抛。</para>
+        /// </summary>
+        [Test]
+        public void test_richRow_signsAndRelapse_surviveRoundTrip()
+        {
+            var outp = DiseaseRegistryBaker.BakeFromJson(RichJson());
+            var dataSet = DiseaseRegistryBaker.Materialize(outp);   // 内含逐字段比对,分叉即抛
+
+            Assert.That(dataSet.Rows.Count, Is.EqualTo(1));
+            var row = dataSet.Rows[0];
+
+            Assert.That(row.Relapse, Is.Not.Null, "relapse 块往返后丢了");
+            // raw 换算(逐位,不调 FixParse —— 断言的期望值应当是**字面量推导**,
+            // 而不是再走一遍被断言对象所用的同一个解析器):
+            //   "1/4" ⇒ 65536 / 4 = 16384;"300" ⇒ 300 × 65536 = 19660800。
+            Assert.That(row.Relapse.ARel.Raw, Is.EqualTo(16384L), "\"1/4\" 的 raw 应为 16384");
+            Assert.That(row.Relapse.Interval, Is.EqualTo(1200));
+            Assert.That(row.Relapse.TauFall.Raw, Is.EqualTo(19660800L), "\"300\" 的 raw 应为 19660800");
+
+            Assert.That(row.Signs, Is.Not.Null, "signs[] 往返后丢了");
+            Assert.That(row.Signs.Length, Is.EqualTo(2), "signs[] 条数往返后不符");
+            Assert.That(row.Signs[0].SignKey, Is.EqualTo("sign_chill"));
+            Assert.That(row.Signs[0].ChannelMask, Is.EqualTo(1));
+            Assert.That(row.Signs[1].SignKey, Is.EqualTo("sign_sweat"));
+            Assert.That(row.Signs[1].ChannelMask, Is.EqualTo(9), "9 = Face|Breath(两位或)");
+            // ⚠️ 第二行刻意用**两位或**而不是 3:3 = Face|Voice 也在闭集内,但它与
+            //    「单通道 1/2」在肉眼上太近,写错位不会立刻看出来。9 的两位相隔,
+            //    任一位写错都会让本断言红。
+        }
+
+        /// <summary>
+        /// <c>signs</c> **缺省(null)** 与 **显式空集(<c>[]</c>)** 往返后仍是两个不同状态。
+        /// <para>GDD <c>:291</c> 只允许后者为空;把两者混成一个值 = 让「没声明」伪装成
+        /// 「声明了但没有」,而 R1-29 对两者的处置不同(null 跳过 / 空集放行)。</para>
+        /// </summary>
+        [Test]
+        public void test_signsNullVsEmpty_stayDistinct()
+        {
+            var nullRow = DiseaseRegistryBaker.Materialize(
+                DiseaseRegistryBaker.BakeFromJson(MinimalJson())).Rows[0];
+            Assert.That(nullRow.Signs, Is.Null, "缺省 signs 应解回 null(未声明)");
+
+            var emptyRow = DiseaseRegistryBaker.Materialize(
+                DiseaseRegistryBaker.BakeFromJson(
+                    MinimalJson().Replace(
+                        @"""scale"": ""100"",",
+                        @"""scale"": ""100"", ""signs"": [],"))).Rows[0];
+            Assert.That(emptyRow.Signs, Is.Not.Null, "显式空集应解回空数组,不是 null");
+            Assert.That(emptyRow.Signs.Length, Is.EqualTo(0), "显式空集长度应为 0");
         }
 
         // ══════════════════════════════════════════════════════════════════════
@@ -165,7 +335,10 @@ namespace DaYiJingCheng.Tests.Unit.Sim
 
             Assert.That(ReadU32Le(b, 4), Is.EqualTo(DaYiJingCheng.Sim.Contracts.CookedFormat.FormatVersion),
                 "formatVersion 不符");
-            Assert.That(ReadU32Le(b, 8), Is.EqualTo(1u), "schemaVersion 应为源文件声明的 1");
+            // ⚠️ 2026-10-23 起期望值改 2(布局加了 handle / relapse / signs[] 三块)。
+            //    断言**仍写死字面量**而不是读 `ExpectedSchemaVersion` —— 那样本行会退化成
+            //    「常量 == 常量」的同义反复,测不出「binder 把源文件声明的版本原样写进头槽」。
+            Assert.That(ReadU32Le(b, 8), Is.EqualTo(2u), "schemaVersion 应为源文件声明的 2");
             Assert.That(ReadU32Le(b, 12), Is.EqualTo(outp.ConfigVersion), "configVersion 不符");
 
             uint payloadLen = ReadU32Le(b, 16);
@@ -249,8 +422,8 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         public void test_trendWindow_present_isReadBack()
         {
             string json = MinimalJson().Replace(
-                "\"schema_version\": 1,",
-                "\"schema_version\": 1,\n  \"trend_window_ticks\": 120,\n  \"trend_eps\": \"1966/65536\",");
+                "\"schema_version\": 2,",
+                "\"schema_version\": 2,\n  \"trend_window_ticks\": 120,\n  \"trend_eps\": \"1966/65536\",");
             var outp = DiseaseRegistryBaker.BakeFromJson(json);
 
             Assert.That(outp.TrendWindowTicks, Is.EqualTo(120L),
@@ -266,24 +439,24 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         {
             // ① 负 W
             string negW = MinimalJson().Replace(
-                "\"schema_version\": 1,",
-                "\"schema_version\": 1,\n  \"trend_window_ticks\": -2,");
+                "\"schema_version\": 2,",
+                "\"schema_version\": 2,\n  \"trend_window_ticks\": -2,");
             var ex1 = Assert.Throws<BakeValidationException>(
                 () => DiseaseRegistryBaker.BakeFromJson(negW), "负 W 须拒(0 = 未配置,负值无意义)");
             Assert.That(ex1.Message, Does.Contain("trend_window_ticks"));
 
             // ② 奇数 W —— GDD Tuning :1743「须为偶数(取 W/2)」
             string oddW = MinimalJson().Replace(
-                "\"schema_version\": 1,",
-                "\"schema_version\": 1,\n  \"trend_window_ticks\": 121,");
+                "\"schema_version\": 2,",
+                "\"schema_version\": 2,\n  \"trend_window_ticks\": 121,");
             var ex2 = Assert.Throws<BakeValidationException>(
                 () => DiseaseRegistryBaker.BakeFromJson(oddW), "奇数 W 须拒(取 W/2 会丢半个 tick)");
             Assert.That(ex2.Message, Does.Contain("trend_window_ticks"));
 
             // ③ 负 TREND_EPS
             string negEps = MinimalJson().Replace(
-                "\"schema_version\": 1,",
-                "\"schema_version\": 1,\n  \"trend_eps\": \"-1\",");
+                "\"schema_version\": 2,",
+                "\"schema_version\": 2,\n  \"trend_eps\": \"-1\",");
             var ex3 = Assert.Throws<BakeValidationException>(
                 () => DiseaseRegistryBaker.BakeFromJson(negEps), "负 TREND_EPS 须拒");
             Assert.That(ex3.Message, Does.Contain("trend_eps"));
@@ -294,10 +467,28 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         public void test_underscorePrefixedKeys_areAllowed()
         {
             string withNote = MinimalJson().Replace(
-                "\"schema_version\": 1,",
-                "\"schema_version\": 1,\n  \"_note\": \"作者态注记\",");
+                "\"schema_version\": 2,",
+                "\"schema_version\": 2,\n  \"_note\": \"作者态注记\",");
             Assert.DoesNotThrow(() => DiseaseRegistryBaker.BakeFromJson(withNote),
                 "`_` 前缀注记被当成未知键 —— 判据过宽");
+        }
+
+        /// <summary>
+        /// `schema_version` 与读方认领不符 ⇒ **烘焙期**拒(不是运行期 E-13)。
+        /// <para><b>为什么这条必须有</b>:2026-10-23 布局升到 2 时实测过这个缺口 ——
+        /// 四份合成源仍写 `1`,`Materialize`(真往返)当场红,而**裸烘焙**
+        /// (`BakeFromRepo(...).Cooked`,产物漂移门走的那条)一路绿 ⇒
+        /// 盘上会落一份**读方拒收**的产物而构建不报错。失败点从构建期漏到运行期。</para>
+        /// <para>判据取 `1`(上一版真实值)而不是 `999`(随便一个越界值):前者正是
+        /// 「忘了升版本号」的真实形态。</para>
+        /// </summary>
+        [Test]
+        public void test_schemaVersionMismatch_isRejectedAtBake()
+        {
+            string bad = MinimalJson().Replace("\"schema_version\": 2", "\"schema_version\": 1");
+            var ex = Assert.Throws<BakeValidationException>(() => DiseaseRegistryBaker.BakeFromJson(bad));
+            Assert.That(ex.Message, Does.Contain("schema_version"),
+                "报文须点名 schema_version,否则作者看不出是自己版本号写错了");
         }
 
         /// <summary>`kind` 拼错 / 不在闭集 ⇒ 被拒。</summary>
@@ -350,7 +541,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         public void test_emptyRegistry_isRejected()
         {
             string bad = @"{
-  ""schema_version"": 1,
+  ""schema_version"": 2,
   ""diseases"": []
 }";
             var ex = Assert.Throws<BakeValidationException>(() => DiseaseRegistryBaker.BakeFromJson(bad));
@@ -362,7 +553,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         public void test_malformedJson_isRejectedAtStage1()
         {
             var ex = Assert.Throws<BakeValidationException>(
-                () => DiseaseRegistryBaker.BakeFromJson("{ \"schema_version\": 1, "));
+                () => DiseaseRegistryBaker.BakeFromJson("{ \"schema_version\": 2, "));
             Assert.That(ex.Message, Does.Contain("阶段1").Or.Contain("词法"));
         }
 
@@ -375,17 +566,23 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         // 下面两条把那种丢失变成可断言的量。
 
         /// <summary>
-        /// 真源文件当前有 5 个键声明了但未绑定。断言**恰是这 5 个** ——
+        /// 真源文件当前有 3 个键声明了但未绑定。断言**恰是这 3 个** ——
         /// 少一个(有人补了绑定)或多一个(有人加了新键却没绑)都会红。
-        /// <para>⚠️ 本条**不**主张这 5 个键的丢失是可接受的。它只保证:
+        /// <para>⚠️ 本条**不**主张这 3 个键的丢失是可接受的。它只保证:
         /// 丢失的量**不随时间静默变化**。清单本身的缩减归各自实现轮。</para>
+        /// <para><b>2026-10-23 从 5 键缩到 3 键</b>:<c>signs</c> 已进 <c>BoundRowKeys</c>
+        /// (绑定 + 编码);<c>handle</c> 从真源里**删干净了**(GDD <c>:329</c>「派生而非手填」,
+        /// binder 对它的手填值现在是硬失败,不再可能出现在未绑定集里)。</para>
+        /// <para>剩下的三个各有归口:<c>causes</c> 是**入边**、真源侧未落地(GDD 校验 11);
+        /// <c>treatable_by</c> 是**轴的单一天源**(<c>D-9-K</c>),条目不携带是设计;
+        /// <c>zh</c> 是本地化文本,不在 9 的数据面内。</para>
         /// </summary>
         [Test]
         public void test_realSource_unboundKeySetIsExactlyKnown()
         {
             var outp = DiseaseRegistryBaker.BakeFromRepo(RepoRoot());
 
-            string[] expected = { "causes", "handle", "signs", "treatable_by", "zh" };
+            string[] expected = { "causes", "treatable_by", "zh" };
             Assert.That(outp.UnboundKeys, Is.EqualTo(expected),
                 "未绑定键集与登记不符 —— 要么有人补了绑定(改本断言),要么有人加了新键没绑(补绑定或登记)");
         }
@@ -404,8 +601,8 @@ namespace DaYiJingCheng.Tests.Unit.Sim
         public void test_authorNotes_areNotCountedAsUnbound()
         {
             string withNote = MinimalJson().Replace(
-                "\"schema_version\": 1,",
-                "\"schema_version\": 1,\n  \"_note\": \"注记\",");
+                "\"schema_version\": 2,",
+                "\"schema_version\": 2,\n  \"_note\": \"注记\",");
             var outp = DiseaseRegistryBaker.BakeFromJson(withNote);
             Assert.That(outp.UnboundKeys, Is.Empty);
         }

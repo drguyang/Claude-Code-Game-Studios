@@ -69,13 +69,32 @@ namespace DaYiJingCheng.EditorTools.Bake
         }
 
         /// <summary>从源文本烘焙(不起 IO —— 供测试直接驱动)。</summary>
-        public static BakeOutput BakeFromJson(string json)
+        /// <param name="json">`disease_registry.json` 原文。</param>
+        /// <param name="causalTreatmentByDiseaseKey">
+        /// <c>handle</c> 派生的输入(见 <see cref="DiseaseRegistryBinder.Bind"/>)。
+        /// <b>null = 轴未接线</b> ⇒ <c>Handle</c> 留 null。
+        /// <para>⚠️ <b>本重载刻意不自己读轴文件</b>:它是「不起 IO」的入口,
+        /// 让它在内部找仓根 = 偷偷引入一条调用方看不见的依赖。
+        /// 生产路径走 <see cref="BakeFromRepo"/>(它读两个文件并算这张表)。</para>
+        /// </param>
+        public static BakeOutput BakeFromJson(
+            string json, IReadOnlyDictionary<string, bool> causalTreatmentByDiseaseKey = null)
         {
             if (json == null) throw new ArgumentNullException(nameof(json));
 
-            DiseaseRegistryBinder.BindResult bound = DiseaseRegistryBinder.Bind(json);
+            DiseaseRegistryBinder.BindResult bound =
+                DiseaseRegistryBinder.Bind(json, causalTreatmentByDiseaseKey);
 
             // ConfigVersion = 源文本集内容哈希(排序按文件名,确定性;ADR-014 §五)。
+            // ⚠️ **只有本产物自己的源文本进哈希**,`disease_action_axis.json` 不进 ——
+            //   它是**另一份产物**(`disease_action_axis.cooked.bytes`)的源,有自己的
+            //   ConfigVersion。把轴的内容塞进本产物的版本号,会让「只改了轴」也令
+            //   本产物的 ConfigVersion 变化 —— 而本产物的字节里**没有任何轴内容**
+            //   (treatable_by 不烘,见 Binder 注释),那是一个**对不上字节的版本号**。
+            //   ⚠️ 唯一的例外是 `handle` —— 它是轴派生**并写进字节**的。
+            //   故 `causalTreatmentByDiseaseKey` 变化确实会改本产物字节;它由
+            //   `cooked_drift_all_artifacts_test` 的逐字节门兜住(轴改 ⇒ 本产物也须重烘),
+            //   而不是靠 ConfigVersion。
             uint configVersion = ConfigVersionUtility.DeriveConfigVersion(new[]
             {
                 new KeyValuePair<string, string>(SourceFileName, json),
@@ -88,19 +107,74 @@ namespace DaYiJingCheng.EditorTools.Bake
                                   bound.TrendWindowTicks, bound.TrendEpsRaw);
         }
 
-        /// <summary>从仓根烘焙(读源文件 → 绑定 + 校验 → 编码)。</summary>
+        /// <summary>从仓根烘焙(读**两个**源文件 → 绑定 + 校验 → 编码)。</summary>
         /// <param name="repoRoot">仓根(含 `assets/data/`)。</param>
         /// <exception cref="BakeValidationException">词法 / 绑定 / R1 校验任一失败(聚合)。</exception>
+        /// <remarks>
+        /// <para><b>⚠️ 为什么本入口必须读 `disease_action_axis.json`</b>:<c>handle</c> 是
+        /// **派生字段**(GDD <c>:329</c>),其输入「∃ 对因处置」住在轴上,而轴是极性的
+        /// **单一真源**(<c>D-9-K</c>)。不读轴 ⇒ <c>handle</c> 恒 null ⇒
+        /// GDD <c>:294</c> 的 `care` / `none` / `causal` 三档在产物里**永远不出现**,
+        /// 8 的「这病我有没有牌」呈现恒不可用。</para>
+        ///
+        /// <para><b>⚠️ 只读轴的 `treatable_by` 段,不读 `actions` 段</b>:后者已由
+        /// <see cref="DiseaseActionAxisBaker"/> 负责烘成另一份产物。本入口对轴文件
+        /// **不做完整校验**(那是轴自己的 baker 的活)—— 只抽 <c>causal</c> 行。
+        /// 若轴文件损坏到抽不出来,`DiseaseActionAxisBinder.Bind` 会抛,
+        /// 那时**两份产物都烘不出来**,这是对的。</para>
+        /// </remarks>
         public static BakeOutput BakeFromRepo(string repoRoot)
         {
             if (repoRoot == null) throw new ArgumentNullException(nameof(repoRoot));
 
-            string path = Path.Combine(repoRoot, DataDirName, SourceFileName);
+            string dir = Path.Combine(repoRoot, DataDirName);
+            string path = Path.Combine(dir, SourceFileName);
+            string axisPath = Path.Combine(dir, DiseaseActionAxisBaker.AxisFileName);
+
             var errors = new List<string>();
             if (!File.Exists(path)) errors.Add($"源文件不存在:{path}");
+            if (!File.Exists(axisPath))
+                errors.Add($"处置轴源文件不存在:{axisPath} —— `handle` 派生需要它(GDD :329)");
             if (errors.Count > 0) throw new BakeValidationException(errors);
 
-            return BakeFromJson(File.ReadAllText(path));
+            // 轴走**自己的 binder**(零重实现):同一份校验、同一份行集。
+            // ⚠️ 它抛 `BakeValidationException` —— 不 catch,让它原样冒出去:
+            //    「轴坏了」与「注册表坏了」对调用方是同一类失败(都是源数据不合格)。
+            DiseaseActionAxisBinder.BindResult axis =
+                DiseaseActionAxisBinder.Bind(File.ReadAllText(axisPath));
+
+            return BakeFromJson(File.ReadAllText(path), CausalByDiseaseKey(axis.TreatableBy));
+        }
+
+        /// <summary>
+        /// 从轴的 <c>treatable_by</c> 行集算「每病种是否至少有一条对因处置」。
+        /// </summary>
+        /// <remarks>
+        /// <para>⚠️ <b>只出现 <c>symptomatic</c> 行的病种也会进表</b>(值为 <c>false</c>)——
+        /// 这是刻意的:表里「查不到」与「查到了但全是对症」在派生上**都**意味着
+        /// <c>hasCausal = false</c>,但前者会让读者误以为「轴里没有这个病」。
+        /// 显式写入 <c>false</c> 使表本身可读。</para>
+        /// <para>⚠️ 病种**完全不在轴里**(如全部 <c>INJ_*</c> 伤情)⇒ 表里也没有它 ⇒
+        /// 派生时 <c>TryGetValue</c> 落空 ⇒ <c>hasCausal = false</c>。
+        /// 对伤情,这给出 <c>symptomatic_only</c>(它们不在照护集、不是破伤风)——
+        /// 与作者态 <c>handle: "symptomatic_only"</c> 的既有声明一致。</para>
+        /// </remarks>
+        private static IReadOnlyDictionary<string, bool> CausalByDiseaseKey(
+            IReadOnlyList<TreatableByRow> rows)
+        {
+            var map = new Dictionary<string, bool>(StringComparer.Ordinal);
+            for (int i = 0; i < rows.Count; i++)
+            {
+                TreatableByRow row = rows[i];
+                if (row.DiseaseKey == null) continue;
+
+                bool isCausal = string.Equals(row.Polarity, "causal", StringComparison.Ordinal);
+                if (map.TryGetValue(row.DiseaseKey, out bool existing))
+                    map[row.DiseaseKey] = existing || isCausal;
+                else
+                    map[row.DiseaseKey] = isCausal;
+            }
+            return map;
         }
 
         /// <summary>
@@ -190,25 +264,88 @@ namespace DaYiJingCheng.EditorTools.Bake
                            $"解回 {(actual.Curve != null ? "有" : "无")})");
                 return;
             }
-            if (expected.Curve == null) return;
+            if (expected.Curve != null)
+            {
+                string c = w + ".natural_progress";
+                Compare(c + ".incubation", expected.Curve.Incubation, actual.Curve.Incubation, errors);
+                Compare(c + ".a_peak", expected.Curve.APeak.Raw, actual.Curve.APeak.Raw, errors);
+                Compare(c + ".tau_rise", expected.Curve.TauRise.Raw, actual.Curve.TauRise.Raw, errors);
+                Compare(c + ".tau_peak", expected.Curve.TauPeak, actual.Curve.TauPeak, errors);
+                Compare(c + ".tau_fall", expected.Curve.TauFall.Raw, actual.Curve.TauFall.Raw, errors);
+                if (expected.Curve.Plateau != actual.Curve.Plateau)
+                    errors.Add($"{c}.plateau 往返后 {actual.Curve.Plateau} ≠ 绑定值 {expected.Curve.Plateau}");
+                if (expected.Curve.SelfLimit != actual.Curve.SelfLimit)
+                    errors.Add($"{c}.self_limit 往返后 {actual.Curve.SelfLimit} ≠ 绑定值 {expected.Curve.SelfLimit}");
+                if (expected.Curve.Sigma.HasValue != actual.Curve.Sigma.HasValue)
+                    errors.Add($"{c}.sigma 有无往返后不一致");
+                else if (expected.Curve.Sigma.HasValue)
+                    Compare(c + ".sigma", expected.Curve.Sigma.Value.Raw, actual.Curve.Sigma.Value.Raw, errors);
+                if (!string.Equals(expected.Curve.BoundaryMode, actual.Curve.BoundaryMode, StringComparison.Ordinal))
+                    errors.Add($"{c}.boundary_mode 往返后 \"{actual.Curve.BoundaryMode}\" ≠ " +
+                               $"绑定值 \"{expected.Curve.BoundaryMode}\"");
+            }
 
-            string c = w + ".natural_progress";
-            Compare(c + ".incubation", expected.Curve.Incubation, actual.Curve.Incubation, errors);
-            Compare(c + ".a_peak", expected.Curve.APeak.Raw, actual.Curve.APeak.Raw, errors);
-            Compare(c + ".tau_rise", expected.Curve.TauRise.Raw, actual.Curve.TauRise.Raw, errors);
-            Compare(c + ".tau_peak", expected.Curve.TauPeak, actual.Curve.TauPeak, errors);
-            Compare(c + ".tau_fall", expected.Curve.TauFall.Raw, actual.Curve.TauFall.Raw, errors);
-            if (expected.Curve.Plateau != actual.Curve.Plateau)
-                errors.Add($"{c}.plateau 往返后 {actual.Curve.Plateau} ≠ 绑定值 {expected.Curve.Plateau}");
-            if (expected.Curve.SelfLimit != actual.Curve.SelfLimit)
-                errors.Add($"{c}.self_limit 往返后 {actual.Curve.SelfLimit} ≠ 绑定值 {expected.Curve.SelfLimit}");
-            if (expected.Curve.Sigma.HasValue != actual.Curve.Sigma.HasValue)
-                errors.Add($"{c}.sigma 有无往返后不一致");
-            else if (expected.Curve.Sigma.HasValue)
-                Compare(c + ".sigma", expected.Curve.Sigma.Value.Raw, actual.Curve.Sigma.Value.Raw, errors);
-            if (!string.Equals(expected.Curve.BoundaryMode, actual.Curve.BoundaryMode, StringComparison.Ordinal))
-                errors.Add($"{c}.boundary_mode 往返后 \"{actual.Curve.BoundaryMode}\" ≠ " +
-                           $"绑定值 \"{expected.Curve.BoundaryMode}\"");
+            // ── 2026-10-23 新编码的三块(handle / relapse / signs)──
+            //  ⚠️ 这三块**必须**逐字段比:只比「不抛」等于不比 —— 解出来全 null 也能不抛。
+            if (!string.Equals(expected.Handle, actual.Handle, StringComparison.Ordinal))
+                errors.Add($"{w}.handle 往返后 \"{actual.Handle}\" ≠ 绑定值 \"{expected.Handle}\"");
+
+            if ((expected.Relapse != null) != (actual.Relapse != null))
+            {
+                errors.Add($"{w}.relapse 有无往返后不一致(绑定 " +
+                           $"{(expected.Relapse != null ? "有" : "无")},解回 " +
+                           $"{(actual.Relapse != null ? "有" : "无")})");
+            }
+            else if (expected.Relapse != null)
+            {
+                string rl = w + ".relapse";
+                Compare(rl + ".a_rel", expected.Relapse.ARel.Raw, actual.Relapse.ARel.Raw, errors);
+                Compare(rl + ".interval", expected.Relapse.Interval, actual.Relapse.Interval, errors);
+                Compare(rl + ".tau_fall", expected.Relapse.TauFall.Raw, actual.Relapse.TauFall.Raw, errors);
+            }
+
+            if ((expected.Signs == null) != (actual.Signs == null))
+            {
+                errors.Add($"{w}.signs 有无往返后不一致(绑定 " +
+                           $"{(expected.Signs == null ? "null" : "数组")},解回 " +
+                           $"{(actual.Signs == null ? "null" : "数组")})—— " +
+                           "null(未声明)与空数组(显式空集)是两种语义,GDD :291 只允许后者为空");
+            }
+            else if (expected.Signs != null)
+            {
+                if (expected.Signs.Length != actual.Signs.Length)
+                {
+                    errors.Add($"{w}.signs 行数往返后 {actual.Signs.Length} ≠ 绑定值 {expected.Signs.Length}");
+                }
+                else
+                {
+                    for (int k = 0; k < expected.Signs.Length; k++)
+                    {
+                        string sg = $"{w}.signs[{k}]";
+                        if ((expected.Signs[k] == null) != (actual.Signs[k] == null))
+                        {
+                            errors.Add($"{sg} 有无往返后不一致");
+                            continue;
+                        }
+                        if (expected.Signs[k] == null) continue;
+                        if (!string.Equals(expected.Signs[k].SignKey, actual.Signs[k].SignKey,
+                                           StringComparison.Ordinal))
+                            errors.Add($"{sg}.sign_key 往返后 \"{actual.Signs[k].SignKey}\" ≠ " +
+                                       $"绑定值 \"{expected.Signs[k].SignKey}\"");
+                        Compare(sg + ".channel_mask", expected.Signs[k].ChannelMask,
+                                actual.Signs[k].ChannelMask, errors);
+                    }
+                }
+            }
+
+            // ── treatable_by:**不进产物,故断言两侧都是 null** ──
+            //  ⚠️ 这是「刻意不携带」的机械表达:若哪天有人往写方加了一段 treatable_by,
+            //    读方仍置 null ⇒ 这里立刻红。若读方也加了 ⇒ 本断言需同改,
+            //    而改它会撞到 `ITreatableByLookup` 的「单一真源」纪律。
+            if (expected.TreatableBy != null || actual.TreatableBy != null)
+                errors.Add($"{w}.treatable_by 不得进产物(轴是单一真源,D-9-K)—— " +
+                           $"绑定侧 {(expected.TreatableBy == null ? "null" : "非 null")}," +
+                           $"解回侧 {(actual.TreatableBy == null ? "null" : "非 null")}");
         }
 
         private static void Compare(string field, long expected, long actual, List<string> errors)

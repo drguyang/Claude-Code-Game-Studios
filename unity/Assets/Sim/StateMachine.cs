@@ -278,10 +278,18 @@ namespace DaYiJingCheng.Sim
 
         /// <summary>
         /// 判断是否可照护。
+        ///
+        /// <para><b>⚠️ 2026-10-23 起委托给 <see cref="CareLeverApplicability.AppliesToKey"/></b>
+        /// (用户裁定 ②:前缀归一做在查表处)。原文直查
+        /// <see cref="CareApplicableDiseases"/>(裸键)⇒ 对注册表的 <c>DIS_</c> 前缀键恒
+        /// <c>false</c> ⇒ 生产路径上照护杠杆全失效。本方法保留为**转发口**,
+        /// 不另存判据 —— 若在此处再写一遍归一,就又变回三条独立判据。</para>
         /// </summary>
+        /// <param name="diseaseKey">病种键(裸键与前缀键皆可,见
+        /// <see cref="CareLeverApplicability.AppliesToKey"/>)。</param>
         public static bool IsCareApplicable(string diseaseKey)
         {
-            return CareApplicableDiseases.Contains(diseaseKey);
+            return CareLeverApplicability.AppliesToKey(diseaseKey);
         }
 
         /// <summary>

@@ -206,13 +206,47 @@ namespace DaYiJingCheng.Gameplay.Boot
                 resolvedRegistry = CreateFallbackRegistry();
             }
 
+            // ── 处置轴产物装载(一次装载,两个消费者)──────────────────────────
+            // 消费者 ①(2026-10-20 起):DC-4 处置轴闭集 —— 按 `owner=="10"` 过滤注入
+            //   `HostEmergencyProcessor`。病因:`disease_action_axis` 的 `actions` 段编辑期
+            //   已被消费(`PrescriptionActionIdRegistry.RealActionIds()` 读 `owner=="11"`
+            //   段作 DC-2 闭集),但**运行期零读点** ⇒ `EmergencyActionSchema.ValidateActionId`
+            //   长期是 `Enum.IsDefined` 的影子(枚举注释自己点名「9 的轴新增 id ⇒ 影子会错误拒绝」)。
+            // 消费者 ②(2026-10-23 起):`treatable_by` 查表面 —— 见下方
+            //   `DiseaseActionAxisTreatableByLookup`(结清 `D-9-P`)。
+            // ⚠️ **为什么在装配层过滤 / 造查表,而不是让 Sim 自己读产物**:`Sim` 住门 A
+            //    (`noEngineReferences`),够不着 `Gameplay.Presentation.DiseaseActionAxisCookedCodec`;
+            //    Processor 只收一个 `ISet<int>`,Sim 侧只收 `ITreatableByLookup` —— 与
+            //    `IPayloadEncoder` / `IPayloadDecoder` 同构(零新增程序集边)。
+            // ⚠️ dataProvider == null(EditMode / 15+ 既有调用方)⇒ 两者皆 null ⇒
+            //    回退枚举影子 + 离牌门恒放行,与接线前**逐位相同**。
+            System.Collections.Generic.ISet<int> emergencyActionAxis = null;
+            ITreatableByLookup treatableBy = null;
+            if (dataProvider != null)
+            {
+                DiseaseActionAxisDataSet axis = dataProvider.Load<DiseaseActionAxisDataSet>();
+                var owner10 = new System.Collections.Generic.HashSet<int>();
+                for (int i = 0; i < axis.Actions.Count; i++)
+                    if (axis.Actions[i].Owner == "10")
+                        owner10.Add(axis.Actions[i].ActionId);
+                emergencyActionAxis = owner10;
+
+                // treatable_by 查表面(2026-10-23 用户裁定「运行期查轴」)。
+                //   ⚠️ 轴是**单一真源**(`D-9-K`),故注册表产物**不携带** treatable_by
+                //      —— 不再烘一份进 cooked,否则两者可分叉。
+                //   ⚠️ `axis.TreatableBy` 为 null ⇒ 构造函数 fail-loud(空表 = 「所有处置
+                //      都不可用」,与「未接线」不是同一状态;静默降级会把数据缺失伪装成设计)。
+                treatableBy = new DiseaseActionAxisTreatableByLookup(axis);
+            }
+
             // ── 体征链核心(批次 C):apply 驱动 + 投影桥 + IVitalsQuery 生产实装 ──
             // 它**同时**需要 EventStream/Sim(状态与求值)与 Sim.Codec(载荷解码)
             // ⇒ 只能在本装配(案 A)构造;客户端侧不装配(ADR-005 主机唯一 Step)。
             // ⚠️ W / TREND_EPS 原样搬运,**不在此校验**(值域守卫归 R1-36 写入期;
             //    0 = 未配置是合法入参 —— 见 DiseaseVitalsService 构造注释)。
             DiseaseVitalsService vitals = new DiseaseVitalsService(
-                stream, blobPool, resolvedRegistry, worldSeed, trendWindowTicks, trendEpsRaw);
+                stream, blobPool, resolvedRegistry, worldSeed, trendWindowTicks, trendEpsRaw,
+                treatableBy);
 
             // ── 病人出现驱动(sprint-05 T1.1):把 spawner 接进 tick 边沿序列 ──
             // 原状:spawner 在服务袋里但**零生产调用方**(F-6 复评实测)⇒ 运行期无病人。
@@ -224,28 +258,6 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 驱动 = 每 tick 边沿对在场且未开案的病人自动开案。
             var caseOpenWriter = new CaseOpenWriter(stream, presence, encoder, stream.Events);
             var caseDriver = new CaseOpenedDriver(caseOpenWriter, presence);
-
-            // ── DC-4 处置轴闭集(2026-10-20 真源接线)──
-            // 病因:`disease_action_axis` 的 `actions` 段编辑期已被消费
-            //   (`PrescriptionActionIdRegistry.RealActionIds()` 读 `owner=="11"` 段作 DC-2 闭集),
-            //   但**运行期零读点** ⇒ `EmergencyActionSchema.ValidateActionId` 长期是
-            //   `Enum.IsDefined` 的影子(枚举注释自己点名「9 的轴新增 id ⇒ 影子会错误拒绝」)。
-            // 现:装配层读产物 → 按 `owner=="10"` 过滤 → 注入 `HostEmergencyProcessor`。
-            // ⚠️ **为什么在装配层过滤而不是在 Processor 里**:`Sim` 住门 A(`noEngineReferences`),
-            //    够不着 `Gameplay.Presentation.DiseaseActionAxisCookedCodec`;
-            //    Processor 只收一个 `ISet<int>`,与 `IPayloadEncoder` 同构(零新增程序集边)。
-            // ⚠️ dataProvider == null(EditMode / 15+ 既有调用方)⇒ 传 null ⇒ 回退枚举影子,
-            //    与接线前**逐位相同**。
-            System.Collections.Generic.ISet<int> emergencyActionAxis = null;
-            if (dataProvider != null)
-            {
-                DiseaseActionAxisDataSet axis = dataProvider.Load<DiseaseActionAxisDataSet>();
-                var owner10 = new System.Collections.Generic.HashSet<int>();
-                for (int i = 0; i < axis.Actions.Count; i++)
-                    if (axis.Actions[i].Owner == "10")
-                        owner10.Add(axis.Actions[i].ActionId);
-                emergencyActionAxis = owner10;
-            }
 
             // ── 急救链处理器 + 驱动(sprint-05 T1.3 → sprint-06 G4.1 退役)──
             // G4.1(2026-10-11 用户裁定「急救手动化」):自动触发分支已从
@@ -724,8 +736,17 @@ namespace DaYiJingCheng.Gameplay.Boot
                 OccupationMod = 0,
                 RegionMod = 0,
                 ClimateMod = 0,
-                TreatableBy = Array.Empty<TreatableByEntry>(),
-                Handle = "symptomatic_only",
+                // ⚠️ 2026-10-23:`Array.Empty<TreatableByEntry>()` → **null**。
+                //    非 null(哪怕空数组)会踩 R1-19 的第二真源守卫 —— 该守卫现在抛
+                //    `RegistryValidationException` 而不是 `NotImplementedException`(见
+                //    `RegistrySchema.cs` R1-19 处)。本装配路径当前不调 `Validate`
+                //    (同 R1-31/33 的覆盖面登记),但留一个**必然踩门**的值是陷阱:
+                //    谁将来在这条路径上补一道 `Validate`,红的是他而不是写这行的人。
+                TreatableBy = null,
+                // 派生字段(GDD :329「写入期不填」)—— 这里经 `Derive` 走同一实现,
+                // 不手写字符串字面量:`fallback` 既不在照护适用集、也不是破伤风、
+                // 且无对因处置 ⇒ `symptomatic_only`。硬编码字面量 = 第二份派生逻辑。
+                Handle = DiseaseHandle.Derive("fallback", hasCausalTreatment: false),
                 // ⚠️ 2026-10-14 A 案(用户裁定「按 A 做」):占位 null → **真配一张 plateau 型
                 //    F1 曲线**(此前「曲线面校验跳过」的已知弱点就此闭合)。
                 //    【为什么是 plateau 而不是继续调 RecoveryTime】legacy 曲线的峰值必然衰减,

@@ -122,7 +122,7 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         // ⚠️ `trend_eps` 同样是 `Fix` ⇒ 字符串,且值以 **raw/65536** 形式给出,
         //    使 `FixParse.FromRatio(epsRaw, 65536)` 逐位还原成 `epsRaw`(无舍入)。
         private const string SyntheticJsonTemplate = @"{
-  ""schema_version"": 1,
+  ""schema_version"": 2,
   ""trend_window_ticks"": __W__,
   ""trend_eps"": ""__EPS__"",
   ""diseases"": [

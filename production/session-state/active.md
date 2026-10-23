@@ -10227,3 +10227,115 @@ M4 回退甲案 红 4 · M5 incubation 取 0 红 4 · M6 off-by-one 红 2。
 —— 证明收口改动编译通过、该套件全绿;**全量仍以上方三元组为准**。
 
 **已提交** `2ea9dca` · **未推送**(origin/main 落后 16 个 commit)。
+
+---
+
+## round41 — Relapse / Signs / Handle 编码落地 + treatable_by 改查轴(2026-10-23 · 未提交)
+
+**用户请求**:「继续修 Relapse/TreatableBy/Signs/Handle 编码」。
+**用户裁定**(经 AskUserQuestion 通道):`treatable_by` 落点 = **运行期查轴**
+(承 `D-9-P` 原口径)—— `Evaluate(..., ITreatableByLookup lookup = null)` ⇒
+`IsInTreatableBy` 走 lookup(成员 + 极性同行)⇒ `CompositionRoot` 用已加载的轴数据造 lookup。
+
+### 落地
+
+| 字段 | 落点 | 说明 |
+|---|---|---|
+| `relapse` | `DiseaseRegistryCookedWriter.WriteRow`(curve 块之后) | bool + 条件三字段(`a_rel` raw / `interval` / `tau_fall` raw) |
+| `signs[]` | 同上 | i32 计数,**`-1` = null**(未声明)与 `0` = 显式空集**必须可分** |
+| `handle` | 同上 | 字符串;派生逻辑 = `Sim/DiseaseHandle.Derive`(唯一实现,binder 与测试共用) |
+| `treatable_by` | **刻意不编码** | 轴是单一真源(`D-9-K`)⇒ 运行期查轴。新 `Sim.Contracts/ITreatableByLookup.cs` + `Gameplay.Boot/DiseaseActionAxisTreatableByLookup.cs`(装配期从已加载轴造,未知极性串 / 重复对 ⇒ 抛) |
+
+**布局版本**:作者态 `schema_version` **1 → 2**;`CookedFormat.FormatVersion` 是全局头格式号,**不动**
+(单个产物的载荷演化归头槽 `schemaVersion`)。盘上旧产物由读方版本门拒收(E-13)⇒ 重烘,无迁移。
+
+**新增同源门**:`DiseaseRegistryBinder.ReadSchemaVersion` 增「与读方 `ExpectedSchemaVersion` 比对」。
+立门缘由(实测):只判 u32 域时,源写 `1` 而布局已到 2 ⇒ **裸烘焙**(产物漂移门走的那条)**一路绿**,
+盘上出现一份**读方拒收**的产物而构建不报错 —— 失败点从构建期漏到运行期。
+
+**产物重烘**:`disease_registry.cooked.bytes` 1869 B → **2172 B**,ConfigVersion `0x57253DB4`,
+13 行,W = 0,TREND_EPS = 0(raw);未绑定键 3 个(`causes` / `treatable_by` / `zh`)。
+
+### 回归三元组(实跑)
+
+`total=4691 passed=4655 failed=0 inconclusive=0 skipped=36` · **EXIT=0**
+@ **2026-10-23 13:46 +0800** · 批次 **round41 布局扩展全量 EditMode** · 基线 commit **`5b7d954`**
+Δ = **+2 / +2 / 0 / 0**(相对 round40 的 `4689/4653`;新增两条 R1-19 判据),零回归。
+⚠️ 期间三次中间轮:`4684/4644/4`(夹具仍写 schema 1 ⇒ 4 红)· 编译错(verbatim 串里多一行)· `4689/4653/0`。
+
+### 证伪轮(备份 + `cp` 回 + SHA-256 逐字节,未用 `git checkout`/`stash`)
+
+| 探针 | 变异 | 结果 |
+|---|---|---|
+| **M1** | `Binder.ReadSchemaVersion` 的同源比对改成恒等 | **恰 1 红**:`test_schemaVersionMismatch_isRejectedAtBake` |
+| **M2** | `DiseaseHandle.Derive` 把 `care` 判定提到 `causal` 之前 | **28/28 全绿 —— 存活**。原因:真表 `care` **零行**(见下方缺陷)⇒ 顺序变化不改变任何输出 ⇒ 该判据**对顺序无判别力**(如实登记,不当作已证) |
+| **M2b** | 删掉破伤风的 `none` 分支 | **恰 1 红**:`test_realSource_handleIsDerivedIntoClosedSet_perRow` ⇒ 判据在**可达分支**上有效 |
+| **M3** | `signs` 的 null 标记 `-1` → `0` | **恰 1 红**:`test_signsNullVsEmpty_stayDistinct` |
+
+三份文件还原后 SHA-256 逐字节一致(`Binder b4d5f04…` / `DiseaseHandle 3a811a0…` / `Writer b5d5103…`)。
+
+### 实测发现(已登记债册 C-3,未修 —— 须用户裁定)
+
+**`9-照护杠杆键前缀`**:`StateMachine.CareApplicableDiseases` 装**裸键** `{typhoid, dysentery,
+heart_failure}`,注册表键是 `DIS_` 前缀 ⇒ **交集为空** ⇒ ① 生产消费点 `DiseaseVitalsService.cs:442`
+对**每一行真表**返回 `false` ⇒ **照护暂停死亡倒计时在三种病上全部失效**;② `handle` 永不派生成 `care`。
+既有测试全绿是因为夹具用裸键(`Entry("typhoid")`),与真表形态不同 —— 与本册 `judge_test.cs:322` 同型。
+
+**`9-signs真表全空`**:13 行 `signs` 全为 `[]`(GDD B6 要求不该全空);编码面已就绪,**数据面为零**,
+归 8 的词表轮。
+
+### 仍未提交
+
+工作树 16 改 + 6 未跟踪,全部未提交(承「不经用户指令不 commit」)。
+
+---
+
+## round42 — 照护杠杆键前缀修复(2026-10-23 · 用户裁定 ② · 未提交)
+
+**用户裁定**:「修照护杠杆的键前缀,选 ②」= 在**查表处**做前缀归一
+(不选 ① 改 GDD 适用集字面,不选 ③ 动注册表 13 行)。
+
+**落点**:`Sim/CareLeverApplicability.cs` 新增 `DiseaseKeyPrefix` 常量 +
+`CareApplicableNormalized` 归一表(**从** `StateMachine.CareApplicableDiseases` 静态展开,
+裸形 + `DIS_` 大写前缀形,零独立字面量)。**三入口全部收敛**:
+`AppliesTo(entry)` → 委托 `AppliesToKey`;`AppliesToKey` → 查归一表;
+`StateMachine.IsCareApplicable` → **改为转发** `AppliesToKey`(原为第三条独立判据,
+直查裸键 HashSet)。
+
+**为什么建表而非调用时剥前缀**:`AppliesTo` 在 `StepAll` 里每病人每 tick 调用
+(20 Hz × CAP 24),调用时 `Substring` 会在热路径上产生稳定小对象分配。
+
+### 实测踩坑(判据抓到的,不是我发现的)
+
+第一版写 `DiseaseKeyPrefix + key` ⇒ 拼出 **`DIS_typhoid`(小写)**,而注册表键是
+`DIS_TYPHOID`,`StringComparer.Ordinal` 下**不等** ⇒ 归一形同虚设。**重烘产物一位没变**
+(2172 B 前后同尺寸,13 行仍全 `symptomatic_only`)—— 这正是「修了 ≠ 生效了」的又一次。
+抓到它的是新判据 `test_prefixedKey_equivalentToBareKey`(期望值用 `ToUpperInvariant()` 拼)。
+**实现错了,判据是对的。** 修后产物 **2172 → 2136 B**(恰短 36 = 3 行 × 12),
+逐行解码确认三行 `care` = `{DIS_HEART_FAILURE, DIS_TYPHOID, DIS_DYSENTERY}`。
+
+### ② 的具名代价(用户已知情选择,已写进实现注)
+
+**隐式键改写** —— 若将来出现裸名与另一病种前缀名恰好同形的两个病种
+(例 `FOO` 与 `DIS_FOO` 分属不同病种),归一表会把它们混为一谈。
+当前 13 行无此形态(`INJ_*` 五项不受前缀剥离影响),但**新增病种时须复核**。
+
+### 判据
+
+- 新增 `care_lever_and_aggregator_test.cs::test_prefixedKey_equivalentToBareKey`
+  —— 三入口全覆盖(吃条目 / 吃键名 / 公开转发口)+ 反例(破伤风加前缀后仍不可照护,
+  归一不得放宽成「带前缀就 true」)。
+- `disease_registry_bake_pipeline_test.cs:125` 的三行期望值 `symptomatic_only` → **`care`**
+  (注释同步改写,原文留痕)。
+
+### 回归三元组(实跑)
+
+`total=4692 passed=4656 failed=0 inconclusive=0 skipped=36` · **EXIT=0**
+@ **2026-10-23 14:10 +0800** · 批次 **round42 键前缀修复全量 EditMode** · 基线 commit **`5b7d954`**
+Δ = **+1 / +1 / 0 / 0**(相对 round41 的 `4691/4655`,新增 1 条判据),零回归。
+
+### 证伪轮
+
+**M4**(回退成 `DiseaseKeyPrefix + key`,即重放真实 bug)⇒ `CareLeverApplicabilityTest`
+**8 条中恰 1 红**,正是 `test_prefixedKey_equivalentToBareKey`。
+还原 = 备份 + `cp` 回 + SHA-256 逐字节一致(`97f65ce…`),未用 `git checkout`/`stash`。

@@ -315,6 +315,39 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             Assert.AreEqual(16, ex.RuleNumber);
         }
 
+        // R1-19(2026-10-23 语义变更):**第二真源守卫** —— 条目携带 treatable_by ⇒ 抛。
+        //
+        // 语义为什么变了:原 R1-19 是「treatable_by[].action ∈ 处置轴闭集」,但 story-007 把
+        // 整个 treatable_by 搬去了 `disease_action_axis.json`(D-9-K 单一真源)⇒
+        // 「条目内的 action 是否在轴闭集内」**不再有主语**。等价的真判据住在轴侧
+        // (`DiseaseActionAxisValidator` 的 9-DC-4)。本条于是改成守「条目里不得出现它」。
+        //
+        // ⚠️ 这条测试的是**新语义**,不是「校验没实现」:抛 `RegistryValidationException`
+        //    是判定,不是占位。
+        [Test]
+        public void test_r1_19_entryCarriesTreatableBy_throws()
+        {
+            var entries = new List<DiseaseRegistryEntry>(_validEntries);
+            entries[0].TreatableBy = new[]
+            {
+                new TreatableByEntry(actionId: 10, polarity: "causal"),
+            };
+
+            var ex = Assert.Throws<RegistryValidationException>(() => RegistrySchemaValidator.Validate(entries));
+            Assert.AreEqual(19, ex.RuleNumber,
+                "R1-19 的第二真源守卫须报 19,而不是别的规则号");
+        }
+
+        /// <summary><c>null</c> 是合法形态(条目内不携带)—— 守卫不得把它也拒了。</summary>
+        [Test]
+        public void test_r1_19_nullTreatableBy_isLegal()
+        {
+            var entries = new List<DiseaseRegistryEntry>(_validEntries);
+            foreach (var e in entries) e.TreatableBy = null;
+            Assert.DoesNotThrow(() => RegistrySchemaValidator.Validate(entries),
+                "null = 条目内不携带(设计形态)⇒ 不得拒");
+        }
+
         // AC-24: 伤情模型 11 态枚举
         [Test]
         public void test_injuryModel_11States()

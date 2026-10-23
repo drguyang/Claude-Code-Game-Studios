@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections.Generic;
+using DaYiJingCheng.Gameplay.Presentation;   // DiseaseRegistryCookedCodec.ExpectedSchemaVersion(版本同源)
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Contracts;
 
@@ -45,9 +46,22 @@ namespace DaYiJingCheng.EditorTools.Bake
             "comorbidity_factor", "seasonal_mod", "age_mod", "gender_mod",
             "occupation_mod", "region_mod", "climate_mod",
             "scale", "trauma_half_life", "natural_progress",
+            // ── 2026-10-23 起绑定 ──
+            "signs", "relapse",
             // ── 声明合法但本件**不**绑定的键(见 BoundRowKeys 上方注)──
-            "zh", "causes", "treatable_by", "handle", "signs",
+            //   handle      —— **派生**字段,作者态写了也**不读**(GDD `:329`
+            //                  「派生而非手填,防表里写 causal、实际没有对因药」)。
+            //                  ⚠️ 它与下面几个不同:它的值确实进了条目(见 BindRow 的
+            //                  `DiseaseHandle.Derive`),只是**输入不是 JSON 里那个键**。
+            //                  故它**不**进 BoundRowKeys —— 那张表记的是「从 JSON 读了哪些键」。
+            "zh", "causes", "treatable_by", "handle",
         };
+
+        /// <summary>`signs[]` 词条的键白名单(GDD R1.3 的 `signs[]` + `channel_mask`)。</summary>
+        private static readonly string[] SignEntryKeys = { "sign_key", "channel_mask" };
+
+        /// <summary>`relapse` 块的键白名单(GDD R1.3 三字段,GDD 校验 3「同生共死」)。</summary>
+        private static readonly string[] RelapseKeys = { "a_rel", "interval", "tau_fall" };
 
         /// <summary>
         /// 白名单内**真正被绑定进 <see cref="DiseaseRegistryEntry"/>** 的键。
@@ -65,6 +79,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             "comorbidity_factor", "seasonal_mod", "age_mod", "gender_mod",
             "occupation_mod", "region_mod", "climate_mod",
             "scale", "trauma_half_life", "natural_progress",
+            "signs", "relapse",
         };
 
         private static readonly string[] CurveKeys =
@@ -114,7 +129,18 @@ namespace DaYiJingCheng.EditorTools.Bake
 
         /// <summary>绑定 + 校验。任一违例 ⇒ 聚合 <see cref="BakeValidationException"/>。</summary>
         /// <param name="json">`disease_registry.json` 原文。</param>
-        public static BindResult Bind(string json)
+        /// <param name="causalTreatmentByDiseaseKey">
+        /// 「该病种在**处置轴**里是否至少有一条 <c>polarity = causal</c> 的 <c>treatable_by</c> 行」
+        /// —— <c>handle</c> 派生的唯一输入(GDD <c>:329</c> 的「∃ 对因处置 ∈ treatable_by」)。
+        /// <para><b>null = 未接线</b> ⇒ <c>Handle</c> 留 <c>null</c>(「未声明」,不是「猜一个」)。
+        /// 生产路径由 <see cref="DiseaseRegistryBaker.BakeFromRepo"/> 从
+        /// <c>disease_action_axis.json</c> 算出来传入 —— 轴是极性**单一真源**(<c>D-9-K</c>)。</para>
+        /// <para>⚠️ <b>为什么不从 <c>treatable_by</c> 那个 JSON 键读</b>:GDD <c>:329</c> 明写
+        /// 「派生而非手填,防表里写 causal、实际没有对因药」。手填的值**不参与派生** ——
+        /// 那个键仍然只被登记为「未绑定」(见 <see cref="BoundRowKeys"/> 上方注)。</para>
+        /// </param>
+        public static BindResult Bind(
+            string json, IReadOnlyDictionary<string, bool> causalTreatmentByDiseaseKey = null)
         {
             var errors = new List<string>();
 
@@ -172,7 +198,8 @@ namespace DaYiJingCheng.EditorTools.Bake
             {
                 for (int i = 0; i < arr.Items.Count; i++)
                 {
-                    DiseaseRegistryEntry e = BindRow(arr.Items[i], $"diseases[{i}]", errors, unbound);
+                    DiseaseRegistryEntry e = BindRow(
+                        arr.Items[i], $"diseases[{i}]", errors, unbound, causalTreatmentByDiseaseKey);
                     if (e != null) rows.Add(e);
                 }
             }
@@ -201,7 +228,8 @@ namespace DaYiJingCheng.EditorTools.Bake
         // ── 单行 ────────────────────────────────────────────────────────────
 
         private static DiseaseRegistryEntry BindRow(JsonNode node, string where, List<string> errors,
-                                                    SortedSet<string> unbound)
+                                                    SortedSet<string> unbound,
+                                                    IReadOnlyDictionary<string, bool> causalByKey)
         {
             if (node.Kind != JsonNodeKind.Object)
             {
@@ -210,6 +238,17 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
             RejectUnknownKeys(node, DiseaseRowKeys, where, errors);
             CollectUnboundKeys(node, unbound);
+
+            // ── `handle` 不得手填(GDD `:329`「派生而非手填」的机械表达)──
+            //   作者若写了它,**硬失败**而不是静默丢弃:
+            //   静默丢弃 = 「表里写 causal、实际没有对因药」的作者**看不到自己的错**,
+            //   而那正是 GDD 立这条派生规则要防的事。
+            //   ⚠️ 这不是「未知键」—— 它在白名单内,故上面那条门放行它;本门是第二条。
+            if (node.TryGet("handle", out JsonNode handFilled) && handFilled.Kind != JsonNodeKind.Null)
+                errors.Add(
+                    $"{where}.handle 不得手填(GDD :329)—— 它是**派生字段**:构建期由 " +
+                    "`disease_action_axis.json` 的 causal 行 + 照护适用集算出;" +
+                    "手填会与轴静默矛盾。请删除该键。");
 
             var e = new DiseaseRegistryEntry
             {
@@ -232,19 +271,29 @@ namespace DaYiJingCheng.EditorTools.Bake
                 ClimateMod = ReadInt(node, "climate_mod", errors, where, 0),
                 Scale = ReadFix(node, "scale", errors, where),
                 TraumaHalfLife = ReadInt(node, "trauma_half_life", errors, where, 0),
-                // 以下三项刻意留 null:
-                //   TreatableBy —— 9 GDD R1.3 定义它在病种条目内,但已拆到
-                //     `disease_action_axis.json`(story-007)。本表不填;填了会撞 R1-19 的
-                //     NotImplementedException(那条校验本身尚未实现)。
-                //   Relapse —— 复发块;八病种里的疟疾需要,但本表当前只含伤情行。
-                //   Signs —— 体征词表归 8,当前为空。
+
+                // ── treatable_by:**刻意不绑**(2026-10-23 口径不变)──
+                //   9 GDD R1.3 把它定义在病种条目内,但 story-007 起已拆到
+                //   `disease_action_axis.json` 作**单一真源**。若这里也填,轴与条目就构成
+                //   第二真源、可分叉 —— 而分叉正是 `D-9-K` 要消灭的形态。
+                //   ⇒ 条目的 `TreatableBy` 在真表上**恒 null**;运行期查轴(ITreatableByLookup)。
                 TreatableBy = null,
-                Relapse = null,
-                Signs = null,
-                // handle 是**派生字段**(GDD R1.3:写入期不填,构建期从 treatable_by 极性算)。
-                // 本表不填,留 null。⚠️ 派生逻辑当前**不存在** —— 见文件尾 §未实现登记。
-                Handle = null,
+
+                // ── 2026-10-23 起绑定 ──
+                Relapse = BindRelapse(node, where, errors),
+                Signs = BindSigns(node, where, errors),
             };
+
+            // ── handle:派生(GDD `:329`),不读 JSON 里那个键 ──
+            //   `causalByKey == null` = 轴未接线 ⇒ 留 null(「未声明」),**不猜**。
+            //   ⚠️ 猜一个默认值会让「有对因药却报 symptomatic_only」静默通过 ——
+            //      那正是 GDD 要防的「表里写 causal、实际没有对因药」的镜像错误。
+            //   `DiseaseKey` 读失败时已记错(错误聚合后会抛),此处不再二次派生。
+            if (causalByKey != null && e.DiseaseKey != null)
+            {
+                bool hasCausal = causalByKey.TryGetValue(e.DiseaseKey, out bool v) && v;
+                e.Handle = DiseaseHandle.Derive(e.DiseaseKey, hasCausal);
+            }
 
             // natural_progress 子块
             if (node.TryGet("natural_progress", out JsonNode np))
@@ -253,6 +302,83 @@ namespace DaYiJingCheng.EditorTools.Bake
                 errors.Add($"{where}.natural_progress 缺失(R1.2 铁律:必须存在且可序列化)");
 
             return e;
+        }
+
+        /// <summary>
+        /// 绑 <c>signs[]</c>(2026-10-23 起)。**缺键 / <c>null</c> ⇒ 返回 <c>null</c>**。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>为什么「缺键」与「空数组」要区分</b>:GDD R1.3 写「可为空集」,
+        /// 而空集是**豁免类**病种的合法形态(<c>:291</c>)。但「作者没写这一栏」与
+        /// 「作者明确写了空」不是同一件事 —— 前者是未声明(<c>null</c>,R1-29 结构性跳过),
+        /// 后者是「本病的体征不走 9」(空数组,过 R1-29)。本方法保持这个区分。</para>
+        ///
+        /// <para><b>⚠️ 空数组当前仍是全表现状</b>:GDD <c>:508-513</c> 的 B6 裁定说
+        /// 「9 的 <c>signs[]</c> 不该全空」,而病种 → 体征的映射**在仓库里不存在**
+        /// (归 8 的词表 + 数值轮)。本方法只提供**绑定能力**,不生成内容 ——
+        /// 内容缺失是数据缺口,不是本件的缺陷。</para>
+        /// </remarks>
+        private static SignEntry[] BindSigns(JsonNode node, string where, List<string> errors)
+        {
+            if (!node.TryGet("signs", out JsonNode arr) || arr.Kind == JsonNodeKind.Null)
+                return null;                     // 未声明 —— 与「显式空集」不同
+            if (arr.Kind != JsonNodeKind.Array)
+            {
+                errors.Add($"{where}.signs 须为数组(实得 {arr.Kind})");
+                return null;
+            }
+
+            var signs = new SignEntry[arr.Items.Count];
+            for (int i = 0; i < arr.Items.Count; i++)
+            {
+                string w = $"{where}.signs[{i}]";
+                JsonNode item = arr.Items[i];
+                if (item.Kind != JsonNodeKind.Object)
+                {
+                    errors.Add($"{w} 须为对象(实得 {item.Kind})");
+                    continue;
+                }
+                RejectUnknownKeys(item, SignEntryKeys, w, errors);
+
+                string signKey = ReadString(item, "sign_key", errors, w);
+                int channelMask = ReadInt(item, "channel_mask", errors, w);
+                signs[i] = new SignEntry(signKey, channelMask);
+            }
+            return signs;
+        }
+
+        /// <summary>
+        /// 绑 <c>relapse</c> 块(2026-10-23 起)。**缺键 / <c>null</c> ⇒ 返回 <c>null</c>**(= 无复发)。
+        /// </summary>
+        /// <remarks>
+        /// <para><b>GDD 校验 3「三字段同生共死」在这里的形态</b>:块存在 ⇒ 三个键都必须出现
+        /// (<see cref="ReadFix"/> / <see cref="ReadInt"/> 无 fallback ⇒ 缺键即记错)。
+        /// 值域(全 <c>&gt; 0</c>)由 R1-26 在 <c>Validate</c> 里查 —— 本方法只管**形状**,
+        /// 不重复判值域(同一判据两份实现会分叉)。</para>
+        ///
+        /// <para><b>⚠️ 当前真表零 <c>relapse</c> 块</b>:疟疾需要它,而三字段
+        /// (<c>a_rel</c> / <c>interval</c> / <c>tau_rel_fall</c>)的量级归**数值轮**
+        /// (<c>assets/data/disease_registry.json</c> 的 <c>_relapseNote</c>)。
+        /// 本方法只提供绑定能力;数据缺口见文件尾 §未实现登记。</para>
+        /// </remarks>
+        private static RelapseCurve BindRelapse(JsonNode node, string where, List<string> errors)
+        {
+            if (!node.TryGet("relapse", out JsonNode block) || block.Kind == JsonNodeKind.Null)
+                return null;                     // 无复发块 —— 合法形态(R1.3)
+            if (block.Kind != JsonNodeKind.Object)
+            {
+                errors.Add($"{where}.relapse 须为对象(实得 {block.Kind})");
+                return null;
+            }
+            string w = $"{where}.relapse";
+            RejectUnknownKeys(block, RelapseKeys, w, errors);
+
+            return new RelapseCurve
+            {
+                ARel = ReadFix(block, "a_rel", errors, w),
+                Interval = ReadInt(block, "interval", errors, w),
+                TauFall = ReadFix(block, "tau_fall", errors, w),
+            };
         }
 
         private static NaturalProgressCurve BindCurve(JsonNode node, string where, List<string> errors)
@@ -293,6 +419,20 @@ namespace DaYiJingCheng.EditorTools.Bake
             if (n.Kind != JsonNodeKind.Integer || n.Int < 0 || n.Int > uint.MaxValue)
             {
                 errors.Add($"disease_registry.json schema_version 须为 u32 域整数(实得 {n.Kind}={n.RawText})");
+                return 0;
+            }
+            // ⚠️ **与读方同源**(ADR-014 §五:版本不匹配硬失败)—— 2026-10-23 补。
+            //    只判 u32 域会让源写 `1` 时烘焙**成功**、产物在**运行期装载**才抛 E-13 ——
+            //    失败点从构建期漏到运行期。实测过:布局升到 2 之后,四份合成源仍写 1,
+            //    `Materialize` 的真往返当场红在 `Materialize` 里,而**裸烘焙**(产物漂移门走的那条)
+            //    一路绿 —— 也就是说没有本条时,盘上会出现一份**读方拒收**的产物而构建不报错。
+            //    先例:`DiagnosisNegativeConfidenceBinder.cs:208` 同法。
+            if ((uint)n.Int != DiseaseRegistryCookedCodec.ExpectedSchemaVersion)
+            {
+                errors.Add(
+                    $"disease_registry.json schema_version={(uint)n.Int} ≠ 读方认领 " +
+                    $"{DiseaseRegistryCookedCodec.ExpectedSchemaVersion}" +
+                    " —— 版本不匹配,拒收(ADR-014 §五;版本史见 DiseaseRegistryCookedCodec)");
                 return 0;
             }
             return (uint)n.Int;
@@ -433,11 +573,23 @@ namespace DaYiJingCheng.EditorTools.Bake
 // ══════════════════════════════════════════════════════════════════════════
 // §未实现登记(如实列出,禁借绿)
 // ══════════════════════════════════════════════════════════════════════════
-//   ① `handle` 派生逻辑**不存在** —— GDD R1.3 要求它是派生字段(causal ⇔ ∃对因处置;
-//      否则 {伤寒,痢疾,心衰} ⇒ care;DIS_TETANUS ⇒ none;其余 ⇒ symptomatic_only),
-//      但仓库里**没有任何代码**算它。本 binder 留 null,不编。
-//   ② `treatable_by` 已拆到 `disease_action_axis.json`(story-007),本表不填 ⇒
-//      `handle` 的派生输入**在本表内不可得**,须跨两个文件才能算。
-//   ③ `signs[]` 归 8 的体征词表,当前为空集。
-//   ④ `relapse` 块 —— 八病种里的疟疾需要,但本表当前只含伤情行,故未绑定。
-//   ⑤ `sigma` —— 全局默认值不存在(数值轮),逐病种覆盖亦无。
+//   ① ~~`handle` 派生逻辑**不存在**~~ —— **2026-10-23 已兑现**:派生落在
+//      `Sim/DiseaseHandle.Derive`(闭集四值 + 判定序 `causal → care → none → symptomatic_only`,
+//      其中 `care` 分支直接调 `CareLeverApplicability.AppliesToKey`,不另存第二份适用集)。
+//      本 binder 在 `BindRow` 末尾调它,输入由 `Bind` 的 `causalTreatmentByDiseaseKey` 参数带进来。
+//      ⚠️ **`causalTreatmentByDiseaseKey == null` ⇒ Handle 留 null**(「未接线」≠「猜一个」)——
+//      生产路径 `BakeFromRepo` 恒传入,故真表恒有值;测试直调 `Bind(json)` 时才为 null。
+//   ② ~~`treatable_by` 拆到轴文件 ⇒ `handle` 派生输入在本表内不可得~~ —— 仍在轴文件里,
+//      但**跨文件不再是障碍**:`DiseaseRegistryBaker.BakeFromRepo` 同时读两个文件并算好映射传入。
+//      ⚠️ **轴文件不进 `ConfigVersion`**(哈希只覆盖 `disease_registry.json`)——
+//      轴改而 `handle` 变,产物字节会变但版本号不变;这一处由**产物漂移门**兜
+//      (`cooked_drift_all_artifacts_test`),不是本件的事。
+//   ③ ~~`signs[]` 归 8 的体征词表,当前为空集~~ —— **2026-10-23 已绑定**:真表 13 行全部
+//      显式声明 `signs: []`(空数组 = 合法空集,GDD `:291`);binder 区分 null(未声明)
+//      与 `[]`(显式空集)。⚠️ **数据侧的洞仍在**:GDD B6 裁定说「9 的 `signs[]` 不该全空」,
+//      而 13 行全是 `[]` ⇒ 病种→体征映射**尚无内容**,归 8 的词表轮,不在本件判据面。
+//   ④ ~~`relapse` 块 —— 本表当前只含伤情行,故未绑定~~ —— **2026-10-23 已绑定**:
+//      binder 读 `a_rel` / `interval` / `tau_fall` 三字段(缺任一 ⇒ 硬失败,GDD 校验 3「同生共死」)。
+//      ⚠️ **真表 13 行仍无一行带 `relapse`** —— 疟疾不在真表内(真表只含 8 伤情 + 5 其他伤情行),
+//      且三个复发数值本身**未裁定**(`_relapseNote` 登记在案)⇒ 编码能力已就位,数据待裁。
+//   ⑤ `sigma` —— 全局默认值不存在(数值轮),逐病种覆盖亦无。**状态未变**。

@@ -84,7 +84,10 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             foreach (var s in e.Signs)
                 Assert.IsFalse(string.IsNullOrEmpty(s.SignKey), "每个 sign 词键非空");
 
-            Assert.IsNull(e.TreatableBy, "treatable_by 已拆独立轴文件,条目内恒 null(R1-19 不可达分支)");
+            // R1-19 自 2026-10-23 起是**第二真源守卫**(抛 RegistryValidationException),
+            // 不再是「NotImplementedException 的不可达分支」。本断言守的是**夹具形状**:
+            // 条目内不携带 treatable_by —— 它住在 disease_action_axis.json(D-9-K 单一真源)。
+            Assert.IsNull(e.TreatableBy, "treatable_by 已拆独立轴文件,条目内恒 null(R1-19 第二真源守卫)");
         }
 
         [Test]
