@@ -22,6 +22,13 @@ namespace DaYiJingCheng.EditorTools.Bake
             return DiagnosisSignCookedWriter.Write(bound.Rows, bound.SchemaVersion, configVersion);
         }
 
+        /// <summary>取源文本的 AC-8-34「预留」标注表(<c>sign_id → 理由</c>;未标注的行不出现)。
+        /// <para>⚠️ 走的是**生产绑定器**的同一趟 Bind —— 不是测试侧重解析。标注表只活在
+        /// 作者态,故它不经 cooked 往返,只能从这里取。</para></summary>
+        /// <exception cref="BakeValidationException">绑定 / 校验任一失败(聚合硬失败)。</exception>
+        public static IReadOnlyDictionary<string, string> ReservedOf(string signsJson)
+            => DiagnosisSignBinder.Bind(signsJson).ReservedBySignId;
+
         /// <summary>派生源文本集的 ConfigVersion(与生产同源,供确定性断言)。</summary>
         public static uint ConfigVersionOf(string signsJson)
             => ConfigVersionUtility.DeriveConfigVersion(new[]

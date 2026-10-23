@@ -32,11 +32,16 @@ namespace DaYiJingCheng.EditorTools.Bake
 
         private static readonly string[] RootKeys = { "schema_version", "signs" };
 
-        /// <summary>R-8.1 七字段(序 = GDD 表序)。</summary>
+        /// <summary>R-8.1 七字段(序 = GDD 表序)+ 一个**作者态**键。
+        /// <para>⚠️ <c>reserved</c> **不在 R-8.1 七字段内**,也不进 cooked 字节 —— 它是
+        /// AC-8-34 反向孤儿子句的**闭合标注**,运行期零消费者。同 `DiseaseRegistryBaker`
+        /// 对 <c>treatable_by</c> 的处置口径:作者态有、产物里没有(否则就是一个
+        /// 「对不上字节的字段」,还要为它升 <c>ExpectedSchemaVersion</c>)。</para></summary>
         private static readonly string[] RowKeys =
         {
             "sign_id", "display_词", "channel", "reveal_by",
             "tier_named", "polarity", "neg_weight",
+            "reserved",
         };
 
         // ── 中文明文 → 枚举映射(闭集;未命中即红)──
@@ -87,10 +92,17 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// <summary>源 <c>schema_version</c>(u32 域;随产物头落盘)。</summary>
             public readonly uint SchemaVersion;
 
-            public BindResult(List<SignLexemeRow> rows, uint schemaVersion)
+            /// <summary>AC-8-34 反向孤儿子句的标注表:<c>sign_id → 预留理由</c>。
+            /// <para>⚠️ **只在作者态存在**,不进 <see cref="Rows"/>、不进 cooked —— 理由同
+            /// <see cref="RowKeys"/> 注。未标注的行**不出现**在本表里(区别于「标注为空串」)。</para></summary>
+            public readonly Dictionary<string, string> ReservedBySignId;
+
+            public BindResult(List<SignLexemeRow> rows, uint schemaVersion,
+                              Dictionary<string, string> reservedBySignId)
             {
                 Rows = rows;
                 SchemaVersion = schemaVersion;
+                ReservedBySignId = reservedBySignId;
             }
         }
 
@@ -111,6 +123,7 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             uint schemaVersion = 0;
             var rows = new List<SignLexemeRow>();
+            var reserved = new Dictionary<string, string>(StringComparer.Ordinal);
 
             if (root.Kind != JsonNodeKind.Object)
             {
@@ -132,7 +145,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                 else if (signsArr.Kind != JsonNodeKind.Array)
                     errors.Add($"diagnosis_signs.json signs 须为数组(实得 {signsArr.Kind})");
                 else
-                    BindRows(signsArr, rows, errors);
+                    BindRows(signsArr, rows, reserved, errors);
             }
 
             // ── ★ 校验器调用点(story 002 承重面;AC-8-32/33/34 + TR-diag-014 由此进装载路径)──
@@ -161,12 +174,13 @@ namespace DaYiJingCheng.EditorTools.Bake
             if (errors.Count > 0)
                 throw new BakeValidationException(errors);
 
-            return new BindResult(rows, schemaVersion);
+            return new BindResult(rows, schemaVersion, reserved);
         }
 
         // ── 行集 ────────────────────────────────────────────────────────────
 
-        private static void BindRows(JsonNode arr, List<SignLexemeRow> rows, List<string> errors)
+        private static void BindRows(JsonNode arr, List<SignLexemeRow> rows,
+                                     Dictionary<string, string> reserved, List<string> errors)
         {
             for (int i = 0; i < arr.Items.Count; i++)
             {
@@ -186,6 +200,11 @@ namespace DaYiJingCheng.EditorTools.Bake
                 int tier = ReadTierNamed(node, where, errors);
                 SignPolarity polarity = ReadPolarity(node, where, errors);
                 long? negWeight = ReadNegWeight(node, where, errors);
+                string reservedReason = ReadReserved(node, where, errors);
+
+                // 标注表按 sign_id 归集;sign_id 缺失/重复时行本身已记错,此处跳过(不叠加噪声)。
+                if (reservedReason != null && signId != null && !reserved.ContainsKey(signId))
+                    reserved.Add(signId, reservedReason);
 
                 rows.Add(new SignLexemeRow(signId, words, channel, reveal, tier, polarity, negWeight));
             }
@@ -384,6 +403,33 @@ namespace DaYiJingCheng.EditorTools.Bake
                 errors.Add($"{label}=\"{n.Str}\" 解析失败:{ex.Message} [ADR-014·fix-string]");
                 return null;
             }
+        }
+
+        /// <summary><c>reserved</c>(AC-8-34 反向孤儿子句的**闭合标注**)。
+        /// <para>缺失 / 显式 null ⇒ 未标注(返回 null)。出现则**须为非空字符串** ——
+        /// 空串与「未标注」在闭合判据上同构,留空串等于留一个看起来标了、实际没标的洞
+        /// (与 <c>display_词</c> 禁空串同一条纪律)。</para>
+        /// <para>⚠️ 值**只校验形状,不校验措辞** —— 措辞是作者态理由,机器判不了真假。
+        /// 本字段的全部作用是让「为什么它是孤儿」在**源头**有一句话,而不是散在 commit message 里。</para></summary>
+        private static string ReadReserved(JsonNode obj, string where, List<string> errors)
+        {
+            string label = $"{where}.reserved";
+            if (!obj.TryGet("reserved", out JsonNode n))
+                return null;
+            if (n.Kind == JsonNodeKind.Null)
+                return null;
+            if (n.Kind != JsonNodeKind.String)
+            {
+                errors.Add($"{label} 须为字符串(实得 {n.Kind}={n.RawText}) [AC-8-34·orphan-unmarked]");
+                return null;
+            }
+            if (n.Str.Length == 0)
+            {
+                errors.Add($"{label} 为空串 —— 空串与「未标注」在闭合判据上同构," +
+                           "要么写出理由要么删掉该键 [AC-8-34·orphan-unmarked]");
+                return null;
+            }
+            return n.Str;
         }
 
         // ── 公共小件 ────────────────────────────────────────────────────────

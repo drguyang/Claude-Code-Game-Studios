@@ -41,7 +41,7 @@ diagnosis-system 逻辑类故事的 BLOCKING 证据落点(coding-standards §Tes
 | **AC-8-33 lab 禁入** | `test_ac833_labRowRed` | BLOCKING |
 | **AC-8-34 病史通道白名单** | `test_ac834_historyChannelNotWhitelistedRed` | BLOCKING |
 | **AC-8-34 正向外键闭合**(9 → 8) | `test_ac834_forwardMissingReferencedSign_red` · `test_ac834_forwardSubsetPasses` · `test_ac834_forward9sideSignsStillEmpty_tripwire`(9 接线义务触发器) | BLOCKING |
-| **AC-8-34 反向孤儿子句** | `test_ac834_reverseOrphan_blockedish` —— **NOT-RUN**(BLOCKED-BY-disease story 006 / TR-diag-013,[Ignore] 挂起,方法体诚实) | NOT-RUN · 禁借绿 |
+| **AC-8-34 反向孤儿子句** | ✅ **2026-10-23 已解锁**:`test_ac834_reverseOrphan_reservedAnnotationCloses`(真数据闭合)+ `test_ac834_orphanWithoutReserved_red`(负例①)+ `test_ac834_reservedButReferenced_red`(负例②)。原 `test_ac834_reverseOrphan_blockedish`([Ignore] + 空引用集夹具)**已删除** —— 它测的是夹具形态不是数据。 | BLOCKING |
 | **TR-diag-014 / D-8-9 双向耦合** | `test_trdiag014_slotBoundsCoupled_green` · `test_trdiag014_slotBoundsDrift21_red` | BLOCKING |
 | **R-8.2 存在性**(34 主键 / 30+4 / 档 / 通道) | `test_r82_existence_pinnedIdsCountsAndTiers` · `test_ac832_koplikEmptySlotExpressible` | BLOCKING |
 | **R-8.2 内容金标**(id\|通道\|档\|极性\|揭示法\|三档词 逐字冻结) | `test_r82_contentFrozen_golden`(`GoldenContentHash`) | BLOCKING |

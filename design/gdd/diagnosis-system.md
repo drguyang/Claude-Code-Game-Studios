@@ -472,6 +472,31 @@ AC-8-20 / AC-8-26 曾标 `BLOCKED-BY-OQ-8 / OQ-25-8` → ✅ **2026-09-20 解除
 > **两组的形态权威都不在本表**:伤口形态归 25(`combat-and-weapon-lines.md:1490-1499`),
 > 主观族语义归 9 的 R3.6 —— 本表只做三档词转写。
 > **本表行数 34 → 43**,内容金标须**有意识重钉**(`sign_table_test.cs` `GoldenContentHash`)。
+>
+> **⚠️ 2026-10-23 就地订正(原文留痕)**:上文「清单只覆盖 9 的 **R2 伤情 11 项 + R3 病种 7 项**」
+> 的**计数已过期** —— 实测 `assets/data/disease_registry.json` 为 **伤情 5 行 + 病种 8 行 = 13 行**
+> (`INJ_*` 5 / `DIS_*` 8)。复算:`python3 -c "import json,collections;d=json.load(open('assets/data/disease_registry.json'));print(collections.Counter(r['kind'] for r in d['diseases']))"`
+> ⇒ `Counter({'disease': 8, 'injury': 5})`。
+>
+> **⚠️ 2026-10-23 新增:`reserved` 字段(AC-8-34 反向孤儿子句的闭合标注)。**
+> 本表 43 行中有 **5 行未被 9 的注册表引用**(`sign_retraction` / `sign_cheyne_stokes` /
+> `sign_dullness` / `sign_fever_skin` / `sign_pulse_bounding`)。AC-8-34 的反向子句要求
+> 「若有未引用孤儿,**必须显式标注「预留」**」—— 该机制此前**从未建立**,现已落地:
+>
+> | 项 | 落点 |
+> |---|---|
+> | 作者态字段 | `diagnosis_signs.json` 行级 `"reserved": "<理由>"`(**字符串,非 bool**;空串与缺省同义 ⇒ 空串即拒) |
+> | 绑定 | `DiagnosisSignBinder.ReadReserved`(白名单已同步;缺失/null ⇒ 未标注) |
+> | 判据 | `DiagnosisSignTableValidator.ValidateReverseClosure` —— **两条方向相反**:未引用未标注 ⇒ `AC-8-34·orphan-unmarked`;已引用仍标注 ⇒ `AC-8-34·reserved-but-referenced`(防标注烂在原地) |
+> | 载体 | **单测**(`sign_table_test.cs` 三条),**不是构建期门** —— `DiagnosisSignBaker` 不读 9 的注册表,让它读会新造一条 8→9 数据依赖(8 是外键方,「遍历 9 的注册表」这一动作归测试侧) |
+>
+> ⚠️ **`reserved` 不进 cooked 字节,也不进 R-8.1 七字段** —— 它运行期零消费者,是纯作者态
+> 闭合标注。同 `DiseaseRegistryBaker` 对 `treatable_by` 的处置口径(作者态有、产物里没有,
+> 否则就是一个「对不上字节的字段」,还要为它升 `ExpectedSchemaVersion`)。
+>
+> ⚠️ **五条孤儿的理由一律落在实测事实上**(关联列点的是症状名 / 病理名,不是病种名;
+> 或 P0 同类病种已用别的词条)。**不得**写成「为 P1a 病种预留」—— 那是一句无出处的断言
+> (2026-10-23 曾由我方误写进 `registration-debt-register.md`,已订正)。
 
 **面色** —— 一般检查 · **视诊** · `tier_named` = Lv1
 
@@ -2030,7 +2055,7 @@ L*_j = min { Skill ∈ ℤ : 把握度_j(Skill) ≥ EXCLUDE_CONF_MIN }   # 仅 p
 | ---- | ---- | ---- |
 | **AC-8-32** | **R-8.1 字段完备性(构建期校验,违反即构建失败)。** 设置:遍历 R-8.2 全部条目。预期:`channel` ∈ 9 的**通道闭集**(2026-10-23 起**恰好八个值,无新造** —— 面色/语声/姿态/呼吸/触感/伤口/主观/问诊(非体格通道));`reveal_by` ∈ **五值闭合枚举**;`display_词` **三档齐全**;`tier_named ∈ {Lv1} ∪ SLOT_BOUNDS = {1, 10, 20, 50}`(**不得为 `35`**,不得为中间值);`polarity` 必填;`neg_weight` **仅阴性非空**(阳性误填即报警)且 **`> 0`(C-6 —— 取 0 即构建失败,不降级)**。**另断言 C-8:`SLOT_BOUNDS ⊂ DIAG_TIERS` 且 `SLOT_BOUNDS = DIAG_TIERS ∖ {35}`** —— 防两表静默漂移(`D-8-9`)。 | `[L]` 构建期校验 + 单测 · **BLOCKING** |
 | **AC-8-33** | **P0 词表内无 P1a 手段。** 设置:遍历词表。预期:`reveal_by` 中**不出现**望 / 闻 / 切(中医四诊归 P1a 的 14 辨证);`channel` 中**不出现**舌 / 脉 / 情志 / 体质 / 时序;`lab_*` 检验项**不在 P0 表内**。依据:体检四法出生自带,而望闻问切是 P1a —— 写进 `reveal_by` 就是跨档越界。 | `[L]` 静态守门 + 人工核对 · **BLOCKING** |
-| **AC-8-34** | **词表 ↔ 9 的外键闭合。** 设置:遍历 9 的 R1 注册表全部 `signs[]`。预期:每一项都能在 R-8.2 找到(`sign_id` 外键闭合);反向无**未引用孤儿** —— 若有,必须显式标注「预留」。⚠️ 病史组(`sign_purulent_stool`)的 `channel = 问诊(非体格通道)`,**该值不计为新造通道**(它是通道外第二类证据)。⚠️ **依赖 D-8-6**(共病合并:多来源推高同一 `sign_id` 时读数未定义)。 | `[L]` 注册表校验单测 · **BLOCKING** |
+| **AC-8-34** | **词表 ↔ 9 的外键闭合。** 设置:遍历 9 的 R1 注册表全部 `signs[]`。预期:每一项都能在 R-8.2 找到(`sign_id` 外键闭合);反向无**未引用孤儿** —— 若有,必须显式标注「预留」。⚠️ 病史组(`sign_purulent_stool`)的 `channel = 问诊(非体格通道)`,**该值不计为新造通道**(它是通道外第二类证据)。⚠️ **依赖 D-8-6**(共病合并:多来源推高同一 `sign_id` 时读数未定义)。<br>**✅ 2026-10-23 反向子句落地**:机制 = `DiagnosisSignTableValidator.ValidateReverseClosure`(两条方向相反的判据);标注载体 = `diagnosis_signs.json` 行级 `reserved`(作者态,**不进 cooked**);实测 **引用集 38 / 词表 43 / 孤儿 5 / 悬空 0**,五条孤儿全部标注。载体 = **单测三条**(`test_ac834_reverseOrphan_reservedAnnotationCloses` · `…_orphanWithoutReserved_red` · `…_reservedButReferenced_red`),**非构建期门** —— baker 不读 9 的注册表(那会新造 8→9 数据依赖)。详见 R-8.2 表首注。 | `[L]` 注册表校验单测 · **BLOCKING** |
 | **AC-8-35** | **加一条体征不动任何公式或全局常量。** 设置:新增一条体征(仅 R-8.1 加一行 + `channel` 已在通道闭集内)。预期:全部全局常量表与 F-8.1 / F-8.3 的参数**逐位不变**(常量表哈希不变);需新填的**只有该条的逐条字段**。这是「一份内容三处用」的结构前提。 | `[L]` 常量表哈希单测 · **BLOCKING** |
 | **AC-8-51** | **S-8.4 词表闭合:裸 `Interact` 打病人恰得一义。** 设置:构造四态各一的病人(未立案 / 已立案未查 / 已落笔 / 10 的 `Armed` 期),在世界空间各按一次 `Interact`。预期:**四种情况下语义恒为「就诊」**,不随病人粗状态漂移(未立案 ⇒ 37 `CaseOpened`;已立案 ⇒ 无新案,`AC-37-26` 的同一病人至多一案守);**`Armed` 期该意图被 10 压制 ⇒ 零路由,不是路由到急救**;查体 / 施治**永不**从世界空间可达(只能经 `ModalId.Casebook` 的行级动作 / 方笺落笔)。断言:词表**四项穷尽**,不存在第五种「按这一键会发生的治疗类语义」。 | `[L]` 四态 × 单键路由表 · **BLOCKING**;`[I]` 与 37 / 10 联测 · **BLOCKING**。**✅ 2026-10-10 批次 F 回填**:37 侧写者半边已就位 —— `CaseOpenWriter.TryOpen`(阶段 2 批次 D)真写者 + `vertical_slice_test` 真流验证(在场/未开案前置复核 + 具名结果码 + Seq 由 EventStream 发号)⇒ 四态中「未立案 ⇒ 37 `CaseOpened`」的 37 半边运行期可达;**`[L]` 四态 × 单键路由表与 `[I]` 联测仍 `NOT-RUN`**(4 侧裸 `Interact` 路由 + 10 `Armed` 压制的联测面未接),归 4/10 接线轮,禁借绿 |
 | **AC-8-52** | **S-8.4 边界 B-1/B-2:词表结案不改 4 的输出形状,且不新增裁决输入。** 设置:比对结案前后 4 的出境载荷定义 + 反射扫描裁决输入集。预期:① 4 仍只交 `(病人, InteractIntent)` **全整数,零语义字段**(词表在 8 侧,4 无 `TreatmentIntent` 之类的枚举膨胀);② 裁决输入集**不扩大** —— 只读已落盘的 `IModalState.Modal`(ADR-013 §十),**零新接口、零 13 视图字段扩展**(路线乙的特征,须断言其**未**发生);③ 模态内行级动作与世界空间 `Interact` **不同键不同栈**,`AC-4-09` 的模态开集拒收生效 ⇒ **无同键双触发**。 | `[L]` 反射断言(载荷字段类型 + 接口清单)· **BLOCKING**;`[U]` 手柄走查双触发 · ADVISORY |

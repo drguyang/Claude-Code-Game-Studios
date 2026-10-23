@@ -300,11 +300,78 @@ namespace DaYiJingCheng.Gameplay.Presentation.Diagnosis
         }
 
         /// <summary>
+        /// <b>AC-8-34 · 反向孤儿子句</b> —— 未被 9 的 R1 注册表引用的词条,须**显式标注「预留」**(纯函数)。
+        /// <para>GDD 原文:「反向无**未引用孤儿** —— 若有,必须显式标注「预留」」。
+        /// 本方法是那句话的**可执行形**,两条判据方向相反:</para>
+        /// <list type="number">
+        /// <item>未引用却**没标** ⇒ <c>AC-8-34·orphan-unmarked</c>(静默孤儿 = 词表在烂)。</item>
+        /// <item>**已引用却仍标着** ⇒ <c>AC-8-34·reserved-but-referenced</c>(标注会烂在原地 ——
+        /// 病种开始用它了没人清,久而久之「预留」表就变成一份没人信的清单)。</item>
+        /// </list>
+        /// <para>⚠️ <b>本判据的载体是单测,不是构建期门</b>:<c>DiagnosisSignBaker</c> 不读
+        /// <c>disease_registry.json</c>,让它读会新造一条 8→9 的数据依赖(8 是外键方,
+        /// 单向依赖由 9 发起 —— AC-8-34 的「遍历 9 的注册表」是**测试侧**做的)。
+        /// ⇒ 判据形态 = 「这条测试红了」,不是「构建失败」。见 GDD AC-8-34 的落地注。</para>
+        /// </summary>
+        /// <param name="rows">词条行集(校验通过后的)。</param>
+        /// <param name="referencedSignIds">9 的 R1 注册表 <c>signs[].sign_key</c> 全集(可含重复)。</param>
+        /// <param name="reservedBySignId">作者态 <c>reserved</c> 标注表(<c>sign_id → 理由</c>);
+        /// 未标注的行**不出现**在本表里。<c>null</c> = 零标注(合法:全部被引用时本就该零标注)。</param>
+        /// <exception cref="ArgumentException">任一判据违例(聚合进单条消息)。</exception>
+        public static void ValidateReverseClosure(
+            IReadOnlyList<SignLexemeRow> rows,
+            IEnumerable<string> referencedSignIds,
+            IReadOnlyDictionary<string, string> reservedBySignId)
+        {
+            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            if (referencedSignIds == null) throw new ArgumentNullException(nameof(referencedSignIds));
+
+            var referenced = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string id in referencedSignIds)
+                if (id != null) referenced.Add(id);
+
+            var problems = new List<string>();
+
+            // ── 判据 ①:未引用孤儿必须标注 ──
+            foreach (SignLexemeRow row in rows)
+            {
+                if (row.SignId == null || referenced.Contains(row.SignId)) continue;
+                if (reservedBySignId == null || !reservedBySignId.ContainsKey(row.SignId))
+                    problems.Add($"孤儿未标注「预留」:「{row.SignId}」未被 9 的 signs[] 引用," +
+                                 "且源表未给 reserved 理由 —— 静默孤儿 = 词表在烂 [AC-8-34·orphan-unmarked]");
+            }
+
+            // ── 判据 ②:已引用者不得仍标「预留」 ──
+            if (reservedBySignId != null)
+            {
+                var present = new HashSet<string>(StringComparer.Ordinal);
+                foreach (SignLexemeRow row in rows)
+                    if (row.SignId != null) present.Add(row.SignId);
+
+                foreach (KeyValuePair<string, string> kv in reservedBySignId)
+                {
+                    if (!present.Contains(kv.Key))
+                        problems.Add($"标注悬空:「{kv.Key}」带 reserved 却不在词表里 —— " +
+                                     "删行时漏删标注 [AC-8-34·orphan-unmarked]");
+                    else if (referenced.Contains(kv.Key))
+                        problems.Add($"已引用却仍标「预留」:「{kv.Key}」已被 9 的 signs[] 引用," +
+                                     "源表的 reserved 理由须删除 —— 否则「预留」表会烂在原地 " +
+                                     "[AC-8-34·reserved-but-referenced]");
+                }
+            }
+
+            if (problems.Count > 0)
+                throw new ArgumentException(string.Join("\n", problems));
+        }
+
+        /// <summary>
         /// <b>AC-8-34 · 正向外键闭合</b> —— 9 的 R1 注册表 <c>signs[]</c> 每项须在本表找得到(纯函数)。
         /// <para>⚠️ <b>不在生产路径调用</b>(本故事无 9 侧数据 —— R1 注册表数据归 disease story 004)。
         /// 生产接线后由该侧在装载期调用;本方法先立判据,负夹具证其红路径真实。</para>
-        /// <para>反向孤儿子句 = BLOCKED-BY-disease-story-006(TR-diag-013 no-adr-by-design),
-        /// 见 <c>sign_table_test.cs</c> 头注。</para>
+        /// <para>⚠️ **2026-10-23 就地订正**:原文写「反向孤儿子句 = BLOCKED-BY-disease-story-006
+        /// (TR-diag-013 no-adr-by-design)」—— 该阻塞**已解除**,反向子句现由
+        /// <see cref="ValidateReverseClosure"/> 承接(9 的注册表已填实,引用集可算),
+        /// 不再是「等 9 落地才能判」。原文留痕,不改写。</para>
         /// </summary>
         public static void ValidateForwardClosure(
             IReadOnlyList<SignLexemeRow> rows, IEnumerable<string> referencedSignIds)

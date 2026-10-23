@@ -27,10 +27,15 @@
 //
 // ═════════════════════════════════════════════════════════════════════════
 // ⚠️ NOT-RUN 显式登记(禁借绿 —— story Test Evidence 要求):
-//   · **AC-8-34 反向孤儿子句 NOT-RUN(BLOCKED-BY-disease epic story 006 / TR-diag-013
+//   · ~~**AC-8-34 反向孤儿子句 NOT-RUN(BLOCKED-BY-disease epic story 006 / TR-diag-013
 //     no-adr-by-design)** —— 反向孤儿 = 「未被 9 的 R1 signs[] 引用的词」须显式标注「预留」;
 //     该判据的输入(9 侧注册表)未落地 ⇒ test_ac834_reverseOrphan_blockedish 以 [Ignore] 挂起,
-//     方法体诚实计算孤儿(去 Ignore 即 34 条孤儿全红 = 形态真实,非空转)。
+//     方法体诚实计算孤儿(去 Ignore 即 34 条孤儿全红 = 形态真实,非空转)。~~
+//     **✅ 2026-10-23 已解锁**(原文留痕):9 的 `disease_registry.json` 13 行 `signs[]` 全部填实
+//     ⇒ 引用集可算 ⇒ 判据落成 `ValidateReverseClosure`(两条方向相反的判据)+ 三条测试
+//     (`test_ac834_reverseOrphan_reservedAnnotationCloses` / `…_orphanWithoutReserved_red` /
+//     `…_reservedButReferenced_red`)。**引用集从真注册表读**,不再用空夹具。
+//     ⚠️ 载体是**单测**不是构建期门(baker 不读 9 的注册表 —— 那会新造一条 8→9 数据依赖)。
 //   · 正向外键闭合(9 → 8)本 story 即判:机制(ValidateForwardClosure)+ 负夹具 + 种子正例。
 //   · tripwire:test_ac834_forward9sideSignsStillEmpty —— 现 F2 投影未实现
 //     (ProgressionEvaluator 返回空 signs[],归 disease story 004);9 填入真实 sign_id 后本测转红,
@@ -429,34 +434,99 @@ namespace DaYiJingCheng.Tests.DiagnosisSystem
         }
 
         /// <summary>
-        /// AC-8-34 **反向孤儿子句** —— NOT-RUN(BLOCKED-BY-disease epic story 006 / TR-diag-013)。
-        /// <para>去 Ignore 即诚实红:9 侧空 ⇒ 34 条全部孤儿(「预留」标注机制随 disease 侧注册表落地)。
-        /// 禁借绿:不得把断言改松以求过。</para>
-        /// <para>⚠️ **2026-10-23 就地加注(不改测试体,仍 Ignore)**:上述「9 侧空 ⇒ 34 条全孤儿」
-        /// 的**事实前提已变** —— 本轮把 `disease_registry.json` 13 行的 `signs[]` 填实了。
-        /// 实测复算(命令见本文件同轮的债册条目):
-        /// `python3` 读两份 JSON ⇒ **引用集 38 个 `sign_key`,词表 43 行,孤儿 5 条,悬空引用 0 条**。
-        /// ⇒ 若现在去 Ignore,红的是 **5** 条孤儿而非 34 条;且 `var referenced = new List<string>()`
-        /// 那行**也必须改成从真注册表读**,否则测的仍是「引用集恒空」这个夹具形态(自引式假绿同型)。
-        /// 本行只记录现状,**不**解锁本测 —— 解锁须走 TR-diag-013 归属件(9 规则十 + F5)。</para>
+        /// AC-8-34 **反向孤儿子句** —— 未引用孤儿须显式标注「预留」。
+        /// <para>**2026-10-23 解锁**(原 `[Ignore]` BLOCKED-BY-disease story 006 / TR-diag-013):
+        /// 解锁条件已满足 —— 9 的 `disease_registry.json` 13 行 `signs[]` 全部填实,引用集可算。
+        /// 机制本体 = <see cref="DiagnosisSignTableValidator.ValidateReverseClosure"/>。</para>
+        /// <para>⚠️ **引用集从真注册表读,不是空夹具** —— 原测试体用
+        /// `var referenced = new List<string>()`(引用集恒空),那会让「孤儿 = 全表」,
+        /// 测的是夹具形态而不是数据(自引式假绿同型)。现在走
+        /// <see cref="DiseaseRegistryBaker.BakeFromRepo"/> 的**真行集**,与生产同源。</para>
+        /// <para>⚠️ 实测基线(2026-10-23,可复算见 `tests/unit/diagnosis_system/README.md`):
+        /// 引用集 **38** / 词表 **43** 行 / 孤儿 **5** / 悬空 **0** —— 五条孤儿全部带 `reserved`。</para>
         /// </summary>
         [Test]
-        [Ignore("BLOCKED-BY-disease epic story 006 / TR-diag-013(no-adr-by-design)—— " +
-                "反向孤儿子句 NOT-RUN:9 的 R1 注册表未落地,引用集只能取空 ⇒ 去 Ignore 即 34 条孤儿全红" +
-                "(形态诚实)。禁借绿。" +
-                "〔2026-10-23 注:34 这个数字已过期 —— signs[] 填实后实测孤儿 5 条 / 引用集 38;本测体未改〕")]
-        public void test_ac834_reverseOrphan_blockedish()
+        public void test_ac834_reverseOrphan_reservedAnnotationCloses()
         {
             List<SignLexemeRow> rows = RowsOf(SeedJson());
-            var referenced = new List<string>();   // 9 侧现状:零注册项
+            Assert.That(rows, Is.Not.Empty, "扫描面自证");
 
-            var orphans = rows
-                .Select(r => r.SignId)
-                .Where(id => !referenced.Contains(id))
-                .ToList();
+            IReadOnlyList<string> referenced = RegistrySignKeys();
+            Assert.That(referenced, Is.Not.Empty,
+                "引用集不得为空 —— 空集会让「孤儿 = 全表」,测的是夹具形态不是数据(自引式假绿)");
 
-            Assert.That(orphans, Is.Empty,
-                "未引用孤儿须显式标注「预留」—— 现 34 条全部未被引用(9 侧未落地,本句 NOT-RUN)");
+            // 正向:真数据下闭合通过(证判据非恒拒 —— 若恒拒,下一条负例会与它一起红而无从区分)。
+            Assert.DoesNotThrow(
+                () => DiagnosisSignTableValidator.ValidateReverseClosure(
+                    rows, referenced, DiagnosisSignBinderProbe.ReservedOf(SeedJson())),
+                "真词表 + 真注册表引用集 + 源表 reserved 标注 ⇒ 须闭合");
+
+            // 孤儿清单自证(防空过滤:若哪天孤儿归零,下面那条负例就失去对象)。
+            var orphans = rows.Select(r => r.SignId)
+                .Where(id => !referenced.Contains(id)).ToList();
+            Assert.AreEqual(5, orphans.Count,
+                "孤儿数须恰 5(实测基线);变化 ⇒ 要么病种引用变了、要么词表加了行 —— " +
+                "两种情况都须有意识地更新本条与源表 reserved 标注");
+        }
+
+        /// <summary>
+        /// AC-8-34 反向子句**负例①** —— 未引用孤儿**没标** `reserved` ⇒ 红。
+        /// <para>判据:把真标注表清空(模拟「作者删掉了理由」),其余一切不变 ⇒ 必红。</para>
+        /// </summary>
+        [Test]
+        public void test_ac834_orphanWithoutReserved_red()
+        {
+            List<SignLexemeRow> rows = RowsOf(SeedJson());
+            IReadOnlyList<string> referenced = RegistrySignKeys();
+
+            var ex = Assert.Throws<ArgumentException>(
+                () => DiagnosisSignTableValidator.ValidateReverseClosure(
+                    rows, referenced, new Dictionary<string, string>()),
+                "孤儿未标注「预留」⇒ 硬失败(静默孤儿 = 词表在烂)");
+            Assert.IsTrue(ex.Message.Contains("AC-8-34·orphan-unmarked"),
+                "违例须点名 AC-8-34·orphan-unmarked,实得:\n" + ex.Message);
+            Assert.IsTrue(ex.Message.Contains("sign_retraction"),
+                "错误须触底到具体孤儿 id,实得:\n" + ex.Message);
+        }
+
+        /// <summary>
+        /// AC-8-34 反向子句**负例②** —— **已引用**却仍标 `reserved` ⇒ 红。
+        /// <para>判据方向与负例①相反:防「标注烂在原地」—— 病种开始引用某条了,
+        /// 源表的「预留」理由却没人删,久而久之这份清单就没人信了。</para>
+        /// </summary>
+        [Test]
+        public void test_ac834_reservedButReferenced_red()
+        {
+            List<SignLexemeRow> rows = RowsOf(SeedJson());
+            IReadOnlyList<string> referenced = RegistrySignKeys();
+
+            var stale = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (KeyValuePair<string, string> kv in DiagnosisSignBinderProbe.ReservedOf(SeedJson()))
+                stale[kv.Key] = kv.Value;
+            stale["sign_pallor"] = "已被引用的行不该还挂着预留理由";   // sign_pallor 在真引用集里
+
+            var ex = Assert.Throws<ArgumentException>(
+                () => DiagnosisSignTableValidator.ValidateReverseClosure(rows, referenced, stale),
+                "已引用者仍标「预留」⇒ 硬失败(否则预留表会烂在原地)");
+            Assert.IsTrue(ex.Message.Contains("AC-8-34·reserved-but-referenced"),
+                "违例须点名 AC-8-34·reserved-but-referenced,实得:\n" + ex.Message);
+            Assert.IsTrue(ex.Message.Contains("sign_pallor"),
+                "错误须触底到具体 id,实得:\n" + ex.Message);
+        }
+
+        /// <summary>9 的 R1 注册表 <c>signs[].sign_key</c> 全集 —— 走生产 baker 的真行集。</summary>
+        private static IReadOnlyList<string> RegistrySignKeys()
+        {
+            DiseaseRegistryBaker.BakeOutput outp = DiseaseRegistryBaker.BakeFromRepo(RepoRoot);
+            var keys = new List<string>();
+            foreach (DiseaseRegistryEntry entry in outp.Rows)
+            {
+                if (entry.Signs == null) continue;
+                for (int i = 0; i < entry.Signs.Length; i++)
+                    if (entry.Signs[i] != null && entry.Signs[i].SignKey != null)
+                        keys.Add(entry.Signs[i].SignKey);
+            }
+            return keys;
         }
 
         // ═══════════════════════════════════════════════════════════
