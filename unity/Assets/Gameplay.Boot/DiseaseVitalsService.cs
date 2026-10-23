@@ -45,6 +45,27 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// (派生态);病程档案由事件流推进(游标单向前进)。存档 / 回放须能从流重建它。</para>
     /// <para><b>不写流</b>:本类只读 `EventStream`(读面 <c>Events</c>)与 blob 池(读面),
     /// 零 <c>IEventSink.Append</c> —— 写者仍是 9 / 10 / 11 / 25 各自的调用点。</para>
+    ///
+    /// <para><b>死亡候选产出(story-008 · 2026-10-24)</b>:<see cref="StepAll"/> 在 F4
+    /// **转移进** <c>Deceased</c> 的那一 tick 调 <see cref="IDeathCandidateSink.Publish"/>
+    /// 一次(去重判据 = 旧值 != <c>Deceased</c> && 新值 == <c>Deceased</c>)。
+    /// 候选是**进程内通知**,不是流事件(ADR-009 §二 三问判据)。</para>
+    ///
+    /// <para><b>⚠️ 类别闸 —— 为什么必须有</b>:本类在 story-008 之前把 F4 的
+    /// <c>actorClass</c> 恒传 <c>ActorClass.Patient</c>。若照字面「判出 <c>Deceased</c>
+    /// 就 <c>Publish</c>」,被 publish 的**必然是病人**(<see cref="Courses"/> 只由
+    /// <c>DiseaseOnset</c> 建档),而 29 的 <c>OnDeathCandidate(playerId, tick)</c> 语义是
+    /// 「**玩家**应死」⇒ 会铸出一条 <c>actor_id = 病人 id</c> 的 <c>PlayerDied</c>。
+    /// ⇒ 产出点对 <see cref="ActorClass.Player"/> 设闸,类别由注入的
+    /// <c>actorClassOf</c> 查询面给出(未接线时回退 <c>ActorClass.Patient</c>,
+    /// 与接线前逐位一致)。</para>
+    ///
+    /// <para><b>⚠️ 诚实边界(AC-9-28,不得被读成「玩家会死」)</b>:
+    /// 玩家 actorId 由 <c>BootRoot.cs:252</c> 从同一 <c>IIdAuthority</c> 取,但**玩家不发
+    /// <c>DiseaseOnset</c>** ⇒ 玩家永不进 <see cref="StepAll"/> 的遍历面 ⇒
+    /// **生产上 <c>Publish</c> 恒不因玩家触发**。本类交付的是「产出路径存在且正确」,
+    /// 不是「死亡链已可用」。后者需要玩家染病路径(GDD <c>AC-35</c> 结构半边 +
+    /// 玩家侧 <c>DiseaseOnset</c> 入口),不在 story-008 面内。</para>
     /// </remarks>
     public sealed class DiseaseVitalsService : IVitalsQuery
     {
@@ -91,6 +112,25 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly ITreatableByLookup _treatableBy;
 
         /// <summary>
+        /// 实体类别查询面(story-008 AC-9-26 接真,2026-10-24)。
+        /// <para><b>此前是硬编码</b>:<see cref="EvaluateOutcome"/> 把 F4 的 <c>actorClass</c>
+        /// 恒传 <c>ActorClass.Patient</c>。那个硬编码在「只有病人进 F4」的现状下**结论正确**,
+        /// 但它让「这个 course 属于谁」**无载体** ⇒ 死亡候选无法区分玩家与病人。
+        /// 详见本类头注的「类别闸」节。</para>
+        /// <para><c>null</c> = <b>未接线</b> ⇒ 退回 <c>_ => ActorClass.Patient</c>
+        /// (与接线前**逐位一致**)。生产路径由 <c>CompositionRoot</c> 注入真查询面。</para>
+        /// </summary>
+        private readonly Func<int, ActorClass> _actorClassOf;
+
+        /// <summary>
+        /// 死亡候选产出侧(story-008 · <c>S18-AC5</c> 前半句)。
+        /// <para><c>null</c> = <b>未接线</b> ⇒ 不产生任何候选(与接线前逐位一致)。</para>
+        /// <para>⚠️ <b>只在「转移进 <c>Deceased</c> 的那一 tick」调一次</b>
+        /// (<c>Deceased</c> 是吸收态,每 tick 发会让事件率退化成「tick 数 × 玩家数」)。</para>
+        /// </summary>
+        private readonly IDeathCandidateSink _deathCandidates;
+
+        /// <summary>
         /// 构造(fail-loud:任一依赖缺失 = 具名 <see cref="ArgumentNullException"/>,无半装配)。
         /// </summary>
         /// <param name="stream">病史事件流(只读消费)。</param>
@@ -102,17 +142,32 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="trendEpsRaw"><c>TREND_EPS</c>(Q16.16 raw);<c>0</c> = 未配置(默认)。</param>
         /// <param name="treatableBy"><c>treatable_by</c> 查表面;<c>null</c> = 未接线(默认,
         /// 与接线前逐位一致)。生产路径由 <c>CompositionRoot</c> 从处置轴产物构造。</param>
+        /// <param name="actorClassOf">实体类别查询面(story-008);<c>null</c> = 未接线
+        /// ⇒ 恒 <c>ActorClass.Patient</c>(与接线前逐位一致)。</param>
+        /// <param name="deathCandidates">死亡候选产出侧(story-008);<c>null</c> = 未接线
+        /// ⇒ 零候选(与接线前逐位一致)。</param>
         /// <exception cref="ArgumentNullException">任一引用依赖为 null(参数名具名)。</exception>
         /// <exception cref="ArgumentException">注册表条目为 null / 病种 id 重复(参数名具名)。</exception>
         public DiseaseVitalsService(EventStream stream, IBlobPool blobPool,
                                     IReadOnlyList<DiseaseRegistryEntry> registry,
                                     ulong worldSeed,
                                     long trendWindowTicks = 0, long trendEpsRaw = 0,
-                                    ITreatableByLookup treatableBy = null)
+                                    ITreatableByLookup treatableBy = null,
+                                    Func<int, ActorClass> actorClassOf = null,
+                                    IDeathCandidateSink deathCandidates = null)
         {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             _blobPool = blobPool ?? throw new ArgumentNullException(nameof(blobPool));
             _worldSeed = worldSeed;
+
+            // 实体类别查询面(story-008 AC-9-26)。
+            //   ⚠️ null 是**合法入参**(未接线),不是错误 —— 与 treatableBy 同格。
+            //   回退值取 `ActorClass.Patient`:那是接线前**硬编码**的那个值,
+            //   退回它 = 与接线前逐位一致(既有 9 侧测试全部覆盖这条路径)。
+            _actorClassOf = actorClassOf ?? (_ => ActorClass.Patient);
+
+            // 死亡候选产出侧(story-008 AC-9-23)。null = 未接线 ⇒ 零候选。
+            _deathCandidates = deathCandidates;
 
             // treatable_by 查表面(2026-10-23 接真)。
             //   ⚠️ null 是**合法入参**(未接线),不是错误 —— 与 W / TREND_EPS 的 0 同格:
@@ -337,10 +392,71 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // ══ F4 求值(2026-10-22 第三轮接线)══
                 // 用户裁定:「接 F4 求值,**但不写流**」—— 本段只求值并缓存,
                 // 零 `IEventSink.Append`(本类全程不写流的既有纪律不变)。
-                _outcomes[course.Patient.Value] = EvaluateOutcome(
+                //
+                // ══ 死亡候选产出(story-008 · 2026-10-24)══
+                // AC-9-25 的**去重判据在这里**:`Deceased` 是吸收态(StateMachine:61-73)
+                // ⇒ 只认「旧值 != Deceased && 新值 == Deceased」这一次转移。
+                // ⚠️ **必须先读旧值再写 `_outcomes`** —— 写后再读恒等于新值,转移永不成立。
+                int pid = course.Patient.Value;
+                InjuryState previous;
+                bool hadPrevious = _outcomes.TryGetValue(pid, out previous);
+
+                InjuryState current = EvaluateOutcome(
                     course, entry, result, tick, _worldSeed, _trendWindowTicks, _trendEpsRaw,
-                    _treatableBy);
+                    _treatableBy, _actorClassOf(pid));
+                _outcomes[pid] = current;
+
+                PublishDeathCandidateIfTransferred(
+                    pid, hadPrevious ? previous : (InjuryState?)null, current, tick);
             }
+        }
+
+        /// <summary>
+        /// 死亡候选的**唯一产出点**(story-008 AC-9-23 / AC-9-24 / AC-9-25)。
+        /// </summary>
+        /// <param name="actorId">本 course 归属的实体 id(病人或玩家 —— 同一 id 空间)。</param>
+        /// <param name="previous">上一 tick 的九态;<c>null</c> = 本 tick 首次求值(无转移可言)。</param>
+        /// <param name="current">本 tick 的九态。</param>
+        /// <param name="tick">本 tick。</param>
+        /// <remarks>
+        /// <para><b>三道闸,缺一即错</b>:</para>
+        /// <list type="number">
+        /// <item><b>转移闸</b>(AC-9-25):只认「进入 <c>Deceased</c>」那一次。
+        /// <c>Deceased</c> 是吸收态 ⇒ 不加此闸则每 tick 发一次候选,29 侧每 tick 收一次。</item>
+        /// <item><b>类别闸</b>(AC-9-24):只对 <see cref="ActorClass.Player"/> 发。
+        /// ⚠️ <b>这条是防 bug 不是防回归</b> —— 本服务的 <c>Courses</c> 只由 <c>DiseaseOnset</c>
+        /// 建档,而玩家**不发** <c>DiseaseOnset</c> ⇒ 现状下走到这里的**必然是病人**。
+        /// 若照字面「判出 Deceased 就发」,29 会把病人 id 当玩家 id 铸出一条
+        /// <c>actor_id = 病人 id</c> 的 <c>PlayerDied</c>。</item>
+        /// <item><b>接线闸</b>(AC-9-23):<c>_deathCandidates == null</c> ⇒ 零候选
+        /// (未接线的构建与接线前逐位一致)。</item>
+        /// </list>
+        /// <para><b>为什么不判 <c>SelfLimited</c> / <c>LethalFor</c></b>:那两个门已在
+        /// <see cref="F4OutcomeEvaluator.Evaluate"/> 的死亡支里判过(<c>:170-171</c>)——
+        /// 能走到 <c>Deceased</c> 就说明两门已放行。在此重判 = 同一判据的第二份拷贝。</para>
+        /// <para><b>为什么不在这里写 <c>PlayerDied</c></b>:写者归 29
+        /// (<c>PlayerDiedWriter</c>),本类全程零 <c>IEventSink.Append</c>。候选是**进程内
+        /// 通知**(ADR-009 §二 三问判据:候选不满足「可感知」)。</para>
+        /// </remarks>
+        private void PublishDeathCandidateIfTransferred(
+            int actorId, InjuryState? previous, InjuryState current, long tick)
+        {
+            // 闸 ③:未接线 ⇒ 零候选(与接线前逐位一致)。
+            if (_deathCandidates == null) return;
+
+            // 闸 ①:只在**转移进** Deceased 的那一 tick 发一次。
+            //   previous == null(本 tick 首次求值)也算转移 —— 冷启动即判死的情形必须发,
+            //   否则「读档时病人已死」永远不会产生候选。⚠️ 但那与「吸收态不重复发」不冲突:
+            //   首次求值只会发生一次。
+            if (current != InjuryState.Deceased) return;
+            if (previous == InjuryState.Deceased) return;
+
+            // 闸 ②:类别闸 —— 只对玩家发。
+            //   ⚠️ `ActorClass.Unspecified` 会让 `EntityDeathGates.IsCombatant` 抛;
+            //   而那个门已在 F4 求值里跑过(能到 Deceased 说明类别合法)⇒ 此处不会遇 Unspecified。
+            if (_actorClassOf(actorId) != ActorClass.Player) return;
+
+            _deathCandidates.Publish(actorId, tick);
         }
 
         /// <summary>
@@ -397,7 +513,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private static InjuryState EvaluateOutcome(
             DiseaseCourse course, DiseaseRegistryEntry entry, ProgressionResult result, long tick,
             ulong worldSeed, long trendWindowTicks, long trendEpsRaw,
-            ITreatableByLookup treatableBy)
+            ITreatableByLookup treatableBy, ActorClass actorClass)
         {
             // 注:本方法**静态** ⇒ 不持有任何状态;照护通道的时刻由 `course` 上的两个字段提供
             // (2026-10-22 第五轮接真,见下通道 ②)。
@@ -480,7 +596,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             var window = new RecoveryWindowInput(trendWindowTicks, trendEpsRaw, lowPositionHeldTicks);
 
             return F4OutcomeEvaluator.Evaluate(
-                ActorClass.Patient,          // 病人侧 F4 —— 不走玩家专属的战伤破例
+                // 🔁 2026-10-24(story-008 AC-9-26):原写死 `ActorClass.Patient`(原文不删)。
+                //   接线前它**结论正确**(只有病人进 F4),但让「这个 course 属于谁」无载体
+                //   ⇒ 死亡候选无法区分玩家与病人。现由注入的查询面给出;
+                //   未接线时回退值仍是 `ActorClass.Patient`(见构造)。
+                actorClass,
                 entry,
                 position,
                 trendBackward,               // trend_backward_agg(单病种 ⇒ 恒等;W 未配置 ⇒ 0)

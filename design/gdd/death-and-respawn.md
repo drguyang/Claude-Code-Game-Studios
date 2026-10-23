@@ -109,6 +109,30 @@
 > 不含任何致伤逻辑。**唯一的改动面是「布尔从哪来」**,而它已闭合成一根**接口**。
 > **未结**:9 侧 `SelfLimited` 的实现落点(归 9 的下一轮,见 §Dependencies)。
 
+> **🔁 2026-10-24 就地加注(story-008 · AC-9-28 的**第二处**诚实边界登记;第一处 =
+> `unity/Assets/Sim/DeathCandidateSink.cs` 文件头。原文不删)**
+>
+> 上表「死亡候选的产出 = 9」的**产出路径**已落地(`Sim/DeathCandidateSink.cs` +
+> `DiseaseVitalsService.StepAll` 的转移闸),但**「玩家真的会死」仍未可用** ——
+> 两条边界逐条写明,防止下游把它读成「死亡链已通」:
+>
+> ① **玩家不进 F4。** `StepAll` 只遍历 `DiseaseCourseBook.InOrder`,而该簿**只**由
+>    `DiseaseOnset` 建档;`DiseaseOnset` 的唯一写者是 `PatientSpawner.SpawnNext`,
+>    恒发新 `patient_id`。玩家 actorId 虽与病人共用 `IIdAuthority` 空间
+>    (`BootRoot.cs:252`),但**没有 `DiseaseOnset`** ⇒ 玩家永不进 F4 ⇒
+>    生产上 `DeathCandidate` **恒不因玩家产生**。
+>    ⇒ 缺的是**玩家染病路径**(`AC-35` 结构半边 + 玩家侧 `DiseaseOnset` 入口),
+>    不是本表的产出侧。
+>
+> ② **病人死亡不产生候选(类别闸)。** 上表产出侧的语义是「**玩家**应死」
+>    (`:90`「29 只消费一个布尔 `PlayerDeathWarranted(actor)`」),而 `StepAll` 里
+>    走到 `Deceased` 的**现状必然是病人** ⇒ 产出点必须闸在 `ActorClass.Player`。
+>    不加此闸 = 29 会把病人 id 当玩家 id 铸出一条 `actor_id = 病人 id` 的
+>    `PlayerDied`。这是**防 bug**,不是防回归。
+>
+> ⚠️ **29 的消费侧仍未装配** —— `DeathCandidateConsumer` 依赖 29 story-004 的
+> `DeathAllowed` 冷却门(该件仍 `Ready`)。本注**不**宣称 `S18-AC5` 已结清。
+
 ### 规则三:代价一 —— 掉落物(清单从世界流,位置从快照)
 
 **掉落 = 玩家携带的 `ItemInstance` 身份集合,散落在死亡点。**

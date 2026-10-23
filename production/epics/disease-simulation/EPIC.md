@@ -3,7 +3,7 @@
 > **Layer**: Foundation(Core sim 模块)
 > **GDD**: design/gdd/disease-simulation.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)
-> **Status**: ✅ Complete(7/7 stories 已收口;**story-007 重开轮已闭环** —— 处置轴 + treatable_by 数据面 + NOISE_BAND_9 具名常量;双代理一轮评审 → 修复 → 2026-10-07 复跑全绿:9 侧 67/67 · 11 侧 174/174 · 10 侧 116/116 · 全量 2948/2901/0 红;评审原件 `production/qa/evidence/review-disease-action-axis-2026-10-07.md`)
+> **Status**: ✅ Complete(**8/8** stories 已收口 —— 2026-10-24 追加 story-008;见下方第二次订正;**story-007 重开轮已闭环** —— 处置轴 + treatable_by 数据面 + NOISE_BAND_9 具名常量;双代理一轮评审 → 修复 → 2026-10-07 复跑全绿:9 侧 67/67 · 11 侧 174/174 · 10 侧 116/116 · 全量 2948/2901/0 红;评审原件 `production/qa/evidence/review-disease-action-axis-2026-10-07.md`)
 > 🔁 **2026-10-24 就地订正(原文不删)** —— 本行原写 `7/7` 且未提新增件。**现口径 = `7/7 + 1 新增未开工`**:
 > 新立 **story-008**(`IDeathCandidateSink` 产出侧 + F4 接线),`Status: Ready`,**未开工**。
 > 立的缘由 = `S18-AC5` 前半句「`DeathCandidate` 产出路径**有生产调用点**」实测未满足
@@ -14,6 +14,17 @@
 > ⚠️ **本 epic 的 DoD 仍不满足** —— `S18-AC5` 挂着,且 story-008 的 Out of Scope 明写
 > 「不交付『玩家真的会死』」(玩家无 `DiseaseOnset`)。
 > **Stories**: **7 stories 已收口 + 1 新增未开工**(共 8 份 story 文件)— see table below
+>
+> 🔁 **2026-10-24 第二次就地订正(原文不删)** —— **story-008 已实现,状态 `Ready` → `Complete`**。
+> 现口径 = **`8/8` 全部 Complete**。证据原件 = `production/qa/evidence/impl-story-008-death-candidate-sink-2026-10-24.md`。
+> 回归 `4717 / 4682 / 0 / 35`(基线 `4701 / 4666 / 0 / 35` ⇒ **+16/+16,零回归**);
+> 证伪轮 **5/5 精确命中**。
+> ⚠️ **`8/8` 不等于「死亡链已通」** —— 三条边界原样成立(详见 story-008 §Completion Notes):
+> ① 玩家无 `DiseaseOnset` ⇒ 生产上 `DeathCandidate` **恒不因玩家产生**;
+> ② 病人死亡**不**产生候选(类别闸,防 bug);
+> ③ `Register` 在生产装配层**未被调用**(29 story-004 的 `DeathAllowed` 门仍 `Ready`)。
+> ⚠️ **`S18-AC5` 仍 `open`,且本件不解它** —— 其 `verify_cmd` 探的是**消费侧**构造,
+> 与 AC 原文「**产出**路径有生产调用点」不是同一件事。判据须拆成两条,归记账轮。
 
 ## Overview
 
@@ -95,4 +106,4 @@ This epic is complete when:
 | 005 | F4 九态阈值机与照护杠杆 | Logic | **Complete ✅ 2026-09-30** | ADR-005/009 |
 | 006 | F3 CatchUp、F5 共病合成与跨平台黄金夹具 | Integration | **Complete ✅ 2026-09-30** | ADR-005/012 |
 | 007 | 处置轴 + treatable_by 数据面 + NOISE_BAND_9 具名常量 | Config-Data | **Complete ✅ 2026-10-07**(重开轮闭环;DC-2/DC-6 真源已立;评审原件已落) | ADR-014/024/005 |
-| 008 | 死亡候选产出侧(`IDeathCandidateSink`)与 F4 接线 | Integration | **Ready**(新增未开工 · 2026-10-24 立;承 `S18-AC5` 前半句) | ADR-009/016/005 |
+| 008 | 死亡候选产出侧(`IDeathCandidateSink`)与 F4 接线 | Integration | **Complete**(2026-10-24 实现 · 证伪 5/5 · 回归 +16/+16 零回归) | ADR-009/016/005 |

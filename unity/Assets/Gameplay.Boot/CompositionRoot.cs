@@ -244,9 +244,25 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ⇒ 只能在本装配(案 A)构造;客户端侧不装配(ADR-005 主机唯一 Step)。
             // ⚠️ W / TREND_EPS 原样搬运,**不在此校验**(值域守卫归 R1-36 写入期;
             //    0 = 未配置是合法入参 —— 见 DiseaseVitalsService 构造注释)。
+            // ── 死亡候选产出侧(story-008 · 2026-10-24 · 承 S18-AC5 前半句)──
+            // `IDeathCandidateSink` 此前只有声明、零实现,`Publish(` 全树零命中
+            // ⇒ 死亡候选的产出路径在生产上从未存在过。本处构造实现并经服务袋暴露。
+            // ⚠️ **消费者仍未注册**:29 的 `DeathCandidateConsumer` 依赖 story-004 的
+            //    `DeathAllowed` 冷却门(该件仍 Ready)⇒ `Register` 归 29 的装配轮。
+            //    未注册时 `Publish` 静默丢弃(接口 :68 逐字允许)。
+            var deathCandidates = new DeathCandidateSink();
+
+            // 实体类别查询面(story-008 AC-9-26)。
+            // ⚠️ **现状恒 `Patient`** —— 不是偷懒,是**唯一真值**:本服务的 `Courses`
+            //    只由 `DiseaseOnset` 建档,而玩家不发 `DiseaseOnset`(`BootRoot.cs:252`
+            //    只取 id,不建档)⇒ 遍历到的 course 归属**必然是病人**。
+            //    真查询面须等玩家染病路径落地(GDD `AC-35` 结构半边),届时改本行即可。
+            //    ⇒ 与接线前硬编码 `ActorClass.Patient` **逐位一致**,零行为变化。
+            Func<int, ActorClass> actorClassOf = _ => ActorClass.Patient;
+
             DiseaseVitalsService vitals = new DiseaseVitalsService(
                 stream, blobPool, resolvedRegistry, worldSeed, trendWindowTicks, trendEpsRaw,
-                treatableBy);
+                treatableBy, actorClassOf, deathCandidates);
 
             // ── 病人出现驱动(sprint-05 T1.1):把 spawner 接进 tick 边沿序列 ──
             // 原状:spawner 在服务袋里但**零生产调用方**(F-6 复评实测)⇒ 运行期无病人。
@@ -603,6 +619,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: PatientSpawner 装配产出 null");
             if (vitals == null)
                 throw new InvalidOperationException("Assemble: DiseaseVitalsService 装配产出 null");
+            if (deathCandidates == null)
+                throw new InvalidOperationException("Assemble: DeathCandidateSink 装配产出 null");
             if (patientDriver == null)
                 throw new InvalidOperationException("Assemble: PatientAppearedDriver 装配产出 null");
             if (caseOpenWriter == null)
@@ -661,7 +679,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                presence, spawner, patientDriver, caseDriver,
                                                emergencyDriver, emergencyManual,
                                                emergencyChannelDriver, patientVisuals,
-                                               worldSeed, vitals,
+                                               worldSeed, vitals, deathCandidates,
                                                casebookSource, examinationLedger, examineDriver,
                                                seenDisease, lexiconBook,
                                                tickDriver, prescribeDriver, prescribePorts,

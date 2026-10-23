@@ -4,7 +4,7 @@
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: M
-> **Status**: Ready
+> **Status**: Complete
 > **Manifest Version**: 2026-10-15
 > **Last Updated**: 2026-10-24
 > **ADR**: ADR-009 §二(三问判据:候选不进流)· ADR-016 §二(id 空间共用)· ADR-005(主机唯一 Step)
@@ -69,7 +69,7 @@ $ grep -rn "\.Publish(" unity/Assets --include='*.cs'
 | AC-9-23 | `DiseaseVitalsService.StepAll` 在 F4 **转移进** `Deceased` 的那一 tick 调 `Publish` —— **生产调用点存在** | `grep -n "Publish(" unity/Assets/Gameplay.Boot/DiseaseVitalsService.cs` 非空;夹具断言通知恰 1 次 |
 | AC-9-24 | **类别闸**:`Publish` 仅当该实体类别 = `ActorClass.Player`;病人死亡**不产生**候选 | 同一夹具两例:类别 `Patient` ⇒ 零通知;类别 `Player` ⇒ 1 次 |
 | AC-9-25 | **吸收态不重复发**:连续 N tick 停在 `Deceased`,`Publish` 通知数恒 = **1** | 驱动 N=50 tick,断言通知数 = 1 |
-| AC-9-26 | 实体类别来源 = **注入的查询面**,`DiseaseVitalsService` 内**不得**硬编码 `ActorClass.Patient` | `grep -n "ActorClass.Patient" unity/Assets/Gameplay.Boot/DiseaseVitalsService.cs` ⇒ 零命中(注释除外) |
+| AC-9-26 | 实体类别来源 = **注入的查询面**,`DiseaseVitalsService` 内**不得**硬编码 `ActorClass.Patient` | `grep -n "ActorClass.Patient" unity/Assets/Gameplay.Boot/DiseaseVitalsService.cs` ⇒ 唯一非注释命中 = **构造里的未接线回退** `_actorClassOf = actorClassOf ?? (_ => ActorClass.Patient)`;F4 求值路径(`EvaluateOutcome` 的调用点)**零命中** |
 | AC-9-27 | `CompositionRoot` 构造 `DeathCandidateSink` 并经 `CompositionRootServices` 暴露 | `grep -rn "new DeathCandidateSink" unity/Assets --include='*.cs' \| grep -v '/Tests/'` 非空 |
 | AC-9-28 | **诚实边界登记**:玩家无 `DiseaseOnset` ⇒ 生产上 `Publish` 恒不因玩家触发。类头注与 GDD 注**双处**写明,不得宣称「玩家会死」 | 文本断言(两处可 grep)+ 本 story Out of Scope 复述 |
 
@@ -125,8 +125,20 @@ $ grep -rn "\.Publish(" unity/Assets --include='*.cs'
 | T4 | 合成 course + 类别 `Player`,驱动到 `Deceased` | `Publish` 恰 1 次 |
 | T5 | 同上但类别 `Patient` | 零通知 |
 | T6 | 停在 `Deceased` 再驱动 50 tick | 通知数仍 = 1 |
-| T7 | 反射:门 A 引用集 | `Sim` 程序集零 `UnityEngine` 引用 |
+| T7 | 反射:门 A 引用集 | `Sim` 程序集零 `UnityEngine` / `UnityEditor` 引用 |
 | T8 | `DeathCandidateSink` 构造依赖 | 零依赖(无 `IEventSink` / 无 encoder) |
+
+> **🔁 2026-10-24 实现轮就地订正(原文不删)** —— 上表 T4 原写「合成 course」,实测走的是
+> **真装配**(`CompositionRoot.Assemble` + 真 `PatientSpawner`);另有两处判据在实现期被证实
+> **必须写明**,否则夹具会写成假绿:
+>
+> ① **T4/T5/T6 的驱动 tick 数不是「越阈即死」。** F4 死亡支还有第四条件
+>    `t − last_intervention > TREATMENT_WINDOW(3600)`(铁律一:不能一越线就死)。
+>    原稿按「`A_peak/SCALE = 0.70 ≥ DEATH = 0.58` 即死」推的 tick 数是**错的**;
+>    实测取 `StateMachine.TREATMENT_WINDOW + 10`,与 `f4_wiring_test.test_death_requiresWindowElapsed` 同款。
+> ② **T5 的 `Patient` 例必须与 T4 的 `Player` 例除类别外完全相同。** 否则「病人零通知」
+>    可以被「候选路径根本是死的」满足 = 假绿。实现里落成两个夹具
+>    (`OpenAssembled` / `OpenPlayerClass`),差且仅差 `actorClassOf` 一个形参。
 
 ## Test Evidence
 
@@ -144,4 +156,62 @@ $ grep -rn "\.Publish(" unity/Assets --include='*.cs'
 
 ## Completion Notes
 
-(待实现轮填写)
+**2026-10-24 实现轮 —— AC-9-21…28 全部满足。** 证据原件:
+`production/qa/evidence/impl-story-008-death-candidate-sink-2026-10-24.md`。
+
+### 落地
+
+| 文件 | 改动 |
+|---|---|
+| `unity/Assets/Sim/DeathCandidateSink.cs` | **新增**(112 行)—— `IDeathCandidateSink` 的实现;单消费者 `Register`(二次抛)、`Publish` 走 `_consumer?.`(未注册静默丢弃);构造依赖 = 零 |
+| `unity/Assets/Gameplay.Boot/DiseaseVitalsService.cs` | 新增 `_actorClassOf` / `_deathCandidates` 两个字段与两个可选构造参;`StepAll` 加转移检测(**先读旧值再写 `_outcomes`**);新增 `PublishDeathCandidateIfTransferred`(三闸);`EvaluateOutcome` 增 `actorClass` 形参 |
+| `unity/Assets/Gameplay.Boot/CompositionRoot.cs` | 构造 `DeathCandidateSink`、定义 `actorClassOf`、传参、null 守卫、返回语句 |
+| `unity/Assets/Gameplay.Boot/CompositionRootServices.cs` | `DeathCandidates` 属性 + 构造形参 + 赋值 |
+| `unity/Assets/Tests/EditMode/DiseaseSimulation/death_candidate_sink_test.cs` | **新增**(16 条测试) |
+| `design/gdd/death-and-respawn.md` | 规则二注块追加 AC-9-28 的第二处诚实边界登记(原文不删) |
+
+### 测试(三元组)
+
+| 套件 | 截至时刻 | 批次 | commit | 结果 |
+|---|---|---|---|---|
+| fixture | 2026-10-23T22:52Z | story-008 实现轮 | `d36390e` + 工作树 | `16 / 16 / 0 / 0` |
+| EditMode 全量 | 2026-10-23T22:50:55Z | 同上 | 同上 | `4717 / 4682 / 0 / 35` |
+| PlayMode 全量 | 2026-10-23T22:47Z | 同上 | 同上 | `202 / 202 / 0 / 0` |
+
+基线 `4701 / 4666 / 0 / 35`(`unity/Logs/oq7a10-restored.xml` @ 2026-10-24 05:51 · `fde4af7` + 树)
+⇒ **+16 / +16,零回归**,增量与本件新增测试数精确相等。
+
+### 证伪轮 5/5 精确命中
+
+| 轮 | 变异 | 红 | 红集 |
+|---|---|---|---|
+| M1 | 拆类别闸 | 1 | `test_patientDeath_producesNoCandidate` |
+| M2 | 拆吸收态去重 | 4 | 四条「恰 1 次」类断言,**实测 60 / 10 / 10 / 10**(多发) |
+| M3 | 拆生产调用点 | 4 | 同红集,**实测全 0**(零发) |
+| M4 | 单消费者抛→静默覆盖 | 1 | `test_register_secondThrows` |
+| M5 | 门 A 靶换成引擎装配 | 1 | `test_simAssembly_referencesZeroEngineAssemblies` |
+
+⚠️ **M2 与 M3 红集同名但失效模式相反**(多发 vs 零发)—— 已逐条比对失败消息排除「变异打错靶」。
+还原用「备份 + `cp` 回 + SHA-256 逐字节」,**未用** `git checkout` / `git stash`。
+产物:`unity/Logs/s8-deathcandidate-m{1..5}.xml`。
+
+### 实现期订正的两处原稿错误(原文不删)
+
+1. **驱动 tick 数**:原稿按「越 `DEATH_THRESHOLD` 即判死」推,漏了 F4 死亡支的第四条件
+   `t − last_intervention > TREATMENT_WINDOW(3600)`。实测取 `TREATMENT_WINDOW + 10`。
+2. **AC-9-26 的 `verify_cmd`** 与 Implementation Note 2 自相矛盾(回退 lambda 本身就是代码命中)。
+   判据已就地改为「**F4 求值路径零命中**」。
+
+### 诚实边界(承 AC-9-28,不得被读成「死亡链已通」)
+
+- **玩家不进 F4**(无 `DiseaseOnset`)⇒ 生产上 `DeathCandidate` **恒不因玩家产生**。
+- **病人死亡不产生候选**(类别闸)—— 这是**防 bug**,不是防回归。
+- **`Register` 在生产装配层未被调用**(29 story-004 的 `DeathAllowed` 门仍 `Ready`);
+  `test_assemble_sinkIsNotYetRegistered` 把这一现状**钉成断言**,避免被当成疏忽。
+
+### 未结(不在本件面内)
+
+- **`S18-AC5` 维持 `open`** —— 其 `verify_cmd` 探的是**消费侧**构造,与 AC 原文的
+  「**产出**路径有生产调用点」不是同一件事。本件只满足字面前半;
+  **判据须拆成「产出」/「消费」两条**,归记账轮。
+- 玩家染病路径(`AC-35` 结构半边)· `DeathCandidateConsumer` 生产构造 · `PatientOutcomeChangedWriter` 接线。

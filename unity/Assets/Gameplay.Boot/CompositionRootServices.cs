@@ -76,6 +76,14 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <see cref="IVitalsQuery"/> 生产实装。由 <see cref="BootRoot"/> 的 tick 边沿序列驱动。</summary>
         public DiseaseVitalsService VitalsService { get; }
 
+        /// <summary>
+        /// 死亡候选产出侧(9 侧 · <see cref="IDeathCandidateSink"/> 的生产实现,story-008)。
+        /// <para>29 的装配轮调 <see cref="IDeathCandidateSink.Register"/> 挂上
+        /// `DeathCandidateConsumer`;在此之前 `Publish` 静默丢弃(接口 <c>:68</c> 允许)。</para>
+        /// <para>⚠️ 本对象**只有 9 写、29 注册**;29 不读它的任何状态。</para>
+        /// </summary>
+        public IDeathCandidateSink DeathCandidates { get; }
+
         /// <summary>42 侧脉案只读数源(sprint-05 T2.1)—— 把 <see cref="VitalsService"/>
         /// 接到 <c>ICasebookDtoSource</c>(42 装配的唯一数据入口)。</summary>
         public CasebookVitalsSource CasebookSource { get; }
@@ -194,6 +202,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          EmergencyChannelDriver emergencyChannel,
                                          PatientVisualSpawner patientVisualSpawner,
                                          ulong worldSeed, DiseaseVitalsService vitalsService,
+                                         IDeathCandidateSink deathCandidates,
                                          CasebookVitalsSource casebookSource,
                                          ExaminationLedger examinationLedger,
                                          ExamineDriver examineDriver,
@@ -231,6 +240,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             EmergencyChannel = emergencyChannel;
             PatientVisualSpawner = patientVisualSpawner;
             VitalsService = vitalsService;
+            DeathCandidates = deathCandidates;
             CasebookSource = casebookSource;
             ExaminationLedger = examinationLedger;
             ExamineDriver = examineDriver;

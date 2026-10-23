@@ -350,10 +350,27 @@ conditions_open:
     half_check: "**两半分别核**:后半句「`WriterExistenceGate` 两条转已落」⇒ ✅ 满足(`5f40b59` 同批撤 `PlayerDied` / `InjuryStateChanged` 两条豁免);前半句「产出路径有生产调用点」⇒ ⚠️ 未满足(见 `why_open`)"
     self_declared: "`Sim/DeathCandidateConsumer.cs:27` 自陈:「生产装配(9 侧 `IDeathCandidateSink` 实现 + 本类注册)归 9 / 29 的装配轮」⇒ **如实登记的已知缺口,不是隐瞒**"
     cross_ref: "`production/qa/qa-signoff-sprint-18-2026-10-22.md` §六 条件 5 · §三 D-3 专段 · `production/sprints/sprint-18.md` DoD 表 `Tasks 表 ⑤` 行 + 2026-10-24 补记"
-    status: "⚠️ **open**"
+    status: "⚠️ **open**(2026-10-24 复核:前半句已满足,**仍不结** —— 判据本身写错了,见 `criterion_defect`)"
     moved_to: "sprint-19 规划时承接(不得以「S18-1 已 done」当已结)"
     verify_cmd: "grep -rn \"new DeathCandidateConsumer\\|new PlayerDiedWriter\\|new InjuryStateChangedWriter\" unity/Assets --include='*.cs' | grep -v '/Tests/'"
     registered_note: "🔁 **2026-10-24 补登记**:本条此前**从未进入本文件** —— 全文件 `grep -c \"AC ⑤\"` = 0(当时),只活在签核件 §六。属「未做且没登记」方向的记账缺陷。当时 commit = `a7c8b9e`"
+    🔁_2026_10_24_recheck: "**story-008 实现轮后复核 —— 前半句现已满足,但本条仍 open,理由换了**:
+      ① **产出侧已落**:`Sim/DeathCandidateSink.cs`(新,`IDeathCandidateSink` 实现)+
+         `DiseaseVitalsService.StepAll` 的 `PublishDeathCandidateIfTransferred`(`:409` 调用 / `:459` Publish)
+         + `CompositionRoot.cs:253` 的 `new DeathCandidateSink()`。AC-9-23 的判据
+         `grep -n \"Publish(\" unity/Assets/Gameplay.Boot/DiseaseVitalsService.cs` ⇒ `:459` 非空。
+         证据原件 = `production/qa/evidence/impl-story-008-death-candidate-sink-2026-10-24.md`。
+      ② **`verify_cmd` 探错了半边,这是 `criterion_defect` 不是「还没做」**:
+         它 grep 的是 `new DeathCandidateConsumer|new PlayerDiedWriter|new InjuryStateChangedWriter`
+         —— **全是消费侧构造**;而 AC 原文说的是「**产出**路径有生产调用点」。
+         两半不是同一件事,不可互相顶替。⇒ **本条不得因 story-008 转绿**。
+      ③ **消费侧确实仍断着**:`DeathCandidateConsumer` 依赖 29 story-004 的 `DeathAllowed`
+         冷却门(该件仍 `Ready`)。`test_assemble_sinkIsNotYetRegistered` 把「装配层未注册」
+         钉成断言,防止它被当成疏忽。
+      ⇒ **处置**:本条维持 open,但须在记账轮**拆成两条**:
+         (a)「产出路径有生产调用点」⇒ **已满足**,可结;
+         (b)「消费侧装配(29 的 `Register` 调用点)」⇒ 归 29 story-004。
+      ⚠️ **不得**直接把本条标 done —— 那会把「判据写错」记成「判据满足」。"
 
   # ── 条件 6:2026-10-24 新增(同上,此前只存在于签核件) ──
 # ⚠️ 基线三元组(任何引用本文件计数的下游件须同抄)
