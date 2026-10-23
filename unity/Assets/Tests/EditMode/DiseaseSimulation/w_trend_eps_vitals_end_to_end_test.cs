@@ -26,8 +26,12 @@
 //    ⇒ 它证的是「codec → DataSet → CompositionRoot → DiseaseVitalsService」,
 //    **不证** `catalog.bin` 新鲜度(`m_BuildAddressablesWithPlayerBuild = 0`,
 //    player 腿须重跑构建菜单;该缺口另行登记)。
-// ② `W` / `TREND_EPS` 的**数值本身**仍归数值轮(`OQ-9-1` 未裁)—— 本文件用的是
+// ② `W` / `TREND_EPS` 的**数值本身**仍归数值轮(**数值轮未裁**,非 `OQ-9-1`)—— 本文件用的是
 //    判据用的合成值(见下方常量),不是设计值,不得被读成「数值已定」。
+//    ⚠️ 2026-10-23 订正:原文把「`W` 数值未裁」与「`OQ-9-1` 未裁」混为一谈。`OQ-9-1`
+//    (潜伏期起算点)**已于 2026-10-23 裁为乙案**(起算点 = `onset + incubation`,
+//    落 `ProgressionEvaluator.ComputeLowPositionHeldTicks`,判据
+//    `low_position_held_incubation_boundary_test.cs`);仍未裁的**只有 `W` 的数值**。
 // ③ 本文件**不**证「多病聚合 / 照护通道 / 处置通道」的接线 —— 那是
 //    `f4_wiring_test` / `care_lever_and_aggregator_test` 的面。
 //

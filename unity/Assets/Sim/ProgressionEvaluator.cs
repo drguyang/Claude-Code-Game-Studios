@@ -286,7 +286,7 @@ namespace DaYiJingCheng.Sim
         /// <para><b>定义</b>(逐字对应 <see cref="RecoveryWindowInput.LowPositionHeldTicks"/> 的文档):</para>
         /// <code>
         /// held(t) = 自 t 往回数,position 连续 &lt; RECOVER_THRESHOLD 的 tick 数,
-        ///           下限 = onsetTick(病程之前无「低位」可言),
+        ///           下限 = onsetTick + incubation(潜伏期内无「低位」可言 —— 乙案,OQ-9-1),
         ///           上限 = windowTicks(消费者只判 held &lt; W,超出部分不影响判定)。
         /// </code>
         ///
@@ -299,16 +299,26 @@ namespace DaYiJingCheng.Sim
         /// <see cref="RecoveryWindowInput.IsConfigured"/> 为 <c>false</c> 时条件 ⑥ 根本不被求值,
         /// 返回 0 是**零开销的诚实值**,不是「低位 0 tick」的断言。</para>
         ///
-        /// <para><b>⚠️ 已知边界(未裁,登记于 OQ-9-1)</b>:潜伏期内 <c>τ &lt; incubation</c> ⇒
-        /// <see cref="ComputeProgress"/> 返回 0 ⇒ position = 0 &lt; RECOVER ⇒ **本函数从 onset 起就计数**。
-        /// 若某病种 <c>incubation &gt; W</c>,则 <c>t = onset + W</c> 时 held 已达 W,而此刻病还没发出来
-        /// —— 条件 ⑤(非上升期门)在 trend = 0 时**放行**(<c>trend ≤ 0</c>),故可能判出「潜伏期痊愈」。
-        /// 这是**按 GDD 字面实现的直接后果**,不是本函数的缺陷;是否要额外要求
-        /// <c>τ &gt; incubation</c> 归 9 的设计轮裁定。**本函数不自作主张加门**。</para>
+        /// <para><b>✅ 潜伏期边界已裁(乙案 · 2026-10-23 用户裁定,结清 OQ-9-1)</b>:
+        /// 起算点 = <c>onset + incubation</c>,**不是** <c>onset</c>。
+        /// 潜伏期内 <c>τ &lt; incubation</c> ⇒ <see cref="ComputeProgress"/> 返回 0 ⇒ position = 0
+        /// &lt; RECOVER ⇒ 若从 <c>onset</c> 起算,<c>held</c> 会在**病还没发出来**时就攒满 <c>W</c>,
+        /// 而条件 ⑤(非上升期门)在 <c>trend = 0</c> 时放行 ⇒ 判出「潜伏期痊愈」。
+        /// 乙案消除了这条路径。</para>
+        ///
+        /// <para>🔁 <b>原文(甲案)保留留痕</b>:「已知边界(未裁,登记于 OQ-9-1)…
+        /// 是否要额外要求 <c>τ &gt; incubation</c> 归 9 的设计轮裁定。**本函数不自作主张加门**。」
+        /// —— 该裁定已于 2026-10-23 作出(乙案),本函数据此加门。</para>
+        ///
+        /// <para>⚠️ <b>乙案的具名代价(裁定当时已计入)</b>:它把「潜伏 → 痊愈」这条
+        /// GDD <c>:567</c> 明列为**合法边**的路径也一并关掉了(该边的触发条件
+        /// <c>self_limit ∧ ¬relapse</c> 与痊愈支条件 ②③④ 完全同源,而潜伏期内
+        /// <c>trend</c> 恒 0、<c>held</c> 恒 0 &lt; W)。⇒ 今天没有任何病种能从潜伏期直接痊愈。
+        /// 若将来要恢复该边,须**另裁**(不是改本函数一处即可 —— 它同时受条件 ⑤ 与 ⑥ 约束)。</para>
         /// </remarks>
         /// <param name="registry">病种注册表条目(与 F1 求值同一条目 —— 必须与
         /// <c>position_agg</c> 的来源一致,否则「低位」判的不是同一个量)。</param>
-        /// <param name="onsetTick">病程起点(扫描下限)。</param>
+        /// <param name="onsetTick">病程起点(扫描下限 = <c>onsetTick + incubation</c>,见 remarks)。</param>
         /// <param name="currentTick">求值时刻 t(扫描起点)。</param>
         /// <param name="doses">已解码的处置和式输入(F1 求值需要)。</param>
         /// <param name="worldSeed">世界种子(Noise 入参;Noise 现恒 0)。</param>
@@ -316,7 +326,7 @@ namespace DaYiJingCheng.Sim
         /// <param name="windowTicks"><c>W</c>;≤ 0 ⇒ 未配置 ⇒ 返回 0 且不扫。</param>
         /// <param name="doseClampBound">剂量钳制上界(F1 透传;生产路径为 null)。</param>
         /// <returns><c>min(连续低位 tick 数, W)</c>;未配置 / <paramref name="currentTick"/> &lt;
-        /// <paramref name="onsetTick"/> 时为 0。</returns>
+        /// <c>onsetTick + incubation</c>(仍在潜伏期)时为 0。</returns>
         /// <exception cref="ArgumentNullException"><paramref name="registry"/> 为 null。</exception>
         public static long ComputeLowPositionHeldTicks(
             DiseaseRegistryEntry registry,
@@ -336,10 +346,25 @@ namespace DaYiJingCheng.Sim
             // 病程尚未开始 / 同一 tick ⇒ 无「已持续」可言
             if (currentTick < onsetTick) return 0;
 
-            // 扫描窗口 = min(W, 病程已过 tick 数 + 1) —— 两个上界都必要:
+            // ── 起算点 = onset + incubation(2026-10-23 用户裁定「乙案」,结清 OQ-9-1)──
+            //   潜伏期内 τ < incubation ⇒ `ComputeProgress` 恒返 0 ⇒ position = 0 < RECOVER
+            //   ⇒ 若从 onset 起算,held 会在**病还没发出来**时就攒满 W,配合条件 ⑤ 在
+            //   trend = 0 时放行,判出「潜伏期痊愈」(= OQ-9-1 的甲案行为)。
+            //   ⚠️ incubation 的取法与 `ComputeProgress` 的潜伏期抑制**必须同一口径**
+            //      (见 `registry.Curve == null` 的退化分支)—— 两处对「潜伏到哪为止」
+            //      若取法不同,会出现「本函数已开始计数但 Progress 仍被抑制」的错位。
+            long incubation = registry.Curve != null
+                ? registry.Curve.Incubation
+                : registry.RecoveryTime;
+            long countingStart = onsetTick + incubation;
+
+            // 仍在潜伏期内 ⇒ 尚未进入可计数的窗口(乙案的直接后果,见 remarks)
+            if (currentTick < countingStart) return 0;
+
+            // 扫描窗口 = min(W, 自起算点已过 tick 数 + 1) —— 两个上界都必要:
             //   · W   = 消费者只需要这么多(超出不影响 held < W 的判定);
-            //   · 病程 = 不能越过 onset 去数「低位」(病程之前没有 position)。
-            long span = currentTick - onsetTick + 1;
+            //   · 病程 = 不能越过**起算点**去数「低位」(潜伏期内没有「低位」可言)。
+            long span = currentTick - countingStart + 1;
             long maxScan = windowTicks < span ? windowTicks : span;
 
             // SCALE ≤ 0 ⇒ position 不可求值(与 EvaluateOutcome 同口径:压 0,不在 tick 内抛)

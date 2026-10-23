@@ -702,7 +702,7 @@ EOF
 |---|---|---|
 | **`W`/`eps` 值真的流到 vitals 的端到端夹具** | ❌ **无** | 见 §6.2.1 ① 的「接线判据的诚实边界」—— 现有证据只到「装配向 provider 要了这张表」 |
 | **`W = 0` 仍是未配置值** | ⚠️ **数值轮未裁** | 管线通了 ≠ 功能可用。`W = 0` ⇒ `IsConfigured = false` ⇒ **痊愈支 / 迁延支在生产里仍不求值** |
-| **`OQ-9-1` 潜伏期边界** | ⚠️ **未裁** | 本轮只**登记**了它(此前是悬空引用);填 `W` 前必须先裁,否则 `W` 一非零就激活一个未裁边界 |
+| **`OQ-9-1` 潜伏期边界** | ✅ **2026-10-23 裁:乙案** | ~~本轮只**登记**了它(此前是悬空引用);填 `W` 前必须先裁,否则 `W` 一非零就激活一个未裁边界~~ —— **已结案**:起算点 = `onset + incubation`,落 `unity/Assets/Sim/ProgressionEvaluator.cs:ComputeLowPositionHeldTicks`,判据 `low_position_held_incubation_boundary_test.cs`(6 条),证伪 M4/M5/M6 三轮全红。⚠️ 本行状态订正于 2026-10-23,原文保留留痕;**`W` 的数值本身仍未裁**(数值轮),与本行无关 |
 | **`Relapse` / `TreatableBy` / `Signs` / `Handle` 仍未编码** | ❌ **欠账** | 见 `DiseaseRegistryCookedWriter` 文件尾 ②③。当前数据全为 `[]`/`null`,影响面已核实(`Handle == null` 不制造假红,但一致性判据在真表上恒不触发) |
 | **`PlayerOutcomeChanged` 写者** | ❌ **未落** | `WriterExistenceGate.cs:105` 仍在册 —— 与 B1/B2 无关,不在本轮授权面 |
 | **PlayMode 全量** | ❌ **未跑** | 本轮只跑 EditMode。生产行为变化(病人开始会死)的**玩法侧**影响未经 PlayMode 验证 |

@@ -2149,7 +2149,23 @@ C4 定「34 只订阅聚合」。但**聚合的粒度**未定:按区块?按病�
 > (Beard 1869 · Shapiro · S. Weir Mitchell · DSM-III/IV · ICD-11,并注明「未核实已弃用」的处置)。
 > **9 直引该出处即可,不重复考据** —— 支柱五已由上游文档满足,`D-9-B` 办结,本 OQ 关闭。
 
-### OQ-9-1 · `LowPositionHeldTicks` 的潜伏期边界(2026-10-22 立 · **未裁**)
+### OQ-9-1 · `LowPositionHeldTicks` 的潜伏期边界(2026-10-22 立 · **✅ 2026-10-23 裁:乙案**)
+
+> ✅ **裁定(2026-10-23 用户裁定):取乙案** —— 起算点 = `onset + incubation`,
+> **不是** `onset`。已落地于 `unity/Assets/Sim/ProgressionEvaluator.cs:ComputeLowPositionHeldTicks`
+> (round40),判据 = `unity/Assets/Tests/EditMode/DiseaseSimulation/low_position_held_incubation_boundary_test.cs`(6 条)。
+> 证伪三轮全红:回退甲案(M4)红 4 · `incubation` 取 0(M5)红 4 · 起算点 off-by-one(M6)红 2。
+>
+> ⚠️ **乙案的具名代价(裁定当时已计入,并已钉成判据)**:本页 `:544` / `:567` 把
+> 「**潜伏 → 痊愈**」明列为**合法边**(「不经发病直接痊愈 —— 有些病自己会好」)。
+> 该边的触发条件 `self_limit = true ∧ 无 relapse.*` 与痊愈支条件 ②③④ **完全同源**,
+> 而潜伏期内 `trend` 恒 0、`held` 恒 0 < W ⇒ **乙案把这条边也一并关掉了**。
+> ⇒ 今天**没有任何病种**能从潜伏期直接痊愈(判据 = 同文件
+> `test_cost_latentToRecoveredEdgeIsCurrentlyUnreachable`)。
+> **若要恢复该边,须另裁** —— 它同时受条件 ⑤ 与 ⑥ 约束,不是改 `ComputeLowPositionHeldTicks` 一处即可。
+>
+> ⚠️ **「修好了」≠「生效了」**:`W` 仍为 `0`(`assets/data/disease_registry.json:11`,归数值轮)
+> ⇒ `IsConfigured == false` ⇒ 两支**依然不求值**。本裁定的行为变化在 `W` 填上之前不可观测。
 
 > ⚠️ **编号辨异**:本条的 `OQ-9-1` 是**系统前缀式**(系统 9 的第 1 问,与
 > `OQ-10-9` / `OQ-13-1` / `OQ-24-8` / `OQ-25-8` 同族),**不是**上面 `OQ-9`(脉冲剪枝
@@ -2181,7 +2197,14 @@ GDD `:1114` 只说「低位须稳定 ≥ W」,没说起算点是否要在 `incub
 (「⚠️ 已知边界(未裁,登记于 OQ-9-1)」);本处是**它引用的那条 OQ 的正文**
 —— 在此之前该引用是**悬空**的(全库 `grep -rn "OQ-9-1" design/ docs/` 零命中)。
 
-**归**:9 的设计轮 + 数值轮同批(填 `W` 时必须先裁本条,否则 `W` 一非零就同时激活一个未裁边界)。
+**归**:~~9 的设计轮 + 数值轮同批(填 `W` 时必须先裁本条,否则 `W` 一非零就同时激活一个未裁边界)~~
+—— **✅ 已于 2026-10-23 结案**(乙案,见段首裁定块)。原文保留留痕。
+
+**裁定前实测补充(2026-10-23 round40)**:裁定前本条的影响面**只有一行** ——
+从盘上真产物 `DataCookedDisk.LoadDiseaseRegistry()` 扫描「痊愈候选 ∧ 有潜伏期」
+(`relapse == null ∧ ¬(plateau ∧ ¬lethal) ∧ self_limit ∧ incubation > 0`)⇒
+13 行中**仅 `DIS_MEASLES`(id=11, incubation=600)** 命中。上文「当前 13 行数据」是笼统说法。
+该扫描已钉成判据 `test_premise_realRegistry_namesRowsAffectedByYiCase`(绊线:影响面变化会红)。
 
 ---
 
