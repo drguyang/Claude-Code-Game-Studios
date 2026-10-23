@@ -10342,7 +10342,7 @@ heart_failure}`,注册表键是 `DIS_` 前缀 ⇒ **交集为空** ⇒ ① 生�
 
 ---
 
-## round43 — signs 真表填充 + 通道闭集六 → 八(2026-10-23 · 用户裁定「甲 + 乙 + 乙」· 全做 · 未提交)
+## round43 — signs 真表填充 + 通道闭集六 → 八(2026-10-23 · 用户裁定「甲 + 乙 + 乙」· 全做 · **已提交 `3eb2932` · 已推送**)
 
 ### 用户裁定(三条)
 
@@ -10405,9 +10405,123 @@ heart_failure}`,注册表键是 `DIS_` 前缀 ⇒ **交集为空** ⇒ ① 生�
 ### 未结 / 相邻事实(不属本轮范围)
 
 - **5 条词表孤儿**(`sign_retraction` / `sign_cheyne_stokes` / `sign_dullness` / `sign_fever_skin` / `sign_pulse_bounding`)
-  —— 为 P1a 病种预留;悬空引用 0 条。`test_ac834_reverseOrphan_blockedish` **仍 Ignore**
-  (解锁须走 TR-diag-013 归属件 = 9 规则十 + F5),其头部已加注「34 这个数字已过期」。
+  —— ~~为 P1a 病种预留~~;悬空引用 0 条。`test_ac834_reverseOrphan_blockedish` ~~**仍 Ignore**
+  (解锁须走 TR-diag-013 归属件 = 9 规则十 + F5)~~,其头部已加注「34 这个数字已过期」。
+  **⚠️ 2026-10-23 round43b 就地订正(原文留痕)**:
+  ① 「为 P1a 病种预留」**无出处**(全仓唯一这么写的就是本行自身,自引式断言)—— 实测五条的 GDD
+  关联列点的是**症状名 / 病理名**(重度呼吸困难 / 濒死 / 肺实变·胸腔积液 / 发热 / 高热),
+  13 行病种表无对应项,**是否于 P1a 引入对应病种未裁**;
+  ② 该测试**已于 round43b 解锁并改写**(见下节),原 [Ignore] 测试体已删除。
 - **`D-8-2` 未结** —— 病史一支被「9 给位 / 8 映 0」的形态提前解决,但检验 / 镜检 / 舌脉三类仍待 P1a。
 - **`Assets/DataCooked/diagnosis_read_floor.cooked.bytes`** 本轮被同批 CLI 顺带重烘(296 B,61 档),
   内容未变(未出现在 `git status`)。
 - **提交与推送**须用户另行发话。
+
+---
+
+## round43b — AC-8-34 反向孤儿子句落地(`reserved` 标注机制)(2026-10-23 · **已提交 `f681a11` · 已推送**)
+
+### 起因(重要 —— 前提是假的)
+
+用户指令原文:「接着填那 5 条 **P1a 预留**的孤儿体征」。**「P1a 预留」这个前提是我自己上一轮
+(round43)编的**,无任何出处 —— 全仓唯一这么写的地方就是 `registration-debt-register.md` 里
+我自己那一行,以及 active.md 的 round43 未结段。**自引式断言**。
+
+查证结论(机械判据:关联列是否点名 P0 病种):
+- 29 条已填词条 —— 关联列**全部点名病种**(心衰 / 破伤风 / 痢疾 / 疟疾 …)
+- 5 条孤儿 —— 关联列只写**症状名 / 病理名**:重度呼吸困难 / 濒死 / 肺实变·胸腔积液 / 发热 / 高热
+- P0 注册表(13 行)**没有任何**对应病种
+
+⇒ 我没有照做填充,而是把前提摆出来,给两条路。用户裁定 **A 路 = 建标注机制**。
+
+### A 路是什么
+
+GDD AC-8-34 的反向子句原文:「反向无**未引用孤儿** —— 若有,必须**显式标注「预留」**」。
+该机制**从未建立**:`grep 预留|reserved` 在 `Diagnosis/`、`DiagnosisSignBinder.cs`、
+`RegistrySchema.cs` **全空**;`test_ac834_reverseOrphan_blockedish` 一直 `[Ignore]`。
+A 路 = 把这句话变成可执行判据,而**不动病种数据**(不造第二真源)。
+
+### 实际落地面
+
+| 文件 | 改动 |
+|---|---|
+| `assets/data/diagnosis_signs.json` | 5 条孤儿加行级 `"reserved": "<理由>"`(**字符串,非 bool**;空串与缺省同义 ⇒ 空串即拒)。理由全部落在实测事实上 |
+| `Editor.Tools.Bake/DiagnosisSignBinder.cs` | `RowKeys` 加 `"reserved"`(不加即撞 ADR-014 §三 未知键硬失败);新增 `ReadReserved`;`BindResult.ReservedBySignId` |
+| `Gameplay.Presentation/Diagnosis/DiagnosisSignTable.cs` | 新增 `ValidateReverseClosure` —— **两条方向相反**的判据(见下) |
+| `Editor.Tools.Bake/DiagnosisSignBinderProbe.cs` | 新增 `ReservedOf(json)` 转发(标注表只活作者态,不经 cooked 往返) |
+| `Tests/EditMode/DiagnosisSystem/sign_table_test.cs` | 原 `[Ignore]` 测试体**删除**;换成三条测试 + `RegistrySignKeys()` 辅助 |
+| `design/gdd/diagnosis-system.md` | R-8.2 表首注(机制落点表 + 过期计数订正);AC-8-34 行加落地注 |
+| `tests/unit/diagnosis_system/README.md` | AC-8-34 反向行 NOT-RUN → 已解锁 |
+| `production/registration-debt-register.md` | 订正 round43 的两处事实错误(append-only 加注) |
+| `Assets/DataCooked/diagnosis_signs.cooked.bytes` | 重烘(configVersion 变) |
+
+### 两条判据(方向相反)
+
+| 判据 | 条件 | 错误 tag |
+|---|---|---|
+| ① | 未被 9 引用 **且** 未标 `reserved` | `AC-8-34·orphan-unmarked`(静默孤儿 = 词表在烂) |
+| ② | **已被 9 引用** 却仍标着 `reserved` | `AC-8-34·reserved-but-referenced`(防标注烂在原地) |
+
+② 是本轮**自己加的**:GDD 只写了①的字面,但只判①会让「预留」表随时间变成一份没人信的清单 ——
+病种开始用某条了,理由却没人删。②是这条机制的自清面。
+
+### 关键设计决定:`reserved` **不进 cooked 字节**
+
+理由 = 同仓先例:`DiseaseRegistryBaker.cs:89-97` 把 `treatable_by` **刻意排除**在产物外 ——
+「本产物的字节里没有任何轴内容,那是一个对不上字节的版本号」。`reserved` 同理:
+**运行期零消费者**,是纯作者态闭合标注。进 cooked 就要改 `MinRowBytes`(25)、写读两侧镜像、
+升 `ExpectedSchemaVersion` 到 2,然后 45 份夹具里 44 份 `"schema_version": 1` 全炸。
+
+**实测佐证**:产物 3925 B **不变**,与 `3eb2932` 版本**只差 4 个字节**(offset 12-15 = configVersion),
+payload **逐位未动**(`cmp -l` 差异行数 = 4)。`grep reserved` 在二进制里 0 命中。
+
+### 回归三元组(实跑)
+
+**EditMode**:`total=4695 passed=4660 failed=0 inconclusive=0 skipped=35` · **EXIT=0**
+@ **2026-10-23 22:24:26–22:26:33 +0800** · 批次 **round43b 全量** · 基线 commit **`3eb2932`**
+
+Δ 相对 round43(`4693/4657/0/36`)= **+2 total / +3 passed / 0 failed / −1 skipped** ——
++2 = 两条新负例;+3 passed = 两条新例 + 解锁的那条;−1 skipped = 原 `[Ignore]` 消失。**零回归**。
+
+产物漂移门 `DaYiJingCheng.Tests.Unit.DataPipeline`:**86/86 绿**(cooked 与现烘逐字节一致)。
+
+### 证伪轮(3/3 全红,还原 SHA-256 逐字节一致)
+
+| ID | 变异 | 结果 |
+|---|---|---|
+| M1 | `ValidateReverseClosure` 判据① 改为 `if (false)` | **恰红 1**(`test_ac834_orphanWithoutReserved_red`) |
+| M2 | 判据② 改为 `else if (false)` | **恰红 1**(`test_ac834_reservedButReferenced_red`) |
+| M3 | 删 `sign_dullness` 的 `reserved` | **恰红 1**(`test_ac834_reverseOrphan_reservedAnnotationCloses`),错误触底到 `sign_dullness` |
+
+还原:备份在 `$CLAUDE_JOB_DIR/tmp/falsify43b/`,还原后 `sha256sum -c before.sha256` **两件全「成功」**,
+仓库侧 `sha256sum` 复核一致。**未用 `git checkout` / `git stash`**。
+
+### 顺带订正(round43 里我自己的两处事实错误 · append-only)
+
+| # | 错 | 实 |
+|---|---|---|
+| ① | 「5 条 = **为 P1a 病种预留**」 | **无出处**。全仓唯一这么写的就是该行自身(自引式断言)。已改为如实描述 |
+| ② | 「**6 病种 + 7 伤情**」 | 实测 **8 病种 + 5 伤情**(`Counter({'disease': 8, 'injury': 5})`) |
+
+同批订正 GDD R-8.2 表首「清单只覆盖 9 的 **R2 伤情 11 项 + R3 病种 7 项**」的过期计数。
+**未改写 `3eb2932` 历史**(已推送)—— 按「原文不删、就地加注」纪律处理。
+
+### 诚实边界(禁借绿)
+
+载体是 **`[L]` 注册表校验单测**,**不是构建期门**。`DiagnosisSignBaker` 不读 `disease_registry.json`,
+让它读会新造一条 **8→9 的数据依赖**(8 是外键方,AC-8-34 的「遍历 9 的注册表」这一动作归测试侧)。
+GDD 注里已写明这个边界。
+
+### 本轮新形态教训
+
+**「我自己上一轮写的结论」也是一条需要验证的前提。** 用户照着我的结论下指令
+(「填那 5 条 P1a 预留的」),如果我不回头查证,就会把一句自引式断言当成事实继续传播 ——
+而且它会以「用户指令」的形态出现,权威感更强。**判据**:凡指令里的前提可机械复核
+(这里是「关联列是否点名 P0 病种」),先复核再动手。
+
+### 未结 / 相邻事实(不属本轮范围)
+
+- **`D-8-2` 未结** —— 检验 / 镜检 / 舌脉三类仍待 P1a。
+- **5 条孤儿是否于 P1a 引入对应病种 = 未裁** —— 本轮只给它们**标注**,不给它们**归宿**。
+  将来引入病种后,判据②会自动要求删掉 `reserved` 理由。
+- 提交与推送已完成(`f681a11`,已推送至 `origin/main`)。
