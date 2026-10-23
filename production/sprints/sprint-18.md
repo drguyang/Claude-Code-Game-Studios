@@ -144,6 +144,13 @@
 ## Definition of Done for this Sprint
 
 - [x] `S18-1` / `S18-2` 的 AC 逐条勾选并附**可复算判据**(禁止「已落盘」当判据)
+      > 🔁🔁 **2026-10-24 口径订正(原文不删)—— 本 checkbox 的「勾」指的是「逐条都有判定」,不是「全部满足」。**
+      > 本条 DoD 的**字面要求**是「AC **逐条勾选**并附可复算判据」——
+      > 它要求的是「每条 AC 都有一个明确判定 + 判据」,**不要求每条都 ✅**。
+      > ⇒ 表内出现「⚠️ 不勾 + 具名理由」的行,**不违反**本条 DoD,反而是本条要的形态
+      > (「不勾」也是判定的一种,且必须带理由)。
+      > ⚠️ **但这个读法必须显式写出来** —— 否则 `[x]` 会被读成「S18-1 全部 AC 满足」,
+      > 而那正是「用一句自述顶替一个不存在的门」的同型风险。**本注即为该显式化。**
       🔁 **2026-10-22 收口实测:原判「不勾」,用户改判 S18-1 拉回后勾上** ——
       **原判依据**(原文不删):**S18-2 满足**(四条件各有断言 + 折叠行六字段逐字段);
       **S18-1 不满足** —— 它当时已**结转 sprint-19**,AC ⑦⑧ 的被测物在生产树 0 命中
@@ -163,6 +170,48 @@
       | 签核件 ⑥ | **规则九机械门** | `RuleNineGateTest` **16 条**(S1–S4 四种源码注入 + I1/I2/I3 三条 IL 注入各自转红 + 三种反向不误报 + 锚点活体守卫) | **新增** `Editor.Tools.Gates/RuleNineGate.cs`(源码 + IL 双证);接 `RunMenu` / `BuildGate`;`gate_wiring_manifest_test` 两表同批登记 | ✅ **2026-10-22 兑现** |
       | 签核件 **⑦** | **`IDeathCandidateSource` + 29 侧注入点** | `test_deathCandidateSource_interfaceExistsInContracts` / `_hasNoHealthReadingMember` / `_deathCandidate_doesNotEnterAnyStream` / `_deathCandidateConsumer_implementsSource` | **新增** `Sim.Contracts/IDeathCandidateSource.cs` + `Sim/DeathCandidateConsumer.cs` | ✅ |
       | 签核件 **⑧** | **`PlayerDied` / `InjuryStateChanged` 两条写者** | `test_playerDiedWriter_*`(6 条)/ `test_injuryStateWriter_*`(3 条)/ `test_deathCandidateConsumer_*`(3 条) | **新增** `Sim/PlayerDiedWriter.cs` + `Sim/InjuryStateChangedWriter.cs`;同批撤 `WriterExistenceGate` 两条豁免 | ✅ |
+      | **Tasks 表 ⑤** | **`DeathCandidate` 产出路径有生产调用点** | ⚠️ **不勾 —— 见下方 2026-10-24 补记** | — | ⚠️ **未满足** |
+
+      > 🔁🔁 **2026-10-24 补记:本表原缺 `Tasks 表 ⑤` 整行(静默漏项,现已补入)。**
+      >
+      > **漏项本身**:上表原 7 行覆盖「Tasks 表 ①–④ + 签核件 ⑥⑦⑧」,**零行对应 Tasks 表 ⑤**。
+      > ⚠️ 这与 §九.5 缺口 ③ 记的「DoD 11 条全未勾」**不是同型**:那次是「没勾」,
+      > 这次是**表里根本没有这一行** —— 既不勾选、也不登记为不勾。
+      >
+      > 复算(**必须指向补记前的已提交版本,不可指向工作树**):
+      > ```
+      > $ git show 1822520:production/sprints/sprint-18.md | grep -c "Tasks 表 ⑤"
+      > 0
+      > ```
+      > ⚠️ **为什么不用工作树**:补记本身含该串,`grep -c` 在工作树上实测为 **4**(本块的
+      > 4 处引用)⇒ **命令会自指污染**,把自己写的字当成「原表有这一行」的证据。
+      > 这与 `qa-signoff-sprint-18-2026-10-22.md` D-4 段记的教训**同型**(凡「某物是否存在」
+      > 的 grep 判据,须排除本件自指)。**判据须钉在 `1822520` 这个固定 sha 上,不用 `HEAD`** ——
+      > 本补记一旦提交,`HEAD` 就指到含补记的版本,命令又失效。
+      >
+      > **AC ⑤ 原文**(`sprint-18.md:95` Tasks 表):
+      > > ⑤ `DeathCandidate` 产出路径**有生产调用点**,`WriterExistenceGate` 两条从「未落」转为「已落」
+      >
+      > **两半分别核**:
+      > - **后半句「`WriterExistenceGate` 两条转已落」** ⇒ ✅ **满足**(`5f40b59` 同批撤 `PlayerDied` /
+      >   `InjuryStateChanged` 两条豁免;`WriterExistenceGate.cs` 内现含「✅ 2026-10-22 撤 …豁免」注)
+      > - **前半句「产出路径有生产调用点」** ⇒ ⚠️ **未满足**。实测:
+      >   ```
+      >   $ grep -rn "new DeathCandidateConsumer\|new PlayerDiedWriter\|new InjuryStateChangedWriter" \
+      >       unity/Assets --include='*.cs' | grep -v '/Tests/'
+      >   unity/Assets/Sim/EntityDeathGates.cs:50://  · 但 `InjuryStateChangedWriter` **自身零生产构造点** …
+      >   ```
+      >   唯一命中是**注释**,不是构造点 ⇒ **生产调用点 = 0**。
+      >
+      > **⇒ 本条判「不勾」,具名理由**:产出路径的**装配**归 9 / 29 的实现轮
+      > (`DeathCandidateConsumer.cs:27` 自陈「生产装配(9 侧 `IDeathCandidateSink` 实现 + 本类注册)
+      > 归 9 / 29 的装配轮」)。
+      > ⚠️ **这与本文件末尾「有写者 ≠ 已接线」那条注记同源** —— 那条说的是写者的**触发点**,
+      > 本条说的是**候选的产出点**,两者是同一类缺口的两端,**都不得**因「写者/接口已落」而当已接线。
+      >
+      > **连带影响**:S18-1 的判定已由签核件就地订正为
+      > **`APPROVED WITH CONDITIONS`**(条件 = 本条),不再是 `DEFERRED → sprint-19`。
+      > 见 `production/qa/qa-signoff-sprint-18-2026-10-22.md` §三 D-3 专段。
 
       **回归**:`4435 / 4399 / 0 / 36` @ `2026-10-22 14:0x (+0800)` · 批次 `s18-ac78-full-20261022` ·
       干净树;`error CS = 0`。等式 `Δtotal = Δpassed = 新增 16` 成立;**消失 0**。
