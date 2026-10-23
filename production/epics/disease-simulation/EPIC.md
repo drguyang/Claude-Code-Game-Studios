@@ -4,7 +4,16 @@
 > **GDD**: design/gdd/disease-simulation.md
 > **Architecture Module**: L2 Sim(门 A 侧 · SIM)
 > **Status**: ✅ Complete(7/7 stories 已收口;**story-007 重开轮已闭环** —— 处置轴 + treatable_by 数据面 + NOISE_BAND_9 具名常量;双代理一轮评审 → 修复 → 2026-10-07 复跑全绿:9 侧 67/67 · 11 侧 174/174 · 10 侧 116/116 · 全量 2948/2901/0 红;评审原件 `production/qa/evidence/review-disease-action-axis-2026-10-07.md`)
-> **Stories**: 7 stories — see table below
+> 🔁 **2026-10-24 就地订正(原文不删)** —— 本行原写 `7/7` 且未提新增件。**现口径 = `7/7 + 1 新增未开工`**:
+> 新立 **story-008**(`IDeathCandidateSink` 产出侧 + F4 接线),`Status: Ready`,**未开工**。
+> 立的缘由 = `S18-AC5` 前半句「`DeathCandidate` 产出路径**有生产调用点**」实测未满足
+> (`Publish(` 全树含 `Tests/` **零命中**;`IDeathCandidateSink` 只有声明)。用户 2026-10-24 裁定
+> 「选 A,新立一个」—— 归 **9**(GDD `death-and-respawn.md:103` 归属表逐字:「死亡候选的产出 = 9」),
+> 不由 29 越界实现。
+> ⚠️ **`7/7` 不因此作废**:那七件仍全部 Complete;新增件是**第八件**,不是把某件打回。
+> ⚠️ **本 epic 的 DoD 仍不满足** —— `S18-AC5` 挂着,且 story-008 的 Out of Scope 明写
+> 「不交付『玩家真的会死』」(玩家无 `DiseaseOnset`)。
+> **Stories**: **7 stories 已收口 + 1 新增未开工**(共 8 份 story 文件)— see table below
 
 ## Overview
 
@@ -86,3 +95,4 @@ This epic is complete when:
 | 005 | F4 九态阈值机与照护杠杆 | Logic | **Complete ✅ 2026-09-30** | ADR-005/009 |
 | 006 | F3 CatchUp、F5 共病合成与跨平台黄金夹具 | Integration | **Complete ✅ 2026-09-30** | ADR-005/012 |
 | 007 | 处置轴 + treatable_by 数据面 + NOISE_BAND_9 具名常量 | Config-Data | **Complete ✅ 2026-10-07**(重开轮闭环;DC-2/DC-6 真源已立;评审原件已落) | ADR-014/024/005 |
+| 008 | 死亡候选产出侧(`IDeathCandidateSink`)与 F4 接线 | Integration | **Ready**(新增未开工 · 2026-10-24 立;承 `S18-AC5` 前半句) | ADR-009/016/005 |
