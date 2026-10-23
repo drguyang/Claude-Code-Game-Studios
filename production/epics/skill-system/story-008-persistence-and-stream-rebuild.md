@@ -32,12 +32,13 @@
 *From GDD `design/gdd/skill-system.md`, scoped to this story:*
 
 - [ ] 技能等级可从病史流的 SkillGrown 事件**从头重建**(无初始快照)
-- [ ] 重建函数输入 = 完整 SkillGrown 事件序列(按三流全序排列),输出 = {skillId: level} 字典
+- [x] 重建函数输入 = 完整 SkillGrown 事件序列(按三流全序排列),输出 = **{actorId: {skillId: level}}** 双层字典(2026-10-23 改签名;原为单层 `{skillId: level}`)
 - [ ] 同一 skill_id 的多条 SkillGrown → 取最新 Level(按 Tick 序)
 - [ ] 掉级事件(Level 低于前值)正确反映 → 等级下降
 - [ ] 存档后读档:技能等级与存档前一致(round-trip 通过 7a 全二进制 codec)
 - [ ] 折叠后重建:即使病史流折叠了旧病例行,SkillGrown 行保留,重建结果正确
 - [ ] 新玩家(无 SkillGrown 历史) → 全部技能等级 = 0(或初始值,看调参表定义)
+- [ ] **(2026-10-23 新增)多玩家独立** —— 两个玩家练同一 `skill_id` ⇒ 各自等级互不覆盖,且结果与流序无关
 
 ---
 
@@ -45,10 +46,15 @@
 
 *Derived from ADR-010 / ADR-009 Implementation Guidelines:*
 
-1. **`RebuildLevels(IEnumerable<SkillGrownPayload> events)`** → `Dictionary<int, int>` —— 纯函数,输入 SkillGrown 事件序列,输出各技能最新等级。
-2. 算法:遍历事件序列(按 Tick 升序),对每条 SkillGrown 取其 `Level` —— 如果 Level ≠ 哨兵(-1),则更新 `skillLevels[skill_id] = Level`。最终字典即为当前等级。
+1. **`RebuildLevels(IEnumerable<SkillGrownPayload> events)`** → `Dictionary<int, Dictionary<int, int>>` —— 纯函数,输入 SkillGrown 事件序列,输出**每个玩家**的各技能最新等级(`actorId → (skillId → level)`)。
+   > ⚠️ **2026-10-23 用户裁定「改签名」** —— 原形状为单层 `Dictionary<int, int>`(`skillId → level`)。
+   > 病因:实现 `result[e.SkillId] = e.Level` **完全不看 `ActorId`** ⇒ 两个玩家练同一技能互相覆盖,
+   > 「谁赢」纯由流序决定。而生产契约 `ISkillGrowthPort.QueryLevel(int actorId, int skillId)`
+   > **本来就是 actor 维度的** ⇒ 契约与重建不匹配。本项目 1–4 人联机从 P0 预留
+   > (`technical-preferences.md:31`)。原文保留于此留痕。
+2. 算法:遍历事件序列(按 Tick 升序),对每条 SkillGrown 取其 `Level` —— 如果 Level ≠ 哨兵(-1),则更新 `skillLevels[actor_id][skill_id] = Level`。最终双层字典即为当前等级。
 3. **为什么「取最新 Level」而不是「累加 XP」**:SkillGrown 携带的是绝对等级(升级时携带新等级,未升级写哨兵)。重建时只看最新 Level 即可 —— 这正是「不独立快照」的含义。
-4. **与 7a 的接缝**:7a 负责从二进制存档中读出病史流(含 SkillGrown);30 提供 `RebuildLevels` 纯函数。7a 把重建后的等级字典注入 30 的状态。
+4. **与 7a 的接缝**:7a 负责从二进制存档中读出病史流(含 SkillGrown);30 提供 `RebuildLevels` 纯函数。7a 把重建后的**双层**等级字典注入 30 的状态(按 `actorId` 分发给各玩家)。
 5. **折叠豁免**:ADR-010 的折叠谓词**豁免 SkillGrown Kind** —— 即使病例行被折叠,SkillGrown 行保留。这是 ADR-026 §七 的裁决(结清 OQ-7a-9)。
 6. **初始状态**:新玩家 / 新存档 → 空 SkillGrown 序列 → 全部等级 = 0(或调参表定义的起始值)。无「默认快照」。
 

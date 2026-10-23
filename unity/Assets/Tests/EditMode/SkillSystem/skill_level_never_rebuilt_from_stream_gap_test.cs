@@ -232,7 +232,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
                 "`PrescriptionPorts.cs:150` 与 `SeenDiseaseProjector.cs:108` 两处同款");
             Assert.That(rows[0].ActorId, Is.EqualTo(Actor), "前提:载荷其余字段是真值(不是空载荷)");
 
-            Dictionary<int, int> rebuilt = SkillStateRebuilder.RebuildLevels(rows);
+            Dictionary<int, Dictionary<int, int>> rebuilt = SkillStateRebuilder.RebuildLevels(rows);
 
             Assert.That(rebuilt, Is.Empty,
                 "**当前实现**:流里唯一的成长行是哨兵 ⇒ 重建器按语义全部跳过 ⇒ 空字典。" +
@@ -256,11 +256,11 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
         {
             AppendGrownRow(Actor, PrescriptionSkill, level: 5, tick: 100);
 
-            Dictionary<int, int> rebuilt = SkillStateRebuilder.RebuildLevels(DecodedGrownRows());
+            Dictionary<int, Dictionary<int, int>> rebuilt = SkillStateRebuilder.RebuildLevels(DecodedGrownRows());
 
-            Assert.That(rebuilt.ContainsKey(PrescriptionSkill), Is.True,
+            Assert.That(rebuilt[Actor].ContainsKey(PrescriptionSkill), Is.True,
                 "前提:非哨兵行应被重建出来 —— 否则 ③ 的空字典说明不了「写者不写等级」");
-            Assert.That(rebuilt[PrescriptionSkill], Is.EqualTo(5), "前提:等级值原样重建");
+            Assert.That(rebuilt[Actor][PrescriptionSkill], Is.EqualTo(5), "前提:等级值原样重建");
         }
 
         // ══════════════════════════════════════════════════════════════════

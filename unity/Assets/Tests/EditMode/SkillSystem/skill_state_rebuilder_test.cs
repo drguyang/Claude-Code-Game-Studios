@@ -7,7 +7,9 @@
 // 测试策略:验证 RebuildLevels 纯函数的 6 条 AC;round-trip 通过
 // PayloadCodec 完成(InternalsVisibleTo)。
 // 零随机种子、零时间依赖、零外部 I/O。
-// 事件须按 Tick 升序传入(RebuildLevels 会抛出 ArgumentException 检测到逆序)。
+// 事件须按 Tick 升序传入 —— ⚠️ 2026-10-23 订正:原文「RebuildLevels 会抛出
+// ArgumentException 检测到逆序」**为假**(实现零逆序检测,全仓无该异常路径);
+// 顺序是**调用方约定**,7a 读出顺序已保证。原文保留于此留痕。
 // ============================================================================
 
 using System;
@@ -24,6 +26,15 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
     [TestFixture]
     internal sealed class SkillStateRebuilderTest
     {
+        /// <summary>
+        /// 本文件的单玩家夹具全部用 <c>ActorId = 1</c>。
+        /// <para>2026-10-23 用户裁定「改签名」后 <see cref="SkillStateRebuilder.RebuildLevels"/>
+        /// 返回 <c>actorId → (skillId → level)</c> 双层字典,故断言索引写作
+        /// <c>result[Actor][skillId]</c>。多玩家语义见
+        /// <c>skill_state_rebuilder_multi_actor_gap_test.cs</c>(该文件已按裁定改写为正向判据)。</para>
+        /// </summary>
+        private const int Actor = 1;
+
         // ═══════════════════════════════════════════════════════════════════
         // AC-1: 从头重建技能等级
         // ═══════════════════════════════════════════════════════════════════
@@ -43,8 +54,8 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
 
             var result = SkillStateRebuilder.RebuildLevels(events);
 
-            Assert.That(result[(int)SkillId.诊断], Is.EqualTo(2), "诊断 = 2");
-            Assert.That(result[(int)SkillId.急救], Is.EqualTo(2), "急救 = 2");
+            Assert.That(result[Actor][(int)SkillId.诊断], Is.EqualTo(2), "诊断 = 2");
+            Assert.That(result[Actor][(int)SkillId.急救], Is.EqualTo(2), "急救 = 2");
         }
 
         /// <summary>AC-1 边缘: 空序列 → 空字典。</summary>
@@ -71,7 +82,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             };
 
             var result = SkillStateRebuilder.RebuildLevels(events);
-            Assert.That(result[(int)SkillId.诊断], Is.EqualTo(6), "哨兵被忽略,最终 = 6");
+            Assert.That(result[Actor][(int)SkillId.诊断], Is.EqualTo(6), "哨兵被忽略,最终 = 6");
         }
 
         /// <summary>AC-2 边缘: 全部为哨兵 → 无等级条目。</summary>
@@ -103,7 +114,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             };
 
             var result = SkillStateRebuilder.RebuildLevels(events);
-            Assert.That(result[(int)SkillId.徒手], Is.EqualTo(7), "掉级后 = 7");
+            Assert.That(result[Actor][(int)SkillId.徒手], Is.EqualTo(7), "掉级后 = 7");
         }
 
         /// <summary>AC-3 边缘: 连续掉级。</summary>
@@ -118,7 +129,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             };
 
             var result = SkillStateRebuilder.RebuildLevels(events);
-            Assert.That(result[(int)SkillId.徒手], Is.EqualTo(5), "连续掉级 → 最终 5");
+            Assert.That(result[Actor][(int)SkillId.徒手], Is.EqualTo(5), "连续掉级 → 最终 5");
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -149,14 +160,15 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
 
             var result = SkillStateRebuilder.RebuildLevels(decodedEvents);
 
-            Assert.That(result[(int)SkillId.诊断], Is.EqualTo(26), "诊断 round-trip = 26");
-            Assert.That(result[(int)SkillId.急救], Is.EqualTo(18), "急救 round-trip = 18");
-            Assert.That(result[(int)SkillId.采集], Is.EqualTo(12), "采集 round-trip = 12");
+            Assert.That(result[Actor][(int)SkillId.诊断], Is.EqualTo(26), "诊断 round-trip = 26");
+            Assert.That(result[Actor][(int)SkillId.急救], Is.EqualTo(18), "急救 round-trip = 18");
+            Assert.That(result[Actor][(int)SkillId.采集], Is.EqualTo(12), "采集 round-trip = 12");
         }
 
         // ═══════════════════════════════════════════════════════════════════
         // AC-5: 折叠后重建正确(SkillGrown 保留,重建结果不变)
-        // AC-5: 逆序输入 → ArgumentException(重建语义依赖有序覆盖)
+        // ⚠️ 2026-10-23 订正:原文此处的「AC-5: 逆序输入 → ArgumentException」**为假** ——
+        //    该测试方法**从未存在**(全文件零逆序用例),实现亦零逆序检测。原文保留留痕。
         // ═══════════════════════════════════════════════════════════════════
 
         /// <summary>AC-5: SkillGrown 行保留 → 重建结果与未折叠一致。</summary>
@@ -182,8 +194,8 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             var beforeFold = SkillStateRebuilder.RebuildLevels(fullSequence);
             var afterFoldResult = SkillStateRebuilder.RebuildLevels(afterFold);
 
-            Assert.That(afterFoldResult[(int)SkillId.诊断], Is.EqualTo(beforeFold[(int)SkillId.诊断]), "折叠后诊断等级不变");
-            Assert.That(afterFoldResult[(int)SkillId.急救], Is.EqualTo(beforeFold[(int)SkillId.急救]), "折叠后急救等级不变");
+            Assert.That(afterFoldResult[Actor][(int)SkillId.诊断], Is.EqualTo(beforeFold[Actor][(int)SkillId.诊断]), "折叠后诊断等级不变");
+            Assert.That(afterFoldResult[Actor][(int)SkillId.急救], Is.EqualTo(beforeFold[Actor][(int)SkillId.急救]), "折叠后急救等级不变");
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -227,7 +239,7 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             };
 
             var result = SkillStateRebuilder.RebuildLevels(events);
-            Assert.That(result[(int)SkillId.诊断], Is.EqualTo(3), "最后一条 Level 胜出");
+            Assert.That(result[Actor][(int)SkillId.诊断], Is.EqualTo(3), "最后一条 Level 胜出");
         }
 
         /// <summary>Level = 0 是真实等级,与哨兵 -1 不冲突。</summary>
@@ -241,8 +253,8 @@ namespace DaYiJingCheng.Tests.Unit.SkillSystem
             };
 
             var result = SkillStateRebuilder.RebuildLevels(events);
-            Assert.That(result.ContainsKey((int)SkillId.诊断), Is.True, "Level=0 是真实等级,字典含该 skill");
-            Assert.That(result[(int)SkillId.诊断], Is.EqualTo(0), "Level=0 存储为 0");
+            Assert.That(result[Actor].ContainsKey((int)SkillId.诊断), Is.True, "Level=0 是真实等级,字典含该 skill");
+            Assert.That(result[Actor][(int)SkillId.诊断], Is.EqualTo(0), "Level=0 存储为 0");
         }
     }
 }

@@ -10123,3 +10123,61 @@ XpGain = 0 (旧 6 参构造): 010100000002ffffffff0303000000040c0000000500000000
 `??` 2 项:`Tests/EditMode/SkillSystem/skill_grown_xp_gain_test.cs` + `.meta`
 
 **未提交** —— 未收到 commit 指令。
+
+# round39 —— 多玩家技能重建「改签名」(2026-10-23)
+
+## 裁定
+
+用户 2026-10-23 裁定 **改签名**(否决「新开方法 + 旧方法加守卫」)。
+
+**否决理由(已写入 story-008 与债册)**:两条路径并存 ⇒ 7a 有机会用错那条;
+且 1–4 人联机是**常态**而非例外,留一条单玩家路径就是留一个降级面。
+
+## 改动
+
+| # | 文件 | 改动 |
+|---|---|---|
+| 1 | `Sim.Contracts/SkillSystem/SkillStateRebuilder.cs` | 返回形状 `Dictionary<int,int>` → **`Dictionary<int, Dictionary<int,int>>`**;内层按 `e.ActorId` 分桶 |
+| 2 | `Tests/.../skill_state_rebuilder_multi_actor_gap_test.cs` | **由缺口记录改写为正向判据**(4 条 → 5 条) |
+| 3 | `Tests/.../skill_state_rebuilder_test.cs` | 15 处断言索引 `result[s]` → `result[Actor][s]` + 加 `Actor` 常量;顺带订正两处假自述 |
+| 4 | `Tests/.../skill_level_never_rebuilt_from_stream_gap_test.cs` | 2 处类型与索引同步 |
+| 5 | `production/epics/skill-system/story-008-*.md` | §Implementation 1/2/4 + AC 第 2 条改 + 新增 AC 第 8 条(多玩家独立) |
+| 6 | `production/registration-debt-register.md` | 结清 `30-多玩家技能重建`;新立 `story-008「逆序保护」自述` |
+
+**形状选择的依据**:参数序 `actorId → skillId` 与生产契约
+`ISkillGrowthPort.QueryLevel(int actorId, int skillId)`(`PrescribeFlow.cs:99-107`)**对齐**
+⇒ 消费方 `levels[actorId][skillId]` 可直接喂查询。**这是「契约已是 actor 维度、重建层丢了它」的补齐**,
+不是新设计。
+
+## 证伪轮 4 条(变异窗口已声明,窗口内未读被变异文件;还原 = SHA-256 逐字节)
+
+| 探针 | 变异 | 红 | 判别力 |
+|---|---|---|---|
+| **M1** | 全部 actor 折到常量桶 `0` | **13** | ❌ **粗变异** —— 含单玩家 9 条,只证「改动会被发现」 |
+| **M3** | actor 键改用 `e.SkillId` | **13** | ❌ 同 M1,单玩家也红(1 ≠ 诊断 ordinal) |
+| **M4** | 全部 actor 折到**首个已见** actor 桶 | **恰好 2** | ✅ **精准** —— 单玩家时行为**完全不变** ⇒ 4 条单玩家判据全绿,只有 2 条多玩家判据红 |
+
+⚠️ **M1/M3 的设计缺陷已如实记录**:我最初以为「换掉 actor 维度」就是精准变异,
+实测两者都打穿单玩家 —— 它们**不能**用来论证判别力。**判别力只由 M4 证明**。
+M4 的构造要点:桶 = `result.Count == 0 ? e.ActorId : First(result.Keys)`,
+单玩家时 `First(Keys) == e.ActorId` 恒成立 ⇒ 行为等价于原实现。
+
+## 顺带发现的两处假绿(本轮实测,非推测)
+
+1. `skill_state_rebuilder_test.cs:10` 声称「RebuildLevels 会抛出 ArgumentException 检测到逆序」——
+   实现**零逆序检测**(`grep ArgumentException` 在 `Sim.Contracts/SkillSystem/` 零命中)。
+2. 同文件 `:159` 写「AC-5: 逆序输入 → ArgumentException」—— **该测试方法从未存在**。
+3. story-008 Completion Notes 声称「ordering protection added」—— 与 1/2 同源。
+
+⇒ 三者同属「**用一句自述顶替一个从未存在的门**」形态(`TD-s13-01` / S18-1 规则九门同型)。
+**已就地订正三处自述**(原文留痕),并登记为债项;「是否真的要加逆序守卫」= **另裁**
+(会改变契约语义:当前容忍乱序 ⇒ 加了变 fail-loud;7a 未实现,收益待评估)。
+
+## 回归三元组(实跑)
+
+`total=4678 passed=4642 failed=0 inconclusive=0 skipped=36` · **EXIT=0**
+@ **2026-10-23 10:42 +0800** · 批次 **round39 全量 EditMode** · 基线 commit **`67c6d7b`**
+Δ = **+1 / +1 / 0 / 0** —— 等式自洽:多玩家文件 `[Test]` 数 **5**(round31 为 4,净 +1)。
+SkillSystem 套件单跑:`191/191/0/0`(round38 为 190,同样 +1)。
+
+**未提交** —— 未收到 commit 指令。
