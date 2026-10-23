@@ -369,33 +369,63 @@ baseline:
   #      `git stash`/`git worktree add` 到 `4e005bd` 上跑一次全量 EditMode。
   #      **本轮未跑**(用户问的是「离收口还差多少」,不是「补跑」),故此处**留空而非填值**。
   closeout_regression:
+    # ✅ **2026-10-24 实测补跑 —— 原「NOT-RUN」缺口已闭合。**
+    #    原文整段保留在下方 `archived_not_run` 内(原文不删,就地加注)。
+    #    ⚠️ 本段数值只对 `4e005bd` 这一棵树成立;换 commit 即失效(见 boundary_note)。
     editmode:
-      status: "⚠️ **NOT-RUN(干净树)** —— sprint-18 无「干净树 + 覆盖收尾三提交」的全量 EditMode"
-      best_available:
-        value: "4501 / 4465 / 0 / 36"
-        measured_at: "2026-10-22 16:33:42 (+0800)"
-        batch: "regress-final"
-        artifact: "unity/Logs/regress-final.xml"
-        head_at_run: "4e005bd(2026-10-22 16:04:21)—— **但工作树脏**"
-        dirt_evidence: "XML 含 `DiseaseRegistryBakePipelineTest` 43 次,该件在 `4e005bd` 树中不存在(提交于 17:48 的 `133a564`)⇒ 跑测时工作树含未提交代码"
-        covers: "`3bb2df8`(常量登记门)· `4e005bd`(伤情数据行)· `f5ffff2`(规则九 I2 收紧)三者的**已提交**部分均在该 HEAD 内"
-        caveat: "⚠️ **不得**当干净树三元组引用;它的数值里混着未提交的烘焙管线代码"
-      superseded_first_attempt:
-        value: "4695 / 4660 / 0 / 35"
-        batch: "s18-closeout-final-20261023"
-        commit_used: "2026cce(2026-10-23 22:32)"
-        why_invalid: "晚于 sprint-18 末个生产提交 `4e005bd` **30 小时**、隔 **26 个提交**;中间 `133a564`/`655c8a3`/`beb608f`/`f2747b3`/`421376a` 等改 Sim 生产码 ⇒ 那是后续轮次的树,不是 sprint-18 的树。**首轮误当收口数 = 借绿,已撤回。**"
-      verify_cmd: "python3 -c \"import re;s=open('unity/Logs/regress-final.xml',encoding='utf-8',errors='ignore').read();m=re.search(r'<test-run[^>]*>',s).group(0);print({k:re.search(k+r'=\\\"([^\\\"]*)\\\"',m).group(1) for k in ('total','passed','failed','inconclusive','skipped','start-time')})\""
-      clean_tree_claim_check: "git ls-tree -r --name-only f83033e -- unity/Assets/Editor.Tools.Gates/RuleNineGate.cs   # 空 ⇒ regress-rulenine2 的「干净树」标注为假"
+      value: "4475 / 4439 / 0 / 36"
+      measured_at: "2026-10-24 00:56:35 → 00:58:09 (+0800)"
+      batch: "s18-closeout-clean-4e005bd-editmode"
+      commit: "4e005bd(2026-10-22 16:04:21)—— sprint-18 末个生产提交"
+      artifact: "unity/Logs/s18-closeout-clean-4e005bd-editmode.{xml,log}"
+      xml_sha256: "3f57572ccb8b8fed1966b545db0bbdaa681787028508659f5cc3f7502d7ddd56"
+      clean_tree_proof: "① 起跑前 `git status --porcelain` = 0,HEAD 逐字 = `4e005bd43dc4e3f23647db5be153872be2e1eb82`;② XML 内 **277 个 fixture 类全部可解析到 `4e005bd` 树内的类声明**(树内 1448 个类),**零「树里没有的 fixture」** —— 这正是 `regress-rulenine2` / `regress-final` 两次假绿的判据;唯二名字不直接匹配者已查实为包内文档示例(`AddressableAssets.DocExampleCode.TestStub`)与嵌套类(`YawBasisTest+PitchLimitValidationTest` @ `yaw_basis_test.cs:250`);③ 跑后 `git status` 仍 = 0,`UniversalRenderPipelineGlobalSettings.asset`(`a30368b3…`)与 `ProjectSettings.asset`(`0fc69c20…`)SHA-256 逐字节复原。"
+      errors: "`error CS` = 0 · `[RuleNine` = 0 · `[fs-write` = 0 · `BuildFailedException` = 0"
+      delta_vs_rulenine2: "`4451 → 4475`:新增 **24** / 消失 **0**(全名集差集;24 = `DiseaseConstantRegistryGateTest` 11 + `DiseaseRegistryDataTest` 13,皆 `3bb2df8` / `4e005bd` 落的)。Δtotal = Δpassed = 24 = 新增条数 ⇒ 等式闭合。"
+      delta_vs_regress_final: "`4501 → 4475`:新增 **0** / 消失 **26**(26 = `DiseaseRegistryBakePipelineTest` 20 + `JsonStage1LexerTruncationTest` 6)。⚠️ **这 26 条在 `4e005bd` 树中不存在**(`133a564` @17:48 才提交)⇒ 是**脏树残留**,不是回归。等式 `4501 − 26 = 4475` 闭合。"
+      verify_cmd: "python3 -c \"import re;s=open('unity/Logs/s18-closeout-clean-4e005bd-editmode.xml',encoding='utf-8',errors='ignore').read();m=re.search(r'<test-run[^>]*>',s).group(0);print({k:re.search(k+r'=\\\"([^\\\"]*)\\\"',m).group(1) for k in ('total','passed','failed','inconclusive','skipped','start-time')})\"   # 期望 total=4475 passed=4439 failed=0 skipped=36"
+      clean_tree_recheck_cmd: "python3 -c \"import xml.etree.ElementTree as ET,subprocess;r=ET.parse('unity/Logs/s18-closeout-clean-4e005bd-editmode.xml').getroot();cls={(t.get('classname') or '').split('.')[-1] for t in r.iter('test-case')};tree=set(subprocess.run(['git','grep','-h','-o','-E','(class|struct) +[A-Za-z_][A-Za-z0-9_]*','4e005bd','--','*.cs'],capture_output=True,text=True).stdout.replace(':',' ').split());print('缺:',sorted(c for c in cls if c not in tree))\"   # 期望仅 TestStub / YawBasisTest+PitchLimitValidationTest 两个已查实例外"
     playmode:
-      status: "⚠️ **NOT-RUN(覆盖 sprint-18 最终代码)**"
-      best_available:
-        value: "202 / 202 / 0 / 0"
-        measured_at: "2026-10-22 19:11 (+0800)"
-        batch: "test-playmode-round3"
-        head_at_run: "655c8a3(2026-10-22 18:30)"
-        caveat: "晚于 sprint-18 末个生产提交 `4e005bd`,但**早于** `421376a`(23:48);且其后的 `fed0639` 之前还有 19 个提交改过 `Gameplay.*` / `Sim` ⇒ 不覆盖 sprint-18 最终代码"
-    note: "⚠️ **本段不提供 sprint-18 的收口三元组,只提供「最接近的可用件 + 它们的失效理由」。** 这是**如实的 NOT-RUN**,不是「已收口」。要补齐须在 `4e005bd` 的干净树上重跑 —— 那是**下一步动作**,不是本轮已做的事。"
+      value: "202 / 202 / 0 / 0"
+      measured_at: "2026-10-24 01:00:25 → 01:00:29 (+0800)"
+      batch: "s18-closeout-clean-4e005bd-playmode"
+      commit: "4e005bd(同一干净树,PlayMode 起跑前未再 checkout)"
+      artifact: "unity/Logs/s18-closeout-clean-4e005bd-playmode.{xml,log}"
+      xml_sha256: "ed9a926dae4f65c00f48dafa46b1c4e6591a0338db60dd1852035b6f20f8790d"
+      clean_tree_proof: "39 个 fixture 类**全部**可解析到 `4e005bd` 树(零例外);与旧批次 `test-playmode-round3` 的全名集双向差集 = 新增 0 / 消失 0 ⇒ 覆盖同一批用例。"
+      errors: "`error CS` = 0 · `[RuleNine` = 0 · `[fs-write` = 0 · `BuildFailedException` = 0"
+    boundary_note: "**收口树 = `4e005bd`,判据不是「最后一个提交」而是「最后一个 sprint-18 生产提交」**:① `git log --oneline 08049fb..4e005bd` 的 **10 个提交全部是 S18-1 的后续工作**(回顾 `8dcf22e` / 四缺口闭合 `f83033e` / AC⑦⑧ `5f40b59` / 规则九门 `7014630` / AC⑥⑦⑧ 回写 `44d0b45` / 常量门 `3bb2df8` / 三阈值补注 `6a6e099` / I2 收紧 `f5ffff2` / 伤情数据行 `4e005bd`);② `133a564` 起(F4 求值体 / 照护通道 / 烘焙管线 / 诊断 signs 等)属后续轮次,与 sprint-18 无关;③ `4e005bd` 之后仅 `fed0639` / `1662a41` 两个**记账层**提交(`git diff-tree` 实测 **0 个 .cs**)。⇒ 拿 `2026cce` 那棵树当收口数 = **借绿**(首轮已撤回)。"
+    archived_not_run:
+      note: "⬇️ 以下为 2026-10-24 补跑前的原文,整段保留作闭环记录。原文结论「NOT-RUN」在当时为真,现已被上方实测值取代。"
+      editmode:
+        status: "⚠️ **NOT-RUN(干净树)** —— sprint-18 无「干净树 + 覆盖收尾三提交」的全量 EditMode"
+        best_available:
+          value: "4501 / 4465 / 0 / 36"
+          measured_at: "2026-10-22 16:33:42 (+0800)"
+          batch: "regress-final"
+          artifact: "unity/Logs/regress-final.xml"
+          head_at_run: "4e005bd(2026-10-22 16:04:21)—— **但工作树脏**"
+          dirt_evidence: "XML 含 `DiseaseRegistryBakePipelineTest` 43 次,该件在 `4e005bd` 树中不存在(提交于 17:48 的 `133a564`)⇒ 跑测时工作树含未提交代码"
+          covers: "`3bb2df8`(常量登记门)· `4e005bd`(伤情数据行)· `f5ffff2`(规则九 I2 收紧)三者的**已提交**部分均在该 HEAD 内"
+          caveat: "⚠️ **不得**当干净树三元组引用;它的数值里混着未提交的烘焙管线代码"
+          superseded_by: "✅ 已由本段顶部的 `editmode.value`(`4475 / 4439 / 0 / 36` @ `4e005bd` 干净树)取代 —— 2026-10-24 实测补跑。本行保留作闭环记录。"
+        superseded_first_attempt:
+          value: "4695 / 4660 / 0 / 35"
+          batch: "s18-closeout-final-20261023"
+          commit_used: "2026cce(2026-10-23 22:32)"
+          why_invalid: "晚于 sprint-18 末个生产提交 `4e005bd` **30 小时**、隔 **26 个提交**;中间 `133a564`/`655c8a3`/`beb608f`/`f2747b3`/`421376a` 等改 Sim 生产码 ⇒ 那是后续轮次的树,不是 sprint-18 的树。**首轮误当收口数 = 借绿,已撤回。**"
+        verify_cmd: "python3 -c \"import re;s=open('unity/Logs/regress-final.xml',encoding='utf-8',errors='ignore').read();m=re.search(r'<test-run[^>]*>',s).group(0);print({k:re.search(k+r'=\\\"([^\\\"]*)\\\"',m).group(1) for k in ('total','passed','failed','inconclusive','skipped','start-time')})\""
+        clean_tree_claim_check: "git ls-tree -r --name-only f83033e -- unity/Assets/Editor.Tools.Gates/RuleNineGate.cs   # 空 ⇒ regress-rulenine2 的「干净树」标注为假"
+      playmode:
+        status: "⚠️ **NOT-RUN(覆盖 sprint-18 最终代码)**"
+        best_available:
+          value: "202 / 202 / 0 / 0"
+          measured_at: "2026-10-22 19:11 (+0800)"
+          batch: "test-playmode-round3"
+          head_at_run: "655c8a3(2026-10-22 18:30)"
+          caveat: "晚于 sprint-18 末个生产提交 `4e005bd`,但**早于** `421376a`(23:48);且其后的 `fed0639` 之前还有 19 个提交改过 `Gameplay.*` / `Sim` ⇒ 不覆盖 sprint-18 最终代码"
+          superseded_by: "✅ 已由本段顶部的 `playmode.value`(`202 / 202 / 0 / 0` @ `4e005bd` 干净树)取代 —— 2026-10-24 实测补跑。本行保留作闭环记录。"
+      note: "⚠️ **本段不提供 sprint-18 的收口三元组,只提供「最接近的可用件 + 它们的失效理由」。** 这是**如实的 NOT-RUN**,不是「已收口」。要补齐须在 `4e005bd` 的干净树上重跑 —— 那是**下一步动作**,不是本轮已做的事。"
   td_index:
     entries: 100
     p0_y: 89
