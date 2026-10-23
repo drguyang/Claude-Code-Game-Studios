@@ -9678,3 +9678,232 @@ total=4665 passed=4629 failed=0 inconclusive=0 skipped=36
 ⚠️ 工具噪声记录:`b4p92tegd` 起手 `pgrep -f "Unity.*-runTests"` 命中 PID `84935` =
 **我自己的 Bash 包装进程**(命令行含字面 "Unity…runTests"),非用户并行 batch。
 判据佐证:全仓 `unity/Temp/UnityLockfile` 不存在 + 本 run 2 分钟正常收敛(同前两次耗时)。
+
+---
+
+# round35 · 25 战斗:`MAG_FLOOR` / `MAG_CAP` 与 GDD 已裁定值的单位错(2026-10-23)
+
+## 本轮性质
+
+承「继续修」,继续扫 round33 的同型病灶(生产实现与**已裁定数值**漂移)。
+本轮**只钉判据、不改生产** —— 与 round33 首轮同形态(先让漂移可见,再等裁)。
+
+## 病灶(实测)
+
+`unity/Assets/Sim/CombatMagnitude.cs:43-44`:
+
+```csharp
+public const int MAG_FLOOR = 1000;
+public const int MAG_CAP   = 10000;
+```
+
+消费点是 **raw 构造**:`new Fix(MAG_FLOOR)`(`:66/:69/:70/:82/:85/:86`)。
+`Fix(long raw)` 是 **Q16.16 raw**(`Fix.cs:47`),不是数值 ⇒ 实际值:
+
+| 常量 | 生产值 | 当 raw 解释 | GDD 裁定(GDD `:1351-1352`) | 差 |
+|---|---|---|---|---|
+| `MAG_FLOOR` | 1000 | **0.01526** | **`1/20` = 0.05**(✅ 2026-10-07 代拍) | 3.28× |
+| `MAG_CAP` | 10000 | **0.15259** | **`1/2` = 0.5**(✅ 2026-10-07) | 3.28× |
+
+⚠️ **两者差同一倍数 3.28** —— 因为 `1000 : 10000` = `1/20 : 1/2` 恰好 = 10:1,
+**比例对、绝对尺度错**。这是**把数值当 raw 写进来**的典型单位错,不是刻意的设计取舍。
+
+### 活的影响(若接上)
+
+**当前零生产接线**(`grep CombatMagnitude. --include=*.cs unity/Assets/ | grep -v /Tests/` **零命中**)
+⇒ 今天不显形。但一旦 25 装配轮接上,全部敌/兽与零技能玩家的每次命中只有 GDD 地板的
+**30.5%**,高技能段则被 `MAG_CAP` 静默削平到 **30.5%** —— 恰是 AC-25-2-03 想防的模式。
+
+## 为什么既有测试全绿却没抓到
+
+`Tests/EditMode/Combat/combat_magnitude_f252_test.cs:34/42/62/99` 的断言是
+`Assert.AreEqual(CombatMagnitude.MAG_FLOOR, result.Raw, ...)` —— **自引**该常量。
+无论常量是 3277 还是 1000,断言都成立。
+
+⇒ 与 `judge_test.cs:322` 对 `GetResultMulTiers()` 的自引**同型**:
+**判据测的是常量本身,不测「该常量是否等于已裁定值」**。
+`AC-25-2-01` 的字面(「结果 = MAG_FLOOR」)成立,但它**不承载** GDD 的数值裁定。
+
+## 判据
+
+`Tests/EditMode/Combat/combat_magnitude_gdd_value_drift_test.cs`(5 条):
+
+| # | 判据 | 结果 |
+|---|---|---|
+| ① | 退化式 = `FixParse.Parse("1/20").Raw + baseStep.Raw` | **红**(19661 vs 10000) |
+| ①' | 退化式与任意 CP 无关(AC-25-2-09 语义层) | 绿(前提) |
+| ② | `CP = CP_MAX` ⇒ `1/20 + base_step`(AC-25-2-02) | **红**(19661 vs 10000) |
+| ③ | 超界被夹到 `1/2` 的 raw 32768 | **红**(32768 vs 10000) |
+| ④ | A13a/b + `MAG_CAP ≤ 1` 安全区 | 绿(前提) |
+
+**真值一律经 `FixParse.Parse`**(ADR-006 §五),不读被钉常量 —— 这是与既有自引式判据的分水岭。
+
+## 探针(2 轮 · 变异窗口 = `Sim/CombatMagnitude.cs`,窗口内不读该文件)
+
+| 探针 | 变异 | 结果 | 结论 |
+|---|---|---|---|
+| **FIX** | `1000→3277` · `10000→32768`(GDD raw) | **4 绿 1 红** | ①②③ 全转绿 ⇒ 判据认**精确 raw**,非「非零即绿」 |
+| **HALF** | `1000→3276` · `10000→30000`(非零但错) | **3 红** | 实测 19660 vs 19661(差 1)· 30000 vs 32768 ⇒ 精确到 1 raw |
+
+### ⚠️ FIX 探针抓到**我自己写坏的判据**(必须记)
+
+FIX 探针那 1 红**不是缺陷**,是 ④ 初稿里我写了
+`Assert.That(MAG_FLOOR, Is.Not.EqualTo(GddFloor.Raw))` ——
+即**把「缺陷仍在」写成了判据**:一旦有人把值修对,本条反而红。
+
+⇒ **该断言已删除**,④ 改为纯前提(A13a/b 区间)。④ 现修前修后皆绿。
+**教训**:**前提里不得出现「缺陷仍在」型断言** —— 它会让「修好了」变成失败。
+这条是本轮最值得留下的东西:证伪轮不只验证「判据会红」,也验证「判据不会因修好而红」。
+
+**还原**:`sha256sum -c` 逐字节回基线
+`3cc16dac421612b08a6df4fba0c03a58eed5c7890254573e28c3e97c3d22d0c4`,残留 `MUT-` = **0**。
+
+## 回归三元组
+
+```
+total=4670 passed=4631 failed=3 inconclusive=0 skipped=36
+@ 2026-10-23 08:51 (+0800) · round35 全量 · 基线 commit 47bcbd2
+```
+
+对照 round34(`4665/4629/0/36`):**total +5**(新增 5 条)· **passed +2**(两条前提)·
+**failed 0 → 3**(三条真判据)。
+**等式**:`5 = 2 + 3` ✓ —— 无借绿、无消失。
+
+## ⚠️ 这 3 红是**有意为之**,不是回归
+
+与 round33 首轮同形态:判据钉的是一条**真缺陷**,红是它的正常工作状态。
+**不得**为让全绿而删除或放宽这三条。
+
+## 同批发现(未处置,一并登记)
+
+`MAG_FLOOR` 在**三处**各有定义,值互不相同:
+
+| 位置 | `MAG_FLOOR` | `MAG_CAP` |
+|---|---|---|
+| `Sim/CombatMagnitude.cs:43-44` | **1000** | 10000 |
+| `Sim/CombatActionSchema.cs:43/45` | **1** | 10000 |
+| GDD `:1351`/`:1352` | **1/20** | **1/2** |
+
+`CombatActionSchema` 生产消费点亦为 **0**(仅 `RuntimeSourceGuard.cs` 提到文件名)。
+⇒ 与 round34 的 ResultMul 同型:**同一语义常量在多处各自定义**。
+
+## 修法待定(需裁,本轮不动)
+
+两条路线,与 round34 的裁定 ①②③ 同构:
+
+- **① 只改值**:`MAG_FLOOR = 3277`、`MAG_CAP = 32768`(`const int` 保留 raw 语义)。
+  最小改动,但**不消除**三处副本,漂移可再现。
+- **② 改值 + 消掉副本**(round34 用户所选口径):改 `static readonly Fix`(经 `FixParse`),
+  并让 `CombatActionSchema` 引用同一真源 ⇒ 三处归一。
+
+⚠️ 与 round34 的关键差异:**25 当前零接线**,所以这不是「活路径跑错值」而是
+「未接线实现里的单位错 + 三处副本」;且 `:1351` 标的是「**代拍**」而非「用户裁定」。
+⇒ 是否照 round34 的 ② 口径执行,**待用户明示**。
+
+---
+
+# round36 · 裁定 ② 执行:25 战斗 MAG_FLOOR/MAG_CAP 改值 + 消掉三处副本(2026-10-23)
+
+## 用户裁定
+
+**② 改值 + 消掉副本**。
+
+## 唯一真源的落点(为什么选 `CombatActionSchema`)
+
+| 候选 | 理由 |
+|---|---|
+| `CombatActionSchema` ✅ | A13a / A13b 两条构建期断言的**归属方**就在此 ⇒ 断言与被断言常量同类型,无反向依赖 |
+| `CombatMagnitude` | 它是**计算器**,让 schema 引用计算器 = 反向依赖 |
+
+依赖方向实测:`CombatActionSchema` 与 `CombatMagnitude` **互不依赖**(grep 双向零命中)⇒ 归一不会造环。
+
+## 改动(两处生产文件)
+
+### `Sim/CombatActionSchema.cs`
+
+```diff
+-        // A13a: MAG_FLOOR > 0
+-        public const int MAG_FLOOR = 1;
+-        // A13b: MAG_FLOOR < MAG_CAP
+-        public const int MAG_CAP = 10000;
++        public static readonly Fix MagFloor = FixParse.Parse("1/20");   // GDD :1351
++        public static readonly Fix MagCap   = FixParse.Parse("1/2");    // GDD :1352
++        public static long MAG_FLOOR => MagFloor.Raw;   // 兼容旧名(原 const int = 1)
++        public static long MAG_CAP   => MagCap.Raw;     // 兼容旧名(原 const int = 10000)
++        public static void ValidateMagnitudeBounds() { ... }   // A13a/b 的**可执行**形式
+```
+
+⚠️ **`ValidateMagnitudeBounds` 是新增的执行体**:原 `Validate` 末尾的 A13a/A13b
+**只是一句注释**(「常量已定义,这里验证条目不违反」),按「注释不是执行体」纪律补成真断言。
+它不塞进 `Validate`(那是逐条目校验的职责),由装配 / 构建入口显式调用 ——
+**这一点须记账:目前尚无生产调用点**,与 `WriterExistenceGate` 同类,
+判据在 `combat_magnitude_gdd_value_drift_test.cs` 里以「常量自洽」形式间接守住。
+
+### `Sim/CombatMagnitude.cs`
+
+```diff
+-        public const int MAG_FLOOR = 1000;
+-        public const int MAG_CAP = 10000;
++        private static Fix MagFloor => CombatActionSchema.MagFloor;
++        private static Fix MagCap   => CombatActionSchema.MagCap;
++        public static long MAG_FLOOR => CombatActionSchema.MagFloor.Raw;
++        public static long MAG_CAP   => CombatActionSchema.MagCap.Raw;
+...
+-            Fix raw = new Fix(MAG_FLOOR) + term;
+-            if (raw.Raw < MAG_FLOOR) return new Fix(MAG_FLOOR);
+-            if (raw.Raw > MAG_CAP) return new Fix(MAG_CAP);
++            Fix raw = MagFloor + term;
++            if (raw.Raw < MagFloor.Raw) return MagFloor;
++            if (raw.Raw > MagCap.Raw) return MagCap;
+```
+
+**保留旧名的原因**:4 处既有夹具引用 `CombatMagnitude.MAG_FLOOR/MAG_CAP`
+(它们是**自引式**断言,见 round35)。保留为 `long` 属性 ⇒ 编译不破、
+语义不变(仍是 Q16.16 raw),**只有值变了**(`1000 → 3277`、`10000 → 32768`)。
+`CombatActionSchema.MAG_FLOOR/MAG_CAP` 同理(原 `const int` 被 `combat_actions_schema_test.cs:93/100` 引用)。
+
+## GDD 自洽性验算(动手前做的)
+
+```
+1/20 raw = 3277 · 1/2 raw = 32768
+MAG_CAP − MAG_FLOOR = 1/2 − 1/20 = 9/20 = 29491 raw
+GDD :1350 的 BASE_STEP_MAX = 9/20        ⇒ 一致 ✓
+A13a floor>0 ✓   A13b floor<cap ✓   MAG_CAP ≤ 1 ✓
+```
+
+## 判据
+
+`Tests/EditMode/Combat/combat_magnitude_gdd_value_drift_test.cs` ——
+**round35 的 3 红 → 全部转绿**。
+
+⚠️ **命名空间已订正**:该文件初建用 `DaYiJingCheng.Tests.Unit.Combat`,
+而 `Tests/EditMode/Combat/` 下**既有 6 个类全是 `DaYiJingCheng.Tests.Combat`**
+⇒ 已对齐既有约定(否则 `-testFilter "…Tests.Combat"` 扫不到它 —— 这是实测发现的)。
+
+## 探针证据
+
+| 探针 | 做法 | 结果 |
+|---|---|---|
+| **SCHEMA**(副本消除) | `grep "const int MAG_FLOOR ="` 排除注释行、排除 schema 本身 | **零命中** ⇒ 生产侧已无第二份定义 |
+| 真源引用 | `grep MagFloor\|MagCap CombatActionSchema.cs` | 定义 1 处(`:63`/`:69`)+ 旧名投影 2 处(`:74`/`:77`)+ 断言 3 处 |
+| **FIX**(round35) | 常量改 GDD raw | 4 绿 1 红(后者是我自己写坏的判据,已删) |
+| **HALF**(round35) | 常量改非零但错 | 3 红,19660 vs 19661 精确到 1 raw |
+
+⚠️ SCHEMA 探针唯一「命中」是 `CombatMagnitude.cs:47` 的**历史记述文本**
+(`/// 原状:public const int MAG_FLOOR = 1000;`)—— **注释不是执行体**。
+
+## 回归三元组
+
+```
+total=4670 passed=4634 failed=0 inconclusive=0 skipped=36
+@ 2026-10-23 09:06 (+0800) · round36 最终树 · 基线 commit 47bcbd2
+```
+
+对照 round35(`4670/4631/3/36`):
+**total 不变(4670)** · **passed 4631 → 4634(+3)** · **failed 3 → 0**。
+⇒ 三条判据转绿,**零新增、零消失、零回归**。
+
+## 状态
+
+`25-MAG单位错` 债项**已结清**(裁定 ② 执行完毕)。
+连带处置:round35 发现的「`MAG_FLOOR` 三处定义互不相同」⇒ **归一为单一定义**。

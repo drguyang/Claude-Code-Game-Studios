@@ -39,9 +39,38 @@ namespace DaYiJingCheng.Sim
     /// </summary>
     public static class CombatMagnitude
     {
-        // A13a/b: MAG_FLOOR > 0 且 < MAG_CAP
-        public const int MAG_FLOOR = 1000;
-        public const int MAG_CAP = 10000;
+        /// <summary>
+        /// `MAG_FLOOR` —— **不再本处定义**,唯一真源 = <see cref="CombatActionSchema.MagFloor"/>。
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ **2026-10-23(用户裁定 ② · round36):本类的手写副本已删除**。
+        /// <para><b>原状</b>:<c>public const int MAG_FLOOR = 1000;</c>,且消费点是
+        /// <c>new Fix(MAG_FLOOR)</c> —— <see cref="Fix"/> 的 `long` 构造是 **Q16.16 raw**
+        /// (见 `Fix.cs:47`)⇒ 实际地板 `1000/65536 ≈ 0.01526`,
+        /// 只有 GDD `:1351` 裁定的 `1/20 = 0.05` 的 **30.5%**。</para>
+        /// <para><b>现口径</b>:直接引用 <see cref="CombatActionSchema.MagFloor"/>(<see cref="Fix"/> 类型,
+        /// 由 `FixParse.Parse("1/20")` 产出)⇒ 副本消失,不可能再漂移。</para>
+        /// <para><b>为什么既有测试没抓到</b>:`combat_magnitude_f252_test.cs`
+        /// 用 <c>Assert.AreEqual(CombatMagnitude.MAG_FLOOR, result.Raw, ...)</c> ——
+        /// **自引**该常量,常量写什么都绿(与 `judge_test.cs:322` 自引 schema 同型)。</para>
+        /// </remarks>
+        private static Fix MagFloor => CombatActionSchema.MagFloor;
+
+        /// <summary>`MAG_CAP` —— 唯一真源 = <see cref="CombatActionSchema.MagCap"/> (GDD `:1352` = `1/2`)。
+        /// 原状 `const int MAG_CAP = 10000`(当 raw ⇒ 0.1526,应为 0.5),见上面的 remarks。</summary>
+        private static Fix MagCap => CombatActionSchema.MagCap;
+
+        /// <summary>
+        /// `MAG_FLOOR` 的 **raw** 值(= <see cref="CombatActionSchema.MagFloor"/>`.Raw`)。
+        /// <para>⚠️ 保留此名是为了不打断既有 4 处夹具引用;语义与改前的 `const int` 一致
+        /// (均为 Q16.16 **raw**),**只有值变了**(`1000` → `3277` = `1/20`)。</para>
+        /// </summary>
+        public static long MAG_FLOOR => CombatActionSchema.MagFloor.Raw;
+
+        /// <summary>`MAG_CAP` 的 **raw** 值(= <see cref="CombatActionSchema.MagCap"/>`.Raw`;
+        /// `10000` → `32768` = `1/2`)。语义见 <see cref="MAG_FLOOR"/>。</summary>
+        public static long MAG_CAP => CombatActionSchema.MagCap.Raw;
+
 
         /// <summary>
         /// 计算 magnitude。
@@ -63,11 +92,11 @@ namespace DaYiJingCheng.Sim
             }
 
             // raw = MAG_FLOOR + term
-            Fix raw = new Fix(MAG_FLOOR) + term;
+            Fix raw = MagFloor + term;
 
-            // clamp
-            if (raw.Raw < MAG_FLOOR) return new Fix(MAG_FLOOR);
-            if (raw.Raw > MAG_CAP) return new Fix(MAG_CAP);
+            // clamp(两端均取真源的 Fix,不再拼 raw 字面量)
+            if (raw.Raw < MagFloor.Raw) return MagFloor;
+            if (raw.Raw > MagCap.Raw) return MagCap;
             return raw;
         }
 
@@ -79,11 +108,11 @@ namespace DaYiJingCheng.Sim
             if (parms == null) throw new ArgumentNullException(nameof(parms));
 
             // 退化式 = MAG_FLOOR + base_step
-            Fix raw = new Fix(MAG_FLOOR) + parms.BaseStep;
+            Fix raw = MagFloor + parms.BaseStep;
 
-            // clamp
-            if (raw.Raw < MAG_FLOOR) return new Fix(MAG_FLOOR);
-            if (raw.Raw > MAG_CAP) return new Fix(MAG_CAP);
+            // clamp(同 ComputeMagnitude:两端取真源 Fix)
+            if (raw.Raw < MagFloor.Raw) return MagFloor;
+            if (raw.Raw > MagCap.Raw) return MagCap;
             return raw;
         }
 

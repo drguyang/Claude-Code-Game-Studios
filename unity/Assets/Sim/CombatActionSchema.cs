@@ -39,10 +39,67 @@ namespace DaYiJingCheng.Sim
     /// </summary>
     public static class CombatActionSchema
     {
-        // A13a: MAG_FLOOR > 0
-        public const int MAG_FLOOR = 1;
-        // A13b: MAG_FLOOR < MAG_CAP
-        public const int MAG_CAP = 10000;
+        /// <summary>
+        /// `MAG_FLOOR` —— **真源**(GDD `combat-and-weapon-lines.md` `:1351`:**`1/20`**,✅ 2026-10-07 代拍)。
+        /// <para>A13a:`MAG_FLOOR &gt; 0`(GDD `:749` 安全区 `(0, 0.2]` 的下半)。</para>
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ **2026-10-23(用户裁定 ② · round36):本类型是 `MAG_FLOOR` / `MAG_CAP` 的唯一真源**。
+        /// <para><b>改前原状</b>:`MAG_FLOOR` 在**三处**各有定义且互不相同 ——
+        /// 本类 `= 1` · `CombatMagnitude.cs:43` `= 1000` · GDD `:1351` `= 1/20`。
+        /// 其中 `CombatMagnitude` 把 `1000` 当 **Q16.16 raw** 喂给 `new Fix(...)`
+        /// ⇒ 实际地板 `1000/65536 ≈ 0.01526`,只有 GDD 的 30.5%;`MAG_CAP` 同理
+        /// (`10000/65536 ≈ 0.1526` vs 应有的 `0.5`)—— **比例对、绝对尺度错**的典型单位错。</para>
+        /// <para><b>现口径</b>:两者在此**只定义一次**,以 <see cref="Fix"/> 承载(不是 `int`),
+        /// 经 <see cref="FixParse.Parse"/> 由 GDD 的分数字面量产出(ADR-006 §五 唯一解析入口,
+        /// 禁浮点)。`CombatMagnitude` 与所有消费方**引用本处**,不得另写副本。</para>
+        /// <para><b>为何放本类而不是 `CombatMagnitude`</b>:A13a / A13b 两条构建期断言
+        /// (`Validate` 的注释义务)住在**本类** —— 断言与被断言的常量同处一个类型,
+        /// 不存在「schema 引用计算器」的反向依赖。</para>
+        /// <para><b>判据</b>:`Tests/EditMode/Combat/combat_magnitude_gdd_value_drift_test.cs`
+        /// (黑盒驱动真 `CombatMagnitude`,真值经独立的 `FixParse.Parse("1/20")` 而非读本常量;
+        /// 另有 SCHEMA 探针证明消费方真的绑定在本处)。</para>
+        /// </remarks>
+        public static readonly Fix MagFloor = FixParse.Parse("1/20");   // GDD :1351
+
+        /// <summary>
+        /// `MAG_CAP` —— **真源**(GDD `:1352`:**`1/2`**,✅ 2026-10-07)。
+        /// <para>A13b:`MAG_FLOOR &lt; MAG_CAP`(见 <see cref="MagFloor"/> 的 remarks)。</para>
+        /// </summary>
+        public static readonly Fix MagCap = FixParse.Parse("1/2");      // GDD :1352
+
+        /// <summary>`MagFloor` 的 **raw**(兼容旧名;`const int` → `long` 属性,值同)。
+        /// <para>⚠️ 2026-10-23:原 `const int MAG_FLOOR = 1` 与 GDD 的 `1/20` 不符,
+        /// 且与 `CombatMagnitude` 的副本(`1000`)三方各异。现为真源的 raw 投影。</para></summary>
+        public static long MAG_FLOOR => MagFloor.Raw;
+
+        /// <summary>`MagCap` 的 **raw**(兼容旧名)。原 `const int MAG_CAP = 10000`。</summary>
+        public static long MAG_CAP => MagCap.Raw;
+
+        /// <summary>
+        /// A13a / A13b 的**可执行**形式(此前只有注释,没有执行体)。
+        /// </summary>
+        /// <remarks>
+        /// ⚠️ 原状:`Validate` 末尾只写着「A13a: MAG_FLOOR &gt; 0 / A13b: MAG_FLOOR &lt; MAG_CAP
+        /// (常量已定义,这里验证条目不违反)」—— **是一句注释,不是断言**。
+        /// 按「注释不是执行体」纪律,补成真断言;值本身由 <see cref="MagFloor"/> / <see cref="MagCap"/>
+        /// 的初始化承载,本方法守的是**结构关系**(改值时若破坏 A13a/b,构建期即红)。
+        /// </remarks>
+        /// <exception cref="CombatSchemaValidationException">常量违反 A13a 或 A13b。</exception>
+        public static void ValidateMagnitudeBounds()
+        {
+            if (MagFloor.Raw <= 0)
+                throw new CombatSchemaValidationException(
+                    $"A13a: MAG_FLOOR 必须 > 0,GDD :749 安全区 (0, 0.2];实测 raw={MagFloor.Raw}", -1);
+            if (MagFloor.Raw >= MagCap.Raw)
+                throw new CombatSchemaValidationException(
+                    $"A13b: MAG_FLOOR 必须 < MAG_CAP(否则 clamp 区间为空);" +
+                    $"实测 floor={MagFloor.Raw} cap={MagCap.Raw}", -1);
+            // 上端:GDD :1352「>1 ⇒ 一击填满 bar」⇒ MAG_CAP ≤ 1.0
+            if (MagCap.Raw > Fix.OneRaw)
+                throw new CombatSchemaValidationException(
+                    $"GDD :1352 安全区上端: MAG_CAP 必须 ≤ 1;实测 raw={MagCap.Raw}", -1);
+        }
 
         /// <summary>
         /// 校验动作表条目。
@@ -88,6 +145,11 @@ namespace DaYiJingCheng.Sim
             // A13a: MAG_FLOOR > 0
             // A13b: MAG_FLOOR < MAG_CAP
             // （常量已定义，这里验证条目不违反）
+            //
+            // ⚠️ 2026-10-23(round36):上面两行**原本就是注释,不是断言** —— 按
+            //    「注释不是执行体」纪律已补可执行版 = <see cref="ValidateMagnitudeBounds"/>。
+            //    本方法(Validate)保持逐条目校验的职责,不在此重复调它;
+            //    装配 / 构建入口应显式调 ValidateMagnitudeBounds()。
         }
 
         /// <summary>
