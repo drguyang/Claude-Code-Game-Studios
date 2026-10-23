@@ -10181,3 +10181,49 @@ M4 的构造要点:桶 = `result.Count == 0 ? e.ActorId : First(result.Keys)`,
 SkillSystem 套件单跑:`191/191/0/0`(round38 为 190,同样 +1)。
 
 **未提交** —— 未收到 commit 指令。
+
+---
+
+## round40 — OQ-9-1 裁乙案并落地(2026-10-23 · 已提交 `2ea9dca`)
+
+**用户裁定**:「OQ-9-1 取乙案」⇒ 起算点 = `onset + incubation`(不是 `onset`)。
+
+**落点**:`unity/Assets/Sim/ProgressionEvaluator.cs:ComputeLowPositionHeldTicks`
+—— `countingStart = onsetTick + incubation`;`currentTick < countingStart ⇒ 返回 0`;
+`span = currentTick - countingStart + 1`。`incubation` 取法与 `ComputeProgress` 同口径
+(`Curve != null ? Incubation : RecoveryTime`,:183 与 :357 两处必须一致)。
+
+**判据**:`unity/Assets/Tests/EditMode/DiseaseSimulation/low_position_held_incubation_boundary_test.cs`(6 条)
+① countsFromIncubationEnd ② incubationLongerThanWindow ③ 对照(隔离原因)
+④ windowZero 两支不求值 ⑤ 真表影响面绊线 ⑥ 具名代价(潜伏→痊愈边不可达)
+
+**证伪三轮全红**(变异窗口只含 `ProgressionEvaluator.cs`,锚串命中数 = 1 断言,
+还原 = cp 回 + SHA-256 逐字节比对,未用 `git checkout`/`stash`;残留 `MUT-` = 0):
+M4 回退甲案 红 4 · M5 incubation 取 0 红 4 · M6 off-by-one 红 2。
+
+**具名代价(已登记债册 C-3「9-潜伏痊愈边关闭」)**:乙案把 GDD `:544`/`:567` 明列的
+「潜伏 → 痊愈」合法边一并关掉(触发条件与痊愈支 ②③④ 同源;潜伏期内 `held` 恒 0 < W)。
+该边在乙案下**永久关闭**,恢复须另裁(三方向均改 GDD 语义)。判据 = 第 ⑥ 条。
+
+**裁定前实测订正**:OQ 原文称「当前 13 行数据」受影响;实扫真产物
+`DataCookedDisk.LoadDiseaseRegistry()` ⇒ 13 行中**仅 `DIS_MEASLES`(id=11, incubation=600)**
+满足「痊愈候选 ∧ 有潜伏期」。已钉成绊线判据 ⑤。
+
+**修好了 ≠ 生效了**:`W` 仍为 0(`assets/data/disease_registry.json:11`,归数值轮)
+⇒ `IsConfigured == false` ⇒ 两支依然不求值。行为变化在 `W` 填上前**不可观测**。
+
+**顺带订正三处混淆**(「`W` 数值未裁」≠「`OQ-9-1` 未裁」;原文留痕):
+`real_registry_patient_death_test.cs:45` · `real_registry_patient_outcome_fold_test.cs:29` ·
+`w_trend_eps_vitals_end_to_end_test.cs:29`。
+
+## 回归三元组(实跑)
+
+`total=4684 passed=4648 failed=0 inconclusive=0 skipped=36` · **EXIT=0**
+@ **2026-10-23 12:21–12:23 +0800** · 批次 **round40 乙案全量 EditMode** · 基线 commit **`a08920b`**
+Δ = **+1 / +1 / 0 / 0**(相对 round40a `4683/4647`;判据文件 5 → 6 条净 +1),零回归。
+
+收口改动(三处纯注释 + 三份文档)之后补跑子集:
+`total=221 passed=221 failed=0 inconclusive=0 skipped=0`(DiseaseSimulation 套件)
+—— 证明收口改动编译通过、该套件全绿;**全量仍以上方三元组为准**。
+
+**已提交** `2ea9dca` · **未推送**(origin/main 落后 16 个 commit)。
