@@ -125,7 +125,7 @@ work_items:
     status: "done"
     owner: "claude"
     completed: "2026-10-22"
-    closure_caveat: "⚠️ **`status: done` 只表示本工作项交付完毕,不表示 `TD-persist-01` 结案** —— 债册 `TD-INDEX` 该行保持 `open`(2026-10-22 收口复核)。三条未满足:① `FoldedPredicate` **零生产调用点**(`SaveService` 形参默认 `null`,折叠未进存档路径;`HistoryFolder.Fold` 调用点全在 `folded_predicate_test.cs` 内);② `OQ-7a-10` 未裁(抹除作用域取权威字面而非已裁口径);③ 折叠**产出面**无变异反证(签核件 D-5 —— 四轮变异无一打「抹哪些行」)。结案判据 = 三项同时满足。详见 `production/sprints/sprint-18.md` §九.2。"
+    closure_caveat: "⚠️ **`status: done` 只表示本工作项交付完毕,不表示 `TD-persist-01` 结案** —— 债册 `TD-INDEX` 该行保持 `open`(2026-10-22 收口复核)。三条未满足:① `FoldedPredicate` **零生产调用点**(`SaveService` 形参默认 `null`,折叠未进存档路径;`HistoryFolder.Fold` 调用点全在 `folded_predicate_test.cs` 内);② ~~`OQ-7a-10` 未裁~~ 🔁 **2026-10-24 已裁(用户裁定 A)** —— 条件① 由 ∃ 收紧为 ∀(空集 `D_p = ∅` ⇒ false),落 `Sim/FoldedPredicate.cs` ⇒ **本项已满足**;③ 折叠**产出面**无变异反证(签核件 D-5 —— 四轮变异无一打「抹哪些行」)。结案判据 = 三项同时满足 ⇒ **现剩 ①③ 两项未满足**(原三项,2026-10-24 裁定 A 结清 ②)。详见 `production/sprints/sprint-18.md` §九.2。"
     depends_on: ["ADR-010 §二 折叠行形状", "CaseStreamQuery.HasOpenCase(已在盘)"]
     evidence: "unity/Assets/Tests/EditMode/PersistenceService/folded_predicate_test.cs(新 · 29 测 · 2026-10-22 已跑全绿)"
     note: "四条件 = ① 终态(痊愈 / 死亡)② plateau / relapse.* 豁免 ③ 无未结案病例(ADR-008 §六)④ SkillGrown 行豁免(ADR-026 §⑦)。折叠行 = (onset, 病种_id, patient_id, patient_seed, outcome, t_end) 逐字段(ADR-010 §二)。③ 的判据接口**已在盘**:CaseStreamQuery.HasOpenCase(unity/Assets/Sim/CaseOpenDecider.cs:66)⇒ 本件不需要先补 37 侧。⚠️ 实测现状:bool Fold / FoldEligible / CanFold / ShouldFold 全树零命中;唯一相关内容是测试侧自陈(Tests/EditMode/CaseSystem/case_replay_persistence_test.cs:22 / :131)。⚠️ 同名巧合**不构成已还**:CasebookScreen.IsFolded(Gameplay.UI)与 MarkRegistry.FoldedCorner 是 42 的纸面折角,与 7a 的流折叠无关。 ✅ **2026-10-22 收口**:按 2026-10-21 两项用户裁定落 —— **甲案(抽象点住 `Sim.Contracts`、实现住 `Sim`)** + **折叠行与折叠动作住 `Sim`**;`SaveService` 走**构造函数注入**(可选形参),`ISaveService` 公开方法集**未动**(ADR-010 `:331` 反射断言)。落盘 = `Sim.Contracts/IFoldedPredicate.cs` · `Sim/FoldedPredicate.cs`(①②③,③ **复用** `CaseStreamQuery.HasOpenCase` 不另抄)· `Sim/FoldRow.cs`(六字段,次序逐字 = ADR-010 §二)· `Sim/HistoryFolder.cs`(产行 + 抹除,条件 ④ 的落点)· `Sim.Codec/SaveService.cs`(改)· 测试 29 条。回写 = `adr-025-contract-assembly-manifest.md:112` 的「② `IFoldedPredicate`」标**已落**。 **⚠️ 与提案的一处偏离(已就地登记,未代拍)**:提案写「保留**无终态病程的行**」,**实现为抹除该病人全部病史行减 `SkillGrown`** —— 理由:① `Folded(p)` 输出是布尔、按病人整体判定(F-7a-4 `:328`),无「按病种切」的信息;② 终态是 F4 吸收态(ADR-032 ⑤),判成终态者不存在仍在演进的病程;③ 除 onset / outcome 外的病史行**不携带病种 id**,按病种保留只能是任意切分。条件 ① 「存在性查询病人级 vs 折叠行逐病种产」之缝**权威件未裁** ⇒ 新立 **`OQ-7a-10`**(`design/gdd/persistence-service.md` §Open Questions,归属 7a × 9 × 37,P1a 前)。 **全量回归三元组**(基线 = 本 sprint 自身 `s18-editmode-final-20261022` = `4389 / 4353 / 0 / 36`@commit `220acc3`):**截至 2026-10-22 08:27(+0800)· 批次 `s18-2-folded-full-20261022` · 树 = `220acc3` + S18-2 未提交件** ⇒ `4418 / 4382 / 0 / 36`。**Δtotal = Δpassed = 新增条数 = 29**;**全名集差集 = 新增 29 / 消失 0**(逐条列出,新增 29 条全为本件新测);`error CS` = 0 · 新件零编译告警 · skipped 36 不变。**证伪轮 4/4 全红**(S12-4,「改 → 跑 → `cp` 还原 → sha256 校验」同命令内完成,未用 `git checkout`,还原后两份生产件 `sha256sum -c` 皆「成功」):① 定义域收窄 = 停用 `patientId < 0` 守卫 ⇒ `test_folded_negativePatientId_throws` 红;② 共存互斥 = 删 `entry.Lethality <= 0 &&`(让 plateau 单独成豁免)⇒ `test_folded_plateauAndLethal_isNotExempt_returnsTrue` 红;③ 一次性/幂等 = 删「同病种第二条终态」抛错 ⇒ `test_fold_duplicateOutcomeForSameDisease_throws` 红;④ 定义域收窄(ADR-026 ④)= `e.Kind != SkillGrown` 改恒真 ⇒ `test_fold_retainsSkillGrownRows` + `test_fold_skillGrownReplayIsBitIdentical` 红。四轮均**无附带红**。 **未做(禁借绿)**:`FoldedPredicate` 当前**零生产调用点**(折叠尚未进存档路径,`SaveCodec` 只有单事件编解码 ⇒ 形参默认 `null`);9 的终态写者仍挂在 `WriterExistenceGate`;折叠行走字节级落盘归 7a 存档往返轮。**`lethal(d)` 取 `Lethality > 0`**(承 `EntityDeathGates.LethalityOf` / `R1_CHECK_22` 既有先例,未立第二套语义);`PRE-S18-D` 的「待用户确认」**未变**,若改判 bool 字段落点 = `FoldedPredicate.cs` 一处。"
@@ -304,6 +304,28 @@ conditions_closed:
     superseded_note: "⚠️ 本条此前挂在 open 段是**记账缺陷** —— `why_open` 自陈「门本身未建」,而门已于 2026-10-22 13:55(`7014630`)落地并接线。订正日期 2026-10-23,当时 commit = `2026cce`"
     moved_note: "🔁 **2026-10-24 迁移**:本条自 `conditions_open` 迁入本段(原文逐字保留)。迁入时 `status` 已是 `closed`。当时 commit = `a7c8b9e`"
 
+  # ═══ 2026-10-24 当日裁定关闭后迁入(原在 conditions_open,`status` 已转 closed) ═══
+  - id: "OQ-7a-10"
+    what: "`OQ-7a-10` 裁定 —— 折叠条件① 的**「病人级存在性查询」vs「折叠行逐病种产出」**之缝"
+    why_open: "**仍未裁**。实现取的是**权威字面**(抹除全部减 `SkillGrown`),而该字面与「病人级存在性」两种读法在**多病种病人**上结论不同 ⇒ 折叠产出面的正确性无判据可依"
+    owner: "用户(裁定)"
+    gate: "**不得**以「实现取权威字面」当已裁 —— 实现先行 ≠ 口径已定(C-7 的 `PRE-S18-D` 是「实现先于裁决」的同型先例,那条已如实登记该形态)"
+    affects: "影响 **G-2 / `TD-persist-01`**,不影响 G-1。`TD-persist-01` 结案判据 = 折叠接入存档路径 + 本条裁定 + 产出面变异反证 ⇒ 本条未裁则该债**保持 open**"
+    cross_ref: "`production/qa/qa-signoff-sprint-18-2026-10-22.md` §三 D-4 · `persistence-service.md:639` · `production/sprints/sprint-18.md` §九.2 / §九.4"
+    status: "✅ **closed(2026-10-24 用户裁定 A)**"
+    ruling: "**裁定 A —— 收紧为「全部病种皆终态」**:条件 ① 由 ∃ 改为 ∀,`终态(p) = ∀ d ∈ D_p : ∃ PatientOutcomeChanged(p, d)`;`D_p` = 该病人的 `DiseaseOnset` 病种集合(ADR-030);**空集 `D_p = ∅` ⇒ false**(不取真空为真 —— 误折不可逆)。病人级布尔输出与折叠行逐病种产出**均不变**;仍是**逐病种存在性查询,不重放 F4**(ADR-032 ⑥ 的核心主张保留,收紧的是「查询几个病种」而非「查询还是重算」)"
+    ruling_why: "**原注的前提被推翻** —— 它把多病种写成「若**将来**改为逐病种折叠」的假设,而多病种**当下可达**:`D-8-6` 共病合成已由用户提级 **P0 阻塞**,`AC-31` 原文即举「病人同时有 `position = 3/10` 与 `4/5` 两个病」。故「判成终态的病人不存在仍在演进的病程」这句**在 ∃ 口径下为假** ——「A 已终态、B 仍在演进」正是反例"
+    ruling_fixes: "**修掉三个失效模式**:① B 的 `DiseaseOnset` 与全部病史行被静默抹除且不产 B 的折叠行(`BuildRows` 只遍历 `outcomes`);② B 日后终态时流里「有 outcome 无 onset」⇒ 再折必抛 `InvalidDataException`;③ 折叠把 A 的 outcome 一并抹掉而条件 ① 读的是**流** ⇒ 该病人此后再不可折、B 的新行**无界增长**"
+    ruling_cost: "**代价**:一个长期病程会拖住整个病人不折 —— ADR-032 ⑤ 的上界 `Σ|D_p| ≤ PATIENT_APPEARANCE_CAP × |D_max|` 已覆盖,收紧后界**只会更小**"
+    ruling_rejected: "**被否**:Alt B 维持权威字面 + 登记已知损失(等于承认一条会抛异常的路径)· Alt C 逐病种折叠(`CareApplied` / `DrugTreatmentApplied` / `EmergencyAttempt` 等病史 Kind **不带 `disease_id`**,逐条核 `entities.yaml`;须给每个 Kind 加字段 = 跨 9 / 10 / 11 / 25 多系统的载荷改动;实现注释已判定「按病种保留会是任意切分」)"
+    landed: "`Sim/FoldedPredicate.cs` `Terminal()` 改全称 + 文件头注两处加注;`design/gdd/persistence-service.md` F-7a-4 条件① 格加注 + `OQ-7a-10` 表行标删除线;`docs/architecture/adr-032-patient-outcome-kind.md` §六 加注;新增 **6** 条测试(`test_folded_multiDisease_partialTerminal_isNotTerminal` / `test_folded_multiDisease_allTerminal_isTerminal` / `test_folded_noOnsetAtAll_isNotTerminal_notVacuouslyTrue` / `test_folded_orphanOutcome_throwsInsteadOfBeingSwallowed` / `test_folded_orphanOutcomeAlongsideValidOnset_throws` / `test_fold_multiDisease_partialTerminal_erasesNothing` —— 末条为端到端,断言「不折 ⇒ 流逐条保留」)"
+    falsification: "**证伪轮 2/2 全红**(变异 → 跑 → `cp` 还原 → SHA-256 逐字节校验,未用 `git checkout`;还原后 `f676b109…819ed` 与备份逐字节相同):① **OQ-M1** 把 ∀ 退回 ∃(`return settled.Count > 0`)⇒ 恰 **1** 红 = `test_folded_multiDisease_partialTerminal_isNotTerminal`(`Expected: False / But was: True`);② **OQ-M2** 删孤儿终态检查 ⇒ 恰 **3** 红 = `test_fold_outcomeWithoutOnset_throws` + `test_folded_orphanOutcome_throwsInsteadOfBeingSwallowed` + `test_folded_orphanOutcomeAlongsideValidOnset_throws`。两轮均**零附带红**(OQ-M1 `34/33/1` · OQ-M2 `34/31/3`)。产物 = `unity/Logs/oq7a10-m{1,2}.xml`;③ **OQ-M3**(2026-10-24 补)同一变异再打**端到端**测 ⇒ `4701/4664/2/35`,红集 = `test_fold_multiDisease_partialTerminal_isNotTerminal` + `test_fold_multiDisease_partialTerminal_erasesNothing`。⚠️ **我预期 1 红、实得 2 红 —— 预期写错了**(端到端测必经谓词层,同一变异必然连带);实得两条均由 ∀→∃ 直接推出,但「恰 1 红」不成立。OQ-M3 的增量证据 = `erasesNothing` 转红(证「谓词假 ⇒ `Fold` 真的不抹」被夹具钉住)。产物 = `unity/Logs/oq7a10-m3.xml`"
+    discovered: "⚠️ **收紧过程中实测抓到一处真缺陷(已修)**:首轮全量 `4698/4662/1`,唯一红 = `test_fold_outcomeWithoutOnset_throws` —— 空集短路(`D_p = ∅ ⇒ false`)会把「只有 `outcome`、没有 `onset`」的**损坏流静默吞掉**(`Fold` 走不到 `BuildRows` 的抛错点)。修法 = 把孤儿检查**上移到 `Terminal()`** 且**先于**空集短路;`BuildRows` 侧检查保留(两道闸)。该缺陷**不是既有 bug**,是本次收紧引入的,**由既有测试抓到** —— 说明收紧前的测试面覆盖了这条边界"
+    closed_note: "⚠️ **本条的关闭不解除 `TD-persist-01`** —— 该债另有两条判据未满足(折叠接入存档路径 + 产出面变异反证)。本条只解除其中一条"
+    verify_cmd: "grep -n 'OQ-7a-10' design/gdd/persistence-service.md | grep -oE '\\| ~~\\*\\*`OQ-7a-10`\\*\\*~~|\\| \\*\\*`OQ-7a-10`\\*\\*'   # 期望输出 = | ~~**`OQ-7a-10`**~~(有删除线 = 已裁)"
+    verify_note: "🔁 **2026-10-24 判据换代(教训登记)** —— 本命令初版用散文关键词(`grep -iE \"已裁|裁定|结案|closed|resolved\"`),实测**假阳性 6 行**:其中 3 行撞的是「结案**判据**」(说的是「三项满足才结案」,恰是未裁的表述),另 3 行是「**裁定** + 产出面变异反证」这类待办式。⇒ 散文关键词判「某 OQ 是否已裁」**不可靠**,这是本仓第三次踩同型(`qa-signoff` D-4 段记过第一次)。**现判据改用格式约定**:该 GDD 的 OQ 表以 `~~删除线~~` 标记已裁条目标题。**三向对照**可当场验:`OQ-7a-9` ⇒ `| ~~**\\`OQ-7a-9\\`**~~` · `OQ-7a-7` ⇒ `| **\\`OQ-7a-7\\`**`(未裁)"
+    registered_note: "🔁 **2026-10-24 补登记**:本条此前**从未进入本文件**(全文件 `grep -c \"OQ-7a-10\"` 当时 = 2,两处均为**旁述引用**而非条件登记)。当时 commit = `a7c8b9e`"
+
 conditions_open:
   # ⚠️⚠️ **2026-10-24 结构性订正(原文不删,已迁出)** ——
   #    本段原存两条(`C-3` / `R2-AC6`),二者 `status` 早已是 `closed`,却留在 open 段,
@@ -334,24 +356,6 @@ conditions_open:
     registered_note: "🔁 **2026-10-24 补登记**:本条此前**从未进入本文件** —— 全文件 `grep -c \"AC ⑤\"` = 0(当时),只活在签核件 §六。属「未做且没登记」方向的记账缺陷。当时 commit = `a7c8b9e`"
 
   # ── 条件 6:2026-10-24 新增(同上,此前只存在于签核件) ──
-  - id: "OQ-7a-10"
-    what: "`OQ-7a-10` 裁定 —— 折叠条件① 的**「病人级存在性查询」vs「折叠行逐病种产出」**之缝"
-    why_open: "**仍未裁**。实现取的是**权威字面**(抹除全部减 `SkillGrown`),而该字面与「病人级存在性」两种读法在**多病种病人**上结论不同 ⇒ 折叠产出面的正确性无判据可依"
-    owner: "用户(裁定)"
-    gate: "**不得**以「实现取权威字面」当已裁 —— 实现先行 ≠ 口径已定(C-7 的 `PRE-S18-D` 是「实现先于裁决」的同型先例,那条已如实登记该形态)"
-    affects: "影响 **G-2 / `TD-persist-01`**,不影响 G-1。`TD-persist-01` 结案判据 = 折叠接入存档路径 + 本条裁定 + 产出面变异反证 ⇒ 本条未裁则该债**保持 open**"
-    cross_ref: "`production/qa/qa-signoff-sprint-18-2026-10-22.md` §三 D-4 · `persistence-service.md:639` · `production/sprints/sprint-18.md` §九.2 / §九.4"
-    status: "⚠️ **open**"
-    moved_to: "sprint-19 规划时承接"
-    verify_cmd: "grep -n 'OQ-7a-10' design/gdd/persistence-service.md | grep -oE '\\| ~~\\*\\*`OQ-7a-10`\\*\\*~~|\\| \\*\\*`OQ-7a-10`\\*\\*'   # 期望输出 = | **`OQ-7a-10`**(无删除线 = 未裁)"
-    verify_note: "🔁 **2026-10-24 判据换代(教训登记)** —— 本命令初版用散文关键词(`grep -iE \"已裁|裁定|结案|closed|resolved\"`),实测**假阳性 6 行**:其中 3 行撞的是「结案**判据**」(说的是「三项满足才结案」,恰是未裁的表述),另 3 行是「**裁定** + 产出面变异反证」这类待办式。⇒ 散文关键词判「某 OQ 是否已裁」**不可靠**,这是本仓第三次踩同型(`qa-signoff` D-4 段记过第一次)。**现判据改用格式约定**:该 GDD 的 OQ 表以 `~~删除线~~` 标记已裁条目标题(`OQ-7a-1…6 / 8 / 9` 皆如此),未裁者无删除线(`OQ-7a-7` / `OQ-7a-10`)。**三向对照**可当场验:`OQ-7a-9` ⇒ `| ~~**\\`OQ-7a-9\\`**~~` · `OQ-7a-7` ⇒ `| **\\`OQ-7a-7\\`**` · `OQ-7a-10` ⇒ `| **\\`OQ-7a-10\\`**`"
-    registered_note: "🔁 **2026-10-24 补登记**:本条此前**从未进入本文件**(全文件 `grep -c \"OQ-7a-10\"` 当时 = 2,两处均为**旁述引用**而非条件登记)。当时 commit = `a7c8b9e`"
-
-  # ⚠️ **本段现存未结条件 = 2 条**(`S18-AC5` / `OQ-7a-10`),二者均 `status: open`。
-  #    段名与段内状态**自此一致** —— 这是本段判读口径的第一处兑现。
-  #    ⚠️ 两条**均不由 sprint-18 关闭**:前者归 9 / 29 的装配轮,后者归用户裁定。
-  #    故 sprint-18 的收口判定不受影响(`APPROVED WITH CONDITIONS`,条件 = 本二条)。
-
 # ⚠️ 基线三元组(任何引用本文件计数的下游件须同抄)
 baseline:
   measured_at: "2026-10-21"

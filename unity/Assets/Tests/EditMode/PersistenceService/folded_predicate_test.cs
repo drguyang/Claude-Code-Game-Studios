@@ -166,6 +166,82 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Assert.IsFalse(Predicate().Folded(P), "其他病人的终态事件不得让本病人可折");
         }
 
+        // ══════════ ① 全称口径(OQ-7a-10 裁定 A · 2026-10-24)══════════
+        //
+        // 收紧前 = ∃(任一病种终态即可);收紧后 = ∀(每个病种皆终态)。
+        // 多病种当下可达:D-8-6 共病合成已由用户提级 P0 阻塞,AC-31 原文即举
+        // 「病人同时有 position = 3/10 与 4/5 两个病」。
+
+        [Test]
+        public void test_folded_multiDisease_partialTerminal_isNotTerminal()
+        {
+            // A 已终态、B 仍在演进 ⇒ 条件 ① 不成立。
+            // 收紧前此例会**误判为终态**,随后 Fold 抹掉 B 的全部病程且不产 B 的折叠行。
+            AddDisease(1, lethality: 0);
+            AddDisease(2, lethality: 0);
+            _history.Add(Onset(10, P, 1));
+            _history.Add(Onset(12, P, 2));
+            _history.Add(Outcome(40, P, 1, PatientOutcome.Recovered));
+
+            Assert.IsFalse(Predicate().Terminal(P),
+                "B 无 PatientOutcomeChanged ⇒ 不是「每个病种皆终态」⇒ 条件 ① 不成立");
+            Assert.IsFalse(Predicate().Folded(P),
+                "整体不可折 —— 否则 Erase 会静默抹掉 B 的病程");
+        }
+
+        [Test]
+        public void test_folded_multiDisease_allTerminal_isTerminal()
+        {
+            // 两个病种都终态 ⇒ 条件 ① 成立(收紧不得把正当情形也否掉)。
+            AddDisease(1, lethality: 0);
+            AddDisease(2, lethality: 1);
+            _history.Add(Onset(10, P, 1));
+            _history.Add(Onset(12, P, 2));
+            _history.Add(Outcome(40, P, 1, PatientOutcome.Recovered));
+            _history.Add(Outcome(50, P, 2, PatientOutcome.Died));
+
+            Assert.IsTrue(Predicate().Terminal(P), "两病种皆终态 ⇒ 条件 ① 成立");
+        }
+
+        [Test]
+        public void test_folded_noOnsetAtAll_isNotTerminal_notVacuouslyTrue()
+        {
+            // 空集 D_p = ∅ **不**取真空为真 —— 否则 Fold 会产 0 行却抹掉全部病史行(不可逆)。
+            // 构造:只有一条别的 Kind,没有任何 DiseaseOnset。
+            _history.Add(SkillGrown(10, P, skill: 1, level: 2));
+
+            Assert.IsFalse(Predicate().Terminal(P),
+                "无 DiseaseOnset ⇒ D_p = ∅ ⇒ 条件 ① 必须为 false(宁可漏折,不可误折)");
+            Assert.IsFalse(Predicate().Folded(P), "整体不可折");
+        }
+
+        [Test]
+        public void test_folded_orphanOutcome_throwsInsteadOfBeingSwallowed()
+        {
+            // 孤儿终态(有 outcome、无对应 onset)= **流损坏**,必须 fail-loud。
+            // ⚠️ 这条是 2026-10-24 收紧时**实测抓到的真缺陷**:空集短路会把它静默吞掉 ——
+            //    该病人 D_p = ∅ ⇒ 若先判空集返回 false,Fold 就永远走不到 BuildRows 的抛错点。
+            _history.Add(Outcome(50, P, DISEASE, PatientOutcome.Recovered));
+
+            var ex = Assert.Throws<InvalidDataException>(() => Predicate().Terminal(P));
+            StringAssert.Contains("DiseaseOnset", ex.Message, "报文须点名缺失的 onset 载体");
+        }
+
+        [Test]
+        public void test_folded_orphanOutcomeAlongsideValidOnset_throws()
+        {
+            // 非空 D_p 下的孤儿:病种 1 有 onset+outcome,病种 2 只有 outcome。
+            // 不得因为「病种 1 已终态」就放过病种 2 的损坏。
+            AddDisease(1, lethality: 0);
+            AddDisease(2, lethality: 0);
+            _history.Add(Onset(10, P, 1));
+            _history.Add(Outcome(40, P, 1, PatientOutcome.Recovered));
+            _history.Add(Outcome(50, P, 2, PatientOutcome.Died));
+
+            var ex = Assert.Throws<InvalidDataException>(() => Predicate().Terminal(P));
+            StringAssert.Contains("DiseaseOnset", ex.Message);
+        }
+
         // ══════════════════ ② 豁免(口径对齐点)══════════════════
 
         [Test]
@@ -358,6 +434,28 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Assert.AreEqual(2, result.Rows.Count, "每病种一行");
             Assert.AreEqual(new[] { 1, 2 }, result.Rows.Select(r => r.DiseaseId).ToArray(),
                 "按 (Onset, DiseaseId) 升序 ⇒ 确定性");
+        }
+
+        [Test]
+        public void test_fold_multiDisease_partialTerminal_erasesNothing()
+        {
+            // ⚠️ 端到端补强(`OQ-7a-10` 裁定 A 的**危害面**,不只断言谓词返回值)。
+            //
+            // 上一条 `test_folded_multiDisease_partialTerminal_isNotTerminal` 只证
+            // 「谓词说 false」;但危害是 **`Erase` 真把 B 的病程抹掉了**。
+            // 谓词假 ⇒ `Fold` 在 `:88` 短路 ⇒ 流逐条不变 —— 这条把那个「⇒」钉住。
+            // 缺了它,谓词与折叠动作之间的一致性只在推理里,不在夹具里。
+            AddDisease(1, lethality: 0);
+            AddDisease(2, lethality: 0);
+            _history.Add(Onset(10, P, 1));
+            _history.Add(Onset(12, P, 2));
+            _history.Add(Outcome(40, P, 1, PatientOutcome.Recovered));   // 仅 A 终态
+
+            FoldResult result = HistoryFolder.Fold(_history, P, Predicate(), _decoder);
+
+            Assert.IsTrue(result.IsIdentity, "部分终态 ⇒ 不折 ⇒ Rows 空");
+            CollectionAssert.AreEqual(_history.ToArray(), result.Retained.ToArray(),
+                "B 仍在演进 ⇒ 其 onset 与全部病程行必须逐条保留(误折不可逆)");
         }
 
         [Test]

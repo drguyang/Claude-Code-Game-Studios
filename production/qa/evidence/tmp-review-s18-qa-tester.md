@@ -37,7 +37,7 @@
 | S2-AC6 ④ SkillGrown 不被抹除 | PASS(维度受限) | `_retainsSkillGrownRows` + `_skillGrownReplayIsBitIdentical` | `:384-426`;判据是折叠**后** `Level(s)@t` 逐位一致(ADR-026 §⑦ 原文),非返回值断言 —— **不是**自造断言 |
 | S2-AC7 折叠行六字段 + patient_id 单列 | PASS | `_allSixFieldsMatchTheirSources` / `_rowShapeIsExactlySixFields_inAdrOrder` / `_rowKeepsPatientId_standaloneAssertion` | `:301-344`;字段序用反射按公开实例字段比字面序列,`patient_id` 有独立断言 |
 | S2-AC8 折叠后重放等价 | **GAP(限定已声明)** | 仅 `test_fold_skillGrownReplayIsBitIdentical` | `:412-426` + 头注 `:13-20`;general 重放等价不成立的原因(抹除全部病史行)在头注已声明,属 `OQ-7a-10` 未裁,记为**已知限定**而非新缺陷 |
-| S2-Seam 抹除作用域(全体减 SkillGrown) | **GAP(无证伪)** | `HistoryFolder.cs:139-148` 的循环本身**被测到**(`:396-409`),但「抹除面 = 全部 vs 仅终态病种」这一**语义选择**没有任何测试锚定 | 现测试只断言「P 的非 SkillGrown 行 = 0」;换成「按病种保留」实现同样会绿 ⇒ 该偏离(登记为 `OQ-7a-10`)在测试面上**不可见** |
+| S2-Seam 抹除作用域(全体减 SkillGrown) | 🔁 **2026-10-24 已闭** | `HistoryFolder.cs:139-148` 的循环本身**被测到**(`:396-409`) | 「抹除面 = 全部 vs 仅终态病种」这一语义选择已由裁定 A 定为「**只有全部病种皆终态才抹**」,并由 `multiDisease_partialTerminal` 两条夹具(谓词层 + 端到端 `erasesNothing`)锚定 ⇒ 换回 ∃ 实现会**转红**(M1 证伪轮实测) |
 | S2-SaveService 构造注入形态 | PASS(表面) | `test_saveService_takesFoldedPredicateViaConstructor_only` | `:485-497`;仅反射构造函数,**未实例化** ⇒ 见 D-4 |
 | S2-ISaveService 方法集不变 | **GAP(proxy)** | `test_iSaveService_publicMethodSetUnchanged` | `:499-510`;断言的是 `{LoadBytes, SaveBytes}` —— 而 ADR-010 `:331` 要护的是 `Checkpoint(SaveSlot)` 的参数集,该接口**根本没有 Checkpoint** ⇒ 该断言无法因「给 Checkpoint 加形参」而转红,护错了契约 |
 
@@ -71,7 +71,7 @@
 |---|---|---|---|
 | E-1 `Rows.Count == 0` 与「折叠成功但零行」的区分 | GAP(潜伏) | `FoldResult.IsIdentity => Rows.Count == 0`(`HistoryFolder.cs:47`) | 只测了「谓词假 ⇒ Rows 空 + 流恒等」(`:444-455`);`IsIdentity` 把两种状态压成一个布尔,调用方**无法区分**「没折」与「折了但零行」。当前结构上不可达(Terminal 要求存在 outcome ⇒ rows ≥ 1),但**没有一条测试把这个不变量钉住**,将来放宽 ① 就会静默退化 |
 | E-2 同 tick 多病种 onset(排序 tie-break) | GAP | `HistoryFolder.cs:136-137` 三元排序的 `DiseaseId` 分支 | 两处排序测试的 onset 均不相同(`:347-380` 用 10/12 与 20/30)⇒ **`a.Onset != b.Onset` 的假分支从未执行**;同 tick 两病种的行序无断言 |
-| E-3 某病种有 onset 无 outcome 时被连带抹除 | **GAP(高价值)** | `HistoryFolder.cs:139-148` 按**病人**整体抹除 | 无测试。构造:病种 A 有终态、病种 B 只有 onset ⇒ `Folded=true`、rows=1、**B 的 onset 行随病人一并消失且无折叠行**。这正是 `OQ-7a-10` 的缝;测试面完全空白 ⇒ 该语义既未被确认也未被否定 |
+| E-3 某病种有 onset 无 outcome 时被连带抹除 | 🔁 **2026-10-24 已闭** —— 裁定 A(∀ 收紧)后此形态**不再被抹**;由 `test_folded_multiDisease_partialTerminal_isNotTerminal` + `test_fold_multiDisease_partialTerminal_erasesNothing` 双夹具钉住 | `HistoryFolder.cs:139-148` 按**病人**整体抹除(**仅在全部病种皆终态时**) | 已补两测。构造:病种 A 有终态、病种 B 只有 onset ⇒ `Folded=true`、rows=1、**B 的 onset 行随病人一并消失且无折叠行**。这正是 `OQ-7a-10` 的缝;测试面完全空白 ⇒ 该语义既未被确认也未被否定 |
 | E-4 `PatientOutcomeChanged` 重复抛错 | PASS | `:459-469` | 断言 `InvalidDataException` + 报文「至多一条」 |
 | E-5 有 outcome 无 onset 抛错 | PASS | `:471-481` | 报文点名 `DiseaseOnset` |
 | E-6 未知病种 fail-loud | PASS | `:272-281` | 且**只在 Terminal 通过后**触发,符合短路次序 |

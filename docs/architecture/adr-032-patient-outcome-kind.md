@@ -197,6 +197,41 @@ public readonly struct PatientOutcomeChangedPayload
 `Folded(p)` 条件 ① 的实现 = **「病史流里是否存在该病人的 `PatientOutcomeChanged` 事件」**,
 纯流前缀查询,**不需要重放 F4**。
 
+> 🔁🔁 **2026-10-24 口径收紧(`OQ-7a-10` 裁定 A · 用户裁定)—— 原文不删**
+>
+> 上面那句的「存在」原读作 **∃(任一病种终态即可)**,现收紧为 **∀(每个病种皆终态)**:
+>
+> ```
+> 终态(p) = ∀ d ∈ D_p : ∃ PatientOutcomeChanged(p, d)
+> ```
+>
+> `D_p` = 该病人的 `DiseaseOnset` 病种集合(ADR-030)。**空集 `D_p = ∅` ⇒ false**
+> (不取真空为真 —— 误折不可逆)。
+>
+> **为什么**:多病种**当下可达**,不是将来假设 —— `D-8-6` 共病合成已由用户提级
+> **P0 阻塞**,`AC-31` 原文即举「病人同时有 `position = 3/10` 与 `4/5` 两个病」。
+> 在 ∃ 口径下「A 已终态、B 仍在演进」会通过条件 ①,`HistoryFolder.Erase` 随即抹掉
+> 该病人**全部**病史行(减 `SkillGrown`)⇒ ① B 的病程与 onset 被静默抹除且不产 B 的
+> 折叠行;② B 日后终态时流里「有 outcome 无 onset」⇒ 再折必抛 `InvalidDataException`;
+> ③ 折叠连 A 的 outcome 一并抹掉而条件 ① 读的是**流** ⇒ 该病人此后再不可折、
+> B 的新行**无界增长**。
+>
+> **本 § 的核心主张不变**:仍是**逐病种存在性查询**、**不重放 F4** —— 收紧的是
+> 「查询几个病种」,不是「查询还是重算」。**代价**:一个长期病程会拖住整个病人不折,
+> 但 §⑤ 的上界 `Σ|D_p| ≤ PATIENT_APPEARANCE_CAP × |D_max|` 已覆盖,收紧后界只会更小。
+>
+> **落点**:`Sim/FoldedPredicate.cs` `Terminal()` · `persistence-service.md` F-7a-4 条件① 格
+> · 新增 **6** 条测试(谓词层 5 条:`multiDisease_partialTerminal` / `multiDisease_allTerminal` /
+> `noOnsetAtAll_notVacuouslyTrue` / `orphanOutcome_throwsInsteadOfBeingSwallowed` /
+> `orphanOutcomeAlongsideValidOnset_throws`;端到端 1 条:`fold_multiDisease_partialTerminal_erasesNothing`,
+> 断言「不折 ⇒ 流逐条保留」)。
+>
+> **证伪轮 3/3 全红**(轮次前缀 `OQ-M1..M3`,与 `Erase` 批 / `EntityDeathGates` 批的 `M1–M4` 分名;
+> 还原判据 = SHA-256 逐字节 `f676b109…819ed`)。
+> ⚠️ **收紧过程实测抓到一处本次引入的真缺陷(已修)**:空集短路会把「只有 `outcome`、无 `onset`」
+> 的损坏流静默吞掉 ⇒ 孤儿检查**上移 `Terminal()` 且先于空集短路**。由既有测试
+> `test_fold_outcomeWithoutOnset_throws` 抓到,非既有 bug。
+
 这正是本方案相对 Alt 4(只发死亡、痊愈重放)的核心价值:**终态从「重算」变成「记录」**,
 与 `DiseaseOnset` 完全同构(onset 也是记录,不是重算)。
 
