@@ -148,7 +148,7 @@ grep -rn "new DeathCandidateConsumer\|new PlayerDiedWriter" unity/Assets --inclu
 
 | ID | 任务 | 层/型 | C | 依赖 | 验收判据(可复算) | 测试载体 |
 |---|---|---|---|---|---|---|
-| **S19-1** | **G-4**(`TD-persist-02`)+ **`TD-persist-01` 剩余两项**:`Checkpoint` / `SaveOnExit` / `Load` 三方法 + `Writable` / `Loadable` 两投影 + `Gating` 载入门;折叠接入存档路径 | Core / Logic | **L** | ① `ISaveCodec`(**在盘**)② `IFoldedPredicate` + `HistoryFolder`(**在盘**,`Sim/FoldedPredicate.cs` / `Sim/HistoryFolder.cs`)③ **叙事上下文查询** —— **零落点**④ **未决医疗动作查询** —— **零落点** | ① `ISaveService` 公开方法集 **= `{Checkpoint, Load, LoadBytes, SaveBytes, SaveOnExit}`**,且既有反射断言(`Tests/EditMode/PersistenceService/folded_predicate_test.cs:606` 现断言恰 = `{LoadBytes, SaveBytes}` —— ⚠️ 行号实测订正,曾记 `:600`)**同批更新**,不得删测;② **`AC-7a-19` 四子判据 (a)(b)(c)(d)** 各一例,含**闭合回路**「先手动存 → 读档 → 再覆盖回去」任一环被拒(BLOCKING);③ `Writable` / `Loadable` 为**纯函数投影**(输入 = 槽位 + 上下文,无内部可变状态),各配独立灰置通道;④ 折叠在 `Checkpoint` 内生效 ⇒ `FoldedPredicate` **有生产调用点**(`TD-persist-01` ① 的判据);⑤ **折叠产出面变异反证 ≥3 轮**(`TD-persist-01` ③);⑥ **门 A 不变**(`Sim` 引用集恰 = `{BCL, Sim.Contracts}`);⑦ **`Load` 交 3/4 段**(`PRE-S19-D` 甲案):头部解析 + 迁移链三分支 + `Replaying` 前半段(字节 → 列表,经构造注入委托交出),**真重放归 `TD-persist-03`** —— 详见 §S19-1 的裁定前提 | `unity/Assets/Tests/EditMode/PersistenceService/save_slot_contract_test.cs`(新) |
+| **S19-1** | **G-4**(`TD-persist-02`)+ **`TD-persist-01` 剩余两项**:`Checkpoint` / `SaveOnExit` / `Load` 三方法 + `Writable` / `Loadable` 两投影 + `Gating` 载入门;折叠接入存档路径 | Core / Logic | **L** | ① `ISaveCodec`(**在盘**)② `IFoldedPredicate` + `HistoryFolder`(**在盘**,`Sim/FoldedPredicate.cs` / `Sim/HistoryFolder.cs`)③ **叙事上下文查询** —— **零落点**④ **未决医疗动作查询** —— **零落点** | ① `ISaveService` 公开方法集 **= `{Checkpoint, Load, LoadBytes, SaveBytes, SaveOnExit}`**,且既有反射断言(`Tests/EditMode/PersistenceService/folded_predicate_test.cs:606` 现断言恰 = `{LoadBytes, SaveBytes}` —— ⚠️ 行号实测订正,曾记 `:600`)**同批更新**,不得删测;② **`AC-7a-19` 四子判据 (a)(b)(c)(d)** 各一例,含**闭合回路**「先手动存 → 读档 → 再覆盖回去」任一环被拒(BLOCKING);③ `Writable` / `Loadable` 为**纯函数投影**(输入 = 槽位 + 上下文,无内部可变状态),各配独立灰置通道 —— 🔁 **2026-10-24 判据对象收窄**:反射断言**只扫 `SlotProjections`(静态类)+ `SlotContext`(readonly struct)**;状态宿主 `SaveSlotLedger` **不在本判据面内**(另以四例状态迁移夹具覆盖);④ 折叠在 `Checkpoint` 内生效 ⇒ 折叠动作**有生产调用链**(`TD-persist-01` ① 的判据) —— 🔁 **2026-10-24 原措辞作废**:「该行在 `Sim.Codec/SaveService.cs` 内」**字面不可兑现**(`Sim` / `Sim.Codec` 兄弟装配互不可见),改判 ①`grep -rn "HistoryFolder\.Fold" … \| grep -v Tests/` ⇒ ≥1 行**且不在 `Sim.Codec/` 内** + ②`SaveService.cs` 内 `_compose(` 落在 `Checkpoint` 体内且 fail-closed;④**字节半**「`Checkpoint` 产出的字节里折叠行出现」= **`NOT-RUN`**(存档体字节布局不存在,用户 2026-10-24 裁定**并入 `TD-persist-03`**);⑤ **折叠产出面变异反证 ≥3 轮**(`TD-persist-01` ③);⑥ **门 A 不变**(`Sim` 引用集恰 = `{BCL, Sim.Contracts}`),且构造形参 **3 → 6**(`folded` / `narrativeContext` / `replaySink` / `compose` 四个可选,🔁 原「3 → 5」漏算 `Checkpoint` 数据源);⑦ **`Load` 交 3/4 段**(`PRE-S19-D` 甲案):头部解析 + 迁移链三分支 + `Replaying` 前半段(字节 → 列表,经构造注入委托交出),**真重放归 `TD-persist-03`** —— 详见 §S19-1 的裁定前提 | `unity/Assets/Tests/EditMode/PersistenceService/save_slot_contract_test.cs`(新) |
 
 > ⚠️ **③④ 两个查询的归属边界(本件最容易被做成越权)**:7a **不拥有**「现在有没有未决医疗动作」
 > 这个事实 —— 那是 10 急救动作 / 8 诊断 / 37 病例的**状态**。
@@ -191,7 +191,7 @@ Load(SaveSlot):
 | # | 约束 | 判据 |
 |---|---|---|
 | ① | 重放委托走**构造注入**,**零新增 `Sim.Contracts` 成员、零新增装配边** | 与 `IFoldedPredicate`(S18-2)同一先例:`Sim` / `Sim.Codec` 的 `references` 数组**一字不改** |
-| ② | 构造形参 3 → 5(见 §⑧ 的合并口径) | `folded_predicate_test.cs:590` 的 `Assert.AreEqual(3, ps.Length, …)` **必红,须同批改而非删**(`:588` 是 `ctors.Length` 那条,勿混) |
+| ② | 构造形参 3 → 5(见 §⑧ 的合并口径) | `folded_predicate_test.cs:590` 的 `Assert.AreEqual(3, ps.Length, …)` **必红,须同批改而非删**(`:588` 是 `ctors.Length` 那条,勿混)。🔁 **2026-10-24 订正为 3 → 6** —— 原算术只覆盖「两门 + 重放」,**漏算 `Checkpoint` 的数据源**(加 `compose` 后实为 6);权威口径见 §S19-1 的裁定前提 · 折叠接线形态 |
 | ③ | 未注入委托时进 `Replaying` 前**抛具名异常** | **禁静默跳过** —— 静默跳过 = 假绿入口 |
 | ④ | 读档锁在 `Verifying` 通过后置位 | 否则闭合回路环 2 到不了锁点 |
 
@@ -232,7 +232,7 @@ Load(SaveSlot):
 | # | 约束 | 判据 |
 |---|---|---|
 | ⑤ | **fail-closed** | 未注入驱动源时 `Checkpoint` / `Load` **拒绝并抛具名异常**。**禁 fail-open** —— 恒真 = save-scum 通道在生产路径默开,而测试全绿(假绿入口) |
-| ⑥ | `InNarrativeContext` **是一个量** | 构造形参 **3 → 5**(`folded` / `narrativeContext` / `replaySink` 三个可选形参,均可 null)⇒ `folded_predicate_test.cs:590` 的 `Assert.AreEqual(3, ps.Length, …)` **必红,须同批改而非删** |
+| ⑥ | `InNarrativeContext` **是一个量** | 构造形参 **3 → 5**(`folded` / `narrativeContext` / `replaySink` 三个可选形参,均可 null)⇒ `folded_predicate_test.cs:590` 的 `Assert.AreEqual(3, ps.Length, …)` **必红,须同批改而非删**。🔁 **2026-10-24 订正为 3 → 6**(加 `compose`;`folded` 仍保持第 3 位,`ps[2]` 类型断言不受影响) |
 
 **两条残余(不阻塞本件,须如实登记)**:
 
@@ -245,6 +245,52 @@ Load(SaveSlot):
 > 7a 只**定义门**,不**定义被门观察的事实** —— 后者属于 8 / 10 / 37(同 ADR-010 §三「义务汇总表」定位)。
 > ⇒ 本件可证的是「注入委托后门按 `InNarrativeContext` 的布尔值放行 / 拒绝」,
 > **不可证**的是「锚点事件发生时该布尔值真会变 true」。
+
+#### S19-1 的裁定前提 · 折叠接线形态(2026-10-24 · 三家专家合成)
+
+> **出处原件**:`production/qa/evidence/s19-1-fold-adjudication-2026-10-24.md`
+> (三家 = `technical-director` / `unity-specialist` / `lead-programmer`;草稿已合入,原件含 12 处自核清单)
+> **用户裁定两项**:① 判据 ④ 的**字节半推迟并入 `TD-persist-03`**;② 写裁定原件 + 改判据。
+
+**接线形态 = 甲-a(`Func<SaveSlot, byte[]> compose` 注入)**,不取另两个「第五案」:
+
+| 案 | 提出方 | 否决 / 采纳理由 |
+|---|---|---|
+| **戊案** | technical-director | **否** —— `HistoryFolder`+`FoldRow`+`FoldResult` 全搬 `Sim.Codec`,须 ADR-025 §① 窄修订;而 `adr-025:112` **已明文记过相反结论**(「折叠动作与折叠行,**不进本表** —— 它们是 `Sim` 内部类型」)⇒ 是**已有相反记录**,不是未授权 |
+| **第五案** | unity-specialist | **否** —— 只搬 `FoldRow`+`FoldResult` 到 `Sim.Contracts`,把**数据 DTO** 塞进契约集,比甲-a 多两处搬动、多一次契约面扩张 |
+| **甲-a** | lead-programmer | ✅ **取** —— 委托返回 **`byte[]`(BCL)**,`SaveService` 永不命名 `FoldRow`;折叠+组版+编码全在 `Gameplay.Boot` 闭包内;零 ADR 修订 / 零装配边 / 零 `Sim.Contracts` 新增成员 |
+
+**为何 TD 的「甲案不可实现」不推翻甲-a**:该结论只覆盖「委托返回 `FoldResult`」这一种形态
+(`FoldResult` 住 `Sim` ⇒ `Sim.Codec` 不可命名),**不覆盖返回 `byte[]` 的委托**。
+
+**判据 ④ 的三段拆分(订正后)**:
+
+| 段 | 判据 | 状态 |
+|---|---|---|
+| **位置半** | `grep -rn "HistoryFolder\.Fold" unity/Assets --include=*.cs \| grep -v Tests/` ⇒ ≥1 行,**且不在 `Sim.Codec/` 内** | 可兑现 |
+| **委托半** | `SaveService.cs` 内 `_compose(` 落在 `Checkpoint` 方法体内;未注入 ⇒ fail-closed 抛具名异常 | 可兑现 |
+| **字节半** | 「`Checkpoint` 产出的字节里折叠行出现」 | **`NOT-RUN`** ⇒ 并入 `TD-persist-03` |
+
+**字节半为何是 `NOT-RUN` 而非「没写」**(六条实测,原件 §三):
+`SaveHeader` 七字段**无折叠段偏移** · `Sim.Codec` **零 `FoldRow` 编码器** ·
+**全库无任何存档体生产器** · `SimEventCodec.Decode` **只解单事件头部**(无列表容器) ·
+`CodecWriter` 数组写只有**定长** `WriteFieldArrayInt32/Int64` · `SaveHeader` **无读回方法**。
+⇒ **存档体的字节布局从未被造出来**,与 `TD-persist-03` 实测 ③ 登记的单列表 vs「头部 + 三流」形状差
+**是同一个洞**。
+
+**同批订正的三处判据**(原文不删,已就地加注):
+
+| # | 原措辞 | 订正 | 依据 |
+|---|---|---|---|
+| **③** | 「反射查**该类型**无可变实例字段」 | 判据对象 = `SlotProjections`(静态)+ `SlotContext`(readonly);`SaveSlotLedger` **排除**,另配四例状态迁移夹具 | `next_writable_seq` / `Locked` 按 `save-slot-ui.md:212-214` 归 7a **且只进不退**(`persistence-service.md:203-206`)⇒ 跨调用状态,不可能是纯函数;但判据对象是**两个函数**,不是它们读的量 |
+| **⑥** | 「构造形参 3 → 5」 | **3 → 6**,顺序 `(basePath, codec, folded, narrativeContext, replaySink, compose)`;`folded` 保持第 3 位 ⇒ `ps[2]` 类型断言仍成立,只改计数 | 原算术只覆盖「两门 + 重放」,**漏算 `Checkpoint` 的数据源** |
+| **⑦** | 「头部解析」/「字节 → 列表」 | 补:两者**均须新写**(`SaveHeader` 无读回;无列表容器编解码器) | 见原件 §三 B-4 / B-6 |
+
+> ⚠️ **判例登记(乙案 = 无声漂移)**:给 `Sim.Codec` 加 `Sim` 引用**不撞任何机械门** ——
+> b2 的白名单块被 `AssemblyGates.cs:214` 的 `if (asmName == "Sim")` 守卫、只对 `Sim` 生效;
+> b3 只比 asmdef 的 `name` 字段集合、**从不读 `references`**;`AC-10-02` 门扫的是装配 "3";
+> 全仓**零测试**断言 `Sim.Codec` 的引用集。
+> ⇒ 乙案的唯一拦截是 **ADR-025 §① 的文本**,不是执行体。**门绿 ≠ ADR 合规。**
 
 | ID | 任务 | 层/型 | C | 依赖 | 验收判据(可复算) | 测试载体 |
 |---|---|---|---|---|---|---|

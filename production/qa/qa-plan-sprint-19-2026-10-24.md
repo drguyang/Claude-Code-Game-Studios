@@ -128,15 +128,33 @@
   Writable(slot) ⟺ ¬Locked(slot) ∧ InNarrativeContext(t) ∧ slot_seq(slot) ≥ next_writable_seq
   Loadable(slot) ⟺ ¬Locked(slot) ∧ InNarrativeContext(t)
   ```
+- 🔁 **2026-10-24 判据对象收窄(裁定原件 §四)**:
+  - 反射断言的**扫描面恰 = `Sim.Codec/SlotProjections`(静态类,零实例字段)+ `SlotContext`(readonly struct,全 readonly 字段)**
+  - **状态宿主 `SaveSlotLedger` 不在本判据面内** —— 它持 `Locked` 集 / `next_writable_seq`
+    (`save-slot-ui.md:212-214` 归 7a,**只进不退** ⇒ `persistence-service.md:203-206`),是**跨调用累积的状态**,
+    不可能是纯函数。另以判据 ② 的 (a)(b)(c)(d) 四例状态迁移夹具覆盖
+  - **理由**:判据对象是**两个函数**,不是它们读的那个量 ⇒ 拆成「纯投影宿主 + 状态台账」即无矛盾
 
 #### 判据 ⑤:折叠在 `Checkpoint` 内生效(`TD-persist-01` ①)
 
-- **生产调用点判据**:`HistoryFolder.Fold` 的调用点须出现于**非 `Tests/`** 路径
-  - 今日实测:`grep -rn "HistoryFolder.Fold\|\.Fold(" unity/Assets --include='*.cs' | grep -v Tests` ⇒ **0**
-  - 兑现后该命令须返回 ≥1 行,且该行在 `Sim.Codec/SaveService.cs` 内
-- **行为判据**:注入一个恒 `true` 的 `IFoldedPredicate` + 一段含终态的病史流 ⇒
-  `Checkpoint` 产出的字节里,该病人的非 `SkillGrown` 行**不出现**、折叠行**出现**
-- **反向**:`Folded = false` ⇒ 字节与不折叠**逐位相同**(恒等)
+- **生产调用点判据(位置半)**:`HistoryFolder.Fold` 的调用点须出现于**非 `Tests/`** 路径
+  - 今日实测:`grep -rn "HistoryFolder\.Fold" unity/Assets --include='*.cs' | grep -v "Tests/"` ⇒ **0**
+  - 兑现后该命令须返回 ≥1 行,**且该行不在 `Sim.Codec/` 内**(必在 `Sim/` 或装配根 `Gameplay.Boot/`)
+  - 🔁 **2026-10-24 原措辞「该行在 `Sim.Codec/SaveService.cs` 内」作废** ——
+    `Sim` 与 `Sim.Codec` 的 asmdef `references` **互不相含**(both = `{Sim.Contracts}`),
+    该行物理上不可能落在 `SaveService.cs`;要求它成立 = 要求违反 b2 门
+    (`AssemblyGates.cs:214` 的 `if (asmName == "Sim")` 守卫使 `Sim.Codec` 只吃引擎前缀检查
+    ⇒ 该违例会**静默通过所有机械门**,是**无声漂移**)
+- **委托调用点判据(委托半)**:`SaveService.cs` 内 `_compose(` 落在 `Checkpoint` 方法体内,
+  且 `Checkpoint` 的组版分支**由构造注入驱动** —— 未注入 `compose` ⇒ **fail-closed 抛具名异常**
+- **行为判据(字节半)= `NOT-RUN`** 🔁 **2026-10-24 用户裁定:并入 `TD-persist-03`**
+  - 原判据「`Checkpoint` 产出的字节里,该病人的非 `SkillGrown` 行不出现、折叠行出现」**当下无落点**
+  - 六条实测(裁定原件 §三):`SaveHeader` 七字段**无折叠段偏移** · `Sim.Codec` **零 `FoldRow` 编码器** ·
+    全库**无任何存档体生产器** · `SimEventCodec.Decode` **只解单事件头部**(无列表容器) ·
+    `CodecWriter` 数组写只有**定长** `WriteFieldArrayInt32/Int64` · `SaveHeader` **无读回方法**
+  - ⇒ **存档体的字节布局从未被造出来**;与 `TD-persist-03` 实测 ③ 的「单列表 vs 头部+三流形状差」**是同一个洞**
+  - ⚠️ **不得标绿,不得以「折叠在生产调用链上生效」顶替字节半**
+- **反向判据(同标 `NOT-RUN`)**:`Folded = false` ⇒ 字节与不折叠**逐位相同**(恒等)—— 同样需要字节面
 
 #### 判据 ⑥:折叠产出面变异反证 ≥3 轮(`TD-persist-01` ③)
 
@@ -161,10 +179,14 @@
 > 构造注入,与 `IFoldedPredicate`(S18-2)/ 重放委托(`PRE-S19-D`)**同一先例**。
 > **未注入时 fail-closed**。
 
-- **形状判据**:`SaveService` 构造形参 **3 → 5**(`folded` / `narrativeContext` / `replaySink`,
-  三者均可 `null`);**零新增 `Sim.Contracts` 成员、零新增装配边**
+- **形状判据**:`SaveService` 构造形参 **3 → 6**(`folded` / `narrativeContext` / `replaySink` /
+  `compose`,四者均可 `null`);**零新增 `Sim.Contracts` 成员、零新增装配边**
+  - 顺序:`(basePath, codec, folded = null, narrativeContext = null, replaySink = null, compose = null)`
+  - 🔁 **2026-10-24 原「3 → 5」订正为 3 → 6** —— 原算术只覆盖「两门 + 重放」,
+    **漏算 `Checkpoint` 的数据源**(判据 ② 与 ⑤ 都强制 `Checkpoint` 必须产出真字节 ⇒ 须 `compose`)
   - 复核命令:`git diff -- unity/Assets/Sim/Sim.asmdef unity/Assets/Sim.Codec/Sim.Codec.asmdef unity/Assets/Sim.Contracts/Sim.Contracts.asmdef` ⇒ **空**
   - ⚠️ 既有反射断言 `folded_predicate_test.cs:590` 的 `Assert.AreEqual(3, ps.Length, …)` **必红,须同批改而非删**
+    (`folded` 保持第 3 位 ⇒ `:591` 的 `ps[2]` 类型断言**仍成立**,只改计数 3→6;`:588` 的 `ctors.Length` 不动)
 - **一个量判据(⑧c)**:`InNarrativeContext` **是**一个量。夹具须证明**只有一个驱动源** ——
   注入 `narrativeContext = () => false` ⇒ `Writable` 与 `Loadable` **同时**为 false;
   `= () => true` ⇒ 两者**同时**为 true(在 `Locked = false` / `slot_seq` 满足的前提下)。
@@ -193,8 +215,13 @@
 - **`AC-7a-20`(事件触发 checkpoint)的真实调度** —— 本件只交**门的形状**(注入委托 + fail-closed),
   真实驱动源零落点。已立 `TD-persist-04`(含「7a 的 20 条 AC 有 13 条零 story 而 epic 标 `Complete`」)。
   ⇒ **本件不得声称 `AC-7a-20` 已满足**(残余 `R-A1` / `R-A2`)。
+- **判据 ⑤ 的字节半(折叠行出现在 `Checkpoint` 产出的字节里)及反向判据** —— 🔁 **2026-10-24 用户裁定
+  并入 `TD-persist-03`**。理由:存档体的字节布局**从未被造出来**(六条实测见判据 ⑤),
+  它与 `TD-persist-03` 实测 ③ 的单列表 vs「头部 + 三流」形状差**是同一个洞**。
+  ⇒ **本件不得以「折叠在生产调用链上生效」顶替字节半,不得标绿。**
 
-**Estimated test count**: ~28(判据 ⑦ 的 fail-closed / 一个量 / 反证三组已计入;`PRE-S19-A` 甲案未加新测种类,只加同族变体)
+**Estimated test count**: ~28(判据 ⑦ 的 fail-closed / 一个量 / 反证三组已计入;`PRE-S19-A` 甲案未加新测种类,只加同族变体;
+判据 ⑤ 的**字节半两组不计入** —— 它们标 `NOT-RUN`)
 
 ---
 

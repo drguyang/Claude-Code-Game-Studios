@@ -10559,3 +10559,59 @@ GDD 注里已写明这个边界。
 - **`R-A2` 须在 sprint 收口时如实登记**:fail-closed ⇒ 存档 / 读档在生产路径上**不可用**,
   直到驱动源接通。**不得读成「功能已完成」。**
 - **未提交**(用户未下 commit 指令)。
+
+---
+
+## 2026-10-24 · S19-1 折叠接线 · 三家专家合成裁定(用户两项裁定已落)
+
+**原件**:`production/qa/evidence/s19-1-fold-adjudication-2026-10-24.md`(257 行)
+**三份专家草稿已合入原件并删除**(不留并行分析段)。
+
+### 用户裁定(2026-10-24,两项)
+
+1. **判据 ④ 的「字节半」推迟,并入 `TD-persist-03`** —— 存档体的字节布局**从未被造出来**,
+   与 `TD-persist-03` 实测 ③ 的「单列表 vs 头部+三流形状差」是同一个洞。
+2. **写裁定原件 + 改判据**。
+
+### 接线形态 = 甲-a(`Func<SaveSlot, byte[]> compose` 注入)
+
+不取 TD 戊案(搬三类型进 `Sim.Codec`)、不取 unity 第五案(搬两类型进 `Sim.Contracts`)。
+**关键判别**:TD 的「委托不可表达」只对**返回 `FoldResult`** 的委托成立;返回 `byte[]`(BCL)的委托不受限。
+
+### 判据 ④ 拆三段(四处落点已同步)
+
+| 段 | 判据 | 状态 |
+|---|---|---|
+| 位置半 | `HistoryFolder.Fold` 有非测试调用点,且**不在 `Sim.Codec/` 内** | 可兑现 |
+| 委托半 | `SaveService.cs` 内 `_compose(` 落在 `Checkpoint` 体内,未注入 fail-closed | 可兑现 |
+| 字节半 | 「折叠行出现在 `Checkpoint` 产出的字节里」 | **`NOT-RUN`** ⇒ `TD-persist-03` |
+
+### 同批订正三处判据(均带「原文不删」加注)
+
+- **③** 判据对象收窄为 `SlotProjections` + `SlotContext`;`SaveSlotLedger` 排除
+- **⑥ / ⑦c / ⑧d** 构造形参 **3 → 5 订正为 3 → 6**(原算术漏算 `Checkpoint` 数据源)
+- **⑦** 补:`SaveHeader` 无读回 · 无列表容器编解码器 ⇒ 两者均须新写
+
+### 落盘文件(5 处,均未提交)
+
+`production/qa/evidence/s19-1-fold-adjudication-2026-10-24.md`(新)·
+`production/sprints/sprint-19.md` · `production/qa/qa-plan-sprint-19-2026-10-24.md` ·
+`production/sprint-status.yaml` · `docs/tech-debt-register.md`(TD-persist-03 动作 ⑤ + 卡住的判据 + 触发条件 ④;TD-persist-01 ① 拆分加注两处)
+
+### 判例登记(乙案 = 无声漂移)
+
+给 `Sim.Codec` 加 `Sim` 引用**不撞任何机械门**:b2 白名单被 `AssemblyGates.cs:214` 的
+`if (asmName == "Sim")` 守卫、只对 `Sim` 生效;b3 只比 asmdef 的 `name`、**从不读 `references`**;
+`AC-10-02` 门扫的是装配 "3";全仓**零测试**断言 `Sim.Codec` 的引用集。
+⇒ **门绿 ≠ ADR 合规。**
+
+### 我方本轮一处误读(留痕)
+
+最初据 TD 的 D-08「甲案不可实现」把**整类委托注入**判死 —— 那是**越权推广**。
+D-08 只覆盖返回 `FoldResult` 的委托形态。
+
+### 未结
+
+- **S19-1 实现未开始** —— 17 条 acceptance 全部未动,零生产代码
+- **`TD-persist-03` / `-04` 仍 open**
+- **未提交**(用户未下 commit 指令)
