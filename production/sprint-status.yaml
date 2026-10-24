@@ -36,7 +36,7 @@ goal: "把四道 AC 门(G-4/G-5/G-6/G-7)从「裁决齐、实现零落点」推�
 start: "2026-10-24"
 end: ""                          # 不设结束日期口径,做完即收,收口时补记实际收口日(承 sprint-14…18 同例)
 generated: "2026-10-24"
-updated: "2026-10-24"
+updated: "2026-10-25"
 
 stories: []
 
@@ -74,7 +74,8 @@ work_items:
     name: "G-5(TD-player-02)—— `IPlayerMotor` 契约 + `MoveInput` 类型 + `PlayerController` 实现"
     file: "docs/tech-debt-register.md"
     complexity: M
-    status: "backlog"
+    status: "done"
+    completed: "2026-10-24"
     owner: ""
     depends_on: ["ADR-020 §Key Interfaces(签名齐备)", "ICameraRig(已在 Gameplay.Presentation,落位先例)"]
     evidence: "unity/Assets/Tests/EditMode/PlayerController/player_motor_test.cs(新)"
@@ -92,7 +93,8 @@ work_items:
     name: "G-6(TD-enemy-01)—— `LogiPose` + `ITameable` / `TameState` 形状 + 接 27 逐 tick 整数推进"
     file: "docs/tech-debt-register.md"
     complexity: M
-    status: "backlog"
+    status: "done"
+    completed: "2026-10-25"
     owner: ""
     depends_on: ["ADR-016 §二/§九", "EnemyPathing.StepAccumulator(在盘 :181)", "EnemyStateMachine(在盘)"]
     evidence: "unity/Assets/Tests/EditMode/EnemyAI/logi_pose_test.cs(新)"
@@ -107,8 +109,9 @@ work_items:
     name: "G-7(TD-randomevents-01)—— `DeferredThreatSlot` 流态载体 + 两 Kind 读写 + 删 `ValidateReconstructable` 假断言"
     file: "docs/tech-debt-register.md"
     complexity: M
-    status: "backlog"
+    status: "done"
     owner: ""
+    completed: "2026-10-25"
     depends_on: ["ADR-007 §三/§四", "ThreatDeferredPayload / ThreatDeferralClearedPayload(在盘 :323/:335)", "EventBudget.BudgetState(在盘 · 内存态)"]
     evidence: "unity/Assets/Tests/EditMode/RandomEvents/deferred_threat_slot_test.cs(新)"
     note: "⚠️ **本件不是「从零发明类型」,是「把内存态换成流态」** —— 52 侧**已有**内存版延迟槽 `EventBudget.BudgetState.DeferSlots`(`Sim/EventBudget.cs:51`,`List<int>`),只是不叫 `DeferredThreatSlot`。 ⚠️ **同文件里有一处假断言必须一并处置**:`EventBudget.ValidateReconstructable`(`:137-142`)的 doc 写「验证预算状态可从流重构」,实现是 `return state != null;` 且自带注释「简化版:验证状态非空」⇒ **方法名声称的判据从未成立**。这正是 ADR-007 §三逐字禁止的形态,也是本仓反复抓过的「自造断言顶替判据」。**只加新类型不删这条 = 本件未完成。** ⚠️ **该方法的调用点已于 2026-10-24 规划轮实测 = 零**(`grep -rn 'ValidateReconstructable' unity/Assets --include='*.cs'` ⇒ 1 行,即声明本身)⇒ 可安全替换;但若将来有调用方接入,判据仍是**换实现而非删方法**。 ⚠️ 本件会碰到 52 已 `Complete` 的 `story-004`,承 TD 工作项载体裁定:**不立 story、不重开 epic**。"

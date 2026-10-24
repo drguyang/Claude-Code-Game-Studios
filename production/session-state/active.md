@@ -1,3 +1,94 @@
+# Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · S19-4 实现轮 ✅(DeferredThreatSlot 流态载体落地 + 证伪 9 红)—— 未提交,等 commit 指令**)
+
+## S19-4 实现轮(2026-10-25 · ✅ 实现收口,未提交)
+
+- **卡面四判据全落**:① `BudgetState.DeferSlots` 由 `List<int>` 改 `Dictionary<int,int>`
+  (slotIndex→eventKey),唯一写入路径 = `EventBudget.FoldDeferEvent`(从流折叠,经
+  `IPayloadDecoder` —— ADR-031 消费点);`AddToDefer`/`ClearDefer` 直改面删除(第二真源拆除)·
+  ② `ValidateReconstructable` 假断言(「验证非空」)删,换四参真判据(重构逐元素比对)·
+  ③ 写者 `Sim/DeferredThreatSlotWriter.cs` 新(TryDefer/TryClear 具名结果码;Patient=None **必须**;
+  reason 0=补发/1=作废 —— 序数落地约定本件首定,转发常量+断言钉)+ `WriterExistenceGate`
+  两行豁免同批撤(门子集 373/373 绿 = 同批纪律成立)· ④ 迁移夹具 `test_deferSlots_replayTwice_identicalSlotElements`
+- **测试**:`deferred_threat_slot_test.cs` 新 21 条 + `event_budget_defer_test.cs` 改写
+  (三条假绿真判据化:deferSlotBounded 空断言→越界拒收 / dwellNotInBudget 恒真→签名判据 /
+  AC-52-30 张冠李戴订正;newDayReset 随直改面删除改写为经流形态 —— 第 4 条如实登记,非假绿面内)
+- **回归**:`4867/4832/0/35` @ 07:19 CST · `s194` 全量 · `6198671`(前基线 4846 ⇒ +21 = 新测数,零回归)
+- **证伪轮 M1–M9 九轮全数转红**(清槽反转 7 红/双占 1/折叠越界 1/真判据退化 1/Patient 1/
+  写者越界 1/reason 1/豁免回添 1/重放丢半 4);三文件 SHA-256 逐位还原
+- **记账**:TD-randomevents-01 → closed(结案块落正文)· G-7 门行加注 · §五 **二十订**
+  (closed 26→27 · open 71→70 · 未闭 P0 面 72→**71** · random-events 行清空 12→11 epic ·
+  ⚠️ **条目 105→104 系订正十九订笔误**:closed 翻转不加条目,权威脚本实测 104)
+- **证据原件**:`production/qa/evidence/impl-s19-4-deferred-threat-2026-10-25.md`
+- **残余**:52 生产触发点未接线(有写者≠已接线)· TICKS_PER_DAY 权威值归 52 配置轮 ·
+  抽取记录/历史旗标的从流重构是 ADR-007 §三 表其他行,不在本债面
+
+## S19-3 实现轮(2026-10-25 · ✅ 实现收口,未提交)
+
+- **落点裁定(判据 ①)**:`LogiPose` / `ITameable` / `TameState` / `TameableFields` 落 **Sim.Contracts**
+  (13 投影链输入,跨装配契约;yaml note 默认指向,无偏离理由)
+- **改动**:`Sim.Contracts/LogiPose.cs` 新(LogiPose struct + TameState 4 值闭集 + ITameable
+  + TameableFields 占位 —— **零值陷阱结构性免疫**:PatientId.None=-1 vs 默认 0,恒定值由 readonly 保证)·
+  `Sim/EnemyLocomotion.cs` 新(GDD F-27-4 **权威形态**:while 沿路径逐格 + 冻结 acc 保持 +
+  DirFrom 朝向;**纯函数零流依赖**)
+- **测试**:`logi_pose_test.cs` 15 测全绿(判据①②③④ 全覆盖);全量 EditMode
+  **4846/4811/0/35** @ 01:42(前基线 4831 ⇒ +15 零回归)· commit `6198671`
+- **证伪轮 M1'–M8 全数转红**(冻结归零 / 脱离 Moving 门 / 朝向失效 / OwnerId→0 / float 渗入 /
+  while 降级 / 驯化方法渗入 / 装配移动)。⚠️ M5 编译即炸(CS0103)= Sim.asmdef 引用集恰 =
+  {Sim.Contracts} 的**结构门实证**,比 grep 更硬。⚠️ M1 首版 0 红 = 变异打错靶(不可达代码),
+  M1' 修正后转红 —— 已如实登记
+- **原件**:`production/qa/evidence/impl-s19-3-logi-pose-2026-10-25.md`
+- **记账**:TD-enemy-01 → closed(结案块 + G-6 门行加注 + §五 十九订:closed 26 · 未闭 P0 面 72 ·
+  enemy-ai 清零)· sprint-status S19-3 → done
+- **⚠️ 跑法旗标教训**:`-runSynchronously` 改变 EditMode 下 `Time.deltaTime` 帧计时 ⇒
+  MovementFeed/PlayerMotor 4 条物理位移前提崩(环境红,非代码);同款跑法(不带该旗标)复跑全绿。
+  **涉物理位移前提的夹具不得带该旗标跑**
+- **遗留**:StepAccumulator(直线)vs Advance(沿路径)双步进算子并存 —— 合并归后续收敛轮,
+  **未入债册待用户裁**;LogiPose 零生产消费者(27 接线归各自 story)
+
+---
+
+## S19-2 实现轮(2026-10-24 · ✅ 实现收口,未提交)
+
+- **改动**:`IPlayerMotor.cs` 新(四成员 ADR-020 权威形状 + MoveInput 薄包装)·
+  `PlayerController : IPlayerMotor`(边沿锁存器 `_cellEdgeLatched` 只在提交后置位;
+  `Tick` 委托 `Move`;`Cell` 走 `CellFromPosition`;删死字段 `_cellDetector` = C-3)·
+  GDD R5 加注(因果绑定非调用次序)
+- **测试**:新 `player_motor_test.cs` 9 测全绿;PlayerController 面 107/107;
+  全量 EditMode **4831/4796/0/35** @ 23:54(前基线 4822 ⇒ +9 零回归)· commit `6198671`
+- **证伪轮 F1–F3 全红**(F1 夺 pending / F2 Cell 走 RoundToInt / F3 锁存器不置位;
+  SHA-256 逐字节还原 OK)。⚠️ F1 首版零红 = 假绿夹具(消费点选在 pending 已清之后,
+  变异不可观测)⇒ 重构为共存态前提后转红 —— S12-4 门起作用的实例
+- **原件**:`production/qa/evidence/impl-s19-2-player-motor-2026-10-24.md`
+- **遗留**:C-3 的「内联算子 vs CellTransitionDetector 重复」另立 TD **未入册,待用户裁**;
+  PlayMode 本轮 NOT-RUN(未触其面)
+
+---
+
+## TD-persist-03 实现轮(2026-10-24 · ✅ 收口,未提交)
+
+## TD-persist-03 实现轮(2026-10-24 · ✅ 收口,未提交)
+
+- **用户四裁定全落地**(字节布局 = 单列表 + 折叠段 / 不立新抽象点 / 三分化 / SaveVersion 仍 1)
+- **改动**:EventStream.Restore(三关三分化 + `_restoredGroupMax` 播种,既有发号器钉测一字未动)
+  · 新 FoldRowCodec(36B 定长行,outcome ∉{1,2} 拒)· SaveComposer 重写(三流合一进档 +
+  SpliceBack 键集成员判定 + existingFoldedRows 回写义务)· SaveService(foldedRowSink fail-closed +
+  ParseBody 复合读)· SimEventListCodec.ReadWithinBody · CompositionRoot 双委托接线 ·
+  ADR-010 §一 增补块。**装配边零新增**
+- **回归**(`6198671` + 本轮工作树):EditMode **4822/4787/0/35** @ 23:11(基线 4802/4767 ⇒ +20 零回归;
+  播种改法后 o1/dedup 两钉回绿)· PlayMode **202/202/0/0** @ 23:12(逐位一致)
+- **证伪轮 M1–M8 八轮全红**(CAP flip / 去重跳 / 高水位 / 字段序 / outcome=0 / 恒空 / 保留被抹行 /
+  sink 不交出;SHA-256 四文件逐字节还原全 OK)
+- **债册**:TD-persist-03 closed + TD-persist-01 closed(字节半 + 产出面反证 M7 两红补齐);
+  §五 十五订 + 十六订实测(closed 24 · 未闭 P0 面 74 → 73 · persistence-service 1 = 仅 04);
+  G-2 门行订正(前置解除,行状态不动)。判据 ④ 复核:锁在重放成功后(`SaveService.cs:353`),
+  失败不锁,维持现状
+- **原件**:`production/qa/evidence/impl-td-persist-03-replay-and-body-2026-10-24.md`
+- **未提交**(等用户指令);建议 `fix(persist)` + `docs(persist)` 两段
+- **诚实边界**:升链仍 NOT-RUN(fail-closed 保留)· W-4 台账高水位未随之兑现(注记已订正指向)·
+  AC-7a-01 全量语义未转绿(快照段哨兵 0)· 生产消费者仍 0
+
+---
+
 # Session State — 2026-10-14(**当前阶段 = Pre-Production · Sprint 10 🚧(story-009 ✅ Complete —— 实现轮 + 评审收口同日落;剩 ADVISORY 人工走查批)· Sprint 09 🚧(S1 第七轮 playtest 待用户执行)· Sprint 08 ✅ · M2 形态件 4/4 齐**)
 
 ## Sprint 10 进展(2026-10-14)

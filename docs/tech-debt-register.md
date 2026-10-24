@@ -340,19 +340,20 @@
 | `TD-audio-025` | `disease-simulation` | open | **Y** | R1 |
 | `TD-sim-01` | `disease-simulation` | open | **Y** | R1 |
 | `TD-player-01` | `player-controller` | closed | **Y** | R1 |
-| `TD-player-02` | `player-controller` | open | **Y** | R1 |
+| `TD-player-02` | `player-controller` | closed | **Y** | R1 |
+| `TD-player-03` | `player-controller` | open | **Y** | R1 |
 | `TD-epic-01-a` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-b` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-c` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-d` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-e` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-f` | `telemetry-analytics` | closed | **Y** | R1 |
-| `TD-persist-01` | `persistence-service` | open(①**部分结** · 2026-10-24) | **Y** | R1 |
+| `TD-persist-01` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-02` | `persistence-service` | closed | **Y** | R1 |
-| `TD-persist-03` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-03` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-04` | `persistence-service` | open | **Y** | R1 |
-| `TD-enemy-01` | `enemy-ai` | open | **Y** | R1 |
-| `TD-randomevents-01` | `random-events` | open | **Y** | R1 |
+| `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
+| `TD-randomevents-01` | `random-events` | closed | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | open | **N** | R2 |
 | `TD-clinic-01` | `item-database` | **done**(2026-10-21) | ~~**Y**~~ | R1 |
 | `TD-clinic-02` | `clinic-machine` | open | **Y** | R1 |
@@ -418,36 +419,64 @@ PYEVAL
 ~~**当前预期输出(2026-10-22 十订实测 · 含 `TD-clinic-18` 立债 —— 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-24 十一订实测 · 含 `TD-persist-03` 立债 —— 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-24 十二订实测 · 含 `TD-persist-04` 立债 —— 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
-**当前预期输出(2026-10-24 十四订实测 · `TD-epic-01-f` 结案 + 两行状态列归位 —— 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
-> ⚠️ **标题换行不删**:十二订标题就地改为删除线,新标题并列(承「原文不删,就地加注」—— 原措辞逐字仍可查,只是轮次前移一格)。
-> 🔁 **十四订(`TD-epic-01-f` 结案 · 2026-10-24 修复轮)** —— 变化 = **`closed 20 → 22`**(+2)·
-> **`未闭 P0 面` 76 → 75`**(−1)· **`telemetry-analytics 6 → 5`**(−1)· `open 74 → 73`(−1)·
-> `条目` / `epic 分布` 一位不动。
-> ⚠️ **`closed` 涨 2 而 `未闭 P0 面` 只降 1,不是漏刷** —— 两笔性质不同:
-> ① `TD-epic-01-f` 本轮**新结案** ⇒ 它从 live 集合消失 ⇒ 未闭面 **−1**;
-> ② `TD-persist-02` **上一轮就已结案**,只是当时状态列被我写成 `**closed**(2026-10-24)`、
->    P0 列写成 `~~**Y**~~`,**两个写法都逃出脚本的精确匹配**(`r[2] != 'closed'` /
->    `r[3].strip('*') == 'Y'`)⇒ 它在 §五 里**既没进 closed 桶、也没进 live 集合**。
->    本轮把它与 `TD-epic-01-f` 一起**改回既有 21 条 closed 行的裸 `closed` + `**Y**` 惯例**
->    ⇒ `closed` 补回 1、`P0 面` 直方图的 `~~**Y**~~` 桶 2 → 1。
->    **它本来就不在 live 集合里,故归位后未闭面不动。**
-> ⚠️ **本轮顺手修掉的是十二订自己登记的那条待裁缺陷**(「我方写的那两行改回裸 `closed` / `open`」)
-> —— 该缺陷在十二订时被写成「本轮不做,登记为待裁」,**本轮做了**,理由:不改的话
-> 每新增一条结案债都会继续沿用错误写法,而**既有 21 条 closed 行是裸 `closed`**,
-> 两种写法并存会让 §五 的两个桶长期错位。**`TD-persist-01` 的
-> `open(①**部分结** · 2026-10-24)` 未动** —— 它是 `open` 的**部分结**标注,语义不同,
-> 且 §五 的 `open` 桶本来就靠兜底收录(该行确实出现在 `open: 73` 之外的独立桶里,
-> 如实可见)。**另立待裁**,不在本轮裁定面内。
+~~**当前预期输出(2026-10-24 十四订实测 · `TD-epic-01-f` 结案 + 两行状态列归位 —— 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
+~~**当前预期输出(2026-10-24 十七订实测 · `TD-player-03` 立债 —— 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
+~~**当前预期输出(2026-10-25 十八订实测 · `TD-player-02` 结案 —— 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
+~~**当前预期输出(2026-10-25 十九订实测 · `TD-enemy-01` 结案 —— 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
+**当前预期输出(2026-10-25 二十订实测 · `TD-randomevents-01` 结案 —— 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
+> ⚠️ **标题换行不删**:十九订标题就地改为删除线,新标题并列(承「原文不删,就地加注」—— 原措辞逐字仍可查,只是轮次前移一格)。
+> 🔁 **二十订(`TD-randomevents-01` 结案 · 2026-10-25 S19-4 实现轮)** —— 变化 =
+> **`closed 26 → 27`**(+1)· **`open 71 → 70`**(−1)· **`未闭 P0 面` 72 → 71`(−1)·
+> **`random-events 1 → 0`**(−1;epic 分布清空该行,12/31 → **11/31**)·
+> **`条目 105 → 104`** —— ⚠️ **此格是订正不是变化**:closed 翻转**不加条目**,
+> 十九登记的「105」系登记笔误(本轮权威脚本实测 104,与十八订口径一致;复算命令 = §五 脚本本体)。
+> 单一变化源:`TD-randomevents-01` 索引行 `open → closed`(S19-4 兑现,结案块见其正文)。
+> 原件 = `production/qa/evidence/impl-s19-4-deferred-threat-2026-10-25.md`。
+>
+> ~~十九订正文(留档)~~:🔁 十九订变化 = `closed 25 → 26`(+1)· `open 72 → 71`(−1)·
+> `未闭 P0 面` 73 → 72(−1)· `enemy-ai 1 → 0`(−1;epic 分布清空该行)· ~~`条目 105` 不动~~
+> (**订正**:此格原文写「条目 105 不动」,但上轮 104 才是实数 —— 「105」即二十订所订正的笔误之源)。
+> 单一变化源:`TD-enemy-01` 索引行 `open → closed`(S19-3 兑现,结案块见其正文)。
+> 原件 = `production/qa/evidence/impl-s19-3-logi-pose-2026-10-25.md`。
+>
+> ~~十八订正文(留档)~~:🔁 十八订变化 = `closed 24 → 25`(+1)· `open 73 → 72`(−1)·
+> `未闭 P0 面` 74 → 73(−1)· `player-controller 2 → 1`(−1)· `条目 104` 不动。
+> 单一变化源:`TD-player-02` 索引行 `open → closed`(S19-2 兑现)。
+>
+> ~~十七订正文(留档)~~:🔁 十七订变化 = `条目 103 → 104`(+1)· `open 72 → 73`(+1)·
+> `未闭 P0 面` 73 → 74(+1)· `player-controller 1 → 2`(+1)· `closed 24` 不动。
+> 单一变化源:新立 `TD-player-03`。
+> ⚠️ **标题换行不删**:十六订标题就地改为删除线,新标题并列(承「原文不删,就地加注」—— 原措辞逐字仍可查,只是轮次前移一格)。
+> 🔁 **十七订(`TD-player-03` 立债 · 2026-10-24 S19-2 实现轮)** —— 变化 = **`条目 103 → 104`**(+1)·
+> **`open 72 → 73`**(+1)· **`未闭 P0 面` 73 → 74`**(+1)· **`player-controller 1 → 2`**(+1)·
+> `closed 24` 不动。单一变化源:新立 `TD-player-03`(玩家跨格状态机双实现 —— S19-2 删死字段
+> `_cellDetector` 后,`CellTransitionDetector` 类与其测试仍是一份只有测试消费的平行实现)。
+> 原件 = `production/qa/evidence/impl-s19-2-player-motor-2026-10-24.md` §五 C-3 / §六。
+>
+> ~~十六订正文(留档)~~:🔁 十六订变化 = `closed 23 → 24`(+1)· `未闭 P0 面` 74 → 73(−1)·
+> `persistence-service 2 → 1`(−1)· `open` 桶一位不动(72)。单一变化源:`TD-persist-01` 索引行
+> `open(①**部分结**) → closed`。
+> ⚠️ **标题换行不删**:十五订标题就地改为删除线,新标题并列(承「原文不删,就地加注」—— 原措辞逐字仍可查,只是轮次前移一格)。
+> 🔁 **十六订(`TD-persist-01` 结案 · 2026-10-24 实现轮)** —— 变化 = **`closed 23 → 24`**(+1)·
+> **`未闭 P0 面` 74 → 73`(−1)· **`persistence-service 2 → 1`**(−1)· `open` 桶一位不动(72;
+> 前订的独立桶 `open(①**部分结** …)` 因状态列改裸 `closed` 而消失)·
+> `条目` / `epic 分布` 位次不动。单一变化源:`TD-persist-01` 索引行
+> `open(①**部分结**) → closed`。结案判据逐条见该条正文的结案块(字节半 + 产出面反证)。
+> 原件 = `production/qa/evidence/impl-td-persist-03-replay-and-body-2026-10-24.md` §四。
+>
+> ~~十五订正文(留档)~~:🔁 十五订变化 = `closed 22 → 23`(+1)· `未闭 P0 面` 75 → 74(−1)·
+> `persistence-service 3 → 2`(−1)· `open 73 → 72`(−1)。单一变化源:`TD-persist-03` 索引行
+> `open → closed`。当时 `TD-persist-01` 仍未动(其字节半随本轮 TD-persist-03 兑现后才可结,
+> 十六订补结)。
 
 ```text
-条目 103 | 状态 {'open': 73, 'partial': 6, 'closed': 22, 'open(①**部分结** · 2026-10-24)': 1, '**done**(2026-10-21)': 1} | P0 面 {'Y': 92, 'N': 10, '~~**Y**~~': 1}
-未闭 P0 面 = 75 （已闭但曾标 P0 面的 17 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 75 条,分布在 13/31 个 epic
+条目 104 | 状态 {'open': 70, 'partial': 6, 'closed': 27, '**done**(2026-10-21)': 1} | P0 面 {'Y': 93, 'N': 10, '~~**Y**~~': 1}
+未闭 P0 面 = 71 （已闭但曾标 P0 面的 22 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 71 条,分布在 11/31 个 epic
     medical-consequences: 20   audio-system: 20          clinic-machine: 17
-    telemetry-analytics: 5     persistence-service: 3    skeuomorphic-ui: 2
-    disease-simulation: 2      patient-ai: 1              player-controller: 1
-    enemy-ai: 1                random-events: 1           item-database: 1
-    modular-building: 1
+    telemetry-analytics: 5     skeuomorphic-ui: 2        disease-simulation: 2
+    patient-ai: 1              player-controller: 1      persistence-service: 1
+    item-database: 1           modular-building: 1
 ```
 
 > ⚠️ **上方输出块已刷到十三订(2026-10-24)**。**状态直方图有两处是脚本缺陷的产物,须读清楚**:
@@ -579,11 +608,11 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 | 门 | 载体 TD | 归属 epic(括号 = 该 epic 的 story 数,均全 `Complete`) | 状态 | P0 面 | 触发条件(何时须还) |
 |---|---|---|---|---|---|
 | **G-1** | `TD-sim-01` | `disease-simulation`(7/7) | open | **Y** | `death-respawn` 任一 story 开工前;或 9 下一轮动 F4 / `StateMachine`<br>🔁 **2026-10-22(sprint-18 收口)**:S18-1 **结转 sprint-19**(用户裁定)⇒ 本门**未清**,`TD-sim-01` 保持 `open`。四条入口判据见 `qa-signoff-sprint-18-2026-10-22.md` §六<br>🔁🔁 **2026-10-24 就地订正(原文不删)—— 上句「结转 sprint-19」已被同日用户改判推翻。**<br>**2026-10-22 当日稍后,用户裁定 S18-1 拉回 sprint-18 并已落地**(原文不删,登记处 = `production/sprints/sprint-18.md` §九.6;`sprint-status.yaml` 的 `work_items[S18-1]` 已置 `status: done` + `reclaimed: 拉回 sprint-18`)。<br>**⇒ 本条「未清」的理由已不成立**,但**结论仍需分开看** —— 两条判据面互不相同:<br>· **谓词层** = 已还:`Sim/EntityDeathGates.cs:194` 本体 + `F4OutcomeEvaluator.cs:171` 生产接线(经 `Gameplay.Boot/DiseaseVitalsService.cs:482`);<br>· **接线层** = 未还:`DeathCandidateConsumer` / `PlayerDiedWriter` **生产侧零构造点**(只在 `death_candidate_writers_test.cs` 里 `new`)。<br>⚠️ **本行 `open` 状态本轮不动** —— 结案与否归 `death-respawn` / QA 侧核,不由记账轮自裁。本行只订正**陈述**,不改**判定**。逐项证据见 `TD-sim-01` 正文「实测」栏的 2026-10-24 订正段。 |
-| **G-2** | `TD-persist-01` | `persistence-service`(2/2) | open | **Y** | `death-respawn/story-003` 开工前;或 7a 下次动 `Sim.Codec`<br>🔁 **2026-10-22(sprint-18 收口)**:谓词 + 折叠行产出**已落**(S18-2 `done`,29 测全绿),但**本册不据此结案** —— ① `FoldedPredicate` **零生产调用点**(`SaveService` 形参默认 `null`,折叠未进存档路径;`HistoryFolder.Fold` 调用点全在测试内);② ~~`OQ-7a-10` 未裁(抹除作用域取权威字面而非已裁口径)~~ 🔁 **2026-10-24 已裁(用户裁定 A)** —— 条件 ① 由 ∃ 收紧为 ∀(`终态(p) = ∀ d ∈ D_p : ∃ PatientOutcomeChanged(p, d)`,空集 `D_p = ∅` ⇒ false),落 `Sim/FoldedPredicate.cs`;③ 折叠产出面**无变异反证**(签核件 D-5)。结案判据 = 三项同时满足 **⇒ 现剩 ①③ 两项未满足,本条**保持 `open`**。详见 `production/sprints/sprint-18.md` §九.2<br>🔁 **2026-10-24(折叠接线裁定轮)**:**判据 ① 拆三段**,`S19-1` 只结**位置半 + 委托半**;**字节半并入 `TD-persist-03`** ⇒ **① 在本条清偿前不可全结**,收口时不得写成「① 已满足」。原件 = `production/qa/evidence/s19-1-fold-adjudication-2026-10-24.md`<br>🔁 **2026-10-24(S19-1 收口)**:**① 的位置半 + 委托半已结**,③ **亦已结**(证伪轮 4 变异 M7–M10 全部恰如预期)。**本条仍 `open`** —— 唯一残余 = **字节半**(「折叠行出现在 `Checkpoint` 产出的字节里」),已随 `TD-persist-03` 动作 ⑤ 走。**不得**读成「① 已满足」:生产调用链上折叠**会抛**(fail-loud),不是「已生效」。原件 = `production/qa/evidence/review-s19-1-2026-10-24.md` §十一。 |
+| **G-2** | `TD-persist-01` | `persistence-service`(2/2) | open | **Y** | `death-respawn/story-003` 开工前;或 7a 下次动 `Sim.Codec`<br>🔁 **2026-10-22(sprint-18 收口)**:谓词 + 折叠行产出**已落**(S18-2 `done`,29 测全绿),但**本册不据此结案** —— ① `FoldedPredicate` **零生产调用点**(`SaveService` 形参默认 `null`,折叠未进存档路径;`HistoryFolder.Fold` 调用点全在测试内);② ~~`OQ-7a-10` 未裁(抹除作用域取权威字面而非已裁口径)~~ 🔁 **2026-10-24 已裁(用户裁定 A)** —— 条件 ① 由 ∃ 收紧为 ∀(`终态(p) = ∀ d ∈ D_p : ∃ PatientOutcomeChanged(p, d)`,空集 `D_p = ∅` ⇒ false),落 `Sim/FoldedPredicate.cs`;③ 折叠产出面**无变异反证**(签核件 D-5)。结案判据 = 三项同时满足 **⇒ 现剩 ①③ 两项未满足,本条**保持 `open`**。详见 `production/sprints/sprint-18.md` §九.2<br>🔁 **2026-10-24(折叠接线裁定轮)**:**判据 ① 拆三段**,`S19-1` 只结**位置半 + 委托半**;**字节半并入 `TD-persist-03`** ⇒ **① 在本条清偿前不可全结**,收口时不得写成「① 已满足」。原件 = `production/qa/evidence/s19-1-fold-adjudication-2026-10-24.md`<br>🔁 **2026-10-24(S19-1 收口)**:**① 的位置半 + 委托半已结**,③ **亦已结**(证伪轮 4 变异 M7–M10 全部恰如预期)。**本条仍 `open`** —— 唯一残余 = **字节半**(「折叠行出现在 `Checkpoint` 产出的字节里」),已随 `TD-persist-03` 动作 ⑤ 走。**不得**读成「① 已满足」:生产调用链上折叠**会抛**(fail-loud),不是「已生效」。原件 = `production/qa/evidence/review-s19-1-2026-10-24.md` §十一。<br>🔁 **2026-10-24(实现轮)**:**字节半已随 `TD-persist-03` 兑现**(`FoldRowCodec` + `Compose` 折叠段 + 端到端钉;M6「折叠段恒空」变异 ⇒ 端到端红),**`TD-persist-01` 已于同日 `closed`** ⇒ **判据 ① 三段全结 + ② 产出面反证已补(M7 两红)**,两判据均满足。**本门行(G-2)的 `open` 状态归其自己的触发条件**(`death-respawn/story-003` 开工 / 7a 下次动 `Sim.Codec`)—— TD-persist-01 结案不自动翻本行;但「`TD-persist-01` 未清偿前不可全结」的前置**已解除**。原件 = `production/qa/evidence/impl-td-persist-03-replay-and-body-2026-10-24.md` §四。 |
 | **G-4** | `TD-persist-02` | `persistence-service`(2/2) | open | **Y** | `save-slot-ui/story-001` 勾 `AC-7b-01/02/10` 之前<br>🔁 **2026-10-24(S19-1 收口)**:**`TD-persist-02` 已于同日 `closed`**(索引表 `:350`;解除动作 ①–③ 逐条落点见该条正文的结案块)。**但本行 `open` 状态本轮不动** —— 与 G-1 行同一条纪律:**结案与否归 `save-slot-ui` / QA 侧核,不由记账轮自裁**。本行只订正**陈述**,不改**判定**。<br>**为何不直接翻 `closed`(触发条件未真正解除)**:G-4 的触发条件是 `AC-7b-01/02/10` 三条 —— 它们要求 7b 的 `Writable` / `Loadable` **全部来自 7a**(`design/gdd/save-slot-ui.md:400-409`)。契约本体已落(`Sim.Codec/SlotProjections.cs`),但 ⚠️ **该类型今日零生产消费者**(`/code-review` S19-1 C-4 实测:`grep -rn "SlotProjections\." unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ 0 行)—— 生产侧另有两份**手写等价物**(`SaveSlotLedger.EnsureWritable` 不查锁 / `SaveService.Load` 不查 `slot_seq`)。⇒ **7b 开工时接哪一份尚未定**,若接手写等价物则 `AC-7b-02` 的「全部来自 7a」在字面上仍可满足、但**单一真源未成立**。收敛归 `TD-persist-03`(让 `EnsureWritable` / `Load` 改调投影,或加「内联判定 ≡ 投影」对拍夹具)。<br>**⇒ 解除本行 `open` 的前置 = 上述收敛落地 + `save-slot-ui` 侧确认接线面**。原件 = `production/qa/evidence/review-s19-1-2026-10-24.md` §C-4。 |
-| **G-5** | `TD-player-02` | `player-controller`(6/6)+ `camera-viewpoint`(6/6) | open | **Y** | 1 或 2 的下一轮动到玩家位移 / 相机锚点时 |
-| **G-6** | `TD-enemy-01` | `enemy-ai`(5/5) | open | **Y** | 27 具备可跑行为程序之前 |
-| **G-7** | `TD-randomevents-01` | `random-events`(6/6) | open | **Y** | 52 下一次动延迟威胁 / 主机迁移语义时 |
+| **G-5** | `TD-player-02` | `player-controller`(6/6)+ `camera-viewpoint`(6/6) | open | **Y** | 1 或 2 的下一轮动到玩家位移 / 相机锚点时<br>🔁 **2026-10-25(S19-2 实现轮)**:**触发条件已被本轮触发并偿付** —— `IPlayerMotor` 契约 + 实现 + 夹具全落,`TD-player-02` 已于同日 `closed`(结案块见其正文;证伪轮 F1–F3 全红)。**本行 `open` 状态归下一轮记账时核**(同 G-1/G-4 纪律:门行的判定不由实现轮自裁)—— 但本门的**清偿载体已就位**,残余 = `TD-player-03`(双实现收敛,另条不并账)。原件 = `production/qa/evidence/impl-s19-2-player-motor-2026-10-24.md`。 |
+| **G-6** | `TD-enemy-01` | `enemy-ai`(5/5) | open | **Y** | 27 具备可跑行为程序之前<br>🔁 **2026-10-25(S19-3 实现轮)**:**触发条件已被本轮触发并偿付** —— `LogiPose` / `ITameable` / `TameState` / `TameableFields` 落 `Sim.Contracts`(判据 ① 落点裁定:跨装配契约,13 投影链输入)+ GDD F-27-4 权威形态推进算子 `EnemyLocomotion.Advance` + 夹具 15 条,`TD-enemy-01` 已于同日 `closed`(结案块见其正文;证伪轮 M1'–M8 全数转红)。**本行 `open` 状态归下一轮记账时核**(同 G-1/G-4/G-5 纪律:门行的判定不由实现轮自裁)。原件 = `production/qa/evidence/impl-s19-3-logi-pose-2026-10-25.md`。 |
+| **G-7** | `TD-randomevents-01` | `random-events`(6/6) | open | **Y** | 52 下一次动延迟威胁 / 主机迁移语义时<br>🔁 **2026-10-25(S19-4 实现轮)**:**触发条件已被本轮触发并偿付** —— `DeferredThreatSlot` 流态载体(`BudgetState.DeferSlots` 改字典 + 唯一写入路径 = `EventBudget.FoldDeferEvent` 从流折叠)+ 写者 `Sim/DeferredThreatSlotWriter.cs`(两 Kind 读写)+ `ValidateReconstructable` 假断言换真判据(重构逐元素比对)+ 门豁免两行同批撤除 + 夹具 21 条(含「重放同段流两次逐元素相同」迁移夹具),`TD-randomevents-01` 已于同日 `closed`(结案块见其正文;证伪轮 M1–M9 全数转红)。**本行 `open` 状态归下一轮记账时核**(同 G-1/G-4/G-5/G-6 纪律:门行的判定不由实现轮自裁)。原件 = `production/qa/evidence/impl-s19-4-deferred-threat-2026-10-25.md`。 |
 | **G-8** | `TD-clinic-01` | `item-database`(12/12) | **✅ 已结**(2026-10-21) | ~~**Y**~~ | ~~`clinic-machine/story-001` 的 `AC-24-08` / `AC-24-12` 转可判之前~~ **已达** —— 两条 AC 已解除挂标并勾选(S17-4) |
 | ~~**G-3**~~ | ❌ **不登记** | —— | —— | —— | **已证伪**(错因 = grep 目录限定;留痕见本册「同批被证伪的一条」) |
 
@@ -1701,6 +1730,7 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | **`death-respawn/story-003` 开工前**;或 **7a 下一次动 `Sim.Codec` / 存档格式**时 |
 | **归属** | **7a**(持久化服务) |
 | **🔁 2026-10-24 现状订正(原文不删)** | 上表「实测」栏记的 **0 处** 是 2026-10-20 立案时的状态,**现已过期**。谓词与折叠行产出已于 sprint-18(S18-2)落地:`Sim/FoldedPredicate.cs`(`Terminal` / `Exempt` / `HasOpenCase`)+ `Sim/HistoryFolder.cs`(`Fold` / `BuildRows` / `Erase`),`folded_predicate_test.cs` **35 测**全绿(`4701 / 4666 / 0 / 35`,截至 `2026-10-23T21:57 (+0000)` · 批次 `oq7a10-restored` · commit `09e65c4`)。<br>⚠️ **本债仍 `open`,判据由三项缩为两项**(原三项之一「`OQ-7a-10` 未裁」已于同日由用户裁定 A 结清):<br>① **折叠未接入任何存档路径** —— `SaveService` 的 `IFoldedPredicate` 形参默认 `null`,`HistoryFolder.Fold` 的调用点**全在测试内**;<br>② **产出面「抹哪些行」的变异反证仍缺** —— 2026-10-22 的两轮(`Erase` 批)+ 2026-10-24 的三轮(`OQ-M1..M3`)打的都是**谓词面 / 豁免面**,不是 `Erase` 的取舍面。<br>**不得**因谓词已落而把本债读成「接近结案」—— 剩的两项都是**生产接线 + 反证**类硬缺口。<br>🔁 **2026-10-24 追加(折叠接线裁定轮)**:判据 ① 经三家专家合成裁定**拆为三段** —— `S19-1` 只可结 **位置半**(`HistoryFolder.Fold` 有非测试调用点)+ **委托半**(`SaveService.Checkpoint` 内有 `_compose(` 且 fail-closed),**字节半**(「折叠行出现在 `Checkpoint` 产出的字节里」)标 **`NOT-RUN`,并入 `TD-persist-03`**(存档体字节布局不存在)。⇒ **本债的 ① 在 `TD-persist-03` 清偿前不可全结**,收口时不得把「折叠在生产调用链上生效」写成「① 已满足」。原件 = `production/qa/evidence/s19-1-fold-adjudication-2026-10-24.md`。 |
+| **✅ 🔁 2026-10-24 结案块(实现轮)** | **两项残余判据均已满足,本条 `closed`**:<br>① **三段全结** —— 位置半 + 委托半(S19-1 已结,见上)**+ 字节半本轮兑现**:`TD-persist-03` 动作 ⑤ 落地(`FoldRowCodec.EncodeSegment` + `SaveComposer.Compose` 折叠段 + `ParseBody` 复合读 + `existingFoldedRows` 回写义务),**折叠行确实出现在 `Checkpoint` 产出的字节里**(端到端钉:`save_replay_roundtrip_test` 断言二次 Checkpoint 的 `save_1.bin` 折叠段含被折病人行;M6「折叠段恒空」变异 ⇒ 该测转红)。<br>② **产出面变异反证已补** —— 本轮 M7 变异(`SpliceBack` 保留被抹行,即 `Erase` 取舍面的反向)⇒ `test_compose_foldablePatient_writesFoldRowsIntoFoldedSegment` + 端到端 **2 红**;连同 M4(字段序换 5 红)/ M6(恒空 3 红),产出面三变异全红。<br>**回归**:`4822/4787/0/35` @ `2026-10-24 23:11 CST` · `tdef01f` · `6198671`。**原件** = `production/qa/evidence/impl-td-persist-03-replay-and-body-2026-10-24.md` §四。<br>⚠️ **卡住的判据面不受本条结案影响**:`AC-29-16` 的实现阻塞**解除**(折叠全链生效),但该 AC 的验收归 `death-respawn/story-003` 自己的开工与测试;7b 侧 `SlotProjections` 收敛(G-4 残余)是**另一条**,不在本条。 |
 
 ---
 
@@ -1785,6 +1815,23 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > **不是新债**。分立理由同 02 ↔ 01:根因不同(02 = 零落点;本条 = 结构不可达),
 > 合并会让「02 已还一半」不可判。
 > ⚠️ **`TD-persist-02` 不因本条而结案** —— 它的核心是 `AC-7a-19` 四子判据 + 两投影,与本条正交。
+>
+> ✅ **🔁 2026-10-24 结案块(实现轮 · 用户四裁定落地)** —— 动作 ①–⑤ 逐条结清:
+> ① **不立新抽象点**(用户裁定)—— BCL 委托(`replaySink` / `foldedRowSink`)+ `EventStream.Restore`,
+>    装配边**零新增**(三方 asmdef `references` 一字未动;与 `IPayloadEncoder`/`IPayloadDecoder` 同款跨界手法,
+>    但本条经用户裁定未走第三抽象点);② **三分化**落地(CAP 绕过 / 去重+单调保留 / Seq 不重发 ——
+>    `AppendCore` 本体计数器语义一字未动,发号器接续经 `_restoredGroupMax` 两遍扫描**播种**(只抬不压),
+>    既有 o1/dedup 两钉回绿);③ **ADR 级二选一已裁**—— 甲案修 ADR-010 §一 承认**单列表** + 折叠段
+>    (病例流/世界流不再静默丢弃;`SaveVersion` 仍 1,布局从未出货);⑤ **折叠段字节布局兑现**
+>    (`FoldRowCodec` 36B 定长行 + `Compose` 组版 + `ParseBody` 复合读 + `existingFoldedRows` 回写义务);
+>    ④ **复核完成,维持现状** —— 锁置位在双 sink 成功之后(`SaveService.cs:353`),失败路径不置锁,
+>    债条目担心的「中途失败永久锁槽」不成立。
+> **测试与回归**:+20 测(restore 9 / fold_row_codec 8 / 端到端 1 / 组版改写 +2);全量 EditMode
+> `4822/4787/0/35` @ `23:11 CST` · commit `6198671`(基线 `4802/4767/0/35` ⇒ +20/+20 零回归)·
+> PlayMode `202/202/0/0` 逐位一致;**证伪轮 M1–M8 八轮全红**(S12-4 形态,SHA-256 逐字节还原全 OK)。
+> **原件** = `production/qa/evidence/impl-td-persist-03-replay-and-body-2026-10-24.md`(含八轮变异→转红表)。
+> ⚠️ **不随本条结案而扩大**:AC-7a-01 的全量语义(掉落清单 / 跨版本 / 快照不一致)**未转绿**
+> (快照段本批不实现);「相邻发现」(AC-7a-01/02 载体缺口)仍待另立评审项;W-4 台账高水位恢复保持 open。
 
 ---
 
@@ -1866,6 +1913,7 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **解除动作** | 落 `IPlayerMotor` 契约并让 `PlayerController` 实现之(或按 ADR-025 §② 的实际裁定形态二选一);补夹具证明「跨格时 `ConsumeCellChanged` 恰好触发一次」;不改 ADR-020 的任何裁决。<br>⚠️ **2026-10-24 补三条实现约束(用户裁定「只读边沿」的后果)**:<br>① **不得碰 `_hasPending`** —— 它是 Append 主路径(`PlayerController.cs:302-320`)的单份状态;若 `ConsumeCellChanged` 消费并清它 ⇒ **跨格事件丢失**。正确形态 = **独立边沿锁存器**,只在 `:319`(`_lastCommittedCell = cell`)之后置位,与 `_hasPending` / `_pendingCell` **完全不相交**。<br>② **`Cell` 必须走 `CellFromPosition`(FloorToInt)**,**不得**用 `GetCell()`(RoundToInt,`PlayerController.cs:354-362`)—— 后者与 `ActorCellEnteredPayload.Cell` 的实际取值**不同源**,接进契约会让「契约的格 ≠ 事件的格」。<br>③ **今天零消费者**(`grep -rn "ConsumeCellChanged" design/ production/epics/` ⇒ 1 命中 = GDD `:128` 自己;2 的 `story-003:64` 明写只读 `IPlayerMotor.Position`)⇒ **只落形状,不得为「有调用点」而发明消费者**。 |
 | **触发条件** | **`1` 或 `2` 的下一轮动到玩家位移 / 相机锚点时**;或任一消费方要勾「以 `IPlayerMotor` 为只读上游」的 AC 之前 |
 | **归属** | **1**(玩家控制器)· **2**(相机,消费者) |
+| **✅ 🔁 2026-10-25 结案块(S19-2 实现轮 · 用户裁定「就地结」)** | **解除动作三条件逐条满足,本条 `closed`**:<br>① **契约落点** —— `Gameplay.Presentation/Player/IPlayerMotor.cs` 新,四成员 = `ADR-020:396-402` 权威形状逐字(反射面钉:`test_motor_interface_members_areComplete`,含 `in MoveInput` IsByRef / `ConsumeCellChanged` 零形参 / 与 `ICameraRig` 同 Assembly);`MoveInput` 薄包装 struct 同件落。<br>② **实现接上** —— `PlayerController : IPlayerMotor`(判据 ②「不新增第二位移真源」:ILBodyScanner 钉 `Tick` 体内调 `Move`;`GetCell` / `Teleport` 语义不动;`_hasPending` 五写点集合不变)。三条实现约束(PRE-S19-C)逐条:① 独立锁存器只在 `_lastCommittedCell = cell` 之后置位;② `Cell` 走 `CellFromPosition`(负坐标钉 `FloorToInt(-0.5)=-1` 非 `0`,且与 `ActorCellEnteredPayload.Cell` 同源对照);③ GDD `:128` R5 加注「因果绑定非调用次序」,零新消费者。<br>③ **夹具「恰好一次」** —— `player_motor_test.cs` 9 测:跨格一次 / 消费即清 / 折返无边沿 / 连跨两格各一次 / 未消费跨 tick 保持;**证伪轮 F1–F3 全红**(夺 pending / RoundToInt / 不置位;SHA-256 逐字节还原 OK;F1 首版假绿夹具被抓出重构 —— S12-4 门实测)。<br>**回归**:全量 EditMode `4831/4796/0/35` @ `2026-10-24 23:54 CST` · `s192` · `6198671`(前基线 4822 ⇒ +9 零回归);PlayerController 面 `107/107`。PlayMode 本轮 NOT-RUN(未触其面,不借旧数)。<br>**原件** = `production/qa/evidence/impl-s19-2-player-motor-2026-10-24.md`(判据→测试映射 §二 · 证伪轮 §四)。<br>⚠️ **G-5 门行不随本条自动翻** —— 其触发条件(「1 或 2 的下一轮动到玩家位移 / 相机锚点」)**已被本轮触发并偿付**,门行状态翻面归下一轮记账时核;残余 = `TD-player-03`(双实现收敛),**另条**。 |
 
 ### TD-enemy-01 — 27 的 sim 侧形状(`LogiPose` / `ITameable` / `TameState`)零落点
 
@@ -1879,6 +1927,27 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **触发条件** | **27 具备可跑行为程序之前**(否则「决策进 sim」这条承重裁决无载体);或 13 的 `story-003` 要勾其投影 AC 之前 |
 | **归属** | **27**(敌人 AI,P0 形状部分)· 13 为下游消费者 |
 
+> ✅ **结案(2026-10-25 · S19-3 实现轮)** —— 解除动作 ①②③ 逐条:
+>
+> | 动作 | 落点 | 判据 |
+> |---|---|---|
+> | ① 落 `LogiPose` 并接线逐 tick 推进 | `Sim.Contracts/LogiPose.cs`(readonly struct:`WorldPos Cell` + `byte Facing`)+ `Sim/EnemyLocomotion.cs` `Advance`(GDD F-27-4 **权威形态**:while 沿路径逐格 + 冻结分支 acc 保持 + DirFrom 朝向) | 夹具 8 条 advance/facing 系全绿;证伪 M1'(acc 误归零)/M2(脱离 Moving 门控)/M3(朝向失效)/M6'(while 降级)全数转红 |
+> | ② 落 `ITameable` / `TameState` 接口与字段占位 | 同文件:`TameState` 4 值闭集(0=Wild)· `ITameable` 只读双属性 · `TameableFields` 占位(**零值陷阱结构性免疫** —— `PatientId.None = -1`,可变字段默认值 0 非 None,故恒定值由 readonly 结构保证,非纪律) | 证伪 M4(OwnerId→0)/M7(渗入驯化方法)各 1 红;AC-27-33 值面 + 反射面双钉 |
+> | ③ 夹具证「决策不进流、效果进流」 | `logi_pose_test.cs` `test_advance_pureFunction_noStreamWrites`(推进全程零 Append)+ `test_crossCellEffect_goesToStream_notDecision`(跨格效果经编码器真入池 → 解码往返 + `StreamRouting` 世界流路由)+ `test_locomotion_routeDecisionAndEffectSeparation_mechanical`(剥注释后零 IEventSink/SimEvent 字样) | 判据 ④ 三面;证伪 M2 连带红(crossCellEffect)证明夹具有判别力 |
+>
+> **落点裁定(判据 ①,实施前)**:四类型全落 **`Sim.Contracts`** —— sprint-status note 默认指向,无偏离理由:
+> 13(表现层,引用集不含 `Sim`)的投影链输入(`PresentationProjection.cs` 头注已列 `LogiPose`),
+> ADR-025 §① 契约类型住 `Sim.Contracts`。证伪 M8(物理移进 Sim 装配)2 红 = 落点判据的判别力。
+> **判据 ② 源码 + 反射双判**:源码判 = 剥注释/字符串后零 Transform/Vector3/UnityEngine(M5 实测:
+> 在 Sim 内引入引擎类型**编译即炸** CS0103 —— `Sim.asmdef` 引用集恰 = `{Sim.Contracts}` + `noEngineReferences`,
+> 比 grep 更硬的结构门);反射判 = LogiPose 恰两整数域字段(M5'' 渗入 float 字段 1 红)。
+> **回归三元组**:全量 EditMode `4846/4811/0/35` @ `2026-10-25 01:42 CST` · 批次 `s193`(全量)· commit `6198671`
+> (前基线 `4831/4796/0/35` @ `23:54` · `s192` · `6198671` ⇒ **+15 = 新测数,零回归**)。
+> **原件** = `production/qa/evidence/impl-s19-3-logi-pose-2026-10-25.md`。
+> **残余(不并账,如实留)**:`EnemyPathing.StepAccumulator`(直线逼近)与 `EnemyLocomotion.Advance`(沿路径)
+> 双步进算子并存 —— 语义不同(朝目标 vs 沿路径),合并/删除归后续收敛轮(与 `TD-player-03` 同型);
+> `LogiPose` 今日零生产消费者(27 行为程序接线归各自 story),S19-3 只落形状不发明消费者。
+
 ### TD-randomevents-01 — `DeferredThreatSlot` 状态量零落点
 
 | 侧 | 内容 |
@@ -1890,6 +1959,29 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **解除动作** | 落 `DeferredThreatSlot` 状态载体 + 其在 `ThreatDeferred` / `ThreatDeferralCleared` 两 `Kind` 上的读写路径;补夹具证明「主机迁移后延迟威胁不丢不重」 |
 | **触发条件** | **52 下一次动延迟威胁 / 主机迁移语义时**;或任何 `AC-52-*` 要勾「延迟威胁进流」之前 |
 | **归属** | **52**(随机事件导演) |
+
+> ✅ **结案块(2026-10-25 · S19-4 实现轮 —— 三项解除动作全部落盘,`open → closed`)**
+>
+> | 动作 | 落点 | 内容 |
+> |---|---|---|
+> | ① 状态载体 + 读路径 | `unity/Assets/Sim/EventBudget.cs` | `BudgetState.DeferSlots` 由 `List<int>` 改 **`Dictionary<int,int>`**(slotIndex → eventKey,payload 显式寻址);唯一写入路径 = **`EventBudget.FoldDeferEvent`**(从流折叠两 `Kind`,经 `IPayloadDecoder` —— ADR-031 消费点);`ReconstructDeferSlots`(全序流 → 槽集);**`AddToDefer` / `ClearDefer` 直改面删除**(第二真源拆除);`ResetForNewDay` 不再碰槽(跨日作废经流)。折叠防御三类流损坏 fail-loud:越界 / 同槽双占 / 清未挂起槽(静默 = 迁移后槽集漂移) |
+> | ② 写路径 | `unity/Assets/Sim/DeferredThreatSlotWriter.cs`(新) | 两 Kind 共一写者(同一状态机):`TryDefer` / `TryClear` 具名结果码;`Patient = PatientId.None`(**必须**值,ADR-007 §四);`Seq = -1` 哨兵;reason 序数 0=补发 / 1=作废(落地约定本件首定,转发常量 + 机械断言钉住 —— registry 未写序数,将来补须三处齐,`CareApplied/CarePhase` 先例) |
+> | ③ 假断言换真判据 | `EventBudget.ValidateReconstructable` | 「验证非空」(`state != null`)删除;换 `(state, 流, decoder, deferMax)` 四参版 = **重构逐元素比对**(槽位与 eventKey 双比) |
+> | ④ 门豁免同批撤除 | `Editor.Tools.Gates/WriterExistenceGate.cs` | `ThreatDeferred` / `ThreatDeferralCleared` 两行撤(判据①「已存在写者仍挂豁免 = 红」强制同批);**门子集 373/373 绿** —— 撤表 + 写者落地门仍绿,同批纪律成立 |
+> | ⑤ 迁移夹具(卡面④) | `Tests/EditMode/RandomEvents/deferred_threat_slot_test.cs`(新,21 条) | `test_deferSlots_replayTwice_identicalSlotElements`:同一段流重放两次,槽集逐元素相同(不丢不重);`test_budget_deferSlots_noDirectMutationPath` 反射钉直改面已删;门撤表断言 `test_gate_threatKinds_notInExemptTable` |
+>
+> **测试面**:新 21 条(`DeferredThreatSlotTest`)+ 既有 7 条改写(`EventBudgetDeferTest` —— 三条假绿
+> 真判据化:`test_deferSlotBounded` 空断言→越界拒收 / `test_dwellNotInBudget` 恒真→签名判据 /
+> AC-52-30 头注张冠李戴订正;`test_newDayReset` 随直改面删除改写为经流形态,第 4 条如实登记,
+> 非「三条假绿」面内)。
+> **回归三元组**:`4867 / 4832 / 0 / 35` @ `2026-10-25 07:33 CST` · 批次 `s194`(全量 EditMode)·
+> commit `6198671`(前基线 `4846/4811/0/35` @ `01:42` · `s193` · 同 commit ⇒ **total +21 = 新测数,零回归**;`4846+21=4867` 可复算)。
+> **证伪轮 M1–M9 九轮全数转红**(M1 清槽反转 7 红 · M2 双占防御 1 红 · M3 折叠越界 1 红 ·
+> M4 真判据退化 1 红 · M5 Patient 违 §四 1 红 · M6 写者越界校验 1 红 · M7 reason 校验 1 红 ·
+> M8 门豁免回添 1 红 · M9 重放丢半 4 红);三文件 SHA-256 逐位还原。
+> **残余不并账**:52 生产触发点(导演主循环调写者)**仍未接线**(「有写者 ≠ 已接线」同格先例);
+> `TICKS_PER_DAY` 权威值归 52 配置轮(夹具用 1200 注明夹具值);抽中记录 / 历史旗标两类的从流重构
+> 是 ADR-007 §三 表的其他行,不在本债面。
 
 ### TD-net-01 — `IReplayPipe` / `ReorderBuffer` 的 **P0 预埋**零落点(系统 45 · 无归属 epic)
 
@@ -2707,3 +2799,25 @@ Linux-ARM64-IL2CPP  不可达            (pinned 工具链零 arm 目标,2026-10
 - ⚠️ **未动(且改前即已陈旧,不属本轮漂移)**:`smoke-2026-10-21-sprint17.md:123` 引 `:301` 声称是
   `TD-player-01` 索引行,实测 HEAD `:301` = `TD-s13-03` 行 ⇒ 该引用**在本轮之前就指错了**(本轮未再移动它)。
   **不在 S18-3 的判据面内,只登记不修**。
+
+---
+
+## 2026-10-24 · S19-2 实现轮遗留:玩家跨格算子双实现(1 条)
+
+**出处**:`S19-2` 实现轮(2026-10-24,`production/qa/evidence/impl-s19-2-player-motor-2026-10-24.md` §五 C-3 / §六)。
+卡面残余 C-3 只裁了「删死字段 `_cellDetector`」(已执行,1 行);其**尾句**「生产内联算子与
+`CellTransitionDetector` 的**重复**另立 TD 归后续轮」—— 用户 2026-10-24 裁定:**入债册**(本条)。
+
+### TD-player-03 — 玩家跨格状态机双实现(`PlayerController` 内联 vs `CellTransitionDetector` 类)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 同一个「归并算子 + 折返检测 + tick 边沿提交」状态机在 `unity/Assets` 内存在**两份同型实现**:① **生产内联** —— `Gameplay.Presentation/Player/PlayerController.cs` 的 `OnPositionSample` / `OnUplinkSample` / `OnTickEdge`(`_lastCommittedCell` / `_pendingCell` / `_hasPending` 三状态字段);② **独立类** —— `Gameplay.Presentation/Player/CellTransitionDetector.cs`(同名三状态 + 同型五阶段逻辑,`OnPositionSample` / `OnTickEdge` / `CellFromPosition` / `ComputeDisplacement`)。两份的**取格函数不同源**:内联路径用 `CellFromPosition`(FloorToInt),`GetCell()` 用 RoundToInt —— 这正是 `PRE-S19-C` 约束 ② 点名的分叉面。双实现的失效模式:修一处漏一处(如 O-6/O-4 类修复曾须双落)、行为漂移无机械门可拦。 |
+| **实测(逐条可跑)** | ① `PlayerController.cs` 内联三状态字段 + 三方法(本件 §一 改动清单,`OnTickEdge` 含 S19-2 边沿锁存器);② `CellTransitionDetector.cs` 独立类同型逻辑在盘(`:58` / `:84` / `:118`);③ **零生产引用**:`grep -rn "new CellTransitionDetector" unity/Assets --include=*.cs` ⇒ 仅测试(`host_authority_test.cs:81` 等)⇒ ② 是**只有测试消费的平行实现**;④ 测试双落的证据:`cell_transition_test.cs` 测 ②、`host_authority_test.cs` 测 ① —— 同一批行为规格在两个夹具里各钉一份。 |
+| **同型先例** | `TD-player-02` 的死字段 `_cellDetector`(零赋值零使用)即本条病灶的一个投影 —— 该字段当年指向 ② 的实例,后未接线成死码,C-3 删的是它;**类本身与其测试仍在**。 |
+| **解除动作** | ① **先裁收敛方向,再动代码** —— 候选:(a) 生产内联改为持有 `CellTransitionDetector` 实例(单一真源,`PlayerController` 只做 MonoBehaviour 壳);(b) 删 `CellTransitionDetector` 类与其测试,规格并入内联路径的既有夹具;(c) 豁免双实现并具名登记理由。**不得默认 (a)** —— `OnUplinkSample`(客户端上行,联机 P1b 面)与 ② 的接口形状不同,合并面要过 `PRE-S19-C` 同族裁定;② **收敛后双夹具归一**:`cell_transition_test` 与 `host_authority_test` 的重叠断言合并到唯一实现上;③ 若走 (a),S19-2 的边沿锁存器(`_cellEdgeLatched`)须留在 `PlayerController`(`IPlayerMotor` 契约的实现义务),不入 ②。 |
+| **触发条件** | **任何一方下一次改动跨格检测行为时**(含修 bug、加格判定相关功能);或 45 联机轮动 `OnUplinkSample` 时;或 `GetCell()`(RoundToInt)与 `CellFromPosition`(FloorToInt)的分叉被任何新消费方引用时 |
+| **归属** | **1**(玩家控制器)· 夹具归一涉及 `Tests/EditMode/PlayerController/` |
+
+> ⚠️ **本条不与 `TD-player-02` 合并** —— 02 是「契约零落点」(已于同日由 S19-2 兑现,待其证据件走完
+> `/story-done` 面再评),本条是「实现双份」;根因不同,合并会让「02 已还 / 03 未还」不可判。
