@@ -47,6 +47,13 @@
 #      | 6 | `baseline.regression.editmode` | 批次名 `review-s18-r4-fix-20261022`(盘上无此产物)· commit `ad7316c + 未提交` | 批次名改指实产物 `review-s18-r4-editmode-20261022` · commit `d91edeb` |
 #      | 7 | `baseline.td_index` | `99 / 88 / 73` | `100 / 89 / 74`(含 `TD-clinic-18` 立债 +1) |
 #
+#    🔁 **2026-10-24 收口审计轮追加第 8 类**:
+#      | 8 | `conditions_open` | 两条(C-3 / R2-AC6,均 `closed`) | **`[]`(空列表)** |
+#      活件此处**不再是「列表里有已结条目」,而是真正的空列表** —— 三条已结条件
+#      (C-3 / R2-AC6 / S18-AC5)全部迁入 `conditions_closed`,并删掉一条**没有条目**的
+#      孤儿表头(「条件 6」,其真身 `OQ-7a-10` 从建段起就只在 `conditions_closed` 里)。
+#      ⇒ **按 `conditions_open` 判「sprint-18 还有几条未结条件」现在会得到 0,且这次是对的。**
+#
 #    ⚠️ **第 1 项是最危险的一条**:归档件仍写 `S18-1 status: backlog`,而活件写 `done`。
 #    **按归档件判「S18-1 未完成」会得出与事实相反的结论。** 这正是本条订正存在的理由 ——
 #    原头注让下游以为两份「只差注释」,于是放心用归档件当 sprint-18 的唯一真源。
@@ -63,6 +70,61 @@
 #      wc -l production/sprint-status-sprint18-archive.yaml production/sprint-status.yaml
 #      diff production/sprint-status-sprint18-archive.yaml production/sprint-status.yaml | grep -c '^[0-9]'
 #      ```
+#
+#    🔴🔴 **2026-10-24 收口审计轮实测:上面那个「恒定期望」已经不准了 —— 归档件被改过一次。**
+#
+#    **事实(可复算)**:
+#      ```bash
+#      sha256sum production/sprint-status-sprint18-archive.yaml
+#      # 实跑 2026-10-24T23:5x Z = 61c72af98159e8eb632dde51503e13e2753962162a2f4035327bea26f6b57c66
+#      #                           ↑ 与上方「恒定期望 3212ceb6…」不符
+#      git log --format='%h %s' -1 -- production/sprint-status-sprint18-archive.yaml
+#      # ⇒ fde4af7 fix(7a):OQ-7a-10 裁定 A —— 折叠条件① 由 ∃ 收紧为 ∀
+#      ```
+#    **逐版 SHA-256(实测)**:
+#      | commit | 归档件 SHA-256 | 说明 |
+#      |---|---|---|
+#      | `08049fb` | `3212ceb6…` | **归档那一刻的正确值**(本文件多处的「恒定期望」即指此) |
+#      | `fde4af7` | `61c72af9…` | **唯一一次修改**,`+1 / -1` 行 |
+#
+#    **改了什么**:在 `work_items[S18-2].note` 里插入了一条 🔁 补注
+#    (「`OQ-7a-10` 已由用户裁定 A 结案…本行『权威件未裁』为 2026-10-22 归档时点的事实,现不成立」)。
+#    `git diff 08049fb fde4af7 -- <归档件>` ⇒ `1 file changed, 1 insertion(+), 1 deletion(-)`。
+#
+#    **性质判定(三分类,承 `coding-standards.md` §工作树卫生)**:
+#      - **不是** ①「损坏」—— 改动**内容本身是对的**(那条注的事实无误,措辞也守了「原文不删」);
+#      - **是** ②「违反本文件自订纪律」—— 归档件的价值**恰在于它冻结不动**;一旦可以加注,
+#        「冻结快照」就退化成「另一份活件」,两份都能改 ⇒ **谁是真源又说不清了**,
+#        而这正是本文件头注反复要防的那件事。
+#      - ⚠️ **且它没有被登记** —— 本文件 `:37` 的「七类差异」表、`:73` 的 errata 段,
+#        **都没有提到归档件本身被改过**。头注至今仍在向读者承诺「归档件不可变」。
+#
+#    **处置(本轮)**:
+#      1. **不回滚归档件** —— 回滚会造出第三个版本,且那条注的事实是对的;
+#         「原文不删」纪律同样适用于它。
+#      2. **就地订正本条**:把「恒定期望」标注为**历史值**,当前值 = `61c72af9…`,
+#         并写明**它不再是「永不变」的判据,而是「截至 `fde4af7` 的值」**。
+#      3. **判据换代**:复算归档件完整性**不能再用单一 SHA-256**(它已经变过一次,将来还会变)。
+#         改用 **`git log` 计数** —— 「该文件的提交次数」是比哈希更诚实的判据:
+#         ```bash
+#         git log --oneline -- production/sprint-status-sprint18-archive.yaml | wc -l
+#         # 截至 2026-10-24T23:56Z 实跑 = 2
+#         git log --oneline -- production/sprint-status-sprint18-archive.yaml
+#         # fde4af7  ← 违例的修改
+#         # 08049fb  ← 创建(归档那一刻)
+#         ```
+#         ⚠️ **期望值仍会随新提交增长** —— 同「后两条没有期望值,只有时点值」的口径。
+#         ⇒ 判据读法:**创建之后若出现第 3 次提交,就是又一次违例**。
+#         ⚠️ **本条初稿写的是「实测 = 1」—— 那是没跑就写的**,实跑 = 2(创建 + 修改)。
+#         已就地订正;这正是 `coding-standards.md` §Review Evidence Standards
+#         「数字须带可跑复算命令」要防的形态,且**在同一段里犯了一次**。
+#      4. **纪律重述(向后生效)**:归档件的任何补注一律落**本文件**,不得回写归档件。
+#         `fde4af7` 那次是**违例**,不回滚但**具名留档**,防它被当成先例。
+#
+#    ⚠️ **本段存在的理由**:一条「永不修改」的纪律 + 一个「恒定哈希」的判据,
+#    在纪律被违反之后**双双失效**,而**没有人会发现** —— 除非有人真的跑一遍。
+#    本轮是**跑到了才发现**的。这与 `smoke-check` §Baseline provenance 记的伪基线是同一形态:
+#    **断言写死在一个会变的东西上**。
 #    ⚠️ **后两条没有「期望值」,只有「时点值」** —— 活件会随补记账继续增长,差异块数也会变。
 #    **本条刻意不写死这两个数**:订正过程中实测它们随每次编辑变化
 #    (订正前 `252/309` → 第一稿 `252/344` → 落定 `252/347`),写死即制造新的陈旧断言 ——
@@ -326,21 +388,10 @@ conditions_closed:
     verify_note: "🔁 **2026-10-24 判据换代(教训登记)** —— 本命令初版用散文关键词(`grep -iE \"已裁|裁定|结案|closed|resolved\"`),实测**假阳性 6 行**:其中 3 行撞的是「结案**判据**」(说的是「三项满足才结案」,恰是未裁的表述),另 3 行是「**裁定** + 产出面变异反证」这类待办式。⇒ 散文关键词判「某 OQ 是否已裁」**不可靠**,这是本仓第三次踩同型(`qa-signoff` D-4 段记过第一次)。**现判据改用格式约定**:该 GDD 的 OQ 表以 `~~删除线~~` 标记已裁条目标题。**三向对照**可当场验:`OQ-7a-9` ⇒ `| ~~**\\`OQ-7a-9\\`**~~` · `OQ-7a-7` ⇒ `| **\\`OQ-7a-7\\`**`(未裁)"
     registered_note: "🔁 **2026-10-24 补登记**:本条此前**从未进入本文件**(全文件 `grep -c \"OQ-7a-10\"` 当时 = 2,两处均为**旁述引用**而非条件登记)。当时 commit = `a7c8b9e`"
 
-conditions_open:
-  # ⚠️⚠️ **2026-10-24 结构性订正(原文不删,已迁出)** ——
-  #    本段原存两条(`C-3` / `R2-AC6`),二者 `status` 早已是 `closed`,却留在 open 段,
-  #    与段名相悖。2026-10-24 已**逐字迁入 `conditions_closed`**(含原 `why_open` /
-  #    `owner` / `gate` / `moved_to`,一字未改),本段不再保留其副本。
-  #
-  #    与此同时,当时**真正的两条未结条件却一条都没登记** ——
-  #    它们只活在 `qa-signoff-sprint-18-2026-10-22.md` §六 的条件 5 / 6,本文件零命中
-  #    (复算见下方首条注)。⇒ 本文件当时读起来像「零未结条件」,实际有 2 条。
-  #
-  #    **本段的判读口径(自此固定)**:段名 = 真源,段内条目 = 真未结项。
-  #    「已做但挂 open」与「未做却没登记」是**两个相反方向的记账病**,
-  #    2026-10-24 本轮一次把两个方向都纠了 —— 后者见下方两条。
-
-  # ── 条件 5:2026-10-24 新增(此前**只存在于签核件,本文件零登记**) ──
+  # ═══ 2026-10-24 收口审计轮从 `conditions_open` 迁入(原文逐字保留,不删不改) ═══
+  # 迁移理由:`split_a` / `split_b` 两半均 ✅ 且 `verify_cmd` 现真命中 ⇒ 段名与内容不再相符。
+  # ⚠️ 原文 `status: open` **一字未动** —— 它记的是「判据写错的那条」的历史状态。
+  #    现行判定读 `split_a` / `split_b`(两者皆 ✅ 已结)。
   - id: "S18-AC5"
     what: "S18-1 AC ⑤ —— `DeathCandidate` 产出路径**有生产调用点**"
     why_open: "**字面判据实测未满足**:生产树零构造点。`grep -rn \"new DeathCandidateConsumer\\|new PlayerDiedWriter\\|new InjuryStateChangedWriter\" unity/Assets --include='*.cs' | grep -v '/Tests/'` ⇒ 唯一命中是 `EntityDeathGates.cs:50` 的**注释**,不是构造点。⇒ 整条链在生产装配根处断开"
@@ -371,8 +422,60 @@ conditions_open:
          (a)「产出路径有生产调用点」⇒ **已满足**,可结;
          (b)「消费侧装配(29 的 `Register` 调用点)」⇒ 归 29 story-004。
       ⚠️ **不得**直接把本条标 done —— 那会把「判据写错」记成「判据满足」。"
+    🔁_2026_10_24_split: "**按上面 ③ 的处置执行:拆成两条,分别判定(原条目保留不动)**。
+      ⚠️ 本条的状态串仍是 open —— 它描述的是**原条目(判据写错的那条)**的历史状态,
+      **不是**拆分后的结论。拆分后的两条见 `split_a` / `split_b`,那两条才是现行判定面。
+      (不改原 status 字段:改了就等于把「判据写错过」这件事抹掉。)"
+    split_a: "**(a)「产出路径有生产调用点」⇒ ✅ 已结**
+      判据 = `grep -n 'Publish(' unity/Assets/Gameplay.Boot/DiseaseVitalsService.cs` ⇒ `:459`(非空)。
+      另有 `CompositionRoot.cs:275` 的 `new DeathCandidateSink()`。
+      证据原件 = `production/qa/evidence/impl-story-008-death-candidate-sink-2026-10-24.md`。"
+    split_b: "**(b)「消费侧装配(`Register` 调用点)」⇒ ✅ 已结(2026-10-24 · 29 story-004 装配轮)**
+      判据:`grep -n 'deathCandidates.Register(deathConsumer)' unity/Assets/Gameplay.Boot/CompositionRoot.cs`
+      ⇒ `:341`(非空)。三件同批接上:`new DeathCooldownGate(...)`(`:304`)·
+      `new PlayerDiedWriter(...)`(`:307`)· `new DeathCandidateConsumer(...)`(`:332`)。
+      **原 `verify_cmd` 现在也真命中了**(它探的是消费侧构造 —— 那半边现已不是空的):
+      `grep -rn \"new DeathCandidateConsumer\\|new PlayerDiedWriter\\|new InjuryStateChangedWriter\" unity/Assets --include='*.cs' | grep -v '/Tests/'`
+      ⇒ `CompositionRoot.cs:307`(PlayerDiedWriter)· `:332`(DeathCandidateConsumer)
+      (另有一条 `EntityDeathGates.cs:50` 的**注释**,不是构造点)。
+      ⚠️ `InjuryStateChangedWriter` **仍零生产构造点** —— 它不属 29 的死亡链(它是 25 的伤情写入),
+      本批**未接**,也**不得**因本条转绿而被读成「已接」。归 25 的装配轮。
+      测试:`test_assemble_sinkIsRegisteredByAssembly`(`death_candidate_sink_test.cs`)+
+      证伪轮 **M4**(拆 `Register` ⇒ 该测红)。
+      证据原件 = `production/qa/evidence/impl-story-004-death-cooldown-2026-10-24.md` §二。"
 
-  # ── 条件 6:2026-10-24 新增(同上,此前只存在于签核件) ──
+  # ⚠️⚠️ **2026-10-24 结构性订正(原文不删,已迁出)** ——
+  #    本段原存两条(`C-3` / `R2-AC6`),二者 `status` 早已是 `closed`,却留在 open 段,
+  #    与段名相悖。2026-10-24 已**逐字迁入 `conditions_closed`**(含原 `why_open` /
+  #    `owner` / `gate` / `moved_to`,一字未改),本段不再保留其副本。
+  #
+  #    与此同时,当时**真正的两条未结条件却一条都没登记** ——
+  #    它们只活在 `qa-signoff-sprint-18-2026-10-22.md` §六 的条件 5 / 6,本文件零命中
+  #    (复算见下方首条注)。⇒ 本文件当时读起来像「零未结条件」,实际有 2 条。
+  #
+  #    **本段的判读口径(自此固定)**:段名 = 真源,段内条目 = 真未结项。
+  #    「已做但挂 open」与「未做却没登记」是**两个相反方向的记账病**,
+  #    2026-10-24 本轮一次把两个方向都纠了 —— 后者见下方两条。
+
+  # 🔁🔁 **2026-10-24 第三批迁移(收口审计轮)—— 本段自此为空,原文逐字迁入 `conditions_closed`**
+  #    `S18-AC5` 的 `split_a`(产出侧 `DiseaseVitalsService.cs:459`)与 `split_b`
+  #    (消费侧 `CompositionRoot.cs:341`)两半**均 ✅**,且其 `verify_cmd` 现真命中
+  #    ⇒ 已按 C-3 / R2-AC6 同例迁入 `conditions_closed`,本段不再保留副本。
+  #    ⚠️ **原文里那句 `status: open` 逐字保留在迁入件中** —— 它记的是「判据写错的那条」
+  #       的历史状态,是沿革证据,不是现行结论(同 C-3 / R2-AC6 的处置)。
+  #
+  #    **同时删掉一条孤儿表头**:段尾原有 `# ── 条件 6:2026-10-24 新增(同上…) ──`,
+  #    但其下**没有任何条目**。条件 6 的真身是 `conditions_closed.OQ-7a-10`
+  #    (2026-10-24 用户裁定 A),**从建段起就从未在 open 段存在过** ——
+  #    那条表头是「先写表头、后填条目」漏填留下的。留着会让本段读起来像「有两条未结」,
+  #    与本文件 2026-10-24 自己定的「段名 = 真源」直接相悖(即本节开头记的那条病,
+  #    以**残留表头**的形态又复发了一次)。
+  #
+  #    **本段现状**:`[]` —— 真未结条件 = **0 条**。
+  #    ⚠️ 这**不等于** sprint-18 可无保留收口:判据面清零 ≠ 功能面全绿,
+  #    见 `production/qa/qa-signoff-sprint-18-2026-10-22.md` §六「仍不记绿的两处」。
+conditions_open: []            # 真未结条件 = 0 条(2026-10-24 收口审计轮迁出 S18-AC5 后)
+
 # ⚠️ 基线三元组(任何引用本文件计数的下游件须同抄)
 baseline:
   measured_at: "2026-10-21"

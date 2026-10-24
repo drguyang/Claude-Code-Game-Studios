@@ -170,7 +170,7 @@
       | 签核件 ⑥ | **规则九机械门** | `RuleNineGateTest` **16 条**(S1–S4 四种源码注入 + I1/I2/I3 三条 IL 注入各自转红 + 三种反向不误报 + 锚点活体守卫) | **新增** `Editor.Tools.Gates/RuleNineGate.cs`(源码 + IL 双证);接 `RunMenu` / `BuildGate`;`gate_wiring_manifest_test` 两表同批登记 | ✅ **2026-10-22 兑现** |
       | 签核件 **⑦** | **`IDeathCandidateSource` + 29 侧注入点** | `test_deathCandidateSource_interfaceExistsInContracts` / `_hasNoHealthReadingMember` / `_deathCandidate_doesNotEnterAnyStream` / `_deathCandidateConsumer_implementsSource` | **新增** `Sim.Contracts/IDeathCandidateSource.cs` + `Sim/DeathCandidateConsumer.cs` | ✅ |
       | 签核件 **⑧** | **`PlayerDied` / `InjuryStateChanged` 两条写者** | `test_playerDiedWriter_*`(6 条)/ `test_injuryStateWriter_*`(3 条)/ `test_deathCandidateConsumer_*`(3 条) | **新增** `Sim/PlayerDiedWriter.cs` + `Sim/InjuryStateChangedWriter.cs`;同批撤 `WriterExistenceGate` 两条豁免 | ✅ |
-      | **Tasks 表 ⑤** | **`DeathCandidate` 产出路径有生产调用点** | ⚠️ **不勾 —— 见下方 2026-10-24 补记** | — | ⚠️ **未满足** |
+      | **Tasks 表 ⑤** | **`DeathCandidate` 产出路径有生产调用点** | ⚠️ 原文「不勾」保留 → 🔁 **2026-10-24 两半分别结清**(见下方订正) | — | ✅ **已满足(2026-10-24)** |
 
       > 🔁🔁 **2026-10-24 补记:本表原缺 `Tasks 表 ⑤` 整行(静默漏项,现已补入)。**
       >
@@ -212,6 +212,25 @@
       > **连带影响**:S18-1 的判定已由签核件就地订正为
       > **`APPROVED WITH CONDITIONS`**(条件 = 本条),不再是 `DEFERRED → sprint-19`。
       > 见 `production/qa/qa-signoff-sprint-18-2026-10-22.md` §三 D-3 专段。
+
+      > 🔁🔁 **2026-10-24 —— `Tasks 表 ⑤` 两半分别结清(原文「不勾」保留作闭环记录)**
+      >
+      > 上面那段「不勾 + 具名理由」写的是**当时**的事实;现在两半都有判据了,且**判据不同、结论不同**,
+      > 故**分别**结(承 `sprint-status.yaml` 的 `S18-AC5.split_a` / `split_b`)。
+      >
+      > | 半 | 结论 | 判据(可当场跑) |
+      > |---|---|---|
+      > | **后半句**「`WriterExistenceGate` 两条从「未落」转为「已落」」 | ✅ **满足**(`5f40b59`) | 撤豁免已落,本次未改动 |
+      > | **前半句**「产出路径有生产调用点」 | ✅ **满足** | `grep -n 'Publish(' unity/Assets/Gameplay.Boot/DiseaseVitalsService.cs` ⇒ `:459` |
+      > | **附加:消费侧装配**(原 `verify_cmd` 探的那半边) | ✅ **满足**(2026-10-24) | `grep -rn "new DeathCandidateConsumer\|new PlayerDiedWriter" unity/Assets --include='*.cs' \| grep -v '/Tests/'` ⇒ `CompositionRoot.cs:307` / `:332` |
+      >
+      > ⚠️ **两条边界不得被这次转绿抹掉**:
+      > ① `InjuryStateChangedWriter` **仍零生产构造点**(它是 25 的伤情写入,不属 29 的死亡链)——
+      >    它的 `verify_cmd` 命中里**只有注释**,不得读成「已接」。
+      > ② **产出侧有调用点 ≠ 死亡链在生产上可用**:今日**玩家无染病路径** ⇒ 「玩家死亡」这一
+      >    **场景**仍不可达。装配链本身通,由 `test_registeredPlayer_producesOnePlayerDiedEndToEnd` 证明;
+      >    **场景可达**不在本 sprint 面内(归 9)。
+      > 证据原件 = `production/qa/evidence/impl-story-004-death-cooldown-2026-10-24.md` §二 / §五。
 
       **回归**:`4435 / 4399 / 0 / 36` @ `2026-10-22 14:0x (+0800)` · 批次 `s18-ac78-full-20261022` ·
       干净树;`error CS = 0`。等式 `Δtotal = Δpassed = 新增 16` 成立;**消失 0**。
@@ -309,6 +328,12 @@
 - [x] QA 签核 `APPROVED` 或 `APPROVED WITH CONDITIONS`(`/team-qa sprint`)
       ✅ `production/qa/qa-signoff-sprint-18-2026-10-22.md` —— **APPROVED WITH CONDITIONS**;
       S18-1 结转 sprint-19(用户 2026-10-22 裁定),C-1…C-8 中 C-3 **转移**而非结清。
+      > 🔁 **2026-10-24 收口审计轮订正(原文不删)**:本行**两处均已过期** ——
+      > ① 「S18-1 结转 sprint-19」当日稍后即被用户改判推翻(S18-1 拉回并落地);
+      > ② 「C-3 转移而非结清」⇒ C-3 已由四轮证伪轮**结清**(`sprint-18.md:211-219`)。
+      > **判定本身不变**:签核仍为 `APPROVED WITH CONDITIONS`,**未结条件现为 0 条**
+      > (`sprint-status.yaml` `conditions_open: []`)。⚠️ **条件清零 ≠ 面全绿** ——
+      > 见签核件 §六「仍不记绿的两处」。本条勾选依据 = 签核件存在且判定达标,不是「条件全清」。
 - [x] 无 S1 / S2 缺陷
       ✅ 签核件 §三「**无 S1–S4 缺陷录入**」;未结缺口 D-1…D-5 属**未完成 / 未裁**,不是缺陷。
 - [x] 代码评审完成(`/code-review`)
@@ -465,6 +490,15 @@ S18-2 已 `done`,四条件谓词 + 折叠行产出都在盘上、有 29 条测�
 ### 九.4 本 sprint 收口**不**代表以下任一
 
 - **不代表 `death-respawn` 全链解锁** —— 仍 `BLOCKED-BY-9`(G-1 结转)。
+  > 🔁 **2026-10-24 收口审计轮订正(原文不删)—— 括号里的理由已过期,结论不变。**
+  > `G-1` 不再「结转」:S18-1 已于 2026-10-22 拉回并在本 sprint 落地(`work_items[S18-1].status = done`)。
+  > **但本条仍成立**,理由换成**两半不同**:`TD-sim-01` 的**谓词层已还**
+  > (`Sim/EntityDeathGates.cs:194` + `F4OutcomeEvaluator.cs:171` 生产接线),
+  > **接线层已随 story-004 补上**(`CompositionRoot.cs:341`);
+  > 而 `death-respawn` 的 `BLOCKED-BY-9` 指的是**另一件事** ——
+  > **9 侧缺「玩家染病」这条路径** ⇒ 「玩家死亡」场景在生产上不可达。
+  > ⇒ **解锁与否不取决于 G-1 是否结案,取决于 9 是否给出染病路径。**
+  > 与 `qa-signoff` §六「仍不记绿的两处」A / B 同源。
 - **不代表 `TD-persist-01` 已结案** —— 见 §九.2。
 - **不代表折叠产出面已验证** —— 四轮变异未打「抹哪些行」(D-5 / `OQ-7a-10`)。
   > 🔁 **2026-10-24**:`OQ-7a-10` 已裁(裁定 A,条件① 收紧为 ∀),但**本条仍成立** ——
@@ -472,7 +506,12 @@ S18-2 已 `done`,四条件谓词 + 折叠行产出都在盘上、有 29 条测�
   > 🔁 **2026-10-24 二次补记**:同日补的 `OQ-M3` 打的是「**该不该折**」(`Folded` 谓词面),
   > **仍不是** `Erase` 的「抹哪些行」取舍面。两条不可混读 —— 前者证「不该折时不折」,
   > 后者才证「该折时抹得对」。**本条继续成立。**
-- **不代表 S18-1 的 AC 已兑现** —— 它结转 sprint-19,四条入口判据见签核件 §六。
+- ~~**不代表 S18-1 的 AC 已兑现** —— 它结转 sprint-19,四条入口判据见签核件 §六。~~
+  🔁 **2026-10-24 收口审计轮订正**:本条**已作废** —— S18-1 当日拉回并落地,
+  `Tasks 表 ①–⑤` + 签核件 `⑥⑦⑧` **八条判据全部 ✅**(见 DoD 第 1 条的表)。
+  ⚠️ **但「AC 兑现」≠「功能可用」**:AC ⑤ 的两半是**装配面**判据(产出侧有 `Publish` 调用点、
+  消费侧有 `Register` 调用点),**不是**「玩家会死」的场景判据。后者仍缺(归 9)。
+  原文保留作沿革记录。
 - **不代表 `S-1`…`S-8` 八条 Suggestions 已清** —— 全部仍 open,去向已逐条登记于评审原件 §五。
 - ~~**不代表 `R2-AC6`(规则九机械门)已建** —— 仍 NOT-RUN。~~
   🔁 **2026-10-22 订正**:该项**已建** —— `Editor.Tools.Gates/RuleNineGate.cs`(源码 + IL 双证),
@@ -537,5 +576,63 @@ sprint-19 规划时须**写进计划正文**(不是只放签核件),且**逐条�
 sprint-19 的 L 额度只剩 `TD-ci-01`(EXTERNAL)一笔。
 
 </details>
+
+---
+
+### 九.7 收口判定(2026-10-24 收口审计轮)
+
+> **本轮性质**:不是重新实施,是**回头核一遍「收口这件事本身成不成立」**。
+> 用户的任务是「开 29 story-004 … **完成 sprint18**」⇒ story-004 已 `Complete` 后,
+> 须回答的是「sprint-18 现在能不能如实收口」,而不是「还能不能再做点什么」。
+
+#### 判定:**可以收口**(判据面),但**两条不记绿**(功能面)
+
+| 面 | 状态 | 依据 |
+|---|---|---|
+| **DoD 11 条** | ✅ **11/11 勾**,`[ ]` = 0 | `awk '/^## Definition of Done/,/^## QA Plan/' production/sprints/sprint-18.md \| grep -c '^- \[ \]'` ⇒ `0` |
+| **未结条件** | ✅ **0 条** | `sprint-status.yaml` `conditions_open: []`(本轮迁出 `S18-AC5`) |
+| **三件工作项** | ✅ `S18-1` / `S18-2` / `S18-3` 全 `done` | `sprint-status.yaml` `work_items[*].status` |
+| **29 story-004** | ✅ `Complete`(谓词半边 + 消费侧装配) | `production/epics/death-respawn/EPIC.md:60`;证据原件 `impl-story-004-death-cooldown-2026-10-24.md` |
+| **收口回归三元组** | ✅ 齐备 | EditMode `4475 / 4439 / 0 / 36` + PlayMode `202 / 202 / 0 / 0` @ **`4e005bd` 干净树**(2026-10-23T16:56Z / 17:00Z 实测,`clean_tree_proof` 见 `baseline.closeout_regression`) |
+| **story-004 轮回归** | ✅ 齐备(当前树) | EditMode `4736 / 4701 / 0 / 35` + PlayMode `202 / 202 / 0 / 0` @ `3e8c5ca` + 工作树(2026-10-23T23:45Z / 23:49Z) |
+| **功能面** | ⚠️ **仍缺 9 侧的染病路径** | 见下方「两条不记绿」 |
+
+> ⚠️ **两组回归数不是一回事,不可互相顶替**:
+> `4e005bd` 那组是**sprint-18 末个生产提交的干净树**(收口判据);
+> `3e8c5ca + 工作树` 那组是**当前工作树**(story-004 轮,含未提交改动)。
+> 后者比前者多 261 条测试,差额来自 sprint-18 之后的 33 个提交(含 story-004 的 20 条)。
+> **收口判据只认前者**;后者只证「本轮没弄坏东西」。
+
+#### 两条不记绿(条件清零 ≠ 面全绿)
+
+| # | 项 | 为什么不记绿 |
+|---|---|---|
+| **A** | 29 的 `AC-29-08` / `AC-29-10` **全链** | 两条 AC 明确 `BLOCKED-BY-9`。「玩家在冷却内再次致死」这个**场景**在生产上不可达(玩家无染病路径)⇒ **谓词半边可证,全链不可证**。`EPIC.md:60` 与 `DeathCandidateConsumer.cs` 双处登记 |
+| **B** | **死亡链的场景可达性** | `test_registeredPlayer_producesOnePlayerDiedEndToEnd` 证的是**装配链本身通**,不是**游戏里会发生**。两件事在签核面必须分开写 |
+
+⇒ **A / B 均不属 sprint-18 面内**(归 9),故**不阻断**收口,但**必须留在纸上**。
+与 `qa-signoff-sprint-18-2026-10-22.md` §六「仍不记绿的两处」同源。
+
+#### 本轮审计抓到并已修的三处记账病
+
+> **形态**:三处都**不是**「功能没做」,而是「纸上说的和盘上的不一致」——
+> 即本文件 §九.5 归的那一类「产物齐了但流程/记账没走」。
+
+| # | 病 | 事实 | 修法 |
+|---|---|---|---|
+| **①** | `conditions_open` 段名与内容相反(**复发**) | 段里留着 `S18-AC5`(`split_a`/`split_b` 两半皆 ✅)与一条**没有条目**的孤儿表头「条件 6」 | 按 C-3 / R2-AC6 同例**逐字迁入** `conditions_closed`;孤儿表头删除并具名记账;段改为 `[]`。⚠️ **原文 `status: open` 一字未动**(沿革证据) |
+| **②** | **归档件被改过,而头注仍在承诺「永不修改」** | `sha256sum` 实测 `61c72af9…` ≠ 头注的「恒定期望」`3212ceb6…`。`fde4af7`(OQ-7a-10 轮)往 `S18-2.note` 插了一条 🔁 注,`+1/-1` 行 | **不回滚**(会造出第三个版本,且那条注事实无误);把「恒定期望」标为**历史值**,判据换代 = `git log` 计数(**2**:`08049fb` 创建 + `fde4af7` 违例);纪律重述:归档件补注一律落活件 |
+| **③** | §九.4 两条「不代表」**理由过期而结论仍成立** | ① 「`death-respawn` 全链仍 `BLOCKED-BY-9`(G-1 结转)」—— G-1 已不结转;② 「S18-1 的 AC 未兑现,结转 sprint-19」—— 已拉回且八条判据全 ✅ | 两条均**原文保留 + 就地加注**:结论不变,理由换新。⚠️ 特别写明「AC 兑现 ≠ 功能可用」 |
+
+> 🔁 **本轮自身的记账缺陷(就地留档)**:修 ② 时初稿把 `git log` 计数写成「实测 = 1」,
+> **实跑 = 2** —— 与 `coding-standards.md` §Review Evidence Standards「数字须带可跑复算命令」
+> 要防的形态相同,且**在写该规则的同一段里犯了一次**。已就地订正并写明。
+
+#### 下一步(不在本 sprint 面内)
+
+- **`TD-persist-01`** 仍 `open`,剩两条判据:① 折叠接入存档路径 · ② `Erase` 取舍面的变异反证(见 §九.2)。
+- **`TD-sim-01`** 谓词层 + 接线层均已还,**结案与否归 `death-respawn` / QA 侧核**,记账轮不自裁。
+- **9 侧的染病路径** —— A / B 两条不记绿的根因,归 9。
+- **`/retrospective sprint-19`** 及 retro-15/16/17 三份永久留白(见 §九.3)。
 
 > **不经用户指令不 commit。**
