@@ -153,8 +153,9 @@
 sprint: 18
 goal: "清掉 clinic / death-respawn 两链的剩余 BLOCKED-BY 根因(G-1 SelfLimited · G-2 Folded(p)),并把 G-8 结案后路线图未回写的四处登记补平"
 start: "2026-10-21"
-end: "2026-10-22"   # ✅ **2026-10-22 收口时补记**(承 sprint-14/15/16/17 同例)。收口依据 =
-                     # QA 签核 APPROVED WITH CONDITIONS + S18-1 结转 sprint-19 的用户裁定 +
+end: "2026-10-24"   # ✅ **2026-10-24 收口时补记**(承 sprint-14/15/16/17 同例)。收口依据 =
+                     # QA 签核 APPROVED WITH CONDITIONS + S18-1 拉回并落地 (`5f40b59`) +
+                     # 判据面清零 (`S18-AC5` 迁入 conditions_closed,孤儿表头删除,归档 SHA 指针补订正) +
                      # `/code-review` 五条 Required 全部修复(commit d91edeb)。
                      # ⚠️ 原空串的注释「空串只表示『规划时未定』,不表示『永不填』」按原文保留于归档件。
 generated: "2026-10-21"
