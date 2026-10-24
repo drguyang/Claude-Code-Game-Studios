@@ -127,8 +127,15 @@ namespace DaYiJingCheng.EditorTools.Gates
             // ── 52 随机事件导演 / 27 敌人 AI ──
             ("EventRolled", "52 掷骰写者未落 —— 归 52 实现轮(ADR-007 §一 掷骰权落地)(2026-10-10)"),
             ("EventArrived", "52 事件降临写者未落 —— 归 52 实现轮(2026-10-10)"),
-            ("ThreatDeferred", "52 威胁推迟写者未落 —— 归 52 实现轮(2026-10-10)"),
-            ("ThreatDeferralCleared", "52 威胁解除写者未落 —— 归 52 实现轮(2026-10-10)"),
+            // ✅ 2026-10-25 撤 `ThreatDeferred` / `ThreatDeferralCleared` 豁免(S19-4 · TD-randomevents-01):
+            //   写者已落 —— `Sim/DeferredThreatSlotWriter.cs`(52 延迟威胁槽位写入通道,
+            //   `Encode(EventKind.ThreatDeferred…)` / `Encode(EventKind.ThreatDeferralCleared…)`
+            //   = 门判据扫得到的生产写入点)。
+            //   判据①「已存在写者的 Kind 仍挂豁免表 = 红」强制同批撤表
+            //   (承 `CaseClosed` / `CareApplied` / `PatientOutcomeChanged` 先例)。
+            //   ⚠️ 与既有先例同格:**有写者 ≠ 已接线** —— 生产触发点(52 导演主循环:
+            //   威胁 ∧ 医馆 ∧ 同日 → TryDefer;离开医馆 → TryClear(补发);跨日 tick →
+            //   逐槽 TryClear(作废))归 52 的实现轮。
             ("HistoryFlagChanged", "52 病史旗标写者未落 —— 归 52 实现轮(2026-10-10)"),
             ("EncounterStarted", "52 遭遇开启写者未落 —— 归 52 实现轮(ADR-016 §八:52 决定来不来)(2026-10-10)"),
             ("EncounterEnded", "27 敌人 AI 遭遇结束写者未落 —— 归 27 实现轮(entities.yaml author 注:非 52)(2026-10-10)"),
