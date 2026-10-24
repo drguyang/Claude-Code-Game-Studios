@@ -213,6 +213,19 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 失效机制 / Memoize 归 story-005)。</para></summary>
         public ClinicRoomMatchingService ClinicRoomMatching { get; }
 
+        /// <summary>
+        /// 7a 存档服务(S19-1)。
+        /// <para><b>`null` ⇔ 装配时未指定存档目录</b>(`Assemble(..., saveBasePath: null)`),
+        /// 是**合法状态**,不是半装配 —— 与 <see cref="AudioRenderAssembled"/> 同款
+        /// 「可观测而非静默」处置。生产路径由 `BootRoot` 显式传目录。</para>
+        /// <para>⚠️ <b>即便非 null,今日 `Checkpoint` / `Load` 也必然抛</b> ——
+        /// 叙事上下文驱动源未接通(fail-closed,`TD-persist-04`)。这是**刻意的**:
+        /// 不可利用 &gt; 不可用。**不得读成「存档功能已完成」。**</para>
+        /// <para>⚠️ 判据 ④ 的**字节半**(「产出的字节里折叠行出现」)今日 = `NOT-RUN`,
+        /// 归 `TD-persist-03`。本属性的存在只证明**位置半 + 委托半**成立。</para>
+        /// </summary>
+        public SaveService SaveService { get; }
+
         internal CompositionRootServices(EventStream stream, IIdAuthority idAuthority,
                                          InMemoryBlobPool blobPool, IPayloadEncoder encoder,
                                          IPayloadDecoder decoder,
@@ -250,7 +263,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          PatientBehaviorDirector behaviorDirector,
                                          AudioTierDriver audioTierDriver = null,
                                          TelemetryAnalyticsTuning? telemetryKnobs = null,
-                                         ClinicRoomMatchingService clinicRoomMatching = null)
+                                         ClinicRoomMatchingService clinicRoomMatching = null,
+                                         SaveService saveService = null)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -292,6 +306,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             BehaviorDirector = behaviorDirector;
             AudioTierDriver = audioTierDriver;
             ClinicRoomMatching = clinicRoomMatching;
+            SaveService = saveService;
 
             // 51 遥测接线(TD-epic-01):decoder 在 Sim.Codec、51 的装配引不到 ⇒ 在本装配层包成委托。
             // ⚠️ stream / decoder / registry 均已是本 ctor 的形参 ⇒ 不加新装配边、不改 Assemble 签名。

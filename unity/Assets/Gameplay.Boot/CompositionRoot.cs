@@ -119,10 +119,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             AudioAssemblySeams audio = null,
             ClinicKnowledge clinicKnowledge = null,
             TelemetryAnalyticsTuning? telemetryKnobs = null,
-            StructureInstanceRegistry structures = null)
+            StructureInstanceRegistry structures = null,
+            string saveBasePath = null)
             => AssembleCore(new IdAuthority(), new PresenceRegistry(), new InMemoryBlobPool(),
                             0UL, registry, dataProvider, inputActions, audio, clinicKnowledge, telemetryKnobs,
-                            structures);
+                            structures, saveBasePath);
 
         /// <summary>
         /// 显式依赖注入装配(读档 / 测试用:由调用方给出发号权威、在场登记簿、blob 池与世界种子)。
@@ -146,13 +147,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                        AudioAssemblySeams audio = null,
                                                        ClinicKnowledge clinicKnowledge = null,
                                                        TelemetryAnalyticsTuning? telemetryKnobs = null,
-                                                       StructureInstanceRegistry structures = null)
+                                                       StructureInstanceRegistry structures = null,
+                                                       string saveBasePath = null)
         {
             if (idAuthority == null) throw new ArgumentNullException(nameof(idAuthority));
             if (presence == null) throw new ArgumentNullException(nameof(presence));
             if (blobPool == null) throw new ArgumentNullException(nameof(blobPool));
             return AssembleCore(idAuthority, presence, blobPool, worldSeed, registry, dataProvider,
-                                inputActions, audio, clinicKnowledge, telemetryKnobs, structures);
+                                inputActions, audio, clinicKnowledge, telemetryKnobs, structures,
+                                saveBasePath);
         }
 
         private static CompositionRootServices AssembleCore(IIdAuthority idAuthority,
@@ -165,7 +168,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                              AudioAssemblySeams audio,
                                                              ClinicKnowledge clinicKnowledge,
                                                              TelemetryAnalyticsTuning? telemetryKnobs,
-                                                             StructureInstanceRegistry structures)
+                                                             StructureInstanceRegistry structures,
+                                                             string saveBasePath)
         {
             // ── 依赖前置校验(全自动路径同样 fail-loud)──
             if (idAuthority == null)
@@ -373,6 +377,58 @@ namespace DaYiJingCheng.Gameplay.Boot
             // tick 源全案唯一 ⇒ 由组合根创建并暴露,BootRoot 从服务袋取(不再自 new);
             // 墨龄/G2 等都从袋内同一 source 读,保证「当前 tick」唯一口径。
             var tickDriver = new SimTickDriver();
+
+            // ── 7a 存档服务(S19-1 判据 ④ 位置半 + 委托半)────────────────────
+            // 形态 = 甲-a(三家专家合成裁定 2026-10-24):`SaveService` 只认「拿到一坨字节」,
+            //   折叠 / 行编码 / 布局**全在下面这个闭包里** ⇒ `Sim.Codec` 永不命名 `FoldRow`,
+            //   零新增装配边(Sim / Sim.Codec 的 references 一字不改,ADR-025 §①)。
+            //
+            // ⚠️ **`saveBasePath == null` ⇒ 不构造 SaveService(`SaveService` 属性为 null)**。
+            //   这是「未配置存档目录」的**合法状态**,不是半装配 —— 与 `AudioRenderAssembled`
+            //   同款「可观测而非静默」处置。选 null 不选「自动落 persistentDataPath」的理由:
+            //   全仓 109 处 `CompositionRoot.Assemble` 调用点(多为 EditMode 夹具)会在
+            //   用户数据目录里各造一个目录 —— 那是 109 份污染,且 `FsWriteBoundaryGate`
+            //   只扫测试**源码字面量**、抓不到它(派生路径无字面量)。
+            //   生产路径 = `BootRoot` 显式传 `persistentDataPath/saves`(见其调用点)。
+            //
+            // ⚠️ **`narrativeContext` 今日传 null(fail-closed)**:真实驱动源零落点
+            //   (谁在叙事锚点事件时翻 true),归 8 / 37 / 52 的实现轮 ⇒ `TD-persist-04`。
+            //   后果:存档 / 读档在**生产路径上不可用**。这是**刻意的** ——
+            //   不可利用 > 不可用(恒真会让 save-scum 通道在生产路径默开而测试全绿)。
+            SaveService saveService = null;
+            if (!string.IsNullOrEmpty(saveBasePath))
+            {
+                // 折叠谓词 —— 四个输入全部可从三流 + 注册表取,无快照 / 无墙钟(ADR-016 §一)。
+                var foldedPredicate = new FoldedPredicate(
+                    historyStream: () => SaveComposer.FilterByStream(stream.Events, StreamId.History),
+                    caseStream: () => SaveComposer.FilterByStream(stream.Events, StreamId.Case),
+                    diseaseLookup: entryOf,
+                    decoder: decoder);
+
+                // 组版闭包 —— `HistoryFolder.Fold` 的**生产调用点**(判据 ④ 位置半 (i))。
+                // 折叠行的字节编码器尚不存在 ⇒ 有行要落盘时 `SaveComposer` 抛
+                // (判据 ④ **字节半 = NOT-RUN**,归 TD-persist-03)。
+                // ⚠️ configVersion 今日传 0 —— 运行期无全局当前值(见 SaveComposer 的 remarks);
+                //    后果 = 51 的 `AC-51-D7` 在 P0 恒「匹配」,**这是假绿形态**,不得读成已实现。
+                Func<SaveSlot, byte[]> compose = _ => SaveComposer.Compose(
+                    stream.Events, foldedPredicate, decoder, new SaveCodec(),
+                    worldSeed, configVersion: 0U, tick: tickDriver.CurrentTick);
+
+                // 重放委托 —— `Load` 解出事件列表后的交出点(PRE-S19-D 甲案)。
+                // ⚠️ 真重放(列表 → sim 状态)归 `TD-persist-03`。**刻意不 `stream.Append`**:
+                //   重放走 Append 会撞 CAP / 去重 / 单调三关(sprint-19 §S19-1 F5 实测),
+                //   且读档时在场视图尚未重建 ⇒ 会误抛。今日交出后**丢弃**。
+                Action<IReadOnlyList<SimEvent>> replaySink = _ => { };
+
+                saveService = new SaveService(
+                    saveBasePath,
+                    new SaveCodec(),
+                    folded: foldedPredicate,
+                    narrativeContext: null,       // ← fail-closed,见上
+                    replaySink: replaySink,
+                    compose: compose);
+            }
+
 
             // ── 42 侧只读数源(T2.1 + G1.4 + G2.2):把拟物 UI 接到唯一浮点出口 ──
             // 病因(sprint-05 §1):`SkeuoRuntimeDriver` 两处 TODO ⇒ 42 是空壳,
@@ -778,7 +834,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                renderTarget is AudioSourceRenderTarget,
                                                patientCueDriver, behaviorDirector,
                                                audioTierDriver, telemetryKnobs,
-                                               clinicRoomMatching);
+                                               clinicRoomMatching, saveService);
         }
 
         /// <summary>

@@ -22,6 +22,7 @@
 //    六步」只实现当下半边同纪律)。届时再抽,本注即登记点。
 
 using System;
+using System.IO;                     // Path.Combine(7a 存档目录,S19-1)
 using System.Threading.Tasks;
 using DaYiJingCheng.Gameplay.Presentation;
 using DaYiJingCheng.Gameplay.Presentation.Audio;      // 44 运行期音频链(story-018 装配面)
@@ -172,7 +173,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 inputActions: inputActions,
                 audio: _audioSeams,
                 // 51 遥测六旋钮(TD-epic-01 第十二片):预载成功 ⇒ 烘焙表;失败 ⇒ null(报告维持「未给」)。
-                telemetryKnobs: ResolveTelemetryKnobs(preloaded ? DataCorePreloader.Provider : null));
+                telemetryKnobs: ResolveTelemetryKnobs(preloaded ? DataCorePreloader.Provider : null),
+                // 7a 存档目录(S19-1)。⚠️ 只有本处(生产启动序)显式给目录 —— 109 处
+                // EditMode 夹具不给 ⇒ 它们不构造 SaveService(否则各在用户数据目录造一份)。
+                // ⚠️ 今日 `Checkpoint` / `Load` 仍必然抛(叙事上下文驱动源未接通,
+                //    fail-closed,TD-persist-04)—— 目录就位 ≠ 功能可用。
+                saveBasePath: Path.Combine(Application.persistentDataPath, "saves"));
 
             // ── 2.9 设备态挂接(TD-epic-01 第八片 · 2026-10-19)──
             // 病因:`DeviceStateManager`(story-008)此前**零生产实例**(零生产调用方,与

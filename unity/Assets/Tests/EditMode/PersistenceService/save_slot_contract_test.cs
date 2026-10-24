@@ -1,0 +1,608 @@
+// persistence-service S19-1 测试 —— 槽位契约高层面 + 折叠接线 + Load 3/4 段
+//
+// 权威来源:
+//   design/gdd/persistence-service.md:597-605  —— AC-7a-19 四子判据 (a)(b)(c)(d)
+//   design/gdd/save-slot-ui.md:206-207        —— F-7b.2 两投影公式
+//   design/gdd/save-slot-ui.md:212-214        —— 三个输入量归 7a
+//   ADR-010 §六                                —— Checkpoint 唯一写入口 / 锁不进存档体
+//   production/qa/qa-plan-sprint-19-2026-10-24.md §S19-1 —— 判据 ①…⑦
+//   production/qa/evidence/s19-1-fold-adjudication-2026-10-24.md —— 判据 ④ 三段拆分
+//
+// 写盘边界:全部落 `Path.GetTempPath()`(FsWriteBoundaryGate 允许形态;零仓库锚点)。
+//
+// ⚠️ **本文件不覆盖判据 ④ 的字节半**(「Checkpoint 产出的字节里折叠行出现」)——
+//    它标 `NOT-RUN`,归 `TD-persist-03`(2026-10-24 用户裁定)。
+//    **不得**以「折叠在生产调用链上生效」顶替它。
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using DaYiJingCheng.Sim.Codec;
+using DaYiJingCheng.Sim.Contracts;
+using NUnit.Framework;
+
+namespace DaYiJingCheng.Tests.PersistenceService
+{
+    public class SaveSlotContractTest
+    {
+        private string _testDir;
+
+        [SetUp]
+        public void Setup()
+        {
+            _testDir = Path.Combine(Path.GetTempPath(), "dyjq_s19_1_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(_testDir);
+        }
+
+        [TearDown]
+        public void Teardown()
+        {
+            if (Directory.Exists(_testDir))
+            {
+                try { Directory.Delete(_testDir, true); } catch { }
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 夹具工厂
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>组版一个最小合法存档:头部 + 空事件列表,再补校验和。</summary>
+        private static byte[] MinimalSaveBytes(ulong worldSeed = 12345UL, uint configVersion = 7U,
+                                               long tick = 100L, IReadOnlyList<SimEvent> events = null)
+        {
+            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, configVersion, tick, 0UL);
+            byte[] body = SimEventListCodec.Encode(events ?? Array.Empty<SimEvent>(), new SaveCodec());
+            var combined = new byte[header.Length + body.Length];
+            Array.Copy(header, 0, combined, 0, header.Length);
+            Array.Copy(body, 0, combined, header.Length, body.Length);
+            return SaveService.AddChecksum(combined);
+        }
+
+        /// <summary>构造一个全驱动源就绪的 SaveService(叙事上下文恒 true)。</summary>
+        private SaveService ReadyService(
+            Func<bool> narrativeContext = null,
+            Action<IReadOnlyList<SimEvent>> replaySink = null,
+            Func<SaveSlot, byte[]> compose = null)
+        {
+            return new SaveService(
+                _testDir,
+                new SaveCodec(),
+                folded: null,
+                narrativeContext: narrativeContext ?? (() => true),
+                replaySink: replaySink ?? (_ => { }),
+                compose: compose ?? (slot => MinimalSaveBytes()));
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 判据 ②(a) —— 写时序递增槽位:允许
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_ac7a19a_writeIncreasingSlot_isAllowed()
+        {
+            var svc = ReadyService();
+
+            Assert.DoesNotThrow(() => svc.Checkpoint(new SaveSlot(0)), "首个槽位应允许写入");
+            Assert.DoesNotThrow(() => svc.Checkpoint(new SaveSlot(1)), "递增槽位应允许写入");
+            Assert.DoesNotThrow(() => svc.Checkpoint(new SaveSlot(5)), "跳号递增仍允许(只进不退)");
+
+            Assert.AreEqual(6U, svc.Ledger.NextWritableSeq, "高水位 = 最后写入槽位 + 1");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 判据 ②(b) —— 覆盖既有槽位:7a 拒绝
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_ac7a19b_overwriteExistingSlot_isRejectedBy7a()
+        {
+            var svc = ReadyService();
+            svc.Checkpoint(new SaveSlot(0));
+
+            // 必须是 7a 抛(InvalidDataException),不是 7b 提示、不是静默忽略
+            var ex = Assert.Throws<InvalidDataException>(
+                () => svc.Checkpoint(new SaveSlot(0)),
+                "覆盖既有槽位须由 7a 拒绝(只进不退)");
+            StringAssert.Contains("只进不退", ex.Message, "报文须点名只进不退");
+        }
+
+        [Test]
+        public void test_ac7a19b_writableProjectionSaysFalseForStaleSlot()
+        {
+            // 投影面同一判据:高水位已过 ⇒ Writable = false
+            var ctx = new SlotContext(locked: false, inNarrativeContext: true, nextWritableSeq: 3U);
+            Assert.IsFalse(SlotProjections.Writable(new SaveSlot(2), ctx), "2 < 3 ⇒ 不可写");
+            Assert.IsTrue(SlotProjections.Writable(new SaveSlot(3), ctx), "3 ≥ 3 ⇒ 可写");
+            Assert.IsTrue(SlotProjections.Writable(new SaveSlot(4), ctx), "4 ≥ 3 ⇒ 可写");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 判据 ②(c) —— 叙事上下文之外:7a 拒绝
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_ac7a19c_outsideNarrativeContext_isRejectedBy7a()
+        {
+            var svc = ReadyService(narrativeContext: () => false);
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => svc.Checkpoint(new SaveSlot(0)),
+                "叙事上下文之外须由 7a 拒绝");
+            StringAssert.Contains("叙事上下文", ex.Message);
+
+            // 副作用为零:不该有文件被写出来
+            Assert.AreEqual(0, Directory.GetFiles(_testDir).Length, "被拒的写入不得留下任何文件");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 判据 ②(d) —— 读档后同槽位 reads 侧锁定
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_ac7a19d_loadLocksSlotForReads()
+        {
+            var svc = ReadyService();
+            svc.Checkpoint(new SaveSlot(0));
+
+            Assert.DoesNotThrow(() => svc.Load(new SaveSlot(0)), "首次载入应允许");
+            Assert.IsTrue(svc.Ledger.IsLocked(new SaveSlot(0)), "载入后该槽位须已锁");
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => svc.Load(new SaveSlot(0)), "再次载入同槽须被拒(读档即锁)");
+            StringAssert.Contains("已锁", ex.Message);
+        }
+
+        [Test]
+        public void test_ac7a19d_narrativeAnchorUnlocksSlots()
+        {
+            var svc = ReadyService();
+            svc.Checkpoint(new SaveSlot(0));
+            svc.Load(new SaveSlot(0));
+            Assert.IsTrue(svc.Ledger.IsLocked(new SaveSlot(0)));
+
+            svc.Ledger.OnNarrativeAnchor();
+
+            Assert.IsFalse(svc.Ledger.IsLocked(new SaveSlot(0)), "叙事锚点到达 ⇒ 锁解除");
+            Assert.AreEqual(1U, svc.Ledger.NextWritableSeq, "锚点不推进高水位(锁与只进不退正交)");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 判据 ③ —— 闭合回路(BLOCKING):先手动存 → 读档 → 再覆盖回去
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_ac7a19_closedLoop_saveLoadOverwrite_isBrokenSomewhere()
+        {
+            // 端到端一条夹具串起三环 —— 不得拆成三个独立单测(拆开时「每环单独拒绝」
+            // 成立但「回路整体可通」这一失效形态测不出来)。
+            var svc = ReadyService();
+
+            // 环 1:先手动存
+            Assert.DoesNotThrow(() => svc.Checkpoint(new SaveSlot(0)), "环 1:手动存应成功");
+
+            // 环 2:读档
+            Assert.DoesNotThrow(() => svc.Load(new SaveSlot(0)), "环 2:读档应成功");
+
+            // 环 3:再覆盖回去 —— 必须被拒(否则 = 事实上的 quicksave)
+            Assert.Throws<InvalidDataException>(
+                () => svc.Checkpoint(new SaveSlot(0)),
+                "环 3:覆盖既有槽位须被拒 —— 闭合回路任一环被拒即可");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 判据 ③ —— 两投影是纯函数(反射查零实例字段)
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_projections_haveNoMutableInstanceFields()
+        {
+            // 判据对象恰 = SlotProjections(静态类)+ SlotContext(readonly struct)。
+            // SaveSlotLedger 刻意不在本判据面内(它按定义有状态)。
+            var t = typeof(SlotProjections);
+            Assert.IsTrue(t.IsAbstract && t.IsSealed, "SlotProjections 须是静态类");
+            Assert.AreEqual(0, t.GetFields(BindingFlags.Instance | BindingFlags.Public
+                                           | BindingFlags.NonPublic).Length,
+                "SlotProjections 不得有实例字段");
+
+            var ctxFields = typeof(SlotContext).GetFields(BindingFlags.Instance | BindingFlags.Public
+                                                          | BindingFlags.NonPublic);
+            Assert.AreEqual(3, ctxFields.Length, "SlotContext 三个字段");
+            foreach (var f in ctxFields)
+                Assert.IsTrue(f.IsInitOnly, $"SlotContext.{f.Name} 须是 readonly(IsInitOnly)");
+        }
+
+        [Test]
+        public void test_projections_areSameInputSameOutput()
+        {
+            var ctx = new SlotContext(locked: false, inNarrativeContext: true, nextWritableSeq: 2U);
+            var slot = new SaveSlot(3);
+
+            Assert.AreEqual(SlotProjections.Writable(slot, ctx), SlotProjections.Writable(slot, ctx));
+            Assert.AreEqual(SlotProjections.Loadable(slot, ctx), SlotProjections.Loadable(slot, ctx));
+        }
+
+        [Test]
+        public void test_projections_haveIndependentGreyChannels()
+        {
+            // 「各配独立灰置通道」的可证形态:
+            // 存在一个状态使 Writable = false 而 Loadable = true(高水位未到)。
+            var blockedBySeq = new SlotContext(locked: false, inNarrativeContext: true, nextWritableSeq: 5U);
+            Assert.IsFalse(SlotProjections.Writable(new SaveSlot(1), blockedBySeq), "高水位未到 ⇒ 不可写");
+            Assert.IsTrue(SlotProjections.Loadable(new SaveSlot(1), blockedBySeq), "但可载入");
+
+            // 两个正交子句各有一条独有的拒绝路径
+            var locked = new SlotContext(locked: true, inNarrativeContext: true, nextWritableSeq: 0U);
+            Assert.IsFalse(SlotProjections.Writable(new SaveSlot(0), locked), "锁 ⇒ 不可写");
+            Assert.IsFalse(SlotProjections.Loadable(new SaveSlot(0), locked), "锁 ⇒ 不可载入");
+
+            var outside = new SlotContext(locked: false, inNarrativeContext: false, nextWritableSeq: 0U);
+            Assert.IsFalse(SlotProjections.Writable(new SaveSlot(0), outside), "上下文外 ⇒ 不可写");
+            Assert.IsFalse(SlotProjections.Loadable(new SaveSlot(0), outside), "上下文外 ⇒ 不可载入");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 判据 ④ 委托半 —— compose 落在 Checkpoint 体内 + fail-closed
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_checkpoint_invokesComposeDelegate()
+        {
+            int calls = 0;
+            var svc = ReadyService(compose: slot => { calls++; return MinimalSaveBytes(); });
+
+            svc.Checkpoint(new SaveSlot(0));
+
+            Assert.AreEqual(1, calls, "Checkpoint 须调用一次 compose(组版在写盘路径上)");
+        }
+
+        [Test]
+        public void test_checkpoint_withoutCompose_failsClosed()
+        {
+            var svc = new SaveService(_testDir, new SaveCodec(),
+                narrativeContext: () => true, replaySink: _ => { }, compose: null);
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => svc.Checkpoint(new SaveSlot(0)), "未注入 compose ⇒ 须抛(fail-closed)");
+            StringAssert.Contains("compose", ex.Message);
+            Assert.AreEqual(0, Directory.GetFiles(_testDir).Length, "fail-closed 不得留下任何文件");
+        }
+
+        [Test]
+        public void test_composeReturningNull_throwsInsteadOfWritingEmptySave()
+        {
+            var svc = ReadyService(compose: slot => null);
+
+            Assert.Throws<InvalidOperationException>(
+                () => svc.Checkpoint(new SaveSlot(0)), "组版返回 null ⇒ 须抛,不得写空档");
+            Assert.AreEqual(0, Directory.GetFiles(_testDir).Length, "不得留下任何文件");
+        }
+
+        [Test]
+        public void test_checkpoint_writesBytesProducedByCompose()
+        {
+            // 组版产出的字节原样落盘(Checkpoint 不得二次加工)
+            byte[] expected = MinimalSaveBytes(worldSeed: 999UL);
+            var svc = ReadyService(compose: slot => expected);
+
+            svc.Checkpoint(new SaveSlot(0));
+
+            byte[] written = File.ReadAllBytes(Path.Combine(_testDir, "save_0.bin"));
+            CollectionAssert.AreEqual(expected, written, "落盘字节须逐位等于 compose 产出");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 判据 ⑤ / ⑦ —— Load 的 Gating + Verifying + 头部解析 + Replaying 前半段
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_load_handsEventListToReplaySink()
+        {
+            var ev = new SimEvent(42L, new PatientId(7), 0L, EventKind.DiseaseOnset,
+                new PayloadRef(1, 0, 16));
+            byte[] save = MinimalSaveBytes(tick: 42L, events: new[] { ev });
+
+            IReadOnlyList<SimEvent> handed = null;
+            var svc = ReadyService(replaySink: list => handed = list);
+            svc.SaveBytes(new SaveSlot(0), save);
+
+            svc.Load(new SaveSlot(0));
+
+            Assert.IsNotNull(handed, "Replaying 前半段须把列表交出");
+            Assert.AreEqual(1, handed.Count);
+            Assert.AreEqual(42L, handed[0].Tick);
+            Assert.AreEqual(7, handed[0].Patient.Value);
+            Assert.AreEqual(EventKind.DiseaseOnset, handed[0].Kind);
+        }
+
+        [Test]
+        public void test_load_withoutReplaySink_throwsInsteadOfSkipping()
+        {
+            var svc = new SaveService(_testDir, new SaveCodec(),
+                narrativeContext: () => true, replaySink: null,
+                compose: slot => MinimalSaveBytes());
+            svc.SaveBytes(new SaveSlot(0), MinimalSaveBytes());
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => svc.Load(new SaveSlot(0)), "未注入 replaySink ⇒ 须抛,禁静默跳过");
+            StringAssert.Contains("replaySink", ex.Message);
+        }
+
+        [Test]
+        public void test_load_outsideNarrativeContext_isRejected()
+        {
+            var svc = ReadyService(narrativeContext: () => false);
+            svc.SaveBytes(new SaveSlot(0), MinimalSaveBytes());
+
+            Assert.Throws<InvalidOperationException>(
+                () => svc.Load(new SaveSlot(0)), "载入安全上下文门:上下文外须拒");
+        }
+
+        [Test]
+        public void test_load_rejectsFutureSaveVersion()
+        {
+            // 前向不兼容:SaveVersion > CurrentSaveVersion ⇒ 拒绝
+            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(1UL, 1U, 0L, 0UL);
+            // ⚠️ 在**未插校验和**的形态下改:magic(0..3) 之后紧接 saveVersion(4..7)。
+            //    AddChecksum 会把 saveVersion 挪到 36..39 —— 改必须在挪之前做。
+            header[4] = (byte)(SaveHeader.CurrentSaveVersion + 1);
+            byte[] body = SimEventListCodec.Encode(Array.Empty<SimEvent>(), new SaveCodec());
+            var combined = new byte[header.Length + body.Length];
+            Array.Copy(header, 0, combined, 0, header.Length);
+            Array.Copy(body, 0, combined, header.Length, body.Length);
+
+            var svc = ReadyService();
+            svc.SaveBytes(new SaveSlot(0), SaveService.AddChecksum(combined));
+
+            var ex = Assert.Throws<InvalidDataException>(
+                () => svc.Load(new SaveSlot(0)), "前向不兼容须拒绝载入");
+            StringAssert.Contains("前向不兼容", ex.Message);
+        }
+
+        [Test]
+        public void test_load_currentSaveVersion_passesThrough()
+        {
+            var svc = ReadyService();
+            svc.SaveBytes(new SaveSlot(0), MinimalSaveBytes());
+
+            Assert.DoesNotThrow(() => svc.Load(new SaveSlot(0)), "同版本 ⇒ 直通");
+        }
+
+        [Test]
+        public void test_load_olderSaveVersion_isRejectedUntilMigrationExists()
+        {
+            // 判据 ⑦b 第三分支:`SaveVersion < CurrentSaveVersion` ⇒ **逐版本升级**。
+            //
+            // ⚠️ **今日升链实现不存在**(`TD-persist-03`),故本夹具断言的是
+            //    **fail-closed 的拒绝**,不是「升级成功」。**不得**把它读成
+            //    「⑦b 三分支已全部兑现」—— 真迁移仍 `NOT-RUN`。
+            //
+            // 为什么必须拒绝而不是放行:旧档会被 `ReadEventSegment` 按**当前版本布局**解析,
+            // 布局一旦变过就是**静默错读**(读出一个看似合法、实则错位的存档)。
+            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(0xDEADBEEFCAFEBABEUL, 1U, 0L, 0UL);
+            // 同前:`AddChecksum` 之前 saveVersion 在 4..7
+            header[4] = (byte)(SaveHeader.CurrentSaveVersion - 1);
+            byte[] body = SimEventListCodec.Encode(Array.Empty<SimEvent>(), new SaveCodec());
+            var combined = new byte[header.Length + body.Length];
+            Array.Copy(header, 0, combined, 0, header.Length);
+            Array.Copy(body, 0, combined, header.Length, body.Length);
+
+            var svc = ReadyService();
+            svc.SaveBytes(new SaveSlot(0), SaveService.AddChecksum(combined));
+
+            var ex = Assert.Throws<NotSupportedException>(
+                () => svc.Load(new SaveSlot(0)),
+                "旧版本档在升链未实现前须 fail-closed 拒绝,不得按当前布局静默解析");
+            StringAssert.Contains("升链", ex.Message);
+            StringAssert.Contains("TD-persist-03", ex.Message,
+                "报文须点名归属件 —— 否则读代码的人无从知道真迁移归哪");
+        }
+
+        [Test]
+        public void test_load_olderSaveVersion_doesNotLockSlot()
+        {
+            // 拒绝发生在 `Verifying` 之后的迁移链判定段,**早于**读档锁置位
+            // ⇒ 旧档载入失败不得永久锁槽(`sprint-19.md` §S19-1 R-1 的相邻形态)。
+            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(1UL, 1U, 0L, 0UL);
+            header[4] = (byte)(SaveHeader.CurrentSaveVersion - 1);
+            byte[] body = SimEventListCodec.Encode(Array.Empty<SimEvent>(), new SaveCodec());
+            var combined = new byte[header.Length + body.Length];
+            Array.Copy(header, 0, combined, 0, header.Length);
+            Array.Copy(body, 0, combined, header.Length, body.Length);
+
+            var svc = ReadyService();
+            svc.SaveBytes(new SaveSlot(0), SaveService.AddChecksum(combined));
+
+            Assert.Throws<NotSupportedException>(() => svc.Load(new SaveSlot(0)));
+            Assert.IsFalse(svc.Ledger.IsLocked(new SaveSlot(0)),
+                "迁移链拒绝不得锁槽 —— 锁只在 Verifying + 迁移链全通过后置位");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 判据 ⑧b / ⑧c —— fail-closed 与「一个量」
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_checkpoint_withoutNarrativeContext_failsClosed()
+        {
+            var svc = new SaveService(_testDir, new SaveCodec(),
+                narrativeContext: null, replaySink: _ => { }, compose: slot => MinimalSaveBytes());
+
+            var ex = Assert.Throws<InvalidOperationException>(
+                () => svc.Checkpoint(new SaveSlot(0)), "未注入叙事上下文 ⇒ 须抛(fail-closed)");
+            StringAssert.Contains("narrativeContext", ex.Message);
+            Assert.AreEqual(0, Directory.GetFiles(_testDir).Length, "fail-closed 不得写盘");
+        }
+
+        [Test]
+        public void test_load_withoutNarrativeContext_failsClosed()
+        {
+            var svc = new SaveService(_testDir, new SaveCodec(),
+                narrativeContext: null, replaySink: _ => { }, compose: slot => MinimalSaveBytes());
+            svc.SaveBytes(new SaveSlot(0), MinimalSaveBytes());
+
+            Assert.Throws<InvalidOperationException>(
+                () => svc.Load(new SaveSlot(0)), "未注入叙事上下文 ⇒ Load 亦须抛(fail-closed)");
+        }
+
+        [Test]
+        public void test_ledger_withoutNarrativeContext_failsClosed()
+        {
+            var ledger = new SaveSlotLedger(null);
+            Assert.IsFalse(ledger.HasNarrativeContextSource);
+            Assert.Throws<InvalidOperationException>(
+                () => ledger.Snapshot(new SaveSlot(0)), "台账未注入钩子 ⇒ 查询须抛");
+            Assert.Throws<InvalidOperationException>(
+                () => ledger.EnsureWritable(new SaveSlot(0)), "台账未注入钩子 ⇒ 校验须抛");
+        }
+
+        [Test]
+        public void test_narrativeContext_isOneQuantity_drivesBothProjectionsTogether()
+        {
+            // ⑧c:InNarrativeContext 是一个量 ⇒ 注入 false 时两投影同时 false,
+            // 注入 true 时(锁与高水位满足的前提下)同时 true。
+            // 不得出现「一个门真、另一个门假」的可构造状态。
+            var falseCtx = new SlotContext(locked: false, inNarrativeContext: false, nextWritableSeq: 0U);
+            Assert.IsFalse(SlotProjections.Writable(new SaveSlot(0), falseCtx));
+            Assert.IsFalse(SlotProjections.Loadable(new SaveSlot(0), falseCtx));
+
+            var trueCtx = new SlotContext(locked: false, inNarrativeContext: true, nextWritableSeq: 0U);
+            Assert.IsTrue(SlotProjections.Writable(new SaveSlot(0), trueCtx));
+            Assert.IsTrue(SlotProjections.Loadable(new SaveSlot(0), trueCtx));
+
+            // 台账侧同一结论:同一个钩子驱动两投影
+            bool flag = false;
+            var ledger = new SaveSlotLedger(() => flag);
+            var snap = ledger.Snapshot(new SaveSlot(0));
+            Assert.IsFalse(SlotProjections.Writable(new SaveSlot(0), snap));
+            Assert.IsFalse(SlotProjections.Loadable(new SaveSlot(0), snap));
+
+            flag = true;
+            snap = ledger.Snapshot(new SaveSlot(0));
+            Assert.IsTrue(SlotProjections.Writable(new SaveSlot(0), snap));
+            Assert.IsTrue(SlotProjections.Loadable(new SaveSlot(0), snap));
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // 判据 ⑦ —— SaveHeader 读回 + 事件列表容器(两处「须新写」)
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_saveHeader_roundTripsAllFields()
+        {
+            byte[] save = MinimalSaveBytes(worldSeed: 0xDEADBEEFCAFEBABEUL, configVersion: 0x12345678U,
+                                           tick: -42L);
+
+            SaveHeader h = SaveHeaderCodec.Read(save);
+
+            Assert.AreEqual(SaveHeader.Magic, h.MagicValue);
+            Assert.AreEqual(SaveHeader.CurrentSaveVersion, h.SaveVersion);
+            Assert.AreEqual(0xDEADBEEFCAFEBABEUL, h.WorldSeed, "WorldSeed 须逐位往返");
+            Assert.AreEqual(0x12345678U, h.ConfigVersion);
+            Assert.AreEqual(-42L, h.Tick, "负 tick 须往返(有符号)");
+            Assert.AreEqual(0UL, h.SnapshotOffset);
+        }
+
+        [Test]
+        public void test_saveHeader_rejectsBadMagic()
+        {
+            byte[] save = MinimalSaveBytes();
+            save[0] ^= 0xFF;
+
+            var ex = Assert.Throws<InvalidDataException>(
+                () => SaveHeaderCodec.Read(save), "magic 不符须抛,禁返回 default");
+            StringAssert.Contains("magic", ex.Message);
+        }
+
+        [Test]
+        public void test_saveHeader_rejectsShortBuffer()
+        {
+            Assert.Throws<InvalidDataException>(
+                () => SaveHeaderCodec.Read(new byte[10]), "长度不足须抛");
+            Assert.Throws<ArgumentNullException>(
+                () => SaveHeaderCodec.Read(null), "null 须抛");
+        }
+
+        [Test]
+        public void test_eventList_roundTripsMultipleEvents()
+        {
+            var events = new[]
+            {
+                new SimEvent(1L, new PatientId(1), 0L, EventKind.DiseaseOnset, new PayloadRef(1, 0, 8)),
+                new SimEvent(2L, new PatientId(1), 1L, EventKind.PatientOutcomeChanged, new PayloadRef(1, 8, 12)),
+                new SimEvent(3L, PatientId.None, 0L, EventKind.Craft, new PayloadRef(2, 0, 4)),
+            };
+
+            byte[] bytes = SimEventListCodec.Encode(events, new SaveCodec());
+            IReadOnlyList<SimEvent> back = SimEventListCodec.Decode(bytes, new SaveCodec());
+
+            Assert.AreEqual(3, back.Count);
+            for (int i = 0; i < events.Length; i++)
+            {
+                Assert.AreEqual(events[i].Tick, back[i].Tick, $"事件 {i} 的 Tick");
+                Assert.AreEqual(events[i].Patient.Value, back[i].Patient.Value, $"事件 {i} 的 Patient");
+                Assert.AreEqual(events[i].Seq, back[i].Seq, $"事件 {i} 的 Seq");
+                Assert.AreEqual(events[i].Kind, back[i].Kind, $"事件 {i} 的 Kind");
+                Assert.AreEqual(events[i].Payload.BlobId, back[i].Payload.BlobId, $"事件 {i} 的 Payload");
+            }
+        }
+
+        [Test]
+        public void test_eventList_emptyListRoundTrips()
+        {
+            byte[] bytes = SimEventListCodec.Encode(Array.Empty<SimEvent>(), new SaveCodec());
+            var back = SimEventListCodec.Decode(bytes, new SaveCodec());
+            Assert.AreEqual(0, back.Count, "空列表须往返");
+        }
+
+        [Test]
+        public void test_eventList_rejectsTrailingBytes()
+        {
+            // 段未读尽 ⇒ 抛(防「长度写错但前 N 条对」的静默错读)
+            byte[] bytes = SimEventListCodec.Encode(Array.Empty<SimEvent>(), new SaveCodec());
+            var padded = new byte[bytes.Length + 4];
+            Array.Copy(bytes, padded, bytes.Length);
+
+            Assert.Throws<InvalidDataException>(
+                () => SimEventListCodec.Decode(padded, new SaveCodec()), "尾部多余字节须抛");
+        }
+
+        [Test]
+        public void test_eventList_rejectsNegativeCount()
+        {
+            var w = new CodecWriter();
+            w.WriteInt32LittleEndian(-1);
+            byte[] bytes = w.ToArray();
+
+            Assert.Throws<InvalidDataException>(
+                () => SimEventListCodec.Decode(bytes, new SaveCodec()), "count 为负须抛");
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // SaveOnExit —— 同门同组版,不推进高水位
+        // ══════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void test_saveOnExit_writesWithoutAdvancingSlotHighWatermark()
+        {
+            var svc = ReadyService();
+
+            svc.SaveOnExit();
+
+            Assert.AreEqual(0U, svc.Ledger.NextWritableSeq,
+                "退出保存不占玩家槽 ⇒ 高水位不动");
+            Assert.IsTrue(File.Exists(Path.Combine(_testDir, "save_0.bin")), "退出保存须落盘");
+        }
+
+        [Test]
+        public void test_saveOnExit_withoutCompose_failsClosed()
+        {
+            var svc = new SaveService(_testDir, new SaveCodec(),
+                narrativeContext: () => true, replaySink: _ => { }, compose: null);
+
+            Assert.Throws<InvalidOperationException>(
+                () => svc.SaveOnExit(), "未注入 compose ⇒ 须抛(fail-closed)");
+        }
+    }
+}

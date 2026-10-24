@@ -1,0 +1,109 @@
+{
+  "name": "S19-1 —— 槽位契约 / 折叠接线 / 组版 fail-loud 的守卫反证",
+  "mode": "EditMode",
+  "filter": "SaveSlotContractTest;SaveComposerWiringTest",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "本 spec 覆盖 sprint-19 §S19-1 判据 ⑤「折叠产出面变异反证 ≥3 轮」与判据 ②③⑧ 的守卫承重性。",
+    "⚠️ 判据 ④ 的**字节半 NOT-RUN**(归 TD-persist-03)—— M5 反证的是「组版器在有折叠行时 fail-loud」,",
+    "   那**不是**字节半的替代品,是它的**缺失证据**。",
+    "锚点复核命令(纯读):python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s19-1-slot-contract.json --check-only"
+  ],
+  "mutations": [
+    {
+      "name": "M1-writableDropsSeqClause",
+      "file": "unity/Assets/Sim.Codec/SlotProjections.cs",
+      "line": 65,
+      "expect": "            => !ctx.Locked && ctx.InNarrativeContext && slot.SlotSeq >= ctx.NextWritableSeq;",
+      "replace": "            => !ctx.Locked && ctx.InNarrativeContext; // FALSIFY-M1:删掉只进不退子句",
+      "expectRed": [
+        "test_ac7a19b_writableProjectionSaysFalseForStaleSlot",
+        "test_projections_haveIndependentGreyChannels"
+      ],
+      "exactRed": true,
+      "_why": "「覆盖既有槽位」的判据面就是这一条 `slot_seq >= next_writable_seq`。删掉它 ⇒ Writable 退化为 Loadable ⇒ 独立灰置通道消失。两条同时红:一条测语义、一条测两投影可分。"
+    },
+    {
+      "name": "M2-ledgerDropsSeqGuard",
+      "file": "unity/Assets/Sim.Codec/SaveSlotLedger.cs",
+      "line": 92,
+      "expect": "            if (slot.SlotSeq < _nextWritableSeq)",
+      "replace": "            if (false) // FALSIFY-M2:停用只进不退守卫",
+      "expectRed": [
+        "test_ac7a19b_overwriteExistingSlot_isRejectedBy7a",
+        "test_ac7a19_closedLoop_saveLoadOverwrite_isBrokenSomewhere"
+      ],
+      "exactRed": true,
+      "_why": "判据 ②(b) 的承重守卫。停用后覆盖既有槽位不再被 7a 拒 ⇒ 闭合回路环 3 静默通过 = 事实上的 quicksave。闭合回路那条**必须**同时红 —— 否则说明它没在测回路。"
+    },
+    {
+      "name": "M3-checkpointDropsComposeCall",
+      "file": "unity/Assets/Sim.Codec/SaveService.cs",
+      "line": 221,
+      "expect": "            byte[] bytes = _compose(slot)",
+      "replace": "            byte[] bytes = System.Array.Empty<byte>() // FALSIFY-M3:停用组版委托调用",
+      "expectRed": [
+        "test_checkpoint_invokesComposeDelegate",
+        "test_checkpoint_writesBytesProducedByCompose",
+        "test_composeReturningNull_throwsInsteadOfWritingEmptySave",
+        "test_ac7a19_closedLoop_saveLoadOverwrite_isBrokenSomewhere",
+        "test_ac7a19d_loadLocksSlotForReads",
+        "test_ac7a19d_narrativeAnchorUnlocksSlots"
+      ],
+      "exactRed": true,
+      "_why": "判据 ④ **委托半**的承重守卫:`_compose(` 调用点落在 Checkpoint 体内。停用后「组版在写盘路径上」为假,而 `SaveBytes` 仍会写一个空档 ⇒ 必须靠两条不同的断言同时抓(调用次数 / 字节内容)。",
+      "_first_run_note": "首跑(2026-10-24 第二窗)实得 6 红,原预期只写 2 条 ⇒ 驱动判 exit 1。**未把实得抄进预期**:先按 README 坑 1 逐条论证「它为什么应该红」(见 _expectRed_justification),论证成立后才改本条。",
+      "_expectRed_justification": [
+        "① test_checkpoint_invokesComposeDelegate —— 直接判据:compose 调用次数 1→0。",
+        "② test_checkpoint_writesBytesProducedByCompose —— 直接判据:落盘字节 72B→0B。",
+        "③ test_composeReturningNull_throwsInsteadOfWritingEmptySave —— compose 不再被调用 ⇒ 其 null 返回分支永不触达 ⇒ 不抛(而该测试断言必抛)。",
+        "④ test_ac7a19_closedLoop_saveLoadOverwrite_isBrokenSomewhere —— 环 1 Checkpoint 写出 0 字节文件 ⇒ 环 2 LoadBytes 校验和必失败(失败消息实测为「存档损坏且无法回退」)。",
+        "⑤ test_ac7a19d_loadLocksSlotForReads —— 同因:夹具先 Checkpoint 再 Load,存档 0 字节 ⇒ Load 抛。",
+        "⑥ test_ac7a19d_narrativeAnchorUnlocksSlots —— 同因。",
+        "④⑤⑥ 不是被 M3 直接打到,而是**依赖「Checkpoint 写出合法存档」这一前提**;前提被毁则连带红。这正是 README 坑 1 的形态:**变异违反的既有约束要逐条数,不只数新断言**。"
+      ]
+    },
+    {
+      "name": "M4-loadDropsLockGuard",
+      "file": "unity/Assets/Sim.Codec/SaveService.cs",
+      "line": 270,
+      "expect": "            if (_ledger.IsLocked(slot))",
+      "replace": "            if (false) // FALSIFY-M4:停用读档即锁守卫",
+      "expectRed": [
+        "test_ac7a19d_loadLocksSlotForReads"
+      ],
+      "exactRed": true,
+      "_why": "判据 ②(d) 的承重守卫。停用后同槽可反复载入 ⇒ save-scum 通道默开。"
+    },
+    {
+      "name": "M5-composerWritesRetainedSilently",
+      "file": "unity/Assets/Gameplay.Boot/SaveComposer.cs",
+      "line": 143,
+      "expect": "                throw new NotSupportedException(",
+      "replace": "                if (true) _ = ( // FALSIFY-M5:有折叠行时静默只写 Retained(丢弃报文,继续循环)",
+      "expectRed": [
+        "test_compose_foldablePatient_throwsInsteadOfWritingSaveWithoutFoldedRows",
+        "test_compose_failureMessage_namesTheNotRunCriterion"
+      ],
+      "exactRed": true,
+      "_why": "**判据 ⑤ 的核心反证**。停用 fail-loud 后,组版器会写出一份「抹掉了病史行却没有折叠行」的存档 —— 折叠不可逆,这是数据丢失。两条同时红:一条测「抛了没」,一条测「报文点名了归属件与 NOT-RUN」。"
+    },
+    {
+      "name": "M6-ledgerFailsOpen",
+      "file": "unity/Assets/Sim.Codec/SaveSlotLedger.cs",
+      "line": 97,
+      "expect": "            if (!_narrativeContext())",
+      "replace": "            if (false) // FALSIFY-M6:叙事上下文门 fail-open(恒放行)",
+      "expectRed": [
+        "test_ac7a19c_outsideNarrativeContext_isRejectedBy7a"
+      ],
+      "exactRed": true,
+      "_why": "判据 ⑧b「fail-closed」的承重守卫。改成 fail-open 后,上下文外写入被放行 —— 而**所有未注入驱动源的测试仍全绿**(它们走的是另一条 NoContextSource 抛)。这正是「假绿入口」的形态:本变异证明该夹具真的在测拒绝,不是在测「没抛就算过」。"
+    }
+  ]
+}

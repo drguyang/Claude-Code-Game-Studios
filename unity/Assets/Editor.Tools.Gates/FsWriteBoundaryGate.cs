@@ -93,13 +93,17 @@ namespace DaYiJingCheng.EditorTools.Gates
         /// <summary>
         /// 声明表。**每条都经过逐文件阅读**,不是「扫不到就豁免」:
         /// 前两条 = 锚点用于推导**指定暂存区** `unity/Logs/`(gitignored);
-        /// 后五条 = 锚点只喂**读**路径,写落 temp / persistentDataPath。
+        /// 其余各条 = 锚点只喂**读**路径,写落 temp / persistentDataPath。
         /// ⚠️ 第 6 条(`assembly_gate_b6_test`)是**真树测试抓出来的漏项** ——
         /// 起草时的抽样只列了「有代码锚点且无字面量锚点」的 4 个文件,漏掉了
         /// 「两种锚点都有」的这一个。抽样不是普查,故真树断言不可省。
         /// ⚠️ 第 7 条(`build_modules_bake_test`,`TD-itemdb-01` 兑现轮)是**同一形态的第二例**:
         /// 起草 `build_modules` 测试时没想起本门存在,真树断言 `test_realTestTree_zeroRed` 直接点名。
         /// 两次都是真树断言抓的,**不是**起草者自查抓的 —— 这条经验已入 `TD-itemdb-01` 的债条。
+        /// ⚠️ 第 8 条(`save_composer_wiring_test`,`S19-1` 判据 ④ 位置半)是**同一形态的第三例**:
+        /// 起草时又没想起本门,真树断言 `test_realTestTree_zeroRed` 第三次点名。
+        /// **三发同一形态** ⇒ 起草新测试时「用到 `Application.dataPath` 就查本表」应成为肌肉记忆,
+        /// 而不是等真树断言来抓。
         /// </summary>
         public static readonly Declaration[] Declarations =
         {
@@ -150,6 +154,14 @@ namespace DaYiJingCheng.EditorTools.Gates
                          "再读 `assets/data/` 的两张真种子表与 `Assets/DataCooked/` 的产物;" +
                          "写目标一律落 `Path.GetTempPath()/djc-buildmodules-<guid>/`," +
                          "`finally` 里整棵删掉(跨表同源负向夹具造最小仓根用)",
+            },
+            new Declaration
+            {
+                FileSuffix = "EditMode/PersistenceService/save_composer_wiring_test.cs",
+                Reason = "`Application.dataPath` 仅用于**读** —— 由它推出 `RepoRoot`," +
+                         "再**扫源文本**证明全仓只有 `SaveComposer` 一处 `HistoryFolder.Fold(` 调用点" +
+                         "(S19-1 判据 ④ 位置半);写目标 = `Path.GetTempPath()/dyjq_s19_1_<guid>/`," +
+                         "TearDown 里整棵删掉 —— 不写仓库",
             },
         };
 

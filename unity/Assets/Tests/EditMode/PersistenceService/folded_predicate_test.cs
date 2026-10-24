@@ -587,24 +587,58 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var ctors = typeof(SaveService).GetConstructors();
             Assert.AreEqual(1, ctors.Length, "SaveService 应恰有一个公开构造函数");
             var ps = ctors[0].GetParameters();
-            Assert.AreEqual(3, ps.Length, "形参 = (basePath, codec, folded)");
+            // 🔁 2026-10-24 S19-1:3 → 6(basePath, codec, folded, narrativeContext, replaySink, compose)。
+            //    `folded` 保持第 3 位 ⇒ 下方 ps[2] 类型断言仍成立,只改计数。
+            Assert.AreEqual(6, ps.Length,
+                "形参 = (basePath, codec, folded, narrativeContext, replaySink, compose)");
             Assert.AreEqual(typeof(IFoldedPredicate), ps[2].ParameterType,
                 "第三形参须是 IFoldedPredicate(住 Sim.Contracts)");
             Assert.IsTrue(ps[2].HasDefaultValue && ps[2].DefaultValue == null,
                 "折叠尚未进存档路径 ⇒ 形参可选(不注入 = null)");
+            Assert.AreEqual(typeof(Func<bool>), ps[3].ParameterType,
+                "第四形参须是 Func<bool>(叙事上下文钩子,一个量)");
+            Assert.AreEqual(typeof(Action<IReadOnlyList<SimEvent>>), ps[4].ParameterType,
+                "第五形参须是 Action<IReadOnlyList<SimEvent>>(重放交出)");
+            Assert.AreEqual(typeof(Func<SaveSlot, byte[]>), ps[5].ParameterType,
+                "第六形参须是 Func<SaveSlot, byte[]>(组版委托,折叠接线落点)");
+            for (int i = 3; i < 6; i++)
+                Assert.IsTrue(ps[i].HasDefaultValue && ps[i].DefaultValue == null,
+                    $"形参 {i} 须可选(不注入 = null ⇒ fail-closed)");
         }
 
         [Test]
-        public void test_iSaveService_publicMethodSetUnchanged()
+        public void test_iSaveService_publicMethodSetIsFive()
         {
-            // ADR-010 :331 的反射断言形态:公开方法参数集不变 —— 本件不得给接口加形参。
+            // ADR-010 :331 的反射断言形态:S19-1 后公开方法集恰 = 五个。
+            // 🔁 2026-10-24:原断言恰 = {LoadBytes, SaveBytes};本件加三方法后必红,已改为五。
             string[] methods = typeof(ISaveService).GetMethods()
                 .Select(m => m.Name)
                 .OrderBy(n => n, StringComparer.Ordinal)
                 .ToArray();
 
-            CollectionAssert.AreEqual(new[] { "LoadBytes", "SaveBytes" }, methods,
-                "ISaveService 的公开方法集不得因折叠而变");
+            CollectionAssert.AreEqual(
+                new[] { "Checkpoint", "Load", "LoadBytes", "SaveBytes", "SaveOnExit" }, methods,
+                "ISaveService 的公开方法集 = {Checkpoint, Load, LoadBytes, SaveBytes, SaveOnExit}");
+        }
+
+        [Test]
+        public void test_iSaveService_checkpointAndLoadTakeOnlySaveSlot()
+        {
+            // ADR-010 :331 逐字「反射断言:公开方法参数集恰等于 {SaveSlot}」
+            // —— 不得给 Checkpoint / Load 加形参,外部输入一律走构造注入。
+            foreach (var name in new[] { "Checkpoint", "Load" })
+            {
+                var m = typeof(ISaveService).GetMethod(name);
+                Assert.IsNotNull(m, $"ISaveService 缺方法 {name}");
+                var ps = m.GetParameters();
+                Assert.AreEqual(1, ps.Length, $"{name} 须恰有一个形参");
+                Assert.AreEqual(typeof(SaveSlot), ps[0].ParameterType,
+                    $"{name} 的形参须是 SaveSlot(不得加形参)");
+            }
+
+            var exit = typeof(ISaveService).GetMethod("SaveOnExit");
+            Assert.IsNotNull(exit, "ISaveService 缺 SaveOnExit");
+            Assert.AreEqual(0, exit.GetParameters().Length, "SaveOnExit 不取形参");
         }
     }
 }
