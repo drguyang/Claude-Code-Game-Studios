@@ -348,6 +348,8 @@
 | `TD-epic-01-e` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-persist-01` | `persistence-service` | open | **Y** | R1 |
 | `TD-persist-02` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-03` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-04` | `persistence-service` | open | **Y** | R1 |
 | `TD-enemy-01` | `enemy-ai` | open | **Y** | R1 |
 | `TD-randomevents-01` | `random-events` | open | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | open | **N** | R2 |
@@ -412,16 +414,18 @@ PYEVAL
 
 ~~**当前预期输出(2026-10-21 六订实测 · 含 `TD-building-01` 立债 —— 五订版原文留档于下)**:~~
 ~~**当前预期输出(2026-10-21 九订实测 · 含 `TD-ci-01` 立债 —— 六订 / 五订版原文均留档于下)**:~~
-**当前预期输出(2026-10-22 十订实测 · 含 `TD-clinic-18` 立债 —— 九订 / 六订 / 五订版原文均留档于下)**:
-> ⚠️ **标题换行不删**:九订标题就地改为删除线,新标题并列(承「原文不删,就地加注」—— 原措辞逐字仍可查,只是轮次前移一格)。
+~~**当前预期输出(2026-10-22 十订实测 · 含 `TD-clinic-18` 立债 —— 九订 / 六订 / 五订版原文均留档于下)**:~~
+~~**当前预期输出(2026-10-24 十一订实测 · 含 `TD-persist-03` 立债 —— 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
+**当前预期输出(2026-10-24 十二订实测 · 含 `TD-persist-04` 立债 —— 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
+> ⚠️ **标题换行不删**:十一订标题就地改为删除线,新标题并列(承「原文不删,就地加注」—— 原措辞逐字仍可查,只是轮次前移一格)。
 
 ```text
-条目 100 | 状态 {'open': 73, 'partial': 6, 'closed': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 89, 'N': 10, '~~**Y**~~': 1}
-未闭 P0 面 = 74 （已闭但曾标 P0 面的 15 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 74 条,分布在 13/31 个 epic
+条目 102 | 状态 {'open': 75, 'partial': 6, 'closed': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 91, 'N': 10, '~~**Y**~~': 1}
+未闭 P0 面 = 76 （已闭但曾标 P0 面的 15 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 76 条,分布在 13/31 个 epic
     medical-consequences: 20   audio-system: 20          clinic-machine: 17
-    telemetry-analytics: 5     skeuomorphic-ui: 2        disease-simulation: 2
-    persistence-service: 2     patient-ai: 1              player-controller: 1
+    telemetry-analytics: 5     persistence-service: 4    skeuomorphic-ui: 2
+    disease-simulation: 2      patient-ai: 1              player-controller: 1
     enemy-ai: 1                random-events: 1           item-database: 1
     modular-building: 1
 ```
@@ -436,6 +440,12 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 > ③ **九订** `TD-ci-01` 入表(98 → 99)。
 > ⇒ **`条目 +2` 来自 ① ③ 两次入表;`closed +1` 来自 ②,与 ① ③ 无关。**
 > 🔁 **2026-10-22 十订(`TD-clinic-18` 入表)** —— 上方输出即十订实测;变化 = `条目 99 → 100` · `open 72 → 73` · `Y 88 → 89` · **`未闭 P0 面` 73 → 74** · `clinic-machine 16 → 17` · `epic 分布` 一位不动(13/31)。⚠️ **与九订性质相反**:九订加的是**治理债**(`N`)⇒ 未闭面不动;本条加的是 **P0 面债**(`Y`)⇒ 未闭面**升**一位。九订块原文留档于下,不删。
+> 🔁 **2026-10-24 十二订(`TD-persist-04` 入表)** —— 上方输出即十二订实测;变化 = `条目 101 → 102` · `open 74 → 75` · `Y 90 → 91` · **`未闭 P0 面` 75 → 76** · `persistence-service 3 → 4` · `epic 分布` 一位不动(13/31)。⚠️ **性质同十一订 / 十订、异九订**:本条是 **P0 面债**(`Y`)⇒ 未闭面**升**一位。
+> **立债缘由**:`PRE-S19-A` 裁定轮(用户 2026-10-24 取**甲案**「注入委托,不开 ADR」)—— 该轮**勘察实测**发现登记项本身的缺口记错了地方:真正缺的不是「叙事上下文查询」(`InNarrativeContext` 是一个量,注入 `Func<bool>` 即够),而是 **`AC-7a-20`(事件触发 checkpoint)全仓零载体**,且 7a 的 20 条 AC 里 **13 条零 story** 而 epic 已标 `Complete`。详见 `TD-persist-04`。
+> ⚠️ **本条与 `TD-persist-03` 是不同形态的债,不是同一条的两段** —— 03 = **实现面**结构不可达(兄弟装配互不可见);本条 = **记账面** AC 无主(epic 按 story 计数标绿,AC 按条计数从未核对)。
+> 🔁 **2026-10-24 十一订版(原文留档,已被上方十二订取代)** —— `条目 101` · `open 74` · `Y 90` · `未闭 P0 面 75` · `persistence-service 3`。立债缘由:`PRE-S19-D` 甲案,`TD-persist-03` 入表。
+> **立债缘由**:`PRE-S19-D` 裁定轮(用户 2026-10-24 取**甲案**)—— `S19-1` 的 `Load` 只交 3/4 段,「三流重放」的**真重放**因 `Sim` ↔ `Sim.Codec` **兄弟装配互不可见**(ADR-025 §①)而**结构不可达**,须另裁抽象点。详见 `TD-persist-03`。
+> ⚠️ **本条与 `TD-persist-02` 是同一份 ADR 义务的两段,不是两条独立债** —— 02 = `Load` 的**前段** + `AC-7a-19` 四子判据 + 两投影(归 `S19-1`);本条 = `Load` 的**后段**。分立理由同 01 ↔ 02:根因不同(零落点 vs 结构不可达)。
 > 🔁 **2026-10-21 六订版(原文留档,已被上方九订取代)**:
 > `条目 97 | 状态 {'open': 71, 'partial': 6, 'closed': 19, '**done**(2026-10-21)': 1} | P0 面 {'Y': 88, 'N': 8, '~~**Y**~~': 1}`;
 > `未闭 P0 面 = 73`,分布在 **13/31** 个 epic。
@@ -1577,6 +1587,61 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 
 ---
 
+## 2026-10-24 · 三流重放的装配边缺口(`PRE-S19-D` 裁定轮新揭 · 1 条)
+
+**出处**:`production/qa/qa-plan-sprint-19-2026-10-24.md` §未及核查项 1 + `sprint-status.yaml`
+`open_items[PRE-S19-D]`。**用户裁定(2026-10-24)**:**甲案 —— `Load` 交 3/4 段**
+(`Gating` → `Verifying` → 头部解析 → 迁移链三分支判定 → `Replaying` 前半段:字节 → `IReadOnlyList<SimEvent>`),
+**真重放另立本条**;读档锁在 **`Verifying` 通过后**置位。
+**性质**:与 `TD-persist-01` / `TD-persist-02` 同族,但**根因不同** —— 前两条是「ADR 已裁、代码零落点」,
+**本条是「ADR 已裁、代码也写了,但两个装配互不可见」** ⇒ 不是漏写,是**结构不可达**。
+
+### TD-persist-03 — `Load` 的「三流重放」段:重放目标与存档器分属互不可见的装配
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `ADR-010:327` 把 `Load(SaveSlot)` 定义为四段:校验和 → 回退 `bak` → 迁移链 → **三流重放**。`S19-1` 按 2026-10-24 甲案裁定交前三段 + 第四段**前半**(字节 → `IReadOnlyList<SimEvent>`,经构造注入的 BCL 委托交出)。**「列表 → sim 状态」这一段没有落点,且不是「还没写」,是「写不了」**:重放要调 `Sim.EventStream.Append`,而 `SaveService` 住 `Sim.Codec`。 |
+| **实测(逐条可跑)** | ① **装配边双向不通**:`Sim.asmdef` `references = ["Sim.Contracts"]`;`Sim.Codec.asmdef` `references = ["Sim.Contracts"]`;`Sim.Contracts.asmdef` `references = []` ⇒ **`Sim` 与 `Sim.Codec` 是兄弟装配,互不可见**(ADR-025 §① 的刻意设计)。<br>② **重放不能走 `Append`**:`Sim/EventStream.cs:77-83` 的 CAP 检查依赖 `IPresenceQuery`(表现层注入),读档时在场视图尚未重建 ⇒ 重放会误抛。<br>③ **「三流」在存储上是一个列表**:`Sim/EventStream.cs:38` `private readonly List<SimEvent> _events`;`StreamRouting.Of` 生产侧只用于 `Sim/EventOrder.cs:21` 排序与遥测(`Gameplay.Boot/TelemetryReporter.cs:547`),**不用于分桶** ⇒ ADR-010 §一 的「头部 + 三流」字节布局与现实现有**形状差**,重放须按全序键 `(Tick, StreamPriority, Patient, Seq)` 重建,不得假设物理分块。<br>④ **零生产消费者**:`grep -rn "new SaveService" unity/Assets --include=*.cs \| grep -v Tests/` ⇒ **0** —— `Load` 落了也没人调,故本条的「卡住」当下**不阻塞任何在盘行为**。 |
+| **同型先例(这是第三次)** | 同一个洞此前已用**同一手法**解决过两次:**ADR-029** `IPayloadEncoder`(写侧)· **ADR-031** `IPayloadDecoder`(读侧)。两次都是「`Sim` 够不着 `Sim.Codec` 的实现 ⇒ 在 `Sim.Contracts` 加抽象点」,两次都**没有加装配边**。⇒ 本条是同族第三次,故**不该再由某个 sprint 顺手加第三个抽象点**,而应先裁「重放抽象点的形状」再动。 |
+| **解除动作** | ① **先裁抽象点归属**:重放接收方住 `Sim`(`EventStream`),调用方住 `Sim.Codec` ⇒ 抽象点须住 `Sim.Contracts`(与 `IPayloadEncoder` / `IPayloadDecoder` 同款分居:接口住 Contracts、实现住消费侧)。候选形状 `IStreamReplaySink { void Replay(IReadOnlyList<SimEvent> events); }` —— **形状本身须另裁**,本条只登记缺口,不代裁。<br>② **重放旁路**:`Append` 的 CAP / 去重 / 单调断言三关对**读档重建**是否适用,须逐条判 —— CAP 显然不适用(读档不是新病人到场);去重与单调断言大概率适用(它们是流不变量)。**不得直接复用 `Append`**,也不得整段绕过。<br>③ **三流字节布局**:ADR-010 §一 写「头部 + 三流」,现实现是单列表 ⇒ 要么改 ADR-010 §一 承认单列表 + 全序键重建,要么改实现分块。**这是 ADR 级二选一**,须走 `/architecture-decision`。<br>④ **读档锁的置位点复核**:甲案把锁放在 `Verifying` 通过后(否则闭合回路环 2 到不了锁点),副作用 = **读档中途失败会永久锁槽**。真重放落地后须复核是否移到 `Ready` 后。 |
+| **卡住的判据** | **`AC-7a-01`**(快照损坏/缺失/跨版本不可读 ⇒ **三逻辑流完整重放**;指定病人 outcome / 掉落清单 / id 高水位 == 直接重放世界流所得 —— BLOCKING)· **`AC-7a-02`**(快照与三流不一致 ⇒ 以世界流为准 —— BLOCKING)。⚠️ 见下「相邻发现」。 |
+| **相邻发现(不在本条裁定面,须另登记)** | **`AC-7a-01` / `AC-7a-02` 的语义层今天零测试,而 `story-001` 标 `Complete`、7 个 AC 勾选框 0/7 已勾。** 实测:`unity/Assets/Tests/EditMode/PersistenceService/save_service_test.cs` 唯一挂 `AC-7a-01` 注释的 `test_checksumFallback_readsBakWhenFinalCorrupted`(`:96-98`)**只测 `bak` 回退**,与「三流完整重放」无任何关系;`AC-7a-02` **零注释命中**。⇒ 这是本仓抓过的**第五个假绿形态**的同型复现(用一句自述顶替判据)。**本条不代修**,须另立评审项 —— 理由:修它要动已 `Complete` 的 `story-001`,属载体裁定面。 |
+| **触发条件** | ① **任何 `Load` 的生产消费者出现之前**(今天零);② 或 **7a 下一次动 `Sim.Codec` 存档格式 / 三流字节布局**时;③ 或 `AC-7a-01` 被要求转绿时(**该 AC 现在无法转绿**)。 |
+| **归属** | **7a**(持久化服务)· 跨装配面须 ADR 裁决 |
+
+> ⚠️ **本条与 `TD-persist-02` 的位置关系**:`TD-persist-02` 的解除动作 ① 已由 `S19-1` 兑现
+> (`ISaveService` 补三方法),但它的**宾语里包含 `Load` 的完整定义** ⇒ 本条是 02 的**剩余部分**,
+> **不是新债**。分立理由同 02 ↔ 01:根因不同(02 = 零落点;本条 = 结构不可达),
+> 合并会让「02 已还一半」不可判。
+> ⚠️ **`TD-persist-02` 不因本条而结案** —— 它的核心是 `AC-7a-19` 四子判据 + 两投影,与本条正交。
+
+---
+
+## 2026-10-24 · 7a 的 AC 载体缺口(`PRE-S19-A` 裁定轮新揭 · 1 条)
+
+**出处**:`production/sprint-status.yaml` `open_items[PRE-S19-A]` 裁定轮(用户 2026-10-24 取**甲案**)。
+**性质**:与 `TD-persist-01/02/03` 同族,但**根因是第三种** —— 前三条是「零落点」/「结构不可达」,
+**本条是「AC 从未被任何 story 认领,而 epic 已标 `Complete`」** ⇒ 是**记账面**的缺口,不是实现面的。
+
+### TD-persist-04 — `AC-7a-20`(事件触发 checkpoint)全仓零载体;7a 的 20 条 AC 有 13 条零 story
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `AC-7a-20`(规则六 · 事件触发 checkpoint:叙事事件锚点白名单 `EVENT_CHECKPOINT_ANCHORS` = `{脉案落笔 · 病例结案 · 出诊启动}`)是 **BLOCKING**,但它**不在任何 story 里**。`S19-1` 按甲案落的是**门的形状**(注入委托 `Func<bool> narrativeContext`,fail-closed),**不是**这条 AC 的兑现 —— 「谁在锚点事件被提交时调它」归 8 / 37 / 52 的实现轮。 |
+| **实测(逐条可跑)** | ① **`AC-7a-20` 在 `production/epics/` 零命中**:`grep -rn "AC-7a-20" production/epics/` ⇒ 空。<br>② **7a GDD 的 20 条 AC 里,只有 7 条有 story 载体**:`story-001` 覆盖 `AC-7a-01…06 + 18`;`story-002` **零条**。⇒ **`AC-7a-07…17 + 19 + 20` = 13 条零载体**,而 `EPIC.md:6` 标 `Complete ✅ 2026-10-02(2/2 stories)`。<br>③ **`AC-7a-19` 的唯一引用在 7b 的 `EPIC.md`**,不在任何 7a story 里(`grep -rl "AC-7a-19" production/epics/` ⇒ 仅 `save-slot-ui/EPIC.md`)。<br>④ **观察钩子形状零实现**:`grep -rn "CheckpointAnchor\|AnchorHook\|IAnchor\|OnNarrativeEvent\|NarrativeAnchor" unity/Assets --include=*.cs` ⇒ **0**。 |
+| **与 `AC-7a-01/02` 的关系(同型,不同面)** | `TD-persist-03` 的「相邻发现」记的是 **`AC-7a-01/02` 有 story 载体、但载体测的不是该 AC 的语义**(假绿)。本条记的是 **`AC-7a-20` 连载体都没有**(空挂)。⇒ **同族两形态**:一个是「有壳无核」,一个是「连壳都没有」。两者都源于「epic 按 story 计数标 Complete,而 AC 按条计数从未核对」这一口径。 |
+| **解除动作** | ① **8 / 37 / 52 各自登记自己的锚点事件产出点**,并在该点调 7a 的观察钩子 —— 这是**三条独立的实现义务**,分属三个 epic,不得由 7a 代做(7a 只出钩子形状,`persistence-service.md:132` 逐字「**7a 只出观察钩子形状**(「一个值得锚点的叙事事件」的接口),不拥有具体事件列表」);<br>② **`出诊启动` 的具名事件至今未登记**(`design/registry/entities.yaml:3211` 注「「出诊启动」的具名事件归 52 侧登记(7a 只出观察钩子形状)」;实测 `grep -c "name: SimEvent.Kind\." design/registry/entities.yaml` ⇒ **36**,其中**没有**对应项 —— 最接近的 `EventArrived`(`:2580`)/ `EventRolled`(`:2566`)是**掷骰 / 降临**事件,不是「出诊启动」)⇒ **须先立该 Kind**,承 ADR-024 §① 走 registry + kindgen;<br>③ **13 条零载体 AC 须逐条处置**:补载体 / 改挂其他 epic / 或具名登记为「P1a 面」—— **不得维持现状**(epic 标 Complete 而 13 条 BLOCKING 无主);<br>④ 本条**不代裁**任何一条,只登记事实。 |
+| **触发条件** | ① **7a 下一次以「已完成」形态被引用之前**(如 `save-slot-ui/story-001` 开工、或任何依赖 7a AC 的收口判定);② 或 **8 / 37 / 52 任一实现轮到「锚点事件」时**;③ 或 **M3 Exit 判据要求 7a 的 AC 逐条可判时**。 |
+| **归属** | **7a**(记账面)· 实现面分属 **8 / 37 / 52** |
+
+> ⚠️ **本条与 `TD-persist-01/02/03` 的位置关系**:四条**互不替代**。
+> 01 = 折叠谓词;02 = 槽位契约 + `AC-7a-19`;03 = 三流重放的装配边;
+> **04 = AC 载体记账面**(13 条 BLOCKING 无主)。
+> ⚠️ **`TD-persist-04` 不因 `S19-1` 的完成而结案** —— `S19-1` 交的是 `AC-7a-19` 与门形状,
+> 与 `AC-7a-20` 的「事件触发调度」正交。
+
+---
+
 ### 同批被**证伪**的一条(留痕,防重复登记)
 
 本批勘察原拟登记**第三条**:`Recipe.owner ∈ {process, craft, build}` 字段未落地(`18` 的 `AC-18-18`)。
@@ -1622,12 +1687,12 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 
 | 侧 | 内容 |
 |---|---|
-| **债描述** | `ADR-020` §Key Interfaces 定 1 的移动抽象:`IPlayerMotor { void Tick(float, in MoveInput); WorldPos Cell { get; } Vector3 Position { get; } bool ConsumeCellChanged(out WorldPos); }`(表现层;**不引用 sim,不进流**)。`ADR-025` §② 明载荷「`IPlayerMotor`/`ICameraRig` 落位」。**裁决齐,实现零落点。** |
+| **债描述** | `ADR-020` §Key Interfaces 定 1 的移动抽象:`IPlayerMotor { void Tick(float, in MoveInput); WorldPos Cell { get; } Vector3 Position { get; } bool ConsumeCellChanged(out WorldPos); }`(表现层;**不引用 sim,不进流**)。`ADR-025` §② 明载荷「`IPlayerMotor`/`ICameraRig` 落位」。**裁决齐,实现零落点。**<br>⚠️ **2026-10-24 订正(原文不删)** —— 上句 `bool ConsumeCellChanged(out WorldPos)` 的**出参形态已作废**。实测该签名与本册**唯一出处**不符:`ADR-020:401` / `architecture.md:529` / `architecture.md:890` / `architecture.yaml:135` **四处**均写 `bool ConsumeCellChanged()`(**无出参**)⇒ 本行是 **1 : 4 的孤例**。<br>**用户裁定(2026-10-24):取「只读边沿」形态 ⇒ 无出参成立** —— 消费者读 `Cell` 属性即可,不需要经出参拿格。⇒ 契约签名 = **`bool ConsumeCellChanged();`**,本行的 `(out WorldPos)` 记作**本册笔误**。 |
 | **实测(扫描面 = `unity/Assets` 全树 C#,剥注释)** | `IPlayerMotor` ⇒ **全树零命中(含 `Tests/`)**。现存 `Gameplay.Presentation/Player/PlayerController.cs` 为 `public sealed class PlayerController : MonoBehaviour`,只有 `Initialize` / `OnPositionSample` / `OnUplinkSample` / `Move` / `OnTickEdge` / `Teleport` / `GetCell`,**无 `Position` / `Cell` / `ConsumeCellChanged` 成员** ⇒ 契约面**结构上不存在**。 |
 | **⚠️ 旁证(非本债判据)** | `Gameplay.Presentation/Camera/AnchorFollower.cs:90` 的 `new AnchorFollower(...)` **只出现在测试里** —— 出货代码中为孤儿,已记于 `production/qa/evidence/review-camera-viewpoint-story-003-td-2026-10-03.md:68`。与「相机锚点无上游契约可挂」同源。 |
 | **卡住的判据** | `1` 的 `story-006-state-purity-motor-lease.md`(**点名 `IPlayerMotor`**)· `2` 的 `story-003-anchor-follow-orbit.md` / `story-001-presentation-discipline.md`(**点名 `IPlayerMotor`**)—— 两个 epic 均标 **6/6 全 `Complete`**,而其消费者所依赖的只读上游**不存在** |
 | **为什么此前不在册** | 前轮跨 epic 勘察的扫描符号表只有 `SelfLimited` / `Folded(p)` / `Recipe.owner` 三个;**从未包含任何 `I*` 接口名**。本轮普查把 31 份 ADR 的代码块(52 符号)与散文(379 符号)**全量**入表才发现。`ICameraRig` 已落 ⇒ 这一对里**只落了一半**,按 `ICameraRig` 的存在**不足以**推定 `IPlayerMotor` 也在 |
-| **解除动作** | 落 `IPlayerMotor` 契约并让 `PlayerController` 实现之(或按 ADR-025 §② 的实际裁定形态二选一);补夹具证明「跨格时 `ConsumeCellChanged` 恰好触发一次」;不改 ADR-020 的任何裁决 |
+| **解除动作** | 落 `IPlayerMotor` 契约并让 `PlayerController` 实现之(或按 ADR-025 §② 的实际裁定形态二选一);补夹具证明「跨格时 `ConsumeCellChanged` 恰好触发一次」;不改 ADR-020 的任何裁决。<br>⚠️ **2026-10-24 补三条实现约束(用户裁定「只读边沿」的后果)**:<br>① **不得碰 `_hasPending`** —— 它是 Append 主路径(`PlayerController.cs:302-320`)的单份状态;若 `ConsumeCellChanged` 消费并清它 ⇒ **跨格事件丢失**。正确形态 = **独立边沿锁存器**,只在 `:319`(`_lastCommittedCell = cell`)之后置位,与 `_hasPending` / `_pendingCell` **完全不相交**。<br>② **`Cell` 必须走 `CellFromPosition`(FloorToInt)**,**不得**用 `GetCell()`(RoundToInt,`PlayerController.cs:354-362`)—— 后者与 `ActorCellEnteredPayload.Cell` 的实际取值**不同源**,接进契约会让「契约的格 ≠ 事件的格」。<br>③ **今天零消费者**(`grep -rn "ConsumeCellChanged" design/ production/epics/` ⇒ 1 命中 = GDD `:128` 自己;2 的 `story-003:64` 明写只读 `IPlayerMotor.Position`)⇒ **只落形状,不得为「有调用点」而发明消费者**。 |
 | **触发条件** | **`1` 或 `2` 的下一轮动到玩家位移 / 相机锚点时**;或任一消费方要勾「以 `IPlayerMotor` 为只读上游」的 AC 之前 |
 | **归属** | **1**(玩家控制器)· **2**(相机,消费者) |
 

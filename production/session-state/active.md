@@ -10525,3 +10525,37 @@ GDD 注里已写明这个边界。
 - **5 条孤儿是否于 P1a 引入对应病种 = 未裁** —— 本轮只给它们**标注**,不给它们**归宿**。
   将来引入病种后,判据②会自动要求删掉 `reserved` 理由。
 - 提交与推送已完成(`f681a11`,已推送至 `origin/main`)。
+
+<!-- QA-PLAN: 2026-10-24 | System: sprint-19 | Plan written: production/qa/qa-plan-sprint-19-2026-10-24.md -->
+
+---
+
+## 2026-10-24 · sprint-19 入场阻塞项裁定轮(PRE-S19-A/C/D 全结)
+
+**用户三项裁定**(均照准):
+- **`PRE-S19-C`** = 「取只读边沿」⇒ `bool ConsumeCellChanged();`(无出参)
+- **`PRE-S19-D`** = 甲案「`Load` 交 3/4 段 + 委托交出 + 新 TD」;读档锁 = **`Verifying` 通过后**置位
+- **`PRE-S19-A`** = 甲案「注入委托,不开 ADR」+ **fail-closed**
+
+**落盘五处**:`sprint-status.yaml`(`open_items` 三条 → `resolved`,S19-1 验收 6 → **17** 条)· `sprints/sprint-19.md`(§S19-2 裁定前提 · §S19-1 裁定前提 + **⑧ 段**)· `qa-plan-sprint-19-2026-10-24.md`(判据 ⑦ · 未及核查项 9 · 溯源命令)· `docs/tech-debt-register.md`(**新立 `TD-persist-03` / `TD-persist-04`** + TD-INDEX 两行 + §五 十二订)· `session-state`(本段)。
+
+### 本轮抓到的三类错(**全部是我自己的**,已就地订正 + 留痕)
+
+1. **行号误读(第二次同型)**:`folded_predicate_test.cs` 的形参数断言在 **`:590`**,我一度「订正」成 `:588`
+   —— 而 `:588` 是 `Assert.AreEqual(1, ctors.Length, …)`。**同一份文件、同一类错、同一会话第二次。**
+   另 `:606` 才是 `CollectionAssert`(曾记 `:600` = 方法名行)。
+2. **算术照抄规划期**:DoD 写「`未闭 P0 面 74 → 70`」。① 基线已变 76(两条新债);② **`→ 70` 本身错** ——
+   按「四门各 1 条」算减 4,而 `S19-1` 是**两债合一**,实清 **5 条** ⇒ 真推算 = **`76 → 71`**。
+   我中途还写过「`76 → 74`(减 2)」,**同样错**,是「只补新债、没补漏算的那条」。
+3. **登记项前提错(第三次同型,承 memory `feedback_ac_semantic_layer_detection`)**:`PRE-S19-A` 写「**两个**上下文查询」,
+   实测**是一个量**(GDD `:212`/`:219` 逐字「共用同一观察钩子」)。**真正缺的 `AC-7a-20` 连登记都没有** ——
+   `grep -rn "AC-7a-20" production/epics/` ⇒ **0**;7a 20 条 AC 只有 7 条有 story 载体,epic 却标 `Complete ✅ (2/2)`。
+
+### 未结 / 刻意不做
+
+- **`TD-persist-03` / `TD-persist-04` 均 open** —— 前者要另裁抽象点(`IStreamReplaySink` 形状未裁),
+  后者要 8 / 37 / 52 三边各自登记锚点产出点 + 先立「出诊启动」Kind(registry 36 个 Kind 里没有)。
+- **13 条零载体 AC 未逐条处置** —— `TD-persist-04` 解除动作 ③ 已登记,**本轮不代裁**。
+- **`R-A2` 须在 sprint 收口时如实登记**:fail-closed ⇒ 存档 / 读档在生产路径上**不可用**,
+  直到驱动源接通。**不得读成「功能已完成」。**
+- **未提交**(用户未下 commit 指令)。
