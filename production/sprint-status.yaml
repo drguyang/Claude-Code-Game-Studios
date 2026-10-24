@@ -45,8 +45,9 @@ work_items:
     name: "G-4(TD-persist-02)+ TD-persist-01 剩余两项 —— 槽位契约高层面 + 折叠接入存档路径"
     file: "docs/tech-debt-register.md"
     complexity: L
-    status: "backlog"
+    status: "done"
     owner: ""
+    completed: "2026-10-24"
     depends_on: ["ISaveCodec(在盘)", "IFoldedPredicate + HistoryFolder(在盘)", "叙事上下文查询(零落点 · 须注入抽象)", "未决医疗动作查询(零落点 · 须注入抽象)"]
     evidence: "unity/Assets/Tests/EditMode/PersistenceService/save_slot_contract_test.cs(新)"
     note: "⚠️ **本件是两债合一,不是范围膨胀** —— `TD-persist-01` 剩余判据①「折叠接入存档路径」的唯一合法接入点就是 `Checkpoint` 内部(ADR-010 §六:唯一写入口)⇒ 与 G-4 是**同一段代码**。拆两件会造出「先写 Checkpoint、再回头改 Checkpoint」的返工。**并入依据 = `sprint-19.md` §Phase 1 ①。** ⚠️ **两个上下文查询不得在 7a 内自建状态源** —— 它们的事实属于 8 / 10 / 37,7a 只**定义门**,不**定义被门观察的事实**(同 ADR-010 §三「义务汇总表」的定位)。AC 判据写成「门能被驱动」而非「事实为真」。 ⚠️ **既有反射断言必须同批更新**:`Tests/EditMode/PersistenceService/folded_predicate_test.cs:606` 现断言 `ISaveService` 公开方法集恰 = `{LoadBytes, SaveBytes}`(⚠️ 2026-10-24 行号实测订正:曾记 `:600`,实为 `:606` —— `:598` 是测试方法名行,`:606` 才是 `CollectionAssert`) —— 本件加三方法后该断言必红,**须改而非删**。 ⚠️ **`TD-persist-01` 的结案判据 = ①(本件兑现)+ ③(折叠产出面变异反证 ≥3 轮)**;原三项中的 ②(`OQ-7a-10`)已于 2026-10-24 由用户裁定 A 结清。"

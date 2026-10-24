@@ -10615,3 +10615,29 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - **S19-1 实现未开始** —— 17 条 acceptance 全部未动,零生产代码
 - **`TD-persist-03` / `-04` 仍 open**
 - **未提交**(用户未下 commit 指令)
+
+## Session Extract — /story-done 2026-10-24 (S19-1)
+- Verdict: COMPLETE WITH NOTES
+- Story: docs/tech-debt-register.md `TD-persist-02`(S19-1 = TD-persist-02 + TD-persist-01 剩余两项)
+- 收口四动作进度:① `/code-review` ✅(4 必修全落 + 4 警告已修)② `/story-done` ✅(Falsifiability Gate PASS,4 变异)③ sprint-status + 债册 ✅ ④ `/smoke-check sprint` ← 进行中
+- 债册变更:`TD-persist-02` → **closed**;`TD-persist-01` 加注(①位置半+委托半 + ③ 已结,**仍 open**,残余 = 字节半随 `TD-persist-03`)
+- 回归:4786 / 4751 / 0 / 35(2026-10-24 19:44 CST · S19-1 收口 · commit `9e23c42`)
+- 未提交(用户未下 commit 指令)
+
+## Session Extract — /smoke-check sprint 2026-10-24 (S19-1 · 收口第 4 步 · 四步全结)
+
+- **Verdict: PASS** —— 报告落盘 `production/qa/smoke-2026-10-24-sprint19.md`
+- 三元组:EditMode `2026-10-24 19:49 CST` · `s19-smoke-editmode`(全量)· `9e23c42`
+  / PlayMode `2026-10-24 19:51 CST` · `s19-smoke-playmode`(全量)· `9e23c42`
+  ⚠️ **跑测时工作树含 13 项未提交改动** —— commit 记的是 HEAD,被验的树 = HEAD + 那 13 项
+- 实跑数(两套件**均真跑**,PlayMode 未引用 sprint-18):
+  - EditMode `total=4786 passed=4751 failed=0 inconclusive=0 skipped=35`
+  - PlayMode `total=202 passed=202 failed=0 inconclusive=0 skipped=0`
+- **全名级差集**(QA plan 强制):EditMode vs s18 基线 = 新增 51 / 消失 1 / 翻转 0 / 红 0
+  - 消失 1 条经 `git show 41b7d87` 归因为**改名**(`publicMethodSetUnchanged` → `publicMethodSetIsFive`)⇒ 实质 −0
+  - 新增 51 = `SaveSlotContractTest` 36 + `SaveComposerWiringTest` 13 + `FoldedPredicateTest` 2
+  - PlayMode vs s18 基线 = 新增 0 / 消失 0 / 翻转 0
+- **Skipped 35 条零新增** —— 全部既有类,分布与 s18 基线同值
+- **人工 smoke 不适用**(QA plan §Smoke Test Scope 第 3 条:本 sprint 零玩家可见变化)⇒ 未跑 Batch 1/2/3,不得记 FAIL/NOT RUN
+- **收口四动作全部完成**:① `/code-review` ✅ ② `/story-done` ✅ ③ sprint-status + 债册 ✅ ④ `/smoke-check` ✅
+- 未提交(用户未下 commit 指令)

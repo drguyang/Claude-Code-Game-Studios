@@ -346,8 +346,8 @@
 | `TD-epic-01-c` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-d` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-e` | `telemetry-analytics` | open | **Y** | R1 |
-| `TD-persist-01` | `persistence-service` | open | **Y** | R1 |
-| `TD-persist-02` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-01` | `persistence-service` | open(①**部分结** · 2026-10-24) | **Y** | R1 |
+| `TD-persist-02` | `persistence-service` | **closed**(2026-10-24) | ~~**Y**~~ | R1 |
 | `TD-persist-03` | `persistence-service` | open | **Y** | R1 |
 | `TD-persist-04` | `persistence-service` | open | **Y** | R1 |
 | `TD-enemy-01` | `enemy-ai` | open | **Y** | R1 |
@@ -527,7 +527,7 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 | 门 | 载体 TD | 归属 epic(括号 = 该 epic 的 story 数,均全 `Complete`) | 状态 | P0 面 | 触发条件(何时须还) |
 |---|---|---|---|---|---|
 | **G-1** | `TD-sim-01` | `disease-simulation`(7/7) | open | **Y** | `death-respawn` 任一 story 开工前;或 9 下一轮动 F4 / `StateMachine`<br>🔁 **2026-10-22(sprint-18 收口)**:S18-1 **结转 sprint-19**(用户裁定)⇒ 本门**未清**,`TD-sim-01` 保持 `open`。四条入口判据见 `qa-signoff-sprint-18-2026-10-22.md` §六<br>🔁🔁 **2026-10-24 就地订正(原文不删)—— 上句「结转 sprint-19」已被同日用户改判推翻。**<br>**2026-10-22 当日稍后,用户裁定 S18-1 拉回 sprint-18 并已落地**(原文不删,登记处 = `production/sprints/sprint-18.md` §九.6;`sprint-status.yaml` 的 `work_items[S18-1]` 已置 `status: done` + `reclaimed: 拉回 sprint-18`)。<br>**⇒ 本条「未清」的理由已不成立**,但**结论仍需分开看** —— 两条判据面互不相同:<br>· **谓词层** = 已还:`Sim/EntityDeathGates.cs:194` 本体 + `F4OutcomeEvaluator.cs:171` 生产接线(经 `Gameplay.Boot/DiseaseVitalsService.cs:482`);<br>· **接线层** = 未还:`DeathCandidateConsumer` / `PlayerDiedWriter` **生产侧零构造点**(只在 `death_candidate_writers_test.cs` 里 `new`)。<br>⚠️ **本行 `open` 状态本轮不动** —— 结案与否归 `death-respawn` / QA 侧核,不由记账轮自裁。本行只订正**陈述**,不改**判定**。逐项证据见 `TD-sim-01` 正文「实测」栏的 2026-10-24 订正段。 |
-| **G-2** | `TD-persist-01` | `persistence-service`(2/2) | open | **Y** | `death-respawn/story-003` 开工前;或 7a 下次动 `Sim.Codec`<br>🔁 **2026-10-22(sprint-18 收口)**:谓词 + 折叠行产出**已落**(S18-2 `done`,29 测全绿),但**本册不据此结案** —— ① `FoldedPredicate` **零生产调用点**(`SaveService` 形参默认 `null`,折叠未进存档路径;`HistoryFolder.Fold` 调用点全在测试内);② ~~`OQ-7a-10` 未裁(抹除作用域取权威字面而非已裁口径)~~ 🔁 **2026-10-24 已裁(用户裁定 A)** —— 条件 ① 由 ∃ 收紧为 ∀(`终态(p) = ∀ d ∈ D_p : ∃ PatientOutcomeChanged(p, d)`,空集 `D_p = ∅` ⇒ false),落 `Sim/FoldedPredicate.cs`;③ 折叠产出面**无变异反证**(签核件 D-5)。结案判据 = 三项同时满足 **⇒ 现剩 ①③ 两项未满足,本条**保持 `open`**。详见 `production/sprints/sprint-18.md` §九.2<br>🔁 **2026-10-24(折叠接线裁定轮)**:**判据 ① 拆三段**,`S19-1` 只结**位置半 + 委托半**;**字节半并入 `TD-persist-03`** ⇒ **① 在本条清偿前不可全结**,收口时不得写成「① 已满足」。原件 = `production/qa/evidence/s19-1-fold-adjudication-2026-10-24.md` |
+| **G-2** | `TD-persist-01` | `persistence-service`(2/2) | open | **Y** | `death-respawn/story-003` 开工前;或 7a 下次动 `Sim.Codec`<br>🔁 **2026-10-22(sprint-18 收口)**:谓词 + 折叠行产出**已落**(S18-2 `done`,29 测全绿),但**本册不据此结案** —— ① `FoldedPredicate` **零生产调用点**(`SaveService` 形参默认 `null`,折叠未进存档路径;`HistoryFolder.Fold` 调用点全在测试内);② ~~`OQ-7a-10` 未裁(抹除作用域取权威字面而非已裁口径)~~ 🔁 **2026-10-24 已裁(用户裁定 A)** —— 条件 ① 由 ∃ 收紧为 ∀(`终态(p) = ∀ d ∈ D_p : ∃ PatientOutcomeChanged(p, d)`,空集 `D_p = ∅` ⇒ false),落 `Sim/FoldedPredicate.cs`;③ 折叠产出面**无变异反证**(签核件 D-5)。结案判据 = 三项同时满足 **⇒ 现剩 ①③ 两项未满足,本条**保持 `open`**。详见 `production/sprints/sprint-18.md` §九.2<br>🔁 **2026-10-24(折叠接线裁定轮)**:**判据 ① 拆三段**,`S19-1` 只结**位置半 + 委托半**;**字节半并入 `TD-persist-03`** ⇒ **① 在本条清偿前不可全结**,收口时不得写成「① 已满足」。原件 = `production/qa/evidence/s19-1-fold-adjudication-2026-10-24.md`<br>🔁 **2026-10-24(S19-1 收口)**:**① 的位置半 + 委托半已结**,③ **亦已结**(证伪轮 4 变异 M7–M10 全部恰如预期)。**本条仍 `open`** —— 唯一残余 = **字节半**(「折叠行出现在 `Checkpoint` 产出的字节里」),已随 `TD-persist-03` 动作 ⑤ 走。**不得**读成「① 已满足」:生产调用链上折叠**会抛**(fail-loud),不是「已生效」。原件 = `production/qa/evidence/review-s19-1-2026-10-24.md` §十一。 |
 | **G-4** | `TD-persist-02` | `persistence-service`(2/2) | open | **Y** | `save-slot-ui/story-001` 勾 `AC-7b-01/02/10` 之前 |
 | **G-5** | `TD-player-02` | `player-controller`(6/6)+ `camera-viewpoint`(6/6) | open | **Y** | 1 或 2 的下一轮动到玩家位移 / 相机锚点时 |
 | **G-6** | `TD-enemy-01` | `enemy-ai`(5/5) | open | **Y** | 27 具备可跑行为程序之前 |
@@ -1569,6 +1569,27 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 ⚠️ **不立 story ≠ 不还** —— 带具名触发条件,到点不还即违反本册口径。
 
 ### TD-persist-02 — 7a 槽位契约高层面(`Checkpoint` / `Load` / `Writable` / `Loadable` / `Gating`)零实现
+
+> ✅ **2026-10-24 结案(S19-1)**。解除动作 ①–③ 全部兑现,逐条落点:
+> - **① `ISaveService` 补到 ADR-010 §Key Interfaces 形状** —— `Checkpoint` / `SaveOnExit` / `Load`
+>   三方法已落(`Sim.Codec/ISaveService.cs`);反射断言同批改为五方法集
+>   (`folded_predicate_test.cs:610`,`CollectionAssert` 在 `:619`)。
+> - **② 规则十四四子判据 + 两投影 + `Gating`** —— `SaveSlotLedger.cs`(状态宿主)/
+>   `SlotProjections.cs`(`Writable` / `Loadable` 纯函数)/ `SaveService.Load` 的 `Gating` 段。
+>   ⚠️ **两投影今日零生产消费者**(`/code-review` C-4 实测),生产路径另有两份手写等价物 ——
+>   该子项已在 `SlotProjections` 类 doc 显式登记,收敛归 `TD-persist-03`。
+>   **本条结案不声称「两投影已上生产路径」。**
+> - **③ `AC-7a-19` 闭合回路夹具** —— `test_ac7a19_closedLoop_saveLoadOverwrite_isBrokenSomewhere`
+>   (`save_slot_contract_test.cs`),三环整体可通。
+> - **④ 与 `TD-persist-01` 分立** —— 已遵守,未合并记账。
+>
+> **证伪**:实现轮三窗 6 变异 + `/code-review` 修复轮 4 变异(M7–M10),全部恰如预期。
+> **原件**:`production/qa/evidence/impl-s19-1-slot-contract-2026-10-24.md` ·
+> `production/qa/evidence/review-s19-1-2026-10-24.md`。
+> **回归**:`4786 / 4751 / 0 / 35`(截至 2026-10-24 19:44 CST · 批次 S19-1 收口 · commit `9e23c42`)。
+>
+> ⚠️ **本条结案 ≠ 7a 全绿** —— `Load` 的真重放归 `TD-persist-03`,`AC-7a-20` 归 `TD-persist-04`,
+> `AC-7a-01/02` 语义层零测试(见 `TD-persist-03` 相邻发现)。
 
 | 侧 | 内容 |
 |---|---|

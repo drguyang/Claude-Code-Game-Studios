@@ -49,7 +49,7 @@
 | **①** | `ISaveService` 公开方法集 = 五 | ✅ | ✅ | `folded_predicate_test.cs` `test_iSaveService_publicMethodSetIsFive` |
 | **②** | `AC-7a-19` 四子判据各一例 + 闭合回路 | ✅ | ✅ | `test_ac7a19a/b/c/d_*` 五条 + `test_ac7a19_closedLoop_*` |
 | **③** | 两投影纯函数 + 独立灰置通道 | ✅ | ✅ | `test_projections_haveNoMutableInstanceFields` / `_areSameInputSameOutput` / `_haveIndependentGreyChannels` |
-| **④位置半** | `HistoryFolder.Fold` ≥1 行且不在 `Sim.Codec/` | ✅ | ✅ | `SaveComposer.cs:136` 唯一调用点;`test_composer_isOnlyFoldCallSiteOutsideSimCodec` |
+| **④位置半** | `HistoryFolder.Fold` ≥1 行且不在 `Sim.Codec/` | ✅ | ✅ | `SaveComposer.cs:136` 唯一调用点;`test_composer_isOnlyFoldCallSiteOutsideSimCodec`<br>🔁 **2026-10-24 `/code-review` 订正(C-3)**:本栏原写的测试名 **`test_composer_isOnlyFoldCallSiteOutsideSimCodec` 全仓不存在**(`grep -rn` 仅命中原件本身)。**真名 = `test_historyFolderFold_hasProductionCallSite_outsideSimCodec`**,出处 `unity/Assets/Tests/EditMode/PersistenceService/save_composer_wiring_test.cs:104`。原文保留不删(append-only),此行即订正注记。**该栏的「Proven」在订正前不可 grep 复算** —— 这正是项目点名的第五种假绿形态同族:自述指向不存在之物。 |
 | **④委托半** | `_compose(` 落在 `Checkpoint` 体内 + fail-closed | ✅ | ✅ | `test_checkpoint_invokesComposeDelegate` / `_withoutCompose_failsClosed`;反证 M3 |
 | **④字节半** | 「产出字节里折叠行出现」 | ❌ | ❌ | **`NOT-RUN`** —— 见 §四 |
 | **⑤** | 折叠产出面变异反证 ≥3 轮 | ✅ | ✅ | 见 §三(6 变异 / 三轮) |
