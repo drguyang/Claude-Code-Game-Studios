@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: 4h
 > **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-10-19
+> **Last Updated**: 2026-10-24
 
 ## Context
 
@@ -36,7 +36,10 @@
 - [x] **AC-51-D4**(BLOCKING · **两侧已证 2026-10-19**):Release 无调试视图 —— 入口不存在(编译期剔除 `#if UNITY_EDITOR || DEVELOPMENT_BUILD`);Development 构建入口存在且输出指标。Release 半边经**真 StandaloneLinux64 Release 包 + 手写 PE/CLI 元数据解析**验证,并经**反向构建证伪**
 - [x] **AC-51-D5**(BLOCKING):R7 整数纪律 —— 无 `float`/`double`;率以 `(num, den)` 承载;标量导出 = `ROUND_HALF_AWAY_FROM_ZERO((num << 16) / den)`
 - [ ] **AC-51-D6**(BLOCKING · **口径已改 2026-10-19**):规模不改变数值 —— ~~同一超长流以 `FOLD_MEMORY_MODE` 两个取值各重算,全部指标逐位相同~~ ⇒ **用户裁定:P0 只保留一套折叠实现,双模式对拍整个推开**(开冻条件:出现真实内存压力时另开 ADR 定第二模式)
-- [x] **AC-51-D7**(BLOCKING):ConfigVersion 不匹配 —— 报告含显式「版本不匹配」标注,不静默出数
+- [x] **AC-51-D7**(BLOCKING · **2026-10-24 接线补齐**):ConfigVersion 不匹配 —— 报告含显式「版本不匹配」标注,不静默出数
+  <br>⚠️ **本勾在 2026-10-19 至 2026-10-24 期间不被生产实现支撑** —— `ConfigVersionCheck` 生产侧**零构造**,
+  版本门从未在生产路径上执行(详见 `TD-epic-01-f`)。**2026-10-24 修复轮**接上三处断点后,本勾**首次**有生产主语;
+  勾**保留不撤**(它现在成立),但那段假绿史如实登记在下方 §2026-10-24。
 - [x] **AC-51-D8**(ADVISORY):部分流 —— 要么拒绝要么产出并显式标注「部分指标」;禁止把部分流当完整流静默出数
 - [x] **AC-51-D9**(BLOCKING):样本不足 —— 报告照常产出数值且含「样本不足」标注;不隐藏、不四舍五入掩盖
 
@@ -83,6 +86,12 @@
 **Status**: [x] Created — 真身 `unity/Assets/Tests/EditMode/Telemetry/blank_and_degraded_test.cs`
 (**11 测:8 passed + 3 skipped**,2026-10-19 第十三片重写后的实测;原记「6 测」为旧版);
 账本互链 `tests/integration/telemetry/README.md`
+
+**追加载体(2026-10-24 · TD-epic-01-f 修复轮)** —— AC-51-D7 的证据按「一 AC 多载体」补列:
+`unity/Assets/Tests/EditMode/DataPipeline/data_core_config_version_test.cs`(**10 测**,
+组合口径纯函数性)+ `unity/Assets/Tests/EditMode/DataPipeline/data_core_config_version_wiring_test.cs`
+(**6 测**,三处断点逐点守卫 + 端到端走 `TelemetryDeveloperView.Render`);证伪六轮与回归三元组见上方
+§D7 的假绿与修复及证据原件 `production/qa/evidence/impl-td-epic-01-f-configversion-2026-10-24.md`
 
 ## Dependencies
 - Depends on: Story 008(纯函数)
@@ -142,6 +151,41 @@
 原 NOT-RUN 理由「率载体 / 浮点扫描面未裁定」**已过期**:率载体早已定为 `(num, den)`,
 扫描面本批裁定为 **`DaYiJingCheng.Telemetry` 全类型 + 两个报告生产者类**。
 两条夹具带 `Count > 0` 空集守卫(防「反射扫不到装配」式空洞为真),并经证伪轮证明判别力。
+
+### D7 的假绿与修复(2026-10-24 修复轮 · TD-epic-01-f)
+
+**2026-10-19 核账误判**:D7 当时勾着 `[x]`,但其生产路径上**零接线** ——
+`ConfigVersionCheck` 生产侧零构造(测试里自造),`TelemetryDeveloperView` 调
+`AllMetricsReport(out int skipped)` 不传版本比对,`CompositionRoot` 的存档头写死 `0U`。
+版本门从未在生产路径上执行过一次。这是**第五种假绿形态的变体**:门真的存在、测试真的能红、
+但生产路径不经过它。已登记债册 `TD-epic-01-f`(commit `8ba3fb4`)。
+
+**2026-10-24 修复轮**(用户裁定口径:**全局组合值** —— 22 份 cooked 产物头按 address
+Ordinal 排序喂 FNV-1a 32;今日实跑值 `0x4A30BB10`;排序是判据的一部分,空集抛不返 0):
+
+- **源头**:`DataCoreConfigVersion.Combine`(新件)+ `CompositionRoot.ResolveGlobalConfigVersion`,
+  **惰性**派生(装配期派生会打红两条 `dataProvider: null` 的既有折叠谓词接线测试 = 修复引入假红)
+- **消费端**:`TelemetryDeveloperView` 把 `r.ConfigVersion` 传进 `AllMetricsReport`
+- **夹具**:`data_core_config_version_wiring_test.cs` 端到端走 `TelemetryDeveloperView.Render`,
+  断言不匹配时报告含「版本不匹配」标注且不含指标行
+
+**回归三元组**:`2026-10-24 21:25 CST` · `tdef01f`(全量两套件)· commit `8ba3fb4`
+(工作树 = `8ba3fb4` + 11 项未提交改动)—— EditMode `4802/4767/0/35`
+(基线 `4786/4751/0/35` @ `2026-10-24 19:49` · `s19-smoke-editmode` · `9e23c42`)
+⇒ **+16/+16 零回归**(与新增 10 + 6 = 16 条精确吻合);PlayMode `202/202/0/0` 零变化。
+全名级差集 `+67/−1/翻转 0/红 0`(新增 67 = S19-1 的 51 + 本轮 16;消失 1 经 `git show 41b7d87` 归因改名)。
+
+**Falsifiability Gate 六轮全红**:A 删接线实参(5 红)/ B 开发视图不传(2 红)/
+C 派生返 0U(2 红)/ D 删 Ordinal Sort(1 红)/ E 空集返 0(1 红)/ F 头读大端(1 红);
+还原判据 = SHA-256 逐字节。⚠️ **如实边界**:变异 C 下端到端那条仍绿
+(`staleHeader = current ^ 0xFFFFFFFF` 与当前值是否为 0 无关,非假绿但对该断点无判别力)
+⇒ 断点③ 由 `currentConfigVersion_isDerivedNotZero` 与 `derivedValue_equalsAllProductsCombination` 两条钉住。
+
+**证据原件**:`production/qa/evidence/impl-td-epic-01-f-configversion-2026-10-24.md`。
+**勾保留口径**:上方 AC 的 `[x]` **保留不撤**(修复落地后它首次有生产主语),
+2026-10-19 至 2026-10-24 期间的假绿史由本节与 AC 行加注如实承载。
+**未核查(禁借绿)**:跨平台三格矩阵未测(只跑 Linux-x64-Mono)· 烘焙侧派生未复核 ·
+「compose 调用时必抛」= NOT-RUN(`Checkpoint` 先撞 `RequireNarrativeContext`,够不到 compose)。
 
 ### D3 的解冻与落地(2026-10-19 第十四片)
 
