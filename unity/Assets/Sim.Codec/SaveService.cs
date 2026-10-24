@@ -7,18 +7,19 @@
 //   ADR-010 §三 —— 义务 1:WorldSeed 生成 + 存档头持久化
 //
 // 实现要点:
-//   - 序列化在主线程,写盘在后台线程
+//   - ⚠️ **写盘今日是同线程同步 I/O**(`File.WriteAllBytes` + `FileStream.Flush(true)`),
+//     **不是**后台线程。原文此处曾写「序列化在主线程,写盘在后台线程」+「后台线程禁调 Unity API」,
+//     两句**陈述的实现不存在**(全文零 `Task` / 零 `Thread`)—— `/code-review` S19-1 C-2 实测。
+//     后果:存档体变大后主线程 I/O 会造成帧卡顿。**异步化归 `TD-persist-03`**,未做。
 //   - 原子写 = tmp + flush + rename
 //   - 双档 bak:final 存在则先 final → bak
 //   - 校验和 = SHA256,覆盖 checksum 字段之后的全部字节
-//   - 后台线程禁调 Unity API
 
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Sim.Codec
@@ -86,6 +87,11 @@ namespace DaYiJingCheng.Sim.Codec
             _replaySink = replaySink;
             _compose = compose;
             // 台账与 SaveService 共用**同一个**钩子实例 ⇒ 「一个量」在类型层面成立
+            // ⚠️ 高水位初值今日**恒为 0**(用默认形参)。`SaveSlotLedger` 的 doc 写「初值由装配层
+            //    按『本会话从哪个槽位起步』决定」,而装配层**无任何通道可传**(`SaveService` 构造
+            //    不暴露该形参)—— 那句承诺**今日落空**(`/code-review` S19-1 W-4)。
+            //    「从槽位 N 续玩」= 读档后高水位应从存档恢复,归 `TD-persist-03`(锁与高水位
+            //    都是会话内存,ADR-010 §六 ⇒ 恢复点须由读档路径给,不是构造期猜)。
             _ledger = new SaveSlotLedger(narrativeContext);
             Directory.CreateDirectory(_basePath);
         }
@@ -230,8 +236,16 @@ namespace DaYiJingCheng.Sim.Codec
         }
 
         /// <summary>
-        /// 退出保存。与 <see cref="Checkpoint"/> 同门同组版,差别:**不推进槽位高水位**
-        /// (退出钩子不占玩家槽,ADR-010 §六)。
+        /// 退出保存。与 <see cref="Checkpoint"/> **同组版、不同门**。
+        /// <para><b>同</b>:同一个 <c>compose</c> 委托(组版口径唯一)、同一份 fail-closed 纪律
+        /// (未注入即抛)、同一套原子写。</para>
+        /// <para><b>不同</b>:① <b>不评估叙事上下文钩子的值</b> —— 只要求它已注入
+        /// (`RequireNarrativeContext` 是 null 检查,不是值检查)。理由:退出保存**不是回滚点**,
+        /// 且「急救动作进行中退出」恰恰是最需要落盘的场景,拿安全上下文门拦它会丢状态。
+        /// ② <b>不推进槽位高水位**(退出钩子不占玩家槽,ADR-010 §六)。</para>
+        /// <para>⚠️ 原文此处写「与 <see cref="Checkpoint"/> <b>同门</b>同组版」—— 该措辞**为假**
+        /// (值门未过),`/code-review` S19-1 W-1 实测。用户 2026-10-24 裁定:
+        /// **只修自述,不改行为**。</para>
         /// </summary>
         /// <exception cref="InvalidOperationException">未注入驱动源(fail-closed)。</exception>
         public void SaveOnExit()

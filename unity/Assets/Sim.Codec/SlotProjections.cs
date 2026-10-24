@@ -41,6 +41,13 @@ namespace DaYiJingCheng.Sim.Codec
         /// <summary>下一可写槽位序号(规则十四「只进不退」的高水位)。</summary>
         public readonly uint NextWritableSeq;
 
+        /// <summary>
+        /// 构造一次快照。三个形参逐一对应三个 readonly 字段,**无校验、无默认值** ——
+        /// 本类型是纯数据载体,合法性由调用方(<see cref="SaveSlotLedger.Snapshot"/>)负责。
+        /// </summary>
+        /// <param name="locked">该槽位是否已被读档锁住。</param>
+        /// <param name="inNarrativeContext">当下是否在叙事上下文内(一个量,见字段说明)。</param>
+        /// <param name="nextWritableSeq">下一可写槽位序号。</param>
         public SlotContext(bool locked, bool inNarrativeContext, uint nextWritableSeq)
         {
             Locked = locked;
@@ -53,6 +60,14 @@ namespace DaYiJingCheng.Sim.Codec
     /// 7b `F-7b.2` 的两条槽位投影 —— **纯函数,零实例字段**。
     /// <para>判据 ③ 的反射断言对象就是本类型与 <see cref="SlotContext"/>;
     /// 状态宿主 <see cref="SaveSlotLedger"/> **不在本判据面内**(它按定义是有状态的)。</para>
+    /// <para>⚠️ <b>本类型今日零生产消费者</b>(`/code-review` S19-1 C-4 实测):
+    /// `grep -rn "SlotProjections\." unity/Assets --include=*.cs | grep -v /Tests/` ⇒ <b>0 行</b>。
+    /// 生产路径用的是两处**手写等价物**:
+    /// ① `SaveSlotLedger.EnsureWritable`(`:88-101`,判 `slot_seq` 与上下文,**不查锁**);
+    /// ② `SaveService.Load`(`:265-273`,判锁与上下文,**不查 `slot_seq`**)。
+    /// ⇒ 判据 ③ 的绿证明的是**本类型自身**的纯度,<b>不证明生产路径走的就是这两条公式</b>。
+    /// 风险 = 三份公式日后分叉时测试不会红。归 `TD-persist-03` 同批收敛
+    /// (让 `EnsureWritable` / `Load` 改调本类型,或加「内联判定 ≡ 投影」对拍夹具)。</para>
     /// </summary>
     public static class SlotProjections
     {

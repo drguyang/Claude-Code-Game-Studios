@@ -48,7 +48,12 @@ namespace DaYiJingCheng.Sim.Codec
         /// <param name="initialNextWritableSeq">
         /// 高水位初值。缺省 0 ⇒ 任何槽位都还没写过。
         /// <para>⚠️ 从存档恢复时**不得**用存档体里的值 —— 锁与高水位都是会话内存
-        /// (ADR-010 §六)。初值由装配层按「本会话从哪个槽位起步」决定。</para>
+        /// (ADR-010 §六)。</para>
+        /// <para>⚠️ <b>本形参今日在装配层不可达</b> —— <see cref="SaveService"/> 构造时
+        /// 恒用默认值 0(`SaveService.cs` 的 `new SaveSlotLedger(narrativeContext)`)。
+        /// 原文此处写「初值由装配层按『本会话从哪个槽位起步』决定」= <b>承诺落空</b>
+        /// (`/code-review` S19-1 W-4)。「从槽位 N 续玩」须由<b>读档路径</b>给出恢复点
+        /// (高水位是会话内存,ADR-010 §六),归 `TD-persist-03`。</para>
         /// </param>
         public SaveSlotLedger(Func<bool> narrativeContext, uint initialNextWritableSeq = 0)
         {

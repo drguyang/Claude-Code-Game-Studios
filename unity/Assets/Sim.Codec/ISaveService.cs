@@ -45,8 +45,9 @@ namespace DaYiJingCheng.Sim.Codec
 
         /// <summary>
         /// 退出保存。同步 / 限时 join(ADR-010 §六:退出钩子,非玩家可选槽位)。
-        /// <para>与 <see cref="Checkpoint"/> 同门同组版,差别在**不推进槽位高水位**
-        /// (退出保存不占玩家槽)。</para>
+        /// <para>与 <see cref="Checkpoint"/> **同组版、不同门**:① 不评估叙事上下文钩子的
+        /// <b>值</b>(只要求已注入);② 不推进槽位高水位(退出保存不占玩家槽)。</para>
+        /// <para>⚠️ 原文写「同门同组版」为假 —— 见 `SaveService.SaveOnExit` 的 remarks。</para>
         /// </summary>
         void SaveOnExit();
 

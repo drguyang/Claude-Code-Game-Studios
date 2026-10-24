@@ -264,8 +264,14 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_compose_routesByStream_notByCallerAssumption()
         {
-            // 调用方把三流混在一坨里 ⇒ 组版器须自行按 StreamRouting 分流,
-            // 病例流事件**不进**事件列表段(今日布局 = 头部 + 病史流段)。
+            // 调用方把三流混在一坨里 ⇒ 组版器须自行按 StreamRouting 分流。
+            //
+            // ⚠️ 本条断言的**是今日缺陷的现状,不是目标行为**(`/code-review` S19-1 C-1):
+            //    病例流 / 世界流**不进存档** = 静默丢弃,已登记 `TD-persist-03` 动作 ③。
+            //    用户 2026-10-24 裁定取「收窄口径 + 显式登记」⇒ 本条**保留**但把措辞
+            //    从「今日不进」(读起来像待办)改为「被丢弃(已登记 NOT-RUN)」,
+            //    并**显式断言两条流确实不在段里** —— 使「补布局」时本测试必然被看见。
+            //    ⚠️ **补布局的那一轮必须同时改本条**,否则它会挡住正确修复。
             var events = new[]
             {
                 Onset(10L, PatientA, DiseaseSelfLimit),
@@ -279,8 +285,13 @@ namespace DaYiJingCheng.Tests.PersistenceService
             IReadOnlyList<SimEvent> back = SimEventListCodec.Decode(
                 bytes.AsSpan(SaveHeaderCodec.HeaderSize).ToArray(), new SaveCodec());
 
-            Assert.AreEqual(1, back.Count, "只有病史流事件进段(病例流 / 世界流今日不进)");
+            Assert.AreEqual(1, back.Count,
+                "今日布局 = 头部 + 病史流段;病例流 / 世界流被丢弃(TD-persist-03 动作 ③,NOT-RUN)");
             Assert.AreEqual(EventKind.DiseaseOnset, back[0].Kind);
+            Assert.IsFalse(back.Any(e => e.Kind == EventKind.CaseOpened),
+                "病例流事件不得出现在段里 —— 今日无病例流段(丢弃已登记)");
+            Assert.IsFalse(back.Any(e => e.Kind == EventKind.StructurePlaced),
+                "世界流事件不得出现在段里 —— 今日无世界流段(丢弃已登记)");
         }
 
         [Test]

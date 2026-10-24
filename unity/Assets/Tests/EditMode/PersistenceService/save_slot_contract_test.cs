@@ -206,6 +206,18 @@ namespace DaYiJingCheng.Tests.PersistenceService
                                            | BindingFlags.NonPublic).Length,
                 "SlotProjections 不得有实例字段");
 
+            // ⚠️ 静态类**没有实例字段可加** ⇒ 上面那条断言恒真、无判别力。
+            //    静态类唯一可能的可变状态形态是 **static 可变字段**(缓存 / 记忆化)——
+            //    本项目已有先例(ADR-026 ② 构建期记忆化查表)。故必须同时扫 Static。
+            //    (`/code-review` S19-1 G-3:原断言只扫 Instance,漏掉这条。)
+            foreach (var f in t.GetFields(BindingFlags.Static | BindingFlags.Public
+                                          | BindingFlags.NonPublic))
+            {
+                Assert.IsTrue(f.IsInitOnly || f.IsLiteral,
+                    $"SlotProjections.{f.Name} 是 static 可变字段 —— 纯函数不得有静态可变状态" +
+                    "(缓存 / 记忆化会让「同输入同输出」失效)");
+            }
+
             var ctxFields = typeof(SlotContext).GetFields(BindingFlags.Instance | BindingFlags.Public
                                                           | BindingFlags.NonPublic);
             Assert.AreEqual(3, ctxFields.Length, "SlotContext 三个字段");
@@ -216,11 +228,42 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_projections_areSameInputSameOutput()
         {
-            var ctx = new SlotContext(locked: false, inNarrativeContext: true, nextWritableSeq: 2U);
-            var slot = new SaveSlot(3);
+            // ⚠️ **本条首版是假绿,证伪轮 M10 抓出**(2026-10-24)。根因:
+            //    「同输入调用两次结果相同」**恒真** —— 有状态缓存(第一次算、第二次返回缓存)
+            //    同样满足它;甚至连「第二次起恒返回 false」的实现也能通过(两次比较都是 false)。
+            //    ⇒ 该形态**不可能**证伪纯函数性,须换成**真值表对拍**:把投影的输出与
+            //    **独立手算的期望值**逐格比对。缓存实现若吞掉任一格的真值即红。
+            var cases = new[]
+            {
+                //                 locked, inCtx, next, slot, 期望 Writable, 期望 Loadable
+                new object[] { false,  true,  0U,  0U,  true,  true  },
+                new object[] { false,  true,  5U,  1U,  false, true  },  // 高水位未到 ⇒ 只挡写
+                new object[] { true,   true,  0U,  0U,  false, false },  // 锁 ⇒ 读写皆挡
+                new object[] { false,  false, 0U,  0U,  false, false },  // 上下文外 ⇒ 读写皆挡
+                new object[] { true,   false, 9U,  9U,  false, false },  // 多因子同时为假
+                new object[] { false,  true,  3U,  3U,  true,  true  },  // 边界:slot == next ⇒ 可写
+                new object[] { false,  true,  3U,  2U,  false, true  },  // 边界:slot == next-1 ⇒ 不可写
+            };
 
-            Assert.AreEqual(SlotProjections.Writable(slot, ctx), SlotProjections.Writable(slot, ctx));
-            Assert.AreEqual(SlotProjections.Loadable(slot, ctx), SlotProjections.Loadable(slot, ctx));
+            foreach (var c in cases)
+            {
+                var ctx = new SlotContext((bool)c[0], (bool)c[1], (uint)c[2]);
+                var slot = new SaveSlot((uint)c[3]);
+                string id = $"locked={c[0]},inCtx={c[1]},next={c[2]},slot={c[3]}";
+
+                Assert.AreEqual((bool)c[4], SlotProjections.Writable(slot, ctx),
+                    $"{id} ⇒ Writable 期望 {c[4]}(F-7b.2 公式手算)");
+                Assert.AreEqual((bool)c[5], SlotProjections.Loadable(slot, ctx),
+                    $"{id} ⇒ Loadable 期望 {c[5]}(F-7b.2 公式手算)");
+            }
+
+            // 且同一格**重复求值**必须给出同一答案(这条是补充,单独不足 —— 见上)。
+            var repeatCtx = new SlotContext(locked: false, inNarrativeContext: true, nextWritableSeq: 2U);
+            var repeatSlot = new SaveSlot(3);
+            bool w1 = SlotProjections.Writable(repeatSlot, repeatCtx);
+            _ = SlotProjections.Loadable(new SaveSlot(99), repeatCtx);
+            Assert.AreEqual(w1, SlotProjections.Writable(repeatSlot, repeatCtx),
+                "中间插入别槽位查询不得改变结果");
         }
 
         [Test]
@@ -603,6 +646,42 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             Assert.Throws<InvalidOperationException>(
                 () => svc.SaveOnExit(), "未注入 compose ⇒ 须抛(fail-closed)");
+        }
+
+        [Test]
+        public void test_saveOnExit_outsideNarrativeContext_stillWrites()
+        {
+            // ⚠️ 本条**钉住一个刻意的语义选择**(用户 2026-10-24 裁定「只修注释,不改行为」):
+            //    退出保存与 Checkpoint **同组版、不同门** —— 它**不**评估叙事上下文钩子的值。
+            //    理由:退出保存不是回滚点,且「急救动作进行中退出」恰恰最需要落盘。
+            //    ⇒ 钩子返回 false 时 Checkpoint 必抛,而 SaveOnExit 必须照写。
+            //    反证:若给 SaveOnExit 加了值门,本条转红。
+            var svc = ReadyService(narrativeContext: () => false);
+
+            Assert.Throws<InvalidOperationException>(
+                () => svc.Checkpoint(new SaveSlot(0)),
+                "对照组:Checkpoint 在上下文外必抛(AC-7a-19 (c))");
+
+            Assert.DoesNotThrow(() => svc.SaveOnExit(),
+                "SaveOnExit 不受叙事上下文值门约束(只修注释,不改行为的裁定)");
+            Assert.IsTrue(File.Exists(Path.Combine(_testDir, "save_0.bin")),
+                "退出保存须照常落盘");
+        }
+
+        [Test]
+        public void test_eventList_rejectsCountBeyondBuffer()
+        {
+            // count 上界守卫(SimEventListCodec.cs:60-62):count 声明得比剩余字节能容纳的
+            // 事件数还多 ⇒ 必须抛,不得先分配再失败(超大分配面)。
+            // 构造:count = 1_000_000,但段里只有 4 字节(连一条事件都不够)。
+            var w = new CodecWriter();
+            w.WriteInt32LittleEndian(1_000_000);
+            byte[] segment = w.ToArray();
+
+            var ex = Assert.Throws<InvalidDataException>(
+                () => SimEventListCodec.Decode(segment, new SaveCodec()));
+            StringAssert.Contains("超出剩余字节可容纳的上界", ex.Message,
+                "报文须点名上界违例,而非笼统的越界");
         }
     }
 }

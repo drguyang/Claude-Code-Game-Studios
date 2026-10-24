@@ -2,6 +2,9 @@
 //
 // 权威来源:
 //   ADR-010 §一 —— 存档布局 = 头部 + 三流 + 快照;全二进制,显式小端
+//     ⚠️ **今日实现 ≠ 该目标**:本类只组「头部 + 病史流段」两段。三流布局
+//        (`TD-persist-03` 动作 ③ 的 ADR 级二选一)+ 快照段 + 折叠段均**未实现**。
+//        见下方 §今日布局与丢弃面。
 //   ADR-010 §四 —— 校验和覆盖 checksum 字段之后的全部字节
 //   ADR-010 §六 —— Checkpoint 唯一写入口;组版由构造注入的 compose 委托提供
 //   ADR-010 §三 义务 G-2 —— 折叠谓词 + 折叠行产出
@@ -24,6 +27,26 @@
 //    原件 = `production/qa/evidence/s19-1-fold-adjudication-2026-10-24.md` §五。
 //
 // ─────────────────────────────────────────────────────────────────────────────
+// 今日布局与丢弃面(`/code-review` S19-1 C-1,2026-10-24)
+// ─────────────────────────────────────────────────────────────────────────────
+// 今日产出 = `magic + SHA256 + 头部其余字段 + 病史流事件段`。**两段,不是三流。**
+//   · **病例流**(37 的判断记录)· **世界流**(POI / 建造 / 掉落 / 敌人伤情)
+//     ⇒ **既不折叠也不落盘,直接不进存档**。今日**无守卫**(静默丢弃)。
+//
+// ⚠️ **这不是新缺口,底层已登记** —— `TD-persist-03` 动作 ③(「单列表 vs 头部+三流」,
+//    ADR 级二选一,须走 `/architecture-decision`)与动作 ⑤(折叠段布局)。
+//    本注释的任务只是**让自述与实现一致**(原文曾写「布局 = 头部 + 三流 + 快照」= 目标,非现状)。
+//
+// ⚠️ **与折叠行的处置不对称,是刻意的、有理由的**:
+//   · 折叠行:被折的病史行**已被 `Erase` 抹掉** ⇒ 折叠行不落盘 = 数据**当场不可恢复** ⇒ **必须抛**;
+//   · 病例流 / 世界流:两条流**仍活在 `EventStream` 里**,本次存档不含它们不销毁任何东西 ——
+//     代价是「这份档读回来少了这两条流」,而 `Load` 今日**零生产消费者**(实测
+//     `grep -rn "\.Load(\|\.Checkpoint(\|\.SaveOnExit(" unity/Assets --include=*.cs | grep -v Tests/`
+//     ⇒ 仅命中无关的 `SkillTuningTable.Load` / `AudioSettingsStore.Load`)⇒ 无可观测后果。
+//   ⇒ 若将来裁定「对称 fail-loud」,改点 = `Compose` 里对 `caseStream.Count` /
+//     世界流 `Count` 各加一条 `throw`(与 `:143` 同款);**不在本次做**,因为那会把
+//     「存档在真实对局中永不成功」从隐含变成显式 —— 属产品取舍,须另裁。
+//
 // ⚠️ 本类**只完成判据 ④ 的位置半 + 委托半**,不完成字节半
 // ─────────────────────────────────────────────────────────────────────────────
 // 判据 ④ 字节半(「`Checkpoint` 产出的字节里折叠行出现」)= **NOT-RUN**
@@ -48,9 +71,12 @@ using DaYiJingCheng.Sim.Contracts;
 namespace DaYiJingCheng.Gameplay.Boot
 {
     /// <summary>
-    /// 存档组版器 —— 把 sim 的当前状态折成一份完整的存档字节(含校验和槽)。
+    /// 存档组版器 —— 把 sim 的当前状态折成一份存档字节(含校验和槽)。
     /// <para><b>纯函数</b>(无 I/O、无墙钟、无表现态):同样的事件流 + 同样的谓词 ⇒ 同样字节。
     /// 写盘归 <c>SaveService.SaveBytes</c>,不在本类。</para>
+    /// <para>⚠️ <b>今日只组「头部 + 病史流段」两段</b>,病例流 / 世界流**不进存档**
+    /// (静默丢弃,已登记 `TD-persist-03` 动作 ③)。<b>不是</b>「完整的存档字节」——
+    /// 见文件头 §今日布局与丢弃面。</para>
     /// </summary>
     public static class SaveComposer
     {
@@ -97,9 +123,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (codec == null) throw new ArgumentNullException(nameof(codec));
 
             IReadOnlyList<SimEvent> history = FilterByStream(allEvents, StreamId.History);
-            IReadOnlyList<SimEvent> caseStream = FilterByStream(allEvents, StreamId.Case);
+            // ⚠️ 刻意**不取**病例流 / 世界流 —— 今日布局无它们的段(见文件头 §今日布局与丢弃面)。
+            //    原文此处 `FilterByStream(allEvents, StreamId.Case)` 的产出被传给 `FoldHistory`
+            //    却在该方法体内**零次使用**(`/code-review` S19-1 C-1 实测),是**死形参**;
+            //    留着会让调用点看起来「考虑了病例流」。已删。
 
-            IReadOnlyList<SimEvent> body = FoldHistory(history, caseStream, folded, decoder);
+            IReadOnlyList<SimEvent> body = FoldHistory(history, folded, decoder);
 
             byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, configVersion, tick, 0UL);
             byte[] events = SimEventListCodec.Encode(body, codec);
@@ -117,7 +146,6 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </summary>
         private static IReadOnlyList<SimEvent> FoldHistory(
             IReadOnlyList<SimEvent> history,
-            IReadOnlyList<SimEvent> caseStream,
             IFoldedPredicate folded,
             IPayloadDecoder decoder)
         {
@@ -135,7 +163,10 @@ namespace DaYiJingCheng.Gameplay.Boot
 
                 FoldResult result = HistoryFolder.Fold(current, patientId, folded, decoder);
 
-                // 谓词为真但产出零行 = 恒等折叠(无 onset / 无终态可折)⇒ 安全,继续。
+                // ⚠️ 零行 = 恒等折叠。**今日该分支不可达**(进循环前已用同一谓词判过为真,
+                //    而 `FoldedPredicate` 自陈无状态缓存 ⇒ `Fold` 内部不会反悔),留着是防御。
+                //    它**不得**被读成「安全路径」—— 若谓词将来变为有状态,这里会静默吞掉
+                //    本该 `throw` 的情形(`/code-review` S19-1 R-2)。
                 if (result.Rows.Count == 0) continue;
 
                 // ⚠️ 有折叠行要落盘,但折叠行编码器不存在 ⇒ fail-loud。
