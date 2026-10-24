@@ -33,9 +33,13 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
     /// <summary>
     /// 玩家控制器 —— CharacterController 唯一位移写入点。
     /// 不参与 PhysX 求解;位移 = 纯表现态,sim 投影 = ActorCellEntered。
+    /// <para>🔁 2026-10-24 S19-2(TD-player-02):实现 <see cref="IPlayerMotor"/>
+    /// (ADR-020 §Key Interfaces 四成员)—— <b>只落形状,不新增位移真源</b>:
+    /// <see cref="Move"/> 仍是唯一位移写入路径,<see cref="GetCell"/> / <see cref="Teleport"/>
+    /// 语义不变;边沿走<b>独立锁存器</b>(PRE-S19-C 约束 ①,与 <c>_hasPending</c> 五写点不相交)。</para>
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
-    public sealed class PlayerController : MonoBehaviour
+    public sealed class PlayerController : MonoBehaviour, IPlayerMotor
     {
         [Header("Movement")]
         [SerializeField] private float _moveSpeed = 5f;
@@ -110,7 +114,16 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
         private WorldPos _lastCommittedCell = new WorldPos(-1, -1, -1);
         private WorldPos _pendingCell = new WorldPos(-1, -1, -1);
         private bool _hasPending;
-        private CellTransitionDetector _cellDetector;
+
+        // ── S19-2:跨格边沿锁存器(IPlayerMotor.ConsumeCellChanged 的承载)─────────
+        // PRE-S19-C 约束 ①:与 `_hasPending` / `_pendingCell` **完全不相交** ——
+        // `_hasPending` 是 Append 主路径(OnTickEdge :302-320)的单份状态,消费边沿
+        // 不得触碰它。锁存器**只在** `_lastCommittedCell = cell`(:319,即事件已 Append
+        // 之后)置位;消费即清。因果绑定:Append 是因,边沿可观察是果(PRE-S19-C 约束 ③)。
+        private bool _cellEdgeLatched;
+
+        // C-3(已裁 2026-10-24):死字段 `_cellDetector` 删除 —— 零赋值零使用;
+        // 生产内联算子与 CellTransitionDetector 的重复另立 TD 归后续轮。
 
         /// <summary>
         /// 初始化(供测试和联机层调用)。
@@ -317,6 +330,10 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
             AppendCellEnteredEvent(cell, tick);
 
             _lastCommittedCell = cell;
+
+            // S19-2:边沿锁存 —— 只在此处(事件已 Append、已提交)置位。
+            // PRE-S19-C 约束 ①:不碰 _hasPending / _pendingCell(它们已在上面消费完)。
+            _cellEdgeLatched = true;
         }
 
         /// <summary>
@@ -359,6 +376,45 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
                 Mathf.RoundToInt(pos.y),
                 Mathf.RoundToInt(pos.z)
             );
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // IPlayerMotor 四成员(S19-2 · TD-player-02 · ADR-020 §Key Interfaces)
+        // ⚠️ 只落形状:不新增位移真源(Move 仍是唯一写入点)、不发明消费者。
+        // ════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 每帧求值入口(ADR-020 权威成员)—— 实现 = <see cref="Move"/> 同路
+        /// (CharacterController.Move 唯一位移写入点),零新状态、零第二真源。
+        /// <para>⚠️ <see cref="Move"/> 自取 <c>Time.deltaTime</c>;本形参供接口签名
+        /// 完备(ADR-020 :398 权威形状),实现取二者一致性由调用方保证 —— 本类
+        /// 不用 <paramref name="deltaTime"/> 重复积分(那会造第二时间真源)。</para>
+        /// </summary>
+        public void Tick(float deltaTime, in MoveInput input)
+        {
+            Move(input.Value);
+        }
+
+        /// <summary>
+        /// 当前整数格(ADR-020 权威成员)。
+        /// ⚠️ PRE-S19-C 约束 ②:<b>必须走 <see cref="CellTransitionDetector.CellFromPosition"/>
+        /// (FloorToInt)</b> —— 与 <c>ActorCellEnteredPayload.Cell</c> 同源;
+        /// <b>禁用 <see cref="GetCell"/></b>(RoundToInt,负坐标 / 半格处取值不同)。
+        /// </summary>
+        public WorldPos Cell => CellTransitionDetector.CellFromPosition(transform.position);
+
+        /// <summary>连续位置 —— 表现态,永不写流(ADR-020 §四)。</summary>
+        public Vector3 Position => transform.position;
+
+        /// <summary>
+        /// 消费一次已提交的跨格边沿(PRE-S19-C 裁定:只读边沿,无出参)。
+        /// 消费即清锁存器;与 <c>_hasPending</c> 不相交 —— 不影响任何事件路径。
+        /// </summary>
+        public bool ConsumeCellChanged()
+        {
+            if (!_cellEdgeLatched) return false;
+            _cellEdgeLatched = false;
+            return true;
         }
     }
 }

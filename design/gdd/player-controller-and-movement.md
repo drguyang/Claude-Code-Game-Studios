@@ -129,6 +129,10 @@ ADR-020 §一 通篇无此句(经 `git grep` 核对,该 ADR 从落盘起就没�
 世界流事件 `ActorCellEntered`,载荷 `{ actor_id, cell(WorldPos), tick }` ——
 **只有整数格,没有连续坐标**。`Patient = PatientId.None`(世界级事件,ADR-007 §四;
 不污染 `max(patient_id)` 高水位)。
+> ⚠️ **读法加注(2026-10-24 S19-2 实施期 · PRE-S19-C 约束 ③)**:上句「返回 true 的那一刻发事件」
+> 须读作**因果绑定**而非**调用次序** —— Append 是**因**(`OnTickEdge` 主路径在提交点发出事件),
+> 边沿可观察是**果**(`ConsumeCellChanged` 只消费已提交的边沿锁存器)。**不存在**「消费者调用 →
+> 才发事件」的次序;`ConsumeCellChanged` 今天零消费者,只落形状,不得为「有调用点」而发明消费者。
 **事件率上界 = tick 频率**(不是格穿越率、更不是帧率)—— 由 **F-1-1b 的归并算符**保证:
 跨格检测**每帧**跑,但 tick 内后续跨格**覆盖**待发值,**每 tick 至多 Append 一条**。
 (**AC-1-03 BLOCKING**,承 AC-20-04)
