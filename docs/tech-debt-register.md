@@ -346,6 +346,7 @@
 | `TD-epic-01-c` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-d` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-e` | `telemetry-analytics` | open | **Y** | R1 |
+| `TD-epic-01-f` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-persist-01` | `persistence-service` | open(①**部分结** · 2026-10-24) | **Y** | R1 |
 | `TD-persist-02` | `persistence-service` | **closed**(2026-10-24) | ~~**Y**~~ | R1 |
 | `TD-persist-03` | `persistence-service` | open | **Y** | R1 |
@@ -420,15 +421,31 @@ PYEVAL
 > ⚠️ **标题换行不删**:十一订标题就地改为删除线,新标题并列(承「原文不删,就地加注」—— 原措辞逐字仍可查,只是轮次前移一格)。
 
 ```text
-条目 102 | 状态 {'open': 75, 'partial': 6, 'closed': 20, '**done**(2026-10-21)': 1} | P0 面 {'Y': 91, 'N': 10, '~~**Y**~~': 1}
+条目 103 | 状态 {'open': 74, 'partial': 6, 'closed': 20, 'open(①**部分结** · 2026-10-24)': 1, '**closed**(2026-10-24)': 1, '**done**(2026-10-21)': 1} | P0 面 {'Y': 91, 'N': 10, '~~**Y**~~': 2}
 未闭 P0 面 = 76 （已闭但曾标 P0 面的 15 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 76 条,分布在 13/31 个 epic
     medical-consequences: 20   audio-system: 20          clinic-machine: 17
-    telemetry-analytics: 5     persistence-service: 4    skeuomorphic-ui: 2
+    telemetry-analytics: 6     persistence-service: 3    skeuomorphic-ui: 2
     disease-simulation: 2      patient-ai: 1              player-controller: 1
     enemy-ai: 1                random-events: 1           item-database: 1
     modular-building: 1
 ```
+
+> ⚠️ **上方输出块已刷到十三订(2026-10-24)**。**状态直方图有两处是脚本缺陷的产物,须读清楚**:
+> ① `'open(①**部分结** · 2026-10-24)'` 与 `'**closed**(2026-10-24)'` **各占一个独立桶** ——
+> 因为脚本按 `r[2]` 的**原样字符串**分组,而 `TD-persist-01/02` 两行的状态列带了粗体与日期
+> (既有 20 条 closed 行**全部**用裸 `closed`,只有这两行带了修饰)。
+> ② 由此 `closed` 桶显示 **20**,而**真实已闭 = 21**(20 + `TD-persist-02`;`TD-clinic-01` 的 `done` 另占一桶)。
+>
+> **`未闭 P0 面 = 76` 这个数 —— 本轮实跑验过两种口径,结论是「不是脚本缺陷」**:
+> 原脚本 `r[2] != 'closed'` 与修正口径 `not ('closed' in s or 'done' in s)` **都得 76**,
+> 且「被原脚本误判为未闭的 closed 行」实跑输出为**空**。
+> **原因是 `TD-persist-02` 结案时把 `P0 面` 列从 `**Y**` 改成了 `~~**Y**~~`(划掉)**,
+> 该行因而不满足 `r[3].strip('*') == 'Y'` —— 与状态列的写法无关。**
+>
+> ⚠️ **本条留痕的缘由**:起草时我曾据「状态列带修饰 ⇒ 脚本认不出 ⇒ 76 偏高 1」推断写过一段
+> 「真实应为 75」,**实跑后证明是错的**(两种口径都是 76)。该推断已就地订正为现在这段,
+> **不删缘由**,因为它是本项目反复抓的同一形态:**把推理当实测写进文档**。
 
 > 🔁 **2026-10-21 九订(`TD-ci-01` 入表)** —— 上方输出即九订实测。变化四处
 > (**相对本节上次刷新的六订**,七订 / 八订未在本节显形,合并计入):
@@ -440,7 +457,23 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 > ③ **九订** `TD-ci-01` 入表(98 → 99)。
 > ⇒ **`条目 +2` 来自 ① ③ 两次入表;`closed +1` 来自 ②,与 ① ③ 无关。**
 > 🔁 **2026-10-22 十订(`TD-clinic-18` 入表)** —— 上方输出即十订实测;变化 = `条目 99 → 100` · `open 72 → 73` · `Y 88 → 89` · **`未闭 P0 面` 73 → 74** · `clinic-machine 16 → 17` · `epic 分布` 一位不动(13/31)。⚠️ **与九订性质相反**:九订加的是**治理债**(`N`)⇒ 未闭面不动;本条加的是 **P0 面债**(`Y`)⇒ 未闭面**升**一位。九订块原文留档于下,不删。
-> 🔁 **2026-10-24 十二订(`TD-persist-04` 入表)** —— 上方输出即十二订实测;变化 = `条目 101 → 102` · `open 74 → 75` · `Y 90 → 91` · **`未闭 P0 面` 75 → 76** · `persistence-service 3 → 4` · `epic 分布` 一位不动(13/31)。⚠️ **性质同十一订 / 十订、异九订**:本条是 **P0 面债**(`Y`)⇒ 未闭面**升**一位。
+> 🔁 **2026-10-24 十三订(`TD-epic-01-f` 入表 · `AC-51-D7` 假绿)** —— §五 命令实测:
+> `条目 102 → 103` · `open 73 → 74` · `Y 90 → 91` · **`未闭 P0 面` 75 → 76** ·
+> **`telemetry-analytics 5 → 6`** · `epic 分布` 一位不动(13/31)。**性质同十二 / 十一 / 十订**(P0 面债 `Y` ⇒ 未闭面升一位)。
+> **立债缘由**:S19-1 收口轮的 `impl-s19-1-slot-contract-2026-10-24.md` **§四 N-6** 登记了
+> 「`AC-51-D7` 假绿 —— 装配根传 `configVersion: 0U`,恒『匹配』」但标注去向是「须另裁」,**未入册**。
+> 本轮上溯实测发现 **N-6 只记了三个断点中的第一个**,且它描述的现象在生产路径上**不成立** ——
+> 因为那条路径压根没被调用(`ConfigVersionCheck` 生产侧**零构造**,`grep` ⇒ 0 行)。
+> 详见 `TD-epic-01-f` §二。
+> ⚠️ **同轮还实测出本册自身的两处假绿形态**(与 `f` 无关,但同批发现,如实登记):
+> ① 本册 §五 脚本的 `r[2] != 'closed'` **精确相等判断**,认不出 `**closed**(2026-10-24)` 这种带粗体与日期的写法
+> ⇒ `TD-persist-02` 在 §五 的 `状态` 直方图里**落进兜底桶**,`closed` 计数**少算 1**。
+> ② 同一原因使 `TD-persist-01` 的 `open(①**部分结** · 2026-10-24)` **不被任何已知桶收录**。
+> **两处均为本轮 `TD-persist-02` 结案时我方写下的状态列格式所致** ——
+> 既有 20 条 closed 行**全部**用裸 `closed`,只有我新写的那行带了粗体与日期。
+> **⇒ 修法 = 把我方写的那两行改回裸 `closed` / `open`,或改脚本用 `startswith`**;
+> **本轮不做**(不在本次裁定面内),登记为待裁。
+> 🔁 **2026-10-24 十二订(`TD-persist-04` 入表)** —— 变化 = `条目 101 → 102` · `open 74 → 75` · `Y 90 → 91` · **`未闭 P0 面` 75 → 76** · `persistence-service 3 → 4` · `epic 分布` 一位不动(13/31)。⚠️ **性质同十一订 / 十订、异九订**:本条是 **P0 面债**(`Y`)⇒ 未闭面**升**一位。
 > **立债缘由**:`PRE-S19-A` 裁定轮(用户 2026-10-24 取**甲案**「注入委托,不开 ADR」)—— 该轮**勘察实测**发现登记项本身的缺口记错了地方:真正缺的不是「叙事上下文查询」(`InNarrativeContext` 是一个量,注入 `Func<bool>` 即够),而是 **`AC-7a-20`(事件触发 checkpoint)全仓零载体**,且 7a 的 20 条 AC 里 **13 条零 story** 而 epic 已标 `Complete`。详见 `TD-persist-04`。
 > ⚠️ **本条与 `TD-persist-03` 是不同形态的债,不是同一条的两段** —— 03 = **实现面**结构不可达(兄弟装配互不可见);本条 = **记账面** AC 无主(epic 按 story 计数标绿,AC 按条计数从未核对)。
 > 🔁 **2026-10-24 十一订版(原文留档,已被上方十二订取代)** —— `条目 101` · `open 74` · `Y 90` · `未闭 P0 面 75` · `persistence-service 3`。立债缘由:`PRE-S19-D` 甲案,`TD-persist-03` 入表。
@@ -1421,6 +1454,80 @@ story-007 `Last Updated: 2026-09-29` 至今未刷新。**检测手法(便宜、�
 
 **共同性质**:a–c 是同一缺陷的三个面(契约面 / 吞异常面 / 夹具面),**均已由第十六片的两个回归夹具钉住行为**,
 但**根因未修**(契约与吞异常策略不变)⇒ 登记待办,不在本片扩面。
+
+### `TD-epic-01-f` — `AC-51-D7`(`ConfigVersion` 比对)**生产侧零接线**,story 却勾了 `[x]`
+
+**立债轮次**:2026-10-24(S19-1 收口轮 · 由 `impl-s19-1-slot-contract-2026-10-24.md` §四 **N-6** 上溯发现)
+**P0 面 = Y** · **R1**(归属 `telemetry-analytics`,P0 epic) · 状态 `open`
+
+#### 一、N-6 的原始记载(逐字,不删)
+
+> | **N-6** | `AC-51-D7`(`ConfigVersion` 比对) | **假绿** —— 装配根传 `configVersion: 0U`,恒「匹配」 | 须另裁 |
+
+**本轮上溯实测的结论:N-6 记的那一处是真的,但只记了三个断点中的第一个,
+且它描述的现象("恒匹配")在当前生产路径上根本不成立 —— 因为那条路径压根没被调用。**
+
+#### 二、三个断点(逐条实测 · 可复算)
+
+| # | 断点 | 实测命令与输出 | 性质 |
+|---|---|---|---|
+| **①** | **`ConfigVersionCheck` 生产侧零构造** | `grep -rn "new ConfigVersionCheck(" unity/Assets --include="*.cs" \| grep -v "/Tests/"` ⇒ **0 行**。全仓仅两处构造,均在 `Tests/EditMode/Telemetry/blank_and_degraded_test.cs:389` / `:411` | **假绿的主因**:比对逻辑写得对、测试也真红真绿,但**生产里从不发生比对** |
+| **②** | **开发视图调用 `AllMetricsReport` 时不传 `configVersion`** | `Gameplay.Boot/TelemetryDeveloperView.cs:77` = `sb.Append(reporter.AllMetricsReport(out int skipped));` —— 该形参**可选**(`ConfigVersionCheck? configVersion = null`,`TelemetryReporter.cs:667`)⇒ 缺省 `null` ⇒ `:673` 的 `configVersion.HasValue` 为假 ⇒ **版本门整段不执行** | 消费端**主动**放弃门 |
+| **③** | **装配根把 `configVersion` 写死 `0U`**(N-6 原记的那处) | `Gameplay.Boot/CompositionRoot.cs:415` = `SaveComposer.Compose(…, configVersion: 0U, tick: …)`,并自带注释「后果 = 51 的 `AC-51-D7` 在 P0 恒『匹配』,**这是假绿形态**,不得读成已实现」 | **源头无值**:运行期无「当前产物 ConfigVersion」的全局来源 |
+
+**⇒ 三者的关系不是三个并列的 bug,是一条断掉的链**:
+源头(③)没有真值 ⇒ 就算接上消费端(②)也只会拿 `0U` 去比 ⇒ 而生产端连 `ConfigVersionCheck` 都不构造(①)
+⇒ **今日 `AC-51-D7` 的任何「通过」都不是「门放行了」,是「门没装」。**
+
+#### 三、为何它是 `AC-51-D7` 的假绿,而不是「已实现但值不对」
+
+`AC-51-D7`(`design/gdd/telemetry-analytics.md:621`,**BLOCKING**)逐字要求:
+GIVEN 存档头 `ConfigVersion` 与当前内容哈希不符,WHEN 离线重算,
+THEN 报告**含显式「版本不匹配」标注**、**不静默出数**。
+
+- **比对与标注逻辑本身 = 已实现且正确**:`Telemetry/ConfigVersionGate.cs` 的 `Match` / `Banner()` 符合 AC,
+  且 `AllMetricsReport:673-682` 的早退在**一切取数之前** —— AC 末句「断言不存在『版本不符 ⇒ 自动按当前版本重算』的路径」**满足**。
+- **夹具 = 真有判别力**:`blank_and_degraded_test.cs:376-425` 两条,注释写明「删掉版本门早退 ⇒ 本条红」
+  「把版本门写成恒拒 ⇒ 本条红」。**这两条不是假绿。**
+- **断的是接线**:逻辑在 `Telemetry` 程序集里自洽,`Gameplay.Boot` 侧**没有把它接上**。
+  典型形态 = **测试绿 + 生产零调用**。
+
+> ⚠️ **这正是本项目点名的第五种假绿形态的变体**:不是「测试自造断言」,也不是「注释里声称有门」,
+> 而是 **门真的存在、测试真的能红、但生产路径不经过它** —— 绿的是「这个类好不好用」,
+> 不是「这条 AC 在游戏里成不成立」。
+
+#### 四、连带发现:story 的勾选状态与实现不符(**本册只登记,不代改**)
+
+`production/epics/telemetry-analytics/story-009-blank-and-degraded.md:39`:
+
+```
+- [x] **AC-51-D7**(BLOCKING):ConfigVersion 不匹配 —— 报告含显式「版本不匹配」标注,不静默出数
+```
+
+**该 `[x]` 今日不被生产实现支撑**(见 §二)。⚠️ **本册不撤这个勾** —— 撤 AC 勾选是 story 归属方的动作
+(承 `TD-epic-01-d` 的同款纪律:不得由记账轮自裁 story 状态)。登记在此,归 epic 级复评批复核。
+
+#### 五、解除前置(三条须同时满足,缺一不算)
+
+1. **源头**:`ConfigVersion` 的运行期真值来源落地 —— ADR-014 §五 的「内容哈希派生 u32」
+   须有全局可读的当前值(`CompositionRoot.cs:415` 的 `0U` 换成它)。**这一条是硬前置**:
+   ① ② 都做了而 ③ 不做,只是把 `0U` 拿去比,`Match` 恒真,假绿形态**原样保留**。
+2. **消费端**:`TelemetryDeveloperView.cs:77` 把 `ConfigVersionCheck` 传进去
+   (存档头值须从 `SaveHeader` 读出,`SaveHeaderConfigVersion` 已有现成字段)。
+3. **夹具**:补一条**端到端**夹具 —— 走 `TelemetryDeveloperView.Render`(而非直接 `new ConfigVersionCheck`),
+   断言不匹配时报告不含指标行。⚠️ 现有两条夹具直接构造 `ConfigVersionCheck`,
+   **绕过了整条接线** ⇒ 它们对 ① ② ③ 三处断点**全部无判别力**。
+
+#### 六、与 `TD-epic-01` 其余五条的关系
+
+`a`–`e` 全部出自 2026-10-19 第十六片;**本条 `f` 出自 2026-10-24 S19-1 收口轮的 N-6 上溯**。
+**性质不同**:`a`–`c` 是「接线在、但接线有缺陷」;`f` 是「逻辑在、接线不在」。
+⇒ 不得并入 `a`–`e` 的任何一条,也不得因 `f` 的发现而改写 `a`–`e` 的判定。
+
+**未核查(禁借绿)**:本轮**未跑** Unity 测试(三条断点全部来自静态 `grep` + 源码阅读)·
+未核 `AC-51-D7` 在 ADR-012 三格矩阵下的跨平台表现 · 未核 `ConfigVersion` 的烘焙侧派生是否真的产出可用值
+(仅确认 `Editor.Tools.Bake/*.cs` 有 `ConfigVersion` 的编码/派生对账,未验证运行期可达)。
+
 
 **未核查(禁借绿)**:未跑任何 Unity 测试(全判据来自静态 grep)· 8 个 epic 未逐 AC 跑 B 类 grep ·
 A 类(自造 Fake)只深挖 telemetry · `tests/unit|integration/` 账本树未扫 · 回归数字未核。
