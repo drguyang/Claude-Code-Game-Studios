@@ -254,7 +254,7 @@ namespace DaYiJingCheng.Tests.DeathRespawn
             var entry = Entry("DIS_PLAGUE", DiseaseKind.Disease, lethality: 3, selfLimit: false);
             var consumer = new DeathCandidateConsumer(
                 _playerDiedWriter,
-                deathAllowed: _ => true,
+                deathAllowed: (_, __) => true,
                 actorClassOf: _ => ActorClass.Player,
                 entryOf: _ => entry,
                 deathCellOf: _ => new WorldPos(5, 0, 5));
@@ -271,7 +271,7 @@ namespace DaYiJingCheng.Tests.DeathRespawn
             var entry = Entry("DIS_COLD", DiseaseKind.Disease, lethality: 0, selfLimit: true);
             var consumer = new DeathCandidateConsumer(
                 _playerDiedWriter,
-                deathAllowed: _ => true,
+                deathAllowed: (_, __) => true,
                 actorClassOf: _ => ActorClass.Player,
                 entryOf: _ => entry,
                 deathCellOf: _ => new WorldPos(0, 0, 0));
@@ -287,7 +287,7 @@ namespace DaYiJingCheng.Tests.DeathRespawn
             // AC ⑦ 的判据:候选是进程内传递,不产生任何 Append。
             var entry = Entry("DIS_PLAGUE", DiseaseKind.Disease, lethality: 3, selfLimit: false);
             var consumer = new DeathCandidateConsumer(
-                _playerDiedWriter, _ => true, _ => ActorClass.Player, _ => entry,
+                _playerDiedWriter, (_, __) => true, _ => ActorClass.Player, _ => entry,
                 _ => new WorldPos(0, 0, 0));
 
             int before = _bag.Stream.Events.Count;

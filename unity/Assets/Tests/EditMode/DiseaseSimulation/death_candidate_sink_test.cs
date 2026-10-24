@@ -132,18 +132,28 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
             };
         }
 
-        /// <summary>装配默认链(类别查询面 = `Patient`)—— 服务与 sink 都取自服务袋。</summary>
-        private static Rig OpenAssembled(DiseaseRegistryEntry entry, out RecordingConsumer consumer)
+        /// <summary>
+        /// 装配默认链(类别查询面 = 花名册,无登记 ⇒ `Patient`)—— 服务与 sink 都取自服务袋。
+        /// </summary>
+        /// <remarks>
+        /// 🔁 **2026-10-24 订正(原文不删)**:本夹具原先自己调
+        /// `bag.DeathCandidates.Register(consumer)` 塞一个观察者。29 装配轮落地后
+        /// **装配层已注册真消费者**(单消费者契约)⇒ 再注册会抛
+        /// `InvalidOperationException`;而把它改成「不注册、观察者恒空」则是**假绿**
+        /// (`Received.Count == 0` 不证明任何事 —— 那个对象根本没接上)。
+        ///
+        /// <para><b>现口径:观察面改到世界流</b>。这条链的**可观测结论**本来就是
+        /// 「有没有铸出 <c>PlayerDied</c>」,而它落在流里 ⇒ 直接数流,比数通知更接近
+        /// AC 原文,且**不依赖任何替身**。⇒ 本夹具不再产出观察者。</para>
+        /// </remarks>
+        private static Rig OpenAssembled(DiseaseRegistryEntry entry)
         {
             var bag = CompositionRoot.Assemble(new[] { entry });
-            consumer = new RecordingConsumer();
-            bag.DeathCandidates.Register(consumer);
 
             return new Rig
             {
                 Bag = bag,
                 Svc = bag.VitalsService,
-                Consumer = consumer,
                 Patient = bag.PatientSpawner.SpawnNext(entry.DiseaseId, tick: 0),
             };
         }
@@ -293,17 +303,65 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         [Test]
         public void test_patientDeath_producesNoCandidate()
         {
-            // ⚠️ 这是本件最关键的测试。装配层的 actorClassOf 恒 Patient(现状唯一真值),
-            // 若产出点不设类别闸,病人死亡会铸出 actor_id = 病人 id 的 PlayerDied。
+            // ⚠️ 这是本件最关键的测试。装配层的 actorClassOf 由玩家花名册决定,
+            // 未登记 ⇒ Patient;若产出点不设类别闸,病人死亡会铸出
+            // actor_id = 病人 id 的 PlayerDied。
             var entry = AcuteLethal(72, "DIS_S8_PATIENT_NO_CANDIDATE");
-            Rig rig = OpenAssembled(entry, out RecordingConsumer consumer);
+            Rig rig = OpenAssembled(entry);
 
             rig.Drive(TicksToDeath);
 
             Assert.AreEqual(InjuryState.Deceased, rig.Outcome(),
                 "前提:病人确实死了(否则「零候选」是因为没死,不是因为类别闸)");
-            Assert.AreEqual(0, consumer.Received.Count,
-                "病人死亡**不得**产生死亡候选 —— 候选的语义是「**玩家**应死」");
+
+            // 🔁 2026-10-24 订正(原文不删):本断言原先数的是夹具自塞的
+            // `RecordingConsumer.Received.Count`。装配层注册真消费者后,夹具再塞观察者会
+            // 撞单消费者契约;而「不塞、观察者恒空」是**假绿**(那个对象根本没接上)。
+            // ⇒ 观察面改到**世界流**:候选被消费后若未被类别闸拦住,链的末端就是一条
+            // `PlayerDied`;数流比数通知更接近 AC 原文,且不依赖任何替身。
+            Assert.AreEqual(0, CountPlayerDied(rig.Bag),
+                "病人死亡**不得**产生死亡候选 —— 候选的语义是「**玩家**应死」;" +
+                "铸出候选会让链的末端出现一条 PlayerDied");
+        }
+
+        /// <summary>世界流里 `PlayerDied` 的条数(不筛 actor —— 本夹具全流只可能有它)。</summary>
+        private static int CountPlayerDied(CompositionRootServices bag)
+        {
+            int n = 0;
+            var events = bag.Stream.Events;
+            for (int i = 0; i < events.Count; i++)
+                if (events[i].Kind == EventKind.PlayerDied) n++;
+            return n;
+        }
+
+        /// <summary>
+        /// **端到端反向夹具**(2026-10-24 装配轮补):同一病种、同一驱动,
+        /// **唯一差异 = 该 id 是否在玩家花名册里登记** ⇒ 登记了就必须真铸出 `PlayerDied`。
+        ///
+        /// <para><b>为什么必须有这一条</b>:上一条(病人 ⇒ 零候选)单独存在时,可以被
+        /// 「整条链根本铸不出任何东西」满足 —— 那是本件头注点名的假绿形态。
+        /// 与 `test_playerClass_producesCandidate` 的区别:那条换的是**注入的类别面**
+        /// (`OpenPlayerClass` 自建 sink),本条走**装配层真花名册**(`PlayerActors.Register`),
+        /// 即 story-004 装配轮真正改的那条路径。</para>
+        /// </summary>
+        [Test]
+        public void test_registeredPlayer_producesOnePlayerDiedEndToEnd()
+        {
+            var entry = AcuteLethal(78, "DIS_S8_REGISTERED_PLAYER_E2E");
+            var bag = CompositionRoot.Assemble(new[] { entry });
+            PatientId actor = bag.PatientSpawner.SpawnNext(entry.DiseaseId, tick: 0);
+
+            // 登记为玩家 —— 这就是 `BootRoot` 在生成玩家后做的那一步。
+            bag.PlayerActors.Register(actor.Value);
+
+            for (long t = 1; t <= TicksToDeath; t++) bag.VitalsService.OnTickEdge(t);
+
+            Assert.AreEqual(InjuryState.Deceased, bag.VitalsService.GetOutcome(actor),
+                "前提:该实体确实死了(否则「铸出 PlayerDied」无从谈起)");
+            Assert.AreEqual(1, CountPlayerDied(bag),
+                "登记为玩家 ⇒ 装配链须端到端铸出**恰 1 条** PlayerDied。" +
+                "若为 0,说明花名册没接进类别面(装了等于没装);" +
+                "若 > 1,说明转移闸或吸收态去重失效");
         }
 
         [Test]
@@ -355,14 +413,23 @@ namespace DaYiJingCheng.Tests.DiseaseSimulation
         }
 
         [Test]
-        public void test_assemble_sinkIsNotYetRegistered()
+        public void test_assemble_sinkIsRegisteredByAssembly()
         {
-            // ⚠️ 现状断言:29 的消费者依赖 story-004 的 DeathAllowed 门(仍 Ready)
-            // ⇒ 装配层**不**注册。这条把「未注册」钉成**已知状态**而非疏忽。
-            // 29 装配轮落地时本测须**同批**改为「已注册」—— 它是一道提醒,不是永久契约。
-            var bag = CompositionRoot.Assemble(new[] { AcuteLethal(76, "DIS_S8_UNREGISTERED") });
-            Assert.IsNull(((DeathCandidateSink)bag.DeathCandidates).Consumer,
-                "P0 现状:消费者由 29 的装配轮注册;9 的装配层不代为注册");
+            // 🔁 **2026-10-24 就地翻转(原文不删)** —— 本测原名
+            // `test_assemble_sinkIsNotYetRegistered`,断言 `Consumer == null`,
+            // 并在注释里写明「29 装配轮落地时本测须**同批**改为『已注册』」。
+            // 29 story-004 的装配轮已落地 ⇒ 按那条约定**同批翻转**。
+            //
+            // 现在它钉的是**相反方向**的失败模式:装配层若漏调 `Register`,
+            // 死亡候选会被 `Publish` 静默丢弃(接口 :68 允许)⇒ 玩家死了也不结算,
+            // 且**零错误、零日志** —— 那正是本断言存在的理由。
+            var bag = CompositionRoot.Assemble(new[] { AcuteLethal(76, "DIS_S8_REGISTERED") });
+
+            var sink = (DeathCandidateSink)bag.DeathCandidates;
+            Assert.IsNotNull(sink.Consumer,
+                "装配层须注册死亡候选消费者 —— 未注册时 Publish 静默丢弃,死亡链静默断");
+            Assert.AreSame(bag.DeathConsumer, sink.Consumer,
+                "注册的须是装配层暴露的同一个实例(不是第二份,两份即两条判据源)");
         }
 
         // ══════════════════════════════════════════════════════════════════

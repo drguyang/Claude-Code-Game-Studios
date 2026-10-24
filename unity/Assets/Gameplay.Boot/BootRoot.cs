@@ -251,6 +251,13 @@ namespace DaYiJingCheng.Gameplay.Boot
             // entities.yaml 的 next_player_id 是**存档头字段位**,不新增第三个 C# 计数器)。
             int actorId = _services.IdAuthority.NextPatientId().Value;
 
+            // ── 4.4. 玩家 actor 登记(2026-10-24 story-004 装配轮)──
+            // id 在**装配之后**才铸造 ⇒ 登记必然是后置动作(与 SetViewer / SetAuthor 同格)。
+            // 后果:登记前 `ClassOfDeathCandidate` 恒 Patient ⇒ 死亡候选的类别闸不放行;
+            // 登记后玩家才「是玩家」。⚠️ 只登记**本机玩家自己**的 id ——
+            // 联机远端玩家的 id 归 45 的会话建立轮(ADR-001 第二 QoS 上行)。
+            _services.PlayerActors.Register(actorId);
+
             _player.Initialize(
                 SimAuthorityMode.Host,
                 _services.EventSink,

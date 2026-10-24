@@ -75,6 +75,31 @@ namespace DaYiJingCheng.Gameplay.Boot
         private const string BreathCueName = AudioEventDataSet.BreathBaseCueName;
 
         /// <summary>
+        /// 世界出生格 —— `death_cell` 查询在**玩家从未跨过格**时的兜底。
+        ///
+        /// <para>⚠️ <b>这是兜底,不是判据</b>。registry 对 `death_cell` 的原文是
+        /// 「最后一条 <c>ActorCellEntered</c> 之 cell **原样携带**」——
+        /// 一条都没有时,「原样」无从谈起。此时:</para>
+        /// <list type="bullet">
+        /// <item>**不得**抛(死亡是正常路径,玩家刚进游戏就病死是可能的);</item>
+        /// <item>**不得**随手造 `WorldPos(0,0,0)` —— 那是世界原点,一个真实存在的格,
+        /// 会伪造「死在那里」的结论。</item>
+        /// </list>
+        ///
+        /// <para>本值 = <c>BootRoot</c> 生成玩家后 <c>Teleport(new Vector3(0f, 1f, 0f))</c>
+        /// (<c>BootRoot.cs:261</c>)经 <c>CellTransitionDetector.CellFromPosition</c>
+        /// (FloorToInt)得到的**同一个格** —— 即玩家出生时**实际所在**的格,
+        /// 不是本处发明的一个数。⇒ 兜底值 = 玩家真实位置的已知事实。</para>
+        ///
+        /// <para>⚠️ <b>已知缺口(如实登记,不掩盖)</b>:正规修法是「1 在传送 / 初始化时
+        /// 发一条 <c>ActorCellEntered</c>」—— 但 ADR-020 §四 与 AC-29-09 明令
+        /// **29 不得 Append `ActorCellEntered`**(写者 = 1)。故本兜底留在装配层,
+        /// 待 1 的初始化路径补发后**自动失效**(那时 `TryLastCellOf` 恒命中,
+        /// 本常量成为死值)。归属 = 1 的 epic,不在 29 story-004 面内。</para>
+        /// </summary>
+        private static readonly WorldPos WorldSpawnCell = new WorldPos(0, 1, 0);
+
+        /// <summary>
         /// 全自动装配(全新世界:计数器从 0 起、空在场登记簿、内存 blob 池、world_seed = 0)。
         /// </summary>
         /// <param name="registry">病种注册表(体征链 Step 的查表输入;null = 空表 ——
@@ -247,22 +272,73 @@ namespace DaYiJingCheng.Gameplay.Boot
             // ── 死亡候选产出侧(story-008 · 2026-10-24 · 承 S18-AC5 前半句)──
             // `IDeathCandidateSink` 此前只有声明、零实现,`Publish(` 全树零命中
             // ⇒ 死亡候选的产出路径在生产上从未存在过。本处构造实现并经服务袋暴露。
-            // ⚠️ **消费者仍未注册**:29 的 `DeathCandidateConsumer` 依赖 story-004 的
-            //    `DeathAllowed` 冷却门(该件仍 Ready)⇒ `Register` 归 29 的装配轮。
-            //    未注册时 `Publish` 静默丢弃(接口 :68 逐字允许)。
             var deathCandidates = new DeathCandidateSink();
 
-            // 实体类别查询面(story-008 AC-9-26)。
-            // ⚠️ **现状恒 `Patient`** —— 不是偷懒,是**唯一真值**:本服务的 `Courses`
-            //    只由 `DiseaseOnset` 建档,而玩家不发 `DiseaseOnset`(`BootRoot.cs:252`
-            //    只取 id,不建档)⇒ 遍历到的 course 归属**必然是病人**。
-            //    真查询面须等玩家染病路径落地(GDD `AC-35` 结构半边),届时改本行即可。
-            //    ⇒ 与接线前硬编码 `ActorClass.Patient` **逐位一致**,零行为变化。
-            Func<int, ActorClass> actorClassOf = _ => ActorClass.Patient;
+            // ── 玩家 actor 花名册(2026-10-24 story-004 装配轮)──────────────
+            // 此前**全库没有「某 id 属于哪一类」的查询面**,故 9 侧只能写死 `Patient`。
+            // 花名册由 `BootRoot` 在**生成玩家之后**登记(id 由 `IIdAuthority` 在装配之后
+            // 才铸造 ⇒ 登记必然是后置动作,与 `SetViewer` / `SetAuthor` 同格)。
+            // ⚠️ 装配期 Count = 0 是**合法状态**(BootRoot 尚未跑),不是装配失败。
+            var playerActors = new PlayerActorRegistry();
+
+            // 实体类别查询面(story-008 AC-9-26 → story-004 装配轮接真)。
+            // 🔁 **2026-10-24 订正(原文不删)**:原写「现状恒 `Patient` …… 真查询面须等
+            //    玩家染病路径落地」。那句话对 **9 的 F4** 仍成立(只有病人有 course),
+            //    但对 **29 的死亡消费链不成立** —— `DeathCandidateConsumer` 用同一个面
+            //    判「该不该铸 PlayerDied」,恒 Patient ⇒ 类别闸永不放行 ⇒ 装了等于没装。
+            //    现改为查花名册:`ClassOfDeathCandidate` = 「已登记 = Player,未登记 = Patient」。
+            //    ⚠️ 该结论的**域**见 `PlayerActorRegistry` 头注(死亡候选链的输入域 =
+            //    course 持有者 ⇒ 补集只可能是病人);**域外不得复用**。
+            //    ⇒ 与接线前**逐位一致**(今天无人登记 ⇒ 恒 Patient),零行为变化。
+            Func<int, ActorClass> actorClassOf = playerActors.ClassOfDeathCandidate;
 
             DiseaseVitalsService vitals = new DiseaseVitalsService(
                 stream, blobPool, resolvedRegistry, worldSeed, trendWindowTicks, trendEpsRaw,
                 treatableBy, actorClassOf, deathCandidates);
+
+            // ── 死亡消费侧装配(2026-10-24 · 29 story-004 的装配轮)──────────
+            // 管线序(story-004 实现注 2):`DeathCandidate → DeathAllowed 门 → PlayerDied`。
+            // 三件在这里接成一条链,且**门在任何写流之前**(写者内再复核一次,双闸)。
+            //
+            // ① 冷却门:从世界流重算 `last_death_tick`(**零计数器**,AC-29-15)。
+            var deathCooldown = new DeathCooldownGate(() => stream.Events, decoder);
+
+            // ② 写者:`PlayerDied` 的唯一生产写入通道(ADR-029 §③ 编码路径)。
+            var playerDiedWriter = new PlayerDiedWriter(stream, encoder);
+
+            // ③ 病种条目查询面 —— 「该实体当前所受病种 / 伤情条目」。
+            //    来源 = 体征链的**病程档案簿**(course 是唯一的病种归属载体),
+            //    再经注册表 id 反查条目。⚠️ 玩家无 course ⇒ 返回 null ⇒
+            //    `PlayerDeathWarranted` 否决(见下方「诚实边界」)。
+            var registryById = new Dictionary<int, DiseaseRegistryEntry>();
+            for (int i = 0; i < resolvedRegistry.Count; i++)
+                registryById[resolvedRegistry[i].DiseaseId] = resolvedRegistry[i];
+
+            Func<int, DiseaseRegistryEntry> entryOf = actorId =>
+            {
+                if (!vitals.Courses.TryGet(new PatientId(actorId), out DiseaseCourse course))
+                    return null;
+                return registryById.TryGetValue(course.DiseaseId, out DiseaseRegistryEntry e) ? e : null;
+            };
+
+            // ④ 死亡格查询 —— registry 逐字:「`death_cell` = 最后一条 `ActorCellEntered`
+            //    之 cell 原样携带(派生态,禁读实时物理位置)」。ADR-020 §四。
+            //    ⚠️ **未找到时的兜底**(玩家从未跨格)用 `WorldSpawnCell` —— 见其注释。
+            Func<int, WorldPos> deathCellOf = actorId =>
+                DeathCellQuery.TryLastCellOf(stream.Events, decoder, actorId, out WorldPos cell)
+                    ? cell
+                    : WorldSpawnCell;
+
+            var deathConsumer = new DeathCandidateConsumer(
+                playerDiedWriter,
+                // 冷却门求值:tick = 候选自带的那一个(判据的另一半,不另取时钟)。
+                deathAllowed: deathCooldown.DeathAllowed,
+                actorClassOf: actorClassOf,
+                entryOf: entryOf,
+                deathCellOf: deathCellOf);
+
+            // ⑤ 注册 —— 单消费者契约(`Register` 二次调用抛;此处只调一次)。
+            deathCandidates.Register(deathConsumer);
 
             // ── 病人出现驱动(sprint-05 T1.1):把 spawner 接进 tick 边沿序列 ──
             // 原状:spawner 在服务袋里但**零生产调用方**(F-6 复评实测)⇒ 运行期无病人。
@@ -621,6 +697,12 @@ namespace DaYiJingCheng.Gameplay.Boot
                 throw new InvalidOperationException("Assemble: DiseaseVitalsService 装配产出 null");
             if (deathCandidates == null)
                 throw new InvalidOperationException("Assemble: DeathCandidateSink 装配产出 null");
+            if (deathConsumer == null)
+                throw new InvalidOperationException("Assemble: DeathCandidateConsumer 装配产出 null");
+            if (deathCooldown == null)
+                throw new InvalidOperationException("Assemble: DeathCooldownGate 装配产出 null");
+            if (playerActors == null)
+                throw new InvalidOperationException("Assemble: PlayerActorRegistry 装配产出 null");
             if (patientDriver == null)
                 throw new InvalidOperationException("Assemble: PatientAppearedDriver 装配产出 null");
             if (caseOpenWriter == null)
@@ -680,6 +762,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                emergencyDriver, emergencyManual,
                                                emergencyChannelDriver, patientVisuals,
                                                worldSeed, vitals, deathCandidates,
+                                               deathConsumer, deathCooldown, playerActors,
                                                casebookSource, examinationLedger, examineDriver,
                                                seenDisease, lexiconBook,
                                                tickDriver, prescribeDriver, prescribePorts,

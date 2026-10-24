@@ -57,6 +57,6 @@ This epic is complete when:
 | 001 | PlayerDied 登记与死亡结算入口 | Integration | Ready | ADR-009/024/005 |
 | 002 | 掉落清单流派生与回捡 | Integration | Ready | ADR-009/010/020 |
 | 003 | 技能掉级 F-29-1(整数截断)与调 30 | Logic | Ready | ADR-026/006 |
-| 004 | 死亡冷却 F-29-2(从流重算) | Logic | Ready | ADR-005/009 |
+| 004 | 死亡冷却 F-29-2(从流重算) | Logic | **Complete**(2026-10-24 · 谓词半边;AC-29-08/10 全链 BLOCKED-BY-9) | ADR-005/009 |
 | 005 | 复活落点与传送命令 | Integration | Ready | ADR-025/020/024(24 联动) |
 | 006 | 呈现白名单与零状态播报 | UI | Ready | ADR-013/018/020 |

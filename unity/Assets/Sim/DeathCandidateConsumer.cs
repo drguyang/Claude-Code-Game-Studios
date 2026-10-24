@@ -42,7 +42,7 @@ namespace DaYiJingCheng.Sim
     public sealed class DeathCandidateConsumer : IDeathCandidateSource
     {
         private readonly PlayerDiedWriter _writer;
-        private readonly Func<int, bool> _deathAllowed;
+        private readonly Func<int, long, bool> _deathAllowed;
         private readonly Func<int, ActorClass> _actorClassOf;
         private readonly Func<int, DiseaseRegistryEntry> _entryOf;
         private readonly Func<int, WorldPos> _deathCellOf;
@@ -51,7 +51,17 @@ namespace DaYiJingCheng.Sim
         /// 构造 29 侧的候选注入点。
         /// </summary>
         /// <param name="writer">`PlayerDied` 写者 —— 本类不直接 Append,写入口唯一。</param>
-        /// <param name="deathAllowed">冷却门求值(story-004 的 `DeathAllowed`)。</param>
+        /// <param name="deathAllowed">冷却门求值(story-004 的 `DeathAllowed(actor, t)`)。
+        /// <para>⚠️ **形参是 <c>(actor, tick)</c> 两元,不是一元 <c>actor</c>** —— 2026-10-24
+        /// story-004 实现轮就地订正(原文不删)。原签名 <c>Func&lt;int, bool&gt;</c> 把 tick
+        /// 固定成「求值那一刻的某个外部时刻」,而 F-29-2 的谓词是
+        /// <c>DeathAllowed(actor, t) ⟺ t − last_death_tick(actor) ≥ DEATH_COOLDOWN</c>
+        /// —— **t 是判据的一半**。一元面下,实现方只能去读墙钟 / 渲染帧 / 一个缓存的
+        /// 「当前 tick」,那正是 story-004 Control Manifest 的 Forbidden 项
+        /// (「墙钟/渲染帧参与冷却」)与 ADR-016 §一 的第四来源。</para>
+        /// <para>tick 的唯一合法来源 = 9 推来的候选自带的那一个
+        /// (<see cref="IDeathCandidateSource.OnDeathCandidate"/> 的第二形参)——
+        /// 判定发生的那一逻辑 tick。本类把它原样转给门,门不另取时刻。</para></param>
         /// <param name="actorClassOf">实体类别查询(判死谓词的第一入参来源)。</param>
         /// <param name="entryOf">该实体当前病种 / 伤情条目查询(判死谓词的第二入参来源)。</param>
         /// <param name="deathCellOf">死亡格查询(装配层从流中取最后一条
@@ -59,7 +69,7 @@ namespace DaYiJingCheng.Sim
         /// <exception cref="ArgumentNullException">任一依赖为 null。</exception>
         public DeathCandidateConsumer(
             PlayerDiedWriter writer,
-            Func<int, bool> deathAllowed,
+            Func<int, long, bool> deathAllowed,
             Func<int, ActorClass> actorClassOf,
             Func<int, DiseaseRegistryEntry> entryOf,
             Func<int, WorldPos> deathCellOf)
@@ -84,9 +94,11 @@ namespace DaYiJingCheng.Sim
             if (!PlayerDeathWarranted(playerId, actorClass, entry))
                 return; // 谓词否决 ⇒ 零写入(写者内还会再复核一次,双重闸)
 
+            // 冷却门求值 —— tick 取**候选自带的那一个**(判据的另一半),
+            // 不另读时钟(见 ctor 的 deathAllowed 注释)。
             _writer.TryWrite(
                 tick, playerId, actorClass, entry,
-                _deathCellOf(playerId), _deathAllowed(playerId));
+                _deathCellOf(playerId), _deathAllowed(playerId, tick));
         }
 
         /// <summary>

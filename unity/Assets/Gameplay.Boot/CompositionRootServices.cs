@@ -84,6 +84,29 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </summary>
         public IDeathCandidateSink DeathCandidates { get; }
 
+        /// <summary>
+        /// 死亡候选的**消费侧**(29 的注入点,2026-10-24 装配)。
+        /// <para>⚠️ 已由装配层 <c>Register</c> 挂进 <see cref="DeathCandidates"/>
+        /// (单消费者契约,构造期一次)—— 装配完成后 <c>DeathCandidates</c> 的
+        /// <c>Consumer</c> 非 null 是**恒成立**的。</para>
+        /// </summary>
+        public DeathCandidateConsumer DeathConsumer { get; }
+
+        /// <summary>
+        /// 死亡冷却门(F-29-2,story-004)。<c>DeathAllowed(actor, t)</c> 从世界流重算
+        /// <c>last_death_tick</c> —— **零计数器**。
+        /// <para>暴露供观测 / 夹具直接求值;生产判据路径是 <see cref="DeathConsumer"/>。</para>
+        /// </summary>
+        public DeathCooldownGate DeathCooldown { get; }
+
+        /// <summary>
+        /// 玩家 actor 花名册 —— 「某 id 是不是玩家」。
+        /// <para>⚠️ <b>由 <c>BootRoot</c> 在生成玩家后登记</b>(id 在装配之后才铸造)。
+        /// 装配刚完成时 <c>Count == 0</c> 是**合法状态**,不是装配失败。</para>
+        /// <para>登记前 <c>ClassOfDeathCandidate</c> 恒 <c>Patient</c> ⇒ 与接线前逐位一致。</para>
+        /// </summary>
+        public PlayerActorRegistry PlayerActors { get; }
+
         /// <summary>42 侧脉案只读数源(sprint-05 T2.1)—— 把 <see cref="VitalsService"/>
         /// 接到 <c>ICasebookDtoSource</c>(42 装配的唯一数据入口)。</summary>
         public CasebookVitalsSource CasebookSource { get; }
@@ -203,6 +226,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          PatientVisualSpawner patientVisualSpawner,
                                          ulong worldSeed, DiseaseVitalsService vitalsService,
                                          IDeathCandidateSink deathCandidates,
+                                         DeathCandidateConsumer deathConsumer,
+                                         DeathCooldownGate deathCooldown,
+                                         PlayerActorRegistry playerActors,
                                          CasebookVitalsSource casebookSource,
                                          ExaminationLedger examinationLedger,
                                          ExamineDriver examineDriver,
@@ -241,6 +267,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             PatientVisualSpawner = patientVisualSpawner;
             VitalsService = vitalsService;
             DeathCandidates = deathCandidates;
+            DeathConsumer = deathConsumer;
+            DeathCooldown = deathCooldown;
+            PlayerActors = playerActors;
             CasebookSource = casebookSource;
             ExaminationLedger = examinationLedger;
             ExamineDriver = examineDriver;

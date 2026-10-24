@@ -1664,6 +1664,35 @@ constants:
     added: 2026-09-15
     revised: "2026-10-22 —— 用户裁定,值由「待定」改为裁定值"
 
+  # ── DEATH_COOLDOWN ────────────────────────────────────────────────────
+  # 29 的死亡冷却长度(F-29-2)。2026-10-24 补登记 —— 此前它只活在
+  # `death-and-respawn.md:280/:304/:336` 的正文与 `SimEvent.Kind.PlayerDied` 的
+  # 有界性措辞(`上界 ≤ 玩家数 / DEATH_COOLDOWN`)里,**没有独立块**。
+  # 归属:29 死亡与复活拥有(不是 9 的量 —— 9 只是它的写入被它闸住)。
+  # ⚠️ 它**不在** `DiseaseConstantRegistryGate.RequiredConstants` 里:那个门是 9 的常量门,
+  #   把 29 的量塞进去 = 跨域扩门。本块的机械判据(块存在 + 值与 C# const 同值)
+  #   落在 `unity/Assets/Tests/EditMode/DeathRespawn/death_cooldown_test.cs`。
+  - name: DEATH_COOLDOWN
+    status: active
+    source: design/gdd/death-and-respawn.md
+    referenced_by:
+      - design/gdd/death-and-respawn.md      # F-29-2 `DeathAllowed(actor,t) ⟺ t − last_death_tick(actor) ≥ DEATH_COOLDOWN`
+      - design/gdd/death-and-respawn.md      # EC 表「冷却内再次致死」行(OQ-29-4 结案:零事件)
+      - design/registry/entities.yaml        # SimEvent.Kind.PlayerDied 的 payload_schema 有界性分母(上界 ≤ 玩家数 / 本值)
+      - unity/Assets/Sim/DeathCooldownGate.cs  # 实现取值 `DeathCooldownGate.DEATH_COOLDOWN`(两侧须同值)
+    value: "2400 tick(@ 20 Hz = 120 秒)—— **2026-10-06 代拍裁定,值可调**(`death-and-respawn.md:280` / `:304`)。
+      ⚠️ 实现侧另有一个字面量 `DeathCooldownGate.DEATH_COOLDOWN`(与
+      `StateMachine.TREATMENT_WINDOW` 同格):常量块是**跨文档一致性登记**,const 是**实现取值**。
+      两者同批落盘、语义同一 —— 改值须两处同改,否则「登记说 2400、代码跑别的」静默分叉。
+      同值由 `death_cooldown_test.cs` 的 `test_registry_valueMatchesImplementationConst` 机械钉住。"
+    unit: ticks
+    constraint: "**须 > 0** —— 0 或负值会让 `DeathAllowed` 恒真,冷却静默退化为不存在,
+      而门的外观完好(`DeathCooldownGate` 构造期显式抛 `ArgumentOutOfRangeException`,非静默)。
+      GDD 原文:`须 > 0,否则「无限刷死」= 掉落经济漏洞`(自杀清负重)。
+      本值**不改变** `last_death_tick` 的唯一来源 = 世界流 `PlayerDied` 重算(零独立计数器,AC-29-15)"
+    added: 2026-10-24
+    revised: ""
+
   - name: TREND_EPS
     status: active
     source: design/gdd/disease-simulation.md
