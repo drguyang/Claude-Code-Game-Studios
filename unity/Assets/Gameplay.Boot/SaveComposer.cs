@@ -1,16 +1,17 @@
-// 存档组版器 —— S19-1 判据 ④ 的「位置半」落点。
+// 存档组版器 —— S19-1 判据 ④ 位置半 + 委托半的落点;
+// 2026-10-24 `TD-persist-03` 修复轮完成**字节半**(动作 ③⑤,用户四裁定)。
 //
 // 权威来源:
-//   ADR-010 §一 —— 存档布局 = 头部 + 三流 + 快照;全二进制,显式小端
-//     ⚠️ **今日实现 ≠ 该目标**:本类只组「头部 + 病史流段」两段。三流布局
-//        (`TD-persist-03` 动作 ③ 的 ADR 级二选一)+ 快照段 + 折叠段均**未实现**。
-//        见下方 §今日布局与丢弃面。
+//   ADR-010 §一 + §一增补(本批 2026-10-24)—— 存档体 v1 布局 =
+//     `头部 + 事件段(三流合一单列表)+ 折叠段`;快照段 / 分册态段**留待后续**
+//     (`SnapshotOffset` 写 0 哨兵)。用户裁定:**修 ADR-010 承认单列表**(甲案),
+//     不实现物理分块;病例流 / 世界流**必须进存档**(消灭 S19-1 版的静默丢弃)。
 //   ADR-010 §四 —— 校验和覆盖 checksum 字段之后的全部字节
 //   ADR-010 §六 —— Checkpoint 唯一写入口;组版由构造注入的 compose 委托提供
 //   ADR-010 §三 义务 G-2 —— 折叠谓词 + 折叠行产出
 //   ADR-026 §⑦ —— 折叠谓词 `Folded(p)` 豁免 `SkillGrown` 行(案 1)
 //   production/qa/evidence/s19-1-fold-adjudication-2026-10-24.md §二(甲-a 接线形态)
-//   production/sprints/sprint-19.md §S19-1 判据 ④ 位置半
+//   docs/tech-debt-register.md TD-persist-03(本类兑现其动作 ③ + ⑤ 与卡住判据的字节半)
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // 为什么本类住 `Gameplay.Boot`(而不是 `Sim.Codec`)
@@ -27,40 +28,17 @@
 //    原件 = `production/qa/evidence/s19-1-fold-adjudication-2026-10-24.md` §五。
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// 今日布局与丢弃面(`/code-review` S19-1 C-1,2026-10-24)
+// 布局(v1 · 本批定稿;S19-1 旧版「头部 + 病史流两段」已成历史,见证据原件 §旧布局)
 // ─────────────────────────────────────────────────────────────────────────────
-// 今日产出 = `magic + SHA256 + 头部其余字段 + 病史流事件段`。**两段,不是三流。**
-//   · **病例流**(37 的判断记录)· **世界流**(POI / 建造 / 掉落 / 敌人伤情)
-//     ⇒ **既不折叠也不落盘,直接不进存档**。今日**无守卫**(静默丢弃)。
-//
-// ⚠️ **这不是新缺口,底层已登记** —— `TD-persist-03` 动作 ③(「单列表 vs 头部+三流」,
-//    ADR 级二选一,须走 `/architecture-decision`)与动作 ⑤(折叠段布局)。
-//    本注释的任务只是**让自述与实现一致**(原文曾写「布局 = 头部 + 三流 + 快照」= 目标,非现状)。
-//
-// ⚠️ **与折叠行的处置不对称,是刻意的、有理由的**:
-//   · 折叠行:被折的病史行**已被 `Erase` 抹掉** ⇒ 折叠行不落盘 = 数据**当场不可恢复** ⇒ **必须抛**;
-//   · 病例流 / 世界流:两条流**仍活在 `EventStream` 里**,本次存档不含它们不销毁任何东西 ——
-//     代价是「这份档读回来少了这两条流」,而 `Load` 今日**零生产消费者**(实测
-//     `grep -rn "\.Load(\|\.Checkpoint(\|\.SaveOnExit(" unity/Assets --include=*.cs | grep -v Tests/`
-//     ⇒ 仅命中无关的 `SkillTuningTable.Load` / `AudioSettingsStore.Load`)⇒ 无可观测后果。
-//   ⇒ 若将来裁定「对称 fail-loud」,改点 = `Compose` 里对 `caseStream.Count` /
-//     世界流 `Count` 各加一条 `throw`(与 `:143` 同款);**不在本次做**,因为那会把
-//     「存档在真实对局中永不成功」从隐含变成显式 —— 属产品取舍,须另裁。
-//
-// ⚠️ 本类**只完成判据 ④ 的位置半 + 委托半**,不完成字节半
-// ─────────────────────────────────────────────────────────────────────────────
-// 判据 ④ 字节半(「`Checkpoint` 产出的字节里折叠行出现」)= **NOT-RUN**
-// (用户 2026-10-24 裁定:并入 `TD-persist-03`)。缺口逐条实测见 adjudication 原件 §三 B-1…B-6:
-//   B-1 `SaveHeader` 七字段无折叠段偏移(只有 `SnapshotOffset`)
-//   B-2 `Sim.Codec` 内零 `FoldRow` 编码器
-//   B-3 全库无任何存档体生产器(本类是**第一个**,但只组「头部 + 事件列表」两段)
-//   B-4 `SimEventCodec.Decode` 只解单事件头部(列表容器 = `SimEventListCodec`,S19-1 新写)
-//   B-5 `CodecWriter` 的数组写只有定长 `WriteFieldArrayInt32/Int64`
-//   B-6 `SaveHeader` 无读回方法(读回 = `SaveHeaderCodec.Read`,S19-1 新写)
-//
-// ⇒ 本类遇到「确实需要产出折叠行」时**fail-loud 抛出**,而不是写一个丢了折叠行的存档
-//    —— 折叠行未落盘 = 被抹掉的病史行不可恢复(`HistoryFolder.Erase` 不可逆)。
-//    「写坏档」比「写不出档」严重得多。
+//   [头部(headerSize) | 事件段(count 前缀 + 逐事件) | 折叠段(count 前缀 + 定长行)]
+//   · 事件段 = **三流合一**(病史 + 病例 + 世界,按 `EventStream` 追加序 = Tick 非降);
+//     折叠病人的病史行**从事件段抹除**(替换为其 Retained),折叠行落折叠段。
+//   · 折叠段自描述(count 前缀)⇒ **无需头部偏移字段** —— S19-1 判据 B-1 的
+//     「SaveHeader 无折叠段偏移」就此按「不需要」结案,不是「补字段」。
+//     `SnapshotOffset` 仍为快照段预留,本批恒写 0(哨兵 = 无快照段)。
+//   · 读侧对称性:`SaveService.Load` 事件段读尽后**必见**折叠段(≥4 字节),
+//     原始字节交注入的折叠行委托,装配根经 `FoldRowCodec` 解回行(见其文件头)。
+// ═════════════════════════════════════════════════════════════════════════════
 
 using System;
 using System.Collections.Generic;
@@ -74,9 +52,8 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// 存档组版器 —— 把 sim 的当前状态折成一份存档字节(含校验和槽)。
     /// <para><b>纯函数</b>(无 I/O、无墙钟、无表现态):同样的事件流 + 同样的谓词 ⇒ 同样字节。
     /// 写盘归 <c>SaveService.SaveBytes</c>,不在本类。</para>
-    /// <para>⚠️ <b>今日只组「头部 + 病史流段」两段</b>,病例流 / 世界流**不进存档**
-    /// (静默丢弃,已登记 `TD-persist-03` 动作 ③)。<b>不是</b>「完整的存档字节」——
-    /// 见文件头 §今日布局与丢弃面。</para>
+    /// <para>⚠️ <b>v1 布局</b>(本批定稿):头部 + 事件段(三流合一,折叠病人行已抹)+
+    /// 折叠段。快照段 / 分册态段留待后续(<c>SnapshotOffset = 0</c> 哨兵)。</para>
     /// </summary>
     public static class SaveComposer
     {
@@ -84,30 +61,24 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 组版一份存档。
         /// </summary>
         /// <param name="allEvents">三流合并视图(`EventStream.Events`;本类按
-        /// <see cref="StreamRouting.Of"/> 自行分流,不假设调用方已分好)。</param>
+        /// <see cref="StreamRouting.Of"/> 自行识别病史流,不假设调用方已分好)。</param>
         /// <param name="folded">折叠谓词(判定归它 —— 本类只执行,不重复判)。</param>
         /// <param name="decoder">载荷解码器(ADR-031;`HistoryFolder.Fold` 的必需入参)。</param>
         /// <param name="codec">事件编解码器。</param>
         /// <param name="worldSeed">世界种子(存档头,ADR-007 §二)。</param>
-        /// <param name="configVersion">配置版本(存档头,ADR-014 §五)。⚠️ 见下方缺口注。</param>
+        /// <param name="configVersion">配置版本(存档头,ADR-014 §五)。
+        /// ⚠️ 生产路径 = `CompositionRoot` 的全局组合值(22 份产物头 FNV-1a 组合,
+        /// 2026-10-24 `TD-epic-01-f` 接线;此处不做口径,只透传)。</param>
         /// <param name="tick">当前逻辑 tick(存档头)。</param>
-        /// <returns>完整存档字节:`magic + SHA256 + 头部其余字段 + 事件列表段`。</returns>
+        /// <param name="existingFoldedRows">
+        /// 读档恢复后**已在 sim 里**的折叠行(<c>EventStream.FoldedRows</c>)。
+        /// <para>⚠️ <b>回写义务,不是可选优化</b>:被折叠病人的病史行已从流中抹除
+        /// ⇒ 本次折叠循环<b>看不见他们</b>,不回写 = 二次 Checkpoint 静默丢折叠行
+        /// = 当年 fail-loud 要防的同一件事。生产路径恒传;缺省 null 视为空
+        /// (全新会话首存,折叠段只含本轮新折的行)。</para>
+        /// </param>
+        /// <returns>完整存档字节:头部 + 事件段 + 折叠段(含校验和)。</returns>
         /// <exception cref="ArgumentNullException">任一引用入参为 null。</exception>
-        /// <exception cref="NotSupportedException">
-        /// 存在**需要折叠**的病人(谓词为真且产出折叠行)—— 折叠行字节编码器尚不存在
-        /// (`TD-persist-03` 动作 ③/⑤)。**拒绝写出丢掉折叠行的存档。**
-        /// </exception>
-        /// <remarks>
-        /// ⚠️ <b>`configVersion` 的运行期来源缺口(如实登记,不假装解决)</b>:
-        /// ADR-014 §五 定 `ConfigVersion` = 源数据集内容哈希派生,而派生器
-        /// (`ConfigVersionUtility`)住 `Editor.Tools.Bake` —— **不进构建**。
-        /// 运行期各烘焙数据集**各带一份**自己的 `ConfigVersion`,**无全局当前值**
-        /// (`grep -rn "ConfigVersion" unity/Assets/Gameplay.Boot unity/Assets/Sim unity/Assets/Telemetry`
-        /// 除 51 的比对件外零命中)。
-        /// ⇒ 装配根今日传 <c>0</c> 占位。后果:51 的 `AC-51-D7`(存档头 ConfigVersion 与当前产物比对)
-        /// 在 P0 恒「匹配」—— <b>这是假绿形态,不得读成「版本比对已实现」</b>。
-        /// 真来源归 `TD-persist-03`(与三流字节布局同批裁)。
-        /// </remarks>
         public static byte[] Compose(
             IReadOnlyList<SimEvent> allEvents,
             IFoldedPredicate folded,
@@ -115,39 +86,48 @@ namespace DaYiJingCheng.Gameplay.Boot
             ISaveCodec codec,
             ulong worldSeed,
             uint configVersion,
-            long tick)
+            long tick,
+            IReadOnlyList<FoldRow> existingFoldedRows = null)
         {
             if (allEvents == null) throw new ArgumentNullException(nameof(allEvents));
             if (folded == null) throw new ArgumentNullException(nameof(folded));
             if (decoder == null) throw new ArgumentNullException(nameof(decoder));
             if (codec == null) throw new ArgumentNullException(nameof(codec));
 
-            IReadOnlyList<SimEvent> history = FilterByStream(allEvents, StreamId.History);
-            // ⚠️ 刻意**不取**病例流 / 世界流 —— 今日布局无它们的段(见文件头 §今日布局与丢弃面)。
-            //    原文此处 `FilterByStream(allEvents, StreamId.Case)` 的产出被传给 `FoldHistory`
-            //    却在该方法体内**零次使用**(`/code-review` S19-1 C-1 实测),是**死形参**;
-            //    留着会让调用点看起来「考虑了病例流」。已删。
+            // 折叠循环:逐病人(升序,确定性)执行 Fold;新折的行进 rowsAccum,
+            // 处理后的病史(被抹行的)留在 currentHistory。
+            var rowsAccum = new List<FoldRow>();
+            if (existingFoldedRows != null && existingFoldedRows.Count > 0)
+                rowsAccum.AddRange(existingFoldedRows); // 回写在前 —— 行序 = 既有行在前、新折行在后(确定性)
 
-            IReadOnlyList<SimEvent> body = FoldHistory(history, folded, decoder);
+            IReadOnlyList<SimEvent> history = FilterByStream(allEvents, StreamId.History);
+            IReadOnlyList<SimEvent> currentHistory = FoldHistory(history, folded, decoder, rowsAccum);
+
+            // 把处理后的病史按原位置拼回全局序:非病史事件原样,病史事件从
+            // currentHistory 顺序取(Fold 的 Retained 保持原相对序 ⇒ 指针拼接是恒等的)。
+            List<SimEvent> finalEvents = SpliceBack(allEvents, currentHistory);
 
             byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, configVersion, tick, 0UL);
-            byte[] events = SimEventListCodec.Encode(body, codec);
+            byte[] events = SimEventListCodec.Encode(finalEvents, codec);
+            byte[] foldedSegment = FoldRowCodec.EncodeSegment(rowsAccum);
 
-            var combined = new byte[header.Length + events.Length];
+            var combined = new byte[header.Length + events.Length + foldedSegment.Length];
             Array.Copy(header, 0, combined, 0, header.Length);
             Array.Copy(events, 0, combined, header.Length, events.Length);
+            Array.Copy(foldedSegment, 0, combined, header.Length + events.Length, foldedSegment.Length);
             return SaveService.AddChecksum(combined);
         }
 
         /// <summary>
         /// 逐病人执行折叠。**这是 `HistoryFolder.Fold` 的生产调用点**(判据 ④ 位置半 (i))。
-        /// <para>谓词为假的病人原样保留;谓词为真 ⇒ 调 `Fold`,而其产出**必须能落字节** ——
-        /// 今日不能 ⇒ 抛。</para>
+        /// <para>谓词为假的病人原样保留;谓词为真 ⇒ 调 `Fold`,其折叠行进
+        /// <paramref name="rowsOut"/>,其 Retained 成为本轮病史。</para>
         /// </summary>
         private static IReadOnlyList<SimEvent> FoldHistory(
             IReadOnlyList<SimEvent> history,
             IFoldedPredicate folded,
-            IPayloadDecoder decoder)
+            IPayloadDecoder decoder,
+            List<FoldRow> rowsOut)
         {
             List<int> patients = CollectPatientIds(history);
             if (patients.Count == 0) return history;
@@ -166,20 +146,54 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // ⚠️ 零行 = 恒等折叠。**今日该分支不可达**(进循环前已用同一谓词判过为真,
                 //    而 `FoldedPredicate` 自陈无状态缓存 ⇒ `Fold` 内部不会反悔),留着是防御。
                 //    它**不得**被读成「安全路径」—— 若谓词将来变为有状态,这里会静默吞掉
-                //    本该 `throw` 的情形(`/code-review` S19-1 R-2)。
+                //    本该落折叠行的情形(S19-1 `/code-review` R-2)。
                 if (result.Rows.Count == 0) continue;
 
-                // ⚠️ 有折叠行要落盘,但折叠行编码器不存在 ⇒ fail-loud。
-                //    静默只写 Retained 会**永久抹掉**被折病人的病史行(不可逆)。
-                throw new NotSupportedException(
-                    $"病人 {patientId} 产出了 {result.Rows.Count} 条折叠行,但存档体尚无折叠段布局 —— " +
-                    "拒绝写出丢掉折叠行的存档(被抹掉的病史行不可恢复)。" +
-                    "折叠段字节编码器归 TD-persist-03(动作 ③ 三流字节布局 / 动作 ⑤ 折叠段)。" +
-                    "本条 = S19-1 判据 ④ 字节半的 NOT-RUN 事实,不得标绿。");
+                rowsOut.AddRange(result.Rows);
+                current = result.Retained;
             }
 
             return current;
         }
+
+        /// <summary>
+        /// 把处理后的病史(被抹行的)按**原位置**拼回全局事件序。
+        /// <para>判定法 = **键集成员**:折叠抹行后 `processedHistory` 比原病史子列**短**
+        /// (被折病人的行没了)⇒ 位置指针拼接必越界;改为对每条病史事件判
+        /// 「是否在处理后的集合里」,不在 = 被抹,跳过。键 = 流内身份
+        /// (Kind, Patient, Tick, Seq)—— 与 `EventStream` 去重键同构,流内唯一。</para>
+        /// <para>事件段乱序 = 重放不确定 ⇒ 拼接保持原全局序(被抹行缺失)。</para>
+        /// </summary>
+        private static List<SimEvent> SpliceBack(
+            IReadOnlyList<SimEvent> allEvents,
+            IReadOnlyList<SimEvent> processedHistory)
+        {
+            var retained = new HashSet<string>();
+            for (int i = 0; i < processedHistory.Count; i++)
+                retained.Add(IdentityKey(processedHistory[i]));
+
+            var final = new List<SimEvent>(allEvents.Count - processedHistory.Count);
+            for (int i = 0; i < allEvents.Count; i++)
+            {
+                SimEvent e = allEvents[i];
+                if (StreamRouting.Of(e.Kind) == StreamId.History)
+                {
+                    if (retained.Contains(IdentityKey(e)))
+                        final.Add(e);      // 幸存的原位保留
+                    // else:被折叠抹除 —— 原位跳过(缺失是本布局的语义,不是错位)
+                }
+                else
+                {
+                    final.Add(e); // 病例流 / 世界流原样进档(本批起不再静默丢弃)
+                }
+            }
+            return final;
+        }
+
+        /// <summary>病史事件身份键(流内唯一,与 EventStream 去重键同构;
+        /// 载荷身份不进键 —— 被折行与其幸存副本不会同键共存)。</summary>
+        private static string IdentityKey(in SimEvent e)
+            => $"{e.Kind}_{e.Patient.Value}_{e.Tick}_{e.Seq}";
 
         /// <summary>
         /// 病史流里出现过的病人 id(升序去重;`PatientId.None` = 世界级事件,不是可折叠对象)。

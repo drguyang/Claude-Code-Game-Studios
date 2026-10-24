@@ -32,6 +32,7 @@ namespace DaYiJingCheng.Sim.Codec
         private readonly IFoldedPredicate _folded;
         private readonly Func<bool> _narrativeContext;
         private readonly Action<IReadOnlyList<SimEvent>> _replaySink;
+        private readonly Action<byte[]> _foldedRowSink;
         private readonly Func<SaveSlot, byte[]> _compose;
         private readonly SaveSlotLedger _ledger;
 
@@ -62,7 +63,19 @@ namespace DaYiJingCheng.Sim.Codec
         /// 重放交出委托(`PRE-S19-D` 甲案)。<see cref="Load"/> 解出事件列表后交给它。
         /// <para>⚠️ <b>未注入 ⇒ <see cref="Load"/> 在进 `Replaying` 前抛具名异常</b>,
         /// 禁静默跳过(静默跳过 = 假绿入口)。</para>
-        /// <para>真重放(列表 → sim 状态)归 `TD-persist-03`,不在本类。</para>
+        /// <para>🔁 `TD-persist-03` 修复轮:委托的实现 = 装配根把列表喂给
+        /// `EventStream.Restore`(绕 CAP、留去重/单调、Seq 不重发 —— 用户 2026-10-24
+        /// 裁定「三分化」);本类只负责解出与交出,状态重建语义在 `Sim` 侧。</para>
+        /// </param>
+        /// <param name="foldedRowSink">
+        /// 折叠段交出委托(`TD-persist-03` 动作 ⑤)。<see cref="Load"/> 在事件段之后
+        /// 把折叠段**原始字节**交给它 —— 本类看不见 <c>FoldRow</c>(住 `Sim`,兄弟装配),
+        /// 解码在装配根经 `FoldRowCodec` 完成(与 compose 同一「唯一双见装配」手法)。
+        /// <para>⚠️ <b>未注入 ⇒ <see cref="Load"/> 在折叠段解析前抛具名异常</b>(fail-closed):
+        /// 折叠行是被折叠病人病史的唯一残留,静默丢弃 = 不可逆数据丢失。</para>
+        /// <para>⚠️ 契约次序:<b>先</b> <paramref name="replaySink"/>(事件列表)
+        /// <b>后</b>本委托(折叠段字节)—— 装配根的恢复闭包依赖此次序
+        /// (折叠行到达时事件列表必须已在手)。</para>
         /// </param>
         /// <param name="compose">
         /// 组版委托:`SaveSlot → 完整存档字节(含校验和槽)`。
@@ -78,6 +91,7 @@ namespace DaYiJingCheng.Sim.Codec
             IFoldedPredicate folded = null,
             Func<bool> narrativeContext = null,
             Action<IReadOnlyList<SimEvent>> replaySink = null,
+            Action<byte[]> foldedRowSink = null,
             Func<SaveSlot, byte[]> compose = null)
         {
             _basePath = basePath ?? throw new ArgumentNullException(nameof(basePath));
@@ -85,13 +99,16 @@ namespace DaYiJingCheng.Sim.Codec
             _folded = folded;
             _narrativeContext = narrativeContext;
             _replaySink = replaySink;
+            _foldedRowSink = foldedRowSink;
             _compose = compose;
             // 台账与 SaveService 共用**同一个**钩子实例 ⇒ 「一个量」在类型层面成立
             // ⚠️ 高水位初值今日**恒为 0**(用默认形参)。`SaveSlotLedger` 的 doc 写「初值由装配层
             //    按『本会话从哪个槽位起步』决定」,而装配层**无任何通道可传**(`SaveService` 构造
             //    不暴露该形参)—— 那句承诺**今日落空**(`/code-review` S19-1 W-4)。
-            //    「从槽位 N 续玩」= 读档后高水位应从存档恢复,归 `TD-persist-03`(锁与高水位
-            //    都是会话内存,ADR-010 §六 ⇒ 恢复点须由读档路径给,不是构造期猜)。
+            //    「从槽位 N 续玩」= 读档后高水位应从存档恢复。🔁 2026-10-24:原注记指向
+            //    `TD-persist-03`,但该债的裁定面(重放 + 字节布局)不含台账初值 —— **W-4 未随
+            //    其兑现,仍 open**(证据件 impl-td-persist-03 §六 如实登记;恢复点须由读档
+            //    路径给,ADR-010 §六;落点随读档 UX / 槽位台账轮)。
             _ledger = new SaveSlotLedger(narrativeContext);
             Directory.CreateDirectory(_basePath);
         }
@@ -265,8 +282,11 @@ namespace DaYiJingCheng.Sim.Codec
         }
 
         /// <summary>
-        /// 读档。`Gating` → `Verifying` → 头部解析 → 迁移链三分支 → `Replaying` 前半段。
-        /// <para>⚠️ <b>真重放(列表 → sim 状态)不在本方法内</b> —— 归 `TD-persist-03`。</para>
+        /// 读档。`Gating` → `Verifying` → 头部解析 → 迁移链三分支 → `Replaying`
+        /// (事件列表 + 折叠段原始字节,经注入委托交出)。
+        /// <para>🔁 `TD-persist-03` 修复轮:状态重建 = 装配根把两者喂给
+        /// <c>EventStream.Restore(events, rows)</c>(绕 CAP、留去重/单调、Seq 不重发);
+        /// 本类只解出与交出。委托次序 = 先事件、后折叠段(见构造器 doc)。</para>
         /// </summary>
         /// <exception cref="InvalidOperationException">
         /// 未注入 <c>narrativeContext</c>(fail-closed);不在叙事上下文内;槽位已锁;
@@ -313,35 +333,53 @@ namespace DaYiJingCheng.Sim.Codec
                     "—— 升链(逐版本迁移)尚未实现,拒绝按当前版本布局静默解析旧档" +
                     "(布局变更下的静默错读不可接受)。真迁移归 TD-persist-03。");
 
-            // ── Replaying 前半段:字节 → 列表,经注入委托交出 ──
+            // ── Replaying:解出事件列表 + 折叠段,经注入委托交出 ──
+            // 🔁 TD-persist-03 修复轮:契约次序 = 先事件列表、后折叠段字节
+            //    (装配根的恢复闭包依赖此次序 —— Restore(events, rows) 要两者齐手)。
             if (_replaySink == null)
                 throw new InvalidOperationException(
                     "未注入 replaySink —— 拒绝静默跳过 Replaying" +
-                    "(静默跳过 = 假绿入口;真重放归 TD-persist-03)");
+                    "(静默跳过 = 假绿入口)");
+            if (_foldedRowSink == null)
+                throw new InvalidOperationException(
+                    "未注入 foldedRowSink —— 拒绝读档(折叠行是被折叠病人病史的唯一残留," +
+                    "静默丢弃 = 不可逆数据丢失;TD-persist-03 动作 ⑤)");
 
-            IReadOnlyList<SimEvent> events = ReadEventSegment(data);
+            IReadOnlyList<SimEvent> events;
+            byte[] foldedSegment;
+            ParseBody(data, out events, out foldedSegment);
             _replaySink(events);
+            _foldedRowSink(foldedSegment);
 
             // ── 锁在 Verifying 通过后置位(用户 2026-10-24 裁定 A) ──
             _ledger.OnLoaded(slot);
         }
 
         /// <summary>
-        /// 从完整存档字节解出事件列表。
-        /// <para>布局 = 头部(<see cref="SaveHeaderCodec.HeaderSize"/>)+ 事件列表段。
-        /// ⚠️ <b>快照段 / 分册态段 / 折叠段的布局尚未定义</b>(`TD-persist-03` 动作 ③/⑤)
-        /// ⇒ 今日只解「头部之后就是事件列表」这一形态。</para>
+        /// 解存档体:v1 布局 = <c>事件段(count 前缀 + 逐事件)</c> + <c>折叠段(count 前缀 + 定长行)</c>。
+        /// <para>事件段由 <see cref="SimEventListCodec"/> 读尽;其后<b>必跟</b>折叠段
+        /// (ADR-010 §一 增补,2026-10-24)—— 不足 4 字节 count 前缀即抛(旧两段式布局
+        /// 是本批之前的形态,按损坏拒收)。</para>
+        /// <para>⚠️ 折叠段以<b>原始字节</b>交出(本类看不见 <c>FoldRow</c>,解码归装配根)。</para>
         /// </summary>
-        private IReadOnlyList<SimEvent> ReadEventSegment(byte[] data)
+        private void ParseBody(byte[] data, out IReadOnlyList<SimEvent> events, out byte[] foldedSegment)
         {
             int offset = SaveHeaderCodec.HeaderSize;
             if (data.Length < offset)
                 throw new InvalidDataException(
                     $"存档长度 {data.Length} 不足头部 {offset} 字节,无法进入事件段");
 
-            byte[] segment = new byte[data.Length - offset];
-            Array.Copy(data, offset, segment, 0, segment.Length);
-            return SimEventListCodec.Decode(segment, _codec);
+            var r = new CodecReader(new ReadOnlySpan<byte>(data, offset, data.Length - offset));
+            // 🔁 复合体读:事件段后还有折叠段 ⇒ 用无读尽断言的 ReadWithinBody;
+            //    存档体的读尽由折叠段的自描述 count + 其读尽校验闭合(DecodeSegment)。
+            events = SimEventListCodec.ReadWithinBody(ref r, _codec);
+
+            if (r.Remaining < 4)
+                throw new InvalidDataException(
+                    $"存档事件段后缺折叠段(v1 布局 = 头部 + 事件段 + 折叠段),仅剩 {r.Remaining} 字节" +
+                    "—— 旧两段式布局按损坏拒收(TD-persist-03 修复轮起折叠段为必备段)");
+
+            foldedSegment = r.ReadBytes(r.Remaining);
         }
 
         private void RequireNarrativeContext()

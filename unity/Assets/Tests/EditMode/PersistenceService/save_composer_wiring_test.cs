@@ -6,13 +6,14 @@
 //   ADR-010 §六(Checkpoint 唯一写入口)· ADR-025 §①(Sim / Sim.Codec 互不可见)
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// ⚠️ 本文件**不**测判据 ④ 的字节半
+// 🔁 2026-10-24 `TD-persist-03` 修复轮:字节半**已在本文件兑现**
 // ─────────────────────────────────────────────────────────────────────────────
-// 字节半(「`Checkpoint` 产出的字节里折叠行出现」)= **NOT-RUN**,归 `TD-persist-03`
-// (用户 2026-10-24 裁定)。本文件里 `test_compose_*` 那几条证明的是
-// 「组版器在**有折叠行要落盘**时 fail-loud 而不是写坏档」——
-// 那**不是**字节半的替代品,而是它的**缺失证据**:正因为字节布局不存在,
-// 组版器只能抛。**不得**把这几条绿读成「字节半已满足」。
+// S19-1 版本文件头曾写「本文件不测字节半」—— 当时折叠行编码器不存在,
+// `test_compose_foldablePatient_*` 那条以「须抛」证明其缺失。
+// 本轮编码器落地(`FoldRowCodec`)+ 布局定稿(v1 = 头部 + 事件段 + 折叠段),
+// 该条**就地改写**为「行确实进字节」,并新增:既有行回写 / 空段 / 反向判据
+// (谓词假 ⇒ 与不折叠逐位相同)/ 三流全进段。
+// 旧断言改写缘由逐条见各测试内 🔁 注;原件 = 证据文件 §测试改写。
 //
 // 写盘边界:本文件零写盘(纯内存组版)。
 
@@ -96,6 +97,16 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 decoder: _decoder);
         }
 
+        /// <summary>v1 布局读回帮助:事件段 + 折叠段(与 SaveService.ParseBody 同口径)。</summary>
+        private static void ParseBody(
+            byte[] bytes, out IReadOnlyList<SimEvent> events, out IReadOnlyList<FoldRow> foldRows)
+        {
+            var r = new CodecReader(bytes.AsSpan(SaveHeaderCodec.HeaderSize));
+            // 复合体:事件段用无读尽断言的读(其后还有折叠段),末段由折叠段读尽闭合。
+            events = SimEventListCodec.ReadWithinBody(ref r, new SaveCodec());
+            foldRows = FoldRowCodec.DecodeSegment(r.ReadBytes(r.Remaining));
+        }
+
         // ══════════════════════════════════════════════════════════════════
         // 判据 ④ 位置半 (i) —— `HistoryFolder.Fold` 有生产调用点
         // ══════════════════════════════════════════════════════════════════
@@ -158,10 +169,12 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Assert.AreEqual(3U, h.ConfigVersion);
             Assert.AreEqual(10L, h.Tick);
 
-            IReadOnlyList<SimEvent> back = SimEventListCodec.Decode(
-                bytes.AsSpan(SaveHeaderCodec.HeaderSize).ToArray(), new SaveCodec());
+            IReadOnlyList<SimEvent> back;
+            IReadOnlyList<FoldRow> foldRows;
+            ParseBody(bytes, out back, out foldRows);
             Assert.AreEqual(1, back.Count, "未折叠 ⇒ 事件原样保留");
             Assert.AreEqual(EventKind.DiseaseOnset, back[0].Kind);
+            Assert.AreEqual(0, foldRows.Count, "未折叠 ⇒ 折叠段零行");
         }
 
         [Test]
@@ -201,14 +214,17 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // ⚠️ 折叠行要落盘 ⇒ fail-loud(这是**字节半 NOT-RUN 的证据**,不是替代品)
+        // 判据 ④ 字节半(TD-persist-03 动作 ⑤ · 2026-10-24 修复轮兑现)
         // ══════════════════════════════════════════════════════════════════
 
         [Test]
-        public void test_compose_foldablePatient_throwsInsteadOfWritingSaveWithoutFoldedRows()
+        public void test_compose_foldablePatient_writesFoldRowsIntoFoldedSegment()
         {
-            // 病人 A:单病种、已终态、非豁免、无未结案 ⇒ 谓词为真 ⇒ 有折叠行要落盘。
-            // 折叠行编码器不存在 ⇒ 必须抛,不得写出一份「抹掉了病史行却没有折叠行」的存档。
+            // 病人 A:单病种、已终态、非豁免、无未结案 ⇒ 谓词为真 ⇒ 有折叠行落折叠段。
+            // 🔁 本条改写自 S19-1 版的 `..._throwsInsteadOfWritingSaveWithoutFoldedRows`:
+            //    当时编码器不存在 ⇒ fail-loud 是字节半 NOT-RUN 的**缺失证据**;
+            //    本轮(TD-persist-03)编码器落地,断言**翻转**为「行确实进字节」——
+            //    旧断言(须抛)在新实现下必红,按「同批改而非删」纪律就地改写。
             var events = new[]
             {
                 Onset(10L, PatientA, DiseaseSelfLimit),
@@ -219,30 +235,107 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             Assert.IsTrue(Predicate(events).Folded(PatientA), "前提:该病人须可折");
 
-            var ex = Assert.Throws<NotSupportedException>(() => SaveComposer.Compose(
+            // Act
+            byte[] bytes = SaveComposer.Compose(
                 events, Predicate(events), _decoder, new SaveCodec(),
-                worldSeed: 1UL, configVersion: 0U, tick: 30L));
+                worldSeed: 1UL, configVersion: 0U, tick: 30L);
 
-            StringAssert.Contains("折叠行", ex.Message);
-            StringAssert.Contains("TD-persist-03", ex.Message,
-                "报文须点名归属件 —— 否则读者会以为这是 bug 而不是已登记缺口");
+            // Assert —— 事件段:被折病人的**病史流**行已抹;折叠段:行在场。
+            // ⚠️ 断言面收窄到病史流:夹具里的 CaseEvent 也带 PatientA,但那是病例流
+            //    行 —— 折叠只抹病史流,病例行不是被折对象(ADR-008 §六 折叠不物理化)。
+            var r = new CodecReader(bytes.AsSpan(SaveHeaderCodec.HeaderSize));
+            IReadOnlyList<SimEvent> back = SimEventListCodec.ReadWithinBody(ref r, new SaveCodec());
+            Assert.IsFalse(back.Any(e => e.Patient.Value == PatientA
+                                      && StreamRouting.Of(e.Kind) == StreamId.History),
+                "被折病人的病史行须已从事件段抹除(折叠丢弃流位置;病例流行不在折叠面)");
+            Assert.IsFalse(back.Any(e => e.Kind == EventKind.DiseaseOnset),
+                "被折病人的 onset 行不得残留在事件段");
+
+            IReadOnlyList<FoldRow> rows = FoldRowCodec.DecodeSegment(r.ReadBytes(r.Remaining));
+            Assert.AreEqual(1, rows.Count, "折叠段须恰有该病人一行");
+            Assert.AreEqual(PatientA, rows[0].PatientId, "行须保留 patient_id(ADR-006 Amendment B)");
+            Assert.AreEqual(DiseaseSelfLimit, rows[0].DiseaseId);
+            Assert.AreEqual(Seed, rows[0].PatientSeed, "patient_seed = hash(world_seed, patient_id),取自 onset 载荷");
+            Assert.AreEqual(10L, rows[0].Onset, "onset 取自 onset 事件载荷");
+            Assert.AreEqual(20L, rows[0].TEnd, "t_end = 终态事件头部 Tick(不是载荷字段)");
+            Assert.AreEqual((int)PatientOutcome.Died, rows[0].Outcome);
         }
 
         [Test]
-        public void test_compose_failureMessage_namesTheNotRunCriterion()
+        public void test_compose_existingFoldedRows_areCarriedIntoSegment()
         {
+            // 回写义务(TD-persist-03 修复轮):读档恢复后,被折病人**不在流里**,
+            // 折叠循环看不见他们 ⇒ 不回写 = 二次 Checkpoint 静默丢折叠行。
+            // 本条 = 该义务的回归钉:既有行 + 本轮新折行都须在折叠段,既有行在前。
             var events = new[]
             {
                 Onset(10L, PatientA, DiseaseSelfLimit),
                 Outcome(20L, PatientA, DiseaseSelfLimit, PatientOutcome.Died),
+                Onset(30L, PatientB, DiseaseSelfLimit),
+                Outcome(40L, PatientB, DiseaseSelfLimit, PatientOutcome.Recovered),
             };
 
-            var ex = Assert.Throws<NotSupportedException>(() => SaveComposer.Compose(
-                events, Predicate(events), _decoder, new SaveCodec(), 1UL, 0U, 20L));
+            var carried = new[] { new FoldRow(1L, 99, 3, 77L, (int)PatientOutcome.Died, 2L) };
 
-            StringAssert.Contains("NOT-RUN", ex.Message,
-                "报文须自陈判据 ④ 字节半 = NOT-RUN(禁借绿的同族纪律)");
+            byte[] bytes = SaveComposer.Compose(
+                events, Predicate(events), _decoder, new SaveCodec(),
+                worldSeed: 1UL, configVersion: 0U, tick: 40L, existingFoldedRows: carried);
+
+            var r = new CodecReader(bytes.AsSpan(SaveHeaderCodec.HeaderSize));
+            SimEventListCodec.ReadWithinBody(ref r, new SaveCodec()); // 跳过事件段
+            IReadOnlyList<FoldRow> rows = FoldRowCodec.DecodeSegment(r.ReadBytes(r.Remaining));
+
+            Assert.AreEqual(3, rows.Count, "既有 1 行 + 新折 2 行 = 3 行");
+            Assert.AreEqual(3, rows[0].PatientId, "既有行在前(行序确定性)");
+            Assert.AreEqual(PatientA, rows[1].PatientId, "新折行按病人 id 升序跟在既有行后");
+            Assert.AreEqual(PatientB, rows[2].PatientId);
         }
+
+        [Test]
+        public void test_compose_noFoldAtAll_foldedSegmentIsEmptyCountZero()
+        {
+            // 无折叠 ⇒ 折叠段仍**在场**(count=0,4 字节)—— v1 布局必备段,
+            // 读侧(SaveService.ParseBody)据此判定「事件段后必见折叠段」的对称性。
+            var events = new[] { Onset(10L, PatientA, DiseaseSelfLimit) };
+
+            byte[] bytes = SaveComposer.Compose(
+                events, Predicate(events), _decoder, new SaveCodec(),
+                worldSeed: 1UL, configVersion: 0U, tick: 10L);
+
+            var r = new CodecReader(bytes.AsSpan(SaveHeaderCodec.HeaderSize));
+            SimEventListCodec.ReadWithinBody(ref r, new SaveCodec());
+            Assert.GreaterOrEqual(r.Remaining, 4, "折叠段 count 前缀须在场(v1 必备段)");
+            IReadOnlyList<FoldRow> rows = FoldRowCodec.DecodeSegment(r.ReadBytes(r.Remaining));
+            Assert.AreEqual(0, rows.Count, "无折叠 ⇒ 零行,段 = count 前缀 4 字节");
+        }
+
+        [Test]
+        public void test_compose_reverseCriterion_notFolded_bytesIdenticalWithoutPredicate()
+        {
+            // 反向判据(TD-persist-03 卡住判据的另一半):谓词恒假(无可折病人)⇒
+            // 字节与「不跑折叠」逐位相同 —— 折叠路径的存在不得改变无折叠存档的形状。
+            var events = new[]
+            {
+                Onset(10L, PatientA, DiseaseSelfLimit),
+                CaseEvent(10L, PatientA, EventKind.CaseOpened), // 未结案 ⇒ 谓词假
+            };
+
+            byte[] withPredicate = SaveComposer.Compose(
+                events, Predicate(events), _decoder, new SaveCodec(), 1UL, 0U, 10L);
+            byte[] neverFold = SaveComposer.Compose(
+                events, NeverFold, _decoder, new SaveCodec(), 1UL, 0U, 10L);
+
+            CollectionAssert.AreEqual(withPredicate, neverFold,
+                "谓词假 ⇒ 折叠路径零参与 ⇒ 字节逐位相同(折叠不得改变无折档)");
+        }
+
+        /// <summary>恒假谓词 —— 反向判据用:任何病人都不折。</summary>
+        private sealed class NeverFoldedPredicate : IFoldedPredicate
+        {
+            public bool Folded(int patientId) => false;
+        }
+
+        private IFoldedPredicate NeverFold => new NeverFoldedPredicate();
 
         // ══════════════════════════════════════════════════════════════════
         // 组版的纯函数性 / 确定性
@@ -262,36 +355,36 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         [Test]
-        public void test_compose_routesByStream_notByCallerAssumption()
+        public void test_compose_threeStreams_allLandInEventSegment()
         {
-            // 调用方把三流混在一坨里 ⇒ 组版器须自行按 StreamRouting 分流。
+            // 调用方把三流混在一坨里 ⇒ 组版器须自行按 StreamRouting 识别,且
+            // **三流全进事件段**(v1 单列表布局)。
             //
-            // ⚠️ 本条断言的**是今日缺陷的现状,不是目标行为**(`/code-review` S19-1 C-1):
-            //    病例流 / 世界流**不进存档** = 静默丢弃,已登记 `TD-persist-03` 动作 ③。
-            //    用户 2026-10-24 裁定取「收窄口径 + 显式登记」⇒ 本条**保留**但把措辞
-            //    从「今日不进」(读起来像待办)改为「被丢弃(已登记 NOT-RUN)」,
-            //    并**显式断言两条流确实不在段里** —— 使「补布局」时本测试必然被看见。
-            //    ⚠️ **补布局的那一轮必须同时改本条**,否则它会挡住正确修复。
+            // 🔁 本条改写自 S19-1 版的 `..._routesByStream_notByCallerAssumption`:
+            //    旧版断言「病例流 / 世界流不进段」= 当时静默丢弃缺陷的现状钉
+            //    (其注释自陈「补布局的那一轮必须同时改本条」)。本轮
+            //    (TD-persist-03 动作 ③,用户裁定「修 ADR-010 承认单列表」)布局落地,
+            //    断言**翻转**为三流全在段内、且保持原全局序。
             var events = new[]
             {
-                Onset(10L, PatientA, DiseaseSelfLimit),
-                CaseEvent(10L, PatientA, EventKind.CaseOpened),
-                new SimEvent(11L, PatientId.None, 0L, EventKind.StructurePlaced, default),
+                Onset(10L, PatientA, DiseaseSelfLimit),                      // 病史流
+                CaseEvent(10L, PatientA, EventKind.CaseOpened),              // 病例流
+                new SimEvent(11L, PatientId.None, 0L, EventKind.StructurePlaced, default), // 世界流
             };
 
             byte[] bytes = SaveComposer.Compose(events, Predicate(events), _decoder, new SaveCodec(),
                                                 1UL, 0U, 11L);
 
-            IReadOnlyList<SimEvent> back = SimEventListCodec.Decode(
-                bytes.AsSpan(SaveHeaderCodec.HeaderSize).ToArray(), new SaveCodec());
+            IReadOnlyList<SimEvent> back;
+            IReadOnlyList<FoldRow> foldRows;
+            ParseBody(bytes, out back, out foldRows);
 
-            Assert.AreEqual(1, back.Count,
-                "今日布局 = 头部 + 病史流段;病例流 / 世界流被丢弃(TD-persist-03 动作 ③,NOT-RUN)");
-            Assert.AreEqual(EventKind.DiseaseOnset, back[0].Kind);
-            Assert.IsFalse(back.Any(e => e.Kind == EventKind.CaseOpened),
-                "病例流事件不得出现在段里 —— 今日无病例流段(丢弃已登记)");
-            Assert.IsFalse(back.Any(e => e.Kind == EventKind.StructurePlaced),
-                "世界流事件不得出现在段里 —— 今日无世界流段(丢弃已登记)");
+            Assert.AreEqual(3, back.Count,
+                "v1 单列表:三流全进事件段(静默丢弃已随 TD-persist-03 动作 ③ 消灭)");
+            Assert.AreEqual(EventKind.DiseaseOnset, back[0].Kind, "原全局序保持");
+            Assert.AreEqual(EventKind.CaseOpened, back[1].Kind);
+            Assert.AreEqual(EventKind.StructurePlaced, back[2].Kind);
+            Assert.AreEqual(0, foldRows.Count);
         }
 
         [Test]

@@ -406,8 +406,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     decoder: decoder);
 
                 // 组版闭包 —— `HistoryFolder.Fold` 的**生产调用点**(判据 ④ 位置半 (i))。
-                // 折叠行的字节编码器尚不存在 ⇒ 有行要落盘时 `SaveComposer` 抛
-                // (判据 ④ **字节半 = NOT-RUN**,归 TD-persist-03)。
+                // ~~折叠行的字节编码器尚不存在 ⇒ 有行要落盘时 `SaveComposer` 抛~~
+                // 🔁 **2026-10-24 `TD-persist-03` 修复轮兑现字节半**:折叠行经
+                //    `FoldRowCodec.EncodeSegment` 落折叠段(`SaveComposer.Compose` 内,
+                //    ADR-010 §一 增补 v1 布局)—— 上句「尚不存在 / NOT-RUN」已过期。
                 //
                 // 🔁 **2026-10-24 `TD-epic-01-f` 修复**:configVersion 由**恒 0U** 改为**真派生**。
                 //    口径 = ADR-014 §五「对 `assets/data/` 源文本集求哈希」(用户 2026-10-24 裁定
@@ -426,14 +428,23 @@ namespace DaYiJingCheng.Gameplay.Boot
                         resolvedConfigVersion = ResolveGlobalConfigVersion(dataProvider);
                     return SaveComposer.Compose(
                         stream.Events, foldedPredicate, decoder, new SaveCodec(),
-                        worldSeed, resolvedConfigVersion.Value, tick: tickDriver.CurrentTick);
+                        worldSeed, resolvedConfigVersion.Value, tick: tickDriver.CurrentTick,
+                        existingFoldedRows: stream.FoldedRows);
                 };
 
-                // 重放委托 —— `Load` 解出事件列表后的交出点(PRE-S19-D 甲案)。
-                // ⚠️ 真重放(列表 → sim 状态)归 `TD-persist-03`。**刻意不 `stream.Append`**:
-                //   重放走 Append 会撞 CAP / 去重 / 单调三关(sprint-19 §S19-1 F5 实测),
-                //   且读档时在场视图尚未重建 ⇒ 会误抛。今日交出后**丢弃**。
-                Action<IReadOnlyList<SimEvent>> replaySink = _ => { };
+                // 重放 + 折叠行交出 —— `TD-persist-03` 修复轮(2026-10-24,用户四裁定):
+                // `Load` 契约次序 = 先事件列表、后折叠段字节 ⇒ 两个 BCL 委托协同,
+                // 在折叠行到达时把两者合并喂给 `stream.Restore`(绕 CAP、留去重/单调、
+                // Seq 不重发 —— 用户裁定「三分化」;读档时在场视图未重建,CAP 必误抛)。
+                // 🔁 替代 S19-1 的空操作 sink(`_ => { }`):交出后丢弃 = 读档假绿。
+                IReadOnlyList<SimEvent> pendingReplay = null;
+                Action<IReadOnlyList<SimEvent>> replaySink = events => { pendingReplay = events; };
+                Action<byte[]> foldedRowSink = foldedBytes =>
+                    stream.Restore(
+                        pendingReplay
+                            ?? throw new InvalidOperationException(
+                                "折叠段先于事件段到达 —— SaveService.Load 契约次序被破坏"),
+                        FoldRowCodec.DecodeSegment(foldedBytes));
 
                 saveService = new SaveService(
                     saveBasePath,
@@ -441,6 +452,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                     folded: foldedPredicate,
                     narrativeContext: null,       // ← fail-closed,见上
                     replaySink: replaySink,
+                    foldedRowSink: foldedRowSink,
                     compose: compose);
             }
 

@@ -51,6 +51,23 @@ namespace DaYiJingCheng.Sim.Codec
         /// <exception cref="InvalidDataException">count 为负 / 段未读尽 / 内部事件解码失败。</exception>
         public static IReadOnlyList<SimEvent> Read(ref CodecReader r, ISaveCodec codec)
         {
+            IReadOnlyList<SimEvent> list = ReadWithinBody(ref r, codec);
+            if (r.Remaining != 0)
+                throw new InvalidDataException(
+                    $"事件列表段未读尽,剩余 {r.Remaining} 字节(布局与长度前缀不符)");
+            return list;
+        }
+
+        /// <summary>
+        /// 复合体内的计数前缀读(v1 布局 = 事件段 + 折叠段,**事件段后还有后续段**)。
+        /// 🔁 TD-persist-03 修复轮:复合体里事件段**不读尽**是常态 ⇒ 读尽断言上移给
+        /// 调用方(存档体末段须读尽,由 <c>SaveService.ParseBody</c> 经折叠段的
+        /// 读尽校验闭合)。段边界 = 折叠段自描述的 count 前缀。
+        /// </summary>
+        /// <exception cref="ArgumentNullException"><paramref name="codec"/> 为 null。</exception>
+        /// <exception cref="InvalidDataException">count 为负 / 超上界 / 内部事件解码失败。</exception>
+        public static IReadOnlyList<SimEvent> ReadWithinBody(ref CodecReader r, ISaveCodec codec)
+        {
             if (codec == null) throw new ArgumentNullException(nameof(codec));
 
             int count = r.ReadInt32LittleEndian();
@@ -64,10 +81,6 @@ namespace DaYiJingCheng.Sim.Codec
             var list = new SimEvent[count];
             for (int i = 0; i < count; i++)
                 list[i] = codec.ReadEvent(ref r);
-
-            if (r.Remaining != 0)
-                throw new InvalidDataException(
-                    $"事件列表段未读尽,剩余 {r.Remaining} 字节(布局与长度前缀不符)");
 
             return list;
         }

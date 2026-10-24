@@ -589,8 +589,10 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var ps = ctors[0].GetParameters();
             // 🔁 2026-10-24 S19-1:3 → 6(basePath, codec, folded, narrativeContext, replaySink, compose)。
             //    `folded` 保持第 3 位 ⇒ 下方 ps[2] 类型断言仍成立,只改计数。
-            Assert.AreEqual(6, ps.Length,
-                "形参 = (basePath, codec, folded, narrativeContext, replaySink, compose)");
+            // 🔁 2026-10-24 TD-persist-03:6 → 7(replaySink 之后增 foldedRowSink ——
+            //    折叠段原始字节交出委托;compose 顺移至第 7 位)。
+            Assert.AreEqual(7, ps.Length,
+                "形参 = (basePath, codec, folded, narrativeContext, replaySink, foldedRowSink, compose)");
             Assert.AreEqual(typeof(IFoldedPredicate), ps[2].ParameterType,
                 "第三形参须是 IFoldedPredicate(住 Sim.Contracts)");
             Assert.IsTrue(ps[2].HasDefaultValue && ps[2].DefaultValue == null,
@@ -599,9 +601,11 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 "第四形参须是 Func<bool>(叙事上下文钩子,一个量)");
             Assert.AreEqual(typeof(Action<IReadOnlyList<SimEvent>>), ps[4].ParameterType,
                 "第五形参须是 Action<IReadOnlyList<SimEvent>>(重放交出)");
-            Assert.AreEqual(typeof(Func<SaveSlot, byte[]>), ps[5].ParameterType,
-                "第六形参须是 Func<SaveSlot, byte[]>(组版委托,折叠接线落点)");
-            for (int i = 3; i < 6; i++)
+            Assert.AreEqual(typeof(Action<byte[]>), ps[5].ParameterType,
+                "第六形参须是 Action<byte[]>(折叠段原始字节交出 —— 本类看不见 FoldRow,TD-persist-03)");
+            Assert.AreEqual(typeof(Func<SaveSlot, byte[]>), ps[6].ParameterType,
+                "第七形参须是 Func<SaveSlot, byte[]>(组版委托,折叠接线落点)");
+            for (int i = 3; i < 7; i++)
                 Assert.IsTrue(ps[i].HasDefaultValue && ps[i].DefaultValue == null,
                     $"形参 {i} 须可选(不注入 = null ⇒ fail-closed)");
         }

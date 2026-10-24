@@ -48,22 +48,28 @@ namespace DaYiJingCheng.Tests.PersistenceService
         // 夹具工厂
         // ══════════════════════════════════════════════════════════════════
 
-        /// <summary>组版一个最小合法存档:头部 + 空事件列表,再补校验和。</summary>
+        /// <summary>组版一个最小合法存档:v1 布局 = 头部 + 事件段 + 折叠段(count=0),再补校验和。
+        /// 🔁 2026-10-24 TD-persist-03:折叠段成必备段,夹具同批更新(两段式按损坏拒收)。</summary>
         private static byte[] MinimalSaveBytes(ulong worldSeed = 12345UL, uint configVersion = 7U,
                                                long tick = 100L, IReadOnlyList<SimEvent> events = null)
         {
             byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, configVersion, tick, 0UL);
             byte[] body = SimEventListCodec.Encode(events ?? Array.Empty<SimEvent>(), new SaveCodec());
-            var combined = new byte[header.Length + body.Length];
+            byte[] folded = new byte[] { 0, 0, 0, 0 }; // 折叠段 count = 0(v1 必备段)
+            var combined = new byte[header.Length + body.Length + folded.Length];
             Array.Copy(header, 0, combined, 0, header.Length);
             Array.Copy(body, 0, combined, header.Length, body.Length);
+            Array.Copy(folded, 0, combined, header.Length + body.Length, folded.Length);
             return SaveService.AddChecksum(combined);
         }
 
-        /// <summary>构造一个全驱动源就绪的 SaveService(叙事上下文恒 true)。</summary>
+        /// <summary>构造一个全驱动源就绪的 SaveService(叙事上下文恒 true)。
+        /// 🔁 2026-10-24 TD-persist-03:Load 现要求 foldedRowSink(v1 布局必备段),
+        /// 夹具同批补缺省(收字节即弃 —— 本文件不测折叠内容,那是 wiring/roundtrip 文件的职责)。</summary>
         private SaveService ReadyService(
             Func<bool> narrativeContext = null,
             Action<IReadOnlyList<SimEvent>> replaySink = null,
+            Action<byte[]> foldedRowSink = null,
             Func<SaveSlot, byte[]> compose = null)
         {
             return new SaveService(
@@ -72,6 +78,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 folded: null,
                 narrativeContext: narrativeContext ?? (() => true),
                 replaySink: replaySink ?? (_ => { }),
+                foldedRowSink: foldedRowSink ?? (_ => { }),
                 compose: compose ?? (slot => MinimalSaveBytes()));
         }
 
