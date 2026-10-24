@@ -10641,3 +10641,29 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - **人工 smoke 不适用**(QA plan §Smoke Test Scope 第 3 条:本 sprint 零玩家可见变化)⇒ 未跑 Batch 1/2/3,不得记 FAIL/NOT RUN
 - **收口四动作全部完成**:① `/code-review` ✅ ② `/story-done` ✅ ③ sprint-status + 债册 ✅ ④ `/smoke-check` ✅
 - 未提交(用户未下 commit 指令)
+
+## Session Extract — `TD-epic-01-f` 修复轮 2026-10-24(AC-51-D7 ConfigVersion 接线)
+
+- **结案**:债册 `TD-epic-01-f` 索引表 `open` → `closed`;三条解除前置全结
+- **证据原件**:`production/qa/evidence/impl-td-epic-01-f-configversion-2026-10-24.md`
+- **口径裁定**(用户 2026-10-24):ConfigVersion = **全局组合值**(合 ADR-014 §五 字面)
+  - 今日实跑值 `0x4A30BB10`(22 份产物头 FNV-1a 32 组合,Ordinal 排序)
+- **三处断点全解**:① `ConfigVersionCheck` 生产侧零构造 → 装配根传 `() => ResolveGlobalConfigVersion(dataProvider)`
+  ② `TelemetryDeveloperView:90` 传 `r.ConfigVersion` ③ `CompositionRoot:415` 的 `0U` → 真派生
+- **回归三元组**:`2026-10-24 21:25 CST` · `tdef01f`(全量两套件)· commit `8ba3fb4`
+  (工作树 = HEAD + 11 项未提交改动)
+  - EditMode `4802/4767/0/35`(基线 `4786/4751/0/35` @ `19:49` · `s19-smoke-editmode` · `9e23c42`)⇒ **+16/+16**
+  - PlayMode `202/202/0/0`(同基线)⇒ 零变化
+  - 全名级差集 EditMode `+67/−1/翻转 0/红 0`;新增 67 = S19-1 的 51 + 本轮 16;消失 1 = 已归因改名
+- **证伪轮六轮全红**(BLOCKING 门 PASS):A 删接线实参(5 红)/ B 开发视图不传(2 红)/
+  C 派生返 0U(2 红)/ D 删 Sort(1 红)/ E 空集返 0(1 红)/ F 大端(1 红)
+  - 三份被变异文件均 **SHA-256 逐字节**还原(基准哈希记于证据件 §四)
+  - ⚠️ 如实登记:变异 C 下端到端那条仍绿(与当前值是否为 0 无关)⇒ 断点③ 由另两条钉住
+- **债册计数**(§五 脚本复跑,与文档逐字一致):条目 103 · `closed 20 → 22` · 未闭 P0 面 **76 → 75** ·
+  `telemetry-analytics 6 → 5`
+  - ⚠️ 顺手修掉十二订自登的待裁缺陷:`TD-persist-02` 与 `TD-epic-01-f` 两行状态列
+    改回既有 21 条 closed 行的裸 `closed` + `**Y**` 惯例(原写 `**closed**(日期)` + `~~**Y**~~` 逃出脚本匹配)
+  - `TD-persist-01` 的 `open(①**部分结** · ...)` **未动**(语义不同,另立待裁)
+- **未核查(禁借绿)**:跨平台三格矩阵未测 · 烘焙侧派生未复核 ·
+  「compose 调用时必抛」= NOT-RUN(`Checkpoint` 先撞 `RequireNarrativeContext`,够不到 compose)
+- **未提交**(用户未下 commit 指令);未 push

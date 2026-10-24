@@ -346,9 +346,9 @@
 | `TD-epic-01-c` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-d` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-e` | `telemetry-analytics` | open | **Y** | R1 |
-| `TD-epic-01-f` | `telemetry-analytics` | open | **Y** | R1 |
+| `TD-epic-01-f` | `telemetry-analytics` | closed | **Y** | R1 |
 | `TD-persist-01` | `persistence-service` | open(①**部分结** · 2026-10-24) | **Y** | R1 |
-| `TD-persist-02` | `persistence-service` | **closed**(2026-10-24) | ~~**Y**~~ | R1 |
+| `TD-persist-02` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-03` | `persistence-service` | open | **Y** | R1 |
 | `TD-persist-04` | `persistence-service` | open | **Y** | R1 |
 | `TD-enemy-01` | `enemy-ai` | open | **Y** | R1 |
@@ -417,15 +417,34 @@ PYEVAL
 ~~**当前预期输出(2026-10-21 九订实测 · 含 `TD-ci-01` 立债 —— 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-22 十订实测 · 含 `TD-clinic-18` 立债 —— 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-24 十一订实测 · 含 `TD-persist-03` 立债 —— 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
-**当前预期输出(2026-10-24 十二订实测 · 含 `TD-persist-04` 立债 —— 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
-> ⚠️ **标题换行不删**:十一订标题就地改为删除线,新标题并列(承「原文不删,就地加注」—— 原措辞逐字仍可查,只是轮次前移一格)。
+~~**当前预期输出(2026-10-24 十二订实测 · 含 `TD-persist-04` 立债 —— 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
+**当前预期输出(2026-10-24 十四订实测 · `TD-epic-01-f` 结案 + 两行状态列归位 —— 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
+> ⚠️ **标题换行不删**:十二订标题就地改为删除线,新标题并列(承「原文不删,就地加注」—— 原措辞逐字仍可查,只是轮次前移一格)。
+> 🔁 **十四订(`TD-epic-01-f` 结案 · 2026-10-24 修复轮)** —— 变化 = **`closed 20 → 22`**(+2)·
+> **`未闭 P0 面` 76 → 75`**(−1)· **`telemetry-analytics 6 → 5`**(−1)· `open 74 → 73`(−1)·
+> `条目` / `epic 分布` 一位不动。
+> ⚠️ **`closed` 涨 2 而 `未闭 P0 面` 只降 1,不是漏刷** —— 两笔性质不同:
+> ① `TD-epic-01-f` 本轮**新结案** ⇒ 它从 live 集合消失 ⇒ 未闭面 **−1**;
+> ② `TD-persist-02` **上一轮就已结案**,只是当时状态列被我写成 `**closed**(2026-10-24)`、
+>    P0 列写成 `~~**Y**~~`,**两个写法都逃出脚本的精确匹配**(`r[2] != 'closed'` /
+>    `r[3].strip('*') == 'Y'`)⇒ 它在 §五 里**既没进 closed 桶、也没进 live 集合**。
+>    本轮把它与 `TD-epic-01-f` 一起**改回既有 21 条 closed 行的裸 `closed` + `**Y**` 惯例**
+>    ⇒ `closed` 补回 1、`P0 面` 直方图的 `~~**Y**~~` 桶 2 → 1。
+>    **它本来就不在 live 集合里,故归位后未闭面不动。**
+> ⚠️ **本轮顺手修掉的是十二订自己登记的那条待裁缺陷**(「我方写的那两行改回裸 `closed` / `open`」)
+> —— 该缺陷在十二订时被写成「本轮不做,登记为待裁」,**本轮做了**,理由:不改的话
+> 每新增一条结案债都会继续沿用错误写法,而**既有 21 条 closed 行是裸 `closed`**,
+> 两种写法并存会让 §五 的两个桶长期错位。**`TD-persist-01` 的
+> `open(①**部分结** · 2026-10-24)` 未动** —— 它是 `open` 的**部分结**标注,语义不同,
+> 且 §五 的 `open` 桶本来就靠兜底收录(该行确实出现在 `open: 73` 之外的独立桶里,
+> 如实可见)。**另立待裁**,不在本轮裁定面内。
 
 ```text
-条目 103 | 状态 {'open': 74, 'partial': 6, 'closed': 20, 'open(①**部分结** · 2026-10-24)': 1, '**closed**(2026-10-24)': 1, '**done**(2026-10-21)': 1} | P0 面 {'Y': 91, 'N': 10, '~~**Y**~~': 2}
-未闭 P0 面 = 76 （已闭但曾标 P0 面的 15 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 76 条,分布在 13/31 个 epic
+条目 103 | 状态 {'open': 73, 'partial': 6, 'closed': 22, 'open(①**部分结** · 2026-10-24)': 1, '**done**(2026-10-21)': 1} | P0 面 {'Y': 92, 'N': 10, '~~**Y**~~': 1}
+未闭 P0 面 = 75 （已闭但曾标 P0 面的 17 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 75 条,分布在 13/31 个 epic
     medical-consequences: 20   audio-system: 20          clinic-machine: 17
-    telemetry-analytics: 6     persistence-service: 3    skeuomorphic-ui: 2
+    telemetry-analytics: 5     persistence-service: 3    skeuomorphic-ui: 2
     disease-simulation: 2      patient-ai: 1              player-controller: 1
     enemy-ai: 1                random-events: 1           item-database: 1
     modular-building: 1
@@ -1458,7 +1477,17 @@ story-007 `Last Updated: 2026-09-29` 至今未刷新。**检测手法(便宜、�
 ### `TD-epic-01-f` — `AC-51-D7`(`ConfigVersion` 比对)**生产侧零接线**,story 却勾了 `[x]`
 
 **立债轮次**:2026-10-24(S19-1 收口轮 · 由 `impl-s19-1-slot-contract-2026-10-24.md` §四 **N-6** 上溯发现)
-**P0 面 = Y** · **R1**(归属 `telemetry-analytics`,P0 epic) · 状态 `open`
+**P0 面 = Y** · **R1**(归属 `telemetry-analytics`,P0 epic) · 状态 ~~`open`~~ ⇒ **`closed`(2026-10-24 修复轮)**
+
+> ✅ **2026-10-24 修复轮结案** —— 三条解除前置(§五)全部结清,**证据原件 =
+> `production/qa/evidence/impl-td-epic-01-f-configversion-2026-10-24.md`**。
+> 回归三元组:`2026-10-24 21:25 CST` · `tdef01f` 批 · commit `8ba3fb4`(工作树 = HEAD + 11 项未提交改动)
+> · EditMode `4802/4767/0/35`(基线 `4786/4751/0/35` ⇒ **+16/+16 零回归**)
+> · PlayMode `202/202/0/0`(同基线) · 全名级差集 EditMode `+67/−1/翻转 0/红 0`
+> (新增 67 = S19-1 的 51 + 本轮 16;消失 1 = 已归因的改名)。
+> **证伪轮六轮全红**(A 删接线实参 / B 开发视图不传 / C 派生返 0 / D 删 Sort / E 空集返 0 / F 大端),
+> 三份被变异文件均以 **SHA-256 逐字节**还原。**Falsifiability Gate = PASS**。
+> ⚠️ **本行判定不改 `TD-epic-01` 其余五条(`a`–`e`)** —— 见 §六「性质不同」。
 
 #### 一、N-6 的原始记载(逐字,不删)
 
@@ -1509,6 +1538,14 @@ THEN 报告**含显式「版本不匹配」标注**、**不静默出数**。
 
 #### 五、解除前置(三条须同时满足,缺一不算)
 
+> ✅ **2026-10-24 修复轮:三条全部结清**,逐条结账表(含 `Landed` / `Proven` 双列与反证记录)
+> 见 `production/qa/evidence/impl-td-epic-01-f-configversion-2026-10-24.md` §一。
+> 落点摘要:① `DataCoreConfigVersion.Combine` + `CompositionRoot.ResolveGlobalConfigVersion`
+> (反证 C 两条红)· ② `TelemetryDeveloperView.cs:90` 传 `r.ConfigVersion`
+> (反证 B 两条红)· ③ `data_core_config_version_wiring_test.cs` 的
+> `test_wiring_endToEnd_mismatch_flagsAndNoMetrics`(反证 A/B 均使其红)。
+> 原文三条**不删**,留作判据原文。
+
 1. **源头**:`ConfigVersion` 的运行期真值来源落地 —— ADR-014 §五 的「内容哈希派生 u32」
    须有全局可读的当前值(`CompositionRoot.cs:415` 的 `0U` 换成它)。**这一条是硬前置**:
    ① ② 都做了而 ③ 不做,只是把 `0U` 拿去比,`Match` 恒真,假绿形态**原样保留**。
@@ -1527,6 +1564,12 @@ THEN 报告**含显式「版本不匹配」标注**、**不静默出数**。
 **未核查(禁借绿)**:本轮**未跑** Unity 测试(三条断点全部来自静态 `grep` + 源码阅读)·
 未核 `AC-51-D7` 在 ADR-012 三格矩阵下的跨平台表现 · 未核 `ConfigVersion` 的烘焙侧派生是否真的产出可用值
 (仅确认 `Editor.Tools.Bake/*.cs` 有 `ConfigVersion` 的编码/派生对账,未验证运行期可达)。
+
+> 🔁 **2026-10-24 修复轮对上段的处置**:立债轮的三项「未核查」中,**第一项已补**
+> (本轮跑了全量 EditMode + PlayMode,见文首结案块);**后两项仍未核**,原样保留:
+> · 跨平台三格矩阵 —— 本轮只跑 Linux-x64-Mono(Editor),FNV-1a 32 为 BCL-only 纯整数运算,
+>   **理论**跨平台逐位一致但**未实测**;
+> · 烘焙侧派生复核 —— 本轮只确认 22 份产物头都有非零值,未验证每个烘焙器的派生是否覆盖其全部源。
 
 
 **未核查(禁借绿)**:未跑任何 Unity 测试(全判据来自静态 grep)· 8 个 epic 未逐 AC 跑 B 类 grep ·
