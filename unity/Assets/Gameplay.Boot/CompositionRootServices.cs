@@ -7,6 +7,7 @@
 // 服务袋 = Assemble(...) 的只读产物。**只读属性,不提供 setter** —— 装配完成后不允许
 // 事后替换依赖(fail-loud 的一半:要么全装配,要么抛异常,不存在「半装配袋」)。
 
+using System;
 using System.Collections.Generic;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
@@ -264,7 +265,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          AudioTierDriver audioTierDriver = null,
                                          TelemetryAnalyticsTuning? telemetryKnobs = null,
                                          ClinicRoomMatchingService clinicRoomMatching = null,
-                                         SaveService saveService = null)
+                                         SaveService saveService = null,
+                                         Func<uint?> currentConfigVersion = null)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -311,7 +313,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 51 遥测接线(TD-epic-01):decoder 在 Sim.Codec、51 的装配引不到 ⇒ 在本装配层包成委托。
             // ⚠️ stream / decoder / registry 均已是本 ctor 的形参 ⇒ 不加新装配边、不改 Assemble 签名。
             // 第十二片:旋钮表(TD-epic-01)由调用方传入,缺省 null ⇒ F4–F7 保持「未给」,不代填默认值。
-            Telemetry = new TelemetryReporter(stream, decoder, registry ?? CreateFallbackRegistry(), telemetryKnobs);
+            // 🔁 2026-10-24 `TD-epic-01-f`:`currentConfigVersion` 把全局派生值喂进 51,
+            //    使 `AC-51-D7` 的版本门在生产路径上**第一次**有值可比。
+            //    ⚠️ 传 null(装配层未提供)⇒ 开发者预览不做版本门 —— 不是「恒匹配」。
+            Telemetry = new TelemetryReporter(stream, decoder, registry ?? CreateFallbackRegistry(),
+                                              telemetryKnobs, currentConfigVersion: currentConfigVersion);
         }
 
         /// <summary>最小内联病种注册表(DiseaseId=1)—— 装配层未传入真表时的接线载体。</summary>

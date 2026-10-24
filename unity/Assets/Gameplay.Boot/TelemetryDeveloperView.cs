@@ -17,6 +17,7 @@
 
 using System;
 using System.Text;
+using DaYiJingCheng.Telemetry;
 
 namespace DaYiJingCheng.Gameplay.Boot
 {
@@ -44,11 +45,21 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <summary>「样本不足」门槛 TELEMETRY_MIN_SAMPLE(AC-51-D9)。null ⇒ 不加该标注。</summary>
         public readonly int? MinSample;
 
+        /// <summary>
+        /// 存档头 `ConfigVersion` 与当前产物的比对(`AC-51-D7` / E-10)。null ⇒ **不做版本门**。
+        /// <para>⚠️ <b>2026-10-24 `TD-epic-01-f` 修复新增</b>:此前本请求**没有**这个字段,
+        /// 而 <see cref="Render"/> 调 <c>AllMetricsReport</c> 时也不传该形参 ⇒
+        /// 版本门在生产路径上**从未执行**过(`ConfigVersionCheck` 生产侧零构造)。</para>
+        /// </summary>
+        public readonly ConfigVersionCheck? ConfigVersion;
+
         public TelemetryPreviewRequest(string skill, (long from, long to)? growthWindow,
-            long? firstWindowTick, int? step, int? window, int? gapThreshold, int? minSample)
+            long? firstWindowTick, int? step, int? window, int? gapThreshold, int? minSample,
+            ConfigVersionCheck? configVersion = null)
         {
             Skill = skill; GrowthWindow = growthWindow; FirstWindowTick = firstWindowTick;
             Step = step; Window = window; GapThreshold = gapThreshold; MinSample = minSample;
+            ConfigVersion = configVersion;
         }
     }
 
@@ -74,7 +85,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                     reporter.ScorableCount, r.MinSample.Value);
 
             // F1–F3:参数无关,恒算
-            sb.Append(reporter.AllMetricsReport(out int skipped));
+            // 🔁 2026-10-24 `TD-epic-01-f`:版本门**终于被传入**(此前恒不传 ⇒ 门从未执行)。
+            //    不匹配时 `AllMetricsReport` 会早退、只出标注不出指标(AC-51-D7「不静默出数」)。
+            sb.Append(reporter.AllMetricsReport(out int skipped, r.ConfigVersion));
             sb.AppendFormat("# 跳过条数(解码失败,可观测)= {0}\n", skipped);
 
             // F4

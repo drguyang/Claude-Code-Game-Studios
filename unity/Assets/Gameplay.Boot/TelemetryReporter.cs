@@ -41,6 +41,21 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// 「谁都没给」的开发者预览路径。</para></summary>
         public TelemetryAnalyticsTuning? Knobs { get; }
 
+        /// <summary>
+        /// **当前产物**的全局 `ConfigVersion` 提供者(`AC-51-D7` / E-10;
+        /// 2026-10-24 `TD-epic-01-f` 修复新增)。
+        /// <para><b>为何是委托而非值</b>:本类在启动期构造,而全局版本要等 data-core 预载完
+        /// 才可派生(`AddressablesDataProvider.LoadGlobalConfigVersion`)。委托把
+        /// 「派生失败 ⇒ 抛 E-13」留在调用时,而不是构造时吞掉。</para>
+        /// <para>null = 调用方没提供 ⇒ 开发者预览**不做版本门**。⚠️ 这**不是**「恒匹配」——
+        /// 不做门与门放行是两件事,前者在报告里不出现版本行,后者会出现「一致」。</para>
+        /// <para><b>只提供「当前值」,不提供「存档头值」</b>:存档头属于**具体存档**,
+        /// 只有调用方(知道在分析哪份存档)才拿得到 ⇒ 由调用方传入
+        /// (<see cref="RenderDeveloperSummary"/> 的 <c>saveHeaderConfigVersion</c> 形参)。
+        /// 这样职责不越界:51 只比对与标注,不负责「找存档」。</para>
+        /// </summary>
+        public Func<uint?> CurrentConfigVersion { get; }
+
         /// <summary>构造(组合根调用点)。</summary>
         /// <param name="stream">事件流(只读其 <see cref="EventStream.Events"/> 快照;不持写面)。</param>
         /// <param name="decoder">载荷解码器(实现在 `Sim.Codec`;组合根引得到,51 的装配引不到 ⇒ 委托注入)。</param>
@@ -52,13 +67,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         public TelemetryReporter(EventStream stream, IPayloadDecoder decoder,
                                  IReadOnlyList<DiseaseRegistryEntry> registry,
                                  TelemetryAnalyticsTuning? knobs = null,
-                                 IEventAuthority eventAuthority = null)
+                                 IEventAuthority eventAuthority = null,
+                                 Func<uint?> currentConfigVersion = null)
         {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
             Knobs = knobs;
             EventAuthority = eventAuthority;
+            CurrentConfigVersion = currentConfigVersion;
         }
 
         /// <summary>写权权威(GDD E-15 / `AC-51-E3` 的非主机侧门;第十三片)。
@@ -719,7 +736,15 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// ⇒ 生产映射 = `(Tick_max − GROWTH_WINDOW, Tick_max)`。⚠️ 需指名技能(`g.skill`);
         /// 预览不猜技能 ⇒ `Skill` 恒 null,**F4 在默认预览里仍是「未给」**(如实登记,非遗漏)。</para>
         /// <para>同样在 Release 编译期剔除。</para></summary>
-        public string RenderDeveloperSummary(ITelemetrySink sink)
+        /// <param name="sink">输出面。</param>
+        /// <param name="saveHeaderConfigVersion">
+        /// **要分析的那份存档**头部携带的 `ConfigVersion`(null = 无存档 / 不做版本门)。
+        /// <para>🔁 2026-10-24 `TD-epic-01-f`:此前本方法**没有**这个形参 ⇒ 版本门在
+        /// 生产路径上从未执行。`AC-51-D7` 要求「GIVEN 存档头 ConfigVersion 与当前内容哈希不符」,
+        /// 而「存档头」只有调用方知道在分析哪份存档 —— 故由调用方传入,不由 51 去翻存档。</para>
+        /// </param>
+        public string RenderDeveloperSummary(ITelemetrySink sink,
+                                             uint? saveHeaderConfigVersion = null)
         {
             long? first = null;
             int? step = null, window = null, gap = null, minSample = null;
@@ -735,8 +760,20 @@ namespace DaYiJingCheng.Gameplay.Boot
                 var (_, tickMax, _, count) = SessionRhythmMetrics.ComputeSessionSpan(FlattenTicks());
                 if (count > 0) growth = (tickMax - k.GrowthWindowTicks, tickMax);
             }
+            // 🔁 2026-10-24 `TD-epic-01-f`:版本门**终于被接上**。
+            //    · 存档头值 = 调用方给(它知道在分析哪份存档)
+            //    · 当前值 = 注入的委托给(启动期派生,`LoadGlobalConfigVersion`)
+            //    两者**都**有才构造 `ConfigVersionCheck`;任一缺 ⇒ null ⇒ 不做门(不是「恒匹配」)。
+            ConfigVersionCheck? versionGate = null;
+            if (saveHeaderConfigVersion.HasValue && CurrentConfigVersion != null)
+            {
+                uint? current = CurrentConfigVersion();
+                if (current.HasValue)
+                    versionGate = new ConfigVersionCheck(saveHeaderConfigVersion.Value, current.Value);
+            }
             return RenderDeveloperPreview(
-                new TelemetryPreviewRequest(null, growth, first, step, window, gap, minSample), sink);
+                new TelemetryPreviewRequest(null, growth, first, step, window, gap, minSample,
+                                            versionGate), sink);
         }
 #endif
 

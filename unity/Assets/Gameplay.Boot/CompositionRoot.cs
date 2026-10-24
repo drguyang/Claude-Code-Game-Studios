@@ -408,11 +408,26 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // 组版闭包 —— `HistoryFolder.Fold` 的**生产调用点**(判据 ④ 位置半 (i))。
                 // 折叠行的字节编码器尚不存在 ⇒ 有行要落盘时 `SaveComposer` 抛
                 // (判据 ④ **字节半 = NOT-RUN**,归 TD-persist-03)。
-                // ⚠️ configVersion 今日传 0 —— 运行期无全局当前值(见 SaveComposer 的 remarks);
-                //    后果 = 51 的 `AC-51-D7` 在 P0 恒「匹配」,**这是假绿形态**,不得读成已实现。
-                Func<SaveSlot, byte[]> compose = _ => SaveComposer.Compose(
-                    stream.Events, foldedPredicate, decoder, new SaveCodec(),
-                    worldSeed, configVersion: 0U, tick: tickDriver.CurrentTick);
+                //
+                // 🔁 **2026-10-24 `TD-epic-01-f` 修复**:configVersion 由**恒 0U** 改为**真派生**。
+                //    口径 = ADR-014 §五「对 `assets/data/` 源文本集求哈希」(用户 2026-10-24 裁定
+                //    「取全局组合值」)—— 由 `DataCoreConfigVersion.Combine` 把 22 份产物的
+                //    逐份 ConfigVersion 组合成一个 u32。
+                //    ⚠️ **派生失败 ⇒ 硬失败(E-13),不降级回 0** —— 0 会让 AC-51-D7 退回假绿。
+                //    ⚠️ **惰性派生,不在装配期求值**:本闭包**首次组版时**才解析。理由是既有
+                //       两条夹具(`save_composer_wiring_test.cs:341` / `:370`)传 `saveBasePath`
+                //       但 `dataProvider: null` —— 它们验的是折叠谓词接线,与版本号无关。
+                //       装配期就抛会让它们因**不相干的**理由转红(= 我引入的假红)。
+                //       惰性不削弱判据:`compose` 是唯一读该值的路径,它一旦被调用就必抛。
+                uint? resolvedConfigVersion = null;
+                Func<SaveSlot, byte[]> compose = _ =>
+                {
+                    if (!resolvedConfigVersion.HasValue)
+                        resolvedConfigVersion = ResolveGlobalConfigVersion(dataProvider);
+                    return SaveComposer.Compose(
+                        stream.Events, foldedPredicate, decoder, new SaveCodec(),
+                        worldSeed, resolvedConfigVersion.Value, tick: tickDriver.CurrentTick);
+                };
 
                 // 重放委托 —— `Load` 解出事件列表后的交出点(PRE-S19-D 甲案)。
                 // ⚠️ 真重放(列表 → sim 状态)归 `TD-persist-03`。**刻意不 `stream.Append`**:
@@ -834,7 +849,17 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                renderTarget is AudioSourceRenderTarget,
                                                patientCueDriver, behaviorDirector,
                                                audioTierDriver, telemetryKnobs,
-                                               clinicRoomMatching, saveService);
+                                               clinicRoomMatching, saveService,
+                                               // 🔁 2026-10-24 `TD-epic-01-f` 断点①的解药:
+                                               //   把「当前产物 ConfigVersion」的真值来源喂给 51,
+                                               //   使 `ConfigVersionCheck` 在生产侧**有构造路径**。
+                                               // ⚠️ 与存档侧同一个派生函数(`ResolveGlobalConfigVersion`),
+                                               //   两处共用一个口径 —— 存档头写进去的值与 51 比对用的值
+                                               //   必须同源,否则「永远不匹配」。
+                                               // ⚠️ 委托形式 ⇒ 派生失败抛在**调用时**(开发者预览被触发时),
+                                               //   不在装配期把整个启动序拖死(见 TelemetryReporter
+                                               //   `CurrentConfigVersion` 的「为何是委托而非值」)。
+                                               () => ResolveGlobalConfigVersion(dataProvider));
         }
 
         /// <summary>
@@ -859,6 +884,38 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para><b>它不是什么</b>:数值真源 —— 数值归用户;真表到位后只需替换本方法体,
         /// 装配签名与下游零改动。</para>
         /// </summary>
+        /// <summary>
+        /// 派生全局 `ConfigVersion`(ADR-014 §五「源文本集」口径 · 用户 2026-10-24 裁定 ·
+        /// `TD-epic-01-f` 解除前置 ①)。
+        /// <para><b>为什么 `dataProvider == null` 要抛而不是传 0</b>:传 0 会让
+        /// `AC-51-D7` 的比对恒「匹配」—— 那正是 `TD-epic-01-f` 记录的假绿形态本身。
+        /// 宁可让「没有 provider 却要存档」成为**显式失败**,也不让它静默绿。
+        /// 本路径只在 `saveBasePath` 非空时走到(见 `AssembleCore` 的 `SaveService` 分支),
+        /// 而生产路径 `BootRoot` 预载成功时 provider 恒非 null。</para>
+        /// </summary>
+        /// <param name="dataProvider">烘焙数据装载面;须为 <see cref="AddressablesDataProvider"/>
+        /// (只有它能列出全部 22 条产物地址)。</param>
+        /// <returns>全局组合 <c>ConfigVersion</c>。</returns>
+        /// <exception cref="InvalidOperationException">
+        /// provider 为 null,或不是 <see cref="AddressablesDataProvider"/>,或任一产物装载失败(E-13)。
+        /// </exception>
+        private static uint ResolveGlobalConfigVersion(IDataProvider dataProvider)
+        {
+            if (dataProvider == null)
+                throw new InvalidOperationException(
+                    "[E-13][data-core] 无法派生全局 ConfigVersion:dataProvider 为 null。" +
+                    "启用存档路径(saveBasePath 非空)时必须有烘焙数据装载面 —— " +
+                    "传 0 占位会让 AC-51-D7 恒『匹配』(TD-epic-01-f 记录的假绿形态),故拒绝。");
+
+            if (!(dataProvider is AddressablesDataProvider addressables))
+                throw new InvalidOperationException(
+                    "[E-13][data-core] 无法派生全局 ConfigVersion:dataProvider 类型为 " +
+                    $"{dataProvider.GetType().Name},不是 AddressablesDataProvider。" +
+                    "只有后者持有全部 22 条产物地址(DataCorePreloader.DataCoreAddresses)。");
+
+            return addressables.LoadGlobalConfigVersion();
+        }
+
         private static IReadOnlyList<DiseaseRegistryEntry> CreateFallbackRegistry()
         {
             var entry = new DiseaseRegistryEntry

@@ -7,6 +7,7 @@
 // ⚠️ 本程序集零 JSON 解析、零 FixParse(AC-48 结构守卫 RuntimeSourceGuard 扫描面内)。
 
 using System;
+using System.Collections.Generic;
 using DaYiJingCheng.Gameplay.Presentation.Audio;
 using DaYiJingCheng.Gameplay.Presentation.Casebook;
 using DaYiJingCheng.Gameplay.Presentation.Diagnosis;
@@ -737,6 +738,45 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 一切失败路径带 [E-13] 上下文 rethrow,绝不返回 null。</summary>
         private byte[] FetchBytes(string address) =>
             _byteSource == null ? FetchFromAddressables(address) : FetchFromByteSource(address);
+
+        /// <summary>
+        /// 取**全部** data-core 产物的头部字节(address → 头 20 字节),
+        /// 供 <see cref="DataCoreConfigVersion.Combine"/> 派生全局 `ConfigVersion`。
+        /// <para><b>为何单开一条缝而不复用 <c>FetchBytes</c></b>:本方法要对
+        /// <see cref="DataCorePreloader.DataCoreAddresses"/>(22 条)逐个取,
+        /// 其中若干条在正常装配路径下**未必**会被 <c>Ensure*</c> 走到
+        /// (例如 21a 家具目录只在建造系统启动时才装载)。若复用 <c>Ensure*</c>,
+        /// 全局版本号就会**依赖本局玩法走到哪一步** —— 那是假变更
+        /// (同 <see cref="DataCoreConfigVersion"/> 文件头「排序是判据的一部分」的理由)。
+        /// ⇒ 本方法**只读头**,不触发任何解码、不写任何缓存字段。</para>
+        /// <para>⚠️ 失败语义与 <c>FetchBytes</c> 同款:E-13 启动期硬失败,绝不返回空集或默认值。</para>
+        /// </summary>
+        /// <returns>address → 该产物头部字节(长度 = <see cref="CookedFormat.HeaderSize"/>)。</returns>
+        /// <exception cref="InvalidOperationException">任一产物装载失败(E-13)。</exception>
+        public Dictionary<string, byte[]> LoadAllCookedHeaders()
+        {
+            string[] addresses = DataCorePreloader.DataCoreAddresses;
+            var headers = new Dictionary<string, byte[]>(addresses.Length, StringComparer.Ordinal);
+            for (int i = 0; i < addresses.Length; i++)
+            {
+                string address = addresses[i];
+                byte[] bytes = FetchBytes(address);
+                // 只切头部 —— 22 份全量载荷同时在内存里是不必要的峰值。
+                var header = new byte[CookedFormat.HeaderSize];
+                Array.Copy(bytes, header, CookedFormat.HeaderSize);
+                headers[address] = header;
+            }
+            return headers;
+        }
+
+        /// <summary>派生全局 `ConfigVersion`(ADR-014 §五「源文本集」口径 · 用户 2026-10-24 裁定)。
+        /// <para>= <see cref="LoadAllCookedHeaders"/> + <see cref="DataCoreConfigVersion.Combine"/>。
+        /// 存档头与 51 的 `AC-51-D7` 比对**共用**这一个值。</para>
+        /// </summary>
+        /// <returns>全局组合 <c>ConfigVersion</c>(u32)。</returns>
+        /// <exception cref="InvalidOperationException">任一产物装载失败(E-13)。</exception>
+        public uint LoadGlobalConfigVersion()
+            => DataCoreConfigVersion.Combine(LoadAllCookedHeaders());
 
         /// <summary>注入路径(EditMode 夹具)。校验与生产路径<b>同款</b> ——
         /// null / 空 / 短于头部一律 E-13 抛出,差别仅在于字节不来自 Addressables
