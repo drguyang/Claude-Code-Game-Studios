@@ -1,10 +1,19 @@
-# Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · S19-1..S19-5 全 done · TD-enemy-02 + TD-player-03 双实现收敛轮完成 —— 未提交,等 commit 指令**)
+# Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · ✅ 已收口(§九 判定落盘 + retro + 收口日补记)· TD-enemy-02 + TD-player-03 双实现收敛轮完成 —— 收口批未提交,等 commit 指令**)
 
-## TD-enemy-02 + TD-player-03 双实现收敛轮(2026-10-25 · ✅ 完成,未提交)
+## Sprint 19 收口轮(2026-10-25 · ✅ 本轮落盘,未提交)
+
+- **retro**:`production/retrospectives/retro-sprint-19-2026-10-25.md`(5/5 计划内完成率回满 ·
+  追加率口径失真登记 · retro-18 五项 5/5 兑现 · 行动项 5 条:CAPACITY-MODEL 补行 / 实现面对账 /
+  收口四件套同日化 / W6-W10+QA 残条盘点 / medcons 20 条整块策略)
+- **sprint-19.md**:头部收口日补记 `→ 2026-10-25` + §九 收口判定段(✅ 已收口,不记绿三项)
+- **CAPACITY-MODEL.md**:19 行并入三元表(轮面追加口径警示)
+- **收口批文件**:retro + sprint-19.md + CAPACITY-MODEL.md + session state —— 等提交指令
+
+## TD-enemy-02 + TD-player-03 双实现收敛轮(2026-10-25 · ✅ 已提交 `abc9293`)
 
 **用户裁定(2026-10-25,双取推荐)**:TD-enemy-02 **甲「删直线逼近」** · TD-player-03 **甲「删实例状态机」**。
 
-**改动面**(10 文件,未提交):
+**改动面**(10 文件 —— 🔁 2026-10-25 已提交 `abc9293`,14 files +539/−306):
 - 生产:`EnemyPathing.cs`(删 StepAccumulator/ValidateAccumulator)· `EnemyLocomotion.cs`(头注钉唯一实现)· `CellTransitionDetector.cs`(重写为 static class,留 CellFromPosition/ComputeDisplacement)· `PlayerController.cs`(C-3 结清注)
 - 测试:`deterministic_pathing_test`(删 test_steppingProperty,AC-27-20 注释订正)· `logi_pose_test`(新增 test_ac2719_property…)· `cell_transition_test`(全重写,S11-3 真夹具,12 条迁内联)· `host_authority_test` · `stream_bound_test` · `o6_actor_cell_payload_test`(3 条迁)· `WorldEcozones/chunk_activation_test`(驱动源迁)
 - 债册:两条索引翻转 open→closed,两结案块 + 三十订输出块(`closed 34 / open 68 / 未闭 P0 面 69 / 9/31 epic`)
