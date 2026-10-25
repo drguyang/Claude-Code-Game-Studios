@@ -11108,3 +11108,18 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
   事件触发半边仍归 TD-persist-04 动作 ①;瞬时源覆盖 = 急救 Armed 一类,其余语义落地时并入本查询
 - **回归:`4987/4952/0/35`(@ w-full · 09:52 UTC · 5dc9369 工作树;等式 4987−4978=9 ✓ 零回归)
 - **未 commit / 未 push**(等用户指令)
+
+<!-- ═══ TD-persist-04 动作① 裁定轮(2026-10-25 10:xx UTC)═══ -->
+## 动作① 裁定轮终态(事件触发 checkpoint 接线)
+
+- **四裁定(用户全取推荐)**:① 接线形态 = **集中观察**(主机 Step 边界扫「本 tick 落流 Kind ∩
+  白名单」;非写者直调 —— 直调会在 Step 中途组版读到半 tick 流);② 成员 → Kind 映射 =
+  脉案落笔 `JudgmentRecorded` · 病例结案 `CaseClosed` · 出诊启动 `HouseCallStarted`;
+  ③ 事件触发**复用带瞬时源门的 Checkpoint 入口**(Armed 期锚点由兜底顺延补上);
+  ④ 动作② 结构一并裁:`HouseCallStarted` 入 entities.yaml(stream world / author 52 /
+  载荷 target_patient_id;细节归 52 GDD 轮)
+- **落盘**:entities.yaml 新 Kind(36→37,YAML 合法)+ EVENT_CHECKPOINT_ANCHORS 映射注 +
+  GDD 规则六 🔁 注 + 债册 TD-persist-04 裁定块
+- **仍 open**:动作① 实现轮(集中观察检测器 + BootRoot 接线 + 白名单夹具 + 证伪轮);
+  检测器须消费「本 tick 落流事件」的宿主侧访问面(实现轮勘察项);AC-7a-20 维持 PARTIAL
+- **未 commit**(等用户指令)

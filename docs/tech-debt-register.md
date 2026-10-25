@@ -2048,6 +2048,28 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > 证伪 WG2 红 1)。**动作 ① 的主体仍 open 不变**:8 / 37 / 52 三条锚点接线 +
 > 出诊启动 Kind 登记(各 epic 义务)+ 「出诊流程进行中」语义待其落地时**并入本查询**
 > (不得另立第二查询)。原件 = `production/qa/evidence/impl-persist-wiring-2026-10-25.md`。
+>
+> ✅ **🔁 2026-10-25 动作① 裁定轮(四裁定,用户裁定全取推荐)+ 动作② 结构入表**
+> **裁定 ① 接线形态 = 乙「集中观察」**:主机 Step 边界(tick 边沿)扫「本 tick 落流 Kind ∩
+> 白名单」,命中即调 checkpoint —— 恰落 AC-7a-20「该事件的 Step 边界」字面(写者直调会在
+> Step 中途组版,读到半个 tick 的流,校验和覆盖不一致状态);写者零改动、单一检测点;
+> 与 `CheckpointFallback` 同一驱动点;GDD 规则六「各系统在生成该类事件时同步触发」已按
+> 🔁 惯例加注(调度集中化,白名单语义不变)。
+> **裁定 ② 成员 → Kind 映射**:脉案落笔 = **`JudgmentRecorded`**(「落笔」字面 + 支柱一
+> 「判断记录不可撤销」的不可逆裁决时刻;`PatternRecognized` 否决 —— 是「认出」不是「落笔」,
+> 且 W5 期纯函数用的 {CaseClosed, PatternRecognized} 已裁定不采用、零调用点,不构成先例)·
+> 病例结案 = `CaseClosed` · 出诊启动 = **`HouseCallStarted`**(见裁定 ④)。
+> **裁定 ③ 事件触发复用带门入口**:走与兜底同一个 `Checkpoint`(内含瞬时源门);Armed 期锚点
+> ⇒ 该次不触发,兜底顺延在 ≤ 一个间隔内补上 —— 零新入口,「恰三处」判定面不加豁免注。
+> **裁定 ④ 动作② 结构一并裁**:`SimEvent.Kind.HouseCallStarted` 已入 `entities.yaml`
+> (stream = **world**,envelope `Patient = PatientId.None`;author = 52;载荷首字段
+> `target_patient_id: i32`;有界性 ≤ 出诊启动率)—— **52 GDD 轮只余载荷细节与触发时机**,
+> 不再立 Kind。⇒ registry Kind 数 **36 → 37**(复算:`grep -c "name: SimEvent.Kind\."
+> design/registry/entities.yaml`)。同批落盘:`entities.yaml` 新条目 +
+> `EVENT_CHECKPOINT_ANCHORS` 条目加映射注(revised 2026-10-25)+ GDD 规则六 🔁 注。
+> ⚠️ **本条仍 `open` 不翻转** —— 裁定 ≠ 实现;动作① 剩余面 = **实现轮**(集中观察检测器 +
+> BootRoot 接线 + 白名单夹具 + 证伪轮),且检测器须消费「本 tick 落流事件」的宿主侧访问面
+> (实现轮勘察项)。`AC-7a-20` 维持 PARTIAL 直至实现轮收口。
 
 ---
 

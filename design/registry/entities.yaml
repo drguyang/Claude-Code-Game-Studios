@@ -2118,6 +2118,22 @@ constants:
     added: 2026-09-15
     revised: 2026-09-17
 
+  # ── 世界流 Kind · 52 出诊启动(2026-10-25 TD-persist-04 动作② 结构裁定;载荷细节归 52 GDD 轮)──
+  - name: SimEvent.Kind.HouseCallStarted
+    status: active
+    source: design/gdd/persistence-service.md   # 锚点白名单第三员(规则六);52 侧语义件 = random-events.md
+    referenced_by:
+      - design/gdd/persistence-service.md   # 规则六 · AC-7a-20(出诊启动 = 事件触发 checkpoint 锚点)
+      - design/gdd/random-events.md         # 52:出诊目标由任务/事件源提供(规则六之二;载荷细节归其 GDD 轮)
+      - design/registry/entities.yaml       # EVENT_CHECKPOINT_ANCHORS 成员映射(2026-10-25 裁定)
+    unit: kind
+    stream: world
+    author: "52 随机事件导演(主机唯一 Append,ADR-005)"
+    payload_schema: "target_patient_id: i32(出诊目标病人;结构裁定 2026-10-25,其余载荷字段归 52 GDD 轮定稿)"
+    constraint: "落**世界流**(2026-10-25 TD-persist-04 裁定甲:出诊启动是世界级时刻,envelope `Patient = PatientId.None`,不污染 `max(patient_id)` 高水位 —— ADR-007 §四);载荷首字段 `target_patient_id`(目标病人**引用**,非身份发号 —— 发号仍走 `IIdAuthority`,本字段不参与高水位);⚠️ **本条只立结构**(name / stream / author / 首载荷字段;2026-10-25 用户裁定「一并裁结构」),触发时机 / 与急召出诊(37 医疗事件模板)的关系 / 其余载荷 = **52 GDD 轮义务**;有界性 ≤ 出诊启动率(玩家动作粒度,与 tick 频率无关)"
+    added: 2026-10-25
+    revised: ""
+
   # ── 世界流 Kind（ADR-009 §三 骨架 · ADR-021 首个系统 ADR 落点）──────────
   # ADR-009 §三 声明世界流 8 个 Kind 骨架（Structure* / Drop* / Craft /
   # ResourceHarvested），并明写「载荷归各系统 ADR」；该 ADR **未**把它们登记进
@@ -3209,6 +3225,13 @@ constants:
   # 四个系统的具名叙事事件,是**真跨系统事实**(7a 触发 checkpoint 的锚点集)—— 只住 7a 内部
   # 旋钮表不登记,下游撰写者看不见这条边。成员**只增不删**(删锚点 = 事件触发失效,退回首轮
   # 粒度洞,AC-7a-20)。「出诊启动」的具名事件归 52 侧登记(7a 只出观察钩子形状)。
+  # 🔁 **2026-10-25 TD-persist-04 裁定轮(四裁定,原文不删)**:① 接线形态 = **集中观察**
+  # (主机 Step 边界扫「本 tick 落流 Kind ∩ 白名单」,非写者直调 —— GDD「各系统生成时同步触发」
+  # 按 🔁 惯例加注:调度集中化,白名单语义不变);② 成员 → Kind 映射钉死:**脉案落笔 =
+  # `JudgmentRecorded`**(「落笔」字面 + 支柱一不可逆裁决时刻;非 `PatternRecognized`)·
+  # **病例结案 = `CaseClosed`** · **出诊启动 = `HouseCallStarted`**(本日新登记,上区);
+  # ③ 事件触发**复用带门 Checkpoint 入口**(瞬时源门不安全 ⇒ 该次不触发,兜底顺延在
+  # ≤ 一个间隔内补上);④ `HouseCallStarted` 载荷细节归 52 GDD 轮。
   - name: EVENT_CHECKPOINT_ANCHORS
     status: active
     source: design/gdd/persistence-service.md
@@ -3217,9 +3240,9 @@ constants:
       # 8/39(脉案落笔)· 37(病例结案)· 52(出诊启动)—— 事件触发锚点的产生者,撰写时登记反向
     value: "{脉案落笔 · 病例结案 · 出诊启动}(2026-09-16 玩家裁定「两个都留」)"
     unit: set of narrative events
-    constraint: "只增不删 —— 删锚点 = 事件触发失效(只剩定时兜底 = 退回首轮粒度洞);加锚点 = 叙事事件更密,永不破坏「无可回滚到判断之前」(AC-7a-20)"
+    constraint: "只增不删 —— 删锚点 = 事件触发失效(只剩定时兜底 = 退回首轮粒度洞);加锚点 = 叙事事件更密,永不破坏「无可回滚到判断之前」(AC-7a-20)。🔁 **2026-10-25 成员 → Kind 映射(裁定②)**:`JudgmentRecorded` / `CaseClosed` / `HouseCallStarted` —— 检测面 = 主机 Step 边界扫「本 tick 落流 Kind ∩ 本集」(裁定①集中观察;写者零改动)"
     added: 2026-09-16
-    revised: "2026-09-17"
+    revised: "2026-10-25(TD-persist-04 裁定轮:Kind 映射钉死 + HouseCallStarted 入表;原 2026-09-17 修订记录见上方注释)"
 
   # ── LeaseSource:动作压制租约来源闭集(2026-09-20 OQ-4-13 裁定 · 本轮登记)────
   - name: LeaseSource
