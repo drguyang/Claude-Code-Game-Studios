@@ -149,6 +149,13 @@
 > `INarrativeContextQuery` 实例(规则十四「一个量」)—— 归 Boot 接线轮(10 落地时)。
 > 原件 = `production/qa/evidence/impl-td-persist-05-act4-2026-10-25.md`。
 > **债册侧:`TD-persist-05` 索引行已翻 `closed`(二十六订)—— 本 epic 的四条 PARTIAL 兑现债全部结清。**
+>
+> 🔁 **2026-10-25 追注(用户裁定「翻转 TD-persist-04 索引」;债册二十七订)** ——
+> `TD-persist-04` 索引行已翻 `closed` ⇒ **本 epic 名下 TD 全部 closed**(`persistence-service`
+> 名下未闭 = 0;债册 §五 复算:未闭 P0 面 72 → 71,epic 分布 12/31 → 11/31)。
+> ⚠️ **TD 结案 ≠ 上行 `20` 行状态翻转** —— 该行的 PARTIAL 剩余面(`HouseCallStarted`
+> 零写入者)是**内容侧义务**(52 GDD 轮;b7 写者存在性门已登记具名豁免,落地同批须撤),
+> 不在 `TD-persist-04` 的裁决面内;`20` 行状态翻转与否**归用户另行裁**,本块不代裁。
 
 ### 两条会改变判读的交叉结论
 

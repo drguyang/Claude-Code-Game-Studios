@@ -351,7 +351,7 @@
 | `TD-persist-01` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-02` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-03` | `persistence-service` | closed | **Y** | R1 |
-| `TD-persist-04` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-04` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-05` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-06` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-07` | `persistence-service` | closed | **Y** | R1 |
@@ -433,8 +433,26 @@ PYEVAL
 ~~**当前预期输出(2026-10-25 二十三订实测 · `TD-persist-07` 入表(立债即 closed)—— 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 二十四订实测 · `TD-persist-05` 部分兑现(③④ 兑现,①②⑤ blocked)—— 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 二十五订实测 · `TD-persist-06` 结案(`AC-7a-17` 兑现)—— 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
-**当前预期输出(2026-10-25 二十六订实测 · `TD-persist-05` 结案(四条具名缺口 + 附全数兑现)—— 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
-> 🔁 **二十六订(`TD-persist-05` 结案 · 2026-10-25 · 兜底半边兑现)** —— 变化 =
+~~**当前预期输出(2026-10-25 二十六订实测 · `TD-persist-05` 结案(四条具名缺口 + 附全数兑现)—— 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
+**当前预期输出(2026-10-25 二十七订实测 · `TD-persist-04` 结案(`AC-7a-20` 事件触发半边兑现)—— 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
+> 🔁 **二十七订(`TD-persist-04` 结案 · 2026-10-25 · 用户裁定「翻转 TD-persist-04 索引」)** —— 变化 =
+> **`closed 30 → 31`**(+1)· **`open 71 → 70`**(−1)· **`未闭 P0 面` 72 → 71**(−1)·
+> **`persistence-service 1 → 0`**(−1;epic 分布清空该行,12/31 → **11/31**)·
+> **`条目 108` 不动** · `Y 97` 不动(已闭曾标 P0 面 25 → 26)。
+> 单一变化源:`TD-persist-04` 索引行 `open → closed` —— 动作 ① 全链(瞬时源契约裁定 →
+> 具名接口 → 生产实装 → 集中观察接线)+ 动作 ②(出诊启动 Kind 结构入表)+ 动作 ③
+> (13 条零载体 AC 处置)已兑现,结案块见其正文。
+> 原件 = `production/qa/evidence/impl-td-persist-04-act1-2026-10-25.md`(实现轮)/
+> `impl-persist-wiring-2026-10-25.md`(生产接线轮)/ `review-sprint19-2026-10-25.md`(W5 评审)。
+> ⚠️ **本条的 `closed` 不覆盖三笔转出义务(各归其主,勿读成「7a 无残留」)**:
+> ① `HouseCallStarted` **零写入者**(52 GDD 轮;b7 写者存在性门已登记具名豁免,
+> 写者落地同批须撤 —— 债务在门上可见);② 生产 **Load 接线落地时必须调
+> `AnchorCheckpointTrigger.ResetCursor()`**(restore 游标缝,义务登记给 Load 接线轮);
+> ③ 「出诊流程进行中」瞬时语义归 52 落地时**并入** `NoPendingMedicalActionQuery`。
+> ⚠️ **二十六订的警示「persistence-service 名下剩余 1 条未闭 = TD-persist-04」自此过期**
+> (原文不删):现值 = **persistence-service 名下 0 条未闭**(7a 名下 TD 全部 closed;
+> 这**不等于**「7a 无残留」—— 见上三条转出义务)。
+> 🔁 **二十六订正文(留档)**:🔁 **二十六订(`TD-persist-05` 结案 · 2026-10-25 · 兜底半边兑现)** —— 变化 =
 > **`closed 29 → 30`**(+1)· **`open 72 → 71`**(−1)· **`未闭 P0 面` 73 → 72**(−1)·
 > **`persistence-service 2 → 1`**(−1)· **`条目 108` 不动** · `Y 97` 不动。
 > 单一变化源:`TD-persist-05` 索引行 `open → closed` —— 该债的**全部债务面**(四条具名缺口
@@ -518,16 +536,16 @@ PYEVAL
 > 十六订补结)。
 
 ```text
-条目 108 | 状态 {'open': 71, 'partial': 6, 'closed': 30, '**done**(2026-10-21)': 1} | P0 面 {'Y': 97, 'N': 10, '~~**Y**~~': 1}
-未闭 P0 面 = 72 （已闭但曾标 P0 面的 25 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 72 条,分布在 12/31 个 epic
+条目 108 | 状态 {'open': 70, 'partial': 6, 'closed': 31, '**done**(2026-10-21)': 1} | P0 面 {'Y': 97, 'N': 10, '~~**Y**~~': 1}
+未闭 P0 面 = 71 （已闭但曾标 P0 面的 26 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 71 条,分布在 11/31 个 epic
     medical-consequences: 20   audio-system: 20          clinic-machine: 17
-    telemetry-analytics: 5     persistence-service: 1    skeuomorphic-ui: 2
-    disease-simulation: 2      patient-ai: 1              player-controller: 1
-    enemy-ai: 1                item-database: 1           modular-building: 1
+    telemetry-analytics: 5     skeuomorphic-ui: 2         disease-simulation: 2
+    patient-ai: 1              player-controller: 1       enemy-ai: 1
+    item-database: 1           modular-building: 1
 ```
 
-> 🔁 **2026-10-25 收口轮:本输出块已刷新到二十六订(`TD-persist-05` 结案)**。
+> 🔁 **2026-10-25 收口轮:本输出块已刷新到二十七订(`TD-persist-04` 结案)**。
 > 相对二十五订叙事块的 `closed 29 / open 72 / 未闭 73 / persistence-service 2`,变化 =
 > **`closed 29 → 30`**(+1)· **`open 72 → 71`**(−1)· **`未闭 P0 面` 73 → 72**(−1)·
 > **`persistence-service 2 → 1`**(−1)· `条目 108` / `Y 97` / `12 epic` 不动。
@@ -2095,6 +2113,22 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 >   (NOT-RUN,同上轮 `OnTicks` 行口径);③ restore 后游标缝 ⇒ 生产 **Load 接线落地时必须调
 >   `ResetCursor()`**(义务登记给 Load 接线轮);④ 「出诊流程进行中」瞬时语义归 52 落地时
 >   **并入** `NoPendingMedicalActionQuery`。
+>
+> ✅ **🔁 2026-10-25 结案块(用户裁定「翻转 TD-persist-04 索引」;二十七订)**
+> **结案判据(逐条可跑)**:① **`AC-7a-20` 事件触发半边兑现** ——
+> `Sim.Codec/AnchorCheckpointTrigger.cs`(集中观察:游标扫新尾段 + 门预问 +
+> `Func<bool>` 失败不清兜底 + `ResetCursor`),由 `BootRoot` tick 边沿驱动(兜底之后);
+> 复算:`grep -n "AnchorCheckpointTrigger?.Drain" unity/Assets/Gameplay.Boot/BootRoot.cs`。
+> ② **动作 ② 结构入表** —— `HouseCallStarted` 三处齐(registry / `EventKind` 追加区 /
+> payload struct);复算:`grep -c "name: SimEvent.Kind\." design/registry/entities.yaml` ⇒ **37**;
+> `python3 tools/kindgen/kindgen.py --check` ⇒ A1–A5 全过。
+> ③ **夹具与证伪** —— 触发器 11 条 + 兜底 +1 + 装配断言,首验 34/34 绿;
+> 证伪 9 变异全红零假绿(原件 §四)。
+> ④ **全量回归** —— `4999/4964/0/35`(`act1-full2` · 2026-10-25T10:21 UTC · `d157b4e`
+> 工作树;等式 `4999 − 4987 = 12` = 本轮新增测试方法数,零回归)。
+> **转出义务(本条 closed 不覆盖,各归其主)**:① `HouseCallStarted` 零写入者(52 GDD 轮;
+> b7 门具名豁免可见化,落地同批须撤)② Load 接线轮须调 `ResetCursor()` ③ 出诊语义并入
+> `NoPendingMedicalActionQuery`。**索引翻转** = 本块同批(二十七订,复算输出见 §五)。
 >
 > 🔁 **2026-10-25 追注(Kind 增员连锁七红收口 · 同批落盘)**:实现轮首轮全量
 > `4999/4957/7/35` —— 7 红全为 `HouseCallStarted` 入 registry/枚举的 closed-set 连锁,

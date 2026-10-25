@@ -11146,3 +11146,15 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
   注释残留订正 → 收口回归 **`4999/4964/0/35`**(act1-full2 · 2026-10-25T10:21 UTC ·
   d157b4e 工作树;等式 4999−4987=12 = 本轮新增测试方法数,零回归)
 - **未 commit**(等用户指令;回归数见证据件 §五)
+
+<!-- ═══ TD-persist-04 索引翻转(2026-10-25 · 用户裁定)═══ -->
+## TD-persist-04 结案(债册二十七订)
+
+- **索引行**:`open → closed`(P0 面 `Y` 维持;债册 §五 复算:closed 31 / open 70 /
+  未闭 P0 面 72 → **71** · persistence-service 名下 1 → **0**,epic 分布 12/31 → 11/31)
+- **结案块**:TD-persist-04 详情块末(四条结案判据可跑 + 三笔转出义务具名)
+- **转出义务(结案不覆盖)**:① `HouseCallStarted` 零写入者(52 GDD 轮;b7 豁免可见化)
+  ② Load 接线轮须调 `ResetCursor()` ③ 出诊语义并入 `NoPendingMedicalActionQuery`
+- **EPIC 侧**:`persistence-service/EPIC.md` 追注债册侧翻转;**`20`(AC-7a-20)行状态
+  PARTIAL 未翻** —— 剩余面是内容侧义务(52),翻转与否归用户另行裁
+- **未 commit**(等用户指令)
