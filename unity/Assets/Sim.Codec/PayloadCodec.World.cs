@@ -603,5 +603,34 @@ namespace DaYiJingCheng.Sim.Codec
             r.EnsureFullyConsumed();
             return new PlayerDiedPayload(actorId, deathCell, tick);
         }
+
+        /// <summary>
+        /// 编码「出诊启动」载荷(2026-10-25 TD-persist-04 动作② 结构裁定;
+        /// 其余载荷字段归 52 GDD 轮定稿 —— 当前仅 <c>TargetPatientId</c> 一字段)。
+        /// </summary>
+        public static byte[] Encode(in HouseCallStartedPayload p)
+        {
+            var w = new CodecWriter();
+            w.WriteFieldInt32(1, p.TargetPatientId);
+            return w.ToArray();
+        }
+
+        private static HouseCallStartedPayload DecodeHouseCallStarted(ReadOnlySpan<byte> bytes)
+        {
+            var r = new CodecReader(bytes);
+            uint seen = 0;
+            int targetPatientId = 0;
+            while (r.HasMore)
+            {
+                switch (ReadTagChecked(ref r, nameof(EventKind.HouseCallStarted), ref seen))
+                {
+                    case 1: targetPatientId = r.ReadInt32LittleEndian(); break;
+                    default: throw new InvalidDataException($"HouseCallStarted: 未知 tag");
+                }
+            }
+            RequireCompleteMask(nameof(EventKind.HouseCallStarted), seen, (1u << 1) - 1);
+            r.EnsureFullyConsumed();
+            return new HouseCallStartedPayload(targetPatientId);
+        }
     }
 }

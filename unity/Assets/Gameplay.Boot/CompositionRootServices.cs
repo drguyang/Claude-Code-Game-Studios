@@ -246,6 +246,13 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </summary>
         public CheckpointFallback CheckpointFallback { get; }
 
+        /// <summary>
+        /// 事件触发 checkpoint 的锚点观察器(AC-7a-20 事件触发半边 · 2026-10-25 动作① 实现轮)。
+        /// <para>`null` ⇔ `SaveService` 为 null(未指定存档目录);驱动 = `BootRoot` 的
+        /// tick 边沿序列(`Drain(Stream.Events)` —— 集中观察,裁定①)。</para>
+        /// </summary>
+        public AnchorCheckpointTrigger AnchorCheckpointTrigger { get; }
+
         internal CompositionRootServices(EventStream stream, IIdAuthority idAuthority,
                                          InMemoryBlobPool blobPool, IPayloadEncoder encoder,
                                          IPayloadDecoder decoder,
@@ -287,6 +294,7 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          SaveService saveService = null,
                                          CheckpointFallback checkpointFallback = null,
                                          NoPendingMedicalActionQuery narrativeContext = null,
+                                         AnchorCheckpointTrigger anchorCheckpointTrigger = null,
                                          Func<uint?> currentConfigVersion = null)
         {
             Stream = stream;
@@ -332,6 +340,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             SaveService = saveService;
             CheckpointFallback = checkpointFallback;
             NarrativeContext = narrativeContext;
+            AnchorCheckpointTrigger = anchorCheckpointTrigger;
 
             // 51 遥测接线(TD-epic-01):decoder 在 Sim.Codec、51 的装配引不到 ⇒ 在本装配层包成委托。
             // ⚠️ stream / decoder / registry 均已是本 ctor 的形参 ⇒ 不加新装配边、不改 Assemble 签名。

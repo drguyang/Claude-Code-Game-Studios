@@ -189,5 +189,25 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 "负 tick 数 = tick 单调性被破坏 ⇒ 拒");
             Assert.AreEqual(0, _fires, "抛出的调用不得产生副作用");
         }
+
+        /// <summary>事件触发半边成功存档 ⇒ 兜底窗口清零(TD-persist-04 裁定④ · 2026-10-25):
+        /// 兜底只管「事件长期缺席」,锚点刚存过 ⇒ 窗口从现在重起。</summary>
+        [Test]
+        public void test_checkpointFallback_notifyExternalCheckpoint_resetsWindow()
+        {
+            // Arrange:interval = 3,推进 2 格(未到期)
+            _timer = MakeTimer(3);
+            _timer.OnTicks(2);
+            Assert.AreEqual(0, _fires);
+
+            // Act:事件触发半边刚存过档 ⇒ 通知清零
+            _timer.NotifyExternalCheckpoint();
+
+            // Assert:窗口重起 —— 再推 2 格不得触发,须再满 interval 才触发
+            _timer.OnTicks(2);
+            Assert.AreEqual(0, _fires, "清零后 2 格 < interval ⇒ 不得触发");
+            _timer.OnTicks(1);
+            Assert.AreEqual(1, _fires, "清零后第 3 格 = 满间隔,恰触发");
+        }
     }
 }

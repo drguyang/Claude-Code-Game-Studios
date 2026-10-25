@@ -302,6 +302,16 @@ namespace DaYiJingCheng.Tests.Boot
                 Assert.NotNull(bag.CheckpointFallback,
                     "带 saveBasePath ⇒ 定时兜底须与 SaveService 同批装配");
 
+                // ⑤ 锚点触发器在袋(AC-7a-20 事件触发半边 · TD-persist-04 动作① 实现轮):
+                //    与兜底同源装配;瞬时源同一实例(触发器预问的门 = 台账门 = 袋暴露,一个量)。
+                Assert.NotNull(bag.AnchorCheckpointTrigger,
+                    "带 saveBasePath ⇒ 锚点触发器须与兜底同批装配(事件触发半边)");
+                var triggerCtx = typeof(AnchorCheckpointTrigger)
+                    .GetField("_context", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    ?.GetValue(bag.AnchorCheckpointTrigger);
+                Assert.AreSame(bag.NarrativeContext, triggerCtx,
+                    "触发器的瞬时源与袋暴露的须是同一实例(规则十四「一个量」;裁定③ 复用带门入口的门 = 同一量)");
+
                 // ④ **「一个量」机械钉**:SaveService 台账的瞬时源、兜底的瞬时源、袋暴露的
                 //    瞬时源**是同一个对象**(装配期单变量;拆实例 = 读档门与兜底门分叉)。
                 var ledgerCtx = typeof(SaveSlotLedger)
@@ -330,6 +340,8 @@ namespace DaYiJingCheng.Tests.Boot
 
             Assert.Null(bag.SaveService, "未指定存档目录 ⇒ SaveService 为 null(既有合法状态)");
             Assert.Null(bag.CheckpointFallback, "SaveService 为 null ⇒ 兜底同 null(同源装配)");
+            Assert.Null(bag.AnchorCheckpointTrigger,
+                "SaveService 为 null ⇒ 锚点触发器同 null(同源装配;事件触发半边无存档入口可调)");
             Assert.NotNull(bag.NarrativeContext, "瞬时源不随存档目录消失(7b 复用面)");
             Assert.IsTrue(bag.NarrativeContext.IsBound, "Bind 照常完成");
         }

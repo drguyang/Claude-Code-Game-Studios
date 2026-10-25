@@ -23,8 +23,8 @@
 //    「判据可跑且能打出漂移」,**不证**「烘焙器会在漂移时 throw」。
 // 4. **AC-11-22 的 7a 序列化白名单半边** —— ✅ **2026-10-15 S11-4 已落判据**(原记 BLOCKED-BY-7a)。
 //    **载体识别(非 AC 文本收窄 —— AC 一字未动)**:AC 原文为「**7a 的序列化器**两个 Kind
-//    均在**白名单**内」⇒ 序列化器的白名单 = `EventKind` 35 支闭集 ∩ `PayloadCodec.DecodeBoxed`
-//    / `PayloadEncoder.EncodeBoxed` 的分派表(两者 `default` 逐字抛「不在 36 支闭集内」)。
+//    均在**白名单**内」⇒ 序列化器的白名单 = `EventKind` 37 支闭集 ∩ `PayloadCodec.DecodeBoxed`
+//    / `PayloadEncoder.EncodeBoxed` 的分派表(两者 `default` 逐字抛「不在 37 支闭集内」)。
 //    ⚠️ 7a **从未有过**独立的「存档白名单**表**」—— `ADR-010` 与 `persistence-service.md`
 //    全文皆无此产物;原 NOT-RUN 把它读成一张数据表,故判为未落地。
 //    ⚠️ 现有 `codecHasBothBranchesForThisKind` **只覆盖 `DrugTreatmentApplied` 一支** ——
@@ -611,7 +611,7 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
         {
             // AC-11-22 半边②逐字兑现:「7a 的序列化器**两个 Kind 均在白名单内**」。
             // 判据 = **正向可往返** —— 不在分派表内的 Kind 落 `DecodeBoxed` 的 default
-            //   (`PayloadCodec.cs:88-89`,抛「不在 36 支闭集内」)⇒「能往返」⇔「在表内」。
+            //   (`PayloadCodec.cs:88-89`,抛「不在 37 支闭集内」)⇒「能往返」⇔「在表内」。
             // ① DrugTreatmentApplied(11 写);② EmergencyTreatmentApplied(10 写 ——
             //   AC 同句「两者不互相构造」的另一半,**现有 `codecHasBothBranchesForThisKind`
             //   只覆盖了 ①** —— 那正是本半边的真缺口)。
@@ -640,14 +640,14 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
             // ⚠️ 本条的严格度**超出** AC-11-22 原文(原文只点名两个 Kind)—— 其价值在
             //   「枚举加了成员而 `PayloadCodec.cs:53-87` 的手写 `case` 漏接」这一真风险;
             //   `EncodeBoxed` 侧的 default 同型(`PayloadEncoder.cs:137-138`)。
-            // 探针 = 任一 T 的 `Decode<T>`:落 default ⇒ 消息含特征串「不在 36 支闭集内」;
+            // 探针 = 任一 T 的 `Decode<T>`:落 default ⇒ 消息含特征串「不在 37 支闭集内」;
             //   已登记成员的解析失败消息是各解码器自己的文本,不含该串。
             // 可捕获性:删任一行 `case` ⇒ 立刻红。
             var closure = (EventKind[])Enum.GetValues(typeof(EventKind));
-            Assert.AreEqual(36, closure.Length,
-                "闭集支数(ADR-024 §① 真源 = entities.yaml 的 36 支;变更哨兵 —— " +
+            Assert.AreEqual(37, closure.Length,
+                "闭集支数(ADR-024 §① 真源 = entities.yaml 的 37 支;变更哨兵 —— " +
                 "若本次变更**有意**增删 Kind,须先改 registry 再重跑 kindgen。" +
-                "2026-10-21 ADR-032 起 35 → 36:加 PatientOutcomeChanged)");
+                "2026-10-25 TD-persist-04 起 36 → 37:加 HouseCallStarted)");
 
             var unlisted = new List<string>();
             foreach (EventKind k in closure)
@@ -655,7 +655,7 @@ namespace DaYiJingCheng.Tests.PrescriptionMedication
                 try { PayloadCodec.Decode<InjuryOnsetPayload>(k, ReadOnlySpan<byte>.Empty); }
                 catch (Exception ex)
                 {
-                    if (ex.Message.Contains("不在 36 支闭集内")) unlisted.Add(k.ToString());
+                    if (ex.Message.Contains("不在 37 支闭集内")) unlisted.Add(k.ToString());
                 }
             }
             CollectionAssert.IsEmpty(unlisted,

@@ -2070,6 +2070,43 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > ⚠️ **本条仍 `open` 不翻转** —— 裁定 ≠ 实现;动作① 剩余面 = **实现轮**(集中观察检测器 +
 > BootRoot 接线 + 白名单夹具 + 证伪轮),且检测器须消费「本 tick 落流事件」的宿主侧访问面
 > (实现轮勘察项)。`AC-7a-20` 维持 PARTIAL 直至实现轮收口。
+>
+> ✅ **🔁 2026-10-25 动作① 实现轮兑现(集中观察接线全落;索引翻转与否归用户裁,不代裁)**
+> - **落点**:`Sim.Codec/AnchorCheckpointTrigger.cs`(游标扫新尾段 + 门预问 + `Func<bool>`
+>   失败不清兜底 + `ResetCursor`)+ `CheckpointFallback.NotifyExternalCheckpoint()`(裁定④
+>   窗口清零)+ `CompositionRoot` 构造触发器(闭包 LogError 落 Boot 侧;瞬时源同一实例 ——
+>   装配反射第三处同实例钉)+ 袋属性 + `BootRoot` tick 边沿 `Drain(Stream.Events)`(兜底之后)。
+> - **registry 面**:`EventKind.HouseCallStarted`(追加区)+ `HouseCallStartedPayload` +
+>   kindgen 36 → 37 重跑(A1–A5 全过,`StreamRouting.g.cs` 再生)。
+> - **夹具**:`anchor_checkpoint_trigger_test.cs` **11 条** + `checkpoint_fallback_test` +1
+>   (NotifyExternal 窗口清零)+ `composition_root_test` 断言扩展(触发器在袋 + 同实例)。
+>   首验 **34/34 绿**(w1 = 唯一验,零红)。
+> - **证伪轮 9 变异全红、零假绿**(AT1 红4 · AT2 红1 · AT3 红1 · AT4′ 红4 · AT5′ 红7 ·
+>   AT6 红1 · AT7 红2 · WG3 红1 · NF 红1)。⚠️ **打错靶两次如实登记**(均非夹具假绿,
+>   系变异与原码语义等价):初版 AT4 打「开头钳制」⇒ 绿 ⇒ 实测**钳制冗余已删**(死代码),
+>   换打「删尾对齐」红 4;初版 AT5 删早退 break ⇒ 绿(触发在循环后,结构性单次),
+>   换打「逐锚点触发」红 7。三文件 SHA-256 逐字节还原(终态:
+>   `AnchorCheckpointTrigger 86dd22fc68610bdc…` · `CompositionRoot cf6b03990eff95e1…` ·
+>   `CheckpointFallback cd8be7a889a713ed…`)。
+> - **原件** = `production/qa/evidence/impl-td-persist-04-act1-2026-10-25.md`(含回归三元组
+>   与六条缺口登记)。
+> - **剩余面(具名,禁借绿)**:① `HouseCallStarted` **零写入者**(52 GDD 轮义务;今日可达
+>   锚点 = `JudgmentRecorded` / `CaseClosed` 两条);② BootRoot `Drain` 单行接线无独立反证
+>   (NOT-RUN,同上轮 `OnTicks` 行口径);③ restore 后游标缝 ⇒ 生产 **Load 接线落地时必须调
+>   `ResetCursor()`**(义务登记给 Load 接线轮);④ 「出诊流程进行中」瞬时语义归 52 落地时
+>   **并入** `NoPendingMedicalActionQuery`。
+>
+> 🔁 **2026-10-25 追注(Kind 增员连锁七红收口 · 同批落盘)**:实现轮首轮全量
+> `4999/4957/7/35` —— 7 红全为 `HouseCallStarted` 入 registry/枚举的 closed-set 连锁,
+> **实现逻辑零回归**。处置:① **codec 分派三文件接线**(`PayloadCodec.World.cs` 具名
+> Encode/Decode + `PayloadCodec.cs` / `PayloadEncoder.cs` 各一行 `case` + 三处 default
+> 哨兵串 36 → **37**,`SimEventCodec.cs` 同款);② **b7 写者存在性门为 `HouseCallStarted`
+> 登记具名豁免**(理由 + 归属轮 = 52 GDD 轮 —— 上面剩余面 ① 的债务自此**在门上可见**,
+> 写者落地同批须撤豁免,判据① 自动约束);③ **计数钉三处更新**(decoder 37Kinds /
+> encoder 35Kinds / drug_event 闭集哨兵 + 探针串)+ 往返覆盖断言 37/37 + 注释级
+> 「36 支」残留五文件订正。收口回归 **`4999/4964/0/35`**(`act1-full2` · 2026-10-25T10:21 UTC ·
+> `d157b4e` 工作树),等式 `4999 − 4987 = 12` = 本轮新增测试方法数,零回归。
+> 复算:`python3 -c "import xml.etree.ElementTree as ET; r=ET.parse('$HOME/.claude/jobs/181888b1/tmp/act1-full2.xml').getroot(); print(r.get('total'), r.get('passed'), r.get('failed'), r.get('skipped'))"`。
 
 ---
 

@@ -53,6 +53,8 @@
 | ↳ 🔁 **2026-10-25 兜底半边已兑现(行状态仍 PARTIAL —— 事件触发半边未动)** | **兜底半边 = IMPLEMENTED_TESTED** | `Sim.Contracts/INarrativeContextQuery.cs`(具名接口,裁定甲)+ `Sim.Codec/CheckpointFallback.cs`(顺延语义 + `DefaultIntervalTicks = 18000`,OQ-7a-5 已裁值)+ 三处换缝(`SaveService` / `SaveSlotLedger` / `CompositionRoot`,`null` fail-closed 维持) | `PersistenceService/checkpoint_fallback_test.cs` **7 条** | 证伪轮 **MF1…MF7 七轮全红、零假绿**(SHA-256 逐字节还原);回归 `4978/4943/0/35`(`td10` · `09:31 UTC` · `5dc9369` 工作树,等式 `4978−4971=7` ✓);⚠️ **生产接线今日为零 = 有意终态**(裁定丙)⇒ **`AC-7a-20` 整条仍 PARTIAL**:事件触发半边(8/37/52 锚点接线)归 `TD-persist-04` 动作 ①;原件 = `production/qa/evidence/impl-td-persist-05-act4-2026-10-25.md` |
 | ↳ 🔁 **2026-10-25 生产接线兑现(行状态仍 PARTIAL —— 事件触发半边未动)** | **瞬时源 + 定时兜底生产装配 = IMPLEMENTED_TESTED** | `Gameplay.Boot/NoPendingMedicalActionQuery.cs`(瞬时源实装:`IArmedState.IsArmed` 取反 —— W5 要求的「独立于流的内存态」;Bind 晚绑定 + 未绑 fail-closed + 只许一次)+ `CheckpointFallback.OnTicks(long)`(整批推进,防帧率稀释)+ `CompositionRoot` 装配(兜底闭包 = `Checkpoint(台账 NextWritableSeq)`;三处共用同一查询实例 —— 「一个量」义务兑现)+ `BootRoot` tick 边沿 `OnTicks(Δtick)` 驱动 | `checkpoint_fallback_test` **10 条**(+3)+ `no_pending_medical_action_query_test` **5 条** + `composition_root_test`(+1,含「一个量」反射同实例钉) | 证伪轮 **MF8/MF9 + NG1–4 + WG1–2 八轮全红、零假绿**(三文件 SHA-256 逐字节还原);⚠️ 上行「生产接线今日为零 = 有意终态(裁定丙)」**就此过期**(原文不删);⚠️ **SaveOnExit 自此真写 `save_exit.bin`**;**`AC-7a-20` 仍 PARTIAL**:事件触发半边(8/37/52 锚点接线)归 `TD-persist-04` 动作 ①;原件 = `production/qa/evidence/impl-persist-wiring-2026-10-25.md` |
 
+| ↳ 🔁 **2026-10-25 动作① 实现轮:事件触发半边接线兑现(行状态仍 PARTIAL —— 52 写入者未落)** | **事件触发半边 = IMPLEMENTED_TESTED** | `Sim.Codec/AnchorCheckpointTrigger.cs`(集中观察游标扫描 + 门预问 + `Func<bool>` 失败不清兜底)+ `CheckpointFallback.NotifyExternalCheckpoint()` + `CompositionRoot` 构造(闭包 LogError 落 Boot 侧;瞬时源同实例)+ `BootRoot` tick 边沿 `Drain` | `anchor_checkpoint_trigger_test` **11 条** + `checkpoint_fallback_test` +1 + `composition_root_test` 断言扩展 | 证伪轮 **9 变异全红、零假绿**(AT4/AT5 打错靶两次如实登记 —— 钳制冗余已删);kindgen 36→37 重跑 A1–A5 全过;⚠️ **剩余面**:`HouseCallStarted` 零写入者(52 GDD 轮)· BootRoot `Drain` 单行 NOT-RUN · Load 落地须调 `ResetCursor()`;原件 = `production/qa/evidence/impl-td-persist-04-act1-2026-10-25.md` |
+
 **分布**:`IMPLEMENTED_TESTED` **4** · `PARTIAL` **8** · `NOT_IMPLEMENTED` **1**。
 
 > 🔁 **2026-10-25 执行轮后现值**(同表,逐条加注见上):
@@ -132,6 +134,17 @@
 > ⚠️ **BootRoot 的 `OnTicks(Δtick)` 单行接线无独立反证**(MonoBehaviour.Update 不可直测),
 > 如实登记 NOT-RUN,不借 `OnTicks` 类级夹具的绿。
 > 原件 = `production/qa/evidence/impl-persist-wiring-2026-10-25.md`。
+
+> 🔁 **2026-10-25 动作① 实现轮后现值(原文不删)** —— **`20` 的事件触发半边接线兑现,整条仍 `PARTIAL`**:
+> `IMPLEMENTED_TESTED` **12**(计数不动 —— `20` 行状态未翻)· `PARTIAL` **1**(`20`,
+> 剩余面 = `HouseCallStarted` 写入者归 52 GDD 轮)· `NOT_IMPLEMENTED` **0**。
+> **复算命令**:`grep -c "↳ 🔁 \*\*2026-10-25 已兑现\*\*" production/epics/persistence-service/EPIC.md`
+> ⇒ **7**(本轮 ↳ 行用「事件触发半边接线兑现」措辞,刻意不含「已兑现」四字);
+> `17` 行是就地改判 ⇒ 5 + 7 = **12**;`1 + 0 = 1`,加 12 = **13** 条 ✓。
+> ⚠️ **`20` 的 PARTIAL 语义再次收窄**:集中观察机制(检测器 + 装配 + 驱动)已齐,
+> 白名单三员在触发器侧完备;唯一缺席 = **52 的 `HouseCallStarted` 写入者**
+> (内容侧义务,非 7a 侧)。
+> 原件 = `production/qa/evidence/impl-td-persist-04-act1-2026-10-25.md`。
 > ⚠️ **Boot 未来接线义务**:`CheckpointFallback` 与 `SaveService` 须注入**同一**
 > `INarrativeContextQuery` 实例(规则十四「一个量」)—— 归 Boot 接线轮(10 落地时)。
 > 原件 = `production/qa/evidence/impl-td-persist-05-act4-2026-10-25.md`。

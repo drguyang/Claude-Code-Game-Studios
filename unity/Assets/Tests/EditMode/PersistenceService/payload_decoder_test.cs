@@ -285,14 +285,14 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
         // ══════════ V-6: 分派完备性(与 EncodeBoxed 双向差集归零)══════════
 
-        /// <summary>可由 Decode&lt;T&gt; 表达的 36 支(读侧无 Judgment 例外 —— §④;2026-10-22 ADR-032 起 35→36)。</summary>
+        /// <summary>可由 Decode&lt;T&gt; 表达的 37 支(读侧无 Judgment 例外 —— §④;2026-10-25 TD-persist-04 起 36→37:加 HouseCallStarted)。</summary>
         private static readonly EventKind[] DecodableKinds =
             Enum.GetValues(typeof(EventKind)).Cast<EventKind>().ToArray();
 
         [Test]
-        public void test_adr031_v6_dispatchCoversAll36Kinds()
+        public void test_adr031_v6_dispatchCoversAll37Kinds()
         {
-            Assert.AreEqual(36, DecodableKinds.Length, "EventKind 须恰 36 支(ADR-032 起 35→36)");
+            Assert.AreEqual(37, DecodableKinds.Length, "EventKind 须恰 37 支(2026-10-25 TD-persist-04 起 36→37:加 HouseCallStarted)");
 
             // 与 PayloadCodec 的具名 Decode 方法集双向差集归零(承 ADR-024 A5 口径)
             var named = typeof(PayloadCodec).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
@@ -337,11 +337,11 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 checkedCount++;
             }
 
-            // 读侧**无** Judgment 例外(§④:接口不含 freehand ⇒ Decode 对 36 支一律可用);
-            // 编码侧那 2 支经**具名重载**(freehandText="")—— 故此处覆盖 36/36,强于编码侧的 34。
-            // (2026-10-22:35→36 / 33→34,ADR-032 加 PatientOutcomeChanged)
-            Assert.AreEqual(36, checkedCount,
-                $"须覆盖 36 支往返(读侧无 Judgment 例外),实测 {checkedCount}");
+            // 读侧**无** Judgment 例外(§④:接口不含 freehand ⇒ Decode 对 37 支一律可用);
+            // 编码侧那 2 支经**具名重载**(freehandText="")—— 故此处覆盖 37/37,强于编码侧的 35。
+            // (2026-10-25:36→37 / 34→35,TD-persist-04 动作① 加 HouseCallStarted)
+            Assert.AreEqual(37, checkedCount,
+                $"须覆盖 37 支往返(读侧无 Judgment 例外),实测 {checkedCount}");
         }
 
         // ══════════ V-4 / V-10: b5 门补两项 ══════════

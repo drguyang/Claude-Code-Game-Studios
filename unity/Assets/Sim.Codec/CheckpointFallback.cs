@@ -88,6 +88,15 @@ namespace DaYiJingCheng.Sim.Codec
         public int TicksSinceLastFire => _ticksSinceLastFire;
 
         /// <summary>
+        /// 事件触发半边成功存档后由接线方调用(TD-persist-04 动作① 裁定④ · 2026-10-25):
+        /// 把计数清零。兜底只管「事件长期缺席」—— 锚点刚存过 ⇒ 窗口从现在重起,
+        /// 「崩溃损失 ≤ 一个间隔」(GDD <c>:137</c>)以最近一次存档起算,无论哪半边。
+        /// <para>⚠️ 只在存档**确实发生**时调用 —— 没存成却清零会把不变量放宽到近 2× 间隔
+        /// (接线方以 <c>Func&lt;bool&gt;</c> 返回值区分,见 <c>AnchorCheckpointTrigger</c> 头注)。</para>
+        /// </summary>
+        public void NotifyExternalCheckpoint() => _ticksSinceLastFire = 0;
+
+        /// <summary>
         /// 推进一格(sim tick 节奏)。
         /// <para>到期且安全 ⇒ 触发一次并清零;到期不安全 ⇒ **顺延**(计数保持在到期区,
         /// 下一 tick 重查 —— <b>不重置 interval</b>,否则「崩溃损失 ≤ 一个间隔」被放宽)。</para>

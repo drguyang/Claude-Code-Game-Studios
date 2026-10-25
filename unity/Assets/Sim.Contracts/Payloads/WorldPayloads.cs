@@ -258,4 +258,18 @@ namespace DaYiJingCheng.Sim.Contracts
             ActorId = actorId; DeathCell = deathCell; Tick = tick;
         }
     }
+
+    /// <summary>52 出诊启动(TD-persist-04 动作② 结构裁定 2026-10-25;registry 2026-10-25 入表)。
+    /// 锚点白名单 `EVENT_CHECKPOINT_ANCHORS` 第三员(规则六)—— 事件触发 checkpoint 的锚点之一。
+    /// `TargetPatientId` = 目标病人**引用**(非身份发号,不参与高水位);其余载荷字段归 52 GDD 轮
+    /// (本条只立结构,承裁定「一并裁结构」)。</summary>
+    public readonly struct HouseCallStartedPayload
+    {
+        public readonly int TargetPatientId;
+
+        public HouseCallStartedPayload(int targetPatientId)
+        {
+            TargetPatientId = targetPatientId;
+        }
+    }
 }

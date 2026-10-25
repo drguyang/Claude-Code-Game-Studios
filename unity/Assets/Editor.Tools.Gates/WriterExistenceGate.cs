@@ -139,6 +139,7 @@ namespace DaYiJingCheng.EditorTools.Gates
             ("HistoryFlagChanged", "52 病史旗标写者未落 —— 归 52 实现轮(2026-10-10)"),
             ("EncounterStarted", "52 遭遇开启写者未落 —— 归 52 实现轮(ADR-016 §八:52 决定来不来)(2026-10-10)"),
             ("EncounterEnded", "27 敌人 AI 遭遇结束写者未落 —— 归 27 实现轮(entities.yaml author 注:非 52)(2026-10-10)"),
+            ("HouseCallStarted", "52 出诊启动写者未落 —— 归 52 GDD 轮(2026-10-25 TD-persist-04 动作①:registry/枚举/锚点白名单先行,写者与载荷定稿同属 52;零写入者已在证据件 impl-td-persist-04-act1 §六 登记,禁借绿)(2026-10-25)"),
 
             // ── 17 / 18 / 20 世界流(本批只落 17 的 ResourceHarvested)──
             ("Craft", "18 炮制加工写者未落 —— 归 18 实现轮(P0 唯一发出方,entities.yaml author 注)(2026-10-10)"),

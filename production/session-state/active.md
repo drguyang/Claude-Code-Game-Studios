@@ -11123,3 +11123,26 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - **仍 open**:动作① 实现轮(集中观察检测器 + BootRoot 接线 + 白名单夹具 + 证伪轮);
   检测器须消费「本 tick 落流事件」的宿主侧访问面(实现轮勘察项);AC-7a-20 维持 PARTIAL
 - **未 commit**(等用户指令)
+
+<!-- ═══ TD-persist-04 动作① 实现轮(2026-10-25 18:xx UTC)═══ -->
+## 动作① 实现轮终态(事件触发 checkpoint 集中观察接线)
+
+- **registry 面**:`EventKind.HouseCallStarted` + `HouseCallStartedPayload` + kindgen 36→37
+  重跑(A1–A5 全过,StreamRouting.g.cs 再生)
+- **触发器**:`Sim.Codec/AnchorCheckpointTrigger.cs`(游标扫新尾段 + 门预问 + Func<bool>
+  失败不清兜底 + ResetCursor)+ `CheckpointFallback.NotifyExternalCheckpoint()`(裁定④)
+- **装配**:CompositionRoot 构造(闭包 LogError 落 Boot 侧;瞬时源同实例反射钉)+
+  袋属性 + BootRoot tick 边沿 Drain(兜底之后)
+- **首验**:34/34 绿;证伪 9 变异全红零假绿(AT4/AT5 打错靶两次如实登记 ——
+  钳制冗余已删、变异换靶转红);三文件 SHA-256 逐字节还原
+- **落盘**:证据件 `production/qa/evidence/impl-td-persist-04-act1-2026-10-25.md` +
+  债册 TD-persist-04 实现轮块(索引翻转与否归用户裁)+ EPIC 20 行新 ↳ 行与现值块(复算 7 ✓)
+- **缺口登记**:BootRoot Drain 单行 NOT-RUN · HouseCallStarted 零写入者(52 GDD 轮;
+  b7 门已登记具名豁免,写者落地同批须撤)· Load 落地须调 ResetCursor() ·
+  出诊语义落地时并入查询
+- **回归收口**:首轮全量 7 红(HouseCallStarted 入 registry 的 closed-set 连锁,
+  实现逻辑零回归)→ codec 分派三文件接线(具名 Encode/Decode + case + 哨兵串 36→37)+
+  b7 具名豁免 + 计数钉三处更新(decoder 37 / encoder 35 / drug_event 闭集)+
+  注释残留订正 → 收口回归 **`4999/4964/0/35`**(act1-full2 · 2026-10-25T10:21 UTC ·
+  d157b4e 工作树;等式 4999−4987=12 = 本轮新增测试方法数,零回归)
+- **未 commit**(等用户指令;回归数见证据件 §五)

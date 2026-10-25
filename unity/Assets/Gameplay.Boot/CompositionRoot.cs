@@ -399,6 +399,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   (save-scum 通道不因接线而开 —— Armed 态是瞬时内存量,不是恒真)。
             SaveService saveService = null;
             CheckpointFallback checkpointFallback = null;
+            // 事件触发半边触发器(TD-persist-04 动作① · 2026-10-25 裁定轮):下文 if 内构造。
+            AnchorCheckpointTrigger anchorCheckpointTrigger = null;
             // ── 瞬时源(规则十四「一个量」)—— 2026-10-25 用户裁定「生产接线今日不为零,现在修」──
             // 实装 = NoPendingMedicalActionQuery(读急救通道 Armed 态取反;W5 要求的
             // 「独立于流的内存态」就此兑现 —— 不是流内累积钩子,被证伪的形态不回归)。
@@ -554,6 +556,32 @@ namespace DaYiJingCheng.Gameplay.Boot
                         }
                     },
                     narrativeContext);
+
+                // 锚点触发器(AC-7a-20 事件触发半边 · TD-persist-04 动作① 四裁定 2026-10-25):
+                // 集中观察 —— BootRoot 在 tick 边沿把流交给 Drain,白名单命中即调**同一**
+                // Checkpoint 入口(裁定③ 复用带门入口;门不安全 ⇒ 该次不触发,兜底顺延补上);
+                // 成功 ⇒ 经 onFired 把兜底计数清零(裁定④)。Func<bool> 形:Sim.Codec
+                // noEngineReferences ⇒ LogError 落本侧闭包;返回 false(异常已记日志)⇒
+                // 触发器不清兜底计数 —— 否则「没存成 + 窗口重起」会把「崩溃损失 ≤ 一个间隔」
+                // 放宽到近 2×。瞬时源与兜底 / 门**同一实例**(规则十四「一个量」)。
+                anchorCheckpointTrigger = new AnchorCheckpointTrigger(
+                    () =>
+                    {
+                        try
+                        {
+                            saveService.Checkpoint(new SaveSlot(saveService.Ledger.NextWritableSeq));
+                            return true;
+                        }
+                        catch (Exception e)
+                        {
+                            UnityEngine.Debug.LogError(
+                                "[7a][AC-7a-20] 事件触发 checkpoint 抛出(兜底将在间隔内补上,不杀帧):" + e);
+                            return false;
+                        }
+                    },
+                    narrativeContext,
+                    AnchorCheckpointTrigger.DefaultAnchors,
+                    onFired: () => checkpointFallback.NotifyExternalCheckpoint());
 
                 saveService = new SaveService(
                     saveBasePath,
@@ -1012,6 +1040,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                // 2026-10-25 生产接线轮:兜底调度器与 SaveService 同源装配
                                                // (闭包与瞬时源见上;saveBasePath 为 null 时两者同 null)。
                                                checkpointFallback, narrativeContext,
+                                               // 2026-10-25 动作① 实现轮:事件触发半边触发器
+                                               // (与兜底同源装配;saveBasePath 为 null 时同 null)。
+                                               anchorCheckpointTrigger,
                                                // 🔁 2026-10-24 `TD-epic-01-f` 断点①的解药:
                                                //   把「当前产物 ConfigVersion」的真值来源喂给 51,
                                                //   使 `ConfigVersionCheck` 在生产侧**有构造路径**。

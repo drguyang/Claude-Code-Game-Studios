@@ -870,6 +870,18 @@ namespace DaYiJingCheng.Gameplay.Boot
                 _services.CheckpointFallback?.OnTicks(_tickDriver.CurrentTick - tickBefore);
             }
 
+            // 事件触发 checkpoint(AC-7a-20 事件触发半边 · TD-persist-04 动作① · 2026-10-25 裁定轮):
+            // 集中观察(裁定①)—— 本 tick 落流事件交触发器扫白名单,命中且瞬时源安全 ⇒
+            // 调同一带门 Checkpoint 入口;成功 ⇒ 兜底计数清零(裁定④)。**在兜底之后**:
+            // 兜底本轮若已触发,本 drain 不会重复触发(游标语义 + 同 tick 一次);halt 期
+            // 无 Advance ⇒ 无新事件,不驱动(与兜底同款停机时钟语义)。读档换流
+            // (`EventStream.Restore`)后游标由 Drain 的钳制对齐 —— 生产 Load 接线落地时
+            // 须另调 `ResetCursor()`(证据件缺口登记)。
+            if (_tickDriver.CurrentTick > tickBefore && _services != null)
+            {
+                _services.AnchorCheckpointTrigger?.Drain(_services.Stream.Events);
+            }
+
             // 病人视觉实体(sprint-05 T2.0):急救驱动**之后**调用 —— 视觉跟着在场集走,
             // 与写者次序解耦(视觉是派生态,不参与事件入流次序)
             if (_tickDriver.CurrentTick > tickBefore
