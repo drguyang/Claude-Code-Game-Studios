@@ -189,10 +189,8 @@ b127e49a2c6f5b2c634831d60d84859e9c00bb3805ed2e22b4ad055ae93ca62d  unity/Assets/E
 
 ## 六、⚠️ 未及核查项(禁借绿)
 
-1. **`SaveBytes` 旁路未裁** —— `SaveBytes(SaveSlot, byte[])` 是公开旁路,
-   绕过全部三处门(`SaveService.cs:126-127`)。用户裁定「本轮只登记,不改 GDD、不改代码」。
-   ⇒ **`AC-7a-08` 的「无第四入口」在接口面仍不成立**,本门的绿只证「程序集内无旁路」,
-   **不证**「服务对象模型无旁路」。
+1. ~~**`SaveBytes` 旁路未裁**~~ ✅ **2026-10-25 已裁(甲案)并落盘** —— 详见本节末尾
+   「§九 `SaveBytes` 裁定」。本件 §三 写在裁定之前,原句保留:它准确描述了**当时**的状态。
 2. **收集器生产调用点仍为 0** —— `AC-7a-13` 兑现的是「收集环存在且被钉住」,
    装配期由 7a / `Gameplay.Boot` 接。本轮的 `IMPLEMENTED_TESTED` **不覆盖**接线。
 3. **`AC-7a-15(a)` 回退提示仍缺** —— 回退动作本身已实现(`LoadBytes:170-192`),
@@ -220,3 +218,113 @@ b127e49a2c6f5b2c634831d60d84859e9c00bb3805ed2e22b4ad055ae93ca62d  unity/Assets/E
 | `SaveService.cs:12` | 「异步化归 `TD-persist-03`」 | 该债**不含异步化且已 closed** ⇒ 真归属 = `AC-7a-07` / `TD-persist-05` |
 | `SaveService.cs` `<exception>` | 「子类关系保留既有 `catch (InvalidDataException)` 调用方的兼容」 | 父类是 `Exception`,`InvalidDataException` 为 `sealed` 不可继承,且全仓此类 `catch` **零命中** |
 | `TD-persist-05` §实测 | ⑥ 定时兜底「`grep` ⇒ **0**」 | 实跑 **3 命中**(`CompositionRoot.cs:480/:1003` 的注释自陈)⇒ 数字是假的,已改记「3 命中,全为注释自陈」(结论不变) |
+
+---
+
+## 九、`SaveBytes` 裁定(同日追加 · 甲案)
+
+**问题**:`SaveBytes(SaveSlot, byte[])` 算不算 AC-7a-08 的「第四入口」?
+
+### 结论 = 两句,须分开读
+
+| 层 | 结论 |
+|---|---|
+| **语义层** | **不是第四入口。** AC-7a-08 的「三处」是**触发时机**。`SaveBytes` 无独立触发源 —— 唯一生产调用点是 `SaveService` 的 `Checkpoint` 内部。⇒ 真正的三处 = `Checkpoint` / `SaveOnExit` / 7b,**没有第四处**。 |
+| **判据层** | **的确违反,且是假绿。** GDD `:147` / `:522` / `:531` 三处一致:「公开可触发**写入**方法参数集**恰等于** `{SaveSlot}`」。`SaveBytes` 两参 ⇒ 违反。而执行体只遍历 `{Checkpoint, Load}`,**比 GDD 字面窄** ⇒ 放过了它。 |
+
+### 真风险不是「第二条路」,是闸门没关
+
+拿到 `ISaveService` 的任何代码都能借 `SaveBytes` 写任意槽,绕过 `Checkpoint` 的
+**全部门**(叙事上下文 / 槽位只进不退 / 组版)。这已超出「多一个便利方法」的量级。
+
+### 落点(Landed)
+
+| 文件 | 改动 |
+|---|---|
+| `Sim.Codec/ISaveService.cs` | 删 `SaveBytes` / `LoadBytes` 两声明 ⇒ 接口恰三方法,与 ADR-010 §Key Interfaces **逐字**一致 |
+| `Sim.Codec/SaveService.cs` | `SaveBytes` / `LoadBytes` `public` → **`internal`** |
+| `Tests/.../folded_predicate_test.cs` | 判据改**全量遍历**(原 `test_iSaveService_checkpointAndLoadTakeOnlySaveSlot` → `test_iSaveService_everyPublicMethodTakesOnlySaveSlotOrNothing`)+ 新增实现侧断言 `test_saveService_lowLevelPrimitivesAreNotPublic` |
+| `docs/architecture/adr-010-...md` | 就地加注(原文不删):标出 `:361-363` 括号句**前提为假**,明写「**不构成修订**」 |
+
+### 为何不删方法(乙案驳回)
+
+9 条测试测的是**原子写 / 校验和 / 双档回退**。改调 `Checkpoint` 会让 compose 与三道门介入,
+「测的是什么」立刻模糊 —— 等于**静默削弱夹具**。`internal` 同时做到:关掉绕过门的公开通道
++ 保住测试面。
+
+### 代价实测(改前核过,不是估算)
+
+- 生产调用点:`SaveBytes` **0** · `LoadBytes` **1**(均在 `SaveService` 内)
+- 测试调用:17 处 `.SaveBytes(` + 4 处 `.LoadBytes(` **零改动** ——
+  全在 `Sim.Contracts.Tests`,而 `Sim.Codec/AssemblyInfo.cs:2` **已有**
+  `InternalsVisibleTo("Sim.Contracts.Tests")`(既有声明,不是为本次新开的口子)
+- 测试静态类型:全部持有具体类 `SaveService`,**无一持有 `ISaveService`**
+  ⇒ 删接口两行**不破坏任何现有夹具**
+
+### 与 `TD-persist-05` 的形态区别(须分开留档)
+
+- `TD-persist-05` = **门没接上**(执行体不存在)
+- 本条 = **门接了,但判据面被悄悄缩小**(执行体比字面窄)
+
+⇒ 「补了执行体」**不等于**「判据面也对」。两种形态各登记一次。
+
+登记:`docs/tech-debt-register.md` §`### TD-persist-07`(立债同批即 `closed`)。
+
+### 九之补、裁定后的回归与证伪轮(实跑)
+
+**回归三元组**:截至 `2026-10-25 03:29 UTC` · 批次 `sb-clean`(全量)· commit `aca65e2`
+(工作树 = HEAD + 本次 `SaveBytes` 裁定改动)
+
+| 套件 | 结果 | XML | 对照 |
+|---|---|---|---|
+| EditMode | **`4897 / 4862 / 0 / 35`** | `unity/Logs/savebytes-clean.xml` | 前值 `4896 / 4861 / 0 / 35` ⇒ **+1**,算式 `4896 − 2 + 3 = 4897`(2 条旧断言换成 3 条新断言) |
+| PlayMode | **`202 / 202 / 0 / 0`** | `unity/Logs/savebytes-playmode.xml` | 与基线一致 ⇒ **零变化** |
+
+**证伪轮(3 轮,BLOCKING 门 PASS · 每条新属性各一轮)**
+
+| 轮 | 变异(改完跑、跑完还原,同命令内) | 红数 | 转红的测试 | XML |
+|---|---|---|---|---|
+| **MA** | `SaveService.SaveBytes` **改回 `public`** | **1** | `test_saveService_lowLevelPrimitivesAreNotPublic` | `sb-MA.xml` |
+| **MB** | 接口 **+ 实现同步**加一个两参 `Probe(SaveSlot, byte[])`(可编译形态) | **2** | `everyPublicMethodTakesOnlySaveSlotOrNothing` · `publicMethodSetIsThree` | `sb-MB.xml` |
+| **MC** | `SaveService.LoadBytes` **改回 `public`** | **1** | `test_saveService_lowLevelPrimitivesAreNotPublic` | `sb-MC.xml` |
+
+⚠️ **MA 与 MC 各打一条同一测试,不构成「一条覆盖两判据」**:`test_saveService_lowLevelPrimitivesAreNotPublic`
+对 `SaveBytes` 与 `LoadBytes` 是**两条独立断言**;MA 只证写侧那半有判别力,MC 只证读侧那半。
+缺任一轮,对应那半就是零覆盖。
+
+⚠️ **MB 首版作废(如实登记)**:初版只给接口加方法、不改实现 ⇒ `SaveService` 缺实现,
+**编译失败、零 XML**。那测的是**编译器**,不是夹具 ⇒ 按「变异打对靶」纪律重做为
+「接口 + 实现同步加」的可编译形态。首版无 XML 即无结论,不计入证伪轮。
+
+**还原判据 = SHA-256 逐字节**(基准见 §五):
+`sha256sum -c sb-baseline.sha256` ⇒ 两文件均「成功」。
+
+### 九之三、终态重跑(`savebytes-final`,坐实「注释改动零影响」)
+
+**为什么再跑一次**:`sb-clean` 起跑(`03:27:59Z`)之后,我又改了 `ISaveService.cs`
+的一句注释 —— 原文写「见该件 §Migration 注」是**悬空引用**(ADR-010 无该节),
+改为「见该件 **§Key Interfaces 代码块之后**的「🔁 2026-10-25 注」」。
+改动 mtime `11:36:04` 本地 = `03:36:04Z`,落在 `sb-clean` 之后。
+上轮(`§五之二`)正是因为同样情形(`SaveService.cs` 在起跑后改注释)重跑过 ⇒ **保持一致**。
+
+| 跑 | 起止(UTC) | total / passed / failed / skipped | XML |
+|---|---|---|---|
+| `sb-clean` | `03:27:59Z → 03:29:37Z` | `4897 / 4862 / 0 / 35` | `savebytes-clean.xml` |
+| **`sb-final`** | `03:36:45Z → 03:38:23Z` | **`4897 / 4862 / 0 / 35`** | `savebytes-final.xml` |
+
+**逐位相同** ⇒「`11:36:04` 那次注释改动是纯注释、不改判据」这一断言**由实跑坐实**,不是推论。
+
+**复算命令**:
+
+```bash
+python3 - <<'PY'
+import re
+for p in ['unity/Logs/savebytes-clean.xml','unity/Logs/savebytes-final.xml']:
+    s=open(p,encoding='utf-8').read()
+    d=dict(re.findall(r'(\w[\w-]*)="([^"]*)"',re.search(r'<test-run[^>]*>',s).group(0)))
+    print(p, [d[k] for k in ('total','passed','failed','inconclusive','skipped','start-time','end-time')])
+PY
+```
+
+**起跑前已重编译**:`savebytes-final.log:326` 有 `DisplayProgressbar: Compiling Scripts`,
+`ISaveService.cs` mtime `11:36:04` **早于** XML `start-time` `11:36:45` ⇒ 本轮跑的是改动后的源码。

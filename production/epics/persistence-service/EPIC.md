@@ -65,6 +65,29 @@
    ⇒ `AC-7a-08` 的「无第四入口」在**接口面不成立**,而 GDD `:522-523` 只枚举了
    `Checkpoint` / `Load` / `SaveOnExit`,未把它纳入反面。
    **用户 2026-10-25 裁定:本轮只登记待裁,不改 GDD、不改代码** —— 它算不算第四入口是架构问题。
+   > ✅ **2026-10-25 已裁(用户裁定 · 甲案)** —— 结论 = **`SaveBytes` 不是第四入口,
+   > 但它违反了 AC-7a-08/09 判据 ① 的字面**。两件事必须分开读:
+   > - **语义层:不是第四入口。** AC-7a-08 的「三处」是**触发时机**(事件触发 checkpoint ·
+   >   定时兜底 · 退出保存 · 7b 手动槽)。`SaveBytes` 没有自己的触发源 —— 它的**唯一生产调用点**
+   >   是 `SaveService.cs` 的 `Checkpoint` 内部。⇒ 真正的三处 = `Checkpoint` / `SaveOnExit` / 7b,
+   >   **没有第四处**。
+   > - **判据层:确实违反,且是判据被写窄造成的假绿。** GDD `:147` / `:522` / `:531` 三处一致写
+   >   「公开可触发**写入**方法参数集**恰等于** `{SaveSlot}`」;`SaveBytes(SaveSlot, byte[])`
+   >   两参落在字面内 ⇒ 违反。而执行体(`folded_predicate_test.cs`)只遍历 `{Checkpoint, Load}`,
+   >   **比 GDD 字面窄** ⇒ 放过了它。ADR-010 `:361-363` 的括号句「…以本签名与
+   >   `Load(SaveSlot)` 为真」把这个读法固化了(该句前提为假,已在 ADR 就地加注)。
+   > - **真风险不是「第二条路」,是闸门没关。** 拿到 `ISaveService` 的任何代码都能借
+   >   `SaveBytes` 写任意槽、绕过叙事上下文门与槽位只进不退门。
+   > - **裁定动作(已落)**:`ISaveService` 只留 `Checkpoint` / `SaveOnExit` / `Load`
+   >   (与 ADR-010 §Key Interfaces **逐字**一致);`SaveService.SaveBytes` / `LoadBytes`
+   >   改 **`internal`**(经既有 `InternalsVisibleTo("Sim.Contracts.Tests")` 供夹具使用);
+   >   判据改回**全量遍历** + 增实现侧断言(两原语不得 `public`)。
+   > - **为何不删方法(乙案已驳回)**:9 条测试测的是原子写 / 校验和 / 双档回退 ——
+   >   改调 `Checkpoint` 会让 compose 与门介入,「测的是什么」立刻模糊,等于**静默削弱**夹具。
+   >   `internal` 保留测试面,同时关掉绕过门的公开通道。
+   > - **代价实测**:生产调用点 `SaveBytes` **0** / `LoadBytes` **1**(均在 `SaveService` 内);
+   >   测试 17 + 4 处**零改动**(全在 `Sim.Contracts.Tests`,IVT 已存在);
+   >   测试持有的是具体类 `SaveService` 而非接口 ⇒ 删接口两行**不破坏任何现有夹具**。
 
 ## Stories
 

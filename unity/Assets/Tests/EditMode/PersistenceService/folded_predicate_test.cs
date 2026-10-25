@@ -32,6 +32,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
@@ -611,38 +612,74 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         [Test]
-        public void test_iSaveService_publicMethodSetIsFive()
+        public void test_iSaveService_publicMethodSetIsThree()
         {
-            // ADR-010 :331 的反射断言形态:S19-1 后公开方法集恰 = 五个。
-            // 🔁 2026-10-24:原断言恰 = {LoadBytes, SaveBytes};本件加三方法后必红,已改为五。
+            // ADR-010 §Key Interfaces 的 `interface ISaveService` 逐字 = 三个方法。
+            // 🔁 2026-10-25:原断言恰 = 五(含 `SaveBytes` / `LoadBytes`);两低层原语已移出
+            //    公开面(改 `internal`)⇒ 改回三。见 `ISaveService` 类 doc 的裁定段。
             string[] methods = typeof(ISaveService).GetMethods()
                 .Select(m => m.Name)
                 .OrderBy(n => n, StringComparer.Ordinal)
                 .ToArray();
 
             CollectionAssert.AreEqual(
-                new[] { "Checkpoint", "Load", "LoadBytes", "SaveBytes", "SaveOnExit" }, methods,
-                "ISaveService 的公开方法集 = {Checkpoint, Load, LoadBytes, SaveBytes, SaveOnExit}");
+                new[] { "Checkpoint", "Load", "SaveOnExit" }, methods,
+                "ISaveService 的公开方法集须恰 = {Checkpoint, Load, SaveOnExit}" +
+                "(ADR-010 §Key Interfaces;低层原语 SaveBytes / LoadBytes 不在接口面内)");
         }
 
         [Test]
-        public void test_iSaveService_checkpointAndLoadTakeOnlySaveSlot()
+        public void test_iSaveService_everyPublicMethodTakesOnlySaveSlotOrNothing()
         {
-            // ADR-010 :331 逐字「反射断言:公开方法参数集恰等于 {SaveSlot}」
-            // —— 不得给 Checkpoint / Load 加形参,外部输入一律走构造注入。
-            foreach (var name in new[] { "Checkpoint", "Load" })
-            {
-                var m = typeof(ISaveService).GetMethod(name);
-                Assert.IsNotNull(m, $"ISaveService 缺方法 {name}");
-                var ps = m.GetParameters();
-                Assert.AreEqual(1, ps.Length, $"{name} 须恰有一个形参");
-                Assert.AreEqual(typeof(SaveSlot), ps[0].ParameterType,
-                    $"{name} 的形参须是 SaveSlot(不得加形参)");
-            }
+            // 🔁 **2026-10-25 判据 ① 改回 GDD 字面(原断言只看 Checkpoint/Load,写窄了)**。
+            //
+            // GDD 三处字面一致(`:147` / `:522` / `:531`):
+            //   「`ISaveService` **公开可触发写入方法**参数集 **恰等于** `{SaveSlot}`」
+            // ADR-010 `:361-364`:「`Checkpoint(SaveSlot)` 是**唯一写入口**」。
+            //
+            // ⚠️ **原断言的漏洞(本轮实测)**:它只遍历 {Checkpoint, Load} ⇒ 放过
+            //   `SaveBytes(SaveSlot, byte[])`(两参)—— 而后者恰是**绕过 Checkpoint 全部门**
+            //   的写入口。断言写窄 ⇒ 判据假绿。
+            // ⇒ 现判据 = **全部**公开方法,参数集须 ∈ { {SaveSlot}, {} }。
+            var offenders = typeof(ISaveService).GetMethods()
+                .Where(m => !m.IsSpecialName)          // 排除属性 getter/setter
+                .Select(m => new { m.Name, Ps = m.GetParameters() })
+                .Where(x => !(x.Ps.Length == 0
+                              || (x.Ps.Length == 1 && x.Ps[0].ParameterType == typeof(SaveSlot))))
+                .Select(x => $"{x.Name}({string.Join(", ", x.Ps.Select(p => p.ParameterType.Name))})")
+                .ToArray();
 
-            var exit = typeof(ISaveService).GetMethod("SaveOnExit");
-            Assert.IsNotNull(exit, "ISaveService 缺 SaveOnExit");
-            Assert.AreEqual(0, exit.GetParameters().Length, "SaveOnExit 不取形参");
+            Assert.IsEmpty(offenders,
+                "ISaveService 的每个公开方法参数集须恰 ∈ { {SaveSlot}, {} } —— " +
+                "多一个形参即违反 AC-7a-08 / AC-7a-09 判据 ①(「立即回滚点」类参数尤其禁止)。" +
+                "违规方法:\n" + string.Join("\n", offenders));
+        }
+
+        [Test]
+        public void test_saveService_lowLevelPrimitivesAreNotPublic()
+        {
+            // 判据① 的**实现侧**对应面:既然接口面只有三个方法,实现类不得把低层原语重新
+            // 暴露成 public —— 否则 `var s = new SaveService(...); s.SaveBytes(...)` 仍可绕过门。
+            // ⚠️ 这条是判据① 的**必要条件**:接口反射只看接口,看不见实现类的额外公开成员。
+            var save = typeof(SaveService).GetMethod(
+                "SaveBytes", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            Assert.IsNull(save,
+                "SaveService.SaveBytes 不得是 public —— 它是低层原语,会绕过 Checkpoint 的全部门");
+
+            var load = typeof(SaveService).GetMethod(
+                "LoadBytes", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            Assert.IsNull(load,
+                "SaveService.LoadBytes 不得是 public(与写侧同批移出,使判据① 在字面上成立)");
+
+            // 正面:它们**存在**且可达测试(IVT),不是被删掉 —— 删掉会让 9 条原子写/回退测试失据。
+            Assert.IsNotNull(
+                typeof(SaveService).GetMethod("SaveBytes",
+                    BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                "SaveBytes 须仍在(internal)—— 原子写原语的测试面依赖它");
+            Assert.IsNotNull(
+                typeof(SaveService).GetMethod("LoadBytes",
+                    BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                "LoadBytes 须仍在(internal)—— Corrupt 态 / bak 回退的测试面依赖它");
         }
     }
 }

@@ -375,6 +375,28 @@ struct SaveSlot {
 }
 ```
 
+> 🔁 **2026-10-25 注(原文不删 · 上方代码块内有一句为假,已就地标出,但**不改裁决**)**:
+> `🔴 2026-09-19` 注的括号句「反射断言『公开方法参数集恰等于 `{SaveSlot}`』
+> **以本签名与 `Load(SaveSlot)` 为真**」**前提为假**:该句把 `Load` 也算进「合规样本」,
+> 于是后续实现把两参的 `SaveBytes(SaveSlot, byte[])` / `LoadBytes(SaveSlot)` 一并挂进了
+> `interface ISaveService`(`ISaveService.cs` 直到 2026-10-25 都有它们)。
+>
+> **裁决不受影响,反而是裁决被违反**:本 ADR 同一句的**前半**逐字写着
+> 「`Checkpoint(SaveSlot)` 是**唯一写入口**」—— 低层文件 I/O 原语**从未**在
+> Key Interfaces 内。⇒ 2026-10-25 用户裁定**把两原语移出公开面(改 `internal`)**,
+> 使实现与本 ADR 逐字一致:接口恰三方法,
+> 判据 = **全部**公开方法参数集 ∈ `{ {SaveSlot}, {} }`。
+>
+> **GDD 侧字面更严、且更早**:`persistence-service.md` `:147` / `:522` / `:531` 三处均写
+> 「公开可触发**写入**方法参数集**恰等于** `{SaveSlot}`」⇒ `SaveBytes` 两参**直接违反**。
+> 本轮之前,执行体(`folded_predicate_test.cs` 的反射断言)只遍历 `{Checkpoint, Load}`,
+> 比 GDD 字面**窄** ⇒ **判据假绿**。已同批改回全量遍历 + 增实现侧断言
+> (`SaveService.SaveBytes` / `LoadBytes` 不得 `public`)。
+>
+> ⚠️ **本注不构成对本 ADR 的修订** —— 裁决(唯一写入口 = `Checkpoint`)一直是对的,
+> 错的是那个**括号句的措辞**与**据此写窄了的执行体**。若要正式修订该句,须另走
+> 一次窄修订轮;本注只登记「已按裁决执行」与「该句为假」两件事。
+
 ### Implementation Guidelines
 
 1. **先写 codec 与黄金夹具,再写存档流程**:字节流逐位性是一切的前提(R-5 对拍面)。

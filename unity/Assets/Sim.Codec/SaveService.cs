@@ -130,7 +130,17 @@ namespace DaYiJingCheng.Sim.Codec
         public SaveSlotLedger Ledger => _ledger;
 
         /// <summary>原子写:tmp → flush → rename。双档 bak。</summary>
-        public void SaveBytes(SaveSlot slot, byte[] data)
+        /// <remarks>
+        /// 🔁 <b>2026-10-25 由 <c>public</c> 改 <c>internal</c>(AC-7a-08/09 判据 ① 裁定)</b>:
+        /// 本方法是**低层文件 I/O 原语**,不是服务接口的一部分 —— 它**绕过 <see cref="Checkpoint"/>
+        /// 的全部门**(叙事上下文 / 槽位只进不退 / 组版),任何拿到 <c>ISaveService</c> 的代码
+        /// 都能借此写任意槽。⇒ 从公开面移出,与 GDD 判据「公开可触发写入方法参数集恰等于
+        /// <c>{SaveSlot}</c>」及 ADR-010「<c>Checkpoint</c> 是唯一写入口」对齐。
+        /// <para><b>测试可达</b>:<c>Sim.Codec/AssemblyInfo.cs</c> 已有
+        /// <c>InternalsVisibleTo("Sim.Contracts.Tests")</c> ⇒ 17 处夹具调用**零改动**。</para>
+        /// <para>⚠️ <b>生产调用点 = 1</b>(<see cref="Checkpoint"/> 内),故降级无生产影响。</para>
+        /// </remarks>
+        internal void SaveBytes(SaveSlot slot, byte[] data)
             => WriteAtomic(GetFinalPath(slot), GetTmpPath(slot), GetBakPath(slot), data);
 
         /// <summary>
@@ -172,6 +182,14 @@ namespace DaYiJingCheng.Sim.Codec
         }
 
         /// <summary>读档:校验和验证 + 自动回退 bak。</summary>
+        /// <remarks>
+        /// 🔁 <b>2026-10-25 由 <c>public</c> 改 <c>internal</c></b> —— 与
+        /// <see cref="SaveBytes"/> 同批(AC-7a-08/09 判据 ①):低层读原语不在服务接口面内。
+        /// <para>⚠️ 与写侧的唯一差别:<c>LoadBytes</c> **没有「绕过门」的风险**(读不改变状态),
+        /// 改它是为了让判据「<b>全部</b>公开方法参数集 = <c>{SaveSlot}</c> 或空」在字面上成立 ——
+        /// 否则 GDD 字面与实现之间要长期靠脚注解释,而脚注不会被执行。</para>
+        /// <para>生产调用点 = 1(<see cref="Load"/> 内);测试 4 处经 IVT 零改动。</para>
+        /// </remarks>
         /// <exception cref="SaveCorruptException">
         /// <c>final</c> 与 <c>bak</c> **双双**校验失败(或两者都不存在)⇒ 进入 <c>Corrupt</c> 态。
         /// <para>🔁 **2026-10-25 AC-7a-15(b) 补齐**:原抛裸 <see cref="InvalidDataException"/>,
@@ -182,7 +200,7 @@ namespace DaYiJingCheng.Sim.Codec
         /// 且全仓 `catch (InvalidDataException)` **零命中** ⇒ 兼容义务本就不存在。
         /// 现父类 = `Exception`,两条实测理由见 `SaveCorruptException.cs` 文件头。</para>
         /// </exception>
-        public byte[] LoadBytes(SaveSlot slot)
+        internal byte[] LoadBytes(SaveSlot slot)
         {
             string finalPath = GetFinalPath(slot);
             string bakPath = GetBakPath(slot);

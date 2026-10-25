@@ -10884,3 +10884,39 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
   跨平台三格矩阵未测(IL 门判据仅 Mono 产物) · `SaveService.cs` 证伪轮还原态哈希未留存
 - **Epic 状态维持 `In Progress`** —— 13 条「无载体且无债」= 0,但 6 条已立债仍是**未闭 P0 面债**
 - **未提交**(用户未下 commit 指令);未 push
+
+## Session Extract — `SaveBytes` 第四入口裁定 2026-10-25(甲案 · 立债即闭 TD-persist-07)
+
+- **结论两句,须分开读**:
+  - **语义层:不是第四入口**。AC-7a-08 的「三处」是**触发时机**;`SaveBytes` 无独立触发源,
+    唯一生产调用点在 `Checkpoint` 内部。真正三处 = `Checkpoint` / `SaveOnExit` / 7b。
+  - **判据层:确实违反,且是假绿**。GDD `:147`/`:522`/`:531` 三处一致写
+    「公开可触发**写入**方法参数集**恰等于** `{SaveSlot}`」,`SaveBytes` 两参 ⇒ 违反;
+    而执行体只遍历 `{Checkpoint, Load}`,**比 GDD 字面窄** ⇒ 放过它整整一个 sprint。
+- **真风险 = 闸门没关**(不是第二条路):拿到 `ISaveService` 即可写任意槽、绕过叙事上下文门
+  与槽位只进不退门
+- **落点**:`ISaveService` 删两声明(接口恰三方法,与 ADR-010 §Key Interfaces 逐字一致)·
+  `SaveService.SaveBytes`/`LoadBytes` `public`→`internal` · 判据改**全量遍历** +
+  增实现侧断言 `test_saveService_lowLevelPrimitivesAreNotPublic`
+- **乙案驳回**:删方法会让 9 条原子写/校验和/回退测试改调 `Checkpoint`,compose 与门介入 ⇒
+  「测的是什么」模糊 = 静默削弱夹具。`internal` 两头兼顾
+- **代价实测**:生产调用 `SaveBytes` 0 / `LoadBytes` 1(均在类内)· 测试 17+4 处**零改动**
+  (`Sim.Codec/AssemblyInfo.cs:2` **已有** `InternalsVisibleTo("Sim.Contracts.Tests")`,
+  是既有声明不是新开口子)· 测试全持具体类 `SaveService`,无一持接口
+- **ADR-010 硬矛盾**:`:361-363` 括号句「…以本签名与 `Load(SaveSlot)` 为真」**前提为假**
+  (`Load` 读不写)。已就地加注,明写「**不构成修订**」—— 裁决一直对,错的是该句措辞
+- **回归三元组**(`2026-10-25 03:29 UTC` · `sb-clean` · commit `aca65e2`):
+  EditMode `4897 / 4862 / 0 / 35` —— 前值 `4896/4861/0/35`,算式 `4896 − 2 + 3 = 4897`
+- **证伪轮 3 轮全红**:
+  - MA `SaveBytes` 改回 public ⇒ 1 红(lowLevelPrimitivesAreNotPublic)
+  - MB 接口+实现同步加两参 `Probe` ⇒ 2 红(everyPublicMethod… / publicMethodSetIsThree)
+  - MC `LoadBytes` 改回 public ⇒ 1 红(同上)⚠️ MA/MC 各打一条**同一测试的两条独立断言**,
+    不构成「一条覆盖两判据」
+  - ⚠️ **MB 首版作废**:只改接口不改实现 ⇒ 编译失败、零 XML ⇒ 测的是编译器不是夹具,
+    重做为可编译形态。首版无 XML 即无结论,不计入
+  - 三份被变异文件 **SHA-256 逐字节**还原(`sha256sum -c sb-baseline.sha256` 两文件均成功)
+- **终态重跑**(`2026-10-25 03:38 UTC` · `sb-final`):EditMode `4897 / 4862 / 0 / 35`,
+  与 `sb-clean` **逐位相同** ⇒ 坐实起跑后那次注释改动零影响(证据件 §九之三)
+- **债册二十三订**:`TD-persist-07` 入表(**立债同批即 closed**)⇒ 条目 `107→108` ·
+  `closed 27→28` · 未闭 P0 面 `74` 不动(立→闭同批抵消,不是没发生事)
+- **提交**:本轮改动随本次 commit 落盘;**未 push**

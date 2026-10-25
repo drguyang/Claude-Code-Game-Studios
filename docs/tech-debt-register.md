@@ -354,6 +354,7 @@
 | `TD-persist-04` | `persistence-service` | open | **Y** | R1 |
 | `TD-persist-05` | `persistence-service` | open | **Y** | R1 |
 | `TD-persist-06` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-07` | `persistence-service` | closed | **Y** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-02` | `enemy-ai` | open | **Y** | R1 |
 | `TD-randomevents-01` | `random-events` | closed | **Y** | R1 |
@@ -428,7 +429,8 @@ PYEVAL
 ~~**当前预期输出(2026-10-25 十九订实测 · `TD-enemy-01` 结案 —— 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 二十订实测 · `TD-randomevents-01` 结案 —— 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 二十一订实测 · `TD-enemy-02` 入表 —— 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
-**当前预期输出(2026-10-25 二十二订实测 · `TD-persist-05` / `06` 入表 —— 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
+~~**当前预期输出(2026-10-25 二十二订实测 · `TD-persist-05` / `06` 入表 —— 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
+**当前预期输出(2026-10-25 二十三订实测 · `TD-persist-07` 入表(立债即 closed)—— 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
 > ⚠️ **标题换行不删**:十九订标题就地改为删除线,新标题并列(承「原文不删,就地加注」—— 原措辞逐字仍可查,只是轮次前移一格)。
 > 🔁 **2026-10-25 收口轮订正本行**:上句是**二十订当时**的记录(记载「十九订标题被划掉」)。
 > 我在二十一订时曾**直接改写本行**为「二十订标题…」,那是**违反 append-only** 的 ——
@@ -489,8 +491,8 @@ PYEVAL
 > 十六订补结)。
 
 ```text
-条目 107 | 状态 {'open': 73, 'partial': 6, 'closed': 27, '**done**(2026-10-21)': 1} | P0 面 {'Y': 96, 'N': 10, '~~**Y**~~': 1}
-未闭 P0 面 = 74 （已闭但曾标 P0 面的 22 条不计）
+条目 108 | 状态 {'open': 73, 'partial': 6, 'closed': 28, '**done**(2026-10-21)': 1} | P0 面 {'Y': 97, 'N': 10, '~~**Y**~~': 1}
+未闭 P0 面 = 74 （已闭但曾标 P0 面的 23 条不计）
 M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 74 条,分布在 12/31 个 epic
     medical-consequences: 20   audio-system: 20          clinic-machine: 17
     telemetry-analytics: 5     persistence-service: 3    skeuomorphic-ui: 2
@@ -498,7 +500,17 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
     enemy-ai: 1                item-database: 1           modular-building: 1
 ```
 
-> 🔁 **2026-10-25 收口轮:本输出块已刷新到二十二订(`TD-persist-05` / `06` 入表)**。
+> 🔁 **2026-10-25 收口轮:本输出块已刷新到二十三订(`TD-persist-07` 入表,立债即 closed)**。
+> 相对二十二订的 `条目 107 / closed 27 / Y 96 / 未闭 74 / 12 epic`,变化 =
+> **`条目 107 → 108`**(+1)· **`closed 27 → 28`**(+1)· **`Y 96 → 97`**(+1)·
+> **`未闭 P0 面` 74 不动** · **epic 分布 12/31 不动**。
+> 单一变化源:新立 **`TD-persist-07`**,其索引行状态 = **`closed`** —— 该债**立债同批即兑现**
+> (`ISaveService` 两低层原语移出公开面 + 判据改回 GDD 字面)。
+> ⚠️ **`未闭 P0 面` 不动是因为「立 → 闭」同批抵消**,不是因为没发生事 ——
+> 读 `74` 时不得据此认为本轮对 M3 Exit 无影响:`closed +1` 与 `P0 面 +1` 两条都发生了。
+> 复算命令 = §五 脚本本体(自包含,当场可跑)。
+>
+> ~~二十二订正文(留档)~~:🔁 **2026-10-25 收口轮:本输出块已刷新到二十二订(`TD-persist-05` / `06` 入表)**。
 > 相对二十一订的 `条目 105 / 未闭 72 / 12 epic`,变化 = `条目 +2` · `open +2` · `Y +2` ·
 > `未闭面 +2` · **`persistence-service 1 → 3`(+2;epic 分布仍 12/31 —— 该 epic 本来就有一行)**。
 > 单一变化源:**新立 `TD-persist-05`(07/09/14/16 + 20 定时兜底半边)与 `TD-persist-06`(17)**,
@@ -1986,6 +1998,22 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 
 > ⚠️ **与 `TD-persist-03` 动作 ④ 的关系**:03 的 ④ 复核的是「读档锁的置位点」,
 > 与本条的**退出保存**路径正交(一读一写)。不合并。
+
+---
+
+### TD-persist-07 — `ISaveService` 的低层原语曾暴露在公开面(判据 ① 一度假绿)
+
+| 侧 | 内容 |
+|---|---|
+| **状态** | ✅ **已兑现(2026-10-25 同批)** —— 本条**不留在册待办**,登记是为了留痕(见下「为何仍登记」)。 |
+| **债描述** | `interface ISaveService` 曾同时含 `SaveBytes(SaveSlot, byte[])`(两参)与 `LoadBytes(SaveSlot)`。GDD `persistence-service.md` `:147` / `:522` / `:531` **三处一致**写「公开可触发**写入**方法参数集**恰等于** `{SaveSlot}`」⇒ 两参的 `SaveBytes` **直接违反**。而执行体(`folded_predicate_test.cs` 的反射断言)只遍历 `{Checkpoint, Load}`,**比 GDD 字面窄** ⇒ 判据**假绿**整整一个 sprint。 |
+| **为何仍登记** | 这是**第五种假绿形态的又一实例**:不是「测试跑自造断言」,不是「扫不到被测装配」,是**执行体比判据字面写窄了**,而窄的读法有 ADR 措辞背书(ADR-010 `:361-363` 的括号句)。⇒ 与 `TD-persist-05` 的「执行体缺失」**不同型**:那边是门没接上,这边是**门接了、但判据面被悄悄缩小**。**两种形态须分开留档**,否则「补了执行体」会被当成「判据面也对了」。 |
+| **裁定** | 用户 2026-10-25 取**甲案**:语义上 `SaveBytes` **不是第四入口**(它无独立触发源,唯一生产调用点在 `Checkpoint` 内);但判据层它**违反字面** ⇒ 移出公开面,而非改 GDD 迁就实现。 |
+| **落点** | `Sim.Codec/ISaveService.cs`(删两声明)→ 接口恰三方法,与 ADR-010 §Key Interfaces **逐字**一致;`Sim.Codec/SaveService.cs` `SaveBytes` / `LoadBytes` `public` → `internal`;`folded_predicate_test.cs` 判据改**全量遍历** + 增实现侧断言(`test_saveService_lowLevelPrimitivesAreNotPublic`)。 |
+| **测试可达性** | 17 处 `.SaveBytes(` + 4 处 `.LoadBytes(` **零改动** —— 全在 `Sim.Contracts.Tests`,而 `Sim.Codec/AssemblyInfo.cs:2` **已有** `InternalsVisibleTo("Sim.Contracts.Tests")`。改前先核过:这是既有声明,不是为本次新开的口子。 |
+| **为何不删方法(乙案)** | 9 条测试测的是**原子写 / 校验和 / 双档回退**。改调 `Checkpoint` 会让 compose 与三道门介入,「测的是什么」立刻模糊 —— 等于**静默削弱夹具**。`internal` 保住测试面,同时关掉绕过门的公开通道。 |
+| **ADR 侧的硬矛盾** | ADR-010 `:361-363` 的括号句「反射断言『公开方法参数集恰等于 `{SaveSlot}`』**以本签名与 `Load(SaveSlot)` 为真**」**前提为假**(`Load` 读不写,且该读法正是 `SaveBytes` 被留下的原因)。**已在 ADR 就地加注**(原文不删),明写「本注**不构成修订**;裁决一直是对的,错的是该句措辞」。⇒ 若日后要正式改该句,须另走窄修订轮。 |
+| **复算命令** | ① `grep -n "void \|byte\[\] " unity/Assets/Sim.Codec/ISaveService.cs` ⇒ 只剩 `Checkpoint` / `SaveOnExit` / `Load` 三个成员。<br>② `grep -rn "\.SaveBytes(\|\.LoadBytes(" unity/Assets --include=*.cs \| grep -v /Tests/` ⇒ 生产侧仅 `SaveService` 内部。<br>③ 判据执行体:`test_iSaveService_everyPublicMethodTakesOnlySaveSlotOrNothing` + `test_saveService_lowLevelPrimitivesAreNotPublic`。 |
 
 ---
 
