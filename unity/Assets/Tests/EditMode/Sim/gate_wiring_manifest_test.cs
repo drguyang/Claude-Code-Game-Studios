@@ -88,6 +88,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "MedConsFloatGate.RunAll",       // 53 静态面(零浮点/零 31 符号)
                     "FsWriteBoundaryGate.RunAll",    // 测试不得写仓库(S16-4)
                     "PlayerAssemblyGate.RunAll",     // PlayMode 装配 UnityEditor 裸用(TD-testasm-01 · 2026-10-21)
+                    "SaveWritePathGate.RunAll",      // AC-7a-08③ 存档写盘可达面 IL 门 · 2026-10-25 接线上线
                 },
 
                 // RunMenu = 菜单项「大医精诚/Validation/Run Assembly Gates」。
@@ -197,6 +198,10 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 Note = "TD-testasm-01 落(2026-10-21);IL2CPP 腿自 2026-10-13 结构性坏 8 天,唯一发现途径曾是跑一次构建" },
             new ClassVerdict { ClassName = "PrescriptionWriterGates", Kind = WiringKind.Chain,
                 Consumer = "RunMenu+BuildGate" },
+            new ClassVerdict { ClassName = "SaveWritePathGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "AC-7a-08③ 落(2026-10-25):存档写盘可达面 IL 门。AC-7a-08 的第三方守" +
+                       "(IL 正面断言「仅 SaveService 可达写盘 API」)此前**从未有执行体**,本条即其落点" },
             new ClassVerdict { ClassName = "WriterExistenceGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll" },
             new ClassVerdict { ClassName = "DiseaseConstantRegistryGate", Kind = WiringKind.Chain,

@@ -11,6 +11,13 @@
 //     **不是**后台线程。原文此处曾写「序列化在主线程,写盘在后台线程」+「后台线程禁调 Unity API」,
 //     两句**陈述的实现不存在**(全文零 `Task` / 零 `Thread`)—— `/code-review` S19-1 C-2 实测。
 //     后果:存档体变大后主线程 I/O 会造成帧卡顿。**异步化归 `TD-persist-03`**,未做。
+//     🔁 **2026-10-25 订正(原文不删):上句是幽灵引据** —— `TD-persist-03` 的裁定面是
+//        「重放 + 折叠段字节布局」,**不含异步化**,且该债已于 2026-10-24 **closed**
+//        (`docs/tech-debt-register.md` §`### TD-persist-03` 结案块)。⇒ 「异步化」这一半
+//        **今日无任何债承载**。真实归属 = **`AC-7a-07`**(规则五:写盘 IO 与 SHA256 在非主线程
+//        + `IOException` 退避重试),该 AC 在 `EPIC.md` §AC 载体总表里判 **PARTIAL**,
+//        **新债已立**:`TD-persist-05`(2026-10-25 登记,`docs/tech-debt-register.md` §该条正文本轮已落盘)。
+//        **不得**再以 03 充当它的载体。
 //   - 原子写 = tmp + flush + rename
 //   - 双档 bak:final 存在则先 final → bak
 //   - 校验和 = SHA256,覆盖 checksum 字段之后的全部字节
@@ -165,6 +172,16 @@ namespace DaYiJingCheng.Sim.Codec
         }
 
         /// <summary>读档:校验和验证 + 自动回退 bak。</summary>
+        /// <exception cref="SaveCorruptException">
+        /// <c>final</c> 与 <c>bak</c> **双双**校验失败(或两者都不存在)⇒ 进入 <c>Corrupt</c> 态。
+        /// <para>🔁 **2026-10-25 AC-7a-15(b) 补齐**:原抛裸 <see cref="InvalidDataException"/>,
+        /// 与 `Load` 路径上另三处(前向不兼容 / magic 不符 / 布局损坏)**同型不可分** ——
+        /// 而 GDD `:257` 的 `Corrupt` 是一个**独立的态**,态的边界须在类型上可表达。
+        /// 🔁 **2026-10-25 订正(原文不删)**:上句「子类关系保留…兼容」**曾是错的** ——
+        /// 首版按 `InvalidDataException` 写,实测它是 **`sealed`**(`error CS0509`),不可继承;
+        /// 且全仓 `catch (InvalidDataException)` **零命中** ⇒ 兼容义务本就不存在。
+        /// 现父类 = `Exception`,两条实测理由见 `SaveCorruptException.cs` 文件头。</para>
+        /// </exception>
         public byte[] LoadBytes(SaveSlot slot)
         {
             string finalPath = GetFinalPath(slot);
@@ -183,7 +200,10 @@ namespace DaYiJingCheng.Sim.Codec
                 if (ValidateChecksum(data)) return data;
             }
 
-            throw new InvalidDataException($"存档损坏且无法回退:slot={slot.SlotSeq}");
+            // ── Corrupt 态:两级都坏(GDD :257 / AC-7a-15(b) / 规则十一) ──
+            // ⚠️ **本分支零 I/O** —— 不建空档、不删残档、不改任何字节。
+            //    「槽目录文件数不变」是一条**禁止**判据,不是「做了清理后数目恰好没变」。
+            throw new SaveCorruptException(slot);
         }
 
         /// <summary>校验和验证:SHA256 覆盖 checksum 字段之后的全部字节。</summary>

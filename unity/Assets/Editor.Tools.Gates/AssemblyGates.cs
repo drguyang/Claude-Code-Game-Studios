@@ -158,6 +158,11 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 扫 `Assets/Tests/PlayMode/**/*.cs` —— 该装配 `includePlatforms: []` ⇒ 进 player,
             // 裸用 `UnityEditor` ⇒ CS0234 ⇒ 整个 player 出不来。
             errs.AddRange(PlayerAssemblyGate.RunAll("."));
+            // 存档写盘可达面 IL 门(AC-7a-08 ③ · 2026-10-25):仅 `SaveService` 可达写盘 API。
+            // AC-7a-08 的三方守里,前两方(接口签名反射 + 接口级正面枚举)只看 `ISaveService`
+            // 自己的公开面,**看不见旁路**(别处直调 SaveBytes / 直接 File.* / 类内长出新写盘点)。
+            // 第三方的执行体此前**从未存在** —— 本条即其落点。
+            errs.AddRange(SaveWritePathGate.RunAll());
             return errs;
         }
 

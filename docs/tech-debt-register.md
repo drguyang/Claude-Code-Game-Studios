@@ -352,6 +352,8 @@
 | `TD-persist-02` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-03` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-04` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-05` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-06` | `persistence-service` | open | **Y** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-02` | `enemy-ai` | open | **Y** | R1 |
 | `TD-randomevents-01` | `random-events` | closed | **Y** | R1 |
@@ -425,7 +427,8 @@ PYEVAL
 ~~**当前预期输出(2026-10-25 十八订实测 · `TD-player-02` 结案 —— 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 十九订实测 · `TD-enemy-01` 结案 —— 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 二十订实测 · `TD-randomevents-01` 结案 —— 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
-**当前预期输出(2026-10-25 二十一订实测 · `TD-enemy-02` 入表 —— 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
+~~**当前预期输出(2026-10-25 二十一订实测 · `TD-enemy-02` 入表 —— 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
+**当前预期输出(2026-10-25 二十二订实测 · `TD-persist-05` / `06` 入表 —— 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
 > ⚠️ **标题换行不删**:十九订标题就地改为删除线,新标题并列(承「原文不删,就地加注」—— 原措辞逐字仍可查,只是轮次前移一格)。
 > 🔁 **2026-10-25 收口轮订正本行**:上句是**二十订当时**的记录(记载「十九订标题被划掉」)。
 > 我在二十一订时曾**直接改写本行**为「二十订标题…」,那是**违反 append-only** 的 ——
@@ -486,16 +489,25 @@ PYEVAL
 > 十六订补结)。
 
 ```text
-条目 105 | 状态 {'open': 71, 'partial': 6, 'closed': 27, '**done**(2026-10-21)': 1} | P0 面 {'Y': 94, 'N': 10, '~~**Y**~~': 1}
-未闭 P0 面 = 72 （已闭但曾标 P0 面的 22 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 72 条,分布在 12/31 个 epic
+条目 107 | 状态 {'open': 73, 'partial': 6, 'closed': 27, '**done**(2026-10-21)': 1} | P0 面 {'Y': 96, 'N': 10, '~~**Y**~~': 1}
+未闭 P0 面 = 74 （已闭但曾标 P0 面的 22 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 74 条,分布在 12/31 个 epic
     medical-consequences: 20   audio-system: 20          clinic-machine: 17
-    telemetry-analytics: 5     skeuomorphic-ui: 2        disease-simulation: 2
-    patient-ai: 1              player-controller: 1      persistence-service: 1
-    item-database: 1           modular-building: 1        enemy-ai: 1
+    telemetry-analytics: 5     persistence-service: 3    skeuomorphic-ui: 2
+    disease-simulation: 2      patient-ai: 1              player-controller: 1
+    enemy-ai: 1                item-database: 1           modular-building: 1
 ```
 
-> 🔁 **2026-10-25 收口轮:本输出块已刷新到二十一订(`TD-enemy-02` 入表)**。
+> 🔁 **2026-10-25 收口轮:本输出块已刷新到二十二订(`TD-persist-05` / `06` 入表)**。
+> 相对二十一订的 `条目 105 / 未闭 72 / 12 epic`,变化 = `条目 +2` · `open +2` · `Y +2` ·
+> `未闭面 +2` · **`persistence-service 1 → 3`(+2;epic 分布仍 12/31 —— 该 epic 本来就有一行)**。
+> 单一变化源:**新立 `TD-persist-05`(07/09/14/16 + 20 定时兜底半边)与 `TD-persist-06`(17)**,
+> 二者皆为 **P0 面债**(`P0 面 = Y`)⇒ 未闭面**升 2**。
+> ⚠️ **这两个编号在落表前已被 `TD-persist-04` 的加注引用**(动作 ③ 执行轮),本订即为消除
+> 那处**悬空引用** —— 引用悬空 = 新一轮「幽灵引据」,故不再延后。
+> 复算命令 = §五 脚本本体(自包含,当场可跑)。
+>
+> ~~二十一订正文(留档)~~:🔁 **2026-10-25 收口轮:本输出块已刷新到二十一订(`TD-enemy-02` 入表)**。
 > 相对二十订的 `条目 104 / 未闭 71 / 11 epic`,变化 = `条目 +1` · `open +1` · `Y +1` ·
 > `未闭面 +1` · **`enemy-ai 0 → 1`(epic 分布 11/31 → 12/31)**。
 > ⚠️ **二十订版原输出(留档,不删)**:
@@ -506,7 +518,7 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 > ```
 > ⇒ 读本册时,`71 / 11 epic` 一律读作「@ 二十订时刻」,**现值 = `72 / 12 epic`**。
 
-> ⚠️ **上方输出块已刷到二十一订(2026-10-25)**〔🔁 **2026-10-25 收口轮订正本行**:
+> ⚠️ **上方输出块已刷到二十二订(2026-10-25)**〔🔁 **2026-10-25 收口轮订正本行**:
 > 原句为「⚠️ **上方输出块已刷到十三订(2026-10-24)**。**状态直方图有两处是脚本缺陷的产物,须读清楚**:」
 > —— 它在其后十四 / 十五 / 十六 / 十七 / 十八 / 十九 / 二十订连续刷新输出块时**未跟上 ⇒ 原陈述早已过期**。
 > 原文见下行(逐字保留,不删)。二十一订一并订正〕。
@@ -1908,9 +1920,72 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > **10 急救动作**的运行时状态(「有没有未决医疗动作」是**内存态,不在流里**)。
 > 两条纯函数(`HasNarrativeAnchorEvent` / `LastEventIsAnchor`)保留在盘但**零生产调用点**,
 > 供 10 落地时复用。
+>
+> 🔁 **2026-10-25 解除动作 ③ 执行轮(13 条零载体 AC 处置)** —— 该动作已**分批执行完毕**,
+> 结果是**13 条不是同一种缺口**,整批当「补登记」处理会出错:
+>
+> | 判定 | 条数 | AC | 处置 |
+> |---|---|---|---|
+> | `IMPLEMENTED_TESTED` | **4** | `10` `11` `12` `19` | ✅ **已补登记**到 `story-001` §跨 story 承载的 AC(带生产 `file:line` + 夹具方法名 + 复算命令) |
+> | `PARTIAL` | **8** | `07` `08` `09` `13` `14` `15` `16` `20` | 逐条处理,见下 |
+> | `NOT_IMPLEMENTED` | **1** | `17` | 见 `TD-persist-06` |
+>
+> **8 条 PARTIAL 的本轮处置(逐条)**:
+> - `08` **③ IL 门从未有执行体** ⇒ ✅ **2026-10-25 已兑现**:`SaveWritePathGate`
+>   (Cecil IL 级,接进 `AssemblyGates.RunAll`,证伪轮 M7/M8/M9/M10 四轮全红)。
+> - `15` **(b) `Corrupt` 态零表达** ⇒ ✅ **2026-10-25 已兑现**:`SaveCorruptException`
+>   + `LoadBytes` 终态分支 + 4 条夹具(证伪轮 M1/M2/M3 三轮全红)。
+> - `13` **收集器零调用点** ⇒ ✅ **2026-10-25 已兑现**:`ItemInstanceHighWaterCollector`
+>   (证伪轮 M4/M5/M6 三轮全红)。
+> - `07` 异步写盘 / 退避重试 ⇒ 归 **`TD-persist-05`**(新立)。
+> - `09` q 系列符号扫描 ⇒ 归 **`TD-persist-05`**(同批 —— 两者都是「守约的执行体缺失」)。
+> - `14` 迁移链 0 行 ⇒ 归 **`TD-persist-05`**(同为「GDD 有规则、代码零实现」)。
+> - `16` authority 替身夹具 0 ⇒ 归 **`TD-persist-05`**。
+> - `20` 触发方 / 兜底 0 ⇒ 部分归本条(动作 ①,须先解「累积 vs 瞬时」),**余下的
+>   「定时兜底」半边归 `TD-persist-05`**。
+>
+> **⇒ 本条动作 ③ 就此结清**(记账面缺口已消:`13 条零载体` 已无一条是「查不到载体」);
+> 动作 ① 的**前置**(累积 vs 瞬时)仍 open,动作 ② 归 52。见下两条新债。
 > **⇒ 本条解除动作 ① 须追加一条前置**:8 / 37 / 52 接线前**必须先解决「累积 vs 瞬时」** ——
 > 单靠流内锚点**不足以**表达「此刻无未决动作」。详见
 > `production/qa/evidence/review-sprint19-2026-10-25.md` §七「W5 的裁定轨迹」。
+
+---
+
+### TD-persist-05 — 7a 的四条「守约执行体缺失」:异步写盘 / 退避重试 / 迁移链 / authority 替身
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 7a 的 GDD **写明了规则**,`SaveService` **零实现**,而 `EPIC.md` 曾按 story 计数标 `Complete`。四条各自独立,合为一条是因为**根因同一个**:它们都是「规则 → 执行体」这一环从未接上,而不是「写了但写错了」。四个具名缺口:`AC-7a-07`(**写盘 IO 与 SHA256 在非主线程**,`IOException` 按 `WRITE_RETRY_DELAY` 退避重试)· `AC-7a-09`(`quicksave`/`quickload`/`save-now-slot` 符号零命中的扫描执行体)· `AC-7a-14`(**迁移链逐版本**,`SaveVersion = k < N` 时沿 `k→k+1→…→N` 显式脚本)· `AC-7a-16`(**authority 替身**夹具,单机 / 模拟主机两种布局产出逐位一致字节)· 附:`AC-7a-20` 的**定时兜底**半边(事件触发半边归 `TD-persist-04`)。 |
+| **实测(逐条可跑)** | ① **异步化 = 0**:`grep -rn "Task\.Run\|ThreadPool\|new Thread\|async " unity/Assets/Sim.Codec/` ⇒ **0**;`SaveService.cs:10-13` 自陈「写盘今日是**同线程同步 I/O**」。<br>② **退避重试 = 0**:`grep -rni "retry\|WRITE_RETRY_DELAY\|退避" unity/Assets/Sim.Codec/` ⇒ **0**(只有本批新加的注释)。<br>③ **迁移链 = 0 行**:`grep -rni "migrat" unity/Assets/Sim.Codec/` ⇒ **0**;`SaveService.cs:374-378` 是**刻意抛 `NotSupportedException`** 的 fail-closed 占位(W4 轮裁定「不可利用 > 不可用」),它**不是**迁移实现。<br>④ **authority 替身夹具 = 0**:`save_composer_wiring_test.cs:345` 的断言与「两种 authority 布局」**不同轴**;`grep -rn "IAuthority\|AuthorityStub\|authority" unity/Assets/Tests/EditMode/PersistenceService/` ⇒ 仅 `SaveComposer` 的构造形参,零替身实现。<br>⑤ **符号扫描 = 0**:`grep -rn "quicksave\|quickload\|save-now-slot" unity/Assets/Editor.Tools.Gates/` ⇒ **0**,且 `AC-7a-09` 原文自述其载体「归 ADR-012 CI 门」—— 而 ADR-012 的 CI 矩阵本身仍 `NOT-RUN`(归外部 `TD-ci-01`)。<br>⑥ **定时兜底 = 0**:`grep -rn "CHECKPOINT_INTERVAL\|checkpointInterval\|Timer" unity/Assets/Sim.Codec/ unity/Assets/Gameplay.Boot/` ⇒ **0**。 |
+| **🔁 复跑订正(2026-10-25 · 原文不删)** | 上表六项**逐条重跑过一遍**,数字大体成立但**三处措辞须订正**,否则即是「把未跑出的结论写成既成事实」: <br>**② 退避重试** —— 现值 **1 命中**,但那是 **`SaveService.cs:18` 我自己本轮写的订正注**(「`IOException` 退避重试」),**不是实现**。⇒ 判据须写成「排除注释后 = 0」,不能裸写 `grep ⇒ 0`。<br>**④ authority 替身** —— 该 grep 原文预言「仅 `SaveComposer` 的构造形参」,**现已过期**:本轮新增的 `item_instance_high_water_test.cs` 有 9 处 `authority` 命中,但用的是**真 `IdAuthority`**(`Authority()` 夹具),**仍非「替身」**。⇒ 结论(零替身)**不变**,但「唯一命中处」的说法须改。<br>**⑥ 定时兜底** —— 原写 **0** 是**错的**:实跑 `grep -rn "CHECKPOINT_INTERVAL\|checkpointInterval\|Timer" Assets/Sim.Codec/ Assets/Gameplay.Boot/` ⇒ **3 命中**,全在 `Gameplay.Boot/CompositionRoot.cs:480` 与 `:1003` 的**注释**里(逐字:「① 定时兜底 `CHECKPOINT_INTERVAL`(规则六「事件长期缺席」那半)」/「**不在本方法内**:定时兜底 `CHECKPOINT_INTERVAL`…」)。⇒ 这三处**恰是缺口本身的书面自陈**,不构成实现。**结论不变,但「0」这个数字是假的**,已改记「3 命中,全为注释自陈」。<br>**未受影响的三项**:① 异步化(`Task`/`ThreadPool`/`new Thread`/`async ` ⇒ 真 0)· ③ 迁移链(`migrat` ⇒ 真 0)· ⑤ 符号门(`quicksave` 等 ⇒ 真 0)。 |
+| **为什么不是四条而是合并成一条** | 四个缺口的**触发条件不同、归属同一**、且都落在同一个类(`SaveService`)。分成四条会让「7a 还剩几条」的口径继续碎 —— 而本轮刚从「13 条零载体」的碎账里爬出来。**合并的前提是全表列出、逐条可跑**(上列 ⑥ 项即是),不是「打包掩盖」。⚠️ 若其中任一条先被兑现,**须就地拆出独立结案块**,不得整条一起标 closed。 |
+| **⚠️ 幽灵引据(本轮抓出并已订正)** | `SaveService.cs:13` 原文写「**异步化归 `TD-persist-03`**」—— 该债的裁定面是「重放 + 折叠段字节布局」,**不含异步化**,且已于 2026-10-24 **closed**。⇒ 这句话把一条**已关闭且不承载它**的债当成了载体,是「幽灵引据」形态(`TD-persist-04` 原文亦属此族的记录)。**2026-10-25 已就地加注订正**(原文不删),真归属改指 `AC-7a-07` / 本条。 |
+| **解除动作** | ① **`AC-7a-07`**:把 `WriteAtomic` 的调用面移出主线程(缓冲池 + 后台 worker),`IOException` 加 `WRITE_RETRY_DELAY` 退避;`Application.persistentDataPath` 主线程启动期缓存一次(GDD `:512-515`)。⚠️ 承 `TD-persist-03` 已定的**单列表**布局,不得借机改字节形状。<br>② **`AC-7a-09`**:符号扫描执行体 —— 与 `TD-ci-01` 的 CI 矩阵**同批落**(单独落 = 无强制点);在此之前不得把该 AC 记为「有载体」。<br>③ **`AC-7a-14`**:迁移链逐版本执行 + `WorldSeed` / 已发生事件逐位不变的夹具;`AC-7a-16` 的 authority 替身可同批(两者都测「同一份三流输入 ⇒ 字节形状不变」)。<br>④ **`AC-7a-20` 定时兜底半边**:与 `TD-persist-04` 动作 ① 的瞬时源**同批**(兜底触发点需要同一套「此刻是否安全」判据)。 |
+| **触发条件** | ① **7a 下一次以「已完成」形态被引用之前**(同 `TD-persist-04`);② 或 **`Load` 第一个生产消费者出现时**(异步化会成为卡顿的实际来源);③ 或 **`SaveVersion` 首次 > 1 之前**(迁移链必须先在位);④ 或 **任何跨平台黄金字节对拍开工时**(`AC-7a-16`)。 |
+| **归属** | **7a**(实现面)· `AC-7a-09` 的强制点跨 **ADR-012 / TD-ci-01** |
+
+> ⚠️ **本条与 `TD-persist-03` 的位置关系**:`TD-persist-03` 结案块逐字记载
+> 「不随本条结案而扩大」—— 本条的 ① ③ 恰是它**明确排除在外**的那部分,故立新条而非重开 03。
+> ⚠️ **第七条『`AC-7a-15`(a) 回退提示』不在本条面内** —— 回退动作本身**已实现**
+> (`LoadBytes:170-192`),缺的只是「提示」的承载,而提示归 42 / 7b(承 `AC-7a-17` 同款口径:
+> 7a 只出信号)。**不得**因为「没弹提示」把它记成 7a 的债。
+
+---
+
+### TD-persist-06 — `AC-7a-17`(退出保存失败:限时重试 + 下次启动提示)全仓零实现
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | `AC-7a-17`(BLOCKING)`EPIC.md` §AC 载体总表里判 **`NOT_IMPLEMENTED`**(全表唯一一条),不是「部分」而是**全空**。GDD `:607-613` 要求:退出保存写盘失败 ⇒ 按 `SAVE_EXIT_RETRY_TIMEOUT`(默认 1s)**限时重试**,仍失败 ⇒ **不阻塞退出 + 记日志**;下次启动检测到**会话未完整标志位**(头字段 / 标志文件)⇒ **非阻塞提示**「上次会话未完整保存」(提示承载归 42 / 7b,7a 只断言标志位置位)。 |
+| **实测(逐条可跑)** | ① **重试 = 0**:`grep -rn "SAVE_EXIT_RETRY_TIMEOUT" unity/Assets/` ⇒ **0**(全仓,连测试都没有)。<br>② **退出钩子 = 0**:`grep -rn "wantsToQuit\|OnApplicationQuit\|quit" unity/Assets/Gameplay.Boot/ unity/Assets/Gameplay.Presentation/` ⇒ **0** —— `SaveOnExit` 方法存在(`SaveService.cs:296-306`)**但零生产调用点**。<br>③ **标志位 = 0**:`grep -rn "IncompleteSession\|SessionIncomplete\|未完整" unity/Assets/` ⇒ **0**;`SaveHeader` 七字段(`SaveHeader.cs:25-31`)无此槽位。<br>④ **启动检测 = 0**:`grep -rni "incomplete\|clean shutdown\|未完整" unity/Assets/Gameplay.Boot/` ⇒ **0**。 |
+| **为什么不并进 `TD-persist-05`** | 05 的四个缺口都住 **`Sim.Codec`**(纯 BCL,`noEngineReferences: true`)。本条的**两半都住别处**:退出钩子是 **`Application.wantsToQuit`**(`UnityEngine` ⇒ 只能住 `Gameplay.Boot`,实测该装配 `references` 含引擎)—— `Sim.Codec` **物理上写不了**。标志位那一半虽可住 `SaveHeader`,但**置位时机**在退出路径 ⇒ 同住 Boot。⇒ 根因不是「执行体没接上」,是**装配边界决定它必须住另一个程序集**。合并会让「05 只差接线」掩盖「06 还缺一个装配落点」。 |
+| **解除动作** | ① **退出钩子接线**:`Gameplay.Boot` 侧 `Application.wantsToQuit` 注册 → 调 `SaveService.SaveOnExit()`,失败按 `SAVE_EXIT_RETRY_TIMEOUT` 限时重试后放行退出(不阻塞)。<br>② **标志位**:`SaveHeader` 增槽位(⚠️ **改存档头 = 改 `SaveVersion` 布局** ⇒ 承 `TD-persist-03` 已裁的单列表布局,须同批评估是否升 `SaveVersion`);或按 GDD 备选形态用**独立标志文件**(GDD `:610` 两形态并列)。<br>③ **启动检测**:`Boot` 启动期读标志 ⇒ 交给 42 / 7b 呈现(**7a 只置位 / 只读位,不出提示**)。<br>④ **证伪轮**:停用重试 / 停用标志写入 各须转红。 |
+| **触发条件** | ① **`Gameplay.Boot` 首次接 `SaveOnExit` 时**;② 或 **`SaveHeader` 因任何原因被改动时**(同批评估);③ 或 **M3 Exit 要求 7a 的 BLOCKING AC 逐条可判时**(它是唯一 `NOT_IMPLEMENTED`)。 |
+| **归属** | **7a**(标志位语义)· **`Gameplay.Boot`**(退出钩子接线)· 提示承载归 **42 / 7b** |
+
+> ⚠️ **与 `TD-persist-03` 动作 ④ 的关系**:03 的 ④ 复核的是「读档锁的置位点」,
+> 与本条的**退出保存**路径正交(一读一写)。不合并。
 
 ---
 

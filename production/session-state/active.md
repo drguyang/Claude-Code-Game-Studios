@@ -10855,3 +10855,32 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - **未核查(禁借绿)**:跨平台三格矩阵未测 · 烘焙侧派生未复核 ·
   「compose 调用时必抛」= NOT-RUN(`Checkpoint` 先撞 `RequireNarrativeContext`,够不到 compose)
 - **未提交**(用户未下 commit 指令);未 push
+
+## Session Extract — `TD-persist-04` 动作 ③ 执行轮 2026-10-25(13 条零载体 AC 处置)
+
+- **用户裁定**:「**补登记 + 建债 + 修真缺陷**」;`SaveBytes` =「**需要先裁,本轮只登记**」
+- **证据原件**:`production/qa/evidence/impl-td-persist-04-ac13-2026-10-25.md`
+- **13 条的实际分布**(整批当「补登记」处理会出错):
+  `IMPLEMENTED_TESTED` 4(10/11/12/19,已补登记 story-001)· `PARTIAL` 8 · `NOT_IMPLEMENTED` 1(17)
+- **三条真缺陷已兑现**(各带证伪轮):
+  - `15(b)` `Corrupt` 态 → `SaveCorruptException` + `LoadBytes` 终态分支(**零 I/O**),M1/M2/M3
+  - `13` 收集器 → `ItemInstanceHighWaterCollector`(5 支 Kind),M4/M5/M6
+  - `08③` IL 门 → `SaveWritePathGate` + `RunAll` 接线,M7/M8/M9/M10
+- **六条已建债**:`TD-persist-05`(07/09/14/16 + 20 定时兜底半边)· `TD-persist-06`(17)
+  - 两者正文 + 索引表已落债册;§五 已刷 **二十二订**:条目 `105→107` · `open 71→73` · 未闭 P0 面 `72→74`
+  - ⚠️ 落表前这两个编号**已被 `TD-persist-04` 的加注引用** ⇒ 本订即为消除悬空引用
+- **回归三元组**(`2026-10-25 03:10 UTC` · `s19-ac-fix-2` · commit `a2e00e7`):
+  - EditMode `4896 / 4861 / 0 / 35`(`full-editmode-ac-fix2.xml`)—— 前基线 `4896/4860/1/35`,唯一红已修
+  - PlayMode `202 / 202 / 0 / 0`(`full-playmode-ac-fix2.xml`)—— 与基线一致,零变化
+- **证伪轮十轮全红**(逐轮 XML 实据 `falsify-M1..M10.xml`,failed = 2/1/2/2/1/1/3/3/1/1,无一轮为 0)
+  - ⚠️ **如实登记 M1 的连带效应**:M1(异常类型)连带打红 `leavesSlotDirectoryUntouched`,
+    按「一属性一条变异」纪律**不算** M2 的替代品 —— 「文件数不变」须 M2 独立证明
+- **⚠️ 如实登记:三处幽灵引据 / 过期陈述已就地订正**(原文不删)
+  - `SaveService.cs:12`「异步化归 `TD-persist-03`」—— 该债不含异步化且已 closed,真归属 `AC-7a-07`
+  - `SaveService.cs` `<exception>`「子类关系保留 `catch (InvalidDataException)` 兼容」——
+    `InvalidDataException` 是 **sealed**(CS0509),且全仓此类 catch **零命中** ⇒ 兼容义务本不存在
+  - `TD-persist-05` §实测 ⑥「定时兜底 grep ⇒ 0」—— 实跑 **3 命中**(注释自陈),数字是假的,已改记
+- **未核查(禁借绿)**:`SaveBytes` 旁路未裁 · 收集器生产调用点仍 0 · `15(a)` 回退提示归 42/7b ·
+  跨平台三格矩阵未测(IL 门判据仅 Mono 产物) · `SaveService.cs` 证伪轮还原态哈希未留存
+- **Epic 状态维持 `In Progress`** —— 13 条「无载体且无债」= 0,但 6 条已立债仍是**未闭 P0 面债**
+- **未提交**(用户未下 commit 指令);未 push

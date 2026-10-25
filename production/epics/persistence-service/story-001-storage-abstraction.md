@@ -70,6 +70,59 @@
 `AC-7a-01` / `AC-7a-02` 归 `TD-persist-03` 的真重放 · `AC-7a-03` 归 `TD-ci-01` 跨平台矩阵 ·
 `AC-7a-04` 须补真往返夹具 + IL 扫描。
 
+---
+
+## 跨 story 承载的 AC(2026-10-25 补登记 · 承 `TD-persist-04` 解除动作 ③)
+
+*以下 4 条 AC 由 **TD 工作项**兑现(用户裁定「能归 epic 的登记 TD,不立 story」),不是本 story 的交付物。
+本节只登记「它们的载体在哪」—— 原本 13 条 BLOCKING AC 在任何卡面都查不到,是本条要修的根因。*
+
+- [x] **AC-7a-10**(规则八 · `Folded(p)` 三条件单一出处,未结案不折叠)
+      > **判定 = IMPLEMENTED_TESTED**(2026-10-25 勘察 + 抽验)。
+      > 生产:`Sim/FoldedPredicate.cs:76-87` `Folded()` 按 ①②③ 短路合并;条件③**复用**
+      > `CaseStreamQuery.HasOpenCase`(`:217-222`)而非另抄 —— 这正是 AC 要求的「三条件合并且仅一处」。
+      > 夹具:`folded_predicate_test.cs:125/132/149/248/260/273/300/312/321` 覆盖 (a)(b)(c) 三态,
+      > 含多病种收紧后 6 条(`:176/193/207/219/231/440`)。
+      > 载体:`TD-persist-01`(折叠谓词,已 closed)。
+      > ⚠️ **残留**:「三条件合并仅一处」这条**可证伪断言**零夹具 —— 测试文件头 `:4` 只有注释声明,
+      > 无「别处不存在第二份合并」的机械判据。如实登记,不因此降级判定(实现事实成立)。
+      > 复算:`grep -n "public bool Folded" unity/Assets/Sim/FoldedPredicate.cs` ⇒ `:76`。
+- [x] **AC-7a-11**(规则八 · 折叠行保留 `patient_id`)
+      > **判定 = IMPLEMENTED_TESTED**。生产:`Sim/FoldRow.cs:30-58` 六字段含 `PatientId`;
+      > 编码 `Gameplay.Boot/FoldRowCodec.cs:63-68`(含 `:65` `WriteInt32LittleEndian(row.PatientId)`),解码 `:75-80`。
+      > 夹具:`folded_predicate_test.cs:412` `test_fold_rowKeepsPatientId_standaloneAssertion`(单列断言,
+      > 防被「字段数对」掩盖)· `:396` 六字段顺序断言 · `fold_row_codec_test.cs:32` 字节往返 ·
+      > `save_replay_roundtrip_test.cs:84` 端到端。
+      > 载体:`TD-persist-01` + `TD-persist-03`(折叠段字节布局,均已 closed)。
+- [x] **AC-7a-12**(规则九 / F-7a-3 · 高水位扫三流并集)
+      > **判定 = IMPLEMENTED_TESTED**。生产:`Sim/EventStream.cs:267-285` `GetNextPatientId()`,
+      > 跳过 `PatientId.None`(`:272`),空集返回 `0`(`int max = -1` + `max+1`)。
+      > 夹具(跨系统载体):`PatientAI/reconstruction_and_write_path_test.cs:579` 逐流增量 ·
+      > `:613` 排除 None · `:652` 空流返 0 · `:661` 仅 None 返 0。
+      > ⚠️ **形状差如实登记**:「三流」在实现上是**单一 `List<SimEvent>`**(`EventStream.cs:38`),
+      > `StreamRouting` 只用于排序与遥测、不用于分桶 ⇒ 「三流并集」是**退化形态**。
+      > 本 AC 的子判据只约束**结果值**,故不因此降级;但该形状差是 `TD-persist-03` 动作 ③ 的开放项,
+      > **不得与本 AC 混读**(混读会让「12 已绿」掩盖「布局从未造出来」)。
+- [x] **AC-7a-19**(规则十四 · 7b 手动槽契约:只进不退 / 读档即锁 / 叙事事件上下文)
+      > **判定 = IMPLEMENTED_TESTED**。生产:`Sim.Codec/SaveSlotLedger.cs:93-137`
+      > (`EnsureWritable` 双门 / `OnCheckpointCommitted` 推水位 / `OnLoaded` 置锁 / `OnNarrativeAnchor` 解全锁)
+      > + `SaveService.cs:340-351` 检锁 + `SlotProjections.cs:79-91` 投影。
+      > fail-closed 三处:未注入 `narrativeContext` ⇒ 一律抛(`SaveSlotLedger.cs:76/95`、`SaveService.cs:429-436`)。
+      > 夹具:`save_slot_contract_test.cs:90`(a) · `:106/119`(b) · `:133`(c) · `:151/165`(锁/解) ·
+      > `:183` **闭合回路端到端** · `:477/489/500` fail-closed。
+      > 载体:`TD-persist-02`(已 closed)。
+      > ⚠️ **两条如实登记,不改判定**:
+      > ① `SlotProjections` **零生产消费者**(`SlotProjections.cs:63-70` 自陈)—— 生产路径用的是
+      > `SaveSlotLedger` / `SaveService` 里的**手写等价物**;夹具的绿只证「投影类型自身纯度」,
+      > **不证「生产走的是这两条公式」**。
+      > ② **`Checkpoint` 与 `OnNarrativeAnchor` 生产调用点均为 0**(实测 `grep | grep -v /Tests/` ⇒ 0 / 0)
+      > ⇒ 夹具能驱动门,**生产路径上没人驱动**。这是裁定「丙」的有意终态(瞬时源归 10),
+      > 不是本条遗漏 —— 但意味着「19 已 IMPLEMENTED_TESTED」只在「夹具可驱动」这个意义下成立。
+
+**本节判据小结**:补登记 **4** 条,全部 `IMPLEMENTED_TESTED`,
+**0 条新增失败**。剩余 9 条(07/08/09/13/14/15/16/17/20)另按 `TD-persist-04` 解除动作 ③ 处置,
+见 `EPIC.md` §AC 载体总表。
+
 ## Completion Notes
 
 **Completed**: 2026-09-30
