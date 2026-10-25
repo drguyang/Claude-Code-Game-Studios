@@ -11330,3 +11330,13 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - 评审立债两条:TD-gate-04(引用集门盲区)+ TD-clinic-19(story-003 夹具自指断言)—— 三十三/三十四订
 - 提交链:a3242b6(开工)→ da8aa30(实现)→ 9692d97(债册两订 + 评审原件)→ 收口批(待提交)
 - 下一步:S20-2(clinic-005,含 TD-building-01 残余裁定)
+
+<!-- S20-2a 收口(2026-10-25) -->
+- **S20-2a(TD-building-01 两半全补)→ done**:用户裁「两半全补」→「读路径存在即结案」。
+  (a) 真 `World` 端到端 8 测(`world_end_to_end_test.cs`,Place→IsEffectivelyWalkable==false / Remove→true,锚点+非锚点足迹双腿,闭环同一真 World,区别于 S17-6 裸 registry);
+  (b) Cost 从目录读 12 测(`demolish_refund_from_catalog_test.cs`,字面量神谕 + 三条 fail-closed)。
+  证伪四支全红(F1 缺行守卫 2 / F2 World Overlay 7 / F3 只写锚点 5 / F4 cost 硬编码 4),SHA-256 零残留。
+- **回归**:`5065/5030/0/35` @ 2026-10-25 · S20-2a 批 · `84a85e0` + 未提交件;基线 5045/5010/0/35(a3242b6,引用)。增量 +20 == 新增 20,差集新增 20/消失 0。
+- **债册三十五订**:TD-building-01 + TD-itemdb-01 双 closed ⇒ closed 43 / open 62 / partial 5 / **未闭 P0 面 60** / **epic 7/31**。
+- 残留(不随 closed 消失):拆除运行时调用方归 42 `O-23-6`;`clinic_room_matching_e2e_test.cs:19-24` 的「World 侧未验」注记已过时,就地订正归 S20-2。
+- 下一步:**S20-2(clinic-005 本体)**—— 前置 S20-2a 已满足,AC-24-11 布局源可走真 World(可记绿)。

@@ -384,8 +384,8 @@
 | `TD-gate-03` | `（跨 epic · 治理／tools/falsify）` | closed | **N** | R3-裁 |
 | `TD-gate-04` | `（跨 epic · 治理／Editor.Tools.Gates）` | open | **N** | R3-裁 |
 | `TD-build-01` | `（跨 epic · 治理／构建期派生）` | open | **N** | R3-裁 |
-| `TD-itemdb-01` | `item-database` | partial | **Y** | R1 |
-| `TD-building-01` | `modular-building` | open | **Y** | R1 |
+| `TD-itemdb-01` | `item-database` | closed | **Y** | R1 |
+| `TD-building-01` | `modular-building` | closed | **Y** | R1 |
 | `TD-testasm-01` | `（跨 epic · 治理／Tests/PlayMode 装配）` | closed | **N** | R3-裁 |
 | `TD-ci-01` | `（跨 epic · 治理／CI 常驻矩阵）` | open | **N** | R3-裁 |
 <!-- TD-INDEX:END -->
@@ -454,7 +454,14 @@ PYEVAL
 ~~**当前预期输出(2026-10-25 三十一订实测 · `TD-clinic-02/08/09` + `TD-prescription-07` + `TD-audio-026` 五债同批结案(清债轮,三族一个证据件)—— 三十订 / 二十九订 / 二十八订 / 二十七订 / 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 三十二订实测 · `TD-audio-028` + `TD-audio-030` 疑似漏翻行补翻(翻账批,非新清偿)—— 三十一订 / 三十订 / 二十九订 / 二十八订 / 二十七订 / 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 三十三订实测 · `TD-gate-04` 新立案(S20-1 证伪轮 F1:引用集门对「声明未使用」引用盲)—— 三十二订 / 三十一订 / 三十订 / 二十九订 / 二十八订 / 二十七订 / 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
-**当前预期输出(2026-10-25 三十四订实测 · `TD-clinic-19` 新立案(S20-1 评审轮:story-003 夹具自指断言)—— 三十三订 / 三十二订 / 三十一订 / 三十订 / 二十九订 / 二十八订 / 二十七订 / 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
+~~**当前预期输出(2026-10-25 三十四订实测 · `TD-clinic-19` 新立案(S20-1 评审轮:story-003 夹具自指断言)—— 三十三订 / 三十二订 / 三十一订 / 三十订 / 二十九订 / 二十八订 / 二十七订 / 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
+**当前预期输出(2026-10-25 三十五订实测 · `TD-building-01` + `TD-itemdb-01` 双结案(S20-2a 两半全补)—— 三十四订 / 三十三订 / 三十二订 / 三十一订 / 三十订 / 二十九订 / 二十八订 / 二十七订 / 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
+> 🔁 **三十五订(S20-2a 双结案 · 2026-10-25)** —— 变化 = **`closed 41 → 43`**(+2)·
+> **`open 63 → 62`**(−1)· **`partial 6 → 5`**(−1)· **`未闭 P0 面 62 → 60`**(−2)·
+> **epic 分布 `9/31 → 7/31`**(−2:`item-database` 1→0 · `modular-building` 1→0)·
+> `条目 111` / `Y 98` / `N 12` 三位不动(两条本就在册,只翻状态列)。
+> 单一变化源:用户 2026-10-25 裁定「两半全补」+「读路径存在即结案」⇒ 两条索引行翻 `closed`。
+> 复算命令 = §五 脚本本体(自包含,当场可跑)。
 > 🔁 **三十四订(评审立债 · 2026-10-25)** —— 变化 = **`条目 110 → 111`**(+1)·
 > **`open 62 → 63`**(+1)· **`N 11 → 12`**(+1)· **`未闭 P0 面 62` 一位不动**(本条 P0 面 = N,复核债)·
 > epic 分布仍 9/31。单一变化源:新立 `TD-clinic-19`(qa-tester 定向核查 + 编排方 grep 坐实,六处 CAP 断言直引被测常量)。
@@ -623,13 +630,20 @@ PYEVAL
 > 十六订补结)。
 
 ```text
-条目 111 | 状态 {'open': 63, 'partial': 6, 'closed': 41, '**done**(2026-10-21)': 1} | P0 面 {'Y': 98, 'N': 12, '~~**Y**~~': 1}
-未闭 P0 面 = 62 （已闭但曾标 P0 面的 36 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 62 条,分布在 9/31 个 epic
+条目 111 | 状态 {'open': 62, 'partial': 5, 'closed': 43, '**done**(2026-10-21)': 1} | P0 面 {'Y': 98, 'N': 12, '~~**Y**~~': 1}
+未闭 P0 面 = 60 （已闭但曾标 P0 面的 38 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 60 条,分布在 7/31 个 epic
     medical-consequences: 20   audio-system: 17          clinic-machine: 14
-    telemetry-analytics: 5     skeuomorphic-ui: 1         disease-simulation: 2
-    patient-ai: 1              item-database: 1           modular-building: 1
+    telemetry-analytics: 5     disease-simulation: 2     skeuomorphic-ui: 1
+    patient-ai: 1
 ```
+
+> 🔁 **2026-10-25 S20-2a 双结案:本输出块已刷新到三十五订(`TD-building-01` + `TD-itemdb-01`)**。
+> 相对三十四订的 `条目 111 / open 63 / partial 6 / closed 41 / 未闭 62 / 9 epic`,变化 =
+> **`closed 41 → 43`**(+2)· **`open 63 → 62`**(−1)· **`partial 6 → 5`**(−1)·
+> **`未闭 P0 面 62 → 60`**(−2)· **epic 分布 9/31 → 7/31**(`item-database` / `modular-building` 归零)。
+> `条目 111` / `Y 98` / `N 12` 三位不动(两条本就在册,只翻状态列)。
+> 单一变化源:用户裁定「两半全补」+「读路径存在即结案」。复算命令 = §五 脚本本体。
 
 > ~~🔁 **2026-10-25 F1 立债:本输出块已刷新到三十三订(`TD-gate-04` 新立案 —— S20-1 证伪轮发现「引用集门对声明未使用引用盲」)**。~~
 > ~~相对三十二订的 `条目 109 / open 61 / 未闭 62`,变化 = **`条目 109 → 110`**(+1)· **`open 61 → 62`**(+1)· **`N 10 → 11`**(+1)·~~
@@ -3247,6 +3261,7 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | **触发条件** | **读侧**:`/sprint-plan` 取 `clinic-004` / `clinic-005` 时,按 §6.3 **R-4**(上游契约逐代码实测)必然撞见 `IPlacedStructureReadView` 生产实现为零 ⇒ 该轮**就地裁定**是本轮补还是继续 Fake(**继续 Fake 则 `AC-24-11` 不得记绿**)。**写侧**:`O-23-6` 落地时。 |
 | **归属** | **23**(模块化建造)—— ⚠️ **该 epic 已标 `Complete ✅ 2026-10-03`**。按用户 2026-10-20 / 2026-10-21 同口径:**由 TD 跟踪,不新立 story、不重开 epic**。 |
 | **与 `TD-itemdb-01` 的关系** | **不合并、不互抵**。`TD-itemdb-01` 登记的是「`cost(m)` 作者态缺席」,其数据半边**已于 2026-10-21 落**(`build_modules.json` + 烘焙 + 跨表同源门);本债登记的是「那笔数据**没有读方**」。两条互为对方的到期条件 —— 数据落地不蕴含读方存在,读方存在也不蕴含数据正确。 |
+| **🔁 2026-10-25 裁定(sprint-20 S20-2 开工前就地裁定 · 用户裁「两半全补」)** | **残余两半 ((a) 真 `World` 端到端判据 + (b) `ModuleDefinition.Cost` + `DemolishChecker` 从目录读)全部补还**,载体 = **sprint-20 新立工作项 `S20-2a`**(TD 债面内执行选项,非重裁、非新 story)。执行序 = **S20-2a 先行**,`clinic-005` 的 `AC-24-11` 布局源随后走真 `World`(可记绿,不再走 Fake 挂标路径)。**写侧仍归 42(`O-23-6`),不在 `S20-2a` 面内**。**状态维持 `open`** —— 结案判据 = `S20-2a` 的两半判据落齐((a) `Place → IsEffectivelyWalkable == false` / `Remove → true` 经 `World`;(b) `Cost` 从目录读 + `CalculateRefund` 生产调用点接通),届时回写本条;同批核 `TD-itemdb-01` 的消费半边是否随之转结。 |
 | **🔁 2026-10-21 读侧部分解除(S17-6 接线轮)** | 用户裁定「全链真接线(含 23 侧)」后,**读侧五件里的四件已落**:<br>① `IPlacedStructureReadView` 生产实现 = **`Gameplay.Presentation/StructureInstanceReadView.cs`**(包 `StructureInstanceRegistry`);<br>② `IModuleCatalog` 生产实现 = **`BuildModulesCatalog.cs`**(读 `build_modules.cooked`);<br>③ 装配根注入 = **`CompositionRoot.AssembleCore`** 的 `structures != null` 分支(含 `ClinicRoomMatchingService`);<br>④ `StructureInstanceRegistry.EnumerateInstances()`(23 侧只读枚举器)。<br>证据 `production/qa/evidence/impl-s17-6-wiring-2026-10-21.md`。<br>**⚠️ 仍未解除的两半(不标结案)**:<br>**(a) 判据的 `World` 半边** —— 本债逐字要求「**真 `World`** 端到端:`Place → IsEffectivelyWalkable == false` / `Remove → true`」。e2e 用的是**裸 `StructureInstanceRegistry`** + 真 `StructureWriter.Place`,**未经 `World`** ⇒ `IsEffectivelyWalkable` 端到端判据**未验**。<br>**(b) `ModuleDefinition.Cost` + `DemolishChecker` 从目录读** —— **未做**(`ModuleDefinition` 仍是五字段)。<br>**(c) 写侧**(`Place` / `Remove` 生产发起方)—— 归 42 的建造交互(`O-23-6`),本轮不碰。<br>⇒ **状态维持 `open`**;`partial` 的准确表述是「读侧 4/6 件已落,判据与 Cost 半边未落」。 |
 
 | `TD` | 归属 epic | 状态 | P0 面 | 判据 |
@@ -3619,3 +3634,44 @@ Linux-ARM64-IL2CPP  不可达            (pinned 工具链零 arm 目标,2026-10
 | **TD-clinic-19** | `clinic-machine` | **open** | **N** | R3-裁 |
 
 > **`P0 面 = N`**(复核债)⇒ 条目 `110 → 111`,`open +1`;**未闭 P0 面 62 一位不动**。
+
+---
+
+## 2026-10-25 · S20-2a:TD-building-01 + TD-itemdb-01 双结案(sprint-20 用户裁定「两半全补」→「读路径存在即结案」)
+
+**出处**:sprint-20 `S20-2a`(用户 2026-10-25 裁定「两半全补」,载体 = TD 工作项)。
+**证据原件** = `production/qa/evidence/impl-s20-2a-building01-2026-10-25.md`。
+
+### 结案块(两条同批)
+
+| 动作 | 落点 | 内容 |
+|---|---|---|
+| ① `ModuleDefinition` 补 `Cost` | `Sim/World/PlaceableChecker.cs:145` | 五字段 → 六字段,`int cost` **必填无默认**(静默默认 0 会让返还公式对没想清楚成本的目录算出 0 ⇒ 编译期挡,N-r1 fail-closed 同口径) |
+| ② `DemolishChecker` 从目录读 | `Sim/World/DemolishChecker.cs:86` / `:102` | 新增实例方法 `CalculateRefund(long structureId, int demolishRefundRatio)` / `ValidateRefundable(int moduleId, int demolishRefundRatio)`,cost 经 `_moduleCatalog.GetModuleDefinition(...)` 读;结构不存在 / 模块缺行 ⇒ 0 / false(fail-closed);原静态 `RefundCalculator` 降为**纯公式核**,不再是生产路径 |
+| ③ 目录读 cost | `Gameplay.Presentation/BuildModulesCatalog.cs` + `BuildModulesCookedCodec.cs` | 从 `build_modules.cooked` 读 cost 进 `ModuleDefinition` |
+| ④ **真 `World` 端到端** | `Tests/EditMode/ModularBuilding/world_end_to_end_test.cs`(8 测) | `Place → IsEffectivelyWalkable == false` / `Remove → true`,**锚点 + 非锚点足迹格双腿**;`World` 实例传入 `StructureWriter` 的 `IWorldOccupancy` 位 ⇒ 闭环在同一真 `World`。**区别于 S17-6 的裸 registry e2e**(该文件自陈「未经 `World`」) |
+| ⑤ 目录读路径判据 | `Tests/EditMode/ModularBuilding/demolish_refund_from_catalog_test.cs`(12 测) | 全**字面量神谕**(cost=4/R=1.0⇒4;cost=9/R=0.5⇒4),含三条 fail-closed + 真烘焙产物 cost 真被读到(module 1⇒4 / 2⇒8 / 8⇒1) |
+
+**证伪轮四支(S12-4,一属性一条变异,SHA-256 逐字节还原)**:
+
+| # | 属性 | 变异 | 红 |
+|---|---|---|---|
+| F1 | (b) 缺行 fail-closed | `DemolishChecker.cs` 撤 `!defOpt.HasValue` 守卫 | **2 红** |
+| F2 | (a) `World` Overlay 合成项 | `World.cs` 去掉 `&& !_slotOccupied[idx]` | **7 红**(e2e 四 + `WorldTest` 三) |
+| F3 | (a) `Place` 写全足迹 | `StructureKinds.cs` 只写 `{anchor}` | **5 红**(含非锚点腿) |
+| F4 | (b) cost 从目录读 | `DemolishChecker.cs` `Cost` → `1` | **4 红** |
+
+三文件 `grep -c FALSIFY` = **0 / 0 / 0**;未用 `git checkout` / `git stash`。
+
+**回归三元组**:`5065 / 5030 / 0 / 35` @ `2026-10-25` · 批次 `sprint-20 / S20-2a` · `84a85e0` + 本轮未提交件。
+基线 `5045 / 5010 / 0 / 35` @ 2026-10-25 · S20-1 收口轮 · `a3242b6`(**引用**自 `s20-1-full-regression.xml`)。
+**增量等式**:total 5065−5045 = **20** == 新增测试数 ✅ · passed +20 ✅ · failed / skipped 增量 **0** ✅;
+逐条 `fullname` 差集 = **新增 20 / 消失 0**。
+
+**结案口径(用户 2026-10-25 裁定)**:**读路径存在且被验证即结案**,不要求 42 的运行时发起方先存在。
+⇒ `TD-building-01` **closed**;`TD-itemdb-01` **partial → closed**(消费半边随本条转结)。
+**残余如实登记(不随 closed 消失)**:拆除流程的**运行时调用方**归 **42 写侧(`O-23-6`)**,两条债不再跟踪它。
+
+**NOT-RUN 六项(禁借绿)**:N1 写侧发起方(42 `O-23-6`)· N2 `CalculateRefund` 生产调用方 · N3 `AC-24-11` 布局源(归 S20-2 本体)· N4 `AC-23-08` 真目录 9 行逐行校验(R=1 下恒真,无可证伪性)· N5 生产装配根 `CompositionRoot` 的 `new World(`(另属一层,本件未做)· N6 `ValidOrientations={0}` 限制。
+
+**连带订正项(未动,登记)**:`Tests/EditMode/ClinicMachine/clinic_room_matching_e2e_test.cs:19-24` 的「`World` 侧未验」注记**现已过时** —— 由本件 `world_end_to_end_test.cs` 覆盖。就地订正归 S20-2(clinic-005)轮。

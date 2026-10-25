@@ -25,7 +25,8 @@
 | ID | Task | Agent/Owner | 复杂度 | Dependencies | Acceptance Criteria |
 |----|------|-------------|--------|--------------|---------------------|
 | `S20-1` | `clinic-004` 交付边界 ClinicEnvDto | unity-specialist | **M** | Story 003 ✅;21a clamp 契约、系统 1 的 K 消费接口(未就绪时**接口桩联测,`BLOCKED-BY` 不记绿**) | 3 条 AC 逐条判定 + 判据;桩联测半边如实挂标;证伪轮(新增/改写夹具) |
-| `S20-2` | `clinic-005` 纯度重放 + Memoize | unity-specialist | **M** | Story 002–004 | AC-24-10 / 24-11 逐条判定;**`TD-building-01` 残余两半就地裁定**(触发条件逐字命中):读侧补真 `World` 端到端(另立 `S20-2a`)**或**继续 Fake(`AC-24-11` **不得记绿**)—— 不得默认扩面;`ModuleDefinition.Cost` + `DemolishChecker` 从目录读半边同理裁定 |
+| `S20-2` | `clinic-005` 纯度重放 + Memoize | unity-specialist | **M** | Story 002–004 ✅;**S20-2a**(AC-24-11 布局源走真 `World` 后可记绿) | AC-24-10 / 24-11 逐条判定;~~**`TD-building-01` 残余两半就地裁定**~~ 🔁 **2026-10-25 已裁(用户裁定「两半全补」)**:补真 `World` 端到端 + `ModuleDefinition.Cost` 半边,**载体 = `S20-2a` 另计**(见下行);本卡本体照做,`AC-24-11` 布局源用真 `World` ⇒ 可记绿;裁定是 TD-building-01 债面内的执行选项,非重裁 |
+| `S20-2a` | **TD-building-01 两半全补**(真 `World` 端到端 + `Cost` 读方) | unity-specialist | **M** | 23 epic 件(S17-6 已落读侧 4/6);数据半边 = `build_modules.json` ✅(TD-itemdb-01) | (a) 真 `World` 端到端:`Place → IsEffectivelyWalkable == false` / `Remove → true`(未经 `World` 的旧 e2e 不算);(b) `ModuleDefinition` 补 `Cost` + `DemolishChecker.CalculateRefund/ValidateRefundable` 从目录读(生产树调用点接通);写侧归 42(`O-23-6`)**不在面内**;结案时回写 `TD-building-01`(并核 `TD-itemdb-01` 的消费半边是否随之转结) |
 | `S20-3` | `foraging-001` 品种闭包 + 数据装载校验 | unity-specialist | **M** | item-database 001/002 ✅ | AC-17-01b 等 4 条 AC 逐条判定;`item_key` 行未落地 ⇒ `Ignore("BLOCKED-BY: 21a item_key 行未落地")` 显式挂起,**禁记绿**(story :76 逐字) |
 | `S20-4` | `processing-001` 配方子集 + 可采纳谓词 | unity-specialist | **M** | 21a(字段实测已非阻塞,措辞已订正 :75) | AC-18-18 三段非空前置逐条;若撞 `TD-medcons-11`(CLI 烘焙入口缺口)挂标不记绿 |
 

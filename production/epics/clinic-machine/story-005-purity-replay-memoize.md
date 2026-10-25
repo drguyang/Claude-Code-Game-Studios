@@ -66,6 +66,8 @@
 *Written at story creation (lean mode — QL-STORY-READY skipped; specs self-authored from AC text).*
 
 > **QA plan 对齐(2026-10-25 /qa-plan sprint-20)** —— 证据件:`unity/Assets/Tests/EditMode/ClinicMachine/clinic_purity_replay_test.cs`;估 ~6 条。AC-1 即 AC-24-04(contexts[] 序钉表 ordinal 升序,输入顺序无关 ⇒ 输出逐位同);AC-2 即 AC-24-11(Memoize 键 = Structure* 事件,失效重算结果与直算**逐位一致**,另测重放等价);AC-3 即无状态反射扫描 + 纯函数输入封闭(三源,ADR-016 §一)。Edge 补:同 tick 多条 Structure* 事件(失效批量)。**TD-building-01 残余两半就地裁定**(sprint-20 S20-2 note):补真 `World` 端到端(另立 S20-2a)或继续 Fake(**AC-24-11 不得记绿**)—— 二选一,不得默认扩面。跨平台逐位 NOT-RUN 归 ADR-012 批,本件不重复承担。QA plan 全文:`production/qa/qa-plan-sprint-20-2026-10-25.md`。
+>
+> 🔁 **裁定已出(2026-10-25 · 用户裁「两半全补」)**:`TD-building-01` (a)+(b) 两半全还,载体 = **`S20-2a`(先行)** ⇒ **本卡 `AC-24-11` 布局源用真 `World`(可记绿,不走 Fake 挂标路径)**;上方「二选一」原文不删。开工前置 = `S20-2a` 完成。
 
 - **AC-1(双求值)**: 逐位相同
   - Given: fixture 布局 L

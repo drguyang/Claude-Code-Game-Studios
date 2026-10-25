@@ -34,6 +34,18 @@ stories:
     blocker: ""
     completed: "2026-10-25"
     note: "Depends on Story 003 ✅;21a clamp 契约、1 的 K 消费接口未就绪时接口桩联测,BLOCKED-BY 不记绿"
+  - id: "S20-2a"
+    name: "TD-building-01 两半全补(真 World 端到端 + Cost 读方)"
+    file: "docs/tech-debt-register.md"          # 载体 = TD 工作项(债面内执行选项,非新 story)
+    priority: must-have
+    status: done
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: ""
+    completed: ""
+    completed: "2026-10-25"
+    note: "2026-10-25 用户裁定「两半全补」+「读路径存在即结案」:(a) 真 World 端到端(8 测)+ (b) Cost 从目录读(12 测);证伪四支全红;全量 5065/5030/0/35 增量 +20 == 新增测试数;TD-building-01 与 TD-itemdb-01 双 closed(三十五订,未闭 P0 面 62→60,epic 9/31→7/31);写侧归 42 不在面内"
   - id: "S20-2"
     name: "clinic-005 纯度重放 + Memoize(含 TD-building-01 残余两半就地裁定)"
     file: "production/epics/clinic-machine/story-005-purity-replay-memoize.md"
@@ -44,7 +56,7 @@ stories:
     complexity: M
     blocker: ""
     completed: ""
-    note: "Depends on Story 002–004;AC-24-11 布局输入逐代码实测(R-4);TD-building-01 裁定二选一:补真 World 端到端(另立 S20-2a)或继续 Fake(AC-24-11 不得记绿)—— 不得默认扩面"
+    note: "Depends on Story 002–004 ✅ + S20-2a(AC-24-11 布局源走真 World 后可记绿);TD-building-01 已裁「两半全补」(2026-10-25,载体 S20-2a)"
   - id: "S20-3"
     name: "foraging-001 品种闭包 + 数据装载校验"
     file: "production/epics/foraging/story-001-variety-closure-and-data-load-validation.md"
