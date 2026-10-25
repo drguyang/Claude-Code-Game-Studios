@@ -513,7 +513,22 @@ namespace DaYiJingCheng.Gameplay.Boot
                     narrativeContext: narrativeContext,
                     replaySink: replaySink,
                     foldedRowSink: foldedRowSink,
-                    compose: compose);
+                    compose: compose,
+                    // AC-7a-17 · TD-persist-06:退出保存失败的「记日志」落点。
+                    // ⚠️ `SaveService` **不抛**写盘失败(退出路径上抛 = 卡退),故
+                    //    GDD「不阻塞退出 **+ 记日志**」里的后半句只能经这条委托兑现。
+                    //    `Debug.LogError` 而非 `LogWarning`:写盘失败 + 标志位可能未置 = 最坏情形,
+                    //    须在日志里显眼。
+                    exitSaveFailureSink: (writeFailure, flagFailure) =>
+                    {
+                        // ⚠️ **全限定** `UnityEngine.Debug` —— 本文件零 `using UnityEngine;`
+                        //    (它只引 `UnityEngine.InputSystem`),加整条 using 会把
+                        //    `Object` / `Random` 等裸名一并带进来。同 `BootRoot.cs:483` 先例。
+                        UnityEngine.Debug.LogError(
+                            "[7a][AC-7a-17] 退出保存失败(已置「会话未完整」标志,不阻塞退出)。" +
+                            "写盘:" + (writeFailure?.ToString() ?? "(无)") +
+                            " | 置位:" + (flagFailure?.ToString() ?? "(成功)"));
+                    });
             }
 
 

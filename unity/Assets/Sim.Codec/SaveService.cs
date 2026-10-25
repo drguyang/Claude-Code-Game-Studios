@@ -24,9 +24,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Sim.Codec
@@ -49,6 +51,19 @@ namespace DaYiJingCheng.Sim.Codec
         /// 只是报文更准确)。真实脚本随版本升级逐条注册,落点在装配根。
         /// </summary>
         private readonly IReadOnlyList<ISaveMigration> _migrations;
+
+        /// <summary>
+        /// 退出保存的时间预算(ms,`SAVE_EXIT_RETRY_TIMEOUT` 旋钮 · GDD 规则十三)。
+        /// <para>缺省 = <see cref="ExitSaveRetrier.DefaultTimeoutMillis"/>(1000 ms)。</para>
+        /// </summary>
+        private readonly int _exitSaveRetryMillis;
+
+        /// <summary>
+        /// 退出保存失败的观察者(装配层 → 日志)。
+        /// <para>⚠️ 形参 = <c>(写盘异常, 置位异常)</c>,任一可为 null。本类**不抛**
+        /// (退出路径上拋 = 卡退),故这条委托是「记日志」这条 GDD 要求的唯一通道。</para>
+        /// </summary>
+        private readonly Action<Exception, Exception> _exitSaveFailureSink;
 
         /// <summary>
         /// 构造。
@@ -107,7 +122,9 @@ namespace DaYiJingCheng.Sim.Codec
             Action<IReadOnlyList<SimEvent>> replaySink = null,
             Action<byte[]> foldedRowSink = null,
             Func<SaveSlot, byte[]> compose = null,
-            IReadOnlyList<ISaveMigration> migrations = null)
+            IReadOnlyList<ISaveMigration> migrations = null,
+            int exitSaveRetryMillis = ExitSaveRetrier.DefaultTimeoutMillis,
+            Action<Exception, Exception> exitSaveFailureSink = null)
         {
             _basePath = basePath ?? throw new ArgumentNullException(nameof(basePath));
             _codec = codec ?? throw new ArgumentNullException(nameof(codec));
@@ -120,6 +137,10 @@ namespace DaYiJingCheng.Sim.Codec
             //    而是「今日没有历史版本可迁」这个事实的正确表达。空链撞上旧档会抛
             //    「断链」—— 那仍是 fail-closed,只是发生在**真的遇到旧档**时才发生。
             _migrations = migrations ?? Array.Empty<ISaveMigration>();
+            // ⚠️ 重试预算是**旋钮**,不是硬编码常量 —— 测试用极短预算(如 0 = 不重试)
+            //    以保证夹具快且确定;生产用 GDD 默认 1 s。
+            _exitSaveRetryMillis = exitSaveRetryMillis;
+            _exitSaveFailureSink = exitSaveFailureSink;
             // 台账与 SaveService 共用**同一个**钩子实例 ⇒ 「一个量」在类型层面成立
             // ⚠️ 高水位初值今日**恒为 0**(用默认形参)。`SaveSlotLedger` 的 doc 写「初值由装配层
             //    按『本会话从哪个槽位起步』决定」,而装配层**无任何通道可传**(`SaveService` 构造
@@ -140,6 +161,17 @@ namespace DaYiJingCheng.Sim.Codec
 
         /// <summary>槽位台账(锁 / 高水位)。装配层与测试需要驱动叙事锚点时用。</summary>
         public SaveSlotLedger Ledger => _ledger;
+
+        /// <summary>
+        /// 「上一次会话未完整保存」标志位是否已置位(AC-7a-17)。
+        /// <para>只读暴露:启动期由装配层读它并**交给 42 / 7b 呈现**(7a 只读位、不出提示 ——
+        /// GDD `:586` 逐字「提示承载归 42 / 7b,7a 只断言标志位置位」)。</para>
+        /// <para>⚠️ <b>无缓存</b> —— 每次读都落到文件系统。缓存在此会让「上一次会话写了标志、
+        /// 这一次读到旧值」成为静默失效通道。</para>
+        /// <para>⚠️ 这是**诊断 / 呈现面**,不是第四存档入口 —— 它不写任何东西,故不违反
+        /// AC-7a-08 的「恰三处」。</para>
+        /// </summary>
+        public bool IsSessionIncomplete => SaveIncompleteFlag.IsRaised(_basePath);
 
         /// <summary>原子写:tmp → flush → rename。双档 bak。</summary>
         /// <remarks>
@@ -355,6 +387,9 @@ namespace DaYiJingCheng.Sim.Codec
         /// <exception cref="InvalidOperationException">未注入驱动源(fail-closed)。</exception>
         public void SaveOnExit()
         {
+            // ⚠️ 驱动源缺失 = **编程错误,不可重试** ⇒ 必须在进重试循环**之前**抛。
+            //    否则配置错误会伪装成磁盘故障,在日志里躺满整个预算然后静默变成
+            //    「会话未完整」—— 真 bug 被埋掉。
             RequireNarrativeContext();
             RequireCompose(nameof(SaveOnExit));
 
@@ -368,8 +403,61 @@ namespace DaYiJingCheng.Sim.Codec
                 ?? throw new InvalidOperationException(
                     "compose 委托返回 null —— 组版失败须抛,不得写空档");
 
-            WriteExitSave(bytes);
-            // 刻意不调 OnCheckpointCommitted(退出保存不推高水位)
+            // ── 限时重试(AC-7a-17 · GDD 规则十三 · `SAVE_EXIT_RETRY_TIMEOUT`)──
+            // 🔁 2026-10-25 新增。此前是**一次性写**,失败直接把异常抛给调用方 ⇒
+            //    「限时重试」与「不阻塞退出」两条都无从兑现。
+            var sw = Stopwatch.StartNew();
+            bool written = ExitSaveRetrier.TryWrite(
+                write: () => WriteExitSave(bytes),
+                timeoutMillis: _exitSaveRetryMillis,
+                clockMillis: () => sw.ElapsedMilliseconds,
+                sleepMillis: Thread.Sleep,
+                out Exception lastFailure);
+
+            if (written)
+            {
+                // ✅ 世界状态已安全落盘 ⇒ 清「会话未完整」标志位。
+                // ⚠️ **清位失败不影响退出**(退出路径的硬要求是「不卡退」)。
+                //    清不掉只会让下次启动多提示一次 —— 偏保守方向,可接受。
+                try { ClearIncompleteFlag(); }
+                catch (Exception e)
+                {
+                    // 无日志设施(Sim.Codec 是纯 BCL 装配)—— 静默吞。
+                    // ⚠️ 这是**刻意的**:退出路径上抛任何东西都违反「不卡退」。
+                    _ = e;
+                }
+                return;
+            }
+
+            // ── 失败:置「会话未完整」标志位,然后**继续退出**(不阻塞)──
+            // AC-7a-17 原文:「仍失败 ⇒ **不阻塞退出 + 记日志**;下次启动检测到标志位 ⇒ 提示」。
+            //
+            // ⚠️ 本类**不抛** —— 调用方(退出钩子)若收到异常就会卡住退出流程。
+            //    「不静默丢,不卡退」两条里,后者是硬约束:**日志 + 置位**就是这里的「不静默」。
+            //    日志经注入委托交给装配层(本类无日志设施,且 Sim.Codec 是纯 BCL 装配)。
+            try { RaiseIncompleteFlag(); }
+            catch (Exception e)
+            {
+                // 置位本身失败(目录只读 / 磁盘满)—— 仍不得阻塞退出。
+                // ⚠️ **失败也要让装配层知道**:置位失败 + 写盘失败 = 两条线索都没了,
+                //    这是最坏情形,不能静默吞掉整条链。
+                ReportExitSaveFailure(lastFailure, e);
+                return;
+            }
+
+            ReportExitSaveFailure(lastFailure, flagFailure: null);
+        }
+
+        /// <summary>
+        /// 把退出保存的失败交给注入的观察者(装配层 → 日志)。
+        /// <para>⚠️ **观察者自身抛异常也不得影响退出** —— 退出路径上任何抛出都违反
+        /// 「不卡退」。故此处双重兜住。</para>
+        /// </summary>
+        private void ReportExitSaveFailure(Exception writeFailure, Exception flagFailure)
+        {
+            if (_exitSaveFailureSink == null) return;
+            try { _exitSaveFailureSink(writeFailure, flagFailure); }
+            catch (Exception) { /* 日志失败不得卡退 */ }
         }
 
         /// <summary>
@@ -396,6 +484,47 @@ namespace DaYiJingCheng.Sim.Codec
                            Path.Combine(_basePath, ExitSaveFileName + ".tmp"),
                            Path.Combine(_basePath, ExitSaveFileName + ".bak"),
                            data);
+
+        // ══════════════════════════════════════════════════════════════════
+        // 「会话未完整」标志位的写面(AC-7a-17 · 规则十三)
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// 置「会话未完整」标志位 —— **经 <see cref="WriteAtomic"/>**(唯一写盘原语)。
+        /// <para>⚠️ <b>为什么写盘必须落在这里</b>:AC-7a-08③ 的 IL 门
+        /// (`SaveWritePathGate`)要求 `Sim.Codec` 程序集内**仅 `SaveService::WriteAtomic`
+        /// 一处**可达写盘 API。首版把置位直接写成 `File.WriteAllBytes` 撞红了该门
+        /// (全量回归 `td06-3` 实测 3 条);用户 2026-10-25 裁定取「走 `WriteAtomic`」
+        /// 而非放宽门 —— 门一字不改,既有不变量反而更强。</para>
+        /// <para>✅ <b>幂等</b>:重复置位只是重写同一 1 字节内容。退出路径上重试失败
+        /// 可能调用多次,抛异常会让「不阻塞退出」这条硬要求失效。</para>
+        /// <para>⚠️ 本方法**自身可能失败**(目录只读 / 磁盘满)。调用方(退出路径)
+        /// 须自行兜住并记日志 —— 但**不得**因置位失败而阻塞退出(规则十三「不卡退」)。</para>
+        /// </summary>
+        /// <exception cref="IOException">写标志文件失败(调用方须兜)。</exception>
+        private void RaiseIncompleteFlag()
+            => WriteAtomic(SaveIncompleteFlag.GetPath(_basePath),
+                           SaveIncompleteFlag.GetTmpPath(_basePath),
+                           SaveIncompleteFlag.GetBakPath(_basePath),
+                           SaveIncompleteFlag.RaisedMarker);
+
+        /// <summary>
+        /// 清「会话未完整」标志位 —— 写 **0 字节墓碑**,不走删除。
+        /// <para>⚠️ <b>为什么不删</b>:`File.Delete` 也是写盘 API,同样撞 AC-7a-08③ 的门。
+        /// 而 <see cref="WriteAtomic"/> 只写不删 ⇒ 清位只能表现为「写空内容」,
+        /// 读位判据随之收窄为「存在**且非空**」(见 <see cref="SaveIncompleteFlag.IsRaised"/>)。
+        /// 这是为「`Sim.Codec` 内只有一个写盘原语」付的代价,已登记在
+        /// `SaveIncompleteFlag` 文件头。</para>
+        /// <para>⚠️ 副作用:`WriteAtomic` 的双档逻辑会把上一次的 1 字节内容挪成
+        /// `session_incomplete.flag.bak` 并**留在盘上**。该文件不参与任何判据
+        /// (读位只读 <see cref="SaveIncompleteFlag.GetPath"/>),属可接受的残留。</para>
+        /// </summary>
+        /// <exception cref="IOException">写标志文件失败(调用方须兜)。</exception>
+        private void ClearIncompleteFlag()
+            => WriteAtomic(SaveIncompleteFlag.GetPath(_basePath),
+                           SaveIncompleteFlag.GetTmpPath(_basePath),
+                           SaveIncompleteFlag.GetBakPath(_basePath),
+                           SaveIncompleteFlag.ClearedMarker);
 
         /// <summary>
         /// 读档。`Gating` → `Verifying` → 头部解析 → 迁移链三分支 → `Replaying`

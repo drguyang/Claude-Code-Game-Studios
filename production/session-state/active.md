@@ -10963,3 +10963,37 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - **EPIC 载体总表**:`14` / `16` 转 `IMPLEMENTED_TESTED` ⇒ 分布 `9 / 3 / 1`
   (复算:`grep -c "↳ 🔁 \*\*2026-10-25 已兑现\*\*"` ⇒ 5;4+5=9,9+3+1=13 ✓)
 - **未提交**(用户未下 commit 指令);未 push
+
+## 2026-10-25 · `TD-persist-06` 兑现轮(`AC-7a-17` 退出保存限时重试 + 会话未完整标志位)
+
+- **范围裁定**(用户三问):
+  - **Q1 = 独立标志文件**(`session_incomplete.flag`)—— 不取 `SaveHeader` 头字段:改七字段布局 ⇒
+    黄金夹具全红 ⇒ 应 bump `SaveVersion` ⇒ 触发迁移链;而 v1 从未出货,为标志位 bump 会逼出
+    「只为标志位存在的迁移脚本」= `TD-persist-05` 拒过的「造假 v0」同型
+  - **Q2 = 只做 `AC-7a-17`** —— `AC-7a-07`(异步写盘)不做,今日同步写、无后台 worker 可 join
+  - **Q3(中途追加)= 标志位走 `WriteAtomic`** —— 见下
+- **⚠️ 本轮最大返工:标志位撞红 `AC-7a-08③` IL 门**
+  - 首版在 `SaveIncompleteFlag` 里直接 `File.WriteAllBytes` / `File.Delete` ⇒ 全量 `td06-3` **3 红**
+    (`SaveWritePathGate`:「`Sim.Codec` 内仅 `SaveService::WriteAtomic` 一处可达写盘 API」)
+  - 三条出路(走 `WriteAtomic` / 放宽门 / 委托注入)用户取**第一条**:门一字不改
+  - **代价如实**:清位不能 `File.Delete`(它也是写盘 API)⇒ 写 **0 字节墓碑** ⇒ `IsRaised` 由
+    「文件存在」收窄为「存在**且非空**」。该半条由 MC4 反证钉住(停用长度判据 ⇒ 4 条转红)
+- **测试抓到一处真缺陷**:`ExitSaveRetrier` 首版成功分支**未清 `lastFailure`** ⇒「失败两次、第三次成功」
+  会带着第 2 次异常返回 `true` ⇒ 调用方据 `lastFailure != null` 判成败即把**成功**读成**失败**
+  (置上不该置的标志位)。**修在生产代码**,不是改判据。反证 = MC1
+- **回归三元组**(`2026-10-25 05:17 UTC` · `td06-6` 终态 · commit `2c65e26`):
+  EditMode **`4940 / 4905 / 0 / 35`**;基线 `4917 / 4882 / 0 / 35`(`td05-3` · `72bb234`)
+  ⇒ **+23 / +23,零回归**;等式 `4940 − 4917 = 23 = 新增 [Test] 数` ✓
+- **证伪轮 15 轮,23 条测试全部至少转红一次,零假绿**(MC1…MC15)
+  - ⚠️ **首轮 12 轮后仍有 3 条从未转红**(`succeedsOnFirstTry_noSleep` / `flag_absentFile_isNotRaised` /
+    `missingNarrativeContext_throwsInsteadOfRetrying`)⇒ **补跑 MC13/MC14/MC15**,未借前 12 轮的绿
+  - 还原判据 = 4 文件 SHA-256 逐字节(`td06-baseline.sha256` 全「成功」),零 `FALSIFY` 残留
+- **如实登记的缺口**:① `Application.wantsToQuit` 注册/卸挂无自动化(PlayMode 面)·
+  ② `Debug.LogError` 日志文本无自动化 · ③ **`BootRoot._sessionWasIncomplete` 今日零消费者**
+  (GDD `:586` 逐字「提示承载归 42 / 7b」;读位已接线、消费未接线,**不得**读成「提示功能已实现」)·
+  ④ `AC-7a-07` 未动,仍 open
+- **债册二十五订**:`TD-persist-06` 索引行 `open → closed` ⇒ `条目 108` 不动 · `open 73 → 72` ·
+  `closed 28 → 29` · 未闭 P0 面 `74 → 73` · `persistence-service 3 → 2`
+- **EPIC 载体总表**:`17` 由 `NOT_IMPLEMENTED` 转 `IMPLEMENTED_TESTED` ⇒ 分布 **`10 / 3 / 0`**
+  (全表 `NOT_IMPLEMENTED` **清零**;复算:`grep -c "↳ 🔁 \*\*2026-10-25 已兑现\*\*"` ⇒ 5;4+5+1=10,10+3+0=13 ✓)
+- **未提交**(用户未下 commit 指令);未 push

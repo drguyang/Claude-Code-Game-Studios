@@ -594,9 +594,12 @@ namespace DaYiJingCheng.Tests.PersistenceService
             //    折叠段原始字节交出委托;compose 顺移至第 7 位)。
             // 🔁 2026-10-25 TD-persist-05 动作③(AC-7a-14):7 → 8(末尾增 `migrations` ——
             //    迁移链脚本集合;前七个位置**不变**,故下方逐位类型断言全部仍成立)。
-            Assert.AreEqual(8, ps.Length,
+            // 🔁 2026-10-25 TD-persist-06(AC-7a-17):8 → 10(末尾增 `exitSaveRetryMillis` ——
+            //    退出保存限时重试预算;`exitSaveFailureSink` —— 失败观察者)。
+            //    前八个位置**不变**,故下方逐位类型断言全部仍成立。
+            Assert.AreEqual(10, ps.Length,
                 "形参 = (basePath, codec, folded, narrativeContext, replaySink, foldedRowSink, " +
-                "compose, migrations)");
+                "compose, migrations, exitSaveRetryMillis, exitSaveFailureSink)");
             Assert.AreEqual(typeof(IFoldedPredicate), ps[2].ParameterType,
                 "第三形参须是 IFoldedPredicate(住 Sim.Contracts)");
             Assert.IsTrue(ps[2].HasDefaultValue && ps[2].DefaultValue == null,

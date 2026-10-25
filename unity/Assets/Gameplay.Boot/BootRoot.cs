@@ -79,6 +79,22 @@ namespace DaYiJingCheng.Gameplay.Boot
         private Input.DeviceStateManager _deviceState;
 
         /// <summary>
+        /// 退出钩子回调(AC-7a-17 · `TD-persist-06`)。**必须缓存成字段**:
+        /// <c>Application.wantsToQuit</c> 是**静态**事件,每次注册都要给同一个 delegate 实例
+        /// 才能注销 —— 用 lambda 直接 `+=` 之后无法 `-=`(每次求值都是新对象),
+        /// 会留下悬挂引用在下次 Play 里再触发一次。
+        /// </summary>
+        private Func<bool> _wantsToQuitHandler;
+
+        /// <summary>
+        /// 启动期读到的「上一次会话未完整保存」标志(AC-7a-17)。
+        /// <para>⚠️ **只读位、不出提示** —— GDD `:586` 逐字「提示承载归 42 / 7b,
+        /// 7a 只断言标志位置位」。本字段是**交给 42 / 7b 的交接点**,不是提示本身。
+        /// 在 42 / 7b 接上之前,它没有任何消费者 —— 这是**如实登记的缺口**,不是静默满足。</para>
+        /// </summary>
+        private bool _sessionWasIncomplete;
+
+        /// <summary>
         /// 只缓存引用 / 初始化字段 —— **零异步、零装配**(装配严格在 <see cref="Start"/> 启动序第 2 步)。
         /// </summary>
         private void Awake()
@@ -179,6 +195,44 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // ⚠️ 今日 `Checkpoint` / `Load` 仍必然抛(叙事上下文驱动源未接通,
                 //    fail-closed,TD-persist-04)—— 目录就位 ≠ 功能可用。
                 saveBasePath: Path.Combine(Application.persistentDataPath, "saves"));
+
+            // ── 2.95 退出保存接线 + 会话未完整标志位(AC-7a-17 · `TD-persist-06` · 2026-10-25)──
+            // 病因:`SaveService.SaveOnExit` 方法**早已存在**(`SaveService.cs:356`)但
+            //   **零生产调用点** —— `Application.wantsToQuit` 全仓零命中。⇒ AC-7a-17 的
+            //   「退出保存失败 ⇒ 限时重试 + 下次启动提示」整条链在**形状上**不存在。
+            //
+            // ⚠️ **本轮只接「退出保存 + 标志位」,不接「提示」** —— GDD `:586` 逐字
+            //   「提示承载归 42 / 7b,7a 只断言标志位置位」。本类读位后**存字段**,
+            //   字段的消费者(42 / 7b 的提示 UI)**尚未存在** ⇒ 这是**如实登记的缺口**,
+            //   不是静默满足(见 `_sessionWasIncomplete` 的 doc)。
+            //
+            // ⚠️ **今日 `Checkpoint` / `Load` 仍必然抛**(叙事上下文驱动源未接通,裁定丙,
+            //   `TD-persist-04`)⇒ `SaveOnExit` 会在 `RequireNarrativeContext` 处抛
+            //   `InvalidOperationException`。这是**已知且刻意**的:**不可用 > 不安全**。
+            //   ⇒ 退出钩子必须**兜住**这个抛出 —— 否则「7a 未接线」会变成「玩家无法退出游戏」。
+            //   兜住后走「置位 + 记日志」路径,即**当前生产路径的真实行为**。
+            var saveService = _services.SaveService;
+            if (saveService != null)
+            {
+                _sessionWasIncomplete = saveService.IsSessionIncomplete;
+
+                _wantsToQuitHandler = () =>
+                {
+                    try
+                    {
+                        saveService.SaveOnExit();
+                        // ⚠️ SaveOnExit **不抛**写盘失败(它自己置位 + 交观察者),
+                        //    但**会抛**驱动源缺失(编程错误)。两者都在此兜住。
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning(
+                            "[BootRoot][AC-7a-17] 退出保存失败(不阻塞退出):" + e);
+                    }
+                    return true;   // 恒放行退出 —— 「不卡退」是硬约束
+                };
+                Application.wantsToQuit += _wantsToQuitHandler;
+            }
 
             // ── 2.9 设备态挂接(TD-epic-01 第八片 · 2026-10-19)──
             // 病因:`DeviceStateManager`(story-008)此前**零生产实例**(零生产调用方,与
@@ -896,6 +950,15 @@ namespace DaYiJingCheng.Gameplay.Boot
 
             // 设备态卸挂(TD-epic-01 第八片):onDeviceChange 同属全局静态回调,须显式摘。
             _deviceState?.Detach();
+
+            // 退出钩子卸挂(AC-7a-17):`Application.wantsToQuit` 是**静态**事件,
+            // 不摘会在下次 Play 里重复触发已弃的 SaveService(域内悬挂委托)。
+            // ⚠️ 用**缓存字段**注销,不能用 lambda 重新 `-=`(每次求值都是新对象)。
+            if (_wantsToQuitHandler != null)
+            {
+                Application.wantsToQuit -= _wantsToQuitHandler;
+                _wantsToQuitHandler = null;
+            }
 
             // 病人 cue 驱动收尾(story-018 · ADR-018 §一「句柄由唯一持有者负责收尾」)——
             // 本驱动即呼吸层句柄的持有者;不显式 EndLoop ⇒ 句柄跨 Play 轮残留。

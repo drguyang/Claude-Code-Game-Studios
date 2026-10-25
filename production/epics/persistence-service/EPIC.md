@@ -45,7 +45,7 @@
 | ↳ 🔁 **2026-10-25 已兑现** | **IMPLEMENTED_TESTED** | `Sim.Codec/SaveCorruptException.cs` + `LoadBytes` 终态分支(**零 I/O**) | `save_service_test.cs` **4 条**(含「槽目录文件数不变」禁止判据) | 证伪轮 **M1/M2/M3 三轮全红**;`(a)` 回退**提示**仍缺,但提示归 42 / 7b(见 `TD-persist-05` 末注) |
 | `16` | PARTIAL | `SaveComposer.cs:82-90` 签名天然正交 | `save_composer_wiring_test.cs:345` 非同轴 | authority 替身夹具 0,归新债 |
 | ↳ 🔁 **2026-10-25 已兑现** | **IMPLEMENTED_TESTED** | **零生产改动** —— `Compose` 本来就没有 authority 形参,`IdAuthority` 本来就是实例计数器 | `PersistenceService/save_authority_orthogonality_test.cs` **7 条**(四条独立性质 A/B/C/D + 反向对照 `ClampingStub`) | 证伪轮 **MB1/MB2/MB3 三轮全红**;⚠️ **本条补的是「从未存在的判据」,不是修缺陷** —— 把「两布局产出一致」拆成四条独立性质,因为单条在 `Compose` 不认识 authority 时**恒真**、零判别力 |
-| `17` | **NOT_IMPLEMENTED** | **全空** | 仅成功路径 | 五形扫描全 0,单独立债 |
+| `17` | ~~**NOT_IMPLEMENTED**~~ → **IMPLEMENTED_TESTED** | `Sim.Codec/ExitSaveRetrier.cs`(限时重试,假时钟可注入)· `Sim.Codec/SaveIncompleteFlag.cs`(**纯命名+纯判据,零 I/O 写**)· `SaveService.SaveOnExit` 重试+置位/清位 · `BootRoot` 的 `Application.wantsToQuit` 注册/卸挂 | `PersistenceService/save_exit_retry_and_flag_test.cs` **23 条** | 证伪轮 **MC1…MC15 十五轮**,**23/23 测试全部至少转红一次**;⚠️ **测试抓到一处真缺陷**(`ExitSaveRetrier` 成功分支未清 `lastFailure` ⇒ 成功被读成失败),修在**生产代码**;⚠️ 三处缺口如实登记:退出钩子注册面无自动化(PlayMode 面)· 日志文本无自动化 · **`BootRoot._sessionWasIncomplete` 零消费者**(提示归 42 / 7b) |
 | `19` | **IMPLEMENTED_TESTED** | `SaveSlotLedger.cs:93-137` 等 | `save_slot_contract_test.cs` 9 条 | ✅ 已补登记 |
 | `20` | PARTIAL | `CompositionRoot.cs:1030/1080` 判据函数 | `composition_root_test.cs:194-254` | 触发方/兜底 0,裁定丙终态 |
 
@@ -71,6 +71,19 @@
 > `09` → blocked-by **`TD-ci-01`**;`20` 定时兜底半边 → blocked-by **`TD-persist-04` 动作 ①**(瞬时源)。
 > ⇒ **待处置 = 0**,但 **≠ 7a 已可交付**:四条未闭项各有具名阻塞方。
 > 原件 = `production/qa/evidence/impl-td-persist-05-2026-10-25.md`。
+
+> 🔁 **2026-10-25 `TD-persist-06` 兑现轮后现值(原文不删)** —— **`AC-7a-17` 全表唯一一条 `NOT_IMPLEMENTED` 已清零**:
+> `IMPLEMENTED_TESTED` **10**(上列 9 + `17` 本轮兑现)· `PARTIAL` **3**(`07` `09` `20`)· `NOT_IMPLEMENTED` **0**。
+> **复算命令**:`grep -c "↳ 🔁 \*\*2026-10-25 已兑现\*\*" production/epics/persistence-service/EPIC.md` ⇒ **5**;
+> 本轮 `17` 行是**就地改判**(非新增 `↳` 行)⇒ 9 + 1 = **10**;`3 + 0 = 3`,合计 **13** 条 ✓。
+> ⚠️ **`17` 的兑现形态是第三种**(区别于 `14` 的「补缺失执行体」与 `16` 的「补从未存在的判据」):
+> 它补的是**跨装配的接线 + 一个新形态的标志位**,且**中途撞红了既有 BLOCKING 门**
+> (`AC-7a-08③` IL 门:首版在 `SaveIncompleteFlag` 里直接 `File.WriteAllBytes`)。
+> 用户裁定取「收进 `WriteAtomic`」而非放宽门 ⇒ **门一字不改**,代价是标志位语义由
+> 「文件存在」收窄为「存在**且非空**」(清位写 0 字节墓碑而非删除)。
+> ⚠️ **`07` 仍未兑现且不在本轮面内**(用户裁定只做 `17`):`SaveOnExit` 今日**同步**写盘,
+> 「限时 join」实际是「同步写 + 同步重试」。**`09` / `20` 的 blocked 归属不变**。
+> 原件 = `production/qa/evidence/impl-td-persist-06-2026-10-25.md`。
 
 ### 两条会改变判读的交叉结论
 

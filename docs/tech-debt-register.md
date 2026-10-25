@@ -353,7 +353,7 @@
 | `TD-persist-03` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-04` | `persistence-service` | open | **Y** | R1 |
 | `TD-persist-05` | `persistence-service` | open | **Y** | R1 |
-| `TD-persist-06` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-06` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-07` | `persistence-service` | closed | **Y** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-02` | `enemy-ai` | open | **Y** | R1 |
@@ -431,7 +431,17 @@ PYEVAL
 ~~**当前预期输出(2026-10-25 二十一订实测 · `TD-enemy-02` 入表 —— 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 二十二订实测 · `TD-persist-05` / `06` 入表 —— 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 二十三订实测 · `TD-persist-07` 入表(立债即 closed)—— 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
-**当前预期输出(2026-10-25 二十四订实测 · `TD-persist-05` 部分兑现(③④ 兑现,①②⑤ blocked)—— 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
+~~**当前预期输出(2026-10-25 二十四订实测 · `TD-persist-05` 部分兑现(③④ 兑现,①②⑤ blocked)—— 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
+**当前预期输出(2026-10-25 二十五订实测 · `TD-persist-06` 结案(`AC-7a-17` 兑现)—— 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
+> 🔁 **二十五订(`TD-persist-06` 结案 · 2026-10-25 · `AC-7a-17` 兑现)** —— 变化 =
+> **`closed 28 → 29`**(+1)· **`open 73 → 72`**(−1)· **`未闭 P0 面` 74 → 73**(−1)·
+> **`persistence-service 3 → 2`**(−1)· **`条目 108` 不动**。
+> 单一变化源:`TD-persist-06` 索引行 `open → closed`(本轮兑现,结案块见其正文)。
+> 原件 = `production/qa/evidence/impl-td-persist-06-2026-10-25.md`。
+> ⚠️ **`closed` 翻转不加条目** —— 若日后见「条目 109」,那是新立债,不是本次。
+> ⚠️ **本条的 `closed` 只覆盖 7a 侧**:`AC-7a-17` 的「提示」半句逐字归 42 / 7b(GDD `:586`),
+> 而 42 / 7b 的提示 UI **仍不存在** ⇒ `BootRoot._sessionWasIncomplete` 今日**零消费者**。
+> 这不影响本条结案(7a 的义务是「只断言标志位置位」),但**不得**被读成「提示功能已实现」。
 > ⚠️ **标题换行不删**:十九订标题就地改为删除线,新标题并列(承「原文不删,就地加注」—— 原措辞逐字仍可查,只是轮次前移一格)。
 > 🔁 **2026-10-25 收口轮订正本行**:上句是**二十订当时**的记录(记载「十九订标题被划掉」)。
 > 我在二十一订时曾**直接改写本行**为「二十订标题…」,那是**违反 append-only** 的 ——
@@ -2016,6 +2026,21 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 
 > ⚠️ **与 `TD-persist-03` 动作 ④ 的关系**:03 的 ④ 复核的是「读档锁的置位点」,
 > 与本条的**退出保存**路径正交(一读一写)。不合并。
+
+#### 🔁 2026-10-25 兑现(原文不删)
+
+| 侧 | 内容 |
+|---|---|
+| **状态** | **closed(7a 侧)** —— `AC-7a-17` 由 `NOT_IMPLEMENTED` 转 **`IMPLEMENTED_TESTED`**。⚠️ **42 / 7b 的提示 UI 仍不存在**(那是别人的轮次,见下「残留」)。 |
+| **用户裁定(开工前)** | **Q1 = 独立标志文件**(不取 `SaveHeader` 头字段:改七字段布局 ⇒ 黄金夹具全红 ⇒ 应 bump `SaveVersion` ⇒ 触发迁移链;而 v1 从未出货,为标志位 bump 会逼出「只为标志位存在的迁移脚本」= `TD-persist-05` 拒过的「造假 v0」同型)。**Q2 = 只做 `AC-7a-17`**,`AC-7a-07` 不做(今日同步写,无后台 worker 可 join)。 |
+| **用户裁定(中途,追加)** | **Q3 = 标志位走 `WriteAtomic`** —— 首版在 `SaveIncompleteFlag` 里直接 `File.WriteAllBytes` / `File.Delete`,**撞红 `AC-7a-08③` IL 门**(`SaveWritePathGate`,全量 `td06-3` 实测 3 红)。三条出路里取「收进 `WriteAtomic`」:门一字不改,既有不变量从「存档体一个写入口」变成**字面成立**的「`Sim.Codec` 内只有一个写盘原语」。 |
+| **落点** | 新增 `Sim.Codec/ExitSaveRetrier.cs`(限时重试,假时钟可注入)· `Sim.Codec/SaveIncompleteFlag.cs`(**纯命名 + 纯判据,零 I/O 写**)· `SaveService` 加 `RaiseIncompleteFlag` / `ClearIncompleteFlag` / `ReportExitSaveFailure` / `IsSessionIncomplete` + 两构造形参 · `BootRoot` 注册/卸挂 `Application.wantsToQuit`(恒 `return true`)· `CompositionRoot` 的 `exitSaveFailureSink` → `UnityEngine.Debug.LogError`。 |
+| **语义代价(如实)** | 清位不走 `File.Delete`(它也是写盘 API)⇒ 写 **0 字节墓碑** ⇒ `IsRaised` 判据由「文件存在」收窄为「存在**且非空**」。**该半条由 MC4 反证钉住**(停用长度判据 ⇒ 4 条转红)。 |
+| **测试** | `PersistenceService/save_exit_retry_and_flag_test.cs` **23 条** · 全量回归 `4940 / 4905 / 0 / 35`(三元组:`2026-10-25 05:17 UTC` · `td06-6` · `2c65e26`);基线 `4917 / 4882 / 0 / 35` ⇒ **+23 / +23,零回归**。 |
+| **证伪轮** | **15 轮,23 条测试全部至少转红一次,零假绿**(`MC1…MC15`)。⚠️ 首轮 12 轮后仍有 **3 条从未转红**(`succeedsOnFirstTry_noSleep` / `flag_absentFile_isNotRaised` / `missingNarrativeContext_throwsInsteadOfRetrying`)⇒ **补跑 MC13/MC14/MC15**,未借前 12 轮的绿。还原判据 = 4 文件 SHA-256 逐字节,零 `FALSIFY` 残留。 |
+| **测试抓到的真缺陷** | `ExitSaveRetrier` 首版成功分支**未清 `lastFailure`** ⇒ 「失败两次、第三次成功」会带着第 2 次异常返回 `true`,调用方据 `lastFailure != null` 判成败即把**成功**读成**失败**。**修在生产代码**,非改判据。反证 = MC1。 |
+| **残留(不在本债面内,如实登记)** | ① `Application.wantsToQuit` 的**注册/卸挂**无自动化(EditMode 跑不了 Unity 生命周期)⇒ PlayMode / 人工面。② `Debug.LogError` 的**日志文本**出现无自动化(委托被调用有夹具)。③ **`BootRoot._sessionWasIncomplete` 今日零消费者** —— GDD `:586` 逐字「提示承载归 42 / 7b」⇒ 7a 义务到此为止,但**读位已接线、消费未接线**;若日后有人据 `IsSessionIncomplete` 已接线就宣称「提示功能已实现」,那是假绿。④ `AC-7a-07`(异步写盘 + SHA256 非主线程)**未动**,仍 open(见 `TD-persist-05` 的 `07` 半边)。 |
+| **原件** | `production/qa/evidence/impl-td-persist-06-2026-10-25.md` |
 
 ---
 
