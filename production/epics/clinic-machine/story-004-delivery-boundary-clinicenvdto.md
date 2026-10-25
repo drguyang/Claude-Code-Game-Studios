@@ -1,7 +1,7 @@
 # Story 004: 乘子交付边界与 ClinicEnvDto
 
 > **Epic**: 医馆即机器
-> **Status**: Ready
+> **Status**: Complete  <!-- 2026-10-25 /story-done 收口(lean);详见 Completion Notes -->
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 5h
@@ -92,7 +92,8 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/ClinicMachine/clinic_env_delivery_test.cs` — must exist and pass;门 A 断言另附构建期检查落点(与 ADR-017 硬化项同批)
-**Status**: [ ] Not yet created
+**Status**: [x] Created & passing(2026-10-25 · **9 测 9/9 绿** `Logs/s20-1-run3.xml`;全量回归 5045/5010/0/35 @ 2026-10-25 · S20-1 收口轮 · `a3242b6` 工作树,基线 tddc-full2 5036/5001 增量 +9 = 新测数)—— 证据件 `production/qa/evidence/impl-s20-1-clinic004-2026-10-25.md`;评审原件 `production/qa/evidence/review-s20-1-clinic004-2026-10-25.md`(APPROVED WITH SUGGESTIONS,零 BLOCKING)
+**反证(S12-4)**:F1 白名单定义域收窄(Sim.asmdef+类型使用双注入 ⇒ 靶测红)· F2 停用 PresentationDtoGuard 词面检测 ⇒ 负例红 · F3 撤 21a 钳 ⇒ 两条配对测红(SHA-256 逐字节还原全验证)
 
 ---
 
@@ -105,4 +106,24 @@
 
 ## Completion Notes
 
-*(留空 — story 关闭时回填)*
+**Completed**: 2026-10-25
+**Criteria**: 6/6 收口(5 COVERED + 1 EXTERNAL 按卡登记)
+
+| AC | 测试 | 状态 |
+|---|---|---|
+| AC-24-07 白名单(恰 ∈ {BCL, Sim.Contracts}) | `test_ac2407_*`(:209-240,枚举比对非 grep,防空集 + 正控制) | COVERED |
+| AC-24-01b 配对联测(唯一 clamp 在 21a) | 3 测(:247-300,前置防恒真 + 正/负腿 + 恰等界) | COVERED |
+| ClinicEnvDto 字段完备 / raw long / 零 float | 闭合集反射断言(:146-148 等) | COVERED |
+| PresentationDtoGuard 递归扫描 | 干净测 + 负例测(:163-187) | COVERED |
+| K_CONTEXT_MAX 经接口上交 | 双表差分神谕(:312-360) | COVERED(表派生 + 只读交付口;**「上交系统 1」一腿 = 装配轮 NOT-RUN**,证据件 §六) |
+| AC-24-09 移交 42 epic | — | EXTERNAL(按卡登记,非本卡面) |
+
+**Falsifiability Gate(S12-4)**:命中三形态(定义域收窄 / 守卫停用 / 阈值边界),反证 F1/F2/F3 全部转红 ⇒ **PASS**(证据件 §四)。
+**Deviations**:
+- ADVISORY:QA plan 预设「21a 桩 + Ignore(BLOCKED-BY)」**不适用** —— `EnvModTotal` 契约实测已就绪,配对走真件联测(严格更强;上方 QA 对齐注的桩预案原文不删,以本注为准)。
+- ADVISORY:F1 证伪发现 b2 门对「声明未使用」asmdef 引用盲 ⇒ **TD-gate-04**(修法候选待用户裁);评审顺带发现 story-003 夹具自指断言 ⇒ **TD-clinic-19**(复核债)。两条均已入债册(三十三/三十四订)。
+- ADVISORY(评审 minor,结账表「未落」列):① 「零浮点」判据归属 = 测试①闭合枚举,**非** `PresentationDtoGuard` 本体(其只查疾病词面);② `ClinicContextTable` 构造负例(头≠行 ⇒ 红)归 001/002 表卡 backlog;③ `StartsWith("System")` 宽松面已并入 TD-gate-04 面。
+**Test Evidence**:Integration —— `unity/Assets/Tests/EditMode/ClinicMachine/clinic_env_delivery_test.cs`(9 测)+ 账本树 `tests/integration/clinic-machine/` 并列注明;证据件 + 评审原件路径见 Test Evidence 节。
+**Code Review**:Complete(`review-s20-1-clinic004-2026-10-25.md`,unity-specialist APPROVED WITH SUGGESTIONS + qa-tester TESTABLE,零 BLOCKING)。
+
+> ⚠️ NOT-RUN 残余(禁借绿,详见证据件 §六):`IClinicEnvQuery` 生产接线两处语义未裁(int 房号 ↔ `ClinicRoomId(High,Low)` 映射 / `ContextIds` 词表 size)归装配轮;9 侧消费点未存在(TR-clinic-009 gap「登记不立件」);IL2CPP 对拍归 ADR-012 批。

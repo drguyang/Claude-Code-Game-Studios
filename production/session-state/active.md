@@ -11324,3 +11324,9 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - 证据件:production/qa/evidence/impl-s20-1-clinic004-2026-10-25.md;story 状态未翻(归 /story-done)
 - 未 commit(等用户指令);Unity batch 已结束,可重开编辑器
 - Next: /code-review → /story-done
+
+<!-- S20-1 收口(2026-10-25 /story-done) -->
+- **S20-1(clinic-004)→ Complete**:6/6 AC(5 COVERED + AC-24-09 EXTERNAL);Falsifiability Gate PASS(反证 F1/F2/F3);评审原件 review-s20-1(APPROVED WITH SUGGESTIONS 零 BLOCKING)
+- 评审立债两条:TD-gate-04(引用集门盲区)+ TD-clinic-19(story-003 夹具自指断言)—— 三十三/三十四订
+- 提交链:a3242b6(开工)→ da8aa30(实现)→ 9692d97(债册两订 + 评审原件)→ 收口批(待提交)
+- 下一步:S20-2(clinic-005,含 TD-building-01 残余裁定)

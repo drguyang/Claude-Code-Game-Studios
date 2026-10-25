@@ -27,12 +27,12 @@ stories:
     name: "clinic-004 交付边界 ClinicEnvDto"
     file: "production/epics/clinic-machine/story-004-delivery-boundary-clinicenvdto.md"
     priority: must-have
-    status: in-progress
+    status: done
     owner: ""
     estimate_days: 0          # 承 CAPACITY-MODEL:不估天,复杂度并列
     complexity: M
     blocker: ""
-    completed: ""
+    completed: "2026-10-25"
     note: "Depends on Story 003 ✅;21a clamp 契约、1 的 K 消费接口未就绪时接口桩联测,BLOCKED-BY 不记绿"
   - id: "S20-2"
     name: "clinic-005 纯度重放 + Memoize(含 TD-building-01 残余两半就地裁定)"
