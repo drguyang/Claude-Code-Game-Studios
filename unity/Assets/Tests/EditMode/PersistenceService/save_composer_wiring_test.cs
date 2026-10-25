@@ -436,8 +436,26 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 Assert.IsNotNull(bag.SaveService, "指定目录 ⇒ 须构造 SaveService");
                 Assert.IsNotNull(bag.SaveService.FoldedPredicate,
                     "折叠谓词须已注入(位置半 (ii) 的另一半:装配根真的接了)");
-                Assert.IsTrue(bag.SaveService.Ledger.HasNarrativeContextSource == false,
-                    "叙事上下文今日刻意未接(fail-closed)—— 不得因「测试要绿」而填一个恒真委托");
+
+                // 🔁 **2026-10-25 用户裁定「丙」—— 本条回退为 fail-closed 判据**。
+                //
+                // 演变轨迹(原文不删,留作闭环记录):
+                //   原版 `HasNarrativeContextSource == false`(「今日刻意未接」)
+                //   → 评审轮按前一裁定翻转为 `IsTrue`(接 `HasNarrativeAnchorEvent`)
+                //   → 暴露语义违背(累积 vs 瞬时,`AC-7a-19 (c)` 安全门恒开)
+                //   → **本版**:接线回退 `null`,断言翻回 `false`,并保留**行为**判据。
+                //
+                // ⚠️ 原措辞「不得因测试要绿而填一个恒真委托」**仍然成立且更强** ——
+                //    裁定丙等于把这句话推到极致:宁可不接,也不接一个语义不对的判据。
+                //    真正的瞬时源 = 「有没有未决医疗动作」的内存态,归 10 急救动作。
+                Assert.IsFalse(bag.SaveService.Ledger.HasNarrativeContextSource,
+                    "裁定丙:钩子回退 null —— 瞬时源归 10,落地前不得接线");
+
+                // 行为判据(不止读台账字段):钩子为 null ⇒ Checkpoint 必抛。
+                var exEmpty = Assert.Throws<InvalidOperationException>(
+                    () => bag.SaveService.Checkpoint(new SaveSlot(0)),
+                    "钩子为 null ⇒ 必须 fail-closed(AC-7a-19 (c) 的安全属性)");
+                StringAssert.Contains("narrativeContext", exEmpty.Message);
             }
             finally
             {
@@ -449,11 +467,16 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         [Test]
-        public void test_assemble_saveService_checkpointFailsClosed_withoutNarrativeContext()
+        public void test_assemble_saveService_checkpointFailsClosed_beforeAnyAnchor()
         {
-            // 端到端证:装配出的 SaveService 在生产路径上**拒绝**存档。
-            // 这不是缺陷,是刻意(fail-closed)—— 本测试防的是「有人为了让存档能用而
-            // 塞一个恒真委托进来」,那会让 save-scum 通道默开而全绿。
+            // 🔁 **2026-10-25 用户裁定「丙」—— 名字与注释回退**。
+            //   演变:原名 `..._withoutNarrativeContext`(钩子 null ⇒ 抛)
+            //   → 评审轮改为 `..._whenNoAnchorEvent`(钩子已接,空流 ⇒ false ⇒ 抛)
+            //   → **本版**:裁定丙回退接线,判据回到「钩子 null ⇒ 抛」,
+            //     但名字取 `beforeAnyAnchor` —— 两条路径(钩子 null / 空流无锚点)在
+            //     装配刚完成时**结果同为 fail-closed**,本测钉的是**结果**,不锁死成因。
+            //   ⇒ 将来 10 落地、钩子真接上后,只要「装配刚完成 ⇒ 无未决动作」仍成立,
+            //     本条**无需再改**。恒真委托会让本条转红。
             string dir = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), "dyjq_s19_1_failclosed_" + Guid.NewGuid().ToString("N"));
 
@@ -462,14 +485,18 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 var bag = CompositionRoot.Assemble(
                     new[] { SyntheticDiseaseFixture.Create() }, saveBasePath: dir);
 
+                // 前提:装配完流是空的
+                Assert.AreEqual(0, bag.Stream.Events.Count, "前提:新装配的事件流为空");
+
                 var ex = Assert.Throws<InvalidOperationException>(
                     () => bag.SaveService.Checkpoint(new SaveSlot(0)),
-                    "未注入叙事上下文 ⇒ Checkpoint 须抛(fail-closed)");
+                    "装配刚完成 ⇒ 无叙事上下文 ⇒ Checkpoint 须 fail-closed");
                 StringAssert.Contains("narrativeContext", ex.Message);
 
-                Assert.Throws<InvalidOperationException>(
-                    () => bag.SaveService.SaveOnExit(),
-                    "SaveOnExit 同门,亦须 fail-closed");
+                // ⚠️ `SaveOnExit` 的语义**独立于本测**:它只要求钩子已注入(null 时亦抛,
+                //    见 `SaveService.cs` 的 `RequireNarrativeContext` 调用),但**不评估钩子的值**。
+                //    ⇒ 此处不得断言它「照写」(钩子为 null 时它同样抛),也不得断言它「同门」
+                //      (值门与它无关)。详见 `save_slot_contract_test.cs:715-733`。
             }
             finally
             {

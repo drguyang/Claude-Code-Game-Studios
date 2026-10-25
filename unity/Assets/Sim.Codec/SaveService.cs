@@ -124,11 +124,27 @@ namespace DaYiJingCheng.Sim.Codec
 
         /// <summary>原子写:tmp → flush → rename。双档 bak。</summary>
         public void SaveBytes(SaveSlot slot, byte[] data)
-        {
-            string finalPath = GetFinalPath(slot);
-            string tmpPath = GetTmpPath(slot);
-            string bakPath = GetBakPath(slot);
+            => WriteAtomic(GetFinalPath(slot), GetTmpPath(slot), GetBakPath(slot), data);
 
+        /// <summary>
+        /// 原子写的**唯一实现**(tmp → flush → rename,双档 bak)。
+        /// <para>🔁 **2026-10-25 W4 补正**:<see cref="WriteExitSave"/> 首版是逐行复制的第二份
+        /// 实现 —— 与 <see cref="SaveBytes"/> 除路径解析外完全相同。那是本项目反复抓到的
+        /// 「双实现」形态(两处将来必然漂移,且漂移是**静默**的:退出保存与 checkpoint
+        /// 的耐久性语义会分叉)。提取为单一份,两处各自只负责**路径**。</para>
+        /// <para>⚠️ **三条路径全部由调用方给,本方法不派生** —— 首版图省事由 finalPath 派生
+        /// tmp/bak(`finalPath + ".tmp"`),结果 bak 变成 `save_1.bin.bak`,而
+        /// <see cref="LoadBytes"/> 按 <see cref="GetBakPath"/> 读的是 `save_1.bak` ⇒
+        /// **回退链静默断裂**(`save_service_test.cs:91` `test_doubleBackup_bakCreatedOnSecondWrite`
+        /// 与 `test_checksumFallback_readsBakWhenFinalCorrupted` 两条同时转红)。路径命名是
+        /// 读写的**共同契约**,不能由写侧单方面决定。</para>
+        /// </summary>
+        /// <param name="finalPath">最终文件路径。</param>
+        /// <param name="tmpPath">临时文件路径(须与 final 同目录,保证 rename 不跨卷)。</param>
+        /// <param name="bakPath">上一好档的备份路径。</param>
+        /// <param name="data">待写字节(调用方保证非 null)。</param>
+        private static void WriteAtomic(string finalPath, string tmpPath, string bakPath, byte[] data)
+        {
             // 双档:final 存在则先 final → bak
             if (File.Exists(finalPath))
             {
@@ -270,16 +286,44 @@ namespace DaYiJingCheng.Sim.Codec
             RequireNarrativeContext();
             RequireCompose(nameof(SaveOnExit));
 
-            // 退出保存固定写 slot 0 —— 它不是玩家可选槽,不参与「只进不退」排序
-            var slot = new SaveSlot(0);
-
-            byte[] bytes = _compose(slot)
+            // 🔁 **2026-10-25 W4 修正(代码评审必修)**:原写 `new SaveSlot(0)` ⇒
+            // `GetFinalPath` 与玩家手动槽 0 返回**同一** `save_0.bin`,两者互相覆盖;
+            // 且 `SaveOnExit` 刻意不调 `OnCheckpointCommitted` ⇒ 台账「只进不退」不保护该文件。
+            // ADR-010 §六 只写「退出钩子,**非玩家可选槽位**」,未定义槽位身份 ——
+            // 「非玩家可选槽位」的字面读法就要求它**不占玩家槽空间**。
+            // ⇒ 退出保存改走独立文件名,与 `save_{slot}.bin` 命名空间不相交。
+            byte[] bytes = _compose(ExitSaveSlot)
                 ?? throw new InvalidOperationException(
                     "compose 委托返回 null —— 组版失败须抛,不得写空档");
 
-            SaveBytes(slot, bytes);
-            // 刻意不调 OnCheckpointCommitted
+            WriteExitSave(bytes);
+            // 刻意不调 OnCheckpointCommitted(退出保存不推高水位)
         }
+
+        /// <summary>
+        /// 退出保存的文件名(独立于 `save_{slot_seq}.bin` 命名空间)。
+        /// <para>承 ADR-010 §六「退出钩子,**非玩家可选槽位**」—— 玩家槽位恒为
+        /// <see cref="SaveSlot"/> 的 `slot_seq`,退出保存不参与该序列。</para>
+        /// </summary>
+        public const string ExitSaveFileName = "save_exit.bin";
+
+        /// <summary>
+        /// 传给组版委托的槽位标识。`SlotSeq` 取 `uint.MaxValue` —— 它与任何玩家槽
+        /// (`0 .. n`)不相交,且**不会被** <see cref="GetFinalPath"/> 用作文件名
+        /// (退出保存走 <see cref="WriteExitSave"/> 的独立路径)。
+        /// </summary>
+        public static readonly SaveSlot ExitSaveSlot = new SaveSlot(uint.MaxValue);
+
+        /// <summary>
+        /// 退出保存 —— 与 <see cref="SaveBytes"/> **共用同一原子写原语**
+        /// (<see cref="WriteAtomic"/>),只换文件名。
+        /// <para>文件名**独立**于玩家槽命名空间 —— 不与任何 `save_{slot_seq}.bin` 相撞。</para>
+        /// </summary>
+        private void WriteExitSave(byte[] data)
+            => WriteAtomic(Path.Combine(_basePath, ExitSaveFileName),
+                           Path.Combine(_basePath, ExitSaveFileName + ".tmp"),
+                           Path.Combine(_basePath, ExitSaveFileName + ".bak"),
+                           data);
 
         /// <summary>
         /// 读档。`Gating` → `Verifying` → 头部解析 → 迁移链三分支 → `Replaying`

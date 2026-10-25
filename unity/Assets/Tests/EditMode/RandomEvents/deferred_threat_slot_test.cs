@@ -60,7 +60,8 @@ namespace DaYiJingCheng.Tests.RandomEvents
             return _sink.Events;
         }
 
-        private static void AssertSlotsEqual(Dictionary<int, int> actual, params int[] slotKeyPairs)
+        // 🔁 2026-10-25 W1:`DeferSlots` 公开面已收为 IReadOnlyDictionary,辅助函数随之放宽类型。
+        private static void AssertSlotsEqual(IReadOnlyDictionary<int, int> actual, params int[] slotKeyPairs)
         {
             Assert.AreEqual(slotKeyPairs.Length / 2, actual.Count, "槽位数");
             for (int i = 0; i < slotKeyPairs.Length; i += 2)
@@ -186,18 +187,70 @@ namespace DaYiJingCheng.Tests.RandomEvents
 
         // ══════════ 判据 ①(机械面):直改面已拆 ══════════
 
+        /// <summary>
+        /// 🔁 **2026-10-25 W1 修正(代码评审必修)**:原版只断言「`AddToDefer`/`ClearDefer` 方法名不存在
+        /// + 字段类型 = Dictionary」= **自指判据**(把当前实现写进断言)—— 它证明不了「外部改不了」,
+        /// 因为 `public readonly Dictionary` 的 `state.DeferSlots[k] = v` 完全合法。
+        /// 现改为**两条真判据**:
+        /// ① 机械面 = **公开面不可写**(`DeferSlots` 属性类型是 `IReadOnlyDictionary`,
+        ///    底层字段是 `private`)—— 这是「第二真源在编译期不可表达」,不是纪律;
+        /// ② 行为面 = 唯一写入路径确实只有 `FoldDeferEvent`(折叠前后逐元素可解释)。
+        /// </summary>
         [Test]
-        public void test_budget_deferSlots_noDirectMutationPath()
+        public void test_budget_deferSlots_publicSurfaceIsReadOnly()
         {
+            // ① 直改方法面已删
             var methods = typeof(BudgetState).GetMethods(BindingFlags.Public | BindingFlags.Instance)
                 .Select(m => m.Name).ToHashSet();
             Assert.IsFalse(methods.Contains("AddToDefer"), "AddToDefer 直改面已删(第二真源)");
             Assert.IsFalse(methods.Contains("ClearDefer"), "ClearDefer 直改面已删(第二真源)");
 
-            var field = typeof(BudgetState).GetField("DeferSlots");
-            Assert.IsNotNull(field);
-            Assert.AreEqual(typeof(Dictionary<int, int>), field.FieldType,
-                "槽集 = slotIndex→eventKey 字典(payload 的 slot_index 显式寻址);List<int> 形态已退役");
+            // ② 公开属性 = IReadOnlyDictionary(调用方拿不到可变句柄)
+            var prop = typeof(BudgetState).GetProperty("DeferSlots");
+            Assert.IsNotNull(prop, "DeferSlots 须为属性(只读视图),不得是公开字段");
+            Assert.AreEqual(typeof(IReadOnlyDictionary<int, int>), prop.PropertyType,
+                "公开面必须是 IReadOnlyDictionary —— 拿到它无法 Add/Remove/索引赋值");
+            Assert.IsNull(prop.GetSetMethod(), "DeferSlots 不得有 setter");
+
+            // ③ 底层字段 = private(证明「外部连反射外的正常路径都没有」)
+            var backing = typeof(BudgetState).GetField("_deferSlots",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(backing, "底层字段名 = _deferSlots");
+            Assert.IsTrue(backing.IsPrivate, "底层字典字段必须 private");
+
+            // ④ 不存在任何 public 的 Dictionary<int,int> 类型成员(排除旁路)
+            foreach (var f in typeof(BudgetState).GetFields(BindingFlags.Public | BindingFlags.Instance))
+            {
+                Assert.AreNotEqual(typeof(Dictionary<int, int>), f.FieldType,
+                    $"公开字段 {f.Name} 不得是可变 Dictionary —— 那是第二真源的入口");
+            }
+        }
+
+        /// <summary>
+        /// 行为面:槽集**只**由折叠驱动 —— 同一段流折叠两次,结果逐元素相同;
+        /// 且折叠结果与流内容一一可解释(不是「先有初值再叠加」)。
+        /// </summary>
+        [Test]
+        public void test_budget_deferSlots_onlyFoldDrivesContent()
+        {
+            var stream = BuildStream();
+
+            // 空流 ⇒ 空槽(证明无残留初值 / 无隐藏默认)
+            var empty = EventBudget.ReconstructDeferSlots(new List<SimEvent>(), _decoder, DeferMax);
+            Assert.AreEqual(0, empty.DeferSlots.Count, "空流必须产出空槽集");
+
+            // 同一段流两次 ⇒ 逐元素相同
+            var a = EventBudget.ReconstructDeferSlots(stream, _decoder, DeferMax);
+            var b = EventBudget.ReconstructDeferSlots(stream, _decoder, DeferMax);
+            Assert.AreEqual(a.DeferSlots.Count, b.DeferSlots.Count);
+            foreach (var kv in a.DeferSlots)
+            {
+                Assert.IsTrue(b.DeferSlots.TryGetValue(kv.Key, out int v), $"槽 {kv.Key} 应存在于两次折叠");
+                Assert.AreEqual(kv.Value, v, $"槽 {kv.Key} 的 eventKey 应逐元素相同");
+            }
+
+            // 内容可解释:BuildStream 的期望槽 = {1: 9}(slot0 被补发清掉)
+            AssertSlotsEqual(a.DeferSlots, 1, 9);
         }
 
         // ══════════ 判据 ②:真判据替换假断言 ══════════
@@ -213,16 +266,35 @@ namespace DaYiJingCheng.Tests.RandomEvents
         [Test]
         public void test_validateReconstructable_falseWhenDrift()
         {
-            var stream = BuildStream();
-            var drifted = EventBudget.ReconstructDeferSlots(stream, _decoder, DeferMax);
+            // 🔁 **2026-10-25 W1 改写**:原版直接 `drifted.DeferSlots[1] = 999` 构造漂移 ——
+            // `DeferSlots` 收为 `IReadOnlyDictionary` 后**编译不过**(这正是 W1 想要的效果:
+            // 外部物理上改不了)。改用**合法路径**构造漂移:state 取自流 A,验证对着流 B。
+            // 这比原版更贴近真实失效模式 —— 主机迁移后「内存态」与「流」不一致,
+            // 而内存态本身永远是由**某段流**折叠出来的(不存在凭空篡改的槽值)。
 
-            drifted.DeferSlots[1] = 999;   // 同槽不同 key ⇒ 漂移
-            Assert.IsFalse(EventBudget.ValidateReconstructable(drifted, stream, _decoder, DeferMax),
+            // ── 槽值漂移:两段流同形状,但 slot1 的 eventKey 不同 ──
+            var streamA = BuildStream();                       // slot1 → key 9
+            var stateA = EventBudget.ReconstructDeferSlots(streamA, _decoder, DeferMax);
+            AssertSlotsEqual(stateA.DeferSlots, 1, 9);         // 前提:state 内容如预期
+
+            var sinkB = new RecordingSink();
+            var wB = new DeferredThreatSlotWriter(sinkB, _encoder);
+            wB.TryDefer(10, 0, 7, DeferMax);
+            wB.TryDefer(11, 1, 999, DeferMax);                 // ← 唯一差异:999 而非 9
+            wB.TryClear(12, 0, DeferredThreatSlotWriter.ReasonReissued, DeferMax);
+            var streamB = sinkB.Events;
+
+            Assert.IsFalse(EventBudget.ValidateReconstructable(stateA, streamB, _decoder, DeferMax),
                 "槽值漂移必须被判出(原假断言「验证非空」判不出任何漂移)");
 
-            var phantom = EventBudget.ReconstructDeferSlots(stream, _decoder, DeferMax);
-            phantom.DeferSlots[4] = 1;     // 幻影槽 ⇒ 漂移
-            Assert.IsFalse(EventBudget.ValidateReconstructable(phantom, stream, _decoder, DeferMax));
+            // ── 幻影槽:state 有 1 个槽,流 B 折叠出 0 个 ──
+            var emptyStream = new List<SimEvent>();
+            Assert.IsFalse(EventBudget.ValidateReconstructable(stateA, emptyStream, _decoder, DeferMax),
+                "幻影槽必须被判出(state 非空而流为空 ⇒ 不可重构)");
+
+            // ── 反向:同一段流自身必须判为可重构(证明上面两条红是漂移造成的,不是恒假)──
+            Assert.IsTrue(EventBudget.ValidateReconstructable(stateA, streamA, _decoder, DeferMax),
+                "同流自校验须为真 —— 否则上面两条 false 无判别力");
         }
 
         // ══════════ 写者:写路径 + 事件头契约 ══════════

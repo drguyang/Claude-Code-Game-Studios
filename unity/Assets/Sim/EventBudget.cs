@@ -79,7 +79,19 @@ namespace DaYiJingCheng.Sim
         public int TodayUsed;
 
         /// <summary>挂起威胁槽(slotIndex → eventKey;规则六之三,当日有效、有界 DEFER_MAX)。</summary>
-        public readonly Dictionary<int, int> DeferSlots = new Dictionary<int, int>();
+        /// <remarks>
+        /// ⚠️ **2026-10-25 W1 修正(代码评审必修)**:原为 `public readonly Dictionary<int,int>` ——
+        /// `readonly` 只禁重绑,`state.DeferSlots[k] = v` / `.Remove(k)` / `.Clear()` 全合法
+        /// ⇒ 「唯一写入路径 = <see cref="EventBudget.FoldDeferEvent"/>」在**机械面上不成立**。
+        /// 现收为 `private` + 只读视图:外部**物理上无法**直改,第二真源由「纪律」升为「编译期不可表达」。
+        /// </remarks>
+        private readonly Dictionary<int, int> _deferSlots = new Dictionary<int, int>();
+
+        /// <summary>挂起威胁槽的**只读**视图(slotIndex → eventKey)。写入唯一路径 = <see cref="EventBudget.FoldDeferEvent"/>。</summary>
+        public IReadOnlyDictionary<int, int> DeferSlots => _deferSlots;
+
+        /// <summary>唯一写入面 —— 仅供 <see cref="EventBudget.FoldDeferEvent"/> / <see cref="EventBudget.ResetForNewDay"/> 使用。</summary>
+        internal Dictionary<int, int> DeferSlotsMutable => _deferSlots;
 
         public readonly Dictionary<int, long> CooldownTable = new Dictionary<int, long>();
 
@@ -187,14 +199,14 @@ namespace DaYiJingCheng.Sim
                     if (state.DeferSlots.ContainsKey(p.SlotIndex))
                         throw new InvalidDataException(
                             $"ThreatDeferred: slot {p.SlotIndex} 已占用(一占一释配对,entities.yaml constraint ⇒ 流损坏)");
-                    state.DeferSlots[p.SlotIndex] = p.EventKey;
+                    state.DeferSlotsMutable[p.SlotIndex] = p.EventKey;
                     break;
                 }
                 case EventKind.ThreatDeferralCleared:
                 {
                     var p = decoder.Decode<ThreatDeferralClearedPayload>(e.Kind, in e.Payload);
                     // reason(0=补发 / 1=作废)不参与折叠分支(两因都清槽);值域校验在写者侧。
-                    if (!state.DeferSlots.Remove(p.SlotIndex))
+                    if (!state.DeferSlotsMutable.Remove(p.SlotIndex))
                         throw new InvalidDataException(
                             $"ThreatDeferralCleared: slot {p.SlotIndex} 未挂起(一占一释配对被破坏 ⇒ 流损坏)");
                     break;

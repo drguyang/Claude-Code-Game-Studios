@@ -631,6 +631,8 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
         // ══════════════════════════════════════════════════════════════════
         // SaveOnExit —— 同门同组版,不推进高水位
+        // 🔁 2026-10-25 W4 修正(代码评审必修):退出保存改走独立文件名 `save_exit.bin`,
+        //    不再与玩家手动槽 0 共用 `save_0.bin`。
         // ══════════════════════════════════════════════════════════════════
 
         [Test]
@@ -642,7 +644,61 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             Assert.AreEqual(0U, svc.Ledger.NextWritableSeq,
                 "退出保存不占玩家槽 ⇒ 高水位不动");
-            Assert.IsTrue(File.Exists(Path.Combine(_testDir, "save_0.bin")), "退出保存须落盘");
+            // ⚠️ 字面量(不引用 SaveService.ExitSaveFileName —— 判据须独立于被测常量)
+            Assert.IsTrue(File.Exists(Path.Combine(_testDir, "save_exit.bin")),
+                "退出保存须落盘(独立文件名 save_exit.bin)");
+        }
+
+        /// <summary>
+        /// 🔁 **2026-10-25 W4 新增**:退出保存与玩家槽 0 **不得**互相覆盖。
+        /// 这是 W4 的正面判据 —— 原实现两者共用 `save_0.bin`,本测在旧实现上必红。
+        /// </summary>
+        /// <remarks>
+        /// 🔴 **2026-10-25 证伪轮修正(假绿)**:首版三处断言都用
+        /// `SaveService.ExitSaveFileName` 作路径 —— 变异把该常量改成 `"save_0.bin"` 后,
+        /// **测试跟着读 `save_0.bin`**,于是「退出保存的文件存在」与「两文件字节相同」
+        /// 两条断言全部**碰巧成立**,零红逃逸。
+        /// <para>病因:**判据跟着被测对象一起动** —— 断言引用被断言物本身,等于没断言。
+        /// 这正是项目反复抓到的「自指判据」形态(同 W1 的
+        /// `test_budget_deferSlots_noDirectMutationPath`)。</para>
+        /// <para>修法:文件名改用**字面量**,判据独立于实现常量。若实现改回撞名,
+        /// 字面量 `save_exit.bin` 不存在 ⇒ ① 必红。</para>
+        /// </remarks>
+        [Test]
+        public void test_saveOnExit_doesNotCollideWithPlayerSlotZero()
+        {
+            // ⚠️ 三条路径全部用**字面量**,不得引用 SaveService.ExitSaveFileName / GetFinalPath
+            //    (否则判据随被测对象漂移 —— 见 remarks)。
+            const string ExitFile = "save_exit.bin";
+            const string Slot0File = "save_0.bin";
+
+            var svc = ReadyService();
+
+            // 先写玩家槽 0
+            svc.Checkpoint(new SaveSlot(0));
+            string slot0Path = Path.Combine(_testDir, Slot0File);
+            Assert.IsTrue(File.Exists(slot0Path), "前提:玩家槽 0 已落盘为 save_0.bin");
+            byte[] slot0AfterCheckpoint = File.ReadAllBytes(slot0Path);
+
+            // 再退出保存
+            svc.SaveOnExit();
+
+            // ① 退出保存走自己的文件(字面量判据:实现若改回撞名,本断言必红)
+            string exitPath = Path.Combine(_testDir, ExitFile);
+            Assert.IsTrue(File.Exists(exitPath),
+                "退出保存须写 save_exit.bin(字面量)");
+
+            // ② 玩家槽 0 的字节**不被退出保存改写**
+            byte[] slot0AfterExit = File.ReadAllBytes(slot0Path);
+            CollectionAssert.AreEqual(slot0AfterCheckpoint, slot0AfterExit,
+                "退出保存不得覆盖玩家槽 0 —— 两者必须是不同文件");
+
+            // ③ 反向:玩家再 checkpoint 也不得覆盖退出保存
+            byte[] exitBefore = File.ReadAllBytes(exitPath);
+            svc.Checkpoint(new SaveSlot(1));
+            byte[] exitAfter = File.ReadAllBytes(exitPath);
+            CollectionAssert.AreEqual(exitBefore, exitAfter,
+                "玩家 checkpoint 不得覆盖退出保存");
         }
 
         [Test]
@@ -671,7 +727,8 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             Assert.DoesNotThrow(() => svc.SaveOnExit(),
                 "SaveOnExit 不受叙事上下文值门约束(只修注释,不改行为的裁定)");
-            Assert.IsTrue(File.Exists(Path.Combine(_testDir, "save_0.bin")),
+            // ⚠️ 字面量(不引用 SaveService.ExitSaveFileName)
+            Assert.IsTrue(File.Exists(Path.Combine(_testDir, "save_exit.bin")),
                 "退出保存须照常落盘");
         }
 

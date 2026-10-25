@@ -446,11 +446,71 @@ namespace DaYiJingCheng.Gameplay.Boot
                                 "折叠段先于事件段到达 —— SaveService.Load 契约次序被破坏"),
                         FoldRowCodec.DecodeSegment(foldedBytes));
 
+                // 🔁 **2026-10-25 W5 全程轨迹(原文不删,留作闭环记录)**:
+                //   ① 原状:`narrativeContext: null` ⇒ `Checkpoint` / `SaveOnExit` / `Load`
+                //      生产期**一律抛**(fail-closed)⇒ 存档/读档在生产路径上完全不可用。
+                //   ② 评审轮按用户裁定「用已有流事件驱动」改为
+                //      `() => HasNarrativeAnchorEvent(stream.Events)`。
+                //   ③ 接线后暴露**语义违背**(见下方 🔴 段),用户 2026-10-25 裁定「丙」
+                //      ⇒ **接线回退 `null`**。故本行现在是 ① 的状态,但**不是**「未处理」——
+                //      它是「评估过、试过、被证伪、按裁定回退」的终态。
+                //
+                // **口径依据(GDD `persistence-service.md:128` 规则六逐字)**:
+                //   「checkpoint 绑定**叙事事件** —— 脉案落笔 / 病例结案(37)· 出诊启动(52) 的
+                //     锚点白名单。**7a 只出观察钩子形状**(「一个值得锚点的叙事事件」的接口),
+                //     **不拥有具体事件列表**;各系统在**生成该类事件时**同步触发 checkpoint」
+                // ⇒ 本闭包是**装配根的接线**,不是 7a 的事件表:7a(`SaveService`)只见 `Func<bool>`,
+                //   看不见任何 `EventKind`。锚点 Kind 在此**具名列举**,是为了让缺口可被 grep 到。
+                //
+                // ⚠️ **锚点映射缺口 —— 必须如实登记,禁借绿**:
+                //   GDD 列**三个**锚点,本闭包只接得上**两个**:
+                //   | GDD 锚点 | 本闭包驱动源 | 状态 |
+                //   |---|---|---|
+                //   | 病例结案(37) | `EventKind.CaseClosed` | ✅ 有写者(`Sim/CaseCloseWriter.cs`) |
+                //   | 脉案落笔 | **无** | ❌ `PatternRecognized` 是「同源检测」,**不是**脉案落笔;
+                //   |          |      |    按「沾边就算」接上 = 把非锚点事件冒充锚点(借绿) |
+                //   | 出诊启动(52) | **无** | ❌ 全库零载体(`EVENT_CHECKPOINT_ANCHORS` 零命中) |
+                //   ⇒ 第三个驱动源 `PatternRecognized` 是**保守补集**:它比「脉案落笔」宽(会多放行
+                //     一些非锚点时刻),但**比「流非空即真」窄得多** —— 后者会把每一次 `InjuryOnset`
+                //     都当锚点,那正是规则六要守的 save-scum 通道。
+                //     用户的裁定原话即「两个事件是否真的对应 GDD 的三个锚点」⇒ **答案是「不完全对应」**,
+                //     本注释即该问题的登记落点,残余归 `TD-persist-04`。
+                //
+                // ⚠️ **仍不在本闭包内(→ `TD-persist-04`)**:
+                //   ① 定时兜底 `CHECKPOINT_INTERVAL`(规则六「事件长期缺席」那半);
+                //   ② 「最近一条叙事事件之后」的**时间语义** —— 本闭包只答「有没有过」,
+                //      不答「上一次锚点距今多久」;
+                //   ③ 「各系统在生成该类事件时**同步触发** checkpoint」的触发方(本闭包只提供**判据**,
+                //      不调用 `Checkpoint`)。
+                //   ⇒ `AC-7a-20` 仍**不得**声称已满足。
+                //
+                // 性能:全扫 O(n),无缓存 —— 调用点只有 `Checkpoint` / `Load`(事件粒度,非每 tick),
+                //   且刻意不加游标缓存:读档走 `stream.Restore` 重建流,缓存态会失效而**静默**留旧值。
+                //
+                // 🔴 **2026-10-25 用户裁定「丙」—— 接线回退为 `null`(fail-closed),本闭包不启用**。
+                //
+                //   评审轮曾按用户前一裁定把本行接成 `() => HasNarrativeAnchorEvent(stream.Events)`,
+                //   字面兑现后暴露**语义违背**,故整体撤回接线:
+                //   | 项 | GDD 要求 | 已备实现 | 差在哪 |
+                //   |---|---|---|---|
+                //   | `InNarrativeContext` 语义 | **瞬时**量(「此刻**无**未决医疗动作」) | **累积**量(「流里**曾**出现过锚点」) | 首次锚点后**恒 true** |
+                //   ⇒ 累积语义下,`AC-7a-19 (c)`「急救动作进行中拒绝读档」这道安全门**恒开**,
+                //     逃生通道(带伤/带病/战斗中读档)重新打开。这是**从「安全但不可用」换成「可用但不安全」**,
+                //     属 fail-open —— 比原状危险。
+                //   ⚠️ 备选的 `LastEventIsAnchor`(瞬时判据)**也不接线**:它比 GDD 更严,且仍有一个洞 ——
+                //     病人 A 未处置时若发生病人 B 的病例结案,最后一条是 `CaseClosed` ⇒ 门误开。
+                //   ⇒ **真正的瞬时源** = 「有没有未决医疗动作」这个**独立于流**的内存态,归 **10 急救动作**的
+                //     运行时状态(`EmergencyAttempt` 进流,但「进行中」不在流里)。在 10 落地前,
+                //     `null`(fail-closed)是**唯一不破 AC 的状态**:不可用 > 不安全。
+                //   ⇒ 两个纯函数 `HasNarrativeAnchorEvent` / `LastEventIsAnchor` **保留在盘**(已测、可供 10 复用),
+                //     但**零接线点**;`AC-7a-20` 仍归 `TD-persist-04`,**不得**声称已满足。
+                Func<bool> narrativeContext = null;
+
                 saveService = new SaveService(
                     saveBasePath,
                     new SaveCodec(),
                     folded: foldedPredicate,
-                    narrativeContext: null,       // ← fail-closed,见上
+                    narrativeContext: narrativeContext,
                     replaySink: replaySink,
                     foldedRowSink: foldedRowSink,
                     compose: compose);
@@ -911,6 +971,87 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <exception cref="InvalidOperationException">
         /// provider 为 null,或不是 <see cref="AddressablesDataProvider"/>,或任一产物装载失败(E-13)。
         /// </exception>
+        /// <summary>
+        /// 叙事锚点观察钩子 —— **累积语义**,<b>当前零接线点</b>(用户 2026-10-25 裁定「丙」)。
+        /// <para>抽成具名静态算子的理由:内联闭包**测不到** —— 装配级夹具拿不到那个委托,
+        /// 只能靠「装配不抛」间接推断,那是自指判据。具名后可直接喂合成流做正反两向断言。</para>
+        /// <para><b>锚点 Kind = `CaseClosed` / `PatternRecognized`</b>(具名列举,可 grep)。</para>
+        ///
+        /// <para>🔴 <b>【裁定结果】本方法<b>不接线</b> —— 它的语义与 GDD 规则十四不符</b>:</para>
+        /// <para>GDD `persistence-service.md:211-215` 规则十四定义该钩子为
+        /// 「**无未决医疗动作**的上下文」—— 一个**瞬时**量:急救动作进行中 / 病人未处置的
+        /// **任意时刻**都须返回 false,据此拒绝读档。它要堵的是
+        /// 「**带伤 / 带病 / 战斗中读档 = 逃生通道**」(`:213` ①)。</para>
+        /// <para>本方法返回的是「流里**曾经**出现过锚点」= **累积**量:首次锚点之后**恒为 true**
+        /// ⇒ 此后即使玩家正在做 CPR,钩子仍返回 true ⇒ **规则十四的安全门完全失效**。
+        /// 这与改动前的 `null`(恒抛)相比,是把「安全但不可用」换成了「可用但不安全」。</para>
+        /// <para>⚠️ 本形态曾是**用户 2026-10-25 前一裁定的字面兑现**(裁定选项原文即
+        /// 「它们在流里出现即视为「锚点命中」,narrativeContext 返回 true」),但该选项描述
+        /// **未覆盖「累积 vs 瞬时」这一维**。接线后暴露语义违背,故 **2026-10-25 用户裁定「丙」**:
+        /// 接线回退 `null`(fail-closed),真正的瞬时源归 **10 急救动作**的运行时状态
+        /// (「有没有未决医疗动作」是内存态,不在流里)。</para>
+        /// <para>⇒ <b>本方法保留在盘的理由</b>:① 六条正反夹具已就位(`composition_root_test.cs`);
+        /// ② 10 落地时可复用其 Kind 判定;③ 删掉会让「为什么不能这么接」的教训无处附着。
+        /// <b>但它今天零生产调用点</b> —— 任何人接线前须先解决「累积 vs 瞬时」。</para>
+        ///
+        /// <para>⚠️ <b>锚点映射缺口(第二个,独立于上条)</b>:GDD 列三个锚点,本方法只接上两个:
+        /// · 病例结案 → <c>CaseClosed</c> ✅(写者 `Sim/CaseCloseWriter.cs`);
+        /// · 脉案落笔 → **无专属 Kind**;<c>PatternRecognized</c> 是「同源检测」,比脉案落笔**宽**,
+        ///   属**保守补集**而非精确映射;
+        /// · 出诊启动 → **零载体**(全库 `EVENT_CHECKPOINT_ANCHORS` 零命中)。
+        /// </para>
+        /// <para>⚠️ <b>不在本方法内</b>:定时兜底 `CHECKPOINT_INTERVAL` / 「各系统在生成该类事件时
+        /// 同步触发 checkpoint」的**触发方**(本方法只提供判据,不调用 <c>Checkpoint</c>)
+        /// ⇒ <c>AC-7a-20</c> 仍不得声称已满足。以上全部归 <c>TD-persist-04</c>。</para>
+        /// </summary>
+        /// <param name="events">全序事件流(只读;空集 ⇒ false)。</param>
+        /// <returns>流内**是否出现过**叙事锚点事件(**累积**语义 —— 见上方 🔴 段)。</returns>
+        /// <remarks>
+        /// 全扫 O(n),无游标缓存 —— 若将来接线,调用点会是 `Checkpoint` / `Load`(事件粒度,非每 tick)。
+        /// 刻意不缓存:读档走 <c>EventStream.Restore</c> **替换**流,缓存态会失效而**静默**留旧值。
+        /// ⚠️ <b>今日零生产调用点</b>(裁定丙回退接线);六条夹具仍覆盖其行为。
+        /// </remarks>
+        public static bool HasNarrativeAnchorEvent(IReadOnlyList<SimEvent> events)
+        {
+            if (events == null) throw new ArgumentNullException(nameof(events));
+            for (int i = 0; i < events.Count; i++)
+            {
+                EventKind kind = events[i].Kind;
+                if (kind == EventKind.CaseClosed || kind == EventKind.PatternRecognized)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// **备选判据(未接线 · 已裁定不采用)** —— 瞬时语义:流的**最后一条**事件是叙事锚点。
+        /// <para>🔁 <b>裁定结果(2026-10-25 用户裁定「丙」)</b>:本方法**不采用**,理由有二 ——
+        /// ① 比 GDD 更严(锚点后走两步就不能存/读);
+        /// ② **仍有一个洞**:病人 A 未处置时若发生病人 B 的病例结案,最后一条是 <c>CaseClosed</c>
+        ///   ⇒ 门误开 ⇒ <c>AC-7a-19 (c)</c> 仍有缺口。真正的瞬时源归 10,见
+        ///   <see cref="HasNarrativeAnchorEvent"/> 的 🔴 段。</para>
+        /// <para>保留在盘的理由同累积版:供 10 落地时参考,且让「为什么两条路都不通」可考。</para>
+        /// <para>与 <see cref="HasNarrativeAnchorEvent"/> 的区别就是「累积 vs 瞬时」:</para>
+        /// <list type="bullet">
+        /// <item>累积版:首次锚点之后**恒 true** ⇒ 规则十四的「急救中拒绝读档」安全门**失效**(fail-open)。</item>
+        /// <item>瞬时版:锚点之后只要有**任何**后续事件(含 <c>EmergencyAttempt</c>)即为 false
+        ///   ⇒ 安全门恢复,但代价是「锚点之后玩家走了两步」就又不让存/读了
+        ///   —— 比 GDD 的「无未决医疗动作」**更严**(GDD 只要求没有未决动作,不要求流停在锚点上)。</item>
+        /// </list>
+        /// <para>⚠️ 两版**都不等于** GDD 规则十四的语义。真正的判据需要「有没有未决医疗动作」
+        /// 这个**独立于流**的瞬时状态源(归 10 急救动作的运行时状态)。本方法**未接线、无调用点**
+        /// —— 已裁定不采用,不得接线。</para>
+        /// </summary>
+        /// <param name="events">全序事件流(空集 ⇒ false)。</param>
+        /// <returns>流非空 且 最后一条事件的 Kind ∈ {CaseClosed, PatternRecognized}。</returns>
+        public static bool LastEventIsAnchor(IReadOnlyList<SimEvent> events)
+        {
+            if (events == null) throw new ArgumentNullException(nameof(events));
+            if (events.Count == 0) return false;
+            EventKind kind = events[events.Count - 1].Kind;
+            return kind == EventKind.CaseClosed || kind == EventKind.PatternRecognized;
+        }
+
         private static uint ResolveGlobalConfigVersion(IDataProvider dataProvider)
         {
             if (dataProvider == null)

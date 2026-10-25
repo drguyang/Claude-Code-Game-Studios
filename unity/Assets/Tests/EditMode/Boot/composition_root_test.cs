@@ -8,6 +8,8 @@
 // 判据纪律:确定性、隔离(每测自建装配),不依赖文件 / 网络(Coding Standards)。
 
 using System;
+using System.Collections.Generic;
+using System.IO;
 using DaYiJingCheng.Gameplay.Boot;
 using DaYiJingCheng.Gameplay.PatientAI;
 using DaYiJingCheng.Sim;
@@ -168,6 +170,129 @@ namespace DaYiJingCheng.Tests.Boot
             var exAll = Assert.Throws<ArgumentNullException>(
                 () => CompositionRoot.Assemble(null, null, null, 0UL));
             Assert.AreEqual("idAuthority", exAll.ParamName);
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // W5(2026-10-25 代码评审必修)—— 叙事锚点观察钩子的真判据
+        // ══════════════════════════════════════════════════════════════════
+        //
+        // 病因:`CompositionRoot.cs` 原传 `narrativeContext: null` ⇒ `Checkpoint` /
+        //   `SaveOnExit` / `Load` 生产期**一律抛**,存档/读档在生产路径上完全不可用。
+        // 用户 2026-10-25 裁定:用已有流事件驱动(不新开 Kind、不动 8/37 的写者)。
+        //
+        // ⚠️ 判据纪律:本组断言**不得**只验「装配不抛」—— 那是自指判据(把当前实现
+        //   写进断言)。必须喂**具体的合成流**,正反两向各断言,且反例是**真正会误判的
+        //   那条**:非锚点事件(如 `InjuryOnset`)不得放行 —— 否则 save-scum 通道默开。
+
+        private static SimEvent Ev(EventKind kind, long tick = 1L)
+            => new SimEvent(tick, PatientId.None, -1, kind, new PayloadRef(0, 0, 0));
+
+        [Test]
+        public void test_narrativeAnchor_emptyStream_isFalse()
+        {
+            // 空流 ⇒ false(初次启动无叙事事件 —— 规则六「定时兜底」那一半的边界)
+            Assert.IsFalse(CompositionRoot.HasNarrativeAnchorEvent(new List<SimEvent>()),
+                "空流不得放行(恒真会让 save-scum 通道在生产路径默开)");
+        }
+
+        [Test]
+        public void test_narrativeAnchor_nonAnchorEventsOnly_isFalse()
+        {
+            // ★ 反向判据的核心:流里有事件 ≠ 有叙事锚点。
+            // 若实现写成 `stream.Events.Count > 0`(我首版的形态),本条**必红** ——
+            // 它正是「把任何一条病史事件都当锚点」的 save-scum 通道。
+            var events = new List<SimEvent>
+            {
+                Ev(EventKind.InjuryOnset),
+                Ev(EventKind.DiseaseOnset),
+                Ev(EventKind.EventRolled),
+                Ev(EventKind.ThreatDeferred),
+                Ev(EventKind.CareApplied),
+            };
+            Assert.IsFalse(CompositionRoot.HasNarrativeAnchorEvent(events),
+                "非锚点事件集不得放行 —— 「流非空即真」会把每条 InjuryOnset 都当锚点");
+        }
+
+        [Test]
+        public void test_narrativeAnchor_caseClosed_isTrue()
+        {
+            // 正向:病例结案(37)= GDD 三锚点之一,有真写者(Sim/CaseCloseWriter.cs)
+            Assert.IsTrue(CompositionRoot.HasNarrativeAnchorEvent(
+                    new List<SimEvent> { Ev(EventKind.CaseClosed) }),
+                "CaseClosed 须命中锚点(GDD 规则六「病例结案(37)」)");
+        }
+
+        [Test]
+        public void test_narrativeAnchor_patternRecognized_isTrue()
+        {
+            // 正向:`PatternRecognized` 是**保守补集**(见 HasNarrativeAnchorEvent 的 doc:
+            //   它比「脉案落笔」宽,但比「流非空即真」窄得多)
+            Assert.IsTrue(CompositionRoot.HasNarrativeAnchorEvent(
+                    new List<SimEvent> { Ev(EventKind.PatternRecognized) }),
+                "PatternRecognized 须命中锚点(脉案落笔无专属 Kind,取其保守补集)");
+        }
+
+        [Test]
+        public void test_narrativeAnchor_anchorAfterNonAnchors_isTrue()
+        {
+            // 次序无关:锚点埋在非锚点事件之间/之后均须命中(实现若只查首尾即红)
+            var events = new List<SimEvent>
+            {
+                Ev(EventKind.InjuryOnset), Ev(EventKind.CaseOpened),
+                Ev(EventKind.CaseClosed),                       // ← 锚点在中段
+                Ev(EventKind.EventRolled), Ev(EventKind.ThreatDeferred),
+            };
+            Assert.IsTrue(CompositionRoot.HasNarrativeAnchorEvent(events),
+                "锚点位于中段须命中(禁只查首条/末条)");
+        }
+
+        [Test]
+        public void test_narrativeAnchor_nullStream_throws()
+        {
+            // fail-loud:null 流不得静默返 false(那会把「配置错误」伪装成「无锚点」)
+            var ex = Assert.Throws<ArgumentNullException>(
+                () => CompositionRoot.HasNarrativeAnchorEvent(null));
+            Assert.AreEqual("events", ex.ParamName);
+        }
+
+        [Test]
+        public void test_assemble_savePath_narrativeContextStaysFailClosed()
+        {
+            // 🔁 **2026-10-25 用户裁定「丙」—— 本条从 `..._notNull` 翻转回 fail-closed 判据**。
+            //
+            // 演变轨迹(原文不删,留作闭环记录):
+            //   ① 原版:`test_assemble_savePath_...` 断言 `HasNarrativeContextSource == false`
+            //      —— 「今日刻意未接」。
+            //   ② 评审轮按用户前一裁定翻转为 `IsTrue`(断言已注入 `HasNarrativeAnchorEvent`)。
+            //   ③ 字面兑现后暴露**语义违背**:GDD 规则十四要的是**瞬时**量,而流里「曾出现过锚点」
+            //      是**累积**量 ⇒ 首次锚点后恒 true ⇒ `AC-7a-19 (c)` 的安全门恒开(fail-open)。
+            //   ④ **本版**:接线回退 `null`,断言随之翻回 `false` —— 但判据比 ① **更强**:
+            //      不只看台账字段,还**行为验证**「Checkpoint 在装配后必抛」。
+            //
+            // ⚠️ 本条**不是**「测试为了绿而放松」:它钉的是**安全属性**(fail-closed),
+            //    而 ② 钉的是**可用性**(已注入)。裁定丙明确选择「不可用 > 不安全」。
+            string dir = Path.Combine(Path.GetTempPath(), "s19_w5_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            try
+            {
+                CompositionRootServices bag = CompositionRoot.Assemble(saveBasePath: dir);
+
+                Assert.NotNull(bag.SaveService, "带 saveBasePath ⇒ SaveService 须在袋内");
+
+                // ① 台账:钩子**未**注入(裁定丙的显式状态,非遗漏)
+                Assert.IsFalse(bag.SaveService.Ledger.HasNarrativeContextSource,
+                    "裁定丙:叙事上下文钩子回退 null —— 真正的瞬时源归 10,在它落地前不得接线");
+
+                // ② 行为:未注入 ⇒ Checkpoint 必抛(fail-closed 的实证,不只读台账字段)
+                var ex = Assert.Throws<InvalidOperationException>(
+                    () => bag.SaveService.Checkpoint(new SaveSlot(0)),
+                    "钩子为 null ⇒ Checkpoint 必须 fail-closed(AC-7a-19 (c) 的安全属性)");
+                StringAssert.Contains("narrativeContext", ex.Message);
+            }
+            finally
+            {
+                if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+            }
         }
     }
 }
