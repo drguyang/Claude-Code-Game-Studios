@@ -40,9 +40,11 @@
 | `13` | PARTIAL | `IdAuthority.cs:73-85` 机制在 | `id_authority.cs` 6 条 | **收集器 0 调用点**,本轮补 |
 | ↳ 🔁 **2026-10-25 已兑现** | **IMPLEMENTED_TESTED** | `Sim/ItemDatabase/ItemInstanceHighWaterCollector.cs`(5 支 Kind 收集 + 委托 `ReconstructItemHighWater`) | `PersistenceService/item_instance_high_water_test.cs` **9 条** | 证伪轮 **M4/M5/M6 三轮全红**;⚠️ **生产调用点仍为 0**(装配期由 7a / `Gameplay.Boot` 接),本条只兑现「收集环存在且被钉住」 |
 | `14` | PARTIAL | `SaveService.cs:374-378` 刻意抛 | `save_slot_contract_test.cs:393/414/423` | 迁移链 0 行,归新债 |
+| ↳ 🔁 **2026-10-25 已兑现** | **IMPLEMENTED_TESTED** | `Sim.Codec/ISaveMigration.cs` + `SaveMigrationChain.cs`(逐版本 + **每级三条断言**)+ `SaveService.Load` `<` 分支调链 + `StripChecksum` | `PersistenceService/save_migration_chain_test.cs` **12 条** + `save_slot_contract_test.cs` 2 改写 + **1 正面对照新增** | 证伪轮 **MA1/MA2/MA3/MB4 四轮全红**;⚠️ **本条不实现任何真实迁移** —— `CurrentSaveVersion = 1` 且零 `v0` 写入者 ⇒ 无真实历史版本可迁。测的是**框架会不会放过坏迁移**;⚠️ `test_migrate_multiStep_runsEveryVersionInOrder`(「逐版本」)本轮**无独立反证**,如实登记 NOT-RUN |
 | `15` | PARTIAL | `SaveService.cs:168-187` 回退 | `save_service_test.cs:98` 仅 (a) | (b) `Corrupt` 态 0,本轮补 |
 | ↳ 🔁 **2026-10-25 已兑现** | **IMPLEMENTED_TESTED** | `Sim.Codec/SaveCorruptException.cs` + `LoadBytes` 终态分支(**零 I/O**) | `save_service_test.cs` **4 条**(含「槽目录文件数不变」禁止判据) | 证伪轮 **M1/M2/M3 三轮全红**;`(a)` 回退**提示**仍缺,但提示归 42 / 7b(见 `TD-persist-05` 末注) |
 | `16` | PARTIAL | `SaveComposer.cs:82-90` 签名天然正交 | `save_composer_wiring_test.cs:345` 非同轴 | authority 替身夹具 0,归新债 |
+| ↳ 🔁 **2026-10-25 已兑现** | **IMPLEMENTED_TESTED** | **零生产改动** —— `Compose` 本来就没有 authority 形参,`IdAuthority` 本来就是实例计数器 | `PersistenceService/save_authority_orthogonality_test.cs` **7 条**(四条独立性质 A/B/C/D + 反向对照 `ClampingStub`) | 证伪轮 **MB1/MB2/MB3 三轮全红**;⚠️ **本条补的是「从未存在的判据」,不是修缺陷** —— 把「两布局产出一致」拆成四条独立性质,因为单条在 `Compose` 不认识 authority 时**恒真**、零判别力 |
 | `17` | **NOT_IMPLEMENTED** | **全空** | 仅成功路径 | 五形扫描全 0,单独立债 |
 | `19` | **IMPLEMENTED_TESTED** | `SaveSlotLedger.cs:93-137` 等 | `save_slot_contract_test.cs` 9 条 | ✅ 已补登记 |
 | `20` | PARTIAL | `CompositionRoot.cs:1030/1080` 判据函数 | `composition_root_test.cs:194-254` | 触发方/兜底 0,裁定丙终态 |
@@ -55,6 +57,20 @@
 > **复算命令**:本表 `↳ 🔁 2026-10-25 已兑现` 行数 = 3 ⇒ 原 4 + 3 = 7;`5 + 1 = 6`,加 7 = 13 条。
 > ⚠️ **五条 PARTIAL + 一条 NOT_IMPLEMENTED 全部已立债**:`07`/`09`/`14`/`16`/`20`(定时兜底半边)
 > → **`TD-persist-05`**;`17` → **`TD-persist-06`**。⇒ **13 条中「无载体且无债」的 = 0**。
+
+> 🔁 **2026-10-25 `TD-persist-05` 兑现轮后现值(原文不删)**:
+> `IMPLEMENTED_TESTED` **9**(上列 7 + `14` `16` 两条本轮兑现)·
+> `PARTIAL` **3**(`07` `09` `20`)· `NOT_IMPLEMENTED` **1**(`17`)。
+> **复算命令**:`grep -c "↳ 🔁 \*\*2026-10-25 已兑现\*\*" production/epics/persistence-service/EPIC.md`
+> ⇒ **5**;原 4 + 5 = **9**;`3 + 1 = 4`,加 9 = **13** 条 ✓。
+> ⚠️ **`14` / `16` 的兑现形态不同,勿混读**:
+> `14` 补的是**缺失的执行体**(迁移链框架 0 行 → 有);`16` 补的是**从未存在的判据**
+> (生产代码本来就对,但没有任何东西会因它被破坏而转红)。
+> ⚠️ **`07` `09` `20` 三条现全部具名 blocked**,不再笼统归 05:
+> `07` → 与 `TD-persist-06` 的 `SaveOnExit` 限时 join **同一改动两半**(且额外发现 SHA256 也在主线程);
+> `09` → blocked-by **`TD-ci-01`**;`20` 定时兜底半边 → blocked-by **`TD-persist-04` 动作 ①**(瞬时源)。
+> ⇒ **待处置 = 0**,但 **≠ 7a 已可交付**:四条未闭项各有具名阻塞方。
+> 原件 = `production/qa/evidence/impl-td-persist-05-2026-10-25.md`。
 
 ### 两条会改变判读的交叉结论
 

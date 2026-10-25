@@ -592,8 +592,11 @@ namespace DaYiJingCheng.Tests.PersistenceService
             //    `folded` 保持第 3 位 ⇒ 下方 ps[2] 类型断言仍成立,只改计数。
             // 🔁 2026-10-24 TD-persist-03:6 → 7(replaySink 之后增 foldedRowSink ——
             //    折叠段原始字节交出委托;compose 顺移至第 7 位)。
-            Assert.AreEqual(7, ps.Length,
-                "形参 = (basePath, codec, folded, narrativeContext, replaySink, foldedRowSink, compose)");
+            // 🔁 2026-10-25 TD-persist-05 动作③(AC-7a-14):7 → 8(末尾增 `migrations` ——
+            //    迁移链脚本集合;前七个位置**不变**,故下方逐位类型断言全部仍成立)。
+            Assert.AreEqual(8, ps.Length,
+                "形参 = (basePath, codec, folded, narrativeContext, replaySink, foldedRowSink, " +
+                "compose, migrations)");
             Assert.AreEqual(typeof(IFoldedPredicate), ps[2].ParameterType,
                 "第三形参须是 IFoldedPredicate(住 Sim.Contracts)");
             Assert.IsTrue(ps[2].HasDefaultValue && ps[2].DefaultValue == null,
@@ -606,6 +609,10 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 "第六形参须是 Action<byte[]>(折叠段原始字节交出 —— 本类看不见 FoldRow,TD-persist-03)");
             Assert.AreEqual(typeof(Func<SaveSlot, byte[]>), ps[6].ParameterType,
                 "第七形参须是 Func<SaveSlot, byte[]>(组版委托,折叠接线落点)");
+            Assert.AreEqual(typeof(IReadOnlyList<ISaveMigration>), ps[7].ParameterType,
+                "第八形参须是 IReadOnlyList<ISaveMigration>(迁移链,ADR-010 §七 · AC-7a-14)");
+            Assert.IsTrue(ps[7].HasDefaultValue && ps[7].DefaultValue == null,
+                "迁移链须可选(缺省 = 空链 ⇒ 旧档走「断链」fail-closed,与旧行为同为拒绝)");
             for (int i = 3; i < 7; i++)
                 Assert.IsTrue(ps[i].HasDefaultValue && ps[i].DefaultValue == null,
                     $"形参 {i} 须可选(不注入 = null ⇒ fail-closed)");

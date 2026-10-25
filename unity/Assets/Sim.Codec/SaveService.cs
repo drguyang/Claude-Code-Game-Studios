@@ -42,6 +42,13 @@ namespace DaYiJingCheng.Sim.Codec
         private readonly Action<byte[]> _foldedRowSink;
         private readonly Func<SaveSlot, byte[]> _compose;
         private readonly SaveSlotLedger _ledger;
+        /// <summary>
+        /// 迁移链脚本(ADR-010 §七 · `AC-7a-14`)。**缺省为空** —— 今日零真实历史版本,
+        /// 空链下的行为 = 任何 `SaveVersion < 当前` 的档走「断链」并抛
+        /// <see cref="InvalidOperationException"/>(与旧行为同为 fail-closed,
+        /// 只是报文更准确)。真实脚本随版本升级逐条注册,落点在装配根。
+        /// </summary>
+        private readonly IReadOnlyList<ISaveMigration> _migrations;
 
         /// <summary>
         /// 构造。
@@ -99,7 +106,8 @@ namespace DaYiJingCheng.Sim.Codec
             Func<bool> narrativeContext = null,
             Action<IReadOnlyList<SimEvent>> replaySink = null,
             Action<byte[]> foldedRowSink = null,
-            Func<SaveSlot, byte[]> compose = null)
+            Func<SaveSlot, byte[]> compose = null,
+            IReadOnlyList<ISaveMigration> migrations = null)
         {
             _basePath = basePath ?? throw new ArgumentNullException(nameof(basePath));
             _codec = codec ?? throw new ArgumentNullException(nameof(codec));
@@ -108,6 +116,10 @@ namespace DaYiJingCheng.Sim.Codec
             _replaySink = replaySink;
             _foldedRowSink = foldedRowSink;
             _compose = compose;
+            // ⚠️ 迁移链**可空**(≠ fail-closed 的那几个驱动源):空链不是「缺驱动源」,
+            //    而是「今日没有历史版本可迁」这个事实的正确表达。空链撞上旧档会抛
+            //    「断链」—— 那仍是 fail-closed,只是发生在**真的遇到旧档**时才发生。
+            _migrations = migrations ?? Array.Empty<ISaveMigration>();
             // 台账与 SaveService 共用**同一个**钩子实例 ⇒ 「一个量」在类型层面成立
             // ⚠️ 高水位初值今日**恒为 0**(用默认形参)。`SaveSlotLedger` 的 doc 写「初值由装配层
             //    按『本会话从哪个槽位起步』决定」,而装配层**无任何通道可传**(`SaveService` 构造
@@ -243,6 +255,28 @@ namespace DaYiJingCheng.Sim.Codec
             }
 
             return CryptographicOperations.FixedTimeEquals(stored, actual);
+        }
+
+        /// <summary>
+        /// 剥掉校验和槽 —— <see cref="AddChecksum"/> 的逆操作(不加验证,验证归
+        /// <see cref="ValidateChecksum"/>)。
+        /// <para>输出形态 = `magic(4) + saveVersion(4) + worldSeed(8) + configVersion(4)
+        /// + tick(8) + snapshotOffset(8) + 正文`,即迁移链的工作形态(ADR-010 §七)。</para>
+        /// <para>🔁 2026-10-25 `AC-7a-14`(`TD-persist-05` 动作 ③)新增 —— 迁移链须在
+        /// **不含校验和**的形态上工作:校验和覆盖它之后的全部字节,正文一变就必须重算;
+        /// 链在最后统一算一次 `AddChecksum`,不让每级各自算(那样「某步忘了重算」会成为
+        /// 一个静默的坏档来源)。</para>
+        /// </summary>
+        /// <exception cref="ArgumentException">短于 checksum 槽。</exception>
+        public static byte[] StripChecksum(byte[] dataWithChecksum)
+        {
+            if (dataWithChecksum == null || dataWithChecksum.Length < 36)
+                throw new ArgumentException("数据过短");
+
+            byte[] result = new byte[dataWithChecksum.Length - 32];
+            Array.Copy(dataWithChecksum, 0, result, 0, 4);                  // magic(4)
+            Array.Copy(dataWithChecksum, 36, result, 4, dataWithChecksum.Length - 36); // 其余
+            return result;
         }
 
         /// <summary>计算并写入 checksum。</summary>
@@ -399,21 +433,27 @@ namespace DaYiJingCheng.Sim.Codec
                 throw new InvalidDataException(
                     $"存档版本 {header.SaveVersion} > 当前 {SaveHeader.CurrentSaveVersion}" +
                     "—— 前向不兼容,拒绝载入");
+
             // SaveVersion == CurrentSaveVersion ⇒ 直通;
             // SaveVersion < CurrentSaveVersion ⇒ 逐版本升(WorldSeed 逐位保留)。
             //
-            // ⚠️ **升链实现今日不存在,且此处刻意 fail-closed 而非放行**:
-            //    今日 CurrentSaveVersion = 1 且全库零 v0 写入者 ⇒ 升链路径零触发面
-            //    (判据 ⑦b 的事实基础)。若在此**放行**,旧档会被当作当前版本直接解析 ——
-            //    而 `ReadEventSegment` 按当前版本的布局读,**布局一旦变过就是静默错读**。
-            //    ⇒ 拒绝并抛具名异常(不可利用 > 不可用,承 `sprint-19.md` §S19-1 ⑧b 同源口径)。
-            //    **真迁移(逐版本升 + WorldSeed 逐位保留)= `NOT-RUN`**,归 `TD-persist-03`;
-            //    届时把本分支换成真正的升级实现,并把 ⑦b 的升级夹具改为断言「升完的 WorldSeed 逐位相等」。
+            // 🔁 **2026-10-25 AC-7a-14(`TD-persist-05` 动作 ③)**:本分支**原为刻意抛
+            // `NotSupportedException` 的 fail-closed 占位**(「不可利用 > 不可用」)。现换成
+            // 真正的迁移链调用 —— 两条不变量(`WorldSeed` / 事件段逐位不变)由
+            // `SaveMigrationChain` 在**每级**断言,不再依赖各脚本自觉。
+            //
+            // ⚠️ **链为空时的行为没变**:今日零真实历史版本(`CurrentSaveVersion = 1`,
+            // 全库零 v0 写入者)⇒ `migrations` 缺省为空集合 ⇒ 任何 `<` 的档都会走到
+            // 「断链」并抛 `InvalidOperationException`。这不是回归,是**同一处置换了个
+            // 更准确的类型**:原来说「升链尚未实现」,现在说「版本 k 没有对应脚本」。
             if (header.SaveVersion < SaveHeader.CurrentSaveVersion)
-                throw new NotSupportedException(
-                    $"存档版本 {header.SaveVersion} < 当前 {SaveHeader.CurrentSaveVersion}" +
-                    "—— 升链(逐版本迁移)尚未实现,拒绝按当前版本布局静默解析旧档" +
-                    "(布局变更下的静默错读不可接受)。真迁移归 TD-persist-03。");
+            {
+                // 链工作在「不含校验和」形态(magic + 其余),迁完再补回校验和。
+                byte[] withoutChecksum = StripChecksum(data);
+                byte[] migrated = SaveMigrationChain.Migrate(
+                    withoutChecksum, SaveHeader.CurrentSaveVersion, _migrations);
+                data = AddChecksum(migrated);
+            }
 
             // ── Replaying:解出事件列表 + 折叠段,经注入委托交出 ──
             // 🔁 TD-persist-03 修复轮:契约次序 = 先事件列表、后折叠段字节

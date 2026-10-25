@@ -10920,3 +10920,46 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - **债册二十三订**:`TD-persist-07` 入表(**立债同批即 closed**)⇒ 条目 `107→108` ·
   `closed 27→28` · 未闭 P0 面 `74` 不动(立→闭同批抵消,不是没发生事)
 - **提交**:本轮改动随本次 commit 落盘;**未 push**
+
+## Session Extract — `TD-persist-05` 兑现轮 2026-10-25(用户裁定 ④+③;②⑤ 如实标 blocked)
+
+- **范围裁定**(用户两项):
+  - **Q1 = ④ + ③** —— 交付 `AC-7a-16` authority 正交夹具 + `AC-7a-14` 迁移链框架;**不做** ① ② ⑤
+  - **Q2 = 如实标 blocked** —— ② `AC-7a-09` blocked-by `TD-ci-01`;⑤ `AC-7a-20` 定时兜底
+    blocked-by `TD-persist-04` 动作 ①(瞬时源)。**两者均不写执行体**
+- **③ `AC-7a-14` 迁移链(补的是缺失的执行体)**:
+  - 新增 `Sim.Codec/ISaveMigration.cs`(单步契约)+ `SaveMigrationChain.cs`(链驱动)
+  - 链工作在**不含校验和**形态(校验和覆盖其后全部字节 ⇒ 正文一变必变 ⇒ 最后统一 `AddChecksum` 一次,
+    不让每级各自算 —— 否则「某步忘了重算」是静默坏档来源);新增 `SaveService.StripChecksum`
+  - **事件段按「末尾等长」锚定**,不按固定偏移(迁移改的通常是头部字段 ⇒ 正文整体平移;
+    夹具刻意让头部变长 4 字节,若按固定偏移写它会自己红)
+  - **每级三条断言**:版本号恰为 `v+1` / `WorldSeed` 逐位不变 / 事件正文逐位不变
+  - `Load` 的 `<` 分支从「刻意抛 `NotSupportedException`」改为调链;空链仍 fail-closed(**行为不变,异常类型变**)
+  - ⚠️ **不实现任何真实迁移** —— `CurrentSaveVersion = 1` 且零 `v0` 写入者 ⇒ 无真实历史版本可迁。
+    造「假 v0 再迁它」= 自造断言的变体。**真实脚本落点 = 首次升到 2 的那一轮**
+- **④ `AC-7a-16` authority 正交(补的是从未存在的判据)**:零生产改动(`Compose` 本来就无 authority 形参,
+  `IdAuthority` 本来就是实例计数器)。拆成**四条互相独立**性质 A/B/C/D —— 单断言「两布局产出一致」
+  在 `Compose` 不认识 authority 时**恒真**、对变异零判别力
+- **回归三元组**(`2026-10-25 04:21 UTC` · `td05-3` 终态 · commit `72bb234`):
+  EditMode **`4917 / 4882 / 0 / 35`**;起跑 `td05-2` 逐位相同。新增 **20 条**(12+7+1),零回归
+- **证伪轮 7 轮,10 条测试至少转红一次,零假绿**:
+  MA1 版本号守卫→1 红 · MA2 WorldSeed→1 红 · MA3 事件段→1 红 ·
+  MB1 Compose 加 authority 形参→1 红 · MB2 SaveComposer 加 static→1 红 · MB3 IdAuthority 计数器改 static→2 红 ·
+  MB4 断链 `throw`→`continue`→**3 红(预期 1)**
+  - ⚠️ **MB4 得 3 红是「判据面比我想的宽」**:链层直测 1 条 + `SaveService` 层 2 条(拒绝 / 不锁槽)。
+    其中 `doesNotLockSlot` 实测抛的是 `InvalidDataException`「缺折叠段」而非断链报错 ——
+    **断链被静默跳过后流继续走到 `ParseBody` 才炸**,正是「静默跳过」的危害形态:它没报断链,报的是别的错
+  - ⚠️ **MA1 首跑无 XML**(只有日志尾部 `Exiting with code 2 (Failed)`)⇒「红 1」当时无法点名是哪条。
+    已**补跑一轮**(`td05-MA1b.xml`)现登记用补跑结果;首跑不计入证据面(无 XML = 不可复算)
+  - ⚠️ **一条 NOT-RUN 如实登记**:`test_migrate_multiStep_runsEveryVersionInOrder`(「逐版本、按 `FromVersion`
+    而非注册序」)本轮**无独立反证** —— MB4 的 `continue` 未使它转红。**不得借 MB4 的绿**
+  - 五文件 SHA-256 逐字节还原(`td05-baseline.sha256` 3 文件 + `td05-baseline2.sha256` 2 文件,全「成功」)
+- **额外发现(比债册记的深)**:`AC-7a-07` 违反的不只「写盘 IO 在主线程」—— **SHA256 也在主线程**:
+  `SaveComposer.Compose:118` 的 `AddChecksum`,而 `Compose` 在 `Checkpoint:298` 主线程调用。
+  GDD「写盘 IO 与 SHA256 都在非主线程」**两半都没兑现**;债册原表只点了写盘那一半
+- **债册二十四订**:`TD-persist-05` 逐条加注(兑现 ③④ / blocked ②⑤ / ① 归 06);
+  **聚合五位全部不动**(`条目 108 / open 73 / closed 28 / 未闭 74 / 12 epic`)——
+  ⚠️ **不是「什么都没发生」**:债条部分兑现**在该脚本口径下不可见**(按索引行状态计,`open` 整条仍算 1 条)
+- **EPIC 载体总表**:`14` / `16` 转 `IMPLEMENTED_TESTED` ⇒ 分布 `9 / 3 / 1`
+  (复算:`grep -c "↳ 🔁 \*\*2026-10-25 已兑现\*\*"` ⇒ 5;4+5=9,9+3+1=13 ✓)
+- **未提交**(用户未下 commit 指令);未 push

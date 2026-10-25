@@ -70,7 +70,8 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Func<bool> narrativeContext = null,
             Action<IReadOnlyList<SimEvent>> replaySink = null,
             Action<byte[]> foldedRowSink = null,
-            Func<SaveSlot, byte[]> compose = null)
+            Func<SaveSlot, byte[]> compose = null,
+            IReadOnlyList<ISaveMigration> migrations = null)
         {
             return new SaveService(
                 _testDir,
@@ -79,7 +80,8 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 narrativeContext: narrativeContext ?? (() => true),
                 replaySink: replaySink ?? (_ => { }),
                 foldedRowSink: foldedRowSink ?? (_ => { }),
-                compose: compose ?? (slot => MinimalSaveBytes()));
+                compose: compose ?? (slot => MinimalSaveBytes()),
+                migrations: migrations);
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -419,34 +421,64 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Assert.DoesNotThrow(() => svc.Load(new SaveSlot(0)), "同版本 ⇒ 直通");
         }
 
-        [Test]
-        public void test_load_olderSaveVersion_isRejectedUntilMigrationExists()
+        /// <summary>造一份「旧版本」存档(版本 = 当前 − 1,正文 = 空事件列表)。</summary>
+        private static byte[] OlderVersionSave(ulong worldSeed = 1UL)
         {
-            // 判据 ⑦b 第三分支:`SaveVersion < CurrentSaveVersion` ⇒ **逐版本升级**。
-            //
-            // ⚠️ **今日升链实现不存在**(`TD-persist-03`),故本夹具断言的是
-            //    **fail-closed 的拒绝**,不是「升级成功」。**不得**把它读成
-            //    「⑦b 三分支已全部兑现」—— 真迁移仍 `NOT-RUN`。
-            //
-            // 为什么必须拒绝而不是放行:旧档会被 `ReadEventSegment` 按**当前版本布局**解析,
-            // 布局一旦变过就是**静默错读**(读出一个看似合法、实则错位的存档)。
-            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(0xDEADBEEFCAFEBABEUL, 1U, 0L, 0UL);
+            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(worldSeed, 1U, 0L, 0UL);
             // 同前:`AddChecksum` 之前 saveVersion 在 4..7
-            header[4] = (byte)(SaveHeader.CurrentSaveVersion - 1);
+            header[SaveHeaderCodec.SaveVersionOffsetFixed] =
+                (byte)(SaveHeader.CurrentSaveVersion - 1);
             byte[] body = SimEventListCodec.Encode(Array.Empty<SimEvent>(), new SaveCodec());
             var combined = new byte[header.Length + body.Length];
             Array.Copy(header, 0, combined, 0, header.Length);
             Array.Copy(body, 0, combined, header.Length, body.Length);
+            return SaveService.AddChecksum(combined);
+        }
 
+        [Test]
+        public void test_load_olderSaveVersion_withEmptyChain_failsClosed()
+        {
+            // 判据 ⑦b 第三分支:`SaveVersion < CurrentSaveVersion` ⇒ **逐版本升级**。
+            //
+            // 🔁 **2026-10-25 改写(`TD-persist-05` 动作 ③ · `AC-7a-14`)**:
+            //    本条此前断言抛 `NotSupportedException`(报文「升链尚未实现,归 TD-persist-03」)。
+            //    链框架已落地 ⇒ `SaveService` 现在**调链**,而链在「没有对应脚本」时抛
+            //    `InvalidOperationException`(报文「断链」+ 点名缺哪一级 + 列出已注册级)。
+            //
+            // ⚠️ **行为没变,类型变了**:今日零真实历史版本 ⇒ 生产装配注册的链是空的
+            //    ⇒ 任何旧档仍被**拒绝**(fail-closed)。这不是「升级成功了」,
+            //    「逐版本升 + WorldSeed 逐位不变」的判据面由 `save_migration_chain_test.cs`
+            //    以测试内假迁移步钉住 —— 真实 v0→v1 脚本仍不存在,因为**历史 v0 从未存在过**。
             var svc = ReadyService();
-            svc.SaveBytes(new SaveSlot(0), SaveService.AddChecksum(combined));
+            svc.SaveBytes(new SaveSlot(0), OlderVersionSave());
 
-            var ex = Assert.Throws<NotSupportedException>(
+            var ex = Assert.Throws<InvalidOperationException>(
                 () => svc.Load(new SaveSlot(0)),
-                "旧版本档在升链未实现前须 fail-closed 拒绝,不得按当前布局静默解析");
-            StringAssert.Contains("升链", ex.Message);
-            StringAssert.Contains("TD-persist-03", ex.Message,
-                "报文须点名归属件 —— 否则读代码的人无从知道真迁移归哪");
+                "空链撞上旧版本档须 fail-closed 拒绝,不得按当前布局静默解析");
+            StringAssert.Contains("断裂", ex.Message);
+            StringAssert.Contains("没有对应迁移脚本", ex.Message);
+        }
+
+        [Test]
+        public void test_load_olderSaveVersion_withChain_migratesAndLoads()
+        {
+            // 正面:注册了对应脚本 ⇒ **真的迁过去并读档成功**。
+            // 这条是上面那条的对照 —— 缺了它,「拒绝」与「链根本没被调用」不可分。
+            var calls = new List<uint>();
+            IReadOnlyList<SimEvent> replayed = null;
+            var svc = ReadyService(
+                replaySink: ev => replayed = ev,
+                migrations: new List<ISaveMigration>
+                {
+                    new PaddingMigration(SaveHeader.CurrentSaveVersion - 1, calls),
+                });
+            svc.SaveBytes(new SaveSlot(0), OlderVersionSave(0xFEEDFACECAFEBEEFUL));
+
+            Assert.DoesNotThrow(() => svc.Load(new SaveSlot(0)),
+                "注册了对应脚本 ⇒ 须迁到当前版本并读档成功");
+            CollectionAssert.AreEqual(new[] { SaveHeader.CurrentSaveVersion - 1 }, calls,
+                "链的该级须被真的执行一次");
+            Assert.IsNotNull(replayed, "迁移后仍须走到 Replaying(不得静默提前返回)");
         }
 
         [Test]
@@ -454,19 +486,47 @@ namespace DaYiJingCheng.Tests.PersistenceService
         {
             // 拒绝发生在 `Verifying` 之后的迁移链判定段,**早于**读档锁置位
             // ⇒ 旧档载入失败不得永久锁槽(`sprint-19.md` §S19-1 R-1 的相邻形态)。
-            byte[] header = SaveHeaderCodec.WriteWithoutChecksum(1UL, 1U, 0L, 0UL);
-            header[4] = (byte)(SaveHeader.CurrentSaveVersion - 1);
-            byte[] body = SimEventListCodec.Encode(Array.Empty<SimEvent>(), new SaveCodec());
-            var combined = new byte[header.Length + body.Length];
-            Array.Copy(header, 0, combined, 0, header.Length);
-            Array.Copy(body, 0, combined, header.Length, body.Length);
-
             var svc = ReadyService();
-            svc.SaveBytes(new SaveSlot(0), SaveService.AddChecksum(combined));
+            svc.SaveBytes(new SaveSlot(0), OlderVersionSave());
 
-            Assert.Throws<NotSupportedException>(() => svc.Load(new SaveSlot(0)));
+            Assert.Throws<InvalidOperationException>(() => svc.Load(new SaveSlot(0)));
             Assert.IsFalse(svc.Ledger.IsLocked(new SaveSlot(0)),
                 "迁移链拒绝不得锁槽 —— 锁只在 Verifying + 迁移链全通过后置位");
+        }
+
+        /// <summary>
+        /// 假迁移步:在头部定长字段之后插 4 字节填充 + 把版本号 +1。
+        /// <para>填充使**头部变长** ⇒ 若事件段是按固定偏移取的,本测试会读错 ——
+        /// 因此它同时验证了「正文按末尾等长锚定」这条设计选择。</para>
+        /// </summary>
+        private sealed class PaddingMigration : ISaveMigration
+        {
+            private readonly List<uint> _calls;
+            public uint FromVersion { get; }
+
+            public PaddingMigration(uint fromVersion, List<uint> calls = null)
+            {
+                FromVersion = fromVersion;
+                _calls = calls;
+            }
+
+            public byte[] Migrate(byte[] dataWithoutChecksum)
+            {
+                _calls?.Add(FromVersion);
+                int fixedSize = SaveHeaderCodec.FixedSize;
+                int bodyLen = dataWithoutChecksum.Length - fixedSize;
+                var result = new byte[dataWithoutChecksum.Length + 4];
+                Array.Copy(dataWithoutChecksum, 0, result, 0, fixedSize);
+                Array.Copy(dataWithoutChecksum, fixedSize, result, fixedSize + 4, bodyLen);
+
+                uint next = FromVersion + 1;
+                int o = SaveHeaderCodec.SaveVersionOffsetFixed;
+                result[o + 0] = (byte)(next & 0xFF);
+                result[o + 1] = (byte)((next >> 8) & 0xFF);
+                result[o + 2] = (byte)((next >> 16) & 0xFF);
+                result[o + 3] = (byte)((next >> 24) & 0xFF);
+                return result;
+            }
         }
 
         // ══════════════════════════════════════════════════════════════════
