@@ -125,8 +125,9 @@ work_items:
     name: "记账订正 —— TD-sim-01 过期描述 + 路线图 sprint-19 行 Exit 订正 + 四门结案回写"
     file: "docs/tech-debt-register.md"
     complexity: S
-    status: "backlog"
+    status: "done"
     owner: ""
+    completed: "2026-10-25"
     depends_on: []
     evidence: "三处文本同值可 grep;每处附可跑命令 + 实跑输出"
     note: "① 债册 `TD-sim-01` 的 🔁 订正段(落盘 `fed0639` 00:23)写「`DeathCandidateConsumer` / `PlayerDiedWriter` 生产侧**零构造点**」,而 `519700c`(08:29)已落 `CompositionRoot.cs:307` / `:332` 两处生产构造 ⇒ **该句在落盘 8 小时后即过期**。⚠️ **不自行宣布 `TD-sim-01` 结案** —— 债册该行自陈「结案与否归 `death-respawn` / QA 侧核,本行只记事实」。 ② 路线图 `:910` 的 Exit 只写 G-4,漏了 `TD-persist-01` 剩余两项(见 `sprint-19.md` §Phase 1 ①)。 ③ 四门 §三行按 §6.4 回写义务划掉或加注。"

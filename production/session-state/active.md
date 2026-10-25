@@ -1,4 +1,14 @@
-# Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · S19-4 实现轮 ✅(DeferredThreatSlot 流态载体落地 + 证伪 9 红)—— 未提交,等 commit 指令**)
+# Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · S19-1..S19-5 全 done(批 1+2+3 收口)—— 未提交,等 commit 指令**)
+
+## S19-5 记账轮(2026-10-25 · ✅ 收口,未提交)
+
+- **判据①(TD-sim-01 过期句)**:债册两处就地加注(实测栏 :1714 + G-1 门行 :610)——
+  「生产侧零构造点」已被 `519700c` 过期;复算 = `grep -rn "new DeathCandidateConsumer\|new PlayerDiedWriter" … | grep -v '/Tests/'` ⇒ **2 行**(`CompositionRoot.cs:311` / `:336`;⚠️ 规划期记 :307/:332 行号已漂移 +4,S19-1 落盘所致)。原串仍 grep 到 ×2 + 加注串 ×2(双命中);**不自行宣布 TD-sim-01 结案**(归 death-respawn / QA 侧核)
+- **判据②(路线图 :910 Exit)**:sprint-19 行加注 —— G-4 非「一条债」= TD-persist-02 + TD-persist-01 剩余两项;**「名下 TD 归零」读窄为「四门债面归零」**(epic 名下另条债 TD-persist-04 / TD-player-03 / TD-sim-01 不在门面);M3 全局合取仍**假**(71 条/11 epic,二十订实跑)
+- **判据③(§3 四门行回写)**:G-4/G-5/G-6/G-7 各行尾注(清偿轮 + commit + 证据件;「零落点/全树零命中」标注为登记时点史实)+ §3.4 表节注(G-1/G-2 不在 sprint-19 判据面;TD-persist-01 本体已 closed,门面翻面归归属轮);save-slot-ui 的 AC-7b-01/02/10 挂标随 G-4 解除
+- **判据④**:每处附可跑命令 + 实跑输出(①的 grep、②的 §五 脚本、二十订数字)
+- **sprint-19 DoD 七条勾选**(AC 判定载体 / 证伪轮 / file:line+红命令 / 三元组+差集 / 债册复算=71 / M3 可机械求值 / 记账落盘);**留四条不勾**:QA plan · QA 签核 · S1/S2 bug · code-review 双列 —— 归 QA/收口轮
+- **记账**:sprint-status S19-5 done;active.md 本段
 
 ## S19-4 实现轮(2026-10-25 · ✅ 实现收口,未提交)
 
