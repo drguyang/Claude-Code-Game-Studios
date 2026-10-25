@@ -176,29 +176,11 @@ namespace DaYiJingCheng.Sim
         }
 
         /// <summary>
-        /// 定点累加器步进。
+        /// ~~定点累加器步进。~~ 🔁 **2026-10-25 删除(TD-enemy-02 收敛轮 · 用户裁定甲案)**:
+        /// 原 `StepAccumulator` 是**直线逼近**(每溢出一格朝目标 Sign 方向一步),在 GDD 27
+        /// 无对应物 —— F-27-4 权威 = **沿路径**推进(`EnemyLocomotion.Advance`,S19-3 落)。
+        /// AC-27-19 的性质测试随之迁到 Advance 载体(`logi_pose_test.cs`)。
         /// </summary>
-        public static WorldPos StepAccumulator(Fix speed, ref Fix acc, WorldPos current, WorldPos target)
-        {
-            acc += speed;
-            if (acc.Raw >= Fix.OneRaw)
-            {
-                acc = Fix.Zero;
-                // 向目标移动一步
-                int dx = Math.Sign(target.X - current.X);
-                int dy = Math.Sign(target.Y - current.Y);
-                int dz = Math.Sign(target.Z - current.Z);
-                return new WorldPos(current.X + dx, current.Y + dy, current.Z + dz);
-            }
-            return current;
-        }
-
-        /// <summary>
-        /// 验证 0 ≤ acc < FIX_ONE。
-        /// </summary>
-        public static bool ValidateAccumulator(Fix acc)
-        {
-            return acc.Raw >= 0 && acc.Raw < Fix.OneRaw;
-        }
+        // (删除的方法体留档于 git 历史 —— 本注不删,防「直线逼近」形态复活时无档可查。)
     }
 }

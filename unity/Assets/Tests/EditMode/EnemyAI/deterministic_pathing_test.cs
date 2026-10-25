@@ -85,26 +85,22 @@ namespace DaYiJingCheng.Tests.EnemyAI
         }
 
         // AC-27-19: 步进性质
-        [Test]
-        public void test_steppingProperty()
-        {
-            var speed = new Fix(7000); // 0.1068 格/tick
-            var acc = Fix.Zero;
-            var current = new WorldPos(0, 0, 0);
-            var target = new WorldPos(10, 0, 0);
-
-            for (int i = 0; i < 100; i++)
-            {
-                current = EnemyPathing.StepAccumulator(speed, ref acc, current, target);
-                Assert.IsTrue(EnemyPathing.ValidateAccumulator(acc), "acc 应满足 0 ≤ acc < FIX_ONE");
-            }
-        }
+        // 🔁 **2026-10-25(TD-enemy-02 收敛轮 · 裁定甲案)**:本测原打
+        //    `EnemyPathing.StepAccumulator` —— **载体打错算子**:AC-27-19 的 GDD 原文
+        //    引的是 **F-27-4(沿路径)**,而 StepAccumulator 是直线逼近(GDD 无对应物,
+        //    本轮已删)。性质测试现住 `logi_pose_test.cs::test_ac2719_property_…`
+        //    (打 `EnemyLocomotion.Advance` —— F-27-4 权威载体)。
+        //    (原 `test_steppingProperty` 方法体留档于 git 历史。)
 
         // AC-27-20: 重算保光标
         // ⚠️ S16 修复(TD-epic-02):原实现 `Assert.Pass("需集成测试验证")` = 借绿(卡面 AC 未勾却 Complete)。
         //    **但本测不能改成绿**:实测 `EnemyPathing`(敌人寻路唯一生产类,`Sim/EnemyPathing.cs`)
         //    公开面只有 `ComputeOctileHeuristic` / `FindPath` / `StepAccumulator` / `ValidateAccumulator`
         //    —— **无 Replan、无 path_cursor**(`PathCursor` 属病人 AI 的 `LogicalStepper`,不是敌人侧)。
+        //    🔁 **2026-10-25 就地订正(TD-enemy-02 · 原文不删)**:上句「公开面只有…」已过期 ——
+        //    `StepAccumulator` / `ValidateAccumulator` 本轮已删(裁定甲案),现公开面 =
+        //    `ComputeOctileHeuristic` / `FindPath`(**寻路半**;步进半住 `EnemyLocomotion.Advance`)。
+        //    「无 Replan、无 path_cursor」的结论**不变**,本条 Ignore 仍成立。
         //    ⇒ AC-27-20 的宾语**在生产侧不存在**,这是真缺口,不是测试欠写。
         //    ⇒ 正解 = 显式 Ignore(CI 显示 skipped 而非 passed)+ 卡面 AC 保持未勾,**禁借绿**。
         [Test]

@@ -16,8 +16,10 @@
 //
 // ⚠️ `EnemyPathing.StepAccumulator` 是**直线逼近**(每溢出一格,朝目标 Sign 方向一步),
 //   语义是「朝目标走」的简化步进,不是 F-27-4 的「沿路径走」。本算子按 F-27-4 权威形态
-//   实现沿路径版本;两者并存不合并(S19-3 不改既有在盘件,合并与否归 TD-player-03
-//   同型的后续收敛轮)。
+//   实现沿路径版本。
+//   ✅ 2026-10-25(TD-enemy-02 收敛轮 · 用户裁定甲案):`StepAccumulator` 已**删除**
+//   (GDD 无此语义;AC-27-19 性质测试迁到本算子载体)—— 本类是敌人步进的唯一实现,
+//   「两者并存」的历史形态见 git 与 EnemyPathing.cs 尾注。
 
 using System;
 using System.Collections.Generic;

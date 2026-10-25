@@ -77,12 +77,16 @@ namespace DaYiJingCheng.Tests.PlayerController
         public void test_ac130_hostMode_emitsEvent()
         {
             // 主机模式下同一位置样本序列必须产生 1 次 Append
+            // 🔁 TD-player-03(2026-10-25 收敛轮):原打 CellTransitionDetector 实例
+            //    (已删的平行实现),现打内联唯一实现 —— AC-1-30② 的宾语本就是
+            //    PlayerController 的主机路径。
             var sink = new FakeEventSink();
-            var detector = new CellTransitionDetector(sink, new FakeTickProvider(100), _encoder, actorId: 0);
+            var controller = CreateController();
+            controller.Initialize(SimAuthorityMode.Host, sink, new FakeTickProvider(100), _encoder, actorId: 0);
 
-            detector.OnPositionSample(new Vector3(0.5f, 0, 0));
-            detector.OnPositionSample(new Vector3(1.5f, 0, 0));
-            detector.OnTickEdge();
+            controller.OnPositionSample(new Vector3(0.5f, 0, 0));
+            controller.OnPositionSample(new Vector3(1.5f, 0, 0));
+            controller.OnTickEdge(100);
 
             Assert.AreEqual(1, sink.AppendedEvents.Count,
                 "主机模式应产生 1 条事件(否定空实现)");

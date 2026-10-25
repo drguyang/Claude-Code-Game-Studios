@@ -54,6 +54,11 @@ namespace DaYiJingCheng.Tests.EnemyAI
         private static readonly WorldPos A = new WorldPos(3, 0, 3);
         private static readonly WorldPos B = new WorldPos(4, 0, 3);
         private static readonly WorldPos C = new WorldPos(5, 0, 3);
+        // AC-27-19 性质测试的 7 格直线路径(B/C 为既有;D–G 本轮补齐)
+        private static readonly WorldPos D = new WorldPos(6, 0, 3);
+        private static readonly WorldPos E = new WorldPos(7, 0, 3);
+        private static readonly WorldPos F = new WorldPos(8, 0, 3);
+        private static readonly WorldPos G = new WorldPos(9, 0, 3);
 
         // ══════════ 判据 ①:落点 = Sim.Contracts ══════════
 
@@ -218,6 +223,65 @@ namespace DaYiJingCheng.Tests.EnemyAI
             var quarter = Fix.FromRational(1, 4);
             pose = EnemyLocomotion.Advance(pose, ref acc, path, ref cursor, true, quarter);
             Assert.AreEqual(B, pose.Cell, "解冻首 tick 正常消费余数,零瞬移");
+        }
+
+        // ══════════ AC-27-19 性质测试(F-27-4 权威载体) ══════════
+        // 🔁 **2026-10-25(TD-enemy-02 收敛轮)**:原 `deterministic_pathing_test.test_steppingProperty`
+        //    打在 `StepAccumulator`(直线逼近,已删)上 —— **载体打错算子**(AC 原文引 F-27-4)。
+        //    性质测试现住本文件,打 `Advance`。穷举速度 × Moving 序列(**确定性枚举,非随机**):
+        //    含冻结进入/退出(EC-27-23 的触发路径 = 冻结期攒 acc 解冻后吐出)。
+
+        [Test]
+        public void test_ac2719_property_speedBelowOne_andMovingSequences()
+        {
+            // AC-27-19:任意 ENEMY_SPEED < FIX_ONE × 任意 Moving(e) 序列 ⇒
+            //   ① 0 ≤ acc < FIX_ONE 恒成立(判据用字面量 65536,不自指被测代码);
+            //   ② LogiPose.Cell 整数性(WorldPos 为 int 域 struct;断言 cell ∈ path 前缀);
+            //   ③ 每 tick 位移 ≤ 1 格(EC-27-04 前提:speed < FIX_ONE ⇒ while 至多溢出一次)。
+            // 速度样本:0.0000152 / 0.0078 / 0.5 / 0.99998 —— 全部 raw < 65536(FIX_ONE)。
+            var speeds = new[]
+            {
+                new Fix(1), new Fix(511), Fix.FromRational(1, 2), new Fix(65535),
+            };
+            // Moving 序列样本:匀速前进 / 冻结攒余后解冻(EC-27-23 触发路径)/ 逐 tick 交替。
+            var sequences = new[]
+            {
+                new[] { true, true, true, true, true, true, true, true, true, true, true, true },
+                new[] { true, true, true, false, false, false, false, false, true, true, true, true },
+                new[] { true, false, true, false, true, false, true, false, true, false, true, false },
+            };
+            var path = new List<WorldPos> { A, B, C, D, E, F, G };   // 7 格直线,短于 12 tick ⇒ 覆盖路径耗尽分支
+
+            foreach (var speed in speeds)
+            {
+                Assert.Less(speed.Raw, 65536, "样本前置:速度 < FIX_ONE(AC GIVEN)");
+                foreach (var seq in sequences)
+                {
+                    var acc = Fix.Zero;
+                    int cursor = 0;
+                    var pose = new LogiPose(A, 0);
+                    for (int t = 0; t < seq.Length; t++)
+                    {
+                        WorldPos before = pose.Cell;
+                        pose = EnemyLocomotion.Advance(pose, ref acc, path, ref cursor,
+                            moving: seq[t], speed: speed);
+
+                        // ① acc 不变式(字面量判据 —— 与 Fix.OneRaw 同值但不引用被测常量表达)
+                        Assert.GreaterOrEqual(acc.Raw, 0L,
+                            $"t={t} speed={speed.Raw} seq[{t}]:acc 不得为负");
+                        Assert.Less(acc.Raw, 65536L,
+                            $"t={t} speed={speed.Raw} seq[{t}]:acc 不得 ≥ FIX_ONE(隧穿前兆,EC-27-23)");
+                        // ② 整数性:cell 必为路径上的格(整数域 struct 的运行时面)
+                        CollectionAssert.Contains(path, pose.Cell,
+                            $"t={t}:cell 须为整数路径格(整数性)");
+                        // ③ 每 tick 位移 ≤ 1 格(曼哈顿;moving=false 须为 0)
+                        int dist = Math.Abs(pose.Cell.X - before.X) + Math.Abs(pose.Cell.Z - before.Z);
+                        Assert.LessOrEqual(dist, 1,
+                            $"t={t} speed={speed.Raw}:单 tick 位移 {dist} > 1 格(隧穿)");
+                        if (!seq[t]) Assert.AreEqual(before, pose.Cell, $"t={t}:冻结 tick 位姿不动");
+                    }
+                }
+            }
         }
 
         [Test]

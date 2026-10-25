@@ -1,4 +1,22 @@
-# Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · S19-1..S19-5 全 done · QA 收口轮 + 评审修复轮 —— 未提交,等 commit 指令**)
+# Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · S19-1..S19-5 全 done · TD-enemy-02 + TD-player-03 双实现收敛轮完成 —— 未提交,等 commit 指令**)
+
+## TD-enemy-02 + TD-player-03 双实现收敛轮(2026-10-25 · ✅ 完成,未提交)
+
+**用户裁定(2026-10-25,双取推荐)**:TD-enemy-02 **甲「删直线逼近」** · TD-player-03 **甲「删实例状态机」**。
+
+**改动面**(10 文件,未提交):
+- 生产:`EnemyPathing.cs`(删 StepAccumulator/ValidateAccumulator)· `EnemyLocomotion.cs`(头注钉唯一实现)· `CellTransitionDetector.cs`(重写为 static class,留 CellFromPosition/ComputeDisplacement)· `PlayerController.cs`(C-3 结清注)
+- 测试:`deterministic_pathing_test`(删 test_steppingProperty,AC-27-20 注释订正)· `logi_pose_test`(新增 test_ac2719_property…)· `cell_transition_test`(全重写,S11-3 真夹具,12 条迁内联)· `host_authority_test` · `stream_bound_test` · `o6_actor_cell_payload_test`(3 条迁)· `WorldEcozones/chunk_activation_test`(驱动源迁)
+- 债册:两条索引翻转 open→closed,两结案块 + 三十订输出块(`closed 34 / open 68 / 未闭 P0 面 69 / 9/31 epic`)
+
+**漏扫教训**:首验编译红暴露消费面 7 处不止 cell_transition_test(债文「等」字所含),已全迁,代码面残留 0。
+
+**回归三元组**:`5033/4998/0/35` @ `2026-10-25 12:25 UTC` · 批次 `conv` · `7223126` 工作树(前基线同数 ⇒ 净变化 0:−1 +1 相抵)。复算:`grep -o 'total=…' unity/Logs/conv-full.xml`。
+**PlayMode 补跑**(用户指令):`202/202/0/0` 全绿 @ `12:35 UTC` · 同工作树(本件新立基线,复算 `unity/Logs/conv-playmode.xml`)。
+
+**证伪轮 2/2 红**:M1 边沿 tick→帧末 ⇒ test_ac105_tickFromEdgeTick_notFrameEnd 红;M2 冻结分支停用 ⇒ test_ac2719 红(+既有 frozenKeepsAcc 双确认)。SHA-256 逐字节还原。
+
+**原件**:`production/qa/evidence/impl-td-enemy02-player03-2026-10-25.md`。**NOT-RUN 清零**:PlayMode `202/202/0/0` 全绿(用户指令补跑);运行期验证 = StandaloneLinux64 构建 `Result: Success.`(`build-StandaloneLinux64-1792931952927.log:8621`,player 落 jobs tmp);仅余编辑器手动走查(非本轮必需)。**已提交**(用户指令「完成他们」)。
 
 ## 评审修复轮(2026-10-25 · `/code-review` 三条必修已落)
 

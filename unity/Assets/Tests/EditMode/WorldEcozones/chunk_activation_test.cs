@@ -10,6 +10,9 @@ using NUnit.Framework;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.World;
 using DaYiJingCheng.Sim.Contracts;
+using UnityEngine;
+using DaYiJingCheng.Gameplay.Presentation.Player;
+using PlayerControllerType = DaYiJingCheng.Gameplay.Presentation.Player.PlayerController;
 
 namespace DaYiJingCheng.Tests.WorldEcozones
 {
@@ -156,25 +159,31 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             //    初版的「同 tick」断言**恒真** —— `Tick` 是测试**直传入参**,
             //    激活与门之间**无因果**;且全文 `ActorCellEntered` 只出现在注释里,
             //    **零真实跨格事件** ⇒ [B] AC-6-23 的核心判据从未真验。
-            //    现改为**真驱动链**:`CellTransitionDetector`(表现层跨格检测器,已在库)
-            //    喂位置样本 → 产**真 `ActorCellEntered`** → 测试从该事件的格驱动激活与门,
+            //    现改为**真驱动链**:玩家控制器(表现层,已在库)喂位置样本 → 产
+            //    **真 `ActorCellEntered`** → 测试从该事件的格驱动激活与门,
             //    且**tick 取自事件本身**(而非测试硬编码)⇒ 因果真实。
+            //
+            //    🔁 **2026-10-25(TD-player-03 收敛轮 · 用户裁定甲案)**:原驱动源
+            //    `new CellTransitionDetector(...)`(已删的平行实现)换为
+            //    `PlayerController` 真组件(AddComponent + Initialize),写路径打内联
+            //    唯一实现;tick 语义同步改**边沿自有 tick**(BCD-码-2 —— 原 detector
+            //    读帧末 `CurrentTick`,内联走 `OnTickEdge(tick)` 形参,此处传入值
+            //    与 provider 值一致,断言语义不变)。
 
             var topology = new ChunkTopology(16, 1, 16, 4, 1, 4);
             var activator = new ChunkActivator(topology, streamingRadius: 1);
             var sink = new SpyEventSink();
 
-            // ① **真驱动**:跨格检测器按位置样本产出 ActorCellEntered
+            // ① **真驱动**:玩家控制器按位置样本产出 ActorCellEntered
             const long Tick = 100;
             var tickProvider = new FixedTickProvider(Tick);
-            // O-6(2026-10-09):写者经构造注入 IPayloadEncoder ⇒ 真编码器 + 真池,
+            // O-6(2026-10-09):写者经 Initialize 注入 IPayloadEncoder ⇒ 真编码器 + 真池,
             // 下方格还原走「池 + codec」的合法读路径(原伪 ref 形态已失效)。
             var pool = new InMemoryBlobPool();
-            var detector = new DaYiJingCheng.Gameplay.Presentation.Player.CellTransitionDetector(
-                sink, tickProvider, new PayloadEncoder(pool), actorId: 0);
+            var detector = SpawnController(sink, tickProvider, pool);
 
             detector.OnPositionSample(new UnityEngine.Vector3(20.5f, 0f, 20.5f));  // → 格 (20,0,20)
-            detector.OnTickEdge();                                                  // tick 边沿提交
+            detector.OnTickEdge(Tick);                                              // tick 边沿提交(边沿自有 tick)
 
             // ② 断言**真事件**已产生(而非零跨格事件)
             var cellEntry = sink.AppendedEvents.Find(e => e.Kind == EventKind.ActorCellEntered);
@@ -222,6 +231,33 @@ namespace DaYiJingCheng.Tests.WorldEcozones
             private readonly long _tick;
             public FixedTickProvider(long tick) { _tick = tick; }
             public long CurrentTick => _tick;
+        }
+
+        // ── 玩家控制器真夹具(TD-player-03 收敛轮:替代已删的 detector 实例)──
+        // PlayerController 是 MonoBehaviour —— `new` 被 Unity 禁止 ⇒ AddComponent 真夹具
+        // (S11-3 范式,同 host_authority_test);先挂 RequireComponent 依赖。
+
+        private readonly System.Collections.Generic.List<GameObject> _spawned =
+            new System.Collections.Generic.List<GameObject>();
+
+        [TearDown]
+        public void Teardown()
+        {
+            foreach (var go in _spawned)
+            {
+                if (go != null) UnityEngine.Object.DestroyImmediate(go);
+            }
+            _spawned.Clear();
+        }
+
+        private PlayerControllerType SpawnController(IEventSink sink, ITickProvider provider, InMemoryBlobPool pool)
+        {
+            var go = new GameObject("test_player_controller");
+            _spawned.Add(go);
+            go.AddComponent<CharacterController>();
+            var controller = go.AddComponent<PlayerControllerType>();
+            controller.Initialize(SimAuthorityMode.Host, sink, provider, new PayloadEncoder(pool), actorId: 0);
+            return controller;
         }
 
         [Test]

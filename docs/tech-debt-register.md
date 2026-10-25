@@ -341,7 +341,7 @@
 | `TD-sim-01` | `disease-simulation` | open | **Y** | R1 |
 | `TD-player-01` | `player-controller` | closed | **Y** | R1 |
 | `TD-player-02` | `player-controller` | closed | **Y** | R1 |
-| `TD-player-03` | `player-controller` | open | **Y** | R1 |
+| `TD-player-03` | `player-controller` | closed | **Y** | R1 |
 | `TD-epic-01-a` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-b` | `telemetry-analytics` | open | **Y** | R1 |
 | `TD-epic-01-c` | `telemetry-analytics` | open | **Y** | R1 |
@@ -356,7 +356,7 @@
 | `TD-persist-06` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-07` | `persistence-service` | closed | **Y** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
-| `TD-enemy-02` | `enemy-ai` | open | **Y** | R1 |
+| `TD-enemy-02` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-randomevents-01` | `random-events` | closed | **Y** | R1 |
 | `TD-randomevents-02` | `random-events` | closed | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | open | **N** | R2 |
@@ -437,8 +437,20 @@ PYEVAL
 ~~**当前预期输出(2026-10-25 二十六订实测 · `TD-persist-05` 结案(四条具名缺口 + 附全数兑现)—— 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 二十七订实测 · `TD-persist-04` 结案(`AC-7a-20` 事件触发半边兑现)—— 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 二十八订实测 · `TD-randomevents-02` 立债(52 GDD 轮兑现后写者转实现轮)—— 二十七订 / 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
-**当前预期输出(2026-10-25 二十九订实测 · `TD-randomevents-02` 结案(实现轮四动作全兑现)—— 二十八订 / 二十七订 / 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
-> 🔁 **二十九订(`TD-randomevents-02` 结案 · 2026-10-25 · 用户裁定「翻转 TD-randomevents-02 索引」)** —— 变化 =
+~~**当前预期输出(2026-10-25 二十九订实测 · `TD-randomevents-02` 结案(实现轮四动作全兑现)—— 二十八订 / 二十七订 / 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
+**当前预期输出(2026-10-25 三十订实测 · `TD-enemy-02` + `TD-player-03` 双结案(收敛轮,双裁定甲案)—— 二十九订 / 二十八订 / 二十七订 / 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
+> 🔁 **三十订(`TD-enemy-02` + `TD-player-03` 双结案 · 2026-10-25 · 用户裁定双甲案「删直线逼近 / 删实例状态机」)** —— 变化 =
+> **`closed 32 → 34`**(+2)· **`open 70 → 68`**(−2)· **`未闭 P0 面` 71 → 69**(−2)·
+> **`player-controller 1 → 0`** · **`enemy-ai 1 → 0`**(各 −1;epic 分布 11/31 → **9/31**)·
+> **`条目 109` 不动** · `Y 98` 不动(已闭曾标 P0 面 27 → 29)。
+> 单一变化源:两条索引行各自 `open → closed` —— 同轮双裁(敌人删 `StepAccumulator` /
+> 玩家删 `CellTransitionDetector` 实例状态机),结案块见各自正文。
+> 原件 = `production/qa/evidence/impl-td-enemy02-player03-2026-10-25.md`(一轮承载两债)。
+> ⚠️ **本条的 `closed` 不覆盖两个已具名的后续面**:① 敌人侧 —— 将来若确需「直线逼近」
+> 语义,**须另立条目重裁**(不得复活本条);② 玩家侧 —— `GetCell()`(RoundToInt)与
+> `CellFromPosition`(FloorToInt)的**方法级**分叉不在本条裁决面,随 45 联机轮或下次触发再裁。
+>
+> ~~二十九订正文(留档)~~:🔁 **二十九订(`TD-randomevents-02` 结案 · 2026-10-25 · 用户裁定「翻转 TD-randomevents-02 索引」)** —— 变化 =
 > **`closed 31 → 32`**(+1)· **`open 71 → 70`**(−1)· **`未闭 P0 面` 72 → 71**(−1)·
 > **`random-events 1 → 0`**(−1;epic 分布清空该行,12/31 → **11/31**)·
 > **`条目 109` 不动** · `Y 98` 不动(已闭曾标 P0 面 26 → 27)。
@@ -582,21 +594,26 @@ PYEVAL
 > 十六订补结)。
 
 ```text
-条目 109 | 状态 {'open': 70, 'partial': 6, 'closed': 32, '**done**(2026-10-21)': 1} | P0 面 {'Y': 98, 'N': 10, '~~**Y**~~': 1}
-未闭 P0 面 = 71 （已闭但曾标 P0 面的 27 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 71 条,分布在 11/31 个 epic
+条目 109 | 状态 {'open': 68, 'partial': 6, 'closed': 34, '**done**(2026-10-21)': 1} | P0 面 {'Y': 98, 'N': 10, '~~**Y**~~': 1}
+未闭 P0 面 = 69 （已闭但曾标 P0 面的 29 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 69 条,分布在 9/31 个 epic
     medical-consequences: 20   audio-system: 20          clinic-machine: 17
     telemetry-analytics: 5     skeuomorphic-ui: 2         disease-simulation: 2
-    patient-ai: 1              player-controller: 1       enemy-ai: 1
-    item-database: 1           modular-building: 1
+    patient-ai: 1              item-database: 1           modular-building: 1
 ```
 
-> 🔁 **2026-10-25 实现轮收口:本输出块已刷新到二十九订(`TD-randomevents-02` 结案)**。
-> 相对二十八订叙事块的 `closed 31 / open 71 / 未闭 72 / random-events 1`,变化 =
-> **`closed 31 → 32`**(+1)· **`open 71 → 70`**(−1)· **`未闭 P0 面` 72 → 71**(−1)·
-> **`random-events 1 → 0`**(−1;epic 分布 12/31 → **11/31**)· `条目 109` / `Y 98` 不动。
-> 单一变化源:`TD-randomevents-02` 索引行 `open → closed`(本轮兑现,结案判据见其兑现注;
-> 三笔接线义务不随 closed 结清 —— 见二十九订块 ⚠)。
+> ~~🔁 **2026-10-25 实现轮收口:本输出块已刷新到二十九订(`TD-randomevents-02` 结案)**。~~
+> ~~相对二十八订叙事块的 `closed 31 / open 71 / 未闭 72 / random-events 1`,变化 =~~
+> ~~**`closed 31 → 32`**(+1)· **`open 71 → 70`**(−1)· **`未闭 P0 面` 72 → 71**(−1)·~~
+> ~~**`random-events 1 → 0`**(−1;epic 分布 12/31 → **11/31**)· `条目 109` / `Y 98` 不动。~~
+> ~~单一变化源:`TD-randomevents-02` 索引行 `open → closed`(本轮兑现,结案判据见其兑现注;~~
+> ~~三笔接线义务不随 closed 结清 —— 见二十九订块 ⚠)。~~
+> 🔁 **2026-10-25 收敛轮:本输出块已刷新到三十订(`TD-enemy-02` + `TD-player-03` 双结案)**。
+> 相对二十九订的 `closed 32 / open 70 / 未闭 71 / 11 epic`,变化 =
+> **`closed 32 → 34`**(+2)· **`open 70 → 68`**(−2)· **`未闭 P0 面` 71 → 69**(−2)·
+> **`player-controller 1 → 0`** · **`enemy-ai 1 → 0`**(epic 分布 11/31 → **9/31**)·
+> `条目 109` / `Y 98` 不动。单一变化源:两条索引行各自 `open → closed`(同轮双裁,
+> 结案块见各自正文)。复算命令 = §五 脚本本体(自包含,当场可跑)。
 > ⚠️ **本块同时补刷二十五订的漏刷**:二十五订只翻了标题与叙事块,本块曾停在
 > 二十四订读数(`open 73 / closed 28 / 未闭 74`)—— 已随本订一并刷新(见上方二十六订注)。
 > 相对二十三订的 `条目 108 / open 73 / closed 28 / 未闭 74 / 12 epic`,**五位全部不动** ——
@@ -2491,6 +2508,26 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > ⚠️ **本条与 `TD-player-03` 同型但不同根因** —— 03 是「生产内联 vs 独立类」(其中一份只有测试消费),
 > 本条是「两个独立类、都零生产消费」。**不得**合并记账:03 的解除动作是「二选一收敛」,
 > 本条是「先裁语义边界再决定删/留」。 |
+>
+> ✅ **结案块(2026-10-25 · TD-enemy-02 + TD-player-03 双实现收敛轮 —— 用户裁定甲案「删直线逼近」,`open → closed`)**
+>
+> | 动作 | 落点 | 内容 |
+> |---|---|---|
+> | ① 裁定(解除动作①) | 用户 2026-10-25 裁定 | **甲案:删 `StepAccumulator` / `ValidateAccumulator`** —— 直线逼近语义 GDD 无对应物(F-27-4 权威 = 沿路径 `Advance`),二者零生产消费 ⇒ 无「直线逼近是独立需求」的证据面,备选乙案(互写交叉引用 + 具名适用条件)不成立 |
+> | ② 删 ① + 留档注 | `unity/Assets/Sim/EnemyPathing.cs` | `StepAccumulator` / `ValidateAccumulator` 全删,就地删除注(承「原文不删」—— 判据与适用语义留 git 可查);`FindPath` / `ComputeOctileHeuristic` 不动 |
+> | ③ 头注钉唯一实现 | `unity/Assets/Sim/EnemyLocomotion.cs` | 头注改「本类是敌人步进的唯一实现」+ 裁定出处 |
+> | ④ AC-27-19 载体迁移 | `Tests/EditMode/EnemyAI/` | `deterministic_pathing_test.cs` 删 `test_steppingProperty`(打错算子 —— GDD `enemy-ai.md:1445` 引 F-27-4,原测打 StepAccumulator);性质测试迁 `logi_pose_test.cs` 新增 `test_ac2719_property_speedBelowOne_andMovingSequences`(4 speed × 3 序列:acc ∈ [0, 65536) 字面量 · LogiPose.Cell ∈ path · 曼哈顿位移 ≤ 1 · 冻结 tick 位姿不动);AC-27-20 Ignore 注释就地订正(公开面过期描述);机械门(解除动作②)**随第二实现消失结构性消解** —— 「生产树内不得同时调用」在只剩一个算子时无可断言之物,登记为消解而非欠账 |
+>
+> **回归三元组**:`5033 / 4998 / 0 / 35` @ `2026-10-25 12:25 UTC` · 批次 `conv`(双收敛轮全量
+> EditMode)· commit `7223126` 工作树(含本轮未提交改动;前基线 `5033/4998/0/35` @ `11:49` ·
+> `TD-persist-04 义务②` 轮 · 同 commit 工作树 ⇒ **净变化 0**:−1 `test_steppingProperty` +
+> 1 `test_ac2719_property…`,cell_transition_test 重写条数不变)。
+> **证伪轮 M2**:停用 `EnemyLocomotion.Advance` 冻结分支(`if (!moving)` → `if (acc.Raw < 0)`)
+> ⇒ `test_ac2719_property_speedBelowOne_andMovingSequences` 红(+既有
+> `test_advance_frozenKeepsAcc_notZeroing` 双确认;failed=2;SHA-256 逐字节还原)。
+> **原件** = `production/qa/evidence/impl-td-enemy02-player03-2026-10-25.md`。
+> ⚠️ **「27 首次接线时选算子」的指引自此由删除注承载**:全树仅 `EnemyLocomotion.Advance`
+> 一个步进算子,接线时无选择面;将来若确需直线逼近语义,**须另立条目重裁**(不得复活本条)。 |
 
 ### TD-randomevents-01 — `DeferredThreatSlot` 状态量零落点
 
@@ -3401,3 +3438,23 @@ Linux-ARM64-IL2CPP  不可达            (pinned 工具链零 arm 目标,2026-10
 
 > ⚠️ **本条不与 `TD-player-02` 合并** —— 02 是「契约零落点」(已于同日由 S19-2 兑现,待其证据件走完
 > `/story-done` 面再评),本条是「实现双份」;根因不同,合并会让「02 已还 / 03 未还」不可判。
+>
+> ✅ **结案块(2026-10-25 · TD-enemy-02 + TD-player-03 双实现收敛轮 —— 用户裁定甲案「删实例状态机」,`open → closed`)**
+>
+> | 动作 | 落点 | 内容 |
+> |---|---|---|
+> | ① 裁定(解除动作①) | 用户 2026-10-25 裁定 | **甲案:删 `CellTransitionDetector` 实例状态机**(乙案「生产内联持 detector 实例」否决)—— ② 是功能**子集** + 带着已被内联修掉的缺陷形态(载荷 tick 读帧末 `CurrentTick`,multi-tick 帧内事件头错位;内联走边沿自有 tick,BCD-码-2 修复)。收敛方向 = 删平行实现,规格并入唯一实现 |
+> | ② 类重写为静态工具 | `Gameplay.Presentation/Player/CellTransitionDetector.cs` | 实例状态机(三状态字段 + `OnPositionSample` / `OnTickEdge`)全删;**保留静态工具** `CellFromPosition`(FloorToInt 取格,内联路径消费 —— 取格单一真源)+ `ComputeDisplacement`(dt 钳位);类头注载裁定与删除范围 |
+> | ③ 夹具归一(解除动作②) | `Tests/EditMode/PlayerController/` + `Tests/EditMode/WorldEcozones/` | **五个夹具全部迁到内联唯一实现**:`cell_transition_test.cs` 12 条行为断言迁 `PlayerController` 真组件(S11-3 范式 AddComponent + `Initialize(Host, sink, provider, encoder, actorId)`);`test_ac105` 升级为 `test_ac105_tickFromEdgeTick_notFrameEnd`(provider=999 / 边沿=42 —— **比原断言更强**,钉死已删缺陷形态不回归);`host_authority_test` / `stream_bound_test` / `o6_actor_cell_payload_test` / `WorldEcozones/chunk_activation_test` 各自 `new CellTransitionDetector` 消费面全迁(首验 CS0712/CS0723/CS1061 编译红暴露的漏扫面,全数迁移,残留 = 0);解除动作③(边沿锁存器留 PlayerController)随 ② 类删除自然成立(`_cellEdgeLatched` 从未入 ②) |
+> | ④ 消费面清点 | 全仓 grep | `new CellTransitionDetector` 代码面**零残留**(4 处命中全为注释里的删除注引述 —— 承「原文不删」) |
+>
+> **回归三元组**:`5033 / 4998 / 0 / 35` @ `2026-10-25 12:25 UTC` · 批次 `conv`(双收敛轮全量
+> EditMode)· commit `7223126` 工作树(含本轮未提交改动;前基线同数同 commit 工作树 ⇒
+> **净变化 0** —— cell_transition_test 迁移前后条数不变,EnemyAI 侧 −1 +1 相抵)。
+> **证伪轮 M1**:`OnTickEdge` 内 `AppendCellEnteredEvent(cell, tick)` 改读帧末
+> `_tickProvider.CurrentTick`(恢复已删缺陷形态)⇒ `test_ac105_tickFromEdgeTick_notFrameEnd`
+> 红(failed=1;SHA-256 逐字节还原)。**M2**(enemy 侧,见 TD-enemy-02 结案块)。
+> **原件** = `production/qa/evidence/impl-td-enemy02-player03-2026-10-25.md`。
+> ⚠️ **`GetCell()`(RoundToInt)分叉面不在本条裁决面**:本条收敛的是「实例状态机双份」;
+> `GetCell` 的 RoundToInt 语义订正(S19-2 已注)与 FloorToInt 的并存是**方法级**问题,
+> 随 45 联机轮或下次触发条件再裁。

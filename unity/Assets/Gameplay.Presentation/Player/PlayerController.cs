@@ -124,6 +124,9 @@ namespace DaYiJingCheng.Gameplay.Presentation.Player
 
         // C-3(已裁 2026-10-24):死字段 `_cellDetector` 删除 —— 零赋值零使用;
         // 生产内联算子与 CellTransitionDetector 的重复另立 TD 归后续轮。
+        // ✅ 2026-10-25(TD-player-03 收敛轮 · 裁定甲案):该「后续轮」已落地 ——
+        // CellTransitionDetector 的实例状态机已删,本内联路径是跨格状态机唯一实现;
+        // 其行为规格由 cell_transition_test 迁入钉住。
 
         /// <summary>
         /// 初始化(供测试和联机层调用)。

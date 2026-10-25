@@ -56,11 +56,16 @@ namespace DaYiJingCheng.Tests.PlayerController
         private readonly List<GameObject> _spawned = new List<GameObject>();
 
         private PlayerControllerType CreateController()
+            => CreateController(_sink, _provider, actorId: 0);
+
+        private PlayerControllerType CreateController(IEventSink sink, ITickProvider provider, int actorId)
         {
             var go = new GameObject("test_player_controller");
             _spawned.Add(go);
             go.AddComponent<CharacterController>();
-            return go.AddComponent<PlayerControllerType>();
+            var controller = go.AddComponent<PlayerControllerType>();
+            controller.Initialize(SimAuthorityMode.Host, sink, provider, _encoder, actorId);
+            return controller;
         }
 
         [TearDown]
@@ -81,16 +86,18 @@ namespace DaYiJingCheng.Tests.PlayerController
             // Arrange: 两个 actor 各自的跨格检测器,喂**同 tick、同格**样本,
             // Append 到同一条真 EventStream(而非 FakeSink —— 去重只在真流上发生)。
             var stream = new EventStream(new FakeIdAuthority(), new FakePresenceQuery());
-            var detector1 = new CellTransitionDetector(stream, _provider, _encoder, actorId: 1);
-            var detector2 = new CellTransitionDetector(stream, _provider, _encoder, actorId: 2);
+            // 🔁 TD-player-03(2026-10-25 收敛轮):原 new CellTransitionDetector(已删),
+            //    现两个 PlayerController 真组件(不同 GameObject,各自身份注入)。
+            var detector1 = CreateController(stream, _provider, actorId: 1);
+            var detector2 = CreateController(stream, _provider, actorId: 2);
 
             const float X = 3.5f, Z = 4.5f;
             detector1.OnPositionSample(new Vector3(X, 0f, Z));
             detector2.OnPositionSample(new Vector3(X, 0f, Z));
 
             // Act: 同一 tick 边沿
-            detector1.OnTickEdge();
-            detector2.OnTickEdge();
+            detector1.OnTickEdge(100);
+            detector2.OnTickEdge(100);
 
             // Assert: 两条都入流(O-4 条件键区分 PayloadRef;修复前伪引用同值 ⇒ 第二条被吞)
             Assert.AreEqual(2, stream.Count,
@@ -141,18 +148,20 @@ namespace DaYiJingCheng.Tests.PlayerController
         public void test_o6_payloadRoundTrip_actorCellTick()
         {
             // Arrange: 真编码器 + 真池
-            var detector = new CellTransitionDetector(_sink, _provider, _encoder, actorId: 7);
+            // 🔁 TD-player-03(2026-10-25):原 new CellTransitionDetector(已删),现打内联。
+            var detector = CreateController(_sink, _provider, actorId: 7);
 
             // Act
             detector.OnPositionSample(new Vector3(2.5f, 1.5f, 8.25f));
-            detector.OnTickEdge();
+            detector.OnTickEdge(100);
 
             // Assert: 事件形态
             Assert.AreEqual(1, _sink.AppendedEvents.Count);
             var evt = _sink.AppendedEvents[0];
             Assert.AreEqual(EventKind.ActorCellEntered, evt.Kind);
             Assert.AreEqual(PatientId.None, evt.Patient, "AC-1-24:不污染高水位");
-            Assert.AreEqual(100, evt.Tick, "tick 来自 ITickProvider");
+            Assert.AreEqual(100, evt.Tick,
+                "tick == 边沿自有 tick(BCD-码-2:内联不走帧末 CurrentTick —— 传入 100 恰同值)");
 
             // Assert: 载荷可经池 + codec 取回(修复前伪引用 ⇒ TryGetPayload false)
             var p = PayloadOf(evt);
@@ -209,17 +218,15 @@ namespace DaYiJingCheng.Tests.PlayerController
         [Test]
         public void test_o6_negativeActorId_rejected()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(
-                () => new CellTransitionDetector(_sink, _provider, _encoder, actorId: -1),
-                "actorId 走 ADR-006 Amendment B 计数器 id 空间,不得为负(detector)");
-
+            // 🔁 TD-player-03(2026-10-25 收敛轮):原 detector 侧两条 `new CellTransitionDetector`
+            //    守卫断言随实例状态机删除(宾语不存在)—— 守卫语义由 controller 侧
+            //    `Initialize` 的同款守卫承载(负 id / null encoder 各一条)。
             var controller = CreateController();
             Assert.Throws<ArgumentOutOfRangeException>(
                 () => controller.Initialize(SimAuthorityMode.Host, _sink, _provider, _encoder, actorId: -1),
-                "同上(controller)");
-
+                "actorId 走 ADR-006 Amendment B 计数器 id 空间,不得为负(controller)");
             Assert.Throws<ArgumentNullException>(
-                () => new CellTransitionDetector(_sink, _provider, null, actorId: 0),
+                () => controller.Initialize(SimAuthorityMode.Host, _sink, _provider, null, actorId: 0),
                 "encoder 必填(缺注入 = 退回手搓的入口)");
         }
 
