@@ -11315,3 +11315,12 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 <!-- 清债规划挪移(2026-10-25,用户裁定) -->
 - **清债总体规划移位**:原登记于 `production/sprints/sprint-20.md`,用户裁定「不是登记到 sprint20,而是总体 sprint 规划」⇒ 整节逐字移入 `production/milestones/p0-remaining-roadmap-2026-10-20.md` **§6.5.3**;sprint-20.md 原位留指针。
 - **总体剩余 sprint 数(依 §6.5 序列,2026-10-25 现状)**:sprint-20(当前轮,余 S20-1…4)… sprint-29 共 **10 轮**;M4 内容面为非 sprint 独立载体。sprint-23 前置 G-1 仍未清(S18-1 结转,未随 sprint-19 清偿)。
+
+## Session Extract — /dev-story 2026-10-25 (S20-1)
+- Story: production/epics/clinic-machine/story-004-delivery-boundary-clinicenvdto.md — clinic-004 交付边界 ClinicEnvDto
+- 实现完成(子代理):新夹具 clinic_env_delivery_test.cs 9 测 9 绿 + S12-4 反证 3/3 转红(F1 白名单定义域收窄 / F2 守卫停用 / F3 撤钳阈值)+ 全量 EditMode 5045/5010/0/35(增量 +9/+9/0 对上基线 tddc-full2 5036/5001)
+- 契约面已在盘(bbaec14 ClinicEnvDto.cs),本卡零生产改动;21a clamp 已就绪 ⇒ 桩/Ignore 预设不适用,走真件联测
+- surface:① b2 门对「声明未使用」asmdef 引用盲(F1 发现,建议债册登记);② IClinicEnvQuery 生产实现两处语义未裁(房号映射 / ContextIds 词表),归装配轮;③ 9 侧消费点未存在,TR-clinic-009 机械化 NOT-RUN
+- 证据件:production/qa/evidence/impl-s20-1-clinic004-2026-10-25.md;story 状态未翻(归 /story-done)
+- 未 commit(等用户指令);Unity batch 已结束,可重开编辑器
+- Next: /code-review → /story-done
