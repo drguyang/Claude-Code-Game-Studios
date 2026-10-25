@@ -22,6 +22,12 @@
 //   把同一个实例同时喂给 `StructureWriter` 与 `CompositionRoot.Assemble(structures:)`。
 //   ⇒ **注册表侧已真,`World` 侧仍未**;`IsEffectivelyWalkable` 的端到端判据**不在本文件面内**,
 //   **未验**。原文件头写「真 `World` + 真 `StructureWriter`」是**自述过宽**,已就地订正。
+//   🔁 **2026-10-26 订正(S20-2 连带)**:上句「`World` 侧仍未 / 未验」**已过时** ——
+//     S20-2a 的 `Tests/EditMode/ModularBuilding/world_end_to_end_test.cs` 已把**真 `World`**
+//     接进 `StructureWriter` 的 `IWorldOccupancy` 位,覆盖 `Place → IsEffectivelyWalkable == false` /
+//     `Remove → true`(含非锚点足迹格 + 真烘焙目录行);`TD-building-01` 两半已 closed
+//     (债册三十五订)。⇒ 本条**不再是缺口**,只是「本文件自己不承担该判据」。
+//     本文件与它的分工不变:本文件判**匹配链**(析出 + 房间类型),`World` 端到端判**占用合成**。
 //
 // ⚠️ **零 Fake**:`StructureInstanceRegistry` / `StructureWriter` /
 //   `BuildModulesCatalog` / `ClinicFurnitureCatalogue` / `ClinicRoomTable` 全部是生产类型;
@@ -280,7 +286,13 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         /// 这是「静默错误」,不抛、不警告。</para>
         /// <para><b>判别力</b>:把 `Match()` 里新建视图的那两行提到构造期(存字段)⇒ 本测红。</para>
         /// <para>⚠️ **本测不覆盖 AC-24-11 的 Memoize 面**(那归 story-005)——
-        /// 它只钉「本实现没有陈旧缓存」这一条。</para></summary>
+        /// 它只钉「本实现没有陈旧缓存」这一条。</para>
+        /// <para>🔁 **2026-10-26 订正(S20-2 连带,原文不删)**:上句的 `AC-24-11` 应读作
+        /// **`EC-24-05`** —— GDD `:411` 的 AC-24-11 是「外壳格 / 空地板格不计分、不参与连通」
+        /// (归 story-002),缓存失效的权威出处是 EC-24-05 `:291` + States 注 `:123-127`
+        /// (story-005 卡面 2026-10-25 重写轮订正表 ①)。Memoize 的实现载体现为
+        /// `Gameplay.Presentation/ClinicEnvironmentMemo.cs`,其判据在
+        /// `Tests/EditMode/ClinicMachine/clinic_purity_replay_test.cs`。</para></summary>
         [Test]
         public void test_afterRemove_recomputedWithoutStaleCache()
         {
