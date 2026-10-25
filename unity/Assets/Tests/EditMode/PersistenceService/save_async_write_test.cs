@@ -463,7 +463,11 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_saveOnExit_joinsWorkerAndWritesFile()
         {
-            var svc = Service(scheduler: action => Task.Run(action));
+            // ⚠️ 本测的语义订正后,**必须给真 join 预算**(清债轮 2026-10-25 修):
+            //    助手默认 `exitSaveRetryMillis = 0` 在「join 超时」语义下 = 等 0 ms,
+            //    配 `Task.Run` 变成「worker 赢竞速才绿」的负载相关 flake
+            //    (c0c1e4c 语义订正的夹具侧遗留;全量回归实测掀出)。
+            var svc = Service(scheduler: action => Task.Run(action), exitSaveRetryMillis: 5000);
             svc.SaveOnExit();
 
             Assert.IsTrue(File.Exists(Path.Combine(_testDir, SaveService.ExitSaveFileName)),

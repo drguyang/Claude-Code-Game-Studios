@@ -19,7 +19,10 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using NUnit.Framework;
+using DaYiJingCheng.Gameplay.UI.Skeuomorphic;
+using DaYiJingCheng.Gameplay.UI.Skeuomorphic.Brass;
 using DaYiJingCheng.Sim.Contracts;
+using UnityEngine.UIElements;
 
 namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
 {
@@ -82,26 +85,53 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         }
 
         /// <summary>AC-42-F3: 刻度条只禁墨侧 —— 黄铜侧读数条的錾刻刻度合法。
-        /// B3 修复:测试名改为 brassSide_componentsExist,验证黄铜侧元件存在。
-        /// QA 修复:目录不存在时用 Assert.Inconclusive(当前阶段无法判定)。
-        /// 实现后补充:验证黄铜侧刻度条合法性。</summary>
+        /// 清债轮重写(TD-prescription-07 · 2026-10-25):原版只查 Brass 目录存在
+        /// (占位实现);现改为经**真分类器**断分支归属 —— 刻度读数件与档形态子件
+        /// 须归黄铜分支(AC-42-F3 分支半边的真断言)。</summary>
         [Test]
-        public void test_ac42f3_brassSide_componentsExist()
+        public void test_ac42f3_brassSide_scaleElement_classifiedAsBrass()
         {
-            // Arrange:扫描黄铜侧元件
-            string brassDir = Path.Combine(repoRoot(), "unity", "Assets", "Gameplay.UI", "Skeuomorphic", "Brass");
+            // Arrange:黄铜刻度读数件 + 逐档形态(AC-025-1 的形态载体)
+            var scale = new BrassScaleElement();
+            scale.SetDetents(3, 2);
 
-            // Act:检查目录是否存在
-            if (!Directory.Exists(brassDir))
-            {
-                // QA 修复:目录不存在时用 Inconclusive(当前阶段无法判定)
-                Assert.Inconclusive("黄铜侧元件目录尚未创建,当前阶段无法判定(AC-42-F3)");
-                return;
-            }
+            // Act / Assert:宿主经分类器归黄铜分支(非字面类名判断)
+            Assert.That(SkeuoMaterialBranchClassifier.Of(scale),
+                Is.EqualTo(SkeuoMaterialBranch.Brass),
+                "黄铜刻度读数件须归黄铜分支(AC-42-F3)");
 
-            // Assert:黄铜侧元件存在时,验证元件文件存在
-            var brassFiles = Directory.GetFiles(brassDir, "*.cs", SearchOption.AllDirectories);
-            Assert.That(brassFiles, Is.Not.Empty, "黄铜侧元件目录应包含 .cs 文件");
+            // 档形态子件自身不带根材质类 ⇒ 经祖先链归属(分类器的子树语义)
+            VisualElement band = scale.Q(className: BrassScaleElement.DetentBandClass);
+            Assert.That(band, Is.Not.Null, "档形态带须存在(SetDetents 后)");
+            Assert.That(SkeuoMaterialBranchClassifier.Of(band),
+                Is.EqualTo(SkeuoMaterialBranch.Brass), "档形态带须归黄铜分支");
+            foreach (VisualElement detent in band.Children())
+                Assert.That(SkeuoMaterialBranchClassifier.Of(detent),
+                    Is.EqualTo(SkeuoMaterialBranch.Brass),
+                    "档形态子件须随宿主归黄铜分支(AC-025-6)");
+        }
+
+        [Test]
+        public void test_ac42f3_classifier_threeBranches_mapped()
+        {
+            // 三档枚举的映射完备性(GDD §二 ②/③:分支数 2 → 3 后的三档各自可达)
+            Assert.That(SkeuoMaterialBranchClassifier.OfClass("ink"), Is.EqualTo(SkeuoMaterialBranch.Ink));
+            Assert.That(SkeuoMaterialBranchClassifier.OfClass("paper"), Is.EqualTo(SkeuoMaterialBranch.Ink));
+            Assert.That(SkeuoMaterialBranchClassifier.OfClass("scroll"), Is.EqualTo(SkeuoMaterialBranch.Ink));
+            Assert.That(SkeuoMaterialBranchClassifier.OfClass("seal"), Is.EqualTo(SkeuoMaterialBranch.Ink));
+            Assert.That(SkeuoMaterialBranchClassifier.OfClass("brass"), Is.EqualTo(SkeuoMaterialBranch.Brass));
+            Assert.That(SkeuoMaterialBranchClassifier.OfClass("implement"), Is.EqualTo(SkeuoMaterialBranch.Implement));
+        }
+
+        [Test]
+        public void test_ac42f3_classifier_unknownRootClass_failsLoud()
+        {
+            // 分类器契约的另一半:未知根类 / 无根类元件必须抛(fail-loud,禁静默默认)——
+            // 归错档 = 材质语言互相渗透(墨侧禁令被绕过的通道)。
+            Assert.Throws<ArgumentException>(() =>
+                SkeuoMaterialBranchClassifier.OfClass("neon"));
+            Assert.Throws<InvalidOperationException>(() =>
+                SkeuoMaterialBranchClassifier.Of(new VisualElement()));
         }
 
         // ══════════════ V-10: 铜面+蚀刻 哑光面片 ══════════════

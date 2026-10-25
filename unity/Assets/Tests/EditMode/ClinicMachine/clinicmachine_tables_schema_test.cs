@@ -69,6 +69,27 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                     $"错误集未包含「{needles[i]}」;全集 = {joined}");
         }
 
+        /// <summary>按 room_type 取上下文行(语义值断言用;缺失即 Fail,不静默)。</summary>
+        private static ClinicMachineContextBinder.ContextRow RowOf(
+            ClinicMachineContextBinder.BindResult bound, string roomType)
+        {
+            for (int i = 0; i < bound.Rows.Count; i++)
+                if (bound.Rows[i].RoomType == roomType)
+                    return bound.Rows[i];
+            Assert.Fail($"表缺 {roomType} 行(语义值断言的前提)");
+            return default; // 不可达
+        }
+
+        /// <summary>取有向对 (a,b) 的权重 raw(语义值断言用;缺失即 Fail)。</summary>
+        private static long PairW(ClinicMachineAdjBinder.BindResult bound, string a, string b)
+        {
+            for (int i = 0; i < bound.Pairs.Count; i++)
+                if (bound.Pairs[i].A == a && bound.Pairs[i].B == b)
+                    return bound.Pairs[i].W.Raw;
+            Assert.Fail($"表缺有向对 ({a},{b})(语义值断言的前提)");
+            return 0; // 不可达
+        }
+
         /// <summary>注入用的**测试内局部**家具类型替身。
         /// <para>⚠️ **非真闭集**(`FURN_TYPES` 的真源 = 21a 家具目录扩展,O-24-1,实测零落点)。
         /// 它是**传给注入参数的协作对象**,不是声明的闭集 —— 用于证明接缝通电(裁决 2(a))。</para></summary>
@@ -114,7 +135,16 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             ClinicMachineContextBinder.BindResult bound = ClinicMachineTablesBake.BindContextForTest(
                 FixtureText("valid_context_boundary.json"));
 
-            Assert.That(bound.Rows.Count, Is.GreaterThan(0));
+            // 语义值断言(清债轮 · TD-clinic-09):只断 Count>0 时行内容全错仍绿。
+            // 钉到夹具逐行值(Q16.16 raw:1/1=65536 · 7/8=57344 · 3/4=49152 · 1/4=16384 · 1/8=8192)。
+            Assert.That(bound.Rows.Count, Is.EqualTo(3));
+            Assert.That(RowOf(bound, "ward").KSpeed.Raw, Is.EqualTo(65536L));
+            Assert.That(RowOf(bound, "ward").BaseEnv.Raw, Is.EqualTo(0L));
+            Assert.That(RowOf(bound, "surgery").KSpeed.Raw, Is.EqualTo(57344L));
+            Assert.That(RowOf(bound, "surgery").BaseEnv.Raw, Is.EqualTo(16384L));
+            Assert.That(RowOf(bound, "herb_room").KSpeed.Raw, Is.EqualTo(49152L));
+            Assert.That(RowOf(bound, "herb_room").BaseEnv.Raw, Is.EqualTo(8192L));
+            Assert.That(bound.KContextMax.Raw, Is.EqualTo(65536L));
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -145,8 +175,33 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             ClinicMachineAdjBinder.BindResult bound = ClinicMachineTablesBake.BindAdjForTest(
                 RepoDataText("clinicmachine_adj.json"));
 
-            Assert.That(bound.Pairs.Count, Is.GreaterThan(0));
-            Assert.That(bound.NMax, Is.GreaterThan(0));
+            Assert.That(bound.Pairs.Count, Is.EqualTo(6));
+            Assert.That(bound.NMax, Is.EqualTo(64L));
+            Assert.That(bound.WMin.Raw, Is.EqualTo(-16384L));
+            Assert.That(bound.WMax.Raw, Is.EqualTo(16384L));
+
+            // 值级对称(AC-24-06 的语义半边):每个有向行存在等权反向行 —— 只数行数时
+            // 「权重全错但仍成对」的表照样绿(清债轮 · TD-clinic-09)。
+            for (int i = 0; i < bound.Pairs.Count; i++)
+            {
+                string fwdA = bound.Pairs[i].A;
+                string fwdB = bound.Pairs[i].B;
+                long fwdW = bound.Pairs[i].W.Raw;
+                bool mirrored = false;
+                for (int j = 0; j < bound.Pairs.Count; j++)
+                    if (bound.Pairs[j].A == fwdB && bound.Pairs[j].B == fwdA
+                        && bound.Pairs[j].W.Raw == fwdW)
+                    {
+                        mirrored = true;
+                        break;
+                    }
+                Assert.That(mirrored, Is.True, $"({fwdA},{fwdB}) 缺等权反向行");
+            }
+
+            // 代表行语义值(Q16.16 raw:1/8=8192 · -1/8=-8192 · -1/4=-16384)。
+            Assert.That(PairW(bound, "surgery_table", "sterile_cabinet"), Is.EqualTo(8192L));
+            Assert.That(PairW(bound, "herb_cabinet", "chamber_pot"), Is.EqualTo(-8192L));
+            Assert.That(PairW(bound, "bed", "chamber_pot"), Is.EqualTo(-16384L));
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -162,6 +217,15 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 ClinicMachineSchema.Int32Max, 1L, -16384L, 16384L, errors);
 
             Assert.That(errors, Is.Empty);
+
+            // 判别力配对(清债轮 · TD-clinic-02 · M0b 实测:守卫停用时本测原样绿)。
+            // 同测内驱动一次越界(Int32Max × 2 ≥ 2^31),钉守卫自己的报文 token ——
+            // 守卫停用 ⇒ 本段红。接受侧自此不再「只断没报错」。
+            var overflow = new List<string>();
+            ClinicMachineSchema.AssertOverflowBounds(
+                ClinicMachineSchema.Int32Max, 2L, -16384L, 16384L, overflow);
+
+            Assert.That(string.Join("; ", overflow), Does.Contain("溢出界失败"));
         }
 
         [Test]
@@ -184,6 +248,16 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 FixtureText("valid_adj_boundary.json"));
 
             Assert.That(bound.NMax, Is.EqualTo(715827882L));
+
+            // 判别力配对(清债轮 · TD-clinic-02 · M0b 实测:NMax 相等只证解析回读)。
+            // 把解析出的边界值接回守卫本体:恰界须过、+1 须拒 —— 守卫停用 ⇒ 本段红。
+            var atFloor = new List<string>();
+            ClinicMachineSchema.AssertOverflowBounds(bound.NMax, 3L, -16384L, 16384L, atFloor);
+            Assert.That(atFloor, Is.Empty);
+
+            var overFloor = new List<string>();
+            ClinicMachineSchema.AssertOverflowBounds(bound.NMax + 1L, 3L, -16384L, 16384L, overFloor);
+            Assert.That(string.Join("; ", overFloor), Does.Contain("溢出界失败"));
         }
 
         [Test]
@@ -216,7 +290,29 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         public void test_constants_env_mod_min_negative_accepted()
         {
             // 生产路径 = 读 assets/data/item_database_constants.json(env_mod_min = "-1/2")。
-            Assert.DoesNotThrow(() => ClinicMachineTablesBake.BakeFromRepo(RepoRoot()));
+            ClinicMachineTablesBake.BakeOutput output = ClinicMachineTablesBake.BakeFromRepo(RepoRoot());
+
+            // 语义值断言(清债轮 · TD-clinic-08):DoesNotThrow 只证「没炸」;钉到源表
+            // 逐行值(Q16.16 raw:0 · 1/4=16384 · 1/8=8192)—— 哪些行被接受,逐值可判。
+            Assert.That(output.Context.Rows.Count, Is.EqualTo(3));
+            Assert.That(RowOf(output.Context, "ward").BaseEnv.Raw, Is.EqualTo(0L));
+            Assert.That(RowOf(output.Context, "surgery").BaseEnv.Raw, Is.EqualTo(16384L));
+            Assert.That(RowOf(output.Context, "herb_room").BaseEnv.Raw, Is.EqualTo(8192L));
+
+            // 域边界接受侧(与下方非负拒收侧配对):base_env = ±ENV_MOD(= ±1/2,
+            // 读真实常量文件)必须过 —— O-24-4 门在边界不误伤;钉解析值 ±32768。
+            const string contextAtDomainBounds =
+                "{ \"schema_version\": 1, \"contexts\": [" +
+                " { \"room_type\": \"ward\", \"context_id\": \"lo\", \"k_speed\": \"1\", \"base_env\": \"-1/2\" }," +
+                " { \"room_type\": \"surgery\", \"context_id\": \"hi\", \"k_speed\": \"1\", \"base_env\": \"1/2\" } ] }";
+            ClinicMachineTablesBake.BakeOutput bounds = ClinicMachineTablesBake.BakeFromJson(
+                contextAtDomainBounds,
+                RepoDataText("clinicmachine_adj.json"),
+                RepoDataText("clinicmachine_room.json"),
+                RepoDataText("item_database_constants.json"));
+
+            Assert.That(RowOf(bounds.Context, "ward").BaseEnv.Raw, Is.EqualTo(-32768L));
+            Assert.That(RowOf(bounds.Context, "surgery").BaseEnv.Raw, Is.EqualTo(32768L));
         }
 
         [Test]
@@ -448,9 +544,14 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             Assert.That(output.ContextCooked.Length, Is.GreaterThanOrEqualTo(CookedFormat.HeaderSize));
             Assert.That(output.AdjCooked.Length, Is.GreaterThanOrEqualTo(CookedFormat.HeaderSize));
             Assert.That(output.RoomCooked.Length, Is.GreaterThanOrEqualTo(CookedFormat.HeaderSize));
-            Assert.That(output.Context.Rows.Count, Is.GreaterThan(0));
-            Assert.That(output.Adj.Pairs.Count, Is.GreaterThan(0));
-            Assert.That(output.Room.Rooms.Count, Is.GreaterThan(0));
+
+            // 语义值断言(清债轮 · TD-clinic-08/09):「非空」不证哪些行被接受;钉到
+            // 三表逐行计数与代表行值(Q16.16 raw:1=65536 · -1/4=-16384)。
+            Assert.That(output.Context.Rows.Count, Is.EqualTo(3));
+            Assert.That(output.Adj.Pairs.Count, Is.EqualTo(6));
+            Assert.That(output.Room.Rooms.Count, Is.EqualTo(3));
+            Assert.That(RowOf(output.Context, "ward").KSpeed.Raw, Is.EqualTo(65536L));
+            Assert.That(PairW(output.Adj, "bed", "chamber_pot"), Is.EqualTo(-16384L));
 
             // 缺口哨兵:生产路径无闭集来源。
             Assert.That(output.Room.FurnMembershipEnforced, Is.False);

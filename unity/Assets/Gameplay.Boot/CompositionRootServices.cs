@@ -24,7 +24,7 @@ namespace DaYiJingCheng.Gameplay.Boot
     /// <summary>
     /// 组合根的服务袋 —— <see cref="CompositionRoot.Assemble()"/> 的只读产物。
     /// </summary>
-    public sealed class CompositionRootServices
+    public sealed class CompositionRootServices : IDisposable
     {
         /// <summary>事件流实装(实现 <see cref="IEventSink"/>;三流的病史流,P0 唯一真源)。</summary>
         public EventStream Stream { get; }
@@ -395,5 +395,21 @@ namespace DaYiJingCheng.Gameplay.Boot
                 // Kind 显式赋值 —— 零值陷阱守卫(见 DiseaseKind 注释);本路径不调 Validate。
                 new DiseaseRegistryEntry { DiseaseId = 1, DiseaseKey = "fallback", Kind = DiseaseKind.Disease },
             };
+
+        /// <summary>
+        /// 释放装配产物持有的引擎资产(清债轮 · TD-audio-026 丙案「完全构造」· 2026-10-25)。
+        /// <para>构造保持**无条件建池**(AC-018-4 单池不变量:池是 ADR-028 ① 唯一所有者的
+        /// 承载物,不因未配音频而偷懒)—— 本方法补的是**释放半边**:装配袋是池根的
+        /// 托管入口,Dispose ⇒ 池销毁自身 root 与全部声源(幂等;编辑器 / 播放双态分流
+        /// 见 <see cref="AudioSourcePool.Dispose"/> 的实现注)。</para>
+        /// <para>⚠️ 只处置引擎侧资产(池根 / 声源);三流 / blob 池 / 服务对象不带
+        /// 非托管资源,不在此处置。</para>
+        /// <para>⚠️ 生产侧不受影响:<c>BootRoot.OnDestroy</c> 已直接调
+        /// <c>AudioPool.Dispose()</c>(与本方法同终点,双路径幂等)。</para>
+        /// </summary>
+        public void Dispose()
+        {
+            AudioPool?.Dispose();
+        }
     }
 }

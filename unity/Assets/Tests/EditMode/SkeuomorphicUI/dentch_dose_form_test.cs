@@ -638,14 +638,19 @@ namespace DaYiJingCheng.Tests.Unit.SkeuomorphicUI
         {
             var element = Loaded(5, 1);
 
-            Assert.IsTrue(element.ClassListContains("brass"), "形态载体须归黄铜分支(AC-42-F3)");
-            Assert.IsFalse(element.ClassListContains("ink"), "形态载体不得归墨侧分支(反控)");
+            // 真分类器(清债轮 · TD-prescription-07:原 ClassListContains("brass") 是
+            // 自造断言顶替 AC 宾语 —— 分支归属的判定点 = SkeuoMaterialBranchClassifier)
+            Assert.That(SkeuoMaterialBranchClassifier.Of(element),
+                Is.EqualTo(SkeuoMaterialBranch.Brass), "形态载体须归黄铜分支(AC-42-F3)");
+            Assert.That(SkeuoMaterialBranchClassifier.Of(element),
+                Is.Not.EqualTo(SkeuoMaterialBranch.Ink), "形态载体不得归墨侧分支(反控)");
 
             foreach (VisualElement detent in Band(element).Children())
             {
                 Assert.IsTrue(detent.ClassListContains(DetentClass),
                     "每个形态子件须带常态档类名");
-                Assert.IsFalse(detent.ClassListContains("ink"),
+                Assert.That(SkeuoMaterialBranchClassifier.Of(detent),
+                    Is.EqualTo(SkeuoMaterialBranch.Brass),
                     "形态子件不得被误判为墨侧(AC-025-6)");
             }
         }

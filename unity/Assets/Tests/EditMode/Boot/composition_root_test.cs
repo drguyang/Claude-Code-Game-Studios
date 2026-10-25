@@ -43,6 +43,38 @@ namespace DaYiJingCheng.Tests.Boot
                 "生产占位 = 空集(裁定②;23/24 接线轮喂真源)");
         }
 
+        /// <summary>
+        /// 装配袋的释放半边(清债轮 · TD-audio-026 丙案「完全构造」· 2026-10-25)。
+        /// <para>判别力:Dispose 停用(不销毁池根)⇒ 本测红 —— M3 反证记录见清债轮证据件。</para>
+        /// </summary>
+        [Test]
+        public void test_compositionroot_bag_dispose_destroysPoolRoot()
+        {
+            // Arrange:装配 = 无条件建池(完全构造,AC-018-4 单池不变量不变)。
+            // 用基线差分而非绝对数:同夹具前序测试的 Assemble 残留不归本测管
+            // (34 夹具逐件 TearDown 化 = 已登记残余,运行末归 EditModeGlobalTearDown 兜底)。
+            int baseline = PoolRoots().Count;
+            CompositionRootServices bag = CompositionRoot.Assemble();
+            Assert.AreEqual(baseline + 1, PoolRoots().Count, "装配即建池(完全构造,不偷懒)");
+
+            // Act:释放半边
+            bag.Dispose();
+
+            // Assert:本袋所建池根销毁,回到装配前基线
+            Assert.AreEqual(baseline, PoolRoots().Count, "Dispose 后池根销毁(释放半边)");
+        }
+
+        /// <summary>场景内所有池根(DontSave 产物须走 FindObjectsOfTypeAll —— 口径同 runtime_assembly_test)。</summary>
+        private static System.Collections.Generic.List<UnityEngine.GameObject> PoolRoots()
+        {
+            var roots = new System.Collections.Generic.List<UnityEngine.GameObject>();
+            foreach (UnityEngine.GameObject g in UnityEngine.Resources.FindObjectsOfTypeAll<UnityEngine.GameObject>())
+                if (g != null && g.name == DaYiJingCheng.Gameplay.Presentation.Audio.AudioSourcePool.RootName
+                    && g.scene.IsValid())
+                    roots.Add(g);
+            return roots;
+        }
+
         [Test]
         public void test_assemble_wiresRealEventStream_roundTrip()
         {
