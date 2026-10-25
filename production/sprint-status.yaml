@@ -27,7 +27,7 @@ stories:
     name: "clinic-004 交付边界 ClinicEnvDto"
     file: "production/epics/clinic-machine/story-004-delivery-boundary-clinicenvdto.md"
     priority: must-have
-    status: ready-for-dev
+    status: in-progress
     owner: ""
     estimate_days: 0          # 承 CAPACITY-MODEL:不估天,复杂度并列
     complexity: M

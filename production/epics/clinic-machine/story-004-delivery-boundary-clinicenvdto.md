@@ -5,8 +5,8 @@
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 5h
-> **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Manifest Version**: 2026-10-15  <!-- 2026-10-25 /dev-story 用户裁定 [A]:自 2026-10-02 刷至现行版(增量仅 Cross-Cutting 之七/之八两节) -->
+> **Last Updated**: 2026-10-25
 ## Context
 
 **GDD**: `design/gdd/clinic-machine.md`(O-24-3 ClinicEnvDto · 规则三 K_CONTEXT_MAX 上交 · 交付 9/21a/1 · AC-24-07 白名单 · AC-24-09 移 42)
