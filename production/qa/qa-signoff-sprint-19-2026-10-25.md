@@ -319,6 +319,11 @@ print('条目', len(rows), '| 未闭 P0 面 =', len(live))
 print('M3 Exit 第二条合取 ⇒', '真' if not live else f'假 —— {len(live)} 条,分布在 {len(ep)}/31 个 epic')
 PYEVAL
 # 实跑:条目 104 | 未闭 P0 面 = 71 ;M3 Exit 第二条合取 ⇒ 假 —— 71 条,分布在 11/31 个 epic
+# 🔴 2026-10-25 收口轮就地订正(原文不删):C-6 裁定「都入债册」新立 TD-enemy-02 后**当场复跑**,
+# 现值为:
+#   条目 105 | 未闭 P0 面 = 72 ;M3 Exit 第二条合取 ⇒ 假 —— 72 条,分布在 12/31 个 epic
+# ⇒ 上面那行 71 读作「@ 本报告 §⑥ 执行时刻(早于 C-6 裁定)」,不是现值。
+# 复算命令 = 本块脚本本体(自包含,当场可跑)。
 
 # ⑦ 证据件引用核对(C-3)
 ls production/qa/evidence/ | grep persist
