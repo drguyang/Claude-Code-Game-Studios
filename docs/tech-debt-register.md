@@ -358,7 +358,7 @@
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
 | `TD-enemy-02` | `enemy-ai` | open | **Y** | R1 |
 | `TD-randomevents-01` | `random-events` | closed | **Y** | R1 |
-| `TD-randomevents-02` | `random-events` | open | **Y** | R1 |
+| `TD-randomevents-02` | `random-events` | closed | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | open | **N** | R2 |
 | `TD-clinic-01` | `item-database` | **done**(2026-10-21) | ~~**Y**~~ | R1 |
 | `TD-clinic-02` | `clinic-machine` | open | **Y** | R1 |
@@ -436,8 +436,26 @@ PYEVAL
 ~~**当前预期输出(2026-10-25 二十五订实测 · `TD-persist-06` 结案(`AC-7a-17` 兑现)—— 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 二十六订实测 · `TD-persist-05` 结案(四条具名缺口 + 附全数兑现)—— 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 二十七订实测 · `TD-persist-04` 结案(`AC-7a-20` 事件触发半边兑现)—— 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
-**当前预期输出(2026-10-25 二十八订实测 · `TD-randomevents-02` 立债(52 GDD 轮兑现后写者转实现轮)—— 二十七订 / 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
-> 🔁 **二十八订(`TD-randomevents-02` 立债 · 2026-10-25 · 52 GDD 轮同批)** —— 变化 =
+~~**当前预期输出(2026-10-25 二十八订实测 · `TD-randomevents-02` 立债(52 GDD 轮兑现后写者转实现轮)—— 二十七订 / 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
+**当前预期输出(2026-10-25 二十九订实测 · `TD-randomevents-02` 结案(实现轮四动作全兑现)—— 二十八订 / 二十七订 / 二十六订 / 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
+> 🔁 **二十九订(`TD-randomevents-02` 结案 · 2026-10-25 · 用户裁定「翻转 TD-randomevents-02 索引」)** —— 变化 =
+> **`closed 31 → 32`**(+1)· **`open 71 → 70`**(−1)· **`未闭 P0 面` 72 → 71**(−1)·
+> **`random-events 1 → 0`**(−1;epic 分布清空该行,12/31 → **11/31**)·
+> **`条目 109` 不动** · `Y 98` 不动(已闭曾标 P0 面 26 → 27)。
+> 单一变化源:`TD-randomevents-02` 索引行 `open → closed` —— 四条解除动作(写者 +
+> b7 撤表 / 派生查询 / 防呆注 / 夹具 20 条)同日兑现,兑现注见其正文。
+> 原件 = `production/qa/evidence/impl-td-randomevents-02-2026-10-25.md`(实现轮,
+> 含证伪轮五变异与回归三元组)。
+> ⚠️ **本条的 `closed` 不覆盖三笔接线义务(各归其主,勿读成「52 出诊已闭环」)**:
+> ① 52 导演主循环逐 tick 调 `TryStartAtTick` 的**生产接线**归 52 接线轮;
+> ② `IClinicCellSource` 生产装配 + 三处同源反射钉(本谓词 / 规则十「无人」/
+> `F1PipelineInput.IsInClinic`)归 Boot 接线轮;③ 窗口 / 拒访 hook 归 37 的 GDD 轮
+> (P0 = 永不过期 + 零拒访,裁定③)。
+> ⚠️ **二十七订的三笔转出义务中,义务 ①(`HouseCallStarted` 零写入者)自此结清**
+> (原文不删);义务 ②(Load 接线调 `ResetCursor()`)与义务 ③(出诊语义 = 查询零扩展,
+> 防呆注已落)仍各归其主。
+>
+> 🔁 **二十八订正文(留档)**:🔁 **二十八订(`TD-randomevents-02` 立债 · 2026-10-25 · 52 GDD 轮同批)** —— 变化 =
 > **`条目 108 → 109`**(+1)· **`open 70 → 71`**(+1)· **`Y 97 → 98`**(+1)·
 > **`未闭 P0 面` 71 → 72**(+1)· **`random-events 0 → 1`**(+1;epic 分布 11/31 → **12/31**)·
 > `closed 31` 不动。单一变化源:**新立 `TD-randomevents-02`**(`HouseCallStarted` 写者 +
@@ -549,20 +567,21 @@ PYEVAL
 > 十六订补结)。
 
 ```text
-条目 109 | 状态 {'open': 71, 'partial': 6, 'closed': 31, '**done**(2026-10-21)': 1} | P0 面 {'Y': 98, 'N': 10, '~~**Y**~~': 1}
-未闭 P0 面 = 72 （已闭但曾标 P0 面的 26 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 72 条,分布在 12/31 个 epic
+条目 109 | 状态 {'open': 70, 'partial': 6, 'closed': 32, '**done**(2026-10-21)': 1} | P0 面 {'Y': 98, 'N': 10, '~~**Y**~~': 1}
+未闭 P0 面 = 71 （已闭但曾标 P0 面的 27 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 71 条,分布在 11/31 个 epic
     medical-consequences: 20   audio-system: 20          clinic-machine: 17
     telemetry-analytics: 5     skeuomorphic-ui: 2         disease-simulation: 2
     patient-ai: 1              player-controller: 1       enemy-ai: 1
-    random-events: 1           item-database: 1           modular-building: 1
+    item-database: 1           modular-building: 1
 ```
 
-> 🔁 **2026-10-25 收口轮:本输出块已刷新到二十八订(`TD-randomevents-02` 立债)**。
-> 相对二十五订叙事块的 `closed 29 / open 72 / 未闭 73 / persistence-service 2`,变化 =
-> **`closed 29 → 30`**(+1)· **`open 72 → 71`**(−1)· **`未闭 P0 面` 73 → 72**(−1)·
-> **`persistence-service 2 → 1`**(−1)· `条目 108` / `Y 97` / `12 epic` 不动。
-> 单一变化源:`TD-persist-05` 索引行 `open → closed`(本轮兑现,结案块见其正文)。
+> 🔁 **2026-10-25 实现轮收口:本输出块已刷新到二十九订(`TD-randomevents-02` 结案)**。
+> 相对二十八订叙事块的 `closed 31 / open 71 / 未闭 72 / random-events 1`,变化 =
+> **`closed 31 → 32`**(+1)· **`open 71 → 70`**(−1)· **`未闭 P0 面` 72 → 71**(−1)·
+> **`random-events 1 → 0`**(−1;epic 分布 12/31 → **11/31**)· `条目 109` / `Y 98` 不动。
+> 单一变化源:`TD-randomevents-02` 索引行 `open → closed`(本轮兑现,结案判据见其兑现注;
+> 三笔接线义务不随 closed 结清 —— 见二十九订块 ⚠)。
 > ⚠️ **本块同时补刷二十五订的漏刷**:二十五订只翻了标题与叙事块,本块曾停在
 > 二十四订读数(`open 73 / closed 28 / 未闭 74`)—— 已随本订一并刷新(见上方二十六订注)。
 > 相对二十三订的 `条目 108 / open 73 / closed 28 / 未闭 74 / 12 epic`,**五位全部不动** ——
@@ -2486,6 +2505,31 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **⚠️ 跨系统前置** | 「病人创建于急召降临 tick」(规则十二 12.3 的读流口径)**归 9 / 37** —— 若其实现轮裁病人创建于立案 tick,12.3 失效须另裁关联形状;本条实现轮开工前须与 9/37 核对该时机。 |
 | **触发条件** | ① 52 实现轮开工;② 或任何以「52 已接线」形态引用锚点 ③ 之前(禁借绿);③ 或 M3 Exit 判据要求 AC-7a-20 三锚点全可达时。 |
 | **归属** | **52 随机事件导演**(写者 + 派生查询)· `NoPendingMedicalActionQuery` 注 = Boot 侧一行(随 52 实现轮同批) |
+
+> ✅ **2026-10-25 实现轮兑现(TD-randomevents-02 · 同日立债同日清)** —— 四条解除动作全落,
+> **索引已翻 `open → closed`(二十九订,2026-10-25 用户裁定「翻转 TD-randomevents-02 索引」;
+> 实现轮当时只落兑现注未自行翻,承 `TD-persist-04` 先例)**:
+> ① **写者** = `unity/Assets/Sim/HouseCallStartedWriter.cs`(五具名结果码,前置写者内复核,
+> 「每次跨出 = 一次锚点」首定口径入头注)+ **b7 豁免同批撤**(`WriterExistenceGate.cs` ✅ 撤表注,
+> 承 `ThreatDeferred` 先例;接线点 = `AssemblyGates.cs:144`)+ 医馆格谓词面
+> `unity/Assets/Sim.Contracts/IClinicCellSource.cs`(裁定②);② **派生查询** =
+> `unity/Assets/Sim/ActiveHouseCallQuery.cs`(12.2 三条件纯函数;**链接 fail-loud** =
+> 同 tick 恰一条 `DiseaseOnset`,0 条或多条皆抛 —— 2026-10-25 裁定①,同时钉住「病人创建于急召
+> 降临 tick」的 9/37 前置:若其裁出不同时机,该异常即可见冲突面);③ **防呆注** =
+> `NoPendingMedicalActionQuery.cs` 类头 ⛔ 块(12.4:旅途段安全,活跃目标不并入 unsafe 集;
+> 并就地订正旧「落地时并入」口径);④ **夹具** = `Tests/EditMode/RandomEvents/house_call_test.cs`
+> **20 条**(AC-52-56 / 57 / 58 映射齐)。
+> **回归**:`5019/4984/0/35` @ `2026-10-25T11:08 UTC` · TD-randomevents-02 实现轮 · `9edb75c` 工作树
+> (基线 `4999/4964/0/35` @ 10:21 · act1-full2 · `d157b4e`;增量等式 5019−4999 = **+20** =
+> 新夹具数,4984−4964 = +20,failed **0** 零回归)。
+> **证伪轮(S12-4)**:五变异全红 —— M1 停用同 tick 去重 ⇒ `secondCallSameTick_refused` 红 ·
+> M2 停用「新格 ∉ 医馆」⇒ `moveInsideClinic_noStart` 红 · M3 停用立案终止 ⇒
+> `caseOpenedTerminatesTarget`(+重放稳定)红 · M4a 停用 0 条 onset 抛 ⇒
+> `linkMissingOnset_throws`(+2 下游)红 · M4b 停用多条 onset 抛 ⇒ `linkDuplicateOnset_throws` 红;
+> 五轮 SHA-256 逐字节还原全过,`grep "false &&"` 两文件零残留。
+> **原件** = `production/qa/evidence/impl-td-randomevents-02-2026-10-25.md`(含 §五 未跑清单)。
+> ⚠️ **有写者 ≠ 已接线**:52 导演主循环逐 tick 调 `TryStartAtTick` 归 52 接线轮;
+> `IClinicCellSource` 生产装配 + 三处同源钉归 Boot 接线轮;37 侧窗口 / 拒访 hook 不在本件面内。
 
 ### TD-net-01 — `IReplayPipe` / `ReorderBuffer` 的 **P0 预埋**零落点(系统 45 · 无归属 epic)
 

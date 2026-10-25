@@ -11174,3 +11174,37 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
   —— 二十八订:条目 109 · open 71 · 未闭 P0 面 72 · random-events 1(12/31);
   TD-persist-04 结案块追注(义务① GDD 半边已落、写者转 02)
 - **未 commit**(等用户指令)
+
+<!-- ═══ TD-randomevents-02 实现轮(2026-10-25 · 三裁全取推荐)═══ -->
+## TD-randomevents-02 实现轮终态(52 出诊启动写者 + 派生查询)
+
+- **三裁**:① EventArrived↔病人链接 = 同 tick 唯一 DiseaseOnset(0 条或多条皆 fail-loud 抛)·
+  ② 医馆格判据 = 谓词接口注入(`IClinicCellSource` 住 Sim.Contracts,装配归 Boot)·
+  ③ P0 窗口 / 拒访 = 零检查 + hook 登记归 37
+- **落盘**:① `Sim.Contracts/IClinicCellSource.cs`(同源义务三处 = 本谓词 / 规则十「无人」/
+  F1PipelineInput.IsInClinic)② `Sim/ActiveHouseCallQuery.cs`(12.2 三条件纯函数 + 链接 fail-loud)
+  ③ `Sim/HouseCallStartedWriter.cs`(五具名结果码,前置写者内复核;「每次跨出 = 一次锚点」首定口径)
+  ④ `NoPendingMedicalActionQuery.cs` ⛔ 防呆注(12.4:旅途段安全;并订正旧「落地时并入」口径)
+  ⑤ b7 撤 `HouseCallStarted` 豁免(✅ 撤表注承 ThreatDeferred 先例)
+- **夹具**:`Tests/EditMode/RandomEvents/house_call_test.cs` 20 条(AC-52-56/57/58 映射齐)
+- **回归**:`5019/4984/0/35` @ 2026-10-25T11:08 UTC · TD-randomevents-02 实现轮 · `9edb75c` 工作树
+  (基线 4999/4964/0/35 @ 10:21 · act1-full2 · `d157b4e`;+20/+20,零回归)
+- **证伪轮(S12-4)**:五变异全红(M1 去重 / M2 新格判据 / M3 立案终止 / M4a 0条抛 / M4b 多条抛),
+  SHA-256 逐字节还原全过,零残留
+- **证据件**:`production/qa/evidence/impl-td-randomevents-02-2026-10-25.md`(§五 未跑清单)
+- **债册**:TD-randomevents-02 加兑现注;**索引 open→closed 未翻**(承 TD-persist-04 先例,等用户裁)
+- **有写者 ≠ 已接线**:52 导演主循环逐 tick 调 TryStartAtTick 归 52 接线轮;
+  IClinicCellSource 生产装配 + 三处同源钉归 Boot 接线轮
+- **未 commit**(等用户指令)
+
+<!-- ═══ TD-randomevents-02 索引翻转(2026-10-25 · 用户裁定)═══ -->
+## TD-randomevents-02 结案(债册二十九订)
+
+- **索引行**:`open → closed`(P0 面 `Y` 维持;§五 权威脚本翻转前后各实跑一次:
+  前 = 条目 109 / open 71 / closed 31 / Y 98 / 未闭 72 / random-events 1(12/31),
+  后 = 条目 109 / open **70** / closed **32** / Y 98 / 未闭 **71** / random-events **0**(11/31))
+- **订次块**:二十九订(二十八订正文留档;结案不覆盖三笔接线义务:52 导演接线 /
+  Boot 装配同源钉 / 37 窗口拒访 hook)+ ```text 输出块刷新 + 「已刷新到」行
+- **兑现注订正**:「待用户裁定」→「已翻(二十九订)」;义务①结清追注到二十七订块警示处
+- **EPIC 侧**:`random-events/EPIC.md` 头部加债务侧追注(立债→实现轮→closed + 三笔义务)
+- **未 commit**(等用户指令)

@@ -6,6 +6,14 @@
 > **Status**: Complete ✅ 2026-09-30(6/6 stories;测试 2026-10-01 复跑全绿,【超算】batchmode)
 > **Stories**: 6 stories created(2026-09-28 `/create-stories`)
 
+> **债务侧追注(2026-10-25)**:epic 收口后新立 **`TD-randomevents-02`**(出诊启动专项 ——
+> 52 GDD 轮规则十二:`HouseCallStarted` 写者 + 活跃出诊目标派生查询 + 查询防呆注),
+> **同日实现轮兑现并翻 `closed`**(债册二十九订;索引行状态见债册)。
+> ⚠️ `closed` 不覆盖三笔接线义务(各归其主):① 52 导演主循环逐 tick 调写者
+> (52 接线轮)② `IClinicCellSource` 生产装配 + 三处同源钉(Boot 接线轮)
+> ③ 窗口 / 拒访 hook(37 GDD 轮)。证据件 =
+> `production/qa/evidence/impl-td-randomevents-02-2026-10-25.md`。
+
 ## Overview
 
 随机事件导演(52)是世界的**编剧而不是骰子**:四轴管线(时机 → 抽池 → 强度定档 → 密度预算 → 生成)
