@@ -11033,3 +11033,32 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - **EPIC**:`07` 行 ↳ 兑现(复算 grep ⇒ 6 ✓);现值 `IMPLEMENTED_TESTED 11 · PARTIAL 2(09/20)`
 - **证据件**:`production/qa/evidence/impl-td-persist-05-act1-2026-10-25.md`(§〇–§八 全)
 - **未 commit / 未 push**(等用户指令);URP GlobalSettings 已还原干净
+
+<!-- ═══ TD-persist-05 动作② 兑现完成(2026-10-25 09:12 UTC)═══ -->
+## TD-persist-05 ② 终态(AC-7a-09 忘词令)
+
+- **回归终态**:`4971 / 4936 / 0 / 35`(`td09` · `09:12 UTC` · `19626d5` 工作树)
+  基线 `4966/4931/0/35`(td07-3)⇒ **+5/+5 零回归**;等式 `4971−4966 = 5 = SaveVocabularyGateTest 新增` ✓
+- **证伪轮**:MV1–MV4 四变异全红(MV1 红4 / MV2 红2 / MV3 红1 / MV4 红1);
+  ⚠️ MV3 首跑绿 = **夹具自指**(探针名从 ForbiddenTerms[0] 派生)⇒ 判据改拼接字面量 + 词表内容钉死,复跑红
+- **asmdef 踩坑**:测试装配拿不到 Cecil 插件 auto-reference;显式引用包 asmdef(名字/GUID)均被静默丢弃
+  ⇒ 解 = `overrideReferences: true` + `precompiledReferences: ["nunit.framework.dll","Mono.Cecil.dll"]`
+- **落盘**:SaveVocabularyGate.cs + AssemblyGates.RunAll 接线 + gate_wiring_manifest 双登记
+  + save_vocabulary_gate_test.cs 5 条 + EditMode.asmdef
+- **债册 ② 兑现注 / EPIC 09 行 ↳(复算 7 ✓)/ 现值块 IMPLEMENTED_TESTED 12 · PARTIAL 1(20)**
+- **证据件**:`production/qa/evidence/impl-td-persist-05-act2-2026-10-25.md`
+- **④ 裁定轮材料已呈用户**(TD-persist-04 ① 瞬时源契约:接口住哪 / 保守替身 vs 等 10 / 两半边分批)
+- **未 commit / 未 push**(等用户指令)
+
+<!-- ═══ ④ 裁定轮结案(2026-10-25 09:2x UTC)═══ -->
+## ④ 裁定轮终态(TD-persist-04 ① 瞬时源契约)
+
+- **裁定一(甲案)**:瞬时源 = 具名只读接口住 `Sim.Contracts`;10 落地后 Boot 注入真实现;
+  10 未落地前维持 null(fail-closed)。接口命名/签名归实现轮。
+- **裁定二**:CHECKPOINT_INTERVAL = 5 min(18000 tick)确认(OQ-7a-5 已于 2026-10-06 裁,非复裁);
+  本批裁结构 = 兜底触发判据「interval 到期 且 瞬时源 true」;到期不安全 ⇒ **顺延**(不重置 interval,
+  从 GDD :137「崩溃损失 ≤ 一个间隔」推导)。
+- **债务登记**:TD-persist-04 加 ① 契约裁定注(前置解除,实现义务仍在,索引 open);
+  TD-persist-05 加 ⑤ blocked 面收窄注(契约已裁,剩实现轮;判定维持无载体禁借绿)。
+- **下一步候选**:④ 实现轮(接口 + 兜底半边 + stub 夹具)—— 未开工,待用户指令;
+  ② 改动未 commit。

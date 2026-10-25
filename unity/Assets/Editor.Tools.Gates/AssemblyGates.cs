@@ -169,6 +169,12 @@ namespace DaYiJingCheng.EditorTools.Gates
             //    `SaveAsyncBoundaryGate.cs` 文件头 §判别力(方法级判据面 + 搬家检测 +
             //    GDD 字面点名的「被调集合」形态)。**不得**把它记作 AC-7a-07 的独立兑现物。
             errs.AddRange(SaveAsyncBoundaryGate.RunAll());
+            // 忘词令符号门(AC-7a-09 判据层 · 2026-10-25):运行期装配符号表零 q 系列标识符。
+            // 原 blocked-by TD-ci-01(「单独落没有东西会跑它」)—— 前提已变:RunAll 三处强制点
+            // (菜单 / reload / 构建前门)即本地强制点;与 ADR-012 CI 门不互斥(CI 落地时再挂一层)。
+            // 扫描形态 = Cecil 符号名(类型/方法/字段/属性/事件),注释与字符串天然不可见
+            // ⇒ AC-7a-04 的「假阳性白名单」结构性为零。
+            errs.AddRange(SaveVocabularyGate.RunAll());
             return errs;
         }
 

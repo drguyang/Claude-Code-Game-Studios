@@ -35,6 +35,7 @@
 | `08` | PARTIAL | `ISaveService.cs:29-61` ①② | `folded_predicate_test.cs:614/629` | ③ IL 门 0,本轮补 |
 | ↳ 🔁 **2026-10-25 已兑现** | **IMPLEMENTED_TESTED** | `Editor.Tools.Gates/SaveWritePathGate.cs`(IL 正面断言)+ `AssemblyGates.RunAll` 接线 | `Sim/save_write_path_gate_test.cs` **6 条** + `gate_wiring_manifest_test` 双处登记 | 证伪轮 **M7/M8/M9/M10 四轮全红**;⚠️ **`SaveBytes` 旁路仍待裁**(见下 §两条交叉结论 2),该条**不因本门而关闭** |
 | `09` | PARTIAL | `ISaveService.cs:24-27` 半守 | 同上 | CI 扫描归 `TD-ci-01`(外部) |
+| ↳ 🔁 **2026-10-25 已兑现** | **IMPLEMENTED_TESTED** | **忘词令轮**:`Editor.Tools.Gates/SaveVocabularyGate.cs`(Cecil **符号名**扫描 —— 只见标识符,注释/字符串天然不可见 ⇒ AC-7a-04「假阳性白名单」结构性为零)+ `AssemblyGates.RunAll` 接线 | `Sim/save_vocabulary_gate_test.cs` **5 条**(含 **Cecil 内存注入负例** = 「门真的会红」的可复算证明)+ `gate_wiring_manifest_test` 双处登记 | 证伪轮 **MV1…MV4 四轮全红**(MV1 清空词表 红 4 · MV2 清空扫描集 红 2 · MV3 词表失真 红 1 · MV4 去小写归一 红 1);⚠️ **MV3 首跑绿 = 抓出夹具自指**(探针名从 `ForbiddenTerms[0]` 派生 ⇒ 变异两边一起动)⇒ 判据改源码级拼接字面量 + 词表内容钉死,复跑转红;⚠️ **载体前提变化(用户裁定 2026-10-25)**:原 blocked-by `TD-ci-01` 前提已变 —— `RunAll` 三处强制执行点使本地门有东西跑它,与 ADR-012 CI 门**不互斥**(CI 落地再挂同款判据) |
 | `10` | **IMPLEMENTED_TESTED** | `Sim/FoldedPredicate.cs:76-87` | `folded_predicate_test.cs` 9 条 | ✅ 已补登记 |
 | `11` | **IMPLEMENTED_TESTED** | `Sim/FoldRow.cs:30-58` + `FoldRowCodec.cs:63-68` | `folded_predicate_test.cs:412/396` 等 | ✅ 已补登记 |
 | `12` | **IMPLEMENTED_TESTED** | `Sim/EventStream.cs:267-285` | `reconstruction_and_write_path_test.cs:579/613/652/661` | ✅ 已补登记 |
@@ -94,6 +95,17 @@
 > 「同步写 + 同步重试」变为「入队 + `WaitForIdle(_exitSaveRetryMillis)`」——
 > 上列 06 轮注中「`07` 仍未兑现」的表述**就此过期**(原文不删)。
 > **`09` / `20` 的 blocked 归属不变**。原件 = `production/qa/evidence/impl-td-persist-05-act1-2026-10-25.md`。
+
+> 🔁 **2026-10-25 `TD-persist-05` 动作 ② 兑现轮后现值(原文不删)** —— **`09`(AC-7a-09)兑现**:
+> `IMPLEMENTED_TESTED` **12**(上列 11 + `09` 本轮兑现)· `PARTIAL` **1**(`20`)· `NOT_IMPLEMENTED` **0**。
+> **复算命令**:`grep -c "↳ 🔁 \*\*2026-10-25 已兑现\*\*" production/epics/persistence-service/EPIC.md`
+> ⇒ **7**;`17` 行是就地改判 ⇒ 5 + 7 = **12**;`1 + 0 = 1`,加 12 = **13** 条 ✓。
+> ⚠️ `09` 的兑现是**判据层补缺**(承 08 门族形态):代码层半守(接口签名反射)此前已有,
+> 本轮补的是规则七的**另一半** —— 符号表扫描。**`20` 的 blocked 归属不变**
+> (blocked-by `TD-persist-04` 动作 ① 瞬时源)。
+> ⚠️ **载体裁定记录**:用户 2026-10-25 裁「修 ②」时明认 `RunAll` 强制点前提已变;
+> 原 blocked 行(`CI 扫描归 TD-ci-01`)原文不删,以本注与债册 ② 兑现注为准。
+> 原件 = `production/qa/evidence/impl-td-persist-05-act2-2026-10-25.md`。
 
 ### 两条会改变判读的交叉结论
 

@@ -90,6 +90,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "PlayerAssemblyGate.RunAll",     // PlayMode 装配 UnityEditor 裸用(TD-testasm-01 · 2026-10-21)
                     "SaveWritePathGate.RunAll",      // AC-7a-08③ 存档写盘可达面 IL 门 · 2026-10-25 接线上线
                     "SaveAsyncBoundaryGate.RunAll",  // AC-7a-07 后台写盘路径零 Unity API IL 门 · 2026-10-25
+                    "SaveVocabularyGate.RunAll",     // AC-7a-09 忘词令符号门(规则七判据层)· 2026-10-25
                 },
 
                 // RunMenu = 菜单项「大医精诚/Validation/Run Assembly Gates」。
@@ -210,6 +211,12 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                 Consumer = "RunAll",
                 Note = "AC-7a-08③ 落(2026-10-25):存档写盘可达面 IL 门。AC-7a-08 的第三方守" +
                        "(IL 正面断言「仅 SaveService 可达写盘 API」)此前**从未有执行体**,本条即其落点" },
+            new ClassVerdict { ClassName = "SaveVocabularyGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "AC-7a-09 判据层落(2026-10-25):忘词令 —— 运行期 8 装配符号表零 q 系列标识符" +
+                       "(Cecil 符号名扫描,注释/字符串天然不可见 ⇒ AC-7a-04 白名单结构性为零)。" +
+                       "原 blocked-by TD-ci-01 的前提已变:RunAll 三处强制点即本地强制点," +
+                       "与 ADR-012 CI 门不互斥。半守(接口反射)在 folded_predicate_test:655" },
             new ClassVerdict { ClassName = "WriterExistenceGate", Kind = WiringKind.Chain,
                 Consumer = "RunAll" },
             new ClassVerdict { ClassName = "DiseaseConstantRegistryGate", Kind = WiringKind.Chain,

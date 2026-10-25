@@ -1986,6 +1986,23 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > **⇒ 本条解除动作 ① 须追加一条前置**:8 / 37 / 52 接线前**必须先解决「累积 vs 瞬时」** ——
 > 单靠流内锚点**不足以**表达「此刻无未决动作」。详见
 > `production/qa/evidence/review-sprint19-2026-10-25.md` §七「W5 的裁定轨迹」。
+>
+> ✅ **🔁 2026-10-25 动作 ① 瞬时源契约裁定轮(用户两裁定 · 前置就此解除)**
+> 上述「须先解决累积 vs 瞬时」的前置**已裁** —— 用户 2026-10-25(AskUserQuestion)两裁定:
+> **① 契约形态 = 甲案「具名接口」**:瞬时源 = **具名只读接口住 `Sim.Contracts`**
+> (与八个 P0 抽象点同构),语义 = 规则十四的「**此刻**是否无未决医疗动作」(瞬时量,
+> 内存态,不在流里 —— 裁定丙不可再议);**10 落地后由 Boot(`CompositionRoot`)注入真实现;
+> 10 未落地前维持 `null`(fail-closed,W5-a 夹具钉住)**。接口**命名 / 签名形状**归实现轮,
+> 本轮不代裁。两条纯函数(`HasNarrativeAnchorEvent` / `LastEventIsAnchor`)保留零调用点待 10 复用
+> (承评审件 §七「W5 的两条纯函数保留理由」)。
+> **② `CHECKPOINT_INTERVAL` 本批裁结构 + 初值** —— **初值 = 5 min(`18000` tick @ 50 ms)不变**:
+> `OQ-7a-5` 已于 2026-10-06 裁定该值(GDD `:136` / `:414` / `:635`),本批为**确认非复裁**;
+> 本批真正裁的是**结构**:**兜底触发判据 = interval 到期 且 瞬时源回答 true**;
+> **到期但不安全 ⇒ 顺延**(下一 tick 重查,**不重置 interval**)—— 从 GDD `:137`
+> 「崩溃损失 ≤ 一个间隔**恒成立**」推导:跳过窗口会放宽到 2× 间隔,与该不变量相抵;顺延保住它。
+> **⚠️ 前置解除 ≠ 动作 ① 完成**:实现义务仍在 —— 接口落地(`Sim.Contracts`)·
+> 8 / 37 / 52 三条锚点接线 · 兜底半边(`TD-persist-05` ④,其契约前置同批解除、
+> blocked 面收窄为实现轮)。本条维持 `open`,索引不翻转。
 
 ---
 
@@ -2020,6 +2037,45 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > - **仍 open 的部分(具名)**:② `AC-7a-09` 符号扫描 ⇒ blocked-by `TD-ci-01`;
 >   ⑤ 同 ②;附(`AC-7a-20` 定时兜底半边)⇒ blocked-by `TD-persist-04` 动作 ①。
 >   ⇒ **索引行维持 `open`**,不随 ① 兑现翻转。
+>
+> **🔁 2026-10-25 动作 ② 兑现轮(`AC-7a-09` 忘词令)—— ② 自此 ✅ 已兑现;⑤ blocked 不变**
+> - **载体前提变化(用户裁定 2026-10-25「修 ②」)**:原 blocked 理由「单独落扫描器 = 没有东西
+>   会跑它(blocked-by `TD-ci-01`)」**已变** —— `AssemblyGates.RunAll` 现承载持久化门族
+>   (`SaveWritePathGate` / `SaveAsyncBoundaryGate` 等)且有三处强制执行点(菜单 / reload / 构建前门)
+>   ⇒ 本门挂 RunAll 即有东西跑它。与 ADR-012 CI 门**不互斥**(CI 落地时再挂一层同款判据)。
+>   裁定记录已落 `SaveVocabularyGate.cs` 文件头(原文不删)。
+> - **兑现落点**:`Editor.Tools.Gates/SaveVocabularyGate.cs`(**Cecil 符号名扫描** —— 只见类型 /
+>   方法 / 字段 / 属性 / 事件名,注释与字符串天然不可见 ⇒ AC-7a-04 的「假阳性白名单」**结构性为零**,
+>   GDD `:144`「断言**符号表**不含」的字面即此)+ `AssemblyGates.RunAll` 接线 +
+>   `gate_wiring_manifest_test` 双处登记 + 夹具 `save_vocabulary_gate_test.cs`
+>   **5 条**(含 **Cecil 内存注入负例** = 「门真的会红」的可复算证明,不改仓库源码)。
+>   上表实测项「**⑤ 符号扫描 = 0**」就此过期:`grep -rn "SaveVocabularyGate" unity/Assets/Editor.Tools.Gates/`
+>   ⇒ 门本体 + `AssemblyGates.cs` 接线两处(原件 §二 有复算命令)。
+> - **asmdef 踩坑记录(费三轮才通,防复发)**:用户测试装配**拿不到** `Mono.Cecil.dll` 的插件
+>   auto-reference(全仓四棵测试树 rsp 计数皆 0 / 非测试装配皆 1);显式引用包 asmdef
+>   `Unity.Nuget.Mono-Cecil`(**按名字与按 GUID 两试**)均被**静默丢弃**(rsp 零变化、日志零警告)。
+>   解 = 测试 asmdef 自持 `overrideReferences: true` +
+>   `precompiledReferences: ["nunit.framework.dll", "Mono.Cecil.dll"]`(nunit 须一并显式列出,
+>   否则 overrideReferences 把既有 nunit 引用一起断掉)。
+> - **证伪轮 4 变异全红**(MV1 清空词表 红 4 · MV2 清空扫描集 红 2 · MV3 词表失真 红 1 ·
+>   MV4 去小写归一 红 1),`SaveVocabularyGate.cs` SHA-256 逐字节还原(`bb2c8d368a248a62…`)。
+>   ⚠️ **MV3 首跑绿 = 抓出夹具自指**(探针名从 `ForbiddenTerms[0]` 派生 ⇒ 变异两边一起动 ⇒
+>   零红逃逸)—— 修法:判据改**源码级拼接字面量**(`"quick"+"save"`,保住「夹具源码不含连续
+>   触发词字面」约束)+ 词表**内容钉死**(三词逐个 `Contains`,不只验非空)。复跑转红、干净基线复跑 5/5 绿。
+> - **回归**:全量 EditMode **`4971 / 4936 / 0 / 35`**(`td09` · `2026-10-25T09:12 UTC` ·
+>   commit `19626d5` 工作树,未提交;基线 `4966/4931/0/35` @ `td07-3` · `08:39 UTC` · `3ca1920`)。
+>   等式 `4971 − 4966 = 5` = 恰好 `SaveVocabularyGateTest` 5 条新增 ✓ **零回归**。
+> - **原件** = `production/qa/evidence/impl-td-persist-05-act2-2026-10-25.md`。
+> - **仍 open 的部分(具名)**:仅 ⑤(`AC-7a-20` 定时兜底半边)⇒ blocked-by `TD-persist-04`
+>   动作 ① 不变 ⇒ **索引行维持 `open`**,不随 ② 兑现翻转。
+>
+> **🔁 2026-10-25 同批:④(兜底半边)的契约前置裁定落地 —— blocked 面收窄为实现轮**
+> `TD-persist-04` 动作 ① 的瞬时源契约已裁(具名接口住 `Sim.Contracts` + 顺延语义 +
+> `CHECKPOINT_INTERVAL` = 5 min 确认,见本册 `TD-persist-04` 条目同日注)。
+> ⇒ 本条解除动作 ④ 的 **blocked 理由「瞬时源未裁」就此过期**;剩余阻塞 = **实现轮待做**
+> (接口落地 + 7a 侧定时器 + stub 注入夹具即可测,不依赖 10 先落地;
+> 生产接线仍须等 10,`narrativeContext = null` ⇒ 兜底 fail-closed 不触发)。
+> ⚠️ 本注只登记裁定,**不把 ⑤ 记为已解除** —— 实现未落,判定维持 **无载体**,禁借绿。
 | **解除动作** | ① **`AC-7a-07`**:把 `WriteAtomic` 的调用面移出主线程(缓冲池 + 后台 worker),`IOException` 加 `WRITE_RETRY_DELAY` 退避;`Application.persistentDataPath` 主线程启动期缓存一次(GDD `:512-515`)。⚠️ 承 `TD-persist-03` 已定的**单列表**布局,不得借机改字节形状。<br>② **`AC-7a-09`**:符号扫描执行体 —— 与 `TD-ci-01` 的 CI 矩阵**同批落**(单独落 = 无强制点);在此之前不得把该 AC 记为「有载体」。<br>③ **`AC-7a-14`**:迁移链逐版本执行 + `WorldSeed` / 已发生事件逐位不变的夹具;`AC-7a-16` 的 authority 替身可同批(两者都测「同一份三流输入 ⇒ 字节形状不变」)。<br>④ **`AC-7a-20` 定时兜底半边**:与 `TD-persist-04` 动作 ① 的瞬时源**同批**(兜底触发点需要同一套「此刻是否安全」判据)。 |
 | **🔁 2026-10-25 兑现轮(原文不删,逐条加注)** | **用户裁定范围 = ④ 项 ③ + ④**(即上表「解除动作」的 ③ 与 ④ 中的 `AC-7a-16` 一支);`AC-7a-07` / `AC-7a-09` / `AC-7a-20` 半边**本轮不做**,理由逐条见下。原件 = `production/qa/evidence/impl-td-persist-05-2026-10-25.md`。<br>**③ `AC-7a-14` 迁移链 ⇒ ✅ 已兑现**:新增 `Sim.Codec/ISaveMigration.cs` + `SaveMigrationChain.cs`(逐版本查表 · **每级三条断言**:版本号须为 `v+1` / `WorldSeed` 逐位不变 / 事件正文末尾等长逐位不变)· `SaveService.Load` 的 `<` 分支从「刻意抛 `NotSupportedException`」改为**调链**(空链仍 fail-closed)· 新增 `StripChecksum`(链工作在「不含校验和」形态,最后由 `AddChecksum` 统一算一次)· 夹具 `save_migration_chain_test.cs` **12 条** + `save_slot_contract_test.cs` 2 条改写 + **1 条正面对照新增**。<br>⚠️ **本条不实现任何真实迁移** —— `SaveHeader.CurrentSaveVersion = 1` 且零 `v0` 写入者 ⇒ **不存在真实历史版本可迁**。造「假 v0 再迁它」测的是夹具的想象力,即自造断言顶替 AC 语义层的变体。本文件测的是**框架会不会放过坏迁移**。**真实脚本落点 = `CurrentSaveVersion` 首次升到 2 的那一轮。**<br>**④ `AC-7a-16` authority 正交 ⇒ ✅ 已兑现**:`save_authority_orthogonality_test.cs` **7 条**。⚠️ **本条兑现的是「从未存在的判据」,不是修缺陷** —— `Compose` 本来就没有 authority 形参。把它拆成四条**互相独立**的性质(A 参数集逐字不含 authority / B 无可变静态态 / C 两布局产出逐位一致 / D 计数器是实例字段),因为单断言「两布局一致」在 `Compose` 不认识 authority 时**恒真**、对变异零判别力。<br>**回归**:`4917 / 4882 / 0 / 35` @ `2026-10-25 04:21 UTC` · `td05-3` · `72bb234`(起跑 `td05-2` 逐位相同);新增 **20 条**(12 + 7 + 1),零回归。<br>**证伪轮 7 轮**:MA1/MA2/MA3(每级三条断言各一轮)· MB1/MB2/MB3(authority 四条性质各一轮)· MB4(断链 fail-closed)。**10 条测试至少转红一次,零假绿**;五文件 SHA-256 逐字节还原。<br>⚠️ **一条 NOT-RUN 如实登记**:`test_migrate_multiStep_runsEveryVersionInOrder`(「逐版本、按 `FromVersion` 而非注册序」)本轮**没有独立反证** —— MB4 的 `continue` 变异未使它转红。⇒ GDD 字面 `k → k+1 → … → N` 的「逐版本」这一面**仍无独立反证**,不得借 MB4 的绿。 |
 | **🔁 blocked 两行登记(2026-10-25 用户裁定「如实标 blocked」)** | ② **`AC-7a-09` ⇒ blocked-by `TD-ci-01`**:ADR-012 已裁「载体 = CI 门」,而 CI 矩阵本身 `NOT-RUN`。单独落扫描器 = **没有东西会跑它** ⇒ 记为「有载体」即借绿。**本轮不写执行体。**<br>⑤ **`AC-7a-20` 定时兜底半边 ⇒ blocked-by `TD-persist-04` 动作 ①(瞬时源)**:兜底要回答「此刻是否安全」= 04 动作 ① 尚未裁的瞬时源。且生产装配 `narrativeContext = null`(裁定丙)⇒ 兜底调 `Checkpoint` **必抛** ⇒ 写了只能测「抛了」。**本轮不写执行体。**<br>⚠️ **未写的不是「已完成」**:两条判定维持 **无载体 / PARTIAL**,**不因本轮而改变**。本轮只把它们从「笼统归 05」改为「具名 blocked + 具名阻塞方」。 |
