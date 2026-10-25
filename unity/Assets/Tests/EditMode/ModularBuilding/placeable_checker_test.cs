@@ -36,6 +36,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 slotType: SlotType.Bed,
                 localOccupancy: new List<WorldPos> { new WorldPos(0, 0, 0), new WorldPos(1, 0, 0) },
                 validOrientations: new[] { 0, 90, 180, 270 },
+                cost: 1,
                 refundable: 1));
 
             // 注册模块(1×1 桌)
@@ -44,6 +45,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 slotType: SlotType.Table,
                 localOccupancy: new List<WorldPos> { new WorldPos(0, 0, 0) },
                 validOrientations: new[] { 0 },
+                cost: 1,
                 refundable: 1));
 
             _checker = new PlaceableChecker(_catalog, _moduleCatalog, new AlwaysHasStock(), new AlwaysUnoccupied(), new AlwaysEmptyPresence());

@@ -4,18 +4,19 @@
 //   `TD-building-01`(docs/tech-debt-register.md:2097)的「解除动作 · 读侧」逐字:
 //     「在装配根注入 `IModuleCatalog` 的生产实现(读 `build_modules.cooked`)」
 //   `Sim/World/PlaceableChecker.cs:174` 的接口定义(三成员)
-//   `Sim/World/PlaceableChecker.cs:138` 的 `ModuleDefinition`(五字段 —— **无 `Cost`**)
+//   `Sim/World/PlaceableChecker.cs:138` 的 `ModuleDefinition`(六字段,含 `Cost` ——
+//   2026-10-25 TD-building-01 (b) 补)
 //
 // ⚠️ **本文件为什么住在 `Gameplay.Presentation`**:`IModuleCatalog` / `ModuleDefinition`
 //   住 `Sim`(门 A 侧),而本实现的数据来源是 cooked 字节(codec 已在本装配)。
 //   `Sim` 引用集恰 = {BCL, Sim.Contracts}(ADR-025 §①)⇒ **不能**在 `Sim` 里写「读文件」的实现。
 //   本类是「字节 → `ModuleDefinition`」的装配层胶水,只此一件。
 //
-// ⚠️ **`Cost` 刻意不映射进 `ModuleDefinition`** —— 该结构只有五字段,补 `Cost` 是
-//   `TD-itemdb-01` 的剩余半边(其到期日指向 `TD-building-01`)。本轮**只做读侧接线**,
-//   不顺手改 `ModuleDefinition` 的形状:那会让 `TD-itemdb-01` 的「数据有读方了」
-//   与「`DemolishChecker` 从目录读」两件事混在一起,而后者还牵着 `DemolishChecker`
-//   的生产调用点(今日为零)。`Cost` 已在 `BuildModuleRow` 里解出,取用随时可接。
+// ⚠️ **`Cost` 的映射**(🔁 2026-10-25,TD-building-01 (b) 落地):`row.Cost` →
+//   `ModuleDefinition.Cost`(`int` 计数,D-21-17 同型 —— cost ∈ [1,99] 是计数不是定点量)。
+//   原稿「Cost 刻意不映射进 ModuleDefinition」的限制**就此解除** —— 该限制的到期条件
+//   (`DemolishChecker` 从目录读)已由 `DemolishChecker.CalculateRefund/ValidateRefundable`
+//   的实例方法兑现。
 //
 // ⚠️ **`ValidOrientations` 的来源**:`build_modules.json` **无**该字段(作者态只有
 //   `module_id / module_type / furn_type / occupancy_local / cost / refundable`)。
@@ -111,6 +112,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <remarks>
         /// ⚠️ `ValidOrientations` 填 `{0}` —— 作者态无该字段(见文件头注)。
         /// ⚠️ `Refundable` 传 `int`(0/1),与 `ModuleDefinition.Refundable` 同型,不开布尔特例。
+        /// ⚠️ `Cost` 传 `row.Cost`(`int` 计数;2026-10-25 TD-building-01 (b) 起)。
         /// </remarks>
         private static ModuleDefinition ToDefinition(in BuildModuleRow row)
         {
@@ -119,6 +121,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 slotType: (SlotType)row.ModuleType,
                 localOccupancy: row.OccupancyLocal,
                 validOrientations: OnlyZeroDegrees,
+                cost: row.Cost,
                 refundable: row.Refundable);
         }
 

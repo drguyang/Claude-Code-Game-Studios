@@ -3,7 +3,10 @@
 //
 // 核心机制:
 //   - DemolishChecker: 拆除合法性判定(结构存在 + 无实体)
-//   - RefundCalculator: F-23-3 整数返还公式
+//   - RefundCalculator: F-23-3 整数返还公式(**纯公式核**,静态式)
+//   - **生产读入口 = DemolishChecker 的实例方法**(2026-10-25,TD-building-01 (b)):
+//     cost 不再由调用方喂,而是经 `_moduleCatalog` 按 structure/module 读
+//     `ModuleDefinition.Cost` —— `RefundCalculator.CalculateRefund` 的生产树调用点自此接通
 //   - Shell(SlotType=6) 在 P0 不可拆除
 //   - P0 DEMOLISH_REFUND_RATIO = 1 (全额返还)
 
@@ -71,9 +74,47 @@ namespace DaYiJingCheng.Sim.World
 
             return DemolishResult.Success;
         }
+
+        /// <summary>
+        /// 拆除返还(F-23-3)—— **cost 从模块目录读,不由调用方喂**
+        /// (TD-building-01 (b),2026-10-25)。
+        /// 结构不存在 / 模块不在目录 ⇒ 返还 0(fail-closed:无目录行即无成本真源,不发幻影返还)。
+        /// </summary>
+        /// <param name="structureId">待拆结构(合法性由 <see cref="Check"/> 判;本方法不重复判定)。</param>
+        /// <param name="demolishRefundRatio">返还率(Q16.16)。P0 = 1.0 = 65536。</param>
+        /// <returns>返还材料数(整数 ≥ 0)。</returns>
+        public int CalculateRefund(long structureId, int demolishRefundRatio)
+        {
+            if (!_registry.TryGet(structureId, out var inst))
+                return 0;
+
+            var defOpt = _moduleCatalog.GetModuleDefinition(inst.ModuleId);
+            if (!defOpt.HasValue)
+                return 0;
+
+            return RefundCalculator.CalculateRefund(defOpt.Value.Cost, demolishRefundRatio);
+        }
+
+        /// <summary>
+        /// 目录校验(AC-23-08):可返还模块须满足 cost ≥ ⌈1/R⌉ —— **cost 从模块目录读**
+        /// (TD-building-01 (b),2026-10-25)。模块不在目录 ⇒ false(无成本真源即不可判通过)。
+        /// </summary>
+        public bool ValidateRefundable(int moduleId, int demolishRefundRatio)
+        {
+            var defOpt = _moduleCatalog.GetModuleDefinition(moduleId);
+            if (!defOpt.HasValue)
+                return false;
+
+            return RefundCalculator.ValidateRefundable(defOpt.Value.Cost, demolishRefundRatio);
+        }
     }
 
-    /// <summary>拆除返还计算器(F-23-3)。</summary>
+    /// <summary>
+    /// 拆除返还计算器(F-23-3)—— **纯公式核**。
+    /// ⚠️ 生产读入口 = <see cref="DemolishChecker.CalculateRefund(long, int)"/>(cost 从目录读,
+    /// TD-building-01 (b));本静态式的 `cost` 形参只服务公式本身的单元级边界测试,
+    /// 不再是生产路径的一部分。
+    /// </summary>
     public static class RefundCalculator
     {
         /// <summary>

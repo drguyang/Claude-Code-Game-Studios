@@ -34,8 +34,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
     /// <summary>模块目录的一行(解码产物;**不是** `Sim` 侧的 `ModuleDefinition`)。</summary>
     /// <remarks>
     /// 分两层是刻意的:本结构承载 cooked 里的**全部**字段(含 `ModuleTypeName` / `FurnType` /
-    /// `Cost`),而 `ModuleDefinition` 是 23 的放置判定输入(只有五个字段,`Cost` 尚不在其中 ——
-    /// 见 `TD-itemdb-01`)。映射在 <see cref="BuildModulesCatalog"/> 里显式做,
+    /// `Cost`),而 `ModuleDefinition` 是 23 的放置判定输入(六个字段,含 `Cost` ——
+    /// 2026-10-25 TD-building-01 (b) 起;`ModuleTypeName` / `FurnType` 仍只留档于本结构)。
+    /// 映射在 <see cref="BuildModulesCatalog"/> 里显式做,
     /// 让「哪些字段被 23 消费、哪些只是留档」可读。
     /// </remarks>
     public readonly struct BuildModuleRow
