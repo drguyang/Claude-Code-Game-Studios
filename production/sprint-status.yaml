@@ -50,13 +50,13 @@ stories:
     name: "clinic-005 纯度重放 + Memoize(含 TD-building-01 残余两半就地裁定)"
     file: "production/epics/clinic-machine/story-005-purity-replay-memoize.md"
     priority: must-have
-    status: ready-for-dev
+    status: in-progress
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
     completed: ""
-    note: "Depends on Story 002–004 ✅ + S20-2a(AC-24-11 布局源走真 World 后可记绿);TD-building-01 已裁「两半全补」(2026-10-25,载体 S20-2a)"
+    note: "Depends on Story 002–004 ✅ + S20-2a ✅(2026-10-25 done);重写轮已订正三处编号(缓存失效面 = EC-24-05 非 AC-24-11;AC-24-10/11 覆盖归 story-002);判据集四条 = AC-24-04 + EC-24-05 + 无状态反射扫描 + 纯函数输入封闭"
   - id: "S20-3"
     name: "foraging-001 品种闭包 + 数据装载校验"
     file: "production/epics/foraging/story-001-variety-closure-and-data-load-validation.md"
