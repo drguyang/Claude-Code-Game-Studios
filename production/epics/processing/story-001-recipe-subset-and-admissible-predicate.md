@@ -166,6 +166,8 @@
 
 *Written at story creation (lean mode — QL-STORY-READY skipped; specs self-authored from AC text).*
 
+> **QA plan 对齐(2026-10-25 /qa-plan sprint-20)** —— 证据件:`unity/Assets/Tests/EditMode/Processing/admissible_predicate_test.cs`(AC-18-18 一角已落:`recipe_owner_partition_test.cs`,两段记分禁合并,见上方 S-2 订正块);估 ~10 条。AC-18-05 扫描器**负样例文件自证有效**;AC-18-10 = 8 组合 iff 矩阵(gate/quality 恰等均 ≥ 过;空实例集 ⇒ 短路 false + 具名理由);AC-18-20 = 同一 `MethodInfo` + spy 共享 + 纯函数零副作用;「单炉空闲」半边 = `ISingleFurnaceQuery` 接缝桩(Story 004 前)。**S12-4 证伪轮强制**:本件命中 阈值边界 / 定义域收窄 / 一次性幂等 三形态,每条主要断言配「停用守卫 ⇒ 红」反证。若撞 TD-medcons-11(CLI 烘焙入口缺口)⇒ 挂标不记绿。QA plan 全文:`production/qa/qa-plan-sprint-20-2026-10-25.md`。
+
 - **AC-18-05**: min_quality 使用点扫描。
   - Given: 18 程序集源码树;合成注入一个「用 min_quality 调 output」的负样例文件(测试专用,不进出货)。
   - When: Roslyn 符号引用扫描。

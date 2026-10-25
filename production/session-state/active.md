@@ -1,6 +1,6 @@
-# Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · ✅ 已收口(§九 判定落盘 + retro + 收口日补记)· TD-enemy-02 + TD-player-03 双实现收敛轮完成 —— 收口批未提交,等 commit 指令**)
+# Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · ✅ 已收口且收口批已提交 `9bbef11` · TD-enemy-02 + TD-player-03 双实现收敛轮完成**)
 
-## Sprint 19 收口轮(2026-10-25 · ✅ 本轮落盘,未提交)
+## Sprint 19 收口轮(2026-10-25 · ✅ 已提交 `9bbef11`)
 
 - **retro**:`production/retrospectives/retro-sprint-19-2026-10-25.md`(5/5 计划内完成率回满 ·
   追加率口径失真登记 · retro-18 五项 5/5 兑现 · 行动项 5 条:CAPACITY-MODEL 补行 / 实现面对账 /
@@ -11277,3 +11277,41 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - **债册**:TD-persist-04 结案块追注(三笔转出义务全数处置完毕)+
   二十九订输出块义务① 段就地加注;索引/计数无变化(closed 32 / open 70 不动)
 - **未 commit**(等用户指令)
+
+<!-- QA-PLAN: 2026-10-25 | System: sprint-20 | Plan written: production/qa/qa-plan-sprint-20-2026-10-25.md -->
+
+<!-- ═══ Sprint-20 规划批(2026-10-25 · /sprint-plan new + /qa-plan sprint)═══ -->
+## Sprint-20 规划批终态
+
+- **sprint-20.md**(7 件:4M = S20-1 clinic-004 / S20-2 clinic-005 含 TD-building-01 残余裁定 / S20-3 foraging-001 / S20-4 processing-001;2S = S20-5 判别力收紧 TD-clinic-02/08/09 / S20-6 TD-prescription-07 分类器;1S = S20-7 治理盘点四裁)—— 落盘 ✅
+- **sprint-status.yaml** 重写(sprint 20,7 件全 ready-for-dev)+ sprint-19 归档 `production/sprint-status-sprint19-archive.yaml`(SHA 前 16 位 `5de6f5d3c6cc5154`)—— 落盘 ✅
+- **qa-plan-sprint-20-2026-10-25.md** 落盘 ✅(分类表 7 件;四 story 自动测面 ~36 条;S12-4 证伪轮对 S20-5/6 强制;基线引用改写来源:EditMode 5033/4998/0/35 @ conv、PlayMode 202/202/0/0 @ conv-playmode,均引 impl-td-enemy02-player03 证据件)
+- **story §QA Test Cases 回填 ×4**(clinic-004/005 · foraging-001 · processing-001,节首 QA plan 对齐注,用例体未重写)—— ✅
+- 规划批全部文件**未 commit**(等用户指令)
+
+<!-- ═══ 清债轮终态(2026-10-25 · 五债同批 · 用户裁定「三族全清」+ audio-026 丙案)═══ -->
+## 清债轮终态(sprint-20 前置,S20-5/6 提前执行)
+
+- **TD-clinic-02/08/09**:M0b 变异坐实(停用 `AssertOverflowBounds` ⇒ 5 负向红、接受侧照绿,评审推断成立)→ 六处收紧(`clinicmachine_tables_schema_test.cs`,净增 0)→ M1 反证 7 红(含 2 条收紧接受侧)→ green 42/42
+- **TD-prescription-07**:`SkeuoMaterialBranch` 三枚举分类器落地(祖先链上行,fail-loud;词门零命中);占位符改真断言 + `test_ac025_6` 改打真分类器;M2(brass→Ink 错映射)2 红 + M2b(OfClass 静默默认撤抛形)2 红
+- **TD-audio-026**(丙案完全构造):`CompositionRootServices : IDisposable`(`Dispose` = `AudioPool?.Dispose`,双路径幂等)+ 基线差分式新测(首版绝对数被残留打回,改差分)+ `EditModeGlobalTearDown` 运行末兜底;M3 反证恰 1 红。**残余:34 夹具逐件 TearDown 化未做(已登记)**
+- **连带发现(回归掀出)**:`test_saveOnExit_joinsWorkerAndWritesFile` 负载相关竞速 flake(`c0c1e4c` join 语义订正后助手默认预算 0 = 等 0 ms);隔离跑 23/23 佐证;修法 = 该测显式 5000 ms 预算
+- **回归**:`5036/5001/0/35` @ 2026-10-25T13:36 UTC · 批次 tddc-full2 · `9bbef11` 工作树
+  (基线 5033/4998/0/35 @ 12:25 · conv · `7223126` 工作树,引自 impl-td-enemy02-player03 证据件 §三;
+  增量等式 +3 = 新增测试数,failed 0 零回归,全名级差集逐条对上)
+- **证据件**:`production/qa/evidence/impl-tddc-2026-10-25.md`(三族一个证据件,含 NOT-RUN 清单)
+- **债册**:五索引行 open → closed,三十一订(`closed 39 / open 63 / partial 6 / 未闭 P0 面 64 / 9 epic`);TD-clinic-10 不随本批(11 条中 2 条已覆盖,其余未动)
+- **sprint yaml**:S20-5/6 → done(2026-10-25);S20-7 四裁变三裁(④ audio-026 已裁)
+- **未 commit**(等用户指令)
+- **下一步**:正式进入 sprint-20 实现(S20-1 clinic-004 起手,`/dev-story`)
+
+<!-- 清债总体规划登记 + 翻账批(2026-10-25) -->
+- **sprint-20.md** 追加「清债总体规划」节(四分类账 + 执行序;账面 = 三十二订)
+- **翻账批**:`TD-audio-028` / `TD-audio-030` 索引行 open → closed(正文结案注 2026-10-18 已在,只补索引;
+  用户裁定「把两条疑似漏翻的账翻了」)—— **三十二订**:`closed 41 / open 61 / partial 6 / 未闭 P0 面 62 / 9 epic`;
+  两条翻账注已挂正文(030 的口径 = 选择器半边结案,听测半边挂 102 不消失)
+- 下一步:S20-1(clinic-004)`/dev-story` 起手
+
+<!-- 清债规划挪移(2026-10-25,用户裁定) -->
+- **清债总体规划移位**:原登记于 `production/sprints/sprint-20.md`,用户裁定「不是登记到 sprint20,而是总体 sprint 规划」⇒ 整节逐字移入 `production/milestones/p0-remaining-roadmap-2026-10-20.md` **§6.5.3**;sprint-20.md 原位留指针。
+- **总体剩余 sprint 数(依 §6.5 序列,2026-10-25 现状)**:sprint-20(当前轮,余 S20-1…4)… sprint-29 共 **10 轮**;M4 内容面为非 sprint 独立载体。sprint-23 前置 G-1 仍未清(S18-1 结转,未随 sprint-19 清偿)。

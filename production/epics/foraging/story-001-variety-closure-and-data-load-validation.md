@@ -69,6 +69,8 @@
 
 *Written at story creation (lean mode — QL-STORY-READY skipped; specs self-authored from AC text).*
 
+> **QA plan 对齐(2026-10-25 /qa-plan sprint-20)** —— 证据件:`unity/Assets/Tests/EditMode/Foraging/foraging_data_load_test.cs`(账本树 `tests/unit/foraging/` 并列);估 ~12 条。四负面夹具须**具名 throw**(非 Debug.Assert);权重 int 非 Fix(D-21-17),`Fix` 字段 JSON 写字符串(FixParse);`SEASONS_PER_YEAR` 为烘焙期常量。**AC-17-01b 挂 21a item_key 行 ⇒ `Ignore("BLOCKED-BY: 21a item_key 行未落地")` 显式挂起,禁记绿**;**AC-17-05c [L] = 人工走查件**(ADVISORY,证据落 `production/qa/evidence/foraging-05c-<date>.md`,主创签核;回写完成 ≠ 走查通过,GDD 注⑥)。QA plan 全文:`production/qa/qa-plan-sprint-20-2026-10-25.md`。
+
 - **AC-17-01b**: P0 品种闭集比对。
   - Given: 21a `item_key` 表已含 4 条目(柳树皮/毛地黄/金鸡纳树皮/止血草);17 侧 P0 品种常量表。
   - When: 单测比对两集合并 / 差集。

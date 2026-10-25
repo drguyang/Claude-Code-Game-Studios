@@ -68,6 +68,8 @@
 
 *Written at story creation (lean mode — QL-STORY-READY skipped; specs self-authored from AC text).*
 
+> **QA plan 对齐(2026-10-25 /qa-plan sprint-20)** —— 证据件:`unity/Assets/Tests/EditMode/ClinicMachine/clinic_env_delivery_test.cs`(账本树 `tests/integration/clinic-machine/` 并列);估 ~8 条。AC-1 即 AC-24-01b(两侧定点往返,**夹具须先坐实未配 clamp 时侧向超界可见**,防恒真);AC-2 即 PresentationDtoGuard **递归**扫描(AC-37-15 一致性);AC-3 即 AC-24-07(反射断言非 grep,传递引用不计)。另需:`K_CONTEXT_MAX` 经接口上交(24 不持魔数);contexts[] 空/满两界;**AC-24-09 移交 42 epic = EXTERNAL,不在本件验证**。21a clamp 契约未就绪 ⇒ 接口桩联测,BLOCKED-BY 不记绿。QA plan 全文:`production/qa/qa-plan-sprint-20-2026-10-25.md`。
+
 - **AC-1(唯一 clamp 配对)**: 24 出 / 21a clamp 端到端
   - Given: 布局使 env_score 超 ENV_MAX
   - When: 24 求值 → 经契约交 21a F1

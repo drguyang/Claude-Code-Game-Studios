@@ -9,324 +9,97 @@
 #   done           ↔  Complete
 #   blocked        ↔  Blocked
 #
-# ⚠️ sprint-14 … sprint-18 的完整 yaml 已分别归档为
-#    `production/sprint-status-sprint1{4,5,6,7,8}-archive.yaml`,不随本文件覆盖丢失。
+# ⚠️ sprint-14 … sprint-19 的完整 yaml 已分别归档为
+#    `production/sprint-status-sprint1{4,…,8,9}-archive.yaml`,不随本文件覆盖丢失。
+#    sprint-19 归档 SHA-256(前 16 位)= `5de6f5d3c6cc5154`(2026-10-25 规划轮归档)。
 #
-#    🔴 **sprint-18 有两份归档,必须分清**(2026-10-24 规划轮立):
-#      ① `sprint-status-sprint18-archive.yaml` —— **2026-10-22 收口时**的快照
-#         (头注承诺的 SHA-256 `3212ceb6…` 后被 `fde4af7` 改过 ⇒ 现值 `61c72af9…`)。
-#         ⚠️ 其 `S18-1 status: backlog`、`conditions_open` 两条、`baseline.td_index 99/88/73`
-#         **均已过时** —— 按它判 sprint-18 会得出与事实相反的结论。
-#      ② `sprint-status-sprint18-final-2026-10-24.yaml` —— **sprint-19 规划前一刻**的活件全文快照,
-#         SHA-256 = `33fb9b4508f21a492015bda68a0cd788005555325ecd90727cec8ff744bee03e`,
-#         `cmp` 复核 = **BYTE-IDENTICAL**。
-#         **这份才是 sprint-18 的收口真值**(含 2026-10-22 改判拉回 S18-1、2026-10-24 三条条件
-#         迁入 `conditions_closed`、`baseline.closeout_regression` 三元组)。
-#    ⇒ **判 sprint-18 的收口事实,读 ②;判「2026-10-22 归档那一刻」,读 ①。两者不可互换。**
-#
-# ⚠️ **本 sprint 的件不是 story,而是 TD 工作项** —— 承债册 §六 的用户裁定(2026-10-20):
-#    硬门的清偿载体 = **TD 工作项**,**不立 story · 不重开已 Complete 的 epic**
-#    (补立会把 epic 计数从「全绿」打回「未全绿」、扰动 M3 分母)。
-#    ⇒ `stories` 为空数组,这是**真实状态不是遗漏**;五件工作项登记在下方 `work_items`。
-#    ⚠️ `work_items` 是**格式外扩展**(同 sprint-16 / 17 / 18 先例)。若某工具按严格 schema 解析,
-#    `work_items` 可能被忽略或判未知键 ⇒ **真源 = `production/sprints/sprint-19.md` 的 Tasks 表**。
+# 本文件 = sprint-20 活件(clinic 链尾 + A-2 机制起步 + 判别力债清偿)。
 
-sprint: 19
-goal: "把四道 AC 门(G-4/G-5/G-6/G-7)从「裁决齐、实现零落点」推到「契约在盘 + 有反证夹具」,使 7a/7b · 1,2 · 27 · 52 六户名下未闭 P0 面归零 ⇒ M3 Exit 第二条合取转可机械求值"
-start: "2026-10-24"
-end: ""                          # 不设结束日期口径,做完即收,收口时补记实际收口日(承 sprint-14…18 同例)
-generated: "2026-10-24"
+sprint: 20
+goal: "交付路线图 §6.5 sprint-20 段四件本体(clinic-004/005 · foraging-001 · processing-001,AC 半边按挂标),同轮清偿判别力与测试卫生债族(五次假绿事故的病灶面)"
+start: "2026-10-25"
+end: ""
+generated: "2026-10-25"
 updated: "2026-10-25"
 
-stories: []
-
-work_items:
-  - id: "S19-1"
-    name: "G-4(TD-persist-02)+ TD-persist-01 剩余两项 —— 槽位契约高层面 + 折叠接入存档路径"
-    file: "docs/tech-debt-register.md"
-    complexity: L
-    status: "done"
+stories:
+  - id: "S20-1"
+    name: "clinic-004 交付边界 ClinicEnvDto"
+    file: "production/epics/clinic-machine/story-004-delivery-boundary-clinicenvdto.md"
+    priority: must-have
+    status: ready-for-dev
     owner: ""
-    completed: "2026-10-24"
-    depends_on: ["ISaveCodec(在盘)", "IFoldedPredicate + HistoryFolder(在盘)", "叙事上下文查询(零落点 · 须注入抽象)", "未决医疗动作查询(零落点 · 须注入抽象)"]
-    evidence: "unity/Assets/Tests/EditMode/PersistenceService/save_slot_contract_test.cs(新)"
-    note: "⚠️ **本件是两债合一,不是范围膨胀** —— `TD-persist-01` 剩余判据①「折叠接入存档路径」的唯一合法接入点就是 `Checkpoint` 内部(ADR-010 §六:唯一写入口)⇒ 与 G-4 是**同一段代码**。拆两件会造出「先写 Checkpoint、再回头改 Checkpoint」的返工。**并入依据 = `sprint-19.md` §Phase 1 ①。** ⚠️ **两个上下文查询不得在 7a 内自建状态源** —— 它们的事实属于 8 / 10 / 37,7a 只**定义门**,不**定义被门观察的事实**(同 ADR-010 §三「义务汇总表」的定位)。AC 判据写成「门能被驱动」而非「事实为真」。 ⚠️ **既有反射断言必须同批更新**:`Tests/EditMode/PersistenceService/folded_predicate_test.cs:606` 现断言 `ISaveService` 公开方法集恰 = `{LoadBytes, SaveBytes}`(⚠️ 2026-10-24 行号实测订正:曾记 `:600`,实为 `:606` —— `:598` 是测试方法名行,`:606` 才是 `CollectionAssert`) —— 本件加三方法后该断言必红,**须改而非删**。 ⚠️ **`TD-persist-01` 的结案判据 = ①(本件兑现)+ ③(折叠产出面变异反证 ≥3 轮)**;原三项中的 ②(`OQ-7a-10`)已于 2026-10-24 由用户裁定 A 结清。"
-    acceptance:
-      - "① `ISaveService` 公开方法集 = `{Checkpoint, Load, LoadBytes, SaveBytes, SaveOnExit}`,反射断言同批更新(不得删测)"
-      - "② AC-7a-19 四子判据 (a)(b)(c)(d) 各一例,含闭合回路「先手动存 → 读档 → 再覆盖回去」任一环被拒(BLOCKING)"
-      - "③ `Writable` / `Loadable` 为纯函数投影,各配独立灰置通道。🔁 **2026-10-24 判据对象收窄**:反射断言**只扫 `Sim.Codec/SlotProjections`(静态类,零实例字段)+ `SlotContext`(readonly struct)**;状态宿主 `SaveSlotLedger`(持 `Locked` 集 / `next_writable_seq`,GDD `save-slot-ui.md:212-214` 归 7a 且只进不退)**不在本判据面内**,另以 ② 的 (a)(b)(c)(d) 四例状态迁移夹具覆盖"
-      - "④ 折叠在 `Checkpoint` 内生效 ⇒ 折叠动作**有生产调用链**(TD-persist-01 ①)。🔁 **2026-10-24 三段拆分(承三家专家合成裁定,原件 `production/qa/evidence/s19-1-fold-adjudication-2026-10-24.md`)**:<br>**位置半**(可兑现)—— `grep -rn 'HistoryFolder\\.Fold' unity/Assets --include='*.cs' | grep -v 'Tests/'` ⇒ ≥1 行,**且该行不在 `Sim.Codec/` 内**(必在 `Sim/` 或装配根 `Gameplay.Boot/`)。**原措辞「该行在 `Sim.Codec/SaveService.cs` 内」作废** —— `Sim` / `Sim.Codec` asmdef `references` 互不相含(both = `{Sim.Contracts}`),该行物理上不可能落在 `SaveService.cs`。<br>**委托半**(可兑现)—— `SaveService.cs` 内 `_compose(` 落在 `Checkpoint` 方法体内,组版分支由构造注入驱动;未注入 ⇒ fail-closed 抛具名异常。<br>**字节半 = `NOT-RUN`**(🔁 用户 2026-10-24 裁定**并入 `TD-persist-03`**)—— 「`Checkpoint` 产出的字节里折叠行出现」**当下无落点**:存档体的字节布局从未被造出来(`SaveHeader` 无折叠段偏移 · `Sim.Codec` 零 `FoldRow` 编码器 · 全库无存档体生产器 · 无列表容器编解码器 · `SaveHeader` 无读回方法)。**不得以「折叠在生产调用链上生效」顶替字节半,不得标绿**"
-      - "⑤ 折叠产出面变异反证 ≥3 轮(TD-persist-01 ③)"
-      - "⑥ 门 A 不变(`Sim` 引用集恰 = `{BCL, Sim.Contracts}`),且构造形参 **3 → 6** —— 🔁 **2026-10-24 由 3 → 5 订正**:原算术只覆盖「两门 + 重放」,**漏算 `Checkpoint` 的数据源**;加 `compose`(甲-a)后实为 6"
-      - "⑦ `Load` 交 **3/4 段**(`PRE-S19-D` 甲案 · 2026-10-24 已裁):`Gating` → `Verifying`(复用 `LoadBytes`)→ **头部解析**(`SaveHeader` 四字段读回)→ **迁移链三分支判定** → `Replaying` **前半段**(字节 → `IReadOnlyList<SimEvent>`,经构造注入的 `Action<IReadOnlyList<SimEvent>>` 交出;**零新增 `Sim.Contracts` 成员、零新增装配边** —— 与 `IFoldedPredicate` 同一先例)。**真重放不在本件**(`TD-persist-03`)"
-      - "⑦b 迁移链三分支须**各有夹具**:`SaveVersion == CurrentSaveVersion` ⇒ 直通;`< 当前` ⇒ 逐版本升级(`WorldSeed` 逐位保留);`> 当前` ⇒ **拒绝载入**(前向不兼容)。⚠️ 今日 `CurrentSaveVersion = 1` 且全库零 v0 写入者(`grep -rn 'SaveVersion' unity/Assets --include=*.cs` ⇒ **5 行**,其中零处是「读该字段做判断」)⇒ **升链路径无可测对象**,须以「注入 v0 夹具字节」驱动,不得标绿为「已测真实迁移」"
-      - "⑦c 构造形参 **3 → 6**(`folded` 之后增 `narrativeContext` / `replaySink` / `compose`,三者均可为 null;🔁 2026-10-24 由 3 → 5 订正)⇒ `folded_predicate_test.cs:590` 的 `Assert.AreEqual(3, ps.Length, \"形参 = (basePath, codec, folded)\")` **必红,须同批改而非删**。⚠️ **`folded` 保持第 3 位 ⇒ `:591` 的 `ps[2]` 类型断言仍成立,只改计数 3→6**;`:588`(`ctors.Length`)不动。⚠️ **行号实测订正(2026-10-24 二次核)**:本条曾一度改记为 `:588`,**是误读** —— `:588` 是 `Assert.AreEqual(1, ctors.Length, …)`,`:590` 才是形参数断言(`sed -n '586,595p' unity/Assets/Tests/EditMode/PersistenceService/folded_predicate_test.cs` 可当场复核)。**以 `:590` 为准**"
-      - "⑦d 未注入重放委托时,`Load` 在进 `Replaying` 前**抛具名异常**,**禁静默跳过**(否则是假绿入口)"
-      - "⑦e 读档锁(`AC-7a-19 (d)`)在 **`Verifying` 通过后**置位(用户 2026-10-24 裁定 A)。⚠️ 残余:读档中途失败会**永久锁槽**;`Replaying` 真落地后须复核是否移到 `Ready` 后"
-      - "⑦f **`Replaying` 真重放段 + 三流字节布局 = `TD-persist-03`**,须先裁抽象点(`IStreamReplaySink` 形状未裁)与 ADR-010 §一「头部 + 三流」vs 现单列表的取舍。**本件不得代裁,不得声称 `AC-7a-01` 已满足**"
-      - "⑧ 叙事上下文门交**注入委托**(`PRE-S19-A` 甲案 · 2026-10-24 已裁):`Func<bool> narrativeContext`,与 `IFoldedPredicate` / 重放委托**同一先例** —— 构造注入、**零新增 `Sim.Contracts` 成员、零新增装配边、不开 ADR**"
-      - "⑧b **fail-closed**:未注入驱动源时 `Checkpoint` / `Load` **拒绝并抛具名异常**,**禁 fail-open**(恒真 = save-scum 通道在生产路径默开而测试全绿)"
-      - "⑧c `InNarrativeContext` 是**一个量不是两个** —— GDD `:212` / `:219` 逐字「与手动存**共用同一观察钩子**」,7b `F-7b.2` 两式也只出现一个 `InNarrativeContext(t)`。**不得实现成两个正交查询**"
-      - "⑧d 构造形参 3 → 6(`folded` / `narrativeContext` / `replaySink` / `compose` 四个可选形参,均可为 null;🔁 2026-10-24 由 3 → 5 订正)⇒ `folded_predicate_test.cs:590` 的 `Assert.AreEqual(3, ps.Length, …)` **必红,须同批改而非删**(行号与 ⑦c 同源,已二次核实)"
-      - "⑧e **真实驱动源零落点** —— 谁在锚点事件(脉案落笔 / 病例结案 / 出诊启动)时调它,归 8 / 37 / 52 的实现轮;`AC-7a-20`(事件触发 checkpoint)今天**全仓零载体**,已立 `TD-persist-04`。**本件不得声称 `AC-7a-20` 已满足**"
-
-  - id: "S19-2"
-    name: "G-5(TD-player-02)—— `IPlayerMotor` 契约 + `MoveInput` 类型 + `PlayerController` 实现"
-    file: "docs/tech-debt-register.md"
+    estimate_days: 0          # 承 CAPACITY-MODEL:不估天,复杂度并列
     complexity: M
-    status: "done"
-    completed: "2026-10-24"
+    blocker: ""
+    completed: ""
+    note: "Depends on Story 003 ✅;21a clamp 契约、1 的 K 消费接口未就绪时接口桩联测,BLOCKED-BY 不记绿"
+  - id: "S20-2"
+    name: "clinic-005 纯度重放 + Memoize(含 TD-building-01 残余两半就地裁定)"
+    file: "production/epics/clinic-machine/story-005-purity-replay-memoize.md"
+    priority: must-have
+    status: ready-for-dev
     owner: ""
-    depends_on: ["ADR-020 §Key Interfaces(签名齐备)", "ICameraRig(已在 Gameplay.Presentation,落位先例)"]
-    evidence: "unity/Assets/Tests/EditMode/PlayerController/player_motor_test.cs(新)"
-    note: "⚠️ 实测缺的**不止一个类型** —— `IPlayerMotor` 与 `MoveInput` **都是零命中**(`grep -rn 'struct MoveInput' unity/Assets --include='*.cs'` ⇒ 空)。债册只点名接口,漏了形参类型。 ⚠️ `PlayerController` 现为 `MonoBehaviour`,已有 `GetCell` / `Teleport` / `Move` / `OnTickEdge`;**不得新增第二个位移真源**,接口实现须包装既有语义。"
-    acceptance:
-      - "① 接口四成员齐:`Tick(float, in MoveInput)` / `WorldPos Cell` / `Vector3 Position` / `bool ConsumeCellChanged()` —— **无出参**(`PRE-S19-C` 已于 2026-10-24 裁定「只读边沿」)"
-      - "② `PlayerController` 实现之,既有 `GetCell` / `Teleport` 语义不变"
-      - "③ 跨格时 `ConsumeCellChanged` **恰好一次**(不进格不触发 / 原地抖动不重复 / 连跨两格各一次)"
-      - "③b 实现形态硬约束(承 `PRE-S19-C` 裁定):边沿走**独立锁存器**,只在 `PlayerController.cs:319`(`_lastCommittedCell = cell`)**之后**置位;**不得碰 `_hasPending`**(其写点集合须保持 `{:145, :152, :170, :177, :309}` 五处不变);`Cell` 走 `CellFromPosition`(FloorToInt),**不得用 `GetCell()`**(RoundToInt)"
-      - "③c 双不得:`ConsumeCellChanged` 调用次数**不得**改变 `Append` 次数(不抢主路径);`while (ConsumeCellChanged())` 的迭代数**不得**少于该 tick 的 `Append` 次数(不漏边沿)"
-      - "③d 删死字段 `PlayerController.cs:113 _cellDetector`(零赋值零使用;`PRE-S19-C` 残余 C-3 已裁)"
-      - "④ `IPlayerMotor` 与 `ICameraRig` 同在 `Gameplay.Presentation`(ADR-025 §②)"
-
-  - id: "S19-3"
-    name: "G-6(TD-enemy-01)—— `LogiPose` + `ITameable` / `TameState` 形状 + 接 27 逐 tick 整数推进"
-    file: "docs/tech-debt-register.md"
+    estimate_days: 0
     complexity: M
-    status: "done"
+    blocker: ""
+    completed: ""
+    note: "Depends on Story 002–004;AC-24-11 布局输入逐代码实测(R-4);TD-building-01 裁定二选一:补真 World 端到端(另立 S20-2a)或继续 Fake(AC-24-11 不得记绿)—— 不得默认扩面"
+  - id: "S20-3"
+    name: "foraging-001 品种闭包 + 数据装载校验"
+    file: "production/epics/foraging/story-001-variety-closure-and-data-load-validation.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: ""
+    completed: ""
+    note: "item_key 行未落地 ⇒ Ignore(\"BLOCKED-BY: 21a\") 显式挂起,禁记绿"
+  - id: "S20-4"
+    name: "processing-001 配方子集 + 可采纳谓词"
+    file: "production/epics/processing/story-001-recipe-subset-and-admissible-predicate.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: ""
+    completed: ""
+    note: "AC-18-18 三段非空前置;若撞 TD-medcons-11(CLI 烘焙入口缺口)挂标不记绿"
+  - id: "S20-5"
+    name: "接受侧判别力收紧轮(TD-clinic-02/08/09)"
+    file: "docs/tech-debt-register.md"
+    priority: should-have
+    status: done
+    owner: ""
+    estimate_days: 0
+    complexity: "S~M"
+    blocker: ""
     completed: "2026-10-25"
-    owner: ""
-    depends_on: ["ADR-016 §二/§九", "EnemyPathing.StepAccumulator(在盘 :181)", "EnemyStateMachine(在盘)"]
-    evidence: "unity/Assets/Tests/EditMode/EnemyAI/logi_pose_test.cs(新)"
-    note: "⚠️ **`LogiPose` 与任何表现层 `Transform` / `Vector3` 位姿不是一物**(ADR-016 §二逐字「反向不可信 —— 禁从 `Transform.position` 反推逻辑格」)。grep 到位姿类代码**不构成**本件已还。 ⚠️ **落点须在实施前裁定并写明**:`LogiPose` 是纯整数数据(`WorldPos` + `byte`),按 ADR-025 §① 应住 `Sim.Contracts`;若裁定落 `Sim`,须给出理由。 ⚠️ **`ITameable` / `TameState` 只落形状** —— ADR-016 §七逐字「P0 只定形状 … P0 交付:接口 + 数据字段占位」,实现驯化行为 = 越界到 P1a。"
-    acceptance:
-      - "① `LogiPose = (WorldPos Cell, byte Facing)`,落点经裁定并写明"
-      - "② 禁从表现层 `Transform` 反推逻辑格 —— 源码 + 反射双判"
-      - "③ `ITameable` / `TameState` 只落形状,零驯化行为"
-      - "④ 夹具证「决策不进流、效果进流」(ADR-016 §一 三源不变量的可证伪形态)"
-
-  - id: "S19-4"
-    name: "G-7(TD-randomevents-01)—— `DeferredThreatSlot` 流态载体 + 两 Kind 读写 + 删 `ValidateReconstructable` 假断言"
+    note: "已随 2026-10-25 清债轮提前执行:M0b 变异坐实(评审推断成立)+ 六处收紧 + M1 反证 7 红;债册三条翻转(三十一订)。原件 = production/qa/evidence/impl-tddc-2026-10-25.md"
+  - id: "S20-6"
+    name: "TD-prescription-07 材质分支分类器(ink/brass/implement)"
     file: "docs/tech-debt-register.md"
-    complexity: M
-    status: "done"
+    priority: should-have
+    status: done
     owner: ""
-    completed: "2026-10-25"
-    depends_on: ["ADR-007 §三/§四", "ThreatDeferredPayload / ThreatDeferralClearedPayload(在盘 :323/:335)", "EventBudget.BudgetState(在盘 · 内存态)"]
-    evidence: "unity/Assets/Tests/EditMode/RandomEvents/deferred_threat_slot_test.cs(新)"
-    note: "⚠️ **本件不是「从零发明类型」,是「把内存态换成流态」** —— 52 侧**已有**内存版延迟槽 `EventBudget.BudgetState.DeferSlots`(`Sim/EventBudget.cs:51`,`List<int>`),只是不叫 `DeferredThreatSlot`。 ⚠️ **同文件里有一处假断言必须一并处置**:`EventBudget.ValidateReconstructable`(`:137-142`)的 doc 写「验证预算状态可从流重构」,实现是 `return state != null;` 且自带注释「简化版:验证状态非空」⇒ **方法名声称的判据从未成立**。这正是 ADR-007 §三逐字禁止的形态,也是本仓反复抓过的「自造断言顶替判据」。**只加新类型不删这条 = 本件未完成。** ⚠️ **该方法的调用点已于 2026-10-24 规划轮实测 = 零**(`grep -rn 'ValidateReconstructable' unity/Assets --include='*.cs'` ⇒ 1 行,即声明本身)⇒ 可安全替换;但若将来有调用方接入,判据仍是**换实现而非删方法**。 ⚠️ 本件会碰到 52 已 `Complete` 的 `story-004`,承 TD 工作项载体裁定:**不立 story、不重开 epic**。"
-    acceptance:
-      - "① `DeferSlots` 由 `List<int>` 改为从流重构,不保留第二真源"
-      - "② `ValidateReconstructable` 的「验证非空」删除并换成真判据(`file:line` = `Sim/EventBudget.cs:137-142`)"
-      - "③ `WriterExistenceGate.cs:130-131` 两条豁免(`ThreatDeferred` / `ThreatDeferralCleared`)同批撤除"
-      - "④ 主机迁移后延迟威胁不丢不重(重放同一段流两次,`DeferSlots` 逐元素相同)"
-
-  - id: "S19-5"
-    name: "记账订正 —— TD-sim-01 过期描述 + 路线图 sprint-19 行 Exit 订正 + 四门结案回写"
-    file: "docs/tech-debt-register.md"
+    estimate_days: 0
     complexity: S
-    status: "done"
-    owner: ""
+    blocker: ""
     completed: "2026-10-25"
-    depends_on: []
-    evidence: "三处文本同值可 grep;每处附可跑命令 + 实跑输出"
-    note: "① 债册 `TD-sim-01` 的 🔁 订正段(落盘 `fed0639` 00:23)写「`DeathCandidateConsumer` / `PlayerDiedWriter` 生产侧**零构造点**」,而 `519700c`(08:29)已落 `CompositionRoot.cs:307` / `:332` 两处生产构造 ⇒ **该句在落盘 8 小时后即过期**。⚠️ **不自行宣布 `TD-sim-01` 结案** —— 债册该行自陈「结案与否归 `death-respawn` / QA 侧核,本行只记事实」。 ② 路线图 `:910` 的 Exit 只写 G-4,漏了 `TD-persist-01` 剩余两项(见 `sprint-19.md` §Phase 1 ①)。 ③ 四门 §三行按 §6.4 回写义务划掉或加注。"
-    acceptance:
-      - "① 债册 `TD-sim-01` 过期句就地加注:原串仍可 grep 到 **且** 加注串同时命中(原文不删)"
-      - "② 路线图 `:910` 的 Exit 补 `TD-persist-01` 剩余两项(原文不删)"
-      - "③ 四门(G-4…G-7)各自的 §三行按 §6.4 回写义务处置"
-      - "④ 每处附可跑命令 + 实跑输出(禁写未跑数)"
+    note: "已随 2026-10-25 清债轮提前执行:SkeuoMaterialBranch 三枚举分类器落地 + 占位符改真断言 + test_ac025_6 改打真分类器 + M2/M2b 双反证各 2 红;词门零命中。原件 = production/qa/evidence/impl-tddc-2026-10-25.md"
+  - id: "S20-7"
+    name: "治理盘点轮(retro-19 行动项 4+5:W6–W10 / QA 2 条 / medcons 整块策略 / audio-026 裁定)"
+    file: "docs/tech-debt-register.md"
+    priority: nice-to-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0
+    complexity: S
+    blocker: ""
+    completed: ""
+    note: "四裁变三裁:④ TD-audio-026 已随 2026-10-25 清债轮裁定(丙案「完全构造」+ 释放半边,债册结案块);剩 ① W6–W10 逐条 / ② QA 2 条 / ③ medcons 20 条整块策略 —— 留痕进债册"
 
-# ── 分批(承 CAPACITY-MODEL §3.2:每批 2–4 件 · 并发 ≤ 3 · L 件独占 1 批)──
-batches:
-  - batch: 1
-    items: ["S19-1"]                          # L 件独占,不与 M/S 混批
-    concurrency: 1
-  - batch: 2
-    items: ["S19-2", "S19-3", "S19-4"]        # 文件不相交:Gameplay.Presentation / Sim.Contracts+Sim / Sim+Editor.Tools.Gates
-    concurrency: 3
-  - batch: 3
-    items: ["S19-5"]                          # 记账,依赖批 1/2 的实际结果
-    concurrency: 1
-
-# ── 规划期登记的前提订正(见 sprint-19.md §Phase 1 硬前置)──
-deviations:
-  - id: "①"
-    item: "路线图的 Exit 漏了一半 7a"
-    fact: "路线图 :910 写「7a/7b · 1,2 · 27 · 52 名下 TD 的 P0 面归零」,但 persistence-service 名下未闭 P0 面 = 2 条(TD-persist-01 + TD-persist-02)⇒ 只做 G-4 归不了零"
-    user_ruling: "规划期实测订正 —— TD-persist-01 剩余两项并入 S19-1 同批做(件数仍 5,不新增)"
-    boundary: "并入的依据是「同一段代码」(折叠唯一合法接入点 = Checkpoint 内部),不是凑数;TD-persist-01 的结案判据仍由它自己那两项定,不由本 sprint 代判"
-  - id: "②"
-    item: "G-7 不是从零发明类型,且含一处假断言"
-    fact: "EventBudget.BudgetState.DeferSlots(Sim/EventBudget.cs:51)已是内存版延迟槽;同文件 ValidateReconstructable(:137-142)的方法名声称「验证可从流重构」而实现只判非空"
-    user_ruling: "规划期实测订正 —— S19-4 的 AC 必须含「删掉假断言并换真判据」,不得只加新类型"
-    boundary: "删除前须 grep 调用点;若被生产侧调用 ⇒ 换实现而非删方法"
-  - id: "③"
-    item: "TD-sim-01 的债册描述已过期 8 小时"
-    fact: "债册(fed0639,2026-10-24 00:23)写「生产侧零构造点」;519700c(08:29)已落 CompositionRoot.cs:307 / :332 两处生产构造"
-    user_ruling: "规划期实测订正 —— 归 S19-5 记账订正"
-    boundary: "不自行宣布 TD-sim-01 结案(债册自陈结案归 death-respawn / QA 侧核)"
-
-open_items:
-  - id: "PRE-S19-A"
-    item: "G-4 的两个上下文查询(叙事上下文 / 未决医疗动作)无归属系统"
-    status: "resolved"
-    resolved_on: "2026-10-24"
-    ruling: "用户裁定:**甲案 —— 注入委托,不开 ADR**。`Func<bool> narrativeContext` 走 `SaveService` 构造注入,与 `IFoldedPredicate`(S18-2)/ 重放委托(`PRE-S19-D`)**同一先例**:零新增 `Sim.Contracts` 成员、零新增装配边、不开 ADR。**未注入时 fail-closed**(拒绝 + 抛具名异常),禁 fail-open。"
-    item_correction: "⚠️ **登记项本身有两处实测错误(原文不删)**:① **「两个查询」实为一个量** —— GDD `:212` / `:219` 逐字「与手动存**共用同一观察钩子**」,7b `F-7b.2` 两式也只出现一个 `InNarrativeContext(t)`(`save-slot-ui.md:206-207`),`:213` 明注「= 载入安全上下文门同钩」⇒ **一份状态的两面,被数成了两份**。② **真正缺的东西连登记都没有** —— `AC-7a-20`(规则六 · 事件触发 checkpoint)全仓零载体,见 `TD-persist-04`。"
-    evidence: "`grep -rn 'NarrativeContext|InNarrative|CheckpointContext|PendingMedicalAction' unity/Assets --include='*.cs' | grep -v '/Tests/'` ⇒ 空"
-    verify_cmd: "grep -rn 'NarrativeContext\\|InNarrative\\|PendingMedicalAction\\|HasPendingMedical' unity/Assets --include='*.cs' | grep -v '/Tests/' | wc -l   # 期望 0"
-    source_candidates_rejected:
-      - name: "IModalState"
-        where: "unity/Assets/Gameplay.UI/Skeuomorphic/IModalState.cs:12"
-        why: "住 `Gameplay.UI`;7a 是 `Sim.Codec`,够不着。且方向反了 —— UI 是呈现层,7a 不该反向依赖它"
-      - name: "MotorLease"
-        where: "unity/Assets/Gameplay.Presentation/Player/MotorLease.cs:32"
-        why: "同上,住表现层"
-      - name: "ModalPhaseResult.MotorSuppressed"
-        where: "unity/Assets/Sim/EmergencyProcedures/ModalPhaseEvaluator.cs:24"
-        why: "是**方法返回值**,不是可持续查询的状态 ⇒ 供不出 `InNarrativeContext(t)`"
-    residuals:
-      - id: "R-A1"
-        item: "真实驱动源零落点 —— 谁在锚点事件时调它,归 8 / 37 / 52 的实现轮"
-        disposition: "已立 `TD-persist-04`(含 `AC-7a-20` 零载体的事实)"
-      - id: "R-A2"
-        item: "fail-closed 意味着**本 sprint 之后存档 / 读档在生产路径上不可用**,直到驱动源接通"
-        disposition: "这是**刻意的**:不可利用 > 不可用。须在 sprint 收口时如实登记,不得读成「功能已完成」"
-    note: "本 sprint 只注入委托 + 假件;AC 判据写成「门能被驱动」而非「事实为真」。详见 §S19-1 的裁定前提。"
-  - id: "PRE-S19-B"
-    item: "TD-ci-01(CI 常驻矩阵)仍 EXTERNAL"
-    status: "registered"
-    evidence: "债册 TD-ci-01:P0 面 = N;用户 2026-10-21 裁定「不做,登记」"
-    verify_cmd: "grep -n 'TD-ci-01' docs/tech-debt-register.md | head -3"
-    note: "不计入本 sprint 件数,不阻断 Exit,不减少 M3 分母。"
-
-  # ── QA 规划轮(2026-10-24 /qa-plan sprint)新揭的两条入场阻塞 ──
-  # 用户 2026-10-24 裁定:先写进 QA plan 当阻塞项,实施前再裁(不在本轮裁)。
-  - id: "PRE-S19-C"
-    item: "`ConsumeCellChanged` 签名 4 : 1 冲突 + 与 `OnTickEdge` 的消费语义未裁"
-    status: "resolved"
-    resolved_on: "2026-10-24"
-    ruling: "用户裁定:**取「只读边沿」** —— `ConsumeCellChanged` 不夺 `OnTickEdge` 的 Append 主路径,只观察已提交的边沿。签名冲突一并解除 ⇒ **`bool ConsumeCellChanged();`(无出参)**,与 4 份架构件一致;债册 `:1625` 的出参形态记作笔误,已就地加注(原文不删)"
-    blocks: ["S19-2"]
-    evidence: "签名 4 处无出参(`adr-020:401` / `architecture.md:529` / `architecture.md:890` / `architecture.yaml:135`);1 处有出参(`docs/tech-debt-register.md:1625`,已加注订正)"
-    verify_cmd: "grep -rn 'ConsumeCellChanged' docs/ | wc -l   # 期望 7(签名形态 5 + 散文提及 2)"
-    implementation_constraints:
-      - "**不得碰 `_hasPending`** —— 正确形态 = 独立边沿锁存器,只在 `PlayerController.cs:319`(`_lastCommittedCell = cell`)之后置位;`_hasPending` 写点集合须保持 `{:145, :152, :170, :177, :309}` 五处不变"
-      - "**`Cell` 走 `CellFromPosition`(FloorToInt)**,不得用 `GetCell()`(RoundToInt,`:354-362`)—— 后者与 `ActorCellEnteredPayload.Cell` 不同源"
-      - "**只落形状,不发明消费者** —— 今天零消费者(2 的 `story-003:64` 只读 `Position`);GDD R5 `:128` 那句须读作**因果绑定**而非**调用次序**,该读法须加注"
-    residuals:
-      - id: "C-1"
-        item: "客户端模式永不产生边沿 ⇒ 客户端上行链整体 `NOT-RUN`"
-        fact: "`OnTickEdge:305` 在 Client 模式直接 return ⇒ `_lastCommittedCell` 永不推进(`OnUplinkSample` 对它零赋值);`OnUplinkSample` 生产侧零调用点(`BootRoot.cs:744` 自陈是设计)"
-        disposition: "**正确且必须有**(客户端不 Append ⇒ 无提交 ⇒ 无边沿)。上行链归 **P1b / 45**;S19-2 不得声称覆盖联机"
-      - id: "C-2"
-        item: "`ConsumeCellChanged` 今天零消费者"
-        fact: "`grep -rn 'ConsumeCellChanged' design/ production/epics/` ⇒ 1 命中 = GDD `:128` 自己"
-        disposition: "只落形状,不发明消费者"
-      - id: "C-3"
-        item: "`_cellDetector` 死字段(`PlayerController.cs:113`,零赋值零使用)"
-        disposition: "✅ **已裁:删死字段**(改动面 1 行,不动既有测试);生产内联算子与 `CellTransitionDetector` 的**重复**另立 TD 归后续轮"
-    note: "详见 `production/qa/qa-plan-sprint-19-2026-10-24.md` §七处地雷 L-1 与 §S19-2 B-1/B-2/B-3 + C-1/C-2/C-3。"
-
-  - id: "PRE-S19-D"
-    item: "`Load(SaveSlot)` 的后两段(迁移链 / 三流重放)零实现且零 TD"
-    status: "resolved"
-    resolved_on: "2026-10-24"
-    ruling: "用户裁定:**甲案 —— `Load` 交 3/4 段**。`Gating` → `Verifying`(复用 `LoadBytes`)→ 头部解析 → 迁移链三分支判定 → `Replaying` 前半段(字节 → `IReadOnlyList<SimEvent>`,经构造注入的 `Action<IReadOnlyList<SimEvent>>` 交出)。**真重放另立 `TD-persist-03`**(因 `Sim` ↔ `Sim.Codec` 兄弟装配互不可见,须先裁抽象点)。读档锁在 **`Verifying` 通过后**置位(裁定 A)。"
-    blocks: ["S19-1"]
-    evidence: "`grep -rn 'MigrationChain\\|void Migrate\\|Replay(' unity/Assets --include='*.cs' | grep -v Tests` ⇒ 0 命中;而 ADR-010 `:327` 把 `Load` 定义为「校验和 → 回退 bak → 迁移链 → 三流重放」四段"
-    verify_cmd: "grep -rn 'MigrationChain\\|void Migrate\\|Replay(' unity/Assets --include='*.cs' | grep -v Tests | wc -l   # 期望 0(S19-1 兑现后仍为 0 —— 真重放不在本 sprint)"
-    decision_basis:
-      - id: "F1"
-        fact: "`Load` 零生产消费者"
-        cmd: "grep -rn 'new SaveService' unity/Assets --include=*.cs | grep -v Tests/   # ⇒ 0"
-        implication: "`Load` 落了也没人调 ⇒ 本条当下**不阻塞任何在盘行为**"
-      - id: "F2"
-        fact: "**装配边双向不通(根因)** —— `Sim` 与 `Sim.Codec` 是兄弟装配,均只引 `Sim.Contracts`"
-        cmd: "python3 -c \"import json;[print(n, json.load(open(f'unity/Assets/{n}/{n}.asmdef'))['references']) for n in ['Sim','Sim.Codec','Sim.Contracts']]\""
-        implication: "`Load` 要调 `Sim.EventStream.Append`,而 `SaveService` 住 `Sim.Codec` ⇒ **物理上够不着**。这与 ADR-029(`IPayloadEncoder`)/ ADR-031(`IPayloadDecoder`)是同一个洞,**同族第三次**"
-      - id: "F3"
-        fact: "迁移链无对象可迁,但「空链」须有断言钉住"
-        cmd: "grep -rn 'SaveVersion' unity/Assets --include=*.cs   # ⇒ 5 行 = SaveHeader.cs:9/:23/:27/:37 + 一处测试注释;其中零处是「读该字段做判断」"
-        implication: "`CurrentSaveVersion = 1` 且零 v0 写入者 ⇒ 空链是**事实**;须以注入 v0 夹具驱动升链路径"
-      - id: "F4"
-        fact: "「三流」在存储上是一个 `List<SimEvent>`(`EventStream.cs:38`);`StreamRouting.Of` 只用于排序/遥测,不用于分桶"
-        implication: "ADR-010 §一「头部 + 三流」字节布局与现实现有**形状差** ⇒ 重放须按全序键重建。**ADR 级二选一,归 `TD-persist-03`**"
-      - id: "F5"
-        fact: "重放不能走 `Append` —— `EventStream.cs:77-83` 的 CAP 检查依赖 `IPresenceQuery`,读档时在场视图尚未重建 ⇒ 会误抛"
-        implication: "重放需独立旁路,须逐条判 CAP / 去重 / 单调断言三关的适用性"
-    residuals:
-      - id: "R-1"
-        item: "读档中途失败会永久锁槽"
-        cause: "锁在 `Verifying` 通过后置位(裁定 A),而 `Replaying` 真重放未落地 ⇒ 该段抛异常时锁已置"
-        disposition: "`Replaying` 真落地后须复核是否移到 `Ready` 后;`TD-persist-03` 解除动作 ④ 已登记"
-      - id: "R-2"
-        item: "`AC-7a-01` / `AC-7a-02` 的语义层今天零测试,而 `story-001` 标 `Complete`、7 个 AC 勾选框 0/7 已勾"
-        evidence: "`save_service_test.cs:96-98` 唯一挂 `AC-7a-01` 注释的 `test_checksumFallback_readsBakWhenFinalCorrupted` **只测 `bak` 回退**;`AC-7a-02` 零注释命中"
-        disposition: "**本轮不代修** —— 修它要动已 `Complete` 的 `story-001`,属载体裁定面。已登记于 `TD-persist-03` 的「相邻发现」栏,须另立评审项"
-    note: "详见 `docs/tech-debt-register.md` §TD-persist-03 与 `production/qa/qa-plan-sprint-19-2026-10-24.md` §未及核查项 1。"
-
-conditions_open: []
-
-qa_plan:
-  path: "production/qa/qa-plan-sprint-19-2026-10-24.md"
-  written: "2026-10-24"
-  scope: "5 工作项(4 实现 + 1 记账),零 story"
-  classification: "推断 not 声明 —— 五件是 TD 工作项,无 `Type:` 字段 ⇒ QA plan 即该分类的权威出处"
-  types:
-    S19-1: "Integration"
-    S19-2: "Logic"
-    S19-3: "Logic"
-    S19-4: "Integration"
-    S19-5: "Config/Data"
-  new_test_files:
-    - "unity/Assets/Tests/EditMode/PersistenceService/save_slot_contract_test.cs"
-    - "unity/Assets/Tests/EditMode/PlayerController/player_motor_test.cs"
-    - "unity/Assets/Tests/EditMode/EnemyAI/logi_pose_test.cs"
-    - "unity/Assets/Tests/EditMode/RandomEvents/deferred_threat_slot_test.cs"
-  modified_test_files:
-    - path: "unity/Assets/Tests/EditMode/PersistenceService/folded_predicate_test.cs"
-      why: ":590 构造形参 = 3 断言 + :598 公开方法集 = {LoadBytes,SaveBytes} 断言 —— 两处都会因 S19-1 转红,须改不得删"
-    - path: "unity/Assets/Tests/EditMode/RandomEvents/event_budget_defer_test.cs"
-      why: "三处既有假绿(:91 空断言 / :68 恒真 / :8+:91 AC-52-30 编号张冠李戴),S19-4 必做"
-  manual_qa: "零人工验收项"
-  playtest: "无"
-  note: "⚠️ 本 sprint 零玩家可见变化 ⇒ smoke 面 = 回归面,不要求可玩性 smoke。"
-
-baseline:
-  # ⚠️ 三元组纪律(coding-standards.md §Review Evidence Standards):
-  #    任何测试数值须带「截至时刻 · 批次 · commit」;引用旧件须改写来源,不得重盖时间戳。
-  regression:
-    editmode:
-      source: "引用自 production/sprints/sprint-18.md §九.7(收口判据那一组)"
-      total: 4475
-      passed: 4439
-      failed: 0
-      skipped: 36
-      commit: "4e005bd"
-      tree: "clean"
-      note: "⚠️ **引用,不是本 sprint 实跑** —— 不带本 sprint 时间戳。sprint-19 收口时须以本 sprint 自己的三元组覆盖,并附全名级差集。"
-    playmode:
-      source: "引用自 production/sprints/sprint-18.md §九.7(收口判据那一组)"
-      total: 202
-      passed: 202
-      failed: 0
-      skipped: 0
-      commit: "4e005bd"
-      tree: "clean"
-      note: "同上 —— 引用不是实跑。"
-  td_index:
-    # 实跑命令见 production/sprints/sprint-19.md §溯源(自包含)
-    entries: 102
-    p0_face_Y: 91
-    unclosed_p0: 76
-    epics_involved: 13
-    measured_at: "2026-10-24"
-    note: "🔁 **2026-10-24 十二订实跑(入场阻塞项裁定轮后)** —— 新立 `TD-persist-03`(`PRE-S19-D`)+ `TD-persist-04`(`PRE-S19-A`)两条 P0 面债 ⇒ `entries 100→102` · `p0_face_Y 89→91` · `unclosed_p0 74→76`。**收口预期 = 71**(实测复算:`76 − 5`;S19-1…S19-4 拟清 5 条 = `TD-persist-01` / `TD-persist-02` / `TD-player-02` / `TD-enemy-01` / `TD-randomevents-01`。⚠️ `persistence-service` 仍余 `TD-persist-03` / `TD-persist-04` 两条 ⇒ **该户不归零**。**原记 `74 → 70` 与中间稿 `76 → 74` 两版算术均错,均因按「四门各 1 条」算而漏了 `S19-1` 的两债合一**)。⚠️ **预期不是结论** —— 收口时以债册 §五 脚本实跑为准并写明差在哪;禁止照抄本字段。"
-    superseded:
-      entries: 100
-      p0_face_Y: 89
-      unclosed_p0: 74
-      epics_involved: 13
-      note: "规划轮实跑值(2026-10-24 上午),已被上方十二订值取代。**原文不删**。"
+# 追加率预留:1 件(承 CAPACITY-MODEL §3.1;retro-19 行动项 2:规划期逐件附「将掀几债」预估,
+# 各 note 已含;入场即掀新债时先裁减 Should Have)
