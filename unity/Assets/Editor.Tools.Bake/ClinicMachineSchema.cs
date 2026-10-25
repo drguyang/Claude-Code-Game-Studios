@@ -106,6 +106,18 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary><c>ADJ_TABLE</c> 根键白名单。</summary>
         internal static readonly string[] AdjRootKeys = { "schema_version", "_note", "n_max", "w_min", "w_max", "pairs" };
 
+        /// <summary><c>ROOM_NAMES</c> 根键白名单(2026-10-26 裁定 ①-C)。</summary>
+        internal static readonly string[] RoomNamesRootKeys = { "schema_version", "_note", "rooms" };
+
+        /// <summary><c>ROOM_NAMES</c> 行键白名单。</summary>
+        internal static readonly string[] RoomNamesRowKeys = { "room_type", "id" };
+
+        /// <summary><c>CONTEXT_NAMES</c> 根键白名单(2026-10-26 裁定 ②-C)。</summary>
+        internal static readonly string[] ContextNamesRootKeys = { "schema_version", "_note", "contexts" };
+
+        /// <summary><c>CONTEXT_NAMES</c> 行键白名单。</summary>
+        internal static readonly string[] ContextNamesRowKeys = { "context_id", "id" };
+
         /// <summary><c>ADJ_TABLE</c> 行键白名单。</summary>
         internal static readonly string[] AdjRowKeys = { "a", "b", "w" };
 

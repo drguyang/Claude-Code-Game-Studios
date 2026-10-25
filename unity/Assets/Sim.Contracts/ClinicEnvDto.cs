@@ -9,6 +9,11 @@
 //   由 24 的数据门守,本契约只载值;
 // · contexts[] 用 int[](支 4-a:情境词表 size 全库未定 ⇒ 不造 bitmask;本 DTO 非流事件,
 //   数组不触支 0 的 header/blob 纪律;「可空集」= 空数组非 null);
+//   ✅ **2026-10-26 支 4-a 结案**(用户裁定 ①-C / ②-C / ③-B):size 由两张显式词表承载 ——
+//   `assets/data/clinicmachine_{room,context}_names.json` → `*.cooked` → `Sim.Clinic.ClinicRoomNameTable`
+//   / `ClinicContextNameTable`;**编号冻结在作者态,新增只能追加**(禁用产物行序当编号,那会让旧存档
+//   编号移位)。`ROOM_NONE = 0` 是哨兵,真实条目从 1 起。**仍不造 bitmask**(数组形态不变)。
+//   投影单点 = `ClinicEnvProjection.ToDto`;查不到编号 ⇒ throw,不降级为 None。详见 GDD `:340` 补注。
 // · GetEnv(room) 的 room 类型 registry 未点名(4-c):取 int(24 的房间是整数格连通块导出的
 //   房号,ROOM_NONE = 0 是合法输入 → 中性 (0,0),EC-24-01/02)。
 

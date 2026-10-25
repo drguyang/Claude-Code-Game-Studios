@@ -301,14 +301,19 @@ namespace DaYiJingCheng.Tests.ClinicMachine
 
             // 域边界接受侧(与下方非负拒收侧配对):base_env = ±ENV_MOD(= ±1/2,
             // 读真实常量文件)必须过 —— O-24-4 门在边界不误伤;钉解析值 ±32768。
+            // ⚠️ context_id 必须取自 clinicmachine_context_names.json 的真实词表 —— 覆盖门
+            // (AssertContextNameCoverage)拒收词表外的情境(否则该情境投影不出来 = 静默错读)。
+            // 本测只验 base_env 域边界,context_id 取哪个词表项与断言无关,取真实项即可。
             const string contextAtDomainBounds =
                 "{ \"schema_version\": 1, \"contexts\": [" +
-                " { \"room_type\": \"ward\", \"context_id\": \"lo\", \"k_speed\": \"1\", \"base_env\": \"-1/2\" }," +
-                " { \"room_type\": \"surgery\", \"context_id\": \"hi\", \"k_speed\": \"1\", \"base_env\": \"1/2\" } ] }";
+                " { \"room_type\": \"ward\", \"context_id\": \"ward_plain\", \"k_speed\": \"1\", \"base_env\": \"-1/2\" }," +
+                " { \"room_type\": \"surgery\", \"context_id\": \"surgery_sterile\", \"k_speed\": \"1\", \"base_env\": \"1/2\" } ] }";
             ClinicMachineTablesBake.BakeOutput bounds = ClinicMachineTablesBake.BakeFromJson(
                 contextAtDomainBounds,
                 RepoDataText("clinicmachine_adj.json"),
                 RepoDataText("clinicmachine_room.json"),
+                RepoDataText("clinicmachine_room_names.json"),
+                RepoDataText("clinicmachine_context_names.json"),
                 RepoDataText("item_database_constants.json"));
 
             Assert.That(RowOf(bounds.Context, "ward").BaseEnv.Raw, Is.EqualTo(-32768L));
@@ -324,6 +329,8 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                     RepoDataText("clinicmachine_context.json"),
                     RepoDataText("clinicmachine_adj.json"),
                     RepoDataText("clinicmachine_room.json"),
+                    RepoDataText("clinicmachine_room_names.json"),
+                    RepoDataText("clinicmachine_context_names.json"),
                     FixtureText("invalid_constants_env_mod_positive.json")));
 
             // ⚠️ 断言钉到 O-24-4 守卫**自己的**报文前缀,不用共用 token「ENV_MOD_MIN」——
@@ -344,6 +351,8 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                     FixtureText("invalid_context_base_env.json"),
                     RepoDataText("clinicmachine_adj.json"),
                     RepoDataText("clinicmachine_room.json"),
+                    RepoDataText("clinicmachine_room_names.json"),
+                    RepoDataText("clinicmachine_context_names.json"),
                     RepoDataText("item_database_constants.json")));
 
             AssertErrorsContain(ex, "base_env", "ENV_MOD_MIN");

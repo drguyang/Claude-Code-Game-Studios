@@ -86,6 +86,13 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>产物文件名(24 ROOM_TABLE)。</summary>
         public const string ClinicRoomCookedAssetName = "clinicmachine_room.cooked.bytes";
 
+        /// <summary>产物文件名(24 ROOM_NAMES 词表;2026-10-26 裁定 ①-C)。
+        /// <para>⚠️ 与运行期 <c>AddressablesDataProvider.ClinicRoomNamesAddress</c> 同值(同一段注记理由)。</para></summary>
+        public const string ClinicRoomNamesCookedAssetName = "clinicmachine_room_names.cooked.bytes";
+
+        /// <summary>产物文件名(24 CONTEXT_NAMES 词表;2026-10-26 裁定 ②-C)。</summary>
+        public const string ClinicContextNamesCookedAssetName = "clinicmachine_context_names.cooked.bytes";
+
         /// <summary>产物文件名(21a 家具目录 = <c>FURN_TABLE</c>;O-24-1 / <c>TD-clinic-01</c> 的兑现件)。
         /// <para>⚠️ 与运行期 <c>AddressablesDataProvider.FurnitureCatalogueAddress</c> 同值(同一段注记理由)。</para></summary>
         public const string FurnitureCatalogueCookedAssetName = "item_database_furniture.cooked.bytes";
@@ -725,6 +732,10 @@ namespace DaYiJingCheng.EditorTools.Bake
                 File.WriteAllBytes(Path.Combine(cookedDir, ClinicContextCookedAssetName), result.ContextCooked);
                 File.WriteAllBytes(Path.Combine(cookedDir, ClinicAdjCookedAssetName), result.AdjCooked);
                 File.WriteAllBytes(Path.Combine(cookedDir, ClinicRoomCookedAssetName), result.RoomCooked);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, ClinicRoomNamesCookedAssetName), result.RoomNamesCooked);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, ClinicContextNamesCookedAssetName), result.ContextNamesCooked);
                 // ⚠️ **同一份烘焙结果也落盘**:闭集已经在这里烘出来了,若不落产物,就会出现
                 // 「24 的烘焙期强制了闭集,而运行期 `AddressablesDataProvider` 装载不到它」的半烘态
                 // (那是 E-13 启动期硬失败,而且本菜单的日志会显示「已强制」—— 假绿)。
@@ -740,6 +751,10 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"{result.Adj.Pairs.Count} 邻接对(n_max = {result.Adj.NMax});" +
                     $"{ClinicRoomCookedAssetName} = {result.RoomCooked.Length} B, " +
                     $"{result.Room.Rooms.Count} 房间类型;" +
+                    $"{ClinicRoomNamesCookedAssetName} = {result.RoomNamesCooked.Length} B, " +
+                    $"{result.RoomNames.Rows.Count} 房间名;" +
+                    $"{ClinicContextNamesCookedAssetName} = {result.ContextNamesCooked.Length} B, " +
+                    $"{result.ContextNames.Rows.Count} 情境名;" +
                     $"{FurnitureCatalogueCookedAssetName} = {furn.Cooked.Length} B, " +
                     $"{furn.Bound.Rows.Count} 家具类型; " +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}, " +

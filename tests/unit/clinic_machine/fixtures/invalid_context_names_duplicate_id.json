@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具:两个 context_id 争同一编号 ⇒ 投影二义 ⇒ 拒。",
+  "contexts": [
+    { "context_id": "ward_plain", "id": 1 },
+    { "context_id": "surgery_sterile", "id": 1 }
+  ]
+}

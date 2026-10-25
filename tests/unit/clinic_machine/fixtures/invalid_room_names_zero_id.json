@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具(裁定 ③-B):id = 0 是 ROOM_NONE 哨兵保留值,词表里出现 0 会让「无房间」与「某个真房间」不可区分 ⇒ 拒。ReadRequiredPositiveInt 天然拒 0(单机制)。",
+  "rooms": [
+    { "room_type": "ward", "id": 0 }
+  ]
+}

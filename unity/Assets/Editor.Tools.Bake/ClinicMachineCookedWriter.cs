@@ -18,6 +18,12 @@
 //     i32 room_count
 //     room_count × { str room_type; i32 clause_count;
 //                    clause_count × { u8 kind; str type; i32 min; str neighbor_type; u8 direction } }
+//   clinicmachine_room_names.cooked      ← 2026-10-26 裁定 ①-C / ③-B
+//     i32 row_count
+//     row_count × { str room_type; i32 id }        id ≥ 1(0 保留给 ROOM_NONE)
+//   clinicmachine_context_names.cooked   ← 2026-10-26 裁定 ②-C
+//     i32 row_count
+//     row_count × { str context_id; i32 id }       id ≥ 1
 //
 // ⚠️ **行序一律全序**(承 story-002 返工(A)的教训:`List.Sort` 不稳定 ⇒ 键相同时序取决于实现内部,
 //   同源两次烘焙字节可能不一致,违 ADR-014 §二)。故:
@@ -179,6 +185,62 @@ namespace DaYiJingCheng.EditorTools.Bake
             byte[] utf8 = Encoding.UTF8.GetBytes(s);
             w.Write(utf8.Length);
             w.Write(utf8);
+        }
+
+        /// <summary>编码房间名词表(含 20 字节头;2026-10-26 裁定 ①-C)。</summary>
+        /// <remarks>行按 <c>room_type</c> ordinal 排序落盘 —— 产物序确定性(与其余三表同纪律)。
+        /// <para>⚠️ **产物序不是编号**:编号来自作者态的 <c>id</c> 字段,排序只影响字节布局。
+        /// 二者刻意分离 —— 若用产物序当编号,新增 room_type 会让其后编号移位。</para></remarks>
+        public static byte[] WriteRoomNames(
+            in ClinicMachineRoomNamesBinder.BindResult bound, uint configVersion)
+        {
+            var rows = new List<ClinicMachineRoomNamesBinder.NameRow>(bound.Rows);
+            if (rows.Count == 0)
+                throw new InvalidOperationException(
+                    "ROOM_NAMES 绑定行集为空 ⇒ 拒绝落盘(Binder 的空表校验应已拦;" +
+                    "空词表让所有房间都投成 ROOM_NONE = 静默失效)");
+
+            rows.Sort((x, y) => string.CompareOrdinal(x.RoomType, y.RoomType));
+
+            using (var payload = new MemoryStream())
+            using (var w = new BinaryWriter(payload, Encoding.UTF8))
+            {
+                w.Write(rows.Count);
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    WriteString(w, rows[i].RoomType);
+                    w.Write(rows[i].Id);
+                }
+                w.Flush();
+                return FinishHeader(payload.ToArray(), bound.SchemaVersion, configVersion);
+            }
+        }
+
+        /// <summary>编码情境词表(含 20 字节头;2026-10-26 裁定 ②-C)。</summary>
+        /// <remarks>行按 <c>context_id</c> ordinal 排序落盘 —— 同 <see cref="WriteRoomNames"/>。</remarks>
+        public static byte[] WriteContextNames(
+            in ClinicMachineContextNamesBinder.BindResult bound, uint configVersion)
+        {
+            var rows = new List<ClinicMachineContextNamesBinder.NameRow>(bound.Rows);
+            if (rows.Count == 0)
+                throw new InvalidOperationException(
+                    "CONTEXT_NAMES 绑定行集为空 ⇒ 拒绝落盘(Binder 的空表校验应已拦;" +
+                    "空词表让所有情境都投不出来 = 静默失效)");
+
+            rows.Sort((x, y) => string.CompareOrdinal(x.ContextId, y.ContextId));
+
+            using (var payload = new MemoryStream())
+            using (var w = new BinaryWriter(payload, Encoding.UTF8))
+            {
+                w.Write(rows.Count);
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    WriteString(w, rows[i].ContextId);
+                    w.Write(rows[i].Id);
+                }
+                w.Flush();
+                return FinishHeader(payload.ToArray(), bound.SchemaVersion, configVersion);
+            }
         }
 
         /// <summary>头(magic + formatVersion + schemaVersion + configVersion + payloadLength)+ 载荷。</summary>

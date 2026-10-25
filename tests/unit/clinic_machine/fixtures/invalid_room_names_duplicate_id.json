@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具:两个 room_type 争同一编号 ⇒ 投影二义(ClinicEnvDto.RoomNameId 反查会命中哪个?)⇒ 拒。",
+  "rooms": [
+    { "room_type": "ward", "id": 1 },
+    { "room_type": "surgery", "id": 1 }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具:同一 room_type 出现两次 ⇒ 一词一编号被破(后一条会覆盖前一条的编号,静默)。",
+  "rooms": [
+    { "room_type": "ward", "id": 1 },
+    { "room_type": "ward", "id": 2 }
+  ]
+}

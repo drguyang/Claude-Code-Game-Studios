@@ -21,6 +21,8 @@
 //    ROOM   : i32 room_count;
 //             room_count × { string room_type; i32 clause_count;
 //                            clause_count × { u8 kind; string type; i32 min; string neighbor_type; u8 direction } }
+//    ROOM_NAMES    : i32 row_count; row_count × { string room_type; i32 id }     id ≥ 1(裁定 ①-C / ③-B)
+//    CONTEXT_NAMES : i32 row_count; row_count × { string context_id; i32 id }    id ≥ 1(裁定 ②-C)
 //
 // ⚠️ 行序 = 写方的全序排序结果(声明序不承载语义);读方**不依赖**读入序做任何计算。
 //
@@ -190,6 +192,82 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 }
             }
         }
+
+        /// <summary>读 ROOM_NAMES 词表(裁定 ①-C / ③-B)。</summary>
+        /// <exception cref="InvalidDataException">头部损坏 / 长度不符 / 行数 &lt; 1 / id &lt; 1 /
+        /// 键或 id 重复(表构造拒收)—— 启动期硬失败。</exception>
+        public static ClinicRoomNameDataSet ReadRoomNames(byte[] bytes)
+        {
+            using (BinaryReader r = CookedReadUtil.OpenChecked(
+                bytes, "clinicmachine_room_names", out uint configVersion))
+            {
+                int rowCount = r.ReadInt32();
+                if (rowCount < 1)
+                    throw new InvalidDataException(
+                        $"[cooked] clinicmachine_room_names 行数 = {rowCount} —— 须 ≥ 1" +
+                        "(空词表让全部房间投影成 ROOM_NONE = 静默失效;E-13)");
+
+                var entries = new ClinicNameEntry[rowCount];
+                for (int i = 0; i < rowCount; i++)
+                {
+                    string roomType = CookedReadUtil.ReadString32(
+                        r, $"clinicmachine_room_names rows[{i}].room_type");
+                    int id = r.ReadInt32();
+                    entries[i] = new ClinicNameEntry(roomType, id);
+                }
+
+                CookedReadUtil.AssertFullyConsumed(r, "clinicmachine_room_names");
+
+                try
+                {
+                    var table = new ClinicRoomNameTable(entries);
+                    return new ClinicRoomNameDataSet(table, configVersion);
+                }
+                catch (ArgumentException ex)
+                {
+                    throw new InvalidDataException(
+                        $"[cooked] clinicmachine_room_names 表构造被拒:{ex.Message}", ex);
+                }
+            }
+        }
+
+        /// <summary>读 CONTEXT_NAMES 词表(裁定 ②-C)。</summary>
+        /// <exception cref="InvalidDataException">头部损坏 / 长度不符 / 行数 &lt; 1 / id &lt; 1 /
+        /// 键或 id 重复(表构造拒收)—— 启动期硬失败。</exception>
+        public static ClinicContextNameDataSet ReadContextNames(byte[] bytes)
+        {
+            using (BinaryReader r = CookedReadUtil.OpenChecked(
+                bytes, "clinicmachine_context_names", out uint configVersion))
+            {
+                int rowCount = r.ReadInt32();
+                if (rowCount < 1)
+                    throw new InvalidDataException(
+                        $"[cooked] clinicmachine_context_names 行数 = {rowCount} —— 须 ≥ 1" +
+                        "(空词表让全部情境投影不出来 = 静默失效;E-13)");
+
+                var entries = new ClinicNameEntry[rowCount];
+                for (int i = 0; i < rowCount; i++)
+                {
+                    string contextId = CookedReadUtil.ReadString32(
+                        r, $"clinicmachine_context_names rows[{i}].context_id");
+                    int id = r.ReadInt32();
+                    entries[i] = new ClinicNameEntry(contextId, id);
+                }
+
+                CookedReadUtil.AssertFullyConsumed(r, "clinicmachine_context_names");
+
+                try
+                {
+                    var table = new ClinicContextNameTable(entries);
+                    return new ClinicContextNameDataSet(table, configVersion);
+                }
+                catch (ArgumentException ex)
+                {
+                    throw new InvalidDataException(
+                        $"[cooked] clinicmachine_context_names 表构造被拒:{ex.Message}", ex);
+                }
+            }
+        }
     }
 
     /// <summary>CONTEXT_TABLE 烘焙产物的解码形。</summary>
@@ -235,6 +313,38 @@ namespace DaYiJingCheng.Gameplay.Presentation
 
         /// <summary>构造解码形。</summary>
         public ClinicRoomDataSet(ClinicRoomTable table, uint configVersion)
+        {
+            Table = table; ConfigVersion = configVersion;
+        }
+    }
+
+    /// <summary>ROOM_NAMES 词表烘焙产物的解码形(裁定 ①-C)。</summary>
+    public struct ClinicRoomNameDataSet
+    {
+        /// <summary>词表(双向查找)。</summary>
+        public ClinicRoomNameTable Table;
+
+        /// <summary>烘焙时从源 JSON 文本派生的内容版本号(u32)。</summary>
+        public uint ConfigVersion;
+
+        /// <summary>构造解码形。</summary>
+        public ClinicRoomNameDataSet(ClinicRoomNameTable table, uint configVersion)
+        {
+            Table = table; ConfigVersion = configVersion;
+        }
+    }
+
+    /// <summary>CONTEXT_NAMES 词表烘焙产物的解码形(裁定 ②-C)。</summary>
+    public struct ClinicContextNameDataSet
+    {
+        /// <summary>词表(双向查找)。</summary>
+        public ClinicContextNameTable Table;
+
+        /// <summary>烘焙时从源 JSON 文本派生的内容版本号(u32)。</summary>
+        public uint ConfigVersion;
+
+        /// <summary>构造解码形。</summary>
+        public ClinicContextNameDataSet(ClinicContextNameTable table, uint configVersion)
         {
             Table = table; ConfigVersion = configVersion;
         }

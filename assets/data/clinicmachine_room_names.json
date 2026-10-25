@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "_note": "24 医馆「房间名词表」—— room_type(string) ↔ RoomNameId(int) 的稳定映射。权威来源:GDD clinic-machine.md :340「字段集 = roomName(词表索引)」;ClinicEnvDto.cs:20「房间名字典 ordinal(词表索引;ROOM_NONE 亦占条目)」。2026-10-26 用户裁定 ①-C + ③-B:显式词表文件、ROOM_NONE = 0。⚠️ 编号永不变 —— 新增 room_type 只能追加,不得复用已删编号(存档里可能仍持有旧编号)。⚠️ id = 0 保留给 ROOM_NONE,真实房间从 1 起。⚠️ 本表键集须 ⊇ clinicmachine_room.json / clinicmachine_context.json 里出现的全部 room_type(烘焙期跨表断言强制)。",
+  "rooms": [
+    { "room_type": "ward", "id": 1 },
+    { "room_type": "surgery", "id": 2 },
+    { "room_type": "herb_room", "id": 3 }
+  ]
+}

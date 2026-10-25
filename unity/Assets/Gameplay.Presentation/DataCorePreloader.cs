@@ -215,6 +215,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
             AddressablesDataProvider.ClinicContextAddress,
             AddressablesDataProvider.ClinicAdjAddress,
             AddressablesDataProvider.ClinicRoomAddress,
+            // 24 两张词表(2026-10-26 裁定 ①-C / ②-C:DTO 编号的稳定来源)。
+            AddressablesDataProvider.ClinicRoomNamesAddress,
+            AddressablesDataProvider.ClinicContextNamesAddress,
             // 21a 家具目录(O-24-1 兑现:`FURN_TYPES` 闭集的运行期载体,2026-10-21)。
             AddressablesDataProvider.FurnitureCatalogueAddress,
             // 23 模块目录(TD-building-01 读侧:cost / furn_type / 足迹,2026-10-21)。

@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具:空词表 ⇒ 所有房间都投成 ROOM_NONE = 整链静默失效 ⇒ 拒。",
+  "rooms": []
+}

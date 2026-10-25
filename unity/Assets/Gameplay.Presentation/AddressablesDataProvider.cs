@@ -142,6 +142,14 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>24 ROOM_TABLE address(同上)。</summary>
         public const string ClinicRoomAddress = "clinicmachine_room.cooked.bytes";
 
+        /// <summary>24 ROOM_NAMES 词表 address(2026-10-26 裁定 ①-C 的接线半边)。
+        /// <para>⚠️ 产物名单一出处 = `DataBakeMenu.ClinicRoomNamesCookedAssetName`;同上为字面串
+        /// (边界程序集不引用编辑期装配)。</para></summary>
+        public const string ClinicRoomNamesAddress = "clinicmachine_room_names.cooked.bytes";
+
+        /// <summary>24 CONTEXT_NAMES 词表 address(2026-10-26 裁定 ②-C)。</summary>
+        public const string ClinicContextNamesAddress = "clinicmachine_context_names.cooked.bytes";
+
         /// <summary>21a 家具目录 address(O-24-1 兑现 · `FURN_TYPES` 闭集的运行期载体)。
         /// <para>⚠️ 产物名单一出处 = `DataBakeMenu.FurnitureCatalogueCookedAssetName`;同上为字面串
         /// (边界程序集不引用编辑期装配)。</para></summary>
@@ -187,6 +195,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private ClinicContextDataSet? _clinicContext;
         private ClinicAdjDataSet? _clinicAdj;
         private ClinicRoomDataSet? _clinicRoom;
+        // 24 两张词表(2026-10-26 裁定 ①-C / ②-C):struct 解码形 ⇒ 可空承载。
+        private ClinicRoomNameDataSet? _clinicRoomNames;
+        private ClinicContextNameDataSet? _clinicContextNames;
         // 21a 家具目录(O-24-1):struct 解码形 ⇒ 可空承载。
         private ClinicFurnitureDataSet? _clinicFurniture;
         // 23 模块目录(TD-building-01 读侧 · 2026-10-21):struct 解码形 ⇒ 可空承载。
@@ -306,6 +317,17 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 EnsureClinicRoom();
                 return (TDataSet)(object)_clinicRoom.Value;
             }
+            // ── 2026-10-26 裁定 ①-C / ②-C:24 两张词表(DTO 编号的稳定来源)──
+            if (typeof(TDataSet) == typeof(ClinicRoomNameDataSet))
+            {
+                EnsureClinicRoomNames();
+                return (TDataSet)(object)_clinicRoomNames.Value;
+            }
+            if (typeof(TDataSet) == typeof(ClinicContextNameDataSet))
+            {
+                EnsureClinicContextNames();
+                return (TDataSet)(object)_clinicContextNames.Value;
+            }
             // ── O-24-1(2026-10-21):21a 家具目录(FURN_TYPES 闭集)──
             if (typeof(TDataSet) == typeof(ClinicFurnitureDataSet))
             {
@@ -336,6 +358,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 "DiseaseActionAxisDataSet / OutcomeTable53DataSet / DelayTable53DataSet)" +
                 " + 48 教学内容(S17-3:TutorialContentTable)" +
                 " + 24 医馆三表(S17-2 前置:ClinicContextDataSet / ClinicAdjDataSet / ClinicRoomDataSet)" +
+                " + 24 两张词表(2026-10-26 裁定 ①-C/②-C:ClinicRoomNameDataSet / ClinicContextNameDataSet)" +
                 " + 21a 家具目录(O-24-1:ClinicFurnitureDataSet)" +
                 " + 23 模块目录(TD-building-01 读侧:BuildModulesDataSet)" +
                 " + 9 病种注册表(2026-10-22 B1:DiseaseRegistryDataSet)");
@@ -364,6 +387,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
             EnsureClinicContext();
             EnsureClinicAdj();
             EnsureClinicRoom();
+            EnsureClinicRoomNames();
+            EnsureClinicContextNames();
             EnsureClinicFurniture();
             EnsureBuildModules();
             EnsureDiseaseRegistry();
@@ -678,6 +703,40 @@ namespace DaYiJingCheng.Gameplay.Presentation
         }
 
         // ── O-24-1(2026-10-21):21a 家具目录(FURN_TYPES 闭集)──
+
+        private void EnsureClinicRoomNames()
+        {
+            if (_clinicRoomNames.HasValue) return;
+            byte[] bytes = FetchBytes(ClinicRoomNamesAddress);
+            try
+            {
+                _clinicRoomNames = ClinicMachineCookedCodec.ReadRoomNames(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 24 ROOM_NAMES cooked 解码失败(address={ClinicRoomNamesAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
+
+        private void EnsureClinicContextNames()
+        {
+            if (_clinicContextNames.HasValue) return;
+            byte[] bytes = FetchBytes(ClinicContextNamesAddress);
+            try
+            {
+                _clinicContextNames = ClinicMachineCookedCodec.ReadContextNames(bytes);
+            }
+            catch (Exception ex) when (!(ex is InvalidOperationException))
+            {
+                throw new InvalidOperationException(
+                    $"[E-13][data-core] 24 CONTEXT_NAMES cooked 解码失败(address={ClinicContextNamesAddress})" +
+                    $"—— 启动期硬失败,绝不降级:{ex.Message}",
+                    ex);
+            }
+        }
 
         private void EnsureClinicFurniture()
         {

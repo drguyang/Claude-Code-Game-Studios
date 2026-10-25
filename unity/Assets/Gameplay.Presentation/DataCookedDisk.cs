@@ -62,6 +62,16 @@ namespace DaYiJingCheng.Gameplay.Presentation
         public static ClinicRoomDataSet LoadClinicRoom()
             => ClinicMachineCookedCodec.ReadRoom(ReadAll(AddressablesDataProvider.ClinicRoomAddress));
 
+        /// <summary>24 ROOM_NAMES 词表(<c>clinicmachine_room_names.cooked.bytes</c>;裁定 ①-C)。</summary>
+        public static ClinicRoomNameDataSet LoadClinicRoomNames()
+            => ClinicMachineCookedCodec.ReadRoomNames(
+                ReadAll(AddressablesDataProvider.ClinicRoomNamesAddress));
+
+        /// <summary>24 CONTEXT_NAMES 词表(<c>clinicmachine_context_names.cooked.bytes</c>;裁定 ②-C)。</summary>
+        public static ClinicContextNameDataSet LoadClinicContextNames()
+            => ClinicMachineCookedCodec.ReadContextNames(
+                ReadAll(AddressablesDataProvider.ClinicContextNamesAddress));
+
         // ── 9 病种注册表(2026-10-22 B1 接真)────────────────────────────────
         // ⚠️ 与上三份不同:本条的**消费方是生产装配**(`CompositionRoot` 的 dual-path),
         //    不只是测试。它在这里的意义 = 「产物已烘但 Addressables catalog 未重建」时的

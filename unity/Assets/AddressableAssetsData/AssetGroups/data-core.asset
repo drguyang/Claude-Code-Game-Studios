@@ -123,6 +123,18 @@ MonoBehaviour:
     m_SerializedLabels:
     - data-core
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fe47c87128c4cb623b371b1f9b730bd3
+    m_Address: clinicmachine_room_names.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 19b4f2737a30c11d789d0115befc2ba5
+    m_Address: clinicmachine_context_names.cooked.bytes
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - data-core
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e1e0ba87ce199509ca823ebef18bd1e0
     m_Address: audio_events.cooked.bytes
     m_ReadOnly: 0

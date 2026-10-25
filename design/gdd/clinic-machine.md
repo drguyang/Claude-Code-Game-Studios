@@ -339,6 +339,26 @@ P0 单房单情境下本族无区分度,**不实现**;此处仅立取舍证据(`
   `IClinicEnvQuery.GetEnv(room) → ClinicEnvDto`,住 `Sim.Contracts`,与 `VitalsDto` 同程序集同浮点出口纪律;
   字段集 = `roomName`(词表索引)/ `contexts[]`(情境词表索引,可空集)/ `envMod` / `equipMod`
   (均 Q16.16 raw,`envMod` 未钳制房间分量、`equipMod` 非负)。**零 `disease_id`、零 float 字段**。
+  🔁 **2026-10-26 词表口径落地(用户裁定 ①-C / ②-C / ③-B)** —— 上句的「词表索引」自此有**具体出处**,
+  不再是待定占位:
+  - **房间名词表** = `assets/data/clinicmachine_room_names.json` → 烘焙
+    `clinicmachine_room_names.cooked`(`row_count × { room_type; id }`);
+    **情境词表** = `assets/data/clinicmachine_context_names.json` → `clinicmachine_context_names.cooked`
+    (`row_count × { context_id; id }`)。
+  - **编号冻结在作者态,新增只能追加** —— 不得用 `ROOM_TABLE` / `CONTEXT_TABLE` 的**产物行序**当编号:
+    行序是烘焙 ordinal 排序的结果,新增一个 `room_type` 会让其后编号**移位** ⇒ 旧存档里的
+    `RoomNameId` 指向错误的房间名(静默错读,无异常、无日志)。
+  - **`ROOM_NONE = 0`** 是哨兵(与 `ClinicRoomId.None = (0,0)` 对齐);**真实条目 id 从 1 起**,
+    词表里**没有** id = 0 的条目(烘焙期 `ReadRequiredPositiveInt` + 运行期构造器双向拒收)。
+  - **空集语义**:`ContextIds` 为空数组 = 「印卸 = 不成立」,**不是**情境词表里的某个 id ——
+    词表不设「空」条目。
+  - **构建期覆盖门**:两张词表的键集须 **⊇** `ROOM_TABLE` / `CONTEXT_TABLE` 里出现的全部
+    `room_type` / `context_id`(缺项 ⇒ 投影时投不出编号 = 静默失效,故烘焙期硬失败)。
+    **方向是单向的** —— 词表允许有表内暂未用到的条目(P1a 预留编号)。
+  - **投影单点** = `Sim.Clinic.ClinicEnvProjection.ToDto`(纯函数);查不到编号 ⇒ **throw**,
+    **不降级为 `ROOM_NONE`**(降级会把「两份产物不同批」显示成「没有房间」)。
+    **本表取代 `ClinicEnvDto.cs` 头注「支 4-a:情境词表 size 全库未定」** —— size 由词表条目数承载,
+    仍不造 bitmask。
 - **`O-24-4` → 21a(2026-09-17 复核新增)**:须断言 **`ENV_MOD_MIN < 0`**(承重前提 —— 否则「满污染已匹配房间」
   与 `ROOM_NONE` 的中性值 `0` 不可区分,9 / 21a 无法判「空 / 中性 / 最差」)。**只登记口径,不指定数值**。
 - **`O-24-5` → 烘焙 schema(2026-09-17 复核新增)**:`ADJ_TABLE` 对称断言(不等 = 构建失败)

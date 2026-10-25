@@ -38,6 +38,10 @@
 //    ⚠️ 本份**没有**走「先登记 KnownUnbaked 再迁入」的常规路径 —— 它当天先以欠账形态入表
 //    (`KnownUnbaked` 1 条),同日读方补立后立即迁入 `BakedArtifacts` 并清空欠账表。
 //    两次改动都在同一天,故 git 历史里会看到「0→1→0」的往返;这不是反复,是**同批两阶段**。
+//    ⚠️ **2026-10-26 五次增补**:再 +2 份 `clinicmachine_room_names` / `clinicmachine_context_names`
+//    (裁定 ①-C / ②-C 的两张词表)⇒ 盘上 **24** 份、`BakedArtifacts` 24 条、`pinnedDeclared` **24**。
+//    ⚠️ **本门第四次抓到同类漏登记** —— 本轮加了两条 `BakedArtifacts` 却漏改哨兵,首跑全量即红
+//    (`declared 24 ≠ pinned 22`)。门工作正常;补的是哨兵,不是放宽门。
 //    ⚠️ 同样**是本门抓出来的**:落盘后首跑全量即两条红(21≠20 + 幽灵产物点名
 //    `build_modules.cooked.bytes`)。**这是本门第三次抓到同类漏登记**(24 三表 / 21a 家具 / 本份)
 //    —— 说明「新产物必登记」这条纪律靠人记是不成立的,门的存在是必要的。
@@ -185,6 +189,14 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
                 root => ClinicMachineTablesBake.BakeFromRepo(root).AdjCooked),
             new ArtifactBake(DataBakeMenu.ClinicRoomCookedAssetName,
                 root => ClinicMachineTablesBake.BakeFromRepo(root).RoomCooked),
+
+            // ── 24 两张词表(2 份;2026-10-26 裁定 ①-C / ②-C)──
+            //    ⚠️ 它们是 `ClinicEnvDto.RoomNameId` / `ContextIds` 编号的**唯一稳定来源**;
+            //    漂移 = 旧存档里的编号指向错误的房间 / 情境(静默错读,无异常)。
+            new ArtifactBake(DataBakeMenu.ClinicRoomNamesCookedAssetName,
+                root => ClinicMachineTablesBake.BakeFromRepo(root).RoomNamesCooked),
+            new ArtifactBake(DataBakeMenu.ClinicContextNamesCookedAssetName,
+                root => ClinicMachineTablesBake.BakeFromRepo(root).ContextNamesCooked),
 
             // ── 21a 家具目录(1 份;O-24-1 兑现,2026-10-21)──
             //    ⚠️ 生产菜单先烘本份、再把其闭集注入 24 的 ROOM_TABLE 成员资格门。
@@ -349,7 +361,9 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
 
             // 扫描器完备性哨兵 —— 剥离器若过度吞字(如把逐字串 `@"…"` 的 `"` 当转义),
             // 声明集会**变小**,本行先红。⚠️ 这是本门唯一能自证「扫全了」的判据。
-            const int pinnedDeclared = 22; // 2026-10-22 实测(22 份;+disease_registry(9 注册表写方,2026-10-22)—— 前值 21,见 git 历史)
+            // 2026-10-26:22 → 24(+clinicmachine_room_names / clinicmachine_context_names,
+            // 裁定 ①-C / ②-C 的两张词表)。前值 22 = 2026-10-22 实测(+disease_registry 前值 21)。
+            const int pinnedDeclared = 24; // 2026-10-26 实测(24 份)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

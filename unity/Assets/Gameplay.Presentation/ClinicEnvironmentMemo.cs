@@ -27,12 +27,13 @@
 //   不因「键更旧」而保留旧缓存。⇒ 乱序到达(第二 QoS 通道 / 重连拉流)只会**多算一次**,
 //   不会让陈旧值复活。保守方向的错 = 性能损失,不是正确性损失。
 //
-// ⚠️ **本类不产生 `ClinicEnvDto`**:DTO 的两个字段需要**词表映射**
-//   (`RoomNameId` = int 房号 ↔ `ClinicRoomId(High,Low)`;`ContextIds` = 词表 ordinal ↔
-//   `ClinicContextRow.ContextId` 的 string),而两处映射的语义**全库未裁** ——
-//   `production/qa/evidence/impl-s20-1-clinic004-2026-10-25.md:110` 已登记为 NOT-RUN。
-//   发明映射 = 第二真源 ⇒ 本类缓存 `ClinicEnvEvaluation`(24 的纯输出),
-//   投影到 DTO 归装配轮(映射裁定后)。**这是如实登记,不是遗漏。**
+// ⚠️ **本类同时缓存 `ClinicEnvDto`(交付面)与 `ClinicEnvEvaluation`(诊断面)**
+//   —— 二者由**同一次**求值一起产出,故不可能漂移。
+//   ~~原注:本类不产生 `ClinicEnvDto` —— DTO 的两个字段需要词表映射,而两处映射语义全库未裁~~
+//   **✅ 2026-10-26 已裁**:用户裁定 ①-C / ②-C / ③-B(两张显式词表文件;`ROOM_NONE = 0`),
+//   映射由 `ClinicEnvProjection.ToDto` 单点实现 ⇒ 本类缓存 DTO,`GetDto()` 是 42 的唯一读面
+//   (兑现 ADR-025 §① 为 24→42 登记的契约通道,W-2 的真修)。
+//   `Get()`(返 `ClinicEnvEvaluation`)保留 —— 它是**诊断 / 对拍**面,不是交付面。
 
 using System;
 using DaYiJingCheng.Sim;
@@ -43,17 +44,17 @@ using DaYiJingCheng.Sim.World;
 namespace DaYiJingCheng.Gameplay.Presentation
 {
     /// <summary>
-    /// 系统 24 求值的**表现层 Memoize**(EC-24-05):缓存 `ClinicEnvEvaluation`,
-    /// 以 `Structure*` 事件的**全序键**为失效键。
+    /// 系统 24 求值的**表现层 Memoize**(EC-24-05):缓存 `ClinicEnvEvaluation` 及其投影
+    /// `ClinicEnvDto`,以 `Structure*` 事件的**全序键**为失效键。
     /// <para>⚠️ <b>本类不是状态</b>(GDD `:123-127`):删掉它,24 的输出**一字不变**,
     /// 只是每次多算一次。任何「本类返回的值与直接求值不同」的情形都是缺陷。</para>
     /// </summary>
     /// <remarks>
     /// <para><b>用法</b>(45 / 装配层的接线形):</para>
     /// <list type="number">
-    /// <item>构造一次(注入 23 的注册表 + 四份 cooked 表句柄)</item>
+    /// <item>构造一次(注入 23 的注册表 + 四份 cooked 表 + 两张词表)</item>
     /// <item>事件流投递点调 <see cref="Apply"/> —— 只吸收 `Structure*` 三支,其余事件是 no-op</item>
-    /// <item>读方调 <see cref="Get"/> —— 命中返回缓存,未命中重算并落缓存</item>
+    /// <item>交付面读方(42)调 <see cref="GetDto"/>;诊断 / 对拍调 <see cref="Get"/></item>
     /// </list>
     /// <para>⚠️ <b>布局源 = 23 的注册表(`World.Structures`)</b>,不是快照对象:
     /// 每次重算现建 <see cref="StructureInstanceReadView"/>(它是快照语义,持有实例 = 持有陈旧缓存)。</para>
@@ -69,25 +70,33 @@ namespace DaYiJingCheng.Gameplay.Presentation
         private readonly ClinicRoomTable _rooms;
         private readonly ClinicContextTable _contexts;
         private readonly ClinicAdjTable _adj;
+        private readonly ClinicRoomNameTable _roomNames;
+        private readonly ClinicContextNameTable _contextNames;
 
         private ClinicEnvEvaluation _cached;
+        private ClinicEnvDto _cachedDto;
         private EventOrderKey _cachedKey;
         private bool _hasCache;
 
-        /// <summary>构造:六份输入全部必填(fail-loud —— 缺任一件链只能给出「恒 ROOM_NONE」)。</summary>
+        /// <summary>构造:八份输入全部必填(fail-loud —— 缺任一件链只能给出「恒 ROOM_NONE」,
+        /// 缺词表则 DTO 投影无法进行)。</summary>
         /// <param name="layout">23 的结构实例表(`World.Structures`)。</param>
         /// <param name="modules">模块目录(`module_id` → `furn_type` 的跨层桥)。</param>
         /// <param name="furniture">21a 家具目录。</param>
         /// <param name="rooms">24 `ROOM_TABLE`。</param>
         /// <param name="contexts">24 `CONTEXT_TABLE`。</param>
         /// <param name="adj">24 `ADJ_TABLE`。</param>
+        /// <param name="roomNames">24 `ROOM_NAMES` 词表(裁定 ①-C;DTO 编号来源)。</param>
+        /// <param name="contextNames">24 `CONTEXT_NAMES` 词表(裁定 ②-C;DTO 编号来源)。</param>
         /// <exception cref="ArgumentNullException">任一为 null(接线错误,非设计态)。</exception>
         public ClinicEnvironmentMemo(StructureInstanceRegistry layout,
                                      BuildModulesCatalog modules,
                                      ClinicFurnitureCatalogue furniture,
                                      ClinicRoomTable rooms,
                                      ClinicContextTable contexts,
-                                     ClinicAdjTable adj)
+                                     ClinicAdjTable adj,
+                                     ClinicRoomNameTable roomNames,
+                                     ClinicContextNameTable contextNames)
         {
             _layout = layout ?? throw new ArgumentNullException(nameof(layout));
             _modules = modules ?? throw new ArgumentNullException(nameof(modules));
@@ -95,6 +104,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
             _rooms = rooms ?? throw new ArgumentNullException(nameof(rooms));
             _contexts = contexts ?? throw new ArgumentNullException(nameof(contexts));
             _adj = adj ?? throw new ArgumentNullException(nameof(adj));
+            _roomNames = roomNames ?? throw new ArgumentNullException(nameof(roomNames));
+            _contextNames = contextNames ?? throw new ArgumentNullException(nameof(contextNames));
         }
 
         /// <summary>缓存是否有效(有效 ⇒ 下次 <see cref="Get"/> 命中)。</summary>
@@ -147,9 +158,29 @@ namespace DaYiJingCheng.Gameplay.Presentation
             // 每次现建快照视图 —— 持有它 = 持有陈旧缓存(见类备注)。
             var view = new StructureInstanceReadView(_layout, _modules);
             _cached = ClinicEnvironmentEvaluator.Evaluate(view, _furniture, _rooms, _contexts, _adj);
+            // 交付面与诊断面由**同一次**求值一起产出 ⇒ 二者不可能漂移(见类头注)。
+            _cachedDto = ClinicEnvProjection.ToDto(_cached, _roomNames, _contextNames);
             _hasCache = true;
             RecomputeCount++;
             return _cached;
+        }
+
+        /// <summary>
+        /// 取当前布局的**交付 DTO**(42 的唯一读面;O-24-3 / ADR-025 §① 的契约通道)。
+        /// <para>⚠️ 与 <see cref="Get"/> 共享同一份缓存:命中时两者都不重算,
+        /// 未命中时一次求值同时刷新两者。</para>
+        /// </summary>
+        /// <returns>DTO(`ContextIds` 为空数组而非 null)。</returns>
+        public ClinicEnvDto GetDto()
+        {
+            if (_hasCache)
+            {
+                HitCount++;
+                return _cachedDto;
+            }
+
+            Get();          // 重算并同时刷新 _cached / _cachedDto
+            return _cachedDto;
         }
 
         /// <summary>

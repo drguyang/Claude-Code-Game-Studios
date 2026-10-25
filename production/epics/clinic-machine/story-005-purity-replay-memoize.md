@@ -66,6 +66,15 @@
    > 发明映射 = 造第二真源 ⇒ **未擅自发明**,投影归装配轮(证据件 §六-④ 已登记 NOT-RUN)。
    > 实现落点:`Gameplay.Presentation/ClinicEnvironmentMemo.cs`。评审原件
    > `production/qa/evidence/review-s20-2-clinic005-2026-10-26.md` §二 W-2。
+   >
+   > ✅ **2026-10-26 词表裁定后已结(W-2 收口)** —— 上述两处「全库未裁」的映射**已由用户裁定落地**:
+   > ① / ② 的真源 = **两张显式词表**(裁定 ①-C / ②-C / ③-B),`RoomNameId` = `ROOM_NAMES` 的稳定编号、
+   > `ContextIds` = `CONTEXT_NAMES` 的稳定编号,均**冻结在作者态**(禁用产物行序)。
+   > ⇒ 缓存值与 DTO **同一次求值一起产出**(`Memo.Get()` 末尾 `_cachedDto = ClinicEnvProjection.ToDto(...)`),
+   > 交付面 = `ClinicEnvironmentMemo.GetDto()`,投影单点 = `Sim.Clinic.ClinicEnvProjection.ToDto`。
+   > **「值 = ClinicEnvDto 快照」这半句自此成立**,不再是偏离。⚠️ 仍未做的是 `IClinicEnvQuery` 的
+   > **生产实现**(`GetEnv(int roomId)` 需要 int 房号 ↔ `ClinicRoomId(High,Low)` 注册表,全库仍不存在)
+   > —— 那是**装配轮**的事,与本条缓存形态无关。
 4. 「无状态」断言 = 反射扫描 24 的 sim 类型:无 mutable 字段、无 static;该断言入构建期或 EditMode 皆可,择一登记。
 5. 提醒实现者:若日后需改 `TICK_SECONDS` 等全局量,24 不感知 —— 它的输入不含 tick 频率。
 

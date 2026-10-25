@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "rooms": [
+    { "room_type": "ward", "id": 1, "display_name": "病房" }
+  ]
+}

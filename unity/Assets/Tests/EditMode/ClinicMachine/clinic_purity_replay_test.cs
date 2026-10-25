@@ -101,6 +101,8 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         private ClinicRoomTable _rooms;
         private ClinicContextTable _contexts;
         private ClinicAdjTable _adj;
+        private ClinicRoomNameTable _roomNames;
+        private ClinicContextNameTable _contextNames;
         private EventStream _stream;
         private StructureWriter _writer;
 
@@ -136,12 +138,16 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 DataCookedDisk.ReadAll(AddressablesDataProvider.ClinicContextAddress)).Table;
             _adj = ClinicMachineCookedCodec.ReadAdj(
                 DataCookedDisk.ReadAll(AddressablesDataProvider.ClinicAdjAddress)).Table;
+            _roomNames = DataCookedDisk.LoadClinicRoomNames().Table;
+            _contextNames = DataCookedDisk.LoadClinicContextNames().Table;
 
             Assert.That(_modules, Is.Not.Null, "烘焙产物缺失:BuildModules");
             Assert.That(_furniture, Is.Not.Null, "烘焙产物缺失:ClinicFurniture");
             Assert.That(_rooms, Is.Not.Null, "烘焙产物缺失:ClinicRoom");
             Assert.That(_contexts, Is.Not.Null, "烘焙产物缺失:ClinicContext");
             Assert.That(_adj, Is.Not.Null, "烘焙产物缺失:ClinicAdj");
+            Assert.That(_roomNames, Is.Not.Null, "烘焙产物缺失:ClinicRoomNames");
+            Assert.That(_contextNames, Is.Not.Null, "烘焙产物缺失:ClinicContextNames");
             Assert.That(_contexts.Rows.Count, Is.GreaterThan(0),
                 "CONTEXT_TABLE 为空 ⇒ 后续「情境集」类断言全部失去意义(数据问题,非逻辑问题)");
             Assert.That(_rooms.Count, Is.GreaterThan(0),
@@ -427,6 +433,76 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 "失效后重算值须等于直接求值");
         }
 
+        // ══════════════════ ⑤ DTO 交付面(2026-10-26 裁定 ①-C / ②-C 的接线判据)══════════════════
+
+        /// <summary>
+        /// **Memo 缓存 DTO,且 DTO 与求值同源**(W-2 的真修):`GetDto()` 的编号来自词表,
+        /// 乘子与 `Get()` 逐位相同,`Structure*` 事件同时使两者失效。
+        /// <para><b>为什么需要这一条</b>:词表这条链最容易的半成品是「产物烘好了、Binder 也写了,
+        /// 但**没人读它**」—— 那正是本项目反复抓过的「补烘 ≠ 接线」。本测是接线存在的证据。</para>
+        /// <para><b>判别力</b>:① 把 `GetDto` 的 `_cachedDto = ...` 那行删掉 ⇒ 返回默认 DTO
+        /// (RoomNameId = 0 / ContextIds = null)⇒ 本测红;② 把 `ToDto` 的
+        /// `ResolveRoomNameId` 改成恒返回 0 ⇒ 本测红。</para>
+        /// </summary>
+        [Test]
+        public void test_dto_memoCachesProjectedDto_inLockstepWithEvaluation()
+        {
+            // Arrange:手术台 + 无菌柜 ⇒ surgery(非零 adj,编号与乘子都不退化)
+            _writer.Place(new WorldPos(2, 0, 0), ModuleSurgeryTable, 0, 0, tick: 1);
+            _writer.Place(new WorldPos(4, 0, 0), ModuleSterileCabinet, 0, 0, tick: 2);
+
+            var memo = NewMemo();
+            ClinicEnvEvaluation evaluation = memo.Get();
+            ClinicEnvDto dto = memo.GetDto();
+
+            // Assert 1:编号来自词表(不是 0、不是哈希、不是行序)
+            Assert.That(evaluation.RoomType, Is.EqualTo("surgery"), "前提:该布局判为 surgery");
+            Assert.That(dto.RoomNameId, Is.EqualTo(2), "surgery 的词表编号 = 2(裁定 ①-C 的真源)");
+            Assert.That(dto.ContextIds, Is.EqualTo(new[] { 2 }),
+                "surgery_sterile 的词表编号 = 2(裁定 ②-C)");
+
+            // Assert 2:乘子与求值逐位相同(DTO 不是二次计算)
+            Assert.That(dto.EnvMod.Raw, Is.EqualTo(evaluation.EnvMod.Raw),
+                "DTO 的 EnvMod 须与求值逐位相同(投影只换编号,不算数)");
+            Assert.That(dto.EquipMod.Raw, Is.EqualTo(evaluation.EquipMod.Raw));
+
+            // Assert 3:与独立投影路径一致(防「缓存里存的是旧快照」)
+            ClinicEnvDto direct = ClinicEnvProjection.ToDto(
+                EvaluateFromFreshView(), _roomNames, _contextNames);
+            Assert.That(dto.RoomNameId, Is.EqualTo(direct.RoomNameId));
+            Assert.That(dto.ContextIds, Is.EqualTo(direct.ContextIds));
+            Assert.That(dto.EnvMod.Raw, Is.EqualTo(direct.EnvMod.Raw));
+        }
+
+        /// <summary>
+        /// **`Structure*` 事件同时使 DTO 失效**:拆除后 `GetDto()` 必须反映新布局
+        /// (ROOM_NONE ⇒ `RoomNameId = 0`、`ContextIds` 空数组),不得返回旧编号。
+        /// <para><b>判别力</b>:若 `GetDto` 自己持一份独立缓存而不随 `Apply` 失效 ⇒ 本测红
+        /// (仍返回 2)。</para>
+        /// </summary>
+        [Test]
+        public void test_dto_afterRemove_reflectsRoomNoneSentinel()
+        {
+            // Arrange:L₁ = 两床 ⇒ ward(编号 1)
+            _writer.Place(new WorldPos(0, 0, 0), ModuleBed, 0, 0, tick: 1);
+            long second = _writer.Place(new WorldPos(1, 0, 0), ModuleBed, 0, 0, tick: 2);
+
+            var memo = NewMemo();
+            Assert.That(memo.GetDto().RoomNameId, Is.EqualTo(1), "前提:L₁ = ward(编号 1)");
+
+            // Act:拆一张 ⇒ 无房间类型匹配
+            Assert.That(_writer.Remove(second, tick: 3), Is.True, "前提:拆除须成功");
+            FeedLastEvent(memo);
+
+            // Assert
+            ClinicEnvDto after = memo.GetDto();
+            Assert.That(after.RoomNameId, Is.EqualTo(ClinicRoomNameTable.NoneId),
+                "未匹配 ⇒ ROOM_NONE 哨兵 0;停在 1 = DTO 缓存没随 Structure* 失效");
+            Assert.That(after.ContextIds, Is.Not.Null, "空集须是空数组而非 null");
+            Assert.That(after.ContextIds.Length, Is.EqualTo(0));
+            Assert.That(after.EnvMod.Raw, Is.EqualTo(0L), "中性出口");
+        }
+
         /// <summary>
         /// **同 tick 连两变更 ⇒ 只要求终态一致**(卡面 QA plan AC-2 的 edge)。
         /// <para>两条 `Structure*` 事件同 tick 先后投递 ⇒ 两次失效,`Get()` 只算一次,
@@ -679,9 +755,12 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             string[] whitelist =
             {
                 "ClinicAdjTable",             // 表视图:readonly 索引(构造期填充,零公开写面)
+                "ClinicContextNameTable",     // 表视图:情境词表(裁定 ②-C),同上
                 "ClinicContextTable",         // 表视图:同上
                 "ClinicFurnitureCatalogue",   // 表视图:同上(21a 家具目录的运行期只读形态)
                 "ClinicFurnitureTraitsSource",// 布局快照索引(构造期摊平,布局变更须重建)
+                "ClinicNameTableCore",        // 表视图:两张词表的双向查找核(internal,同构造期填充)
+                "ClinicRoomNameTable",        // 表视图:房间名词表(裁定 ①-C),同上
                 "ClinicRoomTable",            // 表视图:同上
             };
             Assert.That(classesWithInstanceFields, Is.EqualTo(whitelist),
@@ -822,7 +901,8 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             terminalWriter.Place(new WorldPos(4, 0, 0), ModuleSterileCabinet, 0, 0, tick: 2);
 
             var directMemo = new ClinicEnvironmentMemo(
-                terminal.Structures, _modules, _furniture, _rooms, _contexts, _adj);
+                terminal.Structures, _modules, _furniture, _rooms, _contexts, _adj,
+                _roomNames, _contextNames);
             ClinicEnvEvaluation direct = directMemo.Get();
 
             // Assert:两路径逐位相同
@@ -871,7 +951,8 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             terminalWriter.Place(new WorldPos(1, 0, 0), ModuleBed, 0, 0, tick: 2);
 
             ClinicEnvEvaluation direct = new ClinicEnvironmentMemo(
-                terminal.Structures, _modules, _furniture, _rooms, _contexts, _adj).Get();
+                terminal.Structures, _modules, _furniture, _rooms, _contexts, _adj,
+                _roomNames, _contextNames).Get();
 
             // Assert
             Assert.That(replayed.EnvMod.Raw, Is.EqualTo(direct.EnvMod.Raw),
@@ -892,7 +973,9 @@ namespace DaYiJingCheng.Tests.ClinicMachine
 
         /// <summary>新建 memo(接本 fixture 的真 World 与四份真表)。</summary>
         private ClinicEnvironmentMemo NewMemo()
-            => new ClinicEnvironmentMemo(_world.Structures, _modules, _furniture, _rooms, _contexts, _adj);
+            => new ClinicEnvironmentMemo(
+                _world.Structures, _modules, _furniture, _rooms, _contexts, _adj,
+                _roomNames, _contextNames);
 
         /// <summary>把**最后一条**入流事件投递给 memo(单条变更的常规投递形)。</summary>
         private void FeedLastEvent(ClinicEnvironmentMemo memo)
