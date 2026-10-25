@@ -253,6 +253,23 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// </summary>
         public AnchorCheckpointTrigger AnchorCheckpointTrigger { get; }
 
+        /// <summary>
+        /// 52 随机事件导演主循环壳(tick 边沿)—— 本轮只接出诊启动一节
+        /// (TD-randomevents-02 二十九订 ⚠ 接线义务①;其余 52 节留具名槽,见驱动类头注)。
+        /// <para>玩家 actorId 由 <c>BootRoot</c> 生成玩家后 <c>BindPlayer</c> 晚绑定
+        /// (id 在装配之后才铸造);未绑定期 <c>OnTickEdge</c> 为 no-op(fail-safe)。</para>
+        /// </summary>
+        public RandomEventsDirectorDriver RandomEventsDirector { get; }
+
+        /// <summary>
+        /// 「医馆格」判据源的生产占位(空集 fail-safe,真源归 23/24 接线轮)。
+        /// <para><b>同源义务的单点发放</b>:写者 / 将来的 F1PipelineInput 构造 /
+        /// 将来的规则十「无人」检测器三处消费**必须取本实例**,不得另立
+        /// (IClinicCellSource 接口头注禁令;两个将来的消费点出现时,组合根测试
+        /// 的同源断言面随之扩列)。</para>
+        /// </summary>
+        public IClinicCellSource ClinicCells { get; }
+
         internal CompositionRootServices(EventStream stream, IIdAuthority idAuthority,
                                          InMemoryBlobPool blobPool, IPayloadEncoder encoder,
                                          IPayloadDecoder decoder,
@@ -295,7 +312,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          CheckpointFallback checkpointFallback = null,
                                          NoPendingMedicalActionQuery narrativeContext = null,
                                          AnchorCheckpointTrigger anchorCheckpointTrigger = null,
-                                         Func<uint?> currentConfigVersion = null)
+                                         Func<uint?> currentConfigVersion = null,
+                                         RandomEventsDirectorDriver randomEventsDirector = null,
+                                         IClinicCellSource clinicCells = null)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -350,6 +369,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             //    ⚠️ 传 null(装配层未提供)⇒ 开发者预览不做版本门 —— 不是「恒匹配」。
             Telemetry = new TelemetryReporter(stream, decoder, registry ?? CreateFallbackRegistry(),
                                               telemetryKnobs, currentConfigVersion: currentConfigVersion);
+            // 52 出诊启动接线(2026-10-25 接线轮 · 三裁全取推荐):主循环壳 + 医馆格占位源。
+            // 两者可为 null(测试装配不传)⇒ BootRoot 边沿块 null 条件跳过 —— 与
+            // AnchorCheckpointTrigger / narrativeContext 的「saveBasePath 为 null 同 null」同格。
+            RandomEventsDirector = randomEventsDirector;
+            ClinicCells = clinicCells;
         }
 
         /// <summary>最小内联病种注册表(DiseaseId=1)—— 装配层未传入真表时的接线载体。</summary>

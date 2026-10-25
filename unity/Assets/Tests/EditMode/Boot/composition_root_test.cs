@@ -23,6 +23,26 @@ namespace DaYiJingCheng.Tests.Boot
     /// <summary><see cref="CompositionRoot"/> / <see cref="CompositionRootServices"/> 单元测试。</summary>
     public class CompositionRootTest
     {
+        /// <summary>
+        /// 52 出诊启动接线轮(2026-10-25):生产装配必须发导演壳 + 医馆格占位源,
+        /// 且驱动持有的源 == 服务袋实例(同源义务的结构性钉 —— 三处消费必须同实例,
+        /// IClinicCellSource 接口头注禁令;另两个消费点出现时,断言面在此扩列)。
+        /// </summary>
+        [Test]
+        public void test_assemble_randomEventsDirector_clinicCells_sameInstance()
+        {
+            CompositionRootServices bag = CompositionRoot.Assemble();
+
+            Assert.NotNull(bag.RandomEventsDirector, "52 导演主循环壳(接线义务①)");
+            Assert.NotNull(bag.ClinicCells, "医馆格判据源占位(裁定②)");
+            Assert.AreSame(bag.ClinicCells, bag.RandomEventsDirector.ClinicCells,
+                "同源单点发放:驱动消费的实例 == 服务袋实例(另立实例 = 同一 tick 两答)");
+            Assert.IsFalse(bag.RandomEventsDirector.IsPlayerBound,
+                "装配刚完成时未绑定玩家(id 在装配后才铸造)—— 合法状态,非装配失败");
+            Assert.AreEqual(0, ((ClinicCellSource)bag.ClinicCells).ConfiguredCount,
+                "生产占位 = 空集(裁定②;23/24 接线轮喂真源)");
+        }
+
         [Test]
         public void test_assemble_wiresRealEventStream_roundTrip()
         {

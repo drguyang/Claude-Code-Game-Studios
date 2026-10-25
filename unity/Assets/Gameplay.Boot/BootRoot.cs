@@ -319,6 +319,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             // 联机远端玩家的 id 归 45 的会话建立轮(ADR-001 第二 QoS 上行)。
             _services.PlayerActors.Register(actorId);
 
+            // 52 出诊启动接线(2026-10-25 接线轮):玩家 id 铸造后晚绑定到导演主循环壳
+            // (id 在装配之后才生成 ⇒ 后置形态,承 NoPendingMedicalActionQuery.Bind 先例;
+            // 未绑定期的边沿驱动为 no-op fail-safe)。
+            _services.RandomEventsDirector?.BindPlayer(actorId);
+
             _player.Initialize(
                 SimAuthorityMode.Host,
                 _services.EventSink,
@@ -857,6 +862,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_tickDriver.CurrentTick > tickBefore && _services != null)
             {
                 _services.EmergencyChannel?.OnTickEdge(_tickDriver.CurrentTick);
+            }
+
+            // 52 出诊启动驱动(TD-randomevents-02 接线轮 · 2026-10-25 三裁全取推荐):
+            // 同一 tick 边沿序列内,急救通道检查**之后**、定时兜底**之前** ——
+            // 出诊启动锚点(HouseCallStarted)须在本边沿先落流,末段锚点触发器的
+            // Drain 才能在同一边沿扫到(插在 Drain 之后 = 锚点观察晚一拍,缝)。
+            // ⚠️ 生产「通电待信」态:出诊类 event_key 集与医馆地块集均为空(三裁②③)
+            //    ⇒ 写入恒零;两处数据回填(37 key 集 / 23-24 地块)后自动激活。
+            if (_tickDriver.CurrentTick > tickBefore && _services != null)
+            {
+                _services.RandomEventsDirector?.OnTickEdge(_tickDriver.CurrentTick);
             }
 
             // 定时兜底 checkpoint(AC-7a-20 定时半边 · TD-persist-05 动作④ · 2026-10-25 生产接线轮):

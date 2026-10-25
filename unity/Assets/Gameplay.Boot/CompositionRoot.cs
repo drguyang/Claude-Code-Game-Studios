@@ -410,6 +410,21 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   兜底门对同一时刻给出不同答案(规则十四被破坏)。
             // ⚠️ 未 Bind 期 `InNarrativeContext()` 恒 false(fail-closed,见该类头注)。
             var narrativeContext = new NoPendingMedicalActionQuery();
+            // ── 52 出诊启动接线(TD-randomevents-02 接线轮 · 2026-10-25 三裁全取推荐)──
+            // ① 医馆格判据源 = **空集占位**(裁定②:23/24 连「哪座结构算医馆」的标记数据
+            //    都还没有;空集 = fail-safe,出诊的空间半边恒不满足;真源接线只调
+            //    `Configure`,零结构改动)。**同源义务的单点发放**:三处消费(写者 /
+            //    将来的 F1PipelineInput 构造 / 将来的规则十「无人」检测器)必须取本实例 ——
+            //    另立实例 = 三处对同一 tick 给出不同回答(IClinicCellSource 接口头注禁令)。
+            // ② 主循环壳 = **仅出诊启动一节**(裁定①):其余 52 节(延迟威胁 / 遭遇 /
+            //    急召生成链)留具名槽,见 RandomEventsDirectorDriver 类头注。
+            // ③ 出诊类 event_key 集 = **生产空集**(裁定③:哪些 key 是急召出诊 =
+            //    37 内容件定稿时回填,GDD 规则十二 12.2 原文)。
+            // ⚠️ 双重空集 ⇒ HouseCallStarted 生产恒零写入(「通电待信」态,见驱动类头注)。
+            var clinicCells = new ClinicCellSource();
+            var randomEventsDirector = new RandomEventsDirectorDriver(
+                () => stream.Events, stream, encoder, decoder, clinicCells,
+                Array.Empty<int>());
             if (!string.IsNullOrEmpty(saveBasePath))
             {
                 // 折叠谓词 —— 四个输入全部可从三流 + 注册表取,无快照 / 无墙钟(ADR-016 §一)。
@@ -1052,7 +1067,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                // ⚠️ 委托形式 ⇒ 派生失败抛在**调用时**(开发者预览被触发时),
                                                //   不在装配期把整个启动序拖死(见 TelemetryReporter
                                                //   `CurrentConfigVersion` 的「为何是委托而非值」)。
-                                               () => ResolveGlobalConfigVersion(dataProvider));
+                                               () => ResolveGlobalConfigVersion(dataProvider),
+                                               // 2026-10-25 52 出诊启动接线轮:主循环壳 + 医馆格
+                                               // 占位源(同源单点发放 —— 见上方构造段注释)。
+                                               randomEventsDirector, clinicCells);
         }
 
         /// <summary>

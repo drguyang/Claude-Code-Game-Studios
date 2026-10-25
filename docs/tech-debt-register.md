@@ -451,6 +451,18 @@ PYEVAL
 > ② `IClinicCellSource` 生产装配 + 三处同源反射钉(本谓词 / 规则十「无人」/
 > `F1PipelineInput.IsInClinic`)归 Boot 接线轮;③ 窗口 / 拒访 hook 归 37 的 GDD 轮
 > (P0 = 永不过期 + 零拒访,裁定③)。
+> ✅ **2026-10-25 同日:义务① 已结清**(52 生产接线轮)——
+> `unity/Assets/Gameplay.Boot/RandomEventsDirectorDriver.cs`(52 主循环壳,仅出诊启动一节;
+> 2026-10-25 三裁:范围仅出诊 / 医馆格**空集占位** / 急召 key 集**生产空集**)+
+> `ClinicCellSource.cs`(空集 fail-safe,真源归 23/24)+ BootRoot 边沿接线
+> (急救通道后、锚点触发器 Drain 前)+ 服务袋同源单点发放(装配级 `AreSame` 钉)。
+> ⚠️ **生产「通电待信」态**:双空集 ⇒ `HouseCallStarted` 恒零写入(fail-safe,非缺陷);
+> 37 回填 key 集 + 23/24 回填地块后自动激活。回归 `5028/4993/0/35` @ `2026-10-25T11:33 UTC` ·
+> `6971d97` 工作树(基线 5019/4984/0/35 @ 11:08 · +9/+9 零回归);证伪轮三变异
+> (未绑定守卫 / 绑定一次 / 空集语义)全红,SHA-256 逐字节还原。原件 =
+> `production/qa/evidence/impl-re02-wiring-2026-10-25.md`(§五:PlayMode 实测未跑)。
+> 义务②③ 仍 open(各归 23-24 / 37;义务②的「三处同源反射钉」今日仅单消费点 ——
+> 结构性单源已由服务袋 `AreSame` 钉承载,反射钉随第二消费点诞生)。
 > ⚠️ **二十七订的三笔转出义务中,义务 ①(`HouseCallStarted` 零写入者)自此结清**
 > (原文不删);义务 ②(Load 接线调 `ResetCursor()`)与义务 ③(出诊语义 = 查询零扩展,
 > 防呆注已落)仍各归其主。

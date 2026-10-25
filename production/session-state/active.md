@@ -11208,3 +11208,23 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - **兑现注订正**:「待用户裁定」→「已翻(二十九订)」;义务①结清追注到二十七订块警示处
 - **EPIC 侧**:`random-events/EPIC.md` 头部加债务侧追注(立债→实现轮→closed + 三笔义务)
 - **未 commit**(等用户指令)
+- ✅ **已提交**:`6971d97`(feat(random-events): TD-randomevents-02 兑现,14 files +934/−17)
+
+<!-- ═══ 52 出诊启动生产接线轮(2026-10-25 · 三裁全取推荐)═══ -->
+## 52 接线轮终态(义务① 结清)
+
+- **三裁**:① 范围 = 仅出诊启动一节(主循环壳 + 具名槽)② 医馆格源 = 空集占位
+  (ClinicCellSource,真源归 23/24;Configure = 接线缝)③ 急召 key 集 = 生产空集(37 回填)
+- **落盘**:RandomEventsDirectorDriver.cs(晚绑定 BindPlayer 一次;每边沿 TryStartAtTick;
+  边沿块插在急救通道后、锚点触发器 Drain 前)+ ClinicCellSource.cs +
+  CompositionRootServices/CompositionRoot/BootRoot 三处接线 + 服务袋同源单点发放
+- **通电待信态**:双空集 ⇒ HouseCallStarted 生产恒零写入(fail-safe 非缺陷;
+  37 key 集 + 23-24 地块回填后零改动自动激活)
+- **夹具**:random_events_director_wiring_test.cs 8 条 + composition_root_test 1 条
+  (装配级 AreSame 同源钉);首跑红 2 条 = 正路径夹具漏 Configure 医馆格(修夹具)
+- **回归**:5028/4993/0/35 @ 2026-10-25T11:33 UTC · 6971d97 工作树
+  (基线 5019/4984/0/35 @ 11:08 · +9/+9 零回归)
+- **证伪轮**:三变异全红(WA 未绑定守卫 / WB 绑定一次 / WC 空集语义),SHA-256 还原全过
+- **证据件**:`production/qa/evidence/impl-re02-wiring-2026-10-25.md`
+  (§五:PlayMode 运行时实测未跑;义务②③ 仍 open)
+- **未 commit**(等用户指令)
