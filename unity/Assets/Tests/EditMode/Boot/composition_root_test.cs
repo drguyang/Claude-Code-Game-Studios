@@ -362,8 +362,35 @@ namespace DaYiJingCheng.Tests.Boot
             Assert.Null(bag.CheckpointFallback, "SaveService 为 null ⇒ 兜底同 null(同源装配)");
             Assert.Null(bag.AnchorCheckpointTrigger,
                 "SaveService 为 null ⇒ 锚点触发器同 null(同源装配;事件触发半边无存档入口可调)");
+            Assert.Null(bag.LoadSequencer,
+                "SaveService 为 null ⇒ 读档序列器同 null(依赖三件存档侧组件,TD-persist-04 义务②)");
             Assert.NotNull(bag.NarrativeContext, "瞬时源不随存档目录消失(7b 复用面)");
             Assert.IsTrue(bag.NarrativeContext.IsBound, "Bind 照常完成");
+        }
+
+        /// <summary>
+        /// Load 接线轮(TD-persist-04 义务② · 2026-10-25 三裁全取推荐):
+        /// 带 saveBasePath ⇒ 袋内发读档序列器,且其锚点触发器 == 服务袋实例
+        /// (同源钉 —— 序列器消费的必须与 BootRoot 边沿 Drain 的是同一观察器,
+        /// 另立实例 = ResetCursor 归零的不是生产游标,义务② 判据空转)。
+        /// </summary>
+        [Test]
+        public void test_assemble_loadSequencer_sameTriggerInstance()
+        {
+            string dir = Path.Combine(Path.GetTempPath(), "s19_loadseq_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            try
+            {
+                CompositionRootServices bag = CompositionRoot.Assemble(saveBasePath: dir);
+
+                Assert.NotNull(bag.LoadSequencer, "带 saveBasePath ⇒ 读档序列器须在袋内(义务② 接线)");
+                Assert.AreSame(bag.AnchorCheckpointTrigger, bag.LoadSequencer.AnchorTrigger,
+                    "同源钉:序列器复位的触发器 == 服务袋实例(另立实例 = 义务② 空转)");
+            }
+            finally
+            {
+                if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+            }
         }
     }
 }

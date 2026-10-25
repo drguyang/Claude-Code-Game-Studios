@@ -262,6 +262,16 @@ namespace DaYiJingCheng.Gameplay.Boot
         public RandomEventsDirectorDriver RandomEventsDirector { get; }
 
         /// <summary>
+        /// 读档缝合序列器(TD-persist-04 义务② · Load 接线轮 2026-10-25):
+        /// <c>SaveService.Load</c> 成功后依序复位锚点游标与兜底计数(见 <see cref="LoadSequencer"/>
+        /// 类头注的调用序与派生态未重建清单)。
+        /// <para><b>通电待信(裁定②)</b>:生产触发点 = <c>BootRoot.RequestLoad</c>,
+        /// 今日零调用方(UI 存档位接线轮直接调)。saveBasePath 为 null 时本件与三件
+        /// 存档侧组件同 null(同源装配)。</para>
+        /// </summary>
+        public LoadSequencer LoadSequencer { get; }
+
+        /// <summary>
         /// 「医馆格」判据源的生产占位(空集 fail-safe,真源归 23/24 接线轮)。
         /// <para><b>同源义务的单点发放</b>:写者 / 将来的 F1PipelineInput 构造 /
         /// 将来的规则十「无人」检测器三处消费**必须取本实例**,不得另立
@@ -314,7 +324,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          AnchorCheckpointTrigger anchorCheckpointTrigger = null,
                                          Func<uint?> currentConfigVersion = null,
                                          RandomEventsDirectorDriver randomEventsDirector = null,
-                                         IClinicCellSource clinicCells = null)
+                                         IClinicCellSource clinicCells = null,
+                                         LoadSequencer loadSequencer = null)
         {
             Stream = stream;
             IdAuthority = idAuthority;
@@ -374,6 +385,7 @@ namespace DaYiJingCheng.Gameplay.Boot
             // AnchorCheckpointTrigger / narrativeContext 的「saveBasePath 为 null 同 null」同格。
             RandomEventsDirector = randomEventsDirector;
             ClinicCells = clinicCells;
+            LoadSequencer = loadSequencer;
         }
 
         /// <summary>最小内联病种注册表(DiseaseId=1)—— 装配层未传入真表时的接线载体。</summary>

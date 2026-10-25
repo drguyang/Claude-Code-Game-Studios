@@ -401,6 +401,9 @@ namespace DaYiJingCheng.Gameplay.Boot
             CheckpointFallback checkpointFallback = null;
             // 事件触发半边触发器(TD-persist-04 动作① · 2026-10-25 裁定轮):下文 if 内构造。
             AnchorCheckpointTrigger anchorCheckpointTrigger = null;
+            // 读档缝合序列器(TD-persist-04 义务② · Load 接线轮 2026-10-25):下文 if 内构造
+            // (依赖三件存档侧组件,saveBasePath 为 null ⇒ 同 null)。
+            LoadSequencer loadSequencer = null;
             // ── 瞬时源(规则十四「一个量」)—— 2026-10-25 用户裁定「生产接线今日不为零,现在修」──
             // 实装 = NoPendingMedicalActionQuery(读急救通道 Armed 态取反;W5 要求的
             // 「独立于流的内存态」就此兑现 —— 不是流内累积钩子,被证伪的形态不回归)。
@@ -639,6 +642,15 @@ namespace DaYiJingCheng.Gameplay.Boot
                     //    租、校验和与写盘在 worker 归还,共用一份才有复用意义。
                     //    两处传不同的池 = 各自都只租不还,退化成两个只涨不缩的空池。
                     bufferPool: saveBufferPool);
+
+                // 读档缝合序列器(TD-persist-04 义务② · Load 接线轮 2026-10-25 三裁全取推荐):
+                // `Load` 成功后依序 ResetCursor(义务② 判据 —— AnchorCheckpointTrigger.cs:31
+                // 头注原文)+ NotifyExternalCheckpoint(裁定③:读档点 = 「刚做过 checkpoint」)。
+                // ⚠️ 与三件存档侧组件**同源装配**(同一批实例;saveBasePath 为 null ⇒ 本件不存在)。
+                // ⚠️ 裁定② 通电待信:生产触发点 = BootRoot.RequestLoad,今日零调用方;
+                //    派生态未重建清单(在场视图 / PatientAppearedDriver 计数 / 视觉)见
+                //    LoadSequencer 类头注(裁定① 窄轮如实登记)。
+                loadSequencer = new LoadSequencer(saveService, anchorCheckpointTrigger, checkpointFallback);
             }
 
 
@@ -1070,7 +1082,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                () => ResolveGlobalConfigVersion(dataProvider),
                                                // 2026-10-25 52 出诊启动接线轮:主循环壳 + 医馆格
                                                // 占位源(同源单点发放 —— 见上方构造段注释)。
-                                               randomEventsDirector, clinicCells);
+                                               randomEventsDirector, clinicCells,
+                                               // 2026-10-25 Load 接线轮(TD-persist-04 义务②):
+                                               // 读档缝合序列器(与三件存档侧组件同 null)。
+                                               loadSequencer);
         }
 
         /// <summary>

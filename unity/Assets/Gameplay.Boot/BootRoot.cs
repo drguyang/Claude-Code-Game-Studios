@@ -797,6 +797,26 @@ namespace DaYiJingCheng.Gameplay.Boot
         }
 
         /// <summary>
+        /// 生产读档触发点(TD-persist-04 义务② · Load 接线轮 2026-10-25 · 裁定②
+        /// 「公开方法·通电待信」)—— 转发给 <see cref="LoadSequencer.Load"/>(调用序、
+        /// 原子序与派生态未重建清单全在 <see cref="LoadSequencer"/> 类头注)。
+        /// <para><b>通电待信</b>:本方法今日零调用方(UI 侧 SaveSlotItem 是纯视觉元件,
+        /// 存档位界面尚未接线)—— 存档位 UI 接线轮落地即激活,零代码改动。</para>
+        /// </summary>
+        /// <param name="slot">读档槽位。</param>
+        /// <exception cref="InvalidOperationException">装配未含读档序列器
+        /// (saveBasePath 为 null 的部分装配 = 编程错误;显式请求被静默吞 = 更糟,故 fail-loud)。</exception>
+        public void RequestLoad(Sim.Codec.SaveSlot slot)
+        {
+            var sequencer = _services?.LoadSequencer;
+            if (sequencer == null)
+                throw new InvalidOperationException(
+                    "装配未含读档序列器(saveBasePath 为 null ⇒ 三件存档侧组件同 null);" +
+                    "生产装配必须走完整 BootRoot 启动序,RequestLoad 不接受部分装配");
+            sequencer.Load(slot);
+        }
+
+        /// <summary>
         /// 每帧帧泵(薄壳):读移动输入 → <see cref="MovementFeed.PumpFrame"/>(喂入 / 采样 /
         /// tick 推进 / 边沿提交的次序全在那)。
         /// <para>接线面 = 两个订阅者:① PlayerController(其公开每 tick 入口 = <c>OnTickEdge</c>);

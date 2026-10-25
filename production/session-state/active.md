@@ -11228,3 +11228,25 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - **证据件**:`production/qa/evidence/impl-re02-wiring-2026-10-25.md`
   (§五:PlayMode 运行时实测未跑;义务②③ 仍 open)
 - **未 commit**(等用户指令)
+- ✅ **已提交**:`017d425`(feat(random-events): 52 出诊启动生产接线,13 files +569/−2)
+
+<!-- ═══ TD-persist-04 义务② Load 接线轮(2026-10-25 · 三裁全取推荐)═══ -->
+## Load 接线轮终态(义务② 结清)
+
+- **三裁**:① 范围 = 窄缝合轮(派生态全量重建另立项)② 触发点 = BootRoot.RequestLoad
+  公开方法·通电待信(零 UI 调用方)③ 兜底计数 = NotifyExternalCheckpoint 清零
+- **落盘**:LoadSequencer.cs(Load 成功后依序 ResetCursor + NotifyExternalCheckpoint;
+  原子序 = Load 抛则缝合不动;类头注载派生态未重建清单四项)+ 服务袋 LoadSequencer 属性/
+  尾参 + 组合根同 null 装配 + BootRoot.RequestLoad(fail-loud 拒部分装配)+
+  AnchorCheckpointTrigger.cs:31 头注就地加注结清
+- **夹具**:load_sequencer_test.cs 4 条 + composition_root_test 装配同源钉 1 条
+  (净增 5);首验红波 = using/IFoldedPredicate/JudgmentRecordedPayload freehand 三处
+  夹具修正(锚点 Kind 改 DiseaseOnset,Drain 只按 Kind 匹配)
+- **回归**:5033/4998/0/35 @ 2026-10-25T11:49 UTC · 017d425 工作树含本轮未提交改动
+  (基线 5028/4993/0/35 @ 11:33 · +5/+5 零回归)
+- **证伪轮**:三变异全红(SA ResetCursor 停用 2 红 / SB 兜底清零停用 1 红 /
+  SC 原子序倒置 1 红),SHA-256 还原全过、零残留
+- **证据件**:`production/qa/evidence/impl-td-persist04-load-2026-10-25.md`
+- **债册**:TD-persist-04 结案块追注(三笔转出义务全数处置完毕)+
+  二十九订输出块义务① 段就地加注;索引/计数无变化(closed 32 / open 70 不动)
+- **未 commit**(等用户指令)

@@ -466,6 +466,9 @@ PYEVAL
 > ⚠️ **二十七订的三笔转出义务中,义务 ①(`HouseCallStarted` 零写入者)自此结清**
 > (原文不删);义务 ②(Load 接线调 `ResetCursor()`)与义务 ③(出诊语义 = 查询零扩展,
 > 防呆注已落)仍各归其主。
+> 🔁 **2026-10-25 Load 接线轮追注:义务 ② 自此结清**(见 TD-persist-04 结案块同日追注;
+> 原文不删)—— 三笔转出义务全数处置完毕(① 写者结清 · ② ResetCursor 兑现 ·
+> ③ 口径已裁 + 防呆注已落)。
 >
 > 🔁 **二十八订正文(留档)**:🔁 **二十八订(`TD-randomevents-02` 立债 · 2026-10-25 · 52 GDD 轮同批)** —— 变化 =
 > **`条目 108 → 109`**(+1)· **`open 70 → 71`**(+1)· **`Y 97 → 98`**(+1)·
@@ -2191,6 +2194,23 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > 「36 支」残留五文件订正。收口回归 **`4999/4964/0/35`**(`act1-full2` · 2026-10-25T10:21 UTC ·
 > `d157b4e` 工作树),等式 `4999 − 4987 = 12` = 本轮新增测试方法数,零回归。
 > 复算:`python3 -c "import xml.etree.ElementTree as ET; r=ET.parse('$HOME/.claude/jobs/181888b1/tmp/act1-full2.xml').getroot(); print(r.get('total'), r.get('passed'), r.get('failed'), r.get('skipped'))"`。
+>
+> 🔁 **2026-10-25 追注(Load 接线轮 · 义务② 结清)**:转出义务 ②(「Load 接线落地时必须调
+> `AnchorCheckpointTrigger.ResetCursor()`」,AnchorCheckpointTrigger.cs:31 头注原文)已兑现 ——
+> `unity/Assets/Gameplay.Boot/LoadSequencer.cs`(读档缝合序列器:`Load` 成功后依序
+> `ResetCursor` + `CheckpointFallback.NotifyExternalCheckpoint` 清零;**原子序** = Load 抛
+> 则缝合侧零改动)+ 组合根同 null 装配(saveBasePath null ⇒ 三件同 null,序列器不构造)+
+> `BootRoot.RequestLoad`(生产触发点;裁定② **通电待信**:今日零 UI 调用方 ——
+> `SaveSlotItem` 为纯视觉元件,存档位 UI 接线轮落地即激活)。裁定③ = 读档后兜底计数清零
+> (读档点 = 「刚做过 checkpoint」)。回归 `5033/4998/0/35` @ `2026-10-25T11:49 UTC` ·
+> `017d425` 工作树含本轮未提交改动(基线 5028/4993/0/35 @ 11:33 · +5/+5 = 4 夹具 + 1 装配钉,
+> 零回归);证伪轮三变异(ResetCursor 停用 ⇒ 2 红 / 兜底清零停用 ⇒ 1 红 / 原子序倒置 ⇒ 1 红)
+> 全红,SHA-256 逐字节还原。原件 =
+> `production/qa/evidence/impl-td-persist04-load-2026-10-25.md`(§五:**派生态未重建清单四项
+> 如实登记** —— 在场视图 PresenceRegistry / PatientAppearedDriver 内存计数 / PatientVisualSpawner
+> 视觉 / 驱动 `_lastDrivenTick`;全量重建归独立大轮,须另对 ADR-008/023 口径;PlayMode 未跑)。
+> ⚠️ **二十七订的三笔转出义务自此全数处置完毕**:① 结清(同日 52 接线轮 `017d425`)·
+> ② 结清(本追注)· ③ 口径已裁(查询零扩展,防呆注已落)= 无剩余义务。
 
 ---
 

@@ -29,6 +29,9 @@
 //    ⚠️ **已知缝(如实登记)**:restore 与首次 drain 之间落流的新事件,若其索引
 //    落在旧游标之下,会被静默跳过(钳制与否都一样 —— 2026-10-25 AT4 证伪轮实测钳制冗余,已删)。
 //    ⇒ 生产 Load 接线落地时,**读档路径必须调 `ResetCursor()`**(义务登记于证据件)。
+//    ✅ 2026-10-25 已兑现(TD-persist-04 义务② 结清):`Gameplay.Boot/LoadSequencer.Load`
+//    在 `SaveService.Load` 成功后调用本方法(原子序 = Load 抛则缝合不动;原件
+//    `production/qa/evidence/impl-td-persist04-load-2026-10-25.md`)。
 
 using System;
 using System.Collections.Generic;
