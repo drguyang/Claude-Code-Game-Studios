@@ -153,9 +153,13 @@ namespace DaYiJingCheng.Gameplay.Presentation
         }
 
         /// <summary>
-        /// 无条件重算并**丢弃**缓存(诊断 / 对拍用 —— 生产路径不该需要它)。
+        /// 强制重算并**刷新**缓存(诊断 / 对拍用 —— 生产路径不该需要它)。
         /// <para>用途 = 让「缓存值与直接求值是否逐位一致」可被测试直接观测,
         /// 而不用为了对拍再建第二个 memo 实例。</para>
+        /// <para>⚠️ **缓存刷新而非丢弃**:本方法先置脏再走 <see cref="Get"/>,而 <see cref="Get"/>
+        /// 末尾会重新置 <see cref="HasCache"/> = true ⇒ 返回后缓存是**新建的**(不是空的)。
+        /// 这正是对拍想要的语义(拿到的就是缓存当前持有的值)。若需要「重算但不污染缓存」,
+        /// 那不是本方法的用途 —— 请直接调求值器。</para>
         /// </summary>
         /// <returns>当下的直接求值结果(与 <see cref="Get"/> 的命中值逐位一致)。</returns>
         public ClinicEnvEvaluation Recompute()

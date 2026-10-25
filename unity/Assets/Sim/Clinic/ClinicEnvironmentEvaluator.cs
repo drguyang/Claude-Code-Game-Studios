@@ -132,11 +132,17 @@ namespace DaYiJingCheng.Sim.Clinic
         /// <param name="contexts">24 `CONTEXT_TABLE`(情境 / `K_speed` / `base_env`)。</param>
         /// <param name="adj">24 `ADJ_TABLE`(邻接权重)。</param>
         /// <returns>求值快照(结构体,绝不为 null)。</returns>
-        /// <exception cref="ArgumentNullException">任一入参为 null(接线错误,非设计态)。</exception>
+        /// <exception cref="ArgumentNullException">任一入参为 null(接线错误,非设计态)。
+        /// **本方法直接抛出**(体内五条守卫)。</exception>
         /// <exception cref="InvalidOperationException">某格属性查询返回
-        /// <see cref="ClinicCellLookup.Unknown"/>(源不完整 —— 静默跳过会少算 `e_env` / 子句计数)。</exception>
-        /// <exception cref="OverflowException">线性求和在 int64 内越界(ADR-012 F7 的显式守卫)。</exception>
-        /// <exception cref="ArgumentException">房间格数越出 `n_max`(F-24-1 的 int64 域前置)。</exception>
+        /// <see cref="ClinicCellLookup.Unknown"/>(源不完整 —— 静默跳过会少算 `e_env` / 子句计数)。
+        /// **propagated from** `ClinicRoomMatcher.TryMatchRoom` / `ClinicModifierEvaluator.*`
+        /// —— 本方法不直接抛,由下游传播。</exception>
+        /// <exception cref="OverflowException">线性求和在 int64 内越界(ADR-012 F7 的显式守卫)。
+        /// **propagated from** `ClinicModifierEvaluator.ClinicEnvModOf` / `ClinicEquipModOf`
+        /// —— 本方法不直接抛。</exception>
+        /// <exception cref="ArgumentException">房间格数越出 `n_max`(F-24-1 的 int64 域前置)。
+        /// **propagated from** `ClinicRoomExtraction.Extract` —— 本方法不直接抛。</exception>
         public static ClinicEnvEvaluation Evaluate(
             IPlacedStructureReadView layout,
             ClinicFurnitureCatalogue furniture,
@@ -163,13 +169,8 @@ namespace DaYiJingCheng.Sim.Clinic
                 out ClinicRoomMatchDiagnostics diagnostics);
 
             // ── 4. 未匹配 ⇒ 中性出口(EC-24-01 / 02 / 07)──
-            // ⚠️ KContextMax **不**随之归零 —— 它是表派生量,与布局无关(F-24-3)。
             if (!matched)
-            {
-                return new ClinicEnvEvaluation(
-                    extraction, diagnostics, matched: false, roomType: null,
-                    Fix.Zero, Fix.Zero, contexts.KContextMax, EmptyContexts());
-            }
+                return Unmatched(extraction, diagnostics, contexts.KContextMax);
 
             // ── 5. 乘子求值 ──
             // base_env 由调用方按 room_type 解析(F-24-1 的输入;表缺失 ⇒ 0,表构造期已校验
@@ -187,6 +188,20 @@ namespace DaYiJingCheng.Sim.Clinic
                 extraction, diagnostics, matched: true, roomType,
                 envMod, equipMod, contexts.KContextMax, contextIds);
         }
+
+        /// <summary>
+        /// 未匹配 ⇒ 中性出口(EC-24-01 / 02 / 07):`EnvMod` / `EquipMod` 皆 0、`RoomType` 为 null、
+        /// 情境集为空。
+        /// <para>⚠️ `KContextMax` **不**随之归零 —— 它是表派生量,与布局无关(F-24-3)。
+        /// 归零会让「空医馆」与「表缺失」不可区分。</para>
+        /// </summary>
+        private static ClinicEnvEvaluation Unmatched(
+            in ClinicRoomExtractionResult extraction,
+            in ClinicRoomMatchDiagnostics diagnostics,
+            Fix kContextMax)
+            => new ClinicEnvEvaluation(
+                extraction, diagnostics, matched: false, roomType: null,
+                Fix.Zero, Fix.Zero, kContextMax, EmptyContexts());
 
         /// <summary>未匹配出口用的空集(单例 —— 空数组本身不可变,共享安全)。</summary>
         private static IReadOnlyList<string> EmptyContexts() => Array.Empty<string>();

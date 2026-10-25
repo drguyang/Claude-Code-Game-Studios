@@ -59,6 +59,13 @@
 1. 双求值测试用同一 fixture 布局跑两遍(独立实例化,禁复用第一次的结果对象)。
 2. contexts[] 输出顺序钉死为确定性序(表 ordinal 升序),防集合迭代序漂移(承 ADR-024/25 同款纪律)。
 3. 缓存实现落 `Gameplay.Presentation`:监听 `Structure*` 事件流,键 = 事件全序键,值 = ClinicEnvDto 快照。
+   > 🔁 **2026-10-26 评审回写(W-2,原文不删)**:本条**后半句未按原样实现** —— 实现缓存的是
+   > `Sim.Clinic.ClinicEnvEvaluation`(24 的纯输出),**不是** `ClinicEnvDto`。原因是 DTO 投影需要
+   > 两处**全库未裁**的映射:① `RoomNameId` 的 int 房号 ↔ `ClinicRoomId(High,Low)`;
+   > ② `ContextIds` 词表 ordinal ↔ `ClinicContextRow.ContextId` 的 string(词表 size 未定)。
+   > 发明映射 = 造第二真源 ⇒ **未擅自发明**,投影归装配轮(证据件 §六-④ 已登记 NOT-RUN)。
+   > 实现落点:`Gameplay.Presentation/ClinicEnvironmentMemo.cs`。评审原件
+   > `production/qa/evidence/review-s20-2-clinic005-2026-10-26.md` §二 W-2。
 4. 「无状态」断言 = 反射扫描 24 的 sim 类型:无 mutable 字段、无 static;该断言入构建期或 EditMode 皆可,择一登记。
 5. 提醒实现者:若日后需改 `TICK_SECONDS` 等全局量,24 不感知 —— 它的输入不含 tick 频率。
 

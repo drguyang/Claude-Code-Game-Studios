@@ -125,6 +125,10 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             _world = new World(new WorldGeometry(terrain, poi, resource), new BuildSlotCatalog());
 
             // ── 真烘焙产物(缺 ⇒ 抛 —— 不静默返回空表;E-13 同口径)──
+            // ⚠️ **每份产物加非空断言**(评审 M-7):`Assets/DataCooked/*.cooked.bytes` 是
+            // **文件系统外部状态** —— 数据缺失 / 漂移时本夹具 16 条会**全红**,归因粒度差
+            // (看起来像「逻辑全错」,实际是「数据没烘」)。下列断言把两类失败在**归因上分开**:
+            // 数据缺失 ⇒ 红在 SetUp 并直接点名缺哪份;数据正常 ⇒ 后续断言才可能是逻辑问题。
             _modules = new BuildModulesCatalog(DataCookedDisk.LoadBuildModules());
             _furniture = DataCookedDisk.LoadClinicFurniture().Catalogue;
             _rooms = DataCookedDisk.LoadClinicRoom().Table;
@@ -132,6 +136,16 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 DataCookedDisk.ReadAll(AddressablesDataProvider.ClinicContextAddress)).Table;
             _adj = ClinicMachineCookedCodec.ReadAdj(
                 DataCookedDisk.ReadAll(AddressablesDataProvider.ClinicAdjAddress)).Table;
+
+            Assert.That(_modules, Is.Not.Null, "烘焙产物缺失:BuildModules");
+            Assert.That(_furniture, Is.Not.Null, "烘焙产物缺失:ClinicFurniture");
+            Assert.That(_rooms, Is.Not.Null, "烘焙产物缺失:ClinicRoom");
+            Assert.That(_contexts, Is.Not.Null, "烘焙产物缺失:ClinicContext");
+            Assert.That(_adj, Is.Not.Null, "烘焙产物缺失:ClinicAdj");
+            Assert.That(_contexts.Rows.Count, Is.GreaterThan(0),
+                "CONTEXT_TABLE 为空 ⇒ 后续「情境集」类断言全部失去意义(数据问题,非逻辑问题)");
+            Assert.That(_rooms.Count, Is.GreaterThan(0),
+                "ROOM_TABLE 为空 ⇒ 房间类型判定永不匹配(数据问题,非逻辑问题)");
 
             // ── 真写者 + 真事件流(occupancy 位 = 真 `World` 本身)──
             _pool = new InMemoryBlobPool();
@@ -360,6 +374,60 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         }
 
         /// <summary>
+        /// **修改后失效**:`StructureModified` 入流 ⇒ 缓存失效。
+        /// <para><b>为什么需要这一条(2026-10-26 评审 W-3)</b>:`IsStructureKind` 是**三支闭集**
+        /// (`StructurePlaced` / `StructureRemoved` / `StructureModified`),但评审实测原 15 条
+        /// **只测了前两支** —— 从 switch 删掉 `StructureModified` 那一行,全套仍绿。
+        /// 而该支有真实生产发点(`Sim/World/StructureKinds.cs:296-300` 的 `StructureWriter.Modify`),
+        /// 不是死代码 ⇒ 这是一处**真实可证伪性缺口**,不是纸面遗漏。</para>
+        /// <para><b>判别力设计(关键)</b>:24 的求值**不读** `Orientation` / `Variant`
+        /// (`ClinicFurnitureTraitsSource` 只摊平 `module_id` + 占用格),所以 `Modify` 之后
+        /// **`EnvMod` 的值不变**。⇒ 本条**不能**靠「值变了」判失效,必须直接观测
+        /// <see cref="ClinicEnvironmentMemo.InvalidationCount"/>。
+        /// 这恰好也把设计属性钉住了:memo 的失效是**保守的、不比较键新旧**
+        /// (任何 `Structure*` 都清缓存,见 `ClinicEnvironmentMemo` 类头),
+        /// 因此「值没变但仍失效」是**预期行为**,不是过度失效。</para>
+        /// <para><b>判别力</b>:从 `IsStructureKind` 删掉 `case EventKind.StructureModified:`
+        /// ⇒ `InvalidationCount` 停在 0 ⇒ 本测红。</para>
+        /// </summary>
+        [Test]
+        public void test_ec2405_afterModify_invalidatesCache()
+        {
+            // Arrange:L₁ = 两床(ward),缓存已建立
+            _writer.Place(new WorldPos(0, 0, 0), ModuleBed, 0, 0, tick: 1);
+            long second = _writer.Place(new WorldPos(1, 0, 0), ModuleBed, 0, 0, tick: 2);
+
+            var memo = NewMemo();
+            ClinicEnvEvaluation l1 = memo.Get();
+            Assert.That(l1.EnvMod.Raw, Is.EqualTo(2 * EEnvOneSixteenthRaw), "前提:L₁ = ward,EnvMod 8192");
+            Assert.That(memo.HasCache, Is.True, "前提:缓存已建立");
+            Assert.That(memo.InvalidationCount, Is.EqualTo(0), "前提:尚未投递任何 Structure* 事件");
+
+            // Act:改第二张床的朝向 —— 真生产路径(StructureWriter.Modify 发 StructureModified)
+            Assert.That(_writer.Modify(second, newOrientation: 1, newVariant: null, tick: 3), Is.True,
+                "前提:Modify 须成功(朝向确实变化 ⇒ modified_fields 非 0)");
+            FeedLastEvent(memo);
+            ClinicEnvEvaluation l2 = memo.Get();
+
+            // Assert 1:失效发生了(这是本测的主判据 —— 与值是否变化无关)
+            Assert.That(memo.InvalidationCount, Is.EqualTo(1),
+                "StructureModified 须使缓存失效;停在 0 = IsStructureKind 漏了这一支(评审 W-3)");
+
+            // Assert 2:值不变(24 不读 Orientation / Variant —— 这是预期,不是缺陷)
+            Assert.That(l2.EnvMod.Raw, Is.EqualTo(l1.EnvMod.Raw),
+                "24 的求值不读朝向/变体 ⇒ 值不变是预期行为");
+            Assert.That(l2.RoomType, Is.EqualTo(l1.RoomType), "房间类型不变");
+
+            // Assert 3:重算真的跑了一次(不是「标脏但没重算」)
+            Assert.That(memo.RecomputeCount, Is.EqualTo(2),
+                "首次 Get + 失效后 Get = 2 次重算;若失效只标脏不重算,这里会是 1");
+
+            // Assert 4:与直接求值逐位一致(EC-24-05「缓存与否不改结果」仍成立)
+            Assert.That(l2.EnvMod.Raw, Is.EqualTo(EvaluateFromFreshView().EnvMod.Raw),
+                "失效后重算值须等于直接求值");
+        }
+
+        /// <summary>
         /// **同 tick 连两变更 ⇒ 只要求终态一致**(卡面 QA plan AC-2 的 edge)。
         /// <para>两条 `Structure*` 事件同 tick 先后投递 ⇒ 两次失效,`Get()` 只算一次,
         /// 结果 = 终态布局的直接求值。</para>
@@ -378,7 +446,11 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             ClinicEnvEvaluation after = memo.Get();
 
             // Assert:终态 = 两床 ⇒ ward
-            Assert.That(memo.InvalidationCount, Is.EqualTo(2), "两条事件各触发一次失效");
+            // ⚠️ **不**断言 `InvalidationCount == 2`(评审 M-5):那是实现细节 ——
+            // 若日后把「同 tick 批量失效」优化成幂等实现(只失效一次),行为完全正确却会误红。
+            // 本测只判**终态一致性**(卡面 QA plan AC-2 的原话:「只要求终态一致(幂等)」)。
+            Assert.That(memo.InvalidationCount, Is.GreaterThanOrEqualTo(1),
+                "至少发生一次失效(0 = 缓存根本没被通知)");
             Assert.That(after.Matched, Is.True);
             Assert.That(after.RoomType, Is.EqualTo("ward"));
             Assert.That(after.EnvMod.Raw, Is.EqualTo(2 * EEnvOneSixteenthRaw));
@@ -538,6 +610,37 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 "24 的 sim 类型出现 static 可变字段 = 跨调用状态(ADR-005 违例);实际:" +
                 string.Join(" | ", staticMutable));
 
+            // ── 断言 1b:`static readonly` 的**类型**必须不可变(评审 W-4)──
+            // 为什么需要这一条:断言 1 把 `IsInitOnly` 一律豁免 —— 那只保证**引用不可重绑**,
+            // 不保证**被引用对象的内容不可变**。`private static readonly Dictionary<K,V> _x`
+            // 完全合法地通过断言 1,却是最典型的「跨调用共享可变状态」。
+            // 而断言 3 只扫 `t.IsClass` 的**实例**字段 ⇒ static class 里的 readonly 容器
+            // 两个断言都漏(评审支 B 实测指出的双向漏网)。
+            //
+            // 判据 = 字段**声明类型**必须是下列之一:
+            //   ① 值类型(按值复制,结构上无法成为共享可变状态)
+            //   ② 只读集合**接口**(IReadOnlyList / IReadOnlyCollection / IReadOnlyDictionary)
+            //      —— 接口面零写方法 ⇒ 持有者拿不到写通道
+            // 其余(裸 Dictionary / List / HashSet / 数组 / 自定义可变类)一律红。
+            var staticReadonlyMutable = new List<string>();
+            foreach (Type t in clinicTypes)
+            {
+                foreach (FieldInfo f in t.GetFields(
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic |
+                    BindingFlags.DeclaredOnly))
+                {
+                    if (!f.IsInitOnly || f.IsLiteral) continue;   // 只看 static readonly
+                    Type ft = f.FieldType;
+                    if (ft.IsValueType) continue;                 // ① 值类型 ⇒ 按值复制
+                    if (IsReadOnlyCollectionInterface(ft)) continue; // ② 只读集合接口
+                    staticReadonlyMutable.Add($"{t.Name}.{f.Name} : {ft.Name}");
+                }
+            }
+            Assert.That(staticReadonlyMutable, Is.Empty,
+                "`static readonly` 字段的类型必须是「值类型」或「只读集合接口」—— " +
+                "裸 Dictionary/List/HashSet/数组 只锁引用、内容仍可变 = 跨调用共享状态(ADR-005)。实际:" +
+                string.Join(" | ", staticReadonlyMutable));
+
             // ── 断言 2:零实例可变字段(非 readonly)──
             // ⚠️ 枚举除外:编译器为每个 enum 生成实例字段 `value__`(非 readonly、非 const)
             // —— 那是 CLR 的枚举表示,不是「状态」(枚举值是**值类型**,按值复制,
@@ -586,6 +689,20 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 "新增类带字段必须显式登记并说明其为「构造期填充的只读表 / 快照」");
         }
 
+        /// <summary>该类型是否为「只读集合接口」—— 断言 1b 的合法白名单面。
+        /// <para>只认 `IReadOnly*` 三族:它们**接口面零写方法**,持有者拿不到写通道
+        /// (即便运行期实例是 `List&lt;T&gt;`,静态类型决定了调用点能做什么)。</para>
+        /// </summary>
+        private static bool IsReadOnlyCollectionInterface(Type t)
+        {
+            if (!t.IsInterface) return false;
+            if (!t.IsGenericType) return false;
+            Type def = t.GetGenericTypeDefinition();
+            return def == typeof(IReadOnlyList<>) ||
+                   def == typeof(IReadOnlyCollection<>) ||
+                   def == typeof(IReadOnlyDictionary<,>);
+        }
+
         // ══════════════════ ④ 纯函数输入封闭(三源,ADR-016 §一)══════════════════
 
         /// <summary>
@@ -631,13 +748,17 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                 "求值签名须恰 = {布局快照, 四份 cooked 表}");
 
             // Assert 3:黑名单 —— 时变量 / 随机源一律不得出现
+            // ⚠️ **只列「语义上是第四来源」的类型**(评审 M-6):`long` / `int` / `decimal` 等
+            // **合法值类型**已从本表移除 —— 它们是「布局快照 / 表的句柄」可能的承载类型,
+            // 靠类型名封它们属于「按名字而非语义判」,且白名单(断言 2)已做集合相等
+            // ⇒ 任何新增形参都会红,黑名单本身无逃逸面可堵。保留的这几项则是**无歧义**的
+            // 第四来源:事件 / 事件序键 / 墙钟 / 随机源。
             Type[] forbidden =
             {
-                typeof(long), typeof(int), typeof(short), typeof(byte),
-                typeof(float), typeof(double), typeof(decimal),
                 typeof(SimEvent), typeof(EventOrderKey),
                 typeof(DateTime), typeof(DateTimeOffset), typeof(TimeSpan),
                 typeof(Random),
+                typeof(float), typeof(double),   // 浮点 = ADR-006 定点域边界外(非「值类型合法」)
             };
             foreach (Type bad in forbidden)
                 Assert.That(types, Has.No.Member(bad),
