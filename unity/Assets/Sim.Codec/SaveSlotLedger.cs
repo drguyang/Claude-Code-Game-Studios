@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using DaYiJingCheng.Sim.Contracts;
 
 namespace DaYiJingCheng.Sim.Codec
 {
@@ -30,7 +31,7 @@ namespace DaYiJingCheng.Sim.Codec
     /// </summary>
     public sealed class SaveSlotLedger
     {
-        private readonly Func<bool> _narrativeContext;
+        private readonly INarrativeContextQuery _narrativeContext;
         private readonly HashSet<uint> _locked = new HashSet<uint>();
         private uint _nextWritableSeq;
 
@@ -55,7 +56,7 @@ namespace DaYiJingCheng.Sim.Codec
         /// (`/code-review` S19-1 W-4)。「从槽位 N 续玩」须由<b>读档路径</b>给出恢复点
         /// (高水位是会话内存,ADR-010 §六),归 `TD-persist-03`。</para>
         /// </param>
-        public SaveSlotLedger(Func<bool> narrativeContext, uint initialNextWritableSeq = 0)
+        public SaveSlotLedger(INarrativeContextQuery narrativeContext, uint initialNextWritableSeq = 0)
         {
             _narrativeContext = narrativeContext;
             _nextWritableSeq = initialNextWritableSeq;
@@ -74,7 +75,7 @@ namespace DaYiJingCheng.Sim.Codec
         public SlotContext Snapshot(SaveSlot slot)
         {
             if (_narrativeContext == null) throw NoContextSource();
-            return new SlotContext(_locked.Contains(slot.SlotSeq), _narrativeContext(), _nextWritableSeq);
+            return new SlotContext(_locked.Contains(slot.SlotSeq), _narrativeContext.InNarrativeContext(), _nextWritableSeq);
         }
 
         /// <summary>该槽位是否已锁(只读查询;不触发 fail-closed —— 锁态与上下文无关)。</summary>
@@ -99,7 +100,7 @@ namespace DaYiJingCheng.Sim.Codec
                     $"槽位只进不退:slot_seq={slot.SlotSeq} < next_writable_seq={_nextWritableSeq}" +
                     "(AC-7a-19 (b) —— 覆盖既有槽位由 7a 拒绝,不是 7b 提示)");
 
-            if (!_narrativeContext())
+            if (!_narrativeContext.InNarrativeContext())
                 throw new InvalidOperationException(
                     $"不在叙事上下文内,拒绝写入 slot={slot.SlotSeq}" +
                     "(AC-7a-19 (c) / 规则十四「手动存须在无未决医疗动作的上下文」)");

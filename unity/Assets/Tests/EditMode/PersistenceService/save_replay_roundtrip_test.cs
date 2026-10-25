@@ -91,7 +91,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var svc = new SaveService(
                 _testDir, new SaveCodec(),
                 folded: PredicateOf(stream),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
                 // 🔁 2026-10-25 AC-7a-07:`compose` 契约 = **返回未签名**,校验和由 worker 补。
@@ -110,7 +110,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var svcLoad = new SaveService(
                 _testDir, new SaveCodec(),
                 folded: PredicateOf(fresh),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: events => pending = events,
                 foldedRowSink: bytes => fresh.Restore(
                     pending ?? throw new InvalidOperationException("折叠段先于事件段到达"),

@@ -219,13 +219,32 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <para><b>`null` ⇔ 装配时未指定存档目录</b>(`Assemble(..., saveBasePath: null)`),
         /// 是**合法状态**,不是半装配 —— 与 <see cref="AudioRenderAssembled"/> 同款
         /// 「可观测而非静默」处置。生产路径由 `BootRoot` 显式传目录。</para>
-        /// <para>⚠️ <b>即便非 null,今日 `Checkpoint` / `Load` 也必然抛</b> ——
-        /// 叙事上下文驱动源未接通(fail-closed,`TD-persist-04`)。这是**刻意的**:
-        /// 不可利用 &gt; 不可用。**不得读成「存档功能已完成」。**</para>
+        /// <para>🔁 <b>2026-10-25 生产接线轮订正(原文不删)</b>:下句「即便非 null,今日
+        /// `Checkpoint` / `Load` 也必然抛」**已过期** —— 瞬时源
+        /// <see cref="NarrativeContext"/> 已接通(读急救通道 Armed 态),`Checkpoint` /
+        /// `SaveOnExit` / `Load` 的门**已可用**;事件触发半边(锚点接线)仍归
+        /// `TD-persist-04` 动作 ①,**不得**读成「AC-7a-20 已全满足」。</para>
         /// <para>⚠️ 判据 ④ 的**字节半**(「产出的字节里折叠行出现」)今日 = `NOT-RUN`,
         /// 归 `TD-persist-03`。本属性的存在只证明**位置半 + 委托半**成立。</para>
         /// </summary>
         public SaveService SaveService { get; }
+
+        /// <summary>
+        /// 「无未决医疗动作」瞬时源(规则十四「一个量」· 2026-10-25 生产接线轮)。
+        /// <para><see cref="NoPendingMedicalActionQuery"/> —— `SaveService` 与
+        /// <see cref="CheckpointFallback"/> 共用的**同一实例**(装配期单变量,拆实例 =
+        /// 读档门与兜底门分叉)。`IsBound` 在 `Assemble` 返回时恒 true(急救装配段 Bind)。</para>
+        /// <para>⚠️ 7b 呈现侧(册级「写不可 / 读不可」灰置)**可经本属性取态** ——
+        /// 这是登记的复用面,不是本轮新义务。</para>
+        /// </summary>
+        public NoPendingMedicalActionQuery NarrativeContext { get; }
+
+        /// <summary>
+        /// `CHECKPOINT_INTERVAL` 定时兜底调度器(AC-7a-20 定时半边 · 2026-10-25 生产接线轮)。
+        /// <para>`null` ⇔ `SaveService` 为 null(未指定存档目录);驱动 = `BootRoot` 的
+        /// tick 边沿序列(`OnTicks(本帧推进 tick 数)`)。</para>
+        /// </summary>
+        public CheckpointFallback CheckpointFallback { get; }
 
         internal CompositionRootServices(EventStream stream, IIdAuthority idAuthority,
                                          InMemoryBlobPool blobPool, IPayloadEncoder encoder,
@@ -266,6 +285,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                                          TelemetryAnalyticsTuning? telemetryKnobs = null,
                                          ClinicRoomMatchingService clinicRoomMatching = null,
                                          SaveService saveService = null,
+                                         CheckpointFallback checkpointFallback = null,
+                                         NoPendingMedicalActionQuery narrativeContext = null,
                                          Func<uint?> currentConfigVersion = null)
         {
             Stream = stream;
@@ -309,6 +330,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             AudioTierDriver = audioTierDriver;
             ClinicRoomMatching = clinicRoomMatching;
             SaveService = saveService;
+            CheckpointFallback = checkpointFallback;
+            NarrativeContext = narrativeContext;
 
             // 51 遥测接线(TD-epic-01):decoder 在 Sim.Codec、51 的装配引不到 ⇒ 在本装配层包成委托。
             // ⚠️ stream / decoder / registry 均已是本 ctor 的形参 ⇒ 不加新装配边、不改 Assemble 签名。

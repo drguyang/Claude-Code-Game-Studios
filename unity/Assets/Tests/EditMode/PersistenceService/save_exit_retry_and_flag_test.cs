@@ -118,7 +118,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 basePath,
                 new SaveCodec(),
                 folded: null,
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
                 compose: _ => MinimalSaveBytes(),
@@ -385,7 +385,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             //    「会话未完整」—— 真 bug 被埋掉。
             var svc = new SaveService(
                 _testDir, new SaveCodec(),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 compose: null,
                 exitSaveRetryMillis: 10000,   // 预算给得很大 —— 若误入重试,本测会挂住
@@ -409,7 +409,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             // 「上次没存好」的用户提示里,而且永远查不出来。
             var svc = new SaveService(
                 _testDir, new SaveCodec(),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 compose: null,
                 exitSaveRetryMillis: 0,

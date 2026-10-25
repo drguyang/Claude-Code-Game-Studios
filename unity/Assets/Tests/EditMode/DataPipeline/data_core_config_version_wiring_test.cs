@@ -194,9 +194,13 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
         /// (= 修复引入的假红)。</para>
         /// <para><b>判别力</b>:把派生从闭包内挪回装配期(即 `uint cv = ResolveGlobalConfigVersion(dataProvider);`
         /// 放在 `if` 里第一行)⇒ 本测在 `Assemble` 处抛 ⇒ 红。</para>
-        /// <para>⚠️ **本测不验「调用时必抛」** —— `Checkpoint` 在
+        /// <para>⚠️ **本测不验「调用时必抛」** ~~—— `Checkpoint` 在
         /// `RequireNarrativeContext()` 就先抛了(narrativeContext 今日恒 null,TD-persist-04),
-        /// 够不到 `compose`。那条判据今日**不可达**,如实登记为 NOT-RUN,不用别的断言冒充。</para></summary>
+        /// 够不到 `compose`。那条判据今日**不可达**,如实登记为 NOT-RUN,不用别的断言冒充~~
+        /// (**2026-10-25 生产接线轮过期**,原文不删):瞬时源已接通
+        /// (`NoPendingMedicalActionQuery`)⇒ `Checkpoint` **够得到** `compose` ——
+        /// 「provider 缺失 ⇒ 调用时抛 E-13」自此可达;该判据由
+        /// `save_composer_wiring_test` / `composition_root_test` 的 ⑤ 翻转件承载。</para></summary>
         [Test]
         public void test_lazy_noProviderWithSavePath_assembleStillSucceeds()
         {

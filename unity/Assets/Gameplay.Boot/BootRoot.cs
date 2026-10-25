@@ -206,11 +206,12 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   字段的消费者(42 / 7b 的提示 UI)**尚未存在** ⇒ 这是**如实登记的缺口**,
             //   不是静默满足(见 `_sessionWasIncomplete` 的 doc)。
             //
-            // ⚠️ **今日 `Checkpoint` / `Load` 仍必然抛**(叙事上下文驱动源未接通,裁定丙,
-            //   `TD-persist-04`)⇒ `SaveOnExit` 会在 `RequireNarrativeContext` 处抛
-            //   `InvalidOperationException`。这是**已知且刻意**的:**不可用 > 不安全**。
-            //   ⇒ 退出钩子必须**兜住**这个抛出 —— 否则「7a 未接线」会变成「玩家无法退出游戏」。
-            //   兜住后走「置位 + 记日志」路径,即**当前生产路径的真实行为**。
+            // ⚠️ ~~今日 `Checkpoint` / `Load` 仍必然抛~~(**2026-10-25 生产接线轮过期**,原文不删):
+            //    叙事上下文瞬时源已接通(`NoPendingMedicalActionQuery`,装配根 Bind)⇒
+            //    `SaveOnExit` **不再**在 `RequireNarrativeContext` 处抛,而是**真写**
+            //    `save_exit.bin`(独立文件名,不占玩家槽)。本 try/catch **保留** ——
+            //    它兜的「驱动源缺失 = 编程错误」分支退为纵深,写盘侧异常本就不经此抛。
+            //    (原记录:兜住后走「置位 + 记日志」路径,即接线前的生产真实行为。)
             var saveService = _services.SaveService;
             if (saveService != null)
             {
@@ -856,6 +857,17 @@ namespace DaYiJingCheng.Gameplay.Boot
             if (_tickDriver.CurrentTick > tickBefore && _services != null)
             {
                 _services.EmergencyChannel?.OnTickEdge(_tickDriver.CurrentTick);
+            }
+
+            // 定时兜底 checkpoint(AC-7a-20 定时半边 · TD-persist-05 动作④ · 2026-10-25 生产接线轮):
+            // 同一 tick 边沿序列内,急救通道检查**之后**(兜底判定读的「未决医疗动作」Armed 态
+            // 须是本 tick 终态;halt 期无 Advance ⇒ 无边沿 ⇒ 不驱动,承 S6 停机时钟语义)。
+            // ⚠️ 按 **tick 数**驱动(`OnTicks(Δtick)`),不按帧 —— 一帧推进 N tick 时
+            //    按帧驱动会把 N 个 tick 计成 1,interval(以 tick 计)被帧率稀释。
+            //    闭包内异常已在装配根兜住(LogError,不杀帧)。
+            if (_tickDriver.CurrentTick > tickBefore && _services != null)
+            {
+                _services.CheckpointFallback?.OnTicks(_tickDriver.CurrentTick - tickBefore);
             }
 
             // 病人视觉实体(sprint-05 T2.0):急救驱动**之后**调用 —— 视觉跟着在场集走,

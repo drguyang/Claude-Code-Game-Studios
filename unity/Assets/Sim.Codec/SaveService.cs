@@ -39,7 +39,7 @@ namespace DaYiJingCheng.Sim.Codec
         private readonly string _basePath;
         private readonly ISaveCodec _codec;
         private readonly IFoldedPredicate _folded;
-        private readonly Func<bool> _narrativeContext;
+        private readonly INarrativeContextQuery _narrativeContext;
         private readonly Action<IReadOnlyList<SimEvent>> _replaySink;
         private readonly Action<byte[]> _foldedRowSink;
         private readonly Func<SaveSlot, byte[]> _compose;
@@ -139,7 +139,7 @@ namespace DaYiJingCheng.Sim.Codec
             string basePath,
             ISaveCodec codec,
             IFoldedPredicate folded = null,
-            Func<bool> narrativeContext = null,
+            INarrativeContextQuery narrativeContext = null,
             Action<IReadOnlyList<SimEvent>> replaySink = null,
             Action<byte[]> foldedRowSink = null,
             Func<SaveSlot, byte[]> compose = null,
@@ -669,7 +669,7 @@ namespace DaYiJingCheng.Sim.Codec
         {
             // ── Gating:安全上下文门(与写同钩,规则十四) ──
             RequireNarrativeContext();
-            if (!_narrativeContext())
+            if (!_narrativeContext.InNarrativeContext())
                 throw new InvalidOperationException(
                     $"不在叙事上下文内,拒绝载入 slot={slot.SlotSeq}" +
                     "(规则十四「载入安全上下文门」—— 读档与写同钩)");

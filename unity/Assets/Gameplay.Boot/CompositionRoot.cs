@@ -391,11 +391,23 @@ namespace DaYiJingCheng.Gameplay.Boot
             //   只扫测试**源码字面量**、抓不到它(派生路径无字面量)。
             //   生产路径 = `BootRoot` 显式传 `persistentDataPath/saves`(见其调用点)。
             //
-            // ⚠️ **`narrativeContext` 今日传 null(fail-closed)**:真实驱动源零落点
-            //   (谁在叙事锚点事件时翻 true),归 8 / 37 / 52 的实现轮 ⇒ `TD-persist-04`。
-            //   后果:存档 / 读档在**生产路径上不可用**。这是**刻意的** ——
-            //   不可利用 > 不可用(恒真会让 save-scum 通道在生产路径默开而测试全绿)。
+            // ⚠️ ~~`narrativeContext` 今日传 null(fail-closed)~~(**2026-10-25 生产接线轮过期**,
+            //   原文不删):真实驱动源已接通 = `NoPendingMedicalActionQuery`(急救通道 Armed 态
+            //   取反,见下方声明);「谁在叙事锚点事件时翻 true」(事件触发半边)仍归
+            //   8 / 37 / 52 的实现轮 ⇒ `TD-persist-04`。~~后果:存档 / 读档在生产路径上不可用~~
+            //   ⇒ 定时兜底 + 退出保存 + 读档门自此在生产路径可用;恒真替代品仍被禁止
+            //   (save-scum 通道不因接线而开 —— Armed 态是瞬时内存量,不是恒真)。
             SaveService saveService = null;
+            CheckpointFallback checkpointFallback = null;
+            // ── 瞬时源(规则十四「一个量」)—— 2026-10-25 用户裁定「生产接线今日不为零,现在修」──
+            // 实装 = NoPendingMedicalActionQuery(读急救通道 Armed 态取反;W5 要求的
+            // 「独立于流的内存态」就此兑现 —— 不是流内累积钩子,被证伪的形态不回归)。
+            // ⚠️ **声明在 `if (saveBasePath)` 之外**:同一实例要跨三处共用 ——
+            //   ① `SaveService`(写/读门)② `CheckpointFallback`(兜底,下文 if 内构造)
+            //   ③ 急救装配段的 `Bind`(晚于本段,依赖序)—— 拆成两个实例 = 读档门与
+            //   兜底门对同一时刻给出不同答案(规则十四被破坏)。
+            // ⚠️ 未 Bind 期 `InNarrativeContext()` 恒 false(fail-closed,见该类头注)。
+            var narrativeContext = new NoPendingMedicalActionQuery();
             if (!string.IsNullOrEmpty(saveBasePath))
             {
                 // 折叠谓词 —— 四个输入全部可从三流 + 注册表取,无快照 / 无墙钟(ADR-016 §一)。
@@ -466,7 +478,8 @@ namespace DaYiJingCheng.Gameplay.Boot
                 //   「checkpoint 绑定**叙事事件** —— 脉案落笔 / 病例结案(37)· 出诊启动(52) 的
                 //     锚点白名单。**7a 只出观察钩子形状**(「一个值得锚点的叙事事件」的接口),
                 //     **不拥有具体事件列表**;各系统在**生成该类事件时**同步触发 checkpoint」
-                // ⇒ 本闭包是**装配根的接线**,不是 7a 的事件表:7a(`SaveService`)只见 `Func<bool>`,
+                // ⇒ 本闭包是**装配根的接线**,不是 7a 的事件表:7a(`SaveService`)只见 `INarrativeContextQuery`
+//   (2026-10-25 裁定甲,原 `Func<bool>`;契约 = `Sim.Contracts/INarrativeContextQuery.cs`),
                 //   看不见任何 `EventKind`。锚点 Kind 在此**具名列举**,是为了让缺口可被 grep 到。
                 //
                 // ⚠️ **锚点映射缺口 —— 必须如实登记,禁借绿**:
@@ -511,7 +524,36 @@ namespace DaYiJingCheng.Gameplay.Boot
                 //     `null`(fail-closed)是**唯一不破 AC 的状态**:不可用 > 不安全。
                 //   ⇒ 两个纯函数 `HasNarrativeAnchorEvent` / `LastEventIsAnchor` **保留在盘**(已测、可供 10 复用),
                 //     但**零接线点**;`AC-7a-20` 仍归 `TD-persist-04`,**不得**声称已满足。
-                Func<bool> narrativeContext = null;
+                //
+                // 🔁 **2026-10-25 用户裁定「生产接线今日不为零,现在修」—— 本缝当日接通,上述
+                //    「回退 null / 生产不可用」的终态就此过期**(上段原文不删,留作闭环记录):
+                //    瞬时源 = `NoPendingMedicalActionQuery`(声明在本 `if` 之前,与本段 / 兜底 /
+                //    急救 Bind 三处共用同一实例)。**W5 证伪的形态不回归**:它读的是急救通道的
+                //    **内存 Armed 态**(瞬时),不是流内「曾出现过锚点」(累积)。
+                //    ⚠️ **接通的是「瞬时源可用」,不是锚点判定** —— 事件触发半边(锚点白名单
+                //    接线)仍归 `TD-persist-04` 动作 ①,`AC-7a-20` 的事件触发面**仍不得**声称已满足。
+                //
+                //    兜底接线(`AC-7a-20` 定时半边 · `TD-persist-05` 动作④):闭包 =
+                //    `Checkpoint(台账 NextWritableSeq)` —— 「下一个可写槽位」的单一出处
+                //    (只进不退由 `EnsureWritable` 把守;高水位在 worker 写成功后推,
+                //    异步窗口内重复触发只会重写同一槽位,15 min 间隔下不构成实际路径)。
+                //    try/catch 与 `BootRoot` 退出钩子同款纪律:本闭包在 tick 边沿上跑,
+                //    未兜的异常会杀死整个 `Update` 帧 ⇒ 降级为 LogError,下一 interval 重试
+                //    (写失败本体已在 worker 内兜住,这里兜的是组版 / 门的编程错误)。
+                checkpointFallback = new CheckpointFallback(
+                    () =>
+                    {
+                        try
+                        {
+                            saveService.Checkpoint(new SaveSlot(saveService.Ledger.NextWritableSeq));
+                        }
+                        catch (Exception e)
+                        {
+                            UnityEngine.Debug.LogError(
+                                "[7a][AC-7a-20] 定时兜底 checkpoint 抛出(下一 interval 重试,不杀帧):" + e);
+                        }
+                    },
+                    narrativeContext);
 
                 saveService = new SaveService(
                     saveBasePath,
@@ -733,6 +775,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             var emergencyChannelDriver = new EmergencyChannelDriver(
                 emergencyChannel, emergencyManual, () => tickDriver.CurrentTick,
                 onIdleGate: visible => emergencyCandidates.SetVisible(visible));
+
+            // 瞬时源 Bind(2026-10-25 生产接线轮):EmergencyChannelDriver 实现 IArmedState
+            // (ADR-013 Amendment A)⇒ 「无未决医疗动作」自此有真源。晚于 SaveService 构造段
+            // 是依赖序,故 NoPendingMedicalActionQuery 用「先构造、后 Bind」(未 Bind 期恒 false)。
+            narrativeContext.Bind(emergencyChannelDriver);
 
             // 方笺页种子库存(20 最小面 · C3-M3):**装配期一次** Grant 玩家 0 ——
             // 测试 authorId 可任意(测试自 Grant,见 prescription_page_host_test 注);
@@ -962,6 +1009,9 @@ namespace DaYiJingCheng.Gameplay.Boot
                                                patientCueDriver, behaviorDirector,
                                                audioTierDriver, telemetryKnobs,
                                                clinicRoomMatching, saveService,
+                                               // 2026-10-25 生产接线轮:兜底调度器与 SaveService 同源装配
+                                               // (闭包与瞬时源见上;saveBasePath 为 null 时两者同 null)。
+                                               checkpointFallback, narrativeContext,
                                                // 🔁 2026-10-24 `TD-epic-01-f` 断点①的解药:
                                                //   把「当前产物 ConfigVersion」的真值来源喂给 51,
                                                //   使 `ConfigVersionCheck` 在生产侧**有构造路径**。

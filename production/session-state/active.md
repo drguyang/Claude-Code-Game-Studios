@@ -11062,3 +11062,49 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
   TD-persist-05 加 ⑤ blocked 面收窄注(契约已裁,剩实现轮;判定维持无载体禁借绿)。
 - **下一步候选**:④ 实现轮(接口 + 兜底半边 + stub 夹具)—— 未开工,待用户指令;
   ② 改动未 commit。
+
+<!-- ═══ 提交完成(2026-10-25 09:2x UTC)═══ -->
+- **TD-persist-05 ② + ④ 裁定登记已提交**:`5dc9369`(11 文件 +551;含证据件 / 债册 / EPIC / 门 / 夹具 / asmdef)
+- **未 push**;下一步候选 = ④ 实现轮(接口 + 兜底半边 + stub 夹具),待用户指令
+
+<!-- ═══ ④ 实现轮收口(2026-10-25 09:3x UTC)═══ -->
+## ④ 实现轮终态(TD-persist-05 动作④ / TD-persist-04 ① 实现面)
+
+- **接口**:`Sim.Contracts/INarrativeContextQuery.cs`(`InNarrativeContext()` 瞬时求值 +
+  `FuncNarrativeContextQuery` 适配器,`NeverIn` ≠ null 两态分家);**是否第九抽象点未裁不代裁**
+- **兜底**:`Sim.Codec/CheckpointFallback.cs`(顺延语义:到期不安全不清零下一 tick 重查;
+  `DefaultIntervalTicks = 18000`);调度策略非存档入口;驱动 = sim tick
+- **换缝**:SaveService / SaveSlotLedger / CompositionRoot(`null` fail-closed 维持)+
+  测试实参平移 28 处 + folded_predicate 签名钉子更新(ps[3] → INarrativeContextQuery)
+- **首验**:155 组唯一红 = 签名钉子(预期),更新后 44/44 绿
+- **证伪**:MF1–MF7 七变异全红零假绿;CheckpointFallback.cs SHA-256 `f0fd2641…` 7 次逐字节还原
+- **回归**:`4978/4943/0/35`(td10 · 09:31 UTC · 5dc9369 工作树;基线 4971/4936/0/35 @ td09 · 09:12 · 19626d5;
+  等式 4978−4971=7 = CheckpointFallbackTest 7 条 ✓ 零回归)
+- **落盘**:债册 TD-persist-05 结案块 + **索引翻 closed(二十六订:closed 30 / open 71 / 未闭 72 /
+  persistence-service 1)** + TD-persist-04 实现轮注(接线仍 open + Boot 同一实例义务);
+  EPIC 20 行 ↳(半边兑现,行仍 PARTIAL,翻转计数 7 不变)+ 新现值块;
+  证据件 `production/qa/evidence/impl-td-persist-05-act4-2026-10-25.md`
+- **⚠️ 二十五订轮漏刷输出块**(代码块停二十四订读数)已随二十六订一并补刷并登记
+- **AC-7a-20 整条仍 PARTIAL**:事件触发半边(8/37/52 接线 + 出诊启动 Kind)归 TD-persist-04 ①(仍 open)
+- **未 commit / 未 push**(等用户指令)
+
+<!-- ═══ 生产接线轮(2026-10-25 10:xx UTC)═══ -->
+## 生产接线轮终态(用户裁定「生产接线今日不为零,现在修」)
+
+- **指令**:2026-10-25 用户推翻裁定丙「生产接线为零 = 有意终态」,命令当日接通生产装配
+- **瞬时源实装**:`Gameplay.Boot/NoPendingMedicalActionQuery.cs`(`IArmedState.IsArmed` 取反;
+  Bind 晚绑定 + 未绑 fail-closed + 只许一次;生产实现 = `EmergencyChannelDriver`)
+- **兜底接通**:`CheckpointFallback.OnTicks(long)` 整批推进(防帧率稀释)+ `CompositionRoot`
+  装配(闭包 = `Checkpoint(台账 NextWritableSeq)`,三处共用同一查询实例 = 「一个量」)+
+  `BootRoot` tick 边沿 `OnTicks(Δtick)` 驱动(halt 期不驱动)
+- **行为面变化**:`SaveOnExit` 真写 `save_exit.bin`;`Load` 门首次有真源(AC-7a-19 (c) 可判)
+- **首验**:w1 编译错(袋形参序)→ 修;w2 三红(全为夹具自身错)→ 修 + 翻转 save_composer_wiring
+  两条钉;w3 = 42/42 绿
+- **证伪**:MF8/MF9 + NG1–4 + WG1–2 八变异全红零假绿;三文件 SHA-256 逐字节还原
+- **落盘**:证据件 `production/qa/evidence/impl-persist-wiring-2026-10-25.md` +
+  债册 TD-persist-05 结案块边界 ①② 订正注 + TD-persist-04 追注 +
+  EPIC 新 ↳ 行(「生产接线兑现」,不混入翻转计数;复算 7 ✓)+ 新现值块
+- **缺口如实登记**:BootRoot 的 `OnTicks(Δtick)` 单行接线无独立反证(NOT-RUN);
+  事件触发半边仍归 TD-persist-04 动作 ①;瞬时源覆盖 = 急救 Armed 一类,其余语义落地时并入本查询
+- **回归:`4987/4952/0/35`(@ w-full · 09:52 UTC · 5dc9369 工作树;等式 4987−4978=9 ✓ 零回归)
+- **未 commit / 未 push**(等用户指令)

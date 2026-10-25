@@ -600,6 +600,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
             // 🔁 2026-10-25 TD-persist-05 动作①(AC-7a-07):10 → 12(末尾增
             //    `writeScheduler` —— 后台写盘调度器;`bufferPool` —— 缓冲池)。
             //    前十个位置**不变**,故下方逐位类型断言全部仍成立。
+            // 🔁 2026-10-25 TD-persist-04 ① 裁定轮(甲案):第四形参 `Func<bool>` →
+            //    `INarrativeContextQuery`(瞬时源具名接口,住 Sim.Contracts;
+            //    「一个量」在类型层成立)。位置不变,其余逐位断言不受影响。
             Assert.AreEqual(12, ps.Length,
                 "形参 = (basePath, codec, folded, narrativeContext, replaySink, foldedRowSink, " +
                 "compose, migrations, exitSaveRetryMillis, exitSaveFailureSink, " +
@@ -608,8 +611,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 "第三形参须是 IFoldedPredicate(住 Sim.Contracts)");
             Assert.IsTrue(ps[2].HasDefaultValue && ps[2].DefaultValue == null,
                 "折叠尚未进存档路径 ⇒ 形参可选(不注入 = null)");
-            Assert.AreEqual(typeof(Func<bool>), ps[3].ParameterType,
-                "第四形参须是 Func<bool>(叙事上下文钩子,一个量)");
+            Assert.AreEqual(typeof(INarrativeContextQuery), ps[3].ParameterType,
+                "第四形参须是 INarrativeContextQuery(叙事上下文瞬时源,一个量," +
+                "2026-10-25 裁定甲 —— 原 Func<bool>)");
             Assert.AreEqual(typeof(Action<IReadOnlyList<SimEvent>>), ps[4].ParameterType,
                 "第五形参须是 Action<IReadOnlyList<SimEvent>>(重放交出)");
             Assert.AreEqual(typeof(Action<byte[]>), ps[5].ParameterType,

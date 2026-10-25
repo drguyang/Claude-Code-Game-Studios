@@ -50,6 +50,8 @@
 | `17` | ~~**NOT_IMPLEMENTED**~~ → **IMPLEMENTED_TESTED** | `Sim.Codec/ExitSaveRetrier.cs`(限时重试,假时钟可注入)· `Sim.Codec/SaveIncompleteFlag.cs`(**纯命名+纯判据,零 I/O 写**)· `SaveService.SaveOnExit` 重试+置位/清位 · `BootRoot` 的 `Application.wantsToQuit` 注册/卸挂 | `PersistenceService/save_exit_retry_and_flag_test.cs` **23 条** | 证伪轮 **MC1…MC15 十五轮**,**23/23 测试全部至少转红一次**;⚠️ **测试抓到一处真缺陷**(`ExitSaveRetrier` 成功分支未清 `lastFailure` ⇒ 成功被读成失败),修在**生产代码**;⚠️ 三处缺口如实登记:退出钩子注册面无自动化(PlayMode 面)· 日志文本无自动化 · **`BootRoot._sessionWasIncomplete` 零消费者**(提示归 42 / 7b) |
 | `19` | **IMPLEMENTED_TESTED** | `SaveSlotLedger.cs:93-137` 等 | `save_slot_contract_test.cs` 9 条 | ✅ 已补登记 |
 | `20` | PARTIAL | `CompositionRoot.cs:1030/1080` 判据函数 | `composition_root_test.cs:194-254` | 触发方/兜底 0,裁定丙终态 |
+| ↳ 🔁 **2026-10-25 兜底半边已兑现(行状态仍 PARTIAL —— 事件触发半边未动)** | **兜底半边 = IMPLEMENTED_TESTED** | `Sim.Contracts/INarrativeContextQuery.cs`(具名接口,裁定甲)+ `Sim.Codec/CheckpointFallback.cs`(顺延语义 + `DefaultIntervalTicks = 18000`,OQ-7a-5 已裁值)+ 三处换缝(`SaveService` / `SaveSlotLedger` / `CompositionRoot`,`null` fail-closed 维持) | `PersistenceService/checkpoint_fallback_test.cs` **7 条** | 证伪轮 **MF1…MF7 七轮全红、零假绿**(SHA-256 逐字节还原);回归 `4978/4943/0/35`(`td10` · `09:31 UTC` · `5dc9369` 工作树,等式 `4978−4971=7` ✓);⚠️ **生产接线今日为零 = 有意终态**(裁定丙)⇒ **`AC-7a-20` 整条仍 PARTIAL**:事件触发半边(8/37/52 锚点接线)归 `TD-persist-04` 动作 ①;原件 = `production/qa/evidence/impl-td-persist-05-act4-2026-10-25.md` |
+| ↳ 🔁 **2026-10-25 生产接线兑现(行状态仍 PARTIAL —— 事件触发半边未动)** | **瞬时源 + 定时兜底生产装配 = IMPLEMENTED_TESTED** | `Gameplay.Boot/NoPendingMedicalActionQuery.cs`(瞬时源实装:`IArmedState.IsArmed` 取反 —— W5 要求的「独立于流的内存态」;Bind 晚绑定 + 未绑 fail-closed + 只许一次)+ `CheckpointFallback.OnTicks(long)`(整批推进,防帧率稀释)+ `CompositionRoot` 装配(兜底闭包 = `Checkpoint(台账 NextWritableSeq)`;三处共用同一查询实例 —— 「一个量」义务兑现)+ `BootRoot` tick 边沿 `OnTicks(Δtick)` 驱动 | `checkpoint_fallback_test` **10 条**(+3)+ `no_pending_medical_action_query_test` **5 条** + `composition_root_test`(+1,含「一个量」反射同实例钉) | 证伪轮 **MF8/MF9 + NG1–4 + WG1–2 八轮全红、零假绿**(三文件 SHA-256 逐字节还原);⚠️ 上行「生产接线今日为零 = 有意终态(裁定丙)」**就此过期**(原文不删);⚠️ **SaveOnExit 自此真写 `save_exit.bin`**;**`AC-7a-20` 仍 PARTIAL**:事件触发半边(8/37/52 锚点接线)归 `TD-persist-04` 动作 ①;原件 = `production/qa/evidence/impl-persist-wiring-2026-10-25.md` |
 
 **分布**:`IMPLEMENTED_TESTED` **4** · `PARTIAL` **8** · `NOT_IMPLEMENTED` **1**。
 
@@ -106,6 +108,34 @@
 > ⚠️ **载体裁定记录**:用户 2026-10-25 裁「修 ②」时明认 `RunAll` 强制点前提已变;
 > 原 blocked 行(`CI 扫描归 TD-ci-01`)原文不删,以本注与债册 ② 兑现注为准。
 > 原件 = `production/qa/evidence/impl-td-persist-05-act2-2026-10-25.md`。
+
+> 🔁 **2026-10-25 `TD-persist-05` 动作 ④(兜底半边)兑现轮后现值(原文不删)** —— **`20` 的兜底半边兑现,整条仍 `PARTIAL`**:
+> `IMPLEMENTED_TESTED` **12**(计数不动 —— `20` 行状态未翻)· `PARTIAL` **1**(`20`,仅剩事件触发半边)·
+> `NOT_IMPLEMENTED` **0**。
+> **复算命令**:`grep -c "↳ 🔁 \*\*2026-10-25 已兑现\*\*" production/epics/persistence-service/EPIC.md`
+> ⇒ **7**(本轮 `20` 的 ↳ 行**刻意不含**「已兑现」四字标记 —— 它是半边兑现,行状态仍 PARTIAL,
+> 不得混入翻转计数);`17` 行是就地改判 ⇒ 5 + 7 = **12**;`1 + 0 = 1`,加 12 = **13** 条 ✓。
+> ⚠️ **`20` 现在的 PARTIAL 语义已收窄**:兜底半边(`CheckpointFallback` + 瞬时源接口)
+> 已有载体、有证伪;剩余面 = **事件触发半边**(8 / 37 / 52 三条锚点接线 + 出诊启动 Kind)
+> ⇒ 归 `TD-persist-04` 动作 ①(该债仍 `open`,债册二十六订后 `persistence-service` 名下唯一未闭条)。
+
+> 🔁 **2026-10-25 生产接线轮后现值(原文不删)** —— **瞬时源实装 + 兜底/退出保存生产装配接通**
+> (用户裁定「生产接线今日不为零,现在修」;上块「生产接线今日为零 = 有意终态」就此过期):
+> `IMPLEMENTED_TESTED` **12**(计数不动 —— `20` 行状态未翻)· `PARTIAL` **1**(`20`,仅剩事件触发半边)·
+> `NOT_IMPLEMENTED` **0**。
+> **复算命令**:`grep -c "↳ 🔁 \*\*2026-10-25 已兑现\*\*" production/epics/persistence-service/EPIC.md`
+> ⇒ **7**(本轮新 ↳ 行用「生产接线兑现」措辞,**刻意不含**「已兑现」四字 —— 行状态仍 PARTIAL,
+> 不混入翻转计数);`17` 行是就地改判 ⇒ 5 + 7 = **12**;`1 + 0 = 1`,加 12 = **13** 条 ✓。
+> ⚠️ **行为面变化三条**:① `SaveOnExit` 自此**真写** `save_exit.bin`(接线前必抛被 try/catch 兜成
+> 「置位 + 日志」);② `Load` 门首次有真源(`AC-7a-19 (c)` 安全门可判);③ 兜底闭包在 tick 边沿跑,
+> try/catch 只防杀帧不吞错误(LogError 可见)。
+> ⚠️ **BootRoot 的 `OnTicks(Δtick)` 单行接线无独立反证**(MonoBehaviour.Update 不可直测),
+> 如实登记 NOT-RUN,不借 `OnTicks` 类级夹具的绿。
+> 原件 = `production/qa/evidence/impl-persist-wiring-2026-10-25.md`。
+> ⚠️ **Boot 未来接线义务**:`CheckpointFallback` 与 `SaveService` 须注入**同一**
+> `INarrativeContextQuery` 实例(规则十四「一个量」)—— 归 Boot 接线轮(10 落地时)。
+> 原件 = `production/qa/evidence/impl-td-persist-05-act4-2026-10-25.md`。
+> **债册侧:`TD-persist-05` 索引行已翻 `closed`(二十六订)—— 本 epic 的四条 PARTIAL 兑现债全部结清。**
 
 ### 两条会改变判读的交叉结论
 

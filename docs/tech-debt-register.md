@@ -352,7 +352,7 @@
 | `TD-persist-02` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-03` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-04` | `persistence-service` | open | **Y** | R1 |
-| `TD-persist-05` | `persistence-service` | open | **Y** | R1 |
+| `TD-persist-05` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-06` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-07` | `persistence-service` | closed | **Y** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
@@ -432,7 +432,23 @@ PYEVAL
 ~~**当前预期输出(2026-10-25 二十二订实测 · `TD-persist-05` / `06` 入表 —— 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 二十三订实测 · `TD-persist-07` 入表(立债即 closed)—— 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
 ~~**当前预期输出(2026-10-25 二十四订实测 · `TD-persist-05` 部分兑现(③④ 兑现,①②⑤ blocked)—— 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
-**当前预期输出(2026-10-25 二十五订实测 · `TD-persist-06` 结案(`AC-7a-17` 兑现)—— 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
+~~**当前预期输出(2026-10-25 二十五订实测 · `TD-persist-06` 结案(`AC-7a-17` 兑现)—— 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:~~
+**当前预期输出(2026-10-25 二十六订实测 · `TD-persist-05` 结案(四条具名缺口 + 附全数兑现)—— 二十五订 / 二十四订 / 二十三订 / 二十二订 / 二十一订 / 二十订 / 十九订 / 十八订 / 十七订 / 十六订 / 十五订 / 十四订 / 十二订 / 十一订 / 十订 / 九订 / 六订 / 五订版原文均留档于下)**:
+> 🔁 **二十六订(`TD-persist-05` 结案 · 2026-10-25 · 兜底半边兑现)** —— 变化 =
+> **`closed 29 → 30`**(+1)· **`open 72 → 71`**(−1)· **`未闭 P0 面` 73 → 72**(−1)·
+> **`persistence-service 2 → 1`**(−1)· **`条目 108` 不动** · `Y 97` 不动。
+> 单一变化源:`TD-persist-05` 索引行 `open → closed` —— 该债的**全部债务面**(四条具名缺口
+> ① `AC-7a-07` / ② `AC-7a-09` / ③ `AC-7a-14` / ④ `AC-7a-16` + 附 `AC-7a-20` 定时兜底半边)
+> 已分四轮全数兑现(① 归 06 同批 · ② 动作②轮 · ③④ 首轮 · 附本轮),结案块见其正文。
+> 原件 = `production/qa/evidence/impl-td-persist-05-act4-2026-10-25.md`(本轮)/
+> `impl-td-persist-05-act2-2026-10-25.md` / `impl-td-persist-05-act1-2026-10-25.md` /
+> `impl-td-persist-05-2026-10-25.md`(前三轮)。
+> ⚠️ **二十五订轮漏刷输出块,本订一并补刷**:二十五订只翻了标题与叙事块,
+> 下方 ```text 代码块与「已刷新到」段仍停在二十四订读数(`open 73 / closed 28 / 未闭 74`)——
+> 本订把它们刷到二十六订实测(即上文脚本实跑输出)。漏刷经二十六订复算时发现,如实登记。
+> ⚠️ **本条的 `closed` 不覆盖 `AC-7a-20` 全条**:兜底半边已兑现,**事件触发半边**
+> (8 / 37 / 52 三条锚点接线 + 出诊启动 Kind)归 `TD-persist-04` 动作 ①,该条仍 `open`。
+> `persistence-service` 名下剩余 1 条未闭 = `TD-persist-04`,勿读成「7a 无债」。
 > 🔁 **二十五订(`TD-persist-06` 结案 · 2026-10-25 · `AC-7a-17` 兑现)** —— 变化 =
 > **`closed 28 → 29`**(+1)· **`open 73 → 72`**(−1)· **`未闭 P0 面` 74 → 73**(−1)·
 > **`persistence-service 3 → 2`**(−1)· **`条目 108` 不动**。
@@ -502,16 +518,22 @@ PYEVAL
 > 十六订补结)。
 
 ```text
-条目 108 | 状态 {'open': 73, 'partial': 6, 'closed': 28, '**done**(2026-10-21)': 1} | P0 面 {'Y': 97, 'N': 10, '~~**Y**~~': 1}
-未闭 P0 面 = 74 （已闭但曾标 P0 面的 23 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 74 条,分布在 12/31 个 epic
+条目 108 | 状态 {'open': 71, 'partial': 6, 'closed': 30, '**done**(2026-10-21)': 1} | P0 面 {'Y': 97, 'N': 10, '~~**Y**~~': 1}
+未闭 P0 面 = 72 （已闭但曾标 P0 面的 25 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 72 条,分布在 12/31 个 epic
     medical-consequences: 20   audio-system: 20          clinic-machine: 17
-    telemetry-analytics: 5     persistence-service: 3    skeuomorphic-ui: 2
+    telemetry-analytics: 5     persistence-service: 1    skeuomorphic-ui: 2
     disease-simulation: 2      patient-ai: 1              player-controller: 1
     enemy-ai: 1                item-database: 1           modular-building: 1
 ```
 
-> 🔁 **2026-10-25 收口轮:本输出块已刷新到二十四订(`TD-persist-05` 部分兑现)**。
+> 🔁 **2026-10-25 收口轮:本输出块已刷新到二十六订(`TD-persist-05` 结案)**。
+> 相对二十五订叙事块的 `closed 29 / open 72 / 未闭 73 / persistence-service 2`,变化 =
+> **`closed 29 → 30`**(+1)· **`open 72 → 71`**(−1)· **`未闭 P0 面` 73 → 72**(−1)·
+> **`persistence-service 2 → 1`**(−1)· `条目 108` / `Y 97` / `12 epic` 不动。
+> 单一变化源:`TD-persist-05` 索引行 `open → closed`(本轮兑现,结案块见其正文)。
+> ⚠️ **本块同时补刷二十五订的漏刷**:二十五订只翻了标题与叙事块,本块曾停在
+> 二十四订读数(`open 73 / closed 28 / 未闭 74`)—— 已随本订一并刷新(见上方二十六订注)。
 > 相对二十三订的 `条目 108 / open 73 / closed 28 / 未闭 74 / 12 epic`,**五位全部不动** ——
 > ⚠️ **这不是「本轮什么都没发生」**:发生的是 `TD-persist-05` 的 **③ `AC-7a-14` 迁移链** 与
 > **④ `AC-7a-16` authority 正交** 两条**已兑现**,而该债的索引行状态**仍是 `open`**
@@ -2003,6 +2025,29 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > **⚠️ 前置解除 ≠ 动作 ① 完成**:实现义务仍在 —— 接口落地(`Sim.Contracts`)·
 > 8 / 37 / 52 三条锚点接线 · 兜底半边(`TD-persist-05` ④,其契约前置同批解除、
 > blocked 面收窄为实现轮)。本条维持 `open`,索引不翻转。
+>
+> **🔁 2026-10-25 动作 ① 实现轮部分兑现(接口 + 兜底落地;动作 ① 仍 open)**
+> 上述三项实现义务中,**前两项之一与第三项已落**:
+> ① **接口落地 ✅** = `Sim.Contracts/INarrativeContextQuery.cs`(具名接口 +
+>   `FuncNarrativeContextQuery` 适配器);`SaveService` / `SaveSlotLedger` /
+>   `CompositionRoot` 缝已从 `Func<bool>` 换到该接口(`null` fail-closed 维持)。
+> ② **兜底半边 ✅** = `Sim.Codec/CheckpointFallback.cs`(顺延语义 + 18000 默认),
+>   证伪 7 变异全红,原件 `impl-td-persist-05-act4-2026-10-25.md`。
+> ③ **8 / 37 / 52 三条锚点接线仍 open**(各 epic 的实现义务,7a 不代做)+
+>   **出诊启动 Kind 登记仍 open**(归 52,承解除动作 ②)。
+> ⚠️ **新增一条接线义务(登记给 Boot 接线轮)**:Boot 构造 `CheckpointFallback` 时,
+> `context` 实参**必须与 `SaveService` 同一 `INarrativeContextQuery` 实例**
+> (规则十四「一个量」—— 两个实例 = 读档门与兜底门对同一时刻给出不同回答)。
+> **本条维持 `open`,索引不翻转** —— 动作 ① 的「接线」义务未动。
+>
+> 🔁 **2026-10-25 当日追注(用户裁定「生产接线今日不为零,现在修」)—— 上块登记给
+> 「Boot 接线轮」的两条义务已兑现**:① **瞬时源生产实装** =
+> `Gameplay.Boot/NoPendingMedicalActionQuery`(读 `IArmedState.IsArmed` 取反 —— W5 要求的
+> 「独立于流的内存态」;`CompositionRoot` 急救装配段 `Bind`,未绑期 fail-closed);
+> ② **同一实例义务兑现**(三处共用同一 `INarrativeContextQuery`,装配级反射同实例钉,
+> 证伪 WG2 红 1)。**动作 ① 的主体仍 open 不变**:8 / 37 / 52 三条锚点接线 +
+> 出诊启动 Kind 登记(各 epic 义务)+ 「出诊流程进行中」语义待其落地时**并入本查询**
+> (不得另立第二查询)。原件 = `production/qa/evidence/impl-persist-wiring-2026-10-25.md`。
 
 ---
 
@@ -2076,6 +2121,46 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > (接口落地 + 7a 侧定时器 + stub 注入夹具即可测,不依赖 10 先落地;
 > 生产接线仍须等 10,`narrativeContext = null` ⇒ 兜底 fail-closed 不触发)。
 > ⚠️ 本注只登记裁定,**不把 ⑤ 记为已解除** —— 实现未落,判定维持 **无载体**,禁借绿。
+>
+> **🔁 2026-10-25 动作 ④(兜底半边)兑现轮 —— 本债全部债务面就此结清,索引行翻 `closed`(二十六订)**
+> - **兑现落点**:`Sim.Contracts/INarrativeContextQuery.cs`(**具名接口 + `FuncNarrativeContextQuery`
+>   适配器;`NeverIn` ≠ null —— 「可用但拒绝」的运行态与「配置错误」的装配态刻意分家**)+
+>   `Sim.Codec/CheckpointFallback.cs`(**调度策略非存档入口**:触发调用方闭包,不认识
+>   `SaveService` / `SaveSlot`;驱动 = sim tick;**顺延语义** = 到期不安全不清零、下一 tick 重查,
+>   保 GDD `:137`「崩溃损失 ≤ 一个间隔」恒成立)+ `SaveService` / `SaveSlotLedger` /
+>   `CompositionRoot` 三处换缝(`Func<bool>` → 具名接口,`null` 维持裁定丙)+
+>   测试实参平移 **28 处** + `folded_predicate_test` 签名钉子按 🔁 惯例更新
+>   (`ps[3]` → `typeof(INarrativeContextQuery)`,位置不变)。
+> - **夹具**:`PersistenceService/checkpoint_fallback_test.cs` **7 条**(恰触发 / 顺延 /
+>   从实触 tick 重计 / 永不安全 100 tick / 到期前不发 / 构造拒收 / 默认间隔 = 18000 字面断言)。
+> - **证伪轮 7 变异全红、零假绿**(MF1 删顺延 红 3 · MF2 顺延误作重置 红 2 · MF3 off-by-one 红 2 ·
+>   MF4 删清零 红 2 · MF5 删 null 拒收 红 1 · MF6 删 interval 拒收 红 1 · MF7 默认间隔漂移 红 2);
+>   `CheckpointFallback.cs` SHA-256 逐字节还原(`f0fd264107374d35…`,7 次一致)。
+> - **回归**:全量 EditMode **`4978 / 4943 / 0 / 35`**(`td10` · `2026-10-25T09:31 UTC` ·
+>   commit `5dc9369` 工作树,未提交;基线 `4971/4936/0/35` @ `td09` · `09:12 UTC` · `19626d5`)。
+>   等式 `4978 − 4971 = 7` = 恰好 `CheckpointFallbackTest` 7 条新增 ✓ **零回归**。
+> - **原件** = `production/qa/evidence/impl-td-persist-05-act4-2026-10-25.md`。
+> - **结案判据(逐条对账)**:① `AC-7a-07` ✅(归 06 同批兑现)· ② `AC-7a-09` ✅(动作②轮)·
+>   ③ `AC-7a-14` ✅ · ④ `AC-7a-16` ✅(首轮)· 附 `AC-7a-20` 定时兜底半边 ✅(本轮)——
+>   **债描述所列五项全部有载体、有证伪、有回归**。
+> - ⚠️ **结案边界(三条,禁借绿)**:
+>   ① **生产接线今日为零 = 有意终态**(裁定丙):Boot 不构造 `CheckpointFallback`;
+>   **`AC-7a-20` 整条仍 `PARTIAL`** —— 事件触发半边(8 / 37 / 52 三条锚点接线 + 出诊启动 Kind)
+>   归 `TD-persist-04` 动作 ①,该条仍 `open`。
+>   🔁 **2026-10-25 当日订正(原文不删)—— 上句「生产接线今日为零 = 有意终态」已被同日
+>   用户裁定「**生产接线今日不为零,现在修**」推翻,并于当日兑现**:瞬时源实装
+>   (`Gameplay.Boot/NoPendingMedicalActionQuery`,读 `IArmedState.IsArmed` 取反 —— W5 要求的
+>   「独立于流的内存态」;Bind 晚绑定 + 未绑 fail-closed)+ `CompositionRoot` 装配兜底
+>   (闭包 = `Checkpoint(台账 NextWritableSeq)`,三处共用同一查询实例 —— 本边界 ② 的
+>   「同一实例」义务同步兑现)+ `BootRoot` tick 边沿 `OnTicks(Δtick)` 驱动 +
+>   `SaveOnExit` 自此真写 `save_exit.bin`。**`AC-7a-20` 仍 `PARTIAL` 不变** —— 事件触发半边
+>   (8 / 37 / 52 锚点接线 + 出诊启动 Kind)仍归 `TD-persist-04` 动作 ①。
+>   原件 = `production/qa/evidence/impl-persist-wiring-2026-10-25.md`。
+>   ② **Boot 未来接线义务**:构造 `CheckpointFallback` 时 `context` 实参**必须与 `SaveService`
+>   同一 `INarrativeContextQuery` 实例**(规则十四「一个量」)—— 归 Boot 接线轮(10 落地时)。
+>   🔁 同日订正:**该义务已随同日接线兑现**(三处共用同一实例,装配级反射同实例钉 =
+>   `composition_root_test` 的「一个量」钉,证伪 WG2 红 1)。
+>   ③ **`INarrativeContextQuery` 是否计入 P0 抽象点编号(八 → 九)未裁**,不代裁。
 | **解除动作** | ① **`AC-7a-07`**:把 `WriteAtomic` 的调用面移出主线程(缓冲池 + 后台 worker),`IOException` 加 `WRITE_RETRY_DELAY` 退避;`Application.persistentDataPath` 主线程启动期缓存一次(GDD `:512-515`)。⚠️ 承 `TD-persist-03` 已定的**单列表**布局,不得借机改字节形状。<br>② **`AC-7a-09`**:符号扫描执行体 —— 与 `TD-ci-01` 的 CI 矩阵**同批落**(单独落 = 无强制点);在此之前不得把该 AC 记为「有载体」。<br>③ **`AC-7a-14`**:迁移链逐版本执行 + `WorldSeed` / 已发生事件逐位不变的夹具;`AC-7a-16` 的 authority 替身可同批(两者都测「同一份三流输入 ⇒ 字节形状不变」)。<br>④ **`AC-7a-20` 定时兜底半边**:与 `TD-persist-04` 动作 ① 的瞬时源**同批**(兜底触发点需要同一套「此刻是否安全」判据)。 |
 | **🔁 2026-10-25 兑现轮(原文不删,逐条加注)** | **用户裁定范围 = ④ 项 ③ + ④**(即上表「解除动作」的 ③ 与 ④ 中的 `AC-7a-16` 一支);`AC-7a-07` / `AC-7a-09` / `AC-7a-20` 半边**本轮不做**,理由逐条见下。原件 = `production/qa/evidence/impl-td-persist-05-2026-10-25.md`。<br>**③ `AC-7a-14` 迁移链 ⇒ ✅ 已兑现**:新增 `Sim.Codec/ISaveMigration.cs` + `SaveMigrationChain.cs`(逐版本查表 · **每级三条断言**:版本号须为 `v+1` / `WorldSeed` 逐位不变 / 事件正文末尾等长逐位不变)· `SaveService.Load` 的 `<` 分支从「刻意抛 `NotSupportedException`」改为**调链**(空链仍 fail-closed)· 新增 `StripChecksum`(链工作在「不含校验和」形态,最后由 `AddChecksum` 统一算一次)· 夹具 `save_migration_chain_test.cs` **12 条** + `save_slot_contract_test.cs` 2 条改写 + **1 条正面对照新增**。<br>⚠️ **本条不实现任何真实迁移** —— `SaveHeader.CurrentSaveVersion = 1` 且零 `v0` 写入者 ⇒ **不存在真实历史版本可迁**。造「假 v0 再迁它」测的是夹具的想象力,即自造断言顶替 AC 语义层的变体。本文件测的是**框架会不会放过坏迁移**。**真实脚本落点 = `CurrentSaveVersion` 首次升到 2 的那一轮。**<br>**④ `AC-7a-16` authority 正交 ⇒ ✅ 已兑现**:`save_authority_orthogonality_test.cs` **7 条**。⚠️ **本条兑现的是「从未存在的判据」,不是修缺陷** —— `Compose` 本来就没有 authority 形参。把它拆成四条**互相独立**的性质(A 参数集逐字不含 authority / B 无可变静态态 / C 两布局产出逐位一致 / D 计数器是实例字段),因为单断言「两布局一致」在 `Compose` 不认识 authority 时**恒真**、对变异零判别力。<br>**回归**:`4917 / 4882 / 0 / 35` @ `2026-10-25 04:21 UTC` · `td05-3` · `72bb234`(起跑 `td05-2` 逐位相同);新增 **20 条**(12 + 7 + 1),零回归。<br>**证伪轮 7 轮**:MA1/MA2/MA3(每级三条断言各一轮)· MB1/MB2/MB3(authority 四条性质各一轮)· MB4(断链 fail-closed)。**10 条测试至少转红一次,零假绿**;五文件 SHA-256 逐字节还原。<br>⚠️ **一条 NOT-RUN 如实登记**:`test_migrate_multiStep_runsEveryVersionInOrder`(「逐版本、按 `FromVersion` 而非注册序」)本轮**没有独立反证** —— MB4 的 `continue` 变异未使它转红。⇒ GDD 字面 `k → k+1 → … → N` 的「逐版本」这一面**仍无独立反证**,不得借 MB4 的绿。 |
 | **🔁 blocked 两行登记(2026-10-25 用户裁定「如实标 blocked」)** | ② **`AC-7a-09` ⇒ blocked-by `TD-ci-01`**:ADR-012 已裁「载体 = CI 门」,而 CI 矩阵本身 `NOT-RUN`。单独落扫描器 = **没有东西会跑它** ⇒ 记为「有载体」即借绿。**本轮不写执行体。**<br>⑤ **`AC-7a-20` 定时兜底半边 ⇒ blocked-by `TD-persist-04` 动作 ①(瞬时源)**:兜底要回答「此刻是否安全」= 04 动作 ① 尚未裁的瞬时源。且生产装配 `narrativeContext = null`(裁定丙)⇒ 兜底调 `Checkpoint` **必抛** ⇒ 写了只能测「抛了」。**本轮不写执行体。**<br>⚠️ **未写的不是「已完成」**:两条判定维持 **无载体 / PARTIAL**,**不因本轮而改变**。本轮只把它们从「笼统归 05」改为「具名 blocked + 具名阻塞方」。 |

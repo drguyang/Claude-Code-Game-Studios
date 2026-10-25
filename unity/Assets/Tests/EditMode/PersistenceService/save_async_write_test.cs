@@ -71,7 +71,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             return new SaveService(
                 _testDir,
                 new SaveCodec(),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
                 compose: compose ?? (_ => MinimalUnsigned()),
@@ -99,7 +99,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var svc = new SaveService(
                 _testDir,
                 new SaveCodec(),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
                 compose: _ => MinimalUnsigned(),
@@ -129,7 +129,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var svc = new SaveService(
                 _testDir,
                 new SaveCodec(),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
                 compose: _ => MinimalUnsigned(),
@@ -159,7 +159,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var svc = new SaveService(
                 _testDir,
                 new SaveCodec(),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
                 compose: _ => MinimalUnsigned(),
@@ -208,7 +208,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var svc = new SaveService(
                 _testDir,
                 new SaveCodec(),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
                 compose: _ =>
@@ -294,7 +294,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var svc = new SaveService(
                 _testDir,
                 new SaveCodec(),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
                 compose: _ => MinimalUnsigned(),
@@ -330,7 +330,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var svc = new SaveService(
                 basePath,
                 new SaveCodec(),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
                 compose: _ => MinimalUnsigned(),
@@ -483,7 +483,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var svc = new SaveService(
                 _testDir,
                 new SaveCodec(),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
                 compose: _ => MinimalUnsigned(),
@@ -524,7 +524,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var svc = new SaveService(
                 _testDir,
                 new SaveCodec(),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
                 compose: _ => MinimalUnsigned(),
@@ -551,7 +551,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var svc = new SaveService(
                 _testDir,
                 new SaveCodec(),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
                 compose: _ => MinimalUnsigned(),
@@ -571,7 +571,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var svc = new SaveService(
                 _testDir,
                 new SaveCodec(),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
                 compose: _ => MinimalUnsigned(),
@@ -644,7 +644,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var svc = new SaveService(
                 _testDir,
                 new SaveCodec(),
-                narrativeContext: () => true,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
                 compose: _ => MinimalUnsigned(),

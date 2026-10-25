@@ -461,25 +461,31 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 Assert.IsNotNull(bag.SaveService.FoldedPredicate,
                     "折叠谓词须已注入(位置半 (ii) 的另一半:装配根真的接了)");
 
-                // 🔁 **2026-10-25 用户裁定「丙」—— 本条回退为 fail-closed 判据**。
+                // 🔁 **2026-10-25 生产接线轮(用户裁定「生产接线今日不为零,现在修」)——
+                //    本条从 ④ 的 fail-closed 判据翻转为「已接真源」判据**。
                 //
                 // 演变轨迹(原文不删,留作闭环记录):
                 //   原版 `HasNarrativeContextSource == false`(「今日刻意未接」)
                 //   → 评审轮按前一裁定翻转为 `IsTrue`(接 `HasNarrativeAnchorEvent`)
                 //   → 暴露语义违背(累积 vs 瞬时,`AC-7a-19 (c)` 安全门恒开)
-                //   → **本版**:接线回退 `null`,断言翻回 `false`,并保留**行为**判据。
+                //   → ④ 接线回退 `null`,断言翻回 `false`
+                //   → **⑤ 本版**:瞬时源 = `NoPendingMedicalActionQuery`(急救通道 Armed 态取反
+                //     —— **瞬时内存量**,③ 的累积形态不回归),装配根 Bind,断言翻回「已注入」。
                 //
-                // ⚠️ 原措辞「不得因测试要绿而填一个恒真委托」**仍然成立且更强** ——
-                //    裁定丙等于把这句话推到极致:宁可不接,也不接一个语义不对的判据。
-                //    真正的瞬时源 = 「有没有未决医疗动作」的内存态,归 10 急救动作。
-                Assert.IsFalse(bag.SaveService.Ledger.HasNarrativeContextSource,
-                    "裁定丙:钩子回退 null —— 瞬时源归 10,落地前不得接线");
+                // ⚠️ 原措辞「不得因测试要绿而填一个恒真委托」**仍然成立** —— 本查询读的是
+                //    Armed 态,不是恒真;Armed 期它照拒(save-scum 通道不开)。
+                Assert.IsTrue(bag.SaveService.Ledger.HasNarrativeContextSource,
+                    "生产接线轮:瞬时源已接通(⑤),不得再回到 null fail-closed");
 
-                // 行为判据(不止读台账字段):钩子为 null ⇒ Checkpoint 必抛。
+                // 行为判据(不止读台账字段):narrativeContext 门已过 ⇒ 失败点前移到
+                // compose 内的 ConfigVersion 派生(E-13;本装配 dataProvider = null)。
+                // 生产(BootRoot)传真 provider ⇒ 不抛 E-13。
                 var exEmpty = Assert.Throws<InvalidOperationException>(
                     () => bag.SaveService.Checkpoint(new SaveSlot(0)),
-                    "钩子为 null ⇒ 必须 fail-closed(AC-7a-19 (c) 的安全属性)");
-                StringAssert.Contains("narrativeContext", exEmpty.Message);
+                    "无 provider 装配里 Checkpoint 走到 compose ⇒ E-13(门已过)");
+                StringAssert.Contains("ConfigVersion", exEmpty.Message);
+                StringAssert.DoesNotContain("narrativeContext", exEmpty.Message,
+                    "失败若仍是 narrativeContext 拒绝 = 瞬时源没接上(⑤ 被破坏)");
             }
             finally
             {
@@ -491,16 +497,21 @@ namespace DaYiJingCheng.Tests.PersistenceService
         }
 
         [Test]
-        public void test_assemble_saveService_checkpointFailsClosed_beforeAnyAnchor()
+        public void test_assemble_saveService_transientGatePasses_atAssemblyCompletion()
         {
-            // 🔁 **2026-10-25 用户裁定「丙」—— 名字与注释回退**。
+            // 🔁 **2026-10-25 生产接线轮 —— 本条从 fail-closed 翻转为「瞬时门在装配完成时放行」**。
             //   演变:原名 `..._withoutNarrativeContext`(钩子 null ⇒ 抛)
             //   → 评审轮改为 `..._whenNoAnchorEvent`(钩子已接,空流 ⇒ false ⇒ 抛)
-            //   → **本版**:裁定丙回退接线,判据回到「钩子 null ⇒ 抛」,
-            //     但名字取 `beforeAnyAnchor` —— 两条路径(钩子 null / 空流无锚点)在
-            //     装配刚完成时**结果同为 fail-closed**,本测钉的是**结果**,不锁死成因。
-            //   ⇒ 将来 10 落地、钩子真接上后,只要「装配刚完成 ⇒ 无未决动作」仍成立,
-            //     本条**无需再改**。恒真委托会让本条转红。
+            //   → 裁定丙回退接线,判据回到「钩子 null ⇒ 抛」(`beforeAnyAnchor`)
+            //   → **⑤ 本版**:瞬时源 = `NoPendingMedicalActionQuery`(Armed 取反),
+            //     装配完成 ⇒ 通道 Idle ⇒ 「此刻无未决医疗动作」= true ⇒ 门放行。
+            //     该测先前自记的预言——「将来 10 落地、钩子真接上后,只要『装配刚完成 ⇒
+            //     无未决动作』仍成立,本条无需再改」——其**判据方向**由本版兑现:
+            //     钉的是「装配刚完成 ⇒ 瞬时门放行」,不锁死成因。
+            //   ⇒ 恒真委托照样让本条失去判别力?**不** —— 恒真委托与 Armed 真源在
+            //     「装配刚完成」这一点上同答 true;区分两者的钉在
+            //     `NoPendingMedicalActionQueryTest`(瞬时性 / 极性)与
+            //     `composition_root_test` 的「一个量」反射钉,不在本条。
             string dir = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), "dyjq_s19_1_failclosed_" + Guid.NewGuid().ToString("N"));
 
@@ -511,16 +522,21 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
                 // 前提:装配完流是空的
                 Assert.AreEqual(0, bag.Stream.Events.Count, "前提:新装配的事件流为空");
+                Assert.IsTrue(bag.SaveService.Ledger.HasNarrativeContextSource,
+                    "前提:瞬时源已接通(⑤)");
 
+                // 瞬时门放行(Idle)⇒ 失败点前移到 compose 内的 ConfigVersion 派生
+                // (E-13;本装配 dataProvider = null;生产传真 provider ⇒ 不抛)。
                 var ex = Assert.Throws<InvalidOperationException>(
                     () => bag.SaveService.Checkpoint(new SaveSlot(0)),
-                    "装配刚完成 ⇒ 无叙事上下文 ⇒ Checkpoint 须 fail-closed");
-                StringAssert.Contains("narrativeContext", ex.Message);
+                    "装配刚完成 ⇒ 无未决医疗动作 ⇒ narrativeContext 门放行(失败点在数据派生)");
+                StringAssert.Contains("ConfigVersion", ex.Message);
+                StringAssert.DoesNotContain("narrativeContext", ex.Message,
+                    "失败若仍是 narrativeContext 拒绝 = 瞬时源没接上(⑤ 被破坏)");
 
-                // ⚠️ `SaveOnExit` 的语义**独立于本测**:它只要求钩子已注入(null 时亦抛,
-                //    见 `SaveService.cs` 的 `RequireNarrativeContext` 调用),但**不评估钩子的值**。
-                //    ⇒ 此处不得断言它「照写」(钩子为 null 时它同样抛),也不得断言它「同门」
-                //      (值门与它无关)。详见 `save_slot_contract_test.cs:715-733`。
+                // ⚠️ `SaveOnExit` 的语义**独立于本测**:它只要求钩子已注入,**不评估钩子的值**。
+                //    ⑤ 后钩子非 null ⇒ 退出保存真写 `save_exit.bin`(独立文件名,不占玩家槽)。
+                //    详见 `save_slot_contract_test.cs:715-733`。
             }
             finally
             {

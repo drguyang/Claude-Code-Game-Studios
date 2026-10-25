@@ -258,7 +258,8 @@ namespace DaYiJingCheng.Tests.Boot
         [Test]
         public void test_assemble_savePath_narrativeContextStaysFailClosed()
         {
-            // 🔁 **2026-10-25 用户裁定「丙」—— 本条从 `..._notNull` 翻转回 fail-closed 判据**。
+            // 🔁 **2026-10-25 生产接线轮(用户裁定「生产接线今日不为零,现在修」)——
+            //    本条从 ④ 的 fail-closed 判据翻转为「已接真源」判据**。
             //
             // 演变轨迹(原文不删,留作闭环记录):
             //   ① 原版:`test_assemble_savePath_...` 断言 `HasNarrativeContextSource == false`
@@ -266,11 +267,10 @@ namespace DaYiJingCheng.Tests.Boot
             //   ② 评审轮按用户前一裁定翻转为 `IsTrue`(断言已注入 `HasNarrativeAnchorEvent`)。
             //   ③ 字面兑现后暴露**语义违背**:GDD 规则十四要的是**瞬时**量,而流里「曾出现过锚点」
             //      是**累积**量 ⇒ 首次锚点后恒 true ⇒ `AC-7a-19 (c)` 的安全门恒开(fail-open)。
-            //   ④ **本版**:接线回退 `null`,断言随之翻回 `false` —— 但判据比 ① **更强**:
-            //      不只看台账字段,还**行为验证**「Checkpoint 在装配后必抛」。
-            //
-            // ⚠️ 本条**不是**「测试为了绿而放松」:它钉的是**安全属性**(fail-closed),
-            //    而 ② 钉的是**可用性**(已注入)。裁定丙明确选择「不可用 > 不安全」。
+            //   ④ **前版**:接线回退 `null`,断言随之翻回 `false`,并行为验证「Checkpoint 必抛」。
+            //   ⑤ **本版**:用户裁定接线当日接通 —— 瞬时源 = `NoPendingMedicalActionQuery`
+            //      (急救通道 Armed 态取反;**瞬时内存量,不是流内累积钩子**,③ 的形态不回归);
+            //      断言翻转回「已注入 + 已 Bind」,并钉「同一实例」与「兜底在袋」。
             string dir = Path.Combine(Path.GetTempPath(), "s19_w5_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(dir);
             try
@@ -279,20 +279,59 @@ namespace DaYiJingCheng.Tests.Boot
 
                 Assert.NotNull(bag.SaveService, "带 saveBasePath ⇒ SaveService 须在袋内");
 
-                // ① 台账:钩子**未**注入(裁定丙的显式状态,非遗漏)
-                Assert.IsFalse(bag.SaveService.Ledger.HasNarrativeContextSource,
-                    "裁定丙:叙事上下文钩子回退 null —— 真正的瞬时源归 10,在它落地前不得接线");
+                // ① 台账:瞬时源**已**注入且**已 Bind**(装配根在急救段 Bind,返回前完成)
+                Assert.IsTrue(bag.SaveService.Ledger.HasNarrativeContextSource,
+                    "生产接线轮:瞬时源已接通(⑤),不得再回到 null fail-closed");
+                Assert.NotNull(bag.NarrativeContext, "袋须暴露瞬时源(装配单例)");
+                Assert.IsTrue(bag.NarrativeContext.IsBound,
+                    "Assemble 返回时 Bind 已完成(急救段晚于 SaveService 段,但先于 return)");
 
-                // ② 行为:未注入 ⇒ Checkpoint 必抛(fail-closed 的实证,不只读台账字段)
+                // ② 行为:已注入 ⇒ narrativeContext 门**已过** —— 本装配未传 provider,
+                //    失败点前移到数据派生(E-13,`ResolveGlobalConfigVersion` 的既有硬失败)。
+                //    断言钉的是「门换了」:异常必须**不再**是 narrativeContext 拒绝,
+                //    而是 compose 闭包内的 ConfigVersion 派生失败(E-13 的正确行为)。
+                //    ⚠️ 生产(BootRoot)传 DataCorePreloader.Provider ⇒ compose 正常,不抛 E-13。
                 var ex = Assert.Throws<InvalidOperationException>(
                     () => bag.SaveService.Checkpoint(new SaveSlot(0)),
-                    "钩子为 null ⇒ Checkpoint 必须 fail-closed(AC-7a-19 (c) 的安全属性)");
-                StringAssert.Contains("narrativeContext", ex.Message);
+                    "无 provider 的装配里 Checkpoint 会走到 compose ⇒ E-13(门已过,失败点在数据派生)");
+                StringAssert.Contains("ConfigVersion", ex.Message);
+                StringAssert.DoesNotContain("narrativeContext", ex.Message,
+                    "失败若仍是 narrativeContext 拒绝 = 瞬时源没接上(⑤ 的判据被破坏)");
+
+                // ③ 兜底在袋(AC-7a-20 定时半边的装配产出)
+                Assert.NotNull(bag.CheckpointFallback,
+                    "带 saveBasePath ⇒ 定时兜底须与 SaveService 同批装配");
+
+                // ④ **「一个量」机械钉**:SaveService 台账的瞬时源、兜底的瞬时源、袋暴露的
+                //    瞬时源**是同一个对象**(装配期单变量;拆实例 = 读档门与兜底门分叉)。
+                var ledgerCtx = typeof(SaveSlotLedger)
+                    .GetField("_narrativeContext", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    ?.GetValue(bag.SaveService.Ledger);
+                var fallbackCtx = typeof(CheckpointFallback)
+                    .GetField("_context", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    ?.GetValue(bag.CheckpointFallback);
+                Assert.AreSame(bag.NarrativeContext, ledgerCtx,
+                    "台账的瞬时源与袋暴露的须是同一实例(规则十四「一个量」)");
+                Assert.AreSame(bag.NarrativeContext, fallbackCtx,
+                    "兜底的瞬时源与袋暴露的须是同一实例(规则十四「一个量」)");
             }
             finally
             {
                 if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
             }
+        }
+
+        [Test]
+        public void test_assemble_noSavePath_fallbackAbsent_contextStillBound()
+        {
+            // `saveBasePath == null` ⇒ SaveService / CheckpointFallback 均 null(既有合法状态),
+            // 但瞬时源**照常构造 + Bind**(它有 7b 呈现侧复用面,不随存档目录存在与否而消失)。
+            CompositionRootServices bag = CompositionRoot.Assemble();
+
+            Assert.Null(bag.SaveService, "未指定存档目录 ⇒ SaveService 为 null(既有合法状态)");
+            Assert.Null(bag.CheckpointFallback, "SaveService 为 null ⇒ 兜底同 null(同源装配)");
+            Assert.NotNull(bag.NarrativeContext, "瞬时源不随存档目录消失(7b 复用面)");
+            Assert.IsTrue(bag.NarrativeContext.IsBound, "Bind 照常完成");
         }
     }
 }

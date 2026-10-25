@@ -87,7 +87,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         /// 🔁 2026-10-24 TD-persist-03:Load 现要求 foldedRowSink(v1 布局必备段),
         /// 夹具同批补缺省(收字节即弃 —— 本文件不测折叠内容,那是 wiring/roundtrip 文件的职责)。</summary>
         private SaveService ReadyService(
-            Func<bool> narrativeContext = null,
+            INarrativeContextQuery narrativeContext = null,
             Action<IReadOnlyList<SimEvent>> replaySink = null,
             Action<byte[]> foldedRowSink = null,
             Func<SaveSlot, byte[]> compose = null,
@@ -97,7 +97,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 _testDir,
                 new SaveCodec(),
                 folded: null,
-                narrativeContext: narrativeContext ?? (() => true),
+                narrativeContext: narrativeContext ?? FuncNarrativeContextQuery.AlwaysIn,
                 replaySink: replaySink ?? (_ => { }),
                 foldedRowSink: foldedRowSink ?? (_ => { }),
                 compose: compose ?? (slot => MinimalSaveBytes()),
@@ -158,7 +158,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_ac7a19c_outsideNarrativeContext_isRejectedBy7a()
         {
-            var svc = ReadyService(narrativeContext: () => false);
+            var svc = ReadyService(narrativeContext: FuncNarrativeContextQuery.NeverIn);
 
             var ex = Assert.Throws<InvalidOperationException>(
                 () => svc.Checkpoint(new SaveSlot(0)),
@@ -337,7 +337,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_checkpoint_withoutCompose_failsClosed()
         {
             var svc = new SaveService(_testDir, new SaveCodec(),
-                narrativeContext: () => true, replaySink: _ => { }, compose: null);
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn, replaySink: _ => { }, compose: null);
 
             var ex = Assert.Throws<InvalidOperationException>(
                 () => svc.Checkpoint(new SaveSlot(0)), "未注入 compose ⇒ 须抛(fail-closed)");
@@ -409,7 +409,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_load_withoutReplaySink_throwsInsteadOfSkipping()
         {
             var svc = new SaveService(_testDir, new SaveCodec(),
-                narrativeContext: () => true, replaySink: null,
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn, replaySink: null,
                 compose: slot => MinimalSaveBytes());
             svc.SaveBytes(new SaveSlot(0), SignedSaveBytes());
 
@@ -421,7 +421,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_load_outsideNarrativeContext_isRejected()
         {
-            var svc = ReadyService(narrativeContext: () => false);
+            var svc = ReadyService(narrativeContext: FuncNarrativeContextQuery.NeverIn);
             svc.SaveBytes(new SaveSlot(0), SignedSaveBytes());
 
             Assert.Throws<InvalidOperationException>(
@@ -620,7 +620,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             // 台账侧同一结论:同一个钩子驱动两投影
             bool flag = false;
-            var ledger = new SaveSlotLedger(() => flag);
+            var ledger = new SaveSlotLedger(new FuncNarrativeContextQuery(() => flag));
             var snap = ledger.Snapshot(new SaveSlot(0));
             Assert.IsFalse(SlotProjections.Writable(new SaveSlot(0), snap));
             Assert.IsFalse(SlotProjections.Loadable(new SaveSlot(0), snap));
@@ -802,7 +802,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_saveOnExit_withoutCompose_failsClosed()
         {
             var svc = new SaveService(_testDir, new SaveCodec(),
-                narrativeContext: () => true, replaySink: _ => { }, compose: null);
+                narrativeContext: FuncNarrativeContextQuery.AlwaysIn, replaySink: _ => { }, compose: null);
 
             Assert.Throws<InvalidOperationException>(
                 () => svc.SaveOnExit(), "未注入 compose ⇒ 须抛(fail-closed)");
@@ -816,7 +816,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             //    理由:退出保存不是回滚点,且「急救动作进行中退出」恰恰最需要落盘。
             //    ⇒ 钩子返回 false 时 Checkpoint 必抛,而 SaveOnExit 必须照写。
             //    反证:若给 SaveOnExit 加了值门,本条转红。
-            var svc = ReadyService(narrativeContext: () => false);
+            var svc = ReadyService(narrativeContext: FuncNarrativeContextQuery.NeverIn);
 
             Assert.Throws<InvalidOperationException>(
                 () => svc.Checkpoint(new SaveSlot(0)),
