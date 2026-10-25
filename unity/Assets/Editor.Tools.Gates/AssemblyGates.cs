@@ -163,6 +163,12 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 自己的公开面,**看不见旁路**(别处直调 SaveBytes / 直接 File.* / 类内长出新写盘点)。
             // 第三方的执行体此前**从未存在** —— 本条即其落点。
             errs.AddRange(SaveWritePathGate.RunAll());
+            // 后台写盘路径「零 Unity API」方法级 IL 门(AC-7a-07 第二句 · 2026-10-25)。
+            // ⚠️ **本门在 b2 绿时不可能红** —— 被扫的两个类型住在 `noEngineReferences: true`
+            //    的 `Sim.Codec`。它是 b2 的**推论**,不是独立判据。立它的理由见
+            //    `SaveAsyncBoundaryGate.cs` 文件头 §判别力(方法级判据面 + 搬家检测 +
+            //    GDD 字面点名的「被调集合」形态)。**不得**把它记作 AC-7a-07 的独立兑现物。
+            errs.AddRange(SaveAsyncBoundaryGate.RunAll());
             return errs;
         }
 

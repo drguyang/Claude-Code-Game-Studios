@@ -123,7 +123,12 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 foldedRowSink: _ => { },
                 compose: _ => MinimalSaveBytes(),
                 exitSaveRetryMillis: exitSaveRetryMillis,
-                exitSaveFailureSink: exitSaveFailureSink);
+                exitSaveFailureSink: exitSaveFailureSink,
+                // 🔁 2026-10-25 AC-7a-07:同步内联调度器 —— 退出保存的「限时 join」
+                // 在同步调度器下退化为「同步写完即返回」,本文件的 23 条判据语义不变。
+                // ⚠️ 真后台线程的 join 语义由 `save_async_write_test.cs` 单独覆盖
+                // (那里用受控线程 + 真 Task.Run)。
+                writeScheduler: action => action());
         }
 
         private SaveService ReadyService() => ServiceAt(_testDir);
@@ -383,10 +388,18 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 narrativeContext: () => true,
                 replaySink: _ => { },
                 compose: null,
-                exitSaveRetryMillis: 10000);   // 预算给得很大 —— 若误入重试,本测会挂住
+                exitSaveRetryMillis: 10000,   // 预算给得很大 —— 若误入重试,本测会挂住
+                // ⚠️ **刻意不传 writeScheduler**:本条要证明「抛的是 compose 那条」。
+                //    若传了,`RequireWriteScheduler` 会先抛,报文里没有 "compose"
+                //    ⇒ `StringAssert` 转红;若不传且 compose 检查在前,则证明成立。
+                //    ⚠️ 顺序依赖是**刻意的**:驱动源检查必须在 worker 存在性之前
+                //    (配置错误不该被「忘了装配 worker」掩盖)。
+                writeScheduler: null);
 
-            Assert.Throws<InvalidOperationException>(() => svc.SaveOnExit(),
+            var ex = Assert.Throws<InvalidOperationException>(() => svc.SaveOnExit(),
                 "驱动源缺失须**当场抛**,不得进重试循环");
+            StringAssert.Contains("compose", ex.Message,
+                "抛的必须是 compose 那条 —— 不是 writeScheduler 那条");
         }
 
         [Test]
@@ -399,7 +412,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 narrativeContext: () => true,
                 replaySink: _ => { },
                 compose: null,
-                exitSaveRetryMillis: 0);
+                exitSaveRetryMillis: 0,
+                // ⚠️ 同上:刻意不传,让 compose 那条先抛(顺序依赖是刻意的)。
+                writeScheduler: null);
 
             Assert.Throws<InvalidOperationException>(() => svc.SaveOnExit());
 
@@ -415,7 +430,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 narrativeContext: null,
                 replaySink: _ => { },
                 compose: _ => MinimalSaveBytes(),
-                exitSaveRetryMillis: 10000);
+                exitSaveRetryMillis: 10000,
+                // ⚠️ 刻意不传 —— 要让 narrativeContext 那条先抛。
+                writeScheduler: null);
 
             Assert.Throws<InvalidOperationException>(() => svc.SaveOnExit(),
                 "narrativeContext 未注入 ⇒ 须当场抛(fail-closed,不可重试)");

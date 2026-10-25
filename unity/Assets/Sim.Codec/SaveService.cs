@@ -66,6 +66,27 @@ namespace DaYiJingCheng.Sim.Codec
         private readonly Action<Exception, Exception> _exitSaveFailureSink;
 
         /// <summary>
+        /// 启动后台写盘 worker 的调度器(AC-7a-07 · GDD 规则五)。
+        /// <para>生产 = <c>action =&gt; Task.Run(action)</c>;夹具 = 同步内联
+        /// <c>action =&gt; action()</c> 或受控线程。</para>
+        /// <para>⚠️ <b>未注入 ⇒ fail-closed</b>(用户 2026-10-25 裁定):<see cref="Checkpoint"/> /
+        /// <see cref="SaveOnExit"/> 一律抛 <see cref="InvalidOperationException"/>。
+        /// <b>禁「缺省同步内联」</b> —— 那会让「生产装配忘了传 <c>Task.Run</c>」静默退化为
+        /// 同步写盘,而全部测试仍绿(本项目反复抓过的「静默降级」形态)。</para>
+        /// </summary>
+        private readonly Action<Action> _writeScheduler;
+
+        /// <summary>后台写盘 worker(one-writer 单飞 + `WRITE_RETRY_DELAY` 退避)。</summary>
+        private readonly SaveWriteQueue _writeQueue;
+
+        /// <summary>
+        /// 存档路径的精确长度缓冲池(GDD `:123` GC 纪律)。
+        /// <para>⚠️ 覆盖范围**有限**,如实登记见 <see cref="SaveBufferPool"/> 文件头 ——
+        /// 不含 <c>CodecWriter</c> 的内部增长缓冲。</para>
+        /// </summary>
+        private readonly SaveBufferPool _bufferPool;
+
+        /// <summary>
         /// 构造。
         /// </summary>
         /// <param name="basePath">存档目录(须可写)。</param>
@@ -124,7 +145,9 @@ namespace DaYiJingCheng.Sim.Codec
             Func<SaveSlot, byte[]> compose = null,
             IReadOnlyList<ISaveMigration> migrations = null,
             int exitSaveRetryMillis = ExitSaveRetrier.DefaultTimeoutMillis,
-            Action<Exception, Exception> exitSaveFailureSink = null)
+            Action<Exception, Exception> exitSaveFailureSink = null,
+            Action<Action> writeScheduler = null,
+            SaveBufferPool bufferPool = null)
         {
             _basePath = basePath ?? throw new ArgumentNullException(nameof(basePath));
             _codec = codec ?? throw new ArgumentNullException(nameof(codec));
@@ -141,6 +164,13 @@ namespace DaYiJingCheng.Sim.Codec
             //    以保证夹具快且确定;生产用 GDD 默认 1 s。
             _exitSaveRetryMillis = exitSaveRetryMillis;
             _exitSaveFailureSink = exitSaveFailureSink;
+            // ⚠️ **不在此处 fail-closed** —— 构造器不抛,由 Checkpoint / SaveOnExit 的
+            //    RequireWriteScheduler() 在**使用点**抛。理由:构造器抛会让「只想读档 /
+            //    只想查标志位」的装配(与既有 19 处测试构造点)因不相干的理由转红,
+            //    而真正需要写盘的那两条路径仍然拒得干净。
+            _writeScheduler = writeScheduler;
+            _writeQueue = writeScheduler == null ? null : new SaveWriteQueue(writeScheduler);
+            _bufferPool = bufferPool ?? new SaveBufferPool();
             // 台账与 SaveService 共用**同一个**钩子实例 ⇒ 「一个量」在类型层面成立
             // ⚠️ 高水位初值今日**恒为 0**(用默认形参)。`SaveSlotLedger` 的 doc 写「初值由装配层
             //    按『本会话从哪个槽位起步』决定」,而装配层**无任何通道可传**(`SaveService` 构造
@@ -161,6 +191,22 @@ namespace DaYiJingCheng.Sim.Codec
 
         /// <summary>槽位台账(锁 / 高水位)。装配层与测试需要驱动叙事锚点时用。</summary>
         public SaveSlotLedger Ledger => _ledger;
+
+        /// <summary>
+        /// 后台写盘 worker(AC-7a-07)。**只读暴露**,供夹具与装配收尾等待队列排空。
+        /// <para>⚠️ 生产主线程**不得**在 Step 边界调 <see cref="SaveWriteQueue.WaitForIdle()"/>
+        /// —— 那等于把异步化撤销。生产唯一的等待点是 <see cref="SaveOnExit"/>。</para>
+        /// <para>⚠️ 未注入 <c>writeScheduler</c> 时本属性为 <c>null</c>
+        /// (此时写盘路径本就 fail-closed)。</para>
+        /// </summary>
+        public SaveWriteQueue WriteQueue => _writeQueue;
+
+        /// <summary>
+        /// 存档路径的缓冲池(GDD `:123` GC 纪律)。
+        /// <para>公开的理由:装配层要把**同一个**池传给 <c>SaveComposer.Compose</c>
+        /// (组版在主线程、校验和在 worker,两者共用一份池才有复用意义)。</para>
+        /// </summary>
+        public SaveBufferPool BufferPool => _bufferPool;
 
         /// <summary>
         /// 「上一次会话未完整保存」标志位是否已置位(AC-7a-17)。
@@ -313,13 +359,26 @@ namespace DaYiJingCheng.Sim.Codec
 
         /// <summary>计算并写入 checksum。</summary>
         public static byte[] AddChecksum(byte[] dataWithoutChecksum)
+            => AddChecksum(dataWithoutChecksum, null);
+
+        /// <summary>
+        /// 计算并写入 checksum(可指定缓冲池)。
+        /// <para>🔁 <b>2026-10-25 AC-7a-07 新增重载</b>:worker 路径传
+        /// <see cref="BufferPool"/>,让产出缓冲入池复用(GDD `:123` GC 纪律)。
+        /// 无池版本(<see cref="AddChecksum(byte[])"/>)保持原语义,22 处既有夹具零改动。</para>
+        /// </summary>
+        /// <param name="dataWithoutChecksum">不含校验和槽的字节。</param>
+        /// <param name="pool">缓冲池;null ⇒ 直接分配。</param>
+        public static byte[] AddChecksum(byte[] dataWithoutChecksum, SaveBufferPool pool)
         {
             // dataWithoutChecksum = magic(4) + saveVersion(4) + worldSeed(8) + configVersion(4) + tick(8) + snapshotOffset(8) + body
             // 输出 = magic(4) + checksum(32) + saveVersion(4) + ... + body
             if (dataWithoutChecksum == null || dataWithoutChecksum.Length < 32)
                 throw new ArgumentException("数据过短");
 
-            byte[] result = new byte[dataWithoutChecksum.Length + 32];
+            byte[] result = pool == null
+                ? new byte[dataWithoutChecksum.Length + 32]
+                : pool.Rent(dataWithoutChecksum.Length + 32);
 
             // magic(4)
             Array.Copy(dataWithoutChecksum, 0, result, 0, 4);
@@ -345,31 +404,70 @@ namespace DaYiJingCheng.Sim.Codec
         // ══════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// 存档(唯一写入口)。门 → 组版 → 原子写 → 推高水位。
+        /// 存档(唯一写入口)。门 → 组版(**主线程**)→ 入队 → **立即返回**。
+        /// <para>🔁 <b>2026-10-25 AC-7a-07 改造</b>:此前是「门 → 组版 → 同步写盘 →
+        /// 推高水位」,写盘 IO 与 SHA256 全在主线程。现在:</para>
+        /// <list type="number">
+        /// <item>门与组版仍在**主线程**(GDD `:509` 逐字「序列化在 Step 边界主线程完成」);</item>
+        /// <item>SHA256 回填 + 原子写 + 推高水位闭成**一个工作项**交后台 worker;</item>
+        /// <item>本方法返回 = 「已受理」,**不表示已落盘**。</item>
+        /// </list>
+        /// <para>⚠️ <b>高水位在 worker 写成功后才推</b>(用户 2026-10-25 裁定):保住
+        /// <see cref="SaveSlotLedger.OnCheckpointCommitted"/> 的既有不变量「写失败则高水位不动,
+        /// 否则一次失败的写会永久吃掉一个槽位」。⇒ 断言 <c>NextWritableSeq</c> 的夹具
+        /// 须先 <see cref="SaveWriteQueue.WaitForIdle()"/>。</para>
+        /// <para>⚠️ 写失败**不在本方法上报** —— worker 顶层全兜(GDD `:117`),
+        /// 失败经 <see cref="SaveWriteQueue.LastFailure"/> 暴露。这是异步化的固有代价:
+        /// 调用点已经返回了,没有异常可抛给谁。</para>
         /// </summary>
         /// <exception cref="InvalidOperationException">
-        /// 未注入 <c>narrativeContext</c> 或 <c>compose</c>(fail-closed);或不在叙事上下文内。
+        /// 未注入 <c>narrativeContext</c> / <c>compose</c> / <c>writeScheduler</c>(fail-closed);
+        /// 或不在叙事上下文内。
         /// </exception>
         /// <exception cref="InvalidDataException">槽位只进不退违例(覆盖既有槽位)。</exception>
         public void Checkpoint(SaveSlot slot)
         {
-            // 门 ①:fail-closed —— 两个必需驱动源缺一即拒
+            // 门 ①:fail-closed —— 三个必需驱动源缺一即拒
             RequireNarrativeContext();
             RequireCompose(nameof(Checkpoint));
+            RequireWriteScheduler(nameof(Checkpoint));
 
             // 门 ②:槽位只进不退 + 叙事上下文(AC-7a-19 (b)(c))
             _ledger.EnsureWritable(slot);
 
-            // 组版:折叠与字节布局全在闭包内(本类不认识 FoldRow)
+            // 组版:折叠与字节布局全在闭包内(本类不认识 FoldRow)。
+            // ⚠️ 组版仍在**主线程** —— 它读 sim 状态(事件列表 / 折叠谓词),
+            //    后台线程碰不到这些(GDD `:509`;也是 b2 门 A 的实质约束)。
             byte[] bytes = _compose(slot)
                 ?? throw new InvalidOperationException(
                     $"compose 委托对 slot={slot.SlotSeq} 返回 null —— 组版失败须抛,不得写空档");
 
-            // 原子写(既有实现:tmp → flush → rename + 双档 bak)
-            SaveBytes(slot, bytes);
+            // 后台工作项:SHA256 回填 + 原子写 + 推高水位(三者同线程、同序)
+            _writeQueue.Enqueue(() =>
+            {
+                byte[] signed = AddChecksum(bytes, _bufferPool);
+                try
+                {
+                    SaveBytes(slot, signed);
+                }
+                finally
+                {
+                    // `signed` 是**本次尝试**的产物,失败后不再需要(重试会重新算一份)
+                    // ⇒ 逐次归还。
+                    _bufferPool.Return(signed);
+                }
 
-            // 只在写盘**返回之后**推高水位 —— 写失败则高水位不动
-            _ledger.OnCheckpointCommitted(slot);
+                // ⚠️ **`bytes` 只在成功后归还** —— 它在重试时必须仍然有效。
+                //    若放进上面的 finally,第一次失败就把块还给池,重试时
+                //    `AddChecksum(bytes, …)` 读到的可能是**别的调用方已经覆写过的**内容
+                //    ⇒ 静默坏档(而且只在「写失败且池恰好复用了同一块」时出现)。
+                //    代价:全部重试都失败时 `bytes` 不入池、交给 GC —— 一次永久失败
+                //    少回收一块,可接受(该场景已置「会话未完整」标志位)。
+                _bufferPool.Return(bytes);
+
+                // 只在写盘**成功返回之后**推高水位 —— 写失败则高水位不动
+                _ledger.OnCheckpointCommitted(slot);
+            });
         }
 
         /// <summary>
@@ -387,11 +485,12 @@ namespace DaYiJingCheng.Sim.Codec
         /// <exception cref="InvalidOperationException">未注入驱动源(fail-closed)。</exception>
         public void SaveOnExit()
         {
-            // ⚠️ 驱动源缺失 = **编程错误,不可重试** ⇒ 必须在进重试循环**之前**抛。
-            //    否则配置错误会伪装成磁盘故障,在日志里躺满整个预算然后静默变成
+            // ⚠️ 驱动源缺失 = **编程错误,不可重试** ⇒ 必须在入队**之前**抛。
+            //    否则配置错误会伪装成磁盘故障,等满整个预算然后静默变成
             //    「会话未完整」—— 真 bug 被埋掉。
             RequireNarrativeContext();
             RequireCompose(nameof(SaveOnExit));
+            RequireWriteScheduler(nameof(SaveOnExit));
 
             // 🔁 **2026-10-25 W4 修正(代码评审必修)**:原写 `new SaveSlot(0)` ⇒
             // `GetFinalPath` 与玩家手动槽 0 返回**同一** `save_0.bin`,两者互相覆盖;
@@ -403,16 +502,40 @@ namespace DaYiJingCheng.Sim.Codec
                 ?? throw new InvalidOperationException(
                     "compose 委托返回 null —— 组版失败须抛,不得写空档");
 
-            // ── 限时重试(AC-7a-17 · GDD 规则十三 · `SAVE_EXIT_RETRY_TIMEOUT`)──
-            // 🔁 2026-10-25 新增。此前是**一次性写**,失败直接把异常抛给调用方 ⇒
-            //    「限时重试」与「不阻塞退出」两条都无从兑现。
-            var sw = Stopwatch.StartNew();
-            bool written = ExitSaveRetrier.TryWrite(
-                write: () => WriteExitSave(bytes),
-                timeoutMillis: _exitSaveRetryMillis,
-                clockMillis: () => sw.ElapsedMilliseconds,
-                sleepMillis: Thread.Sleep,
-                out Exception lastFailure);
+            // ── 入队 + **限时 join**(AC-7a-07 · AC-7a-17 · GDD `:244`)──
+            // 🔁 **2026-10-25 语义订正(本轮最重要的口径修正)**:
+            //    GDD `:244` 逐字「退出保存:**从 `WritingAsync` 起限时 join**(默认 1 s)」
+            //    ⇒ `SAVE_EXIT_RETRY_TIMEOUT` 是**等后台 worker 的时间上限**,
+            //      不是「重试循环的总预算」。
+            //    TD-persist-06 轮把它当成后者用了 —— 在**同步**写下两者恰好等价,
+            //    一旦异步化立刻分叉。现在各归其位:
+            //      · 本方法的 join 超时 = `SAVE_EXIT_RETRY_TIMEOUT`(`_exitSaveRetryMillis`);
+            //      · `IOException` 的重试间隔 = `WRITE_RETRY_DELAY`(在 `SaveWriteQueue` 内)。
+            //
+            // ⚠️ 复用 worker 而非另起线程:退出时若有一份 checkpoint 正在写,退出保存
+            //    **必须排在它后面**(one-writer 单飞)—— 否则两条 rename 会把 bak 覆盖成
+            //    半途产物(GDD `:236`)。
+            _writeQueue.Enqueue(() =>
+            {
+                byte[] signed = AddChecksum(bytes, _bufferPool);
+                try { WriteExitSave(signed); }
+                finally { _bufferPool.Return(signed); }
+                // 退出保存**不推高水位**(ADR-010 §六:退出钩子不占玩家槽)
+                _bufferPool.Return(bytes);
+            });
+
+            // ⚠️ **成败判据 = 「排空」且「无失败」(2026-10-25 回归抓出的真缺陷)**。
+            //
+            // 首版只判 `WaitForIdle(...)` —— 那在**同步**写下恰好等价于「写成功」,
+            // 因为失败会以异常穿过调用栈。异步化后这个信号**丢了**:
+            // worker 的 `TryRunWithRetry` 把异常**吞进 `_lastFailure`**、`Drain` 照常
+            // `_outstanding--` ⇒ `WaitForIdle` 返回 **true** ⇒ 走成功分支 ⇒ **清位**。
+            // 后果:写盘失败时标志位**不置**,下次启动不提示 —— AC-7a-17 的兜底静默失效。
+            // 回归实证:6 条 `SaveExitRetryAndFlagTest` 同时转红(见证据件 §六)。
+            //
+            // ⇒ 两个条件缺一不可:「队列空了」是**时序**事实,「没失败」是**结果**事实。
+            bool drained = _writeQueue.WaitForIdle(_exitSaveRetryMillis);
+            bool written = drained && _writeQueue.LastFailure == null;
 
             if (written)
             {
@@ -435,6 +558,10 @@ namespace DaYiJingCheng.Sim.Codec
             // ⚠️ 本类**不抛** —— 调用方(退出钩子)若收到异常就会卡住退出流程。
             //    「不静默丢,不卡退」两条里,后者是硬约束:**日志 + 置位**就是这里的「不静默」。
             //    日志经注入委托交给装配层(本类无日志设施,且 Sim.Codec 是纯 BCL 装配)。
+            //
+            // ⚠️ `lastFailure` 现在可能为 null(join 超时 ≠ 写盘失败,可能只是慢)。
+            //    两条线索都要交给装配层,不能假设它非空。
+            Exception lastFailure = _writeQueue.LastFailure;
             try { RaiseIncompleteFlag(); }
             catch (Exception e)
             {
@@ -649,6 +776,22 @@ namespace DaYiJingCheng.Sim.Codec
                     $"{caller}:未注入 compose 委托(fail-closed)—— " +
                     "组版字节源缺失,拒绝静默写空档;" +
                     "装配点 = Gameplay.Boot 组合根(唯一同时看得见 Sim 与 Sim.Codec 的装配)。");
+        }
+
+        /// <summary>
+        /// AC-7a-07 的 fail-closed:未注入 <c>writeScheduler</c> ⇒ 拒绝写盘。
+        /// <para>⚠️ <b>为什么不用「缺省同步内联」</b>:那会让「生产装配忘了传 <c>Task.Run</c>」
+        /// 静默退化为同步写盘,而全部测试仍绿 —— AC-7a-07 在生产路径上假绿。
+        /// 本项目已反复抓到这一形态(`SaveSlotLedger` 的 fail-open、44 音频的 Fake 顶替)。</para>
+        /// </summary>
+        private void RequireWriteScheduler(string caller)
+        {
+            if (_writeScheduler == null)
+                throw new InvalidOperationException(
+                    $"{caller}:未注入 writeScheduler 委托(fail-closed,AC-7a-07)—— " +
+                    "缺省同步内联会让『生产忘了传 Task.Run』静默退化为同步写盘而测试全绿;" +
+                    "生产装配点 = Gameplay.Boot 组合根(传 action => Task.Run(action));" +
+                    "夹具传 action => action()(同步内联,可控)。");
         }
 
         private string GetFinalPath(SaveSlot slot) => Path.Combine(_basePath, $"save_{slot.SlotSeq}.bin");

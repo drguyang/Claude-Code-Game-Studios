@@ -31,6 +31,7 @@
 | AC | 判定 | 生产 | 夹具 | 处置 |
 |---|---|---|---|---|
 | `07` | PARTIAL | `Sim.Codec/SaveService.cs:146-165` 同步写 | 无 | 异步/重试 0,归新债 |
+| ↳ 🔁 **2026-10-25 已兑现** | **IMPLEMENTED_TESTED** | **异步化轮**:`Sim.Codec/SaveWriteQueue.cs`(one-writer 单飞 worker + `WRITE_RETRY_DELAY` 退避)+ `SaveBufferPool.cs`(精确长度池)+ `SaveService.Checkpoint/SaveOnExit` 入队改造(组版留主线程;SHA256/写盘/高水位进 worker)+ `Editor.Tools.Gates/SaveAsyncBoundaryGate.cs`(方法级 IL 门,**探针轮三件套成立**) | `PersistenceService/save_async_write_test.cs` **23 条** + `Sim/save_async_boundary_gate_test.cs` **3 条**(门行为钉子) | 证伪轮 **MA1…MA10b 二十一轮:20 红 + MA19 预登记绿(门是 b2 推论),零假绿**;⚠️ 证伪轮抓出两处真问题并已修:① 假绿夹具 `twoCheckpoints_neverWriteConcurrently`(计数原在主线程串行的 compose 里,MA1 下不红 ⇒ 重写为队列工作项体内计数,MA1 重跑转红验证)② 门覆盖守卫「空清单逃逸」(MA20 ⇒ 补守卫 ⓪ + 门行为测试);⚠️ **B 类回归抓出退出保存真缺陷**(只判 `WaitForIdle` ⇒ worker 吞异常后仍清位 ⇒ AC-7a-17 兜底静默失效 ⇒ 修为「排空**且**无失败」);⚠️ 崩溃 harness `tools/savecrash/`(AC-7a-06)判别力 **37.5% 概率性**,纵深冗余单拆不红;回归 `4966/4931/0/35`(`td07-3`) |
 | `08` | PARTIAL | `ISaveService.cs:29-61` ①② | `folded_predicate_test.cs:614/629` | ③ IL 门 0,本轮补 |
 | ↳ 🔁 **2026-10-25 已兑现** | **IMPLEMENTED_TESTED** | `Editor.Tools.Gates/SaveWritePathGate.cs`(IL 正面断言)+ `AssemblyGates.RunAll` 接线 | `Sim/save_write_path_gate_test.cs` **6 条** + `gate_wiring_manifest_test` 双处登记 | 证伪轮 **M7/M8/M9/M10 四轮全红**;⚠️ **`SaveBytes` 旁路仍待裁**(见下 §两条交叉结论 2),该条**不因本门而关闭** |
 | `09` | PARTIAL | `ISaveService.cs:24-27` 半守 | 同上 | CI 扫描归 `TD-ci-01`(外部) |
@@ -84,6 +85,15 @@
 > ⚠️ **`07` 仍未兑现且不在本轮面内**(用户裁定只做 `17`):`SaveOnExit` 今日**同步**写盘,
 > 「限时 join」实际是「同步写 + 同步重试」。**`09` / `20` 的 blocked 归属不变**。
 > 原件 = `production/qa/evidence/impl-td-persist-06-2026-10-25.md`。
+
+> 🔁 **2026-10-25 `TD-persist-05` 动作 ① 兑现轮后现值(原文不删)** —— **`07`(AC-7a-07)兑现**:
+> `IMPLEMENTED_TESTED` **11**(上列 10 + `07` 本轮兑现)· `PARTIAL` **2**(`09` `20`)· `NOT_IMPLEMENTED` **0**。
+> **复算命令**:`grep -c "↳ 🔁 \*\*2026-10-25 已兑现\*\*" production/epics/persistence-service/EPIC.md`
+> ⇒ **6**;`17` 行是就地改判 ⇒ 5 + 6 = **11**;`2 + 0 = 2`,加 11 = **13** 条 ✓。
+> ⚠️ `07` 的兑现是**异步化改造**(不是补零行执行体):`SaveOnExit` 的「限时 join」从
+> 「同步写 + 同步重试」变为「入队 + `WaitForIdle(_exitSaveRetryMillis)`」——
+> 上列 06 轮注中「`07` 仍未兑现」的表述**就此过期**(原文不删)。
+> **`09` / `20` 的 blocked 归属不变**。原件 = `production/qa/evidence/impl-td-persist-05-act1-2026-10-25.md`。
 
 ### 两条会改变判读的交叉结论
 

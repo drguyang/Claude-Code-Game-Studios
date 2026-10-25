@@ -29,6 +29,30 @@ using NUnit.Framework;
 
 namespace DaYiJingCheng.Tests.PersistenceService
 {
+    /// <summary>
+    /// 🔁 <b>2026-10-25 AC-7a-07 适配层</b> —— `SaveComposer.Compose` 现在返回
+    /// <b>不含校验和</b>的字节(SHA256 移到后台 worker,主线程零哈希)。
+    /// <para>本文件 11 处调用点验的都是「组版产出的存档形状」(头部字段 / 事件段 /
+    /// 折叠段 / 字节确定性),它们需要**完整**存档 ⇒ 统一经本包装补回校验和。</para>
+    /// <para>⚠️ 这**不是**在夹具里造替代品 —— 调的是生产同一个
+    /// <see cref="SaveService.AddChecksum"/>,只是把「主线程签名」这一步显式化。</para>
+    /// </summary>
+    public static class ComposeSigned
+    {
+        public static byte[] Compose(
+            IReadOnlyList<SimEvent> allEvents,
+            IFoldedPredicate folded,
+            IPayloadDecoder decoder,
+            ISaveCodec codec,
+            ulong worldSeed,
+            uint configVersion,
+            long tick,
+            IReadOnlyList<FoldRow> existingFoldedRows = null)
+            => SaveService.AddChecksum(SaveComposer.Compose(
+                allEvents, folded, decoder, codec, worldSeed, configVersion, tick,
+                existingFoldedRows));
+    }
+
     public class SaveComposerWiringTest
     {
         private const int PatientA = 7;
@@ -157,7 +181,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             // 病人 A 只有一个未终态的病程 ⇒ 谓词为假 ⇒ 零折叠行 ⇒ 正常组版。
             var events = new[] { Onset(10L, PatientA, DiseaseSelfLimit) };
 
-            byte[] bytes = SaveComposer.Compose(
+            byte[] bytes = ComposeSigned.Compose(
                 events, Predicate(events), _decoder, new SaveCodec(),
                 worldSeed: 0xABCDUL, configVersion: 3U, tick: 10L);
 
@@ -189,7 +213,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             Assert.IsTrue(Predicate(events).Folded(PatientB) == false, "豁免病人谓词须为假");
 
-            Assert.DoesNotThrow(() => SaveComposer.Compose(
+            Assert.DoesNotThrow(() => ComposeSigned.Compose(
                 events, Predicate(events), _decoder, new SaveCodec(),
                 worldSeed: 1UL, configVersion: 0U, tick: 20L),
                 "豁免 ⇒ 无折叠行 ⇒ 组版不得抛");
@@ -208,7 +232,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             Assert.IsFalse(Predicate(events).Folded(PatientA), "未结案 ⇒ 谓词为假");
 
-            Assert.DoesNotThrow(() => SaveComposer.Compose(
+            Assert.DoesNotThrow(() => ComposeSigned.Compose(
                 events, Predicate(events), _decoder, new SaveCodec(),
                 worldSeed: 1UL, configVersion: 0U, tick: 20L));
         }
@@ -236,7 +260,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Assert.IsTrue(Predicate(events).Folded(PatientA), "前提:该病人须可折");
 
             // Act
-            byte[] bytes = SaveComposer.Compose(
+            byte[] bytes = ComposeSigned.Compose(
                 events, Predicate(events), _decoder, new SaveCodec(),
                 worldSeed: 1UL, configVersion: 0U, tick: 30L);
 
@@ -277,7 +301,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
 
             var carried = new[] { new FoldRow(1L, 99, 3, 77L, (int)PatientOutcome.Died, 2L) };
 
-            byte[] bytes = SaveComposer.Compose(
+            byte[] bytes = ComposeSigned.Compose(
                 events, Predicate(events), _decoder, new SaveCodec(),
                 worldSeed: 1UL, configVersion: 0U, tick: 40L, existingFoldedRows: carried);
 
@@ -298,7 +322,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             // 读侧(SaveService.ParseBody)据此判定「事件段后必见折叠段」的对称性。
             var events = new[] { Onset(10L, PatientA, DiseaseSelfLimit) };
 
-            byte[] bytes = SaveComposer.Compose(
+            byte[] bytes = ComposeSigned.Compose(
                 events, Predicate(events), _decoder, new SaveCodec(),
                 worldSeed: 1UL, configVersion: 0U, tick: 10L);
 
@@ -320,9 +344,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 CaseEvent(10L, PatientA, EventKind.CaseOpened), // 未结案 ⇒ 谓词假
             };
 
-            byte[] withPredicate = SaveComposer.Compose(
+            byte[] withPredicate = ComposeSigned.Compose(
                 events, Predicate(events), _decoder, new SaveCodec(), 1UL, 0U, 10L);
-            byte[] neverFold = SaveComposer.Compose(
+            byte[] neverFold = ComposeSigned.Compose(
                 events, NeverFold, _decoder, new SaveCodec(), 1UL, 0U, 10L);
 
             CollectionAssert.AreEqual(withPredicate, neverFold,
@@ -346,9 +370,9 @@ namespace DaYiJingCheng.Tests.PersistenceService
         {
             var events = new[] { Onset(10L, PatientA, DiseaseSelfLimit) };
 
-            byte[] a = SaveComposer.Compose(events, Predicate(events), _decoder, new SaveCodec(),
+            byte[] a = ComposeSigned.Compose(events, Predicate(events), _decoder, new SaveCodec(),
                                             0x1234UL, 5U, 10L);
-            byte[] b = SaveComposer.Compose(events, Predicate(events), _decoder, new SaveCodec(),
+            byte[] b = ComposeSigned.Compose(events, Predicate(events), _decoder, new SaveCodec(),
                                             0x1234UL, 5U, 10L);
 
             CollectionAssert.AreEqual(a, b, "同样输入 ⇒ 逐字节相同(ADR-012 黄金夹具前提)");
@@ -372,7 +396,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 new SimEvent(11L, PatientId.None, 0L, EventKind.StructurePlaced, default), // 世界流
             };
 
-            byte[] bytes = SaveComposer.Compose(events, Predicate(events), _decoder, new SaveCodec(),
+            byte[] bytes = ComposeSigned.Compose(events, Predicate(events), _decoder, new SaveCodec(),
                                                 1UL, 0U, 11L);
 
             IReadOnlyList<SimEvent> back;

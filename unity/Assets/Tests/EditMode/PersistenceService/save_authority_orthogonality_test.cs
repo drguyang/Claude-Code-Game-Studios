@@ -65,9 +65,12 @@ namespace DaYiJingCheng.Tests.PersistenceService
             new SimEvent(12L, new PatientId(7), 0L, EventKind.CareApplied, default),    // 病史流
         };
 
+        // 🔁 2026-10-25 AC-7a-07:`Compose` 不再加校验和(移到后台 worker)⇒
+        // 本文件的「字节级等价」判据需要完整存档,显式补回。
         private byte[] Compose(IReadOnlyList<SimEvent> events)
-            => SaveComposer.Compose(events, new NeverFoldedPredicate(), _decoder,
-                                    new SaveCodec(), 0x5EEDUL, 3U, 12L);
+            => SaveService.AddChecksum(SaveComposer.Compose(
+                   events, new NeverFoldedPredicate(), _decoder,
+                   new SaveCodec(), 0x5EEDUL, 3U, 12L));
 
         // ══════════════════════════════════════════════════════════════════
         // A. 组版函数的参数集逐字不含 authority 类型

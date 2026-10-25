@@ -87,7 +87,8 @@ namespace DaYiJingCheng.Gameplay.Boot
             ulong worldSeed,
             uint configVersion,
             long tick,
-            IReadOnlyList<FoldRow> existingFoldedRows = null)
+            IReadOnlyList<FoldRow> existingFoldedRows = null,
+            SaveBufferPool bufferPool = null)
         {
             if (allEvents == null) throw new ArgumentNullException(nameof(allEvents));
             if (folded == null) throw new ArgumentNullException(nameof(folded));
@@ -111,11 +112,31 @@ namespace DaYiJingCheng.Gameplay.Boot
             byte[] events = SimEventListCodec.Encode(finalEvents, codec);
             byte[] foldedSegment = FoldRowCodec.EncodeSegment(rowsAccum);
 
-            var combined = new byte[header.Length + events.Length + foldedSegment.Length];
+            var combined = bufferPool == null
+                ? new byte[header.Length + events.Length + foldedSegment.Length]
+                : bufferPool.Rent(header.Length + events.Length + foldedSegment.Length);
             Array.Copy(header, 0, combined, 0, header.Length);
             Array.Copy(events, 0, combined, header.Length, events.Length);
             Array.Copy(foldedSegment, 0, combined, header.Length + events.Length, foldedSegment.Length);
-            return SaveService.AddChecksum(combined);
+
+            // 🔁 **2026-10-25 AC-7a-07:本方法**不再**加校验和(原文 `return SaveService.AddChecksum(combined)`)。
+            //
+            // 病因:AC-7a-07 逐字「**写盘 IO 与 SHA256 在非主线程**」,而 `Compose` 是
+            // `compose` 委托的实现、在**主线程**的 Step 边界被调 ⇒ `AddChecksum` 在此处
+            // 执行 = SHA256 在主线程,直接违反该 AC。
+            //
+            // 现分工:
+            //   · **本方法(主线程)**:头部 + 事件段 + 折叠段 → **不含校验和槽**的字节;
+            //   · **`SaveService` 的 worker(后台线程)**:`AddChecksum` 回填校验和 → 原子写。
+            //
+            // ⚠️ 返回形态因此变了:从「含校验和的完整存档」变成「不含校验和的待签名体」。
+            //    `SaveService.StripChecksum` 的逆语义在此成立 —— 需要完整存档的调用方
+            //    (夹具 / 迁移链)自行 `AddChecksum`。**14 处测试调用点已机械补齐。**
+            //
+            // ⚠️ **池的所有权**:`combined` 由本方法租出但**不归还** —— 它的内容被
+            //    `AddChecksum` 拷贝后由 worker 归还(见 `SaveService.Checkpoint`)。
+            //    本方法不知道下游何时用完,归还早了会被覆写。
+            return combined;
         }
 
         /// <summary>

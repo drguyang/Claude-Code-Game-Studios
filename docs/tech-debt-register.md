@@ -1998,6 +1998,28 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 | **🔁 复跑订正(2026-10-25 · 原文不删)** | 上表六项**逐条重跑过一遍**,数字大体成立但**三处措辞须订正**,否则即是「把未跑出的结论写成既成事实」: <br>**② 退避重试** —— 现值 **1 命中**,但那是 **`SaveService.cs:18` 我自己本轮写的订正注**(「`IOException` 退避重试」),**不是实现**。⇒ 判据须写成「排除注释后 = 0」,不能裸写 `grep ⇒ 0`。<br>**④ authority 替身** —— 该 grep 原文预言「仅 `SaveComposer` 的构造形参」,**现已过期**:本轮新增的 `item_instance_high_water_test.cs` 有 9 处 `authority` 命中,但用的是**真 `IdAuthority`**(`Authority()` 夹具),**仍非「替身」**。⇒ 结论(零替身)**不变**,但「唯一命中处」的说法须改。<br>**⑥ 定时兜底** —— 原写 **0** 是**错的**:实跑 `grep -rn "CHECKPOINT_INTERVAL\|checkpointInterval\|Timer" Assets/Sim.Codec/ Assets/Gameplay.Boot/` ⇒ **3 命中**,全在 `Gameplay.Boot/CompositionRoot.cs:480` 与 `:1003` 的**注释**里(逐字:「① 定时兜底 `CHECKPOINT_INTERVAL`(规则六「事件长期缺席」那半)」/「**不在本方法内**:定时兜底 `CHECKPOINT_INTERVAL`…」)。⇒ 这三处**恰是缺口本身的书面自陈**,不构成实现。**结论不变,但「0」这个数字是假的**,已改记「3 命中,全为注释自陈」。<br>**未受影响的三项**:① 异步化(`Task`/`ThreadPool`/`new Thread`/`async ` ⇒ 真 0)· ③ 迁移链(`migrat` ⇒ 真 0)· ⑤ 符号门(`quicksave` 等 ⇒ 真 0)。 |
 | **为什么不是四条而是合并成一条** | 四个缺口的**触发条件不同、归属同一**、且都落在同一个类(`SaveService`)。分成四条会让「7a 还剩几条」的口径继续碎 —— 而本轮刚从「13 条零载体」的碎账里爬出来。**合并的前提是全表列出、逐条可跑**(上列 ⑥ 项即是),不是「打包掩盖」。⚠️ 若其中任一条先被兑现,**须就地拆出独立结案块**,不得整条一起标 closed。 |
 | **⚠️ 幽灵引据(本轮抓出并已订正)** | `SaveService.cs:13` 原文写「**异步化归 `TD-persist-03`**」—— 该债的裁定面是「重放 + 折叠段字节布局」,**不含异步化**,且已于 2026-10-24 **closed**。⇒ 这句话把一条**已关闭且不承载它**的债当成了载体,是「幽灵引据」形态(`TD-persist-04` 原文亦属此族的记录)。**2026-10-25 已就地加注订正**(原文不删),真归属改指 `AC-7a-07` / 本条。 |
+
+> **🔁 2026-10-25 动作 ① 兑现轮(`AC-7a-07` 异步写盘)—— 本条现值:① ✅ 已兑现 · ②⑤ 具名 blocked 不变**
+> - **① 兑现落点**:`SaveWriteQueue`(one-writer 单飞 worker,`WRITE_RETRY_DELAY` 退避重试)
+>   + `SaveBufferPool`(精确长度池)+ `Checkpoint` / `SaveOnExit` 入队改造
+>   (组版留主线程;SHA256 / 写盘 / 高水位推进入 worker,高水位**写成功才推**)
+>   + `SaveAsyncBoundaryGate`(方法级 IL 门,探针轮三件套成立 —— 探针串 × 栈帧 × `Result: Failure`)。
+>   上表实测项「**① 异步化 = 0**」就此过期:`grep -rn "Task\.Run\|ThreadPool\|new Thread" unity/Assets/Sim.Codec/`
+>   现值 = `SaveWriteQueue.cs` + `CompositionRoot.cs` 注入点(**复算命令见原件 §二**)。
+> - **测试面**:夹具 23 条 + 门行为钉子 3 条;回归终态 `4966 / 4931 / 0 / 35`
+>   (`td07-3` · `2026-10-25 08:39 UTC` · commit `3ca1920` 工作树;基线 `4940/4905/0/35` ⇒ +26/+26 零回归,
+>   等式 `4966−4940 = 26 = 23+3` ✓)。
+> - **证伪轮 21 变异:20 红 + MA19 预登记绿(门是 b2 推论),零假绿**。
+>   **两处真发现**:① 假绿夹具 `twoCheckpoints_neverWriteConcurrently`(计数原在主线程串行的
+>   `compose` 里 ⇒ 重写为队列工作项体内计数,MA1 重跑转红验证);② 门覆盖守卫
+>   「**空清单逃逸**」(MA20 清空 `WorkerTypeFullNames` 不红 ⇒ 补守卫 ⓪ + 门行为测试)。
+>   **B 类回归另抓出退出保存真缺陷**(只判 `WaitForIdle` ⇒ worker 吞异常后仍清位 ⇒
+>   AC-7a-17 兜底静默失效 ⇒ 修为「排空**且**无失败」)。
+> - **原件** = `production/qa/evidence/impl-td-persist-05-act1-2026-10-25.md`
+>   (范围四项:① 本体 + 缓冲池 + IL 门 + AC-7a-06 崩溃 harness `tools/savecrash/`,判别力 37.5% 概率性)。
+> - **仍 open 的部分(具名)**:② `AC-7a-09` 符号扫描 ⇒ blocked-by `TD-ci-01`;
+>   ⑤ 同 ②;附(`AC-7a-20` 定时兜底半边)⇒ blocked-by `TD-persist-04` 动作 ①。
+>   ⇒ **索引行维持 `open`**,不随 ① 兑现翻转。
 | **解除动作** | ① **`AC-7a-07`**:把 `WriteAtomic` 的调用面移出主线程(缓冲池 + 后台 worker),`IOException` 加 `WRITE_RETRY_DELAY` 退避;`Application.persistentDataPath` 主线程启动期缓存一次(GDD `:512-515`)。⚠️ 承 `TD-persist-03` 已定的**单列表**布局,不得借机改字节形状。<br>② **`AC-7a-09`**:符号扫描执行体 —— 与 `TD-ci-01` 的 CI 矩阵**同批落**(单独落 = 无强制点);在此之前不得把该 AC 记为「有载体」。<br>③ **`AC-7a-14`**:迁移链逐版本执行 + `WorldSeed` / 已发生事件逐位不变的夹具;`AC-7a-16` 的 authority 替身可同批(两者都测「同一份三流输入 ⇒ 字节形状不变」)。<br>④ **`AC-7a-20` 定时兜底半边**:与 `TD-persist-04` 动作 ① 的瞬时源**同批**(兜底触发点需要同一套「此刻是否安全」判据)。 |
 | **🔁 2026-10-25 兑现轮(原文不删,逐条加注)** | **用户裁定范围 = ④ 项 ③ + ④**(即上表「解除动作」的 ③ 与 ④ 中的 `AC-7a-16` 一支);`AC-7a-07` / `AC-7a-09` / `AC-7a-20` 半边**本轮不做**,理由逐条见下。原件 = `production/qa/evidence/impl-td-persist-05-2026-10-25.md`。<br>**③ `AC-7a-14` 迁移链 ⇒ ✅ 已兑现**:新增 `Sim.Codec/ISaveMigration.cs` + `SaveMigrationChain.cs`(逐版本查表 · **每级三条断言**:版本号须为 `v+1` / `WorldSeed` 逐位不变 / 事件正文末尾等长逐位不变)· `SaveService.Load` 的 `<` 分支从「刻意抛 `NotSupportedException`」改为**调链**(空链仍 fail-closed)· 新增 `StripChecksum`(链工作在「不含校验和」形态,最后由 `AddChecksum` 统一算一次)· 夹具 `save_migration_chain_test.cs` **12 条** + `save_slot_contract_test.cs` 2 条改写 + **1 条正面对照新增**。<br>⚠️ **本条不实现任何真实迁移** —— `SaveHeader.CurrentSaveVersion = 1` 且零 `v0` 写入者 ⇒ **不存在真实历史版本可迁**。造「假 v0 再迁它」测的是夹具的想象力,即自造断言顶替 AC 语义层的变体。本文件测的是**框架会不会放过坏迁移**。**真实脚本落点 = `CurrentSaveVersion` 首次升到 2 的那一轮。**<br>**④ `AC-7a-16` authority 正交 ⇒ ✅ 已兑现**:`save_authority_orthogonality_test.cs` **7 条**。⚠️ **本条兑现的是「从未存在的判据」,不是修缺陷** —— `Compose` 本来就没有 authority 形参。把它拆成四条**互相独立**的性质(A 参数集逐字不含 authority / B 无可变静态态 / C 两布局产出逐位一致 / D 计数器是实例字段),因为单断言「两布局一致」在 `Compose` 不认识 authority 时**恒真**、对变异零判别力。<br>**回归**:`4917 / 4882 / 0 / 35` @ `2026-10-25 04:21 UTC` · `td05-3` · `72bb234`(起跑 `td05-2` 逐位相同);新增 **20 条**(12 + 7 + 1),零回归。<br>**证伪轮 7 轮**:MA1/MA2/MA3(每级三条断言各一轮)· MB1/MB2/MB3(authority 四条性质各一轮)· MB4(断链 fail-closed)。**10 条测试至少转红一次,零假绿**;五文件 SHA-256 逐字节还原。<br>⚠️ **一条 NOT-RUN 如实登记**:`test_migrate_multiStep_runsEveryVersionInOrder`(「逐版本、按 `FromVersion` 而非注册序」)本轮**没有独立反证** —— MB4 的 `continue` 变异未使它转红。⇒ GDD 字面 `k → k+1 → … → N` 的「逐版本」这一面**仍无独立反证**,不得借 MB4 的绿。 |
 | **🔁 blocked 两行登记(2026-10-25 用户裁定「如实标 blocked」)** | ② **`AC-7a-09` ⇒ blocked-by `TD-ci-01`**:ADR-012 已裁「载体 = CI 门」,而 CI 矩阵本身 `NOT-RUN`。单独落扫描器 = **没有东西会跑它** ⇒ 记为「有载体」即借绿。**本轮不写执行体。**<br>⑤ **`AC-7a-20` 定时兜底半边 ⇒ blocked-by `TD-persist-04` 动作 ①(瞬时源)**:兜底要回答「此刻是否安全」= 04 动作 ① 尚未裁的瞬时源。且生产装配 `narrativeContext = null`(裁定丙)⇒ 兜底调 `Checkpoint` **必抛** ⇒ 写了只能测「抛了」。**本轮不写执行体。**<br>⚠️ **未写的不是「已完成」**:两条判定维持 **无载体 / PARTIAL**,**不因本轮而改变**。本轮只把它们从「笼统归 05」改为「具名 blocked + 具名阻塞方」。 |

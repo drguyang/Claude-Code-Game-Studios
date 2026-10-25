@@ -10997,3 +10997,39 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - **EPIC 载体总表**:`17` 由 `NOT_IMPLEMENTED` 转 `IMPLEMENTED_TESTED` ⇒ 分布 **`10 / 3 / 0`**
   (全表 `NOT_IMPLEMENTED` **清零**;复算:`grep -c "↳ 🔁 \*\*2026-10-25 已兑现\*\*"` ⇒ 5;4+5+1=10,10+3+0=13 ✓)
 - **未提交**(用户未下 commit 指令);未 push
+
+<!-- ═══ TD-persist-05 动作①(AC-7a-07 异步写盘)· 2026-10-25 段六进行中 ═══ -->
+## TD-persist-05 ① 段六状态(2026-10-25)
+
+- **回归终态已达成**:`4963 / 4928 / 0 / 35`(`td07-2` · `07:40 UTC` · `3ca1920` 工作树)
+  基线 `4940/4905/0/35`(td06-6)⇒ +23/+23 零回归;13 条回归三类根因(A 门登记 2 / B 真缺陷 6 / C 双重签名 5)全修
+- **B 类真缺陷(本轮最重)**:`SaveOnExit` 首版只判 `WaitForIdle` ⇒ worker 吞异常后仍走成功分支清位
+  ⇒ AC-7a-17 兜底静默失效。修:`written = drained && LastFailure == null`
+- **证伪轮进行中**:
+  - MA1 8 红(但暴露 `twoCheckpoints_neverWriteConcurrently` 假绿夹具 —— 计数在主线程串行的 compose 里
+    ⇒ 已重写为对队列压工作项、工作项体内计数;**修复后须重跑 MA1 验证转红**)
+  - MA2 1 红 / MA3 1 红 / MA4 2 红(exhausts + isRetried 同源连带,精准)—— 均还原 SHA-256 ✓
+  - **批次 2+3 后台运行中**(b7b2o3wsp):MA1 重跑 + MA5-M16 + 补遗 MA6/15/17/18/19/20,约 2 小时
+  - ⚠️ **批次 2 首跑被外层 10 分钟 timeout 杀在 MA7 还原前** ⇒ `SaveService.cs` 留 MA7 残留
+    ⇒ 已逐处还原 + diff 全文核对(均为已知实现改动)+ FALSIFY- 归零;现基线 `138c635f…`
+    (旧值 `0fceb92e` 为探针轮时点,B 类修复后过时;证据件 §4.3 已订正)
+- **URP GlobalSettings 派生差异已还原**(m_RuntimeSettings 16 rid 精确写回,git diff 零差异)
+- 证据件 `production/qa/evidence/impl-td-persist-05-act1-2026-10-25.md` §4.3 已订正;§7 结果表待证伪轮跑完填
+- **未 commit / 未 push**(用户未下指令)
+
+<!-- ═══ TD-persist-05 动作① 兑现完成(2026-10-25 08:39 UTC)═══ -->
+## TD-persist-05 ① 终态(段六完成)
+
+- **回归终态**:`4966 / 4931 / 0 / 35`(`td07-3` · `08:39 UTC` · `3ca1920` 工作树)
+  基线 `4940/4905/0/35`(td06-6)⇒ **+26/+26 零回归**;等式 `4966−4940 = 26 = 23(异步夹具)+3(门行为)` ✓
+- **证伪轮收口**:21 变异(含 MA10b 组合变异)= **20 红 + MA19 预登记绿,零假绿**;
+  全部还原 SHA-256 逐字节(基线 SVC `138c635f` / QUEUE `5ed8cf56` / POOL `bcbac6e1` / GATE `07fb95f5`)
+- **证伪轮三处真发现(全修)**:① 假绿夹具 twoCheckpoints(重写 + MA1 转红验证)
+  ② 门覆盖守卫「空清单逃逸」(补守卫 ⓪ + 门行为测试 3 条)③ B 类回归 = SaveOnExit
+  退出保存真缺陷(written = drained && LastFailure == null)
+- **如实登记缺口**(证据件 §八 7 条):门深度 1 / harness 37.5% 概率性 /
+  missingDll 测试专属变异面 NOT-RUN / 外层兜底被内层遮蔽不可达 等
+- **债册**:`TD-persist-05` 条目加「① 兑现」注(②⑤ 具名 blocked;索引行**维持 open**,无统计翻转)
+- **EPIC**:`07` 行 ↳ 兑现(复算 grep ⇒ 6 ✓);现值 `IMPLEMENTED_TESTED 11 · PARTIAL 2(09/20)`
+- **证据件**:`production/qa/evidence/impl-td-persist-05-act1-2026-10-25.md`(§〇–§八 全)
+- **未 commit / 未 push**(等用户指令);URP GlobalSettings 已还原干净

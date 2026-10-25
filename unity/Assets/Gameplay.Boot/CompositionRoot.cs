@@ -422,6 +422,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                 //       装配期就抛会让它们因**不相干的**理由转红(= 我引入的假红)。
                 //       惰性不削弱判据:`compose` 是唯一读该值的路径,它一旦被调用就必抛。
                 uint? resolvedConfigVersion = null;
+                // ── GDD `:123` 缓冲池 —— **组版与 worker 共用同一份**(见 SaveService 构造点注)──
+                // ⚠️ 声明在闭包**之外**:闭包每次组版都会跑,池必须在多次组版之间存活
+                //    (每份存档新建一个池 = 零复用)。
+                var saveBufferPool = new SaveBufferPool();
                 Func<SaveSlot, byte[]> compose = _ =>
                 {
                     if (!resolvedConfigVersion.HasValue)
@@ -429,7 +433,10 @@ namespace DaYiJingCheng.Gameplay.Boot
                     return SaveComposer.Compose(
                         stream.Events, foldedPredicate, decoder, new SaveCodec(),
                         worldSeed, resolvedConfigVersion.Value, tick: tickDriver.CurrentTick,
-                        existingFoldedRows: stream.FoldedRows);
+                        existingFoldedRows: stream.FoldedRows,
+                        // 🔁 2026-10-25 AC-7a-07:`Compose` 现返回**不含校验和**的字节
+                        //    (SHA256 移到 worker),`combined` 的合成缓冲从本池租。
+                        bufferPool: saveBufferPool);
                 };
 
                 // 重放 + 折叠行交出 —— `TD-persist-03` 修复轮(2026-10-24,用户四裁定):
@@ -528,7 +535,25 @@ namespace DaYiJingCheng.Gameplay.Boot
                             "[7a][AC-7a-17] 退出保存失败(已置「会话未完整」标志,不阻塞退出)。" +
                             "写盘:" + (writeFailure?.ToString() ?? "(无)") +
                             " | 置位:" + (flagFailure?.ToString() ?? "(成功)"));
-                    });
+                    },
+                    // ── AC-7a-07 后台写盘(规则五 · GDD `:117-123`)──
+                    // 🔁 **2026-10-25 新增**。此前写盘与 SHA256 全在主线程
+                    //    (`SaveService.WriteAtomic` 同步、`SaveComposer.Compose` 内 `AddChecksum`)。
+                    //
+                    // ⚠️ **`Task.Run` 是生产与夹具的唯一差别**:夹具传 `action => action()`
+                    //    (同步内联,断言确定);生产传 `Task.Run`(真后台线程)。
+                    //    该委托**不可省略** —— `SaveService` 对未注入者 fail-closed,
+                    //    缺省会静默退化为同步而全部测试仍绿(见 `RequireWriteScheduler`)。
+                    //
+                    // ⚠️ 用 `Task.Run` 而非裸 `new Thread`:worker 是**长跑但空闲即退**
+                    //    (队列空则 `Drain` 返回),不值得为每份存档付一次线程创建成本;
+                    //    线程池的调度延迟在 ms 级,远小于存档写盘本身。
+                    writeScheduler: action => System.Threading.Tasks.Task.Run(action),
+                    // ── GDD `:123` GC 纪律:缓冲池复用 ──
+                    // ⚠️ **同一份池必须同时给 `compose` 与 `SaveService`** —— 组版在主线程
+                    //    租、校验和与写盘在 worker 归还,共用一份才有复用意义。
+                    //    两处传不同的池 = 各自都只租不还,退化成两个只涨不缩的空池。
+                    bufferPool: saveBufferPool);
             }
 
 

@@ -94,10 +94,14 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 narrativeContext: () => true,
                 replaySink: _ => { },
                 foldedRowSink: _ => { },
+                // 🔁 2026-10-25 AC-7a-07:`compose` 契约 = **返回未签名**,校验和由 worker 补。
+                // ⚠️ 此处**不得**再包 `AddChecksum` —— 那会二次签名 ⇒ 头错位
+                // (`Load` 报「存档版本 1508257137 > 当前 1」,回归实证)。
                 compose: _ => SaveComposer.Compose(
                     stream.Events, PredicateOf(stream), _decoder, new SaveCodec(),
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
-                    existingFoldedRows: stream.FoldedRows));
+                    existingFoldedRows: stream.FoldedRows),
+                writeScheduler: action => action());
             svc.Checkpoint(new SaveSlot(0));
 
             // ══ Act:「进程重启」⇒ 新流 + 同目录 Load,恢复闭包 = Restore ══
@@ -111,10 +115,12 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 foldedRowSink: bytes => fresh.Restore(
                     pending ?? throw new InvalidOperationException("折叠段先于事件段到达"),
                     FoldRowCodec.DecodeSegment(bytes)),
+                // 同上:`compose` 返回未签名,worker 补校验和。
                 compose: _ => SaveComposer.Compose(
                     fresh.Events, PredicateOf(fresh), _decoder, new SaveCodec(),
                     worldSeed: 1UL, configVersion: 0U, tick: 20L,
-                    existingFoldedRows: fresh.FoldedRows));
+                    existingFoldedRows: fresh.FoldedRows),
+                writeScheduler: action => action());
             svcLoad.Load(new SaveSlot(0));
 
             // ══ Assert:恢复态 == 直接重放所得(AC-7a-01 形状的三点)══

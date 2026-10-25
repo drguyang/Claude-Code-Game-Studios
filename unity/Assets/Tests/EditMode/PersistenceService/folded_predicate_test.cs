@@ -597,9 +597,13 @@ namespace DaYiJingCheng.Tests.PersistenceService
             // 🔁 2026-10-25 TD-persist-06(AC-7a-17):8 → 10(末尾增 `exitSaveRetryMillis` ——
             //    退出保存限时重试预算;`exitSaveFailureSink` —— 失败观察者)。
             //    前八个位置**不变**,故下方逐位类型断言全部仍成立。
-            Assert.AreEqual(10, ps.Length,
+            // 🔁 2026-10-25 TD-persist-05 动作①(AC-7a-07):10 → 12(末尾增
+            //    `writeScheduler` —— 后台写盘调度器;`bufferPool` —— 缓冲池)。
+            //    前十个位置**不变**,故下方逐位类型断言全部仍成立。
+            Assert.AreEqual(12, ps.Length,
                 "形参 = (basePath, codec, folded, narrativeContext, replaySink, foldedRowSink, " +
-                "compose, migrations, exitSaveRetryMillis, exitSaveFailureSink)");
+                "compose, migrations, exitSaveRetryMillis, exitSaveFailureSink, " +
+                "writeScheduler, bufferPool)");
             Assert.AreEqual(typeof(IFoldedPredicate), ps[2].ParameterType,
                 "第三形参须是 IFoldedPredicate(住 Sim.Contracts)");
             Assert.IsTrue(ps[2].HasDefaultValue && ps[2].DefaultValue == null,
@@ -619,6 +623,17 @@ namespace DaYiJingCheng.Tests.PersistenceService
             for (int i = 3; i < 7; i++)
                 Assert.IsTrue(ps[i].HasDefaultValue && ps[i].DefaultValue == null,
                     $"形参 {i} 须可选(不注入 = null ⇒ fail-closed)");
+
+            // 🔁 2026-10-25 AC-7a-07:只改计数不够 —— 新增两项须逐位断言类型,
+            //    否则「把别的形参挪过来凑够 12 个」也能过。
+            Assert.AreEqual(typeof(Action<Action>), ps[10].ParameterType,
+                "第十一形参须是 Action<Action>(后台写盘调度器 —— 生产 = Task.Run,夹具 = 同步内联)");
+            Assert.AreEqual(typeof(SaveBufferPool), ps[11].ParameterType,
+                "第十二形参须是 SaveBufferPool(缓冲池,GDD `:123` GC 纪律)");
+            Assert.IsTrue(ps[10].HasDefaultValue && ps[10].DefaultValue == null,
+                "writeScheduler 须可选(缺省 null ⇒ 使用点 fail-closed;禁「缺省同步内联」)");
+            Assert.IsTrue(ps[11].HasDefaultValue && ps[11].DefaultValue == null,
+                "bufferPool 须可选(缺省 null ⇒ 内部自建一份,不影响既有构造点)");
         }
 
         [Test]

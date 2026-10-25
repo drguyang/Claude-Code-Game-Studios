@@ -60,7 +60,27 @@ namespace DaYiJingCheng.Tests.PersistenceService
             Array.Copy(header, 0, combined, 0, header.Length);
             Array.Copy(body, 0, combined, header.Length, body.Length);
             Array.Copy(folded, 0, combined, header.Length + body.Length, folded.Length);
-            return SaveService.AddChecksum(combined);
+            // 🔁 **2026-10-25 AC-7a-07 口径变更**:`compose` 委托的契约已改为
+            // **返回未签名**字节(用户裁定「Compose 返回未签名」)—— 校验和由 worker
+            // 在后台补(`AddChecksum` 也在非主线程,AC-7a-07 两半之一)。
+            // ⇒ 本夹具**不得**再自己签一次;否则 worker 会二次签名 ⇒ 头错位
+            // (`Load` 报「存档版本 3637505255 > 当前 1」—— 回归实证)。
+            // 需要「已签名形态」的调用点请用 <see cref="SignedSaveBytes"/>。
+            return combined;
+        }
+
+        /// <summary>
+        /// **已签名**的最小存档 —— 供 `SaveBytes`(低层原语,不经 worker 补签名)
+        /// 与 `SaveHeaderCodec.Read`(直接读头)使用。
+        /// <para>🔁 2026-10-25 AC-7a-07:两者对「已签名形态」的需求**未变**,
+        /// 变的是 `compose` 委托的契约。拆成两个夹具而不是让一个夹具兼两职 ——
+        /// 兼两职正是本轮回归的根因(同一份字节既当 compose 产出又当落盘期望)。</para>
+        /// </summary>
+        private static byte[] SignedSaveBytes(ulong worldSeed = 12345UL, uint configVersion = 7U,
+                                              long tick = 100L, IReadOnlyList<SimEvent> events = null)
+        {
+            return SaveService.AddChecksum(
+                MinimalSaveBytes(worldSeed, configVersion, tick, events));
         }
 
         /// <summary>构造一个全驱动源就绪的 SaveService(叙事上下文恒 true)。
@@ -81,7 +101,11 @@ namespace DaYiJingCheng.Tests.PersistenceService
                 replaySink: replaySink ?? (_ => { }),
                 foldedRowSink: foldedRowSink ?? (_ => { }),
                 compose: compose ?? (slot => MinimalSaveBytes()),
-                migrations: migrations);
+                migrations: migrations,
+                // 🔁 2026-10-25 AC-7a-07:写盘已移出主线程。夹具用**同步内联**调度器
+                // —— 断言仍然确定(Checkpoint 返回时已落盘),不必引入等待。
+                // 生产用 `Task.Run`(见 CompositionRoot);两者是**唯一**差别。
+                writeScheduler: action => action());
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -334,14 +358,27 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_checkpoint_writesBytesProducedByCompose()
         {
-            // 组版产出的字节原样落盘(Checkpoint 不得二次加工)
-            byte[] expected = MinimalSaveBytes(worldSeed: 999UL);
-            var svc = ReadyService(compose: slot => expected);
+            // 🔁 **2026-10-25 AC-7a-07 口径变更(用户裁定「Compose 返回未签名」)**:
+            // 组版(主线程)产出**未签名**字节,校验和由 worker 在后台补
+            // (`AddChecksum` 也在非主线程 —— AC-7a-07 两半之一)。
+            // ⇒ 落盘 ≠ compose 原样,而是 `AddChecksum(compose 产出)`。
+            //
+            // ⚠️ 校验和**插在 magic(4) 之后**,不是追加在尾部 —— 布局是
+            // `magic(4) + checksum(32) + 其余`(见 `StripChecksum` 的逆操作)。
+            // ⇒ 判据 = 用 `StripChecksum(落盘)` 剥回未签名形态,与 compose 产出逐位比对。
+            //    这比「前 N 字节相等」更强:它同时钉住「校验和位置」与「正文未被二次加工」。
+            byte[] composed = MinimalSaveBytes(worldSeed: 999UL);
+            var svc = ReadyService(compose: slot => composed);
 
             svc.Checkpoint(new SaveSlot(0));
 
             byte[] written = File.ReadAllBytes(Path.Combine(_testDir, "save_0.bin"));
-            CollectionAssert.AreEqual(expected, written, "落盘字节须逐位等于 compose 产出");
+            Assert.AreEqual(composed.Length + 32, written.Length,
+                "落盘 = compose 产出 + 32 字节校验和槽(worker 补)");
+            CollectionAssert.AreEqual(composed, SaveService.StripChecksum(written),
+                "剥掉校验和槽后须逐位等于 compose 产出(正文未被二次加工)");
+            Assert.IsTrue(SaveService.ValidateChecksum(written),
+                "补上的校验和须有效");
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -353,7 +390,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         {
             var ev = new SimEvent(42L, new PatientId(7), 0L, EventKind.DiseaseOnset,
                 new PayloadRef(1, 0, 16));
-            byte[] save = MinimalSaveBytes(tick: 42L, events: new[] { ev });
+            byte[] save = SignedSaveBytes(tick: 42L, events: new[] { ev });
 
             IReadOnlyList<SimEvent> handed = null;
             var svc = ReadyService(replaySink: list => handed = list);
@@ -374,7 +411,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
             var svc = new SaveService(_testDir, new SaveCodec(),
                 narrativeContext: () => true, replaySink: null,
                 compose: slot => MinimalSaveBytes());
-            svc.SaveBytes(new SaveSlot(0), MinimalSaveBytes());
+            svc.SaveBytes(new SaveSlot(0), SignedSaveBytes());
 
             var ex = Assert.Throws<InvalidOperationException>(
                 () => svc.Load(new SaveSlot(0)), "未注入 replaySink ⇒ 须抛,禁静默跳过");
@@ -385,7 +422,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_load_outsideNarrativeContext_isRejected()
         {
             var svc = ReadyService(narrativeContext: () => false);
-            svc.SaveBytes(new SaveSlot(0), MinimalSaveBytes());
+            svc.SaveBytes(new SaveSlot(0), SignedSaveBytes());
 
             Assert.Throws<InvalidOperationException>(
                 () => svc.Load(new SaveSlot(0)), "载入安全上下文门:上下文外须拒");
@@ -416,7 +453,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         public void test_load_currentSaveVersion_passesThrough()
         {
             var svc = ReadyService();
-            svc.SaveBytes(new SaveSlot(0), MinimalSaveBytes());
+            svc.SaveBytes(new SaveSlot(0), SignedSaveBytes());
 
             Assert.DoesNotThrow(() => svc.Load(new SaveSlot(0)), "同版本 ⇒ 直通");
         }
@@ -550,7 +587,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         {
             var svc = new SaveService(_testDir, new SaveCodec(),
                 narrativeContext: null, replaySink: _ => { }, compose: slot => MinimalSaveBytes());
-            svc.SaveBytes(new SaveSlot(0), MinimalSaveBytes());
+            svc.SaveBytes(new SaveSlot(0), SignedSaveBytes());
 
             Assert.Throws<InvalidOperationException>(
                 () => svc.Load(new SaveSlot(0)), "未注入叙事上下文 ⇒ Load 亦须抛(fail-closed)");
@@ -601,7 +638,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_saveHeader_roundTripsAllFields()
         {
-            byte[] save = MinimalSaveBytes(worldSeed: 0xDEADBEEFCAFEBABEUL, configVersion: 0x12345678U,
+            byte[] save = SignedSaveBytes(worldSeed: 0xDEADBEEFCAFEBABEUL, configVersion: 0x12345678U,
                                            tick: -42L);
 
             SaveHeader h = SaveHeaderCodec.Read(save);
@@ -617,7 +654,7 @@ namespace DaYiJingCheng.Tests.PersistenceService
         [Test]
         public void test_saveHeader_rejectsBadMagic()
         {
-            byte[] save = MinimalSaveBytes();
+            byte[] save = SignedSaveBytes();
             save[0] ^= 0xFF;
 
             var ex = Assert.Throws<InvalidDataException>(
