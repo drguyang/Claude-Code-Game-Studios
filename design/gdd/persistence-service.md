@@ -414,6 +414,13 @@ sync 写 MB 级 SSD 仅几 ms,HDD / 杀软可上百 ms ⇒ **默认后台写**�
 > (`random-events.md` DC-4 已补注记);7a 只出观察钩子形状。锚点 ①「脉案落笔」的产生者 =
 > 8 诊断(判定转移)+ 39 脉案(持久化承载),反向注记已补(`diagnosis-system.md` 铁律③后)。
 > `EVENT_CHECKPOINT_ANCHORS` 已入 `entities.yaml` constants 区(跨系统锚点集)。
+>
+> 🔁 **2026-10-25 补注(52 GDD 轮已落)**:锚点 ③ 的 52 侧语义件 =
+> **`random-events.md` 规则十二**(触发时机 = 离开医馆地块时 · 活跃出诊目标 = 派生自既有流 ·
+> 载荷 = 仅 `target_patient_id`);**「出诊流程进行中」对 checkpoint 门 = 安全**(旅途段可存可读;
+> 抵达后处置段由 armed 既有语义覆盖)⇒ **`NoPendingMedicalActionQuery` 零扩展**(52 不改
+> 任何存档逻辑;防呆注 = 规则十二 12.4,勿把活跃出诊目标并入 unsafe 集 —— 否则锚点 ③
+> 同 tick 自否决)。`Kind` = `HouseCallStarted`(世界流,`entities.yaml` 同日定稿)。
 
 ## Tuning Knobs
 

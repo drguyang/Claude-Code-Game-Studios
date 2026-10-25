@@ -523,6 +523,83 @@ HistoryMult_i = clamp( 1 + HIST_W[ cause_flag_i ] , 1 , HIST_MULT_MAX )
 > 否则一半的随机压力会变成不可回避的战斗,直接违反支柱一(判断为骨)。
 > **该要求已有机制与 AC**(见上文裁定)。
 
+**规则十二:出诊启动(`HouseCallStarted`)与活跃出诊目标。** *(2026-10-25 GDD 轮新增 —— 兑现 `persistence-service.md` 规则六锚点 ③ 与 `TD-persist-04` 动作 ② 的 52 侧义务;四裁定全取推荐,用户裁定 2026-10-25)*
+
+> **来源链**:`EVENT_CHECKPOINT_ANCHORS` 白名单第三员「出诊启动」由 7a 于 2026-09-16
+> 具名(玩家裁定「两个都留」),其 `SimEvent.Kind.HouseCallStarted` 结构于 2026-10-25
+> 由 `TD-persist-04` 裁定④入表(`entities.yaml`;世界流 / `Patient=None` / 首载荷字段
+> `target_patient_id`)。本规则落 52 侧语义:**触发时机 · 活跃出诊目标的派生定义 · 载荷定稿 ·
+> 与 checkpoint 门的安全语义**。
+
+**12.1 触发时机(用户裁定 2026-10-25,取甲「离开医馆地块时」):**
+
+```
+HouseCallStarted 落流 ⟺ (活跃出诊目标存在) 且 (玩家本 tick 首次从医馆格跨出到非医馆格)
+```
+
+- 逐字兑现 7a 补记(2026-09-17)的「玩家离开医馆出诊的时机,区别于 `EventArrived` 的降临」
+  —— 急召 `EventArrived` 落流**不等于**出诊启动:「你得走过去」(37 规则二-A),启程那一刻
+  才是叙事时刻。
+- **「接受」无须新动作**:急召事件降临即视为目标激活(玩家以脚投票;P0 无「接受」交互定义,
+  不为此新开动作链)。
+- **医馆格判据与 23 建造 / 24 医馆的地块占用同源**(与规则十「无人」判据、规则六之二
+  `ContextMult` 同一个量);**52 只读流** —— 玩家跨格 = `ActorCellEntered` 世界流事件
+  (ADR-016 §三,事件率上界 = tick 频率),52 对其求值属三源内消费,**禁读表现态位置**。
+- **主机 Step 边界评估**(与 ADR-005 唯一 `Step` 口径一致);`Patient = PatientId.None`
+  (世界级事件,ADR-007 §四);**写者 = 52,主机唯一 `Append`**(ADR-005;52 零
+  `IIdAuthority` 调用,ADR-007 §三)。
+- **联机(P1b)**:与 `ContextMult` 同口径 —— 「任一玩家在出诊路径上」即为真;P0 单机不触发该面。
+
+**12.2 活跃出诊目标 = 派生态(用户裁定 2026-10-25,取乙「派生自既有流」;零新 Kind):**
+
+```
+活跃出诊目标 ≡ 存在一条出诊类 EventArrived(e),e 是最新一条,且:
+  ① e 的目标病人未 CaseOpened        (立案 = 出诊终点 —— 37 规则二-A 的立案时刻)
+  ② e 未过期                          (窗口归 37 内容件;P0 无窗口 = 永不过期)
+  ③ e 未被拒访                        (见下)
+```
+
+- **「出诊类」判据 = `event_key` ∈ 出诊类条目集**(构建期配置:池条目 schema 的
+  `key`,规则二;哪些 `event_key` 是急召出诊 = 37 内容件定稿时回填,52 侧只持整数集)。
+- **① 立案终止**:`CaseOpened` 落流即出诊生命周期终点 —— 与 37 的「立案时刻 = 抵达 +
+  就诊交互」同一时刻,零新事件。
+- **② 过期**:急召窗口期数值归 37 内容件(若其定义了窗口);P0 配置无窗口 ⇒ 活跃目标
+  持续到立案。副作用(有意):玩家搁置急召期间 `TRAVEL_PATH` 谓词为真、威胁档在医馆外
+  照常 —— 「有人还在等你」是核心循环的一部分,不是缺陷。
+- **③ 拒访**:拒访交互若在 P0 定义(37 内容件的「可拒绝路径」),其**流表达 =
+  `HistoryFlagChanged`**(52 既有通道,规则九;`flag_id` 语义归 37 内容件定稿)——
+  **不新开 Kind**。P0 若无拒访交互,本支为空集,② 成唯一超时终止。
+- **读档/联机重建**:活跃目标从三流纯函数重建(①②③ 的全部输入 ∈ 事件流)——
+  合 ADR-009 派生态判据;**`TRAVEL_PATH` 谓词(规则六之二)与本定义共用同一个量**
+  (不得另立第二份「活跃目标」实现)。
+
+**12.3 载荷定稿(用户裁定 2026-10-25,取甲「仅 `target_patient_id`」):**
+
+- `HouseCallStarted` 载荷 = `{ target_patient_id: i32 }`,一字不加(结构裁定 2026-10-25
+  已锁首字段;来源急召事件可经 `(Tick, 病人)` 关联查得,需要更多上下文时读流,不进载荷)。
+- **病人 id 的取得(接缝登记 —— 此前全库零定义)**:出诊类 `EventArrived` 载荷**不含
+  病人 id**(`{ event_key, tier, spawn_anchor, cause_clue_key? }`),而 52 被禁调
+  `IIdAuthority`(ADR-007 §三)⇒ 口径:**目标病人 = 9 在急召降临 tick 创建的病人
+  (`DiseaseOnset`),52 从流读其 `patient_id`,零发号**(`target_patient_id` 是引用,
+  不参与高水位 —— `entities.yaml` constraint 同款)。
+- ⚠️ **「病人创建于急召降临 tick」的时机义务登记给 9 / 37**(若其实现轮裁定病人创建于
+  立案 tick 而非降临 tick,则本条 12.3 的读流口径失效,须另裁关联形状 —— 两轮互为前置)。
+
+**12.4 「出诊流程进行中」与 checkpoint 门的安全语义(并入查询的口径):**
+
+- **旅途段(已启动、未立案)= 安全**:活跃出诊目标**不**构成 `NoPendingMedicalActionQuery`
+  的 unsafe 条件 —— 派生态可重建 ⇒ 旅途中存档 / 读档一致;读档后 `TRAVEL_PATH` 与
+  出诊锚点语义均正确恢复。
+- **抵达后处置段 = armed 既有语义已覆盖**(10 急救的 `IArmedState`,W5 裁定丙的瞬时源)
+  ⇒ **查询零扩展**,52 不改任何存档逻辑(7a 补记 2026-09-17 的承诺逐字成立)。
+- ⚠️ **防呆登记(勿反向加错)**:**不得**把「活跃出诊目标存在」并入 unsafe 集。
+  **内证(结构性,非偏好)**:触发器在锚点落流的**同一 Step 边界**先扫到 `HouseCallStarted`
+  再问门(TD-persist-04 裁定①集中观察 + 裁定③复用带门入口)—— 若活跃目标 ⇒ unsafe,
+  则锚点③ 在其诞生 tick 即被门否决、兜底顺延到下一个安全点,**锚点③ 永哑**,
+  与 7a 白名单三员并存的结构相抵。
+- **写者落点与豁免撤表**:写者 = 52 实现轮(主机 `Append`);**b7 写者存在性门的
+  `HouseCallStarted` 具名豁免须与写者同批撤**(判据①「已存在写者仍挂豁免 = 红」强制)。
+
 ### States and Transitions
 
 事件实例的状态机(导演侧的推演,非玩家可见):
@@ -694,13 +771,13 @@ r = S mod C                                                  // 落在 [0, C) �
 
 `SimEvent` 的形状以 ADR-006 为准,含 `{ Tick, Patient, Kind, Seq, Payload }`:
 
-| 字段 | 事件降临 | 抽取记录 | `DeferredThreatSlot` 变更 | 历史标记变更 |
-| ---- | ---- | ---- | ---- | ---- |
-| `Tick` | 生成 tick | `win` | 变更 tick | 变更 tick |
-| `Patient` | **`PatientId.None`(哨兵)** | `None` | `None` | `None` |
-| `Kind` | `EventArrived` | `EventRolled` | `ThreatDeferred` / `ThreatDeferralCleared` | `HistoryFlagChanged` |
-| `Seq` | 主机 `Append` 时分配 | 同 | 同 | 同 |
-| `Payload` | `{ event_key, tier, spawn_anchor, cause_clue_key? }` | `{ win, tier, ordinal, chosen_key }` | `{ slot_index, event_key }` | `{ flag_id, new_value }` |
+| 字段 | 事件降临 | 抽取记录 | `DeferredThreatSlot` 变更 | 历史标记变更 | 出诊启动 |
+| ---- | ---- | ---- | ---- | ---- | ---- |
+| `Tick` | 生成 tick | `win` | 变更 tick | 变更 tick | 玩家首次跨出医馆格的 tick |
+| `Patient` | **`PatientId.None`(哨兵)** | `None` | `None` | `None` | **`None`(世界流,2026-10-25 裁定④)** |
+| `Kind` | `EventArrived` | `EventRolled` | `ThreatDeferred` / `ThreatDeferralCleared` | `HistoryFlagChanged` | `HouseCallStarted` |
+| `Seq` | 主机 `Append` 时分配 | 同 | 同 | 同 | 同 |
+| `Payload` | `{ event_key, tier, spawn_anchor, cause_clue_key? }` | `{ win, tier, ordinal, chosen_key }` | `{ slot_index, event_key }` | `{ flag_id, new_value }` | `{ target_patient_id }`(12.3 定稿;id 从流读,零发号) |
 
 > **`Patient` 哨兵是硬要求**:世界级事件**不属于任何病人**。ADR-006 的 `SimEvent` 有
 > `PatientId` 字段,而 52 的事件是**世界级**的 —— 若实现在这里塞一个「最近的病人」
@@ -1233,6 +1310,9 @@ RebuildCost_razed = FullCost_mark × ( 1 − SALVAGE_RATE_RAZED )  // 焚毁档(
 - [ ] **AC-52-47** `[B][E]` **GIVEN** 医馆地块占用状态,**WHEN** 判定「无人」(规则十),**THEN** 玩家**在门口 = 有人**、**睡着了 = 有人**、**不在医馆地块内 = 无人**;检测源 = 23 建造 / 24 医馆(非 52 自算)。*(二轮 blocking #10:规则十自称「该判据进 AC」却无 AC。)*
 - [ ] **AC-52-48** `[B][E]` **GIVEN** 一个跨过 `tick % TICKS_PER_DAY == 0` 的模拟,**WHEN** 检查预算与 `DeferredThreatSlot`,**THEN** 已用预算**重置为 0**、`DeferredThreatSlot` **清空**(不结转);且重置点**由 tick 边界驱动**,不由墙钟。*(二轮 blocking #5 / #10:预算跨日行为与延后作废均无 AC。)*
 - [ ] **AC-52-55** `[A][M]` **GIVEN** 一个 P0 playthrough,**WHEN** 统计幻想锚点兑现,**THEN** 记录以下三条事实供门控:① 锚点②(先听见后看见)**已由节奏设计兑现**;② 锚点③(因果,P1a)**未兑现**;③ 锚点①(`ReputationMult` 驱动)**P0 无输入源**。*(二轮:承重问题的可测落点 —— 见 §承重问题。)*
+- [ ] **AC-52-56** `[L][E]` **GIVEN** 玩家有活跃出诊目标(规则十二 12.2)且位于医馆格,**WHEN** 玩家跨出到非医馆格,**THEN** 该 tick 恰落一条 `HouseCallStarted`(`Patient = None`,载荷 = `{ target_patient_id }`,id 与 9 在急召降临 tick 创建的病人一致);**WHEN** 同 tick 玩家跨出后立刻跨回再跨出,**THEN** 仍恰一条(同 tick 首次跨出判据,不重复)。*(规则十二 12.1;载体 = EditMode 单测,写者实现轮落。)*
+- [ ] **AC-52-57** `[L][E]` **GIVEN** 急召 `EventArrived` 已落流且玩家在医馆内,**WHEN** 逐项检验派生定义,**THEN**:① 目标病人 `CaseOpened` 落流后活跃目标为假(`TRAVEL_PATH` 谓词随之转假);② 无 `CaseOpened` 且无窗口 ⇒ 活跃目标持续为真(搁置不超时,P0 无窗口);③ 读档重建(从三流纯函数)与重建前逐位一致。*(规则十二 12.2;零新 Kind —— 终止面只允许立案 / 过期 / 拒访三支。)*
+- [ ] **AC-52-58** `[L][E]` **GIVEN** 玩家在医馆地块内 且 急召 `EventArrived` 已落流,**WHEN** 玩家在医馆内移动(未跨出)、或无活跃出诊目标时跨出医馆,**THEN** 均不落 `HouseCallStarted`(医馆内不触发 / 无目标不触发);且 WHEN `HouseCallStarted` 落流的同一 Step 边界问 checkpoint 门,**THEN** 门答「安全」(规则十二 12.4:旅途段不构成 unsafe —— 锚点③ 不得自否决)。*(规则十二 12.1 / 12.4。)*
 
 ## Open Questions
 

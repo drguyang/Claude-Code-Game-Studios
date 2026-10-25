@@ -11158,3 +11158,19 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - **EPIC 侧**:`persistence-service/EPIC.md` 追注债册侧翻转;**`20`(AC-7a-20)行状态
   PARTIAL 未翻** —— 剩余面是内容侧义务(52),翻转与否归用户另行裁
 - **未 commit**(等用户指令)
+
+<!-- ═══ 52 GDD 轮:出诊启动专项(2026-10-25 · 四裁全取推荐)═══ -->
+## 52 GDD 轮终态(`random-events.md` 规则十二)
+
+- **四裁**:① 触发 = 离开医馆地块时(活跃目标 ∧ 本 tick 首次跨出;52 只读流)·
+  ② 活跃出诊目标 = 派生自既有流(零新 Kind:出诊类 EventArrived 未立案/未过期/未拒访)·
+  ③ 载荷 = 仅 target_patient_id · ④ 范围 = 出诊启动专项
+- **推导裁定**:目标病人 id = 9 在急召降临 tick 创建、52 从流读 DiseaseOnset(零发号;
+  病人创建时机登记给 9/37);「出诊流程进行中」= checkpoint 门**安全段**(旅途可存可读,
+  armed 覆盖处置段)⇒ NoPendingMedicalActionQuery **零扩展**(内证:否则锚点③ 同 tick 自否决)
+- **落盘**:random-events.md 规则十二(12.1–12.4)+ DC-4 表加列 + AC-52-56/57/58 +
+  entities.yaml 定稿 + persistence-service.md 锚点③ 补注;YAML OK + kindgen A1–A5 过
+- **债册**:新立 **TD-randomevents-02**(写者 + 派生查询 + 防呆注,实现轮;b7 撤表同批)
+  —— 二十八订:条目 109 · open 71 · 未闭 P0 面 72 · random-events 1(12/31);
+  TD-persist-04 结案块追注(义务① GDD 半边已落、写者转 02)
+- **未 commit**(等用户指令)

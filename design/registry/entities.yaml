@@ -2129,9 +2129,10 @@ constants:
     unit: kind
     stream: world
     author: "52 随机事件导演(主机唯一 Append,ADR-005)"
-    payload_schema: "target_patient_id: i32(出诊目标病人;结构裁定 2026-10-25,其余载荷字段归 52 GDD 轮定稿)"
-    constraint: "落**世界流**(2026-10-25 TD-persist-04 裁定甲:出诊启动是世界级时刻,envelope `Patient = PatientId.None`,不污染 `max(patient_id)` 高水位 —— ADR-007 §四);载荷首字段 `target_patient_id`(目标病人**引用**,非身份发号 —— 发号仍走 `IIdAuthority`,本字段不参与高水位);⚠️ **本条只立结构**(name / stream / author / 首载荷字段;2026-10-25 用户裁定「一并裁结构」),触发时机 / 与急召出诊(37 医疗事件模板)的关系 / 其余载荷 = **52 GDD 轮义务**;有界性 ≤ 出诊启动率(玩家动作粒度,与 tick 频率无关)"
+    payload_schema: "target_patient_id: i32(出诊目标病人;2026-10-25 52 GDD 轮载荷定稿 = 仅此一字段,不加)"
+    constraint: "落**世界流**(2026-10-25 TD-persist-04 裁定甲:出诊启动是世界级时刻,envelope `Patient = PatientId.None`,不污染 `max(patient_id)` 高水位 —— ADR-007 §四);**触发时机(2026-10-25 52 GDD 轮裁定,`random-events.md` 规则十二 12.1)= 活跃出诊目标存在 且 玩家本 tick 首次从医馆格跨出到非医馆格**(52 只读流:`ActorCellEntered` 世界流事件 + 23/24 医馆地块判据同源,禁读表现态位置);**「活跃出诊目标」= 派生态(规则十二 12.2,零新 Kind)** ≡ 最新出诊类 `EventArrived`(`event_key` ∈ 出诊类条目集,构建期配置)且目标病人未 `CaseOpened` 且未过期(窗口归 37,P0 无窗口 = 永不过期)且未拒访(拒访流表达 = `HistoryFlagChanged`,语义归 37);`target_patient_id` = **9 在急召降临 tick 创建的病人,52 从流读 `DiseaseOnset` 取得,零发号**(52 零 `IIdAuthority` 调用,ADR-007 §三;本字段不参与高水位);**写者 = 52,主机唯一 `Append`**(实现轮义务;b7 豁免同批撤);有界性 ≤ 出诊启动率(玩家跨格动作粒度,与 tick 频率无关)"
     added: 2026-10-25
+    revised: "2026-10-25(52 GDD 轮:载荷定稿仅 target_patient_id + 触发时机 / 派生定义 / 读流口径钉死,见 random-events.md 规则十二)"
     revised: ""
 
   # ── 世界流 Kind（ADR-009 §三 骨架 · ADR-021 首个系统 ADR 落点）──────────
