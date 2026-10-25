@@ -1,4 +1,91 @@
-# Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · S19-1..S19-5 全 done(批 1+2+3 收口)—— 未提交,等 commit 指令**)
+# Session State — 2026-10-25(**当前阶段 = Pre-Production · Sprint 19 · S19-1..S19-5 全 done · QA 收口轮 + 评审修复轮 —— 未提交,等 commit 指令**)
+
+## 评审修复轮(2026-10-25 · `/code-review` 三条必修已落)
+
+**用户裁定(2026-10-25)**:
+- **W1** → 「收 private + IReadOnlyDictionary」
+- **W4** → 「分离路径(改 SaveOnExit)」
+- **范围** → 「三条都修(含 W5 补实现)」
+- **W5 驱动源** → 「用已有流事件驱动」
+- **W5 语义复核后** → **「丙 · 推迟到 10 落地」**(接线回退 `null`)
+
+### 三条必修的终态
+
+| # | Landed | Proven | 落点 |
+|---|---|---|---|
+| W1 | ✅ | ✅ | `EventBudget.cs:88,91,94` — 字段 private + `IReadOnlyDictionary` + `internal` 可变面 |
+| W4 | ✅ | ✅ | `SaveService.cs:308` `ExitSaveFileName = "save_exit.bin"` + 提取 `WriteAtomic` 单原语 |
+| W5 | ✅ | ✅ | `CompositionRoot.cs:507` `narrativeContext = null`(回退);两纯函数 `:970,1021` 保留零接线 |
+
+### W5 的语义发现(本轮最重要)
+
+GDD 规则十四的 `InNarrativeContext` 是「**无未决医疗动作**」的**瞬时**量,而「流里出现过锚点」是**累积**量
+⇒ 首次锚点后恒 true ⇒ **AC-7a-19 (c) 安全门恒开(fail-open)**,逃生通道重开。
+⇒ 用户裁定「丙」:回退 `null`,瞬时源归 **10 急救动作**(内存态,不在流里)。
+⇒ 教训:**「字面兑现用户裁定」≠「满足 AC」** —— 裁定选项描述未覆盖「累积 vs 瞬时」这一维。
+
+### 证伪轮(2026-10-25 · **4/4 全部恰如预期 · 通过**)
+
+- spec:`tools/falsify/specs/s19-review-fix-w1w4w5.json` —— **四条变异**
+  - `W5a-failClosedRevertedToCumulativeHook` `:507` → 3 红(主判据在内)· 守**今天的安全属性**
+  - `W5b-anchorCheckDisabled` `:1020` → 3 红(主判据在内)· 守**留待 10 复用的预备件**
+  - `W1-publicSurfaceBackToMutableDictionary` `:91` → 1 红(恰如预期)
+  - `W4-exitSaveCollidesWithSlotZero` `:308` → 3 红(主判据在内)
+- 还原:SHA-256 逐字节通过 · 受保护路径指纹未变 · `grep -rn "FALSIFY-"` 零残留
+- ⚠️ **W5 拆两条是用户追问后补的**:首版删掉了锚点行变异,理由「零生产调用点 ⇒ 判别力已转移」
+  **只对了一半** —— 两者都能让测试红,形式判据相同但**证明的东西完全不同**。
+  「留待 10」≠「不需证伪」,要复用的算子更须被钉住。教训落记忆 `feedback-falsify-one-guard-per-property`
+- 首轮曾因窗口内编辑 + `TaskStop` 留残留而**整体作废**(教训 `feedback-falsify-concurrent-edit-window`)
+
+### 已回写的报告
+
+- `production/qa/evidence/review-sprint19-2026-10-25.md`:§七 双列结账表(W1/W4/W5 双 ✅;W6–W10 未修如实登记)
+  + §七.1 红集超预期归因 + §七.2 流程违规登记;S19-1a 的 Proven-by **错引已订正**
+- `production/qa/qa-signoff-sprint-19-2026-10-25.md`:§八 C-1…C-6 处置(4 已处置 / 2 如实登记未满足)
+- `docs/tech-debt-register.md`:`TD-persist-04` 就地加注 W5 语义缺口(解除动作 ① 追加前置)
+
+
+## QA 收口轮(2026-10-25 · 🔄 进行中,未提交)
+
+**用户指令**:**「开qa」** —— 按 sprint-19 DoD 剩四条的门顺序:QA plan → smoke-check → team-qa 签核 → code-review 双列。
+
+### 已完成
+
+1. **`/qa-plan sprint` 复核模式**(plan 规划期 2026-10-24 已存在,无需重生成):
+   - 追加 §**实收对账**(规划数 vs 实收数逐件):S19-1 ~28→**36**(+13+8+9+1 分支载体)·
+     S19-2 ~15→**9**(四判据**合并夹具**,判据④并入 `interface_members_areComplete` 的
+     `Tick(float, in MoveInput)` 反射断言 `player_motor_test.cs:79-83`,非缺覆盖)·
+     S19-3 ~12→**15**(多 3 = 推进算子面)· S19-4 ~16新+改3→**21新+7全改写**
+   - 追加 §**判据⑦形状订正**:plan 写「`SaveService` 构造 3→6」,实收 = **7**
+     (`SaveService.cs:88-95`)。第七形参 `Action<byte[]> foldedRowSink` 由 `TD-persist-03` 追加
+     (判据⑤字节半的载体),**非形状违规**。既有反射断言 `folded_predicate_test.cs:588-606` **改而未删**
+   - `sprint-19.md` DoD :408 **补勾**(该件规划期已存在,S19-5 当时误留不勾)
+   - 行数过期数字订正:`:426` 写「497 行」→ 实跑 **673**(带 `@ 时刻` + 复算命令)
+
+2. **`/smoke-check sprint`** → `production/qa/smoke-2026-10-25-sprint19.md`(新,**Verdict = PASS**):
+   - EditMode `4867/4832/0/35` · PlayMode `202/202/0/0`
+   - **全名级差集两套件全零**(新增 0 · 消失 0 · 翻转 0 · 非绿 0)
+   - 三元组:EditMode `2026-10-25 08:27 CST`(XML `00:25:32Z`/`00:27:09Z`)· `qa-full` · `4d468a5`;
+     PlayMode 同批(`00:27:45Z`/`00:27:49Z`)
+   - ✅ **被验的树 = `4d468a5` 本身**(生产码零未提交改动,与既有 smoke 报告「13 项未提交」不同)
+   - 人工批 **不适用**(QA plan §Smoke Test Scope 第 3 条:零玩家可见变化)
+   - **踩坑如实登记**:首跑命令**漏了 `-runTests`** ⇒ 主线程单核空转不收敛(编译 08:06 完成后
+     16 分钟零进展,967s CPU / 960s 墙钟,`Library/` mtime 冻结)。`kill -TERM` + 清 Lockfile +
+     带 `-runTests` 重跑 ⇒ 30 秒内进测试,全程 ~97s。判据已写入记忆 `project-unity-test-command`
+     (**不是「等了多久」,是「编译完成后 `Library/` 还有没有写入」**)
+
+3. **`/team-qa sprint`** 已 spawn `qa-lead`(后台,草稿 `production/qa/evidence/tmp-qa-sprint19-qa-lead.md`,
+   目标报告 `production/qa/qa-signoff-sprint-19-2026-10-25.md`)—— **等结果**
+
+4. **`/code-review` 双列结账** 已 spawn `lead-programmer`(后台,草稿
+   `production/qa/evidence/tmp-review-sprint19-lead-programmer.md`,目标报告
+   `production/qa/evidence/review-sprint19-2026-10-25.md`)—— **等结果**
+
+### DoD 剩余(等两个 agent 回来)
+
+- [ ] QA 签核报告 APPROVED / APPROVED WITH CONDITIONS
+- [ ] 无 S1/S2 bug(`production/qa/bugs/` 实测仅 `README.md`,零 bug 条目)
+- [ ] `/code-review` 结账表双列(`Landed`/`Proven`)+ `Branch(分支覆盖)` 列
 
 ## S19-5 记账轮(2026-10-25 · ✅ 收口,未提交)
 

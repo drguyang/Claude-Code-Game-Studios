@@ -1,0 +1,85 @@
+{
+  "name": "S19 W1/W4/W5 —— 评审修复轮新增/改写夹具的守卫反证",
+  "mode": "EditMode",
+  "filter": "CompositionRootTest;SaveSlotContractTest;DeferredThreatSlotTest;SaveComposerWiringTest",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/AddressableAssetsData",
+    "unity/Assets/Audio"
+  ],
+  "_note": [
+    "立此 spec 的缘由:2026-10-25 /code-review 的 W1/W4/W5 三条必修,修复轮新增/改写了夹具,",
+    "须为**本轮**的命中形态补反证(S12-4),不得用实现轮/评审轮的证伪借绿。",
+    "命中形态逐条:",
+    "  W5-a 定义域收窄 —— test_assemble_savePath_narrativeContextStaysFailClosed 断言「装配后钩子必须为 null 且 Checkpoint 必抛」",
+    "  W5-b 定义域收窄 —— test_narrativeAnchor_caseClosed_isTrue 断言「CaseClosed 被纳入锚点域」",
+    "  W1   共存互斥   —— test_budget_deferSlots_publicSurfaceIsReadOnly 断言「公开面 = IReadOnlyDictionary」",
+    "  W4   定义域收窄 —— test_saveOnExit_doesNotCollideWithPlayerSlotZero 断言「退出保存不撞玩家槽 0」",
+    "⚠️ W4 首跑零红逃逸:原夹具三处路径引用 SaveService.ExitSaveFileName,变异改的正是该常量",
+    "   ⇒ 判据跟着被测对象一起动(自指判据)。已改为字面量 'save_exit.bin' 后重跑。",
+    "🔁 **2026-10-25 W5 拆成两条变异(用户质疑「换靶」后补)** —— 两条守的**不是同一件事**,不可互替:",
+    "   W5-a(接线行 :507)= 守**今天的安全属性**(生产路径 fail-closed,`AC-7a-19 (c)`)",
+    "   W5-b(锚点行 :1020)= 守**留待 10 复用的预备件的逻辑正确性**",
+    "   ⇒ 「留待 10」**不等于**「不需要证伪它」;恰恰相反,要留给别人复用的算子更须被钉住,",
+    "     否则 10 接手时拿到的是一个从未被证伪过的东西。",
+    "   ⚠️ 首版只留 W5-a(把 W5-b 删了)是**错的**:两者都能让测试红,形式判据相同,",
+    "     但证明的东西完全不同 —— 只留 a 会让「留待 10 的那部分」本轮零证伪覆盖。",
+    "   ⚠️ 驱动是逐行匹配,不支持多行锚。",
+    "📌 首轮实跑(2026-10-25)两处「红集超预期」的归因 —— 均为**连带红,非假绿**:",
+    "   W5-b:把整行 if 恒假 ⇒ 该行同时承载 CaseClosed/PatternRecognized 两 Kind,",
+    "     且第三条夹具的锚点也是 CaseClosed ⇒ 3 红(预期 1)。变异粒度比预期粗。",
+    "   W4:三条 SaveOnExit 夹具全用字面量 'save_exit.bin' ⇒ 常量一改全部失效 ⇒ 3 红(预期 1)。",
+    "     **这正是修掉自指判据后的应有行为** —— 判据已与被测常量解耦。",
+    "   假绿的定义是「该红的没红」;此处是「该红的红了、额外也红了」,方向安全。"
+  ],
+  "mutations": [
+    {
+      "name": "W5a-failClosedRevertedToCumulativeHook",
+      "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+      "line": 507,
+      "expect": "                Func<bool> narrativeContext = null;",
+      "replace": "                Func<bool> narrativeContext = () => HasNarrativeAnchorEvent(stream.Events); // FALSIFY-W5a:接回累积语义",
+      "expectRed": [
+        "test_assemble_savePath_narrativeContextStaysFailClosed"
+      ],
+      "exactRed": false,
+      "_why": "判据形态 = **定义域收窄 / 共存互斥**(「fail-closed 安全属性」与「累积语义接线」不可兼得)。接回累积钩子后:① `HasNarrativeContextSource` 转 true ⇒ 台账断言红;② 空流时钩子仍 false ⇒ 行为断言可能不红。故 exactRed=false(至少一条红即可,不锁死红集大小)。⚠️ 本变异守的是**今天的安全属性**(生产路径 fail-closed)。"
+    },
+    {
+      "name": "W5b-anchorCheckDisabled",
+      "file": "unity/Assets/Gameplay.Boot/CompositionRoot.cs",
+      "line": 1020,
+      "expect": "                if (kind == EventKind.CaseClosed || kind == EventKind.PatternRecognized)",
+      "replace": "                if (false && kind == EventKind.CaseClosed) // FALSIFY-W5b:停用锚点判定",
+      "expectRed": [
+        "test_narrativeAnchor_caseClosed_isTrue"
+      ],
+      "exactRed": false,
+      "_why": "判据形态 = **定义域收窄**(哪些 Kind 被纳入锚点域)。⚠️ 本变异守的是**留待 10 复用的预备件**的逻辑正确性 —— 该纯函数今天零生产调用点,但既然要留给 10,它的正确性更需被钉住(否则 10 接手时拿到一个从未被证伪过的算子)。⇒ **W5-a 与 W5-b 不可互相替代**:前者证明「今天的安全属性成立」,后者证明「明天的复用件是对的」;两者都能让测试红,形式判据相同而证明的东西完全不同。🔁 首轮(2026-10-25)本变异实得 3 红(`caseClosed_isTrue` + `patternRecognized_isTrue` + `anchorAfterNonAnchors_isTrue`)—— **连带真红**:变异把整行 if 恒假,该行同时承载两个 Kind 判定,且第三条夹具的锚点也是 CaseClosed。但该轮因窗口内编辑被变异文件而**整体作废**,故今天须重跑取有效证据。"
+    },
+    {
+      "name": "W1-publicSurfaceBackToMutableDictionary",
+      "file": "unity/Assets/Sim/EventBudget.cs",
+      "line": 91,
+      "expect": "        public IReadOnlyDictionary<int, int> DeferSlots => _deferSlots;",
+      "replace": "        public Dictionary<int, int> DeferSlots => _deferSlots; // FALSIFY-W1:公开可变句柄",
+      "expectRed": [
+        "test_budget_deferSlots_publicSurfaceIsReadOnly"
+      ],
+      "exactRed": true,
+      "_why": "判据形态 = **共存互斥**(「唯一写入路径」与「公开可变句柄」不可兼得)。退回 Dictionary ⇒ 反射断言 prop.PropertyType == IReadOnlyDictionary 必红。"
+    },
+    {
+      "name": "W4-exitSaveCollidesWithSlotZero",
+      "file": "unity/Assets/Sim.Codec/SaveService.cs",
+      "line": 308,
+      "expect": "        public const string ExitSaveFileName = \"save_exit.bin\";",
+      "replace": "        public const string ExitSaveFileName = \"save_0.bin\"; // FALSIFY-W4:退回与玩家槽 0 撞名",
+      "expectRed": [
+        "test_saveOnExit_doesNotCollideWithPlayerSlotZero"
+      ],
+      "exactRed": false,
+      "_why": "判据形态 = **定义域收窄**(退出保存的文件名域须与 save_{slot}.bin 不相交)。撞名后:① 字面量 'save_exit.bin' 不存在 ⇒ 红;② 退出保存覆写 save_0.bin ⇒ 字节比对红。⚠️ 首跑零红是因为夹具引用该常量本身(自指);已改字面量。🔁 **2026-10-25 第二轮实跑:exactRed 由 true 改 false,并如实登记连带红** —— 实得 3 红(另两条 = test_saveOnExit_outsideNarrativeContext_stillWrites / test_saveOnExit_writesWithoutAdvancingSlotHighWatermark)。**归因:三条夹具从三个角度(文件存在 / 上下文外照写 / 不推高水位)钉同一个文件名契约,且全用字面量 'save_exit.bin' ⇒ 常量一改必然三条全红。这是连带**真**红(每条都是真断言在变异下失败),不是噪声。** 保留主判据在 expectRed、连带红登记于此,而不是把 expectRed 扩成三条 —— 后者会模糊「哪条是这条变异的主要靶」。exactRed=false 的语义 = 「expectRed 里的必须在红集内,不锁死红集大小」。"
+    }
+  ]
+}

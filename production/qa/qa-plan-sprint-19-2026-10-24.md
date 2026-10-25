@@ -517,6 +517,36 @@ bool ConsumeCellChanged():           // 只读 + 清锁存,不碰 _hasPending / 
 
 ---
 
+## 实收对账(2026-10-25 QA 轮 · 规划数 vs 实收数)
+
+> 本节为 QA 轮就地加注 —— 上文各「约 N 测」为规划期估算,原文不删;实收以 `[Test]` 实数为准。
+
+| 件 | 规划 | 实收 | 差异与去向 |
+|---|---|---|---|
+| S19-1(G-4 + `TD-persist-01` 剩两项)| ~28 | **36**(`save_slot_contract_test.cs`)+ **15**(`save_composer_wiring_test.cs`)| 判据⑤字节半两组原标 `NOT-RUN` ⇒ 已由 `TD-persist-03` 兑现:`fold_row_codec` 8 + `eventstream_restore` 9 + `save_replay_roundtrip` 1(证据件 `impl-td-persist-03-replay-and-body-2026-10-24.md`)|
+| | | | 🔁 **2026-10-25 QA 轮订正(原文不删,承签核 C-3 / C-4)**:① 证据件名初写 `impl-td-persist-03-2026-10-25.md` —— **该文件不存在**;真名 = `impl-td-persist-03-replay-and-body-2026-10-24.md`。② `save_composer_wiring_test.cs` 初写 **13** —— 实测 **15**(+2 由 `TD-persist-03` 追加,当时未加注)。<br>复算:`ls production/qa/evidence/ \| grep td-persist-03` ⇒ 1 行;`grep -c '^\s*\[Test\]' unity/Assets/Tests/EditMode/PersistenceService/save_composer_wiring_test.cs` ⇒ **15**。|
+| S19-2(G-5)| ~15 | **9**(`player_motor_test.cs`)| 非缺覆盖,是**合并夹具**:判据① `interface_members_areComplete`(含判据④的 `Tick(float, in MoveInput)` 反射,:79-83)· 判据③ 四子场景 + 两条「不得」由 `noCellChange` / `singleCross…notTwice`(抖动与折返并入)· `twoConsecutiveCrosses` · `unconsumedEdge…untilConsumed` · `consume_doesNotSteal_pendingPath` 五条承载 · 判据② `tick_delegatesToMove_singleWritePath` + `position_readonlyView` · 判据④ B-3 `cell_usesFloorToFloat_notGetCell`。四判据全有载体;少 6 = 归并,非空缺 |
+| S19-3(G-6)| ~12 | **15**(`logi_pose_test.cs`)| 判据①–④全覆盖(landing / 双判源码+反射 / placeholder+零驯化路径 / 纯函数+效果进流);**多 3** = `advance` 推进算子面 5 条 + `facingBetween` + `routeDecisionAndEffectSeparation` 机械面(S19-3 实现轮落 F-27-4 权威推进算子,规划未列)|
+| S19-4(G-7)| ~16 新 + 改 3 | **21 新 + 全改写 7**(`deferred_threat_slot_test.cs` 21 / `event_budget_defer_test.cs` 7 条全改写)| F-1/F-2/F-3 全兑现;**多 5 新 + 多改 4**:判据①(删 `AddToDefer`)与 F-1 修法①「`AddToDefer` 加真上界」相抵,实现**取判据①优先**(上界移至写者域校验 + 折叠侧抛),`test_newDayReset` 随 API 删除结构性改写(证据件 §二 如实登记)|
+| S19-5 | 无自动化 | 纸面已落(commit `4d468a5`)| 三判据 grep 双命中 + 实跑输出就地贴;债册 §五 二十订 |
+
+**Sprint 级 DoD 预检**(对照 §Definition of Done):债册复算已实跑 = **71**(与推算 76→71 恰合,S19-5 记账勾)· M3 合取已可机械求值(实跑 = 假,71 条 / 11 epic)· QA 签核 + code-review 双列 = 本 QA 轮进行中。
+
+### 判据⑦形状的实收订正(2026-10-25)
+
+plan 判据⑦写「`SaveService` 构造形参 **3 → 6**」。实收 = **7**(`SaveService.cs:88-95`):
+`(basePath, codec, folded, narrativeContext, replaySink, foldedRowSink, compose)`。
+
+第七形参 `Action<byte[]> foldedRowSink` 由 `TD-persist-03` 追加 —— 它是判据⑤「字节半」的载体
+(折叠段原始字节交出:`SaveService` 看不见 `FoldRow`,`Sim.Codec` 零 `FoldRow` 编码器)。
+⇒ **不是形状违规,是判据⑤兑现后的必然增员**;plan 的「3 → 6」写于字节半并入 `TD-persist-03` 之前。
+
+同批强制项已照办:既有反射断言 `folded_predicate_test.cs:588-606` **改而未删**
+(`ctors.Length` 仍 1;形参计数 3→6→7;`ps[2]` 的 `folded` 位置断言仍成立),`for (int i = 3; i < 7; i++)` 逐形参类型断言。
+可复算:`sed -n '586,610p' unity/Assets/Tests/EditMode/PersistenceService/folded_predicate_test.cs`。
+
+---
+
 ## 溯源
 
 | 项 | 出处 |

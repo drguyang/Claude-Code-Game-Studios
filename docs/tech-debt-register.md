@@ -353,6 +353,7 @@
 | `TD-persist-03` | `persistence-service` | closed | **Y** | R1 |
 | `TD-persist-04` | `persistence-service` | open | **Y** | R1 |
 | `TD-enemy-01` | `enemy-ai` | closed | **Y** | R1 |
+| `TD-enemy-02` | `enemy-ai` | open | **Y** | R1 |
 | `TD-randomevents-01` | `random-events` | closed | **Y** | R1 |
 | `TD-net-01` | `（系统 45 网络层 · P1b · 无 epic）` | open | **N** | R2 |
 | `TD-clinic-01` | `item-database` | **done**(2026-10-21) | ~~**Y**~~ | R1 |
@@ -1857,6 +1858,21 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > **04 = AC 载体记账面**(13 条 BLOCKING 无主)。
 > ⚠️ **`TD-persist-04` 不因 `S19-1` 的完成而结案** —— `S19-1` 交的是 `AC-7a-19` 与门形状,
 > 与 `AC-7a-20` 的「事件触发调度」正交。
+>
+> 🔁 **2026-10-25 收口轮就地加注(原文不删)—— 钩子的**语义**缺口比本条原记的更严重**:
+> 本条原记「观察钩子形状零实现」;评审修复轮曾按用户裁定把它接成
+> `() => HasNarrativeAnchorEvent(stream.Events)`(累积语义),**接线后暴露语义违背**:
+> GDD `persistence-service.md:211-215` 规则十四要的是「**无未决医疗动作**」的**瞬时**量,
+> 而「流里**曾**出现过锚点」是**累积**量 ⇒ 首次锚点后**恒 true** ⇒
+> **`AC-7a-19 (c)`「急救动作进行中拒绝读档」的安全门恒开(fail-open)**,
+> 逃生通道(带伤/带病/战斗中读档)重新打开。
+> ⇒ **用户 2026-10-25 裁定「丙」**:接线**回退 `null`**(fail-closed),真正的瞬时源归
+> **10 急救动作**的运行时状态(「有没有未决医疗动作」是**内存态,不在流里**)。
+> 两条纯函数(`HasNarrativeAnchorEvent` / `LastEventIsAnchor`)保留在盘但**零生产调用点**,
+> 供 10 落地时复用。
+> **⇒ 本条解除动作 ① 须追加一条前置**:8 / 37 / 52 接线前**必须先解决「累积 vs 瞬时」** ——
+> 单靠流内锚点**不足以**表达「此刻无未决动作」。详见
+> `production/qa/evidence/review-sprint19-2026-10-25.md` §七「W5 的裁定轨迹」。
 
 ---
 
@@ -1947,6 +1963,24 @@ AC-44-04 的非阻塞项、AC-44-08 的听感三条),**但 L-3 / L-4 / L-5 未�
 > **残余(不并账,如实留)**:`EnemyPathing.StepAccumulator`(直线逼近)与 `EnemyLocomotion.Advance`(沿路径)
 > 双步进算子并存 —— 语义不同(朝目标 vs 沿路径),合并/删除归后续收敛轮(与 `TD-player-03` 同型);
 > `LogiPose` 今日零生产消费者(27 行为程序接线归各自 story),S19-3 只落形状不发明消费者。
+> 🔁 **2026-10-25 QA 轮:该残余已升为正式条目 `TD-enemy-02`**(用户裁定「都入债册」,
+> 承签核 C-6)。原「不并账」口径作废 —— 它当时让这条双实现**无编号、无归属、无触发条件**,
+> 正是「自陈未入债册」的形态。条目正文见 `### TD-enemy-02`。
+
+### TD-enemy-02 — 敌人步进算子双实现(`EnemyPathing.StepAccumulator` vs `EnemyLocomotion.Advance`)
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | 同一个「按 tick 推进敌人逻辑位姿」的职责存在**两份实现**:① `Sim/EnemyPathing.cs:181` `StepAccumulator` —— **直线逼近**语义(朝目标插值);② `Sim/EnemyLocomotion.cs:63-110` `Advance` —— **沿路径**语义(S19-3 落,兑现 ADR-016 §九 / F-27-4)。两者都吃 `Fix` 累积量、都产出 `LogiPose`,但**语义不同**(朝目标 vs 沿路径)。双实现的失效模式:调用方选错算子 ⇒ 敌人行为静默漂移,且**无机械门可拦**(两者签名相近、都住 `Sim`)。 |
+| **实测(逐条可跑)** | ① `grep -n "StepAccumulator" unity/Assets/Sim/EnemyPathing.cs` ⇒ `:181` 声明在盘;② `grep -rn "EnemyLocomotion.Advance\|\.Advance(" unity/Assets --include=*.cs \| grep -v Tests` ⇒ 生产侧**零调用点**(S19-3 只落形状);③ `grep -rn "StepAccumulator" unity/Assets --include=*.cs \| grep -v Tests` ⇒ 同样零生产调用点 ⇒ **两份都还没有生产消费者**,当下无行为漂移风险。 |
+| **为何现在登记而非合并** | 两者**都零调用点** ⇒ 没有「选错」的现实可能,合并是**提前优化**。但 S19-3 落了 ② 之后,① 就成了「同一职责的第二份实现」,若不登记,将来 27 接线时**没有任何文档告诉实现者该用哪个**。 |
+| **解除动作** | ① **先裁语义边界** —— 若 27 的行为程序只需「沿路径」,删 ①;若「直线逼近」仍是独立需求(如无路径的追击),则在两处类头**互写交叉引用 + 具名适用条件**;② 裁定后**补一条机械门**:生产树内两者不得同时被调用(或调用点须具名声明选了哪个);③ **不得**默认删 ① —— `EnemyPathing` 是否有其他在册义务须先核。 |
+| **触发条件** | **27 行为程序首次接线敌人步进时**(无论选哪个算子);或 `EnemyPathing.cs` 下一次改动时;或任何新消费方引用两者之一时。 |
+| **归属** | **27**(敌人 AI)· 夹具归一涉及 `Tests/EditMode/EnemyAI/` |
+
+> ⚠️ **本条与 `TD-player-03` 同型但不同根因** —— 03 是「生产内联 vs 独立类」(其中一份只有测试消费),
+> 本条是「两个独立类、都零生产消费」。**不得**合并记账:03 的解除动作是「二选一收敛」,
+> 本条是「先裁语义边界再决定删/留」。 |
 
 ### TD-randomevents-01 — `DeferredThreatSlot` 状态量零落点
 

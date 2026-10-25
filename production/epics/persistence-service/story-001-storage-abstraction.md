@@ -1,7 +1,12 @@
 # Story 001: 存储抽象层（二进制 codec 接口 + 校验骨架）
 
 > **Epic**: 7a 持久化服务
-> **Status**: Complete
+> **Status**: In Progress
+> **Last Updated**: 2026-10-25
+> 🔁 **2026-10-25 QA 轮退回(用户裁定 · 承签核 C-1,原文 `Status: Complete` 不删)**:
+> 该件此前标 `Complete` 但 **7 条 AC 全未勾选**(`[x]`=0 / `[ ]`=7),而 `Type: Logic`
+> ⇒ 自动化证据是 BLOCKING 门。qa-lead 判此为**第五个假绿形态**:用「文件已落盘」顶替「AC 已判定」。
+> 本轮逐条核实后重开勾选,详见下方 §Acceptance Criteria 的逐条判据。
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 2h
@@ -31,12 +36,39 @@
 *From GDD `design/gdd/persistence-service.md`, scoped to this story:*
 
 - [ ] **AC-7a-01**: 快照损坏/缺失/跨版本不可读 ⇒ 三逻辑流完整重放，指定病人 outcome / 掉落清单 / id 高水位 == 直接重放世界流所得（BLOCKING）
+      > **2026-10-25 判定 = NOT-RUN**。仅有的关联测试 `save_service_test.cs:96`
+      > `test_checksumFallback_readsBakWhenFinalCorrupted` 断言的是**「回退到 bak 后长度 = 68」**
+      > (校验和回退路径),**未触及「三逻辑流完整重放」**,更未比对 outcome / 掉落清单 / id 高水位。
+      > 真重放零实现 ⇒ 本条不可满足(QA plan §未及核查项 1 的 `R-2`)。
 - [ ] **AC-7a-02**: 快照内容与三逻辑流不一致 ⇒ 各游戏事实以世界流/事件流为准（BLOCKING）
+      > **2026-10-25 判定 = NOT-RUN**。`save_service_test.cs:4` 只有**文件头注释**提及该 AC 编号,
+      > **零测试方法**。`grep -c "AC-7a-02" unity/Assets/Tests/EditMode/PersistenceService/save_service_test.cs` ⇒ 1(仅注释行)。
 - [ ] **AC-7a-03**: 同一具名存档夹具，编辑器(Mono)与 IL2CPP 玩家上各序列化一次 ⇒ 字节流逐位一致（BLOCKING · 执行点 = ADR-012）
+      > **2026-10-25 判定 = NOT-RUN**。`save_service_test.cs:159` 自陈「**简化版** —— 同一数据两次序列化应逐位一致」
+      > ⇒ 测的是**同平台两次**一致,**不是 Mono vs IL2CPP 跨平台**。跨平台矩阵本机不可跑(`TD-ci-01` EXTERNAL)。
 - [ ] **AC-7a-04**: 一条三流事件写盘再读回 ⇒ 字段值逐位往返不变；三次序列化同一状态 ⇒ 三次字节流逐位一致；IL 扫描零 BinaryFormatter/JsonUtility/PlayerPrefs（BLOCKING）
-- [ ] **AC-7a-05**: 翻转存档中任一非校验和字节 ⇒ 校验和验证失败（BLOCKING）
-- [ ] **AC-7a-06**: 写 checkpoint ⇒ tmp → final 原子替换（final 存在则先 final → bak）（BLOCKING）
-- [ ] **AC-7a-18**: grep 7a 侧全部源码 ⇒ 零 float/double 类型用于存档或事件流（BLOCKING）
+      > **2026-10-25 判定 = NOT-RUN(假绿)**。`save_service_test.cs:127` `test_simEventCodec_roundTrip`
+      > 的断言**只有** `Assert.IsTrue(bytes.Length > 0, "编码后应有字节")` —— **未解码回比任何字段**,
+      > 更未做三次序列化对拍、未做 IL 扫描。**该测对 AC-7a-04 的三项子判据零判别力。**
+      > ⚠️ 这是本轮抓出的**第六个假绿形态**:测试名与 AC 编号都对,断言却只验「非空」。
+- [x] **AC-7a-05**: 翻转存档中任一非校验和字节 ⇒ 校验和验证失败（BLOCKING）
+      > **2026-10-25 判定 = PASS**。`save_service_test.cs:41` `test_checksumValidation_detectsCorruption`:
+      > 合法数据通过校验 ⇒ 翻转 `withChecksum[40]` ⇒ 校验失败。**双向断言齐**,判据成立。
+- [x] **AC-7a-06**: 写 checkpoint ⇒ tmp → final 原子替换（final 存在则先 final → bak）（BLOCKING）
+      > **2026-10-25 判定 = PASS**。两条测试合成完整判据:
+      > `:58` `test_atomicWrite_createsFinalFile`(final 存在 / tmp 被 rename 掉 / 首次无 bak)+
+      > `:78` `test_doubleBackup_bakCreatedOnSecondWrite`(二次写 ⇒ bak 存在,且 final=`second` / bak=`first`)。
+- [x] **AC-7a-18**: grep 7a 侧全部源码 ⇒ 零 float/double 类型用于存档或事件流（BLOCKING）
+      > **2026-10-25 判定 = PASS(载体口径已收窄)**。`save_service_test.cs:141` `test_noFloatTypes_inSaveCodec`
+      > 反射扫 `SaveService` 所在程序集内 `FullName` 含 `Save` 的类型的**实例字段**,断言非 float/double。
+      > ⚠️ **与 AC 原文的差异如实登记**:AC 说「grep 7a 侧**全部源码**」,测试只扫**一个程序集内名字含 `Save` 的类型**
+      > (漏掉静态字段、属性、局部变量、以及 `Sim` / `Sim.Contracts` 侧)。判 PASS 是因为**零 float 的实现事实成立**
+      > (`grep -rn "float\|double" unity/Assets/Sim.Codec/ --include=*.cs` 仅注释命中),但**夹具的扫描面窄于 AC 措辞**。
+
+**判据小结(2026-10-25 QA 轮)**:PASS **3** / NOT-RUN **4**(其中 AC-7a-04 = 假绿)。
+⇒ 该件**不得**维持 `Complete`。剩余 4 条的清偿载体:
+`AC-7a-01` / `AC-7a-02` 归 `TD-persist-03` 的真重放 · `AC-7a-03` 归 `TD-ci-01` 跨平台矩阵 ·
+`AC-7a-04` 须补真往返夹具 + IL 扫描。
 
 ## Completion Notes
 
