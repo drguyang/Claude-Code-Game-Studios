@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具(裁定 ③-B 同纪律):id = 0 是 ROOM_NONE 哨兵保留值,情境词表同样不得占用。ReadRequiredPositiveInt 天然拒 0(单机制,与 room 侧同)。",
+  "contexts": [
+    { "context_id": "ward_plain", "id": 0 }
+  ]
+}

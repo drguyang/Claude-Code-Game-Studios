@@ -85,12 +85,12 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
 
             var rows = new List<NameRow>();
-            var seenIds2 = new HashSet<string>(StringComparer.Ordinal);
+            var seenContextIds = new HashSet<string>(StringComparer.Ordinal);
             var seenIds = new HashSet<int>();
 
             for (int i = 0; i < rowsNode.Items.Count; i++)
             {
-                NameRow? row = ParseRow(rowsNode.Items[i], i, seenIds2, seenIds, errors);
+                NameRow? row = ParseRow(rowsNode.Items[i], i, seenContextIds, seenIds, errors);
                 if (row.HasValue) rows.Add(row.Value);
             }
 

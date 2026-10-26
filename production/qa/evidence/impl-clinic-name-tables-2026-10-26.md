@@ -113,6 +113,25 @@ DataCookedDisk → 投影 → Memo 交付面。缺任一段 = 「补烘 ≠ 接�
 
 **14/15 转红,红名单全部落在预期测试上(零误伤)**。
 
+> ⚠️ **2026-10-26 评审 §4.3 订正:「14/15 转红」不等于覆盖充分 —— 靶面是偏的。**
+> 上表 15 条变异按被变异文件分布:
+>
+> | 文件 | 变异数 |
+> |---|---|
+> | `ClinicMachineRoomNamesBinder.cs` | 4(M1a/M2/M3/M4) |
+> | **`ClinicMachineContextNamesBinder.cs`** | **1(M1b)** |
+> | `ClinicMachineSchema.cs` | 1(M5) |
+> | `ClinicMachineTablesBake.cs` | 3(M6/M7/M8) |
+> | `ClinicMachineCookedWriter.cs` | 1(M9) |
+> | `ClinicEnvProjection.cs` | 3(M10/M11/M12) |
+> | `ClinicEnvironmentMemo.cs` | 2(M13/M14) |
+> | `ClinicNameTables.cs` | 1(M15) |
+>
+> **context Binder 的 8 条守卫里只有「编号≠行序」被变异过,其余 7 条从未被打过。**
+> ⇒ M1b 的逃逸**不是巧合**,是靶面系统性偏斜(room 侧 4 条 vs context 侧 1 条)的必然结果。
+> **本表登记的是「打了哪些」,不是「覆盖了哪些」** —— 两者混读会得出错误结论。
+> 修复轮的补强见 §5.4 探针轮与评审原件 §4.6、§8.1(context 侧 8/8 逐条夹具)。
+
 ### 4.1 M1b 逃逸 —— 已就地补判别力(本轮真实收获)
 
 `test_binder_contextNames_idsComeFromAuthoring` 原版只断言 `ward_plain=1 / surgery_sterile=2 /
@@ -220,6 +239,72 @@ EOF
 ⚠️ **这两条红是门在正常工作,不是门坏了** —— ① 抓到 catalog 未重建,② 抓到哨兵漏改。
 **修复方向都是补该补的东西,没有一处是放宽门**。②尤其值得记:本轮把产物加进 `BakedArtifacts`
 时,同一份文件里的哨兵没跟着改 —— 这是本门**第四次**抓到同类漏登记。
+
+### 5.4 评审修复轮(2026-10-26 · D1-D3 + Q1-Q5 落地后重测)
+
+| 项 | 值 |
+|---|---|
+| **截至时刻** | `2026-10-26 00:06 UTC`(XML `end-time`;本轮实跑) |
+| **批次** | sprint-20 · S20-2 **评审修复轮** |
+| **commit** | `1b2f70f` + 修复轮未提交件 |
+
+| 轮次 | total / passed / failed / skipped | XML |
+|---|---|---|
+| 修复轮全量 | **5120 / 5085 / 0 / 35** | `unity/Logs/fix-review.xml` |
+| 修复前基线 | 5104 / 5069 / 0 / 35 | `unity/Logs/names-full2.xml`(即 §5.2 收口值) |
+| **探针轮(变异中)** | **5120 / 5084 / 1 / 35** | `unity/Logs/probe-ctx2.xml` |
+| 探针轮(变异前对照) | 5104 / 5069 / **0** / 35 | `unity/Logs/probe-ctx.xml` |
+
+**增量等式(实测差集)**:
+
+```
+5104 → 5120  ⇒ +16
+新增来源(added=17 removed=1,净值 +16):
+  test_binder_contextNames_{duplicateKey,empty,idOverflow,
+                            missingArray,unknownKey,zeroId}_rejected   6  ← Q1
+  test_binder_roomNames_idOverflow_rejected                            1  ← Q2(room 侧)
+  test_projection_{matchedButNullRoomType,nullContextId,
+                   nullVocabularies}                                   3  ← Q3
+  test_runtimeTableCore_{emptyTable,zeroId,duplicateName,
+                         duplicateId,emptyName,validTable}             6  ← Q5 拆分
+  test_dto_contextIds_isSharedCacheInstance_contractPinned             1  ← D3
+  ──────────────────────────────────────────────────────────────────────
+  合计                                                                17
+减:test_runtimeTableCore_rejectsCorruptVocabularies                    1  ← Q5 拆分掉的旧测
+  ──────────────────────────────────────────────────────────────────────
+  净值                                                                16  == 增量 16 ✓
+```
+
+复算命令:
+
+```bash
+cd unity && python3 - <<'EOF'
+import xml.etree.ElementTree as ET, collections
+def load(p):
+    r = ET.parse(p).getroot()
+    return {(c.get('fullname') or c.get('name')) for c in r.findall('.//test-case')}
+base, new = load('Logs/names-full2.xml'), load('Logs/fix-review.xml')
+added, removed = sorted(new - base), sorted(base - new)
+print(f"base={len(base)} new={len(new)} added={len(added)} removed={len(removed)}")
+for k, v in collections.Counter(n.rsplit('.', 1)[0] for n in added).most_common():
+    print(f"  {v:3d}  {k}")
+for n in removed: print("  REMOVED:", n)
+EOF
+```
+
+**预期输出**:`base=5104 new=5120 added=17 removed=1`,分组 `16 ClinicNameTablesTest` /
+`1 ClinicPurityReplayTest`,`REMOVED:` 恰为 `test_runtimeTableCore_rejectsCorruptVocabularies`。
+
+**探针轮判据(修复有效性的核心证据)** —— 停用 `ClinicMachineContextNamesBinder.cs:97`
+空表守卫,修复前后**同一变异**结果相反:
+
+| | 修复前(`probe-ctx.xml`) | 修复后(`probe-ctx2.xml`) |
+|---|---|---|
+| RED | **0** | **1** |
+| 红名单 | — | `test_binder_contextNames_empty_rejected` |
+| 还原 | SHA-256 ✅ | SHA-256 ✅ `c7fc7d5d…` |
+
+⇒ Q1 补的夹具**有判别力**。详见评审原件 §4.6。
 
 
 ---

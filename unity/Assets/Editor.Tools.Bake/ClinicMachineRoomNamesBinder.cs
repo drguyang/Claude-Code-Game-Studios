@@ -2,7 +2,10 @@
 //
 // 权威来源:
 //   GDD design/gdd/clinic-machine.md :340「字段集 = roomName(词表索引)」
-//   ClinicEnvDto.cs:20「房间名字典 ordinal(词表索引;ROOM_NONE 亦占条目)」
+//   ClinicEnvDto.cs:12-16(2026-10-26「支 4-a」结案段)—— **本件以这段为准**
+//   ⚠️ 原稿此处曾转述 `ClinicEnvDto.cs:20`「房间名字典 ordinal(词表索引;ROOM_NONE 亦占条目)」
+//   —— 那句是**过时文本**(与本文件 :13「id = 0 不进本表」自相矛盾),且行号已漂移。
+//   2026-10-26 评审 D2 订正:删转述,改引现行补注。
 //   **2026-10-26 用户裁定 ①-C + ③-B**:显式词表文件;ROOM_NONE = **0**;真实房间从 **1** 起。
 //
 // 为什么要有这张表(而不是用 ROOM_TABLE 行序当下标):
@@ -17,6 +20,7 @@
 
 using System;
 using System.Collections.Generic;
+using DaYiJingCheng.Sim.Clinic;
 
 namespace DaYiJingCheng.EditorTools.Bake
 {
@@ -26,8 +30,12 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// <summary>源文件名(单一出处;烘焙装载器 / 菜单 / 测试共用)。</summary>
         public const string FileName = "clinicmachine_room_names.json";
 
-        /// <summary>`ROOM_NONE` 的词表编号(裁定 ③-B:0;真实房间从 1 起)。</summary>
-        public const int RoomNoneId = 0;
+        /// <summary>`ROOM_NONE` 的词表编号(裁定 ③-B:0;真实房间从 1 起)。
+        /// <para>⚠️ **唯一真源 = `ClinicRoomNameTable.NoneId`**(`Sim.Clinic` 侧)。
+        /// 本常量只做**同值断言锚**,不独立取值 —— 2026-10-26 评审 M1:
+        /// 原稿此处硬写 `= 0`,与 Sim 侧构成**同一哨兵的两个真源**,改一处不改另一处即静默漂移。
+        /// 改为引用 Sim 侧常量后,漂移在编译期就不可能。</para></summary>
+        public const int RoomNoneId = ClinicRoomNameTable.NoneId;
 
         /// <summary>一条词表条目。</summary>
         public readonly struct NameRow

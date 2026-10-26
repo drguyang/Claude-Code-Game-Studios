@@ -147,6 +147,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// 取当前布局的求值结果:命中返回缓存,未命中重算并落缓存。
         /// </summary>
         /// <returns>求值快照(结构体)。</returns>
+        /// <exception cref="InvalidOperationException">重算后的投影发现求值的 room_type /
+        /// context_id 在词表里无编号(两份产物不同批)。见 <see cref="ClinicEnvProjection.ToDto"/>。</exception>
         public ClinicEnvEvaluation Get()
         {
             if (_hasCache)
@@ -170,7 +172,15 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <para>⚠️ 与 <see cref="Get"/> 共享同一份缓存:命中时两者都不重算,
         /// 未命中时一次求值同时刷新两者。</para>
         /// </summary>
-        /// <returns>DTO(`ContextIds` 为空数组而非 null)。</returns>
+        /// <returns>DTO(`ContextIds` 为空数组而非 null)。
+        /// <para>⚠️ <b>返回的 `ContextIds` 数组是缓存内部的共享实例,调用方不得修改。</b>
+        /// 数组是引用类型,`readonly` 只禁重新赋值、**不禁元素写入** —— 写 `dto.ContextIds[0] = x`
+        /// 会静默污染缓存,后续命中返回被改过的值,违反 EC-24-05「缓存前后逐位一致」。
+        /// 42 侧的契约义务 = **只读**;需要可写副本请自行 `ToArray()`。</para>
+        /// <para>2026-10-26 评审 D3:此约束在选型上是刻意保留的(避免每帧分配),
+        /// 但**必须写进契约** —— 此前是「既共享又没声明」,那是最坏的一种。</para></returns>
+        /// <exception cref="InvalidOperationException">投影时求值的 room_type / context_id
+        /// 在词表里无编号(两份产物不同批)—— 见 <see cref="ClinicEnvProjection.ToDto"/>。</exception>
         public ClinicEnvDto GetDto()
         {
             if (_hasCache)

@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具:根对象缺 contexts 数组 ⇒ 结构上无行可校验 ⇒ 拒(不是「空词表」,是「根本没有词表」)。",
+  "contexts_typo": []
+}

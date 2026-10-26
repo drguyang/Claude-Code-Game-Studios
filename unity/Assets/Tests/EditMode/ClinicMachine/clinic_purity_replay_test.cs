@@ -475,6 +475,35 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         }
 
         /// <summary>
+        /// **`GetDto()` 的 `ContextIds` 是缓存内部的同一数组实例** —— 契约面钉住(评审 D3)。
+        /// <para>⚠️ 为什么钉:数组是引用类型,`readonly` 只禁重绑**不禁元素写入**。
+        /// 此前「既共享又没写进契约」= 最坏的一种:42 侧写一个元素就静默污染缓存,
+        /// 而**没有任何测试会红**(`Is.EqualTo` 对数组是逐元素比较,别名与否都绿)。</para>
+        /// <para>本条把**选型**钉死:若日后改成防御性拷贝,本测会红 —— 那时须同步订正
+        /// `ClinicEnvDto.ContextIds` 与 `GetDto` 的契约注,是**有意变更**而非静默漂移。</para>
+        /// </summary>
+        /// <remarks><b>判别力</b>:把 `GetDto()` 命中分支改成返回深拷贝 ⇒ 本测红。</remarks>
+        [Test]
+        public void test_dto_contextIds_isSharedCacheInstance_contractPinned()
+        {
+            _writer.Place(new WorldPos(2, 0, 0), ModuleSurgeryTable, 0, 0, tick: 1);
+            _writer.Place(new WorldPos(4, 0, 0), ModuleSterileCabinet, 0, 0, tick: 2);
+
+            // 同一个 Memo 连续两次命中 ⇒ **同一实例**(这就是契约要写明的共享语义)
+            var memo = NewMemo();
+            ClinicEnvDto a = memo.GetDto();
+            ClinicEnvDto b = memo.GetDto();
+            Assert.That(a.ContextIds, Is.SameAs(b.ContextIds),
+                "同一 Memo 的缓存命中须返回同一数组实例 —— 若此条红说明改成了防御性拷贝," +
+                "须同步订正 ClinicEnvDto.ContextIds 与 GetDto 的契约注(有意变更,不是漂移)");
+
+            // 两个独立 Memo 实例 ⇒ 各自独立的数组(排除「全局静态数组」这种更糟的形态)
+            ClinicEnvDto other = NewMemo().GetDto();
+            Assert.That(a.ContextIds, Is.Not.SameAs(other.ContextIds),
+                "两个独立 Memo 实例不得共享数组实例");
+        }
+
+        /// <summary>
         /// **`Structure*` 事件同时使 DTO 失效**:拆除后 `GetDto()` 必须反映新布局
         /// (ROOM_NONE ⇒ `RoomNameId = 0`、`ContextIds` 空数组),不得返回旧编号。
         /// <para><b>判别力</b>:若 `GetDto` 自己持一份独立缓存而不随 `Apply` 失效 ⇒ 本测红

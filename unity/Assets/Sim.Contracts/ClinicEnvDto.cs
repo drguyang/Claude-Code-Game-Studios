@@ -22,9 +22,16 @@ namespace DaYiJingCheng.Sim.Contracts
     /// <summary>医馆环境读数 DTO(24 派生,42 只渲染不持有 —— O-24-3)。</summary>
     public readonly struct ClinicEnvDto
     {
-        /// <summary>房间名字典 ordinal(词表索引;ROOM_NONE 亦占条目)。</summary>
+        /// <summary>房间名词表索引;`ROOM_NONE = 0` 为**哨兵,不占词表条目**(真实房间从 1 起)。
+        /// <para>⚠️ 2026-10-26 订正:原文本「ROOM_NONE 亦占条目」与实现相反 ——
+        /// `ClinicRoomNameTable` 构造器对 `id &lt; 1` 直接拒,词表里**没有** 0 号条目
+        /// (见 `ClinicNameTables.cs:78,113`)。承裁定 ③-B。</para></summary>
         public readonly int RoomNameId;
-        /// <summary>情境词表索引,可空集(空数组 = 「印卸 = 不成立」,tutorial-48 面板语义)。</summary>
+        /// <summary>情境词表索引,可空集(空数组 = 「印卸 = 不成立」,tutorial-48 面板语义)。
+        /// <para>⚠️ **调用方不得修改返回的数组** —— `ClinicEnvironmentMemo.GetDto()` 命中时返回
+        /// 缓存内的同一实例(数组是引用类型,`readonly` 只禁重绑不禁元素写入);
+        /// 写入会静默污染缓存,违反 EC-24-05「缓存前后逐位一致」。
+        /// 详见 `ClinicEnvironmentMemo.GetDto` 的 `<returns>`。</para></summary>
         public readonly int[] ContextIds;
         /// <summary>环境乘子,Q16.16(未钳制房间分量;下限 < 0 是承重前提 O-24-4)。</summary>
         public readonly Fix EnvMod;

@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具:词表编号须在 int 域内。2147483648 = int.MaxValue + 1 —— ReadRequiredPositiveInt 只挡 <= 0,故该值可达,须由上界守卫拒。",
+  "rooms": [
+    { "room_type": "ward", "id": 2147483648 }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具:空词表 ⇒ 所有情境都投不出来 =「印卸恒不成立」= 整链静默失效 ⇒ 拒。与 room 侧 invalid_room_names_empty.json 一一对应。",
+  "contexts": []
+}

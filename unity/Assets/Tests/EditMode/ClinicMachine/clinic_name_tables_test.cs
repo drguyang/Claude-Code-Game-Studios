@@ -5,10 +5,16 @@
 //   `Sim.Contracts/ClinicEnvDto.cs` 头注「支 4-a」结案段
 //   ADR-014 §二/§五(两阶段烘焙)· ADR-024(白名单 / 闭集纪律)
 //
-// ⚠️ **本件测的是「词表这条链的每一段都真的接上了」**:
+// ⚠️ **本件测的是「词表这条链的每一段都真的接上了」**(四段,不含 Memo):
 //   ① 作者态 JSON → Binder(拒收面)② Binder → cooked 字节(编码面)
-//   ③ cooked 字节 → 运行期表(解码面)④ 求值 → DTO(投影面)⑤ Memo 缓存 DTO(交付面)
+//   ③ cooked 字节 → 运行期表(解码面)④ 求值 → DTO(投影面)
 //   缺任一段 = 「补烘 ≠ 接线」的典型半成品(产物在盘上、无人读它)。
+//
+// ⚠️ **2026-10-26 评审 Q4 订正**:原头注列了第五段「⑤ Memo 缓存 DTO(交付面)」,
+//   但**本件没有 Memo 测试**(`grep Memo` 只命中该头注)。Memo 缓存 DTO 的载体实际是
+//   `clinic_purity_replay_test.cs:448`(`test_dto_memoCachesProjectedDto_inLockstepWithEvaluation`)
+//   与 `:484`(`test_dto_afterRemove_reflectsRoomNoneSentinel`)。
+//   覆盖全局成立,但本件自述与自身内容不符 —— 与本项目反复抓过的「自述顶替门」同型,故删。
 //
 // ⚠️ 每条断言都指向一个**具体失效模式**,不是「跑通即绿」。判别力在证伪轮逐条反证
 //   (见 `production/qa/evidence/impl-clinic-name-tables-2026-10-26.md` §四)。
@@ -208,39 +214,178 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             AssertErrorsContain(ex, "重复");
         }
 
-        /// <summary>**运行期表核的四条守卫**(最后一道防线:产物损坏 / 外来产物)。
-        /// <para>⚠️ 为什么单独测:烘焙期的 Binder 已挡过一遍,但 `ReadRoomNames` 解码的是
-        /// **盘上的字节** —— 手工篡改过的 cooked 文件绕开了 Binder。表核若不守,
-        /// 一个二义词表会被静默装上,直到某次投影给出错误编号才暴露。</para></summary>
-        /// <remarks><b>判别力</b>:逐条停用 `ClinicNameTableCore` 的四条 if ⇒ 对应断言转红。</remarks>
+        // ══════════ context 侧拒收面补齐(2026-10-26 评审 Q1)══════════
+        //
+        // ⚠️ **为什么补这一组**:原稿 context 侧 8 条守卫只有 1 条有夹具(room 侧是 5 条),
+        //   对称性断裂。探针轮实测:停用 context 空表守卫 ⇒ **全量 5104 条零红** ——
+        //   该守卫今日不可证伪。这一组把它变成可证伪的。
+        //   证据:`production/qa/evidence/review-s20-2-names-2026-10-26.md` §4.5。
+
+        /// <summary>**空情境词表 ⇒ 拒**。这是本组最重要的一条:
+        /// 空 CONTEXT_NAMES 会让**所有**情境投不出来 ⇒「印卸恒不成立」—— 静默失效。
+        /// <para>⚠️ 探针实测:停用该守卫,全量 5104 条**零红**(评审 §4.5)。</para></summary>
+        /// <remarks><b>判别力</b>:停用 `ContextNamesBinder.cs:97` 的空表守卫 ⇒ 本测红。</remarks>
         [Test]
-        public void test_runtimeTableCore_rejectsCorruptVocabularies()
+        public void test_binder_contextNames_empty_rejected()
         {
-            // ① 空表 —— 全部投影会落到 None(静默失效)
-            Assert.Throws<ArgumentException>(() =>
-                new ClinicRoomNameTable(Array.Empty<ClinicNameEntry>()), "空表须拒");
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextNamesForTest(
+                    FixtureText("invalid_context_names_empty.json")));
+            AssertErrorsContain(ex, "空");
+        }
 
-            // ② id = 0 —— 与 ROOM_NONE 哨兵撞
-            Assert.Throws<ArgumentException>(() =>
-                new ClinicRoomNameTable(new[] { new ClinicNameEntry("ward", 0) }), "id=0 须拒");
+        /// <summary>**id = 0 被拒**(context 侧)—— 0 是 ROOM_NONE 哨兵保留值,与 room 侧同纪律。</summary>
+        /// <remarks><b>判别力</b>:把 `ReadRequiredPositiveInt` 换成 `ReadRequiredInt`,本测红。</remarks>
+        [Test]
+        public void test_binder_contextNames_zeroId_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextNamesForTest(
+                    FixtureText("invalid_context_names_zero_id.json")));
+            AssertErrorsContain(ex, "id");
+        }
 
-            // ③ 键重复 —— 一词一编号
+        /// <summary>同一 context_id 出现两次 ⇒ 拒(一词一编号)。</summary>
+        /// <remarks><b>判别力</b>:停用 `seenContextIds.Add` 守卫 ⇒ 本测红。</remarks>
+        [Test]
+        public void test_binder_contextNames_duplicateKey_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextNamesForTest(
+                    FixtureText("invalid_context_names_duplicate_key.json")));
+            AssertErrorsContain(ex, "重复");
+        }
+
+        /// <summary>白名单外键 ⇒ 拒(ADR-024 闭集纪律)。</summary>
+        /// <remarks><b>判别力</b>:停用 `ContextNamesRowKeys` 白名单 ⇒ 本测红。</remarks>
+        [Test]
+        public void test_binder_contextNames_unknownKey_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextNamesForTest(
+                    FixtureText("invalid_context_names_unknown_key.json")));
+            AssertErrorsContain(ex, "display_name");
+        }
+
+        /// <summary>缺 `contexts` 数组 ⇒ 拒(与「空词表」不同:根本没有词表)。</summary>
+        /// <remarks><b>判别力</b>:停用 `ContextNamesBinder.cs:81-85` 的缺数组守卫 ⇒ 本测红。</remarks>
+        [Test]
+        public void test_binder_contextNames_missingArray_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextNamesForTest(
+                    FixtureText("invalid_context_names_missing_array.json")));
+            AssertErrorsContain(ex, "contexts");
+        }
+
+        // ══════════ id 上界守卫(2026-10-26 评审 Q2)══════════
+        //
+        // ⚠️ `ReadRequiredPositiveInt` 只挡 `<= 0`,故 `2147483648`(int.MaxValue + 1)**可达**,
+        //   须由上界守卫拒。两处守卫此前**零夹具**。
+
+        /// <summary>room 词表 id 越 int 上界 ⇒ 拒。</summary>
+        /// <remarks><b>判别力</b>:停用 `RoomNamesBinder.cs` 的 `idValue > int.MaxValue` 守卫 ⇒ 本测红
+        /// (会静默截断成 `int.MinValue`)。</remarks>
+        [Test]
+        public void test_binder_roomNames_idOverflow_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindRoomNamesForTest(
+                    FixtureText("invalid_room_names_id_overflow.json")));
+            AssertErrorsContain(ex, "int 上界");
+        }
+
+        /// <summary>context 词表 id 越 int 上界 ⇒ 拒。</summary>
+        /// <remarks><b>判别力</b>:停用 `ContextNamesBinder.cs:132` 的上界守卫 ⇒ 本测红。</remarks>
+        [Test]
+        public void test_binder_contextNames_idOverflow_rejected()
+        {
+            BakeValidationException ex = Assert.Throws<BakeValidationException>(() =>
+                ClinicMachineTablesBake.BindContextNamesForTest(
+                    FixtureText("invalid_context_names_id_overflow.json")));
+            AssertErrorsContain(ex, "int 上界");
+        }
+
+        // ══════════ 运行期表核的五条守卫(最后一道防线)══════════
+        //
+        // ⚠️ **为什么单独测**:烘焙期的 Binder 已挡过一遍,但 `ReadRoomNames` 解码的是
+        //   **盘上的字节** —— 手工篡改过的 cooked 文件绕开了 Binder。表核若不守,
+        //   一个二义词表会被静默装上,直到某次投影给出错误编号才暴露。
+        //
+        // ⚠️ **2026-10-26 评审 Q5 拆分为五条独立测试**(原为一条挤四个断言),三个理由:
+        //   ① 一条红无法定位是哪条守卫失效;
+        //   ② 原第 ④ 条用 `ClinicContextNameTable`、前三条用 `ClinicRoomNameTable` ——
+        //      context 表构造器被改坏时,红会**归因到 room 表的守卫**;
+        //   ③ `Assert.Throws<ArgumentException>(..., "消息")` 的第二参是 NUnit 自定义
+        //      失败消息,**不是判据**;四条共用「抛 ArgumentException」这同一可观测面。
+        //   拆分后每条红都精确指向一条守卫。
+
+        /// <summary>① 空表 ⇒ 拒(全部投影会落到 None = 静默失效)。</summary>
+        /// <remarks><b>判别力</b>:停用 `ClinicNameTables.cs:63` 的空表守卫 ⇒ 本测红。</remarks>
+        [Test]
+        public void test_runtimeTableCore_emptyTable_rejected()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new ClinicRoomNameTable(Array.Empty<ClinicNameEntry>()));
+            Assert.Throws<ArgumentException>(() =>
+                new ClinicContextNameTable(Array.Empty<ClinicNameEntry>()));
+        }
+
+        /// <summary>② id = 0 ⇒ 拒(与 ROOM_NONE 哨兵撞)。**两张表各测一次** ——
+        /// 原稿只测 room 表,context 表这条从未被验证。</summary>
+        /// <remarks><b>判别力</b>:停用 `ClinicNameTables.cs:78` 的 `e.Id &lt; 1` 守卫 ⇒ 本测红。</remarks>
+        [Test]
+        public void test_runtimeTableCore_zeroId_rejected()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new ClinicRoomNameTable(new[] { new ClinicNameEntry("ward", 0) }));
+            Assert.Throws<ArgumentException>(() =>
+                new ClinicContextNameTable(new[] { new ClinicNameEntry("ward_plain", 0) }));
+        }
+
+        /// <summary>③ 键重复 ⇒ 拒(一词一编号)。</summary>
+        /// <remarks><b>判别力</b>:停用 `ClinicNameTables.cs:83` 的 `_idByName.ContainsKey` 守卫 ⇒ 本测红。</remarks>
+        [Test]
+        public void test_runtimeTableCore_duplicateName_rejected()
+        {
             Assert.Throws<ArgumentException>(() =>
                 new ClinicRoomNameTable(new[]
                 {
                     new ClinicNameEntry("ward", 1),
                     new ClinicNameEntry("ward", 2),
-                }), "同键两编号须拒");
+                }));
+        }
 
-            // ④ 编号重复 —— 投影二义(反查会命中哪个?)
+        /// <summary>④ 编号重复 ⇒ 拒(投影二义:反查会命中哪个?)。</summary>
+        /// <remarks><b>判别力</b>:停用 `ClinicNameTables.cs:87` 的 `_nameById.ContainsKey` 守卫 ⇒ 本测红。</remarks>
+        [Test]
+        public void test_runtimeTableCore_duplicateId_rejected()
+        {
             Assert.Throws<ArgumentException>(() =>
                 new ClinicContextNameTable(new[]
                 {
                     new ClinicNameEntry("ward_plain", 1),
                     new ClinicNameEntry("surgery_sterile", 1),
-                }), "两词争同一编号须拒");
+                }));
+        }
 
-            // 对照:合法表装得上(证明上面四条不是「构造器恒抛」的空转断言)
+        /// <summary>⑤ Name 为 null / 空 ⇒ 拒。**原稿从未测过这条**(评审 Q5 第 4 点)。
+        /// <para>⚠️ 为什么它重要:空键会进 `Dictionary`,而 `TryGetId("")` 恒不命中 ⇒
+        /// 该条目**占了编号却永远查不到** = 编号空间出现空洞。</para></summary>
+        /// <remarks><b>判别力</b>:停用 `ClinicNameTables.cs:74-75` 的 `IsNullOrEmpty` 守卫 ⇒ 本测红。</remarks>
+        [Test]
+        public void test_runtimeTableCore_emptyName_rejected()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new ClinicRoomNameTable(new[] { new ClinicNameEntry(null, 1) }));
+            Assert.Throws<ArgumentException>(() =>
+                new ClinicRoomNameTable(new[] { new ClinicNameEntry("", 1) }));
+        }
+
+        /// <summary>对照:合法表装得上 —— 证明上面五条不是「构造器恒抛」的空转断言。</summary>
+        [Test]
+        public void test_runtimeTableCore_validTable_accepted()
+        {
             var ok = new ClinicRoomNameTable(new[] { new ClinicNameEntry("ward", 1) });
             Assert.That(ok.Count, Is.EqualTo(1));
             Assert.That(ok.TryGetId("ward", out int id), Is.True);
@@ -440,6 +585,66 @@ namespace DaYiJingCheng.Tests.ClinicMachine
                     MatchedEvaluation("ward", new[] { "context_not_in_vocabulary" }, 0, 0),
                     rooms, contexts));
             Assert.That(ex.Message, Does.Contain("CONTEXT_NAMES"));
+        }
+
+        // ══════════ 投影面补齐(2026-10-26 评审 Q3)══════════
+
+        /// <summary>**判据是 `Matched`,不是 `RoomType == null`** —— 本类唯一一处显式设计理由,
+        /// 此前**零测试保护**。
+        /// <para>⚠️ 为什么必须单独钉:`ClinicEnvProjection.cs:56-59` 注释逐字写明了
+        /// 「反过来把两者当同义词会让将来『匹配到空名类型』的缺陷静默落 None」。
+        /// 但 `UnmatchedEvaluation()` 同时传 `matched:false` **且** `roomType:null` ⇒
+        /// 把 `:60` 改成 `if (evaluation.RoomType == null)` 后**现有测试全部仍绿**
+        /// (两种写法都给 `NoneId`)。本条构造 `matched:true + roomType:null` 这个
+        /// **两种写法会分叉**的输入,把该理由钉住。</para></summary>
+        /// <remarks><b>判别力</b>:把 `:60` 的 `if (!evaluation.Matched)` 改成
+        /// `if (evaluation.RoomType == null)` ⇒ 本测红(不再抛,静默落 None)。</remarks>
+        [Test]
+        public void test_projection_matchedButNullRoomType_throwsNotDegrades()
+        {
+            ClinicRoomNameTable rooms = DataCookedDisk.LoadClinicRoomNames().Table;
+            ClinicContextNameTable contexts = DataCookedDisk.LoadClinicContextNames().Table;
+
+            // matched:true 但 roomType:null —— 24 内部不一致态
+            var inconsistent = new ClinicEnvEvaluation(
+                default, default, matched: true, roomType: null,
+                Fix.Zero, Fix.Zero, Fix.One, Array.Empty<string>());
+
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+                ClinicEnvProjection.ToDto(inconsistent, rooms, contexts));
+            Assert.That(ex.Message, Does.Contain("RoomType 为 null"),
+                "须走「Matched=true 但 RoomType 为 null」那条分支,而不是落 ROOM_NONE");
+        }
+
+        /// <summary>两张词表为 null ⇒ `ArgumentNullException`(接线错误,非设计态)。</summary>
+        /// <remarks><b>判别力</b>:删掉 `ClinicEnvProjection.cs:42-43` 的两条 null 检查 ⇒ 本测红
+        /// (会变成 `NullReferenceException`,异常类型不同)。</remarks>
+        [Test]
+        public void test_projection_nullVocabularies_throwArgumentNull()
+        {
+            ClinicRoomNameTable rooms = DataCookedDisk.LoadClinicRoomNames().Table;
+            ClinicContextNameTable contexts = DataCookedDisk.LoadClinicContextNames().Table;
+
+            Assert.Throws<ArgumentNullException>(() =>
+                ClinicEnvProjection.ToDto(UnmatchedEvaluation(), null, contexts));
+            Assert.Throws<ArgumentNullException>(() =>
+                ClinicEnvProjection.ToDto(UnmatchedEvaluation(), rooms, null));
+        }
+
+        /// <summary>情境集里含 null 项 ⇒ **throw**(24 内部不一致,不静默跳过)。</summary>
+        /// <remarks><b>判别力</b>:把 `ClinicEnvProjection.cs:82-84` 的 null 检查改成 `continue`
+        /// ⇒ 本测红(不再抛)。</remarks>
+        [Test]
+        public void test_projection_nullContextId_throws()
+        {
+            ClinicRoomNameTable rooms = DataCookedDisk.LoadClinicRoomNames().Table;
+            ClinicContextNameTable contexts = DataCookedDisk.LoadClinicContextNames().Table;
+
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+                ClinicEnvProjection.ToDto(
+                    MatchedEvaluation("ward", new string[] { null }, 0, 0),
+                    rooms, contexts));
+            Assert.That(ex.Message, Does.Contain("null"));
         }
 
         // ══════════════════ 辅助 ══════════════════

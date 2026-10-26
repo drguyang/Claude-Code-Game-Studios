@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具:同一 context_id 出现两次 ⇒ 一词一编号被破(后一条会覆盖前一条的编号,静默)。与 room 侧 invalid_room_names_duplicate_key.json 一一对应。",
+  "contexts": [
+    { "context_id": "ward_plain", "id": 1 },
+    { "context_id": "ward_plain", "id": 2 }
+  ]
+}

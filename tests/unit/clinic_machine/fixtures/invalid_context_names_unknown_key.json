@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "contexts": [
+    { "context_id": "ward_plain", "id": 1, "display_name": "普通病房" }
+  ]
+}

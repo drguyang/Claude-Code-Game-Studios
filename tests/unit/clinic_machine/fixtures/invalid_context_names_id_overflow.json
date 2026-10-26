@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "_note": "违例夹具:同上(context 侧)。2147483648 = int.MaxValue + 1。",
+  "contexts": [
+    { "context_id": "ward_plain", "id": 2147483648 }
+  ]
+}
