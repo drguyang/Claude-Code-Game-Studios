@@ -67,7 +67,7 @@
         "ecosystem": "temperate_forest",
         "parts": ["bark"],
         "qty_per_node": 2,
-        "quality_character": ["碎裂夹土", "皮薄色淡", "块整色黄褐", "块厚色棕", "皮厚油润纹密"]
+        "quality_character": ["碎裂夹土", "皮薄色淡", "块整色黄褐", "块厚色棕", "皮厚纹密色赤"]
       },
       "drug_profile": null,
       "tcm_profile": null,
@@ -86,7 +86,7 @@
         "ecosystem": "temperate_forest",
         "parts": ["whole_plant"],
         "qty_per_node": 3,
-        "quality_character": ["茎断花落", "茎细花稀", "茎整花疏", "茎壮花密", "茎粗花盛色白"]
+        "quality_character": ["茎倒花萎", "茎细花稀", "茎整花疏", "茎壮花密", "茎粗花盛色白"]
       },
       "drug_profile": null,
       "tcm_profile": null,

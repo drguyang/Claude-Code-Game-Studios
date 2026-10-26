@@ -36,6 +36,21 @@
 - [x] **AC-17-16**: `GIVEN` `SEASON_MULT[]`,`WHEN` 装载,`THEN` 表长 = 5 的 `SEASONS_PER_YEAR`(不等 ⇒ 装载期硬失败,非越界读)。✅ Binder 4 条 + Sim 3 条
 - [x] **AC-17-14**: `GIVEN` `CapTable[]`,`WHEN` 单测,`THEN` 长度 61 · 单调不减 · `CapTable[0] ≥ 1` · 各值 ≤ `MAX_QUALITY`(防「升级变差」+ 防 `clamp` 抛异常)。✅ Binder 5 条 + Sim 5 条(**两侧各一套**,证伪轮 M1/M2/M3 曾暴露 Sim 侧零覆盖,已补)。⚠️ **2026-10-26 补强**:「各值 ≤ `MAX_QUALITY`」这条此前**只在合成常量下被验过**(真实 `MAX_QUALITY=5` 而 `cap_table` 最大只有 2 ⇒ 判据恒不触发);现由 `test_w3_maxQuality_isReadFrom21a_notHardcoded` 用**收紧的 21a 常量**(1)钉住 — 见证伪轮第四轮 W1/W2
 - [ ] **AC-17-05c** [L]: `GIVEN` 21a 交付的 `quality_character[]`,`WHEN` 人工走查,`THEN` 取值在本系统语义成立(无「陈放」「虫蛀」类采后属性)。✅ 数据回写已完成(2026-09-25,P0 词集零采后词,语义筛已过);**走查执行仍未跑,禁借回写记绿**(GDD 注⑥)
+  - **2026-10-26 更新:走查已执行,语义判据 20/20 通过,但 AC 仍不记绿。**
+    走查件 = `production/qa/evidence/foraging-05c-2026-10-26.md`。
+    执行中发现 **两处真实缺陷并已修复**:
+    ① **15/20 个词原无用户审定出处** —— 21a 原本只有 `willow_bark` 一行,本轮补行时
+    `foxglove`/`cinchona_bark`/`yarrow` 的 15 词由 AI 自拟;用户 2026-10-26 当场逐词审定
+    (foxglove 全保留 · cinchona 改 q5 · yarrow 改 q1)。
+    ② **两处采后/错位语义**:`cinchona_bark` q5「皮厚**油润**纹密」可读作陈放析油 ⇒ 改
+    「皮厚**纹密色赤**」;`yarrow` q1「茎**断花落**」的「落」指向离株散落态、与注⑦
+    「采前可读线索」冲突 ⇒ 改「茎**倒花萎**」。改后 21a 已重烘(`items=1289 B`,`cfg=0x6AAC8AD8`)。
+    ⚠️ **仍差签核**:AC 判据是「**人工**走查」,AI 执行 + 用户逐词审定 ≠ 主创签核。
+    签核栏在走查件 §六 **留空未填** ⇒ **本 AC 维持未勾,不得记绿**。
+  - **改词后回归(2026-10-26)**:全量 EditMode `total=5174` · `passed=5139` · **`failed=0`** ·
+    `skipped=35`(`unity/Logs/w-05c-full.xml`),与 S20-3 收口基线**逐位相同**(本轮未增删测试);
+    漂移门 `drift[item_database_items.cooked.bytes]` = **Passed**(现烘 ≡ 入库产物)。
+    ⚠️ **回归绿 ≠ 本 AC 记绿** —— 它只证「改词没打破既有判据」,不证「词义被人工认可」。
 
 ---
 
@@ -111,7 +126,10 @@
 **证伪轮**:三轮共 35 条变异 —— 第一轮 M1–M15(补件前,抓出 3 条真缺口)+
 第二轮 M1/M2/M3/M16–M27(15 条,补件后全红)+ 第三轮 B1–B5(5 条,Binder 分支拆分)。
 逐条反证见 `production/qa/evidence/impl-s20-3-foraging001-2026-10-26.md` §4.2 / §4.5
-**AC-17-05c [L]**:`production/qa/evidence/foraging-05c-<date>.md` —— ⚠️ **仍 NOT-RUN**(人工走查,须主创签核,**本卡不记绿**)
+**AC-17-05c [L]**:`production/qa/evidence/foraging-05c-2026-10-26.md` ——
+**走查已执行**(2026-10-26):20/20 词语义判据通过,GDD 前提「词集经用户审定」补齐(15 词当场审定),
+2 词改词并重烘。⚠️ **但签核栏留空 ⇒ 本卡仍不记绿**(判据是「**人工**走查」,AI 执行 ≠ 主创签核)。
+改词后全量回归 `5174/5139/0/35`(`unity/Logs/w-05c-full.xml`),漂移门 Passed —— **回归绿不得替代走查绿**。
 
 ---
 
@@ -125,7 +143,8 @@
 ## Completion Notes
 
 **Completed**: 2026-10-26
-**Criteria**: 4/5 passing(AC-17-01b / 08b / 14 / 16);AC-17-05c [L] **NOT-RUN**(人工走查,须主创签核,不记绿)
+**Criteria**: 4/5 passing(AC-17-01b / 08b / 14 / 16);AC-17-05c [L] **走查已执行但未签核**——
+语义判据 20/20 通过、GDD 前提已补齐、2 词已改并重烘(**仍不记绿**,主创签核栏留空)
 
 ### 交付面(10 文件 —— 含 W-3 甲案补烘的 4 项)
 
@@ -276,18 +295,28 @@ story-002/003/004/005 **零命中** `cooked` / `IDataProvider`。甲案仍成立
 
 | 项 | 结果 |
 |---|---|
-| Acceptance Criteria | **4/5 passing**(AC-17-01b / 08b / 14 / 16);AC-17-05c [L] **NOT-RUN** |
+| Acceptance Criteria | **4/5 passing**(AC-17-01b / 08b / 14 / 16);AC-17-05c [L] **已执行未签核**(20/20 语义过,缺主创签核 ⇒ 仍不记绿) |
 | Test Evidence(Logic) | ✅ 两文件齐:`foraging_data_load_test.cs`(46)+ `foraging_bake_wiring_test.cs`(6) |
 | Falsifiability Gate | ✅ **PASS** —— `7 / 7 turned red`;⚠️ 首跑仅 2/7(见下) |
 | 偏差 | 无 BLOCKING;3 条 ADVISORY(已登记于 §Deviations) |
 | Code Review | ✅ `lead-programmer` APPROVED WITH SUGGESTIONS(用户 2026-10-26 确认) |
-| 评审报告原件 | ⚠️ **未独立落盘** —— 评审结论只在本卡 §Code Review 段。本 story **零 BLOCKING**,故不触发 `coding-standards.md` §评审报告原件的 BLOCKING 义务(该义务的触发条件是「产出 BLOCKING 级判定」) |
+| 评审报告原件 | ✅ **已落盘** —— `production/qa/evidence/review-foraging-001-2026-10-26.md`(同日补落,含原判定 → 修复落点 → 验证命令三列 + 双列结账 + Branch 列) |
 | Manifest 时效 | ✅ 本卡 `2026-10-15` = 当前 `control-manifest.md` `:5` **2026-10-15**,不过期 |
 
-**未通过项与不记绿声明**:
+**未通过项与不记绿声明(收口当时,2026-10-26 早)**:
 - **AC-17-05c [L]**(人工走查 `quality_character[]` 语义)→ **NOT-RUN**,
   `production/qa/evidence/foraging-05c-*.md` **不存在**。数据回写已完成(2026-09-25)
   ≠ 走查已执行。**本卡不因此项记绿,亦不因回写借绿。**
+
+> 🔁 **同日后续(2026-10-26 晚,原文不删)**:该 NOT-RUN **已被补做**。
+> 走查件 `production/qa/evidence/foraging-05c-2026-10-26.md` 现已存在,结果:
+> - **语义判据 20/20 通过**;GDD 前提「词集经用户审定」**此前不成立**,本轮补齐 15 词审定;
+> - **抓到 2 处真实缺陷并修复**(`cinchona_bark` q5「油润」→「纹密色赤」;
+>   `yarrow` q1「茎断花落」→「茎倒花萎」),21a 已重烘;
+> - 改词后全量回归 **`5174/5139/0/35`** · 漂移门 **Passed** · 零回归。
+>
+> ⚠️ **但 AC 仍未记绿** —— 缺的是**主创签核**(§六 签核栏留空)。「走查被执行」与
+> 「走查被认可」是两件事;本卡只兑现前者。**回归绿同样不得替代走查绿。**
 
 **证伪轮首跑 2/7 的如实记录**:
 W1/W2 首跑 `red=0` 是**真实的假绿夹具**(BLOCKING 级),已按 S12-4 修夹具后第二跑 7/7 转红。
