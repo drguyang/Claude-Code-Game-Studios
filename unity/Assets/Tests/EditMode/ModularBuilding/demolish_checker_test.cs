@@ -31,6 +31,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 localOccupancy: new System.Collections.Generic.List<WorldPos> { new WorldPos(0, 0, 0) },
                 validOrientations: new[] { 0 },
                 cost: 1,
+                buildItemKey: 0,
                 refundable: 1));
             _checker = new DemolishChecker(_registry, occupancy, presence, moduleCatalog);
         }
@@ -54,6 +55,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 localOccupancy: new System.Collections.Generic.List<WorldPos> { new WorldPos(0, 0, 0) },
                 validOrientations: new[] { 0 },
                 cost: 1,
+                buildItemKey: 0,
                 refundable: 1));
             var checkerWithEntity = new DemolishChecker(
                 _registry, new EmptyOccupancyQuery(), new AlwaysPresentPresence(), moduleCatalog);

@@ -333,7 +333,16 @@ namespace DaYiJingCheng.EditorTools.Bake
         }
 
         /// <summary>schema_version 读取 + 与运行时头契约比对(只做域检查形同虚设 —— 承 OutcomeTableBinder R-4)。</summary>
+        /// <remarks>本重载用**全局默认** <see cref="CookedFormat.SchemaVersion"/>。
+        /// ⚠️ **产物一旦有 per-product 版本(如 `build_modules` 现为 2),必须改用下面的显式重载** ——
+        /// 否则源表 schema 抬到 2 而本处仍比 1 ⇒ 烘焙恒拒。per-product 先例见
+        /// `CookedCodec.ExpectedItemSchemaVersion`。</remarks>
         internal static uint ReadSchemaVersion(JsonNode root, string fileName, List<string> errors)
+            => ReadSchemaVersion(root, fileName, CookedFormat.SchemaVersion, errors);
+
+        /// <summary>schema_version 读取 + 与**本产物期望值**比对(per-product 口径)。</summary>
+        internal static uint ReadSchemaVersion(
+            JsonNode root, string fileName, uint expected, List<string> errors)
         {
             if (!root.TryGet("schema_version", out JsonNode n))
             {
@@ -346,10 +355,10 @@ namespace DaYiJingCheng.EditorTools.Bake
                 return 0;
             }
             uint v = (uint)n.Int;
-            if (v != CookedFormat.SchemaVersion)
+            if (v != expected)
             {
                 errors.Add(
-                    $"{fileName}:schema_version={v} ≠ 期望 {CookedFormat.SchemaVersion} " +
+                    $"{fileName}:schema_version={v} ≠ 期望 {expected} " +
                     "(源表 schema 与运行时头契约不一致 ⇒ 构建期硬失败)");
                 return 0;
             }

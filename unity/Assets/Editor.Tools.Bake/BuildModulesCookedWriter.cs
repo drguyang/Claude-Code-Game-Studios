@@ -63,6 +63,10 @@ namespace DaYiJingCheng.EditorTools.Bake
                     }
                     w.Write(r.Cost);
                     w.Write(r.Refundable ? 1 : 0);
+                    // ⚠️ 新增字段一律**追加在行尾**(schema 2 起):既有字段序一字不动 ——
+                    //    这样「旧字段读错了」只可能来自装配错误,不来自我们挪了位置。
+                    //    新增的字段:build_item_key(2026-10-26,TD-inventory-01 前置)。
+                    w.Write(r.BuildItemKey);
                 }
                 w.Flush();
                 return ClinicMachineCookedWriter.FinishHeader(

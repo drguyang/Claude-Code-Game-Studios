@@ -43,8 +43,12 @@ namespace DaYiJingCheng.EditorTools.Bake
         internal static readonly string[] RootKeys = { "schema_version", "_note", "modules" };
 
         /// <summary>行对象白名单。</summary>
+        /// <remarks>🔁 <b>2026-10-26(TD-inventory-01 前置):六字段 → 七字段,补 <c>build_item_key</c></b>。
+        /// 它补的是「该模块消耗**哪个** <c>build_part</c>」—— 此前 23 只说「需要 module_id 对应的
+        /// build_part 条目」而**无任何数据把 module_id 映到物品**(全库零引用),20 的建造扣料
+        /// (fold 的 <c>StructurePlaced</c> 支)因此无法定位扣哪一栈。</remarks>
         internal static readonly string[] RowKeys =
-            { "module_id", "module_type", "furn_type", "occupancy_local", "cost", "refundable" };
+            { "module_id", "module_type", "furn_type", "build_item_key", "occupancy_local", "cost", "refundable" };
 
         /// <summary>槽位类型名 → 枚举值(<c>BuildSlotCatalog.SlotType</c> 的**镜像**,不是第二真源)。
         /// <para>⚠️ 本表**刻意不含 `None`** —— `None` 是「无效 / 未分配」哨兵,不是合法的模块类型。
@@ -79,6 +83,12 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// <summary>占用格(相对锚点的整数偏移;`(0,0,0)` 必在其中)。</summary>
             public readonly IReadOnlyList<(int X, int Y, int Z)> OccupancyLocal;
 
+            /// <summary>建造消耗的物品(21a 物品表的 **ordinal**;`category = build_part`)。
+            /// <para>🔁 <b>2026-10-26 新增</b>(TD-inventory-01 前置)。⚠️ 数量**不**在此处 ——
+            /// 数量 = <see cref="Cost"/>(<c>modular-building.md:429</c> 已定 `cost(m)` = 建造材料数)。
+            /// 存两份会让「改一处忘改另一处」变成静默双扣/少扣。</para></summary>
+            public readonly int BuildItemKey;
+
             /// <summary>建造材料数(int ≥ 1;`F-23-3` 的 `cost(m)`)。</summary>
             public readonly int Cost;
 
@@ -88,7 +98,8 @@ namespace DaYiJingCheng.EditorTools.Bake
             /// <summary>构造一行(测试 / 物化用)。</summary>
             public ModuleRow(
                 int moduleId, int moduleType, string moduleTypeName, string furnType,
-                IReadOnlyList<(int, int, int)> occupancyLocal, int cost, bool refundable)
+                IReadOnlyList<(int, int, int)> occupancyLocal, int cost, bool refundable,
+                int buildItemKey)
             {
                 ModuleId = moduleId;
                 ModuleType = moduleType;
@@ -97,6 +108,7 @@ namespace DaYiJingCheng.EditorTools.Bake
                 OccupancyLocal = occupancyLocal;
                 Cost = cost;
                 Refundable = refundable;
+                BuildItemKey = buildItemKey;
             }
         }
 
@@ -132,7 +144,12 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             ClinicMachineSchema.RejectUnknownKeys(root, RootKeys, "根", FileName, errors);
 
-            uint schemaVersion = ClinicMachineSchema.ReadSchemaVersion(root, FileName, errors);
+            // ⚠️ **per-product 期望值**(2026-10-26):本表 schema 2 起行尾带 `build_item_key`,
+            // 不再等同全局默认 1。用默认重载会让源表 schema=2 与「期望 1」对撞 ⇒ 烘焙恒拒。
+            // 期望值的**单一出处**是读方 codec 的常量(与 `ItemDatabaseBinder` 用法一致)。
+            uint schemaVersion = ClinicMachineSchema.ReadSchemaVersion(
+                root, FileName,
+                DaYiJingCheng.Gameplay.Presentation.BuildModulesCookedCodec.ExpectedSchemaVersion, errors);
 
             // ⚠️ 早 throw 豁免点(同 24 三姊妹 binder):无 modules 数组 ⇒ 行层校验结构上不可达。
             if (!root.TryGet("modules", out JsonNode rowsNode) || rowsNode.Kind != JsonNodeKind.Array)
@@ -189,6 +206,9 @@ namespace DaYiJingCheng.EditorTools.Bake
             var occupancy = new List<(int, int, int)>();
             if (!TryReadOccupancy(row, where, occupancy, errors)) ok = false;
 
+            int buildItemKey = 0;
+            if (!TryReadBuildItemKey(row, where, out buildItemKey, errors)) ok = false;
+
             int cost = 0;
             if (!TryReadCost(row, where, out cost, errors)) ok = false;
 
@@ -220,7 +240,7 @@ namespace DaYiJingCheng.EditorTools.Bake
             }
 
             return new ModuleRow(
-                moduleId, moduleType, moduleTypeName, furnType, occupancy, cost, refundable);
+                moduleId, moduleType, moduleTypeName, furnType, occupancy, cost, refundable, buildItemKey);
         }
 
         /// <summary>`module_id` —— 正整数(载荷同型 i32)。</summary>
@@ -301,6 +321,42 @@ namespace DaYiJingCheng.EditorTools.Bake
                 return false;
             }
             furnType = n.Str;
+            return true;
+        }
+
+        /// <summary>`build_item_key` —— **JSON 整数**(21a 物品表的 ordinal;非负)。
+        /// <para>⚠️ 与 `module_id` 一样是 i32 载荷形,写成字符串会让两层无法对接。</para>
+        /// <para>⚠️ 本字段**只做域校验**;「该 ordinal 在物品表里存在且 <c>category = build_part</c>」
+        /// 是跨表门,归 <c>DataBakeMenu.BakeBuildModulesCore</c>(与 `furn_type ⊆ FURN_TYPES` 同位置、
+        /// 同理由:跨表判据只有在能同时看见两张表的调用点才成立,放进 Binder 会变成
+        /// 「表在哪都不知道还想判外键」)。</para>
+        /// </summary>
+        private static bool TryReadBuildItemKey(
+            JsonNode row, string where, out int buildItemKey, List<string> errors)
+        {
+            buildItemKey = 0;
+            if (!row.TryGet("build_item_key", out JsonNode n))
+            {
+                errors.Add(
+                    $"{FileName}:{where} 缺 build_item_key —— 没有它就不知道该模块消耗哪个 " +
+                    "build_part 物品(20 的建造扣料无法定位扣哪一栈)");
+                return false;
+            }
+            if (n.Kind != JsonNodeKind.Integer)
+            {
+                errors.Add(
+                    $"{FileName}:{where}.build_item_key 须为 JSON 整数(实得 {n.Kind}={n.RawText}) —— " +
+                    "它是物品表的 ordinal(i32 载荷形),写成字符串会让两层无法对接");
+                return false;
+            }
+            if (n.Int < 0 || n.Int > int.MaxValue)
+            {
+                errors.Add(
+                    $"{FileName}:{where}.build_item_key={n.Int} 须在 [0, {int.MaxValue}] —— " +
+                    "负号在物品表里是「未赋值 ordinal」的哨兵,不是合法键");
+                return false;
+            }
+            buildItemKey = (int)n.Int;
             return true;
         }
 

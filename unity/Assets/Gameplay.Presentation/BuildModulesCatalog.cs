@@ -113,6 +113,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// ⚠️ `ValidOrientations` 填 `{0}` —— 作者态无该字段(见文件头注)。
         /// ⚠️ `Refundable` 传 `int`(0/1),与 `ModuleDefinition.Refundable` 同型,不开布尔特例。
         /// ⚠️ `Cost` 传 `row.Cost`(`int` 计数;2026-10-25 TD-building-01 (b) 起)。
+        /// ⚠️ `BuildItemKey` 传 `row.BuildItemKey`(2026-10-26 起;qty 就是 `Cost`,**不**另存)。
         /// </remarks>
         private static ModuleDefinition ToDefinition(in BuildModuleRow row)
         {
@@ -122,6 +123,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 localOccupancy: row.OccupancyLocal,
                 validOrientations: OnlyZeroDegrees,
                 cost: row.Cost,
+                buildItemKey: row.BuildItemKey,
                 refundable: row.Refundable);
         }
 

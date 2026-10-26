@@ -143,6 +143,7 @@ namespace DaYiJingCheng.Sim.World
         public readonly int[] ValidOrientations;                  // 允许的朝向集合(度: 0/90/180/270)
         public readonly int Refundable;                           // 是否可返还(1=是, 0=否)
         public readonly int Cost;                                 // 建造成本 cost(m)(int 计数,D-21-17 同型)
+        public readonly int BuildItemKey;                         // 建造消耗的物品(21a 物品表 ordinal;qty = Cost)
 
         /// <summary>
         /// 构造模块定义。
@@ -150,12 +151,17 @@ namespace DaYiJingCheng.Sim.World
         /// <paramref name="cost"/> 是**必填**形参(无默认值)—— 静默默认 0 会让
         /// 返还公式对「没想清楚成本的目录」算出 0(N-r1 fail-closed 同口径,编译期挡)。
         /// </summary>
+        /// <para>🔁 **2026-10-26(TD-inventory-01 前置)**:六字段 → 七字段,补 <paramref name="buildItemKey"/>。
+        /// 它回答「这个模块消耗**哪个**物品」;数量仍是 <paramref name="cost"/>
+        /// (`modular-building.md:429` 已定 `cost(m)` = 建造材料数,**不另存 qty**)。</para>
+        /// </summary>
         public ModuleDefinition(
             int moduleId,
             SlotType slotType,
             IReadOnlyList<WorldPos> localOccupancy,
             int[] validOrientations,
             int cost,
+            int buildItemKey,
             int refundable = 1)
         {
             ModuleId = moduleId;
@@ -164,6 +170,7 @@ namespace DaYiJingCheng.Sim.World
             ValidOrientations = validOrientations;
             Refundable = refundable;
             Cost = cost;
+            BuildItemKey = buildItemKey;
         }
 
         /// <summary>锚点格是否在 LocalOccupancy 中(目录校验 AC-23-08)。</summary>

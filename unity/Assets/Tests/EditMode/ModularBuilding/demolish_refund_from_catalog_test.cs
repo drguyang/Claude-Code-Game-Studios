@@ -67,6 +67,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 localOccupancy: new List<WorldPos> { new WorldPos(0, 0, 0) },
                 validOrientations: new[] { 0 },
                 cost: cost,
+                buildItemKey: 0,
                 refundable: 1);
 
         // ══════════ 1. 正常路径:返还 = 目录 cost × ratio(字面量神谕)══════════

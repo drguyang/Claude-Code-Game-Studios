@@ -38,6 +38,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 localOccupancy: new List<WorldPos> { new WorldPos(0, 0, 0), new WorldPos(1, 0, 0) },
                 validOrientations: new[] { 0, 90, 180, 270 },
                 cost: 1,
+                buildItemKey: 0,
                 refundable: 1));
 
             _checker = new ModifiableChecker(_catalog, new OccupancyQuery(_registry), _moduleCatalog, _registry);

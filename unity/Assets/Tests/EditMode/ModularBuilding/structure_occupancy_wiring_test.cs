@@ -33,7 +33,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
             private readonly Dictionary<int, ModuleDefinition> _defs = new Dictionary<int, ModuleDefinition>();
             public void Add(int id, WorldPos[] local) =>
                 _defs[id] = new ModuleDefinition(id, SlotType.Decor, local,
-                                                 new[] { 0, 90, 180, 270 }, cost: 1);
+                                                 new[] { 0, 90, 180, 270 }, cost: 1, buildItemKey: 0);
             public ModuleDefinition? GetModuleDefinition(int moduleId) =>
                 _defs.TryGetValue(moduleId, out var d) ? d : (ModuleDefinition?)null;
             public bool ContainsModule(int moduleId) => _defs.ContainsKey(moduleId);

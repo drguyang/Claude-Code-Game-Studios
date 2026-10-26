@@ -653,6 +653,38 @@ namespace DaYiJingCheng.EditorTools.Bake
                 }
             }
 
+            // ── 跨表外键门(2026-10-26,TD-inventory-01 前置)──
+            // build_item_key 须指向物品表里一条**真实存在**且 category = build_part 的记录。
+            // 与上面 furn_type 门同一位置、同一理由:跨表判据只有在能同时看见两张表的调用点才成立。
+            // 物品集同样取**本次**烘焙结果(不读上次落盘产物)。
+            BakeResult items = ItemDatabaseBaker.BakeFromRepo(repoRoot);
+            ItemDataSet itemSet = CookedCodec.ReadItemDataSet(items.ItemsCooked);
+
+            // ordinal → category(物品表本轮已过 ordinal 表自洽门 ⇒ ordinal 唯一)
+            var categoryByOrdinal = new Dictionary<int, ItemCategory>();
+            for (int i = 0; i < itemSet.Items.Length; i++)
+                categoryByOrdinal[itemSet.Items[i].Ordinal] = itemSet.Items[i].Category;
+
+            for (int i = 0; i < result.Bound.Rows.Count; i++)
+            {
+                BuildModulesBinder.ModuleRow row = result.Bound.Rows[i];
+                if (!categoryByOrdinal.TryGetValue(row.BuildItemKey, out ItemCategory cat))
+                {
+                    errors.Add(
+                        $"{BuildModulesBinder.FileName}:modules[{i}](module_id={row.ModuleId}) " +
+                        $"build_item_key={row.BuildItemKey} 在物品表里**不存在** —— " +
+                        "建造扣料会指向一个不存在的物品(20 的 fold 找不到该 instance 从而静默少扣)。" +
+                        "要么修正该 ordinal,要么在 item_database_items.json 里补该条目");
+                }
+                else if (cat != ItemCategory.BuildPart)
+                {
+                    errors.Add(
+                        $"{BuildModulesBinder.FileName}:modules[{i}](module_id={row.ModuleId}) " +
+                        $"build_item_key={row.BuildItemKey} 指向的物品 category = {cat}," +
+                        "要求 build_part(modular-building.md:250「模块目录挂在 category = build_part 的物品表」)");
+                }
+            }
+
             if (errors.Count > 0) throw new BakeValidationException(errors);
 
             return result;

@@ -85,6 +85,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
                 localOccupancy: new List<WorldPos> { new WorldPos(0, 0, 0), new WorldPos(1, 0, 0) },
                 validOrientations: new[] { 0 },
                 cost: 4,
+                buildItemKey: 0,
                 refundable: 1));
 
             _writer = new StructureWriter(

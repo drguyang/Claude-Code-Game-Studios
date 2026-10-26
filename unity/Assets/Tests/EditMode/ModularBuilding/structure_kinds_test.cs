@@ -241,7 +241,7 @@ namespace DaYiJingCheng.Tests.ModularBuilding
         private readonly System.Collections.Generic.Dictionary<int, ModuleDefinition> _defs =
             new System.Collections.Generic.Dictionary<int, ModuleDefinition>();
         public void Add(int id, WorldPos[] local) =>
-            _defs[id] = new ModuleDefinition(id, SlotType.Decor, local, new[] { 0, 90, 180, 270 }, cost: 1);
+            _defs[id] = new ModuleDefinition(id, SlotType.Decor, local, new[] { 0, 90, 180, 270 }, cost: 1, buildItemKey: 0);
         /// <summary>任意 id 都返回单格定义(本文件不测足迹)。</summary>
         public ModuleDefinition? GetModuleDefinition(int moduleId)
         {

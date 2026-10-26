@@ -1,11 +1,12 @@
 {
-  "schema_version": 1,
-  "_note": "23 模块化建造的**模块目录**（`modular-building.md:88` 规则一）—— 21a 拥有（`item-database.md:859`「与 cost(m) 同源」），23 只读。本文件兑现 `TD-itemdb-01`（cost(m) 作者态缺席）。⚠️ 数值 = 夹具种子值，不是游戏平衡值（数值归用户轮，`modular-building.md:507` 的 cost(m) 旋钮）：cost ∈ [1, 99]，refundable 为布尔。⚠️ **字段集与 story-001:45 的偏差**：卡面写 `module_id / module_type / OccupiedCells_local / cost / refundable` 五字段，本表另加第六字段 `furn_type`（2026-10-21 用户裁定 甲案）—— 理由：24 的 `FURN_TYPES` 是**字符串词汇**（bed / herb_cabinet / …），而 `module_id` 在载荷与 registry 里是 **i32**（entities.yaml:2106），两套表示不可互推；`furn_type = null` 表示非家具件。⚠️ `module_type` 用 23 的 `SlotType` 枚举名（None/Bed/Table/Cabinet/Plot/Decor/Shell，见 BuildSlotCatalog.cs:17），**不是** `furn_type` 那套词汇 —— 两者同名不同物。⚠️ `occupancy_local` 每项为 `[x, y, z]` 整数三元组（相对锚点的偏移，ADR-015 §三 单一整数格）；目录校验要求 `[0,0,0]` 必须在内（锚点自身计入占用，`modular-building.md:90` 评审 B5）。",
+  "schema_version": 2,
+  "_note": "23 模块化建造的**模块目录**（`modular-building.md:88` 规则一）—— 21a 拥有（`item-database.md:859`「与 cost(m) 同源」），23 只读。本文件兑现 `TD-itemdb-01`（cost(m) 作者态缺席）。⚠️ 数值 = 夹具种子值，不是游戏平衡值（数值归用户轮，`modular-building.md:507` 的 cost(m) 旋钮）：cost ∈ [1, 99]，refundable 为布尔。⚠️ **字段集与 story-001:45 的偏差**：卡面写 `module_id / module_type / OccupiedCells_local / cost / refundable` 五字段，本表另加第六字段 `furn_type`（2026-10-21 用户裁定 甲案）—— 理由：24 的 `FURN_TYPES` 是**字符串词汇**（bed / herb_cabinet / …），而 `module_id` 在载荷与 registry 里是 **i32**（entities.yaml:2106），两套表示不可互推；`furn_type = null` 表示非家具件。⚠️ `module_type` 用 23 的 `SlotType` 枚举名（None/Bed/Table/Cabinet/Plot/Decor/Shell，见 BuildSlotCatalog.cs:17），**不是** `furn_type` 那套词汇 —— 两者同名不同物。⚠️ `occupancy_local` 每项为 `[x, y, z]` 整数三元组（相对锚点的偏移，ADR-015 §三 单一整数格）；目录校验要求 `[0,0,0]` 必须在内（锚点自身计入占用，`modular-building.md:90` 评审 B5）。【2026-10-26 schema 1→2：新增第七字段 `build_item_key`（ADR-006 D-21-13）】值 = `items` 表里该 `category = build_part` 物品的 **ordinal**（i32 载荷形，与 `StructurePlacedPayload.ModuleId` 同型思路）；**建造消耗的物品 = 这个键，数量 = `cost`**。⚠️ **刻意是标量、不存 `(item_key, qty)` 列表**：`modular-building.md:429` 已定义 `cost(m)` = 「模块 m 的建造材料数」，`inventory-and-items.md:159` 又定「建造的扣减量 = `cost(m)`」⇒ qty 已是**既有**真源，再存一份即第二真源，两者不一致时会出现静默双扣/少扣。故本表**只补缺失的那一项**（哪个物品），数量仍只有 `cost` 一个出处。⚠️ 现全部 9 行都指向 `wooden_post`（ordinal 8）—— 那是**种子夹具值**（21a 物品表今日只有这一个 `build_part`），不是最终配比；拆分多材料时须**另裁 schema**（标量表达不了两种材料），不得悄悄改成列表。",
   "modules": [
     {
       "module_id": 1,
       "module_type": "Bed",
       "furn_type": "bed",
+      "build_item_key": 8,
       "occupancy_local": [[0, 0, 0]],
       "cost": 4,
       "refundable": true
@@ -14,6 +15,7 @@
       "module_id": 2,
       "module_type": "Table",
       "furn_type": "surgery_table",
+      "build_item_key": 8,
       "occupancy_local": [[0, 0, 0], [1, 0, 0]],
       "cost": 8,
       "refundable": true
@@ -22,6 +24,7 @@
       "module_id": 3,
       "module_type": "Cabinet",
       "furn_type": "sterile_cabinet",
+      "build_item_key": 8,
       "occupancy_local": [[0, 0, 0]],
       "cost": 6,
       "refundable": true
@@ -30,6 +33,7 @@
       "module_id": 4,
       "module_type": "Cabinet",
       "furn_type": "herb_cabinet",
+      "build_item_key": 8,
       "occupancy_local": [[0, 0, 0]],
       "cost": 6,
       "refundable": true
@@ -38,6 +42,7 @@
       "module_id": 5,
       "module_type": "Table",
       "furn_type": "grinder",
+      "build_item_key": 8,
       "occupancy_local": [[0, 0, 0]],
       "cost": 3,
       "refundable": true
@@ -46,6 +51,7 @@
       "module_id": 6,
       "module_type": "Decor",
       "furn_type": "drying_rack",
+      "build_item_key": 8,
       "occupancy_local": [[0, 0, 0], [0, 1, 0]],
       "cost": 2,
       "refundable": true
@@ -54,6 +60,7 @@
       "module_id": 7,
       "module_type": "Decor",
       "furn_type": "chamber_pot",
+      "build_item_key": 8,
       "occupancy_local": [[0, 0, 0]],
       "cost": 1,
       "refundable": true
@@ -62,6 +69,7 @@
       "module_id": 8,
       "module_type": "Shell",
       "furn_type": null,
+      "build_item_key": 8,
       "occupancy_local": [[0, 0, 0]],
       "cost": 1,
       "refundable": false
@@ -70,6 +78,7 @@
       "module_id": 9,
       "module_type": "Decor",
       "furn_type": null,
+      "build_item_key": 8,
       "occupancy_local": [[0, 0, 0]],
       "cost": 1,
       "refundable": false

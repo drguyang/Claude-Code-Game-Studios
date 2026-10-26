@@ -11,7 +11,8 @@
 //     i32 row_count
 //     row_count × { i32 module_id; i32 module_type; str module_type_name; str furn_type;
 //                   i32 occupancy_count; occupancy_count × { i32 x; i32 y; i32 z };
-//                   i32 cost; i32 refundable }
+//                   i32 cost; i32 refundable;
+//                   i32 build_item_key }        // ← schema 2 追加在**行尾**(2026-10-26)
 //
 // ⚠️ **行序 = `module_id` 升序**(写方已排序;读方**不依赖**读入序做任何计算,
 //   与写方注释「行序一律全序」同口径)。
@@ -56,6 +57,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <summary>相对锚点的占用格(本地坐标)。</summary>
         public readonly IReadOnlyList<WorldPos> OccupancyLocal;
 
+        /// <summary>建造消耗的物品(21a 物品表 ordinal;`category = build_part`)。
+        /// <para>🔁 2026-10-26 新增(schema 2)。数量 = <see cref="Cost"/>,不另存。</para></summary>
+        public readonly int BuildItemKey;
+
         /// <summary>建造成本(`cost`)。</summary>
         public readonly int Cost;
 
@@ -64,7 +69,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
 
         /// <summary>构造一行。</summary>
         public BuildModuleRow(int moduleId, int moduleType, string moduleTypeName, string furnType,
-                              IReadOnlyList<WorldPos> occupancyLocal, int cost, int refundable)
+                              IReadOnlyList<WorldPos> occupancyLocal, int cost, int refundable,
+                              int buildItemKey)
         {
             ModuleId = moduleId;
             ModuleType = moduleType;
@@ -73,6 +79,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
             OccupancyLocal = occupancyLocal;
             Cost = cost;
             Refundable = refundable;
+            BuildItemKey = buildItemKey;
         }
     }
 
@@ -105,6 +112,12 @@ namespace DaYiJingCheng.Gameplay.Presentation
     {
         /// <summary>产物名(与写方 <c>BuildModulesBake.CookedFileName</c> 同值,单一字面量)。</summary>
         public const string ProductName = "build_modules";
+
+        /// <summary>本产物的作者态 schema_version 期望值(per-product,照
+        /// <see cref="CookedCodec.ExpectedItemSchemaVersion"/> 的先例)。
+        /// <para>🔁 <b>2026-10-26:1 → 2</b> —— 行尾追加 <c>build_item_key</c>。
+        /// 2 之前的产物**没有**该字段,按旧布局读会把行尾当成下一个字段 ⇒ 必须硬拒而非容忍。</para></summary>
+        public const uint ExpectedSchemaVersion = 2u;
 
         /// <summary>读模块目录。</summary>
         /// <param name="bytes">cooked 字节(含 20 字节头)。</param>
@@ -148,8 +161,10 @@ namespace DaYiJingCheng.Gameplay.Presentation
 
                     int cost = r.ReadInt32();
                     int refundable = r.ReadInt32();
+                    // 2026-10-26 追加在行尾(见写方同款注);schema 2 起存在。
+                    int buildItemKey = r.ReadInt32();
                     rows[i] = new BuildModuleRow(moduleId, moduleType, moduleTypeName, furnType,
-                                                 occupancy, cost, refundable);
+                                                 occupancy, cost, refundable, buildItemKey);
                 }
 
                 CookedReadUtil.AssertFullyConsumed(r, ProductName);
@@ -158,6 +173,16 @@ namespace DaYiJingCheng.Gameplay.Presentation
                 // 「作者态 schema_version 的回声」)。`OpenChecked` 只校验魔数 / formatVersion /
                 // 载荷长度,**不读** offset 8 ⇒ 本处自取。
                 uint schemaVersion = ReadU32Le(bytes, 8);
+
+                // 🔁 2026-10-26 补:**此前只把 schemaVersion 读出来、从不比对**(「有字段无门」)。
+                // 那不致命当且仅当布局永不演进;而本次恰恰演进(行尾加了 build_item_key)——
+                // 旧产物按新布局读会把最后一个字段读成垃圾且**不报错**。此门把该形态变成启动期硬失败。
+                if (schemaVersion != ExpectedSchemaVersion)
+                    throw new InvalidDataException(
+                        $"[cooked] {ProductName} schemaVersion = {schemaVersion},期望 " +
+                        $"{ExpectedSchemaVersion} —— 布局演进后不得按旧契约读(E-13)。" +
+                        "重烘:大医精诚/数据管线/烘焙 build_modules");
+
                 return new BuildModulesDataSet(rows, schemaVersion, configVersion);
             }
         }
