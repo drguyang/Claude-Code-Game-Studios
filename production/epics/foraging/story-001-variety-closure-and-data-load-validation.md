@@ -115,6 +115,9 @@
   - When: 人工走查语义(「本系统 = 采集当下可得属性」判据)。
   - Then: 无采后属性词;证据归档 `production/qa/evidence/foraging-05c-<date>.md`(主创签核)。
   - Edge cases: 走查未跑 ⇒ 本 AC 保持未勾;回写完成 ≠ 走查通过(禁借绿,GDD 注⑥)。
+  - ✅ **执行记录(2026-10-26)**:走查已跑并签核 ⇒ 本 AC 已勾。实际被查词表 **20 档**
+    (4 品种 × 5,非本 Given 行写的单品种 5 档 —— 21a 于 2026-10-26 起有四品种行),
+    其中 2 词因采后 / 离株语义改词。详见 `production/qa/evidence/foraging-05c-2026-10-26.md`。
 
 ---
 
@@ -296,7 +299,13 @@ story-002/003/004/005 **零命中** `cooked` / `IDataProvider`。甲案仍成立
 
 ### 收口判定(2026-10-26 · /story-done · lean 模式)
 
-**Verdict = COMPLETE WITH NOTES**
+**Verdict = COMPLETE**(2026-10-26 签核后更新;收口当时的判定为 `COMPLETE WITH NOTES`,
+因 AC-17-05c 尚未签核 —— 原文保留于下「未通过项与不记绿声明」段)
+
+> **为何可从 WITH NOTES 升为 COMPLETE**:`/story-done` 的三条 COMPLETE 条件
+> ① 全部 AC 通过(**5/5**)② 无 blocking 偏差(3 条 ADVISORY,已登记)
+> ③ Falsifiability Gate = PASS(**7/7**)—— 三条件当前全部满足。
+> 升格的**唯一**依据是 §六 签核完成;测试/代码未再变更。
 
 | 项 | 结果 |
 |---|---|
