@@ -11471,3 +11471,22 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 ### Next
 
 等证伪轮 W1–W7 结果 → 确认零残留 → 更新 story 卡 → `/story-done`
+
+## Session Extract — AC-17-05c 走查补做 + 提交 2026-10-26
+
+- Commit: `e574725` fix(foraging): AC-17-05c 走查 —— 20 词审定 + 2 词改词重烘
+- 走查件: `production/qa/evidence/foraging-05c-2026-10-26.md`(294 行)
+- 评审原件: `production/qa/evidence/review-foraging-001-2026-10-26.md`(225 行)
+- **AC-17-05c 仍不记绿** —— §六 签核栏(主创/医学顾问 + QA 复核)留空。
+  「走查被执行」≠「走查被认可」
+- 走查抓到的两个真实缺陷:
+  ① 15/20 词原无用户审定出处(GDD `:666`/`:717` 的前提此前**不成立**)
+     → 用户当场逐词审定,20/20 现有出处
+  ② 两处采后/离株语义 → cinchona_bark q5「油润」→「纹密色赤」;
+     yarrow q1「茎断花落」→「茎倒花萎」;21a 重烘 cfg 0xDD56E85E → 0x6AAC8AD8
+- 回归: `5174/5139/0/35`(`unity/Logs/w-05c-full.xml`),与 S20-3 基线逐位相同;
+  漂移门 `drift[item_database_items.cooked.bytes]` = Passed
+- 就地订正两处:证据件 §七 改前 ConfigVersion(误记 foraging 表的 `0x1CFDA66D`
+  → 实读 `0xDD56E85E`);三处 GDD 行号(`注⑦ :507`→`:509`、`:106`→`:103`/`:510`、
+  `:105-113`→`:107`)
+- Next: `S20-4 processing-001`(ready-for-dev);AC-17-05c 待主创签核
