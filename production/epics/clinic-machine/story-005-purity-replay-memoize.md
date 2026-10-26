@@ -1,12 +1,12 @@
 # Story 005: 纯函数重放与 Memoize 失效
 
 > **Epic**: 医馆即机器
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: 4h
 > **Manifest Version**: 2026-10-15  <!-- 2026-10-25 重写轮:自 2026-10-02 刷至现行版(承 S20-1 用户裁定 [A] 先例;增量仅 Cross-Cutting 之七/之八两节) -->
-> **Last Updated**: 2026-10-25
+> **Last Updated**: 2026-10-26
 ## Context
 
 **GDD**: `design/gdd/clinic-machine.md`(24 无状态机铁律 · AC-24-04 同进程双求值逐位 · AC-24-11 · EC-24-05 表现层 Memoize)
@@ -58,6 +58,14 @@
 
 1. 双求值测试用同一 fixture 布局跑两遍(独立实例化,禁复用第一次的结果对象)。
 2. contexts[] 输出顺序钉死为确定性序(表 ordinal 升序),防集合迭代序漂移(承 ADR-024/25 同款纪律)。
+   > ✅ **2026-10-26 F7 修复轮(用户裁定「修复该缺陷,不要放过,不要留债」)**:本条原**在 P0 不可证伪**
+   > —— `ClinicContextTable` 构造器拒 `room_type` 重复 ⇒ 生产路径对给定 roomType 恒 ≤1 元素
+   > ⇒ `ids.Sort` 不可达,证伪轮 F7 变异零红。修法 = **保留排序 + 解耦收集逻辑**:
+   > `CollectContextIdsFromRows(string, IReadOnlyList<ClinicContextRow>)` 改 `internal`
+   > (+ `Sim/AssemblyInfo.cs` 的 `InternalsVisibleTo("Sim.Contracts.Tests")`,承 `Sim.Codec` 先例),
+   > 夹具直接喂多行同 roomType 的行集。**证伪轮实跑**:`Sort → Reverse` ⇒ RED=1 且红名单**恰为**
+   > `test_ac2404_contextsOrder_multiElement_sortedOrdinal`(修复前同一变异 RED=0)。
+   > 生产行为零变化;P1a 多情境的生产面放宽仍归 P1a。
 3. 缓存实现落 `Gameplay.Presentation`:监听 `Structure*` 事件流,键 = 事件全序键,值 = ClinicEnvDto 快照。
    > 🔁 **2026-10-26 评审回写(W-2,原文不删)**:本条**后半句未按原样实现** —— 实现缓存的是
    > `Sim.Clinic.ClinicEnvEvaluation`(24 的纯输出),**不是** `ClinicEnvDto`。原因是 DTO 投影需要
@@ -124,7 +132,11 @@
 
 **Story Type**: Integration
 **Required evidence**: `unity/Assets/Tests/EditMode/ClinicMachine/clinic_purity_replay_test.cs` — must exist and pass
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing — **19 → 20 测全绿** @ 2026-10-26
+（`Logs/f7-full.xml` 全量 `5121/5086/0/35`；夹具级 `Logs/f7-fix1.xml` `189/189/0/0`）
+
+> 🔁 **2026-10-26 订正**:原写 `[ ] Not yet created`,实际该文件自 `734565c` 起已存在并持续全绿;
+> 本行一直未刷新。F7 修复轮新增 1 测(19 → 20)后一并订正。
 
 ---
 
@@ -137,4 +149,27 @@
 
 ## Completion Notes
 
-*(留空 — story 关闭时回填)*
+**Completed**: 2026-10-26
+**Criteria**: 5/5 passing（AC-1 双求值 / AC-2 EC-24-05 失效 / AC-3 无状态 + 位置归属 / AC-4 输入封闭 / AC-5 重放等价）
+**Deviations**:
+- **TD-clinic-20**（登债册）— 24→42 交付通道未收敛：Memo 直引 `Sim.Clinic` 而非走 `IClinicEnvQuery`。既有基线债（`AudioRefBaseline` WARN 放行），非本卡新增边；`adr-025:115` 有注记，**注记 ≠ 收敛**
+- **TD-clinic-21**（登债册）— P1a 多情境的**生产面**仍不可达（构造器拒 `room_type` 重复）；**排序属性本身已可证伪**，P0 面 N
+
+**Test Evidence**: Integration — `unity/Assets/Tests/EditMode/ClinicMachine/clinic_purity_replay_test.cs`，20 测全绿
+- 全量 `5121 / 5086 / 0 / 35` @ 2026-10-26 00:57 UTC（`Logs/f7-full.xml`）
+- 基线 `5120 / 5085 / 0 / 35`（`Logs/fix-review.xml`）⇒ 增量 **+1** == 新增测试 1 条
+- 夹具级 `189 / 189 / 0 / 0`（`Logs/f7-fix1.xml`）
+
+**Code Review**: Complete — 两份原件，均零 BLOCKING
+- `production/qa/evidence/review-s20-2-clinic005-2026-10-26.md`（APPROVED WITH SUGGESTIONS，W-1…W-5 + M-1…M-7 结账表两列全 ✅）
+- `production/qa/evidence/review-s20-2-names-2026-10-26.md`（APPROVED WITH SUGGESTIONS，D1-D3 + Q1-Q5 结账表两列全 ✅）
+
+**Falsifiability Gate**: PASS —— **11/11 转红，零 NOT-RUN**
+- 原 F7（`contexts[]` 多元素排序）**已修复并转红**：用户裁定「修复该缺陷，不要放过，不要留债」。
+  修法 = 保留排序 + 解耦收集逻辑（`internal CollectContextIdsFromRows` + `Sim/AssemblyInfo.cs` 的 IVT），
+  证伪轮 `Sort → Reverse` ⇒ RED=1 且红名单**恰为** `test_ac2404_contextsOrder_multiElement_sortedOrdinal`
+  （修复前同一变异 RED=0）。SHA-256 逐字节还原 ✅
+
+**遗留的连带订正（已完成）**:
+- `clinic_room_matching_e2e_test.cs:19-24` 的「`World` 侧未验」注记已过时（S20-2a 已覆盖）—— 归本轮，已就地订正
+- 卡面 `## Test Evidence` 的 `Status: [ ] Not yet created` 一直未刷新（文件自 `734565c` 起已存在并全绿）—— 已订正

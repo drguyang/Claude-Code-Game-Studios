@@ -212,13 +212,35 @@ namespace DaYiJingCheng.Sim.Clinic
         /// 而行序是烘焙写方的一个实现细节(`ClinicMachineCookedWriter` 对行做
         /// `room_type` → `context_id` 的 ordinal 全序排序)。依赖它 = 让输出成为
         /// 「作者态 JSON 手写序」的函数,而不是「表内容的函数」——
-        /// 承 ADR-016 §一 三源不变量的同一纪律(判据只依赖内容,不依赖容器序)。
-        /// <para>P0 单情境下恰 1 元素 ⇒ 排序无判别力(如实登记,见 story-005 证据件 §六);
-        /// 多情境归 P1a(F-24-4)。</para>
+        /// 承 ADR-016 §一 三源不变量的同一纪律(判据只依赖内容,不依赖容器序)。</para>
+        /// <para>生产路径薄包装 —— 实际收集逻辑见
+        /// <see cref="CollectContextIdsFromRows"/>(internal,供夹具直接喂行集)。</para>
         /// </summary>
         private static IReadOnlyList<string> CollectContextIds(string roomType, ClinicContextTable contexts)
+            => CollectContextIdsFromRows(roomType, contexts.Rows);
+
+        /// <summary>
+        /// 从**任意行集**收集该房间类型的情境 id,按 `StringComparer.Ordinal` 升序。
+        /// <para>⚠️ **为什么参数是行集而不是表**:<see cref="ClinicContextTable"/> 的构造器
+        /// 拒 `room_type` 重复(`ClinicMachineTables.cs:124-127`,注释明写「每房间类型恰一情境行」)
+        /// ⇒ 从**表**取行时,对给定 `roomType` 恒 ≤ 1 元素 ⇒ <c>ids.Sort</c> 在 P0 是
+        /// **不可达的死代码**,任何变异都不改变输出(F7 存活即此)。</para>
+        /// <para><b>2026-10-26 用户裁定(B 路 · 保留代码 + 补可证伪测试)</b>:不删排序
+        /// (多情境是 P1a 的已裁形态 F-24-4,删了 P1a 要重写),而是把「收集逻辑」与
+        /// 「表的构造期约束」解耦 —— 本方法收行集,夹具即可直接喂
+        /// <b>多行同 `roomType`</b> 的行集,排序属性自此**可证伪**。
+        /// 生产路径经 <see cref="CollectContextIds"/> 薄包装,行为零变化。</para>
+        /// <para>可见性 = <c>internal</c> + <c>InternalsVisibleTo("Sim.Contracts.Tests")</c>
+        /// (`Sim/AssemblyInfo.cs`),承 `Sim.Codec/FixCodec` 的既有先例 —— 生产面不扩大。</para>
+        /// </summary>
+        /// <param name="roomType">房间类型(与 <see cref="ClinicContextRow.RoomType"/> ordinal 比较)。</param>
+        /// <param name="rows">待筛行集(不要求来自表;夹具可自造多行同类型)。</param>
+        /// <returns>升序情境 id;无匹配 ⇒ 空集单例。</returns>
+        internal static IReadOnlyList<string> CollectContextIdsFromRows(
+            string roomType, IReadOnlyList<ClinicContextRow> rows)
         {
-            IReadOnlyList<ClinicContextRow> rows = contexts.Rows;
+            if (rows == null) throw new ArgumentNullException(nameof(rows));
+
             var ids = new List<string>(1);
             for (int i = 0; i < rows.Count; i++)
             {

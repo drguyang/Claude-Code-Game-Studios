@@ -3675,3 +3675,43 @@ Linux-ARM64-IL2CPP  不可达            (pinned 工具链零 arm 目标,2026-10
 **NOT-RUN 六项(禁借绿)**:N1 写侧发起方(42 `O-23-6`)· N2 `CalculateRefund` 生产调用方 · N3 `AC-24-11` 布局源(归 S20-2 本体)· N4 `AC-23-08` 真目录 9 行逐行校验(R=1 下恒真,无可证伪性)· N5 生产装配根 `CompositionRoot` 的 `new World(`(另属一层,本件未做)· N6 `ValidOrientations={0}` 限制。
 
 **连带订正项(未动,登记)**:`Tests/EditMode/ClinicMachine/clinic_room_matching_e2e_test.cs:19-24` 的「`World` 侧未验」注记**现已过时** —— 由本件 `world_end_to_end_test.cs` 覆盖。就地订正归 S20-2(clinic-005)轮。
+
+---
+
+## 2026-10-26 · S20-2(clinic-005)收口立债(2 条)
+
+**出处**:S20-2 `/story-done` 轮,用户裁定「两条 ADVISORY 都登债册」。
+证据原件 = `production/qa/evidence/review-s20-2-clinic005-2026-10-26.md`(W-1)+
+`production/qa/evidence/impl-s20-2-clinic005-2026-10-25.md` §四(F7,已于同日修复,残余面见下)。
+
+### TD-clinic-20 — 24→42 交付通道未收敛:`ClinicEnvironmentMemo` 直引 `Sim.Clinic` 而非走 `IClinicEnvQuery`
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | ADR-025 §① 为 24→42 登记的交付形态是 `IClinicEnvQuery.GetEnv(int roomId) → ClinicEnvDto`。实际 `Gameplay.Presentation/ClinicEnvironmentMemo.cs` 直接缓存 `Sim.Clinic.ClinicEnvEvaluation`(24 的纯输出),**绕开**该契约通道。两条直引边 = `Gameplay.Presentation.asmdef:5-6` 的 `Sim.Contracts` + `Sim` |
+| **性质** | ⚠️ **既有基线债,非本卡首创** —— `AssemblyGates.cs:473` 的 `AudioRefBaseline = {"Sim"}` 已按 WARN 放行(`:933` 自陈「摘除归装配轮,另账」);同类先例 `ClinicRoomMatchingService.cs:44-59` 早已直出 `Sim.Clinic` struct。本卡**未新增边** |
+| **影响面** | 42 侧读 24 输出的合法路径不唯一;ADR-025 的 24→42 契约形同虚设,直到收敛 |
+| **修法方向(未裁)** | 收敛的前置 = `ClinicEnvDto` 的两处映射落地:① `GetEnv(int roomId)` 的 int 房号 ↔ `ClinicRoomId(High,Low)`(注册表全库不存在);② `ContextIds` ↔ `ContextId` string。**② 已由 S20-2 两张词表解决**;① **仍缺**。⇒ 本债的解除条件 = ①的映射裁定 |
+| **登记位置(已落)** | `adr-025-contract-assembly-manifest.md:115` 注记(⚠️ **注记 ≠ 收敛**) |
+| **触发条件** | `ClinicEnvDto` 映射裁定批;或装配轮实现 `IClinicEnvQuery` 生产件时 |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-clinic-20** | `clinic-machine` | **open** | **Y** | R3-裁 |
+
+### TD-clinic-21 — P1a 多情境:排序属性已可证伪,但**生产面**仍不可达
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | F7(`contexts[]` 多元素排序)原为「P0 结构性不可证伪」。2026-10-26 用户裁定「修复,不留债」后,经 `CollectContextIdsFromRows`(internal + IVT)直接喂多行同行集,**排序属性本身已可证伪**(证伪轮 `Sort → Reverse` ⇒ RED=1 恰为靶测)。**残余面**:`ClinicContextTable` 构造器仍拒 `room_type` 重复(`ClinicMachineTables.cs:124-127`)⇒ **生产路径**上 `contexts[]` 恒 ≤1 元素,排序在生产侧仍不可达 |
+| **性质** | ⚠️ **非缺陷** —— 多情境是 P1a 的**已裁形态**(F-24-4 / EC-24-06),P0 不实现是设计而非遗漏。本债登记的是「P1a 放宽构造器时须同步核对的事」 |
+| **影响面** | 若 P1a 放宽 `room_type` 唯一性,**必须同时**:① 复核 `CollectContextIdsFromRows` 的 ordinal 排序仍是期望语义;② 补一条**走生产路径**的多元素夹具(当前的夹具走 internal 面);③ 复核 `TryGetBaseEnv` / `TryGetKSpeed` 的 `_byRoomType` 字典在多行同类型时的行为(现为 `ContainsKey` 直接拒,放宽后须重定义) |
+| **修法方向** | 无 —— 归 P1a 轮执行 |
+| **触发条件** | `ClinicContextTable` 构造器的 `room_type` 唯一性约束被放宽时 |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-clinic-21** | `clinic-machine` | **open** | **N** | R3-裁 |
+
+> **`P0 面`**:`TD-clinic-20` = **Y**(24→42 交付通道是 P0 面内的架构债);
+> `TD-clinic-21` = **N**(P1a 形态,不进 P0 出口判据)。

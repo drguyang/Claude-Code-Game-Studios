@@ -271,10 +271,12 @@ namespace DaYiJingCheng.Tests.ClinicMachine
         /// <summary>
         /// `contexts[]` 的序**与输入(表行序)无关**:两张行序相反的 `CONTEXT_TABLE` 对同一布局
         /// 求值,`contexts[]` 相同。
-        /// <para>⚠️ **P0 判别力有限(如实登记)**:`ClinicContextTable` 的构造器拒 `room_type` 重复
-        /// ⇒ P0 单房间单情境下 `contexts[]` 恰 1 元素,排序恒真。本测钉的是
-        /// 「输出不依赖容器序」这一**结构性**性质(承 ADR-016 §一:判据只依赖内容),
-        /// 多元素排序的判别力归 P1a(EC-24-06 / F-24-4)。</para>
+        /// <para>⚠️ **本测对排序面判别力有限(如实登记)**:`ClinicContextTable` 的构造器拒
+        /// `room_type` 重复(`ClinicMachineTables.cs:124-127`)⇒ 从**表**取行时对给定 `roomType`
+        /// 恒 ≤ 1 元素 ⇒ 排序在此路径上不可达。本测钉的是「输出不依赖容器序」这一**结构性**性质
+        /// (承 ADR-016 §一:判据只依赖内容),**排序本身的可证伪性由下面
+        /// <see cref="test_ac2404_contextsOrder_multiElement_sortedOrdinal"/> 承担**
+        /// (2026-10-26 用户裁定 B 路后补,喂多行同 roomType 的行集)。</para>
         /// </summary>
         [Test]
         public void test_ac2404_contextsOrder_independentOfTableRowOrder()
@@ -307,6 +309,49 @@ namespace DaYiJingCheng.Tests.ClinicMachine
             Assert.That(b.EnvMod.Raw, Is.EqualTo(a.EnvMod.Raw));
             Assert.That(b.RoomType, Is.EqualTo(a.RoomType));
             Assert.That(a.ContextIds, Is.EqualTo(new[] { "ward_plain" }));
+        }
+
+        /// <summary>
+        /// **`contexts[]` 多元素排序**(F7 的可证伪面,2026-10-26 用户裁定 B 路后补)。
+        /// <para><b>为什么要单独一条</b>:生产路径 `CollectContextIds` 从
+        /// <see cref="ClinicContextTable"/> 取行,而该表构造器拒 `room_type` 重复
+        /// ⇒ 对给定 roomType **恒 ≤ 1 元素** ⇒ `ids.Sort` 在那条路径上**不可达**,
+        /// 任何变异都不改变输出(F7 存活即此)。本测经 internal
+        /// <c>CollectContextIdsFromRows</c> 直接喂**多行同 roomType** 的行集,
+        /// 把排序从「P0 不可达」变成「可观测且可证伪」。</para>
+        /// <para><b>判别力</b>:把 `ids.Sort(StringComparer.Ordinal)` 改成
+        /// `ids.Reverse()`(或删掉整行)⇒ 输出退化为输入序 ⇒ 本测红。
+        /// 输入序**刻意取非 ordinal 升序**,否则变异前后同值。</para>
+        /// <para><b>为什么绕开表构造器不违规</b>:本测测的是「排序」这一个属性,
+        /// 不是「表能否容纳多行同类型」。后者是 P1a 的已裁形态(F-24-4 / EC-24-06),
+        /// 不由本卡改判 —— 故用 internal 面而非放宽构造器。</para>
+        /// </summary>
+        [Test]
+        public void test_ac2404_contextsOrder_multiElement_sortedOrdinal()
+        {
+            // Arrange:同一 roomType 三行,输入序**刻意非** ordinal 升序
+            //   "ward_z" > "ward_m" > "ward_a" 的字典序 ⇒ 输入序 = z, a, m
+            var rows = new List<ClinicContextRow>
+            {
+                new ClinicContextRow("ward", "ward_z", new Fix(OneRaw), new Fix(0)),
+                new ClinicContextRow("ward", "ward_a", new Fix(OneRaw), new Fix(0)),
+                new ClinicContextRow("ward", "ward_m", new Fix(OneRaw), new Fix(0)),
+                new ClinicContextRow("surgery", "surgery_sterile", new Fix(57344L), new Fix(0)),
+            };
+
+            // Act
+            IReadOnlyList<string> ids =
+                ClinicEnvironmentEvaluator.CollectContextIdsFromRows("ward", rows);
+
+            // Assert:只收匹配 roomType 的三条,且**按 ordinal 升序**
+            Assert.That(ids, Is.EqualTo(new[] { "ward_a", "ward_m", "ward_z" }),
+                "多元素须按 ordinal 升序;退化为输入序(z,a,m)或逆序即说明 Sort 失效");
+            Assert.That(ids.Count, Is.EqualTo(3), "surgery 行不得混入");
+
+            // 反面:输入序确实非升序(防「夹具本身就是升序 ⇒ 变异前后同值」的假绿)
+            var inputOrder = new List<string> { "ward_z", "ward_a", "ward_m" };
+            Assert.That(inputOrder, Is.Not.EqualTo(ids),
+                "自检:输入序必须与期望输出序不同,否则本测对 Sort 无判别力");
         }
 
         // ══════════════════ ② EC-24-05 行为半边:变更后重算(真 World)══════════════════

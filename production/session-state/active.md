@@ -11340,3 +11340,19 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - **债册三十五订**:TD-building-01 + TD-itemdb-01 双 closed ⇒ closed 43 / open 62 / partial 5 / **未闭 P0 面 60** / **epic 7/31**。
 - 残留(不随 closed 消失):拆除运行时调用方归 42 `O-23-6`;`clinic_room_matching_e2e_test.cs:19-24` 的「World 侧未验」注记已过时,就地订正归 S20-2。
 - 下一步:**S20-2(clinic-005 本体)**—— 前置 S20-2a 已满足,AC-24-11 布局源可走真 World(可记绿)。
+
+<!-- S20-2 收口(2026-10-26 /story-done) -->
+- **S20-2(clinic-005)→ Complete**:5/5 AC COVERED;Falsifiability Gate **11/11 转红,零 NOT-RUN**
+- **F7 修复(用户裁定「修复该缺陷,不要放过,不要留债」)**:根因 = `ClinicContextTable` 构造器拒 `room_type` 重复
+  ⇒ 生产路径对给定 roomType 恒 ≤1 元素 ⇒ `ids.Sort` **不可达**(不是夹具判别力问题,是代码无可观测行为)。
+  修法 = 保留排序 + 解耦收集逻辑(`internal CollectContextIdsFromRows` + `Sim/AssemblyInfo.cs` 的 IVT,
+  承 `Sim.Codec` 先例);生产行为零变化,生产面不扩大。
+  证伪轮 `Sort→Reverse` ⇒ **RED=1 且红名单恰为** `test_ac2404_contextsOrder_multiElement_sortedOrdinal`
+  (修复前同一变异 RED=0);SHA-256 `5ea4c77a…` 逐字节还原 ✅
+- **回归**:`5121 / 5086 / 0 / 35` @ 2026-10-26 00:57 UTC · S20-2 F7 修复轮(`Logs/f7-full.xml`);
+  基线 `5120/5085/0/35`(`fix-review.xml`)⇒ 增量 +1 == 新增测试 1。夹具级 `189/189/0/0`(`f7-fix1.xml`)
+- **债册新登两条**:TD-clinic-20(24→42 通道未收敛 · Memo 直引 Sim.Clinic 而非 IClinicEnvQuery;**P0 面 Y**)·
+  TD-clinic-21(P1a 多情境**生产面**仍不可达,排序属性本身已可证伪;**P0 面 N**)
+- 提交链:`1b2f70f`(词表落地)→ `90fc2e1`(评审修复 D1-D3+Q1-Q5)→ `fd269fc`(ADR-025 行号订正)
+  → **F7 修复批 + 收口件(未提交,等用户指令)**
+- Next:`/sprint-status` 看 sprint-20 剩余;S20-3 起

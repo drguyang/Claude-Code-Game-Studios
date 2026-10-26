@@ -20,7 +20,7 @@ goal: "交付路线图 §6.5 sprint-20 段四件本体(clinic-004/005 · foragin
 start: "2026-10-25"
 end: ""
 generated: "2026-10-25"
-updated: "2026-10-25"
+updated: "2026-10-26"
 
 stories:
   - id: "S20-1"
@@ -50,13 +50,13 @@ stories:
     name: "clinic-005 纯度重放 + Memoize(含 TD-building-01 残余两半就地裁定)"
     file: "production/epics/clinic-machine/story-005-purity-replay-memoize.md"
     priority: must-have
-    status: in-progress
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
-    completed: ""
-    note: "Depends on Story 002–004 ✅ + S20-2a ✅(2026-10-25 done);重写轮已订正三处编号(缓存失效面 = EC-24-05 非 AC-24-11;AC-24-10/11 覆盖归 story-002);判据集四条 = AC-24-04 + EC-24-05 + 无状态反射扫描 + 纯函数输入封闭"
+    completed: "2026-10-26"
+    note: "2026-10-26 收口。5/5 AC COVERED(AC-24-04 / EC-24-05 / 无状态扫描 / 输入封闭 / 重放等价);Falsifiability Gate 11/11 转红零 NOT-RUN —— F7(contexts[] 多元素排序)原为 P0 结构性不可证伪,用户裁定「修复,不留债」后经 internal CollectContextIdsFromRows + Sim/AssemblyInfo.cs 的 IVT 解耦,证伪轮 Sort→Reverse ⇒ RED=1 恰为靶测;全量 5121/5086/0/35(基线 5120/5085 ⇒ +1 == 新增测试 1);两份评审原件零 BLOCKING;新登债 TD-clinic-20(24→42 通道未收敛,P0=Y)+ TD-clinic-21(P1a 生产面,P0=N)"
   - id: "S20-3"
     name: "foraging-001 品种闭包 + 数据装载校验"
     file: "production/epics/foraging/story-001-variety-closure-and-data-load-validation.md"
