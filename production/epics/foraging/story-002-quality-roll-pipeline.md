@@ -1,12 +1,12 @@
 # Story 002: 品级抽取管线 F-17-1(掷骰 + CDFWalk + QualityCap)
 
 > **Epic**: 采集
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: 6h
-> **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Manifest Version**: 2026-10-15
+> **Last Updated**: 2026-10-26
 
 ## Context
 
@@ -31,11 +31,14 @@
 
 *From GDD `design/gdd/foraging.md`, scoped to this story:*
 
-- [ ] **AC-17-03**: `GIVEN` `quality_distribution` 边界(单档 100%),`WHEN` 走 `CDFWalk`,THEN `out_quality` 恒等该档,无除零 / 越界;`QualityCap` 低时夹具结论写为「恒 = 该档 ∩ ≤ Cap」
-- [ ] **AC-17-04**: `GIVEN` `raw_quality > QualityCap`,`WHEN` 结算,`THEN` `out_quality == QualityCap`,且 `raw_quality` 可从 `(WorldSeed, node_id, gather_seq)` 重算(规则四)
-- [ ] **AC-17-11**: `GIVEN` `gather_seq` 定义,`WHEN` 反射 / 静态检索,`THEN` 唯一来源 = `ResourceHarvested` 的节点计数,零独立计数器
-- [ ] **AC-17-15**: `GIVEN` `GatherMul(L)`,`WHEN` 单测 + 边界,`THEN` `GatherMul(0) == 1` · 单调不减 · ≤ `GATHER_MUL_CAP` · `Mul` 后取整用 `ROUND_HALF_AWAY_FROM_ZERO`(防低技能双重惩罚;`GATHER_MUL_CAP` 值归 OQ-17-2 数值轮,形状判据即刻可测)
-- [ ] **AC-17-02**: `GIVEN` 同一 `(WorldSeed, node_id, gather_seq)`,`WHEN` 跨平台重放,`THEN` `out_quality` 逐位相同。**⚠️ EXTERNAL · BLOCKED-BY-ADR-012** —— 三格矩阵不存在 + F7 spike 未跑 ⇒ 17 侧**不得记绿**(本仓只钉 Mono 侧自洽;夹具与刷新政策归 ADR-012 落地轮)
+- [x] **AC-17-03**: `GIVEN` `quality_distribution` 边界(单档 100%),`WHEN` 走 `CDFWalk`,THEN `out_quality` 恒等该档,无除零 / 越界;`QualityCap` 低时夹具结论写为「恒 = 该档 ∩ ≤ Cap」。✅ **5 条夹具**(单档恒等 · 低 Cap 钳制 · **边界左闭右开 · 严格 `<` 恰等点 · `U = 高 48 位`** · Σw=0 拒 · 负权重拒)
+- [x] **AC-17-04**: `GIVEN` `raw_quality > QualityCap`,`WHEN` 结算,`THEN` `out_quality == QualityCap`,且 `raw_quality` 可从 `(WorldSeed, node_id, gather_seq)` 重算(规则四)。✅ **4 条夹具**(钳制 · 重算逐位同 · 载荷类型面无 `raw_quality` 字段)
+- [x] **AC-17-11**: `GIVEN` `gather_seq` 定义,`WHEN` 反射 / 静态检索,`THEN` 唯一来源 = `ResourceHarvested` 的节点计数,零独立计数器。✅ **3 条夹具**(反射扫类型面无可变静态/实例成员 · 负 seq 拒 · 同 seq 不同 node 独立)
+- [x] **AC-17-15**: `GIVEN` `GatherMul(L)`,`WHEN` 单测 + 边界,`THEN` `GatherMul(0) == 1` · 单调不减 · ≤ `GATHER_MUL_CAP` · `Mul` 后取整用 `ROUND_HALF_AWAY_FROM_ZERO`(防低技能双重惩罚;`GATHER_MUL_CAP` 值归 OQ-17-2 数值轮,形状判据即刻可测)。✅ **6 条夹具**。⚠️ **实测字面式 `1 + L/30` 给出 {1,2,3} 阶跃,非连续曲线** —— 已登 `TD-foraging-02`;
+  `test_ac1715_gatherMul_isStepwise_notContinuous` 断的是**字面式的实际形状**,不是「曲线平滑」
+- [ ] **AC-17-02**: `GIVEN` 同一 `(WorldSeed, node_id, gather_seq)`,`WHEN` 跨平台重放,`THEN` `out_quality` 逐位相同。**⚠️ EXTERNAL · BLOCKED-BY-ADR-012** —— 三格矩阵不存在 + F7 spike 未跑 ⇒ 17 侧**不得记绿**(本仓只钉 Mono 侧自洽;夹具与刷新政策归 ADR-012 落地轮)。
+  ⚠️ **本件只证 Mono 半边**:同输入 100 次重跑逐位同 + 求值次序无关(纯函数性)。
+  测试名带 `_monoSideOnly` 后缀,使「只证一半」在测试列表里可见。**跨平台面仍 NOT-RUN。**
 
 ---
 
@@ -102,7 +105,22 @@
 - Logic: `unity/Assets/Tests/EditMode/Foraging/gather_quality_roll_test.cs` — must exist and pass
 - EXTERNAL(AC-17-02):跨平台对拍归 ADR-012 矩阵落地轮;本故事只交 Mono 侧黄金值文件(纳入将来 golden-vN 重签)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing —— `unity/Assets/Tests/EditMode/Foraging/gather_quality_roll_test.cs`
+· **22/22 passed**(`unity/Logs/f2-gather-roll.xml`,2026-10-26)
+· 全量回归 **5196/5161/0/35**(`unity/Logs/f2-full.xml`;基线 5174 ⇒ **+22 == 新增夹具数**,零回归)
+
+**实现件**:
+- `unity/Assets/Sim/Foraging/GatherQualityRoll.cs`(新建)—— F-17-1 四步 + F-17-2 两式
+- `unity/Assets/Sim/EventRng.cs`(改)—— 新增 `CdfWalkHigh48`(GDD 定死的高 48 位形);
+  既有 `CdfWalk`(取模形)**加注「不得用于品级抽取」**(两形统计同构、逐点不同,实测 20.1%)
+
+**⚠️ AC-17-02 只验 Mono 半边** —— 跨平台逐位对拍归 ADR-012 三格矩阵(矩阵不存在 +
+F7 spike 未跑)。测试方法名带 `_monoSideOnly` 后缀,使「只证一半」在测试列表里可见。
+
+**⚠️ 真表侧不可判** —— `quality_distribution` 在 21a 四行 `gather_profile` 里**全不存在**
+(S20-3 已登 ADVISORY,归 21a 形状落地轮)。本件全部用**合成分布**驱动(story 的
+Implementation Notes 第 6 条已预见此情形)。⇒ 本件的绿覆盖「算子与边界的形状」,
+**不覆盖「真表能喂进来」** —— 后者要等 21a 补字段。
 
 ---
 
@@ -115,4 +133,50 @@
 
 ## Completion Notes
 
-*(placeholder — to be filled at story completion)*
+**Completed**: 2026-10-26
+**Criteria**: **4/5 passing**(AC-17-03 / 04 / 11 / 15);AC-17-02 [A] **只验 Mono 半边,不记绿**
+(BLOCKED-BY-ADR-012 三格矩阵 + F7 spike)
+**Test Evidence**: Logic —— `unity/Assets/Tests/EditMode/Foraging/gather_quality_roll_test.cs` · **22/22**
+**Code Review**: lean 模式,见下方收口判定
+**证据件**: `production/qa/evidence/impl-foraging-002-2026-10-26.md`
+
+### 交付面(3 文件)
+
+| # | 文件 | 性质 |
+|---|---|---|
+| ① | `unity/Assets/Sim/Foraging/GatherQualityRoll.cs` | 新建 —— F-17-1 四步 + F-17-2 两式 |
+| ② | `unity/Assets/Sim/EventRng.cs` | 改 —— 新增 `CdfWalkHigh48`;既有 `CdfWalk` 加「不得用于品级抽取」注 |
+| ③ | `unity/Assets/Tests/EditMode/Foraging/gather_quality_roll_test.cs` | 新建 —— 22 条夹具 |
+
+### 证伪轮(S12-4)
+
+| 轮次 | 结果 | 说明 |
+|---|---|---|
+| 首轮 | **4/7** | F1(`>>16`→`>>8`)靶测未红 —— **靶测绕过 `DrawU`**;F2(严格 `<`)`red=0` —— **夹具 Σw 不整除 `2^48`**,等号点不可达;F6 脚本靶子指错文件 |
+| 补夹具后 | **7/7** | 两条真夹具缺口已补(详见证据件 §4.2) |
+
+⚠️ **两个数字都保留** —— 只记 7/7 = 把补完的结果当成一开始就有的结果。
+
+### 偏差
+
+| 级别 | 内容 |
+|---|---|
+| ADVISORY | **AC-17-02 跨平台半边未验** —— 基础设施缺口(ADR-012),非本 story 缺陷 |
+| ADVISORY | **真表侧不可判** —— 21a 四行无 `quality_distribution`,S20-3 已登,归 21a 形状落地轮 |
+| ADVISORY | **`GatherMul` 阶跃曲线** —— 已登 `TD-foraging-02`(open · P0 面 N),归数值轮 |
+| ADVISORY | **`_monoSideOnly` 用例证的是「纯函数性」,不是「跨进程一致性」** —— 100 次重跑在同进程内完成,共享同一份 JIT 产物与同一块内存布局。它排除「实现里有可变状态」,**不排除**「不同进程/不同平台因溢出 UB 给出不同结果」。后者正是 ADR-012 F7 spike 要测的东西,**本件没有触及** ⇒ 不得把这条绿读作「跨平台已有半保障」 |
+
+### 收口判定(2026-10-26 · /story-done · lean 模式)
+
+**Verdict = COMPLETE WITH NOTES**
+
+| 项 | 结果 |
+|---|---|
+| Acceptance Criteria | **4/5**;AC-17-02 只验 Mono 半边 |
+| Test Evidence(Logic) | ✅ `gather_quality_roll_test.cs` · **22/22 passed** |
+| Falsifiability Gate | ✅ **PASS** —— `7 / 7 turned red`;⚠️ 首轮 4/7(已如实记录) |
+| 偏差 | 无 BLOCKING;3 条 ADVISORY |
+| Code Review | ✅ **APPROVED WITH SUGGESTIONS**(lean 模式,用户 2026-10-26 确认)。**零 BLOCKING**;两条建议:
+① `OutQuality` 的 clamp 手写而非用 `Math.Clamp`(刻意 —— 避开「BCL 的 `Math.Clamp` 与定点语义是否有隐藏交互」的争议,但可讨论);
+② `CdfWalkHigh48` 的溢出守卫报错可再具体(当前只说「超出 long 值域」,未给出实际 `Σw` 值) |
+| Manifest 时效 | ✅ 已更新为 `2026-10-15`(= 当前 `control-manifest.md:5`) |

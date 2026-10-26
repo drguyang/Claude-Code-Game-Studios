@@ -11498,3 +11498,115 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - story 卡:AC-17-05c 勾选 `[x]`,Closing/criteria 计数 **4/5 → 5/5**;sprint-status note 同步
 - ⚠️ **口径**:同一人兼任两角色(`coding-standards.md` 对单人开发形态明许),
   **不构成第三方独立复核** —— 已写进走查件 §六 与 story 卡两处,防将来误读
+
+## S20-4 前置裁定(2026-10-26 · 用户裁三项,待 S20-4 开工时执行)
+
+**背景**:S20-4 processing-001 依赖核验发现 `inventory-items story-001`(InventoryOf)
+Status = **Ready**(全仓 `grep -rn "InventoryOf" unity/Assets tests/ --include=*.cs` = 零命中)。
+
+| # | 裁定 | 内容 |
+|---|---|---|
+| ① | **乙** | **先做 inventory-items story-001**,完成后再回 S20-4 |
+| ② | **甲** | AC-18-20 须落**两个真实调用点**(预答 + 终裁),做 MethodInfo 比对 + spy 共享计数,并配「改成两份实现 ⇒ 必红」负向夹具自证 —— 防 `A == A` 恒真(空集假绿同构) |
+| ③ | **甲** | S20-4 story 的 `Manifest Version` 由 `2026-10-02` 更新为 `2026-10-15`(当前 control-manifest) |
+
+**S20-4 勘察到的其他事实(开工时直接用,不必重查)**:
+
+- `RecipeId` = **`string`**(`Sim.Contracts/ItemDatabase/Recipe.cs:38`),不是强类型 —— story 写的 `RecipeId` 类型**不存在**
+- `ItemInstanceRef` **不存在**;真实类型是 `ItemInstance.Quality`(`ItemInstance.cs:25`)
+- `Recipe.SkillGate` / `.MinQuality` / `.Owner` 在 `Recipe.cs:55 / :59 / :41` ✅
+- `QueryLevel(int,int)` 在 `Sim/Prescription/PrescribeFlow.cs:99-102` 的 `ISkillGrowthPort`
+  ⚠️ 定义在 **Prescription** 命名空间下,processing 要用会跨命名空间借用 —— 实现时须处理
+- `CRAFT_SKILL` 在 GDD 是符号名;实枚举 = `SkillId.炮制 = 7`(`SkillRegistry.cs:127`)
+- AC-18-18 **已落**(`recipe_owner_partition_test.cs`,6 条,6/6);其余 AC 测试件未建
+- ⚠️ story 卡自身有矛盾:`## Test Evidence` 写「本 story 尚未开工」,`AC-18-18` 段却写「实测 6/6 绿」—— 开工时一并订正
+
+## inventory-items story-001 前置裁定(2026-10-26 · 用户裁两项)
+
+| # | 裁定 | 内容 |
+|---|---|---|
+| ① | **甲** | inventory-001 交付「fold 本体 + AC-20-05/17 做齐(含证伪轮)」;AC-20-03/16 建夹具跑通但 **AC 行不勾**,`Ignore` 逐条点名 R2/R3 |
+| ② | **乙** | **先做上游戏 003 两件**(foraging-003 三条世界流事件 → processing-003 Craft 载荷+点火),再回 inventory-001 |
+
+**执行顺序**:foraging-003 → processing-003 → inventory-items-001 → S20-4(processing-001)
+
+**inventory-001 勘察结论(不必重查)**:
+- 四 AC 可达性:**AC-20-05 / AC-20-17 自足可绿**;AC-20-03 / AC-20-16 被外部阻塞
+- story 卡的 `BLOCKED-BY` 清单**已过时** —— 写五件,实测三件已闭:
+  - R10 ✅ 已闭(`CraftPayload.OutputInstanceIds` 在 `WorldPayloads.cs:95`)
+  - R11 ✅ 已闭(2026-09-19,17 规则三改为出生即铸)
+  - OQ-20-5 ✅ 已闭(2026-10-06,21a 认领 `portions_per_dose`)
+  - **R2 ⏳ 未定稿** —— `DropDespawnedPayload` 有 `int Qty` / `int Reason` 字段(`:69-70`),
+    缺的是 **`reason` 枚举值域**(ADR-009 窄修订)、且 **不得定为单事件**(OQ-20-10 已裁相邻多条)
+  - **R3 ⏳ 未落地** —— `IIdAuthority` 高水位扫 `BakedInitial`,归 **ADR-010 义务 12 / 7a**
+- 类型已在盘:`EventOrderKey`(Tick,StreamPriority,Patient,Seq)`:40` · `StreamId.World=2` · 七类 payload struct 全在 `WorldPayloads.cs`
+- `unity/Assets/Sim/Inventory/` **不存在**(本 story 新建)
+- 依赖 story 状态:`item-database 001/002` Complete;`foraging-003` / `processing-003` **Ready**(故先做这两件)
+
+## 2026-10-26 · 循环依赖发现 + 用户裁两项
+
+**发现**:`inventory-001` ↔ `processing-003` ↔ `inventory-002` 三方 `Depends on` 成环,
+三者 Status 均 `Ready` ⇒ 按依赖纪律**互为阻塞,任一件不可先开**。
+根因 = 把「需要对方的**载荷/接口类型形状**」误写成「需要对方的**实现落地**」,
+而所需形状**全部已在盘**(`WorldPayloads.cs` 七 payload + `IAbstractions.cs:41-48` `IIdAuthority` 契约)。
+
+| # | 裁定 | 内容 |
+|---|---|---|
+| ① | **C** | **全链严格按依赖序走**(不绕过、不借接口契约替代) |
+| ② | **登记为 TD** | 写入 `docs/tech-debt-register.md` = **`TD-deps-01`**(open · P0 面 N),**不改三方 story 的 Depends on 原文** |
+
+**执行顺序(严格依赖序)**:
+1. `foraging-002`(QualityRoll 管道,5 AC)—— 依赖 skill-system 001/003 均 Complete ✅ **起点**
+2. `foraging-003`(三条世界流事件 + 铸造身份 + SkillGrown,4 AC)—— 依赖 foraging-002
+3. `processing-001`(S20-4 本体)
+4. `processing-002`(F1 调用契约)
+5. `processing-004`? / `inventory-002` 的高水位 —— 按 processing-003 的真实前置补齐
+6. `processing-003`(Craft 载荷 + 点火)
+7. `inventory-001`(fold 本体;AC-20-05/17 做齐,AC-20-03/16 挂 R2/R3)
+8. → S20-4 的 AC-18-20 双调用点
+
+⚠️ **C 路线的代价须知**:chain 长度实测 ≥ 7 件。每一件都要完整走
+`/dev-story` → 测试 → 证伪轮 → `/code-review` → `/story-done`。
+
+## 2026-10-26 · foraging-002 实现轮(依赖链第一件)
+
+**Status: Complete** · **Verdict: COMPLETE WITH NOTES** · **AC 4/5**
+
+| 件 | 路径 |
+|---|---|
+| 证据件 | `production/qa/evidence/impl-foraging-002-2026-10-26.md` |
+| 实现 | `unity/Assets/Sim/Foraging/GatherQualityRoll.cs`(新)· `unity/Assets/Sim/EventRng.cs`(改) |
+| 夹具 | `unity/Assets/Tests/EditMode/Foraging/gather_quality_roll_test.cs`(22 条) |
+
+**验证**:夹具级 22/22 · 证伪轮 **首轮 4/7 → 补夹具后 7/7** · 全量见 `unity/Logs/f2-full.xml`
+
+**两条技术判断**:
+1. **两种 CDFWalk 形统计同构、逐点不同**(实测逐点一致率 20.1%,5 档等权 20 万采样)
+   ⇒ 新增 `CdfWalkHigh48`(GDD `:279-285` 定死形);既有 `CdfWalk` 加注「不得用于品级抽取」
+2. **`GatherMul(L) = 1 + L/30` 是阶跃不是连续**(只有 {1,2,3},L=1 与 L=29 同权)
+   ⇒ 登 `TD-foraging-02`(open · P0 面 N),测试断的是「实际形状」不是「设计正确」
+
+**证伪轮教训(已入记忆)**:
+- 首轮 F1:`>>16`→`>>8` 时靶测没红,因为靶测**直接调 `CdfWalkHigh48`,绕过 `DrawU`**
+- 首轮 F2:`<`→`<=` 时 `red=0`,因为夹具 Σw ∈ {5,14} 使等号点**不可达**
+  (`2^48 mod 5 = 1`、`mod 14 = 4`)⇒ 严格不等的夹具须让 Σw 整除 `2^48 × C_q`
+- 首轮 F6:脚本靶子指错文件(守卫在 `EventRng.cs` 不在 `GatherQualityRoll.cs`)= 脚本 bug
+
+**不记绿项**:AC-17-02 跨平台半边(BLOCKED-BY-ADR-012)· 真表侧无 `quality_distribution`(归 21a)
+
+**Next**:依赖链下一件 = `foraging-003`(三条世界流事件 + 铸造身份 + SkillGrown,4 AC)
+
+### foraging-002 收口判定
+
+**Code Review**:APPROVED WITH SUGGESTIONS(lean 模式,用户确认)。零 BLOCKING;两条建议:
+① `OutQuality` 手写 clamp 而非 `Math.Clamp`(可讨论);② `CdfWalkHigh48` 溢出守卫报错可再具体。
+
+**偏差 4 条 ADVISORY**(第 4 条为本轮补登):
+1. AC-17-02 跨平台半边未验(BLOCKED-BY-ADR-012)
+2. 真表侧无 `quality_distribution`(归 21a 形状落地轮)
+3. `GatherMul` 阶跃曲线(`TD-foraging-02`)
+4. **`_monoSideOnly` 证的是「纯函数性」不是「跨进程一致性」** —— 100 次重跑同进程内完成,
+   共享同一份 JIT 产物;它排除「有可变状态」,不排除「溢出 UB 跨平台不一致」。
+   后者正是 ADR-012 F7 spike 要测的,本件未触及 ⇒ **不得把这条绿读作「跨平台已有半保障」**。
+
+**全量回归**:5196/5161/0/35(基线 5174 ⇒ +22 == 新增夹具数,零回归)
