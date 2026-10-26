@@ -841,7 +841,7 @@ namespace DaYiJingCheng.Tests.EditMode.Processing
             };
 
             var hits = new List<string>();
-            int filesScanned = 0;
+            var scanned = new List<string>();
 
             foreach (string dir in families)
             {
@@ -849,9 +849,10 @@ namespace DaYiJingCheng.Tests.EditMode.Processing
                 if (!Directory.Exists(abs)) continue;
                 foreach (string file in Directory.GetFiles(abs, "*.cs", SearchOption.AllDirectories))
                 {
-                    filesScanned++;
+                    string rel = Path.GetRelativePath(Path.Combine(root, "unity"), file)
+                                     .Replace('\\', '/');
+                    scanned.Add(rel);
                     string code = StripComments(File.ReadAllText(file));
-                    string rel = Path.GetRelativePath(Path.Combine(root, "unity"), file);
                     foreach (string t in furnaceTypes)
                     {
                         if (code.IndexOf(t, StringComparison.Ordinal) >= 0)
@@ -860,8 +861,28 @@ namespace DaYiJingCheng.Tests.EditMode.Processing
                 }
             }
 
-            Assert.That(filesScanned, Is.GreaterThan(0),
+            Assert.That(scanned, Is.Not.Empty,
                 "存档 / codec 源文件零命中 —— 扫描面不存在,拒以空集冒充绿");
+
+            // ⚠️ 2026-10-27 修(评审 W8 / §三 L7):原断言是 `filesScanned > 0`,
+            //    它只证「目录里至少有一个 .cs」,**不证存档组版器本身在扫描集内**。
+            //    若扫描根写错、或 SaveComposer.cs 被改名 / 移走,该夹具**仍然绿** ——
+            //    即「零引用」可能是「压根没扫到那个文件」。
+            //    ⇒ 改为**按名点名**:下面这些文件必须出现在扫描集里,缺一即红。
+            string[] requiredAnchors =
+            {
+                // 存档组版器 —— AC-18-17 ② 的判据正主(「18 记录不得进存档段」)
+                "Assets/Gameplay.Boot/SaveComposer.cs",
+            };
+            foreach (string anchor in requiredAnchors)
+            {
+                Assert.That(scanned, Does.Contain(anchor),
+                    $"扫描集里没有 `{anchor}` —— 该文件被改名 / 移走 / 扫描根写错 ⇒ "
+                    + "下面那条「零引用」是**空扫描**得来的,不成立。"
+                    + $"\n  实扫到 {scanned.Count} 个文件,前 5 个:"
+                    + (scanned.Count == 0 ? "(无)" : "\n    " + string.Join("\n    ", scanned.GetRange(0, Math.Min(5, scanned.Count)))));
+            }
+
             Assert.That(hits, Is.Empty,
                 "存档侧引用了 18 类型 ⇒ 存在「把进程态写进存档」的路径(AC-18-17 ②):\n  "
                 + string.Join("\n  ", hits));
