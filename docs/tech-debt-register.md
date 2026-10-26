@@ -539,9 +539,19 @@ PYEVAL
 > ② `AC-17-02` = **无金标准载体 + 零跨平台实测**(仅 `_monoSideOnly` 同进程自洽);
 > ③ `clinic-005` = **无金标准载体 + 零跨平台实测**(且 GDD 侧无独立跨平台 AC 编号)。
 > ⇒ **只有 ① 能说「常驻性未兑现」**;② ③ 连「判据已证」都不成立,原句把它们各抬高一级。
-> ⚠️ **附带查出 `AC-18-15` 的两处措辞问题**(已写入三之补,不改 GDD):
+> ⚠️ **附带查出 `AC-18-15` 的两处措辞问题**(已写入三之补,~~不改 GDD~~ → **✅ 2026-10-27 已回写,见下**):
 > `WorldSeed` 是**冗余条件**(F1 不消费它,`grep` 双侧零命中)⇒ 处置是回写 GDD 而非补夹具;
 > `Seq` 发号维是**真缺口**(原文 ⚠️ 自陈,桌面轮零命中)⇒ 需 18 侧自己的夹具。
+>
+> 🔁 **2026-10-27 追加(回写轮)**:上句「不改 GDD」是四十订当时的边界,**现已回写**。
+> 回写时逐项对着 **F-18.1 契约**核,又查出**第三处、且比前两处严重**的问题 ——
+> 原 `GIVEN` **漏列了 `L` 与 `EquipMod`** 两个主变量(F-18.1 六入参里占两席)。
+> 后果:按原字面做对拍,**两平台可各取不同的 `L` / `EquipMod` 而「逐位相同」依然成立**;
+> 而这两项恰是 `SkillMod` 定点除法与 `SumOfModifiers` 定点加法链的入口,正是 ADR-012 F7 的回绕面。
+> **⇒ 本债的覆盖度口径随之订正:① 的「三出参维已证」仍成立,但「判据本身写对了」此前不成立。**
+> 落点:`processing.md` AC-18-15(改 + 🔴 订正注)· `tr-registry.yaml` `TR-processing-017` ·
+> `traceability-index.md`(两处「四修正项」一并订正为入参名)· `story-004:46` 与本节(加注不追改)。
+> **夹具侧零改动** —— 12 场景本就扫了 `L 0/30/60` · `EquipMod Zero/Half`,是**判据比夹具窄**。
 > ⚠️ **本订只动 `TD-ci-01` 一节**,不触碰任何索引行 ⇒ 计数天然不动。复算 = §五 脚本(实得 123 / 61 / 7)。
 >
 > 🔁 **三十九订(S20-9 评审遗留立债 · 2026-10-27 · 债面)** —— 变化 = **`条目 117 → 123`**(+6)·
@@ -3668,7 +3678,7 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 
 | # | 判据 | 桌面轮覆盖 | 实测依据(可跑) | 精确口径 |
 |---|---|---|---|---|
-| ① | **`AC-18-15`**(processing `:742`) | ⚠️ **部分** | 见下方「① 的逐维核对」 | **三出参维已证(2/3 格);`WorldSeed` / `Seq` 发号两维未扫** |
+| ① | **`AC-18-15`**(processing `:742`) | ⚠️ **部分** | 见下方「① 的逐维核对」 | **三出参维已证(2/3 格);`WorldSeed` / `Seq` 发号两维未扫**。🔁 **2026-10-27 追加**:判据原文**本身不完备**(漏列 `L` / `EquipMod`)⇒ 已回写 GDD;但**回写 ≠ 验收**,本条仍 `EXTERNAL` 不勾 |
 | ② | **`AC-17-02`**(foraging `:661`) | ❌ **零** | `grep -c "gather\|Gather\|CDF\|out_quality" unity/Assets/Tests/PlayMode/determinism_golden_crossplatform_test.cs` → **0**;`gather_quality_roll_test.cs:454` 自标 `_monoSideOnly` | **连「判据」也未证** —— 17 侧只有同进程自洽,跨平台半边从未跑 |
 | ③ | **`clinic-machine/005`** | ❌ **零** | `ls tests/golden/` → 只有 `telemetry` / `medcons` 两份;**全库金标准共三份**(加 `tests/unit/item_database/golden/`),**无 clinic** | **连「载体」也未建** —— 没有金标准就没有可对拍的基准 |
 
@@ -3684,10 +3694,14 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 > (条目名只有 `S01…S16` / `B01…B03` 两族)⇒ **17 / 24 的判据在 21a 的金标准里没有条目**。
 > **⇒ ② 与 ③ 要兑现,先得各自产一份 `golden-vN`,而不是「补跑一格」** —— 这与 ① 的工作量差一个量级。
 
-##### ① 的逐维核对(`AC-18-15` 原文有四个可核组成)
+##### ① 的逐维核对(`AC-18-15` 原文有四个可核组成 · 2026-10-27 回写轮补查第 ⑤ 行)
 
-原文(`design/gdd/processing.md:742`):`GIVEN` 同一 `(WorldSeed, recipe, 输入实例集, 两 EnvMod 分量)`,
+原文(`design/gdd/processing.md:742`,**四十订时快照**):`GIVEN` 同一 `(WorldSeed, recipe, 输入实例集, 两 EnvMod 分量)`,
 `WHEN` **三格 CI(Mono/IL2CPP×2)** 重放,`THEN` 三出参逐位相同;⚠️ `Seq` 发号的跨平台逐位性同属实测面。
+
+> 🔁 **2026-10-27 回写轮**:上引原文**已订正** —— 现作 `(recipe, L, 输入实例集, EquipMod, 两 EnvMod 分量)`。
+> 下表保留**回写前**的核对结果(它记录的是当时查到了什么),末尾追加「⑤ `GIVEN` 完整性」一行记录新查出的漏项。
+> **禁把本表读成「判据已完备」** —— 它在回写前恰恰不完备。
 
 | 维度 | 覆盖 | 依据 |
 |---|---|---|
@@ -3695,13 +3709,19 @@ NOT-RUN 补掉」)。跑 `unity build` 三轮后,`git status` 冒出 3 组**非�
 | **三格** | ❌ **只 2/3** | ARM64 不可达(证据件 §4 实测:46 个 `BuildTarget` 零个含 arm);而 AC 原文的 `IL2CPP×2` **逐字就是 x64 + ARM64 两格** |
 | **`WorldSeed`** | ❌ **未扫** | `grep -c "WorldSeed" unity/Assets/Sim/ItemDatabase/RecipeSettlementSolver.cs` → **0**;`…determinism_golden_crossplatform_test.cs` → **0**。`RecipeSettlementRequest` 字段 = `Outputs` / `Inputs` / `CraftSkillLevel` / `InputQuality` / `Equip` / `Climate` / `Clinic`,**无 seed 位** |
 | **`Seq` 发号跨平台逐位**(原文 ⚠️ 附注) | ❌ **未扫** | `grep -c "ItemInstanceId\|\.Next()" …determinism_golden_crossplatform_test.cs` → **0** |
+| **⑤ `GIVEN` 的完整性**(2026-10-27 补查) | ❌ **原判据漏列两个主变量** | F-18.1 六入参中 `L` / `EquipMod` **未出现在原 `GIVEN` 里**。夹具侧反而全:`determinism_golden_crossplatform_test.cs:125-136` 12 场景扫 `L ∈ {0×5, 30×2, 60×5}` · `EquipMod ∈ {Zero×11, Half×1}` ⇒ **判据比夹具窄** |
 
 > ⚠️ **`WorldSeed` 那维的正确读法**:F1 是纯确定性函数,`WorldSeed` 对三出参**结构上不参与**
 > ⇒ AC-18-15 的 `GIVEN` 里写 `WorldSeed` 是**冗余条件**,不是「未覆盖的缺口」。
 > **但这句话必须写出来** —— 否则下一个人会去补一个不该补的夹具。**正确的处置 = 回写 GDD 措辞,不是补夹具。**
+> **✅ 2026-10-27 已执行**(见本节末与四十订注的追加段)。
 >
 > ⚠️ **`Seq` 发号那维则是真缺口**:AC 原文自己用 ⚠️ 点名了它,而桌面轮零命中。
 > 这一维的载体**不是** `golden-v1.txt`(它只有 21a 的 19 条),需要 18 侧自己的夹具 —— 归 ADR-012 落地轮。
+>
+> ⚠️ **⑤ 是回写轮新查出的,严重度高于前两处**:`WorldSeed` 是**多余**(写多了不会让判据失明),
+> 而 `L` / `EquipMod` 是**缺失**(写少了会让判据在该管的地方失明 —— 两平台各取不同 `L` 而「逐位相同」仍成立)。
+> 两者**不是同一类问题,不可并列记为「两处措辞问题」**。详见 `processing.md` AC-18-15 下方的 🔴 订正注。
 
 ### 四、桌面轮已补到的证据(可引用,但不解除本债)
 

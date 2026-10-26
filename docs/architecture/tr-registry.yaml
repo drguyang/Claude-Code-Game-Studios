@@ -3631,11 +3631,11 @@
   - id: TR-processing-017
     system: processing
     gdd: design/gdd/processing.md
-    requirement: "同一 (WorldSeed, recipe, 输入实例集, 四修正项) 跨平台重放 ⇒ 三个出参逐位相同"
+    requirement: "同一 (recipe, L, 输入实例集, EquipMod, 两 EnvMod 分量) 跨平台重放 ⇒ 三个出参逐位相同"
     domain: Core
     adr: ADR-012
     status: covered
-    note: "AC-18-15。双级黄金夹具矩阵提供执行载体。"
+    note: "AC-18-15。双级黄金夹具矩阵提供执行载体。⚠️ 2026-10-27 措辞订正(原写「(WorldSeed, recipe, 输入实例集, 四修正项)」):删 WorldSeed(18/21a 侧零消费,只经 5 影响 EnvMod_raw 而该层已由「两 EnvMod 分量」承载)+ 补 L 与 EquipMod(F-18.1 契约主变量,原 GIVEN 漏列 ⇒ 两平台可各取不同值而逐位相同仍成立)。判据面更严,夹具侧已满足(12 场景扫 L 0/30/60 · EquipMod Zero/Half)⇒ 不增加工作量。订正详注见 design/gdd/processing.md AC-18-15 下方。"
 
   - id: TR-processing-018
     system: processing

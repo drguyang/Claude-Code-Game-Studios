@@ -44,6 +44,7 @@
   - **载体**: `test_ac1817a_processingNamespace_hasNoSerializableTypes` + **负控** `test_ac1817a_serializableScan_hasDiscriminatingPower` · `test_ac1817b_saveComposerReferencesNoProcessingTypes` · `test_ac1817c_replayRebuiltCompleteTick_matchesDirectComputation` · `test_ac1817c_independentRebuilds_areBitIdentical`
   - ⚠️ **② 是降级判据**(7a 无「段清单」常量;见下方边界 ④)
 - [ ] **AC-18-15** [I]: 同一 `(WorldSeed, recipe, 输入实例集, 两 EnvMod 分量)` 三格 CI 重放 ⇒ 三出参逐位相同。**⚠️ EXTERNAL · BLOCKED-BY-ADR-012**(矩阵不存在 + F7 spike 未跑 ⇒ **不勾、不写桩**;夹具限定每 tick 单 `Craft`,D-21-28 已裁[甲]但 Seq 发号跨平台逐位同属实测面)
+  - 🔁 **2026-10-27 GDD 措辞订正(本行不复述,以 GDD 为准)**:上面引的 `GIVEN` 元组是**成文时快照**,已过时。GDD `processing.md` AC-18-15 现作 `(recipe, L, 输入实例集, EquipMod, 两 EnvMod 分量)` —— 删 `WorldSeed`(18/21a 侧零消费,冗余)+ 补 `L` / `EquipMod`(F-18.1 契约主变量,原漏列 ⇒ 两平台各取不同值而「逐位相同」仍成立)。**承「已 Complete 卡面的判据只加注不追改」** ⇒ 本行原文保留;订正详注见 `design/gdd/processing.md` AC-18-15 下方。⚠️ 本条仍是 **EXTERNAL 不勾**,订正**不改变**其未验收状态。
   - ⚠️ **本件交付的 Mono 侧重放等值 = AC-18-17 ③,不是 AC-18-15 的证据**。两者同源但判据面不同:17③ 是「同平台两次重放同值」,15 是「三个平台逐位同值」。<br>⇒ **禁止**把 `test_ac1817c_*` 读成 AC-18-15 已覆盖。
 
 ---

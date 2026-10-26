@@ -991,7 +991,7 @@
 | TR-processing-014 | 四 `cap` ↔ `QTY_MULT_MAX` 的构建期校验(Σ 正的 cap + `max(0, ENV_MOD_MAX)` ≤ `QTY_MULT_MAX − 1`)· 主执行 = 21a 烘焙管线,18 侧 = 装载期防御断言半边 | ADR-014 | ⚠️ 规则四 · AC-18-14 · `OQ-18-2` ✅ 已裁 [甲] 2026-09-19(执行方已定;21a 侧执行 AC 待 O-18-R2 回写 ⇒ partial 维持) |
 | TR-processing-015 | 并发模型:每玩家单炉、不可取消、拒绝零事件、跨玩家并发允许(器具互斥另归 24 = `OQ-18-8`) | — | ✅ **2026-10-26 由 ⚠️ 升级(S20-9)** —— `OQ-18-3` [甲] 2026-09-19 + **`OQ-18-8` 已于 2026-10-06 裁定**(`processing.md:771`:允许,且 **24 无需器具占用表** —— 占用真相在 23 的 `Structure*`)⇒ 原「等 24」为白等,`partial` 的唯一理由消解。规则八并发模型表 + AC-18-23;夹具 `test_ac1823_*` 六条。`adr: null` 保留 = 事实(无 ADR 承接,不拿邻近 ADR 顶替) |
 | TR-processing-016 | 炮制中途存档的语义 —— 完成 tick 已定、重放可重建?还是须把「进行中」作为进程态存 | ADR-010 | ✅ `OQ-18-5` 已结清(发起即落流,完成 = 派生)+ AC-18-16/17。**2026-09-19 解除其两处派生悬空**:① 载荷三位定稿(R-18-A:`actor_id` / `output_instance_ids[]` / `tool_cell`);② **`D-21-28` 结案** —— 三流全序键 `(Tick, StreamPriority, None, Seq)` [甲] + 主机发号,落 **ADR-009 Amendment J** |
-| TR-processing-017 | 同一 `(WorldSeed, recipe, 输入实例集, 四修正项)` 跨平台重放 ⇒ 三个出参逐位相同 | ADR-012 | ✅ AC-18-15;双级黄金夹具矩阵提供执行载体 |
+| TR-processing-017 | 同一 `(recipe, L, 输入实例集, EquipMod, 两 EnvMod 分量)` 跨平台重放 ⇒ 三个出参逐位相同 | ADR-012 | ✅ AC-18-15;双级黄金夹具矩阵提供执行载体。⚠️ 2026-10-27 措辞订正(原写「四修正项」):改用**入参名**而非结果名(承 AC-18-03「传等级不传结果」),并删冗余的 `WorldSeed`、补漏列的 `L` / `EquipMod` —— 详注见 `processing.md` AC-18-15 下方 |
 | TR-processing-018 | 参数装载期硬失败(`ENV_MOD_MIN` 未定值 / `outputs[]` 为空等),禁 null 兜底 | ADR-014 | ✅ AC-18-14 · 边例;承 ADR-014 §五 + 21a 的非空约束 |
 
 ---

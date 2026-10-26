@@ -739,11 +739,42 @@ CompleteTick(craft) = craft.start_tick + recipe.duration_ticks
 | --- | --- | --- | --- |
 | **AC-18-13** | **[A]** | **BLOCKING** | `GIVEN` `F-18.3`,**WHEN** IL 层扫描,`THEN` `CompleteTick` 路径**零浮点、零墙钟 API**(`DateTime` / `Stopwatch` / `Time.*` = 零符号引用) |
 | **AC-18-14** | **[A]** | **BLOCKING** | `GIVEN` 装载期注入违反四 cap ↔ `QTY_MULT_MAX`(21a `:533`)的**合成**配方表,**WHEN** 18 装载路径求值,`THEN` **硬失败**(防御断言,非告警)。⚠️ **主执行 = 21a 烘焙管线**(OQ-18-2 已裁 [甲]),21a 侧执行 AC 尚未写 —— **本条只断 18 的防御半边** |
-| **AC-18-15** | **[I]** | **EXTERNAL · BLOCKED-BY-ADR-012** | `GIVEN` 同一 `(WorldSeed, recipe, 输入实例集, 两 EnvMod 分量)`,**WHEN** 三格 CI(Mono/IL2CPP×2)重放,`THEN` 三出参**逐位相同**(镜像 AC-5-07 先例:三格矩阵不存在 + F7 int64 溢出 UB spike 未跑 ⇒ 不得记绿)。⚠️ **夹具限定每 tick 单 `Craft`**(D-21-28 已裁三流键 [甲],但 `Seq` 发号的跨平台逐位性同属 ADR-012 实测面) |
+| **AC-18-15** | **[I]** | **EXTERNAL · BLOCKED-BY-ADR-012** | `GIVEN` 同一 `(recipe, L, 输入实例集, EquipMod, 两 EnvMod 分量)` —— **即 F-18.1 契约的全部入参**(🔴 2026-10-27 措辞订正,见下方注),**WHEN** 三格 CI(Mono/IL2CPP×2)重放,`THEN` 三出参**逐位相同**(镜像 AC-5-07 先例:三格矩阵不存在 + F7 int64 溢出 UB spike 未跑 ⇒ 不得记绿)。⚠️ **夹具限定每 tick 单 `Craft`**(D-21-28 已裁三流键 [甲],但 `Seq` 发号的跨平台逐位性同属 ADR-012 实测面) |
 | **AC-18-16** | **[I]** | **BLOCKING** | `GIVEN` 一次炮制,`WHEN` 读世界流,`THEN` ① `Craft` 落**点火 tick**(非完成 tick);② 载荷**五位齐**:`actor_id` / `output_instance_ids[]` / `tool_cell` / `start_tick` / `ActualConsumed`(R-18-A);③ `output_instance_ids` 于点火 tick 由主机经 `ItemInstanceId.Next()` 依**全序键顺序**铸造(认领 20 前置 6 / R10);④ 全序键 = `(Tick, StreamPriority, Patient=None, Seq)`(D-21-28 裁定 [甲],注④) |
 | **AC-18-17** | **[A]** | **BLOCKING** | `GIVEN` 一炉进行中,`WHEN` 检查 18 程序集与 7a 段清单,`THEN` ① **18 程序集零 `[Serializable]` 类型**;② **7a 存档段清单不含任何 18 记录**(无进程态可存);③ 重放重建的 `CompleteTick` 与直算逐位相同(规则八 · `OQ-18-5`。⚠️ 措辞订正:原稿「存档任何字段不含」不可测 —— 「字段」是 7a 的实现细节,改为**程序集属性 + 段清单**两处机器可断言面) |
 | **AC-18-18** | **[A]** | **EXTERNAL · BLOCKED-BY-21a(O-18-R1)** | `GIVEN` `Recipe.owner` 字段落地(21a),`WHEN` 对 `{process, craft, build}` 三子集求并 / 交,`THEN` 并 = 全表、两两交 = ∅(R-18-B);**字段未落地前判据不可执行 ⇒ 不得记绿**(OQ-18-1 已裁 [甲] = 字段方案,裁决≠验收) |
 | **AC-18-19** | **[I]** | **EXTERNAL · BLOCKED-BY-21a(O-18-R3)** | `GIVEN` 任意运行期炮制,`WHEN` 验守恒律 `Σ(weight × ActualConsumed) ≥ Σ(weight × produced × QM⁻¹)`,`THEN` **不破**。⚠️ 21a 构建期聚合式与运行期逐条 `Round` **不同形**(反例见 Edge Cases),**修复前本行为可达** —— 真修归 21a,O-18-R3 未回写 ⇒ 不得记绿 |
+
+> **🔴 AC-18-15 的 `GIVEN` 措辞订正(2026-10-27 · 承债册 `TD-ci-01` §三之补 的逐维核对)**
+>
+> **原文**作「同一 `(WorldSeed, recipe, 输入实例集, 两 EnvMod 分量)`」。逐项对着 **F-18.1 的调用契约**核,
+> 查出**两类**问题 —— 一个是多余的,两个是缺的:
+>
+> | 项 | 原 GIVEN | 实况 | 判定 |
+> |---|---|---|---|
+> | `WorldSeed` | 列了 | 18 / 21a 侧**零消费**(`grep -rn "WorldSeed\|worldSeed\|world_seed" unity/Assets/Sim/Processing/ unity/Assets/Sim/ItemDatabase/` → **0**);`RecipeSettlementRequest` 无 seed 字段 | **冗余** ⇒ 删 |
+> | `L`(炮制技能等级) | **未列** | F-18.1 契约首位主变量,驱动 `SkillMod` / `Retain` / `EFF` 三条曲线 | **漏项** ⇒ 补 |
+> | `EquipMod` | **未列** | F-18.1 契约主变量,24 器具档位 | **漏项** ⇒ 补 |
+>
+> **为何 `WorldSeed` 冗余**:它只经 5 影响 `EnvMod_raw`,而那一层**已由「两 EnvMod 分量」完整承载**
+> (F-18.1 的两个分量是**值**,不是种子)。F1 是纯函数,`WorldSeed` 对三出参**结构上不参与**。
+>
+> **为何漏项比冗余严重**:按原 GIVEN 字面做对拍,**两个平台可以各取不同的 `L` 与 `EquipMod` 而「逐位相同」依然成立**
+> —— 判据会在最该管的地方失明。而这两项恰是跨平台差异的首要嫌疑面:`SkillMod = cap × Level / SKILL_CAP`
+> 是定点除法,`SumOfModifiers` 是定点加法链,**正是 ADR-012 F7 关注的 int64 回绕面**。
+>
+> **⚠️ 本订正不增加夹具工作量** —— 载体侧本来就比判据宽:
+> `unity/Assets/Tests/PlayMode/determinism_golden_crossplatform_test.cs:125-136` 的 12 个场景已扫
+> `L ∈ {0×5, 30×2, 60×5}` · `InQ ∈ {1×4, 3×3, 5×5}` · `EquipMod ∈ {Zero×11, Half×1}`。
+> **是判据文本比夹具窄,不是夹具不足**;订正后判据变严,夹具无需改动。
+>
+> **⚠️ 反证:这条订正不得照抄到 AC-5-07**。5 侧的 `WorldSeed` **不是冗余** ——
+> `time-and-weather.md:137` 的 `Weather(tick, cell) = W(WorldSeed, WEATHER_BLOCK(tick), EcozoneOf(cell))`
+> 真消费它,且 `:32` 明写「5 的天气是 `(WorldSeed, tick, 生态区)` 的纯函数」。**两个 AC 长得像,入参口径不同。**
+>
+> **同步面**:`tr-registry.yaml` 的 `TR-processing-017` 与 `traceability-index.md` 原写「**四修正项**」——
+> 那比本 AC 更接近正确(四修正项的**入参**恰是 `L` / 输入实例集 / `EquipMod` / 两 EnvMod 分量),
+> 但它用**结果名**指代**入参**,与 AC-18-03 / 21a `:481` 的「传等级不传结果」相抵 ⇒ 两处一并订正为同一措辞。
 
 ### 组 D · 呈现 · 手感 · 音频(人工走查 / 听测)
 
