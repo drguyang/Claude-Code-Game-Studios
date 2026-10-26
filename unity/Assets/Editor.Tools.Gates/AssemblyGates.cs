@@ -175,6 +175,12 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 扫描形态 = Cecil 符号名(类型/方法/字段/属性/事件),注释与字符串天然不可见
             // ⇒ AC-7a-04 的「假阳性白名单」结构性为零。
             errs.AddRange(SaveVocabularyGate.RunAll());
+            // 20 输出 DTO 双层零浮点门(AC-20-15 · 2026-10-26 S20-11 落):
+            // 层 1 递归反射 + 层 2 Cecil IL,两层共用「按源目录枚举」的类型清单。
+            // **为什么必须进 RunAll 而不是挂 TestDriven**:AC-20-15 是 BLOCKING 级判据,
+            // 而 `GateWiringManifestTest` 的 TestDriven 封闭集判据明确禁止把 BLOCKING
+            // 判据判成「无强制点」档(该表自带规矩:升格 BLOCKING ⇒ 先找强制点)。
+            errs.AddRange(InventoryDtoFloatGate.RunAll("."));
             return errs;
         }
 

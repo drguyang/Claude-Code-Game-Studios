@@ -3684,8 +3684,8 @@
     requirement: "堆叠键 = (item_key, quality)(21a F4 唯一出处);容器自身不堆叠(qty 恒 1);20 不得改写 StackKey"
     domain: Core
     adr: null
-    status: gap
-    note: "规则三 · AC-20-04。不同品级不堆、各占一个 ItemInstance。承 21a 规则六;20 只执行。无 ADR 承接 ⇒ gap。"
+    status: partial
+    note: "规则三 · AC-20-04。不同品级不堆、各占一个 ItemInstance。承 21a 规则六;20 只执行。**2026-10-26 S20-11 刷账:gap → partial**,两个半边各自结清——① **堆叠键已实现**:算式唯一定义处 = `unity/Assets/Sim/ItemDatabase/InventoryFold.cs:73`(S20-10 落),本件 `StackingRules.cs` 只**取用**不重定义,夹具 `ac2004_stackKeyExpression_definedExactlyOnce` 钉住「二树内恰一处」;合并谓词**全部来自 21a**`StackingSolver.CanStack`(20 侧零公式体),夹具 `containerWithChildren_neverMerges` / `stackMaxOfOne_neverMerges` + 证伪 M1/M2。② **「容器自身不堆叠(qty 恒 1)」仍 OPEN** —— P0 **无「这是容器吗」的判据载体**(`ItemCategory` 无 `container`、`ItemInstance` 无 `is_container`、数据零容器条目),该不变量挂 `BLOCKED-BY Story 010`,**不记绿**。禁以 `Children.Length > 0` 顶替(会把空容器误判成非容器)。⇒ 本条**不得**读成已 covered。"
 
   - id: TR-inventory-005
     system: inventory-and-items
@@ -3748,7 +3748,7 @@
     domain: Presentation
     adr: ADR-013
     status: covered
-    note: "规则四 · UI-20.3 · AC-20-10 · AC-20-12。用户裁定 2026-09-18(拟物器具)。承 ADR-013 §三『只渲染,永不持有游戏状态』+ 42 规则五『不得是背包格』。四档是呈现分档,非机制分档(机制侧只有一条布尔)。"
+    note: "规则四 · UI-20.3 · AC-20-10 · AC-20-12。用户裁定 2026-09-18(拟物器具)。承 ADR-013 §三『只渲染,永不持有游戏状态』+ 42 规则五『不得是背包格』。四档是呈现分档,非机制分档(机制侧只有一条布尔)。**2026-10-26 S20-11 补注(AC-20-12 的机制半边已落)**:20 侧交付 `StackingRules.PlacementOrder(IReadOnlyList<long> instanceIds, int columns)` —— 参数类型集恰 `{IReadOnlyList<long>, int}` ⇒ 函数**拿不到** weight / 品级 / 时间戳,「零排序 / 零自动整理」是**编译期不可表达**而非约定(夹具 `test_ac2012_signature_cannotSeeAttributesOrTime`);序 = `instance_id` 升序(内部自带 `Sort()`,BL-22「入箱序」废止),落位 row-major。**呈现半边(`COLUMNS` / 分页 / 药箱界面 / 四档视觉)仍归 42 / Story 006**(BLOCKED-BY-R9),本条 covered 指的是**呈现契约已裁**,不表示界面已实现。"
 
   - id: TR-inventory-012
     system: inventory-and-items
@@ -3780,11 +3780,11 @@
   - id: TR-inventory-015
     system: inventory-and-items
     gdd: design/gdd/inventory-and-items.md
-    requirement: "容器折重实现 —— 装子件的容器自身重量是否含子件(21a Schema E 登记待裁)"
+    requirement: "容器折重实现 —— 折重 = 空箱自重 + 子件逐件(容器自身 weight × 1,children 不做重量二次折算)"
     domain: Core
     adr: null
-    status: gap
-    note: "OQ-20-4。负重读数可能双重计数。归用户 + 20 / 21a。"
+    status: covered
+    note: "OQ-20-4 ✅ 2026-09-19 已结清(空箱自重 + 子件逐件,不双重计数)。⚠️ 2026-10-26 刷账:原 requirement 文本陈旧(写作「是否含子件…待裁」,而该轴早已裁定)⇒ 就地订正为裁定后的口径。实现落点 = unity/Assets/Sim/ItemDatabase/ContainerWeightFold.cs(FoldWeight / InstanceWeight);夹具 unity/Assets/Tests/EditMode/Inventory/stacking_container_rules_test.cs;证伪见 tools/falsify/specs/s20-11-stacking-container.json(M5/M6/M7)。"
 
   - id: TR-inventory-016
     system: inventory-and-items

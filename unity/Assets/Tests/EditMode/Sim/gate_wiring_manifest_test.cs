@@ -91,6 +91,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "SaveWritePathGate.RunAll",      // AC-7a-08③ 存档写盘可达面 IL 门 · 2026-10-25 接线上线
                     "SaveAsyncBoundaryGate.RunAll",  // AC-7a-07 后台写盘路径零 Unity API IL 门 · 2026-10-25
                     "SaveVocabularyGate.RunAll",     // AC-7a-09 忘词令符号门(规则七判据层)· 2026-10-25
+                    "InventoryDtoFloatGate.RunAll",  // AC-20-15 20 输出 DTO 双层零浮点门 · 2026-10-26
                 },
 
                 // RunMenu = 菜单项「大医精诚/Validation/Run Assembly Gates」。
@@ -282,6 +283,17 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             new ClassVerdict { ClassName = "PresentationDtoGuard", Kind = WiringKind.TestDriven,
                 Consumer = "Assets/Tests/EditMode/SkeuomorphicUI/dto_boundary_and_modal_test.cs",
                 Note = "反射守卫(非门);六个测试件消费" },
+            new ClassVerdict { ClassName = "InventoryDtoFloatGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "AC-20-15 双层零浮点门(2026-10-26 S20-11 落):层 1 递归反射 + 层 2 Cecil IL," +
+                       "两层共用「按源目录枚举」的类型清单。" +
+                       "**初判 TestDriven 被两道门驳回后改判 Chain** —— " +
+                       "① `test_classManifest_coversEveryDeclaredClass` 要求新门类有判决;" +
+                       "② `test_testDrivenKind_isClosedSet_notDefault` 禁止把 BLOCKING 判据判成无强制点档" +
+                       "(该表自带规矩:「升格 BLOCKING ⇒ 先找强制点」)。⇒ 补 `RunAll(string)` 入口并接进" +
+                       "`AssemblyGates.RunAll`(菜单 / reload / 构建前三处共用),强制点自此真实存在。" +
+                       "⚠️ **构建期是否真的执行未跑探针轮** —— 按 CLAUDE.md §BuildGate「构建绿 ≠ 门跑了」" +
+                       "口径,本门在构建期的执行**尚未证实**,不记绿。" },
 
             // ── 菜单(独立入口)──
             new ClassVerdict { ClassName = "SkeuomorphicUiGates", Kind = WiringKind.Menu,

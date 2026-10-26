@@ -162,13 +162,13 @@ stories:
     name: "inventory-003 堆叠 / 容器 / 折重"
     file: "production/epics/inventory-items/story-003-stacking-container-weight-fold.md"
     priority: must-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
-    blocker: "S20-10"
-    completed: ""
-    note: "链路批3。3 条 AC。"
+    blocker: ""
+    completed: "2026-10-26"
+    note: "链路批3。**✅ 已收口**:5/6 记绿(AC-20-04 · AC-20-12 · AC-20-15 · 折重不变量 · P0 门③)· 33/33 绿 · 官方证伪轮 **14/14** 恰如预期 · 对下游契约承诺 D-1…D-7 已写入 story §Completion Notes。⚠️ **P0 门 ①②(容器 qty/quality 恒 1)挂 `BLOCKED-BY Story 010`** —— P0 无「这是容器吗」的判据载体,不记绿。⚠️ **AC-20-15 的构建期执行 = NOT-RUN**(已证测试侧直调绿;构建期须另跑探针轮,禁借绿)。⚠️ 卡面三处自述与实测不符已订正(其中一条 = 自述顶替实作,第五形态假绿)。"
   - id: "S20-12"
     name: "inventory-004 CanCarry / 载重裁决"
     file: "production/epics/inventory-items/story-004-carryload-and-cap-adjudication.md"

@@ -1,0 +1,230 @@
+{
+  "name": "S20-11 —— 堆叠键 / 摆放序 / 折重 / P0 范围门 / 输出 DTO 零浮点 的守卫反证（AC-20-04 · AC-20-12 · AC-20-15 · P0 门③ · 折重不变量）",
+  "mode": "EditMode",
+  "filter": "StackingContainerRulesTest",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "本 spec 覆盖 inventory-003 的 Falsifiability Gate:**14 条变异 = 14 条独立守卫**,一属性一条变异(禁叠加)。",
+    "命中形态:①定序(摆放序)· ②共存互斥(容器不合并 / P0 门 ③)· ③定义域收窄(列数 / 输入域)· ④一次性幂等(无)· ⑤阈值边界(溢出切分 / 折重加法)。",
+    "基线(2026-10-26 四轮后的实测全绿):EditMode StackingContainerRulesTest **33/33 passed / 0 failed**(unity/Logs/s20-11-sixth.xml)。注:首轮基线是 31/31(s20-11-fourth.xml)⇒ 本轮新增 2 条夹具(nonEmptyListButZeroHitInAssembly_isRed · enumField_isNotReportedAsFloat)。",
+    "锚点复核命令(纯读,零写盘):python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-11-stacking-container.json --check-only",
+    "⚠️ 已知边界(登记在 story §Test Evidence,勿读成已验):",
+    "   ① P0 范围门 ①②(容器 qty 恒 1 / quality 恒 1)**无变异** —— 因为 P0 无「这是容器吗」的判据载体",
+    "      (21a ItemCategory 无 container 值 / ItemInstance 无 is_container / 数据零容器条目)。",
+    "      本 spec 的 M5 反证的是「容器不参与合并」(21a F4 的 children 守卫),**不是** ①②。",
+    "   ② 本 spec 全部为 EditMode(Mono);跨平台逐位(ADR-012)不在本条判据内。",
+    "   ③ AC-20-15 层 2 的 IL 面只在 M12 反证;**Mono 后端的 IL 与 IL2CPP 生成物不同**,",
+    "      IL2CPP 侧须 ADR-012 三格矩阵(linux-arm64 等)另跑,不在本条判据内。",
+    "   ④ **2026-10-26 四轮迭代后的最终形态**（首版 15 条 → 现 14 条）：",
+    "      ① M15(`bclBaseChainExpanded`)**已移除** —— 原以为它打的是 `struct → System.ValueType` 这条",
+    "         不可达路径;三轮实测后归因订正:该守卫对 **enum** 分支**是承重的**(拦 `System.Enum` 的",
+    "         `IConvertible.ToSingle`)。⇒ 它不是死代码,而是 M14 的**唯一**承重守卫。",
+    "         原 M14 打的那条 `if (t.IsEnum) return;` 才是**冗余**(枚举自身成员无 float)⇒ 已从生产码删除,",
+    "         M14 改为直接打基类链 break。**删除后 33/33 仍全绿 = 冗余性的实测证据。**",
+    "      ② M1/M2 的锚点从 `:149` 改到 `:155`(现 `:158`→随行号漂移),因合并谓词已改为",
+    "         直接调 `StackingSolver.CanStack`(消除与 21a 的重复守卫;详见 M2 的 `_note`)。",
+    "      ② M1/M2 的锚点从 `:149` 改到 `:158` —— 合并谓词已改为直接调 `StackingSolver.CanStack`",
+    "         (消除与 21a 的重复守卫;详见 M2 的 `_note`)。",
+    "      ③ 新增 `test_ac2015_layer2_nonEmptyListButZeroHitInAssembly_isRed` 与",
+    "         `test_ac2015_layer1_enumField_isNotReportedAsFloat` 两条夹具(M13/M14 原本零判别力)。",
+    "   ⑤ **残余风险(无夹具,如实登记)**:AC-20-15 的浮点出口白名单 `AllowedFloatMembers`",
+    "      只放行 `Fix::ToFloat` 这一个成员。若将来有人把白名单放宽到**整个类型**",
+    "      (`declaring.FullName == \"...\"`),`Fix` 的字段面与其余方法面就失去扫描 ——",
+    "      **今天没有任何夹具能抓这个放宽**(`Fix` 当前恰好无 float 字段)。",
+    "      该风险已登记在 story §Test Evidence 的已知边界,不记绿、不假装已验。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-qualityIgnoredInStackKey",
+      "file": "unity/Assets/Sim/ItemDatabase/StackingRules.cs",
+      "line": 155,
+      "expect": "                bool mergeable = StackingSolver.CanStack(inst, inst, def.StackMax);",
+      "replace": "                bool mergeable = def.StackMax > 1; // FALSIFY-M1:停用容器守卫",
+      "expectRed": [
+        "test_ac2004_containerWithChildren_neverMerges"
+      ],
+      "exactRed": true,
+      "_why": "「容器自身不堆叠」的承重守卫在 21a 的 CanStack 条件②(Children.Length == 0)。绕开 CanStack、只判 stackMax ⇒ 同键同品级的两容器会合并 ⇒ 该条红。"
+    },
+    {
+      "name": "M2-containerClauseDropped",
+      "file": "unity/Assets/Sim/ItemDatabase/StackingRules.cs",
+      "line": 155,
+      "expect": "                bool mergeable = StackingSolver.CanStack(inst, inst, def.StackMax);",
+      "replace": "                bool mergeable = def.StackMax > 1; // FALSIFY-M2:绕开 21a，容器子句丢失",
+      "expectRed": [
+        "test_ac2004_containerWithChildren_neverMerges"
+      ],
+      "exactRed": true,
+      "_why": "把 21a 的 CanStack 换成「只看 stackMax」⇒ 容器子句丢失 ⇒ 两个同键同品级容器会合并。⚠️ 本条**不再**验证 stackMax 子句：2026-10-26 二轮实测，即便守衛恒真，`SplitStack(c, Δ, M=1)` 自己就按 M=1 切分（每件自成新堆）⇒ 结果与不合并相同 ⇒ 该子句在 `StacksOf` 内**结构性不可观测**（它由 21a 的 SplitStack 承重，20 侧无第二判据面）。⇒ 归入「已知边界」，不以夹具假装覆盖。",
+      "_note": "⚠️ **2026-10-26 首跑本条件全绿逃逸,已重写**:原变异打在旧行 `inst.Children.Length == 0 && def.StackMax > 1` 上,只去掉 `def.StackMax > 1` 一项 —— 但堆叠落位随后调 `StackingSolver.SplitStack(open.TotalQty, remaining, def.StackMax)`,而 SplitStack 自己按 M=1 切分(每件自成新堆)⇒ 结果与合并前相同 ⇒ 该夹具测不出差别。**根因:20 侧的表层守卫与 21a 的 M 参数重复**,判据实际由 21a 承重。2026-10-26 已把合并谓词改为直接调 `StackingSolver.CanStack`(消除重复),本变异改为打这一行 ⇒ 判别力落在「是否真的走 21a」上。"
+    },
+    {
+      "name": "M3-instanceIdSortDropped",
+      "file": "unity/Assets/Sim/ItemDatabase/StackingRules.cs",
+      "line": 227,
+      "expect": "            ids.Sort();",
+      "replace": "            // FALSIFY-M3:按传入序(停用 id 升序重排)",
+      "expectRed": [
+        "test_ac2012_shuffledInput_yieldsIdenticalOrder"
+      ],
+      "exactRed": true,
+      "_why": "「摆放序在函数内、不是调用方义务」(BL-22)的承重守卫就是这一行。停用后乱序输入直接得到不同序。"
+    },
+    {
+      "name": "M4-layoutColumnMajor",
+      "file": "unity/Assets/Sim/ItemDatabase/StackingRules.cs",
+      "line": 231,
+      "expect": "                slots.Add(new PlacementSlot(ids[i], i / columns, i % columns));",
+      "replace": "                slots.Add(new PlacementSlot(ids[i], i % columns, i / columns)); // FALSIFY-M4:行列互换",
+      "expectRed": [
+        "test_ac2012_layout_isRowMajorByColumns"
+      ],
+      "exactRed": true,
+      "_why": "规则十 1. 的落位口径 = row-major(col = i mod columns)。互换后第 5 件的 row/col 全错 ⇒ 该条红。"
+    },
+    {
+      "name": "M5-foldWeightFoldsChildInstancesAway",
+      "file": "unity/Assets/Sim/ItemDatabase/ContainerWeightFold.cs",
+      "line": 120,
+      "expect": "                    total = checked(total + childWeight);",
+      "replace": "                    total = checked(total + 0L); // FALSIFY-M5:子件折重被吞",
+      "expectRed": [
+        "test_foldWeight_isEmptyContainerPlusChildrenSummed",
+        "test_foldWeight_removeThenRefold_isBitIdentical",
+        "test_foldWeight_addingChild_addsOnlyChildWeight"
+      ],
+      "exactRed": true,
+      "_why": "OQ-20-4 结清口径的承重守卫 = 「空箱自重 + 子件逐件」的那一步加法。吞掉子件 ⇒ 折重退化成空箱自重 ⇒ 三条红。"
+    },
+    {
+      "name": "M6-foldWeightSelfWeightMultiplied",
+      "file": "unity/Assets/Sim/ItemDatabase/ContainerWeightFold.cs",
+      "line": 113,
+      "expect": "            long total = emptyContainerWeight;   // ① 空箱自重先入,不给「子件已含在自重里」留读法",
+      "replace": "            long total = (long)emptyContainerWeight * (children.Count + 1); // FALSIFY-M6:自重按件放大(双计)",
+      "expectRed": [
+        "test_foldWeight_isEmptyContainerPlusChildrenSummed",
+        "test_foldWeight_removeThenRefold_isBitIdentical",
+        "test_foldWeight_addingChild_addsOnlyChildWeight"
+      ],
+      "exactRed": true,
+      "_why": "「无双重计数」的另一半守卫:容器自重不得随子件数放大。放大后折重被虚增 ⇒ 三条红。",
+      "_note": "M5 = 子件丢失(低估);M6 = 自重放大(高估)。两侧各留一条变异 —— 删任一条 = 那一面零覆盖。"
+    },
+    {
+      "name": "M7-instanceWeightOffByOne",
+      "file": "unity/Assets/Sim/ItemDatabase/ContainerWeightFold.cs",
+      "line": 77,
+      "expect": "                return checked((long)unitWeight * qty);   // int × int ≤ 2^62 ⇒ 落 long 必不溢出",
+      "replace": "                return checked((long)unitWeight * qty - 1); // FALSIFY-M7:weight×qty 少 1",
+      "expectRed": [
+        "test_foldWeight_isEmptyContainerPlusChildrenSummed",
+        "test_foldWeight_addingChild_addsOnlyChildWeight",
+        "test_foldWeight_removeThenRefold_isBitIdentical",
+        "test_instanceWeight_containerQtyOne_isSelfWeight"
+      ],
+      "exactRed": true,
+      "_why": "F-20.1 的 InstanceWeight 本体(unitWeight × qty)。差 1 即被逐位断言抓住 —— 这是「加法件与 Story 004 共件」那一行的判别力。",
+      "_note": "⚠️ **两轮实测红 4 条，spec 逐轮补列到 4**：二轮新增 `test_foldWeight_removeThenRefold_isBitIdentical` —— 它正是本轮为 M5/M6 补的字面量锚（`Assert.AreEqual(40L, before)`）生效的结果，**红得对**。"
+    },
+    {
+      "name": "M8-buildPartGateDisabled",
+      "file": "unity/Assets/Sim/ItemDatabase/BuildPartQualityGate.cs",
+      "line": 61,
+      "expect": "                if (def.Category != ItemCategory.BuildPart) continue;",
+      "replace": "                continue; // FALSIFY-M8:范围门整体短路",
+      "expectRed": [
+        "test_p0Gate_buildPartQualityNotOne_reportsViolation",
+        "test_p0Gate_requireValid_throwsOnViolation"
+      ],
+      "exactRed": true,
+      "_why": "P0 范围门 ③ 的执行体。整体短路后违例永不产生 ⇒ 两条红。"
+    },
+    {
+      "name": "M9-buildPartGateAcceptsAnyQuality",
+      "file": "unity/Assets/Sim/ItemDatabase/BuildPartQualityGate.cs",
+      "line": 62,
+      "expect": "                if (inst.Quality == P0BuildPartQuality) continue;",
+      "replace": "                continue; // FALSIFY-M9:任何品级都放行",
+      "expectRed": [
+        "test_p0Gate_buildPartQualityNotOne_reportsViolation",
+        "test_p0Gate_requireValid_throwsOnViolation"
+      ],
+      "exactRed": true,
+      "_why": "「quality 恒 1」的那个 `==` 判据本体。放宽后 build_part 任意品级都过 ⇒ 两条红。",
+      "_note": "M8 = 类别过滤失效(非建材也进面);M9 = 品级判据失效。两个条件各一条变异。"
+    },
+    {
+      "name": "M10-floatTypeCheckDisabled",
+      "file": "unity/Assets/Editor.Tools.Gates/InventoryDtoFloatGate.cs",
+      "line": 292,
+      "expect": "                if (ForbiddenClrTypes.Contains(t))",
+      "replace": "                if (false) // FALSIFY-M10:停用浮点类型判定",
+      "expectRed": [
+        "test_ac2015_layer1_negativeFixture_floatFieldIsReported",
+        "test_ac2015_layer1_negativeFixture_floatInsideGenericIsReported"
+      ],
+      "exactRed": true,
+      "_why": "层 1 的判据本体。停用后含 float 字段的假 DTO 不被抓 ⇒ 负面夹具红。",
+      "_note": "⚠️ **2026-10-26 首跑红 2 条,spec 原只列 1 条 ⇒ 已补**:`if (false)` 抹掉的是**整个**类型判定(含泛参递归的终点),故 `List<float>` 也漏 ⇒ 多红一条**是对的**,漏列在 spec。"
+    },
+    {
+      "name": "M11-genericArgumentsNotExpanded",
+      "file": "unity/Assets/Editor.Tools.Gates/InventoryDtoFloatGate.cs",
+      "line": 288,
+      "expect": "                    foreach (Type arg in t.GetGenericArguments())",
+      "replace": "                    foreach (Type arg in Array.Empty<Type>()) // FALSIFY-M11:泛参不展开",
+      "expectRed": [
+        "test_ac2015_layer1_negativeFixture_floatInsideGenericIsReported"
+      ],
+      "exactRed": true,
+      "_why": "泛参展开是递归纪律里最易漏的一条。停用展开后 `List<float>` 的实参从不进入 Visit ⇒ 该夹具红。",
+      "_note": "⚠️ **2026-10-26 首跑本条件全绿逃逸,已重写**:原变异 `replace` 写的是 `if (!t.IsGenericType && ForbiddenClrTypes.Contains(t))` —— 它**只给类型判定加了个前置条件**,泛参展开那两行(`if (t.IsGenericType) foreach ... Visit(arg)`)一字未动 ⇒ 泛参照样被展开、`float` 照样被抓 ⇒ 生产码零行为变化。这是「变异文本空转」,与 story-001 首轮 M4/M5「只往行尾加注释」同型。现改为直接打泛参展开那一行。"
+    },
+    {
+      "name": "M12-ilOpcodeCheckDisabled",
+      "file": "unity/Assets/Editor.Tools.Gates/InventoryDtoFloatGate.cs",
+      "line": 444,
+      "expect": "                            if (ForbiddenFloatOpcodes.Contains(ins.OpCode))",
+      "replace": "                            if (false) // FALSIFY-M12:停用 IL 浮点指令判定",
+      "expectRed": [
+        "test_ac2015_layer2_negativeFixture_reportsRed"
+      ],
+      "exactRed": true,
+      "_why": "层 2 的指令面判据本体。停用后含 conv.r4 的假类型不被抓 ⇒ 负面夹具红。"
+    },
+    {
+      "name": "M13-scanFaceEmptyButListNonEmpty",
+      "file": "unity/Assets/Editor.Tools.Gates/InventoryDtoFloatGate.cs",
+      "line": 452,
+      "expect": "            if (scannedTypeCount == 0)",
+      "replace": "            if (false) // FALSIFY-M13:零命中不再报红",
+      "expectRed": [
+        "test_ac2015_layer2_nonEmptyListButZeroHitInAssembly_isRed"
+      ],
+      "exactRed": true,
+      "_why": "「清单非空但装配零命中」的兜底守卫(分派错 / 编译未成功 / 扫错 dll)。停用后静默返回「没问题」⇒ 该条红。这正是本项目抓过的『门没跑却显示绿』形态。",
+      "_note": "⚠️ **2026-10-26 首跑本条件全绿逃逸,已重写**:原变异标的是这一行,但 expectRed 指向 `test_ac2015_layer2_emptyTypeList_isRed` —— 那条打的是**入参**空集,在 `ScanIl` 开头 `:321` 就被早守卫返回了,**根本走不到 `:381`** ⇒ 变异无从体现。⇒ 归因 = 「spec 把两条不同属性混成一条」(入参空 vs 清单非空但零命中)。处置 = 补一条正对 `:381` 的夹具 `test_ac2015_layer2_nonEmptyListButZeroHitInAssembly_isRed`,本变异改指它。"
+    },
+    {
+      "name": "M14-enumMembersExpanded",
+      "file": "unity/Assets/Editor.Tools.Gates/InventoryDtoFloatGate.cs",
+      "line": 317,
+      "expect": "                    if (IsNonProjectType(cur)) break;   // 到了 BCL / 引擎层,其上不再有本项目的字段",
+      "replace": "                    if (false) break; // FALSIFY-M14:基类链走到 System.Enum，枚举字段全假阳性",
+      "expectRed": [
+        "test_ac2015_layer1_enumField_isNotReportedAsFloat",
+        "test_ac2015_layer1_recursiveReflection_noFloatFields"
+      ],
+      "exactRed": true,
+      "_why": "枚举字段的浮点假阳性源 = 基类 `System.Enum` 的 `IConvertible.ToSingle/ToDouble/ToDecimal`。本行 break 是**唯一**拦住它的守卫（冗余的 `IsEnum` 早返回已于 2026-10-26 删除）。拆掉 ⇒ 每个枚举字段都被判成浮点 ⇒ 正向夹具红。",
+      "_note": "⚠️ **两轮全绿逃逸后已重写**：首轮打 `if (t.IsEnum) return;`，二轮打同一行 —— 均全绿。归因经三段核实：① 枚举自身声明成员是常量 int / `value__` int / `HasFlag(枚举自身)` ⇒ 无 float；② 真正的 float 源在 `System.Enum`（BCL）；③ 拦住它的是基类链的 `IsNonProjectType` break。⇒ 原 `IsEnum` 守卫**不承重**，是冗余；**已从生产码删除**，保留本行作为唯一守卫。这是「两条守卫一个属性 ⇒ 拆任一条都不可观测」的处置：不是补夹具，是**消除冗余**。 | **三轮实测：红 2 条，spec 首版只列 1 条 ⇒ 已补** `..._recursiveReflection_noFloatFields`：消除冗余守卫后，拆掉唯一守卫会让**生产面**的枚举字段（`ItemCategory` / `ProcessingState` 等）真的假阳性 ⇒ 生产夹具也红，**这是删除冗余后的预期副作用，红得对**。（二轮时它不红，正因冗余守卫还在兜底 —— 两轮的对比本身就是冗余性的实测证据。）"
+    }
+  ]
+}
