@@ -1,0 +1,234 @@
+{
+  "name": "S20-12 —— 载重裁决 CanCarry / 硬不变量 / 装载期校验 / 满档谓词 / 存在性门 / 单源零派生 的守卫反证（AC-20-08 · AC-20-09 · AC-20-13 · AC-20-18 · AC-20-21 · AC-20-24）",
+  "mode": "EditMode",
+  "filter": "CarryLoadAdjudicationTest",
+  "unityProject": "unity",
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "本 spec 覆盖 inventory-004 的 Falsifiability Gate:**13 条变异 = 13 条独立守卫**,一属性一条变异(禁叠加)。",
+    "命中形态:②共存互斥(CanCarry 的 `≤` 界 / 满档 ⇔ 一律放不进)· ③定义域收窄(负载重 / 零容量 / 非 int token / 未知 ordinal / 孤儿子件 / 双计判据)· ⑤阈值边界(cap−W_MIN 的减法 / 恰等界)。",
+    "基线(2026-10-26 实测全绿):EditMode CarryLoadAdjudicationTest **54/54 passed / 0 failed / 0 skipped**(unity/Logs/s20-12-b.xml)。",
+    "锚点复核命令(纯读,零写盘):python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-12-carryload-adjudication.json --check-only",
+    "真跑命令(须显式带 --guard;⚠️ 驱动器**不读** spec 里的 guards 键,且 --guard 是**替换**默认值不是追加):",
+    "   python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-12-carryload-adjudication.json --guard unity/Assets/AddressableAssetsData --guard unity/Assets/Audio --guard unity/Assets/DataCooked",
+    "⚠️ 已知边界(登记在 story §Test Evidence,勿读成已验):",
+    "   ① AC-20-21 是**弱门**(领取次数无上界 ⇒ 对任何有限 cap 几乎恒绿)。本 spec 的 M10/M11 反证的是「判据 A/B 的守卫在承重」,**不是**「取舍存在性已全面验证」——后者须等 OQ-20-9 的具名 ESSENTIAL_KIT。",
+    "   ② AC-20-08 的 IL 面(M8)只反证 `conv.r4` 这一类;**Mono 后端的 IL 与 IL2CPP 生成物不同**,IL2CPP 侧须 ADR-012 三格矩阵另跑,不在本条判据内。",
+    "   ③ 「容器子件表两路」的 M12/M13 反证的是**双计判据与孤儿判据**,不是「P0 有进出容器事件」—— P0 结构性没有该事件载体(GDD :562),故此两路是**调用方可选口径**,不是流驱动。",
+    "   ④ 构建期执行 = NOT-RUN —— 全部 13 条变异都在 EditMode 跑;`CarryCapExistenceGate` 在**构建前门**里的执行须另跑探针轮(CLAUDE.md §BuildGate),不在本条判据内。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-canCarryStrictLessThan",
+      "file": "unity/Assets/Sim/ItemDatabase/CarryLoad.cs",
+      "line": 316,
+      "expect": "            return currentLoad + candidate <= capacity.Cap;",
+      "replace": "            return currentLoad + candidate < capacity.Cap; // FALSIFY-M1:把 ≤ 改成 <",
+      "expectRed": [
+        "test_ac2009_exactCapBoundary_isAccepted",
+        "test_ac2018_fullPredicate_agreesWithCanCarryForEveryItem"
+      ],
+      "exactRed": true,
+      "_why": "GDD :623「CarryLoad 恰等 CARRY_CAP ⇒ **允许**」的承重守卫就是 `≤` 这一侧。改成 `<` 后恰等界的候选被误拒 ⇒ 两条红。⚠️ **2026-10-26 首轮实测补充**:原 spec 只列了 exactCapBoundary 一条,实跑多红一条 `fullPredicate_agreesWithCanCarryForEveryItem` —— 该夹具扫遍 `load ∈ [0, cap+1]` 全区间,必然踏中恰等界,**它红是对的**(同一个被变异函数被另一批夹具独立覆盖 = 加强,不是判别面不清)。是我漏列,不是夹具问题。"
+    },
+    {
+      "name": "M2-isFullSimplifiedToEqualsCap",
+      "file": "unity/Assets/Sim/ItemDatabase/CarryLoad.cs",
+      "line": 343,
+      "expect": "            return currentLoad > (long)capacity.Cap - wMin;",
+      "replace": "            return currentLoad == (long)capacity.Cap; // FALSIFY-M2:BL-26 明令禁止的简化",
+      "expectRed": [
+        "test_ac2018_wMinGreaterThanOne_boundaryIsCapMinusWMin",
+        "test_ac2018_fullPredicate_agreesWithCanCarryForEveryItem"
+      ],
+      "exactRed": true,
+      "_why": "BL-26 明令禁简化成 `== cap` 的**唯一**执行体。W_MIN > 1 时 `cap − 1` 处已一律放不进,`== cap` 会谎报「还能装」⇒ 扫描线四点与全表扫描两处同时红。"
+    },
+    {
+      "name": "M3-wMinSubtractionDropped",
+      "file": "unity/Assets/Sim/ItemDatabase/CarryLoad.cs",
+      "line": 343,
+      "expect": "            return currentLoad > (long)capacity.Cap - wMin;",
+      "replace": "            return currentLoad > (long)capacity.Cap; // FALSIFY-M3:去掉 W_MIN 项",
+      "expectRed": [
+        "test_ac2018_wMinGreaterThanOne_boundaryIsCapMinusWMin",
+        "test_ac2018_fullPredicate_agreesWithCanCarryForEveryItem",
+        "test_ac2018_wMinEqualsOne_degradesToCapMinusOne"
+      ],
+      "exactRed": true,
+      "_why": "「以 W_MIN 为界」这条判据的另一半(与 M2 不同靶:M2 打等价类,M3 打减数)。去掉减数后 `cap−W_MIN+1` 处会误报「未满」。⚠️ **2026-10-26 首轮实测补充**:原 spec 漏列 `wMinEqualsOne_degradesToCapMinusOne` —— W_MIN=1 时该式本就退化成 `> cap−1`,去掉减数后行为必变,**它红是对的**(加强,非判别面不清)。"
+    },
+    {
+      "name": "M4-negativeLoadGuardDropped",
+      "file": "unity/Assets/Sim/ItemDatabase/CarryLoad.cs",
+      "line": 311,
+      "expect": "            if (currentLoad < 0L)",
+      "replace": "            if (false) // FALSIFY-M4:停用负载重守卫",
+      "expectRed": [
+        "test_ac2009_negativeLoad_isRejectedNotSilentlyClamped"
+      ],
+      "exactRed": true,
+      "_why": "负载重是「投影/求和出错」的信号;守卫去掉后它会静默参与比较(负 + 小重量 ≤ cap 恒真)⇒ 玩家可无限带。"
+    },
+    {
+      "name": "M5-nullCapacityFallsBackToZero",
+      "file": "unity/Assets/Sim/ItemDatabase/CarryLoad.cs",
+      "line": 162,
+      "expect": "            if (cap == null)",
+      "replace": "            if (cap == null) cap = 0; if (false) // FALSIFY-M5:null 兜底成 0",
+      "expectRed": [
+        "test_ac2013_emptyState_constructedByConstruction"
+      ],
+      "exactRed": true,
+      "_why": "AC-20-13「禁 null 兜底」的承重守卫。兜底成 0 后,null 与「容量 0」不可分 ⇒ 未定值被静默当成「一件都装不下」。⚠️ **2026-10-26 首轮实测 = 逃逸(54/54 全绿)**:真逃逸,**首版夹具只断异常类型**,而兜底成 0 后代码落到下游 `cap.Value <= 0` 分支仍抛同一类型 ⇒ 断言照绿。已修夹具(按消息区分「未注入」/「非正 = 0」/「非正 = -1」三分支)。"
+    },
+    {
+      "name": "M6-nonPositiveCapAccepted",
+      "file": "unity/Assets/Sim/ItemDatabase/CarryLoad.cs",
+      "line": 166,
+      "expect": "            if (cap.Value <= 0)",
+      "replace": "            if (false) // FALSIFY-M6:放行非正 cap",
+      "expectRed": [
+        "test_ac2013_emptyState_constructedByConstruction"
+      ],
+      "exactRed": true,
+      "_why": "cap = 0 / 负值域收窄的另一半(与 M5 不同靶:M5 打 null 分支,M6 打值域分支)。"
+    },
+    {
+      "name": "M7-binderStringTokenAccepted",
+      "file": "unity/Assets/Editor.Tools.Bake/InventoryConstantsBinder.cs",
+      "line": 174,
+      "expect": "            if (n.Kind != JsonNodeKind.Integer)",
+      "replace": "            if (n.Kind != JsonNodeKind.Integer && n.Kind != JsonNodeKind.String) // FALSIFY-M7:放行字符串 token",
+      "expectRed": [
+        "test_ac2013_capAsJsonString_throws",
+        "test_ac2013_capAsFixLiteral_throwsAndNamesD2117"
+      ],
+      "exactRed": true,
+      "_why": "D-21-17 的「cap 是 int 计数口径、不是 Fix」的构建期执行体。放行 String 后 `\"60\"` 与 `\"3/4\"` 都过 ⇒ 两条同族夹具红(它们打的是同一个 token 种类分支)。"
+    },
+    {
+      "name": "M8-binderFloatTokenAccepted",
+      "file": "unity/Assets/Editor.Tools.Bake/InventoryConstantsBinder.cs",
+      "line": 174,
+      "expect": "            if (n.Kind != JsonNodeKind.Integer)",
+      "replace": "            if (n.Kind != JsonNodeKind.Integer && n.Kind != JsonNodeKind.Float) // FALSIFY-M8:放行浮点 token",
+      "expectRed": [
+        "test_ac2013_capAsFloat_throws"
+      ],
+      "exactRed": true,
+      "_why": "浮点承载 cap 会让「恰等界」比较不可判(M1 的 `≤` 在 float 域不可靠)⇒ 须构建期硬失败。"
+    },
+    {
+      "name": "M9-binderZeroCapAccepted",
+      "file": "unity/Assets/Editor.Tools.Bake/InventoryConstantsBinder.cs",
+      "line": 204,
+      "expect": "            if (cap == 0)",
+      "replace": "            if (false) // FALSIFY-M9:放行零容量",
+      "expectRed": [
+        "test_ac2013_zeroCap_throwsAndNamesTheValue"
+      ],
+      "exactRed": true,
+      "_why": "「零容量与未定值不可分」的承重守卫;且要求**报出实际值**(与负值分开报,故 M9/M10 各打一条)。"
+    },
+    {
+      "name": "M10-binderNegativeCapAccepted",
+      "file": "unity/Assets/Editor.Tools.Bake/InventoryConstantsBinder.cs",
+      "line": 210,
+      "expect": "            if (cap < 0)",
+      "replace": "            if (false) // FALSIFY-M10:放行负容量",
+      "expectRed": [
+        "test_ac2013_negativeCap_throwsAndNamesTheValue"
+      ],
+      "exactRed": true,
+      "_why": "负容量的独立分支(与 M9 的零分支分开 —— 装配期日志须能区分「填了 0」与「填了负数」)。"
+    },
+    {
+      "name": "M11-unweightedOrdinalSilentlyZero",
+      "file": "unity/Assets/Sim/ItemDatabase/CarryLoad.cs",
+      "line": 288,
+      "expect": "            if (unitWeight < 1)",
+      "replace": "            if (false) // FALSIFY-M11:缺载体当 0",
+      "expectRed": [
+        "test_ac2009_unknownOrdinal_failsLoudNotZero"
+      ],
+      "exactRed": true,
+      "_why": "「物品表缺条目不得静默当 0」的承重守卫。当 0 后未知 ordinal 的实例重量为 0 ⇒ 玩家可无限带 ⇒ 载重读数说谎。"
+    },
+    {
+      "name": "M12-doubleCountSilentlySummed",
+      "file": "unity/Assets/Sim/ItemDatabase/CarryLoad.cs",
+      "line": 269,
+      "expect": "                    if (childRow.Owner != InventoryProjection.NoOwner)",
+      "replace": "                    if (false) // FALSIFY-M12:双计静默求和",
+      "expectRed": [
+        "test_containerPath_doubleCountIsReportedNotSilentlySummed",
+        "test_containerPath_doubleCountAcrossOwners_alsoReported"
+      ],
+      "exactRed": true,
+      "_why": "双计判据的承重守卫。判据一旦放宽(或按 `Owner == owner` 判),归属**别人**的子件就会被静默并入 ⇒ 全局账偏大且不可见。两条夹具分别打「本玩家子件」与「他玩家子件」两个方向。"
+    },
+    {
+      "name": "M13-orphanChildSilentlyDropped",
+      "file": "unity/Assets/Sim/ItemDatabase/CarryLoad.cs",
+      "line": 261,
+      "expect": "                        orphan++;",
+      "replace": "                        /* FALSIFY-M13:孤儿不计 */",
+      "expectRed": [
+        "test_containerPath_orphanChild_isCountedNotDropped"
+      ],
+      "exactRed": true,
+      "_why": "「漏计须可见」的承重守卫。孤儿静默丢弃后,容器带着查不到的子件时总量偏小而无任何信号 ⇒ `IsClean` 恒真。"
+    },
+    {
+      "name": "M14-gateCriterionA_dropped",
+      "file": "unity/Assets/Editor.Tools.Gates/CarryCapExistenceGate.cs",
+      "line": 121,
+      "expect": "            if (carryCap <= 0)",
+      "replace": "            if (false) // FALSIFY-M14:停用判据 A(cap 非正)",
+      "expectRed": [
+        "test_ac2021_nonPositiveCap_isRed"
+      ],
+      "exactRed": true,
+      "_why": "**首轮 spec 的一处真覆盖缺口**(2026-10-26 本轮补):13 条变异只打 `CarryLoad.cs` / `InventoryConstantsBinder.cs`,**零条打 `CarryCapExistenceGate`** —— 而它是本 story 唯一新增的构建门(AC-20-21 的 [A] 载体),9 条夹具全在测试件里却无一条被证明「改坏即红」。判据 A 停用后 cap=0 不再被判红 ⇒ 该夹具红。"
+    },
+    {
+      "name": "M15-gateCriterionB_dropped",
+      "file": "unity/Assets/Editor.Tools.Gates/CarryCapExistenceGate.cs",
+      "line": 129,
+      "expect": "            if (itemWeights == null || itemWeights.Count == 0)",
+      "replace": "            if (false) // FALSIFY-M15:停用判据 B(空物品表)",
+      "expectRed": [
+        "test_ac2021_emptyItemTable_isRed"
+      ],
+      "exactRed": true,
+      "_why": "判据 B 停用后空表继续下跑:循环零次 ⇒ `wMax` 停在 0 ⇒ 落到判据 C 的 `wMax < 1` 分支并报 **[AC-20-21/C]** 而非 B。夹具断言的是**点名判据 B**,故仍红 —— 但红的原因是「报错了判据编号」,不是「门没报错」。⇒ 这条变异同时钉住了「失败信息须点名正确的判据」这一属性,比单纯「红不红」更强。"
+    },
+    {
+      "name": "M16-gateCriterionD_inverted",
+      "file": "unity/Assets/Editor.Tools.Gates/CarryCapExistenceGate.cs",
+      "line": 168,
+      "expect": "                if (!CarryLoadSolver.CanCarry(load, wMax, 1, capacity))",
+      "replace": "                if (CarryLoadSolver.CanCarry(load, wMax, 1, capacity)) // FALSIFY-M16:判据 D 取反",
+      "expectRed": [
+        "test_ac2021_heaviestSingleItemExceedingCap_isImmediatelyFull"
+      ],
+      "exactRed": true,
+      "_why": "判据 D 的**符号方向**守卫。⚠️ **2026-10-26 第 3 轮实测:首版 `expectRed` 列了 2 条,实红 1 条 ⇒ `singleUnitWeightTable_reachesFullState` 逃逸**,根因已查实:取反后该夹具(cap=10/w=1)在**首步**就 `CanCarry == true` ⇒ 立即 `return errs` ⇒ 门提前返回绿 ⇒ 夹具绿。它证明的是「门不误报红」,**不是**「门真的领满 10 件」—— 对「是否装满」零判别力。⇒ 该夹具的判别面已如实降级登记,并由 M17 补钉另一半(见下)。真正承重的是 `heaviestSingleItem`(cap=3/w=5,首步即装不下):取反后永不返回,一路加到 `stepBound` 才报 `[AC-20-21/D]` ⇒ 红。"
+    },
+    {
+      "name": "M17-gateCriterionD_earlyReturnGreen",
+      "file": "unity/Assets/Editor.Tools.Gates/CarryCapExistenceGate.cs",
+      "line": 169,
+      "expect": "                    return errs;   // ✅ 构造成功:找到了可达的「装不下」状态",
+      "replace": "                    { steps++; continue; }   // FALSIFY-M17:装满也不返回,继续领",
+      "expectRed": [
+        "test_ac2021_singleUnitWeightTable_reachesFullState",
+        "test_ac2021_heaviestSingleItemExceedingCap_isImmediatelyFull",
+        "test_ac2021_realData_gateIsGreen"
+      ],
+      "exactRed": true,
+      "_why": "与 M16 打**不同属性**(承「一属性一条变异」):M16 打「符号方向」,M17 打「找到满状态后是否真的返回」。变异后即使已装不下也不返回,继续把 `load` 加到 `stepBound` ⇒ 三条「应当绿」的夹具同时红。⇒ **这条才钉住「提前返回」这个属性**,补上 M16 暴露的逃逸面。⚠️ **2026-10-26 第 4 轮实测补充**:首版列 2 条,实红 3 条 —— 多出一条 `realData_gateIsGreen`,**它红是对的**:真数据 cap=60 / wMax=2,正常时第 30 步领满即返回,变异后不返回、一路加到 `stepBound = ⌈60/1⌉+2 = 62` 才报 `[AC-20-21/D]` ⇒ 门红 ⇒ 该夹具随之红。同一个被变异函数被第三个夹具独立覆盖 = 加强,不是判别面不清;是我漏列。"
+    }
+  ]
+}

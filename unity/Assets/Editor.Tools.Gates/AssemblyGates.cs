@@ -181,6 +181,13 @@ namespace DaYiJingCheng.EditorTools.Gates
             // 而 `GateWiringManifestTest` 的 TestDriven 封闭集判据明确禁止把 BLOCKING
             // 判据判成「无强制点」档(该表自带规矩:升格 BLOCKING ⇒ 先找强制点)。
             errs.AddRange(InventoryDtoFloatGate.RunAll("."));
+            // AC-20-21 存在性门(2026-10-26 S20-12 落):CARRY_CAP > 0 ∧ 存在可达状态使
+            // `CanCarry == false`(自指谓词,不需要外部清单)。可达性是**真模拟构造**的
+            // (贪心领最重的一件直到装不下),且经真 `CarryLoadSolver.CanCarry` 求值。
+            // ⚠️ 本门是**弱门**(领取次数无上界 ⇒ 几乎恒绿),真正能抓的是物品表结构性空洞;
+            // 「cap 大到能带齐一切」须等 OQ-20-9 的具名 ESSENTIAL_KIT 才立得了真门
+            // —— 已在门内与 GDD :705-712 双处登记,不得读成「取舍存在性已全面验证」。
+            errs.AddRange(CarryCapExistenceGate.RunAll("."));
             return errs;
         }
 

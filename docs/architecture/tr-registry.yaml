@@ -3701,9 +3701,9 @@
     gdd: design/gdd/inventory-and-items.md
     requirement: "CanCarry ⟺ CarryLoad + InstanceWeight ≤ CARRY_CAP;硬不变量 ∀p CarryLoad(p) ≤ CARRY_CAP(52 的归一化定义域)"
     domain: Core
-    adr: null
-    status: gap
-    note: "规则四 · F-20.2 · AC-20-09。承 random-events 的 clamp(CarryLoad / CARRY_CAP, 0, 1)要求该不变量恒成立,否则归一化爆界。**CARRY_CAP 值未裁**(OQ-20-2)⇒ 不变量无值可验 ⇒ gap。"
+    adr: ADR-006
+    status: covered
+    note: "规则四 · F-20.2 · AC-20-09 / AC-20-18 / AC-20-21。承 random-events 的 clamp(CarryLoad / CARRY_CAP, 0, 1)要求该不变量恒成立,否则归一化爆界。**2026-10-26 S20-12 刷账:gap → covered**,原 gap 理由「CARRY_CAP 值未裁(OQ-20-2)」**已失效** —— OQ-20-2 于 2026-10-06 裁定 **`CARRY_CAP = 60`**(GDD `:283` / §Tuning Knobs `:719`)。三条判据各有着落:① **谓词本体** = `unity/Assets/Sim/ItemDatabase/CarryLoad.cs:316`(`currentLoad + candidate <= capacity.Cap`,恰等界合法承 GDD `:623`);② **硬不变量** = 1000 步后置断言 + **反向夹具**(绕过 `CanCarry` 必红),夹具件 `unity/Assets/Tests/EditMode/Inventory/carry_load_adjudication_test.cs`;③ **存在性门** = `unity/Assets/Editor.Tools.Gates/CarryCapExistenceGate.cs`(接进 `AssemblyGates.RunAll`)。⚠️ **两处不得读成已验**:(a) 存在性门是**弱门**(GDD `:705-712` 自陈,领取次数无上界 ⇒ 抓不到「cap 大到能带齐一切」,须等 OQ-20-9 的 `ESSENTIAL_KIT`);(b) 该门**构建期执行 = NOT-RUN**(仅源码级接线证据,未跑探针轮,承 CLAUDE.md §BuildGate)。证伪见 `tools/falsify/specs/s20-12-carryload-adjudication.json`(17 条变异,五轮 17/17)。"
 
   - id: TR-inventory-007
     system: inventory-and-items
@@ -3735,11 +3735,11 @@
   - id: TR-inventory-010
     system: inventory-and-items
     gdd: design/gdd/inventory-and-items.md
-    requirement: "溢出界 |Inventory| × stack_max × max(weight) < 2^31 —— 烘焙期可算常量,构建期硬门断言"
+    requirement: "溢出界:CarryLoad 为 int64(承 AC-21a-64);实际构建期门 = 校验 CARRY_CAP 为正的 int 值(原「|Inventory| × stack_max × max(weight) < 2^31 烘焙期可算常量」论证已被 GDD :452-459 判为假)"
     domain: Core
     adr: ADR-014
     status: partial
-    note: "F-20.1 注。物品种类闭集 ⇒ 上界可算;承 clinic-machine 的 B6 同款纪律。构建期门归 ADR-014(covered),具体值班方未裁 ⇒ partial。"
+    note: "F-20.1 注。**2026-10-26 S20-12 二次刷账:requirement 文本就地订正** —— 原文本 `|Inventory| × stack_max × max(weight) < 2^31 —— 烘焙期可算常量` 在 GDD `:452-459` 已被**判为假**(`|Inventory|` 是**运行时量**,受 CARRY_CAP 约束,不是烘焙期常量;且原稿断言 int32,与 `AC-21a-64` 的 int64 口径冲突)⇒ 改判为:① `CarryLoad` 升 **int64**;② 实际门 = 构建期校验 **`CARRY_CAP` 为正的 int 值**;③ 不再声称烘焙期可算 `|Inventory|`。**② 已于本批兑现**:`InventoryConstantsBinder`(缺键/0/负/越 int/非 int token 各具名硬失败)+ `CarryCapExistenceGate.Evaluate` 判据 A(`carryCap <= 0` 即红),件 `unity/Assets/Editor.Tools.Gates/CarryCapExistenceGate.cs:121`。**仍 partial 而非 covered 的原因**:构建期**真机执行**未跑探针轮(承 CLAUDE.md §BuildGate「构建绿 ≠ 门跑了」),且 int64 逐位性须走 ADR-012 三格矩阵 —— 两者都不在本件判据内。**残留**:①`CARRY_CAP < 2^63` 的实际门是「为正的 int 值」,int 域天然满足,无须另立;②跨平台逐位归 ADR-012。"
 
   - id: TR-inventory-011
     system: inventory-and-items

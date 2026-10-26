@@ -92,6 +92,7 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                     "SaveAsyncBoundaryGate.RunAll",  // AC-7a-07 后台写盘路径零 Unity API IL 门 · 2026-10-25
                     "SaveVocabularyGate.RunAll",     // AC-7a-09 忘词令符号门(规则七判据层)· 2026-10-25
                     "InventoryDtoFloatGate.RunAll",  // AC-20-15 20 输出 DTO 双层零浮点门 · 2026-10-26
+                    "CarryCapExistenceGate.RunAll",  // AC-20-21 存在性门(自指谓词)· 2026-10-26 S20-12
                 },
 
                 // RunMenu = 菜单项「大医精诚/Validation/Run Assembly Gates」。
@@ -294,6 +295,15 @@ namespace DaYiJingCheng.Tests.Unit.Sim
                        "`AssemblyGates.RunAll`(菜单 / reload / 构建前三处共用),强制点自此真实存在。" +
                        "⚠️ **构建期是否真的执行未跑探针轮** —— 按 CLAUDE.md §BuildGate「构建绿 ≠ 门跑了」" +
                        "口径,本门在构建期的执行**尚未证实**,不记绿。" },
+            new ClassVerdict { ClassName = "CarryCapExistenceGate", Kind = WiringKind.Chain,
+                Consumer = "RunAll",
+                Note = "AC-20-21 存在性门(2026-10-26 S20-12 落):`CARRY_CAP > 0` ∧ 存在可达状态使 " +
+                       "`CanCarry == false`(自指谓词)。可达性是**真模拟构造**的(贪心领最重的一件" +
+                       "直到装不下),且调真 `CarryLoadSolver.CanCarry` 求值。" +
+                       "⚠️ **本门是弱门,已如实登记**:领取次数无上界 ⇒ 对任何有限 cap 都几乎恒绿," +
+                       "真正能抓的只有物品表结构性空洞(空表 / 全零重量);" +
+                       "「cap 大到能带齐一切」须等 GDD 登记的 OQ-20-9(具名 ESSENTIAL_KIT)才立得了真门。" +
+                       "⚠️ **构建期是否真的执行未跑探针轮** —— 同上口径,不记绿。" },
 
             // ── 菜单(独立入口)──
             new ClassVerdict { ClassName = "SkeuomorphicUiGates", Kind = WiringKind.Menu,

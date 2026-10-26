@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "_note": "系统 20 库存与物品的自家调参表(2026-10-26 S20-12 立)。唯一合法作者态 = 本文件(assets/data/*.json 明文;D-21-13 禁 .asset/SO 承载)。【本表刻意只有 carry_cap 一个键】—— CARRY_CAP 的单源所有者 = 20(GDD inventory-and-items.md:296-298 的 BL-6① 裁定:52 random-events 只是把 cap 当归一化分母『读』,不得自留旋钮行);W_MIN 不在本表,它是 min{ItemDef.weight} 的派生量,真源 = item_database_items.json(写进本表 = 第二真值,AC-20-24)。【值 60 的出处】GDD :283 / §Tuning Knobs :719 的 2026-10-06 代拍(OQ-20-2 结案,值可调)。【int 计数字段写 JSON 整数】(D-21-17:weight / stack_max / cap 同族,**不是** Fix)—— 故 carry_cap 写 60 而非 \"60\";写字符串或浮点会被 InventoryConstantsBinder 阶段 2 硬失败(AC-20-13 边例)。【消费方】CarryCapExistenceGate(AC-20-21 构建门)· carry_load_adjudication_test(合成 cap 夹具)。⚠️ 运行期装配轮(20 的 IDataProvider 消费方)尚未接 —— 那时本表须走 ADR-014 两阶段烘焙成 *.cooked,并登记进 cooked_drift_all_artifacts_test 的 BakedArtifacts。",
+  "carry_cap": 60
+}

@@ -173,13 +173,13 @@ stories:
     name: "inventory-004 CanCarry / 载重裁决"
     file: "production/epics/inventory-items/story-004-carryload-and-cap-adjudication.md"
     priority: must-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
-    blocker: "S20-10 + S20-11"
-    completed: ""
-    note: "链路批3。6 条 AC。"
+    blocker: ""
+    completed: "2026-10-26"
+    note: "链路批3。**✅ 已收口**:6/6 记绿 · 54/54 绿 · 官方证伪轮 **五轮演进 10/13 → 13/13 → 15/16 → 16/17 → 17/17** 恰如预期 · 对下游契约承诺 E-1…E-6 已写入 story §Completion Notes。⚠️ **四条限制必须与「6/6」同读**:① AC-20-21 是**弱门**(领取次数无上界 ⇒ 对任何有限 cap 几乎恒绿,抓不到「cap 大到能带齐一切」,须等 OQ-20-9 的 `ESSENTIAL_KIT`)② **构建期执行 = NOT-RUN**(门在 `AssemblyGates.RunAll` 的调用只有源码级证据,未跑探针轮)③ `singleUnitWeightTable` 夹具判别面受限(由 M16 实测证明,只证「不误报红」)④ AC-20-08 的 IL 面只在 Mono 后端,IL2CPP 须走 ADR-012 三格矩阵。⚠️ **五轮里两次真假绿**(M5 夹具只断异常类型 / M16 漏了「提前返回」属性),均已修并复跑;其余「多红」是同一被变异函数被另一批夹具独立覆盖,已在 spec 逐条写明变红原因。⚠️ **回归增量 = +54 不是 +141**(基线 `f3-full.xml` 测于 14:36,不含 `089006b`/`ebe532e`/`40d9cfa`/`80eeab2` 四笔带入的 87 条)。⚠️ **1 项 ADVISORY**:`CarryRatioDto.CarryLoad` 用 `long`(GDD `:302` 写 `int` 未同步;GDD `:452-459` 已把 `CarryLoad` 升 int64)。"
   - id: "S20-13"
     name: "processing-003 Craft 落流 + 点火事务"
     file: "production/epics/processing/story-003-craft-payload-ignite-append.md"
