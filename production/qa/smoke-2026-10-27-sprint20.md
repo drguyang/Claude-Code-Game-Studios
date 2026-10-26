@@ -184,7 +184,7 @@ S20-9 回归无异常,佐证是本件**零生产调用方**(`FurnaceState` / `Ig
 | # | 项 | 事实 |
 |---|---|---|
 | 1 | **PlayMode 基线已失效** | `202/202/0/0`(@ 10-25 12:35Z)跑于 `InventoryFold.cs` 入库前。新基线 = `204/204/0/0` @ `2026-10-27 01:16 CST` · `smoke-fix` · `5bdd226`+2 改动。 |
-| 2 | **A–D 无可执行化** | `tests/smoke/critical-paths.md` 至今零可执行判据。不是本轮的债,但**是 P0 收口前必须兑现的债** —— 否则每次 smoke-check 的 A–D 只能记 N/A。 |
+| 2 | **A–D 无可执行化** | `tests/smoke/critical-paths.md` 至今零可执行判据。不是本轮的债,但**是 P0 收口前必须兑现的债** —— 否则每次 smoke-check 的 A–D 只能记 N/A。**已立债册条目 `TD-smoke-01`**(`docs/tech-debt-register.md`,2026-10-27 三十六订,`P0 面 = N`)。 |
 
 ---
 
