@@ -1,0 +1,200 @@
+{
+  "name": "S20-10 —— InventoryOf fold 本体的守卫反证（AC-20-03 重建机制面 / AC-20-05 零求值 / AC-20-17 零追加 Kind）",
+  "mode": "EditMode",
+  "filter": "InventoryFoldTest",
+  "unityProject": "unity",
+  "guards": [
+    "unity/Assets/DataCooked",
+    "unity/Assets/AddressableAssetsData"
+  ],
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff。",
+    "本 spec 覆盖 inventory-001 的 Falsifiability Gate：14 条变异 = 14 条独立守卫，一属性一条变异（禁叠加）。",
+    "基线（2026-10-26 实测全绿）：EditMode InventoryFoldTest 28/28 passed / 0 failed（unity/Logs/inv-fold.xml）。",
+    "锚点复核命令（纯读，零写盘）：python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-10-inventory-fold.json --check-only",
+    "⚠️ 已知边界（登记在 story §Test Evidence，勿读成已验）：",
+    "   ① fold 的 Craft 载荷组不等长分支（MalformedPayloadPairing）**无夹具** ——",
+    "      codec 写侧即拒（PayloadCodec.World.cs:200-208「坏数据不进字节面」）⇒ 无法用真 codec 构造该形态。",
+    "      本 spec 的 M3/M4 反证的是 qty 扣减面，不是该分支。",
+    "   ② 本 spec 全部为 EditMode（Mono）；跨平台逐位（ADR-012）不在本条判据内。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-orderDroppedUnstableSortTiebreak",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryFold.cs",
+      "line": 502,
+      "expect": "            for (int i = 0; i < n; i++) ordered.Add(events[idx[i]]);",
+      "replace": "            for (int i = 0; i < n; i++) ordered.Add(events[i]); // FALSIFY-M1:按传入序（停用全序重排）",
+      "expectRed": [
+        "test_ac2003_shuffledInput_yieldsIdenticalProjection"
+      ],
+      "exactRed": true,
+      "_why": "「排序在 fold 内、不是调用方义务」的承重守卫就是这一行。改为按传入序 ⇒ 乱序输入直接得到不同投影。"
+    },
+    {
+      "name": "M2-qualityPrescanDropped",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryFold.cs",
+      "line": 344,
+      "expect": "                        int q = quality.TryGetValue(p.InstanceId, out int known) ? known : 0;",
+      "replace": "                        int q = 0; // FALSIFY-M2:停用品级预扫绑定",
+      "expectRed": [
+        "test_ac2003_dropLifecycle_foldsOwnerAndQty",
+        "test_ac2003_qualityArrivesAfterSpawn_stillBound"
+      ],
+      "exactRed": true,
+      "_why": "17 实发序 = DropSpawned → ResourceHarvested ⇒ 品级必然晚到。不做预扫 ⇒ 两条含品级断言的用例同时红。"
+    },
+    {
+      "name": "M3-zeroQtyRowsKeptInProjection",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryFold.cs",
+      "line": 614,
+      "expect": "                if (kv.Value.Qty <= 0) continue;             // 归零 ⇒ 出投影(实例已消失)",
+      "replace": "                // FALSIFY-M3:归零行不再剔除",
+      "expectRed": [
+        "test_ac2003_despawnToZero_removesFromProjection",
+        "test_ac2016_dropDespawned_isTheOnlyCarrierOfConsumption"
+      ],
+      "exactRed": true,
+      "_why": "「归零即出投影」是实例消失的唯一可见表现。停用后重建投影仍含已消耗实例 ⇒ 消耗链路整体失效。"
+    },
+    {
+      "name": "M4-despawnQtyDeductionDropped",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryFold.cs",
+      "line": 398,
+      "expect": "                            row.InstanceId, row.ItemOrdinal, row.Quality, row.Qty - p.Qty, row.Owner);",
+      "replace": "                            row.InstanceId, row.ItemOrdinal, row.Quality, row.Qty, row.Owner); // FALSIFY-M4：扣减量不扣",
+      "expectRed": [
+        "test_ac2003_despawnToZero_removesFromProjection",
+        "test_ac2003_dropLifecycle_foldsOwnerAndQty",
+        "test_ac2016_dropDespawned_isTheOnlyCarrierOfConsumption"
+      ],
+      "exactRed": true,
+      "_note": "⚠️ 本条与 M3 的差别：M3 停「剔除归零行」，M4 停「扣减本身」。M4 更上游，故红 3 条。⚠️ 2026-10-26 订正：初版锚在 :397 且只在行尾加注释（`new InventoryRow( // ...`）—— **变异文本空转，一条都没红**，被官方驱动抓为逃逸。现改锚 :398 真删 `- p.Qty`。",
+      "_why": "DropDespawned 的语义就是 qty 扣减；只校验不扣 ⇒ 三条跨生命周期用例全红。"
+    },
+    {
+      "name": "M5-domainWidenedToActorCellEntered",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryFold.cs",
+      "line": 432,
+      "expect": "                    default:",
+      "replace": "                    case EventKind.ActorCellEntered:\n                        {\n                            ActorCellEnteredPayload ac = decoder.Decode<ActorCellEnteredPayload>(e.Kind, e.Payload);\n                            rows[ac.ActorId] = new InventoryRow(ac.ActorId, 0, 0, 1, ac.ActorId);\n                            break;\n                        }\n\n                    default:",
+      "expectRed": [
+        "test_ac2017_foldIgnoresWorldKindsOutsideTheSevenPredicates"
+      ],
+      "exactRed": true,
+      "_note": "⚠️ 2026-10-26 订正：初版锚 :433 是**注释行**，行尾追加 `// FALSIFY-M5` 等于零改动 ⇒ 官方驱动抓为逃逸（28/28 全绿）。现锚 :432 的 `default:`（全文件唯一，grep 证实），真插一支 `case ActorCellEntered`。",
+      "_why": "「七谓词是全部输入面」的判据 = 世界流内非七谓词 Kind 不改变投影。放宽定义域 ⇒ 该条红。"
+    },
+    {
+      "name": "M6-foldBecameStateful",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryFold.cs",
+      "line": 322,
+      "expect": "            var rows = new Dictionary<long, InventoryRow>(ordered.Count / 4 + 1);",
+      "replace": "            var rows = (Dictionary<long, InventoryRow>)System.AppDomain.CurrentDomain.GetData(\"falsify-m6\") ?? new Dictionary<long, InventoryRow>(); System.AppDomain.CurrentDomain.SetData(\"falsify-m6\", rows); // FALSIFY-M6：跨调用复用同一行表(fold 不再纯)",
+      "expectRed": [
+        "test_ac2003_sameStreamTwice_isIdempotent",
+        "test_ac2003_shuffledInput_yieldsIdenticalProjection"
+      ],
+      "exactRed": false,
+      "_expectedRedCount": 9,
+      "_why": "纯函数性(AC-20-03「二次重建幂等」)的守卫 = 每次 Fold 都新建行表。注入跨调用状态 ⇒ 多次 Fold 的夹具必红。",
+      "_note": "⚠️ exactRed=false 是**刻意的**:它破坏的是「无跨调用状态」这一全局属性,红面必然扩散。\n⚠️ 2026-10-26 两处订正:① 初版 `replace` 引用 `_crossCallRows` 但 spec **没定义该字段** ⇒ 编译失败、无结果 XML,驱动报「逃逸」(实为编译不出)。现改用 `AppDomain.GetData/SetData` 单行惰性状态 —— 官方驱动是 **one-line 替换模型**(`lines[ln-1] = replace`),不能顺手插字段。② `emptyStream` **移出 expectRed**:它是否红取决于自己是第几个跑的(此前测试是否已把行写进共享表),**非确定性** ⇒ 不得当判据。"
+    },
+    {
+      "name": "M7-r15GapSuppressed",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryFold.cs",
+      "line": 599,
+      "expect": "            gaps.Add(Gap(InventoryFoldGapKind.CraftOutputWithoutItemKey, kind, at, firstOutputId,",
+      "replace": "            if (false) gaps.Add(Gap(InventoryFoldGapKind.CraftOutputWithoutItemKey, kind, at, firstOutputId, // FALSIFY-M7：静默吞 R15",
+      "expectRed": [
+        "test_r15_craftOutputs_raiseGapAndDoNotInventItemKey"
+      ],
+      "exactRed": true,
+      "_why": "R15 缺口登记是「缺载体 ⇒ 拒绝出完整投影」在增益侧的唯一执行体。静默吞 ⇒ 该条红。"
+    },
+    {
+      "name": "M8-secondClaimGuardDropped",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryFold.cs",
+      "line": 363,
+      "expect": "                        if (row.Owner != InventoryProjection.NoOwner)",
+      "replace": "                        if (false) // FALSIFY-M8:停用二次 claim 保护",
+      "expectRed": [
+        "test_secondClaim_raisesDuplicateClaim_andKeepsFirstOwner"
+      ],
+      "exactRed": true,
+      "_why": "「转移须走新序列，不是二次 claim」的守卫。后一次 claim 直接覆盖 owner ⇒ 该条红。"
+    },
+    {
+      "name": "M9-despawnOverflowGuardDropped",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryFold.cs",
+      "line": 390,
+      "expect": "                        if (p.Qty > row.Qty)",
+      "replace": "                        if (false) // FALSIFY-M9:停用越界判定",
+      "expectRed": [
+        "test_despawnMoreThanHeld_raisesInvalidQuantity_andKeepsRow"
+      ],
+      "exactRed": true,
+      "_why": "畸形输入（扣超持有）须被拒且不扣成负数。停用后 qty 变负 ⇒ 该条红。"
+    },
+    {
+      "name": "M10-r16GapSuppressed",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryFold.cs",
+      "line": 414,
+      "expect": "                        gaps.Add(Gap(InventoryFoldGapKind.StructurePlacementWithoutActor, e.Kind, at, 0L,",
+      "replace": "                        if (p.ModuleId < 0) gaps.Add(Gap(InventoryFoldGapKind.StructurePlacementWithoutActor, e.Kind, at, 0L, // FALSIFY-M10",
+      "expectRed": [
+        "test_r16_structurePlaced_raisesGapWithNoActor"
+      ],
+      "exactRed": true,
+      "_why": "R16 缺 actor 位的缺口登记。静默吞 ⇒ 建造扣料在无人知情的状态下错算。"
+    },
+    {
+      "name": "M11-r17GapSuppressed",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryFold.cs",
+      "line": 425,
+      "expect": "                        gaps.Add(Gap(InventoryFoldGapKind.StructureRemovalWithoutRefundIdentity, e.Kind, at, 0L,",
+      "replace": "                        if (p.ModuleId < 0) gaps.Add(Gap(InventoryFoldGapKind.StructureRemovalWithoutRefundIdentity, e.Kind, at, 0L, // FALSIFY-M11",
+      "expectRed": [
+        "test_r17_structureRemoved_raisesGapWithNoRefundIdentity"
+      ],
+      "exactRed": true,
+      "_why": "R17 返还物无身份位的缺口登记。静默吞 ⇒ 返还链路「看起来正常地少东西」。"
+    },
+    {
+      "name": "M12-harvestWithoutSpawnGapSuppressed",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryFold.cs",
+      "line": 466,
+      "expect": "                if (rows.ContainsKey(harvestIds[i])) continue;",
+      "replace": "                if (true) continue; // FALSIFY-M12:停用「有采集无出生」的 Dangling 判据",
+      "expectRed": [
+        "test_harvestWithoutSpawn_isDangling_notSilentlyDropped"
+      ],
+      "exactRed": true,
+      "_why": "今天 20 侧写者缺位时的真实形态（ResourceHarvested 有、DropSpawned 无）必须显性报缺口，否则「库存全空」看起来像正常。"
+    },
+    {
+      "name": "M13-nullDecoderFailOpen",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryFold.cs",
+      "line": 308,
+      "expect": "            if (decoder == null)",
+      "replace": "            if (false) // FALSIFY-M13:停用 fail-closed",
+      "expectRed": [
+        "test_nullDecoder_throwsInsteadOfReturningEmptyProjection"
+      ],
+      "exactRed": true,
+      "_why": "fail-closed 守卫：空解码器若静默返回空投影，「库存全空」会成为静默失败。"
+    },
+    {
+      "name": "M14-r18GapSuppressed",
+      "file": "unity/Assets/Sim/ItemDatabase/InventoryFold.cs",
+      "line": 450,
+      "expect": "                if (craftOutputIds.Contains(rowIds[i])) continue;",
+      "replace": "                if (craftOutputIds.Contains(rowIds[i])) continue; if (rowIds[i] > 0L) continue; // FALSIFY-M14:静默吞 R18",
+      "expectRed": [
+        "test_r18_instanceWithNoQualitySource_raisesGapButKeepsRow"
+      ],
+      "exactRed": true,
+      "_why": "R18「实例无品级来源」的缺口登记。静默吞 ⇒ 25/27/29/18 起货的实例品级丢失无人知。"
+    }
+  ]
+}

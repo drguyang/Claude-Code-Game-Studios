@@ -275,3 +275,17 @@ Logs/shots/
 # 窄 glob:只匹配 `*.falsify-backup` 与其 `.meta`,不碰任何源文件。
 *.falsify-backup
 *.falsify-backup.meta
+
+# 手写证伪脚本的**还原基线目录**(`tools/falsify/baseline-<件>/`)—— 生成物。
+# 立此规则缘由(2026-10-26 S20-10 用户裁定「baseline 目录不入库」):它是证伪轮
+# 「还原判据 = SHA-256 逐字节」的比对对象,**留盘有用、入仓无用** —— 入仓会让仓里
+# 长期堆与被测文件同内容的副本,且被测文件一改这些副本立刻过期(过期副本比没有更坏:
+# 它会让人误以为「基线还在」)。
+# 窄 glob:只匹配 `tools/falsify/` 下 `baseline-` 前缀的目录,不碰 spec / 驱动 / README。
+/tools/falsify/baseline-*/
+
+# 后台任务(job)的临时目录 —— harness 生成物,任务删除时自行清理。
+# 立此规则缘由(2026-10-26):内含一次性变异脚本与结果日志;正式判据是
+# `tools/falsify/specs/*.json` + 官方驱动,这些散件不是可复算入口。
+# 窄 glob:只匹配仓根 `.claude/jobs/`,不碰 `.claude/skills|docs|rules` 等作者态目录。
+/.claude/jobs/

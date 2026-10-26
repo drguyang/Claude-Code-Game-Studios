@@ -151,13 +151,13 @@ stories:
     name: "inventory-001 InventoryOf 世界流投影与清空重建等值"
     file: "production/epics/inventory-items/story-001-inventoryof-fold-rebuild.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: ""
-    completed: ""
-    note: "链路批3。前置 item-database-001/002 已 Complete ⇒ **不等 processing,可立即开工**。⚠️ 本件的 fold 口径错会向后传导到 003/004/005 ⇒ 收口时须把「对下游的契约承诺」写进 Completion Notes。"
+    completed: "2026-10-26"
+    note: "链路批3。前置 item-database-001/002 已 Complete ⇒ **不等 processing,可立即开工**。⚠️ 本件的 fold 口径错会向后传导到 003/004/005 ⇒ 收口时须把「对下游的契约承诺」写进 Completion Notes。**2026-10-26 实测**:前置核实揭出 R15/R16/R17/R18 四条载荷缺位(已登记 GDD §涟漪登记)⇒ AC-20-03 / AC-20-16 结构性不可勾。**✅ 已收口**:AC 2/4(AC-20-05 · AC-20-17)· 28/28 绿 · 官方证伪轮 14/14 恰如预期 · 对下游契约承诺 C-1…C-7 已写入 story §Completion Notes。"
   - id: "S20-11"
     name: "inventory-003 堆叠 / 容器 / 折重"
     file: "production/epics/inventory-items/story-003-stacking-container-weight-fold.md"
