@@ -13,10 +13,10 @@
 #    `production/sprint-status-sprint1{4,…,8,9}-archive.yaml`,不随本文件覆盖丢失。
 #    sprint-19 归档 SHA-256(前 16 位)= `5de6f5d3c6cc5154`(2026-10-25 规划轮归档)。
 #
-# 本文件 = sprint-20 活件(clinic 链尾 + A-2 机制起步 + 判别力债清偿)。
+# 本文件 = sprint-20 活件(clinic 链尾 + A-2 机制起步 + 判别力债清偿 + 采集链路解锁链)。
 
 sprint: 20
-goal: "交付路线图 §6.5 sprint-20 段四件本体(clinic-004/005 · foraging-001 · processing-001,AC 半边按挂标),同轮清偿判别力与测试卫生债族(五次假绿事故的病灶面)"
+goal: "交付路线图 §6.5 sprint-20 段四件本体(clinic-004/005 · foraging-001 · processing-001,AC 半边按挂标),同轮清偿判别力与测试卫生债族(五次假绿事故的病灶面);2026-10-26 追加「采集链路解锁链」8 件(见 §追加批)"
 start: "2026-10-25"
 end: ""
 generated: "2026-10-25"
@@ -113,5 +113,120 @@ stories:
     completed: ""
     note: "四裁变三裁:④ TD-audio-026 已随 2026-10-25 清债轮裁定(丙案「完全构造」+ 释放半边,债册结案块);剩 ① W6–W10 逐条 / ② QA 2 条 / ③ medcons 20 条整块策略 —— 留痕进债册"
 
+  # ══════════════════════════════════════════════════════════════════════════
+  # 追加批 · 2026-10-26 —— 采集链路解锁链(用户裁定「甲:按链路顺序做到底」)
+  #
+  # 立此批缘由:`foraging-006`(采集侧 novelty 接线)的真实前置 = 20 的三个 Drop* 写者,
+  # 而写者熔在 `inventory-005` 的统一事务模板里,该件又有 5 个未开工前置
+  # ⇒ 「修 novelty 静默失效」实际是一条 8 件、约 51h 的依赖链。
+  # 计划原件 = `production/sprints/sprint-21-candidate-collection-chain-plan.md`。
+  #
+  # ⚠️ **S20-4 与 S20-8 是同一件**(processing-001)—— 不重复计入件数。
+  # ⚠️ S20-14(inventory-005)与 S20-15(foraging-006)是链的终点;前 6 件未做完时
+  #    它们**可开工但不可收口**(AC 会挂 BLOCKED-BY,禁凑绿)。
+  # ══════════════════════════════════════════════════════════════════════════
+  - id: "S20-8"
+    name: "processing-002 F1 调用契约 + 模组输入"
+    file: "production/epics/processing/story-002-f1-call-contract-and-mod-inputs.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: ""
+    completed: ""
+    note: "链路批1。无未齐前置,可与 S20-4 并行。7 条 AC(本批最多)。"
+  - id: "S20-9"
+    name: "processing-004 单炉空闲判定(**只做空闲半**)"
+    file: "production/epics/processing/story-004-furnace-timing-and-no-process-state.md"
+    priority: must-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: "S20-4 + S20-8"
+    completed: ""
+    note: "链路批2。用户裁定:先做此件的空闲判定半,processing-003 的 Craft 载荷契约先行抄用。⚠️ 不得在本件改动 Craft 载荷形状(那是 003 的裁决面),契约不够用就停下问。"
+  - id: "S20-10"
+    name: "inventory-001 InventoryOf 世界流投影与清空重建等值"
+    file: "production/epics/inventory-items/story-001-inventoryof-fold-rebuild.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: ""
+    completed: ""
+    note: "链路批3。前置 item-database-001/002 已 Complete ⇒ **不等 processing,可立即开工**。⚠️ 本件的 fold 口径错会向后传导到 003/004/005 ⇒ 收口时须把「对下游的契约承诺」写进 Completion Notes。"
+  - id: "S20-11"
+    name: "inventory-003 堆叠 / 容器 / 折重"
+    file: "production/epics/inventory-items/story-003-stacking-container-weight-fold.md"
+    priority: must-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: "S20-10"
+    completed: ""
+    note: "链路批3。3 条 AC。"
+  - id: "S20-12"
+    name: "inventory-004 CanCarry / 载重裁决"
+    file: "production/epics/inventory-items/story-004-carryload-and-cap-adjudication.md"
+    priority: must-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: "S20-10 + S20-11"
+    completed: ""
+    note: "链路批3。6 条 AC。"
+  - id: "S20-13"
+    name: "processing-003 Craft 落流 + 点火事务"
+    file: "production/epics/processing/story-003-craft-payload-ignite-append.md"
+    priority: must-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: "S20-9"
+    completed: ""
+    note: "链路批4。4 条 AC。与 processing-004 互为前置,按用户裁定先做 004 的空闲半破解此锁。"
+  - id: "S20-14"
+    name: "inventory-005 统一事务模板 + **Drop* 三支写者**"
+    file: "production/epics/inventory-items/story-005-atomicity-consumption-recovery-no-ack.md"
+    priority: must-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: L
+    blocker: "S20-10 + S20-11 + S20-12 + S20-13"
+    completed: ""
+    note: "链路批5 · **本链的关键件**:Drop* 三支写者在此落地 ⇒ 解锁 foraging-003 的 AC-17-01。6 条 AC,事务模板含五种操作(拾取/放下/消耗/建造扣/返还)。⚠️ 写者与 `WriterExistenceGate.cs:152-154` 的豁免表**必须同批提交** —— 门有判据①「已写者不得豁免」,中间态必红(设计而非缺陷,承 CareApplied 2026-10-22 先例)。"
+  - id: "S20-15"
+    name: "foraging-006 采集侧 novelty 接线 + 编排器装配 + AC-17-01 解除挂起"
+    file: "production/epics/foraging/story-006-novelty-wiring-and-orchestrator-assembly.md"
+    priority: must-have
+    status: backlog
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: "S20-14"
+    completed: ""
+    note: "链路批6 · 链的终点。8 条 AC:AC-17-14/14b/14c/14d/14e/14f/14g(7 条,**不依赖 20 写者,可独立做绿**)+ AC-17-01(**须等 S20-14**)。novelty 求值移入编排器内部,`HarvestRequest.Novelty` 字段删除。⚠️ `Query` 有副作用(推进 lastSeenTick),须排在 Validate 之后;foraging-005 落地后须再往后挪(卡内已留将来点注记)。"
+  - id: "S20-16"
+    name: "foraging-003 三条世界流事件 + 主机铸造身份 + 恰一条 SkillGrown(补记)"
+    file: "production/epics/foraging/story-003-three-events-and-identity-mint.md"
+    priority: must-have
+    status: done
+    owner: ""
+    estimate_days: 0
+    complexity: M
+    blocker: ""
+    completed: "2026-10-26"
+    note: "**计划外插入件,收口后补记**(2026-10-26 完成时本文件无对应行)。commit `8bfb861`。AC 2/4 记绿(AC-17-05 / 05b);AC-17-01 不勾(BLOCKED-BY 20 写者,由 S20-14 解锁)· R11 半边。夹具 21 条,全量 5217/5182/0/35(基线 f3-full 5213/5178 ⇒ +4 == 新增用例)。sim_contracts_audit 证伪 13 条全红。评审原件 REVIEW 判 CHANGES REQUIRED —— 两条 BLOCKING(B-1 原子性自述为假 / B-2 事件序与 story 相反)均已修并经 M10/M11/M12/M13 独立变异证伪。⚠️ 交付性质 = 形状完备 + 自足夹具,**不是**可运行的采集链路(零生产调用点 / novelty 无生产者,后者即 S20-15 要修的)。"
+
 # 追加率预留:1 件(承 CAPACITY-MODEL §3.1;retro-19 行动项 2:规划期逐件附「将掀几债」预估,
 # 各 note 已含;入场即掀新债时先裁减 Should Have)
+#
+# ⚠️ 2026-10-26 追加批已**超出**该预留(8 件入账),须在下次 sprint 规划轮重估容量。
+#    依据 = `sprint-21-candidate-collection-chain-plan.md` §五 风险表第 4 行。

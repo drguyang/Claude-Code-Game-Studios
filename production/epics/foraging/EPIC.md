@@ -57,8 +57,13 @@ This epic is complete when:
 
 | # | Story | Type | Status | ADR |
 |---|-------|------|--------|-----|
-| 001 | 资源点与调参表装载 + 装载期硬失败 | Logic | Ready | ADR-014/006 |
-| 002 | 品级抽取管线 F-17-1(掷骰 + CDFWalk + QualityCap) | Logic | Ready | ADR-007/005/006 |
-| 003 | 三条世界流事件 + 主机铸造 + 恰好一条 SkillGrown | Integration | Ready | ADR-009/010/024 |
+| 001 | 资源点与调参表装载 + 装载期硬失败 | Logic | **Complete** | ADR-014/006 |
+| 002 | 品级抽取管线 F-17-1(掷骰 + CDFWalk + QualityCap) | Logic | **Complete** | ADR-007/005/006 |
+| 003 | 三条世界流事件 + 主机铸造 + 恰好一条 SkillGrown | Integration | **Complete**(AC 2/4;AC-17-01 / R11 挂 BLOCKED-BY 20) | ADR-009/010/024 |
 | 004 | 节点余量前缀函数 F-17-3 + 采前闸 | Logic | Ready | ADR-009/005 |
 | 005 | 动作原子性、失败收敛与呈现/浮点反射门 | Integration | Ready | ADR-011/018/006 |
+| 006 | 采集侧新颖度接线 + 编排器生产装配 + AC-17-01 解除挂起 | Integration | Ready | ADR-026/005/024 |
+
+> ⚠️ **006 的前置 = `inventory-items/story-005`(20 写者)**。该件未 Complete 时,
+> 006 的 AC-17-14 系列可独立完成并全绿,但 **AC-17-01 不得勾**。
+> 用户裁定(2026-10-26):先实现 20 写者,再接完整动作链。
