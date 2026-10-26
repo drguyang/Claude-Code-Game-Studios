@@ -1,5 +1,7 @@
 // 权威来源:design/gdd/item-database.md §Schema A(ItemDef 十三行字段表)
 //          · ADR-006 §Decision 一(weight / stack_max = int 计数,非 Fix —— D-21-17)
+//          · ADR-006 §Decision 二 D-21-13 收窄(载荷内枚举 = 版本化整数 ordinal,`ItemId` 点名)
+//            + ADR-014 §五 承接条 ①②③(覆盖集 / append-only 门 / `_ordinal_baseline.json`)
 //          · Story 002(类型落定;写入期校验套件 = Story 006/007;绑定 = Story 008)
 //
 // ⚠️ 授权载体硬规定(D-21-13):ItemDef 的唯一合法作者态 = assets/data/*.json 文本 ——
@@ -16,6 +18,17 @@ namespace DaYiJingCheng.Sim.Contracts
     /// <c>ItemDbValidation.FindStoredStackableKeys</c> 文档与 Story 002 报告。</para></summary>
     public struct ItemDef
     {
+        /// <summary>物品表 ordinal(`int ≥ 0`,表内唯一)——
+        /// 事件载荷里 <c>item_key</c> 的**唯一整数表示**(ADR-006 §Decision 二 D-21-13 收窄:
+        /// 「事件载荷内的枚举 = 版本化整数 ordinal」,`ItemId` 被点名)。
+        /// <para><b>不可变</b>:号永不重用、永不改义 —— 由
+        /// <c>assets/data/_ordinal_baseline.json</c> 的 append-only 构建门守
+        /// (ADR-014 §五 承接条 ③)。新增条目取**新号**,复用旧号 = 构建期硬失败
+        /// (否则旧存档把「麻黄汤」读成「桂枝汤」且不报错)。</para>
+        /// <para>⚠️ <b>2026-10-26 前本字段不存在</b>,ordinal 是 JSON 数组下标的**隐式契约**
+        /// (无字段、无门、靠行序稳定)—— 本批显式化,值取当时行序(语义零变更)。</para></summary>
+        public int Ordinal { get; set; }
+
         /// <summary>稳定标识(如 <c>willow_bark</c>);只增不删,废弃条目标 deprecated 不物理删除。</summary>
         public string BaseId { get; set; }
 

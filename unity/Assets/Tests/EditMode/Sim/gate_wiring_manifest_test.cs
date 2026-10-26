@@ -245,6 +245,11 @@ namespace DaYiJingCheng.Tests.Unit.Sim
             new ClassVerdict { ClassName = "MixerTopologyGates", Kind = WiringKind.Library,
                 Consumer = "Assets/Editor.Tools.Gates/MixerAssetGenerator.cs",
                 Note = "混音器生成器在生成后自查拓扑" },
+            new ClassVerdict { ClassName = "OrdinalBaselineGate", Kind = WiringKind.Library,
+                Consumer = "Assets/Editor.Tools.Bake/ItemDatabaseBaker.cs",
+                Note = "ADR-014 §五 承接条③ append-only 硬门(2026-10-26 立)。强制点 = " +
+                       "`RunOrdinalGates` 在 `BakeFromSourceText` 内无条件调 `ValidateTableOrdinals`" +
+                       "(段①),生产路径另调 `Validate`(段② 基线比对)⇒ 任一表改号/改义/复用即聚合 throw" },
             new ClassVerdict { ClassName = "RecipeValidationGates", Kind = WiringKind.Library,
                 Consumer = "Assets/Editor.Tools.Bake/ItemDatabaseBaker.cs" },
             new ClassVerdict { ClassName = "TextureBindingGates", Kind = WiringKind.Library,

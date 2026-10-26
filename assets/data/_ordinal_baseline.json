@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "_note": "ordinal 映射表的**冻结基线**(ADR-014 §五 D-21-13 承接条 ③ · adr-006:161-167)。本文件是 append-only 门的判据源:**条目的号永不重用、永不改义**。烘焙时逐条比对 —— 任何既有条目改义 / 改号 / 复用 ⇒ 构建期硬失败。⚠️ 本文件**只能追加**(新条目取新号);**修改既有行 = 构建失败**,不是「更新基线」。⚠️ 与 ConfigVersion 分工(不可互替):ConfigVersion 由 assets/data/ 内容哈希派生 ⇒ 负责「改动可追溯」;本文件的 append-only 断言负责「买断静默错读」(把「麻黄汤读成桂枝汤」换成明确构建失败)。⚠️ 本文件本身**不进** ConfigVersion 覆盖集 —— 它是判据,不是数据;进了会让「改基线」自动改版本号,从而掩盖改基线这件事。⚠️ 2026-10-26 立:此前本文件在全仓**不存在**(grep 只命中三份 ADR/GDD 的引用),即「有裁定、有承接条、无文件、无门」。本次按 adr-014 §五 补齐,并把 item_database 的隐式行序 ordinal 显式化后冻结于此。",
+  "registries": [
+    {
+      "id": "item_database",
+      "source": "assets/data/item_database_items.json",
+      "field": "ordinal",
+      "key_fields": ["base_id", "processing_state"],
+      "note": "21a 物品表。载荷侧消费方 = DropSpawned.item_key / ResourceHarvested(经 17 的 ItemKeyOrdinal) / ItemInstance.Key。2026-10-26 前 ordinal 是**隐式行序**(JSON 数组下标),无字段、无门;本批显式化为 ordinal 字段并冻结,值取当时的行序 0–8(**语义零变更** —— 既有 HarvestOrchestrator 夹具用 itemKeyOrdinal: 0 ⇒ willow_bark/raw,前后一致)。",
+      "entries": [
+        { "ordinal": 0, "base_id": "willow_bark", "processing_state": "raw" },
+        { "ordinal": 1, "base_id": "willow_bark", "processing_state": "dried" },
+        { "ordinal": 2, "base_id": "foxglove", "processing_state": "raw" },
+        { "ordinal": 3, "base_id": "cinchona_bark", "processing_state": "raw" },
+        { "ordinal": 4, "base_id": "yarrow", "processing_state": "raw" },
+        { "ordinal": 5, "base_id": "salicylic_acid", "processing_state": "extracted" },
+        { "ordinal": 6, "base_id": "iron_scalpel", "processing_state": "raw" },
+        { "ordinal": 7, "base_id": "wooden_splint", "processing_state": "raw" },
+        { "ordinal": 8, "base_id": "wooden_post", "processing_state": "raw" }
+      ]
+    }
+  ]
+}

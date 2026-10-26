@@ -21,7 +21,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <exception cref="InvalidDataException">头部损坏 / 版本不匹配 / 载荷长度不符 —— 启动期硬失败。</exception>
         public static ItemDataSet ReadItemDataSet(byte[] bytes)
         {
-            using (BinaryReader r = OpenChecked(bytes, out uint configVersion))
+            using (BinaryReader r = OpenChecked(bytes, ExpectedItemSchemaVersion, out uint configVersion))
             {
                 int count = r.ReadInt32();
                 if (count < 0)
@@ -39,7 +39,7 @@ namespace DaYiJingCheng.Gameplay.Presentation
         /// <exception cref="InvalidDataException">头部损坏 / 版本不匹配 / 载荷长度不符 —— 启动期硬失败。</exception>
         public static RecipeDataSet ReadRecipeDataSet(byte[] bytes)
         {
-            using (BinaryReader r = OpenChecked(bytes, out uint configVersion))
+            using (BinaryReader r = OpenChecked(bytes, ExpectedRecipeSchemaVersion, out uint configVersion))
             {
                 int count = r.ReadInt32();
                 if (count < 0)
@@ -76,7 +76,22 @@ namespace DaYiJingCheng.Gameplay.Presentation
 
         // ─── 头校验 ───
 
-        private static BinaryReader OpenChecked(byte[] bytes, out uint configVersion)
+        /// <summary><c>item_database_items.cooked.bytes</c> 的作者态 schema_version 期望值。
+        /// <para><b>per-product,不抬全局常量</b>(照 <see cref="DiseaseRegistryCookedCodec.ExpectedSchemaVersion"/>
+        /// 的既有先例):2026-10-26 给 <c>ItemDef</c> 加 <c>Ordinal</c>(ADR-006 D-21-13)是一次 schema 变更,
+        /// 但它只影响 <b>items</b> 这一份产物 —— 抬 <c>CookedFormat.SchemaVersion</c> 会连带要求全仓
+        /// 28 份 JSON 改版本 + 25 份产物重烘,而 <c>CookedFormat.SchemaVersion</c> 只是
+        /// 「未自带版本的产物恰好沿用的默认值」。</para>
+        /// <para>⚠️ 为什么**不**与 recipes 共用:recipes 的载荷布局本批**一字未改**,
+        /// 把它的版本号一起抬 = 对「recipe schema 变了」说一句假话。版本号按产物各自演化。</para></summary>
+        public const uint ExpectedItemSchemaVersion = 2u;
+
+        /// <summary><c>item_database_recipes.cooked.bytes</c>(含结算常量)的 schema_version 期望值。
+        /// <para>仍是 1 —— 2026-10-26 的 <c>Ordinal</c> 变更只落在 <see cref="ItemDef"/>,未触及 recipe 载荷。
+        /// 与 <see cref="ExpectedItemSchemaVersion"/> 分列即「按产物演化」的落地形态。</para></summary>
+        public const uint ExpectedRecipeSchemaVersion = 1u;
+
+        private static BinaryReader OpenChecked(byte[] bytes, uint requiredSchemaVersion, out uint configVersion)
         {
             if (bytes == null || bytes.Length < CookedFormat.HeaderSize)
                 throw new InvalidDataException(
@@ -95,9 +110,9 @@ namespace DaYiJingCheng.Gameplay.Presentation
                     $"[cooked] formatVersion = {formatVersion} > 读方支持的 {CookedFormat.FormatVersion} —— " +
                     "产物新于读方,启动期硬失败(E-13)");
 
-            if (schemaVersion != CookedFormat.SchemaVersion)
+            if (schemaVersion != requiredSchemaVersion)
                 throw new InvalidDataException(
-                    $"[cooked] schemaVersion = {schemaVersion},期望 {CookedFormat.SchemaVersion} —— " +
+                    $"[cooked] schemaVersion = {schemaVersion},期望 {requiredSchemaVersion} —— " +
                     "schema 不可读即致命(ADR-010 §七),启动期硬失败(E-13)");
 
             if (payloadLength != bytes.Length - CookedFormat.HeaderSize)
@@ -117,6 +132,8 @@ namespace DaYiJingCheng.Gameplay.Presentation
         {
             var def = new ItemDef
             {
+                // ⚠️ 首字段,严格镜像 CookedWriter.WriteItemDef(ADR-006 D-21-13)
+                Ordinal = r.ReadInt32(),
                 BaseId = ReadString(r),
                 ProcessingState = (ProcessingState)r.ReadInt32(),
                 DisplayName = ReadString(r),

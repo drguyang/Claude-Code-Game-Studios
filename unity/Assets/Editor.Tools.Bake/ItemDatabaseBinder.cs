@@ -58,10 +58,10 @@ namespace DaYiJingCheng.EditorTools.Bake
         private static readonly string[] TopItemsKeys = { "schema_version", "_note", "items", "known_injury_ids" };
         private static readonly string[] TopRecipesKeys = { "schema_version", "_note", "recipes" };
         private static readonly string[] ItemRecordKeys =
-            { "base_id", "processing_state", "display_name", "category", "stack_max", "weight", "deprecated", "legal_transitions",
+            { "ordinal", "base_id", "processing_state", "display_name", "category", "stack_max", "weight", "deprecated", "legal_transitions",
               "drug_profile", "gather_profile", "tcm_profile", "inflicts_injury" };
         private static readonly string[] ItemRequiredKeys =
-            { "base_id", "processing_state", "display_name", "category", "stack_max", "weight", "deprecated", "legal_transitions" };
+            { "ordinal", "base_id", "processing_state", "display_name", "category", "stack_max", "weight", "deprecated", "legal_transitions" };
         private static readonly string[] DrugProfileKeys =
             { "indications", "contraindications", "dose_range", "drug_potency", "onset", "peak", "half_life", "elimination",
               "quality_axis", "axis_offset_by_quality", "drug_quality_character" };
@@ -90,7 +90,12 @@ namespace DaYiJingCheng.EditorTools.Bake
 
         // ══════════ 顶层与 schema_version ══════════
 
-        private static void CheckSchemaAndUnknownTop(JsonNode root, string[] allowed, string fileLabel, BindPackage pkg)
+        /// <summary>schema_version 校验 + 顶层未知键白名单。
+        /// <para><b>per-file 期望值</b>(<paramref name="expectedSchemaVersion"/>):2026-10-26 起
+        /// items 为 2(<c>ItemDef.Ordinal</c>),recipes / constants 仍为 1 —— 与读方
+        /// <c>CookedCodec.ExpectedItemSchemaVersion / ExpectedRecipeSchemaVersion</c> 同源。</para></summary>
+        private static void CheckSchemaAndUnknownTop(
+            JsonNode root, string[] allowed, string fileLabel, BindPackage pkg, uint expectedSchemaVersion)
         {
             if (!root.TryGet("schema_version", out JsonNode sv))
             {
@@ -100,9 +105,9 @@ namespace DaYiJingCheng.EditorTools.Bake
             {
                 pkg.Errors.Add($"{fileLabel}:schema_version 须为 JSON 整数 token —— schema 不可读即烘焙硬失败(ADR-010 §七)");
             }
-            else if ((ulong)sv.Int != CookedFormat.SchemaVersion)
+            else if ((ulong)sv.Int != expectedSchemaVersion)
             {
-                pkg.Errors.Add($"{fileLabel}:schema_version = {sv.Int},期望 {CookedFormat.SchemaVersion} —— " +
+                pkg.Errors.Add($"{fileLabel}:schema_version = {sv.Int},期望 {expectedSchemaVersion} —— " +
                                "schema 不可读/不匹配即烘焙硬失败(ADR-010 §七 · ADR-014 §三)");
             }
 
@@ -137,7 +142,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         private static void BindConstants(JsonNode root, BindPackage pkg)
         {
             const string fileLabel = "item_database_constants.json";
-            CheckSchemaAndUnknownTop(root, ConstantsKeys, fileLabel, pkg);
+            // constants 仍为 1 —— 结算常量表本批未改。
+            CheckSchemaAndUnknownTop(root, ConstantsKeys, fileLabel, pkg,
+                DaYiJingCheng.Gameplay.Presentation.CookedCodec.ExpectedRecipeSchemaVersion);
             AddMissingRequired(root, ConstantsRequiredKeys, fileLabel, pkg);
 
             Fix? qmMin = BindRequiredFix(root, "qty_mult_min", fileLabel, pkg);
@@ -204,7 +211,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         private static void BindItems(JsonNode root, BindPackage pkg)
         {
             const string fileLabel = "item_database_items.json";
-            CheckSchemaAndUnknownTop(root, TopItemsKeys, fileLabel, pkg);
+            // items 自 2026-10-26 起为 2(ItemDef.Ordinal,ADR-006 D-21-13);与读方同源。
+            CheckSchemaAndUnknownTop(root, TopItemsKeys, fileLabel, pkg,
+                DaYiJingCheng.Gameplay.Presentation.CookedCodec.ExpectedItemSchemaVersion);
 
             if (root.TryGet("known_injury_ids", out JsonNode kid))
             {
@@ -243,6 +252,29 @@ namespace DaYiJingCheng.EditorTools.Bake
             AddMissingRequired(rec, ItemRequiredKeys, label, pkg);
 
             var def = new ItemDef();
+
+            // ordinal:必填、JSON 整数 token、≥ 0(ADR-006 D-21-13 / ADR-014 §五 承接条③)。
+            // 唯一性与 append-only 交 ValidateOrdinals(baker 层,需全表视角 + 基线文件)。
+            if (rec.TryGet("ordinal", out JsonNode ord))
+            {
+                if (ord.Kind == JsonNodeKind.Integer)
+                {
+                    if (ord.Int < 0 || ord.Int > int.MaxValue)
+                        pkg.Errors.Add($"{label}:\"ordinal\" 须 ∈ [0, int.MaxValue] —— 实际 {ord.RawText}" +
+                                       "(事件载荷内的 item_key 是 int 位宽)");
+                    else
+                        def.Ordinal = (int)ord.Int;
+                }
+                else if (ord.Kind == JsonNodeKind.String)
+                {
+                    pkg.Errors.Add($"{label}:ordinal 以字符串编码(token=\"{(ord.Str ?? "").Substring(0, Math.Min(20, (ord.Str ?? "").Length))}…\") —— " +
+                                   "须为 JSON 整数 token(ordinal 是计数不是定点,不走 FixParse)");
+                }
+                else
+                {
+                    pkg.Errors.Add($"{label}:\"ordinal\" 须为 JSON 整数 token");
+                }
+            }
 
             if (rec.TryGet("base_id", out JsonNode baseId) && baseId.Kind == JsonNodeKind.String)
                 def.BaseId = baseId.Str;
@@ -509,7 +541,9 @@ namespace DaYiJingCheng.EditorTools.Bake
         private static void BindRecipes(JsonNode root, BindPackage pkg)
         {
             const string fileLabel = "item_database_recipes.json";
-            CheckSchemaAndUnknownTop(root, TopRecipesKeys, fileLabel, pkg);
+            // recipes 仍为 1 —— 2026-10-26 的 Ordinal 变更未触及 recipe 载荷。
+            CheckSchemaAndUnknownTop(root, TopRecipesKeys, fileLabel, pkg,
+                DaYiJingCheng.Gameplay.Presentation.CookedCodec.ExpectedRecipeSchemaVersion);
 
             if (!root.TryGet("recipes", out JsonNode arr) || arr.Kind != JsonNodeKind.Array)
             {

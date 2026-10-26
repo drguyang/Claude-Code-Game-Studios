@@ -139,6 +139,9 @@ namespace DaYiJingCheng.EditorTools.Bake
 
         private static void WriteItemDef(BinaryWriter w, ItemDef def)
         {
+            // ⚠️ ordinal 必须排在最前(ADR-006 D-21-13 / ADR-014 §五 承接条③):
+            //    读方 CookedCodec.ReadItemDef 严格镜像本顺序;错位 = 全部字段静默读错。
+            w.Write(def.Ordinal);
             WriteString(w, def.BaseId);
             w.Write((int)def.ProcessingState);
             WriteString(w, def.DisplayName);

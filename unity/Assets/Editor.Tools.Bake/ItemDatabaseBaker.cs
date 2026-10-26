@@ -77,10 +77,16 @@ namespace DaYiJingCheng.EditorTools.Bake
 
         /// <summary>从三段源文本烘焙(测试可对任意文本注入,如负向夹具)。
         /// <para><paramref name="mapsToInjury"/> = 25 侧 maps_to_injury 并集注入点(系统 25 未建 ⇒ 生产路径传 null,
-        /// 注入时才执行 AC-25b 集合漂移门)。</para></summary>
+        /// 注入时才执行 AC-25b 集合漂移门)。</para>
+        /// <para><paramref name="baseline"/> = <c>_ordinal_baseline.json</c> 的解析结果。
+        /// <b>null ⇒ append-only 比对(段②)不跑,但表自洽(段①)照跑</b> —— 夹具注入路径无基线可用,
+        /// 仍须过「号/键各自唯一、号非负」这一半。生产路径(<see cref="BakeFromRepo"/>)恒给非 null。</para>
+        /// </summary>
         /// <exception cref="BakeValidationException">词法 / 绑定 / 任一门失败(聚合)。</exception>
         public static BakeResult BakeFromSourceText(
-            string itemsJson, string recipesJson, string constantsJson, ISet<string> mapsToInjury = null)
+            string itemsJson, string recipesJson, string constantsJson,
+            ISet<string> mapsToInjury = null,
+            OrdinalBaselineRegistry baseline = null)
         {
             // ── 阶段1:词法(JsonTextReader 仅词法;错误即抛,不再绑定)──
             var errors = new List<string>();
@@ -100,6 +106,9 @@ namespace DaYiJingCheng.EditorTools.Bake
 
             // ── 全部门(绑定零错误才跑 —— 防残缺记录制造噪声)──
             RunGates(pkg, pkg.Errors, mapsToInjury);
+            // ordinal 表自洽(段①)+ append-only(段②)。段② 只在给了基线时跑 —— 夹具注入
+            // 无基线可用,但**表自洽**那半仍然要跑(见 OrdinalBaselineGate 头注「两半,不合并」)。
+            RunOrdinalGates(pkg, pkg.Errors, baseline);
             if (pkg.Errors.Count > 0)
                 throw new BakeValidationException(pkg.Errors);
 
@@ -114,9 +123,14 @@ namespace DaYiJingCheng.EditorTools.Bake
             for (int i = 0; i < pkg.Recipes.Count; i++)
                 recipes[i] = pkg.Recipes[i].Rec;
 
-            byte[] itemsCooked = CookedWriter.WriteItems(defs, CookedFormat.SchemaVersion, configVersion);
+            // ⚠️ schema_version 按产物各取(per-product):items 自 2026-10-26 起为 2
+            //    (ItemDef.Ordinal),recipes / constants 仍为 1。与读方 CookedCodec 同源 ——
+            //    写端用全局常量会烘出读方拒收的产物(2026-10-26 前置修:此前两者都挂 CookedFormat.SchemaVersion=1)。
+            byte[] itemsCooked = CookedWriter.WriteItems(
+                defs, DaYiJingCheng.Gameplay.Presentation.CookedCodec.ExpectedItemSchemaVersion, configVersion);
             byte[] recipesCooked = CookedWriter.WriteRecipes(
-                recipes, pkg.Constants.Constants, CookedFormat.SchemaVersion, configVersion);
+                recipes, pkg.Constants.Constants,
+                DaYiJingCheng.Gameplay.Presentation.CookedCodec.ExpectedRecipeSchemaVersion, configVersion);
 
             return new BakeResult(itemsCooked, recipesCooked, configVersion);
         }
@@ -131,8 +145,25 @@ namespace DaYiJingCheng.EditorTools.Bake
             string itemsJson = File.ReadAllText(Path.Combine(dataDir, ItemsFileName), Encoding.UTF8);
             string recipesJson = File.ReadAllText(Path.Combine(dataDir, RecipesFileName), Encoding.UTF8);
             string constantsJson = File.ReadAllText(Path.Combine(dataDir, ConstantsFileName), Encoding.UTF8);
-            return BakeFromSourceText(itemsJson, recipesJson, constantsJson);
+
+            // 生产路径**恒**读基线:缺文件 / 形状坏 ⇒ 硬失败(见 OrdinalBaselineReader.ReadFromRepo
+            // 的「缺失即硬失败」)。「文件不在 ⇒ 门静默不跑」正是 ADR-014 承接条③ 要消灭的形态。
+            var baselineErrors = new List<string>();
+            List<OrdinalBaselineRegistry> registries =
+                OrdinalBaselineReader.ReadFromRepo(repoRoot, baselineErrors);
+            OrdinalBaselineRegistry baseline = OrdinalBaselineReader.Find(registries, BaselineRegistryId);
+            if (baseline == null && baselineErrors.Count == 0)
+                baselineErrors.Add(
+                    $"{OrdinalBaselineReader.FileName}:找不到注册表 \"{BaselineRegistryId}\" —— " +
+                    "生产路径必须有本表的基线条目,否则 append-only 门无从比对");
+            if (baselineErrors.Count > 0)
+                throw new BakeValidationException(baselineErrors);
+
+            return BakeFromSourceText(itemsJson, recipesJson, constantsJson, null, baseline);
         }
+
+        /// <summary>本表在 <c>_ordinal_baseline.json</c> 里的注册表 id。</summary>
+        public const string BaselineRegistryId = "item_database";
 
         /// <summary>ConfigVersion 哈希的命名源(键 = 固定文件名,与磁盘发现一致)。
         /// <para>公开:测试套件 data_pipeline_bake_test 须以同名源独立复算 DeriveConfigVersion 对拍。</para>
@@ -264,6 +295,64 @@ namespace DaYiJingCheng.EditorTools.Bake
             if (mapsToInjury != null)
                 AddAll(errors, ItemValidationGates.ValidateInjurySetSuperset(inflictsUnion, mapsToInjury, "items"));
         }
+
+        // ══════════ ordinal 门(段① 表自洽 + 段② append-only;ADR-014 §五 承接条③)══════════
+
+        /// <summary>ordinal 两道段。<b>段① 恒跑,段② 仅当 <paramref name="baseline"/> 非 null。</b>
+        /// <para>键的拼法必须与基线读入时**同一函数**(<see cref="OrdinalBaselineReader.JoinKey"/>),
+        /// 否则两边都拼错却彼此一致 —— 那会让本门对「改 base_id」失明。</para>
+        /// </summary>
+        private static void RunOrdinalGates(
+            BindPackage pkg, List<string> errors, OrdinalBaselineRegistry baseline)
+        {
+            var current = new List<OrdinalBaselineGate.Entry>(pkg.Items.Count);
+            for (int i = 0; i < pkg.Items.Count; i++)
+            {
+                ItemDef def = pkg.Items[i].Def;
+                BoundItem bi = pkg.Items[i];
+
+                // 复合主键的段序必须与基线 `key_fields` 逐字一致(item_database = base_id, processing_state)。
+                // 取基线声明的 field 名做**当前表**的拼装,使「基线改字段序」不会静默失效 ——
+                // 改字段序会让拼出的键两边同时变、比对仍过,但那属于基线的越权修订(应改数据不是改基线)。
+                IReadOnlyList<string> keyFields = baseline?.KeyFields ?? DefaultKeyFields;
+                var parts = new List<string>(keyFields.Count);
+                for (int k = 0; k < keyFields.Count; k++)
+                {
+                    string f = keyFields[k];
+                    if (string.Equals(f, "base_id", StringComparison.Ordinal))
+                        parts.Add(def.BaseId ?? string.Empty);
+                    else if (string.Equals(f, "processing_state", StringComparison.Ordinal))
+                        // ⚠️ 用**作者态原样拼写**(`raw`)而不是 `ProcessingState.ToString()` 的
+                        //    PascalCase(`Raw`)—— 基线是 JSON,两边必须同一拼法。2026-10-26 首次
+                        //    跑本门时就撞在这上面:9 条全体「改义」假红。这不是 cosmetic:
+                        //    若改用 ToString(),`_ordinal_baseline.json` 里写 `raw` 的条目会
+                        //    永远对不上,维护者只能被迫把基线改成 PascalCase —— 而基线是**判据**,
+                        //    让它迁就实现方向就反了。
+                        parts.Add(bi.RawState ?? string.Empty);
+                    else
+                    {
+                        errors.Add($"[ordinal:item_database] 基线 key_fields 含本表无对应取值的字段 \"{f}\" " +
+                                   "—— 本表只能拼 base_id / processing_state(见 _ordinal_baseline.json)");
+                        parts.Add(string.Empty);
+                    }
+                }
+
+                current.Add(new OrdinalBaselineGate.Entry(
+                    def.Ordinal, OrdinalBaselineReader.JoinKey(parts)));
+            }
+
+            // 段①:表自洽(恒跑)
+            AddAll(errors, OrdinalBaselineGate.ValidateTableOrdinals(current, BaselineRegistryId));
+
+            // 段②:对基线 append-only(有基线才跑;段① 已红时 Validate 会自行短路)
+            if (baseline != null)
+                AddAll(errors, OrdinalBaselineGate.Validate(
+                    baseline.Entries, current, BaselineRegistryId));
+        }
+
+        /// <summary>无基线时(夹具注入)的默认拼键字段 —— 与 <c>_ordinal_baseline.json</c> 的
+        /// <c>key_fields</c> 一致。**不是**第二真源:基线条目存在时以基线声明为准。</summary>
+        private static readonly string[] DefaultKeyFields = { "base_id", "processing_state" };
 
         private static void AddAll(List<string> errors, IReadOnlyList<string> more)
         {

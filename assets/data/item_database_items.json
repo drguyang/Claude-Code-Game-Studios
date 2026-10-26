@@ -1,8 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "_note": "Story 008 占位种子 —— 本表数值 = 夹具值,不是游戏平衡值(数值归用户轮)。唯一合法作者态 = 本文件(assets/data/*.json 明文;D-21-13 禁 .asset/SO 承载)。stackable 为派生只读,显式写入即拒(AC-21a-59)。weight/stack_max = int 计数非 Fix(D-21-17)。两阶段烘焙 → *.cooked → IDataProvider。【2026-10-26 S20-3 前置补行(用户裁定「先补前置」)】P0 品种闭集 AC-17-01b 要求四品种 = {柳树皮, 毛地黄, 金鸡纳树皮, 止血草}(design/gdd/foraging.md 规则一 :126),原表只有柳树皮 ⇒ 补后三者各一条 raw 行。⚠️ 两处待核,均非本行可自决:① ecosystem 取值 —— 17 写 temperate_forest,而 6 的四生态区(租界城镇/贫民窟/战乱前线/深山疫区,:37)没有英文 id,全库唯一 ecosystem 值即此;新行沿用同值以免造第二套词,但该值本身待 6 侧定名。② parts[] / qty_per_node / quality_character 是 21a 侧数据,17 GDD 只给品种名与「止血草 = 蓍草类」(:126),未给部位与采量 ⇒ 按植物学语义填夹具值,数值归用户轮;quality_character 五档按 D-21-16 逐档非空,词集照 willow_bark 的采前属性口径,过 OQ-17-9 语义筛(零「陈放/虫蛀」类采后词)。",
   "items": [
     {
+      "ordinal": 0,
       "base_id": "willow_bark",
       "processing_state": "raw",
       "display_name": "柳树皮(生)",
@@ -22,6 +23,7 @@
       "inflicts_injury": null
     },
     {
+      "ordinal": 1,
       "base_id": "willow_bark",
       "processing_state": "dried",
       "display_name": "柳树皮(干)",
@@ -36,6 +38,7 @@
       "inflicts_injury": null
     },
     {
+      "ordinal": 2,
       "base_id": "foxglove",
       "processing_state": "raw",
       "display_name": "毛地黄(生)",
@@ -55,6 +58,7 @@
       "inflicts_injury": null
     },
     {
+      "ordinal": 3,
       "base_id": "cinchona_bark",
       "processing_state": "raw",
       "display_name": "金鸡纳树皮(生)",
@@ -74,6 +78,7 @@
       "inflicts_injury": null
     },
     {
+      "ordinal": 4,
       "base_id": "yarrow",
       "processing_state": "raw",
       "display_name": "止血草(生)",
@@ -93,6 +98,7 @@
       "inflicts_injury": null
     },
     {
+      "ordinal": 5,
       "base_id": "salicylic_acid",
       "processing_state": "extracted",
       "display_name": "水杨酸(粗提)",
@@ -119,6 +125,7 @@
       "inflicts_injury": null
     },
     {
+      "ordinal": 6,
       "base_id": "iron_scalpel",
       "processing_state": "raw",
       "display_name": "铁制手术刀",
@@ -133,6 +140,7 @@
       "inflicts_injury": ["cut_wound"]
     },
     {
+      "ordinal": 7,
       "base_id": "wooden_splint",
       "processing_state": "raw",
       "display_name": "木夹板",
@@ -147,6 +155,7 @@
       "inflicts_injury": null
     },
     {
+      "ordinal": 8,
       "base_id": "wooden_post",
       "processing_state": "raw",
       "display_name": "木柱",
