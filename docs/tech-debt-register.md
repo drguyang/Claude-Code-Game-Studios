@@ -335,6 +335,7 @@
 | `TD-processing-04` | `processing` | open | **N** | R4 |
 | `TD-processing-05` | `processing` | open | **N** | R4 |
 | `TD-processing-06` | `processing` | open | **N** | R4 |
+| `TD-processing-07` | `processing` | open | **Y** | R1 |
 | `TD-prescription-04` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-023` | `audio-system` | closed | **Y** | R1 |
 | `TD-audio-024` | `audio-system` | closed | **Y** | R1 |
@@ -515,6 +516,23 @@ PYEVAL
 > `<!-- TD-COUNT:BEGIN -->`…`END` 区间。**上面那些划线标题不删**,它们记录的是
 > 「第 N 订当时手抄了什么」——那是历史,不是当前值。
 > ⚠️ **判当前值只认 `TD-COUNT` 区间**,不认任何标题行。
+>
+> 🔁 **四十二订(`TD-processing-07` 立债 · AC-18-15 的 `Seq` 发号维 · 2026-10-27 · 债面)** ——
+> 变化 = **`条目 123 → 124`**(+1)· **`open 74 → 75`**(+1)· **`Y 99 → 100`**(+1)·
+> **`未闭 P0 面 61 → 62`**(+1)· **`epic 分布 7/31 → 8/31`**(+1)。
+> 单一变化源:`TD-processing-07` 入表,`P0 面` = **`Y`(R1)** —— 归属 `processing` ∈ 31 个 P0 epic
+> 且正文未自陈「不阻塞 P0 出口」。**用户 2026-10-27 裁定走 R1 机械默认,而非与 `-01…-06` 同判 `N`。**
+> ⚠️ **本订是自三十七订以来第一处「`epic 分布` 也动了」的订** —— 前几订要么只动条目数(三十九订 +6 全 `N`),
+> 要么只动文本(四十 / 四十一订)。**`processing` 自此首次进入 M3 出口分布**;
+> 该 epic 名下「未闭 TD 的 P0 面 = 0」这条合取**从此不可能成立**,直到本条闭合。这是裁定的**后果**,
+> 不是副作用,已写进条目正文末的 NOTE。
+> ⚠️ **`-01…-06` 的 `P0 面 = N` 判据一位未动** —— 同 epic 内出现「1 条 `Y` + 6 条 `N`」是**正确的形状**:
+> 六条缺的是判据面强度 / 测试载体,本条缺的是**判据本身还不存在**。两者的 `R` 判据不同源,不构成不一致。
+> ⚠️ **本条最值钱的部分不是「桌面轮没扫」,是「照着原文写夹具必然恒真」** —— 发号按 `(Tick, Patient)` 组复位,
+> 而 `Craft` 的 `Patient = None`;「每 tick 单 `Craft`」⇒ 每条都是新组 ⇒ `Seq` 恒 0 ⇒ 断言数学上恒真。
+> 详见条目正文「为何不是『补个夹具』就完」行。**这一层是立债时新查出的,不在债册原有两行字的登记范围内。**
+> **复算**:`python3 tools/debtcount/debtcount.py --print`(实得 124 / 62 / 8)。
+>
 > 🔁 **四十一订(§五 输出块改脚本直生成 · 2026-10-27 · 机制面)** ——
 > **数字一位不动**:`条目 123` · `未闭 P0 面 61` · `epic 分布 7/31` 全部保持。
 > 变化 = **机制**:§五 的输出块从**手抄**改为 **`tools/debtcount/debtcount.py` 直生成**
@@ -776,12 +794,12 @@ PYEVAL
 
 <!-- TD-COUNT:BEGIN -->
 ```text
-条目 123 | 状态 {'open': 74, 'partial': 5, 'closed': 43, '**done**(2026-10-21)': 1} | P0 面 {'Y': 99, 'N': 23, '~~**Y**~~': 1}
-未闭 P0 面 = 61 （已闭但曾标 P0 面的 38 条不计）
-M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 61 条,分布在 7/31 个 epic
+条目 124 | 状态 {'open': 75, 'partial': 5, 'closed': 43, '**done**(2026-10-21)': 1} | P0 面 {'Y': 100, 'N': 23, '~~**Y**~~': 1}
+未闭 P0 面 = 62 （已闭但曾标 P0 面的 38 条不计）
+M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」）⇒ 假 —— 62 条,分布在 8/31 个 epic
     medical-consequences: 20  audio-system: 17          clinic-machine: 15
     telemetry-analytics: 5    disease-simulation: 2     patient-ai: 1
-    skeuomorphic-ui: 1
+    processing: 1             skeuomorphic-ui: 1
 ```
 <!-- TD-COUNT:END -->
 
@@ -830,6 +848,10 @@ M3 Exit 第二条合取（31 个 epic,每个名下「未闭 TD 的 P0 面 = 0」
 | 逐字节还原 | 变异前 / 还原后 **`683c6ad3…4154c`** 完全相同 |
 | 变异残留 | `TD-processing-01` 索引行 = `**N**`(非 `Y`);哨兵 4 处完整;索引行 = **123** |
 | 还原后 `--check` | **退出码 0**(「与索引块一致」) |
+
+> ⚠️ **上表「索引行 = 123」是四十一订当时的实测值,当前为 124**(四十二订 +1)。
+> **本表是历史记录,不追改** —— 它证的是「变异轮还原干净」,那个事实不随索引增长而变。
+> 若日后要重跑变异轮,须以**当下**行数为准(复算:`python3 tools/debtcount/debtcount.py --print`)。
 
 > ⚠️ **一处自查修正(如实登记)**:首版 `fatal()` 用的是 `raise SystemExit("字符串")` ——
 > Python 对**非整数参数取退出码 1**,于是 M-DC3(结构损坏)与 M-DC1(块过期)**撞码**,
@@ -4314,6 +4336,30 @@ S20-9(`processing` story-004 执行时序)已于 2026-10-26 转 `Complete`,
 > 但六条**各自正文自陈 P0 面 = N 并给出实质理由**(逐条见上表「为何 P0 面 = N」行)。
 > **共同形态**:story 已 `Complete`、AC 已勾,缺的是**判据面强度**或**测试载体**,不是产品行为。
 > **不改变 `未闭 P0 面`**。
+>
+> 🔁 **2026-10-27 四十二订追加 `TD-processing-07`,且它的 P0 面 = `Y`(R1)** ——
+> 与上表六条**不同判**,理由见该条正文。**⚠️ 本表末的「六条同判」只对 `-01…-06` 成立,
+> 不得读成七条。** 数字变化:`未闭 P0 面 61 → 62` · `epic 分布 7/31 → 8/31`
+> (`processing` **首次**进 M3 出口分布)。
+
+### TD-processing-07 — AC-18-15 的 `Seq` 发号维:桌面轮零覆盖,且**按现夹具限定构造出来必然恒真**
+
+| 侧 | 内容 |
+|---|---|
+| **债描述** | ① **覆盖缺口**:AC-18-15 原文自陈「`Seq` 发号的跨平台逐位性同属 ADR-012 实测面」,而 `production/qa/evidence/c4-il2cpp-matrix-2026-10-21.md` 的桌面轮**完全不碰发号器** —— 它跑的是 `RecipeSettlementSolver.Solve` 与三个**编码器**样本,不经 `EventStream.Append`。② **更硬的缺口**:按 AC 原文的夹具限定(**每 tick 单 `Craft`**)构造跨平台夹具,`Seq` 断言**必然恒真** ⇒ 那是一条假绿夹具(见「为何不是补个夹具就完」) |
+| **实测(逐条可跑)** | ① `grep -c "ItemInstanceId\|\.Next()\|Seq" unity/Assets/Tests/PlayMode/determinism_golden_crossplatform_test.cs` → **各 0**;`grep -c "EventStream"` 同文件 → **0**。<br>② 三处字节样本测的是编码器、非发号器:`:200-201` `SimEventCodec.Encode(new SimEvent(100L, new PatientId(7), **5L**, EventKind.Craft, …))` —— `Seq` 是**手写常量 5**,`golden-v1.txt` 的 `B03_sim_event_header_bytes` 只钉「编码器输出稳定」,与「发号器发得对」无关。<br>③ 发号实现在**门 A 内**且是真生产码:`unity/Assets/Sim/EventStream.cs:228-254`(纯 `long`,零引擎 API)⇒ **没有任何技术理由挡住跨平台对拍**,挡住它的只是「没人写」。<br>④ Mono 侧有测试、跨平台侧没有:`unity/Assets/Tests/EditMode/DiseaseSimulation/event_stream_test.cs` 15 条(含 `test_seq_resetsEachTick` / `test_ac16_seqResets_onPatientSwitch_sameTick`),但那是**同进程自洽**,与 AC-5-07 / AC-17-02 的 `_monoSideOnly` 同型 |
+| **为何 P0 面 = Y**(R1) | 归属 `processing` ∈ 31 个 P0 epic,**且本条不自陈「不阻塞 P0 出口」**。与 `-01…-06` 的关键差别在**性质**而非严重度:那六条缺的是「判据面强度」,本条缺的是**判据本身还不存在** —— AC-18-15 因此至今 `EXTERNAL` 不勾,而它是 processing epic 名下的 **BLOCKING-adjacent** 验收项。用户 2026-10-27 裁定走 R1 机械默认(而非 R4),理由:**本条在 epic 名下有独立验收归属,不适用「跨 epic 治理」的降级口径** |
+| **为何不是「补个夹具」就完**<br>(本条的真正难点) | `EventStream.cs:228-237` 的发号是**按 `(Tick, Patient)` 组复位 + 递增**:同组 ⇒ `++`,异组 ⇒ 归 0。而 `Craft` 的 `Patient = PatientId.None`(-1 哨兵,story-003 `:18`)。<br>⇒ **若「每 tick 单 `Craft`」(AC 原文的夹具限定),则每条 `Craft` 都落进新的 `(Tick, Patient)` 组 ⇒ `_currentSeq` 每次复位 ⇒ `Seq` 恒为 `0`**。此时断言「三格 `Seq` 逐位相同」**数学上恒真**,判别力为零。<br>⇒ 要让断言的判别力为零改成非零,夹具**必须**含**同 tick 同 `Patient` 的多条事件**。唯一合法的构造方式 = AC-18-23 已允许的「**同 tick 两玩家各点火**」(两条 `Craft` 均 `Patient=None` ⇒ 得 `Seq` 0 与 1),即**必须同时放松 AC-18-15 的「单 `Craft`」限定并说明放松依据**。<br>⚠️ 这是**判据设计层面的发现**,不是现网缺陷;写在此是为了防止下一个人「照着原文写一条绿夹具交差」—— 那正是本项目抓过五次的假绿形态 |
+| **修法方向** | ① 夹具侧:在跨平台对拍集里新增一个**含同 tick 两条 `Craft`** 的场景(两个 `actor_id`,同 `Patient=None`),断言两平台的 `Seq` 序列逐位相同 **且不全为 0**(后者是**判别力正控** —— 缺它则本夹具退化为恒真);② AC 措辞侧:AC-18-15 的「夹具限定每 tick 单 `Craft`」须与之调和 —— 单 `Craft` 限制的是**三出参维**(F1 是逐次纯函数),不是 `Seq` 维;两维对夹具的要求**不同**,现原文把它们压在一个限定里;③ 金标准侧:`golden-v1.txt` 是 21a 的 19 条,**不含任何发号场景** ⇒ 新场景要么并入 `golden-v2`,要么另立 18 侧金标准(须走 ADR-012 裁决③ 的「全体平台同时重签」) |
+| **触发条件** | ADR-012 三格矩阵落地时(与 AC-18-15 本体同批);或任何一轮真的开始做跨平台对拍 |
+
+| `TD` | 归属 epic | 状态 | P0 面 | 判据 |
+|---|---|---|---|---|
+| **TD-processing-07** | `processing` | **open** | **Y** | R1 |
+
+> **`P0 面 = Y`(R1)** —— 归属 `processing` ∈ 31 个 P0 epic,正文**未**自陈「不阻塞 P0 出口」。
+> ⚠️ **本条的 `Y` 使 `processing` 首次进入 M3 出口分布**,即「该 epic 名下 TD 的 P0 面 = 0」这条合取
+> 从此**不可能**在 `processing` 上成立,直到本条闭合。这是用户 2026-10-27 明示裁定的后果,不是副作用。
 
 ### 七、L7(W8)已当场修复 —— 2026-10-27
 
