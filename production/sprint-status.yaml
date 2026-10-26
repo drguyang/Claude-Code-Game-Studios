@@ -67,7 +67,7 @@ stories:
     complexity: M
     blocker: ""
     completed: "2026-10-26"
-    note: "2026-10-26 收口。4/5 AC(AC-17-01b/08b/14/16);AC-17-05c [L] 走查已执行见 production/qa/evidence/foraging-05c-2026-10-26.md,语义判据 20/20 通过但主创签核栏留空 ⇒ 仍不记绿。走查中抓到 15/20 词无用户审定出处(GDD 前提此前不成立)+ 2 处采后/离株语义,用户当场逐词审定 20 词、改 2 词(cinchona q5 / yarrow q1)并重烘 21a。21a item_key 行前置解除 + W-3 甲案补烘落盘(foraging_constants.cooked.bytes 352 B);评审原件 production/qa/evidence/review-foraging-001-2026-10-26.md(APPROVED WITH SUGGESTIONS,零 BLOCKING),W-1/W-2 用户裁定不修,M-1..M-4 全修。证伪轮第四轮首跑 W1/W2 red=0 属真假绿(真实 MAX_QUALITY=5 而 cap_table 最大仅 2 ⇒ 写死与真读逐位同构),已补跨表耦合夹具后 7/7 转红。全量 5174/5139/0/35(+53 = 52 夹具 + 1 TestCaseSource 展开,零回归);改词后重跑同值 5174/5139/0/35,漂移门 drift[item_database_items.cooked.bytes] Passed"
+    note: "2026-10-26 收口。5/5 AC 全绿(AC-17-01b/08b/14/16/05c);AC-17-05c [L] 走查已执行并签核见 production/qa/evidence/foraging-05c-2026-10-26.md,语义判据 20/20 通过,§六 由 dr_guyang 以主创/医学顾问 + QA 复核双重身份 Approved(⚠️ 同一人兼任两角色,非第三方独立复核)。走查中抓到 15/20 词无用户审定出处(GDD 前提此前不成立)+ 2 处采后/离株语义,用户当场逐词审定 20 词、改 2 词(cinchona q5 / yarrow q1)并重烘 21a。21a item_key 行前置解除 + W-3 甲案补烘落盘(foraging_constants.cooked.bytes 352 B);评审原件 production/qa/evidence/review-foraging-001-2026-10-26.md(APPROVED WITH SUGGESTIONS,零 BLOCKING),W-1/W-2 用户裁定不修,M-1..M-4 全修。证伪轮第四轮首跑 W1/W2 red=0 属真假绿(真实 MAX_QUALITY=5 而 cap_table 最大仅 2 ⇒ 写死与真读逐位同构),已补跨表耦合夹具后 7/7 转红。全量 5174/5139/0/35(+53 = 52 夹具 + 1 TestCaseSource 展开,零回归);改词后重跑同值 5174/5139/0/35,漂移门 drift[item_database_items.cooked.bytes] Passed"
   - id: "S20-4"
     name: "processing-001 配方子集 + 可采纳谓词"
     file: "production/epics/processing/story-001-recipe-subset-and-admissible-predicate.md"
