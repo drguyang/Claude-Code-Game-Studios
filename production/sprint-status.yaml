@@ -140,13 +140,13 @@ stories:
     name: "processing-004 单炉空闲判定(**只做空闲半**)"
     file: "production/epics/processing/story-004-furnace-timing-and-no-process-state.md"
     priority: must-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0
     complexity: M
     blocker: "S20-4 + S20-8"
-    completed: ""
-    note: "链路批2。用户裁定:先做此件的空闲判定半,processing-003 的 Craft 载荷契约先行抄用。⚠️ 不得在本件改动 Craft 载荷形状(那是 003 的裁决面),契约不够用就停下问。"
+    completed: "2026-10-26"
+    note: "链路批2 收口。**AC 记分 4/5**:AC-18-13 / 12 / 23 / 17 已勾,AC-18-15 **不勾**(EXTERNAL · BLOCKED-BY-ADR-012:三格矩阵不存在 + F7 spike 未跑,不写桩)。⚠️ **六条**边界须与 4/5 同读:① 20.Apply 不存在(归 S20-14)⇒ 交付的是准入谓词,点火接线只是夹具内 seam;② AC-18-12「库存逐位不变」正例恒真,判别力全部来自负控;③ AC-18-17 ② 是降级判据(7a 无段清单常量)**且唯一断言 `filesScanned>0` 不证 SaveComposer.cs 在扫描集内**;④ AC-18-13 的 IL 面只证 Mono 后端;⑤ AC-18-17 的「跨存档往返」用例缺位(换池重编码 ≠ 落盘读回,需 7a 真装配);⑥ AC-18-23 的 **Seq 定序零行为断言**(夹具 `TryIgnite` 硬编码 `seq:0`,全件仅 1 处读 `.Seq`)。⚠️ 卡面自述订正:Implementation Note 1 写的「同 foraging Story 004 前缀纪律,共用扫描基建」**两条都不成立** —— foraging story-004 Status 仍是 [ ] Not yet created,Sim/Foraging/ 四文件中零扫描器,InventoryFold.OrderByFullOrderKey 是 private。处置 = 未造该基建(第 5 次卡面自述顶替实作)。**评审(2026-10-26 补跑,CHANGES REQUIRED → 已全修)**:1 BLOCKING + 8 WARNING + 4 MINOR。**B1**(BLOCKING)`IgnitionAdmission` 的 `outputs==null` 短路 = fail-open,绕过 AC-18-12 唯一的时点拒绝门 ⇒ 改抛 `ArgumentNullException`;**W1** `FurnaceState` 前缀用**载荷** `StartTick` 而定序用 envelope `e.Tick` ⇒ 非法流下**往事时点回溯污染** ⇒ 改 `e.Tick > tick`;W5/W6 浮点扫描改标识符边界匹配 + 补 IL 浮点正控;W2 措辞订正(半开区间是实现选择,GDD 无明文);M1 改用 `EventOrder.KeyOf`;M3 卡面矛盾订正;M4 删孤儿 `Processing.meta`。**未修**:W3(正例恒真,需 20.Apply)· W4/W8(AC-18-17② 无负控且扫描面半空)· W7(AC-18-23 的 Seq 定序零断言)· M2(同键取先入者,属 ADR-008 面)—— 全部登记在原件 §三 L1–L8。**证伪轮**:14 条变异(新增 M13 钉 W1 / M14 钉 B1),**第 4 轮 14/14 恰如预期**,SHA-256 逐字节还原通过 + `FALSIFY-` 零残留 + 受保护路径指纹未变。**回归**:全量 **5385/5350/0/35** vs 基线 **5354/5319/0/35** ⇒ **+31 == 新增 31 条,零回归**。⚠️ `-batchmode … -runTests` **不得带 `-quit`**(会 24 秒空跑零 XML)。原件:`production/qa/evidence/review-s20-9-2026-10-26.md` · `tools/falsify/specs/s20-9-furnace-timing-no-process-state.json` · `unity/Logs/s20-9-review-full.xml`。"
   - id: "S20-10"
     name: "inventory-001 InventoryOf 世界流投影与清空重建等值"
     file: "production/epics/inventory-items/story-001-inventoryof-fold-rebuild.md"

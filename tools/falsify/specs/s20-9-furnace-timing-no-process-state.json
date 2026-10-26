@@ -1,0 +1,237 @@
+{
+  "name": "S20-9 —— 炉状态前缀谓词 / 点火准入 / 无进程态三重门的守卫反证（AC-18-12 · AC-18-13 · AC-18-17 · AC-18-23）",
+  "mode": "EditMode",
+  "filter": "FurnaceTimingNoProcessStateTest",
+  "unityProject": "unity",
+  "_note": [
+    "判据 = 每个变异恰如预期转红(exactRed),受保护路径零 diff + SHA-256 逐字节还原。",
+    "本 spec 覆盖 processing-004 的 Falsifiability Gate:**14 条变异**,一属性一条变异(禁叠加)。",
+    "命中形态:②共存互斥(`busy ⟺ tick < CompleteTick` 的取等侧)· ③定义域收窄(duration ≥ 1 / 只认 Craft / 只认本 actor / 前缀时点 / 全序键取最大 / 空解码器 / 空清单 · 负载重)· ⑤阈值边界(逐行累计 vs 单件重量 / 拒绝行点名)。",
+    "基线(2026-10-26 评审修复后实测全绿):EditMode FurnaceTimingNoProcessStateTest **31/31 passed / 0 failed / 0 skipped**(unity/Logs/s20-9-fix.xml)。",
+    "锚点复核命令(纯读,零写盘):python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-9-furnace-timing-no-process-state.json --check-only",
+    "真跑命令(须显式带 --guard;⚠️ 驱动器**不读** spec 里的 guards 键,且 --guard 是**替换**默认值不是追加):",
+    "   python3 tools/falsify/unity_falsify.py --spec tools/falsify/specs/s20-9-furnace-timing-no-process-state.json --guard unity/Assets/AddressableAssetsData --guard unity/Assets/Audio --guard unity/Assets/DataCooked",
+    "════════════════════════════════════════════════════════════════════════",
+    "⚠️ **2026-10-26 评审修复轮对本 spec 的两处重大订正** —— 前一轮的两条判断是**错的**:",
+    "   ① **旧登记的「不可证伪」②号(前缀 `StartTick` vs `e.Tick` 等价)已被推翻**。",
+    "      旧理由:「规则八规定点火的同一 tick 发 Craft ⇒ envelope tick 恒 == StartTick ⇒ 一切合法流下等价」。",
+    "      **错在**:该守卫的意义恰恰在**非法流** —— `StartTick ≤ tick < e.Tick` 的事件会被计入",
+    "      「截至 tick 的前缀」⇒ 一个在该 tick 尚不存在的炉子**回溯污染了过去时点**。",
+    "      这不是等价变换,是真实的时点泄漏(评审 W1)。已改生产件为 `e.Tick > tick`,并新增 M13 钉住它。",
+    "   ② **`outputs == null` 的空产出短路已被删**(评审 B1:fail-open 捷径,给 AC-18-12 开了后门)。",
+    "      旧 spec 把它列为「等价变换、不可证伪」也是误判 —— 它不等价,它**放行了本该拒绝的输入**。",
+    "      已改生产件为抛 `ArgumentNullException`,并新增 M14 钉住它。",
+    "   教训(供下轮复用):**判「等价变换」前,必须明确写出「对哪些输入等价」**。",
+    "      旧两条的等价性都只在「合法流 / 合法配方」上成立,而守卫的存在意义正是防御非法输入。",
+    "════════════════════════════════════════════════════════════════════════",
+    "⚠️ **仍不可证伪 / 不立变异的守卫**(如实登记,禁假装覆盖):",
+    "   ① `FurnaceState.cs` 的 `if (events == null) return false;` —— 去掉后 `events.Count` 抛 NullReferenceException,",
+    "      与返回 false 是**不同行为**;但契约未规定 null 流语义(调用方不得传 null)⇒ 登记为「未判据化」。",
+    "   ② `IgnitionAdmission` 的 `for` 循环在 `outputs.Count == 0` 时零迭代 ⇒ 返回 `Admitted=true`。",
+    "      这是循环的**自然结果**,不是一条可单独停用的守卫(没有 `if` 可停)⇒ 无变异可立。",
+    "      语义由「空产出(非 null)恒可装」夹具覆盖,且 21a 保证合法配方不可能零产出。",
+    "⚠️ 已覆盖但**判别面受限**的守卫(如实登记,勿读成全面验证):",
+    "   ③ `IsBusy` 的 `if (!TryGetLatest(...)) return false;` —— 「无炉 ⇒ 不忙」半边由",
+    "      `test_ac1817c_independentRebuilds_areBitIdentical` 的空流断言覆盖,但那条同时承担重编码等值,判别力不专一。",
+    "⚠️ 已知边界(登记在 story §Test Evidence,勿读成已验):",
+    "   ④ **AC-18-15 完全不在本 spec 的判据面内** —— 跨平台三格属 ADR-012(EXTERNAL),本 spec 只跑 Mono 侧。",
+    "      Mono 侧重放等值 = AC-18-17③,**不是** AC-18-15 的证据。",
+    "   ⑤ **AC-18-12 的接线是夹具内 seam,不是生产代码** —— `20.Apply` 归 S20-14(`IIgnitionApplyPort` 只存在于测试件)。",
+    "      本 spec 反证的是「准入谓词与次序」,不是「S20-14 的 Apply 实现正确」。",
+    "   ⑥ **AC-18-17 ② 是降级判据且无负控** —— 7a 无「段清单」常量,改判为「存档组版器 / codec 零 18 类型引用」。",
+    "      扫描面真实存在(SaveComposer.cs 在树内),但 18 是全新命名空间 ⇒ 零引用是**结构性必然**,",
+    "      不是被验证的性质。该条**无变异**:它是静态引用扫描,变异面在存档侧(本件不拥有)。",
+    "   ⑦ **AC-18-13 的 IL 面只在 Mono 后端**;IL2CPP 生成物不同,须 ADR-012 三格矩阵另跑。",
+    "      该条**无变异**:扫描器的判别力由**正控夹具**证明(`scannerPositiveControl_detectsInjectedWallClock` 与",
+    "      `ilFloatScan_positiveControl_detectsInjectedFloat`),不是由变异证明 —— 变异生产件无法让注入的负控类型消失。",
+    "   ⑧ **AC-18-17 ① 的 `[Serializable]` 扫描同样由负控证明**(`serializableScan_hasDiscriminatingPower`),理由同 ⑦。",
+    "   ⑨ **`IsBusy` 的半开区间 `[start, start+duration)` 是实现选择,不是 GDD 判据** —— GDD 全文未定义「在烧」的开闭区间。",
+    "      M1 钉住的是「当前实现口径不得漂移」,不是「AC 要求如此」。"
+  ],
+  "mutations": [
+    {
+      "name": "M1-isBusyBoundaryInclusive",
+      "file": "unity/Assets/Sim/Processing/FurnaceState.cs",
+      "line": 173,
+      "expect": "            return tick < occ.CompleteTick;",
+      "replace": "            return tick <= occ.CompleteTick; // FALSIFY-M1:把 < 改成 <=",
+      "expectRed": [
+        "test_ac1823_completionTickItself_isIdle",
+        "test_ac1823_sameTickTwoPlayers_bothBusy"
+      ],
+      "exactRed": true,
+      "_why": "`IsBusy` 的半开区间口径(`tick == CompleteTick` 时不算忙)。改成 `<=` 后完成 tick 被误判为仍在烧 ⇒ `completionTickItself_isIdle` 红(它断言 149 忙 / 150 不忙 / 151 不忙)。⚠️ 2026-10-26 第 2 轮实测:原 spec 只列一条,实红两条;多出的 `sameTickTwoPlayers_bothBusy` 断言 `BusyActorCount(tick 140) == 1`,而 actor 1 的炉 `start=100 / duration=40` ⇒ `CompleteTick = 140`,变异后 tick 140 仍算忙 ⇒ 计数 2 ⇒ 红。同一条属性的第二处覆盖(加强,非判别面不清)。⚠️ **口径说明**:本变异钉的是**实现选择不漂移**,不是 AC —— GDD 未定义开闭区间(见 _note ⑨)。"
+    },
+    {
+      "name": "M2-durationDomainDropped",
+      "file": "unity/Assets/Sim/Processing/FurnaceState.cs",
+      "line": 133,
+      "expect": "                if (p.DurationTicks < 1)",
+      "replace": "                if (false) // FALSIFY-M2:停用 duration ≥ 1 域收窄",
+      "expectRed": [
+        "test_furnaceNonPositiveDuration_failsLoud"
+      ],
+      "exactRed": true,
+      "_why": "`duration_ticks ≤ 0` 是坏数据(21a 硬失败族),静默放行会让 `CompleteTick == StartTick` ⇒ 点火当拍即可再点火 ⇒ 单炉判据失效。"
+    },
+    {
+      "name": "M3-kindFilterDropped",
+      "file": "unity/Assets/Sim/Processing/FurnaceState.cs",
+      "line": 127,
+      "expect": "                if (e.Kind != EventKind.Craft) continue;",
+      "replace": "                if (false) continue; // FALSIFY-M3:停用 Kind 过滤",
+      "expectRed": [
+        "test_furnaceStreamWithNonCraftEvents_isIgnored"
+      ],
+      "exactRed": true,
+      "_why": "「入参可为全流」是明文契约 ⇒ 非 `Craft` 的 Kind 必须跳过。停用过滤后会对 `DropSpawned` 载荷跑 `Decode<CraftPayload>` ⇒ codec 抛 `InvalidDataException` ⇒ 夹具红(它不是被无害吞掉,是炸)。"
+    },
+    {
+      "name": "M4-actorFilterDropped",
+      "file": "unity/Assets/Sim/Processing/FurnaceState.cs",
+      "line": 130,
+      "expect": "                if (p.ActorId != actorId) continue;",
+      "replace": "                if (false) continue; // FALSIFY-M4:停用 actor 归属过滤",
+      "expectRed": [
+        "test_ac1823_crossPlayerConcurrency_isAllowed",
+        "test_ac1823_sameTickTwoPlayers_bothBusy"
+      ],
+      "exactRed": true,
+      "_why": "单炉是 **per-player**(OQ-18-3 [甲]),不是 per-cell。停用 actor 过滤后别人的炉会被算到自己头上 ⇒ 跨玩家夹具与同 tick 双玩家夹具同时红(同一个被变异函数被两批夹具独立覆盖 = 加强)。"
+    },
+    {
+      "name": "M5-orderKeyTakesFirstNotMax",
+      "file": "unity/Assets/Sim/Processing/FurnaceState.cs",
+      "line": 141,
+      "expect": "                if (found && at.CompareTo(best) <= 0) continue;",
+      "replace": "                if (found) continue; // FALSIFY-M5:不取全序键最大,取流里第一条",
+      "expectRed": [
+        "test_ac1823_outOfOrderStream_givesSameAnswer",
+        "test_ac1817c_replayRebuiltCompleteTick_matchesDirectComputation"
+      ],
+      "exactRed": true,
+      "_why": "「最后一炉」按**全序键最大**判定(D-21-28 [甲]:另排一次 = 同一事实的第二份判据)。改成取第一条后选中的炉不再是最后一炉 ⇒ CompleteTick 由 160 变 130 ⇒ 乱序等价性夹具红。⚠️ 2026-10-26 第 2 轮实测:原 spec 只列一条,实红两条;多出的 `ac1817c_replayRebuiltCompleteTick` 按全序键最大算期望值(20 炉递增,末炉 `start=190 / duration=26`),变异后取到第 0 炉(`start=0 / duration=7`)⇒ 期望 `216` 实得 `7` ⇒ 红。同一条属性的第二处覆盖。"
+    },
+    {
+      "name": "M6-decoderNullSilentlyFalse",
+      "file": "unity/Assets/Sim/Processing/FurnaceState.cs",
+      "line": 113,
+      "expect": "            if (decoder == null)",
+      "replace": "            if (decoder == null) { occupancy = default; return false; } if (false) // FALSIFY-M6:空解码器兜底成「谁都不忙」",
+      "expectRed": [
+        "test_decoderNull_failsLoud"
+      ],
+      "exactRed": true,
+      "_why": "空解码器兜底 ⇒ 「谁都不忙」的静默失效(与 S20-12 的 M5 同型:兜底后落到下游分支、错误类型相同,故夹具须断**异常类型**这一层 —— 本夹具用 `Assert.Throws<ArgumentNullException>`,兜底后**不再抛** ⇒ 必红)。⚠️ 2026-10-26 第 2 轮实测 = 变异体编译失败(退出码 6,无结果 XML):首版替换串 `return false;` 没给 `out occupancy` 赋值 ⇒ CS0177。变异体必须**能编译**才谈得上「转红与否」。"
+    },
+    {
+      "name": "M7-busyActorCountDecoderNullSilentlyZero",
+      "file": "unity/Assets/Sim/Processing/FurnaceState.cs",
+      "line": 214,
+      "expect": "            if (decoder == null)",
+      "replace": "            if (decoder == null) return 0; if (false) // FALSIFY-M7:空解码器兜底成 0",
+      "expectRed": [
+        "test_decoderNull_failsLoud"
+      ],
+      "exactRed": true,
+      "_why": "`BusyActorCount` 的独立守卫(与 M6 不同函数、不同返回值)。兜底成 0 = 「此刻没人在烧」的静默谎报。"
+    },
+    {
+      "name": "M8-admissionIgnoresLineQty",
+      "file": "unity/Assets/Sim/Processing/IgnitionAdmission.cs",
+      "line": 141,
+      "expect": "                load = checked(load + ContainerWeightFold.InstanceWeight(line.UnitWeight, line.Qty));",
+      "replace": "                load = checked(load + line.UnitWeight); // FALSIFY-M8:累加用单件重量而非整行重量",
+      "expectRed": [
+        "test_ac1812_multiLineAccumulation_usesFullRowWeightNotUnitWeight"
+      ],
+      "exactRed": true,
+      "_why": "逐行累计必须加 `InstanceWeight = unitWeight × qty`,不是单件重量。漏乘 qty 后 4+4=8 被算成 2+4=6 ⇒ 越过容量仍放行。⚠️ 前一条多行夹具三行全 qty=1,对这条变异**零判别力**(两者同值)—— 故单立一条 qty>1 的夹具。"
+    },
+    {
+      "name": "M9-admissionSkipsCanCarry",
+      "file": "unity/Assets/Sim/Processing/IgnitionAdmission.cs",
+      "line": 137,
+      "expect": "                if (!CarryLoadSolver.CanCarry(load, line.UnitWeight, line.Qty, capacity))",
+      "replace": "                if (false) // FALSIFY-M9:跳过容量裁决(只累加不判)",
+      "expectRed": [
+        "test_ac1812_outputExceedingCapacity_isRejectedAtIgnitionTick",
+        "test_ac1812_rejection_appendsZeroCraftAndLeavesInventoryBitIdentical",
+        "test_ac1812_multiLineAccumulation_rejectsTheLineThatOverflows",
+        "test_ac1812_multiLineAccumulation_usesFullRowWeightNotUnitWeight",
+        "test_ac1812_currentLoadIsCounted_soExistingWeightCanBlockIgnition"
+      ],
+      "exactRed": true,
+      "_why": "容量裁决的**唯一**执行体(F-20.2 的重用点)。停用后一切皆「装得下」⇒ 五条拒绝类夹具同时红。⚠️ 五条都红是**加强不是判别面不清**:它们打的是同一个被变异函数的不同输入面(单行超界 / 多行越界 / 已有载重 / 真实件数)。"
+    },
+    {
+      "name": "M10-rejectedLineIndexNotReported",
+      "file": "unity/Assets/Sim/Processing/IgnitionAdmission.cs",
+      "line": 138,
+      "expect": "                    return new IgnitionAdmissionResult(false, i);",
+      "replace": "                    return new IgnitionAdmissionResult(false, -1); // FALSIFY-M10:不点名被拒行",
+      "expectRed": [
+        "test_ac1812_multiLineAccumulation_rejectsTheLineThatOverflows",
+        "test_ac1812_multiLineAccumulation_usesFullRowWeightNotUnitWeight",
+        "test_ac1812_outputExceedingCapacity_isRejectedAtIgnitionTick"
+      ],
+      "exactRed": true,
+      "_why": "`RejectedLineIndex` 的可诊断面。不点名后调用方无法区分「第一行就装不下」(换配方可能就成)与「最后一行才装不下」(得先腾背包)。三条夹具都断言 `RejectedLineIndex == 具体行号` ⇒ 同时红。⚠️ 2026-10-26 首轮实测:原 spec 只列两条,实红三条;多出的 `outputExceedingCapacity_isRejectedAtIgnitionTick` 也断言 `RejectedLineIndex == 0`,是同一条属性的第三处覆盖。"
+    },
+    {
+      "name": "M11-completeTickSubtraction",
+      "file": "unity/Assets/Sim/Processing/FurnaceState.cs",
+      "line": 76,
+      "expect": "        public long CompleteTick => checked(StartTick + DurationTicks);",
+      "replace": "        public long CompleteTick => checked(StartTick - DurationTicks); // FALSIFY-M11:F-18.3 的加号改成减号",
+      "expectRed": [
+        "test_ac1817c_replayRebuiltCompleteTick_matchesDirectComputation",
+        "test_ac1823_completionTickItself_isIdle",
+        "test_ac1823_crossPlayerConcurrency_isAllowed",
+        "test_ac1823_outOfOrderStream_givesSameAnswer",
+        "test_ac1823_sameTickTwoPlayers_bothBusy",
+        "test_ac1823_secondIgnitionWhileBurning_isRejectedWithZeroEvents",
+        "test_furnaceStreamWithNonCraftEvents_isIgnored",
+        "test_ac1823_futureEnvelopeEvent_doesNotLeakBackIntoPastPrefix"
+      ],
+      "exactRed": true,
+      "_why": "F-18.3 的**算术符号**唯一守卫(`start + duration`)。改成减号后完成时点跑到点火之前 ⇒ 所有「何时算完 / 此刻忙不忙」的夹具同时红。⚠️ 2026-10-26 首轮实测:原 spec 只列四条,实红七条。多出三条逐条核对成立,且都是**同一被变异属性的直系后果**:`crossPlayerConcurrency` / `secondIgnitionWhileBurning` / `furnaceStreamWithNonCraftEvents` 各自都有一条 `IsBusy(..., 120) == true` 断言,而三条夹具的炉均为 `start=100 / duration=50` ⇒ 变异后 `CompleteTick = 100−50 = 50`,tick 120 处一律不再是「在烧」。⚠️ **2026-10-26 修复轮新增第 8 条**:`futureEnvelopeEvent_doesNotLeakBackIntoPastPrefix` 断 `done == 80L`(50+30),改成减号得 20 ⇒ 红。"
+    },
+    {
+      "name": "M12-busyCountIgnoresBusyPredicate",
+      "file": "unity/Assets/Sim/Processing/FurnaceState.cs",
+      "line": 232,
+      "expect": "                if (IsBusy(events, decoder, actor, tick)) busy++;",
+      "replace": "                busy++;   // FALSIFY-M12:凡点过火的都算忙",
+      "expectRed": [
+        "test_ac1823_sameTickTwoPlayers_bothBusy"
+      ],
+      "exactRed": true,
+      "_why": "`BusyActorCount` 必须**委托** `IsBusy`,不得另立一套「忙」的判据(那是第二真源)。改成「凡点过火都算忙」后 tick 140 应得 1(actor 1 已完)却得 2、tick 190 应得 0 却得 2 ⇒ 夹具红。"
+    },
+    {
+      "name": "M13-prefixUsesPayloadStartTickNotEnvelope",
+      "file": "unity/Assets/Sim/Processing/FurnaceState.cs",
+      "line": 138,
+      "expect": "                if (e.Tick > tick) continue;   // 前缀:尚未发生(存在时点 = envelope)",
+      "replace": "                if (p.StartTick > tick) continue;   // FALSIFY-M13:前缀退回载荷 StartTick(旧实现)",
+      "expectRed": [
+        "test_ac1823_futureEnvelopeEvent_doesNotLeakBackIntoPastPrefix"
+      ],
+      "exactRed": true,
+      "_why": "**2026-10-26 评审 W1 的回归钉**。前缀是「as-of tick 存在性」判据,必须用 envelope `e.Tick`;载荷 `StartTick` 是 F-18.3 的**算术输入**,两者角色不同。退回 `p.StartTick` 后,信封 tick=200 / 载荷 start=50 的那条事件会被计入「截至 tick=100 的前缀」⇒ `TryCompleteTickOf(..., 100, ...)` 返回 true(应是 false)⇒ 夹具红。⚠️ **这条变异在合法流上完全不可见**(规则八:点火同一 tick 发 Craft ⇒ 两者相等)—— 它是旧 spec 把该守卫误登记为「等价变换」的直接原因。"
+    },
+    {
+      "name": "M14-nullOutputsSilentlyAdmitted",
+      "file": "unity/Assets/Sim/Processing/IgnitionAdmission.cs",
+      "line": 123,
+      "expect": "            if (outputs == null)",
+      "replace": "            if (outputs == null) return new IgnitionAdmissionResult(true, -1); if (false) // FALSIFY-M14:漏传产出当作零产出放行",
+      "expectRed": [
+        "test_ac1812_nullOutputs_failsLoud"
+      ],
+      "exactRed": true,
+      "_why": "**2026-10-26 评审 B1 的回归钉**。`outputs == null` 是「调用方漏传」,不是「本次没有产出」;把它当成「恒装得下」等于给 AC-18-12(BLOCKING)唯一的时点拒绝门开一条 fail-open 捷径。夹具断言 `Assert.Throws<ArgumentNullException>`,兜底后不再抛 ⇒ 必红。"
+    }
+  ]
+}

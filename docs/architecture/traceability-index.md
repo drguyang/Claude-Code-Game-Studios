@@ -227,7 +227,7 @@
 | `design/gdd/time-and-weather.md` | **5 时间与天气** | **15** | **11** | **2** | **2** |
 | `design/gdd/emergency-procedures.md` | **10 急救动作** | **21** | **11** | **5** | **5** |
 | `design/gdd/prescription-and-medication.md` | **11 处方用药** | **19** | **10** | **5** | **4** |
-| `design/gdd/processing.md` | **18 炮制** | **18** | **10** | **5** | **3** |
+| `design/gdd/processing.md` | **18 炮制** | **18** | **11** | **4** | **3** |
 | `design/gdd/inventory-and-items.md` | **20 库存与物品** | **16** | **10** | **1** | **5** |
 | `persistence-service.md` | **7a 持久化服务**(D-R3 回填)| **11** | **10** | **1** | **0** |
 | `save-slot-ui.md` | **7b 存档位 UI**(D-R3 回填)| **7** | **6** | **0** | **1** |
@@ -241,7 +241,34 @@
 | `tutorial-and-onboarding.md` | **48 教学与入门**(D-R3 回填)| **8** | **2** | **3** | **3** |
 | `telemetry-analytics.md` | **51 遥测与分析**(D-R3 回填)| **8** | **7** | **1** | **0** |
 | `medical-consequences.md` | **53 医疗后果(**P1a 主**)**(D-R3 回填)| **8** | **4** | **1** | **3** |
-| **合计** | | **502** | **344** | **73** | **68**(另 **◆17** = `no-adr-by-design`;2026-09-23 Blocking 清账批 2 条翻 ✅(`TR-disease-022`/`TR-disease-002`)+ 1 条转 ◆(`TR-diag-013`);同日 ADR-001 窄修订 1 条翻 ✅(`TR-audio-012`)+ ADR-009 复核轮 2 条翻 ✅(031 + medcons-001)+ ADR-028 小裁 1 条翻 ✅ + Required ADR #4/#5 10 条翻 ✅ + QQ-08 清账 A 簇 6 条翻 ✅ / B 簇 11 条转 ◆ + Epic-3 对症复核批 input 3 条转 ◆;2026-10-07 story-007 新增 `TR-disease-023` + `TR-prescription-019` gap→covered;2026-10-09 ADR-030 新增 `TR-disease-024` covered)|
+| **合计** | | **502** | **345** | **72** | **68**(另 **◆17** = `no-adr-by-design`;2026-09-23 Blocking 清账批 2 条翻 ✅(`TR-disease-022`/`TR-disease-002`)+ 1 条转 ◆(`TR-diag-013`);同日 ADR-001 窄修订 1 条翻 ✅(`TR-audio-012`)+ ADR-009 复核轮 2 条翻 ✅(031 + medcons-001)+ ADR-028 小裁 1 条翻 ✅ + Required ADR #4/#5 10 条翻 ✅ + QQ-08 清账 A 簇 6 条翻 ✅ / B 簇 11 条转 ◆ + Epic-3 对症复核批 input 3 条转 ◆;2026-10-07 story-007 新增 `TR-disease-023` + `TR-prescription-019` gap→covered;2026-10-09 ADR-030 新增 `TR-disease-024` covered;**2026-10-26 S20-9 `TR-processing-015` partial→covered**(`OQ-18-8` 已于 2026-10-06 裁定,原「等 24」为白等))|
+
+> **2026-10-26 S20-9 收口轮(本次)**:`TR-processing-015` **⚠️ → ✅**。ID 不增不减(仍 **502**)。
+> **这一格的可复算命令 + 其实跑输出**(结论以 registry `status:` 字段计数为准,不照抄本表算术):
+> ```bash
+> python3 -c "import yaml,collections;d=yaml.safe_load(open('docs/architecture/tr-registry.yaml',encoding='utf-8'));print(len(d),dict(collections.Counter(x.get('status') for x in d)))"
+> # 编辑后实跑 → 502 {'covered': 347, 'gap': 65, 'partial': 73, 'no-adr-by-design': 17}
+> # 对照 git HEAD 版本(编辑前) → 502 {'covered': 346, 'gap': 65, 'partial': 74, 'no-adr-by-design': 17}
+> git show HEAD:docs/architecture/tr-registry.yaml > /tmp/reg_head.yaml
+> python3 -c "import yaml,collections;d=yaml.safe_load(open('/tmp/reg_head.yaml',encoding='utf-8'));print(len(d),dict(collections.Counter(x.get('status') for x in d)))"
+> ```
+> ⇒ **本次增量 = covered +1 / partial −1,恰等于 1 条(`TR-processing-015`),无其他扰动。**
+>
+> ⚠️ **本表有既有口径差,本次未引入也未偿清 —— 如实登记三个互不相等的数**:
+> | 口径 | TR 数 | ✅ | ⚠️ | ❌ |
+> |---|---:|---:|---:|---:|
+> | 本表**合计行**(人工维护) | 502 | 345 | 72 | 68 |
+> | 本表**逐行加总**(33 行,脚本算) | 501 | 342 | 73 | 69 |
+> | **registry `status:` 实测** | 502 | 347 | 73 | 65(另 ◆17) |
+>
+> 三者互不相等,**编辑前就不相等**(HEAD 版:逐行加总 501/341/74/69,合计行 502/344/73/68)。
+> 差异面 = ① ◆17(`no-adr-by-design`)在本表行内单列、在 registry 是独立 `status` 值;
+> ② 部分行的 TR 数 ≠ ✅+⚠️+❌(例 item-database `32 = 20+1+◆11`);
+> ③ 合计行与逐行加总的 ❌ 差 1(某行的 ❌ 列写法脚本解析不到)。
+> 本次**只动一格**:processing 行 10/5 → **11/4**、合计行 344/73 → **345/72**,
+> 逐行加总 341/74 → **342/73** —— 三个口径**同向同幅**(✅ +1 / ⚠️ −1),
+> 与 registry 复算(346/74 → 347/73)**一致**。
+> **偿清口径差不在本次范围** —— 那须逐行核 33 行,是独立一轮的事;此处只保证**本次改动可归因**。
 
 > **2026-09-20 借绿回退轮(TD 条件 C4 —— `architecture.md` §5.5 D-5)**:**ID 不增不减**(仍 387)。
 > 8 条「摘要列记 ✅ 而 `tr-registry.yaml` 的 `adr: null`」的条目(`TR-case-035` / `-036` ·
@@ -962,7 +989,7 @@
 | TR-processing-012 | 完成时点 = `Tick(start) + recipe.duration_ticks` —— tick 计、非墙钟、零浮点 | ADR-005 | ✅ 规则八 · F-18.3 · AC-18-13;与 9 的病程同 tick 域(主机唯一 `Step`) |
 | TR-processing-013 | 18 不认识药 —— 零 `drug_profile` / `polarity` / `treatable_by` 引用;18 的输出是物品实例,不是治疗 | — | ❌ 规则九 · AC-18-04;「17/18/19 只产出输入参数」的机制化含义;治疗是 11 + 9 的事 |
 | TR-processing-014 | 四 `cap` ↔ `QTY_MULT_MAX` 的构建期校验(Σ 正的 cap + `max(0, ENV_MOD_MAX)` ≤ `QTY_MULT_MAX − 1`)· 主执行 = 21a 烘焙管线,18 侧 = 装载期防御断言半边 | ADR-014 | ⚠️ 规则四 · AC-18-14 · `OQ-18-2` ✅ 已裁 [甲] 2026-09-19(执行方已定;21a 侧执行 AC 待 O-18-R2 回写 ⇒ partial 维持) |
-| TR-processing-015 | 并发模型:每玩家单炉、不可取消、拒绝零事件、跨玩家并发允许(器具互斥另归 24 = `OQ-18-8`) | — | ⚠️ **OQ-18-3 ✅ 已裁 [甲] 2026-09-19**(规则八并发模型表 + AC-18-23);❌→⚠️ 残留 = OQ-18-8(归 24) |
+| TR-processing-015 | 并发模型:每玩家单炉、不可取消、拒绝零事件、跨玩家并发允许(器具互斥另归 24 = `OQ-18-8`) | — | ✅ **2026-10-26 由 ⚠️ 升级(S20-9)** —— `OQ-18-3` [甲] 2026-09-19 + **`OQ-18-8` 已于 2026-10-06 裁定**(`processing.md:771`:允许,且 **24 无需器具占用表** —— 占用真相在 23 的 `Structure*`)⇒ 原「等 24」为白等,`partial` 的唯一理由消解。规则八并发模型表 + AC-18-23;夹具 `test_ac1823_*` 六条。`adr: null` 保留 = 事实(无 ADR 承接,不拿邻近 ADR 顶替) |
 | TR-processing-016 | 炮制中途存档的语义 —— 完成 tick 已定、重放可重建?还是须把「进行中」作为进程态存 | ADR-010 | ✅ `OQ-18-5` 已结清(发起即落流,完成 = 派生)+ AC-18-16/17。**2026-09-19 解除其两处派生悬空**:① 载荷三位定稿(R-18-A:`actor_id` / `output_instance_ids[]` / `tool_cell`);② **`D-21-28` 结案** —— 三流全序键 `(Tick, StreamPriority, None, Seq)` [甲] + 主机发号,落 **ADR-009 Amendment J** |
 | TR-processing-017 | 同一 `(WorldSeed, recipe, 输入实例集, 四修正项)` 跨平台重放 ⇒ 三个出参逐位相同 | ADR-012 | ✅ AC-18-15;双级黄金夹具矩阵提供执行载体 |
 | TR-processing-018 | 参数装载期硬失败(`ENV_MOD_MIN` 未定值 / `outputs[]` 为空等),禁 null 兜底 | ADR-014 | ✅ AC-18-14 · 边例;承 ADR-014 §五 + 21a 的非空约束 |

@@ -3614,8 +3614,10 @@
     requirement: "并发模型:每玩家单炉、不可取消、拒绝零事件、跨玩家并发允许(器具互斥另归 24 = OQ-18-8)"
     domain: Core
     adr: null
-    status: partial
-    note: "OQ-18-3 ✅ 已裁 [甲](2026-09-18 成稿时含三问:炉数/器具/取消;首轮评审 2026-09-19 裁定 + 规则八并发模型表 + AC-18-23)⇒ gap→partial。**未结的部分 = OQ-18-8**(同器具共享语义归 24 的占用表,18 不自裁)。"
+    status: covered   # ⚠️ 2026-10-26 由 partial 升级 —— 原 partial 的唯一理由(OQ-18-8 未结)已于 2026-10-06 消解
+    was_status: partial
+    revised: "2026-10-26"
+    note: "**2026-10-26 结案(S20-9 processing story-004 实现轮)**。原 partial 的理由写的是「**未结的部分 = OQ-18-8**(同器具共享语义归 24 的占用表,18 不自裁)」。⚠️ **该理由已失效**:`design/gdd/processing.md:771` 记录 **OQ-18-8 已于 2026-10-06 裁定** —— 答案 = **允许(同一医馆格两名玩家各起一炉)**,且判据链证明「24 **不需要、也不应有一张器具占用表**」(占用真相在 23 的 `Structure*` 事件里,`:128` 所有权表;`OQ-18-3` 的「单炉」本就是 per-player 不是 per-cell;AC-18-23 后半句已明文登记该结论)⇒ **原「等 24」是白等**。四条子要求逐条有夹具:每玩家单炉 + 不可取消 + 拒绝零事件 = `test_ac1823_*` 六条;跨玩家并发允许 = `test_ac1823_crossPlayerConcurrency_isAllowed` / `sameTickTwoPlayers_bothBusy`。`adr: null` **保留 = 事实而非疏漏** —— 本条裁决面 = GDD 规则八并发模型表 + OQ-18-3/18-8 用户裁定,无 ADR 承接(按 ADR-024 精神,不得以邻近 ADR 顶替;12 条变异的证伪轮原件 = `tools/falsify/specs/s20-9-furnace-timing-no-process-state.json`)。⚠️ **一条真残留不并入本条**:同 tick 两条 `Craft` 的 `Seq` 谁先取决于主机 Append 序 ⇒ 重放确定性依赖主机一致(ADR-005 已保,`processing.md:771` 末句)—— 归 45 / ADR-012 跨平台面。⚠️ 措辞里「器具互斥另归 24」**保留原样**:它陈述的是归属事实(不在 18 的裁决面),不是「未结」。"
 
   - id: TR-processing-016
     system: processing
