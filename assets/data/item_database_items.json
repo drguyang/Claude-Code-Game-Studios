@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "_note": "Story 008 占位种子 —— 本表数值 = 夹具值,不是游戏平衡值(数值归用户轮)。唯一合法作者态 = 本文件(assets/data/*.json 明文;D-21-13 禁 .asset/SO 承载)。stackable 为派生只读,显式写入即拒(AC-21a-59)。weight/stack_max = int 计数非 Fix(D-21-17)。两阶段烘焙 → *.cooked → IDataProvider。",
+  "_note": "Story 008 占位种子 —— 本表数值 = 夹具值,不是游戏平衡值(数值归用户轮)。唯一合法作者态 = 本文件(assets/data/*.json 明文;D-21-13 禁 .asset/SO 承载)。stackable 为派生只读,显式写入即拒(AC-21a-59)。weight/stack_max = int 计数非 Fix(D-21-17)。两阶段烘焙 → *.cooked → IDataProvider。【2026-10-26 S20-3 前置补行(用户裁定「先补前置」)】P0 品种闭集 AC-17-01b 要求四品种 = {柳树皮, 毛地黄, 金鸡纳树皮, 止血草}(design/gdd/foraging.md 规则一 :126),原表只有柳树皮 ⇒ 补后三者各一条 raw 行。⚠️ 两处待核,均非本行可自决:① ecosystem 取值 —— 17 写 temperate_forest,而 6 的四生态区(租界城镇/贫民窟/战乱前线/深山疫区,:37)没有英文 id,全库唯一 ecosystem 值即此;新行沿用同值以免造第二套词,但该值本身待 6 侧定名。② parts[] / qty_per_node / quality_character 是 21a 侧数据,17 GDD 只给品种名与「止血草 = 蓍草类」(:126),未给部位与采量 ⇒ 按植物学语义填夹具值,数值归用户轮;quality_character 五档按 D-21-16 逐档非空,词集照 willow_bark 的采前属性口径,过 OQ-17-9 语义筛(零「陈放/虫蛀」类采后词)。",
   "items": [
     {
       "base_id": "willow_bark",
@@ -31,6 +31,63 @@
       "deprecated": false,
       "legal_transitions": ["dried>extracted"],
       "gather_profile": null,
+      "drug_profile": null,
+      "tcm_profile": null,
+      "inflicts_injury": null
+    },
+    {
+      "base_id": "foxglove",
+      "processing_state": "raw",
+      "display_name": "毛地黄(生)",
+      "category": "material",
+      "stack_max": 99,
+      "weight": 1,
+      "deprecated": false,
+      "legal_transitions": [],
+      "gather_profile": {
+        "ecosystem": "temperate_forest",
+        "parts": ["leaf"],
+        "qty_per_node": 2,
+        "quality_character": ["卷缩失绿", "叶薄边焦", "叶整色灰绿", "叶厚色深绿", "叶阔脉清晰"]
+      },
+      "drug_profile": null,
+      "tcm_profile": null,
+      "inflicts_injury": null
+    },
+    {
+      "base_id": "cinchona_bark",
+      "processing_state": "raw",
+      "display_name": "金鸡纳树皮(生)",
+      "category": "material",
+      "stack_max": 99,
+      "weight": 2,
+      "deprecated": false,
+      "legal_transitions": [],
+      "gather_profile": {
+        "ecosystem": "temperate_forest",
+        "parts": ["bark"],
+        "qty_per_node": 2,
+        "quality_character": ["碎裂夹土", "皮薄色淡", "块整色黄褐", "块厚色棕", "皮厚油润纹密"]
+      },
+      "drug_profile": null,
+      "tcm_profile": null,
+      "inflicts_injury": null
+    },
+    {
+      "base_id": "yarrow",
+      "processing_state": "raw",
+      "display_name": "止血草(生)",
+      "category": "material",
+      "stack_max": 99,
+      "weight": 1,
+      "deprecated": false,
+      "legal_transitions": [],
+      "gather_profile": {
+        "ecosystem": "temperate_forest",
+        "parts": ["whole_plant"],
+        "qty_per_node": 3,
+        "quality_character": ["茎断花落", "茎细花稀", "茎整花疏", "茎壮花密", "茎粗花盛色白"]
+      },
       "drug_profile": null,
       "tcm_profile": null,
       "inflicts_injury": null

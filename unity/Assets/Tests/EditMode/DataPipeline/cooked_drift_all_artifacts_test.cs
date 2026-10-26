@@ -223,6 +223,17 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             //    真的写进了字节」—— 改 Binder 不透传 ⇒ 字节变 ⇒ 本门红。
             new ArtifactBake(DiseaseRegistryBaker.CookedFileName,
                 root => DiseaseRegistryBaker.BakeFromRepo(root).Cooked),
+
+            // ── 17 采集调参表(1 份;S20-3 评审 W-3 甲案补齐烘焙接线,2026-10-26)──
+            //    ⚠️ 本份的**补烘理由**与前 24 份都不同:此前该 Binder 是 25 个 Binder 中
+            //    **唯一零生产调用方**的 —— 44 条夹具直调 `Bind` 只证明「能拒收」,
+            //    不证明「在生产烘焙路径上被执行」。落盘后本门逐字节比对,
+            //    使 AC-17-08b 的「构建期硬失败」在生产路径上可证伪(承
+            //    `coding-standards.md` §「某件有门」)。
+            //    ⚠️ 委托走**裸烘焙** `ForagingConstantsBaker.BakeFromRepo`(与上面 21a / 23 / 9 同口径:
+            //    菜单层只多做落盘,不改编码 ⇒ 两条路径的 cooked 字节相同)。
+            new ArtifactBake(DataBakeMenu.ForagingConstantsCookedAssetName,
+                root => ForagingConstantsBaker.BakeFromRepo(root).Cooked),
         };
 
         /// <summary>
@@ -363,7 +374,8 @@ namespace DaYiJingCheng.Tests.Unit.DataPipeline
             // 声明集会**变小**,本行先红。⚠️ 这是本门唯一能自证「扫全了」的判据。
             // 2026-10-26:22 → 24(+clinicmachine_room_names / clinicmachine_context_names,
             // 裁定 ①-C / ②-C 的两张词表)。前值 22 = 2026-10-22 实测(+disease_registry 前值 21)。
-            const int pinnedDeclared = 24; // 2026-10-26 实测(24 份)
+            // 2026-10-26(同日,S20-3 W-3):24 → 25(+foraging_constants,甲案补烘落盘)。
+            const int pinnedDeclared = 25; // 2026-10-26 实测(25 份)
             Assert.That(declared.Count, Is.EqualTo(pinnedDeclared),
                 $"源码声明的产物名 = {declared.Count},钉定值 = {pinnedDeclared}。" +
                 "新增/移除产物名须同时改本数字;数量异常(尤其**变少**)= 扫描器被改坏。\n" +

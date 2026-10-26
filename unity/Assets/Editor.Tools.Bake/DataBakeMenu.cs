@@ -103,6 +103,16 @@ namespace DaYiJingCheng.EditorTools.Bake
         /// **接线归 23 的装配轮**,不在本件(承「补烘 ≠ 登记 ≠ 接线」三分)。</para></summary>
         public const string BuildModulesCookedAssetName = "build_modules.cooked.bytes";
 
+        /// <summary>产物文件名(17 采集调参表 = `foraging_constants.json`;S20-3 评审 W-3 甲案的兑现件)。
+        /// <para>⚠️ 与运行期地址**尚无常量** —— 17 的 `IDataProvider` 消费方在 story-002/004 实现,
+        /// 届时在此登记地址常量(承 <see cref="InteractionKindsCookedAssetName"/> 同款注记:
+        /// 边界程序集不引用本编辑期装配,那侧为字面串)。</para>
+        /// <para>⚠️ 本产物**今日无运行期消费方**(与 <see cref="BuildModulesCookedAssetName"/> 同态)。
+        /// 落产物的意义 = AC-17-08b 的「构建期硬失败」在**生产烘焙路径**上真的被执行
+        /// (承 `coding-standards.md` §「某件有门」:有校验代码 ≠ 校验在生产路径上执行)。
+        /// **接线归 17 的装配轮**,不在本件。</para></summary>
+        public const string ForagingConstantsCookedAssetName = "foraging_constants.cooked.bytes";
+
         /// <summary>
         /// 烘焙 item-database:仓库 assets/data 三源 → 校验(聚合 throw)→ 产物写入 Assets/DataCooked/。
         /// <para>写盘前额外跑 AC-26 产物扫描(全 Assets 下 *.asset,含旧遗留文件)。</para>
@@ -681,6 +691,54 @@ namespace DaYiJingCheng.EditorTools.Bake
                     $"模块 {result.Bound.Rows.Count} 件," +
                     $"furn_type 去重 {BuildModulesBake.DeclaredFurnTypes(result.Bound).Count} 个" +
                     $"(全部 ⊆ FURN_TYPES 闭集 {furn.Bound.Rows.Count} 类型 ✓)," +
+                    $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
+                    $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
+            }
+            catch (BakeValidationException ex)
+            {
+                foreach (string e in ex.Errors)
+                    Debug.LogError("[大医精诚] 烘焙失败:" + e);
+                throw; // 硬失败(校验失败绝不降级为警告)
+            }
+        }
+
+        /// <summary>
+        /// 烘焙 17 采集调参表(S20-3 评审 W-3 甲案):
+        /// 仓库 <c>assets/data/foraging_constants.json</c> + 21a 常量
+        /// → <see cref="ForagingConstantsBinder"/> 阶段 2 绑定(**聚合 throw**)
+        /// → deterministic 编码 → <see cref="ForagingConstantsCookedAssetName"/> 写入 Assets/DataCooked/。
+        /// <para>⚠️ 本菜单是 <see cref="ForagingConstantsBinder"/> 的**唯一生产调用点链路**
+        /// (菜单 → <see cref="ForagingConstantsBaker.BakeFromRepo"/> → Binder → CookedWriter)。
+        /// 绕过它 = Binder 的 8 条构建期校验永不执行 —— 这正是评审 W-3 指出的缺口:
+        /// 补烘前 Binder 是 25 个 Binder 中**唯一零生产调用方**的
+        /// (承 `coding-standards.md` §「某件有门」:有校验代码 ≠ 校验在生产路径上执行)。</para>
+        /// <para>⚠️ 本 Baker **跨表读 21a 的 MAX_QUALITY**(D-21-7 双向耦合)—— 故 21a 三表
+        /// 缺失或绑定失败时本菜单**同样硬失败**,报错前缀为「21a 三表绑定失败」。
+        /// 这是刻意的:「17 的表 × 21a 的常量」这一对必须在**生产烘焙路径**上被联合校验。</para>
+        /// <para>⚠️ **本产物今日无运行期消费方**(与 <see cref="BuildModulesCookedAssetName"/> 同态)——
+        /// 17 的 `IDataProvider` 消费方在 story-002/004 实现。**补烘 ≠ 接线**。</para>
+        /// </summary>
+        [MenuItem("大医精诚/数据管线/烘焙 foraging_constants(17 采集调参表)")]
+        public static void BakeForagingConstants()
+        {
+            try
+            {
+                string repoRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+
+                ForagingConstantsBaker.BakeOutput result = ForagingConstantsBaker.BakeFromRepo(repoRoot);
+
+                string cookedDir = Path.Combine(Application.dataPath, CookedDirName);
+                Directory.CreateDirectory(cookedDir);
+                File.WriteAllBytes(
+                    Path.Combine(cookedDir, ForagingConstantsCookedAssetName), result.Cooked);
+                AssetDatabase.Refresh();
+
+                Debug.Log(
+                    $"[大医精诚] 烘焙完成:{ForagingConstantsCookedAssetName} = {result.Cooked.Length} B," +
+                    $"CapTable {result.Bound.CapTable.Length} 档," +
+                    $"SEASON_MULT {result.Bound.SeasonMult.Length} 项" +
+                    $"(= seasons_per_year {result.Bound.SeasonsPerYear} ✓)," +
+                    $"MAX_QUALITY = {result.MaxQuality}(读自 21a)," +
                     $"ConfigVersion = 0x{result.ConfigVersion:X8}" +
                     $"({DataCoreGroup} 组条目须经「确保 data-core Addressables 组」菜单)");
             }

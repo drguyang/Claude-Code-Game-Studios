@@ -1,12 +1,12 @@
 # Story 001: P0 品种闭集与采集数据装载校验
 
 > **Epic**: 采集
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: 4h
-> **Manifest Version**: 2026-10-02
-> **Last Updated**: 2026-09-28
+> **Manifest Version**: 2026-10-15
+> **Last Updated**: 2026-10-26
 
 ## Context
 
@@ -31,10 +31,10 @@
 
 *From GDD `design/gdd/foraging.md`, scoped to this story:*
 
-- [ ] **AC-17-01b**: `GIVEN` P0 品种集,`WHEN` 与 21a `item_key` 表比对,`THEN` = {柳树皮, 毛地黄, 金鸡纳树皮, 止血草} 四者(规则一)。⚠️ 21a `item_key` 行归实现轮,**在该行落地之前本条不得记绿**(数据侧前置 = 外抛,非本件缺陷)
-- [ ] **AC-17-08b**: `GIVEN` `RegrowWindow` / `Σw` / `CapTable` 的非法值(`≤ 0` / 全零 / 长度 ≠ 61 / 越界),`WHEN` 装载,`THEN` **硬失败**(显式 `throw`,非 `Assert`)(F-17-1 / F-17-3 装载期校验)
-- [ ] **AC-17-16**: `GIVEN` `SEASON_MULT[]`,`WHEN` 装载,`THEN` 表长 = 5 的 `SEASONS_PER_YEAR`(不等 ⇒ 装载期硬失败,非越界读)
-- [ ] **AC-17-14**: `GIVEN` `CapTable[]`,`WHEN` 单测,`THEN` 长度 61 · 单调不减 · `CapTable[0] ≥ 1` · 各值 ≤ `MAX_QUALITY`(防「升级变差」+ 防 `clamp` 抛异常)
+- [x] **AC-17-01b**: `GIVEN` P0 品种集,`WHEN` 与 21a `item_key` 表比对,`THEN` = {柳树皮, 毛地黄, 金鸡纳树皮, 止血草} 四者(规则一)。✅ **前置已解除**(21a 三品种行 2026-10-26 落地并重烘);夹具走 21a **真 binder** 绑定三表后双向比对
+- [x] **AC-17-08b**: `GIVEN` `RegrowWindow` / `Σw` / `CapTable` 的非法值(`≤ 0` / 全零 / 长度 ≠ 61 / 越界),`WHEN` 装载,`THEN` **硬失败**(显式 `throw`,非 `Assert`)(F-17-1 / F-17-3 装载期校验)。✅ Binder 8 条 + Sim 16 条 + `Σw` 4 条,每条守卫各有夹具
+- [x] **AC-17-16**: `GIVEN` `SEASON_MULT[]`,`WHEN` 装载,`THEN` 表长 = 5 的 `SEASONS_PER_YEAR`(不等 ⇒ 装载期硬失败,非越界读)。✅ Binder 4 条 + Sim 3 条
+- [x] **AC-17-14**: `GIVEN` `CapTable[]`,`WHEN` 单测,`THEN` 长度 61 · 单调不减 · `CapTable[0] ≥ 1` · 各值 ≤ `MAX_QUALITY`(防「升级变差」+ 防 `clamp` 抛异常)。✅ Binder 5 条 + Sim 5 条(**两侧各一套**,证伪轮 M1/M2/M3 曾暴露 Sim 侧零覆盖,已补)。⚠️ **2026-10-26 补强**:「各值 ≤ `MAX_QUALITY`」这条此前**只在合成常量下被验过**(真实 `MAX_QUALITY=5` 而 `cap_table` 最大只有 2 ⇒ 判据恒不触发);现由 `test_w3_maxQuality_isReadFrom21a_notHardcoded` 用**收紧的 21a 常量**(1)钉住 — 见证伪轮第四轮 W1/W2
 - [ ] **AC-17-05c** [L]: `GIVEN` 21a 交付的 `quality_character[]`,`WHEN` 人工走查,`THEN` 取值在本系统语义成立(无「陈放」「虫蛀」类采后属性)。✅ 数据回写已完成(2026-09-25,P0 词集零采后词,语义筛已过);**走查执行仍未跑,禁借回写记绿**(GDD 注⑥)
 
 ---
@@ -106,7 +106,12 @@
 - Logic: `unity/Assets/Tests/EditMode/Foraging/foraging_data_load_test.cs` — must exist and pass
 - [L](AC-17-05c): 人工走查证据 `production/qa/evidence/foraging-05c-<date>.md`(ADVISORY 性质,执行归实现/走查轮)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing —— `unity/Assets/Tests/EditMode/Foraging/foraging_data_load_test.cs` · **44/44 passed**(`Logs/foraging-supp.xml`,2026-10-26)
+**账本树并列**:`tests/unit/foraging/`(账本约定路径;工程主体在 `unity/Assets/Tests/EditMode/Foraging/`)
+**证伪轮**:三轮共 35 条变异 —— 第一轮 M1–M15(补件前,抓出 3 条真缺口)+
+第二轮 M1/M2/M3/M16–M27(15 条,补件后全红)+ 第三轮 B1–B5(5 条,Binder 分支拆分)。
+逐条反证见 `production/qa/evidence/impl-s20-3-foraging001-2026-10-26.md` §4.2 / §4.5
+**AC-17-05c [L]**:`production/qa/evidence/foraging-05c-<date>.md` —— ⚠️ **仍 NOT-RUN**(人工走查,须主创签核,**本卡不记绿**)
 
 ---
 
@@ -119,4 +124,178 @@
 
 ## Completion Notes
 
-*(placeholder — to be filled at story completion)*
+**Completed**: 2026-10-26
+**Criteria**: 4/5 passing(AC-17-01b / 08b / 14 / 16);AC-17-05c [L] **NOT-RUN**(人工走查,须主创签核,不记绿)
+
+### 交付面(10 文件 —— 含 W-3 甲案补烘的 4 项)
+
+| # | 文件 | 性质 |
+|---|---|---|
+| ① | `assets/data/foraging_constants.json` | 新增(作者态,17 自家调参表) |
+| ② | `unity/Assets/Sim/Foraging/ForagingConstants.cs` | 新增(Sim 侧运行期视图 + 15 条构造期拒收) |
+| ③ | `unity/Assets/Sim/Foraging/QualityDistributionShape.cs` | 新增(`Σw ≥ 1` 形状校验器) |
+| ④ | `unity/Assets/Editor.Tools.Bake/ForagingConstantsSchema.cs` | 新增(键白名单 + 读取辅助) |
+| ⑤ | `unity/Assets/Editor.Tools.Bake/ForagingConstantsBinder.cs` | 新增(唯一构建期校验点) |
+| ⑥ | `unity/Assets/Tests/EditMode/Foraging/foraging_data_load_test.cs` | 新增(46 测 = 44 + 2 条 M-4) |
+| ⑦ | `unity/Assets/Editor.Tools.Bake/ForagingConstantsCookedWriter.cs` | 新增(W-3: cooked 编码器) |
+| ⑧ | `unity/Assets/Editor.Tools.Bake/ForagingConstantsBaker.cs` | 新增(W-3: 烘焙入口,跨表读 21a `MAX_QUALITY`) |
+| ⑨ | `unity/Assets/Tests/EditMode/Foraging/foraging_bake_wiring_test.cs` | 新增(W-3: 6 条接线夹具 —— 5 条初版 + 1 条跨表耦合假绿修复) |
+| ⑩ | `unity/Assets/DataCooked/foraging_constants.cooked.bytes` | 新增(**入库产物**,352 B) |
+
+**另改 2 文件**:`DataBakeMenu.cs`(产物名常量 + MenuItem)、
+`cooked_drift_all_artifacts_test.cs`(`BakedArtifacts` +1、`pinnedDeclared` 24 → 25)。
+
+### 测试证据
+
+- **夹具级**:`52/52/0/0`(`Logs/w-rebuild.xml`,2026-10-26)
+  —— 44 既有 + 2 条 M-4 + **6 条 W-3**(5 条初版 + 1 条证伪轮抓出的假绿修复件
+  `test_w3_maxQuality_isReadFrom21a_notHardcoded`)
+- **全量回归**:**`5174/5139/0/35`**(`Logs/w-final-full.xml`,XML `03:04:52Z`–`03:06:36Z`)
+  —— 基线 `5121/5086/0/35`(`f7-full.xml`,`09a75cc`),
+  **增量 +53 = 52 条新夹具 + 1 条 `TestCaseSource` 展开**,`failed=0` 零回归
+  ⚠️ 上一读数 `5173/5138/0/35` 是**补件前**的(51 条夹具时),**不得当作现值**
+- **证伪轮**:第一轮 M1–M15 + 第二轮 15 条 + 第三轮 5 条 + **第四轮 W1–W7** ——
+  逐条反证见 `production/qa/evidence/impl-s20-3-foraging001-2026-10-26.md`
+  §4.2 / §4.5 / **§4.4.9**
+
+> ⚠️ **第四轮首跑 W1/W2 双双 `red=0`(假绿),已修夹具后转红**(2026-10-26)。
+> 根因:真实 `MAX_QUALITY` 恰为 5,而 17 的 `cap_table` 最大值只有 2 ⇒
+> 「写死 5」与「真读 21a」产物**逐位相同**,原夹具集合对该属性零判别力。
+> 修法:新增跨表耦合夹具 —— 把 21a 的 `max_quality` 改成 1(17 的表一字不动),
+> 使 `cap_table` 的 2 成为违例。这是 S12-4 Falsifiability Gate 抓出的**第五条假绿形态**。
+
+#### Falsifiability Gate 判据表(S12-4 模板 · 第四轮 W1–W7)
+
+| 命中形态 | 主要断言 | 反证:停用什么 ⇒ 哪条转红 |
+|---|---|---|
+| 定义域收窄(跨表耦合) | `Read21aMaxQuality` 真读 + 喂进 `Bind` | 停用 `Read21aMaxQuality`(写死 5)⇒ `test_w3_maxQuality_isReadFrom21a_notHardcoded` 红 |
+| 定义域收窄(跨表耦合) | `Bind(json, maxQuality)` 用真值驱动校验 | 改成 `Bind(json, 5)` ⇒ 同上转红 |
+| 阈值边界(头部契约) | magic = `'D'` | 改 `'X'` ⇒ `test_w3_cookedHeader_matchesCookedFormat` 红 |
+| 阈值边界(头部契约) | offset 4 = `CookedFormat.FormatVersion` | 改 `99u` ⇒ 同上红 |
+| 阈值边界(头部契约) | offset 12 = `configVersion` | 改 `0u` ⇒ 同上红 |
+| 阈值边界(头部契约) | offset 16 = `payload.Length` | 改 `+1` ⇒ 同上红 |
+| 一次性/同源 | Baker 与 Menu 的产物名同值 | 改 `_v2` 后缀 ⇒ `test_w3_cookedFileName_matchesMenuConstant` 红 |
+
+**Gate 结果 = PASS**(7/7 转红,`SUMMARY: 7 / 7 turned red`,SHA-256 逐字节还原)。
+⚠️ **首跑 2/7 转红(W1/W2 `red=0`),修夹具后才 7/7** —— 两个数字都须记录,见证据件 §4.4.9。
+
+### 证伪轮抓出的真缺口(本卡最重要的过程记录)
+
+**第一轮 M1/M2/M3 三条 RED=0** —— 不是变异打错靶,是**真缺口**:
+`test_ac1714_*` 三条测的是 **Binder 侧**,而这三条守卫在 **Sim 侧构造器**。
+`ForagingConstants` 15 条守卫只有 3 条有 Sim 侧夹具。
+
+**修法**:补 17 条夹具(Sim 13 + Binder 4),第二轮 M1/M2/M3 **全部转为 RED=1**。
+**M10 另暴露一处分支缺口**:`df.Raw <= 0 || df.Raw > Fix.OneRaw` 是合取判据,
+停用整条只有上界分支转红 ⇒ 下界分支零覆盖;补 `test_ac1708b_decayFloorZero_rejected`,
+第三轮 B1/B2 按分支拆开各验一条。
+
+> ⚠️ **这条教训值得记**:「两侧都测」写在文件头注释里,但**注释不是执行体**。
+> 只有证伪轮把它变成了可观测事实 —— 与 `coding-standards.md` §「某件有门」的自述须给
+> `file:line` + 可跑命令是同一条纪律。
+
+### Deviations
+
+- **ADVISORY · TD-foraging-01**:GDD `:541` / `:711` 的 `CapTable` 公式与散文互斥
+  (公式只产出 `{1,2}`,散文承诺值域到 5 且四切点)。用户 2026-10-26 裁定「照字面式落地」,
+  已登债册(P0 面 **N**),归数值轮修。
+- **ADVISORY · 数据通道缺口**:`quality_distribution` 在 21a 四行 `gather_profile` 中**全不存在**,
+  21a binder 拒收其任何字段 ⇒ **既没写进去也没读出来**。本件补了 17 侧形状校验器
+  (`QualityDistributionShape`),但生产数据侧仍无字段可校验 —— 缺口归 21a 的形状落地轮。
+  ⚠️ **不得**因「没有数据」删掉该校验器:`Σw ≥ 1` 是 GDD `:306-309` 点名的**唯一**防线。
+- **卡面笔误已订正**:Note 1 把 `quality_distribution` 列进「17 自家调参表」;
+  用户裁定「按 GDD:住 21a」,卡面已就地加注。
+
+### ⚠️ 待裁缺口:烘焙接线不存在 → **✅ 已裁并补齐(甲案,2026-10-26)**
+
+> **原文不删,就地加注**:以下实测是**补齐前**的状态,保留作过程记录。
+> 用户裁定 **甲案 —— 本 story 内补齐**,已于同日实施完毕,见 §「W-3 补齐」与证据件 §四之四。
+
+补齐前的实测:`ForagingConstantsBinder` **没有 Baker 调用它**,`DataBakeMenu` 里**零 `Foraging` 注册**,
+`unity/Assets/DataCooked/` 下**无 `foraging*` 产物**,三个新类**零生产调用方**(只被夹具调用)。
+
+ADR-014 的链路 = 作者态 JSON → 词法 → **Binder 校验** → **Baker 写 `*.cooked`** → `IDataProvider`。
+补齐前本件只完成**阶段 2(Binder)**,缺 **Baker + MenuItem 注册**两环。
+全案 24 个 Binder 中,本表是**唯一只有 Binder 没有 Baker 的**。
+
+~~**为什么不擅自补**:卡面无「Files to Create」节;补 Baker + MenuItem + `.cooked` 是独立接线工作,
+且 `.cooked` 入库即成为须随源表同步的派生物。⇒ **须裁**:(甲)本 story 内补齐 /(乙)另立 story /(丙)登债册。~~
+
+> ⚠️ 该缺口**当时不影响**已交付判据(AC-17-08b / 14 / 16 判的是「装载期校验行为」),
+> 但**补齐后**判据更强了一层:现在连「校验在**生产烘焙路径**上真的被调用」也有夹具钉住
+> (`test_w3_badSourceTable_bakerRejects` + 证伪轮 W1)。
+
+### W-3 补齐(甲案实施,2026-10-26)
+
+| 项 | 内容 |
+|---|---|
+| 新增文件 | `ForagingConstantsCookedWriter.cs`(编码器)· `ForagingConstantsBaker.cs`(烘焙入口)· `foraging_bake_wiring_test.cs`(5 条夹具) |
+| 新增产物 | `unity/Assets/DataCooked/foraging_constants.cooked.bytes` = **352 B**,`ConfigVersion = 0x1CFDA66D` |
+| 菜单注册 | `DataBakeMenu.BakeForagingConstants()` —— `[MenuItem("大医精诚/数据管线/烘焙 foraging_constants(17 采集调参表)")]` |
+| 漂移门登记 | `cooked_drift_all_artifacts_test.BakedArtifacts` +1(带现烘委托)、`pinnedDeclared` **24 → 25** |
+| 跨表联合校验 | Baker **从 21a 读 `MAX_QUALITY`**(`ItemDatabaseBinder.BindAll` 真 binder),使「17 的表 × 21a 的常量」在生产路径上被联合校验 |
+
+**落盘实测**:`MAX_QUALITY = 5(读自 21a)` —— 是**读出来的**,不是写死的。
+
+### 评审 W-1 / W-2 不修(用户裁定,登记不隐藏)
+
+| 项 | 判定 | 处置 | 理由 |
+|---|---|---|---|
+| **W-1** 构造器 95 行、CC≈16 | FAIL(WARNING) | **不修** | 「≤40 行 / CC<10」**不是项目硬规定** —— `coding-standards.md` / `control-manifest.md` 零命中,仅 `/code-review` skill 的通用清单。全仓同类:`DiseaseRegistryBaker` 397 行、`ClinicMachineTablesBake` 322 行 |
+| **W-2** `Bind` 约 150 行 | FAIL(WARNING) | **不修** | 同上。且拆分会让 15 条守卫行号全变 ⇒ 35 条证伪轮锚点失效,须整轮重跑 |
+
+> ⚠️ 这是**已知的形态偏差**,不是「没问题」。若将来升为硬规定,两条须重新评估。
+
+### 评审四条 MINOR 全修
+
+| # | 修法 | 钉它的夹具 |
+|---|---|---|
+| **M-1** | `QualityDistributionShape.cs:40` 注释「四条」→「**五条**判据」并逐条列出 | 纯注释,读数证明(5 条 `throw new ArgumentException`) |
+| **M-2** | 真实表测试改用 `Read21aMaxQuality()`(走 21a 真 binder);`MaxQuality` 常量加注「合成夹具专用」 | `test_realTable_loadsAndSatisfiesAllShapeInvariants` |
+| **M-3** | `:105` catch 过滤器改单 `catch (ArgumentException ex)`(后者派生自前者) | `test_qualityDistribution_*` 4 条 |
+| **M-4** | 5 个 `ReadRequiredXxx` 的缺键分支改**静默**(承 `InputAxisTuningBinder.BindRequiredFix:93`),缺键由 `RequiredKeys` 循环统一报一次 | **新增 2 条**:`test_m4_missingRequiredKey_reportedExactlyOnce` / `test_m4_missingMultipleKeys_allReportedInOnePass` |
+
+⚠️ **M-4 有真实风险面**:调用方若不先跑 `RequiredKeys` 检查,缺键会**静默丢失**。
+已核实 Binder 的 8 个 `ReadRequired*` 调用都在 `RequiredKeys` 循环**之后**(`:117-120`),
+且 8 个 `if (ReadRequired...)` 各自独立、**不短路**,「一次报全」不受影响。
+
+### Code Review
+
+✅ 已完成 —— `lead-programmer`,**APPROVED WITH SUGGESTIONS**(零 BLOCKING)。
+8 条硬约束中 7 条 PASS、1 条 FAIL(W-1/W-2,已裁定不修)。
+评审结论与逐条订正见证据件 §四之四。
+⚠️ 评审自陈未及项:未独立重跑测试(数字引自卡面)、GDD F-17-1/2/3 未逐行读、
+control-manifest Foundation 规则未读原文。
+⚠️ **评审的「甲案理由③」(下游 story-002/004 经 IDataProvider 消费 cooked)经实测不成立** ——
+story-002/003/004/005 **零命中** `cooked` / `IDataProvider`。甲案仍成立,但理由是
+「生产路径可证伪」而非「下游已依赖」。
+
+### 收口判定(2026-10-26 · /story-done · lean 模式)
+
+**Verdict = COMPLETE WITH NOTES**
+
+| 项 | 结果 |
+|---|---|
+| Acceptance Criteria | **4/5 passing**(AC-17-01b / 08b / 14 / 16);AC-17-05c [L] **NOT-RUN** |
+| Test Evidence(Logic) | ✅ 两文件齐:`foraging_data_load_test.cs`(46)+ `foraging_bake_wiring_test.cs`(6) |
+| Falsifiability Gate | ✅ **PASS** —— `7 / 7 turned red`;⚠️ 首跑仅 2/7(见下) |
+| 偏差 | 无 BLOCKING;3 条 ADVISORY(已登记于 §Deviations) |
+| Code Review | ✅ `lead-programmer` APPROVED WITH SUGGESTIONS(用户 2026-10-26 确认) |
+| 评审报告原件 | ⚠️ **未独立落盘** —— 评审结论只在本卡 §Code Review 段。本 story **零 BLOCKING**,故不触发 `coding-standards.md` §评审报告原件的 BLOCKING 义务(该义务的触发条件是「产出 BLOCKING 级判定」) |
+| Manifest 时效 | ✅ 本卡 `2026-10-15` = 当前 `control-manifest.md` `:5` **2026-10-15**,不过期 |
+
+**未通过项与不记绿声明**:
+- **AC-17-05c [L]**(人工走查 `quality_character[]` 语义)→ **NOT-RUN**,
+  `production/qa/evidence/foraging-05c-*.md` **不存在**。数据回写已完成(2026-09-25)
+  ≠ 走查已执行。**本卡不因此项记绿,亦不因回写借绿。**
+
+**证伪轮首跑 2/7 的如实记录**:
+W1/W2 首跑 `red=0` 是**真实的假绿夹具**(BLOCKING 级),已按 S12-4 修夹具后第二跑 7/7 转红。
+⚠️ **两个数字都须保留** —— 只记「7/7」会把修完的结果当成一开始就有的结果。
+详见 `production/qa/evidence/impl-s20-3-foraging001-2026-10-26.md` §4.4.9。
+
+**测试证据三元组**:
+`2026-10-26 03:04:52Z–03:06:36Z`(XML UTC) · 批次 **S20-3 收口** · commit **本次提交**
+全量 `5174 / 5139 / 0 / 35` · 基线 `5121 / 5086 / 0 / 35`(`09a75cc`)· **+53 = 52 夹具 + 1 `TestCaseSource` 展开**
+复算:`grep -o 'total="[0-9]*" passed="[0-9]*" failed="[0-9]*"' unity/Logs/w-final-full.xml | head -1`
+

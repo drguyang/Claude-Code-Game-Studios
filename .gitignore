@@ -268,3 +268,10 @@ Logs/shots/
 # 是**保留时长**问题,不是入库问题;把 .bak 入仓会让仓里长期堆副本。
 # 窄 glob:只匹配仓根 `fz-s19*` 形态,不碰其它路径。
 /fz-s19*/
+
+# 单文件形态的变异备份(手写证伪脚本用 `cp <file> <file>.falsify-backup`)。
+# 立此规则缘由(2026-10-26 S20-3):上一条只盖**目录**形态,单文件备份会带着
+# Unity 自动生成的 `.meta` 一起污染工作树(S20-3 实测残留 `*.cs.falsify-backup.meta`)。
+# 窄 glob:只匹配 `*.falsify-backup` 与其 `.meta`,不碰任何源文件。
+*.falsify-backup
+*.falsify-backup.meta

@@ -11356,3 +11356,118 @@ D-08 只覆盖返回 `FoldResult` 的委托形态。
 - 提交链:`1b2f70f`(词表落地)→ `90fc2e1`(评审修复 D1-D3+Q1-Q5)→ `fd269fc`(ADR-025 行号订正)
   → **F7 修复批 + 收口件(未提交,等用户指令)**
 - Next:`/sprint-status` 看 sprint-20 剩余;S20-3 起
+
+<!-- S20-3 实现轮 + 证伪轮(2026-10-26) -->
+- **S20-3(foraging-001)**:6 文件交付(`foraging_constants.json` / `ForagingConstants.cs` /
+  `QualityDistributionShape.cs` / `ForagingConstantsSchema.cs` / `ForagingConstantsBinder.cs` /
+  `foraging_data_load_test.cs`)—— **Status: In Progress**,等评审结论 + 用户裁「烘焙接线缺口」
+- **证伪轮三轮 35 条**:第一轮 M1–M15(抓出 **M1/M2/M3 三条 RED=0 真缺口** ——
+  `test_ac1714_*` 测的是 Binder 侧,而这三条守卫在 Sim 侧构造器;Sim 侧 15 条守卫只有 3 条有夹具)
+  ⇒ 补 17 条夹具(Sim 13 + Binder 4)⇒ 第二轮 15/15 全红(**M1/M2/M3 从 RED=0 → RED=1**)+
+  第三轮 B1–B5 全红(**B1/B2 把 M10 暴露的合取判据分支缺口按分支拆开各验一条**)
+- **M10 的教训**:`df.Raw <= 0 || df.Raw > Fix.OneRaw` 停用整条只红上界 ⇒ **下界分支零覆盖** ——
+  「一属性一条变异」在合取判据上的具体失效形态
+- **夹具级**:`44/44/0/0`(`Logs/foraging-supp.xml`)—— 27 → 44(+17)
+- **全量回归**:`5165 / 5130 / 0 / 35` @ 2026-10-26 10:01(`Logs/s20-3-full2.xml`);
+  基线 `5121/5086/0/35`(`f7-full.xml`,09a75cc)⇒ **增量 +44 == 新增夹具 44,差集消失 0,零回归**
+- **⚠️ 借绿陷阱已避开**:`Logs/s20-3-full.xml`(5142/5107)是 **21 条时期**跑的(09:36),
+  比 `s20-3-foraging4.xml`(27 条,09:37)早 1 分钟 —— **不能当「含 44 条新测的全量」**
+- **⚠️ 待裁缺口:烘焙接线不存在** —— `ForagingConstantsBinder` **零调用方**(全案 25 个 Binder 中唯一),
+  `DataBakeMenu` 零 `Foraging` 注册,`DataCooked/` 无 `foraging*` 产物,三个新类零生产消费方。
+  ADR-014 链路缺「Baker 写 `*.cooked`」+「MenuItem 注册」两环。三选一待裁:
+  (甲)本 story 补齐 /(乙)另立 story /(丙)登债册。证据件 §四之三
+- **三处权威冲突已裁**:TD-foraging-01(CapTable 公式 vs 散文,照字面式落地,P0 面 N)·
+  `quality_distribution` 住 21a(卡面 Note 1 是笔误)· 数据通道全库缺失(归 21a 形状落地轮)
+- **两处纪律违规如实登记**:我在 M12 / M22 变异窗口内读了被变异文件(读数均未用作判据,
+  还原后已重读确认)—— 承 `tools/falsify/README.md` §并发读取禁令
+- **工作树**:三件 SHA-256 与基线逐字节一致 · 零 `if(false)` · 零 `.falsify-backup` · 无 Unity 进程
+- Next:等 lead-programmer 评审 → 用户裁烘焙接线 → `/story-done`
+
+## S20-3 评审轮 + W-3 甲案补齐(2026-10-26 下午)
+
+### 评审结果(lead-programmer · APPROVED WITH SUGGESTIONS · 零 BLOCKING)
+
+- 8 条硬约束:**7 PASS**,1 FAIL(W-1/W-2 方法行数/复杂度)
+- 发现:W-1(WARNING)· W-2(WARNING)· W-3(烘焙接线缺口)· M-1..M-4(MINOR)
+- ⚠️ **评审理由③经实测不成立**:「下游 story-002/004 经 IDataProvider 消费 cooked」
+  —— story-002/003/004/005 **零命中** `cooked` / `IDataProvider`
+
+### 用户裁定(三项)
+
+| 项 | 裁定 |
+|---|---|
+| 烘焙接线缺口 | **甲:本 story 内补齐** |
+| W-1 / W-2 | **不修** —— 登记为「与既有先例一致的形态」 |
+| M-1..M-4 | **四条全修** |
+
+### W-1/W-2 不修的依据(实测)
+
+「方法 ≤40 行 / CC<10」**不是项目硬规定** —— `grep -n "40 行\|复杂度\|Cyclomatic"
+.claude/docs/coding-standards.md docs/architecture/control-manifest.md` **零命中**;
+仅 `/code-review` skill 的通用 checklist。全仓同类先例:`DiseaseRegistryBaker` 397 行、
+`ClinicMachineTablesBake` 322 行。
+
+### W-3 甲案已落地
+
+- 新增 `ForagingConstantsCookedWriter.cs` + `ForagingConstantsBaker.cs` + `foraging_bake_wiring_test.cs`(5 测)
+- 新增产物 `unity/Assets/DataCooked/foraging_constants.cooked.bytes` = **352 B**,`ConfigVersion = 0x1CFDA66D`
+- `DataBakeMenu` 加 `BakeForagingConstants()` MenuItem
+- `cooked_drift_all_artifacts_test`: `BakedArtifacts` +1、`pinnedDeclared` **24 → 25**
+- **跨表**:Baker 从 21a 真 binder 读 `MAX_QUALITY`(落盘实测 = 5,是读出来的)
+
+### 测试证据(带三元组)
+
+- 夹具级(补假绿修复前):**`51 / 51 / 0 / 0`**(`Logs/s20-3-w3-wiring.xml`,10:31)
+- 全量(补假绿修复前):**`5173 / 5138 / 0 / 35`**(`Logs/s20-3-w3-full2.xml`,10:44);
+  基线 `5121 / 5086 / 0 / 35`(`f7-full.xml`,09a75cc)⇒ **+52 = 51 新夹具 + 1 条 TestCaseSource 展开**
+- 首跑 `5172/5136/1/35` 那条失败 = `test_sweep_declaredArtifactNames_allTriaged`
+  「声明 25 ≠ 钉定 24」—— **门按设计工作**,已修
+- 夹具级(**补假绿修复后**):**`52 / 52 / 0 / 0`**(`Logs/w-rebuild.xml`)—— 全量回归须重跑
+
+### ⚠️ 证伪轮第四轮抓出的**第五条假绿形态**(夹具假绿,不是变异缺陷)
+
+**首跑 W1/W2 双双 `red=0`**。我第一反应把它判成「W1 的变异打空靶,W2 才是正确靶」——
+**这个判断被 W2 自己的 `red=0` 证伪了**。
+
+**真根因**:W1/W2 的原靶测都是 `test_w3_badSourceTable_bakerRejects`(坏 `regrow_window_ticks`),
+而那条守卫**与 `maxQuality` 无关** ⇒ 任何只动 `maxQuality` 的变异都不可能让它转红。
+**靶测选错了**,不是变异选错了。
+
+**为什么没有别的夹具能兜住**:`21a max_quality = 5`,而 `17 cap_table 最大值 = 2`
+⇒ `2 ≤ 5` 恒成立 ⇒ 「写死 5」与「真读 5」的 `BindResult` **逐位相同** ⇒ 产物字节相同
+⇒ **整个夹具集合对该属性零判别力**。
+
+**修法**:新增 `test_w3_maxQuality_isReadFrom21a_notHardcoded` —— 把 **21a 的**
+`max_quality` 改成 1(17 的表一字不动),让 `cap_table` 的 2 成为违例。
+真读 ⇒ 拒收;写死 5 ⇒ 放行。**一条夹具同时钉住 W1 与 W2**。
+
+**W 系列第二跑**:W1 ✅ · W2 ✅ · W3 ✅ · W4 ✅ · W5 ✅ · W6 ✅ · W7 待末条。
+
+> ⚠️ 教训:**「变异 `red=0`」不能一律归因于变异选得不好** —— 先查「靶测到底测没测这条属性」,
+> 再查「真值是否恰好让变异前后同构」。两者都排除后才是「变异打空靶」。
+> 承记忆 `project-falsification-probe-pitfalls` 的「变异打错靶」子形态。
+
+### ⚠️ 纪律事故(如实登记)
+
+第一版证伪脚本 XML 解析有 bug ⇒ 我用 `TaskStop` 中止 ⇒ **杀在还原之前**,
+`ForagingConstantsBaker.cs` 留变异态 + `.falsify-backup` 残留。
+处置:用备份还原,SHA-256 校验回基线 `ce4def2d...` ✅,零 `FALSIFY` 串。
+**教训**:证伪脚本有 bug 时不能「先停再修」—— 停的那一刻就可能在变异窗口内。
+
+⚠️ 又犯一次:整轮跑动期间我读了 `ForagingConstantsBaker.cs:81`,看到 W2 变异态
+(`int maxQuality = 5;`)。**该读数作废,未用作判据**。
+
+## Session Extract — /story-done 2026-10-26(S20-3 收口)
+
+- **Verdict: COMPLETE WITH NOTES**
+- Story: `production/epics/foraging/story-001-variety-closure-and-data-load-validation.md` — foraging-001
+- AC: **4/5**(AC-17-01b / 08b / 14 / 16);**AC-17-05c [L] 仍 NOT-RUN**(人工走查,不记绿)
+- 夹具级 `52/52/0/0` · 全量 `5174/5139/0/35`(基线 5121 ⇒ **+53 = 52 夹具 + 1 TestCaseSource 展开**,零回归)
+- 证伪轮第四轮:**首跑 2/7 → 修夹具后 7/7 转红**(W1/W2 假绿,详见证据件 §4.4.9)
+- 债册:本轮未新登(3 条 ADVISORY 均为既有条目/用户已裁)
+- Code Review:`lead-programmer` APPROVED WITH SUGGESTIONS(用户确认);原件未独立落盘(零 BLOCKING,不触发义务)
+- **Next recommended**:`S20-4 processing-001 配方子集 + 可采纳谓词`(`production/epics/processing/story-001-recipe-subset-and-admissible-predicate.md`,status ready-for-dev)
+
+### Next
+
+等证伪轮 W1–W7 结果 → 确认零残留 → 更新 story 卡 → `/story-done`
