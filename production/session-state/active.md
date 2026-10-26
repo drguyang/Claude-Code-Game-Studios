@@ -11610,3 +11610,38 @@ Status = **Ready**(全仓 `grep -rn "InventoryOf" unity/Assets tests/ --include=
    后者正是 ADR-012 F7 spike 要测的,本件未触及 ⇒ **不得把这条绿读作「跨平台已有半保障」**。
 
 **全量回归**:5196/5161/0/35(基线 5174 ⇒ +22 == 新增夹具数,零回归)
+
+## 2026-10-26 · foraging-003 前置勘察 + 用户裁「甲」
+
+**勘破一处权威冲突(不是我以为的那种)**:
+`foraging-003` AC-17-01 要求「恰发三条」;**但 `entities.yaml` 明定**
+`DropSpawned` / `DropClaimed` 的 `author = 20 库存与物品`,且 `DropSpawned` 的 constraint
+**原文就留了这条警告**:
+> ⚠️ 17 侧「主机同 tick 连发」未逐字点名 Drop* 两支写者,本登记采 ADR-009 §三/§五 +
+> Amendment J ④ 的一致口径;**实现期若 17 GDD 改口径回改本条**
+
+⇒ `ResourceHarvestWriter` 类头「另两条归 20」**与 registry 一致,是对的**;不存在冲突。
+真缺口 = **20 侧两个写者至今不存在**(`inventory-items` 六件全 Ready)。
+
+**AC 可达性**:
+| AC | 可达? |
+|---|---|
+| AC-17-01(三事件恰发) | ❌ 需 20 的两个写者 |
+| AC-17-05(17 侧零 `new ItemInstanceId`) | ✅ 自足 |
+| AC-17-05b(恰一条 SkillGrown) | ✅ 自足 |
+| R11 邻接(铸造点当下性) | ⚠️ 半边(依赖 DropSpawned) |
+
+**用户裁定(2026-10-26)**:取 **甲** —— 本体做扎实(AC-17-05 / 05b 做齐 + 证伪轮),
+AC-17-01 / R11 建夹具跑通但 **AC 不勾**。
+与 `inventory-001` 同一处置口径。
+
+**已否决**:
+- 乙(先做 inventory-002):20 侧写者归属哪件尚未明确,会陷更长链
+- 丙(ADR-009 窄修订把 author 改成 17):为省事改权威口径;且 `DropSpawned` 另有 25 / 29 两个
+  触发方也要各自处理,代价大于收益
+
+> 🔁 **2026-10-26 收口轮订正**:上文原设想「`Ignore` 点名 BLOCKED-BY」**未采用** ——
+> 落地选了更强的形态:两条 AC-17-01 夹具**真跑**(不用 `Ignore`),其中
+> `test_ac1701_resourceHarvestedIsWritten_butDropEventsAreNot` 是**反向夹具**,
+> 把「今天世界流只增 1 条」钉成红灯条件,20 落地后转红 = **期待**而非故障。
+> 实测:测试件内零 `Ignore` 标记。
