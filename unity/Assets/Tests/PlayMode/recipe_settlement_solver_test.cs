@@ -223,6 +223,15 @@ namespace DaYiJingCheng.Tests.Integration.ItemDatabase
             //    是参数名(大小写不敏感匹配的副产品),三者均非自建公式体。
             { "Sim/ItemDatabase/ConservationSolver.cs",
               "守恒律谓词宿主 —— 委托调用唯一求解器(ActualConsumed/OutputQty,D-21-32 单一实现),参数名非公式体" },
+            // ⑤ `InventoryOf` 世界流折叠本体(inventory-001)—— 与 ② ③ **同一性质**:
+            //    `p.ActualConsumed[k]` / `p.OutputQuality` 是**读 `Craft` 载荷字段**(registry schema,
+            //    ADR-024)去逐实例扣减,属**消费数据**;真正的 F1/F2 公式体住唯一求解器。
+            //    实证(2026-10-27):本文件对其余**七个**公式标识符
+            //    (`CeilDiv` / `Efficiency` / `Retain(` / `QtyMultiplier` / `SumOfModifiers` /
+            //     `QualityMod` / `EnvModTotal`)**全部零命中** —— 只有这两个载荷字段名碰到。
+            //    ⇒ 不是「把标识符塞进注释/字符串绕过」,是**字段名与公式出参同名**这一客观重合。
+            { "Sim/ItemDatabase/InventoryFold.cs",
+              "Craft 载荷字段的读取方(registry schema,ADR-024)—— 逐实例扣减消费数据,非自建公式体" },
         };
 
         [Test]
@@ -264,6 +273,54 @@ namespace DaYiJingCheng.Tests.Integration.ItemDatabase
             // Then:匹配器须能抓到(自证:否则上条的「零命中」是假绿)
             Assert.That(hits, Is.Not.Empty,
                 "扫描器对合成违例必须命中 —— 否则 test_formulaBodyIdentifiers... 的零命中不可信");
+        }
+
+        [Test]
+        public void test_formulaBodyScanner_survivesStripStringLiterals_stillDetectsRealCode()
+        {
+            // 立此条缘由(2026-10-27):上一条自证**直接喂 MatchIdentifiers**,
+            //   绕过了 stripComments ⇒ 它证不了「剥完字符串之后还能抓到真代码」。
+            //   而剥字符串正是本轮为消除假红所做的改动 —— 打得过头会让门**静默失明**。
+            //   故此处必须**走完整链路**(源码文本 → stripComments → MatchIdentifiers)。
+
+            // Given:合成源 = 一段**真代码**里自建结算(非注释、非字符串)
+            string realCode = "public static int Calc(int qty) " +
+                              "{ int OutputQuality = qty; int ActualConsumed = qty; " +
+                              "return OutputQuality + ActualConsumed; }";
+
+            // When:走与生产扫描器**同一**的剥除 → 匹配链路
+            List<string> hits = MatchIdentifiers(stripComments(realCode), FormulaIdentifiers);
+
+            // Then:剥字符串不得把真代码也剥掉 —— 命中须仍在
+            Assert.That(hits, Does.Contain("OutputQuality").And.Contain("ActualConsumed"),
+                "剥字符串后**真代码**里的公式体标识符仍须命中 —— 否则门已静默失明,上条的零命中是假绿");
+        }
+
+        [Test]
+        public void test_formulaBodyScanner_stringLiteralAndComment_onlyMentions_doNotHit()
+        {
+            // 另一半:**只**出现在字符串字面量 / 注释里的标识符,剥除后必须零命中。
+            // 这是 2026-10-27 假红的直接成因(诊断串里写了 `ActualConsumed(`)。
+
+            // Given:标识符只存在于 ① 常规串 ② 插值串 ③ 逐字串 ④ 行注释 ⑤ 块注释 ⑥ 字符类上下文
+            string onlyMentions =
+                "public static int Calc(int qty) {\n" +
+                "  // 注释里提到 OutputQuality 与 ActualConsumed\n" +
+                "  /* 块注释 ActualConsumed */\n" +
+                "  string a = \"ActualConsumed=(\" + qty + \")\";\n" +
+                "  string b = $\"Quality: {qty} OutputQuality\";\n" +
+                "  string c = @\"逐字 OutputQuality \\\" 引号\";\n" +
+                "  char d = 'Q';\n" +
+                "  return qty;\n" +
+                "}\n";
+
+            // When:走完整链路
+            List<string> hits = MatchIdentifiers(stripComments(onlyMentions), FormulaIdentifiers);
+
+            // Then:零命中 —— 注释与字符串都不是「当公式体用」
+            Assert.That(hits, Is.Empty,
+                "只出现在注释/字符串里的标识符不得命中 —— 否则诊断串会伪造违例(2026-10-27 假红):" +
+                string.Join(",", hits));
         }
 
         [Test]
@@ -328,28 +385,99 @@ namespace DaYiJingCheng.Tests.Integration.ItemDatabase
             return violations;
         }
 
-        /// <summary>剥注释:块注释 + 行注释(文档性提及不算「当公式体用」)。</summary>
+        /// <summary>剥注释**与字符串 / 字符字面量**。
+        /// <para>判据是「当公式体用」—— 文档性提及、以及**诊断串里的字段名**都不算。
+        /// 常规 / 逐字 / 插值字符串(`"…"` / `@"…"` / `$"…"` / `$@"…"`)与 `'…'` 字符字面量一律剥除;
+        /// 剥掉的位置填一个空格,避免前后 token 粘连成新的标识符。</para>
+        /// <para>⚠️ <b>2026-10-27 修</b>:前一版只剥注释,于是
+        /// <c>"…ActualConsumed(" + m + ") 不等长…"</c> 这类**诊断串**被当成公式体
+        /// (`inventory-001` 的 `InventoryFold.cs` 因此假红)。剥字符串是必要的,
+        /// 但**不充分** —— 见 <see cref="MatchIdentifiers"/> 的载荷字段豁免。</para>
+        /// </summary>
         private static string stripComments(string source)
         {
             var sb = new StringBuilder(source.Length);
             bool inBlock = false;
             for (int i = 0; i < source.Length; i++)
             {
+                char c = source[i];
+
                 if (inBlock)
                 {
-                    if (i + 1 < source.Length && source[i] == '*' && source[i + 1] == '/')
+                    if (i + 1 < source.Length && c == '*' && source[i + 1] == '/')
                     { inBlock = false; i++; }
                     continue;
                 }
-                if (i + 1 < source.Length && source[i] == '/' && source[i + 1] == '*')
+                if (i + 1 < source.Length && c == '/' && source[i + 1] == '*')
                 { inBlock = true; i++; continue; }
-                if (i + 1 < source.Length && source[i] == '/' && source[i + 1] == '/')
+                if (i + 1 < source.Length && c == '/' && source[i + 1] == '/')
                 {
                     while (i < source.Length && source[i] != '\n') i++;
                     sb.Append('\n');
                     continue;
                 }
-                sb.Append(source[i]);
+
+                // 字符串前缀:@ / $ / @$ / $@ 紧邻引号 ⇒ 把 i 推到引号上,交给下面统一处理
+                bool verbatim = false;
+                if (c == '@' || c == '$')
+                {
+                    int j = i;
+                    while (j < source.Length && (source[j] == '@' || source[j] == '$')) j++;
+                    if (j < source.Length && source[j] == '"')
+                    {
+                        for (int k = i; k < j; k++) if (source[k] == '@') verbatim = true;
+                        i = j;
+                        c = '"';
+                    }
+                    else
+                    {
+                        sb.Append(source[i]);   // 逐字标识符(@class)或孤立 $ —— 原样保留
+                        continue;
+                    }
+                }
+
+                if (c == '"')
+                {
+                    sb.Append(' ');
+                    i++;
+                    while (i < source.Length)
+                    {
+                        if (verbatim)
+                        {
+                            if (source[i] == '"')
+                            {
+                                if (i + 1 < source.Length && source[i + 1] == '"')
+                                { i += 2; continue; }   // 逐字串里 "" = 一个引号
+                                i++; break;
+                            }
+                            i++;
+                        }
+                        else
+                        {
+                            if (source[i] == '\\') { i += 2; continue; }
+                            if (source[i] == '"') { i++; break; }
+                            i++;
+                        }
+                    }
+                    i--;    // 抵消 for 的 i++
+                    continue;
+                }
+
+                if (c == '\'')
+                {
+                    sb.Append(' ');
+                    i++;
+                    while (i < source.Length)
+                    {
+                        if (source[i] == '\\') { i += 2; continue; }
+                        if (source[i] == '\'') { i++; break; }
+                        i++;
+                    }
+                    i--;
+                    continue;
+                }
+
+                sb.Append(c);
             }
             return sb.ToString();
         }
