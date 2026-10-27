@@ -11,12 +11,22 @@
 //
 //   | 判据 | 本文件 | 判据性质 |
 //   |---|---|---|
-//   | ① 每次输入恰好一次移动 | ❌ **不可验** | 见下方「已知不可达」 |
-//   | ② 引擎自动完成空间选邻居 | ⚠️ **只验引擎能力**,不验输入链路 |
+//   | ① 每次输入恰好一次移动 | ❌ **不在本文件面内** | 🔁 已由 `u1_assump6_gamepad_chain_test.cs` 验(2026-10-27) |
+//   | ② 引擎自动完成空间选邻居 | ⚠️ **只验引擎能力**,不验输入链路 | 🔁 行为面已由同件验 |
 //   | ③ 无指针仍可达全部控件 | ✅ **可验**(装置侧) |
-//   | ④ 单一 `UI/Navigate` 来源 | 不重跑,引检查卡 `:207` 的静态核实结论 |
+//   | ④ 单一 `UI/Navigate` 来源 | ❌ 不在本文件面内 | 🔁 已由同件验 |
+//
+//   ⚠️ **2026-10-27 订正**:本文件原写「判据① 不可验」「判据② 方向语义不可验」,
+//   理由是「引擎默认动作阶段的公开入口不存在」。**那对 `VisualElement.SendEvent` 这条路成立,
+//   但手柄导航不走它。** 手柄链是 `InputSystemUIInputModule.Process()` → `PanelEventHandler.OnMove`
+//   (public)→ **面板级** `m_Panel.SendEvent` ⇒ 整链可驱动。整链腿已据此落成并通过四判据,
+//   原件 `production/qa/evidence/spike-assump6-chain-2026-10-27.md`。
+//   下方「已知不可达」一节**保留原文不删**,以本框为准。
 //
 // ▍已知不可达(IL 实证,2026-10-27,`UnityEngine.UIElementsModule.dll`)
+//   🔁 **本节结论已被证伪(同日整链腿)** —— 保留原文,以文首订正框为准。
+//   精确地说:下面三句只对 **`VisualElement.SendEvent`** 成立;手柄链走的是
+//   `PanelEventHandler.OnMove`(public)+ **面板级** `m_Panel.SendEvent`,那条链**可达**。
 //   `FocusController.FocusNextInDirection` / `SwitchFocusOnEvent` 均为 **`assembly`(internal)**
 //   ⇒ 测试侧够不着;`SendEvent` 只跑**用户回调阶段**,不跑引擎默认动作阶段
 //   (同族结论已由 `ac42c10_focus_landing_test.cs:175-192` 于 2026-10-08 实证)。
@@ -192,13 +202,15 @@ namespace DaYiJingCheng.Tests.PlayMode
         public void test_u1assump6_judgement2_directionalSemantics_notRun()
         {
             Assert.Inconclusive(
-                "判据② 的**方向语义**面 NOT-RUN(不是通过,也不是失败):IL 实证(2026-10-27," +
-                "UnityEngine.UIElementsModule.dll)—— FocusController.SwitchFocusOnEvent = assembly(internal)· " +
-                "FocusController.FocusNextInDirection = assembly · EventDispatcher.Dispatch = assembly;" +
-                "且 VisualElementFocusRing.GetFocusChangeDirection 对 Left/Right/Up/Down 恒返基类 " +
-                "FocusChangeDirection(它只解析 Next/Previous 线性序),几何移动实现在 FocusController 内。" +
-                "⇒ 「往左落到左邻 + 每次输入恰好一次移动(双触发)」归【桌面】人工手柄腿," +
-                "承 production/u1-spike-checklist.md §5.1-5.2。");
+                "[已迁出] 判据② 的**方向语义**面**不在本文件面内**,已由 " +
+                "u1_assump6_gamepad_chain_test.cs 实测通过(2026-10-27,四向全中几何相邻格)。" +
+                "本 Inconclusive 保留为历史登记:" +
+                "当时依据 IL 实证(UnityEngine.UIElementsModule.dll)—— FocusController.SwitchFocusOnEvent / " +
+                "FocusNextInDirection / EventDispatcher.Dispatch 均 assembly(internal),且自建 ring 的 " +
+                "GetFocusChangeDirection 对 Left/Right/Up/Down 恒返基类 ⇒ 判定「测试侧够不着」。" +
+                "🔁 该判定已被证伪:手柄链走 PanelEventHandler.OnMove(public)+ 面板级 m_Panel.SendEvent," +
+                "根本不经过 VisualElement.SendEvent 那条路。原件 = " +
+                "production/qa/evidence/spike-assump6-chain-2026-10-27.md。");
         }
 
         /// <summary>
@@ -363,10 +375,14 @@ namespace DaYiJingCheng.Tests.PlayMode
         public void test_u1assump6_judgement1_doubleTrigger_notRun()
         {
             Assert.Inconclusive(
-                "判据① NOT-RUN(不是通过):双触发检测需要「一次真实手柄输入」穿过 " +
-                "InputSystemUIInputModule → EventSystem → panel,该链在 -batchmode -nographics 下不可达;" +
-                "且 FocusController.SwitchFocusOnEvent 为 internal(IL 实证),测试侧无法直接驱动。" +
-                "本判据归【桌面】人工手柄腿,承 production/u1-spike-checklist.md §5.1。");
+                "[已迁出] 判据① 的**双触发检测**不在本文件面内,已由 " +
+                "u1_assump6_gamepad_chain_test.cs 实测通过(2026-10-27,四轮全 nav=1 焦点=1)。" +
+                "本 Inconclusive 保留为历史登记:当时判定「该链在 -batchmode -nographics 下不可达」+" +
+                "「FocusController.SwitchFocusOnEvent 为 internal ⇒ 测试侧无法驱动」。 " +
+                "🔁 前半句已被证伪:虚拟 Gamepad 可驱动整链,且 -nographics 下 EventSystem.Update " +
+                "照常 tick(焦点移动本就不需要渲染)。后半句仍成立但不构成障碍 —— 我们不需要调 " +
+                "SwitchFocusOnEvent,只需从 public 的 PanelEventHandler.OnMove 进入。" +
+                "原件 = production/qa/evidence/spike-assump6-chain-2026-10-27.md。");
         }
     }
 }

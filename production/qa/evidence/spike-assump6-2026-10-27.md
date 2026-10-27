@@ -10,12 +10,38 @@
 
 ---
 
+> 🔁 **2026-10-27 同日订正 —— 本件 §1 / §3 关于「判据①② 结构上不可验」的结论是错的。**
+>
+> **错在哪**:本件把 2026-10-08 的结论(`VisualElement.SendEvent` 只跑用户回调阶段,
+> 默认动作阶段 `protected internal` 够不着)**外推到了整条手柄链**。那条结论只对
+> **`VisualElement.SendEvent` 这条路**成立;手柄导航根本不走它。
+>
+> **真实链路**(全部 public,已在 `com.unity.ugui` / `com.unity.inputsystem` 源码逐行核实):
+>
+> ```
+> InputSystemUIInputModule.Process()                    ← public override(:2382)
+>   → ProcessNavigation → ExecuteEvents.Execute(…, moveHandler)
+>     → PanelEventHandler.OnMove(AxisEventData)          ← public(PanelEventHandler.cs:249)
+>       → m_Panel.SendEvent(NavigationMoveEvent)         ← 面板级派发,不是 VisualElement.SendEvent
+>         → EventDispatcher → 默认动作阶段 → 焦点真的移动
+> ```
+>
+> **⇒ 判据 ①② 的行为面是可自动化验的,并且已经验完。**
+> 原件见 `spike-assump6-chain-2026-10-27.md`(同目录),四条判据 4/4 绿 + 三轮变异各自命中。
+>
+> **本件 §1 / §3.1 / §3.3 / §4 的相关表述保留原文不删**(承「原文不删」纪律),
+> 以本框为准。⚠️ **教训**:上一轮我把「我走错了派发 API」写成了「引擎结构上不给验」,
+> 这是 2026-10-27 同一天内**第二次**同型误归因(第一次 = §3.2 run2 的「引擎退化为树序」)。
+> 两次都是**用一个失败的尝试去证明能力不存在**,而没有先穷举入口。
+
+---
+
 ## 1. 结论先说
 
 | 判据 | 自动化腿结果 | 归谁 |
 |---|---|---|
-| ① 每次输入恰好一次移动(双触发) | **`NOT-RUN`** —— 结构上不可验 | 【桌面】人工腿 |
-| ② 引擎按几何位置选邻居 | **引擎侧前提 ✅ / 方向语义 `NOT-RUN`** | 前半本件,后半人工腿 |
+| ① 每次输入恰好一次移动(双触发) | ~~**`NOT-RUN`** —— 结构上不可验~~ 🔁 **已验:✅ 4/4 轮次 nav=1 焦点=1**(见 `spike-assump6-chain-2026-10-27.md`) | 【桌面】人工腿(仅剩手感) |
+| ② 引擎按几何位置选邻居 | **引擎侧前提 ✅ / 方向语义 `NOT-RUN`** 🔁 **方向语义已验:✅ 四向全中**(同上) | 前半本件,后半人工腿 |
 | ③ 无指针可达全部控件 | **✅ 9/9** | **本件已验** |
 | ④ 单一 `UI/Navigate` 来源 | 不重跑,引检查卡 `:207` 静态核实结论 | — |
 
