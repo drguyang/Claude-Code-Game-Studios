@@ -52,6 +52,7 @@ namespace DaYiJingCheng.Gameplay.Boot
         private readonly Func<IReadOnlyList<SimEvent>> _events;
         private readonly IPayloadDecoder _decoder;
         private readonly Func<IReadOnlyList<ItemDef>> _items;
+        private readonly Func<InventoryFoldContext> _foldContext;
 
         // 惰性索引(首次 Rebuild 建;重复 ordinal = 静态数据缺陷,建索引时抛)。
         private Dictionary<int, ItemDef> _byOrdinal;
@@ -67,16 +68,27 @@ namespace DaYiJingCheng.Gameplay.Boot
         /// <param name="items">物品种子集的**惰性取数**(非 null;首次 <see cref="Rebuild"/>
         /// 才调用 —— 生产 = <c>dataProvider.Load&lt;ItemDataSet&gt;().Items</c> /
         /// EditMode 兜底 = 同一份烘焙产物直读)。</param>
-        /// <exception cref="ArgumentNullException">任一形参为 null(fail-closed —— 空解码器
+        /// <param name="foldContext">fold 的查表源 + 单机归属快照的**惰性取数**
+        /// (2026-10-27 R15–R18 闭合批新增)。<c>null</c> ⇒ 用
+        /// <see cref="InventoryFoldContext.None"/>(**纯 <c>Drop*</c> 流**的合法形态:
+        /// 全程无 <c>Craft</c> 产出 / 无 <c>StructurePlaced</c> ⇒ 三份表都用不上)。
+        /// <para>⚠️ 与 <paramref name="items"/> 的分工:<paramref name="items"/> 是
+        /// **实例实体集**的 <see cref="ItemKey"/> 反查源(② 段),本形参是 **fold 内部**
+        /// 的分类 / 映射源(R15 的配方链、R16 的模块目录、R18 的类别判定)。两者今日
+        /// 生产上是同一份物品表,但**生命周期不同** —— 合并会让「fold 要表」与
+        /// 「实体集要表」两个义务绑死,任一变动都得同时改。</para></param>
+        /// <exception cref="ArgumentNullException">前三形参任一为 null(fail-closed —— 空解码器
         /// ⇒ 空投影 ⇒ 「库存全空」的静默失败)。</exception>
         public InventoryLoadService(Func<IReadOnlyList<SimEvent>> events,
                                     IPayloadDecoder decoder,
-                                    Func<IReadOnlyList<ItemDef>> items)
+                                    Func<IReadOnlyList<ItemDef>> items,
+                                    Func<InventoryFoldContext> foldContext = null)
         {
             _events = events ?? throw new ArgumentNullException(nameof(events));
             _decoder = decoder ?? throw new ArgumentNullException(
                 nameof(decoder), "未注入 IPayloadDecoder —— 拒绝以空投影冒充「库存为空」");
             _items = items ?? throw new ArgumentNullException(nameof(items));
+            _foldContext = foldContext;
         }
 
         /// <summary>从事件流重建库存。**唯一的重建入口**。</summary>
@@ -91,7 +103,11 @@ namespace DaYiJingCheng.Gameplay.Boot
             IReadOnlyList<SimEvent> events = _events() ?? Array.Empty<SimEvent>();
 
             // ── ① 投影(20 的重建本体)──────────────────────────────────────
-            InventoryFoldResult fold = InventoryFold.Fold(events, _decoder);
+            //     2026-10-27:fold 收查表源。`foldContext == null` ⇒ `None`
+            //     (纯 Drop* 流的合法形态;有 Craft 产出 / StructurePlaced 的流
+            //     会在 fold 里报显式缺口,不会静默少算)。
+            InventoryFoldContext ctx = _foldContext != null ? _foldContext() : InventoryFoldContext.None;
+            InventoryFoldResult fold = InventoryFold.Fold(events, _decoder, ctx);
 
             // ── ② 实例实体集(供堆叠 / 折重 / 范围门消费)────────────────────
             //     ⚠️ 从**投影行**转实体,而不是从流里另找一份 —— 投影是流折叠的唯一产物,

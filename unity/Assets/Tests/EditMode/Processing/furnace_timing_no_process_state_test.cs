@@ -414,12 +414,12 @@ namespace DaYiJingCheng.Tests.EditMode.Processing
             var port = new GatedApplyPort();
 
             var stream = new List<SimEvent>();
-            string before = InventoryFold.Fold(stream, _decoder).Projection.CanonicalForm();
+            string before = InventoryFold.Fold(stream, _decoder, InventoryFoldContext.None).Projection.CanonicalForm();
 
             bool ignited = TryIgnite(stream, sink, port, actorId: 1, tick: 100,
                                      currentLoad: 0L, outputs: outputs, capacity: capacity);
 
-            string after = InventoryFold.Fold(stream, _decoder).Projection.CanonicalForm();
+            string after = InventoryFold.Fold(stream, _decoder, InventoryFoldContext.None).Projection.CanonicalForm();
 
             Assert.That(ignited, Is.False, "容量不足 ⇒ 点火不发生(AC-18-12)");
             Assert.That(port.ApplyCalls, Is.EqualTo(1),
@@ -447,13 +447,13 @@ namespace DaYiJingCheng.Tests.EditMode.Processing
             var broken = new AlwaysAcceptingBrokenPort(_encoder, firstInstanceId: 500);
 
             var stream = new List<SimEvent>();
-            string before = InventoryFold.Fold(stream, _decoder).Projection.CanonicalForm();
+            string before = InventoryFold.Fold(stream, _decoder, InventoryFoldContext.None).Projection.CanonicalForm();
 
             bool ignited = TryIgnite(stream, sink, broken, actorId: 1, tick: 100,
                                      currentLoad: 0L, outputs: outputs, capacity: capacity);
 
             var afterEvents = new List<SimEvent>(sink.Events);
-            string after = InventoryFold.Fold(afterEvents, _decoder).Projection.CanonicalForm();
+            string after = InventoryFold.Fold(afterEvents, _decoder, InventoryFoldContext.None).Projection.CanonicalForm();
 
             Assert.That(ignited, Is.True, "负控接线恒接受 —— 它必须真的走到 Append 那一步");
             Assert.That(sink.Events, Is.Not.Empty,

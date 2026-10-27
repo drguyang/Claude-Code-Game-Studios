@@ -111,7 +111,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 events.Add(Claim(id, owner, tick + 1, seq: 0));
                 tick += 2;
             }
-            return InventoryFold.Fold(events, _decoder).Projection;
+            return InventoryFold.Fold(events, _decoder, InventoryFoldContext.None).Projection;
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -424,7 +424,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Spawn(1, 2, 2, 1, seq: 0), Harvest(1, 1, 2, 1, 1, seq: 1), Claim(1, 7, 2),   // 玩家 7:5×2=10
                 Spawn(2, 3, 1, 3, seq: 0), Harvest(2, 2, 1, 1, 3, seq: 1), Claim(2, 8, 4),   // 玩家 8:3×1=3
             };
-            InventoryProjection p = InventoryFold.Fold(events, _decoder).Projection;
+            InventoryProjection p = InventoryFold.Fold(events, _decoder, InventoryFoldContext.None).Projection;
 
             Assert.That(CarryLoadSolver.Sum(p, WeightOf, 7), Is.EqualTo(10L), "只算玩家 7 自己的");
             Assert.That(CarryLoadSolver.Sum(p, WeightOf, 8), Is.EqualTo(3L), "只算玩家 8 自己的");
@@ -923,7 +923,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Spawn(1, 2, 1, 1, seq: 0), Harvest(1, 1, 1, 1, 1, seq: 1), Claim(1, 7, 2),
                 Spawn(2, 1, 3, 3, seq: 0), Harvest(2, 2, 3, 1, 3, seq: 1),   // 未 claim
             };
-            InventoryProjection p = InventoryFold.Fold(events, _decoder).Projection;
+            InventoryProjection p = InventoryFold.Fold(events, _decoder, InventoryFoldContext.None).Projection;
 
             var children = new Dictionary<long, IReadOnlyList<long>>
             {
@@ -947,7 +947,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Spawn(1, 2, 1, 1, seq: 0), Harvest(1, 1, 1, 1, 1, seq: 1), Claim(1, 7, 2),
                 Spawn(2, 1, 3, 3, seq: 0), Harvest(2, 2, 3, 1, 3, seq: 1), Claim(2, 7, 4),
             };
-            InventoryProjection p = InventoryFold.Fold(events, _decoder).Projection;
+            InventoryProjection p = InventoryFold.Fold(events, _decoder, InventoryFoldContext.None).Projection;
 
             var children = new Dictionary<long, IReadOnlyList<long>> { [1L] = new long[] { 2L } };
             CarryLoadBreakdown b = CarryLoadSolver.SumDetailed(p, WeightOf, 7, children);
@@ -967,7 +967,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Spawn(1, 2, 1, 1, seq: 0), Harvest(1, 1, 1, 1, 1, seq: 1), Claim(1, 7, 2),
                 Spawn(2, 1, 3, 3, seq: 0), Harvest(2, 2, 3, 1, 3, seq: 1), Claim(2, 8, 4),
             };
-            InventoryProjection p = InventoryFold.Fold(events, _decoder).Projection;
+            InventoryProjection p = InventoryFold.Fold(events, _decoder, InventoryFoldContext.None).Projection;
 
             var children = new Dictionary<long, IReadOnlyList<long>> { [1L] = new long[] { 2L } };
             CarryLoadBreakdown b = CarryLoadSolver.SumDetailed(p, WeightOf, 7, children);

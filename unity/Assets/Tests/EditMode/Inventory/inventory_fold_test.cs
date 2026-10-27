@@ -32,6 +32,11 @@ using DaYiJingCheng.EditorTools.Gates;
 using DaYiJingCheng.Sim;
 using DaYiJingCheng.Sim.Codec;
 using DaYiJingCheng.Sim.Contracts;
+// ⚠️ 用别名而非 `using DaYiJingCheng.Sim.World` —— 本文件同时引 Mono.Cecil
+//    (AC-20-05 的 IL 面判据),它也有一个 `ModuleDefinition`,裸名会 CS0104 撞车。
+using SimModuleDefinition = DaYiJingCheng.Sim.World.ModuleDefinition;
+using SimModuleCatalog = DaYiJingCheng.Sim.World.IModuleCatalog;
+using SlotType = DaYiJingCheng.Sim.World.SlotType;
 using Mono.Cecil;
 using NUnit.Framework;
 using UnityEditor;
@@ -86,6 +91,101 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
             => r.Projection.TryGet(id, out row);
 
         // ══════════════════════════════════════════════════════════════════
+        // 查表源夹具(2026-10-27 R15–R18 闭合批)
+        // ══════════════════════════════════════════════════════════════════
+        //
+        // ⚠️ **不用 `InventoryFoldContext.None` 蒙混**:本文件里有 Craft 产出 / StructurePlaced
+        //    的夹具,用 None 会掩盖「查表链真的走通了」这件事。真表夹具写死最小行集,
+        //    与 `inventory_load_service_test.cs:78 MakeItems()` 同款(自造行,不读烘焙产物)。
+
+        // 物品表 ordinal 常量 —— 与夹具里 `Spawn(id, itemKey: N, …)` 的 N 对应。
+        private const int OrdWillowBark = 10;      // material
+        private const int OrdDriedBark = 11;       // material
+        private const int OrdSalicylic = 12;       // drug
+        private const int OrdWoodenPost = 20;      // **build_part**(R18 桶③ / R16 扣料)
+        private const int OrdSplint = 21;          // tool
+
+        private static ItemDef MakeDef(int ordinal, string baseId, ProcessingState st,
+            ItemCategory cat, int stackMax = 99)
+            => new ItemDef
+            {
+                Ordinal = ordinal,
+                BaseId = baseId,
+                ProcessingState = st,
+                DisplayName = baseId,
+                Category = cat,
+                StackMax = stackMax,
+                Weight = 1,
+                Deprecated = false,
+                LegalTransitions = Array.Empty<string>(),
+            };
+
+        private static ItemDataSet MakeItems() => new ItemDataSet
+        {
+            Items = new[]
+            {
+                MakeDef(OrdWillowBark, "willow_bark", ProcessingState.Raw, ItemCategory.Material),
+                MakeDef(OrdDriedBark, "willow_bark", ProcessingState.Dried, ItemCategory.Material),
+                MakeDef(OrdSalicylic, "salicylic_acid", ProcessingState.Extracted, ItemCategory.Drug),
+                MakeDef(OrdWoodenPost, "wooden_post", ProcessingState.Raw, ItemCategory.BuildPart),
+                MakeDef(OrdSplint, "wooden_splint", ProcessingState.Raw, ItemCategory.Tool),
+            },
+            ConfigVersion = 1u,
+        };
+
+        /// <summary>配方 <c>ordinal = 7</c>(夹具的 <see cref="Craft"/> 恒用它):
+        /// 输入 dried bark,输出 1 行 salicylic_acid。<c>outputs</c> 恒 1 行 ⇒ 与
+        /// <c>outQty.Length == 1</c> 的夹具对位。</summary>
+        private static RecipeDataSet MakeRecipes() => new RecipeDataSet
+        {
+            Recipes = new[]
+            {
+                new Recipe
+                {
+                    Ordinal = 7,
+                    RecipeId = "extract_salicylic",
+                    Owner = RecipeOwner.Process,
+                    Inputs = new[] { new RecipeEntry(new ItemKey("willow_bark", ProcessingState.Dried), 2) },
+                    Outputs = new[] { new RecipeEntry(new ItemKey("salicylic_acid", ProcessingState.Extracted), 1) },
+                    DurationTicks = 10,
+                    SkillGate = 0,
+                    MinQuality = 1,
+                    BoundaryState = Array.Empty<ProcessingTransition>(),
+                },
+            },
+            ConfigVersion = 1u,
+        };
+
+        /// <summary>模块目录桩:moduleId 3 ⇒ cost 2、build_item_key = wooden_post(build_part)。</summary>
+        private sealed class FoldModuleCatalog : SimModuleCatalog
+        {
+            private readonly Dictionary<int, SimModuleDefinition> _defs =
+                new Dictionary<int, SimModuleDefinition>();
+
+            public FoldModuleCatalog(int moduleId, int cost, int buildItemKey)
+                => _defs[moduleId] = new SimModuleDefinition(moduleId, SlotType.Decor,
+                    new[] { new WorldPos(0, 0, 0) }, new[] { 0, 90, 180, 270 },
+                    cost: cost, buildItemKey: buildItemKey);
+
+            public SimModuleDefinition? GetModuleDefinition(int moduleId)
+                => _defs.TryGetValue(moduleId, out SimModuleDefinition d)
+                    ? d : (SimModuleDefinition?)null;
+
+            public bool ContainsModule(int moduleId) => _defs.ContainsKey(moduleId);
+            public IReadOnlyCollection<int> GetAllModuleIds() => _defs.Keys;
+        }
+
+        /// <summary>真表上下文(P0 单机:唯一玩家 = <paramref name="solePlayer"/>)。
+        /// 模块 3 = cost 2 × wooden_post。</summary>
+        private static InventoryFoldContext Ctx(int? solePlayer = null)
+            => new InventoryFoldContext(MakeItems(), MakeRecipes(),
+                new FoldModuleCatalog(moduleId: 3, cost: 2, buildItemKey: OrdWoodenPost),
+                solePlayer);
+
+        /// <summary>三份表全空 —— 纯 <c>Drop*</c> 夹具用它,是一条**可 grep 的声明**。</summary>
+        private static readonly InventoryFoldContext EmptyCtx = InventoryFoldContext.None;
+
+        // ══════════════════════════════════════════════════════════════════
         // AC-20-03 —— 重建机制本体(可重建子域逐位等 / 幂等 / 乱序无关 / 空流)
         // ══════════════════════════════════════════════════════════════════
 
@@ -100,7 +200,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Despawn(1, qty: 2, tick: 3, seq: 0),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(TryRow(r, 1, out InventoryRow row), Is.True);
             Assert.That(row.ItemOrdinal, Is.EqualTo(10), "item_key = 载荷原值(不解析、不求值)");
@@ -122,7 +222,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Harvest(42, nodeId: 3, qty: 1, outQuality: 2, tick: 10, seq: 1),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(TryRow(r, 42, out InventoryRow row), Is.True);
             Assert.That(row.Quality, Is.EqualTo(2),
@@ -138,7 +238,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Harvest(8, nodeId: 1, qty: 1, outQuality: 0, tick: 1, seq: 1),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(TryRow(r, 8, out InventoryRow row), Is.True);
             Assert.That(row.Owner, Is.EqualTo(InventoryProjection.NoOwner),
@@ -157,7 +257,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Despawn(9, qty: 2, tick: 2, seq: 0),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(TryRow(r, 9, out _), Is.False, "归零 ⇒ 出投影");
             Assert.That(r.Projection.InstanceCount, Is.EqualTo(0));
@@ -174,7 +274,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Spawn(3, 11, 1, tick: 1, seq: 4), Harvest(3, 2, 1, 0, tick: 1, seq: 5), Claim(3, 7, tick: 3, seq: 0),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(r.Projection.InstancesOf(7), Is.EqualTo(new long[] { 1L, 3L }),
                 "按 instance_id 升序(稳定序,换页 / 摆放序读这一序)");
@@ -201,8 +301,8 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
             // 再来一次交错扰动(避免「反向也恰好有序」的巧合)
             SimEvent tmp = shuffled[1]; shuffled[1] = shuffled[5]; shuffled[5] = tmp;
 
-            string a = InventoryFold.Fold(ordered, _decoder).Projection.CanonicalForm();
-            string b = InventoryFold.Fold(shuffled, _decoder).Projection.CanonicalForm();
+            string a = InventoryFold.Fold(ordered, _decoder, EmptyCtx).Projection.CanonicalForm();
+            string b = InventoryFold.Fold(shuffled, _decoder, EmptyCtx).Projection.CanonicalForm();
 
             Assert.That(a, Is.Not.Empty, "投影非空 —— 否则「两者都空」会伪装成通过");
             Assert.That(b, Is.EqualTo(a), "乱序输入须得同一投影");
@@ -218,8 +318,8 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Claim(1, 7, tick: 2, seq: 0),
             };
 
-            InventoryFoldResult r1 = InventoryFold.Fold(events, _decoder);
-            InventoryFoldResult r2 = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r1 = InventoryFold.Fold(events, _decoder, EmptyCtx);
+            InventoryFoldResult r2 = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(r2.Projection.CanonicalForm(), Is.EqualTo(r1.Projection.CanonicalForm()));
             Assert.That(r1.IsComplete, Is.True);
@@ -229,7 +329,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
         [Test]
         public void test_ac2003_emptyStream_emptyProjectionNotNull()
         {
-            InventoryFoldResult r = InventoryFold.Fold(Array.Empty<SimEvent>(), _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(Array.Empty<SimEvent>(), _decoder, EmptyCtx);
 
             Assert.That(r.Projection, Is.Not.Null);
             Assert.That(r.Projection.InstanceCount, Is.EqualTo(0));
@@ -253,7 +353,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 DrugTreatment(tick: 3),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(StreamRouting.Of(EventKind.DrugTreatmentApplied), Is.Not.EqualTo(StreamId.World),
                 "前提:该 Kind 确属域外流(否则本测试测不到「域外被跳过」)");
@@ -274,45 +374,134 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
             };
             var with = new List<SimEvent>(without) { Despawn(1, qty: 1, tick: 3, seq: 0) };
 
-            Assert.That(TryRow(InventoryFold.Fold(without, _decoder), 1, out _), Is.True,
+            Assert.That(TryRow(InventoryFold.Fold(without, _decoder, EmptyCtx), 1, out _), Is.True,
                 "无 DropDespawned ⇒ 仍在");
-            Assert.That(TryRow(InventoryFold.Fold(with, _decoder), 1, out _), Is.False,
+            Assert.That(TryRow(InventoryFold.Fold(with, _decoder, EmptyCtx), 1, out _), Is.False,
                 "补上 DropDespawned ⇒ 消失(载体 = 世界流,不是处置事件)");
         }
 
         // ══════════════════════════════════════════════════════════════════
         // 完整性判据 —— 缺载体 ⇒ 报缺口(正向判据,非「跳过」)
+        //
+        // 🔁 **2026-10-27 闭合批:四条原断言已按新语义改写**(用户三项裁定)。
+        //    改写**不是放宽**,而是把判据从「缺载体」搬到「查表链的每个失败出口」上 ——
+        //    每条新测试都比原来多钉一段(旧版只证「报缺口」,新版还证「闭合后真的建了行」)。
+        //    旧断言为何必须改:原 `test_r15_…` 断「产出**不得**建行」,而 R15 闭合后
+        //    建行正是**正确行为**;不改就是让测试与实现对着干。
         // ══════════════════════════════════════════════════════════════════
 
+        /// <summary>**R15 闭合**:<c>recipe_id</c> 查得到 ⇒ 逐 outputs 行**建行**,
+        /// 且 <c>item_key</c> 来自配方表(不是猜的)。</summary>
         [Test]
-        public void test_r15_craftOutputs_raiseGapAndDoNotInventItemKey()
+        public void test_r15_craftOutputs_resolveItemKeyFromRecipeTable_andBuildRows()
         {
             var events = new List<SimEvent>
             {
-                Spawn(1, 10, 3, tick: 1, seq: 0), Harvest(1, 1, 3, 0, tick: 1, seq: 1),
+                Spawn(1, OrdWillowBark, 3, tick: 1, seq: 0), Harvest(1, 1, 3, 0, tick: 1, seq: 1),
+                Claim(1, 7, tick: 2, seq: 0),
+                Craft(actor: 7, inputIds: new long[] { 1 }, consumed: new[] { 2 },
+                      outQty: new[] { 1 }, outQuality: new[] { 4 }, outIds: new long[] { 2 },
+                      tick: 3),
+            };
+
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, Ctx());
+
+            // ① 产出建了行,且 item_key 来自配方 outputs(salicylic_acid → OrdSalicylic)
+            Assert.That(TryRow(r, 2, out InventoryRow output), Is.True,
+                "R15 闭合后产出**必须**建行 —— 查得到配方就查得到 item_key");
+            Assert.That(output.ItemOrdinal, Is.EqualTo(OrdSalicylic),
+                "item_key 经 配方 outputs → 物品表 ordinal 折出,不是载荷位(载荷无位)");
+            Assert.That(output.Quality, Is.EqualTo(4), "品级抄载荷 OutputQuality(不计算)");
+            Assert.That(output.Qty, Is.EqualTo(1));
+            Assert.That(output.Owner, Is.EqualTo(7), "炮制产出归炮制者");
+
+            // ② 扣料侧仍生效
+            Assert.That(TryRow(r, 1, out InventoryRow input), Is.True);
+            Assert.That(input.Qty, Is.EqualTo(1), "扣料侧仍生效(3 - 2)");
+
+            // ③ 全链路无缺口 —— 这是「闭合」的判据,不是「没崩」
+            Assert.That(r.Gaps, Is.Empty, "R15 闭合后本条流应完全可重建");
+            Assert.That(r.IsComplete, Is.True);
+        }
+
+        /// <summary>**R15 失败出口 ①**:<c>recipe_id</c> 在配方表里查无此号 ⇒ 显式缺口
+        /// (不是静默丢产出 —— 那会让「配方表没装载」伪装成「炮制没产出」)。</summary>
+        [Test]
+        public void test_r15_recipeNotInTable_raisesExplicitGap()
+        {
+            var events = new List<SimEvent>
+            {
+                Spawn(1, OrdWillowBark, 3, tick: 1, seq: 0), Harvest(1, 1, 3, 0, tick: 1, seq: 1),
                 Claim(1, 7, tick: 2, seq: 0),
                 Craft(actor: 7, inputIds: new long[] { 1 }, consumed: new[] { 2 },
                       outQty: new[] { 1 }, outQuality: new[] { 0 }, outIds: new long[] { 2 },
                       tick: 3),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            // 空配方表 —— 模拟「配方表未装载 / 版本不一致」
+            var noRecipes = new InventoryFoldContext(MakeItems(), default,
+                new FoldModuleCatalog(3, 2, OrdWoodenPost), null);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, noRecipes);
 
-            InventoryFoldGap gap = r.Gaps.Single(g => g.Kind == InventoryFoldGapKind.CraftOutputWithoutItemKey);
+            InventoryFoldGap gap = r.Gaps.Single(g => g.Kind == InventoryFoldGapKind.CraftRecipeNotInTable);
             Assert.That(gap.RegistryId, Is.EqualTo("R15"));
             Assert.That(gap.At.Tick, Is.EqualTo(3L), "缺口须定位到具体事件");
-            Assert.That(TryRow(r, 2, out _), Is.False,
-                "产出**不得**建行 —— 造占位就是发明一个生产端永不发出的字段");
-
-            Assert.That(TryRow(r, 1, out InventoryRow input), Is.True);
-            Assert.That(input.Qty, Is.EqualTo(1), "扣料侧仍生效(3 - 2)");
-
+            Assert.That(TryRow(r, 2, out _), Is.False, "查不到配方 ⇒ **不建行**(不猜 item_key)");
             Assert.That(r.IsComplete, Is.False);
-            Assert.Throws<InvalidOperationException>(() => r.RequireComplete());
         }
 
+        /// <summary>**R15 失败出口 ②**:配方 <c>outputs</c> 行数 ≠ 载荷三组行数
+        /// ⇒ 显式缺口(逐行对位不可能,不猜、不截断、不补零)。</summary>
         [Test]
-        public void test_r16_structurePlaced_raisesGapWithNoActor()
+        public void test_r15_recipeOutputCountMismatch_raisesExplicitGap()
+        {
+            // 夹具配方 outputs 恒 1 行;载荷报 2 行 ⇒ 第二跳失败
+            var events = new List<SimEvent>
+            {
+                Spawn(1, OrdWillowBark, 3, tick: 1, seq: 0), Harvest(1, 1, 3, 0, tick: 1, seq: 1),
+                Claim(1, 7, tick: 2, seq: 0),
+                Craft(actor: 7, inputIds: new long[] { 1 }, consumed: new[] { 2 },
+                      outQty: new[] { 1, 1 }, outQuality: new[] { 4, 4 },
+                      outIds: new long[] { 2, 3 }, tick: 3),
+            };
+
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, Ctx());
+
+            InventoryFoldGap gap = r.Gaps.Single(g => g.Kind == InventoryFoldGapKind.CraftOutputCountMismatch);
+            Assert.That(gap.RegistryId, Is.EqualTo("R15"));
+            Assert.That(gap.At.Tick, Is.EqualTo(3L), "缺口须定位到具体事件");
+            Assert.That(gap.InstanceId, Is.EqualTo(2L), "锚到首个产出 id(载荷可定位点)");
+            Assert.That(TryRow(r, 2, out _), Is.False, "行数对不齐 ⇒ **两行都不建**(不猜对位)");
+            Assert.That(TryRow(r, 3, out _), Is.False);
+            Assert.That(r.IsComplete, Is.False);
+        }
+
+        /// <summary>**R16 甲案**:唯一玩家已知 ⇒ 从该玩家库存扣 <c>cost(m)</c>,
+        /// 按规则六 <c>instance_id</c> 升序兜底。</summary>
+        [Test]
+        public void test_r16_buildCost_deductedFromSolePlayer()
+        {
+            // 两栈 wooden_post(id 2 三份 / id 3 两份),玩家 7 持有;模块 3 cost = 2
+            var events = new List<SimEvent>
+            {
+                Spawn(2, OrdWoodenPost, 3, tick: 1, seq: 0), Claim(2, 7, tick: 2, seq: 0),
+                Spawn(3, OrdWoodenPost, 2, tick: 3, seq: 0), Claim(3, 7, tick: 4, seq: 0),
+                Ev(EventKind.StructurePlaced,
+                   new StructurePlacedPayload(100L, new WorldPos(1, 1, 1), 3, 0, 0), tick: 5),
+            };
+
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, Ctx(solePlayer: 7));
+
+            Assert.That(r.Gaps, Is.Empty, "R16 闭合后单机建造应完全可重建");
+            Assert.That(TryRow(r, 2, out InventoryRow a), Is.True);
+            Assert.That(a.Qty, Is.EqualTo(1), "id 升序兜底:先扣 id=2(3 → 1)");
+            Assert.That(TryRow(r, 3, out InventoryRow b), Is.True);
+            Assert.That(b.Qty, Is.EqualTo(2), "id=3 不动(cost=2 已由 id=2 满足)");
+        }
+
+        /// <summary>**R16 fail-closed**:<c>SolePlayer</c> 为空(多玩家 / 未接)⇒ 显式缺口。</summary>
+        [Test]
+        public void test_r16_noSolePlayer_raisesAttributionGap()
         {
             var events = new List<SimEvent>
             {
@@ -320,17 +509,44 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                    new StructurePlacedPayload(100L, new WorldPos(1, 1, 1), 3, 0, 0), tick: 5),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, Ctx(solePlayer: null));
 
-            InventoryFoldGap gap = r.Gaps.Single(g => g.Kind == InventoryFoldGapKind.StructurePlacementWithoutActor);
+            InventoryFoldGap gap = r.Gaps.Single(g => g.Kind == InventoryFoldGapKind.BuildCostAttributionUnresolved);
             Assert.That(gap.RegistryId, Is.EqualTo("R16"));
             Assert.That(gap.EventKind, Is.EqualTo(EventKind.StructurePlaced));
             Assert.That(gap.At.Tick, Is.EqualTo(5L), "缺口须定位到具体事件");
             Assert.That(r.IsComplete, Is.False);
         }
 
+        /// <summary>**R16 fail-closed ②**:唯一玩家已知但库存不足 ⇒ 显式缺口
+        /// (不静默扣到负数,也不只扣一半)。</summary>
         [Test]
-        public void test_r17_structureRemoved_raisesGapWithNoRefundIdentity()
+        public void test_r16_buildCostExceedsHolding_raisesExplicitGap()
+        {
+            // 模块 3 cost = 2,玩家 7 名下只有 1 份 wooden_post
+            var events = new List<SimEvent>
+            {
+                Spawn(2, OrdWoodenPost, 1, tick: 1, seq: 0), Claim(2, 7, tick: 2, seq: 0),
+                Ev(EventKind.StructurePlaced,
+                   new StructurePlacedPayload(100L, new WorldPos(1, 1, 1), 3, 0, 0), tick: 5),
+            };
+
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, Ctx(solePlayer: 7));
+
+            InventoryFoldGap gap = r.Gaps.Single(g => g.Kind == InventoryFoldGapKind.BuildCostExceedsHolding);
+            Assert.That(gap.RegistryId, Is.EqualTo("R16"));
+            Assert.That(gap.At.Tick, Is.EqualTo(5L), "缺口须定位到具体事件");
+            Assert.That(TryRow(r, 2, out InventoryRow a), Is.True);
+            Assert.That(a.Qty, Is.EqualTo(1),
+                "不足时**一份都不扣** —— 部分扣减会让「拒绝」与「扣了一半」两种状态无从区分");
+            Assert.That(r.IsComplete, Is.False);
+        }
+
+        /// <summary>**R17 退出谓词集**(用户 2026-10-27 裁定「地面掉落」):
+        /// <c>StructureRemoved</c> **不再**产生任何缺口 —— 返还物由 23 另发普通
+        /// <c>DropSpawned</c>,fold 照常当掉落处理。</summary>
+        [Test]
+        public void test_r17_structureRemoved_noLongerInInventoryPredicateSet()
         {
             var events = new List<SimEvent>
             {
@@ -338,20 +554,48 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                    new StructureRemovedPayload(100L, new WorldPos(1, 1, 1), 3), tick: 6),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, Ctx(solePlayer: 7));
 
-            InventoryFoldGap gap = r.Gaps.Single(g => g.Kind == InventoryFoldGapKind.StructureRemovalWithoutRefundIdentity);
-            Assert.That(gap.RegistryId, Is.EqualTo("R17"));
-            Assert.That(r.IsComplete, Is.False);
+            Assert.That(r.Gaps, Is.Empty,
+                "R17 甲-1 裁定后 StructureRemoved **退出**库存谓词集 —— " +
+                "它既不改投影也不报缺口(返还物是另发的 DropSpawned)");
+            Assert.That(r.IsComplete, Is.True);
+            Assert.That(r.Projection.InstanceCount, Is.EqualTo(0), "拆除本身不产生库存行");
         }
 
+        /// <summary>**R17 闭环的正向形态**:拆除后 23 发的普通 <c>DropSpawned</c>
+        /// 被 fold 当掉落处理(建行、在地上、品级按 BL-28 建材桶恒 1)。</summary>
         [Test]
-        public void test_r18_instanceWithNoQualitySource_raisesGapButKeepsRow()
+        public void test_r17_refundDrop_isFoldedAsOrdinaryDrop()
         {
-            // 只有出生,没有 ResourceHarvested(模拟 25 / 27 / 29 / 18 起货路径)
-            var events = new List<SimEvent> { Spawn(5, itemKey: 2, qty: 1, tick: 1) };
+            var events = new List<SimEvent>
+            {
+                Ev(EventKind.StructureRemoved,
+                   new StructureRemovedPayload(100L, new WorldPos(1, 1, 1), 3), tick: 6),
+                // 23 的返还事件:新铸 id=9,qty = Refund(1),锚点 = 拆除格
+                Spawn(9, OrdWoodenPost, 1, tick: 6, seq: 1),
+            };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, Ctx(solePlayer: 7));
+
+            Assert.That(TryRow(r, 9, out InventoryRow refund), Is.True, "返还款被当普通掉落建行");
+            Assert.That(refund.ItemOrdinal, Is.EqualTo(OrdWoodenPost));
+            Assert.That(refund.Qty, Is.EqualTo(1));
+            Assert.That(refund.Owner, Is.EqualTo(InventoryProjection.NoOwner), "在地上(未被认领)");
+            Assert.That(refund.Quality, Is.EqualTo(BuildPartQualityGate.P0BuildPartQuality),
+                "建材品级按 BL-28 口径常量恒 1(R18 桶③)");
+            Assert.That(r.Gaps, Is.Empty, "R17 + R18 建材桶闭合后,返还链路完全可重建");
+        }
+
+        /// <summary>**R18 桶外仍报缺口**:非 17 来源、非 Craft 产出、非建材的实例
+        /// (25 / 27 / 29 掉落)依然没有品级载体。</summary>
+        [Test]
+        public void test_r18_nonBuildPartWithoutQualitySource_stillRaisesGap()
+        {
+            // OrdSplint = tool,不是 build_part;且无 ResourceHarvested / 无 Craft 产出
+            var events = new List<SimEvent> { Spawn(5, itemKey: OrdSplint, qty: 1, tick: 1) };
+
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, Ctx());
 
             InventoryFoldGap gap = r.Gaps.Single(g => g.Kind == InventoryFoldGapKind.InstanceWithoutQualitySource);
             Assert.That(gap.RegistryId, Is.EqualTo("R18"));
@@ -378,7 +622,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Harvest(9, nodeId: 1, qty: 1, outQuality: 5, tick: 3, seq: 0),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(
                 r.Gaps.Any(g => g.Kind == InventoryFoldGapKind.ConflictingQualitySource
@@ -400,7 +644,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
             // 今天 20 侧写者缺位时 17 的真实形态:ResourceHarvested 落了、DropSpawned 没落。
             var events = new List<SimEvent> { Harvest(77, nodeId: 4, qty: 1, outQuality: 1, tick: 1) };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(r.Gaps.Any(g => g.Kind == InventoryFoldGapKind.DanglingInstanceReference
                                         && g.InstanceId == 77L), Is.True,
@@ -418,7 +662,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Spawn(1, 10, 1, tick: 2, seq: 0),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(r.Gaps.Any(g => g.Kind == InventoryFoldGapKind.DuplicateInstanceId), Is.True,
                 "号永不回收(ADR-006 机制 A 不变量②)");
@@ -433,7 +677,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Claim(1, 7, tick: 2, seq: 0), Claim(1, 8, tick: 3, seq: 0),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(r.Gaps.Any(g => g.Kind == InventoryFoldGapKind.DuplicateClaim), Is.True);
             Assert.That(TryRow(r, 1, out InventoryRow row), Is.True);
@@ -449,7 +693,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Despawn(1, qty: 5, tick: 2, seq: 0),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(r.Gaps.Any(g => g.Kind == InventoryFoldGapKind.InvalidDespawnQuantity), Is.True);
             Assert.That(TryRow(r, 1, out InventoryRow row), Is.True);
@@ -471,7 +715,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                     Despawn(1, qty: bad, tick: 2, seq: 0),
                 };
 
-                InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+                InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
                 Assert.That(
                     r.Gaps.Any(g => g.Kind == InventoryFoldGapKind.InvalidDespawnQuantity
@@ -494,7 +738,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                       outIds: Array.Empty<long>(), tick: 3),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(r.Gaps.Any(g => g.Kind == InventoryFoldGapKind.ConsumptionExceedsHolding), Is.True,
                 "投料只能扣自己箱里的");
@@ -515,7 +759,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                       outIds: Array.Empty<long>(), tick: 3),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(r.Gaps.Any(g => g.Kind == InventoryFoldGapKind.CraftOutputWithoutItemKey), Is.False);
             Assert.That(r.IsComplete, Is.True, "只扣不出的 Craft 落在全可重建子域内");
@@ -553,7 +797,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
         {
             // fail-closed:空解码器 ⇒ 若返回空投影,「库存全空」会成为静默失败。
             Assert.Throws<ArgumentNullException>(
-                () => InventoryFold.Fold(new List<SimEvent> { Spawn(1, 10, 1, tick: 1, seq: 0) }, null));
+                () => InventoryFold.Fold(new List<SimEvent> { Spawn(1, 10, 1, tick: 1, seq: 0) }, null, EmptyCtx));
         }
 
         [Test]
@@ -565,7 +809,7 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 Claim(1, 7, tick: 2, seq: 0),
             };
 
-            InventoryFoldResult r = InventoryFold.Fold(events, _decoder);
+            InventoryFoldResult r = InventoryFold.Fold(events, _decoder, EmptyCtx);
 
             Assert.That(r.RequireComplete().CanonicalForm(), Is.EqualTo(r.Projection.CanonicalForm()));
         }
@@ -619,6 +863,11 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 "DaYiJingCheng.Sim.InventoryRow",           // 行 + StackKey
                 "DaYiJingCheng.Sim.InventoryFoldGap",       // 缺口结构 + RegistryId
                 "DaYiJingCheng.Sim.InventoryFoldGapKind",   // 缺口枚举
+                // 2026-10-27 R15–R18 闭合批新增 —— 本集合的「须与文件声明逐一对应」判据
+                // 正是靠这类同步义务生效:加类型不同步 ⇒ 判据面静默变窄。
+                "DaYiJingCheng.Sim.InventoryFoldContext",   // 查表源 + 单机归属快照
+                "DaYiJingCheng.Sim.ItemLookup",             // 物品表双向索引(嵌套类型,
+                                                            //   反射名按 AllTypes 的口径展开)
             };
 
             var dll = AssemblyGates.ScriptAssemblyPath("Sim");
@@ -739,8 +988,8 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                    new ActorCellEnteredPayload(7, new WorldPos(0, 0, 0), 2L), tick: 2, seq: 9),
             };
 
-            string a = InventoryFold.Fold(baseline, _decoder).Projection.CanonicalForm();
-            string b = InventoryFold.Fold(withExtra, _decoder).Projection.CanonicalForm();
+            string a = InventoryFold.Fold(baseline, _decoder, EmptyCtx).Projection.CanonicalForm();
+            string b = InventoryFold.Fold(withExtra, _decoder, EmptyCtx).Projection.CanonicalForm();
 
             Assert.That(StreamRouting.Of(EventKind.ActorCellEntered), Is.EqualTo(StreamId.World),
                 "前提:该 Kind 属世界流(否则测不到「域内但非七谓词」)");

@@ -354,7 +354,7 @@ namespace DaYiJingCheng.Tests.PlayMode.Inventory
         }
 
         private InventoryProjection Projection()
-            => InventoryFold.Fold(_bag.Stream.Events, _bag.Decoder).RequireComplete();
+            => InventoryFold.Fold(_bag.Stream.Events, _bag.Decoder, InventoryFoldContext.None).RequireComplete();
 
         private string FoldCanonicalForm() => Projection().CanonicalForm();
 

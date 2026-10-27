@@ -544,7 +544,9 @@ namespace DaYiJingCheng.Tests.EditMode.Inventory
                 }
             }
 
-            return InventoryFold.Fold(events, _decoder).RequireComplete();
+            // 本夹具重建的是**纯 Drop\* 流**(Spawned / Claimed / 无 Craft 产出、无 StructurePlaced)
+            // ⇒ 三份查表源确实用不上。显式声明而非省略形参(见 InventoryFoldContext.None 的注释)。
+            return InventoryFold.Fold(events, _decoder, InventoryFoldContext.None).RequireComplete();
         }
 
         // ── 桩 ─────────────────────────────────────────────────────────────

@@ -31,8 +31,29 @@
 // ⚠️ **本文件零 `UnityEngine`、零 `float`、零求值**(门 A / AC-20-05):
 //    · 堆叠键用 **物品表 ordinal**(载荷里本来就是 int),不做 ordinal → `ItemKey` 解析
 //      ⇒ 不需要 `ItemDataSet`,也不引入「读物品表」这条非流来源;
-//    · 品级**只从载荷抄**(`ResourceHarvested.out_quality`),**永不计算**(那是 21a 的活);
-//    · 建造扣减量 `cost(m)` 在 R16 闭合前**拿不到归属** ⇒ 本件不注入 `IModuleCatalog`。
+//    · 品级**只从载荷抄**(`ResourceHarvested.out_quality` / `Craft.OutputQuality`),
+//      **永不计算**(那是 21a 的活);建材桶的恒 1 是**引 BL-28 的口径常量**,不是求值;
+//    · 建造扣减量 `cost(m)` 从**模块目录**(烘焙产物)读,不由 fold 推算。
+//
+// ── 🔁 2026-10-27 R15–R18 闭合批(用户三项裁定)─────────────────────────────────
+// 上文「不做 ordinal → ItemKey 解析」与「不注入 IModuleCatalog」**仍然成立**,本批没有推翻它们:
+//   · fold 仍**不**把 ordinal 解析成 `ItemKey` —— 它只把「配方 outputs 的 ItemKey」经物品表
+//     折回 **ordinal** 用于建行(方向相反:`ItemKey → ordinal`,不是 `ordinal → ItemKey`);
+//   · `cost(m)` 仍不由 fold 推算 —— 它是目录里的一个**读数**。
+// 但这批**新增了三份查表源**(全部是版本化烘焙产物,ADR-014 / ADR-015 §一「派生态」判据):
+//   ① `ItemDataSet` —— 判断某个 ordinal 是否 `build_part`(R18 建材桶 / R16 扣料桶);
+//   ② `RecipeDataSet` —— `Craft.RecipeId`(21a ordinal)→ `Recipe.Outputs`(R15);
+//   ③ `IModuleCatalog` —— `ModuleDefinition.{Cost, BuildItemKey}`(R16 扣减量)。
+// ⚠️ **三份都是「版本化烘焙数据」,属 ADR-016 §一 三源不变量的第二源** ——
+//    不是第四来源,不破坏「零第三方」纪律。三源:事件流 / 烘焙数据 / 二者的纯函数。
+//
+// ⚠️ **纯函数性(`PlayerActorRegistry` 的特殊处置)**:R16 甲案要「唯一玩家」,而
+//    「谁是玩家」**在流里没有任何事件**(全库 `grep PlayerSpawned|PlayerCreated` 零命中)——
+//    它只存在于进程内 `PlayerActorRegistry`。若把该 registry 直接注进 fold,
+//    fold 的结果就**依赖读取时刻的 registry 状态** ⇒ 不再是流 + 烘焙数据的纯函数
+//    (同一份流两次 fold 可能得出不同归属)。⇒ 本类只收**快照值**
+//    (<see cref="InventoryFoldContext.SolePlayer"/>),由调用方在 fold 前取一次。
+//    该快照**不落流、不进存档**(承 `PlayerActorRegistry` 头注「不是状态真源」)。
 //
 // ⚠️ **单一 fold 域 = 世界流**(ADR-009 §一 / OQ-20-1):本类**只**消费
 //    `StreamRouting.Of(kind) == StreamId.World` 的 Kind。病史流 / 病例流条目**不得**入 fold ——
@@ -41,9 +62,84 @@
 using System;
 using System.Collections.Generic;
 using DaYiJingCheng.Sim.Contracts;
+// IModuleCatalog / ModuleDefinition 住 Sim.World(同程序集,非跨程序集边 —— ADR-025 §① 不变)
+using DaYiJingCheng.Sim.World;
 
 namespace DaYiJingCheng.Sim
 {
+    /// <summary>
+    /// fold 的**外部只读查表源** + 单机归属快照(2026-10-27 R15–R18 闭合批新增)。
+    ///
+    /// <para><b>为什么收成一个对象而不是三个裸形参</b>:裸参 + 默认 null 会重演
+    /// `StructureWriter` 的 <c>N-r1</c> 失败模式 —— 「不传 ⇒ 静默退化,且测试把退化
+    /// 断言成正确行为」(`test_c2_noCatalog_noOccupancy_noThrow`)。收成一个**必填**对象后,
+    /// 「忘了传表」在**编译期**不可表达;而「表在但查不到号」会走**显式缺口**
+    /// (<see cref="InventoryFoldGapKind.CraftRecipeNotInTable"/> 等)⇒ <c>IsComplete = false</c>,
+    /// 是**可见的失败**,不是静默算错。</para>
+    ///
+    /// <para><b>三份表全部是版本化烘焙产物</b>(ADR-014 / ADR-015 §一「派生态」判据)——
+    /// 属 ADR-016 §一 三源不变量的第二源,不是第四来源。</para>
+    ///
+    /// <para><b>纯函数性</b>:<see cref="SolePlayer"/> 是**快照值**(fold 前取一次),不是活 registry。
+    /// 理由见文件头注 —— 「谁是玩家」在流里零事件,活 registry 会让 fold 结果依赖读取时刻。</para>
+    /// </summary>
+    public sealed class InventoryFoldContext
+    {
+        /// <summary>物品种子表(判 <c>build_part</c> 类别 + 把 <see cref="ItemKey"/> 折回 ordinal)。</summary>
+        public ItemDataSet Items { get; }
+
+        /// <summary>配方表(<c>Craft.RecipeId</c> → <c>Recipe.Outputs</c>;R15 的映射键 = <see cref="Recipe.Ordinal"/>)。</summary>
+        public RecipeDataSet Recipes { get; }
+
+        /// <summary>模块目录(<c>ModuleDefinition.{Cost, BuildItemKey}</c>;R16 的扣减量来源)。</summary>
+        public IModuleCatalog Modules { get; }
+
+        /// <summary>
+        /// **唯一玩家**的 actor id;多玩家 / 未知时为 <c>null</c>。
+        ///
+        /// <para>P0 单机由调用方传一个非 null 值(`PlayerActorRegistry` 里恰有 1 个玩家时);
+        /// 联机 / 零玩家 / 多玩家一律 <c>null</c> ⇒ R16 归因**不可判** ⇒ 报缺口。</para>
+        ///
+        /// <para>⚠️ <b>为什么是 null 而不是哨兵 id</b>:<c>-1</c> 已是
+        /// <see cref="InventoryProjection.NoOwner"/> 的合法值(「在地上」)。用同一个数
+        /// 表示「不知道扣谁的」会让两种语义撞车。</para>
+        /// </summary>
+        public int? SolePlayer { get; }
+
+        /// <summary>构造查表源。</summary>
+        /// <param name="items">物品种子表(必须已解码;空表 ⇒ 所有 <c>build_part</c> 判定为负)。</param>
+        /// <param name="recipes">配方表(空表 ⇒ 所有 <c>Craft</c> 产出报
+        /// <see cref="InventoryFoldGapKind.CraftRecipeNotInTable"/>,**不静默丢** —— 那会让
+        /// 「配方表没装载」退化成「炮制没产出」)。</param>
+        /// <param name="modules">模块目录(null ⇒ **允许**,但每次 <c>StructurePlaced</c> / <c>StructureRemoved</c>
+        /// 都会报显式缺口 —— 23 侧未接线时如实可见,不静默跳过扣料)。</param>
+        /// <param name="solePlayer">唯一玩家 id(P0 单机);多玩家 / 未知传 <c>null</c>。</param>
+        public InventoryFoldContext(ItemDataSet items, RecipeDataSet recipes,
+            IModuleCatalog modules, int? solePlayer)
+        {
+            Items = items;
+            Recipes = recipes;
+            Modules = modules;
+            SolePlayer = solePlayer;
+        }
+
+        /// <summary>
+        /// **空上下文** —— 三份表皆空、无唯一玩家。
+        ///
+        /// <para>⚠️ <b>它不是「降级模式」,是「我确实没有表」的显式声明</b>:用它的 fold
+        /// 只要遇到 <c>Craft</c> 有产出 / <c>StructurePlaced</c> / 非 17 来源的实例,
+        /// 就**必然**报缺口(⇒ <c>IsComplete = false</c>)。纯 <c>Drop*</c> 夹具
+        /// (只造 `DropSpawned` + `DropClaimed` + `DropDespawned`,且品级走
+        /// <c>ResourceHarvested</c>)用它没有任何缺口 ⇒ 那是**真完整**,不是被放过。</para>
+        ///
+        /// <para>存在的理由:手写 <c>new InventoryFoldContext(default, default, null, null)</c>
+        /// 在 42 个调用点上是一次性噪音;而省略形参会让「忘了传」与「确实没有」不可区分。
+        /// 具名常量让后者成为一次**可 grep 的声明**。</para>
+        /// </summary>
+        public static readonly InventoryFoldContext None =
+            new InventoryFoldContext(default, default, null, null);
+    }
+
     /// <summary>投影里的一行 —— 一个物品实例的当前可见态(规则三的堆叠键已在此展开)。</summary>
     public readonly struct InventoryRow
     {
@@ -121,6 +217,33 @@ namespace DaYiJingCheng.Sim
         /// 别端写坏的数据 / 生产池实现变更时**不静默错算**;测试侧亦无法用真 codec 构造
         /// 该形态 ⇒ 该分支**未被夹具钉住**(Proven = ✗,登记在 story 的 Test Evidence)。</para></summary>
         MalformedPayloadPairing = 10,
+
+        // ══════════════════════════════════════════════════════════════════
+        // 2026-10-27 R15–R18 闭合批新增 —— 查表 / 归属不可判的**显式**缺口。
+        // ⚠️ 全部是 fail-closed 形态:「拿不到真源 ⇒ 拒绝出完整投影」,
+        //    不是「拿不到就算 0」。照 `RequireComplete()` 的既有纪律。
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>**R15(新形态)** —— `Craft.recipe_id` 在配方表里查无此号 ⇒ 产出物
+        /// 确定不了 `item_key`。与旧 <see cref="CraftOutputWithoutItemKey"/> 的区别:
+        /// 旧的报「载荷无位」(结构性缺位,永远修不好);本条报「表里没有这一号」
+        /// (数据 / 版本不一致,可修)。</summary>
+        CraftRecipeNotInTable = 11,
+
+        /// <summary>**R15(新形态)** —— 配方查到了,但其 `outputs` 行数与载荷的
+        /// `OutputQty` / `OutputQuality` / `OutputInstanceIds` 行数不一致 ⇒ 无法逐行对位建行。
+        /// <para>⚠️ 这是**数据一致性**缺口(配方表版本 ≠ 载荷产生时的配方表版本),
+        /// 不是载荷畸形(后者归 <see cref="MalformedPayloadPairing"/>)。</para></summary>
+        CraftOutputCountMismatch = 12,
+
+        /// <summary>**R16(新形态)** —— 建造扣料归因不可判:``SolePlayer == null``
+        /// (多玩家 / 零玩家 / 未接 registry)或 `StructurePlaced.module_id` 不在模块目录。</summary>
+        BuildCostAttributionUnresolved = 13,
+
+        /// <summary>**R16(新形态)** —— 建造扣料**量不足**:唯一玩家名下该建材的库存
+        /// 少于 `cost(m)`。主机应整体拒绝、世界流零事件 ⇒ 流里出现即畸形
+        /// (同 <see cref="InvalidDespawnQuantity"/> 的判据形态)。</summary>
+        BuildCostExceedsHolding = 14,
     }
 
     /// <summary>一条缺口 —— 带**可追溯的定位**(R 编号 + Kind + 全序键 + 实例 id)。</summary>
@@ -159,7 +282,11 @@ namespace DaYiJingCheng.Sim
                 switch (Kind)
                 {
                     case InventoryFoldGapKind.CraftOutputWithoutItemKey: return "R15";
+                    case InventoryFoldGapKind.CraftRecipeNotInTable: return "R15";
+                    case InventoryFoldGapKind.CraftOutputCountMismatch: return "R15";
                     case InventoryFoldGapKind.StructurePlacementWithoutActor: return "R16";
+                    case InventoryFoldGapKind.BuildCostAttributionUnresolved: return "R16";
+                    case InventoryFoldGapKind.BuildCostExceedsHolding: return "R16";
                     case InventoryFoldGapKind.StructureRemovalWithoutRefundIdentity: return "R17";
                     case InventoryFoldGapKind.InstanceWithoutQualitySource: return "R18";
                     default: return string.Empty;
@@ -263,15 +390,18 @@ namespace DaYiJingCheng.Sim
 
     /// <summary>
     /// `InventoryOf` 的折叠重建器本体(规则一)。
-    /// <para><b>纯函数</b>:输入 = 事件流 + 解码器,输出 = 投影;零第三来源
-    /// (不读物品表、不读快照、不读墙钟、不读表现态位置)。</para>
+    /// <para><b>纯函数</b>:输入 = 事件流 + 解码器 + <see cref="InventoryFoldContext"/>(烘焙查表源
+    /// 与单机归属**快照**),输出 = 投影。零**第四**来源 ——
+    /// 不读快照存档、不读墙钟、不读表现态位置、不读活 registry。
+    /// 三源 = 事件流 / 版本化烘焙数据 / 二者的纯函数(ADR-016 §一)。</para>
     /// <para><b>全序</b>:按 <c>(Tick, StreamPriority, Patient, Seq)</c> 升序应用
     /// (<see cref="EventOrderKey"/>);键完全相等时按**输入列表下标**升序 —— 显式 tiebreak,
     /// 不依赖 <c>List.Sort</c> 的不稳定性。⇒ 传入顺序任意,结果相同(排序在 fold 内,
     /// 不是调用方义务)。</para>
     /// </summary>
     /// <remarks>
-    /// <para><b>七类 Kind 的转移**(规则一表):</para>
+    /// <para><b>六类 Kind 的转移**(规则一表;2026-10-27 起 `StructureRemoved` **退出**谓词集 ——
+    /// 见其条目):</para>
     /// <list type="table">
     /// <item><term><see cref="EventKind.DropSpawned"/></term>
     ///       <description>建条目(`item_key` + `qty`);owner = <see cref="InventoryProjection.NoOwner"/>。</description></item>
@@ -283,15 +413,18 @@ namespace DaYiJingCheng.Sim
     ///       <description>绑 `quality`(**预扫一遍** ⇒ 与出生事件的先后无关)。</description></item>
     /// <item><term><see cref="EventKind.Craft"/></term>
     ///       <description>扣料 = `InputInstanceIds ⟷ ActualConsumed`;
-    ///       **产出侧 → R15 缺载体**。</description></item>
+    ///       **产出侧**(2026-10-27 起)= 经 <c>recipe_id</c> 查配方表、逐行建行(R15 闭合)。</description></item>
     /// <item><term><see cref="EventKind.StructurePlaced"/></term>
-    ///       <description>**→ R16 无 actor 位**。</description></item>
+    ///       <description>建造扣料(2026-10-27 起)= 按 <see cref="InventoryFoldContext.SolePlayer"/>
+    ///       归唯一玩家、从模块目录取 `cost(m)`(R16 甲案闭合);归因不可判 ⇒ 报缺口。</description></item>
     /// <item><term><see cref="EventKind.StructureRemoved"/></term>
-    ///       <description>**→ R17 无 id / 无 item_key**。</description></item>
+    ///       <description>**不参与 fold**(2026-10-27 用户裁定「地面掉落」)—— 拆除的返还物由 23
+    ///       另发一条**普通** <c>DropSpawned</c>,fold 照常当掉落处理。
+    ///       ⇒ 本 Kind **移出**库存谓词集(见下方注释)。</description></item>
     /// </list>
     /// <para><b>域外 Kind 一律不计</b> —— 病史流 / 病例流条目进场也**不改变**投影
     /// (`OQ-20-1` ②:用药消耗走世界流 `DropDespawned`,不读 `DrugTreatmentApplied`)。
-    /// 世界流内不属七谓词的 Kind(`ActorCellEntered` / `StructureModified` /
+    /// 世界流内不属谓词的 Kind(`ActorCellEntered` / `StructureModified` /
     /// `PoiStateChanged` …)同样不参与。</para>
     /// </remarks>
     public static class InventoryFold
@@ -299,18 +432,36 @@ namespace DaYiJingCheng.Sim
         /// <summary>执行一次世界流折叠。</summary>
         /// <param name="events">事件流(**可为三流并集** —— 域外 Kind 自动跳过);顺序任意。</param>
         /// <param name="decoder">载荷解码器(注入;实现住 <c>Sim.Codec</c>)。</param>
+        /// <param name="context">烘焙查表源 + 单机归属快照(<b>必填</b>,见下)。</param>
         /// <returns>投影 + 缺口清单。调用方须先看 <see cref="InventoryFoldResult.IsComplete"/>。</returns>
         /// <exception cref="ArgumentNullException">任一形参为 null(fail-closed:空解码器
         /// ⇒ 静默返回空投影 ⇒ 「重建成功但库存全空」的静默失败)。</exception>
-        public static InventoryFoldResult Fold(IReadOnlyList<SimEvent> events, IPayloadDecoder decoder)
+        /// <remarks>
+        /// ⚠️ <b><paramref name="context"/> 是必填形参,不是可选参数</b> —— 这是刻意避开
+        /// `StructureWriter` 的 <c>N-r1</c> 失败模式(可选 + 默认 null ⇒ 静默退化,
+        /// 且测试把退化断言成正确行为)。手头确实没有任何表的调用方(纯 `Drop*` 夹具)
+        /// 须**显式**写 <see cref="InventoryFoldContext.None"/> —— 那是一句可 grep 的声明
+        /// (「我知道我没有表」),而不是一次沉默的省略。
+        /// </remarks>
+        public static InventoryFoldResult Fold(IReadOnlyList<SimEvent> events, IPayloadDecoder decoder,
+            InventoryFoldContext context)
         {
             if (events == null) throw new ArgumentNullException(nameof(events));
             if (decoder == null)
                 throw new ArgumentNullException(nameof(decoder),
                     "未注入 IPayloadDecoder —— 拒绝返回空投影(空投影 ⇒ 「库存全空」的静默失败)");
+            if (context == null)
+                throw new ArgumentNullException(nameof(context),
+                    "未注入 InventoryFoldContext —— 拒绝以「无表」冒充「查表失败」。" +
+                    "确实没有表请显式传 InventoryFoldContext.None(可 grep 的声明);" +
+                    "可选参数会让「忘了传表」退化成静默少算(StructureWriter N-r1 的形态)");
 
             List<SimEvent> ordered = OrderByFullOrderKey(events);
             var gaps = new List<InventoryFoldGap>();
+
+            // ── 表索引(一次建好;R15 / R16 / R18 共用)。
+            ItemLookup lookup = ItemLookup.Build(context.Items);
+            Dictionary<int, Recipe> recipesByOrdinal = BuildRecipeIndex(context.Recipes);
 
             // ── 预处理:品级来源与采集事实(顺序无关)。
             //    17 的实发序 = DropSpawned → ResourceHarvested → DropClaimed
@@ -320,7 +471,11 @@ namespace DaYiJingCheng.Sim
             CollectHarvested(ordered, decoder, quality, harvested, gaps);
 
             var rows = new Dictionary<long, InventoryRow>(ordered.Count / 4 + 1);
-            var craftOutputIds = new HashSet<long>();
+
+            // 品级「已解析」的实例集 —— 与 `quality` 分开是因为建材桶的 1 是**口径常量**
+            // (BL-28)而非流里抄来的值:两者 Mix 进同一个字典会让「建材恒 1」看起来像
+            // 「采集到品级 1」,混淆来源。
+            var qualityResolved = new HashSet<long>(quality.Keys);
 
             for (int i = 0; i < ordered.Count; i++)
             {
@@ -403,31 +558,32 @@ namespace DaYiJingCheng.Sim
                     {
                         CraftPayload p = decoder.Decode<CraftPayload>(e.Kind, e.Payload);
                         ApplyCraftConsumption(p, e.Kind, at, rows, gaps);
-                        AccumulateCraftOutputs(p, e.Kind, at, craftOutputIds, gaps);
+                        ApplyCraftOutputs(p, e.Kind, at, rows, gaps, quality, qualityResolved,
+                            recipesByOrdinal, lookup);
                         break;
                     }
 
                     case EventKind.StructurePlaced:
                     {
-                        // R16 —— 扣 cost(module_id) 需要知道「扣谁的」,而载荷五字段无 actor 位。
+                        // R16 甲案(用户 2026-10-27 裁定):P0 单机 ⇒ 建造扣料恒归**唯一玩家**。
+                        // 归因不可判(SolePlayer == null / 模块不在目录)⇒ 显式缺口,不静默跳过。
                         StructurePlacedPayload p = decoder.Decode<StructurePlacedPayload>(e.Kind, e.Payload);
-                        gaps.Add(Gap(InventoryFoldGapKind.StructurePlacementWithoutActor, e.Kind, at, 0L,
-                            "structure_id=" + p.StructureId + " module_id=" + p.ModuleId + " —— " +
-                            "StructurePlacedPayload 无 actor 位,扣减记不到人" +
-                            "(P0 单机可退化,但退化是推断不是裁定)"));
+                        ApplyBuildCost(p, e.Kind, at, rows, gaps, context, lookup);
                         break;
                     }
 
                     case EventKind.StructureRemoved:
-                    {
-                        // R17 —— 返还物既无 instance_id 也无 item_key。
-                        StructureRemovedPayload p = decoder.Decode<StructureRemovedPayload>(e.Kind, e.Payload);
-                        gaps.Add(Gap(InventoryFoldGapKind.StructureRemovalWithoutRefundIdentity, e.Kind, at, 0L,
-                            "structure_id=" + p.StructureId + " module_id=" + p.ModuleId + " —— " +
-                            "StructureRemovedPayload 只有三字段,返还物既无 instance_id 也无 item_key" +
-                            "(BL-21 只说「必新铸」,未定「铸出来落进哪条事件的哪个位」)"));
+                        // 🔁 2026-10-27 用户裁定「地面掉落」⇒ 本 Kind **退出库存谓词集**。
+                        //    拆除的返还物由 23 另发一条**普通 DropSpawned**(qty = Refund、
+                        //    item_key = module.BuildItemKey、锚点 = 拆除格),fold 照常当掉落处理 ——
+                        //    它不需要 structure_id,也就不需要本事件。
+                        //    ⚠️ 「23 是否真的发了那条 DropSpawned」**不是 fold 的可判事实**:
+                        //       fold 看不到「本该有而没有」的事件(那需要一份「应发清单」= 第二真源)。
+                        //       ⇒ AC-23-16 的「不静默吞返还」由 **23 侧的 spy-sink 测试**钉
+                        //       (`modular-building.md:558` 原文已把载体指到 20 侧测试文件),
+                        //       **不由 fold 兜底**。本行留此注是为了让「为什么 fold 不查 StructureRemoved」
+                        //       在代码里可读,而不是靠 commit message。
                         break;
-                    }
 
                     default:
                         // 世界流内不属七谓词的 Kind(ActorCellEntered / StructureModified /
@@ -439,21 +595,37 @@ namespace DaYiJingCheng.Sim
             // ⚠️ 尾段两趟都按 **instance_id 升序**遍历(而非字典枚举序)——
             //    `Dictionary` 的枚举序不是契约,靠它会让「同一流 ⇒ 同一缺口序」成为偶然。
 
-            // ── 尾段 ①:R18 —— 已建行里没有任何品级来源
+            // ── 尾段 ①:R18 —— 已建行里没有任何品级来源(2026-10-27 起 = **三桶白名单**)
+            //    桶① 17 采集:ResourceHarvested.out_quality(已在 quality 里)
+            //    桶② Craft 产出:Craft.OutputQuality(已在 ApplyCraftOutputs 里写入 qualityResolved)
+            //    桶③ build_part:BL-28 已裁「P0 品级恒 1」⇒ 口径常量,不是流里抄来的值
+            //    桶外(25 战斗掉落 / 27 敌人掉落 / 29 死亡掉落 / 18 起货溢出)⇒ 仍报缺口。
+            //
+            // ⚠️ **这是白名单,不是「凡是建材就放过」** —— 判据必须是
+            //    「该实例的 item_key 在物品表里 category == BuildPart」,而**不是**
+            //    「流的其余部分看起来像建造」。查不到序号的 instance 不享受本豁免(见下)。
             var rowIds = new List<long>(rows.Keys);
             rowIds.Sort();
             for (int i = 0; i < rowIds.Count; i++)
             {
                 InventoryRow row = rows[rowIds[i]];
                 if (row.Qty <= 0) continue;
-                if (quality.ContainsKey(rowIds[i])) continue;
-                if (craftOutputIds.Contains(rowIds[i])) continue;
+                if (qualityResolved.Contains(rowIds[i])) continue;              // 桶① / 桶②
+
+                if (lookup.IsBuildPart(row.ItemOrdinal))                        // 桶③
+                {
+                    // 品级按 BL-28 口径常量定(不是求值、不是推断):该行 instance 的
+                    // Quality 字段保持 0 会与「恒 1」的口径不符,故就地归一。
+                    rows[rowIds[i]] = new InventoryRow(row.InstanceId, row.ItemOrdinal,
+                        BuildPartQualityGate.P0BuildPartQuality, row.Qty, row.Owner);
+                    continue;
+                }
 
                 gaps.Add(new InventoryFoldGap(InventoryFoldGapKind.InstanceWithoutQualitySource,
                     EventKind.DropSpawned, InventoryFoldGap.NoEvent, rowIds[i],
                     "实例 " + rowIds[i] + "(item_key=" + row.ItemOrdinal + ")在整个流里没有品级来源 —— " +
-                    "DropSpawnedPayload 无 quality 位;17 路径由 ResourceHarvested.out_quality 补齐," +
-                    "25/27/29 掉落与 18 起货溢出则没有"));
+                    "DropSpawnedPayload 无 quality 位;已闭合的三桶 = 17 采集 / Craft 产出 / build_part(BL-28), " +
+                    "本条不属于任何一桶(25/27/29 掉落与 18 起货溢出仍缺载体)"));
             }
 
             // ── 尾段 ②:`ResourceHarvested` 有、`DropSpawned` 没有
@@ -477,6 +649,72 @@ namespace DaYiJingCheng.Sim
         // ══════════════════════════════════════════════════════════════════
         // 内部
         // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>物品表的双向索引(ordinal → 类别 / ItemKey → ordinal)。
+        /// <para>⚠️ 两个方向都是**必要**的:判是否 `build_part` 要从 <c>ordinal</c> 出发(R18 桶③),
+        /// 而配方 outputs 给的是 <see cref="ItemKey"/>,要折回 <c>ordinal</c>(R15)。</para>
+        /// <para>⚠️ <b>重复键不抛</b>(与 <c>InventoryLoadService</c> 的装配期校验分工不同):
+        /// fold 是读侧,重复 ordinal 属**表缺陷**,但那由装载期门执法;此处「后者覆盖前者的静默」
+        /// 换成**先到先得**(确定性),避免 fold 因表缺陷抛异常而使整个投影不可得 ——
+        /// 缺口可读比异常可读更有信息量。</para></summary>
+        private readonly struct ItemLookup
+        {
+            private readonly Dictionary<int, ItemDef> _byOrdinal;
+            private readonly Dictionary<ItemKey, int> _ordinalOf;
+
+            private ItemLookup(Dictionary<int, ItemDef> byOrdinal, Dictionary<ItemKey, int> ordinalOf)
+            {
+                _byOrdinal = byOrdinal;
+                _ordinalOf = ordinalOf;
+            }
+
+            /// <summary>建索引(空表 ⇒ 两个空字典,所有查询返回 false)。</summary>
+            public static ItemLookup Build(ItemDataSet data)
+            {
+                ItemDef[] items = data.Items;
+                int n = items != null ? items.Length : 0;
+                var byOrdinal = new Dictionary<int, ItemDef>(n);
+                var ordinalOf = new Dictionary<ItemKey, int>(n);
+                for (int i = 0; i < n; i++)
+                {
+                    ItemDef d = items[i];
+                    if (!byOrdinal.ContainsKey(d.Ordinal)) byOrdinal[d.Ordinal] = d;
+                    var key = new ItemKey(d.BaseId, d.ProcessingState);
+                    if (!ordinalOf.ContainsKey(key)) ordinalOf[key] = d.Ordinal;
+                }
+                return new ItemLookup(byOrdinal, ordinalOf);
+            }
+
+            /// <summary>该 ordinal 是否 <c>build_part</c>(R18 桶③的判据)。
+            /// <b>查不到 ⇒ false</b>:查不到就**不**享受豁免,落回 R18 缺口。</summary>
+            public bool IsBuildPart(int ordinal)
+                => _byOrdinal.TryGetValue(ordinal, out ItemDef d) && d.Category == ItemCategory.BuildPart;
+
+            /// <summary><see cref="ItemKey"/> → ordinal(<c>false</c> = 物品表里没有这个键)。</summary>
+            public bool TryOrdinalOf(ItemKey key, out int ordinal)
+            {
+                if (key.BaseId == null)
+                {
+                    ordinal = -1;
+                    return false;
+                }
+                return _ordinalOf.TryGetValue(key, out ordinal);
+            }
+        }
+
+        /// <summary>配方表索引:<c>Ordinal → Recipe</c>。重复 ordinal ⇒ 先到先得(同
+        /// <see cref="ItemLookup"/> 的取舍)。</summary>
+        private static Dictionary<int, Recipe> BuildRecipeIndex(RecipeDataSet data)
+        {
+            Recipe[] recipes = data.Recipes;
+            int n = recipes != null ? recipes.Length : 0;
+            var index = new Dictionary<int, Recipe>(n);
+            for (int i = 0; i < n; i++)
+            {
+                if (!index.ContainsKey(recipes[i].Ordinal)) index[recipes[i].Ordinal] = recipes[i];
+            }
+            return index;
+        }
 
         /// <summary>按全序键排定;键完全相等时按输入下标(显式稳定 tiebreak)。</summary>
         private static List<SimEvent> OrderByFullOrderKey(IReadOnlyList<SimEvent> events)
@@ -573,17 +811,30 @@ namespace DaYiJingCheng.Sim
             }
         }
 
-        /// <summary>`Craft` 的**增益侧** —— **R15 缺载体**:载荷无产出 `item_key` 位。
-        /// 只登记缺口,**不建行**(不造占位)。</summary>
-        private static void AccumulateCraftOutputs(CraftPayload p, EventKind kind, EventOrderKey at,
-            HashSet<long> craftOutputIds, List<InventoryFoldGap> gaps)
+        /// <summary>`Craft` 的**增益侧**(2026-10-27 R15 闭合)—— 经
+        /// <c>recipe_id</c> 查配方表,逐 outputs 行建实例行。
+        ///
+        /// <para><b>映射链</b>:<c>Craft.RecipeId</c>(21a ordinal)→ <see cref="Recipe.Ordinal"/>
+        /// → <see cref="Recipe.Outputs"/>[i].Key(<see cref="ItemKey"/>)→ 物品表折回
+        /// <c>ordinal</c> → 建行。末步「折回」是本批唯一新增的表依赖(R15 的根因正是缺这一步)。</para>
+        ///
+        /// <para><b>建行的 owner = <c>Craft.ActorId</c></b>(炮制产出归炮制者;与扣料侧
+        /// <see cref="ApplyCraftConsumption"/> 的归属判据同源)。</para>
+        ///
+        /// <para><b>三个 fail-closed 出口</b>(各报一种缺口,不静默丢):
+        /// ① 配方表查无此号 ⇒ <see cref="InventoryFoldGapKind.CraftRecipeNotInTable"/>;
+        /// ② 配方 outputs 行数 ≠ 载荷三组行数 ⇒ <see cref="InventoryFoldGapKind.CraftOutputCountMismatch"/>;
+        /// ③ 配方里的 <see cref="ItemKey"/> 在物品表里折不出 ordinal ⇒ 同样报
+        /// ①(「查不到 = 表不完整」,与 ① 同一个失败面)。</para>
+        /// </summary>
+        private static void ApplyCraftOutputs(CraftPayload p, EventKind kind, EventOrderKey at,
+            Dictionary<long, InventoryRow> rows, List<InventoryFoldGap> gaps,
+            Dictionary<long, int> quality, HashSet<long> qualityResolved,
+            Dictionary<int, Recipe> recipesByOrdinal, ItemLookup lookup)
         {
             int nQty = p.OutputQty != null ? p.OutputQty.Length : 0;
             int nQuality = p.OutputQuality != null ? p.OutputQuality.Length : 0;
             int nIds = p.OutputInstanceIds != null ? p.OutputInstanceIds.Length : 0;
-
-            if (p.OutputInstanceIds != null)
-                for (int k = 0; k < nIds; k++) craftOutputIds.Add(p.OutputInstanceIds[k]);
 
             if (nQty != nQuality || nQty != nIds)
             {
@@ -591,16 +842,155 @@ namespace DaYiJingCheng.Sim
                     "OutputQty(" + nQty + ") / OutputQuality(" + nQuality +
                     ") / OutputInstanceIds(" + nIds + ") 不等长 —— " +
                     "三组须逐 outputs 行对位(registry 约束)"));
+                return;
             }
 
-            if (nQty == 0) return;      // 零产出 ⇒ 无增益侧
+            if (nQty == 0) return;      // 零产出 ⇒ 无增益侧(扣料侧已单独处理)
 
             long firstOutputId = nIds > 0 ? p.OutputInstanceIds[0] : 0L;
-            gaps.Add(Gap(InventoryFoldGapKind.CraftOutputWithoutItemKey, kind, at, firstOutputId,
-                "产出 " + nQty + " 行,但 CraftPayload 只有 " +
-                "OutputQty/OutputQuality/OutputInstanceIds —— **无产出 item_key 位**;" +
-                "且 recipe_id(i32)在全仓无 int → Recipe 映射(Recipe.RecipeId 是 string," +
-                "烘焙产物无 ordinal,`_ordinal_baseline.json` 只有物品 registry)"));
+
+            // ── 映射链第一跳:recipe_id → Recipe
+            if (!recipesByOrdinal.TryGetValue(p.RecipeId, out Recipe recipe))
+            {
+                gaps.Add(Gap(InventoryFoldGapKind.CraftRecipeNotInTable, kind, at, firstOutputId,
+                    "recipe_id=" + p.RecipeId + " 在配方表里查无此号 ⇒ 产出 " + nQty +
+                    " 行的 item_key 无法确定(R15 的映射键 = Recipe.Ordinal;查不到即表版本不一致 / 未装载)"));
+                return;
+            }
+
+            // ── 映射链第二跳:配方 outputs 行数 ↔ 载荷三组行数
+            int nRecipeOut = recipe.Outputs != null ? recipe.Outputs.Length : 0;
+            if (nRecipeOut != nQty)
+            {
+                gaps.Add(Gap(InventoryFoldGapKind.CraftOutputCountMismatch, kind, at, firstOutputId,
+                    "配方 '" + recipe.RecipeId + "'(ordinal=" + recipe.Ordinal + ") 声明 " + nRecipeOut +
+                    " 行产出,而 Craft 载荷报 " + nQty + " 行 —— 逐行对位不可能" +
+                    "(配方表版本 ≠ 载荷产生时的配方表版本)"));
+                return;
+            }
+
+            // ── 建行:逐 outputs 行
+            for (int k = 0; k < nQty; k++)
+            {
+                long outId = p.OutputInstanceIds[k];
+                int qty = p.OutputQty[k];
+                int q = p.OutputQuality[k];
+                ItemKey key = recipe.Outputs[k].Key;
+
+                // 第三跳:ItemKey → 物品表 ordinal(方向 = ItemKey → int,不是 int → ItemKey)
+                if (!lookup.TryOrdinalOf(key, out int ordinal))
+                {
+                    gaps.Add(Gap(InventoryFoldGapKind.CraftRecipeNotInTable, kind, at, outId,
+                        "配方 '" + recipe.RecipeId + "' 的第 " + k + " 行产出 (" +
+                        key.BaseId + ", " + key.State + ") 在物品表里折不出 ordinal —— " +
+                        "配方表与物品表版本不一致"));
+                    continue;
+                }
+
+                if (qty <= 0)
+                {
+                    gaps.Add(Gap(InventoryFoldGapKind.InvalidDespawnQuantity, kind, at, outId,
+                        "产出 qty=" + qty + " ≤ 0 —— 配方表 AC-21a-7/16 已拒收,流里出现即畸形"));
+                    continue;
+                }
+
+                if (rows.TryGetValue(outId, out InventoryRow existing) && existing.Qty > 0)
+                {
+                    gaps.Add(Gap(InventoryFoldGapKind.DuplicateInstanceId, kind, at, outId,
+                        "产出实例 id 已在流里出生过且未归零(qty=" + existing.Qty + ")—— " +
+                        "违 ADR-006 机制 A 不变量②:号永不回收"));
+                    continue;
+                }
+
+                rows[outId] = new InventoryRow(outId, ordinal, q, qty, p.ActorId);
+                quality[outId] = q;
+                qualityResolved.Add(outId);         // 桶②:品级来源 = Craft.OutputQuality
+            }
+        }
+
+        /// <summary>`StructurePlaced` 的**扣料侧**(2026-10-27 R16 甲案闭合)。
+        ///
+        /// <para><b>甲案口径</b>(用户 2026-10-27 裁定):P0 单机 ⇒ 建造扣料**恒归唯一玩家**。
+        /// 归属来源 = <see cref="InventoryFoldContext.SolePlayer"/>(fold 前取的快照,
+        /// 不读活 registry —— 保纯函数性)。</para>
+        ///
+        /// <para><b>fail-closed 出口</b>:<c>SolePlayer == null</c>(多玩家 / 零玩家 / 未接)
+        /// ⇒ <see cref="InventoryFoldGapKind.BuildCostAttributionUnresolved"/>;
+        /// 模块不在目录 ⇒ 同一条(拿不到 <c>cost(m)</c> 与 <c>build_item_key</c>,
+        /// 扣减量无真源);库存不足 ⇒ <see cref="InventoryFoldGapKind.BuildCostExceedsHolding"/>。</para>
+        ///
+        /// <para><b>���减方式</b>= 规则六的兜底序:同 <c>item_key</c> 多栈按
+        /// <c>instance_id</c> 升序逐栈扣。BL-28 已裁 P0 建材品级恒 1 ⇒ 建材上「点名」与
+        /// 「兜底序」结果恒等(<c>inventory-and-items.md:529-560</c> 规则六原文)。</para>
+        /// </summary>
+        private static void ApplyBuildCost(StructurePlacedPayload p, EventKind kind, EventOrderKey at,
+            Dictionary<long, InventoryRow> rows, List<InventoryFoldGap> gaps,
+            InventoryFoldContext context, ItemLookup lookup)
+        {
+            if (!context.SolePlayer.HasValue)
+            {
+                gaps.Add(Gap(InventoryFoldGapKind.BuildCostAttributionUnresolved, kind, at, 0L,
+                    "structure_id=" + p.StructureId + " module_id=" + p.ModuleId + " —— " +
+                    "建造扣料归因不可判:SolePlayer 为空(多玩家 / 零玩家 / 未接 PlayerActorRegistry)。" +
+                    "R16 甲案只在 P0 单机成立;多玩家须走载荷补 actor 位(乙案)"));
+                return;
+            }
+
+            if (context.Modules == null ||
+                !context.Modules.GetModuleDefinition(p.ModuleId).HasValue)
+            {
+                gaps.Add(Gap(InventoryFoldGapKind.BuildCostAttributionUnresolved, kind, at, 0L,
+                    "structure_id=" + p.StructureId + " module_id=" + p.ModuleId + " —— " +
+                    "模块不在目录(或目录未注入)⇒ 取不到 cost(m) 与 build_item_key,扣减量无真源"));
+                return;
+            }
+
+            ModuleDefinition def = context.Modules.GetModuleDefinition(p.ModuleId).Value;
+            int need = def.Cost;
+            int itemOrdinal = def.BuildItemKey;
+            int owner = context.SolePlayer.Value;
+
+            if (need <= 0) return;      // cost 为 0 的模块不扣料(目录 AC 已约束 cost ≥ 1,流里出现 0 不扣也不错)
+
+            // ── 规则六兜底序:同 item_key 多栈按 instance_id 升序
+            List<long> candidates = OwnedIdsOf(rows, owner, itemOrdinal);
+            int available = 0;
+            for (int i = 0; i < candidates.Count; i++) available += rows[candidates[i]].Qty;
+
+            if (available < need)
+            {
+                gaps.Add(Gap(InventoryFoldGapKind.BuildCostExceedsHolding, kind, at, 0L,
+                    "structure_id=" + p.StructureId + " 需 " + need + " 份 item_key=" + itemOrdinal +
+                    ",而 actor=" + owner + " 名下只有 " + available + " 份 —— " +
+                    "主机应整体拒绝、世界流零事件;流里出现即畸形"));
+                return;
+            }
+
+            int remaining = need;
+            for (int i = 0; i < candidates.Count && remaining > 0; i++)
+            {
+                InventoryRow r = rows[candidates[i]];
+                int take = r.Qty < remaining ? r.Qty : remaining;
+                rows[candidates[i]] = new InventoryRow(r.InstanceId, r.ItemOrdinal, r.Quality,
+                    r.Qty - take, r.Owner);
+                remaining -= take;
+            }
+        }
+
+        /// <summary>收集某 actor 名下某 ordinal 的实例 id(**按 instance_id 升序**)。
+        /// 规则六的兜底序要求稳定序 ⇒ 显式排序,不靠字典枚举序。</summary>
+        private static List<long> OwnedIdsOf(Dictionary<long, InventoryRow> rows, int owner, int itemOrdinal)
+        {
+            var ids = new List<long>();
+            foreach (KeyValuePair<long, InventoryRow> kv in rows)
+            {
+                if (kv.Value.Owner != owner) continue;
+                if (kv.Value.ItemOrdinal != itemOrdinal) continue;
+                if (kv.Value.Qty <= 0) continue;
+                ids.Add(kv.Key);
+            }
+            ids.Sort();
+            return ids;
         }
 
         /// <summary>把行表摊成投影(含按持有者的升序视图)。归零行不出投影。</summary>

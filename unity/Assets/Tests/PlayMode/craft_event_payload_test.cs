@@ -450,15 +450,36 @@ namespace DaYiJingCheng.Tests.PlayMode.Processing
         [Test]
         public void test_ac1811_craftIsConsumedSideReadableByInventoryFold()
         {
-            // fold 侧交叉:20 的 `InventoryFold` 读同一条 `Craft` 能拿到输入组,且**不崩**;
-            // 它同时必须报 R15(载荷无产出 item_key)—— 那是**已登记缺口**,不是本件缺陷。
+            // fold 侧交叉:20 的 `InventoryFold` 读同一条 `Craft` 能拿到输入组,且**不崩**。
+            //
+            // 🔁 **2026-10-27 改写(R15 闭合批)**:原断言是「fold 必报 R15 缺口
+            //    (`CraftOutputWithoutItemKey`)」—— 那是**缺位期**的判据。R15 闭合后
+            //    产出侧经 `recipe_id` → 配方表 → 物品表折出 `item_key` 并**建行**;
+            //    沿用旧断言会让测试与实现对着干。
+            //
+            //    ⚠️ 而本条**没有**真配方表(这是 18 的 PlayMode 夹具,`Assemble()` 不带
+            //    配方数据集)⇒ 现在该报的是 **`CraftRecipeNotInTable`**(可修的数据缺口),
+            //    不是 `CraftOutputWithoutItemKey`(结构性缺位,已不存在)。
+            //    **两者都是 R15**,但语义不同:前者是「表没装载 / 版本不一致」,
+            //    后者是「载荷永远装不下」。本测钉的是「fold 对产出侧仍**如实报缺口**」,
+            //    而不是「缺口消失了」—— 那反而是本测不该主张的事。
             Ignite(Request());
-            InventoryFoldResult fold = InventoryFold.Fold(_bag.Stream.Events, _bag.Decoder);
+            InventoryFoldResult fold = InventoryFold.Fold(_bag.Stream.Events, _bag.Decoder,
+                InventoryFoldContext.None);
 
             Assert.IsNotNull(fold, "fold 必须能跑完(读 Craft 时不崩)");
-            Assert.IsTrue(fold.Gaps.Any(g => g.Kind == InventoryFoldGapKind.CraftOutputWithoutItemKey),
-                "fold 对产出侧报 R15(载荷无 output item_key)—— 本测钉它是「已知且可见」," +
-                "不是「不存在」");
+
+            InventoryFoldGap gap = fold.Gaps.FirstOrDefault(
+                g => g.Kind == InventoryFoldGapKind.CraftRecipeNotInTable);
+            Assert.IsNotNull(gap,
+                "fold 对产出侧报 R15 的**现行形态** `CraftRecipeNotInTable` —— " +
+                "本夹具无配方表,查不到号必须**显式可见**;静默丢产出会让「表没装载」" +
+                "伪装成「炮制没出货」");
+            Assert.AreEqual("R15", gap.RegistryId, "仍归 R15 涟漪登记行");
+
+            Assert.IsFalse(fold.Gaps.Any(g => g.Kind == InventoryFoldGapKind.CraftOutputWithoutItemKey),
+                "旧的 `CraftOutputWithoutItemKey`(结构性缺位)口径已随 R15 闭合退役 —— " +
+                "若它仍出现,说明 fold 没走新的查表链");
         }
 
         // ══════════════════════════════════════════════════════════════════
