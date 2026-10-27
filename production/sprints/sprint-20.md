@@ -94,7 +94,8 @@
       > `production/qa/smoke-2026-10-27-sprint20.md` —— **Verdict: PASS**(EditMode 5385/5350/0/35 ·
       > PlayMode 204/204/0/0)。⚠️ 该 PASS 的边界已在报告内写明:A–D 22 条是 **N/A 不是 PASS**。
 - [x] QA sign-off:APPROVED 或 APPROVED WITH CONDITIONS(`/team-qa sprint`)
-      > `production/qa/qa-signoff-sprint-20-2026-10-27.md` —— **APPROVED WITH CONDITIONS**(C-1…C-6)。
+      > `production/qa/qa-signoff-sprint-20-2026-10-27.md` —— **APPROVED WITH CONDITIONS**(C-1…C-8;
+      > 首版 6 条,10-27 写 C-3 加注时核表核出 C-7 / C-8 两条新缺陷后追加)。
 - [x] No S1 / S2 bugs
       > `production/qa/bugs/` 仅 `README.md`,零 `BUG-*.md`(复算命令见 QA 签核件 §Bugs Found)。
 - [x] 设计文档偏离已更新;代码已评审(双列结账表 + Branch 列)
@@ -139,7 +140,7 @@
 | **追加批 S20-8…S20-16** | **5/9 `done` · 1 `ready-for-dev` · 3 `backlog`** | 同上;未完成 4 件见 §9.3 ① |
 | DoD 10 条 | 全勾,零 `[ ]`(带 4 处加注) | 本文 §Definition of Done `:71-108` |
 | smoke-check | **PASS** | `production/qa/smoke-2026-10-27-sprint20.md`(EditMode `5385/5350/0/35` · PlayMode `204/204/0/0`) |
-| QA 签核 | **APPROVED WITH CONDITIONS** | `production/qa/qa-signoff-sprint-20-2026-10-27.md`;C-1…C-6 |
+| QA 签核 | **APPROVED WITH CONDITIONS** | `production/qa/qa-signoff-sprint-20-2026-10-27.md`;C-1…C-8(首版 6 条,10-27 追加 C-7/C-8) |
 | 证伪轮 | 每件 ≥1 轮,全 exact | 见 DoD 第 5 条注;S20-4 / S20-7 有 `FALSIFY-` 零残留 + SHA-256 逐字节记录 |
 | 收口提交 | ✅ **已落 —— 即本提交** | 复算:`git log -1 --format='%h %s' -- production/sprints/sprint-20.md`;<br>sprint-20 实现区间 = `9bbef11`..`51193cf` 共 **41 笔**,收口提交为其后第 **3** 笔(`0a64faf` S20-4 · `34c75e9` S20-7 · 本笔四件套) |
 | 债册复算 | **已实跑** | 见 §9.2(`--print` 实跑输出,`--check` exit 0) |

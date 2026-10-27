@@ -133,6 +133,74 @@ sprint-20 全部 16 件,逐件核声明的证据路径(两棵树都扫过:`unity
 
 **Summary**: **COVERED 10** · **EXPECTED 6** · **MISSING 0** · **MANUAL 0**
 
+### 🔁 2026-10-27 加注:6 条 `EXPECTED` 混了两种语义(QA 签核 C-3)
+
+**问题**:上表 6 条 `EXPECTED` 被同一顶帽子盖着,但它们**不是同一种东西** ——
+其中 4 条是「**还没开工**」,2 条是「**本报告执行的那一刻还没落地**」。
+混在一起会被下游读成「S20-4 / S20-7 没有测试」,从而**系统性低估覆盖率**。
+
+**拆分(状态截至 `2026-10-27` 收口轮)**:
+
+| 语义 | 件 | 本报告执行时 | 收口轮现状 | 复算 |
+|---|---|---|---|---|
+| **① 未开工**(无「应有而未有的证据」) | `S20-8` `S20-13` `S20-14` `S20-15` | 未开工 | **仍未开工**(1 `ready-for-dev` + 3 `backlog`),结转 sprint-21 | `grep -A6 'id: "S20-8"' production/sprint-status.yaml \| grep status` |
+| **② 执行时点未落地**(当日补齐) | `S20-4` | `ready-for-dev`,夹具 `[ ] Not yet created` | ✅ **已落地**:`admissible_predicate_test.cs` **29** 条 · story `Complete` | 见下方命令 |
+| **② 执行时点未落地**(当日补齐) | `S20-7` | `ready-for-dev`,零新代码 | ✅ **已落地**:债册 §「2026-10-27 · S20-7 治理盘点轮」(`docs/tech-debt-register.md:4460`)· story `Complete` | `grep -n "S20-7 治理盘点轮" docs/tech-debt-register.md` |
+
+**② 的复算命令**(S20-4,自包含):
+
+```bash
+cd /home/gu/文档/nm/nm2/Claude-Code-Game-Studios
+python3 -c "
+import xml.etree.ElementTree as ET
+r = ET.parse('unity/Logs/s20-7-full.xml').getroot()
+print(len([t for t in r.iter('test-case')
+           if 'AdmissiblePredicateTest' in (t.get('fullname') or '')]))"
+# 实跑:29
+```
+
+**⇒ 修正后的口径**:本报告执行时 **COVERED 10 · EXPECTED 6(4 未开工 + 2 当日补齐)**;
+到 `2026-10-27` 收口轮,其中 **2 条已转 COVERED** ⇒ **有效 COVERED 12 · 未开工 4 · MISSING 0**。
+⚠️ 上表**原文不删**(它是本报告执行时刻的真实快照),本节只作语义拆分,**不改写原表**。
+
+---
+
+### ⚠️ 另发现两处缺陷(超出 C-3 面,已登记待裁,**本注未修**)
+
+> 这两条是写 C-3 加注时核表核出来的,**不是 C-3 的一部分**。按「原文不删,就地加注」纪律,
+> 此处**只登记不动表** —— 修表须另裁(改的是本报告的事实断言面,不是注释面)。
+
+**缺陷 ①:覆盖率表整行缺席 `S20-2a`**
+
+- **事实**:表内 `S20-*` 行 = **16** 条;`production/sprint-status.yaml` 件数 = **17**(含 `S20-2a`)。
+  复算:`grep -c '^  - id: "S20-' production/sprint-status.yaml` ⇒ **17**;
+  表内 `grep -c '^| S20-'` ⇒ **16**。
+- **缺席件**:`S20-2a`(TD-building-01 两半全补)—— `status: done` @ `2026-10-25`,
+  载体实测在盘:`ModularBuilding/world_end_to_end_test.cs`(**8**)+ `demolish_refund_from_catalog_test.cs`(**12**)。
+- **后果**:`MISSING 0` 这个断言**成立**(缺席 ≠ 无证据),但「逐件核」这句**不成立** ——
+  表内少一件,且少的是**有证据的那一件** ⇒ 覆盖率被**低估**,方向与 C-3 同。
+
+**缺陷 ②:报告头部的件数与状态分布与本报告自己的三元组 commit 不符**
+
+- **头部写**(`:4`):「16 件中 **8 件 done**、3 件 ready-for-dev、5 件 backlog」。
+- **实测**(本报告三元组 commit `5bdd226`):**17 件**,`done 11` / `ready-for-dev 3` / `backlog 3`。
+  复算:
+  ```bash
+  git show 5bdd226:production/sprint-status.yaml | python3 -c "
+  import sys, re, collections
+  t = sys.stdin.read(); c = collections.Counter()
+  for m in re.finditer(r'- id: \"(S20-[0-9a-z]+)\"', t):
+      e = t.find('\n  - id:', m.end()); seg = t[m.start():e if e != -1 else len(t)]
+      c[re.search(r'\n    status: (\S+)', seg).group(1)] += 1
+  print(sum(c.values()), dict(c))"
+  # 实跑:17 {'done': 11, 'ready-for-dev': 3, 'backlog': 3}
+  ```
+- **同时**:表内 16 行的「状态」列自算 = `done 10 / ready 3 / backlog 3`,**也不等于**头部的 `8/3/5`。
+  ⇒ 头部的三个数**既不匹配 yaml,也不匹配本表** —— 是**陈旧值**(最接近 `ebe532e` 时刻的
+  `17 件 / done 8 / ready 3 / backlog 6`,仍差 backlog 1 与总数 1)。
+- **性质**:这是**现行态断言**而非历史陈述,按 control-manifest 二分本可直接改;
+  但改它等于改写本报告的**已提交事实**,故**登记待裁**,不在本注自裁。
+
 > 📌 **S20-16 订正**:卡面 `:102` 有**已划掉**的 `~~gather_identity_reflection_test.cs~~ — 不存在`。
 > 本表按未划掉的载体计。划掉项是卡面自己留的闭环记录,不是遗漏(初扫时我误报过一次,已收回)。
 

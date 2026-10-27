@@ -20,7 +20,7 @@
 | 追加件完成 | — | **5/8**(S20-9/10/11/12/16 done) | **62.5%** ← 首次可量化 |
 | Commits(sprint 区间 `9bbef11..HEAD`) | — | **41**(docs 20 · feat 12 · fix 6 · chore 2 · test 1) | — |
 | S1/S2 bug | 0 | **0**(`production/qa/bugs/` 仅 `README.md`) | 0 |
-| QA 签核发现 | — | 6 条条件(C-1…C-6) | 与 sprint-19 同数 |
+| QA 签核发现 | — | **8 条**条件(C-1…C-8;首版 6 条,10-27 写 C-3 加注时核表核出 C-7/C-8) | sprint-19 为 6 条 |
 | 新立债(全部) | — | **+18** | — |
 | 新立 P0 面债 | — | **+4**(`TD-clinic-20` · `TD-enemy-03` · `TD-itemdb-02` · `TD-processing-07`) | — |
 | 结清 P0 面债 | — | **−10**(`TD-audio-026/028/030` · `TD-building-01` · `TD-clinic-02/08/09` · `TD-itemdb-01` · `TD-medcons-16` · `TD-prescription-07`) | **净 −6** |
