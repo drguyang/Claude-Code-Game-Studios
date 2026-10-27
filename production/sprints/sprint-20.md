@@ -141,7 +141,7 @@
 | smoke-check | **PASS** | `production/qa/smoke-2026-10-27-sprint20.md`(EditMode `5385/5350/0/35` · PlayMode `204/204/0/0`) |
 | QA 签核 | **APPROVED WITH CONDITIONS** | `production/qa/qa-signoff-sprint-20-2026-10-27.md`;C-1…C-6 |
 | 证伪轮 | 每件 ≥1 轮,全 exact | 见 DoD 第 5 条注;S20-4 / S20-7 有 `FALSIFY-` 零残留 + SHA-256 逐字节记录 |
-| 收口提交 | ✅ **已落 —— 即本提交** | 复算:`git log -1 --format='%h %s' -- production/sprints/sprint-20.md`;<br>sprint-20 实现区间 = `9bbef11`..`51193cf` 共 **41 笔**,收口提交为其后第 **3** 笔(`779ff18` S20-4 · `7cf8521` S20-7 · 本笔四件套) |
+| 收口提交 | ✅ **已落 —— 即本提交** | 复算:`git log -1 --format='%h %s' -- production/sprints/sprint-20.md`;<br>sprint-20 实现区间 = `9bbef11`..`51193cf` 共 **41 笔**,收口提交为其后第 **3** 笔(`0a64faf` S20-4 · `34c75e9` S20-7 · 本笔四件套) |
 | 债册复算 | **已实跑** | 见 §9.2(`--print` 实跑输出,`--check` exit 0) |
 | retro | 已落 | `production/retrospectives/retro-sprint-20-2026-10-27.md` |
 | CAPACITY-MODEL 三元行 | 已补 | `production/CAPACITY-MODEL.md` 表 20 行 |
@@ -255,12 +255,26 @@ S20-12 零陈述且无原件;S20-2a / S20-5 / S20-6 / S20-7 为债册工作项,�
 
 | # | commit | 内容 |
 |---|---|---|
-| 1 | `779ff18` | S20-4 本体(契约 2 件 + 谓词 2 件 + `PrescribeFlow` AR2 + 29 条夹具 + 8 条变异 spec + 两件证据) |
-| 2 | `7cf8521` | S20-7 治理盘点(债册四十四订 + `EventBudget` W8 + `TD-medcons-16` 夹具删除) |
-| 3 | **本笔** | 收口四件套(§九 + retro + QA 签核 + CAPACITY 第 20 行)+ `sprint-status.yaml` |
+| 1 | `0a64faf` | S20-4 本体(契约 2 件 + 谓词 2 件 + `PrescribeFlow` AR2 + 29 条夹具 + 8 条变异 spec + 两件证据) |
+| 2 | `34c75e9` | S20-7 治理盘点(债册四十四订 + `EventBudget` W8 + `TD-medcons-16` 夹具删除) |
+| 3 | `d69d4b0` | 收口四件套(§九 + retro + QA 签核 + CAPACITY 第 20 行)+ `sprint-status.yaml` |
 
 复算:`git log --oneline 51193cf..HEAD` ⇒ 实跑 **3 笔**;`git status --porcelain | wc -l` ⇒ **0**。
-⚠️ 提交后「被验的树」= 本笔 commit,可 `git show` 完整复现 —— 此前的 C-6 条件**就此关闭**。
+⚠️ 提交后「被验的树」= `d69d4b0`,可 `git show` 完整复现 —— 此前的 C-6 条件**就此关闭**。
+
+> 🔁 **2026-10-27 哈希订正(原文不删)**:上表三个哈希在首次提交时为 `779ff18` / `7cf8521` / `a0197f1`,
+> 三笔的 message **均缺 `Co-Authored-By` 尾行**。按 `coding-standards.md` §commit message 里的定性错了怎么办,
+> 用 `commit-tree` 重建(**tree 原样复用,逐位相同** —— 见下方核对),`update-ref` 换指向。
+> 重建后旧哈希从历史消失,故本表就地改写为新值,并在此留痕。
+>
+> | 旧 | 新 | tree(两者必须相同) |
+> |---|---|---|
+> | `779ff18` | `0a64faf` | `5fc891c699bfeecff835d4f6da4f5f4c338b6ea1` ✅ |
+> | `7cf8521` | `34c75e9` | `707befd7536da4febda8819d51d3ad0ebbe6fd5a` ✅ |
+> | `a0197f1` | `d69d4b0` | `b1efa57ee8c3a5a03f1e7ab9adf9ddfc7627db4b` ✅ |
+>
+> 判据 = **改写前后 tree 哈希逐位相同** ⇒ 只动了 message,零文件内容变化。
+> 改写前已核:未推送(`git branch -r --contains` 为空)· 工作树干净 · 全仓 grep 旧哈希仅命中本文件与 QA 签核件。
 
 ### 9.4 与前序 sprint 的对比
 
